@@ -1,0 +1,30 @@
+{
+  "project": "piidsfebjqjmnepdpnas",
+  "files": [
+    {
+      "cli_file": "20261013165404_ops_api_native_reconciliation_privilege_qualified_install.sql",
+      "pending_path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/cli-created-pending/20261013165404_ops_api_native_reconciliation_privilege_qualified_install.sql",
+      "source_sha256": "fa0af500fb71a8b4d41a269b58f2ce0879ab6d8d4cd7b35d734d613100b8b53d",
+      "bytes": 41778,
+      "official_cli_version": "2.101.0",
+      "network_mode": "none",
+      "native_applied": false,
+      "runtime_checksum_registered": false,
+      "owner_capability_required": true
+    },
+    {
+      "cli_file": "20261013165527_ops_api_retention_privilege_qualified_install.sql",
+      "pending_path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/cli-created-pending/20261013165527_ops_api_retention_privilege_qualified_install.sql",
+      "source_sha256": "2ff105e0d8f1a9cc9e84fbf7c060a52bf6bdf8d7f9c7e75a843f4bb209fa0425",
+      "bytes": 94467,
+      "official_cli_version": "2.101.0",
+      "network_mode": "none",
+      "native_applied": false,
+      "runtime_checksum_registered": false,
+      "owner_capability_required": true
+    }
+  ],
+  "active_migration_queue_unchanged": true,
+  "no_applied_history_rewrite": true,
+  "telemetry_network_block_did_not_prevent_cli_creation": true
+}

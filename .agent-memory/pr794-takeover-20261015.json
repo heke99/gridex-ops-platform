@@ -1,0 +1,717 @@
+{
+  "project": "gridex-ops-platform",
+  "task": "PR794 full API completion",
+  "agent": "codex-pr794-takeover-20261015",
+  "epoch": "gridex-five-agent-20261012",
+  "slot": "helper",
+  "packet": "87986606-c777-4474-ab33-7edb7b0aecf2",
+  "branch": "codex/ops-api-contract-review-20261012",
+  "checkpoint": ".agent-memory/pr794-takeover-20261015.json",
+  "user_authorization": "User explicitly appoints this chat as new responsible owner of API PR794, to correct, review and merge, using multiple parallel agents.",
+  "observed_head": "f3e517dc4e0bd9a3083c04fbccf6b921bdea1c89",
+  "observed_main": "d9fc4397be806321723fb1cac42441ca2b3106f3",
+  "observed_at": "2026-10-15T21:20:47.826980+00:00",
+  "scope": "Existing API PR794. No transfer of other masterplan packets or shared GEN/native/serial delivery service.",
+  "status": "FINAL_LOCAL_SQL_AND_GEN_SOURCE_PREPARING_FINAL_COMBINED_HEAD_BINDING",
+  "skill_routing": {
+    "active": [
+      "cloud-environment-runtime",
+      "using-superpowers",
+      "writing-plans",
+      "dispatching-parallel-agents",
+      "using-git-worktrees",
+      "systematic-debugging",
+      "code-review",
+      "differential-review",
+      "receiving-code-review",
+      "verification-before-completion",
+      "supabase",
+      "supabase-postgres-best-practices"
+    ],
+    "conditional": [
+      "test-driven-development for verified repairs",
+      "requesting-code-review for frozen candidate",
+      "finishing-a-development-branch for merge"
+    ],
+    "skipped": {
+      "brainstorming": "Existing specified API behavior and verified defect repair; no architecture choice.",
+      "repository-wide baseline audit": "Focused continuation of existing PR, preserving existing audit, not a new repository-wide audit.",
+      "UI/performance/refactor/skill-authoring/hook-installation": "No such changes requested."
+    }
+  },
+  "delegation": {
+    "api_review": "Independent read-only application/API and historical review-thread inspection",
+    "database_review": "Independent read-only replay SQL guard/profile review",
+    "ci_diagnosis": "Current failed CI root cause; no reruns or producers",
+    "test_validation": "Local affected tests and checks; no DB/native/GEN"
+  },
+  "next_action": "Commit SQL+owncheckpoint only atopf47, freeze exact combined finalhead/tree/base/all10technicalpostimages; two independent nonauthor combinedSOURCE bindings, fresh remote43custody/main/head; normalnonforcepush+authenticatedbranchPRreadback. SolecollectorcurrentordinaryCI/allmandatorygates/twoDELIVERY/normalmerge/roleFIRSTrelease/7restore36release.",
+  "ownership": {
+    "takeoverComment": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6196305923",
+    "preparedNeutralReceipt": "32d31cf69ba0f2133947d9a2994fda3b8e9d0965",
+    "sourceFiles": [
+      "scripts/gridex-aud-003-legacy-foundation.additions.json",
+      "supabase/bootstrap/20261015_ops_atomic_bb0b_preflight_diagnostic_replay_adapter.sql"
+    ],
+    "refsModified": true,
+    "autoReviewRejection": "RESOLVED by explicit user approval of the same exact named two-ref transfer and #766 publication; verified normally through matched old-reference readback, delete/404, create/full new readback. Every other existing ref preserved.",
+    "explicitUserApproval": "User answered YES to exact two shared file-ref delete/recreate operations and #766 receipt publication.",
+    "custodyProof": {
+      "newReceipt": "32d31cf69ba0f2133947d9a2994fda3b8e9d0965",
+      "files": [
+        "scripts/gridex-aud-003-legacy-foundation.additions.json",
+        "supabase/bootstrap/20261015_ops_atomic_bb0b_preflight_diagnostic_replay_adapter.sql"
+      ],
+      "refs": {
+        "refs/tags/agent-claims/masterplan/file-db2a7e55029e7bf7a78e5662dd5c3ef2471e44f78d2e69c9d753b1715cfbc983": "32d31cf69ba0f2133947d9a2994fda3b8e9d0965",
+        "refs/tags/agent-claims/masterplan/file-08a0c83abb2604d6cb514024b911f9d672c72a870049a2ebc8303fea71426de0": "32d31cf69ba0f2133947d9a2994fda3b8e9d0965"
+      },
+      "comment": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6196631778",
+      "allOtherExistingRefsPreserved": true,
+      "explicitUserApproval": true
+    }
+  },
+  "confirmed_blockers": [
+    {
+      "source": "b1a94494",
+      "scope": "verify/UPGRADE/smoke",
+      "cause": "Stale committed generated RAW3/types manifest; genuine independentclean/upgraded RAW3 byteequal; reviewed five-file proposal ready, occupied sharedfilecustody pending explicitapproval."
+    },
+    {
+      "source": "b1a94494",
+      "scope": "ordinaryschema-capture",
+      "cause": "Receipt latest-migration selector lexically chooses shortdated helper; reviewed strict14digitselector correction partofsamefivefileproposal. OriginalcaptureFAIL/no receipt."
+    },
+    {
+      "source": "b1a94494",
+      "scope": "quality/coverage",
+      "cause": "51fail in2stale historical testfixtures; exact local fix140PASS/two independentreview; currentCI mustrerun ordinarily after next meaningful batchpush."
+    }
+  ],
+  "verification": {
+    "migrationIntegrity": "PASS1259files/1162groups/checksums",
+    "APIBehavior": "34PASSdirectactualsource",
+    "validatorErrata": "3PASSsourcepatchderivedchecksums",
+    "affectedUnit": "305PASS20suitesNode22; original blocked loopback2 rerun passed with same external socket block",
+    "docsAndContracts": "api:docs, api:compatibility, localOpenAPIrelease, api:error-registry, api:error-boundaries PASS",
+    "preexistingStaticFailures": "4unrelatedregressionfailures independently reproduced on immutable origin/main11bd; no fixes introduced",
+    "applicationReview": "No confirmed defect; /tmp/pr794-api-independent-review.json",
+    "CILogs": "/tmp/pr794-ci-diagnosis/report.md; originalSHAregistrylog-manifest.json",
+    "noWholeGreenOrMergeClaim": true,
+    "appTypecheck": "PASSNode22--noEmit--incremental=false",
+    "testTypecheck": "PASSNode22--noEmit--incremental=false"
+  },
+  "local_repair_proposal": {
+    "path": "/tmp/pr794-database-review/proposal.patch",
+    "patchSHA256": "000b686d08d2537fa78918d28bda991ca39319c0b9e92ff57bffd654d428ba30",
+    "sourceHead": "c777f903b05e336485e0dcf2d066eb0af3c8a1db",
+    "sourceFiles": [
+      "supabase/bootstrap/20261015_ops_atomic_bb0b_preflight_diagnostic_replay_adapter.sql",
+      "scripts/gridex-aud-003-legacy-foundation.additions.json"
+    ],
+    "artifactAfterSHA256": "6c139e8f94e86de4409e0097078f56d839cdd824fc3f6f7858549699ed7d87e8",
+    "descriptorAfterSHA256": "d44ef59c0bed3bae819c8d25fa756e7bee0372756517c4b2b15fa494d883166c",
+    "fullRenderedExecutableAfterSHA256": "242c5b9cf6d542b1d83b3db0b8f88e2d425d2c7121f188ed019894bf4eba3f60",
+    "componentQualification": "28PASS:2baselineRED+6positive+20invalidrollback; actualPGliteDOadapterblocks; isolatedsyntheticcomponentonly",
+    "byteRendererQualification": "PASSactualPGliterender1505529B/SHA242c5b9cf6d542b1d83b3db0b8f88e2d425d2c7121f188ed019894bf4eba3f60; damagedpreimagerefuses",
+    "gitApplyCheck": "PASSexactcurrent2filepreimages; parentfilesstillunchanged",
+    "finalReviews": {
+      "A": {
+        "path": "/workspace/pr794-handoff/pr794-canonical-clone-independent-final-review.json",
+        "sha256": "aca4242fe5f899630cb4fa06c6829fa869b4490765a2ca31ec232194e584ad58",
+        "verdict": "APPROVE_SOURCE_NO_FINDINGS"
+      },
+      "B": {
+        "path": "/workspace/pr794-handoff/ci-and-review-b/source-final/verdict.json",
+        "sha256": "48bd1cec53acf5befb565ef7e6dc65c6b355c4acf96fc3d50c72ae537946dc81",
+        "verdict": "APPROVE_SOURCE_NO_FINDINGS"
+      },
+      "applicability": "Exact two-file proposal postimages only; post-materialization and final commit/full CI/GEN still required"
+    },
+    "repositoryApplied": true,
+    "wholeReplayQualified": false,
+    "materializedPostimagesMatchApproved": true
+  },
+  "handoff_directory": "/workspace/pr794-handoff",
+  "integration": {
+    "repairCommit": "2344ed092db6fa6dcde7c5a93fc18b57f6b43ab6",
+    "mergeCommit": "2a74bee53f9b806c7552d2667768a2b0b2130bfa",
+    "mergeTree": "bdd86a852fa7f8525964114f5706bd93056cbb27",
+    "integratedMain": "11bd50430b0cfd5e525dce7034e4659756c8d5e0",
+    "mergeConflicts": false,
+    "reviewedTwoFileHashesPreserved": true,
+    "migrationIntegrity": "PASS1263files/1166groups/checksums",
+    "meaning": "Current-main integration preserves delivered SC046 ledger and existing generated-output provenance; not actual current API replay/GEN qualification."
+  },
+  "fixture_repair_scope": {
+    "custody": {
+      "receipt": "fad4f19d28e2e62852dda032b70f5397677f8b01",
+      "files": [
+        "__tests__/ediel-ops-03-code-release-evidence.test.ts",
+        "__tests__/gridex-aud-003-clean-replay-cleanup.test.ts"
+      ],
+      "resources": [
+        "refs/tags/agent-claims/masterplan/file-7795662d874d0c468cd678f7f768bcc24d6144ec8a86f05a7a440e75cc71bbe4",
+        "refs/tags/agent-claims/masterplan/file-bd81f510d7ef471d85a0eafb21fbbbdc41997909b7f0b8b125b582a748633fe1"
+      ],
+      "comment": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6197223922",
+      "allPreviousRefsUnchanged": true,
+      "newAbsentResourcesOnly": true
+    },
+    "state": "EXACT_MATERIALIZED140PASS_TWO_INDEPENDENT_SOURCE_APPROVALS",
+    "actual_red": "Currentb1quality+coverage51failures in2fixturefiles; producerwrapperport and storagebootstrap model stale. Productionvalidators/historicalpins/allpriorassertions preserved.",
+    "proposalPatchSHA256": "1e7a8e20def58bbfce3a585514da9ed2ca34e489a9397508b744a2aa72d31cb8",
+    "next": "Commit exact two reviewed fixtures locally after this checkpoint; batch next normal PR publication with approved sharedGEN five-file update only after required explicit transfer approval.",
+    "verification": {
+      "node": "22.23.3",
+      "vitest": "4.1.9",
+      "suites": 2,
+      "tests": 140,
+      "failed": 0,
+      "reportSHA256": "87194b84e34911266485bd5a917a54d9c19da7b4d03f2cb517feac4a25d2e3bc",
+      "existingAssertionsAndHistoricalPinsPreserved": true,
+      "reviewA": "7835d5e207f9400a8755b8f14091f53a4a0da6340898e8ac6072801dcddf2e1a",
+      "reviewB": "d8814db3eae5bb84290d389fd32c030071c5409c026aea0badb3b9b3ff683ff4"
+    }
+  },
+  "current_runtime": {
+    "source": "b1a944940ffe607f770e31c450cc6f8528541944",
+    "genuineUpgradeSQLAndIndependentCleanSQL": "COMPLETED",
+    "genuineRaw3CleanUpgraded": "BYTE_IDENTICAL",
+    "wholeUpgrade": "FAILURE_AT_STALE_TYPES_CMP; laterhistoricalscenarioNOT_RUN",
+    "capture": "FAILURE_AFTER_RAW3_BEFORE_RECEIPT; shortdatedhelperlexicalmaxbugconfirmed",
+    "qualityAndCoverage": "51FAIL2STALEFIXTUREFILES;1163otherfilesPASS",
+    "completeCLEAN": "PENDING",
+    "generationFiveFileProposal": "TWO_INDEPENDENT_SOURCE_APPROVALS_AND_VIRTUAL_REAL_APP_TEST_TYPECHECK_PASS",
+    "generationFiveCustody": "Owncaadcfa6 exactfive refs/CLAIM/readback verified, explicituserapproval; allotherrefs intact",
+    "supplier": "Currentb1a job116534118111 ordinaryrun38767412320 terminalSUCCESS16:39:12Z; metadataonly/no extra collection"
+  },
+  "resolved_blockers": [
+    {
+      "source": "c777f903",
+      "scope": "canonicalfinanceclones",
+      "repairCommit": "2344ed092db6fa6dcde7c5a93fc18b57f6b43ab6",
+      "result": "Currentb1a genuine UPGRADE completeancestor+forwardSQL and independentcleanSQL completed; full currentCLEAN stillpending."
+    }
+  ],
+  "pending_generation_transfer": {
+    "receipt": "caadcfa69a96b8657b64ae7c6837df13545803f2",
+    "incumbent": "ce80cdd3fb4be418ea54daebb596d798889442cd",
+    "paths": [
+      ".github/workflows/staff-api-schema-capture.yml",
+      "supabase/database.types.ts",
+      "supabase/schema.sql",
+      "supabase/schema.fingerprint.json",
+      "scripts/supabase-types-manifest.json"
+    ],
+    "state": "APPROVED_EXACT_FIVE_REFS_OWNED_REVIEWED_SOURCE_APPLIED",
+    "explicitUserApproval": "Ja, överför de fem reservationerna, inför rättningen, publicera kvittot och återställ reservationerna efter merge",
+    "comment": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6197601111",
+    "allOtherExistingRefsPreserved": true,
+    "twoSourceReviews": "PASS",
+    "actualVirtualAppAndTestsTypechecks": "PASS",
+    "restoreAfterVerifiedMergeTo": "ce80cdd3fb4be418ea54daebb596d798889442cd",
+    "producerGen": "bac82bda2a5278a5c3d0b7221f46dbfcdff7549a preserved"
+  },
+  "generation_repair": {
+    "source": "b1a944940ffe607f770e31c450cc6f8528541944",
+    "proposalManifestSHA256": "1e502fb5849607420ee78541765115ad868977cb97e330f5f5215d84edb464fe",
+    "patchSHA256": "14ef8a77d3243037640aea5b7502892bba0496d70910cea753a3f6eaddfc95b9",
+    "materializedPostimages": {
+      ".github/workflows/staff-api-schema-capture.yml": "e5eb15a3b859ebbb76630695d4a41a050a175c2e55210dd1434a0a0c68a340d8",
+      "supabase/database.types.ts": "4e0058b3446a3cefecc5430e01ae0715eecc1f6328ca7d36b3db8f6421f7e4ea",
+      "supabase/schema.sql": "a53b2e0afbd2ee662f0b1ecbbd1780c681d87eb3b1c82bc6dec1d5125d72a481",
+      "supabase/schema.fingerprint.json": "d2fef2c9c4b55b9a40354e8e352296757cd357ed4e5f910e4fbcd42ef7d246d9",
+      "scripts/supabase-types-manifest.json": "e3841255bdcbe007465d5a0dd35ad536ac066c5f4c153107cc20d43218662658"
+    },
+    "twoIndependentSourceReviews": [
+      "cd5eebdbcfe9537cf65c4a514adb6662b0d5846a85f0588a179c7fd00a83eded",
+      "807900558180de64296821ed947f2aa8dc51e8d9574c1d1958a839741bddaf12"
+    ],
+    "genuineRaw3": "UPGRADEclean/upgraded byteequal authentic outputs only; priorwholejobFAIL/nonexistentcapture receipt notpromoted",
+    "previousManifestHistory": "152otherexistingvalues andallSC046/originalcaptureobjects retained rawbytes;9updatedactivefields exactpreviousvalues archived",
+    "actualMaterializedChecks": {
+      "appTypecheck": "PASSNode22.23.3/TS5.9.3--noEmit--incremental=false",
+      "testsTypecheck": "PASSNode22.23.3/TS5.9.3--noEmit--incremental=false",
+      "dbTypesCheck": "PASS3731493B/4e0058b3/latest20261015100259",
+      "migrationIntegrity": "PASS1263files/1166groups/fullchecksums",
+      "apiDocs": "PASS",
+      "mandatoryStaticCommands": "12PASS",
+      "upgradePlannerSelftest": "8PASS",
+      "redactionSelftest": "97PASS",
+      "boundedChildTests": "3PASS with permittedlocalIPC+sameexternalnetworkblock; originalrestrictedsandboxEPERM reproducedsyncspawn; noforeignsourcefix"
+    },
+    "fixtureRepairCommit": "8485b4318ef307838cbd3a8af82dec0acdaea29c",
+    "fullCurrentReplayNativeAndCapture": "PENDING_NEXT_ORDINARY_SOURCE_CORRECTION_PUSH",
+    "coverageLedger": "Byteexactmain11bd unchanged119VERIFIED+209PASSED=328/352; no new credit"
+  },
+  "remoteProgress": {
+    "head": "f3e517dc4e0bd9a3083c04fbccf6b921bdea1c89",
+    "tree": "2fe97e5569a7d8bf0443fafccdbc3e2e96e1d435",
+    "base": "d9fc4397be806321723fb1cac42441ca2b3106f3",
+    "opsRun": 38797531449,
+    "captureRun": 38797531888,
+    "e2eRun": 38797531734,
+    "normalPush": true,
+    "twoExactCombinedSourceReviews": "PASS",
+    "capture": "ACTUAL_FAILURE_BEFORE_RAW_OR_RECEIPT_ZERO_ARTIFACTS_PRIVATE_REPLAY_LOG_ROOT_UNKNOWN",
+    "nativeBlockers": "Oldb1real25FAILED/714PASSED/1SKIP/740cases beforeCANCEL;1424relevantimmutableinputs identicalcurrent7e; currentfullnativepending",
+    "upgrade": "4087 UPGRADE116575949820 terminalSUCCESS; collector qualification pending; no fullCLEAN/native/browser success inferred.",
+    "verify": "ACTUAL_EXPECTED_STALE_GEN_TAIL_FAILURE new183000vsold172100",
+    "smoke": "FAILURE_METADATA_ROOT_NOT_YET_QUALIFIED",
+    "wholeDelivery": "BLOCKED_CAPTURE_ROOT_UNKNOWN_NO_NEW_GENUINE_GEN_AND_MANDATORY_CURRENT_CI_PENDING"
+  },
+  "native_corrections": {
+    "source": "7e415b009e7101a4a774d4c57c9c5ff0c9b8651e",
+    "scope": "Own13newabsentfiles e0f9178a plus documentfixture b34dc9, provenance4137, unit7ca818. Occupiedprocess1 nowexplicitlyapproved/transferreddae3/publicCLAIMverified, exactreviewedpostimageapplied.",
+    "custody": "e0f9178afa24b2b3b80c22b27639887abc39b26c",
+    "claim": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6197996304",
+    "authors": {
+      "database_review": "Explicitownerrole only privilegedsyntheticSQL/privateprobes; historicalSTABLEthenexistingcurrentVOLATILE witness; isolatedAuthactorconfirmed",
+      "staff_native_fix": "36missingpermissionmetadata plus confirmedAuthhelper;26actualcomponentPASS;combined2peerSOURCEapprovals;nativeCIpending.",
+      "expiry_guard_fix": "SourceconfirmedinternalDBRPCpostclockwaitwindow, normalproductcallers≥1h; delayedinsert/event componentRED→GREEN+rollbackactual, newcanonicalforward+native2caseproposal, no simultaneousFKnativeexecutionclaim"
+    },
+    "retentionProductBoundary": "KeepNOINHERIT, SETtrue, all real JWT/productguards/negativeassertions; no broadGRANTS or ACLweakening",
+    "parentSourceWrites": "15sourcepostimages committed4087; processjournal exactdab9 and Auth4+ACK3 reviewedpostimages applied locally afterownCP/custody.",
+    "next": "Finish genuine4087ordinaryRAW3manifestimport aftertwopeerSOURCEapprovals, finalcandidatecurrentCI/twoDELIVERYreviews/normalexpectedheadmerge; restoreGEN5ce80 andprocess1exact006aad.",
+    "combinedManifestSHA256": "f38a4974cbdd2bcf3ce657a1190d60930c02c85c1b9c4fa47f390607955c90e4",
+    "combinedPatchSHA256": "549ce0da682f719964ce50275e33b9816b3c7e73c94608a9f26f6e40095001ca",
+    "twoIndependentSourceReviews": {
+      "A": "2208377ad6a433c29d784b3ff2ae2293615884655e6bf954b4e74e741ffa81b1",
+      "B": "2d7070afc4c7116d0f0134c69cd76296518d072160b8ec6342007affc1884d15"
+    },
+    "actualReadonlyTypeScript": "PASS12exactTSpostimageoverlays/3607files/0diagnostics Node22/TS5.9/noEmit/incrementalfalse",
+    "excludedForeignFile": {
+      "path": "scripts/ediel-process-journal-retention-native.test.ts",
+      "incumbent": "006aad468c5202130f0bb82f68497d037ca7afdf",
+      "proposedNewReceipt": "dae3bc155a05228ef34a3dd90a700c61a1dac758",
+      "postSHA256": "dab9fde9547aad740bd0796225af8f3f184551b58f3971558a3d2b7d5be9ce5d",
+      "state": "EXPLICIT_USER_APPROVAL_AND_MATCHED_TRANSFER_CLAIM_READBACK_VERIFIED_BEFORE_WRITE",
+      "ownReceipt": "dae3bc155a05228ef34a3dd90a700c61a1dac758",
+      "comment": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6198400804",
+      "restoreAfterVerifiedMergeTo": "006aad468c5202130f0bb82f68497d037ca7afdf"
+    },
+    "additionalCustody": {
+      "documentFixture": "b34dc9621471765332544cb7f62399ba2796a571",
+      "provenanceGate": "4137f69c4046a1487281a23279898b6448efbc3e",
+      "new7UnitFixturePaths": "ca8184cc26dc42ac206df5e2d2d56cdc6b4b1eb7"
+    },
+    "unitRegression28": "Current7e coverage28fail+3setuphooks/9files; sourceGENsnapshot changes exposeoldercomponent scaffolding. Staff4authfixturepaths andDB3transportunitpaths preparingqualifiedpatches; old2unitfixes140PASS hold.",
+    "actualMaterializedChecks": {
+      "migrationIntegrity": "PASS1265files/1168groups/fullchecksums",
+      "provenanceRegression": "PASS actual full checker;9mutationcases qualified beforehand",
+      "readonlyCombinedTsc": "PASS12TSoverlays/3607files0diag"
+    },
+    "auth4UnitProposal": {
+      "manifestSHA256": "eed89d6f2dad185ee6d9adc7bbffaf17ee2fa1b1ef39d611461ab6543b10b65c",
+      "sourceApprovals": [
+        "be67b754e4065a8ef5a5554ee7c358311310d19f6b7c0a8c6fa0d4a8ef25af17",
+        "fdc0faec5ff455e135b65fee62456a61a44a37197e53d81760c07295f52d7514"
+      ],
+      "authorActualTests": "91/91PASS6targetfiles/current7eGENschema",
+      "parentNext": "Completedactual102/102materialized; finalGEN386Bsigningdelta doesnotchange capturedidentityfunctions or types; finalCIpending.",
+      "parentActualTests": "102PASS/7files/0FAIL includingextraexternalidentityclassificationcaller; Node22 actualmaterialized"
+    },
+    "ack3UnitProposal": {
+      "manifestSHA256": "c3267d62cdcf8af73cfab5d243c894033e1a9f578706b9789ad53545282f9f15",
+      "patchSHA256": "1f1d1639beab785163313da17c1777445d3bd57cda8d06a5c6ba97a540a8704a",
+      "twoIndependentSourceReviews": [
+        "5a34078018a539c7591484dcda3f2504f994e68732b2e0836611289f0b9bd4d3",
+        "bac6f3a2acfdbce3e6561e0216526971b3a1ee713592fbb5756ae6f5c77e42e1"
+      ],
+      "authorActualVerification": "89finalfilecasesPASS across2qualifiedruns; no singlefinalcohortclaim",
+      "parentNext": "Completedactual89/89one3filecohort; finalGEN386Bsigningdelta doesnotchange referencedACK/receptionfunctions or types; finalCIpending.",
+      "parentActualTests": "89PASS/3files/0FAIL inoneactualmaterializedcohort, Node22."
+    }
+  },
+  "final_fixture_preparation": {
+    "processJournal": "explicituserapproval,one exact matchedreftransfer+publicCLAIM verified; exactdab9 postimage applied; all47assertions preserved",
+    "Auth7": "actual parent7files102/102PASS",
+    "ACK3": "actual parent3files89/89PASS",
+    "combined": "191 actualPASS in two distinct cohorts/10files",
+    "testsTSC": "actual full tsconfig.tests Node22.23.3/TS5.9.3 noEmit incrementalfalse EXIT0; emptylog SHAe3b0c442",
+    "productionAudit": "actual npm run security:audit-production EXIT0; existing documented node-forge GHSA-86w9-cpqp-85rv exception; otherwise0 vulnerabilities",
+    "GEN": {
+      "source": "4087a558b1060655124bc4ee4d8709a0b6f97b8a",
+      "frozenManifestSHA256": "5ed60d16cdc2b18b281a35679830eddf4db5633e3be1a4f53708dd34afe16e32",
+      "reviews": [
+        "65e39bc86ee2f240e11addb3b5d8bbe5753e2647ef23600e2f13245bee926032",
+        "e70db4f77b59e389f1a12be8b931d59141bbb36d73f71170cd8ac0d0cec326d1"
+      ],
+      "actual6CustodyMatchedAt": "2026-10-15T18:00:00.237780+00:00",
+      "changes": [
+        "supabase/schema.sql",
+        "supabase/schema.fingerprint.json",
+        "scripts/supabase-types-manifest.json"
+      ],
+      "limits": "Ordinary genuine capture only; current finalCI/delivery pending.",
+      "state": "EXACT3_IMPORTED_POSTHASHES_MATCH"
+    },
+    "custody6preflight": "all5GENcaad+processdae3 exactmatched17:56:35;producerbacpreserved;mergeRoleabsent;main11bd",
+    "finalMaterializedChecks": "Actual db:migrations:check1265/1168+newtail/types, provenance, integratedgoldenpath/allnestedgates, largesourcebudget, agentmemorygitstate PASS; output retained /tmp/pr794-final-materialized-checks"
+  },
+  "db01_new_blocker": {
+    "run": 38782781743,
+    "job": 116586993646,
+    "artifact": 11997305048,
+    "actual": "current_guard_qualification FAIL10logicalobjects; baselineclean/historical1/12forwardsPASS;currentAPI/current13cases/JUnitNOT_RUN",
+    "sourceRoot": "All10actualobjects match main11bd; missing4sealedcomponent5helperbodies, published13095628permissionbody+STABLEtoVOLATILE, sealedop2schemaUSAGE andsource23fourEXECUTEpostgres. No newfunctiondependencies. Strictknownbefore/after/effectbounds+unknownsource refusal required.",
+    "evidence": "/tmp/pr794-ci-diagnosis/cohort-a3d770/db01-11997305048-extracted/",
+    "parallel": "database_review assemblesboundedsourcedeliveryproposal; staff_native_fixtracespermission/ACL;expiry_guard_fixtracescommonheader/technicalACK",
+    "scope": "MinimumONEexistingworkflowef088C1 only, via closedsource-derived canonicalprojection after12forwards/beforeunchanged840livecomparison. Config/sourcebasisunit unchanged54/35. No parenttechnicalwrites; concreteproposal/actualfinitecomponentchecks/twoSOURCEreviews beforeexplicitone-filetransferapproval.",
+    "state": "RESOLVED_CURRENT_GENUINE_DB01_14PASS_840_ZERO_MISMATCH",
+    "reviews": {
+      "A": "11f6750bcb50378df40849def96aee87841eb15cd6007ff37c1c5270e8565bdb",
+      "B": "340fcf2db00c759bafbd5748d46da9db6178fc106df2b9e6211b62eec530f49e"
+    },
+    "proposal": "0e85f3e290490081d3edae0c280e1b401cc657adb885c0b0cce054afa954c8ab",
+    "postSHA256": "bf3d786b4baaff0c5a847c34fd2a38faebb19853d3b653ea273a2be1b4658f77",
+    "proposedReceipt": "b25a66b29b11ea6df81843b0e8dde8e3140068f4",
+    "incumbent": "ef088907a6e85783b5d6205594bfd548ddf242de",
+    "transferPerformed": true,
+    "comment": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6200484579",
+    "restoreAfterVerifiedMergeTo": "ef088907a6e85783b5d6205594bfd548ddf242de",
+    "next": "Exactreviewedworkflowcopyafterthisowncheckpoint; frozen840comparison/nativegatesunchanged"
+  },
+  "remaining_sql_fixture_scope": {
+    "historicalEvidence": "7SQLerrors,8nativeflags,2typeflags exactoldb1original; no currenta3failureclaim",
+    "alreadyFixed": "Five Staffpermissions gateusers.write/customers.write restoredby36catalogrows; no extraAuthchanges",
+    "newMinimumProposals": [
+      "scripts/tenantservice-identity-billing-regression.sql",
+      "scripts/staff-customer-retention-read-prerequisite-regression.sql"
+    ],
+    "state": "P3frozenreview/componentpending; retentionminimumproposalactualNOINHERITcomponentinprogress",
+    "custody": {
+      "receipt": "73890d5d309bd93310e8cf8f2fcf5a61ab6774d9",
+      "comment": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6200409345",
+      "files": [
+        "scripts/staff-customer-retention-read-prerequisite-regression.sql",
+        "scripts/tenantservice-identity-billing-regression.sql"
+      ]
+    },
+    "next": "Both reviewed SQLfixtures exactapplied/committed; actual22parentPASS in2existingfiles. CurrentwholeCIpending ordinarymeaningfulsourcepush.",
+    "P3": {
+      "sourceA": "944f48f305c1f6da8172a70a683c04a0b2b2f3006dc3fc3427d3f2911fd64939",
+      "sourceB": "bcb3884f2876b82a70a2786a0e422a7a4309036a119fdc4e5d8ff0d5a386cf13",
+      "component": "18PASS/15negative; syntheticSUPERUSER/INHERIT limitation notnativeauthorityproof",
+      "post": "2ce866064c808a7fc563eca55c7f0cb2f0361a1b07fd0936eb0b2aeb6c825b1f"
+    },
+    "retentionA": "f50d7a39262f40c2826d84d6f816eb27ee9f2b036946792321cbb0bcbed7e7ec",
+    "retentionB": "e4af9da250ac0d4b522ce28ba6b27910d37d76714bced47453832d60ec33d1e2"
+  },
+  "updatedAt": "2026-10-15T21:28:48.221543+00:00",
+  "current_main_integration": {
+    "actualMain": "d9fc4397be806321723fb1cac42441ca2b3106f3",
+    "previousMain": "11bd50430b0cfd5e525dce7034e4659756c8d5e0",
+    "scope": "Merge811 addsSC039nativeproof3cases+ownforeigncheckpoint only; ledger/canonicalSQL/GEN unchanged; no APIbranch overlap",
+    "next": "Normal localmainmerge afterthisowncheckpoint; preserveSC039exactmainbytes; no publicpushuntilboundedDB01+2SQLfixesqualified"
+  },
+  "current_a3_terminal": {
+    "status": "30jobSUCCESS/3FAIL/11configuredSKIP/0pending",
+    "native": "738PASS/3FAIL/1SKIP=742; actualowneroriginalqualified",
+    "rootCauses": [
+      "P3staletgfoidfixture",
+      "retentionSQLownerfixture",
+      "2expirytestsregisteraftercustomerarchive",
+      "decisionoriginalprivateblob_receiptprobe",
+      "2browserprivatesyntheticissuerinserts",
+      "tenantinvariants3actualbreaches"
+    ],
+    "upstreamFixed": "5historicalStaffSQLpermissionfailuresnowabsent",
+    "browser": "0cases, missingprocessfixturemoduleimport;10downstreampostbrowserfailures",
+    "GEN": "actualprefixtureRAW3byteequalcommit/capture; finalpostbrowserparityNOT_RUN",
+    "qualification": "/tmp/pr794-ci-diagnosis/cohort-a3d770/clean-qualified-failure.json",
+    "next": "minimumsourcefixes+twoSOURCEreviews; onebatchordinarypushafterDB01explicitapproval"
+  },
+  "expiry_fixture_order": {
+    "manifest": "7e65a10748f6d9f1eebded083ef06b10be1b1a7ecf857384f2e9a6331d6ba35d",
+    "post": "ea688607d791199a2a850783d468df5495a1c44c8bfdcc9644a10467db56aaf4",
+    "sourceA": "eec2afa4f3412ec67896bc7ec28e6b47bb5295c4659e3dd78997554316f40003",
+    "sourceB": "7b4a7aacae7ba4d1f21b3836ae2d405915253a99cc415a8f829f46941248396d",
+    "custody": "e0f9178afa24b2b3b80c22b27639887abc39b26c",
+    "next": "Exactea688 postimagecommitted; fullscriptsTSCactualPASS; currentgenuinenativeexpirycaseexecutionpending"
+  },
+  "remaining_correction_custody": {
+    "receipt": "de8d3c18dcb9f18cd75bc3dad9b0822def0170c2",
+    "comment": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6200493697",
+    "allPreviousRefsPreserved": true,
+    "files": [
+      "__tests__/ops-migration-provenance-tenant-boundary.test.ts",
+      "scripts/ediel-blob-retention-browser-native.test.ts",
+      "scripts/ediel-decision-original-retention-native.test.ts",
+      "scripts/ediel-decision-original-browser-native.test.ts",
+      "scripts/ediel-process-journal-retention-browser-native.test.ts",
+      "supabase/migrations/20261015183000_ops_migration_provenance_tenant_boundary.sql"
+    ],
+    "next": "Frozenauthored4privatefixture andtenantforward+meaningfulunitproposal/integrityappend mustpasstwoSOURCEreviewsbeforeparentwrites; no native/backend/GENduplicate"
+  },
+  "private_fixture4": {
+    "state": "EXACT_REVIEWED_POSTIMAGES_MATERIALIZED_FRESH_4CUSTODY_VERIFIED",
+    "manifest": "8b446303a19fedf35701b9acf862d48d97199c6c0ee27ab44cd91de1101f885d",
+    "sourceA": "0e2647d06adaaeb6d799aed62da6dda09e08ab32eda02faaa6d7ed53cc2859bf",
+    "sourceB": "9e19f67c51b8bd452da8a272fdf881389182d422aced2aeafba3493e53d007b0",
+    "custody": "de8d3c18dcb9f18cd75bc3dad9b0822def0170c2",
+    "preserved": "82matchers,39Auth/RPC/Storagecalls,all5tests/timeouts; fiveprivateonlySETowner sites, no ACL change; publicaudit/raw originalcaller",
+    "component": "21finiteproofs/18currentcanonicalDDLobjects/actualnonsuperSET-only role; notnative/browserqualification",
+    "typecheck": "Actualone37518 EXIT0/3607files/4overlays/0diag; completionadjunct74dfccbca58ed075e603497af38047d1d78442bece189d7001ea56ee87a31b7b",
+    "next": "ActualfullscriptsTCEXIT0; finalsourcecommit/currentCIpending"
+  },
+  "parent_targeted_SQL_tests": "Actual22/22PASS/2files/0SKIP/exit0session92991; report29078aed...; no fullnativeclaim",
+  "tenant_boundary_forward": {
+    "state": "EXACT_V2_MATERIALIZED_AND_TECHNICALLY_COMMITTED_17PARENT_TESTS_PASS",
+    "v1_manifest": "5fa5a42a05506e3efa9dd82cfa07d15ca1fc7d8ec1621999ea4212c8929b1471",
+    "blocker": "AuthenticcanonicalgovernanceV3serviceALLTABLEdefault differsfromv1SELECT-onlyguard; unitomittedTABLEdefaults; summary/receiptsreallySELECTonly",
+    "A_finding": "ac1e6e4af21ba0b4810321adc82ef759f1ddb385a1f02e2d45bd7a551f6b6b63",
+    "B_v1_approval_superseded": "da81310d4d3587d3cedcf324cb4b6d31fb8dacae70c88d9e85ca896e833c52e7",
+    "next": "Publish reviewedsourcebatchfor genuineordinaryGEN/currentCI; exactfinalschema/types import+twoSOURCEreviews stillrequired; no mergegreenclaim",
+    "newGEN": "Requiredfromgenuineexistingordinaryproducerafterreviewedcanonicalsourcepublication; no inventedRAW3/types",
+    "manifest": "a95df50c4a3ac2cc8b2f33e615161d3be00cceb41dfbdfd0c89a611f8214227c",
+    "sourceA": "68cad6bc941c63d045a8507fd38413d01cae6609ec3f7554009792339eb0fe86",
+    "sourceB": "1d5736aae3254a9ef90d2a4cf6b72ee5fe97f187dd4c3d508ef3aa83a4171203",
+    "exactSQLpost": "f9e49edc513f9a744d6b0cf689662adb14c970253523f3d0a0d54c710bf57928",
+    "exactTestPost": "56952aa4daa5d41881e0901bd51846ba164d9f071c4c417d581ea76fdebf6599",
+    "exactHistoryPost": "644810eb83e363e9a2cdfdce0428fe524385c555cd546c3acad9e50ccd49c259",
+    "v1": "Rejected/nevermaterialized; frozenbytes/sourcefinding/supersededBapprovalpreserved"
+  },
+  "actual_native_scripts_typecheck": "PASS actualparent96930 EXIT0/fulltsconfig.scripts noEmit incrementalfalse Node22/TS5.9; native/source8postimagespinned; notnativeexecution",
+  "postmerge_restoration": "Sevenexplicitlyapprovedexactrefs planned at final-source-preflight/postmerge-seven-reference-restoration-plan.json; role-merge releaseFIRST, thenGEN5ce80+process006aad+DB01ef088; no newpermissionpending",
+  "source_batch_delivery": {
+    "state": "NORMAL_NONFORCE_PUBLICATION_PR_BRANCH_READBACK_VERIFIED_19:53:40",
+    "technicalCommit": "a713d42fd4846b37a65d2dbdccdcdb6362ccf75c",
+    "integratedMain": "d9fc4397be806321723fb1cac42441ca2b3106f3",
+    "publicPRHeadBeforePush": "a3d770e0ff16dcca296f0f2426eaa627bbbff5ad",
+    "scope": "11reviewedfiles +2exactmain811paths+owncheckpoint only; allothera3paths/oldGEN5/ledgerunchanged",
+    "actualTests": {
+      "first": "22PASS/0FAIL/0SKIP twoexistingSQLunitfiles actualsession92991",
+      "second": "93PASS/0FAIL/0SKIP new17tenant+76DB01sourcebasis actualsession85264",
+      "total": "115 actualPASS in2distinctcohorts/4files",
+      "actualReports": "final-source-preflight/actual-sql-fixture-parent-tests.json +actual-final-tenant-db01-parent-tests.json"
+    },
+    "actualTypes": "Fulltsconfig.scripts Node22/TS5.9 noEmit incrementalfalse EXIT0actualsession96930; private4readonlytestsTC3607files/4overlays/0diag independentauthor37518",
+    "actualMigrationIntegrity": "PASS1266files/1169groups/fullchecksums",
+    "freshCustody": "All41ownrefs matched19:48:34;producerGENbac unchanged;mergeroleabsent;main d9",
+    "GEN": "CurrentGEN5retainauthentica3bytes intentionally. Newcanonical183000requiresfreshgenuineordinarycapture; latesttypesmanifest172100 is historical untilqualifiednewadoption. No inventedgeneratedoutput or blindrerun. Existingordinaryproduceronly.",
+    "next": "SolecollectorqualifiescurrentOPS/CLEAN rootwhenordinaryqueuedjobsstart/terminal; capture45sexitprivatecauseunknown,0artifacts meansnoadoption. DBauthoronlypureGENbuilderpreparedandboundedactualGENpreimageapplicabilitycheck. No inferredSQLvsinfra cause/blindrerun/manualdispatch/nativeGENextra producer. Continueconcretecorrectionwhenproved, thenfreshgenuineordinaryGEN/currentCI/delivery/merge/7restores.",
+    "wholeDeliveryApproved": false,
+    "head": "f3e517dc4e0bd9a3083c04fbccf6b921bdea1c89",
+    "tree": "2fe97e5569a7d8bf0443fafccdbc3e2e96e1d435",
+    "sourceA": "2eb38e03d67190d8469a46d8ea46b2f96e32cc5c7cfdee6cb5642a3b742c2ca7",
+    "sourceB": "ab27cb3446e99ef0eef92b28cd459a1619b67e4064bb99c21f29215e5af514f8",
+    "comment": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6200999710"
+  },
+  "f3_current_jobs": {
+    "source": "collector metadata19:59UTC",
+    "created": 43,
+    "success": 1,
+    "fail": 3,
+    "running": 13,
+    "queued": 15,
+    "configuredSkips": 11,
+    "certificate": "notyetcreated",
+    "DB01": "startedcheckout",
+    "OPS_CLEAN_UPGRADE_quality": "queued",
+    "registry": "/tmp/pr794-ci-diagnosis/cohort-f3e517/registry.json",
+    "originals": "capture116637745721 c1c713b0...onlyouterexit1/zeroRAW; verify116637744408 expectedGENtailfail; no otheroriginalsclaimed"
+  },
+  "f3_actual_current_failures": {
+    "head": "f3e517dc4e0bd9a3083c04fbccf6b921bdea1c89",
+    "tree": "2fe97e5569a7d8bf0443fafccdbc3e2e96e1d435",
+    "base": "d9fc4397be806321723fb1cac42441ca2b3106f3",
+    "at": "2026-10-15T20:16:31.650069+00:00",
+    "DB01": "QUALIFIED SUCCESS 14PASS/0FAIL/0SKIP,840objects372definitions0mismatch; result657dfccc75efee69fea96cad5c1f6e484a3dd9f7452ce5483138a23cfcb57fe0",
+    "quality": "ACTUAL FAIL new test132 no-explicit-any, DBauthor tmp-only typed correction",
+    "UPGRADE": "ACTUAL FAIL independentCLEAN existing100259 signed_price_cache_forward_postconditions_failed; firstUPGRADED installedPASS and genuineRAW3 only; failedoperandUNKNOWN; physicalpg_class snapshot hypothesis isolatedcomponent pending",
+    "capture": "ACTUAL45sFAIL/noRAW/zeroartifacts/privateinnerrootUNKNOWN; boundedfailure-onlyclassifierproposal93checks pending2SOURCEreviews, no parentwrite",
+    "CLEAN": "ordinaryjob116637744198 inprogress, solecollectorretainsoriginalwhen terminal",
+    "GEN": "BLOCKED no qualified currentindependentCLEAN/ordinarycapture; firstupgradedRAW3 alone notadopted",
+    "custody": "fresh20:16 own testde8/capturecaad/descriptor32d match; actualmain d9 PRf3; proposednewbootstrap exactref404, noacquisitionyet",
+    "next": "Finish minimal typedtestfix +sourcequalified replay logicalauthority proposal with actualfiniteproof andtwoSOURCEreviews; acquire newexactfile ifreviewed; ownCPbeforewrites; meaningfulnormalpush; freshgenuineGEN/currentgates/twoDELIVERY/normalmerge/7restores",
+    "wholeDeliveryApproved": false,
+    "coverage": "QUALIFIED1166files/19034PASS0FAIL1optionalSKIP; V8/docs/ratchetSUCCESS; receipt e4aa4eb6bd2044d5861e33bcfb61c5a10d98f34f68937e4aee824c7d7973763d"
+  },
+  "signed_cache_logical_authority_custody": {
+    "receipt": "c974f2b88f1f3f22a27e02295622f3fe6a665bda",
+    "files": [
+      "supabase/bootstrap/20261015_ops_signed_price_cache_logical_authority_replay.sql"
+    ],
+    "sourceHead": "f3e517dc4e0bd9a3083c04fbccf6b921bdea1c89",
+    "base": "d9fc4397be806321723fb1cac42441ca2b3106f3",
+    "comment": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6201409026",
+    "state": "ONE_PREVIOUSLY_ABSENT_REF_CREATE_GET_MATCH_ALL_PRIOR_REFS_PRESERVED",
+    "proof": "/workspace/pr794-handoff/final-source-preflight/signed-cache-logical-authority-custody/proof.json",
+    "technicalWrites": false,
+    "next": "Finiteactualphysical-vs-logicalproof, minimalexactsourcePositionproposal, twoindependentSOURCEreviews thenownCPbeforeparentwrite; canonical100259immutable; actualCIoperandunknown"
+  },
+  "capture_failure_observability": {
+    "state": "V2_EXACT_TWO_SOURCE_REVIEWED_POSTIMAGE_MATERIALIZED",
+    "manifest": "550f023a8ac20cab6a46c132957f9094dce1a98f040872397a0605ae3950a2fa",
+    "sourceA": "7581c7364ddda3e6777232f20a8693f05a46481e31a576079a9555da8c4263fa",
+    "sourceB": "42298dcdb7a63ad3e8127dfe2eadb2b3ff4cceb5bded31673f70487d8548bedb",
+    "custody": "caadcfa69a96b8657b64ae7c6837df13545803f2",
+    "preSHA256": "e5eb15a3b859ebbb76630695d4a41a050a175c2e55210dd1434a0a0c68a340d8",
+    "postSHA256": "20973036b1ecd78bb96e3980f0c1014097799770ad060eed7491f8e3ea548a2c",
+    "scope": "One capture step id+separatefailure-only classifier; originalwholeworkflowinverse/capturerun/all4successartifacts exact; actualrcunavailablehonest; 93finitechecks; no rootattribution",
+    "next": "Materializeexactfrozenpatch withactualposthashverification; meaningfulsourcepush onlyafterreviewed actualmigrationpostconditionfix, notdiagnostic-onlyrerun",
+    "v1Retained": {
+      "state": "EXACT_REVIEWED_POSTIMAGE_MATERIALIZED",
+      "manifest": "b7effd94bec8556950f1cacad0935d627d324627f1d352439fa97acec24f2c84",
+      "sourceA": "f03a03d7e489f1f44c0c4082f99269af5dc8effccef56472c5656a901e81c5c6",
+      "sourceB": "e0ad907971d3fb489d96dc728305203fe883b215ffdad9886ae7e0bdbb27e14d",
+      "custody": "caadcfa69a96b8657b64ae7c6837df13545803f2",
+      "preSHA256": "e5eb15a3b859ebbb76630695d4a41a050a175c2e55210dd1434a0a0c68a340d8",
+      "postSHA256": "11f4bf7f262d5c32d799d1af3107075ad61afd9f5dd93c4a396300ec63244167",
+      "scope": "One capture step id+separatefailure-only classifier; originalwholeworkflowinverse/capturerun/all4successartifacts exact; actualrcunavailablehonest; 93finitechecks; no rootattribution",
+      "next": "Materializeexactfrozenpatch withactualposthashverification; meaningfulsourcepush onlyafterreviewed actualmigrationpostconditionfix, notdiagnostic-onlyrerun"
+    },
+    "v1toV2": "Only10spacesremovedaddedblank1062; YAML/allruns/PythonASTbytesidentical,93priorchecksapplicablewithoutrepeat"
+  },
+  "tenant_boundary_unit_type_fix": {
+    "state": "EXACT_TWO_SOURCE_REVIEWED_POSTIMAGE_MATERIALIZED",
+    "manifest": "153ac00f0b44a759ae825c43bdebe43c03adc87b3f4ae5068c733e1fd005d364",
+    "sourceA": "85f6a7cc53168c5283b05eaa7d2c71c7c02ff3beb1e6026b09b2953f037a6edf",
+    "sourceB": "850298f4f9058b4731017ef4b011b71c62a91b2f1930d0043e4076dfe32eacb4",
+    "custody": "de8d3c18dcb9f18cd75bc3dad9b0822def0170c2",
+    "preSHA256": "56952aa4daa5d41881e0901bd51846ba164d9f071c4c417d581ea76fdebf6599",
+    "postSHA256": "7e14e41d4bc95f10debd9bee633713b90c5ec9f579fa8f43434035d351b3dd56",
+    "verification": "ActualESLintRED1@132->GREEN0error0warnings; targetstrictTSCexit0; JSexactbyteerasure+145string/SQLliteralsidentical so17runtimecasesexplicitapplicability/noextraretest",
+    "next": "ExactfrozenpostimagecopyafterthisownCP; batchsourcepublicationaftermigrationproofreviews",
+    "materializedActualESLint": "Parentactual96458EXIT0/error0/warn0 report6e55fbf6c612a37c93f886c91464e10ad248957825b74aa6a26181eaa0955b1d"
+  },
+  "signed_cache_logical_authority_unit_custody": {
+    "receipt": "763809cefd9989eaac9cbc70b78bad1ab256a060",
+    "file": "__tests__/ops-signed-price-cache-logical-authority-replay.test.ts",
+    "comment": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6201509013",
+    "state": "NEW_ABSENT_EXACT_REFERENCE_CREATE_GET_MATCH_ALL_PREEXISTING_PRESERVED",
+    "scope": "Durable meaningful actualANALYZE oldglobalhashfalsepositive/newlogicalprojectionstable plusrepresentative logicalmutationsrejectrollback",
+    "technicalWrites": false,
+    "next": "Author tmp-onlyactualunit/lint/typeproof/freeze then2independentSOURCEreviews andparentownCPbeforewrite"
+  },
+  "signed_cache_logical_authority_proposal_progress": {
+    "at": "2026-10-15T20:28:31.391830+00:00",
+    "component": "21actualPASS (realANALYZEchangesoldrelationshashonly/all14logicalnegativesrejectrollback); SUPERcomponentlimits retained, actualCIfailedoperandUNKNOWN",
+    "durableUnit": "5actualPASS/scopedESLint0error0warn/strictTS0; actualartifactonly2projectionreversionmakesANALYZEcaseRED and4logicalcasesGREEN; restoredartifact007a93cb final5GREEN",
+    "state": "EXACT_THREE_TWO_SOURCE_REVIEWED_POSTIMAGES_MATERIALIZED",
+    "artifactPostSHA256": "007a93cbc2a8af7abb4828e9fdc4473d91ef3075f8f13db77d22a11a85abb328",
+    "descriptorPostSHA256": "5bac4e08b17009636a6d70035c288121a124c294984a104140ab4f72053baa99",
+    "custodyReceiptCommits": {
+      "newArtifact": "c974f2b88f1f3f22a27e02295622f3fe6a665bda",
+      "existingDescriptor": "32d31cf69ba0f2133947d9a2994fda3b8e9d0965",
+      "newUnit": "763809cefd9989eaac9cbc70b78bad1ab256a060"
+    },
+    "newArtifactsWrittenToParent": true,
+    "currentCLEAN": "ordinary116637744198stillrunning; solecollectorqualifiesterminalonly",
+    "conditionalGEN": "Onlyactualf3CLEAN+UPGRADEDRAW3exactparity/sourceapplicabilitycanqualifycrossjobcomponents; noadoptionyet. Donor7derivedvsreceiving8distinctfrom8sourceinputfiles.",
+    "manifestSHA256": "1ff6d6da6bf0d7c7dbe70c8234836c11b73b50feae538f840c509f20a8488641",
+    "sourceA": "adf9d73dffbde7e8f224dcfbcca27449ce4985d7f2f82914db905da0a3eca583",
+    "sourceB": "e79f5476d349052fba227e1a70033bb361e5b373fc0050573f588721281910a8",
+    "unitPostSHA256": "4d3c4b4ec6d4cc514cbedfa0d09c346446f57da304b8b7eaec248ee6499ae3ac",
+    "freshCustody43": "All43ownGET_MATCH+producerunchanged+main d9/PRf3/mergeRoleabsent20:31:25",
+    "next": "Copyexact3reviewedpostimages afterthischeckpoint; directprovenance/integrity/budget/diff checks; sourcepublicationawait currentCLEANactualoutcome/GENcomponentqualification",
+    "materializedParentChecks": {
+      "provenance": {
+        "exit": 0,
+        "sha256": "69197d1ef90a916227a51a5c325ba723dd7a329d2d2c3b8f51c854b029008e07",
+        "summary": "{\n  \"finding\": \"GRIDEX-REM-002\",\n  \"status\": \"STATIC_PROVENANCE_PASS\",\n  \"replay_model\": \"verified_foundation_plus_hash_bound_noncanonical_reconciliation_plus_remaining_history_plus_cli_owned_dev_ledger\",\n  \"foundation_input_count\": 59,\n  \"derived_bootstrap_count\": 48,\n  \"interleaved_bootstrap_count\": 23,\n  \"noncanonical_artifact_count\": 3,\n  \"timestamped_file_count\": 1173,\n  \"compact_dev_ledger_start\": \"20260531075508\",\n  \"compact_dev_ledger_rows\": 48\n}\n"
+      },
+      "integrity": {
+        "exit": 0,
+        "sha256": "e1e86c5ae9380337ae122d064de5106bcd45b731bbee7f7edf4520a74bdb8523",
+        "summary": "Migration integrity check passed (1266 files; 1169 version groups; checksums verified).\n"
+      },
+      "budget": {
+        "exit": 0,
+        "sha256": "c5b7be1855aed509b812437c2629bbdea81153965d977e7738bfece7e7e2a1a3",
+        "summary": "Large source file budget passed: 0 grandfathered files cannot grow and new source files are capped at 1800 lines.\n"
+      }
+    }
+  },
+  "upgraded_component_only_adoption_decision": {
+    "at": "2026-10-15T20:48:17.600885+00:00",
+    "decision": "PreparefaithfulUPGRADED_COMPONENT_ONLYGENproposalfromexistingqualifiedfirstf3UPGRADEDRaw3",
+    "why": "Actualcontractrequiresgenuinequalifiedproducer/exactcustody/sourceapplicability/twoSOURCEreviews andallmandatoryfinalchecks, no twoRAWsetsbefore reversibleSOURCEimport requirement. PreviouswaitfortwoRAWswasconservativeownsequencing, clarifiedbytwoindependentcitedassessments. CurrentCLEANelapsed40m/oldfailed66m37 vsordinarycapture3m31; no ETA/timeoutassumption needed",
+    "policyA": "414e7f29b9a45226af08728e4e3adba957cf1944a3ef6ac27778b2d7691b2a62",
+    "policyB": "55ea25b0a7e538f2015cbb249ea50c4ef99b5f7b13e25bc5c50c1f88461150ad",
+    "actualOrigin": "f3e517dc4e0bd9a3083c04fbccf6b921bdea1c89 tree2fe97... strict53bf644preserved+620sourceforwards7derived through183000",
+    "wholeTruth": "UPGRADEwholeFAIL/independentCLEANbeforeRAW100259combinedguardFAIL/actualfailedoperandUNKNOWN/noindependentRAWorparity/c8NOT_RUN/ordinarycaptureFAILzeroartifacts/noordinaryreceipt",
+    "receivingSource": "f63320d16b47fb6548d5439208b272520989fb0c tree929a... fiveknown2SOURCEposts/sourceonly7->8derived/noDBruntimeattestation",
+    "status": "CollectorfreezingboundedexistingoriginalLOAN; DBpreparesunexecutedpurevariant; noRAWcopied/imported/builderexecutionyet",
+    "importGuards": [
+      "ExplicitcollectorqualifiedUPGRADED_COMPONENT_ONLYloanwithsource/archive/members/log/RAWtruth",
+      "ActualfaithfulGENpostimages/rawmanifest154oldtopvalues+9exactarchive/inverse",
+      "Exactf3->f633applicabilitywithno storedDDLbodychange",
+      "TwononauthorSOURCEapprovalsconcreteactualproposal",
+      "FreshGEN5custody+ownCPFIRSTbeforeparentcopy"
+    ],
+    "deliveryGuards": "FinalCURRENTordinarycapture/fullCLEANnative13browser/invariants/UPGRADEbothhistories/fullRAWparity/allmandatorygates/twoDELIVERY+normalexpectedheadmerge unchanged",
+    "noProducerOrGateChange": true,
+    "noManualCancelOrRerun": true
+  },
+  "upgraded_component_GEN_adoption": {
+    "at": "2026-10-15T21:02:49.381874+00:00",
+    "state": "ACTUALLY_COMMITTED_f47_TWO_COMBINED_SOURCE_APPROVALS_PUBLICATION_HOLD_NEW_SQL_BUG",
+    "sourceOrigin": "f3e517dc4e0bd9a3083c04fbccf6b921bdea1c89 FIRST_UPGRADED_COMPONENT_ONLY existingordinaryrun38797531449/job116637744724/a1/artifact12003936454",
+    "qualifiedLoanSHA256": "431c9660286dc337c34aeb91dc6dea47938168f62123f9d1a252ee3dcb6466e3",
+    "proposal": "14de0bde713a1e1c859e8d284cf77400f1d1e6b7b633d9fac158f98d77cdcc61",
+    "actualFinalFreeze": "97da2651ea943c0afdd47898b1c8c890cdd7a7871f14ec0bb209b5ded09fa70d",
+    "sourceA": "5d406b300b99094b128875592700e90f82765835e5e6c26d512a6cfc57359ac8",
+    "sourceB": "51458f6d2bb763ec678dbe05cdda3435ed6e2dbeca092000c3597c97948f349b",
+    "custody": "All43includingGEN5caad/producergenbacunchanged/main d9/PRf3/mergeRoleabsent authenticated21:01:47",
+    "rawPreservation": "RAW3verbatim;154othermanifestrawtopvalues/order+9exactarchives+entireinversecee584; workflow209730unchanged",
+    "actualTypes": "App2798files0diag139.4s +tests3609files0diag139.74s actualNode22TS5.9/noEmit/incrementalfalse+correctreceivingf633metadata; bothreviewsindependentlyall3609sourcehashesmatch",
+    "proofLimits": "wholeUPGRADEFAIL/independentCLEAN100259beforeRAWFAIL/noCLEANRAW/parity+c8NOT_RUN/ordinarycaptureFAIL0artifacts/noordinaryreceipt/actualgenUTCUNKNOWN; artifact20:06:53availabilityboundonly. No currentPASS/deliveryattestation",
+    "overrides": "Only3optionalpre-import0042sequencefields supersededbyfrozenroote6a44/policyA414e+B55ea; actualsourcefactsandFINALmandatorygatesunchanged",
+    "next": "Exact4changedGENpostimagescopy afterthisowncheckpoint; materializedtypescheck/diff/inputhashaudit; GENtechnicalcommit+ownCPfinalcommit; 2SOURCEcombinedfinalheadbinding thennormalpush/authreadback. Finalcurrentcapture/fullCLEAN/UPGRADE/parity/allCI+twoDELIVERY beforemerge/restores.",
+    "materializedActualTypesChecker": {
+      "exit": 0,
+      "reportSHA256": "3f744c81c383aace825c2d3be0c176bb93a6d154867d877f0dea2c227957ed67",
+      "summary": "Supabase generated types verified (3732883 bytes; 20261015183000_ops_migration_provenance_tenant_boundary.sql; aab753d89d938884e3ce83760379aa478505185f58667d241e7b38bc90c1859d)."
+    },
+    "materializedCompilerInputEquality": "All3609actualcompletedtestsprogramsource-textinputsnowphysicalmatch;0mismatches; sameapp+tests0 reused, no extraTSCrun",
+    "materializedDiffCheck": "PASS",
+    "commit": "f47c2b3982eb3a9ca003139f7e923f9f21c11536",
+    "combinedSOURCE": [
+      "c73ef6c4aa827c3debf436bee6e9ee3ba1a53ed051c468d5bec5f569d8b9a743",
+      "1d9049610d7d19de03d903dac1e119f3f3cf77e109b0e89ace9ddac769b3ab00"
+    ]
+  },
+  "last_SQL_fixture_correction": {
+    "at": "2026-10-15T21:20:47.826980+00:00",
+    "ownedFile": "scripts/staff-customer-retention-read-prerequisite-regression.sql",
+    "ownReceipt": "73890d5d309bd93310e8cf8f2fcf5a61ab6774d9",
+    "preSHA256": "a98acbe9b75ff575631773bc916f7cce74f36a3ab3773e5c04c81f84bcbd5377",
+    "confirmedRoot": "Authoritativef3CLEAN artifact12006718049 SQL149 state23001/history_truncate_blocked. Canonicalpublicguardworks; fixturehandleronlyexpects23514. Not production defect.",
+    "minimalProposal": "Preserve23514; additionally accept23001 only record_decisions+exactcanonicalmessage+DETAIL, unexpectederrorsrethrow; allroles/productcalls/negativeassertions/outerrollback/guardbytesexact.",
+    "state": "EXACT_TWO_SOURCE_POSTIMAGE_MATERIALIZED_ACTUAL_EXISTING_FULL_FIXTURE_UNIT_PASS",
+    "author": "staff_native_fix",
+    "reviewers": [
+      "api_review",
+      "test_validation"
+    ],
+    "CLEANpositives": "Actual742cases741PASS1phaseSKIP0FAIL; all13browserfiles31casesPASS; fixturepostbrowser0FAIL; tenantinvariantsPASS;15paritydriftclassesPASS; fullCLEANRAW3byteequalUPGRADED",
+    "wholeTruth": "CLEANFAIL SQL+oldGENcmp; finalphasecompleteflagassertionNOT_REACHED; no744/mainfullGREEN/DELIVERY. Existingcanonical1173 andledgerunchanged.",
+    "sourceApplicability": "SQL-only handler does not alter persistedDDL/GEN4/code/types; prioractualapp2798+tests3609/noEmit0 andall9f47technicalpostimages remain applicable withoutcompilerrepeat.",
+    "freshCustody": "last-f3-SQL-prematerialization-custody.json/2deef9e5373cabe83378cd8d4d20489615741d01e6c5dcb48a2eae7541f0a931: all43GETMATCH/GENbacpreserved/rolemergeabsent21:19:40; actualmain d9 PRf3,drafttrue/open/mergeabletrue.",
+    "wholeDeliveryApproved": false,
+    "manifestSHA256": "39e133ebfcee5eec02d35c17dbad528f150460660e7ab092e690fd4dbfedfcea",
+    "postSHA256": "fbf853c630cd3b4d059942e2aee17c6b7ab834c3d71bfbbee7723cf9a6b425da",
+    "sourceA": "f62cba73bd9bbb3671cf6e85e203a6ed092a784ebe187550bae94eadecadfc9e",
+    "sourceB": "401ba9c1961a4f7e3e1bd44e1f3e7b8eabbff70d2f997c52a714a370a69a3027",
+    "actualComponent": "14finitePASS actualcanonicalguard/trigger RED-GREEN andwrongerrors/rollback/appdenials; isolatedsyntheticPGliteonly",
+    "freshOwnSQLRef": "GET_MATCH73890beforewrite",
+    "durableProof": "/workspace/pr794-handoff/final-source-preflight/retention-truncate-handler",
+    "materializedUnit": {
+      "at": "2026-10-15T21:29:21.770726+00:00",
+      "actualSession": 8525,
+      "exitCode": 0,
+      "file": "__tests__/staff-customer-retention-read-prerequisite-sql.test.ts",
+      "selected": "executes the entire mandatory native rollback guard against the actual qualified SQL",
+      "passed": 1,
+      "failed": 0,
+      "otherCases": "Name-filtered; not executed or claimed",
+      "reportSHA256": "3ab69737f691330a84952df36daa029bc3085304914f72979cf667fcc0be13b7",
+      "SQLPostSHA256": "fbf853c630cd3b4d059942e2aee17c6b7ab834c3d71bfbbee7723cf9a6b425da",
+      "scope": "Existing full SQL fixture unit exercises physical postimage against prerequisite23514 lane; separate frozen14case actualcanonicalguard proof retained. No fullnative/backend/GEN."
+    },
+    "priorNineTechnicalPostimages": "AllSHA256exactf47; noothertechnicaldelta"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "schema": "ops_eight_file_committed_replay_input_qualification_v1",
+  "source": "b4146a58e0a571ea04dd7537a2e50cce68c9764d",
+  "records": [
+    {
+      "kind": "expiry-committed-upgrade",
+      "candidate": "b4146a58e0a571ea04dd7537a2e50cce68c9764d",
+      "tree": "a2d3c74f29d84c5b2cb094186b0c39929fdc883d",
+      "actualFiles": 605,
+      "historicalInputs": 644,
+      "derivedInputs": 3,
+      "allActualMaterializedAndOriginalHashesMatch": true,
+      "receiptSha256": "ce6da978f07789726d921d32f812480d10c54592d24a1efb6261b98e31e286cc"
+    },
+    {
+      "kind": "expiry-committed-history",
+      "candidate": "b4146a58e0a571ea04dd7537a2e50cce68c9764d",
+      "tree": "a2d3c74f29d84c5b2cb094186b0c39929fdc883d",
+      "actualFiles": 363,
+      "historicalInputs": 886,
+      "derivedInputs": 3,
+      "allActualMaterializedAndOriginalHashesMatch": true,
+      "receiptSha256": "a456d5fe86b88208e4f3e31019a3d4b321c3134f2478b5c19d515331fa99955f"
+    }
+  ],
+  "fullSQL": "NOT_RUN",
+  "canonicalSchemaTypes": "NOT_CAPTURED",
+  "nativeWrites": 0,
+  "source_applicability": "b414 before actualmain573 merge; later main integration keeps eight routing postimages byte-identical but full selected SQL-input set must be rebound.",
+  "recordedAt": "2026-10-14T18:59:13.862397+00:00"
+}

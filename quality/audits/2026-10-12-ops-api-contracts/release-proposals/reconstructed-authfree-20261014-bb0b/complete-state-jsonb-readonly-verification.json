@@ -1,0 +1,9 @@
+{
+  "status": "GENUINE_POSTGRES_READ_ONLY_VALUE_VERIFICATION",
+  "engine": "PostgreSQL 17.6",
+  "new_jsonb_text_md5": "7de156ec565ce1dadb22c9af7a851654",
+  "query": "BEGIN READ ONLY; SELECT md5(<exact effective-complete-state-manifest.json>::jsonb::text); COMMIT;",
+  "ddl_calls": 0,
+  "native_database_calls": 0,
+  "source_manifest_sha256": "eef47399e4805ad284cbca1f86a49a1d029aa37288d95e113325e55556d2e2bc"
+}

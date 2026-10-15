@@ -1,0 +1,62 @@
+{
+  "atomic_sha256": "bb0bd0cedeabc3ba40872eae8cead8b6a8a9ff298c567baa324a1b4044045b04",
+  "atomic_path": "/tmp/gridex-api-rebuild-20261014/publication-proposal-bb0b/bundle/atomic-eight-input-proposal.sql",
+  "effective_main_sha256": "c11997abcc9ed915954cf43eff9ed23a86e0ec3786a9059bfb025d8a042fa1c7",
+  "effective_main_path": "/tmp/gridex-api-rebuild-20261014/publication-proposal-bb0b/bundle/effective-main-source.sql",
+  "roles": [
+    {
+      "rolname": "gridex_ediel_certificate_authority_owner",
+      "rolsuper": false,
+      "rolinherit": true,
+      "rolcreaterole": false,
+      "rolcreatedb": false,
+      "rolcanlogin": false,
+      "rolreplication": false,
+      "rolbypassrls": false,
+      "rolconnlimit": -1,
+      "rolvaliduntil": null,
+      "rolconfig": null
+    },
+    {
+      "rolname": "gridex_ediel_fixture_authority_owner",
+      "rolsuper": false,
+      "rolinherit": true,
+      "rolcreaterole": false,
+      "rolcreatedb": false,
+      "rolcanlogin": false,
+      "rolreplication": false,
+      "rolbypassrls": false,
+      "rolconnlimit": -1,
+      "rolvaliduntil": null,
+      "rolconfig": null
+    },
+    {
+      "rolname": "gridex_ediel_transport_exception_owner",
+      "rolsuper": false,
+      "rolinherit": true,
+      "rolcreaterole": false,
+      "rolcreatedb": false,
+      "rolcanlogin": false,
+      "rolreplication": false,
+      "rolbypassrls": false,
+      "rolconnlimit": -1,
+      "rolvaliduntil": null,
+      "rolconfig": null
+    }
+  ],
+  "literal_statements": [
+    "CREATE ROLE \"gridex_ediel_certificate_authority_owner\" NOLOGIN;",
+    "CREATE ROLE \"gridex_ediel_fixture_authority_owner\" NOLOGIN;",
+    "CREATE ROLE \"gridex_ediel_transport_exception_owner\" NOLOGIN;"
+  ],
+  "membership_rule": {
+    "member_existing_role": "postgres",
+    "grantor_existing_role": "supabase_admin",
+    "admin_option": true,
+    "inherit_option": false,
+    "set_option": false,
+    "origin": "PostgreSQL17 CREATEROLE automatic admin-only creator membership, source-qualified genuine bb0b first-application output. No explicit tenant/provider activation/member seed."
+  },
+  "old_roles_and_memberships_must_remain_byte_equivalent": true,
+  "exact_mode_no_exceptions": true
+}

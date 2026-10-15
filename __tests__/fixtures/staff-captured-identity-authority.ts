@@ -20,11 +20,19 @@ export function staffCapturedIdentityAuthoritySql(schema: string): string {
     return schema.slice(start, end + delimiter[1].length + 1)
   }
   const functions = ['gridex_staff_assert_external_actor_v1', 'gridex_staff_anchor_invitation_email_v1']
-  const tables = ['tenant_customer_identity_providers', 'tenant_staff_actor_anchors', 'tenant_staff_identity_bindings', 'tenant_staff_identity_deliveries']
+  const tables = ['tenant_customer_identity_providers', 'tenant_staff_actor_anchors', 'tenant_staff_identity_bindings', 'tenant_staff_identity_deliveries', 'user_permission_overrides']
+  const profiles = /\('([^']+)'::jsonb\)->p_role_key/.exec(capturedFunction('gridex_staff_role_profile_v1'))?.[1]
+  if (!profiles) throw new Error('Missing captured Staff role-profile reference catalogue')
+  // Finite registry reference rows only: no role/user/company grants or overrides.
+  const permissionKeys = [...new Set(Object.values(JSON.parse(profiles) as Record<string, string[]>).flat())].sort()
+  const permissionRows = permissionKeys.map(key => `('${key.replaceAll("'", "''")}')`).join(',')
   const metadata = /^\s+metadata [^\n]+/m.exec(table('integration_api_clients'))?.[0].trim().replace(/,$/, '')
   if (!metadata) throw new Error('Missing captured integration client metadata declaration')
   return [
     `ALTER TABLE public.integration_api_clients ADD COLUMN ${metadata};`,
+    `INSERT INTO public.permissions(id,key,name,is_active)
+      SELECT gen_random_uuid(),reference.key,reference.key,true FROM (VALUES ${permissionRows}) reference(key)
+      WHERE NOT EXISTS(SELECT FROM public.permissions existing WHERE existing.key=reference.key);`,
     ...tables.flatMap(name => {
       const rls = schema.match(new RegExp(`^ALTER TABLE public\\.${name} ENABLE ROW LEVEL SECURITY;$`, 'm'))?.[0]
       if (!rls) throw new Error(`Missing captured identity dependency RLS: ${name}`)

@@ -1,0 +1,260 @@
+{
+  "status": "NEW_PRIVATE_QUALIFIED_RUNTIME_ENVELOPE_NOT_APPLIED_NOT_RUNTIME_QUALIFIED",
+  "new_source_path": "/tmp/gridex-api-rebuild-20261014/finance-proposal/five-adapters-four-target-guards-qualified-runtime-envelope.sql",
+  "new_source_sha256": "7533f26a72226ab9d0c80cf3e4cea0fda0b0709d8398678a4a0bcb28f1efd533",
+  "new_source_bytes": 62351,
+  "original_finance_source_sha256": "e1c684e32ae8cb7511e1451eb5ce775656a75606721d7f650772ce4b7d381cac",
+  "original_finance_source_unchanged": true,
+  "derived_e1_body_sha256": "63b45933bd44b8fc7f6022db1a0804dfa917bc8f8ce43b6b1e1bf6f0e6f2e463",
+  "derived_e1_body_bytes": 54377,
+  "exact_derived_guard_atom_edits": [
+    {
+      "start_byte": 37541,
+      "old": "p.proacl::text='{gridex_ediel_retention_owner=X/gridex_ediel_retention_owner}'",
+      "new": "p.proacl::text='{gridex_ediel_retention_owner=X/gridex_ediel_retention_owner,postgres=X/gridex_ediel_retention_owner}'",
+      "reason": "Exact owner-controlled temporary EXECUTE lease on the one target guard required to CREATE TRIGGER."
+    },
+    {
+      "start_byte": 39640,
+      "old": "p.proacl::text='{gridex_ediel_retention_owner=X/gridex_ediel_retention_owner}'",
+      "new": "p.proacl::text='{gridex_ediel_retention_owner=X/gridex_ediel_retention_owner,postgres=X/gridex_ediel_retention_owner}'",
+      "reason": "Exact owner-controlled temporary EXECUTE lease on the one target guard required to CREATE TRIGGER."
+    },
+    {
+      "start_byte": 41731,
+      "old": "p.proacl::text='{gridex_ediel_retention_owner=X/gridex_ediel_retention_owner}'",
+      "new": "p.proacl::text='{gridex_ediel_retention_owner=X/gridex_ediel_retention_owner,postgres=X/gridex_ediel_retention_owner}'",
+      "reason": "Exact owner-controlled temporary EXECUTE lease on the one target guard required to CREATE TRIGGER."
+    },
+    {
+      "start_byte": 43862,
+      "old": "p.proacl::text='{gridex_ediel_retention_owner=X/gridex_ediel_retention_owner}'",
+      "new": "p.proacl::text='{gridex_ediel_retention_owner=X/gridex_ediel_retention_owner,postgres=X/gridex_ediel_retention_owner}'",
+      "reason": "Exact owner-controlled temporary EXECUTE lease on the one target guard required to CREATE TRIGGER."
+    }
+  ],
+  "grants": {
+    "required_from_main": "Persistent postgres-only private namespace USAGE granted by RET owner, synchronized with complete-state manifest and cold/known-weak/strong-replay preflight.",
+    "temporary_schema": [
+      "CREATE to postgres"
+    ],
+    "temporary_function": [
+      "EXECUTE finance_target_guard_v1() to postgres"
+    ],
+    "introduced_permanent_schema_grants": [],
+    "introduced_app_or_auth_grants": [],
+    "role_membership_changes": false
+  },
+  "restoration": "Whole namespace pg_namespace row, whole target pg_proc row, PG/RET role attributes and their membership rows exactly restored; main PG-only namespace U survives, temporary CREATE and target EXECUTE do not.",
+  "runtime_five_private_predicates": [
+    "gridex_ediel_retention.protected_copy_current_v1(uuid,uuid)",
+    "gridex_ediel_retention.contract_copy_source_current_v1(uuid,text,text,uuid)",
+    "gridex_ediel_retention.protected_copy_transition_v1(text,jsonb,jsonb)",
+    "gridex_ediel_retention.classification_copy_source_current_v1(uuid,uuid)",
+    "gridex_ediel_retention.contract_copy_preparation_current_v1(uuid,uuid)"
+  ],
+  "runtime_fourteen_pg_definer_consumers": {
+    "gridex_ediel_retention.protected_copy_current_v1": [
+      {
+        "name": "gridex_brp_declaration_intake.origin_current_v1",
+        "manifest_signatures": [
+          "gridex_brp_declaration_intake.origin_current_v1(uuid, uuid)"
+        ],
+        "owners": [
+          "postgres"
+        ],
+        "body_md5": "38c85136634d03b422b6880f7c4857c8",
+        "source": "/tmp/gridex-ops-final/quality/audits/2026-10-12-ops-api-contracts/release-proposals/native-additive-reconciliation.sql",
+        "line": 12675,
+        "security_definer": true
+      },
+      {
+        "name": "gridex_brp_sources.require_source_v1",
+        "manifest_signatures": [
+          "gridex_brp_sources.require_source_v1(uuid, uuid, uuid, text, text, uuid, uuid, uuid, timestamp with time zone, uuid)"
+        ],
+        "owners": [
+          "postgres"
+        ],
+        "body_md5": "f294830d5133e8a869b44aa8f89b6184",
+        "source": "/tmp/gridex-ops-final/quality/audits/2026-10-12-ops-api-contracts/release-proposals/native-additive-reconciliation.sql",
+        "line": 13002,
+        "security_definer": true
+      },
+      {
+        "name": "gridex_contract_source_intake.current_v1",
+        "manifest_signatures": [
+          "gridex_contract_source_intake.current_v1(uuid, text, uuid)"
+        ],
+        "owners": [
+          "postgres"
+        ],
+        "body_md5": "ccb1f4a5817e8cac0ff52dc40b6fabad",
+        "source": "/tmp/gridex-ops-final/quality/audits/2026-10-12-ops-api-contracts/release-proposals/native-additive-reconciliation.sql",
+        "line": 13353,
+        "security_definer": true
+      },
+      {
+        "name": "gridex_customer_life_events.certification_basis_before_case_tuple_v1",
+        "manifest_signatures": [
+          "gridex_customer_life_events.certification_basis_before_case_tuple_v1(jsonb, text)"
+        ],
+        "owners": [
+          "postgres"
+        ],
+        "body_md5": "faaf3ea005e6af365dcfbfc1114d846e",
+        "source": "/tmp/gridex-ops-final/quality/audits/2026-10-12-ops-api-contracts/release-proposals/native-additive-reconciliation.sql",
+        "line": 13764,
+        "security_definer": true
+      },
+      {
+        "name": "gridex_supply_rescission.receipt_current_v1",
+        "manifest_signatures": [
+          "gridex_supply_rescission.receipt_current_v1(gridex_supply_rescission.artifacts)"
+        ],
+        "owners": [
+          "postgres"
+        ],
+        "body_md5": "f42c8740d23fc881adc108a11348f227",
+        "source": "/tmp/gridex-ops-final/quality/audits/2026-10-12-ops-api-contracts/release-proposals/native-additive-reconciliation.sql",
+        "line": 33958,
+        "security_definer": true
+      }
+    ],
+    "gridex_ediel_retention.contract_copy_source_current_v1": [
+      {
+        "name": "gridex_contract_source_intake.claims_valid_v1",
+        "manifest_signatures": [
+          "gridex_contract_source_intake.claims_valid_v1(gridex_contract_source_intake.artifacts)"
+        ],
+        "owners": [
+          "postgres"
+        ],
+        "body_md5": "79c3b72833c6cdc6f5efee320c5a0980",
+        "source": "/tmp/gridex-ops-final/quality/audits/2026-10-12-ops-api-contracts/release-proposals/native-additive-reconciliation.sql",
+        "line": 13312,
+        "security_definer": true
+      },
+      {
+        "name": "gridex_customer_masterdata.basis_v1",
+        "manifest_signatures": [
+          "gridex_customer_masterdata.basis_v1(uuid, uuid, uuid, timestamp with time zone, text, text, timestamp with time zone, jsonb)"
+        ],
+        "owners": [
+          "postgres"
+        ],
+        "body_md5": "e82fb22c892b924d9d2797f6187ff38b",
+        "source": "/tmp/gridex-ops-final/quality/audits/2026-10-12-ops-api-contracts/release-proposals/native-additive-reconciliation.sql",
+        "line": 14432,
+        "security_definer": true
+      },
+      {
+        "name": "gridex_metering_method_changes.context_before_contract_request_v1",
+        "manifest_signatures": [
+          "gridex_metering_method_changes.context_before_contract_request_v1(uuid, uuid, uuid, text)"
+        ],
+        "owners": [
+          "postgres"
+        ],
+        "body_md5": "f856bf98d2e0ee7ad3b0305df7233ff2",
+        "source": "/tmp/gridex-ops-final/quality/audits/2026-10-12-ops-api-contracts/release-proposals/native-additive-reconciliation.sql",
+        "line": 24231,
+        "security_definer": true
+      },
+      {
+        "name": "gridex_metering_method_changes.contract_request_basis_v1",
+        "manifest_signatures": [
+          "gridex_metering_method_changes.contract_request_basis_v1(uuid, uuid, uuid, text, text)"
+        ],
+        "owners": [
+          "postgres"
+        ],
+        "body_md5": "1769669abf28b26159fc8e533e0c884d",
+        "source": "/tmp/gridex-ops-final/quality/audits/2026-10-12-ops-api-contracts/release-proposals/native-additive-reconciliation.sql",
+        "line": 24311,
+        "security_definer": true
+      }
+    ],
+    "gridex_ediel_retention.protected_copy_transition_v1": [
+      {
+        "name": "gridex_contract_source_intake.original_guard_v1",
+        "manifest_signatures": [
+          "gridex_contract_source_intake.original_guard_v1()"
+        ],
+        "owners": [
+          "postgres"
+        ],
+        "body_md5": "fd57fb0c358b6fe04d6bad4e1cf2e154",
+        "source": "/tmp/gridex-ops-final/quality/audits/2026-10-12-ops-api-contracts/release-proposals/native-additive-reconciliation.sql",
+        "line": 13453,
+        "security_definer": true
+      }
+    ],
+    "gridex_ediel_retention.classification_copy_source_current_v1": [
+      {
+        "name": "gridex_customer_life_events.inbound_basis_v1",
+        "manifest_signatures": [
+          "gridex_customer_life_events.inbound_basis_v1(uuid, uuid, uuid)"
+        ],
+        "owners": [
+          "postgres"
+        ],
+        "body_md5": "5e261b1b64b50666f2d355c642724f7d",
+        "source": "/tmp/gridex-ops-final/quality/audits/2026-10-12-ops-api-contracts/release-proposals/native-additive-reconciliation.sql",
+        "line": 13848,
+        "security_definer": true
+      },
+      {
+        "name": "gridex_customer_life_events.owner_proof_consistent_v1",
+        "manifest_signatures": [
+          "gridex_customer_life_events.owner_proof_consistent_v1(jsonb, jsonb, uuid)"
+        ],
+        "owners": [
+          "postgres"
+        ],
+        "body_md5": "64eb972f0565684ca7e1aee43e62bbc8",
+        "source": "/tmp/gridex-ops-final/quality/audits/2026-10-12-ops-api-contracts/release-proposals/native-additive-reconciliation.sql",
+        "line": 13966,
+        "security_definer": true
+      }
+    ],
+    "gridex_ediel_retention.contract_copy_preparation_current_v1": [
+      {
+        "name": "gridex_customer_masterdata.bind_original_v1",
+        "manifest_signatures": [
+          "gridex_customer_masterdata.bind_original_v1()"
+        ],
+        "owners": [
+          "postgres"
+        ],
+        "body_md5": "d0f8f2393359c21d6da01978d14340f9",
+        "source": "/tmp/gridex-ops-final/quality/audits/2026-10-12-ops-api-contracts/release-proposals/native-additive-reconciliation.sql",
+        "line": 14500,
+        "security_definer": true
+      },
+      {
+        "name": "gridex_customer_masterdata.require_current_v1",
+        "manifest_signatures": [
+          "gridex_customer_masterdata.require_current_v1(uuid, uuid, uuid, text)"
+        ],
+        "owners": [
+          "postgres"
+        ],
+        "body_md5": "f3e2eca18a85b5cc7ad6ebb152b91a55",
+        "source": "/tmp/gridex-ops-final/quality/audits/2026-10-12-ops-api-contracts/release-proposals/native-additive-reconciliation.sql",
+        "line": 14606,
+        "security_definer": true
+      }
+    ]
+  },
+  "capability_closure": "Named private function lookup needs PG namespace U as well as PG EXECUTE; each of five callees is RET-owned SECURITY DEFINER with pg_catalog search_path. Four CREATE TRIGGER statements additionally need temporary target-function EXECUTE. Five new PG-owned private adapters retain exact ordinary source/security/config/owner and closed ACL.",
+  "prior_4812_blocked": true,
+  "published_037_and_e1_unchanged": true,
+  "qualification_required": [
+    "whole new atomic source two independent SOURCE reviews",
+    "genuine first commit and strong replay",
+    "exact target function/schema/role/membership restoration",
+    "all16targetguards and11bindings",
+    "late full rollback and metadata refusals"
+  ]
+}

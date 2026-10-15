@@ -1,0 +1,1472 @@
+{
+  "schema_version": 1,
+  "surface": "Gridex OPS Staff and separate Staff onboarding",
+  "reviewed_source": "f36dbba1",
+  "review_date": "2026-10-12",
+  "worktree": "/tmp/gridex-api-audit-ops",
+  "scope": {
+    "included": [
+      "docs/gridex-staff-api.md",
+      "docs/staff-api/independent-onboarding.md",
+      "docs/openapi/staff-v1.json",
+      "docs/openapi/staff-onboarding-v1.json",
+      "app/api/v1/staff/**",
+      "app/api/v1/staff-onboarding/**",
+      "lib/staff-api/**",
+      "lib/tenant/staffCommands.ts",
+      "OPS shared domain/native callers and focused tests"
+    ],
+    "excluded": [
+      "gridex-web and all tenant repositories",
+      "Ediel owner changes",
+      "Frozen release edits",
+      "schemas/generated files/dependency manifests",
+      "Production/staging writes"
+    ]
+  },
+  "skill_routing": {
+    "activated": [
+      "spec-to-code-compliance: document requirements traced per operation; parent override disallows additional subagents",
+      "code-review: full call-chain correctness/security/backward compatibility",
+      "fp-check: direct source/refutation and mounted RED/GREEN for material finding",
+      "verification-before-completion: exact fresh commands recorded",
+      "supabase: Auth/RLS/service-only/native boundaries",
+      "supabase-postgres-best-practices: tenant predicates, pagination, locks/ACL review"
+    ],
+    "conditional": [
+      "systematic-debugging/test-driven-development activated for handed-off request-ID fix"
+    ],
+    "skipped": "Root owns complete baseline routing and broad scanners. No independent UI/performance/product architecture or supply-chain edits, no measured workload, no hooks. No extra agents spawned."
+  },
+  "counts": {
+    "staff_business_operations": 22,
+    "staff_onboarding_operations": 2,
+    "all_documented_rows_including_publication": 29,
+    "unique_targeted_test_files": 42,
+    "unique_targeted_tests_passed": 565,
+    "local_fixed_findings": 1,
+    "root_owned_confirmed_contract_gaps": 4,
+    "documentation_clarifications": 1
+  },
+  "common_enforcement": {
+    "staff_authenticated_request": {
+      "order": [
+        "Captured service URL expected-project assertion before auth/rate/audit/handler",
+        "Native integration credential hash/client/tenant lifecycle/IP/origin/rate and explicit staff scope; wildcard does not confer Staff scope",
+        "Untrusted JWT claims only reject; asymmetric signature RS256/PS256/ES256, exact issuer/audience/sub, finite safe integer iat/exp ordered <=900sec (30sec skew), company-JTI single consume",
+        "Independent registration requires staff_access/company/local subject+issuer and binding UUID/version; native config/secret hash snapshots and current exact tuple; deleted registration historical anti-fallback",
+        "Central accepted active membership, active profile and nondeleted/nonbanned central Auth; current company-only role/allow/deny permissions; global/session role never confers Staff authority",
+        "Business exact company ownership, strict body allowlists, closed DTO rebuilt and internal payload guard",
+        "Writes require Idempotency-Key; persisted ledger tenant/client/customer/route/key with actor-bearing request fingerprint; fresh execution invokes locked native actor/client authority and audit. Completed replay preceded by current HTTP auth/binding/permissions",
+        "Server request UUID/JSON header/body/log correlation, no-store; raw download corrected; project/error/strict-version gaps recorded"
+      ],
+      "atomicity": "HTTP admission, remote onboarding Auth, JS replay and native mutation are separate authority points. No request-wide or cross-database atomicity implied."
+    },
+    "staff_onboarding_request": {
+      "order": [
+        "Required exact central expected project, actual captured service URL; early rejection no machine auth/telemetry",
+        "Explicit staff user scope plus operator-owned active same-company canonical external tenant Auth registration; tenant URL distinct central project/public key only",
+        "Remote registered SDK getUser and current local lifecycle; confirmed email",
+        "Fresh RSA/allowed asymmetric proof with correct local subject, exact provider issuer/audience, purpose/company and <=60sec lifetime; durable company JTI",
+        "Resolve native exact active binding/current membership; accept original invitation/delivery tuple and canonical single writer"
+      ],
+      "representation": "Separately closed data/error envelope version2026-10-05.2; does not share Staff frozen4.1 surface."
+    }
+  },
+  "operations": [
+    {
+      "method": "GET",
+      "path": "/api/v1/staff/users",
+      "operation_id": "getApiV1StaffUsers",
+      "handler": "lib/staff-api/userHandlers.ts:getStaffUsers",
+      "scope": [
+        "staff_users.read"
+      ],
+      "permission": "users.read",
+      "common_enforcement": "staff_authenticated_request",
+      "dependencies": [
+        "authenticate_integration_request_v1",
+        "gridex_staff_active_membership_v1",
+        "gridex_staff_permission_overrides_v1",
+        "tenant_customer_identity_providers",
+        "tenant_staff_assertion_replays",
+        "gridex_validate_staff_identity_binding_v1 (independent registered clients)",
+        "tenant_staff_actor_anchors/tenant_staff_identity_bindings (anti-fallback classification)",
+        "company_memberships",
+        "user_profiles"
+      ],
+      "request_response_behavior": "Closed page/page_size/status query; compatible numeric coercion retained, strict opt-in duplicate/decimal checks; bounded exact-count offset pagination and deterministic created_at/id ordering. Profiles fetched only for same-company membership user IDs. Staff account DTO defaults nullable role/membership keys to strings.",
+      "behavior_tests": [
+        "__tests__/staff-user-handlers.test.ts",
+        "__tests__/staff-query-parsing-policy.test.ts",
+        "__tests__/staff-user-role-id-nullability.test.ts"
+      ],
+      "verdict": "implemented_current_contract_with_shared_gaps",
+      "findings": [
+        "STAFF-02",
+        "STAFF-04",
+        "STAFF-05",
+        "STAFF-06"
+      ],
+      "unverified": [
+        "No configured live Staff client/provider; no genuine live staff request performed.",
+        "Embedded/mock/native fixtures do not prove hosted clean/upgrade or all deployed function body hashes."
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/staff/users",
+      "operation_id": "postApiV1StaffUsers",
+      "handler": "lib/staff-api/userHandlers.ts:postStaffUser",
+      "scope": [
+        "staff_users.write"
+      ],
+      "permission": "users.write",
+      "common_enforcement": "staff_authenticated_request",
+      "dependencies": [
+        "authenticate_integration_request_v1",
+        "gridex_staff_active_membership_v1",
+        "gridex_staff_permission_overrides_v1",
+        "tenant_customer_identity_providers",
+        "tenant_staff_assertion_replays",
+        "gridex_validate_staff_identity_binding_v1 (independent registered clients)",
+        "tenant_staff_actor_anchors/tenant_staff_identity_bindings (anti-fallback classification)",
+        "canonical_create_tenant_invitation",
+        "gridex_assert_staff_command_v1",
+        "company_invitations",
+        "company_provisioning_jobs",
+        "canonical_command_results",
+        "audit_logs",
+        "customer_portal_write_idempotency",
+        "gridex_staff_assert_write_actor_v1",
+        "gridex_staff_assert_external_actor_v1 (in forward-patched native guard)"
+      ],
+      "request_response_behavior": "Strict email/full_name/role_key; normalized email; explicit users.write, assignable role and actor permission ceiling; company operational check; actor/company/client/operation-derived native idempotency key; pending201 response without invite token. Canonical engine/leased worker owns delivery.",
+      "behavior_tests": [
+        "__tests__/staff-user-handlers.test.ts",
+        "__tests__/staff-commands.test.ts",
+        "__tests__/staff-user-replay-header.test.ts",
+        "__tests__/staff-user-rbac-audit.test.ts",
+        "__tests__/staff-native-policy.test.ts"
+      ],
+      "verdict": "implemented_current_contract_with_shared_gaps",
+      "findings": [
+        "STAFF-02",
+        "STAFF-04",
+        "STAFF-05",
+        "STAFF-06"
+      ],
+      "unverified": [
+        "No configured live Staff client/provider; no genuine live staff request performed.",
+        "Embedded/mock/native fixtures do not prove hosted clean/upgrade or all deployed function body hashes."
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/staff/users/{id}",
+      "operation_id": "patchApiV1StaffUsersId",
+      "handler": "lib/staff-api/userHandlers.ts:patchStaffUser",
+      "scope": [
+        "staff_users.write"
+      ],
+      "permission": "users.write",
+      "common_enforcement": "staff_authenticated_request",
+      "dependencies": [
+        "authenticate_integration_request_v1",
+        "gridex_staff_active_membership_v1",
+        "gridex_staff_permission_overrides_v1",
+        "tenant_customer_identity_providers",
+        "tenant_staff_assertion_replays",
+        "gridex_validate_staff_identity_binding_v1 (independent registered clients)",
+        "tenant_staff_actor_anchors/tenant_staff_identity_bindings (anti-fallback classification)",
+        "canonical_change_tenant_user_access",
+        "gridex_assert_staff_command_v1",
+        "canonical_command_results",
+        "company_memberships",
+        "audit_logs",
+        "customer_portal_write_idempotency",
+        "gridex_staff_assert_write_actor_v1",
+        "gridex_staff_assert_external_actor_v1 (in forward-patched native guard)"
+      ],
+      "request_response_behavior": "Strict UUID and role_key, role ceiling and assignability, own-role denial; canonical company-first lock with current accepted actor/client checks before native replay; last-admin/owner guards preserved; closed account-state200 response.",
+      "behavior_tests": [
+        "__tests__/staff-commands.test.ts",
+        "__tests__/staff-user-actor-guard.test.ts",
+        "__tests__/staff-user-client-guard.test.ts",
+        "__tests__/staff-user-lock-order.test.ts",
+        "__tests__/staff-native-policy.test.ts",
+        "__tests__/staff-user-replay-header.test.ts"
+      ],
+      "verdict": "implemented_current_contract_with_shared_gaps",
+      "findings": [
+        "STAFF-02",
+        "STAFF-04",
+        "STAFF-05",
+        "STAFF-06"
+      ],
+      "unverified": [
+        "No configured live Staff client/provider; no genuine live staff request performed.",
+        "Embedded/mock/native fixtures do not prove hosted clean/upgrade or all deployed function body hashes."
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/staff/users/{id}/disable",
+      "operation_id": "postApiV1StaffUsersIdDisable",
+      "handler": "lib/staff-api/userHandlers.ts:disableStaffUser",
+      "scope": [
+        "staff_users.write"
+      ],
+      "permission": "users.write",
+      "common_enforcement": "staff_authenticated_request",
+      "dependencies": [
+        "authenticate_integration_request_v1",
+        "gridex_staff_active_membership_v1",
+        "gridex_staff_permission_overrides_v1",
+        "tenant_customer_identity_providers",
+        "tenant_staff_assertion_replays",
+        "gridex_validate_staff_identity_binding_v1 (independent registered clients)",
+        "tenant_staff_actor_anchors/tenant_staff_identity_bindings (anti-fallback classification)",
+        "canonical_change_tenant_user_access",
+        "gridex_assert_staff_command_v1",
+        "company_memberships",
+        "company_invitations",
+        "canonical_command_results",
+        "audit_logs",
+        "customer_portal_write_idempotency",
+        "gridex_staff_assert_write_actor_v1",
+        "gridex_staff_assert_external_actor_v1 (in forward-patched native guard)"
+      ],
+      "request_response_behavior": "Strict optional reason; self-disable forbidden; active target state and last functioning admin safeguards; canonical disabled membership and pending invitation revocation; actor/client/current permission rechecks before replay.",
+      "behavior_tests": [
+        "__tests__/staff-user-handlers.test.ts",
+        "__tests__/staff-commands.test.ts",
+        "__tests__/staff-user-actor-guard.test.ts",
+        "__tests__/staff-user-client-guard.test.ts",
+        "__tests__/staff-user-lock-order.test.ts",
+        "__tests__/staff-user-replay-header.test.ts"
+      ],
+      "verdict": "implemented_current_contract_with_shared_gaps",
+      "findings": [
+        "STAFF-02",
+        "STAFF-04",
+        "STAFF-05",
+        "STAFF-06"
+      ],
+      "unverified": [
+        "No configured live Staff client/provider; no genuine live staff request performed.",
+        "Embedded/mock/native fixtures do not prove hosted clean/upgrade or all deployed function body hashes."
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/staff/users/{id}/enable",
+      "operation_id": "postApiV1StaffUsersIdEnable",
+      "handler": "lib/staff-api/userHandlers.ts:enableStaffUser",
+      "scope": [
+        "staff_users.write"
+      ],
+      "permission": "users.write",
+      "common_enforcement": "staff_authenticated_request",
+      "dependencies": [
+        "authenticate_integration_request_v1",
+        "gridex_staff_active_membership_v1",
+        "gridex_staff_permission_overrides_v1",
+        "tenant_customer_identity_providers",
+        "tenant_staff_assertion_replays",
+        "gridex_validate_staff_identity_binding_v1 (independent registered clients)",
+        "tenant_staff_actor_anchors/tenant_staff_identity_bindings (anti-fallback classification)",
+        "canonical_change_tenant_user_access",
+        "gridex_assert_staff_command_v1",
+        "company_memberships",
+        "canonical_command_results",
+        "audit_logs",
+        "customer_portal_write_idempotency",
+        "gridex_staff_assert_write_actor_v1",
+        "gridex_staff_assert_external_actor_v1 (in forward-patched native guard)"
+      ],
+      "request_response_behavior": "Closed {} body; target must be disabled; stored role restored within native transaction, current ceiling/active Auth/profile checks; caller cannot provide replacement role.",
+      "behavior_tests": [
+        "__tests__/staff-user-handlers.test.ts",
+        "__tests__/staff-commands.test.ts",
+        "__tests__/staff-user-actor-guard.test.ts",
+        "__tests__/staff-user-client-guard.test.ts",
+        "__tests__/staff-user-replay-header.test.ts"
+      ],
+      "verdict": "implemented_current_contract_with_shared_gaps",
+      "findings": [
+        "STAFF-02",
+        "STAFF-04",
+        "STAFF-05",
+        "STAFF-06"
+      ],
+      "unverified": [
+        "No configured live Staff client/provider; no genuine live staff request performed.",
+        "Embedded/mock/native fixtures do not prove hosted clean/upgrade or all deployed function body hashes."
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/staff/roles",
+      "operation_id": "getApiV1StaffRoles",
+      "handler": "lib/staff-api/userHandlers.ts:getStaffRoles",
+      "scope": [
+        "staff_users.read"
+      ],
+      "permission": "users.read",
+      "common_enforcement": "staff_authenticated_request",
+      "dependencies": [
+        "authenticate_integration_request_v1",
+        "gridex_staff_active_membership_v1",
+        "gridex_staff_permission_overrides_v1",
+        "tenant_customer_identity_providers",
+        "tenant_staff_assertion_replays",
+        "gridex_validate_staff_identity_binding_v1 (independent registered clients)",
+        "tenant_staff_actor_anchors/tenant_staff_identity_bindings (anti-fallback classification)",
+        "COMPANY_USER_ROLE_OPTIONS",
+        "ROLE_PERMISSION_PROFILES"
+      ],
+      "request_response_behavior": "users.read permission, explicit safe role descriptions/permissions and computed assignable based on users.write plus ceiling. No database authority acquired from returned list.",
+      "behavior_tests": [
+        "__tests__/staff-commands.test.ts",
+        "__tests__/staff-native-policy.test.ts",
+        "__tests__/staff-api-openapi.test.ts"
+      ],
+      "verdict": "implemented_current_contract_with_shared_gaps",
+      "findings": [
+        "STAFF-02",
+        "STAFF-04",
+        "STAFF-05",
+        "STAFF-06"
+      ],
+      "unverified": [
+        "No configured live Staff client/provider; no genuine live staff request performed.",
+        "Embedded/mock/native fixtures do not prove hosted clean/upgrade or all deployed function body hashes."
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/staff/customers",
+      "operation_id": "getApiV1StaffCustomers",
+      "handler": "lib/staff-api/customerHandlers.ts:getStaffCustomers",
+      "scope": [
+        "staff_customers.read"
+      ],
+      "permission": "customers.read",
+      "common_enforcement": "staff_authenticated_request",
+      "dependencies": [
+        "authenticate_integration_request_v1",
+        "gridex_staff_active_membership_v1",
+        "gridex_staff_permission_overrides_v1",
+        "tenant_customer_identity_providers",
+        "tenant_staff_assertion_replays",
+        "gridex_validate_staff_identity_binding_v1 (independent registered clients)",
+        "tenant_staff_actor_anchors/tenant_staff_identity_bindings (anti-fallback classification)",
+        "gridex_staff_customer_search_v1",
+        "customers",
+        "customer_contacts",
+        "customer_sites",
+        "customer_contracts"
+      ],
+      "request_response_behavior": "Closed q/page/page_size/status/customer_type, duplicate rejection retained even compatible; strict decimal page bounds; full company search native IDs and exact total, bounded page IDs then same-company re-read; safe summary reference, masked identity numbers and closed nested pagination.",
+      "behavior_tests": [
+        "__tests__/staff-api-customer-routes.test.ts",
+        "__tests__/staff-api-customer-pagination.test.ts",
+        "__tests__/staff-api-customers.test.ts",
+        "__tests__/staff-query-parsing-policy.test.ts"
+      ],
+      "verdict": "implemented_current_contract_with_shared_gaps",
+      "findings": [
+        "STAFF-02",
+        "STAFF-04",
+        "STAFF-05",
+        "STAFF-06"
+      ],
+      "unverified": [
+        "No configured live Staff client/provider; no genuine live staff request performed.",
+        "Embedded/mock/native fixtures do not prove hosted clean/upgrade or all deployed function body hashes."
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/staff/customers/{ref}",
+      "operation_id": "getApiV1StaffCustomersRef",
+      "handler": "lib/staff-api/customerHandlers.ts:getStaffCustomer",
+      "scope": [
+        "staff_customers.read"
+      ],
+      "permission": "customers.read",
+      "common_enforcement": "staff_authenticated_request",
+      "dependencies": [
+        "authenticate_integration_request_v1",
+        "gridex_staff_active_membership_v1",
+        "gridex_staff_permission_overrides_v1",
+        "tenant_customer_identity_providers",
+        "tenant_staff_assertion_replays",
+        "gridex_validate_staff_identity_binding_v1 (independent registered clients)",
+        "tenant_staff_actor_anchors/tenant_staff_identity_bindings (anti-fallback classification)",
+        "gridex_staff_customer_id_for_reference_v1",
+        "customers",
+        "customer_contacts",
+        "customer_addresses",
+        "customer_sites",
+        "ediel_customer_record_tombstones_v1",
+        "gridex_ediel_retention.record_tombstones"
+      ],
+      "request_response_behavior": "Opaque reference resolved company-scoped and hash rechecked; every child read repeats company/customer; initial101 fetched and100 returned; retained address tombstones filtered; contacts/addresses/sites_page disclose has_more. No continuation operation published for those child collections.",
+      "behavior_tests": [
+        "__tests__/staff-api-customer-routes.test.ts",
+        "__tests__/staff-api-customers.test.ts",
+        "__tests__/staff-customer-detail-retention-prerequisite.test.ts",
+        "__tests__/staff-customer-retention-read-prerequisite-sql.test.ts"
+      ],
+      "verdict": "implemented_current_contract_with_shared_gaps",
+      "findings": [
+        "STAFF-02",
+        "STAFF-04",
+        "STAFF-05",
+        "STAFF-06"
+      ],
+      "unverified": [
+        "No configured live Staff client/provider; no genuine live staff request performed.",
+        "Embedded/mock/native fixtures do not prove hosted clean/upgrade or all deployed function body hashes."
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/staff/customers/{ref}/contact",
+      "operation_id": "patchApiV1StaffCustomersRefContact",
+      "handler": "lib/staff-api/customerHandlers.ts:patchStaffCustomerContact",
+      "scope": [
+        "staff_customers.write"
+      ],
+      "permission": "masterdata.write",
+      "common_enforcement": "staff_authenticated_request",
+      "dependencies": [
+        "authenticate_integration_request_v1",
+        "gridex_staff_active_membership_v1",
+        "gridex_staff_permission_overrides_v1",
+        "tenant_customer_identity_providers",
+        "tenant_staff_assertion_replays",
+        "gridex_validate_staff_identity_binding_v1 (independent registered clients)",
+        "tenant_staff_actor_anchors/tenant_staff_identity_bindings (anti-fallback classification)",
+        "gridex_staff_customer_id_for_reference_v1",
+        "gridex_customer_contact_change_v1",
+        "customers",
+        "customer_contacts",
+        "customer_events",
+        "audit_logs",
+        "customer_portal_write_idempotency",
+        "gridex_staff_assert_write_actor_v1",
+        "gridex_staff_assert_external_actor_v1 (in forward-patched native guard)"
+      ],
+      "request_response_behavior": "Strict expectedUpdatedAt + at least one approved contact field; true calendar/precision timestamp validation, normalized email/phone; masterdata.write required at HTTP/domain/native; version conflict409 and archival denial; primary-contact sync atomic with audit/event. Raw identity changes forbidden.",
+      "behavior_tests": [
+        "__tests__/staff-api-customer-routes.test.ts",
+        "__tests__/staff-api-customers.test.ts",
+        "__tests__/staff-contact-permission-authority.test.ts",
+        "__tests__/staff-write-actor-guard.test.ts"
+      ],
+      "verdict": "implemented_current_contract_with_shared_gaps",
+      "findings": [
+        "STAFF-02",
+        "STAFF-04",
+        "STAFF-05",
+        "STAFF-06"
+      ],
+      "unverified": [
+        "No configured live Staff client/provider; no genuine live staff request performed.",
+        "Embedded/mock/native fixtures do not prove hosted clean/upgrade or all deployed function body hashes."
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/staff/customers/{ref}/identity-change",
+      "operation_id": "postApiV1StaffCustomersRefIdentityChange",
+      "handler": "lib/staff-api/customerHandlers.ts:postStaffCustomerIdentityChange",
+      "scope": [
+        "staff_customers.write"
+      ],
+      "permission": "customers.write",
+      "common_enforcement": "staff_authenticated_request",
+      "dependencies": [
+        "authenticate_integration_request_v1",
+        "gridex_staff_active_membership_v1",
+        "gridex_staff_permission_overrides_v1",
+        "tenant_customer_identity_providers",
+        "tenant_staff_assertion_replays",
+        "gridex_validate_staff_identity_binding_v1 (independent registered clients)",
+        "tenant_staff_actor_anchors/tenant_staff_identity_bindings (anti-fallback classification)",
+        "gridex_staff_customer_id_for_reference_v1",
+        "customer_identity_change_requests",
+        "gridex_audit_staff_identity_request_v1",
+        "gridex_decide_customer_identity_change_v1",
+        "customer_identity_change_events",
+        "customer_contracts",
+        "communication_messages",
+        "legal_bundle_versions",
+        "legal_bundle_version_documents",
+        "customer_portal_write_idempotency",
+        "gridex_staff_assert_write_actor_v1",
+        "gridex_staff_assert_external_actor_v1 (in forward-patched native guard)"
+      ],
+      "request_response_behavior": "Closed field/new_value/reason, customers.write, identity normalized/checksummed and type-matched; reason3–500; unchanged/archive rejected; no committed contracts => apply, otherwise own customer email approval/PDF/takeover snapshot. Safe201 reference/status/masked recipient fields; no raw identity/customer internal IDs.",
+      "behavior_tests": [
+        "__tests__/staff-api-customer-routes.test.ts",
+        "__tests__/staff-api-customers.test.ts",
+        "__tests__/staff-write-actor-guard.test.ts"
+      ],
+      "verdict": "implemented_current_contract_with_shared_gaps",
+      "findings": [
+        "STAFF-02",
+        "STAFF-04",
+        "STAFF-05",
+        "STAFF-06"
+      ],
+      "unverified": [
+        "No configured live Staff client/provider; no genuine live staff request performed.",
+        "Embedded/mock/native fixtures do not prove hosted clean/upgrade or all deployed function body hashes."
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/staff/cases",
+      "operation_id": "getApiV1StaffCases",
+      "handler": "lib/staff-api/caseHandlers.ts:getStaffCases",
+      "scope": [
+        "staff_cases.read"
+      ],
+      "permission": "cases.read",
+      "common_enforcement": "staff_authenticated_request",
+      "dependencies": [
+        "authenticate_integration_request_v1",
+        "gridex_staff_active_membership_v1",
+        "gridex_staff_permission_overrides_v1",
+        "tenant_customer_identity_providers",
+        "tenant_staff_assertion_replays",
+        "gridex_validate_staff_identity_binding_v1 (independent registered clients)",
+        "tenant_staff_actor_anchors/tenant_staff_identity_bindings (anti-fallback classification)",
+        "customer_cases",
+        "gridex_staff_customer_id_for_reference_v1 (optional customer filter)"
+      ],
+      "request_response_behavior": "Closed limit/cursor/status/customer_reference/query; limit1–100 default50; company support-only neutral-case filters exclude billing/cancellation/Ediel operational cases. Query escapes wildcards; cursor bound to company and filter tuple and stable created_at/id sort.",
+      "behavior_tests": [
+        "__tests__/staff-api-cases.test.ts",
+        "__tests__/staff-case-history-pagination.test.ts",
+        "__tests__/staff-query-parsing-policy.test.ts"
+      ],
+      "verdict": "implemented_current_contract_with_shared_gaps",
+      "findings": [
+        "STAFF-02",
+        "STAFF-04",
+        "STAFF-05",
+        "STAFF-06"
+      ],
+      "unverified": [
+        "No configured live Staff client/provider; no genuine live staff request performed.",
+        "Embedded/mock/native fixtures do not prove hosted clean/upgrade or all deployed function body hashes."
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/staff/cases",
+      "operation_id": "postApiV1StaffCases",
+      "handler": "lib/staff-api/caseHandlers.ts:postStaffCase",
+      "scope": [
+        "staff_cases.write"
+      ],
+      "permission": "cases.write",
+      "common_enforcement": "staff_authenticated_request",
+      "dependencies": [
+        "authenticate_integration_request_v1",
+        "gridex_staff_active_membership_v1",
+        "gridex_staff_permission_overrides_v1",
+        "tenant_customer_identity_providers",
+        "tenant_staff_assertion_replays",
+        "gridex_validate_staff_identity_binding_v1 (independent registered clients)",
+        "tenant_staff_actor_anchors/tenant_staff_identity_bindings (anti-fallback classification)",
+        "gridex_create_staff_support_case_v1",
+        "gridex_staff_customer_id_for_reference_v1",
+        "customer_cases",
+        "customer_case_events",
+        "audit_logs",
+        "customer_portal_write_idempotency",
+        "gridex_staff_assert_write_actor_v1",
+        "gridex_staff_assert_external_actor_v1 (in forward-patched native guard)"
+      ],
+      "request_response_behavior": "Closed customer_reference/title/description/category/priority; bounded sanitized strings; cases.write; native atomic actor/customer graph recheck and native domain idempotency key; new201 closed safe case DTO, description internal.",
+      "behavior_tests": [
+        "__tests__/staff-api-cases.test.ts",
+        "__tests__/staff-write-actor-guard.test.ts"
+      ],
+      "verdict": "implemented_current_contract_with_shared_gaps",
+      "findings": [
+        "STAFF-02",
+        "STAFF-04",
+        "STAFF-05",
+        "STAFF-06"
+      ],
+      "unverified": [
+        "No configured live Staff client/provider; no genuine live staff request performed.",
+        "Embedded/mock/native fixtures do not prove hosted clean/upgrade or all deployed function body hashes."
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/staff/cases/{reference}",
+      "operation_id": "getApiV1StaffCasesReference",
+      "handler": "lib/staff-api/caseHandlers.ts:getStaffCase",
+      "scope": [
+        "staff_cases.read"
+      ],
+      "permission": "cases.read",
+      "common_enforcement": "staff_authenticated_request",
+      "dependencies": [
+        "authenticate_integration_request_v1",
+        "gridex_staff_active_membership_v1",
+        "gridex_staff_permission_overrides_v1",
+        "tenant_customer_identity_providers",
+        "tenant_staff_assertion_replays",
+        "gridex_validate_staff_identity_binding_v1 (independent registered clients)",
+        "tenant_staff_actor_anchors/tenant_staff_identity_bindings (anti-fallback classification)",
+        "customer_cases",
+        "customer_case_events",
+        "customer_case_attachments"
+      ],
+      "request_response_behavior": "Exact support_case opaque shape and same-company filtered lookup; initial event/attachment limit50 plus has_more/next_cursor; safe DTO rebuilt fieldwise including permitted staff IDs only.",
+      "behavior_tests": [
+        "__tests__/staff-api-cases.test.ts",
+        "__tests__/staff-case-history-pagination.test.ts"
+      ],
+      "verdict": "implemented_current_contract_with_shared_gaps",
+      "findings": [
+        "STAFF-02",
+        "STAFF-04",
+        "STAFF-05",
+        "STAFF-06"
+      ],
+      "unverified": [
+        "No configured live Staff client/provider; no genuine live staff request performed.",
+        "Embedded/mock/native fixtures do not prove hosted clean/upgrade or all deployed function body hashes."
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/staff/cases/{reference}/events",
+      "operation_id": "getApiV1StaffCasesReferenceEvents",
+      "handler": "lib/staff-api/caseHandlers.ts:getStaffCaseEvents",
+      "scope": [
+        "staff_cases.read"
+      ],
+      "permission": "cases.read",
+      "common_enforcement": "staff_authenticated_request",
+      "dependencies": [
+        "authenticate_integration_request_v1",
+        "gridex_staff_active_membership_v1",
+        "gridex_staff_permission_overrides_v1",
+        "tenant_customer_identity_providers",
+        "tenant_staff_assertion_replays",
+        "gridex_validate_staff_identity_binding_v1 (independent registered clients)",
+        "tenant_staff_actor_anchors/tenant_staff_identity_bindings (anti-fallback classification)",
+        "customer_cases",
+        "customer_case_events"
+      ],
+      "request_response_behavior": "Closed limit/cursor, default50/max100; event-type allowlist, exact company/customer/case repeat; signed bound cursor; internal and customer events only under cases.read; explicit event DTO hides unapproved payload keys.",
+      "behavior_tests": [
+        "__tests__/staff-api-cases.test.ts",
+        "__tests__/staff-case-history-pagination.test.ts",
+        "__tests__/staff-case-events-auth-sql.test.ts",
+        "__tests__/staff-query-parsing-policy.test.ts"
+      ],
+      "verdict": "implemented_current_contract_with_shared_gaps",
+      "findings": [
+        "STAFF-02",
+        "STAFF-04",
+        "STAFF-05",
+        "STAFF-06"
+      ],
+      "unverified": [
+        "No configured live Staff client/provider; no genuine live staff request performed.",
+        "Embedded/mock/native fixtures do not prove hosted clean/upgrade or all deployed function body hashes."
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/staff/cases/{reference}/messages",
+      "operation_id": "postApiV1StaffCasesReferenceMessages",
+      "handler": "lib/staff-api/caseHandlers.ts:postStaffCaseMessage",
+      "scope": [
+        "staff_cases.write"
+      ],
+      "permission": "cases.write",
+      "common_enforcement": "staff_authenticated_request",
+      "dependencies": [
+        "authenticate_integration_request_v1",
+        "gridex_staff_active_membership_v1",
+        "gridex_staff_permission_overrides_v1",
+        "tenant_customer_identity_providers",
+        "tenant_staff_assertion_replays",
+        "gridex_validate_staff_identity_binding_v1 (independent registered clients)",
+        "tenant_staff_actor_anchors/tenant_staff_identity_bindings (anti-fallback classification)",
+        "customer_cases",
+        "gridex_staff_support_event",
+        "customer_case_events",
+        "audit_logs",
+        "customer_portal_write_idempotency",
+        "gridex_staff_assert_write_actor_v1",
+        "gridex_staff_assert_external_actor_v1 (in forward-patched native guard)"
+      ],
+      "request_response_behavior": "Closed message/kind; kind message or phone_summary, message1–8000; reply customer visibility; staff actor/client/channel sealed into native event and audit; stored201 replay after current HTTP permission/binding checks.",
+      "behavior_tests": [
+        "__tests__/staff-api-cases.test.ts",
+        "__tests__/staff-case-events-auth-sql.test.ts",
+        "__tests__/staff-write-actor-guard.test.ts"
+      ],
+      "verdict": "implemented_current_contract_with_shared_gaps",
+      "findings": [
+        "STAFF-02",
+        "STAFF-04",
+        "STAFF-05",
+        "STAFF-06"
+      ],
+      "unverified": [
+        "No configured live Staff client/provider; no genuine live staff request performed.",
+        "Embedded/mock/native fixtures do not prove hosted clean/upgrade or all deployed function body hashes."
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/staff/cases/{reference}/notes",
+      "operation_id": "postApiV1StaffCasesReferenceNotes",
+      "handler": "lib/staff-api/caseHandlers.ts:postStaffCaseNote",
+      "scope": [
+        "staff_cases.write"
+      ],
+      "permission": "cases.write",
+      "common_enforcement": "staff_authenticated_request",
+      "dependencies": [
+        "authenticate_integration_request_v1",
+        "gridex_staff_active_membership_v1",
+        "gridex_staff_permission_overrides_v1",
+        "tenant_customer_identity_providers",
+        "tenant_staff_assertion_replays",
+        "gridex_validate_staff_identity_binding_v1 (independent registered clients)",
+        "tenant_staff_actor_anchors/tenant_staff_identity_bindings (anti-fallback classification)",
+        "customer_cases",
+        "gridex_staff_support_event",
+        "customer_case_events",
+        "audit_logs",
+        "customer_portal_write_idempotency",
+        "gridex_staff_assert_write_actor_v1",
+        "gridex_staff_assert_external_actor_v1 (in forward-patched native guard)"
+      ],
+      "request_response_behavior": "Closed message1–8000, visibility internal; cases.write and canonical native actor/client check; safe event201, no generic raw payload serialization.",
+      "behavior_tests": [
+        "__tests__/staff-api-cases.test.ts",
+        "__tests__/staff-case-events-auth-sql.test.ts",
+        "__tests__/staff-write-actor-guard.test.ts"
+      ],
+      "verdict": "implemented_current_contract_with_shared_gaps",
+      "findings": [
+        "STAFF-02",
+        "STAFF-04",
+        "STAFF-05",
+        "STAFF-06"
+      ],
+      "unverified": [
+        "No configured live Staff client/provider; no genuine live staff request performed.",
+        "Embedded/mock/native fixtures do not prove hosted clean/upgrade or all deployed function body hashes."
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/staff/cases/{reference}/phone-interactions",
+      "operation_id": "postApiV1StaffCasesReferencePhoneInteractions",
+      "handler": "lib/staff-api/caseHandlers.ts:postStaffCasePhoneInteraction",
+      "scope": [
+        "staff_cases.write"
+      ],
+      "permission": "cases.write",
+      "common_enforcement": "staff_authenticated_request",
+      "dependencies": [
+        "authenticate_integration_request_v1",
+        "gridex_staff_active_membership_v1",
+        "gridex_staff_permission_overrides_v1",
+        "tenant_customer_identity_providers",
+        "tenant_staff_assertion_replays",
+        "gridex_validate_staff_identity_binding_v1 (independent registered clients)",
+        "tenant_staff_actor_anchors/tenant_staff_identity_bindings (anti-fallback classification)",
+        "customer_cases",
+        "gridex_staff_support_event",
+        "customer_case_events",
+        "audit_logs",
+        "customer_portal_write_idempotency",
+        "gridex_staff_assert_write_actor_v1",
+        "gridex_staff_assert_external_actor_v1 (in forward-patched native guard)"
+      ],
+      "request_response_behavior": "Closed direction/summary/verification_method/reference/representative; nested representative closed; enum and lengths; phone verification prerequisites in shared conversation domain; safe staff-only event201.",
+      "behavior_tests": [
+        "__tests__/staff-api-cases.test.ts",
+        "__tests__/staff-case-events-auth-sql.test.ts",
+        "__tests__/staff-write-actor-guard.test.ts"
+      ],
+      "verdict": "implemented_current_contract_with_shared_gaps",
+      "findings": [
+        "STAFF-02",
+        "STAFF-04",
+        "STAFF-05",
+        "STAFF-06"
+      ],
+      "unverified": [
+        "No configured live Staff client/provider; no genuine live staff request performed.",
+        "Embedded/mock/native fixtures do not prove hosted clean/upgrade or all deployed function body hashes."
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/staff/cases/{reference}/status",
+      "operation_id": "patchApiV1StaffCasesReferenceStatus",
+      "handler": "lib/staff-api/caseHandlers.ts:patchStaffCaseStatus",
+      "scope": [
+        "staff_cases.write"
+      ],
+      "permission": "cases.write",
+      "common_enforcement": "staff_authenticated_request",
+      "dependencies": [
+        "authenticate_integration_request_v1",
+        "gridex_staff_active_membership_v1",
+        "gridex_staff_permission_overrides_v1",
+        "tenant_customer_identity_providers",
+        "tenant_staff_assertion_replays",
+        "gridex_validate_staff_identity_binding_v1 (independent registered clients)",
+        "tenant_staff_actor_anchors/tenant_staff_identity_bindings (anti-fallback classification)",
+        "customer_cases",
+        "gridex_staff_update_customer_case_status",
+        "gridex_update_customer_case_status_with_actor_v1",
+        "customer_case_events",
+        "audit_logs",
+        "customer_portal_write_idempotency",
+        "gridex_staff_assert_write_actor_v1",
+        "gridex_staff_assert_external_actor_v1 (in forward-patched native guard)"
+      ],
+      "request_response_behavior": "Closed status/message; writable statuses deliberately omit legacy readable billing_blocked/cancelled; current native actor/client/same neutral support graph; update/event/audit atomic. OPS six-argument and nonstaff event/audit behavior retained by tested forward.",
+      "behavior_tests": [
+        "__tests__/staff-api-cases.test.ts",
+        "__tests__/staff-case-status-compatibility.test.ts",
+        "__tests__/staff-write-actor-guard.test.ts"
+      ],
+      "verdict": "implemented_current_contract_with_shared_gaps",
+      "findings": [
+        "STAFF-02",
+        "STAFF-04",
+        "STAFF-05",
+        "STAFF-06"
+      ],
+      "unverified": [
+        "No configured live Staff client/provider; no genuine live staff request performed.",
+        "Embedded/mock/native fixtures do not prove hosted clean/upgrade or all deployed function body hashes."
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/staff/cases/{reference}/assignee",
+      "operation_id": "patchApiV1StaffCasesReferenceAssignee",
+      "handler": "lib/staff-api/caseHandlers.ts:patchStaffCaseAssignee",
+      "scope": [
+        "staff_cases.write"
+      ],
+      "permission": "cases.write",
+      "common_enforcement": "staff_authenticated_request",
+      "dependencies": [
+        "authenticate_integration_request_v1",
+        "gridex_staff_active_membership_v1",
+        "gridex_staff_permission_overrides_v1",
+        "tenant_customer_identity_providers",
+        "tenant_staff_assertion_replays",
+        "gridex_validate_staff_identity_binding_v1 (independent registered clients)",
+        "tenant_staff_actor_anchors/tenant_staff_identity_bindings (anti-fallback classification)",
+        "customer_cases",
+        "gridex_assign_customer_case",
+        "company_memberships",
+        "user_profiles",
+        "auth.users",
+        "customer_case_events",
+        "audit_logs",
+        "customer_portal_write_idempotency",
+        "gridex_staff_assert_write_actor_v1",
+        "gridex_staff_assert_external_actor_v1 (in forward-patched native guard)"
+      ],
+      "request_response_behavior": "Closed UUID-or-null assignee; target accepted recognized same-company staff with active profile/current central Auth; null unassign accepted; row SHARE locks and company-first native actor guard; safe case200.",
+      "behavior_tests": [
+        "__tests__/staff-api-cases.test.ts",
+        "__tests__/staff-case-assignee-eligibility.test.ts",
+        "__tests__/staff-write-actor-guard.test.ts"
+      ],
+      "verdict": "implemented_current_contract_with_shared_gaps",
+      "findings": [
+        "STAFF-02",
+        "STAFF-04",
+        "STAFF-05",
+        "STAFF-06"
+      ],
+      "unverified": [
+        "No configured live Staff client/provider; no genuine live staff request performed.",
+        "Embedded/mock/native fixtures do not prove hosted clean/upgrade or all deployed function body hashes."
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/staff/cases/{reference}/attachments",
+      "operation_id": "getApiV1StaffCasesReferenceAttachments",
+      "handler": "lib/staff-api/caseHandlers.ts:getStaffCaseAttachments",
+      "scope": [
+        "staff_cases.read"
+      ],
+      "permission": "cases.read",
+      "common_enforcement": "staff_authenticated_request",
+      "dependencies": [
+        "authenticate_integration_request_v1",
+        "gridex_staff_active_membership_v1",
+        "gridex_staff_permission_overrides_v1",
+        "tenant_customer_identity_providers",
+        "tenant_staff_assertion_replays",
+        "gridex_validate_staff_identity_binding_v1 (independent registered clients)",
+        "tenant_staff_actor_anchors/tenant_staff_identity_bindings (anti-fallback classification)",
+        "customer_cases",
+        "customer_case_attachments"
+      ],
+      "request_response_behavior": "Closed limit/cursor default50/max100; exact company/customer/case and audience cursor binding; authorized staff may see internal/quarantined/rejected row DTO, storage path excluded; only download requires released.",
+      "behavior_tests": [
+        "__tests__/staff-api-cases.test.ts",
+        "__tests__/staff-case-history-pagination.test.ts",
+        "__tests__/staff-query-parsing-policy.test.ts"
+      ],
+      "verdict": "implemented_current_contract_with_shared_gaps",
+      "findings": [
+        "STAFF-02",
+        "STAFF-04",
+        "STAFF-05",
+        "STAFF-06"
+      ],
+      "unverified": [
+        "No configured live Staff client/provider; no genuine live staff request performed.",
+        "Embedded/mock/native fixtures do not prove hosted clean/upgrade or all deployed function body hashes."
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/staff/cases/{reference}/attachments",
+      "operation_id": "postApiV1StaffCasesReferenceAttachments",
+      "handler": "lib/staff-api/caseHandlers.ts:postStaffCaseAttachment",
+      "scope": [
+        "staff_cases.write"
+      ],
+      "permission": "cases.write",
+      "common_enforcement": "staff_authenticated_request",
+      "dependencies": [
+        "authenticate_integration_request_v1",
+        "gridex_staff_active_membership_v1",
+        "gridex_staff_permission_overrides_v1",
+        "tenant_customer_identity_providers",
+        "tenant_staff_assertion_replays",
+        "gridex_validate_staff_identity_binding_v1 (independent registered clients)",
+        "tenant_staff_actor_anchors/tenant_staff_identity_bindings (anti-fallback classification)",
+        "customer_cases",
+        "customer_case_attachments",
+        "gridex_audit_staff_support_attachment_v1",
+        "storage.objects",
+        "support-case-attachments bucket",
+        "customer_portal_write_idempotency",
+        "gridex_staff_assert_write_actor_v1",
+        "gridex_staff_assert_external_actor_v1 (in forward-patched native guard)"
+      ],
+      "request_response_behavior": "Raw PDF/PNG/JPEG, declared and streamed actual bound4MiB, visibility internal default; idempotent payload includes bytesSHA256/name/visibility/reference/actor/client; per-customer daily20 quota; private upload then quarantine row/native actor guard, content check release/reject and audit; no AV claim. Only released row201; storage/database not one transaction.",
+      "behavior_tests": [
+        "__tests__/staff-api-cases.test.ts",
+        "__tests__/staff-write-actor-guard.test.ts"
+      ],
+      "verdict": "implemented_current_contract_with_shared_gaps",
+      "findings": [
+        "STAFF-02",
+        "STAFF-04",
+        "STAFF-05",
+        "STAFF-06"
+      ],
+      "unverified": [
+        "No configured live Staff client/provider; no genuine live staff request performed.",
+        "Embedded/mock/native fixtures do not prove hosted clean/upgrade or all deployed function body hashes."
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/staff/cases/{reference}/attachments/{attachmentReference}/file",
+      "operation_id": "getApiV1StaffCasesReferenceAttachmentsAttachmentReferenceFile",
+      "handler": "lib/staff-api/caseHandlers.ts:getStaffCaseAttachmentFile",
+      "scope": [
+        "staff_cases.read"
+      ],
+      "permission": "cases.read",
+      "common_enforcement": "staff_authenticated_request",
+      "dependencies": [
+        "authenticate_integration_request_v1",
+        "gridex_staff_active_membership_v1",
+        "gridex_staff_permission_overrides_v1",
+        "tenant_customer_identity_providers",
+        "tenant_staff_assertion_replays",
+        "gridex_validate_staff_identity_binding_v1 (independent registered clients)",
+        "tenant_staff_actor_anchors/tenant_staff_identity_bindings (anti-fallback classification)",
+        "customer_cases",
+        "customer_case_attachments",
+        "storage.objects",
+        "support-case-attachments bucket"
+      ],
+      "request_response_behavior": "Exact company/customer/case/attachment re-read; released-only; private storage download, bounded bytes and SHA256 verification; attachment disposition/nosniff/sandbox/no-store. Fixed caller-influenced ID; wrapper emits one server UUID and logs it.",
+      "behavior_tests": [
+        "__tests__/staff-api-cases.test.ts",
+        "__tests__/staff-download-request-id.test.ts",
+        "__tests__/staff-request-id-correlation.test.ts"
+      ],
+      "verdict": "implemented_current_contract_with_shared_gaps",
+      "findings": [
+        "STAFF-02",
+        "STAFF-04",
+        "STAFF-05",
+        "STAFF-06",
+        "STAFF-01"
+      ],
+      "unverified": [
+        "No configured live Staff client/provider; no genuine live staff request performed.",
+        "Embedded/mock/native fixtures do not prove hosted clean/upgrade or all deployed function body hashes."
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/staff-onboarding/identity/resolve",
+      "handler": "lib/staff-api/identityResolution.ts:createStaffIdentityResolutionHandler",
+      "scope": [
+        "staff_users.read"
+      ],
+      "permission": "Existing active membership required only resolve; narrowly bound delivered invitation acceptance intentionally does not require preexisting membership.",
+      "common_enforcement": "staff_onboarding_request",
+      "dependencies": [
+        "authenticate_integration_request_v1",
+        "tenant_staff_assertion_replays",
+        "tenant_customer_identity_providers",
+        "tenant_staff_identity_bindings",
+        "tenant_staff_actor_anchors",
+        "tenant_staff_identity_deliveries",
+        "external registered tenant Auth /auth/v1/user",
+        "gridex_resolve_staff_identity_v1",
+        "gridex_staff_identity_registration_v1",
+        "gridex_staff_active_membership_v1"
+      ],
+      "request_response_behavior": "Closed {} body; required central expected ref before any auth/telemetry; explicit read scope; registered external public-key tenant SDK remote getUser, confirmed email and lifecycle; signed fresh <=60s purpose-specific local-sub proof; native locked exact tuple/config/membership lookup; exactly actor_user_id,binding_id,binding_version; no account/grant write.",
+      "behavior_tests": [
+        "__tests__/staff-identity-resolution.test.ts",
+        "__tests__/staff-identity-resolution-machine-auth.test.ts",
+        "__tests__/staff-tenant-auth.test.ts",
+        "__tests__/staff-onboarding-contract.test.ts",
+        "__tests__/staff-external-identity-sql.test.ts"
+      ],
+      "verdict": "implemented_separate_2026-10-05.2_with_shared_gaps",
+      "findings": [
+        "STAFF-03",
+        "STAFF-06"
+      ],
+      "unverified": [
+        "Remote tenant repo/delivery implementations excluded from scope; existing OPS forwarding/identity tests observed only.",
+        "No live client/provider/independent binding/enrollment configured in supplied OPS observation; source readiness differs from operational enrollment.",
+        "No real SMTP/password/browser/callback or live Auth lifecycle exercise."
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/staff-onboarding/invitations/accept",
+      "handler": "lib/staff-api/onboarding.ts:createStaffInvitationAcceptanceHandler",
+      "scope": [
+        "staff_users.write"
+      ],
+      "permission": "Existing active membership required only resolve; narrowly bound delivered invitation acceptance intentionally does not require preexisting membership.",
+      "common_enforcement": "staff_onboarding_request",
+      "dependencies": [
+        "authenticate_integration_request_v1",
+        "tenant_staff_assertion_replays",
+        "tenant_customer_identity_providers",
+        "tenant_staff_identity_bindings",
+        "tenant_staff_actor_anchors",
+        "tenant_staff_identity_deliveries",
+        "external registered tenant Auth /auth/v1/user",
+        "gridex_lookup_pending_staff_identity_binding_v1",
+        "gridex_accept_external_staff_invitation_v1",
+        "gridex_staff_identity_registration_v1",
+        "gridex_staff_identity_invitation_v1",
+        "canonical_accept_tenant_invitation",
+        "company_invitations",
+        "canonical_command_results"
+      ],
+      "request_response_behavior": "Required central expected ref and explicit write scope; closed UUID invitation_token with stable Idempotency-Key; current registered external Auth getUser confirmed email; <=60s acceptance proof local sub/company; token hash lookup and original canonical invitation/client; exact delivered distinct central/local binding; service native locks and canonical single membership writer; repeated accepted request never enables disabled membership; returns only status accepted.",
+      "behavior_tests": [
+        "__tests__/staff-onboarding-acceptance.test.ts",
+        "__tests__/staff-onboarding-machine-auth.test.ts",
+        "__tests__/staff-onboarding-contract.test.ts",
+        "__tests__/staff-onboarding-sql.test.ts",
+        "__tests__/staff-external-identity-sql.test.ts",
+        "__tests__/staff-invitation-routing.test.ts"
+      ],
+      "verdict": "implemented_separate_2026-10-05.2_with_shared_gaps",
+      "findings": [
+        "STAFF-03",
+        "STAFF-06"
+      ],
+      "unverified": [
+        "Remote tenant repo/delivery implementations excluded from scope; existing OPS forwarding/identity tests observed only.",
+        "No live client/provider/independent binding/enrollment configured in supplied OPS observation; source readiness differs from operational enrollment.",
+        "No real SMTP/password/browser/callback or live Auth lifecycle exercise."
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/openapi/release-manifest.json",
+      "operation_id": "getApiV1OpenapiReleaseManifestJson",
+      "handler": "app/api/v1/openapi/release-manifest.json/route.ts",
+      "dependencies": [
+        "openApiDocumentResponse",
+        "serializeOpenApiDocument",
+        "buildOpenApiReleaseManifest"
+      ],
+      "request_response_behavior": "Public OpenAPI/manifest200 with document-derived release version, deterministic SHA256/ETag; matching If-None-Match304. Immutable docs use year cache; current docs300s. Root owns cross-surface publication compatibility review.",
+      "behavior_tests": [
+        "__tests__/staff-api-openapi.test.ts",
+        "__tests__/staff-onboarding-contract.test.ts"
+      ],
+      "verdict": "document_serving_verified_root_owned_publication",
+      "findings": [
+        "STAFF-02",
+        "STAFF-03"
+      ],
+      "unverified": [
+        "Frozen schema serving is not proof that current runtime supports frozen response representation."
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/openapi/staff-v1.json",
+      "operation_id": "getApiV1OpenapiStaffV1Json",
+      "handler": "app/api/v1/openapi/staff-v1.json/route.ts",
+      "dependencies": [
+        "openApiDocumentResponse",
+        "serializeOpenApiDocument",
+        "exact current/frozen JSON document"
+      ],
+      "request_response_behavior": "Public OpenAPI/manifest200 with document-derived release version, deterministic SHA256/ETag; matching If-None-Match304. Immutable docs use year cache; current docs300s. Root owns cross-surface publication compatibility review.",
+      "behavior_tests": [
+        "__tests__/staff-api-openapi.test.ts",
+        "__tests__/staff-onboarding-contract.test.ts"
+      ],
+      "verdict": "document_serving_verified_root_owned_publication",
+      "findings": [],
+      "unverified": [
+        "Frozen schema serving is not proof that current runtime supports frozen response representation."
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/openapi/2026-10-04.1/staff-v1.json",
+      "operation_id": "getApiV1Openapi202610041StaffV1Json",
+      "handler": "app/api/v1/openapi/2026-10-04.1/staff-v1.json/route.ts",
+      "dependencies": [
+        "openApiDocumentResponse",
+        "serializeOpenApiDocument",
+        "exact current/frozen JSON document"
+      ],
+      "request_response_behavior": "Public OpenAPI/manifest200 with document-derived release version, deterministic SHA256/ETag; matching If-None-Match304. Immutable docs use year cache; current docs300s. Root owns cross-surface publication compatibility review.",
+      "behavior_tests": [
+        "__tests__/staff-api-openapi.test.ts",
+        "__tests__/staff-onboarding-contract.test.ts"
+      ],
+      "verdict": "document_serving_verified_root_owned_publication",
+      "findings": [],
+      "unverified": [
+        "Frozen schema serving is not proof that current runtime supports frozen response representation."
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/openapi/2026-10-09.1/staff-v1.json",
+      "operation_id": "getApiV1Openapi202610091StaffV1Json",
+      "handler": "app/api/v1/openapi/2026-10-09.1/staff-v1.json/route.ts",
+      "dependencies": [
+        "openApiDocumentResponse",
+        "serializeOpenApiDocument",
+        "exact current/frozen JSON document"
+      ],
+      "request_response_behavior": "Public OpenAPI/manifest200 with document-derived release version, deterministic SHA256/ETag; matching If-None-Match304. Immutable docs use year cache; current docs300s. Root owns cross-surface publication compatibility review.",
+      "behavior_tests": [
+        "__tests__/staff-api-openapi.test.ts",
+        "__tests__/staff-onboarding-contract.test.ts"
+      ],
+      "verdict": "document_serving_verified_root_owned_publication",
+      "findings": [],
+      "unverified": [
+        "Frozen schema serving is not proof that current runtime supports frozen response representation."
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/openapi/staff-onboarding-v1.json",
+      "operation_id": "getApiV1OpenapiStaffOnboardingV1Json",
+      "handler": "app/api/v1/openapi/staff-onboarding-v1.json/route.ts",
+      "dependencies": [
+        "openApiDocumentResponse",
+        "serializeOpenApiDocument",
+        "exact current/frozen JSON document"
+      ],
+      "request_response_behavior": "Public OpenAPI/manifest200 with document-derived release version, deterministic SHA256/ETag; matching If-None-Match304. Immutable docs use year cache; current docs300s. Root owns cross-surface publication compatibility review.",
+      "behavior_tests": [
+        "__tests__/staff-api-openapi.test.ts",
+        "__tests__/staff-onboarding-contract.test.ts"
+      ],
+      "verdict": "document_serving_verified_root_owned_publication",
+      "findings": [],
+      "unverified": [
+        "Frozen schema serving is not proof that current runtime supports frozen response representation."
+      ]
+    }
+  ],
+  "findings": [
+    {
+      "id": "STAFF-01",
+      "severity": "P2",
+      "status": "fixed_in_worktree",
+      "title": "Attachment download echoed untrusted inbound request ID as server ID",
+      "evidence": [
+        "lib/staff-api/caseHandlers.ts:242 at base f36dbba1: X-Request-ID=request.headers.get(x-request-id)?.trim() || randomUUID()",
+        "lib/staff-api/http.ts:77-80 preserves response header and uses it for log requestId",
+        "docs/gridex-staff-api.md:153 promises inbound ID never serves as server ID"
+      ],
+      "proof": "Mounted GET with real withStaffApi returned caller value including invalid client id <script>; 2 regression cases RED then GREEN.",
+      "impact": "An authenticated caller could choose server/log request IDs, breaking support correlation and violating the documented server-issued identifier contract. No tenant/RBAC bypass.",
+      "root_cause": "Raw binary handler bypassed request-scoped Staff response ID.",
+      "targeted_fix": "Remove raw handler X-Request-ID and unused randomUUID; withStaffApi supplies its AsyncLocalStorage UUID.",
+      "files": [
+        "lib/staff-api/caseHandlers.ts",
+        "__tests__/staff-download-request-id.test.ts"
+      ],
+      "fp_check": "TRUE POSITIVE; full route-wrapper path proven. Header value validation in logging applies only client_request_id and does not sanitize server requestId.",
+      "coauthor_scope": "Parent explicitly handed off these two files; root integration/review outstanding."
+    },
+    {
+      "id": "STAFF-02",
+      "severity": "P2",
+      "status": "confirmed_root_owned",
+      "title": "Supported frozen Staff strict schema rejects current revision label",
+      "evidence": [
+        "lib/staff-api/http.ts:50,58 unconditionally emits shared current 2026-10-09.1",
+        "docs/openapi/releases/2026-10-04.1/staff-v1.json response contract_schema_version const 2026-10-04.1",
+        "docs/api-compatibility-policy.md rules 2 and5 promise projected strict representation and retained representation labels",
+        "No client-profile handling in app/api/v1/staff or lib/staff-api handlers/context/HTTP"
+      ],
+      "proof": "Active schema accepts current GET users envelope; frozen schema errors only on version const; replacing label with 2026-10-04.1 makes same shape pass.",
+      "impact": "Integrations validating the advertised supported frozen closed schema fail; permissive clients that deliberately ignore revision const may continue.",
+      "root_cause": "Registry/release matrix is disconnected from Staff serialization; matrix checks registration and metadata, not old-client parsing of current handler responses.",
+      "targeted_fix": "Root to introduce explicit opt-in old representation handling consistently at HTTP boundaries and actual frozen-validator behavior tests; preserve frozen bytes and current default.",
+      "fp_check": "TRUE POSITIVE limited to strict revision const. Case/customer pagination and ErrorEnvelope additions disproven: already in frozen 2026-10-04.1."
+    },
+    {
+      "id": "STAFF-03",
+      "severity": "P2",
+      "status": "confirmed_root_owned",
+      "title": "Onboarding compatibility registry lists revisions that are not the real independent onboarding wire contract",
+      "evidence": [
+        "lib/staff-api/onboardingContract.ts:2 actual version 2026-10-05.2",
+        "docs/openapi/staff-onboarding-v1.json info.version 2026-10-05.2",
+        "lib/integrations/apiContractCompatibility.ts:61-62 claims 2026-10-04.1 and current shared release as supported onboarding profiles",
+        "docs/api-compatibility-policy.md support matrix repeats those claims",
+        "__tests__/staff-onboarding-contract.test.ts asserts separate 5.2 version and no onboarding in frozen Staff release"
+      ],
+      "proof": "Both mounted onboarding adapters serialize separate STAFF_ONBOARDING_CONTRACT_VERSION; neither reads shared compatibility registry/profile. 5.1 is an archived same-database prototype, not supported current independent flow.",
+      "impact": "An integrator choosing advertised onboarding profile cannot obtain its promised strict response representation.",
+      "root_cause": "Shared Staff release revisions were reused for a separately versioned API surface.",
+      "targeted_fix": "Root to publish truthful separate onboarding profile/version matrix and validate it against actual onboarding response schemas, without relabeling prototype as supported.",
+      "fp_check": "TRUE POSITIVE; independently traced both endpoint serializers."
+    },
+    {
+      "id": "STAFF-04",
+      "severity": "P3",
+      "status": "confirmed_root_owned",
+      "title": "Staff project attestation omitted on error responses",
+      "evidence": [
+        "docs/gridex-staff-api.md:155 says responses from identified project carry X-Gridex-Project-Ref",
+        "docs/openapi/staff-v1.json includes X-Gridex-Project-Ref on error responses",
+        "lib/staff-api/http.ts:86 returns early 412 via staffApiError;91-92 attaches project header only success;96-101 errors have no attachment",
+        "lib/staff-api/storageTarget.ts:4 captures actual SUPABASE_SERVICE_URL"
+      ],
+      "proof": "All errors flow through staffApiJson, which adds request/version/rate headers but no project header; runStaffApi catch returns that response. Onboarding json adds project header for both success/error.",
+      "impact": "Callers cannot attest a known central backend on errors as documented; no wrong-project business effects because early guard still blocks.",
+      "targeted_fix": "Root to attach captured project ref at JSON response boundary or qualify documented/error schema header guarantees consistently.",
+      "fp_check": "TRUE POSITIVE contract omission; not a storage-target validation bypass."
+    },
+    {
+      "id": "STAFF-05",
+      "severity": "P2",
+      "status": "documentation_clarification_recommended",
+      "title": "Auth lifecycle revocation sentence should distinguish central account from external tenant Auth",
+      "evidence": [
+        "docs/gridex-staff-api.md:53 immediately after independent binding instructions broadly says banning/deleting user in Auth ends access next request",
+        "lib/staff-api/context.ts:163-186 checks signed proof, current binding and native central membership; no tenant Auth bearer/getUser port",
+        "supabase/migrations/20261004085008_staff_active_membership.sql:12-19 joins central auth.users banned/deleted state",
+        "lib/staff-api/tenantAuth.ts:68-82 remote tenant getUser/lifecycle runs in onboarding resolve/accept only"
+      ],
+      "proof": "Normal independent Staff operations require proof and binding claims, not x-gridex-support-auth-token. Native guard has no remote tenant Auth connection. Central account ban/delete revokes immediately; remote local Auth ban/deletion prevents successful new resolve/accept, but does not by itself invalidate an already-issued fresh-JTI Staff proof.",
+      "impact": "Documentation can lead operators to rely on tenant Auth revocation alone for immediate ordinary Staff API refusal. Trusted tenant backend is expected to verify its staff and stop signing after revocation.",
+      "targeted_fix": "Clarify that next-request native ban/delete checks apply central Gridex actor; tenant backend must verify current local Auth before issuing Staff assertions; remote Auth is rechecked on resolve/accept and central disable/binding revocation is authoritative. Do not claim cross-database atomic revocation.",
+      "fp_check": "No confirmed security bypass against specified current binding/native membership model; documentation overstatement/ambiguity, not evidence that binding disable/revocation fails."
+    },
+    {
+      "id": "STAFF-06",
+      "severity": "P2",
+      "status": "confirmed_root_owned",
+      "title": "Published Staff and onboarding responses omit actual 410/423 lifecycle denials and Staff JSON-write413",
+      "evidence": [
+        "lib/integrations/apiAuth.ts:198-206 paused =>423,closed/inactive=>410",
+        "lib/staff-api/context.ts:135 forwards auth.status through ApiInputError",
+        "lib/staff-api/onboarding.ts:54 and identityResolution.ts:53 forward auth.status",
+        "Active staff-v1.json/staff-onboarding-v1.json business response maps have no410/423",
+        "lib/api/strictRequest.ts:25-31 readJsonObject throws payload_too_large413 above256000 bytes; all Staff JSON writes use it",
+        "Active staff-v1 JSON-write response maps omit413; only raw attachment POST includes413. Onboarding includes413."
+      ],
+      "proof": "Complete common auth-to-error chain preserves real machine-auth tenant lifecycle HTTP status; no handler remapping.",
+      "impact": "Generated clients and schema validation lack actual paused/closed denial responses. Tenant denial behavior is intentional and must remain.",
+      "targeted_fix": "Root to document410/423 canonical/auth errors across affected public surfaces and413 on Staff JSON writes, with actual adapter error behavior tests.",
+      "fp_check": "TRUE POSITIVE shared auth contract omission, not missing tenant state enforcement."
+    }
+  ],
+  "false_positives": [
+    {
+      "claim": "New Staff error/page fields break frozen4.1 closed schemas",
+      "verdict": "FALSE POSITIVE",
+      "evidence": "Exact frozen/current comparison: ErrorEnvelope, customer contacts_page/addresses_page/sites_page and case events_page/attachments_page already exist in frozen4.1. Only unconditional current date const repro confirmed."
+    },
+    {
+      "claim": "OPS Staff absent/uninstalled because no active client/provider",
+      "verdict": "FALSE POSITIVE",
+      "evidence": "Supplied live catalog lists service-only central staff RPCs and identity/replay tables; live summary explicitly active_staff_providers=0,active_explicit_staff_clients=0,active_external_staff_clients=0. Unconfigured tenant differs from API implementation bug."
+    },
+    {
+      "claim": "Unscoped user_profiles lookup leaks foreign staff",
+      "verdict": "FALSE POSITIVE",
+      "evidence": "staffCommands.listStaff first selects same-company memberships, then profile query restricted in(id,userIds). Explicit profile DTO only; no arbitrary user ID input on list."
+    },
+    {
+      "claim": "Attachment list exposing internal/rejected metadata bypasses release",
+      "verdict": "FALSE POSITIVE",
+      "evidence": "Staff has cases.read and exact scoped case/customer lookup; list intentionally exposes inspection state. downloadSupportAttachment refuses nonreleased, hash mismatches and customer audience internal files."
+    },
+    {
+      "claim": "Disable/revoked external registration can replay old writes freely",
+      "verdict": "FALSE POSITIVE",
+      "evidence": "withStaffApi current auth/binding/membership/permissions precedes JS ledger; native user command checks actor/client on replay and forward injects current external guard under locks. No full-request atomicity promised."
+    },
+    {
+      "claim": "Legacy readable case statuses billing_blocked/cancelled must be accepted as support writes",
+      "verdict": "FALSE POSITIVE",
+      "evidence": "Neutral support-case writers deliberately bounded six writable states; old/current schema preserves broad read enum, StaffStatusRequest uses write-specific enum; old operational cases excluded by source/flag graph."
+    }
+  ],
+  "verification": [
+    {
+      "id": "auth_handlers_onboarding",
+      "command": "PATH=/tmp/gridex-audit-runtime/node_modules/node/bin:$PATH NODE_OPTIONS=--require=./scripts/lib/unit-loopback-network-boundary.cjs node node_modules/vitest/vitest.mjs run --maxWorkers=1 __tests__/staff-api-context.test.ts __tests__/staff-api-cases.test.ts __tests__/staff-api-customer-routes.test.ts __tests__/staff-user-handlers.test.ts __tests__/staff-query-parsing-policy.test.ts __tests__/staff-request-id-correlation.test.ts __tests__/staff-onboarding-acceptance.test.ts __tests__/staff-identity-resolution.test.ts __tests__/staff-tenant-auth.test.ts __tests__/staff-onboarding-contract.test.ts __tests__/staff-historical-binding-required.test.ts",
+      "files": 11,
+      "tests": 233,
+      "outcome": "passed",
+      "qualification": "Loopback-only preload retained."
+    },
+    {
+      "id": "native_sql_history_guards",
+      "command": "PATH=/tmp/gridex-audit-runtime/node_modules/node/bin:$PATH NODE_OPTIONS=--require=./scripts/lib/unit-loopback-network-boundary.cjs node node_modules/vitest/vitest.mjs run --maxWorkers=1 __tests__/staff-user-actor-guard.test.ts __tests__/staff-user-client-guard.test.ts __tests__/staff-user-lock-order.test.ts __tests__/staff-user-rbac-audit.test.ts __tests__/staff-api-active-membership-sql.test.ts __tests__/staff-write-actor-guard.test.ts __tests__/staff-external-identity-sql.test.ts __tests__/staff-external-identity-classification-sql.test.ts __tests__/staff-identity-version-conflict-sql.test.ts __tests__/staff-case-assignee-eligibility.test.ts __tests__/staff-case-history-pagination.test.ts __tests__/staff-case-status-compatibility.test.ts __tests__/staff-customer-detail-retention-prerequisite.test.ts __tests__/staff-customer-retention-read-prerequisite-sql.test.ts __tests__/staff-onboarding-machine-auth.test.ts __tests__/staff-identity-resolution-machine-auth.test.ts __tests__/staff-api-storage-service-binding.test.ts",
+      "files": 17,
+      "tests": 178,
+      "outcome": "passed",
+      "qualification": "Initial 17-file run: 177 passed, 1 RBAC child spawnSync EPERM; rerun only staff-user-rbac-audit.test.ts with with_additional_permissions network enabled and same loopback-only NODE_OPTIONS: 20 passed. No product failure."
+    },
+    {
+      "id": "dto_contract_and_native_attribution",
+      "command": "PATH=/tmp/gridex-audit-runtime/node_modules/node/bin:$PATH NODE_OPTIONS=--require=./scripts/lib/unit-loopback-network-boundary.cjs node node_modules/vitest/vitest.mjs run --maxWorkers=1 __tests__/staff-api-openapi.test.ts __tests__/staff-api-customer-pagination.test.ts __tests__/staff-api-customers.test.ts __tests__/staff-api-http.test.ts __tests__/staff-commands.test.ts __tests__/staff-user-replay-header.test.ts __tests__/staff-user-role-id-nullability.test.ts __tests__/staff-contact-permission-authority.test.ts __tests__/staff-api-integration-auth-sql.test.ts __tests__/staff-case-events-auth-sql.test.ts __tests__/staff-native-policy.test.ts __tests__/staff-onboarding-sql.test.ts __tests__/staff-invitation-routing.test.ts",
+      "files": 13,
+      "tests": 152,
+      "outcome": "passed",
+      "qualification": "Third batch ran with network sandbox permission and loopback-only preload."
+    },
+    {
+      "id": "download_red",
+      "command": "PATH=/tmp/gridex-audit-runtime/node_modules/node/bin:$PATH NODE_OPTIONS=--require=./scripts/lib/unit-loopback-network-boundary.cjs node node_modules/vitest/vitest.mjs run --maxWorkers=1 __tests__/staff-download-request-id.test.ts",
+      "outcome": "2 failed as expected before fix",
+      "evidence": [
+        "received client-correlation-123 where server UUID required",
+        "received invalid client id <script> where server UUID required"
+      ],
+      "qualification": "First test-harness import attempt failed on unrelated server-only package; mocked unrelated business dependencies, then observed actual assertion failures through mounted GET and real withStaffApi."
+    },
+    {
+      "id": "download_green",
+      "command": "PATH=/tmp/gridex-audit-runtime/node_modules/node/bin:$PATH NODE_OPTIONS=--require=./scripts/lib/unit-loopback-network-boundary.cjs node node_modules/vitest/vitest.mjs run --maxWorkers=1 __tests__/staff-download-request-id.test.ts __tests__/staff-api-cases.test.ts __tests__/staff-request-id-correlation.test.ts",
+      "outcome": "3 files, 30 tests passed",
+      "qualification": "Mounted route and real Staff HTTP wrapper; external DB/attachment storage and auth context mocked."
+    },
+    {
+      "id": "frozen_schema_probe",
+      "command": "node stdin requiring scripts/lib/openapi-schema-validator.cjs; validateResponse on current and frozen staff-v1 GET /api/v1/staff/users using current empty data/pagination envelope",
+      "outcome": {
+        "active_errors": [],
+        "frozen_errors": [
+          "GET /api/v1/staff/users 200.contract_schema_version must equal \"2026-10-04.1\"."
+        ],
+        "frozen_relabel_only_errors": []
+      },
+      "qualification": "Payload shape is exactly generated by listStaff + staffApiJson. Isolates date const mismatch; not live HTTP or all-operation native replay."
+    },
+    {
+      "id": "fix_lint_diff",
+      "command": "PATH=/tmp/gridex-audit-runtime/node_modules/node/bin:$PATH node node_modules/eslint/bin/eslint.js lib/staff-api/caseHandlers.ts __tests__/staff-download-request-id.test.ts; git diff --check -- lib/staff-api/caseHandlers.ts",
+      "outcome": "both passed (exit0), no output"
+    }
+  ],
+  "live_readiness": {
+    "evidence_paths": [
+      "/tmp/gridex-api-review/live-summary.json",
+      "/tmp/gridex-api-review/ops-live-catalog.json"
+    ],
+    "observed_at": "2026-10-12T20:37:00Z",
+    "central_project": "piidsfebjqjmnepdpnas",
+    "staff_active_providers": 0,
+    "staff_explicit_active_clients": 0,
+    "staff_external_active_clients": 0,
+    "catalog_qualification": "Selected Staff RPC names/signatures/service_role grants and tables are present. Supplied staff function body entries are empty; cannot verify deployed source hashes, all wrapper triggers/bucket/config or runtime release compatibility solely from catalog.",
+    "verdict": "Source and focused native behavior qualify implementation; tenant operational activation remains unconfigured/unverified, not classified API missing."
+  },
+  "limitations": [
+    "No live Staff bearer or real business requests; no production/staging writes.",
+    "PGlite fixtures execute relevant real source function bodies but synthetic prerequisites and managed GoTrue shape may differ; no authentic PostgreSQL17 clean/upgrade replay in this subtask.",
+    "No full application build/type/lint suite in subtask; root runs full required checks.",
+    "Customer child collection has_more exposes truncation without published continuation endpoint; documented initial behavior preserved, completeness beyond100 not independently addressable.",
+    "Storage upload/row/release and identity approval/mail side effects are not one transaction. Failed/stale JS ledger intentionally requires reconciliation; private orphan cleanup and provider delivery qualification not proved here.",
+    "No scan engine/antivirus promise inferred from lightweight content inspection.",
+    "Source fix authored here requires independent final peer review; this agent cannot count as independent final reviewer for its own fix."
+  ],
+  "handoff": {
+    "allowed_writes": [
+      "quality/audits/2026-10-12-ops-api-contracts/staff-review.json",
+      "lib/staff-api/caseHandlers.ts (explicit bounded parent handoff)",
+      "__tests__/staff-download-request-id.test.ts (explicit bounded parent handoff)"
+    ],
+    "root_integration_needed": [
+      "STAFF-02/03 compatibility",
+      "STAFF-04 attestation",
+      "STAFF-05 precise central/local Auth docs",
+      "STAFF-06 status documentation",
+      "Full-head tests and independent final source review"
+    ],
+    "preserved": "All other working tree edits belong root/other reviewers; no frozen/generated/native source files modified."
+  }
+}

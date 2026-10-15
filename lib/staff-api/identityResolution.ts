@@ -30,8 +30,8 @@ function headerToken(request: NextRequest, name: string): string {
   if (!value || value.length > 16_384 || /\s/.test(value)) return denied('staff_identity_missing', 401)
   return value
 }
-function json(data: unknown, status = 200): Response {
-  const requestId = randomUUID(), projectRef = staffStorageProjectRef()
+function json(requestId: string, data: unknown, status = 200): Response {
+  const projectRef = staffStorageProjectRef()
   return Response.json({ ...(status < 400 ? { data } : { error: data }), request_id: requestId, contract_schema_version: STAFF_ONBOARDING_CONTRACT_VERSION }, {
     status, headers: { 'Cache-Control': 'no-store', 'X-Request-ID': requestId, 'X-Gridex-Contract-Version': STAFF_ONBOARDING_CONTRACT_VERSION, ...(projectRef ? { 'X-Gridex-Project-Ref': projectRef } : {}) },
   })
@@ -40,13 +40,14 @@ function json(data: unknown, status = 200): Response {
 /** Existing binding lookup only; no Auth account, membership, permission, or invitation is created. */
 export function createStaffIdentityResolutionHandler(ports: StaffIdentityResolutionPorts): (request: NextRequest) => Promise<Response> {
   return async request => {
-    if (request.method !== 'POST') return json({ code: 'method_not_allowed', message: 'Use an explicit POST to resolve the staff identity.' }, 405)
+    const requestId = randomUUID()
+    if (request.method !== 'POST') return json(requestId, { code: 'method_not_allowed', message: 'Use an explicit POST to resolve the staff identity.' }, 405)
     try {
       const expected = request.headers.get('x-gridex-expected-project-ref')
       if (!expected || !staffStorageProjectRef()) denied('storage_project_mismatch', 412)
       assertStaffStorageTarget(request.headers)
     } catch (error) {
-      return json({ code: error instanceof ApiInputError ? error.code : 'internal_error', message: 'The requested API project is unavailable.' }, error instanceof ApiInputError ? error.status : 500)
+      return json(requestId, { code: error instanceof ApiInputError ? error.code : 'internal_error', message: 'The requested API project is unavailable.' }, error instanceof ApiInputError ? error.status : 500)
     }
     const startedAt = Date.now()
     let client: IntegrationApiClient | undefined
@@ -73,16 +74,16 @@ export function createStaffIdentityResolutionHandler(ports: StaffIdentityResolut
       if (!verified.ok) denied('staff_identity_assertion_invalid', 401)
       const binding = parsedStaffIdentityBinding(await ports.resolveIdentity(staffIdentityAuthorityCommand(client, provider, registration, user.id, credential.token)))
       if (!binding) denied()
-      await ports.logRequest({ request, client, statusCode: 200, startedAt,
+      await ports.logRequest({ request, requestId, client, statusCode: 200, startedAt,
         metadata: { operation: 'staff_identity_resolve', outcome: 'resolved' } })
-      return json(binding)
+      return json(requestId, binding)
     } catch (failure) {
       const error = staffIdentityAuthorityError(failure)
       const status = error instanceof ApiInputError ? error.status : 500
       const code = error instanceof ApiInputError ? error.code : 'internal_error'
-      if (client) await ports.logRequest({ request, client, statusCode: status, errorCode: code, startedAt,
+      if (client) await ports.logRequest({ request, requestId, client, statusCode: status, errorCode: code, startedAt,
         metadata: { operation: 'staff_identity_resolve', outcome: 'denied' } })
-      return json({ code, message: 'The independent staff identity could not be verified.' }, status)
+      return json(requestId, { code, message: 'The independent staff identity could not be verified.' }, status)
     }
   }
 }

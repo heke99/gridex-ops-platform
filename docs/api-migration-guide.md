@@ -4,7 +4,15 @@ You do not need to match the latest documentation revision exactly to use a supp
 
 This guide explains what changes between documentation revisions of the V1 contract family and how to adopt optional additions at your own pace. The rules behind it are in the [API compatibility policy](api-compatibility-policy.md).
 
-## V1 has no breaking changes
+## Stable V1 requests and supported representations
+
+### Representation corrections and older validator errata (2026-10-14)
+
+A credential pinned to a supported older profile receives matching declared wire markers in the integration context and Website callbacks. The default Website, Customer and Staff representation stays `2026-10-09.1`; Staff onboarding stays `2026-10-05.2`. No new incoming version header or request field is required. Only an authorized platform operator selects metadata.api_contract_profiles; an API caller cannot override the profile, organization scope, permissions or accepted legal and price evidence.
+
+Closed Website callback bodies follow their selected schema. Delivery IDs remain available in every callback header; publication callbacks also retain their required body delivery ID. Publication revision tokens come from the original durable event. Queued source payloads and previous attempt hashes are preserved; a retry that would change an already recorded body requires reconciliation before transport. Partner and HTTP event-feed representations retain their own existing fields. See the [compatibility policy](api-compatibility-policy.md#website-webhook-representations).
+
+Strict validators copied from Customer `2026-10-02.3` support detail or Website `2026-10-02.3`/`2026-10-04.1` fixed-quote validation need a narrow schema correction. The original Customer detail schema cannot mathematically accept any response: its closed base forbids `messages`, while its extension requires them. A fixed quote legitimately has no market-reference object. Keep the immutable original and apply the appropriate [checksum-bound RFC6902 erratum](api-validator-errata/README.md) to a separate validator document. The platform does not remove required messages or fabricate market data to satisfy an inaccurate schema.
 
 ### Documentation 2026-10-12.1
 
@@ -14,7 +22,7 @@ This publication corrects descriptions of existing pagination, move-out `submitt
 
 The accompanying implementation corrections enforce the documented authorization and input rules, preserve complete contract and measurement results, and make retry/audit behavior truthful. They do not grant additional permissions or accept stale legal evidence. See [the operation inventory](api-index.md) for the source and database verification boundaries.
 
-Every documentation revision of V1 (Website, Customer Portal, Staff, Staff onboarding and Partner) is backward-compatible:
+Documentation updates do not require a date-matching request header or a business-flow upgrade. Supported V1 representations keep the following rules; this does not certify every frozen strict validator, and the specific errata above still apply:
 
 - existing endpoints, required request fields, field types, units, idempotency and business semantics are unchanged;
 - no new header, query parameter or body field is required;
@@ -30,7 +38,7 @@ Supported revisions per surface:
 | Staff | `2026-10-04.1`, `2026-10-09.1` |
 | Staff onboarding | `2026-10-05.2` (separate identity contract) |
 
-Responses carry `X-Gridex-Contract-Version` and `contract_schema_version` with the revision that produced the representation. Accept any well-formed V1 revision (`YYYY-MM-DD.N`) and validate the business payload; do not reject a response only because its revision is newer than the one you generated your client from. Immutable OpenAPI documents for each revision stay available under `/api/v1/openapi/<revision>/` and are never rewritten.
+Responses carry `X-Gridex-Contract-Version` and `contract_schema_version` with the selected representation. A tolerant V1 client can accept a well-formed newer revision (`YYYY-MM-DD.N`) while validating the business payload. A generated validator that requires an older exact constant must use a supported operator-pinned profile and the applicable schema errata; ignoring only the header does not correct a contradictory schema. Immutable OpenAPI documents for each revision stay available under `/api/v1/openapi/<revision>/` and are never rewritten.
 
 Legal and price versions are a different thing: the exact legal document the customer accepted (for example `textVersionId`), its hash and the selected offer and quote must still match exactly.
 

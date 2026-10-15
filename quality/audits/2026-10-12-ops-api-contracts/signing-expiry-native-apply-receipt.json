@@ -1,0 +1,194 @@
+{
+  "scope": "OPS actual native forward migration only",
+  "project_id": "piidsfebjqjmnepdpnas",
+  "sql_sha256": "f346076b7684fc43d4d413b13524c46e4fbb0aa1484921d6a0717a03afdcd4bb",
+  "source_created_by": "Official Supabase CLI2.101.0 initial20261013093314; new unpublished file aligned to actual assigned20261013093430 preserving exact bytes",
+  "independent_noncoauthor_reviews": [
+    "final_api_source_review",
+    "native_forward_independent_review"
+  ],
+  "isolated_compile_receipt": "signing-isolated-compile-review.json",
+  "native_preflight": {
+    "checked_at": "2026-10-13 09:34:07.281912+00",
+    "latest_migration": "20261013084535",
+    "functions": [
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "oid": "345287",
+        "args": "p_token_hash text, p_signed_ip_hash text, p_signed_user_agent text",
+        "name": "gridex_finalize_customer_contract_signature_v1",
+        "owner": "postgres",
+        "config": [
+          "search_path=public, extensions, pg_temp"
+        ],
+        "schema": "public",
+        "body_md5": "feab13c1e520c8c62daeaa253d261412",
+        "volatility": "v",
+        "definition_md5": "b2ded558c0d6949fb0371070444c69b3",
+        "security_definer": true
+      },
+      {
+        "acl": "{postgres=X/postgres}",
+        "oid": "136078",
+        "args": "p_company_id uuid, p_contract_id uuid, p_application_id uuid, p_public_contract_offer_id uuid, p_offer_reference text, p_accepted_at timestamp with time zone, p_legal_versions jsonb, p_signature_snapshot jsonb, p_signature_snapshot_sha256 text, p_signed_ip_hash text, p_signed_user_agent text",
+        "name": "gridex_finalize_website_contract_signature",
+        "owner": "postgres",
+        "config": [
+          "search_path=public, pg_temp"
+        ],
+        "schema": "public",
+        "body_md5": "de908da1a91b83e91ce1748c13e17412",
+        "volatility": "v",
+        "definition_md5": "6f259c3ea9a699e8c65cc4ec981223ef",
+        "security_definer": true
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "oid": "137946",
+        "args": "p_company_id uuid, p_contract_id uuid, p_application_id uuid, p_public_contract_offer_id uuid, p_offer_reference text, p_accepted_at timestamp with time zone, p_legal_versions jsonb, p_signature_snapshot jsonb, p_acceptance_evidence jsonb, p_signature_snapshot_sha256 text, p_signed_ip_hash text, p_signed_user_agent text",
+        "name": "gridex_finalize_website_contract_signature",
+        "owner": "postgres",
+        "config": [
+          "search_path=public, extensions, pg_temp"
+        ],
+        "schema": "public",
+        "body_md5": "dc8e70d83602c629515f7c872961f532",
+        "volatility": "v",
+        "definition_md5": "a8a343213c58f65d435d4c6155b672a7",
+        "security_definer": true
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "oid": "345286",
+        "args": "p_token_hash text",
+        "name": "gridex_get_customer_contract_signature_receipt_v1",
+        "owner": "postgres",
+        "config": [
+          "search_path=public, extensions, pg_temp"
+        ],
+        "schema": "public",
+        "body_md5": "d960224f357b26db4c52e01c9a62515d",
+        "volatility": "v",
+        "definition_md5": "9f38454bed3c0619cae4b2afecb80fd3",
+        "security_definer": true
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "oid": "345283",
+        "args": "p_company_id uuid, p_customer_id uuid, p_contract_id uuid, p_token_hash text, p_recipient_email text, p_expires_at timestamp with time zone, p_actor_user_id uuid, p_channel text",
+        "name": "gridex_prepare_customer_contract_signature_request_v1",
+        "owner": "postgres",
+        "config": [
+          "search_path=public, private, extensions, pg_temp"
+        ],
+        "schema": "public",
+        "body_md5": "2be908317a4861f6f38fcc293df30845",
+        "volatility": "v",
+        "definition_md5": "43f3ce3a2a9745c19025393ad866f516",
+        "security_definer": true
+      }
+    ]
+  },
+  "native_postflight": {
+    "checked_at": "2026-10-13 09:35:02.840354+00",
+    "migration_count": 420,
+    "migration": [
+      {
+        "name": "ops_api_signing_expiry_and_immutable_identity",
+        "sql_md5": "ea6aeb814397927253350f67e62eba32",
+        "version": "20261013093430"
+      }
+    ],
+    "functions": [
+      {
+        "acl": "{postgres=X/postgres}",
+        "oid": "136078",
+        "args": "p_company_id uuid, p_contract_id uuid, p_application_id uuid, p_public_contract_offer_id uuid, p_offer_reference text, p_accepted_at timestamp with time zone, p_legal_versions jsonb, p_signature_snapshot jsonb, p_signature_snapshot_sha256 text, p_signed_ip_hash text, p_signed_user_agent text",
+        "name": "gridex_finalize_website_contract_signature",
+        "owner": "postgres",
+        "config": [
+          "search_path=public, pg_temp"
+        ],
+        "body_md5": "de908da1a91b83e91ce1748c13e17412",
+        "volatility": "v",
+        "anon_execute": false,
+        "definition_md5": "6f259c3ea9a699e8c65cc4ec981223ef",
+        "service_execute": false,
+        "security_definer": true,
+        "authenticated_execute": false
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "oid": "137946",
+        "args": "p_company_id uuid, p_contract_id uuid, p_application_id uuid, p_public_contract_offer_id uuid, p_offer_reference text, p_accepted_at timestamp with time zone, p_legal_versions jsonb, p_signature_snapshot jsonb, p_acceptance_evidence jsonb, p_signature_snapshot_sha256 text, p_signed_ip_hash text, p_signed_user_agent text",
+        "name": "gridex_finalize_website_contract_signature",
+        "owner": "postgres",
+        "config": [
+          "search_path=public, extensions, pg_temp"
+        ],
+        "body_md5": "dc8e70d83602c629515f7c872961f532",
+        "volatility": "v",
+        "anon_execute": false,
+        "definition_md5": "a8a343213c58f65d435d4c6155b672a7",
+        "service_execute": true,
+        "security_definer": true,
+        "authenticated_execute": false
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "oid": "345283",
+        "args": "p_company_id uuid, p_customer_id uuid, p_contract_id uuid, p_token_hash text, p_recipient_email text, p_expires_at timestamp with time zone, p_actor_user_id uuid, p_channel text",
+        "name": "gridex_prepare_customer_contract_signature_request_v1",
+        "owner": "postgres",
+        "config": [
+          "search_path=public, private, extensions, pg_temp"
+        ],
+        "body_md5": "8bd61eb144c72df71c050350a6ed0e57",
+        "volatility": "v",
+        "anon_execute": false,
+        "definition_md5": "7cae537fc5619cf82cbfcca78a2b5344",
+        "service_execute": true,
+        "security_definer": true,
+        "authenticated_execute": false
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "oid": "345286",
+        "args": "p_token_hash text",
+        "name": "gridex_get_customer_contract_signature_receipt_v1",
+        "owner": "postgres",
+        "config": [
+          "search_path=public, extensions, pg_temp"
+        ],
+        "body_md5": "620d2a202a7fe821b0f6f0b4cd90306c",
+        "volatility": "v",
+        "anon_execute": false,
+        "definition_md5": "bc8fe3ebee593ed6d1586f3cfa918bd7",
+        "service_execute": true,
+        "security_definer": true,
+        "authenticated_execute": false
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "oid": "345287",
+        "args": "p_token_hash text, p_signed_ip_hash text, p_signed_user_agent text",
+        "name": "gridex_finalize_customer_contract_signature_v1",
+        "owner": "postgres",
+        "config": [
+          "search_path=public, extensions, pg_temp"
+        ],
+        "body_md5": "cccedc219621a3ebef668c1d368f92a4",
+        "volatility": "v",
+        "anon_execute": false,
+        "definition_md5": "9bf285860a1f07d627b76cfa6687ecb9",
+        "service_execute": true,
+        "security_definer": true,
+        "authenticated_execute": false
+      }
+    ]
+  },
+  "business_rpc_invocations": 0,
+  "provider_calls": 0,
+  "canonical_gen": 0,
+  "qualification": "Three effective existing cores patched; wall clock checked after all relevant locks, one acceptance instant, future frozen name. Original OIDs/owners/grants/arguments/config preserved. No legacy signatures/deadlines rewritten; active website body remains unchanged until separate withdrawal forward."
+}

@@ -1,0 +1,301 @@
+{
+  "schema": "ops_admin_current_permissions_isolated_compile_v1",
+  "status": "PASS_EXACT_SEALED_NATIVE_COMPILE_AND_IDENTITY_BODY_QUALIFICATION",
+  "created_at_utc": "2026-10-13T09:57:12.494316+00:00",
+  "scope": "Gridex OPS five scoped/raw permission helper functions plus read-only qualification of actual API guard bindings; no source edits or actual native writes by verifier.",
+  "oracle": "Actual fresh read-only OPS function/column/type/default/constraint/index metadata plus sealed forward source. No tests, stubs, disabled function-body checking, historical migration replay or live business requests.",
+  "sealed_forward": {
+    "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/admin-current-context-permission-forward.sql",
+    "sha256": "c0b42937d124b8a50e77e2d773a4a9ce03062a24eff3abb6d93eb49b0affc418",
+    "sealed_by": "events_serialization_fix",
+    "compile_exit_code": 0,
+    "transaction_result": "BEGIN SET SET DO NOTIFY COMMIT"
+  },
+  "environment": {
+    "container": "gridex-ops-api-native-20261013",
+    "network_mode_verified": "none",
+    "image": "postgres:17.6-alpine",
+    "database": "ops_api_auth_context_compile_20261013",
+    "postgres_version": "PostgreSQL 17.6 on x86_64-pc-linux-musl, compiled by gcc (Alpine 14.2.0) 14.2.0, 64-bit",
+    "check_function_bodies": "on",
+    "dedicated_database": true,
+    "baseline_empty_business_rows": true,
+    "shared_big_database_untouched": "ops_api_full_upgrade_20261013"
+  },
+  "actual_baseline": {
+    "capture_at_utc": "2026-10-13T09:51:07.687145+00:00",
+    "relation_count": 73,
+    "actual_tables": 73,
+    "actual_views": 0,
+    "real_function_definitions": 21,
+    "enum_types": 1,
+    "standalone_unique_indexes": 113,
+    "strict_compile_exit_code": 0,
+    "first_attempt_pass": true,
+    "restored": "Actual ordered column types/NOTNULL/defaults/generated expressions; actual CHECK/PK/UNIQUE/FK and standalone unique indexes; actual native function definitions/owner/EXECUTE ACL; enabled RLS where marked in native metadata. No invented helper functions or replacement relation shapes."
+  },
+  "comparisons": [
+    {
+      "signature": "public.canonical_authenticated_tenant_context_v1_scoped(uuid)",
+      "before_md5": "b0dea96f47a97fd921850bcb8c39da89",
+      "after_md5": "d205c4e8ba1989b27b4df6b1b76af631",
+      "isolated_oid_preserved": "78168",
+      "after_volatility": "VOLATILE",
+      "before_volatility": "s",
+      "raw_prosrc_equals_sealed_patch": true,
+      "preserved_properties": {
+        "oid": "78168",
+        "owner": "postgres",
+        "acl": [
+          "postgres=X/postgres"
+        ],
+        "proargnames": [
+          "p_selected_company_id"
+        ],
+        "argtypes": "2950",
+        "return_type": "jsonb",
+        "pronargdefaults": 1,
+        "defaults": "NULL::uuid",
+        "prosecdef": true,
+        "proconfig": [
+          "search_path=public, auth, pg_temp"
+        ],
+        "proisstrict": false,
+        "proleakproof": false,
+        "proparallel": "u",
+        "procost": 100,
+        "prorows": 0,
+        "lanname": "plpgsql",
+        "anon_execute": false,
+        "authenticated_execute": false,
+        "service_execute": false
+      }
+    },
+    {
+      "signature": "public.gridex_get_user_permissions(uuid)",
+      "before_md5": "3816b4a0580cdd25aefa05af8715fdf2",
+      "after_md5": "abc7cf42141a02abdfab33cbd013fee8",
+      "isolated_oid_preserved": "78162",
+      "after_volatility": "VOLATILE",
+      "before_volatility": "s",
+      "raw_prosrc_equals_sealed_patch": true,
+      "preserved_properties": {
+        "oid": "78162",
+        "owner": "postgres",
+        "acl": [
+          "postgres=X/postgres",
+          "service_role=X/postgres"
+        ],
+        "proargnames": [
+          "p_user_id"
+        ],
+        "argtypes": "2950",
+        "return_type": "text[]",
+        "pronargdefaults": 0,
+        "defaults": null,
+        "prosecdef": true,
+        "proconfig": [
+          "search_path=public, auth, pg_temp"
+        ],
+        "proisstrict": false,
+        "proleakproof": false,
+        "proparallel": "u",
+        "procost": 100,
+        "prorows": 0,
+        "lanname": "sql",
+        "anon_execute": false,
+        "authenticated_execute": false,
+        "service_execute": true
+      }
+    },
+    {
+      "signature": "public.gridex_get_user_permissions_in_company(uuid,uuid)",
+      "before_md5": "cbd5976b0516a7aef697f297d0bd0e49",
+      "after_md5": "cd48d5a1fc77db9fc4cfb62b58e5ad5c",
+      "isolated_oid_preserved": "78161",
+      "after_volatility": "VOLATILE",
+      "before_volatility": "s",
+      "raw_prosrc_equals_sealed_patch": true,
+      "preserved_properties": {
+        "oid": "78161",
+        "owner": "postgres",
+        "acl": [
+          "postgres=X/postgres",
+          "service_role=X/postgres"
+        ],
+        "proargnames": [
+          "p_user_id",
+          "p_company_id"
+        ],
+        "argtypes": "2950 2950",
+        "return_type": "text[]",
+        "pronargdefaults": 0,
+        "defaults": null,
+        "prosecdef": true,
+        "proconfig": [
+          "search_path=public, auth, pg_temp"
+        ],
+        "proisstrict": false,
+        "proleakproof": false,
+        "proparallel": "u",
+        "procost": 100,
+        "prorows": 0,
+        "lanname": "sql",
+        "anon_execute": false,
+        "authenticated_execute": false,
+        "service_execute": true
+      }
+    },
+    {
+      "signature": "public.gridex_has_permission(uuid,text)",
+      "before_md5": "95f70460c927b0b7133872ee8418bafe",
+      "after_md5": "62ab7072f95952b588f784c9e5956870",
+      "isolated_oid_preserved": "78165",
+      "after_volatility": "VOLATILE",
+      "before_volatility": "s",
+      "raw_prosrc_equals_sealed_patch": true,
+      "preserved_properties": {
+        "oid": "78165",
+        "owner": "postgres",
+        "acl": [
+          "postgres=X/postgres",
+          "service_role=X/postgres",
+          "authenticated=X/postgres"
+        ],
+        "proargnames": [
+          "p_user_id",
+          "p_permission"
+        ],
+        "argtypes": "2950 25",
+        "return_type": "boolean",
+        "pronargdefaults": 0,
+        "defaults": null,
+        "prosecdef": true,
+        "proconfig": [
+          "search_path=public, auth, pg_temp"
+        ],
+        "proisstrict": false,
+        "proleakproof": false,
+        "proparallel": "u",
+        "procost": 100,
+        "prorows": 0,
+        "lanname": "sql",
+        "anon_execute": false,
+        "authenticated_execute": true,
+        "service_execute": true
+      }
+    },
+    {
+      "signature": "public.gridex_has_permission_in_company(uuid,text)",
+      "before_md5": "d1dfece66dc545141e0a1677e60263c6",
+      "after_md5": "c734e54d5f3a33eaa3b2f5a0bbd4d9ba",
+      "isolated_oid_preserved": "78164",
+      "after_volatility": "VOLATILE",
+      "before_volatility": "s",
+      "raw_prosrc_equals_sealed_patch": true,
+      "preserved_properties": {
+        "oid": "78164",
+        "owner": "postgres",
+        "acl": [
+          "postgres=X/postgres",
+          "service_role=X/postgres",
+          "authenticated=X/postgres"
+        ],
+        "proargnames": [
+          "p_company_id",
+          "p_permission"
+        ],
+        "argtypes": "2950 25",
+        "return_type": "boolean",
+        "pronargdefaults": 0,
+        "defaults": null,
+        "prosecdef": true,
+        "proconfig": [
+          "search_path=public, auth, pg_temp"
+        ],
+        "proisstrict": false,
+        "proleakproof": false,
+        "proparallel": "u",
+        "procost": 100,
+        "prorows": 0,
+        "lanname": "sql",
+        "anon_execute": false,
+        "authenticated_execute": true,
+        "service_execute": true
+      }
+    }
+  ],
+  "actual_api_binding": {
+    "observed_at_utc": "2026-10-13T09:55:28.073036+00:00",
+    "public_rpc_signature": "canonical_authenticated_tenant_context(uuid)",
+    "actual_public_wrapper_body_md5": "a41e40cb3385fbaac24675d2a0d264f6",
+    "actual_public_wrapper_delegates_to_patched_scoped_function": true,
+    "public_rpc_wrapper_unchanged": true,
+    "source_sha256": {
+      "lib/admin/apiGuards.ts": "3a8343c364638b651ba1aa629b443bb0dda75f985caf071bab2c7bd988ac513d",
+      "lib/tenant/entityGuards.ts": "4b8d664432b3f656b83f8b911938c531140e826ac657dc2c69185e35ca932903"
+    },
+    "code_observations": [
+      "apiGuards.requireAdminApiAccess calls canonical_authenticated_tenant_context with selected company, validates authorized/user/exact explicit-company identity, and evaluates active catalog minus current deny keys including platform admins. Missing/malformed native active/deny arrays fail closed with503 when a permission requirement exists.",
+      "API guard provenance is an enumerable Symbol plus WeakMap keyed to the original guard; symbol survives object spread without adding JSON fields. Actual target-company recheck derives user/context natively and re-evaluates the original requirement.",
+      "entityGuards.assertCompanyAccessForGuard calls that target-company permission recheck before its platform-admin bypass; ordinary tenant visibility still requires exact company membership/read scope.",
+      "Native wrapper body actually returns patched canonical_authenticated_tenant_context_v1_scoped; no assumed function-name linkage or live request used."
+    ]
+  },
+  "artifacts": [
+    {
+      "path": "/tmp/gridex-api-review/auth-context-compile-sealed-config.json",
+      "sha256": "d514f21f8c640dadc88f97259f7673c4f20798da1b2da6d811ca964cda3ccbdf"
+    },
+    {
+      "path": "/tmp/gridex-api-review/auth-context-compile-metadata.json",
+      "sha256": "455feac4277202dea884a83e3b0be622e7798597ee1a36f7a5909c202564628e"
+    },
+    {
+      "path": "/tmp/gridex-api-review/auth-context-compile-metadata-expanded.json",
+      "sha256": "85a8e765d32518c763f91523af20130f7232a68edad6d2715b18fd3fee4c21f4"
+    },
+    {
+      "path": "/tmp/gridex-api-review/auth-context-compile-unique-indexes.json",
+      "sha256": "7b214cb90758ff9deaa96848d48d3452e0d1586b6022d17839f5ee3e0b470406"
+    },
+    {
+      "path": "/tmp/gridex-api-review/auth-context-isolated-baseline.sql",
+      "sha256": "3470c126b3c8dd2abab59c74b6935d5d3678219d01ad35fa39b954a3d953ca04"
+    },
+    {
+      "path": "/tmp/gridex-api-review/auth-context-isolated-baseline.log",
+      "sha256": "835775d678f54c0c06a9c9eab7c0e753996557a1d86f179a0f35f2beecc1777c"
+    },
+    {
+      "path": "/tmp/gridex-api-review/auth-context-isolated-catalog-query.sql",
+      "sha256": "81b73c6fb3893d5555d30287998d6641184e3d2fb21c9272a8764bc925a9112f"
+    },
+    {
+      "path": "/tmp/gridex-api-review/auth-context-isolated-precompile.json",
+      "sha256": "9a8bfa67bceea6f6b3f0f18d23a32433f41c204af54e9961263148ff77fd18ed"
+    },
+    {
+      "path": "/tmp/gridex-api-review/auth-context-forward-isolated-compile.log",
+      "sha256": "28c99bd588cc0f7a4f75b26bd818771dfe98eb82b730d2cc03efbd6db6ae6e59"
+    },
+    {
+      "path": "/tmp/gridex-api-review/auth-context-isolated-postcompile.json",
+      "sha256": "02eb461aa2cc1733c021cdabaf43235bdb349a35f8bba425e25981f1e5fa21b9"
+    },
+    {
+      "path": "/tmp/gridex-api-review/auth-context-isolated-body-qualification.log",
+      "sha256": "60533c45fcb9e78b79c47f5d3706e7d20e88294c63a596e685c2f77054a1a7de"
+    },
+    {
+      "path": "/tmp/gridex-api-review/auth-context-native-wrapper-metadata.json",
+      "sha256": "3b9efd729f9583c7240436e8a0a93b8690c041b63c4ae185dee83185e20e5fe0"
+    }
+  ],
+  "limits": [
+    "SQL-language permission helper bodies were planned/validated natively during exact CREATE OR REPLACE. PLpgSQL context/body SQL is normally planned on invocation; no runtime or complete end-to-end auth permission claim from compilation.",
+    "Empty isolated catalog does not reproduce all production triggers, nonunique indexes, RLS policies or table ownership/ACL. Function identity/owner/ACL/defaults/args/language/config and target volatility were compared exactly before/after.",
+    "No actual user/person/customer/price rows, business/native authorization RPC calls, provider requests, actual DDL/data changes or canonical GEN.",
+    "Actual forward application and two independent source/semantic reviews are owned by root; this receipt records isolated compilation and source-to-native binding only."
+  ]
+}

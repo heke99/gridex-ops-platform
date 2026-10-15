@@ -1,0 +1,113 @@
+{
+  "scope": "OPS actual native forward migration only",
+  "project_id": "piidsfebjqjmnepdpnas",
+  "sql_sha256": "917cd9af78a6d9974649a121aaf74ef95781b1c5ad4a182f9612b0511f45671d",
+  "source_created_by": "Official Supabase CLI2.101.0 initial20261013093518; unpublished file aligned to actual assigned20261013093621 preserving exact bytes",
+  "independent_noncoauthor_reviews": [
+    "final_api_source_review",
+    "native_forward_independent_review"
+  ],
+  "isolated_compile_receipt": "signing-isolated-compile-review.json",
+  "native_postflight": {
+    "checked_at": "2026-10-13 09:36:53.991195+00",
+    "migration_count": 421,
+    "migration": [
+      {
+        "name": "ops_api_signing_stockholm_withdrawal_deadline",
+        "sql_md5": "2bc4da18b8c8bfebf4f4acfdf37b4160",
+        "version": "20261013093621"
+      }
+    ],
+    "functions": [
+      {
+        "acl": "{postgres=X/postgres}",
+        "oid": "136078",
+        "args": "p_company_id uuid, p_contract_id uuid, p_application_id uuid, p_public_contract_offer_id uuid, p_offer_reference text, p_accepted_at timestamp with time zone, p_legal_versions jsonb, p_signature_snapshot jsonb, p_signature_snapshot_sha256 text, p_signed_ip_hash text, p_signed_user_agent text",
+        "name": "gridex_finalize_website_contract_signature",
+        "owner": "postgres",
+        "config": [
+          "search_path=public, pg_temp"
+        ],
+        "body_md5": "de908da1a91b83e91ce1748c13e17412",
+        "volatility": "v",
+        "anon_execute": false,
+        "definition_md5": "6f259c3ea9a699e8c65cc4ec981223ef",
+        "service_execute": false,
+        "security_definer": true,
+        "authenticated_execute": false
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "oid": "137946",
+        "args": "p_company_id uuid, p_contract_id uuid, p_application_id uuid, p_public_contract_offer_id uuid, p_offer_reference text, p_accepted_at timestamp with time zone, p_legal_versions jsonb, p_signature_snapshot jsonb, p_acceptance_evidence jsonb, p_signature_snapshot_sha256 text, p_signed_ip_hash text, p_signed_user_agent text",
+        "name": "gridex_finalize_website_contract_signature",
+        "owner": "postgres",
+        "config": [
+          "search_path=public, extensions, pg_temp"
+        ],
+        "body_md5": "aeb3e4cd457ca99d257720e7f1794521",
+        "volatility": "v",
+        "anon_execute": false,
+        "definition_md5": "de3900d1fe91639d96ccd7ebc6bb0ddb",
+        "service_execute": true,
+        "security_definer": true,
+        "authenticated_execute": false
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "oid": "345283",
+        "args": "p_company_id uuid, p_customer_id uuid, p_contract_id uuid, p_token_hash text, p_recipient_email text, p_expires_at timestamp with time zone, p_actor_user_id uuid, p_channel text",
+        "name": "gridex_prepare_customer_contract_signature_request_v1",
+        "owner": "postgres",
+        "config": [
+          "search_path=public, private, extensions, pg_temp"
+        ],
+        "body_md5": "8bd61eb144c72df71c050350a6ed0e57",
+        "volatility": "v",
+        "anon_execute": false,
+        "definition_md5": "7cae537fc5619cf82cbfcca78a2b5344",
+        "service_execute": true,
+        "security_definer": true,
+        "authenticated_execute": false
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "oid": "345286",
+        "args": "p_token_hash text",
+        "name": "gridex_get_customer_contract_signature_receipt_v1",
+        "owner": "postgres",
+        "config": [
+          "search_path=public, extensions, pg_temp"
+        ],
+        "body_md5": "620d2a202a7fe821b0f6f0b4cd90306c",
+        "volatility": "v",
+        "anon_execute": false,
+        "definition_md5": "bc8fe3ebee593ed6d1586f3cfa918bd7",
+        "service_execute": true,
+        "security_definer": true,
+        "authenticated_execute": false
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "oid": "345287",
+        "args": "p_token_hash text, p_signed_ip_hash text, p_signed_user_agent text",
+        "name": "gridex_finalize_customer_contract_signature_v1",
+        "owner": "postgres",
+        "config": [
+          "search_path=public, extensions, pg_temp"
+        ],
+        "body_md5": "86e49c3db54add3887de13f00bf63b7b",
+        "volatility": "v",
+        "anon_execute": false,
+        "definition_md5": "2048c8c076001b5e751c33398f8ce830",
+        "service_execute": true,
+        "security_definer": true,
+        "authenticated_execute": false
+      }
+    ]
+  },
+  "business_rpc_invocations": 0,
+  "provider_calls": 0,
+  "canonical_gen": 0,
+  "qualification": "Future online and active website consumer signatures use inclusive end of Stockholm calendar day14. Existing recorded signatures/deadlines/PDFs unchanged; function OIDs/ownership/ACL/security/config/arguments preserved. Legacy11arg website function unchanged and owner-only."
+}

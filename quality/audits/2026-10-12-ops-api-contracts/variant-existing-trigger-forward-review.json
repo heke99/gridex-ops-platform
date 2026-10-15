@@ -1,0 +1,890 @@
+{
+  "schema": "ops_existing_trigger_and_source_scope_forward_review_v1",
+  "created_at_utc": "2026-10-13T13:59:52.839834+00:00",
+  "status": "SOURCE_AND_GENUINE_ISOLATED_PG_QUALIFIED_TWO_NONCOAUTHOR_APPROVED_PENDING_ACTUAL_APPLY",
+  "scope": "Gridex OPS only; six existing enabled trigger bodies, four exact module-owned proof helper query scopes, one new proof dispatcher. Source/native metadata + genuine isolated PG compilation/catalog identity; no test oracle, business RPC invocation, provider action, customer row reading or actual native write.",
+  "proposal": {
+    "path": "/tmp/gridex-api-audit-ops/quality/audits/2026-10-12-ops-api-contracts/release-proposals/variant-existing-trigger-forward.sql",
+    "sha256": "5feebfef8c7935867b6846b1c841ca15b46ccab284474c0912406614ddd5535a",
+    "targets": 11,
+    "existing_actual_native_targets": 6,
+    "module_private_targets": 4,
+    "new_public_proof_dispatcher": 1,
+    "required_order": "Complete staged additive module first (four scoped helpers may already be installed strong), then this packet. Existing part1/part2/expiry source foundation preserved; future B3 loader must preserve these scoped helper bodies on replay.",
+    "footprint": "Existing10 full pg_proc rows/OIDs/defaults/security/owner/ACL/configs unchanged except prosrc; no existing trigger enablement, RLS or table row mutation. Exactly one new canonical proof dispatcher gets postgres/service_role/authenticated EXECUTE, PUBLIC/anon revoked."
+  },
+  "target_contracts": [
+    {
+      "signature": "gridex_ediel_common_header.assert_ack_v1(public.ediel_messages,jsonb)",
+      "before_body_md5": "2b993fc9d97e6075ad702b6cc7054b65",
+      "canonical_predecessor_md5": "2b993fc9d97e6075ad702b6cc7054b65",
+      "after_body_md5": "9839bf48ebaac650a60f83d947e5d9fd",
+      "expected_attributes": {
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "procost": 100,
+        "prorows": 0,
+        "language": "plpgsql",
+        "arguments": "m ediel_messages, e jsonb",
+        "proconfig": [
+          "search_path=pg_catalog"
+        ],
+        "prosecdef": true,
+        "proargmodes": null,
+        "proargnames": [
+          "m",
+          "e"
+        ],
+        "proisstrict": false,
+        "proparallel": "u",
+        "provolatile": "v",
+        "return_type": "void",
+        "proleakproof": false,
+        "identity_arguments": "m ediel_messages, e jsonb"
+      },
+      "origin": "Exact new module canonical helper; source metadata + genuine committed full additive PG catalog, not a claimed existing production function."
+    },
+    {
+      "signature": "gridex_ediel_common_header.witness_before_route_v1(public.ediel_messages)",
+      "before_body_md5": "4e72a7e098314cfe1f99ae4df1a2929f",
+      "canonical_predecessor_md5": "4e72a7e098314cfe1f99ae4df1a2929f",
+      "after_body_md5": "7e78d461d26b8bf73cb5adb36c1136af",
+      "expected_attributes": {
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "procost": 100,
+        "prorows": 0,
+        "language": "plpgsql",
+        "arguments": "m ediel_messages",
+        "proconfig": [
+          "search_path=pg_catalog"
+        ],
+        "prosecdef": true,
+        "proargmodes": null,
+        "proargnames": [
+          "m"
+        ],
+        "proisstrict": false,
+        "proparallel": "u",
+        "provolatile": "v",
+        "return_type": "gridex_ediel_common_header.negative_witnesses",
+        "proleakproof": false,
+        "identity_arguments": "m ediel_messages"
+      },
+      "origin": "Exact new module canonical helper; source metadata + genuine committed full additive PG catalog, not a claimed existing production function."
+    },
+    {
+      "signature": "gridex_ediel_technical_ack.require_contrl_v1(public.ediel_messages)",
+      "before_body_md5": "b313d8f1bfac2b9cc5d88c7005401cb1",
+      "canonical_predecessor_md5": "b313d8f1bfac2b9cc5d88c7005401cb1",
+      "after_body_md5": "ead3811c6130b4f08cee04e9dd69ffad",
+      "expected_attributes": {
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "procost": 100,
+        "prorows": 0,
+        "language": "plpgsql",
+        "arguments": "m ediel_messages",
+        "proconfig": [
+          "search_path=pg_catalog"
+        ],
+        "prosecdef": true,
+        "proargmodes": null,
+        "proargnames": [
+          "m"
+        ],
+        "proisstrict": false,
+        "proparallel": "u",
+        "provolatile": "v",
+        "return_type": "jsonb",
+        "proleakproof": false,
+        "identity_arguments": "m ediel_messages"
+      },
+      "origin": "Exact new module canonical helper; source metadata + genuine committed full additive PG catalog, not a claimed existing production function."
+    },
+    {
+      "signature": "gridex_ediel_technical_ack.require_source_v1(uuid,uuid)",
+      "before_body_md5": "443b01f2ef477d51b1e2d32e0dbd9700",
+      "canonical_predecessor_md5": "443b01f2ef477d51b1e2d32e0dbd9700",
+      "after_body_md5": "4ccde8d88b210640bccf40815b3babf9",
+      "expected_attributes": {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "owner": "postgres",
+        "procost": 100,
+        "prorows": 0,
+        "language": "plpgsql",
+        "arguments": "p_company_id uuid, p_message_id uuid",
+        "proconfig": [
+          "search_path=pg_catalog"
+        ],
+        "prosecdef": true,
+        "proargmodes": null,
+        "proargnames": [
+          "p_company_id",
+          "p_message_id"
+        ],
+        "proisstrict": false,
+        "proparallel": "u",
+        "provolatile": "v",
+        "return_type": "jsonb",
+        "proleakproof": false,
+        "identity_arguments": "p_company_id uuid, p_message_id uuid"
+      },
+      "origin": "Exact new module canonical helper; source metadata + genuine committed full additive PG catalog, not a claimed existing production function."
+    },
+    {
+      "signature": "gridex_received_sources.capture_insert()",
+      "before_body_md5": "b05d53dbe80fc90f17b625b201377151",
+      "canonical_predecessor_md5": "d3a49916a8a05b66d7b70bcc9089233f",
+      "after_body_md5": "d3a49916a8a05b66d7b70bcc9089233f",
+      "expected_attributes": {
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "procost": 100,
+        "prorows": 0,
+        "language": "plpgsql",
+        "arguments": "",
+        "proconfig": [
+          "search_path=pg_catalog"
+        ],
+        "prosecdef": true,
+        "proargmodes": null,
+        "proargnames": null,
+        "proisstrict": false,
+        "proparallel": "u",
+        "provolatile": "v",
+        "return_type": "trigger",
+        "proleakproof": false,
+        "identity_arguments": ""
+      },
+      "origin": "Fresh actual native metadata 2026-10-13T12:47:49.795318+00:00"
+    },
+    {
+      "signature": "gridex_utilts_binding.guard_source_v1()",
+      "before_body_md5": "1a187f5c76c10648f00cd67bda6139b7",
+      "canonical_predecessor_md5": "c9e1b6c2694dfaefdcb69b0ea902a30b",
+      "after_body_md5": "c9e1b6c2694dfaefdcb69b0ea902a30b",
+      "expected_attributes": {
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres",
+        "procost": 100,
+        "prorows": 0,
+        "language": "plpgsql",
+        "arguments": "",
+        "proconfig": [
+          "search_path=pg_catalog, public, extensions"
+        ],
+        "prosecdef": true,
+        "proargmodes": null,
+        "proargnames": null,
+        "proisstrict": false,
+        "proparallel": "u",
+        "provolatile": "v",
+        "return_type": "trigger",
+        "proleakproof": false,
+        "identity_arguments": ""
+      },
+      "origin": "Fresh actual native metadata 2026-10-13T12:47:49.795318+00:00"
+    },
+    {
+      "signature": "public.gridex_bind_inbound_ediel_rule_pack_evidence()",
+      "before_body_md5": "62b8aba5ceec32380c0ac8ff7f08a6da",
+      "canonical_predecessor_md5": "ac92cc689d1ee22892936f65ce6d21e8",
+      "after_body_md5": "ac92cc689d1ee22892936f65ce6d21e8",
+      "expected_attributes": {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "owner": "postgres",
+        "procost": 100,
+        "prorows": 0,
+        "language": "plpgsql",
+        "arguments": "",
+        "proconfig": [
+          "search_path=public"
+        ],
+        "prosecdef": true,
+        "proargmodes": null,
+        "proargnames": null,
+        "proisstrict": false,
+        "proparallel": "u",
+        "provolatile": "v",
+        "return_type": "trigger",
+        "proleakproof": false,
+        "identity_arguments": ""
+      },
+      "origin": "Fresh actual native metadata 2026-10-13T12:47:49.795318+00:00"
+    },
+    {
+      "signature": "public.gridex_capture_ediel_rule_pack_snapshot()",
+      "before_body_md5": "63f9a03b601a62b8cec9a32b40f1e283",
+      "canonical_predecessor_md5": "9862e65a467ffb1b981ab4cca3d52bf6",
+      "after_body_md5": "b62ba7dadc376dd652b3b268a6145b33",
+      "expected_attributes": {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "owner": "postgres",
+        "procost": 100,
+        "prorows": 0,
+        "language": "plpgsql",
+        "arguments": "",
+        "proconfig": [
+          "search_path=public"
+        ],
+        "prosecdef": true,
+        "proargmodes": null,
+        "proargnames": null,
+        "proisstrict": false,
+        "proparallel": "u",
+        "provolatile": "v",
+        "return_type": "trigger",
+        "proleakproof": false,
+        "identity_arguments": ""
+      },
+      "origin": "Fresh actual native metadata 2026-10-13T12:47:49.795318+00:00"
+    },
+    {
+      "signature": "public.gridex_validate_ediel_message_contract()",
+      "before_body_md5": "065584a8991197c823901f8e72bfb61d",
+      "canonical_predecessor_md5": "d87951bd890a3303c89e565ed378758f",
+      "after_body_md5": "d87951bd890a3303c89e565ed378758f",
+      "expected_attributes": {
+        "acl": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+        "owner": "postgres",
+        "procost": 100,
+        "prorows": 0,
+        "language": "plpgsql",
+        "arguments": "",
+        "proconfig": [
+          "search_path=public, extensions, pg_temp"
+        ],
+        "prosecdef": false,
+        "proargmodes": null,
+        "proargnames": null,
+        "proisstrict": false,
+        "proparallel": "u",
+        "provolatile": "v",
+        "return_type": "trigger",
+        "proleakproof": false,
+        "identity_arguments": ""
+      },
+      "origin": "Fresh actual native metadata 2026-10-13T12:47:49.795318+00:00"
+    },
+    {
+      "signature": "public.gridex_validate_ediel_outbox_tenant_and_snapshot()",
+      "before_body_md5": "e5ca83ed4de2483c9567026790906de5",
+      "canonical_predecessor_md5": "a218eec9f0ac5e17a1c2cd059e83b6b8",
+      "after_body_md5": "fbd2f31eab36c81ea9e54cd863872a9b",
+      "expected_attributes": {
+        "acl": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+        "owner": "postgres",
+        "procost": 100,
+        "prorows": 0,
+        "language": "plpgsql",
+        "arguments": "",
+        "proconfig": [
+          "search_path=public, pg_temp"
+        ],
+        "prosecdef": false,
+        "proargmodes": null,
+        "proargnames": null,
+        "proisstrict": false,
+        "proparallel": "u",
+        "provolatile": "v",
+        "return_type": "trigger",
+        "proleakproof": false,
+        "identity_arguments": ""
+      },
+      "origin": "Fresh actual native metadata 2026-10-13T12:47:49.795318+00:00"
+    }
+  ],
+  "dispatcher": {
+    "signature": "public.gridex_require_outbound_reply_basis_v1(public.ediel_messages)",
+    "canonical_predecessor_md5": "c59b3bba3b290c18c419e50651d5b932",
+    "after_body_md5": "e53f0edcd41a01809569a0cc22657630",
+    "abi": "one input m public.ediel_messages, RETURNS void, PLpgSQL volatile, SECURITY DEFINER postgres, search_path=pg_catalog, cost100, not strict/leakproof/set/variadic, no defaults/OUT/support hooks",
+    "acl": "{postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres}",
+    "authenticated_gate": "Verified JWT auth.role=authenticated requires auth.uid, company and CURRENT active-catalog/deny-aware communication.read through actor helper02c126. Runs before any private source read/lock. Scoped persisted id+company reread then FULL composite equality rejects forged/new/unpersisted input. Lower four query tenant/hash/receipt predicates enforce authorized parent/witness scope before SHARE. No assumed inbound wire coverage; canonical reserve only covers outbound.",
+    "service_gate": "Source role preserves existing strict CONTRL/common-header APERAK proofs, including fresh BEFORE INSERT and immutable historical source derivation; callers cannot mint/modify private receipts/witnesses through void validation. Service current RPC actor/tenant guards are independent preserved authority.",
+    "strict_authenticated_before_mutation": "New direct authenticated protected BEFORE INSERT/UPDATE proposed-composite mismatch denies. Old mandatory-businesspack validation already denied protected NULL-pack mutations; current supported technical/common creator/projection paths use supabaseService. Ordinary businesspack auth paths retained. No trigger-depth/context-key trust bypass."
+  },
+  "confirmed_effect_fixes": [
+    {
+      "group": "technical_and_common_ack",
+      "proof": "Current atomicAckPersistence uses service-only protected atomic constructors that materialize technical CONTRL/common-header APERAK with NULL business pack. Old message/rulepack/outbox guards rejected them. Closed dispatcher proof added without bypassing any ordinary company/route/profile/application/source-operation/hash/immutable checks. BOTH capture proof branches pass guarded dispatcher even when attacker supplies nonNULL businesspack."
+    },
+    {
+      "group": "trusted_unassigned_birth",
+      "proof": "Current receptions.ts61 invokes closed technical admission; is_birth requires exact current transaction receipt/rawhash/mail/parse/env/no business resources. Message validator no longer generic-denies that protected NULL-company birth, received source capture skips only that exact trusted birth rather than inserting NULL company into received_sources.sources NOT NULL."
+    },
+    {
+      "group": "assigned_header_negative_birth",
+      "proof": "Binder exemption only exact pending current transaction birth; consumed projection updates require both old/new protected birth, all immutable original/transport/profile fields equality and equal nonNULL private evidence. Ordinary inbound rulepack selection untouched."
+    },
+    {
+      "group": "approved_utilts_erasure",
+      "proof": "blobLifecycleRetention.ts48\u2192begin_blob_purge checks current actor/class grant/legal review/currentdeadline/exact target/source hashes and inserts immutable tombstone before raw erasure. Qualified transition requires exact tombstone hash/company and unchanged original outside explicit erased projections; receipt-bound utilts original guard now admits only that legal redaction."
+    },
+    {
+      "group": "tenant_before_lower_share",
+      "proof": "Four reached helper parent/witness SELECT/FOR SHARE predicates now bind company/env/id/source/rawhash and ready immutable own technical receipt/time BEFORE lock. NULL parent never generic: own scoped ready receipt required. common.assert_ack assigned branch scopes/locks parent before delegated assigned helper; ordinary branch same. retained_source derivation already scoped private company and remains unchanged."
+    }
+  ],
+  "privilege_boundary": {
+    "canonical_and_new_dispatcher": "SECURITY DEFINER postgres (not invoker). Both old message/outbox callers remain SECURITY INVOKER as actual. Public dispatcher approved role grants reach postgres boundary; private schema/EXEC/table reads use owner privilege, not authenticated private grants.",
+    "actual_owner_role": [
+      {
+        "role": "anon",
+        "inherit": true,
+        "superuser": false,
+        "bypass_rls": false
+      },
+      {
+        "role": "authenticated",
+        "inherit": true,
+        "superuser": false,
+        "bypass_rls": false
+      },
+      {
+        "role": "postgres",
+        "inherit": true,
+        "superuser": false,
+        "bypass_rls": true
+      },
+      {
+        "role": "service_role",
+        "inherit": true,
+        "superuser": false,
+        "bypass_rls": true
+      }
+    ],
+    "actual_public_callers": {
+      "policies": [
+        {
+          "name": "gridex_mp_25f5ae9b1b728ba7cc8b",
+          "roles": [
+            "service_role"
+          ],
+          "table": "ediel_messages",
+          "using": "(gridex_can_write_company(company_id) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))))",
+          "command": "UPDATE",
+          "with_check": "(gridex_can_write_company(company_id) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))))"
+        },
+        {
+          "name": "gridex_mp_48d4153ddd8be07b99c5",
+          "roles": [
+            "service_role"
+          ],
+          "table": "ediel_messages",
+          "using": "(gridex_can_read_company(company_id) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))))",
+          "command": "SELECT",
+          "with_check": null
+        },
+        {
+          "name": "gridex_mp_7bd821a0c63bef93248d",
+          "roles": [
+            "authenticated"
+          ],
+          "table": "ediel_messages",
+          "using": "(gridex_can_write_company(company_id) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id))))",
+          "command": "UPDATE",
+          "with_check": "(gridex_can_write_company(company_id) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))))"
+        },
+        {
+          "name": "gridex_mp_82736c4aec9a2b5c4b18",
+          "roles": [
+            "service_role"
+          ],
+          "table": "ediel_messages",
+          "using": null,
+          "command": "INSERT",
+          "with_check": "(gridex_can_write_company(company_id) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))))"
+        },
+        {
+          "name": "gridex_mp_a2f857be40f1e68ceb6e",
+          "roles": [
+            "authenticated"
+          ],
+          "table": "ediel_messages",
+          "using": null,
+          "command": "INSERT",
+          "with_check": "(gridex_can_write_company(company_id) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))) OR (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id))))"
+        },
+        {
+          "name": "gridex_perf_authenticated_select_v1",
+          "roles": [
+            "authenticated"
+          ],
+          "table": "ediel_messages",
+          "using": "true",
+          "command": "SELECT",
+          "with_check": null
+        },
+        {
+          "name": "tenant_lifecycle_delete_guard",
+          "roles": [
+            "authenticated"
+          ],
+          "table": "ediel_messages",
+          "using": "gridex_can_write_company(company_id)",
+          "command": "DELETE",
+          "with_check": null
+        },
+        {
+          "name": "tenant_lifecycle_insert_guard",
+          "roles": [
+            "authenticated"
+          ],
+          "table": "ediel_messages",
+          "using": null,
+          "command": "INSERT",
+          "with_check": "gridex_can_write_company(company_id)"
+        },
+        {
+          "name": "tenant_lifecycle_select_guard",
+          "roles": [
+            "authenticated"
+          ],
+          "table": "ediel_messages",
+          "using": "(( SELECT gridex_is_current_session_allowed() AS gridex_is_current_session_allowed) AND (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR (company_id IN ( SELECT gridex_user_company_ids() AS gridex_user_company_ids))))",
+          "command": "SELECT",
+          "with_check": null
+        },
+        {
+          "name": "tenant_lifecycle_update_guard",
+          "roles": [
+            "authenticated"
+          ],
+          "table": "ediel_messages",
+          "using": "gridex_can_write_company(company_id)",
+          "command": "UPDATE",
+          "with_check": "gridex_can_write_company(company_id)"
+        },
+        {
+          "name": "ediel_outbox_tenant_insert",
+          "roles": [
+            "public"
+          ],
+          "table": "ediel_outbox",
+          "using": null,
+          "command": "INSERT",
+          "with_check": "(( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id)))"
+        },
+        {
+          "name": "ediel_outbox_tenant_select",
+          "roles": [
+            "public"
+          ],
+          "table": "ediel_outbox",
+          "using": "(( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id)))",
+          "command": "SELECT",
+          "with_check": null
+        },
+        {
+          "name": "ediel_outbox_tenant_update",
+          "roles": [
+            "public"
+          ],
+          "table": "ediel_outbox",
+          "using": "(( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id)))",
+          "command": "UPDATE",
+          "with_check": "(( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND gridex_can_write_company(company_id)))"
+        },
+        {
+          "name": "tenant_lifecycle_delete_guard",
+          "roles": [
+            "authenticated"
+          ],
+          "table": "ediel_outbox",
+          "using": "gridex_can_write_company(company_id)",
+          "command": "DELETE",
+          "with_check": null
+        },
+        {
+          "name": "tenant_lifecycle_insert_guard",
+          "roles": [
+            "authenticated"
+          ],
+          "table": "ediel_outbox",
+          "using": null,
+          "command": "INSERT",
+          "with_check": "gridex_can_write_company(company_id)"
+        },
+        {
+          "name": "tenant_lifecycle_select_guard",
+          "roles": [
+            "authenticated"
+          ],
+          "table": "ediel_outbox",
+          "using": "(( SELECT gridex_is_current_session_allowed() AS gridex_is_current_session_allowed) AND (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR (company_id IN ( SELECT gridex_user_company_ids() AS gridex_user_company_ids))))",
+          "command": "SELECT",
+          "with_check": null
+        },
+        {
+          "name": "tenant_lifecycle_update_guard",
+          "roles": [
+            "authenticated"
+          ],
+          "table": "ediel_outbox",
+          "using": "gridex_can_write_company(company_id)",
+          "command": "UPDATE",
+          "with_check": "gridex_can_write_company(company_id)"
+        }
+      ],
+      "relations": [
+        {
+          "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+          "rls": true,
+          "owner": "postgres",
+          "relation": "ediel_messages",
+          "force_rls": false,
+          "auth_insert": true,
+          "auth_select": true,
+          "auth_update": true,
+          "service_insert": true,
+          "service_select": true,
+          "service_update": true
+        },
+        {
+          "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+          "rls": true,
+          "owner": "postgres",
+          "relation": "ediel_outbox",
+          "force_rls": false,
+          "auth_insert": true,
+          "auth_select": true,
+          "auth_update": true,
+          "service_insert": true,
+          "service_select": true,
+          "service_update": true
+        }
+      ],
+      "checked_at": "2026-10-13T13:56:10.644261+00:00"
+    },
+    "compiled_private_boundary": {
+      "database": "ops_api_existing_trigger_compile_20261013",
+      "relations": [
+        {
+          "rls": true,
+          "owner": "postgres",
+          "relation": "gridex_ediel_common_header.negative_witnesses",
+          "force_rls": true,
+          "auth_select": false,
+          "owner_select": true,
+          "service_select": false
+        },
+        {
+          "rls": true,
+          "owner": "postgres",
+          "relation": "gridex_ediel_header_negative_birth.receipts",
+          "force_rls": true,
+          "auth_select": false,
+          "owner_select": true,
+          "service_select": false
+        },
+        {
+          "rls": true,
+          "owner": "postgres",
+          "relation": "gridex_ediel_technical_ack.replies",
+          "force_rls": true,
+          "auth_select": false,
+          "owner_select": true,
+          "service_select": false
+        },
+        {
+          "rls": true,
+          "owner": "postgres",
+          "relation": "gridex_ediel_technical_ack.sources",
+          "force_rls": true,
+          "auth_select": false,
+          "owner_select": true,
+          "service_select": false
+        },
+        {
+          "rls": true,
+          "owner": "postgres",
+          "relation": "public.ediel_messages",
+          "force_rls": false,
+          "auth_select": false,
+          "owner_select": true,
+          "service_select": false
+        }
+      ],
+      "dispatcher": {
+        "acl": "{postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres}",
+        "owner": "postgres",
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "body_md5": "e53f0edcd41a01809569a0cc22657630",
+        "anon_execute": false,
+        "auth_execute": true,
+        "service_execute": true,
+        "security_definer": true
+      },
+      "lower_helpers": [
+        {
+          "owner": "postgres",
+          "function": "gridex_ediel_common_header.assert_ack_v1(ediel_messages,jsonb)",
+          "owner_execute": true,
+          "security_definer": true,
+          "auth_schema_usage": false,
+          "owner_schema_usage": true,
+          "auth_direct_execute": false
+        },
+        {
+          "owner": "postgres",
+          "function": "gridex_ediel_common_header.witness_before_route_v1(ediel_messages)",
+          "owner_execute": true,
+          "security_definer": true,
+          "auth_schema_usage": false,
+          "owner_schema_usage": true,
+          "auth_direct_execute": false
+        },
+        {
+          "owner": "postgres",
+          "function": "gridex_ediel_common_header.witness_v1(ediel_messages)",
+          "owner_execute": true,
+          "security_definer": true,
+          "auth_schema_usage": false,
+          "owner_schema_usage": true,
+          "auth_direct_execute": false
+        },
+        {
+          "owner": "postgres",
+          "function": "gridex_ediel_header_negative_birth.assert_ack_v1(ediel_messages,jsonb)",
+          "owner_execute": true,
+          "security_definer": true,
+          "auth_schema_usage": false,
+          "owner_schema_usage": true,
+          "auth_direct_execute": false
+        },
+        {
+          "owner": "postgres",
+          "function": "gridex_ediel_technical_ack.require_contrl_v1(ediel_messages)",
+          "owner_execute": true,
+          "security_definer": true,
+          "auth_schema_usage": false,
+          "owner_schema_usage": true,
+          "auth_direct_execute": false
+        },
+        {
+          "owner": "postgres",
+          "function": "gridex_ediel_technical_ack.require_source_v1(uuid,uuid)",
+          "owner_execute": true,
+          "security_definer": true,
+          "auth_schema_usage": false,
+          "owner_schema_usage": true,
+          "auth_direct_execute": false
+        },
+        {
+          "owner": "postgres",
+          "function": "gridex_ediel_technical_ack.retained_source_v1(ediel_messages,boolean)",
+          "owner_execute": true,
+          "security_definer": true,
+          "auth_schema_usage": false,
+          "owner_schema_usage": true,
+          "auth_direct_execute": false
+        }
+      ]
+    },
+    "qualification": "Actual postgres bypass_rls=true/superuser=false, so private FORCE RLS owner proof reads use the documented boundary. Current JWT actor/tenant checks remain inside SECDEF before owner data reads. Compile clone public table app ACL subset is not a live API-RLS certificate; actual public source/outbox SELECT/INSERT/UPDATE and17policies captured separately. No new raw/private app grants added."
+  },
+  "strict_preflight": {
+    "all_target_states": "Only exact current native6, exact canonical source10, or exact own after bodies with expected complete attributes accepted. All preflight runs before any mutation; unknown state fails transaction. Four strong module helper states are NOOP.",
+    "dispatcher_states": "Absent\u2192exact source ABI+approved ACL; exact weak canonical body\u2192scoped after retaining full pg_proc exceptbody; exact scoped after\u2192NOOP. Unknown body/owner/ACL/config/type/default/security/lang/support/set state rejected.",
+    "source_dependencies": [
+      {
+        "signature": "gridex_ediel_common_header.witness_v1(public.ediel_messages)",
+        "body_md5": "edbd546f620c16586a1b1c4e72989659"
+      },
+      {
+        "signature": "gridex_unattributed_intake.is_birth_v1(public.ediel_messages,boolean)",
+        "body_md5": "2c63e83c331e9d77ed239390bd6c4c54"
+      },
+      {
+        "signature": "gridex_ediel_header_negative_birth.is_bound_v1(public.ediel_messages,boolean)",
+        "body_md5": "b94af5111e2e78fd94774a51fa3436c6"
+      },
+      {
+        "signature": "gridex_ediel_header_negative_birth.evidence_v1(public.ediel_messages)",
+        "body_md5": "fe257056ec265b97a044d7cd97e6ca26"
+      },
+      {
+        "signature": "public.ediel_is_qualified_retention_transition_v1(public.ediel_messages,public.ediel_messages)",
+        "body_md5": "c9e018c4b712ce1437af97287115069b"
+      },
+      {
+        "signature": "public.gridex_actor_has_company_permission(uuid,uuid,text)",
+        "body_md5": "02c126207b21142e0de62563a287ea1e"
+      },
+      {
+        "signature": "gridex_ediel_wire_namespace.before_message_write()",
+        "body_md5": "34f9d97c05f1805f4a3bea96256aa7a6"
+      },
+      {
+        "signature": "gridex_ediel_wire_namespace.immutable()",
+        "body_md5": "e56df235ff9099e5bfc6172ad536d9ec"
+      },
+      {
+        "signature": "gridex_unattributed_intake.guard_original_v1()",
+        "body_md5": "c81331d3c2547e3b12cccc137b9d4041"
+      },
+      {
+        "signature": "gridex_unattributed_intake.immutable_v1()",
+        "body_md5": "41e0af9e9739fa278954ee158306ba38"
+      },
+      {
+        "signature": "gridex_ediel_technical_ack.immutable()",
+        "body_md5": "e589337a6d3e876d65e87075fffea3d1"
+      },
+      {
+        "signature": "gridex_ediel_common_header.immutable()",
+        "body_md5": "d200e73c3796c325038da595d54c4ac8"
+      }
+    ],
+    "immutable_prerequisites": "Expected enabled source/birth/technical/common immutable receipt guards required; scoped lower helper predicates do not rely on invented inbound coverage or a renamed assigned trigger."
+  },
+  "genuine_compile": {
+    "container": "gridex-ops-api-postgis-native-20261013",
+    "database": "ops_api_existing_trigger_compile_20261013",
+    "network": "none (dedicated clone, no native business rows)",
+    "foundation": "Cloned committed fullf9fc63 source module+fiveexpiry9e3+part1d821+part2edcd. Six old source callbacks absent in selected isolated fixture were imported from exact actual12:47 definitions/ACL; native ACL array order copied into isolated pg_proc metadata for byte-exact guard fidelity. No business helper stubs, no check_function_bodies disablement, no source guard softening.",
+    "exact_seal": "5feebfef8c7935867b6846b1c841ca15b46ccab284474c0912406614ddd5535a",
+    "actual_native_six_and_weak_module_four": "COMMIT PASS, all10 pg_proc fields/OIDs exceptprosrc identical; new dispatcher exact ABI/ACL/body.",
+    "replay": "COMMIT PASS, all11 complete pg_proc catalog rows identical.",
+    "canonical_complete_predecessor": "COMMIT PASS, all11 identity exceptprosrc preserved; only4scope helpers+capture+outbox+dispatcher composed,4alreadycanonical bodies NOOP.",
+    "b3_first_strong_four": "COMMIT PASS; all4 strong helper complete pg_proc rows NOOP while native6 composed and dispatcher created.",
+    "unknown_body": "Refused before changes; all11 full catalog rows identical to unknown baseline.",
+    "unknown_dispatcher_acl": "Refused before changes; all11 full catalog rows identical to unknown ACL baseline.",
+    "all_after_md5": {
+      "gridex_ediel_common_header.assert_ack_v1": "9839bf48ebaac650a60f83d947e5d9fd",
+      "gridex_ediel_common_header.witness_before_route_v1": "7e78d461d26b8bf73cb5adb36c1136af",
+      "gridex_ediel_technical_ack.require_contrl_v1": "ead3811c6130b4f08cee04e9dd69ffad",
+      "gridex_ediel_technical_ack.require_source_v1": "4ccde8d88b210640bccf40815b3babf9",
+      "gridex_received_sources.capture_insert": "d3a49916a8a05b66d7b70bcc9089233f",
+      "gridex_utilts_binding.guard_source_v1": "c9e1b6c2694dfaefdcb69b0ea902a30b",
+      "public.gridex_bind_inbound_ediel_rule_pack_evidence": "ac92cc689d1ee22892936f65ce6d21e8",
+      "public.gridex_capture_ediel_rule_pack_snapshot": "b62ba7dadc376dd652b3b268a6145b33",
+      "public.gridex_validate_ediel_message_contract": "d87951bd890a3303c89e565ed378758f",
+      "public.gridex_validate_ediel_outbox_tenant_and_snapshot": "fbd2f31eab36c81ea9e54cd863872a9b",
+      "public.gridex_require_outbound_reply_basis_v1": "e53f0edcd41a01809569a0cc22657630"
+    },
+    "parser_support": "Top-level SQL AST parses. Genuine PG17.6 DO/function validators compile all11 real composite bodies. Standalone pglast cannot resolve require_contrl composite field assignment m.related_message_id without database type catalog; not misreported as a runtime failure or bypassed validation."
+  },
+  "review_state": {
+    "independent_noncoauthor1": "native_forward_independent_review approved exact5fee after all bodies and final catalog/log comparison.",
+    "independent_noncoauthor2": "final_api_source_review independently approved exact5fee after final positive/replay/canonical logs, all10 minusbody metadata identity,11replay and unknown body/ACL refusal rollback snapshots.",
+    "native_apply": "Not performed by this agent; root owns application and final native pg_proc/RLS/role metadata readback."
+  },
+  "verification": {
+    "fresh_native_six_at": "2026-10-13T12:47:49.795318+00:00",
+    "actor_permission_at": "2026-10-13T13:01:35.671114+00:00",
+    "actual_public_roles_at": "2026-10-13T13:56:10.644261+00:00",
+    "role_boundary_at": "2026-10-13T13:46:15.587554+00:00",
+    "source_schema_sha256": "ced195d0f8af67b8a400ba71c2eca110cbcd639a0dba880d19e7dccff7a14492",
+    "new_owned_paths_claim_checks": "SQL bfd38a... and report caa0e20... GitHub refs/tags/agent-claims/masterplan returned404 before writes; parent explicit six+newhelper+four lower scopes handoff.",
+    "tests_as_authority": false
+  },
+  "limits": [
+    "No actual/isolated business function invocation, customer row read, provider event/send or native data write. Genuine DDL/catalog qualification does not certify all runtime/business/legal paths or live row values.",
+    "The11-target packet is bounded; separate generated setter/regex/actor normalization and unresolved trigger effects stay assigned to their owners.",
+    "Root must stage/review/apply full module first and preserve strong4 on subsequent staged replay; exact source helper shape required.",
+    "Actual current private helper attributes cannot be claimed before their source module installation; four contracts are canonical source plus genuine module-created PG catalog, while6 predecessor contracts are fresh actual metadata."
+  ],
+  "evidence_artifacts": [
+    {
+      "path": "/tmp/gridex-api-review/variant-existing-trigger-config.json",
+      "sha256": "e2d966c6c0af23c2cf5483bd0a43ab9bf286785f972c251e34c32adb282157cd"
+    },
+    {
+      "path": "/tmp/gridex-api-review/variant-existing-trigger-lower-source-units.json",
+      "sha256": "24f614c9dbcffcfe839a8798c85fbf4d551e3c464e10ddadc51128e2f607850e"
+    },
+    {
+      "path": "/tmp/gridex-api-review/variant-existing-trigger-lower-canonical-catalog.json",
+      "sha256": "df33e33c3469567b0914f47b75c584ced76f87fbf02f1c24d6731a8e9ae3d109"
+    },
+    {
+      "path": "/tmp/gridex-api-review/variant-existing-trigger-fresh-native-metadata.json",
+      "sha256": "74e75592dd8654a6b8234d8c68de30e9984ad2e2ab7309e882c6c0af3f8fc7a8"
+    },
+    {
+      "path": "/tmp/gridex-api-review/variant-existing-trigger-isolated-final-before.json",
+      "sha256": "ab5218a99ad88cd603e9445384074777db23fc9b508653dcd4451a257625b78d"
+    },
+    {
+      "path": "/tmp/gridex-api-review/variant-existing-trigger-isolated-final-after.json",
+      "sha256": "b5097d2812a0b4854f4d890be71c1a7ebc56d9b0a114ccc44a449ee4add99c20"
+    },
+    {
+      "path": "/tmp/gridex-api-review/variant-existing-trigger-isolated-final-replay-after.json",
+      "sha256": "b5097d2812a0b4854f4d890be71c1a7ebc56d9b0a114ccc44a449ee4add99c20"
+    },
+    {
+      "path": "/tmp/gridex-api-review/variant-existing-trigger-canonical-before.json",
+      "sha256": "2da3dbe864dcdb51238b37068f3cc7ac54370df300e3e7519cac48e789b6642d"
+    },
+    {
+      "path": "/tmp/gridex-api-review/variant-existing-trigger-canonical-after.json",
+      "sha256": "b5097d2812a0b4854f4d890be71c1a7ebc56d9b0a114ccc44a449ee4add99c20"
+    },
+    {
+      "path": "/tmp/gridex-api-review/variant-existing-trigger-unknown-before.json",
+      "sha256": "a25b83ac1bee772395d551733315e1d5c79f0bb96321a45570d0943768f61480"
+    },
+    {
+      "path": "/tmp/gridex-api-review/variant-existing-trigger-unknown-after.json",
+      "sha256": "a25b83ac1bee772395d551733315e1d5c79f0bb96321a45570d0943768f61480"
+    },
+    {
+      "path": "/tmp/gridex-api-review/variant-existing-trigger-unknown-acl-before.json",
+      "sha256": "da28c52edfaee9e874aaf574431d8cc6a3b2ff29b7609e4558dd81c4599519c3"
+    },
+    {
+      "path": "/tmp/gridex-api-review/variant-existing-trigger-unknown-acl-after.json",
+      "sha256": "da28c52edfaee9e874aaf574431d8cc6a3b2ff29b7609e4558dd81c4599519c3"
+    },
+    {
+      "path": "/tmp/gridex-api-review/variant-existing-trigger-b3-strong-before.json",
+      "sha256": "311bd40e4058ab02cc4c30fe850a524e0004505f9a7f3c05c62bb3d68e327fe9"
+    },
+    {
+      "path": "/tmp/gridex-api-review/variant-existing-trigger-b3-strong-after.json",
+      "sha256": "9d64c05b43490dd41d72f2063af952795346555af920763b88c151b01051782f"
+    },
+    {
+      "path": "/tmp/gridex-api-review/variant-existing-trigger-compiled-privilege-boundary.json",
+      "sha256": "e4253b34e80c3479b785d604298f9154c8c0879f7bec6346edd0234cc4027bd4"
+    },
+    {
+      "path": "/tmp/gridex-api-review/variant-existing-trigger-auth-boundary-native.json",
+      "sha256": "688d6f1aa0e5246a960ab637c000cbc66f2ce4c572dcda006948a4b3a21b5ae6"
+    },
+    {
+      "path": "/tmp/gridex-api-review/variant-existing-trigger-public-caller-rls-native.json",
+      "sha256": "597b1fa9f8eee31544f17b2bc6a84bff3dd107b5fb54b8211fdb8aa28d93a5c0"
+    },
+    {
+      "path": "/tmp/gridex-api-review/variant-existing-trigger-isolated-final-positive.log",
+      "sha256": "28c99bd588cc0f7a4f75b26bd818771dfe98eb82b730d2cc03efbd6db6ae6e59"
+    },
+    {
+      "path": "/tmp/gridex-api-review/variant-existing-trigger-isolated-final-replay.log",
+      "sha256": "28c99bd588cc0f7a4f75b26bd818771dfe98eb82b730d2cc03efbd6db6ae6e59"
+    },
+    {
+      "path": "/tmp/gridex-api-review/variant-existing-trigger-canonical-forward.log",
+      "sha256": "28c99bd588cc0f7a4f75b26bd818771dfe98eb82b730d2cc03efbd6db6ae6e59"
+    },
+    {
+      "path": "/tmp/gridex-api-review/variant-existing-trigger-b3-strong-forward.log",
+      "sha256": "28c99bd588cc0f7a4f75b26bd818771dfe98eb82b730d2cc03efbd6db6ae6e59"
+    },
+    {
+      "path": "/tmp/gridex-api-review/variant-existing-trigger-unknown-refusal.log",
+      "sha256": "f91b4c70093f145c26f371d92099426196a88fb3bbca2cf05dfa117ed726759e"
+    },
+    {
+      "path": "/tmp/gridex-api-review/variant-existing-trigger-unknown-acl-refusal.log",
+      "sha256": "2362246727b0905840ab5af13002c96d6e66562dd1362659b1fc487e9fad70f3"
+    }
+  ]
+}

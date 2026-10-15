@@ -1,0 +1,36 @@
+{
+  "scope": "OPS separate append-only exact input metadata population",
+  "sql_sha256": "b58db7d8e3b8999bf38002f5fb4c0580fcbcd819b128abb8db291a0e5b2a9449",
+  "independent_noncoauthor_reviews": [
+    "final_api_source_review",
+    "native_forward_independent_review"
+  ],
+  "isolated_first_commit_and_replay": "forward-input-receipts-isolated-compile.json",
+  "native_postflight": {
+    "checked_at": "2026-10-13 11:37:49.361958+00",
+    "ledger_count": 430,
+    "provenance": [
+      {
+        "receipt_count": 25,
+        "ledger_version_count": 430,
+        "latest_ledger_version": "20261013113026",
+        "lineage_receipt_count": 1,
+        "exact_input_receipt_count": 24,
+        "canonical_governance_blockers": [
+          "MIGRATION_LEDGER_UNMAPPED_VERSION"
+        ],
+        "canonical_governance_is_ready": false,
+        "effect_not_assessed_receipt_count": 24,
+        "canonical_unmapped_ledger_versions": 396,
+        "changed_bounded_schema_receipt_count": 0,
+        "current_bounded_schema_receipt_count": 1,
+        "ledger_versions_without_exact_input_receipt": 406,
+        "full_history_and_effect_qualification_claimed": false
+      }
+    ],
+    "newly_registered_receipts": 11
+  },
+  "ledger_or_manifest_rewrite": false,
+  "business_mutations": 0,
+  "qualification": "Eleven own committed forward exact-input receipts appended. Original first receipt and all existing metadata preserved; input-only evidence does not certify historical effects or configured API lifecycle. Other-owner native writes are outside this action."
+}

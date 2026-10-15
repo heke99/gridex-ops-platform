@@ -1,0 +1,114 @@
+{
+  "project": "piidsfebjqjmnepdpnas",
+  "account_link": "link_6aa08570afb48191a4eb728ab8e93c81",
+  "authorization": "User expressly approved code, database and all migration fixes on2026-10-13 Stockholm.",
+  "cli_created_file": "20261012233542_ops_api_atomic_permission_and_direction_guards.sql",
+  "sql_sha256": "442dea4f8688e01164873831d58ab2df4650fbb6aaf8ab47835a409000e1d37d",
+  "independent_sql_reviewers": [
+    "final_api_source_review",
+    "final_api_database_docs_review"
+  ],
+  "isolated_validation": {
+    "postgres": "17.6-alpine",
+    "network": "none",
+    "compile": "passed",
+    "same_sql_repeat": "passed",
+    "eight_pure_authorization_and_normalization_invariants": "passed in explicit rolled-back isolated transaction",
+    "limits": "Isolated selected exact source/observed-legacy schema; no complete Partner lifecycle or entire Supabase/Ediel acceptance qualification. Initial probe expected display spacing incorrectly; corrected to actual key semantics after source and native comparison."
+  },
+  "actual_native_receipt": {
+    "checked_at": "2026-10-12 23:55:33.279231+00",
+    "registered_migration_count": 417,
+    "applied_migration": [
+      {
+        "name": "ops_api_atomic_permission_and_direction_guards",
+        "version": "20261012235455",
+        "statement_count": 1,
+        "joined_statement_md5": "426317f377c64b38369a47a4f9549247"
+      }
+    ],
+    "effective_functions": [
+      {
+        "oid": "301331",
+        "name": "gridex_actor_has_company_permission",
+        "body_md5": "02c126207b21142e0de62563a287ea1e",
+        "arguments": "p_actor_user_id uuid, p_company_id uuid, p_permission text",
+        "volatility": "v",
+        "deny_checks": true,
+        "anon_execute": false,
+        "definition_md5": "47acc6d44a99c7346cfe623f7d823790",
+        "direction_guard": false,
+        "service_execute": true,
+        "security_definer": true,
+        "authenticated_execute": true
+      },
+      {
+        "oid": "344914",
+        "name": "gridex_create_partner_contract_v1",
+        "body_md5": "50a9a74e64b0fd93849991f9164c6fdb",
+        "arguments": "p_company_id uuid, p_api_client_id uuid, p_payload jsonb",
+        "volatility": "v",
+        "deny_checks": false,
+        "anon_execute": false,
+        "definition_md5": "f80a84aba5de618af72dde36755d4c03",
+        "direction_guard": true,
+        "service_execute": true,
+        "security_definer": true,
+        "authenticated_execute": false
+      },
+      {
+        "oid": "357429",
+        "name": "gridex_grid_owner_name_key",
+        "body_md5": "5f153f65d46dad9aa6b61d21ad558cae",
+        "arguments": "p_name text",
+        "volatility": "i",
+        "deny_checks": false,
+        "anon_execute": true,
+        "definition_md5": "87f17f7a4942daae20c9e7c60051c233",
+        "direction_guard": false,
+        "service_execute": true,
+        "security_definer": false,
+        "authenticated_execute": true
+      }
+    ],
+    "override_constraints": [
+      {
+        "name": "user_permission_overrides_company_id_fkey",
+        "definition": "FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE RESTRICT"
+      },
+      {
+        "name": "user_permission_overrides_company_id_user_id_permission_key_key",
+        "definition": "UNIQUE (company_id, user_id, permission_key)"
+      },
+      {
+        "name": "user_permission_overrides_effect_check",
+        "definition": "CHECK ((effect = ANY (ARRAY['allow'::text, 'deny'::text])))"
+      },
+      {
+        "name": "user_permission_overrides_global_deny_only",
+        "definition": "CHECK (((company_id IS NOT NULL) OR (effect = 'deny'::text)))"
+      },
+      {
+        "name": "user_permission_overrides_permission_id_fkey",
+        "definition": "FOREIGN KEY (permission_id) REFERENCES permissions(id) ON DELETE CASCADE"
+      },
+      {
+        "name": "user_permission_overrides_pkey",
+        "definition": "PRIMARY KEY (id)"
+      },
+      {
+        "name": "user_permission_overrides_user_id_permission_id_key",
+        "definition": "UNIQUE (user_id, permission_id)"
+      }
+    ],
+    "override_row_count": 0,
+    "null_actor_allowed": false,
+    "pure_normalizer_result": "examplegrid"
+  },
+  "native_business_rpcs": 0,
+  "live_business_data_mutations": 0,
+  "actual_native_migrations_applied": 1,
+  "canonical_gen_started": false,
+  "source_file": "supabase/migrations/20261012235455_ops_api_atomic_permission_and_direction_guards.sql",
+  "version_alignment": "New unpublished CLI file renamed to observed real applied version; no historic migration/history entry changed."
+}

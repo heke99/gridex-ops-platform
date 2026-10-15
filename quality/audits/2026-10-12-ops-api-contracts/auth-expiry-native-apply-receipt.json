@@ -1,0 +1,123 @@
+{
+  "scope": "OPS actual existing auth/identity/invitation expiry forward",
+  "project_id": "piidsfebjqjmnepdpnas",
+  "sql_sha256": "9e3dc9544031b8d42acdaa850c9ba1963d8b6b6ff0c7d35c76f1be49368ba7bf",
+  "source_created_by": "Official Supabase CLI2.101.0 initial20261013104709; unpublished file aligned to actual assigned20261013105521 preserving exact bytes",
+  "independent_noncoauthor_reviews": [
+    "final_api_source_review",
+    "native_forward_independent_review"
+  ],
+  "isolated_compile_receipt": "auth-expiry-isolated-compile-review.json",
+  "native_postflight": {
+    "checked_at": "2026-10-13 10:56:48.991316+00",
+    "migration_count": 427,
+    "migration": [
+      {
+        "name": "ops_api_current_auth_token_expiry",
+        "sql_md5": "17428f943864c6a5426861ec58019355",
+        "version": "20261013105521"
+      }
+    ],
+    "functions": [
+      {
+        "acl": "{postgres=X/postgres}",
+        "oid": "341209",
+        "args": "p_key_prefix text, p_secret_hash text, p_route text, p_required_all text[], p_required_any text[], p_client_ip text, p_origin text, p_rate_limit_cost integer, p_window_seconds integer",
+        "name": "authenticate_integration_request_v1_secret_internal",
+        "owner": "postgres",
+        "config": [
+          "search_path=public, pg_temp"
+        ],
+        "schema": "private",
+        "body_md5": "67d81f7ae7ccd87a030dc3c25a311b69",
+        "volatility": "v",
+        "proargmodes": "{i,i,i,i,i,i,i,i,i,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t}",
+        "anon_execute": false,
+        "definition_md5": "0ce148c226da4e4e406a43fc065281e5",
+        "service_execute": false,
+        "security_definer": true,
+        "authenticated_execute": false
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "oid": "305152",
+        "args": "p_command jsonb",
+        "name": "canonical_accept_tenant_invitation",
+        "owner": "postgres",
+        "config": [
+          "search_path=public, auth, pg_temp"
+        ],
+        "schema": "public",
+        "body_md5": "84da220e65ca1a019bdf55b33fa1664c",
+        "volatility": "v",
+        "proargmodes": null,
+        "anon_execute": false,
+        "definition_md5": "98cd54081d5643ca48e3612735d3c545",
+        "service_execute": true,
+        "security_definer": true,
+        "authenticated_execute": false
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "oid": "2482135",
+        "args": "p_company_id uuid, p_request_id uuid, p_outcome text, p_decided_by text, p_actor_user_id uuid, p_acceptance jsonb",
+        "name": "gridex_decide_customer_identity_change_v1",
+        "owner": "postgres",
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "schema": "public",
+        "body_md5": "63f7ccdf09f86e5fe8f917a6560fb00e",
+        "volatility": "v",
+        "proargmodes": null,
+        "anon_execute": false,
+        "definition_md5": "d59aa032550a45eae90538287d669ecd",
+        "service_execute": true,
+        "security_definer": true,
+        "authenticated_execute": false
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "oid": "2995637",
+        "args": "p_command jsonb",
+        "name": "gridex_accept_staff_invitation_v1",
+        "owner": "postgres",
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "schema": "public",
+        "body_md5": "55ec7a03bf1dcc1f6f469d78527b0c8e",
+        "volatility": "v",
+        "proargmodes": null,
+        "anon_execute": false,
+        "definition_md5": "d1fc048fe53eb317dc26d561df996c4a",
+        "service_execute": true,
+        "security_definer": true,
+        "authenticated_execute": false
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "oid": "2995801",
+        "args": "p_command jsonb",
+        "name": "gridex_accept_external_staff_invitation_v1",
+        "owner": "postgres",
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "schema": "public",
+        "body_md5": "2a7f912ecc0d982365a5abd423afab0b",
+        "volatility": "v",
+        "proargmodes": null,
+        "anon_execute": false,
+        "definition_md5": "76da289347f76c81d69820fb833503a0",
+        "service_execute": true,
+        "security_definer": true,
+        "authenticated_execute": false
+      }
+    ]
+  },
+  "business_rpc_invocations": 0,
+  "provider_calls": 0,
+  "canonical_gen": 0,
+  "qualification": "Five existing cores now check current deadlines after relevant locks/rate-limit wait, including current external Staff onboarding and Staff identity mutation. Existing successful invitation replay, denial/rate precedence, masked identity audit and private secret-redaction boundary preserved. OIDs/owners/ACL/config/full pg_proc except prosrc unchanged; no historical state or live credentials rewritten."
+}

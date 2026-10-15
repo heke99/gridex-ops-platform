@@ -1,0 +1,205 @@
+{
+  "source_receipt_sha256": "541e238e93ff6fee64206abe51d11494f19a844f2f57051943bdf98360cbee1e",
+  "business_rows_or_secrets": false,
+  "files": [
+    {
+      "original_path": "/tmp/gridex-api-review/installer-auth-and-owned-functions-native-metadata.json",
+      "published_path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-auth-and-owned-functions-native-metadata.json",
+      "sha256": "e87b8ab6c2ef03fd4cf8e4617eab507f3d42aa9359b83363239276ffd3a24a9f",
+      "bytes": 3868
+    },
+    {
+      "original_path": "/tmp/gridex-api-review/installer-auth-uid-genuine-native-metadata.json",
+      "published_path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-auth-uid-genuine-native-metadata.json",
+      "sha256": "5f2fa29fa351aa8316708725c4c4d1f1e21bf931dd0c827c608d5930ccb54120",
+      "bytes": 1589
+    },
+    {
+      "original_path": "/tmp/gridex-api-review/installer-exact-staged-bootstrap-and-parts.sql",
+      "sha256": "38e4e31bbc142e48669d1f441c30229071ab0bfd2bfeabe199065097c21bf390",
+      "bytes": 13702317,
+      "publication": "Reproducible byte-identically from52 already published source units; avoid duplicating13,702,317 bytes.",
+      "reconstruction": {
+        "directory": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/staged-native-additive/",
+        "selection": "lexicographically sorted *.sql excluding999-atomic-install.sql",
+        "join_separator_hex": "0a",
+        "append_final_hex": "0a",
+        "source_unit_count": 52
+      }
+    },
+    {
+      "original_path": "/tmp/gridex-api-review/installer-fa0-after-restaged-replay-snapshot.json",
+      "published_path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-fa0-after-restaged-replay-snapshot.json",
+      "sha256": "8c2e45708948781202134f8dc2eb65fcf7209456826d272904f9a9a3dbf16720",
+      "bytes": 6912
+    },
+    {
+      "original_path": "/tmp/gridex-api-review/installer-fa0-after-snapshot.json",
+      "published_path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-fa0-after-snapshot.json",
+      "sha256": "8c2e45708948781202134f8dc2eb65fcf7209456826d272904f9a9a3dbf16720",
+      "bytes": 6912
+    },
+    {
+      "original_path": "/tmp/gridex-api-review/installer-fa0-auth-prerequisite-negative.log",
+      "published_path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-fa0-auth-prerequisite-negative.log",
+      "sha256": "727a2551b91431ade112718e824396751d94c55caaa9141e401236684340be1a",
+      "bytes": 142
+    },
+    {
+      "original_path": "/tmp/gridex-api-review/installer-fa0-genuine-first.log",
+      "published_path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-fa0-genuine-first.log",
+      "sha256": "308db7a83532073f20d69344c73e023858e78d48cf4b0d7ba79aa7b84e75a9a2",
+      "bytes": 1088
+    },
+    {
+      "original_path": "/tmp/gridex-api-review/installer-fa0-genuine-restaged-replay.log",
+      "published_path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-fa0-genuine-restaged-replay.log",
+      "sha256": "0ce22e7018d2b3f8f3108ae7170444042e9ea0199aa2a381c625a35cef686ed8",
+      "bytes": 76
+    },
+    {
+      "original_path": "/tmp/gridex-api-review/installer-fa0-negative-qualification.json",
+      "published_path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-fa0-negative-qualification.json",
+      "sha256": "d1f7644881dd137384d5056fb82183d907335eacbc49399214cac0875c1ae9d2",
+      "bytes": 1484
+    },
+    {
+      "original_path": "/tmp/gridex-api-review/installer-final-after-main-replay-full-semantic.json",
+      "published_path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-final-after-main-replay-full-semantic.json",
+      "sha256": "ca8339556030a7d0b182616083782cd26d24da049122fbf59b409e541f4a3e6f",
+      "bytes": 20224
+    },
+    {
+      "original_path": "/tmp/gridex-api-review/installer-final-after-six-main-replay.log",
+      "published_path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-final-after-six-main-replay.log",
+      "sha256": "0ce22e7018d2b3f8f3108ae7170444042e9ea0199aa2a381c625a35cef686ed8",
+      "bytes": 76
+    },
+    {
+      "original_path": "/tmp/gridex-api-review/installer-final-after-six-replay-full-semantic.json",
+      "published_path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-final-after-six-replay-full-semantic.json",
+      "sha256": "ca8339556030a7d0b182616083782cd26d24da049122fbf59b409e541f4a3e6f",
+      "bytes": 20224
+    },
+    {
+      "original_path": "/tmp/gridex-api-review/installer-final-before-main-replay-full-semantic.json",
+      "published_path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-final-before-main-replay-full-semantic.json",
+      "sha256": "ca8339556030a7d0b182616083782cd26d24da049122fbf59b409e541f4a3e6f",
+      "bytes": 20224
+    },
+    {
+      "original_path": "/tmp/gridex-api-review/installer-final-effective-capabilities.json",
+      "published_path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-final-effective-capabilities.json",
+      "sha256": "345aa6051e128a57fabf0f7d9d53a6f443193f3cd396ca3550c4efa115668914",
+      "bytes": 856
+    },
+    {
+      "original_path": "/tmp/gridex-api-review/installer-final-native-before-caps.json",
+      "published_path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-final-native-before-caps.json",
+      "sha256": "4b50b21cdcbc2a9e7ee74710e4de71bd749a952befe17b7543ba2226dacbaf15",
+      "bytes": 1041
+    },
+    {
+      "original_path": "/tmp/gridex-api-review/installer-final-owner001-first.log",
+      "published_path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-final-owner001-first.log",
+      "sha256": "decc8335d90db271fc487d1597becbf719e968add184759bda0e0a9a1bde37b1",
+      "bytes": 24
+    },
+    {
+      "original_path": "/tmp/gridex-api-review/installer-final-owner001-replay.log",
+      "published_path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-final-owner001-replay.log",
+      "sha256": "decc8335d90db271fc487d1597becbf719e968add184759bda0e0a9a1bde37b1",
+      "bytes": 24
+    },
+    {
+      "original_path": "/tmp/gridex-api-review/installer-final-owner002-first.log",
+      "published_path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-final-owner002-first.log",
+      "sha256": "decc8335d90db271fc487d1597becbf719e968add184759bda0e0a9a1bde37b1",
+      "bytes": 24
+    },
+    {
+      "original_path": "/tmp/gridex-api-review/installer-final-owner002-replay.log",
+      "published_path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-final-owner002-replay.log",
+      "sha256": "decc8335d90db271fc487d1597becbf719e968add184759bda0e0a9a1bde37b1",
+      "bytes": 24
+    },
+    {
+      "original_path": "/tmp/gridex-api-review/installer-final-pending-sequence-replay-results.json",
+      "published_path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-final-pending-sequence-replay-results.json",
+      "sha256": "8010d4e6b4c9cd71b258262f23ee565c1d755be6ac4dd5589f085c8dba259e4e",
+      "bytes": 1257
+    },
+    {
+      "original_path": "/tmp/gridex-api-review/installer-final-pending-sequence-results.json",
+      "published_path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-final-pending-sequence-results.json",
+      "sha256": "6c6a1bda30e8ef523a225913ecf3062b74e0e584779e8d74b829412c7bb938d4",
+      "bytes": 2302
+    },
+    {
+      "original_path": "/tmp/gridex-api-review/installer-privilege-qualified-native-metadata.json",
+      "published_path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-privilege-qualified-native-metadata.json",
+      "sha256": "5ba237dbf00c5cad39c0079c5e29517a437a379f5566b56725f9275ef8bf120c",
+      "bytes": 6926
+    },
+    {
+      "original_path": "/tmp/gridex-api-review/installer-retention-five-exact-native-baseline.sql",
+      "published_path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-retention-five-exact-native-baseline.sql",
+      "sha256": "05fb9f18aa3db37eaab80b9cac5e13650b87a6a12bdbdfa5a48d5202a16b69ab",
+      "bytes": 10728
+    },
+    {
+      "original_path": "/tmp/gridex-api-review/installer-retention2ff-after-snapshot.json",
+      "published_path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-retention2ff-after-snapshot.json",
+      "sha256": "8109de46ec14252fea12e6627a84bb19aee278209865688f9d92f56083ef76d0",
+      "bytes": 6912
+    },
+    {
+      "original_path": "/tmp/gridex-api-review/installer-retention2ff-before-snapshot.json",
+      "published_path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-retention2ff-before-snapshot.json",
+      "sha256": "8c2e45708948781202134f8dc2eb65fcf7209456826d272904f9a9a3dbf16720",
+      "bytes": 6912
+    },
+    {
+      "original_path": "/tmp/gridex-api-review/installer-retention2ff-full-after-catalog.json",
+      "published_path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-retention2ff-full-after-catalog.json",
+      "sha256": "fba5a753554bfdd78e624887dea0c6dc867dbf39d0a6c6bde834ea0257b54c39",
+      "bytes": 98277
+    },
+    {
+      "original_path": "/tmp/gridex-api-review/installer-retention2ff-full-replay-catalog.json",
+      "published_path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-retention2ff-full-replay-catalog.json",
+      "sha256": "fba5a753554bfdd78e624887dea0c6dc867dbf39d0a6c6bde834ea0257b54c39",
+      "bytes": 98277
+    },
+    {
+      "original_path": "/tmp/gridex-api-review/installer-retention2ff-negative-qualification.json",
+      "published_path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-retention2ff-negative-qualification.json",
+      "sha256": "3126356e96496e52f16e94abfc14c832f9119738fbc976cbb816cfb50f19ed1a",
+      "bytes": 1347
+    },
+    {
+      "original_path": "/tmp/gridex-api-review/installer-storage-full-authentic-native-acl.json",
+      "published_path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-storage-full-authentic-native-acl.json",
+      "sha256": "698287de47eacd41678ccf5950fd4379e5f0af901fbf08fad3a9f256ec1a1983",
+      "bytes": 1780
+    },
+    {
+      "original_path": "/tmp/gridex-api-review/installer-trigger-six-exact-native-legal-acl-baseline.sql",
+      "published_path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-trigger-six-exact-native-legal-acl-baseline.sql",
+      "sha256": "808e0bb10198e8b6beb507013f34b0c7c551d2af9adec9503e46a6b4534f5a6b",
+      "bytes": 16386
+    },
+    {
+      "original_path": "/tmp/gridex-api-review/installer-z02-exact-missing-native-baseline.log",
+      "published_path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-z02-exact-missing-native-baseline.log",
+      "sha256": "9e91c2689fdc26ff2b35c8b0d0bf30778b5dd66974cbd37fcf28fbde613e8ca3",
+      "bytes": 61
+    },
+    {
+      "original_path": "/tmp/gridex-api-review/qualified-retention-installer-source-byte-proof.json",
+      "published_path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/qualified-retention-installer-source-byte-proof.json",
+      "sha256": "583bf74277832d4d66886220662fd7ef8957f1a82bcdfff83b8a0d13663b04db",
+      "bytes": 1493
+    }
+  ]
+}

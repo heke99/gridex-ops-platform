@@ -1,0 +1,64 @@
+{
+  "at": "2026-10-14T08:29:59.332124+00:00",
+  "status": "ISOLATED_GENUINE_COMPONENT_QUALIFICATION_SHARED_ROUTING_NOT_ADOPTED_NOT_NATIVE_APPLIED",
+  "engine": "Official Supabase PostgreSQL17.6 relocated unchanged source engine; NOSUPER postgres installer",
+  "adapter_sha256": "3afea47b4343c5d5e6d97a4f709bccf5c8cf6f7cf33c179f022629ff4d7c481b",
+  "original_applied_source_sha256": "7eceae42dccce7a968182d144389329d1c11466bf0c896afff62250950f9f2ce",
+  "exact_source_proven_legacy_body_md5": "4daec568bdaf10d1354ddd39145d0d94",
+  "canonical_body_md5": "007d078d9d0065395edf2190d4f1d3b6",
+  "cases": [
+    {
+      "case": "canonical-noop",
+      "result": "COMMIT",
+      "errors": [],
+      "log_sha256": "decc8335d90db271fc487d1597becbf719e968add184759bda0e0a9a1bde37b1"
+    },
+    {
+      "case": "source-proven-legacy-repair",
+      "result": "COMMIT",
+      "errors": [],
+      "log_sha256": "d097373b69d7039bfdc22623ce27b1d8802e3b0df62970eb889bb1f98d8d4161"
+    },
+    {
+      "case": "unknown-cost",
+      "result": "EXPECTED_REFUSAL_AND_TRANSACTION_ABORT",
+      "errors": [
+        "ops_quote_replay_full_metadata_required"
+      ],
+      "log_sha256": "683456a13b6cffa04226843ffb4bfc3ea0944a3a44af8a9353299855fb541b3d"
+    },
+    {
+      "case": "unknown-support",
+      "result": "EXPECTED_REFUSAL_AND_TRANSACTION_ABORT",
+      "errors": [
+        "ops_quote_replay_full_metadata_required"
+      ],
+      "log_sha256": "597981a7f21d1842be67288bb2065b0f4bdb52c6c37ee0314bab78e056ca2d9e"
+    },
+    {
+      "case": "unknown-body",
+      "result": "EXPECTED_REFUSAL_AND_TRANSACTION_ABORT",
+      "errors": [
+        "ops_quote_replay_unknown_predecessor"
+      ],
+      "log_sha256": "d7816195977a1887581c4d2920748897dbad8c82c69387fc630b9cc80a108b06"
+    },
+    {
+      "case": "late-failure",
+      "result": "EXPECTED_REFUSAL_AND_TRANSACTION_ABORT",
+      "errors": [
+        "ops_quote_qualification_forced_late_failure"
+      ],
+      "log_sha256": "988bd6fb73de0239c986f670a4d344598f7f01a3093ff19146e22247461c21bc"
+    }
+  ],
+  "whole_schema_before_after_sha256": "ed21441815ec48c9aab61e1b6b57de5de1594fef178f575e86fd9c349bbdbffc",
+  "entire_schema_byte_equal": true,
+  "business_rpc_calls": 0,
+  "native_writes": 0,
+  "limitations": [
+    "This qualifies the exact isolated SQL component, not clean/upgrade whole-history routing",
+    "Source routing/shared builders remain under existing C2 custody; private proposals only",
+    "Canonical source and executed-derivative hashes remain distinct; no historical SQL or ledger rewritten"
+  ]
+}

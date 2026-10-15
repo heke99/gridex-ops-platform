@@ -1,0 +1,113 @@
+{
+  "scope": "Gridex OPS code/docs/database; Gridex Web excluded",
+  "baseline": "f36dbba1",
+  "branch": "codex/ops-api-contract-review-20261012",
+  "authority": "Actual code and native database metadata; tests are supporting verification only",
+  "documentation_version": "2026-10-12.1 (prospective)",
+  "runtime_contract_version": "2026-10-09.1",
+  "onboarding_contract_version": "2026-10-05.2",
+  "live_writes": 17,
+  "native_business_rpcs": 0,
+  "deployments": 0,
+  "root_corrections": [
+    "Independent documentation/wire versions and correct onboarding matrix",
+    "Authenticated server-owned request-local response profiles; malformed maps fail before business execution and auth denials retain precedence",
+    "Public legacy feed diagnostics project documented fields without widening identifier guards",
+    "Actual organization_* error registry and profile availability documentation",
+    "Inbound message source scoped to trusted authorized company before parsing/effects",
+    "Guard-bound default billing/pricing company and exact shared document read scope; paused history remains readable",
+    "Operational lifecycle enforced before inbound/billing/pricing/provider mutations",
+    "Dispute and canonical provider-event writes compare full JSONB receipt plus timestamp/state, preserve event clocks, reread conflicts and report uncertain post-provider completion honestly",
+    "Nonempty event envelope accepts only its existing mapper-generated opaque event_id at the exact published path",
+    "Inbound sender identifiers quoted using shared PostgREST helper, preserving the authorized company and prior comparison columns"
+  ],
+  "native_release_blockers": [
+    "Direct6.4MB API body cap: original request proven unapplied. Owner-only52-source-file byte transport B3 metadata-only replay revision held for final qualification/peer review.",
+    "Protected dispatcher/trigger and three retention audit/harddelete fixes under exact final peer/compile qualification; no actual destructive business calls.",
+    "Four other-owner native migrations freshly observed and being checked for dependency/body overlap.",
+    "Real configured Staff-client/tenant absent from audit; pending userfacts, no fabricated configuration or green E2E readiness."
+  ],
+  "latest_native_receipt": "parser-metadata-integrity-native-apply-receipt.json",
+  "latest_missing_functions_receipt": "required-native-preflight-result.json",
+  "historical_errata": [
+    "Customer02.3 support detail closed allOf contradiction",
+    "Website02.3/04.1 fixed quote market_reference nonnullable schema differs from actual null"
+  ],
+  "review_status": "Two noncoauthor peers reviewed final79333e8a: no remaining confirmed introduced P1/P2 in reviewed changes; native release remains pending",
+  "verification_status": "Local build/type/lint/API artifact and supporting regression evidence complete; full initial run failed only3missing finite mock exports in1file, followed by31passing affected checks after fixture correction. No whole-suite rerun or native readiness claim.",
+  "limits": [
+    "No configured live customer/Staff binding to qualify end-to-end flows",
+    "Boundary coverage is not complete business-callee or provider/native campaign acceptance",
+    "Canonical GEN and shared Ediel claims/memory remain under existing owners",
+    "Semgrep, CodeQL and authenticated ggshield tooling unavailable; no exhaustive SAST/secret-scan clean claim",
+    "Twelve actual OPS forward migrations applied; complete portable dependency closure and preserved-body semantic corrections remain in reconciliation",
+    "Production dependency audit passed with preexisting node-forge advisory exception; upstream latest1.4.0 has no patched version; exception expires2026-11-01"
+  ],
+  "source_head": "79333e8a2ae93ed27de425c81c4668564d57d6f6",
+  "integrated_main": "51f5fa5e80c42350d697bfed42520672749d4467",
+  "native_source_map": "release-proposals/required-native-source-map.json:51 exact missing functions and21 unregistered latest defining files; larger static closure is not a release/failure list",
+  "independent_review_receipt": "independent-review.json",
+  "delivery_native_preflight": "delivery-native-preflight.json: actual2026-10-12 22:56:02 UTC catalog still51missing/52examined, tombstone service-only bodyMD5 unchanged",
+  "delivery_status": "DRAFT_PR794_SOURCE_FIXES_FIRST_NATIVE_FORWARD_APPLIED_RECONCILIATION_CONTINUES",
+  "draft_pr": "https://github.com/heke99/gridex-ops-platform/pull/794",
+  "verification_receipt": "verification.json",
+  "next_action": "Freeze B3 transport after final known strong metadata/other-owner overlap proof, two peers and genuine current/strong-post/source/replay compilation. CLI-create/apply exact52transport migrations, then all qualified bounded semantic forwards; actual ledger/source/OID/ACL proof, final docs and sole-C2 genuine GEN handoff.",
+  "actual_native_corrections": {
+    "migration": "20261012235455",
+    "sha256": "442dea4f8688e01164873831d58ab2df4650fbb6aaf8ab47835a409000e1d37d",
+    "actual_ledger_md5_matches_file": true,
+    "actor_deny_and_active_catalog": "installed; same OID/owner/ACL",
+    "canonical_override_schema": "additive columns and global-deny-only constraints; existing table zero rows; no grants/backfill",
+    "partner_atomic_direction": "installed; same OID/owner/service-only ACL",
+    "grid_owner_normalizer": "native correct body unchanged; new forward source rectifies historic replay escaping",
+    "second_migration": {
+      "version": "20261013074827",
+      "sha256": "d9e9b2b2c2a292b7ed571c82a32d19c0830b21439be34009f5ed99d245d8ce57",
+      "actual_source_ledger_md5_match": true,
+      "effects": "Explicit global-deny command guards and source-safe deterministic grid-owner callable; OIDs/owners/service-only ACL preserved; no backfill invoked"
+    },
+    "third_migration": {
+      "version": "20261013084535",
+      "sha256": "b61bc1aaeec78fdc06579e9ed02878d3f5dde54c3de93c96e37ea272dcc48fce",
+      "actual_source_ledger_md5_match": true,
+      "effects": "Current Staff deny rules and aggregate-only migration visibility; strict provenance registry, unchanged business records"
+    }
+  },
+  "current_source_head": "3c4b617e68d777f8a1f27962de25e12cf03a0eef",
+  "native_forward_migration_writes": 15,
+  "native_metadata_population_writes": 2,
+  "metadata_provenance": {
+    "receipt_count": 25,
+    "exact_input_receipts": 24,
+    "lineage_receipts": 1,
+    "canonical_unmapped_versions": 396,
+    "full_history_or_effect_qualification": false,
+    "canonical_unmapped_snapshot": "385 at2026-10-13 09:09UTC; not current after subsequent native forwards",
+    "latest_read_only_snapshot": "forward-input-receipts-native-apply.json:11:37:49UTC ledger430/unmapped396/readinessfalse; other-owner113026 migration separatelyobserved"
+  },
+  "applied_native_migration_files": [
+    "supabase/migrations/20261012235455_ops_api_atomic_permission_and_direction_guards.sql",
+    "supabase/migrations/20261013074827_ops_api_global_deny_and_grid_owner_guards.sql",
+    "supabase/migrations/20261013084535_ops_api_staff_deny_and_migration_provenance.sql",
+    "supabase/migrations/20261013093430_ops_api_signing_expiry_and_immutable_identity.sql",
+    "supabase/migrations/20261013093621_ops_api_signing_stockholm_withdrawal_deadline.sql",
+    "supabase/migrations/20261013093906_ops_api_website_quote_nonexpiring_policy.sql",
+    "supabase/migrations/20261013093922_ops_api_atomic_interval_pricing_snapshot.sql",
+    "supabase/migrations/20261013095628_ops_api_current_context_permission_denies.sql",
+    "supabase/migrations/20261013104143_ops_api_seven_permission_catalog_keys.sql",
+    "supabase/migrations/20261013105521_ops_api_current_auth_token_expiry.sql",
+    "supabase/migrations/20261013112412_ops_api_consumption_vat25_authoring.sql",
+    "supabase/migrations/20261013112427_ops_api_consumption_vat25_publication.sql",
+    "supabase/migrations/20261013132330_ops_api_z02_parser_regex_literals.sql",
+    "supabase/migrations/20261013132358_ops_api_postal_regex_literals.sql",
+    "supabase/migrations/20261013140802_ops_api_parser_metadata_integrity.sql"
+  ],
+  "source_permission_catalog_review": "admin-api-permission-catalog-review.json:82calls/imports resolved;12typo calls corrected,7real source keys installed by104143 without role assignments",
+  "latest_full_inventory": "389RPC sourcecalls/397names;204directnames absent at fresh catalog snapshot, with syntactic/import reachability tiers. Broader all-RPC/trigger closure replaces initial51-only inventory; no204failed-live-request claim.",
+  "vat25_status": "Two actual forwards applied and five exact approved future VAT bodies/OIDs/ACL/config verified; consumption25/.25 required, explicit producer exemptions and frozen history/lineage preserved; no business RPC invoked",
+  "preserved_body_effect_review": "66 overloads reviewed in two source/actual/trigger effect partitions; confirmed gaps require bounded forward composition, not blanket canonical body replacement",
+  "current_build_receipt": "final-source-build-doc-corrected-receipt.json",
+  "direct_large_delivery_status": "Technical request body limit;native-direct-size-rejection-receipt.json proves attemptedmigration absent. SameB2approvedpayload staged delivery in progress.",
+  "regex_literals_status": "Two actual forwards installed13:23UTC; source/ledger SHA256 exact; three nativebodyMD5/currentfullpg_procminusprosrc/OIDs/ACL preserved; independent2peers/genuinefirst+replay+unknownrollback, no business invocation.",
+  "documentation_final_review": "final-documentation-consistency-review.json; two independent peers approved descriptions-only12file packet, all46olderfrozen unchanged; exact source317.58s productionbuild PASS"
+}

@@ -1,0 +1,173 @@
+{
+  "proposal": "release-proposals/vat25-consumption-authoring-forward.sql",
+  "proposal_sha256": "0d1eff69cd2cd0a2f347c08417e9ff1b4094a623b1eedc22d02e079cff3ab656",
+  "database": "ops_api_vat25_compile_20261013",
+  "postgres": "17.6",
+  "container_network": "none",
+  "first_commit_exit_code": 0,
+  "replay_commit_exit_code": 0,
+  "exact_approved_postbody_noop": true,
+  "replay_entire_function_metadata_unchanged": true,
+  "canonical_precursor_bodies_exact_native_equal": true,
+  "unknown_body_policy": "failclosed",
+  "actual_functions": 28,
+  "actual_table_shapes": 62,
+  "actual_views": 0,
+  "check_function_bodies": true,
+  "stubbed_bodies": false,
+  "business_rows_imported": false,
+  "business_functions_invoked": false,
+  "before": [
+    {
+      "acl": [
+        "postgres=X/postgres",
+        "service_role=X/postgres"
+      ],
+      "oid": "83957",
+      "cost": 100,
+      "rows": 0,
+      "owner": "postgres",
+      "config": [
+        "search_path=public, extensions, pg_temp"
+      ],
+      "return": "jsonb",
+      "strict": false,
+      "body_md5": "ad27cf44efa875c6bfb51fb71b0f4518",
+      "language": "plpgsql",
+      "parallel": "u",
+      "arguments": "p_company_id uuid, p_plan_name text, p_contract_type text, p_pricing_model text, p_customer_type text, p_snapshot jsonb, p_valid_from date DEFAULT NULL::date, p_valid_to date DEFAULT NULL::date, p_publish boolean DEFAULT false, p_actor_user_id uuid DEFAULT NULL::uuid",
+      "leakproof": false,
+      "signature": "gridex_create_or_version_contract_pricing(uuid,text,text,text,text,jsonb,date,date,boolean,uuid)",
+      "volatility": "v",
+      "security_definer": true,
+      "identity_arguments": "p_company_id uuid, p_plan_name text, p_contract_type text, p_pricing_model text, p_customer_type text, p_snapshot jsonb, p_valid_from date, p_valid_to date, p_publish boolean, p_actor_user_id uuid"
+    },
+    {
+      "acl": [
+        "postgres=X/postgres"
+      ],
+      "oid": "83974",
+      "cost": 100,
+      "rows": 0,
+      "owner": "postgres",
+      "config": [
+        "search_path=public, pg_temp"
+      ],
+      "return": "jsonb",
+      "strict": false,
+      "body_md5": "24300f0f38cd71f582713018617a4647",
+      "language": "plpgsql",
+      "parallel": "u",
+      "arguments": "p_company_id uuid, p_offer_id uuid, p_payload jsonb, p_pricing_snapshot jsonb, p_actor_user_id uuid",
+      "leakproof": false,
+      "signature": "gridex_upsert_internal_contract_offer(uuid,uuid,jsonb,jsonb,uuid)",
+      "volatility": "v",
+      "security_definer": true,
+      "identity_arguments": "p_company_id uuid, p_offer_id uuid, p_payload jsonb, p_pricing_snapshot jsonb, p_actor_user_id uuid"
+    },
+    {
+      "acl": [
+        "postgres=X/postgres",
+        "service_role=X/postgres"
+      ],
+      "oid": "86468",
+      "cost": 100,
+      "rows": 0,
+      "owner": "postgres",
+      "config": [
+        "search_path=public, pg_temp"
+      ],
+      "return": "jsonb",
+      "strict": false,
+      "body_md5": "2eabc8d12127ed65a8325aa8f82390a2",
+      "language": "plpgsql",
+      "parallel": "u",
+      "arguments": "p_company_id uuid, p_offer_id uuid, p_payload jsonb, p_pricing_snapshot jsonb, p_actor_user_id uuid",
+      "leakproof": false,
+      "signature": "gridex_upsert_internal_contract_offer_v2(uuid,uuid,jsonb,jsonb,uuid)",
+      "volatility": "v",
+      "security_definer": true,
+      "identity_arguments": "p_company_id uuid, p_offer_id uuid, p_payload jsonb, p_pricing_snapshot jsonb, p_actor_user_id uuid"
+    }
+  ],
+  "after": [
+    {
+      "acl": [
+        "postgres=X/postgres",
+        "service_role=X/postgres"
+      ],
+      "oid": "83957",
+      "cost": 100,
+      "rows": 0,
+      "owner": "postgres",
+      "config": [
+        "search_path=public, extensions, pg_temp"
+      ],
+      "return": "jsonb",
+      "strict": false,
+      "body_md5": "ad3959344ade2b6fba6c3ff80a734e35",
+      "language": "plpgsql",
+      "parallel": "u",
+      "arguments": "p_company_id uuid, p_plan_name text, p_contract_type text, p_pricing_model text, p_customer_type text, p_snapshot jsonb, p_valid_from date DEFAULT NULL::date, p_valid_to date DEFAULT NULL::date, p_publish boolean DEFAULT false, p_actor_user_id uuid DEFAULT NULL::uuid",
+      "leakproof": false,
+      "signature": "gridex_create_or_version_contract_pricing(uuid,text,text,text,text,jsonb,date,date,boolean,uuid)",
+      "volatility": "v",
+      "security_definer": true,
+      "identity_arguments": "p_company_id uuid, p_plan_name text, p_contract_type text, p_pricing_model text, p_customer_type text, p_snapshot jsonb, p_valid_from date, p_valid_to date, p_publish boolean, p_actor_user_id uuid"
+    },
+    {
+      "acl": [
+        "postgres=X/postgres"
+      ],
+      "oid": "83974",
+      "cost": 100,
+      "rows": 0,
+      "owner": "postgres",
+      "config": [
+        "search_path=public, pg_temp"
+      ],
+      "return": "jsonb",
+      "strict": false,
+      "body_md5": "c6365e364572499b641cd3d9bac3a1fa",
+      "language": "plpgsql",
+      "parallel": "u",
+      "arguments": "p_company_id uuid, p_offer_id uuid, p_payload jsonb, p_pricing_snapshot jsonb, p_actor_user_id uuid",
+      "leakproof": false,
+      "signature": "gridex_upsert_internal_contract_offer(uuid,uuid,jsonb,jsonb,uuid)",
+      "volatility": "v",
+      "security_definer": true,
+      "identity_arguments": "p_company_id uuid, p_offer_id uuid, p_payload jsonb, p_pricing_snapshot jsonb, p_actor_user_id uuid"
+    },
+    {
+      "acl": [
+        "postgres=X/postgres",
+        "service_role=X/postgres"
+      ],
+      "oid": "86468",
+      "cost": 100,
+      "rows": 0,
+      "owner": "postgres",
+      "config": [
+        "search_path=public, pg_temp"
+      ],
+      "return": "jsonb",
+      "strict": false,
+      "body_md5": "d68d5db35eb6bc25b607f7872c2ad3d7",
+      "language": "plpgsql",
+      "parallel": "u",
+      "arguments": "p_company_id uuid, p_offer_id uuid, p_payload jsonb, p_pricing_snapshot jsonb, p_actor_user_id uuid",
+      "leakproof": false,
+      "signature": "gridex_upsert_internal_contract_offer_v2(uuid,uuid,jsonb,jsonb,uuid)",
+      "volatility": "v",
+      "security_definer": true,
+      "identity_arguments": "p_company_id uuid, p_offer_id uuid, p_payload jsonb, p_pricing_snapshot jsonb, p_actor_user_id uuid"
+    }
+  ],
+  "qualification_limit": "Actual shape strict CREATE/COMMIT/replay and byte/metadata checks. PL/pgSQL embedded SQL deferred until business invocation; no production business invocation.",
+  "unknown_body_probe": {
+    "exit_code": 3,
+    "rejected_before_patch": "vat25_authoring_predecessor_0_changed",
+    "transaction_rollback_entire_function_metadata_unchanged": true,
+    "business_invocations": false
+  }
+}

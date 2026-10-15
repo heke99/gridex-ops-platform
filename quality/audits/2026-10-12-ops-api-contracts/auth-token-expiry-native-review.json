@@ -1,0 +1,510 @@
+{
+  "scope": "Gridex OPS only. Existing native customer identity decision, tenant invitation acceptance, current external Staff onboarding, legacy Staff acceptance and API credential authentication expiry boundaries. Gridex Web excluded.",
+  "authority": "Actual current project source and READ ONLY OPS native definitions/OID/ACL/config/catalog shapes, not tests. No business RPC/invitation acceptance/customer mutation/credential-row read/provider/storage/email/native writes by this subagent.",
+  "project_id": "piidsfebjqjmnepdpnas",
+  "link_id": "link_6aa08570afb48191a4eb728ab8e93c81",
+  "updated_utc": "2026-10-13T10:45:40.129049+00:00",
+  "proposal": {
+    "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/auth-token-expiry-forward.sql",
+    "sha256": "9e3dc9544031b8d42acdaa850c9ba1963d8b6b6ff0c7d35c76f1be49368ba7bf",
+    "status": "Both independent noncoauthor reviews and genuine isolated network-none PostgreSQL17.6 compile/replay completed for exact9e3dc954. Ready for root controlled native installation; no native apply by this subagent.",
+    "functions": [
+      {
+        "signature": "public.gridex_accept_staff_invitation_v1(jsonb)",
+        "before_md5": "6999018e1805f9e4f46cad882e9a92bb",
+        "after_md5": "55ec7a03bf1dcc1f6f469d78527b0c8e",
+        "expected_attributes": {
+          "owner": "postgres",
+          "acl": "{postgres=X/postgres,service_role=X/postgres}",
+          "proconfig": [
+            "search_path=pg_catalog"
+          ],
+          "provolatile": "v",
+          "prosecdef": true,
+          "proisstrict": false,
+          "proleakproof": false,
+          "proparallel": "u",
+          "procost": 100,
+          "prorows": 0,
+          "proargnames": [
+            "p_command"
+          ],
+          "proargmodes": null,
+          "return_type": "jsonb",
+          "identity_arguments": "p_command jsonb",
+          "arguments": "p_command jsonb",
+          "language": "plpgsql"
+        }
+      },
+      {
+        "signature": "public.gridex_decide_customer_identity_change_v1(uuid,uuid,text,text,uuid,jsonb)",
+        "before_md5": "9a23932976decde1027eb0876ce2731c",
+        "after_md5": "63f7ccdf09f86e5fe8f917a6560fb00e",
+        "expected_attributes": {
+          "owner": "postgres",
+          "acl": "{postgres=X/postgres,service_role=X/postgres}",
+          "proconfig": [
+            "search_path=pg_catalog"
+          ],
+          "provolatile": "v",
+          "prosecdef": true,
+          "proisstrict": false,
+          "proleakproof": false,
+          "proparallel": "u",
+          "procost": 100,
+          "prorows": 0,
+          "proargnames": [
+            "p_company_id",
+            "p_request_id",
+            "p_outcome",
+            "p_decided_by",
+            "p_actor_user_id",
+            "p_acceptance"
+          ],
+          "proargmodes": null,
+          "return_type": "jsonb",
+          "identity_arguments": "p_company_id uuid, p_request_id uuid, p_outcome text, p_decided_by text, p_actor_user_id uuid, p_acceptance jsonb",
+          "arguments": "p_company_id uuid, p_request_id uuid, p_outcome text, p_decided_by text, p_actor_user_id uuid DEFAULT NULL::uuid, p_acceptance jsonb DEFAULT NULL::jsonb",
+          "language": "plpgsql"
+        }
+      },
+      {
+        "signature": "public.canonical_accept_tenant_invitation(jsonb)",
+        "before_md5": "5e7710d3653185c9c6307cc06d197a0a",
+        "after_md5": "84da220e65ca1a019bdf55b33fa1664c",
+        "expected_attributes": {
+          "owner": "postgres",
+          "acl": "{postgres=X/postgres,service_role=X/postgres}",
+          "proconfig": [
+            "search_path=public, auth, pg_temp"
+          ],
+          "provolatile": "v",
+          "prosecdef": true,
+          "proisstrict": false,
+          "proleakproof": false,
+          "proparallel": "u",
+          "procost": 100,
+          "prorows": 0,
+          "proargnames": [
+            "p_command"
+          ],
+          "proargmodes": null,
+          "return_type": "jsonb",
+          "identity_arguments": "p_command jsonb",
+          "arguments": "p_command jsonb",
+          "language": "plpgsql"
+        }
+      },
+      {
+        "signature": "private.authenticate_integration_request_v1_secret_internal(text,text,text,text[],text[],text,text,integer,integer)",
+        "before_md5": "2b0a050792d5b2b8cdb3eae99a2fe45e",
+        "after_md5": "67d81f7ae7ccd87a030dc3c25a311b69",
+        "expected_attributes": {
+          "owner": "postgres",
+          "acl": "{postgres=X/postgres}",
+          "proconfig": [
+            "search_path=public, pg_temp"
+          ],
+          "provolatile": "v",
+          "prosecdef": true,
+          "proisstrict": false,
+          "proleakproof": false,
+          "proparallel": "u",
+          "procost": 100,
+          "prorows": 1000,
+          "proargnames": [
+            "p_key_prefix",
+            "p_secret_hash",
+            "p_route",
+            "p_required_all",
+            "p_required_any",
+            "p_client_ip",
+            "p_origin",
+            "p_rate_limit_cost",
+            "p_window_seconds",
+            "auth_outcome",
+            "error_code",
+            "tenant_status",
+            "client_id",
+            "company_id",
+            "client_name",
+            "client_status",
+            "key_prefix",
+            "secret_hash",
+            "scopes",
+            "allowed_ips",
+            "allowed_origins",
+            "metadata",
+            "rate_limit_per_minute",
+            "expires_at",
+            "request_count",
+            "route_limit",
+            "reset_at"
+          ],
+          "proargmodes": "{i,i,i,i,i,i,i,i,i,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t}",
+          "return_type": "record",
+          "identity_arguments": "p_key_prefix text, p_secret_hash text, p_route text, p_required_all text[], p_required_any text[], p_client_ip text, p_origin text, p_rate_limit_cost integer, p_window_seconds integer",
+          "arguments": "p_key_prefix text, p_secret_hash text, p_route text, p_required_all text[] DEFAULT ARRAY[]::text[], p_required_any text[] DEFAULT ARRAY[]::text[], p_client_ip text DEFAULT NULL::text, p_origin text DEFAULT NULL::text, p_rate_limit_cost integer DEFAULT 1, p_window_seconds integer DEFAULT 60",
+          "language": "plpgsql"
+        }
+      },
+      {
+        "signature": "public.gridex_accept_external_staff_invitation_v1(jsonb)",
+        "before_md5": "0942960e95856e8071b0bb0ef799df61",
+        "after_md5": "2a7f912ecc0d982365a5abd423afab0b",
+        "expected_attributes": {
+          "owner": "postgres",
+          "acl": "{postgres=X/postgres,service_role=X/postgres}",
+          "proconfig": [
+            "search_path=pg_catalog"
+          ],
+          "provolatile": "v",
+          "prosecdef": true,
+          "proisstrict": false,
+          "proleakproof": false,
+          "proparallel": "u",
+          "procost": 100,
+          "prorows": 0,
+          "proargnames": [
+            "p_command"
+          ],
+          "proargmodes": null,
+          "return_type": "jsonb",
+          "identity_arguments": "p_command jsonb",
+          "arguments": "p_command jsonb",
+          "language": "plpgsql"
+        }
+      }
+    ]
+  },
+  "findings": [
+    {
+      "id": "AUTH-TTL-01",
+      "severity": "P2",
+      "actual_function": "public.gridex_decide_customer_identity_change_v1(uuid,uuid,text,text,uuid,jsonb)",
+      "source_call": "lib/customer-service/identityChange.ts:104",
+      "proof": "Actual request FOR UPDATE then approval expires_at<=now() transaction-start test; later dynamic own-company customer SELECT FOR UPDATE can wait, then changes customer identity without another expiry test. Existing Staff write actor assertion precedes that same customer wait.",
+      "fix": "Actual wall-clock decision instant after first relevant locks; repeat EXACT existing expired-request UPDATE/masked event/RETURN after customer lock before identity mutation. For exact original staff_api/staff actor scope repeat existing held-lock write-actor assertion before mutation; no new actor/provider policy. Use actual decision instant for decided_at and customer acceptance_evidence.accepted_at.",
+      "preserved": "Company/request/customer exact filters, stale old-value check, required customer approval, three exact takeover confirmations/frozen snapshot/document hashes, masked identity audit, expired outcome commits rather than exception rollback."
+    },
+    {
+      "id": "AUTH-TTL-02",
+      "severity": "P2",
+      "actual_function": "public.canonical_accept_tenant_invitation(jsonb)",
+      "source_call": "lib/auth/companyUserAccess.ts:214; current external Staff core delegates to same canonical function.",
+      "proof": "Invitation/advisory locks then expires_at<=now(); companies FOR UPDATE and later membership UPSERT/user-role writes/FOR UPDATE may wait before success.",
+      "fix": "Wall-clock initial check, after explicit company lock before first membership write, after implicit mutation waits before changed-result creation and after command-result INSERT before success return. Expiry raises same tenant_invitation_expired23514 and transaction atomically rolls back new membership/role/invitation/audit/outbox/result writes. One post-explicit-lock current accepted_at used consistently in newly accepted invitation and membership; existing accepted_at retained on existing membership.",
+      "preserved": "Existing idempotent request-hash replay and already_accepted branches return before new first-acceptance checks; no new lock order or blanket audit now replacement."
+    },
+    {
+      "id": "AUTH-TTL-03",
+      "severity": "P2",
+      "actual_function": "public.gridex_accept_external_staff_invitation_v1(jsonb)",
+      "source_call": "lib/staff-api/onboarding.ts:132; app/api/v1/staff-onboarding/invitations/accept/route.ts:8",
+      "proof": "CURRENT HTTP path calls external core. Lookup delegates to registration: company NO KEY UPDATE/client SHARE, checks wall clock, then provider SHARE; invitation UPDATE/check then intent SHARE; lookup binding FOR UPDATE; external Auth/profile SHARE then binding activation and canonical acceptance. Held locks block revocation/status mutation but natural expiry can pass while later locks wait.",
+      "fix": "Repeat SAME original gridex_staff_identity_registration_v1(p_command,true) and gridex_staff_identity_invitation_v1(p_command,false) after all external holds before binding activation and after captured nested canonical result before returning. All same helper locks already held, no new lock order; post-check errors roll back binding/new canonical acceptance.",
+      "preserved": "Exact existing independent Staff provider/client/delivery/verified-email/actor-binding authority. Helpers accept accepted invitation; expiry remains pending-only; binding changes from pending to active do not contradict repeated helpers because neither reads binding. Actual accepted/idempotent success exemptions remain."
+    },
+    {
+      "id": "AUTH-TTL-04",
+      "severity": "P2",
+      "actual_function": "public.gridex_accept_staff_invitation_v1(jsonb)",
+      "source_call": "Legacy native acceptance entrypoint; NOT current onboarding.ts132 RPC. Current HTTP-primary association is explicitly refuted.",
+      "proof": "Existing client SHARE expires_at<=now(), later provider/Auth/invitation/command-share locks; invitation pendingexpires_at<=now before later command-share/delegated canonical waits.",
+      "fix": "Original expiry comparisons use wall clock; repeat held client and pending-invitation expiry before delegated canonical call and after captured result before return.",
+      "preserved": "Existing verified client/provider/Auth/email/corporate membership policies and accepted invitation expiry exemption. Legacy exposed definition corrected without claiming active HTTP reachability."
+    },
+    {
+      "id": "AUTH-TTL-05",
+      "severity": "P2",
+      "actual_function": "private.authenticate_integration_request_v1_secret_internal(text,text,text,text[],text[],text,text,integer,integer)",
+      "source_call": "lib/integrations/apiAuth.ts:339-379 and tenantWebsiteProvisioning.ts:293 via public secret-redacting facade.",
+      "proof": "Actual initial client expires_at<=clock_timestamp(), later integration_api_rate_limit_check UPSERT bucket and cleanup DELETE may block, then allowed result trusts old client/tenant/scopes/IP/origin. Node accepts SQL allowed without expiry readback.",
+      "fix": "Only if v_rate.allowed, after entire blocking rate gate reselect SAME client key_prefix/secret_hash/deleted-null predicate and replay exact original inactive/revoked/expiry/current tenant/scopes/IP/origin validators. If token rotated/deleted result is same invalid_api_token shape; current disabled/revoked/expired/tenant status is denied.",
+      "preserved": "Rate_limited result precedence untouched, no extra rate operation, private postgres-only ACL retained, public facade/secret redaction unchanged, no direct grants/credential rows read."
+    }
+  ],
+  "formal_direct_prerequisites": {
+    "relations": [
+      {
+        "relation": "auth.users",
+        "oid": 16499,
+        "owner": "supabase_auth_admin",
+        "acl": "{supabase_auth_admin=arwdDxtm/supabase_auth_admin,dashboard_user=arwdDxtm/supabase_auth_admin,postgres=ar*wdDxtm/supabase_auth_admin}"
+      },
+      {
+        "relation": "public.integration_api_clients",
+        "oid": 47634,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+      },
+      {
+        "relation": "public.audit_logs",
+        "oid": 17607,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+      },
+      {
+        "relation": "public.user_profiles",
+        "oid": 41555,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+      },
+      {
+        "relation": "public.roles",
+        "oid": 17534,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+      },
+      {
+        "relation": "public.canonical_command_results",
+        "oid": 296052,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+      },
+      {
+        "relation": "public.integration_api_rate_limit_buckets",
+        "oid": 137802,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+      },
+      {
+        "relation": "public.company_provisioning_jobs",
+        "oid": 301342,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+      },
+      {
+        "relation": "public.canonical_audit_events",
+        "oid": 296075,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,authenticated=rm/postgres,service_role=arwdDxtm/postgres}"
+      },
+      {
+        "relation": "public.canonical_domain_events",
+        "oid": 296099,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,authenticated=rm/postgres,service_role=arwdDxtm/postgres}"
+      },
+      {
+        "relation": "public.canonical_event_outbox",
+        "oid": 296121,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+      },
+      {
+        "relation": "public.canonical_tenant_access_role_mapping",
+        "oid": 305138,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arw/postgres}"
+      },
+      {
+        "relation": "public.user_roles",
+        "oid": 17575,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,authenticated=rDxtm/postgres,service_role=arwdDxtm/postgres}"
+      },
+      {
+        "relation": "public.company_invitations",
+        "oid": 40675,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,authenticated=rDxtm/postgres,service_role=arwdDxtm/postgres}"
+      },
+      {
+        "relation": "public.company_memberships",
+        "oid": 40642,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,authenticated=rDxtm/postgres,service_role=arwdDxtm/postgres}"
+      },
+      {
+        "relation": "public.customers",
+        "oid": 17721,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres,gridex_ediel_retention_owner=rw/postgres}"
+      },
+      {
+        "relation": "public.companies",
+        "oid": 40619,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,authenticated=rDxtm/postgres,service_role=arwdDxtm/postgres}"
+      },
+      {
+        "relation": "public.tenant_customer_identity_providers",
+        "oid": 2469654,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+      },
+      {
+        "relation": "public.customer_identity_change_events",
+        "oid": 2482101,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+      },
+      {
+        "relation": "public.customer_identity_change_requests",
+        "oid": 2482064,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}"
+      },
+      {
+        "relation": "public.tenant_staff_actor_anchors",
+        "oid": 2995648,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres}"
+      },
+      {
+        "relation": "public.tenant_staff_identity_deliveries",
+        "oid": 2995673,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres}"
+      },
+      {
+        "relation": "public.tenant_staff_identity_bindings",
+        "oid": 2995722,
+        "owner": "postgres",
+        "acl": "{postgres=arwdDxtm/postgres}"
+      }
+    ],
+    "functions": [
+      {
+        "name": "public.gridex_accept_staff_invitation_v1",
+        "signature": "gridex_accept_staff_invitation_v1(jsonb)",
+        "oid": 2995637,
+        "body_md5": "6999018e1805f9e4f46cad882e9a92bb",
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "volatility": "v"
+      },
+      {
+        "name": "public.gridex_decide_customer_identity_change_v1",
+        "signature": "gridex_decide_customer_identity_change_v1(uuid,uuid,text,text,uuid,jsonb)",
+        "oid": 2482135,
+        "body_md5": "9a23932976decde1027eb0876ce2731c",
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "volatility": "v"
+      },
+      {
+        "name": "public.gridex_mask_identity_number",
+        "signature": "gridex_mask_identity_number(text)",
+        "oid": 2482134,
+        "body_md5": "3ddce21002fdf54fc85fb3ccf5c39a0d",
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "volatility": "i"
+      },
+      {
+        "name": "public.gridex_staff_anchor_invitation_email_v1",
+        "signature": "gridex_staff_anchor_invitation_email_v1(uuid,uuid,uuid)",
+        "oid": 2995800,
+        "body_md5": "e772647704b4061516b9136e04b941b6",
+        "acl": "{postgres=X/postgres}",
+        "volatility": "s"
+      },
+      {
+        "name": "public.integration_api_rate_limit_check",
+        "signature": "integration_api_rate_limit_check(uuid,text,integer,integer)",
+        "oid": 137824,
+        "body_md5": "2d0d5e0b6f44fc96041e8092cabfa54f",
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "volatility": "v"
+      },
+      {
+        "name": "public.canonical_json_sha256",
+        "signature": "canonical_json_sha256(jsonb)",
+        "oid": 301467,
+        "body_md5": "b43c0ca403b2d7f79e45ad4b5affea66",
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "volatility": "i"
+      },
+      {
+        "name": "public.integration_api_scope_present_v1",
+        "signature": "integration_api_scope_present_v1(text[],text)",
+        "oid": 341196,
+        "body_md5": "0ffe3559ebaf2c036a4c3f80a4b5edb2",
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "volatility": "i"
+      },
+      {
+        "name": "public.canonical_accept_tenant_invitation",
+        "signature": "canonical_accept_tenant_invitation(jsonb)",
+        "oid": 305152,
+        "body_md5": "5e7710d3653185c9c6307cc06d197a0a",
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "volatility": "v"
+      },
+      {
+        "name": "private.authenticate_integration_request_v1_secret_internal",
+        "signature": "private.authenticate_integration_request_v1_secret_internal(text,text,text,text[],text[],text,text,integer,integer)",
+        "oid": 341209,
+        "body_md5": "2b0a050792d5b2b8cdb3eae99a2fe45e",
+        "acl": "{postgres=X/postgres}",
+        "volatility": "v"
+      },
+      {
+        "name": "public.gridex_staff_assert_write_actor_v1",
+        "signature": "gridex_staff_assert_write_actor_v1(uuid,uuid,uuid,text)",
+        "oid": 2641173,
+        "body_md5": "34ad7ffee9f9fb9f02f08eaa2c4549b7",
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "volatility": "v"
+      },
+      {
+        "name": "public.gridex_accept_external_staff_invitation_v1",
+        "signature": "gridex_accept_external_staff_invitation_v1(jsonb)",
+        "oid": 2995801,
+        "body_md5": "0942960e95856e8071b0bb0ef799df61",
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "volatility": "v"
+      },
+      {
+        "name": "public.gridex_lookup_pending_staff_identity_binding_v1",
+        "signature": "gridex_lookup_pending_staff_identity_binding_v1(jsonb)",
+        "oid": 2995799,
+        "body_md5": "2f47108b9e16d908124b993b9293a2cd",
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "volatility": "v"
+      },
+      {
+        "name": "public.gridex_staff_identity_invitation_v1",
+        "signature": "gridex_staff_identity_invitation_v1(jsonb,boolean)",
+        "oid": 2995796,
+        "body_md5": "470ed3a2f22e76f74fefffb2a16de6ae",
+        "acl": "{postgres=X/postgres}",
+        "volatility": "v"
+      },
+      {
+        "name": "public.gridex_staff_identity_registration_v1",
+        "signature": "gridex_staff_identity_registration_v1(jsonb,boolean)",
+        "oid": 2995794,
+        "body_md5": "3c26785e72bf08d16d7b0bac8f19374a",
+        "acl": "{postgres=X/postgres}",
+        "volatility": "v"
+      }
+    ],
+    "status": "All23 selected actual relations and14 selected functions present. Formal direct helper/rowtype metadata supplied to isolated compiler. Deep existing Staff helper transitive closure must use actual native definitions, not stubs. No missing prerequisite inferred merely from source."
+  },
+  "verification": {
+    "parser": "Genuine pglast7.7 parses exact outer SQL/DO and all five nested CREATE bodies.",
+    "preflight_representation_correction": "Independent review identified internal char[] proargmodes native connector TEXT versus jsonb SQL ARRAY; actual projection now ::text matches exact expected connector metadata. Full actual pg_proc minus prosrc postcheck still preserves ALL attributes.",
+    "preservation": "Known exact before or reviewed after body only; unknown drift fails. Every OID/owner/ACL/default/argument/language/config/security/volatility/strict/leakproof/parallel/cost/rows field preserved via full pg_proc comparison excluding only prosrc. All five actual functions already VOLATILE.",
+    "independent_review": "Both native_forward_independent_review and final_api_source_review independently approved exact9e3dc954; fresh all5 before hashes/projected attributes match, zero proargmodes mismatches, current Staff helper/replay/lock scope qualified. Neither coauthored source or applied native writes.",
+    "isolated_pg": {
+      "status": "Exact9e3 forward COMMIT and idempotent second apply COMMIT in dedicated ops_api_auth_expiry_compile_20261013, network-none PostgreSQL17.6. Actual88 empty tables +20 real helper/core definitions, validators enabled. All5 exact expected after-MD5/fullpg_proc identity excluding onlyprosrc preserved, includingOID/owner/ACL/config.",
+      "receipt": "/tmp/gridex-api-review/auth-expiry-isolated-compile-review.json",
+      "receipt_sha256": "368bc4f7ffced724b1608abaa25bd1e45fecec1088b683e4c396e9a9ea317104",
+      "setup_correction": "First isolated supplement rolled back on missing actual standalone company_invitations(id,company_id) unique index. Compiler restored exact real native index metadata and reran; no forward edits, stubs or softened validators.",
+      "limits": "PLpgSQL internal SQL planning is deferred until actual invocation; no business call, invitation/customer/signing mutation or live credential request. Compilation/metadata supports source/native proof, not blanket runtime-green."
+    }
+  },
+  "evidence_files": [
+    "/tmp/gridex-api-review/auth-expiry-fresh-native-metadata.json",
+    "/tmp/gridex-api-review/auth-expiry-current-staff-native-metadata.json",
+    "/tmp/gridex-api-review/auth-expiry-native-relation-shapes.json",
+    "/tmp/gridex-api-review/auth-token-expiry-config.json",
+    "/tmp/gridex-api-review/auth-token-expiry-patched-bodies.sql",
+    "/tmp/gridex-api-review/auth-expiry-isolated-compile-review.json"
+  ],
+  "limits": [
+    "No runtime business call; isolated compilation does not establish every runtime branch/lock schedule. Actual source/native definitions are authority.",
+    "Expiry revalidation establishes validity at explicit mutation/success boundary; it does not promise credentials remain valid forever after the completed request.",
+    "No generic Auth ban timestamps/transaction audit timestamps rewritten; only proven acceptance/approval expiry boundaries and their accepted/decided instant changed."
+  ]
+}

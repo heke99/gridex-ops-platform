@@ -1,0 +1,1006 @@
+{
+  "scope": "Gridex OPS only. Supplemental assertion-only final qualification for thirteen part1 post functions plus public/private Z02 composition.",
+  "status": "Exact5aa genuine current and canonical fifteen-function first/replay PASS, both independent NONcoauthor peers approved. Assertion-only, no function/body/grant/data mutation. Root alone owns actual installation after semantic forwards.",
+  "forward": {
+    "path": "release-proposals/semantic-forward-metadata-integrity.sql",
+    "sha256": "5aa1fd4fc45a85819b683dff4756d97ad3c3387e9e2d9bd1a9424b63ebb9d4c9"
+  },
+  "ordering": "After sealed part1 d821 and extra Z02 1e6 forwards. Previous immutable business SQL/migration bytes are unchanged. B3 future replay must preserve all qualified semantic post function contracts.",
+  "finding": "Earlier sealed part1/extra-Z02 no-op branches accept known correct bodies before validating full public function attributes. No actual metadata drift observed; this supplemental forward rejects unknown ACL/owner/security/config/strict/default/ABI even for known correct post bodies.",
+  "closed_contracts": [
+    {
+      "signature": "gridex_outbound_dispatch.mutate_v1(jsonb)",
+      "contracts": [
+        {
+          "body_md5": "56e049dc8dcb43ef279e2dbf4b8f8736",
+          "expected": {
+            "acl": "{postgres=X/postgres,service_role=X/postgres}",
+            "owner": "postgres",
+            "probin": null,
+            "procost": 100,
+            "prokind": "f",
+            "prorows": 0,
+            "language": "plpgsql",
+            "pronargs": 1,
+            "arguments": "p_input jsonb",
+            "proconfig": [
+              "search_path=pg_catalog",
+              "TimeZone=UTC"
+            ],
+            "proretset": false,
+            "prosecdef": true,
+            "prosqlbody": null,
+            "prosupport": "0",
+            "proargmodes": null,
+            "proargnames": [
+              "p_input"
+            ],
+            "proisstrict": false,
+            "proparallel": "u",
+            "provariadic": "0",
+            "provolatile": "v",
+            "return_type": "jsonb",
+            "proleakproof": false,
+            "proallargtypes": null,
+            "proargdefaults": null,
+            "pronargdefaults": 0,
+            "identity_arguments": "p_input jsonb"
+          }
+        },
+        {
+          "body_md5": "56e049dc8dcb43ef279e2dbf4b8f8736",
+          "expected": {
+            "acl": "{postgres=X/postgres,service_role=X/postgres}",
+            "owner": "postgres",
+            "probin": null,
+            "procost": 100,
+            "prokind": "f",
+            "prorows": 0,
+            "language": "plpgsql",
+            "pronargs": 1,
+            "arguments": "p_input jsonb",
+            "proconfig": [
+              "search_path=pg_catalog"
+            ],
+            "proretset": false,
+            "prosecdef": true,
+            "prosqlbody": null,
+            "prosupport": "0",
+            "proargmodes": null,
+            "proargnames": [
+              "p_input"
+            ],
+            "proisstrict": false,
+            "proparallel": "u",
+            "provariadic": "0",
+            "provolatile": "v",
+            "return_type": "jsonb",
+            "proleakproof": false,
+            "proallargtypes": null,
+            "proargdefaults": null,
+            "pronargdefaults": 0,
+            "identity_arguments": "p_input jsonb"
+          }
+        }
+      ]
+    },
+    {
+      "signature": "gridex_received_sources.append_object_assessment(uuid,text,uuid,text,uuid,text)",
+      "contracts": [
+        {
+          "body_md5": "8a9eeea4f039a6f05e6834a55401f518",
+          "expected": {
+            "acl": "{postgres=X/postgres,service_role=X/postgres}",
+            "owner": "postgres",
+            "probin": null,
+            "procost": 100,
+            "prokind": "f",
+            "prorows": 0,
+            "language": "plpgsql",
+            "pronargs": 6,
+            "arguments": "p_company_id uuid, p_environment text, p_source_message_id uuid, p_source_payload_hash text, p_canonical_assessment_id uuid, p_facts_text text",
+            "proconfig": [
+              "search_path=pg_catalog",
+              "TimeZone=UTC"
+            ],
+            "proretset": false,
+            "prosecdef": true,
+            "prosqlbody": null,
+            "prosupport": "0",
+            "proargmodes": null,
+            "proargnames": [
+              "p_company_id",
+              "p_environment",
+              "p_source_message_id",
+              "p_source_payload_hash",
+              "p_canonical_assessment_id",
+              "p_facts_text"
+            ],
+            "proisstrict": false,
+            "proparallel": "u",
+            "provariadic": "0",
+            "provolatile": "v",
+            "return_type": "jsonb",
+            "proleakproof": false,
+            "proallargtypes": null,
+            "proargdefaults": null,
+            "pronargdefaults": 0,
+            "identity_arguments": "p_company_id uuid, p_environment text, p_source_message_id uuid, p_source_payload_hash text, p_canonical_assessment_id uuid, p_facts_text text"
+          }
+        }
+      ]
+    },
+    {
+      "signature": "gridex_received_sources.append_validation(uuid,text,uuid,text,text)",
+      "contracts": [
+        {
+          "body_md5": "7326766d1107da1d261c84796bf1e059",
+          "expected": {
+            "acl": "{postgres=X/postgres,service_role=X/postgres}",
+            "owner": "postgres",
+            "probin": null,
+            "procost": 100,
+            "prokind": "f",
+            "prorows": 0,
+            "language": "plpgsql",
+            "pronargs": 5,
+            "arguments": "p_company_id uuid, p_environment text, p_source_message_id uuid, p_source_payload_hash text, p_facts_text text",
+            "proconfig": [
+              "search_path=pg_catalog"
+            ],
+            "proretset": false,
+            "prosecdef": true,
+            "prosqlbody": null,
+            "prosupport": "0",
+            "proargmodes": null,
+            "proargnames": [
+              "p_company_id",
+              "p_environment",
+              "p_source_message_id",
+              "p_source_payload_hash",
+              "p_facts_text"
+            ],
+            "proisstrict": false,
+            "proparallel": "u",
+            "provariadic": "0",
+            "provolatile": "v",
+            "return_type": "jsonb",
+            "proleakproof": false,
+            "proallargtypes": null,
+            "proargdefaults": null,
+            "pronargdefaults": 0,
+            "identity_arguments": "p_company_id uuid, p_environment text, p_source_message_id uuid, p_source_payload_hash text, p_facts_text text"
+          }
+        }
+      ]
+    },
+    {
+      "signature": "gridex_received_sources.gridex_apply_exact_z02_core_before_current_source_v1(uuid,uuid,uuid,uuid,uuid,uuid,uuid)",
+      "contracts": [
+        {
+          "body_md5": "330c06439413e48d27d11c9da07a9ec6",
+          "expected": {
+            "acl": "{postgres=X/postgres}",
+            "owner": "postgres",
+            "probin": null,
+            "procost": 100,
+            "prokind": "f",
+            "prorows": 0,
+            "language": "plpgsql",
+            "pronargs": 7,
+            "arguments": "p_company_id uuid, p_customer_id uuid, p_site_id uuid, p_request_id uuid, p_message_id uuid, p_operation_id uuid DEFAULT NULL::uuid, p_actor_user_id uuid DEFAULT NULL::uuid",
+            "proconfig": [
+              "search_path=pg_catalog"
+            ],
+            "proretset": false,
+            "prosecdef": true,
+            "prosqlbody": null,
+            "prosupport": "0",
+            "proargmodes": null,
+            "proargnames": [
+              "p_company_id",
+              "p_customer_id",
+              "p_site_id",
+              "p_request_id",
+              "p_message_id",
+              "p_operation_id",
+              "p_actor_user_id"
+            ],
+            "proisstrict": false,
+            "proparallel": "u",
+            "provariadic": "0",
+            "provolatile": "v",
+            "return_type": "jsonb",
+            "proleakproof": false,
+            "proallargtypes": null,
+            "proargdefaults": "NULL::uuid, NULL::uuid",
+            "pronargdefaults": 2,
+            "identity_arguments": "p_company_id uuid, p_customer_id uuid, p_site_id uuid, p_request_id uuid, p_message_id uuid, p_operation_id uuid, p_actor_user_id uuid"
+          }
+        }
+      ]
+    },
+    {
+      "signature": "gridex_received_sources.object_owner_proof_consistent(jsonb,jsonb,timestamp with time zone)",
+      "contracts": [
+        {
+          "body_md5": "602be7f832a17414720cf022a4a465d5",
+          "expected": {
+            "acl": "{postgres=X/postgres}",
+            "owner": "postgres",
+            "probin": null,
+            "procost": 100,
+            "prokind": "f",
+            "prorows": 0,
+            "language": "plpgsql",
+            "pronargs": 3,
+            "arguments": "p_party jsonb, p_business jsonb, p_received timestamp with time zone",
+            "proconfig": [
+              "search_path=pg_catalog",
+              "TimeZone=UTC"
+            ],
+            "proretset": false,
+            "prosecdef": false,
+            "prosqlbody": null,
+            "prosupport": "0",
+            "proargmodes": null,
+            "proargnames": [
+              "p_party",
+              "p_business",
+              "p_received"
+            ],
+            "proisstrict": false,
+            "proparallel": "u",
+            "provariadic": "0",
+            "provolatile": "s",
+            "return_type": "boolean",
+            "proleakproof": false,
+            "proallargtypes": null,
+            "proargdefaults": null,
+            "pronargdefaults": 0,
+            "identity_arguments": "p_party jsonb, p_business jsonb, p_received timestamp with time zone"
+          }
+        },
+        {
+          "body_md5": "602be7f832a17414720cf022a4a465d5",
+          "expected": {
+            "acl": "{postgres=X/postgres}",
+            "owner": "postgres",
+            "probin": null,
+            "procost": 100,
+            "prokind": "f",
+            "prorows": 0,
+            "language": "plpgsql",
+            "pronargs": 3,
+            "arguments": "p_party jsonb, p_business jsonb, p_received timestamp with time zone",
+            "proconfig": [
+              "search_path=pg_catalog"
+            ],
+            "proretset": false,
+            "prosecdef": true,
+            "prosqlbody": null,
+            "prosupport": "0",
+            "proargmodes": null,
+            "proargnames": [
+              "p_party",
+              "p_business",
+              "p_received"
+            ],
+            "proisstrict": false,
+            "proparallel": "u",
+            "provariadic": "0",
+            "provolatile": "s",
+            "return_type": "boolean",
+            "proleakproof": false,
+            "proallargtypes": null,
+            "proargdefaults": null,
+            "pronargdefaults": 0,
+            "identity_arguments": "p_party jsonb, p_business jsonb, p_received timestamp with time zone"
+          }
+        }
+      ]
+    },
+    {
+      "signature": "gridex_received_sources.review_business_proof_consistent(jsonb,jsonb,uuid)",
+      "contracts": [
+        {
+          "body_md5": "674cd64e402e92aed1d494a82237f392",
+          "expected": {
+            "acl": "{postgres=X/postgres}",
+            "owner": "postgres",
+            "probin": null,
+            "procost": 100,
+            "prokind": "f",
+            "prorows": 0,
+            "language": "plpgsql",
+            "pronargs": 3,
+            "arguments": "p_party jsonb, p_business jsonb, p_source_id uuid",
+            "proconfig": [
+              "search_path=pg_catalog",
+              "TimeZone=UTC"
+            ],
+            "proretset": false,
+            "prosecdef": true,
+            "prosqlbody": null,
+            "prosupport": "0",
+            "proargmodes": null,
+            "proargnames": [
+              "p_party",
+              "p_business",
+              "p_source_id"
+            ],
+            "proisstrict": false,
+            "proparallel": "u",
+            "provariadic": "0",
+            "provolatile": "s",
+            "return_type": "boolean",
+            "proleakproof": false,
+            "proallargtypes": null,
+            "proargdefaults": null,
+            "pronargdefaults": 0,
+            "identity_arguments": "p_party jsonb, p_business jsonb, p_source_id uuid"
+          }
+        },
+        {
+          "body_md5": "674cd64e402e92aed1d494a82237f392",
+          "expected": {
+            "acl": "{postgres=X/postgres}",
+            "owner": "postgres",
+            "probin": null,
+            "procost": 100,
+            "prokind": "f",
+            "prorows": 0,
+            "language": "plpgsql",
+            "pronargs": 3,
+            "arguments": "p_party jsonb, p_business jsonb, p_source_id uuid",
+            "proconfig": [
+              "search_path=pg_catalog"
+            ],
+            "proretset": false,
+            "prosecdef": true,
+            "prosqlbody": null,
+            "prosupport": "0",
+            "proargmodes": null,
+            "proargnames": [
+              "p_party",
+              "p_business",
+              "p_source_id"
+            ],
+            "proisstrict": false,
+            "proparallel": "u",
+            "provariadic": "0",
+            "provolatile": "s",
+            "return_type": "boolean",
+            "proleakproof": false,
+            "proallargtypes": null,
+            "proargdefaults": null,
+            "pronargdefaults": 0,
+            "identity_arguments": "p_party jsonb, p_business jsonb, p_source_id uuid"
+          }
+        }
+      ]
+    },
+    {
+      "signature": "gridex_received_sources.review_closure_proof_consistent(jsonb,jsonb,uuid)",
+      "contracts": [
+        {
+          "body_md5": "bc47d5b98aed2b6079fdc33827138d4a",
+          "expected": {
+            "acl": "{postgres=X/postgres}",
+            "owner": "postgres",
+            "probin": null,
+            "procost": 100,
+            "prokind": "f",
+            "prorows": 0,
+            "language": "plpgsql",
+            "pronargs": 3,
+            "arguments": "p_party jsonb, p_business jsonb, p_source_id uuid",
+            "proconfig": [
+              "search_path=pg_catalog",
+              "TimeZone=UTC"
+            ],
+            "proretset": false,
+            "prosecdef": true,
+            "prosqlbody": null,
+            "prosupport": "0",
+            "proargmodes": null,
+            "proargnames": [
+              "p_party",
+              "p_business",
+              "p_source_id"
+            ],
+            "proisstrict": false,
+            "proparallel": "u",
+            "provariadic": "0",
+            "provolatile": "s",
+            "return_type": "boolean",
+            "proleakproof": false,
+            "proallargtypes": null,
+            "proargdefaults": null,
+            "pronargdefaults": 0,
+            "identity_arguments": "p_party jsonb, p_business jsonb, p_source_id uuid"
+          }
+        },
+        {
+          "body_md5": "bc47d5b98aed2b6079fdc33827138d4a",
+          "expected": {
+            "acl": "{postgres=X/postgres}",
+            "owner": "postgres",
+            "probin": null,
+            "procost": 100,
+            "prokind": "f",
+            "prorows": 0,
+            "language": "plpgsql",
+            "pronargs": 3,
+            "arguments": "p_party jsonb, p_business jsonb, p_source_id uuid",
+            "proconfig": [
+              "search_path=pg_catalog",
+              "TimeZone=UTC"
+            ],
+            "proretset": false,
+            "prosecdef": true,
+            "prosqlbody": null,
+            "prosupport": "0",
+            "proargmodes": null,
+            "proargnames": [
+              "p_party",
+              "p_business",
+              "p_source_id"
+            ],
+            "proisstrict": false,
+            "proparallel": "u",
+            "provariadic": "0",
+            "provolatile": "v",
+            "return_type": "boolean",
+            "proleakproof": false,
+            "proallargtypes": null,
+            "proargdefaults": null,
+            "pronargdefaults": 0,
+            "identity_arguments": "p_party jsonb, p_business jsonb, p_source_id uuid"
+          }
+        }
+      ]
+    },
+    {
+      "signature": "public.activate_customer_supply_v1(uuid,uuid,uuid,date,uuid,text)",
+      "contracts": [
+        {
+          "body_md5": "f37f78094a23b8ec93bf6db4bdf4ac58",
+          "expected": {
+            "acl": "{postgres=X/postgres,service_role=X/postgres}",
+            "owner": "postgres",
+            "probin": null,
+            "procost": 100,
+            "prokind": "f",
+            "prorows": 1000,
+            "language": "plpgsql",
+            "pronargs": 6,
+            "arguments": "p_company_id uuid, p_supplier_switch_request_id uuid, p_source_message_id uuid, p_actual_start_date date DEFAULT NULL::date, p_actor_user_id uuid DEFAULT NULL::uuid, p_idempotency_key text DEFAULT NULL::text",
+            "proconfig": [
+              "search_path=public"
+            ],
+            "proretset": true,
+            "prosecdef": true,
+            "prosqlbody": null,
+            "prosupport": "0",
+            "proargmodes": "{i,i,i,i,i,i,t,t,t,t,t,t,t}",
+            "proargnames": [
+              "p_company_id",
+              "p_supplier_switch_request_id",
+              "p_source_message_id",
+              "p_actual_start_date",
+              "p_actor_user_id",
+              "p_idempotency_key",
+              "supplier_switch_request_id",
+              "supply_period_id",
+              "contract_id",
+              "customer_application_id",
+              "workflow_id",
+              "domain_event_id",
+              "notification_job_id"
+            ],
+            "proisstrict": false,
+            "proparallel": "u",
+            "provariadic": "0",
+            "provolatile": "v",
+            "return_type": "record",
+            "proleakproof": false,
+            "proallargtypes": [
+              "2950",
+              "2950",
+              "2950",
+              "1082",
+              "2950",
+              "25",
+              "2950",
+              "2950",
+              "2950",
+              "2950",
+              "2950",
+              "2950",
+              "2950"
+            ],
+            "proargdefaults": "NULL::date, NULL::uuid, NULL::text",
+            "pronargdefaults": 3,
+            "identity_arguments": "p_company_id uuid, p_supplier_switch_request_id uuid, p_source_message_id uuid, p_actual_start_date date, p_actor_user_id uuid, p_idempotency_key text"
+          }
+        },
+        {
+          "body_md5": "f37f78094a23b8ec93bf6db4bdf4ac58",
+          "expected": {
+            "acl": "{postgres=X/postgres,service_role=X/postgres}",
+            "owner": "postgres",
+            "probin": null,
+            "procost": 100,
+            "prokind": "f",
+            "prorows": 1000,
+            "language": "plpgsql",
+            "pronargs": 6,
+            "arguments": "p_company_id uuid, p_supplier_switch_request_id uuid, p_source_message_id uuid, p_actual_start_date date DEFAULT NULL::date, p_actor_user_id uuid DEFAULT NULL::uuid, p_idempotency_key text DEFAULT NULL::text",
+            "proconfig": [
+              "search_path=pg_catalog"
+            ],
+            "proretset": true,
+            "prosecdef": true,
+            "prosqlbody": null,
+            "prosupport": "0",
+            "proargmodes": "{i,i,i,i,i,i,t,t,t,t,t,t,t}",
+            "proargnames": [
+              "p_company_id",
+              "p_supplier_switch_request_id",
+              "p_source_message_id",
+              "p_actual_start_date",
+              "p_actor_user_id",
+              "p_idempotency_key",
+              "supplier_switch_request_id",
+              "supply_period_id",
+              "contract_id",
+              "customer_application_id",
+              "workflow_id",
+              "domain_event_id",
+              "notification_job_id"
+            ],
+            "proisstrict": false,
+            "proparallel": "u",
+            "provariadic": "0",
+            "provolatile": "v",
+            "return_type": "record",
+            "proleakproof": false,
+            "proallargtypes": [
+              "2950",
+              "2950",
+              "2950",
+              "1082",
+              "2950",
+              "25",
+              "2950",
+              "2950",
+              "2950",
+              "2950",
+              "2950",
+              "2950",
+              "2950"
+            ],
+            "proargdefaults": "NULL::date, NULL::uuid, NULL::text",
+            "pronargdefaults": 3,
+            "identity_arguments": "p_company_id uuid, p_supplier_switch_request_id uuid, p_source_message_id uuid, p_actual_start_date date, p_actor_user_id uuid, p_idempotency_key text"
+          }
+        }
+      ]
+    },
+    {
+      "signature": "public.canonical_capture_ediel_configuration_snapshot_v1_unchecked(uuid,uuid,text)",
+      "contracts": [
+        {
+          "body_md5": "5fc99b3c1d7a45019ec048a1f8c209bb",
+          "expected": {
+            "acl": "{postgres=X/postgres}",
+            "owner": "postgres",
+            "probin": null,
+            "procost": 100,
+            "prokind": "f",
+            "prorows": 0,
+            "language": "plpgsql",
+            "pronargs": 3,
+            "arguments": "p_company_id uuid, p_actor_user_id uuid, p_reason text",
+            "proconfig": [
+              "search_path=public, extensions, pg_temp"
+            ],
+            "proretset": false,
+            "prosecdef": true,
+            "prosqlbody": null,
+            "prosupport": "0",
+            "proargmodes": null,
+            "proargnames": [
+              "p_company_id",
+              "p_actor_user_id",
+              "p_reason"
+            ],
+            "proisstrict": false,
+            "proparallel": "u",
+            "provariadic": "0",
+            "provolatile": "v",
+            "return_type": "public.ediel_configuration_snapshots",
+            "proleakproof": false,
+            "proallargtypes": null,
+            "proargdefaults": null,
+            "pronargdefaults": 0,
+            "identity_arguments": "p_company_id uuid, p_actor_user_id uuid, p_reason text"
+          }
+        }
+      ]
+    },
+    {
+      "signature": "public.canonical_capture_ediel_test_configuration_snapshot(uuid,uuid,uuid,uuid,text)",
+      "contracts": [
+        {
+          "body_md5": "f8a8c3fa9b29b761dc47ebb0e465d3be",
+          "expected": {
+            "acl": "{postgres=X/postgres,service_role=X/postgres}",
+            "owner": "postgres",
+            "probin": null,
+            "procost": 100,
+            "prokind": "f",
+            "prorows": 0,
+            "language": "plpgsql",
+            "pronargs": 5,
+            "arguments": "p_company_id uuid, p_actor_user_id uuid, p_actor_profile_id uuid, p_route_profile_id uuid, p_reason text",
+            "proconfig": [
+              "search_path=public, extensions, pg_temp"
+            ],
+            "proretset": false,
+            "prosecdef": true,
+            "prosqlbody": null,
+            "prosupport": "0",
+            "proargmodes": null,
+            "proargnames": [
+              "p_company_id",
+              "p_actor_user_id",
+              "p_actor_profile_id",
+              "p_route_profile_id",
+              "p_reason"
+            ],
+            "proisstrict": false,
+            "proparallel": "u",
+            "provariadic": "0",
+            "provolatile": "v",
+            "return_type": "public.ediel_configuration_snapshots",
+            "proleakproof": false,
+            "proallargtypes": null,
+            "proargdefaults": null,
+            "pronargdefaults": 0,
+            "identity_arguments": "p_company_id uuid, p_actor_user_id uuid, p_actor_profile_id uuid, p_route_profile_id uuid, p_reason text"
+          }
+        }
+      ]
+    },
+    {
+      "signature": "public.canonical_onboard_customer_graph(jsonb)",
+      "contracts": [
+        {
+          "body_md5": "c2edda31f52065fe15c750b297091cdd",
+          "expected": {
+            "acl": "{postgres=X/postgres,service_role=X/postgres}",
+            "owner": "postgres",
+            "probin": null,
+            "procost": 100,
+            "prokind": "f",
+            "prorows": 0,
+            "language": "plpgsql",
+            "pronargs": 1,
+            "arguments": "p_command jsonb",
+            "proconfig": [
+              "search_path=public, pg_temp"
+            ],
+            "proretset": false,
+            "prosecdef": true,
+            "prosqlbody": null,
+            "prosupport": "0",
+            "proargmodes": null,
+            "proargnames": [
+              "p_command"
+            ],
+            "proisstrict": false,
+            "proparallel": "u",
+            "provariadic": "0",
+            "provolatile": "v",
+            "return_type": "jsonb",
+            "proleakproof": false,
+            "proallargtypes": null,
+            "proargdefaults": null,
+            "pronargdefaults": 0,
+            "identity_arguments": "p_command jsonb"
+          }
+        }
+      ]
+    },
+    {
+      "signature": "public.claim_ediel_outbox_item(uuid,text,uuid)",
+      "contracts": [
+        {
+          "body_md5": "8b9e258bbc9f662aeb572ed4432bf0fe",
+          "expected": {
+            "acl": "{postgres=X/postgres,service_role=X/postgres}",
+            "owner": "postgres",
+            "probin": null,
+            "procost": 100,
+            "prokind": "f",
+            "prorows": 1000,
+            "language": "plpgsql",
+            "pronargs": 3,
+            "arguments": "p_outbox_item_id uuid, p_worker_id text, p_actor_user_id uuid",
+            "proconfig": [
+              "search_path=public"
+            ],
+            "proretset": true,
+            "prosecdef": true,
+            "prosqlbody": null,
+            "prosupport": "0",
+            "proargmodes": null,
+            "proargnames": [
+              "p_outbox_item_id",
+              "p_worker_id",
+              "p_actor_user_id"
+            ],
+            "proisstrict": false,
+            "proparallel": "u",
+            "provariadic": "0",
+            "provolatile": "v",
+            "return_type": "public.ediel_outbox",
+            "proleakproof": false,
+            "proallargtypes": null,
+            "proargdefaults": null,
+            "pronargdefaults": 0,
+            "identity_arguments": "p_outbox_item_id uuid, p_worker_id text, p_actor_user_id uuid"
+          }
+        }
+      ]
+    },
+    {
+      "signature": "public.gridex_apply_exact_z02_core(uuid,uuid,uuid,uuid,uuid,uuid,uuid)",
+      "contracts": [
+        {
+          "body_md5": "42161c7ee80cc679a5b1a88e18eadb14",
+          "expected": {
+            "acl": "{postgres=X/postgres,service_role=X/postgres}",
+            "owner": "postgres",
+            "probin": null,
+            "procost": 100,
+            "prokind": "f",
+            "prorows": 0,
+            "language": "plpgsql",
+            "pronargs": 7,
+            "arguments": "p_company_id uuid, p_customer_id uuid, p_site_id uuid, p_request_id uuid, p_message_id uuid, p_operation_id uuid DEFAULT NULL::uuid, p_actor_user_id uuid DEFAULT NULL::uuid",
+            "proconfig": [
+              "search_path=public"
+            ],
+            "proretset": false,
+            "prosecdef": true,
+            "prosqlbody": null,
+            "prosupport": "0",
+            "proargmodes": null,
+            "proargnames": [
+              "p_company_id",
+              "p_customer_id",
+              "p_site_id",
+              "p_request_id",
+              "p_message_id",
+              "p_operation_id",
+              "p_actor_user_id"
+            ],
+            "proisstrict": false,
+            "proparallel": "u",
+            "provariadic": "0",
+            "provolatile": "v",
+            "return_type": "jsonb",
+            "proleakproof": false,
+            "proallargtypes": null,
+            "proargdefaults": "NULL::uuid, NULL::uuid",
+            "pronargdefaults": 2,
+            "identity_arguments": "p_company_id uuid, p_customer_id uuid, p_site_id uuid, p_request_id uuid, p_message_id uuid, p_operation_id uuid, p_actor_user_id uuid"
+          }
+        },
+        {
+          "body_md5": "3a30081f9583f648099cc6e4e494513a",
+          "expected": {
+            "acl": "{postgres=X/postgres,service_role=X/postgres}",
+            "owner": "postgres",
+            "probin": null,
+            "procost": 100,
+            "prokind": "f",
+            "prorows": 0,
+            "language": "plpgsql",
+            "pronargs": 7,
+            "arguments": "p_company_id uuid, p_customer_id uuid, p_site_id uuid, p_request_id uuid, p_message_id uuid, p_operation_id uuid DEFAULT NULL::uuid, p_actor_user_id uuid DEFAULT NULL::uuid",
+            "proconfig": [
+              "search_path=pg_catalog"
+            ],
+            "proretset": false,
+            "prosecdef": true,
+            "prosqlbody": null,
+            "prosupport": "0",
+            "proargmodes": null,
+            "proargnames": [
+              "p_company_id",
+              "p_customer_id",
+              "p_site_id",
+              "p_request_id",
+              "p_message_id",
+              "p_operation_id",
+              "p_actor_user_id"
+            ],
+            "proisstrict": false,
+            "proparallel": "u",
+            "provariadic": "0",
+            "provolatile": "v",
+            "return_type": "jsonb",
+            "proleakproof": false,
+            "proallargtypes": null,
+            "proargdefaults": "NULL::uuid, NULL::uuid",
+            "pronargdefaults": 2,
+            "identity_arguments": "p_company_id uuid, p_customer_id uuid, p_site_id uuid, p_request_id uuid, p_message_id uuid, p_operation_id uuid, p_actor_user_id uuid"
+          }
+        }
+      ]
+    },
+    {
+      "signature": "public.gridex_complete_facility_response(uuid,uuid,uuid,text,uuid,text,text,text,text,uuid,jsonb,text)",
+      "contracts": [
+        {
+          "body_md5": "87b48bf27e4b41cec85ea3dcd2c21cca",
+          "expected": {
+            "acl": "{postgres=X/postgres,service_role=X/postgres}",
+            "owner": "postgres",
+            "probin": null,
+            "procost": 100,
+            "prokind": "f",
+            "prorows": 0,
+            "language": "plpgsql",
+            "pronargs": 12,
+            "arguments": "p_company_id uuid, p_request_id uuid, p_actor_user_id uuid DEFAULT NULL::uuid, p_source text DEFAULT 'system'::text, p_ediel_message_id uuid DEFAULT NULL::uuid, p_facility_id text DEFAULT NULL::text, p_metering_point_external_id text DEFAULT NULL::text, p_grid_area_code text DEFAULT NULL::text, p_price_area_code text DEFAULT NULL::text, p_source_party_grid_owner_id uuid DEFAULT NULL::uuid, p_raw_payload jsonb DEFAULT '{}'::jsonb, p_note text DEFAULT NULL::text",
+            "proconfig": [
+              "search_path=public"
+            ],
+            "proretset": false,
+            "prosecdef": false,
+            "prosqlbody": null,
+            "prosupport": "0",
+            "proargmodes": null,
+            "proargnames": [
+              "p_company_id",
+              "p_request_id",
+              "p_actor_user_id",
+              "p_source",
+              "p_ediel_message_id",
+              "p_facility_id",
+              "p_metering_point_external_id",
+              "p_grid_area_code",
+              "p_price_area_code",
+              "p_source_party_grid_owner_id",
+              "p_raw_payload",
+              "p_note"
+            ],
+            "proisstrict": false,
+            "proparallel": "u",
+            "provariadic": "0",
+            "provolatile": "v",
+            "return_type": "jsonb",
+            "proleakproof": false,
+            "proallargtypes": null,
+            "proargdefaults": "NULL::uuid, 'system'::text, NULL::uuid, NULL::text, NULL::text, NULL::text, NULL::text, NULL::uuid, '{}'::jsonb, NULL::text",
+            "pronargdefaults": 10,
+            "identity_arguments": "p_company_id uuid, p_request_id uuid, p_actor_user_id uuid, p_source text, p_ediel_message_id uuid, p_facility_id text, p_metering_point_external_id text, p_grid_area_code text, p_price_area_code text, p_source_party_grid_owner_id uuid, p_raw_payload jsonb, p_note text"
+          }
+        }
+      ]
+    },
+    {
+      "signature": "public.gridex_create_billing_export_run(jsonb,jsonb)",
+      "contracts": [
+        {
+          "body_md5": "d95a237ce43c9822679b6b36c64aa1c3",
+          "expected": {
+            "acl": "{postgres=X/postgres,service_role=X/postgres}",
+            "owner": "postgres",
+            "probin": null,
+            "procost": 100,
+            "prokind": "f",
+            "prorows": 0,
+            "language": "plpgsql",
+            "pronargs": 2,
+            "arguments": "p_run jsonb, p_items jsonb DEFAULT '[]'::jsonb",
+            "proconfig": [
+              "search_path=public, extensions, pg_temp"
+            ],
+            "proretset": false,
+            "prosecdef": true,
+            "prosqlbody": null,
+            "prosupport": "0",
+            "proargmodes": null,
+            "proargnames": [
+              "p_run",
+              "p_items"
+            ],
+            "proisstrict": false,
+            "proparallel": "u",
+            "provariadic": "0",
+            "provolatile": "v",
+            "return_type": "jsonb",
+            "proleakproof": false,
+            "proallargtypes": null,
+            "proargdefaults": "'[]'::jsonb",
+            "pronargdefaults": 1,
+            "identity_arguments": "p_run jsonb, p_items jsonb"
+          }
+        },
+        {
+          "body_md5": "d95a237ce43c9822679b6b36c64aa1c3",
+          "expected": {
+            "acl": "{postgres=X/postgres,service_role=X/postgres}",
+            "owner": "postgres",
+            "probin": null,
+            "procost": 100,
+            "prokind": "f",
+            "prorows": 0,
+            "language": "plpgsql",
+            "pronargs": 2,
+            "arguments": "p_run jsonb, p_items jsonb DEFAULT '[]'::jsonb",
+            "proconfig": [
+              "search_path=pg_catalog"
+            ],
+            "proretset": false,
+            "prosecdef": true,
+            "prosqlbody": null,
+            "prosupport": "0",
+            "proargmodes": null,
+            "proargnames": [
+              "p_run",
+              "p_items"
+            ],
+            "proisstrict": false,
+            "proparallel": "u",
+            "provariadic": "0",
+            "provolatile": "v",
+            "return_type": "jsonb",
+            "proleakproof": false,
+            "proallargtypes": null,
+            "proargdefaults": "'[]'::jsonb",
+            "pronargdefaults": 1,
+            "identity_arguments": "p_run jsonb, p_items jsonb"
+          }
+        }
+      ]
+    }
+  ],
+  "metadata_normalization": "Twenty-six exact semantic metadata fields. Formal/default count and deparsed default expression included; parser source-location offsets in raw pg_node_tree are not ABI. Exact body and metadata paired, with no arbitrary cross-combination. OIDs are independently preserved by whole pg_proc before/after checks.",
+  "source_schema_sha256": "ced195d0f8af67b8a400ba71c2eca110cbcd639a0dba880d19e7dccff7a14492",
+  "source_proof": {
+    "fixture_sha256": "b5079d6a492a5ee7feb3a6b0aaad8237f643a73b404d3f63cbdcb31a941a7cc4",
+    "units": "/tmp/gridex-api-review/semantic-forward-genuine-canonical-source-units.json",
+    "exact_units": "15 source CREATE plus25 source ACL units, all40 byte ranges/hashes and15 CREATE body MD5s independently equal genuine canonical catalog.",
+    "creator_owner": "postgres in genuine fresh canonical RESTRICT recreation, independently qualifying owner/ACL beyond no-owner dump text. No CASCADE/stubs or validator bypass."
+  },
+  "verification": {
+    "receipt": "/tmp/gridex-api-review/semantic-forward-metadata-genuine-compile-review.json",
+    "receipt_sha256": "dbdc4fa5eee2fadac378dcd861c1aaedb8f9234b471246e0e19221290fe5c8ab",
+    "current_capture_sha256": "0b145909e73bc44f578596e0ef5b6663fd692c16a9f7b4df50e040b7202c7666",
+    "canonical_capture_sha256": "9cea3f5d0abda2c72b46552834fdc752b1a1014584b703d7bba3ce5574f840ec",
+    "first_and_replay": "COMMIT0 for both real current-post and source-canonical fifteen-function fixtures; entire pg_proc rows/OIDs/bodies/ACL unchanged.",
+    "negative_cases": 8,
+    "negative_abi_families": [
+      "publicJSONB owner/ACL/support/crossedZ02pair",
+      "publicTABLE7UUID SECURITY/defaults",
+      "privateboolean STRICT",
+      "privateJSONB dispatcher config",
+      "privateUUID journal config"
+    ],
+    "negative_result": "All8 refuse expected error and complete fifteen-function catalog rollback equals original.",
+    "business_function_invocations": 0,
+    "actual_native_writes_by_author": false,
+    "limit": "Metadata/compiler/source qualification only; no live business/provider/runtime-flow certification."
+  },
+  "independent_reviews": {
+    "final_api_source_review": "APPROVED exact5aa source + genuine artifacts including all8 refusal cases.",
+    "native_forward_independent_review": "APPROVED exact5aa source, complete genuine dbdc receipt, all40 original source byte slices/SHA and closed15/22 contracts independently verified. No edits/writes/helper calls/tests."
+  }
+}

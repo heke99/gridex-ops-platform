@@ -15,6 +15,9 @@ import {createCustomerRecordRetentionNativeUser} from './helpers/ediel-customer-
 import {mixedProdatNativeWire} from './helpers/ediel-mixed-prodat-native-wire'
 import {PROCESS_JOURNAL_RETENTION_CLASSES,type ProcessJournalRetentionClass} from '@/lib/ediel/retention/processJournalRetention'
 import {POST} from '@/app/api/ediel/process-journal-retention/route'
+// Explicit private-owner scope for synthetic setup/readback only; product JWT calls retain their actors.
+const retentionSql=<T>(query:string)=>sql<T>(`BEGIN;SET LOCAL ROLE gridex_ediel_retention_owner;${query};COMMIT;`)
+
 const digest=(bytes:Buffer)=>createHash('sha256').update(bytes).digest('hex')
 afterEach(()=>{vi.unstubAllEnvs();ports.smtp.mockReset();ports.client=null;ports.company=''})
 async function http(client:SupabaseClient,body:unknown){ports.client=client;return POST(new NextRequest('http://localhost/api/ediel/process-journal-retention',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}))}
@@ -42,7 +45,7 @@ async function fixture(){
  // Explicit test-only external legal competence and customer closure boundaries.
  // No runtime issuer/default policy or business source approval is manufactured.
  const issuer=randomUUID(),key=Buffer.from(randomUUID()+randomUUID())
- sql(`INSERT INTO gridex_ediel_retention.issuers(id,company_id,legal_reference,legal_evidence,legal_hash,signing_key,valid_from,valid_to) VALUES(${literal(issuer)},${literal(f.companyId)},'SYNTHETIC JOURNAL COMPETENCE ONLY',decode('53594e544845544943','hex'),encode(sha256(decode('53594e544845544943','hex')),'hex'),decode(${literal(key.toString('hex'))},'hex'),now()-interval '1 day',now()+interval '1 day');UPDATE public.customers SET status='archived' WHERE company_id=${literal(f.companyId)}`)
+ sql(`BEGIN;SET LOCAL ROLE gridex_ediel_retention_owner;INSERT INTO gridex_ediel_retention.issuers(id,company_id,legal_reference,legal_evidence,legal_hash,signing_key,valid_from,valid_to) VALUES(${literal(issuer)},${literal(f.companyId)},'SYNTHETIC JOURNAL COMPETENCE ONLY',decode('53594e544845544943','hex'),encode(sha256(decode('53594e544845544943','hex')),'hex'),decode(${literal(key.toString('hex'))},'hex'),now()-interval '1 day',now()+interval '1 day');RESET ROLE;UPDATE public.customers SET status='archived' WHERE company_id=${literal(f.companyId)};COMMIT;`)
  ports.company=f.companyId
  const policy=async(k:ProcessJournalRetentionClass,document:Buffer,extra:Record<string,unknown>={})=>{
   const response=await http(writer.client,{action:'basis',retentionClass:k,targetId:targets[k]});expect(response.status,await response.clone().text()).toBe(200);const basis=await response.json()
@@ -60,7 +63,7 @@ it('actual publication/signature/PDF/POA/native SMTP and prospective process/rea
   const reviewed=await http(f.reviewer.client,{action:'review',decisionId:decision.decisionId,outcome:'approve',reason:'SYNTHETIC separate exact source mechanism'});expect(reviewed.status,await reviewed.clone().text()).toBe(200);expect((await reviewed.json()).status).toBe('approved')
   const sourceTable=k==='correction_process_fact_body'?'facts':k==='correction_process_readset_body'?'readsets':'combined_snapshots',nativeTarget=k==='correction_process_fact_body'?f.targets[k]:literal(f.targets[k]),before=sql<Record<string,unknown>>(`SELECT to_jsonb(r) FROM gridex_correction_process.${sourceTable} r WHERE id=${nativeTarget}`)
   const result=await http(f.writer.client,{action:'purge',decisionId:decision.decisionId});expect(result.status,await result.clone().text()).toBe(200);expect(await result.json()).toMatchObject({status:'redacted',retentionClass:k,targetId:f.targets[k],sourceHash:decision.sourceHash,replay:false});expect((await (await http(f.writer.client,{action:'purge',decisionId:decision.decisionId})).json()).replay).toBe(true)
-  const spec=sql<{table:string}>(`SELECT jsonb_build_object('table',source_table) FROM gridex_ediel_retention.process_class_catalog WHERE retention_class=${literal(k)}`),row=sql<Record<string,unknown>>(`SELECT to_jsonb(r) FROM gridex_correction_process.${spec.table} r WHERE id=${k==='correction_process_fact_body'?f.targets[k]:literal(f.targets[k])}`),body=k==='correction_process_fact_body'?row.new_fact:JSON.parse(String(row.readset_text))
+  const spec=retentionSql<{table:string}>(`SELECT jsonb_build_object('table',source_table) FROM gridex_ediel_retention.process_class_catalog WHERE retention_class=${literal(k)}`),row=sql<Record<string,unknown>>(`SELECT to_jsonb(r) FROM gridex_correction_process.${spec.table} r WHERE id=${k==='correction_process_fact_body'?f.targets[k]:literal(f.targets[k])}`),body=k==='correction_process_fact_body'?row.new_fact:JSON.parse(String(row.readset_text))
   const immutable=(entry:Record<string,unknown>)=>Object.fromEntries(Object.entries(entry).filter(([key])=>k==='correction_process_fact_body'?!['old_fact','new_fact'].includes(key):key!=='readset_text'))
   expect(immutable(row)).toEqual(immutable(before))
   if(k==='correction_process_fact_body'){
@@ -70,8 +73,8 @@ it('actual publication/signature/PDF/POA/native SMTP and prospective process/rea
   expect(body).toEqual({retentionUnavailable:true,sourceHash:decision.sourceHash,complete:false,authority:'none'});expect(k==='correction_process_fact_body'?row.facts_hash:row.readset_hash).toBe(decision.sourceHash)
   const held=await supabaseService.rpc('ediel_require_process_journal_available_v1',{p_company_id:f.companyId,p_retention_class:k,p_target_id:f.targets[k]});expect(held.error?.message).toContain('tombstoned')
  }
- expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_ediel_retention.process_tombstones WHERE company_id=${literal(f.companyId)}`)).toBe(3)
- expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_ediel_retention.process_events e JOIN gridex_ediel_retention.process_tombstones t USING(retention_class,target_id) WHERE t.company_id=${literal(f.companyId)}`)).toBe(3)
+ expect(retentionSql(`SELECT to_jsonb(count(*)) FROM gridex_ediel_retention.process_tombstones WHERE company_id=${literal(f.companyId)}`)).toBe(3)
+ expect(retentionSql(`SELECT to_jsonb(count(*)) FROM gridex_ediel_retention.process_events e JOIN gridex_ediel_retention.process_tombstones t USING(retention_class,target_id) WHERE t.company_id=${literal(f.companyId)}`)).toBe(3)
 },180000)
 it('actual all-included customer scope, current reviewer DENY, hostile company/actor, no issuer and late native audit failure hold the unchanged copies with no partial tombstone or provider side effect',async()=>{
  const f=await fixture(),k='correction_process_combined_readset_body',document=Buffer.from('SYNTHETIC whole-scope-only')
@@ -86,7 +89,7 @@ it('actual all-included customer scope, current reviewer DENY, hostile company/a
  const doc2=Buffer.from('SYNTHETIC changed native scope needs new exact policy'),next=await http(f.writer.client,{action:'submit',retentionClass:k,targetId:f.targets[k],documentBase64:doc2.toString('base64'),issuerReceipt:await f.policy(k,doc2)}),id=(await next.json()).decisionId;expect((await http(f.reviewer.client,{action:'review',decisionId:id,outcome:'approve',reason:'SYNTHETIC now exact closed native scope'})).status).toBe(200)
  sql(`INSERT INTO public.user_permission_overrides(user_id,company_id,permission_key,effect,is_active) VALUES(${literal(f.reviewer.id)},${literal(f.companyId)},'ediel.retention.legal_history','deny',true)`);expect((await http(f.writer.client,{action:'purge',decisionId:id})).status).toBe(409);sql(`DELETE FROM public.user_permission_overrides WHERE user_id=${literal(f.reviewer.id)} AND company_id=${literal(f.companyId)}`)
  const trigger='journal_late_'+randomUUID().replaceAll('-','');sql(`CREATE FUNCTION public.${trigger}() RETURNS trigger LANGUAGE plpgsql AS $$BEGIN IF NEW.company_id=${literal(f.companyId)}::uuid AND NEW.action='ediel.retention.process_redacted' THEN RAISE EXCEPTION 'native late journal audit rollback';END IF;RETURN NEW;END$$;CREATE TRIGGER ${trigger} BEFORE INSERT ON public.audit_logs FOR EACH ROW EXECUTE FUNCTION public.${trigger}()`)
- try{expect((await http(f.writer.client,{action:'purge',decisionId:id})).status).toBe(403);expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_ediel_retention.process_tombstones WHERE company_id=${literal(f.companyId)}`)).toBe(0);expect((await http(f.writer.client,{action:'basis',retentionClass:k,targetId:f.targets[k]})).status).toBe(200)}finally{sql(`DROP TRIGGER ${trigger} ON public.audit_logs;DROP FUNCTION public.${trigger}()`)}
+ try{expect((await http(f.writer.client,{action:'purge',decisionId:id})).status).toBe(403);expect(retentionSql(`SELECT to_jsonb(count(*)) FROM gridex_ediel_retention.process_tombstones WHERE company_id=${literal(f.companyId)}`)).toBe(0);expect((await http(f.writer.client,{action:'basis',retentionClass:k,targetId:f.targets[k]})).status).toBe(200)}finally{sql(`DROP TRIGGER ${trigger} ON public.audit_logs;DROP FUNCTION public.${trigger}()`)}
  expect(ports.smtp).toHaveBeenCalledTimes(1)
  for(const role of ['anon','authenticated','service_role'])expect(()=>sql(`SET ROLE ${role};SELECT * FROM gridex_ediel_retention.process_decisions`)).toThrow(/permission denied/)
 },180000)

@@ -1,0 +1,28 @@
+{
+  "status": "ISOLATED_FIRST_ORDER_SUPPLEMENT_PASS_NO_NATIVE_WRITES",
+  "frozen_module_sha256": "bacf8944718c984d117f0400ed19fadd978feed6613ea9196784eff4591ac600",
+  "first_pipeline_receipt": "/tmp/gridex-api-review/native-additive-b3-first-order-pipeline-receipt.json",
+  "semantic_assertions_sha256": "5aa1fd4fc45a85819b683dff4756d97ad3c3387e9e2d9bd1a9424b63ebb9d4c9",
+  "actor_sha256": "2a5a5523fafaa80b416c5c489a8018a4640a910c66dc5486569751898c60b5cd",
+  "logs": {
+    "semantic_assertions": {
+      "path": "/tmp/gridex-api-review/native-additive-b3-first-order-semantic-assertions.log",
+      "sha256": "a76da300f1f52f8ae21656db3c602f6978d8075c88eb27fc38ce3189f909ec66",
+      "last_transaction_command": "COMMIT"
+    },
+    "actor_expressions": {
+      "path": "/tmp/gridex-api-review/native-additive-b3-first-order-actor-expressions.log",
+      "sha256": "decc8335d90db271fc487d1597becbf719e968add184759bda0e0a9a1bde37b1",
+      "last_transaction_command": "COMMIT"
+    },
+    "final_b3_replay": {
+      "path": "/tmp/gridex-api-review/native-additive-b3-first-order-final-qualified-replay.log",
+      "sha256": "0ce22e7018d2b3f8f3108ae7170444042e9ea0199aa2a381c625a35cef686ed8",
+      "last_transaction_command": "COMMIT"
+    }
+  },
+  "post_actor_table_index_metadata": "/tmp/gridex-api-review/native-additive-b3-first-order-actor-post-metadata.json",
+  "metadata_only_fixture_alignment": "Empty isolated platform_market_actors/platform_actor_aliases tableACL aligned to exact captured current native ordered ACL using ordinaryGRANT/REVOKE; actor SQL preconditions unchanged. No businessrows cloned.",
+  "actor_index_qualification": "B3 complete-state index uses logicalname/relation/definition/ready/valid, preserving recognized engine-rebuilt physicalOID. No selector wildcard.",
+  "scope_limit": "Source/current module fixtures and genuine local PostgreSQL17.6/PostGIS3.3.7 SQL compilation; not live API/business flow or all historical clean replay."
+}

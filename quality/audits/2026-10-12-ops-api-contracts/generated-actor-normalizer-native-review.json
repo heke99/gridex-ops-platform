@@ -1,0 +1,162 @@
+{
+  "scope": "Separate generated-expression escape qualification; no generated DDL/data rewrite authorized or performed.",
+  "classification": "Two confirmed prospective whitespace-normalization errors in current native and canonical source.",
+  "expressions": {
+    "columns": [
+      {
+        "table": "platform_actor_aliases",
+        "column": "normalized_alias",
+        "schema": "public",
+        "indexes": [
+          "CREATE INDEX platform_actor_aliases_lookup_idx ON public.platform_actor_aliases USING btree (normalized_alias)",
+          "CREATE UNIQUE INDEX platform_actor_aliases_pkey ON public.platform_actor_aliases USING btree (id)",
+          "CREATE UNIQUE INDEX platform_actor_aliases_uidx ON public.platform_actor_aliases USING btree (actor_id, normalized_alias)"
+        ],
+        "expression": "lower(regexp_replace(COALESCE(alias, ''::text), '\\\\s+'::text, ' '::text, 'g'::text))",
+        "tracked_dependencies": [
+          {
+            "type": "i",
+            "class": "pg_attrdef",
+            "object": "default value for column normalized_alias of table platform_actor_aliases"
+          },
+          {
+            "type": "a",
+            "class": "pg_class",
+            "object": "index platform_actor_aliases_uidx"
+          },
+          {
+            "type": "a",
+            "class": "pg_class",
+            "object": "index platform_actor_aliases_lookup_idx"
+          }
+        ]
+      },
+      {
+        "table": "platform_market_actors",
+        "column": "normalized_name",
+        "schema": "public",
+        "indexes": [
+          "CREATE INDEX platform_market_actors_import_seen_idx ON public.platform_market_actors USING btree (not_seen_in_latest_import, last_seen_in_import_at DESC)",
+          "CREATE UNIQUE INDEX platform_market_actors_pkey ON public.platform_market_actors USING btree (id)",
+          "CREATE UNIQUE INDEX platform_market_actors_normalized_name_uidx ON public.platform_market_actors USING btree (normalized_name)",
+          "CREATE INDEX platform_market_actors_status_idx ON public.platform_market_actors USING btree (status, match_status, visible_to_tenants)",
+          "CREATE INDEX platform_market_actors_org_idx ON public.platform_market_actors USING btree (org_number) WHERE (org_number IS NOT NULL)"
+        ],
+        "expression": "lower(regexp_replace(COALESCE(name, ''::text), '\\\\s+'::text, ' '::text, 'g'::text))",
+        "tracked_dependencies": [
+          {
+            "type": "i",
+            "class": "pg_attrdef",
+            "object": "default value for column normalized_name of table platform_market_actors"
+          },
+          {
+            "type": "a",
+            "class": "pg_class",
+            "object": "index platform_market_actors_normalized_name_uidx"
+          },
+          {
+            "type": "n",
+            "class": "pg_rewrite",
+            "object": "rule _RETURN on view actor_registry_duplicate_candidates_v"
+          }
+        ]
+      }
+    ],
+    "standard_conforming_strings": "on"
+  },
+  "pure_native_proof": {
+    "query": "BEGIN READ ONLY; SET LOCAL standard_conforming_strings=on; SELECT jsonb_agg(to_jsonb(q)) AS metadata FROM (SELECT 'platform_actor_aliases.normalized_alias' AS target, lower(regexp_replace(COALESCE(alias, ''::text), '\\\\s+'::text, ' '::text, 'g'::text)) AS actual_generated_literal, lower(regexp_replace(coalesce(alias,''), E'\\\\s+', ' ', 'g')) AS single_regex_escape, (lower(regexp_replace(COALESCE(alias, ''::text), '\\\\s+'::text, ' '::text, 'g'::text))) IS DISTINCT FROM lower(regexp_replace(coalesce(alias,''), E'\\\\s+', ' ', 'g')) AS mismatch FROM (SELECT 'A  B'::text AS alias,'A  B'::text AS name) synthetic UNION ALL SELECT 'platform_market_actors.normalized_name' AS target, lower(regexp_replace(COALESCE(name, ''::text), '\\\\s+'::text, ' '::text, 'g'::text)) AS actual_generated_literal, lower(regexp_replace(coalesce(name,''), E'\\\\s+', ' ', 'g')) AS single_regex_escape, (lower(regexp_replace(COALESCE(name, ''::text), '\\\\s+'::text, ' '::text, 'g'::text))) IS DISTINCT FROM lower(regexp_replace(coalesce(name,''), E'\\\\s+', ' ', 'g')) AS mismatch FROM (SELECT 'A  B'::text AS alias,'A  B'::text AS name) synthetic) q; COMMIT;",
+    "results": [
+      {
+        "target": "platform_actor_aliases.normalized_alias",
+        "mismatch": true,
+        "single_regex_escape": "a b",
+        "actual_generated_literal": "a  b"
+      },
+      {
+        "target": "platform_market_actors.normalized_name",
+        "mismatch": true,
+        "single_regex_escape": "a b",
+        "actual_generated_literal": "a  b"
+      }
+    ],
+    "no_actor_rows_read": true,
+    "no_actor_functions_invoked": true
+  },
+  "source": {
+    "schema_lines": [
+      51703,
+      120768
+    ],
+    "migration": "20260611123000_actor_registry_message_semantics_tenant_automation.sql",
+    "source_also_incorrect": true
+  },
+  "current_effects": {
+    "unique_indexes": [
+      "platform_market_actors_normalized_name_uidx",
+      "platform_actor_aliases_uidx(actor_id,normalized_alias)"
+    ],
+    "source_path": "app/admin/ediel/actors/actions.ts current atomic applyActorRegistryRecords -> ediel_apply_actor_registry_v1 inserts actors/aliases and ON CONFLICT(actor_id,normalized_alias).",
+    "other_dependents": [
+      "gridex_match_actor_registry_item(uuid) name fallback",
+      "actor_registry_duplicate_candidates_v groups normalized_name",
+      "current grid-owner reconciliation normalizes aliases again with [^a-z0-9åäö]+, so this particular path is not blocked by whitespace discrepancy."
+    ],
+    "current_matcher_app_caller_found": false
+  },
+  "qualification_limits": "Actual aggregate-only649/647 registry rows have zero corrected unique collisions and zero current derived values changing. No raw actor names/IDs returned, no merge/delete/role/provider/business invocation. New physical derived-expression correction is root-owned actual installation only after exact final compiler and two peer gates.",
+  "status": "Exact final2a5 genuine native-fast-marker and materialized fullB2/B3 source fixtures first/replay PASS; both independent NONcoauthor peers approved. Root alone owns actual installation. No actual DDL by author.",
+  "aggregate_native_state": {
+    "aggregate_only": true,
+    "actor_alias_count": 647,
+    "market_actor_count": 649,
+    "actor_alias_normalization_collision_groups": 0,
+    "market_actor_normalization_collision_groups": 0,
+    "actor_alias_derived_values_that_would_change": 0,
+    "market_actor_derived_values_that_would_change": 0
+  },
+  "forward": {
+    "path": "release-proposals/generated-actor-normalizers-forward.sql",
+    "sha256": "2a5a5523fafaa80b416c5c489a8018a4640a910c66dc5486569751898c60b5cd",
+    "guard_scope": "ACCESS EXCLUSIVE both tables in fixed order; exact known table/target/all original column logical defaults and unchanged named valid unique keys; corrected collision recheck. Original fields/UUIDs/source receipts hashed excluding only corrected derived field. Table/column/unrelated index/constraint/trigger/policy OIDs and all grants/RLS preserved. Only genuine pg_depend-derived dependent index OIDs may change, with same dependency name set/schema/name/definition/owner/ACL/all other logical pg_index attributes. Only atthasmissing/attmissingval of the two known historical fast-default columns may materialize, under exact known-state preguards."
+  },
+  "engine_evidence": {
+    "fast_default_probe": "/tmp/gridex-api-review/actor-normalizer-fast-default-storage-probe.sql",
+    "dependent_index_probe": "/tmp/gridex-api-review/actor-normalizer-fixed-context-rewrite-probe.log",
+    "status": "Genuine isolated PG17 confirms SET EXPRESSION materializes two fast-default artifacts and rebuilds generated-column-dependent index OIDs. Root explicitly authorized these physical-only scope corrections; no system catalog edits to force OIDs.",
+    "dependent_index_proof": "/tmp/gridex-api-review/actor-normalizer-both-index-oid-engine-proof.json"
+  },
+  "escape_representation_review": {
+    "false_finding_withdrawn": true,
+    "proof": "/tmp/gridex-api-review/actor-forward-decoded-config-native-primitive-results.json",
+    "result": "Exact JSON-decoded expression_sql and direct collision query have two actual SQL slash characters; E-string AST pattern is codepoints[92,115,43]. Fresh actual built-in primitive yields a b from A   B. Serialized JSON escape representation is not an additional defect."
+  },
+  "source_import_producer_qualification": {
+    "function": "public.ediel_apply_actor_registry_v1",
+    "source_line": 43567,
+    "source_line_sha256": "9e487784ee43c4da190108d6cc8ee4ea85df0c147bfe1d33a33d7e99969f4581",
+    "actual_sql_literal_pattern_codepoints": [
+      92,
+      115,
+      43
+    ],
+    "sql_literal_backslash_characters": 1,
+    "proof": "Producer uses correct plain one-backslash whitespace regex under actual standard_conforming_strings=on. Corrected generated expression E-two-slash SQL literal yields the same one-slash regex AST value. The current old generated two-slash regex is the mismatch; correction restores producer/matcher consistency.",
+    "current_matcher_app_caller": "None found; native matcher remains source-owned future/native caller."
+  },
+  "verification": {
+    "receipt": "/tmp/gridex-api-review/generated-actor-normalizer-isolated-compile-receipt.json",
+    "receipt_sha256": "0a883d88225cdfe891d66cbb400f4183f89a2206ce6cf7965ebbc3bb246856d9",
+    "first_and_replay": "COMMIT0 in both real fast-default native-shaped and materialized complete B2/B3 fixtures.",
+    "physical_only_changes": "Four exact pg_depend-derived index OIDs rebuilt; two genuine known fast-default markers materialized. Every logical definition/owner/ACL/RLS/constraint/trigger/policy field, unrelated index/table/column OID and original row fingerprint unchanged; whole replay exact.",
+    "negative_cases": 10,
+    "negative_result": "Unknown metadata/expression/index/default/storage marker variants fail closed and roll back complete catalogs. Pure collision primitives qualify two old distinct keys collapsing to one corrected duplicate group without business rows.",
+    "business_or_helper_invocations": 0,
+    "actual_native_writes_by_author": false,
+    "populated_data_limit": "Compiler fixtures contain zero business rows, so empty original-field fingerprints are not evidence of populated-row preservation. Current native aggregate confirms zero existing derived changes/collisions. Actual installation must execute the same locked before/after full original-field hash guard on the live649/647 rows; no populated rows copied or values returned."
+  },
+  "independent_reviews": {
+    "final_api_source_review": "APPROVED exact2a5 source + receipt0a883, independently fresh actual649/647 zero collisions/derived changes, pg_depend-only index OID and known storage marker exceptions, logical/default/original fingerprint guard.",
+    "native_forward_independent_review": "APPROVED exact2a5, independently fresh actual14:44:40 counts/collisions/mismatches, decoded correct E literals, exact index/storage exceptions, all4 genuine commits/replays and negative rollback receipt."
+  }
+}

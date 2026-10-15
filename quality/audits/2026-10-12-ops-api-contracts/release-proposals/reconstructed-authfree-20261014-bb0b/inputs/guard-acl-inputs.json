@@ -1,0 +1,39 @@
+{
+  "captured_at": "2026-10-14T06:09:58.056252+00:00",
+  "ledger_count": 519,
+  "auth_trigger_count": 422,
+  "namespaces": [
+    {
+      "nspname": "auth",
+      "nspacl": [
+        "supabase_admin=UC/supabase_admin",
+        "anon=U/supabase_admin",
+        "authenticated=U/supabase_admin",
+        "service_role=U/supabase_admin",
+        "supabase_auth_admin=UC/supabase_admin",
+        "dashboard_user=UC/supabase_admin",
+        "postgres=U/supabase_admin"
+      ]
+    }
+  ],
+  "protected_relations": [
+    {
+      "relname": "users",
+      "relacl": [
+        "supabase_auth_admin=arwdDxtm/supabase_auth_admin",
+        "dashboard_user=arwdDxtm/supabase_auth_admin",
+        "postgres=ar*wdDxtm/supabase_auth_admin"
+      ]
+    }
+  ],
+  "auth_functions": [
+    {
+      "proname": "uid",
+      "proacl": [
+        "=X/supabase_auth_admin",
+        "supabase_auth_admin=X/supabase_auth_admin",
+        "dashboard_user=X/supabase_auth_admin"
+      ]
+    }
+  ]
+}

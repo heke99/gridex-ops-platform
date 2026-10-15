@@ -1,0 +1,30 @@
+{
+  "captured_at": "2026-10-14 12:08:18 UTC",
+  "project": "piidsfebjqjmnepdpnas",
+  "source_gate": "lib/platform/schemaReadiness.ts",
+  "source_required_version": "20260803093300-gridex-runtime-readiness-v3",
+  "status": "PASS",
+  "live_readiness_row": {
+    "is_ready": true,
+    "schema_version": "20260803093300-gridex-runtime-readiness-v3",
+    "schema_fingerprint": "7a6cb27537ebeeab145dbfd170cc495ce14bc59cbc6983f77b6f69c7dd0902b7",
+    "blocking_issues": [],
+    "capabilities": {
+      "rls_gaps": [],
+      "policy_gaps": [],
+      "missing_columns": [],
+      "function_acl_gaps": [],
+      "missing_functions": [],
+      "missing_relations": [],
+      "view_security_gaps": [],
+      "duplicate_primary_groups": 0,
+      "invalid_active_api_clients": 0,
+      "tenantless_operational_rows": 0
+    },
+    "verified_at": "2026-08-14 07:39:31.999992+00",
+    "migration_version": "20260813230000",
+    "service_role_can_read": true
+  },
+  "business_rpc_calls": 0,
+  "limit": "Live capability SELECT matches deployed application gate; authenticated Staff/provider flow remains unqualified."
+}

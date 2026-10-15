@@ -1,0 +1,26 @@
+-- Privileged owner prerequisite proposal ONLY. Not applied and not an ordinary postgres migration.
+-- Execute through an already authorized connection acting as supabase_auth_admin; never create system-role membership.
+-- This grants no grant option and changes no app grants, role flags, business rows or function bodies.
+BEGIN;
+SET LOCAL search_path=pg_catalog;
+SET LOCAL lock_timeout='10s';
+DO $ops_protected_auth_owner_prerequisite$
+BEGIN
+ IF current_user<>'supabase_auth_admin' OR (SELECT relowner FROM pg_catalog.pg_class WHERE oid='auth.users'::regclass)<>(SELECT oid FROM pg_catalog.pg_roles WHERE rolname='supabase_auth_admin') THEN RAISE EXCEPTION 'ops_protected_auth_owner_execution_required' USING ERRCODE='42501'; END IF;
+
+ IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname='gridex_ediel_retention_owner' AND NOT rolcanlogin AND NOT rolinherit AND NOT rolsuper AND NOT rolcreatedb AND NOT rolcreaterole AND NOT rolreplication AND rolbypassrls) THEN RAISE EXCEPTION 'ops_retention_owner_shape_drift'; END IF;
+ IF EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname IN ('anon','authenticated','service_role','authenticator') AND (pg_catalog.pg_has_role(oid,'gridex_ediel_retention_owner','MEMBER') OR pg_catalog.pg_has_role(oid,'gridex_ediel_retention_owner','SET') OR pg_catalog.pg_has_role(oid,'gridex_ediel_retention_owner','USAGE'))) THEN RAISE EXCEPTION 'ops_retention_app_membership_drift'; END IF;
+ IF EXISTS (SELECT FROM pg_catalog.pg_auth_members WHERE roleid=(SELECT oid FROM pg_catalog.pg_roles WHERE rolname='gridex_ediel_retention_owner') AND member<>(SELECT oid FROM pg_catalog.pg_roles WHERE rolname='postgres')) THEN RAISE EXCEPTION 'ops_retention_member_set_drift'; END IF;
+
+ IF (SELECT count(*) FROM pg_catalog.pg_proc WHERE proowner=(SELECT oid FROM pg_catalog.pg_roles WHERE rolname='gridex_ediel_retention_owner'))<>1 OR NOT EXISTS (
+  SELECT FROM pg_catalog.pg_proc p WHERE p.oid='public.ediel_customer_record_tombstones_v1(uuid,uuid)'::regprocedure AND p.proowner=(SELECT oid FROM pg_catalog.pg_roles WHERE rolname='gridex_ediel_retention_owner') AND p.prosecdef AND p.proconfig=ARRAY['search_path=pg_catalog']::text[] AND pg_catalog.md5(p.prosrc)='7eb808f1f5414538379c60edd4a2d68e'
+  AND (SELECT jsonb_agg(jsonb_build_array(pg_catalog.pg_get_userbyid(a.grantee),pg_catalog.pg_get_userbyid(a.grantor),a.privilege_type,a.is_grantable) ORDER BY a.grantee,a.grantor,a.privilege_type) FROM pg_catalog.aclexplode(p.proacl) a)=(SELECT jsonb_agg(jsonb_build_array(grantee,grantor,'EXECUTE',false) ORDER BY roleoid) FROM (VALUES ('gridex_ediel_retention_owner','gridex_ediel_retention_owner',(SELECT oid FROM pg_catalog.pg_roles WHERE rolname='gridex_ediel_retention_owner')),('service_role','gridex_ediel_retention_owner',(SELECT oid FROM pg_catalog.pg_roles WHERE rolname='service_role'))) q(grantee,grantor,roleoid))
+ ) THEN RAISE EXCEPTION 'ops_retention_existing_callable_contract_drift'; END IF;
+
+ IF (SELECT array_agg(a::text ORDER BY a::text COLLATE "C") FROM unnest((SELECT relacl FROM pg_catalog.pg_class WHERE oid='auth.users'::regclass)) a WHERE split_part(a::text,'=',1)<>'gridex_ediel_retention_owner') IS DISTINCT FROM (SELECT array_agg(a::text ORDER BY a::text COLLATE "C") FROM unnest(ARRAY['supabase_auth_admin=arwdDxtm/supabase_auth_admin','dashboard_user=arwdDxtm/supabase_auth_admin','postgres=ar*wdDxtm/supabase_auth_admin']::aclitem[]) a) THEN RAISE EXCEPTION 'ops_protected_auth_existing_acl_drift'; END IF;
+ IF EXISTS(SELECT FROM pg_catalog.aclexplode((SELECT relacl FROM pg_catalog.pg_class WHERE oid='auth.users'::regclass)) a WHERE a.grantee=(SELECT oid FROM pg_catalog.pg_roles WHERE rolname='gridex_ediel_retention_owner') AND (a.grantor<>(SELECT oid FROM pg_catalog.pg_roles WHERE rolname='supabase_auth_admin') OR a.is_grantable OR NOT (a.privilege_type=ANY(ARRAY['SELECT','UPDATE']::text[])))) THEN RAISE EXCEPTION 'ops_protected_auth_retention_acl_drift'; END IF;
+ GRANT SELECT, UPDATE ON TABLE auth.users TO gridex_ediel_retention_owner;
+ IF NOT (pg_catalog.has_table_privilege('gridex_ediel_retention_owner','auth.users','SELECT') AND pg_catalog.has_table_privilege('gridex_ediel_retention_owner','auth.users','UPDATE')) OR (SELECT array_agg(a::text ORDER BY a::text COLLATE "C") FROM unnest((SELECT relacl FROM pg_catalog.pg_class WHERE oid='auth.users'::regclass)) a WHERE split_part(a::text,'=',1)<>'gridex_ediel_retention_owner') IS DISTINCT FROM (SELECT array_agg(a::text ORDER BY a::text COLLATE "C") FROM unnest(ARRAY['supabase_auth_admin=arwdDxtm/supabase_auth_admin','dashboard_user=arwdDxtm/supabase_auth_admin','postgres=ar*wdDxtm/supabase_auth_admin']::aclitem[]) a) THEN RAISE EXCEPTION 'ops_protected_auth_owner_postcondition_failed'; END IF;
+ IF EXISTS(SELECT FROM pg_catalog.aclexplode((SELECT relacl FROM pg_catalog.pg_class WHERE oid='auth.users'::regclass)) a WHERE a.grantee=(SELECT oid FROM pg_catalog.pg_roles WHERE rolname='gridex_ediel_retention_owner') AND (a.grantor<>(SELECT oid FROM pg_catalog.pg_roles WHERE rolname='supabase_auth_admin') OR a.is_grantable OR NOT (a.privilege_type=ANY(ARRAY['SELECT','UPDATE']::text[])))) THEN RAISE EXCEPTION 'ops_protected_auth_retention_post_acl_drift'; END IF;
+END $ops_protected_auth_owner_prerequisite$;
+COMMIT;

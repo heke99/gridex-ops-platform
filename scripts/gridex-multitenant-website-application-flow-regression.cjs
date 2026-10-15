@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const fs = require('node:fs')
 const path = require('node:path')
-const { currentContractVersion, currentReleasePath } = require('./lib/current-api-contract.cjs')
+const { currentDocumentationVersion, currentReleasePath } = require('./lib/current-api-contract.cjs')
 const { readSourceFamily } = require('./lib/read-source-family.cjs')
 
 function read(file) {
@@ -186,9 +186,9 @@ check(
     websiteContract.includes("MINIMUM_TENANT_INTEGRATION_VERSION = '2026-10-02.3'"),
   'schema-only correction remains compatible with the preceding tenant integration version',
 )
-check(websiteOpenApi.info.version === currentContractVersion, `website OpenAPI version is ${currentContractVersion}`)
+check(websiteOpenApi.info.version === currentDocumentationVersion, `website OpenAPI version is ${currentDocumentationVersion}`)
 check(Boolean(websiteOpenApi.webhooks.customerApplicationStatusChanged) && Boolean(websiteOpenApi.webhooks.supplierSwitchUpdated), 'website OpenAPI publishes customer-application and supplier-switch webhook callbacks')
-check(JSON.stringify(websiteOpenApi) === JSON.stringify(releasedWebsiteOpenApi), `immutable ${currentContractVersion} website OpenAPI release matches the current published contract`)
+check(JSON.stringify(websiteOpenApi) === JSON.stringify(releasedWebsiteOpenApi), `immutable ${currentDocumentationVersion} website OpenAPI release matches the current published contract`)
 const request = websiteOpenApi.components.schemas.CustomerApplicationRequest
 check(
   !request.required.includes('auth_user_id') &&

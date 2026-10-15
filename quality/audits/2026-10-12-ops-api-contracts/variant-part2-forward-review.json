@@ -1,0 +1,150 @@
+{
+  "schema": "ops_variant_part2_forward_review_v1",
+  "created_at_utc": "2026-10-13T11:38:36.365625+00:00",
+  "status": "READY_TWO_INDEPENDENT_FINAL_REVIEWS; GENUINE_ISOLATED_COMPILE_PASS; NO_NATIVE_APPLY",
+  "forward": {
+    "path": "/tmp/gridex-api-audit-ops/quality/audits/2026-10-12-ops-api-contracts/release-proposals/variant-part2-forward.sql",
+    "sha256": "edcd6154285a0f960ecf3599e34e2e961a2075531434c7ae8e139e42b3e74858",
+    "bytes": 104955
+  },
+  "problem": "Existing actual billing gate/storage and supplier finalizer cores omit current canonical source/supply locking, exact frozen native source materialization and legal activation receipt checks. Current stronger time/security fixes must be retained.",
+  "change": "Compose four exact current public cores with source-owned outer guards; existing postgres-only before_source_v2 aliases retain exact current storage/gate bodies. Full pg_proc identities/ACL/defaults/owners/config remain unchanged. Qualify digest as extensions.digest. Bind non-service fresh supplier completion actor to signed JWT subject after true completed replay; retain service delegation.",
+  "targets": [
+    {
+      "signature": "public.gridex_store_billing_underlay(uuid, jsonb, jsonb, uuid)",
+      "before_md5": "308925b74ad93a3094cd73e02373754b",
+      "canonical_predecessor_md5": "83b9d65803a4a4668b1a580d1e504415",
+      "after_md5": "91bdc82ed511b7e347ee4f7a1eec3cab",
+      "alias": {
+        "signature": "gridex_billing_source.gridex_store_billing_underlay_before_source_v2(uuid, jsonb, jsonb, uuid)",
+        "body_md5": "308925b74ad93a3094cd73e02373754b",
+        "privilege": "postgres-only; anon/authenticated/service_role execute denied"
+      }
+    },
+    {
+      "signature": "public.gridex_set_metering_billing_gate(uuid, uuid, uuid, jsonb)",
+      "before_md5": "f3b33679b5eac8bff84f2894503d8a52",
+      "canonical_predecessor_md5": "b3736967faaebca20bd11287a31be877",
+      "after_md5": "b3736967faaebca20bd11287a31be877",
+      "alias": {
+        "signature": "gridex_billing_source.gridex_set_metering_billing_gate_before_source_v2(uuid, uuid, uuid, jsonb)",
+        "body_md5": "f3b33679b5eac8bff84f2894503d8a52",
+        "privilege": "postgres-only; anon/authenticated/service_role execute denied"
+      }
+    },
+    {
+      "signature": "public.gridex_finalize_supplier_switch_activation(uuid, uuid, uuid)",
+      "before_md5": "5f043628ca691c5678f69451e3671eda",
+      "canonical_predecessor_md5": "becc3a4196d2aa6c301d790070cf2207",
+      "after_md5": "becc3a4196d2aa6c301d790070cf2207",
+      "alias": null
+    },
+    {
+      "signature": "public.gridex_finalize_supplier_switch_v1(uuid, uuid, uuid, jsonb)",
+      "before_md5": "69691adff6853aaf3120651ca39d6635",
+      "canonical_predecessor_md5": "635e123d9d99277fe8f57ef1a29c4999",
+      "after_md5": "4968066ae145521274ea241babbb05f8",
+      "alias": null
+    }
+  ],
+  "dependency_order": [
+    "Exact full additive module f9fc63bfcc6cd9d30a0958f602e4baf012c743173bed53efdae3b0193e618caa",
+    "Exact part1 forward d821d77e00f5dbb25d599e339bc3d36cfd73b78133e2d2f36e29b56557420ff7; activation body f37f78094a23b8ec93bf6db4bdf4ac58 required by part2 before any mutation",
+    "This exact sealed part2 forward"
+  ],
+  "actor_binding_proof": {
+    "actual_helpers": "Fresh pg_get_functiondef auth.role/uid + can_write_company/assert_switch_writer/actor_has_company_permission metadata; no JWT or person row values inspected.",
+    "source": "Authenticated can_write_company admits active owner/admin/company_admin/operations member; current wrapper actor metering.write check consumes p_actor_user_id. Without binding caller could name another permitted actor. SECURITY DEFINER current_user is postgres, so signed request auth.role/uid are the proper context authority.",
+    "guard": "After already_completed replay; non-service role requires non-null auth.uid and exact p_actor equality before new activation/writes. Service JWT role keeps delegated actor.",
+    "privacy": "No actual JWT claims, secrets, credential rows, person/customer/business values read."
+  },
+  "compile": {
+    "container": "gridex-ops-api-postgis-native-20261013",
+    "database": "ops_api_variant_part2_compile_20261013",
+    "base": "Own template clone of ops_api_full_upgrade_postgis_20261013; full f9 module plus fresh five expiry definitions. Root base untouched.",
+    "image": "gridex-ops-postgis-compile:17.6-3.3.7",
+    "network": "none (root container authority; dedicated clone)",
+    "check_function_bodies": "on; no validators softened, real metadata table/composite/helper shapes",
+    "part1_dependency_compile_exit": 0,
+    "final_part2_compile_exit": 0,
+    "final_idempotent_replay_exit": 0,
+    "source_complete_predecessor_exit": 0,
+    "identities": "All six native-state pg_proc rows except prosrc/OIDs/ACL/config preserved; two aliases unchanged and owner-only. All six source-complete-state identities preserved; gate/activation no-op, digest and actor-bind normalized selectively.",
+    "negative_dependency": "Old activation rejected before any mutation; full six-function catalog/body/ACL rows unchanged.",
+    "corrected_attempt": "First replay of older dae seal rejected canonical-body/native-config ambiguity on billing gate, without changes. Final edcd selector accepts only the two explicitly reviewed configs and passed genuine positive/replay/source-complete verification."
+  },
+  "verification_limits": [
+    "Genuine CREATE/DO validates PL/pgSQL body structure and actual rowtypes. PL/pgSQL SQL expressions plan lazily; no authentication/contract/supply/billing business RPC was invoked. This is not business end-to-end execution certification.",
+    "No native/production writes occurred. All mutations were bounded metadata DDL in a dedicated network-none isolated database.",
+    "Synthetic gap estimate flow is separately preexisting code/native limitation; do not weaken source guards or invent normalized source IDs. Root assigned a later bounded underlayEngine branch fix.",
+    "No historical customer/source bindings are backfilled by this forward. Existing exact source aliases and all historical source/receipt logic remain authoritative.",
+    "Unknown bodies/attributes/alias grants fail closed rather than overwritten; later approved external writers require fresh review."
+  ],
+  "review": {
+    "required_noncoauthor_peers": 2,
+    "status": "Root queue pending exact final hash; coauthor cannot count as reviewer"
+  },
+  "custody": "Root explicit new SQL/report writer handoff; both exact GitHub file claim refs returned404; no existing runtime/source or GEN files edited in this forward task.",
+  "artifacts": [
+    {
+      "path": "/tmp/gridex-api-review/variant-part2-fresh-native-payload.json",
+      "sha256": "69370253813ef4989d3e6a1c17b43e48749fe58cc69e04532e6b7dad8bf4b156"
+    },
+    {
+      "path": "/tmp/gridex-api-review/variant-part2-actor-native-helpers.json",
+      "sha256": "18cc63a6e8b4b092dd6498452b32a91534c65fc79584e73e70d58c4e8cdb23bd"
+    },
+    {
+      "path": "/tmp/gridex-api-review/variant-part2-forward-config.json",
+      "sha256": "425e6ae8970ba68bc8e01cba6982a2a3e75f328ef05992a1c89545035771b28d"
+    },
+    {
+      "path": "/tmp/gridex-api-review/variant-part2-isolated-precompile.json",
+      "sha256": "627220c232391f66158db9f338bc216d9385206edef4b6ca2ad53ed72720cae0"
+    },
+    {
+      "path": "/tmp/gridex-api-review/variant-part2-isolated-after-rejection.json",
+      "sha256": "627220c232391f66158db9f338bc216d9385206edef4b6ca2ad53ed72720cae0"
+    },
+    {
+      "path": "/tmp/gridex-api-review/variant-part2-isolated-dependency-rejection.log",
+      "sha256": "96b2575c9602b596285ea381b74f2dd4dc4202418d90d5a3f45cc75ce0868a1b"
+    },
+    {
+      "path": "/tmp/gridex-api-review/variant-part2-isolated-part1-dependency-compile.log",
+      "sha256": "28c99bd588cc0f7a4f75b26bd818771dfe98eb82b730d2cc03efbd6db6ae6e59"
+    },
+    {
+      "path": "/tmp/gridex-api-review/variant-part2-isolated-final-positive-compile.log",
+      "sha256": "28c99bd588cc0f7a4f75b26bd818771dfe98eb82b730d2cc03efbd6db6ae6e59"
+    },
+    {
+      "path": "/tmp/gridex-api-review/variant-part2-isolated-final-idempotent-replay.log",
+      "sha256": "28c99bd588cc0f7a4f75b26bd818771dfe98eb82b730d2cc03efbd6db6ae6e59"
+    },
+    {
+      "path": "/tmp/gridex-api-review/variant-part2-isolated-final-postcompile.json",
+      "sha256": "e839a1e2fc15cd1c74adaf7bbe94d9a5f4481847c8ddf865e24634ebc5df6a9b"
+    },
+    {
+      "path": "/tmp/gridex-api-review/variant-part2-isolated-canonical-complete-seed.sql",
+      "sha256": "7da1df4248741bf99a96e3eaf86421df3413ba86d3492f36f02075db46bff7cf"
+    },
+    {
+      "path": "/tmp/gridex-api-review/variant-part2-isolated-canonical-forward.log",
+      "sha256": "28c99bd588cc0f7a4f75b26bd818771dfe98eb82b730d2cc03efbd6db6ae6e59"
+    },
+    {
+      "path": "/tmp/gridex-api-review/variant-part2-isolated-canonical-before.json",
+      "sha256": "dc4ce1b4a3283f234aa9d14f30ea1a5a54174a10022962eaf12202d2ac9f75a0"
+    },
+    {
+      "path": "/tmp/gridex-api-review/variant-part2-isolated-canonical-after.json",
+      "sha256": "15b2a6bd1a72bc4fb4ca76a115ef3cd8ad4b23099ee6813555bcaeaa78d3f6b8"
+    },
+    {
+      "path": "/tmp/gridex-api-review/variant-part2-isolated-idempotent-replay.log",
+      "sha256": "c53d2c3614b5b367f4fbb0cddcfeb4626c26dfa719304b102f62b575788d9a2e"
+    }
+  ]
+}

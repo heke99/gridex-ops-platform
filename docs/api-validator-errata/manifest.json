@@ -1,0 +1,49 @@
+{
+  "status": "CHECKSUM_BOUND_RESPONSE_VALIDATOR_ERRATA",
+  "format": "RFC6902 JSON Patch",
+  "source_policy": "Keep original frozen document and checksum; store the patched validator document separately. Verify known original source checksum and RFC6902 test operations before applying. Derived checksum uses sorted-key compact UTF8 JSON plus final newline.",
+  "patches": [
+    {
+      "revision": "2026-10-02.3",
+      "surface": "customer-portal-v1",
+      "kind": "support-detail-messages",
+      "immutable_source_path": "docs/openapi/releases/2026-10-02.3/customer-portal-v1.json",
+      "immutable_source_sha256": "0a73e04c0c775b5b41e8eb14e26f8893acb9474f178ed8cb46965d30af4d28d0",
+      "patch_path": "docs/api-validator-errata/2026-10-02.3-customer-portal-v1-support-detail-messages.rfc6902.json",
+      "patch_sha256": "c613734ccd1ed94895cdfc2379488a70154848d9d5a19f1f58dfca1258ac8bae",
+      "patch_operations": 3,
+      "target_pointer": "/components/schemas/CustomerSupportCaseDetail",
+      "derived_canonical_json_sha256": "2a2fa1616a51d4ed596f8cc4a3230a78dcf325c8d99d66cd250acf831de98e2f",
+      "changes": "Only the confirmed response validator erratum; original info.version and all other schema nodes preserved.",
+      "does_not_change_runtime_request_requirements": true
+    },
+    {
+      "revision": "2026-10-02.3",
+      "surface": "website-integration-v1",
+      "kind": "fixed-quote-null-market-reference",
+      "immutable_source_path": "docs/openapi/releases/2026-10-02.3/website-integration-v1.json",
+      "immutable_source_sha256": "c6a13c2426f16bec0d630b3c912cec02b01336368196a7b9596b11b30332e948",
+      "patch_path": "docs/api-validator-errata/2026-10-02.3-website-integration-v1-fixed-quote-null-market-reference.rfc6902.json",
+      "patch_sha256": "142d60fa29d869ca283b8d94b18dc24de00eb6f60bded2b4807b0f88d65a24a9",
+      "patch_operations": 3,
+      "target_pointer": "/components/schemas/WebsiteQuoteValidationData/properties/market_reference",
+      "derived_canonical_json_sha256": "fe3935bc17fa3ae910b41388c3da1afa6f2c03868eed06c99c13a77f14beddd3",
+      "changes": "Only the confirmed response validator erratum; original info.version and all other schema nodes preserved.",
+      "does_not_change_runtime_request_requirements": true
+    },
+    {
+      "revision": "2026-10-04.1",
+      "surface": "website-integration-v1",
+      "kind": "fixed-quote-null-market-reference",
+      "immutable_source_path": "docs/openapi/releases/2026-10-04.1/website-integration-v1.json",
+      "immutable_source_sha256": "311c1fd85a82aec158bc5e391bcd380a8a944d7762a7fdeebb24cc0ae7da6a47",
+      "patch_path": "docs/api-validator-errata/2026-10-04.1-website-integration-v1-fixed-quote-null-market-reference.rfc6902.json",
+      "patch_sha256": "eae37b61e9ff6ec43c777ff36ba9b69f952d0f1cf9d802cbb4a5351ca88606d7",
+      "patch_operations": 3,
+      "target_pointer": "/components/schemas/WebsiteQuoteValidationData/properties/market_reference",
+      "derived_canonical_json_sha256": "26eeaecae7adda1bedec89a718a38dd189e65a90ff9f6704a226cd7ee90ecfcd",
+      "changes": "Only the confirmed response validator erratum; original info.version and all other schema nodes preserved.",
+      "does_not_change_runtime_request_requirements": true
+    }
+  ]
+}

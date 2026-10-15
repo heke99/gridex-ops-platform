@@ -1,0 +1,538 @@
+{
+  "at": "2026-10-14T07:59:47.241913+00:00",
+  "scope": "User-approved current and historical public OPS documentation; no business/API/provider calls",
+  "routes": 53,
+  "matching": 53,
+  "rows": [
+    {
+      "route": "/api/v1/openapi/website-integration-v1.json",
+      "source": "docs/openapi/website-integration-v1.json",
+      "status": 200,
+      "bytes": 548274,
+      "sha256": "d400b6730f4a51a0efb049daa73b3858763c0f7a7b4d8602735b49a9e679a47c",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-10-12.1",
+      "header_version": "2026-10-12.1"
+    },
+    {
+      "route": "/api/v1/openapi/staff-v1.json",
+      "source": "docs/openapi/staff-v1.json",
+      "status": 200,
+      "bytes": 492600,
+      "sha256": "d5c0f02947a409308367439114b3e594657c70df31132cc4b38a95314acd084b",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-10-12.1",
+      "header_version": "2026-10-12.1"
+    },
+    {
+      "route": "/api/v1/openapi/staff-onboarding-v1.json",
+      "source": "docs/openapi/staff-onboarding-v1.json",
+      "status": 200,
+      "bytes": 18903,
+      "sha256": "e7dde8a1cbcccdfeae38a46f886ab85f47ec24f269dca6018efdc7dcf77f8610",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-10-05.2",
+      "header_version": "2026-10-05.2"
+    },
+    {
+      "route": "/api/v1/openapi/customer-portal-v1.json",
+      "source": "docs/openapi/customer-portal-v1.json",
+      "status": 200,
+      "bytes": 568417,
+      "sha256": "20b3331e432f96c779748ad8e7a93a0b09deb25aaaa134f5a4e6887e5d03b185",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-10-12.1",
+      "header_version": "2026-10-12.1"
+    },
+    {
+      "route": "/api/v1/openapi/2026-10-12.1/website-integration-v1.json",
+      "source": "docs/openapi/releases/2026-10-12.1/website-integration-v1.json",
+      "status": 200,
+      "bytes": 548274,
+      "sha256": "d400b6730f4a51a0efb049daa73b3858763c0f7a7b4d8602735b49a9e679a47c",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-10-12.1",
+      "header_version": "2026-10-12.1"
+    },
+    {
+      "route": "/api/v1/openapi/2026-10-12.1/staff-v1.json",
+      "source": "docs/openapi/releases/2026-10-12.1/staff-v1.json",
+      "status": 200,
+      "bytes": 492600,
+      "sha256": "d5c0f02947a409308367439114b3e594657c70df31132cc4b38a95314acd084b",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-10-12.1",
+      "header_version": "2026-10-12.1"
+    },
+    {
+      "route": "/api/v1/openapi/2026-10-12.1/customer-portal-v1.json",
+      "source": "docs/openapi/releases/2026-10-12.1/customer-portal-v1.json",
+      "status": 200,
+      "bytes": 568417,
+      "sha256": "20b3331e432f96c779748ad8e7a93a0b09deb25aaaa134f5a4e6887e5d03b185",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-10-12.1",
+      "header_version": "2026-10-12.1"
+    },
+    {
+      "route": "/api/v1/openapi/2026-10-09.1/website-integration-v1.json",
+      "source": "docs/openapi/releases/2026-10-09.1/website-integration-v1.json",
+      "status": 200,
+      "bytes": 507732,
+      "sha256": "3309e822ba52e9251c7f7a30608a3b9b779d450137138a7d313aa79df36d2341",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-10-09.1",
+      "header_version": "2026-10-09.1"
+    },
+    {
+      "route": "/api/v1/openapi/2026-10-09.1/staff-v1.json",
+      "source": "docs/openapi/releases/2026-10-09.1/staff-v1.json",
+      "status": 200,
+      "bytes": 437191,
+      "sha256": "03e12284bb8534945a8c5edf1b3e6aba8ac2db4a4e8b1644da691ceeb524960a",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-10-09.1",
+      "header_version": "2026-10-09.1"
+    },
+    {
+      "route": "/api/v1/openapi/2026-10-09.1/customer-portal-v1.json",
+      "source": "docs/openapi/releases/2026-10-09.1/customer-portal-v1.json",
+      "status": 200,
+      "bytes": 509322,
+      "sha256": "9a9b92bc16c51507fa028c136f161b783dae8e30355002442a86a9128eeafa4c",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-10-09.1",
+      "header_version": "2026-10-09.1"
+    },
+    {
+      "route": "/api/v1/openapi/2026-10-04.1/website-integration-v1.json",
+      "source": "docs/openapi/releases/2026-10-04.1/website-integration-v1.json",
+      "status": 200,
+      "bytes": 499787,
+      "sha256": "311c1fd85a82aec158bc5e391bcd380a8a944d7762a7fdeebb24cc0ae7da6a47",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-10-04.1",
+      "header_version": "2026-10-04.1"
+    },
+    {
+      "route": "/api/v1/openapi/2026-10-04.1/staff-v1.json",
+      "source": "docs/openapi/releases/2026-10-04.1/staff-v1.json",
+      "status": 200,
+      "bytes": 374586,
+      "sha256": "460cf343a397c99f1173482ceb4c0045828399172fd47dd8c078e7d611e16de7",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-10-04.1",
+      "header_version": "2026-10-04.1"
+    },
+    {
+      "route": "/api/v1/openapi/2026-10-04.1/customer-portal-v1.json",
+      "source": "docs/openapi/releases/2026-10-04.1/customer-portal-v1.json",
+      "status": 200,
+      "bytes": 491564,
+      "sha256": "2ada64c650234d8cf8e5191c68d6b6ab8b47586c5fef13feeb611a9bddb79294",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-10-04.1",
+      "header_version": "2026-10-04.1"
+    },
+    {
+      "route": "/api/v1/openapi/2026-10-02.4/website-integration-v1.json",
+      "source": "docs/openapi/releases/2026-10-02.4/website-integration-v1.json",
+      "status": 200,
+      "bytes": 493612,
+      "sha256": "10fb2f3051f112990fe4ef63ffa18b24ee5d9b5203b1f4429a2a3d88675c43be",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-10-02.4",
+      "header_version": "2026-10-02.4"
+    },
+    {
+      "route": "/api/v1/openapi/2026-10-02.4/customer-portal-v1.json",
+      "source": "docs/openapi/releases/2026-10-02.4/customer-portal-v1.json",
+      "status": 200,
+      "bytes": 488339,
+      "sha256": "442ee521e2286a3364de082cce50b68be3085db7855caf151a8999005b790503",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-10-02.4",
+      "header_version": "2026-10-02.4"
+    },
+    {
+      "route": "/api/v1/openapi/2026-10-02.3/website-integration-v1.json",
+      "source": "docs/openapi/releases/2026-10-02.3/website-integration-v1.json",
+      "status": 200,
+      "bytes": 475952,
+      "sha256": "500bfcb0b5558f49590b4316a22093036383f0204921e97b8e39a072eaed2c8e",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-10-02.3",
+      "header_version": "2026-10-02.3"
+    },
+    {
+      "route": "/api/v1/openapi/2026-10-02.3/customer-portal-v1.json",
+      "source": "docs/openapi/releases/2026-10-02.3/customer-portal-v1.json",
+      "status": 200,
+      "bytes": 474717,
+      "sha256": "f6eb115d099f3b7105155fdc5e6923c8bf4072eb41d83d6f495e297e5b4f50cf",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-10-02.3",
+      "header_version": "2026-10-02.3"
+    },
+    {
+      "route": "/api/v1/openapi/2026-10-02.2/website-integration-v1.json",
+      "source": "docs/openapi/releases/2026-10-02.2/website-integration-v1.json",
+      "status": 200,
+      "bytes": 470636,
+      "sha256": "76f1ff9ea11d26b6ee0bed499f7d1a4033b2a15ca82bfb74b710bf94bd99c1fa",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-10-02.2",
+      "header_version": "2026-10-02.2"
+    },
+    {
+      "route": "/api/v1/openapi/2026-10-02.2/customer-portal-v1.json",
+      "source": "docs/openapi/releases/2026-10-02.2/customer-portal-v1.json",
+      "status": 200,
+      "bytes": 471830,
+      "sha256": "04d709cf92bc30c481dd4369b277dd828919b5739bdbe86ba87ba379017f8849",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-10-02.2",
+      "header_version": "2026-10-02.2"
+    },
+    {
+      "route": "/api/v1/openapi/2026-10-02.1/website-integration-v1.json",
+      "source": "docs/openapi/releases/2026-10-02.1/website-integration-v1.json",
+      "status": 200,
+      "bytes": 465320,
+      "sha256": "e1bf5b9f72f6a7e0ee7d47c97f78dba4ca279acf4139e6af8218c91ee42de319",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-10-02.1",
+      "header_version": "2026-10-02.1"
+    },
+    {
+      "route": "/api/v1/openapi/2026-10-02.1/customer-portal-v1.json",
+      "source": "docs/openapi/releases/2026-10-02.1/customer-portal-v1.json",
+      "status": 200,
+      "bytes": 439880,
+      "sha256": "4ec4251b82edb700c1a6e36747fcd7db9bddc2ba2ae7c47beefc7ec1d012f322",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-10-02.1",
+      "header_version": "2026-10-02.1"
+    },
+    {
+      "route": "/api/v1/openapi/2026-10-01.1/website-integration-v1.json",
+      "source": "docs/openapi/releases/2026-10-01.1/website-integration-v1.json",
+      "status": 200,
+      "bytes": 460004,
+      "sha256": "626fad97f45b13081b25b3dc24e46d3146896a2bb549d7d608e8218d016b6dca",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-10-01.1",
+      "header_version": "2026-10-01.1"
+    },
+    {
+      "route": "/api/v1/openapi/2026-10-01.1/customer-portal-v1.json",
+      "source": "docs/openapi/releases/2026-10-01.1/customer-portal-v1.json",
+      "status": 200,
+      "bytes": 396785,
+      "sha256": "9ddeae334dfd13fcb9875fa1ada1d777d952ddc271bc303ae5dccbe25e210f53",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-10-01.1",
+      "header_version": "2026-10-01.1"
+    },
+    {
+      "route": "/api/v1/openapi/2026-08-22.2/website-integration-v1.json",
+      "source": "docs/openapi/releases/2026-08-22.2/website-integration-v1.json",
+      "status": 200,
+      "bytes": 454688,
+      "sha256": "f89637e6138621acd7e4d25d2d7e025ce4b56a68d12b2f984b49d44adfce6dbb",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-08-22.2",
+      "header_version": "2026-08-22.2"
+    },
+    {
+      "route": "/api/v1/openapi/2026-08-22.2/customer-portal-v1.json",
+      "source": "docs/openapi/releases/2026-08-22.2/customer-portal-v1.json",
+      "status": 200,
+      "bytes": 331510,
+      "sha256": "f5c8909c37a88eece134a3c4db8f885e2f1a1699c58e5fe987c5b5fa4d61caf8",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-08-22.2",
+      "header_version": "2026-08-22.2"
+    },
+    {
+      "route": "/api/v1/openapi/2026-08-22.1/website-integration-v1.json",
+      "source": "docs/openapi/releases/2026-08-22.1/website-integration-v1.json",
+      "status": 200,
+      "bytes": 454583,
+      "sha256": "e702b5c0ed254737a3a8e97935e57b2a50270cde6d98aac55442000d4fb7a2e0",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-08-22.1",
+      "header_version": "2026-08-22.1"
+    },
+    {
+      "route": "/api/v1/openapi/2026-08-22.1/customer-portal-v1.json",
+      "source": "docs/openapi/releases/2026-08-22.1/customer-portal-v1.json",
+      "status": 200,
+      "bytes": 331510,
+      "sha256": "4424cc7d922a37fcd41e1f3abca7915809a49f28ac964aa9011760241efd0065",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-08-22.1",
+      "header_version": "2026-08-22.1"
+    },
+    {
+      "route": "/api/v1/openapi/2026-08-20.2/website-integration-v1.json",
+      "source": "docs/openapi/releases/2026-08-20.2/website-integration-v1.json",
+      "status": 200,
+      "bytes": 445401,
+      "sha256": "c3f44ca1ec805f219a8b940a6c05b90f32c6399aef48318ea1b61da9d819d8ab",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-08-20.2",
+      "header_version": "2026-08-20.2"
+    },
+    {
+      "route": "/api/v1/openapi/2026-08-20.2/customer-portal-v1.json",
+      "source": "docs/openapi/releases/2026-08-20.2/customer-portal-v1.json",
+      "status": 200,
+      "bytes": 328148,
+      "sha256": "cf115699988680e167cde55543994294c7000e58c52d5aaebb9f2a02f268d08b",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-08-20.2",
+      "header_version": "2026-08-20.2"
+    },
+    {
+      "route": "/api/v1/openapi/2026-08-20.1/website-integration-v1.json",
+      "source": "docs/openapi/releases/2026-08-20.1/website-integration-v1.json",
+      "status": 200,
+      "bytes": 435729,
+      "sha256": "1d5f8853842af8a0b34a42a433045adb32a750e8190b4e3124cd07565d831720",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-08-20.1",
+      "header_version": "2026-08-20.1"
+    },
+    {
+      "route": "/api/v1/openapi/2026-08-20.1/customer-portal-v1.json",
+      "source": "docs/openapi/releases/2026-08-20.1/customer-portal-v1.json",
+      "status": 200,
+      "bytes": 317265,
+      "sha256": "7b10bc3bf6e1e777aece6308d0c27eccd8e124801426e7b23d75e1ce391e2506",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-08-20.1",
+      "header_version": "2026-08-20.1"
+    },
+    {
+      "route": "/api/v1/openapi/2026-08-19.2/website-integration-v1.json",
+      "source": "docs/openapi/releases/2026-08-19.2/website-integration-v1.json",
+      "status": 200,
+      "bytes": 429549,
+      "sha256": "0cf1141657063a86266737ce658518e14456ed8a19c6e32590aeb6efa22cce17",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-08-19.2",
+      "header_version": "2026-08-19.2"
+    },
+    {
+      "route": "/api/v1/openapi/2026-08-19.2/customer-portal-v1.json",
+      "source": "docs/openapi/releases/2026-08-19.2/customer-portal-v1.json",
+      "status": 200,
+      "bytes": 314172,
+      "sha256": "9601ec30bfb47632f2cced96281211a669d5a8cdd5309a839d547d7352e6b0e6",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-08-19.2",
+      "header_version": "2026-08-19.2"
+    },
+    {
+      "route": "/api/v1/openapi/2026-08-19.1/website-integration-v1.json",
+      "source": "docs/openapi/releases/2026-08-19.1/website-integration-v1.json",
+      "status": 200,
+      "bytes": 422430,
+      "sha256": "f1ae22013c65ed303f6b6b52f1460234ebcfd53d73f50c3e5e6137d6182c30cc",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-08-19.1",
+      "header_version": "2026-08-19.1"
+    },
+    {
+      "route": "/api/v1/openapi/2026-08-19.1/customer-portal-v1.json",
+      "source": "docs/openapi/releases/2026-08-19.1/customer-portal-v1.json",
+      "status": 200,
+      "bytes": 310083,
+      "sha256": "eb665e515456e2d8bcb7eca8481778e27ef75bca7f27e74251f857de6f959e81",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-08-19.1",
+      "header_version": "2026-08-19.1"
+    },
+    {
+      "route": "/api/v1/openapi/2026-08-14.1/website-integration-v1.json",
+      "source": "docs/openapi/releases/2026-08-14.1/website-integration-v1.json",
+      "status": 200,
+      "bytes": 412035,
+      "sha256": "15fe33ae0a5d56e67db0b8f59b86837bd5b46ce5999f6638bc96577058befa1c",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-08-14.1",
+      "header_version": "2026-08-14.1"
+    },
+    {
+      "route": "/api/v1/openapi/2026-08-14.1/customer-portal-v1.json",
+      "source": "docs/openapi/releases/2026-08-14.1/customer-portal-v1.json",
+      "status": 200,
+      "bytes": 307425,
+      "sha256": "324a2bdd41e3d3dc915c8b5d75e144d37e4401c6688375dfb6b707340a3bd518",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-08-14.1",
+      "header_version": "2026-08-14.1"
+    },
+    {
+      "route": "/api/v1/openapi/2026-08-10.1/website-integration-v1.json",
+      "source": "docs/openapi/releases/2026-08-10.1/website-integration-v1.json",
+      "status": 200,
+      "bytes": 406297,
+      "sha256": "1f0741696b0b898dff74e1991d2bd67de4e429fe891ec8e76ab679f56986a8d2",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-08-10.1",
+      "header_version": "2026-08-10.1"
+    },
+    {
+      "route": "/api/v1/openapi/2026-08-10.1/customer-portal-v1.json",
+      "source": "docs/openapi/releases/2026-08-10.1/customer-portal-v1.json",
+      "status": 200,
+      "bytes": 303303,
+      "sha256": "c39bd3b48166f3807d0ec9032705201333ce763572d0f098eddc741a2243e9bf",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-08-10.1",
+      "header_version": "2026-08-10.1"
+    },
+    {
+      "route": "/api/v1/openapi/2026-08-05.2/website-integration-v1.json",
+      "source": "docs/openapi/releases/2026-08-05.2/website-integration-v1.json",
+      "status": 200,
+      "bytes": 395767,
+      "sha256": "bca75245a96b3c1cfe8758139aa33e944626937d1f02174232e2706fcb157a79",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-08-05.2",
+      "header_version": "2026-08-05.2"
+    },
+    {
+      "route": "/api/v1/openapi/2026-08-05.2/customer-portal-v1.json",
+      "source": "docs/openapi/releases/2026-08-05.2/customer-portal-v1.json",
+      "status": 200,
+      "bytes": 296043,
+      "sha256": "a2b8c452983308d0d90b45fe379125197b1b03d4e920275388e39d9692d88944",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-08-05.2",
+      "header_version": "2026-08-05.2"
+    },
+    {
+      "route": "/api/v1/openapi/2026-08-05.1/website-integration-v1.json",
+      "source": "docs/openapi/releases/2026-08-05.1/website-integration-v1.json",
+      "status": 200,
+      "bytes": 390267,
+      "sha256": "29090387b008c9bb7cdfd390727948bfee78d7f899730fbaf35cfe0c834a62ae",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-08-05.1",
+      "header_version": "2026-08-05.1"
+    },
+    {
+      "route": "/api/v1/openapi/2026-08-05.1/customer-portal-v1.json",
+      "source": "docs/openapi/releases/2026-08-05.1/customer-portal-v1.json",
+      "status": 200,
+      "bytes": 292391,
+      "sha256": "610d560de333ad6f28019a8c1ca191e7c64852cbadbd7472db62ec8825a96e70",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-08-05.1",
+      "header_version": "2026-08-05.1"
+    },
+    {
+      "route": "/api/v1/openapi/2026-08-04.3/website-integration-v1.json",
+      "source": "docs/openapi/releases/2026-08-04.3/website-integration-v1.json",
+      "status": 200,
+      "bytes": 375025,
+      "sha256": "98065ad6b7109bd88320b472183f24839c7c41b208d420b6d083e96d2ddbac62",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-08-04.3",
+      "header_version": "2026-08-04.3"
+    },
+    {
+      "route": "/api/v1/openapi/2026-08-04.3/customer-portal-v1.json",
+      "source": "docs/openapi/releases/2026-08-04.3/customer-portal-v1.json",
+      "status": 200,
+      "bytes": 289197,
+      "sha256": "78bf3f685bc151ef47a9763612592d9a7ba2a4f5aef5acba118afde2df664a4d",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-08-04.3",
+      "header_version": "2026-08-04.3"
+    },
+    {
+      "route": "/api/v1/openapi/2026-08-04.2/website-integration-v1.json",
+      "source": "docs/openapi/releases/2026-08-04.2/website-integration-v1.json",
+      "status": 200,
+      "bytes": 364037,
+      "sha256": "2788aac4d981ed2e7443d50ffe406148d620dc855c5d97a2623cc3160b90249c",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-08-04.2",
+      "header_version": "2026-08-04.2"
+    },
+    {
+      "route": "/api/v1/openapi/2026-08-04.2/customer-portal-v1.json",
+      "source": "docs/openapi/releases/2026-08-04.2/customer-portal-v1.json",
+      "status": 200,
+      "bytes": 286003,
+      "sha256": "4d4e837f2404046db7ab1df7e1707c2bce7cedbb0a8cec4c067a1c51d672f9dd",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-08-04.2",
+      "header_version": "2026-08-04.2"
+    },
+    {
+      "route": "/api/v1/openapi/2026-08-04.1/website-integration-v1.json",
+      "source": "docs/openapi/releases/2026-08-04.1/website-integration-v1.json",
+      "status": 200,
+      "bytes": 352907,
+      "sha256": "93929f9090f0768215c46175faec30c7f78d6b5c5ee994524173c3e7645e66a6",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-08-04.1",
+      "header_version": "2026-08-04.1"
+    },
+    {
+      "route": "/api/v1/openapi/2026-08-04.1/customer-portal-v1.json",
+      "source": "docs/openapi/releases/2026-08-04.1/customer-portal-v1.json",
+      "status": 200,
+      "bytes": 284233,
+      "sha256": "d46123d2d938a9bd3a2848ee9563c3a7286023a07c6d3a5c965d6b0f2679f9de",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-08-04.1",
+      "header_version": "2026-08-04.1"
+    },
+    {
+      "route": "/api/v1/openapi/2026-08-03.1/website-integration-v1.json",
+      "source": "docs/openapi/releases/2026-08-03.1/website-integration-v1.json",
+      "status": 200,
+      "bytes": 320581,
+      "sha256": "6b8828ff7331dce30d0f34b6c479e65d386033e4eac2a6c3c93f78b1e5f4bb25",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-08-03.1",
+      "header_version": "2026-08-03.1"
+    },
+    {
+      "route": "/api/v1/openapi/2026-08-03.1/customer-portal-v1.json",
+      "source": "docs/openapi/releases/2026-08-03.1/customer-portal-v1.json",
+      "status": 200,
+      "bytes": 281039,
+      "sha256": "6bec57d38c6a64af9c54088f0412531291392333674e565a040f8a31daad82a0",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-08-03.1",
+      "header_version": "2026-08-03.1"
+    },
+    {
+      "route": "/api/v1/openapi/2026-08-02.1/website-integration-v1.json",
+      "source": "docs/openapi/releases/2026-08-02.1/website-integration-v1.json",
+      "status": 200,
+      "bytes": 307507,
+      "sha256": "971f0f4e00330971c92a37046f54fa7d27416a5b64932c7d37d7892b79691e7a",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-08-02.1",
+      "header_version": "2026-08-02.1"
+    },
+    {
+      "route": "/api/v1/openapi/2026-08-02.1/customer-portal-v1.json",
+      "source": "docs/openapi/releases/2026-08-02.1/customer-portal-v1.json",
+      "status": 200,
+      "bytes": 275304,
+      "sha256": "61d65069a44c9ae5cfde8f3f5a1b4d88da8e1ec89c97bac7f6d66df1154c4f9a",
+      "json_equals_normalized_source": true,
+      "info_version": "2026-08-02.1",
+      "header_version": "2026-08-02.1"
+    }
+  ]
+}

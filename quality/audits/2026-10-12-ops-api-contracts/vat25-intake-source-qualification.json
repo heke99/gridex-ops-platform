@@ -1,0 +1,84 @@
+{
+  "scope": "One source-file Gridex OPS manual admin intake VAT fraction correction; actual source/native schema and bodies are authority",
+  "source": {
+    "path": "app/admin/customers/actions.part-2.ts",
+    "sha256": "98ca0f58bc25d50ae19601c080add1df6dfe9f855b669c9c1800baee77949b93"
+  },
+  "confirmed_trigger": "Manual contractTypeOverride selected, statusDRAFT, no offer: existing scalar/camelpriceSnapshot offer?.vat_rate??25 passed percentage25 into native fractioncolumn, with no boundoffer fee override, and actual customer_contracts0..1 CHECK rejects atomic intake.",
+  "fix": "Two fallbacks now use readonly shared SWEDISH_STANDARD_VAT_RATE=.25. Existing boundofferdecimal and explicit producer0 retained by nullishcoalescing. No global JSONwriter or historical-row changes.",
+  "actual_callgraph": [
+    {
+      "source": "actions.part-2.ts",
+      "entry": "onboardCustomerGraph(...channel admin)"
+    },
+    {
+      "source": "lib/customers/canonicalOnboarding.ts205",
+      "entry": "supabaseService.rpc canonical_onboard_customer_graph; p_command sent"
+    },
+    {
+      "native": "canonical_onboard_customer_graph(jsonb)",
+      "body_md5": "863d75ad1ffd558b2810a31184f20712",
+      "entry": "Delegates gridex_onboard_customer_graph"
+    },
+    {
+      "native": "gridex_onboard_customer_graph(jsonb)",
+      "body_md5": "216c5d3e6151ade50bbd5e6410c3e910",
+      "entry": "channel admin(nonwebsite) delegates quote_commit_v2"
+    },
+    {
+      "native": "gridex_onboard_customer_graph_quote_commit_v2(jsonb)",
+      "body_md5": "007d078d9d0065395edf2190d4f1d3b6",
+      "entry": "service role required; channelnonwebsite delegates core unchanged; freshnative2026-10-13T11:44:08.87563+00:00"
+    },
+    {
+      "native": "gridex_onboard_customer_graph_core(jsonb)",
+      "body_md5": "ef4dc9d7249b196965ab628864c7095c",
+      "entry": "Copies contractpayload and binds allocated contract/customer/company/site IDs, then calls generic insert helper; no VATnormalization"
+    },
+    {
+      "native": "gridex_insert_jsonb_row(regclass,jsonb)",
+      "body_md5": "7f4a7d64fdd77af306f3b2bed9e88dde",
+      "entry": "INSERT using jsonb_populate_record actual columntypes; no VATnormalization"
+    },
+    {
+      "native": "customer_contracts.vat_rate",
+      "entry": "numeric default.25, CHECKnull or0..1; fee-triggerb8d78... earlyreturnwhen nooffer"
+    }
+  ],
+  "qualification": {
+    "app_typecheck_exit_code": 0,
+    "command": "PATH=/tmp/gridex-audit-runtime/node_modules/node/bin:$PATH npm run typecheck",
+    "log": "/tmp/gridex-api-review/vat25-intake-source-app-typecheck.log",
+    "bounded_eslint_exit_code": 0,
+    "eslint_command": "PATH=/tmp/gridex-audit-runtime/node_modules/node/bin:$PATH ./node_modules/.bin/eslint app/admin/customers/actions.part-2.ts",
+    "eslint_log": "/tmp/gridex-api-review/vat25-intake-source-eslint.log",
+    "git_diff_check_exit_code": 0,
+    "tests_executed": false,
+    "actual_intake_or_business_rpc_invoked": false,
+    "actual_native_writes": false
+  },
+  "peer_status": "Exactsource98ca sent to both independentnoncoauthor reviewers; parent owns finalpeer/commit gate",
+  "evidence": [
+    {
+      "path": "/tmp/gridex-api-review/vat25-additional-unit-native-metadata.json",
+      "sha256": "9371a158182d491b9a8705075ea1d0f5eeb40c33f9df7543566286fc0f0cfc6d"
+    },
+    {
+      "path": "/tmp/gridex-api-review/vat25-additional-onboarding-unit-native.json",
+      "sha256": "fd4849b55c0572027c32edebe311aefe5da8f1b19b109b72120102de9cc35be6"
+    },
+    {
+      "path": "/tmp/gridex-api-review/vat25-additional-onboarding-core-native.json",
+      "sha256": "71522cb97650c609f1b900c869c3a7b2e616bd8f3f9910f403fc0d37e5ae80ff"
+    },
+    {
+      "path": "/tmp/gridex-api-review/vat25-additional-onboarding-generic-writes-native.json",
+      "sha256": "e3e7896115bca1a3f8d3a78d77a76b4590009d0bf25015c2f791e5e5bf5ac82a"
+    },
+    {
+      "path": "/tmp/gridex-api-review/vat25-intake-quote-delegation-native.json",
+      "sha256": "feaac9193eee30b96f86467b36b571dbadd6c49b08a8a0a17b2b1f0397b9e689"
+    }
+  ],
+  "limits": "No actual customer/pricing/person records or business intakes invoked. Successful ordinarysource compilation and static nativeflow qualification do not claim configured end-to-end customer success."
+}

@@ -85,6 +85,14 @@ REVOKE ALL ON FUNCTION canonical_accept_tenant_invitation(jsonb) FROM PUBLIC,ano
 GRANT EXECUTE ON FUNCTION canonical_accept_tenant_invitation(jsonb) TO service_role;
 ${read('supabase/migrations/20260802203000_canonical_runtime_consistency_hardening.sql').match(/insert into public\.canonical_tenant_access_role_mapping\([\s\S]+?updated_at=now\(\);/)[0]}
 INSERT INTO roles(key,name,scope,is_active) VALUES('customer_service_agent','customer_service_agent','company',true);
+-- Registry reference keys come from the actual immutable role profiles. No
+-- actor/role assignment or permission override is created by this fixture.
+INSERT INTO public.permissions(id,key,name,is_active)
+SELECT gen_random_uuid(),reference.key,reference.key,true
+FROM jsonb_each('${fn('gridex_staff_role_profile_v1').match(/\('([^']+)'::jsonb\)->p_role_key/)[1]}'::jsonb) profile
+CROSS JOIN LATERAL jsonb_array_elements_text(profile.value) reference(key)
+WHERE NOT EXISTS(SELECT FROM public.permissions existing WHERE existing.key=reference.key)
+GROUP BY reference.key;
 `
 }
 module.exports = { buildStaffExternalIdentityFixture }

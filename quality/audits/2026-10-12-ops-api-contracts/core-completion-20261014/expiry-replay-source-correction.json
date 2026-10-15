@@ -1,0 +1,23 @@
+{
+  "schema": "ops_expiry_replay_source_correction_v1",
+  "status": "TWO_INDEPENDENT_SOURCE_APPROVALS_AND_WORKING_CLEAN_INPUT_PREFLIGHT_PASS_FULL_SQL_PENDING",
+  "original": "supabase/migrations/20261013105521_ops_api_current_auth_token_expiry.sql",
+  "original_sha256": "9e3dc9544031b8d42acdaa850c9ba1963d8b6b6ff0c7d35c76f1be49368ba7bf",
+  "artifact": "supabase/bootstrap/20261013_ops_auth_expiry_replay_adapter.sql",
+  "artifact_sha256": "070b2e524b964c78e9e99a91553f8d4eab74811fb8a76e994cfe8e52088b84fa",
+  "proven_difference": "Staff101527 fourcommentlines/externalStaff124901 twocommentlines; canonicalBefore+canonicalOriginal onlythese2 added. All5nativepairs/outputbodies/expectedattributes retained. Missingcanonical/hashliteralwrongpairs rejected. Original3 remaining preimages match exact historical amendments/schema moves.",
+  "clean_input_preflight": {
+    "exit": 0,
+    "foundation": 59,
+    "substitutions": 12,
+    "noncanonical_exclusions": 3,
+    "interleaved": 23,
+    "timestamped": 1143
+  },
+  "migration_integrity": "PASS 1251files1154versiongroups checksums",
+  "genuine_sql_execution": "NOT_RUN_FOR_THIS_SOURCE",
+  "native_writes": 0,
+  "canonical_type_capture": "NOT_RUN",
+  "followup": "Qualify committed clean/strictupgrade/historyunion inputmaterialization then publishedcurrent8file source union through existingqualified wholeSQL/schema/type lane.",
+  "recorded_at": "2026-10-14T18:56:06.892209+00:00"
+}

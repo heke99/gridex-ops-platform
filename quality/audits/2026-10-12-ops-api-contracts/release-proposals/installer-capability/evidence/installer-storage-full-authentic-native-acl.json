@@ -1,0 +1,88 @@
+{
+  "schema": {
+    "acl": [
+      "supabase_admin=UC/supabase_admin",
+      "postgres=U*/supabase_admin",
+      "anon=U/supabase_admin",
+      "authenticated=U/supabase_admin",
+      "service_role=U/supabase_admin",
+      "supabase_storage_admin=U*C*/supabase_admin",
+      "dashboard_user=UC/supabase_admin"
+    ],
+    "owner": "supabase_admin"
+  },
+  "objects": {
+    "acl": [
+      "supabase_storage_admin=a*r*w*d*D*x*t*m*/supabase_storage_admin",
+      "service_role=arwdDxtm/supabase_storage_admin",
+      "authenticated=arwdDxtm/supabase_storage_admin",
+      "anon=arwdDxtm/supabase_storage_admin",
+      "postgres=a*r*w*d*D*x*t*m*/supabase_storage_admin"
+    ],
+    "rls": true,
+    "owner": "supabase_storage_admin",
+    "force_rls": false,
+    "columns_acl": [
+      {
+        "acl": null,
+        "name": "id"
+      },
+      {
+        "acl": null,
+        "name": "bucket_id"
+      },
+      {
+        "acl": null,
+        "name": "name"
+      },
+      {
+        "acl": null,
+        "name": "owner"
+      },
+      {
+        "acl": null,
+        "name": "created_at"
+      },
+      {
+        "acl": null,
+        "name": "updated_at"
+      },
+      {
+        "acl": null,
+        "name": "last_accessed_at"
+      },
+      {
+        "acl": null,
+        "name": "metadata"
+      },
+      {
+        "acl": null,
+        "name": "path_tokens"
+      },
+      {
+        "acl": null,
+        "name": "version"
+      },
+      {
+        "acl": null,
+        "name": "owner_id"
+      },
+      {
+        "acl": null,
+        "name": "user_metadata"
+      },
+      {
+        "acl": null,
+        "name": "archived_at"
+      },
+      {
+        "acl": null,
+        "name": "is_delete_marker"
+      },
+      {
+        "acl": null,
+        "name": "is_versioned"
+      }
+    ]
+  }
+}

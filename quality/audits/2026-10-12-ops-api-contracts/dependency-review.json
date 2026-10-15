@@ -1,0 +1,113 @@
+{
+  "schema": "gridex-ops-dependency-and-ci-review-v1",
+  "observed_at_utc": "2026-10-12T23:24:52.070886+00:00",
+  "source_head": "995ee01997b729527510ecc43cc6ff144aa5a230",
+  "scope": {
+    "project": "Gridex OPS",
+    "excluded": [
+      "gridex-web"
+    ],
+    "authority": "Actual dependency lock, current advisory, real production call sites; CI checks supporting evidence",
+    "writes": "This report only; package.json/package-lock.json untouched; no database/provider/native execution"
+  },
+  "production_audit": {
+    "command": "npm run security:audit-production",
+    "runner": "root agent, explicitly user-authorized",
+    "log": "/tmp/gridex-api-review/authorized-dependency-audit.log",
+    "outcome": "passed",
+    "remaining_counts": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0
+    },
+    "exception_applied": "node-forge GHSA-86w9-cpqp-85rv",
+    "claim_limit": "Pass applies the existing documented exception; it does not mean no upstream high advisory exists."
+  },
+  "dependency_lock": {
+    "sha256": "8bf0aca13c2f57d92db355bda81f38e526b3bd50a33db7859d272daad8d9f5c5",
+    "package_json_sha256": "241f6cc84f581ec3acac22d970add3c9646e74603bac4a86d895e8864cbefa9c",
+    "selected_packages": {
+      "node-forge": "1.4.0",
+      "next": "16.3.8",
+      "postcss": "8.5.25",
+      "fast-xml-parser": "5.11.2",
+      "resend": "6.12.4",
+      "imapflow": "2.2.1",
+      "ldapts": "8.1.8",
+      "nodemailer": "10.0.13",
+      "react": "19.2.4",
+      "sharp": "0.35.5"
+    }
+  },
+  "exceptions": [
+    {
+      "advisory": "GHSA-86w9-cpqp-85rv",
+      "package": "node-forge",
+      "expires": "2026-11-01",
+      "reason": "No fixed release (node-forge <=1.4.0, 1.4.0 is latest). The advisory concerns RSA PKCS#1 v1.5 signature verification. Gridex uses node-forge only for S/MIME enveloped-data encryption/decryption (pkcs7.createEnvelopedData, messageFromAsn1 + decrypt) and PKCS#12 import in lib/ediel; no forge signature verification is called. Upgrade and remove this entry when a fixed release is published."
+    }
+  ],
+  "node_forge_direct_review": {
+    "locked_version": "1.4.0",
+    "registry_latest_version": "1.4.0",
+    "registry_command": "npm_config_cache=/tmp/gridex-api-review/npm-read-cache npm view node-forge version --json",
+    "advisory": {
+      "id": "GHSA-86w9-cpqp-85rv",
+      "summary": "node-forge RSA PKCS#1 v1.5 signature verification accepts extra nested DigestAlgorithm elements",
+      "severity": "high",
+      "updated_at": "2026-10-01T21:09:10Z",
+      "vulnerable_version_range": "<= 1.4.0",
+      "first_patched_version": null
+    },
+    "production_uses": [
+      "lib/ediel/security/importP12Certificate.ts: ASN.1 and PKCS12 parsing/certificate metadata",
+      "lib/ediel/security/privateCertificateStore.ts: PKCS12 parsing/certificate metadata",
+      "lib/ediel/transport/cmsRecipientSet.ts: CMS envelope recipient inspection",
+      "lib/ediel/transport/index.part-1.ts: CMS enveloped encryption and recipient inspection",
+      "lib/ediel/transport/smime.ts: CMS enveloped encryption/decryption"
+    ],
+    "vulnerable_verify_path": "No forge RSA PKCS#1 v1.5 signature verification called by inspected production import sites. Actual certificate trust verification in lib/ediel/security/certificateTrust.ts uses node:crypto X509Certificate.verify and OpenSSL.",
+    "action": "No patched version currently available; no package version mutation warranted. Preserve existing expiry2026-11-01 and reevaluate/remove exception when patched release appears. New advisories remain blocking."
+  },
+  "ci_snapshot": {
+    "pr": 794,
+    "head": "437ea6f73fb90f56d697f64e3c2b6b58fa24abad",
+    "complete": false,
+    "failures": [
+      {
+        "name": "OPS hardening / verify",
+        "run_id": 38320611335,
+        "job_id": 115047974356,
+        "failed_step": "npm run gridex:contract-channel-publication-regression",
+        "classification": "Confirmed checker documentation/wire equality assumption invalidated by intended split; runtime markers remain correct",
+        "local_log": "/tmp/gridex-api-review/pr794-channel-local-check.log",
+        "metadata_log": "/tmp/gridex-api-review/pr794-ops-verify-job-metadata.json",
+        "exact_failure": "FAIL canonical contract version drives DTO, header and response metadata",
+        "source": "scripts/gridex-contract-channel-publication-regression.cjs190-198",
+        "fix": "Separately check docs info.version against API_DOCUMENTATION_VERSION and x-contract-schema-version against WEBSITE_INTEGRATION_CONTRACT_VERSION; retain DTO/header/response assertions.",
+        "dependency_audit_step": "Skipped after previous failing checker, not a vulnerability finding",
+        "full_job_log": "Not available while workflow active; direct signed blob log endpoint returned403. Completed-job metadata, annotations and exact local reproduction obtained."
+      },
+      {
+        "name": "Ediel Z10M SUPPLIER native feedback",
+        "run_id": 38320611631,
+        "job_id": 115047540613,
+        "classification": "Source/workflow epoch composition mismatch detected before clean replay or business native proof",
+        "exact_failure": "native_source_drift: scripts/ediel-at-z10m-supplier-acceptance-native.test.ts",
+        "log": "/tmp/gridex-api-review/pr794-z10m-job.log",
+        "executed_workflow_expected_sha256": "d3a2eaab29c7621457e11d6df9bd10ee9c54150de16f7b57d63efaac142b1a3d",
+        "current_fixture_sha256": "d3a2eaab29c7621457e11d6df9bd10ee9c54150de16f7b57d63efaac142b1a3d",
+        "current_workflow_expected_sha256": "fed80cb12ffa89c01e1501fb85040a09f0555c0257ea0dbd850946feea5c4fde",
+        "action": "Reconcile actual current source and workflow through existing Ediel owner/source epoch; do not change frozen hash to bypass the guard. No API business failure established."
+      }
+    ]
+  },
+  "actionable_package_version_fixes": [],
+  "limitations": [
+    "Production dependency audit omits dev dependencies by policy; no claim that development tree was scanned.",
+    "Ongoing CI jobs cannot yet be classified as complete success/failure.",
+    "No genuine database/provider effects inferred from static or unit checks."
+  ]
+}
