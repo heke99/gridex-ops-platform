@@ -1,8 +1,21 @@
 # Public API identifier policy
 
-Gridex public APIs expose business references and tenant-bound public resource
-references. PostgreSQL UUIDs remain internal join keys and are never part of a
-public request, response, webhook payload or customer-facing URL.
+Gridex customer and business APIs use business references and tenant-bound public resource
+references. Database row identifiers are internal join keys. The Staff API explicitly
+uses central staff user UUIDs for its documented staff-account operations and signed
+identity claims. The separate onboarding proof also contains operator-verified identity
+and binding fields; none of these fields grants access by itself.
+
+Supported V1 legal-evidence compatibility fields retain their documented immutable
+legal bundle/document version UUIDs. They are accepted only at the explicit published
+feed and legal-bundle paths in the response guard, including the legal requirements
+and module/document evidence lists. New resource boundaries should use public references;
+these narrow legacy fields do not permit arbitrary database IDs in a response.
+
+The documented event list also exposes `event_id`, a derived opaque reference
+with the format `event_` followed by 32 lowercase hexadecimal characters. The
+response guard accepts it only at `data[n].event_id` in the event list envelope;
+this exception does not allow raw UUIDs or other `_id` fields.
 
 An identifier is never authorization. Every read and write repeats the
 server-resolved `company_id` predicate and returns a neutral `404` when the

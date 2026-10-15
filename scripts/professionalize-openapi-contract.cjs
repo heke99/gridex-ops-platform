@@ -2,12 +2,25 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const fs = require('node:fs')
 const path = require('node:path')
+const { documentCredentialResponseProfileErrors, documentPricingAndWithdrawalEvidence } = require('./lib/openapi-release-schemas.cjs')
 
-const { currentContractVersion: VERSION } = require('./lib/current-api-contract.cjs')
+const { currentDocumentationVersion: VERSION, runtimeContractVersion } = require('./lib/current-api-contract.cjs')
 const SPEC_FILES = [
   'docs/openapi/website-integration-v1.json',
   'docs/openapi/customer-portal-v1.json',
 ]
+
+// A bounded description update must preserve already prepared paths, headers
+// and schema constraints instead of reapplying the broader release transform.
+if (process.argv.includes('--evidence-descriptions-only')) {
+  for (const file of SPEC_FILES) {
+    const document = JSON.parse(fs.readFileSync(file, 'utf8'))
+    documentPricingAndWithdrawalEvidence(document)
+    fs.writeFileSync(file, JSON.stringify(document, null, 2) + '\n')
+  }
+  console.log(`Pricing and withdrawal descriptions prepared for ${VERSION}.`)
+  process.exit(0)
+}
 
 const ORGANIZATION_REFERENCE_SCHEMA = {
   type: 'string',
@@ -181,7 +194,7 @@ for (const file of SPEC_FILES) {
 
   document.info = document.info ?? {}
   document.info.version = VERSION
-  document['x-contract-schema-version'] = VERSION
+  document['x-contract-schema-version'] = runtimeContractVersion
   if (file.includes('website-integration')) {
     document.info.title = 'Gridex Website Integration API'
     document.info.description =
@@ -212,6 +225,8 @@ for (const file of SPEC_FILES) {
       'True when the configured website checkout and customer portal capabilities are ready for production use.'
   }
 
+  documentCredentialResponseProfileErrors(document)
+  documentPricingAndWithdrawalEvidence(document)
   const serialized = JSON.stringify(document, null, 2) + '\n'
   const forbidden = [
     /tenant_reference/i,

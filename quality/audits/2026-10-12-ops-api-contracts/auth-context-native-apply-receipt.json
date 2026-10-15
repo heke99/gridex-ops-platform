@@ -1,0 +1,114 @@
+{
+  "scope": "OPS actual native forward migration only",
+  "project_id": "piidsfebjqjmnepdpnas",
+  "sql_sha256": "c0b42937d124b8a50e77e2d773a4a9ce03062a24eff3abb6d93eb49b0affc418",
+  "source_created_by": "Official Supabase CLI2.101.0 initial20261013095453; unpublished file aligned to actual assigned20261013095628 preserving exact bytes",
+  "independent_noncoauthor_reviews": [
+    "final_api_source_review",
+    "native_forward_independent_review"
+  ],
+  "isolated_compile_receipt": "auth-context-isolated-compile-receipt.json",
+  "native_postflight": {
+    "checked_at": "2026-10-13 09:57:02.757778+00",
+    "migration_count": 424,
+    "migration": [
+      {
+        "name": "ops_api_current_context_permission_denies",
+        "sql_md5": "e5faa53793ebd0059a27906a2962454e",
+        "version": "20261013095628"
+      }
+    ],
+    "functions": [
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "oid": "19281",
+        "args": "p_user_id uuid",
+        "name": "gridex_get_user_permissions",
+        "owner": "postgres",
+        "config": [
+          "search_path=public, auth, pg_temp"
+        ],
+        "body_md5": "abc7cf42141a02abdfab33cbd013fee8",
+        "volatility": "v",
+        "anon_execute": false,
+        "definition_md5": "072b4944f93eac05f4aae292b248b376",
+        "service_execute": true,
+        "security_definer": true,
+        "authenticated_execute": false
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres}",
+        "oid": "19282",
+        "args": "p_user_id uuid, p_permission text",
+        "name": "gridex_has_permission",
+        "owner": "postgres",
+        "config": [
+          "search_path=public, auth, pg_temp"
+        ],
+        "body_md5": "62ab7072f95952b588f784c9e5956870",
+        "volatility": "v",
+        "anon_execute": false,
+        "definition_md5": "06fca4a60052e161bb57c4f4f5288fb7",
+        "service_execute": true,
+        "security_definer": true,
+        "authenticated_execute": true
+      },
+      {
+        "acl": "{postgres=X/postgres}",
+        "oid": "341351",
+        "args": "p_selected_company_id uuid",
+        "name": "canonical_authenticated_tenant_context_v1_scoped",
+        "owner": "postgres",
+        "config": [
+          "search_path=public, auth, pg_temp"
+        ],
+        "body_md5": "d205c4e8ba1989b27b4df6b1b76af631",
+        "volatility": "v",
+        "anon_execute": false,
+        "definition_md5": "3de279331fe984fc1ee0fef399d0f43a",
+        "service_execute": false,
+        "security_definer": true,
+        "authenticated_execute": false
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres}",
+        "oid": "356773",
+        "args": "p_company_id uuid, p_permission text",
+        "name": "gridex_has_permission_in_company",
+        "owner": "postgres",
+        "config": [
+          "search_path=public, auth, pg_temp"
+        ],
+        "body_md5": "c734e54d5f3a33eaa3b2f5a0bbd4d9ba",
+        "volatility": "v",
+        "anon_execute": false,
+        "definition_md5": "f62179c07a1b57111a8663320bedb565",
+        "service_execute": true,
+        "security_definer": true,
+        "authenticated_execute": true
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "oid": "356774",
+        "args": "p_user_id uuid, p_company_id uuid",
+        "name": "gridex_get_user_permissions_in_company",
+        "owner": "postgres",
+        "config": [
+          "search_path=public, auth, pg_temp"
+        ],
+        "body_md5": "cd48d5a1fc77db9fc4cfb62b58e5ad5c",
+        "volatility": "v",
+        "anon_execute": false,
+        "definition_md5": "8d7fd2004c474626fbb124cd18106779",
+        "service_execute": true,
+        "security_definer": true,
+        "authenticated_execute": false
+      }
+    ]
+  },
+  "business_rpc_invocations": 0,
+  "provider_calls": 0,
+  "canonical_gen": 0,
+  "qualification": "Five existing native context/permission helpers filter active catalog/current global and company denies, current Auth/profile identity. Existing role/direct/platform grant branches and read-only paused history preserved; original OIDs/owners/ACL/config/defaults/arguments unchanged, volatility corrected. Public context wrapper already delegates to scoped helper; new internal active/denied arrays reach code after ordinary source release.",
+  "source_route_alias_review": "admin-api-permission-catalog-review.json,12calls/11files2noncoauthorapprovals;app typecheck/scopedlint passed"
+}

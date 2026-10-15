@@ -1,0 +1,127 @@
+{
+  "proposal": "release-proposals/vat25-publication-forward.sql",
+  "proposal_sha256": "ab6c5f1211903acaa646160cf76094f6aa18ffae299f9721ae25808a8d365210",
+  "database": "ops_api_vat25_publication_compile_20261013",
+  "postgres": "17.6",
+  "container_network": "none",
+  "first_commit_exit_code": 0,
+  "replay_commit_exit_code": 0,
+  "exact_approved_postbody_noop": true,
+  "replay_entire_function_metadata_unchanged": true,
+  "canonical_precursor_bodies_exact_native_equal": true,
+  "unknown_body_policy": "failclosed",
+  "actual_functions": 46,
+  "actual_table_shapes": 95,
+  "actual_views": 2,
+  "check_function_bodies": true,
+  "stubbed_bodies": false,
+  "business_rows_imported": false,
+  "business_functions_invoked": false,
+  "before": [
+    {
+      "acl": [
+        "postgres=X/postgres",
+        "service_role=X/postgres"
+      ],
+      "oid": "100636",
+      "cost": 100,
+      "rows": 0,
+      "owner": "postgres",
+      "config": [
+        "search_path=public, extensions, pg_temp"
+      ],
+      "return": "jsonb",
+      "strict": false,
+      "body_md5": "b00d519ea7145470100fdc90f0e8811e",
+      "language": "plpgsql",
+      "parallel": "u",
+      "arguments": "p_company_id uuid, p_offer_id uuid, p_channel text, p_actor_user_id uuid",
+      "leakproof": false,
+      "signature": "gridex_publish_contract_channel(uuid,uuid,text,uuid)",
+      "volatility": "v",
+      "security_definer": true,
+      "identity_arguments": "p_company_id uuid, p_offer_id uuid, p_channel text, p_actor_user_id uuid"
+    },
+    {
+      "acl": [
+        "postgres=X/postgres",
+        "service_role=X/postgres"
+      ],
+      "oid": "100608",
+      "cost": 100,
+      "rows": 0,
+      "owner": "postgres",
+      "config": [
+        "search_path=public, extensions, pg_temp"
+      ],
+      "return": "contract_publication_versions",
+      "strict": false,
+      "body_md5": "684fa1bc1967322f8e676669215e8dba",
+      "language": "plpgsql",
+      "parallel": "u",
+      "arguments": "p_publication_version_id uuid, p_actor_user_id uuid DEFAULT NULL::uuid",
+      "leakproof": false,
+      "signature": "gridex_publish_contract_publication_version(uuid,uuid)",
+      "volatility": "v",
+      "security_definer": true,
+      "identity_arguments": "p_publication_version_id uuid, p_actor_user_id uuid"
+    }
+  ],
+  "after": [
+    {
+      "acl": [
+        "postgres=X/postgres",
+        "service_role=X/postgres"
+      ],
+      "oid": "100636",
+      "cost": 100,
+      "rows": 0,
+      "owner": "postgres",
+      "config": [
+        "search_path=public, extensions, pg_temp"
+      ],
+      "return": "jsonb",
+      "strict": false,
+      "body_md5": "e1ce2908fde6bcba9f797115196a4786",
+      "language": "plpgsql",
+      "parallel": "u",
+      "arguments": "p_company_id uuid, p_offer_id uuid, p_channel text, p_actor_user_id uuid",
+      "leakproof": false,
+      "signature": "gridex_publish_contract_channel(uuid,uuid,text,uuid)",
+      "volatility": "v",
+      "security_definer": true,
+      "identity_arguments": "p_company_id uuid, p_offer_id uuid, p_channel text, p_actor_user_id uuid"
+    },
+    {
+      "acl": [
+        "postgres=X/postgres",
+        "service_role=X/postgres"
+      ],
+      "oid": "100608",
+      "cost": 100,
+      "rows": 0,
+      "owner": "postgres",
+      "config": [
+        "search_path=public, extensions, pg_temp"
+      ],
+      "return": "contract_publication_versions",
+      "strict": false,
+      "body_md5": "ba799bdc42f5da7296d10832a7eca507",
+      "language": "plpgsql",
+      "parallel": "u",
+      "arguments": "p_publication_version_id uuid, p_actor_user_id uuid DEFAULT NULL::uuid",
+      "leakproof": false,
+      "signature": "gridex_publish_contract_publication_version(uuid,uuid)",
+      "volatility": "v",
+      "security_definer": true,
+      "identity_arguments": "p_publication_version_id uuid, p_actor_user_id uuid"
+    }
+  ],
+  "qualification_limit": "Actual shape strict CREATE/COMMIT/replay and byte/metadata checks. PL/pgSQL embedded SQL deferred until business invocation; no production business invocation.",
+  "unknown_body_probe": {
+    "exit_code": 3,
+    "rejected_before_patch": "vat25_publication_predecessor_0_changed",
+    "transaction_rollback_entire_function_metadata_unchanged": true,
+    "business_invocations": false
+  }
+}

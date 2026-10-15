@@ -1,0 +1,153 @@
+{
+  "schema": "ops_api_extra_z02_source_authority_native_review_v1",
+  "project": "piidsfebjqjmnepdpnas",
+  "scope": "Gridex OPS only; metadata/source authority; no customer rows, business RPCs, native writes, provider calls, backfills or GEN mutations",
+  "status": "Exact source-authority/generated-column forward fully reviewed and isolated-compiled; root owns actual native apply.",
+  "native_metadata": "/tmp/gridex-api-review/extra-z02-all-function-trigger-generated-native-metadata.json",
+  "native_catalog_counts": {
+    "functions": 873,
+    "enabled_user_triggers": 822,
+    "stored_generated_columns": 21
+  },
+  "source_schema_sha256": "ced195d0f8af67b8a400ba71c2eca110cbcd639a0dba880d19e7dccff7a14492",
+  "finding": {
+    "signature": "public.gridex_apply_exact_z02_core(uuid,uuid,uuid,uuid,uuid,uuid,uuid)",
+    "before_md5": "1f6d3d3b756b7c0e821237142f7f4c99",
+    "severity": "P2",
+    "generated_column": {
+      "relation": "public.customer_sites",
+      "column": "normalized_facility_id",
+      "expression": "gridex_normalize_facility_id(facility_id)",
+      "attgenerated": "s"
+    },
+    "illegal_assignment": "normalized_facility_id = coalesce(v_facility_id, normalized_facility_id)",
+    "trigger_root": {
+      "table": "public.customer_operation_jobs",
+      "name": "trg_customer_operation_job_z02_zz_atomic_apply",
+      "enabled": "O",
+      "callee": "public.gridex_gate_exact_z02_atomic_apply()",
+      "event": "BEFORE INSERT OR UPDATE OF status,payload,job_type",
+      "effect": "Exact/valid/fresh queued/running inbound-grid-owner-response calls atomic core before job write; generated-column error is not caught by identifier parsing handler."
+    },
+    "current_source_call_chain": [
+      {
+        "file": "lib/onboarding/inboundEdielLinking.ts",
+        "line": 257,
+        "effect": "Passes current persistenceActorId to enqueueInboundGridOwnerResponseAutomation; later accepts only all database-owned atomic proof flags."
+      },
+      {
+        "file": "lib/customer-operations/automation.part-1.ts",
+        "line": 867,
+        "effect": "Enqueue job_type apply_inbound_grid_owner_response with request/message/operation/site and actor; enqueue table write triggers native atomic core."
+      },
+      {
+        "file": "lib/customer-operations/z02AtomicEvidence.ts",
+        "line": 13,
+        "effect": "Requires exact correlation, valid payload, valid source snapshot, atomic flag and core.ok; app proof cannot repair a native failed write."
+      }
+    ],
+    "source_semantic_gaps": [
+      "Old native core trusts mutable parsed_payload for point/grid area/price area/annual consumption; canonical kernel reads immutable original Z02 and frozen originating Z01 plus accepted transport proof.",
+      "Old native core can invent consumption/hourly/settlement defaults for new point; canonical kernel requires one current source-qualified existing point.",
+      "Old native core lacks immutable same-scope z02_core_applications receipt and exact latest canonical object/identity/request snapshot selection.",
+      "Old native public entrypoint lacks current same-company active actor membership/profile, current permission deny-aware write/read protection, source context/rulepack and full field-owner acceptance before first business mutation."
+    ]
+  },
+  "fix": {
+    "proposal": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/variant-extra-z02-forward.sql",
+    "sha256": "1e6af520f4946864bd3626fc5e4fc9b711380df1dce2875a649da788aadce448",
+    "public_after_md5": "42161c7ee80cc679a5b1a88e18eadb14",
+    "canonical_complete_public_md5": "3a30081f9583f648099cc6e4e494513a",
+    "source_owned_kernel_signature": "gridex_received_sources.gridex_apply_exact_z02_core_before_current_source_v1(uuid,uuid,uuid,uuid,uuid,uuid,uuid)",
+    "kernel_after_md5": "330c06439413e48d27d11c9da07a9ec6",
+    "source_kernel_line": 24988,
+    "source_public_wrapper_line": 52557,
+    "bounded_composition": "Install exact canonical owner-only source kernel; replace existing public body with canonical protected wrapper plus identical scoped request→message→site preliminary FOR UPDATE holds ONLY when immutable same-source/request receipt is absent, preserving deployed first-effect core lock order and original historical receipt replay. Reentrant delegate holds use the same rows. Preserve every public pg_proc field except prosrc, including OID, owner, ACL, args/defaults, config, language, security and volatility.",
+    "generated_column": "Only actual source facility_id is written; PostgreSQL derives normalized_facility_id. Canonical kernel contains no generated setter.",
+    "history": "No old records/results are relabelled or regenerated; frozen same-scope result follows original canonical read-permission branch; source-complete canonical body and exact patched replay are inert.",
+    "source_of_business_values": "Canonical accepted immutable original facts; no caller annual quantity and no fabricated point defaults.",
+    "preconditions": "Full reviewed additive dependency foundation; current permission-deny actor helper exact native hash; 144 AST helper signatures/hash alternatives,172 required relations; exact source receipt columns/constraints/enabled trigger effects/FORCE RLS. Existing aliases with unknown body/config/privileges fail closed. Unknown public body/attrs fail closed.",
+    "part1_seal_unchanged": "d821d77e00f5dbb25d599e339bc3d36cfd73b78133e2d2f36e29b56557420ff7",
+    "alias_metadata": "Full canonical owner/args/defaults/result/language/strict/parallel/leakproof/cost/rows/config/security/volatility plus exact body and owner-only ACL; owner equals preserved public execution owner. Unknown existing metadata fails closed.",
+    "superseded_preliminary_seals": [
+      {
+        "sha256": "ad739f01ed4c8753fc647fda56b42a79f7bd4065d880433e21dc9ed242b16175",
+        "reason": "Author self-review preserved historical receipt replay by making request/site preliminary holds first-effect-only. Never executed/applied."
+      },
+      {
+        "sha256": "33e934bd86fab5a89c89c8f288a040adb69becc1c5f05bf2f06b8fa1f567161a",
+        "reason": "Compiler read-only review requested full owner-only helper metadata ABI guard; both business bodies unchanged in final0e970. Never executed/applied."
+      },
+      {
+        "sha256": "0e9709de243e1aab5e41ed26212d85964f0bf54afe81bc38ab76a3f5704e6d14",
+        "reason": "Genuine isolated execution safely rolled back before creation: receipt constraint projection used default pretty=false while exact captured metadata used pretty=true. Final guard explicitly uses pg_get_constraintdef(oid,true); all constraint names/types/validation/full definitions remain exact; both business bodies unchanged."
+      },
+      {
+        "sha256": "5b8c63da7fc4c426e33d36c38caae39e93278fcf996307a173f78872f0a2c6e7",
+        "reason": "Genuine isolated run fullyrolledback SQL JSON projection precedence; final uses ((spec->expected)-acl) explicitly. Business bodies42161/330c unchanged."
+      }
+    ]
+  },
+  "dependency_authority": {
+    "ast_plan": "/tmp/gridex-api-review/extra-z02-source-plan.json",
+    "objects": 319,
+    "source_sql_units": 1529,
+    "parser_gaps": 0,
+    "full_foundation_manifest": "/tmp/gridex-api-review/native-additive-portable-expanded-state-manifest.json",
+    "additional_body_units_only": [
+      "public.gridex_apply_exact_z02_core",
+      "gridex_received_sources.gridex_apply_exact_z02_core_before_current_source_v1"
+    ],
+    "direct_relation_metadata": "/tmp/gridex-api-review/extra-z02-direct-relation-native-metadata.json",
+    "current_missing_direct_relations": [
+      "gridex_received_sources.z02_core_applications",
+      "gridex_ediel_transport.attempts"
+    ],
+    "missing_direct_helpers_before_foundation": [
+      "gridex_ediel_inbound_context.require_v1",
+      "gridex_ediel_source_rules.require_v1",
+      "gridex_received_sources.require_prodat_application_objects_v1",
+      "gridex_received_sources.prodat_application_object_accepted_v1",
+      "gridex_received_sources.z02_core_wire_v1"
+    ],
+    "qualification": "These prerequisite objects are supplied by the reviewed full additive module; the new forward intentionally does not independently duplicate their ownership/DDL."
+  },
+  "verification": {
+    "outer_sql_parse": "PASS",
+    "nested_two_function_sql_parse": "PASS",
+    "all_three_plpgsql_body_parse": "PASS",
+    "genuine_isolated_compile": {
+      "status": "PASS: exact1e6 firstCOMMIT, idempotent replayCOMMIT, canonical-complete existingbody no-opCOMMIT; 5unknownABI/owner/body/constraint/trigger variants exit3 and fullyROLLBACK. All144helpers/172relations/exactreceiptshape/FORCE RLS qualified; no business calls.",
+      "receipt": "/tmp/gridex-api-review/extra-z02-isolated-compile-receipt.json",
+      "receipt_sha256": "2c391a9138f6576aaecac03b189463efae71d3fb3793643749cf21e15c38cd86"
+    },
+    "independent_noncoauthor_reviews": {
+      "native_forward_independent_review": "APPROVED final1e6: freshactual12:48:53 fullpublicattrs/oldbody/generatedcolumn/enabledjobs trigger, kernel330c/public42161/replay/sourceeffects/fullidentity genuinecompile examined; no edits/writes/businesscalls/tests.",
+      "final_api_source_review": "APPROVED final1e6: current native predecessor/fullattrs and sourcekernel/actor/source/request-message-site/replay effects, full owner-only alias ABI guard and genuinefirst/replay fullidentity examined; no edits/writes/businesscalls/tests."
+    },
+    "actual_native_apply": "root only; not performed by this author",
+    "isolated_approval_review": "Initial stale ad739 auto-review rejection made no SQL change. Final exact 1e6 isolated first/replay/source-complete/negative qualification passed under authorized current hash; no live writes by this author."
+  },
+  "completeness_limit": "A broader enabled-trigger→callee/source drift and all stored-generated-column DML audit is delegated by root to website_confirmation_price_fix. Counts/presence alone do not establish runtime correctness; no live business invocation or customer-data migration claimed.",
+  "completeness_generated_column_result": {
+    "artifact": "/tmp/gridex-api-review/ops-enabled-trigger-generated-column-scan.json",
+    "authority": "Website agent genuine SQL/PLpgSQL AST over all873 current functions and21 stored-generated columns, zero parser gaps.",
+    "result": "Only two non-default generated-column assignments: extra Z02 core and separately sealed part1 facility core. No new setter found.",
+    "trigger_closure_status": "231 distinct active trigger roots→318 native callee names; API/trigger union614 names. Broader source-effect drift qualification continues separately, including technical ACK/header-negative/quarantine/retention exceptions."
+  },
+  "adjacent_current_path_blocker": {
+    "functions": [
+      "public.gridex_edifact_cci_cav_value(text,text)",
+      "public.gridex_edifact_nad_element(text,text,integer)"
+    ],
+    "effect": "The separate plain-double-backslash parser blocker is fixed by root actual applies 2026-10-13 13:23:30/13:23:58; approved E-body hashes and complete attributes verified. Atomic Z02 composition remains root-owned proposal installation after full additive dependencies.",
+    "forward": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/variant-z02-regex-literals-forward.sql"
+  },
+  "strict_semantic_post_metadata_assertion": {
+    "forward": "release-proposals/semantic-forward-metadata-integrity.sql",
+    "sha256": "5aa1fd4fc45a85819b683dff4756d97ad3c3387e9e2d9bd1a9424b63ebb9d4c9",
+    "status": "Both NONcoauthor peers approved; genuine current/source15 first/replay and8ABI refusal rollbacks PASS; metadata checked before accepted-body replay. Previous sealed business forward bytes preserved.",
+    "receipt_sha256": "dbdc4fa5eee2fadac378dcd861c1aaedb8f9234b471246e0e19221290fe5c8ab",
+    "ordering": "Apply after part1d821 and extraZ021e6; root actual apply only."
+  }
+}

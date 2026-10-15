@@ -9,6 +9,8 @@ import {createCustomerRecordRetentionNativeUser} from './helpers/ediel-customer-
 import {mixedProdatNativeWire} from './helpers/ediel-mixed-prodat-native-wire'
 import {PROCESS_JOURNAL_RETENTION_CLASSES,type ProcessJournalRetentionClass} from '@/lib/ediel/retention/processJournalRetention'
 import {writeBrowserFixture} from './helpers/browserFixture'
+// Explicit private-owner scope for synthetic setup/readback only; product JWT calls retain their actors.
+const retentionSql=<T>(query:string)=>sql<T>(`BEGIN;SET LOCAL ROLE gridex_ediel_retention_owner;${query};COMMIT;`)
 type Target={retentionClass:ProcessJournalRetentionClass;targetId:string;documentBase64:string;documentHash:string;sourceHash:string;issuerReceipt:Record<string,string>;immutable:Record<string,unknown>;decisionId?:string}
 type Fixture={companyId:string;actorId:string;actorEmail:string;reviewerId:string;reviewerEmail:string;readonlyEmail:string;foreignCompanyId:string;foreignEmail:string;targets:Target[]}
 const digest=(b:Buffer)=>createHash('sha256').update(b).digest('hex')
@@ -51,7 +53,7 @@ it('genuine pre-market contract/signature/PDF/POA and installed prospective owne
  const foreignCompany=randomUUID();sql(`INSERT INTO public.companies(id,name,status) VALUES(${literal(foreignCompany)},'Synthetic foreign process journal browser','archived')`);const foreign=await createCustomerRecordRetentionNativeUser(foreignCompany,shared,password)
  for(const u of [writer,reviewer,readonly,foreign]){const listed=await u.client.rpc('ediel_current_retention_companies_v1',{});expect(listed.error).toBeNull();expect(listed.data.map((c:{companyId:string})=>c.companyId)).toEqual([u===foreign?foreignCompany:f.companyId])}
  const issuer=randomUUID(),key=Buffer.from(randomUUID()+randomUUID()),legal=Buffer.from('SYNTHETIC ONLY separate process-journal issuer competence')
- sql(`INSERT INTO gridex_ediel_retention.issuers(id,company_id,legal_reference,legal_evidence,legal_hash,signing_key,valid_from,valid_to) VALUES(${literal(issuer)},${literal(f.companyId)},'SYNTHETIC PROCESS BROWSER ONLY',decode(${literal(legal.toString('hex'))},'hex'),${literal(digest(legal))},decode(${literal(key.toString('hex'))},'hex'),now()-interval '1 day',now()+interval '1 day')`)
+ retentionSql(`INSERT INTO gridex_ediel_retention.issuers(id,company_id,legal_reference,legal_evidence,legal_hash,signing_key,valid_from,valid_to) VALUES(${literal(issuer)},${literal(f.companyId)},'SYNTHETIC PROCESS BROWSER ONLY',decode(${literal(legal.toString('hex'))},'hex'),${literal(digest(legal))},decode(${literal(key.toString('hex'))},'hex'),now()-interval '1 day',now()+interval '1 day')`)
  const ids:Record<ProcessJournalRetentionClass,string>={correction_process_fact_body:fact.id,correction_process_readset_body:readset.snapshotId,correction_process_combined_readset_body:combined.snapshotId},targets:Target[]=[]
  for(const retentionClass of PROCESS_JOURNAL_RETENTION_CLASSES){
   const reply=await writer.client.rpc('ediel_process_journal_retention_basis_v1',{p_company_id:f.companyId,p_actor_user_id:writer.id,p_retention_class:retentionClass,p_target_id:ids[retentionClass]});expect(reply.error).toBeNull();expect(reply.data).toMatchObject({allIncludedScopesClosed:true,complete:false,authority:'none'})

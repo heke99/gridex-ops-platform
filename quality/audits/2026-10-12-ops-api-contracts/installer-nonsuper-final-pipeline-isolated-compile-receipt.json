@@ -1,0 +1,457 @@
+{
+  "qualified_at_utc": "2026-10-13T16:53:41.551375+00:00",
+  "status": "PASS_genuine_isolated_non_super_installer_pipeline",
+  "authority": "actual OPS catalog definitions, owners, role flags, membership grantors/options/OIDs, schema/table/column ACLs and real PostgreSQL17 engine; no tests oracle",
+  "environment": {
+    "container": "gridex-ops-installer-final-caps-20261013",
+    "database": "ops_api_installer_final_caps_20261013",
+    "network": "none",
+    "runtime": "PostgreSQL 17.6 on x86_64-pc-linux-musl, compiled by gcc (Alpine 14.2.0) 14.2.0, 64-bit",
+    "bootstrap_owner": "supabase_admin",
+    "installer": "postgres NOSUPER INHERIT BYPASSRLS CREATEROLE CREATEDB",
+    "execution": "direct psql -U postgres for module and all six forwards; owner prerequisites executed only by separate actual-shaped protected owner roles"
+  },
+  "packets": [
+    {
+      "path": "/tmp/gridex-api-review/installer-capability-proposals/001-protected-auth-schema-usage.sql",
+      "sha256": "904118e7dd28884b2823646ddf219173fe6d4dfee9e13c8f80ba45872f539b69"
+    },
+    {
+      "path": "/tmp/gridex-api-review/installer-capability-proposals/002-protected-auth-users-select-update.sql",
+      "sha256": "5ab3b5a30d9fae806a2b0b8fa7633b69b66e8eeb9b3361783e1a557e989d9ccd"
+    },
+    {
+      "path": "/tmp/gridex-api-review/installer-capability-proposals/003-qualified-atomic-install.sql",
+      "sha256": "fa0af500fb71a8b4d41a269b58f2ce0879ab6d8d4cd7b35d734d613100b8b53d"
+    },
+    {
+      "path": "/tmp/gridex-api-review/installer-capability-proposals/004-qualified-retention-install.sql",
+      "sha256": "2ff105e0d8f1a9cc9e84fbf7c060a52bf6bdf8d7f9c7e75a843f4bb209fa0425"
+    }
+  ],
+  "owner_prerequisites": {
+    "001_schema_owner": "supabase_admin",
+    "002_auth_users_owner": "supabase_auth_admin",
+    "first_exit_codes": [
+      0,
+      0
+    ],
+    "replay_exit_codes": [
+      0,
+      0
+    ],
+    "wrong_installer_refusals": [
+      3,
+      3
+    ],
+    "actual_auth_missing_prerequisite_refusal_exit_code": 3
+  },
+  "main_module": {
+    "approved_source_sha256": "bacf8944718c984d117f0400ed19fadd978feed6613ea9196784eff4591ac600",
+    "semantic_source_bytes": 6628349,
+    "source_transport_units": 52,
+    "first_exit_code": 0,
+    "replay_after_identical_restaging_exit_code": 0,
+    "final_replay_after_six_semantic_forwards_exit_code": 0,
+    "complete_state_notice": "ops_api_delivery_complete_source_state",
+    "whole_semantic_catalog_after_six_preserved": true,
+    "transport_cleanup_confirmed": true,
+    "unrestaged_replay": {
+      "exit_code": 3,
+      "reason": "first source cleanup removed transport schema; exact52 metadata units must be restaged",
+      "classification": "expected transport lifecycle, not SQL/privilege regression"
+    }
+  },
+  "pending_sequence_first": [
+    {
+      "order": 1,
+      "path": "/tmp/gridex-api-audit-ops/quality/audits/2026-10-12-ops-api-contracts/release-proposals/variant-part1-forward.sql",
+      "sha256": "d821d77e00f5dbb25d599e339bc3d36cfd73b78133e2d2f36e29b56557420ff7",
+      "exit_code": 0,
+      "duration_seconds": 0.203,
+      "log": "/tmp/gridex-api-review/installer-final-sequence-1-variant-part1-forward.log"
+    },
+    {
+      "order": 2,
+      "path": "/tmp/gridex-api-audit-ops/quality/audits/2026-10-12-ops-api-contracts/release-proposals/variant-part2-forward.sql",
+      "sha256": "edcd6154285a0f960ecf3599e34e2e961a2075531434c7ae8e139e42b3e74858",
+      "exit_code": 0,
+      "duration_seconds": 0.124,
+      "log": "/tmp/gridex-api-review/installer-final-sequence-2-variant-part2-forward.log"
+    },
+    {
+      "order": 3,
+      "path": "/tmp/gridex-api-audit-ops/quality/audits/2026-10-12-ops-api-contracts/release-proposals/variant-extra-z02-forward.sql",
+      "sha256": "1e6af520f4946864bd3626fc5e4fc9b711380df1dce2875a649da788aadce448",
+      "exit_code": 0,
+      "duration_seconds": 0.183,
+      "log": "/tmp/gridex-api-review/installer-final-sequence-3-variant-extra-z02-forward.log"
+    },
+    {
+      "order": 4,
+      "path": "/tmp/gridex-api-audit-ops/quality/audits/2026-10-12-ops-api-contracts/release-proposals/variant-existing-trigger-forward.sql",
+      "sha256": "5feebfef8c7935867b6846b1c841ca15b46ccab284474c0912406614ddd5535a",
+      "exit_code": 0,
+      "duration_seconds": 0.185,
+      "log": "/tmp/gridex-api-review/installer-final-sequence-4-variant-existing-trigger-forward.log"
+    },
+    {
+      "order": 5,
+      "path": "/tmp/gridex-api-review/installer-capability-proposals/004-qualified-retention-install.sql",
+      "sha256": "2ff105e0d8f1a9cc9e84fbf7c060a52bf6bdf8d7f9c7e75a843f4bb209fa0425",
+      "exit_code": 0,
+      "duration_seconds": 0.31,
+      "log": "/tmp/gridex-api-review/installer-final-sequence-5-004-qualified-retention-install.log"
+    },
+    {
+      "order": 6,
+      "path": "/tmp/gridex-api-audit-ops/quality/audits/2026-10-12-ops-api-contracts/release-proposals/semantic-forward-metadata-integrity.sql",
+      "sha256": "5aa1fd4fc45a85819b683dff4756d97ad3c3387e9e2d9bd1a9424b63ebb9d4c9",
+      "exit_code": 0,
+      "duration_seconds": 0.136,
+      "log": "/tmp/gridex-api-review/installer-final-sequence-6-semantic-forward-metadata-integrity.log"
+    }
+  ],
+  "pending_sequence_replay": [
+    {
+      "order": 1,
+      "sha256": "d821d77e00f5dbb25d599e339bc3d36cfd73b78133e2d2f36e29b56557420ff7",
+      "exit_code": 0,
+      "log": "/tmp/gridex-api-review/installer-final-sequence-1-genuine-replay.log"
+    },
+    {
+      "order": 2,
+      "sha256": "edcd6154285a0f960ecf3599e34e2e961a2075531434c7ae8e139e42b3e74858",
+      "exit_code": 0,
+      "log": "/tmp/gridex-api-review/installer-final-sequence-2-genuine-replay.log"
+    },
+    {
+      "order": 3,
+      "sha256": "1e6af520f4946864bd3626fc5e4fc9b711380df1dce2875a649da788aadce448",
+      "exit_code": 0,
+      "log": "/tmp/gridex-api-review/installer-final-sequence-3-genuine-replay.log"
+    },
+    {
+      "order": 4,
+      "sha256": "5feebfef8c7935867b6846b1c841ca15b46ccab284474c0912406614ddd5535a",
+      "exit_code": 0,
+      "log": "/tmp/gridex-api-review/installer-final-sequence-4-genuine-replay.log"
+    },
+    {
+      "order": 5,
+      "sha256": "2ff105e0d8f1a9cc9e84fbf7c060a52bf6bdf8d7f9c7e75a843f4bb209fa0425",
+      "exit_code": 0,
+      "log": "/tmp/gridex-api-review/installer-final-sequence-5-genuine-replay.log"
+    },
+    {
+      "order": 6,
+      "sha256": "5aa1fd4fc45a85819b683dff4756d97ad3c3387e9e2d9bd1a9424b63ebb9d4c9",
+      "exit_code": 0,
+      "log": "/tmp/gridex-api-review/installer-final-sequence-6-genuine-replay.log"
+    }
+  ],
+  "retention": {
+    "original_196_sha256": "19624482d3a4df867e999848e8b7b8ed72f9c8f2b4962ebb3c75b369c937d4ad",
+    "embedded_executable_sha256": "418eb6adde3491d12a06a518cc1807c17ca8e49ad90c698187d0bff18a7310df",
+    "original_source_unmodified": true,
+    "first_and_replay_exit_codes": [
+      0,
+      0
+    ],
+    "whole_roles_memberships_with_oid_schema_acls_existing_relation_and_column_acls_restored": true,
+    "entire_post_capture_equals_replay": true,
+    "temporary_ret_public_CREATE_restored_false": true,
+    "temporary_own_membership_INHERIT_restored_false": true,
+    "strong_company_has_a9ac_and_retained_history_72b22_unchanged": true
+  },
+  "negative_qualification": {
+    "main": [
+      {
+        "name": "old-table-acl",
+        "exit_code": 3,
+        "expected_error": "ops_atomic_existing_retention_relation_acl_drift",
+        "error_seen": true,
+        "full_catalog_restored": true
+      },
+      {
+        "name": "old-column-acl",
+        "exit_code": 3,
+        "expected_error": "ops_atomic_existing_retention_relation_acl_drift",
+        "error_seen": true,
+        "full_catalog_restored": true
+      },
+      {
+        "name": "auth-grant-option",
+        "exit_code": 3,
+        "expected_error": "ops_atomic_protected_auth_users_acl_contract_drift",
+        "error_seen": true,
+        "full_catalog_restored": true
+      },
+      {
+        "name": "ret-edge-flags",
+        "exit_code": 3,
+        "expected_error": "ops_atomic_retention_membership_contract_drift",
+        "error_seen": true,
+        "full_catalog_restored": true
+      },
+      {
+        "name": "forced-after-inherit",
+        "exit_code": 3,
+        "expected_error": "isolated_installer_forced_after_inherit",
+        "error_seen": true,
+        "full_catalog_restored": true
+      },
+      {
+        "name": "wrong-caller-001-protected-auth-schema-usage.sql",
+        "exit_code": 3,
+        "full_catalog_restored": true,
+        "error": "ERROR:  ops_protected_auth_owner_execution_required\nCONTEXT:  PL/pgSQL function inline_code_block line 3 at RAISE\n"
+      },
+      {
+        "name": "wrong-caller-002-protected-auth-users-select-update.sql",
+        "exit_code": 3,
+        "full_catalog_restored": true,
+        "error": "ERROR:  ops_protected_auth_owner_execution_required\nCONTEXT:  PL/pgSQL function inline_code_block line 3 at RAISE\n"
+      }
+    ],
+    "retention": [
+      {
+        "name": "unexpected-edge",
+        "exit_code": 3,
+        "expected_error": "ops_retention_existing_controlled_edges_required",
+        "error_seen": true,
+        "full_catalog_restored": true
+      },
+      {
+        "name": "public-create",
+        "exit_code": 3,
+        "expected_error": "ops_retention_installer_effective_capabilities_drift",
+        "error_seen": true,
+        "full_catalog_restored": true
+      },
+      {
+        "name": "old-table-acl",
+        "exit_code": 3,
+        "expected_error": "ops_retention_existing_owner_only_table_column_acl_required",
+        "error_seen": true,
+        "full_catalog_restored": true
+      },
+      {
+        "name": "old-column-acl",
+        "exit_code": 3,
+        "expected_error": "ops_retention_existing_owner_only_table_column_acl_required",
+        "error_seen": true,
+        "full_catalog_restored": true
+      },
+      {
+        "name": "owner-config",
+        "exit_code": 3,
+        "expected_error": "ops_retention_owner_shape_drift",
+        "error_seen": true,
+        "full_catalog_restored": true
+      },
+      {
+        "name": "forced-after-both-grants",
+        "exit_code": 3,
+        "expected_error": "isolated_retention_forced_after_both_grants",
+        "error_seen": true,
+        "full_catalog_restored": true
+      },
+      {
+        "name": "source-byte-drift",
+        "exit_code": 3,
+        "expected_error": "ops_retention_original_source_bytes_drift",
+        "error_seen": true,
+        "full_catalog_restored": true
+      }
+    ],
+    "all_fourteen_expected_errors_exit3_and_full_catalog_rollback": true,
+    "catalog_projection": "pg_proc/pg_class/pg_attribute/pg_auth_members/pg_namespace/pg_constraint/pg_index/pg_trigger plus old-object full snapshot"
+  },
+  "final_effective_capabilities": {
+    "installer": {
+      "oid": "16394",
+      "rolname": "postgres",
+      "rolsuper": false,
+      "rolconfig": null,
+      "rolinherit": true,
+      "rolcanlogin": true,
+      "rolcreatedb": true,
+      "rolpassword": "********",
+      "rolbypassrls": true,
+      "rolconnlimit": -1,
+      "rolcreaterole": true,
+      "rolvaliduntil": null,
+      "rolreplication": true
+    },
+    "ret_auth_usage": true,
+    "server_version": "PostgreSQL 17.6 on x86_64-pc-linux-musl, compiled by gcc (Alpine 14.2.0) 14.2.0, 64-bit",
+    "ret_auth_select": true,
+    "ret_auth_update": true,
+    "transport_absent": true,
+    "ret_public_create": false,
+    "ret_storage_usage": true,
+    "ret_storage_select": true,
+    "ret_storage_update": true,
+    "root_ret_inherited": false,
+    "ret_auth_uid_execute": true,
+    "root_storage_usage_go": true,
+    "root_storage_select_go": true,
+    "root_storage_update_go": true
+  },
+  "genuine_fixture_completion": {
+    "portable_baseline_omissions": [
+      "actual existing public.gridex_apply_exact_z02_core sevenuuid",
+      "six existing received/UTILTS/public EDIEL triggers",
+      "three existing retention targets plus stronger company_has and retained_history functions"
+    ],
+    "remedy": "exact captured native CREATE definitions plus legal owner/REVOKE/GRANT statements, under ordinary postgres, before their forward qualification; existing stronger B3 helpers preserved",
+    "no_direct_catalog_updates": true,
+    "original_missing-target_refusals": "Z02 SELECT INTO STRICT no rows and existing_trigger_native_target_required; fixture omissions only, source bytes unchanged"
+  },
+  "superseded_fixture_qualification": {
+    "initial_postgres_bootstrap": "PG engine refuses removing SUPER from bootstrapOID10; never qualified",
+    "old_3bbe_storage": "first COMMIT on incomplete non-GO portable Storage ACL fixture not readiness evidence; replaced by actual full owners/ACL/grantoptions and strict fa0 pre/postguards"
+  },
+  "limits": {
+    "actual_OPS_owner_prerequisite_operations": false,
+    "actual_OPS_module_or_semantic_forwards_applied": false,
+    "business_function_invocations": false,
+    "business_or_personal_rows_inserted": false,
+    "trigger_or_RLS_bypasses": false,
+    "stub_functions": false,
+    "GEN_or_source_edits": false,
+    "protected_owner_capabilities_unavailable_on_current_actual_postgres_connection": true,
+    "live_API_end_to_end_green_claim": false
+  },
+  "evidence": [
+    {
+      "path": "/tmp/gridex-api-review/installer-auth-and-owned-functions-native-metadata.json",
+      "sha256": "e87b8ab6c2ef03fd4cf8e4617eab507f3d42aa9359b83363239276ffd3a24a9f"
+    },
+    {
+      "path": "/tmp/gridex-api-review/installer-auth-uid-genuine-native-metadata.json",
+      "sha256": "5f2fa29fa351aa8316708725c4c4d1f1e21bf931dd0c827c608d5930ccb54120"
+    },
+    {
+      "path": "/tmp/gridex-api-review/installer-exact-staged-bootstrap-and-parts.sql",
+      "sha256": "38e4e31bbc142e48669d1f441c30229071ab0bfd2bfeabe199065097c21bf390"
+    },
+    {
+      "path": "/tmp/gridex-api-review/installer-fa0-after-restaged-replay-snapshot.json",
+      "sha256": "8c2e45708948781202134f8dc2eb65fcf7209456826d272904f9a9a3dbf16720"
+    },
+    {
+      "path": "/tmp/gridex-api-review/installer-fa0-after-snapshot.json",
+      "sha256": "8c2e45708948781202134f8dc2eb65fcf7209456826d272904f9a9a3dbf16720"
+    },
+    {
+      "path": "/tmp/gridex-api-review/installer-fa0-auth-prerequisite-negative.log",
+      "sha256": "727a2551b91431ade112718e824396751d94c55caaa9141e401236684340be1a"
+    },
+    {
+      "path": "/tmp/gridex-api-review/installer-fa0-genuine-first.log",
+      "sha256": "308db7a83532073f20d69344c73e023858e78d48cf4b0d7ba79aa7b84e75a9a2"
+    },
+    {
+      "path": "/tmp/gridex-api-review/installer-fa0-genuine-restaged-replay.log",
+      "sha256": "0ce22e7018d2b3f8f3108ae7170444042e9ea0199aa2a381c625a35cef686ed8"
+    },
+    {
+      "path": "/tmp/gridex-api-review/installer-fa0-negative-qualification.json",
+      "sha256": "d1f7644881dd137384d5056fb82183d907335eacbc49399214cac0875c1ae9d2"
+    },
+    {
+      "path": "/tmp/gridex-api-review/installer-final-after-main-replay-full-semantic.json",
+      "sha256": "ca8339556030a7d0b182616083782cd26d24da049122fbf59b409e541f4a3e6f"
+    },
+    {
+      "path": "/tmp/gridex-api-review/installer-final-after-six-main-replay.log",
+      "sha256": "0ce22e7018d2b3f8f3108ae7170444042e9ea0199aa2a381c625a35cef686ed8"
+    },
+    {
+      "path": "/tmp/gridex-api-review/installer-final-after-six-replay-full-semantic.json",
+      "sha256": "ca8339556030a7d0b182616083782cd26d24da049122fbf59b409e541f4a3e6f"
+    },
+    {
+      "path": "/tmp/gridex-api-review/installer-final-before-main-replay-full-semantic.json",
+      "sha256": "ca8339556030a7d0b182616083782cd26d24da049122fbf59b409e541f4a3e6f"
+    },
+    {
+      "path": "/tmp/gridex-api-review/installer-final-effective-capabilities.json",
+      "sha256": "345aa6051e128a57fabf0f7d9d53a6f443193f3cd396ca3550c4efa115668914"
+    },
+    {
+      "path": "/tmp/gridex-api-review/installer-final-native-before-caps.json",
+      "sha256": "4b50b21cdcbc2a9e7ee74710e4de71bd749a952befe17b7543ba2226dacbaf15"
+    },
+    {
+      "path": "/tmp/gridex-api-review/installer-final-owner001-first.log",
+      "sha256": "decc8335d90db271fc487d1597becbf719e968add184759bda0e0a9a1bde37b1"
+    },
+    {
+      "path": "/tmp/gridex-api-review/installer-final-owner001-replay.log",
+      "sha256": "decc8335d90db271fc487d1597becbf719e968add184759bda0e0a9a1bde37b1"
+    },
+    {
+      "path": "/tmp/gridex-api-review/installer-final-owner002-first.log",
+      "sha256": "decc8335d90db271fc487d1597becbf719e968add184759bda0e0a9a1bde37b1"
+    },
+    {
+      "path": "/tmp/gridex-api-review/installer-final-owner002-replay.log",
+      "sha256": "decc8335d90db271fc487d1597becbf719e968add184759bda0e0a9a1bde37b1"
+    },
+    {
+      "path": "/tmp/gridex-api-review/installer-final-pending-sequence-replay-results.json",
+      "sha256": "8010d4e6b4c9cd71b258262f23ee565c1d755be6ac4dd5589f085c8dba259e4e"
+    },
+    {
+      "path": "/tmp/gridex-api-review/installer-final-pending-sequence-results.json",
+      "sha256": "6c6a1bda30e8ef523a225913ecf3062b74e0e584779e8d74b829412c7bb938d4"
+    },
+    {
+      "path": "/tmp/gridex-api-review/installer-privilege-qualified-native-metadata.json",
+      "sha256": "5ba237dbf00c5cad39c0079c5e29517a437a379f5566b56725f9275ef8bf120c"
+    },
+    {
+      "path": "/tmp/gridex-api-review/installer-retention-five-exact-native-baseline.sql",
+      "sha256": "05fb9f18aa3db37eaab80b9cac5e13650b87a6a12bdbdfa5a48d5202a16b69ab"
+    },
+    {
+      "path": "/tmp/gridex-api-review/installer-retention2ff-after-snapshot.json",
+      "sha256": "8109de46ec14252fea12e6627a84bb19aee278209865688f9d92f56083ef76d0"
+    },
+    {
+      "path": "/tmp/gridex-api-review/installer-retention2ff-before-snapshot.json",
+      "sha256": "8c2e45708948781202134f8dc2eb65fcf7209456826d272904f9a9a3dbf16720"
+    },
+    {
+      "path": "/tmp/gridex-api-review/installer-retention2ff-full-after-catalog.json",
+      "sha256": "fba5a753554bfdd78e624887dea0c6dc867dbf39d0a6c6bde834ea0257b54c39"
+    },
+    {
+      "path": "/tmp/gridex-api-review/installer-retention2ff-full-replay-catalog.json",
+      "sha256": "fba5a753554bfdd78e624887dea0c6dc867dbf39d0a6c6bde834ea0257b54c39"
+    },
+    {
+      "path": "/tmp/gridex-api-review/installer-retention2ff-negative-qualification.json",
+      "sha256": "3126356e96496e52f16e94abfc14c832f9119738fbc976cbb816cfb50f19ed1a"
+    },
+    {
+      "path": "/tmp/gridex-api-review/installer-storage-full-authentic-native-acl.json",
+      "sha256": "698287de47eacd41678ccf5950fd4379e5f0af901fbf08fad3a9f256ec1a1983"
+    },
+    {
+      "path": "/tmp/gridex-api-review/installer-trigger-six-exact-native-legal-acl-baseline.sql",
+      "sha256": "808e0bb10198e8b6beb507013f34b0c7c551d2af9adec9503e46a6b4534f5a6b"
+    },
+    {
+      "path": "/tmp/gridex-api-review/installer-z02-exact-missing-native-baseline.log",
+      "sha256": "9e91c2689fdc26ff2b35c8b0d0bf30778b5dd66974cbd37fcf28fbde613e8ca3"
+    },
+    {
+      "path": "/tmp/gridex-api-review/qualified-retention-installer-source-byte-proof.json",
+      "sha256": "583bf74277832d4d66886220662fd7ef8957f1a82bcdfff83b8a0d13663b04db"
+    }
+  ]
+}

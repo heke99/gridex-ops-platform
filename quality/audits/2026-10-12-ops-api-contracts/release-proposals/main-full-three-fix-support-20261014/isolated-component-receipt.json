@@ -1,0 +1,28 @@
+{
+  "at": "2026-10-14T14:54:23.541458+00:00",
+  "status": "ISOLATED_GENUINE_COMPONENT_PASS_NOT_NATIVE_APPLIED",
+  "proposal_sha256": "4153067538523442f6d040e28127b76335a3d4aea07479280d5dcd64a1e6b2c9",
+  "first_commit": true,
+  "replay_commit": true,
+  "replay_full_capture_equal": true,
+  "entire_function_row_except_config_equal": true,
+  "other_function_role_membership_hashes_equal": true,
+  "classification_before_after_equal": true,
+  "pure_classification_selects": 24,
+  "production_writes": 0,
+  "business_rpc_calls": 0,
+  "engine": "Existing private Supabase PostgreSQL17.6 engine, ordinary NOSUPER postgres; exact actual-native/published function definition transplanted, no stub.",
+  "limits": [
+    "Only this forward component; no main adoption, canonicalGEN, fullchain or CI credit.",
+    "Historical missing-semicolon fixture failure and empty quiet logs are excluded."
+  ],
+  "inputs": {
+    "fixture-source.sql": "15b8281ed2c497f36673420549d6293cd35059531df2cbb8d78af252db669fb6",
+    "before.json": "690c14c162b53ad573b9ff179a1397bd888f5b963b5e2c24aa5eb70383630267",
+    "after-first.json": "aa92a73f662eb213cf8526e4bff1122ed8a605a8011e1f7f08bb2dd67bba22a8",
+    "after-replay.json": "aa92a73f662eb213cf8526e4bff1122ed8a605a8011e1f7f08bb2dd67bba22a8",
+    "first-final.log": "0c056796275b4524883d89f4ea09f430b2124627fd86c2d4bef86ff65146d78e",
+    "replay-final.log": "0c056796275b4524883d89f4ea09f430b2124627fd86c2d4bef86ff65146d78e",
+    "capture.sql": "91e6b23eaf96415a131f3b8b18e7d929f1a7919975a045e358044a562f55c3ca"
+  }
+}

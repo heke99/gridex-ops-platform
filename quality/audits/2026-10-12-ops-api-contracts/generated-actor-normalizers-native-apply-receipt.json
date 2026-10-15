@@ -1,0 +1,57 @@
+{
+  "project_id": "piidsfebjqjmnepdpnas",
+  "source_sha256": "2a5a5523fafaa80b416c5c489a8018a4640a910c66dc5486569751898c60b5cd",
+  "apply_result": {
+    "success": true
+  },
+  "before": {
+    "captured_at": "2026-10-13 15:14:10.28528+00",
+    "actor_count": 649,
+    "actors_full_hash": "a2fd1f07a95570999e7a38c7f757494a",
+    "alias_count": 647,
+    "aliases_full_hash": "0b3d8c6f1c95940a1db109b1bc78e6b6",
+    "expressions": [
+      {
+        "table": "platform_market_actors",
+        "column": "normalized_name",
+        "expression": "lower(regexp_replace(COALESCE(name, ''::text), '\\\\s+'::text, ' '::text, 'g'::text))"
+      },
+      {
+        "table": "platform_actor_aliases",
+        "column": "normalized_alias",
+        "expression": "lower(regexp_replace(COALESCE(alias, ''::text), '\\\\s+'::text, ' '::text, 'g'::text))"
+      }
+    ]
+  },
+  "after": {
+    "captured_at": "2026-10-13 15:27:10.608531+00",
+    "actor_count": 649,
+    "actors_full_hash": "a2fd1f07a95570999e7a38c7f757494a",
+    "alias_count": 647,
+    "aliases_full_hash": "0b3d8c6f1c95940a1db109b1bc78e6b6",
+    "expressions": [
+      {
+        "table": "platform_market_actors",
+        "column": "normalized_name",
+        "expression": "lower(regexp_replace(COALESCE(name, ''::text), '\\s+'::text, ' '::text, 'g'::text))"
+      },
+      {
+        "table": "platform_actor_aliases",
+        "column": "normalized_alias",
+        "expression": "lower(regexp_replace(COALESCE(alias, ''::text), '\\s+'::text, ' '::text, 'g'::text))"
+      }
+    ],
+    "actor_mismatches": 0,
+    "alias_mismatches": 0,
+    "migrations": [
+      {
+        "md5": "395b6d34c40d5da833b08e173da4f96a",
+        "name": "ops_api_market_actor_normalizers",
+        "sha256": "2a5a5523fafaa80b416c5c489a8018a4640a910c66dc5486569751898c60b5cd",
+        "version": "20261013151412"
+      }
+    ]
+  },
+  "business_functions_called": false,
+  "original_rows_preserved": true
+}

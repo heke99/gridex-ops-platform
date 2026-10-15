@@ -1,0 +1,77 @@
+{
+  "scope": "OPS_CORE_SOURCE_CONSTRUCTION_NOT_GREEN_CERTIFICATION",
+  "observed_at": "2026-10-14T17:16:46.991810+00:00",
+  "user_appointment": "This agent completes OPS API/code/database/docs before support123 tenant construction; user green-certification approval remains later.",
+  "source_routing_claim": "488d0c344ffc5667661832a5fb81dd1f2fca3e29",
+  "all234prior_resources_preserved": true,
+  "own_six_canonical_routing_paths": true,
+  "application_typecheck": {
+    "command": "npm run typecheck",
+    "exit_code": 0,
+    "scope": "Exact final two TypeScript postimages; subsequent edits affect only Python/SQL descriptors/documentation. No unit tests run."
+  },
+  "python_ast": "PASS",
+  "shell_syntax": "PASS",
+  "historical_sql_sha256": "7eceae42dccce7a968182d144389329d1c11466bf0c896afff62250950f9f2ce",
+  "native_core_catalog_receipt": "native-core-readback.json",
+  "native_writes_in_this_stage": 0,
+  "business_rpc_calls": 0,
+  "canonical_schema_type_capture": "PENDING_COHERENT_CURRENT_SOURCE",
+  "full_history_replay": "PENDING_COMMITTED_CURRENT_SOURCE",
+  "hosted_tenant_session": "FUTURE_TENANT_IMPLEMENTATION",
+  "green_certification": false,
+  "source_images": [
+    {
+      "path": "lib/staff-api/identityResolution.ts",
+      "sha256": "e05e23dbeac7b535b4f1ed48e42a5333312edbff054d9218c8904e120a1b8dcc"
+    },
+    {
+      "path": "lib/staff-api/onboarding.ts",
+      "sha256": "0d6e9d6731b164b214d09e7e66c9c4ec5d291320be1706456551cd1285c9b84a"
+    },
+    {
+      "path": "scripts/gridex-aud-003-clean-replay.sh",
+      "sha256": "7c2ab100784fe3aab8ee8a350254e272adbfb96aad04f2a61d199a5d7cc0c8cb"
+    },
+    {
+      "path": "scripts/gridex-aud-003-legacy-foundation.additions.json",
+      "sha256": "7a3cfad2dcccb999517874b743e4184ef3d08d1c4cbf85c4eb617fef7d6d7b83"
+    },
+    {
+      "path": "scripts/gridex-derived-replay-inputs.py",
+      "sha256": "f198a4e7cd800f4faa9629a9a34ae99d003f637613eb3831d77449d9595acb6c"
+    },
+    {
+      "path": "scripts/gridex-ediel-upgrade-inputs.py",
+      "sha256": "2286b227e967c9686c7e0541397c2fcb5814de5e1a02c5d5286bd17314e3c5de"
+    },
+    {
+      "path": "scripts/gridex-ediel-history-union-inputs.py",
+      "sha256": "4005c1ad9d0b52596e4f5bc52e009c68cbfc3d923f9ffe5e7d844c58f45d5750"
+    },
+    {
+      "path": "supabase/bootstrap/20261013_ops_quote_nonexpiring_replay_adapter.sql",
+      "sha256": "3afea47b4343c5d5e6d97a4f709bccf5c8cf6f7cf33c179f022629ff4d7c481b"
+    },
+    {
+      "path": "docs/api-index.md",
+      "sha256": "bd40aff95f13c674b6fc5d7d401dec52c02a17396d435fe6382918b7bfe408e7"
+    },
+    {
+      "path": "docs/gridex-staff-api.md",
+      "sha256": "28a3e7d28f5b88313379153c6cd9ed876de047aebc9e9353eec7ce0d65a626ce"
+    },
+    {
+      "path": "docs/staff-api/independent-onboarding.md",
+      "sha256": "6ad12f4f74d172147bb5f9338d6a936ce74be0fca7258d2ba9152450d0b4e118"
+    },
+    {
+      "path": "docs/staff-api/support123-integration.md",
+      "sha256": "179e2593368d323e89287cb4c9cd451e6964713018855dd252fbd64ceeb3b7db"
+    },
+    {
+      "path": "docs/staff-api/tenant-invitation-delivery.md",
+      "sha256": "283fa02de1a62156ddb937c63dcfd05dfc372b41f4f2217e94f4b516d0626eb7"
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+BEGIN
+SET
+SET
+SET
+NOTICE:  ops_api_delivery_complete_source_state
+DO
+COMMIT

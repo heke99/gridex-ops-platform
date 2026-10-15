@@ -1,0 +1,475 @@
+{
+  "checked_at_utc": "2026-10-13T14:03:26.601803+00:00",
+  "proposal_sha256": "eaf04a7ee065f4e8e1089847c02871b78bd6cddfea5152f51884a804ae17d178",
+  "container": "gridex-ops-api-postgis-native-20261013",
+  "container_network": "none",
+  "postgres": "17.6, real PostGIS3.3.7",
+  "check_function_bodies": "on",
+  "assert_only_no_function_or_table_changes": true,
+  "actual_predecessor_post_and_current_canonical_contracts": {
+    "ops_api_extra_z02_compile_20261013": {
+      "first_commit_exit_code": 0,
+      "replay_commit_exit_code": 0,
+      "complete_all_three_pg_proc_definitions_and_oids_unchanged": true,
+      "functions": [
+        {
+          "proc": {
+            "oid": "44778",
+            "proacl": [
+              "postgres=X/postgres",
+              "service_role=X/postgres"
+            ],
+            "probin": null,
+            "prosrc": "\ndeclare\n  v_match text[];\n  v_value text;\nbegin\n  if coalesce(p_raw, '') = '' or coalesce(p_cci_code, '') = '' then return null; end if;\n  v_match := regexp_match(\n    p_raw,\n    E'CCI\\\\+\\\\+' || regexp_replace(p_cci_code, '([^a-zA-Z0-9])', E'\\\\\\\\\\\\1', 'g') || E'[^'']*''[[:space:]]*CAV\\\\+([^+''\\\\r\\\\n]+)'\n  );\n  v_value := nullif(btrim(v_match[1]), '');\n  if v_value is null then return null; end if;\n  return nullif(btrim(regexp_replace(v_value, '^.*:', '')), '');\nexception when others then return null;\nend;\n",
+            "procost": 100,
+            "prokind": "f",
+            "prolang": "13634",
+            "proname": "gridex_edifact_cci_cav_value",
+            "prorows": 0,
+            "pronargs": 2,
+            "proowner": "10",
+            "proconfig": [
+              "search_path=pg_catalog, public"
+            ],
+            "proretset": false,
+            "prosecdef": false,
+            "prorettype": "25",
+            "prosqlbody": null,
+            "prosupport": "-",
+            "proargmodes": null,
+            "proargnames": [
+              "p_raw",
+              "p_cci_code"
+            ],
+            "proargtypes": [
+              "25",
+              "25"
+            ],
+            "proisstrict": false,
+            "proparallel": "u",
+            "protrftypes": null,
+            "provariadic": "0",
+            "provolatile": "i",
+            "proleakproof": false,
+            "pronamespace": "2200",
+            "proallargtypes": null,
+            "proargdefaults": null,
+            "pronargdefaults": 0
+          },
+          "body_md5": "9c2260f2d165463bde841c6ba239fde6",
+          "signature": "gridex_edifact_cci_cav_value(text,text)",
+          "definition": "CREATE OR REPLACE FUNCTION public.gridex_edifact_cci_cav_value(p_raw text, p_cci_code text)\n RETURNS text\n LANGUAGE plpgsql\n IMMUTABLE\n SET search_path TO 'pg_catalog', 'public'\nAS $function$\ndeclare\n  v_match text[];\n  v_value text;\nbegin\n  if coalesce(p_raw, '') = '' or coalesce(p_cci_code, '') = '' then return null; end if;\n  v_match := regexp_match(\n    p_raw,\n    E'CCI\\\\+\\\\+' || regexp_replace(p_cci_code, '([^a-zA-Z0-9])', E'\\\\\\\\\\\\1', 'g') || E'[^'']*''[[:space:]]*CAV\\\\+([^+''\\\\r\\\\n]+)'\n  );\n  v_value := nullif(btrim(v_match[1]), '');\n  if v_value is null then return null; end if;\n  return nullif(btrim(regexp_replace(v_value, '^.*:', '')), '');\nexception when others then return null;\nend;\n$function$\n"
+        },
+        {
+          "proc": {
+            "oid": "44779",
+            "proacl": [
+              "postgres=X/postgres",
+              "service_role=X/postgres"
+            ],
+            "probin": null,
+            "prosrc": "\ndeclare\n  v_match text[];\n  v_parts text[];\n  v_segment text;\nbegin\n  if coalesce(p_raw, '') = '' or coalesce(p_qualifier, '') = '' or p_element_index < 0 then return null; end if;\n  v_match := regexp_match(\n    p_raw,\n    E'NAD\\\\+' || regexp_replace(p_qualifier, '([^a-zA-Z0-9])', E'\\\\\\\\\\\\1', 'g') || E'\\\\+([^''\\\\r\\\\n]+)'\n  );\n  v_segment := 'NAD+' || p_qualifier || '+' || coalesce(v_match[1], '');\n  v_parts := string_to_array(v_segment, '+');\n  return nullif(btrim(v_parts[p_element_index + 1]), '');\nexception when others then return null;\nend;\n",
+            "procost": 100,
+            "prokind": "f",
+            "prolang": "13634",
+            "proname": "gridex_edifact_nad_element",
+            "prorows": 0,
+            "pronargs": 3,
+            "proowner": "10",
+            "proconfig": [
+              "search_path=pg_catalog, public"
+            ],
+            "proretset": false,
+            "prosecdef": false,
+            "prorettype": "25",
+            "prosqlbody": null,
+            "prosupport": "-",
+            "proargmodes": null,
+            "proargnames": [
+              "p_raw",
+              "p_qualifier",
+              "p_element_index"
+            ],
+            "proargtypes": [
+              "25",
+              "25",
+              "23"
+            ],
+            "proisstrict": false,
+            "proparallel": "u",
+            "protrftypes": null,
+            "provariadic": "0",
+            "provolatile": "i",
+            "proleakproof": false,
+            "pronamespace": "2200",
+            "proallargtypes": null,
+            "proargdefaults": null,
+            "pronargdefaults": 0
+          },
+          "body_md5": "eeda2752e19d456ac1d8c0bcbd8d9b52",
+          "signature": "gridex_edifact_nad_element(text,text,integer)",
+          "definition": "CREATE OR REPLACE FUNCTION public.gridex_edifact_nad_element(p_raw text, p_qualifier text, p_element_index integer)\n RETURNS text\n LANGUAGE plpgsql\n IMMUTABLE\n SET search_path TO 'pg_catalog', 'public'\nAS $function$\ndeclare\n  v_match text[];\n  v_parts text[];\n  v_segment text;\nbegin\n  if coalesce(p_raw, '') = '' or coalesce(p_qualifier, '') = '' or p_element_index < 0 then return null; end if;\n  v_match := regexp_match(\n    p_raw,\n    E'NAD\\\\+' || regexp_replace(p_qualifier, '([^a-zA-Z0-9])', E'\\\\\\\\\\\\1', 'g') || E'\\\\+([^''\\\\r\\\\n]+)'\n  );\n  v_segment := 'NAD+' || p_qualifier || '+' || coalesce(v_match[1], '');\n  v_parts := string_to_array(v_segment, '+');\n  return nullif(btrim(v_parts[p_element_index + 1]), '');\nexception when others then return null;\nend;\n$function$\n"
+        },
+        {
+          "proc": {
+            "oid": "44794",
+            "proacl": [
+              "=X/postgres",
+              "postgres=X/postgres",
+              "authenticated=X/postgres",
+              "service_role=X/postgres"
+            ],
+            "probin": null,
+            "prosrc": "\n  select nullif(regexp_replace(coalesce(p_postal_code, ''), E'\\\\D', '', 'g'), '');\n",
+            "procost": 100,
+            "prokind": "f",
+            "prolang": "14",
+            "proname": "gridex_normalize_swedish_postal_code",
+            "prorows": 0,
+            "pronargs": 1,
+            "proowner": "10",
+            "proconfig": [
+              "search_path=public, auth, extensions"
+            ],
+            "proretset": false,
+            "prosecdef": false,
+            "prorettype": "25",
+            "prosqlbody": null,
+            "prosupport": "-",
+            "proargmodes": null,
+            "proargnames": [
+              "p_postal_code"
+            ],
+            "proargtypes": [
+              "25"
+            ],
+            "proisstrict": false,
+            "proparallel": "u",
+            "protrftypes": null,
+            "provariadic": "0",
+            "provolatile": "i",
+            "proleakproof": false,
+            "pronamespace": "2200",
+            "proallargtypes": null,
+            "proargdefaults": null,
+            "pronargdefaults": 0
+          },
+          "body_md5": "6da381c2dad3451762d227cb2c79fa87",
+          "signature": "gridex_normalize_swedish_postal_code(text)",
+          "definition": "CREATE OR REPLACE FUNCTION public.gridex_normalize_swedish_postal_code(p_postal_code text)\n RETURNS text\n LANGUAGE sql\n IMMUTABLE\n SET search_path TO 'public', 'auth', 'extensions'\nAS $function$\n  select nullif(regexp_replace(coalesce(p_postal_code, ''), E'\\\\D', '', 'g'), '');\n$function$\n"
+        }
+      ]
+    },
+    "ops_api_parser_canonical_fixture_20261013": {
+      "first_commit_exit_code": 0,
+      "replay_commit_exit_code": 0,
+      "complete_all_three_pg_proc_definitions_and_oids_unchanged": true,
+      "functions": [
+        {
+          "proc": {
+            "oid": "44936",
+            "proacl": [
+              "postgres=X/postgres",
+              "service_role=X/postgres"
+            ],
+            "probin": null,
+            "prosrc": "\ndeclare\n  v_match text[];\n  v_value text;\nbegin\n  if coalesce(p_raw, '') = '' or coalesce(p_cci_code, '') = '' then return null; end if;\n  v_match := regexp_match(\n    p_raw,\n    E'CCI\\\\+\\\\+' || regexp_replace(p_cci_code, '([^a-zA-Z0-9])', E'\\\\\\\\\\\\1', 'g') || E'[^'']*''[[:space:]]*CAV\\\\+([^+''\\\\r\\\\n]+)'\n  );\n  v_value := nullif(btrim(v_match[1]), '');\n  if v_value is null then return null; end if;\n  return nullif(btrim(regexp_replace(v_value, '^.*:', '')), '');\nexception when others then return null;\nend;\n",
+            "procost": 100,
+            "prokind": "f",
+            "prolang": "13634",
+            "proname": "gridex_edifact_cci_cav_value",
+            "prorows": 0,
+            "pronargs": 2,
+            "proowner": "10",
+            "proconfig": [
+              "search_path=pg_catalog, public"
+            ],
+            "proretset": false,
+            "prosecdef": false,
+            "prorettype": "25",
+            "prosqlbody": null,
+            "prosupport": "-",
+            "proargmodes": null,
+            "proargnames": [
+              "p_raw",
+              "p_cci_code"
+            ],
+            "proargtypes": [
+              "25",
+              "25"
+            ],
+            "proisstrict": false,
+            "proparallel": "u",
+            "protrftypes": null,
+            "provariadic": "0",
+            "provolatile": "i",
+            "proleakproof": false,
+            "pronamespace": "2200",
+            "proallargtypes": null,
+            "proargdefaults": null,
+            "pronargdefaults": 0
+          },
+          "body_md5": "9c2260f2d165463bde841c6ba239fde6",
+          "signature": "gridex_edifact_cci_cav_value(text,text)",
+          "definition": "CREATE OR REPLACE FUNCTION public.gridex_edifact_cci_cav_value(p_raw text, p_cci_code text)\n RETURNS text\n LANGUAGE plpgsql\n IMMUTABLE\n SET search_path TO 'pg_catalog', 'public'\nAS $function$\ndeclare\n  v_match text[];\n  v_value text;\nbegin\n  if coalesce(p_raw, '') = '' or coalesce(p_cci_code, '') = '' then return null; end if;\n  v_match := regexp_match(\n    p_raw,\n    E'CCI\\\\+\\\\+' || regexp_replace(p_cci_code, '([^a-zA-Z0-9])', E'\\\\\\\\\\\\1', 'g') || E'[^'']*''[[:space:]]*CAV\\\\+([^+''\\\\r\\\\n]+)'\n  );\n  v_value := nullif(btrim(v_match[1]), '');\n  if v_value is null then return null; end if;\n  return nullif(btrim(regexp_replace(v_value, '^.*:', '')), '');\nexception when others then return null;\nend;\n$function$\n"
+        },
+        {
+          "proc": {
+            "oid": "44937",
+            "proacl": [
+              "postgres=X/postgres",
+              "service_role=X/postgres"
+            ],
+            "probin": null,
+            "prosrc": "\ndeclare\n  v_match text[];\n  v_parts text[];\n  v_segment text;\nbegin\n  if coalesce(p_raw, '') = '' or coalesce(p_qualifier, '') = '' or p_element_index < 0 then return null; end if;\n  v_match := regexp_match(\n    p_raw,\n    E'NAD\\\\+' || regexp_replace(p_qualifier, '([^a-zA-Z0-9])', E'\\\\\\\\\\\\1', 'g') || E'\\\\+([^''\\\\r\\\\n]+)'\n  );\n  v_segment := 'NAD+' || p_qualifier || '+' || coalesce(v_match[1], '');\n  v_parts := string_to_array(v_segment, '+');\n  return nullif(btrim(v_parts[p_element_index + 1]), '');\nexception when others then return null;\nend;\n",
+            "procost": 100,
+            "prokind": "f",
+            "prolang": "13634",
+            "proname": "gridex_edifact_nad_element",
+            "prorows": 0,
+            "pronargs": 3,
+            "proowner": "10",
+            "proconfig": [
+              "search_path=pg_catalog, public"
+            ],
+            "proretset": false,
+            "prosecdef": false,
+            "prorettype": "25",
+            "prosqlbody": null,
+            "prosupport": "-",
+            "proargmodes": null,
+            "proargnames": [
+              "p_raw",
+              "p_qualifier",
+              "p_element_index"
+            ],
+            "proargtypes": [
+              "25",
+              "25",
+              "23"
+            ],
+            "proisstrict": false,
+            "proparallel": "u",
+            "protrftypes": null,
+            "provariadic": "0",
+            "provolatile": "i",
+            "proleakproof": false,
+            "pronamespace": "2200",
+            "proallargtypes": null,
+            "proargdefaults": null,
+            "pronargdefaults": 0
+          },
+          "body_md5": "eeda2752e19d456ac1d8c0bcbd8d9b52",
+          "signature": "gridex_edifact_nad_element(text,text,integer)",
+          "definition": "CREATE OR REPLACE FUNCTION public.gridex_edifact_nad_element(p_raw text, p_qualifier text, p_element_index integer)\n RETURNS text\n LANGUAGE plpgsql\n IMMUTABLE\n SET search_path TO 'pg_catalog', 'public'\nAS $function$\ndeclare\n  v_match text[];\n  v_parts text[];\n  v_segment text;\nbegin\n  if coalesce(p_raw, '') = '' or coalesce(p_qualifier, '') = '' or p_element_index < 0 then return null; end if;\n  v_match := regexp_match(\n    p_raw,\n    E'NAD\\\\+' || regexp_replace(p_qualifier, '([^a-zA-Z0-9])', E'\\\\\\\\\\\\1', 'g') || E'\\\\+([^''\\\\r\\\\n]+)'\n  );\n  v_segment := 'NAD+' || p_qualifier || '+' || coalesce(v_match[1], '');\n  v_parts := string_to_array(v_segment, '+');\n  return nullif(btrim(v_parts[p_element_index + 1]), '');\nexception when others then return null;\nend;\n$function$\n"
+        },
+        {
+          "proc": {
+            "oid": "44938",
+            "proacl": [
+              "=X/postgres",
+              "postgres=X/postgres",
+              "authenticated=X/postgres",
+              "service_role=X/postgres"
+            ],
+            "probin": null,
+            "prosrc": "\n  select nullif(regexp_replace(coalesce(p_postal_code, ''), E'\\\\D', '', 'g'), '');\n",
+            "procost": 100,
+            "prokind": "f",
+            "prolang": "14",
+            "proname": "gridex_normalize_swedish_postal_code",
+            "prorows": 0,
+            "pronargs": 1,
+            "proowner": "10",
+            "proconfig": [
+              "search_path=public, auth, extensions"
+            ],
+            "proretset": false,
+            "prosecdef": false,
+            "prorettype": "25",
+            "prosqlbody": null,
+            "prosupport": "-",
+            "proargmodes": null,
+            "proargnames": [
+              "p_postal_code"
+            ],
+            "proargtypes": [
+              "25"
+            ],
+            "proisstrict": false,
+            "proparallel": "u",
+            "protrftypes": null,
+            "provariadic": "0",
+            "provolatile": "i",
+            "proleakproof": false,
+            "pronamespace": "2200",
+            "proallargtypes": null,
+            "proargdefaults": null,
+            "pronargdefaults": 0
+          },
+          "body_md5": "6da381c2dad3451762d227cb2c79fa87",
+          "signature": "gridex_normalize_swedish_postal_code(text)",
+          "definition": "CREATE OR REPLACE FUNCTION public.gridex_normalize_swedish_postal_code(p_postal_code text)\n RETURNS text\n LANGUAGE sql\n IMMUTABLE\n SET search_path TO 'public', 'auth', 'extensions'\nAS $function$\n  select nullif(regexp_replace(coalesce(p_postal_code, ''), E'\\\\D', '', 'g'), '');\n$function$\n"
+        }
+      ]
+    }
+  },
+  "metadata_body_negative_proofs": [
+    {
+      "signature": "gridex_edifact_cci_cav_value(text,text)",
+      "probe": "body",
+      "exit_code": 3,
+      "error": "parser_metadata_integrity_body_changed_requires_review",
+      "complete_all_three_function_metadata_definitions_rollback_exact": true
+    },
+    {
+      "signature": "gridex_edifact_cci_cav_value(text,text)",
+      "probe": "security_definer",
+      "exit_code": 3,
+      "error": "parser_metadata_integrity_attributes_changed_requires_review",
+      "complete_all_three_function_metadata_definitions_rollback_exact": true
+    },
+    {
+      "signature": "gridex_edifact_cci_cav_value(text,text)",
+      "probe": "owner",
+      "exit_code": 3,
+      "error": "parser_metadata_integrity_attributes_changed_requires_review",
+      "complete_all_three_function_metadata_definitions_rollback_exact": true
+    },
+    {
+      "signature": "gridex_edifact_cci_cav_value(text,text)",
+      "probe": "acl",
+      "exit_code": 3,
+      "error": "parser_metadata_integrity_attributes_changed_requires_review",
+      "complete_all_three_function_metadata_definitions_rollback_exact": true
+    },
+    {
+      "signature": "gridex_edifact_cci_cav_value(text,text)",
+      "probe": "strict",
+      "exit_code": 3,
+      "error": "parser_metadata_integrity_attributes_changed_requires_review",
+      "complete_all_three_function_metadata_definitions_rollback_exact": true
+    },
+    {
+      "signature": "gridex_edifact_cci_cav_value(text,text)",
+      "probe": "config",
+      "exit_code": 3,
+      "error": "parser_metadata_integrity_attributes_changed_requires_review",
+      "complete_all_three_function_metadata_definitions_rollback_exact": true
+    },
+    {
+      "signature": "gridex_edifact_cci_cav_value(text,text)",
+      "probe": "planner_support",
+      "exit_code": 3,
+      "error": "parser_metadata_integrity_attributes_changed_requires_review",
+      "complete_all_three_function_metadata_definitions_rollback_exact": true
+    },
+    {
+      "signature": "gridex_edifact_nad_element(text,text,integer)",
+      "probe": "body",
+      "exit_code": 3,
+      "error": "parser_metadata_integrity_body_changed_requires_review",
+      "complete_all_three_function_metadata_definitions_rollback_exact": true
+    },
+    {
+      "signature": "gridex_edifact_nad_element(text,text,integer)",
+      "probe": "security_definer",
+      "exit_code": 3,
+      "error": "parser_metadata_integrity_attributes_changed_requires_review",
+      "complete_all_three_function_metadata_definitions_rollback_exact": true
+    },
+    {
+      "signature": "gridex_edifact_nad_element(text,text,integer)",
+      "probe": "owner",
+      "exit_code": 3,
+      "error": "parser_metadata_integrity_attributes_changed_requires_review",
+      "complete_all_three_function_metadata_definitions_rollback_exact": true
+    },
+    {
+      "signature": "gridex_edifact_nad_element(text,text,integer)",
+      "probe": "acl",
+      "exit_code": 3,
+      "error": "parser_metadata_integrity_attributes_changed_requires_review",
+      "complete_all_three_function_metadata_definitions_rollback_exact": true
+    },
+    {
+      "signature": "gridex_edifact_nad_element(text,text,integer)",
+      "probe": "strict",
+      "exit_code": 3,
+      "error": "parser_metadata_integrity_attributes_changed_requires_review",
+      "complete_all_three_function_metadata_definitions_rollback_exact": true
+    },
+    {
+      "signature": "gridex_edifact_nad_element(text,text,integer)",
+      "probe": "config",
+      "exit_code": 3,
+      "error": "parser_metadata_integrity_attributes_changed_requires_review",
+      "complete_all_three_function_metadata_definitions_rollback_exact": true
+    },
+    {
+      "signature": "gridex_edifact_nad_element(text,text,integer)",
+      "probe": "planner_support",
+      "exit_code": 3,
+      "error": "parser_metadata_integrity_attributes_changed_requires_review",
+      "complete_all_three_function_metadata_definitions_rollback_exact": true
+    },
+    {
+      "signature": "gridex_normalize_swedish_postal_code(text)",
+      "probe": "body",
+      "exit_code": 3,
+      "error": "parser_metadata_integrity_body_changed_requires_review",
+      "complete_all_three_function_metadata_definitions_rollback_exact": true
+    },
+    {
+      "signature": "gridex_normalize_swedish_postal_code(text)",
+      "probe": "security_definer",
+      "exit_code": 3,
+      "error": "parser_metadata_integrity_attributes_changed_requires_review",
+      "complete_all_three_function_metadata_definitions_rollback_exact": true
+    },
+    {
+      "signature": "gridex_normalize_swedish_postal_code(text)",
+      "probe": "owner",
+      "exit_code": 3,
+      "error": "parser_metadata_integrity_attributes_changed_requires_review",
+      "complete_all_three_function_metadata_definitions_rollback_exact": true
+    },
+    {
+      "signature": "gridex_normalize_swedish_postal_code(text)",
+      "probe": "acl",
+      "exit_code": 3,
+      "error": "parser_metadata_integrity_attributes_changed_requires_review",
+      "complete_all_three_function_metadata_definitions_rollback_exact": true
+    },
+    {
+      "signature": "gridex_normalize_swedish_postal_code(text)",
+      "probe": "strict",
+      "exit_code": 3,
+      "error": "parser_metadata_integrity_attributes_changed_requires_review",
+      "complete_all_three_function_metadata_definitions_rollback_exact": true
+    },
+    {
+      "signature": "gridex_normalize_swedish_postal_code(text)",
+      "probe": "config",
+      "exit_code": 3,
+      "error": "parser_metadata_integrity_attributes_changed_requires_review",
+      "complete_all_three_function_metadata_definitions_rollback_exact": true
+    },
+    {
+      "signature": "gridex_normalize_swedish_postal_code(text)",
+      "probe": "planner_support",
+      "exit_code": 3,
+      "error": "parser_metadata_integrity_attributes_changed_requires_review",
+      "complete_all_three_function_metadata_definitions_rollback_exact": true
+    }
+  ],
+  "each_helper_unknown_body_secdef_owner_acl_strict_config_planner_support_rejected": true,
+  "genuine_source_canonical_fixture_receipt": "/tmp/gridex-api-review/parser-canonical-source-attributes-receipt.json",
+  "source_actual_nine_extra_abi_equality_receipt": "/tmp/gridex-api-review/parser-source-actual-extra-abi-receipt.json",
+  "source_edits_by_verifier": false,
+  "helper_or_business_functions_invoked": false,
+  "actual_native_writes": false,
+  "business_rows_inserted": false,
+  "qualification_limit": "Genuine ASSERT-only DO/COMMIT/replay against exact actual-predecessor-post and current canonical creator/ACL fixtures. Metadata-only negative setups run in BEGIN and rollback entirely. No helper/business function invocation; runtime API behavior is not claimed.",
+  "log_prefix": "/tmp/gridex-api-review/parser-integrity-"
+}

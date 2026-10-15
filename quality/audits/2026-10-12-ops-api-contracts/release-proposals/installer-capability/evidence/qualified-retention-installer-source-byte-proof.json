@@ -1,0 +1,42 @@
+{
+  "proposal_path": "/tmp/gridex-api-review/installer-capability-proposals/004-qualified-retention-install.sql",
+  "proposal_sha256": "2ff105e0d8f1a9cc9e84fbf7c060a52bf6bdf8d7f9c7e75a843f4bb209fa0425",
+  "original_path": "/tmp/gridex-api-audit-ops/quality/audits/2026-10-12-ops-api-contracts/release-proposals/variant-retention-audit-harddelete-forward.sql",
+  "original_sha256": "19624482d3a4df867e999848e8b7b8ed72f9c8f2b4962ebb3c75b369c937d4ad",
+  "original_bytes": 43134,
+  "embedded_original_byte_equal": true,
+  "executable_sha256": "418eb6adde3491d12a06a518cc1807c17ca8e49ad90c698187d0bff18a7310df",
+  "executable_bytes": 43119,
+  "removed_only_original_transaction_markers": [
+    {
+      "byte_start": 399,
+      "length": 7,
+      "utf8": "BEGIN;\n"
+    },
+    {
+      "byte_start": 43126,
+      "length": 8,
+      "utf8": "COMMIT;\n"
+    }
+  ],
+  "original_statement_kinds": [
+    "TransactionStmt",
+    "VariableSetStmt",
+    "VariableSetStmt",
+    "DoStmt",
+    "NotifyStmt",
+    "TransactionStmt"
+  ],
+  "executable_statement_kinds": [
+    "VariableSetStmt",
+    "VariableSetStmt",
+    "DoStmt",
+    "NotifyStmt"
+  ],
+  "envelope_sql_and_plpgsql_parse": "PASS",
+  "preexisting_relation_oid_capture": true,
+  "unknown_old_owner_table_or_column_acl_refused_before_grants": true,
+  "business_functions_invoked": false,
+  "native_writes": false,
+  "qualification_limit": "Source and parser evidence only; genuine NONsuper installation proof belongs to independent fixture runner."
+}

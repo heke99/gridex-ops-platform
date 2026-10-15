@@ -1,0 +1,197 @@
+{
+  "generator_sha256": "51ed7f261148200c9ea0207cd9568714eb1f1f07935c5cdfb94dd22384319c24",
+  "requested_parts": 12,
+  "maximum_full_stage_sql_bytes": 91088,
+  "full_sql_byte_limit": 100000,
+  "status": "PARAMETERIZED_PRIVATE_PROPOSALS_NOT_APPLIED_NOT_RUNTIME_QUALIFIED",
+  "schema": "ops_api_atomic_transport_bb0bd0ce",
+  "source_path": "/tmp/gridex-api-rebuild-20261014/main-proposal/atomic-eight-input-proposal.sql",
+  "source_bytes": 966553,
+  "source_sha256": "bb0bd0cedeabc3ba40872eae8cead8b6a8a9ff298c567baa324a1b4044045b04",
+  "executable_bytes": 966540,
+  "executable_sha256": "af1652d62cadee0e0184af0574342c0d5104982705eab5b100c51fdf90afc02b",
+  "removed_tokens": [
+    {
+      "start_byte": 79,
+      "end_byte": 85,
+      "deleted": "BEGIN;"
+    },
+    {
+      "start_byte": 966545,
+      "end_byte": 966552,
+      "deleted": "COMMIT;"
+    }
+  ],
+  "ast_equality": true,
+  "plain_utf8_parts": 12,
+  "maximum_part_bytes": 80547,
+  "source_only_registrations": 12,
+  "effect_loader_registrations": 1,
+  "separate_child_effect_entries_claimed": false,
+  "files": [
+    {
+      "order": 1,
+      "path": "/tmp/gridex-api-rebuild-20261014/compact-delivery-bb0b-12/proposal-stage-01.sql",
+      "kind": "source_only_no_business_effect",
+      "sha256": "7d8540a0b4fae2dab41cc294e68eeeb6f0734257b5141cbe503faa4e3227c82b",
+      "bytes": 91088,
+      "part": {
+        "ordinal": 1,
+        "bytes": 80547,
+        "sha256": "aeac6d55ebfafc9c0d5ad30bf4dad37178fd46d9e52f43c846612fac1cc0b073"
+      }
+    },
+    {
+      "order": 2,
+      "path": "/tmp/gridex-api-rebuild-20261014/compact-delivery-bb0b-12/proposal-stage-02.sql",
+      "kind": "source_only_no_business_effect",
+      "sha256": "6f1873b8c02fbf1413ae31c60cd1b9227410ee2920e2ce3885bc4586334a7ca7",
+      "bytes": 90279,
+      "part": {
+        "ordinal": 2,
+        "bytes": 80547,
+        "sha256": "1056f8241fab935b5b36174658b4566d6562e7980f66a4f62399137708480f55"
+      }
+    },
+    {
+      "order": 3,
+      "path": "/tmp/gridex-api-rebuild-20261014/compact-delivery-bb0b-12/proposal-stage-03.sql",
+      "kind": "source_only_no_business_effect",
+      "sha256": "590688b3b9fb2840c67463c0c248f87bcdda040b7c05857c70628dfb50dbcc3e",
+      "bytes": 90279,
+      "part": {
+        "ordinal": 3,
+        "bytes": 80547,
+        "sha256": "8d7736d9c18f0ec7e02c421907daf0f254ee9fe54aa61353e13d6827c8443f73"
+      }
+    },
+    {
+      "order": 4,
+      "path": "/tmp/gridex-api-rebuild-20261014/compact-delivery-bb0b-12/proposal-stage-04.sql",
+      "kind": "source_only_no_business_effect",
+      "sha256": "8d404758eff1abed55cdc27ac0f6a00e9f23683f97168012c8e4d5e2e130ff6d",
+      "bytes": 90279,
+      "part": {
+        "ordinal": 4,
+        "bytes": 80547,
+        "sha256": "1f375fd1052f325b5a2e23f1c0a87d7a5c4c0c39c84b01ad6afa154865ecafc7"
+      }
+    },
+    {
+      "order": 5,
+      "path": "/tmp/gridex-api-rebuild-20261014/compact-delivery-bb0b-12/proposal-stage-05.sql",
+      "kind": "source_only_no_business_effect",
+      "sha256": "da49e0772712f74944416f0df85ad1e7022c0afe8dc0875ae06868c90ab2e371",
+      "bytes": 90279,
+      "part": {
+        "ordinal": 5,
+        "bytes": 80547,
+        "sha256": "7ec7255e4de7f738c33eb48119de9d7d4dcbb2ed542e9136f9165824edc352c1"
+      }
+    },
+    {
+      "order": 6,
+      "path": "/tmp/gridex-api-rebuild-20261014/compact-delivery-bb0b-12/proposal-stage-06.sql",
+      "kind": "source_only_no_business_effect",
+      "sha256": "2c73e3cac05c7d647476d268ff776057daec2f814cd5fcb32e92f416ded90b6e",
+      "bytes": 90279,
+      "part": {
+        "ordinal": 6,
+        "bytes": 80547,
+        "sha256": "6e3ba08e32dd8605bd8a2378ba6cdfcec4d513eafdf55bd3fc2940b96dfa9749"
+      }
+    },
+    {
+      "order": 7,
+      "path": "/tmp/gridex-api-rebuild-20261014/compact-delivery-bb0b-12/proposal-stage-07.sql",
+      "kind": "source_only_no_business_effect",
+      "sha256": "592cd947137f96e2f4fefba636dd0e021db246c5b4cad461577afd5c5048de80",
+      "bytes": 90279,
+      "part": {
+        "ordinal": 7,
+        "bytes": 80547,
+        "sha256": "7e941361061f7515bce84fb77b83f10c7dd1814356ac762bf12856d37abb4d2a"
+      }
+    },
+    {
+      "order": 8,
+      "path": "/tmp/gridex-api-rebuild-20261014/compact-delivery-bb0b-12/proposal-stage-08.sql",
+      "kind": "source_only_no_business_effect",
+      "sha256": "cc100a72907b38c308427caadba7961c947a59b248858e7ca363e1fda0ec52c6",
+      "bytes": 90279,
+      "part": {
+        "ordinal": 8,
+        "bytes": 80547,
+        "sha256": "929b535701f910a90c5a2ead0a1a501bc631a04ecabc2b779c9a7286e25064f7"
+      }
+    },
+    {
+      "order": 9,
+      "path": "/tmp/gridex-api-rebuild-20261014/compact-delivery-bb0b-12/proposal-stage-09.sql",
+      "kind": "source_only_no_business_effect",
+      "sha256": "e920041cf6952f7add52108527d934efdc1ee17fecc6090aede8c22011bd920f",
+      "bytes": 90279,
+      "part": {
+        "ordinal": 9,
+        "bytes": 80547,
+        "sha256": "32b289b55a734020b96487e5498b908b8d1978a4878e8ab3470e0e73c6bdce5e"
+      }
+    },
+    {
+      "order": 10,
+      "path": "/tmp/gridex-api-rebuild-20261014/compact-delivery-bb0b-12/proposal-stage-10.sql",
+      "kind": "source_only_no_business_effect",
+      "sha256": "6f2801920a825ffc4d214e8cb507761e477cbe5b17227c98ab085035a45b585a",
+      "bytes": 90284,
+      "part": {
+        "ordinal": 10,
+        "bytes": 80547,
+        "sha256": "d0ca52a50e80383ced15051bcba9ca7e24e69858fa0be512c40cd4fbc6e975c3"
+      }
+    },
+    {
+      "order": 11,
+      "path": "/tmp/gridex-api-rebuild-20261014/compact-delivery-bb0b-12/proposal-stage-11.sql",
+      "kind": "source_only_no_business_effect",
+      "sha256": "37cc15e5dfb1490c022d31585f9f07dea2fbe0dd6bfeee6339e91f83b0d8947f",
+      "bytes": 90284,
+      "part": {
+        "ordinal": 11,
+        "bytes": 80547,
+        "sha256": "e7773322ceb01f55240b0372e3ee234bb9cfd7bc8d8c572c867c585ee4bb76e7"
+      }
+    },
+    {
+      "order": 12,
+      "path": "/tmp/gridex-api-rebuild-20261014/compact-delivery-bb0b-12/proposal-stage-12.sql",
+      "kind": "source_only_no_business_effect",
+      "sha256": "76d5bcfa6a2ef3957b5cf7d2b0fef7c75992f03f7ee97f304fe2227b1fdd444f",
+      "bytes": 90273,
+      "part": {
+        "ordinal": 12,
+        "bytes": 80536,
+        "sha256": "8e9a209d6d969d1fc0435bcb564c05f54400a9faaf58ee4dcd3373d3013f91fa"
+      }
+    },
+    {
+      "order": 13,
+      "path": "/tmp/gridex-api-rebuild-20261014/compact-delivery-bb0b-12/proposal-effect-loader.sql",
+      "kind": "one_atomic_effect_install",
+      "sha256": "a2a7e91e1bbb97e0b2d73171b1e0893fad9e4acf915ca620c02f25b8e6aa4a0d",
+      "bytes": 19343
+    }
+  ],
+  "qualification_required": [
+    "staged_first_commit",
+    "restaged_same_database_replay",
+    "bad_part_refusal",
+    "unknown_catalog_metadata_refusal",
+    "late_forced_failure_restores_both_transport_and_all_eight_effects"
+  ],
+  "notes": [
+    "Exact source hash mandatory; regenerate after any frozen-source change.",
+    "Proposal names are not CLI migration names; actual new migrations require official CLI creation.",
+    "No actual DDL, DB business calls, or native fixture collection performed by this generator.",
+    "Derived row and array types retain PostgreSQL default type ACL, but no application schema access or table privileges; strict type ownership and absence of explicit type ACL pinned."
+  ]
+}

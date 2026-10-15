@@ -199,8 +199,10 @@ Errors use the same closed envelope throughout this API:
 | 403 | `api_scope_missing`, `staff_provider_missing`, `staff_provider_invalid`, `staff_membership_inactive`, `staff_permission_denied`, `staff_role_ceiling_exceeded` | Correct configuration, active membership or authorized role |
 | 404 | `staff_user_not_found`, `customer_not_found`, case or attachment missing | Use a current reference from the same organization |
 | 412 | `storage_project_mismatch` | Call the deployment that serves the expected storage project; nothing was executed |
-| 409 | `version_conflict`, `staff_self_disable_forbidden`, `staff_last_admin_required`, `staff_invalid_user_state, staff_self_role_change_forbidden`, idempotency conflict | Reload state and reconcile the operation; preserve administrator safeguards |
-| 413 / 415 | Attachment size or content type | Use a supported file within the size limit |
+| 409 | `version_conflict`, `staff_self_disable_forbidden`, `staff_last_admin_required`, `staff_invalid_user_state`, `staff_self_role_change_forbidden`, idempotency conflict | Reload state and reconcile the operation; preserve administrator safeguards |
+| 410 / 423 | `organization_closed`, `organization_inactive`, `organization_paused` | Resolve the organization's lifecycle state through an authorized operator; do not retry with another identity |
+| 413 | `payload_too_large`, attachment size | Keep JSON requests and uploads within the endpoint's size limit |
+| 415 | Attachment content type | Use a supported attachment content type |
 | 429 | Rate limit | Observe `Retry-After`, then use the same operation key with a fresh assertion |
 | 500 / 503 | Processing or required service unavailable | Retain the request ID; retry only when safe and indicated by `retryable` |
 

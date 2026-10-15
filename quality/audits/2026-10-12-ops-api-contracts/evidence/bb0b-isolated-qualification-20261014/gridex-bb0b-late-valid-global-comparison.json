@@ -1,0 +1,9 @@
+{
+  "status": "PASS",
+  "mode": "exact",
+  "exact_equal": true,
+  "before_sha256": "9a6ef5d65a8b1d8cb8aca649c95f156dad5ea80e96c582e3e20914e06bf9b49d",
+  "after_sha256": "9a6ef5d65a8b1d8cb8aca649c95f156dad5ea80e96c582e3e20914e06bf9b49d",
+  "errors": [],
+  "source_limit": "Source mode proves preserved old genuine global rows and original51source consumption; newly added control rows still require exact all-eight inline source postconditions."
+}

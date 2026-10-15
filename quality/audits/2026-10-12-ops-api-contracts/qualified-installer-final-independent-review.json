@@ -1,0 +1,20 @@
+{
+  "status": "TWO_INDEPENDENT_FINAL_SOURCE_AND_GENUINE_PROOF_APPROVALS",
+  "reviewers": [
+    "/root/final_api_source_review",
+    "/root/native_forward_independent_review"
+  ],
+  "manifest_sha256": "c06ceb1d7d2d365f12be4958d731f838635b78d45dd42fc7426d3c0f985afdcd",
+  "receipt_sha256": "541e238e93ff6fee64206abe51d11494f19a844f2f57051943bdf98360cbee1e",
+  "source_manifest_preserved_exact": true,
+  "historical_conditional_status_in_sealed_manifest_resolved_by_this_receipt": true,
+  "actual_installation_applied": false,
+  "protected_owner_execution_available": false,
+  "business_flow_qualification": false,
+  "qualification": "Genuine isolated PostgreSQL17.6 NOSUPER first/replay of owner/main/six semantic inputs and final restaged main replay;14 refusal/rollback cases; original roles/membership OIDs/options/ACLs preserved.",
+  "published_path_mapping": {
+    "/tmp/gridex-api-review/installer-capability-proposals/": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/",
+    "/tmp/gridex-api-review/installer-nonsuper-final-pipeline-isolated-compile-receipt.json": "quality/audits/2026-10-12-ops-api-contracts/installer-nonsuper-final-pipeline-isolated-compile-receipt.json",
+    "/tmp/gridex-api-audit-ops/": ""
+  }
+}

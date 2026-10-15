@@ -1,0 +1,28 @@
+{
+  "at": "2026-10-14T12:04:08.050937+00:00",
+  "status": "FINAL_SOURCE_CLEAR",
+  "reviewers": [
+    "signing_forward_peer_one",
+    "signing_forward_peer_two"
+  ],
+  "files": [
+    {
+      "file": "docs/api-index.md",
+      "sha256": "ba9fa65c17460806493ac10dfa52fc84cddc6d7ee46132249e6c9bbbdd5f30cb"
+    },
+    {
+      "file": "docs/staff-api/independent-onboarding.md",
+      "sha256": "6b8f3693f3daf7aeb48419ea8205b04d6917601d970df5e665f95a5506e1536d"
+    },
+    {
+      "file": "docs/staff-api/support123-integration.md",
+      "sha256": "40fe453464d4a38a9ca380607d166d4fe5d06e348aef6a0241dfda621e394c2e"
+    }
+  ],
+  "correction": "First-enrollment provider is tenant_key with direct tenant backend public JWK; earlier OIDC/JWKS alternative explicitly superseded.",
+  "portal": "https://support123.gridex.se",
+  "user_confirmed_login": "email/password; not yet built",
+  "native_scope": "532ledger/13byteexactregistrations/1243selectedfunctions/422preservedAuthhooks+226sourcequalifiednewhooks",
+  "runtime_scope": "Source-traced unauthenticated401/412 verify captured service SDK projectURL piids; no authenticatedbusinessflowclaim",
+  "tenant_mutations": 0
+}

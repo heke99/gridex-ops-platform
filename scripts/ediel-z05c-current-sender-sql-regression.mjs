@@ -35,7 +35,7 @@ async function check(name,body){await db.exec('begin');try{await body();checks++
 try{
  await db.exec(`
  create role anon;create role authenticated;create role service_role;
- create schema auth;create table auth.users(id uuid primary key,deleted_at timestamptz,banned_until timestamptz);
+ create schema auth;create table auth.users(id uuid primary key,deleted_at timestamptz,banned_until timestamptz,email_confirmed_at timestamptz);
  create table companies(id uuid primary key,status text,is_active bool,legal_name text,org_number text);
  create table user_profiles(id uuid primary key,user_status text);
  create table company_memberships(id uuid default gen_random_uuid(),company_id uuid,user_id uuid,status text,is_active bool,accepted_at timestamptz);
@@ -86,7 +86,7 @@ try{
  assert.equal(installedBodySha256,originalControl?preimage:postimage)
  assert.deepEqual((await db.query("select to_jsonb(p)-'prosrc' metadata from pg_proc p where p.oid='gridex_received_sources.other_supply_scope_effect_v1(uuid,uuid,uuid,jsonb,uuid[],uuid)'::regprocedure")).rows[0].metadata,beforeDefinition.metadata)
  console.log('PASS preserved installed function OID/owner/ACL/config/all pg_proc metadata except prosrc')
- await db.exec(`insert into companies values('${id(1)}','active',true,'SYNTHETIC LEGAL COMPANY','5590000000');insert into auth.users(id) values('${id(2)}'),('${id(3)}');insert into user_profiles values('${id(2)}','active'),('${id(3)}','active');insert into company_memberships(company_id,user_id,status,is_active,accepted_at) values('${id(1)}','${id(2)}','active',true,now()),('${id(1)}','${id(3)}','active',true,now());
+ await db.exec(`insert into companies values('${id(1)}','active',true,'SYNTHETIC LEGAL COMPANY','5590000000');insert into auth.users(id,email_confirmed_at) values('${id(2)}',now()),('${id(3)}',now());insert into user_profiles values('${id(2)}','active'),('${id(3)}','active');insert into company_memberships(company_id,user_id,status,is_active,accepted_at) values('${id(1)}','${id(2)}','active',true,now()),('${id(1)}','${id(3)}','active',true,now());
  insert into tenant_actor_identifiers values('${id(4)}','${id(1)}','test','${id(5)}','EdielId','12345','2020-01-01',null);insert into tenant_actor_roles values('${id(6)}','${id(1)}','test','${id(5)}','electricity_supplier','2020-01-01',null);insert into tenant_ediel_profiles values('${id(7)}','${id(1)}','test','electricity',true,'2020-01-01',null);
  insert into platform_market_actors values('${id(60)}','SYNTHETIC NETWORK','active');insert into platform_actor_identifiers values('${id(63)}','${id(60)}','EdielId','54321',true,'2020-01-01',null);insert into platform_actor_roles values('${id(64)}','${id(60)}','grid_owner',true);`)
  for(const key of ['communication.write','communication.read','customers.read','customers.write','contracts.read','contracts.write','metering.write'])await db.exec(`insert into permissions(key,name,is_active) values('${key}','SYNTHETIC',true) on conflict(key) do nothing`)

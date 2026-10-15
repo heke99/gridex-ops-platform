@@ -1,0 +1,313 @@
+{
+  "project": "piidsfebjqjmnepdpnas",
+  "kind": "assertion-only new immutable source migration; no function or business mutation",
+  "source_sha256": "eaf04a7ee065f4e8e1089847c02871b78bd6cddfea5152f51884a804ae17d178",
+  "before": {
+    "captured_at": "2026-10-13 14:08:00.217058+00",
+    "ledger_count": 438,
+    "functions": [
+      {
+        "signature": "gridex_normalize_swedish_postal_code(text)",
+        "full_pg_proc": {
+          "oid": "60925",
+          "proacl": [
+            "=X/postgres",
+            "postgres=X/postgres",
+            "authenticated=X/postgres",
+            "service_role=X/postgres"
+          ],
+          "probin": null,
+          "prosrc": "\n  select nullif(regexp_replace(coalesce(p_postal_code, ''), E'\\\\D', '', 'g'), '');\n",
+          "procost": 100,
+          "prokind": "f",
+          "prolang": "14",
+          "proname": "gridex_normalize_swedish_postal_code",
+          "prorows": 0,
+          "pronargs": 1,
+          "proowner": "16388",
+          "proconfig": [
+            "search_path=public, auth, extensions"
+          ],
+          "proretset": false,
+          "prosecdef": false,
+          "prorettype": "25",
+          "prosqlbody": null,
+          "prosupport": "-",
+          "proargmodes": null,
+          "proargnames": [
+            "p_postal_code"
+          ],
+          "proargtypes": [
+            "25"
+          ],
+          "proisstrict": false,
+          "proparallel": "u",
+          "protrftypes": null,
+          "provariadic": "0",
+          "provolatile": "i",
+          "proleakproof": false,
+          "pronamespace": "2200",
+          "proallargtypes": null,
+          "proargdefaults": null,
+          "pronargdefaults": 0
+        }
+      },
+      {
+        "signature": "gridex_edifact_cci_cav_value(text,text)",
+        "full_pg_proc": {
+          "oid": "359281",
+          "proacl": [
+            "postgres=X/postgres",
+            "service_role=X/postgres"
+          ],
+          "probin": null,
+          "prosrc": "\ndeclare\n  v_match text[];\n  v_value text;\nbegin\n  if coalesce(p_raw, '') = '' or coalesce(p_cci_code, '') = '' then return null; end if;\n  v_match := regexp_match(\n    p_raw,\n    E'CCI\\\\+\\\\+' || regexp_replace(p_cci_code, '([^a-zA-Z0-9])', E'\\\\\\\\\\\\1', 'g') || E'[^'']*''[[:space:]]*CAV\\\\+([^+''\\\\r\\\\n]+)'\n  );\n  v_value := nullif(btrim(v_match[1]), '');\n  if v_value is null then return null; end if;\n  return nullif(btrim(regexp_replace(v_value, '^.*:', '')), '');\nexception when others then return null;\nend;\n",
+          "procost": 100,
+          "prokind": "f",
+          "prolang": "13619",
+          "proname": "gridex_edifact_cci_cav_value",
+          "prorows": 0,
+          "pronargs": 2,
+          "proowner": "16388",
+          "proconfig": [
+            "search_path=pg_catalog, public"
+          ],
+          "proretset": false,
+          "prosecdef": false,
+          "prorettype": "25",
+          "prosqlbody": null,
+          "prosupport": "-",
+          "proargmodes": null,
+          "proargnames": [
+            "p_raw",
+            "p_cci_code"
+          ],
+          "proargtypes": [
+            "25",
+            "25"
+          ],
+          "proisstrict": false,
+          "proparallel": "u",
+          "protrftypes": null,
+          "provariadic": "0",
+          "provolatile": "i",
+          "proleakproof": false,
+          "pronamespace": "2200",
+          "proallargtypes": null,
+          "proargdefaults": null,
+          "pronargdefaults": 0
+        }
+      },
+      {
+        "signature": "gridex_edifact_nad_element(text,text,integer)",
+        "full_pg_proc": {
+          "oid": "359282",
+          "proacl": [
+            "postgres=X/postgres",
+            "service_role=X/postgres"
+          ],
+          "probin": null,
+          "prosrc": "\ndeclare\n  v_match text[];\n  v_parts text[];\n  v_segment text;\nbegin\n  if coalesce(p_raw, '') = '' or coalesce(p_qualifier, '') = '' or p_element_index < 0 then return null; end if;\n  v_match := regexp_match(\n    p_raw,\n    E'NAD\\\\+' || regexp_replace(p_qualifier, '([^a-zA-Z0-9])', E'\\\\\\\\\\\\1', 'g') || E'\\\\+([^''\\\\r\\\\n]+)'\n  );\n  v_segment := 'NAD+' || p_qualifier || '+' || coalesce(v_match[1], '');\n  v_parts := string_to_array(v_segment, '+');\n  return nullif(btrim(v_parts[p_element_index + 1]), '');\nexception when others then return null;\nend;\n",
+          "procost": 100,
+          "prokind": "f",
+          "prolang": "13619",
+          "proname": "gridex_edifact_nad_element",
+          "prorows": 0,
+          "pronargs": 3,
+          "proowner": "16388",
+          "proconfig": [
+            "search_path=pg_catalog, public"
+          ],
+          "proretset": false,
+          "prosecdef": false,
+          "prorettype": "25",
+          "prosqlbody": null,
+          "prosupport": "-",
+          "proargmodes": null,
+          "proargnames": [
+            "p_raw",
+            "p_qualifier",
+            "p_element_index"
+          ],
+          "proargtypes": [
+            "25",
+            "25",
+            "23"
+          ],
+          "proisstrict": false,
+          "proparallel": "u",
+          "protrftypes": null,
+          "provariadic": "0",
+          "provolatile": "i",
+          "proleakproof": false,
+          "pronamespace": "2200",
+          "proallargtypes": null,
+          "proargdefaults": null,
+          "pronargdefaults": 0
+        }
+      }
+    ]
+  },
+  "after": {
+    "captured_at": "2026-10-13 14:08:32.185335+00",
+    "ledger_count": 439,
+    "own_ledger": [
+      {
+        "name": "ops_api_parser_metadata_integrity",
+        "sql_md5": "73259707a02989aa9ab9bac09ec2c036",
+        "version": "20261013140802",
+        "sql_sha256": "eaf04a7ee065f4e8e1089847c02871b78bd6cddfea5152f51884a804ae17d178",
+        "statement_count": 1
+      }
+    ],
+    "functions": [
+      {
+        "signature": "gridex_normalize_swedish_postal_code(text)",
+        "full_pg_proc": {
+          "oid": "60925",
+          "proacl": [
+            "=X/postgres",
+            "postgres=X/postgres",
+            "authenticated=X/postgres",
+            "service_role=X/postgres"
+          ],
+          "probin": null,
+          "prosrc": "\n  select nullif(regexp_replace(coalesce(p_postal_code, ''), E'\\\\D', '', 'g'), '');\n",
+          "procost": 100,
+          "prokind": "f",
+          "prolang": "14",
+          "proname": "gridex_normalize_swedish_postal_code",
+          "prorows": 0,
+          "pronargs": 1,
+          "proowner": "16388",
+          "proconfig": [
+            "search_path=public, auth, extensions"
+          ],
+          "proretset": false,
+          "prosecdef": false,
+          "prorettype": "25",
+          "prosqlbody": null,
+          "prosupport": "-",
+          "proargmodes": null,
+          "proargnames": [
+            "p_postal_code"
+          ],
+          "proargtypes": [
+            "25"
+          ],
+          "proisstrict": false,
+          "proparallel": "u",
+          "protrftypes": null,
+          "provariadic": "0",
+          "provolatile": "i",
+          "proleakproof": false,
+          "pronamespace": "2200",
+          "proallargtypes": null,
+          "proargdefaults": null,
+          "pronargdefaults": 0
+        }
+      },
+      {
+        "signature": "gridex_edifact_cci_cav_value(text,text)",
+        "full_pg_proc": {
+          "oid": "359281",
+          "proacl": [
+            "postgres=X/postgres",
+            "service_role=X/postgres"
+          ],
+          "probin": null,
+          "prosrc": "\ndeclare\n  v_match text[];\n  v_value text;\nbegin\n  if coalesce(p_raw, '') = '' or coalesce(p_cci_code, '') = '' then return null; end if;\n  v_match := regexp_match(\n    p_raw,\n    E'CCI\\\\+\\\\+' || regexp_replace(p_cci_code, '([^a-zA-Z0-9])', E'\\\\\\\\\\\\1', 'g') || E'[^'']*''[[:space:]]*CAV\\\\+([^+''\\\\r\\\\n]+)'\n  );\n  v_value := nullif(btrim(v_match[1]), '');\n  if v_value is null then return null; end if;\n  return nullif(btrim(regexp_replace(v_value, '^.*:', '')), '');\nexception when others then return null;\nend;\n",
+          "procost": 100,
+          "prokind": "f",
+          "prolang": "13619",
+          "proname": "gridex_edifact_cci_cav_value",
+          "prorows": 0,
+          "pronargs": 2,
+          "proowner": "16388",
+          "proconfig": [
+            "search_path=pg_catalog, public"
+          ],
+          "proretset": false,
+          "prosecdef": false,
+          "prorettype": "25",
+          "prosqlbody": null,
+          "prosupport": "-",
+          "proargmodes": null,
+          "proargnames": [
+            "p_raw",
+            "p_cci_code"
+          ],
+          "proargtypes": [
+            "25",
+            "25"
+          ],
+          "proisstrict": false,
+          "proparallel": "u",
+          "protrftypes": null,
+          "provariadic": "0",
+          "provolatile": "i",
+          "proleakproof": false,
+          "pronamespace": "2200",
+          "proallargtypes": null,
+          "proargdefaults": null,
+          "pronargdefaults": 0
+        }
+      },
+      {
+        "signature": "gridex_edifact_nad_element(text,text,integer)",
+        "full_pg_proc": {
+          "oid": "359282",
+          "proacl": [
+            "postgres=X/postgres",
+            "service_role=X/postgres"
+          ],
+          "probin": null,
+          "prosrc": "\ndeclare\n  v_match text[];\n  v_parts text[];\n  v_segment text;\nbegin\n  if coalesce(p_raw, '') = '' or coalesce(p_qualifier, '') = '' or p_element_index < 0 then return null; end if;\n  v_match := regexp_match(\n    p_raw,\n    E'NAD\\\\+' || regexp_replace(p_qualifier, '([^a-zA-Z0-9])', E'\\\\\\\\\\\\1', 'g') || E'\\\\+([^''\\\\r\\\\n]+)'\n  );\n  v_segment := 'NAD+' || p_qualifier || '+' || coalesce(v_match[1], '');\n  v_parts := string_to_array(v_segment, '+');\n  return nullif(btrim(v_parts[p_element_index + 1]), '');\nexception when others then return null;\nend;\n",
+          "procost": 100,
+          "prokind": "f",
+          "prolang": "13619",
+          "proname": "gridex_edifact_nad_element",
+          "prorows": 0,
+          "pronargs": 3,
+          "proowner": "16388",
+          "proconfig": [
+            "search_path=pg_catalog, public"
+          ],
+          "proretset": false,
+          "prosecdef": false,
+          "prorettype": "25",
+          "prosqlbody": null,
+          "prosupport": "-",
+          "proargmodes": null,
+          "proargnames": [
+            "p_raw",
+            "p_qualifier",
+            "p_element_index"
+          ],
+          "proargtypes": [
+            "25",
+            "25",
+            "23"
+          ],
+          "proisstrict": false,
+          "proparallel": "u",
+          "protrftypes": null,
+          "provariadic": "0",
+          "provolatile": "i",
+          "proleakproof": false,
+          "pronamespace": "2200",
+          "proallargtypes": null,
+          "proargdefaults": null,
+          "pronargdefaults": 0
+        }
+      }
+    ]
+  },
+  "all_three_full_pg_proc_unchanged": true,
+  "business_calls": 0,
+  "independent_peers": [
+    "final_api_source_review",
+    "native_forward_independent_review"
+  ],
+  "isolated_receipt": "parser-metadata-integrity-isolated-compile-receipt.json"
+}

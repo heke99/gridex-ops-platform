@@ -156,8 +156,13 @@ for (const requiredRef of [
 if (!replay.includes("files.sort(key=lambda p:p.name)")) fail('clean replay lost deterministic timestamped ordering');
 if (!replay.includes('excluded') || !replay.includes('noncanonical')) fail('clean replay lost explicit noncanonical exclusion handling');
 if (!replay.includes('interleaved_paths')) fail('clean replay lost interleaved bootstrap handling');
-if (!replay.includes('cp "$LEDGER_MARKERS"/*.sql "$MIGRATIONS"/') ||
-    replay.indexOf('cp "$LEDGER_MARKERS"/*.sql "$MIGRATIONS"/') > replay.indexOf('supabase start')) {
+const ledgerMarkerCopy = replay.indexOf('cp "$LEDGER_MARKERS"/*.sql "$MIGRATIONS"/');
+// The bounded local-storage owner hook runs this exact CLI argv in Python.
+// Require one executable assignment, so comments or duplicated starts cannot
+// stand in for the actual start boundary of the CLI-owned marker ledger.
+const guardedCliStarts = [...replay.matchAll(/^ {8}start_result = subprocess\.run\(\['supabase','start','-x',\n {12}'studio,imgproxy,mailpit,edge-runtime,logflare,vector'\],check=False\)$/gm)];
+if (ledgerMarkerCopy < 0 || guardedCliStarts.length !== 1 ||
+    ledgerMarkerCopy > guardedCliStarts[0].index) {
   fail('clean replay no longer initializes its CLI-owned official ledger before governance checks');
 }
 if (/insert\s+into\s+supabase_migrations|update\s+supabase_migrations|delete\s+from\s+supabase_migrations/i.test(replay)) fail('clean replay directly mutates the Supabase migration ledger');

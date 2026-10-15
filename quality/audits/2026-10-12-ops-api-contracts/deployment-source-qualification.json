@@ -1,0 +1,45 @@
+{
+  "release_scope": "OPS_APPLICATION_ONLY_EXPLICIT_USER_AUTHORIZATION",
+  "source_commit": "0256dddc21691726f4e63bd0dc34df628077b8c9",
+  "source_tree": "d1879815c3fcaddd0859f6823cc160bdb9b76489",
+  "preserved_production_main": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+  "reviewers": [
+    "/root/final_api_source_review",
+    "/root/native_forward_independent_review"
+  ],
+  "findings": "No introduced P1/P2;72 main-only incomingfiles byte-identical, eight later runtimefiles preserved; three newliteralRPCs exist with expected service/authenticated ACLs in read-only OPS source/catalog review.",
+  "application_build_receipt": "deployment-integrated-build-receipt.json",
+  "pending_SQL_installed": false,
+  "new_native_business_calls": false,
+  "GEN_changed_by_API_task": false,
+  "production_team_id": "team_e3htkJPyBNSw3Ix1KQLlf180",
+  "production_project_id": "prj_xA3EDI1xztkkyx21e3LY4UhgYrWt",
+  "production_domain": "app.gridex.se",
+  "rollback_deployment": "dpl_GxqMvQRXXQrS6Piy5yTpEQb6p8SU",
+  "deployment_id": "dpl_2no3yiQFfC4DXdmztxeK8de4tLQo",
+  "main_merge_performed": false,
+  "migration_release_readiness": false,
+  "remaining_limits": [
+    "Protected Auth owner001/002 unavailable; main+six actual inputs NOT_APPLIED.",
+    "Canonical type manifest tail and genuine clean/upgrade quote replay remain unqualified; historical SQL not rewritten.",
+    "Existing ACKv1/v2 are absent in the connected OPS catalog; existing productionmain already references them, unchanged by this API release.",
+    "Staff configuration all0; no authenticated tenant lifecycle/provider qualification."
+  ],
+  "deployment_status": "READY_LIVE_DOMAIN_VERIFIED",
+  "preexisting_CI_source_classification": "Build/lint/typechecks pass in prior CI. Failures primarily stale mocks; exact source-backed remaining DB blocks are old quote complete-state replay007d vs native-only guard4daec and canonical type-tail metadata. No check weakened or historical migration rewritten.",
+  "source_build_input_files": 4221,
+  "source_build_inputs_changed": false,
+  "official_build_command_matches_local": true,
+  "source_build_duration_seconds": 281.14,
+  "production_deployment_receipt": "deployment-production-native-receipt.json",
+  "public_http_receipt": "deployment-production-after-http.json",
+  "main_branch_still_without_API_changes": true,
+  "future_main_release_requires_integration": "PR794 remains draft because database replay/GEN requirements are incomplete. A later deployment from main would omit these branch-held API changes until they are integrated.",
+  "CI_context_hash_clarification": {
+    "raw_classification_preserved_exact": true,
+    "body_md5_d205c4e8ba1989b27b4df6b1b76af631_function": "public.canonical_authenticated_tenant_context_v1_scoped(uuid)",
+    "distinct_outer_RPC": "public.canonical_authenticated_tenant_context(uuid)",
+    "outer_RPC_body_md5_prefix": "a41e40",
+    "authority": "Existing sealed auth context receipt and independent source/native review; no new function invocation"
+  }
+}

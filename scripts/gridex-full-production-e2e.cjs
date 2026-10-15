@@ -479,8 +479,8 @@ const smoke = [
 // domain regressions already maintained in the repository instead of creating
 // a second implementation of the business logic.
 const fullOnly = [
-  npmStep('runtime-readiness', 'database', 'db:runtime-readiness:check', 'Runtime database/schema readiness.'),
-  npmStep('production-migration-readiness', 'database', 'db:migrations:production-readiness', 'Production migration readiness and drift checks.'),
+  npmStep('runtime-readiness', 'database', 'db:runtime-readiness:check', 'Static runtime-readiness source contract; native is_ready is not queried.'),
+  npmStep('production-migration-readiness', 'database', 'db:migrations:production-readiness', 'Local migration source/checksum integrity; native schema, applied ledger parity and production readiness are not checked.'),
   npmStep('canonical-onboarding', 'tenant', 'verify:canonical-onboarding', 'Canonical onboarding, authorization scopes, customer numbers and EDIEL onboarding readiness.'),
   npmStep('canonical-production-hardening', 'platform', 'ops:canonical-production-hardening', 'Canonical production hardening invariants.'),
   npmStep('emergency-access', 'security', 'ops:emergency-access-regression', 'Emergency/break-glass access safety.'),

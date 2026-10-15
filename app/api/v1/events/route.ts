@@ -67,7 +67,7 @@ async function getEvents(request: NextRequest) {
       loadExternalTenantReference(auth.context.companyId),
     ])
     await logIntegrationApiRequest({ client: auth.client, request, statusCode: 200, startedAt, metadata: { result_count: events.length, request_id: requestId } })
-    return customerPortalJson({ data: events.map((event) => buildPublicWebhookPayload(event, tenantReference)), next_before: events.at(-1)?.occurred_at ?? null, request_id: requestId, correlation_id: requestId })
+    return customerPortalJson({ data: events.map((event) => buildPublicWebhookPayload(event, tenantReference, 'events')), next_before: events.at(-1)?.occurred_at ?? null, request_id: requestId, correlation_id: requestId })
   } catch (error) {
     const controlled = error instanceof ApiInputError
     const status = controlled ? error.status : 500

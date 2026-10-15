@@ -1,0 +1,162 @@
+{
+  "status": "REVIEWABLE_PRIVATE_PUBLICATION_BUNDLE_NOT_COMMITTED_NOT_APPLIED",
+  "target_directory": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014",
+  "source_atomic_sha256": "037e7aa66a40f4f3691fd904d48d71a8aa47c0b3ddfb55becfd293e35713925a",
+  "files": [
+    {
+      "path": "README.md",
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/README.md",
+      "bytes": 4958,
+      "sha256": "0ae9533770c7f9b8f5507a00e16e78f2b3dcba093deb9c38242e0d04fd5d774f"
+    },
+    {
+      "path": "atomic-eight-input-manifest.json",
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/atomic-eight-input-manifest.json",
+      "bytes": 5565,
+      "sha256": "905edf343e803bac1f3f39e8b3eff78e453a951e6c02dc00b4c16bcb3f217dfc"
+    },
+    {
+      "path": "atomic-eight-input-proposal.sql",
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/atomic-eight-input-proposal.sql",
+      "bytes": 865748,
+      "sha256": "037e7aa66a40f4f3691fd904d48d71a8aa47c0b3ddfb55becfd293e35713925a"
+    },
+    {
+      "path": "auth-fk-hook-allowlist.json",
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/auth-fk-hook-allowlist.json",
+      "bytes": 11044,
+      "sha256": "8c3062d3a1b67cbda6dbecf0f106a9492b7e473d8f486a5850cb632d199e8d27"
+    },
+    {
+      "path": "auth-free-main-envelope.sql",
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/auth-free-main-envelope.sql",
+      "bytes": 132997,
+      "sha256": "e9788627cf5b9b7469159ff803bb242be870fe6e1ad7484469b222a2a310b6e4"
+    },
+    {
+      "path": "builders/original/build_atomic_eight.py",
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/builders/original/build_atomic_eight.py",
+      "bytes": 6567,
+      "sha256": "1156f8635df5a4a16c6e1171ce6dc8ee9a22248e81d5c880b63e608854c25c5b"
+    },
+    {
+      "path": "builders/original/build_envelope.py",
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/builders/original/build_envelope.py",
+      "bytes": 12583,
+      "sha256": "a81541d06b04c82710c28d142227898c4501b0a72081d05a9993c031b9bed8e4"
+    },
+    {
+      "path": "builders/original/build_finance_proposal.py",
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/builders/original/build_finance_proposal.py",
+      "bytes": 10686,
+      "sha256": "dc12fbb1650fdece9e4674ad426ecd70214fc5111c4114eb682fae3a5a33ba9f"
+    },
+    {
+      "path": "builders/original/build_freshness_proposal.py",
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/builders/original/build_freshness_proposal.py",
+      "bytes": 12753,
+      "sha256": "be2a660b211b79f557540b36315a1a3a7a003cf4092258c8a7d010f0e29ff6d2"
+    },
+    {
+      "path": "builders/original/build_main.py",
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/builders/original/build_main.py",
+      "bytes": 12966,
+      "sha256": "faaa4b23dd6d7fb116b26395d85f81d0fa4559a2a2fdb6d414705f878bc2a47f"
+    },
+    {
+      "path": "complete-state-manifest-byte-proof.json",
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/complete-state-manifest-byte-proof.json",
+      "bytes": 343,
+      "sha256": "91b9b6093c77821a8fa50a943588a491e50408284f57b32837c2773def8b2f96"
+    },
+    {
+      "path": "derived-z02-strong-record-prerequisite.sql",
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/derived-z02-strong-record-prerequisite.sql",
+      "bytes": 83709,
+      "sha256": "72793f458dac5407b7654aa577e31b7a4fbee72ba57f8c88bc64e78896c5032d"
+    },
+    {
+      "path": "effective-complete-state-manifest.json",
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/effective-complete-state-manifest.json",
+      "bytes": 3058090,
+      "sha256": "6848ef594f3fc96ce45483a254d05f20af0ffc21220ec4b66719f1c0143df931"
+    },
+    {
+      "path": "effective-main-source.sql",
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/effective-main-source.sql",
+      "bytes": 6640789,
+      "sha256": "cfe0abf95d99baf02664fb95162a56bf67e94b2123da36f68544eb27fa510dd8"
+    },
+    {
+      "path": "envelope-proposal-manifest.json",
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/envelope-proposal-manifest.json",
+      "bytes": 947,
+      "sha256": "fefd3140b02b6954c4fc4e78d49d846ddeb5ac51800802998220d3a3ec314c15"
+    },
+    {
+      "path": "finance/five-native-bound-functions.json",
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/finance/five-native-bound-functions.json",
+      "bytes": 9103,
+      "sha256": "6da8c8ffcb7a733f24b081d9375ada2b17ce3d3ab3d6a6dc781a8a37c2b84185"
+    },
+    {
+      "path": "finance/manifest.json",
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/finance/manifest.json",
+      "bytes": 10588,
+      "sha256": "45d3c3c9b8a09f741dca87627f55eb6acf9fb09aaa7c58d27d6158b455176b73"
+    },
+    {
+      "path": "five-adapters-four-target-guards.sql",
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/five-adapters-four-target-guards.sql",
+      "bytes": 54217,
+      "sha256": "e1c684e32ae8cb7511e1451eb5ce775656a75606721d7f650772ce4b7d381cac"
+    },
+    {
+      "path": "freshness/manifest.json",
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/freshness/manifest.json",
+      "bytes": 107025,
+      "sha256": "fcfe4b77b76a8eb1d0b179acc37dc9d50e8b9a733ae24afa91f5c04adc9cd58b"
+    },
+    {
+      "path": "freshness/proposal.sql",
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/freshness/proposal.sql",
+      "bytes": 53556,
+      "sha256": "595612f40a14dd56f225965786a3e7c431ca387606b2404f9243d1da7fd8ce41"
+    },
+    {
+      "path": "inputs/guard-acl-inputs.json",
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/inputs/guard-acl-inputs.json",
+      "bytes": 966,
+      "sha256": "9f334a934f028b3e10376e4c87252259f7d600afa4609d2495d6eeff62c030fa"
+    },
+    {
+      "path": "inputs/reconstruction-inventory.json",
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/inputs/reconstruction-inventory.json",
+      "bytes": 209039,
+      "sha256": "76531ff45357d51129693a88ef1f109b8173c35d8cfda71af1272b00f27f108b"
+    },
+    {
+      "path": "reproduce.py",
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/reproduce.py",
+      "bytes": 2722,
+      "sha256": "fc8adc7e848af2a6568311a11e563c76b622c075e2730a93c757feff05b77baf"
+    },
+    {
+      "path": "source-edits.json",
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/source-edits.json",
+      "bytes": 88443,
+      "sha256": "a7a7fa1f97f5f9f2cbb2f5a0e6ac68a74270cf4aef96d631d9fb91793d7f1bb2"
+    },
+    {
+      "path": "source-publication-provenance.json",
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/source-publication-provenance.json",
+      "bytes": 17054,
+      "sha256": "b9eaeacfaab6783c8640524d5de3fe69c408988fd6f66d76ccce65009a4310b3"
+    }
+  ],
+  "total_bytes": 11412458,
+  "native_full_captures_included": false,
+  "business_rows_or_credentials_included": false,
+  "repository_changes": 0,
+  "database_writes": 0
+}

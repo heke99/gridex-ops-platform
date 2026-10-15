@@ -1,0 +1,15 @@
+{
+  "project": "piidsfebjqjmnepdpnas",
+  "scope": "READ_ONLY_QUOTE_FUNCTION_CATALOG_NOT_BUSINESS_FLOW",
+  "observed_at": "2026-10-14 15:54:09.556283+00",
+  "body_md5": "007d078d9d0065395edf2190d4f1d3b6",
+  "definition_md5": "fe9fcd88e137756d6b663b5bcaa7363f",
+  "expected_owner": true,
+  "expected_config": true,
+  "expected_acl": true,
+  "expected_execution_attributes": true,
+  "no_expired_quote_rejection": true,
+  "native_writes": 0,
+  "business_rpc_calls": 0,
+  "source_routing_adopted": false
+}

@@ -1,0 +1,114 @@
+[
+  {
+    "op": "test",
+    "path": "/info/version",
+    "value": "2026-10-02.3"
+  },
+  {
+    "op": "test",
+    "path": "/components/schemas/CustomerSupportCaseDetail",
+    "value": {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/CustomerSupportCase"
+        },
+        {
+          "type": "object",
+          "required": [
+            "messages"
+          ],
+          "properties": {
+            "messages": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/CustomerSupportMessage"
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "op": "replace",
+    "path": "/components/schemas/CustomerSupportCaseDetail",
+    "value": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_reference",
+        "title",
+        "description",
+        "status",
+        "channel",
+        "created_at",
+        "updated_at",
+        "resolved_at",
+        "messages"
+      ],
+      "properties": {
+        "case_reference": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{1,31}_[A-Za-z0-9_-]{20,64}$",
+          "description": "Opaque public reference. It identifies the case but grants no access on its own."
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 180
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Only text the customer wrote when opening the case; null for staff-created cases."
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "received",
+            "in_progress",
+            "resolved",
+            "closed"
+          ],
+          "description": "Customer-visible status. Internal working states are not exposed."
+        },
+        "channel": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "api",
+            "customer_portal",
+            "admin",
+            "phone",
+            "operations_automation",
+            null
+          ]
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "resolved_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "messages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/CustomerSupportMessage"
+          }
+        }
+      }
+    }
+  }
+]

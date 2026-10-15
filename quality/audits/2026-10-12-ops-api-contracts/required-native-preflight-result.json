@@ -1,0 +1,527 @@
+{
+  "project": "piidsfebjqjmnepdpnas",
+  "source": "release-proposals/required-native-preflight.sql",
+  "authority": "actual read-only pg_proc + ACLs; no tests/business RPC/write",
+  "rows": [
+    {
+      "name": "ediel_archive_ai_purpose_source_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_archive_bilateral_customer_source_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_archive_bilateral_prodat_ground_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_archive_network_registry_source_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_archive_regulated_supply_ground_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_archive_requested_change_source_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_archive_requested_customer_change_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_archive_signed_brp_declaration_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_archive_supply_rescission_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_beneficiary_series_page_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_bilateral_prodat_ground_scope_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_brp_change_source_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_brp_responsibility_history_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_claim_beneficiary_exports_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_current_retention_session_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_customer_record_tombstones_v1",
+      "missing": false,
+      "identity_arguments": "p_company_id uuid, p_customer_id uuid",
+      "security_definer": true,
+      "service_execute": true,
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "effective_definition_md5": "a5f6454cdd92e10de5fa9d96cfeeec48"
+    },
+    {
+      "name": "ediel_production_contract_source_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_queue_beneficiary_export_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_read_ai_purpose_source_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_read_beneficiary_export_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_read_bilateral_customer_source_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_read_bilateral_prodat_ground_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_read_dsn_source_observations_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_read_fresh_business_incident_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_read_network_registry_source_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_read_regulated_supply_ground_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_read_requested_change_artifact_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_read_requested_customer_change_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_read_signed_brp_declaration_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_read_supply_rescission_artifact_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_regulated_supply_ground_scope_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_report_fresh_business_incident_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_requested_customer_change_queue_basis_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_require_contract_records_available_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_require_customer_record_available_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_require_invoice_file_copy_available_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_require_portal_retention_access_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_require_source_bytes_available_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_review_ai_purpose_source_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_review_bilateral_customer_source_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_review_bilateral_prodat_ground_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_review_network_registry_source_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_review_regulated_supply_ground_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_review_requested_change_artifact_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_review_requested_customer_change_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_review_signed_brp_declaration_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_review_supply_rescission_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_revoke_network_registry_source_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_revoke_signed_brp_declaration_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_service_administration_read_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_signed_brp_declaration_scope_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    },
+    {
+      "name": "ediel_supply_rescission_scope_v1",
+      "missing": true,
+      "identity_arguments": null,
+      "security_definer": null,
+      "service_execute": null,
+      "anon_execute": null,
+      "authenticated_execute": null,
+      "effective_definition_md5": null
+    }
+  ]
+}

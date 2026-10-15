@@ -1,0 +1,56 @@
+{
+  "at": "2026-10-14T14:58:20.810949+00:00",
+  "main": "573d74371086da585a5cff6abee95eadfe58899e",
+  "donor": "6047439998a677a34f154b353c575687d01ca81a",
+  "status": "SOURCE_AND_ISOLATED_COMPONENT_READY_RECEIVING_HANDOFF_PENDING",
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 1874,
+      "sha256": "0a060d33200242d66449e6d388e6a49ee6b8dde702abd9fe8e7897b26a89c103"
+    },
+    {
+      "path": "donor-source-identities.json",
+      "bytes": 9201,
+      "sha256": "09b42ff54a7a20db0acdbb31231f17c22640825a22239031d68a0523873bbe11"
+    },
+    {
+      "path": "donor-source-review.md",
+      "bytes": 6532,
+      "sha256": "92b208a7ae95e71ae2997e6ac9234b0e226a466db02a607e2391e9c035c64d6c"
+    },
+    {
+      "path": "existing-two-donor-fixes.patch",
+      "bytes": 6973,
+      "sha256": "4a02c8a1af7b074ce7178fe41573dd92ba61b0eee202b275fa7e8c5926fc42dd"
+    },
+    {
+      "path": "isolated-component-receipt.json",
+      "bytes": 1544,
+      "sha256": "e006a7e29de6aaca755d8ca720f7ebecc8174a43fca851e992a0b4273e63219c"
+    },
+    {
+      "path": "prepared-two-file-handoff.md",
+      "bytes": 1723,
+      "sha256": "c662266b3eb8e56082e0d11804fd99d3304efa4c599d1c89223242ce10b5ca5c"
+    },
+    {
+      "path": "search-path-forward-proposal.sql",
+      "bytes": 3027,
+      "sha256": "4153067538523442f6d040e28127b76335a3d4aea07479280d5dcd64a1e6b2c9"
+    },
+    {
+      "path": "search-path-peer-one.txt",
+      "bytes": 4308,
+      "sha256": "c81d52b28a5a1d891c0dd3e7c38228b2e2c6c6eb9065d99d2bd714f636730e23"
+    },
+    {
+      "path": "search-path-peer-two.md",
+      "bytes": 7348,
+      "sha256": "2643ee4d62a32e5d7714f14d26e1d3a3b0513fa04ea14ca393173acd732c2aee"
+    }
+  ],
+  "managed_native_writes": 0,
+  "business_rpc_calls": 0,
+  "shared_source_edits": 0
+}

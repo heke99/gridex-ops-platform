@@ -12,6 +12,7 @@ import customerMinimum from '@/docs/openapi/releases/2026-10-02.3/customer-porta
 import websiteStaffRelease from '@/docs/openapi/releases/2026-10-04.1/website-integration-v1.json'
 import customerStaffRelease from '@/docs/openapi/releases/2026-10-04.1/customer-portal-v1.json'
 import staffFirst from '@/docs/openapi/releases/2026-10-04.1/staff-v1.json'
+import websiteStable from '@/docs/openapi/releases/2026-10-09.1/website-integration-v1.json'
 
 type RecordValue = Record<string, unknown>
 type ProfileContext = { surface: ApiSurface; surfaces: readonly ApiSurface[]; profile: ApiContractProfile | null }
@@ -78,10 +79,50 @@ function projectResponse(value: unknown, rawSchema: unknown, document: RecordVal
   const result: RecordValue = {}
   for (const [key, child] of Object.entries(source)) {
     if (schema.additionalProperties === false && !(key in properties)) continue
-    const wireMarker = key === 'contract_schema_version' && (envelope || resolveSchema(properties[key], document).const === revision)
+    const declaredWireRevision = resolveSchema(properties[key], document).const === revision
+    const wireMarker = (key === 'contract_schema_version' && (envelope || declaredWireRevision))
+      || (key === 'contract_version' && declaredWireRevision)
     result[key] = wireMarker ? revision : projectResponse(child, properties[key], document, revision)
   }
   return result
+}
+
+/** Website webhooks use the same trusted credential pin as Website HTTP responses. */
+export function websiteWebhookResponseRevision(metadata: RecordValue | null | undefined): string {
+  const rawConfiguration = metadata?.api_contract_profiles
+  const configured = record(rawConfiguration)
+  if (rawConfiguration !== undefined && !configured) {
+    throw new ApiInputError('The configured API representation is unavailable.', 'api_contract_profile_unavailable', 503)
+  }
+  const revision = configured?.website
+  if (revision !== undefined && typeof revision !== 'string') {
+    throw new ApiInputError('The configured API representation is unavailable.', 'api_contract_profile_unavailable', 503)
+  }
+  const result = assessApiContractCompatibility({ surface: 'website', major: 'v1', clientProfile: revision ?? null,
+    requiredCapabilities: [], registry: API_CONTRACT_PROFILE_REGISTRY })
+  if (!result.ok) {
+    throw new ApiInputError('The configured API representation is unavailable.', 'api_contract_profile_unavailable', 503)
+  }
+  return result.profile.revision
+}
+
+const WEBSITE_WEBHOOK_SCHEMA_BY_EVENT: Readonly<Record<string, string>> = {
+  'contracts.publication.changed': 'PublicationChangedWebhook',
+  'customer_application.status_changed': 'CustomerApplicationStatusChangedWebhook',
+  'supplier_switch.updated': 'SupplierSwitchUpdatedWebhook',
+}
+
+/** Format only the outgoing wire copy; queued payloads and business events stay immutable. */
+export function projectWebsiteWebhookResponse(body: RecordValue, revision: string): RecordValue {
+  const result = assessApiContractCompatibility({ surface: 'website', major: 'v1', clientProfile: revision,
+    requiredCapabilities: [], registry: API_CONTRACT_PROFILE_REGISTRY })
+  if (!result.ok) throw new Error('webhook_api_contract_profile_unavailable')
+  const document = record(historicalSpecifications[`website:${revision}`]
+    ?? (revision === WEBSITE_INTEGRATION_CONTRACT_VERSION ? websiteStable : null))
+  if (!document) throw new Error('webhook_api_contract_schema_unavailable')
+  const schemaName = WEBSITE_WEBHOOK_SCHEMA_BY_EVENT[String(body.event_type ?? '')]
+  const schema = schemaName ? { $ref: `#/components/schemas/${schemaName}` } : undefined
+  return projectResponse(body, schema, document, revision, true) as RecordValue
 }
 
 function operationSchema(document: RecordValue, request: NextRequest, status: number): unknown {

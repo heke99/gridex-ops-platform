@@ -1,0 +1,28 @@
+[
+  {
+    "op": "test",
+    "path": "/info/version",
+    "value": "2026-10-02.3"
+  },
+  {
+    "op": "test",
+    "path": "/components/schemas/WebsiteQuoteValidationData/properties/market_reference",
+    "value": {
+      "$ref": "#/components/schemas/MarketReference"
+    }
+  },
+  {
+    "op": "replace",
+    "path": "/components/schemas/WebsiteQuoteValidationData/properties/market_reference",
+    "value": {
+      "anyOf": [
+        {
+          "$ref": "#/components/schemas/MarketReference"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+]

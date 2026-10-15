@@ -1,0 +1,49 @@
+[
+  {
+    "name": "old-table-acl",
+    "exit_code": 3,
+    "expected_error": "ops_atomic_existing_retention_relation_acl_drift",
+    "error_seen": true,
+    "full_catalog_restored": true
+  },
+  {
+    "name": "old-column-acl",
+    "exit_code": 3,
+    "expected_error": "ops_atomic_existing_retention_relation_acl_drift",
+    "error_seen": true,
+    "full_catalog_restored": true
+  },
+  {
+    "name": "auth-grant-option",
+    "exit_code": 3,
+    "expected_error": "ops_atomic_protected_auth_users_acl_contract_drift",
+    "error_seen": true,
+    "full_catalog_restored": true
+  },
+  {
+    "name": "ret-edge-flags",
+    "exit_code": 3,
+    "expected_error": "ops_atomic_retention_membership_contract_drift",
+    "error_seen": true,
+    "full_catalog_restored": true
+  },
+  {
+    "name": "forced-after-inherit",
+    "exit_code": 3,
+    "expected_error": "isolated_installer_forced_after_inherit",
+    "error_seen": true,
+    "full_catalog_restored": true
+  },
+  {
+    "name": "wrong-caller-001-protected-auth-schema-usage.sql",
+    "exit_code": 3,
+    "full_catalog_restored": true,
+    "error": "ERROR:  ops_protected_auth_owner_execution_required\nCONTEXT:  PL/pgSQL function inline_code_block line 3 at RAISE\n"
+  },
+  {
+    "name": "wrong-caller-002-protected-auth-users-select-update.sql",
+    "exit_code": 3,
+    "full_catalog_restored": true,
+    "error": "ERROR:  ops_protected_auth_owner_execution_required\nCONTEXT:  PL/pgSQL function inline_code_block line 3 at RAISE\n"
+  }
+]

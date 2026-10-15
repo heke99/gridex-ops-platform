@@ -1,0 +1,169 @@
+{
+  "source_head": "79333e8a2ae93ed27de425c81c4668564d57d6f6",
+  "runtime": "Node22.23.3, synthetic local Supabase configuration, loopback-only network preload for unit/build execution",
+  "status": "LOCAL_SOURCE_VERIFICATION_RECORDED_NATIVE_RELEASE_PENDING",
+  "authority": "Local validation only. Native readiness is assessed from actual SQL/caller/catalog receipts, not these checks.",
+  "passed": [
+    {
+      "command": "npm run typecheck",
+      "scope": "final79333e8a app source",
+      "result": "exit0"
+    },
+    {
+      "command": "npm run typecheck:tests",
+      "scope": "final79333e8a test source",
+      "result": "exit0"
+    },
+    {
+      "command": "npm run typecheck:scripts",
+      "scope": "reviewed merge source; final correction does not change scripts",
+      "result": "exit0"
+    },
+    {
+      "command": "ESLint changed TS/TSX versus origin/main plus supplementary final3files",
+      "result": "exit0; three pre-existing unused apiAuth helper warnings"
+    },
+    {
+      "command": "npm run api:docs",
+      "result": "exit0:122registry routes/145OpenAPIoperations/58reachable schemas, currentdocs12.1"
+    },
+    {
+      "command": "npm run api:compatibility",
+      "result": "exit0"
+    },
+    {
+      "command": "npm run api:release:verify",
+      "result": "exit0: local prospective12.1 artifacts, no deployed-byte verification"
+    },
+    {
+      "command": "npm run api:error-registry",
+      "result": "exit0:25codes"
+    },
+    {
+      "command": "npm run db:migrations:check",
+      "result": "exit0: source SQL/checksum/type integrity only, not native parity"
+    },
+    {
+      "command": "npm run tenant:service-role-ratchet",
+      "result": "exit0:2321callsites <=2353baseline; no baseline rewrite"
+    },
+    {
+      "command": "npm run security:rbac",
+      "result": "exit0:24checks/0warnings"
+    },
+    {
+      "command": "npm run ops:hardening-regression",
+      "result": "exit0:18staticchecks"
+    },
+    {
+      "command": "npm run api:error-boundaries",
+      "result": "exit0:244routefiles"
+    },
+    {
+      "command": "npm run quality:large-file-budget",
+      "result": "exit0:1800linebudget"
+    },
+    {
+      "command": "npm run quality:performance",
+      "result": "exit0: APItenant patterns,N+1budget,SLOcontract; no load-performance measurement claim"
+    },
+    {
+      "command": "Compare sha256 of46 old frozen files and bytes of3prospectivecopies",
+      "result": "all old frozen byte-identical and new copies equal current docs"
+    },
+    {
+      "command": "git diff --check",
+      "result": "exit0"
+    }
+  ],
+  "supporting_targeted_runs": [
+    {
+      "scope": "Event serialization/legacy profiles",
+      "result": "44checks/4files passed"
+    },
+    {
+      "scope": "Authorized message + quoted sender identifiers",
+      "result": "10checks/2files passed; malicious own-company match rejected, all4normalcolumnmatches preserved"
+    },
+    {
+      "scope": "Exactcompany reads, operational guards, fullJSONB provider receipt CAS and businessmetadata preservation",
+      "result": "95checks/12files passed"
+    }
+  ],
+  "failed_or_blocked": [
+    {
+      "command": "node scripts/gridex-hardening-static-audit.cjs",
+      "result": "Checker exits1 on one pre-existing assertion demanding monthly billing cron?send_to_partner=true. Actual unchanged route explicitly returns mode:prepare_only/approval_required:true, and monthlyAutomation creates review drafts with export_requested/export_confirmed:false. The static send requirement conflicts with the current preparation/approval behavior; no provider delivery was enabled to satisfy it."
+    },
+    {
+      "command": "GRIDEX_AUDIT_ATTEMPTS=1 GRIDEX_AUDIT_TIMEOUT_MS=45000 npm run security:audit-production",
+      "result": "Not executed. Automatic approval review rejected npm audit because dependency manifest/lock metadata would be sent to external npm registry without specific authorization. No workaround/indirect retry."
+    },
+    {
+      "command": "ggshield / semgrep / codeql discovery",
+      "result": "CLIs absent; no available Semgrep MCP, no authenticated GitGuardian setup. Scans not qualified."
+    },
+    {
+      "command": "Native business replay, canonical GEN, authenticated liveStaff/customer flow and deployed-byte verification",
+      "result": "Not executed in this bounded API side task; owner/native/configuration qualification remains open."
+    }
+  ],
+  "full_unit": {
+    "status": "INITIAL_FULL_RUN_FAILED_FIXTURE_FOLLOWUP_PASSED",
+    "command": "NODE_OPTIONS=--require=./scripts/lib/unit-loopback-network-boundary.cjs vitest run --maxWorkers=2 --testTimeout=15000",
+    "log": "/tmp/gridex-api-review/final-unit-full-79333e8a.log",
+    "result": "1097files:1096passed/1failed;17691checks:17688passed/3failed;675.33seconds",
+    "cause": "All3 failures in existing SC018 finite mock missing new assertTenantUserCanReadCompany export; actual caller and guard checked directly. Fixture-only4b3a32ab adds that port and exact actor/company assertions; business expectations unchanged. No source policy relaxed.",
+    "follow_up": {
+      "commit": "4b3a32ab328821d9763e22b0aff527da098d3509",
+      "result": "5files/31checks passed exit0 in11.69s; original business expectations retained; tests typecheck and fixture lint exit0",
+      "scope": [
+        "ediel-sc-018-056-independent-service-and-incident.test.ts",
+        "internal-api-readable-company.test.ts",
+        "internal-api-authorized-company.test.ts",
+        "inbound-api-message-company.test.ts",
+        "inbound-api-identifier-filter.test.ts"
+      ],
+      "whole_suite_rerun": false,
+      "interpretation": "The initial full run validated all other1096files; the only failed file and shared guard boundary were rechecked after a fixture-only change. Do not report the initial full command as exit0.",
+      "log": "/tmp/gridex-api-review/final-unit-scope-followup-4b3a32ab.log",
+      "log_sha256": "cc58cdd15d8f7753b96cb9addead0a7a1dbb7e0d57ce1587e26ef99bd6311adb"
+    },
+    "log_sha256": "a945db1d93565934a88588270a57d0ffd01101aa0da993a7330f09f3cb637844"
+  },
+  "build": {
+    "status": "PASSED",
+    "command": "NODE_OPTIONS=--require=./scripts/lib/unit-loopback-network-boundary.cjs npm run build",
+    "log": "/tmp/gridex-api-review/final-build-79333e8a.log",
+    "exit_code": 0,
+    "webpack_seconds": 90,
+    "typescript_seconds": 79,
+    "static_pages": 23,
+    "new_docs_routes_present": 3,
+    "source_head": "79333e8a2ae93ed27de425c81c4668564d57d6f6",
+    "log_sha256": "38d2cc5acd914bfa96f0170ae3601e53fa9819f239ed55c08eefb221d1b33b86"
+  },
+  "native_writes": 0,
+  "native_business_rpcs": 0,
+  "deployments": 0,
+  "actual_native_delivery_recheck": {
+    "receipt": "delivery-native-preflight.json",
+    "checked_at": "2026-10-12 22:56:02 UTC",
+    "result": "51missing/52examined names, present tombstonebody MD5/ACL unchanged",
+    "native_writes": 0,
+    "business_rpc_invocations": 0
+  },
+  "false_positive_receipts": [
+    {
+      "claim": "Absent send_to_partner=true necessarily breaks monthly billing API",
+      "source_evidence": [
+        "app/api/cron/billing/monthly/route.ts:35",
+        "lib/billing/monthlyAutomation.ts:59",
+        "lib/billing/monthlyAutomation.ts:95"
+      ],
+      "resolution": "Preparation-only workflow is explicit in current source. Old checker expectation is not a confirmed business failure."
+    }
+  ],
+  "fixture_head": "4b3a32ab328821d9763e22b0aff527da098d3509",
+  "source_composition": "Runtime app/lib/scripts/docs/supabase bytes unchanged after reviewed79333e8a; only one existing finite mock fixture corrected. Later commits record audit/checkpoint only."
+}

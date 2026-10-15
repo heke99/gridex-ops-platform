@@ -1,0 +1,77 @@
+{
+  "status": "FROZEN_SOURCE_READY_GENUINE_NONSUPER_PIPELINE_PASS_ACTUAL_OWNER_CAPABILITY_UNAVAILABLE",
+  "preserved_source_sha256": "bacf8944718c984d117f0400ed19fadd978feed6613ea9196784eff4591ac600",
+  "preserved_parts": 51,
+  "prior_atomic_sha256": "eaa99f86196c13e5c5a448883a334f71de0641d7b341870f68a6d31b4d5fff98",
+  "files": [
+    {
+      "file": "001-protected-auth-schema-usage.sql",
+      "bytes": 5239,
+      "sha256": "904118e7dd28884b2823646ddf219173fe6d4dfee9e13c8f80ba45872f539b69",
+      "actual_status": "NOT_APPLIED"
+    },
+    {
+      "file": "002-protected-auth-users-select-update.sql",
+      "bytes": 5257,
+      "sha256": "5ab3b5a30d9fae806a2b0b8fa7633b69b66e8eeb9b3361783e1a557e989d9ccd",
+      "actual_status": "NOT_APPLIED"
+    },
+    {
+      "file": "003-qualified-atomic-install.sql",
+      "bytes": 41778,
+      "sha256": "fa0af500fb71a8b4d41a269b58f2ce0879ab6d8d4cd7b35d734d613100b8b53d",
+      "actual_status": "NOT_APPLIED"
+    },
+    {
+      "file": "004-qualified-retention-install.sql",
+      "bytes": 94467,
+      "sha256": "2ff105e0d8f1a9cc9e84fbf7c060a52bf6bdf8d7f9c7e75a843f4bb209fa0425",
+      "actual_status": "NOT_APPLIED"
+    }
+  ],
+  "ordinary_project_connection_can_execute_protected_owner_prerequisites": false,
+  "actual_owner_capability_block": [
+    "auth schema USAGE grant requires existing protected owner supabase_admin",
+    "auth.users SELECT/UPDATE grant requires existing protected owner supabase_auth_admin"
+  ],
+  "unknown_connector_auth_response_cause": true,
+  "approved_main_source_sha256": "fa0af500fb71a8b4d41a269b58f2ce0879ab6d8d4cd7b35d734d613100b8b53d",
+  "main_source_reviewers": [
+    "/root/final_api_source_review",
+    "/root/native_forward_independent_review"
+  ],
+  "retention_envelope_status": "2ff105e0 both independent source reviews clear; genuinefirst/replay/fullrestoration/forcedrollback PASS",
+  "semantic_execution_map": "pending-semantic-execution-map.json",
+  "actual_semantic_installation_applied": false,
+  "readme_sha256": "7066742763f000dc3f1fe5cb338aa71c39bd2e81d9918c72a00460773c26d798",
+  "semantic_source_bytes": 6628349,
+  "preserved_executable_sha256": "3811ebc90d2a2a17aa83efb821ff21448ebeb63c6eac4ded925b756c0e86f1ab",
+  "no_business_rpc_invocations": true,
+  "source_and_live_status": "Proposals only: actual sourceparts present; semantic module/forwards absent",
+  "all_four_proposals_actual_status": "NOT_APPLIED",
+  "source_review_status": "TWO_INDEPENDENT_SOURCE_CLEARANCES_FOR_ALL_FOUR_PROPOSALS_CONDITIONAL_ON_GENUINE_FINAL_PROOF",
+  "semantic_execution_map_sha256": "07bf220f54c6f3f5219ce801234ccc1557917277483fb2554e1b0caae3c8d449",
+  "actual_protected_owner_connection_available": false,
+  "genuine_qualification": {
+    "receipt_path": "/tmp/gridex-api-review/installer-nonsuper-final-pipeline-isolated-compile-receipt.json",
+    "receipt_sha256": "541e238e93ff6fee64206abe51d11494f19a844f2f57051943bdf98360cbee1e",
+    "status": "PASS_genuine_isolated_non_super_installer_pipeline",
+    "all_six_first_and_replay_pass": true,
+    "final_main_replay_preserved_full_semantics": true,
+    "negative_cases": 14,
+    "broader_old_fixture_insufficient_for_actual_role": true,
+    "business_rpc_invocations": 0,
+    "actual_writes_by_mapper": 0
+  },
+  "final_actual_capture": {
+    "path": "/tmp/gridex-api-review/installer-capability-proposals/final-actual-capability-block.json",
+    "checked_at": "2026-10-13T16:56:28.861105+00:00",
+    "protected_auth_rights_missing": true,
+    "parts": 51,
+    "bytes": 6628349,
+    "module_and_origins_absent": true,
+    "atomic_registration_absent": true,
+    "payload_source_sha256": "bacf8944718c984d117f0400ed19fadd978feed6613ea9196784eff4591ac600",
+    "file_sha256": "d8242a5ad8d94d9fce61ba7dfa110a6546e3327864adf6f1d526dfeff044d2f0"
+  }
+}

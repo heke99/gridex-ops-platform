@@ -1,0 +1,192 @@
+{
+  "reference": "9f008c314b6a283138cbc91ec376f4f9306587ce",
+  "current_head": "77528ede3463b0afc10f4d0aa247c601319f1856",
+  "old_frozen_documents": 46,
+  "all_byte_identical": true,
+  "files": [
+    {
+      "path": "docs/openapi/releases/2026-08-02.1/customer-portal-v1.json",
+      "sha256": "921daeb0c1bdfe4f4dc50cbbc3990defce8556bfe7cff0a88a0f4d96f4d6b779"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-02.1/website-integration-v1.json",
+      "sha256": "971f0f4e00330971c92a37046f54fa7d27416a5b64932c7d37d7892b79691e7a"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-03.1/customer-portal-v1.json",
+      "sha256": "6bd12b1bd36b219737e3a3630471e2d7c5cc9a3bcdf049ce370bee9842e180f4"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-03.1/website-integration-v1.json",
+      "sha256": "6b8828ff7331dce30d0f34b6c479e65d386033e4eac2a6c3c93f78b1e5f4bb25"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-04.1/customer-portal-v1.json",
+      "sha256": "2bb81f17bea1740fe4e63bcacd830df3fa2fcd3179b166b624092b43acd3c39e"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-04.1/website-integration-v1.json",
+      "sha256": "c895d14ac0c309a9d0fb7b4d8a63d705d8122bbcb9797c56235c5883d7e3fa96"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-04.2/customer-portal-v1.json",
+      "sha256": "b28e73ee068619e2677d966d3bd4be82a95d926c6e347c60e59df080ff94d95d"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-04.2/website-integration-v1.json",
+      "sha256": "8c1bc549b4b874ce66e8b68793cafb16184d1a70214ea980f2b4bed8b2583ec6"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-04.3/customer-portal-v1.json",
+      "sha256": "16187883ad4df64ac8e67b9352753d2492369978961c3c84cef0eadb8739d922"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-04.3/website-integration-v1.json",
+      "sha256": "cb646455421d1c56bd94ce11c970ad73560d88b72a9c9940c405ac754c0a6595"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-05.1/customer-portal-v1.json",
+      "sha256": "038d039aec7a1cec0ccd5a89410b44bc94e9f0876f815d4504f648cae943a06f"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-05.1/website-integration-v1.json",
+      "sha256": "341aff52313d55acf7a688a3611482df5ed0a9684ea546c34ba78d99a8ea14d8"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-05.2/customer-portal-v1.json",
+      "sha256": "2a998b7b8be3780fc9793ab1de742912915a9d4925bfb3246d84b2f1c3d9f65e"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-05.2/website-integration-v1.json",
+      "sha256": "f35131378c66d8364a17b03e6e063287dbe88c82454a61f724c74f08401a8349"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-10.1/customer-portal-v1.json",
+      "sha256": "5543676bd67f4b55183e2618bb4f9af541936293395b8c650947992b523fb675"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-10.1/website-integration-v1.json",
+      "sha256": "0dbe7cd7fb3f14f97fa8785c8809b9d6549ab6e05435757b77b4f010a233519b"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-14.1/customer-portal-v1.json",
+      "sha256": "e6e667565b9e4760c9590dc02cb130a277edd0b3d5eb4178ed95fccd60df9de5"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-14.1/website-integration-v1.json",
+      "sha256": "6726e9d2350d440d15b150afbe1ca5ed3e67ac14a07bd3b29da5c74636865bcd"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-19.1/customer-portal-v1.json",
+      "sha256": "e922976f77636c30839dffbce0235482acaae3cb53e220a3e7990d51983a7783"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-19.1/website-integration-v1.json",
+      "sha256": "f1b6d672e8db8a89056c2a4c353dc74cc8b50a886b38c12d7dcc730630c0b446"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-19.2/customer-portal-v1.json",
+      "sha256": "61cbb18bf7897bcd5f0de25ead109dacfbd4f9253b5697739e492b46d64a8503"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-19.2/website-integration-v1.json",
+      "sha256": "43bf200e4f8f5a0d57ad745dcf26d8eb07bd9cbb9ed9e6e98c7d8161f510e7e2"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-20.1/customer-portal-v1.json",
+      "sha256": "a25bed60e40716f8b99578ce8cb7f3f06318c5ecad0973d913e2bf9e127c9a2b"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-20.1/website-integration-v1.json",
+      "sha256": "837a2c1beb861265811765446c2ee64c035a51db5eaa1d164f96b067d0b34854"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-20.2/customer-portal-v1.json",
+      "sha256": "f061d0023544718fa49204b16ab943bdefc283d3aa6eb273504395f8a2cadc9d"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-20.2/website-integration-v1.json",
+      "sha256": "35c20cb4d5ce0757557f170f656f13434a9f1c61c31ccc0f368ef81c503eaa29"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-22.1/customer-portal-v1.json",
+      "sha256": "e4fc3961b4f7b16e81e23547ba9fbe983c4bb80837a585aed16b8e6b46e9f65a"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-22.1/website-integration-v1.json",
+      "sha256": "9dc264fe5adadc2304ab5ffaef188a66fe230990a6f58676fa6759a934fce8c2"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-22.2/customer-portal-v1.json",
+      "sha256": "882c4f203567e9dc28ce27caff9cb5d692674a0f54df3d07b506b7fa03051456"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-22.2/website-integration-v1.json",
+      "sha256": "b5866e352c7c211c98e7f6cb65d2b77b7168ca4667fc7826e1347ef69ae642b9"
+    },
+    {
+      "path": "docs/openapi/releases/2026-10-01.1/customer-portal-v1.json",
+      "sha256": "dbbbd964f7aa72826ec929cbeff176a464b83161d8603bf18eb5c66e39424ed3"
+    },
+    {
+      "path": "docs/openapi/releases/2026-10-01.1/website-integration-v1.json",
+      "sha256": "bd9ba77659821a4f0466fd694a926c1dddbf5a1e361b0607764dcbdf82139887"
+    },
+    {
+      "path": "docs/openapi/releases/2026-10-02.1/customer-portal-v1.json",
+      "sha256": "32c20f111b02f150e15a8b6346f89223e2ef2e48f57fcb5d2d84da09ba62d802"
+    },
+    {
+      "path": "docs/openapi/releases/2026-10-02.1/website-integration-v1.json",
+      "sha256": "16dace2d8df4d0db4bbe890fbf7c1b4cd97088adc7fe6f618c299dac8bbdaea4"
+    },
+    {
+      "path": "docs/openapi/releases/2026-10-02.2/customer-portal-v1.json",
+      "sha256": "161559a56cc5e3bed2ebc94b9a11301ca3a6437cb180957ac4510a40ce4fc001"
+    },
+    {
+      "path": "docs/openapi/releases/2026-10-02.2/website-integration-v1.json",
+      "sha256": "96bd47c98b828849d8ca7456de654866a3adcea213a6ee92850e99c4d315bd36"
+    },
+    {
+      "path": "docs/openapi/releases/2026-10-02.3/customer-portal-v1.json",
+      "sha256": "0a73e04c0c775b5b41e8eb14e26f8893acb9474f178ed8cb46965d30af4d28d0"
+    },
+    {
+      "path": "docs/openapi/releases/2026-10-02.3/website-integration-v1.json",
+      "sha256": "c6a13c2426f16bec0d630b3c912cec02b01336368196a7b9596b11b30332e948"
+    },
+    {
+      "path": "docs/openapi/releases/2026-10-02.4/customer-portal-v1.json",
+      "sha256": "442ee521e2286a3364de082cce50b68be3085db7855caf151a8999005b790503"
+    },
+    {
+      "path": "docs/openapi/releases/2026-10-02.4/website-integration-v1.json",
+      "sha256": "10fb2f3051f112990fe4ef63ffa18b24ee5d9b5203b1f4429a2a3d88675c43be"
+    },
+    {
+      "path": "docs/openapi/releases/2026-10-04.1/customer-portal-v1.json",
+      "sha256": "2ada64c650234d8cf8e5191c68d6b6ab8b47586c5fef13feeb611a9bddb79294"
+    },
+    {
+      "path": "docs/openapi/releases/2026-10-04.1/staff-v1.json",
+      "sha256": "460cf343a397c99f1173482ceb4c0045828399172fd47dd8c078e7d611e16de7"
+    },
+    {
+      "path": "docs/openapi/releases/2026-10-04.1/website-integration-v1.json",
+      "sha256": "311c1fd85a82aec158bc5e391bcd380a8a944d7762a7fdeebb24cc0ae7da6a47"
+    },
+    {
+      "path": "docs/openapi/releases/2026-10-09.1/customer-portal-v1.json",
+      "sha256": "9a9b92bc16c51507fa028c136f161b783dae8e30355002442a86a9128eeafa4c"
+    },
+    {
+      "path": "docs/openapi/releases/2026-10-09.1/staff-v1.json",
+      "sha256": "03e12284bb8534945a8c5edf1b3e6aba8ac2db4a4e8b1644da691ceeb524960a"
+    },
+    {
+      "path": "docs/openapi/releases/2026-10-09.1/website-integration-v1.json",
+      "sha256": "3309e822ba52e9251c7f7a30608a3b9b779d450137138a7d313aa79df36d2341"
+    }
+  ]
+}
