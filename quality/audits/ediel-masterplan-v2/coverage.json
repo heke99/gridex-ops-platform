@@ -2263,11 +2263,19 @@
     },
     {
       "id": "SC-046",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
         "scripts/test-ediel-utilts-series-and-err-ack.cjs",
         "scripts/ediel-utilts-u04-u14-effects-sql-regression.mjs",
-        "supabase/migrations/20261003150200_ediel_utilts_late_version_and_err_ack_dispatcher.sql"
+        "supabase/migrations/20261003150200_ediel_utilts_late_version_and_err_ack_dispatcher.sql",
+        "__tests__/ediel-sc046-bound-version-consumption-coord2-20261014.test.ts",
+        "lib/ediel/utilts/transactionPersistence.ts",
+        "lib/ediel/utilts/consumptionSinks.ts",
+        "scripts/ediel-utilts-err-gateway-native.test.ts",
+        "scripts/ediel-utilts-consumption-native.test.ts",
+        "supabase/migrations/20261014211648_ediel_sc046_bound_newer_metering_correction.sql",
+        "supabase/migrations/20261015003736_ediel_sc046_newest_metering_duplicate_guard.sql",
+        "scripts/ediel-sc046-newest-duplicate-guard-sql-regression-root-20261015.mjs"
       ]
     },
     {
