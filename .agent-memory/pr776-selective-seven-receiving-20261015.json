@@ -1,0 +1,49 @@
+{
+  "schema": "ediel-pr776-selective-seven-source-v1",
+  "agent": "codex-pr776-selective-delivery-20261015",
+  "packet": "9bd66515-6bf3-41f0-9b3a-831a227fd30d",
+  "epoch": "gridex-five-agent-20261012",
+  "slot": "session-9bd66515-6bf3-41f0-9b3a-831a227fd30d",
+  "branch": "codex/pr776-selective-seven-receiving-20261015",
+  "checkpoint": ".agent-memory/pr776-selective-seven-receiving-20261015.json",
+  "mainBase": "6ce6d49eafa8ca24bcefbeec717dd55b63abad66",
+  "mainTree": "fbe51ee680b61f5404b680a64c9e3e2d225dc282",
+  "neutralReceipt": "c0dee5caf7956673f2957bd7fb78093c09d9af83",
+  "custody": "Own neutral full-message/tree/single-main-parent and session+7 file refs independently GET_MATCH; no other resources acquired.",
+  "ownACK": {
+    "id": 6187601666,
+    "createdAt": "2026-10-15T08:13:13Z",
+    "fullBodyGET_MATCH": true
+  },
+  "distinctFIRSTWRITE": {
+    "id": 6176651482,
+    "updatedAt": "2026-10-15T08:14:52Z",
+    "fullBodyGET_MATCH": true,
+    "scope": "ONLY7+NEWownCPfirst; static unpublished sourcefreeze"
+  },
+  "sourceCarrier": {
+    "commit": "58334289e507f4c54d03e7f1dd1222be42daf3f3",
+    "tree": "8f02a6b20cca2d1a42ac5aa889aa6014cd76ef81",
+    "soleParent": "566ed93af9989f6979bd2f773567c54a573b37b0",
+    "readinessReceipt": 6182896692,
+    "inherited5AndRegressionPreserved": true,
+    "inheritedOpaqueCPsUnreadUnchangedExcluded": true
+  },
+  "ids": [],
+  "files": [
+    "__tests__/ediel-supply-end-field-omissions.test.ts",
+    "__tests__/ediel-z05-rejected-identity-runtime.test.ts",
+    "lib/ediel/core/runtimeDecision.ts",
+    "lib/ediel/flows/inboundProcessing.ts",
+    "lib/ediel/prodat/receivedZ05RejectedIdentityRuntime.ts",
+    "scripts/gridex-redact-native-evidence.py",
+    "scripts/gridex-redact-native-evidence-selftest.py"
+  ],
+  "stateAtCheckpointFirstCommit": "SOURCE_FIRSTWRITE_AUTHORIZED_ADOPTION_STARTED",
+  "preparedPatchSHA256": "66e8ee1f9d3cbe6a449b3ad1bf4d84d7a8e86c6dcd57e01493920ca5511be5cf",
+  "sourceDelta": "Six immutable historical postimages; current86242 ingress plus only Z05 import and two OR additions. Entire current positive Z02 function/imports/replay preserved byte-exact.",
+  "verificationScope": "Earlier private zero-fuzz/inverse/hash proof and39 direct import locators only; no new behavior tests/compiler/native/GEN/backend/SQL/CI/original runs.",
+  "limits": "ONLY7+new own checkpoint; no named ref publication, PR sync, runtime/producer/collector/role/coverage/merge authority from this source step.",
+  "next": "Write only exact7 on carrier583, freeze exact returned commit/tree/postimages/all-other preservation; two independent nonauthor affected SOURCE finals then separate PUB-GO. Existing H/native and serialROOT retain actual execution/current CI/normal delivery.",
+  "recordedAt": "2026-10-15T08:16:35.629495+00:00"
+}
