@@ -1,3 +1,7 @@
+import { assertEdielTenantActor } from '@/lib/ediel/services/authorization'
+import { processInboundAckMessage } from '@/lib/ediel/flows/inboundAckProcessing'
+import { InboundReceptionHeldError, recordInboundReception, requireFirstReception, type InboundReception } from '@/lib/ediel/inbound/receptions'
+import type { EdielMessageRow } from '@/lib/ediel/types'
 import { classifyCanonicalInboundAck } from '@/lib/ediel/ack/inboundAckOutcome'
 import type { ParsedEdifactEnvelope } from '@/lib/inbound-mail/edielEmailParser'
 import type { InboundEntityMatch } from '@/lib/inbound-mail/inboundMatcher'
@@ -46,27 +50,55 @@ function ackColumns(parsed: ParsedEdifactEnvelope): Record<string, unknown> {
   }
 }
 
+type AckSourceIdentity = {
+  companyId: string
+  environment?: string | null
+  inboundEmailMessageId: string
+  parsed: ParsedEdifactEnvelope
+}
+
+function assertOwnInboundAckIdentity(row: Record<string, unknown>, input: AckSourceIdentity, ownMail: boolean): void {
+  // A different canonical mail is still submitted to the reception gate so
+  // protocol-duplicate/identity-conflict response obligations remain intact.
+  if (row.company_id !== input.companyId || row.environment !== input.environment
+    || row.direction !== 'inbound' || row.message_standard !== 'edifact'
+    || typeof row.inbound_email_message_id !== 'string' || !row.inbound_email_message_id) {
+    throw new Error('ack_current_mail_source_invalid')
+  }
+  if (ownMail && (row.inbound_email_message_id !== input.inboundEmailMessageId
+    || row.message_family !== input.parsed.messageFamily || row.message_code !== input.parsed.messageCode
+    || row.raw_payload !== input.parsed.rawPayload
+    || (row.receiver_ediel_id ?? null) !== (input.parsed.receiverEdielId ?? null)
+    || (row.application_reference ?? null) !== (input.parsed.applicationReference ?? null))) {
+    throw new Error('ack_current_mail_source_invalid')
+  }
+}
+
 async function findExistingInboundAck(input: {
   companyId: string
   inboundEmailMessageId: string
   parsed: ParsedEdifactEnvelope
+  environment?: string | null
+  protectedNegative?: boolean
 }): Promise<string | null> {
   const byEmail = await supabaseService
     .from('ediel_messages')
-    .select('id')
+    .select(input.protectedNegative ? '*' : 'id')
     .eq('company_id', input.companyId)
     .eq('direction', 'inbound')
     .eq('inbound_email_message_id', input.inboundEmailMessageId)
     .limit(1)
     .maybeSingle()
+  if (byEmail.error && input.protectedNegative) throw byEmail.error
   if (!byEmail.error && (byEmail.data as { id?: string } | null)?.id) {
+    if (input.protectedNegative) assertOwnInboundAckIdentity(byEmail.data as Record<string,unknown>, input, true)
     return (byEmail.data as { id: string }).id
   }
 
   if (!input.parsed.interchangeReference || !input.parsed.senderEdielId || !input.parsed.receiverEdielId) return null
   const byInterchange = await supabaseService
     .from('ediel_messages')
-    .select('id')
+    .select(input.protectedNegative ? '*' : 'id')
     .eq('company_id', input.companyId)
     .eq('direction', 'inbound')
     .eq('sender_ediel_id', input.parsed.senderEdielId)
@@ -74,7 +106,11 @@ async function findExistingInboundAck(input: {
     .eq('interchange_reference', input.parsed.interchangeReference)
     .limit(1)
     .maybeSingle()
-  if (byInterchange.error) return null
+  if (byInterchange.error) { if (input.protectedNegative) throw byInterchange.error; return null }
+  if (input.protectedNegative && byInterchange.data) {
+    const row = byInterchange.data as Record<string,unknown>
+    assertOwnInboundAckIdentity(row, input, row.inbound_email_message_id === input.inboundEmailMessageId)
+  }
   return (byInterchange.data as { id?: string } | null)?.id ?? null
 }
 
@@ -87,6 +123,8 @@ async function persistInboundAck(input: {
   outboundMatch: InboundEntityMatch
   meteringPointMatch: InboundEntityMatch
   tenantResolution?: InboundTenantResolution | null
+  protectedNegative?: boolean
+  originalReceivedAt?: string
 }): Promise<string | null> {
   const classification = classifyCanonicalInboundAck(input.parsed)
   const matched = input.outboundMatch.status === 'matched'
@@ -144,7 +182,7 @@ async function persistInboundAck(input: {
     customer_id: typeof outbound.customer_id === 'string' ? outbound.customer_id : null,
     site_id: typeof outbound.site_id === 'string' ? outbound.site_id : null,
     grid_owner_id: typeof outbound.grid_owner_id === 'string' ? outbound.grid_owner_id : null,
-    message_received_at: nowIso(),
+    message_received_at: input.protectedNegative ? input.originalReceivedAt : nowIso(),
     parsed_at: nowIso(),
     failure_reason: invalid ? classification.reason : undefined,
     ...ackColumns(input.parsed),
@@ -154,7 +192,12 @@ async function persistInboundAck(input: {
     companyId: input.companyId,
     inboundEmailMessageId: input.inboundEmailMessageId,
     parsed: input.parsed,
+    environment: input.environment,
+    protectedNegative: input.protectedNegative,
   })
+  // Same genuine mail retry must not overwrite the admitted ACK/original
+  // context or duplicate diagnostic events before protected reconciliation.
+  if (existingId && input.protectedNegative) return existingId
   const result = existingId
     ? await supabaseService.from('ediel_messages').update({ ...insertPayload, updated_at: nowIso() }).eq('id', existingId).select('id').maybeSingle()
     : await supabaseService.from('ediel_messages').insert(insertPayload).select('id').maybeSingle()
@@ -165,7 +208,7 @@ async function persistInboundAck(input: {
   }
 
   const id = (result.data as { id?: string } | null)?.id ?? existingId
-  if (id) {
+  if (id && !input.protectedNegative) {
     await supabaseService.from('ediel_message_events').insert({
       company_id: input.companyId,
       ediel_message_id: id,
@@ -235,11 +278,6 @@ async function updateOutboundAck(input: {
   const sourceId = typeof outbound.source_id === 'string' ? outbound.source_id : null
   if (!sourceId) return
 
-  if (sourceType === 'supplier_switch_request') {
-    await supabaseService.from('supplier_switch_requests').update({
-      status: 'rejected', failed_at: nowIso(), failure_reason: `${ackLabel(input.parsed)} avvisade Ediel-meddelandet.`, updated_at: nowIso(),
-    }).eq('company_id', input.companyId).eq('id', sourceId)
-  }
   if (sourceType === 'grid_owner_data_request') {
     await supabaseService.from('grid_owner_data_requests').update({
       status: 'failed', failed_at: nowIso(), failure_reason: `${ackLabel(input.parsed)} avvisade Ediel-meddelandet.`, updated_at: nowIso(),
@@ -257,11 +295,57 @@ export async function applyCanonicalInboundAckStatusUpdate(input: {
   parseResultId?: string | null
   actorUserId?: string | null
   tenantResolution?: InboundTenantResolution | null
-}): Promise<{ status: 'processed' | 'manual_review'; matchStatus: string; inboundEdielMessageId: string | null }> {
+}): Promise<{ status: 'processed' | 'manual_review'; matchStatus: string; inboundEdielMessageId: string | null; reception?: InboundReception }> {
   const classification = classifyCanonicalInboundAck(input.parsed)
   if (classification.outcome === 'not_ack') throw new Error('canonical_inbound_ack_handler_received_non_ack')
 
-  const inboundEdielMessageId = await persistInboundAck(input)
+  const outbound = candidate(input.outboundMatch)
+  const protectedNegative = classification.outcome === 'negative'
+    && input.outboundMatch.status === 'matched'
+    && ((input.outboundMatch.entityType === 'outbound_request' && outbound.source_type === 'supplier_switch_request')
+      || (input.outboundMatch.entityType === 'ediel_message' && typeof outbound.switch_request_id === 'string'))
+  if (protectedNegative && (!input.actorUserId || !input.parseResultId
+    || !['test', 'production'].includes(input.environment ?? ''))) throw new Error('ack_current_mail_scope_required')
+  let originalReceivedAt: string | undefined
+  if (protectedNegative) {
+    await assertEdielTenantActor({companyId: input.companyId, actorUserId: input.actorUserId!, permission: 'communication.write'})
+    const {data: mail, error} = await supabaseService.from('inbound_email_messages')
+      .select('id,company_id,environment,received_at').eq('id', input.inboundEmailMessageId)
+      .eq('company_id', input.companyId).eq('environment', input.environment!).maybeSingle()
+    if (error) throw error
+    if (!mail || mail.id !== input.inboundEmailMessageId || mail.company_id !== input.companyId
+      || mail.environment !== input.environment || typeof mail.received_at !== 'string'
+      || !Number.isFinite(Date.parse(mail.received_at))) throw new Error('ack_current_mail_original_required')
+    originalReceivedAt = mail.received_at
+  }
+  const inboundEdielMessageId = await persistInboundAck({...input, protectedNegative, originalReceivedAt})
+  if (protectedNegative) {
+    if (!inboundEdielMessageId) throw new Error('ack_current_mail_source_required')
+    const reception = await recordInboundReception({companyId: input.companyId,
+      messageId: inboundEdielMessageId, inboundEmailMessageId: input.inboundEmailMessageId,
+      parseResultId: input.parseResultId!, actorUserId: input.actorUserId!})
+    try { requireFirstReception(reception) }
+    catch (error) {
+      if (!(error instanceof InboundReceptionHeldError)) throw error
+      return {status: 'manual_review', matchStatus: error.reception.reason ?? 'ack_duplicate_held',
+        inboundEdielMessageId, reception: error.reception}
+    }
+    const {data, error} = await supabaseService.from('ediel_messages').select('*')
+      .eq('company_id', input.companyId).eq('environment', input.environment!)
+      .eq('direction', 'inbound').eq('id', inboundEdielMessageId).maybeSingle()
+    if (error) throw error
+    const message = data as EdielMessageRow | null
+    if (!message || message.id !== inboundEdielMessageId || message.company_id !== input.companyId
+      || message.environment !== input.environment || message.direction !== 'inbound'
+      || message.raw_payload !== input.parsed.rawPayload) throw new Error('ack_current_mail_source_invalid')
+    assertOwnInboundAckIdentity(message as unknown as Record<string, unknown>, input, true)
+    // Existing protected LOCAL source-apply/readback lives in the flow. This
+    // narrow option skips ordinary business/event/diagnostic/send work.
+    const result = await processInboundAckMessage({actorUserId: input.actorUserId!, message,
+      projectionOnly: true, negativeStatus: 'rejected'})
+    return {status: 'manual_review', matchStatus: result.summaryUnavailable ? 'ack_legacy_diagnostic'
+      : classification.family === 'CONTRL' ? 'negative_contrl' : 'negative_aperak', inboundEdielMessageId}
+  }
   const safelyCorrelated = input.outboundMatch.status === 'matched' && Boolean(input.outboundMatch.entityId)
 
   if (classification.outcome === 'invalid') {

@@ -1,5 +1,10 @@
 // lib/ediel/flows/inboundAckProcessing.ts
 
+import { createHash } from 'node:crypto';
+import { applyInboundAckSwitchTransition } from '@/lib/ediel/ack/switchRequestAckTransition';
+import { resolveCanonicalRuntimeDecisionWithRegistry } from '@/lib/ediel/core/runtimeDecision';
+import { recordReceivedSourceValidation } from '@/lib/ediel/core/receivedSourceValidationLedger';
+
 import { qualifyInboundAckSourceCandidates, readInboundAckSourceCorrelation } from '@/lib/ediel/ack/sourceCorrelation';
 import {readCommittedInboundAck} from '@/lib/ediel/ack/committedInboundAck';
 import { supabaseService } from "@/lib/supabase/service";
@@ -387,6 +392,7 @@ async function syncSwitchFromInboundAck(params: {
   outcome: InboundAckOutcome;
   finalAckReached: boolean;
   failureReason: string | null;
+  negativeStatus?: "failed" | "rejected";
 }) {
   const switchRequestId = resolveSwitchRequestId({
     sourceMessage: params.sourceMessage,
@@ -404,32 +410,27 @@ async function syncSwitchFromInboundAck(params: {
   const supabase = supabaseService;
 
   if (params.outcome === "negative") {
-    const updated = await updateSupplierSwitchRequestStatus(supabase, {
-      requestId: current.id,
-      status: "failed",
-      failureReason:
-        params.failureReason ??
-        `${params.ackMessage.message_family} negativ kvittens.`,
-      externalReference:
-        params.ackMessage.external_reference ??
-        current.external_reference ??
-        null,
+    // The complete fresh row is a CAS inhibitor, never source authority.
+    // The protected operation re-reads committed ACK/source and returns locked state.
+    const source = params.sourceMessage, ack = params.ackMessage;
+    if (!source.company_id || source.company_id !== ack.company_id
+      || source.environment !== ack.environment || source.direction !== 'outbound'
+      || ack.direction !== 'inbound' || !['test', 'production'].includes(source.environment)
+      || typeof source.raw_payload !== 'string' || typeof ack.raw_payload !== 'string') {
+      throw new Error('ack_switch_source_scope_required');
+    }
+    const transition = await applyInboundAckSwitchTransition({
+      companyId: source.company_id, environment: source.environment,
+      actorUserId: params.actorUserId, ackMessageId: ack.id,
+      ackPayloadHash: createHash('sha256').update(ack.raw_payload, 'utf8').digest('hex'),
+      sourceMessageId: source.id,
+      sourcePayloadHash: createHash('sha256').update(source.raw_payload, 'utf8').digest('hex'),
+      switchRequestId: current.id, negativeStatus: params.negativeStatus ?? 'failed',
+      expectedRequest: current as unknown as Record<string, unknown>,
     });
-
-    await createSupplierSwitchEvent(supabase, {
-      switchRequestId: current.id,
-      eventType: "ediel_ack_received",
-      eventStatus: "failed",
-      message: `${params.ackMessage.message_family} negativ kvittens mottagen. Switch markerad som failed.`,
-      payload: {
-        sourceEdielMessageId: params.sourceMessage.id,
-        ackEdielMessageId: params.ackMessage.id,
-        outboundRequestId: params.outboundRequest?.id ?? null,
-        outcome: params.outcome,
-      },
-    });
-
-    return updated;
+    // No direct fallback or operation-owned duplicate failure event, including
+    // stale/not-applicable/terminal results and unknown transport outcomes.
+    return transition.request as unknown as SupplierSwitchRequestRow | null;
   }
 
   if (
@@ -547,6 +548,9 @@ async function syncGridOwnerDataRequestFromInboundAck(params: {
 export async function processInboundAckMessage(params: {
   actorUserId: string;
   message: EdielMessageRow;
+  /** Control flow only. Authority still comes from protected RPCs/readback. */
+  projectionOnly?: boolean;
+  negativeStatus?: "failed" | "rejected";
 }): Promise<AckProcessResult> {
   const actorUserId = ensureActorUserId(params.actorUserId);
   const ackMessage = params.message;
@@ -559,6 +563,13 @@ export async function processInboundAckMessage(params: {
   if(committed) {
     if(committed.kind==='legacy_diagnostic') return {ackMessage,sourceMessage:null,outcome:committed.outcome,finalAckReached:null,wholeSourceRejected:null,sourceAccepted:null,summaryUnavailable:true,outboundRequestId:null,switchRequestId:null,gridOwnerDataRequestId:null};
     const receipt=committed.result,source=receipt.sourceMessage;
+    if (receipt.outcome === 'negative' && (receipt.wholeSourceRejected || receipt.sourceAccepted)) {
+      const outboundRequest = !source.switch_request_id && source.outbound_request_id
+        ? await getOutboundRequestById(source.outbound_request_id) : null;
+      await syncSwitchFromInboundAck({actorUserId, sourceMessage: source, ackMessage,
+        outboundRequest, outcome: receipt.outcome, finalAckReached: receipt.finalAckReached,
+        failureReason: receipt.failureReason, negativeStatus: params.negativeStatus});
+    }
     return {ackMessage,sourceMessage:source,outcome:receipt.outcome,finalAckReached:receipt.finalAckReached,wholeSourceRejected:receipt.wholeSourceRejected,sourceAccepted:receipt.sourceAccepted,
       outboundRequestId:source.outbound_request_id,switchRequestId:source.switch_request_id,gridOwnerDataRequestId:source.grid_owner_data_request_id};
   }
@@ -566,7 +577,7 @@ export async function processInboundAckMessage(params: {
   const outcome = inferInboundAckOutcome(ackMessage);
   const sourceMessage = await findSourceMessageForInboundAck(ackMessage);
 
-  await updateEdielMessageStatus({
+  if (!params.projectionOnly) await updateEdielMessageStatus({
     actorUserId,
     edielMessageId: ackMessage.id,
     status: "parsed",
@@ -577,6 +588,7 @@ export async function processInboundAckMessage(params: {
   });
 
   if (!sourceMessage) {
+    if (params.projectionOnly) throw new Error("ack_original_source_required");
     await updateEdielMessageStatus({
       actorUserId,
       edielMessageId: ackMessage.id,
@@ -626,12 +638,53 @@ export async function processInboundAckMessage(params: {
     };
   }
 
+  // Narrow the new admission chain to the affected supplier projection or
+  // explicit canonical projection-only route. Ordinary unmatched, positive and
+  // non-supplier ACKs keep their existing diagnostics/protected source-apply.
+  const projectionOutbound = outcome === 'negative' && !sourceMessage.switch_request_id
+    && sourceMessage.outbound_request_id ? await getOutboundRequestById(sourceMessage.outbound_request_id) : null;
+  const requiresProtectedAdmission = Boolean(params.projectionOnly || (outcome === 'negative'
+    && (sourceMessage.switch_request_id || (projectionOutbound?.source_type === 'supplier_switch_request'
+      && projectionOutbound.source_id))));
+  if (requiresProtectedAdmission) {
+    // Only actual readerNone may issue source validation/application. Use this
+    // invocation's actual ACK row, never cached status JSON or a PRODAT owner seed.
+    const decision = await resolveCanonicalRuntimeDecisionWithRegistry(ackMessage, {actorUserId});
+    const validation = await recordReceivedSourceValidation({original: ackMessage,
+      validated: ackMessage, resolvedCompanyId: ackMessage.company_id ?? '', decision});
+    if (validation.status !== 'recorded') throw new Error('ack_source_validation_unconfirmed');
+    if (decision.syntaxDecision !== 'accepted' || decision.applicationDecision !== 'accepted') {
+      throw new Error('ack_source_validation_not_accepted');
+    }
+  }
+
   const sourcePatch = await patchSourceMessageFromAck({
     actorUserId,
     sourceMessage,
     ackMessage,
     outcome,
   });
+
+  if (requiresProtectedAdmission) {
+    const readback = await readCommittedInboundAck({actorUserId, message: ackMessage});
+    if (!readback || readback.kind !== 'exact_receipt'
+      || readback.result.sourceMessage.id !== sourceMessage.id
+      || readback.result.outcome !== outcome) throw new Error('ack_committed_source_readback_required');
+    if (params.projectionOnly) {
+      const receipt = readback.result, source = receipt.sourceMessage;
+      if (receipt.outcome === 'negative' && (receipt.wholeSourceRejected || receipt.sourceAccepted)) {
+        const outboundRequest = !source.switch_request_id && source.outbound_request_id
+          ? await getOutboundRequestById(source.outbound_request_id) : null;
+        await syncSwitchFromInboundAck({actorUserId, sourceMessage: source, ackMessage,
+          outboundRequest, outcome, finalAckReached: receipt.finalAckReached,
+          failureReason: receipt.failureReason, negativeStatus: params.negativeStatus});
+      }
+      return {ackMessage, sourceMessage: source, outcome: receipt.outcome,
+        finalAckReached: receipt.finalAckReached, wholeSourceRejected: receipt.wholeSourceRejected,
+        sourceAccepted: receipt.sourceAccepted, outboundRequestId: source.outbound_request_id,
+        switchRequestId: source.switch_request_id, gridOwnerDataRequestId: source.grid_owner_data_request_id};
+    }
+  }
 
   await linkEdielMessage({
     actorUserId,
@@ -666,6 +719,7 @@ export async function processInboundAckMessage(params: {
     outcome,
     finalAckReached: sourcePatch.finalAckReached,
     failureReason: sourcePatch.failureReason,
+    negativeStatus: params.negativeStatus,
   }) : null;
 
   const gridOwnerDataRequest = allowBusinessTransition ? await syncGridOwnerDataRequestFromInboundAck({
