@@ -376,7 +376,7 @@ export async function processInboundEmailMessage(input: {
         tenantResolution: tenant.shared,
       })
     } else {
-      await createInboundEdielMessage({
+      const edielMessageId = await createInboundEdielMessage({
         actorUserId: input.actorUserId,
         companyId: tenant.companyId,
         environment,
@@ -387,6 +387,10 @@ export async function processInboundEmailMessage(input: {
         meteringPointMatch,
         tenantResolution: tenant.shared,
       })
+      // Same contract as the matched path (applySafeInboundStatusUpdate): an
+      // unpersisted original fails the job so it is retried, instead of ending
+      // as a manual-matching review that hides the database error.
+      if (!edielMessageId) throw new Error('ediel_inbound_original_persistence_required')
 
       await createInboundMailTask({
         companyId: tenant.companyId,
