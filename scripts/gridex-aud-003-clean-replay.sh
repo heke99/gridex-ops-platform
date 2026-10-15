@@ -346,12 +346,53 @@ if [[ -z "$EXTERNAL_DB" ]]; then
   printf '%s' "$REPLAY_POSTGRES_VERSION" > "$REPLAY_PG_VERSION_PATH"
   echo "local_replay_postgres_image=$REPLAY_POSTGRES_VERSION"
   LOCAL_STACK_START_ATTEMPTED=1
-  supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector
+  # The existing Python owner hook runs the same start argv and restores
+  # blocking stdout/stderr before any owner SQL or later replay C client.
   # Qualify the same empty local platform for every CURRENT clean consumer.
   # The original shell/EXIT trap keeps the stack alive through its consumers.
   # Only the independent owner SQL is pinned here: no clean/helper hash cycle.
   python3 - "$ROOT/scripts/sql/gridex-local-storage-owner-bootstrap.sql" <<'PY_GRIDEX_LOCAL_STORAGE_OWNER'
-import hashlib,os,pathlib,subprocess,sys
+import hashlib,json,os,pathlib,subprocess,sys
+def output_blocking_state():
+    try:
+        return [os.get_blocking(1), os.get_blocking(2)]
+    except OSError:
+        raise SystemExit('local_storage_blocking_output_state_unavailable')
+
+def restore_blocking_output(before, boundary):
+    # File status flags belong to the shared open-file description. A child
+    # changing them can affect later C clients in the original replay shell.
+    try:
+        after = [os.get_blocking(1), os.get_blocking(2)]
+        os.set_blocking(1, True)
+        os.set_blocking(2, True)
+        restored = [os.get_blocking(1), os.get_blocking(2)]
+        if restored != [True, True]:
+            raise OSError
+        # Only fixed labels and booleans; never argv, paths, URLs or CLI output.
+        receipt = ('[GRIDEX-OUTPUT-BLOCKING-V1] ' + json.dumps({
+            'boundary': boundary, 'beforeCLI': before, 'afterCLI': after,
+            'afterRestoration': restored,
+        }, separators=(',', ':')) + '\n').encode('ascii')
+        while receipt:
+            written = os.write(2, receipt)
+            if written <= 0:
+                raise OSError
+            receipt = receipt[written:]
+    except OSError:
+        raise SystemExit('local_storage_blocking_output_postcondition_failed')
+
+before_start_output = output_blocking_state()
+try:
+    try:
+        start_result = subprocess.run(['supabase','start','-x',
+            'studio,imgproxy,mailpit,edge-runtime,logflare,vector'],check=False)
+    except OSError:
+        raise SystemExit('local_storage_start_invocation_failed')
+finally:
+    restore_blocking_output(before_start_output, 'current_clean_start')
+if start_result.returncode != 0:
+    raise SystemExit(128-start_result.returncode if start_result.returncode<0 else start_result.returncode)
 owner_sql=pathlib.Path(sys.argv[1])
 if owner_sql.is_symlink() or not owner_sql.is_file() or hashlib.sha256(owner_sql.read_bytes()).hexdigest()!='c01914b7343bb6d84729ccf96b6ff442e78bf46dcd96b563d7f137d970db18c0':
     raise SystemExit('local_storage_owner_sql_source_unknown')

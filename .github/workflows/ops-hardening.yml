@@ -138,7 +138,7 @@ jobs:
           set -e -o pipefail
           GRIDEX_STORAGE_STEP_DIR="$(mktemp -d "$RUNNER_TEMP/gridex-storage-step.XXXXXX")"
           trap 'rm -rf -- "$GRIDEX_STORAGE_STEP_DIR"' EXIT
-          test "$(sha256sum scripts/gridex-local-storage-lifecycle.py | cut -d ' ' -f 1)" = "6ae294f65a34cd829078b9a7216ec17aa422eef3af72fbc9fca1aa7a45b54fa9"
+          test "$(sha256sum scripts/gridex-local-storage-lifecycle.py | cut -d ' ' -f 1)" = "330b6d405869a12b7c57bc04da75e5f685ccebdbdb0478e03a02fbcd780292cd"
           test "$(sha256sum scripts/sql/gridex-local-storage-owner-bootstrap.sql | cut -d ' ' -f 1)" = "c01914b7343bb6d84729ccf96b6ff442e78bf46dcd96b563d7f137d970db18c0"
           # Preserve exact reviewed helper bytes. Its SQL sibling basename is
           # internal staging only; canonical source paths remain the two above.
@@ -606,7 +606,7 @@ jobs:
           set -e -o pipefail
           GRIDEX_STORAGE_STEP_DIR="$(mktemp -d "$RUNNER_TEMP/gridex-storage-step.XXXXXX")"
           trap 'rm -rf -- "$GRIDEX_STORAGE_STEP_DIR"' EXIT
-          test "$(sha256sum scripts/gridex-local-storage-lifecycle.py | cut -d ' ' -f 1)" = "6ae294f65a34cd829078b9a7216ec17aa422eef3af72fbc9fca1aa7a45b54fa9"
+          test "$(sha256sum scripts/gridex-local-storage-lifecycle.py | cut -d ' ' -f 1)" = "330b6d405869a12b7c57bc04da75e5f685ccebdbdb0478e03a02fbcd780292cd"
           test "$(sha256sum scripts/sql/gridex-local-storage-owner-bootstrap.sql | cut -d ' ' -f 1)" = "c01914b7343bb6d84729ccf96b6ff442e78bf46dcd96b563d7f137d970db18c0"
           # Preserve exact reviewed helper bytes. Its SQL sibling basename is
           # internal staging only; canonical source paths remain the two above.

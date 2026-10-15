@@ -29,6 +29,7 @@ SQL_SHA256 = 'c01914b7343bb6d84729ccf96b6ff442e78bf46dcd96b563d7f137d970db18c0'
 CLEAN_SOURCE_PINS = {
     'be69a4dad9e979a0fe5a6d96e908d6c461063d8f2a047fab9864fd9ba7def81a',
     '8d421343af46bc3de6357b5b4a7de59d052f67df0ab0add76442fe1a60f76ecc',
+    '71262366feaf3df054c7436c2fd3d80e0b96b8aaddca1df260a71fa6bf36d885',
     'b210192b34ee9d1f8a7dce5b59e8af170347518cf17b848d638e8e7fa37d0000',
     '87ba4ea12885a0f3e34789f569dbb02976f80f12322b5e83131670a551767022',
 }
@@ -58,6 +59,35 @@ def runner_guard():
         if os.environ.get(name):
             refuse('database_override_forbidden')
 
+def output_blocking_state():
+    try:
+        return [os.get_blocking(1), os.get_blocking(2)]
+    except OSError:
+        raise SystemExit('local_storage_blocking_output_state_unavailable')
+
+def restore_blocking_output(before, boundary):
+    # File status flags belong to the shared open-file description. A child
+    # changing them can affect later C clients in the original replay shell.
+    try:
+        after = [os.get_blocking(1), os.get_blocking(2)]
+        os.set_blocking(1, True)
+        os.set_blocking(2, True)
+        restored = [os.get_blocking(1), os.get_blocking(2)]
+        if restored != [True, True]:
+            raise OSError
+        # Only fixed labels and booleans; never argv, paths, URLs or CLI output.
+        receipt = ('[GRIDEX-OUTPUT-BLOCKING-V1] ' + json.dumps({
+            'boundary': boundary, 'beforeCLI': before, 'afterCLI': after,
+            'afterRestoration': restored,
+        }, separators=(',', ':')) + '\n').encode('ascii')
+        while receipt:
+            written = os.write(2, receipt)
+            if written <= 0:
+                raise OSError
+            receipt = receipt[written:]
+    except OSError:
+        raise SystemExit('local_storage_blocking_output_postcondition_failed')
+
 def invoke_real(state, args):
     real = Path(state['real_cli'])
     regular(real)
@@ -67,7 +97,11 @@ def invoke_real(state, args):
     regular(go_binary)
     if sha(go_binary) != OFFICIAL_GO_SHA256 or os.environ.get('SUPABASE_GO_BINARY') != str(go_binary):
         refuse('official_go_proxy_binary_changed')
-    return subprocess.run([str(real), *args], check=False).returncode
+    before_output = output_blocking_state()
+    try:
+        return subprocess.run([str(real), *args], check=False).returncode
+    finally:
+        restore_blocking_output(before_output, 'wrapped_cli')
 
 def start_preflight(state):
     root = Path.cwd().resolve()
