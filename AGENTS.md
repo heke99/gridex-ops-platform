@@ -62,8 +62,10 @@ production customer data or raw credentials in project memory.
 <!-- BEGIN:upstream-review-skills -->
 # Installed agent skills and execution contract
 
-The canonical installed-skill inventory is `skills-lock.json`. The repository
-currently contains 42 project-local skills under `.agents/skills/`.
+The repository contains 45 project-local skills under `.agents/skills/`.
+`skills-lock.json` records upstream sources and hashes for 42 imported skills.
+`browser-e2e`, `gridex-tenant-e2e` and `full-e2e-verification` are three additional
+project-local skills. Read each installed `SKILL.md` for its current instructions.
 
 For every non-trivial task, inspect the available skills before acting. Use all
 skills relevant to the task, but do not run unrelated skills merely to satisfy a
@@ -78,7 +80,7 @@ multi-tenant review, database review, API-contract review, performance review,
 or broad refactor, use the full baseline workflow below. A skill may only be
 skipped when its trigger is objectively absent; record the reason in the audit.
 
-## Canonical inventory: 42 installed skills
+## Installed inventory: 45 project-local skills
 
 ### Orchestration and delivery
 
@@ -139,6 +141,12 @@ skipped when its trigger is objectively absent; record the reason in the audit.
 40. `performance-optimization`
 41. `observability-and-instrumentation`
 42. `sql-optimization-patterns`
+
+### End-to-end verification
+
+43. `browser-e2e`
+44. `gridex-tenant-e2e`
+45. `full-e2e-verification`
 
 The installed `vercel-react-best-practices` skill is available for React and
 Next.js performance work. The repository's installed Next.js documentation in
