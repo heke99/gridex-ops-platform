@@ -182,16 +182,17 @@ async function assertInboundTenantMatchesSelection(input: {
 async function findExistingTestInboundEnvelope(input: {
   companyId: string
   customerId: string
-  rawEdifact: string
+  sourceSha256: string
 }): Promise<string | null> {
+  // Matched on the stored hash: a month of interval values is far larger than
+  // a URL filter may be (the gateway answers 414 URI too long from ~16 KB).
   const result = await supabaseService
     .from('inbound_email_messages')
     .select('id')
     .eq('company_id', input.companyId)
     .eq('environment', 'test')
-    .eq('raw_edifact_payload', input.rawEdifact)
     .eq('match_status', 'test_center_raw_import')
-    .contains('match_payload', { test_center_customer_id: input.customerId })
+    .contains('match_payload', { test_center_customer_id: input.customerId, sha256: input.sourceSha256 })
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()
@@ -210,7 +211,7 @@ async function getOrCreateTestInboundEnvelope(input: {
   const existing = await findExistingTestInboundEnvelope({
     companyId: input.companyId,
     customerId: input.customerId,
-    rawEdifact: input.rawEdifact,
+    sourceSha256: input.sourceSha256,
   })
   if (existing) return { id: existing, reused: true }
 
