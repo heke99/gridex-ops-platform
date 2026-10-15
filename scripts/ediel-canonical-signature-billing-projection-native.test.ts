@@ -13,6 +13,9 @@ import {
   type NormalSwitchStageNativeFixture,
 } from './helpers/ediel-normal-switch-native-fixture'
 import {createCustomerRecordRetentionNativeUser} from './helpers/ediel-customer-record-retention-native-fixture'
+// Explicit private-owner scope for synthetic setup/readback only; product JWT calls retain their actors.
+const retentionSql=<T>(query:string)=>sql<T>(`BEGIN;SET LOCAL ROLE gridex_ediel_retention_owner;${query};COMMIT;`)
+
 
 let fixture: NormalSwitchStageNativeFixture
 const tenantEffectTables = [
@@ -403,17 +406,16 @@ it('a genuine public record-retention transition blocks signing at the outer wra
   const digest = (value: Buffer) => createHash('sha256').update(value).digest('hex')
   // Explicit synthetic competence is this fixture's boundary, matching the
   // existing retention fixture. No private decision/review/tombstone is seeded.
-  sql(`INSERT INTO gridex_ediel_retention.issuers(id,company_id,legal_reference,legal_evidence,
+  sql(`BEGIN;SET LOCAL ROLE gridex_ediel_retention_owner;INSERT INTO gridex_ediel_retention.issuers(id,company_id,legal_reference,legal_evidence,
     legal_hash,signing_key,valid_from,valid_to) VALUES(${literal(issuerId)},${literal(fixture.companyId)},
     'SYNTHETIC COMPETENCE ONLY',decode(${literal(legal.toString('hex'))},'hex'),${literal(digest(legal))},
-    decode(${literal(issuerKey.toString('hex'))},'hex'),'2020-01-01','2099-01-01');
-    UPDATE public.customers SET status='archived'
-      WHERE id=${literal(fixture.customerId)} AND company_id=${literal(fixture.companyId)};`)
+    decode(${literal(issuerKey.toString('hex'))},'hex'),'2020-01-01','2099-01-01');RESET ROLE;UPDATE public.customers SET status='archived'
+      WHERE id=${literal(fixture.customerId)} AND company_id=${literal(fixture.companyId)};COMMIT;`)
   expect(sql(`SELECT to_jsonb(NOT EXISTS(SELECT FROM public.customer_supply_periods
     WHERE company_id=${literal(fixture.companyId)} AND customer_id=${literal(fixture.customerId)}))`)).toBe(true)
   // Observe the actual source row and immutable catalog to derive receipt claims.
   // The real submit/review/purge owners independently recalculate and verify them.
-  const basis = sql<Record<string,unknown>>(`SELECT jsonb_build_object(
+  const basis = retentionSql<Record<string,unknown>>(`SELECT jsonb_build_object(
     'companyId',r.company_id,'retentionClass',k.retention_class,'sourceTable',k.source_table,
     'targetId',r.id,'customerId',r.customer_id,'contractId',r.customer_contract_id,
     'sourceHash',encode(sha256(convert_to(to_jsonb(r)::text,'UTF8')),'hex'),
@@ -452,7 +454,7 @@ it('a genuine public record-retention transition blocks signing at the outer wra
   const retainedReceipt = retained.data as {status?:string; retentionClass?:string}
   expect({status:retainedReceipt?.status,retentionClass:retainedReceipt?.retentionClass})
     .toEqual({status:'redacted',retentionClass})
-  expect(sql(`SELECT to_jsonb(EXISTS(SELECT FROM gridex_ediel_retention.record_tombstones
+  expect(retentionSql(`SELECT to_jsonb(EXISTS(SELECT FROM gridex_ediel_retention.record_tombstones
     WHERE company_id=${literal(fixture.companyId)} AND contract_id=${literal(pending.contractId)}
     AND target_id=${literal(pending.requestId)} AND retention_class=${literal(retentionClass)}))`)).toBe(true)
   const before = tenantEffects()
@@ -461,3 +463,82 @@ it('a genuine public record-retention transition blocks signing at the outer wra
   expect(result.error?.message).toBe('customer_contract_records_retention_tombstoned')
   expect(tenantEffects()).toEqual(before)
 }, 180000)
+
+for (const delayedTable of ['request', 'event'] as const) {
+  it(`preparation rejects expiry after the ${delayedTable} INSERT wait and rolls back every tenant effect`, async () => {
+    const pending = await pendingContract()
+    const name = `native_prepare_expiry_${randomUUID().replaceAll('-', '')}`
+    const sequence = `${name}_entered`
+    const table = delayedTable === 'request' ? 'customer_contract_signature_requests' : 'customer_contract_events'
+    // A real AFTER INSERT trigger reproduces a wait beyond the last earlier
+    // expiry check. This is a late-write regression, not a concurrent-FK proof.
+    // Every existing constraint/trigger and the public service-role RPC remains
+    // enabled. Only this disposable tenant/contract can enter the bounded delay.
+    const deadline = delayedTable === 'request'
+      ? 'deadline:=NEW.expires_at;'
+      : `SELECT expires_at INTO STRICT deadline FROM public.customer_contract_signature_requests
+          WHERE id=(NEW.metadata->>'signature_request_id')::uuid
+            AND company_id=NEW.company_id AND customer_contract_id=NEW.customer_contract_id;`
+    const eventScope = delayedTable === 'event' ? " AND NEW.event_type='signature_requested'" : ''
+    try {
+      sql(`CREATE SEQUENCE public.${sequence};
+        CREATE FUNCTION public.${name}() RETURNS trigger LANGUAGE plpgsql AS $$
+        DECLARE deadline timestamptz;
+        BEGIN
+          IF NEW.company_id=${literal(fixture.companyId)}::uuid
+            AND NEW.customer_contract_id=${literal(pending.contractId)}::uuid${eventScope} THEN
+            ${deadline}
+            IF deadline>clock_timestamp()+interval '2 seconds' THEN
+              RAISE EXCEPTION 'native_prepare_expiry_delay_not_bounded';
+            END IF;
+            PERFORM nextval('public.${sequence}');
+            PERFORM pg_sleep(greatest(0,extract(epoch FROM deadline-clock_timestamp()))+0.005);
+          END IF;
+          RETURN NEW;
+        END$$;
+        REVOKE ALL ON FUNCTION public.${name}() FROM PUBLIC,anon,authenticated,service_role;
+        CREATE TRIGGER ${name} AFTER INSERT ON public.${table}
+          FOR EACH ROW EXECUTE FUNCTION public.${name}();`)
+      const before = tenantEffects()
+      // Compute the deadline in PostgreSQL immediately before the actual call,
+      // avoiding client/network clock skew. Catch in a subtransaction so the
+      // exact SQLSTATE/message and whole business-row rollback are observable.
+      const result = sql<{code: string | null; message: string | null}>(`BEGIN;
+        CREATE TEMP TABLE ${name}(result jsonb) ON COMMIT DROP;
+        GRANT INSERT ON ${name} TO service_role;
+        SET LOCAL ROLE service_role;
+        DO $probe$ DECLARE actual_code text;actual_message text;
+        BEGIN
+          BEGIN
+            PERFORM public.gridex_prepare_customer_contract_signature_request_v1(
+              ${literal(fixture.companyId)}::uuid,${literal(fixture.customerId)}::uuid,
+              ${literal(pending.contractId)}::uuid,${literal(randomBytes(32).toString('hex'))},
+              ${literal(`synthetic-${fixture.customerId}@example.invalid`)},
+              clock_timestamp()+interval '1 second',${literal(fixture.actorUserId)}::uuid,'internal');
+            INSERT INTO ${name} VALUES(jsonb_build_object('code',NULL,'message',NULL));
+          EXCEPTION WHEN OTHERS THEN
+            GET STACKED DIAGNOSTICS actual_code=RETURNED_SQLSTATE,actual_message=MESSAGE_TEXT;
+            INSERT INTO ${name} VALUES(jsonb_build_object('code',actual_code,'message',actual_message));
+          END;
+        END $probe$;
+        RESET ROLE;
+        SELECT result FROM ${name};
+        COMMIT;`)
+      expect(sql(`SELECT to_jsonb(is_called) FROM public.${sequence}`)).toBe(true)
+      expect(result).toEqual({code: '22023', message: 'signature_request_expiry_invalid'})
+      expect(tenantEffects()).toEqual(before)
+      // The previous pending request was not revoked by the failed replacement.
+      expect(sql(`SELECT to_jsonb(used_at IS NULL AND revoked_at IS NULL)
+        FROM public.customer_contract_signature_requests
+        WHERE id=${literal(pending.requestId)} AND company_id=${literal(fixture.companyId)}`)).toBe(true)
+    } finally {
+      sql(`DROP TRIGGER IF EXISTS ${name} ON public.${table};
+        DROP FUNCTION IF EXISTS public.${name}();DROP SEQUENCE IF EXISTS public.${sequence};`)
+      expect(sql(`SELECT to_jsonb(NOT EXISTS(SELECT FROM pg_trigger WHERE tgname=${literal(name)})
+        AND to_regprocedure(${literal(`public.${name}()`)}) IS NULL
+        AND to_regclass(${literal(`public.${sequence}`)}) IS NULL)`)).toBe(true)
+    }
+    // Removing the fault permits the same contract's ordinary future request.
+    await prepare(pending.contractId)
+  })
+}

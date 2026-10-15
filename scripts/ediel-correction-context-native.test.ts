@@ -74,16 +74,19 @@ it('registry replay preserves preexisting IDs, metadata, disabled state and all 
   SELECT to_jsonb((SELECT grants FROM before_registry)=${assignments} AND (SELECT registry FROM before_registry)=${registry});
   ROLLBACK;`)).toBe(true)
 })
-it('resolver forward preserves its owner and effective private RPC ACL',()=>{
+it('historical STABLE resolver preserves owner and private RPC ACL while rollback restores current VOLATILE resolver',()=>{
  const source=committedMigration(resolverMigration)
  const security=`(SELECT jsonb_build_object('owner',proowner,'acl',proacl,'securityDefiner',prosecdef,'volatility',provolatile,'config',proconfig) FROM pg_proc WHERE oid='public.gridex_get_user_permissions_in_company(uuid,uuid)'::regprocedure)`
  expect(sql(`BEGIN; CREATE TEMP TABLE before_resolver AS SELECT ${security} AS state;
   ${source}
-  SELECT jsonb_build_object('preserved',(SELECT state FROM before_resolver)=${security},
+  SELECT jsonb_build_object('preserved',((SELECT state FROM before_resolver)-'volatility')=(${security}-'volatility'),
+   'currentVolatility',(SELECT state->>'volatility' FROM before_resolver),
+   'historicalVolatility',(SELECT provolatile FROM pg_proc WHERE oid='public.gridex_get_user_permissions_in_company(uuid,uuid)'::regprocedure),
    'anon',has_function_privilege('anon','public.gridex_get_user_permissions_in_company(uuid,uuid)','EXECUTE'),
    'authenticated',has_function_privilege('authenticated','public.gridex_get_user_permissions_in_company(uuid,uuid)','EXECUTE'),
    'service',has_function_privilege('service_role','public.gridex_get_user_permissions_in_company(uuid,uuid)','EXECUTE'));
-  ROLLBACK;`)).toEqual({preserved:true,anon:false,authenticated:false,service:true})
+  ROLLBACK;`)).toEqual({preserved:true,currentVolatility:'v',historicalVolatility:'s',anon:false,authenticated:false,service:true})
+ expect(sql<string>("SELECT to_jsonb(provolatile) FROM pg_proc WHERE oid='public.gridex_get_user_permissions_in_company(uuid,uuid)'::regprocedure")).toBe('v')
 })
 it('bare C date alone never narrows the unknown prior boundary',()=>{
  expect(project(raw())).toMatchObject({objectId:'735123456789012345',identityAgency:'9',legalSender:'12345',legalReceiver:'54321',caseReference:'CLOSE-CASE',

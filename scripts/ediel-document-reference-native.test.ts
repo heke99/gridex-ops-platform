@@ -357,7 +357,7 @@ it('registry forward first application and repeat preserve assignments and preex
 })
 it('revoked isolated actor cannot append outcome; legitimate administrator remains active',async()=>{
  const f=await seed(),actor=randomUUID();ownedActors.push(actor)
- sql(`INSERT INTO auth.users(id,aud,role,email,raw_app_meta_data,raw_user_meta_data) VALUES(${literal(actor)},'authenticated','authenticated',${literal(actor+'@example.invalid')},'{}','{}');
+ sql(`INSERT INTO auth.users(id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data) VALUES(${literal(actor)},'authenticated','authenticated',${literal(actor+'@example.invalid')},now(),'{}','{}');
  INSERT INTO public.user_profiles(id,email,user_status) VALUES(${literal(actor)},${literal(actor+'@example.invalid')},'active') ON CONFLICT(id) DO UPDATE SET user_status='active';
  INSERT INTO public.company_memberships(company_id,user_id,membership_role,status,role,is_active,role_key) VALUES(${literal(f.companyId)},${literal(actor)},'viewer','active','viewer',true,'viewer');
  INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key) SELECT ${literal(actor)},${literal(f.companyId)},id,key FROM public.permissions WHERE key IN ('communication.send','documents.read','customers.read');`)
