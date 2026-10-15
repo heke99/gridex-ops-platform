@@ -399,7 +399,7 @@
     "retentionA": "f50d7a39262f40c2826d84d6f816eb27ee9f2b036946792321cbb0bcbed7e7ec",
     "retentionB": "e4af9da250ac0d4b522ce28ba6b27910d37d76714bced47453832d60ec33d1e2"
   },
-  "updatedAt": "2026-10-15T19:27:13.478048+00:00",
+  "updatedAt": "2026-10-15T19:33:52.790554+00:00",
   "current_main_integration": {
     "actualMain": "d9fc4397be806321723fb1cac42441ca2b3106f3",
     "previousMain": "11bd50430b0cfd5e525dce7034e4659756c8d5e0",
@@ -444,5 +444,17 @@
       "supabase/migrations/20261015183000_ops_migration_provenance_tenant_boundary.sql"
     ],
     "next": "Frozenauthored4privatefixture andtenantforward+meaningfulunitproposal/integrityappend mustpasstwoSOURCEreviewsbeforeparentwrites; no native/backend/GENduplicate"
-  }
+  },
+  "private_fixture4": {
+    "state": "FROZEN_TWO_SOURCE_APPROVALS_21COMPONENT_PASS_TYPECHECK_PASS_APPLY_NEXT",
+    "manifest": "8b446303a19fedf35701b9acf862d48d97199c6c0ee27ab44cd91de1101f885d",
+    "sourceA": "0e2647d06adaaeb6d799aed62da6dda09e08ab32eda02faaa6d7ed53cc2859bf",
+    "sourceB": "9e19f67c51b8bd452da8a272fdf881389182d422aced2aeafba3493e53d007b0",
+    "custody": "de8d3c18dcb9f18cd75bc3dad9b0822def0170c2",
+    "preserved": "82matchers,39Auth/RPC/Storagecalls,all5tests/timeouts; fiveprivateonlySETowner sites, no ACL change; publicaudit/raw originalcaller",
+    "component": "21finiteproofs/18currentcanonicalDDLobjects/actualnonsuperSET-only role; notnative/browserqualification",
+    "typecheck": "Actualone37518 EXIT0/3607files/4overlays/0diag; completionadjunct74dfccbca58ed075e603497af38047d1d78442bece189d7001ea56ee87a31b7b",
+    "next": "FreshGET_MATCH4refs; materializeonlyexactreviewed4postimages afterthischeckpoint; tenantforwardseparatelypendingfrozen15caseproposal/twopeers"
+  },
+  "parent_targeted_SQL_tests": "Actual22/22PASS/2files/0SKIP/exit0session92991; report29078aed...; no fullnativeclaim"
 }
