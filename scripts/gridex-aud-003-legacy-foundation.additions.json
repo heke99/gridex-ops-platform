@@ -458,6 +458,15 @@
       "preserveSourceReplay": false,
       "execution": "sourcePosition",
       "reason": "Preserve exact native public-core applicability and canonical retained public wrapper; apply original pending-request locking correction only to the source-qualified effective core, preserving its full other metadata. Downstream sealed fingerprint and runtime concurrency corrections are separate gates."
+    },
+    "bootstrap/20261015_ops_signed_price_cache_logical_authority_replay.sql": {
+      "source": "migrations/20261015100259_ops_api_signed_contract_price_cache_binding_guard_alignment.sql",
+      "sourceKind": "timestampedMigration",
+      "sourceSha256": "9c055dba7b020aad3bb867f6ff2b02f8854fee4bc136db2de4042bc6347dc83c",
+      "artifactSha256": "007a93cbc2a8af7abb4828e9fdc4473d91ef3075f8f13db77d22a11a85abb328",
+      "preserveSourceReplay": false,
+      "execution": "sourcePosition",
+      "reason": "Exact immutable 20261015100259 source and unchanged signed-price-cache original/target bodies, full function metadata, actor/role/owner/ACL, trigger and column guards. Compare all logical authority/catalog fields while excluding only six physical pg_class VACUUM/ANALYZE estimates/visibility/freeze fields, following the existing source-qualified Auth envelope. Keep strict refusal of unknown or changed logical source/authority. Preserve the postcondition error and add fixed boolean/category-only diagnostics; no raw metadata or business data. Actual prior combined CI failure operand remains unobserved; isolated component proof establishes the physical-maintenance false-positive and retained logical refusals."
     }
   }
 }

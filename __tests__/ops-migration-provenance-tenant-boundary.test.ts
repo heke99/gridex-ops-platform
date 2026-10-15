@@ -129,7 +129,7 @@ describe('migration provenance tenant boundary',()=>{
   const f13=gate.slice(gate.indexOf('-- F-13:')).match(/for v_row in\s+([\s\S]*?)\s+loop/)?.[1]
   expect(f6).toBeTruthy();expect(f13).toBeTruthy()
   expect((await db!.query(f6!)).rows).toEqual([{relname:'ops_migration_provenance_receipts'}])
-  expect((await db!.query(f13!)).rows.map((r:any)=>r.relname).sort()).toEqual([...ownerViews].sort())
+  expect((await db!.query<{relname:string}>(f13!)).rows.map((r)=>r.relname).sort()).toEqual([...ownerViews].sort())
   expect((await role('service_role','SELECT * FROM public.gridex_migration_governance_v3')).length).toBe(1)
   await db!.exec('ALTER VIEW public.gridex_migration_governance_v3 SET(security_invoker=true)')
   await expect(role('service_role','SELECT * FROM public.gridex_migration_governance_v3')).rejects.toMatchObject({code:'42501'})
