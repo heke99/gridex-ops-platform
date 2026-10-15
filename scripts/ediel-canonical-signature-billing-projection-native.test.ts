@@ -392,78 +392,6 @@ it('canonical price rows and protected signed evidence remain immutable while in
   // Deliberately no immutability claim or mutation assertion for c.snapshot_hash.
 })
 
-it('a genuine public record-retention transition blocks signing at the outer wrapper without recreating redacted evidence or cache', async () => {
-  const pending = await pendingContract()
-  const submitter = await createCustomerRecordRetentionNativeUser(fixture.companyId,
-    ['ediel.retention.submit','ediel.retention.purge','ediel.retention.signature'])
-  const reviewer = await createCustomerRecordRetentionNativeUser(fixture.companyId,
-    ['ediel.retention.review','ediel.retention.signature'])
-  const issuerId = randomUUID()
-  const issuerKey = Buffer.from('SYNTHETIC billing projection retention fixture HMAC key')
-  const legal = Buffer.from('SYNTHETIC test competence only; no real legal policy approval')
-  const document = Buffer.from('SYNTHETIC exact signature-request retention test decision')
-  const retentionClass = 'contract_signature_request_personal'
-  const digest = (value: Buffer) => createHash('sha256').update(value).digest('hex')
-  // Explicit synthetic competence is this fixture's boundary, matching the
-  // existing retention fixture. No private decision/review/tombstone is seeded.
-  sql(`BEGIN;SET LOCAL ROLE gridex_ediel_retention_owner;INSERT INTO gridex_ediel_retention.issuers(id,company_id,legal_reference,legal_evidence,
-    legal_hash,signing_key,valid_from,valid_to) VALUES(${literal(issuerId)},${literal(fixture.companyId)},
-    'SYNTHETIC COMPETENCE ONLY',decode(${literal(legal.toString('hex'))},'hex'),${literal(digest(legal))},
-    decode(${literal(issuerKey.toString('hex'))},'hex'),'2020-01-01','2099-01-01');RESET ROLE;UPDATE public.customers SET status='archived'
-      WHERE id=${literal(fixture.customerId)} AND company_id=${literal(fixture.companyId)};COMMIT;`)
-  expect(sql(`SELECT to_jsonb(NOT EXISTS(SELECT FROM public.customer_supply_periods
-    WHERE company_id=${literal(fixture.companyId)} AND customer_id=${literal(fixture.customerId)}))`)).toBe(true)
-  // Observe the actual source row and immutable catalog to derive receipt claims.
-  // The real submit/review/purge owners independently recalculate and verify them.
-  const basis = retentionSql<Record<string,unknown>>(`SELECT jsonb_build_object(
-    'companyId',r.company_id,'retentionClass',k.retention_class,'sourceTable',k.source_table,
-    'targetId',r.id,'customerId',r.customer_id,'contractId',r.customer_contract_id,
-    'sourceHash',encode(sha256(convert_to(to_jsonb(r)::text,'UTF8')),'hex'),
-    'targetHash',encode(sha256(convert_to(to_jsonb(r)::text,'UTF8')),'hex'),
-    'byteLength',octet_length(convert_to(to_jsonb(r)::text,'UTF8')),'storagePath',NULL,'operation',k.operation)
-    FROM public.customer_contract_signature_requests r CROSS JOIN gridex_ediel_retention.record_class_catalog k
-    WHERE r.id=${literal(pending.requestId)} AND r.company_id=${literal(fixture.companyId)}
-      AND k.retention_class=${literal(retentionClass)}`)
-  const payload = Buffer.from(JSON.stringify({
-    format: 'ediel_customer_record_retention_policy_v1', ...basis, documentHash: digest(document),
-    issuerLegalReference: 'SYNTHETIC COMPETENCE ONLY', legalBasisReference: 'SYNTHETIC test exact request deadline',
-    journalPurposeReference: 'SYNTHETIC test continuity', accessRevocationRequired: true,
-    issuedAt: new Date(Date.now()-60000).toISOString(), expiresAt: new Date(Date.now()+3600000).toISOString(),
-    retainUntil: new Date(Date.now()-1000).toISOString(), journalRetainUntil: new Date(Date.now()+3600000).toISOString(),
-  }))
-  const submitted = await submitter.client.rpc('ediel_submit_customer_record_retention_v1', {
-    p_company_id: fixture.companyId, p_actor_user_id: submitter.id, p_retention_class: retentionClass,
-    p_target_id: pending.requestId, p_document_base64: document.toString('base64'),
-    p_issuer_receipt: {issuerId,payloadBase64:payload.toString('base64'),signatureHex:createHmac('sha256',issuerKey).update(payload).digest('hex')},
-  })
-  expect(submitted.error?.code ?? null).toBeNull()
-  const submittedReceipt = submitted.data as {status?:string; issuerQualified?:boolean; decisionId:string}
-  expect({status:submittedReceipt?.status,issuerQualified:submittedReceipt?.issuerQualified})
-    .toEqual({status:'submitted',issuerQualified:true})
-  const decisionId = submittedReceipt.decisionId
-  const reviewed = await reviewer.client.rpc('ediel_review_customer_record_retention_v1', {
-    p_company_id: fixture.companyId, p_actor_user_id: reviewer.id, p_decision_id: decisionId,
-    p_outcome: 'approve', p_reason: 'SYNTHETIC separate review of the exact test request',
-  })
-  expect(reviewed.error?.code ?? null).toBeNull()
-  expect((reviewed.data as {status?:string})?.status).toBe('approved')
-  const retained = await submitter.client.rpc('ediel_begin_customer_record_retention_v1', {
-    p_company_id: fixture.companyId, p_actor_user_id: submitter.id, p_decision_id: decisionId,
-  })
-  expect(retained.error?.code ?? null).toBeNull()
-  const retainedReceipt = retained.data as {status?:string; retentionClass?:string}
-  expect({status:retainedReceipt?.status,retentionClass:retainedReceipt?.retentionClass})
-    .toEqual({status:'redacted',retentionClass})
-  expect(retentionSql(`SELECT to_jsonb(EXISTS(SELECT FROM gridex_ediel_retention.record_tombstones
-    WHERE company_id=${literal(fixture.companyId)} AND contract_id=${literal(pending.contractId)}
-    AND target_id=${literal(pending.requestId)} AND retention_class=${literal(retentionClass)}))`)).toBe(true)
-  const before = tenantEffects()
-  const result = await finalize(pending.tokenHash)
-  expect(result.error?.code).toBe('P0001')
-  expect(result.error?.message).toBe('customer_contract_records_retention_tombstoned')
-  expect(tenantEffects()).toEqual(before)
-}, 180000)
-
 for (const delayedTable of ['request', 'event'] as const) {
   it(`preparation rejects expiry after the ${delayedTable} INSERT wait and rolls back every tenant effect`, async () => {
     const pending = await pendingContract()
@@ -542,3 +470,75 @@ for (const delayedTable of ['request', 'event'] as const) {
     await prepare(pending.contractId)
   })
 }
+
+it('a genuine public record-retention transition blocks signing at the outer wrapper without recreating redacted evidence or cache', async () => {
+  const pending = await pendingContract()
+  const submitter = await createCustomerRecordRetentionNativeUser(fixture.companyId,
+    ['ediel.retention.submit','ediel.retention.purge','ediel.retention.signature'])
+  const reviewer = await createCustomerRecordRetentionNativeUser(fixture.companyId,
+    ['ediel.retention.review','ediel.retention.signature'])
+  const issuerId = randomUUID()
+  const issuerKey = Buffer.from('SYNTHETIC billing projection retention fixture HMAC key')
+  const legal = Buffer.from('SYNTHETIC test competence only; no real legal policy approval')
+  const document = Buffer.from('SYNTHETIC exact signature-request retention test decision')
+  const retentionClass = 'contract_signature_request_personal'
+  const digest = (value: Buffer) => createHash('sha256').update(value).digest('hex')
+  // Explicit synthetic competence is this fixture's boundary, matching the
+  // existing retention fixture. No private decision/review/tombstone is seeded.
+  sql(`BEGIN;SET LOCAL ROLE gridex_ediel_retention_owner;INSERT INTO gridex_ediel_retention.issuers(id,company_id,legal_reference,legal_evidence,
+    legal_hash,signing_key,valid_from,valid_to) VALUES(${literal(issuerId)},${literal(fixture.companyId)},
+    'SYNTHETIC COMPETENCE ONLY',decode(${literal(legal.toString('hex'))},'hex'),${literal(digest(legal))},
+    decode(${literal(issuerKey.toString('hex'))},'hex'),'2020-01-01','2099-01-01');RESET ROLE;UPDATE public.customers SET status='archived'
+      WHERE id=${literal(fixture.customerId)} AND company_id=${literal(fixture.companyId)};COMMIT;`)
+  expect(sql(`SELECT to_jsonb(NOT EXISTS(SELECT FROM public.customer_supply_periods
+    WHERE company_id=${literal(fixture.companyId)} AND customer_id=${literal(fixture.customerId)}))`)).toBe(true)
+  // Observe the actual source row and immutable catalog to derive receipt claims.
+  // The real submit/review/purge owners independently recalculate and verify them.
+  const basis = retentionSql<Record<string,unknown>>(`SELECT jsonb_build_object(
+    'companyId',r.company_id,'retentionClass',k.retention_class,'sourceTable',k.source_table,
+    'targetId',r.id,'customerId',r.customer_id,'contractId',r.customer_contract_id,
+    'sourceHash',encode(sha256(convert_to(to_jsonb(r)::text,'UTF8')),'hex'),
+    'targetHash',encode(sha256(convert_to(to_jsonb(r)::text,'UTF8')),'hex'),
+    'byteLength',octet_length(convert_to(to_jsonb(r)::text,'UTF8')),'storagePath',NULL,'operation',k.operation)
+    FROM public.customer_contract_signature_requests r CROSS JOIN gridex_ediel_retention.record_class_catalog k
+    WHERE r.id=${literal(pending.requestId)} AND r.company_id=${literal(fixture.companyId)}
+      AND k.retention_class=${literal(retentionClass)}`)
+  const payload = Buffer.from(JSON.stringify({
+    format: 'ediel_customer_record_retention_policy_v1', ...basis, documentHash: digest(document),
+    issuerLegalReference: 'SYNTHETIC COMPETENCE ONLY', legalBasisReference: 'SYNTHETIC test exact request deadline',
+    journalPurposeReference: 'SYNTHETIC test continuity', accessRevocationRequired: true,
+    issuedAt: new Date(Date.now()-60000).toISOString(), expiresAt: new Date(Date.now()+3600000).toISOString(),
+    retainUntil: new Date(Date.now()-1000).toISOString(), journalRetainUntil: new Date(Date.now()+3600000).toISOString(),
+  }))
+  const submitted = await submitter.client.rpc('ediel_submit_customer_record_retention_v1', {
+    p_company_id: fixture.companyId, p_actor_user_id: submitter.id, p_retention_class: retentionClass,
+    p_target_id: pending.requestId, p_document_base64: document.toString('base64'),
+    p_issuer_receipt: {issuerId,payloadBase64:payload.toString('base64'),signatureHex:createHmac('sha256',issuerKey).update(payload).digest('hex')},
+  })
+  expect(submitted.error?.code ?? null).toBeNull()
+  const submittedReceipt = submitted.data as {status?:string; issuerQualified?:boolean; decisionId:string}
+  expect({status:submittedReceipt?.status,issuerQualified:submittedReceipt?.issuerQualified})
+    .toEqual({status:'submitted',issuerQualified:true})
+  const decisionId = submittedReceipt.decisionId
+  const reviewed = await reviewer.client.rpc('ediel_review_customer_record_retention_v1', {
+    p_company_id: fixture.companyId, p_actor_user_id: reviewer.id, p_decision_id: decisionId,
+    p_outcome: 'approve', p_reason: 'SYNTHETIC separate review of the exact test request',
+  })
+  expect(reviewed.error?.code ?? null).toBeNull()
+  expect((reviewed.data as {status?:string})?.status).toBe('approved')
+  const retained = await submitter.client.rpc('ediel_begin_customer_record_retention_v1', {
+    p_company_id: fixture.companyId, p_actor_user_id: submitter.id, p_decision_id: decisionId,
+  })
+  expect(retained.error?.code ?? null).toBeNull()
+  const retainedReceipt = retained.data as {status?:string; retentionClass?:string}
+  expect({status:retainedReceipt?.status,retentionClass:retainedReceipt?.retentionClass})
+    .toEqual({status:'redacted',retentionClass})
+  expect(retentionSql(`SELECT to_jsonb(EXISTS(SELECT FROM gridex_ediel_retention.record_tombstones
+    WHERE company_id=${literal(fixture.companyId)} AND contract_id=${literal(pending.contractId)}
+    AND target_id=${literal(pending.requestId)} AND retention_class=${literal(retentionClass)}))`)).toBe(true)
+  const before = tenantEffects()
+  const result = await finalize(pending.tokenHash)
+  expect(result.error?.code).toBe('P0001')
+  expect(result.error?.message).toBe('customer_contract_records_retention_tombstoned')
+  expect(tenantEffects()).toEqual(before)
+}, 180000)
