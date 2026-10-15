@@ -1,0 +1,380 @@
+name: Ediel Z03C supplier boundary
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/ediel-at-z03c-supplier-boundary-native.test.ts'
+      - 'scripts/ediel-at-z03c-supplier-boundary-native.config.ts'
+      - '.github/workflows/ediel-z03c-supplier-boundary-native.yml'
+      - 'scripts/ediel-source-owner-native.config.ts'
+      - 'scripts/helpers/**'
+      - 'scripts/fixtures/**'
+      - 'scripts/gridex-aud-003-clean-replay.sh'
+      - 'scripts/gridex-redact-native-evidence.py'
+      - 'scripts/migration-history-manifest*.json'
+      - 'scripts/sql/**'
+      - '__tests__/helpers/**'
+      - 'lib/ediel/**'
+      - 'lib/inbound-mail/**'
+      - 'lib/supabase/**'
+      - 'lib/cis/**'
+      - 'lib/onboarding/**'
+      - 'supabase/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig*.json'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ediel-z03c-supplier-boundary-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+# SOURCE ONLY until separately admitted publication/producer GO. These two new
+# checks supplement every ordinary gate and the qualified unchanged old33.
+# Actual hosted clock/control-plane/restore capability is NOT_QUALIFIED before
+# execution; any missing premise, case, restoration or receipt fails closed.
+jobs:
+  clock-capability-preflight:
+    name: Ediel Z03C supplier boundary / clock-capability-preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Qualify actual fresh hosted VM clock and restoration
+        id: preflight
+        shell: bash
+        env:
+          GRIDEX_Z03C_MODE: preflight
+          GRIDEX_Z03C_EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: &controlled_clock_process |
+          set -euo pipefail
+          # The entire owned clock epoch, child work and finally/independent
+          # watchdog restoration remain below one controlled process. This
+          # does not attest private GitHub runner background quiescence.
+          cat > "$RUNNER_TEMP/z03c-owned-clock-controller.py" <<'PY'
+          import contextlib,email.utils,hashlib,json,math,os,pathlib,platform,re,signal,subprocess,sys,time,urllib.request
+          privileged_mode=len(sys.argv)>1 and sys.argv[1]=='--privileged-clock'
+          root=pathlib.Path(sys.argv[3]) if privileged_mode else pathlib.Path.cwd()
+          temporary=pathlib.Path(sys.argv[4]) if privileged_mode else pathlib.Path(os.environ['RUNNER_TEMP'])
+          mode=sys.argv[5] if privileged_mode else os.environ['GRIDEX_Z03C_MODE']
+          if mode not in {'preflight','native'}: raise RuntimeError('z03c_mode_required')
+          working=root/('z03c-clock-preflight-working' if mode=='preflight' else 'z03c-supplier-boundary-native-working')
+          final=root/('z03c-clock-preflight-evidence' if mode=='preflight' else 'z03c-supplier-boundary-native-evidence')
+          state_path=temporary/('z03c-'+mode+'-clock-state.json')
+          lock_path=temporary/('z03c-'+mode+'-restore.lock')
+          restored_path=temporary/('z03c-'+mode+'-restoration.json')
+          def call(args,**kwargs):
+              return subprocess.check_output(args,text=True,timeout=30,**kwargs).strip()
+          def save(path,value):
+              # Watchdog must never observe a truncated current child PID or
+              # restoration state if its parent is interrupted mid-write.
+              import tempfile
+              with tempfile.NamedTemporaryFile(mode='w',dir=path.parent,prefix=path.name+'.',delete=False) as pending:
+                  json.dump(value,pending,indent=2,sort_keys=True);pending.write('\n');pending.flush();os.fsync(pending.fileno())
+                  pending_name=pending.name
+              if os.geteuid()==0 and 'SUDO_UID' in os.environ:
+                  os.chown(pending_name,int(os.environ['SUDO_UID']),int(os.environ['SUDO_GID']))
+              os.replace(pending_name,path)
+          def safe_error(error):
+              value={'class':type(error).__name__}
+              if isinstance(error,RuntimeError) and re.fullmatch(r'z03c_[a-z0-9_]{1,100}',str(error)):value['code']=str(error)
+              if isinstance(error,subprocess.CalledProcessError):value['exit_code']=error.returncode
+              if isinstance(error,subprocess.TimeoutExpired):value['timeout_seconds']=error.timeout
+              return value
+          def process_start_ticks(pid):
+              try:return (pathlib.Path('/proc')/str(pid)/'stat').read_text().rsplit(')',1)[1].split()[19]
+              except FileNotFoundError:return None
+          def controller_alive(state):
+              return process_start_ticks(state['controller_pid'])==state['controller_start_ticks']
+          def sync_services():
+              result={}
+              for name in ['systemd-timesyncd','chrony','chronyd','ntp','ntpd']:
+                  state=subprocess.run(['systemctl','is-active',name+'.service'],text=True,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,timeout=10)
+                  result[name]=state.stdout.strip()
+              return result
+          def trusted_reference():
+              # Ordinary-clock only. No GitHub/dependency/OIDC/cloud request is
+              # initiated by the controlled work while its clock is advanced.
+              request=urllib.request.Request('https://api.github.com/',method='HEAD',headers={'User-Agent':'gridex-z03c-clock-qualification'})
+              with urllib.request.urlopen(request,timeout=15) as response:
+                  stamp=email.utils.parsedate_to_datetime(response.headers['Date']).timestamp()
+              if abs(time.time()-stamp)>30: raise RuntimeError('z03c_trusted_normal_reference_skew')
+              return stamp
+          def stop_owned_work(state):
+              pid=state.get('owned_child_pgid')
+              if pid:
+                  ticks=process_start_ticks(pid)
+                  if ticks is not None and ticks!=state['owned_child_start_ticks']:raise RuntimeError('z03c_child_process_identity_changed')
+                  with contextlib.suppress(ProcessLookupError):os.killpg(pid,signal.SIGKILL)
+              if mode=='native':
+                  # Existing official replay's EXIT cleanup normally stops the
+                  # stack first. This is an independent local fallback for a
+                  # lost worker. Never contact hosted Supabase or a cloud API.
+                  project=state['supabase_project_id']
+                  names=call(['docker','ps','--format','{{.Names}}']).splitlines()
+                  if any(name.endswith('_'+project) for name in names):
+                      result=subprocess.run(['supabase','stop','--no-backup'],cwd=root,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=90,
+                          env=dict(os.environ,DO_NOT_TRACK='1',SUPABASE_TELEMETRY_DISABLED='1'))
+                      if result.returncode:raise RuntimeError('z03c_owned_backend_stop_failed')
+                      names=call(['docker','ps','--format','{{.Names}}']).splitlines()
+                  if any(name.endswith('_'+project) for name in names):raise RuntimeError('z03c_owned_backend_still_running')
+              return True
+          def privileged(action,target=None):
+              # A privileged flock holder covers the COMPLETE realtime write,
+              # subprocess wait and durable terminal marker, independently of
+              # controller death. Advance and restore use the SAME kernel lock.
+              args=['sudo','-n','flock','-x',str(lock_path),sys.executable,str(pathlib.Path(__file__).resolve()),
+                  '--privileged-clock',action,str(root),str(temporary),mode]
+              if target is not None:args.append(str(target))
+              return json.loads(subprocess.check_output(args,text=True,timeout=150))
+          def restore():return privileged('restore')
+          def advance(target):return privileged('advance',target)
+          if privileged_mode:
+              if os.geteuid()!=0:raise RuntimeError('z03c_privileged_clock_executor_required')
+              state=json.loads(state_path.read_text())
+              if state['mode']!=mode or hashlib.sha256(pathlib.Path(__file__).read_bytes()).hexdigest()!=state['controller_source_sha256']:raise RuntimeError('z03c_clock_executor_source_changed')
+              action=sys.argv[2]
+              if action in {'advance','disable-sync'}:
+                  # Recheck AFTER acquiring flock. An old pending forward setter
+                  # cannot run after restoration or a dead/reused controller.
+                  if restored_path.exists() or not controller_alive(state) or time.monotonic()>=state['deadline_monotonic_s']:raise RuntimeError('z03c_current_clock_epoch_not_live')
+                  if action=='disable-sync':
+                      subprocess.run(['timedatectl','set-ntp','false'],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=10)
+                      if call(['timedatectl','show','-p','NTP','--value'])!='no' or any(v=='active' for v in sync_services().values()):raise RuntimeError('z03c_sync_control_not_qualified')
+                      print(json.dumps({'sync_disabled':True,'shared_restore_lock':True}))
+                  else:
+                      target=float(sys.argv[6])
+                      if not math.isfinite(target) or target<=time.time() or target>state['original_realtime_ms']/1000+35*86400:raise RuntimeError('z03c_forward_clock_target_invalid')
+                      subprocess.run(['date','--set','@'+str(target)],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=10)
+                      if abs(time.time()-target)>3:raise RuntimeError('z03c_forward_clock_skew')
+                      print(json.dumps({'actual_realtime_ms':time.time()*1000,'target_realtime_ms':target*1000,'shared_restore_lock':True}))
+              elif action=='restore':
+                  if restored_path.exists():
+                      print(restored_path.read_text());sys.exit(0)
+                  stopped=stop_owned_work(state)
+                  target=state['original_realtime_ms']/1000+(time.monotonic()-state['original_monotonic_s'])
+                  subprocess.run(['date','--set','@'+str(target)],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=10)
+                  subprocess.run(['timedatectl','set-ntp',state['prior_ntp']],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=10)
+                  actual=time.time()
+                  if abs(actual-target)>3:raise RuntimeError('z03c_clock_restore_skew')
+                  if call(['timedatectl','show','-p','NTP','--value'])!=state['prior_ntp'] or sync_services()!=state['prior_sync_services']:raise RuntimeError('z03c_sync_state_restore_failed')
+                  receipt={'schema':'z03c_clock_restoration_v1','mode':mode,'restored':True,'shared_advance_restore_lock':True,
+                      'backend_and_workers_stopped_before_backward_restore':stopped,'target_normal_realtime_ms':target*1000,
+                      'actual_normal_realtime_ms':actual*1000,'monotonic_elapsed_s':time.monotonic()-state['original_monotonic_s'],
+                      'prior_ntp':state['prior_ntp'],'restored_ntp':call(['timedatectl','show','-p','NTP','--value']),
+                      'prior_sync_services':state['prior_sync_services'],'restored_sync_services':sync_services(),
+                      'checkout_sha':state['checkout_sha'],'repository':state['repository'],'workflow_run_id':state['workflow_run_id'],
+                      'workflow_run_attempt':state['workflow_run_attempt'],'job_id':state['job_id']}
+                  save(restored_path,receipt);print(json.dumps(receipt))
+              else:raise RuntimeError('z03c_clock_action_required')
+              sys.exit(0)
+          if len(sys.argv)>1 and sys.argv[1]=='--advance':
+              print(json.dumps(advance(float(sys.argv[2]))));sys.exit(0)
+          if len(sys.argv)>1 and sys.argv[1]=='--watchdog':
+              state=json.loads(state_path.read_text())
+              while not restored_path.exists():
+                  if not controller_alive(state) or time.monotonic()>state['deadline_monotonic_s']:
+                      try:restore()
+                      except Exception as error:
+                          save(temporary/('z03c-'+mode+'-watchdog-failure.json'),{'stage':'WATCHDOG_RESTORE',**safe_error(error)})
+                      break
+                  time.sleep(0.5)
+              sys.exit(0)
+          if os.environ.get('GITHUB_ACTIONS')!='true' or os.environ.get('RUNNER_ENVIRONMENT')!='github-hosted':raise RuntimeError('z03c_fresh_standard_hosted_vm_required')
+          if not os.environ.get('ImageOS') or not os.environ.get('ImageVersion'):raise RuntimeError('z03c_hosted_image_provenance_required')
+          head=call(['git','rev-parse','HEAD']);tree=call(['git','rev-parse','HEAD^{tree}'])
+          if head!=os.environ['GRIDEX_Z03C_EXPECTED_HEAD']:raise RuntimeError('z03c_exact_pr_head_required')
+          if call(['git','status','--porcelain','--untracked-files=no']):raise RuntimeError('z03c_clean_checkout_required')
+          if working.exists() or final.exists() or state_path.exists() or restored_path.exists():raise RuntimeError('z03c_first_epoch_only')
+          working.mkdir()
+          stage='ORDINARY_CLOCK_ADMISSION';exit_code=1;watchdog=None;source={}
+          try:
+              trusted=trusted_reference()
+              prior_ntp=call(['timedatectl','show','-p','NTP','--value']);prior_sync_services=sync_services()
+              if prior_ntp not in {'yes','no'}:raise RuntimeError('z03c_sync_state_unknown')
+              subprocess.run(['sudo','-n','true'],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=10)
+              project=''
+              if mode=='native':
+                  import tomllib
+                  project=tomllib.loads((root/'supabase/config.toml').read_text())['project_id']
+                  if not project or call(['docker','ps','-q']):raise RuntimeError('z03c_fresh_empty_docker_host_required')
+                  if call(['supabase','--version'])!='2.101.0':raise RuntimeError('z03c_official_cli_version_required')
+                  if '--no-backup' not in call(['supabase','stop','--help']):raise RuntimeError('z03c_cli_stop_contract_required')
+                  if not call(['node','--version']).startswith('v22.'):raise RuntimeError('z03c_node22_required')
+                  preflight=json.loads((root/'z03c-clock-preflight-evidence/receipt.json').read_text())
+                  if preflight['checkout_sha']!=head or preflight['job_id']!=os.environ['GITHUB_JOB'] or preflight['mode']!='preflight' or not preflight['restoration_verified'] or preflight['exit_code']!=0:raise RuntimeError('z03c_this_product_vm_preflight_required')
+              entries=subprocess.check_output(['git','ls-tree','-rz','--full-tree','HEAD']).split(b'\0')
+              for entry in entries:
+                  if not entry:continue
+                  header,raw_path=entry.split(b'\t',1);file_mode,kind,oid=header.decode().split()
+                  if kind!='blob':continue
+                  name=raw_path.decode();path=root/name
+                  blob=os.readlink(path).encode() if file_mode=='120000' else path.read_bytes()
+                  if hashlib.sha1(b'blob '+str(len(blob)).encode()+b'\0'+blob).hexdigest()!=oid:raise RuntimeError('z03c_checkout_blob_mismatch')
+                  source[name]={'mode':file_mode,'oid':oid,'sha256':hashlib.sha256(blob).hexdigest()}
+              save(working/'source-identity-before.json',source)
+              state={'admitted':True,'mode':mode,'controller_pid':os.getpid(),'controller_start_ticks':process_start_ticks(os.getpid()),
+                  'controller_source_sha256':hashlib.sha256(pathlib.Path(__file__).read_bytes()).hexdigest(),
+                  'owned_child_pgid':None,'owned_child_start_ticks':None,
+                  'original_realtime_ms':time.time()*1000,'original_monotonic_s':time.monotonic(),
+                  'deadline_monotonic_s':time.monotonic()+(120 if mode=='preflight' else 3000),
+                  'deadline_monotonic_ms':(time.monotonic()+(120 if mode=='preflight' else 3000))*1000,
+                  'prior_ntp':prior_ntp,'prior_sync_services':prior_sync_services,'trusted_normal_reference_s':trusted,'supabase_project_id':project,
+                  'checkout_sha':head,'repository':os.environ['GITHUB_REPOSITORY'],'workflow_run_id':os.environ['GITHUB_RUN_ID'],
+                  'workflow_run_attempt':os.environ['GITHUB_RUN_ATTEMPT'],'job_id':os.environ['GITHUB_JOB']}
+              save(state_path,state);os.chmod(state_path,0o600)
+              # Independent session survives the parent's TERM/KILL. No clock
+              # change occurs until its process is actually running.
+              watchdog=subprocess.Popen([sys.executable,__file__,'--watchdog'],start_new_session=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+              if watchdog.poll() is not None:raise RuntimeError('z03c_independent_watchdog_not_running')
+              privileged('disable-sync')
+              if mode=='preflight':
+                  stage='REALTIME_FORWARD_CAPABILITY'
+                  baseline=time.time();monotonic=time.monotonic();target=baseline+21*86400
+                  advance(target)
+                  if abs(time.time()-target)>3 or not 0<=time.monotonic()-monotonic<20:raise RuntimeError('z03c_forward_realtime_capability_failed')
+                  save(working/'clock-capability.json',{'actual_forward_days':21,'actual_realtime_ms':time.time()*1000,
+                      'target_realtime_ms':target*1000,'monotonic_elapsed_s':time.monotonic()-monotonic,'product_execution':False})
+                  exit_code=0
+              else:
+                  stage='BOOTSTRAP_AND_NATIVE'
+                  status=temporary/'z03c-native-status.json'
+                  environment=dict(os.environ,GRIDEX_NATIVE_STATUS=str(status),GRIDEX_Z03C_CLOCK_CONTROL=str(state_path),
+                      GRIDEX_Z03C_CLOCK_CONTROLLER_SCRIPT=str(pathlib.Path(__file__).resolve()),
+                      GRIDEX_Z03C_EVIDENCE=str(working),GRIDEX_Z03C_CLOCK_CAPABILITY_ADMITTED='1',SUPABASE_INTERNAL_IMAGE_REGISTRY='ghcr.io',
+                      DO_NOT_TRACK='1',SUPABASE_TELEMETRY_DISABLED='1')
+                  script=r'''set -euo pipefail
+          source scripts/gridex-aud-003-clean-replay.sh > "$RUNNER_TEMP/z03c-bootstrap.log" 2>&1
+          supabase status -o json > "$GRIDEX_NATIVE_STATUS"
+          psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -XAtq -v ON_ERROR_STOP=1 -c "SELECT jsonb_build_object('server_version',current_setting('server_version'),'postmaster_started_at',pg_postmaster_start_time(),'database',current_database(),'address',inet_server_addr(),'port',inet_server_port(),'functions',(SELECT jsonb_agg(jsonb_build_object('oid',p.oid,'signature',p.oid::regprocedure::text,'body_sha256',encode(sha256(convert_to(p.prosrc,'UTF8')),'hex'),'metadata',to_jsonb(p)-'prosrc') ORDER BY p.oid::regprocedure::text) FROM pg_proc p WHERE p.oid=ANY(ARRAY['gridex_switch_cancellations.context_v1(uuid,uuid,uuid,boolean)'::regprocedure,'public.ediel_switch_cancellation_source_v1(uuid,uuid,uuid)'::regprocedure,'gridex_switch_cancellations.customer_draft_v1(uuid,uuid,uuid,text,uuid,uuid,text)'::regprocedure,'gridex_switch_cancellations.bound_message_immutable_v1()'::regprocedure])),'canonical_applied_history',(SELECT jsonb_agg(jsonb_build_object('version',version,'filename',filename,'checksum',checksum) ORDER BY version,filename) FROM public.canonical_migration_manifest),'official_cli_history',(SELECT jsonb_agg(jsonb_build_object('version',version,'name',name) ORDER BY version) FROM supabase_migrations.schema_migrations));" > "$GRIDEX_Z03C_EVIDENCE/installed-sql-history.json"
+          node node_modules/vitest/vitest.mjs run --config scripts/ediel-at-z03c-supplier-boundary-native.config.ts --reporter=default --reporter=junit --outputFile="$GRIDEX_Z03C_EVIDENCE/native-junit.xml" > "$GRIDEX_Z03C_EVIDENCE/native.log" 2>&1
+          '''
+                  # Child cannot execute bootstrap or clock work until its
+                  # PGID/start identity has been durably recorded. Parent death
+                  # before release closes the pipe: read fails and child exits.
+                  gate='IFS= read -r admitted || exit 70; [[ "$admitted" == "Z03C_OWNED_CHILD_GO" ]] || exit 71; exec bash -c "$1"'
+                  child=subprocess.Popen(['bash','-c',gate,'z03c-gated-owned-child',script],env=environment,start_new_session=True,stdin=subprocess.PIPE)
+                  state['owned_child_pgid']=child.pid;state['owned_child_start_ticks']=process_start_ticks(child.pid);save(state_path,state)
+                  child.stdin.write(b'Z03C_OWNED_CHILD_GO\n');child.stdin.flush();child.stdin.close()
+                  exit_code=child.wait(timeout=2900)
+                  # Replay EXIT cleanup must have restored source and stopped
+                  # the backend before the controller's backward restoration.
+                  state['owned_child_pgid']=None;state['owned_child_start_ticks']=None;save(state_path,state)
+                  if (temporary/'z03c-bootstrap.log').is_file():
+                      (working/'bootstrap.log').write_bytes((temporary/'z03c-bootstrap.log').read_bytes())
+                  if exit_code==0:
+                      import xml.etree.ElementTree as ET
+                      document=ET.parse(working/'native-junit.xml')
+                      tests=document.findall('.//testcase')
+                      expected={'C03-MISSING-OWN-LI-OWNER-REFUSAL','C03-BOUND-MUTATION-REFUSAL','C03-LK-DAY1-HOLD','C03-L4-ALLOW','C03-L3-HOLD'}
+                      actual={t.attrib.get('name','').split(' > ')[-1] for t in tests}
+                      if len(tests)!=5 or actual!=expected or any(t.find('failure') is not None or t.find('error') is not None or t.find('skipped') is not None for t in tests):raise RuntimeError('z03c_all_five_actual_cases_required')
+                      product=json.loads((working/'product-boundary-receipt.json').read_text())
+                      if len(product['cases'])!=5 or {c['name'] for c in product['cases']}!=expected or any(c['status']!='PASSED' for c in product['cases']):raise RuntimeError('z03c_measured_product_receipt_required')
+              stage='SOURCE_POSTIMAGE'
+              changed={}
+              for name,identity in source.items():
+                  path=root/name
+                  blob=os.readlink(path).encode() if identity['mode']=='120000' else path.read_bytes()
+                  digest=hashlib.sha256(blob).hexdigest()
+                  if digest!=identity['sha256']:changed[name]=digest
+              allowed={'supabase/database.types.ts','supabase/schema.sql','supabase/schema.fingerprint.json','scripts/supabase-types-manifest.json'}
+              if set(changed)-allowed:raise RuntimeError('z03c_unexpected_source_postimage')
+              save(working/'runtime-generated-comparison-inputs.json',changed)
+          except BaseException as error:
+              exit_code=exit_code or 1
+              save(working/'failure.json',{'stage':stage,**safe_error(error),
+                  'native_execution':'INCOMPLETE_OR_FAILED' if stage=='BOOTSTRAP_AND_NATIVE' else 'NOT_CREDITED','whole_approval':False})
+          finally:
+              if mode=='native' and (temporary/'z03c-bootstrap.log').is_file():
+                  (working/'bootstrap.log').write_bytes((temporary/'z03c-bootstrap.log').read_bytes())
+              restoration_verified=False
+              if state_path.exists():
+                  try:
+                      restored=restore()
+                      # Independent current ordinary reference only after the
+                      # local restored-clock receipt exists.
+                      restored['trusted_normal_reference_s']=trusted_reference()
+                      restored['trusted_normal_reference_verified']=True
+                      save(restored_path,restored);save(working/'clock-restoration.json',restored)
+                      restoration_verified=True
+                  except Exception as error:
+                      exit_code=1;save(working/'restoration-failure.json',{'stage':'RESTORE',**safe_error(error)})
+              if watchdog is not None:
+                  with contextlib.suppress(subprocess.TimeoutExpired):watchdog.wait(timeout=5)
+              # No evidence directory is exposed to another action unless
+              # actual restoration and normal-reference checks succeeded.
+              receipt={'schema':'z03c_boundary_workflow_receipt_v1','mode':mode,'checkout_sha':head,'checkout_tree':tree,
+                  'repository':os.environ['GITHUB_REPOSITORY'],'repository_id':os.environ['GITHUB_REPOSITORY_ID'],
+                  'workflow_run_id':os.environ['GITHUB_RUN_ID'],'workflow_run_attempt':os.environ['GITHUB_RUN_ATTEMPT'],
+                  'job_id':os.environ['GITHUB_JOB'],'exit_code':exit_code,'restoration_verified':restoration_verified,
+                  'image_os':os.environ['ImageOS'],'image_version':os.environ['ImageVersion'],'kernel':platform.release(),
+                  'ordinary_required_gates':'NOT_REPLACED','canonical_GEN_capture':'NOT_RUN','whole_approval':False,
+                  'authentic_external_market_history':False,'actual_elapsed_14_days':False,'private_runner_background_quiescence':'NOT_ATTESTED'}
+              save(working/'receipt.json',receipt)
+              if restoration_verified:
+                  if mode=='native':
+                      redactor=subprocess.run(['python3','scripts/gridex-redact-native-evidence.py','--local-secrets',str(temporary/'z03c-native-status.json'),'--root',str(working)],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=60)
+                      if redactor.returncode:exit_code=1
+                      else:working.rename(final)
+                  else:working.rename(final)
+                  if final.exists():
+                      with open(os.environ['GITHUB_OUTPUT'],'a') as outputs:outputs.write('restored_evidence_ready=true\n')
+          sys.exit(exit_code)
+          PY
+          python3 "$RUNNER_TEMP/z03c-owned-clock-controller.py"
+      - name: Upload restored-clock preflight proof
+        if: always() && steps.preflight.outputs.restored_evidence_ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ediel-z03c-clock-preflight-${{ github.run_id }}
+          path: z03c-clock-preflight-evidence
+          if-no-files-found: error
+          retention-days: 14
+
+  z03c-supplier-boundary-native:
+    name: Ediel Z03C supplier boundary / z03c-supplier-boundary-native
+    needs: clock-capability-preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+      GRIDEX_Z03C_EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Independently qualify this product VM clock and restoration
+        id: own_preflight
+        shell: bash
+        env:
+          GRIDEX_Z03C_MODE: preflight
+        run: *controlled_clock_process
+      - name: Run one original boundary chain and restore before publication
+        id: native
+        shell: bash
+        env:
+          GRIDEX_Z03C_MODE: native
+        run: *controlled_clock_process
+      - name: Upload redacted proof only after verified restoration
+        if: always() && steps.native.outputs.restored_evidence_ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ediel-z03c-supplier-boundary-native-${{ github.run_id }}
+          path: |
+            z03c-clock-preflight-evidence
+            z03c-supplier-boundary-native-evidence
+          if-no-files-found: error
+          retention-days: 14
