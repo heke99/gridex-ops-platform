@@ -17,24 +17,30 @@ const MONTH = '2026-09'
 const DAYS = Array.from({ length: 30 }, (_, i) => `2026-09-${String(i + 1).padStart(2, '0')}`)
 const report: Record<string, unknown> = { month: MONTH, startedAt: new Date().toISOString() }
 let tenant: LiveTenant, customer: LiveCustomer
-let browser: Browser, admin: BrowserContext
+let browser: Browser
+const sessions = new Map<string, BrowserContext>()
 const sent = new Map<string, number[]>()
 
-async function adminSession() {
-  if (admin) return admin
+/** Logged-in browser context, like a person using the admin UI. */
+async function session(email: string, password: string, label: string) {
+  const existing = sessions.get(email)
+  if (existing) return existing
   // PLAYWRIGHT_CHROMIUM_EXECUTABLE lets a host whose pre-installed browser build
   // differs from @playwright/test's pinned one run the suite without a download.
-  browser = await chromium.launch(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE } : {})
-  admin = await browser.newContext({ baseURL: LIVE.appUrl })
-  const page = await admin.newPage()
+  browser ??= await chromium.launch(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE } : {})
+  const context = await browser.newContext({ baseURL: LIVE.appUrl })
+  const page = await context.newPage()
   await page.goto('/login')
-  await page.fill('input[name="email"]', tenant.adminEmail)
-  await page.fill('input[name="password"]', tenant.adminPassword)
+  await page.fill('input[name="email"]', email)
+  await page.fill('input[name="password"]', password)
   await Promise.all([page.waitForURL(url => !url.pathname.startsWith('/login'), { timeout: 60_000 }), page.click('button[type="submit"]')])
-  report.adminLanding = new URL(page.url()).pathname
+  report[`${label}Landing`] = new URL(page.url()).pathname
   await page.close()
-  return admin
+  sessions.set(email, context)
+  return context
 }
+const adminSession = () => session(tenant.adminEmail, tenant.adminPassword, 'admin')
+const operatorSession = () => session(tenant.operatorEmail, tenant.operatorPassword, 'operator')
 
 describe.sequential('live chain B — metering to invoice for an existing customer', () => {
   beforeAll(() => { expect(LIVE.cronSecret).toBeTruthy(); expect(LIVE.automationUserId).toBeTruthy() })
@@ -112,18 +118,20 @@ describe.sequential('live chain B — metering to invoice for an existing custom
   })
 
   it('B5 after (synthetic) issuer evidence, the operator reprocesses and every quarter-hour becomes billable', async () => {
-    const sources = sql<Array<{ id: string; mail: string | null }>>(`SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,'mail',inbound_email_message_id) ORDER BY created_at),'[]')
+    const sources = sql<Array<{ id: string }>>(`SELECT coalesce(jsonb_agg(jsonb_build_object('id',id) ORDER BY created_at),'[]')
       FROM public.ediel_messages WHERE company_id=${literal(tenant.companyId)} AND direction='inbound' AND message_code='E66'`)
     for (const source of sources) approveIssuerHistoryGround(source.id, tenant.adminUserId)
-    const context = await adminSession()
+    // No job re-evaluates held UTILTS: Gridex staff re-run the UTILTS engine per
+    // message from the Ediel message page (platform-admin only).
+    const context = await operatorSession()
     const page = await context.newPage()
     const outcomes: unknown[] = []
     for (const source of sources) {
-      if (!source.mail) { outcomes.push({ source: source.id, skipped: 'no inbound mail' }); continue }
-      await page.goto(`/admin/inbound-mail/${source.mail}`)
-      const button = page.locator('form:has(input[name="id"]) button[type="submit"], form button:has-text("Processa"), form button:has-text("Kör om")').first()
-      outcomes.push({ source: source.id, url: new URL(page.url()).pathname, button: await button.count() })
-      if (await button.count()) await Promise.all([page.waitForLoadState('networkidle'), button.click()])
+      await page.goto(`/admin/ediel/messages/${source.id}`)
+      const button = page.getByRole('button', { name: 'Kör UTILTS engine / skapa TGT-svar' })
+      const visible = await button.count()
+      if (visible) await Promise.all([page.waitForLoadState('networkidle'), button.click()])
+      outcomes.push({ source: source.id, path: new URL(page.url()).pathname, button: visible, search: new URL(page.url()).search.slice(0, 300) })
     }
     await page.close()
     report.reprocess = outcomes

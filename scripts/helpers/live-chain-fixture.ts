@@ -163,6 +163,26 @@ export function ensureHostedPermissionCatalog() {
 }
 
 /**
+ * Production parity for FINDINGS F16: hosted production has
+ * public.gridex_get_user_roles(uuid) (body identical to
+ * 20260526_debug_step1_2c_full_schema_code_alignment.sql, SECURITY INVOKER), but
+ * the canonical replay excludes that noncanonical migration. Without it every
+ * platform admin without a company membership is locked out of /admin. The
+ * function is created only if missing, exactly as production has it.
+ */
+export function ensureProductionRoleLookupParity() {
+  const migration = readFileSync('supabase/migrations/20260526_debug_step1_2c_full_schema_code_alignment.sql', 'utf8')
+  const start = migration.indexOf('create or replace function public.gridex_get_user_roles(p_user_id uuid)')
+  const end = migration.indexOf('$$;', start)
+  if (start < 0 || end < 0) throw Error('gridex_get_user_roles_source_unreadable')
+  const definition = migration.slice(start, end + 3).replace('security definer', 'security invoker')
+  sql(`DO $parity$BEGIN IF to_regprocedure('public.gridex_get_user_roles(uuid)') IS NULL THEN
+   EXECUTE ${literal(definition)};
+   EXECUTE 'GRANT EXECUTE ON FUNCTION public.gridex_get_user_roles(uuid) TO authenticated, service_role';
+  END IF; END$parity$;`)
+}
+
+/**
  * The shared test Ediel mailbox profile, as a platform admin saves it in
  * /admin/inbound-mail (saveSharedMailboxProfileAction fields): local IMAPS/SMTPS,
  * password by env reference. Platform-level configuration, not tenant data.
@@ -178,6 +198,8 @@ export function configurePlatformMailbox() {
 
 export type LiveTenant = {
   companyId: string; adminUserId: string; adminEmail: string; adminPassword: string
+  /** Gridex platform staff (super_admin in user_roles) operating this supplier as a member. */
+  operatorEmail: string; operatorPassword: string
   supplierEdielId: string; issuerEdielId: string; gridOwnerId: string; gridOwnerEmail: string
   offerId: string; publicationVersionId: string
 }
@@ -190,9 +212,11 @@ export type LiveTenant = {
  */
 export async function configureTenant(supabase: { rpc: (name: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: unknown }> }): Promise<LiveTenant> {
   ensureHostedPermissionCatalog()
+  ensureProductionRoleLookupParity()
   const companyId = randomUUID(), adminUserId = randomUUID(), gridOwnerId = randomUUID()
   const org = fixtureOrganizationNumber()
   const adminEmail = `e2e-admin-${adminUserId.slice(0, 8)}@example.invalid`, adminPassword = `Live-${randomUUID()}`
+  const operatorUserId = randomUUID(), operatorEmail = `e2e-operator-${operatorUserId.slice(0, 8)}@example.invalid`, operatorPassword = `Live-${randomUUID()}`
   const supplierEdielId = sql<string>(`BEGIN; SELECT pg_advisory_xact_lock(hashtextextended('native_utilts_consumption_receiver',0));
    SELECT to_jsonb(min(n)::text) FROM generate_series(70000,79999) n WHERE NOT EXISTS(SELECT FROM public.tenant_actor_identifiers i WHERE i.identifier_type='EdielId' AND i.identifier_value=n::text)
     AND NOT EXISTS(SELECT FROM public.ediel_actor_settings a WHERE a.ediel_id=n::text); COMMIT;`)
@@ -217,6 +241,14 @@ export async function configureTenant(supabase: { rpc: (name: string, args: Reco
    ${user(adminUserId, adminEmail, 'E2E Live Admin', adminPassword)}
    ${member(adminUserId)}
    ${member(LIVE.automationUserId)}
+   ${user(operatorUserId, operatorEmail, 'E2E Gridex Operator', operatorPassword)}
+   -- As in production: platform staff are super_admin in user_roles without a company. The
+   -- canonical replay lacks the super_admin role row, so it is mirrored as reference data.
+   INSERT INTO public.roles(key,name,scope,is_system_role,is_active) VALUES('super_admin','super_admin','company',false,true) ON CONFLICT(key) DO NOTHING;
+   INSERT INTO public.user_roles(user_id,role_id,role,company_id,status,is_active) SELECT ${literal(operatorUserId)},id,'super_admin',NULL,'active',true FROM public.roles WHERE key='super_admin';
+   -- Business Ediel acts require a current member with communication.write (platform authority
+   -- never spans companies), so the operating staff member is also a member of this supplier.
+   ${member(operatorUserId)}
    UPDATE public.companies SET legal_name='E2E Live Elhandel AB',org_number=${literal(org)},address_line_1='Testgatan 1',postal_code='123 45',city='Teststad',country_code='SE',
     support_email='service@example.invalid',phone='0101234567',website='https://example.invalid' WHERE id=${literal(companyId)};`)
   const pricing = { schema: 'gridex_contract_pricing_v5', pricing_model: 'spot', energy_direction: 'consumption', interval_resolution: 'quarterly', vat_rate: 0.25,
@@ -276,7 +308,7 @@ export async function configureTenant(supabase: { rpc: (name: string, args: Reco
   // is ready. No application path sets it for a new tenant (see FINDINGS F13);
   // like the project's native fixtures, the go-live configuration sets it here.
   sql(`UPDATE public.company_capabilities SET enabled=true,readiness_status='ready' WHERE company_id=${literal(companyId)} AND capability_code='ediel_test'`)
-  return { companyId, adminUserId, adminEmail, adminPassword, supplierEdielId, issuerEdielId, gridOwnerId, gridOwnerEmail, offerId, publicationVersionId }
+  return { companyId, adminUserId, adminEmail, adminPassword, operatorEmail, operatorPassword, supplierEdielId, issuerEdielId, gridOwnerId, gridOwnerEmail, offerId, publicationVersionId }
 }
 
 /** SYNTHETIC stand-in for EXT-ISSUER-01/EXT-ARCHIVE-02: reviewed issuer history ground for one received source. */
