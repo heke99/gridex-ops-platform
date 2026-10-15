@@ -11,7 +11,7 @@ import { nationalRescissionNativeChain } from './helpers/nationalRescissionNativ
 import { assertInvalid306NativeContract } from './helpers/ediel-h-invalid306-native-assertions'
 import { createHNativeSourceInspection } from './helpers/ediel-h-native-source-inspection'
 import { observeAckTransportRpcErrors } from './helpers/ediel-h-ack-rpc-observation-native'
-import { nativeSql as sql, literal } from './helpers/ediel-normal-switch-native-fixture'
+import { nativeSql as sql, literal, futureNativeSupplyDate } from './helpers/ediel-normal-switch-native-fixture'
 import { seedOriginalMailboxNative } from './helpers/originalMailboxNative'
 import { assertEdielSmtpReadiness } from '@/lib/ediel/mailReadiness'
 import { createBilateralProdatGroundNativeFixture } from './helpers/ediel-bilateral-prodat-profile-native-fixture'
@@ -1706,7 +1706,7 @@ describe('H outgoing current-review authority and explicit controlled agreement 
   })
 
   it('archives newly signed explicit controlled H agreement bytes and executes their current technical watches and own confirmation transition',async()=>{
-    const staged=await prospective(), address=await applyCustomerSiteAddressCandidate({companyId:staged.companyId,customerId:staged.customerId,siteId:staged.siteId,
+    const staged=await prospective(futureNativeSupplyDate()), address=await applyCustomerSiteAddressCandidate({companyId:staged.companyId,customerId:staged.customerId,siteId:staged.siteId,
       address:{street:'Agreed Installation Street 1',postalCode:'12345',city:'Agreed Town',country:'SE',source:'manual_intake',sourceReference:'SYNTHETIC controlled H agreement',actorUserId:staged.actorUserId}})
     expect(address).toMatchObject({status:'updated',siteId:staged.siteId})
     expect(sql<Row>(`SELECT to_jsonb(s) FROM public.customer_sites s WHERE company_id=${literal(staged.companyId)} AND id=${literal(staged.siteId)}`))
