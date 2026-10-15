@@ -5,7 +5,7 @@
 // edifact_dangling_release_character (and without UNA doubled the segments).
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const io = vi.hoisted(() => ({ parsedInputs: [] as Array<{ attachmentText?: string | null }>, parsed: [] as unknown[], parseErrors: [] as string[], mailCompany: null as string | null, linkedCompanies: [] as Array<string | null> }))
+const io = vi.hoisted(() => ({ parsedInputs: [] as Array<{ attachmentText?: string | null }>, parsed: [] as unknown[], parseErrors: [] as string[], mailCompany: null as string | null, linkedCompanies: [] as Array<string | null>, persisted: true }))
 const mocks = vi.hoisted(() => ({ update: vi.fn(), task: vi.fn(), tenant: vi.fn() }))
 
 vi.mock('@/lib/inbound-mail/edielEmailParser', async (original) => {
@@ -55,7 +55,7 @@ vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
 vi.mock('@/lib/inbound-mail/inboundStatusUpdater', () => ({
   updateInboundEmailProcessingStatus: mocks.update,
   createParseResult: vi.fn(),
-  createInboundEdielMessage: vi.fn(async (input: { companyId: string }) => { io.linkedCompanies.push(io.mailCompany); void input; return 'message1' }),
+  createInboundEdielMessage: vi.fn(async (input: { companyId: string }) => { io.linkedCompanies.push(io.mailCompany); void input; return io.persisted ? 'message1' : null }),
   createUnresolvedInboundEdielMessage: vi.fn(), applySafeInboundStatusUpdate: vi.fn(),
 }))
 vi.mock('@/lib/inbound-mail/inboundTaskFactory', () => ({ createInboundMailTask: mocks.task }))
@@ -68,7 +68,7 @@ vi.mock('@/lib/inbound-mail/inboundTenantResolver', () => ({ resolveTenantForInb
 import { processInboundEmailMessage } from '@/lib/inbound-mail/edielInboundProcessor'
 
 beforeEach(() => {
-  io.parsedInputs = []; io.parsed = []; io.parseErrors = []; io.mailCompany = null; io.linkedCompanies = []
+  io.parsedInputs = []; io.parsed = []; io.parseErrors = []; io.mailCompany = null; io.linkedCompanies = []; io.persisted = true
   vi.clearAllMocks()
   mocks.tenant.mockResolvedValue({ status: 'unresolved', companyId: null, reasons: ['fixture stops after parse'], evidence: [] })
 })
@@ -96,5 +96,12 @@ describe('inbound e-mail with an EDIFACT attachment', () => {
     await expect(processInboundEmailMessage({ inboundEmailMessageId: 'mail1', actorUserId: 'actor-1' })).rejects.toThrow('inbound_email_tenant_attribution_conflict')
     expect(io.mailCompany).toBe('tenant-b')
     expect(io.linkedCompanies).toEqual([])
+  })
+
+  it('fails the job for retry when the Ediel original could not be persisted, without a misleading review task', async () => {
+    io.persisted = false
+    mocks.tenant.mockResolvedValue({ status: 'resolved', companyId: 'tenant-a', reasons: [], evidence: [], shared: null })
+    await expect(processInboundEmailMessage({ inboundEmailMessageId: 'mail1', actorUserId: 'actor-1' })).rejects.toThrow('ediel_inbound_original_persistence_required')
+    expect(mocks.task).not.toHaveBeenCalled()
   })
 })
