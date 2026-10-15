@@ -74088,6 +74088,25 @@ begin
     return v_existing;
   end if;
 
+  -- A retained pre-forward row may have no legacy ID even with a reference.
+  -- Preserve its physical duplicate boundary before any replacement writes;
+  -- equal-value/quality reuse has already returned above, unchanged.
+  if v_source_tx is not null and exists (
+    select 1 from public.metering_values legacy
+     where legacy.company_id=v_company_id and legacy.metering_point_id=v_metering_point_id
+       and coalesce(legacy.product_code,'')=coalesce(nullif(p_payload->>'product_code',''),'')
+       and coalesce(legacy.register_code,'')=coalesce(nullif(p_payload->>'register_code',''),'')
+       and coalesce(legacy.meter_number,'')=''
+       and legacy.period_start=(p_payload->>'period_start')::timestamptz
+       and legacy.period_end=(p_payload->>'period_end')::timestamptz
+       and coalesce(legacy.reading_type,'')=coalesce(nullif(p_payload->>'reading_type',''),'consumption')
+       and coalesce(legacy.source_transaction_id,'')=''
+       and legacy.source_transaction_reference=v_source_tx
+  ) then
+    raise exception 'duplicate key value violates unique constraint "ux_metering_values_company_ediel_duplicate_guard"'
+      using errcode='23505',constraint='ux_metering_values_company_ediel_duplicate_guard',schema='public',table='metering_values';
+  end if;
+
   if v_existing.id is not null then
     v_revision := coalesce(v_existing.revision_number,1)+1;
     update public.metering_values
@@ -74102,14 +74121,14 @@ begin
   insert into public.metering_values(
     company_id,customer_id,site_id,customer_site_id,metering_point_id,source_request_id,grid_owner_id,reading_type,
     value_kwh,quality_code,read_at,period_start,period_end,source_system,raw_payload,source_ediel_message_id,
-    source_transaction_reference,source_line_reference,price_area,resolution,canonical_dedupe_key,is_current,previous_value_id,
+    source_transaction_id,source_transaction_reference,source_line_reference,price_area,resolution,canonical_dedupe_key,is_current,previous_value_id,
     revision_number,correction_reason,value_status,revision_status,billing_status,register_code,product_code,direction,unit,created_by
   ) values (
     v_company_id,v_customer_id,v_site_id,v_customer_site_id,v_metering_point_id,nullif(p_payload->>'source_request_id','')::uuid,
     nullif(p_payload->>'grid_owner_id','')::uuid,coalesce(nullif(p_payload->>'reading_type',''),'consumption'),
     (p_payload->>'value_kwh')::numeric,nullif(p_payload->>'quality_code',''),(p_payload->>'read_at')::timestamptz,
     (p_payload->>'period_start')::timestamptz,(p_payload->>'period_end')::timestamptz,coalesce(nullif(p_payload->>'source_system',''),'grid_owner'),
-    v_raw,v_source_message_id,v_source_tx,
+    v_raw,v_source_message_id,v_source_tx,v_source_tx,
     v_source_line,nullif(p_payload->>'price_area',''),nullif(p_payload->>'resolution',''),v_key,true,
     v_existing.id,v_revision,case when v_existing.id is null then null else coalesce(nullif(p_payload->>'correction_reason',''),'Korrigerat mätvärde.') end,
     'current','current','pending_match',nullif(p_payload->>'register_code',''),nullif(p_payload->>'product_code',''),v_direction,v_unit,

@@ -1,24 +1,24 @@
 {
   "generated_types": "supabase/database.types.ts",
-  "generated_at": "2026-10-14T23:13:17.548053+00:00",
+  "generated_at": "2026-10-15T01:56:39.362659+00:00",
   "generated_with": "supabase-cli-2.101.0-authentic-sc046-v3-primary-capture-run38652310163",
   "sha256": "8fbaf566c956192d9b64a2e504d764c7e8497b9261ac19a413479bb6c675f9f2",
   "latest_migration": "20261015003736_ediel_sc046_newest_metering_duplicate_guard.sql",
-  "latest_migration_schema_effect": "PENDING_NEW_GENUINE_PRIMARY: reviewed corrected atomic a580-to-d842 changes two missing INSERT mappings plus exact historicalNULL/empty same-reference physical duplicate preflight; all other SQL/source/RAW3 retain original dated origin. Old ABI equality remains expected, not a new capture.",
-  "composition_capture_pending": true,
+  "latest_migration_schema_effect": "Genuine qualified F5 PRIMARY changes ONLY atomic ingest definition a580-to-d842 (1312-byte guarded correction) versus tracked qualified F3 schema; full dump7d837 and actual normalizedFPa218ffd9. Types ABI8fbaf is actual byte-identical. Successful canonical replay qualifies frozen full targetmetadata/allotherfunction/index/inverse guards; actual after-only catalog recorded. Current native/upgrade/allmandatoryCI/whole acceptance remain separate.",
+  "composition_capture_pending": false,
   "capture": {
     "purpose": "capture_only",
-    "captured_at": "2026-10-14T23:13:17.548053+00:00",
-    "checkout_sha": "873b4159784ee452e979658bc4afcfe9b6bc0a86",
-    "checkout_tree": "32b78a9b67296ceb69c2664bd7d3634bd8b7748d",
-    "workflow_run_id": "38652310163",
+    "captured_at": "2026-10-15T01:56:39.362659+00:00",
+    "checkout_sha": "dc8448455e5f89f21258b9234291c61a05203c9b",
+    "checkout_tree": "13b3ebd61064d5081438bc9823bcad83d3214464",
+    "workflow_run_id": "38667819802",
     "workflow_run_attempt": "1",
     "supabase_cli_version": "2.101.0",
     "postgres_server_version": "17.6",
     "pg_dump_version": "pg_dump (PostgreSQL) 17.11 (Ubuntu 17.11-1.pgdg24.04+2)",
     "latest_replay_migration": {
-      "name": "20261014211648_ediel_sc046_bound_newer_metering_correction.sql",
-      "sha256": "760b535d6b3e3d29cec87a4e19786b6713d47764e02d24a2c0cee848411e318b"
+      "name": "20261015003736_ediel_sc046_newest_metering_duplicate_guard.sql",
+      "sha256": "42743daf26ae39e2191f5b6762d49754bd09e33acb0266328e5761d16f9d52ff"
     },
     "schema_names": [
       "gridex_ack_authority",
@@ -84,18 +84,18 @@
       "gridex_vh_history",
       "public"
     ],
-    "schema_fingerprint": "17891e183058f5fe74fe49fd8c126192a2fe396a99912e98120acc22d1d665e2",
+    "schema_fingerprint": "a218ffd94daafeaa41cf2678f1a42e5ac31d20c1b3ee49fe631bf9bfe4e11100",
     "artifact_sha256": {
       "database.types.ts": "8fbaf566c956192d9b64a2e504d764c7e8497b9261ac19a413479bb6c675f9f2",
-      "schema.sql": "a8feeeee0b63f4199cccc2e86738030bb9fb3536a951a16c41f8e8bbefbb8298",
-      "schema.fingerprint.json": "96710f5f5584d164e16f5bc675368d51450fa765844f31aee3d0a54c6db20599"
+      "schema.sql": "e19417ff12cc3b766592236eb04eb21ad983949af11408b3b495704fb84d658d",
+      "schema.fingerprint.json": "be8958c9a27e65e1e0ea4c16a407f6def9501dc47ed3d3a8546bfc5e1f414e68"
     },
     "input_sha256": {
       "scripts/gridex-aud-003-clean-replay.sh": "f745017887d22ee19ebddf1ad40a926fdceadaa13a4dc29c20d6561c0f2b5f3a",
-      "scripts/migration-history-manifest.json": "44d6df5e951cfc1ff1b8c1ddfabb139aa8467d4ce704083582f470450a6d6554",
+      "scripts/migration-history-manifest.json": "66a735464c298b3e5e534f7e27df889cb1b01280d55b48d449c4f195eed7de01",
       "scripts/migration-history-manifest.additions.json": "505193188987b57699f784eaace0cc57f135b792d7a2483c6a676168035d980b",
       "scripts/migration-history-manifest.runtime.additions.json": "cb206ed9c2763a62a2287bdbae0297cb03f237ce77cd3ebb5192a07c160741b7",
-      "scripts/supabase-types-manifest.json": "f530ac63cd953d075a6dd7c35f9bff8b6987364ffd8c4aa1a6899be25599461f",
+      "scripts/supabase-types-manifest.json": "a76afa0309e9b2bc73ac3a24fb6893c8e869eca944f4d5e3cf2dc7e291201c3f",
       "scripts/apply-supabase-types-nullability-overrides.cjs": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
       "scripts/gridex-schema-snapshot.cjs": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
       "supabase/config.toml": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919"
@@ -114,7 +114,7 @@
         "sha256": "4153067538523442f6d040e28127b76335a3d4aea07479280d5dcd64a1e6b2c9"
       },
       "actual_replay": {
-        "path": "/tmp/tmp.JFTzH1gWXI/20261014153206_gridex_data_quality_active_status_search_path.sql",
+        "path": "/tmp/tmp.FEklKEcjNL/20261014153206_gridex_data_quality_active_status_search_path.sql",
         "sha256": "4153067538523442f6d040e28127b76335a3d4aea07479280d5dcd64a1e6b2c9"
       },
       "guard_execution": "SUCCESSFUL_EXACT_CANONICAL_REPLAY_OF_FROZEN_PROCONFIG_ONLY_PRESERVATION_GUARD",
@@ -131,7 +131,7 @@
           "sha256": "84602eca793c51180d838679e8019001bc0e9f1d82e2e6e8861ca2d404de5b34"
         },
         "actual_replay": {
-          "path": "/tmp/tmp.JFTzH1gWXI/20261013141048_ediel_sc046_persistence_return_state_cb17b044.sql",
+          "path": "/tmp/tmp.FEklKEcjNL/20261013141048_ediel_sc046_persistence_return_state_cb17b044.sql",
           "sha256": "84602eca793c51180d838679e8019001bc0e9f1d82e2e6e8861ca2d404de5b34"
         }
       },
@@ -140,7 +140,7 @@
       "catalog_after": {
         "catalog": {
           "metadata": {
-            "oid": "51973",
+            "oid": "51971",
             "proacl": [
               "postgres=X/postgres",
               "service_role=X/postgres"
@@ -194,12 +194,12 @@
           "namespace": "public",
           "body_sha256": "4e61080dc64e5aa748519bcbc563d0bf77a29e49b64a5f8a6e06aa218680a21f"
         },
-        "postgres_jsonb_text": "{\"metadata\": {\"oid\": \"51973\", \"proacl\": [\"postgres=X/postgres\", \"service_role=X/postgres\"], \"probin\": null, \"procost\": 100, \"prokind\": \"f\", \"prolang\": \"13619\", \"proname\": \"gridex_persist_utilts_consumption_v1\", \"prorows\": 0, \"pronargs\": 7, \"proowner\": \"16384\", \"proconfig\": [\"search_path=pg_catalog\"], \"proretset\": false, \"prosecdef\": true, \"prorettype\": \"3802\", \"prosqlbody\": null, \"prosupport\": \"-\", \"proargmodes\": null, \"proargnames\": [\"p_company_id\", \"p_environment\", \"p_source_message_id\", \"p_message_code\", \"p_raw_payload\", \"p_transactions\", \"p_actor_user_id\"], \"proargtypes\": [\"2950\", \"25\", \"2950\", \"25\", \"25\", \"3802\", \"2950\"], \"proisstrict\": false, \"proparallel\": \"u\", \"protrftypes\": null, \"provariadic\": \"0\", \"provolatile\": \"v\", \"proleakproof\": false, \"pronamespace\": \"2200\", \"proallargtypes\": null, \"proargdefaults\": \"({CONST :consttype 2950 :consttypmod -1 :constcollid 0 :constlen 16 :constbyval false :constisnull true :location -1 :constvalue <>})\", \"pronargdefaults\": 1}, \"namespace\": \"public\", \"body_sha256\": \"4e61080dc64e5aa748519bcbc563d0bf77a29e49b64a5f8a6e06aa218680a21f\"}",
+        "postgres_jsonb_text": "{\"metadata\": {\"oid\": \"51971\", \"proacl\": [\"postgres=X/postgres\", \"service_role=X/postgres\"], \"probin\": null, \"procost\": 100, \"prokind\": \"f\", \"prolang\": \"13619\", \"proname\": \"gridex_persist_utilts_consumption_v1\", \"prorows\": 0, \"pronargs\": 7, \"proowner\": \"16384\", \"proconfig\": [\"search_path=pg_catalog\"], \"proretset\": false, \"prosecdef\": true, \"prorettype\": \"3802\", \"prosqlbody\": null, \"prosupport\": \"-\", \"proargmodes\": null, \"proargnames\": [\"p_company_id\", \"p_environment\", \"p_source_message_id\", \"p_message_code\", \"p_raw_payload\", \"p_transactions\", \"p_actor_user_id\"], \"proargtypes\": [\"2950\", \"25\", \"2950\", \"25\", \"25\", \"3802\", \"2950\"], \"proisstrict\": false, \"proparallel\": \"u\", \"protrftypes\": null, \"provariadic\": \"0\", \"provolatile\": \"v\", \"proleakproof\": false, \"pronamespace\": \"2200\", \"proallargtypes\": null, \"proargdefaults\": \"({CONST :consttype 2950 :consttypmod -1 :constcollid 0 :constlen 16 :constbyval false :constisnull true :location -1 :constvalue <>})\", \"pronargdefaults\": 1}, \"namespace\": \"public\", \"body_sha256\": \"4e61080dc64e5aa748519bcbc563d0bf77a29e49b64a5f8a6e06aa218680a21f\"}",
         "measurement_phase": "AFTER_SUCCESSFUL_CANONICAL_REPLAY_BEFORE_GEN",
         "before_snapshot": "NOT_EMITTED_BY_FROZEN_MIGRATION"
       },
       "schema_definition_sha256": "4bc75fd84c537507ee46f38d799499e62fcdac966516b3cee705d2f157f66835",
-      "catalog_after_postgres_text_sha256": "7b6918b69b3a9ef34cba4552a02dcb79ad3013874c7ed9d83d86e65e795072b4",
+      "catalog_after_postgres_text_sha256": "df4479614664e52f0b1ddc542d9da48e043b81005c0b34a5c4d6dec81fa093cd",
       "latest_replay_migration_role": "ACTUAL_MAXIMUM; SC046_OLDER_INPUT_BOUND_SEPARATELY"
     },
     "sc046_v3_correction_catalog_preservation": {
@@ -213,7 +213,7 @@
           "sha256": "760b535d6b3e3d29cec87a4e19786b6713d47764e02d24a2c0cee848411e318b"
         },
         "actual_replay": {
-          "path": "/tmp/tmp.JFTzH1gWXI/20261014211648_ediel_sc046_bound_newer_metering_correction.sql",
+          "path": "/tmp/tmp.FEklKEcjNL/20261014211648_ediel_sc046_bound_newer_metering_correction.sql",
           "sha256": "760b535d6b3e3d29cec87a4e19786b6713d47764e02d24a2c0cee848411e318b"
         }
       },
@@ -222,7 +222,7 @@
       "catalog_after": {
         "catalog": {
           "metadata": {
-            "oid": "41358",
+            "oid": "41356",
             "proacl": [
               "postgres=X/postgres",
               "service_role=X/postgres"
@@ -277,28 +277,206 @@
           "return_type_name": "metering_values",
           "return_type_namespace": "public"
         },
-        "postgres_jsonb_text": "{\"metadata\": {\"oid\": \"41358\", \"proacl\": [\"postgres=X/postgres\", \"service_role=X/postgres\"], \"probin\": null, \"procost\": 100, \"prokind\": \"f\", \"prolang\": \"13619\", \"proname\": \"gridex_consume_utilts_metering_v1\", \"prorows\": 0, \"pronargs\": 6, \"proowner\": \"16384\", \"proconfig\": [\"search_path=pg_catalog, public, extensions\", \"TimeZone=UTC\"], \"proretset\": false, \"prosecdef\": true, \"prorettype\": \"18584\", \"prosqlbody\": null, \"prosupport\": \"-\", \"proargmodes\": null, \"proargnames\": [\"p_company_id\", \"p_source_message_id\", \"p_transaction_id\", \"p_observation_ordinal\", \"p_actor_id\", \"p_expected_contract\"], \"proargtypes\": [\"2950\", \"2950\", \"25\", \"23\", \"2950\", \"3802\"], \"proisstrict\": false, \"proparallel\": \"u\", \"protrftypes\": null, \"provariadic\": \"0\", \"provolatile\": \"v\", \"proleakproof\": false, \"pronamespace\": \"2200\", \"proallargtypes\": null, \"proargdefaults\": null, \"pronargdefaults\": 0}, \"namespace\": \"public\", \"body_sha256\": \"d0bafd57804b2fb416927807856590fba46d92fa7d322e1a9a2afb582d7af1ca\", \"return_type_name\": \"metering_values\", \"return_type_namespace\": \"public\"}",
+        "postgres_jsonb_text": "{\"metadata\": {\"oid\": \"41356\", \"proacl\": [\"postgres=X/postgres\", \"service_role=X/postgres\"], \"probin\": null, \"procost\": 100, \"prokind\": \"f\", \"prolang\": \"13619\", \"proname\": \"gridex_consume_utilts_metering_v1\", \"prorows\": 0, \"pronargs\": 6, \"proowner\": \"16384\", \"proconfig\": [\"search_path=pg_catalog, public, extensions\", \"TimeZone=UTC\"], \"proretset\": false, \"prosecdef\": true, \"prorettype\": \"18584\", \"prosqlbody\": null, \"prosupport\": \"-\", \"proargmodes\": null, \"proargnames\": [\"p_company_id\", \"p_source_message_id\", \"p_transaction_id\", \"p_observation_ordinal\", \"p_actor_id\", \"p_expected_contract\"], \"proargtypes\": [\"2950\", \"2950\", \"25\", \"23\", \"2950\", \"3802\"], \"proisstrict\": false, \"proparallel\": \"u\", \"protrftypes\": null, \"provariadic\": \"0\", \"provolatile\": \"v\", \"proleakproof\": false, \"pronamespace\": \"2200\", \"proallargtypes\": null, \"proargdefaults\": null, \"pronargdefaults\": 0}, \"namespace\": \"public\", \"body_sha256\": \"d0bafd57804b2fb416927807856590fba46d92fa7d322e1a9a2afb582d7af1ca\", \"return_type_name\": \"metering_values\", \"return_type_namespace\": \"public\"}",
         "measurement_phase": "AFTER_SUCCESSFUL_CANONICAL_REPLAY_BEFORE_GEN",
         "before_snapshot": "NOT_EMITTED_BY_FROZEN_MIGRATION"
       },
       "schema_definition_sha256": "3d26267b755e2eee344ded0f1b66bb51b5ee5eef572b08f6db7ae3edeff8c22e",
-      "catalog_after_postgres_text_sha256": "e76786f331fbcf8a2d85150ae04c34b3f21926546c412578b1f3b57c4dbbc797",
-      "latest_replay_migration_role": "ACTUAL_MAXIMUM;OLD_WRAPPER_AND_DQ_INPUTS_PINNED_SEPARATELY"
+      "catalog_after_postgres_text_sha256": "a960433be96c9768c375fd0362490ee439626b4e65fe24377d7a47417170b087",
+      "latest_replay_migration_role": "OLDER_PINNED_CONSUMER;ATOMIC_V5_IS_ACTUAL_MAXIMUM"
+    },
+    "sc046_v5_atomic_catalog_preservation": {
+      "target": "public.gridex_ingest_metering_value_atomic(jsonb)",
+      "migration": "supabase/migrations/20261015003736_ediel_sc046_newest_metering_duplicate_guard.sql",
+      "migration_sha256": "42743daf26ae39e2191f5b6762d49754bd09e33acb0266328e5761d16f9d52ff",
+      "migration_input_binding": {
+        "frozen_original": {
+          "path": "supabase/migrations/20261015003736_ediel_sc046_newest_metering_duplicate_guard.sql",
+          "mode": "100644",
+          "sha256": "42743daf26ae39e2191f5b6762d49754bd09e33acb0266328e5761d16f9d52ff"
+        },
+        "actual_replay": {
+          "path": "/tmp/tmp.FEklKEcjNL/20261015003736_ediel_sc046_newest_metering_duplicate_guard.sql",
+          "sha256": "42743daf26ae39e2191f5b6762d49754bd09e33acb0266328e5761d16f9d52ff"
+        }
+      },
+      "guard_execution": "SUCCESSFUL_EXACT_CANONICAL_REPLAY_OF_FULL_TARGET_METADATA_ALL_OTHER_PUBLIC_GRIDEX_FUNCTION_ROWS_INDEX_AND_INVERSE_GUARDS",
+      "before_snapshot": "NOT_EMITTED_BY_FROZEN_MIGRATION",
+      "catalog_after": {
+        "catalog": {
+          "metadata": {
+            "oid": "31347",
+            "proacl": [
+              "postgres=X/postgres",
+              "service_role=X/postgres"
+            ],
+            "probin": null,
+            "procost": 100,
+            "prokind": "f",
+            "prolang": "13619",
+            "proname": "gridex_ingest_metering_value_atomic",
+            "prorows": 0,
+            "pronargs": 1,
+            "proowner": "16384",
+            "proconfig": [
+              "search_path=public"
+            ],
+            "proretset": false,
+            "prosecdef": true,
+            "prorettype": "18584",
+            "prosqlbody": null,
+            "prosupport": "-",
+            "proargmodes": null,
+            "proargnames": [
+              "p_payload"
+            ],
+            "proargtypes": [
+              "3802"
+            ],
+            "proisstrict": false,
+            "proparallel": "u",
+            "protrftypes": null,
+            "provariadic": "0",
+            "provolatile": "v",
+            "proleakproof": false,
+            "pronamespace": "2200",
+            "proallargtypes": null,
+            "proargdefaults": null,
+            "pronargdefaults": 0
+          },
+          "namespace": "public",
+          "owner_role": "postgres",
+          "body_sha256": "d8422ac157884c54244bd295a73caf2c3263b92fffbbbec64cc3460fef1b7cf9",
+          "legacy_index": {
+            "pg_class": {
+              "oid": "20530",
+              "relam": "403",
+              "relacl": null,
+              "relkind": "i",
+              "relname": "ux_metering_values_company_ediel_duplicate_guard",
+              "reltype": "0",
+              "relnatts": 9,
+              "relowner": "16384",
+              "relpages": 1,
+              "relchecks": 0,
+              "reloftype": "0",
+              "reltuples": 0,
+              "relminmxid": "0",
+              "reloptions": null,
+              "relrewrite": "0",
+              "relfilenode": "20530",
+              "relhasindex": false,
+              "relhasrules": false,
+              "relisshared": false,
+              "relfrozenxid": "0",
+              "relnamespace": "2200",
+              "relpartbound": null,
+              "relreplident": "n",
+              "relallvisible": 0,
+              "reltablespace": "0",
+              "reltoastrelid": "0",
+              "relhassubclass": false,
+              "relhastriggers": false,
+              "relispartition": false,
+              "relispopulated": true,
+              "relpersistence": "p",
+              "relrowsecurity": false,
+              "relforcerowsecurity": false
+            },
+            "pg_index": {
+              "indkey": [
+                2,
+                5,
+                0,
+                0,
+                0,
+                12,
+                13,
+                0,
+                0
+              ],
+              "indpred": "{BOOLEXPR :boolop and :args ({NULLTEST :arg {VAR :varno 1 :varattno 2 :vartype 2950 :vartypmod -1 :varcollid 0 :varnullingrels (b) :varlevelsup 0 :varnosyn 1 :varattnosyn 2 :location -1} :nulltesttype 1 :argisrow false :location -1} {NULLTEST :arg {VAR :varno 1 :varattno 5 :vartype 2950 :vartypmod -1 :varcollid 0 :varnullingrels (b) :varlevelsup 0 :varnosyn 1 :varattnosyn 5 :location -1} :nulltesttype 1 :argisrow false :location -1} {NULLTEST :arg {VAR :varno 1 :varattno 12 :vartype 1184 :vartypmod -1 :varcollid 0 :varnullingrels (b) :varlevelsup 0 :varnosyn 1 :varattnosyn 12 :location -1} :nulltesttype 1 :argisrow false :location -1} {NULLTEST :arg {VAR :varno 1 :varattno 13 :vartype 1184 :vartypmod -1 :varcollid 0 :varnullingrels (b) :varlevelsup 0 :varnosyn 1 :varattnosyn 13 :location -1} :nulltesttype 1 :argisrow false :location -1}) :location -1}",
+              "indclass": [
+                "10065",
+                "10065",
+                "3126",
+                "3126",
+                "3126",
+                "3127",
+                "3127",
+                "3126",
+                "3126"
+              ],
+              "indexprs": "({COALESCEEXPR :coalescetype 25 :coalescecollid 100 :args ({VAR :varno 1 :varattno 33 :vartype 25 :vartypmod -1 :varcollid 100 :varnullingrels (b) :varlevelsup 0 :varnosyn 1 :varattnosyn 33 :location -1} {CONST :consttype 25 :consttypmod -1 :constcollid 100 :constlen -1 :constbyval false :constisnull false :location -1 :constvalue 4 [ 16 0 0 0 ]}) :location -1} {COALESCEEXPR :coalescetype 25 :coalescecollid 100 :args ({VAR :varno 1 :varattno 34 :vartype 25 :vartypmod -1 :varcollid 100 :varnullingrels (b) :varlevelsup 0 :varnosyn 1 :varattnosyn 34 :location -1} {CONST :consttype 25 :consttypmod -1 :constcollid 100 :constlen -1 :constbyval false :constisnull false :location -1 :constvalue 4 [ 16 0 0 0 ]}) :location -1} {COALESCEEXPR :coalescetype 25 :coalescecollid 100 :args ({VAR :varno 1 :varattno 35 :vartype 25 :vartypmod -1 :varcollid 100 :varnullingrels (b) :varlevelsup 0 :varnosyn 1 :varattnosyn 35 :location -1} {CONST :consttype 25 :consttypmod -1 :constcollid 100 :constlen -1 :constbyval false :constisnull false :location -1 :constvalue 4 [ 16 0 0 0 ]}) :location -1} {COALESCEEXPR :coalescetype 25 :coalescecollid 100 :args ({VAR :varno 1 :varattno 8 :vartype 25 :vartypmod -1 :varcollid 100 :varnullingrels (b) :varlevelsup 0 :varnosyn 1 :varattnosyn 8 :location -1} {CONST :consttype 25 :consttypmod -1 :constcollid 100 :constlen -1 :constbyval false :constisnull false :location -1 :constvalue 4 [ 16 0 0 0 ]}) :location -1} {COALESCEEXPR :coalescetype 25 :coalescecollid 100 :args ({VAR :varno 1 :varattno 30 :vartype 25 :vartypmod -1 :varcollid 100 :varnullingrels (b) :varlevelsup 0 :varnosyn 1 :varattnosyn 30 :location -1} {CONST :consttype 25 :consttypmod -1 :constcollid 100 :constlen -1 :constbyval false :constisnull false :location -1 :constvalue 4 [ 16 0 0 0 ]}) :location -1})",
+              "indnatts": 9,
+              "indrelid": "18582",
+              "indislive": true,
+              "indoption": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ],
+              "indexrelid": "20530",
+              "indisready": true,
+              "indisvalid": true,
+              "indisunique": true,
+              "indnkeyatts": 9,
+              "indcheckxmin": false,
+              "indcollation": [
+                "0",
+                "0",
+                "100",
+                "100",
+                "100",
+                "0",
+                "0",
+                "100",
+                "100"
+              ],
+              "indimmediate": true,
+              "indisprimary": false,
+              "indisclustered": false,
+              "indisexclusion": false,
+              "indisreplident": false,
+              "indnullsnotdistinct": false
+            },
+            "definition": "CREATE UNIQUE INDEX ux_metering_values_company_ediel_duplicate_guard ON public.metering_values USING btree (company_id, metering_point_id, COALESCE(product_code, ''::text), COALESCE(register_code, ''::text), COALESCE(meter_number, ''::text), period_start, period_end, COALESCE(reading_type, ''::text), COALESCE(source_transaction_id, ''::text)) WHERE ((company_id IS NOT NULL) AND (metering_point_id IS NOT NULL) AND (period_start IS NOT NULL) AND (period_end IS NOT NULL))"
+          },
+          "return_type_name": "metering_values",
+          "helper_body_sha256": {
+            "consumer": "d0bafd57804b2fb416927807856590fba46d92fa7d322e1a9a2afb582d7af1ca",
+            "postcheck": "e0dae3670484c486c544e67cb848f19335112c8034b820a6371e7ec0ae73e10a"
+          },
+          "return_type_namespace": "public"
+        },
+        "postgres_jsonb_text": "{\"metadata\": {\"oid\": \"31347\", \"proacl\": [\"postgres=X/postgres\", \"service_role=X/postgres\"], \"probin\": null, \"procost\": 100, \"prokind\": \"f\", \"prolang\": \"13619\", \"proname\": \"gridex_ingest_metering_value_atomic\", \"prorows\": 0, \"pronargs\": 1, \"proowner\": \"16384\", \"proconfig\": [\"search_path=public\"], \"proretset\": false, \"prosecdef\": true, \"prorettype\": \"18584\", \"prosqlbody\": null, \"prosupport\": \"-\", \"proargmodes\": null, \"proargnames\": [\"p_payload\"], \"proargtypes\": [\"3802\"], \"proisstrict\": false, \"proparallel\": \"u\", \"protrftypes\": null, \"provariadic\": \"0\", \"provolatile\": \"v\", \"proleakproof\": false, \"pronamespace\": \"2200\", \"proallargtypes\": null, \"proargdefaults\": null, \"pronargdefaults\": 0}, \"namespace\": \"public\", \"owner_role\": \"postgres\", \"body_sha256\": \"d8422ac157884c54244bd295a73caf2c3263b92fffbbbec64cc3460fef1b7cf9\", \"legacy_index\": {\"pg_class\": {\"oid\": \"20530\", \"relam\": \"403\", \"relacl\": null, \"relkind\": \"i\", \"relname\": \"ux_metering_values_company_ediel_duplicate_guard\", \"reltype\": \"0\", \"relnatts\": 9, \"relowner\": \"16384\", \"relpages\": 1, \"relchecks\": 0, \"reloftype\": \"0\", \"reltuples\": 0, \"relminmxid\": \"0\", \"reloptions\": null, \"relrewrite\": \"0\", \"relfilenode\": \"20530\", \"relhasindex\": false, \"relhasrules\": false, \"relisshared\": false, \"relfrozenxid\": \"0\", \"relnamespace\": \"2200\", \"relpartbound\": null, \"relreplident\": \"n\", \"relallvisible\": 0, \"reltablespace\": \"0\", \"reltoastrelid\": \"0\", \"relhassubclass\": false, \"relhastriggers\": false, \"relispartition\": false, \"relispopulated\": true, \"relpersistence\": \"p\", \"relrowsecurity\": false, \"relforcerowsecurity\": false}, \"pg_index\": {\"indkey\": [2, 5, 0, 0, 0, 12, 13, 0, 0], \"indpred\": \"{BOOLEXPR :boolop and :args ({NULLTEST :arg {VAR :varno 1 :varattno 2 :vartype 2950 :vartypmod -1 :varcollid 0 :varnullingrels (b) :varlevelsup 0 :varnosyn 1 :varattnosyn 2 :location -1} :nulltesttype 1 :argisrow false :location -1} {NULLTEST :arg {VAR :varno 1 :varattno 5 :vartype 2950 :vartypmod -1 :varcollid 0 :varnullingrels (b) :varlevelsup 0 :varnosyn 1 :varattnosyn 5 :location -1} :nulltesttype 1 :argisrow false :location -1} {NULLTEST :arg {VAR :varno 1 :varattno 12 :vartype 1184 :vartypmod -1 :varcollid 0 :varnullingrels (b) :varlevelsup 0 :varnosyn 1 :varattnosyn 12 :location -1} :nulltesttype 1 :argisrow false :location -1} {NULLTEST :arg {VAR :varno 1 :varattno 13 :vartype 1184 :vartypmod -1 :varcollid 0 :varnullingrels (b) :varlevelsup 0 :varnosyn 1 :varattnosyn 13 :location -1} :nulltesttype 1 :argisrow false :location -1}) :location -1}\", \"indclass\": [\"10065\", \"10065\", \"3126\", \"3126\", \"3126\", \"3127\", \"3127\", \"3126\", \"3126\"], \"indexprs\": \"({COALESCEEXPR :coalescetype 25 :coalescecollid 100 :args ({VAR :varno 1 :varattno 33 :vartype 25 :vartypmod -1 :varcollid 100 :varnullingrels (b) :varlevelsup 0 :varnosyn 1 :varattnosyn 33 :location -1} {CONST :consttype 25 :consttypmod -1 :constcollid 100 :constlen -1 :constbyval false :constisnull false :location -1 :constvalue 4 [ 16 0 0 0 ]}) :location -1} {COALESCEEXPR :coalescetype 25 :coalescecollid 100 :args ({VAR :varno 1 :varattno 34 :vartype 25 :vartypmod -1 :varcollid 100 :varnullingrels (b) :varlevelsup 0 :varnosyn 1 :varattnosyn 34 :location -1} {CONST :consttype 25 :consttypmod -1 :constcollid 100 :constlen -1 :constbyval false :constisnull false :location -1 :constvalue 4 [ 16 0 0 0 ]}) :location -1} {COALESCEEXPR :coalescetype 25 :coalescecollid 100 :args ({VAR :varno 1 :varattno 35 :vartype 25 :vartypmod -1 :varcollid 100 :varnullingrels (b) :varlevelsup 0 :varnosyn 1 :varattnosyn 35 :location -1} {CONST :consttype 25 :consttypmod -1 :constcollid 100 :constlen -1 :constbyval false :constisnull false :location -1 :constvalue 4 [ 16 0 0 0 ]}) :location -1} {COALESCEEXPR :coalescetype 25 :coalescecollid 100 :args ({VAR :varno 1 :varattno 8 :vartype 25 :vartypmod -1 :varcollid 100 :varnullingrels (b) :varlevelsup 0 :varnosyn 1 :varattnosyn 8 :location -1} {CONST :consttype 25 :consttypmod -1 :constcollid 100 :constlen -1 :constbyval false :constisnull false :location -1 :constvalue 4 [ 16 0 0 0 ]}) :location -1} {COALESCEEXPR :coalescetype 25 :coalescecollid 100 :args ({VAR :varno 1 :varattno 30 :vartype 25 :vartypmod -1 :varcollid 100 :varnullingrels (b) :varlevelsup 0 :varnosyn 1 :varattnosyn 30 :location -1} {CONST :consttype 25 :consttypmod -1 :constcollid 100 :constlen -1 :constbyval false :constisnull false :location -1 :constvalue 4 [ 16 0 0 0 ]}) :location -1})\", \"indnatts\": 9, \"indrelid\": \"18582\", \"indislive\": true, \"indoption\": [0, 0, 0, 0, 0, 0, 0, 0, 0], \"indexrelid\": \"20530\", \"indisready\": true, \"indisvalid\": true, \"indisunique\": true, \"indnkeyatts\": 9, \"indcheckxmin\": false, \"indcollation\": [\"0\", \"0\", \"100\", \"100\", \"100\", \"0\", \"0\", \"100\", \"100\"], \"indimmediate\": true, \"indisprimary\": false, \"indisclustered\": false, \"indisexclusion\": false, \"indisreplident\": false, \"indnullsnotdistinct\": false}, \"definition\": \"CREATE UNIQUE INDEX ux_metering_values_company_ediel_duplicate_guard ON public.metering_values USING btree (company_id, metering_point_id, COALESCE(product_code, ''::text), COALESCE(register_code, ''::text), COALESCE(meter_number, ''::text), period_start, period_end, COALESCE(reading_type, ''::text), COALESCE(source_transaction_id, ''::text)) WHERE ((company_id IS NOT NULL) AND (metering_point_id IS NOT NULL) AND (period_start IS NOT NULL) AND (period_end IS NOT NULL))\"}, \"return_type_name\": \"metering_values\", \"helper_body_sha256\": {\"consumer\": \"d0bafd57804b2fb416927807856590fba46d92fa7d322e1a9a2afb582d7af1ca\", \"postcheck\": \"e0dae3670484c486c544e67cb848f19335112c8034b820a6371e7ec0ae73e10a\"}, \"return_type_namespace\": \"public\"}",
+        "measurement_phase": "AFTER_SUCCESSFUL_CANONICAL_REPLAY_BEFORE_GEN",
+        "before_snapshot": "NOT_EMITTED_BY_FROZEN_MIGRATION"
+      },
+      "schema_definition_sha256": "7d83786d1070b91dd4e4d6a8bfabcb0bd299ca47b41caa93a60561cf7900599f",
+      "catalog_after_postgres_text_sha256": "8d5a87134f9f03ab86f182e653f16cf849da3d998da08212fe6ce14f15867bef",
+      "latest_replay_migration_role": "ACTUAL_MAXIMUM;OLD_WRAPPER_DQ_AND_CONSUMER_PINNED_SEPARATELY"
     },
     "source_epoch_attestation": {
-      "checkout_sha": "873b4159784ee452e979658bc4afcfe9b6bc0a86",
-      "checkout_tree": "32b78a9b67296ceb69c2664bd7d3634bd8b7748d",
-      "tracked_input_count": 10202,
+      "checkout_sha": "dc8448455e5f89f21258b9234291c61a05203c9b",
+      "checkout_tree": "13b3ebd61064d5081438bc9823bcad83d3214464",
+      "tracked_input_count": 10204,
       "custody": {
         "mode": "owned_primary",
         "agent": "codex-takeover-C2-GEN-joint-C3-20261013",
         "writer_receipt": "ce80cdd3fb4be418ea54daebb596d798889442cd",
-        "producer_receipt": "48fca8ad6fe8b328b27e39349f9ca94d3cece5ea",
-        "input_epoch": "gridex-C2-SC046-GEN-20261014-v3",
+        "producer_receipt": "644c96237b5a1f5ed3225a0e82b6a8a26c05901c",
+        "input_epoch": "gridex-C2-SC046-GEN-20261015-v5",
         "producer_checked": true,
         "refs_get_match": {
           "slot-C2": "ce80cdd3fb4be418ea54daebb596d798889442cd",
-          "producer-gen": "48fca8ad6fe8b328b27e39349f9ca94d3cece5ea",
+          "producer-gen": "644c96237b5a1f5ed3225a0e82b6a8a26c05901c",
           "slot-C1": "b971ef0cfa9724b02f4e0e3a985a4436e11a1f60",
           "file-c56a1232335a1031742fd8da7eb61d5888f4c715b4cf4a8531de000a34682157": "4caaff9f0c79b28f7e2b968b628f81f73e05ef12",
           "file-7fbbd51546b2efc2dd404cf57ab362c8436e8fa61382fce8ae0e1652c31a4523": "ee70dfb2fd1826dd7ccc7fbda767acae7af8e112",
@@ -311,6 +489,8 @@
           "file-9c35bd4fc2ca19106199fb6023aa451889f99dd9179a8da10cbf99159a2eb3e4": "a39624608a39dfbd4416b7f5181568c79972477b",
           "file-dfb34ca36754832144093fa8b0cb3020efc4e9b19ed439c3ecf82d0c1718d81e": "a39624608a39dfbd4416b7f5181568c79972477b",
           "file-30aae965f99e838ef24fbbddb8c752d107677a12cfa196bd1ab2291a958f77f3": "e30dad004faeae98e8411a278806cbfc357bfdf6",
+          "file-387f3b6a33cc5cf1aa05b639e6200d19c66ed77155b814c31206582648e830fe": "0f511778e71c4ef5cc889d2f5986eae3bc7720da",
+          "file-3778d7fd771effe3ac38499ec725bc180e02ee46e00560da12308c2d20f349b2": "0f511778e71c4ef5cc889d2f5986eae3bc7720da",
           "file-f37f50cfc47ba26832af7a72c33248f1b173a970e00e22d4a871ba4f17c63f07": "ef088907a6e85783b5d6205594bfd548ddf242de",
           "file-dccf88f654930e87029c320c6b38971e39f28bd83a870a46a7da8a46f3220173": "ce80cdd3fb4be418ea54daebb596d798889442cd",
           "file-85efd03823a44b539d9aa041b23068c0ea9a057a206cc6abf5135ed6361bcd13": "ce80cdd3fb4be418ea54daebb596d798889442cd",
@@ -319,19 +499,18 @@
           "file-23135fa07bae8f6f00bbf8f64c86b841a74dc3d874772a379cace1aaefe14c26": "ce80cdd3fb4be418ea54daebb596d798889442cd",
           "file-974dd7d4f7c53c4784a036b4d11b2463eaa09d8f6dbcfc30752124b00bc72059": "ce80cdd3fb4be418ea54daebb596d798889442cd"
         },
-        "prepared_source_head": "f773c3ac68c1ac8c76d28f165cdbf4a1f146dc2a",
-        "prepared_source_tree": "0460f9091ac637990043f10780f721d5be1e784a",
+        "prepared_source_head": "f31d9589495db2b64f557dd78f1d57c73ca32677",
+        "prepared_source_tree": "8294660e87a061dea87c908c04c1850c2ab0aec5",
         "producer_sources": {
           "actualMain": "6ce6d49eafa8ca24bcefbeec717dd55b63abad66",
           "actualMainTree": "fbe51ee680b61f5404b680a64c9e3e2d225dc282",
           "SC046ReceivingCarrier": {
-            "head": "26a4e5d18a342576c4c365f81b56e407cf509e1c",
-            "tree": "d2ecbcfd099665b0e024d4bf667a7936a456e2a7",
+            "head": "7952596246e4d4ac252ec70082bee360be702fb0",
+            "tree": "9c49a365956ef96ca265bd743424800691ffb217",
             "orderedParents": [
-              "2f5581c3f8ee5fd00469c03bcb7055618f348b9b",
-              "6ce6d49eafa8ca24bcefbeec717dd55b63abad66"
+              "c74287a67c508bd49145733a014533e38f5d547f"
             ],
-            "sourceNeutral": "b24cd34d3de0935d72fce7ae5e91f26f5051c208"
+            "sourceNeutral": "273ae9322948e492be62331443aceb43eb2b7275"
           },
           "immutableSourceInputs": {
             "lib/ediel/utilts/transactionPersistence.ts": {
@@ -376,11 +555,11 @@
             },
             "scripts/ediel-utilts-consumption-native.test.ts": {
               "mode": "100644",
-              "blob": "bf5342a9a9734d4274a398cbdf55296ecaeecfe4",
-              "sha256": "ad9551afb71cb27046c80a911d9f6dff71671fe60688462e1b318fa3351a1238",
+              "blob": "47a48a6353964e5f8f0bdb2cdf17cf2063a8476c",
+              "sha256": "6a9aec5193efd18b87f93e80c992549a1771c814dcfc570d716416f26bd64538",
               "receipt": "7b0cf6038a686e5c889700c300cc251efb72756b",
-              "source_head": "4c3e88e08cf40bbae3e5dee739dfe89b2a116148",
-              "source_tree": "260a986759d31b9cc9051c8ba7ae8b368d679484"
+              "source_head": "d7139dad0beeaf6787847eaebb0fc50b13a1a158",
+              "source_tree": "8bc072ef0a38db3fd61ba86f03b445ee3a69de69"
             },
             "scripts/ediel-utilts-err-gateway-native.test.ts": {
               "mode": "100644",
@@ -421,19 +600,35 @@
               "receipt": "e30dad004faeae98e8411a278806cbfc357bfdf6",
               "source_head": "7670274d8258fe4d54e080eb30e2383c2d37b973",
               "source_tree": "b049504fe46fe7edc1ef332a64e6d38bd117e580"
+            },
+            "supabase/migrations/20261015003736_ediel_sc046_newest_metering_duplicate_guard.sql": {
+              "mode": "100644",
+              "blob": "b2241aa691771a6a63f3278dc0dd476cb28f0b30",
+              "sha256": "42743daf26ae39e2191f5b6762d49754bd09e33acb0266328e5761d16f9d52ff",
+              "receipt": "0f511778e71c4ef5cc889d2f5986eae3bc7720da",
+              "source_head": "642d2f0adb9e4069f64656dbefd0bf1d2e7b4e6a",
+              "source_tree": "2da838ba35b69316be23cc8b297abffc521701d1"
+            },
+            "scripts/ediel-sc046-newest-duplicate-guard-sql-regression-root-20261015.mjs": {
+              "mode": "100644",
+              "blob": "098c1f1eb266510f2690624948bdfac2a4946141",
+              "sha256": "0951f753206b3824f15fb0ce1d30f28034adf866c9a9b5d903cce1028a30bd1a",
+              "receipt": "0f511778e71c4ef5cc889d2f5986eae3bc7720da",
+              "source_head": "642d2f0adb9e4069f64656dbefd0bf1d2e7b4e6a",
+              "source_tree": "2da838ba35b69316be23cc8b297abffc521701d1"
             }
           },
           "ownedCaptureWorkflowInput": {
             "path": ".github/workflows/staff-api-schema-capture.yml",
             "mode": "100644",
-            "blob": "b77de30d4da13378d58fb2a118d026ba1e4ae165",
-            "sha256": "b87035f9760caf90e1978f4edd2f3589a1a8dfe385c3cba944c80e623b0e569d",
+            "blob": "9b26d8828ff9a09729e2f7901c30ea32409a83bb",
+            "sha256": "c140e9a0d7a89f9b147a0881d45a1848ad25df2fbddfa4ceb30ae339047e526a",
             "receipt": "ce80cdd3fb4be418ea54daebb596d798889442cd",
-            "origin": "OWN_AUTHORED_SEPARATE_V3_ELEVEN_PLUS_UNIT_BINDING",
+            "origin": "OWN_AUTHORED_V5_THIRTEEN_PLUS_UNIT_PRIMARY_AND_FULL_CURRENT_PRODUCER",
             "basis": {
-              "carrier_head": "26a4e5d18a342576c4c365f81b56e407cf509e1c",
-              "preimage_blob": "78ce8a83bd09d813eee5fe68dbaef65a291a5a82",
-              "preimage_sha256": "df3c73d94db9d716af728fe3565afbf7d038b27b0b0bb17ec5facf3eb47e2396"
+              "carrier_head": "7952596246e4d4ac252ec70082bee360be702fb0",
+              "preimage_blob": "3c2f0a2cb7c72958b6c1aee7f947c2417258590a",
+              "preimage_sha256": "7ac6710a36c6d573e95d997068838780160618c752c69f4e48e1b9109b990797"
             }
           },
           "supplementalImmutableSourceInputs": {
@@ -450,7 +645,7 @@
       },
       "runner": {
         "docker_driver": "overlay2",
-        "free_bytes_before_replay": 89587806208,
+        "free_bytes_before_replay": 89587351552,
         "initial_container_ids": []
       },
       "atomic_canonical_input": {
@@ -465,7 +660,7 @@
       "docker_remaining_container_ids": [],
       "zero_all_containers": true,
       "sc046_source_input_binding": {
-        "source_receiving_neutral": "b24cd34d3de0935d72fce7ae5e91f26f5051c208",
+        "source_receiving_neutral": "273ae9322948e492be62331443aceb43eb2b7275",
         "source_inputs": {
           "lib/ediel/utilts/transactionPersistence.ts": {
             "mode": "100644",
@@ -509,11 +704,11 @@
           },
           "scripts/ediel-utilts-consumption-native.test.ts": {
             "mode": "100644",
-            "blob": "bf5342a9a9734d4274a398cbdf55296ecaeecfe4",
-            "sha256": "ad9551afb71cb27046c80a911d9f6dff71671fe60688462e1b318fa3351a1238",
+            "blob": "47a48a6353964e5f8f0bdb2cdf17cf2063a8476c",
+            "sha256": "6a9aec5193efd18b87f93e80c992549a1771c814dcfc570d716416f26bd64538",
             "receipt": "7b0cf6038a686e5c889700c300cc251efb72756b",
-            "source_head": "4c3e88e08cf40bbae3e5dee739dfe89b2a116148",
-            "source_tree": "260a986759d31b9cc9051c8ba7ae8b368d679484"
+            "source_head": "d7139dad0beeaf6787847eaebb0fc50b13a1a158",
+            "source_tree": "8bc072ef0a38db3fd61ba86f03b445ee3a69de69"
           },
           "scripts/ediel-utilts-err-gateway-native.test.ts": {
             "mode": "100644",
@@ -554,6 +749,22 @@
             "receipt": "e30dad004faeae98e8411a278806cbfc357bfdf6",
             "source_head": "7670274d8258fe4d54e080eb30e2383c2d37b973",
             "source_tree": "b049504fe46fe7edc1ef332a64e6d38bd117e580"
+          },
+          "supabase/migrations/20261015003736_ediel_sc046_newest_metering_duplicate_guard.sql": {
+            "mode": "100644",
+            "blob": "b2241aa691771a6a63f3278dc0dd476cb28f0b30",
+            "sha256": "42743daf26ae39e2191f5b6762d49754bd09e33acb0266328e5761d16f9d52ff",
+            "receipt": "0f511778e71c4ef5cc889d2f5986eae3bc7720da",
+            "source_head": "642d2f0adb9e4069f64656dbefd0bf1d2e7b4e6a",
+            "source_tree": "2da838ba35b69316be23cc8b297abffc521701d1"
+          },
+          "scripts/ediel-sc046-newest-duplicate-guard-sql-regression-root-20261015.mjs": {
+            "mode": "100644",
+            "blob": "098c1f1eb266510f2690624948bdfac2a4946141",
+            "sha256": "0951f753206b3824f15fb0ce1d30f28034adf866c9a9b5d903cce1028a30bd1a",
+            "receipt": "0f511778e71c4ef5cc889d2f5986eae3bc7720da",
+            "source_head": "642d2f0adb9e4069f64656dbefd0bf1d2e7b4e6a",
+            "source_tree": "2da838ba35b69316be23cc8b297abffc521701d1"
           }
         },
         "source_resources": {
@@ -568,38 +779,42 @@
           "file-4169f973073330d6fba420869fa9b6cfc224b7d31b4bfed050a84234028954a0": "a39624608a39dfbd4416b7f5181568c79972477b",
           "file-9c35bd4fc2ca19106199fb6023aa451889f99dd9179a8da10cbf99159a2eb3e4": "a39624608a39dfbd4416b7f5181568c79972477b",
           "file-dfb34ca36754832144093fa8b0cb3020efc4e9b19ed439c3ecf82d0c1718d81e": "a39624608a39dfbd4416b7f5181568c79972477b",
-          "file-30aae965f99e838ef24fbbddb8c752d107677a12cfa196bd1ab2291a958f77f3": "e30dad004faeae98e8411a278806cbfc357bfdf6"
+          "file-30aae965f99e838ef24fbbddb8c752d107677a12cfa196bd1ab2291a958f77f3": "e30dad004faeae98e8411a278806cbfc357bfdf6",
+          "file-387f3b6a33cc5cf1aa05b639e6200d19c66ed77155b814c31206582648e830fe": "0f511778e71c4ef5cc889d2f5986eae3bc7720da",
+          "file-3778d7fd771effe3ac38499ec725bc180e02ee46e00560da12308c2d20f349b2": "0f511778e71c4ef5cc889d2f5986eae3bc7720da"
         },
         "owned_workflow": {
           "path": ".github/workflows/staff-api-schema-capture.yml",
           "mode": "100644",
-          "blob": "b77de30d4da13378d58fb2a118d026ba1e4ae165",
-          "sha256": "b87035f9760caf90e1978f4edd2f3589a1a8dfe385c3cba944c80e623b0e569d",
+          "blob": "9b26d8828ff9a09729e2f7901c30ea32409a83bb",
+          "sha256": "c140e9a0d7a89f9b147a0881d45a1848ad25df2fbddfa4ceb30ae339047e526a",
           "receipt": "ce80cdd3fb4be418ea54daebb596d798889442cd",
-          "origin": "OWN_AUTHORED_SEPARATE_V3_ELEVEN_PLUS_UNIT_BINDING",
+          "origin": "OWN_AUTHORED_V5_THIRTEEN_PLUS_UNIT_PRIMARY_AND_FULL_CURRENT_PRODUCER",
           "basis": {
-            "carrier_head": "26a4e5d18a342576c4c365f81b56e407cf509e1c",
-            "preimage_blob": "78ce8a83bd09d813eee5fe68dbaef65a291a5a82",
-            "preimage_sha256": "df3c73d94db9d716af728fe3565afbf7d038b27b0b0bb17ec5facf3eb47e2396"
+            "carrier_head": "7952596246e4d4ac252ec70082bee360be702fb0",
+            "preimage_blob": "3c2f0a2cb7c72958b6c1aee7f947c2417258590a",
+            "preimage_sha256": "7ac6710a36c6d573e95d997068838780160618c752c69f4e48e1b9109b990797"
           }
         },
         "tracked_blob_ids": {
-          ".github/workflows/staff-api-schema-capture.yml": "b77de30d4da13378d58fb2a118d026ba1e4ae165",
+          ".github/workflows/staff-api-schema-capture.yml": "9b26d8828ff9a09729e2f7901c30ea32409a83bb",
           "__tests__/ediel-db01-native-source-basis.test.ts": "218d85081fab25684560cd09cefdefa596539a54",
           "__tests__/ediel-sc-046-persistence-return-state-cb17b044.test.ts": "0681ea590b9a6cf4f9b13004c672a6d822511bf2",
           "__tests__/ediel-sc046-bound-version-consumption-coord2-20261014.test.ts": "c95f76a4aa837e373ee96bd9dc72ffede6ceac79",
           "lib/ediel/utilts/consumptionSinks.ts": "14e29821de4d1f5fc7d82822158fbc76ba780bb4",
           "lib/ediel/utilts/transactionPersistence.ts": "fa06bb397aae317d232ada1754d532c8cfd634f7",
-          "scripts/ediel-utilts-consumption-native.test.ts": "bf5342a9a9734d4274a398cbdf55296ecaeecfe4",
+          "scripts/ediel-sc046-newest-duplicate-guard-sql-regression-root-20261015.mjs": "098c1f1eb266510f2690624948bdfac2a4946141",
+          "scripts/ediel-utilts-consumption-native.test.ts": "47a48a6353964e5f8f0bdb2cdf17cf2063a8476c",
           "scripts/ediel-utilts-err-gateway-native.test.ts": "30d8f26964acff1abf4f12a7bf438e014591d58d",
           "scripts/gridex-price-area-assurance-regression.cjs": "b72b962e1685215f0780a65ba342d01df604a327",
           "scripts/gridex-website-quote-integrity-regression.mjs": "86bf85ef582cbbed4d74f2612951e7d563364a38",
           "supabase/migrations/20261013141048_ediel_sc046_persistence_return_state_cb17b044.sql": "890a2e21d61b033b52d92f47e696f91afa06a443",
           "supabase/migrations/20261014153206_gridex_data_quality_active_status_search_path.sql": "c8609b4460c4564be8d854877056a10534542a63",
-          "supabase/migrations/20261014211648_ediel_sc046_bound_newer_metering_correction.sql": "969610a6092959e9643ef00b78cf05ae54d30a86"
+          "supabase/migrations/20261014211648_ediel_sc046_bound_newer_metering_correction.sql": "969610a6092959e9643ef00b78cf05ae54d30a86",
+          "supabase/migrations/20261015003736_ediel_sc046_newest_metering_duplicate_guard.sql": "b2241aa691771a6a63f3278dc0dd476cb28f0b30"
         },
-        "verification": "EXACT_ELEVEN_CANONICAL_INPUTS_PLUS_SUPPLEMENTAL_UNIT_CURRENT_RECEIPTS",
-        "canonical_input_count": 11,
+        "verification": "EXACT_THIRTEEN_CANONICAL_INPUTS_PLUS_SUPPLEMENTAL_UNIT_CURRENT_RECEIPTS",
+        "canonical_input_count": 13,
         "supplemental_source_inputs": {
           "__tests__/ediel-db01-native-source-basis.test.ts": {
             "mode": "100644",
@@ -629,6 +844,8 @@
           "file-9c35bd4fc2ca19106199fb6023aa451889f99dd9179a8da10cbf99159a2eb3e4": "a39624608a39dfbd4416b7f5181568c79972477b",
           "file-dfb34ca36754832144093fa8b0cb3020efc4e9b19ed439c3ecf82d0c1718d81e": "a39624608a39dfbd4416b7f5181568c79972477b",
           "file-30aae965f99e838ef24fbbddb8c752d107677a12cfa196bd1ab2291a958f77f3": "e30dad004faeae98e8411a278806cbfc357bfdf6",
+          "file-387f3b6a33cc5cf1aa05b639e6200d19c66ed77155b814c31206582648e830fe": "0f511778e71c4ef5cc889d2f5986eae3bc7720da",
+          "file-3778d7fd771effe3ac38499ec725bc180e02ee46e00560da12308c2d20f349b2": "0f511778e71c4ef5cc889d2f5986eae3bc7720da",
           "file-f37f50cfc47ba26832af7a72c33248f1b173a970e00e22d4a871ba4f17c63f07": "ef088907a6e85783b5d6205594bfd548ddf242de",
           "slot-C2": "ce80cdd3fb4be418ea54daebb596d798889442cd",
           "file-dccf88f654930e87029c320c6b38971e39f28bd83a870a46a7da8a46f3220173": "ce80cdd3fb4be418ea54daebb596d798889442cd",
@@ -640,15 +857,14 @@
         },
         "prior_v2_source_epoch": "gridex-C2-SC046-GEN-20261014-v2"
       },
-      "tracked_input_inventory": {
-        "original_receipt_sha256": "e73dc43ad636da46fdaa3969a929ee514c8e6cefd4c839e405423963d399dcb2",
-        "qualified_input_inventory_sha256": "ef4569f7dc4993a05cae20180505e3bc50f5082b32850d0942a05da0c25e1aad",
-        "qualified_actual_input_count": 10202,
-        "qualification": "ROOT_EXACT_SOURCE_ALL10202_MODES_HASHES;FULL_ORIGINAL_RETAINED_LOCAL_NOT_EXPORTED"
+      "full_tracked_input_map_storage": {
+        "state": "ROOT_LOCAL_ORIGINAL_ALREADY_COLLECTED_ONCE_NOT_EXPORTED",
+        "receipt_sha256": "4ff363d493dec3d382cf8c364f5d1097a9b848509b2246cc2ea825075559dd73",
+        "ROOT_qualification_sha256": "c1efd7613641075defcb37d664d1877b2790ab3cd32ddab1e039cc4114164dda"
       }
     }
   },
-  "composition_note": "GENv5 SOURCE preparation: new corrected atomicSQL requires NEW genuine PRIMARY/native/upgrade/currentCI. Original873/v3 capture5825 and c742 RAW3 remain dated input provenance, not currentv5 qualification.",
+  "composition_note": "Imported ROOT-qualified genuine F5 PRIMARY schema/fingerprint and faithful actual F5 receipt summary. Original873/v3 capture5825 preserved dated; original F5 input10204/GEN8/source15 remain original, updated metadata/RAW/CP differs. v5 PRIMARY-only runtime intentionally refuses import; separate bounded current CORROBO source/properproducer required.",
   "upstream_main_manifest": {
     "commit": "507e8bfa20606be31933eea1582066267ff2577a",
     "path": "scripts/supabase-types-manifest.json",
@@ -780,16 +996,18 @@
     "required_gate": "OPS hardening clean/upgrade replay and parity remain mandatory"
   },
   "capture_artifact": {
-    "workflow_run_id": 38652310163,
-    "workflow_run_attempt": 1,
-    "job_id": 116153786878,
-    "artifact_id": 11935561665,
-    "source_head": "873b4159784ee452e979658bc4afcfe9b6bc0a86",
-    "source_tree": "32b78a9b67296ceb69c2664bd7d3634bd8b7748d",
-    "artifact_zip_sha256": "34a91b87178edfec14582675382a01711c69c8445498d2499b4b5354ffb12730",
-    "capture_receipt_sha256": "e73dc43ad636da46fdaa3969a929ee514c8e6cefd4c839e405423963d399dcb2",
-    "purpose": "capture_only",
-    "original_storage": "ROOT_LOCAL_ONCE_COLLECTED_PRESERVED;NO_NEW_ORIGINAL_PUBLICATION"
+    "run": 38667819802,
+    "attempt": 1,
+    "job": 116203686210,
+    "artifact": 11942822701,
+    "archive_sha256": "658443a701aa2b0e1e4d9dc45cb11e66d52bb803594e8594a5c66c110917ffdf",
+    "source_head": "dc8448455e5f89f21258b9234291c61a05203c9b",
+    "source_tree": "13b3ebd61064d5081438bc9823bcad83d3214464",
+    "original_receipt_sha256": "4ff363d493dec3d382cf8c364f5d1097a9b848509b2246cc2ea825075559dd73",
+    "schema_sha256": "e19417ff12cc3b766592236eb04eb21ad983949af11408b3b495704fb84d658d",
+    "fingerprint_file_sha256": "be8958c9a27e65e1e0ea4c16a407f6def9501dc47ed3d3a8546bfc5e1f414e68",
+    "types_sha256": "8fbaf566c956192d9b64a2e504d764c7e8497b9261ac19a413479bb6c675f9f2",
+    "scope": "GENUINE_CURRENT_F5_PRIMARY_CAPTURE_ONLY_NOT_NATIVE_OR_CURRENT_IMPORT_SOURCE_CAPTURE"
   },
   "inherited_main7edef_current_prefix_verification": {
     "kind": "mandatory_actual_composed_head_proof",
@@ -93246,6 +93464,703 @@
     "expectedPhysicalSQL": 1175,
     "expectedPrimaryHistory": 911,
     "sourceDerivedAtomicDumpSHA256": "7d83786d1070b91dd4e4d6a8bfabcb0bd299ca47b41caa93a60561cf7900599f",
+    "whole": "SC046PARTIAL/+0"
+  },
+  "retained_before_F5_PRIMARY_RAW_import_active_fields": {
+    "generated_at": "2026-10-14T23:13:17.548053+00:00",
+    "composition_capture_pending": true,
+    "capture": {
+    "purpose": "capture_only",
+    "captured_at": "2026-10-14T23:13:17.548053+00:00",
+    "checkout_sha": "873b4159784ee452e979658bc4afcfe9b6bc0a86",
+    "checkout_tree": "32b78a9b67296ceb69c2664bd7d3634bd8b7748d",
+    "workflow_run_id": "38652310163",
+    "workflow_run_attempt": "1",
+    "supabase_cli_version": "2.101.0",
+    "postgres_server_version": "17.6",
+    "pg_dump_version": "pg_dump (PostgreSQL) 17.11 (Ubuntu 17.11-1.pgdg24.04+2)",
+    "latest_replay_migration": {
+      "name": "20261014211648_ediel_sc046_bound_newer_metering_correction.sql",
+      "sha256": "760b535d6b3e3d29cec87a4e19786b6713d47764e02d24a2c0cee848411e318b"
+    },
+    "schema_names": [
+      "gridex_ack_authority",
+      "gridex_ai_processing",
+      "gridex_ai_purpose_sources",
+      "gridex_bilateral_customer_sources",
+      "gridex_bilateral_prodat",
+      "gridex_billing_source",
+      "gridex_brp_changes",
+      "gridex_brp_declaration_intake",
+      "gridex_brp_sources",
+      "gridex_business_expectations",
+      "gridex_certificate_trust",
+      "gridex_contract_source_intake",
+      "gridex_correction_process",
+      "gridex_customer_life_events",
+      "gridex_customer_masterdata",
+      "gridex_ediel_ack_guide",
+      "gridex_ediel_ack_replay",
+      "gridex_ediel_business_incidents",
+      "gridex_ediel_common_header",
+      "gridex_ediel_duplicate_responses",
+      "gridex_ediel_exports",
+      "gridex_ediel_header_negative_birth",
+      "gridex_ediel_inbound_context",
+      "gridex_ediel_inbound_receptions",
+      "gridex_ediel_legacy_archive",
+      "gridex_ediel_outbound_owner",
+      "gridex_ediel_readiness",
+      "gridex_ediel_retention",
+      "gridex_ediel_services",
+      "gridex_ediel_source_rules",
+      "gridex_ediel_technical_ack",
+      "gridex_ediel_transport",
+      "gridex_ediel_wire_namespace",
+      "gridex_internal",
+      "gridex_manual_inbound",
+      "gridex_metering_method_changes",
+      "gridex_method_expectations",
+      "gridex_negative_fixtures",
+      "gridex_network_registry_sources",
+      "gridex_one_off_offer_binding",
+      "gridex_outbound_dispatch",
+      "gridex_private",
+      "gridex_prodat_object_batch",
+      "gridex_quality",
+      "gridex_received_err_response",
+      "gridex_received_reading_expectations",
+      "gridex_received_sources",
+      "gridex_registry_import",
+      "gridex_regulated_supply",
+      "gridex_requested_changes",
+      "gridex_requested_customer_changes",
+      "gridex_requested_method_watches",
+      "gridex_service_administration",
+      "gridex_service_permission",
+      "gridex_supply_rescission",
+      "gridex_switch_cancellations",
+      "gridex_transport_exception",
+      "gridex_unattributed_intake",
+      "gridex_utilts_binding",
+      "gridex_utilts_issuer",
+      "gridex_vh_history",
+      "public"
+    ],
+    "schema_fingerprint": "17891e183058f5fe74fe49fd8c126192a2fe396a99912e98120acc22d1d665e2",
+    "artifact_sha256": {
+      "database.types.ts": "8fbaf566c956192d9b64a2e504d764c7e8497b9261ac19a413479bb6c675f9f2",
+      "schema.sql": "a8feeeee0b63f4199cccc2e86738030bb9fb3536a951a16c41f8e8bbefbb8298",
+      "schema.fingerprint.json": "96710f5f5584d164e16f5bc675368d51450fa765844f31aee3d0a54c6db20599"
+    },
+    "input_sha256": {
+      "scripts/gridex-aud-003-clean-replay.sh": "f745017887d22ee19ebddf1ad40a926fdceadaa13a4dc29c20d6561c0f2b5f3a",
+      "scripts/migration-history-manifest.json": "44d6df5e951cfc1ff1b8c1ddfabb139aa8467d4ce704083582f470450a6d6554",
+      "scripts/migration-history-manifest.additions.json": "505193188987b57699f784eaace0cc57f135b792d7a2483c6a676168035d980b",
+      "scripts/migration-history-manifest.runtime.additions.json": "cb206ed9c2763a62a2287bdbae0297cb03f237ce77cd3ebb5192a07c160741b7",
+      "scripts/supabase-types-manifest.json": "f530ac63cd953d075a6dd7c35f9bff8b6987364ffd8c4aa1a6899be25599461f",
+      "scripts/apply-supabase-types-nullability-overrides.cjs": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
+      "scripts/gridex-schema-snapshot.cjs": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
+      "supabase/config.toml": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919"
+    },
+    "native_tests": "NOT_RUN",
+    "browser_tests": "NOT_RUN",
+    "type_schema_comparison": "NOT_RUN",
+    "upgrade_parity": "NOT_RUN",
+    "required_gate": "OPS hardening clean/upgrade replay and parity remain mandatory",
+    "sc046_dependency_migration": {
+      "migration": "supabase/migrations/20261014153206_gridex_data_quality_active_status_search_path.sql",
+      "migration_sha256": "4153067538523442f6d040e28127b76335a3d4aea07479280d5dcd64a1e6b2c9",
+      "frozen_original": {
+        "path": "supabase/migrations/20261014153206_gridex_data_quality_active_status_search_path.sql",
+        "mode": "100644",
+        "sha256": "4153067538523442f6d040e28127b76335a3d4aea07479280d5dcd64a1e6b2c9"
+      },
+      "actual_replay": {
+        "path": "/tmp/tmp.JFTzH1gWXI/20261014153206_gridex_data_quality_active_status_search_path.sql",
+        "sha256": "4153067538523442f6d040e28127b76335a3d4aea07479280d5dcd64a1e6b2c9"
+      },
+      "guard_execution": "SUCCESSFUL_EXACT_CANONICAL_REPLAY_OF_FROZEN_PROCONFIG_ONLY_PRESERVATION_GUARD",
+      "before_snapshot": "NOT_EMITTED_BY_FROZEN_MIGRATION"
+    },
+    "sc046_catalog_preservation": {
+      "target": "public.gridex_persist_utilts_consumption_v1(uuid,text,uuid,text,text,jsonb,uuid)",
+      "migration": "supabase/migrations/20261013141048_ediel_sc046_persistence_return_state_cb17b044.sql",
+      "migration_sha256": "84602eca793c51180d838679e8019001bc0e9f1d82e2e6e8861ca2d404de5b34",
+      "migration_input_binding": {
+        "frozen_original": {
+          "path": "supabase/migrations/20261013141048_ediel_sc046_persistence_return_state_cb17b044.sql",
+          "mode": "100644",
+          "sha256": "84602eca793c51180d838679e8019001bc0e9f1d82e2e6e8861ca2d404de5b34"
+        },
+        "actual_replay": {
+          "path": "/tmp/tmp.JFTzH1gWXI/20261013141048_ediel_sc046_persistence_return_state_cb17b044.sql",
+          "sha256": "84602eca793c51180d838679e8019001bc0e9f1d82e2e6e8861ca2d404de5b34"
+        }
+      },
+      "guard_execution": "SUCCESSFUL_EXACT_CANONICAL_REPLAY_OF_FROZEN_BEFORE_AFTER_METADATA_AND_BODY_GUARDS",
+      "before_snapshot": "NOT_EMITTED_BY_FROZEN_MIGRATION",
+      "catalog_after": {
+        "catalog": {
+          "metadata": {
+            "oid": "51973",
+            "proacl": [
+              "postgres=X/postgres",
+              "service_role=X/postgres"
+            ],
+            "probin": null,
+            "procost": 100,
+            "prokind": "f",
+            "prolang": "13619",
+            "proname": "gridex_persist_utilts_consumption_v1",
+            "prorows": 0,
+            "pronargs": 7,
+            "proowner": "16384",
+            "proconfig": [
+              "search_path=pg_catalog"
+            ],
+            "proretset": false,
+            "prosecdef": true,
+            "prorettype": "3802",
+            "prosqlbody": null,
+            "prosupport": "-",
+            "proargmodes": null,
+            "proargnames": [
+              "p_company_id",
+              "p_environment",
+              "p_source_message_id",
+              "p_message_code",
+              "p_raw_payload",
+              "p_transactions",
+              "p_actor_user_id"
+            ],
+            "proargtypes": [
+              "2950",
+              "25",
+              "2950",
+              "25",
+              "25",
+              "3802",
+              "2950"
+            ],
+            "proisstrict": false,
+            "proparallel": "u",
+            "protrftypes": null,
+            "provariadic": "0",
+            "provolatile": "v",
+            "proleakproof": false,
+            "pronamespace": "2200",
+            "proallargtypes": null,
+            "proargdefaults": "({CONST :consttype 2950 :consttypmod -1 :constcollid 0 :constlen 16 :constbyval false :constisnull true :location -1 :constvalue <>})",
+            "pronargdefaults": 1
+          },
+          "namespace": "public",
+          "body_sha256": "4e61080dc64e5aa748519bcbc563d0bf77a29e49b64a5f8a6e06aa218680a21f"
+        },
+        "postgres_jsonb_text": "{\"metadata\": {\"oid\": \"51973\", \"proacl\": [\"postgres=X/postgres\", \"service_role=X/postgres\"], \"probin\": null, \"procost\": 100, \"prokind\": \"f\", \"prolang\": \"13619\", \"proname\": \"gridex_persist_utilts_consumption_v1\", \"prorows\": 0, \"pronargs\": 7, \"proowner\": \"16384\", \"proconfig\": [\"search_path=pg_catalog\"], \"proretset\": false, \"prosecdef\": true, \"prorettype\": \"3802\", \"prosqlbody\": null, \"prosupport\": \"-\", \"proargmodes\": null, \"proargnames\": [\"p_company_id\", \"p_environment\", \"p_source_message_id\", \"p_message_code\", \"p_raw_payload\", \"p_transactions\", \"p_actor_user_id\"], \"proargtypes\": [\"2950\", \"25\", \"2950\", \"25\", \"25\", \"3802\", \"2950\"], \"proisstrict\": false, \"proparallel\": \"u\", \"protrftypes\": null, \"provariadic\": \"0\", \"provolatile\": \"v\", \"proleakproof\": false, \"pronamespace\": \"2200\", \"proallargtypes\": null, \"proargdefaults\": \"({CONST :consttype 2950 :consttypmod -1 :constcollid 0 :constlen 16 :constbyval false :constisnull true :location -1 :constvalue <>})\", \"pronargdefaults\": 1}, \"namespace\": \"public\", \"body_sha256\": \"4e61080dc64e5aa748519bcbc563d0bf77a29e49b64a5f8a6e06aa218680a21f\"}",
+        "measurement_phase": "AFTER_SUCCESSFUL_CANONICAL_REPLAY_BEFORE_GEN",
+        "before_snapshot": "NOT_EMITTED_BY_FROZEN_MIGRATION"
+      },
+      "schema_definition_sha256": "4bc75fd84c537507ee46f38d799499e62fcdac966516b3cee705d2f157f66835",
+      "catalog_after_postgres_text_sha256": "7b6918b69b3a9ef34cba4552a02dcb79ad3013874c7ed9d83d86e65e795072b4",
+      "latest_replay_migration_role": "ACTUAL_MAXIMUM; SC046_OLDER_INPUT_BOUND_SEPARATELY"
+    },
+    "sc046_v3_correction_catalog_preservation": {
+      "target": "public.gridex_consume_utilts_metering_v1(uuid,uuid,text,integer,uuid,jsonb)",
+      "migration": "supabase/migrations/20261014211648_ediel_sc046_bound_newer_metering_correction.sql",
+      "migration_sha256": "760b535d6b3e3d29cec87a4e19786b6713d47764e02d24a2c0cee848411e318b",
+      "migration_input_binding": {
+        "frozen_original": {
+          "path": "supabase/migrations/20261014211648_ediel_sc046_bound_newer_metering_correction.sql",
+          "mode": "100644",
+          "sha256": "760b535d6b3e3d29cec87a4e19786b6713d47764e02d24a2c0cee848411e318b"
+        },
+        "actual_replay": {
+          "path": "/tmp/tmp.JFTzH1gWXI/20261014211648_ediel_sc046_bound_newer_metering_correction.sql",
+          "sha256": "760b535d6b3e3d29cec87a4e19786b6713d47764e02d24a2c0cee848411e318b"
+        }
+      },
+      "guard_execution": "SUCCESSFUL_EXACT_CANONICAL_REPLAY_OF_FROZEN_TARGET_METADATA_AND_FIVE_FULL_HELPER_ROWS_AND_INVERSE_GUARDS",
+      "before_snapshot": "NOT_EMITTED_BY_FROZEN_MIGRATION",
+      "catalog_after": {
+        "catalog": {
+          "metadata": {
+            "oid": "41358",
+            "proacl": [
+              "postgres=X/postgres",
+              "service_role=X/postgres"
+            ],
+            "probin": null,
+            "procost": 100,
+            "prokind": "f",
+            "prolang": "13619",
+            "proname": "gridex_consume_utilts_metering_v1",
+            "prorows": 0,
+            "pronargs": 6,
+            "proowner": "16384",
+            "proconfig": [
+              "search_path=pg_catalog, public, extensions",
+              "TimeZone=UTC"
+            ],
+            "proretset": false,
+            "prosecdef": true,
+            "prorettype": "18584",
+            "prosqlbody": null,
+            "prosupport": "-",
+            "proargmodes": null,
+            "proargnames": [
+              "p_company_id",
+              "p_source_message_id",
+              "p_transaction_id",
+              "p_observation_ordinal",
+              "p_actor_id",
+              "p_expected_contract"
+            ],
+            "proargtypes": [
+              "2950",
+              "2950",
+              "25",
+              "23",
+              "2950",
+              "3802"
+            ],
+            "proisstrict": false,
+            "proparallel": "u",
+            "protrftypes": null,
+            "provariadic": "0",
+            "provolatile": "v",
+            "proleakproof": false,
+            "pronamespace": "2200",
+            "proallargtypes": null,
+            "proargdefaults": null,
+            "pronargdefaults": 0
+          },
+          "namespace": "public",
+          "body_sha256": "d0bafd57804b2fb416927807856590fba46d92fa7d322e1a9a2afb582d7af1ca",
+          "return_type_name": "metering_values",
+          "return_type_namespace": "public"
+        },
+        "postgres_jsonb_text": "{\"metadata\": {\"oid\": \"41358\", \"proacl\": [\"postgres=X/postgres\", \"service_role=X/postgres\"], \"probin\": null, \"procost\": 100, \"prokind\": \"f\", \"prolang\": \"13619\", \"proname\": \"gridex_consume_utilts_metering_v1\", \"prorows\": 0, \"pronargs\": 6, \"proowner\": \"16384\", \"proconfig\": [\"search_path=pg_catalog, public, extensions\", \"TimeZone=UTC\"], \"proretset\": false, \"prosecdef\": true, \"prorettype\": \"18584\", \"prosqlbody\": null, \"prosupport\": \"-\", \"proargmodes\": null, \"proargnames\": [\"p_company_id\", \"p_source_message_id\", \"p_transaction_id\", \"p_observation_ordinal\", \"p_actor_id\", \"p_expected_contract\"], \"proargtypes\": [\"2950\", \"2950\", \"25\", \"23\", \"2950\", \"3802\"], \"proisstrict\": false, \"proparallel\": \"u\", \"protrftypes\": null, \"provariadic\": \"0\", \"provolatile\": \"v\", \"proleakproof\": false, \"pronamespace\": \"2200\", \"proallargtypes\": null, \"proargdefaults\": null, \"pronargdefaults\": 0}, \"namespace\": \"public\", \"body_sha256\": \"d0bafd57804b2fb416927807856590fba46d92fa7d322e1a9a2afb582d7af1ca\", \"return_type_name\": \"metering_values\", \"return_type_namespace\": \"public\"}",
+        "measurement_phase": "AFTER_SUCCESSFUL_CANONICAL_REPLAY_BEFORE_GEN",
+        "before_snapshot": "NOT_EMITTED_BY_FROZEN_MIGRATION"
+      },
+      "schema_definition_sha256": "3d26267b755e2eee344ded0f1b66bb51b5ee5eef572b08f6db7ae3edeff8c22e",
+      "catalog_after_postgres_text_sha256": "e76786f331fbcf8a2d85150ae04c34b3f21926546c412578b1f3b57c4dbbc797",
+      "latest_replay_migration_role": "ACTUAL_MAXIMUM;OLD_WRAPPER_AND_DQ_INPUTS_PINNED_SEPARATELY"
+    },
+    "source_epoch_attestation": {
+      "checkout_sha": "873b4159784ee452e979658bc4afcfe9b6bc0a86",
+      "checkout_tree": "32b78a9b67296ceb69c2664bd7d3634bd8b7748d",
+      "tracked_input_count": 10202,
+      "custody": {
+        "mode": "owned_primary",
+        "agent": "codex-takeover-C2-GEN-joint-C3-20261013",
+        "writer_receipt": "ce80cdd3fb4be418ea54daebb596d798889442cd",
+        "producer_receipt": "48fca8ad6fe8b328b27e39349f9ca94d3cece5ea",
+        "input_epoch": "gridex-C2-SC046-GEN-20261014-v3",
+        "producer_checked": true,
+        "refs_get_match": {
+          "slot-C2": "ce80cdd3fb4be418ea54daebb596d798889442cd",
+          "producer-gen": "48fca8ad6fe8b328b27e39349f9ca94d3cece5ea",
+          "slot-C1": "b971ef0cfa9724b02f4e0e3a985a4436e11a1f60",
+          "file-c56a1232335a1031742fd8da7eb61d5888f4c715b4cf4a8531de000a34682157": "4caaff9f0c79b28f7e2b968b628f81f73e05ef12",
+          "file-7fbbd51546b2efc2dd404cf57ab362c8436e8fa61382fce8ae0e1652c31a4523": "ee70dfb2fd1826dd7ccc7fbda767acae7af8e112",
+          "file-9507d60388ae24281bdeba7909926663b63dea1618bdf8c8d7b7906fd149cb2a": "ee70dfb2fd1826dd7ccc7fbda767acae7af8e112",
+          "file-fef96a27a1909cbda90900334cc8632ddc438ab552daba6967cdbdc7beb42079": "3f0c88be9759dd2833ee6f98333df1367f497511",
+          "file-88a689d6f57449eb3fad91022c0c8c58692ff13057a63a6ec0a340ec399f1804": "3f0c88be9759dd2833ee6f98333df1367f497511",
+          "file-225c6a02b1c73b7fc8510f580badba5396a88270bb6c4c9def1d1ea07f9937f9": "7b0cf6038a686e5c889700c300cc251efb72756b",
+          "file-53f7e3ab1f3687eae389f0e4f807bd25d5665b80d996174f1c8456643c4fdfa6": "7b0cf6038a686e5c889700c300cc251efb72756b",
+          "file-4169f973073330d6fba420869fa9b6cfc224b7d31b4bfed050a84234028954a0": "a39624608a39dfbd4416b7f5181568c79972477b",
+          "file-9c35bd4fc2ca19106199fb6023aa451889f99dd9179a8da10cbf99159a2eb3e4": "a39624608a39dfbd4416b7f5181568c79972477b",
+          "file-dfb34ca36754832144093fa8b0cb3020efc4e9b19ed439c3ecf82d0c1718d81e": "a39624608a39dfbd4416b7f5181568c79972477b",
+          "file-30aae965f99e838ef24fbbddb8c752d107677a12cfa196bd1ab2291a958f77f3": "e30dad004faeae98e8411a278806cbfc357bfdf6",
+          "file-f37f50cfc47ba26832af7a72c33248f1b173a970e00e22d4a871ba4f17c63f07": "ef088907a6e85783b5d6205594bfd548ddf242de",
+          "file-dccf88f654930e87029c320c6b38971e39f28bd83a870a46a7da8a46f3220173": "ce80cdd3fb4be418ea54daebb596d798889442cd",
+          "file-85efd03823a44b539d9aa041b23068c0ea9a057a206cc6abf5135ed6361bcd13": "ce80cdd3fb4be418ea54daebb596d798889442cd",
+          "file-9cec942a6c250f213e72ec37d19ef1fd1ab89e62c7e00fa66671c1609e90dc00": "ce80cdd3fb4be418ea54daebb596d798889442cd",
+          "file-7a31dbe1282814c20e69fcf4923df49b30e4f0adc3dd166cb141544add6c9aec": "ce80cdd3fb4be418ea54daebb596d798889442cd",
+          "file-23135fa07bae8f6f00bbf8f64c86b841a74dc3d874772a379cace1aaefe14c26": "ce80cdd3fb4be418ea54daebb596d798889442cd",
+          "file-974dd7d4f7c53c4784a036b4d11b2463eaa09d8f6dbcfc30752124b00bc72059": "ce80cdd3fb4be418ea54daebb596d798889442cd"
+        },
+        "prepared_source_head": "f773c3ac68c1ac8c76d28f165cdbf4a1f146dc2a",
+        "prepared_source_tree": "0460f9091ac637990043f10780f721d5be1e784a",
+        "producer_sources": {
+          "actualMain": "6ce6d49eafa8ca24bcefbeec717dd55b63abad66",
+          "actualMainTree": "fbe51ee680b61f5404b680a64c9e3e2d225dc282",
+          "SC046ReceivingCarrier": {
+            "head": "26a4e5d18a342576c4c365f81b56e407cf509e1c",
+            "tree": "d2ecbcfd099665b0e024d4bf667a7936a456e2a7",
+            "orderedParents": [
+              "2f5581c3f8ee5fd00469c03bcb7055618f348b9b",
+              "6ce6d49eafa8ca24bcefbeec717dd55b63abad66"
+            ],
+            "sourceNeutral": "b24cd34d3de0935d72fce7ae5e91f26f5051c208"
+          },
+          "immutableSourceInputs": {
+            "lib/ediel/utilts/transactionPersistence.ts": {
+              "mode": "100644",
+              "blob": "fa06bb397aae317d232ada1754d532c8cfd634f7",
+              "sha256": "f107881077ab3c919a15ec63d0e6804bc97402949f235bdd4bea4ad826fbfece",
+              "receipt": "4caaff9f0c79b28f7e2b968b628f81f73e05ef12",
+              "source_head": "50cbf806d52f19c5e4fba6c911cb1ff9ef9a1d80",
+              "source_tree": "9cf682a99e1d61b08cabe07ad76604ff61f89fff"
+            },
+            "lib/ediel/utilts/consumptionSinks.ts": {
+              "mode": "100644",
+              "blob": "14e29821de4d1f5fc7d82822158fbc76ba780bb4",
+              "sha256": "cd975ef07a3e2d6d5859bcacf834dc7b2b8e1d69f3ecc112c33686480f55696a",
+              "receipt": "ee70dfb2fd1826dd7ccc7fbda767acae7af8e112",
+              "source_head": "50cbf806d52f19c5e4fba6c911cb1ff9ef9a1d80",
+              "source_tree": "9cf682a99e1d61b08cabe07ad76604ff61f89fff"
+            },
+            "__tests__/ediel-sc046-bound-version-consumption-coord2-20261014.test.ts": {
+              "mode": "100644",
+              "blob": "c95f76a4aa837e373ee96bd9dc72ffede6ceac79",
+              "sha256": "f85a6e53931e38dd135ef865c700650d1afe194e8d872c1032999d466caff0a3",
+              "receipt": "ee70dfb2fd1826dd7ccc7fbda767acae7af8e112",
+              "source_head": "50cbf806d52f19c5e4fba6c911cb1ff9ef9a1d80",
+              "source_tree": "9cf682a99e1d61b08cabe07ad76604ff61f89fff"
+            },
+            "supabase/migrations/20261013141048_ediel_sc046_persistence_return_state_cb17b044.sql": {
+              "mode": "100644",
+              "blob": "890a2e21d61b033b52d92f47e696f91afa06a443",
+              "sha256": "84602eca793c51180d838679e8019001bc0e9f1d82e2e6e8861ca2d404de5b34",
+              "receipt": "3f0c88be9759dd2833ee6f98333df1367f497511",
+              "source_head": "45bcaf034d614022216ec51e82ac179d3ed07811",
+              "source_tree": "a3f49d52b911de9739b9f493554b577f5269ae74"
+            },
+            "__tests__/ediel-sc-046-persistence-return-state-cb17b044.test.ts": {
+              "mode": "100644",
+              "blob": "0681ea590b9a6cf4f9b13004c672a6d822511bf2",
+              "sha256": "9c406df47e252153ebef0e2dcf56e0ee49bd6d20355146a8f99d2777a0dd1bd0",
+              "receipt": "3f0c88be9759dd2833ee6f98333df1367f497511",
+              "source_head": "45bcaf034d614022216ec51e82ac179d3ed07811",
+              "source_tree": "a3f49d52b911de9739b9f493554b577f5269ae74"
+            },
+            "scripts/ediel-utilts-consumption-native.test.ts": {
+              "mode": "100644",
+              "blob": "bf5342a9a9734d4274a398cbdf55296ecaeecfe4",
+              "sha256": "ad9551afb71cb27046c80a911d9f6dff71671fe60688462e1b318fa3351a1238",
+              "receipt": "7b0cf6038a686e5c889700c300cc251efb72756b",
+              "source_head": "4c3e88e08cf40bbae3e5dee739dfe89b2a116148",
+              "source_tree": "260a986759d31b9cc9051c8ba7ae8b368d679484"
+            },
+            "scripts/ediel-utilts-err-gateway-native.test.ts": {
+              "mode": "100644",
+              "blob": "30d8f26964acff1abf4f12a7bf438e014591d58d",
+              "sha256": "b1e78ef8b9aa696b1b0bbeebf7a6786010cff040dd2245041e9e8b259e86423b",
+              "receipt": "7b0cf6038a686e5c889700c300cc251efb72756b",
+              "source_head": "7670274d8258fe4d54e080eb30e2383c2d37b973",
+              "source_tree": "b049504fe46fe7edc1ef332a64e6d38bd117e580"
+            },
+            "scripts/gridex-website-quote-integrity-regression.mjs": {
+              "mode": "100644",
+              "blob": "86bf85ef582cbbed4d74f2612951e7d563364a38",
+              "sha256": "1aa9b3abd4168bf1db47d95543022d3a27b21ca822317b7c18e3be07966ace41",
+              "receipt": "a39624608a39dfbd4416b7f5181568c79972477b",
+              "source_head": "fad92bd92fcb49ffaa3cca5a2c8345b1ba6d798b",
+              "source_tree": "49249704c7bebfc5b3135555133304bec0127598"
+            },
+            "scripts/gridex-price-area-assurance-regression.cjs": {
+              "mode": "100755",
+              "blob": "b72b962e1685215f0780a65ba342d01df604a327",
+              "sha256": "4b3a45bcda0823d04114ba48608d5c57f957d47003c83cf77676c40532a5b62d",
+              "receipt": "a39624608a39dfbd4416b7f5181568c79972477b",
+              "source_head": "fad92bd92fcb49ffaa3cca5a2c8345b1ba6d798b",
+              "source_tree": "49249704c7bebfc5b3135555133304bec0127598"
+            },
+            "supabase/migrations/20261014153206_gridex_data_quality_active_status_search_path.sql": {
+              "mode": "100644",
+              "blob": "c8609b4460c4564be8d854877056a10534542a63",
+              "sha256": "4153067538523442f6d040e28127b76335a3d4aea07479280d5dcd64a1e6b2c9",
+              "receipt": "a39624608a39dfbd4416b7f5181568c79972477b",
+              "source_head": "fad92bd92fcb49ffaa3cca5a2c8345b1ba6d798b",
+              "source_tree": "49249704c7bebfc5b3135555133304bec0127598"
+            },
+            "supabase/migrations/20261014211648_ediel_sc046_bound_newer_metering_correction.sql": {
+              "mode": "100644",
+              "blob": "969610a6092959e9643ef00b78cf05ae54d30a86",
+              "sha256": "760b535d6b3e3d29cec87a4e19786b6713d47764e02d24a2c0cee848411e318b",
+              "receipt": "e30dad004faeae98e8411a278806cbfc357bfdf6",
+              "source_head": "7670274d8258fe4d54e080eb30e2383c2d37b973",
+              "source_tree": "b049504fe46fe7edc1ef332a64e6d38bd117e580"
+            }
+          },
+          "ownedCaptureWorkflowInput": {
+            "path": ".github/workflows/staff-api-schema-capture.yml",
+            "mode": "100644",
+            "blob": "b77de30d4da13378d58fb2a118d026ba1e4ae165",
+            "sha256": "b87035f9760caf90e1978f4edd2f3589a1a8dfe385c3cba944c80e623b0e569d",
+            "receipt": "ce80cdd3fb4be418ea54daebb596d798889442cd",
+            "origin": "OWN_AUTHORED_SEPARATE_V3_ELEVEN_PLUS_UNIT_BINDING",
+            "basis": {
+              "carrier_head": "26a4e5d18a342576c4c365f81b56e407cf509e1c",
+              "preimage_blob": "78ce8a83bd09d813eee5fe68dbaef65a291a5a82",
+              "preimage_sha256": "df3c73d94db9d716af728fe3565afbf7d038b27b0b0bb17ec5facf3eb47e2396"
+            }
+          },
+          "supplementalImmutableSourceInputs": {
+            "__tests__/ediel-db01-native-source-basis.test.ts": {
+              "mode": "100644",
+              "blob": "218d85081fab25684560cd09cefdefa596539a54",
+              "sha256": "6010913a95b9c0fdb771e53f18ce15a8899ee74b22a4ecf3e0b7ab68be472fe7",
+              "receipt": "ef088907a6e85783b5d6205594bfd548ddf242de",
+              "source_head": "057c9aea742209f85b66f5898f0b7272fe8acf71",
+              "source_tree": "68ae0c86ec27ac4a7d6a3cf00472a0cc1f0a52d8"
+            }
+          }
+        }
+      },
+      "runner": {
+        "docker_driver": "overlay2",
+        "free_bytes_before_replay": 89587806208,
+        "initial_container_ids": []
+      },
+      "atomic_canonical_input": {
+        "relation": "public.user_permission_overrides",
+        "row_count": 0,
+        "measurement_phase": "AFTER_CANONICAL_REPLAY_BEFORE_GEN",
+        "approved_scope": "COMPLETE_CANONICAL_EMPTY_ISOLATED_INPUT_ONLY",
+        "populated_partial_legacy_upgrade": "NOT_QUALIFIED_P2_OPEN"
+      },
+      "input_restoration": "EXACT_MODES_AND_BYTES",
+      "migration_directory_restoration": "EXACT",
+      "docker_remaining_container_ids": [],
+      "zero_all_containers": true,
+      "sc046_source_input_binding": {
+        "source_receiving_neutral": "b24cd34d3de0935d72fce7ae5e91f26f5051c208",
+        "source_inputs": {
+          "lib/ediel/utilts/transactionPersistence.ts": {
+            "mode": "100644",
+            "blob": "fa06bb397aae317d232ada1754d532c8cfd634f7",
+            "sha256": "f107881077ab3c919a15ec63d0e6804bc97402949f235bdd4bea4ad826fbfece",
+            "receipt": "4caaff9f0c79b28f7e2b968b628f81f73e05ef12",
+            "source_head": "50cbf806d52f19c5e4fba6c911cb1ff9ef9a1d80",
+            "source_tree": "9cf682a99e1d61b08cabe07ad76604ff61f89fff"
+          },
+          "lib/ediel/utilts/consumptionSinks.ts": {
+            "mode": "100644",
+            "blob": "14e29821de4d1f5fc7d82822158fbc76ba780bb4",
+            "sha256": "cd975ef07a3e2d6d5859bcacf834dc7b2b8e1d69f3ecc112c33686480f55696a",
+            "receipt": "ee70dfb2fd1826dd7ccc7fbda767acae7af8e112",
+            "source_head": "50cbf806d52f19c5e4fba6c911cb1ff9ef9a1d80",
+            "source_tree": "9cf682a99e1d61b08cabe07ad76604ff61f89fff"
+          },
+          "__tests__/ediel-sc046-bound-version-consumption-coord2-20261014.test.ts": {
+            "mode": "100644",
+            "blob": "c95f76a4aa837e373ee96bd9dc72ffede6ceac79",
+            "sha256": "f85a6e53931e38dd135ef865c700650d1afe194e8d872c1032999d466caff0a3",
+            "receipt": "ee70dfb2fd1826dd7ccc7fbda767acae7af8e112",
+            "source_head": "50cbf806d52f19c5e4fba6c911cb1ff9ef9a1d80",
+            "source_tree": "9cf682a99e1d61b08cabe07ad76604ff61f89fff"
+          },
+          "supabase/migrations/20261013141048_ediel_sc046_persistence_return_state_cb17b044.sql": {
+            "mode": "100644",
+            "blob": "890a2e21d61b033b52d92f47e696f91afa06a443",
+            "sha256": "84602eca793c51180d838679e8019001bc0e9f1d82e2e6e8861ca2d404de5b34",
+            "receipt": "3f0c88be9759dd2833ee6f98333df1367f497511",
+            "source_head": "45bcaf034d614022216ec51e82ac179d3ed07811",
+            "source_tree": "a3f49d52b911de9739b9f493554b577f5269ae74"
+          },
+          "__tests__/ediel-sc-046-persistence-return-state-cb17b044.test.ts": {
+            "mode": "100644",
+            "blob": "0681ea590b9a6cf4f9b13004c672a6d822511bf2",
+            "sha256": "9c406df47e252153ebef0e2dcf56e0ee49bd6d20355146a8f99d2777a0dd1bd0",
+            "receipt": "3f0c88be9759dd2833ee6f98333df1367f497511",
+            "source_head": "45bcaf034d614022216ec51e82ac179d3ed07811",
+            "source_tree": "a3f49d52b911de9739b9f493554b577f5269ae74"
+          },
+          "scripts/ediel-utilts-consumption-native.test.ts": {
+            "mode": "100644",
+            "blob": "bf5342a9a9734d4274a398cbdf55296ecaeecfe4",
+            "sha256": "ad9551afb71cb27046c80a911d9f6dff71671fe60688462e1b318fa3351a1238",
+            "receipt": "7b0cf6038a686e5c889700c300cc251efb72756b",
+            "source_head": "4c3e88e08cf40bbae3e5dee739dfe89b2a116148",
+            "source_tree": "260a986759d31b9cc9051c8ba7ae8b368d679484"
+          },
+          "scripts/ediel-utilts-err-gateway-native.test.ts": {
+            "mode": "100644",
+            "blob": "30d8f26964acff1abf4f12a7bf438e014591d58d",
+            "sha256": "b1e78ef8b9aa696b1b0bbeebf7a6786010cff040dd2245041e9e8b259e86423b",
+            "receipt": "7b0cf6038a686e5c889700c300cc251efb72756b",
+            "source_head": "7670274d8258fe4d54e080eb30e2383c2d37b973",
+            "source_tree": "b049504fe46fe7edc1ef332a64e6d38bd117e580"
+          },
+          "scripts/gridex-website-quote-integrity-regression.mjs": {
+            "mode": "100644",
+            "blob": "86bf85ef582cbbed4d74f2612951e7d563364a38",
+            "sha256": "1aa9b3abd4168bf1db47d95543022d3a27b21ca822317b7c18e3be07966ace41",
+            "receipt": "a39624608a39dfbd4416b7f5181568c79972477b",
+            "source_head": "fad92bd92fcb49ffaa3cca5a2c8345b1ba6d798b",
+            "source_tree": "49249704c7bebfc5b3135555133304bec0127598"
+          },
+          "scripts/gridex-price-area-assurance-regression.cjs": {
+            "mode": "100755",
+            "blob": "b72b962e1685215f0780a65ba342d01df604a327",
+            "sha256": "4b3a45bcda0823d04114ba48608d5c57f957d47003c83cf77676c40532a5b62d",
+            "receipt": "a39624608a39dfbd4416b7f5181568c79972477b",
+            "source_head": "fad92bd92fcb49ffaa3cca5a2c8345b1ba6d798b",
+            "source_tree": "49249704c7bebfc5b3135555133304bec0127598"
+          },
+          "supabase/migrations/20261014153206_gridex_data_quality_active_status_search_path.sql": {
+            "mode": "100644",
+            "blob": "c8609b4460c4564be8d854877056a10534542a63",
+            "sha256": "4153067538523442f6d040e28127b76335a3d4aea07479280d5dcd64a1e6b2c9",
+            "receipt": "a39624608a39dfbd4416b7f5181568c79972477b",
+            "source_head": "fad92bd92fcb49ffaa3cca5a2c8345b1ba6d798b",
+            "source_tree": "49249704c7bebfc5b3135555133304bec0127598"
+          },
+          "supabase/migrations/20261014211648_ediel_sc046_bound_newer_metering_correction.sql": {
+            "mode": "100644",
+            "blob": "969610a6092959e9643ef00b78cf05ae54d30a86",
+            "sha256": "760b535d6b3e3d29cec87a4e19786b6713d47764e02d24a2c0cee848411e318b",
+            "receipt": "e30dad004faeae98e8411a278806cbfc357bfdf6",
+            "source_head": "7670274d8258fe4d54e080eb30e2383c2d37b973",
+            "source_tree": "b049504fe46fe7edc1ef332a64e6d38bd117e580"
+          }
+        },
+        "source_resources": {
+          "slot-C1": "b971ef0cfa9724b02f4e0e3a985a4436e11a1f60",
+          "file-c56a1232335a1031742fd8da7eb61d5888f4c715b4cf4a8531de000a34682157": "4caaff9f0c79b28f7e2b968b628f81f73e05ef12",
+          "file-7fbbd51546b2efc2dd404cf57ab362c8436e8fa61382fce8ae0e1652c31a4523": "ee70dfb2fd1826dd7ccc7fbda767acae7af8e112",
+          "file-9507d60388ae24281bdeba7909926663b63dea1618bdf8c8d7b7906fd149cb2a": "ee70dfb2fd1826dd7ccc7fbda767acae7af8e112",
+          "file-fef96a27a1909cbda90900334cc8632ddc438ab552daba6967cdbdc7beb42079": "3f0c88be9759dd2833ee6f98333df1367f497511",
+          "file-88a689d6f57449eb3fad91022c0c8c58692ff13057a63a6ec0a340ec399f1804": "3f0c88be9759dd2833ee6f98333df1367f497511",
+          "file-225c6a02b1c73b7fc8510f580badba5396a88270bb6c4c9def1d1ea07f9937f9": "7b0cf6038a686e5c889700c300cc251efb72756b",
+          "file-53f7e3ab1f3687eae389f0e4f807bd25d5665b80d996174f1c8456643c4fdfa6": "7b0cf6038a686e5c889700c300cc251efb72756b",
+          "file-4169f973073330d6fba420869fa9b6cfc224b7d31b4bfed050a84234028954a0": "a39624608a39dfbd4416b7f5181568c79972477b",
+          "file-9c35bd4fc2ca19106199fb6023aa451889f99dd9179a8da10cbf99159a2eb3e4": "a39624608a39dfbd4416b7f5181568c79972477b",
+          "file-dfb34ca36754832144093fa8b0cb3020efc4e9b19ed439c3ecf82d0c1718d81e": "a39624608a39dfbd4416b7f5181568c79972477b",
+          "file-30aae965f99e838ef24fbbddb8c752d107677a12cfa196bd1ab2291a958f77f3": "e30dad004faeae98e8411a278806cbfc357bfdf6"
+        },
+        "owned_workflow": {
+          "path": ".github/workflows/staff-api-schema-capture.yml",
+          "mode": "100644",
+          "blob": "b77de30d4da13378d58fb2a118d026ba1e4ae165",
+          "sha256": "b87035f9760caf90e1978f4edd2f3589a1a8dfe385c3cba944c80e623b0e569d",
+          "receipt": "ce80cdd3fb4be418ea54daebb596d798889442cd",
+          "origin": "OWN_AUTHORED_SEPARATE_V3_ELEVEN_PLUS_UNIT_BINDING",
+          "basis": {
+            "carrier_head": "26a4e5d18a342576c4c365f81b56e407cf509e1c",
+            "preimage_blob": "78ce8a83bd09d813eee5fe68dbaef65a291a5a82",
+            "preimage_sha256": "df3c73d94db9d716af728fe3565afbf7d038b27b0b0bb17ec5facf3eb47e2396"
+          }
+        },
+        "tracked_blob_ids": {
+          ".github/workflows/staff-api-schema-capture.yml": "b77de30d4da13378d58fb2a118d026ba1e4ae165",
+          "__tests__/ediel-db01-native-source-basis.test.ts": "218d85081fab25684560cd09cefdefa596539a54",
+          "__tests__/ediel-sc-046-persistence-return-state-cb17b044.test.ts": "0681ea590b9a6cf4f9b13004c672a6d822511bf2",
+          "__tests__/ediel-sc046-bound-version-consumption-coord2-20261014.test.ts": "c95f76a4aa837e373ee96bd9dc72ffede6ceac79",
+          "lib/ediel/utilts/consumptionSinks.ts": "14e29821de4d1f5fc7d82822158fbc76ba780bb4",
+          "lib/ediel/utilts/transactionPersistence.ts": "fa06bb397aae317d232ada1754d532c8cfd634f7",
+          "scripts/ediel-utilts-consumption-native.test.ts": "bf5342a9a9734d4274a398cbdf55296ecaeecfe4",
+          "scripts/ediel-utilts-err-gateway-native.test.ts": "30d8f26964acff1abf4f12a7bf438e014591d58d",
+          "scripts/gridex-price-area-assurance-regression.cjs": "b72b962e1685215f0780a65ba342d01df604a327",
+          "scripts/gridex-website-quote-integrity-regression.mjs": "86bf85ef582cbbed4d74f2612951e7d563364a38",
+          "supabase/migrations/20261013141048_ediel_sc046_persistence_return_state_cb17b044.sql": "890a2e21d61b033b52d92f47e696f91afa06a443",
+          "supabase/migrations/20261014153206_gridex_data_quality_active_status_search_path.sql": "c8609b4460c4564be8d854877056a10534542a63",
+          "supabase/migrations/20261014211648_ediel_sc046_bound_newer_metering_correction.sql": "969610a6092959e9643ef00b78cf05ae54d30a86"
+        },
+        "verification": "EXACT_ELEVEN_CANONICAL_INPUTS_PLUS_SUPPLEMENTAL_UNIT_CURRENT_RECEIPTS",
+        "canonical_input_count": 11,
+        "supplemental_source_inputs": {
+          "__tests__/ediel-db01-native-source-basis.test.ts": {
+            "mode": "100644",
+            "blob": "218d85081fab25684560cd09cefdefa596539a54",
+            "sha256": "6010913a95b9c0fdb771e53f18ce15a8899ee74b22a4ecf3e0b7ab68be472fe7",
+            "receipt": "ef088907a6e85783b5d6205594bfd548ddf242de",
+            "source_head": "057c9aea742209f85b66f5898f0b7272fe8acf71",
+            "source_tree": "68ae0c86ec27ac4a7d6a3cf00472a0cc1f0a52d8"
+          }
+        },
+        "supplemental_source_resources": {
+          "file-f37f50cfc47ba26832af7a72c33248f1b173a970e00e22d4a871ba4f17c63f07": "ef088907a6e85783b5d6205594bfd548ddf242de"
+        },
+        "supplemental_receiving_neutral": "8b087530be629e6bfcb6d976c4cd6486764470dc",
+        "supplemental_current_ref_get_match": "ef088907a6e85783b5d6205594bfd548ddf242de",
+        "current_receipts_checked": true,
+        "current_source_refs_get_match": {
+          "slot-C1": "b971ef0cfa9724b02f4e0e3a985a4436e11a1f60",
+          "file-c56a1232335a1031742fd8da7eb61d5888f4c715b4cf4a8531de000a34682157": "4caaff9f0c79b28f7e2b968b628f81f73e05ef12",
+          "file-7fbbd51546b2efc2dd404cf57ab362c8436e8fa61382fce8ae0e1652c31a4523": "ee70dfb2fd1826dd7ccc7fbda767acae7af8e112",
+          "file-9507d60388ae24281bdeba7909926663b63dea1618bdf8c8d7b7906fd149cb2a": "ee70dfb2fd1826dd7ccc7fbda767acae7af8e112",
+          "file-fef96a27a1909cbda90900334cc8632ddc438ab552daba6967cdbdc7beb42079": "3f0c88be9759dd2833ee6f98333df1367f497511",
+          "file-88a689d6f57449eb3fad91022c0c8c58692ff13057a63a6ec0a340ec399f1804": "3f0c88be9759dd2833ee6f98333df1367f497511",
+          "file-225c6a02b1c73b7fc8510f580badba5396a88270bb6c4c9def1d1ea07f9937f9": "7b0cf6038a686e5c889700c300cc251efb72756b",
+          "file-53f7e3ab1f3687eae389f0e4f807bd25d5665b80d996174f1c8456643c4fdfa6": "7b0cf6038a686e5c889700c300cc251efb72756b",
+          "file-4169f973073330d6fba420869fa9b6cfc224b7d31b4bfed050a84234028954a0": "a39624608a39dfbd4416b7f5181568c79972477b",
+          "file-9c35bd4fc2ca19106199fb6023aa451889f99dd9179a8da10cbf99159a2eb3e4": "a39624608a39dfbd4416b7f5181568c79972477b",
+          "file-dfb34ca36754832144093fa8b0cb3020efc4e9b19ed439c3ecf82d0c1718d81e": "a39624608a39dfbd4416b7f5181568c79972477b",
+          "file-30aae965f99e838ef24fbbddb8c752d107677a12cfa196bd1ab2291a958f77f3": "e30dad004faeae98e8411a278806cbfc357bfdf6",
+          "file-f37f50cfc47ba26832af7a72c33248f1b173a970e00e22d4a871ba4f17c63f07": "ef088907a6e85783b5d6205594bfd548ddf242de",
+          "slot-C2": "ce80cdd3fb4be418ea54daebb596d798889442cd",
+          "file-dccf88f654930e87029c320c6b38971e39f28bd83a870a46a7da8a46f3220173": "ce80cdd3fb4be418ea54daebb596d798889442cd",
+          "file-85efd03823a44b539d9aa041b23068c0ea9a057a206cc6abf5135ed6361bcd13": "ce80cdd3fb4be418ea54daebb596d798889442cd",
+          "file-9cec942a6c250f213e72ec37d19ef1fd1ab89e62c7e00fa66671c1609e90dc00": "ce80cdd3fb4be418ea54daebb596d798889442cd",
+          "file-7a31dbe1282814c20e69fcf4923df49b30e4f0adc3dd166cb141544add6c9aec": "ce80cdd3fb4be418ea54daebb596d798889442cd",
+          "file-23135fa07bae8f6f00bbf8f64c86b841a74dc3d874772a379cace1aaefe14c26": "ce80cdd3fb4be418ea54daebb596d798889442cd",
+          "file-974dd7d4f7c53c4784a036b4d11b2463eaa09d8f6dbcfc30752124b00bc72059": "ce80cdd3fb4be418ea54daebb596d798889442cd"
+        },
+        "prior_v2_source_epoch": "gridex-C2-SC046-GEN-20261014-v2"
+      },
+      "tracked_input_inventory": {
+        "original_receipt_sha256": "e73dc43ad636da46fdaa3969a929ee514c8e6cefd4c839e405423963d399dcb2",
+        "qualified_input_inventory_sha256": "ef4569f7dc4993a05cae20180505e3bc50f5082b32850d0942a05da0c25e1aad",
+        "qualified_actual_input_count": 10202,
+        "qualification": "ROOT_EXACT_SOURCE_ALL10202_MODES_HASHES;FULL_ORIGINAL_RETAINED_LOCAL_NOT_EXPORTED"
+      }
+    }
+  },
+    "latest_migration_schema_effect": "PENDING_NEW_GENUINE_PRIMARY: reviewed corrected atomic a580-to-d842 changes two missing INSERT mappings plus exact historicalNULL/empty same-reference physical duplicate preflight; all other SQL/source/RAW3 retain original dated origin. Old ABI equality remains expected, not a new capture.",
+    "composition_note": "GENv5 SOURCE preparation: new corrected atomicSQL requires NEW genuine PRIMARY/native/upgrade/currentCI. Original873/v3 capture5825 and c742 RAW3 remain dated input provenance, not currentv5 qualification.",
+    "capture_artifact": {
+    "workflow_run_id": 38652310163,
+    "workflow_run_attempt": 1,
+    "job_id": 116153786878,
+    "artifact_id": 11935561665,
+    "source_head": "873b4159784ee452e979658bc4afcfe9b6bc0a86",
+    "source_tree": "32b78a9b67296ceb69c2664bd7d3634bd8b7748d",
+    "artifact_zip_sha256": "34a91b87178edfec14582675382a01711c69c8445498d2499b4b5354ffb12730",
+    "capture_receipt_sha256": "e73dc43ad636da46fdaa3969a929ee514c8e6cefd4c839e405423963d399dcb2",
+    "purpose": "capture_only",
+    "original_storage": "ROOT_LOCAL_ONCE_COLLECTED_PRESERVED;NO_NEW_ORIGINAL_PUBLICATION"
+  }
+  },
+  "sc046_v5_genuine_primary_import": {
+    "source_head": "dc8448455e5f89f21258b9234291c61a05203c9b",
+    "source_tree": "13b3ebd61064d5081438bc9823bcad83d3214464",
+    "producer": "644c96237b5a1f5ed3225a0e82b6a8a26c05901c",
+    "own_receiving_ACK": 6182877236,
+    "distinct_local_import_GO": 6182892963,
+    "ROOT_qualification_sha256": "c1efd7613641075defcb37d664d1877b2790ab3cd32ddab1e039cc4114164dda",
+    "original_artifact": 11942822701,
+    "original_receipt_sha256": "4ff363d493dec3d382cf8c364f5d1097a9b848509b2246cc2ea825075559dd73",
+    "full_original_storage": "ROOT_LOCAL_ALREADY_COLLECTED_ONCE;FULL_RECEIPT_ZIP_LOGS_NOT_EXPORTED",
+    "original_profile_state": "ALL_PENDING_V2_V3_V4_V5_PROFILE_VALUE_BYTES_UNCHANGED_DATED_SOURCE;NO_V6_GUARD_AUTHORITY",
+    "original_input_counts": {
+      "tracked": 10204,
+      "canonical": 13,
+      "UNIT": 1,
+      "ownedWF": 1,
+      "source_refs": 22,
+      "custody_refs": 23,
+      "GEN": 8,
+      "SQL": 1175,
+      "primary_history": 911
+    },
+    "raw_copy_members": {
+      "schema.sql": "e19417ff12cc3b766592236eb04eb21ad983949af11408b3b495704fb84d658d",
+      "schema.fingerprint.json": "be8958c9a27e65e1e0ea4c16a407f6def9501dc47ed3d3a8546bfc5e1f414e68",
+      "database.types.ts": "8fbaf566c956192d9b64a2e504d764c7e8497b9261ac19a413479bb6c675f9f2"
+    },
+    "actual_atomic_body_sha256": "d8422ac157884c54244bd295a73caf2c3263b92fffbbbec64cc3460fef1b7cf9",
+    "actual_atomic_dump_definition_sha256": "7d83786d1070b91dd4e4d6a8bfabcb0bd299ca47b41caa93a60561cf7900599f",
+    "actual_schema_fingerprint": "a218ffd94daafeaa41cf2678f1a42e5ac31d20c1b3ee49fe631bf9bfe4e11100",
+    "before_snapshot": "NOT_EMITTED_BY_FROZEN_MIGRATION",
+    "native": "NOT_RUN_BY_CAPTURE",
+    "upgrade": "NOT_RUN_BY_CAPTURE",
+    "current_cohort": "ROOT_COLLECTOR_QUALIFIES_SEPARATELY;NOT_GREEN_OR_WHOLE_CREDIT",
+    "post_import_input_equivalence": "NOT_ALL_CAPTURED_F5_TRACKED_OR_GEN8_BYTES_EQUAL;UNCHANGED_SQL_CODEGEN_SEMANTICS_AND_ABI_APPLICABILITY_ONLY;NEW_CURRENT_CORROBO_REQUIRED",
     "whole": "SC046PARTIAL/+0"
   }
 }
