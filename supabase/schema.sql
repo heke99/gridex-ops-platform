@@ -98913,6 +98913,140 @@ CREATE FUNCTION public.normalize_phone(p_phone text) RETURNS text
 $$;
 
 --
+-- Name: ops_migration_governance_projection_v1(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.ops_migration_governance_projection_v1() RETURNS TABLE(manifest_file_count bigint, manifest_version_count bigint, verified_file_count bigint, effect_verified_file_count bigint, invalid_checksum_count bigint, schema_effect_file_count bigint, last_verified_at timestamp with time zone, ledger_version_count bigint, latest_ledger_version text, missing_in_ledger bigint, unmapped_ledger_versions bigint, duplicate_ledger_mappings bigint, is_ready boolean, blockers text[])
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+    AS $_$
+with manifest as (
+  select count(*)::bigint manifest_file_count,
+         count(distinct version)::bigint manifest_version_count,
+         count(*) filter(where verified_at is not null)::bigint verified_file_count,
+         count(*) filter(where effect_verified)::bigint effect_verified_file_count,
+         count(*) filter(where checksum is null or checksum !~ '^[a-f0-9]{64}$')::bigint invalid_checksum_count,
+         count(*) filter(where verification_kind='schema_effect')::bigint schema_effect_file_count,
+         max(verified_at) last_verified_at
+  from public.canonical_migration_manifest
+), ledger as (
+  select count(*)::bigint ledger_version_count,max(version) latest_ledger_version
+  from supabase_migrations.schema_migrations
+), missing as (
+  select count(*)::bigint count from public.canonical_migration_manifest m
+  where m.verification_kind in ('ledger','ledger_alias') and not exists (
+    select 1 from supabase_migrations.schema_migrations l
+    where l.version::text=m.applied_ledger_version and l.name=m.applied_ledger_name
+  )
+), unmapped as (
+  select count(*)::bigint count from supabase_migrations.schema_migrations l
+  where not exists (
+    select 1 from public.canonical_migration_manifest m
+    where m.applied_ledger_version=l.version::text and m.applied_ledger_name=l.name
+  )
+), duplicate_mappings as (
+  select count(*)::bigint count from (
+    select applied_ledger_version from public.canonical_migration_manifest
+    where applied_ledger_version is not null
+    group by applied_ledger_version having count(*)>1
+  ) d
+)
+select manifest.manifest_file_count,manifest.manifest_version_count,
+       manifest.verified_file_count,manifest.effect_verified_file_count,
+       manifest.invalid_checksum_count,manifest.schema_effect_file_count,
+       manifest.last_verified_at,ledger.ledger_version_count,ledger.latest_ledger_version,
+       missing.count missing_in_ledger,unmapped.count unmapped_ledger_versions,
+       duplicate_mappings.count duplicate_ledger_mappings,
+       (manifest.manifest_file_count>0
+        and manifest.verified_file_count=manifest.manifest_file_count
+        and manifest.effect_verified_file_count=manifest.manifest_file_count
+        and manifest.invalid_checksum_count=0
+        and missing.count=0 and unmapped.count=0 and duplicate_mappings.count=0) is_ready,
+       array_remove(array[
+         case when manifest.manifest_file_count=0 then 'CANONICAL_MIGRATION_MANIFEST_EMPTY' end,
+         case when manifest.verified_file_count<>manifest.manifest_file_count then 'MIGRATIONS_NOT_FULLY_VERIFIED' end,
+         case when manifest.effect_verified_file_count<>manifest.manifest_file_count then 'MIGRATION_EFFECTS_NOT_FULLY_VERIFIED' end,
+         case when manifest.invalid_checksum_count>0 then 'MIGRATION_CHECKSUM_INVALID' end,
+         case when missing.count>0 then 'MIGRATION_LEDGER_MISSING_MAPPING' end,
+         case when unmapped.count>0 then 'MIGRATION_LEDGER_UNMAPPED_VERSION' end,
+         case when duplicate_mappings.count>0 then 'MIGRATION_LEDGER_DUPLICATE_MAPPING' end
+       ],null)::text[] blockers
+from manifest cross join ledger cross join missing cross join unmapped cross join duplicate_mappings
+$_$;
+
+--
+-- Name: FUNCTION ops_migration_governance_projection_v1(); Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON FUNCTION public.ops_migration_governance_projection_v1() IS 'Service-only aggregate migration evidence. No raw ledger grant, row output, dynamic SQL or qualification beyond the existing projection.';
+
+--
+-- Name: ops_migration_provenance_projection_v1(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.ops_migration_provenance_projection_v1() RETURNS TABLE(receipt_count bigint, exact_input_receipt_count bigint, lineage_receipt_count bigint, effect_not_assessed_receipt_count bigint, current_bounded_schema_receipt_count bigint, changed_bounded_schema_receipt_count bigint, ledger_versions_without_exact_input_receipt bigint, ledger_version_count bigint, latest_ledger_version text, canonical_unmapped_ledger_versions bigint, canonical_governance_is_ready boolean, canonical_governance_blockers text[], full_history_and_effect_qualification_claimed boolean)
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+    AS $$
+WITH receipts AS(
+ SELECT r.*,
+  coalesce(l.name=r.applied_ledger_name
+   AND md5(array_to_string(l.statements,E'\n'))=r.recorded_input_md5
+   AND encode(extensions.digest(convert_to(array_to_string(l.statements,E'\n'),'UTF8'),'sha256'),'hex')=r.recorded_input_sha256,false) AS recorded_input_still_matches,
+  r.effect_verified
+  AND jsonb_array_length(coalesce(r.effect_evidence#>'{native_snapshot,functions}','[]'::jsonb))=3
+  AND NOT EXISTS(
+   SELECT FROM jsonb_array_elements(coalesce(r.effect_evidence#>'{native_snapshot,functions}','[]'::jsonb)) f
+   LEFT JOIN pg_proc p ON p.oid=to_regprocedure(f->>'signature')
+   WHERE jsonb_build_object('owner',pg_get_userbyid(p.proowner),
+    'arguments',pg_get_function_identity_arguments(p.oid),
+    'definition_sha256',encode(extensions.digest(convert_to(pg_get_functiondef(p.oid),'UTF8'),'sha256'),'hex'),
+    'volatility',p.provolatile::text,'security_definer',p.prosecdef,'parallel',p.proparallel::text,
+    'config',to_jsonb(p.proconfig),'acl',to_jsonb(p.proacl))
+    IS DISTINCT FROM (f-'name'-'signature'-'oid')
+  )
+  AND NOT EXISTS(
+   SELECT FROM jsonb_array_elements(coalesce(r.effect_evidence#>'{native_snapshot,override_fields}','[]'::jsonb)) f
+   LEFT JOIN pg_attribute a ON a.attrelid='public.user_permission_overrides'::regclass AND a.attnum>0 AND NOT a.attisdropped AND a.attname=f->>'name'
+   LEFT JOIN pg_attrdef d ON d.adrelid=a.attrelid AND d.adnum=a.attnum
+   WHERE jsonb_build_object('name',a.attname,'type',format_type(a.atttypid,a.atttypmod),
+    'not_null',a.attnotnull,'default',pg_get_expr(d.adbin,d.adrelid)) IS DISTINCT FROM f
+  )
+  AND NOT EXISTS(
+   SELECT FROM jsonb_array_elements(coalesce(r.effect_evidence#>'{native_snapshot,override_constraints}','[]'::jsonb)) f
+   LEFT JOIN pg_constraint c ON c.conrelid='public.user_permission_overrides'::regclass AND c.conname=f->>'name'
+   WHERE jsonb_build_object('name',c.conname,'definition',pg_get_constraintdef(c.oid),'validated',c.convalidated) IS DISTINCT FROM f
+  ) AS current_bounded_schema_still_matches
+ FROM public.ops_migration_provenance_receipts r
+ LEFT JOIN supabase_migrations.schema_migrations l ON l.version=r.applied_ledger_version
+), counts AS(
+ SELECT count(*) AS receipt_count,
+  count(*) FILTER(WHERE receipt_kind='exact_input' AND recorded_input_still_matches) AS exact_input_receipt_count,
+  count(*) FILTER(WHERE receipt_kind='historical_source_lineage' AND recorded_input_still_matches) AS lineage_receipt_count,
+  count(*) FILTER(WHERE NOT effect_verified) AS effect_not_assessed_receipt_count,
+  count(*) FILTER(WHERE recorded_input_still_matches AND current_bounded_schema_still_matches) AS current_bounded_schema_receipt_count,
+  count(*) FILTER(WHERE effect_verified AND NOT current_bounded_schema_still_matches) AS changed_bounded_schema_receipt_count
+ FROM receipts
+), uncovered AS(
+ SELECT count(*) AS ledger_versions_without_exact_input_receipt
+ FROM supabase_migrations.schema_migrations l
+ WHERE NOT EXISTS(SELECT FROM receipts r WHERE r.applied_ledger_version=l.version
+  AND r.applied_ledger_name=l.name AND r.receipt_kind='exact_input' AND r.recorded_input_still_matches)
+)
+SELECT c.*,u.ledger_versions_without_exact_input_receipt,
+ g.ledger_version_count,g.latest_ledger_version,g.unmapped_ledger_versions AS canonical_unmapped_ledger_versions,
+ g.is_ready AS canonical_governance_is_ready,g.blockers AS canonical_governance_blockers,
+ false AS full_history_and_effect_qualification_claimed
+FROM counts c CROSS JOIN uncovered u CROSS JOIN public.gridex_migration_governance_v3 g
+$$;
+
+--
+-- Name: FUNCTION ops_migration_provenance_projection_v1(); Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON FUNCTION public.ops_migration_provenance_projection_v1() IS 'Service-only aggregate migration evidence. No raw ledger grant, row output, dynamic SQL or qualification beyond the existing projection.';
+
+--
 -- Name: ops_reject_migration_provenance_mutation_v1(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -120415,93 +120549,28 @@ CREATE VIEW public.gridex_metering_points_incomplete_area_context_v WITH (securi
 -- Name: gridex_migration_governance_v3; Type: VIEW; Schema: public; Owner: -
 --
 
-CREATE VIEW public.gridex_migration_governance_v3 WITH (security_invoker='false') AS
- WITH manifest AS (
-         SELECT count(*) AS manifest_file_count,
-            count(DISTINCT canonical_migration_manifest.version) AS manifest_version_count,
-            count(*) FILTER (WHERE (canonical_migration_manifest.verified_at IS NOT NULL)) AS verified_file_count,
-            count(*) FILTER (WHERE canonical_migration_manifest.effect_verified) AS effect_verified_file_count,
-            count(*) FILTER (WHERE ((canonical_migration_manifest.checksum IS NULL) OR (canonical_migration_manifest.checksum !~ '^[a-f0-9]{64}$'::text))) AS invalid_checksum_count,
-            count(*) FILTER (WHERE (canonical_migration_manifest.verification_kind = 'schema_effect'::text)) AS schema_effect_file_count,
-            max(canonical_migration_manifest.verified_at) AS last_verified_at
-           FROM public.canonical_migration_manifest
-        ), ledger AS (
-         SELECT count(*) AS ledger_version_count,
-            max(schema_migrations.version) AS latest_ledger_version
-           FROM supabase_migrations.schema_migrations
-        ), missing AS (
-         SELECT count(*) AS count
-           FROM public.canonical_migration_manifest m
-          WHERE ((m.verification_kind = ANY (ARRAY['ledger'::text, 'ledger_alias'::text])) AND (NOT (EXISTS ( SELECT 1
-                   FROM supabase_migrations.schema_migrations l
-                  WHERE ((l.version = m.applied_ledger_version) AND (l.name = m.applied_ledger_name))))))
-        ), unmapped AS (
-         SELECT count(*) AS count
-           FROM supabase_migrations.schema_migrations l
-          WHERE (NOT (EXISTS ( SELECT 1
-                   FROM public.canonical_migration_manifest m
-                  WHERE ((m.applied_ledger_version = l.version) AND (m.applied_ledger_name = l.name)))))
-        ), duplicate_mappings AS (
-         SELECT count(*) AS count
-           FROM ( SELECT canonical_migration_manifest.applied_ledger_version
-                   FROM public.canonical_migration_manifest
-                  WHERE (canonical_migration_manifest.applied_ledger_version IS NOT NULL)
-                  GROUP BY canonical_migration_manifest.applied_ledger_version
-                 HAVING (count(*) > 1)) d
-        )
- SELECT manifest.manifest_file_count,
-    manifest.manifest_version_count,
-    manifest.verified_file_count,
-    manifest.effect_verified_file_count,
-    manifest.invalid_checksum_count,
-    manifest.schema_effect_file_count,
-    manifest.last_verified_at,
-    ledger.ledger_version_count,
-    ledger.latest_ledger_version,
-    missing.count AS missing_in_ledger,
-    unmapped.count AS unmapped_ledger_versions,
-    duplicate_mappings.count AS duplicate_ledger_mappings,
-    ((manifest.manifest_file_count > 0) AND (manifest.verified_file_count = manifest.manifest_file_count) AND (manifest.effect_verified_file_count = manifest.manifest_file_count) AND (manifest.invalid_checksum_count = 0) AND (missing.count = 0) AND (unmapped.count = 0) AND (duplicate_mappings.count = 0)) AS is_ready,
-    array_remove(ARRAY[
-        CASE
-            WHEN (manifest.manifest_file_count = 0) THEN 'CANONICAL_MIGRATION_MANIFEST_EMPTY'::text
-            ELSE NULL::text
-        END,
-        CASE
-            WHEN (manifest.verified_file_count <> manifest.manifest_file_count) THEN 'MIGRATIONS_NOT_FULLY_VERIFIED'::text
-            ELSE NULL::text
-        END,
-        CASE
-            WHEN (manifest.effect_verified_file_count <> manifest.manifest_file_count) THEN 'MIGRATION_EFFECTS_NOT_FULLY_VERIFIED'::text
-            ELSE NULL::text
-        END,
-        CASE
-            WHEN (manifest.invalid_checksum_count > 0) THEN 'MIGRATION_CHECKSUM_INVALID'::text
-            ELSE NULL::text
-        END,
-        CASE
-            WHEN (missing.count > 0) THEN 'MIGRATION_LEDGER_MISSING_MAPPING'::text
-            ELSE NULL::text
-        END,
-        CASE
-            WHEN (unmapped.count > 0) THEN 'MIGRATION_LEDGER_UNMAPPED_VERSION'::text
-            ELSE NULL::text
-        END,
-        CASE
-            WHEN (duplicate_mappings.count > 0) THEN 'MIGRATION_LEDGER_DUPLICATE_MAPPING'::text
-            ELSE NULL::text
-        END], NULL::text) AS blockers
-   FROM ((((manifest
-     CROSS JOIN ledger)
-     CROSS JOIN missing)
-     CROSS JOIN unmapped)
-     CROSS JOIN duplicate_mappings);
+CREATE VIEW public.gridex_migration_governance_v3 WITH (security_invoker='true') AS
+ SELECT manifest_file_count,
+    manifest_version_count,
+    verified_file_count,
+    effect_verified_file_count,
+    invalid_checksum_count,
+    schema_effect_file_count,
+    last_verified_at,
+    ledger_version_count,
+    latest_ledger_version,
+    missing_in_ledger,
+    unmapped_ledger_versions,
+    duplicate_ledger_mappings,
+    is_ready,
+    blockers
+   FROM public.ops_migration_governance_projection_v1() ops_migration_governance_projection_v1(manifest_file_count, manifest_version_count, verified_file_count, effect_verified_file_count, invalid_checksum_count, schema_effect_file_count, last_verified_at, ledger_version_count, latest_ledger_version, missing_in_ledger, unmapped_ledger_versions, duplicate_ledger_mappings, is_ready, blockers);
 
 --
 -- Name: VIEW gridex_migration_governance_v3; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON VIEW public.gridex_migration_governance_v3 IS 'Service-only aggregate migration governance under owner execution. No raw ledger grant. Existing strict readiness conditions and historical manifest rows remain unchanged; input/lineage receipts are separate.';
+COMMENT ON VIEW public.gridex_migration_governance_v3 IS 'Invoker view over a service-only fixed aggregate projection. Raw migration inputs remain private; existing readiness and evidence limits are preserved.';
 
 --
 -- Name: gridex_multiple_permissive_policy_candidates_v; Type: VIEW; Schema: public; Owner: -
@@ -123880,103 +123949,30 @@ ALTER TABLE ONLY public.ops_migration_provenance_receipts FORCE ROW LEVEL SECURI
 COMMENT ON TABLE public.ops_migration_provenance_receipts IS 'Append-only reviewed input/lineage receipts. Source SHA256 and recorded SQL SHA256 are separate facts. Effect scope never implies a full tenant/API lifecycle.';
 
 --
--- Name: user_permission_overrides; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.user_permission_overrides (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    company_id uuid,
-    user_id uuid NOT NULL,
-    permission_key text NOT NULL,
-    effect text DEFAULT 'allow'::text NOT NULL,
-    reason text,
-    valid_from timestamp with time zone,
-    valid_to timestamp with time zone,
-    is_active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    created_by uuid,
-    updated_by uuid,
-    CONSTRAINT user_permission_overrides_global_deny_only CHECK (((company_id IS NOT NULL) OR (effect = 'deny'::text)))
-);
-
---
 -- Name: ops_migration_provenance_summary_v1; Type: VIEW; Schema: public; Owner: -
 --
 
-CREATE VIEW public.ops_migration_provenance_summary_v1 WITH (security_invoker='false', security_barrier='true') AS
- WITH receipts AS (
-         SELECT r.receipt_id,
-            r.project_ref,
-            r.applied_ledger_version,
-            r.applied_ledger_name,
-            r.canonical_filename,
-            r.source_file_sha256,
-            r.recorded_input_md5,
-            r.recorded_input_sha256,
-            r.receipt_kind,
-            r.source_file_git_commit,
-            r.source_observation_head,
-            r.current_source_sha256,
-            r.current_source_git_commit,
-            r.observed_at,
-            r.registered_at,
-            r.effect_scope,
-            r.effect_verified,
-            r.effect_evidence,
-            COALESCE(((l.name = r.applied_ledger_name) AND (md5(array_to_string(l.statements, '
-'::text)) = r.recorded_input_md5) AND (encode(extensions.digest(convert_to(array_to_string(l.statements, '
-'::text), 'UTF8'::name), 'sha256'::text), 'hex'::text) = r.recorded_input_sha256)), false) AS recorded_input_still_matches,
-            (r.effect_verified AND (jsonb_array_length(COALESCE((r.effect_evidence #> '{native_snapshot,functions}'::text[]), '[]'::jsonb)) = 3) AND (NOT (EXISTS ( SELECT
-                   FROM (jsonb_array_elements(COALESCE((r.effect_evidence #> '{native_snapshot,functions}'::text[]), '[]'::jsonb)) f(value)
-                     LEFT JOIN pg_proc p ON ((p.oid = (to_regprocedure((f.value ->> 'signature'::text)))::oid)))
-                  WHERE (jsonb_build_object('owner', pg_get_userbyid(p.proowner), 'arguments', pg_get_function_identity_arguments(p.oid), 'definition_sha256', encode(extensions.digest(convert_to(pg_get_functiondef(p.oid), 'UTF8'::name), 'sha256'::text), 'hex'::text), 'volatility', (p.provolatile)::text, 'security_definer', p.prosecdef, 'parallel', (p.proparallel)::text, 'config', to_jsonb(p.proconfig), 'acl', to_jsonb(p.proacl)) IS DISTINCT FROM (((f.value - 'name'::text) - 'signature'::text) - 'oid'::text))))) AND (NOT (EXISTS ( SELECT
-                   FROM ((jsonb_array_elements(COALESCE((r.effect_evidence #> '{native_snapshot,override_fields}'::text[]), '[]'::jsonb)) f(value)
-                     LEFT JOIN pg_attribute a ON (((a.attrelid = ('public.user_permission_overrides'::regclass)::oid) AND (a.attnum > 0) AND (NOT a.attisdropped) AND (a.attname = (f.value ->> 'name'::text)))))
-                     LEFT JOIN pg_attrdef d ON (((d.adrelid = a.attrelid) AND (d.adnum = a.attnum))))
-                  WHERE (jsonb_build_object('name', a.attname, 'type', format_type(a.atttypid, a.atttypmod), 'not_null', a.attnotnull, 'default', pg_get_expr(d.adbin, d.adrelid)) IS DISTINCT FROM f.value)))) AND (NOT (EXISTS ( SELECT
-                   FROM (jsonb_array_elements(COALESCE((r.effect_evidence #> '{native_snapshot,override_constraints}'::text[]), '[]'::jsonb)) f(value)
-                     LEFT JOIN pg_constraint c_1 ON (((c_1.conrelid = ('public.user_permission_overrides'::regclass)::oid) AND (c_1.conname = (f.value ->> 'name'::text)))))
-                  WHERE (jsonb_build_object('name', c_1.conname, 'definition', pg_get_constraintdef(c_1.oid), 'validated', c_1.convalidated) IS DISTINCT FROM f.value))))) AS current_bounded_schema_still_matches
-           FROM (public.ops_migration_provenance_receipts r
-             LEFT JOIN supabase_migrations.schema_migrations l ON ((l.version = r.applied_ledger_version)))
-        ), counts AS (
-         SELECT count(*) AS receipt_count,
-            count(*) FILTER (WHERE ((receipts.receipt_kind = 'exact_input'::text) AND receipts.recorded_input_still_matches)) AS exact_input_receipt_count,
-            count(*) FILTER (WHERE ((receipts.receipt_kind = 'historical_source_lineage'::text) AND receipts.recorded_input_still_matches)) AS lineage_receipt_count,
-            count(*) FILTER (WHERE (NOT receipts.effect_verified)) AS effect_not_assessed_receipt_count,
-            count(*) FILTER (WHERE (receipts.recorded_input_still_matches AND receipts.current_bounded_schema_still_matches)) AS current_bounded_schema_receipt_count,
-            count(*) FILTER (WHERE (receipts.effect_verified AND (NOT receipts.current_bounded_schema_still_matches))) AS changed_bounded_schema_receipt_count
-           FROM receipts
-        ), uncovered AS (
-         SELECT count(*) AS ledger_versions_without_exact_input_receipt
-           FROM supabase_migrations.schema_migrations l
-          WHERE (NOT (EXISTS ( SELECT
-                   FROM receipts r
-                  WHERE ((r.applied_ledger_version = l.version) AND (r.applied_ledger_name = l.name) AND (r.receipt_kind = 'exact_input'::text) AND r.recorded_input_still_matches))))
-        )
- SELECT c.receipt_count,
-    c.exact_input_receipt_count,
-    c.lineage_receipt_count,
-    c.effect_not_assessed_receipt_count,
-    c.current_bounded_schema_receipt_count,
-    c.changed_bounded_schema_receipt_count,
-    u.ledger_versions_without_exact_input_receipt,
-    g.ledger_version_count,
-    g.latest_ledger_version,
-    g.unmapped_ledger_versions AS canonical_unmapped_ledger_versions,
-    g.is_ready AS canonical_governance_is_ready,
-    g.blockers AS canonical_governance_blockers,
-    false AS full_history_and_effect_qualification_claimed
-   FROM ((counts c
-     CROSS JOIN uncovered u)
-     CROSS JOIN public.gridex_migration_governance_v3 g);
+CREATE VIEW public.ops_migration_provenance_summary_v1 WITH (security_invoker='true', security_barrier='true') AS
+ SELECT receipt_count,
+    exact_input_receipt_count,
+    lineage_receipt_count,
+    effect_not_assessed_receipt_count,
+    current_bounded_schema_receipt_count,
+    changed_bounded_schema_receipt_count,
+    ledger_versions_without_exact_input_receipt,
+    ledger_version_count,
+    latest_ledger_version,
+    canonical_unmapped_ledger_versions,
+    canonical_governance_is_ready,
+    canonical_governance_blockers,
+    full_history_and_effect_qualification_claimed
+   FROM public.ops_migration_provenance_projection_v1() ops_migration_provenance_projection_v1(receipt_count, exact_input_receipt_count, lineage_receipt_count, effect_not_assessed_receipt_count, current_bounded_schema_receipt_count, changed_bounded_schema_receipt_count, ledger_versions_without_exact_input_receipt, ledger_version_count, latest_ledger_version, canonical_unmapped_ledger_versions, canonical_governance_is_ready, canonical_governance_blockers, full_history_and_effect_qualification_claimed);
 
 --
 -- Name: VIEW ops_migration_provenance_summary_v1; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON VIEW public.ops_migration_provenance_summary_v1 IS 'Bounded source-input and lineage coverage. Receipts are populated separately only from reviewed actual inputs. Bounded evidence this is not full governance or live lifecycle readiness.';
+COMMENT ON VIEW public.ops_migration_provenance_summary_v1 IS 'Invoker view over a service-only fixed aggregate projection. Raw migration inputs remain private; existing readiness and evidence limits are preserved.';
 
 --
 -- Name: ops_publication_state; Type: TABLE; Schema: public; Owner: -
@@ -126846,6 +126842,27 @@ CREATE VIEW public.tenant_website_readiness_v WITH (security_invoker='true') AS
 --
 
 COMMENT ON VIEW public.tenant_website_readiness_v IS 'Plain-language tenant readiness for website contracts, applications, legal texts and mail setup. Counts OPS public_contract_offers and legacy website-visible price plan versions.';
+
+--
+-- Name: user_permission_overrides; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.user_permission_overrides (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid,
+    user_id uuid NOT NULL,
+    permission_key text NOT NULL,
+    effect text DEFAULT 'allow'::text NOT NULL,
+    reason text,
+    valid_from timestamp with time zone,
+    valid_to timestamp with time zone,
+    is_active boolean DEFAULT true NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_by uuid,
+    updated_by uuid,
+    CONSTRAINT user_permission_overrides_global_deny_only CHECK (((company_id IS NOT NULL) OR (effect = 'deny'::text)))
+);
 
 --
 -- Name: user_permissions; Type: TABLE; Schema: public; Owner: -
@@ -205673,6 +205690,20 @@ GRANT ALL ON FUNCTION public.normalize_phone(p_phone text) TO authenticated;
 GRANT ALL ON FUNCTION public.normalize_phone(p_phone text) TO service_role;
 
 --
+-- Name: FUNCTION ops_migration_governance_projection_v1(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.ops_migration_governance_projection_v1() FROM PUBLIC;
+GRANT ALL ON FUNCTION public.ops_migration_governance_projection_v1() TO service_role;
+
+--
+-- Name: FUNCTION ops_migration_provenance_projection_v1(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.ops_migration_provenance_projection_v1() FROM PUBLIC;
+GRANT ALL ON FUNCTION public.ops_migration_provenance_projection_v1() TO service_role;
+
+--
 -- Name: FUNCTION ops_reject_migration_provenance_mutation_v1(); Type: ACL; Schema: public; Owner: -
 --
 
@@ -209250,14 +209281,6 @@ GRANT ALL ON TABLE public.normalized_metering_values TO service_role;
 GRANT SELECT ON TABLE public.ops_migration_provenance_receipts TO service_role;
 
 --
--- Name: TABLE user_permission_overrides; Type: ACL; Schema: public; Owner: -
---
-
-GRANT ALL ON TABLE public.user_permission_overrides TO authenticated;
-GRANT ALL ON TABLE public.user_permission_overrides TO service_role;
-GRANT SELECT,UPDATE ON TABLE public.user_permission_overrides TO gridex_ediel_retention_owner;
-
---
 -- Name: TABLE ops_migration_provenance_summary_v1; Type: ACL; Schema: public; Owner: -
 --
 
@@ -209854,6 +209877,14 @@ GRANT ALL ON TABLE public.tenant_website_installation_receipts TO service_role;
 --
 
 GRANT ALL ON TABLE public.tenant_website_readiness_v TO service_role;
+
+--
+-- Name: TABLE user_permission_overrides; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.user_permission_overrides TO authenticated;
+GRANT ALL ON TABLE public.user_permission_overrides TO service_role;
+GRANT SELECT,UPDATE ON TABLE public.user_permission_overrides TO gridex_ediel_retention_owner;
 
 --
 -- Name: TABLE user_permissions; Type: ACL; Schema: public; Owner: -

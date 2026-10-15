@@ -45,7 +45,7 @@
     "ci_diagnosis": "Current failed CI root cause; no reruns or producers",
     "test_validation": "Local affected tests and checks; no DB/native/GEN"
   },
-  "next_action": "Await currentf3solecollector terminalCLEAN/qualifiedRAW3 parity withfirstUPGRADED; ifqualifiedperformtruthfulcrossjobGENproposal+twoSOURCEreviews thenonecombinednormalpush; ifnotuseactualfailuretodriveminimumcorrection. Materialized5techpathsall2SOURCEapproved, provenance/integrity/budget/diffPASS. No blindrerun/newproducer. Finalcurrentordinarycapture+mandatorygates/twoDELIVERY/normalmerge/7restores/36matchedownreleases.",
+  "next_action": "Commitexact4reviewedGENchanges+owncheckpoint atoplocalf6335reviewedsourcefixes; twoindependentcombinedSOURCEreviewersbindfinalhead/tree/base d9 andall9technicalpostimages; freshmain/PRhead/all43ownrefs thennormalnonforcepush andauthenticatedPR+branchreadback. ExistingordinaryCIsoleproducer; qualifynewheadcapture/CLEANnative+13browser/UPGRADEbothhistories/parity/allgates, twoDELIVERY thennormalexpectedheadmerge/rolemergeFIRSTrelease/7approvedrestores/36ownmatchedreleases.",
   "ownership": {
     "takeoverComment": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6196305923",
     "preparedNeutralReceipt": "32d31cf69ba0f2133947d9a2994fda3b8e9d0965",
@@ -399,7 +399,7 @@
     "retentionA": "f50d7a39262f40c2826d84d6f816eb27ee9f2b036946792321cbb0bcbed7e7ec",
     "retentionB": "e4af9da250ac0d4b522ce28ba6b27910d37d76714bced47453832d60ec33d1e2"
   },
-  "updatedAt": "2026-10-15T20:33:13.663724+00:00",
+  "updatedAt": "2026-10-15T21:04:06.578974+00:00",
   "current_main_integration": {
     "actualMain": "d9fc4397be806321723fb1cac42441ca2b3106f3",
     "previousMain": "11bd50430b0cfd5e525dce7034e4659756c8d5e0",
@@ -624,5 +624,49 @@
         "summary": "Large source file budget passed: 0 grandfathered files cannot grow and new source files are capped at 1800 lines.\n"
       }
     }
+  },
+  "upgraded_component_only_adoption_decision": {
+    "at": "2026-10-15T20:48:17.600885+00:00",
+    "decision": "PreparefaithfulUPGRADED_COMPONENT_ONLYGENproposalfromexistingqualifiedfirstf3UPGRADEDRaw3",
+    "why": "Actualcontractrequiresgenuinequalifiedproducer/exactcustody/sourceapplicability/twoSOURCEreviews andallmandatoryfinalchecks, no twoRAWsetsbefore reversibleSOURCEimport requirement. PreviouswaitfortwoRAWswasconservativeownsequencing, clarifiedbytwoindependentcitedassessments. CurrentCLEANelapsed40m/oldfailed66m37 vsordinarycapture3m31; no ETA/timeoutassumption needed",
+    "policyA": "414e7f29b9a45226af08728e4e3adba957cf1944a3ef6ac27778b2d7691b2a62",
+    "policyB": "55ea25b0a7e538f2015cbb249ea50c4ef99b5f7b13e25bc5c50c1f88461150ad",
+    "actualOrigin": "f3e517dc4e0bd9a3083c04fbccf6b921bdea1c89 tree2fe97... strict53bf644preserved+620sourceforwards7derived through183000",
+    "wholeTruth": "UPGRADEwholeFAIL/independentCLEANbeforeRAW100259combinedguardFAIL/actualfailedoperandUNKNOWN/noindependentRAWorparity/c8NOT_RUN/ordinarycaptureFAILzeroartifacts/noordinaryreceipt",
+    "receivingSource": "f63320d16b47fb6548d5439208b272520989fb0c tree929a... fiveknown2SOURCEposts/sourceonly7->8derived/noDBruntimeattestation",
+    "status": "CollectorfreezingboundedexistingoriginalLOAN; DBpreparesunexecutedpurevariant; noRAWcopied/imported/builderexecutionyet",
+    "importGuards": [
+      "ExplicitcollectorqualifiedUPGRADED_COMPONENT_ONLYloanwithsource/archive/members/log/RAWtruth",
+      "ActualfaithfulGENpostimages/rawmanifest154oldtopvalues+9exactarchive/inverse",
+      "Exactf3->f633applicabilitywithno storedDDLbodychange",
+      "TwononauthorSOURCEapprovalsconcreteactualproposal",
+      "FreshGEN5custody+ownCPFIRSTbeforeparentcopy"
+    ],
+    "deliveryGuards": "FinalCURRENTordinarycapture/fullCLEANnative13browser/invariants/UPGRADEbothhistories/fullRAWparity/allmandatorygates/twoDELIVERY+normalexpectedheadmerge unchanged",
+    "noProducerOrGateChange": true,
+    "noManualCancelOrRerun": true
+  },
+  "upgraded_component_GEN_adoption": {
+    "at": "2026-10-15T21:02:49.381874+00:00",
+    "state": "EXACT_REVIEWED_GEN4_MATERIALIZED_ACTUAL_CHECKS_PASS_PREPARING_COMBINED_SOURCE_COMMIT",
+    "sourceOrigin": "f3e517dc4e0bd9a3083c04fbccf6b921bdea1c89 FIRST_UPGRADED_COMPONENT_ONLY existingordinaryrun38797531449/job116637744724/a1/artifact12003936454",
+    "qualifiedLoanSHA256": "431c9660286dc337c34aeb91dc6dea47938168f62123f9d1a252ee3dcb6466e3",
+    "proposal": "14de0bde713a1e1c859e8d284cf77400f1d1e6b7b633d9fac158f98d77cdcc61",
+    "actualFinalFreeze": "97da2651ea943c0afdd47898b1c8c890cdd7a7871f14ec0bb209b5ded09fa70d",
+    "sourceA": "5d406b300b99094b128875592700e90f82765835e5e6c26d512a6cfc57359ac8",
+    "sourceB": "51458f6d2bb763ec678dbe05cdda3435ed6e2dbeca092000c3597c97948f349b",
+    "custody": "All43includingGEN5caad/producergenbacunchanged/main d9/PRf3/mergeRoleabsent authenticated21:01:47",
+    "rawPreservation": "RAW3verbatim;154othermanifestrawtopvalues/order+9exactarchives+entireinversecee584; workflow209730unchanged",
+    "actualTypes": "App2798files0diag139.4s +tests3609files0diag139.74s actualNode22TS5.9/noEmit/incrementalfalse+correctreceivingf633metadata; bothreviewsindependentlyall3609sourcehashesmatch",
+    "proofLimits": "wholeUPGRADEFAIL/independentCLEAN100259beforeRAWFAIL/noCLEANRAW/parity+c8NOT_RUN/ordinarycaptureFAIL0artifacts/noordinaryreceipt/actualgenUTCUNKNOWN; artifact20:06:53availabilityboundonly. No currentPASS/deliveryattestation",
+    "overrides": "Only3optionalpre-import0042sequencefields supersededbyfrozenroote6a44/policyA414e+B55ea; actualsourcefactsandFINALmandatorygatesunchanged",
+    "next": "Exact4changedGENpostimagescopy afterthisowncheckpoint; materializedtypescheck/diff/inputhashaudit; GENtechnicalcommit+ownCPfinalcommit; 2SOURCEcombinedfinalheadbinding thennormalpush/authreadback. Finalcurrentcapture/fullCLEAN/UPGRADE/parity/allCI+twoDELIVERY beforemerge/restores.",
+    "materializedActualTypesChecker": {
+      "exit": 0,
+      "reportSHA256": "3f744c81c383aace825c2d3be0c176bb93a6d154867d877f0dea2c227957ed67",
+      "summary": "Supabase generated types verified (3732883 bytes; 20261015183000_ops_migration_provenance_tenant_boundary.sql; aab753d89d938884e3ce83760379aa478505185f58667d241e7b38bc90c1859d)."
+    },
+    "materializedCompilerInputEquality": "All3609actualcompletedtestsprogramsource-textinputsnowphysicalmatch;0mismatches; sameapp+tests0 reused, no extraTSCrun",
+    "materializedDiffCheck": "PASS"
   }
 }

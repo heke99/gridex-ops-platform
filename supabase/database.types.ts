@@ -101880,6 +101880,43 @@ export type Database = {
       normalize_facility_id: { Args: { p_value: string }; Returns: string }
       normalize_personal_number: { Args: { p_value: string }; Returns: string }
       normalize_phone: { Args: { p_phone: string }; Returns: string }
+      ops_migration_governance_projection_v1: {
+        Args: never
+        Returns: {
+          blockers: string[]
+          duplicate_ledger_mappings: number
+          effect_verified_file_count: number
+          invalid_checksum_count: number
+          is_ready: boolean
+          last_verified_at: string
+          latest_ledger_version: string
+          ledger_version_count: number
+          manifest_file_count: number
+          manifest_version_count: number
+          missing_in_ledger: number
+          schema_effect_file_count: number
+          unmapped_ledger_versions: number
+          verified_file_count: number
+        }[]
+      }
+      ops_migration_provenance_projection_v1: {
+        Args: never
+        Returns: {
+          canonical_governance_blockers: string[]
+          canonical_governance_is_ready: boolean
+          canonical_unmapped_ledger_versions: number
+          changed_bounded_schema_receipt_count: number
+          current_bounded_schema_receipt_count: number
+          effect_not_assessed_receipt_count: number
+          exact_input_receipt_count: number
+          full_history_and_effect_qualification_claimed: boolean
+          latest_ledger_version: string
+          ledger_version_count: number
+          ledger_versions_without_exact_input_receipt: number
+          lineage_receipt_count: number
+          receipt_count: number
+        }[]
+      }
       portal_customer_documents_page_v1: {
         Args: {
           p_company_id: string
