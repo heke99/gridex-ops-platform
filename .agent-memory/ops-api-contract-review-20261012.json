@@ -2260,5 +2260,42 @@
       "original": "/tmp/gridex-ops-core-completion-20261014/ops-live15-exact-source-global-permission-metadata-authenticated-original-private.json",
       "invalidated_prior_probe": "Prior ops-live15 query abbreviatedretention.* incorrectly; preservedrecord isNOT evidence of missingAPIpermission. Corrected source-exact query supersedes it."
     }
+  },
+  "permission_v4_publication_20261015": {
+    "current_source_head": "67f743aecc1ae67e69925c2626c944bf44479257",
+    "tree": "0da9ce149850613bede39c6f5e4b9d8dceb4236d",
+    "parent": "bacaba64c8a580587b4afaee303ff1e5fbd77831",
+    "status": "Published normally to existingPR794 after2exact6independentSOURCEfinals and3committedinputplanners; actualnewSQLpending. No merge/no newnativeapplication/noGEN/noAPIgreen.",
+    "receipt": "/tmp/gridex-ops-core-completion-20261014/canonical50-permission-v4-67f743-current-six-normal-publication-authenticated-root-readback-private.json",
+    "ops_run": 38740126322,
+    "foreign_staff_metadata_only_run": 38740126323,
+    "next_action": "Source-only diagnostic at original completegate to emit actualcandidate/missingfixedwhitelist/normalizedobservedhashes; preserve all80priorpatches,355diag,originalguards. Rootsolecanonicalwriter/collector, Supplyprivateauthor, Doc+DBindependentreview.",
+    "actual_jobs": {
+      "clean": 116439334338,
+      "upgrade": 116439334262,
+      "verify": 116439334251,
+      "quality": 116439334063
+    },
+    "latest_actual_verify": "FAIL migration tail20261015100259 requires genuine type/schema regeneration; integrity1259/1162PASS. FullSQLjobs inprogress, no broad successclaim.",
+    "actual_status_receipt": "/tmp/gridex-ops-core-completion-20261014/ops-67f743-current-status-private.json",
+    "actual_sql_terminal": "BOTHFAILrolecertificateowner alreadyexists; permissionprecheck passed butsource64/native4f branchnotdistinguished. Completecandidate/observed stateunknown byexplicit siblingAST. No fullSQL/APIgreen.",
+    "actual_terminal_receipt": "/tmp/gridex-ops-core-completion-20261014/ops-67f743-both-qualified-artifact-originals-root-terminal-receipt-private.json"
+  },
+  "complete_gate_diagnostic_source_phase_20261015": {
+    "base_head": "67f743aecc1ae67e69925c2626c944bf44479257",
+    "status": "Materialized source-only diagnostic; pending2independentexactcurrentfinals, targetedchecks/planners, normalpublication and actualproducerdata. DoesNOTfix roleexistence failure orchangeanyadmissiongate.",
+    "artifact_sha256": "f6d18202e0cdc7ae4cf5edbe0d421e07e78958562f35fe60c62e444e3a3f1eba",
+    "artifact_bytes": 626045,
+    "effective_template_sha256": "79a80ef49a8192c0f3c39f5207d76857f4f754b1d1e4a6cc5a923faab35480ed",
+    "derived_atomic_sha256": "8c219dede7cb7c49f301b07fc040ea5a5ab97797258e9675f7f588474986e77f",
+    "block_sha256": "e9137c34bea3b4c49d358242e11bb8723280470182f80f2899d1467dc9e7ed16",
+    "expected_complete_md5": "7de156ec565ce1dadb22c9af7a851654",
+    "expected_manifest_source_sha256": "eef47399e4805ad284cbca1f86a49a1d029aa37288d95e113325e55556d2e2bc",
+    "scope": "Onlyoneinformationalnestedblock beforeoriginal7deIF afternormalizers; emitonlyfingerprintmismatchincludingNULL. All80previouspatches byteexact+oneinsert642189, old355diagnostic57195B/source64originals unchanged; inverse→465d. No newtempobjects/functions/grants/roles/GUC/businesscalls.",
+    "protocol": "Separate strict4096bytehexchunk collection withpayloadSHA/sourceexpectedSHA/stage,16MiBmaxno truncation; no rawbody/default/config/ACL/definitions. Candidateboolean+observedNULL andexactwhitelistedmissing50schemas339relations1203functionNAMES,9metadatahashdimensions keyedobject/field/childordinals.",
+    "actual_unknowns": "Prior67fbothFAILcertificateownerrole; candidateIF anddigestIF areSIBLINGS by3independentASTproofs. ActualcandidateFALSE/observedNULL vsTRUE/hashmismatch unknown. 50baselinefunctioncaptures doNOTprove completepresence. No canonical64branchcountclaim.",
+    "custody": "/tmp/gridex-ops-core-completion-20261014/complete-diagnostic-two-owned-custody-authenticated-root-prewrite-private.json",
+    "handoff": "/tmp/gridex-ops-core-completion-20261014/complete-gate-hash-diagnostic-private-v2/PRIVATE-AUTHOR-HANDOFF.md",
+    "next_action": "Twoindependentexact6sourcefinals thenrootchecks/3committedinputplanners/normalpublish. RootcollectsqualifiedownnewOPS originals once; strictnewofflineparser separatefrom355protocol; no native/GEN/backend/captureduplication."
   }
 }
