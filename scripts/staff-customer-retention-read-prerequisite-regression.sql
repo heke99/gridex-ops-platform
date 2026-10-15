@@ -93,7 +93,7 @@ CREATE TEMP TABLE staff_retention_fixture AS SELECT
  gen_random_uuid() AS customer,gen_random_uuid() AS other_customer,
  gen_random_uuid() AS actor,gen_random_uuid() AS target,gen_random_uuid() AS other_target;
 DO $$
-DECLARE f record; result jsonb; denied boolean; table_name text; migration_receiver text:=current_user;
+DECLARE f record; result jsonb; denied boolean; table_name text; truncate_detail text; migration_receiver text:=current_user;
 BEGIN
  SELECT * INTO f FROM pg_temp.staff_retention_fixture;
  INSERT INTO public.companies(id,name,status) VALUES
@@ -141,7 +141,13 @@ BEGIN
   BEGIN EXECUTE format('DELETE FROM gridex_ediel_retention.%I',table_name); EXCEPTION WHEN check_violation THEN denied:=true; END;
   IF NOT denied THEN RAISE EXCEPTION 'immutable delete accepted: %',table_name; END IF;
   denied:=false;
-  BEGIN EXECUTE format('TRUNCATE gridex_ediel_retention.%I CASCADE',table_name); EXCEPTION WHEN check_violation THEN denied:=true; END;
+  BEGIN EXECUTE format('TRUNCATE gridex_ediel_retention.%I CASCADE',table_name);
+  EXCEPTION WHEN check_violation THEN denied:=true;
+   WHEN restrict_violation THEN
+    GET STACKED DIAGNOSTICS truncate_detail = PG_EXCEPTION_DETAIL;
+    IF table_name='record_decisions' AND SQLERRM='history_truncate_blocked'
+     AND truncate_detail='TRUNCATE of gridex_ediel_retention.record_decisions would remove retained history.' THEN denied:=true; ELSE RAISE; END IF;
+  END;
   IF NOT denied THEN RAISE EXCEPTION 'immutable truncate accepted: %',table_name; END IF;
  END LOOP;
  EXECUTE format('SET LOCAL ROLE %I',migration_receiver);

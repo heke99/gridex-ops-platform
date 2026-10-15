@@ -8,11 +8,11 @@
   "branch": "codex/ops-api-contract-review-20261012",
   "checkpoint": ".agent-memory/pr794-takeover-20261015.json",
   "user_authorization": "User explicitly appoints this chat as new responsible owner of API PR794, to correct, review and merge, using multiple parallel agents.",
-  "observed_head": "a3d770e0ff16dcca296f0f2426eaa627bbbff5ad",
-  "observed_main": "11bd50430b0cfd5e525dce7034e4659756c8d5e0",
-  "observed_at": "2026-10-15T18:21:58.048547+00:00",
+  "observed_head": "f3e517dc4e0bd9a3083c04fbccf6b921bdea1c89",
+  "observed_main": "d9fc4397be806321723fb1cac42441ca2b3106f3",
+  "observed_at": "2026-10-15T21:20:47.826980+00:00",
   "scope": "Existing API PR794. No transfer of other masterplan packets or shared GEN/native/serial delivery service.",
-  "status": "FINAL_A3_CAPTURE_VERIFY_SMOKE_PASS_NEW_DB01_SELECTIVE_DELIVERY_MISMATCH_UNDER_DIAGNOSIS",
+  "status": "FINAL_LOCAL_SQL_AND_GEN_SOURCE_PREPARING_FINAL_COMBINED_HEAD_BINDING",
   "skill_routing": {
     "active": [
       "cloud-environment-runtime",
@@ -45,7 +45,7 @@
     "ci_diagnosis": "Current failed CI root cause; no reruns or producers",
     "test_validation": "Local affected tests and checks; no DB/native/GEN"
   },
-  "next_action": "Commitexact4reviewedGENchanges+owncheckpoint atoplocalf6335reviewedsourcefixes; twoindependentcombinedSOURCEreviewersbindfinalhead/tree/base d9 andall9technicalpostimages; freshmain/PRhead/all43ownrefs thennormalnonforcepush andauthenticatedPR+branchreadback. ExistingordinaryCIsoleproducer; qualifynewheadcapture/CLEANnative+13browser/UPGRADEbothhistories/parity/allgates, twoDELIVERY thennormalexpectedheadmerge/rolemergeFIRSTrelease/7approvedrestores/36ownmatchedreleases.",
+  "next_action": "Commit SQL+owncheckpoint only atopf47, freeze exact combined finalhead/tree/base/all10technicalpostimages; two independent nonauthor combinedSOURCE bindings, fresh remote43custody/main/head; normalnonforcepush+authenticatedbranchPRreadback. SolecollectorcurrentordinaryCI/allmandatorygates/twoDELIVERY/normalmerge/roleFIRSTrelease/7restore36release.",
   "ownership": {
     "takeoverComment": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6196305923",
     "preparedNeutralReceipt": "32d31cf69ba0f2133947d9a2994fda3b8e9d0965",
@@ -399,7 +399,7 @@
     "retentionA": "f50d7a39262f40c2826d84d6f816eb27ee9f2b036946792321cbb0bcbed7e7ec",
     "retentionB": "e4af9da250ac0d4b522ce28ba6b27910d37d76714bced47453832d60ec33d1e2"
   },
-  "updatedAt": "2026-10-15T21:04:06.578974+00:00",
+  "updatedAt": "2026-10-15T21:28:48.221543+00:00",
   "current_main_integration": {
     "actualMain": "d9fc4397be806321723fb1cac42441ca2b3106f3",
     "previousMain": "11bd50430b0cfd5e525dce7034e4659756c8d5e0",
@@ -648,7 +648,7 @@
   },
   "upgraded_component_GEN_adoption": {
     "at": "2026-10-15T21:02:49.381874+00:00",
-    "state": "EXACT_REVIEWED_GEN4_MATERIALIZED_ACTUAL_CHECKS_PASS_PREPARING_COMBINED_SOURCE_COMMIT",
+    "state": "ACTUALLY_COMMITTED_f47_TWO_COMBINED_SOURCE_APPROVALS_PUBLICATION_HOLD_NEW_SQL_BUG",
     "sourceOrigin": "f3e517dc4e0bd9a3083c04fbccf6b921bdea1c89 FIRST_UPGRADED_COMPONENT_ONLY existingordinaryrun38797531449/job116637744724/a1/artifact12003936454",
     "qualifiedLoanSHA256": "431c9660286dc337c34aeb91dc6dea47938168f62123f9d1a252ee3dcb6466e3",
     "proposal": "14de0bde713a1e1c859e8d284cf77400f1d1e6b7b633d9fac158f98d77cdcc61",
@@ -667,6 +667,51 @@
       "summary": "Supabase generated types verified (3732883 bytes; 20261015183000_ops_migration_provenance_tenant_boundary.sql; aab753d89d938884e3ce83760379aa478505185f58667d241e7b38bc90c1859d)."
     },
     "materializedCompilerInputEquality": "All3609actualcompletedtestsprogramsource-textinputsnowphysicalmatch;0mismatches; sameapp+tests0 reused, no extraTSCrun",
-    "materializedDiffCheck": "PASS"
+    "materializedDiffCheck": "PASS",
+    "commit": "f47c2b3982eb3a9ca003139f7e923f9f21c11536",
+    "combinedSOURCE": [
+      "c73ef6c4aa827c3debf436bee6e9ee3ba1a53ed051c468d5bec5f569d8b9a743",
+      "1d9049610d7d19de03d903dac1e119f3f3cf77e109b0e89ace9ddac769b3ab00"
+    ]
+  },
+  "last_SQL_fixture_correction": {
+    "at": "2026-10-15T21:20:47.826980+00:00",
+    "ownedFile": "scripts/staff-customer-retention-read-prerequisite-regression.sql",
+    "ownReceipt": "73890d5d309bd93310e8cf8f2fcf5a61ab6774d9",
+    "preSHA256": "a98acbe9b75ff575631773bc916f7cce74f36a3ab3773e5c04c81f84bcbd5377",
+    "confirmedRoot": "Authoritativef3CLEAN artifact12006718049 SQL149 state23001/history_truncate_blocked. Canonicalpublicguardworks; fixturehandleronlyexpects23514. Not production defect.",
+    "minimalProposal": "Preserve23514; additionally accept23001 only record_decisions+exactcanonicalmessage+DETAIL, unexpectederrorsrethrow; allroles/productcalls/negativeassertions/outerrollback/guardbytesexact.",
+    "state": "EXACT_TWO_SOURCE_POSTIMAGE_MATERIALIZED_ACTUAL_EXISTING_FULL_FIXTURE_UNIT_PASS",
+    "author": "staff_native_fix",
+    "reviewers": [
+      "api_review",
+      "test_validation"
+    ],
+    "CLEANpositives": "Actual742cases741PASS1phaseSKIP0FAIL; all13browserfiles31casesPASS; fixturepostbrowser0FAIL; tenantinvariantsPASS;15paritydriftclassesPASS; fullCLEANRAW3byteequalUPGRADED",
+    "wholeTruth": "CLEANFAIL SQL+oldGENcmp; finalphasecompleteflagassertionNOT_REACHED; no744/mainfullGREEN/DELIVERY. Existingcanonical1173 andledgerunchanged.",
+    "sourceApplicability": "SQL-only handler does not alter persistedDDL/GEN4/code/types; prioractualapp2798+tests3609/noEmit0 andall9f47technicalpostimages remain applicable withoutcompilerrepeat.",
+    "freshCustody": "last-f3-SQL-prematerialization-custody.json/2deef9e5373cabe83378cd8d4d20489615741d01e6c5dcb48a2eae7541f0a931: all43GETMATCH/GENbacpreserved/rolemergeabsent21:19:40; actualmain d9 PRf3,drafttrue/open/mergeabletrue.",
+    "wholeDeliveryApproved": false,
+    "manifestSHA256": "39e133ebfcee5eec02d35c17dbad528f150460660e7ab092e690fd4dbfedfcea",
+    "postSHA256": "fbf853c630cd3b4d059942e2aee17c6b7ab834c3d71bfbbee7723cf9a6b425da",
+    "sourceA": "f62cba73bd9bbb3671cf6e85e203a6ed092a784ebe187550bae94eadecadfc9e",
+    "sourceB": "401ba9c1961a4f7e3e1bd44e1f3e7b8eabbff70d2f997c52a714a370a69a3027",
+    "actualComponent": "14finitePASS actualcanonicalguard/trigger RED-GREEN andwrongerrors/rollback/appdenials; isolatedsyntheticPGliteonly",
+    "freshOwnSQLRef": "GET_MATCH73890beforewrite",
+    "durableProof": "/workspace/pr794-handoff/final-source-preflight/retention-truncate-handler",
+    "materializedUnit": {
+      "at": "2026-10-15T21:29:21.770726+00:00",
+      "actualSession": 8525,
+      "exitCode": 0,
+      "file": "__tests__/staff-customer-retention-read-prerequisite-sql.test.ts",
+      "selected": "executes the entire mandatory native rollback guard against the actual qualified SQL",
+      "passed": 1,
+      "failed": 0,
+      "otherCases": "Name-filtered; not executed or claimed",
+      "reportSHA256": "3ab69737f691330a84952df36daa029bc3085304914f72979cf667fcc0be13b7",
+      "SQLPostSHA256": "fbf853c630cd3b4d059942e2aee17c6b7ab834c3d71bfbbee7723cf9a6b425da",
+      "scope": "Existing full SQL fixture unit exercises physical postimage against prerequisite23514 lane; separate frozen14case actualcanonicalguard proof retained. No fullnative/backend/GEN."
+    },
+    "priorNineTechnicalPostimages": "AllSHA256exactf47; noothertechnicaldelta"
   }
 }
