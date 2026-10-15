@@ -13,6 +13,28 @@ DECLARE
     v_source_line,$values$;
  value_after text := $values$    v_raw,v_source_message_id,v_source_tx,v_source_tx,
     v_source_line,$values$;
+ guard_anchor text := $anchor$  if v_existing.id is not null then
+    v_revision := coalesce(v_existing.revision_number,1)+1;$anchor$;
+ guard_body text := $guard$  -- A retained pre-forward row may have no legacy ID even with a reference.
+  -- Preserve its physical duplicate boundary before any replacement writes;
+  -- equal-value/quality reuse has already returned above, unchanged.
+  if v_source_tx is not null and exists (
+    select 1 from public.metering_values legacy
+     where legacy.company_id=v_company_id and legacy.metering_point_id=v_metering_point_id
+       and coalesce(legacy.product_code,'')=coalesce(nullif(p_payload->>'product_code',''),'')
+       and coalesce(legacy.register_code,'')=coalesce(nullif(p_payload->>'register_code',''),'')
+       and coalesce(legacy.meter_number,'')=''
+       and legacy.period_start=(p_payload->>'period_start')::timestamptz
+       and legacy.period_end=(p_payload->>'period_end')::timestamptz
+       and coalesce(legacy.reading_type,'')=coalesce(nullif(p_payload->>'reading_type',''),'consumption')
+       and coalesce(legacy.source_transaction_id,'')=''
+       and legacy.source_transaction_reference=v_source_tx
+  ) then
+    raise exception 'duplicate key value violates unique constraint "ux_metering_values_company_ediel_duplicate_guard"'
+      using errcode='23505',constraint='ux_metering_values_company_ediel_duplicate_guard',schema='public',table='metering_values';
+  end if;
+
+$guard$;
  index_definition text := $index$CREATE UNIQUE INDEX ux_metering_values_company_ediel_duplicate_guard ON public.metering_values USING btree (company_id, metering_point_id, COALESCE(product_code, ''::text), COALESCE(register_code, ''::text), COALESCE(meter_number, ''::text), period_start, period_end, COALESCE(reading_type, ''::text), COALESCE(source_transaction_id, ''::text)) WHERE ((company_id IS NOT NULL) AND (metering_point_id IS NOT NULL) AND (period_start IS NOT NULL) AND (period_end IS NOT NULL))$index$;
 BEGIN
  -- Stable metadata/index witnesses while this isolated forward changes only
@@ -23,7 +45,8 @@ BEGIN
  IF encode(sha256(convert_to(old_body,'UTF8')),'hex') IS DISTINCT FROM 'a5806ee9dce67d299e1e06cb4eb47f19a90710c9a9760f35aa071fb7c70b5f9f'
   OR old_body='' OR (length(old_definition)-length(replace(old_definition,old_body,'')))/length(old_body)<>1
   OR (length(old_body)-length(replace(old_body,column_before,'')))/length(column_before)<>1
-  OR (length(old_body)-length(replace(old_body,value_before,'')))/length(value_before)<>1 THEN
+  OR (length(old_body)-length(replace(old_body,value_before,'')))/length(value_before)<>1
+  OR (length(old_body)-length(replace(old_body,guard_anchor,'')))/length(guard_anchor)<>1 THEN
   RAISE EXCEPTION 'sc046_duplicate_guard_predecessor_conflict' USING ERRCODE='P0U01';
  END IF;
  IF NOT EXISTS(SELECT FROM pg_proc p JOIN pg_language l ON l.oid=p.prolang WHERE p.oid=target
@@ -51,9 +74,9 @@ BEGIN
  SELECT jsonb_object_agg(p.oid::text,to_jsonb(p)) INTO before_helpers
  FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
  WHERE p.oid<>target AND (n.nspname='public' OR starts_with(n.nspname,'gridex_'));
- new_body:=replace(replace(old_body,column_before,column_after),value_before,value_after);
- IF encode(sha256(convert_to(new_body,'UTF8')),'hex') IS DISTINCT FROM '7c3afe5c7fec6a5def5b0b64d4459bf6af21369a8e55e647c50308e772815af7'
-  OR replace(replace(new_body,column_after,column_before),value_after,value_before) IS DISTINCT FROM old_body THEN
+ new_body:=replace(replace(replace(old_body,column_before,column_after),value_before,value_after),guard_anchor,guard_body||guard_anchor);
+ IF encode(sha256(convert_to(new_body,'UTF8')),'hex') IS DISTINCT FROM 'd8422ac157884c54244bd295a73caf2c3263b92fffbbbec64cc3460fef1b7cf9'
+  OR replace(replace(replace(new_body,guard_body||guard_anchor,guard_anchor),column_after,column_before),value_after,value_before) IS DISTINCT FROM old_body THEN
   RAISE EXCEPTION 'sc046_duplicate_guard_source_inverse_conflict' USING ERRCODE='P0U01';
  END IF;
  new_definition:=replace(old_definition,old_body,new_body);
@@ -67,7 +90,7 @@ BEGIN
  WHERE i.indexrelid=to_regclass('public.ux_metering_values_company_ediel_duplicate_guard');
  IF after_metadata IS DISTINCT FROM before_metadata OR after_helpers IS DISTINCT FROM before_helpers
   OR after_index IS DISTINCT FROM before_index OR installed_body IS DISTINCT FROM new_body
-  OR encode(sha256(convert_to(installed_body,'UTF8')),'hex') IS DISTINCT FROM '7c3afe5c7fec6a5def5b0b64d4459bf6af21369a8e55e647c50308e772815af7'
+  OR encode(sha256(convert_to(installed_body,'UTF8')),'hex') IS DISTINCT FROM 'd8422ac157884c54244bd295a73caf2c3263b92fffbbbec64cc3460fef1b7cf9'
   OR replace(new_definition,new_body,old_body) IS DISTINCT FROM old_definition THEN
   RAISE EXCEPTION 'sc046_duplicate_guard_postcondition_conflict' USING ERRCODE='P0U01';
  END IF;

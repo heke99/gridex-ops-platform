@@ -42,6 +42,13 @@ const currentBody = atomicDDL.slice(bodyDelimiter.index + bodyDelimiter[0].lengt
 // GEN may later carry the new body. Fixture always installs exact immutable
 // original a580; the actual forward remains the only implementation under test.
 const oldDDL = atomicDDL.replace(/^CREATE FUNCTION /, 'CREATE OR REPLACE FUNCTION ').replace(currentBody, () => body)
+// Archived held b7 variant: portable reconstruction is pinned to its actual
+// rejected prosrc hash, not fetched from unpublished Git or treated as a fix.
+const heldBody = body.replace('    source_transaction_reference,source_line_reference,price_area,resolution,canonical_dedupe_key,is_current,previous_value_id,',
+  '    source_transaction_id,source_transaction_reference,source_line_reference,price_area,resolution,canonical_dedupe_key,is_current,previous_value_id,')
+  .replace('    v_raw,v_source_message_id,v_source_tx,\n    v_source_line,', '    v_raw,v_source_message_id,v_source_tx,v_source_tx,\n    v_source_line,')
+assert.equal(hash(heldBody), '7c3afe5c7fec6a5def5b0b64d4459bf6af21369a8e55e647c50308e772815af7')
+const heldDDL = oldDDL.replace(body, () => heldBody)
 const indexLine = schema.split('\n').filter(line => line.startsWith('CREATE UNIQUE INDEX ux_metering_values_company_ediel_duplicate_guard '))
 assert.equal(indexLine.length, 1)
 assert.equal(hash(indexLine[0]), 'eb2cc04b810f3015a19c5cd7eb50f440a306aeb50153c824f55182af56efcab2')
@@ -81,12 +88,43 @@ async function rejectsAtomic(label, input, code, constraint) {
   await assert.rejects(() => call(input), error => error.code === code && (!constraint || error.constraint === constraint), label)
   assert.deepEqual(await snapshot(), before, `${label}: entire attempted revision rolled back`)
 }
+async function legacyBoundaryMatrix(variant, forward) {
+  let combinations = 0
+  for (const legacyID of [null, '']) for (const sample of [
+    { otherKey: false, historical: false, quantity: 11 }, { otherKey: true, historical: false, quantity: 11 },
+    { otherKey: false, historical: true, quantity: 11 }, { otherKey: true, historical: true, quantity: 11 },
+    { otherKey: true, historical: false, quantity: 500 },
+  ]) {
+    await reset(); await db.exec(oldDDL)
+    await call(payload(500, 'DECLARED-SAME-R'))
+    await db.query('UPDATE public.metering_values SET source_transaction_id=$1, is_current=$2', [legacyID, !sample.historical])
+    if (sample.historical) await db.exec("UPDATE public.normalized_metering_values SET revision_status='replaced',status='replaced'")
+    if (variant === 'held-b7') await db.exec(heldDDL)
+    if (variant === 'corrected') await db.exec(forward)
+    const saved = await snapshot(), input = payload(sample.quantity, 'DECLARED-SAME-R', nextSource)
+    if (sample.otherKey) input.canonical_dedupe_key = 'declared-other-key'
+    if (variant === 'held-b7') {
+      const accepted = await call(input), state = await snapshot()
+      assert.equal(accepted.value_kwh, sample.quantity); assert.equal(accepted.source_transaction_id, 'DECLARED-SAME-R')
+      assert.equal(state.meter.length, 2); assert.equal(state.normalized.length, 2); assert.equal(state.sources.length, 2)
+      assert.equal(state.meter.find(row => row.id === saved.meter[0].id).value_kwh, 500)
+    } else {
+      await assert.rejects(() => call(input), error => error.code === '23505'
+        && error.constraint === 'ux_metering_values_company_ediel_duplicate_guard'
+        && error.schema === 'public' && error.table === 'metering_values')
+      assert.deepEqual(await snapshot(), saved, `${variant} complete rollback`)
+    }
+    combinations++
+  }
+  result.legacyBoundaryMatrix ??= {}
+  result.legacyBoundaryMatrix[variant] = { combinations, outcome: variant === 'held-b7' ? 'REJECTED_CANDIDATE_BAD_ACCEPTANCE_REPRODUCED' : '23505_EXACT_DIAGNOSTICS_AND_FULL_ROLLBACK' }
+}
 async function setup() {
   await db.exec(`CREATE ROLE service_role; CREATE SCHEMA gridex_utilts_binding;
    CREATE TABLE public.customers(id uuid, company_id uuid);
    CREATE TABLE public.metering_points(id uuid, company_id uuid, customer_id uuid);
    INSERT INTO public.customers VALUES('${customer}','${company}');
-   INSERT INTO public.metering_points VALUES('${point}','${company}','${customer}');`)
+   INSERT INTO public.metering_points VALUES('${point}','${company}','${customer}'),('${uid(7)}','${company}','${customer}');`)
   for (const name of ['public.metering_values', 'public.normalized_metering_values', 'public.metering_value_sources',
     'public.meter_reading_series', 'public.ediel_messages']) await db.exec(table(name))
   for (const name of ['public.metering_values', 'public.normalized_metering_values', 'public.metering_value_sources']) {
@@ -117,7 +155,7 @@ try {
       await db.exec(forward)
       const after = await metadata()
       assert.deepEqual(after.meta, before.meta)
-      assert.equal(hash(after.body), '7c3afe5c7fec6a5def5b0b64d4459bf6af21369a8e55e647c50308e772815af7')
+      assert.equal(hash(after.body), 'd8422ac157884c54244bd295a73caf2c3263b92fffbbbec64cc3460fef1b7cf9')
       assert.deepEqual(await snapshot(), rowsBefore)
       assert.deepEqual(await witnesses(), guardsBefore)
       result.prosrc = { before: hash(before.body), after: hash(after.body) }
@@ -205,7 +243,7 @@ try {
       await db.exec(helper)
     })
     await check('incorrect expected postimage hash refuses before replacement and leaves all state unchanged', async () => {
-      const wrongHash = forward.replaceAll('7c3afe5c7fec6a5def5b0b64d4459bf6af21369a8e55e647c50308e772815af7', '0'.repeat(64))
+      const wrongHash = forward.replaceAll('d8422ac157884c54244bd295a73caf2c3263b92fffbbbec64cc3460fef1b7cf9', '0'.repeat(64))
       const saved = await snapshot(), meta = await metadata(), witness = await witnesses()
       await assert.rejects(() => db.exec(wrongHash), /sc046_duplicate_guard_source_inverse_conflict/)
       assert.deepEqual(await snapshot(), saved); assert.deepEqual(await metadata(), meta); assert.deepEqual(await witnesses(), witness)
@@ -226,6 +264,76 @@ try {
       await db.exec('DROP INDEX public.ux_metering_values_company_ediel_duplicate_guard'); await db.exec(indexLine[0])
     })
     await db.exec(cleanDefinition)
+    await check('actual original a580 refuses ten combined historical NULL/empty same-reference duplicates', async () => {
+      await legacyBoundaryMatrix('original', forward)
+    })
+    await check('authenticated held b7 wrongly accepts the same ten historical combinations', async () => {
+      await legacyBoundaryMatrix('held-b7', forward)
+    })
+    await check('corrected forward restores all ten historical same-reference refusals with exact diagnostics and rollback', async () => {
+      await legacyBoundaryMatrix('corrected', forward)
+    })
+    await check('physical-index near misses retain original acceptance instead of blanket same-reference rejection', async () => {
+      const samples = [
+        { input: { product_code: 'P2' } }, { input: { register_code: 'R2' } },
+        { input: { period_start: '2026-06-30T23:55:00Z' } }, { input: { period_end: '2026-07-01T00:30:00Z' } },
+        { input: { reading_type: 'production' } }, { input: { metering_point_id: uid(7) } },
+        { input: {}, oldMeterNumber: 'DECLARED-OLD-METER' },
+      ]
+      for (const sample of samples) {
+        await reset(); await db.exec(oldDDL); await call(payload(500, 'DECLARED-SAME-R'))
+        if (sample.oldMeterNumber) await db.query('UPDATE public.metering_values SET meter_number=$1', [sample.oldMeterNumber])
+        const incoming = { ...payload(11, 'DECLARED-SAME-R', nextSource), ...sample.input, canonical_dedupe_key: 'declared-physical-near-miss' }
+        const originalState = await snapshot()
+        // Independently characterize actual unchanged a580/index behavior first.
+        const originalAccepted = await call(incoming); assert.equal(originalAccepted.value_kwh, 11)
+        await reset(); await call(payload(500, 'DECLARED-SAME-R'))
+        if (sample.oldMeterNumber) await db.query('UPDATE public.metering_values SET meter_number=$1', [sample.oldMeterNumber])
+        await db.exec(forward)
+        const saved = await snapshot(), accepted = await call(incoming), state = await snapshot()
+        assert.equal(accepted.value_kwh, 11); assert.equal(accepted.source_transaction_id, 'DECLARED-SAME-R')
+        assert.deepEqual(state.meter.find(row => row.id === saved.meter[0].id), saved.meter[0])
+        assert.equal(state.meter.length, originalState.meter.length + 1)
+        assert.equal(state.normalized.length, 2); assert.equal(state.sources.length, 2)
+      }
+      result.physicalNearMissCases = samples.length
+    })
+    await check('historical NULL/empty IDs preserve equal-content reuse before guard and exact empty/default physical matching', async () => {
+      for (const legacyID of [null, '']) {
+        await reset(); await db.exec(oldDDL)
+        const originalPayload = { ...payload(500, 'DECLARED-SAME-R'), product_code: null, register_code: null, reading_type: '' }
+        const first = await call(originalPayload)
+        await db.query('UPDATE public.metering_values SET source_transaction_id=$1', [legacyID])
+        await db.exec(forward)
+        for (const [reference, source] of [['DECLARED-SAME-R', nextSource], ['DECLARED-OTHER-R', uid(6)]]) {
+          const saved = await snapshot(), reused = await call({ ...originalPayload, source_transaction_reference: reference, source_ediel_message_id: source })
+          const state = await snapshot()
+          assert.equal(reused.id, first.id); assert.deepEqual(state.meter, saved.meter); assert.deepEqual(state.normalized, saved.normalized)
+          assert.equal(state.sources.length, saved.sources.length + 1)
+          await call({ ...originalPayload, source_transaction_reference: reference, source_ediel_message_id: source })
+          assert.deepEqual(await snapshot(), state)
+        }
+        for (const reading of [undefined, null, '']) {
+          const incoming = { ...originalPayload, value_kwh: 11, source_ediel_message_id: nextSource,
+            product_code: '', register_code: '', reading_type: reading, meter_number: 'IGNORED-BY-ACTUAL-INSERT', canonical_dedupe_key: 'declared-other-key' }
+          await rejectsAtomic('historical default physical tuple', incoming, '23505', 'ux_metering_values_company_ediel_duplicate_guard')
+        }
+      }
+      result.historicalEqualReuseCases = 4; result.defaultPhysicalMatchRefusals = 6
+    })
+    await check('historical NULL and empty legacy IDs both retain distinct-reference revision success', async () => {
+      for (const legacyID of [null, '']) {
+        await reset(); await db.exec(oldDDL); const first = await call(payload(500, 'DECLARED-NEWER'))
+        await db.query('UPDATE public.metering_values SET source_transaction_id=$1', [legacyID])
+        await db.exec(forward)
+        const next = await call(payload(11, 'DECLARED-NEWEST', nextSource)), state = await snapshot()
+        assert.equal(next.value_kwh, 11); assert.equal(next.previous_value_id, first.id); assert.equal(next.revision_number, 2)
+        assert.equal(state.meter.find(row => row.id === first.id).source_transaction_id, legacyID)
+        assert.equal(state.meter.find(row => row.id === first.id).value_kwh, 500)
+        assert.equal(state.meter.filter(row => row.is_current).length, 1)
+        assert.equal(state.meter.length, 2); assert.equal(state.normalized.length, 2); assert.equal(state.sources.length, 2)
+      }
+    })
     result.completedChecks = checks
     result.limits = ['Declared synthetic SOURCE SQL fixture only, no canonical tenant/admission/native/ACK/billing/capture proof.',
       'Same-reference changed quantity and blank-reference legacy guard refusals retained; no general same-reference correction approval.',
