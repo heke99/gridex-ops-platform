@@ -1,7 +1,70 @@
--- PRIVATE all-three-signing-core plus SC031 source composition; NOT EXECUTED.
+-- Derived replay: converge only a source-proven postgres SELECT grant, then preserve canonical signing/SC031 around unchanged sealed execution.
 -- Derived complete-state exception is limited to exact source-pinned canonical bodies.
 BEGIN;
 SET LOCAL search_path=pg_catalog;
+-- Converge only the source-proven historical postgres SELECT grant before sealed capture.
+DO $ops_auth_self_select_convergence$
+DECLARE
+ auth_namespace oid:=to_regnamespace('auth');
+ auth_users oid:=to_regclass('auth.users');
+ auth_uid oid:=to_regprocedure('auth.uid()');
+ namespace_before jsonb;functions_before jsonb;classes_before jsonb;
+ columns_before jsonb;triggers_before jsonb;roles_before jsonb;members_before jsonb;
+ actual_acl text[];legacy_select boolean:=false;
+ schema_acl constant text[]:=ARRAY['supabase_admin=UC/supabase_admin','anon=U/supabase_admin','authenticated=U/supabase_admin','service_role=U/supabase_admin','supabase_auth_admin=UC/supabase_admin','dashboard_user=UC/supabase_admin','postgres=U/supabase_admin'];
+ users_acl constant text[]:=ARRAY['supabase_auth_admin=arwdDxtm/supabase_auth_admin','dashboard_user=arwdDxtm/supabase_auth_admin','postgres=ar*wdDxtm/supabase_auth_admin'];
+ uid_acl constant text[]:=ARRAY['=X/supabase_auth_admin','supabase_auth_admin=X/supabase_auth_admin','dashboard_user=X/supabase_auth_admin'];
+BEGIN
+ IF current_user IS DISTINCT FROM 'postgres' OR session_user IS DISTINCT FROM 'postgres'
+  OR current_setting('server_version_num')::integer NOT BETWEEN 170000 AND 179999
+  OR NOT EXISTS(SELECT FROM pg_roles WHERE rolname='postgres' AND NOT rolsuper AND rolinherit AND rolbypassrls)
+  OR NOT EXISTS(SELECT FROM pg_roles WHERE rolname='gridex_ediel_retention_owner' AND NOT rolcanlogin AND NOT rolinherit AND NOT rolsuper AND NOT rolcreatedb AND NOT rolcreaterole AND NOT rolreplication AND rolbypassrls)
+  OR auth_namespace IS NULL OR auth_users IS NULL OR auth_uid IS NULL
+  THEN RAISE EXCEPTION 'ops_auth_self_select_qualified_existing_profile_required';END IF;
+ IF(SELECT nspowner FROM pg_namespace WHERE oid=auth_namespace) IS DISTINCT FROM 'supabase_admin'::regrole::oid
+  OR(SELECT array_agg(a::text ORDER BY a::text COLLATE "C") FROM pg_namespace n CROSS JOIN LATERAL unnest(n.nspacl) a WHERE n.oid=auth_namespace)
+   IS DISTINCT FROM(SELECT array_agg(a ORDER BY a COLLATE "C") FROM unnest(schema_acl) a)
+  OR(SELECT proowner FROM pg_proc WHERE oid=auth_uid) IS DISTINCT FROM 'supabase_auth_admin'::regrole::oid
+  OR(SELECT array_agg(a::text ORDER BY a::text COLLATE "C") FROM pg_proc p CROSS JOIN LATERAL unnest(p.proacl) a WHERE p.oid=auth_uid)
+   IS DISTINCT FROM(SELECT array_agg(a ORDER BY a COLLATE "C") FROM unnest(uid_acl) a)
+  OR NOT EXISTS(SELECT FROM pg_class WHERE oid=auth_users AND relnamespace=auth_namespace AND relname='users' AND relkind='r' AND relowner='supabase_auth_admin'::regrole::oid)
+  OR EXISTS(SELECT FROM pg_attribute WHERE attrelid=auth_users AND attacl IS NOT NULL)
+  OR has_schema_privilege('gridex_ediel_retention_owner','auth','USAGE') IS DISTINCT FROM false
+  OR has_table_privilege('gridex_ediel_retention_owner','auth.users','UPDATE') IS DISTINCT FROM false
+  OR has_table_privilege('postgres','auth.users','SELECT WITH GRANT OPTION') IS DISTINCT FROM true
+  THEN RAISE EXCEPTION 'ops_auth_self_select_protected_auth_profile_unknown';END IF;
+ SELECT array_agg(a::text ORDER BY a::text COLLATE "C") INTO actual_acl FROM pg_class c CROSS JOIN LATERAL unnest(c.relacl) a WHERE c.oid=auth_users;
+ IF actual_acl IS NOT DISTINCT FROM(SELECT array_agg(a ORDER BY a COLLATE "C") FROM unnest(users_acl) a) THEN
+  IF has_table_privilege('gridex_ediel_retention_owner','auth.users','SELECT') IS DISTINCT FROM false THEN RAISE EXCEPTION 'ops_auth_self_select_native_inherited_capability_unknown';END IF;
+ ELSIF actual_acl IS NOT DISTINCT FROM(SELECT array_agg(a ORDER BY a COLLATE "C") FROM unnest(users_acl||ARRAY['gridex_ediel_retention_owner=r/postgres']::text[]) a) THEN
+  IF has_table_privilege('gridex_ediel_retention_owner','auth.users','SELECT') IS DISTINCT FROM true THEN RAISE EXCEPTION 'ops_auth_self_select_legacy_capability_unknown';END IF;
+  legacy_select:=true;
+ ELSE RAISE EXCEPTION 'ops_auth_self_select_unknown_users_acl';END IF;
+ SELECT to_jsonb(n) INTO STRICT namespace_before FROM pg_namespace n WHERE oid=auth_namespace;
+ SELECT jsonb_agg(to_jsonb(p) ORDER BY p.oid) INTO functions_before FROM pg_proc p WHERE p.pronamespace=auth_namespace;
+ SELECT jsonb_agg(CASE WHEN c.oid=auth_users THEN to_jsonb(c)-'relacl' ELSE to_jsonb(c) END ORDER BY c.oid) INTO classes_before FROM pg_class c WHERE c.relnamespace=auth_namespace;
+ SELECT jsonb_agg(to_jsonb(a) ORDER BY a.attrelid,a.attnum) INTO columns_before FROM pg_attribute a JOIN pg_class c ON c.oid=a.attrelid WHERE c.relnamespace=auth_namespace;
+ SELECT jsonb_agg(to_jsonb(t) ORDER BY t.oid) INTO triggers_before FROM pg_trigger t JOIN pg_class c ON c.oid=t.tgrelid WHERE c.relnamespace=auth_namespace;
+ SELECT jsonb_agg(to_jsonb(r) ORDER BY r.oid) INTO roles_before FROM pg_roles r;
+ SELECT coalesce(jsonb_agg(to_jsonb(m) ORDER BY m.roleid,m.member,m.grantor),'[]'::jsonb) INTO members_before FROM pg_auth_members m;
+ IF legacy_select THEN
+  REVOKE SELECT ON TABLE auth.users FROM gridex_ediel_retention_owner GRANTED BY postgres RESTRICT;
+ END IF;
+ IF(SELECT array_agg(a::text ORDER BY a::text COLLATE "C") FROM pg_class c CROSS JOIN LATERAL unnest(c.relacl) a WHERE c.oid=auth_users)
+   IS DISTINCT FROM(SELECT array_agg(a ORDER BY a COLLATE "C") FROM unnest(users_acl) a)
+  OR has_schema_privilege('gridex_ediel_retention_owner','auth','USAGE') IS DISTINCT FROM false
+  OR has_table_privilege('gridex_ediel_retention_owner','auth.users','SELECT') IS DISTINCT FROM false
+  OR has_table_privilege('gridex_ediel_retention_owner','auth.users','UPDATE') IS DISTINCT FROM false
+  OR(SELECT to_jsonb(n) FROM pg_namespace n WHERE oid=auth_namespace) IS DISTINCT FROM namespace_before
+  OR(SELECT jsonb_agg(to_jsonb(p) ORDER BY p.oid) FROM pg_proc p WHERE p.pronamespace=auth_namespace) IS DISTINCT FROM functions_before
+  OR(SELECT jsonb_agg(CASE WHEN c.oid=auth_users THEN to_jsonb(c)-'relacl' ELSE to_jsonb(c) END ORDER BY c.oid) FROM pg_class c WHERE c.relnamespace=auth_namespace) IS DISTINCT FROM classes_before
+  OR(SELECT jsonb_agg(to_jsonb(a) ORDER BY a.attrelid,a.attnum) FROM pg_attribute a JOIN pg_class c ON c.oid=a.attrelid WHERE c.relnamespace=auth_namespace) IS DISTINCT FROM columns_before
+  OR(SELECT jsonb_agg(to_jsonb(t) ORDER BY t.oid) FROM pg_trigger t JOIN pg_class c ON c.oid=t.tgrelid WHERE c.relnamespace=auth_namespace) IS DISTINCT FROM triggers_before
+  OR(SELECT jsonb_agg(to_jsonb(r) ORDER BY r.oid) FROM pg_roles r) IS DISTINCT FROM roles_before
+  OR(SELECT coalesce(jsonb_agg(to_jsonb(m) ORDER BY m.roleid,m.member,m.grantor),'[]'::jsonb) FROM pg_auth_members m) IS DISTINCT FROM members_before
+  THEN RAISE EXCEPTION 'ops_auth_self_select_exact_native_postprofile_or_protected_metadata_changed';END IF;
+END
+$ops_auth_self_select_convergence$;
 DO $ops_compact_apply$
 DECLARE raw bytea; executable bytea;
  signing_public oid; signing_core oid; signing_public_before pg_catalog.pg_proc%rowtype; signing_public_after pg_catalog.pg_proc%rowtype;

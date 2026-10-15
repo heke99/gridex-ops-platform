@@ -436,10 +436,10 @@
       "source": "migrations/20261014113214_ops_api_atomic_bb0b_authfree_effect.sql",
       "sourceKind": "timestampedMigration",
       "sourceSha256": "a2a7e91e1bbb97e0b2d73171b1e0893fad9e4acf915ca620c02f25b8e6aa4a0d",
-      "artifactSha256": "ca6b5b3fdda7b7d35fd97bed88f9822c317e0f74c335cab981116bc5691c73d5",
+      "artifactSha256": "be3038a8db6bff6344f92609353d643fc7784181f45ec7c4b884610b791aac00",
       "preserveSourceReplay": false,
       "execution": "sourcePosition",
-      "reason": "Preserve all original transport/sealed guards; temporarily normalize exact canonical signing core and SC031 projection before unchanged sealed installer, then restore both complete function rows and unchanged retained public wrapper in the same transaction. New runtime concurrency forward remains separately required."
+      "reason": "Converge only the exact historical postgres-granted auth.users SELECT privilege to the unchanged sealed Auth-free baseline; preserve all original transport/sealed guards and temporarily normalize then restore complete canonical signing cores and SC031 projection in the same transaction. Runtime signing concurrency forwards remain separately required."
     },
     "bootstrap/20261013_ops_market_actor_normalizer_replay_adapter.sql": {
       "source": "migrations/20261013151412_ops_api_market_actor_normalizers.sql",

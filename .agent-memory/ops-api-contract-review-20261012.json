@@ -28,7 +28,7 @@
     "No canonical schema/type GEN or active Ediel claims/shared memory writes",
     "401/412source-tracedSDKURLattestation verifies runtime target only; no authenticatedbusiness/provider call"
   ],
-  "next_action": "Finish two independent current-three-file final reviews/integrity and normal PR794 upload. Then acquire bounded Auth replay adapter custody using current verified base and explicit #766 metadata authorization; publish separately after final reviews/input qualification. No wholehistory/Staffgreen/merge claim.",
+  "next_action": "Materialize exact artifact+matched descriptor/current checkpoint; two independent current union final reviews, committed input materializers, serial normal source publication after previous capture is terminal. No blind workflow rerun/new producer.",
   "source_head": "47a23b7573543021f79df172b44fb051024d2714",
   "integrated_main": "6ce6d49eafa8ca24bcefbeec717dd55b63abad66",
   "draft_pr": "https://github.com/heke99/gridex-ops-platform/pull/794",
@@ -38,7 +38,7 @@
   "latest_native_preflight": "Fresh10:01:58UTC before13:519ledger/422Authhooks/51B3parts/CEEprepare, no drift. After13:532ledger/648Authhooks exactly422old+226/113sourceallowed new, wholeprepare unchanged and transports removed; native1243function comparisonPASS.",
   "handover": "Application d899ac6b deployed to OPS production READY20:11:57.854UTC, integrated latest main4e52854e, realbuild175.12s and two independent integration-source reviews. No new module SQL/GEN/mainmerge performed. Fresh portal HTTP fetch auto-review rejected; current public frontend DB binding NOT_VERIFIED. PR794 draft; future main release must integrate branch API corrections.",
   "user_authorization": "User2026-10-13 Stockholm explicitly approves npm audit and all code/database/migration fixes; no repeated permission request needed for scoped OPS remediation.",
-  "current_source_head": "41b07f9368c410f08642d8d8c2b3c2dacc215bd7 reviewed combined application; OPS production build started, READY/readback pending",
+  "current_source_head": "45b4cbba36eae4210b1e8fed7d850bfcccbd7a21",
   "dependency_audit": "Passed with existing scoped node-forge exception; latest1.4.0 has no patched advisory version.",
   "migration_scope": "85actualwrites=18scoped+64source-only+3metadata actions; latest13=12source-only+1atomic effect with8logical componentreferences; no fake childledger.",
   "gen_owner": "No competing capture. Latest existing main4e52854e canonical GEN files imported byte-identically. Fresh module/semantic capture requires actual owning producer follow-up.",
@@ -756,7 +756,7 @@
   "historical_source_head": "79333e8a2ae93ed27de425c81c4668564d57d6f6",
   "historical_review_packet_commit": "50ac032bbf37c2edd08fb6df43da16fefa8cbaa0",
   "historical_fixture_head": "4b3a32ab328821d9763e22b0aff527da098d3509",
-  "observed_at": "2026-10-15T07:00:21.105216+00:00",
+  "observed_at": "2026-10-15T07:19:04.086342+00:00",
   "native_ledger_count_observed": 532,
   "latest_signing_forward": "20261014060124_ops_api_signing_prepare_post_row_lock_freshness.sql",
   "auth_free_source_recovery": "Frozen A6 and final receipt were private /tmp files lost when environment was replaced. Exact A6 cannot be reconstructed from hashes. Original B3 source/stages remain preserved; rebuild requires new source hash and independent qualification.",
@@ -1135,13 +1135,14 @@
     },
     "native_action_count": 88,
     "source_copy_gate": "RESOLVED: explicit user approval of named metadata to #766; comment6186407955 exact body readback matched. Canonical de637 migration and one runtime checksum entry now materialized.",
-    "next": "Finish two independent current-three-file final reviews/integrity and normal PR794 upload. Then acquire bounded Auth replay adapter custody using current verified base and explicit #766 metadata authorization; publish separately after final reviews/input qualification. No wholehistory/Staffgreen/merge claim.",
+    "next": "Materialize exact artifact+matched descriptor/current checkpoint; two independent current union final reviews, committed input materializers, serial normal source publication after previous capture is terminal. No blind workflow rerun/new producer.",
     "historical_auth_replay_private_proposal": {
       "immutable_source_sha256": "24a2026b0b37f42d02c242a0f218ab028f938f2affbc0f093355ef32c938468e",
       "derived_sha256": "67af9213292f6ae5b7851a00d37e8f73e322c91c88d167e13c47b1aa47e5ee36",
       "bytes": 23004,
       "delta": "Exactly83byte subtraction of retention Auth schema/table/function grant fragments; all other original bytes preserved. Original migration/sealed guards unchanged. Intermediate source-applicability reviewed; independent finals in progress. No canonical file/descriptor edit or new Auth operation.",
-      "review": "Root exact83byte comparison and two independent bounded source approvals; old transport constructors only stage original bytes. SourcePosition input builders and genuine whole-history SQL execution still pending. No native Auth operation."
+      "review": "Root exact83byte comparison and two independent bounded source approvals; old transport constructors only stage original bytes. SourcePosition input builders and genuine whole-history SQL execution still pending. No native Auth operation.",
+      "upgrade_applicability_warning": "Resolved source distinction: ACTUAL current strict runner pins53bf989b (000500 absent), so67af would apply there and onclean; olderf36 audit baseline and c8 history-union already contain000500.67af remains PRIVATE_NOT_PUBLISHED, superseded by be3038 atomic convergence of the exact source-proven sole PG SELECT grant. Unknown other ACLs remain blocked; unchanged sealed guard retained."
     },
     "source_legal_constructor_closure": {
       "source_sha256": "7c06fb30f8b1d4871abb7d5eee60ad6069299179adeea8953616613730ed52db",
@@ -1149,6 +1150,28 @@
       "result": "Source catalog initialization passed; public prepare refused one_off_publication_refused / contract_version_not_publishable with missing invoice fee, price areas, interval resolution, reviewed legal profile and tenant routing. These are incomplete synthetic inputs/readiness, not yet classified real production defects. API old-doc defaults applicability review in progress.",
       "restoration": "All358 existing relations/sequences fingerprints, whole pg_proc hash, nine functions/definitions and full qualified namespace/role/membership snapshot equal before/after. No actual native call or successful signing claim.",
       "api_false_positive_boundary": "Bounded independent review complete: Staff has no contract-create/sign endpoint; website canonical offer/quote/resolution route has no promised missing-price-field defaults. Catalog authoring normalizes canonical prices/invoice. Admin intake stores supplied/catalog invoice fee or NULL; placeholder0 is not a default, auto-send skipped on draft and pending-send failure is reported. No confirmed new producer defect established; full noncatalog enrichment remains unqualified. Five isolated incomplete-input/readiness blockers remain; no signing/concurrency/API-green credit."
+    },
+    "alias_source_delivery": {
+      "commit": "45b4cbba36eae4210b1e8fed7d850bfcccbd7a21",
+      "tree": "d8f06988e08a278061c79632874d2a7ad446975a",
+      "parent": "d9868dd49521f01d1d5d9d69b6724e614a379cac",
+      "source_files": 3,
+      "checks": "Exact10558Bde637 actualnative source and one runtime entry (old227 preserved); currentCP bound; two independent actualunion finals; integrity1255files/1158groupsPASS; diffcheckPASS. Normal nonforce push succeeded; independent GitHub MCP source ref GET confirmed45b4cb. No new native SQL/reapplication."
     }
+  },
+  "atomic_auth_self_select_source_phase_20261015": {
+    "source_base": "45b4cbba36eae4210b1e8fed7d850bfcccbd7a21",
+    "retained_atomic_receipt": "251f34bacf30d0b4c9df50de8aba1a4a6bd651a7",
+    "retained_descriptor_receipt": "488d0c344ffc5667661832a5fb81dd1f2fca3e29",
+    "custody": "Fresh exact CLI refs plus independent GitHub MCP readbacks matched both retained receipts. No new source path, ID, GEN/native/capture producer or coverage claim.",
+    "GO": "ROOT_BOUNDED_SOURCE_GO_BE3038_ATOMIC_AUTH_SELF_SELECT_CONVERGENCE_AND_MATCHED_DESCRIPTOR_ONLY",
+    "source_preimage_sha256": "ca6b5b3fdda7b7d35fd97bed88f9822c317e0f74c335cab981116bc5691c73d5",
+    "source_postimage_sha256": "be3038a8db6bff6344f92609353d643fc7784181f45ec7c4b884610b791aac00",
+    "source_bytes": 160832,
+    "scope": "Only native exact Auth profile no-op or sole known nongrantable auth.users retention SELECT from postgres; only own PG REVOKE SELECT GRANTED BY postgres RESTRICT. Full protected metadata and authority preserved, all other original ca6 bytes unchanged except truthful first header. No original sealed/migration bytes changed, no67af new foundation artifact.",
+    "source_reviews": "Two independent frozen be3038 source finals approved.",
+    "existing_component_database_qualification": "Eight genuine complete compound executions: native/canonical function profiles x Auth-free/legacy self-SELECT x first/replay, each64 immutable transports. Complete seven function rows/definitions retained, exact native Auth metadata/all roles/members postprofile, both transport schemas removed; original functions+Auth authority restored. Grantable-SELECT and column-SELECT negative fixtures refused and rollback metadata exact. Existing NOSUPER postgres only using already held SELECT grant option; no Auth owner or actual native project action.",
+    "limitations": "Full historical clean/strict53/history-union replay/schema/types and successful business signing/concurrency remain pending.67af alone was insufficient for already-applied c8/f36 source; bounded atomic convergence covers the known sole SELECT profile instead.",
+    "next": "Materialize exact artifact+matched descriptor/current checkpoint; two independent current union final reviews, committed input materializers, serial normal source publication after previous capture is terminal. No blind workflow rerun/new producer."
   }
 }
