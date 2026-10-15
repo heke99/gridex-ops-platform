@@ -7,6 +7,7 @@ import { isDeliveryStatusNotification } from './dsnClassifier'
 import { processInboundEmailMessage } from "@/lib/inbound-mail/edielInboundProcessor"
 
 import { supabaseService } from "@/lib/supabase/service"
+import { formatErrorMessage } from "@/lib/errors"
 import {requireAiBiPersonalDataStorage} from '@/lib/ediel/aiBiPersonalDataStorage'
 import { unpackInboundSmimeIfNeeded } from "@/lib/ediel/transport/smime"
 import type { EdielMailboxRow, InboundEngineRunResult, InboundProcessingJobRow, PollMailboxResult, StoreInboundEmailInput } from './edielMailboxPoller.part-1'
@@ -419,7 +420,7 @@ export async function pollEdielMailbox(input: {
             message: message as unknown as Record<string, unknown>,
           });
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : String(error ?? 'Okänt fel vid IMAP-lagring.');
+          const errorMessage = formatErrorMessage(error, 'Okänt fel vid IMAP-lagring.');
           result.errors.push(errorMessage);
           return true;
         }
@@ -476,7 +477,7 @@ export async function pollEdielMailbox(input: {
     return result;
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "Okänt pollingfel.";
+      formatErrorMessage(error, "Okänt pollingfel.");
     result.errors.push(message);
     await markMailboxPollFinished({
       mailboxId: input.mailbox.id,
@@ -692,7 +693,7 @@ export async function processQueuedInboundProcessingJobs(
       processed += 1;
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Okänt processfel.";
+        formatErrorMessage(error, "Okänt processfel.");
       const nextAttempts = Number(job.attempts_count ?? 0) + 1;
       const shouldRetry = nextAttempts < maxAttempts;
       await markInboundProcessingJobFinished({

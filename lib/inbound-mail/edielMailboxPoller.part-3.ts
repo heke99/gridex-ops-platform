@@ -3,6 +3,7 @@
 
 
 
+import { formatErrorMessage } from "@/lib/errors"
 import { createInboundOverdueTasks } from "@/lib/inbound-mail/inboundOverdueMonitor"
 
 
@@ -127,7 +128,7 @@ export async function runInboundEdielMailEngine(
             });
             return { edielMessageId, error: null as string | null };
           } catch (error) {
-            return { edielMessageId, error: error instanceof Error ? error.message : "Okänt fel" };
+            return { edielMessageId, error: formatErrorMessage(error, "Okänt fel") };
           }
         },
       );
@@ -151,7 +152,7 @@ export async function runInboundEdielMailEngine(
       limit: envInt("CUSTOMER_OPERATION_JOB_PROCESS_LIMIT", 20),
     });
   } catch (error) {
-    autoProcessErrors.push(`customer-operations: ${error instanceof Error ? error.message : "Okänt fel"}`);
+    autoProcessErrors.push(`customer-operations: ${formatErrorMessage(error, "Okänt fel")}`);
   }
 
   const fetchedMessages = results.reduce((sum, item) => sum + item.fetched, 0);
