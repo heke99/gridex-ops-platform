@@ -122,7 +122,31 @@ async function birth(name:string,subtype:'L'|'LK'):Promise<Fixture>{
     li:f.li,start_day:f.start,observed_birth_policy_day:ordinaryDay,calendar_days_before_start:calendarDays,seal:f.seal})
   persist();return f
 }
-async function freshLogin(id:string,email:string,companyId:string,keys:string[]){
+async function phaseContextReadiness<T extends {error:{code?:string;message?:string}|null}>(
+  read:(signal:AbortSignal)=>PromiseLike<T>,
+  ports={monotonic:()=>performance.now(),wait:(ms:number)=>new Promise<void>(resolve=>setTimeout(resolve,ms)),signal:(ms:number)=>AbortSignal.timeout(ms)},
+){
+  const started=ports.monotonic(),deadline=started+3000
+  let context:T|undefined,attempts=0,futureRefusals=0
+  while(attempts<30){
+    const remaining=deadline-ports.monotonic()
+    if(remaining<1)break
+    context=await read(ports.signal(Math.floor(Math.min(1000,remaining))));attempts++
+    if(context.error?.code!=='PGRST303'||context.error.message!=='JWT issued at future')break
+    futureRefusals++
+    const left=deadline-ports.monotonic()
+    if(left<1||attempts===30)break
+    await ports.wait(Math.min(100,left))
+  }
+  if(!context)throw Error('z03c_phase_auth_readiness_no_response')
+  const elapsed=ports.monotonic()-started
+  return {context,readiness:{attempts,exact_future_refusals:futureRefusals,elapsed_monotonic_ms:elapsed,ready:context.error===null&&elapsed<=3000}}
+}
+function assertFreshPhaseClaims(claims:{sub?:string;iat?:number;exp?:number},id:string,now:number){
+  expect(claims.sub).toBe(id);expect(typeof claims.iat).toBe('number');expect(typeof claims.exp).toBe('number')
+  expect(Math.abs(now-claims.iat!)).toBeLessThan(30);expect(claims.exp!).toBeGreaterThan(now);expect(claims.exp!-claims.iat!).toBeLessThanOrEqual(3600)
+}
+async function freshLogin(id:string,email:string,companyId:string,keys:string[],phaseClockReadiness=false){
   const client=createClient('http://127.0.0.1:54321',process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,{auth:{persistSession:false,autoRefreshToken:false}})
   const logged=await client.auth.signInWithPassword({email,password});expect(logged.error).toBeNull()
   expect(logged.data.user?.id).toBe(id)
@@ -132,19 +156,30 @@ async function freshLogin(id:string,email:string,companyId:string,keys:string[])
   const now=Date.now()/1000
   expect(claims.sub).toBe(id);expect(typeof claims.iat).toBe('number');expect(typeof claims.exp).toBe('number')
   expect(Math.abs(now-claims.iat!)).toBeLessThan(30);expect(claims.exp!).toBeGreaterThan(now);expect(claims.exp!-claims.iat!).toBeLessThanOrEqual(3600)
-  const context=await client.rpc('canonical_authenticated_tenant_context',{p_selected_company_id:companyId})
+  // Only a proven advanced phase admits bounded JWT-validator readiness.
+  // The read client returns the SAME real GoTrue token on every request;
+  // it cannot refresh/reauthenticate or repeat a cancellation operation.
+  const rpcClient=phaseClockReadiness?createClient('http://127.0.0.1:54321',process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,{
+    accessToken:async()=>token,auth:{persistSession:false,autoRefreshToken:false},
+  }):client
+  const ready=phaseClockReadiness?await phaseContextReadiness(signal=>rpcClient.rpc(
+    'canonical_authenticated_tenant_context',{p_selected_company_id:companyId},
+  ).abortSignal(signal)):null
+  const context=ready?ready.context:await client.rpc('canonical_authenticated_tenant_context',{p_selected_company_id:companyId})
   expect(context.error).toBeNull();expect(context.data).toMatchObject({authorized:true,selected_company_id:companyId})
+  if(ready){expect(ready.readiness.ready).toBe(true);assertFreshPhaseClaims(claims,id,Date.now()/1000)}
   // Normal-switch authority is its actual explicit user_permissions. The
   // historical context permission list projects role grants only; it must not
   // erase this fixture's real operational permission or require a new grant.
   // Reach the SAME current operational oracle that the cancellation owner uses,
   // now through the real freshly authenticated same-principal RPC connection.
   for(const key of keys){
-    const permission=await client.rpc('gridex_actor_has_company_permission',{p_actor_user_id:id,p_company_id:companyId,p_permission:key})
+    const permission=await rpcClient.rpc('gridex_actor_has_company_permission',{p_actor_user_id:id,p_company_id:companyId,p_permission:key})
     expect(permission.error).toBeNull();expect(permission.data).toBe(true)
   }
   await client.auth.signOut({scope:'local'})
-  return {actor_user_id:id,company_id:companyId,iat:claims.iat,exp:claims.exp,authenticated_current_context:true}
+  return {actor_user_id:id,company_id:companyId,iat:claims.iat,exp:claims.exp,authenticated_current_context:true,
+    ...(ready?{phase_auth_readiness:ready.readiness}:{})}
 }
 function actualClocks(){
   const os=JSON.parse(execFileSync('python3',['-c','import time,json;print(json.dumps({"realtime_ms":time.time_ns()/1000000,"monotonic_ms":time.monotonic_ns()/1000000}))'],{encoding:'utf8',timeout:10000})) as Record<string,number>
@@ -179,7 +214,7 @@ async function phase(name:string,targetDay:string,f:Fixture){
   expect(health.ok).toBe(true)
   const apiDate=Date.parse(health.headers.get('date')??'')
   expect(Number.isFinite(apiDate)).toBe(true);expect(Math.abs(Date.now()-apiDate)).toBeLessThan(5000)
-  const authority=await freshLogin(f.actorUserId,`${f.actorUserId}@example.invalid`,f.companyId,['communication.write','communication.send'])
+  const authority=await freshLogin(f.actorUserId,`${f.actorUserId}@example.invalid`,f.companyId,['communication.write','communication.send'],true)
   phases.push({name,target_policy_day:targetDay,before,after,local_api_auth_date_ms:apiDate,current_authority:authority})
   persist()
 }
