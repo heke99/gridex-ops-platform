@@ -8,11 +8,11 @@
   "branch": "codex/ops-api-contract-review-20261012",
   "checkpoint": ".agent-memory/pr794-takeover-20261015.json",
   "user_authorization": "User explicitly appoints this chat as new responsible owner of API PR794, to correct, review and merge, using multiple parallel agents.",
-  "observed_head": "4087a558b1060655124bc4ee4d8709a0b6f97b8a",
+  "observed_head": "a3d770e0ff16dcca296f0f2426eaa627bbbff5ad",
   "observed_main": "11bd50430b0cfd5e525dce7034e4659756c8d5e0",
-  "observed_at": "2026-10-15T18:00:46.955811+00:00",
+  "observed_at": "2026-10-15T18:21:58.048547+00:00",
   "scope": "Existing API PR794. No transfer of other masterplan packets or shared GEN/native/serial delivery service.",
-  "status": "FINAL_11_REVIEWED_POSTIMAGES_MATERIALIZED_LOCAL_CHECKS_PASS_PENDING_EXACT_COMMIT_SOURCE_BINDING",
+  "status": "FINAL_A3_CAPTURE_VERIFY_SMOKE_PASS_NEW_DB01_SELECTIVE_DELIVERY_MISMATCH_UNDER_DIAGNOSIS",
   "skill_routing": {
     "active": [
       "cloud-environment-runtime",
@@ -45,7 +45,7 @@
     "ci_diagnosis": "Current failed CI root cause; no reruns or producers",
     "test_validation": "Local affected tests and checks; no DB/native/GEN"
   },
-  "next_action": "Commit this own checkpoint FIRST then exact11 technicalpostimages; bind two independent SOURCE reviews to finalhead/tree/base and unchanged1353runtimeinputs/ledger, normalnonforcepublish existingPR. Follow genuinecurrentmandatoryCI/CLEAN/native/browser/UPGRADE/capture, two independent DELIVERY reviews, resolveaddressedthreads/ready and normalexpectedheadmerge. ReleaseownmergeroleFIRST thenrestoreGEN5ce80/process1exact006aad and matchedowncleanup.",
+  "next_action": "Finishsource-bound DB01delivery diagnosis/proposal inprivatecopy;preserve233/372/840/fullstrictcomparisonandhistorical/nativeoracles. Continueallcurrenta3CI tocatchremainingroots beforebatch. TwoindependentSOURCEreviews+concreteexplicitapprovalforanynewoccupiedfiletransfer beforeparentwrite. ThenownCPfirst/exactfix/meaningfulordinarypush/currentCI/twoDELIVERYreviews/normalmerge;restoreapprovedGEN5ce80/process1exact006aad andanynewexplicitlyapprovedborrowedrefs afterverifiedmerge.",
   "ownership": {
     "takeoverComment": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6196305923",
     "preparedNeutralReceipt": "32d31cf69ba0f2133947d9a2994fda3b8e9d0965",
@@ -246,17 +246,20 @@
     "coverageLedger": "Byteexactmain11bd unchanged119VERIFIED+209PASSED=328/352; no new credit"
   },
   "remoteProgress": {
-    "head": "4087a558b1060655124bc4ee4d8709a0b6f97b8a",
-    "tree": "d16aa84a4f1b79713e79e194c53ea4217b5fa42e",
+    "head": "a3d770e0ff16dcca296f0f2426eaa627bbbff5ad",
+    "tree": "4662bfb46b3cd81b2d868fa206f7bcc2b8f3e6c9",
     "base": "11bd50430b0cfd5e525dce7034e4659756c8d5e0",
-    "opsRun": 38779358788,
-    "captureRun": 38779358861,
-    "e2eRun": 38779358743,
+    "opsRun": 38782781685,
+    "captureRun": 38782781821,
+    "e2eRun": 38782781932,
     "normalPush": true,
     "twoExactCombinedSourceReviews": "PASS",
-    "capture": "GENUINE_ORDINARY_SUCCESS_RAW3_EXACT; no ownedepoch/native/browserattestation",
+    "capture": "SUCCESS_QUALIFIED_CURRENT_RAW3_BYTE_EQUAL_COMMITTED_NO_IMPORT_NEEDED",
     "nativeBlockers": "Oldb1real25FAILED/714PASSED/1SKIP/740cases beforeCANCEL;1424relevantimmutableinputs identicalcurrent7e; currentfullnativepending",
-    "upgrade": "4087 UPGRADE116575949820 terminalSUCCESS; collector qualification pending; no fullCLEAN/native/browser success inferred."
+    "upgrade": "4087 UPGRADE116575949820 terminalSUCCESS; collector qualification pending; no fullCLEAN/native/browser success inferred.",
+    "verify": "SUCCESS116587571093",
+    "smoke": "SUCCESS116587724951",
+    "wholeDelivery": "BLOCKED_DB01_AND_ACTUAL_CLEAN_FAILURE; qualifiedterminalcausescollecting"
   },
   "native_corrections": {
     "source": "7e415b009e7101a4a774d4c57c9c5ff0c9b8651e",
@@ -346,5 +349,43 @@
     },
     "custody6preflight": "all5GENcaad+processdae3 exactmatched17:56:35;producerbacpreserved;mergeRoleabsent;main11bd",
     "finalMaterializedChecks": "Actual db:migrations:check1265/1168+newtail/types, provenance, integratedgoldenpath/allnestedgates, largesourcebudget, agentmemorygitstate PASS; output retained /tmp/pr794-final-materialized-checks"
+  },
+  "db01_new_blocker": {
+    "run": 38782781743,
+    "job": 116586993646,
+    "artifact": 11997305048,
+    "actual": "current_guard_qualification FAIL10logicalobjects; baselineclean/historical1/12forwardsPASS;currentAPI/current13cases/JUnitNOT_RUN",
+    "sourceRoot": "All10actualobjects match main11bd; missing4sealedcomponent5helperbodies, published13095628permissionbody+STABLEtoVOLATILE, sealedop2schemaUSAGE andsource23fourEXECUTEpostgres. No newfunctiondependencies. Strictknownbefore/after/effectbounds+unknownsource refusal required.",
+    "evidence": "/tmp/pr794-ci-diagnosis/cohort-a3d770/db01-11997305048-extracted/",
+    "parallel": "database_review assemblesboundedsourcedeliveryproposal; staff_native_fixtracespermission/ACL;expiry_guard_fixtracescommonheader/technicalACK",
+    "scope": "MinimumONEexistingworkflowef088C1 only, via closedsource-derived canonicalprojection after12forwards/beforeunchanged840livecomparison. Config/sourcebasisunit unchanged54/35. No parenttechnicalwrites; concreteproposal/actualfinitecomponentchecks/twoSOURCEreviews beforeexplicitone-filetransferapproval.",
+    "state": "FROZEN_ONE_WORKFLOW_TWO_SOURCE_APPROVALS_27_COMPONENT_PASS_EXPLICIT_TRANSFER_QUESTION_PENDING",
+    "reviews": {
+      "A": "11f6750bcb50378df40849def96aee87841eb15cd6007ff37c1c5270e8565bdb",
+      "B": "340fcf2db00c759bafbd5748d46da9db6178fc106df2b9e6211b62eec530f49e"
+    },
+    "proposal": "0e85f3e290490081d3edae0c280e1b401cc657adb885c0b0cce054afa954c8ab",
+    "postSHA256": "bf3d786b4baaff0c5a847c34fd2a38faebb19853d3b653ea273a2be1b4658f77",
+    "proposedReceipt": "b25a66b29b11ea6df81843b0e8dde8e3140068f4",
+    "incumbent": "ef088907a6e85783b5d6205594bfd548ddf242de",
+    "transferPerformed": false
+  },
+  "remaining_sql_fixture_scope": {
+    "historicalEvidence": "7SQLerrors,8nativeflags,2typeflags exactoldb1original; no currenta3failureclaim",
+    "alreadyFixed": "Five Staffpermissions gateusers.write/customers.write restoredby36catalogrows; no extraAuthchanges",
+    "newMinimumProposals": [
+      "scripts/tenantservice-identity-billing-regression.sql",
+      "scripts/staff-customer-retention-read-prerequisite-regression.sql"
+    ],
+    "state": "P3frozenreview/componentpending; retentionminimumproposalactualNOINHERITcomponentinprogress",
+    "custody": "Bothabsentlastsnapshot;freshatomicclaimrequired beforeparentwrites",
+    "next": "Userworkflowapproval+twoSQLsourceproposalsreviews thenoneexactmeaningfulbatchnormalpush/currentsoleCI"
+  },
+  "updatedAt": "2026-10-15T19:19:32.857847+00:00",
+  "current_main_integration": {
+    "actualMain": "d9fc4397be806321723fb1cac42441ca2b3106f3",
+    "previousMain": "11bd50430b0cfd5e525dce7034e4659756c8d5e0",
+    "scope": "Merge811 addsSC039nativeproof3cases+ownforeigncheckpoint only; ledger/canonicalSQL/GEN unchanged; no APIbranch overlap",
+    "next": "Normal localmainmerge afterthisowncheckpoint; preserveSC039exactmainbytes; no publicpushuntilboundedDB01+2SQLfixesqualified"
   }
 }
