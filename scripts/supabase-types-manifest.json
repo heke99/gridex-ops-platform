@@ -1,10 +1,10 @@
 {
   "generated_types": "supabase/database.types.ts",
-  "generated_at": "2026-10-15T16:22:24.1781263Z",
-  "generated_with": "supabase-cli-2.101.0-authentic-upgrade-clean-component-run38767413120-job116534121599-attempt1",
+  "generated_at": "2026-10-15T17:45:01.314391+00:00",
+  "generated_with": "supabase-cli-2.101.0-authentic-ordinary-capture-run38779358861-job116575233129-attempt1",
   "sha256": "4e0058b3446a3cefecc5430e01ae0715eecc1f6328ca7d36b3db8f6421f7e4ea",
-  "latest_migration": "20261015100259_ops_api_signed_contract_price_cache_binding_guard_alignment.sql",
-  "latest_migration_schema_effect": "Authentic current-source normalized schema, fingerprint and CLI types were generated independently by the clean and upgraded components of job116534121599 and are byte-identical. All617 forward source checksums and7 derived source/artifact pairs were qualified. This import reflects committed API SQL through20261015100259 while retaining SC046 forwards. Whole upgrade job failed at the stale committed-types comparison; later manifest comparison and historical scenario were not run.",
+  "latest_migration": "20261015172100_ops_contract_signing_prepare_final_expiry_guard.sql",
+  "latest_migration_schema_effect": "Authentic ordinary capture of source4087a558 after successful disposable canonical replay, through 20261015172100_ops_contract_signing_prepare_final_expiry_guard.sql. Types ABI bytes remain identical; normalized schema/fingerprint reflect the source-qualified final signing-expiry check. Full native/browser/type-schema/parity and final-head CI are separate mandatory gates.",
   "composition_capture_pending": false,
   "capture": {
     "purpose": "capture_only",
@@ -864,7 +864,7 @@
       }
     }
   },
-  "composition_note": "Byte-copy adoption of genuine independent clean/upgrade RAW3 from b1a94494 run38767413120/job116534121599/a1/artifact11990880473. Existing capture/capture_artifact and every SC046 epoch/primary/corroboration/history object remain unchanged historical originals. Current ordinary capture run38767412999 generated outputs but failed receipt latest-selection; no capture receipt or ordinary SUCCESS is fabricated. The workflow correction changes only timestamped latest-selection and preserves its equality assertion. Fresh exact-head ordinary capture and mandatory clean/upgrade/native/final CI remain separate gates.",
+  "composition_note": "Current RAW3 are exact byte copies from successful ordinary capture run38779358861/job116575233129/attempt1/artifact11995191304 at 4087a558b1060655124bc4ee4d8709a0b6f97b8a. Current authentic receipt and provenance are in api794_ordinary_capture_adoption and active_generated_outputs_origin. Top-level capture/capture_artifact, every SC046 anchor/history object and api794_upgrade_raw_components_adoption remain byte-identical historical originals; they do not attest the current ordinary capture as an owned epoch. Ordinary receipt emits no owned-epoch, exact-restoration or zero-all-containers attestation. Current final native/browser/parity/full CI remain required.",
   "upstream_main_manifest": {
     "commit": "507e8bfa20606be31933eea1582066267ff2577a",
     "path": "scripts/supabase-types-manifest.json",
@@ -874,32 +874,50 @@
     "purpose": "immutable original main provenance pointer; no relabeled capture"
   },
   "current_prefix_verification": {
-    "kind": "genuine_independent_clean_upgrade_RAW3_COMPONENT_ONLY",
-    "source_head": "b1a944940ffe607f770e31c450cc6f8528541944",
-    "source_tree": "c595a6df4c20bdd77eb2fa2753060b4750243612",
-    "workflow_run_id": 38767413120,
-    "workflow_job_id": 116534121599,
+    "kind": "genuine_successful_ordinary_capture_RAW3_ONLY",
+    "source_head": "4087a558b1060655124bc4ee4d8709a0b6f97b8a",
+    "source_tree": "d16aa84a4f1b79713e79e194c53ea4217b5fa42e",
+    "workflow_run_id": 38779358861,
+    "workflow_job_id": 116575233129,
     "attempt": 1,
     "raw_output_sha256": {
       "database.types.ts": "4e0058b3446a3cefecc5430e01ae0715eecc1f6328ca7d36b3db8f6421f7e4ea",
-      "schema.sql": "a53b2e0afbd2ee662f0b1ecbbd1780c681d87eb3b1c82bc6dec1d5125d72a481",
-      "schema.fingerprint.json": "d2fef2c9c4b55b9a40354e8e352296757cd357ed4e5f910e4fbcd42ef7d246d9"
+      "schema.sql": "4db7dd6551948f6577188bb4862ed7be6d9ad995ccc60ccd9e32c3606f5df459",
+      "schema.fingerprint.json": "33849606237998cdb0866e854ccef6076ebff14df9c5ee0333eba59d0a4959db"
     },
-    "forward_source_checksums_verified": 617,
-    "derived_source_artifact_pairs_verified": 7,
-    "retained_source_unchanged_sha256": "3c8f3bf11c07b18090252089485aaa7fb0a62aa45d6afa66a46961d8a52a473c",
-    "catalog_junit": {
-      "cases": 141,
-      "passed": 1,
-      "skipped": 140,
-      "failed": 0
+    "schema_fingerprint": "69b78e8e6c2c2a3de6a222c903a7277b3dc5b7c320afe51d922744c47bfb448e",
+    "latest_replay_migration": {
+      "name": "20261015172100_ops_contract_signing_prepare_final_expiry_guard.sql",
+      "sha256": "d798d8defd71a632617aaf34f99e6cfcab4e32d94d003f0ab18ee11d6468e8f2"
     },
-    "whole_upgrade_pass": false,
-    "later_manifest_comparison": "NOT_RUN",
-    "later_historical_scenario": "NOT_RUN",
-    "ordinary_capture_receipt": "NOT_CREATED",
-    "current_head_final_gates": "PENDING; component evidence does not replace final-head CI",
-    "original_qualification_sha256": "c7c861f81ce865c05a5c8a5063c369515960324f0d672e71844e11acae97b2c0"
+    "receipt_sha256": "08da7962902c4fe84fc39b4daac5981ab809a15dd55ed4740601399f11f47d4b",
+    "eight_input_hashes": {
+      "scripts/gridex-aud-003-clean-replay.sh": "71262366feaf3df054c7436c2fd3d80e0b96b8aaddca1df260a71fa6bf36d885",
+      "scripts/migration-history-manifest.json": "66a735464c298b3e5e534f7e27df889cb1b01280d55b48d449c4f195eed7de01",
+      "scripts/migration-history-manifest.additions.json": "e2912b1faa35f09004e7238c482e6e8a3562898949241066e2fe27a7ae913f06",
+      "scripts/migration-history-manifest.runtime.additions.json": "afe3591839e362930fb11e44457e234cfeb1336ce52935b479db8882f8d1e978",
+      "scripts/supabase-types-manifest.json": "e3841255bdcbe007465d5a0dd35ad536ac066c5f4c153107cc20d43218662658",
+      "scripts/apply-supabase-types-nullability-overrides.cjs": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
+      "scripts/gridex-schema-snapshot.cjs": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
+      "supabase/config.toml": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919"
+    },
+    "timestamped_source_sql_inventory_count": 1172,
+    "timestamped_source_sql_inventory_sha256": "01b405176aaf558f6c7d8b631667f4ac5286083a9ea243b28461e955476137c2",
+    "inventory_scope": "committed source inventory; not a claim that every source-only transport file executes as a forward",
+    "capture_run_pass": true,
+    "capture_job_pass": true,
+    "original_qualification_sha256": "f8e587f2642d1b4e472ae7eaaa1dadf23f19705a96266b69be9959fdef2f324a",
+    "proof_limits": {
+      "source_epoch_attestation": "NOT_EMITTED_BY_ORDINARY_WORKFLOW",
+      "input_restoration": "NOT_ATTESTED_BY_ORDINARY_RECEIPT",
+      "zero_all_containers": "NOT_ATTESTED_BY_ORDINARY_RECEIPT",
+      "native_tests": "NOT_RUN_BY_CAPTURE; current final native CI remains required",
+      "browser_tests": "NOT_RUN_BY_CAPTURE; current final browser CI remains required",
+      "type_schema_comparison": "NOT_RUN_BY_CAPTURE",
+      "upgrade_parity": "NOT_RUN_BY_CAPTURE; current final parity CI remains required",
+      "owned_epoch_or_delivery_success": "NOT_CLAIMED"
+    },
+    "current_head_final_gates": "PENDING; capture-only evidence does not replace final-head CI"
   },
   "superseded_capture": {
     "purpose": "capture_only",
@@ -1521,8 +1539,8 @@
     "sha256": "3aaf7d57962e2e3c4941cb055e95cd79a19cb1f63f7111f95d9c0de174c4c892"
   },
   "source_latest_migration": {
-    "name": "20261015100259_ops_api_signed_contract_price_cache_binding_guard_alignment.sql",
-    "sha256": "9c055dba7b020aad3bb867f6ff2b02f8854fee4bc136db2de4042bc6347dc83c"
+    "name": "20261015172100_ops_contract_signing_prepare_final_expiry_guard.sql",
+    "sha256": "d798d8defd71a632617aaf34f99e6cfcab4e32d94d003f0ab18ee11d6468e8f2"
   },
   "main_f88_composition_history": {
     "previous_ops_head": "dc2a49fd139c9d34c26c92407984c06e79ffe89e",
@@ -2256,37 +2274,43 @@
     "scope": "Exact authentic staff/P08 current-main origin, preserved historically while new composition capture is pending."
   },
   "active_generated_outputs_origin": {
-    "kind": "genuine_ci_independent_clean_and_upgrade_generated_components",
-    "source_head": "b1a944940ffe607f770e31c450cc6f8528541944",
-    "source_tree": "c595a6df4c20bdd77eb2fa2753060b4750243612",
-    "workflow": ".github/workflows/ops-hardening.yml",
-    "workflow_run_id": 38767413120,
+    "kind": "genuine_successful_ordinary_capture_RAW3",
+    "source_head": "4087a558b1060655124bc4ee4d8709a0b6f97b8a",
+    "source_tree": "d16aa84a4f1b79713e79e194c53ea4217b5fa42e",
+    "workflow": ".github/workflows/staff-api-schema-capture.yml",
+    "workflow_run_id": 38779358861,
     "workflow_run_attempt": 1,
-    "workflow_job_id": 116534121599,
-    "artifact_id": 11990880473,
-    "artifact_name": "gridex-rem-002-upgrade-replay",
-    "archive_sha256": "b9983c03e73ff3234792d6f494665da246296d92dad487252d569d3b3d170d33",
+    "workflow_job_id": 116575233129,
+    "artifact_id": 11995191304,
+    "artifact_name": "staff-schema-capture-4087a558b1060655124bc4ee4d8709a0b6f97b8a",
+    "archive_sha256": "3a39c8265975b73ad5fb427422e4416bd181274b8e9dbc84e945fb83f5dd3c23",
+    "capture_receipt_sha256": "08da7962902c4fe84fc39b4daac5981ab809a15dd55ed4740601399f11f47d4b",
+    "capture_receipt_manifest_path": "api794_ordinary_capture_adoption.authentic_capture_receipt",
     "RAW3_artifact_members": {
-      "database.types.ts": "rem002-upgrade/clean/database.types.ts",
-      "schema.sql": "rem002-upgrade/clean/schema/schema.sql",
-      "schema.fingerprint.json": "rem002-upgrade/clean/schema/schema.fingerprint.json"
+      "database.types.ts": "database.types.ts",
+      "schema.sql": "schema.sql",
+      "schema.fingerprint.json": "schema.fingerprint.json"
     },
     "output_sha256": {
       "database.types.ts": "4e0058b3446a3cefecc5430e01ae0715eecc1f6328ca7d36b3db8f6421f7e4ea",
-      "schema.sql": "a53b2e0afbd2ee662f0b1ecbbd1780c681d87eb3b1c82bc6dec1d5125d72a481",
-      "schema.fingerprint.json": "d2fef2c9c4b55b9a40354e8e352296757cd357ed4e5f910e4fbcd42ef7d246d9"
+      "schema.sql": "4db7dd6551948f6577188bb4862ed7be6d9ad995ccc60ccd9e32c3606f5df459",
+      "schema.fingerprint.json": "33849606237998cdb0866e854ccef6076ebff14df9c5ee0333eba59d0a4959db"
     },
-    "schema_fingerprint": "4a19a9e0c4c568f0e6af1db6e76f549c43a6a332da0f2ed31cacf25e3ceb41b7",
-    "generation_completed_observed_at": "2026-10-15T16:22:24.1781263Z",
-    "upgrade_component_qualification_sha256": "c7c861f81ce865c05a5c8a5063c369515960324f0d672e71844e11acae97b2c0",
-    "whole_job_conclusion": "FAILURE",
-    "failure": "Committed database.types.ts comparison failed at byte2346490/line63333 after independent clean/upgraded RAW3 equality.",
-    "ordinary_capture_run38767412999": "FAILURE_AFTER_RAW3_BEFORE_RECEIPT;NO_RECEIPT_QUALIFIED",
-    "capture_receipt": "NOT_CREATED;NO_ORDINARY_CAPTURE_SUCCESS_CLAIM",
-    "later_upgrade_manifest_comparison": "NOT_RUN",
-    "later_historical_scenario": "NOT_RUN",
-    "native_browser_and_whole_delivery": "NOT_QUALIFIED_BY_THIS_COMPONENT_IMPORT",
-    "next_gate": "Fresh exact-head ordinary receipt plus all mandatory clean/upgrade/native/CI and two independent final reviews remain required."
+    "schema_fingerprint": "69b78e8e6c2c2a3de6a222c903a7277b3dc5b7c320afe51d922744c47bfb448e",
+    "captured_at": "2026-10-15T17:45:01.314391+00:00",
+    "capture_run_conclusion": "SUCCESS",
+    "capture_job_conclusion": "SUCCESS",
+    "ordinary_capture_qualification_sha256": "f8e587f2642d1b4e472ae7eaaa1dadf23f19705a96266b69be9959fdef2f324a",
+    "proof_limits": {
+      "source_epoch_attestation": "NOT_EMITTED_BY_ORDINARY_WORKFLOW",
+      "input_restoration": "NOT_ATTESTED_BY_ORDINARY_RECEIPT",
+      "zero_all_containers": "NOT_ATTESTED_BY_ORDINARY_RECEIPT",
+      "native_tests": "NOT_RUN_BY_CAPTURE; current final native CI remains required",
+      "browser_tests": "NOT_RUN_BY_CAPTURE; current final browser CI remains required",
+      "type_schema_comparison": "NOT_RUN_BY_CAPTURE",
+      "upgrade_parity": "NOT_RUN_BY_CAPTURE; current final parity CI remains required",
+      "owned_epoch_or_delivery_success": "NOT_CLAIMED"
+    }
   },
   "pre_intake_export_capture_manifest": {
     "commit": "5be3a902a61309e295d1f3b82f5ceb0996edb1dd",
@@ -94893,5 +94917,309 @@
       "selection": "Only canonical14-digit timestamped SQL basenames participate; complete executed path list and owner-version assertion unchanged."
     },
     "limits": "Existing same-source upgrade artifact reused only for authenticated RAW3 components; whole job FAILURE, capture receipt absent, later history NOT_RUN. No new producer, database, generation, artifact download/extraction or claim mutation."
+  },
+  "api794_ordinary_capture_adoption": {
+    "source_manifest": {
+      "commit": "4087a558b1060655124bc4ee4d8709a0b6f97b8a",
+      "tree": "d16aa84a4f1b79713e79e194c53ea4217b5fa42e",
+      "path": "scripts/supabase-types-manifest.json",
+      "git_blob": "44d31cfed8f13f8e050c171236e6b55a0c7fc7b9",
+      "sha256": "e3841255bdcbe007465d5a0dd35ad536ac066c5f4c153107cc20d43218662658",
+      "bytes": 5463716
+    },
+    "exact_previous_active_changed_values": {
+      "generated_at": "2026-10-15T16:22:24.1781263Z",
+      "generated_with": "supabase-cli-2.101.0-authentic-upgrade-clean-component-run38767413120-job116534121599-attempt1",
+      "sha256": "4e0058b3446a3cefecc5430e01ae0715eecc1f6328ca7d36b3db8f6421f7e4ea",
+      "latest_migration": "20261015100259_ops_api_signed_contract_price_cache_binding_guard_alignment.sql",
+      "source_latest_migration": {
+    "name": "20261015100259_ops_api_signed_contract_price_cache_binding_guard_alignment.sql",
+    "sha256": "9c055dba7b020aad3bb867f6ff2b02f8854fee4bc136db2de4042bc6347dc83c"
+  },
+      "latest_migration_schema_effect": "Authentic current-source normalized schema, fingerprint and CLI types were generated independently by the clean and upgraded components of job116534121599 and are byte-identical. All617 forward source checksums and7 derived source/artifact pairs were qualified. This import reflects committed API SQL through20261015100259 while retaining SC046 forwards. Whole upgrade job failed at the stale committed-types comparison; later manifest comparison and historical scenario were not run.",
+      "composition_note": "Byte-copy adoption of genuine independent clean/upgrade RAW3 from b1a94494 run38767413120/job116534121599/a1/artifact11990880473. Existing capture/capture_artifact and every SC046 epoch/primary/corroboration/history object remain unchanged historical originals. Current ordinary capture run38767412999 generated outputs but failed receipt latest-selection; no capture receipt or ordinary SUCCESS is fabricated. The workflow correction changes only timestamped latest-selection and preserves its equality assertion. Fresh exact-head ordinary capture and mandatory clean/upgrade/native/final CI remain separate gates.",
+      "current_prefix_verification": {
+    "kind": "genuine_independent_clean_upgrade_RAW3_COMPONENT_ONLY",
+    "source_head": "b1a944940ffe607f770e31c450cc6f8528541944",
+    "source_tree": "c595a6df4c20bdd77eb2fa2753060b4750243612",
+    "workflow_run_id": 38767413120,
+    "workflow_job_id": 116534121599,
+    "attempt": 1,
+    "raw_output_sha256": {
+      "database.types.ts": "4e0058b3446a3cefecc5430e01ae0715eecc1f6328ca7d36b3db8f6421f7e4ea",
+      "schema.sql": "a53b2e0afbd2ee662f0b1ecbbd1780c681d87eb3b1c82bc6dec1d5125d72a481",
+      "schema.fingerprint.json": "d2fef2c9c4b55b9a40354e8e352296757cd357ed4e5f910e4fbcd42ef7d246d9"
+    },
+    "forward_source_checksums_verified": 617,
+    "derived_source_artifact_pairs_verified": 7,
+    "retained_source_unchanged_sha256": "3c8f3bf11c07b18090252089485aaa7fb0a62aa45d6afa66a46961d8a52a473c",
+    "catalog_junit": {
+      "cases": 141,
+      "passed": 1,
+      "skipped": 140,
+      "failed": 0
+    },
+    "whole_upgrade_pass": false,
+    "later_manifest_comparison": "NOT_RUN",
+    "later_historical_scenario": "NOT_RUN",
+    "ordinary_capture_receipt": "NOT_CREATED",
+    "current_head_final_gates": "PENDING; component evidence does not replace final-head CI",
+    "original_qualification_sha256": "c7c861f81ce865c05a5c8a5063c369515960324f0d672e71844e11acae97b2c0"
+  },
+      "active_generated_outputs_origin": {
+    "kind": "genuine_ci_independent_clean_and_upgrade_generated_components",
+    "source_head": "b1a944940ffe607f770e31c450cc6f8528541944",
+    "source_tree": "c595a6df4c20bdd77eb2fa2753060b4750243612",
+    "workflow": ".github/workflows/ops-hardening.yml",
+    "workflow_run_id": 38767413120,
+    "workflow_run_attempt": 1,
+    "workflow_job_id": 116534121599,
+    "artifact_id": 11990880473,
+    "artifact_name": "gridex-rem-002-upgrade-replay",
+    "archive_sha256": "b9983c03e73ff3234792d6f494665da246296d92dad487252d569d3b3d170d33",
+    "RAW3_artifact_members": {
+      "database.types.ts": "rem002-upgrade/clean/database.types.ts",
+      "schema.sql": "rem002-upgrade/clean/schema/schema.sql",
+      "schema.fingerprint.json": "rem002-upgrade/clean/schema/schema.fingerprint.json"
+    },
+    "output_sha256": {
+      "database.types.ts": "4e0058b3446a3cefecc5430e01ae0715eecc1f6328ca7d36b3db8f6421f7e4ea",
+      "schema.sql": "a53b2e0afbd2ee662f0b1ecbbd1780c681d87eb3b1c82bc6dec1d5125d72a481",
+      "schema.fingerprint.json": "d2fef2c9c4b55b9a40354e8e352296757cd357ed4e5f910e4fbcd42ef7d246d9"
+    },
+    "schema_fingerprint": "4a19a9e0c4c568f0e6af1db6e76f549c43a6a332da0f2ed31cacf25e3ceb41b7",
+    "generation_completed_observed_at": "2026-10-15T16:22:24.1781263Z",
+    "upgrade_component_qualification_sha256": "c7c861f81ce865c05a5c8a5063c369515960324f0d672e71844e11acae97b2c0",
+    "whole_job_conclusion": "FAILURE",
+    "failure": "Committed database.types.ts comparison failed at byte2346490/line63333 after independent clean/upgraded RAW3 equality.",
+    "ordinary_capture_run38767412999": "FAILURE_AFTER_RAW3_BEFORE_RECEIPT;NO_RECEIPT_QUALIFIED",
+    "capture_receipt": "NOT_CREATED;NO_ORDINARY_CAPTURE_SUCCESS_CLAIM",
+    "later_upgrade_manifest_comparison": "NOT_RUN",
+    "later_historical_scenario": "NOT_RUN",
+    "native_browser_and_whole_delivery": "NOT_QUALIFIED_BY_THIS_COMPONENT_IMPORT",
+    "next_gate": "Fresh exact-head ordinary receipt plus all mandatory clean/upgrade/native/CI and two independent final reviews remain required."
+  }
+    },
+    "exact_previous_active_value_bytes": {
+      "generated_at": {
+        "sha256": "05db7fc0b6bbbe8b521a79178b20c4eaa273de6839b8b0322b86cae858316420",
+        "bytes": 30
+      },
+      "generated_with": {
+        "sha256": "4ce57f10df49967edec7c8d085a3f172682b60b16e49b4555c2e593fcedce140",
+        "bytes": 96
+      },
+      "sha256": {
+        "sha256": "3f424630cbc15bb62b1adcc66d6ecbcb6162cff8de05c8c127a004be057121ba",
+        "bytes": 66
+      },
+      "latest_migration": {
+        "sha256": "d1d1d76d7a306d9ede003c24ad7ecc2df4dd97df0331ddad0f9ce513fe0c52d7",
+        "bytes": 80
+      },
+      "latest_migration_schema_effect": {
+        "sha256": "efeaeb39b6461f4ad80c03d47b363fe39590fce073fca8aa9f327b590537e431",
+        "bytes": 486
+      },
+      "composition_note": {
+        "sha256": "cf24ad3809b96c3f57bd2c889aed33aee2ca7d298aed0d0671648fed5a61150e",
+        "bytes": 617
+      },
+      "current_prefix_verification": {
+        "sha256": "146fa09f884ef418b57f810f1e573fca8f5904f9c0e0d460415a9162c0d419e2",
+        "bytes": 1286
+      },
+      "source_latest_migration": {
+        "sha256": "9a93891d798e104650c930d74d8b5311f8f7c6b4f8ef14e3c68bf7fd50d5287a",
+        "bytes": 180
+      },
+      "active_generated_outputs_origin": {
+        "sha256": "6f05bf576a53298e39d3eb296dbb1d06068a36b35e0883a2e9146bd139783cd8",
+        "bytes": 2063
+      }
+    },
+    "authentic_capture_receipt": {
+  "purpose": "capture_only",
+  "captured_at": "2026-10-15T17:45:01.314391+00:00",
+  "checkout_sha": "4087a558b1060655124bc4ee4d8709a0b6f97b8a",
+  "checkout_tree": "d16aa84a4f1b79713e79e194c53ea4217b5fa42e",
+  "workflow_run_id": "38779358861",
+  "workflow_run_attempt": "1",
+  "supabase_cli_version": "2.101.0",
+  "postgres_server_version": "17.6",
+  "pg_dump_version": "pg_dump (PostgreSQL) 17.11 (Ubuntu 17.11-1.pgdg24.04+2)",
+  "latest_replay_migration": {
+    "name": "20261015172100_ops_contract_signing_prepare_final_expiry_guard.sql",
+    "sha256": "d798d8defd71a632617aaf34f99e6cfcab4e32d94d003f0ab18ee11d6468e8f2"
+  },
+  "schema_names": [
+    "gridex_ack_authority",
+    "gridex_ai_processing",
+    "gridex_ai_purpose_sources",
+    "gridex_bilateral_customer_sources",
+    "gridex_bilateral_prodat",
+    "gridex_billing_source",
+    "gridex_brp_changes",
+    "gridex_brp_declaration_intake",
+    "gridex_brp_sources",
+    "gridex_business_expectations",
+    "gridex_certificate_trust",
+    "gridex_contract_source_intake",
+    "gridex_correction_process",
+    "gridex_customer_life_events",
+    "gridex_customer_masterdata",
+    "gridex_ediel_ack_guide",
+    "gridex_ediel_ack_replay",
+    "gridex_ediel_business_incidents",
+    "gridex_ediel_common_header",
+    "gridex_ediel_duplicate_responses",
+    "gridex_ediel_exports",
+    "gridex_ediel_header_negative_birth",
+    "gridex_ediel_inbound_context",
+    "gridex_ediel_inbound_receptions",
+    "gridex_ediel_legacy_archive",
+    "gridex_ediel_outbound_owner",
+    "gridex_ediel_readiness",
+    "gridex_ediel_retention",
+    "gridex_ediel_services",
+    "gridex_ediel_source_rules",
+    "gridex_ediel_technical_ack",
+    "gridex_ediel_transport",
+    "gridex_ediel_wire_namespace",
+    "gridex_internal",
+    "gridex_manual_inbound",
+    "gridex_metering_method_changes",
+    "gridex_method_expectations",
+    "gridex_negative_fixtures",
+    "gridex_network_registry_sources",
+    "gridex_one_off_offer_binding",
+    "gridex_outbound_dispatch",
+    "gridex_private",
+    "gridex_prodat_object_batch",
+    "gridex_quality",
+    "gridex_received_err_response",
+    "gridex_received_reading_expectations",
+    "gridex_received_sources",
+    "gridex_registry_import",
+    "gridex_regulated_supply",
+    "gridex_requested_changes",
+    "gridex_requested_customer_changes",
+    "gridex_requested_method_watches",
+    "gridex_service_administration",
+    "gridex_service_permission",
+    "gridex_supply_rescission",
+    "gridex_switch_cancellations",
+    "gridex_transport_exception",
+    "gridex_unattributed_intake",
+    "gridex_utilts_binding",
+    "gridex_utilts_issuer",
+    "gridex_vh_history",
+    "public"
+  ],
+  "schema_fingerprint": "69b78e8e6c2c2a3de6a222c903a7277b3dc5b7c320afe51d922744c47bfb448e",
+  "artifact_sha256": {
+    "database.types.ts": "4e0058b3446a3cefecc5430e01ae0715eecc1f6328ca7d36b3db8f6421f7e4ea",
+    "schema.sql": "4db7dd6551948f6577188bb4862ed7be6d9ad995ccc60ccd9e32c3606f5df459",
+    "schema.fingerprint.json": "33849606237998cdb0866e854ccef6076ebff14df9c5ee0333eba59d0a4959db"
+  },
+  "input_sha256": {
+    "scripts/gridex-aud-003-clean-replay.sh": "71262366feaf3df054c7436c2fd3d80e0b96b8aaddca1df260a71fa6bf36d885",
+    "scripts/migration-history-manifest.json": "66a735464c298b3e5e534f7e27df889cb1b01280d55b48d449c4f195eed7de01",
+    "scripts/migration-history-manifest.additions.json": "e2912b1faa35f09004e7238c482e6e8a3562898949241066e2fe27a7ae913f06",
+    "scripts/migration-history-manifest.runtime.additions.json": "afe3591839e362930fb11e44457e234cfeb1336ce52935b479db8882f8d1e978",
+    "scripts/supabase-types-manifest.json": "e3841255bdcbe007465d5a0dd35ad536ac066c5f4c153107cc20d43218662658",
+    "scripts/apply-supabase-types-nullability-overrides.cjs": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
+    "scripts/gridex-schema-snapshot.cjs": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
+    "supabase/config.toml": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919"
+  },
+  "native_tests": "NOT_RUN",
+  "browser_tests": "NOT_RUN",
+  "type_schema_comparison": "NOT_RUN",
+  "upgrade_parity": "NOT_RUN",
+  "required_gate": "OPS hardening clean/upgrade replay and parity remain mandatory"
+},
+    "authentic_capture_receipt_file": {
+      "artifact_member": "capture-receipt.json",
+      "sha256": "08da7962902c4fe84fc39b4daac5981ab809a15dd55ed4740601399f11f47d4b",
+      "bytes": 4246
+    },
+    "capture_artifact": {
+      "id": 11995191304,
+      "name": "staff-schema-capture-4087a558b1060655124bc4ee4d8709a0b6f97b8a",
+      "run_id": 38779358861,
+      "attempt": 1,
+      "job_id": 116575233129,
+      "archive_sha256": "3a39c8265975b73ad5fb427422e4416bd181274b8e9dbc84e945fb83f5dd3c23",
+      "bytes": 1743738,
+      "workflow_run_source": {
+        "id": 38779358861,
+        "repository_id": 1190539955,
+        "head_repository_id": 1190539955,
+        "head_branch": "codex/ops-api-contract-review-20261012",
+        "head_sha": "4087a558b1060655124bc4ee4d8709a0b6f97b8a"
+      }
+    },
+    "source_capture_provenance": {
+      "kind": "genuine_successful_ordinary_capture_RAW3",
+      "source_head": "4087a558b1060655124bc4ee4d8709a0b6f97b8a",
+      "source_tree": "d16aa84a4f1b79713e79e194c53ea4217b5fa42e",
+      "workflow": ".github/workflows/staff-api-schema-capture.yml",
+      "workflow_run_id": 38779358861,
+      "workflow_run_attempt": 1,
+      "workflow_job_id": 116575233129,
+      "artifact_id": 11995191304,
+      "artifact_name": "staff-schema-capture-4087a558b1060655124bc4ee4d8709a0b6f97b8a",
+      "archive_sha256": "3a39c8265975b73ad5fb427422e4416bd181274b8e9dbc84e945fb83f5dd3c23",
+      "capture_receipt_sha256": "08da7962902c4fe84fc39b4daac5981ab809a15dd55ed4740601399f11f47d4b",
+      "capture_receipt_manifest_path": "api794_ordinary_capture_adoption.authentic_capture_receipt",
+      "RAW3_artifact_members": {
+        "database.types.ts": "database.types.ts",
+        "schema.sql": "schema.sql",
+        "schema.fingerprint.json": "schema.fingerprint.json"
+      },
+      "output_sha256": {
+        "database.types.ts": "4e0058b3446a3cefecc5430e01ae0715eecc1f6328ca7d36b3db8f6421f7e4ea",
+        "schema.sql": "4db7dd6551948f6577188bb4862ed7be6d9ad995ccc60ccd9e32c3606f5df459",
+        "schema.fingerprint.json": "33849606237998cdb0866e854ccef6076ebff14df9c5ee0333eba59d0a4959db"
+      },
+      "schema_fingerprint": "69b78e8e6c2c2a3de6a222c903a7277b3dc5b7c320afe51d922744c47bfb448e",
+      "captured_at": "2026-10-15T17:45:01.314391+00:00",
+      "capture_run_conclusion": "SUCCESS",
+      "capture_job_conclusion": "SUCCESS",
+      "ordinary_capture_qualification_sha256": "f8e587f2642d1b4e472ae7eaaa1dadf23f19705a96266b69be9959fdef2f324a",
+      "proof_limits": {
+        "source_epoch_attestation": "NOT_EMITTED_BY_ORDINARY_WORKFLOW",
+        "input_restoration": "NOT_ATTESTED_BY_ORDINARY_RECEIPT",
+        "zero_all_containers": "NOT_ATTESTED_BY_ORDINARY_RECEIPT",
+        "native_tests": "NOT_RUN_BY_CAPTURE; current final native CI remains required",
+        "browser_tests": "NOT_RUN_BY_CAPTURE; current final browser CI remains required",
+        "type_schema_comparison": "NOT_RUN_BY_CAPTURE",
+        "upgrade_parity": "NOT_RUN_BY_CAPTURE; current final parity CI remains required",
+        "owned_epoch_or_delivery_success": "NOT_CLAIMED"
+      }
+    },
+    "preserved_historical_top_level_fields": [
+      "capture",
+      "capture_artifact",
+      "api794_upgrade_raw_components_adoption",
+      "active_sc046_input_epoch",
+      "pending_sc031_capture",
+      "pending_sc046_capture",
+      "pending_sc046_capture_v2",
+      "pending_sc046_capture_v3",
+      "pending_sc046_capture_v4",
+      "pending_sc046_capture_v5",
+      "pending_sc046_capture_v6"
+    ],
+    "proof_limits": {
+      "source_epoch_attestation": "NOT_EMITTED_BY_ORDINARY_WORKFLOW",
+      "input_restoration": "NOT_ATTESTED_BY_ORDINARY_RECEIPT",
+      "zero_all_containers": "NOT_ATTESTED_BY_ORDINARY_RECEIPT",
+      "native_tests": "NOT_RUN_BY_CAPTURE; current final native CI remains required",
+      "browser_tests": "NOT_RUN_BY_CAPTURE; current final browser CI remains required",
+      "type_schema_comparison": "NOT_RUN_BY_CAPTURE",
+      "upgrade_parity": "NOT_RUN_BY_CAPTURE; current final parity CI remains required",
+      "owned_epoch_or_delivery_success": "NOT_CLAIMED"
+    }
   }
 }

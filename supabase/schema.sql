@@ -82349,6 +82349,12 @@ begin
     encode(extensions.digest(convert_to((v_request.id::text||':signature_requested'),'UTF8'),'sha256'),'hex')
   );
 
+  -- INSERT foreign keys and request/event triggers can wait after the earlier check.
+  -- Reject expiry after those waits; the exception rolls back all preparation.
+  if p_expires_at is null or p_expires_at <= clock_timestamp() or p_expires_at > clock_timestamp()+interval '14 days' then
+    raise exception using errcode='22023',message='signature_request_expiry_invalid';
+  end if;
+
   return jsonb_build_object(
     'ok',true,
     'request_id',v_request.id,
