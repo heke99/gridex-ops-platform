@@ -28,6 +28,7 @@ SQL_SHA256 = 'c01914b7343bb6d84729ccf96b6ff442e78bf46dcd96b563d7f137d970db18c0'
 # All three use the same pinned 48-entry official dev ledger marker source.
 CLEAN_SOURCE_PINS = {
     'be69a4dad9e979a0fe5a6d96e908d6c461063d8f2a047fab9864fd9ba7def81a',
+    '8d421343af46bc3de6357b5b4a7de59d052f67df0ab0add76442fe1a60f76ecc',
     'b210192b34ee9d1f8a7dce5b59e8af170347518cf17b848d638e8e7fa37d0000',
     '87ba4ea12885a0f3e34789f569dbb02976f80f12322b5e83131670a551767022',
 }

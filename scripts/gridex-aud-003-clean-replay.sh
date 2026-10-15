@@ -347,6 +347,33 @@ if [[ -z "$EXTERNAL_DB" ]]; then
   echo "local_replay_postgres_image=$REPLAY_POSTGRES_VERSION"
   LOCAL_STACK_START_ATTEMPTED=1
   supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector
+  # Qualify the same empty local platform for every CURRENT clean consumer.
+  # The original shell/EXIT trap keeps the stack alive through its consumers.
+  # Only the independent owner SQL is pinned here: no clean/helper hash cycle.
+  python3 - "$ROOT/scripts/sql/gridex-local-storage-owner-bootstrap.sql" <<'PY_GRIDEX_LOCAL_STORAGE_OWNER'
+import hashlib,os,pathlib,subprocess,sys
+owner_sql=pathlib.Path(sys.argv[1])
+if owner_sql.is_symlink() or not owner_sql.is_file() or hashlib.sha256(owner_sql.read_bytes()).hexdigest()!='c01914b7343bb6d84729ccf96b6ff442e78bf46dcd96b563d7f137d970db18c0':
+    raise SystemExit('local_storage_owner_sql_source_unknown')
+try:
+    version=subprocess.run(['supabase','--version'],capture_output=True,text=True,timeout=15,check=False)
+except (OSError,subprocess.TimeoutExpired):
+    raise SystemExit('local_storage_official_cli_version_unavailable')
+if version.returncode!=0 or version.stdout.strip()!='2.101.0':
+    raise SystemExit('local_storage_official_cli_version_unknown')
+# Existing official disposable-local password, not fetched credentials. Clear
+# PG overrides and ignore psqlrc; target/identity never comes from external URL.
+owner_env={k:v for k,v in os.environ.items() if not k.startswith('PG')}
+owner_env['PGPASSWORD']='postgres'
+owner_env['PGCONNECT_TIMEOUT']='5'
+try:
+    result=subprocess.run(['psql','-X','-q','-w','-h','127.0.0.1','-p','54322',
+        '-U','supabase_storage_admin','-d','postgres','-v','ON_ERROR_STOP=1',
+        '-f',str(owner_sql)],env=owner_env,check=False,timeout=45)
+except (OSError,subprocess.TimeoutExpired):
+    raise SystemExit('local_storage_owner_bootstrap_invocation_failed')
+raise SystemExit(128-result.returncode if result.returncode<0 else result.returncode)
+PY_GRIDEX_LOCAL_STORAGE_OWNER
 else
   # No Supabase CLI here, so there is no CLI-owned ledger to reproduce. The
   # official ledger is deliberately left untouched: writing it by hand would
