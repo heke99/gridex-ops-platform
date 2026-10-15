@@ -8,11 +8,11 @@
   "branch": "codex/ops-api-contract-review-20261012",
   "checkpoint": ".agent-memory/pr794-takeover-20261015.json",
   "user_authorization": "User explicitly appoints this chat as new responsible owner of API PR794, to correct, review and merge, using multiple parallel agents.",
-  "observed_head": "c777f903b05e336485e0dcf2d066eb0af3c8a1db",
+  "observed_head": "4087a558b1060655124bc4ee4d8709a0b6f97b8a",
   "observed_main": "11bd50430b0cfd5e525dce7034e4659756c8d5e0",
-  "observed_at": "2026-10-15T17:36:23.570836+00:00",
+  "observed_at": "2026-10-15T18:00:46.955811+00:00",
   "scope": "Existing API PR794. No transfer of other masterplan packets or shared GEN/native/serial delivery service.",
-  "status": "REVIEWED15OWNED_SOURCE_CORRECTIONS_READY_FOR_GENUINE_CAPTURE_PHASE",
+  "status": "FINAL_11_REVIEWED_POSTIMAGES_MATERIALIZED_LOCAL_CHECKS_PASS_PENDING_EXACT_COMMIT_SOURCE_BINDING",
   "skill_routing": {
     "active": [
       "cloud-environment-runtime",
@@ -45,7 +45,7 @@
     "ci_diagnosis": "Current failed CI root cause; no reruns or producers",
     "test_validation": "Local affected tests and checks; no DB/native/GEN"
   },
-  "next_action": "Publish committed15owned reviewed source corrections by normal nonforce existingPRpush to obtain genuine changed-signing-body schema capture. This is source/capture preparation, not finalgreen: process-journal exactfiletransferapproval pending,7unitfixture proposals inindependentreview, generatedschema/type manifeststill7egenuine untilfreshcapture. Preserveallsourceapplicability, applyonlyqualifiedgenuineRAW3next, thenfinalCI/twoDELIVERYreviews/ordinarymerge/approvedresource restoration.",
+  "next_action": "Commit this own checkpoint FIRST then exact11 technicalpostimages; bind two independent SOURCE reviews to finalhead/tree/base and unchanged1353runtimeinputs/ledger, normalnonforcepublish existingPR. Follow genuinecurrentmandatoryCI/CLEAN/native/browser/UPGRADE/capture, two independent DELIVERY reviews, resolveaddressedthreads/ready and normalexpectedheadmerge. ReleaseownmergeroleFIRST thenrestoreGEN5ce80/process1exact006aad and matchedowncleanup.",
   "ownership": {
     "takeoverComment": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6196305923",
     "preparedNeutralReceipt": "32d31cf69ba0f2133947d9a2994fda3b8e9d0965",
@@ -246,30 +246,31 @@
     "coverageLedger": "Byteexactmain11bd unchanged119VERIFIED+209PASSED=328/352; no new credit"
   },
   "remoteProgress": {
-    "head": "7e415b009e7101a4a774d4c57c9c5ff0c9b8651e",
-    "tree": "9eeed4065111ffda475d5d83fbb0b841ee6a909d",
+    "head": "4087a558b1060655124bc4ee4d8709a0b6f97b8a",
+    "tree": "d16aa84a4f1b79713e79e194c53ea4217b5fa42e",
     "base": "11bd50430b0cfd5e525dce7034e4659756c8d5e0",
-    "opsRun": 38774703297,
-    "captureRun": 38774703622,
-    "e2eRun": 38774703581,
+    "opsRun": 38779358788,
+    "captureRun": 38779358861,
+    "e2eRun": 38779358743,
     "normalPush": true,
     "twoExactCombinedSourceReviews": "PASS",
     "capture": "GENUINE_ORDINARY_SUCCESS_RAW3_EXACT; no ownedepoch/native/browserattestation",
-    "nativeBlockers": "Oldb1real25FAILED/714PASSED/1SKIP/740cases beforeCANCEL;1424relevantimmutableinputs identicalcurrent7e; currentfullnativepending"
+    "nativeBlockers": "Oldb1real25FAILED/714PASSED/1SKIP/740cases beforeCANCEL;1424relevantimmutableinputs identicalcurrent7e; currentfullnativepending",
+    "upgrade": "4087 UPGRADE116575949820 terminalSUCCESS; collector qualification pending; no fullCLEAN/native/browser success inferred."
   },
   "native_corrections": {
     "source": "7e415b009e7101a4a774d4c57c9c5ff0c9b8651e",
-    "scope": "Own13newabsentfileclaims e0f9178a, one additional documentfixture claim recorded separately; occupied process-journal fixture006aad untouched pending concreteproposal+explicitapproval",
+    "scope": "Own13newabsentfiles e0f9178a plus documentfixture b34dc9, provenance4137, unit7ca818. Occupiedprocess1 nowexplicitlyapproved/transferreddae3/publicCLAIMverified, exactreviewedpostimageapplied.",
     "custody": "e0f9178afa24b2b3b80c22b27639887abc39b26c",
     "claim": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6197996304",
     "authors": {
       "database_review": "Explicitownerrole only privilegedsyntheticSQL/privateprobes; historicalSTABLEthenexistingcurrentVOLATILE witness; isolatedAuthactorconfirmed",
-      "staff_native_fix": "36missing establishedpermissionmetadata+confirmedAuthhelper; no assignments/no existingdisabledreactivation; frozen26componentPASS, twopeerreviewpending",
+      "staff_native_fix": "36missingpermissionmetadata plus confirmedAuthhelper;26actualcomponentPASS;combined2peerSOURCEapprovals;nativeCIpending.",
       "expiry_guard_fix": "SourceconfirmedinternalDBRPCpostclockwaitwindow, normalproductcallers≥1h; delayedinsert/event componentRED→GREEN+rollbackactual, newcanonicalforward+native2caseproposal, no simultaneousFKnativeexecutionclaim"
     },
     "retentionProductBoundary": "KeepNOINHERIT, SETtrue, all real JWT/productguards/negativeassertions; no broadGRANTS or ACLweakening",
-    "parentSourceWrites": "15owned reviewed postimages applied byteexact; occupied process-journal original unchanged",
-    "next": "Complete independent proposals, prepare concrete oneoccupiedfile transferapproval, apply/review authorizedfiles, sourcecaptureordinarypush; newfunctionbody requires genuine freshschema capture beforefinal import/merge",
+    "parentSourceWrites": "15sourcepostimages committed4087; processjournal exactdab9 and Auth4+ACK3 reviewedpostimages applied locally afterownCP/custody.",
+    "next": "Finish genuine4087ordinaryRAW3manifestimport aftertwopeerSOURCEapprovals, finalcandidatecurrentCI/twoDELIVERYreviews/normalexpectedheadmerge; restoreGEN5ce80 andprocess1exact006aad.",
     "combinedManifestSHA256": "f38a4974cbdd2bcf3ce657a1190d60930c02c85c1b9c4fa47f390607955c90e4",
     "combinedPatchSHA256": "549ce0da682f719964ce50275e33b9816b3c7e73c94608a9f26f6e40095001ca",
     "twoIndependentSourceReviews": {
@@ -282,7 +283,10 @@
       "incumbent": "006aad468c5202130f0bb82f68497d037ca7afdf",
       "proposedNewReceipt": "dae3bc155a05228ef34a3dd90a700c61a1dac758",
       "postSHA256": "dab9fde9547aad740bd0796225af8f3f184551b58f3971558a3d2b7d5be9ce5d",
-      "state": "Pendingseparateexplicituserapproval; exactfile/refs untouched"
+      "state": "EXPLICIT_USER_APPROVAL_AND_MATCHED_TRANSFER_CLAIM_READBACK_VERIFIED_BEFORE_WRITE",
+      "ownReceipt": "dae3bc155a05228ef34a3dd90a700c61a1dac758",
+      "comment": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6198400804",
+      "restoreAfterVerifiedMergeTo": "006aad468c5202130f0bb82f68497d037ca7afdf"
     },
     "additionalCustody": {
       "documentFixture": "b34dc9621471765332544cb7f62399ba2796a571",
@@ -294,6 +298,53 @@
       "migrationIntegrity": "PASS1265files/1168groups/fullchecksums",
       "provenanceRegression": "PASS actual full checker;9mutationcases qualified beforehand",
       "readonlyCombinedTsc": "PASS12TSoverlays/3607files0diag"
+    },
+    "auth4UnitProposal": {
+      "manifestSHA256": "eed89d6f2dad185ee6d9adc7bbffaf17ee2fa1b1ef39d611461ab6543b10b65c",
+      "sourceApprovals": [
+        "be67b754e4065a8ef5a5554ee7c358311310d19f6b7c0a8c6fa0d4a8ef25af17",
+        "fdc0faec5ff455e135b65fee62456a61a44a37197e53d81760c07295f52d7514"
+      ],
+      "authorActualTests": "91/91PASS6targetfiles/current7eGENschema",
+      "parentNext": "Completedactual102/102materialized; finalGEN386Bsigningdelta doesnotchange capturedidentityfunctions or types; finalCIpending.",
+      "parentActualTests": "102PASS/7files/0FAIL includingextraexternalidentityclassificationcaller; Node22 actualmaterialized"
+    },
+    "ack3UnitProposal": {
+      "manifestSHA256": "c3267d62cdcf8af73cfab5d243c894033e1a9f578706b9789ad53545282f9f15",
+      "patchSHA256": "1f1d1639beab785163313da17c1777445d3bd57cda8d06a5c6ba97a540a8704a",
+      "twoIndependentSourceReviews": [
+        "5a34078018a539c7591484dcda3f2504f994e68732b2e0836611289f0b9bd4d3",
+        "bac6f3a2acfdbce3e6561e0216526971b3a1ee713592fbb5756ae6f5c77e42e1"
+      ],
+      "authorActualVerification": "89finalfilecasesPASS across2qualifiedruns; no singlefinalcohortclaim",
+      "parentNext": "Completedactual89/89one3filecohort; finalGEN386Bsigningdelta doesnotchange referencedACK/receptionfunctions or types; finalCIpending.",
+      "parentActualTests": "89PASS/3files/0FAIL inoneactualmaterializedcohort, Node22."
     }
+  },
+  "final_fixture_preparation": {
+    "processJournal": "explicituserapproval,one exact matchedreftransfer+publicCLAIM verified; exactdab9 postimage applied; all47assertions preserved",
+    "Auth7": "actual parent7files102/102PASS",
+    "ACK3": "actual parent3files89/89PASS",
+    "combined": "191 actualPASS in two distinct cohorts/10files",
+    "testsTSC": "actual full tsconfig.tests Node22.23.3/TS5.9.3 noEmit incrementalfalse EXIT0; emptylog SHAe3b0c442",
+    "productionAudit": "actual npm run security:audit-production EXIT0; existing documented node-forge GHSA-86w9-cpqp-85rv exception; otherwise0 vulnerabilities",
+    "GEN": {
+      "source": "4087a558b1060655124bc4ee4d8709a0b6f97b8a",
+      "frozenManifestSHA256": "5ed60d16cdc2b18b281a35679830eddf4db5633e3be1a4f53708dd34afe16e32",
+      "reviews": [
+        "65e39bc86ee2f240e11addb3b5d8bbe5753e2647ef23600e2f13245bee926032",
+        "e70db4f77b59e389f1a12be8b931d59141bbb36d73f71170cd8ac0d0cec326d1"
+      ],
+      "actual6CustodyMatchedAt": "2026-10-15T18:00:00.237780+00:00",
+      "changes": [
+        "supabase/schema.sql",
+        "supabase/schema.fingerprint.json",
+        "scripts/supabase-types-manifest.json"
+      ],
+      "limits": "Ordinary genuine capture only; current finalCI/delivery pending.",
+      "state": "EXACT3_IMPORTED_POSTHASHES_MATCH"
+    },
+    "custody6preflight": "all5GENcaad+processdae3 exactmatched17:56:35;producerbacpreserved;mergeRoleabsent;main11bd",
+    "finalMaterializedChecks": "Actual db:migrations:check1265/1168+newtail/types, provenance, integratedgoldenpath/allnestedgates, largesourcebudget, agentmemorygitstate PASS; output retained /tmp/pr794-final-materialized-checks"
   }
 }
