@@ -2510,5 +2510,114 @@
     "native_migrations_reapplied": false,
     "all_actual_profiles_or_sql_green_claim": false,
     "next_action": "Fresh exactcurrent6two independent source finals, rootintegrity, commit and three committed-input planners; normalPR794push. Genuine SQL clean/upgrade must pass beforequalifiedGEN/types/schema/Staff/release."
+  },
+  "complete_source_v4_e341_publication_20261015": {
+    "recorded_utc": "2026-10-15T14:45:43.514376+00:00",
+    "head": "e341b036485b65e6ad6ee4c38ee90372e9e34080",
+    "tree": "1eb638e783cd8baf31f1d5ced636c8a3867a3eff",
+    "parent": "0f1c92d023819fd1cd641d9b92da2e268b049afe",
+    "publication": "NORMAL_GIT_PUSH_AND_AUTHENTICATED_REMOTE_REF_COMMIT_TREE_PARENT_MATCH",
+    "receipt": {
+      "path": "/tmp/gridex-ops-core-completion-20261014/complete-source-v4-e341-current-six-normal-publication-authenticated-root-readback-private.json",
+      "bytes": 970,
+      "sha256": "1bd0f5ed7b042e240b623546167d4da6c6564db2c335906b879df8f15a27fd2b"
+    },
+    "source_finals": [
+      "e09a799f40ef31513d2a4b8ed535d5ebba4e8805de0e74d5485058f5f1cbbe6d",
+      "e3a1491db49ec71188ca2d22ebbff4096d480c06c8b6263a8990ff9b2abcafcf"
+    ],
+    "three_committed_planners": "PASS clean59foundation/1151timestamped; strict644historical/613forward; history886historical/371pending. All executedinputbytes, A2Asource→4e46routing, four native forward sourcehashes/order exact. Not SQL runtime.",
+    "owned_ops_run": {
+      "id": 38754179574,
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38754179574",
+      "attempt": 1,
+      "source_head": "e341b036485b65e6ad6ee4c38ee90372e9e34080",
+      "status_at_readback": "queued"
+    },
+    "state": "PUBLISHED_SOURCE23_TRANSACTIONAL_GUARDS_PASS_LATER_ALIAS_GUARD_FAIL",
+    "native_migrations_reapplied": false,
+    "next_action": "Complete sourceclosed2site aliasproposal with independentfreshreviews; rootonlyclaimedmaterialization/integrity/committedplanners/normalpublication; genuinewholeSQL beforequalifiedGEN/schema/types/Staff/release. No newnativeDDL or externalAuth fromcurrentdiagnosis.",
+    "updated_utc": "2026-10-15T15:01:04.043889+00:00",
+    "actual_sql_results": {
+      "clean": {
+        "job": 116488128183,
+        "raw_bytes": 3445261,
+        "raw_sha256": "7a9bd887e4461910af47d89fa1e32d45e2b806fb098c3960318baa72c9c2c463",
+        "conclusion": "failure"
+      },
+      "upgrade": {
+        "job": 116488128099,
+        "raw_bytes": 3446196,
+        "raw_sha256": "433683b8b88b09074f16e0fca7abe45a32281fb549824c2100ba98873a36bee4",
+        "conclusion": "failure"
+      },
+      "actual_template_sha256": "f570aabcac090f5ddd09baed21cc9e9c77288a82bac1c948ef7a764f237ce11d",
+      "actual_source23_notice": "Both source_before functions23 owner15 ACL21 finance6/SC0232 preserved reached strict success NOTICE. Actual metadataMD5aa27e93111de20a76d4e04f16a07a375/SHA816e7963e2432126ab34e584aa5e5ddc694c09efaa14459066558b5f1de572b3 equalboth, distinct from virtual7de.",
+      "bounded_transactional_evidence": "/tmp/gridex-ops-core-completion-20261014/ops-e341-both-source23-transactional-evidence-root-private.json",
+      "later_error": "extra_z02_source_delegate_body_or_all_attributes_or_owner_only_policy_changed",
+      "whole_outer_sql": "FAIL: prior23changes inside failed atomicstatement roll back. No durable/native/ledger/fullSQL success."
+    },
+    "next_source_finding": {
+      "problem": "ExtraZ02 guard accepts nativealias330c/22481 but laterimmutableOct12two-anchor source migration yields canonical6e1dae65ef5f8810ff6155a727b2eb88/23026B/SHA b0f3c17dd3fc013bdad0c1ab5d8f67a71bdd2fbbd4cfc502a1b0c051e4d9de74, preserving allnonbody attributes. Later semantic_contracts has same obsoletealias assumption. Compound actualfailure does not identify othermetadata/ACL predicates.",
+      "scope": "Same guarded alias at exactly2sites; add only exact source-qualified canonical alias/public pair with full metadata/rawACL, retaining oldnativeclause. No bodywrites, permission/RLS weakening or inferredactualaliascatalog.",
+      "author": "current_main_api_merge_review soleprivateauthor",
+      "reviewers": [
+        "api_documentation_completion_audit",
+        "database_code_audit"
+      ],
+      "parallel_source_experts": [
+        "supply_retention_lock_closure exactalias/ACL chronology",
+        "api_release_scope_audit allremaining modulebodyguardinventory"
+      ]
+    },
+    "bounded_native_sc023_applicability": {
+      "query_receipts": [
+        "/tmp/gridex-ops-core-completion-20261014/source23-v4-native-public-acl-readonly-qualified-receipt-private.json",
+        "/tmp/gridex-ops-core-completion-20261014/source23-native-sc023-pair-ledger-qualified-receipt-private.json"
+      ],
+      "facts": "Existing native public rawACLnewPG/service predicate TRUE, oldPGonlyFALSE; bodylegacy a150. Native group125d +writerhelperda71, queriednewhistoryhooks absent/exact20261012212000ledger[]. Coherentlegacy pair, not mixednewgroup/oldpublic.",
+      "finding": "No confirmedpublishedAPI missingRPCblocker or mixedSC023lock defect from versions. Source contractmap63/52/27/3→112handlers,927file staticclosure has no newVHruntimehelper dependence. BroaderSC023marketfeature deployment/coverage unqualified; no newnativeDDL fromthisaudit.",
+      "source_finals": [
+        {
+          "path": "/tmp/gridex-ops-core-completion-20261014/sc023-native-legacy-pair-api-applicability-addendum-one.md",
+          "sha256": "e0b859cc2e77c6065b75fefaab529ada129a06fb7c8526f6a2bb5015a9e97542"
+        },
+        {
+          "path": "/tmp/gridex-ops-core-completion-20261014/sc023-native-paired-legacy-independent-database-audit-source-final-private.md",
+          "sha256": "803555d170dbe7a3425ee3ee274f5f7fcc7f07f2a9d18cbb95415dd43f22cf2e"
+        }
+      ]
+    }
+  },
+  "z02_canonical_delegate_v1_20261015": {
+    "recorded_utc": "2026-10-15T15:08:20.431980+00:00",
+    "state": "MATERIALIZED_SOURCE_APPROVED_PENDING_CURRENT_UNION_AND_GENUINE_SQL",
+    "base_head": "e341b036485b65e6ad6ee4c38ee90372e9e34080",
+    "artifact_sha256": "f3b9a8b343bb42b3e9b1e35aea139b45480cd0a1146fee59049d38cb095d71bf",
+    "artifact_bytes": 727882,
+    "atomic_sha256": "f3c685ea771f5eaf1492a9ca5047554d389041ae93a519435ac7bdf0ad5d3180",
+    "effective_source23_template_unchanged_sha256": "f570aabcac090f5ddd09baed21cc9e9c77288a82bac1c948ef7a764f237ce11d",
+    "problem": "Both genuinee341SQLtransactions reached23profile/effect/invariant success then failed compositeextraZ02alias guard. ExactlaterOct12source strengthens alias330c→6e1 preservingnonbody; initialaliasguard and finalsemanticcontract omit latestbody. Actualcompounderror does notprovewhichothermetadata/ACLpredicate failed.",
+    "source_fix": "Exactly3atomicreplacements: add only source-paired canonicalalias6e1/23026/SHA b0f3 and public3a300/4333/SHA ccc4 fullheader/rawACL/body fingerprints to firstguard; addexactalias semanticvariant with conditionalSHA/bytesguard in finalverifier. Original330nativeclauses/all15oldcontracts retained. No functionbody/owner/ACL/role/namespace/RLSpolicy/row mutation introduced. V4effective/source23 and diagnostic source bytes unchanged.",
+    "source_finals": [
+      {
+        "path": "/tmp/gridex-ops-core-completion-20261014/z02-canonical-delegate-v1-independent-source-final-one.md",
+        "sha256": "9201a15fe81db45b01969881d814ae248ba221b97fc2c606b0f0396bf5a4a0dd"
+      },
+      {
+        "path": "/tmp/gridex-ops-core-completion-20261014/z02-canonical-delegate-independent-database-audit-source-final-private.md",
+        "sha256": "fc8a1e89554da3d0ff56a7dd7c085e9b07f9189aec26a6e198fc748285c1e840"
+      }
+    ],
+    "root_static_receipt": "/tmp/gridex-ops-core-completion-20261014/z02-canonical-v1-private-independent-root-static-verification.json",
+    "custody_receipt": "/tmp/gridex-ops-core-completion-20261014/z02-canonical-v1-final-custody-authenticated-root-prewrite-private.json",
+    "remaining_gates_source_inventory": {
+      "path": "/tmp/gridex-ops-core-completion-20261014/e341-later-atomic-native-profile-bounded-source-audit-private.md",
+      "sha256": "cc4ae2f48977da9fc79774ab337e3f02ec1a053833c572218acd0dea75b900f3",
+      "scope": "Other14semanticbodies source-admitted; trigger/finance/retentionguards no additional concrete unsupportedbodyprofile established; no liveextendedmetadata/wholeSQL credit."
+    },
+    "native_migrations_reapplied": false,
+    "actual_alias_profile_first_replay_or_whole_sql_proven": false,
+    "next_action": "Fresh exact6two independent reviews +rootintegrity; commit and threecommittedinputplanners; normalPR794push. Rootonlycollectown genuinecurrentSQLonce. RequirewholeSQL beforequalifiedGEN/schema/types andrealStaff/signing/delivery/serialmerge."
   }
 }
