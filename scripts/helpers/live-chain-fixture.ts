@@ -1,0 +1,313 @@
+// Live-like local chain fixture. Owned local Supabase, a locally running Next
+// app and a local GreenMail (IMAPS/SMTPS with a local CA) only. Everything
+// here is synthetic (E2E- names, example.invalid) and is torn down with the
+// disposable stack. Nothing is sent outside the machine.
+import { execFileSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
+import { randomUUID } from 'node:crypto'
+import nodemailer from 'nodemailer'
+import { ImapFlow } from 'imapflow'
+import { fixtureOrganizationNumber, nativeActorRoleSql } from './ediel-normal-switch-native-fixture'
+import { registerUtiltsIssuer, seedUtiltsIssuerHistoryGround } from './utiltsConsumptionParties'
+
+export const LIVE = {
+  appUrl: process.env.GRIDEX_LIVE_APP_URL ?? 'http://127.0.0.1:3100',
+  cronSecret: process.env.CRON_SECRET ?? '',
+  platformMailbox: process.env.GRIDEX_SHARED_EDIEL_TEST_EMAIL ?? 'gridex-ediel-test@example.invalid',
+  mailHost: 'localhost',
+  smtpsPort: 3465,
+  imapsPort: 3993,
+  automationUserId: process.env.GRIDEX_AUTOMATION_USER_ID ?? '',
+}
+
+export const literal = (v: unknown): string => v === null || v === undefined ? 'NULL'
+  : "'" + String(typeof v === 'object' ? JSON.stringify(v) : v).replaceAll("'", "''") + "'"
+
+export function sql<T = unknown>(input: string, timeoutMs = 60_000): T {
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL !== 'http://127.0.0.1:54321') throw Error('owned_local_only')
+  const out = execFileSync('psql', ['postgresql://postgres:postgres@127.0.0.1:54322/postgres', '-XAtq', '-v', 'ON_ERROR_STOP=1'],
+    { input, encoding: 'utf8', timeout: timeoutMs, maxBuffer: 50_000_000 }).trim()
+  if (out === 't' || out === 'f') return (out === 't') as T
+  return (out ? JSON.parse(out) : undefined) as T
+}
+
+/** 17-digit body + GS1 mod-10 check digit (anläggnings-ID). */
+export function gs1(body17: string) {
+  let sum = 0
+  for (let i = 0; i < body17.length; i += 1) sum += Number(body17[body17.length - 1 - i]) * (i % 2 === 0 ? 3 : 1)
+  return body17 + String((10 - (sum % 10)) % 10)
+}
+
+/** Exact decimal without trailing zeros, as a grid owner would write it. */
+export function kwhText(value: number) {
+  return value.toFixed(3).replace(/\.?0+$/, '') || '0'
+}
+
+/** Deterministic household quarter-hour profile for one local day (kWh, 3 decimals). */
+export function dayProfile(dayIndex: number): number[] {
+  const values: number[] = []
+  for (let q = 0; q < 96; q += 1) {
+    const hour = q / 4
+    const base = 0.06 + 0.04 * Math.max(0, Math.sin(((hour - 6) * Math.PI) / 12))
+    const evening = hour >= 17 && hour < 21 ? 0.09 : 0
+    const weekend = dayIndex % 7 >= 5 ? 0.015 : 0
+    const ripple = ((q * 7 + dayIndex * 13) % 11) / 1000
+    values.push(Math.round((base + evening + weekend + ripple) * 1000) / 1000)
+  }
+  return values
+}
+
+const pad = (n: number, w = 2) => String(n).padStart(w, '0')
+
+/** One grid-owner UTILTS E66 for one local (CEST, +0200) day: 96 energy-only quarter-hours. */
+export function dailyE66(input: { issuer: string; receiver: string; meterId: string; day: string; values: number[]; reference: string }) {
+  if (input.values.length !== 96) throw Error('dailyE66 requires 96 quarter-hours')
+  const [y, m, d] = input.day.split('-').map(Number)
+  const next = new Date(Date.UTC(y, m - 1, d + 1))
+  const local = (date: Date, minutes: number) => {
+    const t = new Date(date.getTime() + minutes * 60_000)
+    return `${t.getUTCFullYear()}${pad(t.getUTCMonth() + 1)}${pad(t.getUTCDate())}${pad(t.getUTCHours())}${pad(t.getUTCMinutes())}`
+  }
+  const start = new Date(Date.UTC(y, m - 1, d))
+  const lines = [
+    "UNA:+.? '",
+    `UNB+UNOC:3+${input.issuer}:ZZ+${input.receiver}:ZZ+${local(next, 6 * 60).slice(2, 8)}:0600+${input.reference}++23-DDQ-E66-T++++1'`,
+    "UNH+1+UTILTS:D:02B:UN:E5SE5A'",
+    `BGM+E66::260+M${input.reference}+9+AB'`,
+    `DTM+137:${local(next, 6 * 60)}:203'`, "DTM+735:?+0200:406'", "MKS+23+E02::260'",
+    `NAD+MS+${input.issuer}:SVK:260'`, `NAD+MR+${input.receiver}:SVK:260'`, "NAD+DDQ'",
+    `IDE+24+T${input.reference}'`, `LOC+172+${input.meterId}::9'`, "LOC+239+TES:SVK:260'",
+    "LIN+++8716867000030:::9'", `DTM+324:${local(start, 0)}${local(next, 0)}:719'`,
+    `DTM+597:${local(next, 6 * 60)}:203'`, "DTM+354:15:806'", "STS+7++E88::260'", "MEA+AAZ++KWH'",
+    "CCI+++E12::260'", "CAV+E17::260'",
+  ]
+  input.values.forEach((value, q) => {
+    lines.push(`SEQ++${q + 1}'`, `QTY+136:${kwhText(value)}'`, `DTM+597:${local(start, q * 15)}:203'`, "STS+7++21::260'")
+  })
+  lines.push(`UNT+${lines.length - 1}+1'`, `UNZ+1+${input.reference}'`)
+  return lines.join('\n')
+}
+
+/** The grid owner sends one EDIFACT file as an e-mail attachment over SMTPS (TLS verified via the local CA). */
+export async function gridOwnerSends(input: { from: string; edifact: string; filename: string; subject: string }) {
+  const transport = nodemailer.createTransport({ host: LIVE.mailHost, port: LIVE.smtpsPort, secure: true, requireTLS: true,
+    auth: { user: input.from, pass: 'grid-owner-local' }, tls: { rejectUnauthorized: true, minVersion: 'TLSv1.2' } })
+  await transport.sendMail({ from: input.from, to: LIVE.platformMailbox, subject: input.subject, text: 'Ediel',
+    attachments: [{ filename: input.filename, content: input.edifact, contentType: 'application/edifact' }] })
+}
+
+export type ReceivedMail = { subject: string; from: string; to: string; attachments: Array<{ filename: string; text: string }> }
+
+/** What a counterparty actually received (CONTRL/APERAK/PRODAT replies sent by the platform). */
+export async function readInbox(user: string): Promise<ReceivedMail[]> {
+  const client = new ImapFlow({ host: LIVE.mailHost, port: LIVE.imapsPort, secure: true, auth: { user, pass: 'counterparty-local' }, logger: false })
+  await client.connect()
+  const lock = await client.getMailboxLock('INBOX')
+  const out: ReceivedMail[] = []
+  try {
+    const status = await client.status('INBOX', { messages: true })
+    if (!status || !status.messages) return out
+    const listed: Array<{ uid: number; subject: string; from: string; to: string; parts: Array<{ part: string; filename: string }> }> = []
+    for await (const message of client.fetch('1:*', { uid: true, envelope: true, bodyStructure: true })) {
+      const parts: Array<{ part: string; filename: string }> = []
+      const walk = (node: { part?: string; disposition?: string; dispositionParameters?: Record<string, string>; parameters?: Record<string, string>; childNodes?: unknown[] } | undefined) => {
+        if (!node) return
+        const filename = node.dispositionParameters?.filename ?? node.parameters?.name
+        if (filename && node.part) parts.push({ part: node.part, filename })
+        for (const child of node.childNodes ?? []) walk(child as never)
+      }
+      walk(message.bodyStructure as never)
+      listed.push({ uid: message.uid, subject: message.envelope?.subject ?? '', from: message.envelope?.from?.[0]?.address ?? '',
+        to: message.envelope?.to?.[0]?.address ?? '', parts })
+    }
+    for (const message of listed) {
+      const attachments: Array<{ filename: string; text: string }> = []
+      for (const part of message.parts) {
+        const { content } = await client.download(String(message.uid), part.part, { uid: true })
+        if (!content) continue
+        const chunks: Buffer[] = []
+        for await (const chunk of content) chunks.push(Buffer.from(chunk))
+        attachments.push({ filename: part.filename, text: Buffer.concat(chunks).toString('utf8') })
+      }
+      out.push({ subject: message.subject, from: message.from, to: message.to, attachments })
+    }
+  } finally { lock.release(); await client.logout() }
+  return out
+}
+
+/** Calls a scheduled endpoint exactly like Vercel Cron: Bearer CRON_SECRET. */
+export async function cron(path: string) {
+  const response = await fetch(new URL(path, LIVE.appUrl), { headers: { authorization: `Bearer ${LIVE.cronSecret}` } })
+  const body = await response.json().catch(() => ({})) as Record<string, unknown>
+  return { status: response.status, body }
+}
+
+
+/**
+ * Hosted environments carry the application permission catalog as reference
+ * data; the canonical clean replay skips the legacy foundation that seeded it
+ * (see ediel-native-permission-catalog.setup.ts). Mirror the code catalog
+ * (lib/rbac/catalog.ts PERMISSION_CATALOG) as reference rows — never a grant.
+ */
+export function ensureHostedPermissionCatalog() {
+  const source = readFileSync('lib/rbac/catalog.ts', 'utf8')
+  const start = source.indexOf('const PERMISSION_CATALOG'), end = source.indexOf('\n]', start)
+  const keys = [...source.slice(start, end).matchAll(/key: '([^']+)'/g)].map(match => match[1])
+  if (keys.length < 40 || !keys.includes('pricing.write')) throw Error('permission_catalog_source_unreadable')
+  sql(`INSERT INTO public.permissions(key,name,description,category) SELECT k,k,'Hosted catalog reference (live chain)','live_chain'
+   FROM unnest(ARRAY[${keys.map(literal).join(',')}]) k WHERE NOT EXISTS(SELECT FROM public.permissions p WHERE p.key=k);`)
+  return keys.length
+}
+
+/**
+ * The shared test Ediel mailbox profile, as a platform admin saves it in
+ * /admin/inbound-mail (saveSharedMailboxProfileAction fields): local IMAPS/SMTPS,
+ * password by env reference. Platform-level configuration, not tenant data.
+ */
+export function configurePlatformMailbox() {
+  sql(`UPDATE public.ediel_mailboxes SET email_address=${literal(LIVE.platformMailbox)},imap_host=${literal(LIVE.mailHost)},imap_port=${LIVE.imapsPort},
+    username=${literal(LIVE.platformMailbox)},secret_reference='env:GRIDEX_SHARED_EDIEL_TEST_IMAP_PASS',smtp_from=${literal(LIVE.platformMailbox)},
+    is_active=true,last_error=NULL,locked_at=NULL,locked_by=NULL,last_polled_at=NULL,
+    metadata=metadata||jsonb_build_object('imap_secure',true,'imap_folder','INBOX','smtp_host',${literal(LIVE.mailHost)},'smtp_port',${LIVE.smtpsPort},'smtp_secure',true)
+   WHERE company_id IS NULL AND environment='test';`)
+  return sql<number>(`SELECT to_jsonb(count(*)) FROM public.ediel_mailboxes WHERE company_id IS NULL AND environment='test' AND imap_port=${LIVE.imapsPort}`)
+}
+
+export type LiveTenant = {
+  companyId: string; adminUserId: string; adminEmail: string; adminPassword: string
+  supplierEdielId: string; issuerEdielId: string; gridOwnerId: string; gridOwnerEmail: string
+  offerId: string; publicationVersionId: string
+}
+
+/**
+ * Go-live configuration of one electricity supplier, as a platform admin sets
+ * it up: legal profile, sender, Ediel identity/roles/routes, BRP, grid owner,
+ * a published quarter-hour spot product and billing automation. The grid-owner
+ * issuer registry entry is a SYNTHETIC stand-in for external evidence EXT-ISSUER-01.
+ */
+export async function configureTenant(supabase: { rpc: (name: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: unknown }> }): Promise<LiveTenant> {
+  ensureHostedPermissionCatalog()
+  const companyId = randomUUID(), adminUserId = randomUUID(), gridOwnerId = randomUUID()
+  const org = fixtureOrganizationNumber()
+  const adminEmail = `e2e-admin-${adminUserId.slice(0, 8)}@example.invalid`, adminPassword = `Live-${randomUUID()}`
+  const supplierEdielId = sql<string>(`BEGIN; SELECT pg_advisory_xact_lock(hashtextextended('native_utilts_consumption_receiver',0));
+   SELECT to_jsonb(min(n)::text) FROM generate_series(70000,79999) n WHERE NOT EXISTS(SELECT FROM public.tenant_actor_identifiers i WHERE i.identifier_type='EdielId' AND i.identifier_value=n::text)
+    AND NOT EXISTS(SELECT FROM public.ediel_actor_settings a WHERE a.ediel_id=n::text); COMMIT;`)
+  const issuerEdielId = sql<string>(`BEGIN; SELECT pg_advisory_xact_lock(hashtextextended('native_utilts_consumption_issuer',0));
+   SELECT to_jsonb(min(n)::text) FROM generate_series(80000,89999) n WHERE NOT EXISTS(SELECT FROM gridex_utilts_issuer.namespaces x WHERE x.registry_actor_key='SYNTHETIC-NATIVE-ISSUER:'||n::text); COMMIT;`)
+  const gridOwnerEmail = `e2e-natagare-${issuerEdielId}@example.invalid`
+  const user = (id: string, email: string, name: string, password?: string) => `
+   INSERT INTO auth.users(id,instance_id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_sso_user,is_anonymous,confirmation_token,recovery_token,email_change_token_new,email_change)
+   VALUES(${literal(id)},'00000000-0000-0000-0000-000000000000','authenticated','authenticated',${literal(email)},${password ? `extensions.crypt(${literal(password)},extensions.gen_salt('bf'))` : 'NULL'},now(),'{"provider":"email","providers":["email"]}','{}',now(),now(),false,false,'','','','');
+   INSERT INTO auth.identities(id,user_id,provider_id,identity_data,provider,last_sign_in_at,created_at,updated_at)
+   VALUES(gen_random_uuid(),${literal(id)},${literal(id)},jsonb_build_object('sub',${literal(id)},'email',${literal(email)},'email_verified',true),'email',now(),now(),now());
+   INSERT INTO public.user_profiles(id,email,full_name,user_status) VALUES(${literal(id)},${literal(email)},${literal(name)},'active') ON CONFLICT(id) DO UPDATE SET user_status='active';`
+  const member = (id: string) => `
+   INSERT INTO public.company_memberships(company_id,user_id,membership_role,status,accepted_at,metadata,role,is_active,joined_at,role_key)
+   VALUES(${literal(companyId)},${literal(id)},'company_admin','active',now(),'{}','company_admin',true,now(),'company_admin');
+   INSERT INTO public.user_roles(user_id,role_id,role,company_id,status,is_active) SELECT ${literal(id)},id,'company_admin',${literal(companyId)},'active',true FROM public.roles WHERE key='company_admin' ON CONFLICT DO NOTHING;
+   INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
+   SELECT ${literal(id)},${literal(companyId)},p.id,p.key FROM public.permissions p WHERE p.key NOT LIKE 'ediel.production.%' AND p.key NOT LIKE 'ediel.retention.%'
+   AND NOT EXISTS(SELECT FROM public.user_permissions u WHERE u.user_id=${literal(id)} AND u.company_id=${literal(companyId)} AND u.permission_key=p.key);
+   ${nativeActorRoleSql(companyId, id)}`
+  sql(`INSERT INTO public.companies(id,name,status) VALUES(${literal(companyId)},'E2E Live Elhandel AB','active');
+   ${user(adminUserId, adminEmail, 'E2E Live Admin', adminPassword)}
+   ${member(adminUserId)}
+   ${member(LIVE.automationUserId)}
+   UPDATE public.companies SET legal_name='E2E Live Elhandel AB',org_number=${literal(org)},address_line_1='Testgatan 1',postal_code='123 45',city='Teststad',country_code='SE',
+    support_email='service@example.invalid',phone='0101234567',website='https://example.invalid' WHERE id=${literal(companyId)};`)
+  const pricing = { schema: 'gridex_contract_pricing_v5', pricing_model: 'spot', energy_direction: 'consumption', interval_resolution: 'quarterly', vat_rate: 0.25,
+    price_areas: ['SE3'], base_components: [{ source_type: 'spot', label: 'Spotpris', weight_percent: 100, price_area: 'SE3' }],
+    price_components: [
+      { component_code: 'spot_markup', component_type: 'markup', name: 'Påslag', calculation_type: 'per_kwh', amount: 4, unit: 'ore_per_kwh', website_card_visible: true },
+      { component_code: 'monthly_fee', component_type: 'fee', name: 'Månadsavgift', calculation_type: 'fixed_monthly', amount: 49, unit: 'sek_month', website_card_visible: true }] }
+  const offer = { name: 'E2E Kvartspris', slug: `e2e-kvartspris-${companyId}`, lifecycle_status: 'draft', contract_type: 'variable_quarterly', customer_type: 'both', pricing_model: 'spot',
+    energy_direction: 'consumption', terms_version: 'e2e-v1', spot_markup_ore_per_kwh: 4, monthly_fee_sek: 49, invoice_fee_sek: 0, default_binding_months: 0, default_notice_months: 1,
+    automatic_renewal: true, automatic_renewal_term_months: 12, power_of_attorney_required: true, valid_from: '2026-06-01' }
+  const created = await supabase.rpc('gridex_upsert_internal_contract_offer_v2', { p_company_id: companyId, p_offer_id: null, p_payload: offer, p_pricing_snapshot: pricing, p_actor_user_id: adminUserId })
+  if (created.error) throw Error(`offer_create_failed:${JSON.stringify(created.error)}`)
+  const offerResult = created.data as { ok?: boolean; offer?: { id?: string } }
+  if (!offerResult.ok || !offerResult.offer?.id) throw Error(`offer_create_rejected:${JSON.stringify(created.data)}`)
+  const offerId = offerResult.offer.id
+  sql(`INSERT INTO public.ediel_actor_settings(company_id,environment,actor_name,actor_ediel_id,ediel_id)
+    VALUES(${literal(companyId)},'production','E2E Live Elhandel',${literal(supplierEdielId)},${literal(supplierEdielId)}),(${literal(companyId)},'test','E2E Live Elhandel',${literal(supplierEdielId)},${literal(supplierEdielId)});
+   INSERT INTO public.ediel_brp_settings(company_id,environment,brp_ediel_id,brp_name) VALUES(${literal(companyId)},'production','54321','E2E BRP');
+   INSERT INTO public.ediel_route_profiles(company_id,environment,route_name,message_family) VALUES(${literal(companyId)},'production','E2E PRODAT','PRODAT'),(${literal(companyId)},'production','E2E UTILTS','UTILTS');
+   INSERT INTO public.company_email_settings(company_id,sender_name,sender_email,verification_status) VALUES(${literal(companyId)},'E2E Live','e2e-live@example.invalid','verified');
+   INSERT INTO public.company_email_templates(company_id,template_key,name,subject,body_html,is_active) VALUES(${literal(companyId)},'contract.confirmation_sent','E2E','E2E','<p>E2E</p>',true);
+   INSERT INTO public.email_event_rules(company_id,event_key,template_key,enabled) VALUES(${literal(companyId)},'contract.confirmation_sent','contract.confirmation_sent',true);
+   UPDATE public.tenant_legal_profiles SET legal_name='E2E Live Elhandel AB',organization_number=${literal(org)},
+    postal_address='{"address_line_1":"Testgatan 1","postal_code":"123 45","city":"Teststad","country_code":"SE"}',customer_service_email='service@example.invalid',phone='0101234567',website='https://example.invalid',
+    complaints_contact='{"email":"c@example.invalid"}',data_protection_contact='{"email":"p@example.invalid"}',billing_information='{"email":"b@example.invalid"}',
+    dispute_resolution_information='{"authority":"ARN","description":"Synthetic dispute contact for live chain fixture"}',
+    source_company_snapshot=(SELECT public.gridex_company_legal_profile_defaults(to_jsonb(c))->'source_company_snapshot' FROM public.companies c WHERE c.id=${literal(companyId)}),
+    source_company_snapshot_sha256=(SELECT public.gridex_company_legal_profile_defaults(to_jsonb(c))->>'source_company_snapshot_sha256' FROM public.companies c WHERE c.id=${literal(companyId)}),
+    review_required=false,reviewed_at=now() WHERE company_id=${literal(companyId)};`)
+  const legal = sql<string>(`SELECT to_jsonb(public.gridex_materialize_legal_bundle_version(${literal(companyId)},(SELECT contract_product_version_id FROM public.contract_offers WHERE id=${literal(offerId)}),NULL,${literal(adminUserId)}))`)
+  sql(`UPDATE public.contract_offers SET legal_bundle_version_id=${literal(legal)} WHERE id=${literal(offerId)};`)
+  const published = await supabase.rpc('gridex_publish_internal_contract_version', { p_company_id: companyId, p_offer_id: offerId, p_actor_user_id: adminUserId })
+  if (published.error || !(published.data as { ok?: boolean })?.ok) throw Error(`publish_rejected:${JSON.stringify(published.error ?? published.data)}`)
+  sql(`WITH t AS (INSERT INTO public.contract_price_options(company_id,contract_product_version_id,price_plan_version_id,option_reference,option_code,customer_name,contract_type,
+     binding_months,notice_months,auto_renew_enabled,renewal_term_months,status,customer_type,is_default,selection_required,created_by)
+    SELECT ${literal(companyId)},contract_product_version_id,price_plan_version_id,'e2e-default','e2e-default','Kvartspris','variable_quarterly',0,1,true,12,'active','both',true,false,${literal(adminUserId)}
+    FROM public.contract_offers WHERE id=${literal(offerId)} RETURNING id,company_id,price_plan_version_id)
+   INSERT INTO public.contract_price_option_area_prices(company_id,contract_price_option_id,price_plan_version_id,price_row_reference,price_area,amount,unit,created_by)
+   SELECT company_id,id,price_plan_version_id,'e2e-se3','SE3',4,'ore_per_kwh',${literal(adminUserId)} FROM t;`)
+  const channel = await supabase.rpc('gridex_publish_contract_channel', { p_company_id: companyId, p_offer_id: offerId, p_channel: 'internal', p_actor_user_id: adminUserId })
+  if (channel.error || !(channel.data as { ok?: boolean })?.ok) throw Error(`channel_rejected:${JSON.stringify(channel.error ?? channel.data)}`)
+  const publicationVersionId = (channel.data as { contract_publication_version_id: string }).contract_publication_version_id
+  // Ediel market identity, roles, ACK route and the grid owner.
+  sql(`INSERT INTO public.tenant_ediel_profiles(company_id,environment,market,is_enabled,valid_from) SELECT ${literal(companyId)},e,'electricity',true,clock_timestamp()-interval '1 day' FROM unnest(ARRAY['test','production']) e ON CONFLICT DO NOTHING;
+   INSERT INTO public.tenant_actor_identifiers(company_id,environment,actor_id,identifier_type,identifier_value,valid_from) SELECT ${literal(companyId)},e,${literal(adminUserId)},'EdielId',${literal(supplierEdielId)},clock_timestamp()-interval '1 day' FROM unnest(ARRAY['test','production']) e;
+   INSERT INTO public.tenant_actor_roles(company_id,environment,actor_id,role_code,valid_from) SELECT ${literal(companyId)},e,${literal(adminUserId)},'electricity_supplier',clock_timestamp()-interval '1 day' FROM unnest(ARRAY['test','production']) e;
+   WITH r AS (INSERT INTO public.communication_routes(company_id,route_name,route_scope,environment_type,is_active,target_email,grid_owner_id)
+    VALUES(${literal(companyId)},'E2E ACK-route nätägare','ediel_ack','bilateral_test',true,${literal(gridOwnerEmail)},NULL) RETURNING id)
+   INSERT INTO public.ediel_route_profiles(company_id,communication_route_id,route_name,environment,is_enabled,is_active,message_standard,payload_format,
+    sender_ediel_id,receiver_ediel_id,application_reference,mailbox,smtp_host,smtp_port)
+   SELECT ${literal(companyId)},r.id,'E2E ACK-profil','test',true,true,'edifact','edifact',${literal(supplierEdielId)},${literal(issuerEdielId)},'23-DDQ-E66-T',${literal(LIVE.platformMailbox)},${literal(LIVE.mailHost)},${LIVE.smtpsPort} FROM r;
+   INSERT INTO public.grid_owners(id,company_id,name,ediel_id,environment,is_active,lifecycle_status,email) VALUES(${literal(gridOwnerId)},${literal(companyId)},'E2E Nätägare AB',${literal(issuerEdielId)},'test',true,'active',${literal(gridOwnerEmail)});
+   UPDATE public.companies SET billing_automation_enabled=true,invoice_export_enabled=true,billing_provider_environment='test' WHERE id=${literal(companyId)};`)
+  // SYNTHETIC stand-in for EXT-ISSUER-01 (grid-owner legal identity + transport mandate).
+  registerUtiltsIssuer(sql as never, literal, issuerEdielId, adminUserId)
+  return { companyId, adminUserId, adminEmail, adminPassword, supplierEdielId, issuerEdielId, gridOwnerId, gridOwnerEmail, offerId, publicationVersionId }
+}
+
+/** SYNTHETIC stand-in for EXT-ISSUER-01/EXT-ARCHIVE-02: reviewed issuer history ground for one received source. */
+export function approveIssuerHistoryGround(sourceMessageId: string, actorUserId: string) {
+  seedUtiltsIssuerHistoryGround(sql as never, literal, sourceMessageId, actorUserId)
+}
+
+export type LiveCustomer = { customerId: string; siteId: string; meteringPointId: string; meterId: string; contractId: string; supplyPeriodId: string; email: string }
+
+/**
+ * An existing supply customer (migrated, in supply since `supplyStart`). The
+ * contract is signed through the platform's own signature RPCs, which also
+ * freeze the price snapshot; the supply period is the confirmed market state.
+ */
+export async function existingSupplyCustomer(supabase: { rpc: (name: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: unknown }> },
+  tenant: LiveTenant, input: { name: string; supplyStart: string }): Promise<LiveCustomer> {
+  const customerId = randomUUID(), siteId = randomUUID(), meteringPointId = randomUUID(), contractId = randomUUID(), supplyPeriodId = randomUUID()
+  const meterId = gs1(`735999${String(Math.floor(Math.random() * 1e11)).padStart(11, '0')}`)
+  const email = `e2e-kund-${customerId.slice(0, 8)}@example.invalid`
+  sql(`INSERT INTO public.customers(id,company_id,first_name,last_name,email,customer_type,is_test_data,source)
+    VALUES(${literal(customerId)},${literal(tenant.companyId)},'E2E',${literal(input.name)},${literal(email)},'private',true,'e2e_live_chain');
+   INSERT INTO public.customer_sites(id,company_id,customer_id,site_name,site_type,status,country,facility_id,grid_owner_id,price_area_code,is_test_data)
+    VALUES(${literal(siteId)},${literal(tenant.companyId)},${literal(customerId)},'E2E Villa','consumption','active','SE',${literal(meterId)},${literal(tenant.gridOwnerId)},'SE3',true);
+   INSERT INTO public.metering_points(id,company_id,customer_id,site_id,customer_site_id,metering_point_id,meter_point_id,ediel_reference,site_facility_id,grid_owner_id,price_area_code,reading_frequency,status,is_test_data)
+    VALUES(${literal(meteringPointId)},${literal(tenant.companyId)},${literal(customerId)},${literal(siteId)},${literal(siteId)},${literal(meterId)},${literal(meterId)},${literal(meterId)},${literal(meterId)},${literal(tenant.gridOwnerId)},'SE3','quarter_hour','active',true);
+   INSERT INTO public.customer_contracts(id,company_id,customer_id,site_id,metering_point_id,contract_offer_id,status,created_by,contract_publication_version_id,
+    contract_product_id,contract_product_version_id,price_plan_id,price_plan_version_id,price_book_id,legal_bundle_version_id,offer_reference,commercial_snapshot,legal_snapshot,starts_at,invoice_email)
+   SELECT ${literal(contractId)},${literal(tenant.companyId)},${literal(customerId)},${literal(siteId)},${literal(meteringPointId)},${literal(tenant.offerId)},'pending_signature',${literal(tenant.adminUserId)},v.id,
+    p.contract_product_id,v.contract_product_version_id,v.price_plan_id,v.price_plan_version_id,v.price_book_id,v.legal_bundle_version_id,v.offer_reference,p.commercial_snapshot,l.rendered_snapshot,${literal(input.supplyStart)},${literal(email)}
+   FROM public.contract_publication_versions v JOIN public.contract_product_versions p ON p.id=v.contract_product_version_id
+   JOIN public.legal_bundle_versions l ON l.id=v.legal_bundle_version_id WHERE v.id=${literal(tenant.publicationVersionId)};`)
+  const tokenHash = randomUUID().replaceAll('-', '') + randomUUID().replaceAll('-', '')
+  const prepared = await supabase.rpc('gridex_prepare_customer_contract_signature_request_v1', { p_company_id: tenant.companyId, p_customer_id: customerId, p_contract_id: contractId,
+    p_token_hash: tokenHash, p_recipient_email: email, p_expires_at: new Date(Date.now() + 3_600_000).toISOString(), p_actor_user_id: tenant.adminUserId, p_channel: 'internal' })
+  if (prepared.error) throw Error(`signature_prepare_failed:${JSON.stringify(prepared.error)}`)
+  const finalized = await supabase.rpc('gridex_finalize_customer_contract_signature_v1', { p_token_hash: tokenHash, p_signed_ip_hash: null, p_signed_user_agent: 'E2E live chain synthetic acceptance' })
+  if (finalized.error) throw Error(`signature_finalize_failed:${JSON.stringify(finalized.error)}`)
+  sql(`INSERT INTO public.customer_supply_periods(id,company_id,customer_id,metering_point_id,contract_id,customer_contract_id,start_date,actual_start_date,status,source,metadata)
+    VALUES(${literal(supplyPeriodId)},${literal(tenant.companyId)},${literal(customerId)},${literal(meteringPointId)},${literal(contractId)},${literal(contractId)},${literal(input.supplyStart)},${literal(input.supplyStart)},'active','migration','{"e2e_live_chain":"existing_customer"}');`)
+  return { customerId, siteId, meteringPointId, meterId, contractId, supplyPeriodId, email }
+}
