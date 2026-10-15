@@ -29,14 +29,10 @@ const forgedRefusal /* canonical transaction owner refuses a forged payload firs
 const effects = vi.hoisted(() => ({ meter: vi.fn(), bill: vi.fn(), ack: vi.fn(), complete: vi.fn(), outbound: vi.fn(), status: vi.fn(), readRaw: null as string | null }))
 vi.mock('@/lib/metering/normalizeMeteringValues', () => ({ normalizeAndStoreMeteringValue: effects.meter }))
 vi.mock('@/lib/billing/meterValueBillingMatcher', () => ({ updateMeterValueBillingReadiness: vi.fn() }))
-vi.mock('@/lib/cis/db', async original => ({ ...await original<Record<string, unknown>>(), ingestBillingUnderlay: effects.bill,
-  syncGridOwnerDataRequestReceivedFromEdiel: effects.complete, findOpenOutboundBySource: effects.outbound }))
+vi.mock('@/lib/cis/db', async original => ({ ...await original<Record<string, unknown>>(), ingestBillingUnderlay: effects.bill,   syncGridOwnerDataRequestReceivedFromEdiel: effects.complete, findOpenOutboundBySource: effects.outbound }))
 vi.mock('@/lib/ediel/core/kernel', async original => ({ ...await original<Record<string, unknown>>(), createCanonicalAckMessage: effects.ack }))
-vi.mock('@/lib/ediel/db', async original => {
-  const actual = await original<typeof import('@/lib/ediel/db')>()
-  return { ...actual, linkEdielMessage: vi.fn(), createEdielMessageEvent: vi.fn(), updateEdielMessageStatus: effects.status,
-    getEdielMessageById: async (id: string) => {
-      const row = await actual.getEdielMessageById(id)
+vi.mock('@/lib/ediel/db', async original => {   const actual = await original<typeof import('@/lib/ediel/db')>()
+  return { ...actual, linkEdielMessage: vi.fn(), createEdielMessageEvent: vi.fn(), updateEdielMessageStatus: effects.status,     getEdielMessageById: async (id: string) => {       const row = await actual.getEdielMessageById(id)
       return row && effects.readRaw !== null ? { ...row, raw_payload: effects.readRaw } : row
     } } })
 
@@ -45,16 +41,14 @@ vi.mock('@/lib/ediel/db', async original => {
 const nativePersistenceRpc = supabaseService.rpc.bind(supabaseService) as unknown as (  name: 'gridex_persist_utilts_consumption_v1', args: { p_company_id: string; p_environment: string; p_source_message_id: string;  p_message_code: string; p_raw_payload: string; p_transactions: unknown; p_actor_user_id?: string | null }, ) => PromiseLike<{ data: unknown; error: { message: string; code: string } | null }>
 const DB = 'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
 const lit = (value: unknown) => value === null ? 'NULL' : "'" + String(typeof value === 'object' ? JSON.stringify(value) : value).replaceAll("'", "''") + "'"
-function sql<T = unknown>(input: string, maxBuffer = 2000000): T {
-  if (process.env.NEXT_PUBLIC_SUPABASE_URL !== 'http://127.0.0.1:54321') throw Error('native_local_only')
+function sql<T = unknown>(input: string, maxBuffer = 2000000): T {   if (process.env.NEXT_PUBLIC_SUPABASE_URL !== 'http://127.0.0.1:54321') throw Error('native_local_only')
   const result = execFileSync('psql', [DB, '-XAtq', '-v', 'ON_ERROR_STOP=1'], { input, encoding: 'utf8', timeout: 10000, maxBuffer }).trim()
   // Unwrapped PostgreSQL booleans use t/f in unaligned text output. JSONB
   // booleans already use true/false; keep every other result strict JSON.
   if (result === 't' || result === 'f') return (result === 't') as T
   return result ? JSON.parse(result) as T : undefined as T
 }
-async function seed() {
-  const ids = { source: randomUUID(), company: randomUUID(), customer: randomUUID(), point: randomUUID(), site: randomUUID(), grid: randomUUID(), request: randomUUID(), actor: randomUUID(), ediel: '', issuer: '' }
+async function seed() {   const ids = { source: randomUUID(), company: randomUUID(), customer: randomUUID(), point: randomUUID(), site: randomUUID(), grid: randomUUID(), request: randomUUID(), actor: randomUUID(), ediel: '', issuer: '' }
   const { ediel, issuer } = seedUtiltsConsumptionParties(sql, lit, ids.actor)
   const message = energyHandoffMessage('2026-10-01', ids.company)
   message.id = ids.source; message.raw_payload = message.raw_payload!.replace('?+0200:406', '?+0100:406').replaceAll('260831181101', ids.source.slice(0, 12).replaceAll('-', ''))
@@ -106,8 +100,7 @@ async function seed() {
   const recorded = new Map<string, Awaited<ReturnType<typeof recordUtiltsFinalRuntime>>>()
   // forge: a service caller supplying the provisional (unqualified) dispositions
   // after the real final decision was recorded. Only forged-RPC probes use it.
-  const prepare = async (source = original, held = false, allowConsumption = true, forge = false): Promise<UtiltsBoundPersistenceInput & { actorUserId: string }> => {
-    const policy = resolveCanonicalMessagePolicy(source)!
+  const prepare = async (source = original, held = false, allowConsumption = true, forge = false): Promise<UtiltsBoundPersistenceInput & { actorUserId: string }> => {     const policy = resolveCanonicalMessagePolicy(source)!
     // Production order (utiltsDataRequest.part-2): the structurally qualified
     // runtime is recorded as the canonical final decision once per source, and
     // the same runtime drives every persistence payload for that source.
@@ -117,21 +110,17 @@ async function seed() {
     else expect(runtime.validation.ok, JSON.stringify(runtime.validation.issues)).toBe(true)
     if (held) runtime.transactionDispositions = runtime.transactionDispositions.map(d => ({ ...d, disposition: 'internal_review', responseType: 'none', issueCodes: ['UTILTS_STRUCTURE_UNAVAILABLE'] }))
     const matches = runtime.facts.transactions.map(t => ({ transactionReference: t.transactionId, meteringPointId: ids.point, customerId: ids.customer, siteId: ids.site, gridOwnerId: ids.grid, externalMeteringPointId: t.meterPointId, externalGridAreaId: t.gridAreaId, matchStatus: 'matched' as const }))
-    const contracts = await prepareUtiltsConsumptionContracts({ message: source, runtime, policy, matches, dataRequest: allowConsumption ? dataRequest : null,
-      fallback: { customerId: ids.customer, siteId: ids.site, meteringPointId: ids.point, gridOwnerId: ids.grid }, allowConsumption })
-    return { actorUserId: ids.actor, companyId: ids.company, environment: source.environment, sourceMessageId: source.id, messageCode: source.message_code!, rawPayload: source.raw_payload!, contracts,
-      transactions: buildUtiltsTransactionPersistencePayload({ messageCode: source.message_code, transactions: runtime.facts.transactions, rawSegments: runtime.facts.rawSegments, dispositions: runtime.transactionDispositions, matches }) }   }
+    const contracts = await prepareUtiltsConsumptionContracts({ message: source, runtime, policy, matches, dataRequest: allowConsumption ? dataRequest : null,       fallback: { customerId: ids.customer, siteId: ids.site, meteringPointId: ids.point, gridOwnerId: ids.grid }, allowConsumption })
+    return { actorUserId: ids.actor, companyId: ids.company, environment: source.environment, sourceMessageId: source.id, messageCode: source.message_code!, rawPayload: source.raw_payload!, contracts,       transactions: buildUtiltsTransactionPersistencePayload({ messageCode: source.message_code, transactions: runtime.facts.transactions, rawSegments: runtime.facts.rawSegments, dispositions: runtime.transactionDispositions, matches }) }   }
   return { ids, original, insertSource, prepare, dataRequest }
 }
-beforeEach(() => {
-  vi.clearAllMocks()
+beforeEach(() => {   vi.clearAllMocks()
   effects.readRaw = null
   effects.status.mockResolvedValue(null); effects.complete.mockResolvedValue(null); effects.outbound.mockResolvedValue(null)
   effects.ack.mockImplementation(async ({ sourceMessage }: { sourceMessage: EdielMessageRow }) => ({ id: sourceMessage.id }))
   effects.meter.mockResolvedValue({ status: 'stored', meteringValue: { id: 'observed-meter' } })
   effects.bill.mockResolvedValue({ id: 'observed-underlay' }) })
-it.each(['quantity', 'timezone', 'resolution-format'])('full processor persisted interruption rejects actual runtime %s retry before ACK/completion or sinks', async kind => {
-  const f = await seed()
+it.each(['quantity', 'timezone', 'resolution-format'])('full processor persisted interruption rejects actual runtime %s retry before ACK/completion or sinks', async kind => {   const f = await seed()
   effects.status.mockRejectedValueOnce(new Error('synthetic_interruption_after_committed_persistence'))
   await expect(processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: f.original.id })).rejects.toThrow('synthetic_interruption_after_committed_persistence')
   const before = snapshot(f.original.id)
@@ -158,12 +147,10 @@ it.each(['quantity', 'timezone', 'resolution-format'])('full processor persisted
   expect(effects.bill).toHaveBeenCalledWith(expect.objectContaining({ totalKwh: '500', underlayMonth: 6 }))
   expect(effects.complete).toHaveBeenCalledTimes(1)
   expect(effects.ack.mock.calls.some(([call]) => call.ackFamily === 'APERAK')).toBe(true) })
-function snapshot(source: string) {
-  return sql(`SELECT jsonb_build_object('acks',(SELECT jsonb_agg(to_jsonb(a)) FROM public.ediel_ack_transaction_results a WHERE source_message_id=${lit(source)}),
+function snapshot(source: string) {   return sql(`SELECT jsonb_build_object('acks',(SELECT jsonb_agg(to_jsonb(a)) FROM public.ediel_ack_transaction_results a WHERE source_message_id=${lit(source)}),
    'series',(SELECT jsonb_agg(to_jsonb(s)) FROM public.meter_reading_series s WHERE source_ediel_message_id=${lit(source)}),
    'contracts',(SELECT jsonb_agg(to_jsonb(c)) FROM gridex_utilts_binding.contracts c WHERE source_message_id=${lit(source)}))`) }
-it('real persisted interruption + natural changed-byte dedup cannot consume old success, identical retry consumes stored content', async () => {
-  const f = await seed(), input = await f.prepare()
+it('real persisted interruption + natural changed-byte dedup cannot consume old success, identical retry consumes stored content', async () => {   const f = await seed(), input = await f.prepare()
   const first = await persistUtiltsTransactionResults(input), before = snapshot(f.original.id)
   expect(first[0].consumptionContract?.observations[0].quantity).toBe('500')
   expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled()
@@ -181,8 +168,7 @@ it('real persisted interruption + natural changed-byte dedup cannot consume old 
   expect(effects.meter).toHaveBeenCalledWith(expect.objectContaining({ quantityKwh: '500', periodStart: '2026-06-30T23:00:00.000Z' }))
   expect(effects.bill).toHaveBeenCalledWith(expect.objectContaining({ totalKwh: '500', underlayMonth: 6, underlayYear: 2026 }))
   expect(snapshot(f.original.id)).toEqual(before) })
-it.each(['quantity', 'timezone', 'resolutionFormat', 'customer', 'request', 'point', 'billing-period', 'unknown-version'])('native immutable comparison rejects %s without replacing ACK/series/contract', async kind => {
-  const f = await seed(), input = await f.prepare()
+it.each(['quantity', 'timezone', 'resolutionFormat', 'customer', 'request', 'point', 'billing-period', 'unknown-version'])('native immutable comparison rejects %s without replacing ACK/series/contract', async kind => {   const f = await seed(), input = await f.prepare()
   await persistUtiltsTransactionResults(input); const before = snapshot(f.original.id)
   const changed = structuredClone(input), c = changed.contracts[0]
   if (kind === 'quantity') c.observations[0].quantity = 999
@@ -196,10 +182,8 @@ it.each(['quantity', 'timezone', 'resolutionFormat', 'customer', 'request', 'poi
   await expect(persistUtiltsTransactionResults(changed)).rejects.toThrow(/utilts_(consumption|transaction_persistence)/)
   expect(snapshot(f.original.id)).toEqual(before)
   expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled() })
-it('a held payload contradicting the recorded outcome seals nothing; the genuine outcome binds immutable bytes', async () => {
-  const f = await seed(), held = await f.prepare(f.original, true)
-  for (let attempt = 0; attempt < 2; attempt++) {
-    await expect(persistUtiltsTransactionResults(held)).rejects.toThrow('utilts_transaction_owner_outcome_mismatch')
+it('a held payload contradicting the recorded outcome seals nothing; the genuine outcome binds immutable bytes', async () => {   const f = await seed(), held = await f.prepare(f.original, true)
+  for (let attempt = 0; attempt < 2; attempt++) {     await expect(persistUtiltsTransactionResults(held)).rejects.toThrow('utilts_transaction_owner_outcome_mismatch')
     expect(snapshot(f.original.id)).toEqual({ acks: null, series: null, contracts: null })
     expect(sql(`SELECT count(*) FROM gridex_utilts_binding.receipts WHERE source_message_id=${lit(f.original.id)}`)).toBe(0)   }
   expect(await persistUtiltsTransactionResults(await f.prepare())).toMatchObject([{ persistenceStatus: 'persisted' }])
@@ -207,24 +191,21 @@ it('a held payload contradicting the recorded outcome seals nothing; the genuine
   expect([error?.code, error?.message]).toEqual(['23514', 'immutable_ediel_payload_cannot_change']) // received bytes are immutable
   const status = await supabaseService.from('ediel_messages').update({ failure_reason: 'diagnostic-only' }).eq('id', f.original.id)
   expect(status.error).toBeNull() })
-it.each(['accepted', 'internal_review'])('unbound historical %s evidence cannot acquire a present-day seal', async disposition => {
-  const f = await seed(), input = await f.prepare()
+it.each(['accepted', 'internal_review'])('unbound historical %s evidence cannot acquire a present-day seal', async disposition => {   const f = await seed(), input = await f.prepare()
   sql(`INSERT INTO public.ediel_ack_transaction_results(company_id,environment,source_message_id,source_transaction_id,syntax_result,guide_validation_result,processability_result,disposition,planned_response_type,persistence_status)
    VALUES(${lit(f.ids.company)},'test',${lit(f.original.id)},'GRIDEX2607E66001','positive','positive','pending',${lit(disposition)},${lit(disposition === 'accepted' ? 'positive_aperak' : 'none')},'not_applicable');`)
   const before = snapshot(f.original.id)
   await expect(persistUtiltsTransactionResults(input)).rejects.toThrow('utilts_historical_binding_unavailable')
   expect(snapshot(f.original.id)).toEqual(before)
   expect(sql(`SELECT count(*) FROM gridex_utilts_binding.receipts WHERE source_message_id=${lit(f.original.id)}`)).toBe(0) })
-it('same-issuer resend of field 505 is a duplicate identity, a new correction preserves exact noncurrent replay', async () => {
-  const f = await seed(), input = await f.prepare(), first = await persistUtiltsTransactionResults(input)
+it('same-issuer resend of field 505 is a duplicate identity, a new correction preserves exact noncurrent replay', async () => {   const f = await seed(), input = await f.prepare(), first = await persistUtiltsTransactionResults(input)
   const copy = await f.insertSource(f.original.raw_payload!.replaceAll(f.original.interchange_reference!, 'COPY'+f.original.interchange_reference!))
   expect((await recordUtiltsFinalRuntime(copy)).validation.issues.map(issue => issue.code)).toContain('UTILTS_ISSUER_TRANSACTION_REFERENCE_DUPLICATE') // identities hold over time
   const correction = await f.insertSource(f.original.raw_payload!.replaceAll('GRIDEX2607E66001', 'CORRECTION').replaceAll(f.original.interchange_reference!, 'COR'+f.original.interchange_reference!).replace('QTY+136:500', 'QTY+136:501'))
   expect((await persistUtiltsTransactionResults(await f.prepare(correction)))[0].seriesId).not.toBe(first[0].seriesId)
   expect(sql(`SELECT is_current FROM public.meter_reading_series WHERE id=${lit(first[0].seriesId)}`)).toBe(false)
   expect((await persistUtiltsTransactionResults(input))[0].seriesId).toBe(first[0].seriesId) })
-it.each(['before', 'after'] as const)('mixed physical LOC+175 %s LOC+172 cannot acquire a point consumption receipt or ACK reservation', async order => {
-  const f = await seed(), supported = await f.prepare()
+it.each(['before', 'after'] as const)('mixed physical LOC+175 %s LOC+172 cannot acquire a point consumption receipt or ACK reservation', async order => {   const f = await seed(), supported = await f.prepare()
   const point = "LOC+172+735999260731000007::9'"
   const object = "LOC+175+735999260731000007::9'"
   const raw = f.original.raw_payload!
@@ -238,15 +219,13 @@ it.each(['before', 'after'] as const)('mixed physical LOC+175 %s LOC+172 cannot 
   // The service RPC is a separate authority boundary. A caller can supply a
   // previously prepared point contract despite the application's LOC+175 hold.
   const forged = { ...supported, sourceMessageId: source.id, rawPayload: source.raw_payload! }
-  for (let attempt = 0; attempt < 2; attempt++) {
-    await expect(persistUtiltsTransactionResults(forged)).rejects.toThrow(forgedRefusal('consumption_identity_unsupported'))
+  for (let attempt = 0; attempt < 2; attempt++) {     await expect(persistUtiltsTransactionResults(forged)).rejects.toThrow(forgedRefusal('consumption_identity_unsupported'))
     expect(snapshot(source.id)).toEqual({ acks: null, series: null, contracts: null })
     expect(sql(`SELECT count(*) FROM gridex_utilts_binding.receipts WHERE source_message_id=${lit(source.id)}`)).toBe(0)   }
   expect(effects.ack).not.toHaveBeenCalled()
   expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled()
   expect((await persistUtiltsTransactionResults(supported))[0].persistenceStatus).toBe('persisted') })
-it('a misplaced LOC+175 after SEQ cannot acquire a point or object-shaped positive reservation', async () => {
-  const f = await seed(), supported = await f.prepare()
+it('a misplaced LOC+175 after SEQ cannot acquire a point or object-shaped positive reservation', async () => {   const f = await seed(), supported = await f.prepare()
   const raw = f.original.raw_payload!
     .replace("SEQ++1'", "SEQ++1'\nLOC+175+735999260731000007::9'")
     .replace(/UNT\+(\d+)\+1'/, (_, count: string) => `UNT+${Number(count) + 1}+1'`)
@@ -255,8 +234,7 @@ it('a misplaced LOC+175 after SEQ cannot acquire a point or object-shaped positi
   expect(sql<string | null>(`SELECT coalesce(to_jsonb(gridex_utilts_binding.supported_point_v1(${tokens},'GRIDEX2607E66001')),'null'::jsonb)`)).toBeNull()
   expect(sql<boolean>(`SELECT gridex_utilts_binding.unowned_regulating_object_v1(${tokens},'GRIDEX2607E66001')`)).toBe(true)
   const forged = { ...supported, sourceMessageId: source.id, rawPayload: source.raw_payload! }
-  for (let attempt = 0; attempt < 2; attempt++) {
-    await expect(persistUtiltsTransactionResults(forged)).rejects.toThrow(forgedRefusal('consumption_identity_unsupported|regulating_object_owner_unavailable'))
+  for (let attempt = 0; attempt < 2; attempt++) {     await expect(persistUtiltsTransactionResults(forged)).rejects.toThrow(forgedRefusal('consumption_identity_unsupported|regulating_object_owner_unavailable'))
     expect(snapshot(source.id)).toEqual({ acks: null, series: null, contracts: null })
     expect(sql(`SELECT count(*) FROM gridex_utilts_binding.receipts WHERE source_message_id=${lit(source.id)}`)).toBe(0)   }
   // LOC after SEQ breaks the full-directory segment order: syntax-rejected at
@@ -502,8 +480,7 @@ it('native E66 persists SG5 field 512 as the DTM+735 UTC instant and preserves i
   expect(first).toMatchObject([{ disposition: 'accepted', persistenceStatus: 'persisted' }])
   const stored = sql(`SELECT jsonb_build_object('registration',registration_date='2026-06-30T23:20:00Z'::timestamptz,'latestAbsent',latest_update_date IS NULL,'rawRegistration',raw_transaction->>'registrationDate',
     'source',source_ediel_message_id,'tenant',company_id) FROM public.meter_reading_series WHERE id=${lit(first[0].seriesId)}`)
-  expect(stored).toEqual({ registration: true, latestAbsent: true,
-    rawRegistration: '2026-06-30T23:20:00.000Z', source: f.original.id, tenant: f.ids.company })
+  expect(stored).toEqual({ registration: true, latestAbsent: true,     rawRegistration: '2026-06-30T23:20:00.000Z', source: f.original.id, tenant: f.ids.company })
   expect((await persistUtiltsTransactionResults(input))[0]).toMatchObject({ seriesId: first[0].seriesId, idempotentReplay: true })
   expect(sql(`SELECT jsonb_build_object('registration',registration_date='2026-06-30T23:20:00Z'::timestamptz,'latestAbsent',latest_update_date IS NULL,'rawRegistration',raw_transaction->>'registrationDate',
     'source',source_ediel_message_id,'tenant',company_id) FROM public.meter_reading_series WHERE id=${lit(first[0].seriesId)}`)).toEqual(stored)
@@ -546,19 +523,13 @@ it('native accepted S01 persists only SG5 field 532 and no individual consumptio
   const runtime = await recordUtiltsFinalRuntime(source) /* production order */, policy = resolveCanonicalMessagePolicy(source)!
   expect(runtime.validation.ok, JSON.stringify(runtime.validation.issues)).toBe(true)
   expect(runtime.transactionDispositions).toMatchObject([{ disposition: 'accepted', responseType: 'positive_aperak' }])
-  const input: UtiltsBoundPersistenceInput & { actorUserId: string } = { actorUserId: f.ids.actor, companyId: f.ids.company, environment: source.environment, sourceMessageId: source.id,
-    messageCode: 'S01', rawPayload: source.raw_payload!,
-    contracts: await prepareUtiltsConsumptionContracts({ message: source, runtime, policy, matches: [], dataRequest: null,
-      fallback: { customerId: null, siteId: null, meteringPointId: null, gridOwnerId: null }, allowConsumption: false }),
-    transactions: buildUtiltsTransactionPersistencePayload({ messageCode: 'S01', transactions: runtime.facts.transactions,
-      rawSegments: runtime.facts.rawSegments, dispositions: runtime.transactionDispositions, matches: [] }) }
+  const input: UtiltsBoundPersistenceInput & { actorUserId: string } = { actorUserId: f.ids.actor, companyId: f.ids.company, environment: source.environment, sourceMessageId: source.id,     messageCode: 'S01', rawPayload: source.raw_payload!,     contracts: await prepareUtiltsConsumptionContracts({ message: source, runtime, policy, matches: [], dataRequest: null,       fallback: { customerId: null, siteId: null, meteringPointId: null, gridOwnerId: null }, allowConsumption: false }),     transactions: buildUtiltsTransactionPersistencePayload({ messageCode: 'S01', transactions: runtime.facts.transactions,       rawSegments: runtime.facts.rawSegments, dispositions: runtime.transactionDispositions, matches: [] }) }
   expect(input.transactions).toMatchObject([{ registrationDate: null, latestUpdateDate: '2026-06-30T23:20:00.000Z' }])
   const first = await persistUtiltsTransactionResults(input)
   expect(first).toMatchObject([{ disposition: 'accepted', responseType: 'positive_aperak', persistenceStatus: 'persisted' }])
   const stored = sql(`SELECT jsonb_build_object('registrationAbsent',registration_date IS NULL,'latest',latest_update_date='2026-06-30T23:20:00Z'::timestamptz,
     'rawLatest',raw_transaction->>'latestUpdateDate','kind',series_kind,'tenant',company_id) FROM public.meter_reading_series WHERE id=${lit(first[0].seriesId)}`)
-  expect(stored).toEqual({ registrationAbsent: true, latest: true,
-    rawLatest: '2026-06-30T23:20:00.000Z', kind: 'aggregate', tenant: f.ids.company })
+  expect(stored).toEqual({ registrationAbsent: true, latest: true,     rawLatest: '2026-06-30T23:20:00.000Z', kind: 'aggregate', tenant: f.ids.company })
   await ingestBoundUtiltsMetering({ actorUserId: f.ids.actor, message: source, boundOutcomes: first })
   await createBoundUtiltsBilling({ actorUserId: f.ids.actor, message: source, boundOutcomes: first, existingBillingUnderlayId: null })
   expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled()
@@ -684,9 +655,7 @@ it('two physical IDE+24 occurrences with the same 505 stop before receipt, ACK a
   expect(source.raw_payload!.match(/IDE\+24\+GRIDEX2607E66001'/g)).toHaveLength(2)
   const supported = await f.prepare()
   const forged = await nativePersistenceRpc('gridex_persist_utilts_consumption_v1', {
-    p_company_id: f.ids.company, p_environment: 'test', p_source_message_id: source.id, p_message_code: 'E66', p_raw_payload: source.raw_payload!, p_actor_user_id: f.ids.actor,
-    p_transactions: Array.from({ length: 2 }, () => ({ ...supported.transactions[0], consumptionContract: supported.contracts[0] })),
-  })
+    p_company_id: f.ids.company, p_environment: 'test', p_source_message_id: source.id, p_message_code: 'E66', p_raw_payload: source.raw_payload!, p_actor_user_id: f.ids.actor,     p_transactions: Array.from({ length: 2 }, () => ({ ...supported.transactions[0], consumptionContract: supported.contracts[0] })),   })
   expect(forged.error?.message).toMatch(forgedRefusal('physical_membership_conflict'))
   for (let attempt = 0; attempt < 2; attempt++) {
     await expect(processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: source.id }))
@@ -768,8 +737,7 @@ it.each(['point-grid', 'point-site', 'point-customer-site', 'site-grid', 'reques
 })
 const sinkRpc = (input: UtiltsBoundPersistenceInput, sink: 'metering' | 'billing') => {
   const rpc = supabaseService.rpc.bind(supabaseService) as unknown as (name: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: { message: string } | null }>
-  return Promise.resolve(rpc(`gridex_consume_utilts_${sink}_v1`, { p_company_id: input.companyId, p_source_message_id: input.sourceMessageId, p_actor_id: null,
-    ...(sink === 'metering' ? { p_transaction_id: input.transactions[0].transactionId, p_observation_ordinal: 0, p_expected_contract: input.contracts[0] } : { p_expected_contracts: input.contracts }) }))
+  return Promise.resolve(rpc(`gridex_consume_utilts_${sink}_v1`, { p_company_id: input.companyId, p_source_message_id: input.sourceMessageId, p_actor_id: null,     ...(sink === 'metering' ? { p_transaction_id: input.transactions[0].transactionId, p_observation_ordinal: 0, p_expected_contract: input.contracts[0] } : { p_expected_contracts: input.contracts }) }))
 }
 it.each(['metering', 'billing'] as const)('atomic %s writer refuses a mutated returned projection instead of reinterpreting it', async sink => {
   const f = await seed(), input = await f.prepare(); await persistUtiltsTransactionResults(input)
@@ -838,8 +806,7 @@ it('dedupe conflict after an earlier sibling insert rolls the entire batch back,
 it('private storage and old unbound function are unavailable to service callers', async () => {
   const f = await seed(), input = await f.prepare()
   const { error } = await supabaseService.rpc('gridex_persist_utilts_transactions_v1', {
-    p_company_id: input.companyId, p_environment: input.environment, p_source_message_id: input.sourceMessageId, p_message_code: input.messageCode, p_transactions: input.transactions,
-  })
+    p_company_id: input.companyId, p_environment: input.environment, p_source_message_id: input.sourceMessageId, p_message_code: input.messageCode, p_transactions: input.transactions,   })
   expect(error).not.toBeNull()
   expect(sql(`SELECT has_function_privilege('service_role','gridex_utilts_binding.persist_series_v1(uuid,text,uuid,text,jsonb)','EXECUTE')`)).toBe(false)
   expect(sql(`SELECT to_regprocedure('public.gridex_persist_utilts_consumption_v1(uuid,text,uuid,text,text,jsonb)') IS NOT NULL`)).toBe(false)
@@ -897,26 +864,78 @@ function committedSc046ReturnStateBody(revision: string, base: { body: string; m
   expect(migrationHash, migration).toBe(manifest.files[migration])
   return { body: sc046ExpectedWrapperBody(base.body, source), migrationHash }
 }
+// Discovery omits only confirmed SQL comments; literals still carry late-bound names.
+function nativeCatalogDiscoverySource(source: string): string {
+  const view = source.split(''), word = /[A-Za-z0-9_$\u0080-\uFFFF]/
+  const mask = (i: number) => { if (source[i] !== '\r' && source[i] !== '\n') view[i] = ' ' }
+  for (let i = 0; i < source.length;) {
+    if (source.startsWith('--', i)) { while (i < source.length && !/[\r\n]/.test(source[i])) mask(i++); continue }
+    if (source.startsWith('/*', i)) {
+      let depth = 1; mask(i++); mask(i++)
+      while (i < source.length && depth) {
+        if (source.startsWith('/*', i)) { depth++; mask(i++); mask(i++) }
+        else if (source.startsWith('*/', i)) { depth--; mask(i++); mask(i++) }
+        else mask(i++)
+      }
+      if (depth) return source
+      continue
+    }
+    if (source[i] === "'" || source[i] === '"') {
+      const quote = source[i++], escaped = quote === "'" && /[Ee]/.test(source[i - 2] ?? '') && (i < 3 || !word.test(source[i - 3]))
+      let closed = false
+      while (i < source.length) {
+        if (source[i] === '\\' && quote === "'") { if (!escaped) return source; i += 2; continue }
+        if (source[i++] !== quote) continue
+        if (source[i] === quote) { i++; continue }
+        closed = true; break
+      }
+      if (!closed) return source
+      continue
+    }
+    if (source[i] === '$' && (i === 0 || !word.test(source[i - 1]))) {
+      const tag = /^(?:\$\$|\$[A-Za-z_\u0080-\uFFFF][A-Za-z0-9_\u0080-\uFFFF]*\$)/.exec(source.slice(i))?.[0]
+      if (tag) { const end = source.indexOf(tag, i + tag.length); if (end < 0) return source; i = end + tag.length; continue }
+    }
+    i++
+  }
+  return view.join('')
+}
 const persistenceCatalogOwners = [
-  ['public.gridex_persist_utilts_consumption_v1(uuid,text,uuid,text,text,jsonb,uuid)',
-    '20261001110500_ediel_utilts_current_execution_actor.sql', 'public.gridex_persist_utilts_consumption_v1'],
-  ['gridex_utilts_binding.require_execution_actor_v1(uuid,uuid)',
-    '20261001110500_ediel_utilts_current_execution_actor.sql', 'gridex_utilts_binding.require_execution_actor_v1'],
-  ['gridex_utilts_binding.persist_consumption_before_actor_v1(uuid,text,uuid,text,text,jsonb)',
-    '20261001051410_ediel_utilts_persist_reading_followup_owner.sql', 'public.gridex_persist_utilts_consumption_v1'],
-  ['gridex_utilts_binding.persist_consumption_before_precision_v1(uuid,text,uuid,text,text,jsonb)',
-    '20261001053437_ediel_utilts_rejected_reference_diagnostic_v3.sql', 'gridex_utilts_binding.persist_consumption_before_precision_v1'],
-  ['gridex_utilts_binding.persist_series_v1(uuid,text,uuid,text,jsonb)',
-    '20261001010230_ediel_utilts_lossless_transaction_reference_v2.sql', 'gridex_utilts_binding.persist_series_v1'],
-  ['gridex_utilts_binding.persist_series_legacy_v1(uuid,text,uuid,text,jsonb)',
-    '20260928181500_utilts_held_retry_stable_reservation.sql', 'gridex_utilts_binding.persist_series_v1'],
-  ['gridex_utilts_binding.persist_series_v2(uuid,text,uuid,text,jsonb)',
-    '20261001010230_ediel_utilts_lossless_transaction_reference_v2.sql', 'gridex_utilts_binding.persist_series_v2'],
-  ['public.gridex_persist_utilts_transactions_v1(uuid,text,uuid,text,jsonb)',
-    '20260923135706_ediel_utilts_consumption_binding_v1.sql', 'public.gridex_persist_utilts_transactions_v1'],
-] as const
+  ['public.gridex_persist_utilts_consumption_v1(uuid,text,uuid,text,text,jsonb,uuid)',     '20261001110500_ediel_utilts_current_execution_actor.sql', 'public.gridex_persist_utilts_consumption_v1'],   ['gridex_utilts_binding.require_execution_actor_v1(uuid,uuid)',     '20261001110500_ediel_utilts_current_execution_actor.sql', 'gridex_utilts_binding.require_execution_actor_v1'],   ['gridex_utilts_binding.persist_consumption_before_actor_v1(uuid,text,uuid,text,text,jsonb)',     '20261001051410_ediel_utilts_persist_reading_followup_owner.sql', 'public.gridex_persist_utilts_consumption_v1'],   ['gridex_utilts_binding.persist_consumption_before_precision_v1(uuid,text,uuid,text,text,jsonb)',     '20261001053437_ediel_utilts_rejected_reference_diagnostic_v3.sql', 'gridex_utilts_binding.persist_consumption_before_precision_v1'],   ['gridex_utilts_binding.persist_series_v1(uuid,text,uuid,text,jsonb)',     '20261001010230_ediel_utilts_lossless_transaction_reference_v2.sql', 'gridex_utilts_binding.persist_series_v1'],   ['gridex_utilts_binding.persist_series_legacy_v1(uuid,text,uuid,text,jsonb)',     '20260928181500_utilts_held_retry_stable_reservation.sql', 'gridex_utilts_binding.persist_series_v1'],   ['gridex_utilts_binding.persist_series_v2(uuid,text,uuid,text,jsonb)',     '20261001010230_ediel_utilts_lossless_transaction_reference_v2.sql', 'gridex_utilts_binding.persist_series_v2'],   ['public.gridex_persist_utilts_transactions_v1(uuid,text,uuid,text,jsonb)',     '20260923135706_ediel_utilts_consumption_binding_v1.sql', 'public.gridex_persist_utilts_transactions_v1'], ] as const
 
 it('native catalog binds preserved UTILTS OIDs to the only actor-protected callable chain', () => {
+  // Pure SOURCE controls also run in this existing native catalog case, with no new case identity.
+  const scannerCases: [string, string, boolean][] = [
+    ['real call', 'PERFORM gridex_utilts_binding.persist_series_v2();', true],
+    ['line comment', '-- persist_series_v2\r\nSELECT 1;', false],
+    ['line comment EOF', '-- persist_series_v2', false],
+    ['nested blocks', '/* outer /* persist_series_v2 */ outer */ SELECT 1;', false],
+    ['comment then call', '/* ignored */ SELECT persist_series_v2();', true],
+    ['commented name then call', '/* persist_series_v2 */ SELECT persist_series_v2();', true],
+    ['nested comment then quoted call', '/* outer /* persist_series_v2 */ outer */ SELECT "persist_series_v2"();', true],
+    ['single literal', "EXECUTE '-- persist_series_v2 /* marker */';", true],
+    ['doubled single', "EXECUTE 'it''s -- persist_series_v2';", true],
+    ['escape single', String.raw`EXECUTE E'it\'s -- persist_series_v2';`, true],
+    ['escape backslash', String.raw`EXECUTE e'path\\' || 'persist_series_v2';`, true],
+    ['double identifier', 'SELECT "a""--persist_series_v2";', true],
+    ['dollar body', 'EXECUTE $$-- persist_series_v2 /* marker */$$;', true],
+    ['tagged dollar', 'EXECUTE $body_1$-- persist_series_v2$body_1$;', true],
+    ['unicode dollar', 'EXECUTE $å_1$-- persist_series_v2$å_1$;', true],
+    ['identifier dollars', 'SELECT foo$tag$; -- persist_series_v2\n', false],
+    ['positional parameter', 'SELECT $1; -- persist_series_v2\n', false],
+    ['CRLF blocks', '/* persist_series_v2\r\n*/\r\nSELECT 1;', false],
+    ['unclosed single', "SELECT 'unterminated -- persist_series_v2", true],
+    ['unclosed identifier', 'SELECT "unterminated -- persist_series_v2', true],
+    ['unclosed dollar', 'SELECT $body$unterminated -- persist_series_v2', true],
+    ['unclosed block', '/* unterminated persist_series_v2', true],
+    ['ordinary backslash ambiguity', String.raw`SELECT 'path\' -- persist_series_v2`, true],
+  ]
+  for (const [label, source, wanted] of scannerCases) {
+    const view = nativeCatalogDiscoverySource(source)
+    expect(view.includes('persist_series_v2'), label).toBe(wanted)
+    expect(view.length, label).toBe(source.length)
+    expect(view.match(/[\r\n]/g), label).toEqual(source.match(/[\r\n]/g))
+  }
   const revision = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim()
   const tree = execFileSync('git', ['rev-parse', `${revision}^{tree}`], { encoding: 'utf8' }).trim()
   const signatures = persistenceCatalogOwners.map(([signature]) => signature)
@@ -978,8 +997,7 @@ it('native catalog binds preserved UTILTS OIDs to the only actor-protected calla
   const actual = new Map(catalog.functions.map(fn => [fn.signature, fn]))
   // 20261003150200 (U-04) rewrites persist_series_v2 by guarded needle/replace.
   const bodyPatches: Record<string, [string, string]> = {
-    'gridex_utilts_binding.persist_series_v2(uuid,text,uuid,text,jsonb)': ['20261003150200_ediel_utilts_late_version_and_err_ack_dispatcher.sql', 'u04'],
-  }
+    'gridex_utilts_binding.persist_series_v2(uuid,text,uuid,text,jsonb)': ['20261003150200_ediel_utilts_late_version_and_err_ack_dispatcher.sql', 'u04'],   }
   const expected = persistenceCatalogOwners.map(([signature, migration, functionName]) => {
     const committed = committedPersistenceBody(revision, migration, functionName)
     const patch = bodyPatches[signature]
@@ -990,7 +1008,20 @@ it('native catalog binds preserved UTILTS OIDs to the only actor-protected calla
   // Conservative named-call discovery supplies the late-bound callsite review.
   // It neither parses PL/pgSQL nor proves dynamically assembled SQL absent.
   const privateNames = privateOwners.map(signature => signature.slice(signature.indexOf('.') + 1, signature.indexOf('(')))
-  const namedCallsites = catalog.functions.filter(fn => privateNames.some(name => fn.source.includes(name)))
+  for (const name of privateNames) for (const [label, source, wanted] of scannerCases) {
+    const input = source.replaceAll('persist_series_v2', name), view = nativeCatalogDiscoverySource(input)
+    expect(view.includes(name), label).toBe(wanted)
+    expect(view.length, label).toBe(input.length)
+    expect(view.match(/[\r\n]/g), label).toEqual(input.match(/[\r\n]/g))
+    expect(nativeCatalogDiscoverySource(view), label).toBe(view)
+    if (/^(unclosed|ordinary backslash)/.test(label)) for (const prefix of ['', `/* ${name} */ SELECT 1;\r\n`, `-- ${name}\r\n`]) {
+      expect(nativeCatalogDiscoverySource(prefix + input), label).toBe(prefix + input)
+    }
+  }
+  const namedCallsites = catalog.functions.filter(fn => {
+    const discoverySource = nativeCatalogDiscoverySource(fn.source)
+    return privateNames.some(name => discoverySource.includes(name))
+  })
   const dynamicDefinitions = catalog.functions.filter(fn => fn.language === 'plpgsql' && /\bEXECUTE\b/i.test(fn.source))
   const preupgradePath = process.env.GRIDEX_UTILTS_PREUPGRADE_CATALOG_PATH
   const before = preupgradePath ? JSON.parse(readFileSync(preupgradePath, 'utf8')) as {
@@ -1008,24 +1039,9 @@ it('native catalog binds preserved UTILTS OIDs to the only actor-protected calla
     && before.serverVersionNumber === catalog.serverVersionNumber
     && databaseIdentityKeys.every(key => before.databaseIdentity?.[key] === catalog.databaseIdentity[key])
   const receiptPath = process.env.GRIDEX_UTILTS_CATALOG_RECEIPT_PATH || `/tmp/gridex-utilts-catalog-${revision}.json`
-  const receipt = { format: 'gridex_utilts_native_catalog_v1', codeSha: revision, codeTree: tree,
-    databasePhase: databasePhase || 'not_declared',
-    oldPublic6Absent: !actual.has('public.gridex_persist_utilts_consumption_v1(uuid,text,uuid,text,text,jsonb)'),
-    observedPreservedOld6Oid: actual.get(signatures[2])?.oid ?? null, preupgradeOld6Oid: before?.oldPublic6Oid ?? null,
-    preActorCatalog: before, preActorCatalogHash: preupgradePath ? createHash('sha256').update(readFileSync(preupgradePath)).digest('hex') : null,
-    oidPreservationCompared: beforeMatches,
-    expectedOwners: expected.map(({ body, ...source }) => ({ ...source, bodyHash: createHash('sha256').update(body).digest('hex') })),
-    namedCallsites: namedCallsites.map(fn => fn.signature), dynamicDefinitions: dynamicDefinitions.map(fn => fn.signature),
-    limitations: ['pg_depend does not record calls in string bodies or dynamically assembled SQL.',
-      'Named-call discovery rejects unreviewed literal producer paths; it is not a PL/pgSQL parser or proof about computed identifiers.',
-      'All installed public/gridex callable definitions, effective ACLs, triggers and policies are retained for separate source/phase review.',
-      'OID preservation across upgrade requires the genuine pre-upgrade OID receipt.'], catalog }
+  const receipt = { format: 'gridex_utilts_native_catalog_v1', codeSha: revision, codeTree: tree,     databasePhase: databasePhase || 'not_declared',     oldPublic6Absent: !actual.has('public.gridex_persist_utilts_consumption_v1(uuid,text,uuid,text,text,jsonb)'),     observedPreservedOld6Oid: actual.get(signatures[2])?.oid ?? null, preupgradeOld6Oid: before?.oldPublic6Oid ?? null,     preActorCatalog: before, preActorCatalogHash: preupgradePath ? createHash('sha256').update(readFileSync(preupgradePath)).digest('hex') : null,     oidPreservationCompared: beforeMatches,     expectedOwners: expected.map(({ body, ...source }) => ({ ...source, bodyHash: createHash('sha256').update(body).digest('hex') })),     namedCallsites: namedCallsites.map(fn => fn.signature), dynamicDefinitions: dynamicDefinitions.map(fn => fn.signature),     limitations: ['pg_depend does not record calls in string bodies or dynamically assembled SQL.',       'Named-call discovery rejects unreviewed literal producer paths; it is not a PL/pgSQL parser or proof about computed identifiers.',       'All installed public/gridex callable definitions, effective ACLs, triggers and policies are retained for separate source/phase review.',       'OID preservation across upgrade requires the genuine pre-upgrade OID receipt.'], catalog }
   writeFileSync(receiptPath, JSON.stringify(receipt, null, 2) + '\n', { mode: 0o600 })
-  console.info('EDIEL_UTILTS_NATIVE_CATALOG', JSON.stringify({ codeSha: revision, codeTree: tree, receiptPath,
-    receiptHash: createHash('sha256').update(readFileSync(receiptPath)).digest('hex'),
-    predecessorOid: receipt.observedPreservedOld6Oid, public7Oid: actual.get(publicEntry)?.oid,
-    functionCount: catalog.functions.length, effectiveRoleCount: catalog.roles.length, dependencyCount: catalog.dependencies.length,
-    oidPreservationCompared: receipt.oidPreservationCompared, dynamicDefinitionCount: dynamicDefinitions.length }))
+  console.info('EDIEL_UTILTS_NATIVE_CATALOG', JSON.stringify({ codeSha: revision, codeTree: tree, receiptPath,     receiptHash: createHash('sha256').update(readFileSync(receiptPath)).digest('hex'),     predecessorOid: receipt.observedPreservedOld6Oid, public7Oid: actual.get(publicEntry)?.oid,     functionCount: catalog.functions.length, effectiveRoleCount: catalog.roles.length, dependencyCount: catalog.dependencies.length,     oidPreservationCompared: receipt.oidPreservationCompared, dynamicDefinitionCount: dynamicDefinitions.length }))
   expect(catalog.roles.map(role => role.root)).toEqual(expect.arrayContaining(['anon', 'authenticated', 'service_role', 'authenticator']))
   expect(['clean', 'upgrade'], 'declare the actual native database phase').toContain(databasePhase)
   if (databasePhase === 'upgrade') expect(before, 'upgrade qualification requires the genuine pre110500 catalog receipt').not.toBeNull()
@@ -1238,9 +1254,7 @@ it('native inbound binds IDE qualifier 505 rejection to tenant and source withou
   const source = await f.insertSource(f.original.raw_payload!.replace('IDE+24+GRIDEX2607E66001', 'IDE+25+GRIDEX2607E66001'))
   const supported = await f.prepare()
   const forged = await nativePersistenceRpc('gridex_persist_utilts_consumption_v1', {
-    p_company_id: f.ids.company, p_environment: 'test', p_source_message_id: source.id, p_message_code: 'E66', p_raw_payload: source.raw_payload!, p_actor_user_id: f.ids.actor,
-    p_transactions: supported.transactions.map((t, i) => ({ ...t, consumptionContract: supported.contracts[i] })),
-  })
+    p_company_id: f.ids.company, p_environment: 'test', p_source_message_id: source.id, p_message_code: 'E66', p_raw_payload: source.raw_payload!, p_actor_user_id: f.ids.actor,     p_transactions: supported.transactions.map((t, i) => ({ ...t, consumptionContract: supported.contracts[i] })),   })
   expect(forged.error?.message).toMatch(forgedRefusal('consumption_identity_unsupported'))
   expect(snapshot(source.id)).toEqual({ acks: null, series: null, contracts: null })
   const first = await processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: source.id })
@@ -1256,8 +1270,7 @@ it('native inbound binds IDE qualifier 505 rejection to tenant and source withou
   const prior = snapshot(source.id)
   await processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: source.id })
   expect(snapshot(source.id)).toEqual(prior)
-  await expect(finalizeUtiltsTransactionAck({ companyId: f.ids.company, environment: 'test', sourceMessageId: source.id,
-    transactionId: 'GRIDEX2607E66001', responseType: 'negative_aperak', responseMessageId: randomUUID() }))
+  await expect(finalizeUtiltsTransactionAck({ companyId: f.ids.company, environment: 'test', sourceMessageId: source.id,     transactionId: 'GRIDEX2607E66001', responseType: 'negative_aperak', responseMessageId: randomUUID() }))
     .rejects.toThrow('utilts_transaction_ack_finalization_conflict')
   expect(snapshot(source.id)).toEqual(prior)
   expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
@@ -1298,8 +1311,7 @@ it.each([['E30', 'invalid'], ['E30', 'missing'], ['S07', 'invalid'], ['S07', 'mi
   expect(JSON.stringify(effects.ack.mock.calls.find(([call]) => call.ackFamily === 'APERAK')![0].draft)).toContain('209')
   expect(sql(`SELECT jsonb_agg(jsonb_build_object('company',company_id,'disposition',disposition,'plan',planned_response_type,
    'final',final_response_type,'series',persisted_series_id)) FROM public.ediel_ack_transaction_results
-   WHERE source_message_id=${lit(source.id)}`)).toEqual([{ company: f.ids.company, disposition: 'guide_rejected',
-    plan: 'negative_aperak', final: 'negative_aperak', series: null }])
+   WHERE source_message_id=${lit(source.id)}`)).toEqual([{ company: f.ids.company, disposition: 'guide_rejected',     plan: 'negative_aperak', final: 'negative_aperak', series: null }])
   expect(sql(`SELECT count(*) FROM public.meter_reading_series WHERE source_ediel_message_id=${lit(source.id)}`)).toBe(0)
   expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
   const prior = snapshot(source.id)
@@ -1325,8 +1337,7 @@ it('native S01 stores supplied LOC+175 field533 rejection with no aggregate or i
   expect(effects.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('UTILTS_ERR')
   expect(sql(`SELECT jsonb_agg(jsonb_build_object('company',company_id,'disposition',disposition,'plan',planned_response_type,
    'final',final_response_type,'series',persisted_series_id)) FROM public.ediel_ack_transaction_results
-   WHERE source_message_id=${lit(source.id)}`)).toEqual([{ company: f.ids.company, disposition: 'guide_rejected',
-    plan: 'negative_aperak', final: 'negative_aperak', series: null }])
+   WHERE source_message_id=${lit(source.id)}`)).toEqual([{ company: f.ids.company, disposition: 'guide_rejected',     plan: 'negative_aperak', final: 'negative_aperak', series: null }])
   expect(sql(`SELECT count(*) FROM public.meter_reading_series WHERE source_ediel_message_id=${lit(source.id)}`)).toBe(0)
   expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
   const before = snapshot(source.id)
@@ -1456,8 +1467,7 @@ it.each(['object-first', 'point-first'] as const)(
   expect(outcomes().find(row => row.id === pointId)).toMatchObject({ disposition: 'accepted', plan: 'positive_aperak', final: 'positive_aperak', series: expect.any(String) })
   expect(sql(`SELECT to_jsonb(a) FROM public.ediel_ack_transaction_results a WHERE source_message_id=${lit(source.id)} AND source_transaction_id=${lit(heldId)}`)).toEqual(heldBefore)
   expect(effects.ack.mock.calls.filter(([call]) => call.ackFamily === 'APERAK')).toHaveLength(1)
-  expect(effects.ack.mock.calls.find(([call]) => call.ackFamily === 'APERAK')?.[0]).toMatchObject({ ackFamily: 'APERAK', outcome: 'positive',
-    draft: { parsedPayload: { ackScope: 'transaction', relatedTransactionReference: pointId } } })
+  expect(effects.ack.mock.calls.find(([call]) => call.ackFamily === 'APERAK')?.[0]).toMatchObject({ ackFamily: 'APERAK', outcome: 'positive',     draft: { parsedPayload: { ackScope: 'transaction', relatedTransactionReference: pointId } } })
   expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
   const completed = snapshot(source.id)
   effects.ack.mockClear()
@@ -1504,8 +1514,7 @@ it.each(['object-first', 'point-first'] as const)(
   expect(sql(`SELECT count(*) FROM public.meter_reading_series WHERE source_ediel_message_id=${lit(source.id)}`)).toBe(0)
   const acks = effects.ack.mock.calls.filter(([call]) => call.ackFamily === 'APERAK' || call.ackFamily === 'UTILTS_ERR')
   expect(acks).toHaveLength(1)
-  expect(acks[0][0]).toMatchObject({ ackFamily: 'APERAK', outcome: 'negative',
-    draft: { parsedPayload: { ackScope: 'transaction', relatedTransactionReference: rejectedId } } })
+  expect(acks[0][0]).toMatchObject({ ackFamily: 'APERAK', outcome: 'negative',     draft: { parsedPayload: { ackScope: 'transaction', relatedTransactionReference: rejectedId } } })
   expect(JSON.stringify(acks[0][0].draft)).toContain('260a')
   expect(effects.outbound).not.toHaveBeenCalled()
   expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
@@ -1569,11 +1578,9 @@ it.each(['object-first', 'point-first'] as const)(
   expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
 })
 it.each([
-  ['E72', '23-MDR-E30-S', 'LOC+172', '209', 'invalid'],
-  ['E72', '23-MDR-E30-S', 'LOC+172', '209', 'missing'],
+  ['E72', '23-MDR-E30-S', 'LOC+172', '209', 'invalid'],   ['E72', '23-MDR-E30-S', 'LOC+172', '209', 'missing'],
   // Inbound E73 is outbound-only in the source catalog; see the E73 hold test.
-  ['S06', '23-DDK-S01-S', 'LOC+175', '533', 'invalid'],
-] as const)('native %s identity rejection retains final ACK and zero effects on retry', async (code, application, location, fieldCode, defect) => {
+  ['S06', '23-DDK-S01-S', 'LOC+175', '533', 'invalid'], ] as const)('native %s identity rejection retains final ACK and zero effects on retry', async (code, application, location, fieldCode, defect) => {
   const f = await seed()
   const raw = f.original.raw_payload!
     .replace('BGM+E66::260', `BGM+${code}${code === 'S06' ? ':SVK' : ':'}:260`)
@@ -1590,8 +1597,7 @@ it.each([
   expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
   expect(sql(`SELECT jsonb_agg(jsonb_build_object('company',company_id,'disposition',disposition,'plan',planned_response_type,
    'final',final_response_type,'series',persisted_series_id)) FROM public.ediel_ack_transaction_results
-   WHERE source_message_id=${lit(source.id)}`)).toEqual([{ company: f.ids.company, disposition: 'guide_rejected',
-    plan: 'negative_aperak', final: 'negative_aperak', series: null }])
+   WHERE source_message_id=${lit(source.id)}`)).toEqual([{ company: f.ids.company, disposition: 'guide_rejected',     plan: 'negative_aperak', final: 'negative_aperak', series: null }])
   expect(sql(`SELECT count(*) FROM public.meter_reading_series WHERE source_ediel_message_id=${lit(source.id)}`)).toBe(0)
   expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
   const before = snapshot(source.id)
@@ -1649,8 +1655,7 @@ it('native mixed IDE consumes only the accepted sibling before separate 260a ACK
   effects.ack.mockClear(); effects.meter.mockClear(); effects.bill.mockClear()
   const first = await processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: source.id })
   expect(sql(`SELECT jsonb_agg(jsonb_build_object('id',source_transaction_id,'disposition',disposition,'plan',planned_response_type,'series',persisted_series_id IS NOT NULL) ORDER BY source_transaction_id) FROM public.ediel_ack_transaction_results WHERE source_message_id=${lit(source.id)} AND company_id=${lit(f.ids.company)}`))
-    .toEqual([{ id: 'GRIDEX2607E66002', disposition: 'accepted', plan: 'positive_aperak', series: true },
-      { id: 'GRIDEX2607E66003', disposition: 'guide_rejected', plan: 'negative_aperak', series: false }])
+    .toEqual([{ id: 'GRIDEX2607E66002', disposition: 'accepted', plan: 'positive_aperak', series: true },       { id: 'GRIDEX2607E66003', disposition: 'guide_rejected', plan: 'negative_aperak', series: false }])
   expect(sql(`SELECT count(*) FROM public.meter_reading_series WHERE source_ediel_message_id=${lit(source.id)}`)).toBe(1)
   const aperaks = effects.ack.mock.calls.filter(([call]) => call.ackFamily === 'APERAK')
   expect(aperaks).toHaveLength(2)
@@ -1718,9 +1723,7 @@ it('R3 direct persistence HTTP cannot mint agency89 authority from forged plain-
   const f = await seed(), supported = await f.prepare()
   const source = await f.insertSource(f.original.raw_payload!.replace('735999260731000007::9', '735999260731000007::89'))
   const { error } = await nativePersistenceRpc('gridex_persist_utilts_consumption_v1', {
-    p_company_id: f.ids.company, p_environment: 'test', p_source_message_id: source.id, p_message_code: 'E66', p_raw_payload: source.raw_payload!, p_actor_user_id: f.ids.actor,
-    p_transactions: supported.transactions.map((t, i) => ({ ...t, consumptionContract: supported.contracts[i] })),
-  })
+    p_company_id: f.ids.company, p_environment: 'test', p_source_message_id: source.id, p_message_code: 'E66', p_raw_payload: source.raw_payload!, p_actor_user_id: f.ids.actor,     p_transactions: supported.transactions.map((t, i) => ({ ...t, consumptionContract: supported.contracts[i] })),   })
   expect(error?.message).toMatch(forgedRefusal('consumption_identity_unsupported'))
   expect(snapshot(source.id)).toEqual({ acks: null, series: null, contracts: null })
   expect(sql(`SELECT count(*) FROM gridex_utilts_binding.receipts WHERE source_message_id=${lit(source.id)}`)).toBe(0)
@@ -1777,16 +1780,13 @@ it('C1 restored case history is tenant-classified with real RLS and client acces
 
 it('native prospective persistence and immutable replay require a current own operator', async () => {
   const f = await seed(), foreign = await seed(), input = await f.prepare()
-  const args = { p_company_id: input.companyId, p_environment: input.environment, p_source_message_id: input.sourceMessageId,
-    p_message_code: input.messageCode, p_raw_payload: input.rawPayload,
-    p_transactions: input.transactions.map((item, i) => ({ ...item, consumptionContract: input.contracts[i] })) }
+  const args = { p_company_id: input.companyId, p_environment: input.environment, p_source_message_id: input.sourceMessageId,     p_message_code: input.messageCode, p_raw_payload: input.rawPayload,     p_transactions: input.transactions.map((item, i) => ({ ...item, consumptionContract: input.contracts[i] })) }
   const state = () => ({ bound: snapshot(f.original.id), receipts: sql(`SELECT coalesce(jsonb_agg(to_jsonb(r)),'[]'::jsonb)
     FROM gridex_utilts_binding.receipts r WHERE source_message_id=${lit(f.original.id)}`) })
   const before = state()
   for (const actor of [undefined, null, foreign.ids.actor]) {
     const refused = await nativePersistenceRpc('gridex_persist_utilts_consumption_v1', {
-      ...args, ...(actor === undefined ? {} : { p_actor_user_id: actor }),
-    })
+      ...args, ...(actor === undefined ? {} : { p_actor_user_id: actor }),     })
     expect(refused.error).toMatchObject({ code: '42501', message: 'utilts_execution_actor_forbidden' })
     expect(state()).toEqual(before)
   }
