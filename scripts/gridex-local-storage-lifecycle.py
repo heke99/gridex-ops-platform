@@ -185,12 +185,27 @@ def main():
         refuse('reviewed_cli_pin_and_command_required')
     # Producer must provide the independently verified official release hash;
     # do NOT self-admit any discovered binary merely because it says2.101.0.
-    cli_name, psql_name = shutil.which('supabase'), shutil.which('psql')
-    if not cli_name or not psql_name or os.environ.get(STATE_ENV) or os.environ.get('SUPABASE_GO_BINARY'):
+    cli_name = shutil.which('supabase')
+    if not cli_name or os.environ.get(STATE_ENV) or os.environ.get('SUPABASE_GO_BINARY'):
         refuse('original_tools_or_nonrecursive_context_required')
-    cli, psql = Path(cli_name).resolve(), Path(psql_name).resolve()
+    cli = Path(cli_name).resolve()
+    # The existing workflow installs client17 and exports this matching pg_dump
+    # path. Never resolve /usr/bin/psql to Debian's basename-sensitive pg_wrapper.
+    psql = Path('/usr/lib/postgresql/17/bin/psql')
+    pg_dump = Path('/usr/lib/postgresql/17/bin/pg_dump')
+    if os.environ.get('GRIDEX_PG_DUMP') != str(pg_dump):
+        refuse('matching_client17_workflow_contract_required')
     regular(cli)
     regular(psql)
+    regular(pg_dump)
+    if not os.access(psql, os.X_OK) or psql.read_bytes()[:4] != b'\x7fELF':
+        refuse('real_client17_binary_required')
+    client_version = subprocess.run([str(psql), '--version'], capture_output=True,
+                                    text=True, check=False)
+    if client_version.returncode or not re.fullmatch(
+            r'psql \(PostgreSQL\) 17(?:\.[0-9]+)*(?: \([^\r\n]*\))?',
+            client_version.stdout.strip()):
+        refuse('real_client17_version_unknown')
     if sha(cli) != args.cli_sha256:
         refuse('reviewed_cli_checksum_mismatch')
     go_binary = cli.with_name('supabase-go')

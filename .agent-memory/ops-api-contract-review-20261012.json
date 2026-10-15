@@ -28,7 +28,7 @@
     "No canonical schema/type GEN or active Ediel claims/shared memory writes",
     "401/412source-tracedSDKURLattestation verifies runtime target only; no authenticatedbusiness/provider call"
   ],
-  "next_action": "Wait for genuine55ab OPS fullchain output via existing delivery; root retains only ownOPS original collection. Continue source-only compact runtime signing forwards and independent lock/caller reviews while shared capture owner handles its source. No new actual native action;88 retained.",
+  "next_action": "Freeze and independently review current client17 correction+ownCP union, verify only3filedelta, then localcommit and normal PR794 revisedsourcepublication after all1041workflows terminal. ExistingCIalone qualifies actualrevisedownerSQL; no blindrerun/manualGENmanifestedit.",
   "source_head": "47a23b7573543021f79df172b44fb051024d2714",
   "integrated_main": "6ce6d49eafa8ca24bcefbeec717dd55b63abad66",
   "draft_pr": "https://github.com/heke99/gridex-ops-platform/pull/794",
@@ -38,7 +38,7 @@
   "latest_native_preflight": "Fresh10:01:58UTC before13:519ledger/422Authhooks/51B3parts/CEEprepare, no drift. After13:532ledger/648Authhooks exactly422old+226/113sourceallowed new, wholeprepare unchanged and transports removed; native1243function comparisonPASS.",
   "handover": "Application d899ac6b deployed to OPS production READY20:11:57.854UTC, integrated latest main4e52854e, realbuild175.12s and two independent integration-source reviews. No new module SQL/GEN/mainmerge performed. Fresh portal HTTP fetch auto-review rejected; current public frontend DB binding NOT_VERIFIED. PR794 draft; future main release must integrate branch API corrections.",
   "user_authorization": "User2026-10-13 Stockholm explicitly approves npm audit and all code/database/migration fixes; no repeated permission request needed for scoped OPS remediation.",
-  "current_source_head": "55ab0f6dec2818f53d29ded0d6c3608a32d40522",
+  "current_source_head": "1041cdfa25e20954bf9bc58720ce9d9ac8c53e14",
   "dependency_audit": "Passed with existing scoped node-forge exception; latest1.4.0 has no patched advisory version.",
   "migration_scope": "85actualwrites=18scoped+64source-only+3metadata actions; latest13=12source-only+1atomic effect with8logical componentreferences; no fake childledger.",
   "gen_owner": "No competing capture. Latest existing main4e52854e canonical GEN files imported byte-identically. Fresh module/semantic capture requires actual owning producer follow-up.",
@@ -1254,7 +1254,7 @@
     },
     "native_actions": 91,
     "production": "OPS app.gridex.se READY on reviewed aed8 with email hold; other API/native wholechain gates still open.",
-    "updated_at": "2026-10-15T08:53:10.613554+00:00",
+    "updated_at": "2026-10-15T09:14:05.904040+00:00",
     "supply_probe": {
       "corrected_driver": "9c1100e22e76792f8f13693e2009b8f8e97ba656516d6322d5cc563f414fc5e2",
       "two_independent_source_reviews": "APPROVE finite isolated prefix scope",
@@ -1424,7 +1424,63 @@
         "helpers_exact_frozen_hashes": "PASS",
         "git_diff_check": "PASS"
       },
-      "next": "Freeze10fileunion, localcommit, exactcommittedclean/strict53/historyinputplanners, twoindependentFINALactualunionreviewsoncurrenthead/tree, thennormalPR794sourcepush afterprevioussourceworkflows terminal. ExistingqualifiedCIproducer alone runsgenuinewholeSQL/ownerbootstrap; generatedtypes/currenttail update remainsexistingGENowner and requiresgenuineoutputs. No wholeAPI/StaffGREEN or merge."
+      "next": "Finish privately confirmed psql-dispatch correction with two independent exactsourcefinals, fresh own custody/readback and normal revisedsourcepublication after existing sourceworkflows terminal. Existing qualified CI alone qualifies revised input (no blind rerun). Keep future sharedCURRENTclean extension private until genuine StorageownerSQL proof. GenuineGEN/sourcecurrenttail remains existingowner; no GREEN or merge.",
+      "publication": {
+        "head": "1041cdfa25e20954bf9bc58720ce9d9ac8c53e14",
+        "tree": "5b724b4fdb5ac952009c10e592ff8f6b1b0b5ebf",
+        "parent": "aed8afafee5726d5dc88251e5f2a448caee268cb",
+        "status": "NORMAL_FAST_FORWARD_PUSH_SUCCESS_AND_INDEPENDENT_AUTHENTICATED_REF_COMMIT_READBACK",
+        "receipt": "/tmp/gridex-ops-core-completion-20261014/ops-1041-source-publication-authenticated-private.json",
+        "reviews": [
+          "45ca35ce1a46f1a626112f5d8466ffe8c6322950bf4ffa6a3eed6b47bc1eb027",
+          "dd62bfcdff4930b553d15f8dae8849cd0b97da1770435efdae53ed7366585418"
+        ],
+        "committed_planners": "PASS clean + strict53 actualancestor + historyunion c8, preserving original transport and exact 3 native forwards; no execution/backend claim",
+        "ops_run": 38710075464,
+        "staff_capture_run": 38710075506,
+        "ci": "28 automatic source1041 workflows observed queued/in_progress or explicitly skipped; no rerun or new producer"
+      },
+      "current_ci_findings": {
+        "source": "1041cdfa25e20954bf9bc58720ce9d9ac8c53e14",
+        "run": 38710075464,
+        "verify_job": 116338988412,
+        "verify": "FAIL expected genuine generated-types/manifest migration-tail gate for new20261015083829; migration integrity1258/1161 PASS. Do not patch foreign GEN manifest by hand.",
+        "original": "/tmp/gridex-ops-core-completion-20261014/ops1041-verify-job-authenticated-original-private.json",
+        "collection": "Root solecollector; initial gh redirect failure yielded0bytes; authenticated MCP succeeded once.",
+        "clean_job": 116338987563,
+        "upgrade_job": 116338988315,
+        "clean_upgrade": "FAIL both before owner SQL; exact revised-source runtime qualification pending",
+        "clean": "FAIL after successful official CLI service startup and installedworkingPG17.11 client; resolved Debian pg_wrapper pathname loses psql dispatchbasename beforeownerSQL",
+        "upgrade": "FAIL same preownerSQL clientdispatch error; preserved original separately",
+        "clean_original": "/tmp/gridex-ops-core-completion-20261014/ops1041-clean-job-authenticated-original-private.json",
+        "upgrade_original": "/tmp/gridex-ops-core-completion-20261014/ops1041-upgrade-job-authenticated-original-private.json",
+        "new_fix": "PRIVATE minimal twofilewrapper/workflow actualclient17 binding under source authoring+twoindependent review; do not combine sharedclean futurecandidate. No rerun/ownerSQLPASS."
+      },
+      "parallel_followthrough": {
+        "migration_source_native": "Independent actual89/90/91 chronological/hash/ACL review found no new confirmed bug; source/doc copy never grants SQL authority.",
+        "live_metadata": "Root readonly actualnative142customer_contracts columns confirms snapshot_hash ordinarynullableTEXT, price_snapshotJSONB andprice_versionTEXT; no customerrows/write or successfulfinalizerclaim.",
+        "email_signing_followthrough": "Independent bounded fullcode continuation review found no additional confirmedP1/P2; unqualified race hypotheses not promoted.",
+        "future_shared_clean": "PRIVATE frozen651f/c7be/1f24 threecodefiles andunchangedd92SQL; twoindependent sourcefinals running; sourceonly, no canonical edits or owner-runtime success; retainedclean custody488d authenticated."
+      },
+      "client17_source_correction": {
+        "status": "ROOT_CUSTODY_VERIFIED_SOURCE_MATERIALIZATION_FOR_CURRENT_UNION_REVIEW_NO_PUBLICATION_YET",
+        "cause": "Actual1041clean+upgrade installed normalPG17.11 clientsuccess and officialCLIstacksuccess, then resolvedpg_wrapperbasename lookuprefuses beforeownerSQL. Upstreampublicsourceattestsbasenamealgorithm, notexactrunnerpackagehash.",
+        "technical_files": [
+          {
+            "path": "scripts/gridex-local-storage-lifecycle.py",
+            "preimage_sha256": "2df0282df7f6389c946842141e68e322834fe4f07b672ae23fa7442a4ba458ba",
+            "postimage_sha256": "37446d958b631579d37ee3afbad3a01e88f2f786c4f18edabea294814deb2924"
+          },
+          {
+            "path": ".github/workflows/ops-hardening.yml",
+            "preimage_sha256": "cf6b63daab8111c13f640e990e0ce928e5673018d04b940fa3ceb6ac7f6fdb03",
+            "postimage_sha256": "568cec0ae09bcc0a0ceae67a177c0f2ec13151ee5424854cac4820361119419d"
+          }
+        ],
+        "custody": "TwoexactfreshMCPrefs match retained0223938, unchangedmain6ce; no newref/role/producer. Rootsolecanonicalwriter.",
+        "scope": "Onlyfixedrealclient17ELF/version/pre-existingmatchingGRIDEX_PG_DUMPcontract and2helperhashvalues. SQLd92, sharedcleanbe69 andallotherfiles unchanged. Sharedhookv1remainsPRIVATE/HOLD.",
+        "verification": "PythonAST sourceparse; twoindependent sourcefinals running; must bindcurrent threefileunion before normalpublication afterexisting1041workflows terminal. No runtimeownerSQL orfullmigrations PASS."
+      }
     }
   }
 }
