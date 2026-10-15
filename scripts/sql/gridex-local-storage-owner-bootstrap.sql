@@ -65,6 +65,45 @@ BEGIN
    AND attacl IS NOT NULL)
  OR EXISTS(SELECT FROM pg_event_trigger WHERE evtenabled<>'D'
    AND (evttags IS NULL OR evttags && ARRAY['GRANT','REVOKE'])) THEN
+  -- Diagnostic metadata ONLY; the original refusal/rollback remains below.
+  -- No rows, credentials, function bodies or unrelated catalogs are emitted.
+  RAISE NOTICE 'local_storage_table_guard_diagnostic %', jsonb_build_object(
+   'currentUser',current_user,'sessionUser',session_user,
+   'storageOwnerRole',(SELECT jsonb_build_object('oid',r.oid,'name',r.rolname,
+     'super',r.rolsuper,'inherit',r.rolinherit,'login',r.rolcanlogin,
+     'bypassRls',r.rolbypassrls,'replication',r.rolreplication,
+     'createRole',r.rolcreaterole,'createDb',r.rolcreatedb)
+     FROM pg_roles r WHERE r.oid=owner_oid),
+   'tablePredicateMatchCount',(SELECT count(*) FROM pg_class
+     WHERE oid IN(objects_oid,buckets_oid) AND relkind='r'
+       AND relowner=owner_oid AND relpersistence='p' AND NOT relforcerowsecurity),
+   'tables',(SELECT coalesce(jsonb_agg(jsonb_build_object('oid',c.oid,
+     'identity',c.oid::regclass::text,'owner',pg_get_userbyid(c.relowner),
+     'kind',c.relkind::text,'persistence',c.relpersistence::text,
+     'rowSecurity',c.relrowsecurity,'forceRowSecurity',c.relforcerowsecurity)
+     ORDER BY c.oid),'[]'::jsonb) FROM pg_class c
+     WHERE c.oid IN(objects_oid,buckets_oid)),
+   'columnAclRows',(SELECT coalesce(jsonb_agg(jsonb_build_object(
+     'relation',a.attrelid::regclass::text,'number',a.attnum,'name',a.attname,
+     'dropped',a.attisdropped,'acl',to_jsonb(a.attacl))
+     ORDER BY a.attrelid,a.attnum),'[]'::jsonb) FROM pg_attribute a
+     WHERE a.attrelid IN(objects_oid,buckets_oid) AND a.attacl IS NOT NULL),
+   'eventsMatchingExistingPredicate',(SELECT coalesce(jsonb_agg(
+     jsonb_build_object('oid',e.oid,'name',e.evtname,'event',e.evtevent,
+       'enabled',e.evtenabled::text,'tags',to_jsonb(e.evttags),
+       'owner',pg_get_userbyid(e.evtowner),'function',p.oid::regprocedure::text,
+       'functionOwner',pg_get_userbyid(p.proowner),
+       'functionSecurityDefiner',p.prosecdef,
+       'functionConfig',(SELECT jsonb_agg(CASE
+         WHEN split_part(setting,'=',1)='search_path' THEN setting
+         ELSE split_part(setting,'=',1)||'=<redacted>' END ORDER BY ordinal)
+         FROM unnest(p.proconfig) WITH ORDINALITY config(setting,ordinal)),
+       'functionConfigSHA256',encode(sha256(convert_to(
+         coalesce(to_jsonb(p.proconfig)::text,'null'),'UTF8')),'hex'),
+       'functionBodySHA256',encode(sha256(convert_to(p.prosrc,'UTF8')),'hex'))
+     ORDER BY e.oid),'[]'::jsonb) FROM pg_event_trigger e
+     LEFT JOIN pg_proc p ON p.oid=e.evtfoid WHERE e.evtenabled<>'D'
+       AND (e.evttags IS NULL OR e.evttags && ARRAY['GRANT','REVOKE'])));
   RAISE EXCEPTION 'local_storage_table_or_acl_event_trigger_unknown';
  END IF;
  -- Acquire before ALL protected catalog and empty-row snapshots.

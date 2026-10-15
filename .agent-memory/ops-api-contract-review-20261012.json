@@ -28,7 +28,7 @@
     "No canonical schema/type GEN or active Ediel claims/shared memory writes",
     "401/412source-tracedSDKURLattestation verifies runtime target only; no authenticatedbusiness/provider call"
   ],
-  "next_action": "Freeze and independently review current client17 correction+ownCP union, verify only3filedelta, then localcommit and normal PR794 revisedsourcepublication after all1041workflows terminal. ExistingCIalone qualifies actualrevisedownerSQL; no blindrerun/manualGENmanifestedit.",
+  "next_action": "Finalize/publish boundedStorage diagnostic4fileunion aftertwoindependent currentfinals; existingCIalonequalifiesactualrefusalmetadata. InparallelfinishindependentFPfor signedcachemetadatahole, thenreview exactsourceforwardifconfirmed. No gateweaken/manualGEN/wholeGREEN ormerge.",
   "source_head": "47a23b7573543021f79df172b44fb051024d2714",
   "integrated_main": "6ce6d49eafa8ca24bcefbeec717dd55b63abad66",
   "draft_pr": "https://github.com/heke99/gridex-ops-platform/pull/794",
@@ -38,7 +38,7 @@
   "latest_native_preflight": "Fresh10:01:58UTC before13:519ledger/422Authhooks/51B3parts/CEEprepare, no drift. After13:532ledger/648Authhooks exactly422old+226/113sourceallowed new, wholeprepare unchanged and transports removed; native1243function comparisonPASS.",
   "handover": "Application d899ac6b deployed to OPS production READY20:11:57.854UTC, integrated latest main4e52854e, realbuild175.12s and two independent integration-source reviews. No new module SQL/GEN/mainmerge performed. Fresh portal HTTP fetch auto-review rejected; current public frontend DB binding NOT_VERIFIED. PR794 draft; future main release must integrate branch API corrections.",
   "user_authorization": "User2026-10-13 Stockholm explicitly approves npm audit and all code/database/migration fixes; no repeated permission request needed for scoped OPS remediation.",
-  "current_source_head": "1041cdfa25e20954bf9bc58720ce9d9ac8c53e14",
+  "current_source_head": "023a89db2b1172e205a0fc5e0a145d04366dcc2c",
   "dependency_audit": "Passed with existing scoped node-forge exception; latest1.4.0 has no patched advisory version.",
   "migration_scope": "85actualwrites=18scoped+64source-only+3metadata actions; latest13=12source-only+1atomic effect with8logical componentreferences; no fake childledger.",
   "gen_owner": "No competing capture. Latest existing main4e52854e canonical GEN files imported byte-identically. Fresh module/semantic capture requires actual owning producer follow-up.",
@@ -1254,7 +1254,7 @@
     },
     "native_actions": 91,
     "production": "OPS app.gridex.se READY on reviewed aed8 with email hold; other API/native wholechain gates still open.",
-    "updated_at": "2026-10-15T09:14:05.904040+00:00",
+    "updated_at": "2026-10-15T09:35:54.620857+00:00",
     "supply_probe": {
       "corrected_driver": "9c1100e22e76792f8f13693e2009b8f8e97ba656516d6322d5cc563f414fc5e2",
       "two_independent_source_reviews": "APPROVE finite isolated prefix scope",
@@ -1424,7 +1424,7 @@
         "helpers_exact_frozen_hashes": "PASS",
         "git_diff_check": "PASS"
       },
-      "next": "Finish privately confirmed psql-dispatch correction with two independent exactsourcefinals, fresh own custody/readback and normal revisedsourcepublication after existing sourceworkflows terminal. Existing qualified CI alone qualifies revised input (no blind rerun). Keep future sharedCURRENTclean extension private until genuine StorageownerSQL proof. GenuineGEN/sourcecurrenttail remains existingowner; no GREEN or merge.",
+      "next": "Qualify actual023 Storage table/columnACL/eventtrigger refusal using bounded reviewed diagnostic, preserve strictguards. Sharedcleanv2 remainsPRIVATE/HOLD. ExistingGENowner handoff private47linesready; no GENcaptureuntilgenuinefullschema. Continue signedcache directREST/RLS/triggerclosure with actualgrants; no confirmednewP2 yet.",
       "publication": {
         "head": "1041cdfa25e20954bf9bc58720ce9d9ac8c53e14",
         "tree": "5b724b4fdb5ac952009c10e592ff8f6b1b0b5ebf",
@@ -1479,7 +1479,80 @@
         ],
         "custody": "TwoexactfreshMCPrefs match retained0223938, unchangedmain6ce; no newref/role/producer. Rootsolecanonicalwriter.",
         "scope": "Onlyfixedrealclient17ELF/version/pre-existingmatchingGRIDEX_PG_DUMPcontract and2helperhashvalues. SQLd92, sharedcleanbe69 andallotherfiles unchanged. Sharedhookv1remainsPRIVATE/HOLD.",
-        "verification": "PythonAST sourceparse; twoindependent sourcefinals running; must bindcurrent threefileunion before normalpublication afterexisting1041workflows terminal. No runtimeownerSQL orfullmigrations PASS."
+        "verification": "PythonAST sourceparse; twoindependent sourcefinals running; must bindcurrent threefileunion before normalpublication afterexisting1041workflows terminal. No runtimeownerSQL orfullmigrations PASS.",
+        "publication": {
+          "status": "NORMAL_PUSH_SUCCESS_AUTHENTICATED_REF_COMMIT_TREE_PARENT",
+          "head": "023a89db2b1172e205a0fc5e0a145d04366dcc2c",
+          "tree": "adfce54c42fb1fa47600423d187436e88bc27d9a",
+          "parent": "1041cdfa25e20954bf9bc58720ce9d9ac8c53e14",
+          "current_union_finals": [
+            "7d123c62a45b14f40ef6de8e0e13b31c0e631553dc63b1449536e07068f2678b",
+            "e823d7a8dd20e193eb21397fb1e98d5ca98be22bd76f1f38182bba17abf5a458"
+          ],
+          "prior_source_workflows": "All28 terminal authenticated09:21UTC beforepush; no rerun or newproducer",
+          "new_ops_run": 38712353844,
+          "new_staff_capture": 38712353217,
+          "receipt": "/tmp/gridex-ops-core-completion-20261014/storage-client17-fix-private-v2/normal-publication-authenticated-root-readback-private.json",
+          "runtime": "NewactualCIinputsqueued/inprogress; no ownerSQLsuccess orwholeGREEN yet",
+          "workspace": "Existingexecconnectionbrieflydisconnected/recoverytimedout, recoveredSAME023localHEAD/tree before normalpush; no newworkspace/backend."
+        },
+        "actual_revised_outcome": {
+          "run": 38712353844,
+          "clean_job": 116346584777,
+          "status": "CLIENT_DISPATCH_FIXED_ACTUAL_OWNER_SQL_REACHED_BUT_STRICT_PLATFORM_GUARD_REFUSED",
+          "error": "local_storage_table_or_acl_event_trigger_unknown",
+          "source": "ops023-clean-job-authenticated-original-private.json root authenticated once",
+          "scope": "SQLidentity/version/Storage namespaceprofile admitted; pre-DDL composite table/columnACL/eventtrigger profile rejected atinline58. No ownerDDL/wholehistorysuccess, no gateweaken.",
+          "next": "PRIVATE sourcebounded read-onlymetadata diagnostic proposal toqualifyexactpredicate, sameexistingCIproduceronly revisedinputafterreviews; no blindrerun/newbackend."
+        }
+      },
+      "actual_contract_guard_metadata": {
+        "source": "Rootreadonlyactualnative query: actualcustomer_contracts26triggers45validatedconstraints10policies andcontract_price_snapshots7triggers8validatedconstraints12policies, ownerpostgres/RLStrue/noFORCE; no customerrows or SQLchanges",
+        "files": "ops1041-actual-native-contract-price-guards-{readonly,parsed-readonly}-private.json",
+        "limits": "Initialcacheprojectiontriggerclosureunderindependentreview. Successful lawfulsigning stillunproven. Absence ofcachekeyin signedimmutabilitylist notpromotedtobug without reachableAPI/privilege/impactclosure."
+      },
+      "actual_hash_column_privileges": {
+        "source": "Rootreadonlyactualmetadata ops023-actual-native-contract-price-hash-column-privileges-{readonly,parsed-readonly}-private.json",
+        "ledger_hash": "TEXT NOTNULLtrue, attaclnull",
+        "customer_hash": "TEXTnullable, attaclnull",
+        "effective_authenticated": "SELECTandUPDATEbothcolumns viaactualtableACL",
+        "anon": "noSELECT/noUPDATE",
+        "limits": "RLS/trigger/APIreachability mustcloseafterSIGNEDmutationhypothesis; no DML/actualaffecteddata/wrongchargeclaim. Confirmationagentread-onlyaddendumrunning."
+      },
+      "storage_profile_diagnostic_source_phase": {
+        "status": "ROOT_BOUNDED_SOURCE_MATERIALIZATION_FOR_CURRENT_FOUR_UNION_REVIEW",
+        "source_parent": "023a89db2b1172e205a0fc5e0a145d04366dcc2c",
+        "three_files": [
+          {
+            "path": "scripts/sql/gridex-local-storage-owner-bootstrap.sql",
+            "preimage_sha256": "d92bdab13882e6c3c801986875dc133b11298483ac0e3790f7b717afc0063848",
+            "postimage_sha256": "02a420bd17012ba37644475d2732e2a476419a26c9c54086049724bb74853d83"
+          },
+          {
+            "path": "scripts/gridex-local-storage-lifecycle.py",
+            "preimage_sha256": "37446d958b631579d37ee3afbad3a01e88f2f786c4f18edabea294814deb2924",
+            "postimage_sha256": "4841395c13a8c46780bfc8c43965921c976403688f24d474ed496d45a6b590bf"
+          },
+          {
+            "path": ".github/workflows/ops-hardening.yml",
+            "preimage_sha256": "568cec0ae09bcc0a0ceae67a177c0f2ec13151ee5424854cac4820361119419d",
+            "postimage_sha256": "df780df69fb399acf1d09c3234abf3a9f3015eb49dae264706cdc6777547b84a"
+          }
+        ],
+        "scope": "Only2597B catalog-only NOTICE inexistingfailedbranch beforeUNCHANGEDRAISE/3predicates/DDL/tx/rollback; twoStorage tablemetadata/allnonnullcolumnACL includingdropped/system+matchingeventmetadata/bodySHA/nonsearchpathconfigredacted. HelperonlySQLpin; workflowonly4pinstrings. No businessrows/functionbodies/credentials/AuthDDL/unknownallowlist.",
+        "source_reviews": [
+          "93d3ca0c080e78625495906a7d6b9a76e09a85c50c50024fcf691dc89dff8b17",
+          "9b949b7658c623c63967db8cc39ffb66f8a178d1ee80dcacb8ca4925e9bf3d42"
+        ],
+        "custody": "Fresh3MCPfileGETMATCH0223938 beforewrite, rootsolewriter, no newrefs/producers.",
+        "actual023": "Clean+upgrade+Staffcapture allterminal failures; rootqualifiedclean+upgrade originals once. Onlyremainingunitquality/certificateaggregation are not newnative/GEN inputproducers. Sourcepublication is a reviewed changeddiagnosticinput, notsameinputblindrerun; no merge or CI_GREEN claim.",
+        "next": "Freeze actual4fileunion inclownCP, twoindependent current finals, localcommit/normalPR794publication afterfreshrelevantproducerterminal+ref checks. SameexistingCI capturesactualprofile; preservesFAILCLOSED untilknowncausequalified. Sharedcleanv2PRIVATE/HOLD."
+      },
+      "signed_cache_followthrough_current": {
+        "proof": "ActualauthUPDATEhashprivileges+actualRLShelpers+currentpublicRESTtable42501vsunknown404zero-rowquery+actualnestedretentionfunctions+epochTRUE/class1 nowread; no customerrows/updates/Authusercreation. GenericOPTIONS200negativecontrol preservednotmislabelledasexposure.",
+        "finding": "Confirmationindependentreviewer identifiesconditionalP2 metadataimmutability hole for samecompany admittedwriter onsignednon-tombstonedcontract; invoice/pricing useimmutableledger so NOTwrongamount oraffecteddata claim.",
+        "record": "signed-price-cache-direct-rest-current-native-closure-final-private.mdd192d42f...",
+        "independent_fp": "Databaseauditorfinishing independentfullcurrentnativeFP beforeprivatefix; no canonicalmigrationauthored/materialized yet."
       }
     }
   }
