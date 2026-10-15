@@ -1,0 +1,130 @@
+{
+  "project": "gridex-ops-platform",
+  "task": "PR794 full API completion",
+  "agent": "codex-pr794-takeover-20261015",
+  "epoch": "gridex-five-agent-20261012",
+  "slot": "helper",
+  "packet": "87986606-c777-4474-ab33-7edb7b0aecf2",
+  "branch": "codex/ops-api-contract-review-20261012",
+  "checkpoint": ".agent-memory/pr794-takeover-20261015.json",
+  "user_authorization": "User explicitly appoints this chat as new responsible owner of API PR794, to correct, review and merge, using multiple parallel agents.",
+  "observed_head": "c777f903b05e336485e0dcf2d066eb0af3c8a1db",
+  "observed_main": "11bd50430b0cfd5e525dce7034e4659756c8d5e0",
+  "observed_at": "2026-10-15T16:10:06.141539+00:00",
+  "scope": "Existing API PR794. No transfer of other masterplan packets or shared GEN/native/serial delivery service.",
+  "status": "CUSTODY_VERIFIED_READY_TO_APPLY_REVIEWED_PATCH",
+  "skill_routing": {
+    "active": [
+      "cloud-environment-runtime",
+      "using-superpowers",
+      "writing-plans",
+      "dispatching-parallel-agents",
+      "using-git-worktrees",
+      "systematic-debugging",
+      "code-review",
+      "differential-review",
+      "receiving-code-review",
+      "verification-before-completion",
+      "supabase",
+      "supabase-postgres-best-practices"
+    ],
+    "conditional": [
+      "test-driven-development for verified repairs",
+      "requesting-code-review for frozen candidate",
+      "finishing-a-development-branch for merge"
+    ],
+    "skipped": {
+      "brainstorming": "Existing specified API behavior and verified defect repair; no architecture choice.",
+      "repository-wide baseline audit": "Focused continuation of existing PR, preserving existing audit, not a new repository-wide audit.",
+      "UI/performance/refactor/skill-authoring/hook-installation": "No such changes requested."
+    }
+  },
+  "delegation": {
+    "api_review": "Independent read-only application/API and historical review-thread inspection",
+    "database_review": "Independent read-only replay SQL guard/profile review",
+    "ci_diagnosis": "Current failed CI root cause; no reruns or producers",
+    "test_validation": "Local affected tests and checks; no DB/native/GEN"
+  },
+  "next_action": "Apply exact two-file independently approved patch000b686d, commit, merge actual main11bd normally, verify committed planners and two affected final readbacks, one ordinary existing PR publication.",
+  "ownership": {
+    "takeoverComment": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6196305923",
+    "preparedNeutralReceipt": "32d31cf69ba0f2133947d9a2994fda3b8e9d0965",
+    "sourceFiles": [
+      "scripts/gridex-aud-003-legacy-foundation.additions.json",
+      "supabase/bootstrap/20261015_ops_atomic_bb0b_preflight_diagnostic_replay_adapter.sql"
+    ],
+    "refsModified": true,
+    "autoReviewRejection": "RESOLVED by explicit user approval of the same exact named two-ref transfer and #766 publication; verified normally through matched old-reference readback, delete/404, create/full new readback. Every other existing ref preserved.",
+    "explicitUserApproval": "User answered YES to exact two shared file-ref delete/recreate operations and #766 receipt publication.",
+    "custodyProof": {
+      "newReceipt": "32d31cf69ba0f2133947d9a2994fda3b8e9d0965",
+      "files": [
+        "scripts/gridex-aud-003-legacy-foundation.additions.json",
+        "supabase/bootstrap/20261015_ops_atomic_bb0b_preflight_diagnostic_replay_adapter.sql"
+      ],
+      "refs": {
+        "refs/tags/agent-claims/masterplan/file-db2a7e55029e7bf7a78e5662dd5c3ef2471e44f78d2e69c9d753b1715cfbc983": "32d31cf69ba0f2133947d9a2994fda3b8e9d0965",
+        "refs/tags/agent-claims/masterplan/file-08a0c83abb2604d6cb514024b911f9d672c72a870049a2ebc8303fea71426de0": "32d31cf69ba0f2133947d9a2994fda3b8e9d0965"
+      },
+      "comment": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6196631778",
+      "allOtherExistingRefsPreserved": true,
+      "explicitUserApproval": true
+    }
+  },
+  "confirmed_blockers": [
+    {
+      "scope": "CLEAN and UPGRADE",
+      "error": "ops_finance_trigger_metadata_unknown: public.portfolio_settlement_audit_log.portfolio_settlement_audit_immutable",
+      "rootCause": "Source-canonical October finance guard clone was not among admitted trigger binding OIDs. Same source class also affects portfolio_settlement_invoice_bindings_guard. Strict exact clone profiles being prepared for replay-only overlay."
+    },
+    {
+      "scope": "OPS verify and E2E smoke",
+      "error": "db:types:check migration tail changed to 20261015100259_ops_api_signed_contract_price_cache_binding_guard_alignment.sql",
+      "rootCause": "Generated schema/types/manifest still pinned to earlier SC031 capture; requires genuine successful corrected replay capture and qualified import, not manual edits."
+    }
+  ],
+  "verification": {
+    "migrationIntegrity": "PASS1259files/1162groups/checksums",
+    "APIBehavior": "34PASSdirectactualsource",
+    "validatorErrata": "3PASSsourcepatchderivedchecksums",
+    "affectedUnit": "305PASS20suitesNode22; original blocked loopback2 rerun passed with same external socket block",
+    "docsAndContracts": "api:docs, api:compatibility, localOpenAPIrelease, api:error-registry, api:error-boundaries PASS",
+    "preexistingStaticFailures": "4unrelatedregressionfailures independently reproduced on immutable origin/main11bd; no fixes introduced",
+    "applicationReview": "No confirmed defect; /tmp/pr794-api-independent-review.json",
+    "CILogs": "/tmp/pr794-ci-diagnosis/report.md; originalSHAregistrylog-manifest.json",
+    "noWholeGreenOrMergeClaim": true,
+    "appTypecheck": "PASSNode22--noEmit--incremental=false",
+    "testTypecheck": "PASSNode22--noEmit--incremental=false"
+  },
+  "local_repair_proposal": {
+    "path": "/tmp/pr794-database-review/proposal.patch",
+    "patchSHA256": "000b686d08d2537fa78918d28bda991ca39319c0b9e92ff57bffd654d428ba30",
+    "sourceHead": "c777f903b05e336485e0dcf2d066eb0af3c8a1db",
+    "sourceFiles": [
+      "supabase/bootstrap/20261015_ops_atomic_bb0b_preflight_diagnostic_replay_adapter.sql",
+      "scripts/gridex-aud-003-legacy-foundation.additions.json"
+    ],
+    "artifactAfterSHA256": "6c139e8f94e86de4409e0097078f56d839cdd824fc3f6f7858549699ed7d87e8",
+    "descriptorAfterSHA256": "d44ef59c0bed3bae819c8d25fa756e7bee0372756517c4b2b15fa494d883166c",
+    "fullRenderedExecutableAfterSHA256": "242c5b9cf6d542b1d83b3db0b8f88e2d425d2c7121f188ed019894bf4eba3f60",
+    "componentQualification": "28PASS:2baselineRED+6positive+20invalidrollback; actualPGliteDOadapterblocks; isolatedsyntheticcomponentonly",
+    "byteRendererQualification": "PASSactualPGliterender1505529B/SHA242c5b9cf6d542b1d83b3db0b8f88e2d425d2c7121f188ed019894bf4eba3f60; damagedpreimagerefuses",
+    "gitApplyCheck": "PASSexactcurrent2filepreimages; parentfilesstillunchanged",
+    "finalReviews": {
+      "A": {
+        "path": "/workspace/pr794-handoff/pr794-canonical-clone-independent-final-review.json",
+        "sha256": "aca4242fe5f899630cb4fa06c6829fa869b4490765a2ca31ec232194e584ad58",
+        "verdict": "APPROVE_SOURCE_NO_FINDINGS"
+      },
+      "B": {
+        "path": "/workspace/pr794-handoff/ci-and-review-b/source-final/verdict.json",
+        "sha256": "48bd1cec53acf5befb565ef7e6dc65c6b355c4acf96fc3d50c72ae537946dc81",
+        "verdict": "APPROVE_SOURCE_NO_FINDINGS"
+      },
+      "applicability": "Exact two-file proposal postimages only; post-materialization and final commit/full CI/GEN still required"
+    },
+    "repositoryApplied": false,
+    "wholeReplayQualified": false
+  },
+  "handoff_directory": "/workspace/pr794-handoff"
+}
