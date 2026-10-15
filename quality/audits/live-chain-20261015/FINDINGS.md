@@ -53,20 +53,19 @@ Statusvärden: **RÄTTAD** = rättad på branchen med regressionstest som är r�
 - **Bevis:** A/B 2 av 2 gånger. Med NULL skapas 0 meddelanden, med tenantens `company_id` skapas 1.
 - **Rättning:** vakten är oförändrad. Appen kopplar mejlet till den verifierade tenanten direkt efter tenantupplösningen, och bara om `company_id` är NULL. Ett mejl som redan tillhör en annan tenant ger `inbound_email_tenant_attribution_conflict`. Test: samma fil som F3, två fall.
 
-### F6 Fel när Ediel-meddelandet skapas sväljs tyst — ÖPPEN
-- **Bevis:** F5-felet loggades ("Kunde inte skapa/uppdatera inbound ediel_message") men behandlingen fortsatte. Mejlet hamnade i manuell granskning **utan** uppgift ("Skipping customer-scoped task because no canonical customer is resolved").
-- **Påverkan:** ett mottaget Ediel-mejl kan försvinna utan att någon operatör ser det.
+### F6 Ett ej sparat Ediel-original blir manuell granskning i stället för omförsök — RÄTTAD
+- **Bevis:** F5-felet loggades ("Kunde inte skapa/uppdatera inbound ediel_message"). `createInboundEdielMessage` returnerar `null` vid oväntat insert-fel. Den matchade vägen (`applySafeInboundStatusUpdate`) kastar då `ediel_inbound_original_persistence_required`, så jobbet går till `retry` (upp till 5 försök, sedan `failed`). Den omatchade vägen ignorerade `null`, skapade en granskning av typen "kräver manuell matchning" och avslutade jobbet som `manual_review`.
+- **Rättelse av första bedömningen:** mejlet försvinner inte. Det syns i adminens inkorg som `manual_review`. Felet är att ett tillfälligt databasfel aldrig försöks igen och att operatören ser en vilseledande orsak.
+- **Rättning:** den omatchade vägen följer samma kontrakt som den matchade. Test: `__tests__/inbound-attachment-edifact-single-copy.test.ts` (fall 4). 27 processorfiler med 422 tester är gröna.
 
-### F7 IMAP-klienten saknar felhanterare — ÖPPEN
-- **Bevis:** ingen `.on('error')` på `ImapFlow` i någon av pollerna. När socketen fick timeout loggade Next `uncaughtException: Error: Socket timeout`.
-- **Påverkan:** ett ohanterat processfel vid nätverksproblem mot IMAP-servern.
+### F7 IMAP-klienten saknar felhanterare — RÄTTAD
+- **Bevis:** ingen `.on('error')` på `ImapFlow` i någon av pollerna. imapflow 2.2.1 `emitError` sänder anslutningsfel som `error`-händelse efter connect, och utan lyssnare kastar Node dem som uncaughtException. Lokalt sågs `uncaughtException: Error: Socket timeout`.
+- **Rättning:** båda pollerna loggar händelsen. Det pågående kommandot avvisas som förut och befintlig catch registrerar felet på brevlådan. Test: `__tests__/imap-fetch-command-contract.test.ts` (fall 3). Den falska klienten sänder `error` från en timer, som den riktiga.
 
-### F8 Test Center (Fakturatest) kan inte köra mätvärde→faktura — ÖPPEN
-Observerat i första körningen med lokala, sedan förkastade, patchar:
-- `invoiceTestEdifactMaterialization.ts` skriver kolumnen `metering_type`, som inte finns i schemat.
-- `testCenterRawEdifactImport.ts` sätter varken `received_at` eller brevlåda, och hoppar över registreringen av den tekniska mottagningen.
-- Tidigare import söks med hela EDIFACT-texten i URL:en, vilket ger "URI too long" för tim- och kvartsfiler.
-- Korrigeringsscenariot återanvänder fält 505, vilket regeln `UTILTS_ISSUER_TRANSACTION_REFERENCE_DUPLICATE` alltid avvisar.
+### F8 Test Center (Fakturatest)
+- **F8a Uppslag med hela filen i URL:en — RÄTTAD.** `findExistingTestInboundEnvelope` skickade filen som `raw_edifact_payload=eq.<fil>`. Den lokala gatewayen svarar `414 URI too long` från 16 KB, medan 8 KB fungerar. Fakturatest accepterar bara hel månad, så fil med tim- eller kvartsvärden misslyckas alltid. Uppslaget går nu på `match_payload ⊇ {kund, sha256}`, som samma skrivare redan sparar. Test: `__tests__/test-center-raw-import-envelope-lookup.test.ts`, med riktig preflight av en genererad kvartsmånad (2 976 värden).
+- **F8b `metering_points.metering_type` — schemadrift, lämnas till ägaren av #794.** Kolumnen finns i drift (`NOT NULL DEFAULT 'consumption'`) men inte i migrationerna, `schema.sql` eller staging. Den skrivs av `customerApplicationOnboarding.ts` och `invoiceTestEdifactMaterialization.ts`, och portalen läser den med reserv. I ren miljö och staging ger insert `PGRST204` (verifierat 2 av 2 gånger lokalt). PR #794:s plan för native-avstämning listar redan `metering_points_metering_type_check`.
+- **F8c Övriga punkter — ej verifierade på nytt:** saknade `received_at`/brevlåda, överhoppad teknisk mottagning och korrigering med fält 505 sågs bara med lokala patchar. De kräver en riktig Fakturatest-körning innan de kan kallas fel.
 
 ### F9 Kundmatchningen jämför fri text med `customers.id` (uuid) — RÄTTAD
 - **Var:** `lib/ediel/matching/customerMatcher.ts`, `lib/customers/matchingService.ts` (`findCustomersByIdentifierValues`).
@@ -75,7 +74,7 @@ Observerat i första körningen med lokala, sedan förkastade, patchar:
 - **Rotorsak:** samma fel som 04b14680 rättade för `processMatcher` och `permissionMatcher`. Kundmatchningen missades då.
 - **Rättning:** befintliga `postgrestEqAny` används. Värden citeras och bara UUID-formade värden når uuid-kolumner. Ett tomt filter ger inga rader i stället för en ofiltrerad läsning. Test: `__tests__/ediel-customer-matcher-uuid-filter.test.ts` (3 fall, röda före rättningen). Verifierat mot riktig PostgREST: en kopplad kund hittas fortfarande via UUID.
 
-### F10 CONTRL-skapandet blir långsammare för varje fil bolaget tagit emot — ÖPPEN, kritisk
+### F10 CONTRL-skapandet blir långsammare för varje fil bolaget tagit emot — RÄTTAD (kritisk)
 - **Var:** `gridex_ack_authority.read_outbound_originals_v1` → `gridex_ediel_technical_ack.retained_source_v1`.
 - **Bevis:**
   - `auto_explain` visar att 1,27 av 1,4 s går åt till urvalet av bolagets utgående CONTRL. Filtret slutar med `OR gridex_ediel_technical_ack.retained_source_v1(m.*, false) = source.id`, som körs för varje CONTRL som inte är direkt kopplad.
@@ -85,26 +84,42 @@ Observerat i första körningen med lokala, sedan förkastade, patchar:
   - Med parallellitet 4 blev det 8 CONTRL, och 16 tidsgränser plus en `ediel_existing_ack_original_read_unavailable`.
 - **Påverkan:** kostnaden är kumulativ per bolag och miljö. Efter ungefär tio mottagna filer får ingen ny inkommande fil teknisk kvittens. Meddelandet blir kvar i `parsed`, utan affärsbehandling. Nätägaren får ingen CONTRL. Ett elbolag med normal volym (en E66 per mätpunkt och dygn) skulle slå i taket redan första dagen.
 - **Ingen automatisk omkörning observerad:** i körningen med parallellitet 4 fick de 17 filerna som fastnat ingen CONTRL vid senare cron-körningar.
-- **Förslag (för ACK-ägaren; inte ändrat här eftersom ACK-auktoriteten är ägd scope):**
-  - Bind CONTRL till källan när den skapas. `creation_receipts` och `related_message_id` finns redan.
-  - Använd `retained_source_v1`-reserven bara för äldre ACK utan sådan bindning, eller
-  - indexera envelope-fälten (avsändare, mottagare, UCI-referens) på `technical_ack.sources` i stället för att tolka varje källa vid varje anrop.
-  - Masterplanregel DB-04 kräver prestandaprov med representativ data.
+- **Rättning:** migrationen `20261015231500_ediel_technical_ack_original_lookup_by_uci.sql`. Ingen annan agent eller öppen PR arbetade med funktionerna (kontrollerat i #766 och PR-filerna), så rättningen gjordes här.
+  - `retained_source_v1` filtrerar den kopplade (unika) repliken på `originalUNB.uciReference = uciRef`, med index.
+  - `read_outbound_originals_v1` kör reserven bara när `may_reference_uci_v1` tillåter att `wire_v1` avkodar källans UCI-referens. Kontrollen följer `wire_tokens_v1`-reglerna och behåller full kontroll när ett release-tecken finns.
+- **Verifiering:**
+  - Resultaten från `retained_source_v1` (båda lägena) och `read_outbound_originals_v1` är byte-identiska för alla 26 CONTRL och 83 inkommande källor före och efter.
+  - Läsningen tar ~40 ms i stället för ~1,4 s.
+  - Live: alla 30 filer fick CONTRL, med 0 deadlocks.
+  - Det genererade egenskapstestet `__tests__/ediel-technical-ack-original-lookup-scale.test.ts` blir rött mot en naiv delsträngskontroll.
 
-### F11 Lås tas i fel ordning: radlås före tabellås — ÖPPEN (bekräftad orsak till U1)
+### F11 Lås tas i fel ordning: radlås före tabellås — RÄTTAD (samma migration som F10)
 - **Var:** `public.gridex_read_outbound_acks_for_source_v2` tar `SELECT … FOR SHARE` på källraden. Via `read_outbound_originals_v1`/`retained_source_v1` låses fler källrader. Därefter tar `read_business_original_v1` `LOCK TABLE public.ediel_messages IN SHARE MODE`.
 - **Bevis:** Postgres deadlockrapporter, till exempel `Process 4535 waits for ShareLock on transaction 10778; blocked by process 4551. Process 4551 waits for ShareLock on relation 18763; blocked by process 4535.` Kedjan:
   - ACK-läsningen håller radlås och väntar på tabellåset.
   - En vanlig PATCH av ett annat meddelande har `ROW EXCLUSIVE` på tabellen och väntar på radlåset.
   - 22 respektive 24 deadlocks per körning med parallellitet 4. Med parallellitet 1 försvinner de, men F10 kvarstår.
-- **Förslag:** ta tabellåset först i `gridex_read_outbound_acks_for_source_v2`, eftersom det ändå tas senare i samma transaktion. Annars leder F10 till långa transaktioner som gör fönstret stort.
+- **Rättning:** `gridex_read_outbound_acks_for_source_v2` tar tabellåset först, i samma ordning som `read_business_original_v1`. Låset tas ändå senare i samma transaktion. Live med parallellitet 4: 0 deadlocks.
 
-### F12 Inkorgs-cronen kan överskrida funktionens tidsgräns i Vercel — ÖPPEN
+### F12 Inkorgs-cronen kan överskrida funktionens tidsgräns i Vercel — AVHJÄLPT av F10
 - **Bevis:**
   - Lokalt utan tidsgräns tog den första cron-körningen 3 min 16 s för 25 mejl (parallellitet 4).
   - Med parallellitet 1 svarade cronen inte inom 300 s (klienten fick `HeadersTimeoutError`). Behandlingen pågick 21:57:00–22:03:32, alltså cirka 6,5 min.
   - Routen exporterar ingen `maxDuration`, och `vercel.json` saknar `functions`. Plattformens standardgräns gäller därför. Projektet skapades 2026-05, och enligt Vercels dokumentation är Fluid compute standard för nya projekt sedan 2025-04-23. Den exakta gränsen i projektets inställningar är inte avläst.
-- **Påverkan:** om funktionen avbryts mitt i behandlingen blir mejl kvar halvbehandlade. Tiden växer med F10, så att rätta F10 är den egentliga åtgärden. Därefter bör `maxDuration` och batchstorlek per körning sättas uttryckligen.
+- **Påverkan:** om funktionen avbryts mitt i behandlingen blir mejl kvar halvbehandlade.
+- **Efter F10:** 25 mejl tar 70 s och 5 mejl 16 s, mot tidigare 177–404 s. Pollern tar högst 25 mejl per brevlåda och körning, så en full omgång ryms med god marginal. Kodens egna kommentarer räknar med "300s platform limit". `maxDuration` sätts inte här: planens tak är okänt, och ett värde över taket stoppar driftsättningen.
+
+### F13 Kapabiliteten `ediel_test` kan inte bli redo för en ny tenant — ÖPPEN, kräver produktbeslut
+- **Bevis:**
+  - Utkorgen skickar testmiljöns Ediel bara när `company_capabilities.ediel_test` har `enabled=true` och `readiness_status='ready'` (`ediel.test.process`). Annars blir posten `blocked_tenant_state/capability_not_ready`, och live-testet fick 30 av 30 blockerade.
+  - Den enda skrivaren av `ediel_test='ready'` är en engångsmigration från 2026-08-02. För `ediel_production` finns go-live-övergången `canonical_transition_ediel_production`, men för `ediel_test` finns ingen app- eller RPC-väg.
+  - Projektets egna native-fixturer sätter värdet med direkt SQL.
+  - Drift (bara läsfrågor, aggregat): 3 tenanter har `ediel_test=blocked` sedan 2026-08-02, och ingen har `ready`.
+- **Påverkan:** en ny tenant kan inte skicka CONTRL eller APERAK i testmiljön, och därmed inte göra aktörstester innan någon ändrar databasen direkt.
+- **Varför inte rättat:** hur kapabiliteten ska godkännas (vem, vilket underlag) är ett produktbeslut. Live-fixturen sätter den som projektets native-fixturer gör, tydligt märkt.
+
+### O1 Misslyckade utkorgsposter försöks inte igen automatiskt — avsiktligt
+`claim_ediel_outbox_items` hämtar bara `prepared` och `queued`. En post som fallerat före SMTP, till exempel för att arkivlagringen var nere, blir `failed` och kräver att en operatör köar om den. Det stämmer med TR-10 (fail-closed), men ett känt-ej-skickat fel skulle kunna köas om automatiskt. Det noteras som driftobservation.
 
 ## Tidsgränser i verkligheten (kontrollerat 2026-10-15, bara läsfrågor)
 
@@ -135,6 +150,7 @@ Fel som kastas utan att vara `Error`-objekt rapporteras utan orsak. Vad som kast
 
 - Den rena replayn saknar delar av behörighetskatalogen, till exempel `pricing.write`. Fixturen speglar `lib/rbac/catalog.ts` som referensrader, inte som tilldelningar.
 - Den delade test-brevlådan finns som rad från migrationerna och konfigureras som plattformsadmin gör (lokal IMAPS/SMTPS).
+- Den lokala stacken körde först utan Storage. Arkivet `ediel-files` krävs före varje SMTP-sändning, så utan det blir sändningen `failed`/`name resolution failed` (Kong). Storage startades sedan med CLI:ns namn och nätverk.
 - Produktionen (`gridex-ops-dev`, bara läsfrågor mot driftmetadata): 43 inkommande mejl totalt, inga EDIFACT-flöden. Därför kan F2–F5 varken bekräftas eller avfärdas där.
 
 ## Status för live-testets steg

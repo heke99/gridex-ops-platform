@@ -113,7 +113,10 @@ export async function readInbox(user: string): Promise<ReceivedMail[]> {
       const walk = (node: { part?: string; disposition?: string; dispositionParameters?: Record<string, string>; parameters?: Record<string, string>; childNodes?: unknown[] } | undefined) => {
         if (!node) return
         const filename = node.dispositionParameters?.filename ?? node.parameters?.name
-        if (filename && node.part) parts.push({ part: node.part, filename })
+        // A single-part message (e.g. an outbound CONTRL sent as application/EDIFACT)
+        // is its own attachment; imapflow gives its root no part number, IMAP calls it 1.
+        const part = node.part ?? (node.childNodes?.length ? undefined : '1')
+        if (filename && part) parts.push({ part, filename })
         for (const child of node.childNodes ?? []) walk(child as never)
       }
       walk(message.bodyStructure as never)
@@ -269,6 +272,10 @@ export async function configureTenant(supabase: { rpc: (name: string, args: Reco
    UPDATE public.companies SET billing_automation_enabled=true,invoice_export_enabled=true,billing_provider_environment='test' WHERE id=${literal(companyId)};`)
   // SYNTHETIC stand-in for EXT-ISSUER-01 (grid-owner legal identity + transport mandate).
   registerUtiltsIssuer(sql as never, literal, issuerEdielId, adminUserId)
+  // The outbox sends test-environment Ediel only when the ediel_test capability
+  // is ready. No application path sets it for a new tenant (see FINDINGS F13);
+  // like the project's native fixtures, the go-live configuration sets it here.
+  sql(`UPDATE public.company_capabilities SET enabled=true,readiness_status='ready' WHERE company_id=${literal(companyId)} AND capability_code='ediel_test'`)
   return { companyId, adminUserId, adminEmail, adminPassword, supplierEdielId, issuerEdielId, gridOwnerId, gridOwnerEmail, offerId, publicationVersionId }
 }
 

@@ -22,7 +22,9 @@ const sent = new Map<string, number[]>()
 
 async function adminSession() {
   if (admin) return admin
-  browser = await chromium.launch()
+  // PLAYWRIGHT_CHROMIUM_EXECUTABLE lets a host whose pre-installed browser build
+  // differs from @playwright/test's pinned one run the suite without a download.
+  browser = await chromium.launch(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE } : {})
   admin = await browser.newContext({ baseURL: LIVE.appUrl })
   const page = await admin.newPage()
   await page.goto('/login')
@@ -71,7 +73,8 @@ describe.sequential('live chain B — metering to invoice for an existing custom
     const deadlocksBefore = deadlocks()
     const runs: unknown[] = []
     const outboxRuns: unknown[] = []
-    const deadline = Date.now() + 15 * 60_000
+    // Below the 15 min test timeout so the report and assertions still run.
+    const deadline = Date.now() + 12 * 60_000
     for (;;) {
       const result = await cron('/api/internal/inbound-mail/cron?environment=test')
       runs.push({ at: new Date().toISOString(), status: result.status, result: (result.body as { result?: unknown }).result ?? result.body })
