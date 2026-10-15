@@ -93136,9 +93136,9 @@
       "supabase/migrations/20261014211648_ediel_sc046_bound_newer_metering_correction.sql": "760b535d6b3e3d29cec87a4e19786b6713d47764e02d24a2c0cee848411e318b",
       "supabase/migrations/20261015003736_ediel_sc046_newest_metering_duplicate_guard.sql": "42743daf26ae39e2191f5b6762d49754bd09e33acb0266328e5761d16f9d52ff"
     },
-    "input_union_status": "PREPARED_SOURCE_AWAITING_INDEPENDENT_REVIEW",
-    "producer_stage": "SOURCE_PREPARATION_PRODUCER_NOT_ACTIVATED",
-    "producer_receipt": "",
+    "input_union_status": "FROZEN_REVIEWED_COMPLETE",
+    "producer_stage": "SOURCE_FINAL_BINDING_COMPLETE_RUNTIME_GO_PENDING",
+    "producer_receipt": "644c96237b5a1f5ed3225a0e82b6a8a26c05901c",
     "native_tests": "NOT_RUN_CURRENT_V5",
     "catalog_preservation_capture": "NOT_RUN_NEW_ATOMIC_SQL;ORIGINAL_V3_CAPTURE_RETAINED_DATED",
     "expected_schema_delta": {
