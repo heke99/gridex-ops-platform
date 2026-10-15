@@ -1,5 +1,6 @@
 // masterplan: SC-031
 import { createHash } from 'node:crypto'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { approveEdielInboundCase, createOrUpdateInboundProdatCase, parseInboundProdatBusinessData, type EdielInboundCaseRow } from '@/lib/ediel/inboundCases'
 import { resolveCanonicalRuntimeDecision } from '@/lib/ediel/core/runtimeDecision'
@@ -9,7 +10,7 @@ import type { CanonicalOnboardingCommand } from '@/lib/customers/canonicalOnboar
 import { msg } from './fixtures/prodat-prior-flow'
 import { permissionObject } from './fixtures/prodat-energy-product'
 import { alphabets, characteristic, line, raw, type Parts } from './fixtures/prodat-register'
-import { head, source } from './fixtures/prodat-identity'
+import { head, own, source } from './fixtures/prodat-identity'
 import { structuralOwnerSource } from './helpers/structuralOwnerFixtures'
 import { canonicalProdat26AFieldRules } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
 
@@ -463,5 +464,223 @@ describe('SC-031 canonical base exclusions compose with existing source exclusio
     expect(canonicalFacade.canonicalProdatBusinessProjectionFieldIsForbidden('Z04', '212')).toBe(false)
     for (const code of [null, undefined, '', 'UNKNOWN'])
       expect(canonicalFacade.canonicalProdatBusinessProjectionFieldIsForbidden(code, '319')).toBe(false)
+  })
+})
+
+import { buildProdatMessage, type BuildProdatMessageInput } from '@/lib/ediel/prodat/buildProdat'
+import { buildProfiledProdatSegments } from '@/lib/ediel/prodat/builders/profileRenderer'
+import type { ProdatEngineProductionContext } from '@/lib/ediel/prodat/types'
+import { selectedAddressFact } from './fixtures/prodat-ud'
+import { assertRulebookAllowsSend } from '@/lib/ediel/rulebook/sendGuards'
+
+// Reuse the complete repository-owned accepted Z01 source. Only the selected
+// own register gains MG; raw and register evidence deliberately retain it.
+const ignoredMeter = 'IGNORED-METER'
+function z01MeterSource(extra: boolean): EdielMessageRow {
+  const body = [...head(), ...own('1', '735123456789012345', 'CASE-A')]
+  if (extra) body.splice(body.findIndex(part => part[0] === 'RFF'), 0, ['RFF', ['MG', ignoredMeter]])
+  return { ...source(raw(body, 'Z01')), company_id: COMPANY }
+}
+
+describe('SC-031 ignored Z01 meter reference stays out of business data', () => {
+  it('accepts the complete own pair without negative APERAK and retains ignored224 raw evidence', () => {
+    expect(canonicalProdat26AFieldRules('Z01').find(rule => rule.fieldNumber === '224')?.requirement).toBe('forbidden')
+    const base = z01MeterSource(false), extra = z01MeterSource(true), before = structuredClone(extra)
+    for (const input of [base, extra]) {
+      const decision = resolveCanonicalRuntimeDecision(input)
+      expect([decision.syntaxDecision, decision.applicationDecision]).toEqual(['accepted', 'accepted'])
+      expect(decision.responsePlan.some(plan => plan.family === 'APERAK' && plan.outcome === 'negative')).toBe(false)
+      expect(decision.prodatIgnoredFields?.map(field => field.fieldNumber) ?? []).toEqual(input === extra ? ['224'] : [])
+      if (input === extra) expect(decision.prodatIgnoredFields).toContainEqual(expect.objectContaining({ fieldNumber: '224', sourceRule: 'PRODAT26A:P119',
+        occurrence: expect.objectContaining({ objectId: '735123456789012345', lineItemReference: 'CASE-A', lineIndex: 0 }) }))
+    }
+    const baseline = parseInboundProdatBusinessData(base), result = parseInboundProdatBusinessData(extra)
+    expect(scalarBusiness(result)).toEqual(scalarBusiness(baseline))
+    expect(result.meteringPoint.meterNumber).toBeNull()
+    expect(result.meteringPoint.registers).not.toEqual(baseline.meteringPoint.registers)
+    expect(result.proposedAction.objects).not.toEqual(baseline.proposedAction.objects)
+    expect(parseProdatMessage(extra).lineItems[0].meterNumber).toBe(ignoredMeter)
+    expect(extra.raw_payload).toContain(`RFF+MG:${ignoredMeter}'`)
+    expect(extra).toEqual(before)
+  })
+
+  it('stages the same full scalar business baseline through the existing tenant-scoped SDK ports', async () => {
+    install(z01MeterSource(false)); const baseline = await stage()
+    install(z01MeterSource(true)); const before = structuredClone(message), result = await stage()
+    const scalars = (row: EdielInboundCaseRow | null) => ({
+      customer: row?.parsed_customer, site: row?.parsed_site,
+      meteringPoint: Object.fromEntries(Object.entries(row?.parsed_metering_point ?? {}).filter(([key]) => key !== 'registers')),
+      contract: row?.parsed_contract, production: row?.parsed_production,
+    })
+    expect(baseline).not.toBeNull()
+    expect(result).not.toBeNull()
+    expect(scalars(result)).toEqual(scalars(baseline))
+    expect(result?.parsed_metering_point.meterNumber).toBeNull()
+    expect(result?.proposed_action.objects).not.toEqual(baseline?.proposed_action.objects)
+    expect(queries.filter(q => q.table === 'ediel_inbound_cases' && q.operation === 'insert').every(q => q.payload?.company_id === COMPANY)).toBe(true)
+    expect(message).toEqual(before)
+    expect(message.raw_payload).toContain(`RFF+MG:${ignoredMeter}'`)
+    expect(commands).toEqual([])
+  })
+
+  it('uses own raw Z01 and point agency rather than cached allowed code and meter number', () => {
+    const selected = { meteringPointId: '735123456789012345', identityAgency: '9' }
+    const row = { ...z01MeterSource(true), message_code: 'Z10', parsed_payload: { subtype: 'M', meterNumber: 'STALE-METER' } }
+    const before = structuredClone(row)
+    expect(scalarBusiness(parseInboundProdatBusinessData(row, selected))).toEqual(scalarBusiness(parseInboundProdatBusinessData(z01MeterSource(false), selected)))
+    expect(() => parseInboundProdatBusinessData(row, { ...selected, identityAgency: '89' })).toThrow('PRODAT_OBJECT_SELECTION_INVALID')
+    expect(row).toEqual(before)
+  })
+
+  it('retains actual own required224 meter references on Z04 and Z10', () => {
+    for (const row of [structuralOwnerSource('Z04'), structuralOwnerSource('Z10', 'E58')]) {
+      expect(canonicalProdat26AFieldRules(row.message_code).find(rule => rule.fieldNumber === '224')?.requirement).toBe('required')
+      const ownMeter = parseProdatMessage(row).lineItems[0].meterNumber
+      expect(ownMeter).toBeTruthy()
+      expect(parseInboundProdatBusinessData(row).meteringPoint.meterNumber).toBe(ownMeter)
+    }
+  })
+
+  it('retains supplied outbound and no-wire legacy meter numbers', () => {
+    const row = z01MeterSource(true)
+    expect(parseInboundProdatBusinessData({ ...row, direction: 'outbound' }).meteringPoint.meterNumber).toBe(ignoredMeter)
+    expect(parseInboundProdatBusinessData({ ...row, raw_payload: null, parsed_payload: { meterNumber: 'LEGACY-METER' } }).meteringPoint.meterNumber).toBe('LEGACY-METER')
+  })
+
+  it('keeps valid own Z01 builder baselines separate from incoming MG tolerance', () => {
+    // Independent existing fixture selection, not a fact inferred from output.
+    const address = selectedAddressFact('A', COMPANY, '89', 'USER', ['Street'])
+    const context: ProdatEngineProductionContext = { code: 'Z01', bgmReference: 'DOC', transactionReference: 'CASE',
+      senderEdielId: '12345', receiverEdielId: '54321', meterPointId: 'A', meterPointIdAgency: '89',
+      customerId: 'USER', customerIdAgency: '89', customerName: 'Synthetic', customerAddressLines: ['Street'],
+      customerCity: 'Town', customerPostalCode: '12345', customerCountry: 'SE', reasonForTransaction: 'Z22',
+      powerOfAttorneyReference: 'POA', gridAreaId: 'TES', startDate: '202610010000', dependentConditionFacts: { endUserAddressObjects: [address] } }
+    const generatedAt = new Date('2026-09-19T12:00:00Z')
+    const baseline = buildProfiledProdatSegments({ context, variant: 'L', mode: 'test', generatedAt })
+    const supplied = buildProfiledProdatSegments({ context, variant: 'L', mode: 'test', generatedAt, portalSnapshot: { meterNumber: ignoredMeter } })
+    expect(baseline.issues.filter(issue => issue.severity === 'error')).toEqual([])
+    expect(supplied.issues.filter(issue => issue.severity === 'error')).toEqual([])
+    expect(supplied.segments).toEqual(baseline.segments)
+    expect(supplied.segments.some(segment => segment.startsWith('RFF+MG:'))).toBe(false)
+    const generic: BuildProdatMessageInput = { companyId: COMPANY, role: 'supplier', businessCode: 'Z01', transactionSubtype: 'L',
+      sender: { edielId: '12345' }, receiver: { edielId: '54321' }, meteringPoint: { id: 'A', identityAgency: '89', gridArea: 'TES' },
+      customer: { id: 'USER', idAgency: '89', name: 'Synthetic', address: 'Street', city: 'Town', postalCode: '12345', country: 'SE' },
+      dates: { contractStartDate: '202610010000', createdAt: '2026-09-19T12:00:00Z' }, references: { LI: 'CASE', ANJ: 'POA' },
+      codedAttributes: { Z13: 'Z22' }, dependentConditionFacts: { endUserAddressObjects: [address] }, environment: 'test' }
+    const built = buildProdatMessage(generic)
+    expect(built.validation.ok).toBe(true)
+    expect(built.rawEdifact).not.toContain('RFF+MG:')
+    // The compatibility builder itself emits arbitrary references. Its real
+    // outward send guard must reject this extra before any transport or queue.
+    const extra = buildProdatMessage({ ...generic, references: { ...generic.references, MG: ignoredMeter } })
+    expect(extra.rawEdifact).toContain(`RFF+MG:${ignoredMeter}'`)
+    const sendRow = (result: typeof built): EdielMessageRow => ({ ...source(result.rawEdifact, 'Z01'), company_id: COMPANY,
+      direction: 'outbound', application_reference: result.applicationReference, message_version: '26A',
+      parsed_payload: { prodatEngine: { registerEvidence: result.registerEvidence } } })
+    expect(() => assertRulebookAllowsSend(sendRow(built))).not.toThrow()
+    expect(canonicalProdat26AFieldRules('Z01').find(rule => rule.fieldNumber === '224')?.segmentPath).toBe('RFF+MG')
+    expect(() => assertRulebookAllowsSend(sendRow(extra))).toThrow(/FIELD_MATRIX_FORBIDDEN_FIELD_PRESENT: RFF\+MG/)
+  })
+})
+
+function z01AnnualSource(extra: boolean): EdielMessageRow {
+  const body = [...head(), ...own('1', '735123456789012345', 'CASE-A')]
+  if (extra) body.splice(body.findIndex(part => part[0] === 'CCI'), 0, ['QTY', ['31', '777', 'KWH']])
+  return { ...source(raw(body, 'Z01')), company_id: COMPANY }
+}
+
+describe('SC-031 ignored Z01 annual quantity stays in raw evidence only', () => {
+  it('accepts the complete own213 pair while excluding777 from scalar business data', () => {
+    expect(canonicalProdat26AFieldRules('Z01').find(rule => rule.fieldNumber === '213')?.requirement).toBe('forbidden')
+    const base = z01AnnualSource(false), extra = z01AnnualSource(true), before = structuredClone(extra)
+    for (const input of [base, extra]) {
+      const decision = resolveCanonicalRuntimeDecision(input)
+      expect([decision.syntaxDecision, decision.applicationDecision]).toEqual(['accepted', 'accepted'])
+      expect(decision.responsePlan.some(plan => plan.family === 'APERAK' && plan.outcome === 'negative')).toBe(false)
+      expect(decision.prodatIgnoredFields?.map(field => field.fieldNumber) ?? []).toEqual(input === extra ? ['213'] : [])
+      if (input === extra) expect(decision.prodatIgnoredFields).toContainEqual(expect.objectContaining({ fieldNumber: '213', sourceRule: 'PRODAT26A:P119',
+        occurrence: expect.objectContaining({ scope: 'register', objectId: '735123456789012345', identityAgency: '9', lineItemReference: 'CASE-A', lineIndex: 0, registerPosition: 1 }) }))
+    }
+    const baseline = parseInboundProdatBusinessData(base), result = parseInboundProdatBusinessData(extra)
+    expect(result.site.annualEnergyKwh).toBeNull()
+    expect(scalarBusiness(result)).toEqual(scalarBusiness(baseline))
+    expect(parseProdatMessage(extra).lineItems[0].annualConsumption).toBe('777')
+    expect(result.meteringPoint.registers).toEqual(expect.arrayContaining([expect.objectContaining({ annualConsumption: '777' })]))
+    expect(result.meteringPoint.registers).not.toEqual(baseline.meteringPoint.registers)
+    expect(extra.raw_payload).toContain("QTY+31:777:KWH'")
+    expect(extra).toEqual(before)
+    const sourcePaths = ['lib/ediel/inboundCases.ts', 'lib/ediel/rulebook/canonicalEdielFacade.ts',
+      '__tests__/ediel-sc-031-ignored-ud-business-staging-root-20261013.test.ts']
+    const fixtures = [base, extra].map(row => {
+      const decision = resolveCanonicalRuntimeDecision(row)
+      return { row: { ...row, execution_context_snapshot: { receivedProdatContext: { version: 1, contextOrigin: 'database_insert',
+        sourceMessageId: row.id, companyId: COMPANY, environment: 'test', messageCode: 'Z01', payloadHash: hash(row.raw_payload!),
+        sourceReceivedAt: row.message_received_at, capturedAt: row.message_received_at } } },
+      ignored: decision.prodatIgnoredFields ?? [], application: decision.prodatApplicationValidation,
+      registers: decision.prodatApplicationValidation!.objects.map(object => parseInboundProdatBusinessData(row,
+        { meteringPointId: object.objectId!, identityAgency: object.identityAgency! }).meteringPoint.registers) }
+    })
+    writeFileSync('/tmp/sc031213-qualified-Z01-annual-canonical-cohorts.json', JSON.stringify({
+      declaration: 'Actual complete canonical TS Z01 pair; source/application/ignored SQL storage ports are DECLARED, NOT native authority.',
+      sourceBindings: Object.fromEntries(sourcePaths.map(path => [path, hash(readFileSync(path, 'utf8'))])), fixtures }, null, 2) + '\n')
+  })
+
+  it('stages an unchanged tenant-scoped site with raw register777 retained', async () => {
+    install(z01AnnualSource(false)); const baseline = await stage()
+    install(z01AnnualSource(true)); const before = structuredClone(message), result = await stage()
+    expect(baseline).not.toBeNull()
+    expect(result).not.toBeNull()
+    expect(result?.parsed_site.annualEnergyKwh).toBeNull()
+    expect(result?.parsed_site).toEqual(baseline?.parsed_site)
+    expect(result?.parsed_customer).toEqual(baseline?.parsed_customer)
+    expect(result?.parsed_contract).toEqual(baseline?.parsed_contract)
+    expect(result?.parsed_production).toEqual(baseline?.parsed_production)
+    expect(result?.parsed_metering_point.registers).toEqual(expect.arrayContaining([expect.objectContaining({ annualConsumption: '777' })]))
+    expect(queries.filter(q => q.table === 'ediel_inbound_cases' && q.operation === 'insert').every(q => q.payload?.company_id === COMPANY)).toBe(true)
+    expect(message).toEqual(before)
+    expect(commands).toEqual([])
+  })
+
+  it('selects own raw Z01 despite cached allowed code and annual quantity', () => {
+    const selected = { meteringPointId: '735123456789012345', identityAgency: '9' }
+    const row = { ...z01AnnualSource(true), message_code: 'Z04', parsed_payload: { annualEnergy: '9999', annual_consumption_kwh: '9999' } }
+    const before = structuredClone(row), result = parseInboundProdatBusinessData(row, selected)
+    expect(result.site.annualEnergyKwh).toBeNull()
+    expect(scalarBusiness(result)).toEqual(scalarBusiness(parseInboundProdatBusinessData(z01AnnualSource(false), selected)))
+    expect(() => parseInboundProdatBusinessData(row, { ...selected, identityAgency: '89' })).toThrow('PRODAT_OBJECT_SELECTION_INVALID')
+    expect(row).toEqual(before)
+  })
+
+  for (const [code, requirement] of [['Z03', 'optional'], ['Z04', 'required'], ['Z06', 'optional'], ['Z10', 'optional']] as const) {
+    it(`retains own permitted213 quantity on ${code}`, () => {
+      expect(canonicalProdat26AFieldRules(code).find(rule => rule.fieldNumber === '213')?.requirement).toBe(requirement)
+      // This is a pure projection contrast, not an admission claim for Z03.
+      const row = { ...z01AnnualSource(true), message_code: code,
+        raw_payload: z01AnnualSource(true).raw_payload!.replace('BGM+Z01+', `BGM+${code}+`) }
+      expect(parseInboundProdatBusinessData(row).site.annualEnergyKwh).toBe(777)
+      expect(parseProdatMessage(row).lineItems[0].annualConsumption).toBe('777')
+    })
+  }
+
+  it('retains own outbound and no-wire legacy annual quantities', () => {
+    const row = z01AnnualSource(true)
+    expect(parseInboundProdatBusinessData({ ...row, direction: 'outbound' }).site.annualEnergyKwh).toBe(777)
+    expect(parseInboundProdatBusinessData({ ...row, raw_payload: null, parsed_payload: { annualEnergy: '888' } }).site.annualEnergyKwh).toBe(888)
+  })
+
+  it('does not turn incoming213 tolerance into permission for the own Z01 builder', () => {
+    const address = selectedAddressFact('A', COMPANY, '89', 'USER', ['Street'])
+    const context: ProdatEngineProductionContext = { code: 'Z01', bgmReference: 'DOC', transactionReference: 'CASE',
+      senderEdielId: '12345', receiverEdielId: '54321', meterPointId: 'A', meterPointIdAgency: '89',
+      customerId: 'USER', customerIdAgency: '89', customerName: 'Synthetic', customerAddressLines: ['Street'],
+      customerCity: 'Town', customerPostalCode: '12345', customerCountry: 'SE', reasonForTransaction: 'Z22',
+      powerOfAttorneyReference: 'POA', gridAreaId: 'TES', startDate: '202610010000', dependentConditionFacts: { endUserAddressObjects: [address] } }
+    const generatedAt = new Date('2026-09-19T12:00:00Z')
+    const baseline = buildProfiledProdatSegments({ context, variant: 'L', mode: 'test', generatedAt })
+    expect(baseline.issues.filter(issue => issue.severity === 'error')).toEqual([])
+    expect(baseline.segments.some(segment => segment.startsWith('QTY+31:'))).toBe(false)
+    const supplied = buildProfiledProdatSegments({ context: { ...context, registers: [{ annualConsumption: '777', annualConsumptionUnit: 'KWH' }] }, variant: 'L', mode: 'test', generatedAt })
+    expect(supplied.segments).toContain('QTY+31:777:KWH')
+    expect(supplied.issues).toContainEqual(expect.objectContaining({ severity: 'error', code: 'FIELD_MATRIX_FORBIDDEN_FIELD_PRESENT' }))
   })
 })

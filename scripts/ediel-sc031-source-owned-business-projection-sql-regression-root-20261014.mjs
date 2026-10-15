@@ -12,6 +12,7 @@ const stable=v=>JSON.stringify(sort(v)),sort=v=>Array.isArray(v)?v.map(sort):v&&
 const migration=name=>readFileSync(new URL('../supabase/migrations/'+name,import.meta.url),'utf8')
 const extract=(source,start,end)=>{const a=source.indexOf(start),b=source.indexOf(end,a);assert.ok(a>=0&&b>a,start);return source.slice(a,b+end.length)}
 const baselineOnly = process.env.SC031_SQL_BASELINE === '1'
+const ignored213BaselineOnly = process.env.SC031_213_SQL_BASELINE === '1'
 let checks=0
 try{
  await db.exec(`CREATE ROLE anon;CREATE ROLE authenticated;CREATE ROLE service_role;CREATE SCHEMA auth;CREATE SCHEMA gridex_received_sources;CREATE SCHEMA gridex_ediel_ack_replay;CREATE SCHEMA gridex_bilateral_prodat;CREATE SCHEMA gridex_ediel_inbound_context;CREATE SCHEMA gridex_ediel_technical_ack;
@@ -138,6 +139,63 @@ try{
  // raw and complete physical descriptors. Storage tampering is DECLARED IO.
  const fixture=fixtures.find(f=>f.subtype==='L'&&f.extra),clean=fixtures.find(f=>f.subtype==='L'&&!f.extra)
  const refuse=async(action,pattern)=>{const before=await noEffects();await assert.rejects(action,pattern);assert.equal(await noEffects(),before);checks++}
+ // The selected Z01 pair comes from the actual complete canonical TS owner.
+ // SQL storage/admission/graph ports remain DECLARED and are not native proof.
+ const annual=JSON.parse(readFileSync('/tmp/sc031213-qualified-Z01-annual-canonical-cohorts.json','utf8'))
+ assert.ok(annual.declaration.includes('NOT native'))
+ for(const [path,sha]of Object.entries(annual.sourceBindings))assert.equal(hash(readFileSync(new URL('../'+path,import.meta.url),'utf8')),sha,`current213 TS fixture source ${path}`)
+ const [annualClean,annualExtra]=annual.fixtures
+ assert.deepEqual(annualClean.ignored,[])
+ assert.deepEqual(annualExtra.ignored.map(field=>field.fieldNumber),['213'])
+ assert.equal(annualExtra.registers[0][0].annualConsumption,'777')
+ const annualCommand=fixture=>({...command(fixture),customer:{full_name:'Synthetic'},site:{facility_id:fixture.application.objects[0].objectId,annual_consumption_kwh:null}})
+ if(!baselineOnly&&!ignored213BaselineOnly){
+  const forward=migration('20261015001312_ediel_sc031_ignored213_business_projection.sql')
+  const before=(await db.query("SELECT to_jsonb(p)-'prosrc' metadata,prosrc FROM pg_proc p WHERE oid=$1::regprocedure",[target])).rows[0]
+  assert.equal(hash(before.prosrc),'6d5e21a429db0d8d1a0e07a08bf391f0ae643118b20ac19d2059490feaf2f500')
+  for(const [invalid,pattern]of [
+   [forward.replace('6d5e21a429db0d8d1a0e07a08bf391f0ae643118b20ac19d2059490feaf2f500','f'.repeat(64)),/sc031213_existing_source_required/],
+   [forward.replace("THEN qty:=NULL;END IF;","THEN qty:='777';END IF;"),/sc031213_bounded_source_required/],
+   [forward.replace("SET search_path TO 'pg_catalog'","SET search_path TO 'public'"),/sc031_wire_projection_catalog_changed/],
+  ]){
+   await assert.rejects(db.exec(invalid),pattern)
+   assert.deepEqual((await db.query("SELECT to_jsonb(p)-'prosrc' metadata,prosrc FROM pg_proc p WHERE oid=$1::regprocedure",[target])).rows[0],before,'rejected forward is atomic')
+   checks++
+  }
+  const notices=[]
+  await db.exec(forward,{onNotice:notice=>{if(notice.message?.startsWith('SC031213 catalog preservation'))notices.push(notice.message)}})
+  const after=(await db.query("SELECT to_jsonb(p)-'prosrc' metadata,prosrc FROM pg_proc p WHERE oid=$1::regprocedure",[target])).rows[0]
+  assert.deepEqual(after.metadata,before.metadata)
+  assert.equal(after.prosrc.replace(" IF '213'=ANY(own_fields) THEN qty:=NULL;END IF;\n",''),before.prosrc,'inverse preserves every original private body byte')
+  assert.equal(notices.length,1)
+  const receipt=/^SC031213 catalog preservation target=(\d+) metadataSHA256=([0-9a-f]{64}) before=(\{.*\}) after=(\{.*\})$/.exec(notices[0])
+  assert.ok(receipt);assert.equal(Number(receipt[1]),targetBefore.oid)
+  assert.equal(hash(receipt[3]),receipt[2]);assert.equal(hash(receipt[4]),receipt[2])
+  assert.deepEqual(JSON.parse(receipt[3]),before.metadata);assert.deepEqual(JSON.parse(receipt[4]),after.metadata)
+  console.log('DECLARED local SC031213 exact-prosrc/inverse/catalog witness; NOT native GEN/backend capture')
+  console.log(notices[0]);checks++
+ }
+ await setup(annualClean);await run(annualClean,annualCommand(annualClean));checks++
+ await setup(annualExtra);await run(annualExtra,annualCommand(annualExtra));checks++
+ await refuse(()=>run(annualExtra,{...annualCommand(annualExtra),site:{...annualCommand(annualExtra).site,annual_consumption_kwh:777}}),/wire_site_required/)
+ const rawScrubbed=annualCommand(annualExtra);rawScrubbed.application.payload_snapshot.prodatRegisters=structuredClone(rawScrubbed.application.payload_snapshot.prodatRegisters)
+ rawScrubbed.application.payload_snapshot.prodatRegisters[0].annualConsumption=null
+ await refuse(()=>run(annualExtra,rawScrubbed),/physical_register_required/)
+ await setup(annualExtra,[])
+ await run(annualExtra,{...annualCommand(annualExtra),site:{...annualCommand(annualExtra).site,annual_consumption_kwh:777}});checks++
+ await refuse(()=>run(annualExtra,annualCommand(annualExtra)),/wire_site_required/)
+ await setup(annualExtra,null);await refuse(()=>run(annualExtra,annualCommand(annualExtra)),/ignored_canonical_facet_required/)
+ const foreign213=structuredClone(annualExtra.ignored);foreign213[0].occurrence.identityAgency='89'
+ await setup(annualExtra,foreign213);await refuse(()=>run(annualExtra,annualCommand(annualExtra)),/ignored_field_physical_scope_invalid/)
+ await setup(annualExtra);await db.exec("UPDATE gridex_received_sources.prodat_ignored_field_facets SET source_payload_hash=repeat('f',64)")
+ await refuse(()=>run(annualExtra,annualCommand(annualExtra)),/ignored_canonical_facet_required/)
+ // Valid other-object213 is nonmatching at this explicitly DECLARED decision
+ // port; it cannot erase the selected first object's permitted raw quantity.
+ const other213={...structuredClone(fixture.ignored.find(field=>field.fieldNumber==='319'&&field.occurrence.lineIndex===1)),fieldNumber:'213'}
+ await setup(fixture,[...fixture.ignored,other213])
+ const ownQuantity={...command(fixture),site:{...command(fixture).site,annual_consumption_kwh:1000}}
+ await run(fixture,ownQuantity);checks++
+ await refuse(()=>run(fixture,{...ownQuantity,site:{...ownQuantity.site,annual_consumption_kwh:null}}),/wire_site_required/)
  await setup(fixture)
  await refuse(()=>run(fixture,{...command(fixture),metering_point:{meter_point_id:fixture.application.objects[0].objectId,ediel_reference:'IGNORED-1'}}),/wire_meter_required/)
  await setup(clean,[]);await run(clean);checks++
