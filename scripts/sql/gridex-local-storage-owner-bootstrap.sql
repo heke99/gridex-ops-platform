@@ -63,8 +63,38 @@ BEGIN
      AND NOT relforcerowsecurity) IS DISTINCT FROM 2
  OR EXISTS(SELECT FROM pg_attribute WHERE attrelid IN(objects_oid,buckets_oid)
    AND attacl IS NOT NULL)
- OR EXISTS(SELECT FROM pg_event_trigger WHERE evtenabled<>'D'
-   AND (evttags IS NULL OR evttags && ARRAY['GRANT','REVOKE'])) THEN
+ -- Only command-start/end hooks can observe these GRANT/REVOKE commands.
+ -- sql_drop/table_rewrite hooks cannot fire for this owner-only ACL operation.
+ -- One official PG17.6.1.155 invoker hook is source-proven inert for these tags:
+ -- its exact body only reads ddl_commands and NOTIFYs for an explicit whitelist
+ -- that EXCLUDES GRANT/REVOKE. Unknown applicable hooks still fail closed.
+ OR EXISTS(SELECT FROM pg_event_trigger e LEFT JOIN pg_proc p ON p.oid=e.evtfoid
+   WHERE e.evtenabled<>'D'
+   AND e.evtevent IN('ddl_command_start','ddl_command_end')
+   AND (e.evttags IS NULL OR e.evttags && ARRAY['GRANT','REVOKE'])
+   AND (
+    e.evtname='pgrst_ddl_watch' AND e.evtevent='ddl_command_end'
+    AND e.evtenabled='O' AND e.evttags IS NULL
+    AND pg_get_userbyid(e.evtowner)='supabase_admin'
+    AND p.oid=to_regprocedure('extensions.pgrst_ddl_watch()')
+    AND p.pronamespace=to_regnamespace('extensions')
+    AND p.proname='pgrst_ddl_watch'
+    AND pg_get_userbyid(p.proowner)='supabase_admin'
+    AND (SELECT lanname FROM pg_language WHERE oid=p.prolang)='plpgsql'
+    AND p.prokind='f' AND p.prorettype='event_trigger'::regtype
+    AND p.pronargs=0 AND p.proargtypes=''::oidvector
+    AND p.proallargtypes IS NULL AND p.proargmodes IS NULL AND p.proargnames IS NULL
+    AND p.pronargdefaults=0 AND p.proargdefaults IS NULL AND p.provariadic=0
+    AND NOT p.proretset AND NOT p.prosecdef AND NOT p.proisstrict
+    AND NOT p.proleakproof AND p.provolatile='v' AND p.proparallel='u'
+    AND p.procost=100 AND p.prorows=0 AND p.prosupport=0
+    AND p.protrftypes IS NULL AND p.probin IS NULL AND p.prosqlbody IS NULL
+    AND p.proconfig IS NULL
+    AND octet_length(convert_to(p.prosrc,'UTF8'))=729
+    AND md5(p.prosrc)='7f27b8118fea5c88b0164331292859e3'
+    AND encode(sha256(convert_to(p.prosrc,'UTF8')),'hex')=
+      'de987df746eb39647098459e7993bd8595e592969b0cd647828a3d13d37cffe0'
+   ) IS NOT TRUE) THEN
   -- Diagnostic metadata ONLY; the original refusal/rollback remains below.
   -- No rows, credentials, function bodies or unrelated catalogs are emitted.
   RAISE NOTICE 'local_storage_table_guard_diagnostic %', jsonb_build_object(

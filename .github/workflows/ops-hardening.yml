@@ -138,8 +138,8 @@ jobs:
           set -e -o pipefail
           GRIDEX_STORAGE_STEP_DIR="$(mktemp -d "$RUNNER_TEMP/gridex-storage-step.XXXXXX")"
           trap 'rm -rf -- "$GRIDEX_STORAGE_STEP_DIR"' EXIT
-          test "$(sha256sum scripts/gridex-local-storage-lifecycle.py | cut -d ' ' -f 1)" = "4841395c13a8c46780bfc8c43965921c976403688f24d474ed496d45a6b590bf"
-          test "$(sha256sum scripts/sql/gridex-local-storage-owner-bootstrap.sql | cut -d ' ' -f 1)" = "02a420bd17012ba37644475d2732e2a476419a26c9c54086049724bb74853d83"
+          test "$(sha256sum scripts/gridex-local-storage-lifecycle.py | cut -d ' ' -f 1)" = "927daaa7f8a9ccaec25fafa8c2e14e5d62ede50f97ef196ce82aa6b832b4569a"
+          test "$(sha256sum scripts/sql/gridex-local-storage-owner-bootstrap.sql | cut -d ' ' -f 1)" = "b32719b6abe17f4a14a3541eb45a0b3676cceb211cdd0c77ee67af8868d83b5d"
           # Preserve exact reviewed helper bytes. Its SQL sibling basename is
           # internal staging only; canonical source paths remain the two above.
           cp scripts/gridex-local-storage-lifecycle.py "$GRIDEX_STORAGE_STEP_DIR/gridex-local-storage-lifecycle.py"
@@ -606,8 +606,8 @@ jobs:
           set -e -o pipefail
           GRIDEX_STORAGE_STEP_DIR="$(mktemp -d "$RUNNER_TEMP/gridex-storage-step.XXXXXX")"
           trap 'rm -rf -- "$GRIDEX_STORAGE_STEP_DIR"' EXIT
-          test "$(sha256sum scripts/gridex-local-storage-lifecycle.py | cut -d ' ' -f 1)" = "4841395c13a8c46780bfc8c43965921c976403688f24d474ed496d45a6b590bf"
-          test "$(sha256sum scripts/sql/gridex-local-storage-owner-bootstrap.sql | cut -d ' ' -f 1)" = "02a420bd17012ba37644475d2732e2a476419a26c9c54086049724bb74853d83"
+          test "$(sha256sum scripts/gridex-local-storage-lifecycle.py | cut -d ' ' -f 1)" = "927daaa7f8a9ccaec25fafa8c2e14e5d62ede50f97ef196ce82aa6b832b4569a"
+          test "$(sha256sum scripts/sql/gridex-local-storage-owner-bootstrap.sql | cut -d ' ' -f 1)" = "b32719b6abe17f4a14a3541eb45a0b3676cceb211cdd0c77ee67af8868d83b5d"
           # Preserve exact reviewed helper bytes. Its SQL sibling basename is
           # internal staging only; canonical source paths remain the two above.
           cp scripts/gridex-local-storage-lifecycle.py "$GRIDEX_STORAGE_STEP_DIR/gridex-local-storage-lifecycle.py"

@@ -23,7 +23,7 @@ OFFICIAL_GO_SHA256 = '9dd9e81a21074081328b77a27a8aef7be45a2828f81d99c4e1fb65efbe
 CONFIG_SHA256 = 'b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919'
 LEDGER_SHA256 = '9fbd0d5cf1bb96fc0cf85e818f14954bdda866a54d959370e2bb4bc4f8fa4f31'
 MARKER_BYTES = b'-- GRIDEX-REM-002 local ledger marker.\nselect 1;\n'
-SQL_SHA256 = '02a420bd17012ba37644475d2732e2a476419a26c9c54086049724bb74853d83'
+SQL_SHA256 = 'b32719b6abe17f4a14a3541eb45a0b3676cceb211cdd0c77ee67af8868d83b5d'
 # Exact independently read CURRENT, OLD53 and OLDc8 original source pins.
 # All three use the same pinned 48-entry official dev ledger marker source.
 CLEAN_SOURCE_PINS = {
