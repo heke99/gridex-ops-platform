@@ -1,3 +1,13 @@
+import {createHash} from 'node:crypto'
+import {requireEdielSendActionAccess} from '@/lib/ediel/actionAccess'
+import {assertUserCanOperateCompany} from '@/lib/tenant/scope'
+import {assertEdielTenantActor} from '@/lib/ediel/services/authorization'
+import {getEdielRouteProfileByCommunicationRouteId} from '@/lib/ediel/db'
+import {evaluateEdielRouteContract} from '@/lib/ediel/outbox/routeContract'
+import {evaluateControlledLiveReadiness, type ControlledLiveInput} from '@/lib/ediel/transport/controlledLiveReadiness'
+import {SmtpDeliveryUncertainError, isSmtpDeliveryUncertain} from '@/lib/ediel/transport/smtpOutcome'
+import type {AcceptedEdielTransportProjection} from '@/lib/ediel/transport/acceptedProjection'
+
 import {prepareSourceAckDraft} from '@/lib/ediel/ack/prepareSourceAckDraft'
 import {readFreshEdielSendValidationSources} from '@/lib/ediel/production/sendValidationSources'
 import {loadRecoveryReportingValidationContext} from '@/lib/ediel/recovery/reportingContext'
@@ -220,12 +230,22 @@ export async function sendQueuedEdielMessage(params: {
   actorUserId?: string | null
   edielMessageId: string
   smtpMimeMode?: EdielSmtpMimeMode | string | null
+  controlledBinding?: {
+    readonly messageSnapshot: string
+    readonly routeProfileSnapshot: string
+    readonly certificateId: string
+    readonly certificateFingerprint: string
+  }
 }) {
+  const controlledBinding = params.controlledBinding ? structuredClone(params.controlledBinding) : null
   const actorUserId = ensureActorUserId(params.actorUserId)
   const message = await getEdielMessageById(params.edielMessageId)
 
   if (!message) {
     throw new Error('Ediel-meddelandet hittades inte')
+  }
+  if (controlledBinding && JSON.stringify(message) !== controlledBinding.messageSnapshot) {
+    throw new Error('ops04_controlled_message_binding_changed')
   }
 
   if (message.direction !== 'outbound') {
@@ -425,6 +445,7 @@ export async function sendQueuedEdielMessage(params: {
   await sendEdielMessageViaSmtp(message, {
     actorUserId,
     smtpMimeMode: sendConsistency.resolvedSmtpMimeMode,
+    controlledBinding: controlledBinding ?? undefined,
   })
 
   // Outbox/direct-send bridge: the message was just sent over SMTP outside the
@@ -642,3 +663,138 @@ export { processEdielOutbox, sendOutboxItem, createOutboxItem, supersedeWrongDra
 export { createAckTimersForMessage, buildAckTimerPlan } from '@/lib/ediel/sla/createAckTimers'
 export { checkAckDeadlines } from '@/lib/ediel/sla/checkAckDeadlines'
 export { parsePortalValidationReport, portalValidationReportStorageRows } from '@/lib/ediel/portal/parsePortalValidationReport'
+
+// masterplan: OPS-04, AT-OPS-04
+export type ControlledLiveExecution = {
+  status: 'held' | 'already_observed' | 'transport_observed'
+  messageId: string | null
+  observedAt: string | null
+  productionApproved: false
+  reasons: string[]
+}
+
+function controlledExecutionHeld(messageId: string | null, reasons: string[]): ControlledLiveExecution {
+  return {status: 'held', messageId, observedAt: null, productionApproved: false, reasons}
+}
+
+function controlledObservationMatches(observation: AcceptedEdielTransportProjection, message: EdielMessageRow): boolean {
+  const recipient = message.receiver_email?.trim().toLowerCase()
+  return Boolean(recipient && observation.originalHash === createHash('sha256').update(message.raw_payload ?? '', 'utf8').digest('hex')
+    && observation.frozenRecipient?.trim().toLowerCase() === recipient
+    && observation.deliveryProven === false && observation.authorizesProviderEntry === false
+    && Array.isArray(observation.providerReceipt?.accepted) && observation.providerReceipt.accepted.length > 0
+    && observation.providerReceipt.accepted.every(value => typeof value === 'string' && value.trim().toLowerCase() === recipient)
+    && Array.isArray(observation.providerReceipt.rejected) && observation.providerReceipt.rejected.length === 0)
+}
+
+/** Explicit release-runbook entrypoint. Operator incident/agreement/mandate and
+ * relay references are attestations, not externally issued approval. Actual
+ * session/tenant, stored message and current route facts remain separate gates.
+ * One accepted transport observation never proves delivery or market approval. */
+export async function sendControlledLiveEdielMessage(input: ControlledLiveInput): Promise<ControlledLiveExecution> {
+  // Capture caller-owned dates/arrays before the first asynchronous boundary.
+  let packet: ControlledLiveInput
+  try { packet = structuredClone(input) }
+  catch { return controlledExecutionHeld(null, ['ops04_input_invalid']) }
+  if (!packet || typeof packet.tenantId !== 'string' || !packet.tenantId.trim()
+    || !['test', 'production'].includes(packet.environment) || !packet.plan
+    || !['single_controlled', 'bulk_import'].includes(packet.plan.source)
+    || !Array.isArray(packet.plan.references) || !packet.plan.references.every(value => typeof value === 'string')
+    || packet.certificate && typeof packet.certificate.revoked !== 'boolean'
+    || packet.route && (!Array.isArray(packet.route.permittedCertificateFingerprints)
+      || !packet.route.permittedCertificateFingerprints.every(value => typeof value === 'string'))) {
+    return controlledExecutionHeld(null, ['ops04_input_invalid'])
+  }
+  const messageId = packet.plan.references.length === 1 ? packet.plan.references[0] : null
+  const currentVerdict = () => {
+    try { return evaluateControlledLiveReadiness({...packet, now: new Date()}) }
+    catch { return null }
+  }
+  const context = await requireEdielSendActionAccess()
+  if (typeof context.userId !== 'string' || !context.userId.trim()) throw new Error('ops04_authenticated_actor_required')
+  await assertUserCanOperateCompany(context.userId, packet.tenantId)
+  await assertEdielTenantActor({companyId: packet.tenantId, actorUserId: context.userId,
+    permissionAnyOf: ['ediel.send', 'communication.send']})
+  const verdict = currentVerdict()
+  if (!verdict) return controlledExecutionHeld(messageId, ['ops04_input_invalid'])
+  if (!verdict.ready) return controlledExecutionHeld(messageId, verdict.reasons)
+  if (!messageId || !packet.route || !packet.profile || !packet.certificate) {
+    return controlledExecutionHeld(messageId, ['ops04_single_bound_message_required'])
+  }
+
+  const message = await getEdielMessageById(messageId, {companyId: packet.tenantId})
+  if (!message || message.id !== messageId || message.company_id !== packet.tenantId
+    || message.direction !== 'outbound' || message.environment !== packet.environment
+    || message.communication_route_id !== packet.route.id) {
+    return controlledExecutionHeld(messageId, ['ops04_stored_message_scope_mismatch'])
+  }
+  const [profile, routeContract] = await Promise.all([
+    getEdielRouteProfileByCommunicationRouteId(packet.route.id, {companyId: packet.tenantId}),
+    evaluateEdielRouteContract(message),
+  ])
+  if (!profile || profile.company_id !== packet.tenantId || profile.id !== packet.profile.id
+    || profile.communication_route_id !== packet.route.id || profile.is_enabled !== true || profile.is_active === false) {
+    return controlledExecutionHeld(messageId, ['ops04_stored_profile_scope_mismatch'])
+  }
+  // counterpartyId is the configured party UUID, never an inferred Ediel-id.
+  if (!profile.party_id || profile.party_id !== packet.route.counterpartyId) {
+    return controlledExecutionHeld(messageId, ['ops04_stored_counterparty_mismatch'])
+  }
+  const fingerprint = (value: string) => value.replace(/[:\s]/g, '').toLowerCase()
+  if (!routeContract.ok || routeContract.routeId !== packet.route.id
+    || !routeContract.certificateId || !routeContract.certificateFingerprint
+    || fingerprint(routeContract.certificateFingerprint) !== fingerprint(packet.certificate.fingerprint)) {
+    return controlledExecutionHeld(messageId, ['ops04_current_route_or_certificate_mismatch'])
+  }
+  const controlledBinding = {
+    messageSnapshot: JSON.stringify(message),
+    routeProfileSnapshot: JSON.stringify(profile),
+    certificateId: routeContract.certificateId,
+    certificateFingerprint: fingerprint(routeContract.certificateFingerprint),
+  }
+  const scope = {companyId: packet.tenantId, environment: packet.environment, actorUserId: context.userId, messageId}
+  const historical = await readAcceptedEdielTransportProjection(scope)
+  if (historical) {
+    if (!controlledObservationMatches(historical, message)) {
+      return controlledExecutionHeld(messageId, ['ops04_historical_transport_binding_mismatch'])
+    }
+    return {status: 'already_observed', messageId, observedAt: historical.observedAt, productionApproved: false, reasons: []}
+  }
+  if (isProductionShadowMessage(message)) {
+    return controlledExecutionHeld(messageId, ['ops04_shadow_is_not_controlled_transport'])
+  }
+  // All controller preparation waits precede this real fresh-clock check.
+  const finalVerdict = currentVerdict()
+  if (!finalVerdict) return controlledExecutionHeld(messageId, ['ops04_input_invalid'])
+  if (!finalVerdict.ready) return controlledExecutionHeld(messageId, finalVerdict.reasons)
+  let sent: EdielMessageRow
+  try {
+    // This is the same source/capability/context/security/journal-fenced sender
+    // used by ordinary operator actions. No batch, new provider path or retry.
+    sent = await sendQueuedEdielMessage({actorUserId: context.userId, edielMessageId: messageId, controlledBinding})
+  } catch (error) {
+    if (isSmtpDeliveryUncertain(error)) throw error
+    // A later bookkeeping failure may follow an accepted provider observation.
+    // If that read itself fails, an unknown outcome cannot authorize a resend.
+    let accepted: AcceptedEdielTransportProjection | null
+    try { accepted = await readAcceptedEdielTransportProjection(scope) }
+    catch (readError) { throw new SmtpDeliveryUncertainError(readError) }
+    if (accepted) throw new SmtpDeliveryUncertainError(error, accepted.providerReceipt?.messageId ?? null)
+    throw error
+  }
+  if (sent.id !== messageId || sent.company_id !== packet.tenantId || sent.environment !== packet.environment
+    || sent.communication_route_id !== message.communication_route_id || sent.raw_payload !== message.raw_payload
+    || sent.receiver_email !== message.receiver_email) {
+    throw new SmtpDeliveryUncertainError(new Error('ops04_sender_readback_binding_mismatch'))
+  }
+  let observed: AcceptedEdielTransportProjection | null
+  try { observed = await readAcceptedEdielTransportProjection(scope) }
+  catch (error) { throw new SmtpDeliveryUncertainError(error) }
+  if (!observed) {
+    throw new SmtpDeliveryUncertainError(new Error('ops04_accepted_observation_missing'))
+  }
+  if (!controlledObservationMatches(observed, message)) {
+    throw new SmtpDeliveryUncertainError(new Error('ops04_observed_transport_binding_mismatch'), observed.providerReceipt?.messageId ?? null)
+  }
+  return {status: 'transport_observed', messageId, observedAt: observed.observedAt, productionApproved: false, reasons: []}
+}

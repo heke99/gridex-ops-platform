@@ -340,13 +340,16 @@ export async function withAcceptedInboundVersions(
 
 export async function sendEdielMessageViaSmtp(
   message: EdielMessageRow,
-  params?: { actorUserId?: string | null; smtpMimeMode?: EdielSmtpMimeMode | string | null; dispatchOwner?: OutboundDispatchOwner; temporarySecurityExceptionId?: string | null }
+  params?: { actorUserId?: string | null; smtpMimeMode?: EdielSmtpMimeMode | string | null; dispatchOwner?: OutboundDispatchOwner; temporarySecurityExceptionId?: string | null
+    controlledBinding?: { readonly routeProfileSnapshot: string; readonly certificateId: string; readonly certificateFingerprint: string }
+  }
 ): Promise<{
   accepted: string[]
   rejected: string[]
   messageId: string | null
   dispatchObservedAt: string
 }> {
+  const controlledBinding = params?.controlledBinding ? structuredClone(params.controlledBinding) : null
   const actorUserId = requireActorUserId(params?.actorUserId)
   if (!message.company_id) throw new Error('ediel_transport_company_required')
   const established = await readAcceptedEdielTransportProjection({ companyId: message.company_id,
@@ -471,6 +474,11 @@ export async function sendEdielMessageViaSmtp(
   // The shared mailbox certificate is our own/private transport material and must never
   // be used as recipientCertificatePem for another Ediel party.
   const effectiveCertificateId = routeProfile?.receiver_certificate_id ?? routeProfile?.certificate_id ?? null
+  // Bind the SAME captured profile used below, never a separate checked reread.
+  if (controlledBinding && (JSON.stringify(routeProfile) !== controlledBinding.routeProfileSnapshot
+    || effectiveCertificateId !== controlledBinding.certificateId)) {
+    throw new Error('ops04_controlled_transport_binding_changed')
+  }
   // Legacy route-level "allow unencrypted production" is never an incident
   // source. Only an exact private current capability can reserve plaintext.
   if(message.environment==='production'&&effectiveEncryptionMode!=='smime'&&!plaintextException)
@@ -583,6 +591,18 @@ export async function sendEdielMessageViaSmtp(
     message, actorUserId, owner: params?.dispatchOwner, mimeMode,
     payload: payloadBytes, encoding: mimeEncoding, admissionDecision, businessExpectationPlan, technicalExpectationPlan, meteringMethodExpectationPlan, recoveryAuthorization, sourceRulePackEvidence, technicalSyntaxAckEvidence, prodatCommonHeaderRejectionEvidence,transportException,
   })
+  if (controlledBinding && mimeMode !== 'ediel-smime-enveloped') {
+    const {data: certificate, error} = await supabaseService.from('ediel_certificates')
+      .select('id,fingerprint_sha256,certificate_fingerprint')
+      .eq('id', controlledBinding.certificateId).maybeSingle()
+    if (error) throw error
+    const certificateFingerprint = certificate?.fingerprint_sha256 ?? certificate?.certificate_fingerprint
+    if (!certificate || certificate.id !== controlledBinding.certificateId
+      || typeof certificateFingerprint !== 'string'
+      || certificateFingerprint.replace(/[:\s]/g, '').toLowerCase() !== controlledBinding.certificateFingerprint) {
+      throw new Error('ops04_controlled_transport_binding_changed')
+    }
+  }
   let result: SmtpSendResult & { dispatchReplay?: boolean; dispatchObservedAt?: string }
   let rawMimePreview: string | null = null
   let decodedPayloadPreview: string | null = null
@@ -634,6 +654,12 @@ export async function sendEdielMessageViaSmtp(
         message.sender_ediel_id ??
         null,
     }))
+    // Check the actual resolved object immediately before consuming its PEMs.
+    if (controlledBinding && (outboundRecipientCertificate.id !== controlledBinding.certificateId
+      || typeof outboundRecipientCertificate.fingerprintSha256 !== 'string'
+      || outboundRecipientCertificate.fingerprintSha256.replace(/[:\s]/g, '').toLowerCase() !== controlledBinding.certificateFingerprint)) {
+      throw new Error('ops04_controlled_transport_binding_changed')
+    }
     const recipientCertificatePems = outboundRecipientCertificate.recipientCertificates.map(certificate => certificate.publicCertificatePem)
     usedReceiverCertificateId = outboundRecipientCertificate.id
     const recipientCertPath = null
