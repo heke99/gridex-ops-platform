@@ -436,10 +436,10 @@
       "source": "migrations/20261014113214_ops_api_atomic_bb0b_authfree_effect.sql",
       "sourceKind": "timestampedMigration",
       "sourceSha256": "a2a7e91e1bbb97e0b2d73171b1e0893fad9e4acf915ca620c02f25b8e6aa4a0d",
-      "artifactSha256": "7ef65c0e2123b7dfe628f70d1dd2a4a4e9708be4fe0a4dca57144c083355b209",
+      "artifactSha256": "bf5e9c32d4db860a1bea2eca5ec5abbecac4521d302674e1ba498d5d7bedf736",
       "preserveSourceReplay": false,
       "execution": "sourcePosition",
-      "reason": "Converge only the exact historical postgres-granted auth.users SELECT privilege and own membership INHERIT flag to the unchanged sealed profiles; preserve all original transport/sealed guards and temporarily normalize then restore complete canonical signing cores and SC031 projection in the same transaction. Runtime signing concurrency forwards remain separately required. Add informational catalog fingerprints for all 355 native baseline guards before the same sealed execution; every original source byte and acceptance/refusal remains unchanged."
+      "reason": "Converge only the exact historical postgres-granted auth.users SELECT privilege and own membership INHERIT flag to the unchanged sealed profiles; preserve all original transport/sealed guards and temporarily normalize then restore complete canonical signing cores and SC031 projection in the same transaction. Runtime signing concurrency forwards remain separately required. Add informational catalog fingerprints for all 355 native baseline guards before the same sealed execution; every original source byte and acceptance/refusal remains unchanged. Emit bounded, ordered SHA256-checked metadata chunks after the actual upgrade log truncated a single large NOTICE; expose only hashes of rendered defaults and logical type identities with reciprocal composite binding."
     },
     "bootstrap/20261013_ops_market_actor_normalizer_replay_adapter.sql": {
       "source": "migrations/20261013151412_ops_api_market_actor_normalizers.sql",
