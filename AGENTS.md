@@ -17,7 +17,7 @@ This is a long-lived production project.
 Läs [.agent-memory/masterplan-current-start.md](.agent-memory/masterplan-current-start.md), faktisk main och [coverage.json](quality/audits/ediel-masterplan-v2/coverage.json), sedan senaste [#766](https://github.com/heke99/gridex-ops-platform/issues/766). Daterade baslinjer och tidigare rollprompter är historik; deras antal och ägaruppgifter är inga aktuella uppdrag.
 
 - Godkända regler räknas endast från VERIFIED och kontrakt från PASSED på faktisk main. Välj inte redan godkända eller aktivt ägda ID.
-- Befintliga ägare fortsätter enligt senaste uttryckliga handoff och verifierade refs. En ny agent börjar med read-only granskning och tar inget slot-/fil-/producentägarskap från en gammal prompt.
+- Claude, Codex och andra behöriga agenter har samma rätt att reservera ännu ej godkända och ej aktivt ägda regler/kontrakt inom användarmandatet. Verifiera aktuell main, #766 och exakta liveclaims, och gör egen atomisk CLAIM enligt [reservationsprotokollet](.agent-memory/masterplan-reservations.md#modellneutralt-deltagande) före write. Befintliga ägare behåller sina verifierade scopes; historiska slotnamn ger ingen ny tilldelning.
 - En skrivare per fil och en producent/insamlare per källa. Kod- och dokumenträttningar i aktivt ägd scope kräver avgränsad exact-file-handoff och verifierad egen custody före write. Delat minne kräver role-memory och exakt filcustody.
 - Den befintliga seriella leveransägaren kontrollerar normala main-merges. Aktuellt exakt PR-head/source/base/tree, alla obligatoriska kontroller, relevant genuint underlag och två oberoende slutgranskare krävs. En medförfattare granskar inte sin egen slutversion.
 - GEN, native, backend och originalinsamling sker endast hos befintlig kvalificerad producent. Ingen dubblering, blind CI-rerun, global refstädning eller gateförsvagning. Gamla kvalificerade original återanvänds med uttrycklig source-applicability.
@@ -286,7 +286,9 @@ Applies to all work against `docs/ediel/masterplan-v2/` (owner decision 2026-10-
 8. **Current assignments and reservations:** follow the latest explicit owner
    handoff and verified exact refs on #766. R1/R2/C1/C2/C3 are historical scope
    labels, not automatically free slots. Additional reviewers may join read-only;
-   writers require a bounded handoff and verified own custody before writes.
+   agents may atomically claim verified free, unapproved scopes under the current
+   user mandate, regardless of agent vendor. Writes in an actively owned scope
+   require a bounded handoff and verified own custody before writes.
    Preserve one writer per file and one producer per source. READY and CI_GREEN
    bind the current exact candidate; MERGED requires authenticated normal delivery.
    Use role-merge for serial expected-head delivery and role-memory plus exact file

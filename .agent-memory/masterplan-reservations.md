@@ -4,15 +4,28 @@ Epoch: `gridex-five-agent-20261012`. [Owner STOP](https://github.com/heke99/grid
 
 ## Ny start
 
-Läs [masterplan-current-start.md](masterplan-current-start.md), faktisk main/frysta krav/ledger/donorhead, senaste [#766](https://github.com/heke99/gridex-ops-platform/issues/766) och aktuella refs. Baslinje/transition är historik. Befintliga slots, filrefs och producenter återclaimas inte från en äldre prompt; ny skrivscope kräver uttrycklig avgränsad överlämning. Nya agenter behöver inte kontakta gamla ägare. Slotlistan ger ingen technicalclaim. En existerande ny ref är upptagen; konflikter inom nyepok avstäms innanwrite. Ett sent gammaltkvitto dokumenteras som resetkonflikt och får inte forceoverwrites.
+Läs [masterplan-current-start.md](masterplan-current-start.md), faktisk main/frysta krav/ledger/donorhead, senaste [#766](https://github.com/heke99/gridex-ops-platform/issues/766) och aktuella refs. Baslinje/transition är historik. Befintliga slots, filrefs och producenter återclaimas inte från en äldre prompt. Läs modellneutralt deltagande nedan för skillnaden mellan en ledig scope och en aktiv ägares handoff. En existerande ref är upptagen; konflikter avstäms före write. Ett sent gammalt kvitto ger ingen rätt till force-overwrite.
+
+## Modellneutralt deltagande
+
+Claude, Codex och andra behöriga agenter får reservera och claima samma slags regler och kontrakt. Agentnamn och branchprefix är identiteter, inte behörighetslistor. `CLAUDE.md` läser samma `AGENTS.md`.
+
+- **Ledig scope:** välj endast ett ID som ännu inte är VERIFIED/PASSED på faktisk main. Verifiera senaste #766, öppna PR:er och autentiserade exakta ID-/fil-/relevanta producentrefs. Oklar auth, saknat underlag eller en aktiv ägare betyder inte ledigt. Inom aktuellt användarmandat får agenten sedan skapa egen atomisk claim enligt stegen nedan; ingen tidigare ägares handoff krävs när ingen ägare finns.
+- **Aktivt ägd scope:** begär positiv avgränsad exact-ID/file/source/output-handoff och paus för tidigare skrivare inom exakt scope. Verifiera egen custody före write och invänta separat FIRSTWRITE_GO om handoffen kräver det. Ägarskap upphör inte av tystnad, tid eller en 404.
+- **Extra session:** behåll aktuell epoch och den gemensamma resursnamespacen. Använd en unik `slot` som `session-<packetUUID>` och resursen `slot-session-<packetUUID>`. R1/R2/C1/C2/C3 får bara användas enligt aktuell verifierad tilldelning. En session-slot ersätter aldrig ID-/fil-/producentlås eller utsedd serial-, minnes- eller producentroll.
+- **Åtkomst:** använd agentens egna behöriga GitHub-verktyg. Dokumentationen skapar inga GitHub-behörigheter eller credentials. Vid 401/403 används endast den nedan beskrivna behöriga proxyn med exakt eget claimbehov och ägarens readback; ingen token delas och ett nekat innehålls-/publiceringsbeslut kringgås inte.
 
 ## Atomic masterplan-reservation-v1
 
-1. Uniqueagent/session, packetUUID, nybranch, owncheckpoint, actualmainSHA, exactIDs/exactUTF8POSIXrelativefiles och nextAction. ReceiptJSON anger protocol,packet,agent,branch,checkpoint,ids,files,base,createdAt,nextAction samt **epoch och slot**.
-2. POSTgit/commits med actualmain's exacttree och enparentmain; JSONmessage ovan. No change påmain. Spara receiptSHA.
-3. Resurser ligger under `refs/tags/agent-claims/masterplan/`: `slot-R1`/`slot-R2`/`slot-C1`/`slot-C2`/`slot-C3`, `id-<ID>`, `file-<sha256>` och relevant `producer-*`. Filhash är SHA256 av exactUTF8POSIXpath utannewline. Expandera directories; Coverage använder IDlocks, ownedrows-only och serialmergereconciliation.
-4. Sorteraresurser; POSTgit/refs CREATE_IF_ABSENT medreceiptSHA. Existingref occupied; neverforce/update. Ambiguousresponse kräverexactGET. På conflict rollbackas bara egna acquiredref medmatchedreceipt; partialacquisition ger ingen clearance. AdditionalIDs/files/producer ska acquired förewrite/push som aktiverar producent.
-5. GETalla resurser och kräv exactreceiptSHA. CLAIM/#766 binder agent/epoch/slot/packet/branch/IDs/files/resources/receipt/checkpoint/next och readback. Kod först efterfullverification. Ownuniquecheckpoint behöver ingen sharedfilelock.
+Samma GitHub REST-operationer eller motsvarande behöriga verktyg används i Claude och Codex. Byt ut platshållare mot verifierad egen scope. Spara JSON lokalt och använd strukturerade argument eller `--input <fil>`; inga credentials eller privata underlag i receiptmeddelandet.
+
+1. Läs `GET /repos/heke99/gridex-ops-platform/git/ref/heads/main` och `GET /repos/heke99/gridex-ops-platform/git/commits/<mainSHA>`. Bind faktisk mainSHA/treeSHA. Välj unikt agent/sessionnamn, packetUUID, egen ny branch, eget checkpoint och exakta IDs/filer. Repo-/auth-404 är ingen frisläppning.
+2. Förbered receiptJSON med `protocol: "masterplan-reservation-v1"`, `packet` (UUID), `agent`, `branch`, `checkpoint`, `ids`, `files`, `base: <mainSHA>`, tidszonsatt `createdAt`, `nextAction`, aktuell `epoch` och egen `slot`. Validera IDs mot frysta register; expandera kataloger till exakta UTF-8 POSIX-relativa filvägar. Filresursen är `file-<sha256>` av exakt path utan newline. Own unique checkpoint behöver inget delat fillås.
+3. `POST /repos/heke99/gridex-ops-platform/git/commits` med `{ "message": <receiptJSON som sträng>, "tree": <treeSHA>, "parents": [<mainSHA>] }`. Spara receiptSHA och GET-verifiera full JSON, exakt en parent och oförändrat main-tree. Detta skapar ett neutralt kvitto, ingen main-ändring.
+4. Resurserna är egen `slot-<slot>`, varje `id-<ID>`, varje `file-<sha256>` och endast uttryckligt tillämplig `producer-*`, under `refs/tags/agent-claims/masterplan/`. Sortera dem lexikografiskt. För varje resurs: `POST /repos/heke99/gridex-ops-platform/git/refs` med `{ "ref": "refs/tags/agent-claims/masterplan/<resurs>", "sha": <receiptSHA> }`. Create-if-absent är enda acquire; aldrig update/force. Vid konflikt eller tvetydigt svar: `GET /repos/heke99/gridex-ops-platform/git/ref/tags/agent-claims/masterplan/<resurs>`. Annat SHA stoppar paketet; återställ bara kvittomatchade egna refs som just förvärvats. Delvis förvärv ger ingen skrivrätt.
+5. GET-verifiera samtliga resurser mot rätt kvitto; utökningar bevarar tidigare giltiga kvittobindningar. Publicera CLAIM på #766 med agent/epoch/slot/packet/branch/IDs/files/resources/receipt/checkpoint/next och autentiserad readback; verifiera full body. Vid proxy/handoff gör mottagaren egen CLAIM_ACK. Första sourcewrite sker först efter full egen custody och eventuella separata handoff-GO. Ytterligare IDs/filer/producentresurser kräver verified acquire före motsvarande write/push.
+
+Coverage använder ID-lås, endast egna rader och seriell reconciliation mot aktuell ledger. En sourceclaim aktiverar inte native/GEN/backend/LIVE, tar inte producent-/mergerollen och ger ingen VERIFIED/PASSED-status. Dessa separata mandat och aktuella receipts krävs före motsvarande steg.
 
 ## Producenter och helpers
 
