@@ -359,7 +359,7 @@
     "evidence": "/tmp/pr794-ci-diagnosis/cohort-a3d770/db01-11997305048-extracted/",
     "parallel": "database_review assemblesboundedsourcedeliveryproposal; staff_native_fixtracespermission/ACL;expiry_guard_fixtracescommonheader/technicalACK",
     "scope": "MinimumONEexistingworkflowef088C1 only, via closedsource-derived canonicalprojection after12forwards/beforeunchanged840livecomparison. Config/sourcebasisunit unchanged54/35. No parenttechnicalwrites; concreteproposal/actualfinitecomponentchecks/twoSOURCEreviews beforeexplicitone-filetransferapproval.",
-    "state": "EXPLICIT_USER_YES_MATCHED_ONE_REF_TRANSFER_PUBLICCLAIM_VERIFIED_TWO_SOURCE_APPROVALS_27_COMPONENT_PASS",
+    "state": "EXACT_REVIEWED_WORKFLOW_MATERIALIZED_AFTER_EXPLICIT_APPROVAL_MATCHED_TRANSFER",
     "reviews": {
       "A": "11f6750bcb50378df40849def96aee87841eb15cd6007ff37c1c5270e8565bdb",
       "B": "340fcf2db00c759bafbd5748d46da9db6178fc106df2b9e6211b62eec530f49e"
@@ -399,7 +399,7 @@
     "retentionA": "f50d7a39262f40c2826d84d6f816eb27ee9f2b036946792321cbb0bcbed7e7ec",
     "retentionB": "e4af9da250ac0d4b522ce28ba6b27910d37d76714bced47453832d60ec33d1e2"
   },
-  "updatedAt": "2026-10-15T19:33:52.790554+00:00",
+  "updatedAt": "2026-10-15T19:46:47.496931+00:00",
   "current_main_integration": {
     "actualMain": "d9fc4397be806321723fb1cac42441ca2b3106f3",
     "previousMain": "11bd50430b0cfd5e525dce7034e4659756c8d5e0",
@@ -446,7 +446,7 @@
     "next": "Frozenauthored4privatefixture andtenantforward+meaningfulunitproposal/integrityappend mustpasstwoSOURCEreviewsbeforeparentwrites; no native/backend/GENduplicate"
   },
   "private_fixture4": {
-    "state": "FROZEN_TWO_SOURCE_APPROVALS_21COMPONENT_PASS_TYPECHECK_PASS_APPLY_NEXT",
+    "state": "EXACT_REVIEWED_POSTIMAGES_MATERIALIZED_FRESH_4CUSTODY_VERIFIED",
     "manifest": "8b446303a19fedf35701b9acf862d48d97199c6c0ee27ab44cd91de1101f885d",
     "sourceA": "0e2647d06adaaeb6d799aed62da6dda09e08ab32eda02faaa6d7ed53cc2859bf",
     "sourceB": "9e19f67c51b8bd452da8a272fdf881389182d422aced2aeafba3493e53d007b0",
@@ -454,7 +454,25 @@
     "preserved": "82matchers,39Auth/RPC/Storagecalls,all5tests/timeouts; fiveprivateonlySETowner sites, no ACL change; publicaudit/raw originalcaller",
     "component": "21finiteproofs/18currentcanonicalDDLobjects/actualnonsuperSET-only role; notnative/browserqualification",
     "typecheck": "Actualone37518 EXIT0/3607files/4overlays/0diag; completionadjunct74dfccbca58ed075e603497af38047d1d78442bece189d7001ea56ee87a31b7b",
-    "next": "FreshGET_MATCH4refs; materializeonlyexactreviewed4postimages afterthischeckpoint; tenantforwardseparatelypendingfrozen15caseproposal/twopeers"
+    "next": "ActualfullscriptsTCEXIT0; finalsourcecommit/currentCIpending"
   },
-  "parent_targeted_SQL_tests": "Actual22/22PASS/2files/0SKIP/exit0session92991; report29078aed...; no fullnativeclaim"
+  "parent_targeted_SQL_tests": "Actual22/22PASS/2files/0SKIP/exit0session92991; report29078aed...; no fullnativeclaim",
+  "tenant_boundary_forward": {
+    "state": "V2_FROZEN_TWO_INDEPENDENT_SOURCE_APPROVALS_17PASS_TARGETED_TSC_PASS_APPLY_NEXT",
+    "v1_manifest": "5fa5a42a05506e3efa9dd82cfa07d15ca1fc7d8ec1621999ea4212c8929b1471",
+    "blocker": "AuthenticcanonicalgovernanceV3serviceALLTABLEdefault differsfromv1SELECT-onlyguard; unitomittedTABLEdefaults; summary/receiptsreallySELECTonly",
+    "A_finding": "ac1e6e4af21ba0b4810321adc82ef759f1ddb385a1f02e2d45bd7a551f6b6b63",
+    "B_v1_approval_superseded": "da81310d4d3587d3cedcf324cb4b6d31fb8dacae70c88d9e85ca896e833c52e7",
+    "next": "Freshowncustodyfornewmigration+testde8/historye0; exact3postimagesafterthischeckpointFIRST; actualnewunit/sourcebasis+migrationintegrity, exactsourcecommit/twoSOURCEbindings thenoneordinarypublicationforrequiredgenuineGEN; finalDELIVERYnotapproved",
+    "newGEN": "Requiredfromgenuineexistingordinaryproducerafterreviewedcanonicalsourcepublication; no inventedRAW3/types",
+    "manifest": "a95df50c4a3ac2cc8b2f33e615161d3be00cceb41dfbdfd0c89a611f8214227c",
+    "sourceA": "68cad6bc941c63d045a8507fd38413d01cae6609ec3f7554009792339eb0fe86",
+    "sourceB": "1d5736aae3254a9ef90d2a4cf6b72ee5fe97f187dd4c3d508ef3aa83a4171203",
+    "exactSQLpost": "f9e49edc513f9a744d6b0cf689662adb14c970253523f3d0a0d54c710bf57928",
+    "exactTestPost": "56952aa4daa5d41881e0901bd51846ba164d9f071c4c417d581ea76fdebf6599",
+    "exactHistoryPost": "644810eb83e363e9a2cdfdce0428fe524385c555cd546c3acad9e50ccd49c259",
+    "v1": "Rejected/nevermaterialized; frozenbytes/sourcefinding/supersededBapprovalpreserved"
+  },
+  "actual_native_scripts_typecheck": "PASS actualparent96930 EXIT0/fulltsconfig.scripts noEmit incrementalfalse Node22/TS5.9; native/source8postimagespinned; notnativeexecution",
+  "postmerge_restoration": "Sevenexplicitlyapprovedexactrefs planned at final-source-preflight/postmerge-seven-reference-restoration-plan.json; role-merge releaseFIRST, thenGEN5ce80+process006aad+DB01ef088; no newpermissionpending"
 }
