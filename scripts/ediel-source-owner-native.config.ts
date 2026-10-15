@@ -72,6 +72,8 @@ export default defineConfig({
     'scripts/ediel-registry-route-certificate-native.test.ts',
     'scripts/ediel-finance-copy-retention-native.test.ts',
     'scripts/ediel-z06f-reading-followup-native.test.ts',
+    'scripts/ediel-at-z06f-supplier-acceptance-native.test.ts',
+    'scripts/ediel-at-z06g-supplier-acceptance-native.test.ts',
     'scripts/ediel-decision-original-retention-native.test.ts',
     'scripts/ediel-inbound-reception-actual-columns-native.test.ts',
     'scripts/ediel-retention-grant-native-clock-native.test.ts',

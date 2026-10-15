@@ -13,3 +13,15 @@ Only static TypeScript, lint, budget, AST and diff/preservation checks are autho
 Preserve every other main mode/blob tuple, all1175 existing SQL, GEN5, frozen registers and coverage. Actualmain approval remains328; four F/G rows NOT_EXECUTED/evidence[], observed increase0. Private auth annexes and original evidence remain local.
 
 Next: exact immutable SIX copy, static checks, freeze seven-file head/tree/parents/full inverse; PAUSE for two other independent affected integration reviewers. This helper is a FG6 source contributor and cannot be a FG6 independent final reviewer; SC039 e9 review independence remains unchanged.
+
+## SOURCE_READY / PAUSED — immutable copy complete
+
+Checkpoint-first commit: `3e08459eb9af59f98026561d6330bc842b9e2c44` (sole parent actualmain11bd). All six selected postimages are exact mode100644/public58cc blobs and SHA256 pins; four modifications plus two additions, with this own checkpoint the only seventh path. No donor checkpoint or other donor content was adopted.
+
+Static verification on this isolated source using existing Node22.23.3/dependencies: full `tsconfig.scripts.json` TypeScript check with noEmit/incremental=false, ESLint on all SIX, large-source budget1800, AST parsing of all SIX without target/config import, and staged diff whitespace check PASS. No test was executed. The existing dependency directory is reused through an ignored local node_modules link; no install.
+
+Full source preservation verified: main10205 to candidate10208 leaves; all10201 unselected main mode/blob tuples, all1175 SQL, GEN5, frozen registers/coverage and all48 opaque ZIP references unchanged. Removing own checkpoint/two new files and restoring four main preimages yields exact original main tuple vector/tree7982. Exact final head/tree/sole checkpoint-first parent and static pins are frozen in the local handoff returned to ROOT.
+
+Native14 + finite composition2 remain NOT_RUN. The existing ordinary owner-config path does not itself execute the supplemental Z09F/G composition config; a qualified execution route and four-ID/current producer admission remain separate. No staff capture, GEN, backend, originals, CI or publication was triggered. Main328, all four F/G rows NOT_EXECUTED/evidence[], approval increase0.
+
+Next: PAUSED; ROOT obtains two OTHER independent affected integration reviews, qualifies actual current dependency/source applicability and separately resolves execution-route/producer admission before any publication or runtime. No further writes by this helper without a new bounded handoff.
