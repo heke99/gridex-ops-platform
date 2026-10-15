@@ -90,12 +90,78 @@ jobs:
               except FileNotFoundError:return None
           def controller_alive(state):
               return process_start_ticks(state['controller_pid'])==state['controller_start_ticks']
-          def sync_services():
+          def sync_query_timeout(deadline):
+              remaining=deadline-time.monotonic()
+              if remaining<=0:raise RuntimeError('z03c_sync_observation_deadline')
+              return min(2.0,remaining)
+          def sync_services(deadline=None,attempt=None):
               result={}
+              if attempt is not None:attempt['services']=result;attempt['service_exit_codes']={}
               for name in ['systemd-timesyncd','chrony','chronyd','ntp','ntpd']:
-                  state=subprocess.run(['systemctl','is-active',name+'.service'],text=True,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,timeout=10)
+                  if attempt is not None:attempt['query']=name
+                  state=subprocess.run(['systemctl','is-active',name+'.service'],text=True,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,
+                      timeout=10 if deadline is None else sync_query_timeout(deadline))
+                  # is-active legitimately returns nonzero for inactive/not-found units.
+                  # Preserve its raw state text; exact prior-state equality is the gate.
                   result[name]=state.stdout.strip()
+                  if attempt is not None:attempt['service_exit_codes'][name]=state.returncode
               return result
+          def sync_snapshot(deadline,attempt):
+              attempt['query']='NTP'
+              attempt['ntp']=subprocess.check_output(['timedatectl','show','-p','NTP','--value'],text=True,
+                  stderr=subprocess.DEVNULL,timeout=sync_query_timeout(deadline)).strip()
+              services=sync_services(deadline,attempt)
+              return {'ntp':attempt['ntp'],'services':services}
+          def qualified_normal_clock(state):
+              elapsed=time.monotonic()-state['original_monotonic_s']
+              target=state['original_realtime_ms']/1000+elapsed;actual=time.time()
+              if not math.isfinite(actual) or not math.isfinite(target) or abs(actual-target)>3:raise RuntimeError('z03c_clock_restore_skew')
+              return {'target_normal_realtime_ms':target*1000,'actual_normal_realtime_ms':actual*1000,'monotonic_elapsed_s':elapsed}
+          def emit_sync_failure_summary(observations):
+              # Called ONLY after a fresh actual normal-clock qualification. No raw
+              # service string, exception message, native/bootstrap or credential data.
+              names=['systemd-timesyncd','chrony','chronyd','ntp','ntpd']
+              allowed={'active','inactive','activating','deactivating','failed','reloading','maintenance','refreshing','unknown','not-found'}
+              def service_states(value):return {name:value.get(name) if value.get(name) in allowed else 'UNEXPECTED' for name in names}
+              def ntp(value):return value if value in {'yes','no'} else 'UNEXPECTED'
+              expected=observations['expected'];observed=observations.get('last_attempt') or {}
+              error=observations.get('error') or {}
+              error_class=error.get('class') if error.get('class') in {'RuntimeError','TimeoutExpired','CalledProcessError','OSError','FileNotFoundError'} else 'OtherOrNone'
+              exit_code=error.get('exit_code');exit_code=exit_code if type(exit_code) is int and -255<=exit_code<=255 else None
+              summary={'stage':'SYNC_STATE_RESTORE','code':'z03c_sync_state_restore_failed',
+                  'prior_ntp':ntp(expected['ntp']),'observed_ntp':ntp(observed.get('ntp')),
+                  'prior_services':service_states(expected['services']),'observed_services':service_states(observed.get('services',{})),
+                  'error':{'class':error_class,'exit_code':exit_code}}
+              line=json.dumps(summary,separators=(',',':'),sort_keys=True)+'\n'
+              if len(line.encode('utf-8'))>1024:line='{"code":"z03c_sync_state_restore_failed","stage":"SYNC_STATE_RESTORE","summary":"bounded_omission"}\n'
+              sys.stderr.write(line);sys.stderr.flush()
+          def converge_sync_restore(state):
+              started=time.monotonic();deadline=started+20.0
+              expected={'ntp':state['prior_ntp'],'services':state['prior_sync_services']}
+              observations={'schema':'z03c_sync_restore_observations_v1','stage':'SYNC_STATE_CONVERGENCE','expected':expected,
+                  'first':None,'last':None,'last_attempt':None,'samples':0,'consecutive_exact':0,'matched':False,'error':None}
+              while time.monotonic()<deadline:
+                  attempt={};observations['last_attempt']=attempt
+                  try:snapshot=sync_snapshot(deadline,attempt)
+                  except Exception as error:
+                      observations['error']=safe_error(error);break
+                  observations['samples']+=1
+                  if observations['first'] is None:observations['first']=snapshot
+                  observations['last']=snapshot
+                  observations['consecutive_exact']=observations['consecutive_exact']+1 if snapshot==expected else 0
+                  if observations['consecutive_exact']>=2 and time.monotonic()<=deadline:
+                      observations['matched']=True;break
+                  remaining=deadline-time.monotonic()
+                  if remaining>0:time.sleep(min(0.25,remaining))
+              observations['elapsed_s']=time.monotonic()-started
+              save(working/'sync-restoration-observations.json',observations)
+              # This guard is mandatory on both success and refusal, BEFORE any safe
+              # diagnostic emission or the caller's same-lock terminal marker.
+              normal=qualified_normal_clock(state)
+              if not observations['matched']:
+                  emit_sync_failure_summary(observations)
+                  raise RuntimeError('z03c_sync_state_restore_failed')
+              return observations['last'],normal
           def trusted_reference():
               # Ordinary-clock only. No GitHub/dependency/OIDC/cloud request is
               # initiated by the controlled work while its clock is advanced.
@@ -159,14 +225,11 @@ jobs:
                   target=state['original_realtime_ms']/1000+(time.monotonic()-state['original_monotonic_s'])
                   subprocess.run(['date','--set','@'+str(target)],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=10)
                   subprocess.run(['timedatectl','set-ntp',state['prior_ntp']],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=10)
-                  actual=time.time()
-                  if abs(actual-target)>3:raise RuntimeError('z03c_clock_restore_skew')
-                  if call(['timedatectl','show','-p','NTP','--value'])!=state['prior_ntp'] or sync_services()!=state['prior_sync_services']:raise RuntimeError('z03c_sync_state_restore_failed')
+                  matched_sync,normal=converge_sync_restore(state)
                   receipt={'schema':'z03c_clock_restoration_v1','mode':mode,'restored':True,'shared_advance_restore_lock':True,
-                      'backend_and_workers_stopped_before_backward_restore':stopped,'target_normal_realtime_ms':target*1000,
-                      'actual_normal_realtime_ms':actual*1000,'monotonic_elapsed_s':time.monotonic()-state['original_monotonic_s'],
-                      'prior_ntp':state['prior_ntp'],'restored_ntp':call(['timedatectl','show','-p','NTP','--value']),
-                      'prior_sync_services':state['prior_sync_services'],'restored_sync_services':sync_services(),
+                      'backend_and_workers_stopped_before_backward_restore':stopped,**normal,'restore_write_target_realtime_ms':target*1000,
+                      'prior_ntp':state['prior_ntp'],'restored_ntp':matched_sync['ntp'],
+                      'prior_sync_services':state['prior_sync_services'],'restored_sync_services':matched_sync['services'],
                       'checkout_sha':state['checkout_sha'],'repository':state['repository'],'workflow_run_id':state['workflow_run_id'],
                       'workflow_run_attempt':state['workflow_run_attempt'],'job_id':state['job_id']}
                   save(restored_path,receipt);print(json.dumps(receipt))
