@@ -133,6 +133,18 @@ jobs:
         env:
           SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
         run: |
+          # CURRENT-owned wrapper scopes the complete original step. OLD replay
+          # still owns its HOLD/seed/CLI ledger and existing cleanup lifecycle.
+          set -e -o pipefail
+          GRIDEX_STORAGE_STEP_DIR="$(mktemp -d "$RUNNER_TEMP/gridex-storage-step.XXXXXX")"
+          trap 'rm -rf -- "$GRIDEX_STORAGE_STEP_DIR"' EXIT
+          test "$(sha256sum scripts/gridex-local-storage-lifecycle.py | cut -d ' ' -f 1)" = "2df0282df7f6389c946842141e68e322834fe4f07b672ae23fa7442a4ba458ba"
+          test "$(sha256sum scripts/sql/gridex-local-storage-owner-bootstrap.sql | cut -d ' ' -f 1)" = "d92bdab13882e6c3c801986875dc133b11298483ac0e3790f7b717afc0063848"
+          # Preserve exact reviewed helper bytes. Its SQL sibling basename is
+          # internal staging only; canonical source paths remain the two above.
+          cp scripts/gridex-local-storage-lifecycle.py "$GRIDEX_STORAGE_STEP_DIR/gridex-local-storage-lifecycle.py"
+          cp scripts/sql/gridex-local-storage-owner-bootstrap.sql "$GRIDEX_STORAGE_STEP_DIR/ci-local-storage-owner-bootstrap-rls-guarded-private.sql"
+          cat > "$GRIDEX_STORAGE_STEP_DIR/unchanged-clean-step.sh" <<'GRIDEX_STORAGE_UNCHANGED_CLEAN_STEP'
           set -o pipefail
           exec > >(tee rem002-clean-replay.log) 2>&1
           native_phase() { printf '[CI-PHASE] %s %s\n' "$(date -u +%FT%TZ)" "$1"; }
@@ -481,6 +493,10 @@ jobs:
           # Independent receipts are retained, but every comparator stays blocking.
           native_phase schema_gates_complete
           [[ "$TYPE_COMPARISON_FAILED" == 0 && "$NATIVE_SUITE_FAILED" == 0 ]] || exit 1
+          GRIDEX_STORAGE_UNCHANGED_CLEAN_STEP
+          python3 "$GRIDEX_STORAGE_STEP_DIR/gridex-local-storage-lifecycle.py" \
+            --cli-sha256 b67f22c508bb7434e4e36151b722e289130ed9e07a7ad4f9faadf4c83237286f -- \
+            bash --noprofile --norc -e -o pipefail "$GRIDEX_STORAGE_STEP_DIR/unchanged-clean-step.sh"
       - name: Redact disposable credentials from native and browser evidence
         if: always()
         shell: bash
@@ -585,8 +601,24 @@ jobs:
         env:
           SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
         run: |
+          # CURRENT-owned wrapper scopes the complete original step. OLD replay
+          # still owns its HOLD/seed/CLI ledger and existing cleanup lifecycle.
+          set -e -o pipefail
+          GRIDEX_STORAGE_STEP_DIR="$(mktemp -d "$RUNNER_TEMP/gridex-storage-step.XXXXXX")"
+          trap 'rm -rf -- "$GRIDEX_STORAGE_STEP_DIR"' EXIT
+          test "$(sha256sum scripts/gridex-local-storage-lifecycle.py | cut -d ' ' -f 1)" = "2df0282df7f6389c946842141e68e322834fe4f07b672ae23fa7442a4ba458ba"
+          test "$(sha256sum scripts/sql/gridex-local-storage-owner-bootstrap.sql | cut -d ' ' -f 1)" = "d92bdab13882e6c3c801986875dc133b11298483ac0e3790f7b717afc0063848"
+          # Preserve exact reviewed helper bytes. Its SQL sibling basename is
+          # internal staging only; canonical source paths remain the two above.
+          cp scripts/gridex-local-storage-lifecycle.py "$GRIDEX_STORAGE_STEP_DIR/gridex-local-storage-lifecycle.py"
+          cp scripts/sql/gridex-local-storage-owner-bootstrap.sql "$GRIDEX_STORAGE_STEP_DIR/ci-local-storage-owner-bootstrap-rls-guarded-private.sql"
+          cat > "$GRIDEX_STORAGE_STEP_DIR/unchanged-upgrade-step.sh" <<'GRIDEX_STORAGE_UNCHANGED_UPGRADE_STEP'
           set -o pipefail
           bash scripts/gridex-ediel-upgrade-replay.sh 2>&1 | tee rem002-upgrade-replay.log
+          GRIDEX_STORAGE_UNCHANGED_UPGRADE_STEP
+          python3 "$GRIDEX_STORAGE_STEP_DIR/gridex-local-storage-lifecycle.py" \
+            --cli-sha256 b67f22c508bb7434e4e36151b722e289130ed9e07a7ad4f9faadf4c83237286f -- \
+            bash --noprofile --norc -e -o pipefail "$GRIDEX_STORAGE_STEP_DIR/unchanged-upgrade-step.sh"
       - name: Upload authentic upgrade evidence
         if: always()
         uses: actions/upload-artifact@v4

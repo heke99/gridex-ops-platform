@@ -1,4 +1,4 @@
--- Derived replay: converge only a source-proven postgres SELECT grant, then preserve canonical signing/SC031 around unchanged sealed execution.
+-- Derived replay: converge only source-proven postgres historical SELECT/inheritance; preserve canonical signing/SC031 around unchanged sealed execution.
 -- Derived complete-state exception is limited to exact source-pinned canonical bodies.
 BEGIN;
 SET LOCAL search_path=pg_catalog;
@@ -65,6 +65,63 @@ BEGIN
   THEN RAISE EXCEPTION 'ops_auth_self_select_exact_native_postprofile_or_protected_metadata_changed';END IF;
 END
 $ops_auth_self_select_convergence$;
+-- Tighten only the exact historical postgres self-edge after inherited source DDL is complete.
+DO $ops_retention_own_inherit_convergence$
+DECLARE
+ retention_role oid:=to_regrole('gridex_ediel_retention_owner');
+ postgres_role oid:=to_regrole('postgres');
+ own_edge oid;membership_profile jsonb;legacy_inherit boolean:=false;
+ roles_before jsonb;members_expected jsonb;namespaces_before jsonb;
+ auth_classes_before jsonb;auth_functions_before jsonb;auth_columns_before jsonb;auth_triggers_before jsonb;
+BEGIN
+ IF current_user IS DISTINCT FROM 'postgres' OR session_user IS DISTINCT FROM 'postgres'
+  OR current_setting('server_version_num')::integer NOT BETWEEN 170000 AND 179999
+  OR retention_role IS NULL OR postgres_role IS NULL
+  OR NOT EXISTS(SELECT FROM pg_roles WHERE oid=postgres_role AND NOT rolsuper AND rolinherit AND rolbypassrls)
+  OR NOT EXISTS(SELECT FROM pg_roles WHERE oid=retention_role AND NOT rolcanlogin AND NOT rolinherit AND NOT rolsuper AND NOT rolcreatedb AND NOT rolcreaterole AND NOT rolreplication AND rolbypassrls)
+  OR EXISTS(SELECT FROM pg_auth_members WHERE roleid=retention_role AND member IS DISTINCT FROM postgres_role)
+  OR has_schema_privilege('gridex_ediel_retention_owner','auth','USAGE') IS DISTINCT FROM false
+  OR has_table_privilege('gridex_ediel_retention_owner','auth.users','SELECT') IS DISTINCT FROM false
+  OR has_table_privilege('gridex_ediel_retention_owner','auth.users','UPDATE') IS DISTINCT FROM false
+  THEN RAISE EXCEPTION 'ops_retention_own_inherit_qualified_existing_roles_required';END IF;
+ SELECT jsonb_agg(jsonb_build_array(g.rolname,m.admin_option,m.inherit_option,m.set_option) ORDER BY g.rolname COLLATE "C") INTO membership_profile
+ FROM pg_auth_members m JOIN pg_roles g ON g.oid=m.grantor WHERE m.roleid=retention_role AND m.member=postgres_role;
+ IF membership_profile IS NOT DISTINCT FROM '[["postgres",false,false,true],["supabase_admin",true,false,false]]'::jsonb THEN
+  IF pg_has_role(postgres_role,retention_role,'USAGE') IS DISTINCT FROM false THEN RAISE EXCEPTION 'ops_retention_own_inherit_unknown_native_usage';END IF;
+ ELSIF membership_profile IS NOT DISTINCT FROM '[["postgres",false,true,true],["supabase_admin",true,false,false]]'::jsonb THEN
+  IF pg_has_role(postgres_role,retention_role,'USAGE') IS DISTINCT FROM true THEN RAISE EXCEPTION 'ops_retention_own_inherit_unknown_legacy_usage';END IF;
+  legacy_inherit:=true;
+ ELSE RAISE EXCEPTION 'ops_retention_own_inherit_unknown_membership_profile';END IF;
+ IF pg_has_role(postgres_role,retention_role,'MEMBER') IS DISTINCT FROM true
+  OR pg_has_role(postgres_role,retention_role,'SET') IS DISTINCT FROM true
+  OR NOT EXISTS(SELECT FROM pg_auth_members WHERE roleid=retention_role AND member=postgres_role AND grantor='supabase_admin'::regrole AND admin_option AND NOT inherit_option AND NOT set_option)
+  THEN RAISE EXCEPTION 'ops_retention_own_inherit_existing_administration_required';END IF;
+ SELECT oid INTO STRICT own_edge FROM pg_auth_members WHERE roleid=retention_role AND member=postgres_role AND grantor=postgres_role AND NOT admin_option AND set_option;
+ SELECT jsonb_agg(to_jsonb(r) ORDER BY r.oid) INTO roles_before FROM pg_roles r;
+ SELECT jsonb_agg(CASE WHEN m.oid=own_edge THEN jsonb_set(to_jsonb(m),'{inherit_option}','false'::jsonb) ELSE to_jsonb(m) END ORDER BY m.oid) INTO members_expected FROM pg_auth_members m;
+ SELECT jsonb_agg(to_jsonb(n) ORDER BY n.oid) INTO namespaces_before FROM pg_namespace n;
+ SELECT jsonb_agg(to_jsonb(c) ORDER BY c.oid) INTO auth_classes_before FROM pg_class c WHERE c.relnamespace='auth'::regnamespace;
+ SELECT jsonb_agg(to_jsonb(p) ORDER BY p.oid) INTO auth_functions_before FROM pg_proc p WHERE p.pronamespace='auth'::regnamespace;
+ SELECT jsonb_agg(to_jsonb(a) ORDER BY a.attrelid,a.attnum) INTO auth_columns_before FROM pg_attribute a JOIN pg_class c ON c.oid=a.attrelid WHERE c.relnamespace='auth'::regnamespace;
+ SELECT jsonb_agg(to_jsonb(t) ORDER BY t.oid) INTO auth_triggers_before FROM pg_trigger t JOIN pg_class c ON c.oid=t.tgrelid WHERE c.relnamespace='auth'::regnamespace;
+ IF legacy_inherit THEN
+  GRANT gridex_ediel_retention_owner TO postgres WITH ADMIN FALSE, INHERIT FALSE, SET TRUE GRANTED BY postgres;
+ END IF;
+ IF(SELECT jsonb_agg(jsonb_build_array(g.rolname,m.admin_option,m.inherit_option,m.set_option) ORDER BY g.rolname COLLATE "C") FROM pg_auth_members m JOIN pg_roles g ON g.oid=m.grantor WHERE m.roleid=retention_role AND m.member=postgres_role)
+   IS DISTINCT FROM '[["postgres",false,false,true],["supabase_admin",true,false,false]]'::jsonb
+  OR pg_has_role(postgres_role,retention_role,'USAGE') IS DISTINCT FROM false
+  OR pg_has_role(postgres_role,retention_role,'MEMBER') IS DISTINCT FROM true
+  OR pg_has_role(postgres_role,retention_role,'SET') IS DISTINCT FROM true
+  OR(SELECT jsonb_agg(to_jsonb(m) ORDER BY m.oid) FROM pg_auth_members m) IS DISTINCT FROM members_expected
+  OR(SELECT jsonb_agg(to_jsonb(r) ORDER BY r.oid) FROM pg_roles r) IS DISTINCT FROM roles_before
+  OR(SELECT jsonb_agg(to_jsonb(n) ORDER BY n.oid) FROM pg_namespace n) IS DISTINCT FROM namespaces_before
+  OR(SELECT jsonb_agg(to_jsonb(c) ORDER BY c.oid) FROM pg_class c WHERE c.relnamespace='auth'::regnamespace) IS DISTINCT FROM auth_classes_before
+  OR(SELECT jsonb_agg(to_jsonb(p) ORDER BY p.oid) FROM pg_proc p WHERE p.pronamespace='auth'::regnamespace) IS DISTINCT FROM auth_functions_before
+  OR(SELECT jsonb_agg(to_jsonb(a) ORDER BY a.attrelid,a.attnum) FROM pg_attribute a JOIN pg_class c ON c.oid=a.attrelid WHERE c.relnamespace='auth'::regnamespace) IS DISTINCT FROM auth_columns_before
+  OR(SELECT jsonb_agg(to_jsonb(t) ORDER BY t.oid) FROM pg_trigger t JOIN pg_class c ON c.oid=t.tgrelid WHERE c.relnamespace='auth'::regnamespace) IS DISTINCT FROM auth_triggers_before
+  THEN RAISE EXCEPTION 'ops_retention_own_inherit_exact_postprofile_or_protected_state_changed';END IF;
+END
+$ops_retention_own_inherit_convergence$;
 DO $ops_compact_apply$
 DECLARE raw bytea; executable bytea;
  signing_public oid; signing_core oid; signing_public_before pg_catalog.pg_proc%rowtype; signing_public_after pg_catalog.pg_proc%rowtype;

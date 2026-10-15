@@ -227,6 +227,9 @@
     "20261014113214_ops_api_atomic_bb0b_authfree_effect.sql": "a2a7e91e1bbb97e0b2d73171b1e0893fad9e4acf915ca620c02f25b8e6aa4a0d",
     "20261014202520_ops_api_sc031_current_main_source_alignment.sql": "57b19f916358acaec576a41fca11a0df4d7e338327bf30e69acef5c5d34fb6bb",
     "20261014204830_ops_api_actor_legal_name_index_source_alignment.sql": "3f4dff3513f89490774e6fe38409665407b359b13347dd7b70d2d45521f5da33",
-    "20261015015221_ops_api_manual_contract_binding_legacy_alias_alignment.sql": "de6372aa60398ca6a3711365ad2246b2216889c9833c1c7044fd894405ce53ee"
+    "20261015015221_ops_api_manual_contract_binding_legacy_alias_alignment.sql": "de6372aa60398ca6a3711365ad2246b2216889c9833c1c7044fd894405ce53ee",
+    "20261015082905_ops_api_prepare_signature_concurrency_alignment.sql": "3d07b517a8577ca841f2e8822c461a9204340f960058f167c3e78c036aff6d7d",
+    "20261015083414_ops_api_signing_retention_crosspaths_alignment.sql": "be993328f8141425267146b9a832279d01872332cbca86c8b5aa78bed14a6fb9",
+    "20261015083829_ops_api_signature_price_cache_alignment.sql": "4f87d7a8626941c529e350f7784af0c42fab58740598db47c7c1ad5c5e04a705"
   }
 }
