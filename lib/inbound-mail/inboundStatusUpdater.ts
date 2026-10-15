@@ -1,8 +1,9 @@
 import {createAssignedProdatHeaderNegativeSource,observeAssignedProdatHeaderNegativeField} from '@/lib/inbound-mail/prodatAssignedHeaderRejectionIntake'
 import { classifyCanonicalInboundAck } from '@/lib/ediel/ack/inboundAckOutcome'
 import { OUTBOUND_BUSINESS_RESPONSE_STATUSES } from '@/lib/inbound-mail/canonicalInboundAckStatusUpdater'
+import { processInboundAckMessage } from '@/lib/ediel/flows/inboundAckProcessing'
 import { buildInboundCanonicalIdentity, findInboundDuplicateByCanonicalIdentity } from '@/lib/ediel/core/dedupe'
-import { admitUnattributedTechnicalSource, recordInboundReception, requireFirstReception } from '@/lib/ediel/inbound/receptions'
+import { admitUnattributedTechnicalSource, InboundReceptionHeldError, recordInboundReception, requireFirstReception } from '@/lib/ediel/inbound/receptions'
 import { assertEdielTenantActor } from '@/lib/ediel/services/authorization'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { supabaseService } from '@/lib/supabase/service'
@@ -379,6 +380,19 @@ export async function createInboundEdielMessage(input: {
     inbound_email_message_id: inboundEmailMessageId,
     mailbox_message_id: inboundEmailMessageId,
   }
+  // Canonical CONTRL outcomes govern only fresh birth. Shared legacy helpers
+  // retain their existing nonbirth diagnostic/business projection semantics.
+  const contrlBirth = input.parsed.messageFamily === 'CONTRL' ? classifyCanonicalInboundAck(input.parsed) : null
+  const contrlPositive = contrlBirth?.outcome === 'positive'
+  const birthStatus = contrlBirth ? contrlPositive ? 'received' : 'failed' : statusForInboundEdielMessage(input.parsed)
+  const birthAckColumns = contrlBirth ? {
+    contrl_status: contrlPositive ? 'accepted' : 'rejected',
+    syntax_check_status: contrlPositive ? 'accepted' : 'rejected',
+    ack_outcome: contrlBirth.outcome === 'invalid' ? null : contrlBirth.outcome,
+    failed_at: contrlPositive ? null : nowIso(),
+    acknowledged_at: contrlPositive ? nowIso() : null,
+    failure_reason: contrlBirth.outcome === 'invalid' ? contrlBirth.reason : contrlPositive ? null : 'Negativ CONTRL mottagen via inbound mail engine.',
+  } : ackColumnsForParsed(input.parsed)
   const insertPayload = {
     company_id: companyId,
     environment: normalizedEnvironment,
@@ -387,7 +401,7 @@ export async function createInboundEdielMessage(input: {
     message_standard: 'edifact',
     message_family: input.parsed.messageFamily,
     message_code: parsedMessageCode(input.parsed),
-    status: statusForInboundEdielMessage(input.parsed),
+    status: birthStatus,
     sender_ediel_id: input.parsed.senderEdielId,
     sender_sub_address: input.parsed.senderSubAddress,
     receiver_ediel_id: input.parsed.receiverEdielId,
@@ -409,7 +423,7 @@ export async function createInboundEdielMessage(input: {
         : input.meteringPointMatch?.status === 'matched'
           ? 'partially_matched'
           : 'business_unresolved',
-    processing_status: input.outboundMatch?.status === 'matched' ? statusForInboundEdielMessage(input.parsed) : 'manual_review',
+    processing_status: contrlBirth?.outcome === 'invalid' ? 'manual_review' : input.outboundMatch?.status === 'matched' ? birthStatus : 'manual_review',
     ...receptionBirth,
     related_message_id: matchedOutboundEdielMessageId,
     outbound_request_id: matchedOutboundRequestId,
@@ -431,7 +445,7 @@ export async function createInboundEdielMessage(input: {
         : null,
     message_received_at: nowIso(),
     parsed_at: nowIso(),
-    ...ackColumnsForParsed(input.parsed),
+    ...birthAckColumns,
   }
 
   // Capture only scalar reference candidates before any subsequent source
@@ -560,8 +574,8 @@ export async function createInboundEdielMessage(input: {
       company_id: companyId,
       ediel_message_id: edielMessageId,
       event_type: 'inbound_mail_processed',
-      event_status: isNegativeContrL(input.parsed) || isNegativeAperak(input.parsed) || isInvalidAperak(input.parsed) || input.parsed.messageFamily === 'UTILTS_ERR' ? 'warning' : 'info',
-      message: eventMessageForParsed(input.parsed),
+      event_status: contrlBirth ? contrlPositive ? 'info' : 'warning' : isNegativeContrL(input.parsed) || isNegativeAperak(input.parsed) || isInvalidAperak(input.parsed) || input.parsed.messageFamily === 'UTILTS_ERR' ? 'warning' : 'info',
+      message: contrlBirth ? contrlBirth.outcome === 'invalid' ? 'Ogiltig CONTRL mottagen.' : contrlPositive ? 'Positiv CONTRL mottagen.' : 'Negativ CONTRL mottagen.' : eventMessageForParsed(input.parsed),
       payload,
     })
   }
@@ -661,8 +675,12 @@ async function updateOutboundEdielAckState(input: {
   parsed: ParsedEdifactEnvelope
   inboundEdielMessageId?: string | null
   responsePayload: Record<string, unknown>
+  canonicalPositiveContrl?: boolean
 }): Promise<void> {
-  const ackColumns = ackColumnsForParsed(input.parsed)
+  const ackColumns = input.canonicalPositiveContrl ? {
+    contrl_status: 'accepted', syntax_check_status: 'accepted', ack_outcome: 'positive',
+    failed_at: null, acknowledged_at: nowIso(), failure_reason: null,
+  } : ackColumnsForParsed(input.parsed)
   if (Object.keys(ackColumns).length === 0) return
 
   const { data: outboundMessages, error } = await supabaseService
@@ -697,8 +715,8 @@ async function updateOutboundEdielAckState(input: {
     company_id: input.companyId,
     ediel_message_id: id,
     event_type: 'ack_received_via_inbound_mail',
-    event_status: isNegativeContrL(input.parsed) || isNegativeAperak(input.parsed) || isInvalidAperak(input.parsed) || input.parsed.messageFamily === 'UTILTS_ERR' ? 'warning' : 'info',
-    message: eventMessageForParsed(input.parsed),
+    event_status: input.canonicalPositiveContrl ? 'info' : isNegativeContrL(input.parsed) || isNegativeAperak(input.parsed) || isInvalidAperak(input.parsed) || input.parsed.messageFamily === 'UTILTS_ERR' ? 'warning' : 'info',
+    message: input.canonicalPositiveContrl ? 'Positiv CONTRL mottagen.' : eventMessageForParsed(input.parsed),
     payload: input.responsePayload,
   })))
 }
@@ -948,13 +966,8 @@ async function updateBusinessStatusFromInbound(input: {
         .eq('company_id', input.companyId)
     }
 
-    if (isNegativeAperak(input.parsed) || input.parsed.messageFamily === 'UTILTS_ERR' || isNegativeContrL(input.parsed)) {
-      await supabaseService
-        .from('supplier_switch_requests')
-        .update({ status: 'rejected', failed_at: nowIso(), failure_reason: eventMessageForParsed(input.parsed), metadata: responsePayload, updated_at: nowIso() })
-        .eq('id', sourceId)
-        .eq('company_id', input.companyId)
-    }
+    // Negative supplier ACKs use the protected projection-only route below.
+    // There is no direct or compensating failure update after its result.
   }
 
   if (sourceType === 'grid_owner_data_request') {
@@ -1033,19 +1046,59 @@ export async function applySafeInboundStatusUpdate(input: {
   if (input.outboundMatch.status !== 'matched' || !input.outboundMatch.entityId) return
   if (isInvalidAperak(input.parsed)) throw new Error(`ediel_inbound_aperak_invalid:${classifyCanonicalInboundAck(input.parsed).reason}`)
 
-  const inboundEdielMessageId = await createInboundEdielMessage({
-    companyId: input.companyId,
-    actorUserId: input.actorUserId,
-    environment: input.environment,
-    inboundEmailMessageId: input.inboundEmailMessageId ?? '',
-    parseResultId: input.parseResultId ?? null,
-    parsed: input.parsed,
-    outboundMatch: input.outboundMatch,
-    meteringPointMatch: input.meteringPointMatch,
-    tenantResolution: input.tenantResolution ?? null,
-  })
+  const companyId = input.companyId, actorUserId = input.actorUserId
+  const environment = input.environment, inboundEmailMessageId = input.inboundEmailMessageId ?? ''
+  const outbound = matchedOutboundRow(input.outboundMatch)
+  // The matcher selects this route only. It supplies no source authority.
+  const supplierAck = outbound.source_type === 'supplier_switch_request' && typeof outbound.source_id === 'string'
+    && ['CONTRL', 'APERAK', 'UTILTS_ERR'].includes(input.parsed.messageFamily)
+  const supplierClassification = supplierAck ? classifyCanonicalInboundAck(input.parsed) : null
+  const protectedNegative = supplierClassification?.outcome === 'negative'
+  let inboundEdielMessageId: string | null
+  try {
+    inboundEdielMessageId = await createInboundEdielMessage({
+      companyId,
+      actorUserId,
+      environment,
+      inboundEmailMessageId,
+      parseResultId: input.parseResultId ?? null,
+      parsed: input.parsed,
+      outboundMatch: input.outboundMatch,
+      meteringPointMatch: input.meteringPointMatch,
+      tenantResolution: input.tenantResolution ?? null,
+    })
+  } catch (error) {
+    if (!protectedNegative || !(error instanceof InboundReceptionHeldError)) throw error
+    const reception = error.reception
+    const { data: mail, error: mailError } = await supabaseService.from('inbound_email_messages').select('*')
+      .eq('id', inboundEmailMessageId).eq('company_id', companyId).eq('environment', environment).maybeSingle()
+    if (mailError) throw mailError
+    if (!mail || mail.id !== inboundEmailMessageId || mail.company_id !== companyId || mail.environment !== environment) throw new Error('ack_held_current_mail_required')
+    const prior = mail.match_payload && typeof mail.match_payload === 'object' && !Array.isArray(mail.match_payload) ? mail.match_payload : {}
+    const { data: held, error: heldError } = await supabaseService.from('inbound_email_messages').update({
+      processing_status: 'manual_review', match_status: reception.classification, error_message: reception.reason,
+      match_payload: { ...prior, reception: { classification: reception.classification, reason: reception.reason, responseRequestId: reception.responseRequestId } },
+      updated_at: nowIso(),
+    }).eq('id', inboundEmailMessageId).eq('company_id', companyId).eq('environment', environment).select('id').maybeSingle()
+    if (heldError) throw heldError
+    if (!held || held.id !== inboundEmailMessageId) throw new Error('ack_held_status_write_required')
+    return
+  }
 
   if(!inboundEdielMessageId)throw new Error('ediel_inbound_original_persistence_required')
+  if (supplierClassification?.outcome === 'invalid') return
+  if (protectedNegative) {
+    if (!actorUserId || (environment !== 'test' && environment !== 'production')) throw new Error('ack_current_mail_scope_required')
+    const { data: row, error } = await supabaseService.from('ediel_messages').select('*')
+      .eq('id', inboundEdielMessageId).eq('company_id', companyId).eq('environment', environment).eq('direction', 'inbound').maybeSingle()
+    if (error) throw error
+    if (!row || row.id !== inboundEdielMessageId || row.inbound_email_message_id !== inboundEmailMessageId
+      || (row.mailbox_message_id != null && row.mailbox_message_id !== inboundEmailMessageId)) throw new Error('ack_current_mail_source_required')
+    const message = row as EdielMessageRow
+    assertSameInboundSource(message, { companyId, environment, parsed: input.parsed })
+    await processInboundAckMessage({ actorUserId, message, projectionOnly: true, negativeStatus: 'rejected' })
+    return
+  }
 
   const responsePayload = payloadForInbound({
     parsed: input.parsed,
@@ -1056,7 +1109,7 @@ export async function applySafeInboundStatusUpdate(input: {
   })
 
   if (input.parsed.messageFamily === 'CONTRL') {
-    const isNegative = isNegativeContrL(input.parsed)
+    const isNegative = supplierClassification ? supplierClassification.outcome === 'negative' : isNegativeContrL(input.parsed)
     if (input.outboundMatch.entityType === 'outbound_request') {
       const ackRequest = supabaseService
         .from('outbound_requests')
@@ -1073,7 +1126,7 @@ export async function applySafeInboundStatusUpdate(input: {
       // A positive ACK after the business response (e.g. Z04 first) never rolls the request back.
       await (isNegative ? ackRequest : ackRequest.not('status', 'in', OUTBOUND_BUSINESS_RESPONSE_STATUSES))
 
-      await updateOutboundEdielAckState({ companyId: input.companyId, outboundRequestId: input.outboundMatch.entityId, parsed: input.parsed, inboundEdielMessageId, responsePayload })
+      await updateOutboundEdielAckState({ companyId: input.companyId, outboundRequestId: input.outboundMatch.entityId, parsed: input.parsed, inboundEdielMessageId, responsePayload, canonicalPositiveContrl: supplierClassification?.outcome === 'positive' })
       await updateBusinessStatusFromInbound({ companyId: input.companyId, parsed: input.parsed, outboundMatch: input.outboundMatch, meteringPointMatch: input.meteringPointMatch, inboundEdielMessageId, responsePayload, actorUserId: input.actorUserId ?? null })
     }
 
