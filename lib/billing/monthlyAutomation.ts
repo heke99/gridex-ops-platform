@@ -6,6 +6,7 @@ import { getBillingPeriodLock } from '@/lib/billing/invoiceReadiness'
 import { prepareInvoiceDraftsForReview } from '@/lib/billing/invoiceReviewPrepare'
 import { withAutomationLock } from '@/lib/automation/locks'
 import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
+import { formatErrorMessage } from '@/lib/errors'
 import { parseBillingMonth, previousStockholmBillingMonth } from '@/lib/time/stockholm'
 import { runMeteringMarketDataAutopilot, type MeteringAutopilotResult } from '@/lib/metering/monthlyAutopilot'
 
@@ -54,6 +55,15 @@ function validateCompany(company: JsonRecord) {
   return requireTenantInvoiceProvider(company)
 }
 
+// Called while holding the company/month automation lock: a `running` row with
+// another lock token belongs to a run that was killed (platform time limit,
+// deploy, crash) and would otherwise block every later run of the month.
+async function closeOrphanedRuns(input: { companyId: string; periodMonth: string; actorUserId: string | null; lockToken: string }) {
+  const result = await supabaseService.from('billing_automation_runs').update({ status: 'failed', finished_at: new Date().toISOString(), failure_reason: 'stale_run_recovered', updated_by: input.actorUserId, updated_at: new Date().toISOString() })
+    .eq('company_id', input.companyId).eq('period_month', input.periodMonth).eq('status', 'running').neq('lock_token', input.lockToken)
+  if (result.error) throw result.error
+}
+
 async function insertRun(input: { companyId: string; periodMonth: string; actorUserId: string | null; lockKey: string; lockToken: string }) {
   const [year, month] = input.periodMonth.split('-').map(Number)
   const result = await supabaseService.from('billing_automation_runs').insert({ company_id: input.companyId, billing_year: year, billing_month: month, period_month: input.periodMonth, status: 'running', started_at: new Date().toISOString(), created_by: input.actorUserId, updated_by: input.actorUserId, lock_key: input.lockKey, lock_token: input.lockToken, export_requested: false, export_confirmed: false, metadata: { source: 'monthly_billing_prepare_only_v3', approval_required: true, metering_autopilot: true, run_id: randomUUID() } }).select('id').single()
@@ -82,6 +92,7 @@ export async function runMonthlyBillingAutomationForCompany(input: { companyId: 
     ttlSeconds: 21_600,
     metadata: { domain: 'monthly_billing_prepare', billingMonth: periodMonth, meteringAutopilot: true },
     run: async (lock) => {
+      await closeOrphanedRuns({ companyId: input.companyId, periodMonth, actorUserId, lockToken: lock.lockToken })
       const automationRunId = await insertRun({ companyId: input.companyId, periodMonth, actorUserId, lockKey: lock.lockKey, lockToken: lock.lockToken })
       try {
         const periodLock = await getBillingPeriodLock({ companyId: input.companyId, billingMonth: periodMonth })
@@ -113,7 +124,12 @@ export async function runMonthlyBillingAutomation(input: { companyId?: string | 
   for (const company of companies) {
     const companyId = text(company.id)
     if (!companyId) continue
-    results.push(await runMonthlyBillingAutomationForCompany({ companyId, billingMonth: input.billingMonth, actorUserId: input.actorUserId, companyConfig: company }))
+    // One company's configuration error, held lock or failure must not stop the others.
+    try {
+      results.push(await runMonthlyBillingAutomationForCompany({ companyId, billingMonth: input.billingMonth, actorUserId: input.actorUserId, companyConfig: company }))
+    } catch (error) {
+      results.push({ companyId, billingMonth: billingMonth(input.billingMonth), status: 'failed', automationRunId: null, error: formatErrorMessage(error, 'Okänt fel i månatlig fakturaförberedelse.') })
+    }
   }
   return { billingMonth: billingMonth(input.billingMonth), processed: results.length, completed: results.filter((row) => row.status === 'completed').length, completedWithBlockers: results.filter((row) => row.status === 'completed_with_blockers').length, failed: results.filter((row) => row.status === 'failed').length, results }
 }
