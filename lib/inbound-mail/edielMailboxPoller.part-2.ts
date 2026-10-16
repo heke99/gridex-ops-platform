@@ -661,12 +661,13 @@ export async function processQueuedInboundProcessingJobs(
     limit?: number;
     actorUserId?: string | null;
   } = {},
-): Promise<{ processed: number; failed: number }> {
+): Promise<{ processed: number; failed: number; processedInboundEmailMessageIds: string[] }> {
   const workerId = input.workerId ?? "inbound-mail-engine";
   const jobs = await claimQueuedInboundProcessingJobs(workerId, input.limit ?? 50);
   const maxAttempts = envInt("EDIEL_INBOUND_MAX_JOB_ATTEMPTS", 5);
   let processed = 0;
   let failed = 0;
+  const processedInboundEmailMessageIds: string[] = [];
 
   for (const job of jobs) {
     if (!job.inbound_email_message_id) {
@@ -691,6 +692,7 @@ export async function processQueuedInboundProcessingJobs(
         step: outcome.status,
       });
       processed += 1;
+      processedInboundEmailMessageIds.push(job.inbound_email_message_id);
     } catch (error) {
       const message =
         formatErrorMessage(error, "Okänt processfel.");
@@ -706,7 +708,7 @@ export async function processQueuedInboundProcessingJobs(
     }
   }
 
-  return { processed, failed };
+  return { processed, failed, processedInboundEmailMessageIds };
 }
 
 async function filterNonDsnInboundEmailIds(ids: string[]): Promise<string[]> {

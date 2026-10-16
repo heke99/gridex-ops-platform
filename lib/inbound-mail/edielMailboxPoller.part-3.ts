@@ -94,10 +94,15 @@ export async function runInboundEdielMailEngine(
   const inboundEmailMessageIds = results.flatMap(
     (item) => item.inboundEmailMessageIds,
   );
-  const allInboundEmailMessageIds = results.flatMap((item) => [
-    ...item.inboundEmailMessageIds,
-    ...item.dedupedInboundEmailMessageIds,
-  ]);
+  // Jobs completed in this run include retries of mail fetched earlier; their
+  // Ediel messages need the same business processing as freshly fetched mail.
+  const allInboundEmailMessageIds = Array.from(new Set([
+    ...results.flatMap((item) => [
+      ...item.inboundEmailMessageIds,
+      ...item.dedupedInboundEmailMessageIds,
+    ]),
+    ...queueResult.processedInboundEmailMessageIds,
+  ]));
   const diagnosticInboundEmailIds = input.createDiagnosticMessagesForUnresolved
     ? Array.from(
         new Set([
