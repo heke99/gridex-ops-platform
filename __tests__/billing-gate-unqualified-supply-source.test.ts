@@ -45,6 +45,9 @@ describe('billing gate without a qualified supply source', () => {
     expect(gate).toMatchObject({ billing_gate_status: 'blocked', billing_status: 'blocked' })
     expect(gate.billing_gate_reasons.map(reason => reason.code)).toContain('supply_source_unqualified')
     expect(io.inserts).toContainEqual(expect.objectContaining({ table: 'ediel_unresolved_items', row: expect.objectContaining({ issue_type: 'billing_gate_blocked' }) }))
+    // One open item per supply period, not one per quarter-hour value.
+    const item = io.inserts.find(insert => insert.table === 'ediel_unresolved_items')!.row.extracted_identifiers
+    expect(item).toEqual({ meteringPointId: 'mp-1', supplyPeriodIds: ['sp-1'], reasonCodes: ['supply_source_unqualified'] })
   })
 
   it('still fails on any other database refusal', async () => {

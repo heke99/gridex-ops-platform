@@ -191,20 +191,25 @@ export async function updateMeterValueBillingReadiness(params: {
 
   if (!gate.eligible) {
     const issueType = periods.length > 1 ? 'billing_period_conflict' : periods.length === 0 ? 'billing_period_missing' : 'billing_gate_blocked'
+    // An unqualified supply source blocks every value of the period for the same
+    // reason; one open item per supply period, not one per quarter-hour.
+    const periodWide = gate.reasons.some((entry) => entry.code === 'supply_source_unqualified')
     await createBillingUnresolvedItem({
       companyId,
       sourceMessageId,
       issueType,
       severity: gate.status === 'conflict' ? 'critical' : 'warning',
-      identifiers: {
-        meterValueId: params.meterValue.id,
-        normalizedValueId,
-        meteringPointId,
-        periodStart,
-        periodEnd,
-        supplyPeriodIds: periods.map((row) => row.id),
-        reasonCodes: gate.reasons.map((entry) => entry.code),
-      },
+      identifiers: periodWide
+        ? { meteringPointId, supplyPeriodIds: periods.map((row) => row.id), reasonCodes: ['supply_source_unqualified'] }
+        : {
+            meterValueId: params.meterValue.id,
+            normalizedValueId,
+            meteringPointId,
+            periodStart,
+            periodEnd,
+            supplyPeriodIds: periods.map((row) => row.id),
+            reasonCodes: gate.reasons.map((entry) => entry.code),
+          },
     })
   }
 

@@ -127,12 +127,26 @@ describe.sequential('live chain B — metering to invoice for an existing custom
     const context = await operatorSession()
     const page = await context.newPage()
     const outcomes: unknown[] = []
+    const storedFor = (id: string) => sql<number>(`SELECT to_jsonb(count(*)) FROM public.normalized_metering_values WHERE source_message_id=${literal(id)}`)
     for (const source of sources) {
-      await page.goto(`/admin/ediel/messages/${source.id}`)
-      const button = page.getByRole('button', { name: 'Kör UTILTS engine / skapa TGT-svar' })
-      const visible = await button.count()
-      if (visible) await Promise.all([page.waitForLoadState('networkidle'), button.click()])
-      outcomes.push({ source: source.id, path: new URL(page.url()).pathname, button: visible, search: new URL(page.url()).search.slice(0, 300) })
+      // Like an operator: open the message, run the engine, wait for its result.
+      let visible = 0, attempts = 0, pageText = ''
+      while (!visible && attempts < 3) {
+        attempts += 1
+        await page.goto(`/admin/ediel/messages/${source.id}`)
+        visible = await page.getByRole('button', { name: 'Kör UTILTS engine / skapa TGT-svar' }).count()
+        if (!visible) pageText = (await page.locator('main, body').first().innerText()).replace(/\s+/g, ' ').slice(0, 300)
+      }
+      const started = Date.now()
+      if (visible) await Promise.all([page.waitForLoadState('networkidle'), page.getByRole('button', { name: 'Kör UTILTS engine / skapa TGT-svar' }).click()])
+      let stored = storedFor(source.id), stable = 0
+      while (visible && stored < 96 && stable < 6 && Date.now() - started < 180_000) {
+        await new Promise(resolve => setTimeout(resolve, 5_000))
+        const next = storedFor(source.id)
+        stable = next === stored ? stable + 1 : 0
+        stored = next
+      }
+      outcomes.push({ source: source.id, button: visible, attempts, stored, seconds: Math.round((Date.now() - started) / 1000), ...(visible ? {} : { pageText }) })
     }
     await page.close()
     report.reprocess = outcomes
@@ -153,7 +167,7 @@ describe.sequential('live chain B — metering to invoice for an existing custom
     billable = state.billable
     if (billable === 0) expect(gate.reasons).toContain('supply_source_unqualified')
     else expect(billable).toBe(30 * 96)
-  })
+  }, 45 * 60_000)
 
   it('B6 the admin imports and locks the real September SE3 spot prices', async () => {
     const context = await adminSession()
