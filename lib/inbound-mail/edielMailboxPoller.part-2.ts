@@ -43,7 +43,45 @@ export async function storeInboundEmail(
     externalReference: dedupeFacts.externalReference,
   });
 
-  if (existing) return { id: existing.id, deduped: true };
+  if (existing) {
+    // The mail row and its job are two writes. A run killed between them
+    // left a stored mail that every later poll deduplicated without a job,
+    // so it was never processed. A re-fetch of the same mail restores it.
+    // Only a mail still in its initial store state qualifies: unread mail is
+    // re-fetched on every poll, and an already processed mail must not be
+    // queued again.
+    if (existing.scope === "mailbox") {
+      const { data: stored, error: mailLookupError } = await supabaseService
+        .from("inbound_email_messages")
+        .select("id")
+        .eq("id", existing.id)
+        .eq("processing_status", "received")
+        .eq("match_status", "not_checked")
+        .limit(1);
+      if (mailLookupError) throw mailLookupError;
+      if ((stored ?? []).length === 0) return { id: existing.id, deduped: true };
+      const { data: jobs, error: jobLookupError } = await supabaseService
+        .from("inbound_processing_jobs")
+        .select("id")
+        .eq("inbound_email_message_id", existing.id)
+        .limit(1);
+      if (jobLookupError) throw jobLookupError;
+      if ((jobs ?? []).length === 0) {
+        const { error: recoveryError } = await supabaseService
+          .from("inbound_processing_jobs")
+          .insert({
+            company_id: input.companyId ?? null,
+            mailbox_id: input.mailboxId,
+            inbound_email_message_id: existing.id,
+            status: "queued",
+            step: "received",
+            payload: { dedupeKey, recoveredMissingJob: true },
+          });
+        if (recoveryError) throw recoveryError;
+      }
+    }
+    return { id: existing.id, deduped: true };
+  }
 
   const { data, error } = await supabaseService
     .from("inbound_email_messages")
