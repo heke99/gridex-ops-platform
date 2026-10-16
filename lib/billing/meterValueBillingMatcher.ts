@@ -148,7 +148,7 @@ export async function updateMeterValueBillingReadiness(params: {
   const sourceMessageId = params.sourceMessageId ?? params.meterValue.source_ediel_message_id ?? (typeof normalizedValue.source_message_id === 'string' ? normalizedValue.source_message_id : null)
   const sourceMessage = normalizedValue.billing_source_message as Record<string, unknown> | null;
 
-  const gate = evaluateBillingGate({
+  const evaluated = evaluateBillingGate({
     normalizedValue: { ...normalizedValue, source_message_id: sourceMessageId },
     supplyPeriod: period,
     supplyPeriodCandidateCount: periods.length,
@@ -157,13 +157,12 @@ export async function updateMeterValueBillingReadiness(params: {
     sourceMessage,
     allowEstimatedValues: params.allowEstimatedValues,
   })
-  const status = canonicalStatus(gate.status)
-
-  await persistBillingGate({
+  let gate: Pick<typeof evaluated, 'status' | 'eligible' | 'reasons' | 'snapshot'> = evaluated
+  const persist = () => persistBillingGate({
     meterValueId: params.meterValue.id,
     normalizedValueId,
     companyId,
-    status,
+    status: canonicalStatus(gate.status),
     gateStatus: gate.status,
     gateReasons: gate.reasons,
     gateSnapshot: gate.snapshot,
@@ -171,6 +170,24 @@ export async function updateMeterValueBillingReadiness(params: {
     supplyPeriodId: typeof period?.id === 'string' ? period.id : null,
     sourceMessageId,
   })
+
+  try {
+    await persist()
+  } catch (error) {
+    // The database also requires the supply period to rest on a qualified Ediel
+    // market basis (switch confirmation or received supply start), which this
+    // gate does not see. It stays the authority: record the value as blocked
+    // with that reason instead of aborting ingestion of the rest of the file.
+    if (!gate.eligible || (error as { message?: unknown } | null)?.message !== 'billing_gate_qualified_supply_source_required') throw error
+    gate = {
+      status: 'blocked',
+      eligible: false,
+      reasons: [...gate.reasons, { code: 'supply_source_unqualified', message: 'Leveransperioden saknar kvalificerat Ediel-underlag (bekräftat byte eller mottagen leveransstart).' }],
+      snapshot: { ...gate.snapshot, supply_source_qualified: false },
+    }
+    await persist()
+  }
+  const status = canonicalStatus(gate.status)
 
   if (!gate.eligible) {
     const issueType = periods.length > 1 ? 'billing_period_conflict' : periods.length === 0 ? 'billing_period_missing' : 'billing_gate_blocked'
