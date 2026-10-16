@@ -127,6 +127,14 @@ Statusvärden: **RÄTTAD** = rättad på branchen med regressionstest som är r�
 - **Live-testet:** fixturen skapar funktionen exakt som i drift om den saknas (`ensureProductionRoleLookupParity`). Rapporterat på #766.
 - **Latent inkonsekvens i samma område:** `canonical_actor_is_platform_admin` godtar `admin_users`, men `requireAdminAccess` räknar `isAdmin` från roller och behörigheter. En plattformsadmin som bara finns i `admin_users` får `is_platform_admin: true` men ändå inte `/admin`. Drift har 0 sådana konton, så det är inte aktuellt i dag.
 
+### F17 Leveransperiod utan kvalificerat Ediel-underlag avbröt inläsningen efter första värdet — RÄTTAD
+- **Bevis från live-körningen:**
+  - Efter operatörens omkörning fanns alla 2 880 kvartsvärden i `meter_reading_values`, men bara 30 i `normalized_metering_values`, ett per fil med fakturaunderlagets första kvart.
+  - Serverloggen visade 30 gånger `23514 billing_gate_qualified_supply_source_required` från `gridex_set_metering_billing_gate`.
+- **Rotorsak:** TS-grinden (`evaluateBillingGate`) kontrollerar leveransperiodens status och täckning, men inte dess Ediel-marknadsunderlag (`gridex_received_sources.billing_supply_basis_v1`: bekräftat byte eller mottagen Z04 med reglerad grund). Den sa `eligible`. Databasen nekade, och `ingestBoundUtiltsMetering` avbröts efter första observationen. Ingen orsak syntes för operatören, och en omkörning fastnade på samma ställe.
+- **Rättning:** databasen förblir auktoritet. Vid exakt den vägran registreras värdet som `blocked`, med orsaken `supply_source_unqualified` och ett `billing_gate_blocked`-ärende. Andra vägranden kastas som förut. Test: `__tests__/billing-gate-unqualified-supply-source.test.ts`. 7 filer med 153 tester runt grinden är gröna.
+- **Förståelse av projektet:** fakturering kräver att leveransen vilar på mottagna Ediel-marknadsmeddelanden. En kund som bara lagts in som migrerad (`source='migration'`) kan aldrig faktureras. Kedjan mätvärde→faktura förutsätter därför kedja A (ansökan → avtal → leverantörsbyte bekräftat av nätägaren), eller ett mottaget leveransstartsunderlag.
+
 ### O1 Misslyckade utkorgsposter försöks inte igen automatiskt — avsiktligt
 `claim_ediel_outbox_items` hämtar bara `prepared` och `queued`. En post som fallerat före SMTP, till exempel för att arkivlagringen var nere, blir `failed` och kräver att en operatör köar om den. Det stämmer med TR-10 (fail-closed), men ett känt-ej-skickat fel skulle kunna köas om automatiskt. Det noteras som driftobservation.
 
@@ -179,6 +187,9 @@ Appen går via PostgREST som `authenticator` och växlar till `service_role`. Ti
 | Steg | Status |
 |---|---|
 | B1 konfiguration och befintlig kund | grön |
-| B2 nätägaren skickar 30 dygnsfiler | grön |
-| B3 mottagning och CONTRL | Alla 30 tas emot (efter F2–F5). CONTRL blockeras av F10 och F11 efter ~10 filer. Testet kör nu även utkorgens cron, som i `vercel.json`. |
-| B4–B8 | ej nådda; blockerade av F10 |
+| B2 nätägaren skickar 30 dygnsfiler (SMTPS) | grön |
+| B3 mottagning, CONTRL till nätägaren | grön: 30 av 30 mottagna, 30 av 30 CONTRL levererade, 0 deadlocks (efter F2–F5, F9–F11) |
+| B4 hålls utan fakturaeffekt utan utfärdarunderlag | grön |
+| B5 underlag och operatörens omkörning (`/admin/ediel/messages/[id]`) | 2 880 värden lagrade. Fakturering blockerad med `supply_source_unqualified`, eftersom kunden är migrerad (F17) |
+| B6 spotpris SE3, import och låsning | körs |
+| B7–B8 faktura och oberoende kontroll | hoppas över tills leveransen vilar på Ediel (kedja A) |
