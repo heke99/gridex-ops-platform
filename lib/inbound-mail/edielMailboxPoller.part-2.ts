@@ -670,6 +670,20 @@ export async function processQueuedInboundProcessingJobs(
   const processedInboundEmailMessageIds: string[] = [];
 
   for (const job of jobs) {
+    // attempts_count already counts this claim (claim_inbound_processing_jobs
+    // and the fallback both increment it), including a stale reclaim after a
+    // killed run. A job beyond the limit is not run again.
+    const attempt = Number(job.attempts_count ?? 0);
+    if (attempt > maxAttempts) {
+      await markInboundProcessingJobFinished({
+        jobId: job.id,
+        status: "failed",
+        step: "attempt_limit_exceeded",
+        errorMessage: `Jobbet har gjorts om ${attempt} gånger utan att avslutas (max ${maxAttempts}).`,
+      });
+      failed += 1;
+      continue;
+    }
     if (!job.inbound_email_message_id) {
       await markInboundProcessingJobFinished({
         jobId: job.id,
@@ -696,8 +710,7 @@ export async function processQueuedInboundProcessingJobs(
     } catch (error) {
       const message =
         formatErrorMessage(error, "Okänt processfel.");
-      const nextAttempts = Number(job.attempts_count ?? 0) + 1;
-      const shouldRetry = nextAttempts < maxAttempts;
+      const shouldRetry = attempt < maxAttempts;
       await markInboundProcessingJobFinished({
         jobId: job.id,
         status: shouldRetry ? "retry" : "failed",
