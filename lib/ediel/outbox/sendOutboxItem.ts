@@ -21,6 +21,10 @@ function lockMatchesEnvironment(row: Record<string, unknown>, environment: strin
   return lockEnvironment === environment
 }
 
+// private.ediel_requeue_outbox_after_send_lock_release_trigger requeues blocked
+// rows with this last_error when the company's send lock is released.
+const SEND_LOCK_SENTINEL = 'active_ediel_send_lock'
+
 function lockIsActive(row: Record<string, unknown>): boolean {
   const locked = row.locked === true
   const expiresAt = clean(row.expires_at)
@@ -47,7 +51,7 @@ async function assertNoActiveSendLock(params: {
   const activeLock = lockRows.find((row) => lockIsActive(row) && lockMatchesEnvironment(row, params.environment))
   if (!activeLock) return null
 
-  return clean(activeLock.locked_reason) ?? clean(activeLock.lock_key) ?? 'active_ediel_send_lock'
+  return clean(activeLock.locked_reason) ?? clean(activeLock.lock_key) ?? SEND_LOCK_SENTINEL
 }
 
 async function updateOutboxStatus(params: {
@@ -198,9 +202,11 @@ export async function sendOutboxItem(params: {
     }
     const sendLockReason = await assertNoActiveSendLock({ companyId, environment, outboxItemId: params.outboxItemId })
     if (sendLockReason) {
+      // The lock-release trigger requeues exactly the sentinel; the lock's own
+      // reason (e.g. a production pause) is kept in blocked_reason.
       await updateOutboxStatus({ outboxItemId: params.outboxItemId, sendAttemptId, workerId,
-        payload: { status: 'blocked', last_error: sendLockReason, locked_at: null, locked_by: null,
-          updated_by: params.actorUserId, updated_at: new Date().toISOString() } })
+        payload: { status: 'blocked', last_error: SEND_LOCK_SENTINEL, blocked_reason: sendLockReason, blocked_at: new Date().toISOString(),
+          locked_at: null, locked_by: null, updated_by: params.actorUserId, updated_at: new Date().toISOString() } })
       return { status: 'blocked', messageId: null, error: sendLockReason }
     }
 
