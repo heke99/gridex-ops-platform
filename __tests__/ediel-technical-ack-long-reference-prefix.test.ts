@@ -35,7 +35,14 @@ function functionBody(definition:string){
  if(end<start)throw Error('closed_capture_body_unavailable')
  return definition.slice(start,end)
 }
-function closedEpochDefinition(definition:string,epoch:Epoch){
+// 20261016100000 later replaces the candidate filter of this guard; this
+// lifecycle fixture verifies the epochs before it.
+const indexed=readFileSync(resolve('supabase/migrations/20261016100000_ediel_technical_ack_original_uniqueness_indexed.sql'),'utf8')
+const indexedNeedle=indexed.match(/needle CONSTANT text:=\$n\$([\s\S]*?)\$n\$/)?.[1]
+const indexedReplacement=indexed.match(/replacement CONSTANT text:=\$r\$([\s\S]*?)\$r\$/)?.[1]
+function closedEpochDefinition(captured:string,epoch:Epoch){
+ if(!indexedNeedle||!indexedReplacement)throw Error('closed_capture_transform_unavailable')
+ const definition=captured.split(indexedReplacement).length===2?captured.replace(indexedReplacement,()=>indexedNeedle):captured
  const body=functionBody(definition),hash=digest(body)
  if(hash!==epochHashes.old&&hash!==epochHashes.new)throw Error('closed_capture_epoch_unrecognized')
  if(hash===epochHashes[epoch])return definition
