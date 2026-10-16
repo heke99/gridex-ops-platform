@@ -138,6 +138,44 @@ Statusvärden: **RÄTTAD** = rättad på branchen med regressionstest som är r�
 - **Prestanda (observation):** under parallell last lagrades cirka 4 värden per sekund, med flera RPC-anrop per värde. Ett dygn (96 värden) tar sekunder till tiotals sekunder. En månadsfil med kvartsvärden (2 976 värden) per serveråtgärd bör mätas mot Vercels tidsgräns innan den används i drift.
 - **Förståelse av projektet:** fakturering kräver att leveransen vilar på mottagna Ediel-marknadsmeddelanden. En kund som bara lagts in som migrerad (`source='migration'`) kan aldrig faktureras. Kedjan mätvärde→faktura förutsätter därför kedja A (ansökan → avtal → leverantörsbyte bekräftat av nätägaren), eller ett mottaget leveransstartsunderlag.
 
+### F10b ACK-läsningen var fortfarande linjär i bolagets ACK-historik — RÄTTAD
+- **Varför fel:** efter F10 läste `read_outbound_originals_v1` fortfarande varje utgående ACK hos bolaget för att utvärdera sitt femdelade OR-villkor. Det kostade ~23 µs per CONTRL: 40 ms vid 130 och 240 ms vid 10 030. Med 3–4 läsningar per ACK nås gränsen på 8 s vid ungefär 100k ACK per bolag. F10 gjorde alltså kostnaden linjär, inte begränsad.
+- **Rättning:** `20261016013000_ediel_ack_original_candidates_indexed.sql`. Kandidaterna kommer från fem indexerade grenar, och det ursprungliga villkoret ligger kvar som filter.
+- **Verifiering:** alla 639 ögonblicksresultat är identiska. Läsningen tar 80 ms vid 10 030 CONTRL. `scripts/ediel-ack-original-scale-native.test.ts` räknar de rader läsningen rör: under 50, mot 502 före.
+
+### F18 En tenant eller en kvarlämnad körning stoppade månadsfaktureringen för alla — RÄTTAD
+- **Varför fel:** `runMonthlyBillingAutomation` körde bolagen i en loop utan felisolering. Ett bolag utan konfigurerad leverantör kastade fel, och cronen svarade 500 utan att övriga bolag kördes. En körning som avbrutits (tidsgräns, omstart) lämnade dessutom en `running`-rad som blockerade nästa körning.
+- **Rättning (`lib/billing/monthlyAutomation.ts`):** fel fångas per bolag och redovisas som misslyckat resultat. `closeOrphanedRuns` stänger `running`-rader med annan `lock_token` som `failed/stale_run_recovered` inne i låset. Test: `__tests__/billing-monthly-company-isolation.test.ts`.
+- **Live:** HTTP 200. Ett bolag fick fel med leverantörens felmeddelande, nästa blev `completed_with_blockers` och den kvarlämnade raden blev `failed/stale_run_recovered`.
+
+### F19 CONTRL-kontrollen läste alla inkommande meddelanden på hela plattformen — RÄTTAD (kritisk)
+- **Var:** `gridex_ediel_technical_ack.require_contrl_v1` bevisar att CONTRL:ens UCI-referens (first14) pekar ut exakt ett inkommande original, globalt. Kandidatfiltret körde `strpos(translate(raw_payload))` över `raw_payload` för **varje inkommande meddelande hos alla tenanter**. Det sker vid varje CONTRL-skrivning (trigger) och 4 gånger per `gridex_read_outbound_acks_for_source_v2`.
+- **Varför fel och segt:** kostnaden växer med plattformens totala inkommande historik, inte med det enskilda bolaget. Uppmätt med syntetisk historik (meddelanden på 6,8 kB): ACK-läsningen tog 0,7 s vid 348, 1,25 s vid 1 348 och 2,5 s vid 3 348 inkommande meddelanden. Gränsen på 8 s nås vid ~12k inkommande meddelanden totalt. Ett enda elbolag får fler än så på några dagar (E66 per mätpunkt och dygn), och därefter får **ingen** tenant CONTRL.
+- **Rättning:** `20261016100000_ediel_technical_ack_original_uniqueness_indexed.sql`. Kandidaterna kommer från ett uttrycksindex på `envelope(raw_payload)->>'uciReference'` för inkommande rader. Ytterfiltret kräver redan exakt den projektionen och den implicerar det gamla filtret, så de räknade raderna är oförändrade. `envelope` är IMMUTABLE, har ingen `RAISE` och gav inget fel på 20 000 slumpade indata, så indexet kan inte stoppa inserts.
+- **Kostnad:** indexet räknar `envelope` en gång per inkommande insert, ~6 ms vid 6,8 kB och ~45 ms vid 59 kB. Det ersätter 0,15 ms × alla inkommande meddelanden × 4 per ACK-läsning. Drift har i dag 1 inkommande meddelande, så indexbygget är trivialt.
+- **Verifiering:**
+  - Resultat eller fel från `require_contrl_v1` är identiskt för alla 291 lokala CONTRL.
+  - ACK-läsningen tar 0,36–0,45 s oavsett historik, både vid 348 och 3 348 inkommande meddelanden.
+  - `__tests__/ediel-technical-ack-original-uniqueness-indexed.test.ts` kör tvetydighetsmatrisen (release-tecken, LF/CRLF, egen UNA, främmande tenant, korta, 14 tecken långa och icke-alfanumeriska referenser) mot både föregångaren och den nya kroppen. Det testet och `ediel-technical-ack-long-reference-prefix` ger tillsammans 110 av 110 gröna, med och utan simulerad GEN-capture.
+
+### F20 Utkorgsposter som blockerats under en produktionspaus köades aldrig om — RÄTTAD
+- **Varför fel:** en paus (`state <> 'live'`) skriver ett sändlås med `locked_reason` = pausorsaken. `sendOutboxItem` sparade den texten som `last_error`. Triggern som körs när låset släpps (`20260903161000`) köar bara om `last_error = 'active_ediel_send_lock'`. Varje meddelande som utkorgen mötte under pausen blev alltså kvar som `blocked` för alltid efter att bolaget gått live igen.
+- **Rättning:** `lib/ediel/outbox/sendOutboxItem.ts` sparar sentinelvärdet i `last_error` och orsaken i `blocked_reason`/`blocked_at`. Triggern är oförändrad.
+- **Test:** `__tests__/ediel-outbox-send-lock-release-requeue.test.ts` kör den riktiga sändvägen och därefter den riktiga triggern i PGlite. Testet är rött utan rättningen.
+
+### F21 Jobb som blev klara i en senare körning affärsbehandlades aldrig — RÄTTAD
+- **Varför fel:** motorn körde `processInboundEdielMessage` bara för mejl från den aktuella pollningen. Ett jobb som slutfördes i en senare körning, till exempel efter omförsök, fick sina Ediel-meddelanden tolkade men aldrig affärsbehandlade.
+- **Rättning:** `processQueuedInboundProcessingJobs` returnerar `processedInboundEmailMessageIds`, och motorn slår ihop dem. Test: `__tests__/inbound-engine-later-job-processing.test.ts`.
+
+### F22 Försöksgränsen för inkorgsjobb var ett steg fel och ett hängande jobb kunde återtas i det oändliga — RÄTTAD
+- **Varför fel:** jämförelsen tillät ett försök för mycket, och ett jobb som återtogs som "stale" räknades aldrig mot gränsen. Ett jobb som alltid tar för lång tid kunde därför återtas varje körning för alltid.
+- **Rättning:** ett jobb med `attempts_count > maxAttempts` avslutas som `failed`, med steget `attempt_limit_exceeded`. Test: `__tests__/inbound-job-attempt-limit.test.ts`.
+
+### F23 Mejl som sparats utan jobb behandlades aldrig — RÄTTAD
+- **Varför fel:** `storeInboundEmail` skriver mejlraden och jobbet i två separata skrivningar. Om körningen dödades mellan dem (tidsgräns, driftsättning) dedupliceras mejlet vid varje senare pollning utan att något jobb finns.
+- **Rättning:** när samma mejl hämtas igen (dedupliceras inom samma brevlåda) skapas det saknade jobbet, men **bara** om mejlet fortfarande är i sitt ursprungliga lagringsläge (`processing_status='received'` och `match_status='not_checked'`). Annars skulle ett redan behandlat oläst mejl, som hämtas vid varje pollning med `markSeen: false`, köas om. Det hittades när OPS-05-testet blev rött mot den första versionen.
+- **Test:** `__tests__/inbound-mail-missing-job-recovery.test.ts` (4 fall). 31 inkorgsfiler med 380 tester och OPS-05 är gröna.
+
 ### O1 Misslyckade utkorgsposter försöks inte igen automatiskt — avsiktligt
 `claim_ediel_outbox_items` hämtar bara `prepared` och `queued`. En post som fallerat före SMTP, till exempel för att arkivlagringen var nere, blir `failed` och kräver att en operatör köar om den. Det stämmer med TR-10 (fail-closed), men ett känt-ej-skickat fel skulle kunna köas om automatiskt. Det noteras som driftobservation.
 
@@ -152,6 +190,49 @@ Statusvärden: **RÄTTAD** = rättad på branchen med regressionstest som är r�
 | `max_connections` | 100 | 60 | – |
 
 Appen går via PostgREST som `authenticator` och växlar till `service_role`. Tidsgränserna i testet är alltså desamma som i drift. Drift har färre anslutningar, vilket gör parallell belastning tuffare, inte lättare.
+
+## Det som fallerar på grund av lång tid, tidsgräns eller som fastnar
+
+Gränser i drift: 8 s per SQL-sats, 8 s låsväntan, Vercel-funktion ~300 s, cron var 5:e minut. Tabellen samlar allt som kan nå en gräns eller bli liggande.
+
+| # | Vad | Varför det fallerar eller är segt | Mätt | Status |
+|---|---|---|---|---|
+| T1 | CONTRL-skapande per bolag (F10) | kvadratisk kostnad: CONTRL × källor | 4→12 s per fil, tidsgräns från fil 11 | RÄTTAD |
+| T2 | ACK-läsning per bolag (F10b) | linjär i bolagets ACK-historik | 240 ms vid 10k, 8 s vid ~100k | RÄTTAD |
+| T3 | CONTRL-kontrollen globalt (F19) | läser alla inkommande meddelanden på plattformen | 2,5 s vid 3,3k, 8 s vid ~12k totalt | RÄTTAD |
+| T4 | Inkorgs-cron (F12) | 25 mejl tog 177–404 s före F10 | 70 s efter | AVHJÄLPT |
+| T5 | Deadlocks (F11) | radlås före tabellås | 22–24 per körning | RÄTTAD |
+| T6 | Månadsfakturering (F18) | ett bolag eller en kvarlämnad körning stoppade alla | 500 för hela cronen | RÄTTAD |
+| T7 | Inkorgsjobb (F21–F23) | senare jobb affärsbehandlades inte, oändlig återtagning, mejl utan jobb | – | RÄTTADE |
+| T8 | Utkorg efter paus (F20) | blockerade poster köades aldrig om | – | RÄTTAD |
+| T9 | Globala tabellås vid ACK-skapande | se L1 nedan | 153 s väntan observerad | ÖPPEN |
+| T10 | `wire_namespace.reserve` | se P1 nedan | ~9 µs × alla utgående | ÖPPEN |
+| T11 | Fast kostnad per ACK-läsning | ~0,4 s utan tillväxt, mest `read_business_original_v1` och guidekontroller | 0,36–0,45 s | OBSERVATION |
+| T12 | Utkorgsposter i `blocked_tenant_state` | se B1 nedan | – | ÖPPEN, produktbeslut |
+
+### L1 ACK-skapande tar globala tabellås över alla tenanter — ÖPPEN (arkitektur)
+- **Varför fel:** ACK-skapandet tar `SHARE ROW EXCLUSIVE` på `ediel_messages` och `SHARE` på ~30 tabeller, för alla tenanter. En ACK-läsning hos ett bolag väntar alltså på varje pågående skrivtransaktion hos alla andra bolag, och tvärtom.
+- **Bevis:** två gånger. Först 153 s väntan bakom en orelaterad skrivtransaktion. Sedan, 2026-10-16, väntade en ACK-läsning 10 min (`Lock/relation`, `pg_blocking_pids` = en insert-transaktion för andra tenanter). Med `lock_timeout` 8 s blir det fel i stället för väntan: `canceling statement due to lock timeout`.
+- **Varför inte rättat:** låsen är del av ACK-designens serialiseringsbevis (en replik per original). Att byta till låsning per bolag eller per källa är en arkitekturändring som ägaren av ACK-auktoriteten måste godkänna. **Förslag:** `pg_advisory_xact_lock` per `(company_id, environment, källa)` i stället för tabellås, verifierat med samma ögonblicksjämförelse som F10.
+
+### P1 `gridex_ediel_wire_namespace.reserve` hashar alla utgående meddelanden vid varje utgående skrivning — ÖPPEN
+- **Varför segt:** triggern `ediel_wire_reference_namespace_before_write` (INSERT, och UPDATE av `raw_payload`, `company_id`, `environment` eller `direction`) går igenom alla utgående meddelanden i miljön, för alla tenanter, och räknar sha256 av varje `raw_payload` för att hitta äldre rader utan täckning. Mätt: ~9 µs per rad för små CONTRL, mer för stora PRODAT/UTILTS. Kostnaden är linjär i plattformens hela utgående historik och tas under advisory-lås. Gränsen på 8 s nås ungefär vid 900k små utgående meddelanden.
+- **Varför inte rättat:** att hoppa över hashningen kräver ett bevis för att ingen äldre rad har ändrad payload utan trigger. **Förslag:** en lagrad genererad kolumn `payload_sha256` på `ediel_messages`, som inte kan förbigås ens i replikaläge, plus en engångsverifiering. Det är en schemaändring som kräver GEN-capture och beslut av ägaren.
+
+### B1 `blocked_tenant_state` släpps aldrig när bolaget aktiveras igen — ÖPPEN, produktbeslut
+- **Verifierat i kod:** bara `company_provisioning_jobs` släpps när bolaget aktiveras igen (`canonical_sync_provisioning_jobs_for_lifecycle`). `ediel_outbox`, `tenant_email_outbox`, `manual_email_outbox`, `webhook_deliveries` och `canonical_event_outbox` har ingen väg tillbaka från `blocked_tenant_state`, varken i SQL eller i appen.
+- **Varför inte rättat automatiskt:** ett Ediel- eller kundmeddelande som skickas dagar senare kan vara skadligt (passerade tidsfrister, inaktuellt innehåll). Om posterna ska släppas, kasseras eller granskas är ett produktbeslut. Rekommendation: släpp poster yngre än en gräns och låt operatören hantera resten.
+
+### Övriga stopp- och tidsrisker (verifierade i kod, inte ändrade)
+- **Ediel-utkorgen `delivery_uncertain`:** en post som fastnat i `sending` blir `delivery_uncertain` och väntar på avstämning mot transporten. Det finns ingen åtgärd i gränssnittet för att köa om Ediel-poster (för e-post finns `requeueUncertainEmailAction`). Automatisk omsändning vore fel, eftersom ett dubbelt EDIFACT-meddelande kan ha effekt. Operatörsvägen saknas dock.
+- **Utkorgen `blocked` på grund av beredskap (rutt, certifikat):** `createOutboxItem` köar om bara från `draft`, `prepared` och `failed`. En post som blockerats för att en rutt eller ett certifikat saknades blir kvar även när konfigurationen rättats. Observerat live. Om den ska köas om automatiskt efter ny beredskapskontroll är ett produktbeslut, med samma risk som B1.
+- **Lagring:** ~67 kB per inkommande E66 med 2 880 värden i `raw_payload` plus bilaga och mejl. Det växer linjärt och påverkar inte längre ACK-vägen efter F19.
+- **Manuell brevlåda:** försöksräknaren förloras om körningen dödas mitt i. Mejlet försöks då igen utan att räknas mot gränsen. Det är begränsat av att samma mejl dedupliceras, och inte ändrat.
+- **Undanträngning:** pollern tar högst 25 mejl per brevlåda och körning. Mejl som alltid fallerar tar plats i varje omgång tills jobbgränsen (F22) avslutar dem. Efter F22 är det begränsat och inte längre oändligt.
+- **EJ VERIFIERAT:** att sändstaketets reservation `prepared` aldrig löper ut. Det är ett påstående från en annan agent, och det är inte bekräftat här.
+
+### Mätartefakt (inte ett fel)
+`INSERT … SELECT (jsonb_populate_record(...)).*` räknar funktionen en gång per kolumn, ~150 gånger per rad. Det gav ~1 s per syntetisk rad i skalningsskripten. Med `LATERAL` försvinner det. Appen använder inte mönstret.
 
 ## Under utredning
 
