@@ -329,7 +329,7 @@ export default function CustomerPortalApiDocumentationPage() {
               You do not need to match the latest documentation revision exactly to use a supported API version. Documentation updates do not change the business response schema or require an integration upgrade. Earlier supported V1 response profiles remain available; see the compatibility policy and migration guide. Independent Staff onboarding uses its own schema, {STAFF_ONBOARDING_CONTRACT_VERSION}.
             </p>
             <p className="max-w-4xl text-base leading-7 text-slate-700">
-              The API is available for integration development. Production use requires the deployed API and database prerequisites plus an active tenant credential, the required scopes and customer identity linking. Verify authenticated reads, writes, audit attribution and safe retries for the intended organization before go-live. A published specification or passing source checks do not by themselves qualify that tenant&apos;s live business flow.
+              The API is available for integration development. Production use requires the deployed API and database prerequisites plus an active API credential for your organization, the required scopes and customer identity linking. Verify authenticated reads, writes, audit attribution and safe retries for the intended organization before go-live. A published specification or passing source checks do not by themselves qualify that organization&apos;s live business flow.
             </p>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm leading-6 text-slate-700">
