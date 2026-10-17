@@ -1,0 +1,282 @@
+{
+  "roles": [
+    {
+      "oid": "2670192",
+      "rolname": "gridex_ediel_retention_owner",
+      "rolsuper": false,
+      "rolconfig": null,
+      "rolinherit": false,
+      "rolcanlogin": false,
+      "rolcreatedb": false,
+      "rolpassword": "********",
+      "rolbypassrls": true,
+      "rolconnlimit": -1,
+      "rolcreaterole": false,
+      "rolvaliduntil": null,
+      "rolreplication": false
+    },
+    {
+      "oid": "16388",
+      "rolname": "postgres",
+      "rolsuper": false,
+      "rolconfig": [
+        "search_path=\"\\$user\", public, extensions"
+      ],
+      "rolinherit": true,
+      "rolcanlogin": true,
+      "rolcreatedb": true,
+      "rolpassword": "********",
+      "rolbypassrls": true,
+      "rolconnlimit": -1,
+      "rolcreaterole": true,
+      "rolvaliduntil": null,
+      "rolreplication": true
+    },
+    {
+      "oid": "10",
+      "rolname": "supabase_admin",
+      "rolsuper": true,
+      "rolconfig": [
+        "search_path=\"$user\", public, auth, extensions",
+        "log_statement=none"
+      ],
+      "rolinherit": true,
+      "rolcanlogin": true,
+      "rolcreatedb": true,
+      "rolpassword": "********",
+      "rolbypassrls": true,
+      "rolconnlimit": -1,
+      "rolcreaterole": true,
+      "rolvaliduntil": null,
+      "rolreplication": true
+    }
+  ],
+  "checked_at": "2026-10-13T15:47:14.556392+00:00",
+  "memberships": [
+    {
+      "set": true,
+      "role": "anon",
+      "admin": true,
+      "member": "postgres",
+      "grantor": "supabase_admin",
+      "inherit": true
+    },
+    {
+      "set": true,
+      "role": "authenticated",
+      "admin": true,
+      "member": "postgres",
+      "grantor": "supabase_admin",
+      "inherit": true
+    },
+    {
+      "set": true,
+      "role": "service_role",
+      "admin": true,
+      "member": "postgres",
+      "grantor": "supabase_admin",
+      "inherit": true
+    },
+    {
+      "set": true,
+      "role": "authenticator",
+      "admin": true,
+      "member": "postgres",
+      "grantor": "supabase_admin",
+      "inherit": true
+    },
+    {
+      "set": true,
+      "role": "pg_monitor",
+      "admin": true,
+      "member": "postgres",
+      "grantor": "supabase_admin",
+      "inherit": true
+    },
+    {
+      "set": true,
+      "role": "pg_read_all_data",
+      "admin": true,
+      "member": "postgres",
+      "grantor": "supabase_admin",
+      "inherit": true
+    },
+    {
+      "set": true,
+      "role": "pg_signal_backend",
+      "admin": true,
+      "member": "postgres",
+      "grantor": "supabase_admin",
+      "inherit": true
+    },
+    {
+      "set": true,
+      "role": "pg_create_subscription",
+      "admin": true,
+      "member": "postgres",
+      "grantor": "supabase_admin",
+      "inherit": true
+    },
+    {
+      "set": true,
+      "role": "supabase_privileged_role",
+      "admin": false,
+      "member": "postgres",
+      "grantor": "supabase_admin",
+      "inherit": true
+    },
+    {
+      "set": false,
+      "role": "gridex_ediel_retention_owner",
+      "admin": true,
+      "member": "postgres",
+      "grantor": "supabase_admin",
+      "inherit": false
+    },
+    {
+      "set": true,
+      "role": "gridex_ediel_retention_owner",
+      "admin": false,
+      "member": "postgres",
+      "grantor": "postgres",
+      "inherit": false
+    }
+  ],
+  "current_user": "postgres",
+  "session_user": "postgres",
+  "public_schema": {
+    "acl": [
+      "pg_database_owner=UC/pg_database_owner",
+      "=U/pg_database_owner",
+      "postgres=U/pg_database_owner",
+      "anon=U/pg_database_owner",
+      "authenticated=U/pg_database_owner",
+      "service_role=U/pg_database_owner",
+      "gridex_ediel_retention_owner=U/pg_database_owner"
+    ],
+    "oid": "2200",
+    "owner": "pg_database_owner",
+    "ret_owner_usage": true,
+    "ret_owner_create": false
+  },
+  "retention_schema": {
+    "acl": [
+      "gridex_ediel_retention_owner=UC/gridex_ediel_retention_owner"
+    ],
+    "oid": "2670195",
+    "owner": "gridex_ediel_retention_owner",
+    "usage": true,
+    "create": false
+  },
+  "retention_functions": null,
+  "retention_relations": [
+    {
+      "acl": [
+        "gridex_ediel_retention_owner=arwdDxtm/gridex_ediel_retention_owner"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "record_class_catalog",
+      "owner": "gridex_ediel_retention_owner",
+      "force_rls": true,
+      "postgres_select": true,
+      "postgres_references": false
+    },
+    {
+      "acl": null,
+      "rls": false,
+      "kind": "i",
+      "name": "record_class_catalog_pkey",
+      "owner": "gridex_ediel_retention_owner",
+      "force_rls": false,
+      "postgres_select": null,
+      "postgres_references": null
+    },
+    {
+      "acl": null,
+      "rls": false,
+      "kind": "i",
+      "name": "record_class_catalog_source_table_key",
+      "owner": "gridex_ediel_retention_owner",
+      "force_rls": false,
+      "postgres_select": null,
+      "postgres_references": null
+    },
+    {
+      "acl": [
+        "gridex_ediel_retention_owner=arwdDxtm/gridex_ediel_retention_owner"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "record_decisions",
+      "owner": "gridex_ediel_retention_owner",
+      "force_rls": true,
+      "postgres_select": true,
+      "postgres_references": false
+    },
+    {
+      "acl": null,
+      "rls": false,
+      "kind": "i",
+      "name": "record_decisions_company_id_retention_class_target_id_targe_key",
+      "owner": "gridex_ediel_retention_owner",
+      "force_rls": false,
+      "postgres_select": null,
+      "postgres_references": null
+    },
+    {
+      "acl": null,
+      "rls": false,
+      "kind": "i",
+      "name": "record_decisions_pkey",
+      "owner": "gridex_ediel_retention_owner",
+      "force_rls": false,
+      "postgres_select": null,
+      "postgres_references": null
+    },
+    {
+      "acl": [
+        "gridex_ediel_retention_owner=arwdDxtm/gridex_ediel_retention_owner"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "record_reviews",
+      "owner": "gridex_ediel_retention_owner",
+      "force_rls": true,
+      "postgres_select": true,
+      "postgres_references": false
+    },
+    {
+      "acl": null,
+      "rls": false,
+      "kind": "i",
+      "name": "record_reviews_pkey",
+      "owner": "gridex_ediel_retention_owner",
+      "force_rls": false,
+      "postgres_select": null,
+      "postgres_references": null
+    },
+    {
+      "acl": [
+        "gridex_ediel_retention_owner=arwdDxtm/gridex_ediel_retention_owner"
+      ],
+      "rls": true,
+      "kind": "r",
+      "name": "record_tombstones",
+      "owner": "gridex_ediel_retention_owner",
+      "force_rls": true,
+      "postgres_select": true,
+      "postgres_references": false
+    },
+    {
+      "acl": null,
+      "rls": false,
+      "kind": "i",
+      "name": "record_tombstones_pkey",
+      "owner": "gridex_ediel_retention_owner",
+      "force_rls": false,
+      "postgres_select": null,
+      "postgres_references": null
+    }
+  ]
+}

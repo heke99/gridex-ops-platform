@@ -1,0 +1,51 @@
+[
+  {
+    "name": "unexpected-edge",
+    "exit_code": 3,
+    "expected_error": "ops_retention_existing_controlled_edges_required",
+    "error_seen": true,
+    "full_catalog_restored": true
+  },
+  {
+    "name": "public-create",
+    "exit_code": 3,
+    "expected_error": "ops_retention_installer_effective_capabilities_drift",
+    "error_seen": true,
+    "full_catalog_restored": true
+  },
+  {
+    "name": "old-table-acl",
+    "exit_code": 3,
+    "expected_error": "ops_retention_existing_owner_only_table_column_acl_required",
+    "error_seen": true,
+    "full_catalog_restored": true
+  },
+  {
+    "name": "old-column-acl",
+    "exit_code": 3,
+    "expected_error": "ops_retention_existing_owner_only_table_column_acl_required",
+    "error_seen": true,
+    "full_catalog_restored": true
+  },
+  {
+    "name": "owner-config",
+    "exit_code": 3,
+    "expected_error": "ops_retention_owner_shape_drift",
+    "error_seen": true,
+    "full_catalog_restored": true
+  },
+  {
+    "name": "forced-after-both-grants",
+    "exit_code": 3,
+    "expected_error": "isolated_retention_forced_after_both_grants",
+    "error_seen": true,
+    "full_catalog_restored": true
+  },
+  {
+    "name": "source-byte-drift",
+    "exit_code": 3,
+    "expected_error": "ops_retention_original_source_bytes_drift",
+    "error_seen": true,
+    "full_catalog_restored": true
+  }
+]

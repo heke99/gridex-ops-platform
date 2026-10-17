@@ -1,7 +1,27 @@
-# Handover — användaren till fem nya agenter
+# Handover — verifierade leveranser
 
-[Owner STOP](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6122223028) och [ADMIN_RELEASE_COMPLETE](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6122307591) är verifierad överlämning.205 gamla ref-SHAmatchningar/DELETE/två 404; två gamla automationer pausade; inga aktiva gamla branchworkflows vid stopp. Alla donorbrancher/bevis/krav bevaras.
+Observation `2026-10-13T10:20:47+02:00` (Europe/Stockholm), main `51f5fa5e80c42350d697bfed42520672749d4467`, tree `276b661120d5e0b69abc2090439809d5c4528e33`. Detta är en daterad observation; läs alltid faktisk main, aktuell ledger och senaste [#766](https://github.com/heke99/gridex-ops-platform/issues/766) före arbete.
 
-Detaljer perID i [masterplan-five-agent-transition-20261012.md](masterplan-five-agent-transition-20261012.md); alla3+35 exakt en gång. Ny agent behöver egna slot/ID/files/producerrefs, men inte tidigare ägares svar. PrivatClaudeprocessterminering är inte påstådd; nya separata branches/backends/sourceepochs skyddar återstarten. Relevant publicerade proof och mainleveranser återanvänds med ärlig applicability.
+En rad per verifierad leverans:
 
-[Relevant tidigare original](https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/handover.md) är historik, inte instruktion till en gammal agent.
+- #773: resetbaslinjen levererad till `028d2d65`; fem nya slotar och ett gemensamt startunderlag.
+- #774: R2 readiness-mekanismer levererade till `057c664d`; ingen helhetscoverage.
+- #777: C1 Z02-diagnostik levererad till `50f48c6a`; corebranchen bevarad för #780.
+- #778: samordningsdokument levererade till `7b6269c8`; tidigare observationsplan är nu historik.
+- #781: R2 eget checkpoint levererat till `b62acdd2`.
+- #782: matcherfilter levererade till `c1a03945`; 23 SUCCESS/10 villkorliga SKIP; egna mergerollen frigiven först.
+- #783: SC054-delkomponent/nativekällor levererade till `efba2140`; 16 SUCCESS/10 SKIP; faktisk C2-merge/träd verifierade, ingen retroaktiv atomisk mergerollattest.
+- #775: SC053-delkomponent/GEN levererade till `69e50f4f`; 32 SUCCESS/10 SKIP; faktisk C2-merge/träd verifierade, ledger oförändrad.
+
+- #789: negativ ERR/TN-stödfix levererad till `f36dbba1`; 25 SUCCESS/10 SKIP; faktiska föräldrar `69e50f4f` + `cf6605ba` och förgranskat träd `ac2c19eb`, oförändrad ledger; root släppte egen role504f6dd först.
+- #785: TR08 levererad till `e26e07eb`, föräldrar `f36dbba1` + `dbab4935`, tree `5d1250c8`; 23 SUCCESS/10 villkorliga SKIP + externalSUCCESS; root släppte egen mergeroll38d92603 först. Endast TR08 VERIFIED ger315/352; OPS04/AT-TR08 och deklarerad Gmail/STRATO-riskgräns kvarstår.
+- #786: matcherfollowups levererade till `35ad0e6d`, föräldrar `e26e07eb` + `bda69a7d`, tree `ebfcc44a`; 23 SUCCESS/10 villkorliga SKIP + externalSUCCESS. Root släppte egen role4c9a först; schema/GEN/frozen/315-ledger oförändrade.
+
+
+- #793: AT-TR08 levererad till `c007337f117dde5c6719e9d96bc76f00b118bbe6`; endast AT-TR08 PASSED, dåvarande ledger316.
+- #796: SC053/SC054 levererade till `c6bd6b4c7d931b2cf0f3b54dce874030873abde1`; ordered parents `c007337f117dde5c6719e9d96bc76f00b118bbe6` + `cfcc85aa3420369cea194e2fa2ec332ebc62edba`, tree `cdd9801a5fd2c64a48bc96396828af86e5218bca`, dåvarande ledger318; [leveranskvitto](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6137242246).
+- #797: SC070/AT-Z10M levererade till `51f5fa5e80c42350d697bfed42520672749d4467`; ordered parents `c6bd6b4c7d931b2cf0f3b54dce874030873abde1` + `8709c0e60c5a528b7e38a9e5c7c5439f9157c573`, tree `276b661120d5e0b69abc2090439809d5c4528e33`, ledger320; [leveranskvitto](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6137836975).
+
+Aktuella ägare och nästa steg läses i senaste [#766](https://github.com/heke99/gridex-ops-platform/issues/766), [current state](current-state.md) och [current task](current-task.md). Gamla GEN114- och resetmandat är historik; kvalificerade gamla outputoriginal bevaras. Privat processterminering och retroaktiv PASS för tidigare misslyckade körningar påstås inte. Främmande refs och pågående writers ändras inte av denna överlämning.
+
+[Daterat original på main 51f5fa5e](https://github.com/heke99/gridex-ops-platform/blob/51f5fa5e80c42350d697bfed42520672749d4467/.agent-memory/handover.md). Originalet är historik och ger inga nya uppdrag, claims eller körmandat.

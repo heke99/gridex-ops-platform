@@ -10,6 +10,7 @@ import { postPublicWebhook } from '@/lib/integrations/publicWebhookTransport'
 import { PARTNER_API_VERSION } from '@/lib/partner-api/openApi'
 import { publicOrganizationReference } from '@/lib/integrations/publicReferences'
 import { loadWebhookCredentialClients, webhookCredentialDecision } from '@/lib/integrations/webhookCredentialPolicy'
+import { projectWebsiteWebhookResponse, websiteWebhookResponseRevision } from '@/lib/integrations/apiResponseProfile'
 
 type WebhookSubscriptionRow = {
   id: string
@@ -116,7 +117,7 @@ const SUPPLIER_SWITCH_LIFECYCLE_KEYS = [
 ] as const
 
 export const WEBHOOK_EVENT_REGISTRY: Readonly<Record<string, WebhookEventProjection>> = Object.freeze({
-  'contracts.publication.changed': { dataKeys: ['channel', 'publication_revision', 'reason', 'timestamp'] },
+  'contracts.publication.changed': { dataKeys: ['channel', 'publication_revision', 'revision_token', 'reason', 'timestamp'] },
   'contract.closed': { dataKeys: ['contract_reference', 'offer_reference', 'reason'] },
   'contract.application_received': { dataKeys: ['application_number', 'status', 'offer_reference'] },
   'contract.created': { dataKeys: ['contract_reference', 'application_number', 'offer_reference', 'status'] },
@@ -140,15 +141,26 @@ export const WEBHOOK_EVENT_REGISTRY: Readonly<Record<string, WebhookEventProject
   'webhook.test': { dataKeys: ['message', 'test_reference'] },
 })
 
-function projectWebhookData(eventType: string, source: Record<string, unknown>): Record<string, unknown> {
+function projectWebhookData(eventType: string, source: Record<string, unknown>, surface: 'website' | 'partner' | 'events'): Record<string, unknown> {
   const projection = WEBHOOK_EVENT_REGISTRY[eventType]
   if (!projection) throw new Error(`webhook_event_type_not_registered:${eventType}`)
   const data = Object.fromEntries(
     projection.dataKeys
-      .filter((key) => source[key] !== undefined)
+      .filter((key) => source[key] !== undefined
+        && !(surface !== 'website' && eventType === 'contracts.publication.changed' && key === 'revision_token'))
       .map((key) => [key, source[key]]),
   )
-  assertPublicResponsePayload(data)
+  if (surface === 'website' && eventType === 'contracts.publication.changed') {
+    const token = data.revision_token
+    if (typeof token !== 'string'
+      || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(token)) {
+      throw new Error('webhook_publication_original_revision_token_missing')
+    }
+    const { revision_token: _publishedRevisionToken, ...otherData } = data
+    assertPublicResponsePayload(otherData)
+  } else {
+    assertPublicResponsePayload(data)
+  }
   return data
 }
 
@@ -181,11 +193,12 @@ function aggregateReference(
 export function buildPublicWebhookPayload(
   event: DomainEventRow,
   tenantReference: string,
+  surface: 'website' | 'partner' | 'events' = 'website',
 ) {
   const organizationReference = publicOrganizationReference(tenantReference)
   if (!organizationReference) throw new Error('webhook_public_organization_reference_unavailable')
   const sourceData = event.payload ?? {}
-  const data = projectWebhookData(event.event_type, sourceData)
+  const data = projectWebhookData(event.event_type, sourceData, surface)
   const customerNumber = publicText(sourceData, 'customer_number')
   const externalCustomerReference = publicText(
     sourceData,
@@ -250,6 +263,18 @@ function signedHeaders(
     if (typeof value === 'string' && key.toLowerCase() !== 'authorization') headers.set(key, value)
   }
 
+  if (!isPartnerSubscription(subscription)) {
+    headers.set('X-Gridex-Contract-Version', String(publicPayload.contract_schema_version))
+    headers.set('x-gridex-event-id', String(publicPayload.event_id))
+    headers.set('x-gridex-event-type', String(publicPayload.event_type))
+    headers.set('x-gridex-delivery-id', publicDeliveryId)
+    if (deliveryEnvironment === 'test' || deliveryEnvironment === 'production') {
+      headers.set('x-gridex-environment', deliveryEnvironment)
+    } else {
+      headers.delete('x-gridex-environment')
+    }
+  }
+
   const timestamp = String(Math.floor(Date.now() / 1000))
   const signature = createHmac('sha256', secret).update(`${timestamp}.${body}`).digest('hex')
   headers.set('x-gridex-timestamp', timestamp)
@@ -282,10 +307,71 @@ function isCanonicalStoredPayload(
   )
 }
 
+function publicationRecord(value: unknown): Record<string, unknown> | null {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown> : null
+}
+
+function samePublicationTimestamp(left: unknown, right: unknown): boolean {
+  if (typeof left !== 'string' || typeof right !== 'string') return false
+  const leftTime = Date.parse(left)
+  const rightTime = Date.parse(right)
+  return Number.isFinite(leftTime) && Number.isFinite(rightTime) && leftTime === rightTime
+}
+
+/** Recover only an omitted wire field from the exact immutable originating event. */
+async function restoreOriginalPublicationToken(delivery: WebhookDeliveryRow): Promise<Record<string, unknown>> {
+  const queued = delivery.payload
+  if (queued.event_type !== 'contracts.publication.changed' && delivery.event_type !== 'contracts.publication.changed') return queued
+  if (queued.event_type !== delivery.event_type || delivery.event_type !== 'contracts.publication.changed') {
+    throw new Error('webhook_publication_original_source_identity_mismatch')
+  }
+  const queuedData = publicationRecord(queued.data)
+  if (typeof queuedData?.revision_token === 'string' && queuedData.revision_token.trim()) return queued
+  const { data, error } = await supabaseService.from('domain_events').select('*')
+    .eq('id', delivery.domain_event_id).eq('company_id', delivery.company_id)
+    .eq('event_type', 'contracts.publication.changed').maybeSingle()
+  if (error) throw error
+  if (!data) throw new Error('webhook_publication_original_source_missing')
+  const event = data as DomainEventRow
+  const sourceData = publicationRecord(event.payload)
+  const historicalTenantReference = sourceData?.tenant_reference
+  const token = sourceData?.revision_token
+  if (event.id !== delivery.domain_event_id || event.company_id !== delivery.company_id
+    || event.event_type !== delivery.event_type || event.aggregate_type !== 'contract_publication'
+    || typeof historicalTenantReference !== 'string' || !historicalTenantReference.trim()) {
+    throw new Error('webhook_publication_original_source_identity_mismatch')
+  }
+  if (typeof token !== 'string' || !token.trim()) {
+    throw new Error('webhook_publication_original_revision_token_missing')
+  }
+  const original = buildPublicWebhookPayload(event, historicalTenantReference)
+  const originalAggregate = publicationRecord(original.aggregate)
+  const queuedAggregate = publicationRecord(queued.aggregate)
+  if (!queuedData || !sourceData || queued.event_id !== original.event_id
+    || queued.event_type !== original.event_type
+    || queued.organization_reference !== original.organization_reference
+    || queued.environment !== original.environment
+    || queuedAggregate?.type !== originalAggregate?.type
+    || queuedAggregate?.reference !== originalAggregate?.reference
+    || !samePublicationTimestamp(queued.created_at, event.occurred_at)
+    || queuedData.channel !== sourceData.channel
+    || queuedData.publication_revision !== sourceData.publication_revision
+    || queuedData.reason !== sourceData.reason
+    || !samePublicationTimestamp(queuedData.timestamp, sourceData.timestamp)) {
+    throw new Error('webhook_publication_original_source_identity_mismatch')
+  }
+  // Keep the queue and source event unchanged; no current publication row is read.
+  return { ...queued, data: { ...queuedData, revision_token: token } }
+}
+
 async function publicPayloadForDelivery(
   delivery: WebhookDeliveryRow,
+  surface: 'website' | 'partner' | 'events',
 ): Promise<Record<string, unknown>> {
-  if (isCanonicalStoredPayload(delivery.payload)) return delivery.payload
+  if (isCanonicalStoredPayload(delivery.payload)) {
+    return surface === 'website' ? restoreOriginalPublicationToken(delivery) : delivery.payload
+  }
 
   const { data, error } = await supabaseService
     .from('domain_events')
@@ -300,6 +386,7 @@ async function publicPayloadForDelivery(
   return buildPublicWebhookPayload(
     data as DomainEventRow,
     tenantReference,
+    surface,
   ) as Record<string, unknown>
 }
 
@@ -323,7 +410,12 @@ function partnerWebhookPayload(publicPayload: Record<string, unknown>): Record<s
         }
       : undefined,
     ...(publicPayload.customer ? { customer: publicPayload.customer } : {}),
-    data: publicPayload.data ?? {},
+    // This newly explicit Website publication field was never part of the
+    // Partner legacy wire payload; keep its safety and retry body unchanged.
+    data: publicPayload.event_type === 'contracts.publication.changed'
+      ? Object.fromEntries(Object.entries(publicationRecord(publicPayload.data) ?? {})
+        .filter(([key]) => key !== 'revision_token'))
+      : publicPayload.data ?? {},
     api_version: PARTNER_API_VERSION,
   }
   assertPublicResponsePayload(payload)
@@ -403,7 +495,7 @@ export async function enqueueWebhookDeliveriesForEvent(event: DomainEventRow, op
     max_attempts: subscription.max_attempts,
     target_url: subscription.endpoint_url,
     idempotency_key: `webhook:${subscription.id}:${event.id}`,
-    payload: buildPublicWebhookPayload(event, tenantReference),
+    payload: buildPublicWebhookPayload(event, tenantReference, isPartnerSubscription(subscription) ? 'partner' : 'website'),
   }))
 
   const { error: insertError } = await supabaseService
@@ -552,6 +644,17 @@ export async function dispatchDueWebhookDeliveries(limit = 25) {
   // F45: credential policy is read after the claim, so a revocation that
   // committed before this batch also stops already-queued deliveries.
   const credentialClients = await loadWebhookCredentialClients([...subscriptions.values()])
+  const representationClients = new Map(credentialClients)
+  const independentClientIds = Array.from(new Set([...subscriptions.values()]
+    .filter(subscription => !isPartnerSubscription(subscription)
+      && subscription.api_client_id && !representationClients.has(subscription.api_client_id))
+    .map(subscription => subscription.api_client_id!)))
+  if (independentClientIds.length > 0) {
+    const { data, error } = await supabaseService.from('integration_api_clients')
+      .select('id,company_id,status,revoke_reason,metadata').in('id', independentClientIds)
+    if (error) throw error
+    for (const client of data ?? []) representationClients.set(client.id, client)
+  }
   let sent = 0
   let failed = 0
   let deliveryUncertain = 0
@@ -616,7 +719,15 @@ export async function dispatchDueWebhookDeliveries(limit = 25) {
         locked_by: null,
         target_url: targetUrl,
       })
-      await updateSubscriptionFailure(subscription, deadLetter)
+      try {
+        await updateSubscriptionFailure(subscription, deadLetter)
+      } catch (subscriptionError) {
+        console.error('[webhooks] missing-secret failure persisted but subscription projection failed', {
+          deliveryId: delivery.id,
+          subscriptionId: subscription.id,
+          error: subscriptionError,
+        })
+      }
       failed += 1
       continue
     }
@@ -624,28 +735,41 @@ export async function dispatchDueWebhookDeliveries(limit = 25) {
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), subscription.timeout_ms)
     let providerResponded = false
-    let publicDeliveryId: string | null = null
-    let requestBodyHash: string | null = null
+    // Existing attempt identity/hashes survive representation or configuration failures.
+    let publicDeliveryId: string | null = delivery.public_delivery_id ?? null
+    let requestBodyHash: string | null = delivery.request_body_hash ?? null
     let responseStatus: number | null = null
     let responseBody: string | null = null
 
     try {
-      const storedPayload = await publicPayloadForDelivery(delivery)
+      const storedPayload = await publicPayloadForDelivery(delivery, isPartnerSubscription(subscription) ? 'partner' : 'website')
       const organizationReference = String(storedPayload.organization_reference ?? '')
       if (!organizationReference) throw new Error('webhook_organization_reference_missing')
+      const computedDeliveryId = opaqueReference('delivery', organizationReference, delivery.id)
+      if (publicDeliveryId !== null && publicDeliveryId !== computedDeliveryId) {
+        throw new Error('webhook_delivery_identity_reconciliation_required')
+      }
+      const representationClient = !isPartnerSubscription(subscription) && subscription.api_client_id
+        ? representationClients.get(subscription.api_client_id) ?? null
+        : null
+      if (representationClient && representationClient.company_id !== subscription.company_id) {
+        throw new Error('webhook_api_contract_credential_tenant_mismatch')
+      }
       const publicPayload = isPartnerSubscription(subscription)
-        ? partnerWebhookPayload(storedPayload)
-        : storedPayload
-      publicDeliveryId = opaqueReference(
-        'delivery',
-        organizationReference,
-        delivery.id,
-      )
-      const body = JSON.stringify({
-        ...publicPayload,
-        delivery_id: publicDeliveryId,
-      })
-      requestBodyHash = createHash('sha256').update(body).digest('hex')
+        ? { ...partnerWebhookPayload(storedPayload), delivery_id: computedDeliveryId }
+        : projectWebsiteWebhookResponse(
+          { ...storedPayload, delivery_id: computedDeliveryId },
+          websiteWebhookResponseRevision(representationClient?.metadata),
+        )
+      // Projection precedes the exact UTF8 request-body hash and HMAC. A retry
+      // with prior attempt evidence never silently sends a different body.
+      const body = JSON.stringify(publicPayload)
+      const computedRequestBodyHash = createHash('sha256').update(body, 'utf8').digest('hex')
+      if (requestBodyHash !== null && requestBodyHash !== computedRequestBodyHash) {
+        throw new Error('webhook_representation_reconciliation_required')
+      }
+      publicDeliveryId = computedDeliveryId
+      requestBodyHash = computedRequestBodyHash
 
       const transportDecision = await getTenantOperationDecision(delivery.company_id, 'webhook.deliver')
       if (!transportDecision.allowed) {

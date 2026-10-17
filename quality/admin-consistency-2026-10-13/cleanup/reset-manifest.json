@@ -1,0 +1,4099 @@
+{
+  "schema_version": 1,
+  "scope": "explicit user-authorized full customer flow reset; root executes live only",
+  "roots": [
+    "customer_application_intakes",
+    "customers",
+    "external_contract_intakes",
+    "forecast_runs",
+    "website_customer_applications"
+  ],
+  "reset_candidates": [
+    {
+      "table": "ai_list_discrepancies",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "ai_list_import_rows",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "ai_list_imports",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "authorization_scopes",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "bidding_zone_monthly_metrics",
+      "expected_from_prior_read": 48,
+      "review": "customer operational graph or derived read model",
+      "action": "needs_fresh_fingerprint"
+    },
+    {
+      "table": "billing_adjustment_cases",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "billing_export_run_items",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "billing_underlay_events",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "billing_underlay_items",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "billing_underlays",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "canonical_energy_flow_events",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "communication_log_events",
+      "expected_from_prior_read": 0,
+      "review": "classify mixed producer rows before targeting",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "communication_logs",
+      "expected_from_prior_read": 0,
+      "review": "classify mixed producer rows before targeting",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "company_monthly_metrics",
+      "expected_from_prior_read": 12,
+      "review": "customer operational graph or derived read model",
+      "action": "needs_fresh_fingerprint"
+    },
+    {
+      "table": "contract_charge_ledger",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "contract_price_snapshots",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_addresses",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_application_intakes",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_application_provisioning_steps",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_application_workflow_events",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_application_workflows",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_authorization_documents",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_billing_profile_revisions",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_blockers",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_case_attachments",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_case_events",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_cases",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_communication_events",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_communications",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_contacts",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_contract_acceptances",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_contract_confirmation_deliveries",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_contract_documents",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_contract_events",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_contract_evidence",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_contract_signature_requests",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_contracts",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_correction_requests",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_data_tasks",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_documents",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_duplicate_resolution_events",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_events",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_identity_change_events",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_identity_change_requests",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_info_request_events",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_info_requests",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_internal_notes",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_invoice_documents",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_invoice_lines",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_invoices",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_legal_acceptances",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_lifecycle_decisions",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_lifecycle_events",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_match_review_cases",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_monthly_metrics",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_notifications",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_onboarding_applications",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_onboarding_legal_snapshots",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_onboarding_operations",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_operation_events",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_operation_jobs",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_operation_request_snapshots",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_operation_tasks",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_portal_accounts",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_portal_api_access_logs",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_portal_claims",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_portal_completions",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_portal_events",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_portal_identities",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_portal_requests",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_portal_write_idempotency",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_portfolio_forecast_snapshots",
+      "expected_from_prior_read": 72,
+      "review": "customer operational graph or derived read model",
+      "action": "needs_fresh_fingerprint"
+    },
+    {
+      "table": "customer_readiness_snapshots",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_site_address_conflicts",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_site_address_history",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_site_resolution",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_sites",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customer_supply_periods",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "customers",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "dashboard_alerts",
+      "expected_from_prior_read": 350,
+      "review": "customer operational graph or derived read model",
+      "action": "needs_fresh_fingerprint"
+    },
+    {
+      "table": "data_quality_issues",
+      "expected_from_prior_read": 18,
+      "review": "customer operational graph or derived read model",
+      "action": "needs_fresh_fingerprint"
+    },
+    {
+      "table": "document_ai_extractions",
+      "expected_from_prior_read": 0,
+      "review": "classify mixed producer rows before targeting",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "domain_events",
+      "expected_from_prior_read": 0,
+      "review": "classify mixed producer rows before targeting",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "ediel_ack_chains",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "ediel_ack_lifecycle",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "ediel_ack_transaction_results",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "ediel_assignment_permission_links",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "ediel_business_correlations",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "ediel_business_errors",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "ediel_business_expectations",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "ediel_business_references",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "ediel_data_access_grants",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "ediel_decision_traces",
+      "expected_from_prior_read": 0,
+      "review": "classify mixed producer rows before targeting",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "ediel_engine_runs",
+      "expected_from_prior_read": 0,
+      "review": "classify mixed producer rows before targeting",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "ediel_inbound_cases",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "ediel_masterdata_reconciliation_items",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "ediel_match_candidates",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "ediel_message_events",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "ediel_message_intents",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "ediel_message_validation_issues",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "ediel_messages",
+      "expected_from_prior_read": 0,
+      "review": "classify mixed producer rows before targeting",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "ediel_outbound_queue",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "ediel_outbox",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "ediel_permission_cases",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "ediel_permission_events",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "ediel_portal_validation_feedback",
+      "expected_from_prior_read": 0,
+      "review": "classify mixed producer rows before targeting",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "ediel_process_links",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "ediel_processing_runs",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "ediel_routing_decisions",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "ediel_rule_pack_backfill_issues",
+      "expected_from_prior_read": 0,
+      "review": "classify mixed producer rows before targeting",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "ediel_rule_pack_snapshots",
+      "expected_from_prior_read": 0,
+      "review": "classify mixed producer rows before targeting",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "ediel_service_assignments",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "ediel_service_evidence",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "ediel_sla_timers",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "ediel_unresolved_items",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "energy_service_permissions",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "event_outbox",
+      "expected_from_prior_read": 0,
+      "review": "classify mixed producer rows before targeting",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "external_contract_intakes",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "facility_data_quality_issues",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "forecast_adjustments",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "forecast_run_items",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "forecast_runs",
+      "expected_from_prior_read": 38,
+      "review": "customer operational graph or derived read model",
+      "action": "needs_fresh_fingerprint"
+    },
+    {
+      "table": "grid_owner_data_requests",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "grid_owner_information_requests",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "grid_owner_monthly_metrics",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "inbound_operation_events",
+      "expected_from_prior_read": 1,
+      "review": "classify mixed producer rows before targeting",
+      "action": "needs_fresh_fingerprint"
+    },
+    {
+      "table": "invoice_documents",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "invoice_export_attempts",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "invoice_export_items",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "invoice_provider_events",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "invoice_purchase_events",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "manual_email_outbox",
+      "expected_from_prior_read": 0,
+      "review": "classify mixed producer rows before targeting",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "manual_inbound_messages",
+      "expected_from_prior_read": 0,
+      "review": "classify mixed producer rows before targeting",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "meter_reading_series",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "meter_reading_values",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "metering_period_gaps",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "metering_permission_sites",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "metering_permissions",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "metering_point_monthly_consumption",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "metering_points",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "metering_requirements",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "metering_value_batches",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "metering_value_errors",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "metering_value_sources",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "metering_values",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "normalized_metering_values",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "outbound_dispatch_events",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "outbound_requests",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "partner_exports",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "platform_customer_relationship_observations",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "platform_data_quality_issues",
+      "expected_from_prior_read": 0,
+      "review": "classify mixed producer rows before targeting",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "portfolio_settlement_invoice_bindings",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "power_of_attorney_scopes",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "powers_of_attorney",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "pricing_interval_evidence",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "pricing_preview_lines",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "pricing_run_items",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "pricing_runs",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "route_decision_logs",
+      "expected_from_prior_read": 0,
+      "review": "classify mixed producer rows before targeting",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "supplier_switch_events",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "supplier_switch_requests",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "tenant_email_outbox",
+      "expected_from_prior_read": 0,
+      "review": "classify mixed producer rows before targeting",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "tenant_portal_customer_links",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "webhook_deliveries",
+      "expected_from_prior_read": 0,
+      "review": "classify mixed producer rows before targeting",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "website_application_review_items",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "website_contract_quotes",
+      "expected_from_prior_read": 0,
+      "review": "customer operational graph or derived read model",
+      "action": "assert empty unless fresh evidence changes scope"
+    },
+    {
+      "table": "website_customer_applications",
+      "expected_from_prior_read": 1,
+      "review": "customer operational graph or derived read model",
+      "action": "needs_fresh_fingerprint"
+    }
+  ],
+  "preserve_technical_tables": [
+    "actor_test_attempt_evidence",
+    "actor_test_attempts",
+    "actor_test_manual_attestations",
+    "ediel_test_artifacts",
+    "ediel_test_run_messages",
+    "ediel_test_run_steps",
+    "ediel_test_runs"
+  ],
+  "preserve_technical_rule": "preserve whole technical test tables; abort if current customer-flow rows require touching preserved proofs",
+  "preserve_immutable_admin_tables": [
+    "audit_logs",
+    "platform_usage_events",
+    "platform_usage_event_failures"
+  ],
+  "preserve_reference_rule": "preserve companies/users/roles/memberships/integration clients/profiles/credentials, Ediel actors/rules/profiles/configuration, contract/product offers and price/reference master data",
+  "fk_edges_between_candidates": [
+    {
+      "child": "ai_list_discrepancies",
+      "constraint": "ai_list_discrepancies_import_id_fkey",
+      "columns": "import_id",
+      "parent": "ai_list_imports",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "ai_list_discrepancies",
+      "constraint": "ai_list_discrepancies_import_row_id_fkey",
+      "columns": "import_row_id",
+      "parent": "ai_list_import_rows",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "ai_list_import_rows",
+      "constraint": "ai_list_import_rows_import_id_fkey",
+      "columns": "import_id",
+      "parent": "ai_list_imports",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "ai_list_import_rows",
+      "constraint": "ai_list_import_rows_matched_customer_id_fkey",
+      "columns": "matched_customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "ai_list_import_rows",
+      "constraint": "ai_list_import_rows_matched_customer_site_id_fkey",
+      "columns": "matched_customer_site_id",
+      "parent": "customer_sites",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "ai_list_import_rows",
+      "constraint": "ai_list_import_rows_matched_metering_point_id_fkey",
+      "columns": "matched_metering_point_id",
+      "parent": "metering_points",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "ai_list_imports",
+      "constraint": "ai_list_imports_source_ediel_message_id_fkey",
+      "columns": "source_ediel_message_id",
+      "parent": "ediel_messages",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "authorization_scopes",
+      "constraint": "authorization_scopes_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE CASCADE"
+    },
+    {
+      "child": "authorization_scopes",
+      "constraint": "authorization_scopes_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "authorization_scopes",
+      "constraint": "authorization_scopes_legal_snapshot_id_fkey",
+      "columns": "legal_snapshot_id",
+      "parent": "customer_onboarding_legal_snapshots",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "billing_adjustment_cases",
+      "constraint": "billing_adjustment_cases_corrected_billing_underlay_id_fkey",
+      "columns": "corrected_billing_underlay_id",
+      "parent": "billing_underlays",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "billing_adjustment_cases",
+      "constraint": "billing_adjustment_cases_original_billing_underlay_id_fkey",
+      "columns": "original_billing_underlay_id",
+      "parent": "billing_underlays",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "billing_export_run_items",
+      "constraint": "billing_export_run_items_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "billing_underlay_events",
+      "constraint": "billing_underlay_events_billing_underlay_id_fkey",
+      "columns": "billing_underlay_id",
+      "parent": "billing_underlays",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "billing_underlay_items",
+      "constraint": "billing_underlay_items_billing_underlay_id_fkey",
+      "columns": "billing_underlay_id",
+      "parent": "billing_underlays",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "billing_underlay_items",
+      "constraint": "billing_underlay_items_company_contract_fkey",
+      "columns": "company_id, contract_id",
+      "parent": "customer_contracts",
+      "parent_columns": "company_id, id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "billing_underlay_items",
+      "constraint": "billing_underlay_items_company_underlay_fkey",
+      "columns": "company_id, billing_underlay_id",
+      "parent": "billing_underlays",
+      "parent_columns": "company_id, id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "billing_underlay_items",
+      "constraint": "billing_underlay_items_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "billing_underlay_items",
+      "constraint": "billing_underlay_items_meter_value_id_fkey",
+      "columns": "meter_value_id",
+      "parent": "metering_values",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "billing_underlays",
+      "constraint": "billing_underlays_company_customer_contract_fkey",
+      "columns": "company_id, customer_contract_id",
+      "parent": "customer_contracts",
+      "parent_columns": "company_id, id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "billing_underlays",
+      "constraint": "billing_underlays_company_customer_fkey",
+      "columns": "company_id, customer_id",
+      "parent": "customers",
+      "parent_columns": "company_id, id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "billing_underlays",
+      "constraint": "billing_underlays_company_meter_fkey",
+      "columns": "company_id, metering_point_id",
+      "parent": "metering_points",
+      "parent_columns": "company_id, id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "billing_underlays",
+      "constraint": "billing_underlays_company_site_fkey",
+      "columns": "company_id, site_id",
+      "parent": "customer_sites",
+      "parent_columns": "company_id, id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "billing_underlays",
+      "constraint": "billing_underlays_company_snapshot_fkey",
+      "columns": "company_id, contract_price_snapshot_id",
+      "parent": "contract_price_snapshots",
+      "parent_columns": "company_id, id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "billing_underlays",
+      "constraint": "billing_underlays_contract_price_snapshot_id_fkey",
+      "columns": "contract_price_snapshot_id",
+      "parent": "contract_price_snapshots",
+      "parent_columns": "id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "canonical_energy_flow_events",
+      "constraint": "canonical_energy_flow_events_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE CASCADE"
+    },
+    {
+      "child": "canonical_energy_flow_events",
+      "constraint": "canonical_energy_flow_events_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "canonical_energy_flow_events",
+      "constraint": "canonical_energy_flow_events_metering_point_id_fkey",
+      "columns": "metering_point_id",
+      "parent": "metering_points",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "canonical_energy_flow_events",
+      "constraint": "canonical_energy_flow_events_quote_id_fkey",
+      "columns": "quote_id",
+      "parent": "website_contract_quotes",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "canonical_energy_flow_events",
+      "constraint": "canonical_energy_flow_events_resolution_id_fkey",
+      "columns": "resolution_id",
+      "parent": "customer_site_resolution",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "communication_log_events",
+      "constraint": "communication_log_events_communication_log_id_fkey",
+      "columns": "communication_log_id",
+      "parent": "communication_logs",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "communication_logs",
+      "constraint": "communication_logs_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "contract_charge_ledger",
+      "constraint": "contract_charge_ledger_company_contract_fkey",
+      "columns": "company_id, customer_contract_id",
+      "parent": "customer_contracts",
+      "parent_columns": "company_id, id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "contract_charge_ledger",
+      "constraint": "contract_charge_ledger_company_invoice_fkey",
+      "columns": "company_id, invoice_id",
+      "parent": "customer_invoices",
+      "parent_columns": "company_id, id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "contract_charge_ledger",
+      "constraint": "contract_charge_ledger_customer_contract_id_fkey",
+      "columns": "customer_contract_id",
+      "parent": "customer_contracts",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "contract_charge_ledger",
+      "constraint": "contract_charge_ledger_pricing_run_fk",
+      "columns": "pricing_run_id",
+      "parent": "pricing_runs",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "contract_price_snapshots",
+      "constraint": "contract_price_snapshots_company_contract_fkey",
+      "columns": "company_id, contract_id",
+      "parent": "customer_contracts",
+      "parent_columns": "company_id, id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "contract_price_snapshots",
+      "constraint": "contract_price_snapshots_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "customer_addresses",
+      "constraint": "customer_addresses_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_addresses",
+      "constraint": "customer_addresses_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "customer_application_intakes",
+      "constraint": "customer_application_intakes_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_application_intakes",
+      "constraint": "customer_application_intakes_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "customer_application_provisioning_steps",
+      "constraint": "customer_application_provisioning__customer_application_id_fkey",
+      "columns": "customer_application_id",
+      "parent": "website_customer_applications",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_application_workflow_events",
+      "constraint": "customer_application_workflow_even_customer_application_id_fkey",
+      "columns": "customer_application_id",
+      "parent": "website_customer_applications",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_application_workflow_events",
+      "constraint": "customer_application_workflow_events_workflow_id_fkey",
+      "columns": "workflow_id",
+      "parent": "customer_application_workflows",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_application_workflows",
+      "constraint": "customer_application_workflows_contract_id_fkey",
+      "columns": "contract_id",
+      "parent": "customer_contracts",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "customer_application_workflows",
+      "constraint": "customer_application_workflows_customer_application_id_fkey",
+      "columns": "customer_application_id",
+      "parent": "website_customer_applications",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_application_workflows",
+      "constraint": "customer_application_workflows_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_application_workflows",
+      "constraint": "customer_application_workflows_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_application_workflows",
+      "constraint": "customer_application_workflows_customer_site_id_fkey",
+      "columns": "customer_site_id",
+      "parent": "customer_sites",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "customer_application_workflows",
+      "constraint": "customer_application_workflows_last_job_fk",
+      "columns": "last_job_id",
+      "parent": "customer_operation_jobs",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "customer_application_workflows",
+      "constraint": "customer_application_workflows_metering_point_id_fkey",
+      "columns": "metering_point_id",
+      "parent": "metering_points",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "customer_authorization_documents",
+      "constraint": "customer_authorization_documents_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_authorization_documents",
+      "constraint": "customer_authorization_documents_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "customer_billing_profile_revisions",
+      "constraint": "customer_billing_profile_revisions_company_customer_fkey",
+      "columns": "company_id, customer_id",
+      "parent": "customers",
+      "parent_columns": "company_id, id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_blockers",
+      "constraint": "customer_blockers_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_blockers",
+      "constraint": "customer_blockers_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_case_attachments",
+      "constraint": "customer_case_attachments_case_owner_fk",
+      "columns": "customer_case_id, company_id, customer_id",
+      "parent": "customer_cases",
+      "parent_columns": "id, company_id, customer_id",
+      "delete_action": "ON DELETE CASCADE DEFERRABLE"
+    },
+    {
+      "child": "customer_case_attachments",
+      "constraint": "customer_case_attachments_company_customer_fkey",
+      "columns": "company_id, customer_id",
+      "parent": "customers",
+      "parent_columns": "company_id, id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "customer_case_events",
+      "constraint": "customer_case_events_case_owner_fk",
+      "columns": "customer_case_id, company_id, customer_id",
+      "parent": "customer_cases",
+      "parent_columns": "id, company_id, customer_id",
+      "delete_action": "ON DELETE CASCADE DEFERRABLE"
+    },
+    {
+      "child": "customer_case_events",
+      "constraint": "customer_case_events_customer_case_id_fkey",
+      "columns": "customer_case_id",
+      "parent": "customer_cases",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_case_events",
+      "constraint": "customer_case_events_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_case_events",
+      "constraint": "customer_case_events_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_cases",
+      "constraint": "customer_cases_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_cases",
+      "constraint": "customer_cases_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_communications",
+      "constraint": "customer_communications_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "customer_contacts",
+      "constraint": "customer_contacts_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_contacts",
+      "constraint": "customer_contacts_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "customer_contract_acceptances",
+      "constraint": "customer_contract_acceptances_customer_contract_id_fkey",
+      "columns": "customer_contract_id",
+      "parent": "customer_contracts",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "customer_contract_confirmation_deliveries",
+      "constraint": "customer_contract_confirmation_delive_signature_request_id_fkey",
+      "columns": "signature_request_id",
+      "parent": "customer_contract_signature_requests",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "customer_contract_documents",
+      "constraint": "customer_contract_documents_customer_contract_id_fkey",
+      "columns": "customer_contract_id",
+      "parent": "customer_contracts",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "customer_contract_events",
+      "constraint": "customer_contract_events_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "customer_contract_evidence",
+      "constraint": "customer_contract_evidence_customer_contract_id_fkey",
+      "columns": "customer_contract_id",
+      "parent": "customer_contracts",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "customer_contract_signature_requests",
+      "constraint": "customer_contract_signature_requests_contract_tenant_fk",
+      "columns": "company_id, customer_contract_id",
+      "parent": "customer_contracts",
+      "parent_columns": "company_id, id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "customer_contract_signature_requests",
+      "constraint": "customer_contract_signature_requests_customer_contract_id_fkey",
+      "columns": "customer_contract_id",
+      "parent": "customer_contracts",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "customer_contract_signature_requests",
+      "constraint": "customer_contract_signature_requests_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "customer_contract_signature_requests",
+      "constraint": "customer_contract_signature_requests_customer_tenant_fk",
+      "columns": "company_id, customer_id",
+      "parent": "customers",
+      "parent_columns": "company_id, id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "customer_contracts",
+      "constraint": "customer_contracts_company_customer_customer_site_rel_fkey",
+      "columns": "company_id, customer_id, customer_site_id",
+      "parent": "customer_sites",
+      "parent_columns": "company_id, customer_id, id",
+      "delete_action": "DEFERRABLE"
+    },
+    {
+      "child": "customer_contracts",
+      "constraint": "customer_contracts_company_customer_fkey",
+      "columns": "company_id, customer_id",
+      "parent": "customers",
+      "parent_columns": "company_id, id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "customer_contracts",
+      "constraint": "customer_contracts_company_customer_site_rel_fkey",
+      "columns": "company_id, customer_id, site_id",
+      "parent": "customer_sites",
+      "parent_columns": "company_id, customer_id, id",
+      "delete_action": "DEFERRABLE"
+    },
+    {
+      "child": "customer_contracts",
+      "constraint": "customer_contracts_company_meter_fkey",
+      "columns": "company_id, metering_point_id",
+      "parent": "metering_points",
+      "parent_columns": "company_id, id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "customer_contracts",
+      "constraint": "customer_contracts_company_site_alias_fkey",
+      "columns": "company_id, site_id",
+      "parent": "customer_sites",
+      "parent_columns": "company_id, id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "customer_contracts",
+      "constraint": "customer_contracts_company_site_fkey",
+      "columns": "company_id, customer_site_id",
+      "parent": "customer_sites",
+      "parent_columns": "company_id, id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "customer_contracts",
+      "constraint": "customer_contracts_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "customer_correction_requests",
+      "constraint": "customer_correction_requests_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_correction_requests",
+      "constraint": "customer_correction_requests_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_correction_requests",
+      "constraint": "customer_correction_requests_customer_site_id_fkey",
+      "columns": "customer_site_id",
+      "parent": "customer_sites",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "customer_data_tasks",
+      "constraint": "customer_data_tasks_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "customer_documents",
+      "constraint": "customer_documents_contract_id_fkey",
+      "columns": "contract_id",
+      "parent": "customer_contracts",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "customer_documents",
+      "constraint": "customer_documents_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "customer_duplicate_resolution_events",
+      "constraint": "customer_duplicate_resolution_events_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "customer_events",
+      "constraint": "customer_events_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_events",
+      "constraint": "customer_events_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "customer_events",
+      "constraint": "customer_events_portal_identity_id_fkey",
+      "columns": "portal_identity_id",
+      "parent": "customer_portal_identities",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "customer_identity_change_events",
+      "constraint": "customer_identity_change_events_company_customer_fkey",
+      "columns": "company_id, customer_id",
+      "parent": "customers",
+      "parent_columns": "company_id, id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "customer_identity_change_events",
+      "constraint": "customer_identity_change_events_request_id_fkey",
+      "columns": "request_id",
+      "parent": "customer_identity_change_requests",
+      "parent_columns": "id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "customer_identity_change_requests",
+      "constraint": "customer_identity_change_requests_company_customer_fkey",
+      "columns": "company_id, customer_id",
+      "parent": "customers",
+      "parent_columns": "company_id, id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "customer_info_request_events",
+      "constraint": "customer_info_request_events_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_info_request_events",
+      "constraint": "customer_info_request_events_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_info_request_events",
+      "constraint": "customer_info_request_events_customer_info_request_id_fkey",
+      "columns": "customer_info_request_id",
+      "parent": "customer_info_requests",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_info_requests",
+      "constraint": "customer_info_requests_company_customer_site_rel_fkey",
+      "columns": "company_id, customer_id, site_id",
+      "parent": "customer_sites",
+      "parent_columns": "company_id, customer_id, id",
+      "delete_action": "DEFERRABLE"
+    },
+    {
+      "child": "customer_info_requests",
+      "constraint": "customer_info_requests_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_info_requests",
+      "constraint": "customer_info_requests_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_internal_notes",
+      "constraint": "customer_internal_notes_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_internal_notes",
+      "constraint": "customer_internal_notes_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "customer_invoice_documents",
+      "constraint": "customer_invoice_documents_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "customer_invoice_lines",
+      "constraint": "customer_invoice_lines_company_invoice_fkey",
+      "columns": "company_id, invoice_id",
+      "parent": "customer_invoices",
+      "parent_columns": "company_id, id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "customer_invoice_lines",
+      "constraint": "customer_invoice_lines_company_snapshot_fkey",
+      "columns": "company_id, contract_price_snapshot_id",
+      "parent": "contract_price_snapshots",
+      "parent_columns": "company_id, id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "customer_invoice_lines",
+      "constraint": "customer_invoice_lines_contract_price_snapshot_id_fkey",
+      "columns": "contract_price_snapshot_id",
+      "parent": "contract_price_snapshots",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "customer_invoice_lines",
+      "constraint": "customer_invoice_lines_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "customer_invoice_lines",
+      "constraint": "customer_invoice_lines_source_invoice_line_id_fkey",
+      "columns": "source_invoice_line_id",
+      "parent": "customer_invoice_lines",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "customer_invoices",
+      "constraint": "customer_invoices_company_customer_contract_fkey",
+      "columns": "company_id, customer_contract_id",
+      "parent": "customer_contracts",
+      "parent_columns": "company_id, id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "customer_invoices",
+      "constraint": "customer_invoices_company_customer_fkey",
+      "columns": "company_id, customer_id",
+      "parent": "customers",
+      "parent_columns": "company_id, id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "customer_invoices",
+      "constraint": "customer_invoices_company_export_item_fkey",
+      "columns": "company_id, partner_export_id",
+      "parent": "invoice_export_items",
+      "parent_columns": "company_id, id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "customer_invoices",
+      "constraint": "customer_invoices_company_invoice_export_item_fkey",
+      "columns": "company_id, invoice_export_item_id",
+      "parent": "invoice_export_items",
+      "parent_columns": "company_id, id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "customer_invoices",
+      "constraint": "customer_invoices_company_underlay_fkey",
+      "columns": "company_id, billing_underlay_id",
+      "parent": "billing_underlays",
+      "parent_columns": "company_id, id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "customer_invoices",
+      "constraint": "customer_invoices_contract_id_fkey",
+      "columns": "contract_id",
+      "parent": "customer_contracts",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "customer_invoices",
+      "constraint": "customer_invoices_customer_contract_id_fkey",
+      "columns": "customer_contract_id",
+      "parent": "customer_contracts",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "customer_legal_acceptances",
+      "constraint": "customer_legal_acceptances_contract_id_fkey",
+      "columns": "contract_id",
+      "parent": "customer_contracts",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "customer_legal_acceptances",
+      "constraint": "customer_legal_acceptances_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_legal_acceptances",
+      "constraint": "customer_legal_acceptances_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_lifecycle_decisions",
+      "constraint": "customer_lifecycle_decisions_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "customer_lifecycle_events",
+      "constraint": "customer_lifecycle_events_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_match_review_cases",
+      "constraint": "customer_match_review_cases_onboarding_operation_id_fkey",
+      "columns": "onboarding_operation_id",
+      "parent": "customer_onboarding_operations",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_match_review_cases",
+      "constraint": "customer_match_review_cases_resolved_customer_id_fkey",
+      "columns": "resolved_customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "customer_monthly_metrics",
+      "constraint": "customer_monthly_metrics_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_monthly_metrics",
+      "constraint": "customer_monthly_metrics_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "customer_notifications",
+      "constraint": "customer_notifications_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_notifications",
+      "constraint": "customer_notifications_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_onboarding_applications",
+      "constraint": "customer_onboarding_applications_contract_id_fkey",
+      "columns": "contract_id",
+      "parent": "customer_contracts",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "customer_onboarding_applications",
+      "constraint": "customer_onboarding_applications_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_onboarding_applications",
+      "constraint": "customer_onboarding_applications_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "customer_onboarding_applications",
+      "constraint": "customer_onboarding_applications_customer_site_id_fkey",
+      "columns": "customer_site_id",
+      "parent": "customer_sites",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "customer_onboarding_applications",
+      "constraint": "customer_onboarding_applications_metering_point_id_fkey",
+      "columns": "metering_point_id",
+      "parent": "metering_points",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "customer_onboarding_applications",
+      "constraint": "customer_onboarding_applications_onboarding_operation_id_fkey",
+      "columns": "onboarding_operation_id",
+      "parent": "customer_onboarding_operations",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_onboarding_legal_snapshots",
+      "constraint": "customer_onboarding_legal_snapshot_onboarding_operation_id_fkey",
+      "columns": "onboarding_operation_id",
+      "parent": "customer_onboarding_operations",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "customer_onboarding_legal_snapshots",
+      "constraint": "customer_onboarding_legal_snapshots_contract_id_fkey",
+      "columns": "contract_id",
+      "parent": "customer_contracts",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "customer_onboarding_legal_snapshots",
+      "constraint": "customer_onboarding_legal_snapshots_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_onboarding_legal_snapshots",
+      "constraint": "customer_onboarding_legal_snapshots_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "customer_onboarding_legal_snapshots",
+      "constraint": "customer_onboarding_legal_snapshots_power_of_attorney_id_fkey",
+      "columns": "power_of_attorney_id",
+      "parent": "powers_of_attorney",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "customer_operation_events",
+      "constraint": "customer_operation_events_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_operation_events",
+      "constraint": "customer_operation_events_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_operation_events",
+      "constraint": "customer_operation_events_customer_operation_job_id_fkey",
+      "columns": "customer_operation_job_id",
+      "parent": "customer_operation_jobs",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "customer_operation_events",
+      "constraint": "customer_operation_events_customer_site_id_fkey",
+      "columns": "customer_site_id",
+      "parent": "customer_sites",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "customer_operation_events",
+      "constraint": "customer_operation_events_metering_point_id_fkey",
+      "columns": "metering_point_id",
+      "parent": "metering_points",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "customer_operation_jobs",
+      "constraint": "customer_operation_jobs_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_operation_jobs",
+      "constraint": "customer_operation_jobs_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_operation_jobs",
+      "constraint": "customer_operation_jobs_customer_site_id_fkey",
+      "columns": "customer_site_id",
+      "parent": "customer_sites",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_operation_jobs",
+      "constraint": "customer_operation_jobs_metering_point_id_fkey",
+      "columns": "metering_point_id",
+      "parent": "metering_points",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "customer_operation_jobs",
+      "constraint": "customer_operation_jobs_workflow_id_fkey",
+      "columns": "workflow_id",
+      "parent": "customer_application_workflows",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_operation_request_snapshots",
+      "constraint": "customer_operation_request_snaps_customer_operation_job_id_fkey",
+      "columns": "customer_operation_job_id",
+      "parent": "customer_operation_jobs",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "customer_operation_request_snapshots",
+      "constraint": "customer_operation_request_snapshots_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_operation_request_snapshots",
+      "constraint": "customer_operation_request_snapshots_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_operation_request_snapshots",
+      "constraint": "customer_operation_request_snapshots_customer_site_id_fkey",
+      "columns": "customer_site_id",
+      "parent": "customer_sites",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_operation_request_snapshots",
+      "constraint": "customer_operation_request_snapshots_metering_point_id_fkey",
+      "columns": "metering_point_id",
+      "parent": "metering_points",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "customer_operation_tasks",
+      "constraint": "customer_operation_tasks_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "customer_portal_accounts",
+      "constraint": "customer_portal_accounts_company_customer_fkey",
+      "columns": "company_id, customer_id",
+      "parent": "customers",
+      "parent_columns": "company_id, id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "customer_portal_api_access_logs",
+      "constraint": "customer_portal_api_access_logs_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_portal_api_access_logs",
+      "constraint": "customer_portal_api_access_logs_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "customer_portal_api_access_logs",
+      "constraint": "customer_portal_api_access_logs_portal_identity_id_fkey",
+      "columns": "portal_identity_id",
+      "parent": "customer_portal_identities",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "customer_portal_claims",
+      "constraint": "customer_portal_claims_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "customer_portal_completions",
+      "constraint": "customer_portal_completions_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_portal_completions",
+      "constraint": "customer_portal_completions_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_portal_events",
+      "constraint": "customer_portal_events_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "customer_portal_identities",
+      "constraint": "customer_portal_identities_company_customer_fkey",
+      "columns": "company_id, customer_id",
+      "parent": "customers",
+      "parent_columns": "company_id, id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "customer_portal_identities",
+      "constraint": "customer_portal_identities_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_portal_requests",
+      "constraint": "customer_portal_requests_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_portal_requests",
+      "constraint": "customer_portal_requests_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_portal_write_idempotency",
+      "constraint": "customer_portal_write_idempotency_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_portal_write_idempotency",
+      "constraint": "customer_portal_write_idempotency_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_readiness_snapshots",
+      "constraint": "customer_readiness_snapshots_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "customer_site_address_conflicts",
+      "constraint": "customer_site_address_conflicts_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_site_address_conflicts",
+      "constraint": "customer_site_address_conflicts_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_site_address_conflicts",
+      "constraint": "customer_site_address_conflicts_customer_site_id_fkey",
+      "columns": "customer_site_id",
+      "parent": "customer_sites",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_site_address_history",
+      "constraint": "customer_site_address_history_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_site_address_history",
+      "constraint": "customer_site_address_history_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_site_address_history",
+      "constraint": "customer_site_address_history_customer_site_id_fkey",
+      "columns": "customer_site_id",
+      "parent": "customer_sites",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_site_resolution",
+      "constraint": "customer_site_resolution_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_site_resolution",
+      "constraint": "customer_site_resolution_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_site_resolution",
+      "constraint": "customer_site_resolution_customer_site_id_fkey",
+      "columns": "customer_site_id",
+      "parent": "customer_sites",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "customer_sites",
+      "constraint": "customer_sites_company_customer_fk",
+      "columns": "company_id, customer_id",
+      "parent": "customers",
+      "parent_columns": "company_id, id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "customer_sites",
+      "constraint": "customer_sites_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "customer_sites",
+      "constraint": "customer_sites_customer_site_id_self_fk",
+      "columns": "customer_site_id",
+      "parent": "customer_sites",
+      "parent_columns": "id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "customer_supply_periods",
+      "constraint": "customer_supply_periods_company_contract_fkey",
+      "columns": "company_id, contract_id",
+      "parent": "customer_contracts",
+      "parent_columns": "company_id, id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "customer_supply_periods",
+      "constraint": "customer_supply_periods_company_customer_contract_fkey",
+      "columns": "company_id, customer_contract_id",
+      "parent": "customer_contracts",
+      "parent_columns": "company_id, id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "customer_supply_periods",
+      "constraint": "customer_supply_periods_company_customer_fkey",
+      "columns": "company_id, customer_id",
+      "parent": "customers",
+      "parent_columns": "company_id, id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "customer_supply_periods",
+      "constraint": "customer_supply_periods_company_meter_fkey",
+      "columns": "company_id, metering_point_id",
+      "parent": "metering_points",
+      "parent_columns": "company_id, id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "customer_supply_periods",
+      "constraint": "customer_supply_periods_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "customer_supply_periods",
+      "constraint": "customer_supply_periods_metering_point_id_fkey",
+      "columns": "metering_point_id",
+      "parent": "metering_points",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "customer_supply_periods",
+      "constraint": "customer_supply_periods_source_end_message_id_fkey",
+      "columns": "source_end_message_id",
+      "parent": "ediel_messages",
+      "parent_columns": "id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "customer_supply_periods",
+      "constraint": "customer_supply_periods_source_message_id_fkey",
+      "columns": "source_message_id",
+      "parent": "ediel_messages",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "customers",
+      "constraint": "customers_merged_into_customer_id_fkey",
+      "columns": "merged_into_customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "document_ai_extractions",
+      "constraint": "document_ai_extractions_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "domain_events",
+      "constraint": "domain_events_subject_customer_id_fkey",
+      "columns": "subject_customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "ediel_ack_chains",
+      "constraint": "ediel_ack_chains_ack_message_id_fkey",
+      "columns": "ack_message_id",
+      "parent": "ediel_messages",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "ediel_ack_chains",
+      "constraint": "ediel_ack_chains_source_message_id_fkey",
+      "columns": "source_message_id",
+      "parent": "ediel_messages",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "ediel_ack_lifecycle",
+      "constraint": "ediel_ack_lifecycle_ack_message_id_fkey",
+      "columns": "ack_message_id",
+      "parent": "ediel_messages",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "ediel_ack_lifecycle",
+      "constraint": "ediel_ack_lifecycle_source_message_id_fkey",
+      "columns": "source_message_id",
+      "parent": "ediel_messages",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "ediel_ack_transaction_results",
+      "constraint": "ediel_ack_transaction_results_persisted_series_id_fkey",
+      "columns": "persisted_series_id",
+      "parent": "meter_reading_series",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "ediel_ack_transaction_results",
+      "constraint": "ediel_ack_transaction_results_response_message_id_fkey",
+      "columns": "response_message_id",
+      "parent": "ediel_messages",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "ediel_ack_transaction_results",
+      "constraint": "ediel_ack_transaction_results_source_message_id_fkey",
+      "columns": "source_message_id",
+      "parent": "ediel_messages",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "ediel_assignment_permission_links",
+      "constraint": "ediel_assignment_permission_links_company_id_assignment_id_fkey",
+      "columns": "company_id, assignment_id",
+      "parent": "ediel_service_assignments",
+      "parent_columns": "company_id, id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "ediel_assignment_permission_links",
+      "constraint": "ediel_assignment_permission_links_company_id_permission_id_fkey",
+      "columns": "company_id, permission_id",
+      "parent": "metering_permissions",
+      "parent_columns": "company_id, id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "ediel_business_correlations",
+      "constraint": "ediel_business_correlations_related_ediel_message_id_fkey",
+      "columns": "related_ediel_message_id",
+      "parent": "ediel_messages",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "ediel_business_errors",
+      "constraint": "ediel_business_errors_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE CASCADE"
+    },
+    {
+      "child": "ediel_business_errors",
+      "constraint": "ediel_business_errors_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "ediel_business_errors",
+      "constraint": "ediel_business_errors_customer_site_id_fkey",
+      "columns": "customer_site_id",
+      "parent": "customer_sites",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "ediel_business_errors",
+      "constraint": "ediel_business_errors_metering_point_id_fkey",
+      "columns": "metering_point_id",
+      "parent": "metering_points",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "ediel_business_expectations",
+      "constraint": "ediel_business_expectations_fulfilled_by_message_id_fkey",
+      "columns": "fulfilled_by_message_id",
+      "parent": "ediel_messages",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "ediel_business_expectations",
+      "constraint": "ediel_business_expectations_source_message_id_fkey",
+      "columns": "source_message_id",
+      "parent": "ediel_messages",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "ediel_business_references",
+      "constraint": "ediel_business_references_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE CASCADE"
+    },
+    {
+      "child": "ediel_business_references",
+      "constraint": "ediel_business_references_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "ediel_business_references",
+      "constraint": "ediel_business_references_customer_site_id_fkey",
+      "columns": "customer_site_id",
+      "parent": "customer_sites",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "ediel_business_references",
+      "constraint": "ediel_business_references_metering_point_id_fkey",
+      "columns": "metering_point_id",
+      "parent": "metering_points",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "ediel_business_references",
+      "constraint": "ediel_business_references_source_message_id_fkey",
+      "columns": "source_message_id",
+      "parent": "ediel_messages",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "ediel_data_access_grants",
+      "constraint": "ediel_data_access_grants_company_id_assignment_id_fkey",
+      "columns": "company_id, assignment_id",
+      "parent": "ediel_service_assignments",
+      "parent_columns": "company_id, id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "ediel_data_access_grants",
+      "constraint": "ediel_data_access_grants_company_id_permission_link_id_fkey",
+      "columns": "company_id, permission_link_id",
+      "parent": "ediel_assignment_permission_links",
+      "parent_columns": "company_id, id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "ediel_decision_traces",
+      "constraint": "ediel_decision_traces_processing_run_id_fkey",
+      "columns": "processing_run_id",
+      "parent": "ediel_processing_runs",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "ediel_decision_traces",
+      "constraint": "ediel_decision_traces_source_message_id_fkey",
+      "columns": "source_message_id",
+      "parent": "ediel_messages",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "ediel_engine_runs",
+      "constraint": "ediel_engine_runs_ediel_message_id_fkey",
+      "columns": "ediel_message_id",
+      "parent": "ediel_messages",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "ediel_inbound_cases",
+      "constraint": "ediel_inbound_cases_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "ediel_inbound_cases",
+      "constraint": "ediel_inbound_cases_ediel_message_id_fkey",
+      "columns": "ediel_message_id",
+      "parent": "ediel_messages",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "ediel_masterdata_reconciliation_items",
+      "constraint": "ediel_masterdata_reconciliation_items_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "ediel_masterdata_reconciliation_items",
+      "constraint": "ediel_masterdata_reconciliation_items_ediel_message_id_fkey",
+      "columns": "ediel_message_id",
+      "parent": "ediel_messages",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "ediel_match_candidates",
+      "constraint": "ediel_match_candidates_ediel_message_id_fkey",
+      "columns": "ediel_message_id",
+      "parent": "ediel_messages",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "ediel_message_events",
+      "constraint": "ediel_message_events_ediel_message_id_fkey",
+      "columns": "ediel_message_id",
+      "parent": "ediel_messages",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "ediel_message_intents",
+      "constraint": "ediel_message_intents_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "ediel_message_intents",
+      "constraint": "ediel_message_intents_ediel_message_id_fkey",
+      "columns": "ediel_message_id",
+      "parent": "ediel_messages",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "ediel_message_intents",
+      "constraint": "ediel_message_intents_outbound_request_id_fkey",
+      "columns": "outbound_request_id",
+      "parent": "outbound_requests",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "ediel_message_validation_issues",
+      "constraint": "ediel_message_validation_issues_ediel_message_id_fkey",
+      "columns": "ediel_message_id",
+      "parent": "ediel_messages",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "ediel_messages",
+      "constraint": "ediel_messages_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "ediel_messages",
+      "constraint": "ediel_messages_grid_owner_information_request_id_fkey",
+      "columns": "grid_owner_information_request_id",
+      "parent": "grid_owner_information_requests",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "ediel_messages",
+      "constraint": "ediel_messages_intent_id_fkey",
+      "columns": "intent_id",
+      "parent": "ediel_message_intents",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "ediel_messages",
+      "constraint": "ediel_messages_routing_decision_id_fkey",
+      "columns": "routing_decision_id",
+      "parent": "ediel_routing_decisions",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "ediel_outbox",
+      "constraint": "ediel_outbox_ediel_message_id_fkey",
+      "columns": "ediel_message_id",
+      "parent": "ediel_messages",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "ediel_outbox",
+      "constraint": "ediel_outbox_intent_id_fkey",
+      "columns": "intent_id",
+      "parent": "ediel_message_intents",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "ediel_outbox",
+      "constraint": "ediel_outbox_source_message_id_fkey",
+      "columns": "source_message_id",
+      "parent": "ediel_messages",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "ediel_permission_cases",
+      "constraint": "ediel_permission_cases_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "ediel_permission_events",
+      "constraint": "ediel_permission_events_permission_case_id_fkey",
+      "columns": "permission_case_id",
+      "parent": "ediel_permission_cases",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "ediel_portal_validation_feedback",
+      "constraint": "ediel_portal_validation_feedback_ediel_message_id_fkey",
+      "columns": "ediel_message_id",
+      "parent": "ediel_messages",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "ediel_process_links",
+      "constraint": "ediel_process_links_ediel_message_id_fkey",
+      "columns": "ediel_message_id",
+      "parent": "ediel_messages",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "ediel_processing_runs",
+      "constraint": "ediel_processing_runs_source_message_id_fkey",
+      "columns": "source_message_id",
+      "parent": "ediel_messages",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "ediel_routing_decisions",
+      "constraint": "ediel_routing_decisions_ediel_message_id_fkey",
+      "columns": "ediel_message_id",
+      "parent": "ediel_messages",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "ediel_routing_decisions",
+      "constraint": "ediel_routing_decisions_route_decision_log_id_fkey",
+      "columns": "route_decision_log_id",
+      "parent": "route_decision_logs",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "ediel_rule_pack_backfill_issues",
+      "constraint": "ediel_rule_pack_backfill_issues_ediel_message_id_fkey",
+      "columns": "ediel_message_id",
+      "parent": "ediel_messages",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "ediel_rule_pack_snapshots",
+      "constraint": "ediel_rule_pack_snapshots_ediel_message_id_fkey",
+      "columns": "ediel_message_id",
+      "parent": "ediel_messages",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "ediel_service_assignments",
+      "constraint": "ediel_service_assignments_company_id_customer_id_fkey",
+      "columns": "company_id, customer_id",
+      "parent": "customers",
+      "parent_columns": "company_id, id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "ediel_service_evidence",
+      "constraint": "ediel_service_evidence_company_id_assignment_id_fkey",
+      "columns": "company_id, assignment_id",
+      "parent": "ediel_service_assignments",
+      "parent_columns": "company_id, id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "ediel_sla_timers",
+      "constraint": "ediel_sla_timers_ediel_message_id_fkey",
+      "columns": "ediel_message_id",
+      "parent": "ediel_messages",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "ediel_unresolved_items",
+      "constraint": "ediel_unresolved_items_source_message_id_fkey",
+      "columns": "source_message_id",
+      "parent": "ediel_messages",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "energy_service_permissions",
+      "constraint": "energy_service_permissions_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "event_outbox",
+      "constraint": "event_outbox_domain_event_id_fkey",
+      "columns": "domain_event_id",
+      "parent": "domain_events",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "external_contract_intakes",
+      "constraint": "external_contract_intakes_intake_id_fkey",
+      "columns": "intake_id",
+      "parent": "customer_application_intakes",
+      "parent_columns": "id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "facility_data_quality_issues",
+      "constraint": "facility_data_quality_issues_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE CASCADE"
+    },
+    {
+      "child": "facility_data_quality_issues",
+      "constraint": "facility_data_quality_issues_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "facility_data_quality_issues",
+      "constraint": "facility_data_quality_issues_customer_site_id_fkey",
+      "columns": "customer_site_id",
+      "parent": "customer_sites",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "facility_data_quality_issues",
+      "constraint": "facility_data_quality_issues_metering_point_id_fkey",
+      "columns": "metering_point_id",
+      "parent": "metering_points",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "forecast_adjustments",
+      "constraint": "forecast_adjustments_forecast_run_id_fkey",
+      "columns": "forecast_run_id",
+      "parent": "forecast_runs",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "forecast_run_items",
+      "constraint": "forecast_run_items_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "forecast_run_items",
+      "constraint": "forecast_run_items_forecast_run_id_fkey",
+      "columns": "forecast_run_id",
+      "parent": "forecast_runs",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "grid_owner_data_requests",
+      "constraint": "grid_owner_data_requests_company_customer_site_rel_fkey",
+      "columns": "company_id, customer_id, site_id",
+      "parent": "customer_sites",
+      "parent_columns": "company_id, customer_id, id",
+      "delete_action": "DEFERRABLE"
+    },
+    {
+      "child": "grid_owner_data_requests",
+      "constraint": "grid_owner_data_requests_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "grid_owner_information_requests",
+      "constraint": "grid_owner_information_requests_company_contract_fkey",
+      "columns": "company_id, customer_contract_id",
+      "parent": "customer_contracts",
+      "parent_columns": "company_id, id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "grid_owner_information_requests",
+      "constraint": "grid_owner_information_requests_company_customer_fkey",
+      "columns": "company_id, customer_id",
+      "parent": "customers",
+      "parent_columns": "company_id, id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "grid_owner_information_requests",
+      "constraint": "grid_owner_information_requests_company_customer_site_rel_fkey",
+      "columns": "company_id, customer_id, customer_site_id",
+      "parent": "customer_sites",
+      "parent_columns": "company_id, customer_id, id",
+      "delete_action": "DEFERRABLE"
+    },
+    {
+      "child": "grid_owner_information_requests",
+      "constraint": "grid_owner_information_requests_company_site_fkey",
+      "columns": "company_id, customer_site_id",
+      "parent": "customer_sites",
+      "parent_columns": "company_id, id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "grid_owner_information_requests",
+      "constraint": "grid_owner_information_requests_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "grid_owner_information_requests",
+      "constraint": "grid_owner_information_requests_customer_site_id_fkey",
+      "columns": "customer_site_id",
+      "parent": "customer_sites",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "grid_owner_information_requests",
+      "constraint": "grid_owner_information_requests_ediel_message_id_fkey",
+      "columns": "ediel_message_id",
+      "parent": "ediel_messages",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "grid_owner_information_requests",
+      "constraint": "grid_owner_information_requests_outbound_request_id_fkey",
+      "columns": "outbound_request_id",
+      "parent": "outbound_requests",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "grid_owner_information_requests",
+      "constraint": "grid_owner_information_requests_resolution_id_fkey",
+      "columns": "resolution_id",
+      "parent": "customer_site_resolution",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "invoice_documents",
+      "constraint": "invoice_documents_invoice_export_item_id_fkey",
+      "columns": "invoice_export_item_id",
+      "parent": "invoice_export_items",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "invoice_export_attempts",
+      "constraint": "invoice_export_attempts_invoice_export_item_id_fkey",
+      "columns": "invoice_export_item_id",
+      "parent": "invoice_export_items",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "invoice_export_items",
+      "constraint": "invoice_export_items_company_customer_contract_fkey",
+      "columns": "company_id, customer_contract_id",
+      "parent": "customer_contracts",
+      "parent_columns": "company_id, id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "invoice_export_items",
+      "constraint": "invoice_export_items_company_customer_fkey",
+      "columns": "company_id, customer_id",
+      "parent": "customers",
+      "parent_columns": "company_id, id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "invoice_export_items",
+      "constraint": "invoice_export_items_company_pricing_fkey",
+      "columns": "company_id, pricing_run_id",
+      "parent": "pricing_runs",
+      "parent_columns": "company_id, id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "invoice_export_items",
+      "constraint": "invoice_export_items_company_underlay_fkey",
+      "columns": "company_id, billing_underlay_id",
+      "parent": "billing_underlays",
+      "parent_columns": "company_id, id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "invoice_provider_events",
+      "constraint": "invoice_provider_events_company_item_fkey",
+      "columns": "company_id, matched_invoice_export_item_id",
+      "parent": "invoice_export_items",
+      "parent_columns": "company_id, id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "invoice_purchase_events",
+      "constraint": "invoice_purchase_events_invoice_export_item_id_fkey",
+      "columns": "invoice_export_item_id",
+      "parent": "invoice_export_items",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "manual_email_outbox",
+      "constraint": "manual_email_outbox_company_request_fkey",
+      "columns": "company_id, request_id",
+      "parent": "grid_owner_information_requests",
+      "parent_columns": "company_id, id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "manual_email_outbox",
+      "constraint": "manual_email_outbox_request_id_fkey",
+      "columns": "request_id",
+      "parent": "grid_owner_information_requests",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "manual_inbound_messages",
+      "constraint": "manual_inbound_messages_company_request_fkey",
+      "columns": "company_id, request_id",
+      "parent": "grid_owner_information_requests",
+      "parent_columns": "company_id, id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "manual_inbound_messages",
+      "constraint": "manual_inbound_messages_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE CASCADE"
+    },
+    {
+      "child": "manual_inbound_messages",
+      "constraint": "manual_inbound_messages_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "manual_inbound_messages",
+      "constraint": "manual_inbound_messages_customer_site_id_fkey",
+      "columns": "customer_site_id",
+      "parent": "customer_sites",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "manual_inbound_messages",
+      "constraint": "manual_inbound_messages_metering_point_id_fkey",
+      "columns": "metering_point_id",
+      "parent": "metering_points",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "manual_inbound_messages",
+      "constraint": "manual_inbound_messages_request_id_fkey",
+      "columns": "request_id",
+      "parent": "grid_owner_information_requests",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "meter_reading_series",
+      "constraint": "meter_reading_series_metering_point_id_fkey",
+      "columns": "metering_point_id",
+      "parent": "metering_points",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "meter_reading_series",
+      "constraint": "meter_reading_series_source_ediel_message_id_fkey",
+      "columns": "source_ediel_message_id",
+      "parent": "ediel_messages",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "meter_reading_series",
+      "constraint": "meter_reading_series_supersedes_series_id_fkey",
+      "columns": "supersedes_series_id",
+      "parent": "meter_reading_series",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "meter_reading_values",
+      "constraint": "meter_reading_values_series_id_fkey",
+      "columns": "series_id",
+      "parent": "meter_reading_series",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "metering_period_gaps",
+      "constraint": "metering_period_gaps_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE CASCADE"
+    },
+    {
+      "child": "metering_period_gaps",
+      "constraint": "metering_period_gaps_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "metering_permission_sites",
+      "constraint": "metering_permission_sites_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE CASCADE"
+    },
+    {
+      "child": "metering_permission_sites",
+      "constraint": "metering_permission_sites_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "metering_permission_sites",
+      "constraint": "metering_permission_sites_metering_permission_id_fkey",
+      "columns": "metering_permission_id",
+      "parent": "metering_permissions",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "metering_permissions",
+      "constraint": "metering_permissions_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE CASCADE"
+    },
+    {
+      "child": "metering_permissions",
+      "constraint": "metering_permissions_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "metering_permissions",
+      "constraint": "metering_permissions_customer_site_id_fk",
+      "columns": "customer_site_id",
+      "parent": "customer_sites",
+      "parent_columns": "id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "metering_points",
+      "constraint": "metering_points_company_customer_fk",
+      "columns": "company_id, customer_id",
+      "parent": "customers",
+      "parent_columns": "company_id, id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "metering_points",
+      "constraint": "metering_points_company_customer_site_fk",
+      "columns": "company_id, customer_site_id",
+      "parent": "customer_sites",
+      "parent_columns": "company_id, id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "metering_points",
+      "constraint": "metering_points_company_customer_site_rel_fkey",
+      "columns": "company_id, customer_id, site_id",
+      "parent": "customer_sites",
+      "parent_columns": "company_id, customer_id, id",
+      "delete_action": "DEFERRABLE"
+    },
+    {
+      "child": "metering_points",
+      "constraint": "metering_points_company_site_fk",
+      "columns": "company_id, site_id",
+      "parent": "customer_sites",
+      "parent_columns": "company_id, id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "metering_points",
+      "constraint": "metering_points_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "metering_points",
+      "constraint": "metering_points_customer_site_id_fk",
+      "columns": "customer_site_id",
+      "parent": "customer_sites",
+      "parent_columns": "id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "metering_points",
+      "constraint": "metering_points_energy_resolution_id_fkey",
+      "columns": "energy_resolution_id",
+      "parent": "customer_site_resolution",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "metering_points",
+      "constraint": "metering_points_site_id_fkey",
+      "columns": "site_id",
+      "parent": "customer_sites",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "metering_requirements",
+      "constraint": "metering_requirements_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE CASCADE"
+    },
+    {
+      "child": "metering_requirements",
+      "constraint": "metering_requirements_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "metering_requirements",
+      "constraint": "metering_requirements_customer_site_id_fkey",
+      "columns": "customer_site_id",
+      "parent": "customer_sites",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "metering_requirements",
+      "constraint": "metering_requirements_metering_point_id_fkey",
+      "columns": "metering_point_id",
+      "parent": "metering_points",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "metering_requirements",
+      "constraint": "metering_requirements_source_ediel_message_id_fkey",
+      "columns": "source_ediel_message_id",
+      "parent": "ediel_messages",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "metering_value_sources",
+      "constraint": "metering_value_sources_metering_value_id_fkey",
+      "columns": "metering_value_id",
+      "parent": "metering_values",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "metering_value_sources",
+      "constraint": "metering_value_sources_normalized_metering_value_id_fkey",
+      "columns": "normalized_metering_value_id",
+      "parent": "normalized_metering_values",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "metering_value_sources",
+      "constraint": "metering_value_sources_source_ediel_message_id_fkey",
+      "columns": "source_ediel_message_id",
+      "parent": "ediel_messages",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "metering_values",
+      "constraint": "metering_values_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "metering_values",
+      "constraint": "metering_values_customer_site_id_fk",
+      "columns": "customer_site_id",
+      "parent": "customer_sites",
+      "parent_columns": "id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "metering_values",
+      "constraint": "metering_values_source_message_id_fk",
+      "columns": "source_message_id",
+      "parent": "ediel_messages",
+      "parent_columns": "id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "normalized_metering_values",
+      "constraint": "normalized_metering_values_company_customer_fkey",
+      "columns": "company_id, customer_id",
+      "parent": "customers",
+      "parent_columns": "company_id, id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "normalized_metering_values",
+      "constraint": "normalized_metering_values_company_customer_site_fkey",
+      "columns": "company_id, customer_site_id",
+      "parent": "customer_sites",
+      "parent_columns": "company_id, id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "normalized_metering_values",
+      "constraint": "normalized_metering_values_company_meter_fkey",
+      "columns": "company_id, metering_point_id",
+      "parent": "metering_points",
+      "parent_columns": "company_id, id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "normalized_metering_values",
+      "constraint": "normalized_metering_values_company_site_fkey",
+      "columns": "company_id, site_id",
+      "parent": "customer_sites",
+      "parent_columns": "company_id, id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "outbound_dispatch_events",
+      "constraint": "outbound_dispatch_events_outbound_request_id_fkey",
+      "columns": "outbound_request_id",
+      "parent": "outbound_requests",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "outbound_requests",
+      "constraint": "outbound_requests_company_customer_customer_site_rel_fkey",
+      "columns": "company_id, customer_id, customer_site_id",
+      "parent": "customer_sites",
+      "parent_columns": "company_id, customer_id, id",
+      "delete_action": "DEFERRABLE"
+    },
+    {
+      "child": "outbound_requests",
+      "constraint": "outbound_requests_company_customer_site_rel_fkey",
+      "columns": "company_id, customer_id, site_id",
+      "parent": "customer_sites",
+      "parent_columns": "company_id, customer_id, id",
+      "delete_action": "DEFERRABLE"
+    },
+    {
+      "child": "outbound_requests",
+      "constraint": "outbound_requests_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "outbound_requests",
+      "constraint": "outbound_requests_grid_owner_information_request_id_fkey",
+      "columns": "grid_owner_information_request_id",
+      "parent": "grid_owner_information_requests",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "partner_exports",
+      "constraint": "partner_exports_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "platform_customer_relationship_observations",
+      "constraint": "platform_customer_relationship_observat_source_customer_id_fkey",
+      "columns": "source_customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "platform_customer_relationship_observations",
+      "constraint": "platform_customer_relationship_observat_target_customer_id_fkey",
+      "columns": "target_customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "portfolio_settlement_invoice_bindings",
+      "constraint": "portfolio_settlement_invoice_bindings_billing_underlay_id_fkey",
+      "columns": "billing_underlay_id",
+      "parent": "billing_underlays",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "portfolio_settlement_invoice_bindings",
+      "constraint": "portfolio_settlement_invoice_bindings_customer_invoice_id_fkey",
+      "columns": "customer_invoice_id",
+      "parent": "customer_invoices",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "portfolio_settlement_invoice_bindings",
+      "constraint": "portfolio_settlement_invoice_bindings_pricing_run_id_fkey",
+      "columns": "pricing_run_id",
+      "parent": "pricing_runs",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "power_of_attorney_scopes",
+      "constraint": "power_of_attorney_scopes_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "power_of_attorney_scopes",
+      "constraint": "power_of_attorney_scopes_power_of_attorney_id_fkey",
+      "columns": "power_of_attorney_id",
+      "parent": "powers_of_attorney",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "powers_of_attorney",
+      "constraint": "powers_of_attorney_company_customer_customer_site_rel_fkey",
+      "columns": "company_id, customer_id, customer_site_id",
+      "parent": "customer_sites",
+      "parent_columns": "company_id, customer_id, id",
+      "delete_action": "DEFERRABLE"
+    },
+    {
+      "child": "powers_of_attorney",
+      "constraint": "powers_of_attorney_company_customer_site_rel_fkey",
+      "columns": "company_id, customer_id, site_id",
+      "parent": "customer_sites",
+      "parent_columns": "company_id, customer_id, id",
+      "delete_action": "DEFERRABLE"
+    },
+    {
+      "child": "powers_of_attorney",
+      "constraint": "powers_of_attorney_contract_id_fkey",
+      "columns": "contract_id",
+      "parent": "customer_contracts",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "powers_of_attorney",
+      "constraint": "powers_of_attorney_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE CASCADE"
+    },
+    {
+      "child": "powers_of_attorney",
+      "constraint": "powers_of_attorney_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "powers_of_attorney",
+      "constraint": "powers_of_attorney_customer_site_id_fkey",
+      "columns": "customer_site_id",
+      "parent": "customer_sites",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "powers_of_attorney",
+      "constraint": "powers_of_attorney_legal_snapshot_id_fkey",
+      "columns": "legal_snapshot_id",
+      "parent": "customer_onboarding_legal_snapshots",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "pricing_interval_evidence",
+      "constraint": "pricing_interval_evidence_billing_underlay_id_fkey",
+      "columns": "billing_underlay_id",
+      "parent": "billing_underlays",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "pricing_interval_evidence",
+      "constraint": "pricing_interval_evidence_billing_underlay_item_id_fkey",
+      "columns": "billing_underlay_item_id",
+      "parent": "billing_underlay_items",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "pricing_interval_evidence",
+      "constraint": "pricing_interval_evidence_customer_contract_id_fkey",
+      "columns": "customer_contract_id",
+      "parent": "customer_contracts",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "pricing_interval_evidence",
+      "constraint": "pricing_interval_evidence_pricing_run_id_fkey",
+      "columns": "pricing_run_id",
+      "parent": "pricing_runs",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "pricing_preview_lines",
+      "constraint": "pricing_preview_lines_pricing_run_id_fkey",
+      "columns": "pricing_run_id",
+      "parent": "pricing_runs",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "pricing_run_items",
+      "constraint": "pricing_run_items_pricing_run_id_fkey",
+      "columns": "pricing_run_id",
+      "parent": "pricing_runs",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "pricing_runs",
+      "constraint": "pricing_runs_billing_underlay_id_fkey",
+      "columns": "billing_underlay_id",
+      "parent": "billing_underlays",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "pricing_runs",
+      "constraint": "pricing_runs_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "route_decision_logs",
+      "constraint": "route_decision_logs_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "supplier_switch_events",
+      "constraint": "supplier_switch_events_switch_request_id_fkey",
+      "columns": "switch_request_id",
+      "parent": "supplier_switch_requests",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "supplier_switch_requests",
+      "constraint": "supplier_switch_requests_company_customer_customer_site_rel_fke",
+      "columns": "company_id, customer_id, customer_site_id",
+      "parent": "customer_sites",
+      "parent_columns": "company_id, customer_id, id",
+      "delete_action": "DEFERRABLE"
+    },
+    {
+      "child": "supplier_switch_requests",
+      "constraint": "supplier_switch_requests_company_customer_site_rel_fkey",
+      "columns": "company_id, customer_id, site_id",
+      "parent": "customer_sites",
+      "parent_columns": "company_id, customer_id, id",
+      "delete_action": "DEFERRABLE"
+    },
+    {
+      "child": "supplier_switch_requests",
+      "constraint": "supplier_switch_requests_contract_fk",
+      "columns": "contract_id",
+      "parent": "customer_contracts",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "supplier_switch_requests",
+      "constraint": "supplier_switch_requests_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE CASCADE"
+    },
+    {
+      "child": "supplier_switch_requests",
+      "constraint": "supplier_switch_requests_customer_contract_fk",
+      "columns": "customer_contract_id",
+      "parent": "customer_contracts",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "supplier_switch_requests",
+      "constraint": "supplier_switch_requests_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "supplier_switch_requests",
+      "constraint": "supplier_switch_requests_customer_site_id_fk",
+      "columns": "customer_site_id",
+      "parent": "customer_sites",
+      "parent_columns": "id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "supplier_switch_requests",
+      "constraint": "supplier_switch_requests_inbound_z04_message_id_fk",
+      "columns": "inbound_z04_message_id",
+      "parent": "ediel_messages",
+      "parent_columns": "id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "supplier_switch_requests",
+      "constraint": "supplier_switch_requests_outbound_z03_message_id_fk",
+      "columns": "outbound_z03_message_id",
+      "parent": "ediel_messages",
+      "parent_columns": "id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "tenant_email_outbox",
+      "constraint": "tenant_email_outbox_communication_log_id_fkey",
+      "columns": "communication_log_id",
+      "parent": "communication_logs",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "tenant_email_outbox",
+      "constraint": "tenant_email_outbox_customer_case_id_fkey",
+      "columns": "customer_case_id",
+      "parent": "customer_cases",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "tenant_email_outbox",
+      "constraint": "tenant_email_outbox_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE CASCADE"
+    },
+    {
+      "child": "tenant_email_outbox",
+      "constraint": "tenant_email_outbox_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "tenant_portal_customer_links",
+      "constraint": "tenant_portal_customer_links_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "webhook_deliveries",
+      "constraint": "webhook_deliveries_domain_event_id_fkey",
+      "columns": "domain_event_id",
+      "parent": "domain_events",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "website_application_review_items",
+      "constraint": "website_application_review_items_application_id_fkey",
+      "columns": "application_id",
+      "parent": "website_customer_applications",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE CASCADE"
+    },
+    {
+      "child": "website_application_review_items",
+      "constraint": "website_application_review_items_customer_company_fk",
+      "columns": "customer_id, company_id",
+      "parent": "customers",
+      "parent_columns": "id, company_id",
+      "delete_action": "ON UPDATE CASCADE ON DELETE SET NULL"
+    },
+    {
+      "child": "website_contract_quotes",
+      "constraint": "website_contract_quotes_company_application_fkey",
+      "columns": "company_id, consumed_application_id",
+      "parent": "website_customer_applications",
+      "parent_columns": "company_id, id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "website_contract_quotes",
+      "constraint": "website_contract_quotes_consumed_application_id_fkey",
+      "columns": "consumed_application_id",
+      "parent": "website_customer_applications",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "website_contract_quotes",
+      "constraint": "website_contract_quotes_energy_resolution_id_fkey",
+      "columns": "energy_resolution_id",
+      "parent": "customer_site_resolution",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "website_customer_applications",
+      "constraint": "website_customer_applications_company_contract_fkey",
+      "columns": "company_id, contract_id",
+      "parent": "customer_contracts",
+      "parent_columns": "company_id, id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "website_customer_applications",
+      "constraint": "website_customer_applications_company_customer_fkey",
+      "columns": "company_id, customer_id",
+      "parent": "customers",
+      "parent_columns": "company_id, id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "website_customer_applications",
+      "constraint": "website_customer_applications_company_metering_point_fkey",
+      "columns": "company_id, metering_point_id",
+      "parent": "metering_points",
+      "parent_columns": "company_id, id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "website_customer_applications",
+      "constraint": "website_customer_applications_company_site_fkey",
+      "columns": "company_id, customer_site_id",
+      "parent": "customer_sites",
+      "parent_columns": "company_id, id",
+      "delete_action": "ON DELETE RESTRICT"
+    },
+    {
+      "child": "website_customer_applications",
+      "constraint": "website_customer_applications_contract_id_fkey",
+      "columns": "contract_id",
+      "parent": "customer_contracts",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "website_customer_applications",
+      "constraint": "website_customer_applications_contract_price_snapshot_id_fkey",
+      "columns": "contract_price_snapshot_id",
+      "parent": "contract_price_snapshots",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "website_customer_applications",
+      "constraint": "website_customer_applications_customer_id_fkey",
+      "columns": "customer_id",
+      "parent": "customers",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "website_customer_applications",
+      "constraint": "website_customer_applications_customer_site_id_fkey",
+      "columns": "customer_site_id",
+      "parent": "customer_sites",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    },
+    {
+      "child": "website_customer_applications",
+      "constraint": "website_customer_applications_intake_id_fkey",
+      "columns": "intake_id",
+      "parent": "customer_application_intakes",
+      "parent_columns": "id",
+      "delete_action": "NO ACTION"
+    },
+    {
+      "child": "website_customer_applications",
+      "constraint": "website_customer_applications_metering_point_id_fkey",
+      "columns": "metering_point_id",
+      "parent": "metering_points",
+      "parent_columns": "id",
+      "delete_action": "ON DELETE SET NULL"
+    }
+  ],
+  "nonempty_baseline_requires_live_check": {
+    "website_customer_applications": 1,
+    "data_quality_issues": 18,
+    "dashboard_alerts": 350,
+    "forecast_runs": 38,
+    "customer_portfolio_forecast_snapshots": 72,
+    "company_monthly_metrics": 12,
+    "bidding_zone_monthly_metrics": 48,
+    "inbound_operation_events": 1
+  }
+}

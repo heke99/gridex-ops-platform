@@ -1,9 +1,8 @@
 # Gridex OPS platform
 
-## Aktuell Ediel-baslinje — fem nya agenter
+## Aktuellt Ediel-arbete
 
-[Starta här](.agent-memory/masterplan-five-agent-baseline-20261012.md) och använd [Claude-/Codex-prompterna](.agent-memory/masterplan-five-agent-prompt-20261012.md). Användaren har pensionerat gamla agenter; alla205 gamla claims är verifierat frigivna och13 gamla förslag bevarade som slutna donorkällor.314/352krav godkända,38 kvar. Nyaagenter får egna reservationer för uppdrag/ID/filer/producenter och behöver inte hitta tidigare ägare. Extra granskare med läsbehörighet och avgränsade agenter som hjälper med kod är välkomna.
-
+[Starta här](.agent-memory/masterplan-current-start.md). [Coverage på faktisk main](quality/audits/ediel-masterplan-v2/coverage.json) är enda godkännandeledgern; senaste [#766](https://github.com/heke99/gridex-ops-platform/issues/766) och verifierade claims styr ägarskap och nästa steg. [Gemensam Claude-/Codex-prompt](.agent-memory/masterplan-five-agent-prompt-20261012.md) gäller både nya granskare och fortsättande agenter. Tidigare baslinjer, antal och rollprompter är historik. Befintliga ägare behåller sina scopes; extra granskare hjälper read-only och rättar först efter avgränsad filöverlämning.
 
 Gridex OPS is the multi-tenant operations platform for electricity companies:
 customer, contract, pricing, customer-portal, customer-service and staff
@@ -14,7 +13,7 @@ workflows, exposed to tenants through versioned HTTP APIs.
 The release manifest is the authority for the current contract version and the
 checksum of every published specification:
 `https://app.gridex.se/api/v1/openapi/release-manifest.json`
-(currently `2026-10-09.1`, source `docs/openapi/`). Frozen release bytes live in
+(documentation `2026-10-12.1`, default wire `2026-10-09.1`, source `docs/openapi/`). Documentation-only updates do not change the wire representation. Frozen release bytes live in
 `docs/openapi/releases/<version>/` and are never rewritten.
 
 | API | Current OpenAPI | Guide | Developer page |
@@ -29,6 +28,11 @@ Tenant onboarding and credentials:
 [docs/single-api-key-tenant-integration.md](docs/single-api-key-tenant-integration.md),
 [docs/electricity-company-onboarding-production-readiness.md](docs/electricity-company-onboarding-production-readiness.md),
 [docs/public-api-id-policy.md](docs/public-api-id-policy.md).
+
+[API operation inventory and verification boundaries](docs/api-index.md) maps the public
+API families to their handlers and database dependencies. Internal administration,
+scheduled jobs and signed provider webhooks have separate authorization boundaries;
+they are not tenant-facing API credentials.
 
 ## Development
 

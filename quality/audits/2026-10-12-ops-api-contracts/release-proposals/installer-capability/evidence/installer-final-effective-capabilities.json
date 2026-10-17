@@ -1,0 +1,31 @@
+{
+  "installer": {
+    "oid": "16394",
+    "rolname": "postgres",
+    "rolsuper": false,
+    "rolconfig": null,
+    "rolinherit": true,
+    "rolcanlogin": true,
+    "rolcreatedb": true,
+    "rolpassword": "********",
+    "rolbypassrls": true,
+    "rolconnlimit": -1,
+    "rolcreaterole": true,
+    "rolvaliduntil": null,
+    "rolreplication": true
+  },
+  "ret_auth_usage": true,
+  "server_version": "PostgreSQL 17.6 on x86_64-pc-linux-musl, compiled by gcc (Alpine 14.2.0) 14.2.0, 64-bit",
+  "ret_auth_select": true,
+  "ret_auth_update": true,
+  "transport_absent": true,
+  "ret_public_create": false,
+  "ret_storage_usage": true,
+  "ret_storage_select": true,
+  "ret_storage_update": true,
+  "root_ret_inherited": false,
+  "ret_auth_uid_execute": true,
+  "root_storage_usage_go": true,
+  "root_storage_select_go": true,
+  "root_storage_update_go": true
+}

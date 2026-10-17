@@ -5,6 +5,9 @@
 // Only external SMTP is injected by the caller; no private ready/accepted row
 // is seeded. Synthetic contract/POA acceptance is not an external issuer proof.
 import {execFileSync} from 'node:child_process'
+import {closeSync,mkdtempSync,openSync,readFileSync,rmSync} from 'node:fs'
+import {tmpdir} from 'node:os'
+import {join} from 'node:path'
 import {createHmac,createHash,randomUUID} from 'node:crypto'
 import {expect} from 'vitest'
 import {supabaseService} from '@/lib/supabase/service'
@@ -31,8 +34,42 @@ export function fixtureOrganizationNumber(){
 export const literal=(v:unknown):string=>v===null?'NULL':"'"+String(typeof v==='object'?JSON.stringify(v):v).replaceAll("'","''")+"'"
 export function nativeSql<T>(input:string):T{
  if(process.env.NEXT_PUBLIC_SUPABASE_URL!=='http://127.0.0.1:54321')throw Error('owned_local_only')
- const out=execFileSync('psql',['postgresql://postgres:postgres@127.0.0.1:54322/postgres','-XAtq','-v','ON_ERROR_STOP=1'],{input,encoding:'utf8',timeout:10000,maxBuffer:64*1024*1024}).trim()
- return out?JSON.parse(out) as T:undefined as T
+ const directory=mkdtempSync(join(tmpdir(),'gridex-h-native-sql-'))
+ const stdoutPath=join(directory,'stdout'),stderrPath=join(directory,'stderr')
+ let stdoutFd:number|undefined,stderrFd:number|undefined
+ try{
+  stdoutFd=openSync(stdoutPath,'wx',0o600)
+  stderrFd=openSync(stderrPath,'wx',0o600)
+  let failed=false,processError:unknown
+  try{
+   execFileSync('psql',['postgresql://postgres:postgres@127.0.0.1:54322/postgres','-XAtq','-v','ON_ERROR_STOP=1'],{
+    input,encoding:'utf8',timeout:10000,stdio:['pipe',stdoutFd,stderrFd],
+   })
+  }catch(error){failed=true;processError=error}
+  const stdout=readFileSync(stdoutPath,'utf8'),stderr=readFileSync(stderrPath,'utf8')
+  // execFileSync without an explicit stdio option forwards stderr as well.
+  if(stderr)process.stderr.write(stderr)
+  if(failed){
+   if(processError instanceof Error){
+    const failure=processError as Error&{pid?:number;code?:string;stdout?:string;stderr?:string;output?:Array<string|null>}
+    // Keep launch errors untouched; a child that actually ran has real streams.
+    if(typeof failure.pid==='number'&&failure.pid>0){
+     failure.stdout=stdout;failure.stderr=stderr;failure.output=[null,stdout,stderr]
+     // Nonzero/signal exit errors include stderr; timeout/spawn errno stays intact.
+     if(stderr&&!failure.code)failure.message+=(failure.message.endsWith('\n')?'':'\n')+stderr
+    }
+   }
+   throw processError
+  }
+  const out=stdout.trim()
+  return out?JSON.parse(out) as T:undefined as T
+ }finally{
+  try{if(stdoutFd!==undefined)closeSync(stdoutFd)}
+  finally{
+   try{if(stderrFd!==undefined)closeSync(stderrFd)}
+   finally{rmSync(directory,{recursive:true,force:true})}
+  }
+ }
 }
 const sql=nativeSql
 function fixtureGsrn(){

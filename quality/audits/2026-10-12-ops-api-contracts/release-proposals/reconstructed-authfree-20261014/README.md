@@ -1,0 +1,24 @@
+# Gridex OPS reconstructed Auth-free source — NOT_APPLIED
+
+This packet preserves a new, reviewable source proposal for Gridex OPS project `piidsfebjqjmnepdpnas`. It changes no Gridex Web source and contains no business records, provider credentials, Auth users or broad native catalog captures. Publication of this directory is source preservation; it does not register or run a migration.
+
+The frozen eight-input candidate is `atomic-eight-input-proposal.sql`, SHA256 `037e7aa66a40f4f3691fd904d48d71a8aa47c0b3ddfb55becfd293e35713925a`, 865,748 UTF-8 bytes. Its state is **NOT_APPLIED / full genuine installation, replay and rollback qualification pending**. Isolated attempts have refused safely; current fixture preparation still needs the actual global Ediel prerequisite catalog. No successful installation or all-green API status is claimed here.
+
+The original B3 source remains unchanged in the adjacent `native-additive-reconciliation.sql`, SHA256 `bacf8944718c984d117f0400ed19fadd978feed6613ea9196784eff4591ac600`. Its existing 51 private stage rows contain original source bytes only. The new main envelope verifies those bytes, applies explicitly recorded byte edits and verifies the complete new source hash before semantic execution. It restores canonical retention ownership and narrowly required permissions, removes three obsolete direct retention Auth grants, corrects six finance entry gates and composes thirteen fresh-clock/authority corrections. Exactly nineteen created function bodies change; the remaining 1,186 and their CREATE headers remain intact.
+
+The active public signing function is an existing prerequisite outside those 1,205 created definitions. The packet accepts its exact stronger body from already applied scoped forward `20261014060124_ops_api_signing_prepare_post_row_lock_freshness.sql`, checking the complete ABI, owner, ACL, configuration, language, cost, support and sealed definition. It preserves that function's entire `pg_proc` row across all eight inputs and never replaces it with a dormant predecessor.
+
+The eight inputs share one outer transaction. Only component BEGIN/COMMIT keywords and semicolons are removed; comments and all remaining component ASTs are preserved. Component provenance resolves copied proposals and the five unchanged files already present in the repository. These are source components, not eight independently applied child migrations. Existing applied SQL, checksums, stage source bytes and migration history remain immutable.
+
+`source-edits.json` reconstructs `effective-main-source.sql` byte-identically from original B3. Every deletion has a byte offset, exact length and original-segment SHA256; insertion text is explicit. The main envelope embeds the same overlay and checks both original and derived complete SHA256 values. `effective-complete-state-manifest.json` preserves complete typed source metadata, updating only the scoped body/ownership/permission facts. Genuine PostgreSQL17.6 has confirmed its JSONB text digest `142b1cc7c5bb71ec7ee14c7d3041cb66`; that read-only check does not qualify the full installation.
+
+Historical A6, SHA256 `a6ea15ff597f64fd96641a985b686359c7b2066ae64c8078453c2a3a544cd171`, is a different private candidate whose exact source and sealed proof were not recovered after environment replacement. Its prior review or runtime history cannot qualify this reconstruction. A6 was not installed, and this packet does not claim byte equality with it.
+
+Reproduction and review:
+
+1. Run `python reproduce.py --repository /absolute/path/to/gridex-ops-platform --output /tmp/ops-authfree-reproduction` from this directory. It performs local source reconstruction and verification only.
+2. Install `pglast==7.7` in an isolated Python environment if regenerating the original parser-based builders. The preserved original builder files retain their historical private paths for auditing; `reproduce.py` supplies repository and output paths explicitly.
+3. Review the exact new main source, bounded Z02 prerequisite and five finance adapter input together with the unchanged Part1, Part2, protected-trigger, retention envelope and semantic metadata files referenced in `source-publication-provenance.json`.
+4. Before actual application, qualify this exact hash under ordinary postgres with current real prerequisite metadata, no direct retention Auth grants, cold installation, unchanged replay, stronger-state preservation and whole-transaction late-failure rollback. Both independent final reviews must cover the final source and delivery format.
+
+The five finance trigger definitions are bounded source-code inputs for regenerating source-equivalent adapters. Minimal Auth ACL inputs contain only role/privilege strings and dated counts consumed by the source generator. Neither set contains business rows or secrets. Canonical GEN/schema/type production and authenticated tenant/customer/Staff/provider readiness remain separately qualified work.

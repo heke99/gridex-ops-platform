@@ -60,7 +60,7 @@ jobs:
           # are allowed; authenticate their originals and actual working bytes.
           verify_native_inputs() {
             python3 - "$@" <<'PY_INPUTS'
-          import hashlib, json, os, pathlib, platform, re, stat, subprocess, sys
+          import hashlib, json, os, pathlib, platform, re, shutil, stat, subprocess, sys
           phase = sys.argv[1]
           snapshot = pathlib.Path(os.environ['RUNNER_TEMP']) / 'z10m-supplier-inputs.json'
           def git(*args):
@@ -100,7 +100,7 @@ jobs:
                       raise SystemExit('native_git_blob_mismatch: ' + path)
                   require(pathlib.Path(path), inputs[path])
               frozen_native = {
-                  'scripts/ediel-at-z10m-supplier-acceptance-native.test.ts': 'fed80cb12ffa89c01e1501fb85040a09f0555c0257ea0dbd850946feea5c4fde',
+                  'scripts/ediel-at-z10m-supplier-acceptance-native.test.ts': 'd3a2eaab29c7621457e11d6df9bd10ee9c54150de16f7b57d63efaac142b1a3d',
                   'scripts/ediel-at-z10m-supplier-acceptance-native.config.ts': '458b8c838e1bf52740b422b04207dc2cf23a1f299744f2130a184123e90438b1',
               }
               for path, digest in frozen_native.items():
@@ -130,12 +130,22 @@ jobs:
                          'python': platform.python_version(), 'platform': platform.platform()}
               if not runtime['node'].startswith('v22.') or runtime['supabase_cli'] != '2.101.0':
                   raise SystemExit('native_runtime_version_mismatch')
+              driver = version('docker', 'info', '--format', '{{.Driver}}')
+              free = shutil.disk_usage(os.environ['RUNNER_TEMP']).free
+              required_free = (40 if driver == 'vfs' else 15) * 1024**3
+              initial_containers = subprocess.check_output(['docker', 'ps', '-aq'], text=True).splitlines()
+              if initial_containers or free < required_free:
+                  raise SystemExit('native_runner_capacity_or_quiescence_unqualified')
               frozen = {'checkout_sha': head, 'checkout_tree': tree, 'tracked_inputs': inputs,
+                        'input_epoch': 'gridex-takeover-C2-784-physical-err-v1',
+                        'custody_receipt': '60cc652f5b97d9e8e0f741593599b0013c3ff711',
+                        'runner': {'docker_driver': driver, 'free_bytes_before_replay': free,
+                                   'required_free_bytes': required_free, 'initial_container_ids': initial_containers},
                         'runtime_versions': runtime,
                         'original_native_source_sha256': {**frozen_native,
                             'scripts/ediel-at-z10m-supplier-acceptance-native.test.ts': 'f4f3d3af1d6da059f91d94bb01ba552a6344d1fc59f0b202c29292da26f9d5a1'},
                         'native_source_sha256': frozen_native,
-                        'native_source_version': 'm2_post_failure_application_read_observer_v1',
+                        'native_source_version': 'm3_first_receive_persisted_negative_ERR_TN_after_789_v1',
                         'workflow_run_id': os.environ['GITHUB_RUN_ID'],
                         'workflow_run_attempt': os.environ['GITHUB_RUN_ATTEMPT'],
                         'canonical_marker_expected': expected_markers,
@@ -198,9 +208,43 @@ jobs:
             > z10m-supplier-native-working/native.log 2>&1 || native_exit=$?
           export Z10M_SUPPLIER_NATIVE_EXIT="$native_exit"
           verify_native_inputs after-native "$HOLD" "$SEED_BACKUP" "$LEDGER_MARKERS"
+          export Z10M_POSTGRES_SERVER_VERSION="$(psql 'postgresql://postgres:postgres@127.0.0.1:54322/postgres' -XAtq -v ON_ERROR_STOP=1 -c 'show server_version;')"
+          # The unchanged owner's cleanup restores its actual migration/seed
+          # originals and stops its own stack. Qualify that result explicitly.
+          cleanup
+          trap - EXIT
+          set -euo pipefail
           python3 - <<'PY'
-          import json, os, pathlib, stat
+          import hashlib, json, os, pathlib, stat, subprocess
           frozen = json.loads((pathlib.Path(os.environ['RUNNER_TEMP']) / 'z10m-supplier-inputs.json').read_text())
+          def working(path):
+              mode = path.lstat().st_mode
+              if stat.S_ISLNK(mode):
+                  data, git_mode = os.fsencode(os.readlink(path)), '120000'
+              elif stat.S_ISREG(mode):
+                  data, git_mode = path.read_bytes(), '100755' if mode & 0o111 else '100644'
+              else:
+                  raise SystemExit('native_restored_input_not_regular')
+              return {'mode': git_mode, 'blob_oid': hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest(),
+                      'sha256': hashlib.sha256(data).hexdigest()}
+          for name, expected in frozen['tracked_inputs'].items():
+              if working(pathlib.Path(name)) != expected:
+                  raise SystemExit('native_cleanup_input_restoration_mismatch: ' + name)
+          migration_prefix = 'supabase/migrations/'
+          expected_migrations = {name[len(migration_prefix):]: item for name, item in frozen['tracked_inputs'].items()
+                                 if name.startswith(migration_prefix)}
+          actual_migrations = {p.relative_to('supabase/migrations').as_posix(): working(p)
+                               for p in pathlib.Path('supabase/migrations').rglob('*') if not p.is_dir() or p.is_symlink()}
+          if actual_migrations != expected_migrations:
+              raise SystemExit('native_cleanup_migration_inventory_mismatch')
+          final_containers = subprocess.check_output(['docker', 'ps', '-aq'], text=True).splitlines()
+          if final_containers:
+              raise SystemExit('native_backend_cleanup_unqualified')
+          replay_log = (pathlib.Path(os.environ['RUNNER_TEMP']) / 'z10m-supplier-replay.log').read_text()
+          if '[GRIDEX-REM-002 replay] PASS: empty local Supabase' not in replay_log:
+              raise SystemExit('native_canonical_replay_pass_not_observed')
+          if subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip() != frozen['checkout_sha'] or subprocess.check_output(['git', 'rev-parse', 'HEAD^{tree}'], text=True).strip() != frozen['checkout_tree']:
+              raise SystemExit('native_cleanup_checkout_changed')
           test_scope = os.environ['Z10M_SUPPLIER_NATIVE_TEST_SCOPE'].splitlines()
           if test_scope != ['scripts/ediel-at-z10m-supplier-acceptance-native.test.ts']:
               raise SystemExit('original_native_scope_mismatch')
@@ -212,9 +256,13 @@ jobs:
               'purpose': 'supplemental_actual_native_feedback',
               **frozen,
               'native_exit_code': int(os.environ['Z10M_SUPPLIER_NATIVE_EXIT']),
+              'canonical_replay': 'PASS', 'input_restoration': 'EXACT', 'backend_cleanup': 'QUALIFIED',
+              'runner_final_container_ids': final_containers,
+              'postgres_server_version': os.environ['Z10M_POSTGRES_SERVER_VERSION'],
+              'vendor_postgres_image': '17.6.1.155', 'whole_id_credit': 'NONE',
               'input_sha256': {p: e['sha256'] for p, e in frozen['tracked_inputs'].items()},
               'tracked_input_count': len(frozen['tracked_inputs']),
-              'working_input_checks': ['before-replay', 'before-native', 'after-native'],
+              'working_input_checks': ['before-replay', 'before-native', 'after-native', 'after-cleanup'],
               'migration_hash_origin': 'frozen HEAD original bytes/modes verified before replay and in canonical HOLD before/after native; top-level working SQL is the exact flat regular marker set derived from the frozen official ledger and canonical marker bytes; other migration-directory files retain original modes/bytes',
               'seed_hash_origin': 'frozen HEAD original bytes verified before replay and in canonical SEED_BACKUP before/after native; actual working seed is empty and separately hashed',
               'other_working_inputs': 'exact frozen HEAD bytes/modes before replay and before/after native',
@@ -222,6 +270,9 @@ jobs:
               'test_case_names': [
                   'first genuine two-register Z10 is staged, reviewed, applied and physically acknowledged once',
                   'a contradictory prior meter obtains no positive first effect or final ACK authority',
+                  'Z10 adds its own effective-boundary version, preserves the accepted Z04 baseline and replays as a no-op',
+                  'a Z10 with swapped FR/DO parties obtains no receipt, positive APERAK or final plan',
+                  'UTILTS readings bind the old meter to the Z04 baseline and the new meter to the Z10 version across the change minute',
               ],
               'ordinary_required_gates': 'NOT_REPLACED',
               'schema_capture': 'NOT_RUN', 'browser_tests': 'NOT_RUN',
@@ -237,6 +288,51 @@ jobs:
           cat z10m-supplier-native-evidence/native.log
           rm -f "$GRIDEX_NATIVE_STATUS"
           exit "$native_exit"
+      - name: Preserve bounded abort feedback from this exact source
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -d z10m-supplier-native-evidence ]]; then exit 0; fi
+          # The replay owner's EXIT cleanup already ran in the prior shell.
+          # An abort stays unqualified even if these exact inputs were restored.
+          mkdir -p z10m-supplier-native-working
+          python3 - <<'PY_ABORT'
+          import hashlib, json, os, pathlib, subprocess
+          temp = pathlib.Path(os.environ['RUNNER_TEMP'])
+          working = pathlib.Path('z10m-supplier-native-working')
+          snapshot = temp / 'z10m-supplier-inputs.json'
+          frozen = json.loads(snapshot.read_text()) if snapshot.is_file() else {}
+          replay = temp / 'z10m-supplier-replay.log'
+          receipt = {
+              'purpose': 'source_bound_abort_feedback', 'whole_id_credit': 'NONE',
+              'checkout_sha': subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+              'checkout_tree': subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip(),
+              'workflow_run_id': os.environ['GITHUB_RUN_ID'], 'workflow_run_attempt': os.environ['GITHUB_RUN_ATTEMPT'],
+              'input_epoch': 'gridex-takeover-C2-784-physical-err-v1',
+              'custody_receipt': '60cc652f5b97d9e8e0f741593599b0013c3ff711',
+              'frozen_input_sha256': {p: e['sha256'] for p, e in frozen.get('tracked_inputs', {}).items()},
+              'canonical_replay': 'UNQUALIFIED', 'native': 'UNQUALIFIED',
+              'input_restoration': 'UNQUALIFIED', 'backend_cleanup': 'UNQUALIFIED',
+              'ordinary_required_gates': 'NOT_REPLACED',
+              'original_private_replay_log_sha256': hashlib.sha256(replay.read_bytes()).hexdigest() if replay.is_file() else None,
+          }
+          if replay.is_file():
+              (working / 'replay-abort-redacted.log').write_bytes(replay.read_bytes())
+          (working / 'abort-receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          PY_ABORT
+          python3 scripts/gridex-redact-native-evidence.py \
+            --local-secrets "$RUNNER_TEMP/z10m-supplier-native-status.json" --root z10m-supplier-native-working
+          python3 - <<'PY_REDACTION'
+          import pathlib, re
+          remaining = re.compile(rb'\b(?:eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+|sb_(?:secret|publishable)_[A-Za-z0-9_-]+)\b|postgres(?:ql)?://[^/\s:]+:[^@\s]+@')
+          for path in pathlib.Path('z10m-supplier-native-working').rglob('*'):
+              if path.is_file():
+                  data = remaining.sub(b'[REDACTED_LOCAL_CREDENTIAL]', path.read_bytes())
+                  if remaining.search(data): raise SystemExit('native_abort_redaction_incomplete')
+                  path.write_bytes(data)
+          PY_REDACTION
+          mv z10m-supplier-native-working z10m-supplier-native-evidence
       - name: Upload redacted native feedback
         if: always()
         uses: actions/upload-artifact@v4

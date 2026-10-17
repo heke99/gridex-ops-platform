@@ -1,3 +1,4 @@
+import { withApiContractRepresentation } from '@/lib/integrations/apiResponseProfile'
 import { NextRequest } from 'next/server'
 import { ApiInputError, executeIdempotentPortalWrite, readJsonObject } from '@/lib/api/strictRequest'
 import { supabaseService } from '@/lib/supabase/service'
@@ -78,7 +79,7 @@ async function resolveNotificationIds(input: {
   return resolved
 }
 
-export async function POST(request: NextRequest) {
+ async function profiledPOST(request: NextRequest) {
   const context = await requireCustomerPortalApiContext(request, ['customer_notifications.write'])
   if (!context.ok) return context.response
 
@@ -142,3 +143,5 @@ export async function POST(request: NextRequest) {
     return handleCustomerPortalRouteError({ request, client: context.client, startedAt: context.startedAt, error })
   }
 }
+
+export const POST = withApiContractRepresentation('customer', profiledPOST)

@@ -1,0 +1,5 @@
+{
+  "original_pg_jsonb_text_md5": "f9abdb805ca293af299c3f4efcbfe1e6",
+  "new_pg_jsonb_text_md5": "142b1cc7c5bb71ec7ee14c7d3041cb66",
+  "method": "Exact PostgreSQL jsonb key ordering and whitespace reconstruction; original computed digest equals both published B3 guard occurrences. New digest still requires actual PostgreSQL verification."
+}

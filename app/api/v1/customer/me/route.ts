@@ -1,3 +1,4 @@
+import { withApiContractRepresentation } from '@/lib/integrations/apiResponseProfile'
 import { NextRequest } from 'next/server'
 import {
   customerPortalJson,
@@ -23,7 +24,7 @@ function displayName(customer: Record<string, unknown>): string | null {
   return typeof customer.company_name === 'string' && customer.company_name.trim() ? customer.company_name.trim() : null
 }
 
-export async function GET(request: NextRequest) {
+ async function profiledGET(request: NextRequest) {
   const context = await requireCustomerPortalApiContext(request, ['customer_profile.read'])
   if (!context.ok) return context.response
 
@@ -48,3 +49,5 @@ export async function GET(request: NextRequest) {
     return handleCustomerPortalRouteError({ request, client: context.client, startedAt: context.startedAt, error })
   }
 }
+
+export const GET = withApiContractRepresentation('customer', profiledGET)

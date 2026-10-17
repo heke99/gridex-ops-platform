@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
-import { getOperationalCompanyScope } from '@/lib/tenant/scope'
+import { resolveAdminSelectedCompanyReadScope } from '@/lib/tenant/adminScope'
 import { listBatch2CDriftQueue } from '@/lib/operations/batch2cAutomation'
 import { runBatch2CPeriodMotorAction } from '../automation/actions'
 
@@ -25,7 +25,7 @@ function formatDate(value: string | null | undefined): string {
 
 export default async function OperationsPeriodsPage() {
   const admin = await requireAdminPageKeyAccess('operations.automation')
-  const scope = await getOperationalCompanyScope(admin.userId)
+  const scope = await resolveAdminSelectedCompanyReadScope(admin, { allowMissing: true })
   const queues = scope.companyId ? await listBatch2CDriftQueue(scope.companyId) : []
   const gaps = queues.filter((row) => row.queue_type === 'metering_period_gap')
 

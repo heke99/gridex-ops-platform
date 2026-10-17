@@ -1,0 +1,1914 @@
+{
+  "scope": "Central Gridex OPS Customer Portal/customer support only; apps/gridex-web excluded",
+  "baseline_commit": "f36dbba1",
+  "branch": "codex/ops-api-contract-review-20261012",
+  "skill_routing": {
+    "activated": [
+      "code-review",
+      "spec-to-code-compliance (direct operation-by-operation trace; parent prohibits spawning)",
+      "fp-check equivalent direct repro/callee trace",
+      "supabase",
+      "supabase-postgres-best-practices"
+    ],
+    "conditional": [
+      "systematic-debugging/TDD for confirmed fixed defects"
+    ],
+    "skipped": [
+      "Ediel GEN/schema/manifest/native producer workflow: excluded frozen scope",
+      "UI/browser design: no UI edits",
+      "performance measurements: no performance fix proposed",
+      "additional agents: parent expressly forbids"
+    ]
+  },
+  "operations": [
+    {
+      "method": "POST",
+      "path": "/api/v1/customer-portal/sync",
+      "operation_id": "postApiV1CustomerPortalSync",
+      "actual_handler": "app/api/v1/customer-portal/sync/route.ts#POST",
+      "callee_evidence": [
+        "lib/customer-portal/externalApi.ts",
+        "lib/customer-portal/customerResolver.ts",
+        "lib/customer-portal/customerAssertion.ts",
+        "lib/customer-portal/apiData.ts",
+        "lib/customer-portal/publicDto.ts"
+      ],
+      "tables": [
+        "customer_portal_accounts",
+        "customer_portal_identities",
+        "customer_portal_write_idempotency",
+        "customer_profiles",
+        "customer_sites",
+        "customers",
+        "integration_api_clients",
+        "integration_api_requests",
+        "tenant_customer_assertion_replays",
+        "tenant_customer_identity_providers"
+      ],
+      "rpcs": [
+        "resolve_portal_customer_identity_v1"
+      ],
+      "functional_tests": [
+        "__tests__/portal-sync-unique-customer.test.ts",
+        "__tests__/portal-merge-sync.test.ts",
+        "__tests__/tenantservice-portal-identity-transition.test.ts"
+      ],
+      "verdict": "source_traced_with_limits",
+      "finding_ids": [],
+      "documented_statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "409",
+        "410",
+        "422",
+        "423",
+        "429",
+        "500",
+        "503"
+      ],
+      "evidence": "Separate explicit identity-linking operation, not same handler as customer/sync. UUID auth and portal headers/body equal; unique strong multifactor match, lifecycle transition prevents repoint/reactivation, customer/company predicates. Machine flow authenticates API client and does not gate customer signed assertions; idempotency replay precedes current portal identity lookup.",
+      "limitations": [
+        "No production end-customer E2E: prior live customer count is zero.",
+        "Table/function existence does not prove tenant configuration, ownership graph, storage bytes or successful customer business flow.",
+        "Most general read responses use ClosedPortalResourceEnvelope with unconstrained inner object/array; schema validation cannot prove exact DTO completeness."
+      ],
+      "functional_test_coverage": "Actual mounted identity-sync handler against synthetic DB; real schema/multifactor/transition/lifecycle logic exercised."
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/customer/contracts",
+      "operation_id": "getApiV1CustomerContracts",
+      "actual_handler": "app/api/v1/customer/contracts/route.ts#GET",
+      "callee_evidence": [
+        "lib/customer-portal/externalApi.ts",
+        "lib/customer-portal/customerResolver.ts",
+        "lib/customer-portal/customerAssertion.ts",
+        "lib/customer-portal/apiData.ts",
+        "lib/customer-portal/publicDto.ts"
+      ],
+      "tables": [
+        "customer_contracts",
+        "customer_portal_accounts",
+        "customer_portal_identities",
+        "customer_profiles",
+        "customers",
+        "integration_api_clients",
+        "integration_api_requests",
+        "tenant_customer_assertion_replays",
+        "tenant_customer_identity_providers"
+      ],
+      "rpcs": [
+        "resolve_portal_customer_identity_v1"
+      ],
+      "functional_tests": [
+        "__tests__/portal-customer-reference.test.ts",
+        "__tests__/ops-customer-contract-audit.test.ts",
+        "__tests__/customer-api-operation-contracts.test.ts"
+      ],
+      "verdict": "confirmed_defect_fixed_and_source_traced",
+      "finding_ids": [
+        "CUST-03"
+      ],
+      "documented_statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "409",
+        "410",
+        "422",
+        "423",
+        "429",
+        "500"
+      ],
+      "evidence": "Public contract values SEK and ore/kWh; null DTO defect corrected. Keyset created_at/id.",
+      "limitations": [
+        "No production end-customer E2E: prior live customer count is zero.",
+        "Table/function existence does not prove tenant configuration, ownership graph, storage bytes or successful customer business flow.",
+        "Most general read responses use ClosedPortalResourceEnvelope with unconstrained inner object/array; schema validation cannot prove exact DTO completeness."
+      ],
+      "functional_test_coverage": "Successful actual mounted handler fixture probe with real serializer/public DTO/business-read or sync code. Synthetic DB/RPC, auth context and retention ports. Cross-company rows cannot appear in response; write receipts use real idempotency helper. This is finite contract coverage, not live/customer auth/native mutation E2E."
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/customer/documents",
+      "operation_id": "getApiV1CustomerDocuments",
+      "actual_handler": "app/api/v1/customer/documents/route.ts#GET",
+      "callee_evidence": [
+        "lib/customer-portal/externalApi.ts",
+        "lib/customer-portal/customerResolver.ts",
+        "lib/customer-portal/customerAssertion.ts",
+        "lib/customer-portal/apiData.ts",
+        "lib/customer-portal/publicDto.ts"
+      ],
+      "tables": [
+        "customer_authorization_documents",
+        "customer_documents",
+        "customer_portal_accounts",
+        "customer_portal_identities",
+        "customer_profiles",
+        "customers",
+        "integration_api_clients",
+        "integration_api_requests",
+        "tenant_customer_assertion_replays",
+        "tenant_customer_identity_providers"
+      ],
+      "rpcs": [
+        "portal_customer_documents_page_v1",
+        "resolve_portal_customer_identity_v1"
+      ],
+      "functional_tests": [
+        "__tests__/portal-customer-reference.test.ts",
+        "__tests__/customer-api-operation-contracts.test.ts"
+      ],
+      "verdict": "source_traced_with_limits",
+      "finding_ids": [
+        "CUST-06"
+      ],
+      "documented_statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "409",
+        "410",
+        "422",
+        "423",
+        "429",
+        "500"
+      ],
+      "evidence": "Union SQL keyset source-rank ties, exact tenant/customer predicates; DTO hides storage paths. Public secure_url is tenant-supplied or source URL; no universal download proxy.",
+      "limitations": [
+        "No production end-customer E2E: prior live customer count is zero.",
+        "Table/function existence does not prove tenant configuration, ownership graph, storage bytes or successful customer business flow.",
+        "Most general read responses use ClosedPortalResourceEnvelope with unconstrained inner object/array; schema validation cannot prove exact DTO completeness."
+      ],
+      "functional_test_coverage": "Successful actual mounted handler fixture probe with real serializer/public DTO/business-read or sync code. Synthetic DB/RPC, auth context and retention ports. Cross-company rows cannot appear in response; write receipts use real idempotency helper. This is finite contract coverage, not live/customer auth/native mutation E2E."
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/customer/events",
+      "operation_id": "getApiV1CustomerEvents",
+      "actual_handler": "app/api/v1/customer/events/route.ts#GET",
+      "callee_evidence": [
+        "lib/customer-portal/externalApi.ts",
+        "lib/customer-portal/customerResolver.ts",
+        "lib/customer-portal/customerAssertion.ts",
+        "lib/customer-portal/apiData.ts",
+        "lib/customer-portal/publicDto.ts"
+      ],
+      "tables": [
+        "customer_events",
+        "customer_portal_accounts",
+        "customer_portal_identities",
+        "customer_profiles",
+        "customers",
+        "domain_events",
+        "integration_api_clients",
+        "integration_api_requests",
+        "tenant_customer_assertion_replays",
+        "tenant_customer_identity_providers"
+      ],
+      "rpcs": [
+        "portal_customer_events_page_v1",
+        "resolve_portal_customer_identity_v1"
+      ],
+      "functional_tests": [
+        "__tests__/portal-customer-reference.test.ts",
+        "__tests__/customer-api-operation-contracts.test.ts"
+      ],
+      "verdict": "source_traced_with_limits",
+      "finding_ids": [
+        "CUST-06"
+      ],
+      "documented_statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "409",
+        "410",
+        "422",
+        "423",
+        "429",
+        "500"
+      ],
+      "evidence": "Union SQL keyset occurred_at/source_rank/id; DTO excludes raw event payload. Customer-visible refers to selected customer metadata, with no domain-event type allowlist.",
+      "limitations": [
+        "No production end-customer E2E: prior live customer count is zero.",
+        "Table/function existence does not prove tenant configuration, ownership graph, storage bytes or successful customer business flow.",
+        "Most general read responses use ClosedPortalResourceEnvelope with unconstrained inner object/array; schema validation cannot prove exact DTO completeness."
+      ],
+      "functional_test_coverage": "Successful actual mounted handler fixture probe with real serializer/public DTO/business-read or sync code. Synthetic DB/RPC, auth context and retention ports. Cross-company rows cannot appear in response; write receipts use real idempotency helper. This is finite contract coverage, not live/customer auth/native mutation E2E."
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/customer/invoices",
+      "operation_id": "getApiV1CustomerInvoices",
+      "actual_handler": "app/api/v1/customer/invoices/route.ts#GET",
+      "callee_evidence": [
+        "lib/customer-portal/externalApi.ts",
+        "lib/customer-portal/customerResolver.ts",
+        "lib/customer-portal/customerAssertion.ts",
+        "lib/customer-portal/apiData.ts",
+        "lib/customer-portal/publicDto.ts"
+      ],
+      "tables": [
+        "customer_invoices",
+        "customer_portal_accounts",
+        "customer_portal_identities",
+        "customer_profiles",
+        "customers",
+        "integration_api_clients",
+        "integration_api_requests",
+        "tenant_customer_assertion_replays",
+        "tenant_customer_identity_providers"
+      ],
+      "rpcs": [
+        "resolve_portal_customer_identity_v1"
+      ],
+      "functional_tests": [
+        "__tests__/portal-customer-reference.test.ts",
+        "__tests__/ops-customer-contract-audit.test.ts",
+        "__tests__/customer-api-operation-contracts.test.ts"
+      ],
+      "verdict": "confirmed_defect_fixed_and_source_traced",
+      "finding_ids": [
+        "CUST-03",
+        "CUST-06"
+      ],
+      "documented_statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "409",
+        "410",
+        "422",
+        "423",
+        "429",
+        "500"
+      ],
+      "evidence": "Only issued/sent/paid/overdue/cancelled/credited; customer+company filters; currencies preserved, amount nulls corrected.",
+      "limitations": [
+        "No production end-customer E2E: prior live customer count is zero.",
+        "Table/function existence does not prove tenant configuration, ownership graph, storage bytes or successful customer business flow.",
+        "Most general read responses use ClosedPortalResourceEnvelope with unconstrained inner object/array; schema validation cannot prove exact DTO completeness."
+      ],
+      "functional_test_coverage": "Successful actual mounted handler fixture probe with real serializer/public DTO/business-read or sync code. Synthetic DB/RPC, auth context and retention ports. Cross-company rows cannot appear in response; write receipts use real idempotency helper. This is finite contract coverage, not live/customer auth/native mutation E2E."
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/customer/invoices/{id}",
+      "operation_id": "getApiV1CustomerInvoicesId",
+      "actual_handler": "app/api/v1/customer/invoices/[id]/route.ts#GET",
+      "callee_evidence": [
+        "lib/customer-portal/externalApi.ts",
+        "lib/customer-portal/customerResolver.ts",
+        "lib/customer-portal/customerAssertion.ts",
+        "lib/customer-portal/apiData.ts",
+        "lib/customer-portal/publicDto.ts"
+      ],
+      "tables": [
+        "customer_invoice_documents",
+        "customer_invoice_lines",
+        "customer_invoices",
+        "customer_portal_accounts",
+        "customer_portal_identities",
+        "customer_profiles",
+        "customers",
+        "integration_api_clients",
+        "integration_api_requests",
+        "tenant_customer_assertion_replays",
+        "tenant_customer_identity_providers"
+      ],
+      "rpcs": [
+        "resolve_portal_customer_identity_v1"
+      ],
+      "functional_tests": [
+        "__tests__/portal-customer-reference.test.ts",
+        "__tests__/customer-api-operation-contracts.test.ts"
+      ],
+      "verdict": "confirmed_defect_fixed_and_source_traced",
+      "finding_ids": [
+        "CUST-03"
+      ],
+      "documented_statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "409",
+        "410",
+        "422",
+        "423",
+        "429",
+        "500"
+      ],
+      "evidence": "Invoice reference resolved under customer/company/status before lines/documents company+invoice query. Missing invoice returns404 although operation response map omits404. Line quantity/unit_price has no public unit; inner lines/documents schema is generic.",
+      "limitations": [
+        "No production end-customer E2E: prior live customer count is zero.",
+        "Table/function existence does not prove tenant configuration, ownership graph, storage bytes or successful customer business flow.",
+        "Most general read responses use ClosedPortalResourceEnvelope with unconstrained inner object/array; schema validation cannot prove exact DTO completeness."
+      ],
+      "functional_test_coverage": "Successful actual mounted handler fixture probe with real serializer/public DTO/business-read or sync code. Synthetic DB/RPC, auth context and retention ports. Cross-company rows cannot appear in response; write receipts use real idempotency helper. This is finite contract coverage, not live/customer auth/native mutation E2E."
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/customer/legal-acceptances",
+      "operation_id": "getApiV1CustomerLegalAcceptances",
+      "actual_handler": "app/api/v1/customer/legal-acceptances/route.ts#GET",
+      "callee_evidence": [
+        "lib/customer-portal/externalApi.ts",
+        "lib/customer-portal/customerResolver.ts",
+        "lib/customer-portal/customerAssertion.ts",
+        "lib/customer-portal/apiData.ts",
+        "lib/customer-portal/publicDto.ts"
+      ],
+      "tables": [
+        "customer_legal_acceptances",
+        "customer_portal_accounts",
+        "customer_portal_identities",
+        "customer_profiles",
+        "customers",
+        "integration_api_clients",
+        "integration_api_requests",
+        "tenant_customer_assertion_replays",
+        "tenant_customer_identity_providers"
+      ],
+      "rpcs": [
+        "resolve_portal_customer_identity_v1"
+      ],
+      "functional_tests": [
+        "__tests__/portal-customer-reference.test.ts",
+        "__tests__/customer-api-operation-contracts.test.ts"
+      ],
+      "verdict": "source_traced_with_limits",
+      "finding_ids": [
+        "CUST-06"
+      ],
+      "documented_statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "409",
+        "410",
+        "422",
+        "423",
+        "429",
+        "500"
+      ],
+      "evidence": "Keyset accepted_at/id and public legal references/hash/version.",
+      "limitations": [
+        "No production end-customer E2E: prior live customer count is zero.",
+        "Table/function existence does not prove tenant configuration, ownership graph, storage bytes or successful customer business flow.",
+        "Most general read responses use ClosedPortalResourceEnvelope with unconstrained inner object/array; schema validation cannot prove exact DTO completeness."
+      ],
+      "functional_test_coverage": "Successful actual mounted handler fixture probe with real serializer/public DTO/business-read or sync code. Synthetic DB/RPC, auth context and retention ports. Cross-company rows cannot appear in response; write receipts use real idempotency helper. This is finite contract coverage, not live/customer auth/native mutation E2E."
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/customer/me",
+      "operation_id": "getApiV1CustomerMe",
+      "actual_handler": "app/api/v1/customer/me/route.ts#GET",
+      "callee_evidence": [
+        "lib/customer-portal/externalApi.ts",
+        "lib/customer-portal/customerResolver.ts",
+        "lib/customer-portal/customerAssertion.ts",
+        "lib/customer-portal/apiData.ts",
+        "lib/customer-portal/publicDto.ts"
+      ],
+      "tables": [
+        "customer_portal_accounts",
+        "customer_portal_identities",
+        "customer_profiles",
+        "customers",
+        "integration_api_clients",
+        "integration_api_requests",
+        "tenant_customer_assertion_replays",
+        "tenant_customer_identity_providers"
+      ],
+      "rpcs": [
+        "resolve_portal_customer_identity_v1"
+      ],
+      "functional_tests": [
+        "__tests__/portal-customer-reference.test.ts",
+        "__tests__/tenantservice-portal-resolver-read-only.test.ts",
+        "__tests__/customer-api-operation-contracts.test.ts"
+      ],
+      "verdict": "source_traced_with_limits",
+      "finding_ids": [],
+      "documented_statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "409",
+        "410",
+        "422",
+        "423",
+        "429",
+        "500"
+      ],
+      "evidence": "Explicit public customer/identity fields; general legacy identifier-only read intentionally retained. No link writes on reads.",
+      "limitations": [
+        "No production end-customer E2E: prior live customer count is zero.",
+        "Table/function existence does not prove tenant configuration, ownership graph, storage bytes or successful customer business flow.",
+        "Most general read responses use ClosedPortalResourceEnvelope with unconstrained inner object/array; schema validation cannot prove exact DTO completeness."
+      ],
+      "functional_test_coverage": "Successful actual mounted handler fixture probe with real serializer/public DTO/business-read or sync code. Synthetic DB/RPC, auth context and retention ports. Cross-company rows cannot appear in response; write receipts use real idempotency helper. This is finite contract coverage, not live/customer auth/native mutation E2E."
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/customer/metering-values",
+      "operation_id": "getApiV1CustomerMeteringValues",
+      "actual_handler": "app/api/v1/customer/metering-values/route.ts#GET",
+      "callee_evidence": [
+        "lib/customer-portal/externalApi.ts",
+        "lib/customer-portal/customerResolver.ts",
+        "lib/customer-portal/customerAssertion.ts",
+        "lib/customer-portal/apiData.ts",
+        "lib/customer-portal/publicDto.ts"
+      ],
+      "tables": [
+        "customer_portal_accounts",
+        "customer_portal_identities",
+        "customer_profiles",
+        "customers",
+        "integration_api_clients",
+        "integration_api_requests",
+        "normalized_metering_values",
+        "tenant_customer_assertion_replays",
+        "tenant_customer_identity_providers"
+      ],
+      "rpcs": [
+        "resolve_portal_customer_identity_v1"
+      ],
+      "functional_tests": [
+        "__tests__/ops-customer-contract-audit.test.ts",
+        "__tests__/portal-complete-month-consumption.test.ts",
+        "__tests__/customer-api-operation-contracts.test.ts"
+      ],
+      "verdict": "confirmed_defect_fixed_and_source_traced",
+      "finding_ids": [
+        "CUST-03",
+        "CUST-06"
+      ],
+      "documented_statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "409",
+        "410",
+        "422",
+        "423",
+        "429",
+        "500"
+      ],
+      "evidence": "kWh explicit; bounded latest detail list keyset period_start/id with from/to/facility filter-bound cursors. Complete month cards use distinct native aggregation, not these detail rows.",
+      "limitations": [
+        "No production end-customer E2E: prior live customer count is zero.",
+        "Table/function existence does not prove tenant configuration, ownership graph, storage bytes or successful customer business flow.",
+        "Most general read responses use ClosedPortalResourceEnvelope with unconstrained inner object/array; schema validation cannot prove exact DTO completeness."
+      ],
+      "functional_test_coverage": "Successful actual mounted handler fixture probe with real serializer/public DTO/business-read or sync code. Synthetic DB/RPC, auth context and retention ports. Cross-company rows cannot appear in response; write receipts use real idempotency helper. This is finite contract coverage, not live/customer auth/native mutation E2E."
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/customer/move-out",
+      "operation_id": "postApiV1CustomerMoveOut",
+      "actual_handler": "app/api/v1/customer/move-out/route.ts#POST",
+      "callee_evidence": [
+        "lib/customer-portal/externalApi.ts",
+        "lib/customer-portal/customerResolver.ts",
+        "lib/customer-portal/customerAssertion.ts",
+        "lib/customer-portal/apiData.ts",
+        "lib/customer-portal/publicDto.ts"
+      ],
+      "tables": [
+        "customer_cases",
+        "customer_contracts",
+        "customer_events",
+        "customer_portal_accounts",
+        "customer_portal_completions",
+        "customer_portal_identities",
+        "customer_portal_write_idempotency",
+        "customer_profiles",
+        "customer_sites",
+        "customers",
+        "integration_api_clients",
+        "integration_api_requests",
+        "tenant_customer_assertion_replays",
+        "tenant_customer_identity_providers"
+      ],
+      "rpcs": [
+        "gridex_submit_customer_move_out_v1",
+        "resolve_portal_customer_identity_v1"
+      ],
+      "functional_tests": [
+        "__tests__/portal-idempotency-ack-loss.test.ts",
+        "__tests__/customer-api-operation-contracts.test.ts"
+      ],
+      "verdict": "source_traced_with_limits",
+      "finding_ids": [
+        "CUST-07"
+      ],
+      "documented_statuses": [
+        "200",
+        "201",
+        "400",
+        "401",
+        "403",
+        "409",
+        "410",
+        "422",
+        "423",
+        "429",
+        "500",
+        "503"
+      ],
+      "evidence": "Service-role-only transactional SQL validates tenant/customer/site/contract and advisory-locks idempotency. SQL day range today..today+730 exists but HTTP does not map its raw validation SQLSTATE to client error. No dedicated mounted move-out success test executed in this subtask.",
+      "limitations": [
+        "No production end-customer E2E: prior live customer count is zero.",
+        "Table/function existence does not prove tenant configuration, ownership graph, storage bytes or successful customer business flow.",
+        "Most general read responses use ClosedPortalResourceEnvelope with unconstrained inner object/array; schema validation cannot prove exact DTO completeness."
+      ],
+      "functional_test_coverage": "Successful actual mounted handler fixture probe with real serializer/public DTO/business-read or sync code. Synthetic DB/RPC, auth context and retention ports. Cross-company rows cannot appear in response; write receipts use real idempotency helper. This is finite contract coverage, not live/customer auth/native mutation E2E."
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/customer/notifications",
+      "operation_id": "getApiV1CustomerNotifications",
+      "actual_handler": "app/api/v1/customer/notifications/route.ts#GET",
+      "callee_evidence": [
+        "lib/customer-portal/externalApi.ts",
+        "lib/customer-portal/customerResolver.ts",
+        "lib/customer-portal/customerAssertion.ts",
+        "lib/customer-portal/apiData.ts",
+        "lib/customer-portal/publicDto.ts"
+      ],
+      "tables": [
+        "customer_notifications",
+        "customer_portal_accounts",
+        "customer_portal_identities",
+        "customer_profiles",
+        "customers",
+        "integration_api_clients",
+        "integration_api_requests",
+        "tenant_customer_assertion_replays",
+        "tenant_customer_identity_providers"
+      ],
+      "rpcs": [
+        "resolve_portal_customer_identity_v1"
+      ],
+      "functional_tests": [
+        "__tests__/portal-customer-reference.test.ts",
+        "__tests__/customer-api-operation-contracts.test.ts"
+      ],
+      "verdict": "source_traced_with_limits",
+      "finding_ids": [
+        "CUST-06"
+      ],
+      "documented_statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "409",
+        "410",
+        "422",
+        "423",
+        "429",
+        "500"
+      ],
+      "evidence": "Keyset created_at/id; DTO strips action_url/metadata; nullable optional selected fields.",
+      "limitations": [
+        "No production end-customer E2E: prior live customer count is zero.",
+        "Table/function existence does not prove tenant configuration, ownership graph, storage bytes or successful customer business flow.",
+        "Most general read responses use ClosedPortalResourceEnvelope with unconstrained inner object/array; schema validation cannot prove exact DTO completeness."
+      ],
+      "functional_test_coverage": "Successful actual mounted handler fixture probe with real serializer/public DTO/business-read or sync code. Synthetic DB/RPC, auth context and retention ports. Cross-company rows cannot appear in response; write receipts use real idempotency helper. This is finite contract coverage, not live/customer auth/native mutation E2E."
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/customer/notifications/read",
+      "operation_id": "postApiV1CustomerNotificationsRead",
+      "actual_handler": "app/api/v1/customer/notifications/read/route.ts#POST",
+      "callee_evidence": [
+        "lib/customer-portal/externalApi.ts",
+        "lib/customer-portal/customerResolver.ts",
+        "lib/customer-portal/customerAssertion.ts",
+        "lib/customer-portal/apiData.ts",
+        "lib/customer-portal/publicDto.ts"
+      ],
+      "tables": [
+        "customer_notifications",
+        "customer_portal_accounts",
+        "customer_portal_identities",
+        "customer_portal_write_idempotency",
+        "customer_profiles",
+        "customers",
+        "integration_api_clients",
+        "integration_api_requests",
+        "tenant_customer_assertion_replays",
+        "tenant_customer_identity_providers"
+      ],
+      "rpcs": [
+        "resolve_portal_customer_identity_v1"
+      ],
+      "functional_tests": [
+        "__tests__/portal-customer-reference.test.ts",
+        "__tests__/portal-idempotency-ack-loss.test.ts",
+        "__tests__/customer-api-operation-contracts.test.ts"
+      ],
+      "verdict": "source_traced_with_limits",
+      "finding_ids": [],
+      "documented_statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "409",
+        "410",
+        "422",
+        "423",
+        "429",
+        "500",
+        "503"
+      ],
+      "evidence": "All references resolved before update; one customer/company-bounded in(id) mutation; replay returns stored updated_count/read_at. Foreign/missing ref404 not described in operation statuses.",
+      "limitations": [
+        "No production end-customer E2E: prior live customer count is zero.",
+        "Table/function existence does not prove tenant configuration, ownership graph, storage bytes or successful customer business flow.",
+        "Most general read responses use ClosedPortalResourceEnvelope with unconstrained inner object/array; schema validation cannot prove exact DTO completeness."
+      ],
+      "functional_test_coverage": "Successful actual mounted handler fixture probe with real serializer/public DTO/business-read or sync code. Synthetic DB/RPC, auth context and retention ports. Cross-company rows cannot appear in response; write receipts use real idempotency helper. This is finite contract coverage, not live/customer auth/native mutation E2E."
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/customer/portal-bundle",
+      "operation_id": "getApiV1CustomerPortalBundle",
+      "actual_handler": "app/api/v1/customer/portal-bundle/route.ts#GET",
+      "callee_evidence": [
+        "lib/customer-portal/externalApi.ts",
+        "lib/customer-portal/customerResolver.ts",
+        "lib/customer-portal/customerAssertion.ts",
+        "lib/customer-portal/apiData.ts",
+        "lib/customer-portal/publicDto.ts"
+      ],
+      "tables": [
+        "customer_authorization_documents",
+        "customer_contracts",
+        "customer_documents",
+        "customer_events",
+        "customer_invoices",
+        "customer_legal_acceptances",
+        "customer_notifications",
+        "customer_portal_accounts",
+        "customer_portal_identities",
+        "customer_profiles",
+        "customer_sites",
+        "customers",
+        "domain_events",
+        "integration_api_clients",
+        "integration_api_requests",
+        "metering_points",
+        "normalized_metering_values",
+        "powers_of_attorney",
+        "tenant_customer_assertion_replays",
+        "tenant_customer_identity_providers",
+        "website_customer_applications"
+      ],
+      "rpcs": [
+        "resolve_portal_customer_identity_v1"
+      ],
+      "functional_tests": [
+        "__tests__/portal-customer-reference.test.ts",
+        "__tests__/customer-api-operation-contracts.test.ts"
+      ],
+      "verdict": "confirmed_defect_fixed_and_source_traced",
+      "finding_ids": [
+        "CUST-03"
+      ],
+      "documented_statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "409",
+        "410",
+        "422",
+        "423",
+        "429",
+        "500"
+      ],
+      "evidence": "Required bundle section unavailable yields503; optional unavailable yields partial response warnings. GET uses headers/query; POST JSON identifiers still treated as POST for existing mutation-binding gate. All section scopes required even include excludes some sections. Bundle detail bounds not monthly totals.",
+      "limitations": [
+        "No production end-customer E2E: prior live customer count is zero.",
+        "Table/function existence does not prove tenant configuration, ownership graph, storage bytes or successful customer business flow.",
+        "Most general read responses use ClosedPortalResourceEnvelope with unconstrained inner object/array; schema validation cannot prove exact DTO completeness."
+      ],
+      "functional_test_coverage": "Successful actual mounted handler fixture probe with real serializer/public DTO/business-read or sync code. Synthetic DB/RPC, auth context and retention ports. Cross-company rows cannot appear in response; write receipts use real idempotency helper. This is finite contract coverage, not live/customer auth/native mutation E2E."
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/customer/portal-bundle",
+      "operation_id": "postApiV1CustomerPortalBundle",
+      "actual_handler": "app/api/v1/customer/portal-bundle/route.ts#POST",
+      "callee_evidence": [
+        "lib/customer-portal/externalApi.ts",
+        "lib/customer-portal/customerResolver.ts",
+        "lib/customer-portal/customerAssertion.ts",
+        "lib/customer-portal/apiData.ts",
+        "lib/customer-portal/publicDto.ts"
+      ],
+      "tables": [
+        "customer_authorization_documents",
+        "customer_contracts",
+        "customer_documents",
+        "customer_events",
+        "customer_invoices",
+        "customer_legal_acceptances",
+        "customer_notifications",
+        "customer_portal_accounts",
+        "customer_portal_identities",
+        "customer_profiles",
+        "customer_sites",
+        "customers",
+        "domain_events",
+        "integration_api_clients",
+        "integration_api_requests",
+        "metering_points",
+        "normalized_metering_values",
+        "powers_of_attorney",
+        "tenant_customer_assertion_replays",
+        "tenant_customer_identity_providers",
+        "website_customer_applications"
+      ],
+      "rpcs": [
+        "resolve_portal_customer_identity_v1"
+      ],
+      "functional_tests": [
+        "__tests__/portal-customer-reference.test.ts",
+        "__tests__/customer-api-operation-contracts.test.ts"
+      ],
+      "verdict": "confirmed_defect_fixed_and_source_traced",
+      "finding_ids": [
+        "CUST-03"
+      ],
+      "documented_statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "409",
+        "410",
+        "422",
+        "423",
+        "429",
+        "500"
+      ],
+      "evidence": "Required bundle section unavailable yields503; optional unavailable yields partial response warnings. GET uses headers/query; POST JSON identifiers still treated as POST for existing mutation-binding gate. All section scopes required even include excludes some sections. Bundle detail bounds not monthly totals.",
+      "limitations": [
+        "No production end-customer E2E: prior live customer count is zero.",
+        "Table/function existence does not prove tenant configuration, ownership graph, storage bytes or successful customer business flow.",
+        "Most general read responses use ClosedPortalResourceEnvelope with unconstrained inner object/array; schema validation cannot prove exact DTO completeness."
+      ],
+      "functional_test_coverage": "Successful actual mounted handler fixture probe with real serializer/public DTO/business-read or sync code. Synthetic DB/RPC, auth context and retention ports. Cross-company rows cannot appear in response; write receipts use real idempotency helper. This is finite contract coverage, not live/customer auth/native mutation E2E."
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/customer/powers-of-attorney",
+      "operation_id": "getApiV1CustomerPowersOfAttorney",
+      "actual_handler": "app/api/v1/customer/powers-of-attorney/route.ts#GET",
+      "callee_evidence": [
+        "lib/customer-portal/externalApi.ts",
+        "lib/customer-portal/customerResolver.ts",
+        "lib/customer-portal/customerAssertion.ts",
+        "lib/customer-portal/apiData.ts",
+        "lib/customer-portal/publicDto.ts"
+      ],
+      "tables": [
+        "customer_portal_accounts",
+        "customer_portal_identities",
+        "customer_profiles",
+        "customers",
+        "integration_api_clients",
+        "integration_api_requests",
+        "powers_of_attorney",
+        "tenant_customer_assertion_replays",
+        "tenant_customer_identity_providers"
+      ],
+      "rpcs": [
+        "resolve_portal_customer_identity_v1"
+      ],
+      "functional_tests": [
+        "__tests__/portal-customer-reference.test.ts",
+        "__tests__/customer-api-operation-contracts.test.ts"
+      ],
+      "verdict": "source_traced_with_limits",
+      "finding_ids": [
+        "CUST-06"
+      ],
+      "documented_statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "409",
+        "410",
+        "422",
+        "423",
+        "429",
+        "500"
+      ],
+      "evidence": "Public references and lifecycle/date/scope fields only; source fallback status terminology not narrowed by schema.",
+      "limitations": [
+        "No production end-customer E2E: prior live customer count is zero.",
+        "Table/function existence does not prove tenant configuration, ownership graph, storage bytes or successful customer business flow.",
+        "Most general read responses use ClosedPortalResourceEnvelope with unconstrained inner object/array; schema validation cannot prove exact DTO completeness."
+      ],
+      "functional_test_coverage": "Successful actual mounted handler fixture probe with real serializer/public DTO/business-read or sync code. Synthetic DB/RPC, auth context and retention ports. Cross-company rows cannot appear in response; write receipts use real idempotency helper. This is finite contract coverage, not live/customer auth/native mutation E2E."
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/customer/profile-update",
+      "operation_id": "postApiV1CustomerProfileUpdate",
+      "actual_handler": "app/api/v1/customer/profile-update/route.ts#POST",
+      "callee_evidence": [
+        "lib/customer-portal/externalApi.ts",
+        "lib/customer-portal/customerResolver.ts",
+        "lib/customer-portal/customerAssertion.ts",
+        "lib/customer-portal/apiData.ts",
+        "lib/customer-portal/publicDto.ts"
+      ],
+      "tables": [
+        "audit_logs",
+        "customer_cases",
+        "customer_contacts",
+        "customer_portal_accounts",
+        "customer_portal_completions",
+        "customer_portal_identities",
+        "customer_portal_write_idempotency",
+        "customer_profiles",
+        "customer_site_address_conflicts",
+        "customer_site_address_history",
+        "customer_sites",
+        "customers",
+        "domain_events",
+        "event_outbox",
+        "integration_api_clients",
+        "integration_api_requests",
+        "tenant_customer_assertion_replays",
+        "tenant_customer_identity_providers"
+      ],
+      "rpcs": [
+        "gridex_commit_customer_site_address",
+        "gridex_customer_contact_change_v1",
+        "resolve_portal_customer_identity_v1"
+      ],
+      "functional_tests": [
+        "__tests__/customer-profile-address-transaction.test.ts",
+        "__tests__/customer-profile-address-public-response.test.ts",
+        "__tests__/tenantservice-contact-change-transaction.test.ts"
+      ],
+      "verdict": "confirmed_defect_fixed_and_source_traced",
+      "finding_ids": [
+        "CUST-04"
+      ],
+      "documented_statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "409",
+        "410",
+        "422",
+        "423",
+        "429",
+        "500",
+        "503"
+      ],
+      "evidence": "Scope depends on supplied sections. Facility ownership preflight precedes profile transaction; no cross-resource rollback after profile commit. Completion accepted only updated/unchanged; conflicts/incomplete submitted. Public address DTO fixed before replay ledger save; original raw siteId caused500 after saved effects.",
+      "limitations": [
+        "No production end-customer E2E: prior live customer count is zero.",
+        "Table/function existence does not prove tenant configuration, ownership graph, storage bytes or successful customer business flow.",
+        "Most general read responses use ClosedPortalResourceEnvelope with unconstrained inner object/array; schema validation cannot prove exact DTO completeness."
+      ],
+      "functional_test_coverage": "Actual mounted handler + real durable-idempotency helper; synthetic DB and address transport seam for public UUID projection/replay. Real address domain + real native SQL exercised separately by original profile-address tests."
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/customer/sites",
+      "operation_id": "getApiV1CustomerSites",
+      "actual_handler": "app/api/v1/customer/sites/route.ts#GET",
+      "callee_evidence": [
+        "lib/customer-portal/externalApi.ts",
+        "lib/customer-portal/customerResolver.ts",
+        "lib/customer-portal/customerAssertion.ts",
+        "lib/customer-portal/apiData.ts",
+        "lib/customer-portal/publicDto.ts"
+      ],
+      "tables": [
+        "customer_portal_accounts",
+        "customer_portal_identities",
+        "customer_profiles",
+        "customer_sites",
+        "customers",
+        "integration_api_clients",
+        "integration_api_requests",
+        "metering_points",
+        "tenant_customer_assertion_replays",
+        "tenant_customer_identity_providers"
+      ],
+      "rpcs": [
+        "resolve_portal_customer_identity_v1"
+      ],
+      "functional_tests": [
+        "__tests__/portal-customer-reference.test.ts",
+        "__tests__/customer-api-operation-contracts.test.ts"
+      ],
+      "verdict": "source_traced_with_limits",
+      "finding_ids": [
+        "CUST-06"
+      ],
+      "documented_statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "409",
+        "410",
+        "422",
+        "423",
+        "429",
+        "500"
+      ],
+      "evidence": "Paginated sites and corresponding metering points only; company boundary and resolved site set; no metering-point page limit in this route.",
+      "limitations": [
+        "No production end-customer E2E: prior live customer count is zero.",
+        "Table/function existence does not prove tenant configuration, ownership graph, storage bytes or successful customer business flow.",
+        "Most general read responses use ClosedPortalResourceEnvelope with unconstrained inner object/array; schema validation cannot prove exact DTO completeness."
+      ],
+      "functional_test_coverage": "Successful actual mounted handler fixture probe with real serializer/public DTO/business-read or sync code. Synthetic DB/RPC, auth context and retention ports. Cross-company rows cannot appear in response; write receipts use real idempotency helper. This is finite contract coverage, not live/customer auth/native mutation E2E."
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/customer/sync",
+      "operation_id": "postApiV1CustomerSync",
+      "actual_handler": "app/api/v1/customer/sync/route.ts#POST",
+      "callee_evidence": [
+        "lib/customer-portal/externalApi.ts",
+        "lib/customer-portal/customerResolver.ts",
+        "lib/customer-portal/customerAssertion.ts",
+        "lib/customer-portal/apiData.ts",
+        "lib/customer-portal/publicDto.ts"
+      ],
+      "tables": [
+        "customer_contracts",
+        "customer_documents",
+        "customer_legal_acceptances",
+        "customer_portal_accounts",
+        "customer_portal_identities",
+        "customer_portal_write_idempotency",
+        "customer_profiles",
+        "customer_sites",
+        "customers",
+        "domain_events",
+        "event_outbox",
+        "integration_api_clients",
+        "integration_api_requests",
+        "legal_bundle_version_documents",
+        "metering_points",
+        "powers_of_attorney",
+        "tenant_customer_assertion_replays",
+        "tenant_customer_identity_providers",
+        "website_customer_applications"
+      ],
+      "rpcs": [
+        "gridex_commit_customer_site_address",
+        "gridex_create_customer_site_with_address",
+        "resolve_portal_customer_identity_v1"
+      ],
+      "functional_tests": [
+        "__tests__/tenantservice-portal-resolver-read-only.test.ts",
+        "__tests__/portal-idempotency-ack-loss.test.ts",
+        "__tests__/customer-api-operation-contracts.test.ts",
+        "__tests__/customer-sync-authenticated-reference.test.ts"
+      ],
+      "verdict": "source_traced_with_limits",
+      "finding_ids": [
+        "CUST-05"
+      ],
+      "documented_statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "409",
+        "410",
+        "422",
+        "423",
+        "429",
+        "500",
+        "503"
+      ],
+      "evidence": "Tenant machine flow explicitly allows identifier binding and mode:link. Sequential writes across profile/legal/documents/facilities/POA/events; later failures can leave earlier writes; failed receipt is reconciliation-required rather than automatic duplicate reexecution. Link resolver may persist before assertion verification. authenticated_user_reference now resolves existing active tenant-owned account subject through linkedByAccount; sole wrong-company/missing/disabled subject is denied without mutation.",
+      "limitations": [
+        "No production end-customer E2E: prior live customer count is zero.",
+        "Table/function existence does not prove tenant configuration, ownership graph, storage bytes or successful customer business flow.",
+        "Most general read responses use ClosedPortalResourceEnvelope with unconstrained inner object/array; schema validation cannot prove exact DTO completeness."
+      ],
+      "functional_test_coverage": "Successful actual mounted handler fixture probe with real serializer/public DTO/business-read or sync code. Synthetic DB/RPC, auth context and retention ports. Cross-company rows cannot appear in response; write receipts use real idempotency helper. This is finite contract coverage, not live/customer auth/native mutation E2E."
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/events",
+      "operation_id": "getApiV1Events",
+      "actual_handler": "app/api/v1/events/route.ts#GET",
+      "callee_evidence": [
+        "lib/customer-portal/externalApi.ts",
+        "lib/customer-portal/customerResolver.ts",
+        "lib/customer-portal/customerAssertion.ts",
+        "lib/customer-portal/apiData.ts",
+        "lib/customer-portal/publicDto.ts"
+      ],
+      "tables": [
+        "customer_cases",
+        "customer_events",
+        "customer_portal_accounts",
+        "customer_portal_identities",
+        "customer_portal_write_idempotency",
+        "customer_profiles",
+        "customers",
+        "domain_events",
+        "event_outbox",
+        "integration_api_clients",
+        "integration_api_requests",
+        "tenant_customer_assertion_replays",
+        "tenant_customer_identity_providers",
+        "webhook_deliveries",
+        "webhook_subscriptions"
+      ],
+      "rpcs": [
+        "resolve_portal_customer_identity_v1"
+      ],
+      "functional_tests": [
+        "__tests__/portal-idempotency-ack-loss.test.ts"
+      ],
+      "verdict": "source_traced_with_limits",
+      "finding_ids": [],
+      "documented_statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "409",
+        "410",
+        "422",
+        "423",
+        "429",
+        "500"
+      ],
+      "evidence": "Shared machine integration operation. GET company-wide events.read, optional external-customer filter. POST website_events.write emits customer event+domain event+usage then optionally support case. Separate SQL writes; no cross-resource rollback. Webhook public projection used for GET. Shared operation audit owned by root; not claimed as fully behavior-proven here.",
+      "limitations": [
+        "No production end-customer E2E: prior live customer count is zero.",
+        "Table/function existence does not prove tenant configuration, ownership graph, storage bytes or successful customer business flow.",
+        "Most general read responses use ClosedPortalResourceEnvelope with unconstrained inner object/array; schema validation cannot prove exact DTO completeness."
+      ],
+      "functional_test_coverage": "Helper/identity tests and source/callee/SQL trace; no dedicated successful mounted handler test executed for this exact operation."
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/events",
+      "operation_id": "postApiV1Events",
+      "actual_handler": "app/api/v1/events/route.ts#POST",
+      "callee_evidence": [
+        "lib/customer-portal/externalApi.ts",
+        "lib/customer-portal/customerResolver.ts",
+        "lib/customer-portal/customerAssertion.ts",
+        "lib/customer-portal/apiData.ts",
+        "lib/customer-portal/publicDto.ts"
+      ],
+      "tables": [
+        "customer_cases",
+        "customer_events",
+        "customer_portal_accounts",
+        "customer_portal_identities",
+        "customer_portal_write_idempotency",
+        "customer_profiles",
+        "customers",
+        "domain_events",
+        "event_outbox",
+        "integration_api_clients",
+        "integration_api_requests",
+        "tenant_customer_assertion_replays",
+        "tenant_customer_identity_providers",
+        "webhook_deliveries",
+        "webhook_subscriptions"
+      ],
+      "rpcs": [
+        "resolve_portal_customer_identity_v1"
+      ],
+      "functional_tests": [
+        "__tests__/portal-idempotency-ack-loss.test.ts"
+      ],
+      "verdict": "source_traced_with_limits",
+      "finding_ids": [],
+      "documented_statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "409",
+        "410",
+        "422",
+        "423",
+        "429",
+        "500",
+        "503"
+      ],
+      "evidence": "Shared machine integration operation. GET company-wide events.read, optional external-customer filter. POST website_events.write emits customer event+domain event+usage then optionally support case. Separate SQL writes; no cross-resource rollback. Webhook public projection used for GET. Shared operation audit owned by root; not claimed as fully behavior-proven here.",
+      "limitations": [
+        "No production end-customer E2E: prior live customer count is zero.",
+        "Table/function existence does not prove tenant configuration, ownership graph, storage bytes or successful customer business flow.",
+        "Most general read responses use ClosedPortalResourceEnvelope with unconstrained inner object/array; schema validation cannot prove exact DTO completeness."
+      ],
+      "functional_test_coverage": "Helper/identity tests and source/callee/SQL trace; no dedicated successful mounted handler test executed for this exact operation."
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/integration/context",
+      "operation_id": "getApiV1IntegrationContext",
+      "actual_handler": "app/api/v1/integration/context/route.ts#GET",
+      "callee_evidence": [
+        "lib/customer-portal/externalApi.ts",
+        "lib/customer-portal/customerResolver.ts",
+        "lib/customer-portal/customerAssertion.ts",
+        "lib/customer-portal/apiData.ts",
+        "lib/customer-portal/publicDto.ts"
+      ],
+      "tables": [
+        "customer_portal_accounts",
+        "customer_portal_identities",
+        "customer_profiles",
+        "customers",
+        "integration_api_clients",
+        "integration_api_requests",
+        "tenant_customer_assertion_replays",
+        "tenant_customer_identity_providers"
+      ],
+      "rpcs": [
+        "resolve_portal_customer_identity_v1"
+      ],
+      "functional_tests": [],
+      "verdict": "source_traced_with_limits",
+      "finding_ids": [],
+      "documented_statuses": [
+        "200",
+        "401",
+        "403",
+        "410",
+        "423"
+      ],
+      "evidence": "Shared integration context operation; root owns auth/context verification. Included because customer OpenAPI documents it.",
+      "limitations": [
+        "No production end-customer E2E: prior live customer count is zero.",
+        "Table/function existence does not prove tenant configuration, ownership graph, storage bytes or successful customer business flow.",
+        "Most general read responses use ClosedPortalResourceEnvelope with unconstrained inner object/array; schema validation cannot prove exact DTO completeness."
+      ],
+      "functional_test_coverage": "Helper/identity tests and source/callee/SQL trace; no dedicated successful mounted handler test executed for this exact operation."
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/customer/support/cases",
+      "operation_id": "getApiV1CustomerSupportCases",
+      "actual_handler": "app/api/v1/customer/support/cases/route.ts#getSupportCases",
+      "callee_evidence": [
+        "lib/customer-portal/externalApi.ts",
+        "lib/customer-portal/customerResolver.ts",
+        "lib/customer-portal/customerAssertion.ts",
+        "lib/customer-service/supportApiHandlers.ts",
+        "lib/customer-service/supportConversation.ts",
+        "lib/customer-service/supportAttachments.ts"
+      ],
+      "tables": [
+        "customer_case_events",
+        "customer_cases",
+        "customer_portal_accounts",
+        "customer_portal_identities",
+        "customer_profiles",
+        "customers",
+        "integration_api_clients",
+        "integration_api_requests",
+        "tenant_customer_assertion_replays",
+        "tenant_customer_identity_providers"
+      ],
+      "rpcs": [
+        "resolve_portal_customer_identity_v1"
+      ],
+      "functional_tests": [
+        "__tests__/tenantservice-support-api-routes.test.ts",
+        "__tests__/tenantservice-support-conversation.test.ts",
+        "__tests__/ops-customer-support-binding-audit.test.ts",
+        "__tests__/support-history-continuation.test.ts"
+      ],
+      "verdict": "confirmed_defect_fixed_and_source_traced",
+      "finding_ids": [
+        "CUST-01"
+      ],
+      "documented_statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "409",
+        "410",
+        "422",
+        "423",
+        "429",
+        "500"
+      ],
+      "evidence": "Explicit support scope and enforceBinding:true; no general portal wildcard. Public references resolve within company/customer; released customer-only attachment and visible-event allowlists. Current scope/customer auth before write replay.",
+      "limitations": [
+        "No production end-customer E2E: prior live customer count is zero.",
+        "Table/function existence does not prove tenant configuration, ownership graph, storage bytes or successful customer business flow.",
+        "Most general read responses use ClosedPortalResourceEnvelope with unconstrained inner object/array; schema validation cannot prove exact DTO completeness."
+      ],
+      "functional_test_coverage": "Mounted support route/domain behavior with synthetic database/auth transport; tenant/case visibility, replay/quotas/error paths covered; corrected support binding gate separately reproduced."
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/customer/support/cases",
+      "operation_id": "postApiV1CustomerSupportCases",
+      "actual_handler": "app/api/v1/customer/support/cases/route.ts#postSupportCase",
+      "callee_evidence": [
+        "lib/customer-portal/externalApi.ts",
+        "lib/customer-portal/customerResolver.ts",
+        "lib/customer-portal/customerAssertion.ts",
+        "lib/customer-service/supportApiHandlers.ts",
+        "lib/customer-service/supportConversation.ts",
+        "lib/customer-service/supportAttachments.ts"
+      ],
+      "tables": [
+        "customer_case_events",
+        "customer_cases",
+        "customer_portal_accounts",
+        "customer_portal_identities",
+        "customer_portal_write_idempotency",
+        "customer_profiles",
+        "customers",
+        "integration_api_clients",
+        "integration_api_requests",
+        "tenant_customer_assertion_replays",
+        "tenant_customer_identity_providers"
+      ],
+      "rpcs": [
+        "resolve_portal_customer_identity_v1"
+      ],
+      "functional_tests": [
+        "__tests__/tenantservice-support-api-routes.test.ts",
+        "__tests__/tenantservice-support-conversation.test.ts",
+        "__tests__/ops-customer-support-binding-audit.test.ts",
+        "__tests__/support-history-continuation.test.ts",
+        "__tests__/portal-idempotency-ack-loss.test.ts"
+      ],
+      "verdict": "confirmed_defect_fixed_and_source_traced",
+      "finding_ids": [
+        "CUST-01"
+      ],
+      "documented_statuses": [
+        "201",
+        "400",
+        "401",
+        "403",
+        "409",
+        "410",
+        "422",
+        "423",
+        "429",
+        "500",
+        "503"
+      ],
+      "evidence": "Explicit support scope and enforceBinding:true; no general portal wildcard. Public references resolve within company/customer; released customer-only attachment and visible-event allowlists. Current scope/customer auth before write replay.",
+      "limitations": [
+        "No production end-customer E2E: prior live customer count is zero.",
+        "Table/function existence does not prove tenant configuration, ownership graph, storage bytes or successful customer business flow.",
+        "Most general read responses use ClosedPortalResourceEnvelope with unconstrained inner object/array; schema validation cannot prove exact DTO completeness."
+      ],
+      "functional_test_coverage": "Mounted support route/domain behavior with synthetic database/auth transport; tenant/case visibility, replay/quotas/error paths covered; corrected support binding gate separately reproduced."
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/customer/support/cases/{reference}",
+      "operation_id": "getApiV1CustomerSupportCasesReference",
+      "actual_handler": "app/api/v1/customer/support/cases/[reference]/route.ts#getSupportCase",
+      "callee_evidence": [
+        "lib/customer-portal/externalApi.ts",
+        "lib/customer-portal/customerResolver.ts",
+        "lib/customer-portal/customerAssertion.ts",
+        "lib/customer-service/supportApiHandlers.ts",
+        "lib/customer-service/supportConversation.ts",
+        "lib/customer-service/supportAttachments.ts"
+      ],
+      "tables": [
+        "customer_case_events",
+        "customer_cases",
+        "customer_portal_accounts",
+        "customer_portal_identities",
+        "customer_profiles",
+        "customers",
+        "integration_api_clients",
+        "integration_api_requests",
+        "tenant_customer_assertion_replays",
+        "tenant_customer_identity_providers"
+      ],
+      "rpcs": [
+        "resolve_portal_customer_identity_v1"
+      ],
+      "functional_tests": [
+        "__tests__/tenantservice-support-api-routes.test.ts",
+        "__tests__/tenantservice-support-conversation.test.ts",
+        "__tests__/ops-customer-support-binding-audit.test.ts",
+        "__tests__/support-history-continuation.test.ts"
+      ],
+      "verdict": "confirmed_defect_fixed_and_source_traced",
+      "finding_ids": [
+        "CUST-01"
+      ],
+      "documented_statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "404",
+        "409",
+        "410",
+        "422",
+        "423",
+        "429",
+        "500"
+      ],
+      "evidence": "Explicit support scope and enforceBinding:true; no general portal wildcard. Public references resolve within company/customer; released customer-only attachment and visible-event allowlists. Current scope/customer auth before write replay.",
+      "limitations": [
+        "No production end-customer E2E: prior live customer count is zero.",
+        "Table/function existence does not prove tenant configuration, ownership graph, storage bytes or successful customer business flow.",
+        "Most general read responses use ClosedPortalResourceEnvelope with unconstrained inner object/array; schema validation cannot prove exact DTO completeness."
+      ],
+      "functional_test_coverage": "Mounted support route/domain behavior with synthetic database/auth transport; tenant/case visibility, replay/quotas/error paths covered; corrected support binding gate separately reproduced."
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/customer/support/cases/{reference}/messages",
+      "operation_id": "getApiV1CustomerSupportCasesReferenceMessages",
+      "actual_handler": "app/api/v1/customer/support/cases/[reference]/messages/route.ts#getSupportMessages",
+      "callee_evidence": [
+        "lib/customer-portal/externalApi.ts",
+        "lib/customer-portal/customerResolver.ts",
+        "lib/customer-portal/customerAssertion.ts",
+        "lib/customer-service/supportApiHandlers.ts",
+        "lib/customer-service/supportConversation.ts",
+        "lib/customer-service/supportAttachments.ts"
+      ],
+      "tables": [
+        "customer_case_events",
+        "customer_cases",
+        "customer_portal_accounts",
+        "customer_portal_identities",
+        "customer_profiles",
+        "customers",
+        "integration_api_clients",
+        "integration_api_requests",
+        "tenant_customer_assertion_replays",
+        "tenant_customer_identity_providers"
+      ],
+      "rpcs": [
+        "resolve_portal_customer_identity_v1"
+      ],
+      "functional_tests": [
+        "__tests__/tenantservice-support-api-routes.test.ts",
+        "__tests__/tenantservice-support-conversation.test.ts",
+        "__tests__/ops-customer-support-binding-audit.test.ts",
+        "__tests__/support-history-continuation.test.ts"
+      ],
+      "verdict": "confirmed_defect_fixed_and_source_traced",
+      "finding_ids": [
+        "CUST-01"
+      ],
+      "documented_statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "404",
+        "409",
+        "410",
+        "422",
+        "423",
+        "429",
+        "500"
+      ],
+      "evidence": "Explicit support scope and enforceBinding:true; no general portal wildcard. Public references resolve within company/customer; released customer-only attachment and visible-event allowlists. Current scope/customer auth before write replay.",
+      "limitations": [
+        "No production end-customer E2E: prior live customer count is zero.",
+        "Table/function existence does not prove tenant configuration, ownership graph, storage bytes or successful customer business flow.",
+        "Most general read responses use ClosedPortalResourceEnvelope with unconstrained inner object/array; schema validation cannot prove exact DTO completeness."
+      ],
+      "functional_test_coverage": "Mounted support route/domain behavior with synthetic database/auth transport; tenant/case visibility, replay/quotas/error paths covered; corrected support binding gate separately reproduced."
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/customer/support/cases/{reference}/messages",
+      "operation_id": "postApiV1CustomerSupportCasesReferenceMessages",
+      "actual_handler": "app/api/v1/customer/support/cases/[reference]/messages/route.ts#postSupportMessage",
+      "callee_evidence": [
+        "lib/customer-portal/externalApi.ts",
+        "lib/customer-portal/customerResolver.ts",
+        "lib/customer-portal/customerAssertion.ts",
+        "lib/customer-service/supportApiHandlers.ts",
+        "lib/customer-service/supportConversation.ts",
+        "lib/customer-service/supportAttachments.ts"
+      ],
+      "tables": [
+        "customer_case_events",
+        "customer_cases",
+        "customer_portal_accounts",
+        "customer_portal_identities",
+        "customer_portal_write_idempotency",
+        "customer_profiles",
+        "customers",
+        "integration_api_clients",
+        "integration_api_requests",
+        "tenant_customer_assertion_replays",
+        "tenant_customer_identity_providers"
+      ],
+      "rpcs": [
+        "resolve_portal_customer_identity_v1"
+      ],
+      "functional_tests": [
+        "__tests__/tenantservice-support-api-routes.test.ts",
+        "__tests__/tenantservice-support-conversation.test.ts",
+        "__tests__/ops-customer-support-binding-audit.test.ts",
+        "__tests__/support-history-continuation.test.ts",
+        "__tests__/portal-idempotency-ack-loss.test.ts"
+      ],
+      "verdict": "confirmed_defect_fixed_and_source_traced",
+      "finding_ids": [
+        "CUST-01"
+      ],
+      "documented_statuses": [
+        "201",
+        "400",
+        "401",
+        "403",
+        "404",
+        "409",
+        "410",
+        "422",
+        "423",
+        "429",
+        "500",
+        "503"
+      ],
+      "evidence": "Explicit support scope and enforceBinding:true; no general portal wildcard. Public references resolve within company/customer; released customer-only attachment and visible-event allowlists. Current scope/customer auth before write replay.",
+      "limitations": [
+        "No production end-customer E2E: prior live customer count is zero.",
+        "Table/function existence does not prove tenant configuration, ownership graph, storage bytes or successful customer business flow.",
+        "Most general read responses use ClosedPortalResourceEnvelope with unconstrained inner object/array; schema validation cannot prove exact DTO completeness."
+      ],
+      "functional_test_coverage": "Mounted support route/domain behavior with synthetic database/auth transport; tenant/case visibility, replay/quotas/error paths covered; corrected support binding gate separately reproduced."
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/customer/support/cases/{reference}/attachments",
+      "operation_id": "getApiV1CustomerSupportCasesReferenceAttachments",
+      "actual_handler": "app/api/v1/customer/support/cases/[reference]/attachments/route.ts#getSupportAttachments",
+      "callee_evidence": [
+        "lib/customer-portal/externalApi.ts",
+        "lib/customer-portal/customerResolver.ts",
+        "lib/customer-portal/customerAssertion.ts",
+        "lib/customer-service/supportApiHandlers.ts",
+        "lib/customer-service/supportConversation.ts",
+        "lib/customer-service/supportAttachments.ts"
+      ],
+      "tables": [
+        "customer_case_attachments",
+        "customer_case_events",
+        "customer_cases",
+        "customer_portal_accounts",
+        "customer_portal_identities",
+        "customer_profiles",
+        "customers",
+        "integration_api_clients",
+        "integration_api_requests",
+        "tenant_customer_assertion_replays",
+        "tenant_customer_identity_providers"
+      ],
+      "rpcs": [
+        "resolve_portal_customer_identity_v1"
+      ],
+      "functional_tests": [
+        "__tests__/tenantservice-support-api-routes.test.ts",
+        "__tests__/tenantservice-support-conversation.test.ts",
+        "__tests__/ops-customer-support-binding-audit.test.ts",
+        "__tests__/tenantservice-support-attachment-api.test.ts",
+        "__tests__/tenantservice-support-attachments.test.ts",
+        "__tests__/support-attachment-replay-after-close.test.ts",
+        "__tests__/support-attachment-quarantine-carrier.test.ts"
+      ],
+      "verdict": "confirmed_defect_fixed_and_source_traced",
+      "finding_ids": [
+        "CUST-01"
+      ],
+      "documented_statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "404",
+        "409",
+        "410",
+        "422",
+        "423",
+        "429",
+        "500"
+      ],
+      "evidence": "Explicit support scope and enforceBinding:true; no general portal wildcard. Public references resolve within company/customer; released customer-only attachment and visible-event allowlists. Current scope/customer auth before write replay. Uses OPS service client private bucket support-case-attachments; raw 4MiB body, SHA256, magic-byte/PDF-name/EOF content check, quarantine and released-only downloads. No antivirus claim. Upload receipt hash also includes Content-Type/file-name, so changing metadata with same bytes conflicts.",
+      "limitations": [
+        "No production end-customer E2E: prior live customer count is zero.",
+        "Table/function existence does not prove tenant configuration, ownership graph, storage bytes or successful customer business flow.",
+        "Most general read responses use ClosedPortalResourceEnvelope with unconstrained inner object/array; schema validation cannot prove exact DTO completeness."
+      ],
+      "functional_test_coverage": "Mounted support route/domain behavior with synthetic database/auth transport; tenant/case visibility, replay/quotas/error paths covered; corrected support binding gate separately reproduced."
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/customer/support/cases/{reference}/attachments",
+      "operation_id": "postApiV1CustomerSupportCasesReferenceAttachments",
+      "actual_handler": "app/api/v1/customer/support/cases/[reference]/attachments/route.ts#postSupportAttachment",
+      "callee_evidence": [
+        "lib/customer-portal/externalApi.ts",
+        "lib/customer-portal/customerResolver.ts",
+        "lib/customer-portal/customerAssertion.ts",
+        "lib/customer-service/supportApiHandlers.ts",
+        "lib/customer-service/supportConversation.ts",
+        "lib/customer-service/supportAttachments.ts"
+      ],
+      "tables": [
+        "customer_case_attachments",
+        "customer_case_events",
+        "customer_cases",
+        "customer_portal_accounts",
+        "customer_portal_identities",
+        "customer_portal_write_idempotency",
+        "customer_profiles",
+        "customers",
+        "integration_api_clients",
+        "integration_api_requests",
+        "tenant_customer_assertion_replays",
+        "tenant_customer_identity_providers"
+      ],
+      "rpcs": [
+        "resolve_portal_customer_identity_v1"
+      ],
+      "functional_tests": [
+        "__tests__/tenantservice-support-api-routes.test.ts",
+        "__tests__/tenantservice-support-conversation.test.ts",
+        "__tests__/ops-customer-support-binding-audit.test.ts",
+        "__tests__/tenantservice-support-attachment-api.test.ts",
+        "__tests__/tenantservice-support-attachments.test.ts",
+        "__tests__/support-attachment-replay-after-close.test.ts",
+        "__tests__/support-attachment-quarantine-carrier.test.ts",
+        "__tests__/portal-idempotency-ack-loss.test.ts"
+      ],
+      "verdict": "confirmed_defect_fixed_and_source_traced",
+      "finding_ids": [
+        "CUST-01"
+      ],
+      "documented_statuses": [
+        "201",
+        "400",
+        "401",
+        "403",
+        "404",
+        "409",
+        "410",
+        "413",
+        "415",
+        "422",
+        "423",
+        "429",
+        "500",
+        "503"
+      ],
+      "evidence": "Explicit support scope and enforceBinding:true; no general portal wildcard. Public references resolve within company/customer; released customer-only attachment and visible-event allowlists. Current scope/customer auth before write replay. Uses OPS service client private bucket support-case-attachments; raw 4MiB body, SHA256, magic-byte/PDF-name/EOF content check, quarantine and released-only downloads. No antivirus claim. Upload receipt hash also includes Content-Type/file-name, so changing metadata with same bytes conflicts.",
+      "limitations": [
+        "No production end-customer E2E: prior live customer count is zero.",
+        "Table/function existence does not prove tenant configuration, ownership graph, storage bytes or successful customer business flow.",
+        "Most general read responses use ClosedPortalResourceEnvelope with unconstrained inner object/array; schema validation cannot prove exact DTO completeness."
+      ],
+      "functional_test_coverage": "Mounted support route/domain behavior with synthetic database/auth transport; tenant/case visibility, replay/quotas/error paths covered; corrected support binding gate separately reproduced."
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/customer/support/cases/{reference}/attachments/{attachmentReference}",
+      "operation_id": "getApiV1CustomerSupportCasesReferenceAttachmentsAttachmentReference",
+      "actual_handler": "app/api/v1/customer/support/cases/[reference]/attachments/[attachmentReference]/route.ts#getSupportAttachmentFile",
+      "callee_evidence": [
+        "lib/customer-portal/externalApi.ts",
+        "lib/customer-portal/customerResolver.ts",
+        "lib/customer-portal/customerAssertion.ts",
+        "lib/customer-service/supportApiHandlers.ts",
+        "lib/customer-service/supportConversation.ts",
+        "lib/customer-service/supportAttachments.ts"
+      ],
+      "tables": [
+        "customer_case_attachments",
+        "customer_case_events",
+        "customer_cases",
+        "customer_portal_accounts",
+        "customer_portal_identities",
+        "customer_profiles",
+        "customers",
+        "integration_api_clients",
+        "integration_api_requests",
+        "tenant_customer_assertion_replays",
+        "tenant_customer_identity_providers"
+      ],
+      "rpcs": [
+        "resolve_portal_customer_identity_v1"
+      ],
+      "functional_tests": [
+        "__tests__/tenantservice-support-api-routes.test.ts",
+        "__tests__/tenantservice-support-conversation.test.ts",
+        "__tests__/ops-customer-support-binding-audit.test.ts",
+        "__tests__/tenantservice-support-attachment-api.test.ts",
+        "__tests__/tenantservice-support-attachments.test.ts",
+        "__tests__/support-attachment-replay-after-close.test.ts",
+        "__tests__/support-attachment-quarantine-carrier.test.ts"
+      ],
+      "verdict": "confirmed_defect_fixed_and_source_traced",
+      "finding_ids": [
+        "CUST-01"
+      ],
+      "documented_statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "404",
+        "409",
+        "410",
+        "422",
+        "423",
+        "429",
+        "500"
+      ],
+      "evidence": "Explicit support scope and enforceBinding:true; no general portal wildcard. Public references resolve within company/customer; released customer-only attachment and visible-event allowlists. Current scope/customer auth before write replay. Uses OPS service client private bucket support-case-attachments; raw 4MiB body, SHA256, magic-byte/PDF-name/EOF content check, quarantine and released-only downloads. No antivirus claim. Upload receipt hash also includes Content-Type/file-name, so changing metadata with same bytes conflicts.",
+      "limitations": [
+        "No production end-customer E2E: prior live customer count is zero.",
+        "Table/function existence does not prove tenant configuration, ownership graph, storage bytes or successful customer business flow.",
+        "Most general read responses use ClosedPortalResourceEnvelope with unconstrained inner object/array; schema validation cannot prove exact DTO completeness."
+      ],
+      "functional_test_coverage": "Mounted support route/domain behavior with synthetic database/auth transport; tenant/case visibility, replay/quotas/error paths covered; corrected support binding gate separately reproduced."
+    }
+  ],
+  "findings": [
+    {
+      "id": "CUST-01",
+      "severity": "P1",
+      "status": "fixed",
+      "claim": "Identifier-only support GET permitted without the documented actively linked portal user.",
+      "root_cause": "READ_METHODS short-circuit ignored enforceBinding; strict resolver rejects absent link only when a user id was supplied.",
+      "proof": "Mounted GET returned200 with identifier_match. Red expected403 failed; after strict-binding branch all support read handlers sharing context reject before data access.",
+      "fix": "externalApi.customerPortalBindingAllowsRequest enforces portal_account before READ_METHODS when enforceBinding:true; legacy general GET preserved.",
+      "files": [
+        "lib/customer-portal/externalApi.ts",
+        "__tests__/ops-customer-support-binding-audit.test.ts"
+      ]
+    },
+    {
+      "id": "CUST-02",
+      "severity": "P1",
+      "status": "fixed",
+      "claim": "Customer signed proof accepted missing iat or future iat hidden by nbf and therefore beyond documented15-minute issuance validity.",
+      "root_cause": "Customer gate never selected existing strict temporal verifier option; optional nbf precedence hid future issuance.",
+      "proof": "Valid RSA-signed missing-iat proof and iat+86400/nbf-now/exp+87300 proof both accepted on predecessor. Gate now rejects before replay consume.",
+      "fix": "gateCustomerAssertion passes requireIssuedAt:true; retains proof rows through allowed60-second expiry skew. Staff primitive behavior unchanged.",
+      "files": [
+        "lib/customer-portal/customerAssertion.ts",
+        "__tests__/tenantservice-customer-assertion.test.ts",
+        "__tests__/ops-customer-contract-audit.test.ts"
+      ]
+    },
+    {
+      "id": "CUST-03",
+      "severity": "P2",
+      "status": "fixed",
+      "claim": "Nullable money/energy amounts serialized as zero; null canonical markup suppressed available spot markup.",
+      "root_cause": "Number(null)===0 in numberOrNull made nullish fallback stop early.",
+      "proof": "Invoice null total_kwh/amount_inc_vat became0; contract null markup with8.5spot markup became0. RED assertions thenGREEN after early null guard.",
+      "fix": "numberOrNull returns null for null/undefined/empty string before conversion.",
+      "files": [
+        "lib/customer-portal/publicDto.ts",
+        "__tests__/ops-customer-contract-audit.test.ts"
+      ]
+    },
+    {
+      "id": "CUST-04",
+      "severity": "P1",
+      "status": "fixed",
+      "claim": "Facility profile updates complete business mutation and replay ledger but return500 because raw address result contains an internal site UUID.",
+      "root_cause": "addressResult=applied leaked siteId into serializer which correctly rejects arbitrary UUIDs. Existing regressions used literal site rather than UUID.",
+      "proof": "Actual mounted profile handler tested with durable idempotency for updated/unchanged/conflict/incomplete; predecessor4/4returned500 with public_payload_forbidden_field.siteId. Corrected4/4return200, correct accepted/submitted, one mutation+completion on replay, no SITE UUID in response or stored receipt.",
+      "fix": "Project explicit public address_result before completion/replay persistence; keep internal site id only in DB context.",
+      "files": [
+        "app/api/v1/customer/profile-update/route.ts",
+        "__tests__/customer-profile-address-public-response.test.ts"
+      ]
+    },
+    {
+      "id": "CUST-05",
+      "severity": "P2",
+      "status": "fixed",
+      "claim": "CustomerSyncRequest advertises authenticated_user_reference as a sufficient sole identifier but parser-to-resolver normalization discards it.",
+      "root_cause": "customerSyncContract accepts the field and anyOf passes; externalApi.portalIdentifiersFromPayload maps only external/email/number/auth_user_id/customer_portal_user_id aliases, not this sole accepted field. Resolver immediately422missing_customer_identifier with all resulting ids null.",
+      "proof": "RED real parser accepted sole canonical field but normalization made resolver return422missing_customer_identifier. GREEN9tests real parser+normalizer+resolver: same-company active external_account_id subject resolves portal_account; wrong-company/missing/disabled refused404; no writes; legacy aliases retained.",
+      "limitation": "Representation defined by root: tenant-owned authenticated account/user subject, not a central database ID or opaque Gridex public reference. Docs owner updating wording without changing required sets.",
+      "fix": "portalIdentifiersFromPayload maps authenticated_user_reference into customerPortalUserId; existing linkedByAccount tenant-scoped resolution remains authoritative.",
+      "files": [
+        "lib/customer-portal/externalApi.ts",
+        "__tests__/customer-sync-authenticated-reference.test.ts"
+      ]
+    },
+    {
+      "id": "CUST-06",
+      "severity": "P2",
+      "status": "fixed_by_documentation_release_verified",
+      "claim": "Eight successful paginated customer GET handlers emit top-level page while closed OpenAPI resource envelope forbids it.",
+      "proof": "Actual mounted16operation fixture probes:8schema failures contains undocumented field page. Runtime handler bodies read directly; PortalPage matches7routes and sites uses {sites:PortalPage}. After docs owner correction current dynamic OpenAPI all16 mounted fixture probes PASS.",
+      "fix": "Docs owner adds optional page = PortalPage or closed sites wrapper to ClosedPortalResourceEnvelope in mutable12.1/current schemas; no request/required-set/wire change.",
+      "files": [
+        "docs/openapi/customer-portal-v1.json",
+        "__tests__/customer-api-operation-contracts.test.ts"
+      ]
+    },
+    {
+      "id": "CUST-07",
+      "severity": "P2",
+      "status": "fixed_by_documentation_release_verified",
+      "claim": "Native move-out result includes submitted_at but closed CustomerMoveOutData schema rejects it.",
+      "proof": "Mounted POST move-out201response strict validation rejects submitted_at. Native source line214existing replay and411initial result map completion.created_at. After docs owner correction current dynamic OpenAPI all16 mounted fixture probes PASS.",
+      "fix": "Docs owner adds optional submitted_at date-time to CustomerMoveOutData in mutable12.1/current schema without modifying request/required fields.",
+      "files": [
+        "docs/openapi/customer-portal-v1.json",
+        "supabase/migrations/20260730153000_customer_portal_api_production_completion.sql",
+        "__tests__/customer-api-operation-contracts.test.ts"
+      ]
+    }
+  ],
+  "compatibility_runtime_evidence": {
+    "supported_snapshots": [
+      "2026-10-02.3",
+      "2026-10-04.1",
+      "2026-10-09.1"
+    ],
+    "test": "__tests__/ops-customer-contract-audit.test.ts",
+    "result": "Actual customerPortalJson support detail validates current10-09.1. Both older supported immutable snapshots reject current contract_schema_version via const;10-02.3also rejects messages under additionalProperties:false. These immutable bytes are intentionally preserved and the detail correction already documented. Registration/profile compatibility alone does not establish strict snapshot validation. Root owns compatibility response negotiation and release changes.",
+    "enums": "Current support-case/message/channel vocab checked through real mounted support/domain tests; no unsupported new enum introduced by this subtask. Profile address_result schema unconstrained object, so it does not verify normalized properties or reasons."
+  },
+  "tenant_ownership_matrix": {
+    "credential": "Tenant from authenticated IntegrationApiClient; never from customer request company parameter. Auth/client-rate-limit root-owned.",
+    "general_portal_reads": "Legacy identifier-only reads permitted by design; a presented unlinked user refuses in enforce mode; reads never link/reverify/reactivate.",
+    "support_reads_and_writes": "Always linked binding after CUST-01 correction; explicit support scopes, customer/company case ownership and visibility filters.",
+    "writes": "Most customer writes run context/assertion before replay; customer-portal/sync is separate machine linking flow and replay precedes current identity transition check.",
+    "signed_proof": "Per company provider (purpose=customer), public key/JWKS only, allowed RSA/PSS/EC signatures, exact subject/issuer/audience,15minutes, unique(company,jti), provider report/enforce. Missing provider is supported unchanged behavior.",
+    "storage": "OPS supabaseService env client, private support-case-attachments bucket; path company/case/random reference; hash verified on download, quarantine visibility; no tenant-site-project storage client.",
+    "profile": "Customer contact RPC transaction version lock/audit/event/outbox; address transactions separate; user supplies references not native ids; public result projection corrected.",
+    "month_totals": "gridex_portal_monthly_consumption_v1 counts current gross-consumption revisions over full Europe/Stockholm calendar month; DST and cross-company cases proved in local PGlite tests."
+  },
+  "limitations_and_open_behavior": [
+    "No genuine live customer journeys available: prior live-summary customer count0 and no customer operation traffic in last7days. This absence is tenant data/configuration, not an OPS API defect.",
+    "Prior ops-live-catalog tables and selected functions are corroboration only; function listing is selective and omits many customer RPCs, so missing name there is not evidence of undeployed dependency. Source migrations and generated signatures establish code dependency names; root live dependency gate owns actual production existence.",
+    "Support quotas are pre-write exact counts, not serialized reservations. Distinct concurrent requests can race; no production concurrency test executed, so hard cap guarantee remains unverified.",
+    "Support closure checks occur before separate message/attachment insert, not a locked native transaction; concurrent close-versus-new-write atomicity is unverified. Completed replay-after-close is tested and deliberately allowed.",
+    "PDF content check is magic-byte/name regex+EOF check, not full PDF parsing/antivirus. Compressed PDF object-stream active-content rejection is unverified.",
+    "Tenant customer sync is multi-resource sequential and can partially commit; legal/POA evidence checks are tenant-bounded; function event dedupe key is customer/event/ref based, not payload-specific, so repeated different document sync events may collapse.",
+    "Invoice detail publicly exposes quantity/unit_price and currency/amounts but no per-line unit; exact line DTO uses broad schema and deserves explicit documentation."
+  ],
+  "documentation_updates_requested": [
+    {
+      "file": "docs/openapi/customer-portal-v1.json",
+      "change": "Add404to customer invoice detail/reference mutation paths; common customer resolution can404. Add503to read routes and GET/POSTportal-bundle for schema/required-section unavailability. Root to apply in fresh release, immutable snapshots unchanged.",
+      "status": "root_owned_pending_final_review"
+    },
+    {
+      "file": "docs/gridex-customer-portal-api.md",
+      "change": "Document exact profile public address_result keys/status/reason and separate transaction semantics; complete physical address vs incomplete submission behavior. State new corrections include linked support read enforcement, signed iat requirement, unknown numeric null preservation, and safe address response.",
+      "status": "root_owned_pending_final_review"
+    },
+    {
+      "file": "docs/openapi/customer-portal-v1.json",
+      "change": "Define authenticated_user_reference value semantics and align resolver implementation/anyOf. Do not silently add unspecified alias.",
+      "status": "implemented_by_docs_owner"
+    },
+    {
+      "file": "docs/api-compatibility-policy.md",
+      "change": "Distinguish tolerant supported-profile runtime integration from strict immutable schema snapshots containing version const or known support-detail correction; current registry tests alone do not prove old exact validators.",
+      "status": "root_owned_pending_final_review"
+    }
+  ],
+  "verification": [
+    {
+      "command": "Node22 Vitest maxWorkers1 required NODE_OPTIONS boundary: new/fixed4files",
+      "outcome": "34passed, including actual route/ledger address replay; precursor RED support/auth/DTO failures and profile4RED retained in /tmp logs."
+    },
+    {
+      "command": "Node22 Vitest14 existing customer/support suites",
+      "outcome": "14files156testsPASS; /tmp/ops-customer-targeted-tests.log"
+    },
+    {
+      "command": "Node22 Vitest7 additional customer suites",
+      "outcome": "54PASS;1pre-existing source-shell guard blocked spawnSync /bin/sh EPERM by required unit network boundary. /tmp/ops-customer-additional-tests.log"
+    },
+    {
+      "command": "Node22 Vitest tenantservice-portal-resolver-read-only -t negative exact shell guard",
+      "outcome": "23PASS/1explicitlyskipped; independent rg confirms allowIdentifierBoundWrite:true only customer/sync."
+    },
+    {
+      "command": "git diff --check",
+      "outcome": "PASS, all shared edits inspected but only handed-off customer files authored here."
+    },
+    {
+      "command": "Node22 required boundary/maxWorkers1 customer-sync-authenticated-reference.test.ts",
+      "outcome": "9PASS; precursor5RED from discarded subject field,4legacyalias passes."
+    },
+    {
+      "command": "Node22 required boundary/maxWorkers1 customer-api-operation-contracts.test.ts",
+      "outcome": "16actual mounted probes; all200/201HTTP outcomes after fixing test transport methods/retention seam.7strictOpenAPIPASS,9strictschemaRED solely8page+submitted_at omissions; docs owner correcting current/unpublished12.1specs. Log /tmp/ops-customer-operation-probes.log. Sync test timeout20s accommodates cold real legal/POA imports, not a mocked domain implementation."
+    },
+    {
+      "command": "Node22 required boundary/maxWorkers1 customer-api-operation-contracts + customer-sync-authenticated-reference + customer-profile-address-public-response + ops-customer-contract-audit + ops-customer-support-binding-audit + tenantservice-customer-assertion",
+      "outcome": "6files59testsPASS after docsowner page/submitted_at corrections; log /tmp/ops-customer-final-focused-tests.log. This supersedes earlier9schemaRED; source RED histories remain evidence."
+    }
+  ],
+  "source_edits_authorization": "Parent exact-file handoffs for3customer modules, original customer timing tests, new audit tests, profile route and new public response test. No generated schema/manifest/GEN/nativeDB/Ediel writers modified. Follow-up exact normalizer function handoff for tenant account subject; new authsubject and16mounted-operation fixture test files.",
+  "remaining_mounted_happy_coverage_owned_by_root": [
+    {
+      "method": "GET",
+      "path": "/api/v1/events"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/events"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/integration/context"
+    }
+  ]
+}

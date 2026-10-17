@@ -1,5 +1,5 @@
 import { listActorTestingSummaries, type ActorTestingSummary } from '@/lib/ediel/actorTesting'
-import { listTenantUsageStats, type TenantUsageStatsRow } from '@/lib/tenant/usageStats'
+import { listTenantOperationalUsageStats, type TenantOperationalUsageRow } from '@/lib/tenant/usageStats'
 
 export type PlatformWorkQueueType =
   | 'setup'
@@ -142,7 +142,7 @@ function actorTestingItems(summary: ActorTestingSummary): PlatformWorkQueueItem[
   return items
 }
 
-function usageItems(row: TenantUsageStatsRow): PlatformWorkQueueItem[] {
+function usageItems(row: TenantOperationalUsageRow): PlatformWorkQueueItem[] {
   const items: PlatformWorkQueueItem[] = []
   const companyName = row.companyName
   const updatedAt = row.lastActivityAt ?? null
@@ -201,7 +201,7 @@ function usageItems(row: TenantUsageStatsRow): PlatformWorkQueueItem[] {
 export async function listPlatformWorkQueueItems(): Promise<PlatformWorkQueueItem[]> {
   const [summaries, usageRows] = await Promise.all([
     listActorTestingSummaries({ scope: 'platform' }),
-    listTenantUsageStats(),
+    listTenantOperationalUsageStats(),
   ])
 
   const items = [

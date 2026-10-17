@@ -1,0 +1,265 @@
+{
+  "recorded_at": "2026-10-13T12:38:56.150353+00:00",
+  "status": "complete current-worktree affected-suite rerun; not a complete full-suite rerun",
+  "requested_files": 57,
+  "result_files": 57,
+  "passed_files": 53,
+  "failed_files": 4,
+  "tests": {
+    "total": 1164,
+    "passed": 1157,
+    "failed": 7,
+    "pending": 0,
+    "todo": 0
+  },
+  "new_workstream_tests": [
+    {
+      "file": "__tests__/actionable-status.test.ts",
+      "status": "passed",
+      "assertions": 17
+    },
+    {
+      "file": "__tests__/admin-controltower-billing-copy.test.ts",
+      "status": "passed",
+      "assertions": 2
+    },
+    {
+      "file": "__tests__/admin-dashboard-canonical-scope.test.ts",
+      "status": "passed",
+      "assertions": 4
+    },
+    {
+      "file": "__tests__/admin-tenant-read-scope-canonical.test.ts",
+      "status": "passed",
+      "assertions": 3
+    },
+    {
+      "file": "__tests__/admin-website-application-copy.test.ts",
+      "status": "passed",
+      "assertions": 18
+    },
+    {
+      "file": "__tests__/admin-work-queue-action-visibility.test.ts",
+      "status": "passed",
+      "assertions": 18
+    },
+    {
+      "file": "__tests__/canonical-admin-application-work-items.test.ts",
+      "status": "passed",
+      "assertions": 7
+    },
+    {
+      "file": "__tests__/customer-analytics-missing-source-scope.test.ts",
+      "status": "passed",
+      "assertions": 4
+    },
+    {
+      "file": "__tests__/customer-flow-integrity-empty-statistics.test.ts",
+      "status": "passed",
+      "assertions": 5
+    },
+    {
+      "file": "__tests__/customer-portfolio-calendar.test.ts",
+      "status": "passed",
+      "assertions": 4
+    },
+    {
+      "file": "__tests__/customer-portfolio-consistency-sql.test.ts",
+      "status": "passed",
+      "assertions": 9
+    },
+    {
+      "file": "__tests__/customer-portfolio-page-scope.test.ts",
+      "status": "passed",
+      "assertions": 3
+    },
+    {
+      "file": "__tests__/data-quality-lifecycle-consistency.test.ts",
+      "status": "passed",
+      "assertions": 19
+    },
+    {
+      "file": "__tests__/forecast-cron-empty-source.test.ts",
+      "status": "passed",
+      "assertions": 1
+    },
+    {
+      "file": "__tests__/forecast-run-evidence-errors.test.ts",
+      "status": "passed",
+      "assertions": 4
+    },
+    {
+      "file": "__tests__/metering-forecast-quality-lifecycle.test.ts",
+      "status": "passed",
+      "assertions": 12
+    },
+    {
+      "file": "__tests__/website-application-detail-identity.test.ts",
+      "status": "passed",
+      "assertions": 8
+    },
+    {
+      "file": "__tests__/website-application-read-model.test.ts",
+      "status": "passed",
+      "assertions": 2
+    }
+  ],
+  "new_workstream_test_count": 140,
+  "all_new_workstream_tests_passed": true,
+  "failures": [
+    {
+      "file": "__tests__/ediel-confirmed-customer-final-response.test.ts",
+      "repository_test_unchanged_from_HEAD": true,
+      "test_sha256": "f140e59587124ab98d94346481e56e9305a7720c73ba5ac0666a618c34bb4bcb",
+      "failed_assertions": [
+        {
+          "name": "actual confirmed death response refuses 'a present modern facet with a foreign…' without falling back to APP",
+          "duration_ms": 24636.17059700002,
+          "failure_messages": [
+            "Error: STACK_TRACE_ERROR\n    at task (file:///workspace/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:1784:27)\n    at Object.<anonymous> (file:///workspace/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:1817:16)\n    at Object.<anonymous> (file:///workspace/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:1563:28)\n    at Object.chain (file:///workspace/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:599:14)\n    at file:///workspace/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2027:7\n    at Array.forEach (<anonymous>)\n    at file:///workspace/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2021:10\n    at /workspace/gridex-ops-platform/__tests__/ediel-confirmed-customer-final-response.test.ts:405:24\n    at processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at VitestModuleEvaluator._runInlinedModule (file:///workspace/gridex-ops-platform/node_modules/vitest/dist/module-evaluator.js:206:4)"
+          ]
+        },
+        {
+          "name": "a modern context from the consuming transaction cannot qualify a present modern facet or fall back to legacy APP",
+          "duration_ms": 27082.681304000027,
+          "failure_messages": [
+            "Error: STACK_TRACE_ERROR\n    at task (file:///workspace/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:1784:27)\n    at Object.<anonymous> (file:///workspace/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:1817:16)\n    at Object.<anonymous> (file:///workspace/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:1563:28)\n    at chain (file:///workspace/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:599:14)\n    at /workspace/gridex-ops-platform/__tests__/ediel-confirmed-customer-final-response.test.ts:453:1\n    at processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at VitestModuleEvaluator._runInlinedModule (file:///workspace/gridex-ops-platform/node_modules/vitest/dist/module-evaluator.js:206:4)\n    at VitestModuleRunner.directRequest (file:///workspace/gridex-ops-platform/node_modules/vite/dist/node/module-runner.js:1259:59)\n    at VitestModuleRunner.cachedRequest (file:///workspace/gridex-ops-platform/node_modules/vite/dist/node/module-runner.js:1166:73)\n    at VitestModuleRunner.import (file:///workspace/gridex-ops-platform/node_modules/vite/dist/node/module-runner.js:1120:10)"
+          ]
+        },
+        {
+          "name": "the retained actual structural receipt reader keeps its distinct proof when no generic death version exists",
+          "duration_ms": 42013.949924999964,
+          "failure_messages": [
+            "Error: STACK_TRACE_ERROR\n    at task (file:///workspace/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:1784:27)\n    at Object.<anonymous> (file:///workspace/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:1817:16)\n    at Object.<anonymous> (file:///workspace/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:1563:28)\n    at Object.chain (file:///workspace/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:599:14)\n    at file:///workspace/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2027:7\n    at Array.forEach (<anonymous>)\n    at file:///workspace/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2021:10\n    at /workspace/gridex-ops-platform/__tests__/ediel-confirmed-customer-final-response.test.ts:489:42\n    at processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at VitestModuleEvaluator._runInlinedModule (file:///workspace/gridex-ops-platform/node_modules/vitest/dist/module-evaluator.js:206:4)"
+          ]
+        }
+      ],
+      "classification_before_isolated_retry": "explicit 20000ms test timeouts confirmed by console report"
+    },
+    {
+      "file": "__tests__/ediel-prodat-free-text.test.ts",
+      "repository_test_unchanged_from_HEAD": true,
+      "test_sha256": "549c3be9b8d10780f4d8899d154d2c50b8e36efdcf40bb8d376145f1a7410919",
+      "failed_assertions": [
+        {
+          "name": "preserves the source-qualified FTX scopes, inbound response and outbound send contract",
+          "duration_ms": 33043.5264,
+          "failure_messages": [
+            "AssertionError: TAP version 13\n# (node:44604) ExperimentalWarning: VM Modules is an experimental feature and might change at any time\n# (Use `node --trace-warnings ...` to show where the warning was created)\n# (node:44604) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time\n# Subtest: literal multi-message frame :+?'\nok 1 - literal multi-message frame :+?'\n  ---\n  duration_ms: 292.64481\n  type: 'test'\n  ...\n# Subtest: reader selects first PRODAT after APERAK without later text borrowing :+?'\nok 2 - reader selects first PRODAT after APERAK without later text borrowing :+?'\n  ---\n  duration_ms: 15.314072\n  type: 'test'\n  ...\n# Subtest: first PRODAT malformed text is held despite leading APERAK :+?'\nok 3 - first PRODAT malformed text is held despite leading APERAK :+?'\n  ---\n  duration_ms: 4.710963\n  type: 'test'\n  ...\n# Subtest: leading non-PRODAT actual rulebook retains local FTX hold :+?'\nok 4 - leading non-PRODAT actual rulebook retains local FTX hold :+?'\n  ---\n  duration_ms: 2.040419\n  type: 'test'\n  ...\n# Subtest: leading non-PRODAT actual lock retains local FTX hold :+?'\nok 5 - leading non-PRODAT actual lock retains local FTX hold :+?'\n  ---\n  duration_ms: 1.227127\n  type: 'test'\n  ...\n# Subtest: leading non-PRODAT actual preflight retains local FTX hold :+?'\nok 6 - leading non-PRODAT actual preflight retains local FTX hold :+?'\n  ---\n  duration_ms: 193.954397\n  type: 'test'\n  ...\n# Subtest: leading non-PRODAT actual registry retains local FTX hold :+?'\nok 7 - leading non-PRODAT actual registry retains local FTX hold :+?'\n  ---\n  duration_ms: 30.418046\n  type: 'test'\n  ...\n# Subtest: no PRODAT cannot borrow stale row label :+?'\nok 8 - no PRODAT cannot borrow stale row label :+?'\n  ---\n  duration_ms: 3.204584\n  type: 'test'\n  ...\n# Subtest: literal multi-message frame *;!~\nok 9 - literal multi-message frame *;!~\n  ---\n  duration_ms: 0.693203\n  type: 'test'\n  ...\n# Subtest: reader selects first PRODAT after APERAK without later text borrowing *;!~\nok 10 - reader selects first PRODAT after APERAK without later text borrowing *;!~\n  ---\n  duration_ms: 9.949909\n  type: 'test'\n  ...\n# Subtest: first PRODAT malformed text is held despite leading APERAK *;!~\nok 11 - first PRODAT malformed text is held despite leading APERAK *;!~\n  ---\n  duration_ms: 0.977487\n  type: 'test'\n  ...\n# Subtest: leading non-PRODAT actual rulebook retains local FTX hold *;!~\nok 12 - leading non-PRODAT actual rulebook retains local FTX hold *;!~\n  ---\n  duration_ms: 0.431056\n  type: 'test'\n  ...\n# Subtest: leading non-PRODAT actual lock retains local FTX hold *;!~\nok 13 - leading non-PRODAT actual lock retains local FTX hold *;!~\n  ---\n  duration_ms: 0.413027\n  type: 'test'\n  ...\n# Subtest: leading non-PRODAT actual preflight retains local FTX hold *;!~\nok 14 - leading non-PRODAT actual preflight retains local FTX hold *;!~\n  ---\n  duration_ms: 15.188198\n  type: 'test'\n  ...\n# Subtest: leading non-PRODAT actual registry retains local FTX hold *;!~\nok 15 - leading non-PRODAT actual registry retains local FTX hold *;!~\n  ---\n  duration_ms: 1.260254\n  type: 'test'\n  ...\n# Subtest: no PRODAT cannot borrow stale row label *;!~\nok 16 - no PRODAT cannot borrow stale row label *;!~\n  ---\n  duration_ms: 0.700671\n  type: 'test'\n  ...\n# Subtest: literal multi-message frame ^|!%\nok 17 - literal multi-message frame ^|!%\n  ---\n  duration_ms: 0.329102\n  type: 'test'\n  ...\n# Subtest: reader selects first PRODAT after APERAK without later text borrowing ^|!%\nok 18 - reader selects first PRODAT after APERAK without later text borrowing ^|!%\n  ---\n  duration_ms: 0.455634\n  type: 'test'\n  ...\n# Subtest: first PRODAT malformed text is held despite leading APERAK ^|!%\nok 19 - first PRODAT malformed text is held despite leading APERAK ^|!%\n  ---\n  duration_ms: 19.535703\n  type: 'test'\n  ...\n# Subtest: leading non-PRODAT actual rulebook retains local FTX hold ^|!%\nok 20 - leading non-PRODAT actual rulebook retains local FTX hold ^|!%\n  ---\n  duration_ms: 0.395921\n  type: 'test'\n  ...\n# Subtest: leading non-PRODAT actual lock retains local FTX hold ^|!%\nok 21 - leading non-PRODAT actual lock retains local FTX hold ^|!%\n  ---\n  duration_ms: 0.566046\n  type: 'test'\n  ...\n# Subtest: leading non-PRODAT actual preflight retains local FTX hold ^|!%\nok 22 - leading non-PRODAT actual preflight retains local FTX hold ^|!%\n  ---\n  duration_ms: 15.489012\n  type: 'test'\n  ...\n# Subtest: leading non-PRODAT actual registry retains local FTX hold ^|!%\nok 23 - leading non-PRODAT actual registry retains local FTX hold ^|!%\n  ---\n  duration_ms: 1.129838\n  type: 'test'\n  ...\n# Subtest: no PRODAT cannot borrow stale row label ^|!%\nok 24 - no PRODAT cannot borrow stale row label ^|!%\n  ---\n  duration_ms: 0.131425\n  type: 'test'\n  ...\n# Subtest: review cases never reach external operations\nok 25 - review cases never reach external operations\n  ---\n  duration_ms: 0.108674\n  type: 'test'\n  ...\n\n: expected Error: spawnSync /tmp/gridex-npm-cache/_n… { …(5) } to be undefined\n    at /workspace/gridex-ops-platform/__tests__/ediel-prodat-free-text.test.ts:12:32\n    at file:///workspace/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///workspace/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///workspace/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///workspace/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///workspace/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///workspace/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\n    at file:///workspace/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64"
+          ]
+        }
+      ],
+      "classification_before_isolated_retry": "spawnSync ETIMEDOUT after explicit 30000ms child deadline confirmed by console report"
+    },
+    {
+      "file": "__tests__/ediel-sc-010-beneficiary-export.test.ts",
+      "repository_test_unchanged_from_HEAD": true,
+      "test_sha256": "c3a53636c68c73149e6a4c0bc141db499bd3917de020eb08ffc7d7e77f536afa",
+      "failed_assertions": [
+        {
+          "name": "SC010 reachable internal beneficiary export consumer executes the real queue/lease/current-grant/internal-sink SQL assertions through the existing bounded harness",
+          "duration_ms": 30257.520677,
+          "failure_messages": [
+            "AssertionError: expected Error: spawnSync /tmp/gridex-npm-cache/_n… { …(5) } to be undefined\n    at /workspace/gridex-ops-platform/__tests__/ediel-sc-010-beneficiary-export.test.ts:38:29\n    at file:///workspace/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///workspace/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///workspace/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///workspace/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)\n    at file:///workspace/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2305:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///workspace/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2272:10)\n    at file:///workspace/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2955:64"
+          ]
+        }
+      ],
+      "classification_before_isolated_retry": "spawnSync ETIMEDOUT after explicit 30000ms child deadline confirmed by console report"
+    },
+    {
+      "file": "__tests__/native-lock-process.test.ts",
+      "repository_test_unchanged_from_HEAD": true,
+      "test_sha256": "5c54bbc41ad2c67caacc9d1ef50dcc52f57814e0021ef1b60fb4040d0bb52e39",
+      "failed_assertions": [
+        {
+          "name": "cleanup closes a ready process which ignores graceful exit and SIGTERM",
+          "duration_ms": 348.94836899999973,
+          "failure_messages": [
+            "Error: native_lock_process_cleanup_timeout\n    at /workspace/gridex-ops-platform/scripts/helpers/native-lock-process.ts:82:15\n    at Object.dispose (/workspace/gridex-ops-platform/scripts/helpers/native-lock-process.ts:87:30)\n    at /workspace/gridex-ops-platform/__tests__/native-lock-process.test.ts:34:20\n    at file:///workspace/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+          ]
+        },
+        {
+          "name": "lifetime expiry closes an abandoned ready process and rejects a later commit",
+          "duration_ms": 276.10755900000004,
+          "failure_messages": [
+            "Error: native_lock_process_lifetime_exceeded\n    at Timeout.<anonymous> (/workspace/gridex-ops-platform/scripts/helpers/native-lock-process.ts:23:47)\n    at listOnTimeout (node:internal/timers:585:17)\n    at processTimers (node:internal/timers:521:7)"
+          ]
+        }
+      ],
+      "classification_before_isolated_retry": "cleanup/lifetime timing errors; isolated retry pending"
+    }
+  ],
+  "repaired_scoped_test": {
+    "file": "__tests__/website-application-customer-relation-regression.test.ts",
+    "reason": "Obsolete exact duplicated-source occurrence assertion replaced with strong runtime canonical list/detail hydration, company guard, selected ID and composite relationship assertions. Root granted this specific file.",
+    "result": "passed",
+    "assertions": 3
+  },
+  "isolation_retry_status": "complete; all five native timeout failures pass with temporary larger runtime deadlines, previous lifetime failure passes without overrides, one strict30ms cleanup-bound baseline failure remains",
+  "original_full_suite_status": "incomplete and terminated; retained as incomplete in full-suite-incomplete-inventory.json",
+  "unchanged_relevant_native_sources": [
+    {
+      "file": "scripts/helpers/native-lock-process.ts",
+      "unchanged_from_HEAD": true,
+      "sha256": "3e7f373e4124570ba86f06831e85dd60aa4c995221b057244a7ac505c1426621"
+    },
+    {
+      "file": "scripts/ediel-sc-010-beneficiary-export-sql-regression.mjs",
+      "unchanged_from_HEAD": true,
+      "sha256": "575ccd57eb12c5539aba0f118274b544c7820f048886e3e54da1da903cc02494"
+    },
+    {
+      "file": "scripts/test-ediel-prodat-free-text.cjs",
+      "unchanged_from_HEAD": true,
+      "sha256": "ed267e73ebeb718c08773676af5aec48f3ace441afb945eeb38c4265a7af3fde"
+    },
+    {
+      "file": "scripts/test-ediel-prodat-free-text-first-message.cjs",
+      "unchanged_from_HEAD": true,
+      "sha256": "78345f356db061ddd31b26e16dc7a621b6235f4f3ec1852747da0fe839d19af7"
+    },
+    {
+      "file": "supabase/migrations/20261006231000_ediel_confirmed_death_final_response.sql",
+      "unchanged_from_HEAD": true,
+      "sha256": "8075ab1d97959b9a74df61a1d6bb83a9c157090494c0bcc0f5958588b3fbd47e"
+    },
+    {
+      "file": "supabase/migrations/20261006235000_ediel_confirmed_death_application_scope.sql",
+      "unchanged_from_HEAD": true,
+      "sha256": "59dc29a939be1351f45581361076599e09619b09b1fc8510fcda17e03dbc91bd"
+    }
+  ],
+  "native_lock_isolated_retry": {
+    "result": "native-lock-isolated-results.json",
+    "tests": 6,
+    "passed": 5,
+    "failed": 1,
+    "pending": 0,
+    "remaining_failure": "cleanup closes a ready process which ignores graceful exit and SIGTERM",
+    "error": "native_lock_process_cleanup_timeout",
+    "explicit_cleanup_bound_ms": 30,
+    "helper_default_cleanup_bound_ms": 3000,
+    "repository_source_or_test_changed": false,
+    "interpretation": "The strict baseline cleanup-bound case still fails in isolation; the previous lifetime case passes. No green result is claimed for this file."
+  },
+  "temporary_native_timeout_proof": {
+    "status": "complete; all75 assertions passed",
+    "configuration": "/tmp/gridex-native-budget-proof.config.mjs",
+    "configuration_sha256": "0cb672a23119c4bf7e60752e70e263ce9028bb8a8bd02f69daecf0ae6a2d9484",
+    "budget_ms": 120000,
+    "maxWorkers": 1,
+    "test_filters": false,
+    "scope": "All test assertions in the three unchanged native timeout files; AST rewrites only explicit test-registration numeric budgets and spawnSync timeout numeric properties. No assertions, mocks, SQL or repository files are changed.",
+    "result": "native-timeout-isolated-results.json",
+    "provenance": "native-timeout-isolated-provenance.json",
+    "tests": {
+      "total": 75,
+      "passed": 75,
+      "failed": 0,
+      "pending": 0,
+      "todo": 0
+    }
+  },
+  "conclusion": "No workstream regression is indicated: all18 new files/140 assertions passed in the completed affected-suite run, the stale customer-relation test was replaced with3 passing runtime assertions, and unchanged native timeout cases all pass with local budget-only adjustments. A complete all-green full-suite result is not claimed; strict unchanged native cleanup-bound failure remains documented.",
+  "later_scope_handoff": "After the57-file run, root granted agent2 the intake/events/facility/workqueue canonical tenant-scope follow-up, including workqueue boundary-mock adjustment. Agent2/root own final verification of that later scope change."
+}

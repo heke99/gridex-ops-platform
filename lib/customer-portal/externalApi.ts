@@ -174,7 +174,9 @@ export function portalIdentifiersFromPayload(payload: unknown): Partial<Customer
     customerNumber: cleanIdentifier(body.customer_number) ?? cleanIdentifier(body.customerNumber),
     email: normalizeEmail(body.email ?? body.customer_email) || null,
     authUserId: cleanIdentifier(body.auth_user_id) ?? cleanIdentifier(body.authUserId) ?? cleanIdentifier(body.web_auth_user_id) ?? cleanIdentifier(body.webAuthUserId),
-    customerPortalUserId: cleanIdentifier(body.customer_portal_user_id) ?? cleanIdentifier(body.customerPortalUserId) ?? cleanIdentifier(body.portal_user_id) ?? cleanIdentifier(body.portalUserId),
+    // The canonical sync field is the tenant login's account/user subject.
+    // Resolution still requires its existing active tenant-bound portal link.
+    customerPortalUserId: cleanIdentifier(body.authenticated_user_reference) ?? cleanIdentifier(body.customer_portal_user_id) ?? cleanIdentifier(body.customerPortalUserId) ?? cleanIdentifier(body.portal_user_id) ?? cleanIdentifier(body.portalUserId),
   }
 }
 
@@ -198,6 +200,7 @@ export function customerPortalBindingAllowsRequest(
   binding: PortalCustomerBinding,
   options: CustomerPortalContextOptions = {},
 ): boolean {
+  if (options.enforceBinding && binding !== 'portal_account') return false
   if (READ_METHODS.has(method.toUpperCase())) return true
   if (binding === 'portal_account') return true
   return options.allowIdentifierBoundWrite === true

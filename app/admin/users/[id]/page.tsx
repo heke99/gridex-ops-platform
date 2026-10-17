@@ -77,7 +77,7 @@ export default async function AdminUserDetailPage({
 
  <p className="mt-2 text-sm text-slate-700">{user.authUser.id}</p>
  <p className="mt-2 max-w-3xl text-sm text-slate-700">
- Roll = grundaccess. Permission override = individuell allow eller deny utöver grundrollen.
+ Roller ger grundåtkomst. En global permission override kan neka en behörighet i alla bolag.
  </p>
  </div>
 
@@ -208,7 +208,7 @@ export default async function AdminUserDetailPage({
  <div>
  <h2 className="text-lg font-semibold text-slate-950">Permission overrides</h2>
  <p className="mt-1 max-w-3xl text-sm text-slate-700">
- Här styr du individuell allow eller deny per permission. Detta kräver <code>permissions.manage</code>.
+ Här visas användarens permission overrides. Du kan lägga till en global deny som nekar behörigheten i alla bolag. Detta kräver <code>permissions.manage</code>.
  </p>
  </div>
 
@@ -291,9 +291,8 @@ export default async function AdminUserDetailPage({
  })}
  </select>
 
- <select name="effect" className="rounded-lg border px-3 py-2" defaultValue="allow">
- <option value="allow">allow</option>
- <option value="deny">deny</option>
+ <select name="effect" aria-label="Effekt för global permission override" className="rounded-lg border px-3 py-2" defaultValue="deny">
+ <option value="deny">Neka i alla bolag (deny)</option>
  </select>
 
  <input
@@ -303,7 +302,7 @@ export default async function AdminUserDetailPage({
  />
 
  <button className="rounded-lg bg-emerald-700 px-4 py-2 text-white">
- Lägg till override
+ Lägg till global deny
  </button>
  </form>
  ) : (

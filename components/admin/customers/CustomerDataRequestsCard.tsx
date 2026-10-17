@@ -14,7 +14,6 @@ import SubmitButton from "@/components/admin/customers/document-card/SubmitButto
 import CustomerOperationAutomationForm from "@/components/admin/customers/CustomerOperationAutomationForm";
 import {
   buildCustomerCardSnapshot,
-  hasValidPowerOfAttorney,
   humanizeBlockerReason,
   type CustomerCardSnapshot,
 } from "@/lib/customers/customerCardSnapshot";
@@ -197,9 +196,6 @@ export default function CustomerDataRequestsCard({
       documents,
       infoRequests,
     });
-  const hasAuthorization =
-    snapshot.hasAuthorization ||
-    hasValidPowerOfAttorney(powersOfAttorney, documents);
   const currentSupplierRequests = infoRequests.filter(
     (request) =>
       request.target_party_type === "current_supplier" ||
@@ -212,9 +208,13 @@ export default function CustomerDataRequestsCard({
     ) ??
     currentSupplierRequests[0] ??
     null;
-  const defaultSite = snapshot.primarySite ?? sites[0] ?? null;
-  const primaryPoint =
-    snapshot.primaryMeteringPoint ?? meteringPoints[0] ?? null;
+  const defaultSite = snapshot.primarySite;
+  const primaryPoint = snapshot.primaryMeteringPoint;
+  const poa = snapshot.poaReadiness?.facility;
+  const hasAuthorization = Boolean(poa?.usableNow === true && poa.actorId
+    && poa.customerId === customerId && poa.customerId === defaultSite?.customer_id
+    && poa.companyId === defaultSite?.company_id && poa.siteId === defaultSite?.id
+    && poa.meteringPointId === (primaryPoint?.id ?? null));
   const gridOwnerId =
     primaryPoint?.grid_owner_id ?? defaultSite?.grid_owner_id ?? "";
   // Standardvyn visar bara den aktiva automatiska nätägarkedjan.
@@ -247,7 +247,7 @@ export default function CustomerDataRequestsCard({
           <span
             className={`rounded-full px-3 py-1 text-xs font-semibold ${hasAuthorization ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}
           >
-            {hasAuthorization ? "Fullmakt finns" : "Fullmakt saknas"}
+            {hasAuthorization ? "Fullmakt giltig för vald anläggning" : "Fullmakt behöver kontrolleras"}
           </span>
         </div>
 
@@ -267,14 +267,16 @@ export default function CustomerDataRequestsCard({
 
         {isPlatformAdmin ? (
           <div className="mt-6 space-y-4">
-            <CustomerOperationAutomationForm
+            {hasAuthorization ? <CustomerOperationAutomationForm
               kind="customer_data"
               customerId={customerId}
               siteId={defaultSite?.id}
               meteringPointId={primaryPoint?.id}
               idleLabel="Begär uppgifter från nätägare"
               pendingLabel="Startar automatiskt flöde..."
-            />
+            /> : <p role="status" className="text-sm text-amber-900">
+              {poa?.explanation ?? "Fullmakt för vald anläggning och åtgärd behöver kontrolleras."}
+            </p>}
             <p className="text-xs text-slate-600">
               Den primära tenant-knappen finns på översikten. Här kan plattformsadmin starta eller felsöka samma kedja.
             </p>
@@ -368,15 +370,12 @@ export default function CustomerDataRequestsCard({
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <h3 className="text-base font-semibold text-slate-900">Fullmakt</h3>
           <p className="mt-1 text-sm text-slate-700">
-            Fullmakt räknas som klar när signerad fullmakt eller
-            fullmaktsdokument finns.
+            Juridiskt godkännande och historiska dokument är skilda från en giltig fullmakt för vald anläggning och aktuell åtgärd.
           </p>
           <div
             className={`mt-4 rounded-2xl border p-4 text-sm ${hasAuthorization ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-red-200 bg-red-50 text-red-900"}`}
           >
-            {hasAuthorization
-              ? "Fullmakt finns och ska inte längre blockera uppgiftsbegäran."
-              : "Fullmakt saknas eller behöver verifieras."}
+            {poa?.explanation ?? "Fullmakt för vald anläggning behöver verifieras."}
           </div>
         </div>
 

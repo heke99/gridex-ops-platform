@@ -1,0 +1,104 @@
+[
+  {
+    "scope_name": "dashboard_alerts",
+    "table_name": "dashboard_alerts",
+    "exact_count": 350,
+    "row_fingerprint": "e0259fb55af15732bf664bf2c25a0b3c"
+  },
+  {
+    "scope_name": "data_quality_issues",
+    "table_name": "data_quality_issues",
+    "exact_count": 18,
+    "row_fingerprint": "79a7fec90f876cfd7c7def5d9756842f"
+  },
+  {
+    "scope_name": "customer_onboarding_operations",
+    "table_name": "customer_onboarding_operations",
+    "exact_count": 9,
+    "row_fingerprint": "4da4ad530f72cfc39a0495f5d0246f36"
+  },
+  {
+    "scope_name": "forecast_runs",
+    "table_name": "forecast_runs",
+    "exact_count": 38,
+    "row_fingerprint": "cd4f43b887ac211e4d6f0461070adaa4"
+  },
+  {
+    "scope_name": "customer_portfolio_forecast_snapshots",
+    "table_name": "customer_portfolio_forecast_snapshots",
+    "exact_count": 72,
+    "row_fingerprint": "20c6751a708f923dc17f7097eb11f608"
+  },
+  {
+    "scope_name": "company_monthly_metrics",
+    "table_name": "company_monthly_metrics",
+    "exact_count": 12,
+    "row_fingerprint": "6055fa3dee187a1f1c2ac67cfceb0659"
+  },
+  {
+    "scope_name": "bidding_zone_monthly_metrics",
+    "table_name": "bidding_zone_monthly_metrics",
+    "exact_count": 48,
+    "row_fingerprint": "12870fa545eea5e7aa28303a5afecd6b"
+  },
+  {
+    "scope_name": "website_contract_quotes",
+    "table_name": "website_contract_quotes",
+    "exact_count": 24,
+    "row_fingerprint": "00f41acc1a04c4ab872f27ede9e9f576"
+  },
+  {
+    "scope_name": "customer_site_resolution",
+    "table_name": "customer_site_resolution",
+    "exact_count": 39,
+    "row_fingerprint": "b5f340212b9decb1e2fdab57628acce4"
+  },
+  {
+    "scope_name": "website_customer_applications",
+    "table_name": "website_customer_applications",
+    "exact_count": 1,
+    "row_fingerprint": "7a4e0bbf7231598bda6daa45d64e70ba"
+  },
+  {
+    "scope_name": "manual_inbound_messages",
+    "table_name": "manual_inbound_messages",
+    "exact_count": 1,
+    "row_fingerprint": "38ce4b37ae7cea047f146500ef7a6d92"
+  },
+  {
+    "scope_name": "inbound_operation_events",
+    "table_name": "inbound_operation_events",
+    "exact_count": 1,
+    "row_fingerprint": "d9737a11a782b02e4b955d3e2aa8a427"
+  },
+  {
+    "scope_name": "customer_domain_outbox",
+    "table_name": "event_outbox",
+    "exact_count": 17,
+    "row_fingerprint": "c5172839f84574dd45e2cb2cc58f754c"
+  },
+  {
+    "scope_name": "customer_canonical_outbox",
+    "table_name": "canonical_event_outbox",
+    "exact_count": 5,
+    "row_fingerprint": "9fca32650fd9e26c1f387b050e45b239"
+  },
+  {
+    "scope_name": "customer_domain_events",
+    "table_name": "domain_events",
+    "exact_count": 17,
+    "row_fingerprint": "abe2b4c09c9c504346a83a00e51af15d"
+  },
+  {
+    "scope_name": "customer_canonical_events",
+    "table_name": "canonical_domain_events",
+    "exact_count": 5,
+    "row_fingerprint": "88bcc90ee356efa27f47f5d0cfa4ec9b"
+  },
+  {
+    "scope_name": "customer_energy_events",
+    "table_name": "canonical_energy_flow_events",
+    "exact_count": 86,
+    "row_fingerprint": "4b9956744080025910a497f7c3bac045"
+  }
+]

@@ -8,6 +8,7 @@ const h = vi.hoisted(() => ({
   archive: vi.fn(), send: vi.fn(), rpc: vi.fn(),
   deliveries: new Map<string, Record<string, unknown>>(),
   requests: new Map<string, Record<string, unknown>>(),
+  contracts: new Map<string, Record<string, unknown>>(),
   signCount: 0,
 }))
 vi.mock('server-only', () => ({}))
@@ -25,10 +26,11 @@ vi.mock('@/lib/supabase/service', () => ({
       let patch: Record<string, unknown> | null = null
       let upsert: Record<string, unknown> | null = null
       let ignoreDuplicates = false
-      const store = table === 'customer_contract_confirmation_deliveries' ? h.deliveries : table === 'customer_contract_signature_requests' ? h.requests : null
+      const store = table === 'customer_contract_confirmation_deliveries' ? h.deliveries : table === 'customer_contract_signature_requests' ? h.requests : table === 'customer_contracts' ? h.contracts : null
+      if (!store) throw new Error(`Unexpected table: ${table}`)
       const matches = (row: Record<string, unknown>) =>
         Object.entries(eq).every(([k, v]) => row[k] === v) && (!lte || String(row[lte[0]] ?? '') <= lte[1])
-      const rows = () => store ? [...store.values()].filter(matches) : [{ document_sha256: null }]
+      const rows = () => [...store.values()].filter(matches)
       const run = () => {
         if (upsert) {
           const key = String(upsert.signature_request_id)
@@ -45,8 +47,9 @@ vi.mock('@/lib/supabase/service', () => ({
         return { data: rows(), error: null }
       }
       const q: any = {
-        select: () => q, is: () => q, order: () => q, limit: () => q,
+        select: () => q, order: () => q, limit: () => q,
         eq: (k: string, v: unknown) => { eq[k] = v; return q },
+        is: (k: string, v: unknown) => { eq[k] = v; return q },
         lte: (k: string, v: string) => { lte = [k, v]; return q },
         update: (row: Record<string, unknown>) => { patch = row; return q },
         upsert: (row: Record<string, unknown>, options?: { ignoreDuplicates?: boolean }) => { upsert = row; ignoreDuplicates = Boolean(options?.ignoreDuplicates); return q },
@@ -65,7 +68,12 @@ const receipt = { request_id: 'request-1', company_id: 'tenant-a', customer_id: 
 
 beforeEach(() => {
   vi.clearAllMocks()
-  h.deliveries.clear(); h.requests.clear(); h.signCount = 0
+  h.deliveries.clear(); h.requests.clear(); h.contracts.clear(); h.signCount = 0
+  h.contracts.set('contract-1', {
+    id: 'contract-1', company_id: 'tenant-a', document_sha256: null,
+    withdrawal_deadline_at: null, tenant_communication_snapshot_sha256: 'c'.repeat(64),
+    signature_snapshot: { recipient_email: 'test@example.invalid', customer_identity_snapshot: { full_name: 'Synthetic' } },
+  })
   h.requests.set('request-1', { id: 'request-1', company_id: 'tenant-a', token_hash: 'f'.repeat(64), used_at: '2026-10-07T09:00:00Z' })
   h.rpc.mockImplementation(async (name: string) => {
     if (name === 'gridex_finalize_customer_contract_signature_v1') {
@@ -87,6 +95,7 @@ describe('F27: durable signed-contract confirmation continuation', () => {
     expect(result.receipt.status).toBe('signed')
     expect(result.confirmationState).toBe('pending')
     expect(h.send).not.toHaveBeenCalled()
+    expect(h.contracts.get('contract-1')?.document_sha256).toBeNull()
     expect(h.deliveries.get('request-1')).toMatchObject({ state: 'pending', attempts: 1, last_error: 'synthetic_archive_unavailable' })
   })
 
@@ -105,9 +114,11 @@ describe('F27: durable signed-contract confirmation continuation', () => {
     await finalizeOnlineContractSignature({ token: 'a'.repeat(64) })
     expect(h.deliveries.get('request-1')).toMatchObject({ state: 'queued' })
     const sends = h.send.mock.calls.length
+    const archives = h.archive.mock.calls.length
     h.deliveries.get('request-1')!.state = 'queued'
     await processPendingContractConfirmations(10)
     expect(h.send.mock.calls.length).toBe(sends)
+    expect(h.archive.mock.calls.length).toBe(archives)
   })
 
   it('stops retrying after the maximum attempts and reports failed', async () => {

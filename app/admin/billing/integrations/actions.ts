@@ -9,7 +9,7 @@ import { resolveCapwayConnectionConfig } from '@/lib/integrations/billing/capway
 import { CapwayApticClient } from '@/lib/integrations/billing/capway/client'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { supabaseService } from '@/lib/supabase/service'
-import { getOperationalCompanyScope } from '@/lib/tenant/scope'
+import { resolveAdminSelectedCompanyReadScope } from '@/lib/tenant/adminScope'
 import {
   InvoiceProviderConfigError,
   loadTenantInvoiceProviderSelection,
@@ -35,8 +35,8 @@ async function requireScopedBillingCompany() {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthorized')
-  const scope = await getOperationalCompanyScope(user.id)
-  const companyId = scope?.companyId
+  const scope = await resolveAdminSelectedCompanyReadScope(context)
+  const companyId = scope.companyId
   if (!companyId) {
     throw new Error('Välj ett elhandelsbolag innan fakturaintegrationen testas.')
   }

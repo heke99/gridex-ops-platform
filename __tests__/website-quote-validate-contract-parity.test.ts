@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
+import { API_DOCUMENTATION_VERSION } from '@/lib/integrations/websiteIntegrationContract'
 
 type OpenApiDocument = {
   info?: { version?: string }
@@ -21,7 +21,7 @@ describe('website quote validation contract parity', () => {
     const required =
       openApi.components?.schemas?.WebsiteQuoteValidationData?.required ?? []
 
-    expect(openApi.info?.version).toBe(WEBSITE_INTEGRATION_CONTRACT_VERSION)
+    expect(openApi.info?.version).toBe(API_DOCUMENTATION_VERSION)
     expect(required).toContain('valid_until')
     expect(route).toContain('valid_until: quote.valid_until')
     expect(route).toContain(

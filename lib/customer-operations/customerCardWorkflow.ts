@@ -370,26 +370,27 @@ export function buildCustomerCardWorkflow(
   });
 
   // Step 2: Avtal och fullmakt
-  const hasAuth = snapshot.hasAuthorization;
+  const hasLegalAuth = snapshot.hasAuthorization;
+  const hasAuth = snapshot.poaReadiness?.facility.usableNow === true;
   const hasContract = snapshot.hasContract;
   const legalStatus =
-    hasAuth && hasContract
+    hasLegalAuth && hasContract
       ? "done"
-      : hasContract || hasAuth
+      : hasContract || hasLegalAuth
         ? "current"
-        : "blocked";
+        : snapshot.poaReadiness?.facility.kind === "unknown" ? "current" : "blocked";
   steps.push({
     id: "legal_ready",
     label: "Avtal och fullmakt",
     explanation:
-      hasAuth && hasContract
+      hasLegalAuth && hasContract
         ? "Vi har kundens avtal och fullmakt."
-        : !hasAuth
-          ? "Signerad fullmakt saknas."
+        : !hasLegalAuth
+          ? snapshot.poaReadiness?.facility.explanation ?? "Fullmakt för vald anläggning behöver kontrolleras."
           : "Avtal behöver registreras.",
     status: legalStatus,
-    blockerReason: !hasAuth
-      ? "Fullmakt saknas"
+    blockerReason: !hasLegalAuth
+      ? "Fullmakt för vald anläggning behöver kontrolleras"
       : !hasContract
         ? "Avtal saknas"
         : null,
@@ -607,16 +608,14 @@ export function buildCustomerCardWorkflow(
   steps.push({
     id: "poa_signed",
     label: "Fullmakt signerad",
-    explanation: snapshot.hasAuthorization ? "Signerad fullmakt finns." : "Signerad fullmakt saknas.",
-    status: snapshot.hasAuthorization ? "done" : "blocked",
+    explanation: snapshot.hasAuthorization ? "Juridiskt godkänd fullmakt finns för vald anläggning." : "Fullmakt för vald anläggning behöver kontrolleras.",
+    status: snapshot.hasAuthorization ? "done" : snapshot.poaReadiness?.facility.kind === "unknown" ? "current" : "blocked",
   });
   steps.push({
     id: "authorization_document",
     label: "Authorization document",
-    explanation: snapshot.hasExternallySendablePoa
-      ? "Fullmakten kan skickas externt till nätägaren."
-      : "Fullmakten behöver strukturerad signerare/dokumentkedja innan extern begäran.",
-    status: snapshot.hasExternallySendablePoa ? "done" : snapshot.hasAuthorization ? "current" : "blocked",
+    explanation: snapshot.poaReadiness?.facility.explanation ?? "Fullmakt för vald anläggning behöver kontrolleras.",
+    status: hasAuth ? "done" : snapshot.hasAuthorization ? "current" : "blocked",
   });
   steps.push({
     id: "grid_area_resolved",
@@ -837,8 +836,9 @@ export function buildCustomerCardWorkflow(
     adminMessage = "Begär uppgifter från nätägaren.";
   } else if (!hasAuth) {
     primaryAction = "review_blocker";
-    adminMessage =
-      "Fullmakt saknas. Lägg till signerad fullmakt innan uppgifter kan begäras.";
+    adminMessage = snapshot.poaReadiness?.facility.explanation ??
+      "Fullmakt för vald anläggning behöver kontrolleras innan uppgifter kan begäras.";
+    nextRequiredAction = adminMessage;
   } else if (!hasFacility) {
     primaryAction = snapshot.hasGridOwner && hasAuth ? "request_data" : "review_blocker";
     adminMessage = snapshot.hasGridOwner && hasAuth

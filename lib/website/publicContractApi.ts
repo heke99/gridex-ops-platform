@@ -10,6 +10,7 @@ import {
   type ApiContractProfile,
 } from '@/lib/integrations/apiContractCompatibility'
 import { profileRepresentationKey } from '@/lib/integrations/apiContractProjection'
+import { currentApiResponseProfile } from '@/lib/integrations/apiResponseProfile'
 
 export type PublicContractsQuery = {
   customerType: 'private' | 'business' | null
@@ -72,6 +73,8 @@ export const PUBLIC_CONTRACT_REPRESENTATION_REVISION = '2026-10-09.1'
 
 /** Selected representation profile for the public-contract feed (package 4). */
 export function selectPublicContractProfile(): ApiContractProfile {
+  const current = currentApiResponseProfile('website')
+  if (current) return current
   const result = assessApiContractCompatibility({
     surface: 'website',
     major: 'v1',

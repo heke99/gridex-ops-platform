@@ -125,6 +125,21 @@
       "path": "bootstrap/20260815_ediel_test_runs_environment_type_prerequisite.sql",
       "afterLedgerVersion": "20260815093959",
       "beforeLedgerVersion": "20260815095427"
+    },
+    {
+      "path": "bootstrap/20261013_ops_quote_nonexpiring_replay_adapter.sql",
+      "afterLedgerVersion": "20261013093621",
+      "beforeLedgerVersion": "20261013093922"
+    },
+    {
+      "path": "bootstrap/20261013_ops_current_permission_replay_adapter.sql",
+      "afterLedgerVersion": "20261013094648",
+      "beforeLedgerVersion": "20261013100622"
+    },
+    {
+      "path": "bootstrap/20261013_ops_auth_expiry_replay_adapter.sql",
+      "afterLedgerVersion": "20261013104143",
+      "beforeLedgerVersion": "20261013110544"
     }
   ],
   "derivedBootstrap": {
@@ -384,6 +399,74 @@
       "artifactSha256": "74d82d3a269770d99ae82052946faadde22892b69f61eec96178fc397752af69",
       "preserveSourceReplay": true,
       "purpose": "Replay the checksum-pinned legacy Ediel operations schema at the exact late boundary where canonical UTILTS persistence first extends meter_reading_series and meter_reading_values; no tenant or metering rows are seeded."
+    },
+    "bootstrap/20261013_ops_quote_nonexpiring_replay_adapter.sql": {
+      "source": "migrations/20261013093906_ops_api_website_quote_nonexpiring_policy.sql",
+      "sourceSha256": "7eceae42dccce7a968182d144389329d1c11466bf0c896afff62250950f9f2ce",
+      "artifactSha256": "3afea47b4343c5d5e6d97a4f709bccf5c8cf6f7cf33c179f022629ff4d7c481b",
+      "preserveSourceReplay": false,
+      "purpose": "Replay-only exact source-SHA-bound complete-state adapter: canonical007d is a verified no-op; legacy4daec removes only the exact retired TTL anchor; unknown body or full metadata refuses. Preserve original published SQL/hash and distinguish original source from executed derived artifact."
+    },
+    "bootstrap/20261013_ops_current_permission_replay_adapter.sql": {
+      "source": "migrations/20261013095628_ops_api_current_context_permission_denies.sql",
+      "sourceKind": "timestampedMigration",
+      "sourceSha256": "c0b42937d124b8a50e77e2d773a4a9ce03062a24eff3abb6d93eb49b0affc418",
+      "artifactSha256": "d5e7d62982719ffea9ff0ca65149ca6b93e5e07e5caa3518f4e651c6688328f8",
+      "preserveSourceReplay": false,
+      "reason": "Exact source-proven historical global permission body differs from native preimage by two comments only; identical hardened outputs/guards with stronger full identity preservation."
+    },
+    "bootstrap/20261013_ops_auth_expiry_replay_adapter.sql": {
+      "source": "migrations/20261013105521_ops_api_current_auth_token_expiry.sql",
+      "sourceKind": "timestampedMigration",
+      "sourceSha256": "9e3dc9544031b8d42acdaa850c9ba1963d8b6b6ff0c7d35c76f1be49368ba7bf",
+      "artifactSha256": "070b2e524b964c78e9e99a91553f8d4eab74811fb8a76e994cfe8e52088b84fa",
+      "preserveSourceReplay": false,
+      "reason": "Two exact historical Staff acceptance predecessor bodies differ from native originals only in comments. Paired original/hash acceptance preserves native applicability and all five target bodies/attribute guards."
+    },
+    "bootstrap/20261013_ops_permission_catalog_replay_adapter.sql": {
+      "source": "migrations/20261013104143_ops_api_seven_permission_catalog_keys.sql",
+      "sourceKind": "timestampedMigration",
+      "sourceSha256": "2ce4e07ee2dee8ffb352e0e387092e7eb8a9bc6802723d408b40b9e0671e4519",
+      "artifactSha256": "1c2bdd4276b99f15d838a80adb1bb63def487e8db2e31405e5821264f4a7c5d9",
+      "preserveSourceReplay": false,
+      "execution": "sourcePosition",
+      "reason": "Exact source-qualified canonical/native permissioncatalog profiles, raw state preserved."
+    },
+    "bootstrap/20261015_ops_atomic_bb0b_preflight_diagnostic_replay_adapter.sql": {
+      "source": "migrations/20261014113214_ops_api_atomic_bb0b_authfree_effect.sql",
+      "sourceKind": "timestampedMigration",
+      "sourceSha256": "a2a7e91e1bbb97e0b2d73171b1e0893fad9e4acf915ca620c02f25b8e6aa4a0d",
+      "artifactSha256": "6c139e8f94e86de4409e0097078f56d839cdd824fc3f6f7858549699ed7d87e8",
+      "preserveSourceReplay": false,
+      "execution": "sourcePosition",
+      "reason": "Retain source-qualified Auth self-SELECT, membership, signing-core and SC031 normalization/restoration, the closed canonical 50-function profiles and strict canonical 64-row permission catalog alternative. Preserve original native clauses and all full-row guards. Add bounded convergence for exactly 23 source-qualified functions: 15 retention-owner transfers, five existing-source postgres EXECUTE grants and one PUBLIC EXECUTE revocation. Reuse the unchanged original 19-helper repair queue to strengthen six exact finance bodies. Preserve both current SC023 permission bodies, history hooks and writer lock; normalize only their guarded in-memory body fingerprints for the original complete-state comparison. Require the original whole-state projection before any new DDL, exact full-row postconditions, unchanged role/membership/namespace metadata, and coherent full-before or full-target replay profiles; unknown or partial profiles refuse. Original 64 source transports, source SHA, prior 81 overlay patches, diagnostics and later signing forwards remain pinned. Derived template and actual rendered SQL have separate checksums; actual post-metadata hashes remain distinct from the virtual complete-state projection. At both atomic Z02 checks, recognize the exact later-source delegate/public profiles with full body, metadata and raw ACL fingerprints, preserving original-grid refusal and originating-message linkage. Retain the native delegate alternative and every existing semantic contract; function bodies and privileges remain intact. Admit the exact source-canonical absence of both native-only timestamp bindings only with the four complete current SC023/Z02 context profiles, original timestamp function metadata, paired table/column checks and unchanged full catalog snapshots. Apply the identical bounded alternative at both optional adapter sites and their two final binding rows; retain all 27 final binding entries and the other 25 unconditional checks. No timestamp behavior, function body or permission is created or relaxed; unknown profiles retain the original refusal. At the two portfolio immutable adapter sites, recognize only the exact source-canonical clones created by 20261001070000 and deterministically renamed by 20261001071050, requiring exact source body bytes and full ABI/owner/raw-ACL/config metadata. Rebind those qualified clones through the existing API adapter creation/metadata path; preserve each complete clone pg_proc row and definition. Original public/native alternatives, all final 27 trigger checks, sealed source transports and preceding overlays remain unchanged."
+    },
+    "bootstrap/20261013_ops_market_actor_normalizer_replay_adapter.sql": {
+      "source": "migrations/20261013151412_ops_api_market_actor_normalizers.sql",
+      "sourceKind": "timestampedMigration",
+      "sourceSha256": "2a5a5523fafaa80b416c5c489a8018a4640a910c66dc5486569751898c60b5cd",
+      "artifactSha256": "f1ad2cfd7a1a455baf606a0c565d9b0341e736c2570e6be7ad8e83966a96d219",
+      "preserveSourceReplay": false,
+      "execution": "sourcePosition",
+      "reason": "Canonical history explicitly replaces actor display-name uniqueness with exact nonunique search index; preserve unique per-actor aliases and all original catalog/row guards."
+    },
+    "bootstrap/20261014_ops_signing_prepare_postlock_replay_adapter.sql": {
+      "source": "migrations/20261014060124_ops_api_signing_prepare_post_row_lock_freshness.sql",
+      "sourceKind": "timestampedMigration",
+      "sourceSha256": "105f32d496c611edb82764eabe43ad035ebadf5648d76db8779ee2a9c5b2598b",
+      "artifactSha256": "3302b837142d4b48547a39d10b2583a0915161a0d1e59d7680be710f879cc8e3",
+      "preserveSourceReplay": false,
+      "execution": "sourcePosition",
+      "reason": "Preserve exact native public-core applicability and canonical retained public wrapper; apply original pending-request locking correction only to the source-qualified effective core, preserving its full other metadata. Downstream sealed fingerprint and runtime concurrency corrections are separate gates."
+    },
+    "bootstrap/20261015_ops_signed_price_cache_logical_authority_replay.sql": {
+      "source": "migrations/20261015100259_ops_api_signed_contract_price_cache_binding_guard_alignment.sql",
+      "sourceKind": "timestampedMigration",
+      "sourceSha256": "9c055dba7b020aad3bb867f6ff2b02f8854fee4bc136db2de4042bc6347dc83c",
+      "artifactSha256": "007a93cbc2a8af7abb4828e9fdc4473d91ef3075f8f13db77d22a11a85abb328",
+      "preserveSourceReplay": false,
+      "execution": "sourcePosition",
+      "reason": "Exact immutable 20261015100259 source and unchanged signed-price-cache original/target bodies, full function metadata, actor/role/owner/ACL, trigger and column guards. Compare all logical authority/catalog fields while excluding only six physical pg_class VACUUM/ANALYZE estimates/visibility/freeze fields, following the existing source-qualified Auth envelope. Keep strict refusal of unknown or changed logical source/authority. Preserve the postcondition error and add fixed boolean/category-only diagnostics; no raw metadata or business data. Actual prior combined CI failure operand remains unobserved; isolated component proof establishes the physical-maintenance false-positive and retained logical refusals."
     }
   }
 }

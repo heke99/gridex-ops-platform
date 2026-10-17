@@ -19,13 +19,14 @@ import { assertPublicWebhookTarget } from '@/lib/integrations/publicWebhookTrans
 import { supabaseService } from '@/lib/supabase/service'
 import { buildPortalDatabasePage, decodePortalCursor, PortalCursorError } from '@/lib/customer-portal/keysetPagination'
 import { PARTNER_API_VERSION, partnerOpenApi } from './openApi'
+import { readCompletePartnerMeasurements } from './measurementRead'
+import { requirePartnerOfferDirection } from './offerDirection'
 import { PARTNER_VISIBLE_INVOICE_STATUSES, calendarDaysInclusive, stockholmDayStartUtc, stockholmInvoiceDate, stockholmNextDayStartUtc } from './partnerTime'
 
 const POA_BUCKET = 'customer-documents'
 const MAX_POA_BYTES = 5 * 1024 * 1024
 const MAX_INVOICE_PDF_BYTES = 15 * 1024 * 1024
 const MAX_MEASUREMENT_DAYS = 366
-const MAX_MEASUREMENT_ROWS = 40_000
 const SITE_INVOICE_PAGE_SIZE = 100
 const SIMPLE_MEASUREMENT_DIRECTIONS = ['consumption', 'production'] as const
 /** Optional continuation for site invoice lists; the V1 body shape stays `{ invoices }`. */
@@ -158,6 +159,8 @@ function normalizedError(error: unknown): { status: number; code: string; messag
 
   const message = String((error as { message?: unknown } | null)?.message ?? '')
   const known: Array<[RegExp, number, string, string]> = [
+    [/partner_api_site_offer_direction_mismatch/i, 422, 'site_offer_direction_mismatch', 'The site electricity type does not match the selected published offer.'],
+    [/partner_api_offer_direction_unavailable/i, 503, 'offer_direction_unavailable', 'The selected offer energy direction could not be verified.'],
     [/partner_api_offer_not_found/i, 404, 'offer_not_found', 'No published API offer is available for this customer type.'],
     [/partner_api_customer_email_required/i, 422, 'customer_email_required', 'email is required.'],
     [/partner_api_customer_identity_number_required/i, 422, 'soc_id_required', 'soc_id is required for PRIVATE customers.'],
@@ -700,6 +703,27 @@ async function createPowerOfAttorney(request: NextRequest, customerReference: st
         return { statusCode: 201, body: { entity_id: result.data.power_of_attorney_reference } }
       },
     })
+    if (write.replayed) {
+      // Historical ledger hashes cover the body, not this site's path. Keep
+      // those same-site retries working, but never replay another site's POA.
+      const reference = text(write.body.entity_id)
+      const replay = reference ? await supabaseService
+        .from('powers_of_attorney')
+        .select('power_of_attorney_reference')
+        .eq('company_id', context.client.company_id)
+        .eq('customer_id', customer.id)
+        .eq('customer_site_id', site.id)
+        .eq('power_of_attorney_reference', reference)
+        .maybeSingle() : null
+      if (replay?.error) throw replay.error
+      if (!replay?.data) {
+        throw new SimplePartnerApiError(
+          'Idempotency-Key has already been used for another power of attorney resource.',
+          'idempotency_conflict',
+          409,
+        )
+      }
+    }
     await successLog({ request, client: context.client, startedAt: context.startedAt, status: write.statusCode, operation: 'power_of_attorney.create', id: context.id })
     return simpleJson(write.body, write.statusCode, context.id)
   } catch (error) {
@@ -796,6 +820,13 @@ async function createContract(request: NextRequest) {
         ...(poaIdempotency ? { power_of_attorney: poaIdempotency } : {}),
       },
       execute: async () => {
+        await requirePartnerOfferDirection({
+          companyId: context.client.company_id,
+          offerReference,
+          customerType: customer.customerType,
+          siteType: site.siteType,
+          field: 'site.site_electricity_type',
+        })
         const result = await withStoredPoaPdf(poaFile, () => supabaseService.rpc('gridex_create_partner_contract_v1', {
           p_company_id: context.client.company_id,
           p_api_client_id: context.client.id,
@@ -1052,9 +1083,9 @@ async function getMeasurements(request: NextRequest, customerReference: string, 
     const resolutionValues = resolution === '15m'
       ? ['15m', 'PT15M', 'quarterly']
       : ['1h', 'PT1H', 'hourly']
-    const result = await supabaseService
+    const rows = await readCompletePartnerMeasurements((offset, size) => supabaseService
       .from('normalized_metering_values')
-      .select('period_start,quantity_kwh,direction')
+      .select('id,period_start,quantity_kwh,direction')
       .eq('company_id', context.client.company_id)
       .eq('customer_site_id', site.id)
       // Only the current revision; replaced/superseded/void corrections are filtered before the limit.
@@ -1066,9 +1097,9 @@ async function getMeasurements(request: NextRequest, customerReference: string, 
       .lt('period_start', stockholmNextDayStartUtc(to).toISOString())
       .in('resolution', resolutionValues)
       .order('period_start', { ascending: true })
-      .limit(MAX_MEASUREMENT_ROWS)
-    if (result.error) throw result.error
-    const measurements = (result.data ?? []).map((row) => ({
+      .order('id', { ascending: true })
+      .range(offset, offset + size - 1))
+    const measurements = rows.map((row) => ({
       timestamp: row.period_start,
       // quantity_kwh is the canonical kWh amount normalized at ingest (source Wh/MWh already converted);
       // the source unit column is provenance only and is never applied again.

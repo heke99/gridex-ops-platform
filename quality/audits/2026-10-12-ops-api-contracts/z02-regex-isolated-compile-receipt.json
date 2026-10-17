@@ -1,0 +1,78 @@
+{
+  "proposal_sha256": "ca5259f2fe217d3326250b9ad9df98addd450ab1d5a022f2af35f368afa3727b",
+  "database": "ops_api_extra_z02_compile_20261013",
+  "container_network": "none",
+  "postgres": "17.6",
+  "first_commit_exit_code": 0,
+  "replay_commit_exit_code": 0,
+  "complete_both_pg_proc_minus_prosrc_preserved": true,
+  "complete_replay_definitions_and_pg_proc_unchanged": true,
+  "immutable_preserved": true,
+  "before": [
+    {
+      "body_md5": "bbf519caaea189a26c297e49cbc8a721",
+      "signature": "gridex_edifact_cci_cav_value(text,text)"
+    },
+    {
+      "body_md5": "a306217032036b0272286b95cf1615bb",
+      "signature": "gridex_edifact_nad_element(text,text,integer)"
+    }
+  ],
+  "after": [
+    {
+      "body_md5": "9c2260f2d165463bde841c6ba239fde6",
+      "signature": "gridex_edifact_cci_cav_value(text,text)"
+    },
+    {
+      "body_md5": "eeda2752e19d456ac1d8c0bcbd8d9b52",
+      "signature": "gridex_edifact_nad_element(text,text,integer)"
+    }
+  ],
+  "pure_primitive_standard_conforming_strings": "on",
+  "literal_qualification": [
+    {
+      "match": null,
+      "variant": "actual",
+      "function": "public.gridex_edifact_cci_cav_value"
+    },
+    {
+      "match": [
+        "E01"
+      ],
+      "variant": "source",
+      "function": "public.gridex_edifact_cci_cav_value"
+    },
+    {
+      "match": null,
+      "variant": "actual",
+      "function": "public.gridex_edifact_nad_element"
+    },
+    {
+      "match": [
+        "123::SE2"
+      ],
+      "variant": "source",
+      "function": "public.gridex_edifact_nad_element"
+    }
+  ],
+  "unknown_body_negatives": [
+    {
+      "case": "gridex_edifact_cci_cav_value(text,text)",
+      "exit_code": 3,
+      "error": "z02_regex_existing_body_or_attributes_changed_requires_review: public.gridex_edifact_cci_cav_value(text,text)",
+      "full_both_pg_proc_and_definitions_rollback_exact": true
+    },
+    {
+      "case": "gridex_edifact_nad_element(text,text,integer)",
+      "exit_code": 3,
+      "error": "z02_regex_existing_body_or_attributes_changed_requires_review: public.gridex_edifact_nad_element(text,text,integer)",
+      "full_both_pg_proc_and_definitions_rollback_exact": true
+    }
+  ],
+  "business_or_helper_functions_invoked": false,
+  "pure_pg_regexp_match_replace_only": true,
+  "actual_native_writes": false,
+  "source_edits_by_verifier": false,
+  "check_function_bodies": "on",
+  "prerequisite_compose_note": "Neither changedhelper is among extra-Z02 packet144required bodyhashes; packets do not invalidate oneanother replaypreflight."
+}

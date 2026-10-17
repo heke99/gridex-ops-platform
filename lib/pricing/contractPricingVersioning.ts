@@ -1,3 +1,5 @@
+import { standardConsumptionVatPercent } from "@/lib/pricing/vat";
+
 export type ContractPricingModel =
   | "spot"
   | "variable_monthly"
@@ -626,12 +628,13 @@ export function normalizeContractPricing(
     min: 1,
     integer: true,
   });
-  const vatRate =
-    optionalNumber(input.vatRate, "Moms", { min: 0, max: 100 }) ?? 25;
   const productionEnabled =
     input.productionEnabled === true ||
     String(input.productionEnabled ?? "").toLowerCase() === "true" ||
     String(input.productionEnabled ?? "").toLowerCase() === "on";
+  const vatRate = productionEnabled
+    ? optionalNumber(input.vatRate, "Moms", { min: 0, max: 100 }) ?? 25
+    : standardConsumptionVatPercent(input.vatRate);
   const productionCompensationOrePerKwh = optionalNumber(
     input.productionCompensationOrePerKwh,
     "Ersättning för producerad el",

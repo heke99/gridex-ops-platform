@@ -1,0 +1,22 @@
+{
+  "run_id": 38467254556,
+  "job_id": 115537123875,
+  "run_conclusion": "SUCCESS",
+  "artifact_id": 11850616228,
+  "artifact_zip_sha256": "2f468607ef82342140f01db75c2ca93ac1c3405b9f5571b47065a3510e2cc42d",
+  "published_artifact_digest": "sha256:2f468607ef82342140f01db75c2ca93ac1c3405b9f5571b47065a3510e2cc42d",
+  "source_head": "52a348c8d113f79a9884324c470949f8423c821a",
+  "source_tree": "7f2d64af2014c4af3532d0af2904bad8a30f6246",
+  "all_eight_source_inputs_verified": true,
+  "latest_migration": {
+    "name": "20261013174700_operational_quality_company_unique_keys.sql",
+    "sha256": "9aa65266e97f3f3482275e8998d922eadfbc9f21ba58c692ae4b5ed496c5d772"
+  },
+  "raw_three_outputs_verified": {
+    "database.types.ts": "8fbaf566c956192d9b64a2e504d764c7e8497b9261ac19a413479bb6c675f9f2",
+    "schema.sql": "146e462b33772e616d9c42c6147499d02279ef4349c4d4dc2192fd6d8ed07955",
+    "schema.fingerprint.json": "2fe822a629c6e887e6cbca7598c10cdf046922d863f3d793e837b409e835b5e5"
+  },
+  "schema_fingerprint": "7be78399d1ef663a56c6900ceeb080d01721f19305d46b4d86f3efb27b063100",
+  "qualification": "Authentic composed main4e+ten admin forward capture. All four safe ZIP members/CRC, exactsource/tree, eight bound inputs, immutable migration tail and raw3 output hashes verified. Capture-only; final-head mandatory native/browser/upgrade/parity/application gates and production API preservation remain separate."
+}

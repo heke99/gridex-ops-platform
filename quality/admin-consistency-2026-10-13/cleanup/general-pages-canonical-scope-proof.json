@@ -1,0 +1,67 @@
+{
+  "scope": "Exclusive seven-page handoff from admin_copy_audit, canonical company-read corrections only",
+  "files": [
+    {
+      "path": "app/admin/metering/page.tsx",
+      "sha256": "57849ee1bac8fec1895fc0526ec526ea7a09ad5a191ea89e13c5dbe65b88db50"
+    },
+    {
+      "path": "app/admin/customer-info-requests/page.tsx",
+      "sha256": "435e87a4ff3d87d871e177c7cf8715e16d9f82c97cc41e60c8e915a5c9e25d05"
+    },
+    {
+      "path": "app/admin/customer-login/page.tsx",
+      "sha256": "63b6d591163c84b614465b47b579e6b79b58488e57ff526085ed0adde60bc3d4"
+    },
+    {
+      "path": "app/admin/company-settings/page.tsx",
+      "sha256": "9f78de4683d0509864de0f2f726b769410befaaa7429e613b9d073efcd703491"
+    },
+    {
+      "path": "app/admin/customers/imports/page.tsx",
+      "sha256": "af2b614364fd16697a0ec8933304cba9841066ffce709066e7e17b54752dd774"
+    },
+    {
+      "path": "app/admin/contracts/page.tsx",
+      "sha256": "e17ccbefd3035fc1360f9c25696ab4f58fa70c82b136f257e8bc6478940c040b"
+    },
+    {
+      "path": "app/admin/pricing/market-sources/page.tsx",
+      "sha256": "30f21118005f6de1b83d3e13a69e0ccd15b1e4e643b8311ccc6bb1949eab114b"
+    }
+  ],
+  "shared_helper": "resolveAdminSelectedCompanyReadScope, unchanged by this preparer",
+  "strict_missing_tenant": [
+    "metering",
+    "customer imports"
+  ],
+  "guarded_empty_missing_tenant": [
+    "information requests",
+    "customer login",
+    "company settings",
+    "contracts",
+    "market policies"
+  ],
+  "before": {
+    "focused_cases": 21,
+    "failed": 20,
+    "passed": 1,
+    "reason": "Canonical guard company discarded in favor of legacy-selected membership"
+  },
+  "after": {
+    "command": "Node22 vitest run __tests__/admin-remaining-pages-canonical-scope.test.ts -t '^(metering|information requests|customer login|company settings|customer imports|contracts|market policies) '",
+    "passed": 21,
+    "skipped_other_owners": 43,
+    "duration_seconds": 15.24
+  },
+  "preserved": [
+    "permission guards",
+    "contract platform company parameter validation and offers branch",
+    "information-request write membership/lifecycle checks",
+    "shared spot-price source catalog",
+    "action handlers and UI labels"
+  ],
+  "react_review": "Server read scope only; conditional reads stop before data on missing tenant, no client/hook/JSX changes or new waterfalls",
+  "source_freeze": true,
+  "no_migrations_manifests_types_edited": true
+}

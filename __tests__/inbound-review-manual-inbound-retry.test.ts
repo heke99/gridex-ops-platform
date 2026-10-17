@@ -50,7 +50,13 @@ vi.mock('@/lib/supabase/service', () => {
       return Promise.resolve(this.run()).then(resolve, reject)
     }
   }
-  return { supabaseService: { from: (table: string) => new Query(table) } }
+  return { supabaseService: {
+    from: (table: string) => new Query(table),
+    rpc: async (name: string) => {
+      if (name !== 'gridex_manual_inbound_source_retired_v1') throw new Error('Unexpected RPC: ' + name)
+      return { data: false, error: null }
+    },
+  } }
 })
 vi.mock('@/lib/platform/schemaReadiness', () => ({ assertPlatformSchemaReady: async () => undefined }))
 vi.mock('@/lib/email/manualOperationsMailbox', () => ({ resolveManualMailboxSecret: () => 'pw' }))

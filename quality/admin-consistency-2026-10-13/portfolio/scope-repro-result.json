@@ -1,0 +1,6 @@
+{
+  "status": "CONFIRMED",
+  "canonicalGuardCompanyId": "synthetic-company-B",
+  "withOtherMembership": "synthetic-company-A",
+  "withoutMembership": null
+}

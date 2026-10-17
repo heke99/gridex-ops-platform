@@ -1,0 +1,99 @@
+{
+  "auth_users": {
+    "acl": [
+      "supabase_auth_admin=arwdDxtm/supabase_auth_admin",
+      "dashboard_user=arwdDxtm/supabase_auth_admin",
+      "postgres=ar*wdDxtm/supabase_auth_admin"
+    ],
+    "owner": "supabase_auth_admin",
+    "postgres_update": true,
+    "retention_update": false,
+    "postgres_update_go": false
+  },
+  "checked_at": "2026-10-13T15:50:09.421956+00:00",
+  "role_gates": [
+    {
+      "set": false,
+      "role": "supabase_admin",
+      "usage": false,
+      "member": false
+    },
+    {
+      "set": false,
+      "role": "supabase_auth_admin",
+      "usage": false,
+      "member": false
+    },
+    {
+      "set": false,
+      "role": "supabase_storage_admin",
+      "usage": false,
+      "member": false
+    }
+  ],
+  "auth_schema": {
+    "acl": [
+      "supabase_admin=UC/supabase_admin",
+      "anon=U/supabase_admin",
+      "authenticated=U/supabase_admin",
+      "service_role=U/supabase_admin",
+      "supabase_auth_admin=UC/supabase_admin",
+      "dashboard_user=UC/supabase_admin",
+      "postgres=U/supabase_admin"
+    ],
+    "owner": "supabase_admin",
+    "postgres_usage": true,
+    "retention_usage": false,
+    "postgres_usage_go": false
+  },
+  "public_retention_owned_functions": [
+    {
+      "proc": {
+        "oid": "2670299",
+        "proacl": [
+          "gridex_ediel_retention_owner=X/gridex_ediel_retention_owner",
+          "service_role=X/gridex_ediel_retention_owner"
+        ],
+        "probin": null,
+        "prosrc": "BEGIN\n PERFORM id FROM public.customers WHERE id=p_customer_id AND company_id=p_company_id FOR SHARE;IF NOT FOUND THEN RAISE EXCEPTION 'customer_record_customer_scope_required';END IF;\n RETURN coalesce((SELECT jsonb_agg(jsonb_build_object('retentionClass',retention_class,'targetId',target_id,'sourceHash',source_hash,'journalRetainUntil',journal_retain_until,'personalDataAvailable',false) ORDER BY retention_class,target_id) FROM gridex_ediel_retention.record_tombstones WHERE company_id=p_company_id AND customer_id=p_customer_id),'[]');\nEND",
+        "procost": 100,
+        "prokind": "f",
+        "prolang": "13619",
+        "proname": "ediel_customer_record_tombstones_v1",
+        "prorows": 0,
+        "pronargs": 2,
+        "proowner": "2670192",
+        "proconfig": [
+          "search_path=pg_catalog"
+        ],
+        "proretset": false,
+        "prosecdef": true,
+        "prorettype": "3802",
+        "prosqlbody": null,
+        "prosupport": "-",
+        "proargmodes": null,
+        "proargnames": [
+          "p_company_id",
+          "p_customer_id"
+        ],
+        "proargtypes": [
+          "2950",
+          "2950"
+        ],
+        "proisstrict": false,
+        "proparallel": "u",
+        "protrftypes": null,
+        "provariadic": "0",
+        "provolatile": "v",
+        "proleakproof": false,
+        "pronamespace": "2200",
+        "proallargtypes": null,
+        "proargdefaults": null,
+        "pronargdefaults": 0
+      },
+      "body_md5": "7eb808f1f5414538379c60edd4a2d68e",
+      "signature": "ediel_customer_record_tombstones_v1(uuid,uuid)",
+      "definition": "CREATE OR REPLACE FUNCTION public.ediel_customer_record_tombstones_v1(p_company_id uuid, p_customer_id uuid)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$BEGIN\n PERFORM id FROM public.customers WHERE id=p_customer_id AND company_id=p_company_id FOR SHARE;IF NOT FOUND THEN RAISE EXCEPTION 'customer_record_customer_scope_required';END IF;\n RETURN coalesce((SELECT jsonb_agg(jsonb_build_object('retentionClass',retention_class,'targetId',target_id,'sourceHash',source_hash,'journalRetainUntil',journal_retain_until,'personalDataAvailable',false) ORDER BY retention_class,target_id) FROM gridex_ediel_retention.record_tombstones WHERE company_id=p_company_id AND customer_id=p_customer_id),'[]');\nEND$function$\n"
+    }
+  ]
+}

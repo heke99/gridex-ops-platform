@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const fs = require('node:fs')
 const path = require('node:path')
-const { currentContractVersion, currentReleasePath } = require('./lib/current-api-contract.cjs')
+const { currentDocumentationVersion, runtimeContractVersion, currentReleasePath } = require('./lib/current-api-contract.cjs')
 
 const root = process.cwd()
 const failures = []
@@ -143,7 +143,7 @@ includes('supabase/migrations/20260723120000_canonical_fixed_area_quote_flow.sql
 ], 'Migrationen ska återaktivera endast etablerade scopes och lägga till audit/read model')
 
 // Runtime/API/docs version alignment.
-includes('lib/integrations/websiteIntegrationContract.ts', [`WEBSITE_INTEGRATION_CONTRACT_VERSION = '${currentContractVersion}'`], `Canonical runtime contract version ska vara ${currentContractVersion}`)
+includes('lib/integrations/websiteIntegrationContract.ts', [`WEBSITE_INTEGRATION_CONTRACT_VERSION = '${runtimeContractVersion}'`], `Canonical runtime contract version ska vara ${runtimeContractVersion}`)
 includes('lib/website/publicContractApi.ts', ['WEBSITE_INTEGRATION_CONTRACT_VERSION'], 'Public contract runtime ska använda den canonicala kontraktsversionen')
 includes('app/developers/customer-portal-api/page.tsx', [
   'documentationVersion',
@@ -152,7 +152,7 @@ includes('app/developers/customer-portal-api/page.tsx', [
 ], 'Utvecklarsidan ska använda canonical version och beskriva area pricing och quote')
 for (const rel of ['docs/openapi/website-integration-v1.json']) {
   const spec = json(rel)
-  check(spec.info?.version === currentContractVersion, `${rel} ska ha version ${currentContractVersion}`)
+  check(spec.info?.version === currentDocumentationVersion, `${rel} ska ha version ${currentDocumentationVersion}`)
   check(Boolean(spec.paths?.['/api/v1/website/quote']?.post?.responses?.['201']), `${rel} ska dokumentera aktiv quote 201`)
   check(Boolean(spec.paths?.['/api/v1/website/quote/validate']?.post?.responses?.['200']), `${rel} ska dokumentera aktiv quote validation 200`)
   check(Boolean(spec.paths?.['/api/v1/website/energy-area/resolve']?.post?.responses?.['200']), `${rel} ska dokumentera aktiv resolver 200`)

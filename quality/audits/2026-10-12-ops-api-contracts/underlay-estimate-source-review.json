@@ -1,0 +1,112 @@
+{
+  "schema": "ops_underlay_synthetic_estimate_source_review_v1",
+  "created_at_utc": "2026-10-13T11:48:40.639866+00:00",
+  "status": "FIXED_SOURCE_READY_TWO_NONCOAUTHOR_REVIEWS",
+  "scope": "Root explicit underlayEngine synthetic-estimate-only source custody; current price/time/native receipt changes preserved. Gridex Web excluded. No native writes/business calls/customer data.",
+  "file": {
+    "path": "/tmp/gridex-api-audit-ops/lib/billing/underlayEngine.ts",
+    "before_sha256": "01352803113fb19a64fcf96c82a3540681f2b00594221732df0613e8259a8296",
+    "after_sha256": "b506d84599a8a7ca1fd95814ba10fe66b008663135123c7c3667fde2e198e47d"
+  },
+  "confirmed_problem": {
+    "severity": "P2",
+    "trigger": "Generation has no clipped normalized meter values or an incomplete segment, estimation enabled and historical/intake estimate exists.",
+    "before": "History-generated estimatedItems sets source_normalized_metering_value_id=null and ready_for_pricing. The batch appends these to otherwise valid commands. Existing enabled native item guard raises23514 for null normalized source, rolling back the whole batch; no qualified synthetic estimation source rule creates that source identity.",
+    "native_authority": {
+      "capture_at": "2026-10-13T11:43:32.861254+00:00",
+      "function": {
+        "oid": "134055",
+        "body_md5": "dfb5ac4aa0de8ee766b215a9fe48ed19",
+        "definition": "CREATE OR REPLACE FUNCTION public.gridex_billing_underlay_item_gate_guard()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\ndeclare\n  n public.normalized_metering_values%rowtype;\n  u public.billing_underlays%rowtype;\n  v_value_start_date date;\n  v_value_end_date date;\nbegin\n  if new.source_normalized_metering_value_id is null then raise exception 'billing_underlay_source_normalized_value_required' using errcode='23514'; end if;\n  select * into n from public.normalized_metering_values where id=new.source_normalized_metering_value_id;\n  select * into u from public.billing_underlays where id=new.billing_underlay_id;\n  if not found or u.id is null then raise exception 'billing_underlay_missing' using errcode='23503'; end if;\n  if n.id is null then raise exception 'billing_underlay_normalized_value_missing' using errcode='23503'; end if;\n  if n.company_id<>new.company_id or u.company_id<>new.company_id then raise exception 'billing_underlay_lineage_tenant_mismatch' using errcode='23514'; end if;\n  if n.revision_status<>'current' or n.billing_status<>'billable' or n.billing_gate_status<>'eligible' then raise exception 'billing_underlay_value_not_gate_eligible' using errcode='23514'; end if;\n  if n.source_message_id is null or n.source_metering_value_id is null or n.supply_period_id is null then raise exception 'billing_underlay_lineage_incomplete' using errcode='23514'; end if;\n  if u.supply_period_id is null or u.supply_period_id<>n.supply_period_id then raise exception 'billing_underlay_supply_period_mismatch' using errcode='23514'; end if;\n\n  v_value_start_date := (n.period_start at time zone 'Europe/Stockholm')::date;\n  v_value_end_date := (n.period_end at time zone 'Europe/Stockholm')::date;\n  if v_value_start_date < u.billing_period_start or v_value_end_date > u.billing_period_end then\n    raise exception 'billing_underlay_period_outside_segment'\n      using errcode='23514', detail=jsonb_build_object(\n        'normalized_metering_value_id',n.id,\n        'value_start_date',v_value_start_date,\n        'value_end_date',v_value_end_date,\n        'billing_period_start',u.billing_period_start,\n        'billing_period_end',u.billing_period_end,\n        'timezone','Europe/Stockholm',\n        'billing_period_end_exclusive',true\n      )::text;\n  end if;\n  return new;\nend;\n$function$\n"
+      },
+      "trigger": "CREATE TRIGGER billing_underlay_items_gate_guard_trg BEFORE INSERT OR UPDATE OF source_normalized_metering_value_id, billing_underlay_id, company_id ON public.billing_underlay_items FOR EACH ROW EXECUTE FUNCTION gridex_billing_underlay_item_gate_guard()",
+      "enabled_authority": "Actual portable metadata10:59:52 marks billing_underlay_items_gate_guard_trg enabled O"
+    },
+    "current_call_path": [
+      "app/api/internal/billing/generate-underlay/route.ts POST: generateBillingUnderlaysForMonth",
+      "generateBillingUnderlaysForMonth synthetic no-value/history gap branches",
+      "gridex_store_billing_underlay_batch",
+      "billing_underlay_items_gate_guard_trg BEFORE INSERT null-source refusal"
+    ],
+    "documentation_context": [
+      "docs/ai-context/21_UI_OPERATIONS_AND_BILLING_UNDERLAY.md allows estimated volume visibility and approved estimation rule; it also requires traceable/explainable/auditable underlay. No code/native authority establishes history/intake synthetic quantity as a normalized source.",
+      "Approved source-backed normalized readings remain governed by current native basis and existing billing gate; synthetic history forecasts must not impersonate those readings."
+    ]
+  },
+  "fix": {
+    "after": "Both unsupported estimate branches append existing structured needs_review result with null underlayId and estimated_source_missing warning, then continue before items/underlay/pendingStores construction. Missing interval warnings remain visible.",
+    "batch_contract": "Supported other segments still enter original single atomic batch; blocked estimate entries are returned alongside them using existing result shape. No synthetic quantity or fake normalized IDs are persisted.",
+    "numeric_correctness": "Generated underlay total remains exact totalKwh string from admitted normalized rows. Removed unsupported string-plus-number estimate concatenation.",
+    "preserved": "All29 named helper implementations, current time/clipping/decimal/source-pricing receipt validation, historical estimate reconciliation and normalized row item identity/quantity construction unchanged. No new rejection predicate by normalized value_status/quality is added. Existing legitimate normalized estimated rows are governed by identical source/gate policy, not by history-gap branch."
+  },
+  "source_verification": {
+    "status": "PASS",
+    "changed": [
+      "generateBillingUnderlaysForMonth"
+    ],
+    "unchanged_helpers": [
+      "text",
+      "object",
+      "normalizedPriceArea",
+      "resolveBillingUnderlayPriceArea",
+      "strictNumberOrNull",
+      "quantityKwh",
+      "absoluteQuantity",
+      "normalizeEnergyDirection",
+      "normalizedBillingRow",
+      "productionConfiguration",
+      "addDays",
+      "localDateBoundary",
+      "stockholmCivilDate",
+      "readinessIssues",
+      "paginatedRows",
+      "loadNormalizedValues",
+      "loadSupplyPeriods",
+      "loadContract",
+      "loadSnapshot",
+      "contractCoversSegment",
+      "segmentBounds",
+      "clipMeteringRowToSegment",
+      "validateIntervalCoverage",
+      "snapshotPayload",
+      "estimateStepMs",
+      "estimatedItems",
+      "estimatePayload",
+      "isFinalPeriodLock",
+      "buildReconciliations"
+    ],
+    "before_file_sha256": "01352803113fb19a64fcf96c82a3540681f2b00594221732df0613e8259a8296",
+    "after_file_sha256": "b506d84599a8a7ca1fd95814ba10fe66b008663135123c7c3667fde2e198e47d"
+  },
+  "verification": {
+    "typecheck": "PASS exit0, tsconfig.app.json via current Node22/TypeScript",
+    "eslint": "PASS exit0, zero errors and five preexisting underscore unused destructuring warnings at unchanged legacy reconciliation line651",
+    "diff_check": "PASS scoped git diff --check",
+    "oracle": "Actual code and current actual metadata are the authority. Typecheck/lint/source AST preservation are supporting mechanical checks; no tests were authored or run and no native/customer business flows invoked."
+  },
+  "limits": [
+    "No actual customer data used; no generated historical forecast evaluated or billing business RPC invoked during audit.",
+    "Other preexisting history reconciliation/missing-input behavior is unchanged and not newly certified by this bounded fix.",
+    "Source compatibility does not prove an arbitrary ESTIMATED value is legally billable: exact current normalized source/basis/gate policy still decides.",
+    "Two independent noncoauthor reviews required for exact after hash; author/compiler cannot count as final reviewer."
+  ],
+  "custody": "Root explicit source handoff; exact source/report file claims returned404 before writes. Source only underlayEngine.ts and this new owned report changed.",
+  "artifacts": [
+    {
+      "path": "/tmp/gridex-api-review/underlay-estimate-actual-native-guard.json",
+      "sha256": "2f39d30bbc9d1c6c3f5bd283c92faa04ad20736538f09214fc6b52090ab587b8"
+    },
+    {
+      "path": "/tmp/gridex-api-review/underlay-estimate-source-shape-preservation.json",
+      "sha256": "93b1de7276ff3e41f5d1b5c665c72ffc1e2106f66227fd427f8986b747f47ede"
+    },
+    {
+      "path": "/tmp/gridex-api-review/underlay-estimate-typecheck.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/tmp/gridex-api-review/underlay-estimate-lint.log",
+      "sha256": "ef9a1115cfda0c74c3b1d6186fb4e195b23dd6d219cde4021a27e86b768a8c4b"
+    }
+  ]
+}

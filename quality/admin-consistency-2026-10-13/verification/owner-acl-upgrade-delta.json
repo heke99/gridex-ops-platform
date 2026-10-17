@@ -1,0 +1,43 @@
+{
+  "schema_owners": {
+    "existing_owner_changes": [],
+    "existing_acl_changes": []
+  },
+  "relation_owners": {
+    "existing_owner_changes": [],
+    "existing_acl_changes": [
+      {
+        "before": {
+          "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+          "name": "dashboard_alerts",
+          "owner": "postgres",
+          "schema": "public"
+        },
+        "after": {
+          "acl": "{postgres=arwdDxtm/postgres,authenticated=rm/postgres,service_role=arwdDxtm/postgres}",
+          "name": "dashboard_alerts",
+          "owner": "postgres",
+          "schema": "public"
+        }
+      },
+      {
+        "before": {
+          "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+          "name": "data_quality_issues",
+          "owner": "postgres",
+          "schema": "public"
+        },
+        "after": {
+          "acl": "{postgres=arwdDxtm/postgres,authenticated=rm/postgres,service_role=arwdDxtm/postgres}",
+          "name": "data_quality_issues",
+          "owner": "postgres",
+          "schema": "public"
+        }
+      }
+    ]
+  },
+  "function_owners": {
+    "existing_owner_changes": [],
+    "existing_acl_changes": []
+  }
+}

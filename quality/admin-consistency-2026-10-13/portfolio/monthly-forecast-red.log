@@ -1,0 +1,150 @@
+
+ RUN  v4.1.9 /workspace/gridex-ops-platform
+
+ ❯ __tests__/forecast-run-evidence-errors.test.ts (4 tests | 3 failed) 27ms
+   × rejects actual evidence errors before inserting a false zero or completing a run 15ms
+   × rejects completion-write errors without building a healthy monthly rollup 3ms
+   × uses canonical values including zero, falling back to legacy quantities only for null values 6ms
+ ❯ __tests__/customer-flow-integrity-empty-statistics.test.ts (5 tests | 2 failed) 4838ms
+   × does not recreate empty statistics and preserves the mature result fields 38ms
+   × uses selected-month physical sources for company and owner missing counts despite stale issues 63ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  __tests__/customer-flow-integrity-empty-statistics.test.ts > does not recreate empty statistics and preserves the mature result fields
+AssertionError: expected { zones: +0, owners: +0, …(2) } to deeply equal { month: '2026-10-01', …(5) }
+
+- Expected
++ Received
+
+  {
+-   "bidding_zones": 0,
+    "customers": 0,
+-   "forecast_run_id": null,
+-   "grid_owners": 0,
+-   "month": "2026-10-01",
++   "owners": 0,
+    "skipped": "no_customer_data",
++   "zones": 0,
+  }
+
+ ❯ __tests__/customer-flow-integrity-empty-statistics.test.ts:48:33
+     46| it('does not recreate empty statistics and preserves the mature result…
+     47|   const result = await db.query<{ result: Record<string, unknown> }>(`…
+     48|   expect(result.rows[0].result).toEqual({
+       |                                 ^
+     49|     month: '2026-10-01', forecast_run_id: null, customers: 0,
+     50|     bidding_zones: 0, grid_owners: 0, skipped: 'no_customer_data',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  __tests__/customer-flow-integrity-empty-statistics.test.ts > uses selected-month physical sources for company and owner missing counts despite stale issues
+AssertionError: expected [ { metering_values_missing: 5 } ] to deeply equal [ { metering_values_missing: 2 } ]
+
+- Expected
++ Received
+
+  [
+    {
+-     "metering_values_missing": 2,
++     "metering_values_missing": 5,
+    },
+  ]
+
+ ❯ __tests__/customer-flow-integrity-empty-statistics.test.ts:98:24
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  __tests__/forecast-run-evidence-errors.test.ts > rejects actual evidence errors before inserting a false zero or completing a run
+AssertionError: promise resolved "{ items: 1, missing: +0 }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "items": 1,
++   "missing": 0,
+  }
+
+ ❯ __tests__/forecast-run-evidence-errors.test.ts:58:48
+     56| it('rejects actual evidence errors before inserting a false zero or co…
+     57|   io.actualError = { message: 'actual_evidence_unavailable' }
+     58|   await expect(generateForecastRunItems(input)).rejects.toMatchObject(…
+       |                                                ^
+     59|   expect(io.inserts).toEqual([])
+     60|   expect(io.updates).toEqual([])
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  __tests__/forecast-run-evidence-errors.test.ts > rejects completion-write errors without building a healthy monthly rollup
+AssertionError: promise resolved "{ items: 1, missing: +0 }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "items": 1,
++   "missing": 0,
+  }
+
+ ❯ __tests__/forecast-run-evidence-errors.test.ts:66:48
+     64| it('rejects completion-write errors without building a healthy monthly…
+     65|   io.completionError = { message: 'completion_write_failed' }
+     66|   await expect(generateForecastRunItems(input)).rejects.toMatchObject(…
+       |                                                ^
+     67|   expect(io.inserts).toHaveLength(1)
+     68|   expect(io.build).not.toHaveBeenCalled()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ FAIL  __tests__/forecast-run-evidence-errors.test.ts > uses canonical values including zero, falling back to legacy quantities only for null values
+AssertionError: expected [ { company_id: 'company', …(15) } ] to deeply equal [ ObjectContaining{…} ]
+
+- Expected
++ Received
+
+  [
+    {
+-     "actual_kwh": 140,
++     "actual_kwh": 120,
++     "bidding_zone_code": "SE3",
+      "company_id": "company",
+-     "diff_kwh": 40,
+-     "diff_percent": 40,
++     "confidence_score": 1,
++     "customer_id": "customer",
++     "diff_kwh": 20,
++     "diff_percent": 20,
++     "forecast_kwh": 100,
+      "forecast_run_id": "run",
++     "grid_owner_id": "owner",
++     "metering_point_id": "point",
++     "method": "history",
++     "notes": "",
++     "period_end": "2026-10-01",
++     "period_start": "2026-09-01",
++     "site_id": "site",
+    },
+  ]
+
+ ❯ __tests__/forecast-run-evidence-errors.test.ts:74:22
+     72|   io.rows = [{ value_kwh: 120, quantity_kwh: 1 }, { value_kwh: 0, quan…
+     73|   expect(await generateForecastRunItems(input)).toEqual({ items: 1, mi…
+     74|   expect(io.inserts).toEqual([expect.objectContaining({ company_id: 'c…
+       |                      ^
+     75|   expect(io.filters).toEqual(expect.arrayContaining([
+     76|     { table: 'metering_values', column: 'company_id', value: 'company'…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  5 failed | 4 passed (9)
+   Start at  10:47:23
+   Duration  5.84s (transform 389ms, setup 103ms, import 501ms, tests 4.87s, environment 1ms)
+

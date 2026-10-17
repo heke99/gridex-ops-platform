@@ -6,6 +6,7 @@ import {
 import { isPlatformAdminRole, normalizeRoleKey, resolveRoleKey } from '@/lib/rbac/roleKeys'
 import { supabaseService } from '@/lib/supabase/service'
 import { isCompanyVisibleInTenantWorkspace, isCompanyWritableInTenantWorkspace } from '@/lib/tenant/lifecycle'
+import { ApiInputError } from '@/lib/api/strictRequest'
 
 export type CompanySummary = {
   id: string
@@ -192,6 +193,18 @@ export const getOperationalCompanyScope = cache(async function getOperationalCom
     selectedByPlatformAdmin: false,
   }
 })
+
+/** Read visibility for an already authorized company; never select another membership. */
+export async function assertTenantUserCanReadCompany(userId: string, companyId: string | null): Promise<string> {
+  const normalized = companyId?.trim()
+  if (!normalized) throw new ApiInputError('Bolaget för behörighetskontrollen saknas.', 'company_read_access_denied', 403)
+  const memberships = await listOperationalCompaniesForUser(userId)
+  const membership = memberships.find(row => row.companyId === normalized)
+  if (!membership || !isCompanyVisibleInTenantWorkspace(membership.companyStatus)) {
+    throw new ApiInputError('Du saknar behörighet att läsa valt bolag.', 'company_read_access_denied', 403)
+  }
+  return normalized
+}
 
 export async function requireOperationalCompanyId(userId: string): Promise<string> {
   const scope = await getOperationalCompanyScope(userId)

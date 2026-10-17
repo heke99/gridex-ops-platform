@@ -1,3 +1,4 @@
+import { withApiContractRepresentation } from '@/lib/integrations/apiResponseProfile'
 import { randomUUID } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { assertPublicResponsePayload } from '@/lib/api/publicPayloadSafety'
@@ -8,7 +9,13 @@ import { loadExternalTenantContext } from '@/lib/integrations/tenantContext'
 import { classifyPublicContractsError } from '@/lib/integrations/publicApiErrors'
 import { publicOrganizationReference } from '@/lib/integrations/publicReferences'
 import { supabaseService } from '@/lib/supabase/service'
-import { ifNoneMatchMatches, loadPublicationRevision } from '@/lib/website/publicContractApi'
+import { diagnosePublicContractOffers, PublicContractFeedConsistencyError } from '@/lib/website/publicContracts'
+import {
+  buildPublicContractFeedEtag,
+  ifNoneMatchMatches,
+  loadPublicationRevision,
+  selectPublicContractProfile,
+} from '@/lib/website/publicContractApi'
 import {
   API_CONTRACT_RESPONSE_SCHEMA_VERSION,
   mapContractPublicationToPublicDto,
@@ -47,7 +54,7 @@ function contractHeaders(requestId: string): Record<string, string> {
   }
 }
 
-export async function GET(request: NextRequest) {
+ async function profiledGET(request: NextRequest) {
   const startedAt = Date.now()
   const requestId = randomUUID()
   const supported = new Set(['customer_type'])
@@ -103,15 +110,23 @@ export async function GET(request: NextRequest) {
     const organizationReference = publicOrganizationReference(tenant.tenant_reference)
     if (!organizationReference) throw new Error('PUBLIC_ORGANIZATION_REFERENCE_UNAVAILABLE')
 
+    const etag = buildPublicContractFeedEtag({
+      companyId: auth.context.companyId,
+      customerType: normalized.value,
+      channel: 'api',
+      dbFingerprint: revision.etag,
+      profile: selectPublicContractProfile(),
+      contractSchemaVersion: API_CONTRACT_RESPONSE_SCHEMA_VERSION,
+    })
     const headers = {
       'Cache-Control': 'private, max-age=0, must-revalidate',
-      ETag: revision.etag,
+      ETag: etag,
       ...contractHeaders(requestId),
       'X-RateLimit-Limit': String(auth.rateLimit.limit),
       'X-RateLimit-Remaining': String(auth.rateLimit.remaining),
       ...(auth.rateLimit.resetAt ? { 'X-RateLimit-Reset': auth.rateLimit.resetAt } : {}),
     }
-    if (ifNoneMatchMatches(request, revision.etag)) {
+    if (ifNoneMatchMatches(request, etag)) {
       await logIntegrationApiRequest({
         client: auth.client,
         request,
@@ -129,7 +144,7 @@ export async function GET(request: NextRequest) {
     if (error) throw error
     const contracts: Record<string, unknown>[] = []
     let rejectedContracts = 0
-    let firstMappingError: unknown = null
+    const mappingIssues: Array<{ canonical_offer_reference: string; publication_version_id: string | null; diagnostic_code: string }> = []
     if (data !== null && data !== undefined && !Array.isArray(data)) {
       throw new Error('PUBLICATION_RUNTIME_RESPONSE_INVALID')
     }
@@ -147,12 +162,16 @@ export async function GET(request: NextRequest) {
         )
       } catch (mappingError) {
         rejectedContracts += 1
-        firstMappingError ??= mappingError
         const mapping = mappingError as {
           name?: unknown
           code?: unknown
           path?: unknown
         }
+        mappingIssues.push({
+          canonical_offer_reference: typeof publication?.offer_reference === 'string' ? publication.offer_reference : 'canonical_feed',
+          publication_version_id: typeof publication?.contract_publication_version_id === 'string' ? publication.contract_publication_version_id : null,
+          diagnostic_code: typeof mapping.code === 'string' ? mapping.code : 'PUBLIC_CONTRACT_SCHEMA_INVALID',
+        })
         console.error('[api-contracts] rejected malformed publication', {
           requestId,
           companyId: auth.context.companyId,
@@ -171,9 +190,36 @@ export async function GET(request: NextRequest) {
         })
       }
     }
-    if (rejectedContracts > 0 && contracts.length === 0) {
-      throw firstMappingError ?? new Error('PUBLICATION_GRAPH_INCOMPLETE')
+    if (mappingIssues.length > 0) {
+      throw new PublicContractFeedConsistencyError(mappingIssues)
     }
+
+    const canonicalDiagnostics = contracts.length === 0
+      ? await diagnosePublicContractOffers({ client: auth.client, customerType: normalized.value, channel: 'api' })
+      : null
+    const emptyFeedAuthorization = (() => {
+      if (contracts.length > 0) return null
+      if (!canonicalDiagnostics || canonicalDiagnostics.visible !== 0) {
+        throw new PublicContractFeedConsistencyError([{ canonical_offer_reference: 'canonical_feed', publication_version_id: null, diagnostic_code: 'EMPTY_FEED_AUTHORIZATION_INCONSISTENT' }])
+      }
+      const blockers = [...new Set(canonicalDiagnostics.offers.flatMap((offer) => offer.blockers))].sort()
+      const affectedOfferReferences = [...new Set(canonicalDiagnostics.offers.map((offer) => offer.offer_reference).filter((value): value is string => Boolean(value)))].sort()
+      const reason = canonicalDiagnostics.total === 0
+        ? 'no_canonical_publications'
+        : canonicalDiagnostics.offers.every((offer) => offer.blockers.includes('PUBLICATION_EXPIRED'))
+          ? 'publication_validity_ended'
+          : canonicalDiagnostics.offers.every((offer) => offer.blockers.some((blocker) => ['PUBLICATION_NOT_PUBLISHED', 'PUBLICATION_VERSION_NOT_PUBLISHED', 'WEBSITE_PUBLICATION_NOT_PUBLISHED', 'PUBLICATION_MISSING'].includes(blocker)))
+            ? 'canonical_unpublished_or_archived'
+            : 'canonical_no_visible_contracts'
+      return {
+        authorized: true as const,
+        reason,
+        publication_revision: revision.revision,
+        canonical_source: 'canonical_public_contract_delivery_readiness_v' as const,
+        affected_offer_references: affectedOfferReferences,
+        blockers,
+      }
+    })()
 
     await logIntegrationApiRequest({
       client: auth.client,
@@ -199,11 +245,13 @@ export async function GET(request: NextRequest) {
           organization_reference: organizationReference,
           api_version: 'v1',
           contract_schema_version: API_CONTRACT_RESPONSE_SCHEMA_VERSION,
+          feed_state: contracts.length === 0 ? 'canonical_empty' : 'contracts_present',
+          empty_feed_authorization: emptyFeedAuthorization,
           channel: 'api',
           publication_revision: revision.revision,
           publication_updated_at: revision.updatedAt,
           customer_type: normalized.value,
-          deprecated_customer_type_alias: normalized.deprecatedAlias,
+          deprecated_customer_type_alias: Boolean(normalized.deprecatedAlias),
         },
         request_id: requestId,
       }
@@ -255,3 +303,5 @@ export async function GET(request: NextRequest) {
     )
   }
 }
+
+export const GET = withApiContractRepresentation('website', profiledGET)

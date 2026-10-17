@@ -1,0 +1,818 @@
+{
+  "scope": "Gridex OPS only; user-directed VAT25% correctness; actual source/native definitions/shape and aggregate-only evidence, no tests as authority",
+  "native_project": "piidsfebjqjmnepdpnas",
+  "actual_business_or_provider_calls": false,
+  "actual_native_writes_by_reviewer": false,
+  "customer_or_commercial_price_rows_imported": false,
+  "policy": {
+    "future_consumption_percent": 25,
+    "canonical_fraction": 0.25,
+    "accepted_authoring_inputs": [
+      25,
+      0.25
+    ],
+    "missing_consumption_input_default_percent": 25,
+    "other_future_consumption_rates": "reject",
+    "historical_locked_snapshots": "preserve exact bytes/hash/identities",
+    "explicit_production_configuration_and_fee_exemptions": "preserve; authoritative explicit direction precedes legacy flags"
+  },
+  "confirmed_defect": {
+    "trigger": "Admin form used decimal offer VAT0.25 as a percent; canonical producer then divided by100",
+    "before": "future snapshot VAT0.0025, percent0.25, public VAT text0.25%",
+    "after": "future consumption snapshot VAT0.25, percent25, public VAT text25%; read-only consumption field; explicit producer0 roundtrip retained"
+  },
+  "actual_native_receipts": {
+    "rate_checked_at": "2026-10-13T10:08:42.53387+00:00",
+    "rates": [
+      {
+        "rate": "0.25",
+        "count": 4,
+        "source": "contract_offers.column"
+      },
+      {
+        "rate": "0.25000000000000000000",
+        "count": 8,
+        "source": "contract_offers.column"
+      },
+      {
+        "rate": "0.0025",
+        "count": 3,
+        "source": "price_plan_versions.snapshot"
+      },
+      {
+        "rate": "0.25",
+        "count": 11,
+        "source": "price_plan_versions.snapshot"
+      },
+      {
+        "rate": null,
+        "count": 2,
+        "source": "price_plan_versions.snapshot"
+      },
+      {
+        "rate": "0.25",
+        "count": 3,
+        "source": "price_plan_versions.snapshot_percent"
+      },
+      {
+        "rate": "25",
+        "count": 11,
+        "source": "price_plan_versions.snapshot_percent"
+      },
+      {
+        "rate": null,
+        "count": 2,
+        "source": "price_plan_versions.snapshot_percent"
+      },
+      {
+        "rate": "0.25000000000000000000",
+        "count": 6,
+        "source": "public_contract_offers.column"
+      },
+      {
+        "rate": null,
+        "count": 24,
+        "source": "website_contract_quotes.snapshot"
+      }
+    ],
+    "financial_counts": {
+      "contracts": 0,
+      "underlays": 0,
+      "invoice_lines": 0,
+      "pricing_lines": 0
+    },
+    "quote_checked_at": "2026-10-13T10:13:40.604409+00:00",
+    "quote_line_rates": [
+      {
+        "count": 14,
+        "status": "consumed",
+        "vat_rate": "0.25"
+      },
+      {
+        "count": 148,
+        "status": "active",
+        "vat_rate": "0.25"
+      }
+    ],
+    "bad_price_version_states": [
+      {
+        "count": 1,
+        "locked": false,
+        "status": "draft"
+      },
+      {
+        "count": 2,
+        "locked": true,
+        "status": "published"
+      }
+    ],
+    "bad_offer_references": [
+      {
+        "count": 2,
+        "status": "inactive",
+        "lifecycle_status": "closed"
+      }
+    ],
+    "bad_quote_references_count": 0,
+    "bad_publication_references_count": 0,
+    "bad_current_public_projection_count": 0,
+    "complete_graph_checked_at": "2026-10-13T11:06:16.70645+00:00",
+    "complete_graph_aggregate": {
+      "checked_at": "2026-10-13T11:06:16.70645+00:00",
+      "book_plan_match": true,
+      "candidate_count": 1,
+      "plan_owner_match": true,
+      "reference_counts": [
+        {
+          "rows": 4,
+          "reference": "base_price_components.price_plan_version_id"
+        },
+        {
+          "rows": 0,
+          "reference": "billing_underlay_items.price_book_id"
+        },
+        {
+          "rows": 0,
+          "reference": "billing_underlay_items.price_plan_version_id"
+        },
+        {
+          "rows": 0,
+          "reference": "billing_underlays.price_book_id"
+        },
+        {
+          "rows": 0,
+          "reference": "billing_underlays.price_plan_version_id"
+        },
+        {
+          "rows": 0,
+          "reference": "contract_offers.contract_product_version_id"
+        },
+        {
+          "rows": 0,
+          "reference": "contract_offers.price_book_id"
+        },
+        {
+          "rows": 0,
+          "reference": "contract_offers.price_plan_version_id"
+        },
+        {
+          "rows": 0,
+          "reference": "contract_price_option_area_prices.price_plan_version_id"
+        },
+        {
+          "rows": 0,
+          "reference": "contract_price_options.contract_product_version_id"
+        },
+        {
+          "rows": 0,
+          "reference": "contract_price_options.price_plan_version_id"
+        },
+        {
+          "rows": 0,
+          "reference": "contract_price_snapshots.price_book_id"
+        },
+        {
+          "rows": 0,
+          "reference": "contract_price_snapshots.price_plan_version_id"
+        },
+        {
+          "rows": 0,
+          "reference": "contract_pricing_migration_reviews.price_plan_version_id"
+        },
+        {
+          "rows": 1,
+          "reference": "contract_product_versions.price_plan_version_id"
+        },
+        {
+          "rows": 0,
+          "reference": "contract_product_versions.supersedes_contract_product_version_id"
+        },
+        {
+          "rows": 0,
+          "reference": "contract_publication_versions.contract_product_version_id"
+        },
+        {
+          "rows": 0,
+          "reference": "contract_publication_versions.price_book_id"
+        },
+        {
+          "rows": 0,
+          "reference": "contract_publication_versions.price_plan_version_id"
+        },
+        {
+          "rows": 0,
+          "reference": "customer_contracts.contract_product_version_id"
+        },
+        {
+          "rows": 0,
+          "reference": "customer_contracts.price_book_id"
+        },
+        {
+          "rows": 0,
+          "reference": "customer_contracts.price_plan_version_id"
+        },
+        {
+          "rows": 0,
+          "reference": "customer_invoice_lines.price_plan_version_id"
+        },
+        {
+          "rows": 0,
+          "reference": "customer_invoices.price_plan_version_id"
+        },
+        {
+          "rows": 0,
+          "reference": "external_contract_intakes.price_plan_version_id"
+        },
+        {
+          "rows": 0,
+          "reference": "legal_bundle_versions.contract_product_version_id"
+        },
+        {
+          "rows": 0,
+          "reference": "portfolio_monthly_prices.price_plan_version_id"
+        },
+        {
+          "rows": 0,
+          "reference": "portfolio_monthly_settlements.price_plan_version_id"
+        },
+        {
+          "rows": 0,
+          "reference": "portfolio_price_estimates.price_plan_version_id"
+        },
+        {
+          "rows": 6,
+          "reference": "price_book_lines.price_book_id"
+        },
+        {
+          "rows": 1,
+          "reference": "price_books.price_plan_version_id"
+        },
+        {
+          "rows": 5,
+          "reference": "price_components.price_plan_version_id"
+        },
+        {
+          "rows": 1,
+          "reference": "price_plan_versions.supersedes_version_id"
+        },
+        {
+          "rows": 0,
+          "reference": "public_contract_offers.contract_product_version_id"
+        },
+        {
+          "rows": 0,
+          "reference": "public_contract_offers.price_book_id"
+        },
+        {
+          "rows": 0,
+          "reference": "public_contract_offers.price_plan_version_id"
+        },
+        {
+          "rows": 1,
+          "reference": "tenant_contract_assignments.contract_product_version_id"
+        },
+        {
+          "rows": 0,
+          "reference": "website_contract_quotes.contract_product_version_id"
+        },
+        {
+          "rows": 0,
+          "reference": "website_contract_quotes.price_book_id"
+        },
+        {
+          "rows": 0,
+          "reference": "website_contract_quotes.price_plan_version_id"
+        },
+        {
+          "rows": 0,
+          "reference": "website_customer_applications.contract_product_version_id"
+        },
+        {
+          "rows": 0,
+          "reference": "website_customer_applications.price_book_id"
+        },
+        {
+          "rows": 0,
+          "reference": "website_customer_applications.price_plan_version_id"
+        }
+      ],
+      "product_plan_match": true,
+      "book_metadata_empty": true,
+      "assignment_qualified": true,
+      "reference_plan_match": true
+    },
+    "locked_successor_receipt": {
+      "checked_at": "2026-10-13T11:07:27.659899+00:00",
+      "successor_groups": [
+        {
+          "rows": 1,
+          "locked": true,
+          "status": "published",
+          "approved": true,
+          "vat_rate": "0.0025",
+          "published": true,
+          "same_plan": true,
+          "own_company": true,
+          "vat_percent": "0.25",
+          "self_reference": false
+        }
+      ]
+    }
+  },
+  "source_fixes": [
+    {
+      "path": "lib/pricing/vat.ts",
+      "sha256": "45456acb8c154fcb89de14020ddb9aa4fc6a451ff390194bea8e58a3950c4e7a"
+    },
+    {
+      "path": "lib/contracts/adminContractSchema.ts",
+      "sha256": "321326563c55fa3c761710f84fa1a5b225b64e55a4fccf00b25bfa362d149e47"
+    },
+    {
+      "path": "lib/pricing/contractPricingVersioning.ts",
+      "sha256": "ade457b8c259bd605e561367264fc07c327a46258e68cb592e39f19c388189a7"
+    },
+    {
+      "path": "components/admin/contracts/ContractOfferAdminForm.tsx",
+      "sha256": "5b9bf2871f1296fd18e928e4ea0e5de51d29c99bb6221366ebf0f731441e5ac4"
+    }
+  ],
+  "source_validation": {
+    "app_typecheck_exit_code": 0,
+    "bounded_eslint_exit_code": 0,
+    "logs": [
+      "/tmp/gridex-api-review/vat25-source-typecheck-producer-prefill.log",
+      "/tmp/gridex-api-review/vat25-source-eslint-producer-prefill.log"
+    ],
+    "production_prefill": "Canonical nested production.enabled/energy_direction, nested production VAT/settlement/compensation restored before legacy flat fallback; explicit producer0 retained"
+  },
+  "native_proposals": [
+    {
+      "path": "release-proposals/vat25-consumption-authoring-forward.sql",
+      "sha256": "0d1eff69cd2cd0a2f347c08417e9ff1b4094a623b1eedc22d02e079cff3ab656",
+      "status": "sealed; genuine strict firstCOMMIT+replay+unknown-body rollback proof passed; independent native peer approved exact current SHA; awaiting other source peer/root application"
+    },
+    {
+      "path": "release-proposals/vat25-publication-forward.sql",
+      "sha256": "ab6c5f1211903acaa646160cf76094f6aa18ffae299f9721ae25808a8d365210",
+      "status": "sealed; genuine strict firstCOMMIT+replay+unknown-body rollback proof passed; independent native peer approved exact current SHA; awaiting other source peer/root application"
+    }
+  ],
+  "authoring_guards": {
+    "functions": [
+      "gridex_create_or_version_contract_pricing",
+      "gridex_upsert_internal_contract_offer",
+      "gridex_upsert_internal_contract_offer_v2"
+    ],
+    "explicit_direction_precedence": "lower(snapshot direction) first; legacy production flags only when missing; v2 carries its existing validated snapshot->payload fallback into only missing snapshot direction before delegation",
+    "hash_reuse": "Explicit snapshot bytes/case and existing frozen hash reuse unchanged. Legacy payload-only new authoring receives canonical direction before hashing; repeated normalized input reuses that hash. Outer command/receipt interfaces unchanged."
+  },
+  "publication_guard_qualification": {
+    "actual_code_caller": "lib/contracts/channelPublication.ts -> gridex_publish_contract_channel",
+    "actual_native_readiness": "Existing channel validator accepted scalar VAT0..1 and native readiness view had no canonical VAT consistency check",
+    "change": "Future new channel activation guard after exact already-active replay and before writes; low-level future publication/reactivation guard before version transition; validates canonical consumption price/product/offer VAT25; explicit producer policy retained",
+    "existing_published_replay": "preserved; no frozen-history rewrite"
+  },
+  "draft_repair_decision": {
+    "observed": "One unused/unpublished bad draft; an ended own-company assignment has all3 publication/sales flags false, plus a published/approved/locked bad successor refers to it",
+    "original_partial_reference_claim": "Superseded after complete incoming FK and non-FK source-pointer inspection",
+    "frozen_price_versions_count": 2,
+    "repair_candidate_guard": "Original4d71 guard rejected the actual locked successor. Proposal moved out of SQL apply queue as BLOCKED .sql.txt evidence; no actual draft repair.",
+    "prospective_resolution": "Parent final direction: preserve this closed/frozen lineage unchanged. Do not create new version/business row/actor or weaken guard. Future source/native consumption authoring/publication25 fixes prevent new inconsistency."
+  },
+  "isolated_receipts": [
+    {
+      "path": "vat25-authoring-isolated-compile-receipt.json",
+      "sha256": "f325e81a2778c0b9a4e72156674a8250c8a27a00122aa716e35976cc405d6ddd",
+      "receipt": {
+        "proposal": "release-proposals/vat25-consumption-authoring-forward.sql",
+        "proposal_sha256": "0d1eff69cd2cd0a2f347c08417e9ff1b4094a623b1eedc22d02e079cff3ab656",
+        "database": "ops_api_vat25_compile_20261013",
+        "postgres": "17.6",
+        "container_network": "none",
+        "first_commit_exit_code": 0,
+        "replay_commit_exit_code": 0,
+        "exact_approved_postbody_noop": true,
+        "replay_entire_function_metadata_unchanged": true,
+        "canonical_precursor_bodies_exact_native_equal": true,
+        "unknown_body_policy": "failclosed",
+        "actual_functions": 28,
+        "actual_table_shapes": 62,
+        "actual_views": 0,
+        "check_function_bodies": true,
+        "stubbed_bodies": false,
+        "business_rows_imported": false,
+        "business_functions_invoked": false,
+        "before": [
+          {
+            "acl": [
+              "postgres=X/postgres",
+              "service_role=X/postgres"
+            ],
+            "oid": "83957",
+            "cost": 100,
+            "rows": 0,
+            "owner": "postgres",
+            "config": [
+              "search_path=public, extensions, pg_temp"
+            ],
+            "return": "jsonb",
+            "strict": false,
+            "body_md5": "ad27cf44efa875c6bfb51fb71b0f4518",
+            "language": "plpgsql",
+            "parallel": "u",
+            "arguments": "p_company_id uuid, p_plan_name text, p_contract_type text, p_pricing_model text, p_customer_type text, p_snapshot jsonb, p_valid_from date DEFAULT NULL::date, p_valid_to date DEFAULT NULL::date, p_publish boolean DEFAULT false, p_actor_user_id uuid DEFAULT NULL::uuid",
+            "leakproof": false,
+            "signature": "gridex_create_or_version_contract_pricing(uuid,text,text,text,text,jsonb,date,date,boolean,uuid)",
+            "volatility": "v",
+            "security_definer": true,
+            "identity_arguments": "p_company_id uuid, p_plan_name text, p_contract_type text, p_pricing_model text, p_customer_type text, p_snapshot jsonb, p_valid_from date, p_valid_to date, p_publish boolean, p_actor_user_id uuid"
+          },
+          {
+            "acl": [
+              "postgres=X/postgres"
+            ],
+            "oid": "83974",
+            "cost": 100,
+            "rows": 0,
+            "owner": "postgres",
+            "config": [
+              "search_path=public, pg_temp"
+            ],
+            "return": "jsonb",
+            "strict": false,
+            "body_md5": "24300f0f38cd71f582713018617a4647",
+            "language": "plpgsql",
+            "parallel": "u",
+            "arguments": "p_company_id uuid, p_offer_id uuid, p_payload jsonb, p_pricing_snapshot jsonb, p_actor_user_id uuid",
+            "leakproof": false,
+            "signature": "gridex_upsert_internal_contract_offer(uuid,uuid,jsonb,jsonb,uuid)",
+            "volatility": "v",
+            "security_definer": true,
+            "identity_arguments": "p_company_id uuid, p_offer_id uuid, p_payload jsonb, p_pricing_snapshot jsonb, p_actor_user_id uuid"
+          },
+          {
+            "acl": [
+              "postgres=X/postgres",
+              "service_role=X/postgres"
+            ],
+            "oid": "86468",
+            "cost": 100,
+            "rows": 0,
+            "owner": "postgres",
+            "config": [
+              "search_path=public, pg_temp"
+            ],
+            "return": "jsonb",
+            "strict": false,
+            "body_md5": "2eabc8d12127ed65a8325aa8f82390a2",
+            "language": "plpgsql",
+            "parallel": "u",
+            "arguments": "p_company_id uuid, p_offer_id uuid, p_payload jsonb, p_pricing_snapshot jsonb, p_actor_user_id uuid",
+            "leakproof": false,
+            "signature": "gridex_upsert_internal_contract_offer_v2(uuid,uuid,jsonb,jsonb,uuid)",
+            "volatility": "v",
+            "security_definer": true,
+            "identity_arguments": "p_company_id uuid, p_offer_id uuid, p_payload jsonb, p_pricing_snapshot jsonb, p_actor_user_id uuid"
+          }
+        ],
+        "after": [
+          {
+            "acl": [
+              "postgres=X/postgres",
+              "service_role=X/postgres"
+            ],
+            "oid": "83957",
+            "cost": 100,
+            "rows": 0,
+            "owner": "postgres",
+            "config": [
+              "search_path=public, extensions, pg_temp"
+            ],
+            "return": "jsonb",
+            "strict": false,
+            "body_md5": "ad3959344ade2b6fba6c3ff80a734e35",
+            "language": "plpgsql",
+            "parallel": "u",
+            "arguments": "p_company_id uuid, p_plan_name text, p_contract_type text, p_pricing_model text, p_customer_type text, p_snapshot jsonb, p_valid_from date DEFAULT NULL::date, p_valid_to date DEFAULT NULL::date, p_publish boolean DEFAULT false, p_actor_user_id uuid DEFAULT NULL::uuid",
+            "leakproof": false,
+            "signature": "gridex_create_or_version_contract_pricing(uuid,text,text,text,text,jsonb,date,date,boolean,uuid)",
+            "volatility": "v",
+            "security_definer": true,
+            "identity_arguments": "p_company_id uuid, p_plan_name text, p_contract_type text, p_pricing_model text, p_customer_type text, p_snapshot jsonb, p_valid_from date, p_valid_to date, p_publish boolean, p_actor_user_id uuid"
+          },
+          {
+            "acl": [
+              "postgres=X/postgres"
+            ],
+            "oid": "83974",
+            "cost": 100,
+            "rows": 0,
+            "owner": "postgres",
+            "config": [
+              "search_path=public, pg_temp"
+            ],
+            "return": "jsonb",
+            "strict": false,
+            "body_md5": "c6365e364572499b641cd3d9bac3a1fa",
+            "language": "plpgsql",
+            "parallel": "u",
+            "arguments": "p_company_id uuid, p_offer_id uuid, p_payload jsonb, p_pricing_snapshot jsonb, p_actor_user_id uuid",
+            "leakproof": false,
+            "signature": "gridex_upsert_internal_contract_offer(uuid,uuid,jsonb,jsonb,uuid)",
+            "volatility": "v",
+            "security_definer": true,
+            "identity_arguments": "p_company_id uuid, p_offer_id uuid, p_payload jsonb, p_pricing_snapshot jsonb, p_actor_user_id uuid"
+          },
+          {
+            "acl": [
+              "postgres=X/postgres",
+              "service_role=X/postgres"
+            ],
+            "oid": "86468",
+            "cost": 100,
+            "rows": 0,
+            "owner": "postgres",
+            "config": [
+              "search_path=public, pg_temp"
+            ],
+            "return": "jsonb",
+            "strict": false,
+            "body_md5": "d68d5db35eb6bc25b607f7872c2ad3d7",
+            "language": "plpgsql",
+            "parallel": "u",
+            "arguments": "p_company_id uuid, p_offer_id uuid, p_payload jsonb, p_pricing_snapshot jsonb, p_actor_user_id uuid",
+            "leakproof": false,
+            "signature": "gridex_upsert_internal_contract_offer_v2(uuid,uuid,jsonb,jsonb,uuid)",
+            "volatility": "v",
+            "security_definer": true,
+            "identity_arguments": "p_company_id uuid, p_offer_id uuid, p_payload jsonb, p_pricing_snapshot jsonb, p_actor_user_id uuid"
+          }
+        ],
+        "qualification_limit": "Actual shape strict CREATE/COMMIT/replay and byte/metadata checks. PL/pgSQL embedded SQL deferred until business invocation; no production business invocation.",
+        "unknown_body_probe": {
+          "exit_code": 3,
+          "rejected_before_patch": "vat25_authoring_predecessor_0_changed",
+          "transaction_rollback_entire_function_metadata_unchanged": true,
+          "business_invocations": false
+        }
+      }
+    },
+    {
+      "path": "vat25-publication-isolated-compile-receipt.json",
+      "sha256": "a5bdef08bad3aa4ce059aedecf6b16d6d60d25c60912c4ad1be72c4e1d748eb1",
+      "receipt": {
+        "proposal": "release-proposals/vat25-publication-forward.sql",
+        "proposal_sha256": "ab6c5f1211903acaa646160cf76094f6aa18ffae299f9721ae25808a8d365210",
+        "database": "ops_api_vat25_publication_compile_20261013",
+        "postgres": "17.6",
+        "container_network": "none",
+        "first_commit_exit_code": 0,
+        "replay_commit_exit_code": 0,
+        "exact_approved_postbody_noop": true,
+        "replay_entire_function_metadata_unchanged": true,
+        "canonical_precursor_bodies_exact_native_equal": true,
+        "unknown_body_policy": "failclosed",
+        "actual_functions": 46,
+        "actual_table_shapes": 95,
+        "actual_views": 2,
+        "check_function_bodies": true,
+        "stubbed_bodies": false,
+        "business_rows_imported": false,
+        "business_functions_invoked": false,
+        "before": [
+          {
+            "acl": [
+              "postgres=X/postgres",
+              "service_role=X/postgres"
+            ],
+            "oid": "100636",
+            "cost": 100,
+            "rows": 0,
+            "owner": "postgres",
+            "config": [
+              "search_path=public, extensions, pg_temp"
+            ],
+            "return": "jsonb",
+            "strict": false,
+            "body_md5": "b00d519ea7145470100fdc90f0e8811e",
+            "language": "plpgsql",
+            "parallel": "u",
+            "arguments": "p_company_id uuid, p_offer_id uuid, p_channel text, p_actor_user_id uuid",
+            "leakproof": false,
+            "signature": "gridex_publish_contract_channel(uuid,uuid,text,uuid)",
+            "volatility": "v",
+            "security_definer": true,
+            "identity_arguments": "p_company_id uuid, p_offer_id uuid, p_channel text, p_actor_user_id uuid"
+          },
+          {
+            "acl": [
+              "postgres=X/postgres",
+              "service_role=X/postgres"
+            ],
+            "oid": "100608",
+            "cost": 100,
+            "rows": 0,
+            "owner": "postgres",
+            "config": [
+              "search_path=public, extensions, pg_temp"
+            ],
+            "return": "contract_publication_versions",
+            "strict": false,
+            "body_md5": "684fa1bc1967322f8e676669215e8dba",
+            "language": "plpgsql",
+            "parallel": "u",
+            "arguments": "p_publication_version_id uuid, p_actor_user_id uuid DEFAULT NULL::uuid",
+            "leakproof": false,
+            "signature": "gridex_publish_contract_publication_version(uuid,uuid)",
+            "volatility": "v",
+            "security_definer": true,
+            "identity_arguments": "p_publication_version_id uuid, p_actor_user_id uuid"
+          }
+        ],
+        "after": [
+          {
+            "acl": [
+              "postgres=X/postgres",
+              "service_role=X/postgres"
+            ],
+            "oid": "100636",
+            "cost": 100,
+            "rows": 0,
+            "owner": "postgres",
+            "config": [
+              "search_path=public, extensions, pg_temp"
+            ],
+            "return": "jsonb",
+            "strict": false,
+            "body_md5": "e1ce2908fde6bcba9f797115196a4786",
+            "language": "plpgsql",
+            "parallel": "u",
+            "arguments": "p_company_id uuid, p_offer_id uuid, p_channel text, p_actor_user_id uuid",
+            "leakproof": false,
+            "signature": "gridex_publish_contract_channel(uuid,uuid,text,uuid)",
+            "volatility": "v",
+            "security_definer": true,
+            "identity_arguments": "p_company_id uuid, p_offer_id uuid, p_channel text, p_actor_user_id uuid"
+          },
+          {
+            "acl": [
+              "postgres=X/postgres",
+              "service_role=X/postgres"
+            ],
+            "oid": "100608",
+            "cost": 100,
+            "rows": 0,
+            "owner": "postgres",
+            "config": [
+              "search_path=public, extensions, pg_temp"
+            ],
+            "return": "contract_publication_versions",
+            "strict": false,
+            "body_md5": "ba799bdc42f5da7296d10832a7eca507",
+            "language": "plpgsql",
+            "parallel": "u",
+            "arguments": "p_publication_version_id uuid, p_actor_user_id uuid DEFAULT NULL::uuid",
+            "leakproof": false,
+            "signature": "gridex_publish_contract_publication_version(uuid,uuid)",
+            "volatility": "v",
+            "security_definer": true,
+            "identity_arguments": "p_publication_version_id uuid, p_actor_user_id uuid"
+          }
+        ],
+        "qualification_limit": "Actual shape strict CREATE/COMMIT/replay and byte/metadata checks. PL/pgSQL embedded SQL deferred until business invocation; no production business invocation.",
+        "unknown_body_probe": {
+          "exit_code": 3,
+          "rejected_before_patch": "vat25_publication_predecessor_0_changed",
+          "transaction_rollback_entire_function_metadata_unchanged": true,
+          "business_invocations": false
+        }
+      }
+    }
+  ],
+  "qualification_limits": [
+    "Native aggregates prove no bad version is currently exposed through canonical public projection/publication/quote references; they do not prove configured customer billing E2E because actual financial tables contain0 business rows.",
+    "Strict real-shape PG17.6 compilation preserves full function bodies/metadata without stubs or body-check bypass; PL/pgSQL SQL statements are planned on invocation, and no business functions were invoked.",
+    "Draft forward only compiled its zero-candidate replay path; full repair branch was not invoked and is blocked on actual frozen lineage.",
+    "Parent owns native application/post-readback of only the two future forwards and final two independent reviews; historical draft repair is forbidden."
+  ],
+  "evidence": [
+    {
+      "path": "/tmp/gridex-api-review/vat25-native-column-metadata.json",
+      "sha256": "ec7cb0ad1a0ad20ec2517b1e3e3ce9eb04ceb92204ef98c466851f2dae823dc0"
+    },
+    {
+      "path": "/tmp/gridex-api-review/vat25-native-aggregate-and-authoring.json",
+      "sha256": "9b7ae22bf503f116cfe4551ca34a68c78a685dd77dbd40557b33757a83eb42c0"
+    },
+    {
+      "path": "/tmp/gridex-api-review/vat25-native-reference-and-writer.json",
+      "sha256": "923759d9aea8326ae0ee6c6df57095960441e9be0dc9cb7f4397edee1d3a9ce4"
+    },
+    {
+      "path": "/tmp/gridex-api-review/vat25-native-draft-coherence.json",
+      "sha256": "7de09f176d9a1b2d047d1ff763450cf5c291186feda5644a6a7415a5899019b7"
+    },
+    {
+      "path": "/tmp/gridex-api-review/vat25-complete-incoming-fk-graph.json",
+      "sha256": "a84c1e57444fd1f9847991c35e7d433098da63bd905f91cbec7672f3537ff239"
+    },
+    {
+      "path": "/tmp/gridex-api-review/vat25-complete-pointer-publication-metadata.json",
+      "sha256": "36b4a8f08d50c57e2d10a3d304f0f278ba2bb12814092fed88fad17cbb9aa8ca"
+    },
+    {
+      "path": "/tmp/gridex-api-review/vat25-complete-graph-actual-qualification.json",
+      "sha256": "3b690006201dea0a30a19ab9879e637a01ab8df55b29afc3afd12c4872d551bd"
+    },
+    {
+      "path": "/tmp/gridex-api-review/vat25-draft-successor-reference.json",
+      "sha256": "64bf450fcdf0f24b5ea392fe7c964439613a4eed19284714dacf8c681cb2b817"
+    },
+    {
+      "path": "/tmp/gridex-api-review/vat25-publication-readiness-native-views.json",
+      "sha256": "d7d4714a755dae9e88d4846224ab49c9d030515fdaef61e39e0b0dab35430e2b"
+    },
+    {
+      "path": "/tmp/gridex-api-review/vat25-publication-current-callers.json",
+      "sha256": "cfa1c52d162476dcf6bbd0134566e57197fd52d306c0953b120bd53239458e6f"
+    },
+    {
+      "path": "/tmp/gridex-api-review/vat25-publication-validator.json",
+      "sha256": "2e504385e7bf0c08f1f7297966b9866bbaf7b67ba66e0d2320c06b3825478706"
+    },
+    {
+      "path": "/tmp/gridex-api-review/vat25-authoring-isolated-compile-receipt.json",
+      "sha256": "391c7ca004df2eabafc4a49df9a0137f1d40939a6596c753b33267a020087bcc"
+    },
+    {
+      "path": "/tmp/gridex-api-review/vat25-publication-isolated-compile-receipt.json",
+      "sha256": "42b498aa7bb6e554a0e35240257667364a3ab52166c6edca16f2542affffdace"
+    },
+    {
+      "path": "/tmp/gridex-api-review/vat25-canonical-native-body-comparison.json",
+      "sha256": "ef27daffe7d73be2d69086ec290781ab820cdae0a754492c29fa72fdf460f8b4"
+    }
+  ],
+  "blocked_historical_repair_artifact": {
+    "path": "release-proposals/blocked/vat25-draft-repair-blocked-by-frozen-lineage.sql.txt",
+    "sha256": "4d71c2c56aa23268ae8bcdefc12e4065aea75a684284ea76ac14b1e594faf6b1",
+    "status": "SUPERSEDED/BLOCKED; removed from SQL apply queue. Do not execute. Parent requires original draft and both frozen successor versions remain unchanged."
+  },
+  "canonical_native_precursor_equivalence": [
+    {
+      "function": "gridex_create_or_version_contract_pricing",
+      "canonical_file": "/tmp/gridex-api-audit-ops/supabase/migrations/20260718010000_canonical_portfolio_pricing_versions.sql",
+      "canonical_body_md5": "ad27cf44efa875c6bfb51fb71b0f4518",
+      "actual_native_body_md5": "ad27cf44efa875c6bfb51fb71b0f4518",
+      "exact_body_equal": true,
+      "whitespace_only_equivalent": true
+    },
+    {
+      "function": "gridex_upsert_internal_contract_offer",
+      "canonical_file": "/tmp/gridex-api-audit-ops/supabase/migrations/20260720233000_contract_product_lifecycle_go_live_completion.sql",
+      "canonical_body_md5": "24300f0f38cd71f582713018617a4647",
+      "actual_native_body_md5": "24300f0f38cd71f582713018617a4647",
+      "exact_body_equal": true,
+      "whitespace_only_equivalent": true
+    },
+    {
+      "function": "gridex_upsert_internal_contract_offer_v2",
+      "canonical_file": "/tmp/gridex-api-audit-ops/supabase/migrations/20260727040000_contract_security_energy_direction_api_completion.sql",
+      "canonical_body_md5": "2eabc8d12127ed65a8325aa8f82390a2",
+      "actual_native_body_md5": "2eabc8d12127ed65a8325aa8f82390a2",
+      "exact_body_equal": true,
+      "whitespace_only_equivalent": true
+    },
+    {
+      "function": "gridex_publish_contract_channel",
+      "canonical_file": "/tmp/gridex-api-audit-ops/supabase/migrations/20260731152000_public_contract_publication_graph_repair.sql",
+      "canonical_body_md5": "b00d519ea7145470100fdc90f0e8811e",
+      "actual_native_body_md5": "b00d519ea7145470100fdc90f0e8811e",
+      "exact_body_equal": true,
+      "whitespace_only_equivalent": true
+    },
+    {
+      "function": "gridex_publish_contract_publication_version",
+      "canonical_file": "/tmp/gridex-api-audit-ops/supabase/migrations/20260716010000_contract_billing_end_to_end_completion.sql",
+      "canonical_body_md5": "684fa1bc1967322f8e676669215e8dba",
+      "actual_native_body_md5": "684fa1bc1967322f8e676669215e8dba",
+      "exact_body_equal": true,
+      "whitespace_only_equivalent": true
+    }
+  ],
+  "peer_reviews": {
+    "native_forward_independent_review": "Approved final authoring0d1eff/full publicationab6c5; source/native definitions and independent exact composition/parser checks; no coauthor edits",
+    "final_api_source_review": "Approved exactfinal authoring0d1eff69 and publicationab6c5f12; currentnative/source direction/replay/metadata independently verified"
+  },
+  "superseded_forward_sha256": [
+    "0bc450bed8564b1a08f804cd80a4affcc4da4f39a6acbf638f42f094769340c5",
+    "912c44579791d5cd53020fbb5e66bfa303a1eb96d06eea3c58db5c1394d73c39",
+    "37ecb7c443a3664662dcbc5ef206c51c88e782ff554349dacdbf0ee6bd26492e"
+  ],
+  "native_application_receipt": "vat25-native-apply-receipt.json:twoactualforwards112412/112427, five exact native postbody hashes, no historical row mutation",
+  "parent_final_compile_replay_receipts": [
+    "vat25-authoring-isolated-compile-receipt.json",
+    "vat25-publication-isolated-compile-receipt.json"
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "migration": "20261013094514_data_quality_lifecycle_consistency.sql",
+  "negativeCanonicalValue": {
+    "value_kwh": -5,
+    "quantity_kwh": null,
+    "issues": [
+      {
+        "status": "resolved",
+        "resolution_reason": "condition_cleared"
+      }
+    ],
+    "safe": false
+  },
+  "newestHealthyForecast": {
+    "previousDiff": 20,
+    "newestDiff": 0,
+    "issues": [
+      {
+        "status": "open",
+        "message": "Prognosen avviker mot faktiskt utfall."
+      }
+    ],
+    "safe": false
+  }
+}

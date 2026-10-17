@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { withApiContractRepresentation } from '@/lib/integrations/apiResponseProfile'
 import { NextRequest } from 'next/server'
 import { ApiInputError, customerPortalWriteError, readJsonObject } from '@/lib/api/strictRequest'
 import { canonicalApiError } from '@/lib/api/apiError'
@@ -43,7 +44,9 @@ function validateQuery(request: NextRequest) {
   return { eventType, externalCustomerId: singleQueryValue(request, 'external_customer_id'), before, limit: parseLimit(singleQueryValue(request, 'limit')) }
 }
 
-export async function GET(request: NextRequest) {
+export const GET = withApiContractRepresentation(['website', 'customer'], getEvents)
+
+async function getEvents(request: NextRequest) {
   const startedAt = Date.now()
   const requestId = randomUUID()
   const auth = await requireIntegrationApiAccess(request, ['events.read'])
@@ -64,7 +67,7 @@ export async function GET(request: NextRequest) {
       loadExternalTenantReference(auth.context.companyId),
     ])
     await logIntegrationApiRequest({ client: auth.client, request, statusCode: 200, startedAt, metadata: { result_count: events.length, request_id: requestId } })
-    return customerPortalJson({ data: events.map((event) => buildPublicWebhookPayload(event, tenantReference)), next_before: events.at(-1)?.occurred_at ?? null, request_id: requestId, correlation_id: requestId })
+    return customerPortalJson({ data: events.map((event) => buildPublicWebhookPayload(event, tenantReference, 'events')), next_before: events.at(-1)?.occurred_at ?? null, request_id: requestId, correlation_id: requestId })
   } catch (error) {
     const controlled = error instanceof ApiInputError
     const status = controlled ? error.status : 500
@@ -76,7 +79,9 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
+export const POST = withApiContractRepresentation(['website', 'customer'], publishEvent)
+
+async function publishEvent(request: NextRequest) {
   const startedAt = Date.now()
   const requestId = randomUUID()
   const auth = await requireIntegrationApiAccess(request, ['website_events.write'])

@@ -1,0 +1,22 @@
+{
+  "schema": "ops_permission_replay_source_correction_v1",
+  "status": "TWO_INDEPENDENT_SOURCE_APPROVALS_AND_WORKING_CLEAN_INPUT_PREFLIGHT_PASS_FULL_SQL_PENDING",
+  "original": "supabase/migrations/20261013095628_ops_api_current_context_permission_denies.sql",
+  "original_sha256": "c0b42937d124b8a50e77e2d773a4a9ce03062a24eff3abb6d93eb49b0affc418",
+  "artifact": "supabase/bootstrap/20261013_ops_current_permission_replay_adapter.sql",
+  "artifact_sha256": "d5e7d62982719ffea9ff0ca65149ca6b93e5e07e5caa3518f4e651c6688328f8",
+  "proven_difference": "Only two SQL comments between last historical d525 body and accepted native3816 body. Added one exact historical beforehash, allfive outputbodies/originalguards unchanged, fullattribute preservation strengthened.",
+  "clean_input_preflight": {
+    "exit": 0,
+    "foundation": 59,
+    "substitutions": 11,
+    "noncanonical_exclusions": 3,
+    "interleaved": 22,
+    "timestamped": 1144
+  },
+  "genuine_sql_execution": "NOT_RUN_FOR_THIS_SOURCE",
+  "native_writes": 0,
+  "canonical_type_capture": "NOT_RUN",
+  "followup": "Finish additional source-proven105521 comment-only variants before requesting sole producer complete current-source chain.",
+  "recorded_at": "2026-10-14T18:49:52.186580+00:00"
+}

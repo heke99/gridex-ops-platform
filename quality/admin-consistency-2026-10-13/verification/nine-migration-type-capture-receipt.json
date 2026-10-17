@@ -1,0 +1,27 @@
+{
+  "purpose": "authentic_baseline_nine_forward_type_capture",
+  "captured_at": "2026-10-13T14:42:07.066026+00:00",
+  "prior_eight_receipt": "verification/eight-migration-type-capture-receipt.json",
+  "baseline_pre_forward_types_byte_equal": true,
+  "supabase_cli_version": "2.101.0",
+  "postgres_meta_image": "public.ecr.aws/supabase/postgres-meta:v0.96.4",
+  "generation_schemas": [
+    "public",
+    "graphql_public"
+  ],
+  "ninth_migration": {
+    "name": "20261013140502_manual_inbound_retired_source_consistency.sql",
+    "sha256": "d68f09fa4ab18d62fbffa8c412d8fa53fa1db3d58e53ed519f45af1fc145fee0"
+  },
+  "artifact_sha256": {
+    "database.types.raw.ts": "41598c752d11e209bc45f110fe24ead5d4ae7a42ad0aecf35470a9430494e7fe",
+    "database.types.ts": "14b02339b64fde85d5ab781776f08c14eb6605e4bc802d14c601b65f7567d22c",
+    "migration-apply.log": "abb5bb66da8662435f429daca27510fb8f8038dd072f78300a78612c01c09cff",
+    "typegen.log": "7cd6d8040fb592c14886c8ba766c82b9c7cd6fde1f088df649cfada9aff06011"
+  },
+  "ninth_only_public_type_effect": "Adds gridex_manual_inbound_source_retired_v1(p_mailbox:string,p_provider_id:string):boolean; private source registry/table/triggers not exposed in generated public schemas.",
+  "unchanged_nullability_override_sha256": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
+  "canonical_schema_fingerprint": "NOT_IMPORTED:complete genuine CI owner metadata capture pending",
+  "production_application": "Currently pending; native capture is not production rollout evidence",
+  "browser_ediel_credit": "NONE"
+}

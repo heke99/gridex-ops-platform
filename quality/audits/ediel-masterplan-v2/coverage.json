@@ -1992,8 +1992,18 @@
     },
     {
       "id": "SC-023",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "scripts/test-ediel-sc-023-vh-history.cjs",
+        "scripts/ediel-sc-023-vh-history-sql-regression.mjs",
+        "scripts/ediel-partial-permission-source-sql-regression.mjs",
+        "scripts/ediel-at-z14vh-z15v-esco-native.test.ts",
+        "supabase/migrations/20261012212000_ediel_vh_history_delivery_sc023.sql",
+        "lib/ediel/services/vhHistoryDelivery.ts",
+        "lib/ediel/flows/vhHistoryRequest.ts",
+        "quality/audits/ediel-masterplan-v2/sc023-qualified-history/contract-proof.json",
+        "quality/audits/ediel-masterplan-v2/gen-eab-current-proof/current-source-qualification.json"
+      ]
     },
     {
       "id": "SC-024",
@@ -2132,10 +2142,16 @@
     },
     {
       "id": "SC-035",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
         "scripts/test-ediel-p-10-z02-correlation.cjs",
-        "scripts/ediel-p-10-z02-correlation-sql-regression.mjs"
+        "scripts/ediel-p-10-z02-correlation-sql-regression.mjs",
+        "lib/customer-operations/automation.part-2.ts",
+        "lib/customer-operations/automation.part-3.ts",
+        "lib/operations/businessActions/startSupplierSwitch.ts",
+        "scripts/ediel-at-z02-supplier-native.test.ts",
+        ".github/workflows/ediel-z02-supplier-native.yml",
+        "quality/audits/ediel-masterplan-v2/c1-z02-v6/contract-proof.json"
       ]
     },
     {
@@ -2247,11 +2263,19 @@
     },
     {
       "id": "SC-046",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
         "scripts/test-ediel-utilts-series-and-err-ack.cjs",
         "scripts/ediel-utilts-u04-u14-effects-sql-regression.mjs",
-        "supabase/migrations/20261003150200_ediel_utilts_late_version_and_err_ack_dispatcher.sql"
+        "supabase/migrations/20261003150200_ediel_utilts_late_version_and_err_ack_dispatcher.sql",
+        "__tests__/ediel-sc046-bound-version-consumption-coord2-20261014.test.ts",
+        "lib/ediel/utilts/transactionPersistence.ts",
+        "lib/ediel/utilts/consumptionSinks.ts",
+        "scripts/ediel-utilts-err-gateway-native.test.ts",
+        "scripts/ediel-utilts-consumption-native.test.ts",
+        "supabase/migrations/20261014211648_ediel_sc046_bound_newer_metering_correction.sql",
+        "supabase/migrations/20261015003736_ediel_sc046_newest_metering_duplicate_guard.sql",
+        "scripts/ediel-sc046-newest-duplicate-guard-sql-regression-root-20261015.mjs"
       ]
     },
     {
@@ -2318,21 +2342,33 @@
     },
     {
       "id": "SC-053",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
         "__tests__/ediel-sc-050-053-utilts-scenarios.test.ts",
         "__tests__/ediel-u-09-estimate-never-actual.test.ts",
         "lib/ediel/utilts/canonicalObservationScope.ts",
-        "lib/ediel/metering/meteringQualityMapper.ts"
+        "lib/ediel/metering/meteringQualityMapper.ts",
+        "__tests__/ediel-sc-053-null-vs-zero-storage.test.ts",
+        "scripts/ediel-sc-053-null-zero-native.test.ts",
+        "lib/ediel/utilts/transactionPersistence.ts",
+        "lib/ediel/services/projection.ts",
+        "supabase/migrations/20261012120000_ediel_utilts_source_quantity_quality_v2.sql",
+        "quality/audits/ediel-masterplan-v2/evidence/sc-053-054-qualified-native-20261012.json"
       ]
     },
     {
       "id": "SC-054",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
         "scripts/test-ediel-utilts-series-and-err-ack.cjs",
         "scripts/ediel-utilts-u04-u14-effects-sql-regression.mjs",
-        "supabase/migrations/20261003150200_ediel_utilts_late_version_and_err_ack_dispatcher.sql"
+        "supabase/migrations/20261003150200_ediel_utilts_late_version_and_err_ack_dispatcher.sql",
+        "__tests__/ediel-sc-054-storage-failure-no-positive-aperak.test.ts",
+        "scripts/ediel-sc-054-storage-failure-native.test.ts",
+        "lib/ediel/utilts/transactionPersistence.ts",
+        "lib/ediel/utilts/positiveAckAuthority.ts",
+        "lib/ediel/sla/checkAckDeadlines.ts",
+        "quality/audits/ediel-masterplan-v2/evidence/sc-053-054-qualified-native-20261012.json"
       ]
     },
     {
@@ -2520,8 +2556,15 @@
     },
     {
       "id": "SC-070",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/db-05-retention-clock-after-lock.test.ts",
+        "scripts/db-05-customer-close-due-purge-native.test.ts",
+        "lib/customer-portal/customerLifecycle.ts",
+        "lib/ediel/retention/customerLifecycleRetention.ts",
+        "supabase/migrations/20261012193000_db05_retention_clock_after_lock.sql",
+        "quality/audits/ediel-masterplan-v2/evidence/sc-070-at-z10m-qualified-native-20261013.json"
+      ]
     },
     {
       "id": "SC-071",
@@ -3630,8 +3673,14 @@
     },
     {
       "id": "AT-TR-08",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-tr-08-strato-genuine-trace.test.ts",
+        "__tests__/ediel-tr-08-relay-trace.test.ts",
+        "quality/audits/ediel-masterplan-v2/evidence/tr-08-strato-genuine-traces-20261012.json",
+        "lib/ediel/transport/relayTrace.ts",
+        "lib/ediel/mailReadiness.ts"
+      ]
     },
     {
       "id": "AT-TR-09",
@@ -3956,8 +4005,17 @@
     },
     {
       "id": "AT-Z02L-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/flows/inboundProcessing.ts",
+        "lib/customer-operations/automation.part-2.ts",
+        "supabase/migrations/20261012231000_ediel_z02_original_grid_refusal.sql",
+        "__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts",
+        "__tests__/ediel-z02-worker-result-preservation.test.ts",
+        "scripts/ediel-at-z02-supplier-native.test.ts",
+        ".github/workflows/ediel-z02-supplier-native.yml",
+        "quality/audits/ediel-masterplan-v2/c1-z02-v6/contract-proof.json"
+      ]
     },
     {
       "id": "AT-Z03L-SUPPLIER",
@@ -3990,8 +4048,17 @@
     },
     {
       "id": "AT-Z02LK-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/flows/inboundProcessing.ts",
+        "lib/customer-operations/automation.part-2.ts",
+        "supabase/migrations/20261012231000_ediel_z02_original_grid_refusal.sql",
+        "__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts",
+        "__tests__/ediel-z02-worker-result-preservation.test.ts",
+        "scripts/ediel-at-z02-supplier-native.test.ts",
+        ".github/workflows/ediel-z02-supplier-native.yml",
+        "quality/audits/ediel-masterplan-v2/c1-z02-v6/contract-proof.json"
+      ]
     },
     {
       "id": "AT-Z03LK-SUPPLIER",
@@ -4223,8 +4290,18 @@
     },
     {
       "id": "AT-Z10M-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-z10m-calendar-chronology.test.ts",
+        "__tests__/ediel-z10m-supplier-negatives.test.ts",
+        "__tests__/ediel-z10m-utilts-linkage.test.ts",
+        "scripts/ediel-at-z10m-supplier-acceptance-native.test.ts",
+        "lib/ediel/prodat/prodatMeterChangeAuthority.ts",
+        "lib/ediel/sources/structuralSourceSelection.ts",
+        "lib/ediel/utilts/qualifyReceivedStructure.ts",
+        "lib/ediel/utilts/transactionPersistence.ts",
+        "quality/audits/ediel-masterplan-v2/evidence/sc-070-at-z10m-qualified-native-20261013.json"
+      ]
     },
     {
       "id": "AT-Z13V-ESCO",
@@ -4245,8 +4322,15 @@
     },
     {
       "id": "AT-Z15V-ESCO",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-at-z15v-esco-profile.test.ts",
+        "scripts/test-ediel-sc-023-vh-history.cjs",
+        "scripts/ediel-partial-permission-source-sql-regression.mjs",
+        "scripts/ediel-at-z14vh-z15v-esco-native.test.ts",
+        "lib/ediel/flows/prodatServicePermission.ts",
+        "quality/audits/ediel-masterplan-v2/evidence/esco-z14vh-z15v-z15vh-qualified-coord2-20261013.json"
+      ]
     },
     {
       "id": "AT-Z13VH-ESCO",
@@ -4255,13 +4339,29 @@
     },
     {
       "id": "AT-Z14VH-ESCO",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-at-z14vh-esco-profile.test.ts",
+        "__tests__/ediel-esco-z14-process-legal-context.test.ts",
+        "scripts/test-ediel-esco-z13-z14vh.cjs",
+        "lib/ediel/prodat/receivedZ14ReportingContext.ts",
+        "scripts/ediel-at-z14vh-z15v-esco-native.test.ts",
+        "lib/ediel/flows/prodatServicePermission.ts",
+        "quality/audits/ediel-masterplan-v2/evidence/esco-z14vh-z15v-z15vh-qualified-coord2-20261013.json"
+      ]
     },
     {
       "id": "AT-Z15VH-ESCO",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-at-z15vh-esco-profile.test.ts",
+        "scripts/test-ediel-sc-023-vh-history.cjs",
+        "scripts/ediel-sc-023-vh-history-sql-regression.mjs",
+        "lib/ediel/services/vhHistoryDelivery.ts",
+        "scripts/ediel-at-z14vh-z15v-esco-native.test.ts",
+        "lib/ediel/flows/prodatServicePermission.ts",
+        "quality/audits/ediel-masterplan-v2/evidence/esco-z14vh-z15v-z15vh-qualified-coord2-20261013.json"
+      ]
     },
     {
       "id": "AT-Z14N-ESCO",

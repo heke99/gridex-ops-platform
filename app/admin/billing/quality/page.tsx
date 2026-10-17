@@ -2,7 +2,7 @@ import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
-import { getOperationalCompanyScope } from '@/lib/tenant/scope'
+import { resolveAdminSelectedCompanyReadScope } from '@/lib/tenant/adminScope'
 import { calculateCustomerReadinessScore } from '@/lib/customers/readinessScore'
 
 export const dynamic = 'force-dynamic'
@@ -47,12 +47,9 @@ function emptyResult() {
 
 export default async function BillingQualityPage() {
   const admin = await requireAdminPageKeyAccess('billing.workspace')
+  const scope = await resolveAdminSelectedCompanyReadScope(admin, { allowMissing: true })
+  const companyId = scope.companyId
   const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  const scope = user ? await getOperationalCompanyScope(user.id) : null
-  const companyId = scope?.companyId ?? null
 
   const customersResult = companyId
     ? await supabase

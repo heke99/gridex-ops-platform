@@ -1,14 +1,20 @@
-import { tenantReadCompanyId } from '@/lib/tenant/adminScope'
+import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
-import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
-import { getOperationalCompanyScope, isMissingRelationError } from '@/lib/tenant/scope'
+import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { listCompanyWorkQueue } from '@/lib/performance/companySummaries'
+import { InvalidReadModelResponseError, readResult, type ReadResult } from '@/lib/read-models/readResult'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { formatStatusLabel } from '@/lib/ui/format'
 import { readEdielProcessNextActions, type EdielProcessNextAction } from '@/lib/ediel/operations/processNextAction'
 import { infoRequestProcessQueueState } from '@/lib/customer-operations/infoRequestProcessQueue'
+import {
+  OPERATION_NON_TERMINAL_STATUS_FILTER,
+  isOperationActionRequired,
+  operationActionStatusLabel,
+  operationTypeLabel,
+} from '@/lib/operations/actionableStatus'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,9 +32,39 @@ type ActiveCustomer = {
   created_at: string | null
 }
 
+function customerRows(data: unknown, companyId: string | null, requestedIds?: readonly string[]): ActiveCustomer[] {
+  if (!Array.isArray(data)) throw new InvalidReadModelResponseError()
+  const requested = requestedIds ? new Set(requestedIds) : null
+  for (const row of data) {
+    if (!row || typeof row !== 'object' || Array.isArray(row)
+      || typeof row.id !== 'string' || !row.id.trim()
+      || typeof row.company_id !== 'string' || !row.company_id.trim()
+      || (companyId !== null && row.company_id !== companyId)
+      || (requested && !requested.has(row.id))) {
+      throw new InvalidReadModelResponseError()
+    }
+  }
+  return data as ActiveCustomer[]
+}
+
+function operationRows<T>(data: unknown, requestedCustomerIds?: readonly string[]): T[] {
+  if (!Array.isArray(data)) throw new InvalidReadModelResponseError()
+  const requested = requestedCustomerIds ? new Set(requestedCustomerIds) : null
+  for (const row of data) {
+    if (!row || typeof row !== 'object' || Array.isArray(row)
+      || typeof row.id !== 'string' || !row.id.trim()
+      || typeof row.customer_id !== 'string' || !row.customer_id.trim()
+      || (requested && !requested.has(row.customer_id))) {
+      throw new InvalidReadModelResponseError()
+    }
+  }
+  return data as T[]
+}
+
 type QueueItem = {
   id: string
   operationId?: string | null
+  actionRequired?: boolean | null
   source: string
   customerId: string
   customerLabel: string
@@ -44,23 +80,10 @@ type QueueItem = {
 type CountFilter = {
   column: string
   value: string | string[] | null
-  op?: 'eq' | 'in' | 'is'
+  op?: 'eq' | 'in' | 'is' | 'or'
 }
 
 const HIDDEN_CUSTOMER_STATUSES = ['archived', 'deleted', 'deleted_test_only', 'pending_deletion']
-const ACTIVE_TASK_STATUSES = ['open', 'new', 'pending_review', 'action_required', 'missing_authorization', 'blocked', 'route_missing', 'manual_review_required', 'failed']
-// Mirrors customer_info_requests_status_check minus the terminal states.
-const INFO_REQUEST_OPEN_STATUSES = [
-  'draft', 'missing_authorization', 'ready_to_send', 'sent_to_grid_owner', 'waiting_for_contrl',
-  'waiting_for_aperak', 'waiting_for_z02', 'z02_received', 'negative_aperak', 'manual_review_required',
-  'missing_binding_info', 'missing_termination_info', 'ready_for_switch', 'blocked',
-]
-const ACTION_REQUIRED_STATUSES = new Set([
-  ...ACTIVE_TASK_STATUSES,
-  'draft', 'ready_to_send', 'negative_aperak', 'missing_binding_info', 'missing_termination_info', 'ready_for_switch',
-  // OPS-02 process-decision states (infoRequestProcessQueueState).
-  'process_decision_missing', 'process_response_received',
-])
 
 function formatDate(value: string | null | undefined) {
   if (!value) return '—'
@@ -95,10 +118,6 @@ function priorityTone(priority: QueueItem['priority']) {
   return 'border-emerald-200 bg-emerald-50 text-emerald-800'
 }
 
-function requiresAction(item: Pick<QueueItem, 'status'>): boolean {
-  return ACTION_REQUIRED_STATUSES.has(String(item.status).toLowerCase())
-}
-
 function rankPriority(priority: QueueItem['priority']) {
   return { critical: 4, high: 3, normal: 2, low: 1 }[priority]
 }
@@ -110,27 +129,23 @@ type OperationEventActionRow = {
   title: string
   message: string
   status: string
+  action_required: boolean
   severity: string
   action_url: string | null
   occurred_at: string | null
 }
 
 async function loadOperationEventActions(supabase: SupabaseClient, companyId: string | null): Promise<OperationEventActionRow[]> {
-  try {
-    let query = supabase
-      .from('customer_operation_events')
-      .select('id, customer_id, operation_id, title, message, status, severity, action_url, occurred_at')
-      .eq('action_required', true)
-      .order('occurred_at', { ascending: false })
-      .limit(100)
-    if (companyId) query = query.eq('company_id', companyId)
-    const { data, error } = await query
-    if (error) throw error
-    return (data ?? []) as OperationEventActionRow[]
-  } catch (error) {
-    if (isSafeDbError(error)) return []
-    throw error
-  }
+  let query = supabase
+    .from('customer_operation_events')
+    .select('id, customer_id, operation_id, title, message, status, action_required, severity, action_url, occurred_at')
+    .eq('action_required', true)
+    .order('occurred_at', { ascending: false })
+    .limit(100)
+  if (companyId) query = query.eq('company_id', companyId)
+  const { data, error } = await query
+  if (error) throw error
+  return operationRows<OperationEventActionRow>(data)
 }
 
 type OperationJobActionRow = {
@@ -144,43 +159,34 @@ type OperationJobActionRow = {
 }
 
 async function loadOperationJobActions(supabase: SupabaseClient, companyId: string | null): Promise<OperationJobActionRow[]> {
-  try {
-    let query = supabase
-      .from('customer_operation_jobs')
-      .select('id, customer_id, operation_id, job_type, status, last_error, created_at')
-      .in('status', ['needs_review', 'failed'])
-      .order('created_at', { ascending: false })
-      .limit(100)
-    if (companyId) query = query.eq('company_id', companyId)
-    const { data, error } = await query
-    if (error) throw error
-    return (data ?? []) as OperationJobActionRow[]
-  } catch (error) {
-    if (isSafeDbError(error)) return []
-    throw error
-  }
+  let query = supabase
+    .from('customer_operation_jobs')
+    .select('id, customer_id, operation_id, job_type, status, last_error, created_at')
+    .or(OPERATION_NON_TERMINAL_STATUS_FILTER)
+    .order('created_at', { ascending: false })
+    .limit(100)
+  if (companyId) query = query.eq('company_id', companyId)
+  const { data, error } = await query
+  if (error) throw error
+  return operationRows<OperationJobActionRow>(data)
 }
 
 async function loadCustomersByIds(supabase: SupabaseClient, companyId: string | null, customerIds: string[]): Promise<ActiveCustomer[]> {
   if (customerIds.length === 0) return []
-  try {
-    let query = supabase
-      .from('customers')
-      .select('id, company_id, customer_number, full_name, first_name, last_name, company_name, email, status, source, created_at')
-      .in('id', customerIds.slice(0, 100))
-    if (companyId) query = query.eq('company_id', companyId)
-    const { data, error } = await query
-    if (error) throw error
-    return (data ?? []) as ActiveCustomer[]
-  } catch (error) {
-    if (isSafeDbError(error)) return []
-    throw error
-  }
+  const requestedIds = customerIds.slice(0, 100)
+  let query = supabase
+    .from('customers')
+    .select('id, company_id, customer_number, full_name, first_name, last_name, company_name, email, status, source, created_at')
+    .in('id', requestedIds)
+  if (companyId) query = query.eq('company_id', companyId)
+  const { data, error } = await query
+  if (error) throw error
+  return customerRows(data, companyId, requestedIds)
 }
 
 function consolidateActionItems(items: QueueItem[]): QueueItem[] {
   const byOperation = new Map<string, QueueItem>()
-  for (const item of items.filter(requiresAction)) {
+  for (const item of items.filter(isOperationActionRequired)) {
     // Resources with the same operation id are one business chain. Legacy rows
     // without a correlation id stay visible rather than hiding another action.
     const key = item.operationId ? `operation:${item.operationId}` : `${item.source}:${item.id}`
@@ -190,33 +196,6 @@ function consolidateActionItems(items: QueueItem[]): QueueItem[] {
     }
   }
   return [...byOperation.values()]
-}
-
-function statusLabel(status: string): string {
-  const labels: Record<string, string> = {
-    open: 'Öppen',
-    new: 'Ny',
-    pending: 'Väntar',
-    pending_review: 'Kräver granskning',
-    action_required: 'Kräver åtgärd',
-    missing_authorization: 'Saknar fullmakt',
-    blocked: 'Blockerad',
-    route_missing: 'Saknar route',
-    manual_review_required: 'Manuell kontroll',
-    failed: 'Misslyckad',
-    sent: 'Skickad',
-    waiting_for_z02: 'Väntar på nätägare',
-    waiting_response: 'Väntar på svar',
-    draft: 'Utkast',
-    ready_to_send: 'Redo att skickas',
-    dispatch_failed: 'Utskick misslyckades',
-    waiting_grid_owner_response: 'Väntar på nätägare',
-    ready: 'Redo',
-    queued: 'Köad',
-    submitted: 'Skickad',
-    accepted: 'Accepterad',
-  }
-  return labels[status] ?? status
 }
 
 
@@ -229,45 +208,24 @@ function dateValue(value: unknown): string | null {
 }
 
 function taskTypeLabel(value: unknown): string {
-  const labels: Record<string, string> = {
-    missing_power_of_attorney: 'Saknar fullmakt',
-    missing_metering_point_id: 'Saknar mätpunkt',
-    missing_facility_id: 'Saknar anläggnings-ID',
-    missing_grid_owner: 'Saknar nätägare',
-    possible_duplicate: 'Möjlig dubblett',
-    customer_data_request: 'Uppgiftsbegäran',
-    grid_owner_request: 'Begäran till nätägare',
-    supplier_switch: 'Leverantörsbyte',
-  }
-  const key = String(value ?? '').trim()
-  return labels[key] ?? (key.replaceAll('_', ' ') || 'Åtgärd')
-}
-
-function isSafeDbError(error: unknown): boolean {
-  const code = String((error as { code?: string } | null)?.code ?? '')
-  return isMissingRelationError(error) || ['42703', '42P01', 'PGRST204', 'PGRST205'].includes(code)
+  return operationTypeLabel(value)
 }
 
 async function loadActiveCustomers(supabase: SupabaseClient, companyId: string | null, isPlatformAdmin: boolean): Promise<ActiveCustomer[]> {
-  try {
-    let query = supabase
-      .from('customers')
-      .select('id, company_id, customer_number, full_name, first_name, last_name, company_name, email, status, source, created_at')
-      .not('company_id', 'is', null)
-      .or('source.is.null,source.neq.ediel_portal_test')
-      .or(`status.is.null,status.not.in.(${HIDDEN_CUSTOMER_STATUSES.join(',')})`)
-      .order('created_at', { ascending: false })
-      .limit(isPlatformAdmin ? 1000 : 500)
+  let query = supabase
+    .from('customers')
+    .select('id, company_id, customer_number, full_name, first_name, last_name, company_name, email, status, source, created_at')
+    .not('company_id', 'is', null)
+    .or('source.is.null,source.neq.ediel_portal_test')
+    .or(`status.is.null,status.not.in.(${HIDDEN_CUSTOMER_STATUSES.join(',')})`)
+    .order('created_at', { ascending: false })
+    .limit(isPlatformAdmin ? 1000 : 500)
 
-    if (companyId && !isPlatformAdmin) query = query.eq('company_id', companyId)
+  if (companyId && !isPlatformAdmin) query = query.eq('company_id', companyId)
 
-    const { data, error } = await query
-    if (error) throw error
-    return (data ?? []) as ActiveCustomer[]
-  } catch (error) {
-    if (isSafeDbError(error)) return []
-    throw error
-  }
+  const { data, error } = await query
+  if (error) throw error
+  return customerRows(data, companyId)
 }
 
 async function safeRows<T>(
@@ -281,49 +239,60 @@ async function safeRows<T>(
 ): Promise<T[]> {
   if (customerIds.length === 0) return []
 
-  try {
-    let query = supabase
-      .from(table)
-      .select(select)
-      .in('customer_id', customerIds)
-      .order('created_at', { ascending: false })
-      .limit(limit)
+  let query = supabase
+    .from(table)
+    .select(select)
+    .in('customer_id', customerIds)
+    .order('created_at', { ascending: false })
+    .limit(limit)
 
-    if (companyId) query = query.eq('company_id', companyId)
-    for (const filter of filters) {
-      if (filter.op === 'in') {
-        query = query.in(filter.column, Array.isArray(filter.value) ? filter.value : [])
-      } else if (filter.op === 'is') {
-        query = query.is(filter.column, filter.value)
-      } else {
-        query = query.eq(filter.column, filter.value)
-      }
+  if (companyId) query = query.eq('company_id', companyId)
+  for (const filter of filters) {
+    if (filter.op === 'in') {
+      query = query.in(filter.column, Array.isArray(filter.value) ? filter.value : [])
+    } else if (filter.op === 'or' && typeof filter.value === 'string') {
+      query = query.or(filter.value)
+    } else if (filter.op === 'is') {
+      query = query.is(filter.column, filter.value)
+    } else {
+      query = query.eq(filter.column, filter.value)
     }
-
-    const { data, error } = await query
-    if (error) throw error
-    return (data ?? []) as T[]
-  } catch (error) {
-    if (isSafeDbError(error)) return []
-    throw error
   }
+
+  const { data, error } = await query
+  if (error) throw error
+  return operationRows<T>(data, customerIds)
 }
 
 export default async function AdminWorkQueuePage() {
   const context = await requireAdminPageKeyAccess('operations.tasks')
-  const companyScope = await getOperationalCompanyScope(context.userId)
-  const isPlatformAdmin = isPlatformAdminContext(context)
+  const companyScope = await resolveAdminTenantReadScope(context)
+  const { companyId, isPlatformAdmin } = companyScope
   const supabase = await createSupabaseServerClient()
-  const companyId = tenantReadCompanyId(isPlatformAdmin, companyScope.companyId)
+  const readFailures: Array<Extract<ReadResult<unknown>, { kind: 'unavailable' }>> = []
+  async function readRows<T>(load: () => Promise<T[]>, errorCode: string): Promise<T[]> {
+    const result = await readResult(async () => {
+      const rows = await load()
+      if (!Array.isArray(rows) || rows.some(row => !row || typeof row !== 'object' || Array.isArray(row))) {
+        throw new InvalidReadModelResponseError()
+      }
+      return rows
+    }, { definitionVersion: 'work_queue_sources_v1', errorCode })
+    if (result.kind === 'unavailable') {
+      readFailures.push(result)
+      return []
+    }
+    return result.data
+  }
   const [dbQueueRows, operationEventRows, operationJobRows] = await Promise.all([
-    listCompanyWorkQueue(supabase, companyId, { limit: 250 }),
-    loadOperationEventActions(supabase, companyId),
-    loadOperationJobActions(supabase, companyId),
+    readRows(() => listCompanyWorkQueue(supabase, companyId, { limit: 250 }), 'WORK_QUEUE_SUMMARY_UNAVAILABLE'),
+    readRows(() => loadOperationEventActions(supabase, companyId), 'WORK_QUEUE_EVENTS_UNAVAILABLE'),
+    readRows(() => loadOperationJobActions(supabase, companyId), 'WORK_QUEUE_JOBS_UNAVAILABLE'),
   ])
-  const operationEventCustomers = await loadCustomersByIds(supabase, companyId, [...new Set([
+  const operationEventCustomers = await readRows(() => loadCustomersByIds(supabase, companyId, [...new Set([
     ...operationEventRows.map((row) => row.customer_id),
     ...operationJobRows.map((row) => row.customer_id),
-  ])])
+  ])]), 'WORK_QUEUE_ACTION_CUSTOMERS_UNAVAILABLE')
   const operationCustomersById = new Map(operationEventCustomers.map((customer) => [customer.id, customer]))
   let activeCustomers: ActiveCustomer[] = []
   const items: QueueItem[] = dbQueueRows.map((row) => ({
@@ -352,6 +321,7 @@ export default async function AdminWorkQueuePage() {
       title: event.title,
       description: event.message,
       status: event.status,
+      actionRequired: event.action_required,
       priority: event.severity === 'critical' ? 'critical' : event.severity === 'error' || event.severity === 'warning' ? 'high' : 'normal',
       createdAt: event.occurred_at,
       href: event.action_url ?? `/admin/customers/${customer.id}`,
@@ -380,11 +350,11 @@ export default async function AdminWorkQueuePage() {
     })
   }
 
-  activeCustomers = await loadActiveCustomers(supabase, companyId, isPlatformAdmin)
-    const customerIds = activeCustomers.map((customer) => customer.id)
-    const customersById = new Map(activeCustomers.map((customer) => [customer.id, customer]))
+  activeCustomers = await readRows(() => loadActiveCustomers(supabase, companyId, isPlatformAdmin), 'WORK_QUEUE_CUSTOMERS_UNAVAILABLE')
+  const customerIds = activeCustomers.map((customer) => customer.id)
+  const customersById = new Map(activeCustomers.map((customer) => [customer.id, customer]))
 
-    const [blockers, infoRequests, gridOwnerRequests, facilityRequests, operationTasks, switchRequests] = await Promise.all([
+  const [blockers, infoRequests, gridOwnerRequests, facilityRequests, operationTasks, switchRequests] = await Promise.all([
     safeRows<Record<string, unknown>>(
       supabase,
       'customer_blockers',
@@ -399,7 +369,7 @@ export default async function AdminWorkQueuePage() {
       'customer_info_requests',
       companyId,
       'id, customer_id, operation_id, request_type, target_party_type, target_party_name, status, blocker_reason, notes, ediel_message_id, created_at',
-      [{ column: 'status', op: 'in', value: INFO_REQUEST_OPEN_STATUSES }],
+      [{ column: 'status', op: 'or', value: OPERATION_NON_TERMINAL_STATUS_FILTER }],
       customerIds,
       80,
     ),
@@ -417,13 +387,7 @@ export default async function AdminWorkQueuePage() {
       'grid_owner_information_requests',
       companyId,
       'id, customer_id, customer_site_id, operation_id, request_type, status, dispatch_status, dispatch_error_code, dispatch_error_message, channel, outbound_request_id, ediel_message_id, created_at, updated_at',
-      [{ column: 'status', op: 'in', value: [
-        'draft', 'ready_to_send', 'needs_review', 'failed', 'waiting_response',
-        // Manual e-mail pipeline lifecycle + persisted configuration blockers
-        // must appear in the work queue, not only the Ediel statuses.
-        'ready_to_send_manual_email', 'manual_email_queued', 'manual_email_sent', 'waiting_manual_response',
-        'blocked_missing_poa', 'blocked_missing_grid_owner_contact', 'blocked_missing_manual_mailbox',
-      ] }],
+      [{ column: 'status', op: 'or', value: OPERATION_NON_TERMINAL_STATUS_FILTER }],
       customerIds,
       80,
     ),
@@ -445,7 +409,7 @@ export default async function AdminWorkQueuePage() {
       customerIds,
       50,
     ),
-  ])
+  ].map(promise => readRows(() => promise, 'WORK_QUEUE_DETAILS_UNAVAILABLE')))
 
 
   for (const row of blockers) {
@@ -489,15 +453,16 @@ export default async function AdminWorkQueuePage() {
     if (!customer) continue
     const target = row.target_party_type === 'current_supplier' ? 'nuvarande leverantör' : row.target_party_type === 'grid_owner' ? 'nätägare' : 'kund'
     const processState = infoRequestProcessQueueState({ status: textValue(row.status), edielMessageId: textValue(row.ediel_message_id), processDecisions })
+    const status = processState?.status ?? String(row.status ?? '')
     items.push({
       id: String(row.id),
       operationId: textValue(row.operation_id),
       source: 'Uppgiftsbegäran',
       customerId: customer.id,
       customerLabel: customerLabel(customer),
-      title: processState?.title ?? `Väntar på ${target}`,
+      title: processState?.title ?? (isOperationActionRequired({ status }) ? 'Uppgiftsbegäran behöver åtgärd' : `Väntar på ${target}`),
       description: processState?.description ?? textValue(row.blocker_reason) ?? textValue(row.notes) ?? taskTypeLabel(row.request_type),
-      status: processState?.status ?? String(row.status ?? 'pending'),
+      status,
       priority: processState?.priority ?? (['missing_authorization', 'blocked', 'negative_aperak', 'route_missing'].includes(String(row.status)) ? 'high' : 'normal'),
       createdAt: dateValue(row.created_at),
       href: `/admin/customers/${customer.id}?tab=data-requests`,
@@ -527,9 +492,10 @@ export default async function AdminWorkQueuePage() {
   for (const row of facilityRequests) {
     const customer = customersById.get(String(row.customer_id ?? ''))
     if (!customer) continue
-    const status = String(row.status ?? 'pending')
+    const status = String(row.status ?? '')
     const dispatchStatus = String(row.dispatch_status ?? '')
-    const failed = status === 'failed' || status === 'needs_review' || dispatchStatus === 'failed'
+    const failed = status === 'failed' || dispatchStatus === 'failed'
+    const reviewRequired = isOperationActionRequired({ status }) && !['draft', 'ready_to_send'].includes(status)
     const waiting = status === 'waiting_response' || dispatchStatus === 'queued' || dispatchStatus === 'sent' || Boolean(row.outbound_request_id || row.ediel_message_id)
     items.push({
       id: String(row.id),
@@ -537,10 +503,10 @@ export default async function AdminWorkQueuePage() {
       source: 'Nätägaruppgifter',
       customerId: customer.id,
       customerLabel: customerLabel(customer),
-      title: failed ? 'Nätägarbegäran behöver granskning' : waiting ? 'Väntar på anläggningssvar' : 'Nätägarbegäran redo att skickas',
+      title: failed || reviewRequired ? 'Nätägarbegäran behöver granskning' : waiting ? 'Väntar på anläggningssvar' : 'Nätägarbegäran redo att skickas',
       description: textValue(row.dispatch_error_message) ?? (waiting ? 'Begäran är skickad eller köad via Ediel och svar inväntas.' : 'Begäran kan skickas via godkänd Ediel-route eller behöver manuell granskning.'),
-      status: failed ? 'failed' : waiting ? 'waiting_response' : status,
-      priority: failed ? 'high' : status === 'ready_to_send' ? 'normal' : 'low',
+      status: failed ? 'failed' : reviewRequired ? status : waiting ? 'waiting_response' : status,
+      priority: failed || reviewRequired ? 'high' : status === 'ready_to_send' ? 'normal' : 'low',
       createdAt: dateValue(row.updated_at) ?? dateValue(row.created_at),
       href: `/admin/customers/${customer.id}?tab=data-requests`,
       actionLabel: failed ? 'Se vad som saknas' : 'Öppna kundkort',
@@ -597,6 +563,18 @@ export default async function AdminWorkQueuePage() {
     ...operationJobRows.map((row) => row.customer_id),
     ...activeCustomers.map((customer) => customer.id),
   ].filter(Boolean)).size
+  const queueRead: ReadResult<QueueItem[]> = readFailures.length === 0
+    ? {
+      kind: 'ready', data: sortedItems, coverage: 'complete',
+      meta: { definitionVersion: 'work_queue_sources_v1', asOf: new Date().toISOString(), sourceVersion: null, buildVersion: null, freshness: 'unknown' },
+    }
+    : sortedItems.length > 0
+      ? {
+        kind: 'partial', data: sortedItems, coverage: 'partial', reasonCodes: [...new Set(readFailures.map(failure => failure.errorCode))],
+        meta: { definitionVersion: 'work_queue_sources_v1', asOf: new Date().toISOString(), sourceVersion: null, buildVersion: null, freshness: 'unknown' },
+      }
+      : readFailures[0]
+  const countsKnown = queueRead.kind === 'ready'
   const staleHint = dbQueueRows.length > 0
     ? `Arbetskön visar endast åtgärder som behöver en handläggare. Pågående och klara steg finns under Händelser.`
     : visibleCustomerCount === 0
@@ -614,15 +592,28 @@ export default async function AdminWorkQueuePage() {
       />
 
       <main className="space-y-4 p-4 lg:p-6">
-        <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-950 shadow-sm">
-          {staleHint}
-        </section>
+        {countsKnown ? (
+          <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-950 shadow-sm">
+            {staleHint}
+          </section>
+        ) : (
+          <section role="status" aria-live="polite" className="space-y-2 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950 shadow-sm">
+            <h2 className="font-bold">{queueRead.kind === 'partial' ? 'Arbetskön är ofullständig' : 'Arbetskön kunde inte läsas'}</h2>
+            <p>{queueRead.kind === 'partial'
+              ? 'Tillgängliga ärenden visas nedan. Vi kan inte bekräfta hela arbetskön eller dess antal just nu.'
+              : 'Vi kan inte bekräfta vilka ärenden som behöver åtgärdas just nu. Försök läsa arbetskön igen.'}</p>
+            <p className="text-xs">Referens: {readFailures[0].traceId}</p>
+            <form action="/admin/work-queue" method="get">
+              <button type="submit" className="rounded-xl border border-amber-300 bg-white px-3 py-2 font-semibold">Försök igen</button>
+            </form>
+          </section>
+        )}
 
         <section className="grid grid-cols-2 gap-2 xl:grid-cols-4">
-          <StatCard label="Synliga kunder" value={visibleCustomerCount} />
-          <StatCard label="Ärenden i kö" value={sortedItems.length} />
-          <StatCard label="Hög prioritet" value={sortedItems.filter((item) => item.priority === 'high' || item.priority === 'critical').length} />
-          <StatCard label="Saknar fullmakt" value={sortedItems.filter((item) => item.status === 'missing_authorization' || item.title.toLowerCase().includes('fullmakt')).length} />
+          <StatCard label="Synliga kunder" value={countsKnown ? visibleCustomerCount : null} />
+          <StatCard label="Ärenden i kö" value={countsKnown ? sortedItems.length : null} />
+          <StatCard label="Hög prioritet" value={countsKnown ? sortedItems.filter((item) => item.priority === 'high' || item.priority === 'critical').length : null} />
+          <StatCard label="Saknar fullmakt" value={countsKnown ? sortedItems.filter((item) => item.status === 'missing_authorization' || item.title.toLowerCase().includes('fullmakt')).length : null} />
         </section>
 
         <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
@@ -631,12 +622,14 @@ export default async function AdminWorkQueuePage() {
             <p className="mt-1 text-sm text-slate-600">Visar endast nästa manuella åtgärd per pågående automatisk kedja. Historik och svar finns under Händelser.</p>
           </div>
 
-          {sortedItems.length === 0 ? (
+          {sortedItems.length === 0 && !countsKnown ? (
+            <div className="px-6 py-12 text-center text-slate-600">Underlaget är inte tillgängligt. Läs arbetskön igen för att kontrollera nästa åtgärder.</div>
+          ) : sortedItems.length === 0 ? (
             <div className="px-6 py-12 text-center">
               <h3 className="text-lg font-bold text-slate-950">Inga aktiva driftuppgifter hittades</h3>
               <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-600">
                 Det betyder att det inte finns något som behöver åtgärdas, inga uppgiftsbegäran eller leverantörsbyten kopplade till synliga kunder.
-                Gamla testdata och orphans visas inte här.
+                Äldre testuppgifter och poster utan kundkoppling visas inte här.
               </p>
               <div className="mt-6 flex flex-wrap justify-center gap-3">
                 <Link href="/admin/customers" className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-800 hover:bg-slate-50">Öppna kundregister</Link>
@@ -668,7 +661,7 @@ export default async function AdminWorkQueuePage() {
                         <div className="mt-1 max-w-xl text-xs leading-5 text-slate-600">{item.description}</div>
                       </td>
                       <td className="px-4 py-3 text-slate-700">
-                        <p>{statusLabel(item.status)}</p>
+                        <p>{operationActionStatusLabel(item.status)}</p>
                         <span className={`mt-2 inline-flex rounded-full border px-3 py-1 text-xs font-bold ${priorityTone(item.priority)}`}>{formatStatusLabel(item.priority)}</span>
                       </td>
                       <td className="px-4 py-3">
@@ -688,11 +681,11 @@ export default async function AdminWorkQueuePage() {
   )
 }
 
-function StatCard({ label, value }: { label: string; value: number }) {
+function StatCard({ label, value }: { label: string; value: number | null }) {
   return (
     <div className="flex min-w-0 items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4">
       <div className="min-w-0 break-words text-sm font-medium text-slate-700">{label}</div>
-      <div className="text-2xl font-semibold text-slate-950">{value}</div>
+      <div aria-label={value === null ? 'Antal kan inte bekräftas' : undefined} className="text-2xl font-semibold text-slate-950">{value ?? '—'}</div>
     </div>
   )
 }

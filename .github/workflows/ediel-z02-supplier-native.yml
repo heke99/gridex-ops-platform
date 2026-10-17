@@ -1,0 +1,241 @@
+name: C1 Z02 canonical source qualification
+
+on:
+  pull_request:
+    branches: [main, codex/five-C1-z02-b7e2fae0]
+    paths:
+      - '.github/workflows/ediel-z02-supplier-native.yml'
+      - 'scripts/ediel-at-z02-supplier-native.*'
+      - 'scripts/helpers/ediel-z02-supplier-*'
+
+permissions:
+  contents: read
+
+# One source-bound chain for the owner of producer-z02; no push/main rerun.
+concurrency:
+  group: gridex-C1-b7e2fae0-z02
+  cancel-in-progress: true
+
+jobs:
+  z02-supplier-native:
+    if: github.event.pull_request.head.repo.full_name == 'heke99/gridex-ops-platform' && github.event.pull_request.head.ref == 'codex/five-C1-z02-native-b7e2fae0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+      COMPONENT_SOURCE: c0d228788882565a7a86bf0cf5ba52089502a2e8
+      ACTUAL_MAIN_SOURCE: efed3683115c06d1925f8b80c05c801a54db9885
+      QUALIFIED_BASE: b967d45cc02b18f804b6f315aa6293217c8e5080
+      QUALIFIED_GEN_SOURCE: 725e065abeb3cd6fb1dc10d9bf5b6a086f531568
+      QUALIFIED_GEN_CAPTURE_RUN: '38322724837'
+      FILE_RECEIPT: 52841148fabcbf8a1ceb9e24959a421d2edd8b1f
+      DONOR_SOURCE: 6bb5e7c9718ec6c8fcdb9334b4da289afbaa23c5
+      PRODUCER_RECEIPT: 63ddbdb563b96324b47b49fbb008e6bce8010742
+      SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
+      SUPABASE_TELEMETRY_DISABLED: '1'
+      SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 0
+      - name: Verify exact source, new epoch and live owner custody
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_REPOSITORY" == heke99/gridex-ops-platform ]]
+          [[ "$(git rev-parse HEAD)" == "$SOURCE_SHA" ]]
+          git merge-base --is-ancestor "$COMPONENT_SOURCE" HEAD
+          git merge-base --is-ancestor "$ACTUAL_MAIN_SOURCE" HEAD
+          git merge-base --is-ancestor "$QUALIFIED_BASE" HEAD
+          git merge-base --is-ancestor "$QUALIFIED_GEN_SOURCE" HEAD
+          git diff --quiet "$QUALIFIED_BASE" HEAD -- lib/ __tests__/ quality/audits/ediel-masterplan-v2/coverage.json supabase/
+          python3 - <<'PY'
+          import hashlib, json, os, urllib.request
+          slot = 'b971ef0cfa9724b02f4e0e3a985a4436e11a1f60'
+          ids = '0b0f365766dffec214e43809ea5b3bb11c9ec71e'
+          paths = ['.github/workflows/ediel-z02-supplier-native.yml',
+            'scripts/ediel-at-z02-supplier-native.config.ts', 'scripts/ediel-at-z02-supplier-native.test.ts',
+            'scripts/helpers/ediel-z02-supplier-native-diagnostics.ts', 'scripts/helpers/ediel-z02-supplier-native-fixture.ts',
+            'scripts/helpers/ediel-z02-supplier-native-observations.ts', 'scripts/helpers/ediel-z02-supplier-field-refusal-native.ts',
+            'scripts/helpers/ediel-z02-supplier-native-wire.ts']
+          expected = {'slot-C1': slot, 'id-AT-Z02L-SUPPLIER': ids, 'id-AT-Z02LK-SUPPLIER': ids,
+            'producer-z02': os.environ['PRODUCER_RECEIPT']}
+          expected.update({'file-' + hashlib.sha256(p.encode()).hexdigest(): os.environ['FILE_RECEIPT'] for p in paths})
+          # Exact delegated source writers were handed back to this root owner.
+          for receipt, owned in {
+            'a6bc7453e77f2519d286f9dba31e8c6c664cfe5b': ['lib/customer-operations/automation.part-2.ts', '__tests__/ediel-z02-worker-result-preservation.test.ts'],
+            '29624e623d1685d464401d5ba64720456b32a3bb': ['supabase/migrations/20261012231000_ediel_z02_original_grid_refusal.sql', '__tests__/ediel-z02-original-grid-refusal.test.ts'],
+            '55567984a00d2185bc088abf5f0063b4411e2aa1': ['__tests__/ediel-z02-generated-facility-id-write.test.ts'],
+            '7f8fc120fe7a2073d48ee9f9408c679d7eba6ff3': ['.agent-memory/c1-worker-company-fix-20261013-checkpoint.md', '__tests__/supplier-switch-worker-bound-company.test.ts', 'lib/customer-operations/automation.part-3.ts', 'lib/operations/businessActions/actionPreflight.ts', 'lib/operations/businessActions/startSupplierSwitch.ts', 'lib/operations/businessActions/supplierSwitchWorkerAuthority.ts'],
+            'ec78b88f378462a6f016ed38bc1f8977bfb485b9': ['lib/ediel/flows/inboundProcessing.ts', '__tests__/ediel-z02-terminal-protocol-replay.test.ts', '.agent-memory/c1-terminal-replay-fix-20261013-checkpoint.md'],
+            # Sole GEN owner permits these exact frozen code postimages; custody is retained.
+            'ce80cdd3fb4be418ea54daebb596d798889442cd': ['scripts/ediel-at-z14vh-z15v-esco-native.test.ts', '.github/workflows/ediel-esco-z14vh-z15v-native.yml'],
+          }.items():
+            expected.update({'file-' + hashlib.sha256(p.encode()).hexdigest(): receipt for p in owned})
+          for name, sha in sorted(expected.items()):
+            req = urllib.request.Request('https://api.github.com/repos/heke99/gridex-ops-platform/git/ref/tags/agent-claims/masterplan/' + name,
+              headers={'Authorization': 'Bearer ' + os.environ['GH_TOKEN'], 'Accept': 'application/vnd.github+json'})
+            with urllib.request.urlopen(req, timeout=30) as response: actual = json.load(response)
+            if actual['object']['sha'] != sha: raise SystemExit('native_owner_custody_mismatch')
+          print('Own new-epoch slot/IDs/files/producer GET_MATCH verified.')
+          PY
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Qualify runner and execute unchanged canonical replay plus original Z02 suite
+        id: qualification
+        run: |
+          set -euo pipefail
+          umask 077
+          export SUPABASE_HOME="$RUNNER_TEMP/c1-b7e2fae0-supabase-state"
+          supabase --version
+          mkdir -p z02-supplier-native-working
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, subprocess
+          source = subprocess.check_output(['git','rev-parse','HEAD'], text=True).strip()
+          if source != os.environ['SOURCE_SHA']: raise SystemExit('native_checkout_changed')
+          info = json.loads(subprocess.check_output(['docker','info','--format','{{json .}}'], text=True))
+          root = pathlib.Path(info['DockerRootDir'])
+          stat = os.statvfs(root)
+          available = stat.f_bavail * stat.f_frsize
+          if subprocess.check_output(['docker','ps','-aq'], text=True).strip(): raise SystemExit('disposable_runner_not_quiescent')
+          # vfs copies complete layer trees; the measured 29GiB host could not
+          # register this pin. The hosted overlay driver shares those layers.
+          required = (40 if info['Driver'] == 'vfs' else 15) * 1024**3
+          if available < required: raise SystemExit('native_runner_capacity_insufficient')
+          hashes = {}
+          for name in subprocess.check_output(['git','ls-files','-z'], text=True).split('\0'):
+            if not name: continue
+            p = pathlib.Path(name)
+            if p.is_symlink() or not p.is_file(): raise SystemExit('native_input_not_regular')
+            hashes[name] = hashlib.sha256(p.read_bytes()).hexdigest()
+          metadata = {'checkout_sha': source, 'checkout_tree': subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip(),
+            'workflow_run_id': os.environ['GITHUB_RUN_ID'], 'workflow_run_attempt': os.environ['GITHUB_RUN_ATTEMPT'],
+            'epoch': 'gridex-five-agent-20261012', 'slot': 'C1', 'packet': 'b7e2fae0-6c59-4140-a5b5-0e1cd15996c4',
+            'input_epoch': 'gridex-C1-b7e2fae0-native-v6', 'producer_receipt': os.environ['PRODUCER_RECEIPT'],
+            'actual_main_source': os.environ['ACTUAL_MAIN_SOURCE'], 'qualified_main_base': os.environ['QUALIFIED_BASE'], 'file_receipt': os.environ['FILE_RECEIPT'],
+            'qualified_gen_source': os.environ['QUALIFIED_GEN_SOURCE'], 'qualified_gen_capture_run': os.environ['QUALIFIED_GEN_CAPTURE_RUN'],
+            'component_source': os.environ['COMPONENT_SOURCE'], 'donor_source': os.environ['DONOR_SOURCE'],
+            'runner': {'docker_driver': info['Driver'], 'available_bytes': available, 'postgres_image_pin': '17.6.1.155'},
+            'input_sha256': hashes}
+          pathlib.Path(os.environ['RUNNER_TEMP'],'c1-z02-inputs.json').write_text(json.dumps(metadata)+'\n')
+          print('Recorded exact source, complete tracked input hashes and isolated runner capacity.')
+          PY
+          # Replay's existing EXIT trap restores inputs and stops its own stack.
+          # Raw CLI/replay/status output stays private until credential redaction.
+          source scripts/gridex-aud-003-clean-replay.sh > "$RUNNER_TEMP/c1-z02-canonical-replay.log" 2>&1
+          export GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/c1-z02-native-status.json"
+          supabase status -o json > "$GRIDEX_NATIVE_STATUS"
+          native_exit=0
+          GRIDEX_NATIVE_STATUS="$GRIDEX_NATIVE_STATUS" npx vitest run \
+            --config scripts/ediel-at-z02-supplier-native.config.ts \
+            --reporter=default --reporter=junit --outputFile=z02-supplier-native-working/native-junit.xml \
+            > z02-supplier-native-working/native.log 2>&1 || native_exit=$?
+          export C1_NATIVE_EXIT="$native_exit"
+          # Invoke the existing replay cleanup before attesting restoration.
+          cleanup
+          trap - EXIT
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, subprocess
+          m = json.loads(pathlib.Path(os.environ['RUNNER_TEMP'],'c1-z02-inputs.json').read_text())
+          if subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip() != m['checkout_sha']:
+            raise SystemExit('native_source_changed')
+          # Attest every original input after the unchanged cleanup, including
+          # all migration and seed bytes temporarily moved by canonical replay.
+          for name, expected in m['input_sha256'].items():
+            p = pathlib.Path(name)
+            if p.is_symlink() or not p.is_file() or hashlib.sha256(p.read_bytes()).hexdigest() != expected:
+              raise SystemExit('native_runtime_input_changed')
+          if subprocess.check_output(['docker','ps','-aq'], text=True).strip():
+            raise SystemExit('native_backend_cleanup_unqualified')
+          replay = pathlib.Path(os.environ['RUNNER_TEMP'],'c1-z02-canonical-replay.log').read_text()
+          if '[GRIDEX-REM-002 replay] PASS: empty local Supabase' not in replay:
+            raise SystemExit('canonical_replay_provenance_missing')
+          m.update({'purpose': 'source_bound_native_qualification', 'native_exit_code': int(os.environ['C1_NATIVE_EXIT']),
+            'canonical_replay': 'PASS', 'test_scope': ['scripts/ediel-at-z02-supplier-native.test.ts'],
+            'ordinary_required_gates': 'NOT_REPLACED', 'schema_capture': 'NOT_RUN', 'upgrade_parity': 'NOT_RUN',
+            'input_restoration': 'EXACT', 'backend_cleanup': 'QUALIFIED',
+            'whole_z02_credit': 'NONE', 'authentic_market_evidence': 'NOT_PROVIDED'})
+          pathlib.Path('z02-supplier-native-working/receipt.json').write_text(json.dumps(m,indent=2)+'\n')
+          PY
+          # CLI 2.101 also has opaque sb_secret/sb_publishable keys. The
+          # existing shared redactor handles JWTs and exact legacy status keys.
+          python3 - <<'PY'
+          import pathlib, re
+          for p in pathlib.Path('z02-supplier-native-working').rglob('*'):
+            if p.is_file(): p.write_bytes(re.sub(rb'\bsb_(?:secret|publishable)_[A-Za-z0-9_-]+', b'[REDACTED_LOCAL_CREDENTIAL]', p.read_bytes()))
+          PY
+          python3 scripts/gridex-redact-native-evidence.py --local-secrets "$GRIDEX_NATIVE_STATUS" --root z02-supplier-native-working
+          # Move only after successful redaction; a failed native suite stays failed.
+          mv z02-supplier-native-working z02-supplier-native-evidence
+          # The hosted runner can expose nonblocking stdout. Stream the complete
+          # redacted log with blocking writes; output errors still fail the step.
+          python3 - <<'PY'
+          import os, pathlib, shutil, sys
+          os.set_blocking(sys.stdout.fileno(), True)
+          with pathlib.Path('z02-supplier-native-evidence/native.log').open('rb') as source:
+            shutil.copyfileobj(source, sys.stdout.buffer, length=16384)
+          sys.stdout.buffer.flush()
+          PY
+          rm -f "$GRIDEX_NATIVE_STATUS"
+          exit "$native_exit"
+      - name: Preserve redacted feedback when qualification aborts
+        if: always()
+        env:
+          QUALIFICATION_OUTCOME: ${{ steps.qualification.outcome }}
+        run: |
+          set -euo pipefail
+          umask 077
+          # A successful/native-failing completed chain already has its exact
+          # restoration receipt. Abort feedback never claims replay/native PASS.
+          if [[ -d z02-supplier-native-evidence ]]; then exit 0; fi
+          mkdir -p z02-supplier-native-working
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, re, subprocess
+          temp = pathlib.Path(os.environ['RUNNER_TEMP'])
+          root = pathlib.Path('z02-supplier-native-working')
+          original = temp / 'c1-z02-canonical-replay.log'
+          raw = original.read_bytes() if original.is_file() else None
+          m = {'checkout_sha': subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+            'expected_source_sha': os.environ['SOURCE_SHA'], 'actual_main_source': os.environ['ACTUAL_MAIN_SOURCE'], 'qualified_main_base': os.environ['QUALIFIED_BASE'], 'file_receipt': os.environ['FILE_RECEIPT'],
+            'qualified_gen_source': os.environ['QUALIFIED_GEN_SOURCE'], 'qualified_gen_capture_run': os.environ['QUALIFIED_GEN_CAPTURE_RUN'],
+            'component_source': os.environ['COMPONENT_SOURCE'],
+            'donor_source': os.environ['DONOR_SOURCE'], 'producer_receipt': os.environ['PRODUCER_RECEIPT'],
+            'workflow_run_id': os.environ['GITHUB_RUN_ID'], 'workflow_run_attempt': os.environ['GITHUB_RUN_ATTEMPT'],
+            'epoch': 'gridex-five-agent-20261012', 'slot': 'C1', 'packet': 'b7e2fae0-6c59-4140-a5b5-0e1cd15996c4',
+            'input_epoch': 'gridex-C1-b7e2fae0-native-v6', 'qualification_outcome': os.environ['QUALIFICATION_OUTCOME'],
+            'canonical_replay': 'UNQUALIFIED', 'native': 'UNQUALIFIED', 'input_restoration': 'UNQUALIFIED',
+            'backend_cleanup': 'UNQUALIFIED', 'whole_z02_credit': 'NONE',
+            'original_replay_log_sha256': hashlib.sha256(raw).hexdigest() if raw is not None else None}
+          inputs = temp / 'c1-z02-inputs.json'
+          if inputs.is_file(): m['recorded_inputs'] = json.loads(inputs.read_text())
+          if raw is not None: (root / 'canonical-replay.log').write_bytes(raw)
+          (root / 'failure-receipt.json').write_text(json.dumps(m,indent=2)+'\n')
+          for p in root.rglob('*'):
+            if p.is_file(): p.write_bytes(re.sub(rb'\bsb_(?:secret|publishable)_[A-Za-z0-9_-]+', b'[REDACTED_LOCAL_CREDENTIAL]', p.read_bytes()))
+          PY
+          redactor_args=()
+          if [[ -s "$RUNNER_TEMP/c1-z02-native-status.json" ]]; then
+            redactor_args=(--local-secrets "$RUNNER_TEMP/c1-z02-native-status.json")
+          fi
+          python3 scripts/gridex-redact-native-evidence.py "${redactor_args[@]}" --root z02-supplier-native-working
+          mv z02-supplier-native-working z02-supplier-native-evidence
+          rm -f "$RUNNER_TEMP/c1-z02-native-status.json"
+          echo 'Preserved redacted source-bound abort feedback; no PASS or whole-ID credit.'
+      - name: Upload redacted source-bound feedback
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: c1-z02-native-${{ env.SOURCE_SHA }}-${{ github.run_attempt }}
+          path: z02-supplier-native-evidence/
+          if-no-files-found: warn
+          retention-days: 14

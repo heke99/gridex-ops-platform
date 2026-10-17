@@ -1,3 +1,4 @@
+import { withApiContractRepresentation } from '@/lib/integrations/apiResponseProfile'
 import { NextRequest } from 'next/server'
 import {
   customerPortalJson,
@@ -15,7 +16,7 @@ import {
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-export async function GET(request: NextRequest) {
+ async function profiledGET(request: NextRequest) {
   const context = await requireCustomerPortalApiContext(request, ['customer_sites.read'])
   if (!context.ok) return context.response
 
@@ -48,3 +49,5 @@ export async function GET(request: NextRequest) {
     return handleCustomerPortalRouteError({ request, client: context.client, startedAt: context.startedAt, error })
   }
 }
+
+export const GET = withApiContractRepresentation('customer', profiledGET)

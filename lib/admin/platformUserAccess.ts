@@ -48,6 +48,14 @@ export async function runCanonicalPlatformAccessCommand(
 ): Promise<CanonicalPlatformAccessResult> {
   const actorUserId = required(command.actorUserId, 'Aktör')
   const targetUserId = required(command.targetUserId, 'Användare')
+  if (
+    (command.action === 'upsert_override' && command.effect !== 'deny') ||
+    (command.action === 'replace_overrides' && (command.allowPermissions?.length ?? 0) > 0)
+  ) {
+    throw Object.assign(new Error('Globala permission overrides kan endast neka behörighet (deny).'), {
+      code: '22023',
+    })
+  }
   const idempotencyKey = command.idempotencyKey?.trim()
     || `platform-user-access:${command.action}:${targetUserId}:${randomUUID()}`
 

@@ -1,0 +1,53 @@
+{
+  "source_head": "d37fb138cd150e75a5662387f047b57b71e0564e",
+  "workflow_run_id": 38430105399,
+  "job_id": 115410086599,
+  "artifact_id": 11835116529,
+  "job_conclusion": "failure",
+  "unit_release_quality": "PASS1113files/17979assertions,zero failures/skips",
+  "upgrade_replay": "success",
+  "clean_migration_execution": "completed",
+  "native_owner_suite": {
+    "files_passed": 59,
+    "tests_passed": 737,
+    "conditionally_skipped": 1
+  },
+  "browser_and_post_browser": "Executed; inspect phase/JUnit artifact for exact conditional scope. All suites before final tenant gate passed.",
+  "blocking_findings": [
+    "data_quality_issues_open_key_uidx must physically include company_id",
+    "dashboard_alerts_open_key_uidx must physically include company_id"
+  ],
+  "final_parity_and_schema_comparator": "NOT_REACHED after tenant gate failed",
+  "remediation": "New forward10 adds actual UNIQUE(company_id,open_key), patches only five targets in four current definitions, preserves source7/security/ACL and leaves legacy5 constraints until deployed app/drain.",
+  "unchanged_gate": "scripts/sql/tenant-isolation-invariants.sql",
+  "immutable_parent_output_sha256": {
+    "types": "e094bdc27b926472e20d0407267b5a4cd0b21e7535202a3cc29927992a2aac9b",
+    "schema": "3f427e3197f20a564c8fcd4a7fc62251458e6f12515eb977e03d6f76f0e9bd45",
+    "fingerprint_file": "700baf4e8bb59ef958ca905d58010ee44342a2d64ff3a513148ac2f850202ba6"
+  },
+  "trace": [
+    "2026-10-13T16:34:20.3278553Z native_phase() { printf '[CI-PHASE] %s %s\\n' \"$(date -u +%FT%TZ)\" \"$1\"; }",
+    "2026-10-13T16:34:20.3652596Z [CI-PHASE] 2026-10-13T16:34:20Z clean_replay_start",
+    "2026-10-13T16:36:56.0815973Z [CI-PHASE] 2026-10-13T16:36:56Z clean_replay_complete",
+    "2026-10-13T16:36:56.0826885Z [CI-PHASE] 2026-10-13T16:36:56Z artifact_generation_start",
+    "2026-10-13T16:37:07.6392567Z [CI-PHASE] 2026-10-13T16:37:07Z artifact_generation_complete",
+    "2026-10-13T16:37:07.6406112Z [CI-PHASE] 2026-10-13T16:37:07Z sql_regressions_start",
+    "2026-10-13T16:37:24.0356934Z [CI-PHASE] 2026-10-13T16:37:24Z merge_concurrency_start",
+    "2026-10-13T16:37:28.9912702Z [CI-PHASE] 2026-10-13T16:37:28Z merge_concurrency_complete",
+    "2026-10-13T16:37:28.9927756Z [CI-PHASE] 2026-10-13T16:37:28Z sql_regressions_complete",
+    "2026-10-13T16:37:29.9831885Z [CI-PHASE] 2026-10-13T16:37:29Z native_owners_start",
+    "2026-10-13T17:31:55.1173963Z  Test Files  59 passed (59)",
+    "2026-10-13T17:31:55.1177220Z       Tests  737 passed | 1 skipped (738)",
+    "2026-10-13T17:31:55.3435225Z [CI-PHASE] 2026-10-13T17:31:55Z native_owners_complete",
+    "2026-10-13T17:31:55.3448042Z [CI-PHASE] 2026-10-13T17:31:55Z browser_fixtures_start",
+    "2026-10-13T17:34:48.9081629Z [CI-PHASE] 2026-10-13T17:34:48Z browser_fixtures_complete",
+    "2026-10-13T17:34:48.9094990Z [CI-PHASE] 2026-10-13T17:34:48Z browser_start",
+    "2026-10-13T17:40:31.7748760Z [CI-PHASE] 2026-10-13T17:40:31Z browser_complete",
+    "2026-10-13T17:40:31.7761693Z [CI-PHASE] 2026-10-13T17:40:31Z after_browser_native_start",
+    "2026-10-13T17:41:24.4975949Z [CI-PHASE] 2026-10-13T17:41:24Z after_browser_native_complete",
+    "2026-10-13T17:41:24.4990098Z [CI-PHASE] 2026-10-13T17:41:24Z schema_gates_start",
+    "2026-10-13T17:41:25.1607115Z psql:scripts/sql/tenant-isolation-invariants.sql:278: ERROR:  Tenant isolation invariants failed (2 breach(es)):",
+    "2026-10-13T17:41:25.1609023Z   - F-8/F-10: unique index data_quality_issues_open_key_uidx on tenant table data_quality_issues is not scoped by company_id",
+    "2026-10-13T17:41:25.1610713Z   - F-8/F-10: unique index dashboard_alerts_open_key_uidx on tenant table dashboard_alerts is not scoped by company_id"
+  ]
+}

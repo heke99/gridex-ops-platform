@@ -14,6 +14,7 @@ vi.mock('@/lib/supabase/service', () => ({
     from(table: string) {
       const filters: Array<(row: Row) => boolean> = []
       let limit = Infinity
+      let offset = 0
       const customer = { id: 'customer_internal', company_id: 'company_synthetic', customer_reference: 'customer_public', customer_type: 'private' }
       const site = { id: 'site_internal', company_id: 'company_synthetic', customer_id: 'customer_internal', facility_reference: 'site_public', site_type: 'consumption' }
       const b: Record<string, unknown> = {
@@ -25,12 +26,13 @@ vi.mock('@/lib/supabase/service', () => ({
         lt: (k: string, v: string) => { filters.push((row) => new Date(String(row[k])) < new Date(v)); return b },
         order: () => b,
         limit: (n: number) => { limit = n; m.limits.push(n); return b },
+        range: (from: number, to: number) => { offset = from; limit = to - from + 1; return b },
         async maybeSingle() {
           const row = table === 'customers' ? customer : site
           return { error: null, data: filters.every((f) => f(row)) ? row : null }
         },
         // Filters run before the limit, as in the database.
-        then: (resolve: (v: unknown) => unknown) => resolve({ error: null, data: m.rows.filter((row) => filters.every((f) => f(row))).slice(0, limit) }),
+        then: (resolve: (v: unknown) => unknown) => resolve({ error: null, data: m.rows.filter((row) => filters.every((f) => f(row))).slice(offset, offset + limit) }),
       }
       return b
     },
@@ -50,9 +52,10 @@ async function measurements() {
   expect(r!.status).toBe(200)
   return r!.json()
 }
+let readingSequence = 0
 function reading(hour: number, status: string, quantityKwh: number, unit = 'kWh', direction = 'consumption', extra: Row = {}): Row {
   const start = new Date(Date.UTC(2026, 0, 1, hour)).toISOString()
-  return { company_id: 'company_synthetic', customer_site_id: 'site_internal', period_start: start, resolution: '1h', revision_status: status, quantity_kwh: quantityKwh, unit, direction, ...extra }
+  return { id: `e0000000-0000-4000-8000-${String(++readingSequence).padStart(12, '0')}`, company_id: 'company_synthetic', customer_site_id: 'site_internal', period_start: start, resolution: '1h', revision_status: status, quantity_kwh: quantityKwh, unit, direction, ...extra }
 }
 
 describe('F13 Partner measurements return only the current revision', () => {

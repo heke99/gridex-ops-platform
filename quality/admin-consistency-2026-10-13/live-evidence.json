@@ -1,0 +1,679 @@
+{
+  "checked_at_stockholm": "2026-10-13T11:24:26+02:00",
+  "repository_head": "51f5fa5e80c42350d697bfed42520672749d4467",
+  "project_ref": "piidsfebjqjmnepdpnas",
+  "mutations_performed": false,
+  "dashboard_and_residuals": [
+    {
+      "jsonb_build_object": {
+        "dashboard": {
+          "ediel": {
+            "active_routes": 359,
+            "running_tests": 30,
+            "sent_messages": 0,
+            "draft_messages": 0,
+            "total_messages": 1,
+            "failed_messages": 0,
+            "queued_messages": 0,
+            "active_test_runs": 30,
+            "inbound_messages": 1,
+            "outbound_messages": 0,
+            "prepared_messages": 0,
+            "configured_profiles": 361,
+            "ack_overdue_messages": 0,
+            "ack_pending_messages": 0
+          },
+          "open_tasks": 0,
+          "sites_total": 0,
+          "generated_at": "2026-10-13T09:16:53.396472+00:00",
+          "open_switches": 0,
+          "companies_total": 3,
+          "contracts_total": 0,
+          "customers_total": 0,
+          "grid_owners_total": 218,
+          "metering_points_total": 0,
+          "metering_values_total": 0,
+          "upcoming_terminations": 0,
+          "latest_metering_values": 0,
+          "waiting_for_grid_owner": 0,
+          "billing_underlays_total": 0,
+          "missing_metering_values": 6,
+          "outbound_requests_total": 0,
+          "open_grid_owner_requests": 0,
+          "customers_action_required": 0,
+          "negative_acknowledgements": 0,
+          "ongoing_supplier_switches": 0,
+          "electricity_suppliers_total": 9,
+          "pending_customer_applications": 0
+        },
+        "quality_groups": [
+          {
+            "rows": 5,
+            "status": "open",
+            "issue_type": "missing_customer_contract",
+            "entity_type": "customer",
+            "null_entity": 0,
+            "last_created": "2026-08-26T03:25:15.388609+00:00",
+            "first_created": "2026-07-07T03:25:43.479438+00:00",
+            "missing_metering_point": 0
+          },
+          {
+            "rows": 6,
+            "status": "open",
+            "issue_type": "missing_metering_values",
+            "entity_type": "metering_point",
+            "null_entity": 0,
+            "last_created": "2026-07-11T03:25:31.779172+00:00",
+            "first_created": "2026-07-09T03:25:17.421261+00:00",
+            "missing_metering_point": 6
+          },
+          {
+            "rows": 5,
+            "status": "open",
+            "issue_type": "slow_grid_owner_response",
+            "entity_type": "grid_owner_data_request",
+            "null_entity": 0,
+            "last_created": "2026-07-14T03:25:32.636332+00:00",
+            "first_created": "2026-07-07T03:25:45.083102+00:00",
+            "missing_metering_point": 0
+          },
+          {
+            "rows": 2,
+            "status": "open",
+            "issue_type": "active_metering_point_without_active_customer",
+            "entity_type": "metering_point",
+            "null_entity": 0,
+            "last_created": "2026-07-13T03:25:05.806612+00:00",
+            "first_created": "2026-07-13T03:25:04.846597+00:00",
+            "missing_metering_point": 2
+          }
+        ],
+        "forecast_groups": [
+          {
+            "rows": 36,
+            "as_of_month": "2026-09-01",
+            "forecast_kwh": 0,
+            "last_computed": "2026-10-04T03:45:42.278395+00:00",
+            "first_computed": "2026-10-04T03:45:41.279449+00:00",
+            "metering_points": 0
+          },
+          {
+            "rows": 36,
+            "as_of_month": "2026-10-01",
+            "forecast_kwh": 0,
+            "last_computed": "2026-10-13T03:45:41.799128+00:00",
+            "first_computed": "2026-10-13T03:45:40.473482+00:00",
+            "metering_points": 0
+          }
+        ],
+        "application_groups": [
+          {
+            "source": "external_website",
+            "status": "partial",
+            "no_site": true,
+            "no_intake": true,
+            "created_at": "2026-08-23T18:41:34.356963+00:00",
+            "updated_at": "2026-08-23T18:51:25.571337+00:00",
+            "no_contract": true,
+            "no_customer": true,
+            "no_api_client": false
+          }
+        ]
+      }
+    }
+  ],
+  "polymorphic_orphans_and_fk_proof": [
+    {
+      "jsonb_build_object": {
+        "fk": [
+          {
+            "conname": "external_contract_intakes_company_id_fkey",
+            "validated": true,
+            "definition": "FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE",
+            "table_name": "external_contract_intakes"
+          },
+          {
+            "conname": "external_contract_intakes_intake_id_fkey",
+            "validated": true,
+            "definition": "FOREIGN KEY (intake_id) REFERENCES customer_application_intakes(id)",
+            "table_name": "external_contract_intakes"
+          },
+          {
+            "conname": "external_contract_intakes_public_offer_fk",
+            "validated": true,
+            "definition": "FOREIGN KEY (public_contract_offer_id) REFERENCES public_contract_offers(id) ON DELETE SET NULL",
+            "table_name": "external_contract_intakes"
+          },
+          {
+            "conname": "customer_supply_periods_company_contract_fkey",
+            "validated": true,
+            "definition": "FOREIGN KEY (company_id, contract_id) REFERENCES customer_contracts(company_id, id)",
+            "table_name": "customer_supply_periods"
+          },
+          {
+            "conname": "customer_supply_periods_company_customer_contract_fkey",
+            "validated": true,
+            "definition": "FOREIGN KEY (company_id, customer_contract_id) REFERENCES customer_contracts(company_id, id)",
+            "table_name": "customer_supply_periods"
+          },
+          {
+            "conname": "customer_supply_periods_company_customer_fkey",
+            "validated": true,
+            "definition": "FOREIGN KEY (company_id, customer_id) REFERENCES customers(company_id, id)",
+            "table_name": "customer_supply_periods"
+          },
+          {
+            "conname": "customer_supply_periods_company_id_fkey",
+            "validated": true,
+            "definition": "FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE RESTRICT",
+            "table_name": "customer_supply_periods"
+          },
+          {
+            "conname": "customer_supply_periods_company_meter_fkey",
+            "validated": true,
+            "definition": "FOREIGN KEY (company_id, metering_point_id) REFERENCES metering_points(company_id, id)",
+            "table_name": "customer_supply_periods"
+          },
+          {
+            "conname": "customer_supply_periods_customer_id_fkey",
+            "validated": true,
+            "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE RESTRICT",
+            "table_name": "customer_supply_periods"
+          },
+          {
+            "conname": "customer_supply_periods_metering_point_id_fkey",
+            "validated": true,
+            "definition": "FOREIGN KEY (metering_point_id) REFERENCES metering_points(id) ON DELETE RESTRICT",
+            "table_name": "customer_supply_periods"
+          },
+          {
+            "conname": "customer_supply_periods_source_message_id_fkey",
+            "validated": true,
+            "definition": "FOREIGN KEY (source_message_id) REFERENCES ediel_messages(id) ON DELETE SET NULL",
+            "table_name": "customer_supply_periods"
+          },
+          {
+            "conname": "data_quality_issues_company_id_fkey",
+            "validated": true,
+            "definition": "FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE RESTRICT",
+            "table_name": "data_quality_issues"
+          },
+          {
+            "conname": "website_customer_applications_api_client_id_fkey",
+            "validated": true,
+            "definition": "FOREIGN KEY (api_client_id) REFERENCES integration_api_clients(id) ON DELETE SET NULL",
+            "table_name": "website_customer_applications"
+          },
+          {
+            "conname": "website_customer_applications_assigned_to_fkey",
+            "validated": true,
+            "definition": "FOREIGN KEY (assigned_to) REFERENCES auth.users(id) ON DELETE SET NULL",
+            "table_name": "website_customer_applications"
+          },
+          {
+            "conname": "website_customer_applications_company_api_client_fkey",
+            "validated": true,
+            "definition": "FOREIGN KEY (company_id, api_client_id) REFERENCES integration_api_clients(company_id, id) ON DELETE RESTRICT",
+            "table_name": "website_customer_applications"
+          },
+          {
+            "conname": "website_customer_applications_company_contract_fkey",
+            "validated": true,
+            "definition": "FOREIGN KEY (company_id, contract_id) REFERENCES customer_contracts(company_id, id) ON DELETE RESTRICT",
+            "table_name": "website_customer_applications"
+          },
+          {
+            "conname": "website_customer_applications_company_customer_fkey",
+            "validated": true,
+            "definition": "FOREIGN KEY (company_id, customer_id) REFERENCES customers(company_id, id) ON DELETE RESTRICT",
+            "table_name": "website_customer_applications"
+          },
+          {
+            "conname": "website_customer_applications_company_id_fkey",
+            "validated": true,
+            "definition": "FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE",
+            "table_name": "website_customer_applications"
+          },
+          {
+            "conname": "website_customer_applications_company_metering_point_fkey",
+            "validated": true,
+            "definition": "FOREIGN KEY (company_id, metering_point_id) REFERENCES metering_points(company_id, id) ON DELETE RESTRICT",
+            "table_name": "website_customer_applications"
+          },
+          {
+            "conname": "website_customer_applications_company_site_fkey",
+            "validated": true,
+            "definition": "FOREIGN KEY (company_id, customer_site_id) REFERENCES customer_sites(company_id, id) ON DELETE RESTRICT",
+            "table_name": "website_customer_applications"
+          },
+          {
+            "conname": "website_customer_applications_contract_id_fkey",
+            "validated": true,
+            "definition": "FOREIGN KEY (contract_id) REFERENCES customer_contracts(id) ON DELETE SET NULL",
+            "table_name": "website_customer_applications"
+          },
+          {
+            "conname": "website_customer_applications_contract_price_snapshot_id_fkey",
+            "validated": true,
+            "definition": "FOREIGN KEY (contract_price_snapshot_id) REFERENCES contract_price_snapshots(id) ON DELETE SET NULL",
+            "table_name": "website_customer_applications"
+          },
+          {
+            "conname": "website_customer_applications_contract_product_id_fkey",
+            "validated": true,
+            "definition": "FOREIGN KEY (contract_product_id) REFERENCES contract_products(id) ON DELETE RESTRICT",
+            "table_name": "website_customer_applications"
+          },
+          {
+            "conname": "website_customer_applications_contract_product_version_id_fkey",
+            "validated": true,
+            "definition": "FOREIGN KEY (contract_product_version_id) REFERENCES contract_product_versions(id) ON DELETE RESTRICT",
+            "table_name": "website_customer_applications"
+          },
+          {
+            "conname": "website_customer_applications_contract_publication_version_fkey",
+            "validated": true,
+            "definition": "FOREIGN KEY (contract_publication_version_id) REFERENCES contract_publication_versions(id) ON DELETE RESTRICT",
+            "table_name": "website_customer_applications"
+          },
+          {
+            "conname": "website_customer_applications_customer_id_fkey",
+            "validated": true,
+            "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL",
+            "table_name": "website_customer_applications"
+          },
+          {
+            "conname": "website_customer_applications_customer_site_id_fkey",
+            "validated": true,
+            "definition": "FOREIGN KEY (customer_site_id) REFERENCES customer_sites(id) ON DELETE SET NULL",
+            "table_name": "website_customer_applications"
+          },
+          {
+            "conname": "website_customer_applications_intake_id_fkey",
+            "validated": true,
+            "definition": "FOREIGN KEY (intake_id) REFERENCES customer_application_intakes(id)",
+            "table_name": "website_customer_applications"
+          },
+          {
+            "conname": "website_customer_applications_legal_bundle_version_id_fkey",
+            "validated": true,
+            "definition": "FOREIGN KEY (legal_bundle_version_id) REFERENCES legal_bundle_versions(id) ON DELETE RESTRICT",
+            "table_name": "website_customer_applications"
+          },
+          {
+            "conname": "website_customer_applications_metering_point_id_fkey",
+            "validated": true,
+            "definition": "FOREIGN KEY (metering_point_id) REFERENCES metering_points(id) ON DELETE SET NULL",
+            "table_name": "website_customer_applications"
+          },
+          {
+            "conname": "website_customer_applications_price_book_id_fkey",
+            "validated": true,
+            "definition": "FOREIGN KEY (price_book_id) REFERENCES price_books(id) ON DELETE RESTRICT",
+            "table_name": "website_customer_applications"
+          },
+          {
+            "conname": "website_customer_applications_price_plan_id_fkey",
+            "validated": true,
+            "definition": "FOREIGN KEY (price_plan_id) REFERENCES price_plans(id) ON DELETE SET NULL",
+            "table_name": "website_customer_applications"
+          },
+          {
+            "conname": "website_customer_applications_price_plan_version_id_fkey",
+            "validated": true,
+            "definition": "FOREIGN KEY (price_plan_version_id) REFERENCES price_plan_versions(id) ON DELETE SET NULL",
+            "table_name": "website_customer_applications"
+          },
+          {
+            "conname": "website_customer_applications_public_offer_fk",
+            "validated": true,
+            "definition": "FOREIGN KEY (public_contract_offer_id) REFERENCES public_contract_offers(id) ON DELETE SET NULL",
+            "table_name": "website_customer_applications"
+          },
+          {
+            "conname": "website_customer_applications_repair_owner_user_fk",
+            "validated": true,
+            "definition": "FOREIGN KEY (repair_owner_user_id) REFERENCES auth.users(id) ON DELETE SET NULL",
+            "table_name": "website_customer_applications"
+          },
+          {
+            "conname": "website_customer_applications_reviewed_by_fkey",
+            "validated": true,
+            "definition": "FOREIGN KEY (reviewed_by) REFERENCES auth.users(id) ON DELETE SET NULL",
+            "table_name": "website_customer_applications"
+          },
+          {
+            "conname": "customer_application_intakes_api_client_id_fkey",
+            "validated": true,
+            "definition": "FOREIGN KEY (api_client_id) REFERENCES integration_api_clients(id) ON DELETE SET NULL",
+            "table_name": "customer_application_intakes"
+          },
+          {
+            "conname": "customer_application_intakes_company_id_fkey",
+            "validated": true,
+            "definition": "FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE",
+            "table_name": "customer_application_intakes"
+          },
+          {
+            "conname": "customer_application_intakes_customer_company_fk",
+            "validated": true,
+            "definition": "FOREIGN KEY (customer_id, company_id) REFERENCES customers(id, company_id) ON UPDATE CASCADE ON DELETE CASCADE",
+            "table_name": "customer_application_intakes"
+          },
+          {
+            "conname": "customer_application_intakes_customer_id_fkey",
+            "validated": true,
+            "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL",
+            "table_name": "customer_application_intakes"
+          }
+        ],
+        "cohort_proof": {
+          "actual_customers": 1,
+          "reported_customers": 4
+        },
+        "queue_groups": null,
+        "quality_orphans": [
+          {
+            "rows": 5,
+            "issue_type": "missing_customer_contract",
+            "entity_type": "customer",
+            "missing_entity": 5
+          },
+          {
+            "rows": 5,
+            "issue_type": "slow_grid_owner_response",
+            "entity_type": "grid_owner_data_request",
+            "missing_entity": 5
+          },
+          {
+            "rows": 2,
+            "issue_type": "active_metering_point_without_active_customer",
+            "entity_type": "metering_point",
+            "missing_entity": 2
+          },
+          {
+            "rows": 6,
+            "issue_type": "missing_metering_values",
+            "entity_type": "metering_point",
+            "missing_entity": 6
+          }
+        ]
+      }
+    }
+  ],
+  "expiry_types_alert_groups_application_provenance": [
+    {
+      "jsonb_build_object": {
+        "poa_types": [
+          {
+            "data_type": "text",
+            "column_name": "scope"
+          },
+          {
+            "data_type": "timestamp with time zone",
+            "column_name": "valid_from"
+          },
+          {
+            "data_type": "timestamp with time zone",
+            "column_name": "valid_to"
+          }
+        ],
+        "dashboard_alert_groups": [
+          {
+            "alerts": 156,
+            "status": "open",
+            "alert_type": "missing_metering_values",
+            "newest_created": "2026-10-13T03:45:42.307424+00:00",
+            "oldest_created": "2026-07-09T03:25:20.090328+00:00",
+            "aggregate_alerts": 156
+          },
+          {
+            "alerts": 32,
+            "status": "open",
+            "alert_type": "data_quality",
+            "newest_created": "2026-08-26T03:45:27.332754+00:00",
+            "oldest_created": "2026-07-07T03:25:45.877117+00:00",
+            "aggregate_alerts": 32
+          },
+          {
+            "alerts": 162,
+            "status": "open",
+            "alert_type": "slow_grid_owner_response",
+            "newest_created": "2026-10-13T03:45:42.279426+00:00",
+            "oldest_created": "2026-07-07T03:25:45.739678+00:00",
+            "aggregate_alerts": 162
+          }
+        ],
+        "unlinked_application_provenance": [
+          {
+            "source": "external_website",
+            "status": "partial",
+            "created_at": "2026-08-23T18:41:34.356963+00:00",
+            "updated_at": "2026-08-23T18:51:25.571337+00:00",
+            "metadata_keys": [],
+            "client_test_flag": false,
+            "payload_test_flag": false,
+            "customer_test_flag": false,
+            "metadata_test_flag": false,
+            "client_metadata_keys": [
+              "notes",
+              "primary",
+              "environment",
+              "openapi_url",
+              "api_base_url",
+              "created_from",
+              "frontend_app",
+              "go_live_flow",
+              "intended_use",
+              "token_display",
+              "allowed_origins",
+              "permission_groups",
+              "recommended_header",
+              "duplicate_repaired_at",
+              "tenant_identity_source",
+              "duplicate_repair_reason",
+              "provisioning_receipt_id",
+              "missing_recommended_scopes",
+              "provisioning_idempotency_key",
+              "canonical_readiness_paused_at",
+              "application_reference_location",
+              "canonical_readiness_adopted_at",
+              "canonical_readiness_adopted_by",
+              "duplicate_repair_actor_user_id",
+              "required_environment_variables",
+              "canonical_readiness_pause_reason",
+              "granular_tenant_website_scopes_at",
+              "legacy_portal_scope_aliases_removed"
+            ],
+            "client_name_test_hint": false
+          }
+        ]
+      }
+    }
+  ],
+  "additional_table_counts": [
+    {
+      "table_name": "bidding_zone_monthly_metrics",
+      "exact_count": 48
+    },
+    {
+      "table_name": "company_monthly_metrics",
+      "exact_count": 12
+    },
+    {
+      "table_name": "customer_application_intakes",
+      "exact_count": 0
+    },
+    {
+      "table_name": "customer_application_provisioning_steps",
+      "exact_count": 0
+    },
+    {
+      "table_name": "customer_application_workflow_events",
+      "exact_count": 0
+    },
+    {
+      "table_name": "customer_application_workflows",
+      "exact_count": 0
+    },
+    {
+      "table_name": "customer_monthly_metrics",
+      "exact_count": 0
+    },
+    {
+      "table_name": "customer_onboarding_applications",
+      "exact_count": 0
+    },
+    {
+      "table_name": "dashboard_alerts",
+      "exact_count": 350
+    },
+    {
+      "table_name": "facility_data_quality_issues",
+      "exact_count": 0
+    },
+    {
+      "table_name": "forecast_run_items",
+      "exact_count": 0
+    },
+    {
+      "table_name": "forecast_runs",
+      "exact_count": 38
+    },
+    {
+      "table_name": "grid_owner_data_requests",
+      "exact_count": 0
+    },
+    {
+      "table_name": "grid_owner_information_requests",
+      "exact_count": 0
+    },
+    {
+      "table_name": "grid_owner_monthly_metrics",
+      "exact_count": 0
+    },
+    {
+      "table_name": "inbound_operation_events",
+      "exact_count": 1
+    },
+    {
+      "table_name": "integration_api_rate_limit_events",
+      "exact_count": 0
+    },
+    {
+      "table_name": "metering_value_batches",
+      "exact_count": 0
+    },
+    {
+      "table_name": "metering_value_errors",
+      "exact_count": 0
+    },
+    {
+      "table_name": "normalized_metering_values",
+      "exact_count": 0
+    },
+    {
+      "table_name": "platform_data_quality_issues",
+      "exact_count": 0
+    },
+    {
+      "table_name": "platform_usage_event_failures",
+      "exact_count": 2
+    },
+    {
+      "table_name": "platform_usage_events",
+      "exact_count": 7696
+    },
+    {
+      "table_name": "supplier_switch_requests",
+      "exact_count": 0
+    },
+    {
+      "table_name": "website_application_review_items",
+      "exact_count": 0
+    }
+  ],
+  "alert_indexes": [
+    {
+      "jsonb_build_object": {
+        "alert_indexes": [
+          {
+            "indexdef": "CREATE UNIQUE INDEX dashboard_alerts_pkey ON public.dashboard_alerts USING btree (id)",
+            "indexname": "dashboard_alerts_pkey"
+          },
+          {
+            "indexdef": "CREATE UNIQUE INDEX dashboard_alerts_company_id_alert_type_entity_type_entity_i_key ON public.dashboard_alerts USING btree (company_id, alert_type, entity_type, entity_id, status)",
+            "indexname": "dashboard_alerts_company_id_alert_type_entity_type_entity_i_key"
+          },
+          {
+            "indexdef": "CREATE INDEX idx_dashboard_alerts_company_status ON public.dashboard_alerts USING btree (company_id, status)",
+            "indexname": "idx_dashboard_alerts_company_status"
+          }
+        ],
+        "duplicate_aggregate_alert_groups": 3,
+        "application_no_parent_but_existing_company": 1
+      }
+    }
+  ],
+  "portfolio_remaining_rpcs": [
+    {
+      "jsonb_build_object": {
+        "churn": 0,
+        "zones": 0,
+        "cohorts": 0,
+        "summary": 12,
+        "accuracy": 12,
+        "forecast": 12
+      }
+    },
+    {
+      "jsonb_build_object": {
+        "churn": 0,
+        "zones": 0,
+        "cohorts": 0,
+        "summary": 12,
+        "accuracy": 12,
+        "forecast": 12
+      }
+    },
+    {
+      "jsonb_build_object": {
+        "churn": 0,
+        "zones": 0,
+        "cohorts": 0,
+        "summary": 12,
+        "accuracy": 12,
+        "forecast": 12
+      }
+    }
+  ],
+  "portfolio_expiry_failure": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"error\":{\"name\":\"HttpException\",\"message\":\"Failed to run sql query: ERROR:  42846: cannot cast type interval to integer\\nQUERY:  select x.id, x.customer_id,\\n         coalesce(nullif(trim(c.full_name), ''), nullif(trim(c.company_name), ''),\\n                  nullif(trim(concat_ws(' ', c.first_name, c.last_name)), ''), c.customer_number),\\n         x.scope, x.valid_to, (x.valid_to - current_date)::integer\\n  from public.powers_of_attorney x\\n  left join public.customers c on c.id = x.customer_id and c.company_id = x.company_id\\n  where x.company_id = p_company_id\\n    and x.status in ('signed', 'accepted', 'active', 'completed')\\n    and x.valid_to between current_date and current_date + least(greatest(coalesce(p_days, 30), 1), 365)\\n  order by x.valid_to, x.id\\n  limit 500\\nCONTEXT:  PL/pgSQL function gridex_customer_portfolio_expiring_poa(uuid,integer) line 5 at RETURN QUERY\\n\"}}"
+      }
+    ],
+    "structuredContent": {
+      "error_code": "INVALID_ARGUMENT"
+    },
+    "isError": true
+  },
+  "fk_scan": {
+    "checked": 1298,
+    "child_tables": 425,
+    "target_tables": 150,
+    "batches": 15,
+    "failed_batches": 0,
+    "unvalidated_constraints": 0,
+    "orphan_rows": 0,
+    "method": "For each deployed public FK: COUNT fully non-null child key where NOT EXISTS a matching parent tuple, including composite key components. Polymorphic entity_id references audited separately. Null optional references are valid MATCH SIMPLE states."
+  },
+  "excluded_claims": [
+    "No authenticated browser verification",
+    "No full dependency-backed test suite/build/typecheck",
+    "No security certification",
+    "No authorization or proof that the surviving application is test data",
+    "No assertion that all historical aggregate snapshot records should be deleted"
+  ]
+}

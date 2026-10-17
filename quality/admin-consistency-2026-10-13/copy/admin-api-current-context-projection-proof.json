@@ -1,0 +1,92 @@
+{
+  "kind": "BOUNDED_OWN_ADMIN_API_CONTEXT_FORWARD_LOCAL_BEHAVIOR_PROOF",
+  "recorded_at": "2026-10-14T00:52:21.949076+00:00",
+  "baseline_head": "a1f00da4ba9449228baaca2192e81788b41796b4",
+  "baseline_tree": "903a7aa62686bce8d345c5c8269caa1f4d16f4c5",
+  "scope": {
+    "new_sql": "supabase/migrations/20261014004020_admin_api_current_context_projection.sql",
+    "new_behavior_fixture": "__tests__/admin-api-current-context-projection-forward.test.ts",
+    "historical_34_unchanged": "__tests__/admin-context-current-permission-deny-forward.test.ts"
+  },
+  "source_hashes": {
+    "supabase/migrations/20261014004020_admin_api_current_context_projection.sql": "852f0517f86b31e1baffd756f48e9cf3faad798df4d802d77f99300cfb92ed59",
+    "__tests__/admin-api-current-context-projection-forward.test.ts": "4d38e31f39aef6b9c06bdddd9032232e2f4d50bde8c9b72e35bc617ffb4d7a27",
+    "__tests__/admin-context-current-permission-deny-forward.test.ts": "8f69af6c862f36d8020c96e703e5261516fca1f15a1ea4eca59e3d8c634383ab"
+  },
+  "implementation": {
+    "cli_created": true,
+    "cli_version": "2.120.0",
+    "exact_body_donor_commit": "d899ac6b36d754aa784333ed4da07702e47619e0",
+    "body_donor_read_only_path": "supabase/migrations/20261013095628_ops_api_current_context_permission_denies.sql",
+    "donor_reuse": "Only scoped-context patched body byte-equal; no held installer executed/imported",
+    "preimage_md5": "20800ecdbc19c53dd48b5bd8f3376bc1",
+    "preimage_volatility": "s",
+    "postimage_md5": "d205c4e8ba1989b27b4df6b1b76af631",
+    "postimage_volatility": "v",
+    "policy": "Existing role ALLOW list remains filtered by current catalog and DENY; added active catalog and current global/selected-company DENY arrays let actual API guard apply the same negative precedence to platform authority",
+    "preservation": "Complete pg_proc except intended source/volatility, OID, owner, ACL, argument default, settings, comment and dependencies; entire public wrapper unchanged",
+    "guards": "Unknown body/security/signature/ACL/wrapper/dependency types refuse atomically; exact d205/VOLATILE replay preserves every field",
+    "vendor_auth_email": "varchar(255) fixture; narrow text/varchar assignment port matches root metadata-only live oracle2026-10-14T00:49:48Z"
+  },
+  "verification": {
+    "command": "NODE_OPTIONS=\"${NODE_OPTIONS:-} --require=./scripts/lib/unit-loopback-network-boundary.cjs\" /tmp/gridex-npm-cache/_npx/52027bd8fc0022aa/node_modules/node/bin/node node_modules/vitest/vitest.mjs run __tests__/admin-api-current-context-projection-forward.test.ts __tests__/admin-context-current-permission-deny-forward.test.ts __tests__/admin-api-current-permission-context.test.ts --maxWorkers=1 --testTimeout=30000 --hookTimeout=30000 --reporter=default --reporter=json --outputFile=/tmp/gridex-api-context-projection-forward-final.json",
+    "execution": "Local require_escalated process boundary; repository reviewed loopback-only preload; no external database",
+    "final": {
+      "files": 3,
+      "passed": 78,
+      "failed": 0,
+      "skipped": 0,
+      "new_cases": 35,
+      "historical_cases": 34,
+      "existing_api_cases": 9,
+      "duration_ms": 11625
+    },
+    "red": {
+      "passed": 4,
+      "failed": 27,
+      "cases": 31,
+      "subject_sql_was_empty": true,
+      "subject_sql_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_applicability": "Initial31-case test before the vendor email model correction, deterministic expiry setup and4 additional regressions; not labeled current35-source proof"
+    },
+    "targeted_eslint_exit": 0,
+    "diff_check_exit": 0,
+    "new_file_whitespace_check": "PASS",
+    "receipts": {
+      "/tmp/gridex-api-context-projection-forward-red.log": {
+        "sha256": "5584095ad71af9d7ca6fbb60b1a3353fc952716699a54706743e8db4162d4100"
+      },
+      "/tmp/gridex-api-context-projection-forward-red.json": {
+        "sha256": "32c4d23ad1c7d5a1d7127b0905bb841fdb14a871ddd651919ff642d97f13b32f"
+      },
+      "/tmp/gridex-api-context-projection-forward-final.log": {
+        "sha256": "aa90734ea2d5d1621f887a53fd214ecb9c13244afcaffdb8a1e37f7efacbed78"
+      },
+      "/tmp/gridex-api-context-projection-forward-final.json": {
+        "sha256": "67b2386f80a4e5c4d78d989beaaac0e54cd74009f12fc608598bd5c199583b71"
+      },
+      "/tmp/gridex-api-context-projection-forward-lint.log": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  },
+  "evidence_scope": {
+    "historical_browser_scripts": "No change64e->985->a1; actual64 browser31pass vs genuine98512fail/19pass",
+    "raw985_log_sha256": "7072ed4862732d6a71404e36ec0671f2abc9755be80b5acd70238a914dd3c239",
+    "raw64_log_sha256": "535ce44dd41e3a019d2d4dcfb359391979ce1f40342b57bce3342122cf565c68",
+    "browser_response_bodies": "Not available in raw logs; current real SQL+guard baseline reproduces503, new whole forward restores verified guard success and403",
+    "no_claim": "This local finite proof does not qualify native schema/RLS/locks, clean whole-prefix browser201/persistence, actuallive application or capture",
+    "next_owner": "Root serial delivery owner handles manifests, authentic current-source capture, current-head CI/native/browser and deployment"
+  },
+  "skill_routing": {
+    "active": [
+      "systematic-debugging: established SQL/RPC/API gate mismatch before edits",
+      "test-driven-development: baseline missing projections27RED before production SQL",
+      "supabase: CLI-created forward, existing schema/auth contract",
+      "supabase-postgres-best-practices: private definer and no ACL broadening",
+      "verification-before-completion: current78-green receipts and hashes"
+    ],
+    "already_completed": "Original broader audit skill routing remains in existing scoped evidence; no new broad audit",
+    "skipped": "No UI edits, performance changes, new dependencies, Ediel rule/metadata approval, native producer, workflow or deployment actions"
+  }
+}

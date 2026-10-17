@@ -17,6 +17,7 @@ import {
   type ContractOpsContext,
 } from "./helpers";
 import { commercialModelFromSnapshot } from "@/lib/pricing/commercialModel";
+import { SWEDISH_STANDARD_VAT_PERCENT } from "@/lib/pricing/vat";
 import {
   CONTRACT_SIGNING_METHOD_LABELS,
   CONTRACT_SIGNING_METHODS,
@@ -212,6 +213,10 @@ function CampaignVersionFields({
 }
 
 function ExtraPriceFields({ contract }: { contract?: CustomerContractRow }) {
+  const commercialTermsFixed = Boolean(contract && (contract.status !== "draft" ||
+    contract.locked_at || contract.signed_at || contract.contract_offer_id ||
+    contract.public_contract_offer_id || contract.contract_publication_version_id));
+  const futureConsumption = !contract || (!commercialTermsFixed && contract.energy_direction !== "production");
   return (
     <SectionCard
       title="Tillägg, rabatter och moms"
@@ -286,7 +291,10 @@ function ExtraPriceFields({ contract }: { contract?: CustomerContractRow }) {
         <Field label="Moms (%)">
           <input
             name="vat_rate"
-            defaultValue={contract?.vat_rate ?? ""}
+            defaultValue={futureConsumption ? SWEDISH_STANDARD_VAT_PERCENT
+              : contract?.vat_rate === null || contract?.vat_rate === undefined
+                ? "" : contract.vat_rate * 100}
+            readOnly={futureConsumption || commercialTermsFixed}
             placeholder="25"
             className={inputClassName()}
           />

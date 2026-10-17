@@ -41,7 +41,7 @@ export default async function LoginPage({
 
             <div className="mt-10 max-w-xl">
               <h1 className="text-4xl font-bold tracking-tight text-slate-900">
-                Ett internt system för operations och elhandelsdrift
+                Ett internt verktyg för kundservice och elhandelsdrift
               </h1>
               <p className="mt-5 text-lg leading-8 text-slate-600">
                 Logga in för att hantera kunder, anläggningar, mätpunkter,
@@ -59,16 +59,16 @@ export default async function LoginPage({
             </div>
 
             <div className="rounded-2xl border bg-white p-4 shadow-sm">
-              <p className="text-sm font-medium text-slate-900">Operations</p>
+              <p className="text-sm font-medium text-slate-900">Drift</p>
               <p className="mt-2 text-sm text-slate-600">
-                Fullmakter, readiness, driftuppgifter och leverantörsbyten.
+                Fullmakter, leveranskontroller, driftuppgifter och leverantörsbyten.
               </p>
             </div>
 
             <div className="rounded-2xl border bg-white p-4 shadow-sm">
-              <p className="text-sm font-medium text-slate-900">CIS Core</p>
+              <p className="text-sm font-medium text-slate-900">Mätning och fakturering</p>
               <p className="mt-2 text-sm text-slate-600">
-                Metering, billing, partnerexporter och intern kontroll.
+                Mätvärden, fakturering, partnerrapporter och intern kontroll.
               </p>
             </div>
           </div>

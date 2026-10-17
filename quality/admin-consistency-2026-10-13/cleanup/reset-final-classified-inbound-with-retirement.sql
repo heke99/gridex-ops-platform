@@ -1,0 +1,31 @@
+begin;
+select set_config('request.jwt.claims','{"role":"service_role"}',true);
+select set_config('request.jwt.claim.role','service_role',true);
+lock table public.manual_inbound_messages,public.inbound_operation_events in share row exclusive mode;
+do $purge$
+declare m public.manual_inbound_messages%rowtype;e public.inbound_operation_events%rowtype;k bytea;n bigint;kept_events text;kept_raw text;
+begin
+ if exists(select 1 from public.customers) or exists(select 1 from public.customer_sites) or exists(select 1 from public.metering_points) or exists(select 1 from public.website_customer_applications) then raise exception 'retirement_reset_new_customer_source';end if;
+ if (select count(*) from public.manual_inbound_messages)<>1 then raise exception 'retirement_reset_raw_count_changed';end if;
+ select * into strict m from public.manual_inbound_messages where id='53dbeb78-a2a6-44d0-aca2-230363172473' for update;
+ if md5(md5(to_jsonb(m)::text))<>'42e3d5512970bd2417672f9339e64eef' then raise exception 'retirement_reset_raw_fingerprint_changed';end if;
+ if m.request_id is not null or m.company_id is not null or m.customer_id is not null or m.customer_site_id is not null or m.metering_point_id is not null or m.resolution_status<>'unmatched' or m.business_process<>'power_of_attorney' or m.intent<>'power_of_attorney_question' then raise exception 'retirement_reset_classification_changed';end if;
+ k:=gridex_manual_inbound.manual_source_key_v1(m.mailbox,m.provider_message_id);
+ if k is distinct from decode('2028781e53d1da0aec209876448a6b063fd0eccd8024edfa79078c42cc9886cf','hex') then raise exception 'retirement_reset_source_key_changed';end if;
+ perform gridex_manual_inbound.lock_manual_source_key_v1(k);
+ if exists(select 1 from gridex_manual_inbound.retired_source_keys where source_key=k) then raise exception 'retirement_reset_already_retired';end if;
+ if (select count(*) from public.inbound_operation_events where source_transport='email' and source_id=m.id::text)<>1 then raise exception 'retirement_reset_projection_count_changed';end if;
+ select * into strict e from public.inbound_operation_events where id='33bd491a-abfe-4abe-b0a3-9d58775dcdbb' and source_transport='email' and source_id=m.id::text for update;
+ if e.company_id is not null or e.customer_id is not null or e.customer_site_id is not null or e.metering_point_id is not null or e.business_object_id is not null or e.business_process<>'power_of_attorney' or e.intent<>'power_of_attorney_question' then raise exception 'retirement_reset_projection_classification_changed';end if;
+ select md5(coalesce(string_agg(md5(to_jsonb(t)::text),'' order by md5(to_jsonb(t)::text)),'')) into kept_events from public.inbound_operation_events t where id<>e.id;
+ select md5(coalesce(string_agg(md5(to_jsonb(t)::text),'' order by md5(to_jsonb(t)::text)),'')) into kept_raw from public.manual_inbound_messages t where id<>m.id;
+ delete from public.inbound_operation_events where id=e.id;get diagnostics n=row_count;if n<>1 then raise exception 'retirement_reset_projection_delete_count';end if;
+ delete from public.manual_inbound_messages where id=m.id;get diagnostics n=row_count;if n<>1 then raise exception 'retirement_reset_raw_delete_count';end if;
+ if not exists(select 1 from gridex_manual_inbound.retired_source_keys where source_key=k) then raise exception 'retirement_reset_source_not_retired';end if;
+ if not public.gridex_manual_inbound_source_retired_v1(m.mailbox,m.provider_message_id) then raise exception 'retirement_reset_lookup_not_true';end if;
+ if exists(select 1 from public.manual_inbound_messages where id=m.id) or exists(select 1 from public.inbound_operation_events where id=e.id) then raise exception 'retirement_reset_source_residual';end if;
+ if (select md5(coalesce(string_agg(md5(to_jsonb(t)::text),'' order by md5(to_jsonb(t)::text)),'')) from public.inbound_operation_events t where id<>e.id)<>kept_events then raise exception 'retirement_reset_other_events_changed';end if;
+ if (select md5(coalesce(string_agg(md5(to_jsonb(t)::text),'' order by md5(to_jsonb(t)::text)),'')) from public.manual_inbound_messages t where id<>m.id)<>kept_raw then raise exception 'retirement_reset_other_raw_changed';end if;
+end $purge$;
+commit;
+select 'classified_manual_source_retired_and_pair_removed' as result,2 as removed_rows;

@@ -1,6 +1,7 @@
 import { supabaseService } from '@/lib/supabase/service'
 import { asNumber, monthEndExclusive, monthStart } from '@/lib/analytics/utils'
 import { getMonthlyWeightPercent } from '@/lib/forecasting/consumptionProfiles'
+import { resolveManagedDataQualityIssue, upsertManagedDataQualityIssue } from '@/lib/analytics/dataQuality'
 
 export type MeteringPointForecastResult = {
   forecastKwh: number | null
@@ -37,16 +38,18 @@ function activeDaysFactor(periodStart: string, periodEnd: string, startDate?: st
   return Math.min(1, Math.max(0, daysBetween(clippedStart, clippedEnd) / totalDays))
 }
 
-async function createMissingBasisIssue(companyId: string, meteringPointId: string): Promise<void> {
-  await supabaseService.from('data_quality_issues').upsert({
-    company_id: companyId,
-    entity_type: 'metering_point',
-    entity_id: meteringPointId,
-    issue_type: 'forecast_basis_missing',
-    severity: 'warning',
+async function createMissingBasisIssue(companyId: string, meteringPointId: string, periodMonth: string): Promise<void> {
+  await upsertManagedDataQualityIssue({
+    companyId,
+    entityId: meteringPointId,
+    issueType: 'forecast_basis_missing',
+    periodMonth,
     message: 'Prognosunderlag saknas för mätpunkten.',
-    status: 'open',
-  }, { onConflict: 'company_id,entity_type,entity_id,issue_type,status' })
+  })
+}
+
+async function resolveMissingBasisIssue(companyId: string, meteringPointId: string, periodMonth: string): Promise<void> {
+  await resolveManagedDataQualityIssue({ companyId, entityId: meteringPointId, issueType: 'forecast_basis_missing', periodMonth })
 }
 
 async function actualKwhForPeriod(companyId: string, meteringPointId: string, start: string, end: string): Promise<number> {
@@ -59,11 +62,10 @@ async function actualKwhForPeriod(companyId: string, meteringPointId: string, st
     .lt('period_start', `${end}T00:00:00.000Z`)
 
   if (error) {
-    if (/does not exist|schema cache|Could not find/i.test(error.message)) return 0
     throw error
   }
 
-  return (data ?? []).reduce((sum, row) => sum + asNumber(row.quantity_kwh ?? row.value_kwh), 0)
+  return (data ?? []).reduce((sum, row) => sum + asNumber(row.value_kwh ?? row.quantity_kwh), 0)
 }
 
 export async function calculateMeteringPointForecast(input: {
@@ -89,6 +91,7 @@ export async function calculateMeteringPointForecast(input: {
   const lastYearEnd = `${Number(periodEnd.slice(0, 4)) - 1}${periodEnd.slice(4)}`
   const sameMonthPreviousYear = await actualKwhForPeriod(input.companyId, input.meteringPointId, lastYearStart, lastYearEnd)
   if (sameMonthPreviousYear > 0) {
+    await resolveMissingBasisIssue(input.companyId, input.meteringPointId, periodStart)
     return { forecastKwh: sameMonthPreviousYear, confidenceScore: 95, method: 'history', issues: [] }
   }
 
@@ -96,6 +99,7 @@ export async function calculateMeteringPointForecast(input: {
   lastTwelveStart.setUTCMonth(lastTwelveStart.getUTCMonth() - 12)
   const lastTwelveKwh = await actualKwhForPeriod(input.companyId, input.meteringPointId, lastTwelveStart.toISOString().slice(0, 10), periodStart)
   if (lastTwelveKwh > 0) {
+    await resolveMissingBasisIssue(input.companyId, input.meteringPointId, periodStart)
     return { forecastKwh: lastTwelveKwh / 12, confidenceScore: 85, method: 'history', issues: ['average_last_12_months'] }
   }
 
@@ -103,6 +107,7 @@ export async function calculateMeteringPointForecast(input: {
   lastThreeStart.setUTCMonth(lastThreeStart.getUTCMonth() - 3)
   const lastThreeKwh = await actualKwhForPeriod(input.companyId, input.meteringPointId, lastThreeStart.toISOString().slice(0, 10), periodStart)
   if (lastThreeKwh > 0) {
+    await resolveMissingBasisIssue(input.companyId, input.meteringPointId, periodStart)
     return { forecastKwh: lastThreeKwh / 3, confidenceScore: 85, method: 'hybrid', issues: ['partial_history'] }
   }
 
@@ -112,6 +117,7 @@ export async function calculateMeteringPointForecast(input: {
     const monthNumber = Number(periodStart.slice(5, 7))
     const weight = await getMonthlyWeightPercent(input.companyId, mp.consumption_profile_id, monthNumber)
     const factor = activeDaysFactor(periodStart, periodEnd, mp.start_date, mp.end_date)
+    await resolveMissingBasisIssue(input.companyId, input.meteringPointId, periodStart)
     return {
       forecastKwh: annualEstimate * (weight / 100) * factor,
       confidenceScore: 70,
@@ -120,6 +126,6 @@ export async function calculateMeteringPointForecast(input: {
     }
   }
 
-  await createMissingBasisIssue(input.companyId, input.meteringPointId)
+  await createMissingBasisIssue(input.companyId, input.meteringPointId, periodStart)
   return { forecastKwh: null, confidenceScore: 0, method: 'missing_basis', issues: ['forecast_basis_missing'] }
 }

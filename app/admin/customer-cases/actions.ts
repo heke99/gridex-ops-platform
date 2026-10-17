@@ -1,8 +1,8 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { requireAdminActionAccess } from '@/lib/admin/guards'
-import { getOperationalCompanyScope } from '@/lib/tenant/scope'
+import { requireAdminActionAccess, type GuardResult } from '@/lib/admin/guards'
+import { resolveAdminSelectedCompanyReadScope } from '@/lib/tenant/adminScope'
 import { createTenantSupportCase } from '@/lib/customer-cases/support'
 import { getCustomerCaseById, updateCustomerCaseStatus } from '@/lib/customer-cases/db'
 import {
@@ -18,9 +18,9 @@ import { SUPPORT_ATTACHMENT_OPS_MAX_BYTES, addSupportAttachment } from '@/lib/cu
 const ALLOWED_STATUSES = new Set(['open', 'action_required', 'awaiting_external_response', 'manual_follow_up', 'resolved', 'closed'])
 const ALLOWED_PRIORITIES = new Set<CustomerCasePriority>(['low', 'normal', 'high', 'urgent'])
 
-async function companyIdFor(userId: string): Promise<string> {
-  const scope = await getOperationalCompanyScope(userId)
-  if (!scope.companyId) throw new Error(scope.message ?? 'Bolagskoppling saknas.')
+async function companyIdFor(admin: GuardResult): Promise<string> {
+  const scope = await resolveAdminSelectedCompanyReadScope(admin)
+  if (!scope.companyId) throw new Error('Bolagskoppling saknas.')
   return scope.companyId
 }
 
@@ -41,7 +41,7 @@ function assertFormTenant(formData: FormData, companyId: string) {
 
 async function supportCaseScope(formData: FormData, permission: 'cases.write') {
   const admin = await requireAdminActionAccess([permission])
-  const companyId = await companyIdFor(admin.userId)
+  const companyId = await companyIdFor(admin)
   assertFormTenant(formData, companyId)
   const caseId = value(formData, 'case_id')
   if (!caseId) throw new Error('Ärende saknas.')
@@ -58,7 +58,7 @@ function revalidate() {
 
 export async function createCustomerCaseFromFormAction(formData: FormData): Promise<void> {
   const admin = await requireAdminActionAccess(['cases.write'])
-  const companyId = await companyIdFor(admin.userId)
+  const companyId = await companyIdFor(admin)
   assertFormTenant(formData, companyId)
   const customerId = value(formData, 'customer_id')
   const title = value(formData, 'title')
@@ -81,7 +81,7 @@ export async function createCustomerCaseFromFormAction(formData: FormData): Prom
 
 export async function updateCustomerCaseStatusAction(formData: FormData): Promise<void> {
   const admin = await requireAdminActionAccess(['cases.write'])
-  const companyId = await companyIdFor(admin.userId)
+  const companyId = await companyIdFor(admin)
   assertFormTenant(formData, companyId)
   const caseId = value(formData, 'case_id')
   const status = value(formData, 'status')

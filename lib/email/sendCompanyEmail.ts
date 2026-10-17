@@ -60,20 +60,23 @@ function isLegalOrCritical(input: SendCompanyEmailInput) {
     .includes(input.eventKey ?? input.templateKey)
 }
 
-async function communicationLogHasActiveOutbox(logId: string) {
+async function communicationLogOutboxState(logId: string) {
   const { data, error } = await supabaseService
     .from('tenant_email_outbox')
-    .select('id')
+    .select('status')
     .eq('communication_log_id', logId)
-    .in('status', ['queued', 'processing', 'sent'])
+    .in('status', ['delivery_uncertain', 'queued', 'processing', 'sent'])
+    // Uncertain sorts first; one snapshot also covers processing becoming uncertain.
+    .order('status', { ascending: true })
     .limit(1)
 
   if (error) {
-    if (['42P01', '42703', 'PGRST205'].includes(error.code ?? '')) return false
+    if (['42P01', '42703', 'PGRST205'].includes(error.code ?? '')) return null
     throw error
   }
 
-  return Boolean(data?.length)
+  if (data?.[0]?.status === 'delivery_uncertain') return 'delivery_uncertain'
+  return data?.length ? 'active' : null
 }
 
 async function isEventRuleEnabled(companyId: string, eventKey: string | null | undefined, templateKey: string) {
@@ -103,11 +106,22 @@ export async function sendCompanyEmail(input: SendCompanyEmailInput) {
   const idempotencyKey = defaultEmailIdempotencyKey(input)
   const existingLog = await findCommunicationLogByIdempotencyKey(input.companyId, idempotencyKey)
 
+  const outboxState = existingLog ? await communicationLogOutboxState(existingLog.id) : null
+  // Keep the original row/key for reconciliation; a new row could send twice.
+  if (existingLog && outboxState === 'delivery_uncertain') {
+    return {
+      ok: false,
+      log: existingLog,
+      senderMode: existingLog.sender_mode ?? 'unknown',
+      error: 'email_delivery_uncertain_requires_reconciliation',
+    }
+  }
+
   if (existingLog && ['sent', 'delivered'].includes(existingLog.status)) {
     return { ok: true, duplicate: true, log: existingLog, senderMode: existingLog.sender_mode ?? 'unknown' }
   }
 
-  if (existingLog?.status === 'queued' && await communicationLogHasActiveOutbox(existingLog.id)) {
+  if (existingLog?.status === 'queued' && outboxState === 'active') {
     return { ok: true, duplicate: true, log: existingLog, senderMode: existingLog.sender_mode ?? 'unknown' }
   }
 

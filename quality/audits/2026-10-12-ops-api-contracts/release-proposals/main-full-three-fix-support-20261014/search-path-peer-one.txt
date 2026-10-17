@@ -1,0 +1,22 @@
+Readonly independent source and supplied isolated execution evidence review: PASS (not native applied)
+
+Proposal SHA256: 4153067538523442f6d040e28127b76335a3d4aea07479280d5dcd64a1e6b2c9
+Inputs: native-before.json; published 20261013094514_data_quality_lifecycle_consistency.sql.
+Published SQL body extracted byte-for-byte equals native prosrc. MD5 and SHA256 independently recomputed and match guards.
+
+The proposal resolves the exact public text signature and requires current_user/owner postgres. Guards match the native SQL immutable, invoker, nonstrict, nonleakproof, scalar Boolean function, parallel unsafe, cost 100, rows 0, single named text argument, no defaults/variadic/support/transforms/binary/preparsed body, and exact ACL. Unexpected body or any tested metadata/configuration refuses before ALTER. Name, namespace and argument identity follow exact to_regprocedure lookup. Allowed proconfig states are NULL (first apply) and exactly search_path=pg_catalog (replay). An extra setting or different setting refuses.
+
+The sole function mutation is ALTER FUNCTION SET search_path=pg_catalog, executed only for NULL proconfig. ALTER retains identity/OID, owner, ACL, source, volatility, signature and other pg_proc attributes. The immediate postcondition compares every pg_proc field via to_jsonb excluding only proconfig and requires the exact one-setting target. Unexpected changes raise within the transaction and roll back. Replay skips ALTER and checks the same postcondition, a genuine function no-op.
+
+Pure SQL expression lower(coalesce(p_status,''))=any(array['active','live','ongoing']) uses pg_catalog functions/operators and special syntax, no application relations/helpers. Under ordinary native builtin resolution, the search-path pin preserves exact case-insensitive classification: active/live/ongoing true; NULL, empty, unknown and whitespace-padded values false. It does not trim or rewrite source or alter collation. The intended protection removes caller search-path substitution of builtins.
+
+Execution boundary: no database calls or mutations performed by reviewer. first.log is a historical failure before the function fixture existed and is not successful component evidence. At review time first-corrected.log and fixture-source-corrected.log were empty; no isolated first-pass, replay or rejection execution is claimed here. Root's later populated logs must supply that evidence. No production DDL reviewed as executed.
+
+No actionable source defects found for the supplied native frame. This review approves the source proposal only; it does not certify production application or broader native flow.
+
+Updated execution evidence review:
+Independently recomputed every qualification-receipt input SHA256 and matched the proposal SHA256. first-final.log and replay-final.log each contain BEGIN, three SET, DO, COMMIT. All before/after-first/after-replay JSON assertions independently checked. Initial proconfig NULL becomes exactly [search_path=pg_catalog]; every other target pg_proc field is unchanged. Remaining captures (other-function/role/membership catalog hashes plus classifications) remain equal. Replay capture is byte-for-byte and JSON equal to first-apply capture. The isolated initial pg_proc row equals native-before raw metadata except expected local object/owner OIDs; its prosrc equals native and published source exactly.
+
+Eight pure classification evaluations per capture, three captures (24 total evaluations), agree for NULL, active, ACTIVE, live, ongoing, inactive, leading-space active, and empty string. The capture uses a single aggregate SELECT per snapshot; the receipt's 24 pure_classification_selects is understood as 24 individual evaluations, not 24 separate SQL SELECT statements.
+
+Execution status: supplied artifacts substantiate ISOLATED_GENUINE_COMPONENT_PASS_NOT_NATIVE_APPLIED, preserving full target function metadata except proconfig and proving replay no-op at captured catalog/result scope. No negative-guard execution artifacts supplied or credited; refusal behavior remains source-reviewed. Earlier historical missing-function/semicolon failure and empty corrected logs excluded. No main adoption, native production apply, canonical GEN, fullchain or CI credit. Reviewer performed no DB calls or DB mutations; reviewed files only.

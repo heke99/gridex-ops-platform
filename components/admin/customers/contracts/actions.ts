@@ -48,6 +48,47 @@ import {
   type InvoiceDeliveryMethod,
 } from '@/lib/pricing/commercialModel'
 import { isPriceArea, type PriceArea } from '@/lib/pricing/types'
+import { standardConsumptionVatPercent } from '@/lib/pricing/vat'
+
+function manualContractVatRate(formData: FormData, contract?: CustomerContractRow): number | null {
+  // Bound or frozen commercial terms keep their authoritative historic rate.
+  if (contract && (contract.status !== 'draft' || contract.locked_at || contract.signed_at ||
+    contract.contract_offer_id || contract.public_contract_offer_id ||
+    contract.contract_publication_version_id)) {
+    return contract.vat_rate ?? null
+  }
+  if (contract?.energy_direction === 'production') {
+    const percent = parseNumberOrNull(formData.get('vat_rate'))
+    if (percent === null) return contract.vat_rate ?? null
+    if (!Number.isFinite(percent) || percent < 0 || percent > 100) {
+      throw new Error('Moms måste ligga mellan 0 och 100 procent.')
+    }
+    return percent / 100
+  }
+  return standardConsumptionVatPercent(formData.get('vat_rate')) / 100
+}
+
+function manualProductionConfiguration(contract: CustomerContractRow): Record<string, unknown> {
+  if (contract.energy_direction !== 'production' || contract.status !== 'draft' ||
+    contract.locked_at || contract.signed_at || contract.contract_offer_id ||
+    contract.public_contract_offer_id || contract.contract_publication_version_id) return {}
+  const production = contract.price_snapshot?.production
+  if (!production || typeof production !== 'object' || Array.isArray(production)) return {}
+  // Only canonical settlement configuration crosses into new authoring. Old
+  // receipt hashes, binding IDs and customer/publication metadata never do.
+  const source = production as Record<string, unknown>
+  const keys = [
+    'enabled', 'compensation_model', 'resolution', 'deduction_ore_per_kwh',
+    'premium_ore_per_kwh', 'fixed_compensation_ore_per_kwh', 'compensation_ore_per_kwh',
+    'compensation_sek_per_kwh', 'vat_rate', 'vat_rate_decimal', 'vat_rate_percent',
+    'vat_treatment', 'settlement_mode', 'billing_direction', 'metering_point_role',
+  ]
+  return {
+    energy_direction: contract.energy_direction,
+    production: Object.fromEntries(keys.filter((key) => Object.hasOwn(source, key))
+      .map((key) => [key, source[key]])),
+  }
+}
 
 function getString(formData: FormData, key: string): string {
   return String(formData.get(key) ?? '').trim()
@@ -783,7 +824,7 @@ export async function createContractAction(formData: FormData) {
   const startFeeSek = parseNumberOrNull(formData.get('start_fee_sek'))
   const adminFeeSek = parseNumberOrNull(formData.get('admin_fee_sek'))
   const breakFeeSek = parseNumberOrNull(formData.get('break_fee_sek'))
-  const vatRate = parseNumberOrNull(formData.get('vat_rate'))
+  const vatRate = manualContractVatRate(formData)
 
   // Manual contracts carry custom pricing: the price that matches the
   // contract type is mandatory and the period must be ordered.
@@ -806,6 +847,7 @@ export async function createContractAction(formData: FormData) {
     meteringPointId,
     contractOfferId: null,
     sourceType: 'manual_override',
+    energyDirection: 'consumption',
     status,
     contractName,
     contractType,
@@ -969,7 +1011,7 @@ export async function updateContractAction(formData: FormData) {
   const startFeeSek = parseNumberOrNull(formData.get('start_fee_sek'))
   const adminFeeSek = parseNumberOrNull(formData.get('admin_fee_sek'))
   const breakFeeSek = parseNumberOrNull(formData.get('break_fee_sek'))
-  const vatRate = parseNumberOrNull(formData.get('vat_rate'))
+  const vatRate = manualContractVatRate(formData, before)
 
   // Catalog-backed contracts need a documented reason when prices are changed.
   const updatePricingError = firstContractPricingError(validateContractPricing({
@@ -991,6 +1033,7 @@ export async function updateContractAction(formData: FormData) {
     meteringPointId,
     companyId,
     status: nextStatus,
+    energyDirection: before.energy_direction,
     contractName: getString(formData, 'contract_name') || before.contract_name,
     contractType: parseContractType(formData.get('contract_type')),
     campaignName,
@@ -1004,21 +1047,24 @@ export async function updateContractAction(formData: FormData) {
     adminFeeSek,
     breakFeeSek,
     vatRate,
-    priceSnapshot: buildPriceSnapshot({
-      fixedPriceOrePerKwh,
-      spotMarkupOrePerKwh,
-      variableFeeOrePerKwh,
-      monthlyFeeSek,
-      invoiceFeeSek,
-      greenFeeMode,
-      greenFeeValue,
-      discountValue,
-      discountUnit,
-      startFeeSek,
-      adminFeeSek,
-      breakFeeSek,
-      vatRate,
-    }),
+    priceSnapshot: {
+      ...manualProductionConfiguration(before),
+      ...buildPriceSnapshot({
+        fixedPriceOrePerKwh,
+        spotMarkupOrePerKwh,
+        variableFeeOrePerKwh,
+        monthlyFeeSek,
+        invoiceFeeSek,
+        greenFeeMode,
+        greenFeeValue,
+        discountValue,
+        discountUnit,
+        startFeeSek,
+        adminFeeSek,
+        breakFeeSek,
+        vatRate,
+      }),
+    },
     campaignSnapshot: buildCampaignSnapshot({
       campaignName,
       campaignCode,

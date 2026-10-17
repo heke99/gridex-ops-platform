@@ -59,8 +59,8 @@ const portal = readJson('docs/openapi/customer-portal-v1.json')
 const version = String(website.info?.version ?? '').trim()
 assert.ok(version, 'website OpenAPI must declare a canonical release version')
 assert.equal(portal.info?.version, version, 'website and customer portal contracts must share the release version')
-const { currentContractVersion } = createRequire(import.meta.url)('./lib/current-api-contract.cjs')
-assert.equal(currentContractVersion, version, 'central contract version must match website OpenAPI')
+const { currentDocumentationVersion, runtimeContractVersion } = createRequire(import.meta.url)('./lib/current-api-contract.cjs')
+assert.equal(currentDocumentationVersion, version, 'central contract version must match website OpenAPI')
 
 // The OpenAPI release finalizer is one logical implementation split across the
 // coordinator and portal module. Assertions must cover both so safe source
@@ -69,9 +69,9 @@ const finalize = [
   read('scripts/finalize-openapi-release.cjs'),
   read('scripts/finalize-openapi-release.portal.cjs'),
 ].join('\n')
-assert.match(finalize, /const \{ currentContractVersion: version \} = require\('\.\/lib\/current-api-contract\.cjs'\)/)
+assert.match(finalize, /const \{ currentDocumentationVersion: version, runtimeContractVersion \} = require\('\.\/lib\/current-api-contract\.cjs'\)/)
 assert.ok(finalize.includes('document.info.version = version'))
-assert.ok(finalize.includes("document['x-contract-schema-version'] = version"))
+assert.ok(finalize.includes("document['x-contract-schema-version'] = runtimeContractVersion"))
 assert.match(finalize, /require\('\.\/finalize-openapi-release\.portal\.cjs'\)\(\{[\s\S]*?\n\s+version,/)
 assert.match(finalize, /\/\/ Re-normalize after late example assignment[\s\S]*?normalizeContractVersionMetadata\(document\)/)
 assert.match(finalize, /quoteData\.properties\.offer = permissiveObject/)
@@ -79,34 +79,33 @@ assert.ok(finalize.includes('// Re-normalize after late example assignment'))
 
 assert.match(
   read('lib/integrations/websiteIntegrationContract.ts'),
-  new RegExp(`WEBSITE_INTEGRATION_CONTRACT_VERSION\\s*=\\s*['"]${escapeRegExp(version)}['"]`),
+  new RegExp(`WEBSITE_INTEGRATION_CONTRACT_VERSION\\s*=\\s*['"]${escapeRegExp(runtimeContractVersion)}['"]`),
 )
 for (const [relative, alias, requiredEffects] of [
   ['scripts/check-api-compatibility.cjs', 'version', [
     'assert(document.info.version === version,',
-    "document['x-contract-schema-version'] === version,",
+    "document['x-contract-schema-version'] === runtimeContractVersion,",
   ]],
   ['scripts/verify-openapi-release.cjs', 'version', [
     "'docs/openapi/releases',\n    version,",
     'if (document.info.version !== version)',
-    "if (document['x-contract-schema-version'] !== version)",
+    "if (document['x-contract-schema-version'] !== runtimeContractVersion)",
   ]],
   ['scripts/check-api-documentation-version.cjs', 'legacyExpected', [
     'if (!source.includes(legacyExpected)) failures.push',
     'if (spec.info?.version !== legacyExpected) failures.push',
-    "if (spec['x-contract-schema-version'] !== legacyExpected) failures.push",
+    "if (spec['x-contract-schema-version'] !== runtimeContractVersion) failures.push",
   ]],
   ['scripts/check-public-contract-runtime-openapi.cjs', 'version', [
-    '`docs/fixtures/public-contracts-response-${version}.json`',
-    'fixture.meta.contract_schema_version = version',
+    '`docs/fixtures/public-contracts-response-${runtimeContractVersion}.json`',
     'if (specification.info?.version !== version)',
-    'if (fixture.meta?.contract_schema_version !== version)',
+    'if (fixture.meta?.contract_schema_version !== runtimeContractVersion)',
   ]],
 ]) {
   const source = read(relative)
   assert.match(
     source,
-    new RegExp(`const\\s*\\{\\s*currentContractVersion:\\s*${alias}\\s*\\}\\s*=\\s*require\\(['"]\\./lib/current-api-contract\\.cjs['"]\\)`),
+    new RegExp(`const\\s*\\{\\s*currentDocumentationVersion:\\s*${alias}\\s*,\\s*runtimeContractVersion\\s*\\}\\s*=\\s*require\\(['"]\\./lib/current-api-contract\\.cjs['"]\\)`),
     `${relative} must bind the canonical contract version`,
   )
   for (const effect of requiredEffects) {
@@ -129,7 +128,7 @@ for (const contractName of ['website-integration-v1', 'customer-portal-v1']) {
 
 const exampleVersion = website.paths?.['/api/v1/website/public-contracts']?.get?.responses?.['200']
   ?.content?.['application/json']?.example?.meta?.contract_schema_version
-assert.equal(exampleVersion, version, 'public-contracts example contract_schema_version is stale')
+assert.equal(exampleVersion, runtimeContractVersion, 'public-contracts example contract_schema_version is stale')
 
 const registry = read('lib/api/publicRouteRegistry.ts')
 assert.ok(registry.includes(`/api/v1/openapi/${version}/website-integration-v1.json`))

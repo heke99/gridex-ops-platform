@@ -5,6 +5,7 @@ import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
+import { resolveAdminSelectedCompanyReadScope } from '@/lib/tenant/adminScope'
 import { isCompanyWritableInTenantWorkspace } from '@/lib/tenant/lifecycle'
 import { readEdielProcessNextActions, type EdielProcessNextAction } from '@/lib/ediel/operations/processNextAction'
 import {
@@ -160,12 +161,14 @@ export default async function CustomerInfoRequestsPage({ searchParams }: { searc
   const successNotice = typeof resolvedSearch.success === 'string' ? resolvedSearch.success.slice(0, 300) : null
   const errorNotice = typeof resolvedSearch.error === 'string' ? resolvedSearch.error.slice(0, 300) : null
   const admin = await requireAdminPageKeyAccess('customer.info_requests')
+  const { companyId } = await resolveAdminSelectedCompanyReadScope(admin, { allowMissing: true })
   const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  const scope = user ? await getOperationalCompanyScope(user.id) : null
-  const companyId = scope?.companyId ?? null
+  // Membership/lifecycle evidence controls write affordances; its legacy
+  // selected company never redirects reads authorized by the canonical guard.
+  const scope = companyId && user ? await getOperationalCompanyScope(user.id) : null
   const membership = scope?.memberships.find(row=>row.companyId===companyId)
   const currentWritable = Boolean(user&&admin.userId===user.id&&admin.companyId===companyId&&membership?.status==='active'&&isCompanyWritableInTenantWorkspace(membership.companyStatus))
   const canReadProcess = Boolean(companyId&&admin.permissions.includes('communication.read'))

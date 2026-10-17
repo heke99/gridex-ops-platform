@@ -1,0 +1,36 @@
+{
+  "strategy": "Same authorized reviewed scopes and same execute_sql; shorter static SQL improves concrete review. No live writes by preparer.",
+  "completed_by_root": [
+    "application-reset-receipt.json",
+    "quality-reset-receipt.json"
+  ],
+  "execution_order": [
+    "reset-static-c1-customer_domain_outbox.sql",
+    "reset-static-c2-customer_canonical_outbox.sql",
+    "reset-static-c3-customer_domain_events.sql",
+    "reset-static-c4-customer_canonical_events.sql",
+    "reset-static-c5-customer_energy_events.sql",
+    "reset-static-b1-customer_onboarding_operations.sql",
+    "reset-static-b2-website_contract_quotes.sql",
+    "reset-static-b3-customer_site_resolution.sql",
+    "reset-static-b4-customer_portfolio_forecast_snapshots.sql",
+    "reset-static-b5-bidding_zone_monthly_metrics.sql",
+    "reset-static-b6-company_monthly_metrics.sql",
+    "reset-static-b7-forecast_runs.sql",
+    "reset-static-d-inbound-pair.sql"
+  ],
+  "live_catalog": "static-reset-live-fk-catalog.json",
+  "live_delete_triggers": "static-reset-delete-triggers.json",
+  "source_guards": "Four empty customer/site/meter/application roots locked; target locks prevent graph/trigger DDL races while selected UUIDs are pinned under count/hash guard. C technical writers remain enabled with compatible ROW EXCLUSIVE target lock.",
+  "preservation_guards": "Nonselected UUID rowset hash includes every NULL/unknown classification. Exact actual FK children either must be empty or retain full-row fingerprints. Unexpected referencing child tables or DELETE triggers cause refusal. Foreign keys/triggers remain enabled.",
+  "d_freshness": "Root rechecks explicit reviewed classification/count1 and archives any D-only volatile fingerprint update immediately before its paired transaction. No unrelated baseline refresh.",
+  "superseded": [
+    "reset-focused-a-quality.sql",
+    "reset-focused-b-read-models.sql",
+    "reset-focused-c-events.sql",
+    "reset-focused-d-inbound.sql",
+    "reset-customer-flow.sql"
+  ],
+  "final_verification": "reset-focused-final-verification.sql",
+  "root_only_live_execution": true
+}

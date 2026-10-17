@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto'
+import { withApiContractRepresentation } from '@/lib/integrations/apiResponseProfile'
 import { NextRequest } from 'next/server'
 import {
   customerPortalJson,
@@ -112,7 +113,9 @@ function buildErrorBody(body: Record<string, unknown>, requestId: string) {
 }
 
 
-export async function POST(request: NextRequest) {
+export const POST = withApiContractRepresentation('website', submitApplication)
+
+async function submitApplication(request: NextRequest) {
   const startedAt = Date.now()
   const requestId = randomUUID()
   const auth = await requireIntegrationApiAccess(request, ['website_applications.write'])

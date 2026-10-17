@@ -1,0 +1,58 @@
+{
+  "status": "CONFIRMED",
+  "selectedMonth": "2026-09-01",
+  "outcomeMonth": "2026-09-01",
+  "forecastMonth": "2026-10-01",
+  "calls": [
+    {
+      "name": "gridex_customer_portfolio_summary",
+      "params": {
+        "p_company_id": "synthetic-company",
+        "p_from": "2025-10-01",
+        "p_to": "2026-09-01"
+      }
+    },
+    {
+      "name": "gridex_customer_portfolio_forecast",
+      "params": {
+        "p_company_id": "synthetic-company"
+      }
+    },
+    {
+      "name": "gridex_customer_portfolio_churn_reasons",
+      "params": {
+        "p_company_id": "synthetic-company",
+        "p_from": "2025-10-01",
+        "p_to": "2026-09-01"
+      }
+    },
+    {
+      "name": "gridex_customer_portfolio_forecast_accuracy",
+      "params": {
+        "p_company_id": "synthetic-company",
+        "p_from": "2025-10-01",
+        "p_to": "2026-09-01"
+      }
+    },
+    {
+      "name": "gridex_customer_portfolio_cohorts",
+      "params": {
+        "p_company_id": "synthetic-company",
+        "p_months": 12
+      }
+    },
+    {
+      "name": "gridex_customer_portfolio_bidding_zones",
+      "params": {
+        "p_company_id": "synthetic-company"
+      }
+    },
+    {
+      "name": "gridex_customer_portfolio_expiring_poa",
+      "params": {
+        "p_company_id": "synthetic-company",
+        "p_days": 30
+      }
+    }
+  ]
+}

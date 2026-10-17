@@ -265,6 +265,9 @@
     "20261004221605_ediel_test_original_outcome_conflict.sql": "9da0247941249dda75008e2ae1d88fc29a5321c086cd977d0e6cea6bfede9d25",
     "20261005130401_ediel_imp05_original_mailbox_return_route.sql": "49f9065c73b6eab997791abee0488b7d94ac48eaf4e52256f41d688b5aa4baab",
     "20261007232422_ediel_z13_ack_customer_waiting.sql": "bfbeb6878fe3b0b2c31db95aacb8d446a40a90a0fb6d0dda81275ea9128ead8b",
-    "20261011121542_db05_retained_audit_ediel_journals.sql": "deae7a8ceb459acc6c428bba0011d238d3cd2e4eec6915fe9610cc06a0212303"
+    "20261011121542_db05_retained_audit_ediel_journals.sql": "deae7a8ceb459acc6c428bba0011d238d3cd2e4eec6915fe9610cc06a0212303",
+    "20261015172000_ops_staff_permission_catalog_alignment.sql": "3956c749d4045b9cfa54b8d8de1dfe0b64f1fc76df356b029751eb197affe009",
+    "20261015172100_ops_contract_signing_prepare_final_expiry_guard.sql": "d798d8defd71a632617aaf34f99e6cfcab4e32d94d003f0ab18ee11d6468e8f2",
+    "20261015183000_ops_migration_provenance_tenant_boundary.sql": "f9e49edc513f9a744d6b0cf689662adb14c970253523f3d0a0d54c710bf57928"
   }
 }

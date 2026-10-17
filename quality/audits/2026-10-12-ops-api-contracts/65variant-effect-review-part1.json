@@ -1,0 +1,1107 @@
+{
+  "scope": "Gridex OPS only, FIRST33 sortedentries of66 actual contrasted names (legacy65label retained in filename). Gridex Webexcluded. Complete firsthalf effectqualification, notname-presencegreen.",
+  "authority": "Actual current code+READONLYOPS definitions/column/trigger/ACL metadata andexactcanonicalstatementbytes. No tests asauthority, no livebusiness/provider/signing/email/credential/customerrow calls.",
+  "updated_utc": "2026-10-13T12:01:40.332018+00:00",
+  "current_native_evidence": "/tmp/gridex-api-review/preserved-part1-current-native-definitions.json",
+  "fresh_patch_metadata": "/tmp/gridex-api-review/variant-part1-fresh-native-full-metadata.json",
+  "final_additive_module": {
+    "path": "/tmp/gridex-api-review/native-additive-corrected-prototype-v4e.sql",
+    "sha256": "f9fc63bfcc6cd9d30a0958f602e4baf012c743173bed53efdae3b0193e618caa",
+    "state": "Proposed; root ownsactualinstallation. New942sourceCREATEtriggers plusnativeexistingtotalapproximately960, functions/tables/sourcehelperclosure create; EXISTING33runtimebodies preserved, so currentsemanticgaps requirepart1 forward afterfullmodule."
+  },
+  "functions": [
+    {
+      "name": "gridex_internal.actor_open_blocking_conflict_counts",
+      "signature": "gridex_internal.actor_open_blocking_conflict_counts()",
+      "body_md5": "d313bc4be337fdda2ea2efb86fff84ed",
+      "classification": "equivalent",
+      "proof": [
+        "NativeSQL and source tokens equal; aggregate-only blocking/open conflicts, no current source caller literal; read-only dashboard underlying view reference. No bodysemantic fix."
+      ],
+      "source_references": [],
+      "canonical": {
+        "line": 19003,
+        "sha256": "e2a1b67ea6e6dce456d46f722979adde55bc5b0ca088db328139204031a446f4"
+      },
+      "ordinal": 1
+    },
+    {
+      "checked_at_utc": "2026-10-13 11:13:20.897797+00",
+      "name": "gridex_outbound_dispatch.mutate_v1",
+      "signature": "gridex_outbound_dispatch.mutate_v1(jsonb)",
+      "body_md5": "a16d6877219da4418ec36e2258543ca9",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "owner": "postgres",
+      "proconfig": [
+        "search_path=pg_catalog",
+        "TimeZone=UTC"
+      ],
+      "provolatile": "v",
+      "verdict": "CONFIRMED_ACTIONABLE",
+      "severity": "P1",
+      "effects": [
+        "Actual accepted provider_result receipt lacks observedAt and observationClock. Source correctionOutboundDispatch raises delivery uncertainty instead of returning accepted source-owned database clock. Durable entered/accepted fencing survives; this is broken successful result/projection, not an automatic resend proof.",
+        "Final module creates full canonical delegate chain but existing public facade still calls preserved mutate_v1 directly, leaving delegate current source/retention/intent/guide checks detached from this sealed Z08 entry point."
+      ],
+      "proof": [
+        "Actual final RETURN includes only scoped/proceed/eventId/attemptId/kind/facts. Its acceptedReceipt replay does include observedAt, proving initial-success and replay metadata asymmetry.",
+        "Source sets resultCaptured then witnesses provider_result and validates accepted classification before requiring clock. Missing clock deterministically throws SmtpDeliveryUncertainError."
+      ],
+      "callers": [
+        {
+          "path": "/tmp/gridex-api-audit-ops/lib/ediel/sources/correctionOutboundDispatch.ts",
+          "line": 50
+        },
+        {
+          "path": "/tmp/gridex-api-audit-ops/lib/ediel/sources/correctionOutboundDispatch.ts",
+          "line": 102
+        },
+        {
+          "path": "/tmp/gridex-api-audit-ops/lib/ediel/outbox/sendOutboxItem.ts",
+          "line": 317
+        }
+      ],
+      "trigger_qualification": [
+        "Final f9 line53253 AFTER INSERT on outbound_dispatch.events runs reconciliation_observed_v1. It can record reconciliation, but cannot modify the parent RPC return JSON; no relevant attempt/reservation replacement trigger calls clock wrapper.",
+        "Canonical delegate mutate_before_original_basis_v1 in final f9 line25523 gets event.observed_at and adds database_provider_result_capture; restored outer runtime chain is required to reach it."
+      ],
+      "fix": "Forward only existing entry point to qualified canonical wrapper/delegate chain with known-body/owner/ACL preservation. Keep accepted replay and durable no-resend fencing.",
+      "canonical": {
+        "name": "gridex_outbound_dispatch.mutate_v1",
+        "line": 20980,
+        "sha256": "f82885eeecd45f03ac614759d33b5596aef9b906408ce8a8ebee9a8320239fd0"
+      },
+      "classification": "confirmed_fix",
+      "delegated_read_only_report": "/tmp/gridex-api-review/preserved-part1-ediel-helper-review.json",
+      "ordinal": 2
+    },
+    {
+      "checked_at_utc": "2026-10-13 11:13:20.896883+00",
+      "name": "gridex_received_sources.append_object_assessment",
+      "signature": "gridex_received_sources.append_object_assessment(uuid,text,uuid,text,uuid,text)",
+      "body_md5": "9662f3809d231e2313c2b2befb1ef46a",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "owner": "postgres",
+      "proconfig": [
+        "search_path=pg_catalog",
+        "TimeZone=UTC"
+      ],
+      "provolatile": "v",
+      "verdict": "CONFIRMED_ACTIONABLE",
+      "severity": "P1",
+      "effects": [
+        "Accepted source-bound Z06 customer life-event compositions are rejected before INSERT because old accepted-owner CASE has no inbound-customer-life-event-v1 branch and requires unrelated receiver/facility old shape.",
+        "Old global applicationDecision=accepted requirement rejects independently qualified accepted own objects in mixed source."
+      ],
+      "proof": [
+        "Actual branch recognized owners are inbound-z04-switch-confirmation-v1, reviewed-received-structure-v1 and reviewed-received-closure-v1; ELSE false feeds source_object_acceptance_unproven.",
+        "Source emits inbound-customer-life-event-v1 from genuine committed native source capability; persistence converts SQL error into unconfirmed and does not mint witnessed source approval."
+      ],
+      "callers": [
+        {
+          "path": "/tmp/gridex-api-audit-ops/lib/ediel/sources/customerLifeEventSourceOwner.ts",
+          "line": 7
+        },
+        {
+          "path": "/tmp/gridex-api-audit-ops/lib/ediel/sources/receivedSourceOwnerSession.ts",
+          "line": 78
+        },
+        {
+          "path": "/tmp/gridex-api-audit-ops/lib/ediel/sources/sourceOwnerPersistence.ts",
+          "line": 24
+        }
+      ],
+      "trigger_qualification": [
+        "Final f9 line53351 capture_customer_primary_response AFTER INSERT can validate and capture committed effect, but actual old branch raises before INSERT so this trigger cannot restore legitimate flow.",
+        "Final f9 line28208 trigger validates source hash/company/native life-event transition and per-object canonical/source-function authority; preserve those protected conditions in restored source branch."
+      ],
+      "fix": "Restore bounded canonical latest body with graph lock, dedicated life-event native owner proof and mixed-owned confirmation qualifier; preserve all old owner-row comparisons, masks, current company/hash and append-only linkage.",
+      "canonical": {
+        "name": "gridex_received_sources.append_object_assessment",
+        "line": 22719,
+        "sha256": "c579b8a4c9d72435817b56af9c504a5bf5c2db480c12fc22c3aea1621149ccc9"
+      },
+      "classification": "confirmed_fix",
+      "delegated_read_only_report": "/tmp/gridex-api-review/preserved-part1-ediel-helper-review.json",
+      "ordinal": 3
+    },
+    {
+      "checked_at_utc": "2026-10-13 11:13:20.896291+00",
+      "name": "gridex_received_sources.append_validation",
+      "signature": "gridex_received_sources.append_validation(uuid,text,uuid,text,text)",
+      "body_md5": "de6d0a69327e00e3c144c71233ad41bf",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "owner": "postgres",
+      "proconfig": [
+        "search_path=pg_catalog"
+      ],
+      "provolatile": "v",
+      "verdict": "CURRENT_HTTP_GUARDED_NATIVE_PARITY_GAP",
+      "severity": "P2",
+      "effects": [
+        "Old native validation appender lacks canonical positive-accepted retained-wire unused-UNH check. Current normal TypeScript validators already block applicable incoming APERAK unused elements; incoming PRODAT extra UNH elements are explicitly ignored by national rule and must not be rejected."
+      ],
+      "proof": [
+        "Actual validates passed facts/registered pack/hash and appends but never checks unused UNH original bytes. Canonical wraps delegate then require_unused_unh_v1 retained bytes with inbound direction for syntax+application accepted.",
+        "Actual TypeScript edifactHeaderGuide emits error/blocking for applicable APERAK and warning/nonblocking ignoredIncomingMessageType PRODAT; canonicalPolicyFieldValidator.ts229 and ackGuidePolicy.ts78 call it."
+      ],
+      "callers": [
+        {
+          "path": "/tmp/gridex-api-audit-ops/lib/ediel/core/receivedSourceValidationLedger.ts",
+          "line": 23
+        },
+        {
+          "path": "/tmp/gridex-api-audit-ops/lib/ediel/rulebook/edifactHeaderGuide.ts",
+          "line": 14
+        },
+        {
+          "path": "/tmp/gridex-api-audit-ops/lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+          "line": 229
+        }
+      ],
+      "trigger_qualification": [
+        "Final f9 line55437 unused-UNH message-birth trigger is outbound-only for new original bytes; it does not validate inbound accepted ledger inserts. There is no new validation_assessments INSERT trigger giving equivalent guard."
+      ],
+      "fix": "Restore canonical positive-ledger wrapper for native defense in depth; keep PRODAT inbound ignored-X exception and current source outcomes. Do not label current normal HTTP path bypassed.",
+      "canonical": {
+        "name": "gridex_received_sources.append_validation",
+        "line": 23279,
+        "sha256": "41b7ea66a4f370b00cd344432aa91403c55fcf69d92f859915941d9f2dc58941"
+      },
+      "classification": "native_parity_fix_http_guarded",
+      "delegated_read_only_report": "/tmp/gridex-api-review/preserved-part1-ediel-helper-review.json",
+      "ordinal": 4
+    },
+    {
+      "checked_at_utc": "2026-10-13 11:13:20.89668+00",
+      "name": "gridex_received_sources.object_owner_proof_consistent",
+      "signature": "gridex_received_sources.object_owner_proof_consistent(jsonb,jsonb,timestamp with time zone)",
+      "body_md5": "bf499b92113b3e3370085d23dce02f51",
+      "acl": "{postgres=X/postgres}",
+      "owner": "postgres",
+      "proconfig": [
+        "search_path=pg_catalog",
+        "TimeZone=UTC"
+      ],
+      "provolatile": "s",
+      "verdict": "CONFIRMED_ACTIONABLE",
+      "severity": "P2",
+      "effects": [
+        "Every modern Z04 owner composition produced by readCommittedZ04Wire carries market_minute and old native checker requires market_calendar_day, so owner proof returns false despite exact tenant/frozen bytes and committed matching rows."
+      ],
+      "proof": [
+        "Actual explicit comparison effective->>committedDatePrecision IS DISTINCT FROM market_calendar_day returns false.",
+        "Canonical wrapper validates normal_switch_confirmations matching exact source object/source hash/switch/period/minute/UTC/customer/legal actor then uses local legacy-shape copy only to reuse all old validations."
+      ],
+      "callers": [
+        {
+          "path": "/tmp/gridex-api-audit-ops/lib/ediel/sources/sourceOwnerWire.ts",
+          "line": 32
+        },
+        {
+          "path": "/tmp/gridex-api-audit-ops/lib/ediel/sources/receivedSourceOwnerSession.ts",
+          "line": 48
+        },
+        {
+          "path": "/tmp/gridex-api-audit-ops/lib/ediel/sources/sourceOwnerPersistence.ts",
+          "line": 24
+        }
+      ],
+      "trigger_qualification": [
+        "Final f9 creates normal_switch_confirmations table and protected immutable/retention triggers but does not overwrite current owner checker. Object assessment source rejection happens before any new capture trigger."
+      ],
+      "fix": "Qualified canonical minute wrapper preserving actual old checker as delegate; no legacy proof backfill or DATE-derived invented minute.",
+      "canonical": {
+        "name": "gridex_received_sources.object_owner_proof_consistent",
+        "line": 25946,
+        "sha256": "4d4b83199c28da77ef421c54d934932734988714c0c5b63b59c617ba2927ee0b"
+      },
+      "classification": "confirmed_fix",
+      "delegated_read_only_report": "/tmp/gridex-api-review/preserved-part1-ediel-helper-review.json",
+      "ordinal": 5
+    },
+    {
+      "name": "gridex_received_sources.observe_document_reference_v1",
+      "signature": "gridex_received_sources.observe_document_reference_v1(uuid,text,uuid,uuid,jsonb)",
+      "body_md5": "325dfe9fddeda49eec9850dd97e0b16f",
+      "classification": "preserve_stronger_actual",
+      "proof": [
+        "Actual requires started>=exact DBrecorded_at, source allows truncated millisecond floor. Live documentReferenceCapture.ts20 alignObservationToAttempt lifts app-clock start/end to exact recordedAt beforeRPC49, so stricter native rule is compatible; do not weaken. Protected public facade and fresh document hash/retention-aware bytes verify beforeobservation; immutable outcome triggers preserve it."
+      ],
+      "source_references": [
+        {
+          "file": "lib/ediel/sources/documentReferenceCapture.ts",
+          "line": 49
+        }
+      ],
+      "canonical": {
+        "line": 25971,
+        "sha256": "4577374299102ca662b788e9829163af9ba48825338f696b92b102707d665de9"
+      },
+      "ordinal": 6
+    },
+    {
+      "checked_at_utc": "2026-10-13 11:13:20.897058+00",
+      "name": "gridex_received_sources.review_business_proof_consistent",
+      "signature": "gridex_received_sources.review_business_proof_consistent(jsonb,jsonb,uuid)",
+      "body_md5": "a95412a2838be5ef47ec644feb50707e",
+      "acl": "{postgres=X/postgres}",
+      "owner": "postgres",
+      "proconfig": [
+        "search_path=pg_catalog",
+        "TimeZone=UTC"
+      ],
+      "provolatile": "s",
+      "verdict": "CURRENT_HTTP_GUARDED_NATIVE_PARITY_GAP",
+      "severity": "P2",
+      "effects": [
+        "Old native Z06 customer-only rejection trusts supplied wire.businessCase rather than deriving first native Z13 characteristic from retained raw bytes. Current TypeScript reader derives businessCase from original and refuses E34/customer_only, so normal HTTP review remains protected."
+      ],
+      "proof": [
+        "Actual early Z06 reject compares provided businessCase customer_only. No actual first-register characteristic source check exists in full current body.",
+        "Source structuralSourceWire derives E34->customer_only directly from parsed physical first register; reviewReceivedStructuralSource.ts154 refuses it. Canonical wrapper first checks retained raw source Z13 reason and returns false when E34 or unresolved."
+      ],
+      "callers": [
+        {
+          "path": "/tmp/gridex-api-audit-ops/lib/ediel/sources/structuralSourceWire.ts",
+          "line": 80
+        },
+        {
+          "path": "/tmp/gridex-api-audit-ops/lib/ediel/sources/reviewReceivedStructuralSource.ts",
+          "line": 151
+        },
+        {
+          "path": "/tmp/gridex-api-audit-ops/lib/ediel/sources/sourceOwnerPersistence.ts",
+          "line": 24
+        }
+      ],
+      "trigger_qualification": [
+        "Owner consistency helper is owner-only EXECUTE invoked by SECURITY DEFINER appender. No new object-assessment preINSERT source-characteristic guard intercepts structural owner. AFTERcapture trigger only handles inbound-customer-life-event owner, not reviewed-received-structure owner."
+      ],
+      "fix": "Restore source-characteristic canonical wrapper as defense in depth; retain dedicated customer life-event authority and E34 structural hold. No normal HTTP bypass or business mutation claimed without additional runtime proof.",
+      "canonical": {
+        "name": "gridex_received_sources.review_business_proof_consistent",
+        "line": 28283,
+        "sha256": "3b11feac5506739acbd97af998cc703c9b409340a528fb8e7a1459c78ad80bdc"
+      },
+      "classification": "native_parity_fix_http_guarded",
+      "delegated_read_only_report": "/tmp/gridex-api-review/preserved-part1-ediel-helper-review.json",
+      "ordinal": 7
+    },
+    {
+      "checked_at_utc": "2026-10-13 11:13:20.897255+00",
+      "name": "gridex_received_sources.review_closure_proof_consistent",
+      "signature": "gridex_received_sources.review_closure_proof_consistent(jsonb,jsonb,uuid)",
+      "body_md5": "fe70d69e57875acdf96a7fdae0e51a42",
+      "acl": "{postgres=X/postgres}",
+      "owner": "postgres",
+      "proconfig": [
+        "search_path=pg_catalog",
+        "TimeZone=UTC"
+      ],
+      "provolatile": "s",
+      "verdict": "CONFIRMED_ACTIONABLE",
+      "severity": "P2",
+      "effects": [
+        "Source qualified closure coverage keeps initial Z04 in period.source_message_id and closing Z05 in source_end_message_id. Old checker instead requires source_message_id=closing Z05 and accepted/ended legacy states; legitimate precise/versioned closures cannot become witnessed accepted owner compositions."
+      ],
+      "proof": [
+        "Source closureReviewCoverage requires native ediel_read_source_supply_basis_v1 and initialSourceMessageId baseline + sourceMessageId closing; it requires sp.source_message_id baseline.",
+        "Actual checker requires sp.source_message_id src Z05 twice, legacy DATE midnight equals precise coverage start and sw.status accepted; canonical uses immutable current source basis and separate source_end_message_id."
+      ],
+      "callers": [
+        {
+          "path": "/tmp/gridex-api-audit-ops/lib/ediel/sources/closureReviewCoverage.ts",
+          "line": 49
+        },
+        {
+          "path": "/tmp/gridex-api-audit-ops/lib/ediel/sources/closureReviewCoverage.ts",
+          "line": 64
+        },
+        {
+          "path": "/tmp/gridex-api-audit-ops/lib/ediel/sources/reviewReceivedClosureSource.ts",
+          "line": 93
+        },
+        {
+          "path": "/tmp/gridex-api-audit-ops/app/admin/ediel/structure-actions.ts",
+          "line": 44
+        }
+      ],
+      "trigger_qualification": [
+        "Final f9 helper supply_period_source_basis_v1 derives versioned source tuple from normal confirmations, transitions, accepted outbound receipt, current contract/legal context. Mere table/helper addition cannot change old closure checker predicates.",
+        "Final f9 supply_end_followup AFTER UPDATE is downstream followup and does not modify predicate/return."
+      ],
+      "fix": "Restore canonical precise/versioned closure checker preserving complete baseline/owner/party/hash constraints; never rewrite initial source to closing source to satisfy old checker.",
+      "canonical": {
+        "name": "gridex_received_sources.review_closure_proof_consistent",
+        "line": 28300,
+        "sha256": "5b2991d207e76763ec67b3253a868d5b790eed13a7b4d1c647f4c694bcbf4bfc"
+      },
+      "classification": "confirmed_fix",
+      "delegated_read_only_report": "/tmp/gridex-api-review/preserved-part1-ediel-helper-review.json",
+      "ordinal": 8
+    },
+    {
+      "checked_at_utc": "2026-10-13 11:13:20.897483+00",
+      "name": "public.activate_customer_supply_v1",
+      "signature": "activate_customer_supply_v1(uuid,uuid,uuid,date,uuid,text)",
+      "body_md5": "85561284bde4891c22cfd8f5f640e342",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "owner": "postgres",
+      "proconfig": [
+        "search_path=public"
+      ],
+      "provolatile": "v",
+      "verdict": "CONFIRMED_NATIVE_BOUNDARY_GAP",
+      "severity": "P1",
+      "effects": [
+        "Old service-executable direct activation mutates active supply period/contract.billing_eligible_at/workflow/application/events/job/webhooks based on accepted switch plus DATE/customer chain. It has no normal immutable confirmation tuple/minute due/current metering actor/retained source checks and writes no normal_supply_activations receipt.",
+        "Final module adds proof tables and due native consumers, but preserved activation body bypasses those tables; existing DATE-level supplier trigger allows same-day early activation relative to an afternoon market minute."
+      ],
+      "proof": [
+        "Actual v_start_date coalesces caller override/confirmed/requested dates, first INSERT active period precedes completed switch then active contract + billing_eligible_at.",
+        "Actual relevant triggers enforce customer/company chain, inbound Z04 samecompany and reached Europe/Stockholm DATE; none checks proof.market_start_at or requested actor permission.",
+        "Read-only pg_proc scan found no currently installed caller body containing activate_customer_supply_v1. Reachability confirmed directly through service_role EXECUTE; future canonical caller behavior differs and is not claimed executed."
+      ],
+      "callers": [
+        {
+          "path": "/tmp/gridex-api-audit-ops/lib/ediel/flows/supplyMarketTransition.ts",
+          "line": 96
+        }
+      ],
+      "trigger_qualification": [
+        "Final f9 line54023 retention guard runs on normal_supply_activations INSERT only. Old function never inserts that proof receipt, so consumed-source retention validation is not equivalent protection.",
+        "Final f9 only added customer_supply_periods trigger is supply-end followup; preserved supplier switch Z04 guard checks date and tenant, not precise minute, current source tuple or actor permission."
+      ],
+      "fix": "Restore qualified canonical normal activation boundary with current actor/legal authority, exact immutable source/contract/switch/period proof, retention checks, due market_start_at and immutable result receipt, preserving already established own activation replay.",
+      "canonical": {
+        "name": "public.activate_customer_supply_v1",
+        "line": 35701,
+        "sha256": "7439f832f685f04ab0d24f9e0c2148d6bb7fd08c285eb7ae6ce0de0ad6a05bc4"
+      },
+      "classification": "confirmed_fix",
+      "delegated_read_only_report": "/tmp/gridex-api-review/preserved-part1-ediel-helper-review.json",
+      "ordinal": 9
+    },
+    {
+      "name": "public.canonical_authenticated_tenant_context",
+      "signature": "canonical_authenticated_tenant_context(uuid)",
+      "body_md5": "a41e40cb3385fbaac24675d2a0d264f6",
+      "classification": "equivalent",
+      "proof": [
+        "Comment/format-only; forwards exact selectedcompany to scoped native implementation. Node API source apiGuards.ts62/142 consumes installed currentcatalog/deny fields; entityGuards real-targetcompany revalidation remains."
+      ],
+      "source_references": [
+        {
+          "file": "lib/auth/externalStaffEnrollmentAdmin.ts",
+          "line": 133
+        },
+        {
+          "file": "lib/admin/guards.ts",
+          "line": 103
+        },
+        {
+          "file": "lib/admin/guards.ts",
+          "line": 142
+        },
+        {
+          "file": "lib/admin/apiGuards.ts",
+          "line": 62
+        },
+        {
+          "file": "lib/admin/apiGuards.ts",
+          "line": 142
+        }
+      ],
+      "canonical": {
+        "line": 36767,
+        "sha256": "7d7b44f9ae9614e66feb69a60dfc86bff78fe76ff846287ba627aa8eebc94ed7"
+      },
+      "ordinal": 10
+    },
+    {
+      "name": "public.canonical_authenticated_tenant_context_v1_scoped",
+      "signature": "canonical_authenticated_tenant_context_v1_scoped(uuid)",
+      "body_md5": "d205c4e8ba1989b27b4df6b1b76af631",
+      "classification": "preserve_approved_current_fix",
+      "proof": [
+        "Installed c0b42937 stronger currentAuth/catalog/global+companyDENY/time-window fields and VOLATILE clock. Actuald205c4e… independently confirmed; existing Node apiGuards/entityGuards source consumes fields; do not source-replace older context lackingdeny fields."
+      ],
+      "source_references": [],
+      "canonical": {
+        "line": 36788,
+        "sha256": "3bf764d5e3df552cb83296b0f1048d75faab0d326d1f190f4751ac5e01f8cf72"
+      },
+      "ordinal": 11
+    },
+    {
+      "name": "public.canonical_capture_ediel_configuration_snapshot_v1_unchecked",
+      "signature": "canonical_capture_ediel_configuration_snapshot_v1_unchecked(uuid,uuid,text)",
+      "body_md5": "fa3c52d78347d7dfc7823886453a837d",
+      "classification": "confirmed_fix",
+      "proof": [
+        "Actualfa3c52… globally sets prepared/live→blocked, incrementsstate, companyproduction flagsfalse and sendlocktrue on aggregate config capture. Actual capture wrapper/saveactor/DB configuration triggers callit; canonical source intentionally retains snapshot but removesblanket invalidation. canonical_tenant_operation_decision and productionReadiness.part-2.ts321 readthoseflags; unrelatedcapability change can blockall production. Exact sourcebody removal only future capture effects; do not unpausehistorical/operator locks."
+      ],
+      "source_references": [],
+      "canonical": {
+        "line": 37187,
+        "sha256": "c7b77d20dc3f4aa613f03a4a1a32a73e7ef242925e23eba1fe0faa49c45fd7b7"
+      },
+      "ordinal": 12
+    },
+    {
+      "name": "public.canonical_capture_ediel_test_configuration_snapshot",
+      "signature": "canonical_capture_ediel_test_configuration_snapshot(uuid,uuid,uuid,uuid,text)",
+      "body_md5": "cd351237978161ee32086f9b7832a0eb",
+      "classification": "confirmed_fix",
+      "proof": [
+        "Actualcd3512… locks profile but uses duplicated profile.environment_type without currentsamecompany active communicationroute SHARE binding; source checksactualroute and capturesrouteenvironment in selected/full snapshots. systemTestSettings.ts365 consumesrole-scoped snapshot. Actualprofile DOES haveenvironment_type; sourcecomment missingcolumn claim refuted. No missingcolumn500 asserted. Currentroute coulddisable/change stage afterappprecheck while functiondoesnotlock/checkroute; sourcebounded proof fixes boundary."
+      ],
+      "source_references": [
+        {
+          "file": "lib/ediel/systemTestSettings.ts",
+          "line": 365
+        }
+      ],
+      "canonical": {
+        "line": 37461,
+        "sha256": "4b151da5eaa7b7bf9cc8f37ab6a31112952188891d6d2127558744ac9c88bfdb"
+      },
+      "ordinal": 13
+    },
+    {
+      "name": "public.canonical_manage_platform_user_access",
+      "signature": "canonical_manage_platform_user_access(jsonb)",
+      "body_md5": "fe16df3f663abb5e7fec9dad7741c862",
+      "classification": "preserve_approved_current_fix",
+      "proof": [
+        "Actual forward retains globaldeny-only22023 guards forboth overridecommands; role/directgrant/companyflows and idempotentreplaysunchanged. platformUserAccess.ts63 validatescurrentglobaleffect beforeRPC; globaldetailqueries NULLcompany. Older sourcewithoutguards mustnot overwrite."
+      ],
+      "source_references": [
+        {
+          "file": "lib/admin/platformUserAccess.ts",
+          "line": 63
+        }
+      ],
+      "canonical": {
+        "line": 38780,
+        "sha256": "e923a3aa026f637178b62853a419835dfb50bbcfb87da9cb229bbeb4408eff86"
+      },
+      "ordinal": 14
+    },
+    {
+      "name": "public.canonical_onboard_customer_graph",
+      "signature": "canonical_onboard_customer_graph(jsonb)",
+      "body_md5": "863d75ad1ffd558b2810a31184f20712",
+      "classification": "confirmed_fix",
+      "proof": [
+        "Actual863d75… lacks source objectbatch branch. inboundCases.ts1174 creates case:object:hash,1196 invokes canonicalOnboarding.ts205 RPC. Generic graph creates committed operation without gridex_prodat_object_batch.graph_receipts; separate subsequent caseCAS requiresrealreceipts and cannotroll back alreadycommitted graph. Sourceonboard_v1 (installed byfinalf9, absentactualbefore) ownsfreshsource/plan/review/retention locks plus receipt insert in sameRPC; noINSERT trigger synthesizesreceipt. Addexactsource branch, preserveall existing wrapperchecks/default genericflows."
+      ],
+      "source_references": [
+        {
+          "file": "lib/customers/canonicalOnboarding.ts",
+          "line": 126
+        },
+        {
+          "file": "lib/customers/canonicalOnboarding.ts",
+          "line": 205
+        }
+      ],
+      "canonical": {
+        "line": 39035,
+        "sha256": "164877930dbc2d7748ab81e0c57a2bc57332e83fa52e3199c58521e0e2b4d338"
+      },
+      "ordinal": 15
+    },
+    {
+      "name": "public.canonical_run_architecture_reconciliation",
+      "signature": "canonical_run_architecture_reconciliation(uuid)",
+      "body_md5": "7b8134dda55d2e2b2f8358ae6d23bde4",
+      "classification": "equivalent",
+      "proof": [
+        "Full executable tokens equal, formattingonly. Cron reconciliation/daily/route.ts52 authenticatedservice execution retained; source/actualsameconditions/operations."
+      ],
+      "source_references": [
+        {
+          "file": "app/api/cron/reconciliation/daily/route.ts",
+          "line": 52
+        }
+      ],
+      "canonical": {
+        "line": 40563,
+        "sha256": "bf1c3382d66e36eebe983d4b8fb386c6634cd0b2b13d2e3da0a0abbc9f520f6d"
+      },
+      "ordinal": 16
+    },
+    {
+      "checked_at_utc": "2026-10-13 11:13:20.895535+00",
+      "name": "public.claim_ediel_outbox_item",
+      "signature": "claim_ediel_outbox_item(uuid,text,uuid)",
+      "body_md5": "9652162f0f7e0971221ac74439ffc875",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "owner": "postgres",
+      "proconfig": [
+        "search_path=public"
+      ],
+      "provolatile": "v",
+      "verdict": "CONFIRMED_ACTIONABLE",
+      "severity": "P2",
+      "effects": [
+        "Single-item claim rejects qualified technical null-profile CONTRL unconditionally because WHERE requires rule_profile_version_id and checksum. Actual sendOutboxItem direct path consequently returns outbox_item_not_found_or_already_processing."
+      ],
+      "proof": [
+        "Actual claimed CTE lacks canonical technical branch and reader/phase evidence.",
+        "Canonical reader read_persisted_contrl_v2 qualifies actual tenant/hash/source/current actor/current endpoint under graph locks, revalidates after outbox wait and enables technical exception only for exactly locked same ACK."
+      ],
+      "callers": [
+        {
+          "path": "/tmp/gridex-api-audit-ops/lib/ediel/outbox/claimOutboxItems.ts",
+          "line": 101
+        },
+        {
+          "path": "/tmp/gridex-api-audit-ops/lib/ediel/outbox/sendOutboxItem.ts",
+          "line": 108
+        }
+      ],
+      "trigger_qualification": [
+        "Actual ediel_outbox_tenant_snapshot_trg ALSO rejects null-profile technical CONTRL before creation/status update; that separate retained function is outside this helper eight and must be corrected before claim fix yields complete path.",
+        "Final f9 ediel_reconciliation_worker_uncertain AFTER status UPDATE cannot make claim WHERE predicate true or create private technical source qualification."
+      ],
+      "fix": "Restore exactly canonical technical claim branch with actual private reader current graph/source/endpoint and after-wait verification; preserve normal profile claim logic and no synthetic technical authority.",
+      "canonical": {
+        "name": "public.claim_ediel_outbox_item",
+        "line": 43004,
+        "sha256": "cdfc047c3712cb0a3fd5d41fdc3a81d766aeae2680f70caa0ab9f0a92651a4e3"
+      },
+      "classification": "confirmed_fix",
+      "delegated_read_only_report": "/tmp/gridex-api-review/preserved-part1-ediel-helper-review.json",
+      "ordinal": 17
+    },
+    {
+      "name": "public.gridex_accept_external_staff_invitation_v1",
+      "signature": "gridex_accept_external_staff_invitation_v1(jsonb)",
+      "body_md5": "2a7f912ecc0d982365a5abd423afab0b",
+      "classification": "preserve_approved_current_fix",
+      "proof": [
+        "Actual2a7f912… includes installed9e3 currentclient/invitation rechecks beforeactivation and postcanonical waiting boundary. Current onboarding.ts132 exactRPCpath; oldsource lacks post-lockguards. Bothindependentpeers+actual88-tableisolatedcompile andfreshactualinstall verified. Preserve stronger code."
+      ],
+      "source_references": [
+        {
+          "file": "lib/staff-api/onboarding.ts",
+          "line": 104
+        },
+        {
+          "file": "lib/staff-api/onboarding.ts",
+          "line": 132
+        }
+      ],
+      "canonical": {
+        "line": 50513,
+        "sha256": "13a4936b268a1e71a79185a81acc08d6761d30d2b95611ee54bc3c4491635045"
+      },
+      "ordinal": 18
+    },
+    {
+      "name": "public.gridex_approve_portal_claim_v1",
+      "signature": "gridex_approve_portal_claim_v1(uuid,uuid,uuid,jsonb,jsonb,jsonb)",
+      "body_md5": "032c60b6f3c7e36538342ba81c40e517",
+      "classification": "equivalent",
+      "proof": [
+        "Only explanatory tenantcollision comment; exacttokens equal. claim.ts509 guarded approval passes company/user/customer authority; SQLexistinglink foreigncompany fails42501 ratherthanwrongtenant linkage. No difference requiresfix."
+      ],
+      "source_references": [
+        {
+          "file": "lib/customer-portal/claim.ts",
+          "line": 509
+        }
+      ],
+      "canonical": {
+        "line": 52994,
+        "sha256": "9758c66a2ca314f17085e4f63d559afd1bfd3040f02705f970ce019f665c2261"
+      },
+      "ordinal": 19
+    },
+    {
+      "name": "public.gridex_complete_facility_response",
+      "signature": "gridex_complete_facility_response(uuid,uuid,uuid,text,uuid,text,text,text,text,uuid,jsonb,text)",
+      "body_md5": "b1908f619424c2ca02d1c6214eb90e6b",
+      "classification": "confirmed_fix",
+      "proof": [
+        "Actualb1908… writes normalized_facility_id; fresh actualcustomer_sites column attgenerated=s, gridex_normalize_facility_id(facility_id). PostgreSQL rejectsnonDEFAULT generatedcolumn assignment beforetriggers canrepair. LivefacilityLookupWorkflow.ts243 RPC. Removeexact one setter only, automatic generatedresult retained; source alreadyomitssetter."
+      ],
+      "source_references": [
+        {
+          "file": "lib/facility/facilityLookupWorkflow.ts",
+          "line": 243
+        }
+      ],
+      "canonical": {
+        "line": 58731,
+        "sha256": "181281b8fa31d42a58b31b8017af9bf9fdb945f1241b1ab8afb446de61cd7701"
+      },
+      "ordinal": 20
+    },
+    {
+      "name": "public.gridex_create_billing_export_run",
+      "signature": "gridex_create_billing_export_run(jsonb,jsonb)",
+      "body_md5": "f54cbf6ddcb6b4c28c1ff818aa62ebbd",
+      "classification": "confirmed_fix",
+      "proof": [
+        "Actualf54cbf… directlegacycore skipscanonical require_underlay(company,id) equality/correction/supply-source checks. Live invoiceExportCore/exportCenter call publicgridex_create_invoice_export_graph_v1, whichcalls thislegacy function aftercanonicalcore in sameRPC. Appreadiness beforeRPC isnot atomicrecheck. Finalf9finance_fresh_consumption onlyretentionavailability, notunderlay_binding exacttotal/hash/correction/currentlegalbasis. Sourcewrapper same legacycore alias+require_underlay foreach nonexcludeditem beforedelegate; newaliases fullf9 first."
+      ],
+      "source_references": [],
+      "canonical": {
+        "line": 61034,
+        "sha256": "843557062516447a41c46fe81bc800cec66ad8e98dc960a269f67e04b58c77e2"
+      },
+      "ordinal": 21
+    },
+    {
+      "name": "public.gridex_create_customer_site_with_address",
+      "signature": "gridex_create_customer_site_with_address(uuid,uuid,text,text,text,text,text,text,text,text,text,jsonb)",
+      "body_md5": "2113eb974d49f7679d00b54798e83365",
+      "classification": "preserve_compatible_actual",
+      "proof": [
+        "Actualexplicitis_active=true sourceomitsfield. Actualnotnull/defaulttrue observed; bothfutureinserts samevalue. addressIntake.ts349 passes owncompany/customer/siteinput; no dropof requiredtenantfilter. Preserveactualcore, no needrewrite."
+      ],
+      "source_references": [
+        {
+          "file": "lib/customer-sites/addressIntake.ts",
+          "line": 349
+        }
+      ],
+      "canonical": {
+        "line": 61130,
+        "sha256": "1462619a91e1087237219200aeef69a8af842f45273e914fb6089c7082fcb977"
+      },
+      "ordinal": 22
+    },
+    {
+      "name": "public.gridex_create_grid_owner_data_request_v1",
+      "signature": "gridex_create_grid_owner_data_request_v1(uuid,jsonb)",
+      "body_md5": "030001d58faa385dd778e42cf491a0d2",
+      "classification": "equivalent",
+      "proof": [
+        "Executabletokens exactlyequal; db-data.ts291 tenant-scopedrequest JSON/objectmetadata. Current predicates and transactional request/event effects same."
+      ],
+      "source_references": [
+        {
+          "file": "lib/cis/db-data.ts",
+          "line": 291
+        }
+      ],
+      "canonical": {
+        "line": 61310,
+        "sha256": "c1ddf9c20fe18306a7d425203b523b91c42b9f5da5df66356d77ac384f3f7c28"
+      },
+      "ordinal": 23
+    },
+    {
+      "name": "public.gridex_create_invoice_export_graph_v1_core",
+      "signature": "gridex_create_invoice_export_graph_v1_core(jsonb,jsonb,jsonb)",
+      "body_md5": "a738e118e1fdcad19ecf9e880acc7f56",
+      "classification": "preserve_stronger_actual",
+      "proof": [
+        "Actualinvoice_reference assignment REQUIRED: actualcustomer_invoices.invoice_referenceNOTNULL/no default. Actualpartner_export_idNULL preserveslegacyFK identity instead of assigningcanonicalinvoiceexportitemUUID; canonicalsourceoldercorewouldviolateinvoiceidentity. Nativepublicinvoicegraph caller sourceinvoiceExportCore.ts233/exportCenter.ts656 keeps financialhash/idempotency/tenant-underlay checks. Finalf9 copyguard additional; preserveapprovedactual core."
+      ],
+      "source_references": [],
+      "canonical": {
+        "line": 61879,
+        "sha256": "1089052598792a58818c41eb0c78513299f6ea6bff2280c025fe849569c85b41"
+      },
+      "ordinal": 24
+    },
+    {
+      "name": "public.gridex_create_partner_contract_v1",
+      "signature": "gridex_create_partner_contract_v1(uuid,uuid,jsonb)",
+      "body_md5": "50a9a74e64b0fd93849991f9164c6fdb",
+      "classification": "preserve_approved_current_fix",
+      "proof": [
+        "Actual checks energy_direction in(consumption,production) and matches site_type AFTER selectingactualfrozenoffer and BEFORE customer/site/contractwrites. Existing partner-api core771/simple830 RPC confirmscurrentprice/offer input; older sourcelacks guard. Preserveapprovedactual directionfix; no currentpricefallthrough."
+      ],
+      "source_references": [
+        {
+          "file": "lib/partner-api/simple.ts",
+          "line": 830
+        },
+        {
+          "file": "lib/partner-api/core.ts",
+          "line": 771
+        }
+      ],
+      "canonical": {
+        "line": 62204,
+        "sha256": "6665529adb97bf1aed231e1f580476099d47caabd8450951e15afe4434977dc8"
+      },
+      "ordinal": 25
+    },
+    {
+      "name": "public.gridex_create_supplier_switch_v1",
+      "signature": "gridex_create_supplier_switch_v1(uuid,jsonb,jsonb)",
+      "body_md5": "2695864d2aa461832fa7d361b0bd64bb",
+      "classification": "equivalent",
+      "proof": [
+        "Only explanatory inserted-column/default comment; tokens equal. operations/db.part-2.ts530 companyscopeJSON command; SQLtenant parameteroverridescaller company; dynamiconly-suppliedcolumns preservetabledefaults."
+      ],
+      "source_references": [
+        {
+          "file": "lib/operations/db.part-2.ts",
+          "line": 530
+        }
+      ],
+      "canonical": {
+        "line": 62814,
+        "sha256": "72087f7ae07cf27a14debd02d97f7349baaffb2a1f2456c1fd3d57ec5eb35445"
+      },
+      "ordinal": 26
+    },
+    {
+      "name": "public.gridex_customer_portfolio_cohorts",
+      "signature": "gridex_customer_portfolio_cohorts(uuid,integer)",
+      "body_md5": "37be309d17d59dafd04508ca6c1702ab",
+      "classification": "preserve_approved_current_fix",
+      "proof": [
+        "Actual delegatescohorts_at(company,current_date,months) afterreadassert. Existingapproved portfolioas-of correction, same scopedgrouping/outputtable; sourceolder inlineUTC as-of handling mustnotreplace. analytics/customerPortfolio.ts218 usespubliccohorts; privatehelper exactsourcesupplied rootportfolio report."
+      ],
+      "source_references": [
+        {
+          "file": "lib/analytics/customerPortfolio.ts",
+          "line": 218
+        }
+      ],
+      "canonical": {
+        "line": 64072,
+        "sha256": "5f9aee78cc95949fa61cd3d7382a549008440a6bf23c164c099b5bbe1889a29d"
+      },
+      "ordinal": 27
+    },
+    {
+      "name": "public.gridex_customer_portfolio_expiring_poa",
+      "signature": "gridex_customer_portfolio_expiring_poa(uuid,integer)",
+      "body_md5": "878d935ac0e44ef38da309ba5c3b2386",
+      "classification": "preserve_approved_current_fix",
+      "proof": [
+        "Actual casts realtimestamptzPOAexpiry toUTCdate beforedate subtraction/filter; sourceuses date arithmetic directly againsttimestamptz. analytics/customerPortfolio.ts220 receivesDATE/daycount. Rootapproved realcolumntype repair, notprice/snapshot mutation."
+      ],
+      "source_references": [
+        {
+          "file": "lib/analytics/customerPortfolio.ts",
+          "line": 220
+        }
+      ],
+      "canonical": {
+        "line": 64130,
+        "sha256": "d016b837e0f1fd627b7ef4f4e71efcf1026dd3ef8c2fa3352a24776d6ef0c500"
+      },
+      "ordinal": 28
+    },
+    {
+      "name": "public.gridex_customer_portfolio_forecast_cached_internal",
+      "signature": "gridex_customer_portfolio_forecast_cached_internal(uuid,date)",
+      "body_md5": "7cff187b383d875d120b11a84ecfca1b",
+      "classification": "preserve_approved_current_fix",
+      "proof": [
+        "Actualonlypastmonths usepersistedforecasts, current/future recompute andpassactualrequested as-of date; rootapproved source-awareforecastfix. Publicportfolio readwrappers assertread; no directappinternalRPC literal. Older sourcealwayscachedv_month couldreturnstale currentnumbers."
+      ],
+      "source_references": [],
+      "canonical": {
+        "line": 64213,
+        "sha256": "3cf1510af0958bf5c5b312668fc263b2519d12c581990770953436163dcee52c"
+      },
+      "ordinal": 29
+    },
+    {
+      "name": "public.gridex_customer_portfolio_forecast_internal",
+      "signature": "gridex_customer_portfolio_forecast_internal(uuid,date,integer)",
+      "body_md5": "fee8dac1a1c556cb9888ef2865b32319",
+      "classification": "preserve_approved_current_fix",
+      "proof": [
+        "Actualpassesexactp_as_of to pointforecast instead of truncatingmonth; rootapprovedforecast activeintervalcorrection. Internalhelper reachedthroughauthorizedpublicportfolio read, outputtypes unchanged."
+      ],
+      "source_references": [],
+      "canonical": {
+        "line": 64239,
+        "sha256": "bef695c38932c7aadbb58985dd0467ac513d7f1aaca633f5aefb2db7826c96ad"
+      },
+      "ordinal": 30
+    },
+    {
+      "name": "public.gridex_customer_portfolio_monthly_internal",
+      "signature": "gridex_customer_portfolio_monthly_internal(uuid,date,date)",
+      "body_md5": "e5a9147468162c97615024290faf0e58",
+      "classification": "preserve_approved_current_fix",
+      "proof": [
+        "ActualUTCdate casts realPOA timestamps, requestcounts onlyactualmeter/billingrequests for coherenttotal=historic+ongoing. Rootapproved native typedcounter repair; older sourceunsupported timestamptz and countsallscopes inconsistent. Samecompanywhere/readwrapper, no liveportfolio rowsread."
+      ],
+      "source_references": [],
+      "canonical": {
+        "line": 64272,
+        "sha256": "5d31a994e66ecd5faa5fc57466b7b18184f54f1f9fb60b2f6f96f7e0df4b357d"
+      },
+      "ordinal": 31
+    },
+    {
+      "name": "public.gridex_customer_portfolio_point_forecast_internal",
+      "signature": "gridex_customer_portfolio_point_forecast_internal(uuid,date,integer)",
+      "body_md5": "0dd528a6c806683461e427be231007f6",
+      "classification": "preserve_approved_current_fix",
+      "proof": [
+        "Actualusesrealas-ofdate andexclusiveend_date foractive/forecastintervals; sourcemonth-start/inclusiveend overcountsendedsupplies. Rootapproved production/as-of semantics, preservecurrent functions and exactsharedoutput."
+      ],
+      "source_references": [],
+      "canonical": {
+        "line": 64389,
+        "sha256": "67e319df34775df5cf84063b288e72292db4d8438c9033cfa22fc5f18ba23413"
+      },
+      "ordinal": 32
+    },
+    {
+      "name": "public.gridex_dependency_circuit_before_request_v1",
+      "signature": "gridex_dependency_circuit_before_request_v1(text,integer)",
+      "body_md5": "6846d84d628409c98efce04b0c400ee2",
+      "classification": "equivalent_sql_logic",
+      "proof": [
+        "Onlyformat andredundant half_open_afterISNOTNULL check; SQLIF comparisonwithNULL isnottrue in eitherform, so samebranch decisions/lease updates/results. dependencyCircuit.ts5 privateRPC currentstatusleaseflow. No nativebehavior difference asserted."
+      ],
+      "source_references": [
+        {
+          "file": "lib/runtime/dependencyCircuit.ts",
+          "line": 5
+        }
+      ],
+      "canonical": {
+        "line": 65457,
+        "sha256": "5d803a2024c6d3712781c391f7bd64e943002715debd7fc9a1f94febbb4a0639"
+      },
+      "ordinal": 33
+    }
+  ],
+  "patch_inventory": [
+    "public.canonical_capture_ediel_configuration_snapshot_v1_unchecked",
+    "public.canonical_capture_ediel_test_configuration_snapshot",
+    "public.canonical_onboard_customer_graph",
+    "public.gridex_complete_facility_response",
+    "public.gridex_create_billing_export_run",
+    "public.claim_ediel_outbox_item",
+    "gridex_received_sources.append_validation",
+    "gridex_received_sources.object_owner_proof_consistent",
+    "gridex_received_sources.append_object_assessment",
+    "gridex_received_sources.review_business_proof_consistent",
+    "gridex_received_sources.review_closure_proof_consistent",
+    "public.activate_customer_supply_v1",
+    "gridex_outbound_dispatch.mutate_v1"
+  ],
+  "preserved_invariants": [
+    "Do notsource-replace strongerAuth/currentDENY/TTL/price-direction/UTC/requiredinvoice-reference/FK variants.",
+    "PreservefunctionOID/owner/ACL/signatures/defaults/security/searchpath/strictness/parallel/cost; explicitsource-ownedbody patch knownhash only, completecanonicalbody no-op.",
+    "Part1 afterfullf9; activationTABLEsevenUUIDoutputs stable; beforepart2finalizercomposition.",
+    "No backfills/history/realbusinesscalls; future invocation adoptscanonical source/receipt/atomic proof semantics."
+  ],
+  "refuted_findings": [
+    "Profile.environment_type absent claim refuted: actualcolumnexists; source-route binding remainsmaterial.",
+    "Obsolete repository00:00 native-additive SQL helperabsence suspicion refuted by exactfinalf9 fullclosure.",
+    "ActivationRETuuid guessrefuted by fullactual/sourceTABLEsevenUUIDsignature beforeanyproposal."
+  ],
+  "implementation_status": "Exact sealed 13-body forward d821 independently approved by both NONcoauthor peers; genuine isolated PostgreSQL/PostGIS first apply and idempotent replay PASS. Actual installation is root-owned; this author made no live native changes.",
+  "forward": {
+    "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/variant-part1-forward.sql",
+    "sha256": "d821d77e00f5dbb25d599e339bc3d36cfd73b78133e2d2f36e29b56557420ff7",
+    "function_changes": [
+      {
+        "signature": "public.canonical_onboard_customer_graph(jsonb)",
+        "before_md5": "863d75ad1ffd558b2810a31184f20712",
+        "after_md5": "c2edda31f52065fe15c750b297091cdd",
+        "canonical_complete_md5": "c2edda31f52065fe15c750b297091cdd",
+        "source_line": 39035,
+        "source_statement_sha256": "164877930dbc2d7748ab81e0c57a2bc57332e83fa52e3199c58521e0e2b4d338"
+      },
+      {
+        "signature": "public.gridex_create_billing_export_run(jsonb,jsonb)",
+        "before_md5": "f54cbf6ddcb6b4c28c1ff818aa62ebbd",
+        "after_md5": "d95a237ce43c9822679b6b36c64aa1c3",
+        "canonical_complete_md5": "d95a237ce43c9822679b6b36c64aa1c3",
+        "source_line": 61034,
+        "source_statement_sha256": "843557062516447a41c46fe81bc800cec66ad8e98dc960a269f67e04b58c77e2"
+      },
+      {
+        "signature": "public.canonical_capture_ediel_configuration_snapshot_v1_unchecked(uuid,uuid,text)",
+        "before_md5": "fa3c52d78347d7dfc7823886453a837d",
+        "after_md5": "5fc99b3c1d7a45019ec048a1f8c209bb",
+        "canonical_complete_md5": "5fc99b3c1d7a45019ec048a1f8c209bb",
+        "source_line": 37187,
+        "source_statement_sha256": "c7b77d20dc3f4aa613f03a4a1a32a73e7ef242925e23eba1fe0faa49c45fd7b7"
+      },
+      {
+        "signature": "public.canonical_capture_ediel_test_configuration_snapshot(uuid,uuid,uuid,uuid,text)",
+        "before_md5": "cd351237978161ee32086f9b7832a0eb",
+        "after_md5": "f8a8c3fa9b29b761dc47ebb0e465d3be",
+        "canonical_complete_md5": "f8a8c3fa9b29b761dc47ebb0e465d3be",
+        "source_line": 37461,
+        "source_statement_sha256": "4b151da5eaa7b7bf9cc8f37ab6a31112952188891d6d2127558744ac9c88bfdb"
+      },
+      {
+        "signature": "public.claim_ediel_outbox_item(uuid,text,uuid)",
+        "before_md5": "9652162f0f7e0971221ac74439ffc875",
+        "after_md5": "8b9e258bbc9f662aeb572ed4432bf0fe",
+        "canonical_complete_md5": "8b9e258bbc9f662aeb572ed4432bf0fe",
+        "source_line": 43004,
+        "source_statement_sha256": "cdfc047c3712cb0a3fd5d41fdc3a81d766aeae2680f70caa0ab9f0a92651a4e3"
+      },
+      {
+        "signature": "gridex_received_sources.append_validation(uuid,text,uuid,text,text)",
+        "before_md5": "de6d0a69327e00e3c144c71233ad41bf",
+        "after_md5": "7326766d1107da1d261c84796bf1e059",
+        "canonical_complete_md5": "7326766d1107da1d261c84796bf1e059",
+        "source_line": 23279,
+        "source_statement_sha256": "41b7ea66a4f370b00cd344432aa91403c55fcf69d92f859915941d9f2dc58941"
+      },
+      {
+        "signature": "gridex_received_sources.object_owner_proof_consistent(jsonb,jsonb,timestamp with time zone)",
+        "before_md5": "bf499b92113b3e3370085d23dce02f51",
+        "after_md5": "602be7f832a17414720cf022a4a465d5",
+        "canonical_complete_md5": "602be7f832a17414720cf022a4a465d5",
+        "source_line": 25946,
+        "source_statement_sha256": "4d4b83199c28da77ef421c54d934932734988714c0c5b63b59c617ba2927ee0b"
+      },
+      {
+        "signature": "gridex_received_sources.append_object_assessment(uuid,text,uuid,text,uuid,text)",
+        "before_md5": "9662f3809d231e2313c2b2befb1ef46a",
+        "after_md5": "8a9eeea4f039a6f05e6834a55401f518",
+        "canonical_complete_md5": "8a9eeea4f039a6f05e6834a55401f518",
+        "source_line": 22719,
+        "source_statement_sha256": "c579b8a4c9d72435817b56af9c504a5bf5c2db480c12fc22c3aea1621149ccc9"
+      },
+      {
+        "signature": "gridex_received_sources.review_business_proof_consistent(jsonb,jsonb,uuid)",
+        "before_md5": "a95412a2838be5ef47ec644feb50707e",
+        "after_md5": "674cd64e402e92aed1d494a82237f392",
+        "canonical_complete_md5": "674cd64e402e92aed1d494a82237f392",
+        "source_line": 28283,
+        "source_statement_sha256": "3b11feac5506739acbd97af998cc703c9b409340a528fb8e7a1459c78ad80bdc"
+      },
+      {
+        "signature": "public.gridex_complete_facility_response(uuid,uuid,uuid,text,uuid,text,text,text,text,uuid,jsonb,text)",
+        "before_md5": "b1908f619424c2ca02d1c6214eb90e6b",
+        "after_md5": "87b48bf27e4b41cec85ea3dcd2c21cca",
+        "canonical_complete_md5": "87b48bf27e4b41cec85ea3dcd2c21cca",
+        "source_line": 58731,
+        "source_statement_sha256": "181281b8fa31d42a58b31b8017af9bf9fdb945f1241b1ab8afb446de61cd7701"
+      },
+      {
+        "signature": "gridex_received_sources.review_closure_proof_consistent(jsonb,jsonb,uuid)",
+        "before_md5": "fe70d69e57875acdf96a7fdae0e51a42",
+        "after_md5": "bc47d5b98aed2b6079fdc33827138d4a",
+        "canonical_complete_md5": "bc47d5b98aed2b6079fdc33827138d4a",
+        "source_line": 28300,
+        "source_statement_sha256": "5b2991d207e76763ec67b3253a868d5b790eed13a7b4d1c647f4c694bcbf4bfc"
+      },
+      {
+        "signature": "public.activate_customer_supply_v1(uuid,uuid,uuid,date,uuid,text)",
+        "before_md5": "85561284bde4891c22cfd8f5f640e342",
+        "after_md5": "f37f78094a23b8ec93bf6db4bdf4ac58",
+        "canonical_complete_md5": "f37f78094a23b8ec93bf6db4bdf4ac58",
+        "source_line": 35701,
+        "source_statement_sha256": "7439f832f685f04ab0d24f9e0c2148d6bb7fd08c285eb7ae6ce0de0ad6a05bc4"
+      },
+      {
+        "signature": "gridex_outbound_dispatch.mutate_v1(jsonb)",
+        "before_md5": "a16d6877219da4418ec36e2258543ca9",
+        "after_md5": "56e049dc8dcb43ef279e2dbf4b8f8736",
+        "canonical_complete_md5": "56e049dc8dcb43ef279e2dbf4b8f8736",
+        "source_line": 20980,
+        "source_statement_sha256": "f82885eeecd45f03ac614759d33b5596aef9b906408ce8a8ebee9a8320239fd0"
+      }
+    ],
+    "prerequisites": [
+      {
+        "signature": "gridex_billing_source.gridex_create_billing_export_run_before_source_v2(jsonb,jsonb)",
+        "md5": "f54cbf6ddcb6b4c28c1ff818aa62ebbd"
+      },
+      {
+        "signature": "gridex_billing_source.require_underlay_v1(uuid,uuid)",
+        "md5": "5eb90a2ded80439e768e0abeb44ce65c"
+      },
+      {
+        "signature": "gridex_ediel_technical_ack.read_persisted_contrl_v2(uuid,text,uuid,uuid,text)",
+        "md5": "14b0190c59d554fff416f41d00430e05"
+      },
+      {
+        "signature": "gridex_outbound_dispatch.mutate_before_duplicate_protocol_v1(jsonb)",
+        "md5": "585d539cda70f5d81405005ac5141952"
+      },
+      {
+        "signature": "gridex_outbound_dispatch.mutate_before_observed_clock_v1(jsonb)",
+        "md5": "9b98e9898b8bbeb5c60bb9dd94f187ba"
+      },
+      {
+        "signature": "gridex_prodat_object_batch.onboard_v1(jsonb)",
+        "md5": "50a36f0cce7b96e80ba4250b648991be"
+      },
+      {
+        "signature": "gridex_received_sources.activate_supply_before_source_guard_v1(uuid,uuid,uuid,date,uuid,text)",
+        "md5": "85561284bde4891c22cfd8f5f640e342"
+      },
+      {
+        "signature": "gridex_received_sources.append_validation_before_reference_profile_v1(uuid,text,uuid,text,text)",
+        "md5": "887b3b2164d38f4056d9e807f2f90cb5"
+      },
+      {
+        "signature": "gridex_received_sources.append_validation_before_unused_unh_v1(uuid,text,uuid,text,text)",
+        "md5": "ff2cd84bd03c670ed9e0c4e30bbe8bdf"
+      },
+      {
+        "signature": "gridex_received_sources.object_owner_before_normal_minute_v1(jsonb,jsonb,timestamp with time zone)",
+        "md5": "bf499b92113b3e3370085d23dce02f51"
+      },
+      {
+        "signature": "gridex_received_sources.review_business_proof_before_customer_kind_v1(jsonb,jsonb,uuid)",
+        "md5": "ea4f79e854eb6fc76a5f578e89c59fa7"
+      }
+    ],
+    "preservation": "Canonical-complete exactbody is inert; known actual predecessor requires exactactual projectedattributes/body. After every change fullpg_proc JSON excludingonlyprosrc unchanged. SameOID/owner/ACL/args/defaults/config/lang/security/leakproof/strictness/parallel/cost/rows. No actual financial/Auth/UTC/invoice/direction stronger function touched.",
+    "parser": {
+      "outer_sql": "PASS",
+      "outer_do": "PASS",
+      "nested_sql_count": 13,
+      "standalone_plpgsql_pass": [
+        "public.canonical_onboard_customer_graph(jsonb)",
+        "public.gridex_create_billing_export_run(jsonb,jsonb)",
+        "public.canonical_capture_ediel_configuration_snapshot_v1_unchecked(uuid,uuid,text)",
+        "public.canonical_capture_ediel_test_configuration_snapshot(uuid,uuid,uuid,uuid,text)",
+        "public.claim_ediel_outbox_item(uuid,text,uuid)",
+        "gridex_received_sources.object_owner_proof_consistent(jsonb,jsonb,timestamp with time zone)",
+        "gridex_received_sources.append_object_assessment(uuid,text,uuid,text,uuid,text)",
+        "gridex_received_sources.review_business_proof_consistent(jsonb,jsonb,uuid)",
+        "public.gridex_complete_facility_response(uuid,uuid,uuid,text,uuid,text,text,text,text,uuid,jsonb,text)",
+        "gridex_received_sources.review_closure_proof_consistent(jsonb,jsonb,uuid)",
+        "public.activate_customer_supply_v1(uuid,uuid,uuid,date,uuid,text)",
+        "gridex_outbound_dispatch.mutate_v1(jsonb)"
+      ],
+      "standalone_plpgsql_limits": [
+        {
+          "signature": "gridex_received_sources.append_validation(uuid,text,uuid,text,text)",
+          "standalone_parser_limit": "\"m.raw_payload\" is not a known variable"
+        }
+      ],
+      "authority": "Genuine isolated PostgreSQL with actual composite rowtype metadata must validate these known standalone parser limits; no source/body substitution."
+    },
+    "isolated_compile": {
+      "status": "Exact d821 forward genuinely COMMITs and exact idempotent replay COMMITs exit0 in dedicated network-none fullf9+fiveexpiry actual-shaped PostgreSQL/PostGIS clone. Explicit13post-MD5s exact,13fullpg_proc catalog rows included. Everychangedfunction allpg_proc identity excludingonlyprosrc preserved by compiledDO checks.",
+      "receipt": "/tmp/gridex-api-review/variant-part1-combined-isolated-compile-review.json",
+      "receipt_sha256": "a267335ec2930cd8e868518f0ab1b2d65761882f4fe0f149585a0ca2f723375e",
+      "log": "/tmp/gridex-api-review/variant-part2-isolated-part1-dependency-compile.log",
+      "limits": "No business invocation/liveprovider/nativewrite. PLpgSQL internalSQL plan execution deferred; compilercoauthor evidence is not independent finalreview. Actualcomposite-aware validation resolved standalone m.raw_payload parserlimit withoutsource/bodychanges."
+    },
+    "independent_review": {
+      "native_forward_independent_review": "APPROVED exactd821 on fresh12:00:02 actual13before-MD5/allattrs,13canonicalafter/11protectedprereqACL/UTC delegates/sourceeffects. No edits/nativewrites/businesscalls/tests.",
+      "final_api_source_review": "APPROVED exact d821 source/native effects against fresh actual 11:38:52 all13 predecessor body hashes and full attributes; exact embedded canonical bytes/hashes independently checked. This is bounded source approval with genuine compiler evidence, not complete business-flow certification."
+    }
+  },
+  "strict_semantic_post_metadata_assertion": {
+    "forward": "release-proposals/semantic-forward-metadata-integrity.sql",
+    "sha256": "5aa1fd4fc45a85819b683dff4756d97ad3c3387e9e2d9bd1a9424b63ebb9d4c9",
+    "status": "Both NONcoauthor peers approved; genuine current/source15 first/replay and8ABI refusal rollbacks PASS; metadata checked before accepted-body replay. Previous sealed business forward bytes preserved.",
+    "receipt_sha256": "dbdc4fa5eee2fadac378dcd861c1aaedb8f9234b471246e0e19221290fe5c8ab",
+    "ordering": "Apply after part1d821 and extraZ021e6; root actual apply only."
+  }
+}

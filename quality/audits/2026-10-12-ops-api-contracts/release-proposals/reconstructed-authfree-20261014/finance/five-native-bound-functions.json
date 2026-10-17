@@ -1,0 +1,197 @@
+[
+  {
+    "def": "CREATE OR REPLACE FUNCTION public.gridex_billing_item_lock_profile_revision()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\nBEGIN\n  IF TG_OP = 'INSERT' THEN\n    IF NEW.customer_id IS NOT NULL THEN\n      SELECT c.billing_profile_revision INTO NEW.customer_billing_profile_revision\n        FROM public.customers c\n       WHERE c.id = NEW.customer_id AND c.company_id = NEW.company_id;\n    END IF;\n  ELSIF NEW.customer_billing_profile_revision IS DISTINCT FROM OLD.customer_billing_profile_revision THEN\n    RAISE EXCEPTION 'billing_item_profile_revision_immutable' USING ERRCODE = '42501';\n  END IF;\n  RETURN NEW;\nEND $function$\n",
+    "body": "\nBEGIN\n  IF TG_OP = 'INSERT' THEN\n    IF NEW.customer_id IS NOT NULL THEN\n      SELECT c.billing_profile_revision INTO NEW.customer_billing_profile_revision\n        FROM public.customers c\n       WHERE c.id = NEW.customer_id AND c.company_id = NEW.company_id;\n    END IF;\n  ELSIF NEW.customer_billing_profile_revision IS DISTINCT FROM OLD.customer_billing_profile_revision THEN\n    RAISE EXCEPTION 'billing_item_profile_revision_immutable' USING ERRCODE = '42501';\n  END IF;\n  RETURN NEW;\nEND ",
+    "table": "public.billing_export_run_items",
+    "trigger": "billing_export_run_items_lock_profile_revision",
+    "function": "public.gridex_billing_item_lock_profile_revision()",
+    "trigger_def": "CREATE TRIGGER billing_export_run_items_lock_profile_revision BEFORE INSERT OR UPDATE ON public.billing_export_run_items FOR EACH ROW EXECUTE FUNCTION public.gridex_billing_item_lock_profile_revision()",
+    "trigger_meta": {
+      "args": "",
+      "attr": "",
+      "qual": null,
+      "type": 23,
+      "parent": false,
+      "enabled": "O",
+      "newtable": null,
+      "oldtable": null,
+      "constrrel": null,
+      "constraint": false,
+      "deferrable": false,
+      "initdeferred": false
+    },
+    "function_meta": {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "cost": 100,
+      "kind": "f",
+      "rows": 0,
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "secdef": true,
+      "strict": false,
+      "def_md5": "c51f8dd556c8c22b1e0dbc16f46b316d",
+      "support": "-",
+      "parallel": "u",
+      "leakproof": false,
+      "volatility": "v"
+    }
+  },
+  {
+    "def": "CREATE OR REPLACE FUNCTION public.set_updated_at_timestamp()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO 'public', 'auth', 'extensions'\nAS $function$\nbegin\n  new.updated_at = now();\n  return new;\nend;\n$function$\n",
+    "body": "\nbegin\n  new.updated_at = now();\n  return new;\nend;\n",
+    "table": "public.billing_underlays",
+    "trigger": "trg_billing_underlays_updated_at",
+    "function": "public.set_updated_at_timestamp()",
+    "trigger_def": "CREATE TRIGGER trg_billing_underlays_updated_at BEFORE UPDATE ON public.billing_underlays FOR EACH ROW EXECUTE FUNCTION public.set_updated_at_timestamp()",
+    "trigger_meta": {
+      "args": "",
+      "attr": "",
+      "qual": null,
+      "type": 19,
+      "parent": false,
+      "enabled": "O",
+      "newtable": null,
+      "oldtable": null,
+      "constrrel": null,
+      "constraint": false,
+      "deferrable": false,
+      "initdeferred": false
+    },
+    "function_meta": {
+      "acl": "{=X/postgres,postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "cost": 100,
+      "kind": "f",
+      "rows": 0,
+      "owner": "postgres",
+      "config": [
+        "search_path=public, auth, extensions"
+      ],
+      "secdef": false,
+      "strict": false,
+      "def_md5": "5a13974122c8d8d02d39f81a98701231",
+      "support": "-",
+      "parallel": "u",
+      "leakproof": false,
+      "volatility": "v"
+    }
+  },
+  {
+    "def": "CREATE OR REPLACE FUNCTION public.set_updated_at_timestamp()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO 'public', 'auth', 'extensions'\nAS $function$\nbegin\n  new.updated_at = now();\n  return new;\nend;\n$function$\n",
+    "body": "\nbegin\n  new.updated_at = now();\n  return new;\nend;\n",
+    "table": "public.partner_exports",
+    "trigger": "trg_partner_exports_updated_at",
+    "function": "public.set_updated_at_timestamp()",
+    "trigger_def": "CREATE TRIGGER trg_partner_exports_updated_at BEFORE UPDATE ON public.partner_exports FOR EACH ROW EXECUTE FUNCTION public.set_updated_at_timestamp()",
+    "trigger_meta": {
+      "args": "",
+      "attr": "",
+      "qual": null,
+      "type": 19,
+      "parent": false,
+      "enabled": "O",
+      "newtable": null,
+      "oldtable": null,
+      "constrrel": null,
+      "constraint": false,
+      "deferrable": false,
+      "initdeferred": false
+    },
+    "function_meta": {
+      "acl": "{=X/postgres,postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "cost": 100,
+      "kind": "f",
+      "rows": 0,
+      "owner": "postgres",
+      "config": [
+        "search_path=public, auth, extensions"
+      ],
+      "secdef": false,
+      "strict": false,
+      "def_md5": "5a13974122c8d8d02d39f81a98701231",
+      "support": "-",
+      "parallel": "u",
+      "leakproof": false,
+      "volatility": "v"
+    }
+  },
+  {
+    "def": "CREATE OR REPLACE FUNCTION public.gridex_portfolio_audit_immutable()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO 'public', 'pg_temp'\nAS $function$\nbegin raise exception using errcode='55000',message='portfolio_settlement_audit_append_only'; end $function$\n",
+    "body": "\nbegin raise exception using errcode='55000',message='portfolio_settlement_audit_append_only'; end ",
+    "table": "public.portfolio_settlement_audit_log",
+    "trigger": "portfolio_settlement_audit_immutable",
+    "function": "public.gridex_portfolio_audit_immutable()",
+    "trigger_def": "CREATE TRIGGER portfolio_settlement_audit_immutable BEFORE DELETE OR UPDATE ON public.portfolio_settlement_audit_log FOR EACH ROW EXECUTE FUNCTION public.gridex_portfolio_audit_immutable()",
+    "trigger_meta": {
+      "args": "",
+      "attr": "",
+      "qual": null,
+      "type": 27,
+      "parent": false,
+      "enabled": "O",
+      "newtable": null,
+      "oldtable": null,
+      "constrrel": null,
+      "constraint": false,
+      "deferrable": false,
+      "initdeferred": false
+    },
+    "function_meta": {
+      "acl": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "cost": 100,
+      "kind": "f",
+      "rows": 0,
+      "owner": "postgres",
+      "config": [
+        "search_path=public, pg_temp"
+      ],
+      "secdef": false,
+      "strict": false,
+      "def_md5": "b07e74fb33d71695f1f7840c6a34b420",
+      "support": "-",
+      "parallel": "u",
+      "leakproof": false,
+      "volatility": "v"
+    }
+  },
+  {
+    "def": "CREATE OR REPLACE FUNCTION public.gridex_guard_portfolio_invoice_binding()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO 'public', 'pg_temp'\nAS $function$\nbegin\n  if tg_op='DELETE' or old.customer_invoice_id is not null\n     or new.customer_invoice_id is null\n     or new.invoice_idempotency_key is null\n     or (to_jsonb(new)-'customer_invoice_id'-'invoice_idempotency_key')\n       <>(to_jsonb(old)-'customer_invoice_id'-'invoice_idempotency_key') then\n    raise exception using errcode='55000',message='portfolio_invoice_binding_immutable';\n  end if;\n  return new;\nend $function$\n",
+    "body": "\nbegin\n  if tg_op='DELETE' or old.customer_invoice_id is not null\n     or new.customer_invoice_id is null\n     or new.invoice_idempotency_key is null\n     or (to_jsonb(new)-'customer_invoice_id'-'invoice_idempotency_key')\n       <>(to_jsonb(old)-'customer_invoice_id'-'invoice_idempotency_key') then\n    raise exception using errcode='55000',message='portfolio_invoice_binding_immutable';\n  end if;\n  return new;\nend ",
+    "table": "public.portfolio_settlement_invoice_bindings",
+    "trigger": "portfolio_settlement_invoice_bindings_guard",
+    "function": "public.gridex_guard_portfolio_invoice_binding()",
+    "trigger_def": "CREATE TRIGGER portfolio_settlement_invoice_bindings_guard BEFORE DELETE OR UPDATE ON public.portfolio_settlement_invoice_bindings FOR EACH ROW EXECUTE FUNCTION public.gridex_guard_portfolio_invoice_binding()",
+    "trigger_meta": {
+      "args": "",
+      "attr": "",
+      "qual": null,
+      "type": 27,
+      "parent": false,
+      "enabled": "O",
+      "newtable": null,
+      "oldtable": null,
+      "constrrel": null,
+      "constraint": false,
+      "deferrable": false,
+      "initdeferred": false
+    },
+    "function_meta": {
+      "acl": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "cost": 100,
+      "kind": "f",
+      "rows": 0,
+      "owner": "postgres",
+      "config": [
+        "search_path=public, pg_temp"
+      ],
+      "secdef": false,
+      "strict": false,
+      "def_md5": "940de7538d89199bb772bea29d54d0f5",
+      "support": "-",
+      "parallel": "u",
+      "leakproof": false,
+      "volatility": "v"
+    }
+  }
+]

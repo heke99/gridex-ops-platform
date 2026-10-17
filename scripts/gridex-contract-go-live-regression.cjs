@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const { currentContractVersion, currentReleasePath } = require('./lib/current-api-contract.cjs')
+const { currentDocumentationVersion, currentReleasePath } = require('./lib/current-api-contract.cjs')
 
 const root = path.resolve(__dirname, "..");
 const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
@@ -362,7 +362,7 @@ includesAll(liveSchemaCheck, [
 check(db.includes('.not("lifecycle_status", "in", "(archived,superseded)")'), "archived/superseded hidden by default");
 check(runtime.includes('code: "offer_reference_mismatch"'), "canonical API mismatch code");
 check(runtime.includes('legacy_code: "offer_selector_mismatch"'), "legacy error code retained only as compatibility detail");
-check(openapi.info.version === currentContractVersion, "OpenAPI current version");
+check(openapi.info.version === currentDocumentationVersion, "OpenAPI current version");
 check(JSON.stringify(openapi).includes("offer_reference_mismatch"), "OpenAPI documents canonical mismatch code");
 
 includesAll(migration, [

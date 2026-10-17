@@ -1,0 +1,221 @@
+{
+  "schema": "ops_seven_permission_catalog_portable_isolated_compile_v1",
+  "status": "PASS_THREE_ACTUAL_SHAPE_BASELINES_EXACT_SEALED_SOURCE",
+  "created_at_utc": "2026-10-13T10:29:25.229961+00:00",
+  "proposal_sha256": "2ce4e07ee2dee8ffb352e0e387092e7eb8a9bc6802723d408b40b9e0671e4519",
+  "supersedes_ops_specific_compile_sha": "5d9a2afa8490a10af7f59b180f08196c3cf6b74a2e6bd8a37fbfc090778d4099",
+  "environment": {
+    "container": "gridex-ops-api-native-20261013",
+    "network_mode": "none",
+    "postgres": "17.6-alpine",
+    "actual_shape_template": "ops_api_auth_context_compile_20261013",
+    "original_auth_proof_database_untouched": true
+  },
+  "authority": "Real native permissions/role_permissions shapes/owner/ACL/defaults/constraints/RLS, actual69 static permission metadata rows and exact7 canonical source INSERT definitions. Foreign case uses one genuine canonical retention permission definition with explicit disabled metadata; no customer/user/tenant-role assignments imported.",
+  "cases": [
+    {
+      "case": "69",
+      "database": "ops_api_catalog_portable_69_20261013",
+      "baseline_rows": 69,
+      "after_rows": 76,
+      "initial_compile_exit": 0,
+      "replay_exit": 0,
+      "all_prior_uuid_fields_active_flags_preserved": true,
+      "exact7_source_definitions_inserted": true,
+      "disabled_known_source_candidate_preserved": true,
+      "legitimate_extra_retention_key_preserved": false,
+      "extra_key": null,
+      "role_assignments_unchanged": true,
+      "table_oid_owner_acl_rls_unchanged": true,
+      "final_probe_cleanup_restores_exact_postcompile_state": true
+    },
+    {
+      "case": "empty",
+      "database": "ops_api_catalog_portable_empty_20261013",
+      "baseline_rows": 0,
+      "after_rows": 7,
+      "initial_compile_exit": 0,
+      "replay_exit": 0,
+      "all_prior_uuid_fields_active_flags_preserved": true,
+      "exact7_source_definitions_inserted": true,
+      "disabled_known_source_candidate_preserved": true,
+      "legitimate_extra_retention_key_preserved": false,
+      "extra_key": null,
+      "role_assignments_unchanged": true,
+      "table_oid_owner_acl_rls_unchanged": true,
+      "final_probe_cleanup_restores_exact_postcompile_state": true
+    },
+    {
+      "case": "extra",
+      "database": "ops_api_catalog_portable_extra_20261013",
+      "baseline_rows": 70,
+      "after_rows": 77,
+      "initial_compile_exit": 0,
+      "replay_exit": 0,
+      "all_prior_uuid_fields_active_flags_preserved": true,
+      "exact7_source_definitions_inserted": true,
+      "disabled_known_source_candidate_preserved": true,
+      "legitimate_extra_retention_key_preserved": true,
+      "extra_key": "ediel.retention.review",
+      "role_assignments_unchanged": true,
+      "table_oid_owner_acl_rls_unchanged": true,
+      "final_probe_cleanup_restores_exact_postcompile_state": true
+    }
+  ],
+  "extra_source_definition": {
+    "path": "/tmp/gridex-api-audit-ops/supabase/migrations/20261001000500_ediel_artifact_retention_decision_and_purge.sql",
+    "sha256": "24a2026b0b37f42d02c242a0f218ab028f938f2affbc0f093355ef32c938468e",
+    "key": "ediel.retention.review"
+  },
+  "limits": [
+    "Only isolated static catalog metadata scenarios; no actual native writes or business authorization/API/RPC flow invoked.",
+    "Role permissions intentionally empty; raw forward code and each isolated before/after comparison preserve all assignments with no created grants.",
+    "Independent source/semantic reviews and actual application owned by root."
+  ],
+  "artifacts": [
+    {
+      "path": "/tmp/gridex-api-review/seven-catalog-portable-69-after.json",
+      "sha256": "ac8a25b60b591c1e866b36051c8b641113700d23205489a1c7d50221cbaa0cf4"
+    },
+    {
+      "path": "/tmp/gridex-api-review/seven-catalog-portable-69-before.json",
+      "sha256": "ceaca0679d479b8f078d7e7f18be80003dfcdfc37d1cb110ecb67606524387a2"
+    },
+    {
+      "path": "/tmp/gridex-api-review/seven-catalog-portable-69-compile.log",
+      "sha256": "28c99bd588cc0f7a4f75b26bd818771dfe98eb82b730d2cc03efbd6db6ae6e59"
+    },
+    {
+      "path": "/tmp/gridex-api-review/seven-catalog-portable-69-disable-known.log",
+      "sha256": "f6657a32f2006e23f508c8f6a079ff930462fe497f786b05d96611c0e573f0f6"
+    },
+    {
+      "path": "/tmp/gridex-api-review/seven-catalog-portable-69-disabled-after.json",
+      "sha256": "ca9f1d87804eebc040ca0eeea392109e6f4f7c5be8f977ea3995de1ee984a568"
+    },
+    {
+      "path": "/tmp/gridex-api-review/seven-catalog-portable-69-disabled-before.json",
+      "sha256": "e32cabd6386b74b177634b859e1eaee4f000b0a391c1ea5908d9d2eb4b78b3e8"
+    },
+    {
+      "path": "/tmp/gridex-api-review/seven-catalog-portable-69-disabled-replay.log",
+      "sha256": "28c99bd588cc0f7a4f75b26bd818771dfe98eb82b730d2cc03efbd6db6ae6e59"
+    },
+    {
+      "path": "/tmp/gridex-api-review/seven-catalog-portable-69-final.json",
+      "sha256": "737a19aa06cd40021a57dcf18ed8ba823d9866d2c90fef8ad5c4eb8c91b6a53e"
+    },
+    {
+      "path": "/tmp/gridex-api-review/seven-catalog-portable-69-replay.json",
+      "sha256": "bc941af8b0acf7c2fb07911ec6c95aeb79799ba28eb46627f65538da963f96c7"
+    },
+    {
+      "path": "/tmp/gridex-api-review/seven-catalog-portable-69-replay.log",
+      "sha256": "28c99bd588cc0f7a4f75b26bd818771dfe98eb82b730d2cc03efbd6db6ae6e59"
+    },
+    {
+      "path": "/tmp/gridex-api-review/seven-catalog-portable-69-restore-known.log",
+      "sha256": "f6657a32f2006e23f508c8f6a079ff930462fe497f786b05d96611c0e573f0f6"
+    },
+    {
+      "path": "/tmp/gridex-api-review/seven-catalog-portable-69-seed.log",
+      "sha256": "3f04de0634b64d0a7857495d423727ffe58add0005a92a6cfa0a488de9cf820b"
+    },
+    {
+      "path": "/tmp/gridex-api-review/seven-catalog-portable-empty-after.json",
+      "sha256": "c4ba03d0bc1585cc1cbd029d8e68b36980450802734a24957454643a432a202e"
+    },
+    {
+      "path": "/tmp/gridex-api-review/seven-catalog-portable-empty-before.json",
+      "sha256": "fc7fa68b560fb715b08b1070bf059f86b9f2a0dee51bd3ad4df2208c16d4ba23"
+    },
+    {
+      "path": "/tmp/gridex-api-review/seven-catalog-portable-empty-compile.log",
+      "sha256": "28c99bd588cc0f7a4f75b26bd818771dfe98eb82b730d2cc03efbd6db6ae6e59"
+    },
+    {
+      "path": "/tmp/gridex-api-review/seven-catalog-portable-empty-disable-known.log",
+      "sha256": "f6657a32f2006e23f508c8f6a079ff930462fe497f786b05d96611c0e573f0f6"
+    },
+    {
+      "path": "/tmp/gridex-api-review/seven-catalog-portable-empty-disabled-after.json",
+      "sha256": "930771da3247da22b3d453ce91f8ed449dc67414e687ca158f6930e290c75adc"
+    },
+    {
+      "path": "/tmp/gridex-api-review/seven-catalog-portable-empty-disabled-before.json",
+      "sha256": "8a53ae94239aa600c5b42029409c86d301fae55572ced7900e8a38f3b04c8990"
+    },
+    {
+      "path": "/tmp/gridex-api-review/seven-catalog-portable-empty-disabled-replay.log",
+      "sha256": "28c99bd588cc0f7a4f75b26bd818771dfe98eb82b730d2cc03efbd6db6ae6e59"
+    },
+    {
+      "path": "/tmp/gridex-api-review/seven-catalog-portable-empty-final.json",
+      "sha256": "b0346d72d72b441e8cad0a45d6269193669cedd10d6e80b17d86b50b34c2627c"
+    },
+    {
+      "path": "/tmp/gridex-api-review/seven-catalog-portable-empty-replay.json",
+      "sha256": "2496af9aa8a39d01f54a8dee01227680056efaac42b041860b28459e5200c933"
+    },
+    {
+      "path": "/tmp/gridex-api-review/seven-catalog-portable-empty-replay.log",
+      "sha256": "28c99bd588cc0f7a4f75b26bd818771dfe98eb82b730d2cc03efbd6db6ae6e59"
+    },
+    {
+      "path": "/tmp/gridex-api-review/seven-catalog-portable-empty-restore-known.log",
+      "sha256": "f6657a32f2006e23f508c8f6a079ff930462fe497f786b05d96611c0e573f0f6"
+    },
+    {
+      "path": "/tmp/gridex-api-review/seven-catalog-portable-empty-seed.log",
+      "sha256": "ac5edd8ccc256e797590beae03179d7b9951c07f5e759f67d15b2259b87c49ce"
+    },
+    {
+      "path": "/tmp/gridex-api-review/seven-catalog-portable-extra-after.json",
+      "sha256": "4b912875ad26d4063a03a38a33484f183706ed110e39c6694e9a9f97b2837ef0"
+    },
+    {
+      "path": "/tmp/gridex-api-review/seven-catalog-portable-extra-before.json",
+      "sha256": "770cc90020c5ca4cd67131f8254eb2a6cfe35627fec1193765b9d40ccdb8bb9a"
+    },
+    {
+      "path": "/tmp/gridex-api-review/seven-catalog-portable-extra-compile.log",
+      "sha256": "28c99bd588cc0f7a4f75b26bd818771dfe98eb82b730d2cc03efbd6db6ae6e59"
+    },
+    {
+      "path": "/tmp/gridex-api-review/seven-catalog-portable-extra-disable-known.log",
+      "sha256": "f6657a32f2006e23f508c8f6a079ff930462fe497f786b05d96611c0e573f0f6"
+    },
+    {
+      "path": "/tmp/gridex-api-review/seven-catalog-portable-extra-disabled-after.json",
+      "sha256": "5e50b08a1a8dad275653ddfec0e0bada2cf8c5f8cd68d02c61bf5b73cbea5b48"
+    },
+    {
+      "path": "/tmp/gridex-api-review/seven-catalog-portable-extra-disabled-before.json",
+      "sha256": "a5f6959d7d0593956137bd4755fee16c3d473fb451a7cf99d580a5e675c96dfb"
+    },
+    {
+      "path": "/tmp/gridex-api-review/seven-catalog-portable-extra-disabled-replay.log",
+      "sha256": "28c99bd588cc0f7a4f75b26bd818771dfe98eb82b730d2cc03efbd6db6ae6e59"
+    },
+    {
+      "path": "/tmp/gridex-api-review/seven-catalog-portable-extra-final.json",
+      "sha256": "f453f955301fd4a4dcd1f941f68e3d3beef2cb0cc5c680b5931a721854370046"
+    },
+    {
+      "path": "/tmp/gridex-api-review/seven-catalog-portable-extra-replay.json",
+      "sha256": "49e178ae991dd51d86d5bdf6d95f4abf8b3dee8a59df8087956b1a926f709484"
+    },
+    {
+      "path": "/tmp/gridex-api-review/seven-catalog-portable-extra-replay.log",
+      "sha256": "28c99bd588cc0f7a4f75b26bd818771dfe98eb82b730d2cc03efbd6db6ae6e59"
+    },
+    {
+      "path": "/tmp/gridex-api-review/seven-catalog-portable-extra-restore-known.log",
+      "sha256": "f6657a32f2006e23f508c8f6a079ff930462fe497f786b05d96611c0e573f0f6"
+    },
+    {
+      "path": "/tmp/gridex-api-review/seven-catalog-portable-extra-seed.log",
+      "sha256": "680e05feb20646312f82aeada7cd70625743a1c04d891e0af6df104194a489e3"
+    }
+  ]
+}

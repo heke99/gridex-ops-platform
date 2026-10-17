@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 const fs = require('node:fs')
 const crypto = require('node:crypto')
-const { currentContractVersion } = require('./lib/current-api-contract.cjs')
+const { currentDocumentationVersion, runtimeContractVersion } = require('./lib/current-api-contract.cjs')
 
 function read(path) {
   return fs.readFileSync(path, 'utf8')
@@ -14,7 +14,7 @@ function includes(path, needles) {
   for (const needle of needles) check(value.includes(needle), `${path} saknar: ${needle}`)
 }
 
-const version = currentContractVersion
+const version = currentDocumentationVersion
 const migration = 'supabase/migrations/20260804173000_price_area_assurance_and_pricing_readiness.sql'
 const migrationName = migration.split('/').at(-1)
 const manifest = JSON.parse(read('scripts/migration-history-manifest.json'))
@@ -52,7 +52,7 @@ includes(migration, [
 const current = JSON.parse(read('docs/openapi/website-integration-v1.json'))
 const released = JSON.parse(read(`docs/openapi/releases/${version}/website-integration-v1.json`))
 check(current.info.version === version, 'Current Website OpenAPI har fel version.')
-check(current['x-contract-schema-version'] === version, 'Website x-contract version är fel.')
+check(current['x-contract-schema-version'] === runtimeContractVersion, 'Website x-contract version är fel.')
 check(JSON.stringify(current) === JSON.stringify(released), 'Immutable Website OpenAPI matchar inte current.')
 check(Boolean(current.components.schemas.PriceAreaAssurance), 'PriceAreaAssurance saknas i OpenAPI.')
 check(

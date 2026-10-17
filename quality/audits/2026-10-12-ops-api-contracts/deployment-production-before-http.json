@@ -1,0 +1,31 @@
+{
+  "checked_at_utc": "2026-10-13T18:07:59.542177+00:00",
+  "scope": "Readonly public documentation/login and missing-credential refusal only; no business calls/credentials/rows",
+  "observations": [
+    {
+      "path": "/api/v1/openapi/2026-10-12.1/website-integration-v1.json",
+      "status": 404,
+      "body_sha256": "683cf6ea06eaa3bbca199eec2b64ead706b4dab151824762eb68f763768cd801",
+      "headers": {
+        "content-type": "text/html; charset=utf-8"
+      }
+    },
+    {
+      "path": "/api/v1/customer/me",
+      "status": 401,
+      "body_sha256": "7ca5f3c1fc0b8f80fc50c1c470d48e55eccb1e3725919b3024fe404e97d26edd",
+      "headers": {
+        "content-type": "application/json",
+        "x-gridex-contract-version": "2026-10-09.1"
+      }
+    },
+    {
+      "path": "/login",
+      "status": 200,
+      "body_sha256": "5a13069326e4ca521ef60c2ab87d79efe90c11c656f4d599cbc9847ef608cabf",
+      "headers": {
+        "content-type": "text/html; charset=utf-8"
+      }
+    }
+  ]
+}

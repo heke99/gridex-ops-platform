@@ -107,6 +107,8 @@ function site(overrides: Partial<CustomerSiteRow> = {}): CustomerSiteRow {
 function meteringPoint(overrides: Partial<MeteringPointRow> = {}): MeteringPointRow {
   return {
     id: 'mp-1',
+    company_id: 'company-1',
+    customer_id: 'customer-1',
     site_id: 'site-1',
     meter_point_id: '735999000000000001',
     ediel_reference: null,
@@ -121,6 +123,7 @@ function meteringPoint(overrides: Partial<MeteringPointRow> = {}): MeteringPoint
 function signedPoa(overrides: Partial<PowerOfAttorneyRow> = {}): PowerOfAttorneyRow {
   return {
     id: 'poa-1',
+    company_id: 'company-1',
     customer_id: 'customer-1',
     site_id: 'site-1',
     scope: 'supplier_switch',

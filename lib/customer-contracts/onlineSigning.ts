@@ -5,11 +5,12 @@ import { attemptContractConfirmationDelivery, listDueContractConfirmations, reco
 import { createHash, createHmac, randomBytes } from "node:crypto";
 import { getBaseAppUrl } from "@/lib/auth/urls";
 import { buildAgreementPdfAttachment } from "@/lib/customer-contracts/agreementPdf";
-import { archiveSignedCustomerContractPdf } from "@/lib/customer-contracts/documents";
+import { archiveSignedCustomerContractPdf, downloadAndVerifyCustomerContractDocument, CUSTOMER_CONTRACT_DOCUMENT_BUCKET, type CustomerContractDocumentRow } from "@/lib/customer-contracts/documents";
 import { sendCompanyEmail } from "@/lib/email/sendCompanyEmail";
 import { getSupabaseServiceEnv } from "@/lib/env/supabaseServer";
 import { supabaseService } from "@/lib/supabase/service";
-import { stockholmWithdrawalDeadlineDate } from "@/lib/time/stockholm";
+import { stockholmDateForInstant } from "@/lib/time/stockholm";
+import { frozenPriceLines, frozenPriceSummary, pricingFacts } from "./frozenPriceDisplay";
 import { companyEmailContext } from "@/lib/website/customerApplicationCommunication";
 
 const SIGNATURE_TEMPLATE_KEY = "contract.signature_requested";
@@ -89,109 +90,7 @@ function optionalString(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
-function optionalNumber(value: unknown): number | null {
-  const parsed = typeof value === "number" ? value : Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
-function componentCode(value: Record<string, unknown>): string {
-  const metadata = asObject(value.metadata);
-  return String(
-    value.component_code ??
-      value.componentCode ??
-      metadata.component_code ??
-      metadata.componentCode ??
-      "",
-  )
-    .trim()
-    .toLowerCase();
-}
-
-function componentAmount(
-  snapshot: Record<string, unknown>,
-  codes: string[],
-): number | null {
-  const values = [
-    snapshot.price_components_snapshot,
-    snapshot.price_components,
-    snapshot.components,
-  ];
-  for (const candidate of values) {
-    if (!Array.isArray(candidate)) continue;
-    for (const raw of candidate) {
-      const row = asObject(raw);
-      if (codes.includes(componentCode(row))) {
-        const amount = optionalNumber(row.amount ?? row.value);
-        if (amount !== null) return amount;
-      }
-    }
-  }
-  return null;
-}
-
-function snapshotNumber(
-  snapshot: Record<string, unknown>,
-  keys: string[],
-  componentCodes: string[] = [],
-): number | null {
-  for (const key of keys) {
-    const amount = optionalNumber(snapshot[key]);
-    if (amount !== null) return amount;
-  }
-  return componentCodes.length > 0
-    ? componentAmount(snapshot, componentCodes)
-    : null;
-}
-
-function pricingFacts(snapshot: Record<string, unknown>) {
-  return {
-    monthlyFeeSek: snapshotNumber(
-      snapshot,
-      ["monthly_fee_sek", "monthlyFeeSek"],
-      ["monthly_fee"],
-    ),
-    invoiceFeeSek: snapshotNumber(
-      snapshot,
-      ["invoice_fee_sek", "invoiceFeeSek"],
-      ["invoice_fee", "invoice_administration_fee"],
-    ),
-    spotMarkupOrePerKwh: snapshotNumber(
-      snapshot,
-      ["spot_markup_ore_per_kwh", "spotMarkupOrePerKwh"],
-      ["spot_markup"],
-    ),
-    fixedPriceOrePerKwh: snapshotNumber(
-      snapshot,
-      ["fixed_price_ore_per_kwh", "fixedPriceOrePerKwh"],
-      ["fixed_price"],
-    ),
-    variableFeeOrePerKwh: snapshotNumber(
-      snapshot,
-      ["variable_fee_ore_per_kwh", "variableFeeOrePerKwh"],
-      ["variable_fee"],
-    ),
-    bindingMonths: snapshotNumber(snapshot, ["binding_months", "bindingMonths"]),
-    noticeMonths: snapshotNumber(snapshot, ["notice_months", "noticeMonths"]),
-  };
-}
-
-function formatPrice(value: number | null, suffix: string): string | null {
-  if (value === null) return null;
-  return `${new Intl.NumberFormat("sv-SE", { maximumFractionDigits: 4 }).format(value)} ${suffix}`;
-}
-
-export function frozenPriceSummary(snapshot: Record<string, unknown>): string {
-  const price = pricingFacts(snapshot);
-  return [
-    formatPrice(price.monthlyFeeSek, "kr/mån"),
-    formatPrice(price.invoiceFeeSek, "kr/faktura"),
-    formatPrice(price.spotMarkupOrePerKwh, "öre/kWh spotpåslag"),
-    formatPrice(price.variableFeeOrePerKwh, "öre/kWh rörlig avgift"),
-    formatPrice(price.fixedPriceOrePerKwh, "öre/kWh fast pris"),
-  ]
-    .filter((value): value is string => Boolean(value))
-    .join(", ") || "Pris enligt den frysta prisversionen i avtalet.";
-}
+export { frozenPriceSummary } from "./frozenPriceDisplay";
 
 function legalVersionsForPdf(receipt: OnlineSignatureReceipt) {
   return receipt.legal_versions.map((raw, index) => {
@@ -472,7 +371,7 @@ export async function sendOnlineContractSignatureRequest(input: {
 async function signedContractState(receipt: OnlineSignatureReceipt) {
   const { data, error } = await supabaseService
     .from("customer_contracts")
-    .select("withdrawal_deadline_at,document_sha256,tenant_communication_snapshot_sha256")
+    .select("withdrawal_deadline_at,document_sha256,tenant_communication_snapshot_sha256,signature_snapshot")
     .eq("id", receipt.contract_id)
     .eq("company_id", receipt.company_id)
     .single();
@@ -481,6 +380,7 @@ async function signedContractState(receipt: OnlineSignatureReceipt) {
     withdrawal_deadline_at: string | null;
     document_sha256: string | null;
     tenant_communication_snapshot_sha256: string | null;
+    signature_snapshot: Record<string, unknown>;
   };
 }
 
@@ -496,13 +396,22 @@ export async function deliverSignedContractReceipt(receipt: OnlineSignatureRecei
   const price = pricingFacts(receipt.pricing_snapshot);
   const legalVersions = legalVersionsForPdf(receipt);
   const customerEmail = requiredString(
-    receipt.customer_email,
-    "signed_contract_customer_email_missing",
+    asObject(contractState.signature_snapshot).recipient_email,
+    "signed_contract_recipient_evidence_missing",
   );
+  const customerName = optionalString(
+    asObject(asObject(contractState.signature_snapshot).customer_identity_snapshot).full_name,
+  ) ?? receipt.customer_name;
   const customerNumber =
     receipt.customer_number ?? receipt.customer_id;
   const contractNumber = receipt.contract_number ?? receipt.contract_id;
-  const attachment = buildAgreementPdfAttachment({
+  const withdrawalDeadline = contractState.withdrawal_deadline_at ?? receipt.withdrawal_deadline_at;
+  const cancellationDeadline = withdrawalDeadline ? stockholmDateForInstant(withdrawalDeadline) : "";
+  const attachment = contractState.document_sha256 ? {
+    filename: `avtalsbekraftelse-${contractNumber}.pdf`,
+    content: "",
+    contentType: "application/pdf",
+  } : buildAgreementPdfAttachment({
     companyName: company.legalName,
     brandName: company.name,
     organizationNumber: company.organizationNumber,
@@ -511,7 +420,7 @@ export async function deliverSignedContractReceipt(receipt: OnlineSignatureRecei
     companyPhone: company.phone,
     companyWebsite: company.website,
     legalFooter: company.legalFooter,
-    customerName: receipt.customer_name,
+    customerName,
     customerEmail,
     customerNumber,
     contractNumber,
@@ -519,8 +428,7 @@ export async function deliverSignedContractReceipt(receipt: OnlineSignatureRecei
     contractType: receipt.contract_type,
     signedAt: receipt.signed_at,
     startsAt: receipt.starts_at,
-    withdrawalDeadline:
-      receipt.withdrawal_deadline_at ?? contractState.withdrawal_deadline_at,
+    withdrawalDeadline,
     offerReference: receipt.offer_reference,
     contractPublicationVersionId: receipt.contract_publication_version_id,
     pricePlanVersionId: receipt.price_plan_version_id,
@@ -528,6 +436,7 @@ export async function deliverSignedContractReceipt(receipt: OnlineSignatureRecei
     tenantSnapshotSha256:
       contractState.tenant_communication_snapshot_sha256 ?? company.snapshotSha256,
     evidenceId: `signature-request:${receipt.request_id}`,
+    priceLines: frozenPriceLines(receipt.pricing_snapshot),
     monthlyFeeSek: price.monthlyFeeSek,
     invoiceFeeSek: price.invoiceFeeSek,
     spotMarkupOrePerKwh: price.spotMarkupOrePerKwh,
@@ -538,9 +447,29 @@ export async function deliverSignedContractReceipt(receipt: OnlineSignatureRecei
     legalVersions,
     signatureSnapshotSha256: receipt.signature_snapshot_sha256,
   });
-  const pdfBuffer = Buffer.from(attachment.content, "base64");
+  let pdfBuffer: Buffer;
+  if (contractState.document_sha256) {
+    const boundDocument = await supabaseService
+      .from("customer_contract_documents")
+      .select("*")
+      .eq("company_id", receipt.company_id)
+      .eq("customer_contract_id", receipt.contract_id)
+      .eq("document_type", "signed_contract_pdf")
+      .eq("document_sha256", contractState.document_sha256)
+      .eq("storage_bucket", CUSTOMER_CONTRACT_DOCUMENT_BUCKET)
+      .eq("mime_type", "application/pdf")
+      .not("archived_at", "is", null)
+      .not("verified_at", "is", null)
+      .maybeSingle();
+    if (boundDocument.error) throw boundDocument.error;
+    if (!boundDocument.data) throw new Error("signed_contract_document_binding_missing");
+    pdfBuffer = await downloadAndVerifyCustomerContractDocument(boundDocument.data as CustomerContractDocumentRow);
+    attachment.content = pdfBuffer.toString("base64");
+  } else {
+    pdfBuffer = Buffer.from(attachment.content, "base64");
+  }
   const documentSha256 = createHash("sha256").update(pdfBuffer).digest("hex");
-  await archiveSignedCustomerContractPdf({
+  if (!contractState.document_sha256) await archiveSignedCustomerContractPdf({
     companyId: receipt.company_id,
     customerContractId: receipt.contract_id,
     pdfBuffer,
@@ -577,12 +506,17 @@ export async function deliverSignedContractReceipt(receipt: OnlineSignatureRecei
       .update({ document_sha256: documentSha256 })
       .eq("id", receipt.contract_id)
       .eq("company_id", receipt.company_id)
-      .is("document_sha256", null);
+      .is("document_sha256", null)
+      .select("document_sha256")
+      .maybeSingle();
     if (bindDocument.error) throw bindDocument.error;
+    if (bindDocument.data?.document_sha256 !== documentSha256) {
+      throw new Error("signed_contract_document_binding_changed");
+    }
   }
 
   const variables = {
-    customer_name: receipt.customer_name,
+    customer_name: customerName,
     customer_email: customerEmail,
     customer_number: customerNumber,
     company_name: company.name,
@@ -597,10 +531,7 @@ export async function deliverSignedContractReceipt(receipt: OnlineSignatureRecei
       "En PDF med den frysta avtals-, pris-, juridik- och bevisinformationen bifogas detta mejl.",
     start_date: receipt.starts_at ?? "",
     support_email: company.supportEmail ?? company.replyTo ?? customerEmail,
-    cancellation_deadline:
-      stockholmWithdrawalDeadlineDate({
-        storedDeadlineAt: receipt.withdrawal_deadline_at ?? contractState.withdrawal_deadline_at,
-      }) ?? "",
+    cancellation_deadline: cancellationDeadline,
     portal_url: company.portalUrl ?? getBaseAppUrl(),
   };
 
@@ -631,8 +562,6 @@ export async function deliverSignedContractReceipt(receipt: OnlineSignatureRecei
     throw new Error("signed_contract_confirmation_queue_failed");
   }
 
-  const withdrawalDeadline =
-    receipt.withdrawal_deadline_at ?? contractState.withdrawal_deadline_at;
   if (withdrawalDeadline) {
     const coolingOff = await sendCompanyEmail({
       companyId: receipt.company_id,
@@ -642,7 +571,7 @@ export async function deliverSignedContractReceipt(receipt: OnlineSignatureRecei
       to: customerEmail,
       legalOrCritical: true,
       idempotencyKey: `online_signature:${receipt.request_id}:cooling_off`,
-      variables: { ...variables, cancellation_deadline: stockholmWithdrawalDeadlineDate({ storedDeadlineAt: withdrawalDeadline }) ?? "" },
+      variables,
       metadata: {
         contract_id: receipt.contract_id,
         customer_number: customerNumber,

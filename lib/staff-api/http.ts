@@ -8,6 +8,7 @@ import { currentIntegrationApiResponseContext, logIntegrationApiRequest } from '
 import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
 import { requireStaffApiContext, type StaffApiContext, type StaffApiRequirements } from '@/lib/staff-api/context'
 import { assertStaffStorageTarget, staffStorageProjectRef } from '@/lib/staff-api/storageTarget'
+import { bindAuthenticatedApiResponseProfile, withApiContractRepresentation } from '@/lib/integrations/apiResponseProfile'
 
 /** One server-issued request id per Staff call, shared by body, header, error and request log. */
 const staffRequestId = new AsyncLocalStorage<string>()
@@ -48,6 +49,8 @@ export function staffApiJson(body: unknown, init: number | ResponseInit = {}): R
   headers.set('Cache-Control', 'no-store')
   headers.set('X-Request-ID', requestId)
   headers.set('X-Gridex-Contract-Version', WEBSITE_INTEGRATION_CONTRACT_VERSION)
+  const projectRef = staffStorageProjectRef()
+  if (projectRef) headers.set('X-Gridex-Project-Ref', projectRef)
   const rate = currentIntegrationApiResponseContext()
   if (rate?.rateLimit) {
     headers.set('X-RateLimit-Limit', String(rate.rateLimit.limit))
@@ -70,7 +73,7 @@ export function staffApiError(error: unknown): Response {
 export async function withStaffApi(
   request: NextRequest, options: StaffApiRequirements, handler: (context: StaffApiContext) => Promise<Response>,
 ): Promise<Response> {
-  return staffRequestId.run(randomUUID(), () => runStaffApi(request, options, handler))
+  return withApiContractRepresentation('staff', req => staffRequestId.run(randomUUID(), () => runStaffApi(req, options, handler)))(request)
 }
 
 function responseRequestId(response: Response): string {
@@ -87,6 +90,7 @@ async function runStaffApi(
   let context: StaffApiContext | undefined
   try {
     context = await requireStaffApiContext(request, options)
+    bindAuthenticatedApiResponseProfile(context.client)
     const response = await handler(context)
     const projectRef = staffStorageProjectRef()
     if (projectRef) response.headers.set('X-Gridex-Project-Ref', projectRef)

@@ -1,4 +1,7 @@
-# Gridex Staff API — 2026-10-09.1
+# Gridex Staff API — documentation 2026-10-12.1
+
+Current documentation: **2026-10-12.1**. Default response contract: **2026-10-09.1**.
+Documentation updates do not change the response contract. No documentation-version request header is required.
 
 Use the Staff API from your backend to manage staff accounts and handle customer service in your own application.
 
@@ -6,7 +9,7 @@ You do not need to match the latest documentation revision exactly to use a supp
 
 - Base URL: `https://app.gridex.se/api/v1/staff`
 - Current OpenAPI: `https://app.gridex.se/api/v1/openapi/staff-v1.json`
-- Immutable OpenAPI: `https://app.gridex.se/api/v1/openapi/2026-10-09.1/staff-v1.json`
+- Immutable OpenAPI: `https://app.gridex.se/api/v1/openapi/2026-10-12.1/staff-v1.json`
 - Release manifest: `https://app.gridex.se/api/v1/openapi/release-manifest.json`
 - Public guide: `https://app.gridex.se/developers/staff-api`
 
@@ -50,7 +53,13 @@ Which claims you send depends on how your API client was registered:
 | **Central (legacy) identity** — no independent staff registration | The table above. `sub` is the Gridex user UUID. | This page |
 | **Independent staff identity** — the client was registered for your own staff login | The table above **plus** `token_use: "staff_access"`, `company_id` (your organization UUID), `local_auth_issuer` (your auth issuer, `<your-auth-url>/auth/v1`), `local_auth_subject` (the user UUID in your auth), `staff_binding_id` and `staff_binding_version` returned by onboarding. `sub` stays the central Gridex user UUID. | [Independent staff onboarding](staff-api/independent-onboarding.md) |
 
-For independent identities every request checks the current binding. A binding that is revoked, rotated to a newer version or whose registration was removed is rejected (`401/403 staff_identity_binding_invalid` or `403 staff_identity_registration_removed`); removing the registration never falls back to the central flow. Banning, soft-deleting or deleting the user in Auth ends access on the next request, including for still-valid tokens.
+For independent identities every request checks the current central actor, membership and binding. A binding that is revoked, rotated to a newer version or whose registration was removed is rejected (`401/403 staff_identity_binding_invalid` or `403 staff_identity_registration_removed`); removing the registration never falls back to the central flow. Disabling, banning, soft-deleting or deleting the central Gridex account ends its access on the next request, including for still-valid assertions. Your backend must verify its own login session before signing each assertion. Gridex verifies the registered external Auth service with `getUser` during identity resolution and invitation acceptance; an already signed normal Staff assertion does not perform a new external Auth lookup.
+
+## API readiness and integration setup
+
+The deployed API requires its central database functions and service-only grants. An individual integration additionally needs an active API credential with explicit Staff scopes, an active `purpose=staff` identity provider, and an active same-company staff membership. An independent login also requires its registered external Auth service and current binding. An unused or unconfigured integration is not evidence of an API implementation fault.
+
+Installation checks and successful unauthenticated `401` responses establish only their respective checks. Operational acceptance requires an authenticated request with the intended role and company, a verified write and audit attribution, and a retry of the same logical operation. See [API verification and scope](api-index.md).
 
 Example payload for an independent identity:
 
@@ -190,8 +199,10 @@ Errors use the same closed envelope throughout this API:
 | 403 | `api_scope_missing`, `staff_provider_missing`, `staff_provider_invalid`, `staff_membership_inactive`, `staff_permission_denied`, `staff_role_ceiling_exceeded` | Correct configuration, active membership or authorized role |
 | 404 | `staff_user_not_found`, `customer_not_found`, case or attachment missing | Use a current reference from the same organization |
 | 412 | `storage_project_mismatch` | Call the deployment that serves the expected storage project; nothing was executed |
-| 409 | `version_conflict`, `staff_self_disable_forbidden`, `staff_last_admin_required`, `staff_invalid_user_state, staff_self_role_change_forbidden`, idempotency conflict | Reload state and reconcile the operation; preserve administrator safeguards |
-| 413 / 415 | Attachment size or content type | Use a supported file within the size limit |
+| 409 | `version_conflict`, `staff_self_disable_forbidden`, `staff_last_admin_required`, `staff_invalid_user_state`, `staff_self_role_change_forbidden`, idempotency conflict | Reload state and reconcile the operation; preserve administrator safeguards |
+| 410 / 423 | `organization_closed`, `organization_inactive`, `organization_paused` | Resolve the organization's lifecycle state through an authorized operator; do not retry with another identity |
+| 413 | `payload_too_large`, attachment size | Keep JSON requests and uploads within the endpoint's size limit |
+| 415 | Attachment content type | Use a supported attachment content type |
 | 429 | Rate limit | Observe `Retry-After`, then use the same operation key with a fresh assertion |
 | 500 / 503 | Processing or required service unavailable | Retain the request ID; retry only when safe and indicated by `retryable` |
 

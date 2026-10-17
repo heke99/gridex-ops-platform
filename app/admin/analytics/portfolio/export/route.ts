@@ -2,17 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { getCustomerPortfolio, portfolioMonthsCsv } from '@/lib/analytics/customerPortfolio'
 import { addMonths, monthStart } from '@/lib/analytics/utils'
-import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   const admin = await requireAdminPageKeyAccess('analytics.workspace')
-  const scope = await getOperationalCompanyScope(admin.userId)
-  if (!scope.companyId) return NextResponse.json({ error: 'Bolag saknas.' }, { status: 400 })
+  if (!admin.companyId) return NextResponse.json({ error: 'Bolag saknas.' }, { status: 400 })
 
   const month = monthStart(request.nextUrl.searchParams.get('month'))
-  const portfolio = await getCustomerPortfolio(scope.companyId, addMonths(month, -11), month)
+  const portfolio = await getCustomerPortfolio(admin.companyId, addMonths(month, -11), month)
   return csvResponse(portfolioMonthsCsv(portfolio.months, portfolio.forecastMonths), `kundportfolj-${month.slice(0, 7)}.csv`)
 }
 

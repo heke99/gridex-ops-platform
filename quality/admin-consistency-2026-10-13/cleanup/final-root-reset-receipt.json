@@ -1,0 +1,30 @@
+{
+  "execution_authority": "root",
+  "outcome": "Root confirmed completed live customer-flow reset and final zero assertions",
+  "total_removed_rows": 743,
+  "groups": {
+    "applications": 1,
+    "quality_findings_and_alerts": 368,
+    "approved_events_and_outbox_children": 130,
+    "customer_derived_read_models_and_roots": 242,
+    "classified_inbound_pair": 2
+  },
+  "final_assertions": {
+    "empty_customer_flow_tables": 140,
+    "zero_reviewed_scopes": 17
+  },
+  "six_forward_migrations": "Root confirmed all six applied including email-source anchor after the classified inbound reset",
+  "data_quality_expansion": "Applied; legacy conflict-key constraint cutover remains coordinated with app deployment unless root records it separately",
+  "retained": "Companies/users/roles, integrations/Ediel configuration and technical proof, immutable administrative audit/usage, technical market/geodata events and unrelated transports",
+  "execution_history": "Earlier requestState failures committed nothing; later root-confirmed successful receipts supersede the pending status in historical preparation notes",
+  "preparer_live_writes": false,
+  "seventh_source_consistency_followup": "Root subsequently confirmed final portal-source forward migration applied and captured; preparer proof is in customer-source-proof.json",
+  "subsequent_source_safeguards": {
+    "operational_quality_customer_source_consistency": "Applied by root; final source hash0b1638fbd4ab1eef82dc95d2064519e66f1bbb787a8213c9a705d1ddb1ea5732",
+    "consumption_forecast_customer_source_guard": "Applied by root; final source hash6e06c41e8b7c4ccea41a0a960fb9c2a66149781fe638c3f3dd38c2180d39e3c1",
+    "final_live_observation": "Trigger enabled; consumption runs, actionable quality issues and pending application rows allzero",
+    "source_browser_deployment": "Pending final PR checks; no frontend deployment claimed"
+  },
+  "eighth_forecast_source_consistency_followup": "Root subsequently confirmed consumption-forecast customer-source guard applied and captured; implemented by portfolio owner",
+  "current_forward_migration_count": 8
+}

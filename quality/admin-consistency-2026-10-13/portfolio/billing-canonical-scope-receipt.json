@@ -1,0 +1,50 @@
+{
+  "scope": "Exact billing handoff: 8 pages, invoice-file download, integrations action helper, domain-only action runtime tests",
+  "source_sha256": {
+    "app/admin/billing/underlays/page.tsx": "4241dc174c9e1d1e94a9b0003151017a8dabfa1cc9f6595b98a5377ba4e7e596",
+    "app/admin/billing/underlays/[id]/page.tsx": "029055ac35ae7058a698323fd67e4a1c6814372ff4a05a8b5ecad4de095bfc3d",
+    "app/admin/billing/page.tsx": "93b5dd2c7cb2731820de73390b3a29d09646f067ab45293c0c79de2571fdcbf7",
+    "app/admin/billing/invoices/[id]/page.tsx": "22dd355bfc97965d8d9fb7bde2abf9197e591dde94803ea90d692be818b22771",
+    "app/admin/billing/quality/page.tsx": "06482217ac66e3520b72d6a6df6e0e63f1c02e7c41601c6fc4dddf689a052337",
+    "app/admin/billing/ai-parser/page.tsx": "1d070fe0c0da29133a7f98da683104f42b6b6a6b3c3b953a672938ac657e70ca",
+    "app/admin/billing/import/page.tsx": "52618c012c95afbd908f1ae7bdf50b029b576efb00f30f9e026a1ea49f73a406",
+    "app/admin/billing/integrations/page.tsx": "3b9d18e38cd94ef662db36259a1a47748eaf541fdcad4758466b7447004d5c68",
+    "app/admin/billing/invoice-files/[id]/route.ts": "e9cdabdc89881bd511c920f1ef27477eba06d41c9f7f5c34820aa9d1337f8a0b",
+    "app/admin/billing/integrations/actions.ts": "748dcf62e85d6404ed96ff1cd80528124e8fa9d05352d0d0693ffc0f727de1d9",
+    "__tests__/billing-integration-actions-canonical-scope.test.ts": "0d1a77e9bebe62bd63d79559b5fbc49ccdc6cbcc332c8b102f565b4f37e9d49b"
+  },
+  "tests": {
+    "billing_reads_red": {
+      "path": "/tmp/gridex-billing-canonical-scope-red.json",
+      "sha256": "61f502963a3a66db7d66dd3a3d6b9d41d797b475807c014424403afd9e5aafed",
+      "passed": 0,
+      "failed": 28,
+      "success": false
+    },
+    "billing_reads_green": {
+      "path": "/tmp/gridex-billing-canonical-scope-green.json",
+      "sha256": "acc84a8334a440bd4f5ee80950301839bfe01583b72ccfb55c8df413148bcf89",
+      "passed": 28,
+      "failed": 0,
+      "success": true
+    },
+    "billing_actions_red": {
+      "path": "/tmp/gridex-billing-integrations-actions-red.json",
+      "sha256": "00510a7a6e3de69050b91baa0af70a79d4aaf922698f2f9a84f8ab21b97d7391",
+      "passed": 2,
+      "failed": 14,
+      "success": false
+    },
+    "billing_actions_green": {
+      "path": "/tmp/gridex-billing-integrations-actions-green.json",
+      "sha256": "75dfb3b81953f3b078d2b9076be8804e0819eedce47015fea5a209121336cad3",
+      "passed": 16,
+      "failed": 0,
+      "success": true
+    }
+  },
+  "shared_helper_and_test_ownership": "admin_copy_audit owns lib/tenant/adminScope.ts and __tests__/admin-remaining-pages-canonical-scope.test.ts; this agent edited neither",
+  "excluded": "billing/import/actions.ts reauthorizes through company-scoped action guard; no changes",
+  "no_live_writes_or_migrations_or_artifact_edits": true,
+  "red_fixture_limit": "Initial read red28 includes one billing-main import fixture STACK_TRACE_ERROR; legacyB and missing-company defects reproduced across the other cases. Shared fixture corrected by its owner before green."
+}

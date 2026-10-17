@@ -14,10 +14,8 @@ import {
   publishContractVersionAction,
   updateTenantContractChannelAction,
 } from "./actions";
-import {
-  getOperationalCompanyScope,
-  listPlatformCompanies,
-} from "@/lib/tenant/scope";
+import { listPlatformCompanies } from "@/lib/tenant/scope";
+import { resolveAdminSelectedCompanyReadScope } from "@/lib/tenant/adminScope";
 import type {
   ContractChannelReadiness,
   ContractChannelStatus,
@@ -744,15 +742,10 @@ export default async function AdminContractsPage({
   const supabase = await createSupabaseServerClient();
   const { data: authResult } = await supabase.auth.getUser();
   const user = authResult.user;
-  const membershipScope = user
-    ? await getOperationalCompanyScope(user.id)
-    : {
-        companyId: null,
-        companyName: null,
-        memberships: [],
-        requiresCompany: true,
-        message: "Inloggning krävs.",
-      };
+  const membershipScope = {
+    ...(await resolveAdminSelectedCompanyReadScope(admin, { allowMissing: true })),
+    message: null,
+  };
   const platformCompanies = isPlatformAdmin
     ? (await listPlatformCompanies()).filter(
         (company) => company.status !== "archived",

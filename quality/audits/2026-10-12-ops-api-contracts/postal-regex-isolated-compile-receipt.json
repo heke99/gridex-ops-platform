@@ -1,0 +1,161 @@
+{
+  "captured_at_utc": "2026-10-13T13:19:59.622767+00:00",
+  "proposal_sha256": "d02af8b21c3658a84c4782a0227eae67a6c8c8bff3dc28aa23dfbc888f562eba",
+  "proposal_path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/variant-postal-regex-literals-forward.sql",
+  "database": "ops_api_extra_z02_compile_20261013",
+  "container": "gridex-ops-api-postgis-native-20261013",
+  "container_network": "none",
+  "postgres": "PostgreSQL 17.6 on x86_64-pc-linux-musl, compiled by gcc (Alpine 14.2.0) 14.2.0, 64-bit",
+  "check_function_bodies": "on",
+  "first_commit_exit_code": 0,
+  "replay_commit_exit_code": 0,
+  "actual_before_body_md5": "8a46c0c90010c981a5d8cd0bd041d261",
+  "after_body_md5": "6da381c2dad3451762d227cb2c79fa87",
+  "complete_pg_proc_minus_prosrc_preserved": true,
+  "complete_replay_definitions_and_pg_proc_unchanged": true,
+  "immutable_preserved": true,
+  "before": [
+    {
+      "proc": {
+        "oid": "44794",
+        "proacl": [
+          "=X/postgres",
+          "postgres=X/postgres",
+          "authenticated=X/postgres",
+          "service_role=X/postgres"
+        ],
+        "probin": null,
+        "prosrc": "\n  select nullif(regexp_replace(coalesce(p_postal_code, ''), '\\\\D', '', 'g'), '');\n",
+        "procost": 100,
+        "prokind": "f",
+        "prolang": "14",
+        "proname": "gridex_normalize_swedish_postal_code",
+        "prorows": 0,
+        "pronargs": 1,
+        "proowner": "10",
+        "proconfig": [
+          "search_path=public, auth, extensions"
+        ],
+        "proretset": false,
+        "prosecdef": false,
+        "prorettype": "25",
+        "prosqlbody": null,
+        "prosupport": "-",
+        "proargmodes": null,
+        "proargnames": [
+          "p_postal_code"
+        ],
+        "proargtypes": [
+          "25"
+        ],
+        "proisstrict": false,
+        "proparallel": "u",
+        "protrftypes": null,
+        "provariadic": "0",
+        "provolatile": "i",
+        "proleakproof": false,
+        "pronamespace": "2200",
+        "proallargtypes": null,
+        "proargdefaults": null,
+        "pronargdefaults": 0
+      },
+      "body_md5": "8a46c0c90010c981a5d8cd0bd041d261",
+      "signature": "gridex_normalize_swedish_postal_code(text)",
+      "definition": "CREATE OR REPLACE FUNCTION public.gridex_normalize_swedish_postal_code(p_postal_code text)\n RETURNS text\n LANGUAGE sql\n IMMUTABLE\n SET search_path TO 'public', 'auth', 'extensions'\nAS $function$\n  select nullif(regexp_replace(coalesce(p_postal_code, ''), '\\\\D', '', 'g'), '');\n$function$\n"
+    }
+  ],
+  "after": [
+    {
+      "proc": {
+        "oid": "44794",
+        "proacl": [
+          "=X/postgres",
+          "postgres=X/postgres",
+          "authenticated=X/postgres",
+          "service_role=X/postgres"
+        ],
+        "probin": null,
+        "prosrc": "\n  select nullif(regexp_replace(coalesce(p_postal_code, ''), E'\\\\D', '', 'g'), '');\n",
+        "procost": 100,
+        "prokind": "f",
+        "prolang": "14",
+        "proname": "gridex_normalize_swedish_postal_code",
+        "prorows": 0,
+        "pronargs": 1,
+        "proowner": "10",
+        "proconfig": [
+          "search_path=public, auth, extensions"
+        ],
+        "proretset": false,
+        "prosecdef": false,
+        "prorettype": "25",
+        "prosqlbody": null,
+        "prosupport": "-",
+        "proargmodes": null,
+        "proargnames": [
+          "p_postal_code"
+        ],
+        "proargtypes": [
+          "25"
+        ],
+        "proisstrict": false,
+        "proparallel": "u",
+        "protrftypes": null,
+        "provariadic": "0",
+        "provolatile": "i",
+        "proleakproof": false,
+        "pronamespace": "2200",
+        "proallargtypes": null,
+        "proargdefaults": null,
+        "pronargdefaults": 0
+      },
+      "body_md5": "6da381c2dad3451762d227cb2c79fa87",
+      "signature": "gridex_normalize_swedish_postal_code(text)",
+      "definition": "CREATE OR REPLACE FUNCTION public.gridex_normalize_swedish_postal_code(p_postal_code text)\n RETURNS text\n LANGUAGE sql\n IMMUTABLE\n SET search_path TO 'public', 'auth', 'extensions'\nAS $function$\n  select nullif(regexp_replace(coalesce(p_postal_code, ''), E'\\\\D', '', 'g'), '');\n$function$\n"
+    }
+  ],
+  "pure_primitive_standard_conforming_strings": "on",
+  "literal_qualification": {
+    "old_spaced": "123 45",
+    "old_prefixed": "SE-123 45",
+    "corrected_spaced": "12345",
+    "corrected_prefixed": "12345",
+    "standard_conforming_strings": "on"
+  },
+  "actual_native_primitive": {
+    "setting": "on",
+    "old_spaced": "123 45",
+    "old_prefixed": "SE-123 45",
+    "corrected_spaced": "12345",
+    "corrected_prefixed": "12345"
+  },
+  "actual_pg_depend_dependents": [],
+  "unknown_body_negative": {
+    "exit_code": 3,
+    "error": "postal_regex_existing_body_or_attributes_changed_requires_review",
+    "complete_transaction_rollback_identity_unchanged": true,
+    "log": "/tmp/gridex-api-review/postal-regex-isolated-negative-unknown-body.log"
+  },
+  "combined_forward_replay": {
+    "z02_proposal_sha256": "1e6af520f4946864bd3626fc5e4fc9b711380df1dce2875a649da788aadce448",
+    "edifact_proposal_sha256": "ca5259f2fe217d3326250b9ad9df98addd450ab1d5a022f2af35f368afa3727b",
+    "z02_replay_exit_code": 0,
+    "edifact_replay_exit_code": 0,
+    "complete_all_five_pg_proc_and_definitions_unchanged": true
+  },
+  "business_or_helper_functions_invoked": false,
+  "pure_pg_regexp_replace_only": true,
+  "actual_native_writes": false,
+  "source_edits_by_verifier": false,
+  "business_rows_inserted": false,
+  "qualification_limit": "Exact actual predecessor definition and attributes mirrored into isolated PostgreSQL. Strict genuine SQL CREATE/DO/COMMIT plus replay/negative and primitives; no live API or business flow invocation. No proven current application caller or dependent for the postal helper.",
+  "logs": {
+    "postal-regex-isolated-actual-baseline.log": "/tmp/gridex-api-review/postal-regex-isolated-actual-baseline.log",
+    "postal-regex-isolated-first-commit.log": "/tmp/gridex-api-review/postal-regex-isolated-first-commit.log",
+    "postal-regex-isolated-replay-commit.log": "/tmp/gridex-api-review/postal-regex-isolated-replay-commit.log",
+    "postal-regex-isolated-pure-primitives.log": "/tmp/gridex-api-review/postal-regex-isolated-pure-primitives.log",
+    "postal-regex-isolated-negative-unknown-body.log": "/tmp/gridex-api-review/postal-regex-isolated-negative-unknown-body.log",
+    "three-regex-z02-composition-z02-replay.log": "/tmp/gridex-api-review/three-regex-z02-composition-z02-replay.log",
+    "three-regex-z02-composition-edifact-replay.log": "/tmp/gridex-api-review/three-regex-z02-composition-edifact-replay.log"
+  }
+}

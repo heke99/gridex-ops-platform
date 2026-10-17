@@ -12,6 +12,7 @@ import {
   mapContractPublicationToPublicDto,
 } from "@/lib/external-contracts/publicationDto";
 import {
+  API_DOCUMENTATION_VERSION,
   WEBSITE_INTEGRATION_CONTRACT_VERSION,
 } from "@/lib/integrations/websiteIntegrationContract";
 
@@ -199,7 +200,7 @@ describe("canonical contract channel completion", () => {
       paths: Record<string, { get: Record<string, unknown> }>;
     };
     expect(specification.info.version).toBe(
-      WEBSITE_INTEGRATION_CONTRACT_VERSION,
+      API_DOCUMENTATION_VERSION,
     );
     const operation = specification.paths["/api/v1/contracts"]?.get;
     expect(operation?.["x-required-scopes"]).toEqual([

@@ -163,7 +163,16 @@ order=json.loads(order_path.read_text())
 noncanonical=json.loads(noncanonical_path.read_text())
 checksums={**history.get('files',{}),**history_add.get('files',{}),**history_runtime_add.get('files',{})}
 allowed={k:sorted(v) for k,v in (history.get('allowedLegacyCollisions') or {}).items()}
-derived={**(plan.get('derivedBootstrap') or {}),**(plan_add.get('derivedBootstrap') or {})}
+derived={}
+for descriptors in (plan.get('derivedBootstrap') or {},plan_add.get('derivedBootstrap') or {}):
+    for rel,meta in descriptors.items():
+        if not isinstance(meta,dict):
+            raise SystemExit(f'invalid derived bootstrap descriptor: {rel}')
+        previous=derived.get(rel,{})
+        for key in ('source','sourceKind','artifactSha256','sourceSha256','execution'):
+            if key in previous and key in meta and previous[key]!=meta[key]:
+                raise SystemExit(f'conflicting derived bootstrap identity: {rel}: {key}')
+        derived[rel]={**previous,**meta}
 declared=set([*(plan.get('foundation') or []),*(plan_add.get('foundation') or [])])
 foundation=order.get('foundation') or []
 interleaved=plan_add.get('interleaved') or []
@@ -200,6 +209,8 @@ def validate_derived(rel):
     source=resolve(source_rel) if source_rel else None
     if not source or not source.exists(): raise SystemExit(f'derived bootstrap source missing: {source_rel}')
     pinned_source(source)
+    if meta.get('sourceSha256') is not None and digest(source) != meta['sourceSha256']:
+        raise SystemExit(f'derived bootstrap original-source pin mismatch: {rel}')
     return actual,source,meta
 
 def should_skip_timestamp_source(source,meta):
@@ -231,6 +242,24 @@ for item in interleaved:
     if should_skip_timestamp_source(source,meta): skip_timestamp_names.add(source.name)
     interleaved_paths.append((actual,after,before))
 
+# A derived input at its original timestamp needs no artificial next migration
+# boundary. Preserve source names separately from the executed artifact paths.
+source_position_paths={}
+interleaved_names={item.get('path','') for item in interleaved}
+for rel,meta in derived.items():
+    mode=meta.get('execution')
+    if mode not in (None,'sourcePosition'):
+        raise SystemExit(f'unknown derived replay execution: {rel}')
+    if mode!='sourcePosition': continue
+    if not rel.startswith('bootstrap/') or rel in declared or rel in interleaved_names or meta.get('sourceKind')!='timestampedMigration' or meta.get('preserveSourceReplay') is not False:
+        raise SystemExit(f'ambiguous derived source-position declaration: {rel}')
+    actual,source,meta=validate_derived(rel)
+    if source is None or not re.fullmatch(r'migrations/\d{14}_[^/]+\.sql',str(meta.get('source',''))):
+        raise SystemExit(f'derived source-position input must name a timestamped migration: {rel}')
+    if source.name in source_position_paths or source.name in skip_timestamp_names:
+        raise SystemExit(f'ambiguous derived source-position input: {source.name}')
+    source_position_paths[source.name]=actual
+
 excluded=set()
 artifacts=noncanonical.get('artifacts') or []
 if not artifacts: raise SystemExit('noncanonical artifact contract is empty')
@@ -249,7 +278,7 @@ for item in artifacts:
     pinned_source(actual)
     if not re.fullmatch(r'[0-9a-f]{64}',expected) or digest(actual) != expected or checksums.get(actual.name) != expected:
         raise SystemExit(f'noncanonical artifact checksum mismatch: {rel}')
-    if actual.name in skip_timestamp_names:
+    if actual.name in skip_timestamp_names or actual.name in source_position_paths:
         raise SystemExit(f'noncanonical artifact overlaps foundation/substitution: {rel}')
     excluded.add(actual.name)
 
@@ -264,21 +293,23 @@ for version,names in collisions.items():
     if len(names)>1 and sorted(names) != allowed.get(version,[]):
         raise SystemExit(f'unapproved migration version collision {version}: {sorted(names)}')
 files.sort(key=lambda p:p.name)
+if not set(source_position_paths).issubset({p.name for p in files}):
+    raise SystemExit('derived source-position original is absent from executable history')
 
 versions={p.name[:14] for p in files}
-execution=list(files)
+execution=[(p.name,source_position_paths.get(p.name,p)) for p in files]
 for actual,after,before in sorted(interleaved_paths,key=lambda row: row[2]):
     if after not in versions or before not in versions:
         raise SystemExit(f'interleaved boundary missing from canonical timestamped history for {actual.name}: {after}..{before}')
-    idx=next((i for i,p in enumerate(execution) if re.match(r'^\d{14}_',p.name) and p.name[:14] == before),None)
+    idx=next((i for i,(name,p) in enumerate(execution) if re.match(r'^\d{14}_',name) and name[:14] == before),None)
     if idx is None: raise SystemExit(f'interleaved before-boundary not executable: {before}')
-    prior_versions=[p.name[:14] for p in execution[:idx] if re.match(r'^\d{14}_',p.name)]
+    prior_versions=[name[:14] for name,p in execution[:idx] if re.match(r'^\d{14}_',name)]
     if after not in prior_versions: raise SystemExit(f'interleaved after-boundary not reached before {before}: {after}')
-    execution.insert(idx,actual)
+    execution.insert(idx,(actual.name,actual))
 
 foundation_out.write_text(''.join(str(p)+'\n' for p in foundation_paths))
-timestamp_out.write_text(''.join(str(p)+'\n' for p in execution))
-print(f'[GRIDEX-REM-002 replay] preflight: {len(foundation_paths)} foundation inputs, {len(skip_timestamp_names)} substitutions, {len(excluded)} noncanonical exclusions, {len(interleaved_paths)} interleaved artifacts, {len(files)} canonical timestamped files')
+timestamp_out.write_text(''.join(str(p)+'\n' for name,p in execution))
+print(f'[GRIDEX-REM-002 replay] preflight: {len(foundation_paths)} foundation inputs, {len(skip_timestamp_names)+len(source_position_paths)} substitutions, {len(excluded)} noncanonical exclusions, {len(interleaved_paths)} interleaved artifacts, {len(source_position_paths)} source-position artifacts, {len(files)} canonical timestamped files')
 PY
 
 python3 - "$LEDGER" "$LEDGER_MARKERS" <<'PY'
@@ -315,7 +346,75 @@ if [[ -z "$EXTERNAL_DB" ]]; then
   printf '%s' "$REPLAY_POSTGRES_VERSION" > "$REPLAY_PG_VERSION_PATH"
   echo "local_replay_postgres_image=$REPLAY_POSTGRES_VERSION"
   LOCAL_STACK_START_ATTEMPTED=1
-  supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector
+  # The existing Python owner hook runs the same start argv and restores
+  # blocking stdout/stderr before any owner SQL or later replay C client.
+  # Qualify the same empty local platform for every CURRENT clean consumer.
+  # The original shell/EXIT trap keeps the stack alive through its consumers.
+  # Only the independent owner SQL is pinned here: no clean/helper hash cycle.
+  python3 - "$ROOT/scripts/sql/gridex-local-storage-owner-bootstrap.sql" <<'PY_GRIDEX_LOCAL_STORAGE_OWNER'
+import hashlib,json,os,pathlib,subprocess,sys
+def output_blocking_state():
+    try:
+        return [os.get_blocking(1), os.get_blocking(2)]
+    except OSError:
+        raise SystemExit('local_storage_blocking_output_state_unavailable')
+
+def restore_blocking_output(before, boundary):
+    # File status flags belong to the shared open-file description. A child
+    # changing them can affect later C clients in the original replay shell.
+    try:
+        after = [os.get_blocking(1), os.get_blocking(2)]
+        os.set_blocking(1, True)
+        os.set_blocking(2, True)
+        restored = [os.get_blocking(1), os.get_blocking(2)]
+        if restored != [True, True]:
+            raise OSError
+        # Only fixed labels and booleans; never argv, paths, URLs or CLI output.
+        receipt = ('[GRIDEX-OUTPUT-BLOCKING-V1] ' + json.dumps({
+            'boundary': boundary, 'beforeCLI': before, 'afterCLI': after,
+            'afterRestoration': restored,
+        }, separators=(',', ':')) + '\n').encode('ascii')
+        while receipt:
+            written = os.write(2, receipt)
+            if written <= 0:
+                raise OSError
+            receipt = receipt[written:]
+    except OSError:
+        raise SystemExit('local_storage_blocking_output_postcondition_failed')
+
+before_start_output = output_blocking_state()
+try:
+    try:
+        start_result = subprocess.run(['supabase','start','-x',
+            'studio,imgproxy,mailpit,edge-runtime,logflare,vector'],check=False)
+    except OSError:
+        raise SystemExit('local_storage_start_invocation_failed')
+finally:
+    restore_blocking_output(before_start_output, 'current_clean_start')
+if start_result.returncode != 0:
+    raise SystemExit(128-start_result.returncode if start_result.returncode<0 else start_result.returncode)
+owner_sql=pathlib.Path(sys.argv[1])
+if owner_sql.is_symlink() or not owner_sql.is_file() or hashlib.sha256(owner_sql.read_bytes()).hexdigest()!='c01914b7343bb6d84729ccf96b6ff442e78bf46dcd96b563d7f137d970db18c0':
+    raise SystemExit('local_storage_owner_sql_source_unknown')
+try:
+    version=subprocess.run(['supabase','--version'],capture_output=True,text=True,timeout=15,check=False)
+except (OSError,subprocess.TimeoutExpired):
+    raise SystemExit('local_storage_official_cli_version_unavailable')
+if version.returncode!=0 or version.stdout.strip()!='2.101.0':
+    raise SystemExit('local_storage_official_cli_version_unknown')
+# Existing official disposable-local password, not fetched credentials. Clear
+# PG overrides and ignore psqlrc; target/identity never comes from external URL.
+owner_env={k:v for k,v in os.environ.items() if not k.startswith('PG')}
+owner_env['PGPASSWORD']='postgres'
+owner_env['PGCONNECT_TIMEOUT']='5'
+try:
+    result=subprocess.run(['psql','-X','-q','-w','-h','127.0.0.1','-p','54322',
+        '-U','supabase_storage_admin','-d','postgres','-v','ON_ERROR_STOP=1',
+        '-f',str(owner_sql)],env=owner_env,check=False,timeout=45)
+except (OSError,subprocess.TimeoutExpired):
+    raise SystemExit('local_storage_owner_bootstrap_invocation_failed')
+raise SystemExit(128-result.returncode if result.returncode<0 else result.returncode)
+PY_GRIDEX_LOCAL_STORAGE_OWNER
 else
   # No Supabase CLI here, so there is no CLI-owned ledger to reproduce. The
   # official ledger is deliberately left untouched: writing it by hand would

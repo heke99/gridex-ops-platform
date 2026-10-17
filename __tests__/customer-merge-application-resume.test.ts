@@ -10,6 +10,7 @@ const SOURCE = '000000a1-0000-4000-8000-000000000000'
 const COMPANY = '0000000a-0000-4000-8000-000000000000'
 const AUTH_USER = '000000b1-0000-4000-8000-000000000000'
 
+vi.mock('server-only', () => ({}))
 vi.mock('@/lib/supabase/service', () => ({
   supabaseService: {
     from: (table: string) => {

@@ -1,0 +1,136 @@
+{
+  "captured_at_utc": "2026-10-13T18:05:23.071851+00:00",
+  "review_scope": "READ ONLY CI logs + actual code/canonical/native prior metadata; no tests run or edited, no GEN/native/business calls",
+  "ci_head": "3e23df70d7427650ea0f33edbb3b5035197933bc",
+  "current_integration_head_reported_by_parent": "0256dddc",
+  "jobs": [
+    {
+      "job_id": 115434205199,
+      "name": "quality-release-gates",
+      "blocking_step": "npm test",
+      "lint": "PASS zero errors161warnings",
+      "scripts_typecheck": "PASS",
+      "tests_typecheck": "PASS",
+      "production_build": "PASS webpack105s +NextTypeScript76s +23/23static routes",
+      "test_summary": {
+        "files_failed": 5,
+        "files_passed": 1101,
+        "assertions_failed": 32,
+        "assertions_passed": 17723
+      },
+      "classifications": [
+        {
+          "file": "__tests__/customer-merge-application-resume.test.ts",
+          "failure": "server-only package cannotresolve in plain Vitest importer",
+          "code_evidence": "lib/ediel/retention/customerRecordClasses.ts importsserver-only; Next productionbundler resolves it successfully; fixture lacks mock/alias",
+          "classification": "unit runner resolution; no proven Nextproduction import failure"
+        },
+        {
+          "file": "__tests__/ediel-sc-018-056-independent-service-and-incident.test.ts",
+          "failures": 4,
+          "failure": "mock omits assertAdminApiCompanyPermissions export",
+          "code_evidence": "lib/admin/apiGuards.ts exports real helper; lib/tenant/entityGuards.ts calls it; explicit vi.mock returns only requireAdminApiAccess",
+          "classification": "stale mock, not missing productionexport"
+        },
+        {
+          "file": "__tests__/internal-billing-target-company-authorization.test.ts",
+          "failures": 23,
+          "failure": "expected200/403 but503, no guard result",
+          "code_evidence": "permissionKeys requires active_permission_keys and denied_permissions arrays; mockcontext includesneither. Actual reviewednative contextbody explicitly returnsboth; installedmetadata bodyMD5d205c4e8ba1989b27b4df6b1b76af631",
+          "classification": "stale context fixture; failclosed503 correct for malformed permission authority"
+        },
+        {
+          "file": "__tests__/signed-contract-receipt-continuation.test.ts",
+          "failures": 4,
+          "failure": "signed_contract_recipient_evidence_missing before archive/send",
+          "code_evidence": "real delivery reads frozen customer_contracts.signature_snapshot.recipient_email; native signatureauthor persists recipient_email from verified request. Mock customer_contracts row contains onlydocument_sha256null, lacks entire signature_snapshot",
+          "classification": "stale evidence fixture; failclosed pending prevents unverified recipient delivery"
+        },
+        {
+          "file": "__tests__/partner-measurement-completeness.test.ts",
+          "failures": 1,
+          "failure": "5000ms timeout in >40000measurement case",
+          "classification": "runtime budget; logs do not prove wrong returndata or source bug"
+        }
+      ]
+    },
+    {
+      "job_id": 115434204708,
+      "name": "verify",
+      "blocking_step": "db:types:check",
+      "exact_error": "migration tail changed (20261013151412_ops_api_market_actor_normalizers.sql); regenerate Supabase types and update the manifest",
+      "prior_passes": [
+        "migration integrity1220files/1123groups/checksums",
+        "publiccontract legalmigration",
+        "database contracthardening"
+      ],
+      "manifest_current_tail": "20261012231000_ediel_z02_original_grid_refusal.sql",
+      "classification": "real generated-capture/governance incompleteness; do not edit manifest orgeneratedbytes manually"
+    },
+    {
+      "job_ids": [
+        115434204532,
+        115434205313
+      ],
+      "name": "clean and upgrade migration replay",
+      "exit_code": 3,
+      "exact_error": "website_quote_expiry_predecessor_changed",
+      "file": "supabase/migrations/20261013093906_ops_api_website_quote_nonexpiring_policy.sql:35",
+      "native_drift_prebody_required": "4daec568bdaf10d1354ddd39145d0d94",
+      "canonical_complete_body_md5": "007d078d9d0065395edf2190d4f1d3b6",
+      "source_proof": "20260822103821_non_expiring_website_quotes.sql already removes exact TTL block; currentcanonicalGEN9077bytebody no expiry and identicalgenuineisolatedappliedquote postbody",
+      "classification": "real canonical replay portability blocker; no current runtime quoteexpiration defect demonstrated",
+      "correction_requirement": "strict source-owned compatibility qualification forknowncomplete body +full metadata noop; unknownbody failclosed. Later append cannotrepair priorreplaystop. Preservealreadyapplied SQL/historypins; no fabricatedledger. Separate reviewed replay sourceplan needed."
+    },
+    {
+      "job_id": 115434203940,
+      "name": "smoke",
+      "summary": "14/15pass",
+      "only_blocking_category": "migrations generated-types stale tail",
+      "classification": "same generatedcapture blocker, no additional API/source failure shown"
+    },
+    {
+      "job_id": 115439764980,
+      "name": "pr-certificate",
+      "failure": "gh runwatch dependent qualityrun failed; certificateproducer not reached; expected releasecertificateartifact absent",
+      "classification": "cascade, no independent runtime/source finding"
+    }
+  ],
+  "release_implications": {
+    "application_only": "No compiler/lint/appbuild blocker proved by this run. Parent must qualify actualcurrent0256 integrationbuild independently. Fixture errors do not establish productionP1; keep pendingdatabase capabilities explicit.",
+    "full_migration_or_new_database_release": "NOT QUALIFIED: knownquote strictpredecessor prevents canonicalclean/upgrade, canonicalGEN manifest stale, protectedowner prerequisites still separate operationalrequirement.",
+    "all_APIs_green": "NOT established by build orCI; actual application/database/config/bindings qualification required.",
+    "prohibited_shortcuts": [
+      "no handwritten GEN ormanifest",
+      "no oldpublishedmigration/pin rewrite",
+      "no weakenedunknown-body/permission/evidence gates",
+      "no fake receipt/ledger orlivebusinesscalls"
+    ]
+  },
+  "evidence": [
+    {
+      "path": "/tmp/gridex-api-review/pr3e-quality-release-gates-connector.log",
+      "sha256": "717f7ec8f7cf49ffbce858ec0c5144587a831c46f0f028138a147dabba08181d"
+    },
+    {
+      "path": "/tmp/gridex-api-review/pr3e-verify-connector.log",
+      "sha256": "cc0c5bb92057b9c58142216f0e3eba95080623c6a52444b9bce4b93897ddb2ba"
+    },
+    {
+      "path": "/tmp/gridex-api-review/pr3e-clean-migration-connector.log",
+      "sha256": "ad158c5f4847e36c872c9b5adeca7bc6100eba7df779d8267af8ef13de780640"
+    },
+    {
+      "path": "/tmp/gridex-api-review/pr3e-upgrade-migration-connector.log",
+      "sha256": "eb8d9a377fd10050b86ee8f504cca19773d6aa140a917ae34e7028914add5f25"
+    },
+    {
+      "path": "/tmp/gridex-api-review/pr3e-smoke-connector.log",
+      "sha256": "a0a4f4171d7383eb65a2dc586e2dc2b7a4b7615bb81e23eebfa95fd0bc812450"
+    },
+    {
+      "path": "/tmp/gridex-api-review/pr3e-pr-certificate-connector.log",
+      "sha256": "c65e878e9a9e467d10eafd28970262a0bd23ea82e2a1fd22303100ec326e15a0"
+    }
+  ]
+}

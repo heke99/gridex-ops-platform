@@ -31,8 +31,32 @@ CREATE TEMP TABLE staff_retention_before AS SELECT pg_temp.staff_retention_catal
 -- These names/roles/grants exist only inside this savepoint and outer rollback.
 SAVEPOINT staff_retention_absent;
 ALTER ROLE gridex_ediel_retention_owner RENAME TO staff_retention_native_original_owner;
-ALTER SCHEMA gridex_ediel_retention RENAME TO staff_retention_native_original_schema;
-ALTER FUNCTION public.ediel_customer_record_tombstones_v1(uuid,uuid) RENAME TO staff_retention_native_original_reader;
+-- The canonical private owner is SET-only: inherited migration authority is
+-- deliberately absent. Use it only for fixture DDL, preserving exact CREATE
+-- rights before the real nonsuper constructor runs.
+DO $staff_retention_absence_names$
+DECLARE migration_receiver text:=current_user;
+ owner_had_database_create boolean:=has_database_privilege('staff_retention_native_original_owner',current_database(),'CREATE');
+ owner_had_public_create boolean:=has_schema_privilege('staff_retention_native_original_owner','public','CREATE');
+BEGIN
+ IF NOT owner_had_database_create THEN
+  EXECUTE format('GRANT CREATE ON DATABASE %I TO staff_retention_native_original_owner',current_database());
+ END IF;
+ IF NOT owner_had_public_create THEN GRANT CREATE ON SCHEMA public TO staff_retention_native_original_owner; END IF;
+ SET LOCAL ROLE staff_retention_native_original_owner;
+ ALTER SCHEMA gridex_ediel_retention RENAME TO staff_retention_native_original_schema;
+ ALTER FUNCTION public.ediel_customer_record_tombstones_v1(uuid,uuid) RENAME TO staff_retention_native_original_reader;
+ EXECUTE format('SET LOCAL ROLE %I',migration_receiver);
+ IF NOT owner_had_public_create THEN REVOKE CREATE ON SCHEMA public FROM staff_retention_native_original_owner; END IF;
+ IF NOT owner_had_database_create THEN
+  EXECUTE format('REVOKE CREATE ON DATABASE %I FROM staff_retention_native_original_owner',current_database());
+ END IF;
+ IF has_database_privilege('staff_retention_native_original_owner',current_database(),'CREATE') IS DISTINCT FROM owner_had_database_create
+  OR has_schema_privilege('staff_retention_native_original_owner','public','CREATE') IS DISTINCT FROM owner_had_public_create THEN
+  RAISE EXCEPTION 'synthetic retention absence CREATE rights were not restored';
+ END IF;
+END
+$staff_retention_absence_names$;
 -- Exercise the actual nonsuper replay caller with its existing Auth rights.
 -- Managed Auth USAGE/REFERENCES need not carry a delegable grant option.
 DO $$ BEGIN
@@ -69,7 +93,7 @@ CREATE TEMP TABLE staff_retention_fixture AS SELECT
  gen_random_uuid() AS customer,gen_random_uuid() AS other_customer,
  gen_random_uuid() AS actor,gen_random_uuid() AS target,gen_random_uuid() AS other_target;
 DO $$
-DECLARE f record; result jsonb; denied boolean; table_name text;
+DECLARE f record; result jsonb; denied boolean; table_name text; truncate_detail text; migration_receiver text:=current_user;
 BEGIN
  SELECT * INTO f FROM pg_temp.staff_retention_fixture;
  INSERT INTO public.companies(id,name,status) VALUES
@@ -80,6 +104,8 @@ BEGIN
   (f.customer,f.company,'private','draft','Synthetic staff retention A'),
   (f.other_customer,f.other_company,'private','draft','Synthetic staff retention B');
  IF public.ediel_customer_record_tombstones_v1(f.company,f.customer)<>'[]'::jsonb THEN RAISE EXCEPTION 'empty native tombstone array required'; END IF;
+ -- Private synthetic journal construction runs under its actual owner only.
+ SET LOCAL ROLE gridex_ediel_retention_owner;
  INSERT INTO gridex_ediel_retention.record_decisions(id,company_id,retention_class,target_id,customer_id,source_hash,target_hash,document_bytes,document_hash,submitted_by)
  VALUES(f.target,f.company,'customer_address_history',f.target,f.customer,repeat('a',64),repeat('b',64),'a'::bytea,encode(sha256('a'::bytea),'hex'),f.actor),
   (f.other_target,f.other_company,'customer_address_history',f.other_target,f.other_customer,repeat('c',64),repeat('d',64),'b'::bytea,encode(sha256('b'::bytea),'hex'),f.actor);
@@ -88,6 +114,7 @@ BEGIN
  INSERT INTO gridex_ediel_retention.record_tombstones(retention_class,target_id,company_id,customer_id,decision_id,review_id,source_hash,target_hash,byte_length,actor_user_id,journal_retain_until,journal_purpose_reference)
  VALUES('customer_address_history',f.target,f.company,f.customer,f.target,f.target,repeat('a',64),repeat('b',64),1,f.actor,'2030-01-01Z','Synthetic native proof'),
   ('customer_address_history',f.other_target,f.other_company,f.other_customer,f.other_target,f.other_target,repeat('c',64),repeat('d',64),1,f.actor,'2030-01-01Z','Synthetic native proof');
+ EXECUTE format('SET LOCAL ROLE %I',migration_receiver);
  result:=public.ediel_customer_record_tombstones_v1(f.company,f.customer);
  IF jsonb_array_length(result)<>1 OR result->0->>'targetId'<>f.target::text
   OR result->0->>'retentionClass'<>'customer_address_history' OR result->0->>'sourceHash'<>repeat('a',64)
@@ -96,6 +123,9 @@ BEGIN
  BEGIN PERFORM public.ediel_customer_record_tombstones_v1(f.other_company,f.customer);
  EXCEPTION WHEN raise_exception THEN IF SQLERRM='customer_record_customer_scope_required' THEN denied:=true; ELSE RAISE; END IF; END;
  IF NOT denied THEN RAISE EXCEPTION 'foreign company customer accepted'; END IF;
+ -- White-box FK/append-only checks need private owner authority to reach
+ -- the actual constraints and triggers rather than fail at schema admission.
+ SET LOCAL ROLE gridex_ediel_retention_owner;
  denied:=false;
  BEGIN INSERT INTO gridex_ediel_retention.record_tombstones
   SELECT retention_class,gen_random_uuid(),company_id,customer_id,contract_id,gen_random_uuid(),review_id,source_hash,target_hash,byte_length,storage_path,actor_user_id,journal_retain_until,journal_purpose_reference,created_at
@@ -111,9 +141,16 @@ BEGIN
   BEGIN EXECUTE format('DELETE FROM gridex_ediel_retention.%I',table_name); EXCEPTION WHEN check_violation THEN denied:=true; END;
   IF NOT denied THEN RAISE EXCEPTION 'immutable delete accepted: %',table_name; END IF;
   denied:=false;
-  BEGIN EXECUTE format('TRUNCATE gridex_ediel_retention.%I CASCADE',table_name); EXCEPTION WHEN check_violation THEN denied:=true; END;
+  BEGIN EXECUTE format('TRUNCATE gridex_ediel_retention.%I CASCADE',table_name);
+  EXCEPTION WHEN check_violation THEN denied:=true;
+   WHEN restrict_violation THEN
+    GET STACKED DIAGNOSTICS truncate_detail = PG_EXCEPTION_DETAIL;
+    IF table_name='record_decisions' AND SQLERRM='history_truncate_blocked'
+     AND truncate_detail='TRUNCATE of gridex_ediel_retention.record_decisions would remove retained history.' THEN denied:=true; ELSE RAISE; END IF;
+  END;
   IF NOT denied THEN RAISE EXCEPTION 'immutable truncate accepted: %',table_name; END IF;
  END LOOP;
+ EXECUTE format('SET LOCAL ROLE %I',migration_receiver);
  PERFORM set_config('staff.retention_company',f.company::text,true),set_config('staff.retention_customer',f.customer::text,true);
 END $$;
 SET LOCAL ROLE service_role;

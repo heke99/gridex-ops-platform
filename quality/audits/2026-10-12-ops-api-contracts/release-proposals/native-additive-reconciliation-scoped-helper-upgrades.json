@@ -1,0 +1,320 @@
+[
+  {
+    "before": {
+      "acl": [
+        {
+          "grantee": "postgres",
+          "grantable": false,
+          "privilege": "EXECUTE"
+        }
+      ],
+      "kind": "f",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "exists": true,
+      "strict": false,
+      "returns": "void",
+      "argmodes": null,
+      "argnames": [
+        "m",
+        "e"
+      ],
+      "body_md5": "2b993fc9d97e6075ad702b6cc7054b65",
+      "defaults": null,
+      "parallel": "u",
+      "leakproof": false,
+      "signature": "gridex_ediel_common_header.assert_ack_v1(public.ediel_messages, jsonb)",
+      "volatility": "v",
+      "allargtypes": null,
+      "returns_set": false,
+      "default_count": 0,
+      "security_definer": true
+    },
+    "after": {
+      "acl": [
+        {
+          "grantee": "postgres",
+          "grantable": false,
+          "privilege": "EXECUTE"
+        }
+      ],
+      "kind": "f",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "exists": true,
+      "strict": false,
+      "returns": "void",
+      "argmodes": null,
+      "argnames": [
+        "m",
+        "e"
+      ],
+      "body_md5": "9839bf48ebaac650a60f83d947e5d9fd",
+      "defaults": null,
+      "parallel": "u",
+      "leakproof": false,
+      "signature": "gridex_ediel_common_header.assert_ack_v1(public.ediel_messages, jsonb)",
+      "volatility": "v",
+      "allargtypes": null,
+      "returns_set": false,
+      "default_count": 0,
+      "security_definer": true
+    },
+    "sql": "-- canonical:430\n--\n-- Name: assert_ack_v1(public.ediel_messages, jsonb); Type: FUNCTION; Schema: gridex_ediel_common_header; Owner: -\n--\n\nCREATE OR REPLACE FUNCTION gridex_ediel_common_header.assert_ack_v1(m public.ediel_messages, e jsonb) RETURNS void\n    LANGUAGE plpgsql SECURITY DEFINER\n    SET search_path TO 'pg_catalog'\n    AS $_$\nDECLARE tokens jsonb;wire jsonb;source public.ediel_messages%rowtype;u jsonb;g jsonb;ftx jsonb;unb jsonb;unh jsonb;bgm jsonb;\nBEGIN\n IF e->>'assignedNegativeBirthReceiptId' IS NOT NULL THEN SELECT parent.* INTO STRICT source FROM public.ediel_messages parent WHERE parent.id=m.related_message_id AND parent.direction='inbound' AND parent.environment=m.environment AND (parent.company_id=m.company_id OR parent.company_id IS NULL) AND EXISTS(\n   SELECT FROM gridex_ediel_technical_ack.sources receipt WHERE receipt.source_message_id=parent.id AND receipt.company_id=m.company_id\n    AND receipt.environment=parent.environment AND receipt.status='ready' AND receipt.source_received_at IS NOT DISTINCT FROM parent.message_received_at\n    AND receipt.payload_sha256=encode(sha256(convert_to(parent.raw_payload,'UTF8')),'hex')) FOR SHARE; PERFORM gridex_ediel_header_negative_birth.assert_ack_v1(m,e);RETURN;END IF;\n IF m.company_id::text IS DISTINCT FROM e->>'companyId' OR m.environment IS DISTINCT FROM e->>'environment' OR m.related_message_id::text IS DISTINCT FROM e->>'sourceMessageId' OR m.direction IS DISTINCT FROM 'outbound' OR m.message_family IS DISTINCT FROM 'APERAK' OR m.message_code IS DISTINCT FROM 'APERAK'\n  OR m.canonical_rule_pack_id IS NOT NULL OR m.rule_profile_version_id IS NOT NULL OR m.rule_profile_key IS NOT NULL OR m.rule_profile_version IS NOT NULL OR m.rule_pack_checksum IS NOT NULL OR coalesce(m.rule_pack_snapshot,'{}')<>'{}' THEN RAISE EXCEPTION 'ediel_common_header_negative_scope_invalid';END IF;\n tokens:=gridex_utilts_binding.wire_tokens_v1(m.raw_payload);wire:=gridex_ack_authority.wire_v1(m.raw_payload);\n IF wire IS NULL OR wire->>'family'<>'APERAK' OR wire->>'function' IS DISTINCT FROM '27' OR (SELECT count(*) FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='ERC')<>1 OR (SELECT count(*) FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='FTX')<>1 THEN RAISE EXCEPTION 'ediel_common_header_negative_scope_invalid';END IF;\n SELECT t->'elements' INTO unb FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='UNB';SELECT t->'elements' INTO unh FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='UNH';SELECT t->'elements' INTO bgm FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='BGM';\n SELECT t->'elements' INTO g FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='ERC';SELECT t->'elements' INTO ftx FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='FTX';\n SELECT parent.* INTO STRICT source FROM public.ediel_messages parent WHERE parent.id=m.related_message_id AND parent.direction='inbound' AND parent.environment=m.environment AND (parent.company_id=m.company_id OR parent.company_id IS NULL) AND EXISTS(\n   SELECT FROM gridex_ediel_technical_ack.sources receipt WHERE receipt.source_message_id=parent.id AND receipt.company_id=m.company_id\n    AND receipt.environment=parent.environment AND receipt.status='ready' AND receipt.source_received_at IS NOT DISTINCT FROM parent.message_received_at\n    AND receipt.payload_sha256=encode(sha256(convert_to(parent.raw_payload,'UTF8')),'hex')) FOR SHARE;u:=gridex_ediel_technical_ack.envelope(source.raw_payload);\n IF unh->2 IS DISTINCT FROM e#>'{familyEdition,sourceProjection,catalog,ackConstraints,technicalProfile}' OR unb->2 IS DISTINCT FROM u->'receiver' OR unb->3 IS DISTINCT FROM u->'sender' OR coalesce(unb#>>'{7,0}','') IS DISTINCT FROM u->>'applicationReference' OR coalesce(unb#>>'{11,0}','') IS DISTINCT FROM u->>'testIndicator'\n  OR g->1 IS DISTINCT FROM jsonb_build_array(e#>>'{field202,ercCode}','','260') OR ftx->1 IS DISTINCT FROM '[\"AAO\"]'::jsonb OR ftx->3 IS DISTINCT FROM '[\"202\",\"\",\"260\"]'::jsonb OR ftx->4 IS DISTINCT FROM jsonb_build_array(e#>>'{field202,text}') OR length(ftx#>>'{4,0}')>(e#>>'{familyEdition,sourceProjection,catalog,ackConstraints,textMax}')::integer\n  OR wire->>'legalSender' IS DISTINCT FROM e#>>'{identities,legalReceiver,id}' OR wire->>'legalReceiver' IS DISTINCT FROM e#>>'{identities,legalSender,id}' THEN RAISE EXCEPTION 'ediel_common_header_negative_scope_invalid';END IF;\n -- Full legal qualifiers/country and known original document reference stay\n -- tied to the actual physical own header, not merely matching public IDs.\n IF EXISTS(SELECT FROM unnest(ARRAY['FR','DO'])role WHERE (SELECT count(*) FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='NAD' AND t#>>'{elements,1,0}'=role)<>1) THEN RAISE EXCEPTION 'ediel_common_header_negative_scope_invalid';END IF;\n IF NOT EXISTS(SELECT FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='NAD' AND t#>>'{elements,1,0}'='FR' AND t#>'{elements,2}'=e#>'{identities,legalReceiver,identityComponents}' AND t#>>'{elements,9,0}'=e#>>'{identities,legalReceiver,country}')\n  OR NOT EXISTS(SELECT FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='NAD' AND t#>>'{elements,1,0}'='DO' AND t#>'{elements,2}'=e#>'{identities,legalSender,identityComponents}' AND t#>>'{elements,9,0}'=e#>>'{identities,legalSender,country}') THEN RAISE EXCEPTION 'ediel_common_header_negative_scope_invalid';END IF;\n IF jsonb_array_length(ftx)>5 OR coalesce(ftx->2,'[]') NOT IN('[]'::jsonb,'[\"\"]'::jsonb) OR (SELECT count(*) FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='DTM' AND t#>>'{elements,1,0}'=e#>>'{familyEdition,sourceProjection,catalog,commonAckConstraints,documentDate,qualifier}' AND t#>>'{elements,1,2}'=e#>>'{familyEdition,sourceProjection,catalog,commonAckConstraints,documentDate,format}' AND t#>>'{elements,1,1}'~'^[0-9]{12}$')<>1\n  OR EXISTS(SELECT FROM jsonb_array_elements(tokens)t WHERE t->>'tag' IN('IDE','LIN','UCI','UCM'))\n  OR EXISTS(SELECT FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='RFF' AND t#>>'{elements,1,0}' NOT IN('ACW')) THEN RAISE EXCEPTION 'ediel_common_header_negative_scope_invalid';END IF;\n IF NOT coalesce(gridex_ack_authority.source_match_v1(wire,gridex_ack_authority.wire_v1(source.raw_payload)),false) THEN RAISE EXCEPTION 'ediel_common_header_negative_scope_invalid';END IF;\nEND$_$;",
+    "fixed_pg_proc_attributes": {
+      "cost": 100,
+      "rows": 0,
+      "binary": null,
+      "support": null,
+      "language": "plpgsql",
+      "sql_body": null,
+      "variadic": null,
+      "transforms": null,
+      "arguments_count": 2
+    }
+  },
+  {
+    "before": {
+      "acl": [
+        {
+          "grantee": "postgres",
+          "grantable": false,
+          "privilege": "EXECUTE"
+        }
+      ],
+      "kind": "f",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "exists": true,
+      "strict": false,
+      "returns": "gridex_ediel_common_header.negative_witnesses",
+      "argmodes": null,
+      "argnames": [
+        "m"
+      ],
+      "body_md5": "4e72a7e098314cfe1f99ae4df1a2929f",
+      "defaults": null,
+      "parallel": "u",
+      "leakproof": false,
+      "signature": "gridex_ediel_common_header.witness_before_route_v1(public.ediel_messages)",
+      "volatility": "v",
+      "allargtypes": null,
+      "returns_set": false,
+      "default_count": 0,
+      "security_definer": true
+    },
+    "after": {
+      "acl": [
+        {
+          "grantee": "postgres",
+          "grantable": false,
+          "privilege": "EXECUTE"
+        }
+      ],
+      "kind": "f",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "exists": true,
+      "strict": false,
+      "returns": "gridex_ediel_common_header.negative_witnesses",
+      "argmodes": null,
+      "argnames": [
+        "m"
+      ],
+      "body_md5": "7e78d461d26b8bf73cb5adb36c1136af",
+      "defaults": null,
+      "parallel": "u",
+      "leakproof": false,
+      "signature": "gridex_ediel_common_header.witness_before_route_v1(public.ediel_messages)",
+      "volatility": "v",
+      "allargtypes": null,
+      "returns_set": false,
+      "default_count": 0,
+      "security_definer": true
+    },
+    "sql": "-- canonical:444\n--\n-- Name: witness_before_route_v1(public.ediel_messages); Type: FUNCTION; Schema: gridex_ediel_common_header; Owner: -\n--\n\nCREATE OR REPLACE FUNCTION gridex_ediel_common_header.witness_before_route_v1(m public.ediel_messages) RETURNS gridex_ediel_common_header.negative_witnesses\n    LANGUAGE plpgsql SECURITY DEFINER\n    SET search_path TO 'pg_catalog'\n    AS $$\nDECLARE w gridex_ediel_common_header.negative_witnesses%rowtype;BEGIN\n SELECT * INTO w FROM gridex_ediel_common_header.negative_witnesses WHERE id=(m.execution_context_snapshot->>'prodatCommonHeaderNegativeWitnessId')::uuid AND company_id=m.company_id AND environment=m.environment AND source_message_id=m.related_message_id AND payload_sha256=encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex') FOR SHARE;\n IF w.id IS NULL OR w.company_id IS DISTINCT FROM m.company_id OR w.environment IS DISTINCT FROM m.environment OR w.source_message_id IS DISTINCT FROM m.related_message_id OR w.payload_sha256 IS DISTINCT FROM encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex') THEN RAISE EXCEPTION 'ediel_common_header_negative_witness_required';END IF;\n PERFORM gridex_ediel_common_header.assert_ack_v1(m,w.evidence);RETURN w;END$$;",
+    "fixed_pg_proc_attributes": {
+      "cost": 100,
+      "rows": 0,
+      "binary": null,
+      "support": null,
+      "language": "plpgsql",
+      "sql_body": null,
+      "variadic": null,
+      "transforms": null,
+      "arguments_count": 1
+    }
+  },
+  {
+    "before": {
+      "acl": [
+        {
+          "grantee": "postgres",
+          "grantable": false,
+          "privilege": "EXECUTE"
+        }
+      ],
+      "kind": "f",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "exists": true,
+      "strict": false,
+      "returns": "jsonb",
+      "argmodes": null,
+      "argnames": [
+        "m"
+      ],
+      "body_md5": "b313d8f1bfac2b9cc5d88c7005401cb1",
+      "defaults": null,
+      "parallel": "u",
+      "leakproof": false,
+      "signature": "gridex_ediel_technical_ack.require_contrl_v1(public.ediel_messages)",
+      "volatility": "v",
+      "allargtypes": null,
+      "returns_set": false,
+      "default_count": 0,
+      "security_definer": true
+    },
+    "after": {
+      "acl": [
+        {
+          "grantee": "postgres",
+          "grantable": false,
+          "privilege": "EXECUTE"
+        }
+      ],
+      "kind": "f",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "exists": true,
+      "strict": false,
+      "returns": "jsonb",
+      "argmodes": null,
+      "argnames": [
+        "m"
+      ],
+      "body_md5": "ead3811c6130b4f08cee04e9dd69ffad",
+      "defaults": null,
+      "parallel": "u",
+      "leakproof": false,
+      "signature": "gridex_ediel_technical_ack.require_contrl_v1(public.ediel_messages)",
+      "volatility": "v",
+      "allargtypes": null,
+      "returns_set": false,
+      "default_count": 0,
+      "security_definer": true
+    },
+    "sql": "-- canonical:730\n--\n-- Name: require_contrl_v1(public.ediel_messages); Type: FUNCTION; Schema: gridex_ediel_technical_ack; Owner: -\n--\n\nCREATE OR REPLACE FUNCTION gridex_ediel_technical_ack.require_contrl_v1(m public.ediel_messages) RETURNS jsonb\n    LANGUAGE plpgsql SECURITY DEFINER\n    SET search_path TO 'pg_catalog'\n    AS $_$\nDECLARE source public.ediel_messages%rowtype;evidence jsonb;u jsonb;uci jsonb;tokens jsonb;expected text;header jsonb;trailer jsonb;interchange_trailer jsonb;message_count integer;\nBEGIN\n IF EXISTS(SELECT FROM public.ediel_messages own WHERE own.id=m.id AND own.company_id=m.company_id AND own.environment=m.environment AND own.direction='outbound' AND own.message_family='CONTRL' AND own.raw_payload=m.raw_payload) THEN\n  m.related_message_id:=gridex_ediel_technical_ack.retained_source_v1(m,true);\n  IF m.related_message_id IS NULL THEN RAISE EXCEPTION 'ediel_historical_technical_ack_private_chain_unavailable';END IF;\n END IF;\n IF m.direction IS DISTINCT FROM 'outbound' OR m.message_family IS DISTINCT FROM 'CONTRL' OR m.related_message_id IS NULL THEN RAISE EXCEPTION 'ediel_technical_ack_basis_required';END IF;\n SELECT parent.* INTO source FROM public.ediel_messages parent WHERE parent.id=m.related_message_id AND parent.direction='inbound' AND parent.environment=m.environment AND (parent.company_id=m.company_id OR parent.company_id IS NULL) AND EXISTS(\n   SELECT FROM gridex_ediel_technical_ack.sources receipt WHERE receipt.source_message_id=parent.id AND receipt.company_id=m.company_id\n    AND receipt.environment=parent.environment AND receipt.status='ready' AND receipt.source_received_at IS NOT DISTINCT FROM parent.message_received_at\n    AND receipt.payload_sha256=encode(sha256(convert_to(parent.raw_payload,'UTF8')),'hex')) FOR SHARE;\n evidence:=gridex_ediel_technical_ack.require_source_v1(m.company_id,source.id);\n PERFORM gridex_ediel_technical_ack.require_current_endpoint_v1(evidence);\n IF m.environment IS DISTINCT FROM evidence->>'environment' THEN RAISE EXCEPTION 'ediel_technical_ack_basis_required';END IF;\n tokens:=gridex_utilts_binding.wire_tokens_v1(m.raw_payload);\n IF tokens IS NULL OR (SELECT count(*) FROM jsonb_array_elements(tokens)x WHERE x->>'tag'='UNB')<>1 OR (SELECT count(*) FROM jsonb_array_elements(tokens)x WHERE x->>'tag'='UCI')<>1\n  OR (SELECT count(*) FROM jsonb_array_elements(tokens)x WHERE x->>'tag'='UNH' AND x#>>'{elements,2,0}'='CONTRL' AND x#>>'{elements,2,1}'='2' AND x#>>'{elements,2,2}'='2' AND x#>>'{elements,2,3}'='UN')<>1 THEN RAISE EXCEPTION 'ediel_technical_ack_basis_required';END IF;\n IF (SELECT count(*) FROM jsonb_array_elements(tokens)x WHERE x->>'tag'='UNH')<>1 OR (SELECT count(*) FROM jsonb_array_elements(tokens)x WHERE x->>'tag'='UNT')<>1 OR (SELECT count(*) FROM jsonb_array_elements(tokens)x WHERE x->>'tag'='UNZ')<>1 THEN RAISE EXCEPTION 'ediel_technical_ack_basis_required';END IF;\n SELECT x->'elements' INTO header FROM jsonb_array_elements(tokens)x WHERE x->>'tag'='UNH';\n SELECT x->'elements' INTO trailer FROM jsonb_array_elements(tokens)x WHERE x->>'tag'='UNT';\n SELECT x->'elements' INTO interchange_trailer FROM jsonb_array_elements(tokens)x WHERE x->>'tag'='UNZ';\n SELECT count(*) INTO message_count FROM jsonb_array_elements(tokens)x WHERE x->>'tag' NOT IN('UNA','UNB','UNZ');\n SELECT x->'elements' INTO u FROM jsonb_array_elements(tokens)x WHERE x->>'tag'='UNB';\n SELECT x->'elements' INTO uci FROM jsonb_array_elements(tokens)x WHERE x->>'tag'='UCI';\n IF nullif(header#>>'{1,0}','') IS NULL OR trailer#>>'{2,0}' IS DISTINCT FROM header#>>'{1,0}' OR trailer#>>'{1,0}' IS DISTINCT FROM message_count::text\n  OR interchange_trailer#>>'{1,0}' IS DISTINCT FROM '1' OR interchange_trailer#>>'{2,0}' IS DISTINCT FROM u#>>'{5,0}' THEN RAISE EXCEPTION 'ediel_technical_ack_basis_required';END IF;\n expected:=CASE WHEN evidence->>'syntaxDecision'='accepted' THEN '1' ELSE '4' END;\n IF u->2 IS DISTINCT FROM evidence#>'{originalUNB,receiver}' OR u->3 IS DISTINCT FROM evidence#>'{originalUNB,sender}'\n  OR coalesce(u#>>'{7,0}','') IS DISTINCT FROM evidence#>>'{originalUNB,applicationReference}' OR coalesce(u#>>'{11,0}','') IS DISTINCT FROM evidence#>>'{originalUNB,testIndicator}'\n  OR uci#>>'{1,0}' IS DISTINCT FROM evidence#>>'{originalUNB,uciReference}' OR uci->2 IS DISTINCT FROM evidence#>'{originalUNB,sender}' OR uci->3 IS DISTINCT FROM evidence#>'{originalUNB,receiver}' OR uci#>>'{4,0}' IS DISTINCT FROM expected THEN RAISE EXCEPTION 'ediel_technical_ack_basis_required';END IF;\n -- Source-prescribed first14 projection must still identify one original wire\n -- globally, including preserved rows predating this prospective ledger.\n IF (SELECT count(*) FROM (SELECT o.* FROM public.ediel_messages o WHERE o.direction='inbound'\n   AND (coalesce(evidence#>>'{originalUNB,uciReference}','') !~ '^[A-Za-z0-9]+$'\n   OR (left(o.raw_payload,3)='UNA' AND (substring(o.raw_payload,5,1)<>'+' OR substring(o.raw_payload,7,1)<>'?' OR substring(o.raw_payload,9,1)<>''''))\n   OR CASE WHEN char_length(evidence#>>'{originalUNB,uciReference}')=14\n    THEN strpos(translate(o.raw_payload,E'?\\r\\n',''),'+'||(evidence#>>'{originalUNB,uciReference}'))>0\n    ELSE strpos(translate(o.raw_payload,E'?\\r\\n',''),'+'||(evidence#>>'{originalUNB,uciReference}')||'+')>0\n     OR strpos(translate(o.raw_payload,E'?\\r\\n',''),'+'||(evidence#>>'{originalUNB,uciReference}')||'''')>0 END) OFFSET 0) old\n  CROSS JOIN LATERAL(SELECT gridex_ediel_technical_ack.envelope(old.raw_payload)e)p\n  WHERE old.direction='inbound' AND p.e IS NOT NULL AND p.e->>'environment'=m.environment AND p.e->'sender'=evidence#>'{originalUNB,sender}' AND p.e->'receiver'=evidence#>'{originalUNB,receiver}' AND p.e->>'applicationReference'=evidence#>>'{originalUNB,applicationReference}' AND p.e->>'uciReference'=evidence#>>'{originalUNB,uciReference}')<>1 THEN RAISE EXCEPTION 'ediel_technical_ack_original_ambiguous';END IF;\n IF EXISTS(SELECT FROM jsonb_array_elements(tokens)cm WHERE cm->>'tag'='UCM' AND NOT EXISTS(SELECT FROM jsonb_array_elements(gridex_utilts_binding.wire_tokens_v1(source.raw_payload))h WHERE h->>'tag'='UNH' AND h#>>'{elements,1,0}'=cm#>>'{elements,1,0}')) THEN RAISE EXCEPTION 'ediel_technical_ack_basis_required';END IF;\n RETURN evidence;\nEND $_$;",
+    "fixed_pg_proc_attributes": {
+      "cost": 100,
+      "rows": 0,
+      "binary": null,
+      "support": null,
+      "language": "plpgsql",
+      "sql_body": null,
+      "variadic": null,
+      "transforms": null,
+      "arguments_count": 1
+    }
+  },
+  {
+    "before": {
+      "acl": [
+        {
+          "grantee": "postgres",
+          "grantable": false,
+          "privilege": "EXECUTE"
+        },
+        {
+          "grantee": "service_role",
+          "grantable": false,
+          "privilege": "EXECUTE"
+        }
+      ],
+      "kind": "f",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "exists": true,
+      "strict": false,
+      "returns": "jsonb",
+      "argmodes": null,
+      "argnames": [
+        "p_company_id",
+        "p_message_id"
+      ],
+      "body_md5": "443b01f2ef477d51b1e2d32e0dbd9700",
+      "defaults": null,
+      "parallel": "u",
+      "leakproof": false,
+      "signature": "gridex_ediel_technical_ack.require_source_v1(uuid, uuid)",
+      "volatility": "v",
+      "allargtypes": null,
+      "returns_set": false,
+      "default_count": 0,
+      "security_definer": true
+    },
+    "after": {
+      "acl": [
+        {
+          "grantee": "postgres",
+          "grantable": false,
+          "privilege": "EXECUTE"
+        },
+        {
+          "grantee": "service_role",
+          "grantable": false,
+          "privilege": "EXECUTE"
+        }
+      ],
+      "kind": "f",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "exists": true,
+      "strict": false,
+      "returns": "jsonb",
+      "argmodes": null,
+      "argnames": [
+        "p_company_id",
+        "p_message_id"
+      ],
+      "body_md5": "4ccde8d88b210640bccf40815b3babf9",
+      "defaults": null,
+      "parallel": "u",
+      "leakproof": false,
+      "signature": "gridex_ediel_technical_ack.require_source_v1(uuid, uuid)",
+      "volatility": "v",
+      "allargtypes": null,
+      "returns_set": false,
+      "default_count": 0,
+      "security_definer": true
+    },
+    "sql": "-- canonical:732\n--\n-- Name: require_source_v1(uuid, uuid); Type: FUNCTION; Schema: gridex_ediel_technical_ack; Owner: -\n--\n\nCREATE OR REPLACE FUNCTION gridex_ediel_technical_ack.require_source_v1(p_company_id uuid, p_message_id uuid) RETURNS jsonb\n    LANGUAGE plpgsql SECURITY DEFINER\n    SET search_path TO 'pg_catalog'\n    AS $$\nDECLARE m public.ediel_messages%rowtype;b gridex_ediel_technical_ack.sources%rowtype;r gridex_ediel_technical_ack.replies%rowtype;\nBEGIN\n SELECT parent.* INTO m FROM public.ediel_messages parent WHERE parent.id=p_message_id AND parent.direction='inbound' AND (parent.company_id=p_company_id OR parent.company_id IS NULL) AND EXISTS(\n   SELECT FROM gridex_ediel_technical_ack.sources receipt WHERE receipt.source_message_id=parent.id AND receipt.company_id=p_company_id\n    AND receipt.environment=parent.environment AND receipt.status='ready' AND receipt.source_received_at IS NOT DISTINCT FROM parent.message_received_at\n    AND receipt.payload_sha256=encode(sha256(convert_to(parent.raw_payload,'UTF8')),'hex')) FOR SHARE;\n SELECT * INTO b FROM gridex_ediel_technical_ack.sources WHERE source_message_id=m.id;\n SELECT * INTO r FROM gridex_ediel_technical_ack.replies WHERE source_message_id=m.id;\n IF m.id IS NULL OR b.source_message_id IS NULL OR r.source_message_id IS NULL THEN RAISE EXCEPTION 'ediel_historical_technical_ack_basis_unavailable';END IF;\n IF b.status<>'ready' OR b.company_id IS DISTINCT FROM p_company_id OR (m.company_id IS NOT NULL AND m.company_id IS DISTINCT FROM b.company_id) OR b.environment IS DISTINCT FROM m.environment\n  OR b.source_received_at IS DISTINCT FROM m.message_received_at OR b.payload_sha256 IS DISTINCT FROM encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex') OR r.payload_sha256 IS DISTINCT FROM b.payload_sha256 THEN RAISE EXCEPTION 'ediel_technical_ack_basis_required';END IF;\n RETURN r.evidence;\nEND $$;",
+    "fixed_pg_proc_attributes": {
+      "cost": 100,
+      "rows": 0,
+      "binary": null,
+      "support": null,
+      "language": "plpgsql",
+      "sql_body": null,
+      "variadic": null,
+      "transforms": null,
+      "arguments_count": 2
+    }
+  }
+]

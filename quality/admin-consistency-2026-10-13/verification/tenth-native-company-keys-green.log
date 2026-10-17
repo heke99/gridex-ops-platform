@@ -1,0 +1,123 @@
+BEGIN
+CREATE SCHEMA
+CREATE FUNCTION
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE FUNCTION
+psql:supabase/migrations/20261013094514_data_quality_lifecycle_consistency.sql:23: NOTICE:  constraint "data_quality_issues_company_id_entity_type_entity_id_issue__key" of relation "data_quality_issues" does not exist, skipping
+ALTER TABLE
+psql:supabase/migrations/20261013094514_data_quality_lifecycle_consistency.sql:24: NOTICE:  constraint "dashboard_alerts_company_id_alert_type_entity_type_entity_i_key" of relation "dashboard_alerts" does not exist, skipping
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE FUNCTION
+CREATE VIEW
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE VIEW
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+psql:supabase/migrations/20261013094514_data_quality_lifecycle_consistency.sql:308: NOTICE:  trigger "gridex_quality_source_deleted" for relation "public.customers" does not exist, skipping
+psql:supabase/migrations/20261013094514_data_quality_lifecycle_consistency.sql:308: NOTICE:  trigger "gridex_quality_source_deleted" for relation "public.metering_points" does not exist, skipping
+psql:supabase/migrations/20261013094514_data_quality_lifecycle_consistency.sql:308: NOTICE:  trigger "gridex_quality_source_deleted" for relation "public.metering_values" does not exist, skipping
+psql:supabase/migrations/20261013094514_data_quality_lifecycle_consistency.sql:308: NOTICE:  trigger "gridex_quality_source_deleted" for relation "public.ediel_messages" does not exist, skipping
+psql:supabase/migrations/20261013094514_data_quality_lifecycle_consistency.sql:308: NOTICE:  trigger "gridex_quality_source_deleted" for relation "public.grid_owner_data_requests" does not exist, skipping
+DO
+REVOKE
+REVOKE
+REVOKE
+REVOKE
+REVOKE
+REVOKE
+REVOKE
+REVOKE
+REVOKE
+REVOKE
+REVOKE
+REVOKE
+REVOKE
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+REVOKE
+GRANT
+REVOKE
+CREATE FUNCTION
+UPDATE 1
+INSERT 0 1
+DO
+CREATE SCHEMA
+REVOKE
+GRANT
+CREATE FUNCTION
+REVOKE
+GRANT
+CREATE FUNCTION
+CREATE VIEW
+CREATE FUNCTION
+DO
+psql:supabase/migrations/20261013130700_operational_quality_customer_source_consistency.sql:5: NOTICE:  schema "gridex_quality" already exists, skipping
+CREATE SCHEMA
+REVOKE
+GRANT
+CREATE FUNCTION
+REVOKE
+GRANT
+CREATE FUNCTION
+CREATE VIEW
+CREATE FUNCTION
+DO
+ALTER TABLE
+ALTER TABLE
+SELECT 4
+SELECT 2
+DO
+DO
+DO
+psql:quality/admin-consistency-2026-10-13/cleanup/quality-company-open-keys-native.sql:179: NOTICE:  relation "gridex_quality_findings" already exists, skipping
+psql:quality/admin-consistency-2026-10-13/cleanup/quality-company-open-keys-native.sql:179: NOTICE:  relation "gridex_quality_findings" already exists, skipping
+psql:quality/admin-consistency-2026-10-13/cleanup/quality-company-open-keys-native.sql:179: NOTICE:  relation "gridex_quality_findings" already exists, skipping
+DO
+psql:quality/admin-consistency-2026-10-13/cleanup/quality-company-open-keys-native.sql:224: NOTICE:  relation "gridex_quality_findings" already exists, skipping
+DO
+                       result                       
+----------------------------------------------------
+ native_quality_company_open_keys_regression_passed
+(1 row)
+
+ROLLBACK

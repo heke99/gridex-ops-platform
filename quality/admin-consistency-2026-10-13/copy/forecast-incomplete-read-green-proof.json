@@ -1,0 +1,27 @@
+{
+  "results": [
+    {
+      "source": "lib/forecasting/meteringPointForecast.ts",
+      "failedRead": "Could not find the 'value_kwh' column of 'metering_values' in the schema cache",
+      "error": "Could not find the 'value_kwh' column of 'metering_values' in the schema cache",
+      "calls": {
+        "historicalReads": 1,
+        "resolutions": [],
+        "findings": []
+      },
+      "safe": true
+    },
+    {
+      "source": "lib/forecasting/meteringPointForecast.ts",
+      "failedRead": "column metering_values.value_kwh does not exist",
+      "error": "column metering_values.value_kwh does not exist",
+      "calls": {
+        "historicalReads": 1,
+        "resolutions": [],
+        "findings": []
+      },
+      "safe": true
+    }
+  ],
+  "safe": true
+}

@@ -1,0 +1,25 @@
+{
+  "schema": "ops_current_replay_source_union_v1",
+  "status": "TWO_INDEPENDENT_CURRENT_SEVEN_FILE_SOURCE_CLEARS_AND_ACTUAL_CLEAN_INPUT_PREFLIGHT_PASS",
+  "base": "6b3a51b2f84ea6dfaed6559a877d6db3c8130f77",
+  "changes": [
+    "Canonical permissioncatalog paired column+semanticACL profile, alloldrows/assignments/rawACL preserved.",
+    "Same-transaction qualifiedSC031 normalization and fulloriginalfunctionrow restoration around unchangedsealedbb0 executable; oldbodybranchremainsold.",
+    "Explicit sourcePosition artifactexecution preserves original14-digit logical sourcepositions without missing/ambiguous fabricatedboundaries.",
+    "Both actualstrictupgrade/history callers pass trueexcludednames, missingSource/noncanonicaloverlaprefused beforeselection."
+  ],
+  "preflight": {
+    "foundation": 59,
+    "substitutions": 14,
+    "interleaved": 23,
+    "sourcePosition": 2,
+    "noncanonical": 3,
+    "canonicalTimestamped": 1144
+  },
+  "verification": "Python syntax, shell syntax, actual cleanpreflight from currentsource and realcurrentSQLfiles, exacttwo peerpostimage reviews. No tests asoracle.",
+  "fullSQL": "PENDING_CURRENT_SOURCE",
+  "schema_types": "PENDING_EXISTING_QUALIFIED_SERVICE",
+  "nativeWrites": 0,
+  "green": false,
+  "recordedAt": "2026-10-14T20:03:55.105911+00:00"
+}

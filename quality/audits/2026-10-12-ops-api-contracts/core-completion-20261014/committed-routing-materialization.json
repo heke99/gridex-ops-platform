@@ -1,0 +1,40 @@
+{
+  "at": "2026-10-14T17:37:15.222702+00:00",
+  "qualified_source_head": "847650c5521c8ffa2a15740828d3d3acc17a0314",
+  "scope": "ACTUAL_COMMITTED_SOURCE_INPUT_MATERIALIZATION_NOT_SQL_REPLAY_OR_GEN",
+  "sources": [
+    {
+      "kind": "forwardMigrations",
+      "candidate": "847650c5521c8ffa2a15740828d3d3acc17a0314",
+      "historical_sources_preserved": 644,
+      "materialized_rows": 605,
+      "all_executed_artifact_hashes_match": true,
+      "derived_inputs": 1,
+      "quote_source_sha256": "7eceae42dccce7a968182d144389329d1c11466bf0c896afff62250950f9f2ce",
+      "quote_executed_sha256": "3afea47b4343c5d5e6d97a4f709bccf5c8cf6f7cf33c179f022629ff4d7c481b"
+    },
+    {
+      "kind": "pendingMigrations",
+      "candidate": "847650c5521c8ffa2a15740828d3d3acc17a0314",
+      "historical_sources_preserved": 886,
+      "materialized_rows": 363,
+      "all_executed_artifact_hashes_match": true,
+      "derived_inputs": 1,
+      "quote_source_sha256": "7eceae42dccce7a968182d144389329d1c11466bf0c896afff62250950f9f2ce",
+      "quote_executed_sha256": "3afea47b4343c5d5e6d97a4f709bccf5c8cf6f7cf33c179f022629ff4d7c481b"
+    }
+  ],
+  "clean_preflight": {
+    "foundation_inputs": 59,
+    "canonical_timestamped_sources": 1145,
+    "interleaved_artifacts": 21,
+    "quote_exact_adjacent_boundary_order": true,
+    "historical_quote_source_not_executed": true
+  },
+  "historical_source_recovery": "Initially missing c8f source commit; actual upstream c8f and f460 source history recovered with blob-filtered Git reads. Original gates retained; only declared manifests/contract/SQL sources consumed; no counterparty ZIP contents collected.",
+  "native_writes": 0,
+  "business_rpc_calls": 0,
+  "sql_execution": "NOT_RUN",
+  "canonical_schema_type_capture": "NOT_RUN",
+  "green_certification": false
+}

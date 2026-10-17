@@ -4,7 +4,8 @@ const required = [
   'missing_api_token','invalid_api_token','api_token_expired','api_client_inactive',
   'api_scope_missing','api_ip_not_allowed','api_origin_not_allowed','rate_limited',
   'api_rate_limit_invalid','api_rate_limiter_unavailable','api_auth_unavailable',
-  'tenant_not_operationally_ready','tenant_paused','tenant_closed','platform_schema_not_ready',
+  'organization_not_operationally_ready','organization_paused','organization_closed','platform_schema_not_ready',
+  'api_contract_profile_unavailable',
   'PUBLIC_CONTRACT_FEED_INCONSISTENT','PUBLICATION_GRAPH_INCONSISTENT','PUBLIC_CONTRACT_SCHEMA_INVALID',
 ]
 const errors=[]

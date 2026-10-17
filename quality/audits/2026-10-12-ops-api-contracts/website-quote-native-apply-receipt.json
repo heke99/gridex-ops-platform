@@ -1,0 +1,80 @@
+{
+  "scope": "OPS actual native forward DDL only",
+  "project_id": "piidsfebjqjmnepdpnas",
+  "sql_sha256": "7eceae42dccce7a968182d144389329d1c11466bf0c896afff62250950f9f2ce",
+  "source_created_by": "Official Supabase CLI2.101.0 initial20261013093235; unpublished source aligned to actual assigned20261013093906 preserving exact bytes",
+  "independent_noncoauthor_reviews": [
+    "final_api_source_review",
+    "native_forward_independent_review"
+  ],
+  "isolated_compile_receipt": "pricing-quote-isolated-compile.json",
+  "native_postflight": {
+    "checked_at": "2026-10-13 09:39:45.44713+00",
+    "migration_count": 423,
+    "migrations": [
+      {
+        "name": "ops_api_website_quote_nonexpiring_policy",
+        "sql_md5": "83e3ae82d64ffd7eb56d3bf67612a66c",
+        "version": "20261013093906"
+      }
+    ],
+    "functions": [
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "oid": "137292",
+        "args": "p_company_id uuid, p_billing_underlay_id uuid, p_result jsonb, p_pricing_snapshot jsonb",
+        "name": "gridex_persist_pricing_run",
+        "owner": "postgres",
+        "config": [
+          "search_path=public, extensions, pg_temp"
+        ],
+        "body_md5": "5a267754feb565b43c86ec9fe2591c19",
+        "volatility": "v",
+        "anon_execute": false,
+        "definition_md5": "e394b3f8aac5c5d532accb322e323b6a",
+        "service_execute": true,
+        "security_definer": true,
+        "authenticated_execute": false
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "oid": "203152",
+        "args": "p_command jsonb",
+        "name": "gridex_onboard_customer_graph_quote_commit_v2",
+        "owner": "postgres",
+        "config": [
+          "search_path=public, pg_catalog, pg_temp"
+        ],
+        "body_md5": "007d078d9d0065395edf2190d4f1d3b6",
+        "volatility": "v",
+        "anon_execute": false,
+        "definition_md5": "fe9fcd88e137756d6b663b5bcaa7363f",
+        "service_execute": true,
+        "security_definer": true,
+        "authenticated_execute": false
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "oid": "2997127",
+        "args": "p_company_id uuid, p_billing_underlay_id uuid, p_period_start timestamp with time zone, p_period_end timestamp with time zone, p_price_area text, p_required_resolution text, p_expected_underlay jsonb",
+        "name": "gridex_read_interval_pricing_snapshot_v1",
+        "owner": "postgres",
+        "config": [
+          "search_path=public, extensions, pg_temp",
+          "TimeZone=UTC"
+        ],
+        "body_md5": "4a6cf2926abf0b911e9fe6a9a49fc9f3",
+        "volatility": "s",
+        "anon_execute": false,
+        "definition_md5": "11d55fa4cef18dfb34473abc2b07d473",
+        "service_execute": true,
+        "security_definer": true,
+        "authenticated_execute": false
+      }
+    ]
+  },
+  "business_rpc_invocations": 0,
+  "provider_calls": 0,
+  "canonical_gen": 0,
+  "qualification": "Removes only retired technical wall-clock quote TTL; all status/company/hash/version/publication/replay gates preserved; signing-token expiry remains."
+}

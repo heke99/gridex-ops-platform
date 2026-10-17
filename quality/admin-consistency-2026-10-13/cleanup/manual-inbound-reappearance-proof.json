@@ -1,0 +1,64 @@
+{
+  "scope": "Bounded read-only follow-up of one classified manual inbound source after reset; no source/data/schema mutations",
+  "observed_at": "2026-10-13T13:59:47.628105+00:00",
+  "prior_proof": {
+    "reset_D": "Root saved focused_customer_reset_d-inbound_committed",
+    "postreset_assertion": "Root saved actual all_reviewed_customer_flows_empty: empty_graph_tables140 zero_reviewed_scopes17",
+    "archived_manual_fingerprint": "38ce4b37ae7cea047f146500ef7a6d92"
+  },
+  "current_manual": {
+    "id": "53dbeb78-a2a6-44d0-aca2-230363172473",
+    "created_at": "2026-10-13T12:34:07.441036+00:00",
+    "received_at": "2026-10-13T12:34:07.441036+00:00",
+    "full_row_md5": "e5f1b5a1beac35a7beacfa025226862e",
+    "reset_fingerprint": "42e3d5512970bd2417672f9339e64eef",
+    "provider_message_md5": "6c25b1e1fab1dedffdc87a2904202105",
+    "classification": "power_of_attorney / power_of_attorney_question / unmatched; company and request null"
+  },
+  "fingerprint_formula": "md5(coalesce(string_agg(md5(to_jsonb(t)::text),'' order by md5(to_jsonb(t)::text)),''))",
+  "current_derived_event": {
+    "id": "33bd491a-abfe-4abe-b0a3-9d58775dcdbb",
+    "created_at": "2026-10-13T12:34:07.824051+00:00",
+    "updated_at_first_observation": "2026-10-13T13:55:37.813+00:00",
+    "manual_anchor_matches": true,
+    "customer_site_meter_request_targets_all_null": true
+  },
+  "source_path": {
+    "dedup": "manualInboundIngestion.ts132-146 looks up only an existing raw row by mailbox/provider-message ID",
+    "raw_insert": "manualInboundIngestion.ts149-189 inserts a fresh raw row if prior anchor absent",
+    "reprocess": "manualInboundIngestion.ts263-291 intentionally re-evaluates every unmatched row",
+    "derived_upsert": "manualInboundIngestion.ts213 uses email:raw UUID idempotency key",
+    "poll": "manualMailboxPoller.ts265 fetches UNSEEN messages; marks Seen only after ingest at299",
+    "configured_cron": "vercel.json22 production route, schedule4-59/5 * * * *",
+    "other_caller": "app/api/webhooks/manual-inbound/route.ts180 signed webhook calls same ingestion, returns503 Retry-After60 after failure"
+  },
+  "mailbox_corroboration": [
+    {
+      "id": "c57faf67-bc8e-43a7-8712-a229f813edac",
+      "active_verified_production": true,
+      "last_polled_at": "2026-10-13T13:54:06.291+00:00",
+      "last_successful_poll_at": "2026-10-12T06:04:06.956+00:00",
+      "has_last_error": true,
+      "raw_error_omitted": true,
+      "message_attempt_count": 0
+    },
+    {
+      "id": "b1d4c6b9-650b-40bf-b2b2-87aae2647585",
+      "active_verified_production": true,
+      "last_polled_at": "2026-10-13T13:55:36.961+00:00",
+      "last_successful_poll_at": "2026-10-12T06:09:06.808+00:00",
+      "has_last_error": true,
+      "raw_error_omitted": true,
+      "message_attempt_count": 0
+    }
+  ],
+  "confirmed": "Current raw fingerprint differs; linked derived event is actively reprocessed. Source raw-row deletion removes the only dedup anchor in this path. Sixth FK preserves valid derived-source ownership; it does not suppress new raw ingestion.",
+  "unproven": [
+    "Provider-message identity equality with original deleted message: original archived whole-row fingerprint does not reveal original provider hash",
+    "Whether current invocation is cron or webhook",
+    "Which exact producer revision is currently deployed",
+    "Whether remote provider Seen flag was committed"
+  ],
+  "no_personal_or_mail_content_read": true,
+  "live_writes_by_preparer": false
+}

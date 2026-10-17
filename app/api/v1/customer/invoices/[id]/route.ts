@@ -1,3 +1,4 @@
+import { withApiContractRepresentation } from '@/lib/integrations/apiResponseProfile'
 import { NextRequest } from 'next/server'
 import { supabaseService } from '@/lib/supabase/service'
 import {
@@ -16,11 +17,12 @@ import {
   publicPortalInvoice,
 } from '@/lib/customer-portal/publicDto'
 import { publicReference } from '@/lib/integrations/publicReferences'
+import { readInvoiceFileAvailability } from '@/lib/customer-portal/invoiceFileAvailability'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-export async function GET(request: NextRequest, contextInput: { params: Promise<{ id: string }> }) {
+ async function profiledGET(request: NextRequest, contextInput: { params: Promise<{ id: string }> }) {
   const context = await requireCustomerPortalApiContext(request, ['customer_invoices.read'])
   if (!context.ok) return context.response
 
@@ -57,8 +59,13 @@ export async function GET(request: NextRequest, contextInput: { params: Promise<
       .order('created_at', { ascending: false })
 
     if (documentError && !isMissingSchemaError(documentError)) throw documentError
-    const {requireInvoiceFileCopyAvailable}=await import('@/lib/ediel/retention/invoiceFileRetention')
-    for(const document of documentError?[]:documents??[])await requireInvoiceFileCopyAvailable({companyId:context.client.company_id,retentionClass:'customer_invoice_document_pdf_bytes',targetId:document.id})
+    const safeDocuments: NonNullable<typeof documents> = []
+    for (const document of documentError ? [] : documents ?? []) {
+      const fileAvailability = await readInvoiceFileAvailability({
+        companyId: context.client.company_id, retentionClass: 'customer_invoice_document_pdf_bytes', targetId: document.id,
+      })
+      safeDocuments.push(fileAvailability === 'retired' ? { ...document, public_url: null } : document)
+    }
 
     await logCustomerPortalSuccess({ request, client: context.client, startedAt: context.startedAt, resultCount: 1, metadata: { invoice_reference: id } })
     return customerPortalJson({
@@ -78,7 +85,7 @@ export async function GET(request: NextRequest, contextInput: { params: Promise<
           amount_inc_vat: line.amount_inc_vat ?? null,
           created_at: line.created_at ?? null,
         })),
-        documents: (documentError ? [] : documents ?? []).map((document) =>
+        documents: safeDocuments.map((document) =>
           publicPortalDocument(context.client.company_id, document),
         ),
       },
@@ -87,3 +94,5 @@ export async function GET(request: NextRequest, contextInput: { params: Promise<
     return handleCustomerPortalRouteError({ request, client: context.client, startedAt: context.startedAt, error })
   }
 }
+
+export const GET = withApiContractRepresentation('customer', profiledGET)

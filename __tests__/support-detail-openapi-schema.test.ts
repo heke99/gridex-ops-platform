@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest'
 import portal from '@/docs/openapi/customer-portal-v1.json'
 import website from '@/docs/openapi/website-integration-v1.json'
 import { buildOpenApiReleaseManifest } from '@/lib/integrations/openApiReleaseManifest'
-import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
+import { API_DOCUMENTATION_VERSION, WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
 import { openApiDocumentResponse, serializeOpenApiDocument } from '@/lib/integrations/openApiResponse'
 import { publicSupportCase } from '@/lib/customer-service/supportConversation'
 import { staffCaseDto } from '@/lib/staff-api/cases'
@@ -60,7 +60,7 @@ describe('actual support case channel projection follows the frozen customer con
     closed_at: null,
   })
   const assertCustomerSchemas = (data: ReturnType<typeof publicSupportCase>) => {
-    const released = JSON.parse(readFileSync(`docs/openapi/releases/${WEBSITE_INTEGRATION_CONTRACT_VERSION}/customer-portal-v1.json`, 'utf8'))
+    const released = JSON.parse(readFileSync(`docs/openapi/releases/${API_DOCUMENTATION_VERSION}/customer-portal-v1.json`, 'utf8'))
     for (const spec of [portal, released]) {
       const errors = validateSchema(spec, data, { $ref: '#/components/schemas/CustomerSupportCase' })
       expect(errors, errors.join('\n')).toEqual([])
@@ -109,7 +109,7 @@ describe('actual support case channel projection follows the frozen customer con
 
 describe('closed customer support detail OpenAPI contract', () => {
   it('accepts both customer-visible messages and an empty conversation in current and immutable release responses', () => {
-    const released = JSON.parse(readFileSync(`docs/openapi/releases/${WEBSITE_INTEGRATION_CONTRACT_VERSION}/customer-portal-v1.json`, 'utf8'))
+    const released = JSON.parse(readFileSync(`docs/openapi/releases/${API_DOCUMENTATION_VERSION}/customer-portal-v1.json`, 'utf8'))
     for (const spec of [portal, released]) {
       expect(validateResponse(spec, detailPath, response(detail))).toEqual([])
       expect(validateResponse(spec, detailPath, response({ ...detail, messages: [] }))).toEqual([])

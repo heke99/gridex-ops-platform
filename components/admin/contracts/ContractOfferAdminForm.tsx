@@ -20,6 +20,7 @@ import PortfolioPricingEditor, {
 } from "@/components/admin/contracts/PortfolioPricingEditor";
 import PricingCalculationBaseField from "@/components/admin/contracts/PricingCalculationBaseField";
 import CommercialPricingEditor from "@/components/admin/contracts/CommercialPricingEditor";
+import { SWEDISH_STANDARD_VAT_PERCENT } from "@/lib/pricing/vat";
 
 const ALL_PRICE_AREAS = ["SE1", "SE2", "SE3", "SE4"] as const;
 
@@ -58,8 +59,31 @@ function snapshotValue(
   key: string,
 ): unknown {
   const snapshot = offer?.commercial_snapshot ?? {};
-  if (key in snapshot) return snapshot[key];
   const pricing = asRecord(snapshot.pricing);
+  const production = asRecord(snapshot.production) ?? asRecord(pricing?.production);
+  if (key === "production_enabled") {
+    if (typeof production?.enabled === "boolean") return production.enabled;
+    if (snapshot.energy_direction === "production" ||
+      pricing?.energy_direction === "production" || offer?.energy_direction === "production") return true;
+  }
+  if (key === "production_compensation_ore_per_kwh") {
+    const compensation = production?.compensation_ore_per_kwh ?? production?.fixed_compensation_ore_per_kwh;
+    if (compensation !== null && compensation !== undefined) return compensation;
+  }
+  if (key === "production_vat_rate") {
+    if (production?.vat_rate_percent !== null && production?.vat_rate_percent !== undefined) {
+      return production.vat_rate_percent;
+    }
+    const rate = production?.vat_rate_decimal ?? production?.vat_rate;
+    const parsed = typeof rate === "number" ? rate
+      : typeof rate === "string" && rate.trim() ? Number(rate.replace(",", ".")) : Number.NaN;
+    if (Number.isFinite(parsed)) return parsed <= 1 ? parsed * 100 : parsed;
+  }
+  if (key === "production_settlement_mode") {
+    const mode = production?.settlement_mode ?? production?.billing_direction;
+    if (mode !== null && mode !== undefined) return mode;
+  }
+  if (key in snapshot) return snapshot[key];
   if (pricing && key in pricing) return pricing[key];
 
   const rawVisibilityKey = key
@@ -839,7 +863,17 @@ export default function ContractOfferAdminForm({
             </label>
             <label className="grid min-w-0 gap-2 text-sm font-semibold text-slate-700">
               <span>Moms, procent <RequiredMark /></span>
-              <input name="vat_rate" required type="number" min="0" max="100" step="0.01" defaultValue={offer?.vat_rate ?? 25} className={controlClass} />
+              <input
+                key={productionEnabled ? "production-vat" : "consumption-vat"}
+                name="vat_rate" required readOnly={!productionEnabled} type="number"
+                min={productionEnabled ? 0 : 25} max={productionEnabled ? 100 : 25} step="0.01"
+                defaultValue={productionEnabled
+                  ? offer?.vat_rate === null || offer?.vat_rate === undefined
+                    ? SWEDISH_STANDARD_VAT_PERCENT
+                    : offer.vat_rate <= 1 ? offer.vat_rate * 100 : offer.vat_rate
+                  : SWEDISH_STANDARD_VAT_PERCENT}
+                className={controlClass}
+              />
             </label>
             <label className="grid min-w-0 gap-2 text-sm font-semibold text-slate-700">
               <span>Fullmaktsregel <RequiredMark /></span>

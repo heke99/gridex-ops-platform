@@ -19,6 +19,8 @@ import type {
   CustomerPortalInfoRequestRow,
 } from '@/lib/customer-portal/types'
 import { buildPortalCustomerStatus, displayNameFromCustomer } from '@/lib/customer-portal/status'
+import { PORTAL_PUBLISHED_INVOICE_STATUSES } from '@/lib/customer-portal/format'
+import { readInvoiceFileAvailability, type InvoiceFileAvailability } from '@/lib/customer-portal/invoiceFileAvailability'
 
 type PortalAccountLookupRow = {
   customer_id: string
@@ -208,6 +210,7 @@ export async function listPortalInvoices(
     .select('*')
     .eq('company_id', context.companyId)
     .in('customer_id', context.customerIds)
+    .in('status', PORTAL_PUBLISHED_INVOICE_STATUSES)
     .order('issued_at', { ascending: false, nullsFirst: false })
     .order('created_at', { ascending: false })
     .limit(100)
@@ -222,10 +225,11 @@ export async function getPortalInvoiceDetail(
 ): Promise<{
   invoice: CustomerInvoiceRow | null
   lines: CustomerInvoiceLineRow[]
-  documents: CustomerInvoiceDocumentRow[]
+  documents: Array<CustomerInvoiceDocumentRow & { fileAvailability: InvoiceFileAvailability }>
+  invoiceFileAvailability: InvoiceFileAvailability | null
 }> {
   if (context.customerIds.length === 0 || !context.companyId) {
-    return { invoice: null, lines: [], documents: [] }
+    return { invoice: null, lines: [], documents: [], invoiceFileAvailability: null }
   }
 
   const { data: invoice, error: invoiceError } = await supabaseService
@@ -234,12 +238,14 @@ export async function getPortalInvoiceDetail(
     .eq('id', invoiceId)
     .eq('company_id', context.companyId)
     .in('customer_id', context.customerIds)
+    .in('status', PORTAL_PUBLISHED_INVOICE_STATUSES)
     .maybeSingle()
 
   if (invoiceError) throw invoiceError
-  if (!invoice) return { invoice: null, lines: [], documents: [] }
-  const { requireInvoiceFileCopyAvailable } = await import('@/lib/ediel/retention/invoiceFileRetention')
-  await requireInvoiceFileCopyAvailable({companyId:context.companyId,retentionClass:'customer_invoice_pdf_bytes',targetId:invoice.id})
+  if (!invoice) return { invoice: null, lines: [], documents: [], invoiceFileAvailability: null }
+  const invoiceFileAvailability = await readInvoiceFileAvailability({
+    companyId: context.companyId, retentionClass: 'customer_invoice_pdf_bytes', targetId: invoice.id,
+  })
 
   // Bounded reads: real invoices have at most a handful of lines/documents; the
   // caps only protect page load time against pathological data.
@@ -247,6 +253,7 @@ export async function getPortalInvoiceDetail(
     supabaseService
       .from('customer_invoice_lines')
       .select('*')
+      .eq('company_id', context.companyId)
       .eq('invoice_id', invoiceId)
       .order('sort_order', { ascending: true })
       .order('created_at', { ascending: true })
@@ -254,6 +261,7 @@ export async function getPortalInvoiceDetail(
     supabaseService
       .from('customer_invoice_documents')
       .select('*')
+      .eq('company_id', context.companyId)
       .eq('invoice_id', invoiceId)
       .order('created_at', { ascending: false })
       .limit(100),
@@ -261,12 +269,23 @@ export async function getPortalInvoiceDetail(
 
   if (linesResult.error) throw linesResult.error
   if (documentsResult.error) throw documentsResult.error
-  for(const document of documentsResult.data??[])await requireInvoiceFileCopyAvailable({companyId:context.companyId,retentionClass:'customer_invoice_document_pdf_bytes',targetId:document.id})
+  const documents: Array<CustomerInvoiceDocumentRow & { fileAvailability: InvoiceFileAvailability }> = []
+  for (const document of documentsResult.data ?? []) {
+    const fileAvailability = await readInvoiceFileAvailability({
+      companyId: context.companyId, retentionClass: 'customer_invoice_document_pdf_bytes', targetId: document.id,
+    })
+    documents.push({
+      ...(document as CustomerInvoiceDocumentRow),
+      ...(fileAvailability === 'retired' ? { public_url: null, file_path: null } : {}),
+      fileAvailability,
+    })
+  }
 
   return {
-    invoice: invoice as CustomerInvoiceRow,
+    invoice: (invoiceFileAvailability === 'retired' ? { ...invoice, pdf_url: null, pdf_path: null } : invoice) as CustomerInvoiceRow,
     lines: (linesResult.data ?? []) as CustomerInvoiceLineRow[],
-    documents: (documentsResult.data ?? []) as CustomerInvoiceDocumentRow[],
+    documents,
+    invoiceFileAvailability,
   }
 }
 
@@ -454,13 +473,10 @@ async function listPortalWebsiteApplicationsForDashboard(context: CustomerPortal
   return (data ?? []) as Array<Record<string, unknown>>
 }
 
-export async function getPortalDashboardData() {
-  const context = await getCustomerPortalContext()
-
-  const [invoices, sites, meteringValues, contracts, powersOfAttorney, legalAcceptances, websiteApplications, consumptionMonths] = await Promise.all([
+async function loadPortalDashboardBasis(context: CustomerPortalContext) {
+  const [invoices, sites, contracts, powersOfAttorney, legalAcceptances, websiteApplications, consumptionMonths] = await Promise.all([
     listPortalInvoices(context),
     listPortalSites(context),
-    listPortalMeteringValues(context, { limit: 250 }),
     listPortalContracts(context),
     listPortalPowersOfAttorneyForDashboard(context),
     listPortalLegalAcceptancesForDashboard(context),
@@ -486,7 +502,6 @@ export async function getPortalDashboardData() {
     invoices,
     sites,
     meteringPoints,
-    meteringValues,
     contracts,
     powersOfAttorney,
     legalAcceptances,
@@ -495,6 +510,24 @@ export async function getPortalDashboardData() {
     portalDisplayName: displayNameFromCustomer(primaryCustomer as Record<string, unknown> | null, context.userEmail),
     consumptionMonths,
   }
+}
+
+/** Overview cards use native month totals and status inputs, not raw detail rows. */
+export async function getPortalOverviewData() {
+  const context = await getCustomerPortalContext()
+  const { invoices, sites, meteringPoints, customerStatus, portalDisplayName, consumptionMonths } =
+    await loadPortalDashboardBasis(context)
+  return { context, invoices, sites, meteringPoints, customerStatus, portalDisplayName, consumptionMonths }
+}
+
+// Retain the existing dashboard contract for callers that need its raw detail.
+export async function getPortalDashboardData() {
+  const context = await getCustomerPortalContext()
+  const [basis, meteringValues] = await Promise.all([
+    loadPortalDashboardBasis(context),
+    listPortalMeteringValues(context, { limit: 250 }),
+  ])
+  return { ...basis, meteringValues }
 }
 
 export async function listPortalContracts(

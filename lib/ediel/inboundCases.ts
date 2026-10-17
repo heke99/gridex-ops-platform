@@ -9,6 +9,10 @@ import { validateProdatRegisterPayload } from '@/lib/ediel/rulebook/prodatRegist
 import { prodatDateState, prodatDateValue } from '@/lib/ediel/prodat/prodatDateFields'
 import { prodatDateToIsoDate } from '@/lib/ediel/prodat/render/dates'
 import { readProdatParty } from '@/lib/ediel/prodat/prodatPartyFields'
+import { isProdatFieldInInapplicableParent } from '@/lib/ediel/prodat/prodatParentApplicability'
+import { prodatEndUserWireSubtype } from '@/lib/ediel/rulebook/prodatEndUserPolicy'
+import { resolveProdatSourceSubtypeRequirement } from '@/lib/ediel/prodat/prodatSubtypeRequirement'
+import { canonicalProdatBusinessProjectionFieldIsForbidden, type CanonicalProdatBusinessProjectionField } from '@/lib/ediel/rulebook/canonicalEdielFacade'
 import { prodatReferenceValue } from '@/lib/ediel/prodat/prodatReferenceFields'
 import { postgrestEqAny } from '@/lib/ediel/matching/postgrestFilter'
 import { prodatCharacteristicValue } from '@/lib/ediel/prodat/prodatCharacteristicFields'
@@ -164,12 +168,27 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow, object?
     ? prodatReferenceValue(field, sourceSegments, parseUna(message.raw_payload))
     : valueFromParsed(payload, ...fallbackKeys)
   const una = parseUna(message.raw_payload)
-  const ud = readProdatParty('UD', sourceSegments, una)
-  const it = readProdatParty('IT', sourceSegments, una)
+  const messageCode = hasWireSource ? facts.messageCode ?? '' : String(message.message_code)
+  // Incoming national extras remain in raw/register evidence, but cannot
+  // supply customer matching, staging or subsequent onboarding fields.
+  const incomingWire = hasWireSource && message.direction === 'inbound'
+  const sourceSubtype = prodatEndUserWireSubtype(messageCode, sourceSegments, una)
+  const ignoredCanonicalField = (fieldNumber: CanonicalProdatBusinessProjectionField): boolean => incomingWire
+    && canonicalProdatBusinessProjectionFieldIsForbidden(messageCode, fieldNumber)
+  const ignoredUd = ignoredCanonicalField('END_USER_GROUP') || (incomingWire
+    && isProdatFieldInInapplicableParent({ messageCode,
+      subtype: sourceSubtype, fieldNumber: 'END_USER_GROUP' }))
+  const ignoredIt = ignoredCanonicalField('INSTALLATION_GROUP') || (incomingWire
+    && isProdatFieldInInapplicableParent({ messageCode, subtype: sourceSubtype, fieldNumber: 'INSTALLATION_GROUP' }))
+  const ignoredReference = ignoredCanonicalField('319') || (incomingWire
+    && resolveProdatSourceSubtypeRequirement({ messageCode, subtype: sourceSubtype, fieldNumber: '319' }) === 'forbidden')
+  const ignoredBirthDate = ignoredCanonicalField('249')
+  const ignoredBusinessScalar = (fieldNumber: '261' | '306' | '212'): boolean => ignoredCanonicalField(fieldNumber)
+  const ud = readProdatParty('UD', ignoredUd ? [] : sourceSegments, una)
+  const it = readProdatParty('IT', ignoredIt ? [] : sourceSegments, una)
   const balanceResponsible = readProdatParty('Z02', sourceSegments, una)
   const partyValue = (value: string | null, ...fallbackKeys: string[]): string | null => hasWireSource
     ? value : valueFromParsed(payload, ...fallbackKeys)
-  const messageCode = hasWireSource ? facts.messageCode ?? '' : String(message.message_code)
   const meterPointId = hasWireSource ? selectedLine?.meteringPointId ?? null
     : valueFromParsed(payload, 'meterPointId', 'meteringPointId', 'installationId', 'facilityId')
   const contractStart = hasWireSource ? prodatDateValue('210', sourceSegments, una)
@@ -183,11 +202,11 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow, object?
   const settlementMethod =
     characteristic('254', 'settlementMethod', 'settlement_method')
   const installationStatus =
-    characteristic('306', 'installationStatus', 'installation_status')
+    ignoredBusinessScalar('306') ? null : characteristic('306', 'installationStatus', 'installation_status')
   const annualEnergy =
     numberOrNull(hasWireSource ? selectedLine?.annualConsumption : valueFromParsed(payload, 'annualEnergy', 'estimatedAnnualEnergy', 'annual_consumption_kwh'))
   const referenceToMeteringPoint =
-    reference('319', 'referenceToMeteringPoint', 'reference_to_metering_point')
+    ignoredReference ? null : reference('319', 'referenceToMeteringPoint', 'reference_to_metering_point')
 
   const customerId = partyValue(ud.id, 'customerId', 'endUserId')
   const customerIdQualifier =
@@ -205,7 +224,7 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow, object?
     customerType: isBusiness ? 'business' : isPerson ? 'private' : null,
     personalNumber: isPerson ? nationalId : null,
     orgNumber: isBusiness ? nationalId : null,
-    birthDate: hasWireSource ? prodatDateValue('249', sourceSegments, una) : valueFromParsed(payload, 'birthDate'),
+    birthDate: ignoredBirthDate ? null : hasWireSource ? prodatDateValue('249', sourceSegments, una) : valueFromParsed(payload, 'birthDate'),
     fullName: customerName,
     companyName: isBusiness ? customerName : null,
     firstName: !isBusiness ? customerName?.split(' ')[0] ?? null : null,
@@ -236,7 +255,7 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow, object?
     registers: objects[0]?.registers ?? [],
     observationLength: hasWireSource ? prodatDateValue('508', sourceSegments, una) : valueFromParsed(payload, 'observationLength'),
     observationLengthFormat: hasWireSource ? prodatDateState('508', sourceSegments, una).format : valueFromParsed(payload, 'observationLengthFormat'),
-    firstMeterReadingDate: hasWireSource ? prodatDateValue('212', sourceSegments, una) : valueFromParsed(payload, 'firstMeterReadingDate'),
+    firstMeterReadingDate: ignoredBusinessScalar('212') ? null : hasWireSource ? prodatDateValue('212', sourceSegments, una) : valueFromParsed(payload, 'firstMeterReadingDate'),
     referenceToMeteringPoint,
     meteringMethod,
     meteringMethodLabel: edielCodeLabel('metering_method', meteringMethod),
@@ -251,7 +270,7 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow, object?
 
   const contract = {
     startDate: contractStart,
-    agreementReference: reference('261', 'agreementReference'),
+    agreementReference: ignoredBusinessScalar('261') ? null : reference('261', 'agreementReference'),
     balanceResponsibleId: partyValue(balanceResponsible.id, 'balanceResponsibleId'),
     gridAreaCode: reference('260', 'gridAreaCode', 'networkAreaId'),
   }

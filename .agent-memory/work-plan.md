@@ -1,12 +1,8 @@
-# Work plan — ren fortsättning
+# Work plan — en ägare, ett paket
 
-1. Läs [masterplan-five-agent-baseline-20261012.md](masterplan-five-agent-baseline-20261012.md), ditt frysta krav och donorhead mot faktisk main.
-2. Claima egen ny slot, nästa pakets ID/exactfiles/applicableproducer och dokumentera#766. Inga gamlaägarsvar.
-3. Återanvänd korrekt gammalt arbete selektivt; implementera/prova alla kvarvarande utfall utan nya parallella producenter.
-4. Två icke-medförfattande peers granskar exakt kandidat. Författare eller avgränsad nyhelper rättar; affectedproof/reviews aktualiseras.
-5. Mandatorycurrentheadgates+genuinewholeproof före serialexpected-headmerge. Verifiera delivery/ledger; roleFIRST och egna receiptmatchade release.
-6. Uppdatera eget checkpoint och fortsätt inomslot. Externa/tekniska hinder kopplas till exactcriterion och oberoende arbete fortsätter.
-
-C2 sköter GEN för alla fem. R1/R2 levererar ett faktisktevidensunderlag till C3. Extra reviewers får ansluta; medförfattare kan inte vara slutgranskare.
-
-[Relevant tidigare original](https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/work-plan.md) är historik, inte instruktion till en gammal agent.
+1. Läs [current start](masterplan-current-start.md), faktisk main/ledger/frysta krav, aktuellt PR-head och senaste [#766](https://github.com/heke99/gridex-ops-platform/issues/766). Filtrera bort godkända och aktivt ägda uppgifter.
+2. Fortsätt befintlig explicit delegation. Read-only granskare kan hjälpa direkt; writes kräver bounded exact-file-handoff och verifierad egen custody. Daterade baslinjer ger inga nya claims.
+3. Kvalificera konkreta blockerare i [current task](current-task.md)/[open blockers](open-blockers.md) med befintlig producent/insamlare. Ingen extra GEN/native/backend/originalsamling eller blind rerun.
+4. Bind relevant genuint underlag, två oberoende slutreviews och alla obligatoriska gates till exakt sluthead/source/base/tree. Oförändrade original kan återanvändas med uttrycklig applicability.
+5. Befintlig seriell leveransägare gör normal expected-head merge. Verifiera PR-state, ordered parents/tree och faktisk ledger innan godkännandeökning rapporteras. Inga counter-only pushes eller foreign refreleases.
+6. Dokumentera faktisk leverans och nästa steg. Delat minne kräver egen role-memory och exactfilecustody; egen mergeroll släpps först. Pensionerade agenter, gamla pausade automationer och #310 förblir stoppade/pausade.

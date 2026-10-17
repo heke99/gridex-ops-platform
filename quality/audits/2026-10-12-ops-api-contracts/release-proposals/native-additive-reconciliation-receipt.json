@@ -1,0 +1,40 @@
+{
+  "schema": "ops_api_portable_delivery_proposal_v1",
+  "status": "B3_TWO_INDEPENDENT_PEERS_APPROVED_STAGED_DELIVERY_NOT_NATIVE_APPLIED",
+  "sql_sha256": "bacf8944718c984d117f0400ed19fadd978feed6613ea9196784eff4591ac600",
+  "bytes": 6628349,
+  "ops_source_sha256": "ac4964871edcd09266c9bbb8ea57e4665b1925b8de4bd858e5fafaaa6d0339ba",
+  "ops_inner_source_sha256": "2659ff42ff2f856b1a383284f32bbc3a3ca6bcd8c1bff1f07703eb50765e4311",
+  "complete_manifest_md5": "f9abdb805ca293af299c3f4efcbfe1e6",
+  "probe_sha256": "0447ba57f40984fe105e937f62beefbbcd7f4c1d50f00c64bf1523b1caa5582f",
+  "existing_variants": 356,
+  "metadata_insert_units_complete_branch": 58,
+  "new_restrictive_admin_policies": [
+    "ops_api_platform_admin_insert_guard",
+    "ops_api_platform_admin_update_guard",
+    "ops_api_platform_admin_delete_guard"
+  ],
+  "qualified_scope": "Exact current OPS-shaped guarded upgrade and recognized complete source module only; not proof of all historical migration clean replay. Unknown partial or code/structure/owner/ACL drift refuses complete branch and remains subject to exact OPS guards.",
+  "scoped_helper_upgrade_signatures": [
+    "gridex_ediel_common_header.assert_ack_v1(public.ediel_messages, jsonb)",
+    "gridex_ediel_common_header.witness_before_route_v1(public.ediel_messages)",
+    "gridex_ediel_technical_ack.require_contrl_v1(public.ediel_messages)",
+    "gridex_ediel_technical_ack.require_source_v1(uuid, uuid)"
+  ],
+  "independent_reviews": [
+    {
+      "agent": "final_api_source_review",
+      "source_sha256": "bacf8944718c984d117f0400ed19fadd978feed6613ea9196784eff4591ac600",
+      "scope": "bounded source/security/portable and exact byte transport"
+    },
+    {
+      "agent": "native_forward_independent_review",
+      "source_sha256": "bacf8944718c984d117f0400ed19fadd978feed6613ea9196784eff4591ac600",
+      "scope": "independent source/composition/native catalog and exact byte transport"
+    }
+  ],
+  "staged_manifest_sha256": "33e08baac99ab01e62f43020402b9fe7747277b597e93643b64b7df0f5a66b4f",
+  "delivery": "53 genuine source migrations: bootstrap,51parts,atomicfinal. RootmustCLIcreate/register/apply; generator neverwritesledger.",
+  "current_native_qualification": "14:11 actual356 normalized metadata only7expectedpurehelper/sourceowner differences; external3exactguardhashes refreshed; module1199 missing functions unaffected by external6migrations.",
+  "code_inspection_not_tests": true
+}

@@ -1,0 +1,138 @@
+{
+  "purpose": "Actual complete release-quality CI; native clean replay and production cutover remain separate pending gates.",
+  "source_head": "d37fb138cd150e75a5662387f047b57b71e0564e",
+  "workflow_run_id": 38430105399,
+  "quality_job_id": 115410086234,
+  "quality_job_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38430105399/job/115410086234",
+  "conclusion": "success",
+  "unit_test_files": 1113,
+  "unit_assertions": 17979,
+  "skipped_assertions": 0,
+  "failed_assertions": 0,
+  "completed_unit_suite_utc": "2026-10-13T16:39:35Z",
+  "unit_duration_seconds": 608.23,
+  "quality_gate_steps": [
+    {
+      "name": "Set up job",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run actions/checkout@v4",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run actions/setup-node@v4",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run npm ci",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run npm run lint",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run npm run typecheck:scripts",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run npm run typecheck:tests",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run bash quality/mechanical/verify.sh",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run NODE_OPTIONS=\"$NODE_OPTIONS --require=./scripts/lib/unit-loopback-network-boundary.cjs\" npx vitest run --config quality/vitest.config.ts",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run NODE_OPTIONS=\"$NODE_OPTIONS --require=./scripts/lib/unit-loopback-network-boundary.cjs\" npm test",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run npm run api:docs",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run npm run api:compatibility",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run npm run api:release:verify",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run npm run security:rbac",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run npm run quality:large-file-budget",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run npm run quality:performance",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run npm run build",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run npm run quality:bundle-budget",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Post Run actions/setup-node@v4",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Post Run actions/checkout@v4",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Complete job",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "summary_lines": [
+    "2026-10-13T16:39:35.4207074Z  Test Files  1113 passed (1113)",
+    "2026-10-13T16:39:35.4381261Z       Tests  17979 passed (17979)",
+    "2026-10-13T16:39:35.4405187Z    Duration  608.23s (transform 43.90s, setup 7.99s, import 375.79s, tests 1181.65s, environment 189ms)",
+    "2026-10-13T16:39:37.7689934Z RBAC audit passed: 24 checks, 0 warning(s).",
+    "2026-10-13T16:39:39.5795099Z Performance SLO contract passed for smoke, load, spike, soak and ETag full/304 profiles.",
+    "2026-10-13T16:43:14.2860027Z Browser bundle budget passed: largest chunk 201056 bytes; 3 route budgets verified."
+  ],
+  "upgrade_replay": "success",
+  "pending_gates": [
+    "clean-migration-replay",
+    "pr-certificate"
+  ],
+  "production_runtime_deployed": false,
+  "dqi_legacy_constraint_cutover_applied": false,
+  "latest_live_empty_read": "PASS at approximately17:09 UTC:140empty graph tables/17zero scoped residuals;747classified rows removed; production runtime and final post-deployment assertion still pending.",
+  "authenticated_production_browser": "Not exercised; no authenticated user session available."
+}

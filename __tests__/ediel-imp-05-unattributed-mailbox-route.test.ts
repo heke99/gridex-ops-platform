@@ -244,7 +244,8 @@ describe('IMP05 protected unattributed original mailbox return route component',
   it('refuses a foreign technical company or actor and preserves a qualified control', async () => {
     const source = await admit()
     const original = await rows('public.ediel_messages')
-    await expect(route(source, id(999))).rejects.toMatchObject({ message: 'ediel_technical_ack_basis_required' })
+    // The current source owner refuses the foreign selector before exposing historical basis.
+    await expect(route(source, id(999))).rejects.toMatchObject({ code: 'P0001', message: 'ediel_historical_technical_ack_basis_unavailable' })
     await expect(route(source, company, id(999))).rejects.toMatchObject({ code: '42501' })
     expect(await route(source)).toMatchObject({ companyId: company, sourceHash: hash, mailbox: smtp })
     expect(await rows('public.ediel_messages')).toEqual(original)

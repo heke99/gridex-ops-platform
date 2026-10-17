@@ -4,17 +4,16 @@ const {
   validateResponse,
 } = require('./lib/openapi-schema-validator.cjs')
 
-const { currentContractVersion: version } = require('./lib/current-api-contract.cjs')
+const { currentDocumentationVersion: version, runtimeContractVersion } = require('./lib/current-api-contract.cjs')
 const specification = JSON.parse(
   fs.readFileSync('docs/openapi/website-integration-v1.json', 'utf8'),
 )
 const fixture = JSON.parse(
   fs.readFileSync(
-    `docs/fixtures/public-contracts-response-${version}.json`,
+    `docs/fixtures/public-contracts-response-${runtimeContractVersion}.json`,
     'utf8',
   ),
 )
-fixture.meta.contract_schema_version = version
 const failures = validateResponse(
   specification,
   '/api/v1/website/public-contracts',
@@ -24,8 +23,8 @@ const failures = validateResponse(
 if (specification.info?.version !== version) {
   failures.push(`Website OpenAPI info.version must be ${version}.`)
 }
-if (fixture.meta?.contract_schema_version !== version) {
-  failures.push(`Fixture contract_schema_version must be ${version}.`)
+if (fixture.meta?.contract_schema_version !== runtimeContractVersion) {
+  failures.push(`Fixture contract_schema_version must be ${runtimeContractVersion}.`)
 }
 if (JSON.stringify(fixture.data) !== JSON.stringify(fixture.contracts)) {
   failures.push('contracts must be an exact compatibility alias for data.')

@@ -78,21 +78,656 @@ jobs:
           echo "GRIDEX_PG_DUMP=/usr/lib/postgresql/$server_major/bin/pg_dump" >> "$GITHUB_ENV"
           "/usr/lib/postgresql/$server_major/bin/pg_dump" --version
       - name: Capture authentic artifacts from the sourced clean replay
+        id: sourced_capture
         if: steps.capture_turn.outputs.pending == 'true'
         shell: bash
         env:
           SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+          SOURCE_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           export CAPTURE_CHECKOUT_SHA="$(git rev-parse HEAD)"
           export CAPTURE_CHECKOUT_TREE="$(git rev-parse 'HEAD^{tree}')"
           unset GRIDEX_REPLAY_DB_URL
+          export CAPTURE_INPUT_STATE="$RUNNER_TEMP/staff-schema-capture-inputs.json"
+          python3 - <<'PY_FREEZE'
+          import hashlib, json, os, pathlib, re, shutil, stat, subprocess, urllib.request
+
+          manifest = json.loads(pathlib.Path('scripts/supabase-types-manifest.json').read_text())
+          sc031 = os.environ['SOURCE_HEAD_REF'] == 'codex/c2-gen-sc031-main795-20261014'
+          sc046_runtime_v3 = os.environ['SOURCE_HEAD_REF'] == 'codex/c2-gen-sc046-v3-main6ce6-20261014'
+          selected_sc046_epoch = manifest.get('active_sc046_input_epoch')
+          sc046_v6 = sc046_runtime_v3 and selected_sc046_epoch == 'gridex-C2-SC046-GEN-20261015-v6'
+          sc046_v5 = sc046_runtime_v3 and selected_sc046_epoch == 'gridex-C2-SC046-GEN-20261015-v5'
+          sc046_v4 = sc046_runtime_v3 and selected_sc046_epoch == 'gridex-C2-SC046-GEN-20261014-v4'
+          if sc046_runtime_v3 and (selected_sc046_epoch not in (None, 'gridex-C2-SC046-GEN-20261014-v4', 'gridex-C2-SC046-GEN-20261015-v5', 'gridex-C2-SC046-GEN-20261015-v6')
+              or (selected_sc046_epoch is None and ('active_sc046_input_epoch' in manifest or 'pending_sc046_capture_v4' in manifest or 'pending_sc046_capture_v5' in manifest or 'pending_sc046_capture_v6' in manifest))
+              or (sc046_v4 and ('pending_sc046_capture_v4' not in manifest or 'pending_sc046_capture_v5' in manifest))
+              or (sc046_v5 and 'pending_sc046_capture_v5' not in manifest)
+              or (not sc046_v6 and 'pending_sc046_capture_v6' in manifest)
+              or (sc046_v6 and not isinstance(manifest.get('pending_sc046_capture_v6'), dict))):
+              raise SystemExit('capture_sc046_epoch_selector_not_bound')
+          if os.environ['SOURCE_HEAD_REF'] in ('codex/c2-gen-sc046-v4-prepared-source-20261014', 'codex/c2-gen-sc046-v5-prepared-source-20261015', 'codex/c2-gen-sc046-v6-prepared-source-20261015'):
+              raise SystemExit('capture_sc046_source_only_branch_not_runtime')
+          sc046_v3 = sc046_runtime_v3 and not (sc046_v4 or sc046_v5 or sc046_v6)
+          sc046 = sc046_v3 or sc046_v4 or sc046_v5 or sc046_v6 or os.environ['SOURCE_HEAD_REF'] == 'codex/c2-gen-sc046-main573-20261014'
+          pending = manifest.get('pending_sc046_capture_v6', {}) if sc046_v6 else (manifest.get('pending_sc046_capture_v5' if sc046_v5 else ('pending_sc046_capture_v4' if sc046_v4 else ('pending_sc046_capture_v3' if sc046_v3 else ('pending_sc046_capture_v2' if sc046 else ('pending_sc031_capture' if sc031 else 'pending_joint_c3_capture')))), {}))
+          epoch = 'gridex-C2-SC046-GEN-20261015-v6' if sc046_v6 else ('gridex-C2-SC046-GEN-20261015-v5' if sc046_v5 else ('gridex-C2-SC046-GEN-20261014-v4' if sc046_v4 else ('gridex-C2-SC046-GEN-20261014-v3' if sc046_v3 else ('gridex-C2-SC046-GEN-20261014-v2' if sc046 else ('gridex-C2-SC031-GEN-20261014-v1' if sc031 else 'gridex-C2-joint-C3-GEN-20261013-v3')))))
+          producer_branch = 'codex/c2-gen-sc046-v3-main6ce6-20261014' if sc046_runtime_v3 else ('codex/c2-gen-sc046-main573-20261014' if sc046 else ('codex/c2-gen-sc031-main795-20261014' if sc031 else 'codex/c2-gen-joint-c3-20261013'))
+          checkpoint = ('.agent-memory/takeover-C2-GEN-SC046-20261014-checkpoint.md' if sc046 else
+                        ('.agent-memory/takeover-C2-GEN-SC031-20261014-checkpoint.md' if sc031
+                         else '.agent-memory/takeover-C2-GEN-joint-C3-20261013-checkpoint.md'))
+          own_branch = sc031 or sc046 or os.environ['SOURCE_HEAD_REF'] in ('codex/c2-gen-joint-c3-20261013', 'codex/c2-gen-esco-01a131d2')
+          primary = own_branch and manifest.get('composition_capture_pending') is True and pending.get('input_epoch') == epoch
+          corroboration = (own_branch and manifest.get('composition_capture_pending') is False
+                           and (manifest.get('capture', {}).get('source_epoch_attestation', {}).get('custody', {}).get('input_epoch') == epoch
+                                or (sc046_v4 and manifest.get('capture', {}).get('source_epoch_attestation', {}).get('custody', {}).get('input_epoch') == 'gridex-C2-SC046-GEN-20261014-v3')))
+          if sc046_v6:
+              corroboration = (manifest.get('composition_capture_pending') is False
+                               and manifest.get('capture', {}).get('source_epoch_attestation', {}).get('custody', {}).get('input_epoch') == 'gridex-C2-SC046-GEN-20261015-v5')
+          if own_branch and not (primary or corroboration):
+              raise SystemExit('capture_owned_epoch_unqualified')
+          if not (primary or corroboration):
+              pathlib.Path(os.environ['CAPTURE_INPUT_STATE']).write_text(json.dumps({'epoch_attestation_enabled': False}) + '\n')
+              print('Existing ordinary capture: no joint-C3 producer or epoch attestation is required.')
+              raise SystemExit(0)
+          if sc031:
+              native_path = 'scripts/ediel-at-z14vh-z15v-esco-native.test.ts'
+              native = pending.get('portable_source_inputs', {}).get(native_path, {})
+              if (pending.get('input_union_status') != 'FROZEN_REVIEWED_COMPLETE'
+                  or pending.get('native_source_receiving_status') != 'EXACT_REVIEWED_POSTIMAGE_RECEIVED'
+                  or native.get('receipt') != 'ce80cdd3fb4be418ea54daebb596d798889442cd'
+                  or native.get('mode') != '100644'
+                  or not re.fullmatch(r'[0-9a-f]{64}', native.get('sha256', ''))
+                  or not all(re.fullmatch(r'[0-9a-f]{40}', native.get(key, '')) for key in ('source_head', 'source_tree', 'blob'))):
+                  raise SystemExit('capture_sc031_native_source_not_bound')
+              native_workflow_path = '.github/workflows/ediel-esco-z14vh-z15v-native.yml'
+              native_config_path = 'scripts/ediel-at-z14vh-z15v-esco-native.config.ts'
+              native_workflow = pending.get('owned_native_workflow_input', {})
+              if (pending.get('esco_workflow_pin_receiving_status') != 'EXACT_FINAL_NATIVE_PIN_POSTIMAGE_BOUND'
+                  or native_workflow.get('path') != native_workflow_path
+                  or native_workflow.get('mode') != '100644'
+                  or native_workflow.get('receipt') != 'ce80cdd3fb4be418ea54daebb596d798889442cd'
+                  or not re.fullmatch(r'[0-9a-f]{64}', native_workflow.get('sha256', ''))
+                  or not re.fullmatch(r'[0-9a-f]{40}', native_workflow.get('blob', ''))
+                  or native_workflow.get('native_test_sha256') != native['sha256']
+                  or native_workflow.get('config_path') != native_config_path
+                  or native_workflow.get('config_sha256') != '1e3d2ebbb58169a4633d0fc5789a12e6a687275b112343af82796b1966efc45a'):
+                  raise SystemExit('capture_sc031_native_workflow_not_bound')
+          if sc046 and not (sc046_v3 or sc046_v4 or sc046_v5 or sc046_v6):
+              sc046_sources = {'lib/ediel/utilts/transactionPersistence.ts': {'mode': '100644', 'blob': 'fa06bb397aae317d232ada1754d532c8cfd634f7', 'sha256': 'f107881077ab3c919a15ec63d0e6804bc97402949f235bdd4bea4ad826fbfece', 'receipt': '4caaff9f0c79b28f7e2b968b628f81f73e05ef12', 'source_head': '50cbf806d52f19c5e4fba6c911cb1ff9ef9a1d80', 'source_tree': '9cf682a99e1d61b08cabe07ad76604ff61f89fff'}, 'lib/ediel/utilts/consumptionSinks.ts': {'mode': '100644', 'blob': '14e29821de4d1f5fc7d82822158fbc76ba780bb4', 'sha256': 'cd975ef07a3e2d6d5859bcacf834dc7b2b8e1d69f3ecc112c33686480f55696a', 'receipt': 'ee70dfb2fd1826dd7ccc7fbda767acae7af8e112', 'source_head': '50cbf806d52f19c5e4fba6c911cb1ff9ef9a1d80', 'source_tree': '9cf682a99e1d61b08cabe07ad76604ff61f89fff'}, '__tests__/ediel-sc046-bound-version-consumption-coord2-20261014.test.ts': {'mode': '100644', 'blob': 'c95f76a4aa837e373ee96bd9dc72ffede6ceac79', 'sha256': 'f85a6e53931e38dd135ef865c700650d1afe194e8d872c1032999d466caff0a3', 'receipt': 'ee70dfb2fd1826dd7ccc7fbda767acae7af8e112', 'source_head': '50cbf806d52f19c5e4fba6c911cb1ff9ef9a1d80', 'source_tree': '9cf682a99e1d61b08cabe07ad76604ff61f89fff'}, 'supabase/migrations/20261013141048_ediel_sc046_persistence_return_state_cb17b044.sql': {'mode': '100644', 'blob': '890a2e21d61b033b52d92f47e696f91afa06a443', 'sha256': '84602eca793c51180d838679e8019001bc0e9f1d82e2e6e8861ca2d404de5b34', 'receipt': '3f0c88be9759dd2833ee6f98333df1367f497511', 'source_head': '45bcaf034d614022216ec51e82ac179d3ed07811', 'source_tree': 'a3f49d52b911de9739b9f493554b577f5269ae74'}, '__tests__/ediel-sc-046-persistence-return-state-cb17b044.test.ts': {'mode': '100644', 'blob': '0681ea590b9a6cf4f9b13004c672a6d822511bf2', 'sha256': '9c406df47e252153ebef0e2dcf56e0ee49bd6d20355146a8f99d2777a0dd1bd0', 'receipt': '3f0c88be9759dd2833ee6f98333df1367f497511', 'source_head': '45bcaf034d614022216ec51e82ac179d3ed07811', 'source_tree': 'a3f49d52b911de9739b9f493554b577f5269ae74'}, 'scripts/ediel-utilts-consumption-native.test.ts': {'mode': '100644', 'blob': 'fc34621b4052f82fcfe4b6fc3d571d41aa722e9e', 'sha256': '9b26e7950c73b992130e4e47408446849c2a7b95c264ff71ca8e2f1c65f412d8', 'receipt': '7b0cf6038a686e5c889700c300cc251efb72756b', 'source_head': '2b68fa6e1856198efa7bc0076c8d7cc7f15da803', 'source_tree': '3fba26e706902b4f16c92ef82a1754390c712433'}, 'scripts/ediel-utilts-err-gateway-native.test.ts': {'mode': '100644', 'blob': 'c26c36d3a310a690ded9ab4c015dd39bd278b804', 'sha256': '358ff5311594002bc9fb5c8a75217fab1cabf7c95bf8051a22d1e542798b468d', 'receipt': '7b0cf6038a686e5c889700c300cc251efb72756b', 'source_head': '2b68fa6e1856198efa7bc0076c8d7cc7f15da803', 'source_tree': '3fba26e706902b4f16c92ef82a1754390c712433'}}
+              sc046_sources.update({'scripts/gridex-website-quote-integrity-regression.mjs': {'mode': '100644', 'blob': '86bf85ef582cbbed4d74f2612951e7d563364a38', 'sha256': '1aa9b3abd4168bf1db47d95543022d3a27b21ca822317b7c18e3be07966ace41', 'receipt': 'a39624608a39dfbd4416b7f5181568c79972477b', 'source_head': 'fad92bd92fcb49ffaa3cca5a2c8345b1ba6d798b', 'source_tree': '49249704c7bebfc5b3135555133304bec0127598'}, 'scripts/gridex-price-area-assurance-regression.cjs': {'mode': '100755', 'blob': 'b72b962e1685215f0780a65ba342d01df604a327', 'sha256': '4b3a45bcda0823d04114ba48608d5c57f957d47003c83cf77676c40532a5b62d', 'receipt': 'a39624608a39dfbd4416b7f5181568c79972477b', 'source_head': 'fad92bd92fcb49ffaa3cca5a2c8345b1ba6d798b', 'source_tree': '49249704c7bebfc5b3135555133304bec0127598'}, 'supabase/migrations/20261014153206_gridex_data_quality_active_status_search_path.sql': {'mode': '100644', 'blob': 'c8609b4460c4564be8d854877056a10534542a63', 'sha256': '4153067538523442f6d040e28127b76335a3d4aea07479280d5dcd64a1e6b2c9', 'receipt': 'a39624608a39dfbd4416b7f5181568c79972477b', 'source_head': 'fad92bd92fcb49ffaa3cca5a2c8345b1ba6d798b', 'source_tree': '49249704c7bebfc5b3135555133304bec0127598'}})
+              sc046_resources = {'slot-C1': 'b971ef0cfa9724b02f4e0e3a985a4436e11a1f60', 'file-c56a1232335a1031742fd8da7eb61d5888f4c715b4cf4a8531de000a34682157': '4caaff9f0c79b28f7e2b968b628f81f73e05ef12', 'file-7fbbd51546b2efc2dd404cf57ab362c8436e8fa61382fce8ae0e1652c31a4523': 'ee70dfb2fd1826dd7ccc7fbda767acae7af8e112', 'file-9507d60388ae24281bdeba7909926663b63dea1618bdf8c8d7b7906fd149cb2a': 'ee70dfb2fd1826dd7ccc7fbda767acae7af8e112', 'file-fef96a27a1909cbda90900334cc8632ddc438ab552daba6967cdbdc7beb42079': '3f0c88be9759dd2833ee6f98333df1367f497511', 'file-88a689d6f57449eb3fad91022c0c8c58692ff13057a63a6ec0a340ec399f1804': '3f0c88be9759dd2833ee6f98333df1367f497511', 'file-225c6a02b1c73b7fc8510f580badba5396a88270bb6c4c9def1d1ea07f9937f9': '7b0cf6038a686e5c889700c300cc251efb72756b', 'file-53f7e3ab1f3687eae389f0e4f807bd25d5665b80d996174f1c8456643c4fdfa6': '7b0cf6038a686e5c889700c300cc251efb72756b'}
+              sc046_resources.update({'file-4169f973073330d6fba420869fa9b6cfc224b7d31b4bfed050a84234028954a0': 'a39624608a39dfbd4416b7f5181568c79972477b', 'file-9c35bd4fc2ca19106199fb6023aa451889f99dd9179a8da10cbf99159a2eb3e4': 'a39624608a39dfbd4416b7f5181568c79972477b', 'file-dfb34ca36754832144093fa8b0cb3020efc4e9b19ed439c3ecf82d0c1718d81e': 'a39624608a39dfbd4416b7f5181568c79972477b'})
+              sc046_workflow_path = '.github/workflows/staff-api-schema-capture.yml'
+              sc046_workflow = pending.get('owned_capture_workflow_input', {})
+              if (pending.get('input_union_status') != 'FROZEN_REVIEWED_COMPLETE'
+                  or pending.get('source_receiving_neutral') != 'ec34c853c9b341c08284ecbe19be435c058df474'
+                  or pending.get('branch') != producer_branch or pending.get('checkpoint') != checkpoint
+                  or pending.get('portable_source_inputs') != sc046_sources
+                  or pending.get('source_resources') != sc046_resources
+                  or pending.get('producer_sources', {}).get('immutableSourceInputs') != sc046_sources
+                  or pending.get('actual_latest_migration') != '20261014153206_gridex_data_quality_active_status_search_path.sql'
+                  or pending.get('sql_sha256') != {'supabase/migrations/20261013141048_ediel_sc046_persistence_return_state_cb17b044.sql': '84602eca793c51180d838679e8019001bc0e9f1d82e2e6e8861ca2d404de5b34', 'supabase/migrations/20261014153206_gridex_data_quality_active_status_search_path.sql': '4153067538523442f6d040e28127b76335a3d4aea07479280d5dcd64a1e6b2c9'}):
+                  raise SystemExit('capture_sc046_source_union_not_bound')
+              if (sc046_workflow.get('path') != sc046_workflow_path
+                  or sc046_workflow.get('mode') != '100644'
+                  or sc046_workflow.get('receipt') != 'ce80cdd3fb4be418ea54daebb596d798889442cd'
+                  or not re.fullmatch(r'[0-9a-f]{40}', sc046_workflow.get('blob', ''))
+                  or not re.fullmatch(r'[0-9a-f]{64}', sc046_workflow.get('sha256', ''))
+                  or pending.get('producer_sources', {}).get('ownedCaptureWorkflowInput') != sc046_workflow):
+                  raise SystemExit('capture_sc046_owned_workflow_not_bound')
+              sc046_unit_path = '__tests__/ediel-db01-native-source-basis.test.ts'
+              sc046_unit_sources = {'__tests__/ediel-db01-native-source-basis.test.ts': {'mode': '100644', 'blob': '218d85081fab25684560cd09cefdefa596539a54', 'sha256': '6010913a95b9c0fdb771e53f18ce15a8899ee74b22a4ecf3e0b7ab68be472fe7', 'receipt': 'ef088907a6e85783b5d6205594bfd548ddf242de', 'source_head': '057c9aea742209f85b66f5898f0b7272fe8acf71', 'source_tree': '68ae0c86ec27ac4a7d6a3cf00472a0cc1f0a52d8'}}
+              sc046_unit_resources = {'file-f37f50cfc47ba26832af7a72c33248f1b173a970e00e22d4a871ba4f17c63f07': 'ef088907a6e85783b5d6205594bfd548ddf242de'}
+              sc046_unit = pending.get('supplemental_source_inputs', {})
+              if (sc046_unit != sc046_unit_sources
+                  or pending.get('supplemental_source_resources') != sc046_unit_resources
+                  or pending.get('supplemental_source_receiving_neutral') != '8b087530be629e6bfcb6d976c4cd6486764470dc'
+                  or pending.get('producer_sources', {}).get('supplementalImmutableSourceInputs') != sc046_unit_sources):
+                  raise SystemExit('capture_sc046_supplemental_unit_source_not_bound')
+          if sc046_v3:
+              sc046_sources = {'lib/ediel/utilts/transactionPersistence.ts': {'mode': '100644', 'blob': 'fa06bb397aae317d232ada1754d532c8cfd634f7', 'sha256': 'f107881077ab3c919a15ec63d0e6804bc97402949f235bdd4bea4ad826fbfece', 'receipt': '4caaff9f0c79b28f7e2b968b628f81f73e05ef12', 'source_head': '50cbf806d52f19c5e4fba6c911cb1ff9ef9a1d80', 'source_tree': '9cf682a99e1d61b08cabe07ad76604ff61f89fff'}, 'lib/ediel/utilts/consumptionSinks.ts': {'mode': '100644', 'blob': '14e29821de4d1f5fc7d82822158fbc76ba780bb4', 'sha256': 'cd975ef07a3e2d6d5859bcacf834dc7b2b8e1d69f3ecc112c33686480f55696a', 'receipt': 'ee70dfb2fd1826dd7ccc7fbda767acae7af8e112', 'source_head': '50cbf806d52f19c5e4fba6c911cb1ff9ef9a1d80', 'source_tree': '9cf682a99e1d61b08cabe07ad76604ff61f89fff'}, '__tests__/ediel-sc046-bound-version-consumption-coord2-20261014.test.ts': {'mode': '100644', 'blob': 'c95f76a4aa837e373ee96bd9dc72ffede6ceac79', 'sha256': 'f85a6e53931e38dd135ef865c700650d1afe194e8d872c1032999d466caff0a3', 'receipt': 'ee70dfb2fd1826dd7ccc7fbda767acae7af8e112', 'source_head': '50cbf806d52f19c5e4fba6c911cb1ff9ef9a1d80', 'source_tree': '9cf682a99e1d61b08cabe07ad76604ff61f89fff'}, 'supabase/migrations/20261013141048_ediel_sc046_persistence_return_state_cb17b044.sql': {'mode': '100644', 'blob': '890a2e21d61b033b52d92f47e696f91afa06a443', 'sha256': '84602eca793c51180d838679e8019001bc0e9f1d82e2e6e8861ca2d404de5b34', 'receipt': '3f0c88be9759dd2833ee6f98333df1367f497511', 'source_head': '45bcaf034d614022216ec51e82ac179d3ed07811', 'source_tree': 'a3f49d52b911de9739b9f493554b577f5269ae74'}, '__tests__/ediel-sc-046-persistence-return-state-cb17b044.test.ts': {'mode': '100644', 'blob': '0681ea590b9a6cf4f9b13004c672a6d822511bf2', 'sha256': '9c406df47e252153ebef0e2dcf56e0ee49bd6d20355146a8f99d2777a0dd1bd0', 'receipt': '3f0c88be9759dd2833ee6f98333df1367f497511', 'source_head': '45bcaf034d614022216ec51e82ac179d3ed07811', 'source_tree': 'a3f49d52b911de9739b9f493554b577f5269ae74'}, 'scripts/ediel-utilts-consumption-native.test.ts': {'mode': '100644', 'blob': 'bf5342a9a9734d4274a398cbdf55296ecaeecfe4', 'sha256': 'ad9551afb71cb27046c80a911d9f6dff71671fe60688462e1b318fa3351a1238', 'receipt': '7b0cf6038a686e5c889700c300cc251efb72756b', 'source_head': '4c3e88e08cf40bbae3e5dee739dfe89b2a116148', 'source_tree': '260a986759d31b9cc9051c8ba7ae8b368d679484'}, 'scripts/ediel-utilts-err-gateway-native.test.ts': {'mode': '100644', 'blob': '30d8f26964acff1abf4f12a7bf438e014591d58d', 'sha256': 'b1e78ef8b9aa696b1b0bbeebf7a6786010cff040dd2245041e9e8b259e86423b', 'receipt': '7b0cf6038a686e5c889700c300cc251efb72756b', 'source_head': '7670274d8258fe4d54e080eb30e2383c2d37b973', 'source_tree': 'b049504fe46fe7edc1ef332a64e6d38bd117e580'}, 'scripts/gridex-website-quote-integrity-regression.mjs': {'mode': '100644', 'blob': '86bf85ef582cbbed4d74f2612951e7d563364a38', 'sha256': '1aa9b3abd4168bf1db47d95543022d3a27b21ca822317b7c18e3be07966ace41', 'receipt': 'a39624608a39dfbd4416b7f5181568c79972477b', 'source_head': 'fad92bd92fcb49ffaa3cca5a2c8345b1ba6d798b', 'source_tree': '49249704c7bebfc5b3135555133304bec0127598'}, 'scripts/gridex-price-area-assurance-regression.cjs': {'mode': '100755', 'blob': 'b72b962e1685215f0780a65ba342d01df604a327', 'sha256': '4b3a45bcda0823d04114ba48608d5c57f957d47003c83cf77676c40532a5b62d', 'receipt': 'a39624608a39dfbd4416b7f5181568c79972477b', 'source_head': 'fad92bd92fcb49ffaa3cca5a2c8345b1ba6d798b', 'source_tree': '49249704c7bebfc5b3135555133304bec0127598'}, 'supabase/migrations/20261014153206_gridex_data_quality_active_status_search_path.sql': {'mode': '100644', 'blob': 'c8609b4460c4564be8d854877056a10534542a63', 'sha256': '4153067538523442f6d040e28127b76335a3d4aea07479280d5dcd64a1e6b2c9', 'receipt': 'a39624608a39dfbd4416b7f5181568c79972477b', 'source_head': 'fad92bd92fcb49ffaa3cca5a2c8345b1ba6d798b', 'source_tree': '49249704c7bebfc5b3135555133304bec0127598'}, 'supabase/migrations/20261014211648_ediel_sc046_bound_newer_metering_correction.sql': {'mode': '100644', 'blob': '969610a6092959e9643ef00b78cf05ae54d30a86', 'sha256': '760b535d6b3e3d29cec87a4e19786b6713d47764e02d24a2c0cee848411e318b', 'receipt': 'e30dad004faeae98e8411a278806cbfc357bfdf6', 'source_head': '7670274d8258fe4d54e080eb30e2383c2d37b973', 'source_tree': 'b049504fe46fe7edc1ef332a64e6d38bd117e580'}}
+              sc046_resources = {'slot-C1': 'b971ef0cfa9724b02f4e0e3a985a4436e11a1f60', 'file-c56a1232335a1031742fd8da7eb61d5888f4c715b4cf4a8531de000a34682157': '4caaff9f0c79b28f7e2b968b628f81f73e05ef12', 'file-7fbbd51546b2efc2dd404cf57ab362c8436e8fa61382fce8ae0e1652c31a4523': 'ee70dfb2fd1826dd7ccc7fbda767acae7af8e112', 'file-9507d60388ae24281bdeba7909926663b63dea1618bdf8c8d7b7906fd149cb2a': 'ee70dfb2fd1826dd7ccc7fbda767acae7af8e112', 'file-fef96a27a1909cbda90900334cc8632ddc438ab552daba6967cdbdc7beb42079': '3f0c88be9759dd2833ee6f98333df1367f497511', 'file-88a689d6f57449eb3fad91022c0c8c58692ff13057a63a6ec0a340ec399f1804': '3f0c88be9759dd2833ee6f98333df1367f497511', 'file-225c6a02b1c73b7fc8510f580badba5396a88270bb6c4c9def1d1ea07f9937f9': '7b0cf6038a686e5c889700c300cc251efb72756b', 'file-53f7e3ab1f3687eae389f0e4f807bd25d5665b80d996174f1c8456643c4fdfa6': '7b0cf6038a686e5c889700c300cc251efb72756b', 'file-4169f973073330d6fba420869fa9b6cfc224b7d31b4bfed050a84234028954a0': 'a39624608a39dfbd4416b7f5181568c79972477b', 'file-9c35bd4fc2ca19106199fb6023aa451889f99dd9179a8da10cbf99159a2eb3e4': 'a39624608a39dfbd4416b7f5181568c79972477b', 'file-dfb34ca36754832144093fa8b0cb3020efc4e9b19ed439c3ecf82d0c1718d81e': 'a39624608a39dfbd4416b7f5181568c79972477b', 'file-30aae965f99e838ef24fbbddb8c752d107677a12cfa196bd1ab2291a958f77f3': 'e30dad004faeae98e8411a278806cbfc357bfdf6'}
+              sc046_workflow_path = '.github/workflows/staff-api-schema-capture.yml'
+              sc046_workflow = pending.get('owned_capture_workflow_input', {})
+              sc046_unit_sources = {'__tests__/ediel-db01-native-source-basis.test.ts': {'mode': '100644', 'blob': '218d85081fab25684560cd09cefdefa596539a54', 'sha256': '6010913a95b9c0fdb771e53f18ce15a8899ee74b22a4ecf3e0b7ab68be472fe7', 'receipt': 'ef088907a6e85783b5d6205594bfd548ddf242de', 'source_head': '057c9aea742209f85b66f5898f0b7272fe8acf71', 'source_tree': '68ae0c86ec27ac4a7d6a3cf00472a0cc1f0a52d8'}}
+              sc046_unit_resources = {'file-f37f50cfc47ba26832af7a72c33248f1b173a970e00e22d4a871ba4f17c63f07': 'ef088907a6e85783b5d6205594bfd548ddf242de'}
+              if (pending.get('input_union_status') != 'FROZEN_REVIEWED_COMPLETE'
+                  or pending.get('source_receiving_neutral') != 'b24cd34d3de0935d72fce7ae5e91f26f5051c208'
+                  or pending.get('base') != '6ce6d49eafa8ca24bcefbeec717dd55b63abad66' or pending.get('base_tree') != 'fbe51ee680b61f5404b680a64c9e3e2d225dc282'
+                  or pending.get('branch') != producer_branch or pending.get('checkpoint') != checkpoint
+                  or pending.get('source_input_count') != 11
+                  or pending.get('portable_source_inputs') != sc046_sources
+                  or pending.get('source_resources') != sc046_resources
+                  or pending.get('producer_sources', {}).get('immutableSourceInputs') != sc046_sources
+                  or pending.get('producer_sources', {}).get('actualMain') != '6ce6d49eafa8ca24bcefbeec717dd55b63abad66'
+                  or pending.get('producer_sources', {}).get('actualMainTree') != 'fbe51ee680b61f5404b680a64c9e3e2d225dc282'
+                  or pending.get('actual_latest_migration') != '20261014211648_ediel_sc046_bound_newer_metering_correction.sql'
+                  or pending.get('sql_sha256') != {'supabase/migrations/20261013141048_ediel_sc046_persistence_return_state_cb17b044.sql': '84602eca793c51180d838679e8019001bc0e9f1d82e2e6e8861ca2d404de5b34', 'supabase/migrations/20261014153206_gridex_data_quality_active_status_search_path.sql': '4153067538523442f6d040e28127b76335a3d4aea07479280d5dcd64a1e6b2c9', 'supabase/migrations/20261014211648_ediel_sc046_bound_newer_metering_correction.sql': '760b535d6b3e3d29cec87a4e19786b6713d47764e02d24a2c0cee848411e318b'}):
+                  raise SystemExit('capture_sc046_v3_source_union_not_bound')
+              if (sc046_workflow.get('path') != sc046_workflow_path or sc046_workflow.get('mode') != '100644'
+                  or sc046_workflow.get('receipt') != 'ce80cdd3fb4be418ea54daebb596d798889442cd'
+                  or not re.fullmatch(r'[0-9a-f]{40}', sc046_workflow.get('blob', ''))
+                  or not re.fullmatch(r'[0-9a-f]{64}', sc046_workflow.get('sha256', ''))
+                  or pending.get('producer_sources', {}).get('ownedCaptureWorkflowInput') != sc046_workflow):
+                  raise SystemExit('capture_sc046_v3_owned_workflow_not_bound')
+              if (pending.get('supplemental_source_inputs') != sc046_unit_sources
+                  or pending.get('supplemental_source_resources') != sc046_unit_resources
+                  or pending.get('supplemental_source_receiving_neutral') != '8b087530be629e6bfcb6d976c4cd6486764470dc'
+                  or pending.get('producer_sources', {}).get('supplementalImmutableSourceInputs') != sc046_unit_sources):
+                  raise SystemExit('capture_sc046_v3_supplemental_unit_source_not_bound')
+          if sc046_v4:
+              sc046_sources = {'lib/ediel/utilts/transactionPersistence.ts': {'mode': '100644', 'blob': 'fa06bb397aae317d232ada1754d532c8cfd634f7', 'sha256': 'f107881077ab3c919a15ec63d0e6804bc97402949f235bdd4bea4ad826fbfece', 'receipt': '4caaff9f0c79b28f7e2b968b628f81f73e05ef12', 'source_head': '50cbf806d52f19c5e4fba6c911cb1ff9ef9a1d80', 'source_tree': '9cf682a99e1d61b08cabe07ad76604ff61f89fff'}, 'lib/ediel/utilts/consumptionSinks.ts': {'mode': '100644', 'blob': '14e29821de4d1f5fc7d82822158fbc76ba780bb4', 'sha256': 'cd975ef07a3e2d6d5859bcacf834dc7b2b8e1d69f3ecc112c33686480f55696a', 'receipt': 'ee70dfb2fd1826dd7ccc7fbda767acae7af8e112', 'source_head': '50cbf806d52f19c5e4fba6c911cb1ff9ef9a1d80', 'source_tree': '9cf682a99e1d61b08cabe07ad76604ff61f89fff'}, '__tests__/ediel-sc046-bound-version-consumption-coord2-20261014.test.ts': {'mode': '100644', 'blob': 'c95f76a4aa837e373ee96bd9dc72ffede6ceac79', 'sha256': 'f85a6e53931e38dd135ef865c700650d1afe194e8d872c1032999d466caff0a3', 'receipt': 'ee70dfb2fd1826dd7ccc7fbda767acae7af8e112', 'source_head': '50cbf806d52f19c5e4fba6c911cb1ff9ef9a1d80', 'source_tree': '9cf682a99e1d61b08cabe07ad76604ff61f89fff'}, 'supabase/migrations/20261013141048_ediel_sc046_persistence_return_state_cb17b044.sql': {'mode': '100644', 'blob': '890a2e21d61b033b52d92f47e696f91afa06a443', 'sha256': '84602eca793c51180d838679e8019001bc0e9f1d82e2e6e8861ca2d404de5b34', 'receipt': '3f0c88be9759dd2833ee6f98333df1367f497511', 'source_head': '45bcaf034d614022216ec51e82ac179d3ed07811', 'source_tree': 'a3f49d52b911de9739b9f493554b577f5269ae74'}, '__tests__/ediel-sc-046-persistence-return-state-cb17b044.test.ts': {'mode': '100644', 'blob': '0681ea590b9a6cf4f9b13004c672a6d822511bf2', 'sha256': '9c406df47e252153ebef0e2dcf56e0ee49bd6d20355146a8f99d2777a0dd1bd0', 'receipt': '3f0c88be9759dd2833ee6f98333df1367f497511', 'source_head': '45bcaf034d614022216ec51e82ac179d3ed07811', 'source_tree': 'a3f49d52b911de9739b9f493554b577f5269ae74'}, 'scripts/ediel-utilts-consumption-native.test.ts': {'mode': '100644', 'blob': '47a48a6353964e5f8f0bdb2cdf17cf2063a8476c', 'sha256': '6a9aec5193efd18b87f93e80c992549a1771c814dcfc570d716416f26bd64538', 'receipt': '7b0cf6038a686e5c889700c300cc251efb72756b', 'source_head': 'd7139dad0beeaf6787847eaebb0fc50b13a1a158', 'source_tree': '8bc072ef0a38db3fd61ba86f03b445ee3a69de69'}, 'scripts/ediel-utilts-err-gateway-native.test.ts': {'mode': '100644', 'blob': '30d8f26964acff1abf4f12a7bf438e014591d58d', 'sha256': 'b1e78ef8b9aa696b1b0bbeebf7a6786010cff040dd2245041e9e8b259e86423b', 'receipt': '7b0cf6038a686e5c889700c300cc251efb72756b', 'source_head': '7670274d8258fe4d54e080eb30e2383c2d37b973', 'source_tree': 'b049504fe46fe7edc1ef332a64e6d38bd117e580'}, 'scripts/gridex-website-quote-integrity-regression.mjs': {'mode': '100644', 'blob': '86bf85ef582cbbed4d74f2612951e7d563364a38', 'sha256': '1aa9b3abd4168bf1db47d95543022d3a27b21ca822317b7c18e3be07966ace41', 'receipt': 'a39624608a39dfbd4416b7f5181568c79972477b', 'source_head': 'fad92bd92fcb49ffaa3cca5a2c8345b1ba6d798b', 'source_tree': '49249704c7bebfc5b3135555133304bec0127598'}, 'scripts/gridex-price-area-assurance-regression.cjs': {'mode': '100755', 'blob': 'b72b962e1685215f0780a65ba342d01df604a327', 'sha256': '4b3a45bcda0823d04114ba48608d5c57f957d47003c83cf77676c40532a5b62d', 'receipt': 'a39624608a39dfbd4416b7f5181568c79972477b', 'source_head': 'fad92bd92fcb49ffaa3cca5a2c8345b1ba6d798b', 'source_tree': '49249704c7bebfc5b3135555133304bec0127598'}, 'supabase/migrations/20261014153206_gridex_data_quality_active_status_search_path.sql': {'mode': '100644', 'blob': 'c8609b4460c4564be8d854877056a10534542a63', 'sha256': '4153067538523442f6d040e28127b76335a3d4aea07479280d5dcd64a1e6b2c9', 'receipt': 'a39624608a39dfbd4416b7f5181568c79972477b', 'source_head': 'fad92bd92fcb49ffaa3cca5a2c8345b1ba6d798b', 'source_tree': '49249704c7bebfc5b3135555133304bec0127598'}, 'supabase/migrations/20261014211648_ediel_sc046_bound_newer_metering_correction.sql': {'mode': '100644', 'blob': '969610a6092959e9643ef00b78cf05ae54d30a86', 'sha256': '760b535d6b3e3d29cec87a4e19786b6713d47764e02d24a2c0cee848411e318b', 'receipt': 'e30dad004faeae98e8411a278806cbfc357bfdf6', 'source_head': '7670274d8258fe4d54e080eb30e2383c2d37b973', 'source_tree': 'b049504fe46fe7edc1ef332a64e6d38bd117e580'}}
+              sc046_resources = {'slot-C1': 'b971ef0cfa9724b02f4e0e3a985a4436e11a1f60', 'file-c56a1232335a1031742fd8da7eb61d5888f4c715b4cf4a8531de000a34682157': '4caaff9f0c79b28f7e2b968b628f81f73e05ef12', 'file-7fbbd51546b2efc2dd404cf57ab362c8436e8fa61382fce8ae0e1652c31a4523': 'ee70dfb2fd1826dd7ccc7fbda767acae7af8e112', 'file-9507d60388ae24281bdeba7909926663b63dea1618bdf8c8d7b7906fd149cb2a': 'ee70dfb2fd1826dd7ccc7fbda767acae7af8e112', 'file-fef96a27a1909cbda90900334cc8632ddc438ab552daba6967cdbdc7beb42079': '3f0c88be9759dd2833ee6f98333df1367f497511', 'file-88a689d6f57449eb3fad91022c0c8c58692ff13057a63a6ec0a340ec399f1804': '3f0c88be9759dd2833ee6f98333df1367f497511', 'file-225c6a02b1c73b7fc8510f580badba5396a88270bb6c4c9def1d1ea07f9937f9': '7b0cf6038a686e5c889700c300cc251efb72756b', 'file-53f7e3ab1f3687eae389f0e4f807bd25d5665b80d996174f1c8456643c4fdfa6': '7b0cf6038a686e5c889700c300cc251efb72756b', 'file-4169f973073330d6fba420869fa9b6cfc224b7d31b4bfed050a84234028954a0': 'a39624608a39dfbd4416b7f5181568c79972477b', 'file-9c35bd4fc2ca19106199fb6023aa451889f99dd9179a8da10cbf99159a2eb3e4': 'a39624608a39dfbd4416b7f5181568c79972477b', 'file-dfb34ca36754832144093fa8b0cb3020efc4e9b19ed439c3ecf82d0c1718d81e': 'a39624608a39dfbd4416b7f5181568c79972477b', 'file-30aae965f99e838ef24fbbddb8c752d107677a12cfa196bd1ab2291a958f77f3': 'e30dad004faeae98e8411a278806cbfc357bfdf6'}
+              sc046_workflow_path = '.github/workflows/staff-api-schema-capture.yml'
+              sc046_workflow = pending.get('owned_capture_workflow_input', {})
+              sc046_unit_sources = {'__tests__/ediel-db01-native-source-basis.test.ts': {'mode': '100644', 'blob': '218d85081fab25684560cd09cefdefa596539a54', 'sha256': '6010913a95b9c0fdb771e53f18ce15a8899ee74b22a4ecf3e0b7ab68be472fe7', 'receipt': 'ef088907a6e85783b5d6205594bfd548ddf242de', 'source_head': '057c9aea742209f85b66f5898f0b7272fe8acf71', 'source_tree': '68ae0c86ec27ac4a7d6a3cf00472a0cc1f0a52d8'}}
+              sc046_unit_resources = {'file-f37f50cfc47ba26832af7a72c33248f1b173a970e00e22d4a871ba4f17c63f07': 'ef088907a6e85783b5d6205594bfd548ddf242de'}
+              if (pending.get('input_union_status') != 'FROZEN_REVIEWED_COMPLETE'
+                  or pending.get('source_receiving_neutral') != '97fbde023f8be8dad97fad5fafd788275d8416d8'
+                  or pending.get('base') != '6ce6d49eafa8ca24bcefbeec717dd55b63abad66' or pending.get('base_tree') != 'fbe51ee680b61f5404b680a64c9e3e2d225dc282'
+                  or pending.get('branch') != producer_branch or pending.get('checkpoint') != checkpoint
+                  or pending.get('source_input_count') != 11
+                  or pending.get('portable_source_inputs') != sc046_sources
+                  or pending.get('source_resources') != sc046_resources
+                  or pending.get('producer_sources', {}).get('immutableSourceInputs') != sc046_sources
+                  or pending.get('producer_sources', {}).get('actualMain') != '6ce6d49eafa8ca24bcefbeec717dd55b63abad66'
+                  or pending.get('producer_sources', {}).get('actualMainTree') != 'fbe51ee680b61f5404b680a64c9e3e2d225dc282'
+                  or pending.get('actual_latest_migration') != '20261014211648_ediel_sc046_bound_newer_metering_correction.sql'
+                  or pending.get('sql_sha256') != {'supabase/migrations/20261013141048_ediel_sc046_persistence_return_state_cb17b044.sql': '84602eca793c51180d838679e8019001bc0e9f1d82e2e6e8861ca2d404de5b34', 'supabase/migrations/20261014153206_gridex_data_quality_active_status_search_path.sql': '4153067538523442f6d040e28127b76335a3d4aea07479280d5dcd64a1e6b2c9', 'supabase/migrations/20261014211648_ediel_sc046_bound_newer_metering_correction.sql': '760b535d6b3e3d29cec87a4e19786b6713d47764e02d24a2c0cee848411e318b'}):
+                  raise SystemExit('capture_sc046_v4_source_union_not_bound')
+              if (sc046_workflow.get('path') != sc046_workflow_path or sc046_workflow.get('mode') != '100644'
+                  or sc046_workflow.get('receipt') != 'ce80cdd3fb4be418ea54daebb596d798889442cd'
+                  or not re.fullmatch(r'[0-9a-f]{40}', sc046_workflow.get('blob', ''))
+                  or not re.fullmatch(r'[0-9a-f]{64}', sc046_workflow.get('sha256', ''))
+                  or pending.get('producer_sources', {}).get('ownedCaptureWorkflowInput') != sc046_workflow):
+                  raise SystemExit('capture_sc046_v4_owned_workflow_not_bound')
+              if (pending.get('supplemental_source_inputs') != sc046_unit_sources
+                  or pending.get('supplemental_source_resources') != sc046_unit_resources
+                  or pending.get('supplemental_source_receiving_neutral') != '8b087530be629e6bfcb6d976c4cd6486764470dc'
+                  or pending.get('producer_sources', {}).get('supplementalImmutableSourceInputs') != sc046_unit_sources):
+                  raise SystemExit('capture_sc046_v4_supplemental_unit_source_not_bound')
+          if sc046_v4:
+              if (primary or not corroboration
+                  or pending.get('input_epoch') != 'gridex-C2-SC046-GEN-20261014-v4'
+                  or pending.get('prepared_source_branch') != 'codex/c2-gen-sc046-v4-prepared-source-20261014'
+                  or pending.get('producer_stage') != 'SOURCE_FINAL_BINDING_COMPLETE_RUNTIME_GO_PENDING'
+                  or pending.get('producer_only_writer') != 'codex-sc046-gen-v4-recovery-20261014'
+                  or pending.get('source_loans', {}).get('native_comment_scanner_positive_loan') != 6181133322
+                  or hashlib.sha256(json.dumps(manifest.get('pending_sc046_capture_v3'), sort_keys=True, separators=(',', ':')).encode()).hexdigest() != 'e3e69b00863290e8c9e63831baef930448da05b8f46e276d45bdfc54c0219824'
+                  or pending.get('original_v3_primary_reuse_anchor') != {'qualification_sha256': '5825e601d912b49415e9059e402230a3bfee21e5dfbb6ea32ab394b1f6ef81b2', 'source_head': '873b4159784ee452e979658bc4afcfe9b6bc0a86', 'source_tree': '32b78a9b67296ceb69c2664bd7d3634bd8b7748d', 'input_epoch': 'gridex-C2-SC046-GEN-20261014-v3', 'producer_receipt': '48fca8ad6fe8b328b27e39349f9ca94d3cece5ea', 'run': 38652310163, 'attempt': 1, 'job': 116153786878, 'artifact': 11935561665, 'archive_sha256': '34a91b87178edfec14582675382a01711c69c8445498d2499b4b5354ffb12730', 'receipt_sha256': 'e73dc43ad636da46fdaa3969a929ee514c8e6cefd4c839e405423963d399dcb2', 'capture_canonical_sha256': 'b190ef95681ba5cfe2bba8cf1b4fa999d414545b0607b5c4dd267caed47668a4', 'raw_outputs': {'database.types.ts': '8fbaf566c956192d9b64a2e504d764c7e8497b9261ac19a413479bb6c675f9f2', 'schema.sql': 'a8feeeee0b63f4199cccc2e86738030bb9fb3536a951a16c41f8e8bbefbb8298', 'schema.fingerprint.json': '96710f5f5584d164e16f5bc675368d51450fa765844f31aee3d0a54c6db20599'}, 'applicability': 'UNCHANGED_SQL_DATABASE_SEMANTICS_ABI_ONLY;CURRENT_V4_SOURCE_AND_PRODUCER_SEPARATELY_VERIFIED'}
+                  or hashlib.sha256(json.dumps(manifest.get('capture'), sort_keys=True, separators=(',', ':')).encode()).hexdigest() != 'b190ef95681ba5cfe2bba8cf1b4fa999d414545b0607b5c4dd267caed47668a4'):
+                  raise SystemExit('capture_sc046_v4_corroboration_anchor_not_bound')
+          if sc046_v5:
+              sc046_sources = {'lib/ediel/utilts/transactionPersistence.ts': {'mode': '100644', 'blob': 'fa06bb397aae317d232ada1754d532c8cfd634f7', 'sha256': 'f107881077ab3c919a15ec63d0e6804bc97402949f235bdd4bea4ad826fbfece', 'receipt': '4caaff9f0c79b28f7e2b968b628f81f73e05ef12', 'source_head': '50cbf806d52f19c5e4fba6c911cb1ff9ef9a1d80', 'source_tree': '9cf682a99e1d61b08cabe07ad76604ff61f89fff'}, 'lib/ediel/utilts/consumptionSinks.ts': {'mode': '100644', 'blob': '14e29821de4d1f5fc7d82822158fbc76ba780bb4', 'sha256': 'cd975ef07a3e2d6d5859bcacf834dc7b2b8e1d69f3ecc112c33686480f55696a', 'receipt': 'ee70dfb2fd1826dd7ccc7fbda767acae7af8e112', 'source_head': '50cbf806d52f19c5e4fba6c911cb1ff9ef9a1d80', 'source_tree': '9cf682a99e1d61b08cabe07ad76604ff61f89fff'}, '__tests__/ediel-sc046-bound-version-consumption-coord2-20261014.test.ts': {'mode': '100644', 'blob': 'c95f76a4aa837e373ee96bd9dc72ffede6ceac79', 'sha256': 'f85a6e53931e38dd135ef865c700650d1afe194e8d872c1032999d466caff0a3', 'receipt': 'ee70dfb2fd1826dd7ccc7fbda767acae7af8e112', 'source_head': '50cbf806d52f19c5e4fba6c911cb1ff9ef9a1d80', 'source_tree': '9cf682a99e1d61b08cabe07ad76604ff61f89fff'}, 'supabase/migrations/20261013141048_ediel_sc046_persistence_return_state_cb17b044.sql': {'mode': '100644', 'blob': '890a2e21d61b033b52d92f47e696f91afa06a443', 'sha256': '84602eca793c51180d838679e8019001bc0e9f1d82e2e6e8861ca2d404de5b34', 'receipt': '3f0c88be9759dd2833ee6f98333df1367f497511', 'source_head': '45bcaf034d614022216ec51e82ac179d3ed07811', 'source_tree': 'a3f49d52b911de9739b9f493554b577f5269ae74'}, '__tests__/ediel-sc-046-persistence-return-state-cb17b044.test.ts': {'mode': '100644', 'blob': '0681ea590b9a6cf4f9b13004c672a6d822511bf2', 'sha256': '9c406df47e252153ebef0e2dcf56e0ee49bd6d20355146a8f99d2777a0dd1bd0', 'receipt': '3f0c88be9759dd2833ee6f98333df1367f497511', 'source_head': '45bcaf034d614022216ec51e82ac179d3ed07811', 'source_tree': 'a3f49d52b911de9739b9f493554b577f5269ae74'}, 'scripts/ediel-utilts-consumption-native.test.ts': {'mode': '100644', 'blob': '47a48a6353964e5f8f0bdb2cdf17cf2063a8476c', 'sha256': '6a9aec5193efd18b87f93e80c992549a1771c814dcfc570d716416f26bd64538', 'receipt': '7b0cf6038a686e5c889700c300cc251efb72756b', 'source_head': 'd7139dad0beeaf6787847eaebb0fc50b13a1a158', 'source_tree': '8bc072ef0a38db3fd61ba86f03b445ee3a69de69'}, 'scripts/ediel-utilts-err-gateway-native.test.ts': {'mode': '100644', 'blob': '30d8f26964acff1abf4f12a7bf438e014591d58d', 'sha256': 'b1e78ef8b9aa696b1b0bbeebf7a6786010cff040dd2245041e9e8b259e86423b', 'receipt': '7b0cf6038a686e5c889700c300cc251efb72756b', 'source_head': '7670274d8258fe4d54e080eb30e2383c2d37b973', 'source_tree': 'b049504fe46fe7edc1ef332a64e6d38bd117e580'}, 'scripts/gridex-website-quote-integrity-regression.mjs': {'mode': '100644', 'blob': '86bf85ef582cbbed4d74f2612951e7d563364a38', 'sha256': '1aa9b3abd4168bf1db47d95543022d3a27b21ca822317b7c18e3be07966ace41', 'receipt': 'a39624608a39dfbd4416b7f5181568c79972477b', 'source_head': 'fad92bd92fcb49ffaa3cca5a2c8345b1ba6d798b', 'source_tree': '49249704c7bebfc5b3135555133304bec0127598'}, 'scripts/gridex-price-area-assurance-regression.cjs': {'mode': '100755', 'blob': 'b72b962e1685215f0780a65ba342d01df604a327', 'sha256': '4b3a45bcda0823d04114ba48608d5c57f957d47003c83cf77676c40532a5b62d', 'receipt': 'a39624608a39dfbd4416b7f5181568c79972477b', 'source_head': 'fad92bd92fcb49ffaa3cca5a2c8345b1ba6d798b', 'source_tree': '49249704c7bebfc5b3135555133304bec0127598'}, 'supabase/migrations/20261014153206_gridex_data_quality_active_status_search_path.sql': {'mode': '100644', 'blob': 'c8609b4460c4564be8d854877056a10534542a63', 'sha256': '4153067538523442f6d040e28127b76335a3d4aea07479280d5dcd64a1e6b2c9', 'receipt': 'a39624608a39dfbd4416b7f5181568c79972477b', 'source_head': 'fad92bd92fcb49ffaa3cca5a2c8345b1ba6d798b', 'source_tree': '49249704c7bebfc5b3135555133304bec0127598'}, 'supabase/migrations/20261014211648_ediel_sc046_bound_newer_metering_correction.sql': {'mode': '100644', 'blob': '969610a6092959e9643ef00b78cf05ae54d30a86', 'sha256': '760b535d6b3e3d29cec87a4e19786b6713d47764e02d24a2c0cee848411e318b', 'receipt': 'e30dad004faeae98e8411a278806cbfc357bfdf6', 'source_head': '7670274d8258fe4d54e080eb30e2383c2d37b973', 'source_tree': 'b049504fe46fe7edc1ef332a64e6d38bd117e580'}, 'supabase/migrations/20261015003736_ediel_sc046_newest_metering_duplicate_guard.sql': {'mode': '100644', 'blob': 'b2241aa691771a6a63f3278dc0dd476cb28f0b30', 'sha256': '42743daf26ae39e2191f5b6762d49754bd09e33acb0266328e5761d16f9d52ff', 'receipt': '0f511778e71c4ef5cc889d2f5986eae3bc7720da', 'source_head': '642d2f0adb9e4069f64656dbefd0bf1d2e7b4e6a', 'source_tree': '2da838ba35b69316be23cc8b297abffc521701d1'}, 'scripts/ediel-sc046-newest-duplicate-guard-sql-regression-root-20261015.mjs': {'mode': '100644', 'blob': '098c1f1eb266510f2690624948bdfac2a4946141', 'sha256': '0951f753206b3824f15fb0ce1d30f28034adf866c9a9b5d903cce1028a30bd1a', 'receipt': '0f511778e71c4ef5cc889d2f5986eae3bc7720da', 'source_head': '642d2f0adb9e4069f64656dbefd0bf1d2e7b4e6a', 'source_tree': '2da838ba35b69316be23cc8b297abffc521701d1'}}
+              sc046_resources = {'slot-C1': 'b971ef0cfa9724b02f4e0e3a985a4436e11a1f60', 'file-c56a1232335a1031742fd8da7eb61d5888f4c715b4cf4a8531de000a34682157': '4caaff9f0c79b28f7e2b968b628f81f73e05ef12', 'file-7fbbd51546b2efc2dd404cf57ab362c8436e8fa61382fce8ae0e1652c31a4523': 'ee70dfb2fd1826dd7ccc7fbda767acae7af8e112', 'file-9507d60388ae24281bdeba7909926663b63dea1618bdf8c8d7b7906fd149cb2a': 'ee70dfb2fd1826dd7ccc7fbda767acae7af8e112', 'file-fef96a27a1909cbda90900334cc8632ddc438ab552daba6967cdbdc7beb42079': '3f0c88be9759dd2833ee6f98333df1367f497511', 'file-88a689d6f57449eb3fad91022c0c8c58692ff13057a63a6ec0a340ec399f1804': '3f0c88be9759dd2833ee6f98333df1367f497511', 'file-225c6a02b1c73b7fc8510f580badba5396a88270bb6c4c9def1d1ea07f9937f9': '7b0cf6038a686e5c889700c300cc251efb72756b', 'file-53f7e3ab1f3687eae389f0e4f807bd25d5665b80d996174f1c8456643c4fdfa6': '7b0cf6038a686e5c889700c300cc251efb72756b', 'file-4169f973073330d6fba420869fa9b6cfc224b7d31b4bfed050a84234028954a0': 'a39624608a39dfbd4416b7f5181568c79972477b', 'file-9c35bd4fc2ca19106199fb6023aa451889f99dd9179a8da10cbf99159a2eb3e4': 'a39624608a39dfbd4416b7f5181568c79972477b', 'file-dfb34ca36754832144093fa8b0cb3020efc4e9b19ed439c3ecf82d0c1718d81e': 'a39624608a39dfbd4416b7f5181568c79972477b', 'file-30aae965f99e838ef24fbbddb8c752d107677a12cfa196bd1ab2291a958f77f3': 'e30dad004faeae98e8411a278806cbfc357bfdf6', 'file-387f3b6a33cc5cf1aa05b639e6200d19c66ed77155b814c31206582648e830fe': '0f511778e71c4ef5cc889d2f5986eae3bc7720da', 'file-3778d7fd771effe3ac38499ec725bc180e02ee46e00560da12308c2d20f349b2': '0f511778e71c4ef5cc889d2f5986eae3bc7720da'}
+              sc046_workflow_path = '.github/workflows/staff-api-schema-capture.yml'
+              sc046_workflow = pending.get('owned_capture_workflow_input', {})
+              sc046_unit_sources = {'__tests__/ediel-db01-native-source-basis.test.ts': {'mode': '100644', 'blob': '218d85081fab25684560cd09cefdefa596539a54', 'sha256': '6010913a95b9c0fdb771e53f18ce15a8899ee74b22a4ecf3e0b7ab68be472fe7', 'receipt': 'ef088907a6e85783b5d6205594bfd548ddf242de', 'source_head': '057c9aea742209f85b66f5898f0b7272fe8acf71', 'source_tree': '68ae0c86ec27ac4a7d6a3cf00472a0cc1f0a52d8'}}
+              sc046_unit_resources = {'file-f37f50cfc47ba26832af7a72c33248f1b173a970e00e22d4a871ba4f17c63f07': 'ef088907a6e85783b5d6205594bfd548ddf242de'}
+              if (pending.get('input_union_status') != 'FROZEN_REVIEWED_COMPLETE'
+                  or pending.get('source_receiving_neutral') != '273ae9322948e492be62331443aceb43eb2b7275'
+                  or pending.get('base') != '6ce6d49eafa8ca24bcefbeec717dd55b63abad66' or pending.get('base_tree') != 'fbe51ee680b61f5404b680a64c9e3e2d225dc282'
+                  or pending.get('branch') != producer_branch or pending.get('checkpoint') != checkpoint
+                  or pending.get('source_input_count') != 13
+                  or pending.get('portable_source_inputs') != sc046_sources
+                  or pending.get('source_resources') != sc046_resources
+                  or pending.get('producer_sources', {}).get('immutableSourceInputs') != sc046_sources
+                  or pending.get('producer_sources', {}).get('actualMain') != '6ce6d49eafa8ca24bcefbeec717dd55b63abad66'
+                  or pending.get('producer_sources', {}).get('actualMainTree') != 'fbe51ee680b61f5404b680a64c9e3e2d225dc282'
+                  or pending.get('actual_latest_migration') != '20261015003736_ediel_sc046_newest_metering_duplicate_guard.sql'
+                  or pending.get('sql_sha256') != {'supabase/migrations/20261013141048_ediel_sc046_persistence_return_state_cb17b044.sql': '84602eca793c51180d838679e8019001bc0e9f1d82e2e6e8861ca2d404de5b34', 'supabase/migrations/20261014153206_gridex_data_quality_active_status_search_path.sql': '4153067538523442f6d040e28127b76335a3d4aea07479280d5dcd64a1e6b2c9', 'supabase/migrations/20261014211648_ediel_sc046_bound_newer_metering_correction.sql': '760b535d6b3e3d29cec87a4e19786b6713d47764e02d24a2c0cee848411e318b', 'supabase/migrations/20261015003736_ediel_sc046_newest_metering_duplicate_guard.sql': '42743daf26ae39e2191f5b6762d49754bd09e33acb0266328e5761d16f9d52ff'}):
+                  raise SystemExit('capture_sc046_v5_source_union_not_bound')
+              if (sc046_workflow.get('path') != sc046_workflow_path or sc046_workflow.get('mode') != '100644'
+                  or sc046_workflow.get('receipt') != 'ce80cdd3fb4be418ea54daebb596d798889442cd'
+                  or not re.fullmatch(r'[0-9a-f]{40}', sc046_workflow.get('blob', ''))
+                  or not re.fullmatch(r'[0-9a-f]{64}', sc046_workflow.get('sha256', ''))
+                  or pending.get('producer_sources', {}).get('ownedCaptureWorkflowInput') != sc046_workflow):
+                  raise SystemExit('capture_sc046_v5_owned_workflow_not_bound')
+              if (pending.get('supplemental_source_inputs') != sc046_unit_sources
+                  or pending.get('supplemental_source_resources') != sc046_unit_resources
+                  or pending.get('supplemental_source_receiving_neutral') != '8b087530be629e6bfcb6d976c4cd6486764470dc'
+                  or pending.get('producer_sources', {}).get('supplementalImmutableSourceInputs') != sc046_unit_sources):
+                  raise SystemExit('capture_sc046_v5_supplemental_unit_source_not_bound')
+          if sc046_v5 and (not primary or corroboration
+              or pending.get('input_epoch') != 'gridex-C2-SC046-GEN-20261015-v5'
+              or pending.get('prepared_source_branch') != 'codex/c2-gen-sc046-v5-prepared-source-20261015'
+              or pending.get('producer_stage') != 'SOURCE_FINAL_BINDING_COMPLETE_RUNTIME_GO_PENDING'
+              or pending.get('producer_only_writer') != 'codex-sc046-gen-v5-source-20261015'
+              or pending.get('source_loans', {}).get('corrected_newest_positive_technical_TWO_loan') != 6182085724
+              or hashlib.sha256(json.dumps(manifest.get('pending_sc046_capture_v3'), sort_keys=True, separators=(',', ':')).encode()).hexdigest() != 'e3e69b00863290e8c9e63831baef930448da05b8f46e276d45bdfc54c0219824'
+              or hashlib.sha256(json.dumps(manifest.get('pending_sc046_capture_v4'), sort_keys=True, separators=(',', ':')).encode()).hexdigest() != '2b2f93c0d19cc61dbb835a73db5e2e4dead92b257f9b11350a9fcc66f2fe2ed7'
+              or hashlib.sha256(json.dumps(manifest.get('capture'), sort_keys=True, separators=(',', ':')).encode()).hexdigest() != 'b190ef95681ba5cfe2bba8cf1b4fa999d414545b0607b5c4dd267caed47668a4'):
+              raise SystemExit('capture_sc046_v5_primary_history_or_stage_not_bound')
+          if sc046_v6:
+              # The original PRIMARY attests F5. Current v6 custody is independently required below.
+              def canonical_sha256(value):
+                  return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+              if (primary or not corroboration
+                  or {key: canonical_sha256(manifest.get(key)) for key in ['pending_sc046_capture_v2', 'pending_sc046_capture_v3', 'pending_sc046_capture_v4', 'pending_sc046_capture_v5']} != {'pending_sc046_capture_v2': '1a2b568c8ab34fb5bffdae3ab9f0f01a028f79ba981749669f924e2efdce96b0', 'pending_sc046_capture_v3': 'e3e69b00863290e8c9e63831baef930448da05b8f46e276d45bdfc54c0219824', 'pending_sc046_capture_v4': '2b2f93c0d19cc61dbb835a73db5e2e4dead92b257f9b11350a9fcc66f2fe2ed7', 'pending_sc046_capture_v5': 'deb9cfcfcd706d271c16324dc740b2ec8f1ab238c956a517ccf5165e6b63ea1f'}
+                  or canonical_sha256(manifest.get('capture')) != 'f30fb650fb462c7b2d749be46ddcb016651093d6ce99be1ec24b982a45c6e9c3'
+                  or pending.get('original_v5_primary_reuse_anchor') != {'qualification_sha256': 'c1efd7613641075defcb37d664d1877b2790ab3cd32ddab1e039cc4114164dda', 'source_head': 'dc8448455e5f89f21258b9234291c61a05203c9b', 'source_tree': '13b3ebd61064d5081438bc9823bcad83d3214464', 'input_epoch': 'gridex-C2-SC046-GEN-20261015-v5', 'producer_receipt': '644c96237b5a1f5ed3225a0e82b6a8a26c05901c', 'run': 38667819802, 'attempt': 1, 'job': 116203686210, 'artifact': 11942822701, 'archive_sha256': '658443a701aa2b0e1e4d9dc45cb11e66d52bb803594e8594a5c66c110917ffdf', 'receipt_sha256': '4ff363d493dec3d382cf8c364f5d1097a9b848509b2246cc2ea825075559dd73', 'capture_canonical_sha256': 'f30fb650fb462c7b2d749be46ddcb016651093d6ce99be1ec24b982a45c6e9c3', 'raw_outputs': {'database.types.ts': '8fbaf566c956192d9b64a2e504d764c7e8497b9261ac19a413479bb6c675f9f2', 'schema.sql': 'e19417ff12cc3b766592236eb04eb21ad983949af11408b3b495704fb84d658d', 'schema.fingerprint.json': 'be8958c9a27e65e1e0ea4c16a407f6def9501dc47ed3d3a8546bfc5e1f414e68'}, 'migration_directory_canonical_sha256': '70f114924c37d40426a6970db4c521ac51eadd0c4bc6c40ee3dbb0531565b9f7', 'applicability': 'UNCHANGED_F5_SQL_CODEGEN_ABI_ONLY;CURRENT_V6_FULL_TRACKED_GEN8_SOURCE17_AND_PRODUCER_SEPARATELY_VERIFIED'}):
+                  raise SystemExit('capture_sc046_v6_corroboration_anchor_not_bound')
+              sc046_sources = {**manifest['pending_sc046_capture_v5']['portable_source_inputs'], **{'scripts/ediel-at-z03h-z04h-supplier-native.test.ts': {'mode': '100644', 'blob': 'bb352c45ef942d22f9681f5f3c9b355361e05688', 'sha256': 'f4186b159eb5767d2b8b8aab99edd371cd1f5413e99b840407aaacfed0a9b617', 'receipt': '42a7af60db45ca8645699ce665232b6d4f0b68fe', 'source_head': '4d1fa75776ef50be219a300315f7a529ad470d66', 'source_tree': 'e66316b781d702cbf3a665f70eb0f529d800b4a2'}, 'scripts/helpers/nationalRescissionNative.ts': {'mode': '100644', 'blob': '1a86388d4eaa48678c185f44b483eb13e402963c', 'sha256': '3f9435960ad37c657c653b6e4572df71e56389b9fe7dc7713566cab399031c10', 'receipt': '42a7af60db45ca8645699ce665232b6d4f0b68fe', 'source_head': '4d1fa75776ef50be219a300315f7a529ad470d66', 'source_tree': 'e66316b781d702cbf3a665f70eb0f529d800b4a2'}}}
+              sc046_resources = {**manifest['pending_sc046_capture_v5']['source_resources'], **{'file-' + hashlib.sha256(path.encode()).hexdigest(): value['receipt'] for path, value in {'scripts/ediel-at-z03h-z04h-supplier-native.test.ts': {'mode': '100644', 'blob': 'bb352c45ef942d22f9681f5f3c9b355361e05688', 'sha256': 'f4186b159eb5767d2b8b8aab99edd371cd1f5413e99b840407aaacfed0a9b617', 'receipt': '42a7af60db45ca8645699ce665232b6d4f0b68fe', 'source_head': '4d1fa75776ef50be219a300315f7a529ad470d66', 'source_tree': 'e66316b781d702cbf3a665f70eb0f529d800b4a2'}, 'scripts/helpers/nationalRescissionNative.ts': {'mode': '100644', 'blob': '1a86388d4eaa48678c185f44b483eb13e402963c', 'sha256': '3f9435960ad37c657c653b6e4572df71e56389b9fe7dc7713566cab399031c10', 'receipt': '42a7af60db45ca8645699ce665232b6d4f0b68fe', 'source_head': '4d1fa75776ef50be219a300315f7a529ad470d66', 'source_tree': 'e66316b781d702cbf3a665f70eb0f529d800b4a2'}}.items()}}
+              sc046_workflow_path = '.github/workflows/staff-api-schema-capture.yml'
+              sc046_workflow = pending.get('owned_capture_workflow_input', {})
+              sc046_unit_sources = manifest['pending_sc046_capture_v5']['supplemental_source_inputs']
+              sc046_unit_resources = manifest['pending_sc046_capture_v5']['supplemental_source_resources']
+              sc046_foreign_sources = {'quality/audits/ediel-masterplan-v2/coverage.json': {'mode': '100644', 'blob': '937cda8de1c00d4b93ca09a652153262053232fe', 'sha256': 'd2bea375b9fc02fba5d4561b00018081a5ea98860ed60961032cfc486c48cb41'}, '.agent-memory/takeover-SC046-final-ledger-20261015-checkpoint.md': {'mode': '100644', 'blob': 'e6a0939d4d5668862e5f07d020fed31246756de2', 'sha256': 'd376dc72c44d13631193c7d74ba8715f1c5fadaa2409c2156fa2a46255e665f7'}}
+              sc046_foreign_resources = {'file-653b7f0389be4ef20e15b8af40cecb2db3f69452e4bdcc61ef41732c96272f89': 'f99cda54522f0832df332adde8d7d23f3108bf80', 'id-SC-046': '77404a96d91d55c0c55fc6929475ee474dba22e2'}
+              reuse_inputs = {'scripts/gridex-aud-003-clean-replay.sh': {'mode': '100644', 'sha256': 'f745017887d22ee19ebddf1ad40a926fdceadaa13a4dc29c20d6561c0f2b5f3a'}, 'scripts/migration-history-manifest.json': {'mode': '100644', 'sha256': '66a735464c298b3e5e534f7e27df889cb1b01280d55b48d449c4f195eed7de01'}, 'scripts/migration-history-manifest.additions.json': {'mode': '100644', 'sha256': '505193188987b57699f784eaace0cc57f135b792d7a2483c6a676168035d980b'}, 'scripts/migration-history-manifest.runtime.additions.json': {'mode': '100644', 'sha256': 'cb206ed9c2763a62a2287bdbae0297cb03f237ce77cd3ebb5192a07c160741b7'}, 'scripts/apply-supabase-types-nullability-overrides.cjs': {'mode': '100644', 'sha256': 'c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa'}, 'scripts/gridex-schema-snapshot.cjs': {'mode': '100644', 'sha256': '540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71'}, 'supabase/config.toml': {'mode': '100644', 'sha256': 'b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919'}, 'supabase/database.types.ts': {'mode': '100644', 'sha256': '8fbaf566c956192d9b64a2e504d764c7e8497b9261ac19a413479bb6c675f9f2'}, 'supabase/schema.sql': {'mode': '100644', 'sha256': 'e19417ff12cc3b766592236eb04eb21ad983949af11408b3b495704fb84d658d'}, 'supabase/schema.fingerprint.json': {'mode': '100644', 'sha256': 'be8958c9a27e65e1e0ea4c16a407f6def9501dc47ed3d3a8546bfc5e1f414e68'}}
+              if (pending.get('input_epoch') != 'gridex-C2-SC046-GEN-20261015-v6'
+                  or pending.get('input_union_status') != 'FROZEN_REVIEWED_COMPLETE'
+                  or pending.get('producer_stage') != 'SOURCE_FINAL_BINDING_COMPLETE_RUNTIME_GO_PENDING'
+                  or pending.get('producer_only_writer') != 'codex-sc046-gen-v6-corrobo-source-20261015'
+                  or pending.get('prepared_source_branch') != 'codex/c2-gen-sc046-v6-prepared-source-20261015'
+                  or pending.get('base') != '6ce6d49eafa8ca24bcefbeec717dd55b63abad66' or pending.get('base_tree') != 'fbe51ee680b61f5404b680a64c9e3e2d225dc282'
+                  or pending.get('branch') != producer_branch or pending.get('checkpoint') != checkpoint
+                  or pending.get('source_receiving_neutral') != 'ee73c634e5c6faae007a78fdcbbfdeb5d7b62e0a'
+                  or pending.get('source_input_count') != 15
+                  or pending.get('portable_source_inputs') != sc046_sources
+                  or pending.get('source_resources') != sc046_resources
+                  or pending.get('foreign_immutable_source_inputs') != sc046_foreign_sources
+                  or pending.get('foreign_source_resources') != sc046_foreign_resources
+                  or pending.get('unchanged_f5_sql_codegen_abi_inputs') != reuse_inputs
+                  or pending.get('source_loans', {}).get('combined_ROOT_carrier_positive_loan') != 6183593140
+                  or pending.get('sql_sha256') != manifest['pending_sc046_capture_v5']['sql_sha256']
+                  or pending.get('expected_schema_delta') != manifest['pending_sc046_capture_v5']['expected_schema_delta']
+                  or pending.get('actual_latest_migration') != '20261015003736_ediel_sc046_newest_metering_duplicate_guard.sql'
+                  or pending.get('producer_sources') != {'actualMain': pending['base'], 'actualMainTree': pending['base_tree'],
+                      'SC046ReceivingCarrier': {'head': '6b6f1e3aa6788442800b64f94fd3fa6f5197aaf5', 'tree': '3dd7e9193a819e453e4f2f368d915976e9a45467', 'orderedParents': ['f6b9d0d0e135acb6857480adf98fe2f543d8b2ad'], 'sourceNeutral': 'ee73c634e5c6faae007a78fdcbbfdeb5d7b62e0a'},
+                      'immutableSourceInputs': sc046_sources, 'ownedCaptureWorkflowInput': sc046_workflow,
+                      'supplementalImmutableSourceInputs': sc046_unit_sources,
+                      'foreignImmutableSourceInputs': sc046_foreign_sources, 'foreignSourceResources': sc046_foreign_resources,
+                      'originalV5PrimaryReuseAnchor': pending['original_v5_primary_reuse_anchor'],
+                      'unchangedF5SQLCodegenABIInputs': reuse_inputs}):
+                  raise SystemExit('capture_sc046_v6_source_union_not_bound')
+              if (sc046_workflow.get('path') != sc046_workflow_path or sc046_workflow.get('mode') != '100644'
+                  or sc046_workflow.get('receipt') != 'ce80cdd3fb4be418ea54daebb596d798889442cd'
+                  or not re.fullmatch(r'[0-9a-f]{40}', sc046_workflow.get('blob', ''))
+                  or not re.fullmatch(r'[0-9a-f]{64}', sc046_workflow.get('sha256', ''))):
+                  raise SystemExit('capture_sc046_v6_owned_workflow_not_bound')
+              if (pending.get('supplemental_source_inputs') != sc046_unit_sources
+                  or pending.get('supplemental_source_resources') != sc046_unit_resources
+                  or pending.get('supplemental_source_receiving_neutral') != '8b087530be629e6bfcb6d976c4cd6486764470dc'):
+                  raise SystemExit('capture_sc046_v6_supplemental_unit_source_not_bound')
+          def git(*args):
+              return subprocess.check_output(['git', *args])
+          def working(path):
+              mode = path.lstat().st_mode
+              if stat.S_ISLNK(mode):
+                  data, kind = os.fsencode(os.readlink(path)), '120000'
+              elif stat.S_ISREG(mode):
+                  data, kind = path.read_bytes(), '100755' if mode & 0o111 else '100644'
+              else:
+                  raise SystemExit('capture_nonregular_input: ' + str(path))
+              return {'mode': kind, 'sha256': hashlib.sha256(data).hexdigest()}
+          def directory(path):
+              return {p.relative_to(path).as_posix(): working(p)
+                      for p in sorted(path.rglob('*')) if not p.is_dir() or p.is_symlink()}
+          inputs = {}
+          sc031_blob_ids = {}
+          sc046_blob_ids = {}
+          for record in git('ls-tree', '-rz', '--full-tree', 'HEAD').split(b'\0'):
+              if not record:
+                  continue
+              meta, name = record.split(b'\t', 1)
+              mode, kind, oid = meta.decode().split()
+              path = os.fsdecode(name)
+              if kind != 'blob' or mode not in ('100644', '100755', '120000'):
+                  raise SystemExit('capture_unsupported_git_input: ' + path)
+              expected = {'mode': mode, 'sha256': hashlib.sha256(git('cat-file', 'blob', oid)).hexdigest()}
+              if working(pathlib.Path(path)) != expected:
+                  raise SystemExit('capture_git_input_mismatch: ' + path)
+              inputs[path] = expected
+              if sc031 and path in (native_path, native_workflow_path, native_config_path):
+                  sc031_blob_ids[path] = oid
+              if sc046 and path in set(sc046_sources) | set(sc046_unit_sources) | {sc046_workflow_path} | (set(sc046_foreign_sources) if sc046_v6 else set()):
+                  sc046_blob_ids[path] = oid
+          if sc031:
+              # Verify the coupled received source before any Docker or replay call.
+              if (inputs.get(native_path) != {'mode': native['mode'], 'sha256': native['sha256']}
+                  or sc031_blob_ids.get(native_path) != native['blob']
+                  or inputs.get(native_workflow_path) != {'mode': native_workflow['mode'], 'sha256': native_workflow['sha256']}
+                  or sc031_blob_ids.get(native_workflow_path) != native_workflow['blob']
+                  or inputs.get(native_config_path) != {'mode': '100644', 'sha256': native_workflow['config_sha256']}):
+                  raise SystemExit('capture_sc031_coupled_native_inputs_unqualified')
+          if sc046:
+              for path, expected in {**sc046_sources, sc046_workflow_path: sc046_workflow}.items():
+                  if (inputs.get(path) != {'mode': expected['mode'], 'sha256': expected['sha256']}
+                      or sc046_blob_ids.get(path) != expected['blob']):
+                      raise SystemExit('capture_sc046_tracked_source_mismatch: ' + path)
+              for path, expected in sc046_unit_sources.items():
+                  if (inputs.get(path) != {'mode': expected['mode'], 'sha256': expected['sha256']}
+                      or sc046_blob_ids.get(path) != expected['blob']):
+                      raise SystemExit('capture_sc046_supplemental_unit_tracked_mismatch')
+              # A supplemental mandatory SOURCE test dependency; canonical ten and their epoch remain unchanged.
+              unit_resource = next(iter(sc046_unit_resources))
+              unit_request = urllib.request.Request(
+                  'https://api.github.com/repos/' + os.environ['GITHUB_REPOSITORY'] + '/git/ref/tags/agent-claims/masterplan/' + unit_resource,
+                  headers={'Authorization': 'Bearer ' + os.environ['GH_TOKEN'],
+                           'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28'})
+              with urllib.request.urlopen(unit_request, timeout=30) as response:
+                  unit_current_ref = json.load(response)
+              if unit_current_ref.get('object', {}).get('sha') != sc046_unit_resources[unit_resource]:
+                  raise SystemExit('capture_sc046_supplemental_unit_custody_mismatch')
+          if sc046_v6:
+              for path, expected in sc046_foreign_sources.items():
+                  if (inputs.get(path) != {'mode': expected['mode'], 'sha256': expected['sha256']}
+                      or sc046_blob_ids.get(path) != expected['blob']):
+                      raise SystemExit('capture_sc046_v6_foreign_tracked_source_mismatch: ' + path)
+              if (any(inputs.get(path) != expected for path, expected in reuse_inputs.items())
+                  or canonical_sha256({path: value for path, value in directory(pathlib.Path('supabase/migrations')).items() if path.endswith('.sql')}) != pending['original_v5_primary_reuse_anchor']['migration_directory_canonical_sha256']):
+                  raise SystemExit('capture_sc046_v6_F5_SQL_codegen_ABI_reuse_unqualified')
+          if sc046_v3 or sc046_v4 or sc046_v5 or sc046_v6:
+              current_source_refs = {**sc046_resources, **sc046_unit_resources,
+                                     'slot-C2': 'ce80cdd3fb4be418ea54daebb596d798889442cd'}
+              current_source_refs.update({'file-' + hashlib.sha256(path.encode()).hexdigest(): 'ce80cdd3fb4be418ea54daebb596d798889442cd'
+                                         for path in ['scripts/migration-history-manifest.json', 'scripts/supabase-types-manifest.json',
+                                                      'supabase/database.types.ts', 'supabase/schema.fingerprint.json', 'supabase/schema.sql',
+                                                      '.github/workflows/staff-api-schema-capture.yml']})
+              if sc046_v6:
+                  current_source_refs.update(sc046_foreign_resources)
+              for resource, expected in sorted(current_source_refs.items()):
+                  request = urllib.request.Request(
+                      'https://api.github.com/repos/' + os.environ['GITHUB_REPOSITORY'] + '/git/ref/tags/agent-claims/masterplan/' + resource,
+                      headers={'Authorization': 'Bearer ' + os.environ['GH_TOKEN'], 'Accept': 'application/vnd.github+json',
+                               'X-GitHub-Api-Version': '2022-11-28'})
+                  with urllib.request.urlopen(request, timeout=30) as response:
+                      current_ref = json.load(response)
+                  if current_ref.get('object', {}).get('sha') != expected:
+                      raise SystemExit('capture_sc046_v3_current_source_custody_mismatch: ' + resource)
+          initial = subprocess.check_output(['docker', 'ps', '-aq'], text=True).splitlines()
+          if initial:
+              raise SystemExit('capture_initial_container_quiescence_unqualified')
+          custody = {'mode': 'ordinary_capture_or_corroboration', 'producer_checked': False}
+          if primary or sc046_v4 or sc046_v6:
+              import re
+              owner = 'codex-takeover-C2-GEN-joint-C3-20261013'
+              writer = 'ce80cdd3fb4be418ea54daebb596d798889442cd'
+              producer = pending.get('producer_receipt', '')
+              if not re.fullmatch(r'[0-9a-f]{40}', producer) or pending.get('owner') != owner or pending.get('custody_receipt') != writer:
+                  raise SystemExit('capture_primary_receipt_not_bound')
+              def api(endpoint):
+                  request = urllib.request.Request(
+                      'https://api.github.com/repos/' + os.environ['GITHUB_REPOSITORY'] + '/' + endpoint,
+                      headers={'Authorization': 'Bearer ' + os.environ['GH_TOKEN'],
+                               'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28'})
+                  with urllib.request.urlopen(request, timeout=30) as response:
+                      return json.load(response)
+              refs = {'slot-C2': writer, 'producer-gen': producer}
+              own_files = ['scripts/migration-history-manifest.json', 'scripts/supabase-types-manifest.json',
+                           'supabase/database.types.ts', 'supabase/schema.fingerprint.json', 'supabase/schema.sql',
+                           'scripts/ediel-at-z14vh-z15v-esco-native.test.ts',
+                           '.github/workflows/ediel-esco-z14vh-z15v-native.yml',
+                           '.github/workflows/staff-api-schema-capture.yml',
+                           '.agent-memory/takeover-C2-GEN-joint-C3-20261013-checkpoint.md']
+              if sc046:
+                  own_files = ['scripts/migration-history-manifest.json', 'scripts/supabase-types-manifest.json',
+                               'supabase/database.types.ts', 'supabase/schema.fingerprint.json', 'supabase/schema.sql',
+                               '.github/workflows/staff-api-schema-capture.yml']
+                  refs.update(sc046_resources)
+                  refs.update(sc046_unit_resources)
+                  if sc046_v6:
+                      refs.update(sc046_foreign_resources)
+              refs.update({'file-' + hashlib.sha256(path.encode()).hexdigest(): writer for path in own_files})
+              if sc031:
+                  source_receipts = {
+                      'lib/ediel/inboundCases.ts': '051ec7e48eb08c14a5a50f6faedc356a99e764d9',
+                      '__tests__/ediel-sc-031-ignored-ud-business-staging-root-20261013.test.ts': '6868ab5a9f7c2889840952812835360cabbdab74',
+                      '__tests__/ediel-sc-031-source-owned-business-projection-root-20261014.test.ts': '2da3c56acf7ffd82ed091e01145ae0b2a8e6151d',
+                      'scripts/ediel-prodat-object-batch-first-effect-sql-regression.mjs': '2da3c56acf7ffd82ed091e01145ae0b2a8e6151d',
+                      'scripts/ediel-sc031-source-owned-business-projection-sql-regression-root-20261014.mjs': '2da3c56acf7ffd82ed091e01145ae0b2a8e6151d',
+                      'supabase/migrations/20261014011520_ediel_sc031_source_owned_business_projection.sql': '2da3c56acf7ffd82ed091e01145ae0b2a8e6151d',
+                  }
+                  expected_source_resources = {'slot-C1': 'b971ef0cfa9724b02f4e0e3a985a4436e11a1f60'}
+                  expected_source_resources.update({'file-' + hashlib.sha256(path.encode()).hexdigest(): receipt
+                                                    for path, receipt in source_receipts.items()})
+                  source_resources = pending.get('source_resources', {})
+                  if source_resources != expected_source_resources:
+                      raise SystemExit('capture_sc031_source_resources_not_bound')
+                  if set(pending['portable_source_inputs']) != set(source_receipts) | {native_path}:
+                      raise SystemExit('capture_sc031_source_scope_not_bound')
+                  if any(pending['portable_source_inputs'][path].get('receipt') != receipt
+                         for path, receipt in source_receipts.items()):
+                      raise SystemExit('capture_sc031_source_receipts_not_bound')
+                  if pending.get('producer_sources', {}).get('ownedNativeWorkflowInput') != native_workflow:
+                      raise SystemExit('capture_sc031_owned_workflow_source_not_bound')
+                  refs.update(source_resources)
+              for path, expected in pending['portable_source_inputs'].items():
+                  if inputs[path]['sha256'] != expected['sha256'] or inputs[path]['mode'] != expected['mode']:
+                      raise SystemExit('capture_portable_source_mismatch: ' + path)
+                  refs['file-' + hashlib.sha256(path.encode()).hexdigest()] = expected['receipt']
+              for resource, expected in sorted(refs.items()):
+                  if api('git/ref/tags/agent-claims/masterplan/' + resource)['object']['sha'] != expected:
+                      raise SystemExit('capture_custody_mismatch: ' + resource)
+              commit = api('git/commits/' + producer)
+              receipt = json.loads(commit['message'])
+              if sc046_v6 and commit.get('sha') != producer:
+                  raise SystemExit('capture_sc046_v6_producer_object_not_bound')
+              base = pending['base']
+              required = ('protocol', 'packet', 'agent', 'branch', 'checkpoint', 'ids', 'files',
+                          'base', 'createdAt', 'nextAction', 'inputEpoch',
+                          'sources', 'preparedSourceHead', 'preparedSourceTree')
+              if any(key not in receipt for key in required):
+                  raise SystemExit('capture_primary_producer_receipt_incomplete')
+              from datetime import datetime
+              from uuid import UUID
+              UUID(receipt['packet'])
+              if datetime.fromisoformat(receipt['createdAt'].replace('Z', '+00:00')).tzinfo is None:
+                  raise SystemExit('capture_primary_producer_created_at_unqualified')
+              if (receipt.get('protocol') != 'masterplan-reservation-v1' or receipt.get('agent') != owner
+                  or receipt.get('inputEpoch') != pending['input_epoch'] or receipt.get('base') != base
+                  or receipt.get('branch') != producer_branch
+                  or receipt.get('checkpoint') != checkpoint
+                  or not isinstance(receipt.get('nextAction'), str) or not receipt['nextAction'].strip()
+                  or not isinstance(receipt.get('ids'), list) or not isinstance(receipt.get('files'), list)
+                  or [parent['sha'] for parent in commit['parents']] != [base]
+                  or commit['tree']['sha'] != api('git/commits/' + base)['tree']['sha']):
+                  raise SystemExit('capture_primary_producer_protocol_mismatch')
+              if sc046 and (receipt.get('epoch') != 'gridex-five-agent-20261012' or receipt.get('slot') != 'C2'
+                  or receipt.get('retainedWriterReceipt') != writer
+                  or set(receipt['files']) != set(own_files) | {checkpoint}):
+                  raise SystemExit('capture_sc046_producer_scope_not_bound')
+              if (sc046_v3 or sc046_v4 or sc046_v5 or sc046_v6) and (not isinstance(pending.get('producer_only_writer'), str)
+                  or not pending['producer_only_writer'].strip()
+                  or receipt.get('onlyWriter') != pending['producer_only_writer']):
+                  raise SystemExit('capture_sc046_v3_producer_writer_not_bound')
+              if (sc046_v4 or sc046_v5 or sc046_v6) and (api('git/ref/heads/main').get('object', {}).get('sha') != base
+                  or api('git/commits/' + base).get('tree', {}).get('sha') != pending.get('base_tree')
+                  or receipt.get('preparedSourceBranch') != ('codex/c2-gen-sc046-v6-prepared-source-20261015' if sc046_v6 else ('codex/c2-gen-sc046-v5-prepared-source-20261015' if sc046_v5 else 'codex/c2-gen-sc046-v4-prepared-source-20261014'))
+                  or pending.get('prepared_source_branch') != receipt.get('preparedSourceBranch')
+                  or receipt.get('ids') != [] or len(receipt['files']) != len(set(receipt['files']))):
+                  raise SystemExit('capture_sc046_v4_current_base_or_prepared_branch_not_bound')
+              if (receipt['sources'] != pending['producer_sources']
+                  or pending['portable_source_inputs'] != receipt['sources']['immutableSourceInputs']):
+                  raise SystemExit('capture_primary_producer_sources_mismatch')
+              prepared_head, prepared_tree = receipt['preparedSourceHead'], receipt['preparedSourceTree']
+              if not all(isinstance(value, str) and re.fullmatch(r'[0-9a-f]{40}', value) for value in (prepared_head, prepared_tree)):
+                  raise SystemExit('capture_primary_prepared_source_not_bound')
+              prepared_commit = api('git/commits/' + prepared_head)
+              if prepared_commit.get('sha') != prepared_head or prepared_commit.get('tree', {}).get('sha') != prepared_tree:
+                  raise SystemExit('capture_primary_prepared_source_not_bound')
+              if (sc046_v4 or sc046_v5 or sc046_v6) and api('git/ref/heads/' + receipt['preparedSourceBranch']).get('object', {}).get('sha') != prepared_head:
+                  raise SystemExit('capture_sc046_v4_prepared_source_branch_head_not_bound')
+              if sc046_v6 and [parent.get('sha') for parent in prepared_commit.get('parents', [])] != [pending['producer_sources']['SC046ReceivingCarrier']['head']]:
+                  raise SystemExit('capture_sc046_v6_prepared_source_parent_not_bound')
+              source_head = os.environ['CAPTURE_CHECKOUT_SHA']
+              comparison = api('compare/' + base + '...' + source_head)
+              expected_compare_url = 'https://api.github.com/repos/' + os.environ['GITHUB_REPOSITORY'] + '/compare/' + base + '...' + source_head
+              if (comparison.get('status') not in ('ahead', 'identical')
+                  or comparison.get('base_commit', {}).get('sha') != base
+                  or comparison.get('merge_base_commit', {}).get('sha') != base
+                  or comparison.get('url') != expected_compare_url
+                  or (comparison['status'] == 'identical' and source_head != base)):
+                  raise SystemExit('capture_primary_source_ancestry_unqualified')
+              binding = api('compare/' + prepared_head + '...' + source_head)
+              expected_binding_url = 'https://api.github.com/repos/' + os.environ['GITHUB_REPOSITORY'] + '/compare/' + prepared_head + '...' + source_head
+              allowed_binding_paths = {'scripts/supabase-types-manifest.json', checkpoint}
+              if (binding.get('status') != 'ahead'
+                  or (sc046_v6 and len(binding.get('files', [])) != 2) or binding.get('base_commit', {}).get('sha') != prepared_head
+                  or binding.get('merge_base_commit', {}).get('sha') != prepared_head
+                  or binding.get('url') != expected_binding_url
+                  or {file['filename'] for file in binding.get('files', [])} != allowed_binding_paths
+                  or any(file.get('status') != 'modified' for file in binding.get('files', []))):
+                  raise SystemExit('capture_primary_final_binding_scope_unqualified')
+              if sc046_v4 or sc046_v5 or sc046_v6:
+                  source_commit = api('git/commits/' + source_head)
+                  if (source_commit.get('sha') != source_head
+                      or source_commit.get('tree', {}).get('sha') != os.environ['CAPTURE_CHECKOUT_TREE']
+                      or [parent['sha'] for parent in source_commit.get('parents', [])] != [prepared_head]):
+                      raise SystemExit('capture_sc046_v4_final_source_parent_tree_not_bound')
+              custody = {'mode': 'owned_corroboration' if (sc046_v4 or sc046_v6) else 'owned_primary', 'agent': owner, 'writer_receipt': writer,
+                         'producer_receipt': producer, 'input_epoch': pending['input_epoch'],
+                         'producer_checked': True, 'refs_get_match': refs,
+                         'prepared_source_head': prepared_head, 'prepared_source_tree': prepared_tree,
+                         'producer_sources': receipt['sources'],
+                         **({'original_v5_primary_reuse_anchor': pending['original_v5_primary_reuse_anchor'],
+                             'prepared_source_branch': receipt['preparedSourceBranch']} if sc046_v6 else {}),
+                         **({'original_v3_primary_reuse_anchor': pending['original_v3_primary_reuse_anchor'],
+                             'prepared_source_branch': receipt['preparedSourceBranch']} if sc046_v4 else {})}
+          state = {'epoch_attestation_enabled': True, 'checkout_sha': os.environ['CAPTURE_CHECKOUT_SHA'],
+                   'checkout_tree': os.environ['CAPTURE_CHECKOUT_TREE'], 'tracked_inputs': inputs,
+                   'migration_directory': directory(pathlib.Path('supabase/migrations')),
+                   'custody': custody, 'runner': {'docker_driver': subprocess.check_output(
+                       ['docker', 'info', '--format', '{{.Driver}}'], text=True).strip(),
+                       'free_bytes_before_replay': shutil.disk_usage(os.environ['RUNNER_TEMP']).free,
+                       'initial_container_ids': initial}}
+          if sc031:
+              state['sc031_native_input_binding'] = {
+                  'native': native, 'owned_workflow': native_workflow,
+                  'config': {'path': native_config_path, **inputs[native_config_path]},
+                  'tracked_blob_ids': sc031_blob_ids,
+                  'verification': 'EXACT_TRACKED_MODES_BLOBS_AND_SHA256_BEFORE_REPLAY',
+              }
+          if sc046:
+              state['sc046_source_input_binding'] = {
+                  'source_receiving_neutral': pending['source_receiving_neutral'],
+                  'source_inputs': sc046_sources, 'source_resources': sc046_resources,
+                  'owned_workflow': sc046_workflow, 'tracked_blob_ids': sc046_blob_ids,
+                  'verification': ('EXACT_FIFTEEN_CANONICAL_PLUS_SEPARATE_UNIT_OWNED_WORKFLOW_AND_FOREIGN_ROOT_INPUTS' if sc046_v6 else
+                                    'EXACT_THIRTEEN_CANONICAL_INPUTS_PLUS_SUPPLEMENTAL_UNIT_CURRENT_RECEIPTS' if sc046_v5 else
+                                    'EXACT_ELEVEN_CANONICAL_INPUTS_PLUS_SUPPLEMENTAL_UNIT_CURRENT_RECEIPTS' if (sc046_v3 or sc046_v4) else
+                                    'EXACT_TEN_CANONICAL_INPUTS_PLUS_SUPPLEMENTAL_UNIT_MODES_BLOBS_SHA256_AND_SOURCE_RECEIPTS'),
+                  'canonical_input_count': len(sc046_sources),
+                  **({'foreign_immutable_source_inputs': sc046_foreign_sources,
+                      'foreign_source_resources': sc046_foreign_resources} if sc046_v6 else {}),
+                  'supplemental_source_inputs': sc046_unit_sources,
+                  'supplemental_source_resources': sc046_unit_resources,
+                  'supplemental_receiving_neutral': pending['supplemental_source_receiving_neutral'],
+                  'supplemental_current_ref_get_match': unit_current_ref['object']['sha'],
+                  'current_receipts_checked': True if (sc046_v3 or sc046_v4 or sc046_v5 or sc046_v6) else custody['producer_checked'],
+                  **({'current_source_refs_get_match': current_source_refs, 'prior_v2_source_epoch': 'gridex-C2-SC046-GEN-20261014-v2'} if (sc046_v3 or sc046_v4 or sc046_v5 or sc046_v6) else {}),
+              }
+          pathlib.Path(os.environ['CAPTURE_INPUT_STATE']).write_text(json.dumps(state, indent=2) + '\n')
+          print('Frozen exact capture source and measured runner; primary custody verified when applicable.')
+          PY_FREEZE
           echo 'Running the existing local clean replay; raw output stays on the disposable runner.'
           # Do not upload replay/status output: startup output can contain local
           # credentials. Source the exact owner script so its EXIT trap keeps
           # the database alive until capture finishes, then stops/restores it.
           source scripts/gridex-aud-003-clean-replay.sh > "$RUNNER_TEMP/staff-schema-capture-replay.log" 2>&1
           CAPTURE_DB_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+          CAPTURE_DB_URL="$CAPTURE_DB_URL" python3 - <<'PY_EMPTY'
+          import json, os, pathlib, subprocess
+
+          path = pathlib.Path(os.environ['CAPTURE_INPUT_STATE'])
+          state = json.loads(path.read_text())
+          if state['epoch_attestation_enabled']:
+              count = subprocess.check_output([
+                  'psql', os.environ['CAPTURE_DB_URL'], '-XAtq', '-v', 'ON_ERROR_STOP=1',
+                  '-c', 'SELECT count(*) FROM public.user_permission_overrides;'], text=True).strip()
+              if count != '0':
+                  raise SystemExit('capture_atomic_canonical_empty_input_unqualified')
+              state['atomic_canonical_input'] = {
+                  'relation': 'public.user_permission_overrides', 'row_count': 0,
+                  'measurement_phase': 'AFTER_CANONICAL_REPLAY_BEFORE_GEN',
+                  'approved_scope': 'COMPLETE_CANONICAL_EMPTY_ISOLATED_INPUT_ONLY',
+                  'populated_partial_legacy_upgrade': 'NOT_QUALIFIED_P2_OPEN'}
+              if os.environ['SOURCE_HEAD_REF'] in ('codex/c2-gen-sc046-main573-20261014', 'codex/c2-gen-sc046-v3-main6ce6-20261014'):
+                  # Frozen 890a checks live before/after equality but emits no NOTICE.
+                  # This is an actual after-only catalog query in the same existing replay.
+                  catalog_text = subprocess.check_output([
+                      'psql', os.environ['CAPTURE_DB_URL'], '-XAtq', '-v', 'ON_ERROR_STOP=1', '-c',
+                      "SELECT jsonb_build_object('namespace', n.nspname, 'metadata', to_jsonb(p)-'prosrc', "
+                      "'body_sha256', encode(sha256(convert_to(p.prosrc,'UTF8')),'hex'))::text "
+                      "FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace "
+                      "WHERE p.oid='public.gridex_persist_utilts_consumption_v1(uuid,text,uuid,text,text,jsonb,uuid)'::regprocedure;"
+                  ], text=True).strip()
+                  try:
+                      catalog = json.loads(catalog_text)
+                      metadata = catalog['metadata']
+                      if (catalog['namespace'] != 'public' or catalog['body_sha256'] != '4e61080dc64e5aa748519bcbc563d0bf77a29e49b64a5f8a6e06aa218680a21f'
+                          or metadata['proname'] != 'gridex_persist_utilts_consumption_v1'
+                          or metadata['pronargs'] != 7
+                          or metadata['proargtypes'] != ['2950', '25', '2950', '25', '25', '3802', '2950']
+                          or metadata['prorettype'] != '3802' or metadata['prokind'] != 'f'
+                          or metadata['prosecdef'] is not True or metadata['proconfig'] != ['search_path=pg_catalog']):
+                          raise ValueError('catalog mismatch')
+                  except (ValueError, KeyError, TypeError):
+                      raise SystemExit('capture_sc046_catalog_after_unqualified') from None
+                  state['sc046_catalog_after'] = {
+                      'catalog': catalog, 'postgres_jsonb_text': catalog_text,
+                      'measurement_phase': 'AFTER_SUCCESSFUL_CANONICAL_REPLAY_BEFORE_GEN',
+                      'before_snapshot': 'NOT_EMITTED_BY_FROZEN_MIGRATION',
+                  }
+              if os.environ['SOURCE_HEAD_REF'] == 'codex/c2-gen-sc046-v3-main6ce6-20261014':
+                  correction_text = subprocess.check_output([
+                      'psql', os.environ['CAPTURE_DB_URL'], '-XAtq', '-v', 'ON_ERROR_STOP=1', '-c',
+                      "SELECT jsonb_build_object('namespace', n.nspname, 'metadata', to_jsonb(p)-'prosrc', "
+                      "'body_sha256', encode(sha256(convert_to(p.prosrc,'UTF8')),'hex'), "
+                      "'return_type_namespace', rt.nspname, 'return_type_name', t.typname)::text "
+                      "FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace "
+                      "JOIN pg_type t ON t.oid=p.prorettype JOIN pg_namespace rt ON rt.oid=t.typnamespace "
+                      "WHERE p.oid='public.gridex_consume_utilts_metering_v1(uuid,uuid,text,integer,uuid,jsonb)'::regprocedure;"
+                  ], text=True).strip()
+                  try:
+                      correction = json.loads(correction_text)
+                      metadata = correction['metadata']
+                      if (correction['namespace'] != 'public'
+                          or correction['body_sha256'] != 'd0bafd57804b2fb416927807856590fba46d92fa7d322e1a9a2afb582d7af1ca'
+                          or correction['return_type_namespace'] != 'public' or correction['return_type_name'] != 'metering_values'
+                          or metadata['proname'] != 'gridex_consume_utilts_metering_v1' or metadata['pronargs'] != 6
+                          or metadata['proargtypes'] != ['2950', '2950', '25', '23', '2950', '3802']
+                          or metadata['prokind'] != 'f' or metadata['prosecdef'] is not True
+                          or metadata['proconfig'] != ['search_path=pg_catalog, public, extensions', 'TimeZone=UTC']):
+                          raise ValueError('correction catalog mismatch')
+                  except (ValueError, KeyError, TypeError):
+                      raise SystemExit('capture_sc046_v3_correction_catalog_after_unqualified') from None
+                  state['sc046_v3_correction_catalog_after'] = {
+                      'catalog': correction, 'postgres_jsonb_text': correction_text,
+                      'measurement_phase': 'AFTER_SUCCESSFUL_CANONICAL_REPLAY_BEFORE_GEN',
+                      'before_snapshot': 'NOT_EMITTED_BY_FROZEN_MIGRATION'}
+              if (os.environ['SOURCE_HEAD_REF'] == 'codex/c2-gen-sc046-v3-main6ce6-20261014'
+                  and json.loads(pathlib.Path('scripts/supabase-types-manifest.json').read_text()).get('active_sc046_input_epoch') in ('gridex-C2-SC046-GEN-20261015-v5', 'gridex-C2-SC046-GEN-20261015-v6')):
+                  atomic_text = subprocess.check_output(['psql', os.environ['CAPTURE_DB_URL'], '-XAtq', '-v', 'ON_ERROR_STOP=1', '-c', "SELECT jsonb_build_object('namespace',n.nspname,'metadata',to_jsonb(p)-'prosrc','owner_role',pg_get_userbyid(p.proowner),'body_sha256',encode(sha256(convert_to(p.prosrc,'UTF8')),'hex'),'return_type_namespace',rt.nspname,'return_type_name',t.typname,'legacy_index',(SELECT jsonb_build_object('pg_index',to_jsonb(i),'pg_class',to_jsonb(c),'definition',pg_get_indexdef(i.indexrelid)) FROM pg_index i JOIN pg_class c ON c.oid=i.indexrelid WHERE i.indexrelid='public.ux_metering_values_company_ediel_duplicate_guard'::regclass),'helper_body_sha256',jsonb_build_object('consumer',(SELECT encode(sha256(convert_to(prosrc,'UTF8')),'hex') FROM pg_proc WHERE oid='public.gridex_consume_utilts_metering_v1(uuid,uuid,text,integer,uuid,jsonb)'::regprocedure),'postcheck',(SELECT encode(sha256(convert_to(prosrc,'UTF8')),'hex') FROM pg_proc WHERE oid='gridex_utilts_binding.check_metering_result_v1(public.metering_values,jsonb,text)'::regprocedure)))::text FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace JOIN pg_type t ON t.oid=p.prorettype JOIN pg_namespace rt ON rt.oid=t.typnamespace WHERE p.oid='public.gridex_ingest_metering_value_atomic(jsonb)'::regprocedure;"], text=True).strip()
+                  try:
+                      atomic = json.loads(atomic_text)
+                      meta = atomic['metadata']
+                      index = atomic['legacy_index']
+                      if (atomic['namespace'] != 'public' or atomic['owner_role'] != 'postgres'
+                          or atomic['body_sha256'] != 'd8422ac157884c54244bd295a73caf2c3263b92fffbbbec64cc3460fef1b7cf9'
+                          or atomic['return_type_namespace'] != 'public' or atomic['return_type_name'] != 'metering_values'
+                          or meta['proname'] != 'gridex_ingest_metering_value_atomic' or meta['pronargs'] != 1
+                          or meta['proargtypes'] != ['3802'] or meta['proargnames'] != ['p_payload']
+                          or meta['pronargdefaults'] != 0 or meta['proallargtypes'] is not None or meta['proargmodes'] is not None
+                          or meta['prokind'] != 'f' or meta['prosecdef'] is not True or meta['proretset'] is not False
+                          or meta['proconfig'] != ['search_path=public']
+                          or sorted(meta['proacl']) != ['postgres=X/postgres', 'service_role=X/postgres']
+                          or index['definition'] != "CREATE UNIQUE INDEX ux_metering_values_company_ediel_duplicate_guard ON public.metering_values USING btree (company_id, metering_point_id, COALESCE(product_code, ''::text), COALESCE(register_code, ''::text), COALESCE(meter_number, ''::text), period_start, period_end, COALESCE(reading_type, ''::text), COALESCE(source_transaction_id, ''::text)) WHERE ((company_id IS NOT NULL) AND (metering_point_id IS NOT NULL) AND (period_start IS NOT NULL) AND (period_end IS NOT NULL))"
+                          or not all(index['pg_index'][key] is True for key in ('indisunique', 'indisvalid', 'indisready'))
+                          or atomic['helper_body_sha256'] != {'consumer': 'd0bafd57804b2fb416927807856590fba46d92fa7d322e1a9a2afb582d7af1ca', 'postcheck': 'e0dae3670484c486c544e67cb848f19335112c8034b820a6371e7ec0ae73e10a'}):
+                          raise ValueError('atomic catalog mismatch')
+                  except (ValueError, KeyError, TypeError):
+                      raise SystemExit('capture_sc046_v5_atomic_catalog_after_unqualified') from None
+                  state['sc046_v5_atomic_catalog_after'] = {'catalog': atomic, 'postgres_jsonb_text': atomic_text,
+                      'measurement_phase': 'AFTER_SUCCESSFUL_CANONICAL_REPLAY_BEFORE_GEN',
+                      'before_snapshot': 'NOT_EMITTED_BY_FROZEN_MIGRATION'}
+              path.write_text(json.dumps(state, indent=2) + '\n')
+          PY_EMPTY
           export CAPTURE_LATEST_MIGRATION_VERSION="$REPLAY_MIGRATION_VERSION"
           export CAPTURE_REPLAY_MIGRATIONS="$TIMESTAMP_EXEC"
           export CAPTURE_SERVER_VERSION="$(psql "$CAPTURE_DB_URL" -XAtq -v ON_ERROR_STOP=1 -c 'show server_version;')"
@@ -109,6 +744,7 @@ jobs:
           import hashlib
           import json
           import os
+          import re
           from pathlib import Path
           import subprocess
 
@@ -118,7 +754,10 @@ jobs:
           output = Path('staff-schema-capture')
           artifact_names = ['database.types.ts', 'schema.sql', 'schema.fingerprint.json']
           replay_migrations = [Path(line) for line in Path(os.environ['CAPTURE_REPLAY_MIGRATIONS']).read_text().splitlines() if line]
-          latest = max(replay_migrations, key=lambda path: path.name)
+          latest = max(
+              (path for path in replay_migrations if re.fullmatch(r'[0-9]{14}_.+\.sql', path.name)),
+              key=lambda path: path.name,
+          )
           assert latest.name[:14] == os.environ['CAPTURE_LATEST_MIGRATION_VERSION']
           fingerprint = json.loads((output / 'schema.fingerprint.json').read_text())
           receipt = {
@@ -153,9 +792,333 @@ jobs:
               'upgrade_parity': 'NOT_RUN',
               'required_gate': 'OPS hardening clean/upgrade replay and parity remain mandatory',
           }
+          if os.environ['SOURCE_HEAD_REF'] == 'codex/c2-gen-sc031-main795-20261014':
+              import re
+              migration = 'supabase/migrations/20261014011520_ediel_sc031_source_owned_business_projection.sql'
+              migration_sha256 = 'd4555df6177b1d702a4262fc0d305986e0e029bbf50124a285e5418e3beb3a89'
+              manifest = json.loads(Path('scripts/supabase-types-manifest.json').read_text())
+              state = json.loads(Path(os.environ['CAPTURE_INPUT_STATE']).read_text())
+              frozen_migration = state.get('tracked_inputs', {}).get(migration)
+              if (state.get('checkout_sha') != receipt['checkout_sha']
+                  or state.get('checkout_tree') != receipt['checkout_tree']
+                  or frozen_migration != {'mode': '100644', 'sha256': migration_sha256}
+                  or latest.name != Path(migration).name or digest(latest) != migration_sha256
+                  or receipt['latest_replay_migration'] != {'name': latest.name, 'sha256': migration_sha256}
+                  or manifest.get('pending_sc031_capture', {}).get('sql_sha256', {}).get(migration) != migration_sha256):
+                  raise SystemExit('capture_sc031_catalog_source_unqualified')
+              marker = 'SC031 catalog preservation '
+              lines = [line for line in (Path(os.environ['RUNNER_TEMP']) / 'staff-schema-capture-replay.log').read_text().splitlines()
+                       if marker in line]
+              if len(lines) != 1:
+                  raise SystemExit('capture_sc031_catalog_notice_count_unqualified')
+              message = lines[0].split(marker, 1)[1]
+              match = re.match(r'target=([0-9]+) metadataSHA256=([0-9a-f]{64}) before=', message)
+              if match is None:
+                  raise SystemExit('capture_sc031_catalog_metadata_unqualified')
+              target_oid, metadata_sha256 = match.groups()
+              text = message[match.end():]
+              try:
+                  decoder = json.JSONDecoder()
+                  before, end = decoder.raw_decode(text)
+                  before_text = text[:end]
+                  if not text[end:].startswith(' after='):
+                      raise ValueError('notice boundary')
+                  text = text[end + len(' after='):]
+                  after, end = decoder.raw_decode(text)
+                  after_text = text[:end]
+                  if text[end:].strip():
+                      raise ValueError('notice suffix')
+              except (ValueError, TypeError):
+                  raise SystemExit('capture_sc031_catalog_metadata_unqualified') from None
+              properties = {'oid', 'proacl', 'probin', 'procost', 'prokind', 'prolang', 'proname', 'prorows',
+                            'pronargs', 'proowner', 'proconfig', 'proretset', 'prosecdef', 'prorettype', 'prosqlbody',
+                            'prosupport', 'proargmodes', 'proargnames', 'proargtypes', 'proisstrict', 'proparallel',
+                            'protrftypes', 'provariadic', 'provolatile', 'proleakproof', 'pronamespace',
+                            'proallargtypes', 'proargdefaults', 'pronargdefaults'}
+              if (not isinstance(before, dict) or not isinstance(after, dict) or set(before) != properties
+                  or before != after or before_text != after_text
+                  or hashlib.sha256(before_text.encode()).hexdigest() != metadata_sha256
+                  or hashlib.sha256(after_text.encode()).hexdigest() != metadata_sha256
+                  or str(before['oid']) != target_oid or before['proname'] != 'require_wire_projection_v1'
+                  or before['pronargs'] != 5 or before['proargtypes'] != ['25', '3802', '3802', '25', '2950']
+                  or before['prorettype'] != '2278' or before['prosecdef'] is not False
+                  or before['proconfig'] != ['search_path=pg_catalog'] or before['prokind'] != 'f'):
+                  raise SystemExit('capture_sc031_catalog_metadata_unqualified')
+              receipt['sc031_catalog_preservation'] = {
+                  'target': 'gridex_prodat_object_batch.require_wire_projection_v1(text,jsonb,jsonb,text,uuid)',
+                  'target_oid': target_oid, 'metadata_sha256': metadata_sha256,
+                  'before_postgres_jsonb_text': before_text, 'after_postgres_jsonb_text': after_text,
+                  'before': before, 'after': after, 'metadata_property_count': len(properties),
+                  'excluded_intended_property': 'prosrc', 'same_replay_before_after_equal': True,
+                  'migration': migration, 'migration_sha256': migration_sha256,
+                  'migration_input_binding': {
+                      'frozen_original': {'path': migration, **frozen_migration},
+                      'actual_replay': {'path': str(latest), **receipt['latest_replay_migration']},
+                      'checkout_sha': state['checkout_sha'], 'checkout_tree': state['checkout_tree'],
+                  },
+                  'notice_utf8_sha256': hashlib.sha256(lines[0].encode()).hexdigest(),
+                  'measurement_phase': 'ACTUAL_CANONICAL_MIGRATION_REPLAY',
+                  'digest_format': 'EXACT_POSTGRESQL_JSONB_TEXT; not Python JSON canonicalization',
+              }
+          if os.environ['SOURCE_HEAD_REF'] in ('codex/c2-gen-sc046-main573-20261014', 'codex/c2-gen-sc046-v3-main6ce6-20261014'):
+              migration = 'supabase/migrations/20261013141048_ediel_sc046_persistence_return_state_cb17b044.sql'
+              migration_sha256 = '84602eca793c51180d838679e8019001bc0e9f1d82e2e6e8861ca2d404de5b34'
+              manifest = json.loads(Path('scripts/supabase-types-manifest.json').read_text())
+              sc046_receipt_v3 = os.environ['SOURCE_HEAD_REF'] == 'codex/c2-gen-sc046-v3-main6ce6-20261014'
+              pending_receipt = manifest.get('pending_sc046_capture_v6' if manifest.get('active_sc046_input_epoch') == 'gridex-C2-SC046-GEN-20261015-v6' else 'pending_sc046_capture_v5' if manifest.get('active_sc046_input_epoch') in ('gridex-C2-SC046-GEN-20261015-v5', 'gridex-C2-SC046-GEN-20261015-v6') else ('pending_sc046_capture_v4' if sc046_receipt_v3 and manifest.get('active_sc046_input_epoch') == 'gridex-C2-SC046-GEN-20261014-v4' else ('pending_sc046_capture_v3' if sc046_receipt_v3 else 'pending_sc046_capture_v2')), {})
+              state = json.loads(Path(os.environ['CAPTURE_INPUT_STATE']).read_text())
+              frozen = state.get('tracked_inputs', {}).get(migration)
+              matches = [path for path in replay_migrations if path.name == Path(migration).name]
+              if (state.get('checkout_sha') != receipt['checkout_sha'] or state.get('checkout_tree') != receipt['checkout_tree']
+                  or frozen != {'mode': '100644', 'sha256': migration_sha256}
+                  or pending_receipt.get('sql_sha256', {}).get(migration) != migration_sha256
+                  or len(matches) != 1 or digest(matches[0]) != migration_sha256):
+                  raise SystemExit('capture_sc046_replay_source_unqualified')
+              marker = 'CREATE FUNCTION public.gridex_persist_utilts_consumption_v1('
+              schema = (output / 'schema.sql').read_text()
+              if schema.count(marker) != 1:
+                  raise SystemExit('capture_sc046_schema_definition_unqualified')
+              tail = schema[schema.index(marker):]
+              import re
+              dollar = re.search(r'\bAS (\$\$|\$_\$)', tail)
+              if dollar is None:
+                  raise SystemExit('capture_sc046_schema_definition_unqualified')
+              end = tail.find(dollar[1] + ';', dollar.end())
+              definition = tail[:end + len(dollar[1]) + 1] if end >= 0 else ''
+              if hashlib.sha256(definition.encode()).hexdigest() != '4bc75fd84c537507ee46f38d799499e62fcdac966516b3cee705d2f157f66835':
+                  raise SystemExit('capture_sc046_schema_definition_unqualified')
+              catalog_after = state.get('sc046_catalog_after', {})
+              if (catalog_after.get('catalog', {}).get('body_sha256') != '4e61080dc64e5aa748519bcbc563d0bf77a29e49b64a5f8a6e06aa218680a21f'
+                  or catalog_after.get('before_snapshot') != 'NOT_EMITTED_BY_FROZEN_MIGRATION'):
+                  raise SystemExit('capture_sc046_catalog_after_unqualified')
+              # The new DQ forward is the actual tail; the SC046 wrapper remains an older pinned input.
+              dependency = 'supabase/migrations/20261014153206_gridex_data_quality_active_status_search_path.sql'
+              dependency_sha256 = '4153067538523442f6d040e28127b76335a3d4aea07479280d5dcd64a1e6b2c9'
+              dependency_matches = [path for path in replay_migrations if path.name == Path(dependency).name]
+              dependency_frozen = state.get('tracked_inputs', {}).get(dependency)
+              if (dependency_frozen != {'mode': '100644', 'sha256': dependency_sha256}
+                  or pending_receipt.get('sql_sha256', {}).get(dependency) != dependency_sha256
+                  or (not sc046_receipt_v3 and pending_receipt.get('actual_latest_migration') != Path(dependency).name)
+                  or (not sc046_receipt_v3 and receipt['latest_replay_migration'] != {'name': Path(dependency).name, 'sha256': dependency_sha256})
+                  or len(dependency_matches) != 1 or digest(dependency_matches[0]) != dependency_sha256):
+                  raise SystemExit('capture_sc046_dependency_replay_source_unqualified')
+              receipt['sc046_dependency_migration'] = {
+                  'migration': dependency, 'migration_sha256': dependency_sha256,
+                  'frozen_original': {'path': dependency, **dependency_frozen},
+                  'actual_replay': {'path': str(dependency_matches[0]), 'sha256': digest(dependency_matches[0])},
+                  'guard_execution': 'SUCCESSFUL_EXACT_CANONICAL_REPLAY_OF_FROZEN_PROCONFIG_ONLY_PRESERVATION_GUARD',
+                  'before_snapshot': 'NOT_EMITTED_BY_FROZEN_MIGRATION',
+              }
+              receipt['sc046_catalog_preservation'] = {
+                  'target': 'public.gridex_persist_utilts_consumption_v1(uuid,text,uuid,text,text,jsonb,uuid)',
+                  'migration': migration, 'migration_sha256': migration_sha256,
+                  'migration_input_binding': {'frozen_original': {'path': migration, **frozen},
+                                              'actual_replay': {'path': str(matches[0]), 'sha256': digest(matches[0])}},
+                  'guard_execution': 'SUCCESSFUL_EXACT_CANONICAL_REPLAY_OF_FROZEN_BEFORE_AFTER_METADATA_AND_BODY_GUARDS',
+                  'before_snapshot': 'NOT_EMITTED_BY_FROZEN_MIGRATION',
+                  'catalog_after': catalog_after, 'schema_definition_sha256': hashlib.sha256(definition.encode()).hexdigest(),
+                  'catalog_after_postgres_text_sha256': hashlib.sha256(catalog_after['postgres_jsonb_text'].encode()).hexdigest(),
+                  'latest_replay_migration_role': 'ACTUAL_MAXIMUM; SC046_OLDER_INPUT_BOUND_SEPARATELY',
+              }
+          if os.environ['SOURCE_HEAD_REF'] == 'codex/c2-gen-sc046-v3-main6ce6-20261014':
+              migration = 'supabase/migrations/20261014211648_ediel_sc046_bound_newer_metering_correction.sql'
+              expected_sha = '760b535d6b3e3d29cec87a4e19786b6713d47764e02d24a2c0cee848411e318b'
+              pending_v3 = manifest.get('pending_sc046_capture_v6' if manifest.get('active_sc046_input_epoch') == 'gridex-C2-SC046-GEN-20261015-v6' else 'pending_sc046_capture_v5' if manifest.get('active_sc046_input_epoch') in ('gridex-C2-SC046-GEN-20261015-v5', 'gridex-C2-SC046-GEN-20261015-v6') else ('pending_sc046_capture_v4' if manifest.get('active_sc046_input_epoch') == 'gridex-C2-SC046-GEN-20261014-v4' else 'pending_sc046_capture_v3'), {})
+              frozen = state.get('tracked_inputs', {}).get(migration)
+              matches = [path for path in replay_migrations if path.name == Path(migration).name]
+              if (frozen != {'mode': '100644', 'sha256': expected_sha}
+                  or pending_v3.get('sql_sha256', {}).get(migration) != expected_sha
+                  or (manifest.get('active_sc046_input_epoch') not in ('gridex-C2-SC046-GEN-20261015-v5', 'gridex-C2-SC046-GEN-20261015-v6') and pending_v3.get('actual_latest_migration') != Path(migration).name)
+                  or (manifest.get('active_sc046_input_epoch') not in ('gridex-C2-SC046-GEN-20261015-v5', 'gridex-C2-SC046-GEN-20261015-v6') and receipt['latest_replay_migration'] != {'name': Path(migration).name, 'sha256': expected_sha})
+                  or len(matches) != 1 or digest(matches[0]) != expected_sha):
+                  raise SystemExit('capture_sc046_v3_correction_replay_source_unqualified')
+              marker = 'CREATE FUNCTION public.gridex_consume_utilts_metering_v1('
+              schema = (output / 'schema.sql').read_text()
+              if schema.count(marker) != 1:
+                  raise SystemExit('capture_sc046_v3_correction_schema_definition_unqualified')
+              tail = schema[schema.index(marker):]
+              dollar = re.search(r'\bAS (\$\$|\$_\$)', tail)
+              if dollar is None:
+                  raise SystemExit('capture_sc046_v3_correction_schema_definition_unqualified')
+              end = tail.find(dollar[1] + ';', dollar.end())
+              definition = tail[:end + len(dollar[1]) + 1] if end >= 0 else ''
+              if hashlib.sha256(definition.encode()).hexdigest() != '3d26267b755e2eee344ded0f1b66bb51b5ee5eef572b08f6db7ae3edeff8c22e':
+                  raise SystemExit('capture_sc046_v3_correction_schema_definition_unqualified')
+              after = state.get('sc046_v3_correction_catalog_after', {})
+              if (after.get('catalog', {}).get('body_sha256') != 'd0bafd57804b2fb416927807856590fba46d92fa7d322e1a9a2afb582d7af1ca'
+                  or after.get('before_snapshot') != 'NOT_EMITTED_BY_FROZEN_MIGRATION'):
+                  raise SystemExit('capture_sc046_v3_correction_catalog_after_unqualified')
+              receipt['sc046_v3_correction_catalog_preservation'] = {
+                  'target': 'public.gridex_consume_utilts_metering_v1(uuid,uuid,text,integer,uuid,jsonb)',
+                  'migration': migration, 'migration_sha256': expected_sha,
+                  'migration_input_binding': {'frozen_original': {'path': migration, **frozen},
+                                              'actual_replay': {'path': str(matches[0]), 'sha256': digest(matches[0])}},
+                  'guard_execution': 'SUCCESSFUL_EXACT_CANONICAL_REPLAY_OF_FROZEN_TARGET_METADATA_AND_FIVE_FULL_HELPER_ROWS_AND_INVERSE_GUARDS',
+                  'before_snapshot': 'NOT_EMITTED_BY_FROZEN_MIGRATION', 'catalog_after': after,
+                  'schema_definition_sha256': hashlib.sha256(definition.encode()).hexdigest(),
+                  'catalog_after_postgres_text_sha256': hashlib.sha256(after['postgres_jsonb_text'].encode()).hexdigest(),
+                  'latest_replay_migration_role': ('OLDER_PINNED_CONSUMER;ATOMIC_V5_IS_ACTUAL_MAXIMUM' if manifest.get('active_sc046_input_epoch') in ('gridex-C2-SC046-GEN-20261015-v5', 'gridex-C2-SC046-GEN-20261015-v6') else 'ACTUAL_MAXIMUM;OLD_WRAPPER_AND_DQ_INPUTS_PINNED_SEPARATELY')}
+          if (os.environ['SOURCE_HEAD_REF'] == 'codex/c2-gen-sc046-v3-main6ce6-20261014'
+              and manifest.get('active_sc046_input_epoch') in ('gridex-C2-SC046-GEN-20261015-v5', 'gridex-C2-SC046-GEN-20261015-v6')):
+              migration = 'supabase/migrations/20261015003736_ediel_sc046_newest_metering_duplicate_guard.sql'
+              expected_sha = '42743daf26ae39e2191f5b6762d49754bd09e33acb0266328e5761d16f9d52ff'
+              pending_v5 = manifest.get('pending_sc046_capture_v6' if manifest.get('active_sc046_input_epoch') == 'gridex-C2-SC046-GEN-20261015-v6' else 'pending_sc046_capture_v5', {})
+              frozen = state.get('tracked_inputs', {}).get(migration)
+              matches = [path for path in replay_migrations if path.name == Path(migration).name]
+              if (frozen != {'mode': '100644', 'sha256': expected_sha}
+                  or pending_v5.get('sql_sha256', {}).get(migration) != expected_sha
+                  or pending_v5.get('actual_latest_migration') != Path(migration).name
+                  or receipt['latest_replay_migration'] != {'name': Path(migration).name, 'sha256': expected_sha}
+                  or len(matches) != 1 or digest(matches[0]) != expected_sha):
+                  raise SystemExit('capture_sc046_v5_atomic_replay_source_unqualified')
+              schema = (output / 'schema.sql').read_text()
+              marker = 'CREATE FUNCTION public.gridex_ingest_metering_value_atomic('
+              if schema.count(marker) != 1:
+                  raise SystemExit('capture_sc046_v5_atomic_schema_definition_unqualified')
+              tail = schema[schema.index(marker):]
+              dollar = re.search(r'\bAS (\$\$|\$_\$)', tail)
+              if dollar is None:
+                  raise SystemExit('capture_sc046_v5_atomic_schema_definition_unqualified')
+              end = tail.find(dollar[1] + ';', dollar.end())
+              definition = tail[:end + len(dollar[1]) + 1] if end >= 0 else ''
+              if hashlib.sha256(definition.encode()).hexdigest() != '7d83786d1070b91dd4e4d6a8bfabcb0bd299ca47b41caa93a60561cf7900599f':
+                  raise SystemExit('capture_sc046_v5_atomic_schema_definition_unqualified')
+              after = state.get('sc046_v5_atomic_catalog_after', {})
+              if (after.get('catalog', {}).get('body_sha256') != 'd8422ac157884c54244bd295a73caf2c3263b92fffbbbec64cc3460fef1b7cf9'
+                  or after.get('before_snapshot') != 'NOT_EMITTED_BY_FROZEN_MIGRATION'):
+                  raise SystemExit('capture_sc046_v5_atomic_catalog_after_unqualified')
+              receipt['sc046_v5_atomic_catalog_preservation'] = {
+                  'target': 'public.gridex_ingest_metering_value_atomic(jsonb)',
+                  'migration': migration, 'migration_sha256': expected_sha,
+                  'migration_input_binding': {'frozen_original': {'path': migration, **frozen},
+                      'actual_replay': {'path': str(matches[0]), 'sha256': digest(matches[0])}},
+                  'guard_execution': 'SUCCESSFUL_EXACT_CANONICAL_REPLAY_OF_FULL_TARGET_METADATA_ALL_OTHER_PUBLIC_GRIDEX_FUNCTION_ROWS_INDEX_AND_INVERSE_GUARDS',
+                  'before_snapshot': 'NOT_EMITTED_BY_FROZEN_MIGRATION', 'catalog_after': after,
+                  'schema_definition_sha256': hashlib.sha256(definition.encode()).hexdigest(),
+                  'catalog_after_postgres_text_sha256': hashlib.sha256(after['postgres_jsonb_text'].encode()).hexdigest(),
+                  'latest_replay_migration_role': 'ACTUAL_MAXIMUM;OLD_WRAPPER_DQ_AND_CONSUMER_PINNED_SEPARATELY'}
           (output / 'capture-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
           print('Capture-only artifacts and receipt written; native tests and parity were not run.')
           PY
+          if python3 -c 'import json,os; raise SystemExit(0 if json.load(open(os.environ["CAPTURE_INPUT_STATE"]))["epoch_attestation_enabled"] else 1)'; then
+          # Finish the unchanged owner's actual cleanup before attesting its result.
+          cleanup
+          trap - EXIT
+          set -euo pipefail
+          python3 - <<'PY_RESTORED'
+          import hashlib, json, os, pathlib, stat, subprocess
+
+          state = json.loads(pathlib.Path(os.environ['CAPTURE_INPUT_STATE']).read_text())
+          def working(path):
+              mode = path.lstat().st_mode
+              if stat.S_ISLNK(mode):
+                  data, kind = os.fsencode(os.readlink(path)), '120000'
+              elif stat.S_ISREG(mode):
+                  data, kind = path.read_bytes(), '100755' if mode & 0o111 else '100644'
+              else:
+                  raise SystemExit('capture_nonregular_restored_input: ' + str(path))
+              return {'mode': kind, 'sha256': hashlib.sha256(data).hexdigest()}
+          if (subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip() != state['checkout_sha']
+              or subprocess.check_output(['git', 'rev-parse', 'HEAD^{tree}'], text=True).strip() != state['checkout_tree']):
+              raise SystemExit('capture_checkout_changed')
+          for path, expected in state['tracked_inputs'].items():
+              if working(pathlib.Path(path)) != expected:
+                  raise SystemExit('capture_input_restoration_mismatch: ' + path)
+          directory = pathlib.Path('supabase/migrations')
+          restored = {p.relative_to(directory).as_posix(): working(p)
+                      for p in sorted(directory.rglob('*')) if not p.is_dir() or p.is_symlink()}
+          if restored != state['migration_directory']:
+              raise SystemExit('capture_migration_directory_restoration_mismatch')
+          remaining = subprocess.check_output(['docker', 'ps', '-aq'], text=True).splitlines()
+          if remaining:
+              raise SystemExit('capture_zero_all_containers_unqualified')
+          path = pathlib.Path('staff-schema-capture/capture-receipt.json')
+          receipt = json.loads(path.read_text())
+          receipt['source_epoch_attestation'] = {
+              'checkout_sha': state['checkout_sha'], 'checkout_tree': state['checkout_tree'],
+              'tracked_input_count': len(state['tracked_inputs']), 'tracked_inputs': state['tracked_inputs'],
+              'custody': state['custody'], 'runner': state['runner'],
+              'atomic_canonical_input': state['atomic_canonical_input'],
+              'input_restoration': 'EXACT_MODES_AND_BYTES', 'migration_directory_restoration': 'EXACT',
+              'docker_remaining_container_ids': remaining, 'zero_all_containers': True}
+          if 'sc031_native_input_binding' in state:
+              receipt['source_epoch_attestation']['sc031_native_input_binding'] = state['sc031_native_input_binding']
+          if 'sc046_source_input_binding' in state:
+              receipt['source_epoch_attestation']['sc046_source_input_binding'] = state['sc046_source_input_binding']
+          path.write_text(json.dumps(receipt, indent=2) + '\n')
+          print('Exact original inputs restored and all disposable containers absent; capture-only limits retained.')
+          PY_RESTORED
+          fi
+      - name: Report a bounded sourced replay failure category
+        if: failure() && steps.sourced_capture.outcome == 'failure'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY_CAPTURE_DIAGNOSTIC'
+          import json
+          import os
+          import re
+          import stat
+
+          # Raw replay output remains private. Every emitted string is a fixed token;
+          # line numbers are bounded integers, and no captured text is ever interpolated.
+          result = {
+              'phase': 'unknown',
+              'exit_code': 'unavailable',
+              'source': 'unknown',
+              'source_line': 0,
+              'category': 'replay_log_unavailable',
+          }
+          try:
+              path = os.path.join(os.environ['RUNNER_TEMP'], 'staff-schema-capture-replay.log')
+              try:
+                  fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+              except FileNotFoundError:
+                  fd = None
+              if fd is None:
+                  raise ValueError('missing')
+              with os.fdopen(fd, 'rb') as stream:
+                  metadata = os.fstat(stream.fileno())
+                  if not stat.S_ISREG(metadata.st_mode):
+                      raise ValueError('nonregular')
+                  stream.seek(max(0, metadata.st_size - 65536))
+                  text = stream.read(65536).decode('utf-8', errors='replace')
+              result['phase'] = 'sourced_replay_output'
+              result['category'] = 'replay_failure_unclassified'
+              if '[GRIDEX-REM-002 replay] PASS: empty local Supabase -> verified reconstructed foundation -> canonical checksum-pinned history -> CLI-owned observed dev ledger' in text.splitlines():
+                  result['phase'] = 'replay_completed_in_log'
+                  result['category'] = 'replay_completed'
+              categories = (
+                  ('replay_source_pin_drift', r'(?:derived bootstrap checksum drift|derived bootstrap original-source pin mismatch|verified [A-Za-z -]+ checksum drift)'),
+                  ('replay_provenance_rejected', r'(?:missing replay provenance input|canonical foundation order is empty|missing derived bootstrap artifact|derived bootstrap metadata missing)'),
+                  ('postgres_permission_denied', r'(?:ERROR:\s+permission denied|FATAL:\s+permission denied)'),
+                  ('postgres_guard_rejected', r'ERROR:\s+(?:ops_atomic_|ops_auth_|ops_retention_)[a-z0-9_]+'),
+                  ('postgres_error', r'(?:^|\n)(?:psql:[^\n]{0,1024}:\d{1,6}:\s*)?(?:ERROR|FATAL):'),
+                  ('local_stack_start_failed', r'(?:local_storage_owner_bootstrap_invocation_failed|supabase start.*failed|failed to start container)'),
+              )
+              if result['phase'] != 'replay_completed_in_log':
+                  for category, pattern in categories:
+                      if re.search(pattern, text):
+                          result['category'] = category
+                          break
+              # Public repository source constants only. Never emit a captured path.
+              sources = (
+                  'scripts/gridex-aud-003-clean-replay.sh',
+                  'scripts/sql/gridex-local-storage-owner-bootstrap.sql',
+                  'supabase/bootstrap/20261015_ops_atomic_bb0b_preflight_diagnostic_replay_adapter.sql',
+              )
+              if result['phase'] != 'replay_completed_in_log':
+                  for source in sources:
+                      pattern = r'(?:^|\n)(?:psql:)?(?:/[^\n]{0,1024}/)?' + re.escape(source) + r':(?: line )?(\d{1,6}):'
+                      lines = re.findall(pattern, text)
+                      if lines:
+                          result['source'] = source
+                          result['source_line'] = int(lines[-1])
+                          break
+          except Exception:
+              pass  # Missing, unreadable, symlinked and nonregular logs keep fixed unknowns.
+          print(json.dumps(result, separators=(',', ':'), sort_keys=True))
+          PY_CAPTURE_DIAGNOSTIC
       - name: Upload capture-only artifacts
         if: always() && steps.capture_turn.outputs.pending == 'true'
         uses: actions/upload-artifact@v4

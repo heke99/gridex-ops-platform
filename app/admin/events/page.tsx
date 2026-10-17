@@ -1,9 +1,9 @@
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
-import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { listCustomerOperationTimeline, type CustomerOperationTimelineRow } from '@/lib/customers/customerOperationTimeline'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { getOperationalCompanyScope } from '@/lib/tenant/scope'
+import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 
 export const dynamic = 'force-dynamic'
 
@@ -106,21 +106,23 @@ function buildQuery(params: SearchParams, patch: Record<string, string | null | 
 
 export default async function CustomerOperationEventsPage({ searchParams }: PageProps) {
   const context = await requireAdminPageKeyAccess('operations.tasks')
-  const scope = await getOperationalCompanyScope(context.userId)
+  const scope = await resolveAdminTenantReadScope(context)
+  // The timeline is for one selected company, including in platform mode.
+  const companyId = scope.isPlatformAdmin ? context.companyId : scope.companyId
   const params = (await searchParams) ?? {}
-  const isPlatformAdmin = isPlatformAdminContext(context)
+  const isPlatformAdmin = scope.isPlatformAdmin
 
-  if (!scope.companyId) {
+  if (!companyId) {
     return (
       <div className="min-h-screen bg-slate-50">
         <AdminHeader title="Händelser" subtitle="Välj ett bolag för att se den operativa historiken." userEmail={context.email} workspaceMode={isPlatformAdmin ? 'platform' : 'tenant'} />
-        <main className="p-6 lg:p-8"><div className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-950">{scope.message ?? 'Aktivt bolag saknas.'}</div></main>
+        <main className="p-6 lg:p-8"><div className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-950">Välj ett bolag för att se händelser.</div></main>
       </div>
     )
   }
 
   const supabase = await createSupabaseServerClient()
-  const rows = await listCustomerOperationTimeline(supabase, scope.companyId, {
+  const rows = await listCustomerOperationTimeline(supabase, companyId, {
     search: params.q,
     status: params.status,
     eventGroup: params.group,

@@ -1,3 +1,4 @@
+import { withApiContractRepresentation } from '@/lib/integrations/apiResponseProfile'
 //app/api/v1/customer-portal/sync/route.ts
 import { tenantSelect } from '@/lib/supabase/tenantQuery'
 import { NextRequest } from 'next/server'
@@ -259,7 +260,7 @@ async function upsertIdentity(input: {
   return data
 }
 
-export async function POST(request: NextRequest) {
+ async function profiledPOST(request: NextRequest) {
   const startedAt = Date.now()
   let idempotencyRecordId: string | null = null
   const auth = await requireIntegrationApiAccess(request, ['customer_sync.write'])
@@ -491,3 +492,5 @@ export async function POST(request: NextRequest) {
     }, { status })
   }
 }
+
+export const POST = withApiContractRepresentation(['customer', 'website'], profiledPOST)

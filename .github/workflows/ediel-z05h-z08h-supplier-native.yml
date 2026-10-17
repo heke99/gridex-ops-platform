@@ -43,9 +43,42 @@ jobs:
     timeout-minutes: 90
     env:
       NODE_OPTIONS: --max-old-space-size=6144
-      GRIDEX_H_INPUT_EPOCH: gridex-C3-takeover-native-v2
-      GRIDEX_H_FILE_RECEIPT: 2255742ce5a41aa5968ace2d99baec3dcf40defd
-      GRIDEX_H_PRODUCER_RECEIPT: f5ca21f4c10647752adc2139a3dd0c1bf8c74e35
+      GRIDEX_H_INPUT_EPOCH: pr776-current-main2a-completion-20261017
+      GRIDEX_H_SOURCE_RECEIPT: f878a672d65b9128ae0f3a7b937f82222ea088af
+      GRIDEX_H_PRODUCER_RECEIPT: 651598eb7b8d679d0105d401c066a37b69802393
+      GRIDEX_H_CONSTRUCTION_BRANCH: codex/pr776-completion-20261017
+      GRIDEX_H_PUBLICATION_BRANCH: codex/c3-h-20261012
+      GRIDEX_H_RESOURCE_CUSTODY: >-
+        {
+          "file_receipts": {
+            ".github/workflows/ediel-z05h-z08h-supplier-native.yml": "f878a672d65b9128ae0f3a7b937f82222ea088af",
+            "scripts/ediel-at-z05h-z08h-supplier-native.test.ts": "2255742ce5a41aa5968ace2d99baec3dcf40defd",
+            "scripts/ediel-z05h-z08h-supplier-native.config.ts": "2255742ce5a41aa5968ace2d99baec3dcf40defd",
+            "scripts/helpers/ediel-h05h08-normal-switch-native-fixture.ts": "931aed4a5a9d6b43ce449cc509eabd71c9307a58",
+            "scripts/helpers/ediel-supply-end-field-omissions.ts": "2255742ce5a41aa5968ace2d99baec3dcf40defd",
+            "__tests__/ediel-h-native-sql-output-buffer-completeness-c-final.test.ts": "2a1bcb94ffd2b7c0ec80d812d95bcd2e3190a2d3",
+            "__tests__/ediel-supply-end-field-omissions.test.ts": "c0dee5caf7956673f2957bd7fb78093c09d9af83",
+            "__tests__/ediel-z05-rejected-identity-runtime.test.ts": "c0dee5caf7956673f2957bd7fb78093c09d9af83",
+            "lib/ediel/core/runtimeDecision.ts": "c0dee5caf7956673f2957bd7fb78093c09d9af83",
+            "lib/ediel/flows/inboundProcessing.ts": "c0dee5caf7956673f2957bd7fb78093c09d9af83",
+            "lib/ediel/prodat/receivedZ05RejectedIdentityRuntime.ts": "c0dee5caf7956673f2957bd7fb78093c09d9af83",
+            "scripts/gridex-redact-native-evidence.py": "c0dee5caf7956673f2957bd7fb78093c09d9af83",
+            "scripts/gridex-redact-native-evidence-selftest.py": "c0dee5caf7956673f2957bd7fb78093c09d9af83"
+          },
+          "retained_scope_receipts": {
+            "slot-C3": "2255742ce5a41aa5968ace2d99baec3dcf40defd",
+            "id-AT-Z05H-SUPPLIER": "2255742ce5a41aa5968ace2d99baec3dcf40defd",
+            "id-AT-Z08H-SUPPLIER": "2255742ce5a41aa5968ace2d99baec3dcf40defd"
+          },
+          "receiving": {
+            "resource": "slot-session-76174a45-114b-48a6-afb1-1a41f7b82836",
+            "receipt": "f878a672d65b9128ae0f3a7b937f82222ea088af"
+          },
+          "producer": {
+            "resource": "producer-h",
+            "receipt": "651598eb7b8d679d0105d401c066a37b69802393"
+          }
+        }
     steps:
       - uses: actions/checkout@v4
         with:
@@ -59,9 +92,17 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = '${{ github.event.pull_request.head.sha }}'
           git merge-base --is-ancestor 35ad0e6d9fd2e100d22bf5c27cd1958f77063e3c HEAD
+          git merge-base --is-ancestor 2a9729ecd2191f77f3d2ff1c10d213686a8e8360 HEAD
           python3 - <<'PY'
-          import hashlib,json,os,subprocess
-          root='repos/'+os.environ['GITHUB_REPOSITORY']+'/git/ref/tags/agent-claims/masterplan/'
+          import hashlib,json,os,pathlib,re,subprocess
+          repository=os.environ['GITHUB_REPOSITORY']
+          if repository!='heke99/gridex-ops-platform': raise RuntimeError('h_repository_scope_mismatch')
+          if os.environ['GRIDEX_H_INPUT_EPOCH']!='pr776-current-main2a-completion-20261017': raise RuntimeError('h_input_epoch_mismatch')
+          if os.environ['GRIDEX_H_CONSTRUCTION_BRANCH']!='codex/pr776-completion-20261017' or os.environ['GRIDEX_H_PUBLICATION_BRANCH']!='codex/c3-h-20261012': raise RuntimeError('h_branch_metadata_mismatch')
+          event=json.loads(pathlib.Path(os.environ['GITHUB_EVENT_PATH']).read_text())
+          if not isinstance(event,dict) or type(event.get('number')) is not int or event['number']!=776: raise RuntimeError('h_pull_request_scope_mismatch')
+          head=event.get('pull_request',{}).get('head',{})
+          if head.get('ref')!=os.environ['GRIDEX_H_PUBLICATION_BRANCH'] or head.get('repo',{}).get('full_name')!=repository: raise RuntimeError('h_publication_scope_mismatch')
           files=['lib/ediel/core/runtimeDecision.ts','lib/ediel/flows/inboundProcessing.ts',
                  'lib/ediel/prodat/receivedZ05RejectedIdentityRuntime.ts',
                  '__tests__/ediel-z05-rejected-identity-runtime.test.ts',
@@ -71,16 +112,25 @@ jobs:
                  'scripts/ediel-z05h-z08h-supplier-native.config.ts',
                  'scripts/helpers/ediel-h05h08-normal-switch-native-fixture.ts',
                  'scripts/helpers/ediel-supply-end-field-omissions.ts',
+                 '__tests__/ediel-h-native-sql-output-buffer-completeness-c-final.test.ts',
                  'scripts/gridex-redact-native-evidence.py',
                  'scripts/gridex-redact-native-evidence-selftest.py']
-          expected={key:os.environ['GRIDEX_H_FILE_RECEIPT'] for key in
-                    ['slot-C3','id-AT-Z05H-SUPPLIER','id-AT-Z08H-SUPPLIER']+
-                    ['file-'+hashlib.sha256(path.encode()).hexdigest() for path in files]}
-          expected['producer-h']=os.environ['GRIDEX_H_PRODUCER_RECEIPT']
+          custody=json.loads(os.environ['GRIDEX_H_RESOURCE_CUSTODY'])
+          if not isinstance(custody,dict) or set(custody)!={'file_receipts','retained_scope_receipts','receiving','producer'}: raise RuntimeError('h_custody_metadata_shape')
+          file_receipts=custody['file_receipts'];retained=custody['retained_scope_receipts']
+          if not isinstance(file_receipts,dict) or set(file_receipts)!=set(files): raise RuntimeError('h_exact_thirteen_file_receipts_required')
+          if retained!={name:'2255742ce5a41aa5968ace2d99baec3dcf40defd' for name in ['slot-C3','id-AT-Z05H-SUPPLIER','id-AT-Z08H-SUPPLIER']}: raise RuntimeError('h_retained_scope_receipts_mismatch')
+          receiving=custody['receiving'];producer=custody['producer']
+          if receiving!={'resource':'slot-session-76174a45-114b-48a6-afb1-1a41f7b82836','receipt':os.environ['GRIDEX_H_SOURCE_RECEIPT']} or file_receipts['.github/workflows/ediel-z05h-z08h-supplier-native.yml']!=receiving['receipt']: raise RuntimeError('h_receiving_source_receipt_mismatch')
+          if producer!={'resource':'producer-h','receipt':os.environ['GRIDEX_H_PRODUCER_RECEIPT']}: raise RuntimeError('h_producer_receipt_mismatch')
+          expected={**retained,receiving['resource']:receiving['receipt'],producer['resource']:producer['receipt'],
+                    **{'file-'+hashlib.sha256(path.encode()).hexdigest():sha for path,sha in file_receipts.items()}}
+          if len(expected)!=18 or any(not isinstance(sha,str) or re.fullmatch('[0-9a-f]{40}',sha) is None for sha in expected.values()): raise RuntimeError('h_exact_eighteen_resource_receipts_required')
+          root='repos/'+repository+'/git/ref/tags/agent-claims/masterplan/'
           for name,sha in sorted(expected.items()):
               actual=json.loads(subprocess.check_output(['gh','api',root+name]))
-              if actual['object']['sha']!=sha: raise RuntimeError('h_custody_mismatch:'+name)
-          print('H05H08_CUSTODY exact16refs verified; one source/inputepoch')
+              if not isinstance(actual,dict) or actual.get('ref')!='refs/tags/agent-claims/masterplan/'+name or not isinstance(actual.get('object'),dict) or actual['object'].get('type')!='commit' or actual['object'].get('sha')!=sha: raise RuntimeError('h_custody_mismatch:'+name)
+          print('H05H08_CUSTODY exact18refs verified; current per-resource source/inputepoch')
           PY
       - uses: actions/setup-node@v4
         with:
@@ -108,7 +158,13 @@ jobs:
                    'cpu_count':os.cpu_count(),'memory_kib':memory,
                    'disk_bytes':{'total':disk.total,'used':disk.used,'free':disk.free},
                    'input_epoch':os.environ['GRIDEX_H_INPUT_EPOCH'],
-                   'file_receipt':os.environ['GRIDEX_H_FILE_RECEIPT'],
+                   'source_receipt':os.environ['GRIDEX_H_SOURCE_RECEIPT'],
+                   'resource_custody':json.loads(os.environ['GRIDEX_H_RESOURCE_CUSTODY']),
+                   'construction_branch':os.environ['GRIDEX_H_CONSTRUCTION_BRANCH'],
+                   'publication_branch':os.environ['GRIDEX_H_PUBLICATION_BRANCH'],
+                   'pull_request':776,
+                   'base_source':'2a9729ecd2191f77f3d2ff1c10d213686a8e8360',
+                   'immutable_source_origin':'d8a0abdcc55877fbee9e8841afb59bfc518fd771',
                    'producer_receipt':os.environ['GRIDEX_H_PRODUCER_RECEIPT'],
                    'native':'NOT_EXECUTED','whole_h05_h08':'NOT_APPROVED'}
           target=pathlib.Path('h05h08-native-preflight');target.mkdir()
@@ -248,7 +304,13 @@ jobs:
               'native_counts':counts,
               'canonical_replay':'PASSED','cleanup':'ZERO_CONTAINERS',
               'input_epoch':os.environ['GRIDEX_H_INPUT_EPOCH'],
-              'file_receipt':os.environ['GRIDEX_H_FILE_RECEIPT'],
+              'source_receipt':os.environ['GRIDEX_H_SOURCE_RECEIPT'],
+              'resource_custody':json.loads(os.environ['GRIDEX_H_RESOURCE_CUSTODY']),
+              'construction_branch':os.environ['GRIDEX_H_CONSTRUCTION_BRANCH'],
+              'publication_branch':os.environ['GRIDEX_H_PUBLICATION_BRANCH'],
+              'pull_request':776,
+              'base_source':'2a9729ecd2191f77f3d2ff1c10d213686a8e8360',
+              'immutable_source_origin':'d8a0abdcc55877fbee9e8841afb59bfc518fd771',
               'producer_receipt':os.environ['GRIDEX_H_PRODUCER_RECEIPT'],
               'input_identity':'immutable_checkout_before_replay',
               'source_blobs':source,
@@ -300,6 +362,15 @@ jobs:
                    'repository_id':os.environ['GITHUB_REPOSITORY_ID'],
                    'workflow_run_id':os.environ['GITHUB_RUN_ID'],
                    'workflow_run_attempt':os.environ['GITHUB_RUN_ATTEMPT'],
+                   'input_epoch':os.environ['GRIDEX_H_INPUT_EPOCH'],
+                   'source_receipt':os.environ['GRIDEX_H_SOURCE_RECEIPT'],
+                   'resource_custody':json.loads(os.environ['GRIDEX_H_RESOURCE_CUSTODY']),
+                   'construction_branch':os.environ['GRIDEX_H_CONSTRUCTION_BRANCH'],
+                   'publication_branch':os.environ['GRIDEX_H_PUBLICATION_BRANCH'],
+                   'pull_request':776,
+                   'base_source':'2a9729ecd2191f77f3d2ff1c10d213686a8e8360',
+                   'immutable_source_origin':'d8a0abdcc55877fbee9e8841afb59bfc518fd771',
+                   'producer_receipt':os.environ['GRIDEX_H_PRODUCER_RECEIPT'],
                    'source_blobs':json.loads(inputs.read_text()),
                    'failed_stage':stage,'bootstrap':'FAILED' if stage=='BOOTSTRAP' else 'PASSED',
                    'native':native,'native_exit_code':native_exit,

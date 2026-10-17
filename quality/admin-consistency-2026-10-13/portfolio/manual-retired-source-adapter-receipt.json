@@ -1,0 +1,70 @@
+{
+  "scope": "Final exact manual ingress adapter + new actual ingestion/poller tests; existing2tests retirement false fixture additions only",
+  "source_sha256": {
+    "lib/inbound-mail/manualInboundIngestion.ts": "c6dba0e3027f5c4cf1c37e60ae8dc09c80cca4c5e26cb307d3dfbaf8c2277515",
+    "__tests__/manual-inbound-retired-source-retry.test.ts": "7dfa84761a117ed35fb2616731ef47da197cd6c6f11a38b96cae24280c9ca8ba",
+    "__tests__/inbound-review-manual-inbound-retry.test.ts": "3224d05fee49975abd8f5fbb0cf16aac0faf521794297b7a4ef26725a07b6fb0",
+    "__tests__/main-baseline-pr204-manual-inbound.test.ts": "94a47d5f1a212a3ac9259dd8fbe39ffb3cbfb1a4ca7b6c88f644cdfec65e44de"
+  },
+  "tests": {
+    "red": {
+      "path": "/tmp/gridex-manual-retired-source-red.json",
+      "sha256": "3271aabe81e8eb8b51c44a6c3ce7efbe23e3b28376a760d7699a437fed449c88",
+      "passed": 5,
+      "failed": 13,
+      "success": false
+    },
+    "green": {
+      "path": "/tmp/gridex-manual-retired-source-green.json",
+      "sha256": "dad777099affab8a83166926b3e1d93178326d91b1b2af0efcba82a0bc4404ce",
+      "passed": 48,
+      "failed": 0,
+      "success": true
+    }
+  },
+  "rpc_contract": {
+    "name": "gridex_manual_inbound_source_retired_v1",
+    "args": [
+      "p_mailbox",
+      "p_provider_id"
+    ],
+    "returns": "strict boolean",
+    "auth": "service only",
+    "key_normalization": "mailbox lower(trim), provider trim with case preserved"
+  },
+  "race_signal": {
+    "code": "23514",
+    "message": "manual_inbound_source_retired",
+    "only_exact_pair_ignored": true
+  },
+  "existing_normal_provider_absence_preserved": true,
+  "retired_result": {
+    "inboundId": null,
+    "resolutionStatus": "ignored",
+    "reason": "retired_source"
+  },
+  "seen_literal_read_only": [
+    {
+      "line": 299,
+      "source_backslash_bytes": 2,
+      "runtime_backslashes": 1
+    },
+    {
+      "line": 317,
+      "source_backslash_bytes": 2,
+      "runtime_backslashes": 1
+    }
+  ],
+  "poller_source_modified": false,
+  "no_sql_types_schema_migration_memory_or_live_writes": true,
+  "database_forward_owner": "cleanup_consistency_audit/root; ninth migration20261013140502_manual_inbound_retired_source_consistency.sql",
+  "final_types_build_owner": "root after genuine ninth capture",
+  "source_frozen": true,
+  "ninth_frozen_contract_sha256": "d68f09fa4ab18d62fbffa8c412d8fa53fa1db3d58e53ed519f45af1fc145fee0",
+  "verification_status": {
+    "owned_four_file_eslint": "PASS",
+    "final_test_only_eslint": "PASS",
+    "diff_whitespace": "PASS",
+    "targeted_ingestion_poller_and_legacy_tests": "48/48 PASS"
+  }
+}

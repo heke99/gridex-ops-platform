@@ -26,13 +26,16 @@ function documentHref(value: string | null | undefined): string | null {
 export default async function PortalInvoiceDetailPage({ params }: PageProps) {
   const { id } = await params
   const context = await getCustomerPortalContext()
-  const { invoice, lines, documents } = await getPortalInvoiceDetail(context, id)
+  const { invoice, lines, documents, invoiceFileAvailability } = await getPortalInvoiceDetail(context, id)
 
   if (!invoice) notFound()
 
   const pdfHref = documentHref(invoice.pdf_url)
-  const documentPdf = documents.find((document) => document.public_url || document.file_path)
+  const documentPdf = documents.find((document) => documentHref(document.public_url))
+    ?? documents.find((document) => document.file_path)
   const documentPdfHref = documentHref(documentPdf?.public_url)
+  const hasRetiredCopy = invoiceFileAvailability === 'retired'
+    || documents.some((document) => document.fileAvailability === 'retired')
 
   return (
     <div className="space-y-6">
@@ -104,8 +107,14 @@ export default async function PortalInvoiceDetailPage({ params }: PageProps) {
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-slate-950">Faktura-PDF</h2>
             <p className="mt-2 text-sm leading-6 text-slate-600">
-              PDF:en visas här så snart den är tillgänglig.
+              PDF-länken visas när en kopia har kopplats till fakturan.
             </p>
+
+            {hasRetiredCopy ? (
+              <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+                En PDF-kopia är inte längre tillgänglig. Fakturans uppgifter och rader finns kvar.
+              </div>
+            ) : null}
 
             {pdfHref || documentPdfHref ? (
               <a href={pdfHref ?? documentPdfHref ?? '#'} target="_blank" rel="noreferrer" className="mt-4 inline-flex rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white">
@@ -115,9 +124,9 @@ export default async function PortalInvoiceDetailPage({ params }: PageProps) {
               <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
                 PDF:en förbereds och blir tillgänglig inom kort.
               </div>
-            ) : (
+            ) : hasRetiredCopy ? null : (
               <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-                Ingen PDF finns för fakturan ännu. Kontakta kundservice om du behöver en kopia.
+                Ingen PDF-kopia kan visas här just nu. Kontakta kundservice om du behöver en kopia.
               </div>
             )}
           </div>

@@ -1,0 +1,311 @@
+
+ RUN  v4.1.9 /workspace/gridex-ops-platform
+
+ ❯ __tests__/analytics-pages-canonical-scope.test.ts (23 tests | 21 failed) 256ms
+   × 'overview' renders using the authorized canonical company without selecting another membership 103ms
+   × 'forecast' renders using the authorized canonical company without selecting another membership 8ms
+   × 'reports' renders using the authorized canonical company without selecting another membership 4ms
+   × 'deviations' renders using the authorized canonical company without selecting another membership 8ms
+   × 'overview' keeps a selected platform company rather than switching to a global read 15ms
+   × 'forecast' keeps a selected platform company rather than switching to a global read 5ms
+   × 'reports' keeps a selected platform company rather than switching to a global read 2ms
+   × 'deviations' keeps a selected platform company rather than switching to a global read 1ms
+   × 'overview' does not replace a missing canonical company with legacy membership data 14ms
+   × 'forecast' does not replace a missing canonical company with legacy membership data 11ms
+   × 'reports' does not replace a missing canonical company with legacy membership data 4ms
+   × 'deviations' does not replace a missing canonical company with legacy membership data 6ms
+   × 'overview' does not depend on a second membership lookup after canonical authorization 5ms
+   × 'forecast' does not depend on a second membership lookup after canonical authorization 4ms
+   × 'reports' does not depend on a second membership lookup after canonical authorization 2ms
+   × 'deviations' does not depend on a second membership lookup after canonical authorization 4ms
+   × overview fallback uses the same authorized company and month as its stored metric read 19ms
+   × CSV export uses the same canonical selected company for platform=false 20ms
+   × CSV export uses the same canonical selected company for platform=true 5ms
+   × CSV export refuses a missing canonical company without invoking a report loader 4ms
+   × CSV export remains available when an unrelated legacy membership read fails 1ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 21 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  __tests__/analytics-pages-canonical-scope.test.ts > 'overview' renders using the authorized canonical company without selecting another membership
+ FAIL  __tests__/analytics-pages-canonical-scope.test.ts > 'forecast' renders using the authorized canonical company without selecting another membership
+ FAIL  __tests__/analytics-pages-canonical-scope.test.ts > 'reports' renders using the authorized canonical company without selecting another membership
+ FAIL  __tests__/analytics-pages-canonical-scope.test.ts > 'deviations' renders using the authorized canonical company without selecting another membership
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ __tests__/analytics-pages-canonical-scope.test.ts:68:58
+     66|   const html = renderToStaticMarkup(await run())
+     67|   expect(io.calls.length).toBeGreaterThan(0)
+     68|   expect(io.calls.every(c => c.companyId === 'guard-A')).toBe(true)
+       |                                                          ^
+     69|   expect(io.legacy).not.toHaveBeenCalled()
+     70|   expect(html).not.toContain('Legacybolag B')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/21]⎯
+
+ FAIL  __tests__/analytics-pages-canonical-scope.test.ts > 'overview' keeps a selected platform company rather than switching to a global read
+ FAIL  __tests__/analytics-pages-canonical-scope.test.ts > 'forecast' keeps a selected platform company rather than switching to a global read
+ FAIL  __tests__/analytics-pages-canonical-scope.test.ts > 'reports' keeps a selected platform company rather than switching to a global read
+ FAIL  __tests__/analytics-pages-canonical-scope.test.ts > 'deviations' keeps a selected platform company rather than switching to a global read
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ __tests__/analytics-pages-canonical-scope.test.ts:77:58
+     75|   await run()
+     76|   expect(io.calls.length).toBeGreaterThan(0)
+     77|   expect(io.calls.every(c => c.companyId === 'guard-A')).toBe(true)
+       |                                                          ^
+     78| })
+     79|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/21]⎯
+
+ FAIL  __tests__/analytics-pages-canonical-scope.test.ts > 'overview' does not replace a missing canonical company with legacy membership data
+AssertionError: expected '<div class="min-h-screen"><header>Leg…' to match /Bolag saknas|Välj bolag/
+
+- Expected:
+/Bolag saknas|Välj bolag/
+
++ Received:
+"<div class=\"min-h-screen\"><header>Legacybolag B</header><div class=\"space-y-6 p-4 sm:p-6 xl:p-8\"><nav class=\"flex flex-wrap gap-2\"><a href=\"/admin/analytics\">Översikt</a><a href=\"/admin/analytics/forecast\">Prognos</a><a href=\"/admin/analytics/deviations\">Avvikelser</a><a href=\"/admin/analytics/reports\">Rapporter</a></nav><form class=\"grid gap-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-[minmax(0,16rem)_auto] sm:justify-start\"><label class=\"text-sm font-bold text-slate-700\">Månad / period<input type=\"month\" class=\"mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2\" name=\"month\" value=\"2026-10\"/></label><button class=\"self-end rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white hover:bg-slate-800\">Filtrera</button></form><section class=\"grid gap-4 md:grid-cols-2 xl:grid-cols-5\"><a href=\"/admin/customers\"><div class=\"h-full rounded-3xl border p-5 shadow-sm border-slate-200 bg-white text-slate-900\"><p class=\"text-sm font-black\">Kunder totalt</p><p class=\"mt-2 text-3xl font-black tracking-tight\">11</p><p class=\"mt-2 text-xs font-bold leading-5 opacity-80\">0 % jämfört med föregående månad</p></div></a><a href=\"/admin/customers\"><div class=\"h-full rounded-3xl border p-5 shadow-sm border-emerald-200 bg-emerald-50 text-emerald-900\"><p class=\"text-sm font-black\">Nya kunder denna månad</p><p class=\"mt-2 text-3xl font-black tracking-tight\">0</p><p class=\"mt-2 text-xs font-bold leading-5 opacity-80\">Oförändrat</p></div></a><div><div class=\"h-full rounded-3xl border p-5 shadow-sm border-slate-200 bg-white text-slate-900\"><p class=\"text-sm font-black\">Aktiva anläggningar</p><p class=\"mt-2 text-3xl font-black tracking-tight\">0</p><p class=\"mt-2 text-xs font-bold leading-5 opacity-80\">0 anläggningar totalt</p></div></div><a href=\"/admin/metering\"><div class=\"h-full rounded-3xl border p-5 shadow-sm border-slate-200 bg-white text-slate-900\"><p class=\"text-sm font-black\">Aktiva mätpunkter</p><p class=\"mt-2 text-3xl font-black tracking-tight\">0</p><p class=\"mt-2 text-xs font-bold leading-5 opacity-80\">0 mätpunkter totalt</p></div></a><a href=\"/admin/metering\"><div class=\"h-full rounded-3xl border p-5 shadow-sm border-emerald-200 bg-emerald-50 text-emerald-900\"><p class=\"text-sm font-black\">Mottagna mätvärden</p><p class=\"mt-2 text-3xl font-black tracking-tight\">0</p><p class=\"mt-2 text-xs font-bold leading-5 opacity-80\">Inkomna värden för vald period</p></div></a><a href=\"/admin/analytics/deviations\"><div class=\"h-full rounded-3xl border p-5 shadow-sm border-emerald-200 bg-emerald-50 text-emerald-900\"><p class=\"text-sm font-black\">Saknade mätvärden</p><p class=\"mt-2 text-3xl font-black tracking-tight\">0</p><p class=\"mt-2 text-xs font-bold leading-5 opacity-80\">Ingen öppen brist</p></div></a><a href=\"/admin/analytics/forecast\"><div class=\"h-full rounded-3xl border p-5 shadow-sm border-slate-200 bg-white text-slate-900\"><p class=\"text-sm font-black\">Prognos denna månad</p><p class=\"mt-2 text-3xl font-black tracking-tight\">0 MWh</p><p class=\"mt-2 text-xs font-bold leading-5 opacity-80\">Summerad prognosvolym</p></div></a><a href=\"/admin/analytics/forecast\"><div class=\"h-full rounded-3xl border p-5 shadow-sm border-slate-200 bg-white text-slate-900\"><p class=\"text-sm font-black\">Prognos nästa månad</p><p class=\"mt-2 text-3xl font-black tracking-tight\">Visa prognos</p><p class=\"mt-2 text-xs font-bold leading-5 opacity-80\">Öppna prognosvyn för kommande period</p></div></a><a href=\"/admin/analytics/deviations\"><div class=\"h-full rounded-3xl border p-5 shadow-sm border-emerald-200 bg-emerald-50 text-emerald-900\"><p class=\"text-sm font-black\">Avvikelser</p><p class=\"mt-2 text-3xl font-black tracking-tight\">0</p><p class=\"mt-2 text-xs font-bold leading-5 opacity-80\">Inga kritiska avvikelser</p></div></a><a href=\"/admin/analytics/deviations\"><div class=\"h-full rounded-3xl border p-5 shadow-sm border-emerald-200 bg-emerald-50 text-emerald-900\"><p class=\"text-sm font-black\">Datakvalitet</p><p class=\"mt-2 text-3xl font-black tracking-tight\">Stabil</p><p class=\"mt-2 text-xs font-bold leading-5 opacity-80\">Baserat på öppna datakvalitetsärenden</p></div></a></section><section class=\"grid gap-6 xl:grid-cols-2\"><div class=\"rounded-3xl border border-slate-200 bg-white p-6 shadow-sm\"><h2 class=\"text-lg font-black text-slate-950\">Kundtillväxt per månad</h2><div class=\"mt-5\"><div class=\"space-y-3\"><div class=\"grid grid-cols-[90px_1fr_80px] items-center gap-3 text-sm\"><span class=\"font-bold text-slate-700\">2026-10</span><div class=\"h-3 overflow-hidden rounded-full bg-slate-100\"><div class=\"h-full rounded-full bg-emerald-600\" style=\"width:100%\"></div></div><span class=\"text-right font-black text-slate-900\">11</span></div></div></div></div><div class=\"rounded-3xl border border-slate-200 bg-white p-6 shadow-sm\"><h2 class=\"text-lg font-black text-slate-950\">Förbrukning/prognos per månad</h2><div class=\"mt-5\"><div class=\"space-y-3\"><div class=\"grid grid-cols-[90px_1fr_80px] items-center gap-3 text-sm\"><span class=\"font-bold text-slate-700\">2026-10</span><div class=\"h-3 overflow-hidden rounded-full bg-slate-100\"><div class=\"h-full rounded-full bg-emerald-600\" style=\"width:4%\"></div></div><span class=\"text-right font-black text-slate-900\">0</span></div></div></div></div></section><section class=\"grid gap-6 xl:grid-cols-2\"><div class=\"rounded-3xl border border-slate-200 bg-white p-6 shadow-sm\"><h2 class=\"text-lg font-black text-slate-950\">Fördelning per SE-område</h2><div class=\"mt-5\"><div class=\"space-y-3\"><p class=\"text-sm font-semibold text-slate-600\">Inga SE-områden finns för vald period.</p></div></div></div><div class=\"rounded-3xl border border-slate-200 bg-white p-6 shadow-sm\"><h2 class=\"text-lg font-black text-slate-950\">Saknade mätvärden per nätägare</h2><div class=\"mt-5\"><div class=\"space-y-3\"><p class=\"text-sm font-semibold text-slate-600\">Inga saknade mätvärden per nätägare.</p></div></div></div></section></div></div>"
+
+ ❯ __tests__/analytics-pages-canonical-scope.test.ts:83:16
+     81|   io.companyId = null
+     82|   const html = renderToStaticMarkup(await run())
+     83|   expect(html).toMatch(/Bolag saknas|Välj bolag/)
+       |                ^
+     84|   expect(io.calls).toEqual([])
+     85|   expect(io.legacy).not.toHaveBeenCalled()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/21]⎯
+
+ FAIL  __tests__/analytics-pages-canonical-scope.test.ts > 'forecast' does not replace a missing canonical company with legacy membership data
+AssertionError: expected '<div class="min-h-screen"><header>Leg…' to match /Bolag saknas|Välj bolag/
+
+- Expected:
+/Bolag saknas|Välj bolag/
+
++ Received:
+"<div class=\"min-h-screen\"><header>Legacybolag B</header><div class=\"space-y-6 p-4 sm:p-6 xl:p-8\"><nav class=\"flex flex-wrap gap-2\"><a href=\"/admin/analytics\">Översikt</a><a href=\"/admin/analytics/forecast\">Prognos</a><a href=\"/admin/analytics/deviations\">Avvikelser</a><a href=\"/admin/analytics/reports\">Rapporter</a></nav><form class=\"grid gap-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-3 xl:grid-cols-7\"><label class=\"text-sm font-bold text-slate-700\">Månad / period<input type=\"month\" class=\"mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2\" name=\"month\" value=\"2026-10\"/></label><label class=\"text-sm font-bold text-slate-700\">SE-område<select name=\"biddingZoneCode\" class=\"mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2\"><option value=\"\" selected=\"\">Alla</option></select></label><label class=\"text-sm font-bold text-slate-700\">Nätägare<select name=\"gridOwnerId\" class=\"mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2\"><option value=\"\" selected=\"\">Alla</option></select></label><label class=\"text-sm font-bold text-slate-700\">Kundtyp<select name=\"customerType\" class=\"mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2\"><option value=\"\" selected=\"\">Alla</option><option value=\"private\">Privat</option><option value=\"business\">Företag</option></select></label><label class=\"text-sm font-bold text-slate-700\">Mätmetod<select name=\"meteringMethod\" class=\"mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2\"><option value=\"\" selected=\"\">Alla</option></select></label><label class=\"text-sm font-bold text-slate-700\">Status<select name=\"status\" class=\"mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2\"><option value=\"\" selected=\"\">Alla</option></select></label><button class=\"self-end rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white hover:bg-slate-800\">Filtrera</button></form><section class=\"grid gap-4 md:grid-cols-2 xl:grid-cols-5\"><div><div class=\"h-full rounded-3xl border p-5 shadow-sm border-slate-200 bg-white text-slate-900\"><p class=\"text-sm font-black\">Total prognos</p><p class=\"mt-2 text-3xl font-black tracking-tight\">0 MWh</p><p class=\"mt-2 text-xs font-bold leading-5 opacity-80\">Vald period</p></div></div><div><div class=\"h-full rounded-3xl border p-5 shadow-sm border-amber-200 bg-amber-50 text-amber-900\"><p class=\"text-sm font-black\">Faktiskt utfall</p><p class=\"mt-2 text-3xl font-black tracking-tight\">0 MWh</p><p class=\"mt-2 text-xs font-bold leading-5 opacity-80\">Saknas för perioden</p></div></div><div><div class=\"h-full rounded-3xl border p-5 shadow-sm border-amber-200 bg-amber-50 text-amber-900\"><p class=\"text-sm font-black\">Säkerhet</p><p class=\"mt-2 text-3xl font-black tracking-tight\">–</p><p class=\"mt-2 text-xs font-bold leading-5 opacity-80\">Baserat på historik eller årsförbrukning</p></div></div><div><div class=\"h-full rounded-3xl border p-5 shadow-sm border-emerald-200 bg-emerald-50 text-emerald-900\"><p class=\"text-sm font-black\">Saknad data</p><p class=\"mt-2 text-3xl font-black tracking-tight\">0</p><p class=\"mt-2 text-xs font-bold leading-5 opacity-80\">Ingen saknad prognosbas</p></div></div></section><section class=\"rounded-3xl border border-emerald-200 bg-emerald-50 p-5 text-sm font-bold leading-6 text-emerald-950\">Prognosen baseras på historisk förbrukning där den finns. Om historik saknas används uppskattad årsförbrukning och säsongsprofil.</section><div class=\"flex justify-end\"><a href=\"/admin/analytics/export?report=forecast_run_items&amp;month=2026-10\">Exportera CSV</a></div><section class=\"space-y-3\"><h2 class=\"text-lg font-black text-slate-950\">Prognos per SE-område</h2><div class=\"overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm\"><table class=\"min-w-full text-sm\"><thead class=\"bg-slate-50 text-left text-xs uppercase tracking-[0.14em] text-slate-600\"><tr><th class=\"px-5 py-4\">SE-område</th><th class=\"px-5 py-4\">Prognos</th><th class=\"px-5 py-4\">Faktiskt</th><th class=\"px-5 py-4\">Diff</th><th class=\"px-5 py-4\">Säkerhet</th><th class=\"px-5 py-4\">Saknad data</th></tr></thead><tbody class=\"divide-y divide-slate-100\"><tr><td colSpan=\"6\" class=\"px-5 py-10 text-center font-semibold text-slate-600\">Ingen prognos finns för vald period.</td></tr></tbody></table></div></section><section class=\"space-y-3\"><h2 class=\"text-lg font-black text-slate-950\">Prognos per nätägare</h2><div class=\"overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm\"><table class=\"min-w-full text-sm\"><thead class=\"bg-slate-50 text-left text-xs uppercase tracking-[0.14em] text-slate-600\"><tr><th class=\"px-5 py-4\">Nätägare</th><th class=\"px-5 py-4\">Prognos</th><th class=\"px-5 py-4\">Faktiskt</th><th class=\"px-5 py-4\">Diff</th><th class=\"px-5 py-4\">Säkerhet</th><th class=\"px-5 py-4\">Saknad data</th></tr></thead><tbody class=\"divide-y divide-slate-100\"><tr><td colSpan=\"6\" class=\"px-5 py-10 text-center font-semibold text-slate-600\">Ingen nätägarprognos finns för vald period.</td></tr></tbody></table></div></section></div></div>"
+
+ ❯ __tests__/analytics-pages-canonical-scope.test.ts:83:16
+     81|   io.companyId = null
+     82|   const html = renderToStaticMarkup(await run())
+     83|   expect(html).toMatch(/Bolag saknas|Välj bolag/)
+       |                ^
+     84|   expect(io.calls).toEqual([])
+     85|   expect(io.legacy).not.toHaveBeenCalled()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/21]⎯
+
+ FAIL  __tests__/analytics-pages-canonical-scope.test.ts > 'reports' does not replace a missing canonical company with legacy membership data
+AssertionError: expected '<div class="min-h-screen"><header>Leg…' to match /Bolag saknas|Välj bolag/
+
+- Expected:
+/Bolag saknas|Välj bolag/
+
++ Received:
+"<div class=\"min-h-screen\"><header>Legacybolag B</header><div class=\"space-y-6 p-4 sm:p-6 xl:p-8\"><nav class=\"flex flex-wrap gap-2\"><a href=\"/admin/analytics\">Översikt</a><a href=\"/admin/analytics/forecast\">Prognos</a><a href=\"/admin/analytics/deviations\">Avvikelser</a><a href=\"/admin/analytics/reports\">Rapporter</a></nav><form class=\"grid gap-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-[minmax(0,16rem)_auto] sm:justify-start\"><label class=\"text-sm font-bold text-slate-700\">Månad / period<input type=\"month\" class=\"mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2\" name=\"month\" value=\"2026-10\"/></label><button class=\"self-end rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white hover:bg-slate-800\">Filtrera</button></form><section class=\"grid gap-4 md:grid-cols-2 xl:grid-cols-3\"><div class=\"rounded-3xl border border-slate-200 bg-white p-5 shadow-sm\"><h2 class=\"text-lg font-black text-slate-950\">Månadsrapport</h2><p class=\"mt-2 text-sm font-semibold leading-6 text-slate-600\">Statistik</p><a href=\"/admin/analytics/export?report=company_monthly_metrics&amp;month=2026-10\">Exportera CSV</a></div></section></div></div>"
+
+ ❯ __tests__/analytics-pages-canonical-scope.test.ts:83:16
+     81|   io.companyId = null
+     82|   const html = renderToStaticMarkup(await run())
+     83|   expect(html).toMatch(/Bolag saknas|Välj bolag/)
+       |                ^
+     84|   expect(io.calls).toEqual([])
+     85|   expect(io.legacy).not.toHaveBeenCalled()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/21]⎯
+
+ FAIL  __tests__/analytics-pages-canonical-scope.test.ts > 'deviations' does not replace a missing canonical company with legacy membership data
+AssertionError: expected '<div class="min-h-screen"><header>Leg…' to match /Bolag saknas|Välj bolag/
+
+- Expected:
+/Bolag saknas|Välj bolag/
+
++ Received:
+"<div class=\"min-h-screen\"><header>Legacybolag B</header><div class=\"space-y-6 p-4 sm:p-6 xl:p-8\"><nav class=\"flex flex-wrap gap-2\"><a href=\"/admin/analytics\">Översikt</a><a href=\"/admin/analytics/forecast\">Prognos</a><a href=\"/admin/analytics/deviations\">Avvikelser</a><a href=\"/admin/analytics/reports\">Rapporter</a></nav><section class=\"grid gap-4 md:grid-cols-2 xl:grid-cols-5\"><div><div class=\"h-full rounded-3xl border p-5 shadow-sm border-emerald-200 bg-emerald-50 text-emerald-900\"><p class=\"text-sm font-black\">Saknade mätvärden</p><p class=\"mt-2 text-3xl font-black tracking-tight\">0</p><p class=\"mt-2 text-xs font-bold leading-5 opacity-80\">Mätvärden saknas för perioden</p></div></div><div><div class=\"h-full rounded-3xl border p-5 shadow-sm border-emerald-200 bg-emerald-50 text-emerald-900\"><p class=\"text-sm font-black\">Saknat SE-område</p><p class=\"mt-2 text-3xl font-black tracking-tight\">0</p><p class=\"mt-2 text-xs font-bold leading-5 opacity-80\">Kräver komplettering</p></div></div><div><div class=\"h-full rounded-3xl border p-5 shadow-sm border-emerald-200 bg-emerald-50 text-emerald-900\"><p class=\"text-sm font-black\">Saknad nätägare</p><p class=\"mt-2 text-3xl font-black tracking-tight\">0</p><p class=\"mt-2 text-xs font-bold leading-5 opacity-80\">Påverkar prognos och begäran</p></div></div><div><div class=\"h-full rounded-3xl border p-5 shadow-sm border-emerald-200 bg-emerald-50 text-emerald-900\"><p class=\"text-sm font-black\">Prognosavvikelse</p><p class=\"mt-2 text-3xl font-black tracking-tight\">0</p><p class=\"mt-2 text-xs font-bold leading-5 opacity-80\">Diff mot faktiskt utfall</p></div></div><div><div class=\"h-full rounded-3xl border p-5 shadow-sm border-emerald-200 bg-emerald-50 text-emerald-900\"><p class=\"text-sm font-black\">Misslyckade Ediel-meddelanden</p><p class=\"mt-2 text-3xl font-black tracking-tight\">0</p><p class=\"mt-2 text-xs font-bold leading-5 opacity-80\">PRODAT, UTILTS, CONTRL eller APERAK</p></div></div><div><div class=\"h-full rounded-3xl border p-5 shadow-sm border-emerald-200 bg-emerald-50 text-emerald-900\"><p class=\"text-sm font-black\">Långsam nätägarsvarstid</p><p class=\"mt-2 text-3xl font-black tracking-tight\">0</p><p class=\"mt-2 text-xs font-bold leading-5 opacity-80\">Svar saknas efter 72 timmar</p></div></div><div><div class=\"h-full rounded-3xl border p-5 shadow-sm border-emerald-200 bg-emerald-50 text-emerald-900\"><p class=\"text-sm font-black\">Ofullständig kunddata</p><p class=\"mt-2 text-3xl font-black tracking-tight\">0</p><p class=\"mt-2 text-xs font-bold leading-5 opacity-80\">Kunddata behöver kompletteras</p></div></div><div><div class=\"h-full rounded-3xl border p-5 shadow-sm border-emerald-200 bg-emerald-50 text-emerald-900\"><p class=\"text-sm font-black\">Öppna avvikelser</p><p class=\"mt-2 text-3xl font-black tracking-tight\">0</p><p class=\"mt-2 text-xs font-bold leading-5 opacity-80\">Totalt att följa upp</p></div></div></section><div class=\"flex justify-end\"><a href=\"/admin/analytics/export?report=data_quality_issues\">Exportera CSV</a></div><div class=\"overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm\"><table class=\"min-w-full text-sm\"><thead class=\"bg-slate-50 text-left text-xs uppercase tracking-[0.14em] text-slate-600\"><tr><th class=\"px-5 py-4\">Typ</th><th class=\"px-5 py-4\">Påverkar</th><th class=\"px-5 py-4\">Allvar</th><th class=\"px-5 py-4\">Status</th><th class=\"px-5 py-4\">Åtgärd</th></tr></thead><tbody class=\"divide-y divide-slate-100\"><tr><td colSpan=\"5\" class=\"px-5 py-10 text-center font-semibold text-slate-600\">Inga öppna avvikelser.</td></tr></tbody></table></div></div></div>"
+
+ ❯ __tests__/analytics-pages-canonical-scope.test.ts:83:16
+     81|   io.companyId = null
+     82|   const html = renderToStaticMarkup(await run())
+     83|   expect(html).toMatch(/Bolag saknas|Välj bolag/)
+       |                ^
+     84|   expect(io.calls).toEqual([])
+     85|   expect(io.legacy).not.toHaveBeenCalled()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/21]⎯
+
+ FAIL  __tests__/analytics-pages-canonical-scope.test.ts > 'overview' does not depend on a second membership lookup after canonical authorization
+Error: legacy_membership_unavailable
+ ❯ __tests__/analytics-pages-canonical-scope.test.ts:59:31
+     57|   io.calls = []
+     58|   io.legacy.mockReset().mockImplementation(async () => {
+     59|     if (io.legacyError) throw new Error('legacy_membership_unavailable…
+       |                               ^
+     60|     return { companyId: 'legacy-B', companyName: 'Legacybolag B', mess…
+     61|   })
+ ❯ Module.AnalyticsOverviewPage app/admin/analytics/page.tsx:17:23
+ ❯ __tests__/analytics-pages-canonical-scope.test.ts:90:3
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/21]⎯
+
+ FAIL  __tests__/analytics-pages-canonical-scope.test.ts > 'forecast' does not depend on a second membership lookup after canonical authorization
+Error: legacy_membership_unavailable
+ ❯ __tests__/analytics-pages-canonical-scope.test.ts:59:31
+     57|   io.calls = []
+     58|   io.legacy.mockReset().mockImplementation(async () => {
+     59|     if (io.legacyError) throw new Error('legacy_membership_unavailable…
+       |                               ^
+     60|     return { companyId: 'legacy-B', companyName: 'Legacybolag B', mess…
+     61|   })
+ ❯ Module.AnalyticsForecastPage app/admin/analytics/forecast/page.tsx:18:23
+ ❯ __tests__/analytics-pages-canonical-scope.test.ts:90:3
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/21]⎯
+
+ FAIL  __tests__/analytics-pages-canonical-scope.test.ts > 'reports' does not depend on a second membership lookup after canonical authorization
+Error: legacy_membership_unavailable
+ ❯ __tests__/analytics-pages-canonical-scope.test.ts:59:31
+     57|   io.calls = []
+     58|   io.legacy.mockReset().mockImplementation(async () => {
+     59|     if (io.legacyError) throw new Error('legacy_membership_unavailable…
+       |                               ^
+     60|     return { companyId: 'legacy-B', companyName: 'Legacybolag B', mess…
+     61|   })
+ ❯ Module.AnalyticsReportsPage app/admin/analytics/reports/page.tsx:16:23
+ ❯ __tests__/analytics-pages-canonical-scope.test.ts:90:3
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/21]⎯
+
+ FAIL  __tests__/analytics-pages-canonical-scope.test.ts > 'deviations' does not depend on a second membership lookup after canonical authorization
+Error: legacy_membership_unavailable
+ ❯ __tests__/analytics-pages-canonical-scope.test.ts:59:31
+     57|   io.calls = []
+     58|   io.legacy.mockReset().mockImplementation(async () => {
+     59|     if (io.legacyError) throw new Error('legacy_membership_unavailable…
+       |                               ^
+     60|     return { companyId: 'legacy-B', companyName: 'Legacybolag B', mess…
+     61|   })
+ ❯ Module.AnalyticsDeviationsPage app/admin/analytics/deviations/page.tsx:13:23
+ ❯ __tests__/analytics-pages-canonical-scope.test.ts:90:3
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/21]⎯
+
+ FAIL  __tests__/analytics-pages-canonical-scope.test.ts > overview fallback uses the same authorized company and month as its stored metric read
+AssertionError: expected [ { name: 'monthly', …(1) }, …(5) ] to deep equally contain { name: 'live', companyId: 'guard-A' }
+
+- Expected:
+{
+  "companyId": "guard-A",
+  "name": "live",
+}
+
++ Received:
+[
+  {
+    "companyId": "legacy-B",
+    "name": "monthly",
+  },
+  {
+    "companyId": "legacy-B",
+    "name": "monthly",
+  },
+  {
+    "companyId": "legacy-B",
+    "name": "growth",
+  },
+  {
+    "companyId": "legacy-B",
+    "name": "options",
+  },
+  {
+    "companyId": "legacy-B",
+    "name": "breakdowns",
+  },
+  {
+    "companyId": "legacy-B",
+    "name": "live",
+  },
+]
+
+ ❯ __tests__/analytics-pages-canonical-scope.test.ts:98:20
+     96|   io.missingMonthly = true
+     97|   const html = renderToStaticMarkup(await pages[0].run())
+     98|   expect(io.calls).toContainEqual({ name: 'live', companyId: 'guard-A'…
+       |                    ^
+     99|   expect(html).toContain('73')
+    100| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/21]⎯
+
+ FAIL  __tests__/analytics-pages-canonical-scope.test.ts > CSV export uses the same canonical selected company for platform=false
+ FAIL  __tests__/analytics-pages-canonical-scope.test.ts > CSV export uses the same canonical selected company for platform=true
+AssertionError: expected 'company_id;customers\nlegacy-B;11' to contain 'guard-A;73'
+
+- Expected
++ Received
+
+- guard-A;73
++ company_id;customers
++ legacy-B;11
+
+ ❯ __tests__/analytics-pages-canonical-scope.test.ts:106:33
+    104|   const response = await GET(request())
+    105|   expect(response.status).toBe(200)
+    106|   expect(await response.text()).toContain('guard-A;73')
+       |                                 ^
+    107|   expect(io.calls).toEqual([{ name: 'report', companyId: 'guard-A' }])
+    108|   expect(io.legacy).not.toHaveBeenCalled()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/21]⎯
+
+ FAIL  __tests__/analytics-pages-canonical-scope.test.ts > CSV export refuses a missing canonical company without invoking a report loader
+AssertionError: expected 200 to be 403 // Object.is equality
+
+- Expected
++ Received
+
+- 403
++ 200
+
+ ❯ __tests__/analytics-pages-canonical-scope.test.ts:114:27
+    112|   io.companyId = null
+    113|   const response = await GET(request())
+    114|   expect(response.status).toBe(403)
+       |                           ^
+    115|   expect(io.calls).toEqual([])
+    116|   expect(io.legacy).not.toHaveBeenCalled()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/21]⎯
+
+ FAIL  __tests__/analytics-pages-canonical-scope.test.ts > CSV export remains available when an unrelated legacy membership read fails
+Error: legacy_membership_unavailable
+ ❯ __tests__/analytics-pages-canonical-scope.test.ts:59:31
+     57|   io.calls = []
+     58|   io.legacy.mockReset().mockImplementation(async () => {
+     59|     if (io.legacyError) throw new Error('legacy_membership_unavailable…
+       |                               ^
+     60|     return { companyId: 'legacy-B', companyName: 'Legacybolag B', mess…
+     61|   })
+ ❯ Module.GET app/admin/analytics/export/route.ts:11:23
+ ❯ __tests__/analytics-pages-canonical-scope.test.ts:121:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/21]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  21 failed | 2 passed (23)
+   Start at  12:55:26
+   Duration  1.99s (transform 620ms, setup 94ms, import 1.14s, tests 256ms, environment 0ms)
+

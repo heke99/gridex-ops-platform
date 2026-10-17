@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 const io=vi.hoisted(()=>({permissions:['communication.read','cases.write','customers.write','communication.send'],requestStatus:'waiting_for_z02',
   watchStatus:'pending',readDenied:false,active:true,requestSentAt:'2026-10-01T12:00:00Z' as string|null,rpc:vi.fn()}))
-vi.mock('@/lib/admin/guards',()=>({requireAdminPageKeyAccess:async()=>({userId:'actor',companyId:'own',email:'operator@example.invalid',permissions:io.permissions})}))
+vi.mock('@/lib/admin/guards',async(importOriginal)=>({...await importOriginal<typeof import('@/lib/admin/guards')>(),requireAdminPageKeyAccess:async()=>({userId:'actor',companyId:'own',email:'operator@example.invalid',permissions:io.permissions,roles:[],isAdmin:true,isPlatformAdmin:false})}))
 vi.mock('@/lib/supabase/server',()=>({createSupabaseServerClient:async()=>({auth:{getUser:async()=>({data:{user:{id:'actor'}}})}})}))
 vi.mock('@/lib/tenant/scope',()=>({getOperationalCompanyScope:async()=>({companyId:'own',memberships:[{companyId:'own',status:io.active?'active':'inactive',companyStatus:'active'}]})}))
 vi.mock('@/components/admin/AdminHeader',()=>({default:({title}:{title:string})=>React.createElement('header',null,title)}))

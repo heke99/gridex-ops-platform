@@ -32,6 +32,7 @@ export type ManualInboundEmail = {
 export type ManualInboundResult = {
   inboundId: string | null
   resolutionStatus: 'matched' | 'ambiguous' | 'unmatched' | 'ignored'
+  reason?: 'retired_source'
   requestId: string | null
   caseReference: string | null
   companyId?: string | null
@@ -270,13 +271,50 @@ function isReprocessable(existing: JsonRecord): boolean {
   return state === null || NON_TERMINAL_PROCESSING_STATES.has(state)
 }
 
+function retiredSourceResult(caseReference: string | null): ManualInboundResult {
+  return {
+    inboundId: null,
+    resolutionStatus: 'ignored',
+    reason: 'retired_source',
+    requestId: null,
+    caseReference,
+    companyId: null,
+    processingState: 'ignored_retired_source',
+    parse: null,
+  }
+}
+
+function isRetiredSourceInsertError(error: unknown): boolean {
+  return typeof error === 'object' && error !== null
+    && 'code' in error && error.code === '23514'
+    && 'message' in error && error.message === 'manual_inbound_source_retired'
+}
+
 export async function ingestManualInboundEmail(email: ManualInboundEmail): Promise<ManualInboundResult> {
   await assertPlatformSchemaReady()
 
   const mailbox = normalizeEmail(email.mailbox ?? email.toEmail) ?? ''
   const providerMessageId = clean(email.providerMessageId)
   const caseReference = extractCaseReference(email)
-  const raw = await persistRawInbound({ email, mailbox, providerMessageId })
+  if (providerMessageId) {
+    const { data: retired, error } = await supabaseService.rpc('gridex_manual_inbound_source_retired_v1', {
+      p_mailbox: mailbox,
+      p_provider_id: providerMessageId,
+    })
+    if (error) throw error
+    if (typeof retired !== 'boolean') throw new Error('Invalid manual inbound source retirement result')
+    if (retired) return retiredSourceResult(caseReference)
+  }
+
+  let raw: Awaited<ReturnType<typeof persistRawInbound>>
+  try {
+    raw = await persistRawInbound({ email, mailbox, providerMessageId })
+  } catch (error) {
+    // A delete may retire this exact key after the lookup. The insert guard
+    // protects that race; only its explicit signal is safe to acknowledge.
+    if (isRetiredSourceInsertError(error)) return retiredSourceResult(caseReference)
+    throw error
+  }
 
   // A terminal correlation is idempotent. Unmatched rows are intentionally
   // re-evaluated because new tenant/customer masterdata may have arrived since

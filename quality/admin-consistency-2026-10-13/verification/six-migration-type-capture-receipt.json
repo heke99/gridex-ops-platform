@@ -1,0 +1,41 @@
+{
+  "purpose": "authentic_baseline_native_six_forward_migration_type_capture_only",
+  "prior_five_capture_receipt": {
+    "path": "/tmp/gridex-admin-upgrade-capture/capture-receipt.json",
+    "sha256": "1a5b33ffd29302ef13aa6091cfe488e8a768aaf35fb9a2b5b8694630574f7fd6"
+  },
+  "baseline_types_bytes_equal_before_any_forward_change": true,
+  "baseline_types_sha256": "16465bc1948132452b84f8554f6684c428bf3e287ba4e7dc9a7442000cec452b",
+  "five_upgrade_types_sha256": "8c16927a69246ce52b2ebdcce7740ec65d4d5599e5291c5aebc82f80b74635ff",
+  "sixth_migration": {
+    "name": "20261013123314_manual_inbound_event_source_consistency.sql",
+    "sha256": "c85e3273a86eddf2dc2911d6c1ead843d3336770939f440cd5c6a89d4cf2f8fa",
+    "applied_only_to_same_isolated_baseline_upgrade_db": true
+  },
+  "supabase_cli_version": "2.101.0",
+  "postgres_meta_image": "public.ecr.aws/supabase/postgres-meta:v0.96.4",
+  "generator_api_schemas": [
+    "public",
+    "graphql_public"
+  ],
+  "raw_output_preserved": true,
+  "nullability_override_script_sha256": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
+  "independent_repeat_of_override_byte_equal": true,
+  "sixth_only_type_members_changed": [
+    "public.Tables.inbound_operation_events"
+  ],
+  "sixth_only_type_changes": "Nullable UUID generated source field plus two tenant/physical source FK relationships",
+  "generated_column_type_observation": "Genuine CLI emits optional string|null for stored generated field Insert/Update; no handwritten never override",
+  "canonical_schema_fingerprint_import": "Still rejected: original owner/grantee metadata missing from prior baseline. No schema capture performed for sixth",
+  "ledger_or_native_ediel_or_browser_proof": "NONE; capture-only output",
+  "repo_artifact_writes_by_this_agent": false,
+  "artifact_sha256": {
+    "database.types.raw.ts": "5f4e82c4d1bc215335e3cdfdec8734eed5d117daffb4e619de72ee064dbbc947",
+    "database.types.ts": "53a93af0d55a8ea3e6dbaf9a55ae97f27a66312680b7daed82d1120995895710",
+    "database.types.diff": "f6c66676bbd14c5f625df1daba941b9d75f25ad21f94510810c7e24eda7aab95",
+    "sixth-only.types.diff": "a315c1d11100a0088a4f9aee392059d5bd34d8048c825d41047bef05aaabe82c",
+    "sixth-only-member-delta.json": "80201d41987014ea6bd01506b20280df264eb24cb8b87cb7731d1cf62b5a1585",
+    "migration-apply.log": "dc58af025c07f3fa5b938a0b04bb2243ff0e9f665e72bad1561137cf21b72a8c",
+    "typegen.log": "7cd6d8040fb592c14886c8ba766c82b9c7cd6fde1f088df649cfada9aff06011"
+  }
+}

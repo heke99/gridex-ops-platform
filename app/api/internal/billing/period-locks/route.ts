@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { internalApiError } from '@/lib/http/apiError'
-import { requireAdminApiAccess } from '@/lib/admin/apiGuards'
-import { requireOperationalCompanyId } from '@/lib/tenant/scope'
+import { requireAdminApiAccess, requireAdminOperationalCompany } from '@/lib/admin/apiGuards'
 import { getBillingPeriodLock, lockBillingPeriod, unlockBillingPeriod } from '@/lib/billing/invoiceReadiness'
 
 export const runtime = 'nodejs'
@@ -12,11 +11,11 @@ function readBillingMonth(value: unknown): string | null {
 }
 
 export async function GET(request: Request) {
-  const access = await requireAdminApiAccess(['billing.read'])
+  const access = await requireAdminApiAccess(['billing_underlay.read'])
   if (access.response) return access.response
 
   try {
-    const companyId = await requireOperationalCompanyId(access.guard.userId)
+    const companyId = await requireAdminOperationalCompany(access.guard)
     const url = new URL(request.url)
     const billingMonth = readBillingMonth(url.searchParams.get('billing_month') ?? url.searchParams.get('billingMonth'))
     if (!billingMonth) return NextResponse.json({ error: 'billing_month måste anges som YYYY-MM.' }, { status: 400 })
@@ -29,11 +28,11 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const access = await requireAdminApiAccess(['billing.write'])
+  const access = await requireAdminApiAccess(['billing_underlay.export'])
   if (access.response) return access.response
 
   try {
-    const companyId = await requireOperationalCompanyId(access.guard.userId)
+    const companyId = await requireAdminOperationalCompany(access.guard)
     const body = await request.json().catch(() => ({})) as Record<string, unknown>
     const billingMonth = readBillingMonth(body.billing_month ?? body.billingMonth)
     const action = typeof body.action === 'string' ? body.action.trim() : 'lock'

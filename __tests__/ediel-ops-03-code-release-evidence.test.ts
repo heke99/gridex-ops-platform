@@ -62,7 +62,27 @@ const sha256 = (bytes: string | Buffer) => createHash('sha256').update(bytes).di
 // The finite Git port models the original reviewed producer, not admission of
 // HEAD's expanded native suite. Restore only its known additions and require
 // the original pinned bytes; every other source change still fails closed.
+// Restore only the two reviewed local-storage wrappers inside this historical
+// finite Git port. Current workflow bytes never become current native proof.
+function reviewedStorageLifecycleWorkflow(bytes: Buffer) {
+  if (sha256(bytes) !== '2ceb6b81f6fc12ef9f463e9acd1bf97306dc3f58ce6c296341744663fe1d0529') return bytes
+  const additions = [
+    "          # CURRENT-owned wrapper scopes the complete original step. OLD replay\n          # still owns its HOLD/seed/CLI ledger and existing cleanup lifecycle.\n          set -e -o pipefail\n          GRIDEX_STORAGE_STEP_DIR=\"$(mktemp -d \"$RUNNER_TEMP/gridex-storage-step.XXXXXX\")\"\n          trap 'rm -rf -- \"$GRIDEX_STORAGE_STEP_DIR\"' EXIT\n          test \"$(sha256sum scripts/gridex-local-storage-lifecycle.py | cut -d ' ' -f 1)\" = \"330b6d405869a12b7c57bc04da75e5f685ccebdbdb0478e03a02fbcd780292cd\"\n          test \"$(sha256sum scripts/sql/gridex-local-storage-owner-bootstrap.sql | cut -d ' ' -f 1)\" = \"c01914b7343bb6d84729ccf96b6ff442e78bf46dcd96b563d7f137d970db18c0\"\n          # Preserve exact reviewed helper bytes. Its SQL sibling basename is\n          # internal staging only; canonical source paths remain the two above.\n          cp scripts/gridex-local-storage-lifecycle.py \"$GRIDEX_STORAGE_STEP_DIR/gridex-local-storage-lifecycle.py\"\n          cp scripts/sql/gridex-local-storage-owner-bootstrap.sql \"$GRIDEX_STORAGE_STEP_DIR/ci-local-storage-owner-bootstrap-rls-guarded-private.sql\"\n          cat > \"$GRIDEX_STORAGE_STEP_DIR/unchanged-clean-step.sh\" <<'GRIDEX_STORAGE_UNCHANGED_CLEAN_STEP'\n",
+    "          GRIDEX_STORAGE_UNCHANGED_CLEAN_STEP\n          python3 \"$GRIDEX_STORAGE_STEP_DIR/gridex-local-storage-lifecycle.py\" \\\n            --cli-sha256 b67f22c508bb7434e4e36151b722e289130ed9e07a7ad4f9faadf4c83237286f -- \\\n            bash --noprofile --norc -e -o pipefail \"$GRIDEX_STORAGE_STEP_DIR/unchanged-clean-step.sh\"\n",
+    "          # CURRENT-owned wrapper scopes the complete original step. OLD replay\n          # still owns its HOLD/seed/CLI ledger and existing cleanup lifecycle.\n          set -e -o pipefail\n          GRIDEX_STORAGE_STEP_DIR=\"$(mktemp -d \"$RUNNER_TEMP/gridex-storage-step.XXXXXX\")\"\n          trap 'rm -rf -- \"$GRIDEX_STORAGE_STEP_DIR\"' EXIT\n          test \"$(sha256sum scripts/gridex-local-storage-lifecycle.py | cut -d ' ' -f 1)\" = \"330b6d405869a12b7c57bc04da75e5f685ccebdbdb0478e03a02fbcd780292cd\"\n          test \"$(sha256sum scripts/sql/gridex-local-storage-owner-bootstrap.sql | cut -d ' ' -f 1)\" = \"c01914b7343bb6d84729ccf96b6ff442e78bf46dcd96b563d7f137d970db18c0\"\n          # Preserve exact reviewed helper bytes. Its SQL sibling basename is\n          # internal staging only; canonical source paths remain the two above.\n          cp scripts/gridex-local-storage-lifecycle.py \"$GRIDEX_STORAGE_STEP_DIR/gridex-local-storage-lifecycle.py\"\n          cp scripts/sql/gridex-local-storage-owner-bootstrap.sql \"$GRIDEX_STORAGE_STEP_DIR/ci-local-storage-owner-bootstrap-rls-guarded-private.sql\"\n          cat > \"$GRIDEX_STORAGE_STEP_DIR/unchanged-upgrade-step.sh\" <<'GRIDEX_STORAGE_UNCHANGED_UPGRADE_STEP'\n",
+    "          GRIDEX_STORAGE_UNCHANGED_UPGRADE_STEP\n          python3 \"$GRIDEX_STORAGE_STEP_DIR/gridex-local-storage-lifecycle.py\" \\\n            --cli-sha256 b67f22c508bb7434e4e36151b722e289130ed9e07a7ad4f9faadf4c83237286f -- \\\n            bash --noprofile --norc -e -o pipefail \"$GRIDEX_STORAGE_STEP_DIR/unchanged-upgrade-step.sh\"\n",
+  ]
+  let original = bytes.toString('utf8')
+  for (const addition of additions) {
+    if (original.split(addition).length !== 2) throw Error('fixture_reviewed_storage_workflow_inverse_not_exact')
+    original = original.replace(addition, '')
+  }
+  const restored = Buffer.from(original)
+  if (sha256(restored) !== 'f1c03e2be5a38d2b41d96c2cfcb53259c6a2dd9af99f5a17311c693c91237d9d') throw Error('fixture_reviewed_storage_workflow_inverse_digest_mismatch')
+  return restored
+}
 function reviewedProducerFixture(file: string, bytes: Buffer) {
+  if (file === '.github/workflows/ops-hardening.yml') bytes = reviewedStorageLifecycleWorkflow(bytes)
   // Model the exact reviewed default helper only. The optional public case
   // creator and its new native assertions confer no historical/current proof.
   if (file === 'scripts/helpers/ediel-normal-switch-native-fixture.ts') {
@@ -666,7 +686,9 @@ it.each(['foreign_rule_status', 'foreign_at_status', 'foreign_evidence', 'spec',
 // Exercise the actual finite port, including its whole-byte admission guards.
 // The historical DDQ port restores known bytes only; it does not run native cases.
 it('historical workflow port restores the exact reviewed producer after bounded key-download retries', () => {
-  const file = '.github/workflows/ops-hardening.yml', source = readFileSync(file)
+  const file = '.github/workflows/ops-hardening.yml', current = readFileSync(file)
+  expect(sha256(current)).toBe('2ceb6b81f6fc12ef9f463e9acd1bf97306dc3f58ce6c296341744663fe1d0529')
+  const source = reviewedStorageLifecycleWorkflow(current)
   expect(sha256(source)).toBe('f1c03e2be5a38d2b41d96c2cfcb53259c6a2dd9af99f5a17311c693c91237d9d')
   const original = reviewedProducerFixture(file, source)
   expect(sha256(original)).toBe('eceef159107cc788bb0188e43874ed20fbcf9acdbd9a0f259ef68e20b5c6a261')
