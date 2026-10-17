@@ -18,7 +18,7 @@ vi.mock('@/lib/supabase/server',()=>({createSupabaseServerClient:async()=>{
 vi.mock('nodemailer',()=>({default:{createTransport:()=>({sendMail:provider})}}))
 // No catalog, canonical, source, legal review, ACK or effect consumer is mocked.
 import {nativeSql as sql,literal,seedNormalSwitchNativeFixture,type NormalSwitchFixtureInput} from './helpers/ediel-h05h08-normal-switch-native-fixture'
-import {nationalRescissionNativeChain} from './helpers/nationalRescissionNative'
+import {nationalRescissionNativeChain,nationalRescissionFixturePlan,type NationalRescissionFixturePlan} from './helpers/nationalRescissionNative'
 import {createBilateralProdatGroundNativeFixture} from './helpers/ediel-bilateral-prodat-profile-native-fixture'
 import {seedOriginalMailboxNative} from './helpers/originalMailboxNative'
 import {archiveBilateralProdatGround,reviewBilateralProdatGround,readBilateralProdatGroundArtifact} from '@/lib/ediel/production/bilateralProdatProfileIntake'
@@ -52,6 +52,8 @@ import {assertEdielTenantActor} from '@/lib/ediel/services/authorization'
 import {readEdielTransportCopies} from '@/lib/ediel/transport/copy'
 import {readVerifiedEdielTransportCopy} from '@/lib/ediel/transport/verifiedCopy'
 import {applySupplyMarketSource} from '@/lib/ediel/flows/supplyMarketTransition'
+import {recordReceivedSourceValidation} from '@/lib/ediel/core/receivedSourceValidationLedger'
+import {captureFreshEdielSourceRulePackEvidence,requireEdielSourceRulePackEvidence} from '@/lib/ediel/core/sourceRulePackEvidence'
 import {SmtpDeliveryUncertainError} from '@/lib/ediel/transport/smtpOutcome'
 import {readSupplyRescissionMandate} from '@/lib/ediel/production/supplyRescissionOperation'
 import {processPendingInvoiceProviderEvents} from '@/lib/billing/providerEventProcessor'
@@ -95,15 +97,40 @@ async function receive(f:Ground,raw:string,actor=f.actorUserId,company=f.company
  const outboundMatch=await matchOutboundRequestForInbound({companyId:company,parsed:mail.parsed,inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId})
  const meteringPointMatch=await matchMeteringPointForInbound({companyId:company,parsed:mail.parsed})
  let id:string|null
- try{id=await createInboundEdielMessage({companyId:company,actorUserId:actor,environment:'test',inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId,parsed:mail.parsed,outboundMatch,meteringPointMatch})}
- catch(error){
-  // Only the actual birth call is eligible. Parser/matcher/auth/network/setup
-  // failures and our own assertions always propagate as test failures.
-  const message=error&&typeof error==='object'&&'message'in error?String(error.message):''
-  const selectors=['311','312','202','203','314','209','223']
-  if(omittedField&&selectors.includes(omittedField)&&(message==='canonical_ediel_rule_pack_required'||omittedField==='312'&&message==='supply_end_birth_association_mismatch'))throw new ExpectedPhysicalBirthRefusal(message)
-  throw error
- }
+ const observedOmission=!!omittedField&&['311','314','223'].includes(omittedField)
+ const retainedInput=()=>sql<{mail:{received_at:string;raw_edifact_payload:string};parse:{inbound_email_message_id:string};utcDate:string}>(`SELECT jsonb_build_object(
+  'mail',(SELECT to_jsonb(m) FROM public.inbound_email_messages m WHERE company_id=${literal(company)} AND id=${literal(mail.inboundEmailMessageId)}),
+  'parse',(SELECT to_jsonb(p) FROM public.inbound_ediel_parse_results p WHERE company_id=${literal(company)} AND id=${literal(mail.parseResultId)}),
+  'utcDate',(SELECT to_char(received_at AT TIME ZONE 'UTC','YYYY-MM-DD') FROM public.inbound_email_messages WHERE company_id=${literal(company)} AND id=${literal(mail.inboundEmailMessageId)}))`)
+ const retainedBefore=observedOmission?retainedInput():null
+ // Call-through observation around only the real public creator; no error or
+ // result is supplied by the spy. Only these three diagnosed omissions qualify.
+ const warning=vi.spyOn(console,'warn')
+ try{
+  try{id=await createInboundEdielMessage({companyId:company,actorUserId:actor,environment:'test',inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId,parsed:mail.parsed,outboundMatch,meteringPointMatch})}
+  catch(error){
+   // Only the actual birth call is eligible. Parser/matcher/auth/network/setup
+   // failures and our own assertions always propagate as test failures.
+   const message=error&&typeof error==='object'&&'message'in error?String(error.message):''
+   const selectors=['311','312','202','203','314','209','223']
+   if(omittedField&&selectors.includes(omittedField)&&(message==='canonical_ediel_rule_pack_required'||omittedField==='312'&&message==='supply_end_birth_association_mismatch'))throw new ExpectedPhysicalBirthRefusal(message)
+   throw error
+  }
+  if(id===null&&observedOmission&&retainedBefore){
+   const expected='canonical_inbound_rule_profile_resolution_failed:PRODAT:Z05:'+retainedBefore.utcDate+':4'
+   const [label,error]=warning.mock.calls.length===1?warning.mock.calls[0]:[]
+   if(label==='[inbound-mail] Kunde inte skapa/uppdatera inbound ediel_message'&&error&&typeof error==='object'&&'code'in error&&error.code==='23514'&&'message'in error&&error.message===expected){
+    expect(retainedInput()).toEqual(retainedBefore)
+    expect(retainedBefore.mail.raw_edifact_payload).toBe(raw)
+    expect(retainedBefore.parse.inbound_email_message_id).toBe(mail.inboundEmailMessageId)
+    expect(sql(`SELECT jsonb_build_object(
+     'sources',(SELECT count(*) FROM public.ediel_messages WHERE company_id=${literal(company)} AND environment='test' AND(inbound_email_message_id=${literal(mail.inboundEmailMessageId)} OR raw_payload=${literal(raw)})),
+     'receptions',(SELECT count(*) FROM gridex_ediel_inbound_receptions.receptions WHERE company_id=${literal(company)} AND environment='test' AND inbound_email_message_id=${literal(mail.inboundEmailMessageId)}),
+     'contexts',(SELECT count(*) FROM gridex_ediel_inbound_context.receipts WHERE company_id=${literal(company)} AND environment='test' AND payload_sha256=${literal(hash(raw))}))`)).toEqual({sources:0,receptions:0,contexts:0})
+    throw new ExpectedPhysicalBirthRefusal(expected)
+   }
+  }
+ }finally{warning.mockRestore()}
  expect(typeof id,JSON.stringify({phase:'public_inbound_birth',inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId,omittedField:omittedField??null})).toBe('string')
  expect(id).toMatch(/^[a-f0-9-]{36}$/)
  const source=(await getEdielMessageById(id!))!
@@ -115,6 +142,16 @@ async function accepted(f:Ground,raw:string){
  const m=await receive(f,raw),decision=await resolveCanonicalRuntimeDecisionWithRegistry(m.source)
  expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision],JSON.stringify(decision.issues)).toEqual(['accepted','accepted','accepted'])
  return{...m,decision}
+}
+// Only these fresh withdrawal probes retain the genuine admitted source basis.
+// Do this before revocation; no supply effect or historical receipt is invented.
+async function retainAcceptedH05Basis(f:Ground,m:Awaited<ReturnType<typeof accepted>>){
+ const recorded=await recordReceivedSourceValidation({original:m.source,validated:m.source,resolvedCompanyId:f.companyId,decision:m.decision})
+ expect(recorded.status).toBe('recorded')
+ const captured=await captureFreshEdielSourceRulePackEvidence(f.companyId,m.sourceId)
+ expect(captured.status).toBe('captured')
+ if(captured.status!=='captured')throw Error('native_fresh_h05_source_basis_required')
+ return captured.evidence
 }
 async function publicH04Reception(input:Pick<NormalSwitchFixtureInput,'bindingMonths'|'billingAddress'>={},declaration:'declared'|'absent'|'malformed'='declared'){
  const f=await authorized(input);smtp();provider.mockClear();const original=await originate(f)
@@ -173,7 +210,7 @@ async function publicHStart(input:Pick<NormalSwitchFixtureInput,'bindingMonths'|
  expect(period,JSON.stringify({physicalReadings:f.physicalReadings,returned:{status:processed.status,failureReason:processed.failure_reason,tenantResolutionStatus:processed.tenant_resolution_status},diagnostic,receivedControl:diagnostic?{issues:received.decision.issues,application:received.decision.prodatApplicationValidation}:undefined})).toMatchObject({source_message_id:received.sourceId,source_end_message_id:null})
  return{...f,startSourceId:received.sourceId,startWire:received.wire,periodId:period.id}
 }
-function endBody(f:Ground,reason:'Z25'|'Z22',li:string):Parts[]{return [...parties(f),line('1',f.external,undefined,'9'),['DTM',['93','202610161330','203']],...characteristic('Z13',reason),['RFF',['LI',li]],['RFF',['Z05',f.gridAreaCode]],endUser(f),point(f),['NAD','Z02',[f.brpEdielId,'160','SVK']]]}
+function endBody(f:Ground,reason:'Z25'|'Z22',li:string,nationalEndPlan?:NationalRescissionFixturePlan):Parts[]{return [...parties(f),line('1',f.external,undefined,'9'),['DTM',['93',nationalEndPlan?.endWireMinute??'202610161330','203']],...characteristic('Z13',reason),['RFF',['LI',li]],['RFF',['Z05',f.gridAreaCode]],endUser(f),point(f),['NAD','Z02',[f.brpEdielId,'160','SVK']]]}
 async function hEndGround(input:Pick<NormalSwitchFixtureInput,'bindingMonths'|'billingAddress'>={}){
  const start=await publicHStart(input),f=await createBilateralProdatGroundNativeFixture(start,'own_end_h')
  const artifact=await archiveBilateralProdatGround({companyId:f.companyId,actorUserId:f.actorUserId,...f.signed()})
@@ -251,18 +288,19 @@ async function retainedTransportBytes(f:Ground,messageId:string,actor=f.actorUse
 
 type Row=Record<string,unknown>
 const newRows=(before:Row[],after:Row[])=>after.filter(row=>!before.some(old=>old.id===row.id))
-function commercialEnd(before:ReturnType<typeof graph>,after:ReturnType<typeof graph>,f:Ground&{periodId:string;startSourceId:string},sourceId:string,started:string,finished:string,bindingMonths=0){
+function commercialEnd(before:ReturnType<typeof graph>,after:ReturnType<typeof graph>,f:Ground&{periodId:string;startSourceId:string},sourceId:string,started:string,finished:string,bindingMonths=0,nationalEndPlan?:NationalRescissionFixturePlan){
  const prior=before.periods.find(p=>p.id===f.periodId)!,period=after.periods.find(p=>p.id===f.periodId)!
- expect(period).toMatchObject({id:f.periodId,source_message_id:f.startSourceId,source_end_message_id:sourceId,market_end_at:'2026-10-16T12:30:00+00:00',status:'ending',market_state_version:Number(prior.market_state_version)+1})
+ const effectiveAt=nationalEndPlan?.effectiveAt??'2026-10-16T12:30:00Z',endDate=nationalEndPlan?.endDate??'2026-10-16'
+ expect(period).toMatchObject({id:f.periodId,source_message_id:f.startSourceId,source_end_message_id:sourceId,market_end_at:effectiveAt.replace(/(?:\.000)?Z$/,'+00:00'),status:Date.parse(effectiveAt)<=Date.parse(started)?'ended':'ending',market_state_version:Number(prior.market_state_version)+1})
  expect(period.market_start_at).toBe(prior.market_start_at)
  expect(after.periods.filter(p=>p.id!==f.periodId)).toEqual(before.periods.filter(p=>p.id!==f.periodId))
  const contract=before.contracts.find(c=>c.id===f.contractId)!,event=newRows(before.events,after.events)
  expect(contract).toMatchObject({status:'signed',company_id:f.companyId});expect(Number(contract.binding_months??0)).toBe(bindingMonths)
- expect(event).toHaveLength(1);const e=event[0],at=String(e.happened_at),endKey='source-end:'+f.periodId+':2026-10-16',eventKey='supply-end:'+f.contractId+':'+endKey
+ expect(event).toHaveLength(1);const e=event[0],at=String(e.happened_at),endKey='source-end:'+f.periodId+':'+endDate,eventKey='supply-end:'+f.contractId+':'+endKey
  expect(Date.parse(at)).toBeGreaterThanOrEqual(Date.parse(started));expect(Date.parse(at)).toBeLessThanOrEqual(Date.parse(finished))
  expect(e).toMatchObject({company_id:f.companyId,customer_id:f.customerId,customer_contract_id:f.contractId,event_type:'terminated',actor_user_id:null})
- expect(e.metadata).toEqual({ends_at:'2026-10-16',termination_notice_date:at,termination_reason:'supply_end',reason_code:'supply_end',source_message_id:f.startSourceId,idempotency_key:eventKey})
- const expected={...contract,status:'terminated',ended_at:'2026-10-16T00:00:00+00:00',termination_notice_date:at.slice(0,10),termination_reason:'supply_end',status_reason_code:'supply_end',metadata:{...(contract.metadata as Row),status_reason_code:'supply_end'},updated_at:at,updated_by:null}
+ expect(e.metadata).toEqual({ends_at:endDate,termination_notice_date:at,termination_reason:'supply_end',reason_code:'supply_end',source_message_id:f.startSourceId,idempotency_key:eventKey})
+ const expected={...contract,status:'terminated',ended_at:`${endDate}T00:00:00+00:00`,termination_notice_date:at.slice(0,10),termination_reason:'supply_end',status_reason_code:'supply_end',metadata:{...(contract.metadata as Row),status_reason_code:'supply_end'},updated_at:at,updated_by:null}
  expect(after.contracts).toEqual(before.contracts.map(c=>c.id===f.contractId?expected:c))
  const domain=newRows(before.domain,after.domain);expect(domain).toHaveLength(1)
  expect(domain[0]).toMatchObject({company_id:f.companyId,event_type:'contract.event.recorded',aggregate_type:'customer_contract',aggregate_id:f.contractId,actor_user_id:null,source:'gridex_record_customer_contract_event_v1',idempotency_key:'customer-contract-event:'+eventKey})
@@ -270,11 +308,11 @@ function commercialEnd(before:ReturnType<typeof graph>,after:ReturnType<typeof g
  const tasks=newRows(before.tasks,after.tasks);expect(tasks).toHaveLength(bindingMonths?2:1)
  const final=tasks.find(x=>x.task_type==='final_invoice_pending')!
  expect(final).toMatchObject({company_id:f.companyId,customer_id:f.customerId,metering_point_id:f.pointId,task_type:'final_invoice_pending',status:'open',priority:'high',resolved_at:null})
- expect(final.metadata).toEqual({supply_end_date:'2026-10-16',end_reason:'supply_end',end_key:endKey,supply_period_id:f.periodId})
+ expect(final.metadata).toEqual({supply_end_date:endDate,end_reason:'supply_end',end_key:endKey,supply_period_id:f.periodId})
  if(bindingMonths){
   const review=tasks.find(x=>x.task_type==='break_fee_review')!
   expect(review).toMatchObject({company_id:f.companyId,customer_id:f.customerId,metering_point_id:f.pointId,status:'open',priority:'normal',resolved_at:null})
-  expect(review.metadata).toEqual({contract_id:f.contractId,binding_months:bindingMonths,binding_ends_at:'2027-10-15',supply_end_date:'2026-10-16',end_key:endKey})
+  expect(review.metadata).toEqual({contract_id:f.contractId,binding_months:bindingMonths,binding_ends_at:'2027-10-15',supply_end_date:endDate,end_key:endKey})
  }
  for(const key of ['invoices','underlays','items','customers','sites','points'])expect(after[key],key).toEqual(before[key])
  for(const key of ['events','domain','tasks'])expect(after[key].filter(row=>before[key].some(old=>old.id===row.id)),key).toEqual(before[key])
@@ -387,12 +425,14 @@ it('public H05 signed binding source opens only human break-fee review and final
 
 it('actual H05 current metering permission withdrawal refuses the honest retained source without any effect',async()=>{
  const f=await hEndGround(),m=await accepted(f,wire(f,'Z05',endBody(f,'Z25',f.li)))
+ const rulePackEvidence=await retainAcceptedH05Basis(f,m)
  await assertEdielTenantActor({companyId:f.companyId,actorUserId:f.actorUserId,permission:'metering.write'})
  sql(`UPDATE public.user_permissions SET effect='deny' WHERE company_id=${literal(f.companyId)} AND user_id=${literal(f.actorUserId)} AND permission_key='metering.write'`)
  await expect(assertEdielTenantActor({companyId:f.companyId,actorUserId:f.actorUserId,permission:'metering.write'})).rejects.toThrow('ediel_tenant_permission_forbidden')
  const before=graph(),saved=effects(f.companyId),privateSaved=protectedOriginals(),input=custody(m.sourceId),calls=provider.mock.calls.length
  const globalBefore=rejectedIdentityEffects()
  expect(await applySupplyMarketSource({actorUserId:f.actorUserId,message:m.source})).toMatchObject({applied:false,reason:'supply_execution_actor_unqualified'})
+ expect(await requireEdielSourceRulePackEvidence(f.companyId,m.sourceId)).toEqual(rulePackEvidence)
  assertNegativeGlobalEffects(globalBefore)
  expect(graph()).toEqual(before);expect(effects(f.companyId)).toEqual(saved);expect(protectedOriginals()).toEqual(privateSaved);expect(custody(m.sourceId)).toEqual(input);expect(provider).toHaveBeenCalledTimes(calls)
 },120000)
@@ -428,6 +468,7 @@ it('actual public H05 has no standard end effect when its own bilateral transiti
 
 for(const revoked of ['supplier_role','reviewer'] as const)it('actual H05 '+revoked+' withdrawal keeps captured history but removes current transition authority',async()=>{
  const f=await hEndGround(),m=await accepted(f,wire(f,'Z05',endBody(f,'Z25',f.li)))
+ const rulePackEvidence=await retainAcceptedH05Basis(f,m)
  expect(await readBilateralProdatGroundArtifact({companyId:f.companyId,actorUserId:f.actorUserId,artifactId:f.artifactId})).toMatchObject({status:'authorized'})
  if(revoked==='supplier_role')sql(`UPDATE public.tenant_actor_roles SET valid_to=clock_timestamp() WHERE company_id=${literal(f.companyId)} AND actor_id=${literal(f.actorUserId)} AND environment='test' AND role_code='electricity_supplier'`)
  else{
@@ -439,6 +480,7 @@ for(const revoked of ['supplier_role','reviewer'] as const)it('actual H05 '+revo
  const before=graph(),saved=effects(f.companyId),privateSaved=protectedOriginals(),input=custody(m.sourceId),calls=provider.mock.calls.length
  const globalBefore=rejectedIdentityEffects()
  await expect(applySupplyMarketSource({actorUserId:f.actorUserId,message:m.source})).rejects.toMatchObject({message:'bilateral_h_end_current_profile_required'})
+ expect(await requireEdielSourceRulePackEvidence(f.companyId,m.sourceId)).toEqual(rulePackEvidence)
  assertNegativeGlobalEffects(globalBefore)
  expect(graph()).toEqual(before);expect(effects(f.companyId)).toEqual(saved);expect(protectedOriginals()).toEqual(privateSaved);expect(custody(m.sourceId)).toEqual(input);expect(provider).toHaveBeenCalledTimes(calls)
 },120000)
@@ -485,7 +527,7 @@ it('actual H05 registered raw/direction and protected legal-context mutations ar
 it('actual H05 final audit failure rolls back market, contract, billing, transition and positive ACK writes atomically',async()=>{
  const f=await hEndGround(),m=await accepted(f,wire(f,'Z05',endBody(f,'Z25',f.li))),before=graph(),old=effects(f.companyId),input=custody(m.sourceId),privateBefore=protectedOriginals(),calls=provider.mock.calls.length,name='native_h05_final_audit_'+randomUUID().replaceAll('-','')
  const globalBefore=rejectedIdentityEffects()
- sql(`ALTER TABLE public.audit_logs ADD CONSTRAINT ${name} CHECK(NOT(company_id=${literal(f.companyId)}::uuid AND action='ediel.bilateral_profile.supply_applied' AND entity_id=${literal(m.sourceId)}::uuid)) NOT VALID`)
+ sql(`ALTER TABLE public.audit_logs ADD CONSTRAINT ${name} CHECK(NOT(company_id=${literal(f.companyId)}::uuid AND action='ediel.bilateral_profile.supply_applied' AND entity_id=${literal(m.sourceId)})) NOT VALID`)
  try{
   await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:m.sourceId})
   assertNegativeGlobalEffects(globalBefore,m.source,f.actorUserId)
@@ -614,12 +656,13 @@ for(const field of ['250','251','253','317','318'])it('public H05 physical IV ac
 async function nationalArtifact(input:Pick<NormalSwitchFixtureInput,'bindingMonths'|'billingAddress'>={}){
  const f=await publicHStart(input)
  const archiverSession=await actualNationalSourceSession(f.actorUserId),reviewerSession=await actualNationalSourceSession(f.reviewer);sourceSession.client=archiverSession
- const periodId=sql<string>(`SELECT to_jsonb(id) FROM public.customer_supply_periods WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(f.startSourceId)}`),rulePackId=sql<string>(`SELECT to_jsonb(pack.id) FROM public.ediel_rule_packs pack WHERE pack.family='PRODAT' AND pack.guide_version='26.A' AND pack.guide_revision='3' AND pack.status='active' AND(SELECT count(*) FROM public.ediel_message_profiles profile WHERE profile.rule_pack_id=pack.id AND profile.is_enabled AND(profile.profile_key='PRODAT:Z08:H:26.A:r3' OR profile.profile_key='PRODAT:Z05:L:26.A:r3'))=2`),selector={environment:'test' as const,supplyPeriodId:periodId,effectiveAt:'2026-10-16T12:30:00Z',rulePackId},scope=await readSupplyRescissionScope({companyId:f.companyId,actorUserId:f.actorUserId,...selector})
+ const nationalEndPlan=nationalRescissionFixturePlan(sql<string>('SELECT to_jsonb(clock_timestamp())'))
+ const periodId=sql<string>(`SELECT to_jsonb(id) FROM public.customer_supply_periods WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(f.startSourceId)}`),rulePackId=sql<string>(`SELECT to_jsonb(pack.id) FROM public.ediel_rule_packs pack WHERE pack.family='PRODAT' AND pack.guide_version='26.A' AND pack.guide_revision='3' AND pack.status='active' AND(SELECT count(*) FROM public.ediel_message_profiles profile WHERE profile.rule_pack_id=pack.id AND profile.is_enabled AND(profile.profile_key='PRODAT:Z08:H:26.A:r3' OR profile.profile_key='PRODAT:Z05:L:26.A:r3'))=2`),selector={environment:'test' as const,supplyPeriodId:periodId,effectiveAt:nationalEndPlan.effectiveAt,rulePackId},scope=await readSupplyRescissionScope({companyId:f.companyId,actorUserId:f.actorUserId,...selector})
  expect(scope.status,JSON.stringify(scope)).toBe('scoped')
  const bytes=Buffer.from('SYNTHETIC LEGAL ORIGINAL: actual prerequisites completed; requested own contract rescission. NOT REAL LEGAL CLAIM.'),source={bytesBase64:bytes.toString('base64'),mimeType:'text/plain' as const,reference:'SYNTHETIC NATIONAL RESCISSION ORIGINAL',version:'1'},keyId=randomUUID(),representationId=randomUUID(),key=Buffer.from('SYNTHETIC national rescission issuer configured native fixture only'),dso=sql<string>(`SELECT to_jsonb(actor_id) FROM public.platform_actor_identifiers WHERE identifier_type='EdielId' AND identifier_value=${literal(f.receiver)} AND is_verified`)
  sql(`INSERT INTO gridex_supply_rescission.issuer_keys VALUES(${literal(keyId)},${literal(f.companyId)},'test','SYNTHETIC','DECLARED MECHANISM BOUNDARY NOT REAL LEGAL CLAIM',${literal('a'.repeat(64))},decode(${literal(key.toString('hex'))},'hex'),'2000-01-01','2100-01-01');INSERT INTO gridex_supply_rescission.issuer_representations VALUES(${literal(representationId)},${literal(f.companyId)},'test',${literal(keyId)},${literal(f.actorUserId)},${literal(dso)},${literal(f.gridAreaCode)},'SYNTHETIC REPRESENTATION',${literal('b'.repeat(64))},'2000-01-01','2100-01-01');INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key,effect,is_active,status) SELECT ${literal(f.reviewer)},${literal(f.companyId)},id,key,'allow',true,'active' FROM public.permissions WHERE key='ediel.supply_rescission.review';`)
- const issued=new Date(Date.now()-1000).toISOString(),payload=Buffer.from(JSON.stringify({format:'ediel_national_supply_rescission_receipt_v1',purpose:'national_prodat_z08h_legal_rescission',issuerCode:'SYNTHETIC',receiptId:randomUUID(),companyId:f.companyId,environment:'test',scope:scope.scope,sourceHash:createHash('sha256').update(bytes).digest('hex'),sourceReference:source.reference,sourceVersion:'1',legalCaseReference:'SYNTHETIC CASE',legalDecisionReference:'SYNTHETIC DECISION',legalPrerequisitesReference:'SYNTHETIC PREREQUISITES',legalPrerequisitesCompletedAt:issued,issuedAt:issued,expiresAt:'2099-01-01T00:00:00Z'})),submission={...selector,source,issuerReceipt:{keyId,representationId,payloadBase64:payload.toString('base64'),signatureHex:createHmac('sha256',key).update(payload).digest('hex')}},artifact=await archiveSupplyRescission({companyId:f.companyId,actorUserId:f.actorUserId,...submission}),review={sourceHash:String(artifact.sourceHash),scopeHash:String(artifact.scopeHash),decision:'approve' as const,reason:'Independent review of actual synthetic original and completed legal prerequisites; no real legal approval',sourceClauseLocator:'Original sentence 1',sourceClauseQuote:'actual prerequisites completed; requested own contract rescission.'}
- expect(artifact.status,JSON.stringify(artifact)).toBe('archived');sourceSession.client=reviewerSession;return{...f,periodId,bytes,artifactId:String(artifact.artifactId),review}
+ const issued=nationalEndPlan.issuedAt,payload=Buffer.from(JSON.stringify({format:'ediel_national_supply_rescission_receipt_v1',purpose:'national_prodat_z08h_legal_rescission',issuerCode:'SYNTHETIC',receiptId:randomUUID(),companyId:f.companyId,environment:'test',scope:scope.scope,sourceHash:createHash('sha256').update(bytes).digest('hex'),sourceReference:source.reference,sourceVersion:'1',legalCaseReference:'SYNTHETIC CASE',legalDecisionReference:'SYNTHETIC DECISION',legalPrerequisitesReference:'SYNTHETIC PREREQUISITES',legalPrerequisitesCompletedAt:nationalEndPlan.completedAt,issuedAt:issued,expiresAt:'2099-01-01T00:00:00Z'})),submission={...selector,source,issuerReceipt:{keyId,representationId,payloadBase64:payload.toString('base64'),signatureHex:createHmac('sha256',key).update(payload).digest('hex')}},artifact=await archiveSupplyRescission({companyId:f.companyId,actorUserId:f.actorUserId,...submission}),review={sourceHash:String(artifact.sourceHash),scopeHash:String(artifact.scopeHash),decision:'approve' as const,reason:'Independent review of actual synthetic original and completed legal prerequisites; no real legal approval',sourceClauseLocator:'Original sentence 1',sourceClauseQuote:'actual prerequisites completed; requested own contract rescission.'}
+ expect(artifact.status,JSON.stringify(artifact)).toBe('archived');sourceSession.client=reviewerSession;return{...f,periodId,nationalEndPlan,bytes,artifactId:String(artifact.artifactId),review}
 }
 
 async function nationalOperation(separatePrincipals=false,input:Pick<NormalSwitchFixtureInput,'bindingMonths'|'billingAddress'>={}){
@@ -668,9 +711,9 @@ it('public H08 authentic archive/review creates only its own H request; physical
  await incomingAck(f,buildAperakDraft({sourceMessage:counterpart,outcome:'positive'}).rawPayload!)
  expect((await getEdielMessageById(f.original.id))!).toMatchObject({contrl_status:'received',aperak_status:'received'})
  expect(graph()).toEqual(beforeSend);expect(nationalWatch(f)).toMatchObject([{status:'pending',fulfilled_by_message_id:null,due_at:null}])
- const m=await accepted(f,wire(f,'Z05',endBody(f,'Z22',f.li))),started=clock()
+ const m=await accepted(f,wire(f,'Z05',endBody(f,'Z22',f.li,f.nationalEndPlan))),started=clock()
  await processInboundEdielMessage({actorUserId:f.currentExecutor,edielMessageId:m.sourceId})
- const after=graph();commercialEnd(beforeSend,after,f,m.sourceId,started,clock())
+ const after=graph();commercialEnd(beforeSend,after,f,m.sourceId,started,clock(),0,f.nationalEndPlan)
  const receipt=sql<Row>(`SELECT to_jsonb(x) FROM gridex_supply_rescission.end_receipts x WHERE source_message_id=${literal(m.sourceId)}`)
  expect(receipt).toMatchObject({company_id:f.companyId,environment:'test',mandate_id:f.mandateId,original_message_id:f.original.id,original_payload_hash:hash(f.original.raw_payload!),source_message_id:m.sourceId,source_payload_hash:hash(m.wire)})
  const transitionHash=sql<string>(`SELECT to_jsonb(encode(sha256(convert_to(to_jsonb(x)::text,'UTF8')),'hex')) FROM gridex_received_sources.supply_source_transitions x WHERE source_message_id=${literal(m.sourceId)} AND company_id=${literal(f.companyId)}`)
@@ -684,10 +727,11 @@ it('public H08 authentic archive/review creates only its own H request; physical
 },120000)
 
 for(const change of ['unsent','wrong_li','wrong_object','wrong_agency','wrong_end','reviewer_revoked'] as const)it('public H08 '+change+' cannot end any supply or produce a positive business ACK',async()=>{
- const f=await nationalOperation(),body=endBody(f,'Z22',f.li)
+ const f=await nationalOperation(),body=endBody(f,'Z22',f.li,f.nationalEndPlan)
  if(change!=='unsent')await sendNational(f)
  if(change==='reviewer_revoked')sql(`DELETE FROM public.user_roles WHERE user_id=${literal(f.reviewer)};UPDATE public.user_permissions SET effect='deny' WHERE company_id=${literal(f.companyId)} AND user_id=${literal(f.reviewer)} AND permission_key='ediel.supply_rescission.review'`)
- const changed=body.map(p=>change==='wrong_li'&&p[0]==='RFF'&&Array.isArray(p[1])&&p[1][0]==='LI'?['RFF',['LI','FOREIGN-LI']]:change==='wrong_object'&&p[0]==='LIN'?line('1','735999999999999999',undefined,'9'):change==='wrong_agency'&&p[0]==='LIN'?line('1',f.external,undefined,'89'):change==='wrong_end'&&p[0]==='DTM'?['DTM',['93','202610171330','203']]:p) as Parts[]
+ const changed=body.map(p=>change==='wrong_li'&&p[0]==='RFF'&&Array.isArray(p[1])&&p[1][0]==='LI'?['RFF',['LI','FOREIGN-LI']]:change==='wrong_object'&&p[0]==='LIN'?line('1','735999999999999999',undefined,'9'):change==='wrong_agency'&&p[0]==='LIN'?line('1',f.external,undefined,'89'):change==='wrong_end'&&p[0]==='DTM'?['DTM',['93',new Date(Date.parse(f.nationalEndPlan.effectiveAt)+60000+3600000).toISOString().slice(0,16).replace(/[-T:]/g,''),'203']]:p) as Parts[]
+ if(change==='wrong_end')expect(changed).not.toEqual(body)
  const m=await accepted(f,wire(f,'Z05',changed)),before=graph(),old=effects(f.companyId) as Record<string,unknown>,input=custody(m.sourceId),original=custody(f.original.id),privateBefore=protectedOriginals(),calls=provider.mock.calls.length
  const globalBefore=rejectedIdentityEffects()
  await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:m.sourceId})

@@ -2,9 +2,11 @@
 // The isolated runner resolves this import to the exact old or actual-new helper.
 import {afterEach,beforeEach,describe,expect,it,vi} from 'vitest'
 import {createHash,randomUUID} from 'node:crypto'
+import {spawn,type ChildProcess} from 'node:child_process'
 import {chmodSync,existsSync,mkdirSync,mkdtempSync,readFileSync,readdirSync,rmSync,writeFileSync,lstatSync} from 'node:fs'
+import {createRequire} from 'node:module'
 import {tmpdir} from 'node:os'
-import {join} from 'node:path'
+import {dirname,join,resolve} from 'node:path'
 
 // Close every non-stdlib fixture port; calling any of these is a test error.
 vi.mock('@/lib/supabase/service',()=>({supabaseService:()=>{throw Error('unexpected_backend_port')}}))
@@ -25,7 +27,8 @@ import {nativeSql} from '../scripts/helpers/ediel-h05h08-normal-switch-native-fi
 const BIG=64*1024*1024+4096
 const TAIL='TAIL_å😀'
 const FIXED_ARGS=['postgresql://postgres:postgres@127.0.0.1:54322/postgres','-XAtq','-v','ON_ERROR_STOP=1']
-const ENV_KEYS=['PATH','TMPDIR','NEXT_PUBLIC_SUPABASE_URL','H_SQL_TEST_SCENARIO','H_SQL_TEST_TRACE','H_SQL_TEST_MARKER','H_SQL_TEST_BARRIER','H_SQL_TEST_WORKER'] as const
+const ENV_KEYS=['PATH','TMPDIR','NEXT_PUBLIC_SUPABASE_URL','H_SQL_TEST_SCENARIO','H_SQL_TEST_TRACE','H_SQL_TEST_MARKER','H_SQL_TEST_BARRIER','H_SQL_TEST_WORKER','H_SQL_TEST_SHARED_SPOOL','H_SQL_TEST_LAUNCH_COORDINATOR'] as const
+const OVERLAP_TEST='preserves per-call identity during an externally coordinated overlap'
 const fakePsql=String.raw`
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
 const input=fs.readFileSync(0,'utf8'),scenario=process.env.H_SQL_TEST_SCENARIO;
@@ -93,6 +96,75 @@ function regularPrivateStreams(t:Trace){
  expect(t.stdout.target?.startsWith(spool+'/gridex-h-native-sql-')).toBe(true)
  expect(t.stderr.target?.startsWith(spool+'/gridex-h-native-sql-')).toBe(true)
  expect(existsSync(t.stdout.target!)).toBe(false);expect(existsSync(t.stderr.target!)).toBe(false)
+}
+
+type WorkerResult={code:number|null;signal:NodeJS.Signals|null;output:string;error?:Error}
+type OverlapWorker={child:ChildProcess;done:Promise<WorkerResult>;result?:WorkerResult}
+const pause=()=>new Promise<void>(resolve=>setTimeout(resolve,10))
+async function awaitLaunch(ready:()=>boolean,workers:OverlapWorker[]=[]){
+ const deadline=Date.now()+30000
+ while(!ready()){
+  const failed=workers.find(worker=>worker.result)
+  if(failed)throw Error('overlap_worker_exited_before_launch:'+JSON.stringify(failed.result))
+  if(Date.now()>=deadline)throw Error('overlap_worker_launch_timeout')
+  await pause()
+ }
+}
+function startOverlapWorker(worker:'one'|'two',barrier:string,shared:string):OverlapWorker{
+ // Resolve the installed runner before launching. PATH remains fake-psql-only;
+ // neither the runner nor its child may discover a real database executable.
+ const cli=join(dirname(createRequire(import.meta.url).resolve('vitest/package.json')),'vitest.mjs')
+ const child=spawn(process.execPath,[cli,'run',resolve('__tests__/ediel-h-native-sql-output-buffer-completeness-c-final.test.ts'),
+  '--config',resolve('vitest.config.ts'),'--maxWorkers=1','--no-file-parallelism','--coverage.enabled=false','--reporter=dot','-t',OVERLAP_TEST],{
+  cwd:process.cwd(),detached:true,stdio:['ignore','pipe','pipe'],env:{...process.env,
+   H_SQL_TEST_BARRIER:barrier,H_SQL_TEST_WORKER:worker,H_SQL_TEST_SHARED_SPOOL:shared,H_SQL_TEST_LAUNCH_COORDINATOR:'1'},
+ })
+ let output='',launchError:Error|undefined
+ const append=(chunk:Buffer)=>{output=(output+chunk.toString('utf8')).slice(-32768)}
+ child.stdout!.on('data',append);child.stderr!.on('data',append)
+ const owned={} as OverlapWorker
+ owned.child=child
+ owned.done=new Promise<WorkerResult>(resolve=>{
+  child.once('error',error=>{launchError=error})
+  child.once('close',(code,signal)=>{owned.result={code,signal,output,...(launchError?{error:launchError}:{})};resolve(owned.result)})
+ })
+ return owned
+}
+async function drainOwnedWorkers(workers:OverlapWorker[]){
+ const signal=(worker:OverlapWorker,value:NodeJS.Signals)=>{
+  if(worker.result||!worker.child.pid)return
+  // Each detached Linux process group belongs to this one test invocation.
+  try{process.kill(-worker.child.pid,value)}catch(error){if((error as NodeJS.ErrnoException).code!=='ESRCH')throw error}
+ }
+ for(const worker of workers)signal(worker,'SIGTERM')
+ const escalation=setTimeout(()=>{for(const worker of workers)signal(worker,'SIGKILL')},1000)
+ try{await Promise.all(workers.map(worker=>worker.done))}finally{clearTimeout(escalation)}
+}
+async function coordinateOverlap(){
+ const barrier=join(root,'barrier'),shared=join(root,'shared-spool'),workers:OverlapWorker[]=[]
+ mkdirSync(barrier,{mode:0o700});mkdirSync(shared,{mode:0o700})
+ let deadline:ReturnType<typeof setTimeout>|undefined
+ try{
+  // Start both OS workers before awaiting either. The launch handshake excludes
+  // runner startup from the unchanged fake-psql five-second overlap barrier.
+  workers.push(startOverlapWorker('one',barrier,shared))
+  workers.push(startOverlapWorker('two',barrier,shared))
+  await awaitLaunch(()=>['one','two'].every(worker=>existsSync(join(barrier,worker+'.launched'))),workers)
+  writeFileSync(join(barrier,'launch.release'),'admit both owned workers',{mode:0o600})
+  const results=await Promise.race([Promise.all(workers.map(worker=>worker.done)),new Promise<never>((_,reject)=>{
+   deadline=setTimeout(()=>reject(Error('overlap_worker_completion_timeout')),15000)
+  })])
+  for(const result of results){expect(result.error).toBeUndefined();expect(result.signal,result.output).toBeNull();expect(result.code,result.output).toBe(0)}
+  // The workers assert exact input/marker identity and every private FD while
+  // overlapping. Cleanup is global only after both actual runners have exited.
+  const traces=['one','two'].map(worker=>JSON.parse(readFileSync(join(barrier,worker+'.trace'),'utf8')) as Trace)
+  expect(new Set(traces.map(trace=>trace.pid)).size).toBe(2)
+  expect(new Set(traces.flatMap(trace=>[trace.stdout.target,trace.stderr.target])).size).toBe(4)
+  expect(readdirSync(shared)).toEqual([]);noHelperLeak()
+ }finally{
+  if(deadline)clearTimeout(deadline)
+  await drainOwnedWorkers(workers)
+ }
 }
 
 beforeEach(()=>{
@@ -192,11 +264,18 @@ describe('actual H nativeSql with declared fake psql, SOURCE only',()=>{
  it('uses private distinct regular stream files and removes them after success',()=>{
   nativeSql('private streams');regularPrivateStreams(trace());noHelperLeak()
  })
- it('preserves per-call identity during an externally coordinated overlap',()=>{
+ it(OVERLAP_TEST,async()=>{
   const barrier=process.env.H_SQL_TEST_BARRIER,worker=process.env.H_SQL_TEST_WORKER,shared=process.env.H_SQL_TEST_SHARED_SPOOL
+  const launch=process.env.H_SQL_TEST_LAUNCH_COORDINATOR
+  if([barrier,worker,shared,launch].every(value=>value===undefined)){await coordinateOverlap();return}
   expect(Boolean(barrier&&shared&&['one','two'].includes(worker??''))).toBe(true)
   if(!barrier||!shared||!['one','two'].includes(worker??''))throw Error('required_overlap_coordinator_missing')
+  if(launch!==undefined&&launch!=='1')throw Error('invalid_overlap_launch_coordinator')
   for(const directory of [barrier,shared]){const stat=lstatSync(directory);expect(stat.isDirectory()).toBe(true);expect(stat.mode&0o777).toBe(0o700)}
+  if(launch==='1'){
+   writeFileSync(join(barrier,worker+'.launched'),String(process.pid),{mode:0o600})
+   await awaitLaunch(()=>existsSync(join(barrier,'launch.release')))
+  }
   spool=shared;process.env.TMPDIR=shared
   scenario('identity');const input='identity '+process.env.H_SQL_TEST_MARKER
   expect(nativeSql(input)).toEqual({marker:process.env.H_SQL_TEST_MARKER,inputSHA256:hash(input)})
@@ -209,5 +288,5 @@ describe('actual H nativeSql with declared fake psql, SOURCE only',()=>{
   expect(new Set([t.stdout.target,t.stderr.target,peer.stdout.target,peer.stderr.target]).size).toBe(4)
   // Both fake children reached the barrier while holding distinct output FDs.
   // A peer may still own its directory; coordinator checks global cleanup after BOTH exit.
- })
+ },50000)
 })

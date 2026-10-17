@@ -52,11 +52,12 @@ jobs:
         {
           "file_receipts": {
             ".github/workflows/ediel-z05h-z08h-supplier-native.yml": "f878a672d65b9128ae0f3a7b937f82222ea088af",
-            "scripts/ediel-at-z05h-z08h-supplier-native.test.ts": "2255742ce5a41aa5968ace2d99baec3dcf40defd",
+            "scripts/ediel-at-z05h-z08h-supplier-native.test.ts": "6e32bbb9604169aada9e64505410c1ef07e454f1",
             "scripts/ediel-z05h-z08h-supplier-native.config.ts": "2255742ce5a41aa5968ace2d99baec3dcf40defd",
-            "scripts/helpers/ediel-h05h08-normal-switch-native-fixture.ts": "931aed4a5a9d6b43ce449cc509eabd71c9307a58",
+            "scripts/helpers/ediel-h05h08-normal-switch-native-fixture.ts": "85202606c16dca1bb44ac1ecac324586c9f0cb12",
+            "scripts/helpers/nationalRescissionNative.ts": "6e32bbb9604169aada9e64505410c1ef07e454f1",
             "scripts/helpers/ediel-supply-end-field-omissions.ts": "2255742ce5a41aa5968ace2d99baec3dcf40defd",
-            "__tests__/ediel-h-native-sql-output-buffer-completeness-c-final.test.ts": "2a1bcb94ffd2b7c0ec80d812d95bcd2e3190a2d3",
+            "__tests__/ediel-h-native-sql-output-buffer-completeness-c-final.test.ts": "cadd91b975c4e4819ad07cdb5f1bc7c00926ac9f",
             "__tests__/ediel-supply-end-field-omissions.test.ts": "c0dee5caf7956673f2957bd7fb78093c09d9af83",
             "__tests__/ediel-z05-rejected-identity-runtime.test.ts": "c0dee5caf7956673f2957bd7fb78093c09d9af83",
             "lib/ediel/core/runtimeDecision.ts": "c0dee5caf7956673f2957bd7fb78093c09d9af83",
@@ -111,6 +112,7 @@ jobs:
                  'scripts/ediel-at-z05h-z08h-supplier-native.test.ts',
                  'scripts/ediel-z05h-z08h-supplier-native.config.ts',
                  'scripts/helpers/ediel-h05h08-normal-switch-native-fixture.ts',
+                 'scripts/helpers/nationalRescissionNative.ts',
                  'scripts/helpers/ediel-supply-end-field-omissions.ts',
                  '__tests__/ediel-h-native-sql-output-buffer-completeness-c-final.test.ts',
                  'scripts/gridex-redact-native-evidence.py',
@@ -118,19 +120,19 @@ jobs:
           custody=json.loads(os.environ['GRIDEX_H_RESOURCE_CUSTODY'])
           if not isinstance(custody,dict) or set(custody)!={'file_receipts','retained_scope_receipts','receiving','producer'}: raise RuntimeError('h_custody_metadata_shape')
           file_receipts=custody['file_receipts'];retained=custody['retained_scope_receipts']
-          if not isinstance(file_receipts,dict) or set(file_receipts)!=set(files): raise RuntimeError('h_exact_thirteen_file_receipts_required')
+          if not isinstance(file_receipts,dict) or set(file_receipts)!=set(files): raise RuntimeError('h_exact_fourteen_file_receipts_required')
           if retained!={name:'2255742ce5a41aa5968ace2d99baec3dcf40defd' for name in ['slot-C3','id-AT-Z05H-SUPPLIER','id-AT-Z08H-SUPPLIER']}: raise RuntimeError('h_retained_scope_receipts_mismatch')
           receiving=custody['receiving'];producer=custody['producer']
           if receiving!={'resource':'slot-session-76174a45-114b-48a6-afb1-1a41f7b82836','receipt':os.environ['GRIDEX_H_SOURCE_RECEIPT']} or file_receipts['.github/workflows/ediel-z05h-z08h-supplier-native.yml']!=receiving['receipt']: raise RuntimeError('h_receiving_source_receipt_mismatch')
           if producer!={'resource':'producer-h','receipt':os.environ['GRIDEX_H_PRODUCER_RECEIPT']}: raise RuntimeError('h_producer_receipt_mismatch')
           expected={**retained,receiving['resource']:receiving['receipt'],producer['resource']:producer['receipt'],
                     **{'file-'+hashlib.sha256(path.encode()).hexdigest():sha for path,sha in file_receipts.items()}}
-          if len(expected)!=18 or any(not isinstance(sha,str) or re.fullmatch('[0-9a-f]{40}',sha) is None for sha in expected.values()): raise RuntimeError('h_exact_eighteen_resource_receipts_required')
+          if len(expected)!=19 or any(not isinstance(sha,str) or re.fullmatch('[0-9a-f]{40}',sha) is None for sha in expected.values()): raise RuntimeError('h_exact_nineteen_resource_receipts_required')
           root='repos/'+repository+'/git/ref/tags/agent-claims/masterplan/'
           for name,sha in sorted(expected.items()):
               actual=json.loads(subprocess.check_output(['gh','api',root+name]))
               if not isinstance(actual,dict) or actual.get('ref')!='refs/tags/agent-claims/masterplan/'+name or not isinstance(actual.get('object'),dict) or actual['object'].get('type')!='commit' or actual['object'].get('sha')!=sha: raise RuntimeError('h_custody_mismatch:'+name)
-          print('H05H08_CUSTODY exact18refs verified; current per-resource source/inputepoch')
+          print('H05H08_CUSTODY exact19refs verified; current per-resource source/inputepoch')
           PY
       - uses: actions/setup-node@v4
         with:

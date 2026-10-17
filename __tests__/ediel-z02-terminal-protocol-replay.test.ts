@@ -13,6 +13,7 @@ import { validateEdifactSyntax } from '@/lib/ediel/core/syntaxValidator'
 import { readOutboundAckOriginals } from '@/lib/ediel/core/outboundAckOriginals'
 import { assertEdielTenantActor } from '@/lib/ediel/services/authorization'
 import { EdielExecutionFailure } from '@/lib/ediel/core/failureDisposition'
+import { hasReceivedZ05RejectedIdentityRejection } from '@/lib/ediel/prodat/receivedZ05RejectedIdentityRejection'
 import { applyInboundProdatZ02ToCustomerInfoRequest } from '@/lib/onboarding/inboundEdielLinking'
 import { externalZ02Reply } from '@/scripts/helpers/ediel-z02-supplier-native-wire'
 import { head, source } from './fixtures/prodat-identity'
@@ -188,6 +189,7 @@ function coordinator() {
     getEdielMessageById: async () => structuredClone(tables.ediel_messages.find(row => row.id === own.source)),
     applyInboundProdatZ02ToCustomerInfoRequest, applyInboundProdatZ14ToMeteringPermission: async () => ({ applied: false }),
     readEdielTechnicalSourceEndpoint: async () => null, hasReceivedProdatHeaderRejection: () => false,
+    hasReceivedZ05RejectedIdentityRejection,
     hasReceivedZ04RequiredStartRejection: () => false, hasReceivedZ04HRegisterRejection: () => false,
     hasReceivedZ04HRequiredFieldRejection: () => false, hasReceivedZ04HStructuralFieldRejection: () => false,
     resolveInboundTenantForMessage: async ({ message }: { message: EdielMessageRow }) => ({ status: 'tenant_resolved', companyId: own.company, message }),

@@ -3,9 +3,9 @@
   "task": "Complete PR776 and PR810",
   "base": "2a9729ecd2191f77f3d2ff1c10d213686a8e8360",
   "sourceOrigin": "d8a0abdcc55877fbee9e8841afb59bfc518fd771",
-  "status": "PR776_SOURCE_FROZEN_CURRENT_CI_PENDING",
-  "scope": "Selective thirteen technical files; workflow admission metadata correction only. Existing business logic, tests and assertions are preserved.",
-  "verification": "Actual bounded workflow admission and syntax controls passed; current corrected-source CI and two independent final reviews are pending.",
+  "status": "PR776_SOURCE_FROZEN_AWAITING_CURRENT_CI",
+  "scope": "Selective H source plus bounded native/component fixture chronology, unit harness dependencies and workflow custody metadata. Production SQL, authorization guards and assertion oracles are preserved.",
+  "verification": "Local targeted unit tests passed 46/46 without skips; the P13 preservation component and script/test typechecks passed. Local Node 24 proof does not replace mandatory CI on Node 22. Independent exact-source reviews and current CI are pending.",
   "approvalLedger": "UNCHANGED; no new masterplan acceptance claimed.",
   "next": "Freeze the bounded correction, obtain independent reviews and current mandatory CI, then normal PR776 and PR810 delivery.",
   "limits": "No LIVE/provider/production activation or complete market acceptance is claimed."

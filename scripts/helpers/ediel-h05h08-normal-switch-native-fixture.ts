@@ -228,11 +228,11 @@ export async function seedNormalSwitchNativeFixture(input:NormalSwitchFixtureInp
   INSERT INTO public.metering_points(id,company_id,customer_id,site_id,customer_site_id,meter_point_id,metering_point_id,ediel_metering_point_id,grid_owner_id,grid_owner_ediel_id,grid_area_code,price_area_code,status,reading_frequency,measurement_type,product_direction,is_settlement_relevant,is_test_data,metadata)
   VALUES(${literal(pointId)},${literal(companyId)},${literal(customerId)},${literal(siteId)},${literal(siteId)},${literal(external)},${literal(external)},${literal(external)},${literal(gridId)},${literal(receiver)},'TES','SE3','active','hourly','consumption','consumption',true,true,${literal(marker)}::jsonb);
   INSERT INTO public.customer_contracts(id,company_id,customer_id,site_id,metering_point_id,
-   contract_offer_id,status,contract_version,requested_start_date,starts_at,metadata,created_by,contract_publication_version_id,
+   contract_offer_id,status,binding_months,contract_version,requested_start_date,starts_at,metadata,created_by,contract_publication_version_id,
    contract_product_id,contract_product_version_id,price_plan_id,price_plan_version_id,
    price_book_id,legal_bundle_version_id,offer_reference,commercial_snapshot,legal_snapshot)
   SELECT ${literal(contractId)},${literal(companyId)},${literal(customerId)},${literal(siteId)},
-   ${literal(pointId)},${literal(offerId)},'draft','v1',${literal(requestedStartDate)}::date,${literal(requestedStartDate)}::date,${literal(marker)}::jsonb,
+   ${literal(pointId)},${literal(offerId)},'draft',${bindingMonths},'v1',${literal(requestedStartDate)}::date,${literal(requestedStartDate)}::date,${literal(marker)}::jsonb,
    ${literal(actorUserId)},v.id,p.contract_product_id,v.contract_product_version_id,
    v.price_plan_id,v.price_plan_version_id,v.price_book_id,v.legal_bundle_version_id,
    v.offer_reference,p.commercial_snapshot,l.rendered_snapshot
@@ -243,6 +243,7 @@ export async function seedNormalSwitchNativeFixture(input:NormalSwitchFixtureInp
  expect(sql(`SELECT to_jsonb(contract_publication_version_id IS NOT NULL AND contract_product_version_id IS NOT NULL
   AND price_plan_version_id IS NOT NULL AND legal_bundle_version_id IS NOT NULL)
   FROM public.customer_contracts WHERE id=${literal(contractId)}`)).toBe(true)
+ expect(sql(`SELECT jsonb_build_object('status',status,'bindingMonths',binding_months) FROM public.customer_contracts WHERE id=${literal(contractId)} AND company_id=${literal(companyId)}`)).toEqual({status:'draft',bindingMonths})
  // Honest conditional original inputs, before canonical signing/PDF/POA.
  // Never modify a signed source to manufacture a conditional native case.
  if(input.billingAddress){
@@ -268,6 +269,7 @@ export async function seedNormalSwitchNativeFixture(input:NormalSwitchFixtureInp
  // signature records. Its digest is bound once through the ordinary document
  // owner; a ready flag never substitutes for storage/readback evidence.
  const signed=sql<Record<string,unknown>>(`SELECT to_jsonb(c) FROM public.customer_contracts c WHERE id=${literal(contractId)}`)
+ expect(signed).toMatchObject({status:'signed',binding_months:bindingMonths})
  const legalVersions=sql<{type:string;title:string;version:string;id:string;body:string}[]>(`SELECT jsonb_agg(jsonb_build_object('type',module_key,'title',title,'version',coalesce(template_version,left(content_sha256,12)),'id',id,'body',rendered_body)) FROM public.legal_bundle_version_documents WHERE legal_bundle_version_id=${literal(signed.legal_bundle_version_id)}`)
  const attachment=buildAgreementPdfAttachment({companyName:'Synthetic Archive AB',organizationNumber,customerName,customerEmail:`synthetic-${customerId}@example.invalid`,customerNumber:customerId,contractNumber:String(signed.contract_number??contractId),contractName:'Synthetic native hourly',contractType:'variable_hourly',signedAt:String(signed.signed_at),startsAt:requestedStartDate,offerReference:String(signed.offer_reference),contractPublicationVersionId:String(signed.contract_publication_version_id),pricePlanVersionId:String(signed.price_plan_version_id),legalBundleVersionId:String(signed.legal_bundle_version_id),signatureSnapshotSha256:String(signed.signature_snapshot_sha256),legalVersions,monthlyFeeSek:49,spotMarkupOrePerKwh:4})
  const pdfBuffer=Buffer.from(attachment.content,'base64'),documentSha256=createHash('sha256').update(pdfBuffer).digest('hex')

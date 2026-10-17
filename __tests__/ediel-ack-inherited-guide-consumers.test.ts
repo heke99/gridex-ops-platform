@@ -1,4 +1,4 @@
-import {beforeEach,describe,expect,it,vi} from 'vitest'
+import {afterEach,beforeEach,describe,expect,it,vi} from 'vitest'
 const io=vi.hoisted(()=>({rpc:vi.fn(),rulePack:vi.fn()}))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:io.rpc}}))
 vi.mock('@/lib/ediel/rulebook/canonicalRulePackRegistry',()=>({resolveCanonicalRulePack:io.rulePack}))
@@ -21,7 +21,13 @@ const ack=(reason='E51')=>({id:ackId,company_id:company,environment:'test',direc
 const source=(direction:'inbound'|'outbound'='outbound')=>({...ack(),id:sourceId,direction,message_family:'UTILTS',message_code:'E66',raw_payload:envelope(true),message_sent_at:direction==='outbound'?'2026-09-30T10:00:00Z':null,immutable_rendered_at:direction==='outbound'?'2026-09-30T09:00:00Z':null}) as EdielMessageRow
 const evidence=()=>({rulePackId:packId,messageProfileId:profileId,profileKey:'synthetic-own-original',version:'opaque-original-at-first-admission',sourceHash:'a'.repeat(64),snapshot:{profileKey:'synthetic-own-original',profileVersionId:profileId,version:'opaque-original-at-first-admission',checksum:'a'.repeat(64),rulePack:{id:packId,family:'UTILTS',guide_version:'25-A-3',guide_revision:'3',source_hash:'a'.repeat(64)},messageProfile:{id:profileId,rule_pack_id:packId},guideSources:[]}})
 const outbound=()=>({family:'UTILTS_ERR',code:'ERR',direction:'outbound' as const,environment:'test' as const,companyId:company,rawPayload:envelope(),mode:'send' as const,admissionAt:'2026-10-16T12:00:00Z'})
-beforeEach(()=>{io.rpc.mockReset();io.rulePack.mockReset();io.rpc.mockResolvedValue({data:{version:1,sourceMessage:source(),sourceRulePackEvidence:evidence()},error:null})})
+beforeEach(()=>{
+ // The physical ERR renderer and its retained admission share this declared
+ // post-grace instant. Real timers remain available to the asynchronous ports.
+ vi.useFakeTimers({toFake:['Date']});vi.setSystemTime(new Date('2026-10-16T12:00:00Z'))
+ io.rpc.mockReset();io.rulePack.mockReset();io.rpc.mockResolvedValue({data:{version:1,sourceMessage:source(),sourceRulePackEvidence:evidence()},error:null})
+})
+afterEach(()=>{vi.useRealTimers()})
 describe('all actual ERR consumers retain the original protected guide edition, synthetic source ports',()=>{
  it('does not grant final functional admission merely because BGM is ERR',()=>{expect(resolveCanonicalRuntimeDecision(ack())).toMatchObject({applicationDecision:'accepted',functionalDecision:'manual_review'})})
  it('rejects a malformed national ERR in runtime and raw send before original lookup',async()=>{
