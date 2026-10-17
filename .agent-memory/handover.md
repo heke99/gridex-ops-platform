@@ -1,5 +1,7 @@
 # Handover — verifierade leveranser
 
+**Daterad historik.** Aktuell status och nästa steg finns i [current state](current-state.md). Nedanstående noteringar slutar vid observationen den 13 oktober; de är inte en fullständig aktuell leveranslista eller nya uppdrag.
+
 Observation `2026-10-13T10:20:47+02:00` (Europe/Stockholm), main `51f5fa5e80c42350d697bfed42520672749d4467`, tree `276b661120d5e0b69abc2090439809d5c4528e33`. Detta är en daterad observation; läs alltid faktisk main, aktuell ledger och senaste [#766](https://github.com/heke99/gridex-ops-platform/issues/766) före arbete.
 
 En rad per verifierad leverans:

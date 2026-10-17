@@ -1,21 +1,30 @@
-# Current state — daterad observation, aktuell källa avgör
+# Aktuell Ediel-status
 
-Observation `2026-10-13T10:20:47+02:00` (Europe/Stockholm), main `51f5fa5e80c42350d697bfed42520672749d4467`, tree `276b661120d5e0b69abc2090439809d5c4528e33`. Detta är en daterad observation; läs alltid faktisk main, aktuell ledger och senaste [#766](https://github.com/heke99/gridex-ops-platform/issues/766) före arbete.
+Avstämning `2026-10-17T20:59:07Z`: main `ae25d6d3144fe9828bc00f51af43e607dc76d370`, tree `3e356bf359aed2791e65a9758bb2e8398020c8d7`. Läs faktisk main, [ledger](../quality/audits/ediel-masterplan-v2/coverage.json) och senaste [#766](https://github.com/heke99/gridex-ops-platform/issues/766) före beslut.
 
-**119/121 regler VERIFIED + 201/231 kontrakt PASSED = 320/352; 2 regler och 30 kontrakt återstår vid observationen.**
+**119/121 regler VERIFIED + 209/231 kontrakt PASSED = 328/352. Kvar: 2 regler och 22 kontrakt.** Ledgerns SHA256 är `d2bea375b9fc02fba5d4561b00018081a5ea98860ed60961032cfc486c48cb41`. Endast VERIFIED/PASSED ger registergodkännande.
 
-[Coverage](../quality/audits/ediel-masterplan-v2/coverage.json) SHA256 `4a1560a0b16ae37d68aa30c5f67ef616a516c5306e29edf4269b7b1fa9fea850`. Endast VERIFIED/PASSED är godkända; historiska komponent-/source-/CI-resultat ger ingen ny rowcredit.
+## Kvarvarande registerposter
 
-Den befintliga seriella leveransägaren kontrollerar main-merges enligt [rootövertagandet](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6132656380). Aktuella fil-/ID-/producentrefs och senare uttryckliga handoffs styr varje write. Den tidigare GEN-ägarens framtida write/capture-mandat är stoppat enligt [handoff](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6136464358) och [ACK](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6136598920). Befintlig GEN-ägare har [v2 producerclaim](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6139324812); privat preparedb7 är ännu inte publicerad slutkälla vid observationen.
+| Typ/status | Exakta ID |
+| --- | --- |
+| Regler NOT_VERIFIED | DB-05, OPS-04 |
+| Kontrakt PARTIAL | SC-031, SC-037, SC-039, AT-Z09B-SUPPLIER |
+| Kontrakt NOT_EXECUTED | AT-DB-05, AT-OPS-04 |
+| Kontrakt NOT_EXECUTED | AT-Z01L-SUPPLIER, AT-Z03L-SUPPLIER, AT-Z04L-SUPPLIER, AT-Z01LK-SUPPLIER, AT-Z03LK-SUPPLIER, AT-Z04LK-SUPPLIER, AT-Z03C-SUPPLIER, AT-Z04C-SUPPLIER |
+| Kontrakt NOT_EXECUTED | AT-Z05H-SUPPLIER, AT-Z08H-SUPPLIER, AT-Z06F-SUPPLIER, AT-Z09F-SUPPLIER, AT-Z06G-SUPPLIER, AT-Z09G-SUPPLIER |
+| Kontrakt NOT_EXECUTED | AT-Z13V-ESCO, AT-Z13VH-ESCO |
 
-| Öppen PR | Publicerat head vid observationen | Läget |
-| --- | --- | --- |
-| [#780](https://github.com/heke99/gridex-ops-platform/pull/780) | `5f8c99ecb584651c9df1230ae4adc76f22e64ae1` | Utkast; native run38348164542/a2 misslyckades. Befintlig insamlare kvalificerar orsak/original. |
-| [#795](https://github.com/heke99/gridex-ops-platform/pull/795) | `8c528fcd09abae4b38676e5ab469b20c291190bb` | Tidigare capture föll före backend med Git128/artifact0. Ny GEN-v2 slutkälla förbereds hos befintlig ägare. |
-| [#794](https://github.com/heke99/gridex-ops-platform/pull/794) | `d8f40852f3424d2c25fc19c9627ac67dca2b28c9` | Utkast; aktiva bounded API-/testfixturägare behåller sina scopes. |
-| [#776](https://github.com/heke99/gridex-ops-platform/pull/776) | `99b10d2d735daab556ed0b03df3f9ba3466b5c19` | Utkast; H05/H08 native misslyckas. Korrigerade publicerade C3-inputs går till befintlig GEN-kö. |
-| [#790](https://github.com/heke99/gridex-ops-platform/pull/790) | `bed533a27fac07662e2e59ae2bc965bc84898b2a` | Äldre ESCO-underlag; grön CI ger inget helgodkännande. Återanvänds selektivt i #795. |
+Bedöm luckorna mot [regler](../docs/ediel/masterplan-v2/registers/rules.json), [acceptanskrav](../docs/ediel/masterplan-v2/registers/acceptance_tests.json) och ledgerbevis.
 
-Faktiskt levererat: #793 AT-TR08, #796 SC053/SC054, #797 SC070/AT-Z10M. [Handover](handover.md) binder ordered parents/tree. Dessa ID väljs inte på nytt.
+## Leverans och nästa steg
 
-Pensionerade agenter och gamla pausade automationer återupptas inte. #310 förblir PAUSED. Verkliga utskick, persondatagallringar, secrets och produktionsaktiveringar kräver det faktiska behöriga underlaget. Separata obesvarade publiceringsgodkännanden förblir obesvarade.
+[#776](https://github.com/heke99/gridex-ops-platform/pull/776) är normalt mergad som `f4daa1f03e0790a37db2aebc14b734238e13a36f`; [#810](https://github.com/heke99/gridex-ops-platform/pull/810) som ovanstående main. Se [main-kontroller](https://github.com/heke99/gridex-ops-platform/commit/ae25d6d3144fe9828bc00f51af43e607dc76d370/checks) och [öppna PR](https://github.com/heke99/gridex-ops-platform/pulls?q=is%3Apr+is%3Aopen) för aktuell körnings- och PR-status. Merge ger inget nytt registergodkännande.
+
+Nästa steg är att slutföra dokumentrensning och leveransuppföljning. Regel- och kontraktsarbete är pausat; nya paket väljs först i nästa arbetsomgång. Tidigare sonderingar av SC-037 och Z01 gav inga implementationclaims eller kodändringar.
+
+## Arbetssätt och kvarvarande gränser
+
+Följ [aktuell start](masterplan-current-start.md), [workflow](masterplan-agent-workflow.md) och [reservationer](masterplan-reservations.md); samma claimväg gäller Claude, Codex och andra behöriga agenter. Senaste uttryckliga handoff och verifierade refs styr ägarskap: en skrivare per fil, en producent/insamlare per källa, role-memory för gemensamt minne. Historiska prompter och refs ger inga nya uppdrag.
+
+Frysta krav och originalbevis bevaras. Verkliga retentionbeslut, motpartsprov, utskick och produktionsaktivering kräver behörigt underlag; syntetiska prov ersätter inte dessa effekter. Pensionerade agenter, gamla pausade automationer och #310 återupptas inte.
