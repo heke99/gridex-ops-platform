@@ -1,0 +1,308 @@
+name: Ediel F G composition native feedback
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/ediel-at-z06f-supplier-acceptance-native.test.ts'
+      - 'scripts/ediel-at-z06g-supplier-acceptance-native.test.ts'
+      - 'scripts/ediel-at-z09fg-supplier-composition-native.config.ts'
+      - 'scripts/ediel-at-z09fg-supplier-composition-native.test.ts'
+      - 'scripts/ediel-source-owner-native.config.ts'
+      - 'scripts/helpers/ediel-z06f-reading-followup-native-fixture.ts'
+      - 'scripts/helpers/ediel-z09fg-composition-inputs-native-producer.ts'
+      - 'scripts/ediel-z09fg-composition-producer-native.config.ts'
+      - '.github/workflows/ediel-fg-composition-native.yml'
+      - 'scripts/helpers/**'
+      - 'scripts/fixtures/**'
+      - 'scripts/gridex-aud-003-*'
+      - 'scripts/gridex-redact-native-evidence.py'
+      - 'scripts/migration-history-manifest*.json'
+      - 'scripts/sql/**'
+      - 'supabase/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig*.json'
+      - 'lib/actor-registry/**'
+      - 'lib/admin/**'
+      - 'lib/api/**'
+      - 'lib/auth/**'
+      - 'lib/billing/**'
+      - 'lib/cis/**'
+      - 'lib/customer-cases/**'
+      - 'lib/customer-contracts/**'
+      - 'lib/customer-notifications/**'
+      - 'lib/customer-numbers/**'
+      - 'lib/customer-operations/**'
+      - 'lib/customer-portal/**'
+      - 'lib/customer-sites/**'
+      - 'lib/customers/**'
+      - 'lib/ediel/**'
+      - 'lib/email/**'
+      - 'lib/energy/**'
+      - 'lib/env/**'
+      - 'lib/errors.ts'
+      - 'lib/events/**'
+      - 'lib/external-contracts/**'
+      - 'lib/grid-owners/**'
+      - 'lib/http/**'
+      - 'lib/inbound-mail/**'
+      - 'lib/integrations/**'
+      - 'lib/legal/**'
+      - 'lib/logging/**'
+      - 'lib/masterdata/**'
+      - 'lib/metering/**'
+      - 'lib/onboarding/**'
+      - 'lib/operations/**'
+      - 'lib/partner-api/**'
+      - 'lib/performance/**'
+      - 'lib/platform/**'
+      - 'lib/pricing/**'
+      - 'lib/rbac/**'
+      - 'lib/read-models/**'
+      - 'lib/routes/**'
+      - 'lib/staff-api/**'
+      - 'lib/supabase/**'
+      - 'lib/tenant/**'
+      - 'lib/time/**'
+      - 'lib/validation/**'
+      - 'lib/website/**'
+      - '__tests__/fixtures/prodat-identity.ts'
+      - '__tests__/fixtures/prodat-register.ts'
+      - '__tests__/helpers/sourceOwnerFixtures.ts'
+      - '__tests__/helpers/structuralOwnerFixtures.ts'
+      - 'docs/ediel/masterplan-v2/registers/source_manifest.json'
+      - 'docs/openapi/releases/2026-10-02.3/customer-portal-v1.json'
+      - 'docs/openapi/releases/2026-10-02.3/website-integration-v1.json'
+      - 'docs/openapi/releases/2026-10-04.1/customer-portal-v1.json'
+      - 'docs/openapi/releases/2026-10-04.1/staff-v1.json'
+      - 'docs/openapi/releases/2026-10-04.1/website-integration-v1.json'
+      - 'e2e/production/helpers/swedish-organization-number.mjs'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ediel-fg-composition-native-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+# Additional actual feedback: existing ordinary OPS proves the twelve F/G cases.
+# This job prepares original inputs then selects only composition's two native
+# and two finite cases; no receipt alone approves any of the four whole IDs.
+jobs:
+  fg-composition-native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+      GRIDEX_FG_EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Prepare actual synthetic originals and run only four composition cases
+        shell: bash
+        env:
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -m 700 fg-composition-native-working
+          export GRIDEX_FG_SECRET_DIR="$(mktemp -d "$RUNNER_TEMP/fg-composition.XXXXXXXX")"
+          export GRIDEX_FG_GIT_INPUTS="$GRIDEX_FG_SECRET_DIR/git-inputs.json"
+          export GRIDEX_NATIVE_STATUS="$GRIDEX_FG_SECRET_DIR/native-status.json"
+          export GRIDEX_Z09FG_COMPOSITION_INPUTS="$GRIDEX_FG_SECRET_DIR/composition-inputs.json"
+          export GRIDEX_FG_SECRET_INVENTORY="$GRIDEX_FG_SECRET_DIR/secret-inventory.json"
+          export GRIDEX_FG_PREPARATION_PROOF="$GRIDEX_FG_SECRET_DIR/preparation-proof.json"
+          export GRIDEX_FG_STAGE="$GRIDEX_FG_SECRET_DIR/stage"
+          for name in GRIDEX_FG_SECRET_DIR GRIDEX_FG_GIT_INPUTS GRIDEX_NATIVE_STATUS GRIDEX_Z09FG_COMPOSITION_INPUTS GRIDEX_FG_SECRET_INVENTORY GRIDEX_FG_PREPARATION_PROOF GRIDEX_FG_STAGE; do
+            printf '%s=%s\n' "$name" "${!name}" >> "$GITHUB_ENV"
+          done
+          printf '%s\n' '{"schema":"fg_secret_inventory_v1","values":[]}' > "$GRIDEX_FG_SECRET_INVENTORY"
+          echo INPUT_FREEZE > "$GRIDEX_FG_STAGE"
+          # A local tool from this exact workflow uses the existing trusted
+          # redactor plus every actor/HMAC/token registered BEFORE its use.
+          cat > "$GRIDEX_FG_SECRET_DIR/redact.py" <<'PY'
+          import json,os,pathlib,re,runpy,urllib.parse
+          work=pathlib.Path('fg-composition-native-working')
+          allowed={'receipt.json','failure-receipt.json','preparation-proof.json','preparation-junit.xml','preparation.log','native-junit.xml','native.log','bootstrap.log'}
+          files=[p for p in work.rglob('*') if p.is_file()]
+          if not files or any(p.parent!=work or p.name not in allowed for p in files): raise RuntimeError('unsafe_evidence_file_set')
+          inventory=json.loads(pathlib.Path(os.environ['GRIDEX_FG_SECRET_INVENTORY']).read_text())
+          if inventory.get('schema')!='fg_secret_inventory_v1' or not isinstance(inventory.get('values'),list) or not all(isinstance(x,str) and len(x)>=8 for x in inventory['values']): raise RuntimeError('complete_secret_inventory_required')
+          values=set(inventory['values'])
+          # Canonical CLI's disposable default password is also a credential.
+          values.add('postgres')
+          status=pathlib.Path(os.environ['GRIDEX_NATIVE_STATUS'])
+          if status.is_file() and status.stat().st_size:
+              local=json.loads(status.read_text())
+              if local.get('API_URL')!='http://127.0.0.1:54321': raise RuntimeError('redaction_exact_disposable_status_required')
+              for key,value in local.items():
+                  if not isinstance(value,str): continue
+                  if any(x in key.lower() for x in ('key','secret','password','token')) and len(value)>=8: values.add(value)
+                  if 'url' in key.lower():
+                      password=urllib.parse.urlparse(value).password
+                      if password: values.add(urllib.parse.unquote(password))
+          scrub=runpy.run_path('scripts/gridex-redact-native-evidence.py')['scrub']
+          tokens=[v.encode() for v in sorted(values,key=len,reverse=True)]
+          frozen_path=pathlib.Path(os.environ['GRIDEX_FG_GIT_INPUTS'])
+          frozen=json.loads(frozen_path.read_text())['source'] if frozen_path.is_file() else None
+          # Immutable tracked path names can themselves contain 'postgres'.
+          # Verify these public Git identity maps against the original freeze,
+          # scrub every other field, then restore ONLY the exact verified maps.
+          for file in files:
+              payload=file.read_bytes();protected={}
+              if file.name in {'receipt.json','failure-receipt.json'}:
+                  document=json.loads(payload)
+                  for key in ('source_blobs','input_sha256'):
+                      value=document.get(key)
+                      if value is None: continue
+                      expected=frozen if key=='source_blobs' else {n:v['sha256'] for n,v in frozen.items()} if frozen is not None else None
+                      if expected is None or value!=expected: raise RuntimeError('immutable_source_identity_mismatch')
+                      if key=='source_blobs' and any(not re.fullmatch('[0-9]{6}',v['mode']) or not re.fullmatch('[a-f0-9]{40}',v['oid']) or not re.fullmatch('[a-f0-9]{64}',v['sha256']) for v in value.values()): raise RuntimeError('source_identity_shape_invalid')
+                      protected[key]=document.pop(key)
+                  payload=(json.dumps(document)+'\n').encode()
+              cleaned=scrub(payload,tokens)
+              if any(token in cleaned for token in tokens): raise RuntimeError('redaction_unresolved_registered_secret')
+              if protected:
+                  document=json.loads(cleaned);document.update(protected);cleaned=(json.dumps(document,indent=2)+'\n').encode()
+              file.write_bytes(cleaned)
+          print('FG_EVIDENCE: all registered disposable credentials scrubbed; values never logged')
+          PY
+          python3 - <<'PY'
+          import hashlib,json,os,pathlib,re,subprocess
+          head=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+          tree=subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip()
+          if not re.fullmatch('[a-f0-9]{40}',head) or head!=os.environ['GRIDEX_FG_EXPECTED_HEAD']: raise RuntimeError('exact_PR_checkout_required')
+          source={}
+          for entry in subprocess.check_output(['git','ls-tree','-rz','--full-tree','HEAD']).split(b'\0'):
+              if not entry: continue
+              header,path=entry.split(b'\t',1);mode,kind,oid=header.decode().split()
+              if kind!='blob': continue
+              blob=subprocess.check_output(['git','cat-file','blob',oid])
+              source[path.decode()]={'mode':mode,'oid':oid,'sha256':hashlib.sha256(blob).hexdigest()}
+          required=['scripts/helpers/ediel-z09fg-composition-inputs-native-producer.ts','scripts/ediel-z09fg-composition-producer-native.config.ts','scripts/ediel-at-z09fg-supplier-composition-native.test.ts','scripts/ediel-at-z09fg-supplier-composition-native.config.ts','scripts/ediel-source-owner-native.config.ts','.github/workflows/ediel-fg-composition-native.yml','scripts/gridex-aud-003-clean-replay.sh']
+          if not all(name in source for name in required): raise RuntimeError('required_native_source_missing')
+          pathlib.Path(os.environ['GRIDEX_FG_GIT_INPUTS']).write_text(json.dumps({'checkout_sha':head,'checkout_tree':tree,'source':dict(sorted(source.items()))},indent=2)+'\n')
+          PY
+          echo BOOTSTRAP > "$GRIDEX_FG_STAGE"
+          source scripts/gridex-aud-003-clean-replay.sh > "$GRIDEX_FG_SECRET_DIR/replay.log" 2>&1
+          echo STATUS > "$GRIDEX_FG_STAGE"
+          supabase status -o json > "$GRIDEX_NATIVE_STATUS"
+          echo PREPARATION > "$GRIDEX_FG_STAGE"
+          preparation_exit=0
+          GRIDEX_FG_PRODUCER_INTENT=SYNTHETIC_DISPOSABLE_PREPARATION npx vitest run \
+            scripts/helpers/ediel-z09fg-composition-inputs-native-producer.ts \
+            --config scripts/ediel-z09fg-composition-producer-native.config.ts \
+            --reporter=default --reporter=junit \
+            --outputFile=fg-composition-native-working/preparation-junit.xml \
+            > fg-composition-native-working/preparation.log 2>&1 || preparation_exit=$?
+          echo "$preparation_exit" > "$GRIDEX_FG_SECRET_DIR/preparation-exit"
+          echo POST_PREPARATION > "$GRIDEX_FG_STAGE"
+          if [[ "$preparation_exit" != 0 ]]; then exit "$preparation_exit"; fi
+          test -s "$GRIDEX_Z09FG_COMPOSITION_INPUTS"
+          test -s "$GRIDEX_FG_PREPARATION_PROOF"
+          echo NATIVE > "$GRIDEX_FG_STAGE"
+          native_exit=0
+          npx vitest run scripts/ediel-at-z09fg-supplier-composition-native.test.ts \
+            --config scripts/ediel-at-z09fg-supplier-composition-native.config.ts \
+            --reporter=default --reporter=junit \
+            --outputFile=fg-composition-native-working/native-junit.xml \
+            > fg-composition-native-working/native.log 2>&1 || native_exit=$?
+          export GRIDEX_FG_NATIVE_EXIT="$native_exit"
+          echo "$native_exit" > "$GRIDEX_FG_SECRET_DIR/native-exit"
+          echo POST_NATIVE > "$GRIDEX_FG_STAGE"
+          cleanup
+          trap - EXIT
+          set -euo pipefail
+          echo SOURCE_IDENTITY > "$GRIDEX_FG_STAGE"
+          python3 - <<'PY'
+          import hashlib,json,os,pathlib,subprocess,xml.etree.ElementTree as ET
+          frozen=json.loads(pathlib.Path(os.environ['GRIDEX_FG_GIT_INPUTS']).read_text());source=frozen['source'];changed={}
+          if subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()!=frozen['checkout_sha'] or subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip()!=frozen['checkout_tree']: raise RuntimeError('immutable_checkout_changed')
+          for name,identity in source.items():
+              file=pathlib.Path(name)
+              if not file.is_file(): raise RuntimeError('tracked_runtime_source_missing:'+name)
+              actual=hashlib.sha256(file.read_bytes()).hexdigest()
+              if actual!=identity['sha256']: changed[name]=actual
+          allowed={'supabase/database.types.ts','supabase/schema.sql','supabase/schema.fingerprint.json','scripts/supabase-types-manifest.json'}
+          if set(changed)-allowed: raise RuntimeError('unexpected_replay_source_change:'+','.join(sorted(set(changed)-allowed)))
+          work=pathlib.Path('fg-composition-native-working')
+          for name in ['preparation.log','preparation-junit.xml','native.log','native-junit.xml']:
+              if not (work/name).is_file() or not (work/name).stat().st_size: raise RuntimeError('required_actual_proof_missing:'+name)
+          preparation=list(ET.parse(work/'preparation-junit.xml').getroot().iter('testcase'))
+          native=list(ET.parse(work/'native-junit.xml').getroot().iter('testcase'))
+          names=['native Z09F own desired receipt/dispatch/physical ACKs precede independent dated Z06 first application','native Z09G own desired receipt/dispatch/physical ACKs precede independent dated Z06 first application','finite composition wire retains independent G Z02 confirmation, exact date, national306 and rejects impossible receipt order','finite composition physical ACK rendering binds the supplied original and an unknown reference cannot qualify it']
+          if len(preparation)!=1 or any(c.find(x) is not None for c in preparation for x in ['failure','error','skipped']): raise RuntimeError('actual_preparation_must_pass')
+          if sorted(c.get('name') for c in native)!=sorted(names) or any(c.get('classname')!='scripts/ediel-at-z09fg-supplier-composition-native.test.ts' for c in native): raise RuntimeError('exact_four_composition_registrations_required')
+          exit_code=int(os.environ['GRIDEX_FG_NATIVE_EXIT'])
+          if exit_code==0 and any(c.find(x) is not None for c in native for x in ['failure','error','skipped']): raise RuntimeError('zero_exit_cannot_mask_unsuccessful_composition')
+          proof=json.loads(pathlib.Path(os.environ['GRIDEX_FG_PREPARATION_PROOF']).read_text())
+          if proof.get('stage')!='READY_FOR_IMMUTABLE_CONSUMER': raise RuntimeError('actual_preparation_proof_required')
+          (work/'preparation-proof.json').write_text(json.dumps(proof,indent=2)+'\n')
+          receipt={'purpose':'supplemental_actual_native_feedback','checkout_sha':frozen['checkout_sha'],'checkout_tree':frozen['checkout_tree'],'repository':os.environ['GITHUB_REPOSITORY'],'repository_id':os.environ['GITHUB_REPOSITORY_ID'],'workflow_run_id':os.environ['GITHUB_RUN_ID'],'workflow_run_attempt':os.environ['GITHUB_RUN_ATTEMPT'],'preparation_exit_code':0,'native_exit_code':exit_code,'input_identity':'immutable_checkout_before_replay','source_blobs':source,'input_sha256':{n:v['sha256'] for n,v in source.items()},'runtime_generated_input_sha256':changed,'test_scope':['scripts/ediel-at-z09fg-supplier-composition-native.test.ts'],'preparation_scope':['scripts/helpers/ediel-z09fg-composition-inputs-native-producer.ts'],'actual_registered_case_names':[c.get('name') for c in native],'ordinary_required_gates':'NOT_REPLACED','schema_capture':'NOT_RUN','upgrade_parity':'NOT_RUN','browser_tests':'NOT_RUN','whole_FG':'NOT_APPROVED_BY_RECEIPT_ALONE','authentic_market_evidence':'NOT_PROVIDED'}
+          (work/'receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          PY
+          echo REDACTION > "$GRIDEX_FG_STAGE"
+          python3 "$GRIDEX_FG_SECRET_DIR/redact.py"
+          mv fg-composition-native-working fg-composition-native-evidence
+          cat fg-composition-native-evidence/native.log
+          exit "$native_exit"
+      - name: Preserve actual failed stage without inventing execution credit
+        if: failure()
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          if [[ -d fg-composition-native-evidence ]]; then exit 0; fi
+          if [[ -z "${GRIDEX_FG_SECRET_DIR:-}" || ! -f "$GRIDEX_FG_SECRET_DIR/redact.py" ]]; then
+            echo 'No safe proof tool was established; no artifact or execution credit.'
+            exit 1
+          fi
+          stage="$(cat "$GRIDEX_FG_STAGE")"
+          if [[ "$stage" == REDACTION ]]; then
+            echo 'Credential redaction failed closed; raw working evidence is not published.'
+            exit 1
+          fi
+          mkdir -p fg-composition-native-working
+          if [[ -f "$GRIDEX_FG_SECRET_DIR/replay.log" ]]; then cp "$GRIDEX_FG_SECRET_DIR/replay.log" fg-composition-native-working/bootstrap.log; fi
+          if [[ -f "$GRIDEX_FG_PREPARATION_PROOF" ]]; then cp "$GRIDEX_FG_PREPARATION_PROOF" fg-composition-native-working/preparation-proof.json; fi
+          python3 - <<'PY'
+          import json,os,pathlib,subprocess
+          root=pathlib.Path(os.environ['GRIDEX_FG_SECRET_DIR']);stage=pathlib.Path(os.environ['GRIDEX_FG_STAGE']).read_text().strip()
+          allowed={'INPUT_FREEZE','BOOTSTRAP','STATUS','PREPARATION','POST_PREPARATION','NATIVE','POST_NATIVE','SOURCE_IDENTITY'}
+          if stage not in allowed: raise RuntimeError('unknown_actual_failed_stage')
+          def original_exit(name):
+              file=root/name
+              return int(file.read_text()) if file.is_file() else None
+          inputs=pathlib.Path(os.environ['GRIDEX_FG_GIT_INPUTS']);frozen=json.loads(inputs.read_text()) if inputs.is_file() else None
+          receipt={'purpose':'original_failed_stage','checkout_sha':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),'checkout_tree':subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip(),'repository':os.environ['GITHUB_REPOSITORY'],'repository_id':os.environ['GITHUB_REPOSITORY_ID'],'workflow_run_id':os.environ['GITHUB_RUN_ID'],'workflow_run_attempt':os.environ['GITHUB_RUN_ATTEMPT'],'source_blobs':frozen['source'] if frozen else None,'input_freeze':'AVAILABLE' if frozen else 'FAILED_OR_UNAVAILABLE','failed_stage':stage,'preparation_exit_code':original_exit('preparation-exit'),'native_exit_code':original_exit('native-exit'),'native':'NOT_REACHED' if stage in {'INPUT_FREEZE','BOOTSTRAP','STATUS','PREPARATION','POST_PREPARATION'} else 'PROCESS_STAGE_ONLY_NO_TEST_COUNT_INFERRED','test_scope':['scripts/ediel-at-z09fg-supplier-composition-native.test.ts'],'ordinary_required_gates':'NOT_REPLACED','whole_FG':'NOT_APPROVED'}
+          pathlib.Path('fg-composition-native-working/failure-receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          PY
+          python3 "$GRIDEX_FG_SECRET_DIR/redact.py"
+          mv fg-composition-native-working fg-composition-native-evidence
+      - name: Upload only redacted original proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ediel-fg-composition-native-${{ github.run_id }}
+          path: fg-composition-native-evidence
+          if-no-files-found: error
+          retention-days: 14
+      - name: Remove all owned temporary secret material even on failure
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -n "${GRIDEX_FG_SECRET_DIR:-}" && "$GRIDEX_FG_SECRET_DIR" == "$RUNNER_TEMP"/fg-composition.* ]]; then
+            rm -rf -- "$GRIDEX_FG_SECRET_DIR"
+          fi
+          rm -rf -- fg-composition-native-working
