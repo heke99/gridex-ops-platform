@@ -6,6 +6,7 @@ import { isMissingRelationError } from '@/lib/tenant/scope'
 
 export type CustomerListRow = {
   id: string
+  company_id?: string | null
   customer_type: string | null
   status: string | null
   possible_duplicate?: boolean | null
@@ -183,6 +184,7 @@ function normalizeCustomerRow(row: RawCustomerRow): CustomerListRow {
 
   return {
     id: String(row.id),
+    company_id: typeof row.company_id === 'string' && row.company_id.trim() ? row.company_id.trim() : null,
     customer_type: stringOrNull(row.customer_type) ?? 'private',
     status: stringOrNull(row.status) ?? 'draft',
     possible_duplicate: booleanOrFalse(row.possible_duplicate),
