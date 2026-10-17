@@ -8,7 +8,12 @@ Scope: correct stale API status text in docs/api-index.md, the Customer and Staf
 
 Observed delivery: API #794, #776 and #810 are already merged. Old draft/pending status must not dispatch more work. Remaining live tenant configuration and authenticated acceptance are separate prerequisites.
 
-Next: freeze the minimal correction; qualify existing API docs/compatibility/release checks and two independent nonauthor final reviews. Publish one ordinary PR cohort after current main CI is terminal; normal expected-head merge only after actual mandatory gates, followed by authenticated postflight, own resource cleanup and recess. No next masterplan packet.
+Correction: replace the superseded missing-function/replay/GEN/draft blockers with merged-source status and explicit per-tenant live prerequisites. Mark the audit construction record historical without dropping its content. Deployment and Staff inventory observations remain explicitly dated October 14.
+
+Local verification: existing api:docs (all seven constituent gates), api:compatibility, local-only api:release:verify and ESLint for both developer pages passed on Node 24.19.0 with the unchanged lockfile dependencies. Initial sparse-checkout input omissions were corrected by checking out the existing public fixtures/docs/SQL; no checker or assertion changed. No live URL, database, tenant or provider was exercised. Additional non-text TSX AST and historical-audit preservation checks bind the copied-text scope. Ordinary CI uses its configured runtime and remains mandatory.
+
+Postflight observed on the prior main ae25d6d3: 19 terminal checks = 9 SUCCESS and 10 literal conditional SKIP, zero failures/pending; CLEAN completed at 2026-10-17T21:48:59Z. Ledger remains 119 VERIFIED + 209 PASSED = 328/352 with all 352 rows byte-identical to the prior public baseline. Existing PR bodies assert two independent finals, but the bounded public PR-discussion inspection did not locate exact-head final receipt links; do not infer retroactive approval from those bodies or this checkpoint.
+
+Next: freeze the minimal correction and obtain two independent nonauthor final reviews. Publish one ordinary PR cohort after current main CI is terminal; normal expected-head merge only after actual mandatory gates, followed by authenticated postflight, own resource cleanup and recess. No next masterplan packet.
 
 This is a dated source record. Later exact-head reviews, CI, delivery and cleanup receipts are recorded in the same #766 thread and the owner's private checkpoint; this file alone asserts no future PASS.
-
