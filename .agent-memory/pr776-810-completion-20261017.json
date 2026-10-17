@@ -3,10 +3,10 @@
   "task": "Complete PR776 and PR810",
   "base": "2a9729ecd2191f77f3d2ff1c10d213686a8e8360",
   "sourceOrigin": "d8a0abdcc55877fbee9e8841afb59bfc518fd771",
-  "status": "PR776_H_TEST_CORRECTION_AWAITING_EXACT_REVIEW_AND_CURRENT_CI",
+  "status": "PR776_H252_DIAGNOSTIC_EXPECTATION_CORRECTION_PENDING_REVIEW_AND_CURRENT_CI",
   "scope": "Selective H source plus bounded fixture chronology, unit harness dependencies, workflow custody metadata and H-test validation/projection corrections. Production SQL, authorization guards and original-preservation controls are unchanged.",
-  "verification": "The previous b707 revision passed full Node 22 unit coverage: 1170 files, 19131 passing tests and one unchanged optional measurement skip, including all 46 repaired unit cases. Its H native suite had 68 passes and 33 failures. The bounded H-test correction uses actual protected outbound validation, the exact transport permission refusal and explicit projection expectations for only the two current inbound ACK inputs. Two exact source reviews and genuine CI for this correction remain pending; earlier results are not relabelled.",
+  "verification": "The published ee7024 revision passed current Node22 unit coverage: 1170 files, 19131 passing tests and one unchanged optional measurement skip, including all46 affected unit cases. Its genuine H suite has100 passes and one failure: the field252 omission is correctly rejected by the protected invoicee-address policy, while the test requires an unsupported structured-field diagnostic. The bounded correction asserts the complete exact blocking address-mismatch diagnostic only for252. All other H expectations and the original/transport/global-preservation controls remain unchanged. Current CI and two exact source reviews for this correction are required; previous failures retain their original results.",
   "approvalLedger": "UNCHANGED; no new masterplan acceptance claimed.",
-  "next": "Freeze the H-test correction, obtain two independent exact-source reviews and current mandatory CI, then normal PR776 and PR810 delivery.",
+  "next": "Freeze the one-field diagnostic expectation correction, obtain two independent exact-source reviews and genuine current mandatory CI, then normal PR776 and PR810 delivery.",
   "limits": "No LIVE/provider/production activation or complete market acceptance is claimed."
 }

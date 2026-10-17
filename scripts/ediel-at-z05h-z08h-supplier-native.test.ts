@@ -772,7 +772,13 @@ for(const field of [...h08Required,'207country','208country','229','250','251','
  if(iv)expect(sql(`SELECT jsonb_build_object('street',billing_street,'postalCode',billing_postal_code,'city',billing_city,'country',billing_country) FROM public.customer_contracts WHERE id=${literal(f.contractId)} AND status='signed'`)).toEqual(separateBilling)
  const omitted=omitSupplyEndField(actual.raw_payload!,field),tokens=tokenizeEdifact(omitted)
  const typed=validateCanonicalPolicyFields({policy,rawPayload:omitted,rawSegments:tokens.segments.map(x=>x.raw),una:tokens.una})
+ if(field==='252'){
+  expect(typed).toEqual([{prodatDiagnostic:{kind:'internal',sourceRule:'PRODAT26A:P23/82/109',reason:'adressen avviker från vald källa'},
+   scope:'prodat_dependent',severity:'error',blocking:true,code:'PRODAT_INVOICEE_VALUE_MISMATCH',
+   title:'Fakturamottagaren saknar giltigt underlag',description:'Z08:252, P26.A s.23/82/109: adressen avviker från vald källa',fieldPath:'NAD+IV'}])
+ }else{
  expect(field==='229'?typed.some(x=>x.code==='PRODAT_END_USER_ADDRESS_VALUE_MISMATCH'&&x.fieldPath==='NAD+UD/C059/3042[1..3]'):typed.some(x=>x.prodatDiagnostic?.kind==='field'&&x.prodatDiagnostic.fieldNumber===field.replace('country','')),JSON.stringify(typed)).toBe(true)
+ }
  const before=graph(),saved=effects(f.companyId),input=custody(actual.id),privateSaved=protectedOriginals(),calls=provider.mock.calls.length
  const globalBefore=rejectedIdentityEffects()
  // The qualified customer source binds the original exact bytes. This is
