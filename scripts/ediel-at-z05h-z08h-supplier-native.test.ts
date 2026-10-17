@@ -52,6 +52,10 @@ import {assertEdielTenantActor} from '@/lib/ediel/services/authorization'
 import {readEdielTransportCopies} from '@/lib/ediel/transport/copy'
 import {readVerifiedEdielTransportCopy} from '@/lib/ediel/transport/verifiedCopy'
 import {applySupplyMarketSource} from '@/lib/ediel/flows/supplyMarketTransition'
+import {readFreshEdielSendValidationSources} from '@/lib/ediel/production/sendValidationSources'
+import {parseCanonicalEdielPayload} from '@/lib/ediel/core/canonicalMessage'
+import {inboundLegalReceiverEdielId,resolveInboundTenantFromIdentifiers,tenantResolutionForStorage} from '@/lib/ediel/tenant/resolveInboundTenant'
+import {assertRegistryRulebookAllowsSend} from '@/lib/ediel/rulebook/sendGuards'
 import {recordReceivedSourceValidation} from '@/lib/ediel/core/receivedSourceValidationLedger'
 import {captureFreshEdielSourceRulePackEvidence,requireEdielSourceRulePackEvidence} from '@/lib/ediel/core/sourceRulePackEvidence'
 import {SmtpDeliveryUncertainError} from '@/lib/ediel/transport/smtpOutcome'
@@ -758,14 +762,16 @@ const h08Required=['311','312','202','203','313','205','206','207','208','314','
 const separateBilling={street:'Invoice Street',postalCode:'54321',city:'Invoice Town',country:'SE'}
 for(const field of [...h08Required,'207country','208country','229','250','251','252','253','317','318'])it('actual H08 original missing physical '+field+' is refused before SMTP and cannot change any original, supply, watch or billing effect',async()=>{
  const iv=['250','251','252','253','317','318'].includes(field),f=await nationalOperation(false,iv?{billingAddress:separateBilling}:{}),actual=(await getEdielMessageById(f.original.id))!
- const decision=await resolveCanonicalRuntimeDecisionWithRegistry(actual)
- expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision],JSON.stringify(decision.issues)).toEqual(['accepted','accepted','accepted'])
- expect(decision.policy).toBeTruthy()
+ const sources=await readFreshEdielSendValidationSources(actual,f.currentExecutor)
+ const admission=await assertRegistryRulebookAllowsSend(actual,undefined,undefined,undefined,sources.deathStatusContext,sources.ackSourceQualification,sources.customerMasterdataContext,undefined,f.currentExecutor)
+ expect(admission,JSON.stringify(admission)).toMatchObject({ok:true,blocking:false,fieldRuleSource:'registry'})
+ const policy=admission?.canonicalPolicy
+ expect(policy).toBeTruthy();if(!policy)throw Error('native_h08_current_outbound_policy_required')
  const originalTokens=tokenizeEdifact(actual.raw_payload!),ivs=originalTokens.segments.filter(x=>x.tag==='NAD'&&segmentComposite(x,1,originalTokens.una)[0]==='IV')
  expect(ivs).toHaveLength(iv?1:0)
  if(iv)expect(sql(`SELECT jsonb_build_object('street',billing_street,'postalCode',billing_postal_code,'city',billing_city,'country',billing_country) FROM public.customer_contracts WHERE id=${literal(f.contractId)} AND status='signed'`)).toEqual(separateBilling)
  const omitted=omitSupplyEndField(actual.raw_payload!,field),tokens=tokenizeEdifact(omitted)
- const typed=validateCanonicalPolicyFields({policy:decision.policy!,rawPayload:omitted,rawSegments:tokens.segments.map(x=>x.raw),una:tokens.una})
+ const typed=validateCanonicalPolicyFields({policy,rawPayload:omitted,rawSegments:tokens.segments.map(x=>x.raw),una:tokens.una})
  expect(field==='229'?typed.some(x=>x.code==='PRODAT_END_USER_ADDRESS_VALUE_MISMATCH'&&x.fieldPath==='NAD+UD/C059/3042[1..3]'):typed.some(x=>x.prodatDiagnostic?.kind==='field'&&x.prodatDiagnostic.fieldNumber===field.replace('country','')),JSON.stringify(typed)).toBe(true)
  const before=graph(),saved=effects(f.companyId),input=custody(actual.id),privateSaved=protectedOriginals(),calls=provider.mock.calls.length
  const globalBefore=rejectedIdentityEffects()
@@ -789,7 +795,7 @@ it('actual H08 current SEND withdrawal denies the provider and leaves the unsent
  await assertEdielTenantActor({companyId:f.companyId,actorUserId:f.currentExecutor,permission:'communication.send'})
  sql(`UPDATE public.user_permissions SET effect='deny' WHERE company_id=${literal(f.companyId)} AND user_id=${literal(f.currentExecutor)} AND permission_key='communication.send'`)
  await expect(assertEdielTenantActor({companyId:f.companyId,actorUserId:f.currentExecutor,permission:'communication.send'})).rejects.toThrow('ediel_tenant_permission_forbidden')
- await expect(sendEdielMessageViaSmtp((await getEdielMessageById(f.original.id))!,{actorUserId:f.currentExecutor,smtpMimeMode:'nodemailer-attachment'})).rejects.toThrow('ediel_tenant_permission_forbidden')
+ await expect(sendEdielMessageViaSmtp((await getEdielMessageById(f.original.id))!,{actorUserId:f.currentExecutor,smtpMimeMode:'nodemailer-attachment'})).rejects.toMatchObject({code:'42501',message:'ediel_accepted_projection_actor_forbidden'})
  assertNegativeGlobalEffects(globalBefore)
  expect(provider).toHaveBeenCalledTimes(calls);expect(graph()).toEqual(before);expect(effects(f.companyId)).toEqual(saved);expect(protectedOriginals()).toEqual(privateSaved);expect(custody(f.original.id)).toEqual(input)
 },120000)
@@ -801,13 +807,68 @@ for(const family of ['CONTRL','APERAK'] as const)it('actual H08 wrong '+family+'
  const parts=target.raw.split(tokens.una.dataElementSeparator)
  parts[1]=family==='CONTRL'?'FOREIGN-INTERCHANGE':'ACW'+tokens.una.componentDataElementSeparator+'FOREIGN-DOCUMENT'
  const m=await receive(f,draft.rawPayload!.replace(target.raw,parts.join(tokens.una.dataElementSeparator))),before=graph(),old=effects(f.companyId),privateBefore=protectedOriginals(),input=custody(m.sourceId),original=custody(sent.id),transport=await retainedTransportBytes(f,sent.id),calls=provider.mock.calls.length
- const globalBefore=rejectedIdentityEffects()
+ const globalBefore=rejectedIdentityEffects(),inputRows=globalBefore.acks.filter(row=>row.id===m.sourceId)
+ expect(inputRows).toHaveLength(1)
+ const inputRow=inputRows[0]
+ expect(inputRow).toMatchObject({id:m.sourceId,company_id:f.companyId,environment:'test',direction:'inbound',message_family:family,raw_payload:m.wire})
+ expect((old as Record<string,Row[]>).acks.filter(row=>row.id===m.sourceId)).toEqual([inputRow])
+ // Independently READ the same physical identities as the routing producer.
+ // A valid tenant identity never supplies the missing exact ACK reference.
+ const canonical=parseCanonicalEdielPayload({rawPayload:m.wire,direction:'inbound',standardHint:m.source.message_standard})
+ expect(canonical.sender).toBe(f.receiver);expect(canonical.receiver).toBe(f.sender)
+ const resolution=await resolveInboundTenantFromIdentifiers({existingCompanyId:m.source.company_id,mailbox:m.source.mailbox,
+  communicationRouteId:m.source.communication_route_id,environment:m.source.environment,senderEdielId:canonical.sender,
+  senderSubaddress:canonical.senderSubAddress,receiverEdielId:canonical.receiver,receiverSubaddress:canonical.receiverSubAddress,
+  marketActorEdielId:inboundLegalReceiverEdielId(m.wire,canonical.receiver),applicationReference:canonical.applicationReference,
+  messageFamily:canonical.messageFamilyForStorage,messageCode:canonical.messageCode})
+ expect(resolution).toMatchObject({status:'resolved',companyId:f.companyId})
+ const storedResolution=tenantResolutionForStorage(resolution),started=clock()
  await processInboundEdielMessage({actorUserId:f.currentExecutor,edielMessageId:m.sourceId})
- assertNegativeGlobalEffects(globalBefore,m.source)
+ const finished=clock(),after=effects(f.companyId) as Record<string,Row[]>,currentInput=after.acks.filter(row=>row.id===m.sourceId)
+ expect(currentInput).toHaveLength(1)
+ expect(typeof currentInput[0].updated_at).toBe('string')
+ expect(Date.parse(String(currentInput[0].updated_at))).toBeGreaterThanOrEqual(Date.parse(started))
+ expect(Date.parse(String(currentInput[0].updated_at))).toBeLessThanOrEqual(Date.parse(finished))
+ // These three clocks are freshly observed by the real current identity READ.
+ // Keep all independently read records/identity facts exact; only qualified
+ // times on this unique named owner may vary between the two real reads.
+ const actualResolution=((currentInput[0].parsed_payload??{}) as Row).tenantResolution as Row,
+  actualEvidence=actualResolution.evidence as Row[]
+ expect(Array.isArray(actualEvidence)).toBe(true);expect(actualEvidence).toHaveLength(resolution.evidence.length)
+ expect(resolution.evidence.filter(row=>row.source==='verified_legal_identity')).toHaveLength(1)
+ const expectedEvidence=resolution.evidence.map((row,index)=>{
+  if(row.source!=='verified_legal_identity')return row
+  expect(row).toMatchObject({companyId:f.companyId,source:'verified_legal_identity',score:400})
+  expect(actualEvidence[index]).toMatchObject({companyId:f.companyId,source:'verified_legal_identity',score:400})
+  const currentIdentity=(actualEvidence[index].details as Row).identityEvidence as Row
+  expect(currentIdentity).toMatchObject({version:1,owner:'canonical-tenant-ediel-identity-v1',completeness:'exact_count',
+   historicalKnowledge:'not_established',sourceDisposition:'not_established',consistency:'independent_reads'})
+  const qualifiedTimes={evaluatedAt:currentIdentity.evaluatedAt,observedAt:currentIdentity.observedAt,completedAt:currentIdentity.completedAt}
+  for(const value of Object.values(qualifiedTimes)){
+   expect(typeof value).toBe('string')
+   const instant=Date.parse(String(value));expect(Number.isFinite(instant)).toBe(true)
+   expect(value).toBe(new Date(instant).toISOString())
+   expect(instant).toBeGreaterThanOrEqual(Date.parse(started));expect(instant).toBeLessThanOrEqual(Date.parse(finished))
+  }
+  expect(Date.parse(String(qualifiedTimes.evaluatedAt))).toBeLessThanOrEqual(Date.parse(String(qualifiedTimes.observedAt)))
+  expect(Date.parse(String(qualifiedTimes.observedAt))).toBeLessThanOrEqual(Date.parse(String(qualifiedTimes.completedAt)))
+  return{...row,details:{...row.details,identityEvidence:{...(row.details.identityEvidence as Row),...qualifiedTimes}}}
+ })
+ const expectedResolution={...storedResolution,evidence:expectedEvidence}
+ // Only this fresh inbound input receives the seven documented routing
+ // projections. All other fields and EVERY other old ACK remain exact.
+ const expectedInput={...inputRow,tenant_resolution_status:'tenant_not_found',business_match_status:'business_blocked',
+  processing_status:'routing_unresolved',failure_reason:'Routing unresolved: meddelandet är tekniskt läsbart men kunde inte kopplas säkert till tenant.',
+  parsed_payload:{...((inputRow.parsed_payload??{}) as Row),tenantResolution:expectedResolution},
+  validation_report:{...((inputRow.validation_report??{}) as Row),tenantResolution:expectedResolution},updated_at:currentInput[0].updated_at}
+ expect(currentInput[0]).toEqual(expectedInput)
+ const expectedGlobalBefore={...globalBefore,acks:globalBefore.acks.map(row=>row.id===m.sourceId?expectedInput:row)},
+  expectedOld={...(old as Record<string,Row[]>),acks:(old as Record<string,Row[]>).acks.map(row=>row.id===m.sourceId?expectedInput:row)}
+ assertNegativeGlobalEffects(expectedGlobalBefore,m.source)
  expect(await readCommittedInboundAck({actorUserId:f.currentExecutor,message:(await getEdielMessageById(m.sourceId))!})).toBeNull()
  expect(graph()).toEqual(before)
- const after=effects(f.companyId) as Record<string,unknown>;for(const key of ['transitions','bilateral','national','watch'])expect(after[key],key).toEqual((old as Record<string,unknown>)[key])
- oldRowsPreserved(old,after);preservedProtected(privateBefore,m.sourceId);expect(custody(m.sourceId)).toEqual(input);expect(custody(sent.id)).toEqual(original);expect(await retainedTransportBytes(f,sent.id)).toEqual(transport)
+ for(const key of ['transitions','bilateral','national','watch'])expect(after[key],key).toEqual((old as Record<string,unknown>)[key])
+ oldRowsPreserved(expectedOld,after);preservedProtected(privateBefore,m.sourceId);expect(custody(m.sourceId)).toEqual(input);expect(custody(sent.id)).toEqual(original);expect(await retainedTransportBytes(f,sent.id)).toEqual(transport)
  expect(nationalWatch(f)).toMatchObject([{status:'pending',fulfilled_by_message_id:null,due_at:null,metadata:{remoteReceiptKnown:false}}])
  expect(provider).toHaveBeenCalledTimes(calls)
 },120000)
