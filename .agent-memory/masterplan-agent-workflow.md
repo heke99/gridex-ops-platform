@@ -8,7 +8,7 @@
 - Befintlig ägare fortsätter sitt receiptbundna paket. För aktivt ägd scope krävs positiv bounded source/files/output-handoff, paus för föregående skrivare inom exakt scope och verifierad egen custody före första write. Eventuellt separat FIRSTWRITE_GO i handoffen ska vara givet före write. Tystnad, 404 eller ny session-slot frigör ingen främmande resurs. Privat opublicerat underlag hämtas inte utan uttrycklig auktorisation; offentliga krav kan granskas read-only.
 - En fil har en skrivare. Extra agenter får reviewa direkt. Skrivhjälp får documentedexactsource/files/output/pause-handoff och verifiedownrefs inom NYepok, ingen samtidig write i annans workspace.
 - En producent per native/GEN/capture/artifactkedja/källa, låst med producerresource. Separata disponibla backends och qualifiedsource/inputepochs. Lateoldcode/CI kan inte ge nycredit. Live/sharedservice behöver verklig quiescence och behörigt mandat.
-- Den enligt senaste verifierade handoff befintliga GEN-ägaren sköter delad GEN/schema/types/manifest seriellt; ett historiskt C2-slot utser ingen ny producent. R1/R2 skapar en DB-/transport/LIVEkedja som C3 använder i acceptansen; inga duplicateproducenter.
+- Den enligt senaste verifierade handoff befintliga GEN-ägaren sköter delad GEN/schema/types/manifest seriellt; ett historiskt C2-slot utser ingen ny producent.
 
 ## Review och rättning
 
