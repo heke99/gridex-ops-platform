@@ -118,10 +118,19 @@ try{
  for(const name of ['gridex_received_sources.wire_tokens_bounded_v1','gridex_received_sources.closure_wire_tokens_v2','gridex_received_sources.supply_wire_v1','gridex_received_sources.normal_switch_wire_v1','gridex_received_sources.permission_date_v1','gridex_received_sources.permission_time_v1','gridex_received_sources.prodat_application_object_accepted_v1','gridex_received_sources.require_supply_scope_admission_v1','gridex_received_sources.supply_wire_for_scope_v1','gridex_received_sources.supply_wire_for_period_receipt_v1','gridex_received_sources.sent_source_is_current_v1','gridex_received_sources.other_supply_scope_effect_v1'])await db.exec(actual(name))
  const installed=hash((await db.query("select prosrc from pg_proc where oid='gridex_received_sources.other_supply_scope_effect_v1(uuid,uuid,uuid,jsonb,uuid[],uuid)'::regprocedure")).rows[0].prosrc)
  console.log(`CAPTURED prosrc sha256=${installed}`)
- assert.equal(installed,capturedOwner,'z04c_unknown_captured_owner')
+ assert.ok(installed===capturedOwner||installed===fixedOwner,'z04c_unknown_captured_owner')
  const metadata=async()=>(await db.query("select to_jsonb(p)-'prosrc' m from pg_proc p where p.oid='gridex_received_sources.other_supply_scope_effect_v1(uuid,uuid,uuid,jsonb,uuid[],uuid)'::regprocedure")).rows[0].m
  const beforeMetadata=await metadata()
- if(!originalControl)await db.exec(readFileSync(forwardPath,'utf8'))
+ if(installed===capturedOwner){if(!originalControl)await db.exec(readFileSync(forwardPath,'utf8'))}
+ else if(originalControl){
+  // schema.sql already carries this fix: rebuild the exact predecessor with the
+  // migration's own inverse (remove only its two guard texts) for the RED control.
+  const forward=readFileSync(forwardPath,'utf8'),guard=name=>{const m=forward.match(new RegExp(` ${name} CONSTANT text:=\\$guard\\$([\\s\\S]*?)\\$guard\\$;`));assert.ok(m,`z04c_${name}_text_required`);return m[1]}
+  const current=(await db.query("select prosrc,pg_get_functiondef(oid) d from pg_proc where oid='gridex_received_sources.other_supply_scope_effect_v1(uuid,uuid,uuid,jsonb,uuid[],uuid)'::regprocedure")).rows[0]
+  const predecessor=current.prosrc.replace(guard('z04c_guard'),'').replace(guard('duplicate_guard'),'')
+  assert.equal(hash(predecessor),capturedOwner,'z04c_inverse_predecessor_required')
+  await db.exec(current.d.replace(current.prosrc,predecessor))
+ }
  const effective=hash((await db.query("select prosrc from pg_proc where oid='gridex_received_sources.other_supply_scope_effect_v1(uuid,uuid,uuid,jsonb,uuid[],uuid)'::regprocedure")).rows[0].prosrc)
  assert.equal(effective,originalControl?capturedOwner:fixedOwner);assert.deepEqual(await metadata(),beforeMetadata)
  console.log(`SOURCE effectiveBodySha256=${effective}; migrationApplication=${originalControl?'skipped_for_original_red_control':'applied_to_captured_predecessor'}`)
