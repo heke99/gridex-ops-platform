@@ -1,0 +1,344 @@
+{
+  "id": "AT-Z03C-SUPPLIER",
+  "scope": "Frozen single supplier cancellation-origination contract; proof package for code approval review, not delivered main merge, market activation or external counterparty acceptance",
+  "prepared_at": "2026-10-18T09:13:35.502240+00:00",
+  "owner": "PENDING_ATOMIC_CLAIM_RECORDED_ON_766",
+  "packet": "PENDING",
+  "pr": "PENDING",
+  "frozen_acceptance": {
+    "id": "AT-Z03C-SUPPLIER",
+    "name": "Meddelandefall Z03C",
+    "given": "SUPPLIER; Referera rätt originalärende/objekt/kund; L senast4dagar före, LK senast inflyttningsdagen.",
+    "when": "Återtag av eget bytes-/flyttärende inom kancelleringsfönstret.",
+    "expected": "23-DDQ-PRODAT; BGM=Z03; fält223=Z24; CONTRL, APERAK och enligt förloppet Z04C.; Markera kancellering begärd; inte färdig enbart på SMTP250.",
+    "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "layer": "Planerat meddelande-/rollprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  "frozen_acceptance_row_sha256": "c27d489eefecbfc5f5932aa0175717f05ffb8b7e7317ab24819eaaf43eea5139",
+  "frozen_acceptance_row_canonicalization": "json.dumps(row, ensure_ascii=False, sort_keys=True, separators=(',',':')) UTF-8",
+  "coverage_status_at_preparation": "NOT_EXECUTED",
+  "current_originals": [
+    {
+      "producer": ".github/workflows/ediel-z03c-supplier-boundary-native.yml",
+      "workflow_id": 386067590,
+      "run": 39057092911,
+      "attempt": 1,
+      "event": "pull_request",
+      "head_branch": "codex/c3-h-20261012",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "id": 117467173059,
+          "name": "Ediel Z03C supplier boundary / clock-capability-preflight",
+          "conclusion": "success"
+        },
+        {
+          "id": 117467555448,
+          "name": "Ediel Z03C supplier boundary / z03c-supplier-boundary-native",
+          "conclusion": "success"
+        }
+      ],
+      "artifacts": [
+        {
+          "id": 12110196282,
+          "name": "ediel-z03c-supplier-boundary-native-39057092911",
+          "archive_sha256": "7ca59f3cbd5c1961a17ccb3854fa94988fcf392ea8d1621fb728cb7fc63da2df",
+          "size_in_bytes": 1782574,
+          "includes": "z03c-clock-preflight-evidence/* and z03c-supplier-boundary-native-evidence/*"
+        },
+        {
+          "id": 12108999638,
+          "name": "ediel-z03c-clock-preflight-39057092911",
+          "archive_sha256": "0a50c827c8bfcd82a6899c3dfdd79c619175899a1a7793c3623e9d1f4638d38f",
+          "size_in_bytes": 790681
+        }
+      ],
+      "archive_copied": false,
+      "archive_not_copied_reason": "z03c-supplier-boundary-native-evidence/bootstrap.log line 1174-1175 retains the disposable local Supabase Storage S3 access/secret key (CLI local defaults) unredacted; per the no-credentials rule the archive is referenced by GitHub artifact id and digest only. Redactor gap reported separately.",
+      "head": "cd152e72f286f27bdb3d20f9f4eea9f8d40904a6",
+      "tree": "967d34dff98721bad9be5709d78cadafb737a4a0",
+      "source_blobs_exact": 10739,
+      "all_blob_oid_exact": true,
+      "runtime_changes_declared": {},
+      "receipt": {
+        "schema": "z03c_boundary_workflow_receipt_v1",
+        "exit_code": 0,
+        "restoration_verified": true,
+        "actual_elapsed_14_days": false,
+        "authentic_external_market_history": false,
+        "private_runner_background_quiescence": "NOT_ATTESTED",
+        "whole_approval": false,
+        "ordinary_required_gates": "NOT_REPLACED"
+      },
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "case_names": [
+        "AT-Z03C supplementary lawful boundary native > C03-MISSING-OWN-LI-OWNER-REFUSAL",
+        "AT-Z03C supplementary lawful boundary native > C03-BOUND-MUTATION-REFUSAL",
+        "AT-Z03C supplementary lawful boundary native > C03-LK-DAY1-HOLD",
+        "AT-Z03C supplementary lawful boundary native > C03-L4-ALLOW",
+        "AT-Z03C supplementary lawful boundary native > C03-L3-HOLD"
+      ]
+    },
+    {
+      "producer": ".github/workflows/ediel-cancellation-public-acceptance-native.yml",
+      "workflow_id": 377355645,
+      "run": 39057092903,
+      "attempt": 1,
+      "event": "pull_request",
+      "head_branch": "codex/c3-h-20261012",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "id": 117467173112,
+          "name": "cancellation-public-acceptance-native",
+          "conclusion": "success"
+        }
+      ],
+      "artifacts": [
+        {
+          "id": 12109779127,
+          "name": "ediel-cancellation-public-acceptance-native-39057092903",
+          "archive_sha256": "c8359d29c02d692c079bd3ab35dc0bf46d1dd8df62ccc39c3fe97e253735e11f",
+          "size_in_bytes": 1320085
+        }
+      ],
+      "archive_copied": true,
+      "archive_path": "quality/audits/ediel-masterplan-v2/z03c-supplier/native-cancellation.zip",
+      "archive_content_review": "native.log, native-junit.xml, receipt.json only (same composition as z05c native-3847.zip); no credential, key or token found",
+      "head": "cd152e72f286f27bdb3d20f9f4eea9f8d40904a6",
+      "tree": "967d34dff98721bad9be5709d78cadafb737a4a0",
+      "source_blobs_exact": 10739,
+      "all_blob_oid_exact": true,
+      "runtime_changes_declared": {},
+      "total": 33,
+      "passed": 33,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "z03c_relevant_case_names": [
+        "actual native supplier cancellation chains > keeps requested after actual provider250 and physical ACKs; only causal Z04C completes the own future start",
+        "actual native supplier cancellation chains > current sender-role revocation and a foreign actor cannot originate a cancellation of the preserved own original",
+        "actual native supplier cancellation chains > uses actual prospective LK public input at its zero-day cancellation boundary"
+      ],
+      "other_cases_excluded_from_z03c_credit": 30
+    }
+  ],
+  "independent_proof_reviews": [
+    {
+      "reviewer": "PENDING",
+      "sha256": "PENDING",
+      "verdict": "PENDING"
+    },
+    {
+      "reviewer": "PENDING",
+      "sha256": "PENDING",
+      "verdict": "PENDING"
+    }
+  ],
+  "criteria": [
+    {
+      "criterion": "Expected: 23-DDQ-PRODAT; BGM=Z03; own field 223=Z24 on the outbound cancellation",
+      "source": "scripts/ediel-at-z03c-supplier-boundary-native.test.ts",
+      "lines": [
+        345,
+        372
+      ],
+      "observed": "Actual queued Z03C message asserts application_reference 23-DDQ-PRODAT, message_code Z03, one CCI Z13 followed by CAV Z24, BGM Z03, valid envelope, own LI only (lines 352-357)."
+    },
+    {
+      "criterion": "Given: reference the correct original case/object/customer",
+      "source": "scripts/ediel-at-z03c-supplier-boundary-native.test.ts",
+      "lines": [
+        345,
+        372
+      ],
+      "observed": "Queued message binds original_message_id, switch_request_id, customer_id, site_id, metering_point_id, sender/receiver and transaction_reference to the sealed own original; one origin/intent/request/outbox each; original seal unchanged; decoy unchanged (351-368)."
+    },
+    {
+      "criterion": "Given: L at the latest 4 days before start; LK at the latest on the move-in day",
+      "source": "scripts/ediel-at-z03c-supplier-boundary-native.test.ts",
+      "lines": [
+        344,
+        345,
+        373
+      ],
+      "observed": "Controlled clock: L at start-4 is allowed, L at start-3 and LK at start+1 are held with source_z03_cancellation_calendar_window and no effects (refuseCalendar 286-294).",
+      "supplementary": {
+        "source": "scripts/ediel-cancellation-public-acceptance-native.test.ts",
+        "lines": [
+          975,
+          994
+        ],
+        "observed": "Actual prospective LK public input at day0 is authorized and queued (cancellation_requested)."
+      }
+    },
+    {
+      "criterion": "Expected: mark cancellation requested; not complete on SMTP 250 alone; CONTRL and APERAK then per the Z04C flow",
+      "source": "scripts/ediel-cancellation-public-acceptance-native.test.ts",
+      "lines": [
+        587,
+        621,
+        558
+      ],
+      "observed": "After prepare: cancellation_requested, completed null (599); provider 250 send keeps cancellation_requested (600-603); physical positive CONTRL then APERAK keep cancellation_requested and period unchanged (604-608); only the causal received Z04C completes cancelled_before_start and cancels the own confirmed future period (609-614); own positive APERAK+CONTRL produced and sent via sendOwnAcks (615; asserted at 558-562), replay leaves owned effects unchanged (616-618), original/permissions unchanged (619); decoy unchanged (620)."
+    },
+    {
+      "criterion": "Prohibited: wrong role",
+      "source": "scripts/ediel-cancellation-public-acceptance-native.test.ts",
+      "lines": [
+        962,
+        973
+      ],
+      "observed": "Foreign actor gets 42501 switch_cancellation_actor_forbidden; revoked own supplier role gets P0001 ediel_inbound_legal_context_required; switch, original and origins unchanged.",
+      "supplementary": [
+        {
+          "source": "__tests__/ediel-at-z03c-supplier-queue.test.ts",
+          "lines": [
+            114,
+            118
+          ],
+          "observed": "ESCO actorRole held with prodat_actor_role_not_allowed before reservation; no finalizer/queue."
+        },
+        {
+          "source": "__tests__/ediel-at-z03c-supplier-queue.test.ts",
+          "lines": [
+            120,
+            135
+          ],
+          "observed": "Revoked authority at source/reservation/after finalization never queues."
+        },
+        {
+          "source": "__tests__/ediel-at-z03c-z05c-supplier-profile.test.ts",
+          "lines": [
+            137,
+            141
+          ],
+          "observed": "ESCO DGI application profile refused for Z03C."
+        }
+      ]
+    },
+    {
+      "criterion": "Prohibited: wrong direction or mutation of the bound message",
+      "source": "scripts/ediel-at-z03c-supplier-boundary-native.test.ts",
+      "lines": [
+        329,
+        343
+      ],
+      "observed": "Actual triggers refuse raw_payload change (23514 immutable_ediel_payload_cannot_change), direction change and original_message_id rebinding (P0001 switch_cancellation_bound_message_immutable); no effects; decoy unchanged."
+    },
+    {
+      "criterion": "Prohibited: missing R/D fields",
+      "source": "scripts/ediel-at-z03c-supplier-boundary-native.test.ts",
+      "lines": [
+        309,
+        328
+      ],
+      "observed": "Lawful reservation with own RFF+LI removed is refused by the actual customer-masterdata owner (customer_masterdata_cancellation_actual_wire_required); no bound message, queue or effect.",
+      "supplementary": {
+        "source": "__tests__/ediel-at-z03c-z05c-supplier-profile.test.ts",
+        "lines": [
+          99,
+          135
+        ],
+        "observed": "Component Z03C profile: own diagnostics for missing 314/226/260/227/223, own cancellation date 210 not borrowed from sibling, malformed date, installation parent and invoicee children."
+      }
+    },
+    {
+      "criterion": "Prohibited: wrong correlation",
+      "source": "__tests__/ediel-switch-cancellation-customer-source.test.ts",
+      "lines": [
+        198,
+        230
+      ],
+      "observed": "Component: forged native original customer/intent/hash and foreign/forged preparation operation/switch/actor/intent/route/original/hash/environment are rejected before finalization.",
+      "supplementary": [
+        {
+          "source": "scripts/ediel-at-z03c-supplier-boundary-native.test.ts",
+          "lines": [
+            329,
+            343
+          ],
+          "observed": "Native: rebinding the bound message to the decoy original is refused."
+        },
+        {
+          "source": "__tests__/ediel-at-z03c-supplier-queue.test.ts",
+          "lines": [
+            107,
+            112
+          ],
+          "observed": "Detached intent scope (company/switch/operation/family/code) rejected before source access."
+        }
+      ]
+    }
+  ],
+  "premises": {
+    "database": "Actual disposable PostgreSQL native replay on GitHub-hosted runners",
+    "authority": "Constructed tenant/market/role/registry/signed-source/mail inputs; synthetic network-registry issuer competence",
+    "external_transport": "Declared SMTP/provider double (synthetic 250); not authentic external delivery",
+    "clock": "Controlled hosted VM clock for the calendar-window boundary (preflight + restoration verified); not elapsed market time",
+    "history": "No natural 14-day or authentic market history (actual_elapsed_14_days=false)",
+    "counterparty": "No live counterparty; physical CONTRL/APERAK are rendered by the actual renderer from the tenant's own sent original",
+    "unit_tests": "Tagged component tests are finite ports, not native or physical ACK proof"
+  },
+  "source_applicability": {
+    "executed_head": "cd152e72f286f27bdb3d20f9f4eea9f8d40904a6",
+    "executed_tree": "967d34dff98721bad9be5709d78cadafb737a4a0",
+    "current_main": "dbbfee16abef0bdf6ca455088c21e7e6f089138a",
+    "current_main_tree": "1f6e8f57cca4113bda5b560ec8bd5d95d2f38a1a",
+    "ancestor": true,
+    "commits_between": 13,
+    "runtime_paths_changed": {
+      "lib": 0,
+      "supabase": 0,
+      "scripts": 0,
+      "__tests__": 0,
+      ".github": 0,
+      "package.json": 0,
+      "package-lock.json": 0
+    },
+    "changed_paths": [
+      ".agent-memory/README.md",
+      ".agent-memory/api-doc-final-ae25-root-20261017-checkpoint.md",
+      ".agent-memory/checkpoint.json",
+      ".agent-memory/current-state.md",
+      ".agent-memory/current-task.md",
+      ".agent-memory/ediel-claude-claims-docs-20261015.json",
+      ".agent-memory/handover.md",
+      ".agent-memory/masterplan-agent-workflow.md",
+      ".agent-memory/masterplan-current-start.md",
+      ".agent-memory/masterplan-five-agent-prompt-20261012.md",
+      ".agent-memory/masterplan-reservations.md",
+      ".agent-memory/open-blockers.md",
+      ".agent-memory/work-plan.md",
+      ".agents/tools/masterplan-claim.py",
+      ".agents/tools/masterplan-claim.test.py",
+      ".claude/settings.json",
+      "AGENTS.md",
+      "app/developers/customer-portal-api/page.tsx",
+      "app/developers/staff-api/page.tsx",
+      "docs/api-index.md",
+      "quality/audits/2026-10-12-ops-api-contracts/README.md"
+    ],
+    "verdict": "PENDING independent review; all changed paths are agent memory, agent tooling/settings, AGENTS.md, two developer documentation page texts and documentation. No executed test, helper, workflow, library, migration or schema input differs, so the cd152e72 originals are proposed as applicable to dbbfee16 without relabelling them.",
+    "command": "git diff --name-only cd152e72 dbbfee16; git diff --stat cd152e72 dbbfee16 -- lib supabase scripts __tests__ .github"
+  },
+  "delivery": {
+    "status": "NOT_DELIVERED",
+    "coverage_row": "NOT_CHANGED_BY_THIS_PACKAGE",
+    "ordinary_final_head_gates": "REQUIRED",
+    "merge_role": "REQUIRED_SERIAL_OWNER_ONLY",
+    "external_legal_market_live_gates": "NOT_APPROVED",
+    "other_ids": "NOT_APPROVED"
+  }
+}
