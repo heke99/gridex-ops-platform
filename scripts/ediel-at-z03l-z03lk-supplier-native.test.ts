@@ -929,10 +929,9 @@ function preserveZ04ValidationAudit(f: Fixture, source: EdielMessageRow, baselin
   expect(priorCase).toMatchObject({id:replay.inboundCaseId,company_id:f.companyId,ediel_message_id:source.id,
     message_family:'PRODAT',message_code:'Z04',status:'pending_review',review_decision:null,
     reviewed_by:null,reviewed_at:null,applied_at:null,failure_reason:null,updated_by:f.actorUserId})
-  clock(currentCase.updated_at,priorCase.updated_at)
-  currentCase.updated_at=priorCase.updated_at
   // Full rows retain parsed customer/site/point/contract/production, proposals,
-  // match identity and review metadata; only the actual update clock may move.
+  // match identity, review metadata and updated_at: this owner never assigns
+  // an update clock, and the table's INSERT default does not refresh on UPDATE.
   expect(currentCase).toEqual(priorCase)
 
   expect(replay.ackMessages.map(row=>row.message_family).sort()).toEqual(['APERAK','CONTRL'])
