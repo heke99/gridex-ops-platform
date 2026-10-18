@@ -1,81 +1,26 @@
 {
   "project": "gridex-ops-platform",
   "schema": "ediel-current-routing-v3",
-  "epoch": "gridex-five-agent-20261012",
-  "observed_at": "2026-10-13T10:20:47+02:00",
-  "observed_timezone": "Europe/Stockholm",
-  "observed_main": "51f5fa5e80c42350d697bfed42520672749d4467",
-  "observed_tree": "276b661120d5e0b69abc2090439809d5c4528e33",
-  "campaign_complete": false,
   "status": "IN_PROGRESS",
-  "coverage": {
-    "path": "quality/audits/ediel-masterplan-v2/coverage.json",
-    "sha256": "4a1560a0b16ae37d68aa30c5f67ef616a516c5306e29edf4269b7b1fa9fea850",
-    "verifiedRules": 119,
-    "totalRules": 121,
-    "passedContracts": 201,
-    "totalContracts": 231,
-    "approvedIds": 320,
-    "totalIds": 352,
-    "remainingIds": 32,
-    "authority": "ACTUAL_MAIN_VERIFIED_PASSED_ONLY; this snapshot is dated"
-  },
+  "campaign_complete": false,
+  "observed_at": "2026-10-17T20:59:07Z",
+  "observed_main": "ae25d6d3144fe9828bc00f51af43e607dc76d370",
+  "observed_tree": "3e356bf359aed2791e65a9758bb2e8398020c8d7",
+  "canonical_state": ".agent-memory/current-state.md",
   "active_start": ".agent-memory/masterplan-current-start.md",
   "active_board": "https://github.com/heke99/gridex-ops-platform/issues/766",
-  "remaining_scope_labels_at_observation": {
-    "R1": [
-      "DB-05"
-    ],
-    "R2": [
-      "OPS-04"
-    ],
-    "C1": [
-      "AT-Z01L-SUPPLIER",
-      "AT-Z01LK-SUPPLIER",
-      "AT-Z02L-SUPPLIER",
-      "AT-Z02LK-SUPPLIER",
-      "AT-Z03L-SUPPLIER",
-      "AT-Z03LK-SUPPLIER",
-      "AT-Z04L-SUPPLIER",
-      "AT-Z04LK-SUPPLIER",
-      "AT-Z03C-SUPPLIER",
-      "AT-Z04C-SUPPLIER",
-      "SC-035",
-      "SC-037",
-      "SC-039"
-    ],
-    "C2": [
-      "AT-Z13V-ESCO",
-      "AT-Z13VH-ESCO",
-      "AT-Z14VH-ESCO",
-      "AT-Z15V-ESCO",
-      "AT-Z15VH-ESCO",
-      "SC-023",
-      "SC-046"
-    ],
-    "C3": [
-      "AT-Z05H-SUPPLIER",
-      "AT-Z08H-SUPPLIER",
-      "AT-Z06F-SUPPLIER",
-      "AT-Z09F-SUPPLIER",
-      "AT-Z06G-SUPPLIER",
-      "AT-Z09G-SUPPLIER",
-      "AT-Z09B-SUPPLIER",
-      "SC-031",
-      "AT-DB-05",
-      "AT-OPS-04"
-    ]
+  "coverage": {
+    "path": "quality/audits/ediel-masterplan-v2/coverage.json",
+    "sha256": "d2bea375b9fc02fba5d4561b00018081a5ea98860ed60961032cfc486c48cb41",
+    "verifiedRules": 119,
+    "totalRules": 121,
+    "passedContracts": 209,
+    "totalContracts": 231,
+    "approvedIds": 328,
+    "totalIds": 352,
+    "remainingIds": 24
   },
-  "assignment_authority": "LATEST_EXPLICIT_HANDOFF_AND_VERIFIED_REFS; labels do not grant slots/files/producers",
-  "serial_merge_authority_receipt": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6132656380",
-  "sole_gen_authority_receipt": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6136464358",
-  "current_gen_v2_claim_receipt": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6139324812",
-  "current_source_support_receipt": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6139628621",
-  "retired_agents_remain_retired": true,
-  "old_automations_remain_paused": true,
-  "private_process_termination": "NOT_TECHNICALLY_ATTESTED",
-  "next_action": "Existing C1 collector qualifies actual V5a2 diagnostic; existing GEN owner finalizes and peers actual v2 source before one publication/capture; helpers review only genuinely new public source/qualified derived evidence. No new writer/producer from this snapshot.",
-  "historical_checkpoint": "https://github.com/heke99/gridex-ops-platform/blob/51f5fa5e80c42350d697bfed42520672749d4467/.agent-memory/checkpoint.json",
-  "pending_inputs": "Separate publication questions remain unanswered; OPS04 actual counterparty/environment/LIVE inputs required; DB05 concrete post-lock source HOLD; SC046 whole older-last chain pending",
+  "assignment_authority": "LATEST_EXPLICIT_HANDOFF_AND_VERIFIED_REFS; this dated snapshot grants no claims",
+  "next_action": "Finish documentation cleanup and delivery follow-up. Rule and contract work is paused until the next work round.",
   "paused_310": true
 }

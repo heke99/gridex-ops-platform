@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(git push origin *:refs/tags/agent-claims/masterplan/*)",
-      "Edit(quality/audits/ediel-masterplan-v2/coverage.json)"
+      "Edit(quality/audits/ediel-masterplan-v2/coverage.json)",
+      "Bash(python3 .agents/tools/masterplan-claim.py *)"
     ]
   }
 }
