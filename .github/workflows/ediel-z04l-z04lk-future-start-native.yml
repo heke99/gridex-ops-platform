@@ -97,7 +97,9 @@ jobs:
           for prior in runs:
               if str(prior['id'])==os.environ['GITHUB_RUN_ID']:continue
               if prior['head_branch']!='codex/agent3-z04-future-start-20261018':continue
-              if prior['head_sha']!=head and not any(p.get('number')==number and p.get('head',{}).get('sha')==head for p in prior.get('pull_requests',[])):continue
+              # Run head_sha is immutable; nested PR heads can follow later updates.
+              # Only a prior epoch of this exact source can consume its admission.
+              if prior['head_sha']!=head:continue
               for page in range(1,11):
                   jobs=get('actions/runs/'+str(prior['id'])+'/jobs?filter=all&per_page=100&page='+str(page))['jobs']
                   for previous_job in jobs:
