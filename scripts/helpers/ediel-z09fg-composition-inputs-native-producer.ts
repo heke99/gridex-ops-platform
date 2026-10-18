@@ -70,6 +70,27 @@ function secret(value:string|Buffer){
 const password=()=>secret(randomBytes(32).toString('base64url')+'Aa1!') as string
 const hmac=(key:Buffer,bytes:Buffer)=>secret(createHmac('sha256',key).update(bytes).digest('hex')) as string
 const clock=()=>sql<string>('SELECT to_jsonb(clock_timestamp())')
+// Clean native replay lacks these hosted reference catalog keys (same precedent
+// as ediel-z04d-production-native-fixture.ts). Reference rows only: no role,
+// user grant, override or deny is written here; actor() still grants per actor
+// and asserts the canonical tenant context independently.
+const replayMissingCatalogKeys=['contracts.publish','pricing.read','pricing.write','pricing.publish']
+function referenceCatalog(){
+ stage='PERMISSION_CATALOG'
+ sql(`INSERT INTO public.permissions(key,name,description,category,is_active)
+  SELECT key,key,'Synthetic FG disposable preparation reference','native_fixture',true
+  FROM unnest(ARRAY[${replayMissingCatalogKeys.map(literal).join(',')}]::text[]) key
+  ON CONFLICT(key) DO NOTHING`)
+ expect(sql(`SELECT coalesce(jsonb_agg(key ORDER BY key),'[]') FROM public.permissions WHERE key=ANY(ARRAY[${permissions.map(literal).join(',')}]::text[]) AND is_active`)).toEqual([...permissions].sort())
+}
+// Value-free failure label: an own fixed error code, otherwise only the
+// producer call-site line. Never an assertion message, SQL text or value.
+function failureLabel(error:unknown){
+ const message=error instanceof Error?error.message:''
+ if(/^[a-z][a-z0-9_]{2,80}$/.test(message))return message
+ const site=error instanceof Error?/ediel-z09fg-composition-inputs-native-producer\.ts:(\d{1,5}):(\d{1,4})/.exec(error.stack??''):null
+ return site?`ASSERTION_AT_LINE_${site[1]}`:'UNLABELED'
+}
 function initialize(){
  if(process.env.GRIDEX_FG_PRODUCER_INTENT!=='SYNTHETIC_DISPOSABLE_PREPARATION'||process.env.NEXT_PUBLIC_SUPABASE_URL!=='http://127.0.0.1:54321')throw Error('fg_explicit_disposable_preparation_required')
  inventoryPath=tempPath('GRIDEX_FG_SECRET_INVENTORY');proofPath=tempPath('GRIDEX_FG_PREPARATION_PROOF')
@@ -428,6 +449,7 @@ async function profile(subtype:'F'|'G'):Promise<Profile>{
 it('prepares fresh SYNTHETIC F/G original inputs through authenticated public owners without Z09 prequeue',async()=>{
  try{
   initialize()
+  referenceCatalog()
   const manifestPath=tempPath('GRIDEX_Z09FG_COMPOSITION_INPUTS');expect(existsSync(manifestPath)).toBe(false)
   const F=await profile('F'),G=await profile('G'),backend=sql<CompositionInputs['backend']>(backendIdentitySql)
   expect(backend.engineSchemaVersion).toBeTruthy();expect(backend.migrationVersion).toBeTruthy();expect(backend.functionDefinitionsSha256).toMatch(/^[a-f0-9]{64}$/)
@@ -440,7 +462,8 @@ it('prepares fresh SYNTHETIC F/G original inputs through authenticated public ow
   // Do not let a child-process SQL/error object print credential-bearing SQL,
   // auth sessions or secret manifest bytes into Vitest's failure formatter.
   const code=typeof error==='object'&&error!==null&&'code'in error&&typeof error.code==='string'&&/^[A-Z0-9_]{1,40}$/.test(error.code)?error.code:'PREPARATION_ASSERTION_OR_PORT_FAILURE'
-  if(proofPath)writeFileSync(proofPath,JSON.stringify({purpose:'original_preparation_failed_stage',stage,code,nativeConsumer:'NOT_REACHED',wholeFG:'NOT_APPROVED'})+'\n',{mode:0o600})
-  throw Error(`synthetic_fg_preparation_failed:${stage}:${code}`)
+  const label=failureLabel(error)
+  if(proofPath)writeFileSync(proofPath,JSON.stringify({purpose:'original_preparation_failed_stage',stage,code,label,nativeConsumer:'NOT_REACHED',wholeFG:'NOT_APPROVED'})+'\n',{mode:0o600})
+  throw Error(`synthetic_fg_preparation_failed:${stage}:${code}:${label}`)
  }finally{vi.unstubAllEnvs();vi.restoreAllMocks();smtp.send.mockReset()}
 },120000)

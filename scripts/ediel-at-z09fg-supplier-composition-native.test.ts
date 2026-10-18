@@ -159,6 +159,7 @@ function origin(p:ProfileInput){return sql<{origins:Record<string,unknown>[];des
 function ackCounts(p:ProfileInput,source:string){return sql(`SELECT jsonb_build_object(
  'correlations',(SELECT count(*) FROM gridex_ack_authority.source_correlations WHERE company_id=${literal(p.companyId)} AND source_message_id=${literal(source)}),
  'receipts',(SELECT count(*) FROM gridex_ack_authority.applied_receipts r JOIN gridex_ack_authority.source_correlations c USING(ack_message_id) WHERE c.company_id=${literal(p.companyId)} AND c.source_message_id=${literal(source)}))`)}
+function ownOutboundProdat(p:ProfileInput){return sql<string[]>(`SELECT coalesce(jsonb_agg(id ORDER BY created_at,id),'[]') FROM public.ediel_messages WHERE company_id=${literal(p.companyId)} AND metering_point_id=${literal(p.expected.meteringPointId)} AND direction='outbound' AND message_family='PRODAT'`)}
 function effects(p:ProfileInput,source:string){return sql<{objects:{source_message_id:string;company_id:string;environment:string;payload_hash:string;canonical_assessment_id:string;object_assessment_id:string;source_received_at:string;first_line_index:number;effect:{effectiveAt:string}}[];batches:Record<string,unknown>[]}>(`SELECT jsonb_build_object(
  'objects',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY first_line_index),'[]') FROM gridex_received_sources.structural_object_apply_receipts r WHERE company_id=${literal(p.companyId)} AND source_message_id=${literal(source)}),
  'batches',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY requested_scope_key),'[]') FROM gridex_received_sources.structural_apply_batches r WHERE company_id=${literal(p.companyId)} AND source_message_id=${literal(source)}))`)}
@@ -233,6 +234,7 @@ it.each(['F','G'] as const)('native Z09%s own desired receipt/dispatch/physical 
  expect(oldSelection.selection.states.some(state=>state.sourceMessageId===baseline.id)).toBe(true)
  expect(earlySelection.fields.measurementMethod).toBe(p.expected.baselineMethod)
  expect(origin(p)).toEqual({origins:[],desired:[],request:null})
+ expect(ownOutboundProdat(p)).toEqual([])
  const queued=await prepareAndQueueMeteringMethodChangeZ09({companyId:p.companyId,eventId:p.eventId,actorUserId:p.requestActor.id,preferredRouteId:p.preferredRouteId})
  requireInput(queued.status==='queued',`fresh_origin:${queued.status==='held'?queued.missing.join(','):'already_originated_input'}`)
  const prepared=queued.message
@@ -241,6 +243,18 @@ it.each(['F','G'] as const)('native Z09%s own desired receipt/dispatch/physical 
  const field=(tag:string,qualifier:string)=>wire.segments.filter(s=>s.tag===tag&&segmentComposite(s,1,wire.una)[0]===qualifier)
  expect(field('DTM','157').map(s=>segmentComposite(s,1,wire.una).slice(1))).toEqual([[p.expected.effectiveMarketMinute,'203']])
  expect(wire.segments.filter(s=>s.tag==='CAV').map(s=>segmentComposite(s,1,wire.una)[0])).toEqual(expect.arrayContaining([basis.reason,basis.method]))
+ // Frozen AT-Z09F/G: BGM=Z09; field223 (CCI+Z13) E64/E32; field217 (CCI+Z04)
+ // Z04/Z03 bound to its own CCI qualifier; no Z09E-only NAD+UD/IT.
+ const characteristic=(qualifier:string)=>wire.segments.filter(s=>s.tag==='CCI'&&segmentComposite(s,2,wire.una)[0]===qualifier).map(s=>{
+  const tail=wire.segments[s.index+1];expect(tail?.tag).toBe('CAV');return segmentComposite(tail,1,wire.una)[0]
+ })
+ expect(wire.segments.filter(s=>s.tag==='BGM').map(s=>segmentComposite(s,1,wire.una)[0])).toEqual(['Z09'])
+ expect(characteristic('Z13')).toEqual([subtype==='F'?'E64':'E32'])
+ expect(characteristic('Z04')).toEqual([subtype==='F'?'Z04':'Z03'])
+ expect(wire.segments.filter(s=>s.tag==='NAD'&&['UD','IT'].includes(segmentComposite(s,1,wire.una)[0]))).toEqual([])
+ // No invented direct business reply: the own Z09 stays the only own outbound
+ // PRODAT for this point through ACKs and the independent later Z06.
+ expect(ownOutboundProdat(p)).toEqual([prepared.id])
  expect(field('NAD','FR').map(s=>segmentComposite(s,2,wire.una)[0])).toEqual([basis.legalSenderId])
  expect(field('NAD','DO').map(s=>segmentComposite(s,2,wire.una)[0])).toEqual([basis.legalReceiverId])
  expect(field('RFF','LI').map(s=>segmentComposite(s,1,wire.una)[1])).toEqual([prepared.transaction_reference])
@@ -329,10 +343,15 @@ it.each(['F','G'] as const)('native Z09%s own desired receipt/dispatch/physical 
  const final=await readReceivedProdatFinalResponsePlan({companyId:p.companyId,sourceMessageId:z06.id,rawPayload:raw})
  expect(final).toMatchObject({totalObjectCount:1,plans:[{outcome:'positive',objectLineIndices:[lin[0].index],acknowledgedReferences:[ownLi],effectKind:'structural'}]})
  const stableBusiness=business(p)
+ // No automatic customer switch or business mutation from the confirmed Z06:
+ // customer, site, point, supply, contract and switch rows equal the pre-Z09 read.
+ expect(stableBusiness).toEqual(beforeBusiness)
+ expect(ownOutboundProdat(p)).toEqual([prepared.id])
  expect(await approveEdielInboundCase({companyId:p.companyId,actorUserId:p.reviewActor.id,caseId:pending.id,structuralObjectLineIndices:[lin[0].index]})).toMatchObject({status:'applied'})
  expect(effects(p,z06.id)).toEqual(applied);expect(structureFacts(await selected(p,p.expected.effectiveMarketMinute))).toEqual(later)
  expect(structureFacts(await selected(p,p.expected.baselineMarketMinute))).toEqual(oldSelection)
  expect(origin(p)).toEqual(acceptedOrigin);expect(business(p)).toEqual(stableBusiness);expect(delivery.smtp).toHaveBeenCalledTimes(1)
+ expect(ownOutboundProdat(p)).toEqual([prepared.id])
 },120000)
 
 // Finite controls exercise the actual new wire helper and actual tokenizer /

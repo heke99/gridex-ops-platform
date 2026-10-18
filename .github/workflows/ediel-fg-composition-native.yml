@@ -9,6 +9,7 @@ on:
       - 'scripts/ediel-at-z09fg-supplier-composition-native.config.ts'
       - 'scripts/ediel-at-z09fg-supplier-composition-native.test.ts'
       - 'scripts/ediel-source-owner-native.config.ts'
+      - 'scripts/ediel-at-z06fg-supplier-acceptance-native.config.ts'
       - 'scripts/helpers/ediel-z06f-reading-followup-native-fixture.ts'
       - 'scripts/helpers/ediel-z09fg-composition-inputs-native-producer.ts'
       - 'scripts/ediel-z09fg-composition-producer-native.config.ts'
@@ -133,7 +134,7 @@ jobs:
           cat > "$GRIDEX_FG_SECRET_DIR/redact.py" <<'PY'
           import json,os,pathlib,re,runpy,urllib.parse
           work=pathlib.Path('fg-composition-native-working')
-          allowed={'receipt.json','failure-receipt.json','preparation-proof.json','preparation-junit.xml','preparation.log','native-junit.xml','native.log','bootstrap.log'}
+          allowed={'receipt.json','failure-receipt.json','preparation-proof.json','preparation-junit.xml','preparation.log','native-junit.xml','native.log','acceptance-junit.xml','acceptance.log','bootstrap.log'}
           files=[p for p in work.rglob('*') if p.is_file()]
           if not files or any(p.parent!=work or p.name not in allowed for p in files): raise RuntimeError('unsafe_evidence_file_set')
           inventory=json.loads(pathlib.Path(os.environ['GRIDEX_FG_SECRET_INVENTORY']).read_text())
@@ -189,7 +190,7 @@ jobs:
               if kind!='blob': continue
               blob=subprocess.check_output(['git','cat-file','blob',oid])
               source[path.decode()]={'mode':mode,'oid':oid,'sha256':hashlib.sha256(blob).hexdigest()}
-          required=['scripts/helpers/ediel-z09fg-composition-inputs-native-producer.ts','scripts/ediel-z09fg-composition-producer-native.config.ts','scripts/ediel-at-z09fg-supplier-composition-native.test.ts','scripts/ediel-at-z09fg-supplier-composition-native.config.ts','scripts/ediel-source-owner-native.config.ts','.github/workflows/ediel-fg-composition-native.yml','scripts/gridex-aud-003-clean-replay.sh']
+          required=['scripts/helpers/ediel-z09fg-composition-inputs-native-producer.ts','scripts/ediel-z09fg-composition-producer-native.config.ts','scripts/ediel-at-z09fg-supplier-composition-native.test.ts','scripts/ediel-at-z09fg-supplier-composition-native.config.ts','scripts/ediel-source-owner-native.config.ts','scripts/ediel-at-z06fg-supplier-acceptance-native.config.ts','scripts/ediel-at-z06f-supplier-acceptance-native.test.ts','scripts/ediel-at-z06g-supplier-acceptance-native.test.ts','.github/workflows/ediel-fg-composition-native.yml','scripts/gridex-aud-003-clean-replay.sh']
           if not all(name in source for name in required): raise RuntimeError('required_native_source_missing')
           pathlib.Path(os.environ['GRIDEX_FG_GIT_INPUTS']).write_text(json.dumps({'checkout_sha':head,'checkout_tree':tree,'source':dict(sorted(source.items()))},indent=2)+'\n')
           PY
@@ -197,6 +198,19 @@ jobs:
           source scripts/gridex-aud-003-clean-replay.sh > "$GRIDEX_FG_SECRET_DIR/replay.log" 2>&1
           echo STATUS > "$GRIDEX_FG_STAGE"
           supabase status -o json > "$GRIDEX_NATIVE_STATUS"
+          # Z06F/G acceptance owns its fixtures and does not consume producer
+          # inputs, so its actual outcome is retained even if preparation fails.
+          echo ACCEPTANCE > "$GRIDEX_FG_STAGE"
+          acceptance_exit=0
+          npx vitest run scripts/ediel-at-z06f-supplier-acceptance-native.test.ts \
+            scripts/ediel-at-z06g-supplier-acceptance-native.test.ts \
+            --config scripts/ediel-at-z06fg-supplier-acceptance-native.config.ts \
+            --reporter=default --reporter=junit \
+            --outputFile=fg-composition-native-working/acceptance-junit.xml \
+            > fg-composition-native-working/acceptance.log 2>&1 || acceptance_exit=$?
+          export GRIDEX_FG_ACCEPTANCE_EXIT="$acceptance_exit"
+          echo "$acceptance_exit" > "$GRIDEX_FG_SECRET_DIR/acceptance-exit"
+          echo POST_ACCEPTANCE > "$GRIDEX_FG_STAGE"
           echo PREPARATION > "$GRIDEX_FG_STAGE"
           preparation_exit=0
           GRIDEX_FG_PRODUCER_INTENT=SYNTHETIC_DISPOSABLE_PREPARATION npx vitest run \
@@ -236,7 +250,7 @@ jobs:
           allowed={'supabase/database.types.ts','supabase/schema.sql','supabase/schema.fingerprint.json','scripts/supabase-types-manifest.json'}
           if set(changed)-allowed: raise RuntimeError('unexpected_replay_source_change:'+','.join(sorted(set(changed)-allowed)))
           work=pathlib.Path('fg-composition-native-working')
-          for name in ['preparation.log','preparation-junit.xml','native.log','native-junit.xml']:
+          for name in ['preparation.log','preparation-junit.xml','native.log','native-junit.xml','acceptance.log','acceptance-junit.xml']:
               if not (work/name).is_file() or not (work/name).stat().st_size: raise RuntimeError('required_actual_proof_missing:'+name)
           preparation=list(ET.parse(work/'preparation-junit.xml').getroot().iter('testcase'))
           native=list(ET.parse(work/'native-junit.xml').getroot().iter('testcase'))
@@ -245,17 +259,24 @@ jobs:
           if sorted(c.get('name') for c in native)!=sorted(names) or any(c.get('classname')!='scripts/ediel-at-z09fg-supplier-composition-native.test.ts' for c in native): raise RuntimeError('exact_four_composition_registrations_required')
           exit_code=int(os.environ['GRIDEX_FG_NATIVE_EXIT'])
           if exit_code==0 and any(c.find(x) is not None for c in native for x in ['failure','error','skipped']): raise RuntimeError('zero_exit_cannot_mask_unsuccessful_composition')
+          acceptance=list(ET.parse(work/'acceptance-junit.xml').getroot().iter('testcase'))
+          acceptance_files=['scripts/ediel-at-z06f-supplier-acceptance-native.test.ts','scripts/ediel-at-z06g-supplier-acceptance-native.test.ts']
+          if sorted({c.get('classname') for c in acceptance})!=acceptance_files: raise RuntimeError('both_z06fg_acceptance_files_required')
+          acceptance_exit=int(os.environ['GRIDEX_FG_ACCEPTANCE_EXIT'])
+          if acceptance_exit==0 and any(c.find(x) is not None for c in acceptance for x in ['failure','error','skipped']): raise RuntimeError('zero_exit_cannot_mask_unsuccessful_acceptance')
           proof=json.loads(pathlib.Path(os.environ['GRIDEX_FG_PREPARATION_PROOF']).read_text())
           if proof.get('stage')!='READY_FOR_IMMUTABLE_CONSUMER': raise RuntimeError('actual_preparation_proof_required')
           (work/'preparation-proof.json').write_text(json.dumps(proof,indent=2)+'\n')
-          receipt={'purpose':'supplemental_actual_native_feedback','checkout_sha':frozen['checkout_sha'],'checkout_tree':frozen['checkout_tree'],'repository':os.environ['GITHUB_REPOSITORY'],'repository_id':os.environ['GITHUB_REPOSITORY_ID'],'workflow_run_id':os.environ['GITHUB_RUN_ID'],'workflow_run_attempt':os.environ['GITHUB_RUN_ATTEMPT'],'preparation_exit_code':0,'native_exit_code':exit_code,'input_identity':'immutable_checkout_before_replay','source_blobs':source,'input_sha256':{n:v['sha256'] for n,v in source.items()},'runtime_generated_input_sha256':changed,'test_scope':['scripts/ediel-at-z09fg-supplier-composition-native.test.ts'],'preparation_scope':['scripts/helpers/ediel-z09fg-composition-inputs-native-producer.ts'],'actual_registered_case_names':[c.get('name') for c in native],'ordinary_required_gates':'NOT_REPLACED','schema_capture':'NOT_RUN','upgrade_parity':'NOT_RUN','browser_tests':'NOT_RUN','whole_FG':'NOT_APPROVED_BY_RECEIPT_ALONE','authentic_market_evidence':'NOT_PROVIDED'}
+          receipt={'purpose':'supplemental_actual_native_feedback','checkout_sha':frozen['checkout_sha'],'checkout_tree':frozen['checkout_tree'],'repository':os.environ['GITHUB_REPOSITORY'],'repository_id':os.environ['GITHUB_REPOSITORY_ID'],'workflow_run_id':os.environ['GITHUB_RUN_ID'],'workflow_run_attempt':os.environ['GITHUB_RUN_ATTEMPT'],'preparation_exit_code':0,'native_exit_code':exit_code,'acceptance_exit_code':acceptance_exit,'acceptance_scope':acceptance_files,'actual_acceptance_case_names':[c.get('classname')+' :: '+c.get('name') for c in acceptance],'input_identity':'immutable_checkout_before_replay','source_blobs':source,'input_sha256':{n:v['sha256'] for n,v in source.items()},'runtime_generated_input_sha256':changed,'test_scope':['scripts/ediel-at-z09fg-supplier-composition-native.test.ts'],'preparation_scope':['scripts/helpers/ediel-z09fg-composition-inputs-native-producer.ts'],'actual_registered_case_names':[c.get('name') for c in native],'ordinary_required_gates':'NOT_REPLACED','schema_capture':'NOT_RUN','upgrade_parity':'NOT_RUN','browser_tests':'NOT_RUN','whole_FG':'NOT_APPROVED_BY_RECEIPT_ALONE','authentic_market_evidence':'NOT_PROVIDED'}
           (work/'receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
           PY
           echo REDACTION > "$GRIDEX_FG_STAGE"
           python3 "$GRIDEX_FG_SECRET_DIR/redact.py"
           mv fg-composition-native-working fg-composition-native-evidence
+          cat fg-composition-native-evidence/acceptance.log
           cat fg-composition-native-evidence/native.log
-          exit "$native_exit"
+          if [[ "$native_exit" != 0 ]]; then exit "$native_exit"; fi
+          exit "$acceptance_exit"
       - name: Preserve actual failed stage without inventing execution credit
         if: failure()
         shell: bash
@@ -278,13 +299,13 @@ jobs:
           python3 - <<'PY'
           import json,os,pathlib,subprocess
           root=pathlib.Path(os.environ['GRIDEX_FG_SECRET_DIR']);stage=pathlib.Path(os.environ['GRIDEX_FG_STAGE']).read_text().strip()
-          allowed={'INPUT_FREEZE','BOOTSTRAP','STATUS','PREPARATION','POST_PREPARATION','NATIVE','POST_NATIVE','SOURCE_IDENTITY'}
+          allowed={'INPUT_FREEZE','BOOTSTRAP','STATUS','ACCEPTANCE','POST_ACCEPTANCE','PREPARATION','POST_PREPARATION','NATIVE','POST_NATIVE','SOURCE_IDENTITY'}
           if stage not in allowed: raise RuntimeError('unknown_actual_failed_stage')
           def original_exit(name):
               file=root/name
               return int(file.read_text()) if file.is_file() else None
           inputs=pathlib.Path(os.environ['GRIDEX_FG_GIT_INPUTS']);frozen=json.loads(inputs.read_text()) if inputs.is_file() else None
-          receipt={'purpose':'original_failed_stage','checkout_sha':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),'checkout_tree':subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip(),'repository':os.environ['GITHUB_REPOSITORY'],'repository_id':os.environ['GITHUB_REPOSITORY_ID'],'workflow_run_id':os.environ['GITHUB_RUN_ID'],'workflow_run_attempt':os.environ['GITHUB_RUN_ATTEMPT'],'source_blobs':frozen['source'] if frozen else None,'input_freeze':'AVAILABLE' if frozen else 'FAILED_OR_UNAVAILABLE','failed_stage':stage,'preparation_exit_code':original_exit('preparation-exit'),'native_exit_code':original_exit('native-exit'),'native':'NOT_REACHED' if stage in {'INPUT_FREEZE','BOOTSTRAP','STATUS','PREPARATION','POST_PREPARATION'} else 'PROCESS_STAGE_ONLY_NO_TEST_COUNT_INFERRED','test_scope':['scripts/ediel-at-z09fg-supplier-composition-native.test.ts'],'ordinary_required_gates':'NOT_REPLACED','whole_FG':'NOT_APPROVED'}
+          receipt={'purpose':'original_failed_stage','checkout_sha':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),'checkout_tree':subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip(),'repository':os.environ['GITHUB_REPOSITORY'],'repository_id':os.environ['GITHUB_REPOSITORY_ID'],'workflow_run_id':os.environ['GITHUB_RUN_ID'],'workflow_run_attempt':os.environ['GITHUB_RUN_ATTEMPT'],'source_blobs':frozen['source'] if frozen else None,'input_freeze':'AVAILABLE' if frozen else 'FAILED_OR_UNAVAILABLE','failed_stage':stage,'preparation_exit_code':original_exit('preparation-exit'),'native_exit_code':original_exit('native-exit'),'acceptance_exit_code':original_exit('acceptance-exit'),'native':'NOT_REACHED' if stage in {'INPUT_FREEZE','BOOTSTRAP','STATUS','ACCEPTANCE','POST_ACCEPTANCE','PREPARATION','POST_PREPARATION'} else 'PROCESS_STAGE_ONLY_NO_TEST_COUNT_INFERRED','test_scope':['scripts/ediel-at-z09fg-supplier-composition-native.test.ts'],'ordinary_required_gates':'NOT_REPLACED','whole_FG':'NOT_APPROVED'}
           pathlib.Path('fg-composition-native-working/failure-receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
           PY
           python3 "$GRIDEX_FG_SECRET_DIR/redact.py"

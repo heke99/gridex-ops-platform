@@ -105,11 +105,29 @@ function physical(change:Change){
  expect(li).toHaveLength(1)
  return {lineIndex:lin[0].index,li:segmentComposite(li[0],1,wire.una)[1],document:segmentComposite(bgm,2,wire.una)[0]}
 }
+// Frozen AT-Z06G-SUPPLIER wire: BGM=Z06 and field223 (CCI+Z13 -> CAV) = E32.
+// Reading-only register fields 214 (CCI+Z02) and 218 (CCI+Z05) are mandatory
+// only in Z06F, so the admitted G original must not need them.
+function characteristic(raw:string,qualifier:string){
+ const wire=tokenizeEdifact(raw)
+ return wire.segments.filter(segment=>segment.tag==='CCI'&&segmentComposite(segment,2,wire.una)[0]===qualifier).map(head=>{
+  const tail=wire.segments.find(segment=>segment.index===head.index+1)
+  expect(tail?.tag).toBe('CAV')
+  return segmentComposite(tail!,1,wire.una)
+ })
+}
+function expectGWire(raw:string){
+ const wire=tokenizeEdifact(raw)
+ expect(wire.segments.filter(segment=>segment.tag==='BGM').map(segment=>segmentComposite(segment,1,wire.una)[0])).toEqual(['Z06'])
+ expect(characteristic(raw,'Z13').map(value=>value[0])).toEqual(['E32'])
+ expect(characteristic(raw,'Z02')).toEqual([]);expect(characteristic(raw,'Z05')).toEqual([])
+}
 async function pending(f:Fixture,change:Change){
  await processInboundEdielMessage({actorUserId:f.operator.id,edielMessageId:change.message.id})
  const actual=await getEdielMessageById(change.message.id)
  expect(actual).not.toBeNull()
  expect(actual!.raw_payload).toBe(change.message.raw_payload)
+ expectGWire(actual!.raw_payload!)
  const created=await createOrUpdateInboundProdatCase({actorUserId:f.operator.id,message:actual!})
  const saved=await getEdielInboundCaseForMessage(f.f.companyId,change.message.id)
  expect(saved).not.toBeNull();expect(created?.id).toBe(saved!.id)

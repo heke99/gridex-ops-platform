@@ -23,6 +23,8 @@ import {matchUtiltsTransactionsForTenant} from '@/lib/ediel/flows/utiltsDataRequ
 import {prepareUtiltsConsumptionContracts} from '@/lib/ediel/utilts/consumptionPreparation'
 import {buildUtiltsTransactionPersistencePayload,persistUtiltsTransactionResults} from '@/lib/ediel/utilts/transactionPersistence'
 import type {EdielMessageRow} from '@/lib/ediel/types'
+import {edielSmtpConfig} from '@/lib/ediel/mailReadiness'
+import {seedOriginalMailboxNative,recordOriginalMailboxNativeReception} from './originalMailboxNative'
 
 type Z06fChangeInputOptions={rawTransform?:(raw:string)=>string;direction?:'inbound'|'outbound'}
 type Z06fChangeOptions=Z06fChangeInputOptions&{deferFirstApply?:boolean}
@@ -53,11 +55,19 @@ export async function createZ06fReadingNativeFixture(provider:(email:string)=>vo
  expect(await reviewReceivedStructuralSource({companyId:f.companyId,environment:'test',sourceMessageId:f.source,reviewerUserId:operator.id,confirmedOriginal:true,replacesSourceMessageId:null})).toMatchObject({status:'recorded',sourceDisposition:'accepted'})
  const capture=async(raw:string,family:'PRODAT'|'UTILTS',code:string,profile:string|null,direction:'inbound'|'outbound'='inbound')=>{
   const fresh=utiltsNativeSourceFixture(stampTest(raw,randomUUID().replaceAll('-','').slice(0,14)),randomUUID()),id=fresh.id
-  sql(`INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
-  SELECT ${literal(id)},${literal(f.companyId)},${literal(f.customerId)},${literal(f.siteId)},${literal(f.pointId)},${literal(f.gridId)},'test',${literal(direction)},'edifact',${literal(family)},${literal(code)},'received',${literal(fresh.raw)},${family==='PRODAT'?`'{"prodatDependentFacts":{"market":"electricity","meterReadingsSentInUtilts":true}}'`:"'{}'"},clock_timestamp(),'{}',${literal(fresh.parsed.applicationReference)},${literal(fresh.parsed.senderEdielId)},${literal(fresh.parsed.receiverEdielId)},${literal(fresh.parsed.interchangeReference)},pack.id,p.profile_key,p.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,p.profile
+  // IMP05 (20261005130401): a prescribed CONTRL/APERAK returns from the mailbox
+  // the inbound PRODAT original actually reached. Birth that retained mail
+  // prospectively, link both mail columns and record its first reception via
+  // the canonical SEND-authorized owner. Outbound input has no reception.
+  const mail=direction==='inbound'&&family==='PRODAT'?await seedOriginalMailboxNative(sql,literal,{companyId:f.companyId,environment:'test',raw:fresh.raw,smtpFrom:edielSmtpConfig().from}):null
+  sql(`INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference,${mail?'inbound_email_message_id,mailbox_message_id,':''}canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
+  SELECT ${literal(id)},${literal(f.companyId)},${literal(f.customerId)},${literal(f.siteId)},${literal(f.pointId)},${literal(f.gridId)},'test',${literal(direction)},'edifact',${literal(family)},${literal(code)},'received',${literal(fresh.raw)},${family==='PRODAT'?`'{"prodatDependentFacts":{"market":"electricity","meterReadingsSentInUtilts":true}}'`:"'{}'"},clock_timestamp(),'{}',${literal(fresh.parsed.applicationReference)},${literal(fresh.parsed.senderEdielId)},${literal(fresh.parsed.receiverEdielId)},${literal(fresh.parsed.interchangeReference)},${mail?literal(mail.inboundEmailMessageId)+','+literal(mail.inboundEmailMessageId)+',':''}pack.id,p.profile_key,p.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,p.profile
   FROM public.ediel_message_profiles p JOIN public.ediel_rule_packs pack ON pack.id=p.rule_pack_id WHERE p.message_code=${literal(code)} AND p.direction IN('inbound','both') AND p.is_enabled ${profile?`AND p.profile_key=${literal(profile)}`:''} ORDER BY p.profile_key LIMIT 1;`)
+  if(mail)await recordOriginalMailboxNativeReception({companyId:f.companyId,sourceMessageId:id,actorUserId:f.actorUserId,inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId,sourcePayloadHash:mail.sourcePayloadHash})
   const result=await supabaseService.from('ediel_messages').select('*').eq('id',id).single();expect(result.error).toBeNull()
-  const message=result.data as EdielMessageRow;expect(message.message_received_at).toBeTruthy();return message
+  const message=result.data as EdielMessageRow;expect(message.message_received_at).toBeTruthy()
+  if(mail)expect(message).toMatchObject({inbound_email_message_id:mail.inboundEmailMessageId,mailbox_message_id:mail.inboundEmailMessageId})
+  return message
  }
  // Negative/held controls receive only their actual admitted original. They
  // must invoke the real processor/reviewer and observe its own disposition.
