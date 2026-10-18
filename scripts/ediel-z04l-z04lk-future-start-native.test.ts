@@ -120,6 +120,18 @@ function marketFacts(s:Row){return {switch:s.switch&&{id:(s.switch as Row).id,st
   activationJobs:(s.jobs as Row[]).filter(x=>String(x.idempotency_key).startsWith('lifecycle_notification:ediel-normal-activation:')).map(x=>({id:x.id,idempotency_key:x.idempotency_key,payload:x.payload,request_snapshot:x.request_snapshot})),
   invoiceIds:(s.invoices as Row[]).map(x=>x.id)}}
 function requireMarketFactsUnchanged(before:Row,after:Row){assert.deepEqual(marketFacts(after),marketFacts(before))}
+type OtherActorMarketSnapshot={actorUserId:string;companyId:string;switchId:string;subtype:Subtype;periodId:string|null;state:Row}
+function requireOtherActorMarketFactsUnchanged(currentActorUserId:string,before:OtherActorMarketSnapshot[],after:OtherActorMarketSnapshot[]){
+  const scope=({actorUserId,companyId,switchId,subtype,periodId}:OtherActorMarketSnapshot)=>({actorUserId,companyId,switchId,subtype,periodId})
+  assert.equal(before.length,10,'all_ten_other_prospective_actors')
+  assert.equal(new Set(before.map(x=>x.actorUserId)).size,before.length,'distinct_other_fixture_actors')
+  assert.deepEqual(after.map(scope),before.map(scope),'same_other_fixture_scopes')
+  return before.map((entry,index)=>{
+    assert.notEqual(entry.actorUserId,currentActorUserId,'current_actor_has_own_activation_assertions')
+    requireMarketFactsUnchanged(entry.state,after[index].state)
+    return {...scope(entry),before:entry.state,after:after[index].state,market_facts_unchanged:true}
+  })
+}
 function requireProspectiveContract(s:Row){
   const contract=(s.graph as Row).contract as Row
   assert(contract&&contract.status!=='active'&&contract.lifecycle_stage!=='active','prospective_contract_not_active')
@@ -368,6 +380,12 @@ async function cron(f:Fixture,relation:'strictly-before'|'at-or-after'){
       Object.values(expires).includes(own!)?'normal_supply_activation_current_legal_actor_required':null
     return reason?[{requestId:c.id,companyId:c.company_id,code:'supplier_switch_activation_failed',message:reason}]:[]
   })
+  // Every cron is global. Preserve all ten other prospective fixture graphs,
+  // including already-active LK through L and still-future L through LK.
+  const otherActors=()=>fixtures.filter(own=>own.actorUserId!==f.actorUserId).map(own=>({
+    actorUserId:own.actorUserId,companyId:own.companyId,switchId:own.switchId,subtype:own.subtype,
+    periodId:own.periodId??null,state:activationSnapshot(own)}))
+  const otherActorBefore=otherActors()
   const response=await runCustomerOperationsCron(new NextRequest('http://127.0.0.1/api/internal/customer-operations/cron?limit=100',{headers:{authorization:'Bearer '+cronSecret}}))
   const result=await response.json() as {ok:boolean;result?:Row}
   expect(response.status,JSON.stringify(result)).toBe(200);expect(result.ok).toBe(true)
@@ -375,7 +393,8 @@ async function cron(f:Fixture,relation:'strictly-before'|'at-or-after'){
   const after=readActualMarketClocks();requireBoundary(Number(after.postgres_new_transaction.clock_ms),f.startAt,relation)
   expect(after.postgres_new_transaction.system_identifier).toBe(before.postgres_new_transaction.system_identifier)
   expect(after.postgres_new_transaction.postmaster_started_at).toBe(before.postgres_new_transaction.postmaster_started_at)
-  return {actorUserId:f.actorUserId,companyId:f.companyId,candidates,expectedDenials,before,after,response:result}
+  const otherActorComparisons=requireOtherActorMarketFactsUnchanged(f.actorUserId,otherActorBefore,otherActors())
+  return {actorUserId:f.actorUserId,companyId:f.companyId,candidates,expectedDenials,before,after,response:result,otherActorComparisons}
 }
 async function beforeStart(subtype:Subtype){
   const f=valid[subtype],name=`Z04-${subtype}-FUTURE-BEFORE`;await phase(f,'strictly-before',name)
@@ -417,11 +436,11 @@ async function atStart(subtype:Subtype){
   requireMarketFactsUnchanged(cancelBefore,activationSnapshot(cancelled[subtype]));requireMarketFactsUnchanged(expireBefore,activationSnapshot(expires[subtype]))
   expect((activationSnapshot(cancelled[subtype]).activations)).toEqual([]);expect((activationSnapshot(expires[subtype]).activations)).toEqual([])
   const replayBefore=activationSnapshot(f)
-  await cron(f,'at-or-after');await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:f.confirmation!.id})
+  const replayRun=await cron(f,'at-or-after');await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:f.confirmation!.id})
   requireMarketFactsUnchanged(replayBefore,activationSnapshot(f));requireMarketFactsUnchanged(decoyBefore,activationSnapshot(decoy))
   for(const own of fixtures)expect(originalSeal(own)).toEqual(own.originalSeal)
   passed(name,{subtype,originalId:f.originalZ03.id,sourceId:f.confirmation!.id,periodId:f.periodId,atStart:at,replay:activationSnapshot(f),run,
-    controlRuns,cancelled:activationSnapshot(cancelled[subtype]),expired_role:activationSnapshot(expires[subtype])})
+    controlRuns,replayRun,cancelled:activationSnapshot(cancelled[subtype]),expired_role:activationSnapshot(expires[subtype])})
 }
 
 describe.sequential('actual prospective normal supplier starts under one admitted clock epoch',()=>{
