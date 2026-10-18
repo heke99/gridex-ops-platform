@@ -55,7 +55,6 @@ type Fixture=Awaited<ReturnType<typeof seed>>
 type Mode='V'|'VH'
 type Pending=PendingZ14&{mode:Mode;li:string}
 const version={selectedVersion:'E2SE6A',messageTypeToken:'PRODAT:D:97A:UN:E2SE6A'}
-const reasonFor=(mode:Mode)=>mode==='V'?'S17':'S18'
 const hash=(raw:string)=>createHash('sha256').update(raw).digest('hex')
 // V: ongoing reporting with no end. VH: a bounded history window that lies
 // wholly before the request day (same window as the qualified Z14VH proof).
