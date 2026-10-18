@@ -85,6 +85,22 @@ jobs:
               if isinstance(error,subprocess.CalledProcessError):value['exit_code']=error.returncode
               if isinstance(error,subprocess.TimeoutExpired):value['timeout_seconds']=error.timeout
               return value
+          def emit_pre_state_admission_failure(error,stage,state_publication_started):
+              # Fixed vocabulary only. A vanished previously published state may
+              # never be mistaken for an epoch that was not admitted.
+              if state_publication_started or state_path.exists():return
+              classes={'HTTPError','URLError','TimeoutError','OSError','FileNotFoundError','PermissionError',
+                  'CalledProcessError','TimeoutExpired','RuntimeError','ValueError','KeyError'}
+              stages={'TRUSTED_REFERENCE','ADMISSION_PRECHECKS','SOURCE_INPUT_INVENTORY'}
+              codes={'z03c_trusted_normal_reference_skew','z03c_sync_state_unknown','z03c_fresh_empty_docker_host_required',
+                  'z03c_official_cli_version_required','z03c_cli_stop_contract_required','z03c_node22_required',
+                  'z03c_this_product_vm_preflight_required','z03c_checkout_blob_mismatch'}
+              code='z03c_pre_state_admission_failed'
+              if type(error) is RuntimeError and len(error.args)==1 and type(error.args[0]) is str and error.args[0] in codes:code=error.args[0]
+              summary={'class':type(error).__name__ if type(error).__name__ in classes else 'OtherError',
+                  'code':code,'stage':stage if stage in stages else 'UNKNOWN_PRE_STATE_STAGE'}
+              # This is not a clock, restoration, native or artifact attestation.
+              sys.stderr.write(json.dumps(summary,separators=(',',':'),sort_keys=True)+'\n');sys.stderr.flush()
           def process_start_ticks(pid):
               try:return (pathlib.Path('/proc')/str(pid)/'stat').read_text().rsplit(')',1)[1].split()[19]
               except FileNotFoundError:return None
@@ -199,6 +215,88 @@ jobs:
               return json.loads(subprocess.check_output(args,text=True,timeout=150))
           def restore():return privileged('restore')
           def advance(target):return privileged('advance',target)
+          def require_disable_epoch(state,deadline):
+              if restored_path.exists() or not controller_alive(state) or time.monotonic()>=min(deadline,state['deadline_monotonic_s']):
+                  raise RuntimeError('z03c_current_clock_epoch_not_live')
+              child=state.get('owned_child_pgid')
+              if child is not None and process_start_ticks(child)!=state.get('owned_child_start_ticks'):
+                  raise RuntimeError('z03c_child_process_identity_changed')
+          def qualify_disable_sync(state):
+              # Called ONLY by the privileged SAME-flock holder. The one mutation is
+              # waited once; only complete readonly state observations may repeat.
+              names=['systemd-timesyncd','chrony','chronyd','ntp','ntpd']
+              allowed={'active','inactive','activating','deactivating','failed','reloading','maintenance','refreshing','unknown','not-found'}
+              started=time.monotonic();deadline=min(started+20.0,state['deadline_monotonic_s'])
+              observations={'schema':'z03c_sync_disable_observations_v1','stage':'SYNC_DISABLE_CONVERGENCE',
+                  'expected':{'ntp':'no','services':{name:'inactive' for name in names}},'command':{'attempted':False,'completed':False,'exit_code':None},
+                  'first':None,'last':None,'last_attempt':None,'first_disjuncts':None,'last_disjuncts':None,
+                  'samples':0,'snapshot_attempts':0,'consecutive_exact':0,'matched':False,'error':None}
+              def finite_attempt(attempt):
+                  services=attempt.get('services',{});codes=attempt.get('service_exit_codes',{})
+                  return {'query':attempt.get('query') if attempt.get('query') in ['NTP',*names] else 'UNEXPECTED',
+                      'ntp':attempt.get('ntp') if attempt.get('ntp') in {'yes','no'} else 'UNEXPECTED',
+                      'ntp_exit_code':0 if 'ntp' in attempt else None,
+                      'services':{name:services[name] if services[name] in allowed else 'UNEXPECTED' for name in names if name in services},
+                      'service_exit_codes':{name:codes[name] if type(codes[name]) is int and -255<=codes[name]<=255 else None for name in names if name in codes}}
+              def observed_disjuncts(attempt):
+                  states=attempt.get('services',{});codes=attempt.get('service_exit_codes',{})
+                  complete='ntp' in attempt and set(states)==set(names) and set(codes)==set(names)
+                  return {'ntpNo':attempt.get('ntp')=='no','fiveStatesComplete':complete,
+                      'inactiveExitCodesQualified':complete and all(codes[name] in {3,4} for name in names),
+                      'anyActive':any(states.get(name)=='active' for name in names),
+                      'services':{name:'stopped' if states.get(name)=='inactive' else 'active' if states.get(name)=='active'
+                          else 'transition' if states.get(name) in {'activating','deactivating','reloading','refreshing'} else 'unknown' for name in names}}
+              try:
+                  require_disable_epoch(state,deadline)
+                  remaining=deadline-time.monotonic()
+                  if remaining<=0:raise RuntimeError('z03c_sync_observation_deadline')
+                  observations['command']['attempted']=True
+                  result=subprocess.run(['timedatectl','set-ntp','false'],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,
+                      timeout=min(10.0,remaining))
+                  observations['command'].update(completed=True,exit_code=result.returncode)
+                  require_disable_epoch(state,deadline)
+                  while time.monotonic()<deadline:
+                      require_disable_epoch(state,deadline)
+                      attempt={};observations['last_attempt']=attempt
+                      observations['snapshot_attempts']+=1
+                      try:snapshot=sync_snapshot(deadline,attempt)
+                      finally:
+                          observations['last_attempt']=finite_attempt(attempt)
+                          observations['last_disjuncts']=observed_disjuncts(attempt)
+                      states=snapshot.get('services',{})
+                      disjuncts=observations['last_disjuncts']
+                      complete=disjuncts['fiveStatesComplete'] and states==attempt.get('services') and snapshot.get('ntp')==attempt.get('ntp')
+                      bounded={'ntp':snapshot.get('ntp') if snapshot.get('ntp') in {'yes','no'} else 'UNEXPECTED',
+                          'services':{name:states[name] if states[name] in allowed else 'UNEXPECTED' for name in names if name in states},
+                          'service_exit_codes':observations['last_attempt']['service_exit_codes']}
+                      if complete:
+                          observations['samples']+=1
+                          if observations['first'] is None:observations['first']=bounded;observations['first_disjuncts']=disjuncts
+                          observations['last']=bounded
+                          if any(states[name]=='inactive' and attempt['service_exit_codes'][name] not in {3,4} for name in names):
+                              raise RuntimeError('z03c_sync_query_exit_unqualified')
+                      exact=disjuncts['ntpNo'] and complete and disjuncts['inactiveExitCodesQualified'] and all(states[name]=='inactive' for name in names)
+                      observations['consecutive_exact']=observations['consecutive_exact']+1 if exact else 0
+                      if observations['consecutive_exact']>=2:
+                          require_disable_epoch(state,deadline);observations['matched']=True;break
+                      remaining=deadline-time.monotonic()
+                      if remaining>0:time.sleep(min(0.25,remaining))
+                  if not observations['matched']:raise RuntimeError('z03c_sync_control_not_qualified')
+                  require_disable_epoch(state,deadline)
+              except Exception as error:
+                  observations['matched']=False;observations['error']=safe_error(error)
+                  if isinstance(error,subprocess.CalledProcessError):
+                      if not observations['command']['completed']:observations['command']['exit_code']=error.returncode
+                      elif observations['last_attempt'] and observations['last_attempt']['query']=='NTP':observations['last_attempt']['ntp_exit_code']=error.returncode
+              observations['elapsed_s']=time.monotonic()-started
+              save(working/'sync-disable-observations.json',observations)
+              if not observations['matched']:raise RuntimeError('z03c_sync_control_not_qualified')
+              # A completed earlier sample cannot admit a now dead/restored epoch.
+              try:require_disable_epoch(state,deadline)
+              except Exception as error:
+                  observations['matched']=False;observations['error']=safe_error(error);observations['elapsed_s']=time.monotonic()-started;save(working/'sync-disable-observations.json',observations)
+                  raise RuntimeError('z03c_sync_control_not_qualified') from None
+              return observations
           if privileged_mode:
               if os.geteuid()!=0:raise RuntimeError('z03c_privileged_clock_executor_required')
               state=json.loads(state_path.read_text())
@@ -209,8 +307,7 @@ jobs:
                   # cannot run after restoration or a dead/reused controller.
                   if restored_path.exists() or not controller_alive(state) or time.monotonic()>=state['deadline_monotonic_s']:raise RuntimeError('z03c_current_clock_epoch_not_live')
                   if action=='disable-sync':
-                      subprocess.run(['timedatectl','set-ntp','false'],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=10)
-                      if call(['timedatectl','show','-p','NTP','--value'])!='no' or any(v=='active' for v in sync_services().values()):raise RuntimeError('z03c_sync_control_not_qualified')
+                      qualify_disable_sync(state)
                       print(json.dumps({'sync_disabled':True,'shared_restore_lock':True}))
                   else:
                       target=float(sys.argv[6])
@@ -255,8 +352,10 @@ jobs:
           if working.exists() or final.exists() or state_path.exists() or restored_path.exists():raise RuntimeError('z03c_first_epoch_only')
           working.mkdir()
           stage='ORDINARY_CLOCK_ADMISSION';exit_code=1;watchdog=None;source={}
+          state_publication_started=False;pre_state_stage='TRUSTED_REFERENCE'
           try:
               trusted=trusted_reference()
+              pre_state_stage='ADMISSION_PRECHECKS'
               prior_ntp=call(['timedatectl','show','-p','NTP','--value']);prior_sync_services=sync_services()
               if prior_ntp not in {'yes','no'}:raise RuntimeError('z03c_sync_state_unknown')
               subprocess.run(['sudo','-n','true'],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=10)
@@ -270,6 +369,7 @@ jobs:
                   if not call(['node','--version']).startswith('v22.'):raise RuntimeError('z03c_node22_required')
                   preflight=json.loads((root/'z03c-clock-preflight-evidence/receipt.json').read_text())
                   if preflight['checkout_sha']!=head or preflight['job_id']!=os.environ['GITHUB_JOB'] or preflight['mode']!='preflight' or not preflight['restoration_verified'] or preflight['exit_code']!=0:raise RuntimeError('z03c_this_product_vm_preflight_required')
+              pre_state_stage='SOURCE_INPUT_INVENTORY'
               entries=subprocess.check_output(['git','ls-tree','-rz','--full-tree','HEAD']).split(b'\0')
               for entry in entries:
                   if not entry:continue
@@ -289,6 +389,7 @@ jobs:
                   'prior_ntp':prior_ntp,'prior_sync_services':prior_sync_services,'trusted_normal_reference_s':trusted,'supabase_project_id':project,
                   'checkout_sha':head,'repository':os.environ['GITHUB_REPOSITORY'],'workflow_run_id':os.environ['GITHUB_RUN_ID'],
                   'workflow_run_attempt':os.environ['GITHUB_RUN_ATTEMPT'],'job_id':os.environ['GITHUB_JOB']}
+              state_publication_started=True
               save(state_path,state);os.chmod(state_path,0o600)
               # Independent session survives the parent's TERM/KILL. No clock
               # change occurs until its process is actually running.
@@ -350,6 +451,7 @@ jobs:
               save(working/'runtime-generated-comparison-inputs.json',changed)
           except BaseException as error:
               exit_code=exit_code or 1
+              with contextlib.suppress(Exception):emit_pre_state_admission_failure(error,pre_state_stage,state_publication_started)
               save(working/'failure.json',{'stage':stage,**safe_error(error),
                   'native_execution':'INCOMPLETE_OR_FAILED' if stage=='BOOTSTRAP_AND_NATIVE' else 'NOT_CREDITED','whole_approval':False})
           finally:
@@ -432,7 +534,7 @@ jobs:
           GRIDEX_Z03C_MODE: native
         run: *controlled_clock_process
       - name: Upload redacted proof only after verified restoration
-        if: always() && steps.native.outputs.restored_evidence_ready == 'true'
+        if: always() && (steps.native.outputs.restored_evidence_ready == 'true' || (steps.native.outcome == 'skipped' && steps.own_preflight.outputs.restored_evidence_ready == 'true'))
         uses: actions/upload-artifact@v4
         with:
           name: ediel-z03c-supplier-boundary-native-${{ github.run_id }}
