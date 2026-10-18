@@ -66,6 +66,17 @@ try {
   equal(await value("select to_regprocedure('gridex_received_sources.advance_supply_before_normal_switch_v1(uuid,uuid,integer)') is not null as value"), true)
   equal((await value('select public.gridex_customer_application_runtime_contract_v1() as value')).ready, true)
   equal(await value("select relrowsecurity as value from pg_class where oid='gridex_received_sources.normal_activation_sweep_cursors'::regclass"), true)
+  // Canonical private schemas remain inaccessible to the service caller.
+  // SECURITY INVOKER diagnostics must resolve private OIDs through catalogs.
+  await db.exec('REVOKE ALL ON SCHEMA gridex_received_sources,gridex_regulated_supply FROM PUBLIC,anon,authenticated,service_role')
+  equal(await value("select has_schema_privilege('service_role','gridex_received_sources','usage') as value"), false)
+  equal(await value("select has_schema_privilege('service_role','gridex_regulated_supply','usage') as value"), false)
+  await db.exec('SET ROLE service_role')
+  try {
+    equal((await value('select public.gridex_customer_application_runtime_contract_v1() as value')).ready, true)
+  } finally {
+    await db.exec('RESET ROLE')
+  }
   for (const role of ['anon', 'authenticated']) {
     equal(await value("select has_function_privilege($1,'public.ediel_advance_supply_deadlines_v1(uuid,uuid,integer)','execute') as value", [role]), false)
   }
@@ -76,6 +87,19 @@ try {
   }
   await install()
   equal((await value('select public.gridex_customer_application_runtime_contract_v1() as value')).ready, true)
+
+  // Existing cursors must accept the NULL position used by INSERT(scope_key).
+  // A malformed preimage must stop installation rather than fail on first use.
+  await db.exec('ALTER TABLE gridex_received_sources.normal_activation_sweep_cursors ALTER COLUMN last_start SET NOT NULL')
+  equal((await value('select public.gridex_customer_application_runtime_contract_v1() as value')).ready, false)
+  await assert.rejects(install(), /supply_deadline_cursor_conflict/); checks++
+  await db.exec('ROLLBACK;ALTER TABLE gridex_received_sources.normal_activation_sweep_cursors ALTER COLUMN last_start DROP NOT NULL;ALTER TABLE gridex_received_sources.normal_activation_sweep_cursors ALTER COLUMN last_period SET NOT NULL')
+  await assert.rejects(install(), /supply_deadline_cursor_conflict/); checks++
+  await db.exec('ROLLBACK;ALTER TABLE gridex_received_sources.normal_activation_sweep_cursors ALTER COLUMN last_period DROP NOT NULL;ALTER TABLE gridex_received_sources.normal_activation_sweep_cursors ALTER COLUMN last_start SET DEFAULT now()')
+  equal((await value('select public.gridex_customer_application_runtime_contract_v1() as value')).ready, false)
+  await assert.rejects(install(), /supply_deadline_cursor_conflict/); checks++
+  await db.exec('ROLLBACK;ALTER TABLE gridex_received_sources.normal_activation_sweep_cursors ALTER COLUMN last_start DROP DEFAULT')
+  await install()
 
   // Missing runtime cannot be hidden by a previously green readiness record.
   await db.exec('DROP FUNCTION gridex_received_sources.advance_supply_before_normal_switch_v1(uuid,uuid,integer)')

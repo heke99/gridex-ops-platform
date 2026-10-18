@@ -26,7 +26,10 @@ can proceed. Existing authoritative activation checks remain in force.
 Only `service_role` can execute the public command. The helper and cursor are
 private; the cursor has RLS and no direct service/anonymous/authenticated table
 grants. The runtime diagnostic now checks the required relations, functions,
-67 used columns and role boundaries. Existing diagnostic checks remain.
+67 used columns, compatible cursor nullability/defaults/key and role boundaries.
+The diagnostic remains SECURITY INVOKER and resolves object OIDs through
+pg_catalog, so it needs no access to the private schemas. Real service-role
+execution is included in the regression. Existing diagnostic checks remain.
 
 Website checkout additionally consumes both the runtime diagnostic and the
 complete automation-readiness result. Missing, false or unavailable readiness
