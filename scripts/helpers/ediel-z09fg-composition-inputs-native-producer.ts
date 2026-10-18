@@ -87,7 +87,8 @@ function referenceCatalog(){
 // producer call-site line. Never an assertion message, SQL text or value.
 function failureLabel(error:unknown){
  const message=error instanceof Error?error.message:''
- if(/^[a-z][a-z0-9_]{2,80}$/.test(message))return message
+ // Own codes always contain an underscore; a bare hex HMAC/token never does.
+ if(/^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$/.test(message)&&message.length<=80)return message
  const site=error instanceof Error?/ediel-z09fg-composition-inputs-native-producer\.ts:(\d{1,5}):(\d{1,4})/.exec(error.stack??''):null
  return site?`ASSERTION_AT_LINE_${site[1]}`:'UNLABELED'
 }

@@ -87,9 +87,10 @@ concurrency:
   group: ediel-fg-composition-native-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
-# Additional actual feedback: existing ordinary OPS proves the twelve F/G cases.
-# This job prepares original inputs then selects only composition's two native
-# and two finite cases; no receipt alone approves any of the four whole IDs.
+# Actual F/G native feedback: this job runs the twelve Z06F/G acceptance cases
+# through their own config (the shared source-owner config stays unchanged),
+# then prepares original inputs and runs composition's two native and two
+# finite cases. No receipt alone approves any of the four whole IDs.
 jobs:
   fg-composition-native:
     runs-on: ubuntu-latest
@@ -262,6 +263,16 @@ jobs:
           acceptance=list(ET.parse(work/'acceptance-junit.xml').getroot().iter('testcase'))
           acceptance_files=['scripts/ediel-at-z06f-supplier-acceptance-native.test.ts','scripts/ediel-at-z06g-supplier-acceptance-native.test.ts']
           if sorted({c.get('classname') for c in acceptance})!=acceptance_files: raise RuntimeError('both_z06fg_acceptance_files_required')
+          acceptance_names=[]
+          for subtype,file in zip(['F','G'],acceptance_files):
+              acceptance_names+=[(file,name) for name in [
+                  'already-applied '+subtype+' source reaches real inbound case, own physical ACK/outbox and immutable retained replay',
+                  subtype+' case refuses foreign tenant/actor/graph selections and invalid own LIN scopes without new effects',
+                  subtype+' first case approval versions only its original structure; physical extra UD=false never changes customer identity',
+                  subtype+' first case approval versions only its original structure; physical extra UD=true never changes customer identity',
+                  subtype+' physical missing fields/correlation and wrong legal parties cannot establish a first structural effect',
+                  subtype+' cannot borrow a foreign physical point, admit outbound source input or mutate a sealed deferred original']]
+          if sorted((c.get('classname'),c.get('name')) for c in acceptance)!=sorted(acceptance_names): raise RuntimeError('exact_twelve_z06fg_acceptance_registrations_required')
           acceptance_exit=int(os.environ['GRIDEX_FG_ACCEPTANCE_EXIT'])
           if acceptance_exit==0 and any(c.find(x) is not None for c in acceptance for x in ['failure','error','skipped']): raise RuntimeError('zero_exit_cannot_mask_unsuccessful_acceptance')
           proof=json.loads(pathlib.Path(os.environ['GRIDEX_FG_PREPARATION_PROOF']).read_text())
