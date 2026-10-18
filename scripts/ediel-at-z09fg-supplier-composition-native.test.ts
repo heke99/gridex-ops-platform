@@ -229,7 +229,11 @@ it.each(['F','G'] as const)('native Z09%s own desired receipt/dispatch/physical 
  expect(sql(`SELECT to_jsonb(start_date) FROM public.customer_supply_periods WHERE company_id=${literal(p.companyId)} AND id=${literal(p.supplyPeriodId)}`)).toBe(p.expected.requestedStartDate)
  const baseline=await getEdielMessageById(p.baselineSourceMessageId)
  requireInput(baseline,'baseline_original_required')
- expect(baseline).toMatchObject({company_id:p.companyId,environment:'test',direction:'inbound',message_family:'PRODAT',message_code:'Z04',metering_point_id:p.expected.meteringPointId,customer_id:p.expected.customerId,site_id:p.expected.siteId})
+ // A Z04 L names its point only in LIN; intake leaves metering_point_id null by
+ // design (inboundMatcher.ts:234-262). The point is bound by the canonical
+ // supply read above and its source-owned period, asserted exactly here.
+ expect(baseline).toMatchObject({company_id:p.companyId,environment:'test',direction:'inbound',message_family:'PRODAT',message_code:'Z04',customer_id:p.expected.customerId,site_id:p.expected.siteId})
+ expect(sql(`SELECT jsonb_build_object('source',source_message_id,'point',metering_point_id,'customer',customer_id,'company',company_id) FROM public.customer_supply_periods WHERE company_id=${literal(p.companyId)} AND id=${literal(p.supplyPeriodId)}`)).toEqual({source:baseline.id,point:p.expected.meteringPointId,customer:p.expected.customerId,company:p.companyId})
  const oldRaw=baseline.raw_payload;requireInput(oldRaw,'baseline_raw_required')
  const beforeBusiness=business(p),oldSelection=structureFacts(await selected(p,p.expected.baselineMarketMinute)),earlySelection=structureFacts(await selected(p,p.expected.effectiveMarketMinute)),oldEffects=effects(p,baseline.id)
  expect(oldSelection).toMatchObject({objectId:p.expected.pointId,identityAgency:p.expected.identityAgency,legalSupplier:basis.legalSenderId,legalNetwork:basis.legalReceiverId,fields:{measurementMethod:p.expected.baselineMethod},selection:{coverage:{baselineSourceMessageId:baseline.id,supplyPeriodId:p.supplyPeriodId}}})
