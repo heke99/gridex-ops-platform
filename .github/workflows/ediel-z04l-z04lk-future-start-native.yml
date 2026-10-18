@@ -30,7 +30,6 @@ jobs:
       NODE_OPTIONS: --max-old-space-size=6144
       GRIDEX_Z04_FUTURE_EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
       GRIDEX_EXECUTING_WORKFLOW_SHA: ${{ github.workflow_sha }}
-      GRIDEX_Z04_FUTURE_ADMISSION_FILE: ${{ runner.temp }}/z04-future-root-admission.json
     steps:
       - uses: actions/checkout@v4
         with:
@@ -41,6 +40,7 @@ jobs:
         id: admission
         env:
           GH_TOKEN: ${{ github.token }}
+          GRIDEX_Z04_FUTURE_ADMISSION_FILE: ${{ runner.temp }}/z04-future-root-admission.json
         run: &source_admission |
           python3 - <<'PY'
           import base64,hashlib,json,os,pathlib,re,subprocess
@@ -159,17 +159,20 @@ jobs:
         id: own_preflight
         env:
           GRIDEX_Z04_FUTURE_MODE: preflight
+          GRIDEX_Z04_FUTURE_ADMISSION_FILE: ${{ runner.temp }}/z04-future-root-admission.json
         run: python3 scripts/helpers/ediel-prospective-market-clock-controller.py
       - name: Execute one prospective original chain and restore before exposure
         id: native
         env:
           GRIDEX_Z04_FUTURE_MODE: native
+          GRIDEX_Z04_FUTURE_ADMISSION_FILE: ${{ runner.temp }}/z04-future-root-admission.json
         run: python3 scripts/helpers/ediel-prospective-market-clock-controller.py
       - name: Recheck exact ROOT source and producer after verified restoration
         if: always() && (steps.native.outputs.restored_evidence_ready == 'true' || steps.own_preflight.outputs.restored_evidence_ready == 'true')
         id: terminal_admission
         env:
           GH_TOKEN: ${{ github.token }}
+          GRIDEX_Z04_FUTURE_ADMISSION_FILE: ${{ runner.temp }}/z04-future-root-admission.json
           GRIDEX_Z04_FUTURE_RECHECK: '1'
           GRIDEX_Z04_FUTURE_NATIVE_OUTCOME: ${{ steps.native.outcome }}
         run: *source_admission
