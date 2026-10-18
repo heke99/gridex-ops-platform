@@ -271,7 +271,10 @@ describe('Website operations: mounted routes against published contracts', () =>
     expect(asRecord(body.data)).toMatchObject({ api_version: 'v1', authoritative_identity: 'api_key', capabilities: { website_checkout_ready: true, complete_integration_ready: true } })
     expect(JSON.stringify(body)).not.toContain(COMPANY)
   })
-  it.each([[], [{ id: id(99), user_status: 'disabled' }]])('integration context blocks checkout for an unqualified automation profile', async profiles => {
+  it.each([
+    { name: 'missing', profiles: [] },
+    { name: 'disabled', profiles: [{ id: id(99), user_status: 'disabled' }] },
+  ])('integration context blocks checkout for a $name automation profile', async ({ profiles }) => {
     io.rows.user_profiles = profiles
     const path = '/api/v1/integration/context'
     const body = await bodyContract(await contextGET(request(path)), path)
