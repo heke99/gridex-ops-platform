@@ -11,13 +11,28 @@ export async function resolveManualReplyReview(input: {
   if (error) throw error
   if (!data) throw new Error('Fullmaktsärendet hittades inte.')
   const metadata = (data.metadata ?? {}) as Row, reply = (metadata.counterparty_reply ?? {}) as Row
-  if (reply.requires_review !== true || data.status !== 'needs_review') return
+  const completedCommercial = data.status === 'completed' && data.request_type === 'current_supplier_contract_information_request'
+  if (reply.requires_review !== true || (data.status !== 'needs_review' && !completedCommercial)) return
+  let nextStatus = 'ready_to_send_manual_email'
+  if (completedCommercial) {
+    // Retained completed conversations can hold a site while another inquiry
+    // is active. Review that source without reopening a competing inquiry.
+    const sibling = await supabaseService.from('grid_owner_information_requests').select('id')
+      .eq('company_id', input.companyId).eq('customer_id', data.customer_id).eq('customer_site_id', data.customer_site_id)
+      .eq('request_type', data.request_type).neq('id', input.requestId)
+      .in('status', ['draft', 'ready_to_send', 'sent', 'waiting_response', 'received', 'needs_review',
+        'blocked_missing_poa', 'blocked_missing_grid_owner_contact', 'blocked_missing_manual_mailbox',
+        'ready_to_send_manual_email', 'manual_email_queued', 'manual_email_sent', 'waiting_manual_response',
+        'manual_response_received', 'manual_response_parsed']).limit(1).maybeSingle()
+    if (sibling.error) throw sibling.error
+    if (sibling.data) nextStatus = 'completed'
+  }
   const now = new Date().toISOString()
   let update = supabaseService.from('grid_owner_information_requests').update({
-    status: 'ready_to_send_manual_email', last_error_code: null, last_error_message: null, next_follow_up_at: null,
+    status: nextStatus, last_error_code: null, last_error_message: null, next_follow_up_at: null,
     metadata: { ...metadata, counterparty_reply: { ...reply, requires_review: false, reviewed_at: now,
       reviewed_by: input.actorUserId, resolution_note: input.note.trim() } }, updated_at: now,
-  }).eq('company_id', input.companyId).eq('id', input.requestId).eq('poa_id', input.powerOfAttorneyId).eq('status', 'needs_review')
+  }).eq('company_id', input.companyId).eq('id', input.requestId).eq('poa_id', input.powerOfAttorneyId).eq('status', data.status)
   update = data.updated_at ? update.eq('updated_at', data.updated_at) : update.is('updated_at', null)
   update = reply.inbound_id ? update.eq('metadata->counterparty_reply->>inbound_id', String(reply.inbound_id)) : update.is('metadata->counterparty_reply->>inbound_id', null)
   const saved = await update.select('id').maybeSingle()

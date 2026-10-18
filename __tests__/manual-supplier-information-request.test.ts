@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { isDeepStrictEqual } from 'node:util'
 import { createFakeDb, type FakeDb } from './helpers/poaMailFakeDb'
 
 type Row = Record<string, unknown>
@@ -51,6 +52,41 @@ beforeEach(() => {
   vi.stubEnv('VERCEL_ENV', 'production'); vi.stubEnv('GRIDEX_MANUAL_OPS_ENVIRONMENT', '')
   vi.stubEnv('MANUAL_GRID_OWNER_SAFE_RECIPIENT', '')
   db = seed(); port.db = db; port.sends = []
+  // Finite external RPC port for these outbox/review tests. The real SQL
+  // authentication, locking and ordering are exercised by the hold SQL suite.
+  Object.assign(db.client, { rpc: async (name: string, args: Row) => {
+    if (name !== 'gridex_hold_manual_counterparty_reply_v1') throw new Error(`Unexpected supplier RPC ${name}`)
+    const request = db.tables.grid_owner_information_requests.find((row) => row.id === args.p_request_id && row.company_id === args.p_company_id)
+    const source = db.tables.manual_inbound_messages?.find((row) => row.id === args.p_inbound_id)
+    const payload = source?.extracted_payload as Row | undefined
+    const verification = payload?.sender_verification as Row | undefined
+    const metadata = request?.metadata as Row | undefined
+    const site = db.tables.customer_sites.find((row) => row.id === request?.customer_site_id && row.company_id === args.p_company_id && row.customer_id === request?.customer_id)
+    const noHold = { data: { ok: false, held: false }, error: null }
+    if (!request || !source || request.request_type !== 'current_supplier_contract_information_request'
+      || !['manual_email_queued', 'manual_email_sent', 'waiting_manual_response', 'needs_review', 'ready_to_send_manual_email', 'completed'].includes(String(request.status))
+      || source.company_id !== args.p_company_id || source.request_id !== request.id
+      || source.customer_id !== request.customer_id || source.customer_site_id !== request.customer_site_id
+      || source.resolution_status !== 'matched' || payload?.sender_credible !== true
+      || verification?.status !== 'verified' || verification?.method !== 'dkim'
+      || !isDeepStrictEqual(payload?.reply_assessment, args.p_assessment)
+      || !site || site.current_supplier_id !== metadata?.supplier_id || !Number.isFinite(Date.parse(String(source.received_at)))) return noHold
+    const previous = (metadata?.counterparty_reply ?? {}) as Row
+    if (previous.inbound_id !== source.id && request.received_at && Date.parse(String(source.received_at)) <= Date.parse(String(request.received_at))) return noHold
+    const hold = { ...(args.p_assessment as Row), requires_review: true, inbound_id: source.id, poa_id: request.poa_id,
+      received_at: source.received_at, sourceHash: (payload?.manual_automation as Row).sourceHash }
+    Object.assign(request, { status: request.status === 'completed' ? 'completed' : 'needs_review', received_at: source.received_at,
+      next_follow_up_at: null, metadata: { ...metadata, counterparty_reply: hold }, updated_at: new Date().toISOString() })
+    site.current_supplier_response_status = 'manual_review'
+    const cir = db.tables.customer_info_requests.find((row) => row.id === metadata?.customer_info_request_id && row.company_id === args.p_company_id)
+    if (cir) {
+      cir.status = 'manual_review_required'
+      cir.verified_payload = { ...(cir.verified_payload as Row), counterparty_reply: hold }
+      cir.blocker_code = 'current_supplier_poa_completion_required'
+      cir.blocker_details = { manual_supplier_request_id: request.id, inbound_id: source.id }
+    }
+    return { data: { ok: true, held: true, customerId: request.customer_id, customerSiteId: request.customer_site_id }, error: null }
+  } })
 })
 afterEach(() => { vi.useRealTimers(); vi.unstubAllEnvs() })
 
@@ -70,6 +106,16 @@ function assessedReply(text: string) {
   const assessment = assessManualReply(text)
   if (!assessment) throw new Error('Synthetic counterpart reply must produce a review assessment.')
   return assessment
+}
+
+async function recordSupplierReview(request: Row, inboundId: string, text: string) {
+  const assessment = assessedReply(text)
+  ;(db.tables.manual_inbound_messages ??= []).push({ id: inboundId, company_id: CO, request_id: request.id,
+    customer_id: request.customer_id, customer_site_id: request.customer_site_id, resolution_status: 'matched',
+    received_at: new Date().toISOString(), extracted_payload: { sender_credible: true,
+      sender_verification: { version: 1, status: 'verified', method: 'dkim' }, reply_assessment: assessment,
+      manual_automation: { version: 1, sourceHash: 'a'.repeat(64) } } })
+  await recordManualCounterpartyReply({ companyId: CO, request, inboundId, assessment })
 }
 
 describe('supplier inquiry queue', () => {
@@ -175,7 +221,7 @@ describe('supplier inquiry queue', () => {
     const initialKey = initial.idempotency_key
     const request = db.tables.grid_owner_information_requests[0]
     vi.setSystemTime(new Date('2026-10-18T13:00:00Z'))
-    await recordManualCounterpartyReply({ companyId: CO, request, inboundId: 'reply-review-1', assessment: assessedReply('Fullmakten saknar verifikatsnummer. Återkom med komplettering.') })
+    await recordSupplierReview(request, 'reply-review-1', 'Fullmakten saknar verifikatsnummer. Återkom med komplettering.')
     vi.setSystemTime(new Date('2026-10-18T14:00:00Z'))
     await resolveManualReplyReview({ companyId: CO, requestId: String(request.id), powerOfAttorneyId: 'poa-1', actorUserId: CO, note: 'Verifikatsnummer och komplett underlag är kontrollerade.' })
     expect(request.status).toBe('ready_to_send_manual_email')
@@ -201,7 +247,7 @@ describe('supplier inquiry queue', () => {
     const request = db.tables.grid_owner_information_requests[0]
     db.tables.manual_email_outbox[0].status = 'delivery_uncertain'
     vi.setSystemTime(new Date('2026-10-18T13:00:00Z'))
-    await recordManualCounterpartyReply({ companyId: CO, request, inboundId: 'reply-review-1', assessment: assessedReply('Fullmakten saknar verifikatsnummer. Återkom med komplettering.') })
+    await recordSupplierReview(request, 'reply-review-1', 'Fullmakten saknar verifikatsnummer. Återkom med komplettering.')
     vi.setSystemTime(new Date('2026-10-18T14:00:00Z'))
     await resolveManualReplyReview({ companyId: CO, requestId: String(request.id), powerOfAttorneyId: 'poa-1', actorUserId: CO, note: 'Kompletterat underlag har kontrollerats.' })
     expect((await queueManualSupplierInformationRequest(input)).status).toBe('needs_review')
@@ -223,7 +269,7 @@ describe('supplier inquiry queue', () => {
     const old = db.tables.manual_email_outbox[0]
     const request = db.tables.grid_owner_information_requests[0]
     vi.setSystemTime(new Date('2026-10-18T13:00:00Z'))
-    await recordManualCounterpartyReply({ companyId: CO, request, inboundId: 'reply-review-1', assessment: assessedReply('Fullmakten saknar verifikatsnummer. Återkom med komplettering.') })
+    await recordSupplierReview(request, 'reply-review-1', 'Fullmakten saknar verifikatsnummer. Återkom med komplettering.')
     vi.setSystemTime(new Date('2026-10-18T14:00:00Z'))
     await resolveManualReplyReview({ companyId: CO, requestId: String(request.id), powerOfAttorneyId: 'poa-1', actorUserId: CO, note: 'Kompletterat underlag har kontrollerats.' })
     expect((await queueManualSupplierInformationRequest(input)).status).toBe('queued')
@@ -238,7 +284,7 @@ describe('supplier inquiry queue', () => {
     const old = db.tables.manual_email_outbox[0]
     const request = db.tables.grid_owner_information_requests[0]
     vi.setSystemTime(new Date('2026-10-18T13:00:00Z'))
-    await recordManualCounterpartyReply({ companyId: CO, request, inboundId: 'reply-review-1', assessment: assessedReply('Fullmakten saknar verifikatsnummer. Återkom med komplettering.') })
+    await recordSupplierReview(request, 'reply-review-1', 'Fullmakten saknar verifikatsnummer. Återkom med komplettering.')
     vi.setSystemTime(new Date('2026-10-18T14:00:00Z'))
     await resolveManualReplyReview({ companyId: CO, requestId: String(request.id), powerOfAttorneyId: 'poa-1', actorUserId: CO, note: 'Kompletterat underlag har kontrollerats.' })
     const storageFrom = db.client.storage.from
@@ -246,7 +292,7 @@ describe('supplier inquiry queue', () => {
       const storage = storageFrom(bucket)
       return { ...storage, download: async (path) => {
         const bytes = await storage.download(path)
-        await recordManualCounterpartyReply({ companyId: CO, request, inboundId: 'newer-hold', assessment: assessedReply('Fullmakten är ogiltig. Återkom med ny fullmakt.') })
+        await recordSupplierReview(request, 'newer-hold', 'Fullmakten är ogiltig. Återkom med ny fullmakt.')
         return bytes
       } }
     }
@@ -256,6 +302,124 @@ describe('supplier inquiry queue', () => {
     expect(request.status).toBe('needs_review')
     expect(((request.metadata as Row).counterparty_reply as Row).inbound_id).toBe('newer-hold')
     expect(port.sends).toHaveLength(0)
+  })
+})
+
+describe('completed commercial review resolution', () => {
+  it('resumes the same completed conversation after review when no active sibling exists', async () => {
+    await queueManualSupplierInformationRequest(input)
+    await processManualEmailOutbox({ companyId: CO })
+    const request = db.tables.grid_owner_information_requests[0]
+    request.status = 'completed'
+    vi.setSystemTime(new Date('2026-10-18T13:00:00Z'))
+    await recordSupplierReview(request, 'late-denial', 'Fullmakten saknar verifikatsnummer. Återkom med komplettering.')
+    expect(request.status).toBe('completed')
+    vi.setSystemTime(new Date('2026-10-18T14:00:00Z'))
+    await resolveManualReplyReview({ companyId: CO, requestId: String(request.id), powerOfAttorneyId: 'poa-1', actorUserId: CO,
+      note: 'Kompletterat original och verifikatsnummer har kontrollerats.' })
+    expect(request.status).toBe('ready_to_send_manual_email')
+    expect((await queueManualSupplierInformationRequest(input)).status).toBe('queued')
+    expect(db.tables.grid_owner_information_requests).toHaveLength(1)
+    expect(db.tables.manual_email_outbox).toHaveLength(2)
+    expect((db.tables.customer_info_requests[0].verified_payload as Row).counterparty_reply).toMatchObject({
+      requires_review: false, inbound_id: 'late-denial', reviewed_by: CO,
+    })
+  })
+
+  it('keeps a different CIR hold after the conversation itself was reviewed', async () => {
+    await queueManualSupplierInformationRequest(input)
+    await processManualEmailOutbox({ companyId: CO })
+    const request = db.tables.grid_owner_information_requests[0]
+    vi.setSystemTime(new Date('2026-10-18T13:00:00Z'))
+    await recordSupplierReview(request, 'reviewed-denial', 'Fullmakten saknar verifikatsnummer. Återkom med komplettering.')
+    vi.setSystemTime(new Date('2026-10-18T14:00:00Z'))
+    await resolveManualReplyReview({ companyId: CO, requestId: String(request.id), powerOfAttorneyId: 'poa-1', actorUserId: CO,
+      note: 'Kompletteringen är kontrollerad mot originalet.' })
+    const cir = db.tables.customer_info_requests[0]
+    const payload = cir.verified_payload as Row
+    cir.verified_payload = { ...payload, counterparty_reply: { ...(payload.counterparty_reply as Row), inbound_id: 'different-denial' } }
+    const before = structuredClone(cir)
+    expect((await queueManualSupplierInformationRequest(input)).status).toBe('needs_review')
+    expect(cir).toEqual(before)
+    expect(db.tables.manual_email_outbox).toHaveLength(1)
+  })
+
+  it('keeps a newer CIR hold arriving during archived document retrieval', async () => {
+    await queueManualSupplierInformationRequest(input)
+    await processManualEmailOutbox({ companyId: CO })
+    const request = db.tables.grid_owner_information_requests[0]
+    vi.setSystemTime(new Date('2026-10-18T13:00:00Z'))
+    await recordSupplierReview(request, 'reviewed-denial', 'Fullmakten saknar verifikatsnummer. Återkom med komplettering.')
+    vi.setSystemTime(new Date('2026-10-18T14:00:00Z'))
+    await resolveManualReplyReview({ companyId: CO, requestId: String(request.id), powerOfAttorneyId: 'poa-1', actorUserId: CO,
+      note: 'Kompletteringen är kontrollerad mot originalet.' })
+    const cir = db.tables.customer_info_requests[0]
+    const storageFrom = db.client.storage.from
+    db.client.storage.from = (bucket) => {
+      const storage = storageFrom(bucket)
+      return { ...storage, download: async (path) => {
+        const bytes = await storage.download(path)
+        const payload = cir.verified_payload as Row
+        cir.verified_payload = { ...payload, counterparty_reply: { ...(payload.counterparty_reply as Row), inbound_id: 'newer-denial' } }
+        return bytes
+      } }
+    }
+    expect((await queueManualSupplierInformationRequest(input)).status).toBe('needs_review')
+    expect((cir.verified_payload as Row).counterparty_reply).toMatchObject({ requires_review: true, inbound_id: 'newer-denial' })
+    expect(db.tables.manual_email_outbox).toHaveLength(1)
+  })
+
+  it('clears the exact reviewed hold while preserving completed status, facts, site blocker and newer conversation', async () => {
+    await queueManualSupplierInformationRequest(input)
+    const request = db.tables.grid_owner_information_requests[0]
+    request.status = 'completed'
+    request.parsed_payload = { applied: true, original_terms: 'preserved' }
+    request.metadata = { ...(request.metadata as Row), counterparty_reply: { requires_review: true, inbound_id: 'late-denial', sourceHash: 'a'.repeat(64) } }
+    db.tables.customer_sites[0].current_supplier_response_status = 'manual_review'
+    const sibling = { ...request, id: 'newer-conversation', status: 'waiting_manual_response', metadata: {} }
+    db.tables.grid_owner_information_requests.push(sibling)
+    const beforeSibling = structuredClone(sibling)
+    await resolveManualReplyReview({ companyId: CO, requestId: String(request.id), powerOfAttorneyId: 'poa-1', actorUserId: CO,
+      note: 'Det senare avslaget har granskats och dokumenterats.' })
+    expect(request).toMatchObject({ status: 'completed', parsed_payload: { applied: true, original_terms: 'preserved' },
+      metadata: { counterparty_reply: { requires_review: false, inbound_id: 'late-denial', sourceHash: 'a'.repeat(64), reviewed_by: CO } } })
+    expect(sibling).toEqual(beforeSibling)
+    expect(db.tables.customer_sites[0].current_supplier_response_status).toBe('manual_review')
+    expect(db.tables.manual_email_outbox).toHaveLength(1)
+    expect(port.sends).toHaveLength(0)
+  })
+
+  it('keeps a newer completed-conversation hold when it arrives during review', async () => {
+    await queueManualSupplierInformationRequest(input)
+    const request = db.tables.grid_owner_information_requests[0]
+    request.status = 'completed'
+    request.metadata = { ...(request.metadata as Row), counterparty_reply: { requires_review: true, inbound_id: 'first-denial' } }
+    const from = db.client.from
+    db.client.from = (table) => {
+      const query = from(table) as Record<string, unknown>
+      if (table === 'grid_owner_information_requests') {
+        const update = query.update as (patch: Row) => unknown
+        query.update = (patch: Row) => {
+          request.metadata = { ...(request.metadata as Row), counterparty_reply: { requires_review: true, inbound_id: 'newer-denial' } }
+          request.updated_at = '2026-10-18T12:01:00Z'
+          return update(patch)
+        }
+      }
+      return query
+    }
+    await expect(resolveManualReplyReview({ companyId: CO, requestId: String(request.id), powerOfAttorneyId: 'poa-1', actorUserId: CO,
+      note: 'Det första avslaget har kontrollerats.' })).rejects.toThrow('Ärendet ändrades samtidigt')
+    expect(request).toMatchObject({ status: 'completed', metadata: { counterparty_reply: { requires_review: true, inbound_id: 'newer-denial' } } })
+  })
+
+  it('keeps completed noncommercial requests outside the new review transition', async () => {
+    await queueManualSupplierInformationRequest(input)
+    const request = db.tables.grid_owner_information_requests[0]
+    request.status = 'completed'; request.request_type = 'facility_information_request'
+    request.metadata = { ...(request.metadata as Row), counterparty_reply: { requires_review: true, inbound_id: 'facility-denial' } }
+    await resolveManualReplyReview({ companyId: CO, requestId: String(request.id), powerOfAttorneyId: 'poa-1', actorUserId: CO,
+      note: 'Separat handläggning krävs för detta ärende.' })
+    expect(request).toMatchObject({ status: 'completed', metadata: { counterparty_reply: { requires_review: true } } })
   })
 })
 

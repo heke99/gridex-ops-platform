@@ -11,7 +11,7 @@ export async function recordManualCounterpartyReply(input: {
   const { request, assessment } = input
   if (request.company_id !== input.companyId) throw new Error('Motpartssvaret saknar verifierad tenantkoppling.')
   const commercial = request.request_type === 'current_supplier_contract_information_request'
-  const holdCompletedCommercial = async () => {
+  if (commercial) {
     const { data, error } = await supabaseService.rpc('gridex_hold_manual_counterparty_reply_v1', {
       p_company_id: input.companyId, p_request_id: String(request.id), p_inbound_id: input.inboundId, p_assessment: assessment,
     })
@@ -24,11 +24,8 @@ export async function recordManualCounterpartyReply(input: {
     if (result.customerId !== request.customer_id || result.customerSiteId !== request.customer_site_id) {
       throw new Error('manual_counterparty_hold_scope_mismatch')
     }
-    // The command owns the hold and its idempotent audit together. A stale or
-    // unauthenticated source is recorded for review without pausing the customer.
-  }
-  if (commercial && request.status === 'completed') {
-    await holdCompletedCommercial()
+    // All commercial holds use durable source ordering under the site lock.
+    // The command owns the hold and its idempotent audit together.
     return
   }
   const now = new Date().toISOString()
@@ -43,12 +40,7 @@ export async function recordManualCounterpartyReply(input: {
     .in('status', ['manual_email_queued', 'manual_email_sent', 'waiting_manual_response', 'manual_response_received', 'needs_review', 'ready_to_send_manual_email'])
     .select('id').maybeSingle()
   if (updated.error) throw updated.error
-  // A positive completion may have won after this caller loaded the request.
-  // The same source-aware command decides whether this denial is truly newer.
-  if (!updated.data) {
-    if (commercial) await holdCompletedCommercial()
-    return
-  }
+  if (!updated.data) return
   if (typeof request.customer_id === 'string') {
     await emitCustomerOperationEvent({
       companyId: input.companyId, customerId: request.customer_id,

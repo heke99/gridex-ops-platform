@@ -38,9 +38,14 @@ beforeAll(async () => {
     create table public.customers(id uuid primary key,company_id uuid,status text,archived_at timestamptz,anonymized_at timestamptz,merged_into_customer_id uuid,lifecycle_closed_at timestamptz,metadata jsonb,protected_identity boolean,personal_number text,org_number text);
     create table public.customer_sites(id uuid primary key,company_id uuid,customer_id uuid,is_active boolean,status text,archived_at timestamptz,closed_at timestamptz,protected_identity boolean,metadata jsonb,updated_at timestamptz,current_supplier_contract_end_date date,current_supplier_notice_period text,current_supplier_termination_fee numeric,current_supplier_response_status text,current_supplier_contract_status text,facility_id text,grid_area_code text,price_area_code text,grid_owner_id uuid,current_supplier_id uuid,current_supplier_name text,current_supplier_unknown boolean default true,annual_consumption_kwh numeric,resolution_status text,resolution_id uuid);
     create table public.grid_owner_information_requests(id uuid primary key,company_id uuid,customer_id uuid,customer_site_id uuid,request_type text constraint grid_owner_information_requests_request_type_check check(request_type in ('facility_identifier_lookup','facility_lookup','metering_point_lookup','grid_area_confirmation','grid_contract_information','manual_custom_donor')),status text,metadata jsonb,parsed_payload jsonb,received_payload jsonb,received_at timestamptz,completed_at timestamptz,next_follow_up_at timestamptz,last_error_code text,last_error_message text,updated_at timestamptz,dispatch_status text,grid_owner_id uuid,recipient_email text,poa_id uuid);
+    alter table public.grid_owner_information_requests add column channel text default 'manual_email',add column idempotency_key text;
+    create unique index grid_owner_information_requests_market_open_uidx on public.grid_owner_information_requests(company_id,customer_site_id,request_type) where channel<>'manual_email' and status in ('draft','ready_to_send','sent','waiting_response','needs_review');
+    create unique index grid_owner_information_requests_open_idempotency_uidx on public.grid_owner_information_requests(idempotency_key) where idempotency_key is not null and status in ('draft','ready_to_send','ready_to_send_manual_email','manual_email_queued','manual_email_sent','waiting_manual_response','manual_response_received','needs_review','blocked_missing_poa','blocked_missing_grid_owner_contact','blocked_missing_manual_mailbox','sent','waiting_response');
     create table public.manual_inbound_messages(id uuid primary key,company_id uuid,request_id uuid,customer_id uuid,customer_site_id uuid,resolution_status text,extracted_payload jsonb,received_at timestamptz,processing_state text);
+    alter table public.manual_inbound_messages add column from_email text;
     create table public.supplier_switch_requests(id uuid primary key,company_id uuid,customer_id uuid,site_id uuid,customer_site_id uuid,status text,requested_start_date date,metadata jsonb,submitted_at timestamptz,completed_at timestamptz,paused_at timestamptz,lifecycle_blocked boolean,outbound_z03_message_id uuid,updated_at timestamptz,request_type text);
     alter table public.supplier_switch_requests add column prodat_variant text,add column prodat_reason text;
+    alter table public.supplier_switch_requests add column lifecycle_block_source text,add column pause_reason text;
     create table public.ediel_messages(id uuid primary key,company_id uuid,environment text,direction text,message_family text,message_code text,customer_id uuid,site_id uuid,switch_request_id uuid,raw_payload text,immutable_payload_hash text,immutable_rendered_at timestamptz);
     create schema gridex_ediel_transport;
     create table gridex_ediel_transport.attempts(id uuid primary key,message_id uuid,company_id uuid,environment text,actor_user_id uuid,owner jsonb,binding jsonb,created_at timestamptz default now(),entered_at timestamptz,observed_at timestamptz,classification text,provider_result jsonb);
@@ -132,8 +137,32 @@ async function siblingHold(options: { receipt?: string | null; company?: string;
   await db.query(`insert into public.grid_owner_information_requests(id,company_id,customer_id,customer_site_id,request_type,status,metadata,parsed_payload,received_at) values ($1,$2,$3,$4,$5,$6,$7::jsonb,'{}','2026-10-25T12:00:00Z')`, [ACTOR, company, customer, site, requestType, status, JSON.stringify({ target_party: 'current_supplier', supplier_id: supplier, customer_info_request_id: OTHER, counterparty_reply: { requires_review: !reviewed, inbound_id: CONTACT, received_at: '2026-10-25T12:00:00Z' } })])
   if (receipt !== null) await db.query(`insert into public.manual_inbound_messages(id,company_id,request_id,customer_id,customer_site_id,resolution_status,extracted_payload,received_at,processing_state) values ($1,$2,$3,$4,$5,'matched',$6::jsonb,$7,'needs_review')`, [CONTACT, company, ACTOR, customer, site, JSON.stringify({ sender_credible: true, sender_verification: { status: 'verified' }, manual_automation: { sourceHash: 'b'.repeat(64) } }), receipt])
 }
+const denialAssessment = { outcome: 'rejected', intent: 'power_of_attorney_rejected', reason_codes: ['poa_signature_missing'], evidence: ['Fullmakten kan inte godkännas.'], message: 'Motparten har nekat fullmakten.' }
+async function denialSource(id: string, receipt: string, requestId = REQUEST) {
+  await db.query(`insert into public.manual_inbound_messages(id,company_id,request_id,customer_id,customer_site_id,resolution_status,extracted_payload,received_at,processing_state,from_email) values ($1,$2,$3,$4,$5,'matched',$6::jsonb,$7,'parsed','specialist@supplier.example')`, [id, CO, requestId, CUSTOMER, SITE, JSON.stringify({ sender_credible: true, sender_verification: { status: 'verified', version: 1, method: 'dkim', raw_sha256: HASH, signed_headers: ['from'], from_email: 'specialist@supplier.example', signing_domain: 'supplier.example' }, reply_assessment: denialAssessment, manual_automation: { sourceHash: 'b'.repeat(64) } }), receipt])
+}
+async function hold(id: string, requestId = REQUEST) {
+  return db.transaction(async tx => {
+    await tx.exec('set local role service_role')
+    return (await tx.query<{ result: Reply & { held?: boolean; alreadyHeld?: boolean } }>('select public.gridex_hold_manual_counterparty_reply_v1($1,$2,$3,$4::jsonb) result', [CO, requestId, id, JSON.stringify(denialAssessment)])).rows[0].result
+  })
+}
 
 describe('commercial mail transaction', () => {
+  it.each(['2026-10-18T13:00:00Z','2026-10-18T12:00:00Z',null])('does not apply an older/equal positive over an unresolved sibling denial (%s)', async receipt => {
+    await siblingHold({ receipt })
+    await unchangedReject('')
+  })
+  it('applies a genuinely newer positive while an older sibling denial remains retained', async () => {
+    await siblingHold()
+    await db.exec("update public.manual_inbound_messages set received_at='2026-10-18T14:00:00Z' where id='ffffffff-ffff-4fff-8fff-ffffffffffff'")
+    expect(await apply()).toMatchObject({ ok: true, complete: true })
+    const site = await row('customer_sites')
+    await db.transaction(async tx => {
+      await tx.exec('set local role service_role')
+      expect((await tx.query<{ value: boolean }>('select public.gridex_manual_supplier_terms_verified_v1($1,$2,$3,$4::jsonb) value', [CO, CUSTOMER, SITE, JSON.stringify((site.metadata as { manual_supplier_terms: unknown }).manual_supplier_terms)])).rows[0].value).toBe(true)
+    })
+  })
   it('stores verified commercial facts and completes an explicit unconditional zero-fee start', async () => {
     expect(await apply()).toMatchObject({ ok: true, applied: true, complete: true, effectiveStartDate: '2027-04-01' })
     const site = await row('customer_sites')
@@ -261,6 +290,73 @@ describe('commercial mail transaction', () => {
   })
   it.each(['anon', 'authenticated'])('denies direct execution to %s', async role => {
     await expect(db.transaction(async tx => { await tx.exec(`set local role ${role}`); await tx.query('select public.gridex_apply_manual_commercial_reply_v1($1,$2,$3,$4::jsonb)', [CO, REQUEST, INBOUND, JSON.stringify(payload())]) })).rejects.toThrow(/permission denied/)
+  })
+})
+
+describe('source-ordered commercial holds and open-request uniqueness', () => {
+  async function proof() {
+    const site = await row('customer_sites')
+    return db.transaction(async tx => {
+      await tx.exec('set local role service_role')
+      return (await tx.query<{ value: boolean }>('select public.gridex_manual_supplier_terms_verified_v1($1,$2,$3,$4::jsonb) value', [CO, CUSTOMER, SITE, JSON.stringify((site.metadata as { manual_supplier_terms: unknown }).manual_supplier_terms)])).rows[0].value
+    })
+  }
+  it('holds an open request through the same verified command', async () => {
+    await denialSource(CONTACT, '2026-10-18T13:00:00Z')
+    expect(await hold(CONTACT)).toMatchObject({ ok: true, held: true })
+    expect(await row('grid_owner_information_requests')).toMatchObject({ status: 'needs_review', metadata: { counterparty_reply: { inbound_id: CONTACT, requires_review: true } } })
+  })
+  async function reviewedHold() {
+    await denialSource(CONTACT, '2026-10-18T13:00:00Z')
+    expect(await hold(CONTACT)).toMatchObject({ ok: true, held: true })
+    await db.exec(`update public.grid_owner_information_requests set status='ready_to_send_manual_email',metadata=jsonb_set(metadata,'{counterparty_reply}',(metadata->'counterparty_reply')||jsonb_build_object('requires_review',false,'reviewed_at','2026-10-18T14:00:00Z','reviewed_by','${ACTOR}','resolution_note','Fullmakten har granskats och kompletterats.')) where id='${REQUEST}'`)
+  }
+  it('does not reactivate a canonically reviewed denial when its same source callback replays', async () => {
+    await reviewedHold()
+    const before = await snapshot()
+    expect(await hold(CONTACT)).toMatchObject({ ok: false, held: false, code: 'counterparty_hold_stale_source' })
+    expect(await snapshot()).toEqual(before)
+  })
+  it.each(['2026-10-18T12:00:00Z','2026-10-18T13:00:00Z'])('keeps canonical review intact for an older/equal denial source (%s)', async receipt => {
+    await reviewedHold()
+    await denialSource(DOCUMENT, receipt)
+    const before = await snapshot()
+    expect(await hold(DOCUMENT)).toMatchObject({ ok: false, held: false, code: 'counterparty_hold_stale_source' })
+    expect(await snapshot()).toEqual(before)
+  })
+  it('reopens review for a genuinely newer denial after canonical review', async () => {
+    await reviewedHold()
+    await denialSource(DOCUMENT, '2026-10-18T14:00:00Z')
+    expect(await hold(DOCUMENT)).toMatchObject({ ok: true, held: true })
+    expect(await row('grid_owner_information_requests')).toMatchObject({ status: 'needs_review', metadata: { counterparty_reply: { inbound_id: DOCUMENT, requires_review: true } } })
+  })
+  it.each([false,true])('preserves a completed hold alongside a newer open conversation (historical site index %s)', async historical => {
+    await apply()
+    if (historical) await db.exec("create unique index grid_owner_information_requests_open_uidx on public.grid_owner_information_requests(company_id,customer_site_id,request_type) where status in ('draft','ready_to_send','sent','waiting_response','needs_review','blocked_missing_poa','blocked_missing_grid_owner_contact','blocked_missing_manual_mailbox','ready_to_send_manual_email','manual_email_queued','manual_email_sent','waiting_manual_response','manual_response_received')")
+    try {
+      await db.exec(`insert into public.grid_owner_information_requests select (jsonb_populate_record(null::public.grid_owner_information_requests,to_jsonb(r)||jsonb_build_object('id','${ACTOR}','status','waiting_manual_response','parsed_payload','{}'::jsonb,'metadata',jsonb_set(r.metadata,'{customer_info_request_id}','"${OTHER}"')))).* from public.grid_owner_information_requests r where id='${REQUEST}'`)
+      await denialSource(CONTACT, '2026-10-18T13:00:00Z')
+      expect(await hold(CONTACT)).toMatchObject({ ok: true, held: true })
+      const saved = (await db.query<{ status: string; metadata: { counterparty_reply: { inbound_id: string } } }>('select status,metadata from public.grid_owner_information_requests where id=$1', [REQUEST])).rows[0]
+      expect(saved).toMatchObject({ status: 'completed', metadata: { counterparty_reply: { inbound_id: CONTACT } } })
+      expect((await row('customer_sites')).current_supplier_response_status).toBe('manual_review')
+      expect(await proof()).toBe(false)
+    } finally { if (historical) await db.exec('drop index grid_owner_information_requests_open_uidx') }
+  })
+  it.each([true,false])('retains the newer open hold against an older/unknown raw callback (known receipt %s)', async known => {
+    await apply()
+    await siblingHold()
+    if (known) await denialSource(DOCUMENT, '2026-10-18T11:00:00Z', ACTOR)
+    await db.query("update public.grid_owner_information_requests set received_at=now(),metadata=jsonb_set(metadata,'{counterparty_reply}',$1::jsonb) where id=$2", [JSON.stringify({ requires_review: true, inbound_id: DOCUMENT }), ACTOR])
+    const saved = (await db.query<{ inbound: string }>("select metadata#>>'{counterparty_reply,inbound_id}' inbound from public.grid_owner_information_requests where id=$1", [ACTOR])).rows[0]
+    expect(saved.inbound).toBe(CONTACT)
+    expect(await proof()).toBe(false)
+  })
+  it('permits explicit review to clear the retained hold without replacing its source', async () => {
+    await apply()
+    await siblingHold()
+    await db.exec(`update public.grid_owner_information_requests set metadata=jsonb_set(metadata,'{counterparty_reply,requires_review}','false') where id='${ACTOR}'`)
+    expect(await proof()).toBe(true)
   })
 })
 
@@ -855,6 +951,27 @@ describe('manual supplier facts at first physical transport entry', () => {
     providerCalls += 1
     expect(providerCalls).toBe(1)
     expect((await attempt()).entered_at).toBeInstanceOf(Date)
+  })
+  it('permits an exact native-owned H/Z25 original at the verified floor', async () => {
+    await prepared()
+    await db.exec("update gridex_received_sources.switch_originals set original_object=jsonb_set(original_object,'{reason}','\"Z25\"');update public.supplier_switch_requests set prodat_variant='H'")
+    await enter()
+    expect((await attempt()).entered_at).toBeInstanceOf(Date)
+  })
+  it('denies a native-owned H/Z25 original below the verified floor', async () => {
+    await prepared(true, '202703010000+0100')
+    await db.exec("update gridex_received_sources.switch_originals set original_object=jsonb_set(original_object,'{reason}','\"Z25\"');update public.supplier_switch_requests set prodat_variant='H'")
+    await denied('manual_supplier_transport_start_before_floor')
+  })
+  it('keeps current commercial holds on native-owned H/Z25 originals', async () => {
+    await prepared()
+    await db.exec("update gridex_received_sources.switch_originals set original_object=jsonb_set(original_object,'{reason}','\"Z25\"');update public.supplier_switch_requests set prodat_variant='H';update public.customer_sites set current_supplier_response_status='manual_review'")
+    await denied()
+  })
+  it('does not turn a sealed normal Z22 original into an exemption by changing only its mutable H variant', async () => {
+    await prepared()
+    await db.exec("update public.supplier_switch_requests set prodat_variant='H';update public.customer_sites set current_supplier_response_status='manual_review'")
+    await denied()
   })
   it.each(['waiting_response','manual_review','binding_period','termination_fee','blocked'])('denies %s without any prior manual snapshot', async status => {
     await prepared(false)

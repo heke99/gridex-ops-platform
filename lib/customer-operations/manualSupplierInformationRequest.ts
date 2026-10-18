@@ -132,6 +132,25 @@ export async function queueManualSupplierInformationRequest(input: {
   if (oldOutbox.error) throw oldOutbox.error
   const rows = (oldOutbox.data ?? []) as Row[]
   const review = resolvedReview(request)
+  const cirReply = record(cirPayload.counterparty_reply)
+  let dispatchCirPayload = cirPayload
+  if (cirReply.requires_review === true) {
+    const reviewedReply = record(record(request.metadata).counterparty_reply)
+    const blocker = record(cir.blocker_details)
+    // Reset only the same source explicitly reviewed on this conversation.
+    // The final CIR JSON/status CAS below preserves a hold arriving meanwhile.
+    if (!review || request.status !== 'ready_to_send_manual_email'
+      || cirPayload.manual_supplier_request_id !== request.id
+      || !clean(cirReply.inbound_id) || cirReply.inbound_id !== reviewedReply.inbound_id
+      || !clean(cirReply.poa_id) || cirReply.poa_id !== reviewedReply.poa_id
+      || !/^[a-f0-9]{64}$/.test(String(cirReply.sourceHash)) || cirReply.sourceHash !== reviewedReply.sourceHash
+      || blocker.manual_supplier_request_id !== request.id || blocker.inbound_id !== cirReply.inbound_id
+      || !['current_supplier_poa_rejected', 'current_supplier_poa_completion_required'].includes(String(cir.blocker_code))
+      || !Number.isFinite(Date.parse(String(cirReply.received_at))) || review.at < Date.parse(String(cirReply.received_at))) {
+      return result('needs_review', 'supplier_counterparty_review_required', 'Kundens uppgiftsbegäran har en invändning som inte omfattas av denna granskning.')
+    }
+    dispatchCirPayload = { ...cirPayload, counterparty_reply: { ...cirReply, ...reviewedReply } }
+  }
   const baseIdempotencyKey = `manual-supplier-information:${input.companyId}:${request.id}`
   const idempotencyKey = review ? `${baseIdempotencyKey}:review:${review.key}` : baseIdempotencyKey
   if (rows.some((row) => row.status === 'delivery_uncertain')) return fail('supplier_previous_delivery_requires_review', 'Ett tidigare handelsutskick har oklar leverans och måste kontrolleras före nytt försök.')
@@ -191,7 +210,7 @@ export async function queueManualSupplierInformationRequest(input: {
     poa_verification_number: poaMailEvidence(poa).verificationReference,
   })
   const linked = await tenantUpdate(input.companyId, 'customer_info_requests', { status: 'ready_to_send', authorization_document_id: documentId,
-    verified_payload: { ...cirPayload, manual_supplier_request_id: request.id, supplier_id: contact.supplierId, supplier_actor_id: contact.actorId, supplier_contact_id: contact.contactChannelId },
+    verified_payload: { ...dispatchCirPayload, manual_supplier_request_id: request.id, supplier_id: contact.supplierId, supplier_actor_id: contact.actorId, supplier_contact_id: contact.contactChannelId },
     blocker_code: null, blocker_reason: null, requested_at: new Date().toISOString(), updated_by: input.actorUserId ?? null, updated_at: new Date().toISOString() })
     .eq('company_id', input.companyId).eq('id', input.customerInfoRequestId).eq('status', String(cir.status)).eq('verified_payload', JSON.stringify(cirPayload)).select('id').maybeSingle()
   if (linked.error) throw linked.error

@@ -9,6 +9,7 @@ const SITE = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', REQUEST = 'dddddddd-dddd-4d
 const INBOUND = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', SUPPLIER = 'ffffffff-ffff-4fff-8fff-ffffffffffff'
 const ACTOR = '11111111-1111-4111-8111-111111111111', CONTACT = '22222222-2222-4222-8222-222222222222'
 const CIR = '33333333-3333-4333-8333-333333333333', OTHER = '44444444-4444-4444-8444-444444444444'
+const POSITIVE = '55555555-5555-4555-8555-555555555555'
 const HASH = 'a'.repeat(64)
 let db: PGlite
 const io = vi.hoisted(() => ({ rpc: vi.fn(), event: vi.fn() }))
@@ -27,7 +28,8 @@ import { evaluateManualSupplierReadiness } from '@/lib/customer-operations/manua
 
 const assessment = assessManualReply('Vi nekar er fullmakt. Återkom med korrekt fullmakt.')!
 const snapshot = { version: 1, companyId: CO, customerId: CUSTOMER, siteId: SITE, requestId: REQUEST,
-  inboundId: OTHER, sourceHash: 'b'.repeat(64), terms: { earliestStartDate: '2027-04-01', effectiveStartDate: '2027-04-01' } }
+  inboundId: POSITIVE, sourceHash: 'b'.repeat(64), terms: { earliestStartDate: '2027-04-01', effectiveStartDate: '2027-04-01' } }
+const positiveApplication = { ...snapshot, applied: true, complete: true, inbound_id: POSITIVE }
 const proof = { sender_credible: true, sender_verification: { version: 1, status: 'verified', method: 'dkim', raw_sha256: HASH,
   from_email: 'specialist@supplier.example', signing_domain: 'supplier.example', signed_headers: ['from', 'content-type', 'content-transfer-encoding', 'mime-version'] },
   reply_assessment: assessment, manual_reply_structure_requires_review: false, mime_requires_review: false,
@@ -70,8 +72,11 @@ beforeEach(async () => {
   await db.query(`insert into customer_sites values($1,$2,$3,$4,'free_to_switch',$5,null)`, [SITE, CO, CUSTOMER, SUPPLIER, JSON.stringify({ manual_supplier_terms: snapshot })])
   await db.query(`insert into grid_owner_information_requests(id,company_id,customer_id,customer_site_id,request_type,status,metadata,parsed_payload,received_payload,received_at,completed_at,recipient_email,poa_id)
     values($1,$2,$3,$4,'current_supplier_contract_information_request','completed',$5,$6,'{}','2026-10-01T10:00:00Z','2026-10-10T10:00:00Z','avtal@supplier.example',$7)`,
-  [REQUEST, CO, CUSTOMER, SITE, JSON.stringify({ target_party: 'current_supplier', supplier_id: SUPPLIER, supplier_actor_id: ACTOR, supplier_contact_id: CONTACT, customer_info_request_id: CIR }), JSON.stringify({ ...snapshot, applied: true, complete: true }), OTHER])
+  [REQUEST, CO, CUSTOMER, SITE, JSON.stringify({ target_party: 'current_supplier', supplier_id: SUPPLIER, supplier_actor_id: ACTOR, supplier_contact_id: CONTACT, customer_info_request_id: CIR }), JSON.stringify(positiveApplication), OTHER])
   await db.query(`insert into manual_inbound_messages values($1,$2,$3,$4,$5,'matched',$6,'2026-10-02T10:00:00Z','matched','specialist@supplier.example')`, [INBOUND, CO, REQUEST, CUSTOMER, SITE, JSON.stringify(proof)])
+  await db.query(`insert into manual_inbound_messages values($1,$2,$3,$4,$5,'matched',$6,'2026-10-01T10:00:00Z','applied','specialist@supplier.example')`,
+    [POSITIVE, CO, REQUEST, CUSTOMER, SITE, JSON.stringify({ ...proof,
+      manual_automation: { version: 1, sourceHash: positiveApplication.sourceHash, application: positiveApplication } })])
   await db.query(`insert into customer_info_requests(id,company_id,customer_id,site_id,target_party_type,status,verified_payload) values($1,$2,$3,$4,'current_supplier','ready_for_switch',$5)`, [CIR, CO, CUSTOMER, SITE,
     JSON.stringify({ manual_supplier_request_id: REQUEST, supplier_id: SUPPLIER, supplier_actor_id: ACTOR, supplier_contact_id: CONTACT })])
   await db.exec(`insert into electricity_suppliers values('${SUPPLIER}',null,'${ACTOR}',true);
@@ -85,7 +90,7 @@ beforeEach(async () => {
     insert into powers_of_attorney values('${OTHER}','revoked','2025-01-01');`)
   io.rpc.mockImplementation(async (name: string, args: Row) => {
     if (name === 'gridex_manual_supplier_start_floor_v1') return { data: '2027-04-01', error: null }
-    if (name === 'gridex_manual_supplier_terms_verified_v1') return { data: (await read('grid_owner_information_requests')).status === 'completed', error: null }
+    if (name === 'gridex_manual_supplier_terms_verified_v1') return { data: (await read('grid_owner_information_requests', REQUEST)).status === 'completed', error: null }
     if (name !== 'gridex_hold_manual_counterparty_reply_v1') throw new Error(`Undeclared SQL RPC: ${name}`)
     try {
       const data = await db.transaction(async tx => {
@@ -106,7 +111,7 @@ async function readiness() {
     requestType: 'switch', requestedStartDate: '2027-04-01' })
 }
 async function reject(patch: Row = {}) {
-  await recordManualCounterpartyReply({ companyId: CO, request: { ...await read('grid_owner_information_requests'), ...patch }, inboundId: INBOUND, assessment })
+  await recordManualCounterpartyReply({ companyId: CO, request: { ...await read('grid_owner_information_requests', REQUEST), ...patch }, inboundId: INBOUND, assessment })
 }
 
 describe('new counterparty denial after completed commercial facts', () => {
@@ -137,13 +142,13 @@ describe('new counterparty denial after completed commercial facts', () => {
     await reject()
     expect((await readiness()).ready).toBe(false)
     expect((await readiness()).blockers).toContainEqual(expect.objectContaining({ code: 'current_supplier_manual_review' }))
-    expect(await read('grid_owner_information_requests')).toMatchObject({ status: 'needs_review', parsed_payload: priorFacts,
+    expect(await read('grid_owner_information_requests')).toMatchObject({ status: 'completed', parsed_payload: priorFacts,
       metadata: { counterparty_reply: { requires_review: true, inbound_id: INBOUND } } })
     expect(await read('supplier_switch_requests', REQUEST)).toMatchObject({ lifecycle_blocked: true, status: 'manual_followup_required' })
     expect(await read('supplier_switch_requests', OTHER)).toEqual(sentSwitch)
     expect(await read('supplier_switch_requests', CONTACT)).toEqual(cancelSwitch)
     expect(await read('ediel_messages')).toEqual(original)
-    expect((await read('manual_inbound_messages')).extracted_payload).toMatchObject({ ai_read_only: { paid_attempt: 'preserved' } })
+    expect((await read('manual_inbound_messages', INBOUND)).extracted_payload).toMatchObject({ ai_read_only: { paid_attempt: 'preserved' } })
   })
 
   it('closes the race when the caller saw an open request before its positive completion committed', async () => {
@@ -155,6 +160,48 @@ describe('new counterparty denial after completed commercial facts', () => {
     await reject(); await reject({ status: 'completed' })
     expect((await db.query('select * from customer_operation_events')).rows).toHaveLength(1)
     expect((await readiness()).ready).toBe(false)
+  })
+
+  it.each([
+    [11, 13, 14], [11, 14, 13], [13, 11, 14],
+    [13, 14, 11], [14, 11, 13], [14, 13, 11],
+  ])('keeps the newest authenticated hold source when open replies arrive in order %j', async (...days) => {
+    await db.exec(`update grid_owner_information_requests set status='waiting_manual_response',received_at=null,parsed_payload='{}';
+      update customer_sites set current_supplier_response_status='waiting_response'`)
+    const ids: Record<number, string> = { 11: CONTACT, 13: OTHER, 14: INBOUND }
+    for (const day of [11, 13, 14]) {
+      const source = { ...proof, manual_automation: { version: 1, sourceHash: String(day).repeat(32) } }
+      if (day === 14) await db.query('update manual_inbound_messages set received_at=$1,extracted_payload=$2 where id=$3',
+        [`2026-10-${day}T10:00:00Z`, JSON.stringify(source), ids[day]])
+      else await db.query(`insert into manual_inbound_messages values($1,$2,$3,$4,$5,'matched',$6,$7,'matched','specialist@supplier.example')`,
+        [ids[day], CO, REQUEST, CUSTOMER, SITE, JSON.stringify(source), `2026-10-${day}T10:00:00Z`])
+    }
+    for (const day of days) await recordManualCounterpartyReply({ companyId: CO, request: await read('grid_owner_information_requests'),
+      inboundId: ids[day], assessment })
+    expect(await read('grid_owner_information_requests')).toMatchObject({ status: 'needs_review',
+      metadata: { counterparty_reply: { requires_review: true, inbound_id: INBOUND, sourceHash: '14'.repeat(32) } } })
+    expect((await read('grid_owner_information_requests')).received_at).toEqual(new Date('2026-10-14T10:00:00Z'))
+    expect(await read('customer_info_requests')).toMatchObject({ status: 'manual_review_required',
+      verified_payload: { counterparty_reply: { inbound_id: INBOUND } } })
+    expect((await readiness()).ready).toBe(false)
+  })
+
+  it('retains the first held source when another authenticated denial has the same receipt time', async () => {
+    await reject()
+    await db.query(`insert into manual_inbound_messages values($1,$2,$3,$4,$5,'matched',$6,'2026-10-02T10:00:00Z','matched','specialist@supplier.example')`,
+      [CONTACT, CO, REQUEST, CUSTOMER, SITE, JSON.stringify(proof)])
+    await recordManualCounterpartyReply({ companyId: CO, request: await read('grid_owner_information_requests'), inboundId: CONTACT, assessment })
+    expect((await read('grid_owner_information_requests')).metadata).toMatchObject({ counterparty_reply: { inbound_id: INBOUND } })
+    expect((await db.query('select * from customer_operation_events')).rows).toHaveLength(1)
+  })
+
+  it('does not create an open commercial hold when its source has no durable receipt time', async () => {
+    await db.exec(`update grid_owner_information_requests set status='waiting_manual_response',received_at=null;
+      update manual_inbound_messages set received_at=null`)
+    const before = await read('grid_owner_information_requests')
+    await reject()
+    expect(await read('grid_owner_information_requests')).toEqual(before)
+    expect(await read('customer_sites')).toMatchObject({ current_supplier_response_status: 'free_to_switch' })
   })
 
   it.each([
@@ -176,7 +223,7 @@ describe('new counterparty denial after completed commercial facts', () => {
     `update platform_actor_contacts set email='changed@supplier.example'`,
     `update grid_owner_information_requests set status='cancelled'`,
   ])('does not let an older, untrusted or stale-counterparty source pause the customer: %s', async (mutation) => {
-    await db.exec(mutation)
+    await db.exec(mutation.startsWith('update manual_inbound_messages ') ? `${mutation} where id='${INBOUND}'` : mutation)
     const site = await read('customer_sites'), request = await read('grid_owner_information_requests')
     const before = await read('supplier_switch_requests', REQUEST)
     await reject()
@@ -199,7 +246,7 @@ describe('new counterparty denial after completed commercial facts', () => {
   })
 
   it('does not let an older denial to an earlier conversation overwrite a newer applied positive reply', async () => {
-    const positive = { applied: true, inbound_id: CONTACT, sourceHash: HASH }
+    const positive = { ...snapshot, requestId: OTHER, inboundId: CONTACT, applied: true, complete: true, inbound_id: CONTACT, sourceHash: HASH }
     await db.query(`insert into grid_owner_information_requests(id,company_id,customer_id,customer_site_id,request_type,status,metadata,parsed_payload,received_at)
       values($1,$2,$3,$4,'current_supplier_contract_information_request','completed',$5,$6,'2026-10-03T10:00:00Z')`,
     [OTHER, CO, CUSTOMER, SITE, JSON.stringify({ supplier_id: SUPPLIER }), JSON.stringify(positive)])

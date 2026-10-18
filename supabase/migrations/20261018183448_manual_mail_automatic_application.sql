@@ -44,6 +44,18 @@ begin
     or c#>'{metadata,protected_identity}'='true'::jsonb
     then return jsonb_build_object('ok',false,'code','manual_reply_protected_identity'); end if;
   if p_kind='commercial' then
+    -- Site serialization makes this a fresh read after any concurrent hold.
+    -- Never project a positive source over a later/equal unresolved sibling.
+    if exists(select 1 from public.grid_owner_information_requests held
+      left join public.manual_inbound_messages held_source
+        on held_source.id::text=held.metadata#>>'{counterparty_reply,inbound_id}'
+        and held_source.request_id=held.id and held_source.company_id=held.company_id
+        and held_source.customer_id=held.customer_id and held_source.customer_site_id=held.customer_site_id
+      where held.id<>r.id and held.company_id=p_company_id and held.customer_id=r.customer_id and held.customer_site_id=r.customer_site_id
+        and held.request_type='current_supplier_contract_information_request' and held.metadata->>'supplier_id'=s.current_supplier_id::text
+        and held.metadata#>'{counterparty_reply,requires_review}'='true'::jsonb
+        and (held_source.received_at is null or held_source.received_at>=i.received_at))
+      then return jsonb_build_object('ok',false,'code','manual_reply_newer_counterparty_hold'); end if;
     select * into cir from public.customer_info_requests
       where id::text=r.metadata->>'customer_info_request_id' and company_id=p_company_id
         and customer_id=r.customer_id and site_id=r.customer_site_id and target_party_type='current_supplier' for update;
@@ -899,6 +911,7 @@ declare
   source_hash text;
   hold_payload jsonb;
   latest_positive timestamptz;
+  previous_hold_received timestamptz;
   blocker text;
 begin
   select * into r from public.grid_owner_information_requests where company_id=p_company_id and id=p_request_id for update;
@@ -963,27 +976,40 @@ begin
     then return jsonb_build_object('ok',false,'held',false,'code','counterparty_hold_current_supplier_changed'); end if;
 
   if r.metadata#>'{counterparty_reply,requires_review}'='true'::jsonb
-    and r.metadata#>>'{counterparty_reply,inbound_id}'=p_inbound_id::text and r.status='needs_review'
+    and r.metadata#>>'{counterparty_reply,inbound_id}'=p_inbound_id::text
     then return jsonb_build_object('ok',true,'held',true,'alreadyHeld',true,'customerId',r.customer_id,'customerSiteId',r.customer_site_id); end if;
-  if r.status is distinct from 'completed'
+  if r.status not in ('completed','needs_review','ready_to_send_manual_email','manual_email_queued','manual_email_sent','waiting_manual_response','manual_response_received','manual_response_parsed','sent','waiting_response','received')
     then return jsonb_build_object('ok',false,'held',false,'code','counterparty_hold_request_not_completed'); end if;
+  -- Explicit review resolves a source; it does not erase its ordering. A
+  -- replay/older callback cannot undo that review, but a new later source can.
+  if r.metadata#>>'{counterparty_reply,inbound_id}' is not null then
+    select previous.received_at into previous_hold_received from public.manual_inbound_messages previous
+      where previous.id::text=r.metadata#>>'{counterparty_reply,inbound_id}' and previous.request_id=r.id
+        and previous.company_id=p_company_id and previous.customer_id=r.customer_id and previous.customer_site_id=r.customer_site_id;
+    if (previous_hold_received is null and r.metadata#>'{counterparty_reply,requires_review}'='true'::jsonb)
+      or (previous_hold_received is not null and i.received_at<=previous_hold_received)
+      then return jsonb_build_object('ok',false,'held',false,'code','counterparty_hold_stale_source'); end if;
+  end if;
   -- Compare durable source receipt, never completed_at (a processing clock).
   -- A later positive conversation for this same provider also wins over an
   -- older denial addressed to a previous conversation.
-  select max(pr.received_at) into latest_positive from public.grid_owner_information_requests pr
+  select max(pi.received_at) into latest_positive from public.grid_owner_information_requests pr
     join public.manual_inbound_messages pi on pi.id::text=pr.parsed_payload->>'inbound_id'
       and pi.company_id=pr.company_id and pi.request_id=pr.id and pi.customer_id=pr.customer_id and pi.customer_site_id=pr.customer_site_id
     where pr.company_id=p_company_id and pr.customer_id=r.customer_id and pr.customer_site_id=r.customer_site_id
-      and pr.request_type='current_supplier_contract_information_request' and pr.status='completed'
+      and pr.request_type='current_supplier_contract_information_request' and pr.parsed_payload->'complete'='true'::jsonb
       and pr.metadata->>'supplier_id'=s.current_supplier_id::text and pi.processing_state='applied'
       and pi.extracted_payload->'sender_credible'='true'::jsonb and pi.extracted_payload#>>'{sender_verification,status}'='verified'
       and pi.extracted_payload#>'{manual_automation,application}'=pr.parsed_payload;
-  if r.received_at is null or i.received_at<=r.received_at or (latest_positive is not null and i.received_at<=latest_positive)
+  if latest_positive is not null and i.received_at<=latest_positive
     then return jsonb_build_object('ok',false,'held',false,'code','counterparty_hold_stale_source'); end if;
 
   blocker:=case when p_assessment->>'outcome'='rejected' then 'current_supplier_poa_rejected' else 'current_supplier_poa_completion_required' end;
   hold_payload:=p_assessment||jsonb_build_object('requires_review',true,'inbound_id',p_inbound_id,'poa_id',r.poa_id,'received_at',i.received_at,'sourceHash',source_hash);
-  update public.grid_owner_information_requests set status='needs_review',next_follow_up_at=null,received_at=i.received_at,
+  -- Keep terminal history terminal. Reopening a completed inquiry may collide
+  -- with an existing open-site/idempotency index; its authoritative hold flag
+  -- blocks proof and physical entry independently of the status projection.
+  update public.grid_owner_information_requests set status=case when r.status='completed' then 'completed' else 'needs_review' end,next_follow_up_at=null,received_at=i.received_at,
     metadata=coalesce(metadata,'{}'::jsonb)||jsonb_build_object('counterparty_reply',hold_payload),
     received_payload=coalesce(received_payload,'{}'::jsonb)||jsonb_build_object('counterparty_reply',hold_payload),
     last_error_code=p_assessment#>>'{reason_codes,0}',last_error_message=left(p_assessment->>'message',500),updated_at=now()
@@ -1103,7 +1129,7 @@ begin
   floor_date:=public.gridex_manual_supplier_start_floor_v1(s.company_id,s.customer_id,s.id);
   select gridex_received_sources.permission_date_v1(o.original_object->>'start') into original_start
     from gridex_received_sources.switch_originals o where o.message_id=m.id and o.company_id=m.company_id and o.switch_id=ss.id
-      and o.original_object->>'reason'='Z22';
+      and o.original_object->>'reason' in ('Z22','Z25');
   if floor_date is null or ss.requested_start_date is null or original_start is null
     or ss.requested_start_date<floor_date or original_start<floor_date
     then raise exception 'manual_supplier_transport_start_before_floor' using errcode='23514'; end if;
@@ -1119,12 +1145,28 @@ create trigger gridex_manual_supplier_transport_first_entry
 -- physical entry; retain its existing business payload and write privileges.
 create or replace function public.gridex_lock_manual_commercial_hold_site_v1()
 returns trigger language plpgsql security invoker set search_path=public as $$
+declare previous_received timestamptz; incoming_received timestamptz;
 begin
   if new.request_type is distinct from 'current_supplier_contract_information_request'
     or new.metadata#>'{counterparty_reply,requires_review}' is distinct from 'true'::jsonb then return new; end if;
   perform s.id from public.customer_sites s
     where s.company_id=new.company_id and s.customer_id=new.customer_id and s.id=new.customer_site_id
       and s.current_supplier_id::text=new.metadata->>'supplier_id' for update;
+  -- Defend the remaining direct recorder path against stale whole-row snapshots.
+  -- Explicit review clears requires_review above; entity merges keep their
+  -- existing server-owned identity operation and invalidate old source proof.
+  if old.metadata#>'{counterparty_reply,requires_review}'='true'::jsonb
+    and old.id=new.id and old.company_id=new.company_id and old.customer_id=new.customer_id and old.customer_site_id=new.customer_site_id
+    and old.metadata->>'supplier_id' is not distinct from new.metadata->>'supplier_id'
+    and old.metadata#>>'{counterparty_reply,inbound_id}' is distinct from new.metadata#>>'{counterparty_reply,inbound_id}' then
+    select source.received_at into previous_received from public.manual_inbound_messages source
+      where source.id::text=old.metadata#>>'{counterparty_reply,inbound_id}' and source.request_id=old.id
+        and source.company_id=old.company_id and source.customer_id=old.customer_id and source.customer_site_id=old.customer_site_id;
+    select source.received_at into incoming_received from public.manual_inbound_messages source
+      where source.id::text=new.metadata#>>'{counterparty_reply,inbound_id}' and source.request_id=new.id
+        and source.company_id=new.company_id and source.customer_id=new.customer_id and source.customer_site_id=new.customer_site_id;
+    if previous_received is null or incoming_received is null or incoming_received<=previous_received then return old; end if;
+  end if;
   return new;
 end $$;
 revoke all on function public.gridex_lock_manual_commercial_hold_site_v1() from public,anon,authenticated,service_role;
