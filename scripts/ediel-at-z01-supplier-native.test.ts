@@ -560,19 +560,27 @@ async function createCorrelationReadControl(f: Fixture, original: Original) {
     sealed: sealedSource(message.id), originalSealed: sealedSource(original.originalZ01.id)}
 }
 type CorrelationReadControl = Awaited<ReturnType<typeof createCorrelationReadControl>>
-function assertCorrelationBasisStable(current: unknown, prior: unknown) {
+type QualifiedCorrelationReview = {cause: 'z02_end_user_identity_conflict' | 'z02_original_grid_area_conflict'; request: Record<string, unknown>}
+function assertCorrelationBasisStable(current: unknown, prior: unknown, qualifiedReview?: QualifiedCorrelationReview) {
   const after = causalRecord(current), before = causalRecord(prior)
-  // The actual negative job owns these review projections. They are not source
-  // authority; every request link and all other basis fields remain exact.
-  const authority = (value: unknown) => Object.fromEntries(Object.entries(causalRecord(value)).filter(([key]) =>
-    !['status', 'blocker_code', 'blocker_reason', 'blocker_details', 'next_required_action', 'updated_at', 'updated_by'].includes(key)))
-  expect({...after, request: authority(after.request)}).toEqual({...before, request: authority(before.request)})
+  if (!qualifiedReview) {expect(after).toEqual(before); return}
+  expect(['z02_end_user_identity_conflict', 'z02_original_grid_area_conflict']).toContain(qualifiedReview.cause)
+  const priorRequest = causalRecord(before.request), reviewedRequest = causalRecord(qualifiedReview.request)
+  expect(reviewedRequest).toMatchObject({id: priorRequest.id, status: 'manual_review_required', blocker_code: qualifiedReview.cause})
+  // Only a separately asserted own customer/grid job can supply its actual
+  // review projection. Other contrasts, links and later changes stay exact.
+  const projectionKeys = ['status', 'blocker_code', 'blocker_reason', 'blocker_details', 'next_required_action', 'updated_at', 'updated_by']
+  const authority = (value: Record<string, unknown>) => Object.fromEntries(Object.entries(value).filter(([key]) => !projectionKeys.includes(key)))
+  expect(authority(reviewedRequest)).toEqual(authority(priorRequest))
+  const projection = Object.fromEntries(Object.entries(reviewedRequest).filter(([key]) => projectionKeys.includes(key)))
+  expect(after.request).toEqual({...priorRequest, ...projection})
+  expect({...after, request: priorRequest}).toEqual(before)
 }
-async function rereadCorrelationControl(f: Fixture, original: Original, control: CorrelationReadControl) {
+async function rereadCorrelationControl(f: Fixture, original: Original, control: CorrelationReadControl, qualifiedReview?: QualifiedCorrelationReview) {
   const message = await getEdielMessageById(control.message.id, {companyId: f.companyId})
   if (!message?.raw_payload) throw Error('z01_correlation_positive_source_reread_missing')
   expect(message.raw_payload).toBe(control.raw)
-  assertCorrelationBasisStable(await readMatchedZ02Source(f, original, message), control.basis)
+  assertCorrelationBasisStable(await readMatchedZ02Source(f, original, message), control.basis, qualifiedReview)
   expect(sealedSource(message.id)).toEqual(control.sealed)
   expect(sealedSource(original.originalZ01.id)).toEqual(control.originalSealed)
   await assertCorrelationNamespaces(f, original)
@@ -652,14 +660,16 @@ function assertCausalJobRefusal(f: Fixture, original: Original, receivedId: stri
       z02_atomic_core: {ok: false, code, gridAreaCode: changed, originalGridAreaCode: original.wire.gridAreaCode}})
   }
 }
-async function assertCorrelationJobRefusal(f: Fixture, original: Original, received: Awaited<ReturnType<typeof receiveZ01SupplierReply>>, contrast: 'customer identity' | 'grid area', changed: string) {
+async function assertCorrelationJobRefusal(f: Fixture, original: Original, received: Awaited<ReturnType<typeof receiveZ01SupplierReply>>, contrast: 'customer identity' | 'grid area', changed: string): Promise<QualifiedCorrelationReview> {
   await assertPhysicalZ02Application(f, received, {...original.wire, gridAreaCode: contrast === 'grid area' ? changed : original.wire.gridAreaCode})
   expect(await fetchReceivedZ02EndUserAddressContext({message: received.message, actorUserId: f.actorUserId})).toBeDefined()
   const jobs = sql<unknown[]>(`SELECT coalesce(jsonb_agg(to_jsonb(j) ORDER BY id),'[]') FROM public.customer_operation_jobs j
     WHERE company_id=${literal(f.companyId)} AND job_type='apply_inbound_grid_owner_response' AND payload->>'ediel_message_id'=${literal(received.id)}`)
   assertCausalJobRefusal(f, original, received.id, jobs, contrast, changed)
-  expect(ownRequest(f, original)).toMatchObject({id: original.requestId, status: 'manual_review_required',
-    blocker_code: contrast === 'customer identity' ? 'z02_end_user_identity_conflict' : 'z02_original_grid_area_conflict'})
+  const cause = contrast === 'customer identity' ? 'z02_end_user_identity_conflict' : 'z02_original_grid_area_conflict'
+  const request = causalRecord(ownRequest(f, original))
+  expect(request).toMatchObject({id: original.requestId, status: 'manual_review_required', blocker_code: cause})
+  return {cause, request}
 }
 function assertCausalReceiverHold(f: Fixture, intake: CorrelationIntake, birthErrors: unknown[], receipt: unknown) {
   expect(intake.tenant).toMatchObject({status: 'ambiguous', companyId: null, source: null, confidence: 0,
@@ -790,14 +800,20 @@ describe.each(['L', 'LK'] as const)('actual SUPPLIER Z01%s information chain', v
     const control = await createCorrelationReadControl(f, original)
     const raw = z02(f, original, actualOverride, false, control.documentMinute)
     assertCorrelationWire(control.raw, raw, _label, actualOverride)
-    if (_label === 'legal receiver' || _label === 'transport receiver') await assertCorrelationReceiverRefusal(f, original, raw)
-    else {
+    if (_label === 'legal receiver' || _label === 'transport receiver') {
+      await assertCorrelationReceiverRefusal(f, original, raw)
+      await rereadCorrelationControl(f, original, control)
+    } else {
       const received = await receiveZ01SupplierReply(f, raw)
       observeCorrelationCause(f, original, received, _label)
-      if (_label === 'customer identity') await assertCorrelationJobRefusal(f, original, received, _label, override.customerIdentity.id)
-      else await assertCorrelationSourceRefusal(f, original, received, _label, control)
+      if (_label === 'customer identity') {
+        const qualifiedReview = await assertCorrelationJobRefusal(f, original, received, _label, override.customerIdentity.id)
+        await rereadCorrelationControl(f, original, control, qualifiedReview)
+      } else {
+        await assertCorrelationSourceRefusal(f, original, received, _label, control)
+        await rereadCorrelationControl(f, original, control)
+      }
     }
-    await rereadCorrelationControl(f, original, control)
     expect(coreApplications(f, original.requestId)).toBe(0)
     expect(ownRequest(f, original).response_ediel_message_id).toBeNull()
     expect(customerState(f)).toEqual(before); expect(sealedSource(original.originalZ01.id)).toEqual(sealed)
@@ -855,8 +871,8 @@ describe.each(['L', 'LK'] as const)('actual SUPPLIER Z01%s information chain', v
     const received = await receiveZ01SupplierReply(f, raw)
     observeCorrelationCause(f, original, received, 'known same-price original area')
     await assertPhysicalZ02Application(f, received, {...original.wire, gridAreaCode: wrong.gridAreaCode})
-    await assertCorrelationJobRefusal(f, original, received, 'grid area', wrong.gridAreaCode)
-    await rereadCorrelationControl(f, original, control)
+    const qualifiedReview = await assertCorrelationJobRefusal(f, original, received, 'grid area', wrong.gridAreaCode)
+    await rereadCorrelationControl(f, original, control, qualifiedReview)
     expect(coreApplications(f, original.requestId)).toBe(0)
     expect(ownRequest(f, original).response_ediel_message_id).toBeNull()
     expect(customerState(f)).toEqual(before); expect(sealedSource(original.originalZ01.id)).toEqual(sealed)
