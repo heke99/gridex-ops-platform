@@ -113,6 +113,10 @@
           "size_in_bytes": 1320085
         }
       ],
+      "provenance_status": "HISTORICAL",
+      "archive_git_revision": "d123c00221a62f816a151277095f2ac4ebb0e074",
+      "archive_git_blob": "56c4add5a2ef14a101ff61dfd76e335a115455a0",
+      "archive_reference_scope": "archive_copied and archive_path describe only the copy at archive_git_revision; they do not describe the bytes at archive_path in the current checkout.",
       "archive_copied": true,
       "archive_path": "quality/audits/ediel-masterplan-v2/z03c-supplier/native-cancellation.zip",
       "archive_content_review": "native.log, native-junit.xml, receipt.json only (same composition as z05c native-3847.zip); no credential, key or token found",
