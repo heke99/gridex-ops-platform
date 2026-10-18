@@ -7,8 +7,8 @@ vi.mock('server-only',()=>({}))
 vi.mock('next/headers',()=>({cookies:async()=>({get:(key:string)=>key==='gridex_retention_company'?{value:'00000000-0000-4000-8000-000000000001'}:undefined})}))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:fixture.rpc}}))
 vi.mock('@/lib/supabase/server',()=>({createSupabaseServerClient:async()=>({auth:{getUser:fixture.auth},rpc:fixture.rpc})}))
-import {advanceCompletedWitnessDisposition} from '@/lib/ediel/retention/decisionEvidenceRetention'
-import {decisionEvidenceDocument,decisionEvidenceOriginal,decisionEvidencePurge,decisionEvidenceRead,decisionEvidenceReview,decisionEvidenceSubmit} from '@/lib/ediel/retention/decisionEvidenceRetentionHttp'
+import {advanceCompletedParent,advanceCompletedWitnessDisposition} from '@/lib/ediel/retention/decisionEvidenceRetention'
+import {decisionEvidenceParentPurposeStatus,decisionEvidenceDocument,decisionEvidenceOriginal,decisionEvidencePurge,decisionEvidenceRead,decisionEvidenceReview,decisionEvidenceSubmit} from '@/lib/ediel/retention/decisionEvidenceRetentionHttp'
 const retentionClass='blob_retention_decision_original_bytes',classGrant='ediel.retention.blob_decision_evidence',document=Buffer.from('SYNTHETIC finite archived original, no legal approval'),documentHash=createHash('sha256').update(document).digest('hex')
 const metadata={companyId:company,policyId,retentionClass,targetId:target,sourceHash:'a'.repeat(64),targetMetadataHash:'b'.repeat(64),documentHash,documentByteLength:document.length,bytesAvailable:true,documentPurgedAt:null,documentBase64:null,submittedBy:target,createdAt:'2026-10-01T00:00:00Z',issuerQualified:false,currentQualified:false,revoked:false,reviews:[],purge:null,authority:'none'}
 const post=(body:unknown)=>new NextRequest('http://localhost/api/ediel/decision-evidence-retention',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
@@ -126,4 +126,111 @@ it('new phase review requires current exact class and refuses hidden reason or c
 it('actual worker adapter passes only the validated configured actor and bounded limit to the existing service port',async()=>{
  const counts={scanned:1,disposed:0,expired:0,clearedApprovals:0,held:1,authority:'none'};fixture.rpc.mockResolvedValue({data:counts,error:null});expect(await advanceCompletedWitnessDisposition({actorUserId:actor,limit:20})).toEqual(counts);expect(fixture.rpc).toHaveBeenCalledExactlyOnceWith('ediel_advance_completed_witness_disposition_v1',{p_actor_user_id:actor,p_limit:20})
  fixture.rpc.mockResolvedValue({data:null,error:{message:'SYNTHETIC private receipt must not be logged'}});await expect(advanceCompletedWitnessDisposition({actorUserId:actor,limit:20})).rejects.toThrow('completed_witness_worker_failed')
+})
+
+// Completed source-parent adapter boundary: synthetic session/RPC transports;
+// the real facade/domain must select the correct native owner without disclosure.
+it('admits a signed source-parent purpose by explicit phase without a disclosure prerequisite',async()=>{
+ fixture.permissions.push('ediel.retention.completed_review_reason')
+ const envelope={issuerId:target,payloadBase64:'ZXh0ZXJuYWw=',signatureHex:'a'.repeat(64)}
+ fixture.rpc.mockImplementation(async(name:string)=>{
+  if(name==='ediel_current_retention_session_v1')return{data:{companyId:company,actorUserId:actor,permissions:fixture.permissions},error:null}
+  if(name==='ediel_admit_completed_parent_purpose_v1')return{data:{status:'purpose_admitted',version:1,authority:'none'},error:null}
+  throw Error('No disclosure or other owner may substitute for purpose admission: '+name)
+ })
+ const response=await decisionEvidenceReview(post({phase:'completed-parent-purpose',issuerReceipt:envelope}),policyId)
+ expect(response.status).toBe(200)
+ expect(await response.json()).toEqual({status:'purpose_admitted',version:1,authority:'none'})
+ expect(fixture.rpc).toHaveBeenLastCalledWith('ediel_admit_completed_parent_purpose_v1',{p_company_id:company,p_actor_user_id:actor,p_policy_id:policyId,p_receipt:envelope})
+ expect(fixture.rpc.mock.calls.map(c=>c[0])).toEqual(['ediel_current_retention_session_v1','ediel_admit_completed_parent_purpose_v1'])
+})
+
+import {GET as parentPurposeGET} from '@/app/api/ediel/decision-evidence-retention/[policyId]/parent-purpose/route'
+
+const parentEnvelope={issuerId:target,payloadBase64:'ZXh0ZXJuYWw=',signatureHex:'a'.repeat(64)}
+function parentTransport(result:unknown,error:unknown=null){
+ fixture.permissions.push('ediel.retention.completed_review_reason')
+ fixture.rpc.mockImplementation(async(name:string)=>{
+  if(name==='ediel_current_retention_session_v1')return{data:{companyId:company,actorUserId:actor,permissions:fixture.permissions},error:null}
+  if(['ediel_admit_completed_parent_purpose_v1','ediel_completed_parent_purpose_status_v1','ediel_review_completed_parent_v1','ediel_dispose_completed_parent_v1','ediel_advance_completed_parent_v1'].includes(name))return{data:result,error}
+  throw Error('Ordinary disclosure and legacy mutation may not substitute for this phase: '+name)
+ })
+}
+it('routes a separate parent approval with unchanged signed envelope, not old witness or reason authority',async()=>{
+ parentTransport({status:'approved',authority:'none'})
+ const response=await decisionEvidenceReview(post({phase:'completed-parent-disposition',issuerReceipt:parentEnvelope}),policyId)
+ expect(response.status).toBe(200);expect(await response.json()).toEqual({status:'approved',authority:'none'})
+ expect(fixture.rpc.mock.calls.map(c=>c[0])).toEqual(['ediel_current_retention_session_v1','ediel_review_completed_parent_v1'])
+ expect(fixture.rpc).toHaveBeenLastCalledWith('ediel_review_completed_parent_v1',{p_company_id:company,p_actor_user_id:actor,p_policy_id:policyId,p_receipt:parentEnvelope})
+})
+it.each(['ediel.retention.completed_review_reason',classGrant])('requires both current classes for parent mutations: missing %s',async missing=>{
+ parentTransport(null);const current=fixture.rpc.getMockImplementation()!
+ fixture.rpc.mockImplementation(async(name:string,args:Record<string,unknown>)=>name==='ediel_current_retention_session_v1'?current(name,args):{data:name==='ediel_admit_completed_parent_purpose_v1'?{status:'purpose_admitted',version:1,authority:'none'}:name==='ediel_review_completed_parent_v1'?{status:'approved',authority:'none'}:{status:'disposed',replay:false,authority:'none'},error:null})
+ fixture.permissions=fixture.permissions.filter(key=>key!==missing)
+ for(const phase of ['completed-parent-purpose','completed-parent-disposition'])expect((await decisionEvidenceReview(post({phase,issuerReceipt:parentEnvelope}),policyId)).status).toBe(403)
+ expect((await decisionEvidencePurge(post({phase:'completed-parent-disposition'}),policyId)).status).toBe(403)
+ expect(fixture.rpc.mock.calls.every(c=>c[0]==='ediel_current_retention_session_v1')).toBe(true)
+})
+it.each([
+ {phase:'completed-parent-purpose',issuerReceipt:parentEnvelope,companyId:target},
+ {phase:'completed-parent-disposition',issuerReceipt:parentEnvelope,actorUserId:target},
+ {phase:'completed-parent-purpose',issuerReceipt:parentEnvelope,outcome:'approve'},
+ {phase:'completed-parent-disposition',issuerReceipt:parentEnvelope,reason:'hidden authority'},
+ {phase:'completed-parent-purpose',issuerReceipt:null},
+ {phase:'completed-parent-purpose',issuerReceipt:{...parentEnvelope,issuerId:'foreign-not-uuid'}},
+ {phase:'completed-parent-purpose',issuerReceipt:{...parentEnvelope,approved:true}},
+ {phase:'completed-parent-purpose',issuerReceipt:{...parentEnvelope,payloadBase64:'x'.repeat(65540)}},
+])('rejects parent input authority or malformed envelope before native admission',async raw=>{
+ parentTransport(null);expect((await decisionEvidenceReview(post(raw),policyId)).status).toBe(400)
+ expect(fixture.rpc.mock.calls.every(c=>c[0]==='ediel_current_retention_session_v1')).toBe(true)
+})
+it.each([
+ {status:'disposed',replay:false,authority:'none'},
+ {status:'held',authority:'none'},
+ {status:'unavailable',authority:'none'},
+])('keeps exact parent $status receipt without ordinary reads or legacy replay',async result=>{
+ parentTransport(result);const response=await decisionEvidencePurge(post({phase:'completed-parent-disposition'}),policyId)
+ expect(response.status).toBe(200);expect(await response.json()).toEqual(result)
+ expect(fixture.rpc.mock.calls.map(c=>c[0])).toEqual(['ediel_current_retention_session_v1','ediel_dispose_completed_parent_v1'])
+ expect(fixture.rpc).toHaveBeenLastCalledWith('ediel_dispose_completed_parent_v1',{p_company_id:company,p_actor_user_id:actor,p_policy_id:policyId})
+})
+it.each([{status:'disposed',replay:true,authority:'none'},{status:'expired',authority:'none'},{status:'purged',replay:true,authority:'none'},{status:'held',authority:'none',policyId},{status:'disposed',replay:false,authority:'none',expiredMetadata:'PRIVATE'},{status:'approved',authority:'none'}])('refuses invalid parent effect/replay result $status replay=$replay',async result=>{
+ parentTransport(result);const response=await decisionEvidencePurge(post({phase:'completed-parent-disposition'}),policyId);expect(response.status).toBe(400);expect(JSON.stringify(await response.json())).not.toContain('PRIVATE')
+})
+it('does not turn native hold or stale-purpose refusal into synthetic held or success',async()=>{
+ parentTransport(null,{code:'42501',message:'phase_current_customer_hold PRIVATE'})
+ const response=await decisionEvidencePurge(post({phase:'completed-parent-disposition'}),policyId)
+ expect(response.status).toBe(403);expect(await response.json()).toEqual({error:'Aktuell bolags-, klass- eller källbehörighet saknas.'})
+})
+it.each([{phase:'completed-parent-disposition',companyId:target},{phase:'completed-parent-disposition',issuerReceipt:parentEnvelope},{phase:'other'},{phase:'completed-parent-disposition',replay:true}])('refuses hidden authority or replay on parent purge command',async raw=>{
+ parentTransport(null);expect((await decisionEvidencePurge(post(raw),policyId)).status).toBe(400);expect(fixture.rpc.mock.calls.every(c=>c[0]==='ediel_current_retention_session_v1')).toBe(true)
+})
+it.each(['active','ordinary_use_ended','POLICY_REVIEW_OVERDUE','POLICY_OVERDUE','unavailable'])('read-only parent status $0 needs no review/purge or expired disclosure',async status=>{
+ const result=status==='unavailable'?{status,authority:'none'}:{status,disposed:false,authority:'none'}
+ parentTransport(result);fixture.permissions=['ediel.retention.read',classGrant]
+ const response=await parentPurposeGET(new NextRequest('https://ops.example/status?companyId='+target),{params:Promise.resolve({policyId})})
+ expect(response.status).toBe(200);expect(await response.json()).toEqual(result);expect(response.headers.get('Cache-Control')).toBe('private, no-store')
+ expect(fixture.rpc.mock.calls.map(c=>c[0])).toEqual(['ediel_current_retention_session_v1','ediel_completed_parent_purpose_status_v1'])
+ expect(fixture.rpc).toHaveBeenLastCalledWith('ediel_completed_parent_purpose_status_v1',{p_company_id:company,p_actor_user_id:actor,p_policy_id:policyId})
+ expect((await decisionEvidenceReview(post({phase:'completed-parent-purpose',issuerReceipt:parentEnvelope}),policyId)).status).toBe(403)
+})
+it.each([{status:'unavailable',disposed:true,authority:'none'},{status:'active',disposed:false,authority:'none',receipt:parentEnvelope},{status:'disposed',replay:false,authority:'none'}])('refuses parent status that asserts unavailable deletion or leaks extra metadata',async result=>{
+ parentTransport(result);expect((await parentPurposeGET(new NextRequest('https://ops.example/status'),{params:Promise.resolve({policyId})})).status).toBe(400)
+})
+it('fresh status refuses missing class, revoked session or native foreign/current scope denial',async()=>{
+ parentTransport({status:'active',disposed:false,authority:'none'});fixture.permissions=['ediel.retention.read'];expect((await decisionEvidenceParentPurposeStatus(policyId)).status).toBe(403)
+ fixture.permissions.push(classGrant);fixture.auth.mockResolvedValue({data:{user:null},error:null});expect((await decisionEvidenceParentPurposeStatus(policyId)).status).toBe(403)
+ fixture.auth.mockResolvedValue({data:{user:{id:actor}},error:null});parentTransport(null,{code:'42501',message:'foreign/stale scope'});expect((await decisionEvidenceParentPurposeStatus(policyId)).status).toBe(403)
+})
+it('parent worker uses the configured actor and exact four counters, preserving safe absent-schema code without private error text',async()=>{
+ const counts={scanned:2,disposed:1,clearedApprovals:1,held:0};fixture.rpc.mockResolvedValue({data:counts,error:null})
+ expect(await advanceCompletedParent({actorUserId:actor,limit:20})).toEqual(counts);expect(fixture.rpc).toHaveBeenCalledExactlyOnceWith('ediel_advance_completed_parent_v1',{p_actor_user_id:actor,p_limit:20})
+ fixture.rpc.mockResolvedValue({data:null,error:{code:'PGRST202',message:'PRIVATE receipt'}})
+ await expect(advanceCompletedParent({actorUserId:actor,limit:20})).rejects.toMatchObject({code:'PGRST202',message:'completed_parent_worker_failed'})
+ fixture.rpc.mockResolvedValue({data:null,error:{code:'42501',message:'PRIVATE hold'}})
+ await expect(advanceCompletedParent({actorUserId:actor,limit:20})).rejects.toMatchObject({message:'completed_parent_worker_failed'})
+})
+it('parent worker refuses fabricated expiry counters, invalid actor or batch before service effects',async()=>{
+ fixture.rpc.mockResolvedValue({data:{scanned:0,disposed:0,held:0,clearedApprovals:0,expired:1,authority:'none'},error:null});await expect(advanceCompletedParent({actorUserId:actor,limit:20})).rejects.toThrow()
+ fixture.rpc.mockClear();await expect(advanceCompletedParent({actorUserId:actor,limit:101})).rejects.toThrow();await expect(advanceCompletedParent({actorUserId:'forged',limit:20})).rejects.toThrow();expect(fixture.rpc).not.toHaveBeenCalled()
 })

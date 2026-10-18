@@ -95,3 +95,45 @@ export async function advanceCompletedWitnessDisposition(input:{actorUserId:stri
  if(error)throw Error('completed_witness_worker_failed')
  return workerResult.parse(data)
 }
+
+/** Signed external input is validated without constructing issuer/policy facts. */
+export const completedParentReceiptSchema=z.object({issuerId:uuid,payloadBase64:z.string().min(4).max(65536).regex(/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/),signatureHex:hash}).strict()
+const parentPurposeAdmission=z.object({status:z.literal('purpose_admitted'),version:z.number().int().positive().max(999999999),authority:z.literal('none')}).strict()
+export const completedParentPurposeStatusSchema=z.union([
+ z.object({status:z.literal('unavailable'),authority:z.literal('none')}).strict(),
+ z.object({status:z.enum(['active','ordinary_use_ended','POLICY_REVIEW_OVERDUE','POLICY_OVERDUE']),disposed:z.literal(false),authority:z.literal('none')}).strict(),
+])
+const parentApproval=z.object({status:z.literal('approved'),authority:z.literal('none')}).strict()
+const parentDisposition=z.union([
+ z.object({status:z.literal('disposed'),replay:z.literal(false),authority:z.literal('none')}).strict(),
+ z.object({status:z.enum(['held','unavailable']),authority:z.literal('none')}).strict(),
+])
+export async function admitCompletedParentPurpose(input:{companyId:string;policyId:string;issuerReceipt:Record<string,unknown>}){
+ uuid.parse(input.policyId);completedParentReceiptSchema.parse(input.issuerReceipt)
+ return parentPurposeAdmission.parse(await call('ediel_admit_completed_parent_purpose_v1',input.companyId,{p_policy_id:input.policyId,p_receipt:input.issuerReceipt}))
+}
+export async function readCompletedParentPurposeStatus(input:{companyId:string;policyId:string}){
+ uuid.parse(input.policyId)
+ return completedParentPurposeStatusSchema.parse(await call('ediel_completed_parent_purpose_status_v1',input.companyId,{p_policy_id:input.policyId}))
+}
+export async function reviewCompletedParentDisposition(input:{companyId:string;policyId:string;issuerReceipt:Record<string,unknown>}){
+ uuid.parse(input.policyId);completedParentReceiptSchema.parse(input.issuerReceipt)
+ return parentApproval.parse(await call('ediel_review_completed_parent_v1',input.companyId,{p_policy_id:input.policyId,p_receipt:input.issuerReceipt}))
+}
+export async function disposeCompletedParent(input:{companyId:string;policyId:string}){
+ uuid.parse(input.policyId)
+ return parentDisposition.parse(await call('ediel_dispose_completed_parent_v1',input.companyId,{p_policy_id:input.policyId}))
+}
+const parentWorkerResult=z.object({scanned:z.number().int().min(0).max(100),disposed:z.number().int().min(0).max(100),clearedApprovals:z.number().int().min(0).max(100),held:z.number().int().min(0).max(100)}).strict()
+/** Reuses the validated service actor; only safe schema codes survive errors. */
+export async function advanceCompletedParent(input:{actorUserId:string;limit:number}){
+ uuid.parse(input.actorUserId);z.number().int().min(1).max(100).parse(input.limit)
+ const {supabaseService}=await import('@/lib/supabase/service')
+ const rpc=supabaseService.rpc.bind(supabaseService) as unknown as (name:string,args:Record<string,unknown>)=>Promise<{data:unknown;error:unknown}>
+ const {data,error}=await rpc('ediel_advance_completed_parent_v1',{p_actor_user_id:input.actorUserId,p_limit:input.limit})
+ if(error){
+  const code=(error as {code?:unknown}).code
+  throw Object.assign(Error('completed_parent_worker_failed'),typeof code==='string'&&['PGRST202','PGRST205','42883','42P01','3F000'].includes(code)?{code}:{})
+ }
+ return parentWorkerResult.parse(data)
+}
