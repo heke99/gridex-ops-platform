@@ -319,19 +319,20 @@ describe.each([['V','S17'],['VH','S18']] as const)('Z13%s/%s ESCO request',(mode
   const {f,queued}=await queueRequest(mode),bytes=queued.raw_payload!
   const other=reason==='S17'?'S18':'S17'
   expect(bytes.split(`CAV+${reason}'`)).toHaveLength(2)
-  expect(()=>sql(`UPDATE public.ediel_messages SET raw_payload=replace(raw_payload,${lit(`CAV+${reason}'`)},${lit(`CAV+${other}'`)}) WHERE id=${lit(queued.id)}`)).toThrow(/immutable/)
+  expect(()=>sql(`UPDATE public.ediel_messages SET raw_payload=replace(raw_payload,${lit(`CAV+${reason}'`)},${lit(`CAV+${other}'`)}) WHERE id=${lit(queued.id)}`)).toThrow(/ERROR:  immutable_ediel_payload_cannot_change\n/)
   expect((await getEdielMessageById(queued.id))!.raw_payload).toBe(bytes)
   const p=await sendRequest(f,queued,mode)
   expect(p.z13.raw_payload).toBe(bytes)
-  expect(()=>sql(`UPDATE public.ediel_messages SET raw_payload=raw_payload||'changed' WHERE id=${lit(p.z13.id)}`)).toThrow(/immutable/)
-  expect(()=>sql(`UPDATE public.ediel_messages SET direction='inbound' WHERE id=${lit(p.z13.id)}`)).toThrow(/immutable/)
+  expect(()=>sql(`UPDATE public.ediel_messages SET raw_payload=raw_payload||'changed' WHERE id=${lit(p.z13.id)}`)).toThrow(/ERROR:  immutable_ediel_payload_cannot_change\n/)
+  // Relabelling the sent original is refused first by the wire-reference namespace owner.
+  expect(()=>sql(`UPDATE public.ediel_messages SET direction='inbound' WHERE id=${lit(p.z13.id)}`)).toThrow(/ERROR:  ediel_wire_reference_namespace_context_immutable\n/)
   await acknowledge(p)
   const before=state(p)
   // Wrong direction: the outbound request itself and an outbound-labelled answer are refused before any RPC.
   expect(await applyPermissionMarketSource({actorUserId:f.ids.actor,message:p.z13})).toMatchObject({applied:false,reason:'not_inbound_permission_source'})
   const valid=await receiveZ14(p,z14(p))
   expect(await applyPermissionMarketSource({actorUserId:f.ids.actor,message:{...valid,direction:'outbound'}})).toMatchObject({applied:false,reason:'not_inbound_permission_source'})
-  expect(()=>sql(`UPDATE public.ediel_messages SET direction='outbound' WHERE id=${lit(valid.id)}`)).toThrow(/immutable/)
+  expect(()=>sql(`UPDATE public.ediel_messages SET direction='outbound' WHERE id=${lit(valid.id)}`)).toThrow(/ERROR:  immutable_ediel_received_context_cannot_change\n/)
   expect(state(p)).toEqual(before)
   // Wrong role: the ESCO no longer holds its current market role.
   sql(`UPDATE public.tenant_actor_roles SET role_code='supplier' WHERE company_id=${lit(f.ids.company)} AND actor_id=${lit(f.ids.legal)} AND environment='test' AND role_code='energy_service_company'`)

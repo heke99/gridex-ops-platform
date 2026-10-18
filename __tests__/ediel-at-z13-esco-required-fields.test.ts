@@ -16,6 +16,7 @@ import { validateProdatReportingPermission } from '@/lib/ediel/rulebook/prodatRe
 import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import { serializeUna } from '@/lib/ediel/core/una'
 import { createProdatRegisterEvidence } from '@/lib/ediel/prodat/prodatRegisterEvidence'
+import { PRODAT_26A_FIELD_MATRIX, PRODAT_26A_MESSAGE_CODES } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
 import { omitPermissionField, permissionRequiredFields, type PermissionField } from '../scripts/helpers/ediel-permission-field-omissions'
 import type { ServicePermissionOriginBasis } from '@/lib/ediel/services/permissionOrigin'
 import type { EdielMessageIntent } from '@/lib/ediel/intent/types'
@@ -84,11 +85,12 @@ const z13Own = {
   '217': (s: string) => s === 'CCI++Z04' || s === 'CAV+Z04', '222': (s: string) => s === 'CCI++Z12' || s === 'CAV+:::D',
   '506': (s: string) => s === 'CCI++Z14' || s === 'CAV+::::8716867000030', '513': (s: string) => s === 'CCI++Z22' || s === 'CAV+E19',
   '323': (s: string) => s === 'CCI++Z24' || s === 'CAV+B72', '261': (s: string) => s === 'RFF+ANJ:SOURCE-AGREEMENT',
+  END_USER_GROUP: (s: string) => s.startsWith('NAD+UD+'),
 } as const
 type Z13OwnField = keyof typeof z13Own
 function drop(raw: string, field: Z13OwnField) {
   const wire = tokenizeEdifact(raw), segments = wire.segments.map(s => s.raw), kept = segments.filter(s => !z13Own[field](s))
-  expect(segments.length - kept.length, field).toBe(['302', '321', '261'].includes(field) ? 1 : 2)
+  expect(segments.length - kept.length, field).toBe(['302', '321', '261', 'END_USER_GROUP'].includes(field) ? 1 : 2)
   const head = kept.findIndex(s => s.startsWith('UNH+')), tail = kept.findIndex(s => s.startsWith('UNT+'))
   kept[tail] = kept[tail].replace(/^UNT\+\d+/, 'UNT+' + (tail - head + 1))
   return serializeUna(wire.una) + kept.join(wire.una.segmentTerminator) + wire.una.segmentTerminator
@@ -109,10 +111,16 @@ const reasonOf = (raw: string) => {
 
 // P26.A annex 2: R for Z13 (common header/parties/line + Z13-own), excluding
 // the D fields 321/323 and the installation id 209 Z13 does not need.
+// The R/D sets are read from the frozen P26.A r3 matrix column for Z13, not
+// hand-written. Each R field is then classified by the layer that refuses it.
+const z13Column = PRODAT_26A_MESSAGE_CODES.indexOf('Z13')
+const matrixFields = (requirement: 'R' | 'D') => PRODAT_26A_FIELD_MATRIX.filter(row => row.requirements[z13Column] === requirement).map(row => row.fieldNumber)
+const matrixRequired = matrixFields('R'), matrixDependent = matrixFields('D')
 const syntaxMandatory = ['207', '208', '227'] as const
 const policyFields = ['202', '223'] as const
-const applicationRequired = ['311', '312', '203', '313', '205', '206', '314', '302', '217', '222', '506', '513', '261', '226', '228', '316'] as const
-const required = [...applicationRequired, ...policyFields, ...syntaxMandatory]
+const groupFields = ['END_USER_GROUP'] as const
+const applicationRequired = matrixRequired.filter(f => ![...syntaxMandatory, ...policyFields, ...groupFields].includes(f as never))
+const required = [...applicationRequired, ...policyFields, ...syntaxMandatory, ...groupFields]
 
 beforeEach(() => {
   vi.useFakeTimers(); vi.setSystemTime(now); vi.clearAllMocks()
@@ -121,10 +129,16 @@ beforeEach(() => {
 })
 afterEach(() => { vi.useRealTimers(); expect(io.rpc).not.toHaveBeenCalled(); expect(io.from).not.toHaveBeenCalled() })
 
-it('the independent required-field oracle covers every Z13 R field that is not D or the absent installation id', () => {
-  // Shared-oracle fields that Z13 does not carry (Z15/Z18 own) stay out.
+it('the frozen 26.A matrix Z13 column is exactly covered by the independent omission oracles', () => {
+  expect(z13Column).toBeGreaterThanOrEqual(0)
+  expect([...matrixDependent].sort()).toEqual(['321', '323'])
+  // 209 (installation id) is not required for Z13.
+  expect(PRODAT_26A_FIELD_MATRIX.find(row => row.fieldNumber === '209')!.requirements[z13Column]).toBe('-')
+  for (const field of [...syntaxMandatory, ...policyFields, ...groupFields]) expect(matrixRequired).toContain(field)
+  expect([...required].sort()).toEqual([...matrixRequired].sort())
+  // Every R field has an independent locator: the shared permission oracle or the Z13-own one.
   const shared = permissionRequiredFields.filter(f => !['327', '322', '324', '260', '325', '209'].includes(f))
-  expect([...shared].sort()).toEqual(required.filter(f => !Object.keys(z13Own).includes(f)).sort())
+  expect([...shared, ...Object.keys(z13Own).filter(f => !matrixDependent.includes(f))].sort()).toEqual([...matrixRequired].sort())
   expect(new Set(required).size).toBe(required.length)
 })
 
@@ -181,9 +195,35 @@ describe.each([['V', 'S17'], ['VH', 'S18']] as const)('Z13%s/%s actual rendered 
     expect([decision.syntaxDecision, decision.applicationDecision], JSON.stringify(decision.issues)).toEqual(['accepted', 'accepted'])
   })
 
-  it('the dependent purpose field 323 may be absent on the wire', async () => {
-    const f = await rendered(mode), decision = resolveCanonicalRuntimeDecision({ ...f.row, raw_payload: omit(f.raw, '323') })
+  it('the whole end-user group (NAD+UD) missing is rejected with the group and each own field diagnostic', async () => {
+    const f = await rendered(mode), raw = omit(f.raw, 'END_USER_GROUP')
+    expect(tokenizeEdifact(raw).segments.some(s => s.tag === 'NAD' && s.raw.startsWith('NAD+UD+'))).toBe(false)
+    const decision = resolveCanonicalRuntimeDecision({ ...f.row, raw_payload: raw })
+    expect([decision.syntaxDecision, decision.applicationDecision]).toEqual(['accepted', 'rejected'])
+    const errors = decision.issues.filter(i => i.severity === 'error')
+    expect(errors.every(i => i.code === 'FIELD_MATRIX_REQUIRED_FIELD_MISSING' && i.layer === 'application')).toBe(true)
+    expect(errors.map(i => i.prodatDiagnostic)).toEqual([
+      expect.objectContaining({ kind: 'internal', sourceRule: 'PRODAT26A:§2.2:Z13:END_USER_GROUP' }),
+      ...['227', '228', '316'].map(fieldNumber => expect.objectContaining({ kind: 'field', fieldNumber, errorKind: 'missing', sourceRule: `PRODAT26A:§2.2:Z13:${fieldNumber}` }))])
+    expect(preflightEdielMessageRow({ ...f.row, raw_payload: raw }, 'send', undefined, f.context).ok).toBe(false)
+  })
+
+  it('the dependent purpose (323) is required for this assessed-purpose request: its absence is refused by the source-bound validator and preflight', async () => {
+    const f = await rendered(mode), raw = omit(f.raw, '323'), wire = tokenizeEdifact(raw)
+    // Layer behaviour only: the wire-level canonical decision does not know the
+    // source purpose assessment, so it does not refuse a missing D field.
+    const decision = resolveCanonicalRuntimeDecision({ ...f.row, raw_payload: raw })
     expect([decision.syntaxDecision, decision.applicationDecision], JSON.stringify(decision.issues)).toEqual(['accepted', 'accepted'])
+    // The source-bound reporting validator is the authority for D field 323.
+    const issues = validateProdatReportingPermission({ code: 'Z13', rawSegments: wire.segments.map(s => s.raw), una: wire.una, facts: f.facts, reportingContext: f.context })
+    expect(issues.map(i => [i.code, i.blocking])).toEqual([['PRODAT_REPORTING_REQUIRED', true]])
+    expect(issues[0].description).toContain('Z13:323')
+    const stale = preflightEdielMessageRow({ ...f.row, raw_payload: raw }, 'send', undefined, f.context)
+    expect(stale.ok).toBe(false)
+    expect(stale.issues.map(i => i.code)).toEqual(expect.arrayContaining(['PRODAT_REGISTER_EVIDENCE_INVALID']))
+    const rewritten = preflightEdielMessageRow(withEvidence(f, raw), 'send', undefined, f.context)
+    expect(rewritten.ok).toBe(false)
+    expect(rewritten.issues.map(i => i.code)).toContain('PRODAT_DEPENDENT_PREFLIGHT_PRODAT_REPORTING_REQUIRED')
   })
 
   it('a bounded request missing its dependent end (321) is refused by the source-bound reporting validator and preflight', async () => {
