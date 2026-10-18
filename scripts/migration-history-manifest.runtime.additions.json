@@ -236,6 +236,7 @@
     "20261018164728_db05_completed_review_witness_consumer_freeze.sql": "61df11f501aa667c2c6386c6aa2bb282018b672e5dfbe4c57663c42744da9691",
     "20261018172327_ediel_sc031_inbound_ignored_register_projection.sql": "cf6e7b6085ee1529c6f254feb92e2907d8a8e036fcd924cbafaef670572ff8b6",
     "20261018180859_db05_completed_witness_field_disposition.sql": "fc642d541201138c428699e432e2bad0c0b1c88c64238f1b9b4cf8a7889ae604",
-    "20261018220722_db05_completed_parent_purpose_disposition.sql": "0a1ade9d52e1de387e2b4eac8b184b4b1df74c4a67c74725c197122c0d97d7c1"
+    "20261018220722_db05_completed_parent_purpose_disposition.sql": "0a1ade9d52e1de387e2b4eac8b184b4b1df74c4a67c74725c197122c0d97d7c1",
+    "20261018232000_db05_qualified_audit19_cleanup.sql": "f734fee1bf0e4f416552b3038f99bb2de429e7d4ceea219450a4f65ed4e12f43"
   }
 }
