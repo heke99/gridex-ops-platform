@@ -231,7 +231,60 @@ function envelope(f:Fixture,wire:string,reason=f.subtype==='L'?'Z22':'Z23'){
       messageTypeToken:'PRODAT:D:97A:UN:E2SE6A',businessSegments:body}]})
 }
 function wire(f:Fixture,reason?:string){return envelope(f,buildCancellationProspectiveZ04(f),reason)}
-async function receive(f:Fixture,raw:string,expectedSubtype?:Subtype|'C'){
+type BirthObservation={id:string|null;thrown:unknown;warnings:unknown[][]}
+async function observePublicBirth(create:()=>Promise<string|null>):Promise<BirthObservation>{
+  // Observe the real owner's diagnostic port; spyOn preserves console output.
+  // The public creator is invoked ONCE, with no substituted return or retry.
+  const warning=vi.spyOn(console,'warn'),observation:BirthObservation={id:null,thrown:null,warnings:[]}
+  try{observation.id=await create()}catch(error){observation.thrown=error}
+  finally{observation.warnings=warning.mock.calls.map(args=>args.slice());warning.mockRestore()}
+  return observation
+}
+function requireBirthRefusal(field:string|undefined,raw:string,observation:BirthObservation,premise:Row|null){
+  assert.equal(observation.id,null,'refused_public_birth_has_no_source')
+  assert(field,'unexpected_public_birth_refusal')
+  const wire=tokenizeEdifact(raw),unh=wire.segments.find(s=>s.tag==='UNH')!,unb=wire.segments.find(s=>s.tag==='UNB')!,bgm=wire.segments.find(s=>s.tag==='BGM')!
+  const app=segmentComposite(unb,7,wire.una)[0]??'',code=segmentComposite(bgm,1,wire.una)[0]??''
+  if(observation.thrown){
+    assert.equal(observation.warnings.length,0,'no_unrelated_birth_warning')
+    const expected=field==='312'&&!segmentComposite(unh,2,wire.una)[4]?'normal_switch_birth_association_mismatch':
+      field==='311'&&app==='23-DGI-PRODAT'?'canonical_ediel_application_reference_not_allowed:Z04:23-DGI-PRODAT':null
+    if(!expected||!(observation.thrown instanceof Error)||observation.thrown.name!=='Error'||observation.thrown.message!==expected)
+      throw new Error('unqualified_public_birth_exception',{cause:observation.thrown})
+    return {field,kind:'exact_public_birth_exception',name:observation.thrown.name,message:expected,public_invocations:1}
+  }
+  assert.equal(observation.warnings.length,1,'one_actual_public_birth_error_required')
+  const [marker,error]=observation.warnings[0]
+  assert.equal(marker,'[inbound-mail] Kunde inte skapa/uppdatera inbound ediel_message')
+  assert(error&&typeof error==='object','actual_public_birth_database_error_required')
+  assert(premise,'exact_current_birth_profile_premise_required')
+  if(field==='202'){
+    assert.equal(code,'');assert.equal(premise.code,'PRODAT_UNKNOWN');assert.equal(premise.count,0)
+  }else{
+    assert.equal(field,'311');assert.equal(app,'');assert.equal(code,'Z04');assert.equal(premise.code,'Z04')
+    assert(Number(premise.count)>1,'missing_APP_has_healthy_distinct_normal_profiles')
+    assert(Array.isArray(premise.profileKeys))
+    for(const subtype of ['L','LK'])assert(premise.profileKeys.includes('PRODAT:Z04:'+subtype+':26.A:r3'))
+  }
+  const message=`canonical_inbound_rule_profile_resolution_failed:PRODAT:${String(premise.code)}:${String(premise.day)}:${String(premise.count)}`
+  assert.equal((error as Row).code,'23514','unknown_SQLSTATE_is_not_a_field_refusal')
+  assert.equal((error as Row).message,message,'exact_actual_source_profile_refusal_required')
+  return {field,kind:'exact_public_birth_database_refusal',code:'23514',message,premise,public_invocations:1}
+}
+function mailCustody(mail:{inboundEmailMessageId:string;parseResultId:string}){return sql<Row>(`SELECT jsonb_build_object(
+  'rawBirth',(SELECT to_jsonb(r) FROM gridex_unattributed_intake.raw_births r WHERE inbound_email_message_id=${literal(mail.inboundEmailMessageId)}),
+  'parseBirth',(SELECT to_jsonb(p) FROM gridex_unattributed_intake.parse_births p WHERE parse_result_id=${literal(mail.parseResultId)}),
+  'raw',(SELECT raw_edifact_payload FROM public.inbound_email_messages WHERE id=${literal(mail.inboundEmailMessageId)}),
+  'parsedRaw',(SELECT raw_payload FROM public.inbound_ediel_parse_results WHERE id=${literal(mail.parseResultId)}));`)}
+function absentBirthAuthority(mail:{inboundEmailMessageId:string}){return sql<Row>(`WITH own AS (
+  SELECT id FROM public.ediel_messages WHERE
+    inbound_email_message_id=${literal(mail.inboundEmailMessageId)} OR mailbox_message_id=${literal(mail.inboundEmailMessageId)})
+  SELECT jsonb_build_object('sources',(SELECT coalesce(jsonb_agg(id),'[]') FROM own),
+    'receptions',(SELECT coalesce(jsonb_agg(to_jsonb(r)),'[]') FROM gridex_ediel_inbound_receptions.receptions r WHERE inbound_email_message_id=${literal(mail.inboundEmailMessageId)}),
+    'technicalBirths',(SELECT coalesce(jsonb_agg(to_jsonb(t)),'[]') FROM gridex_unattributed_intake.technical_births t WHERE inbound_email_message_id=${literal(mail.inboundEmailMessageId)}),
+    'receivedSources',(SELECT coalesce(jsonb_agg(to_jsonb(s)),'[]') FROM gridex_received_sources.sources s JOIN own ON own.id=s.source_message_id),
+    'contexts',(SELECT coalesce(jsonb_agg(to_jsonb(c)),'[]') FROM gridex_ediel_inbound_context.receipts c JOIN own ON own.id=c.source_message_id));`)}
+async function receive(f:Fixture,raw:string,expectedSubtype?:Subtype|'C',negativeField?:string){
   // Real local public transport privilege at original mail birth. The custody
   // trigger deliberately refuses postgres-only writes without this role.
   const transportSql=<T,>(statement:string)=>sql<T>(`BEGIN; SET LOCAL ROLE service_role; ${statement}; COMMIT;`)
@@ -240,14 +293,30 @@ async function receive(f:Fixture,raw:string,expectedSubtype?:Subtype|'C'){
   expect(sql<number>(`SELECT to_jsonb(count(*)) FROM gridex_unattributed_intake.parse_births WHERE inbound_email_message_id=${literal(mail.inboundEmailMessageId)};`)).toBe(1)
   const outboundMatch=await matchOutboundRequestForInbound({companyId:f.companyId,parsed:mail.parsed,inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId})
   const meteringPointMatch=await matchMeteringPointForInbound({companyId:f.companyId,parsed:mail.parsed})
-  const id=await createInboundEdielMessage({companyId:f.companyId,actorUserId:f.actorUserId,environment:'test',inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId,parsed:mail.parsed,outboundMatch,meteringPointMatch})
-  if(!id)return {mail,message:null}
+  const transportCustody=mailCustody(mail)
+  assert.equal(transportCustody.raw,raw);assert.equal(transportCustody.parsedRaw,raw)
+  const code=negativeField==='202'?'PRODAT_UNKNOWN':'Z04'
+  const profilePremise=negativeField==='202'||negativeField==='311'&&!EdifactEnvelopeCodec.decode(raw).applicationReference
+    ?sql<Row>(`WITH receipt AS (SELECT received_at::date day FROM public.inbound_email_messages WHERE id=${literal(mail.inboundEmailMessageId)}),
+      profiles AS (SELECT mp.profile_key FROM public.ediel_message_profiles mp JOIN public.ediel_rule_packs rp ON rp.id=mp.rule_pack_id CROSS JOIN receipt
+        WHERE mp.is_enabled=true AND mp.profile->>'family'='PRODAT' AND mp.message_code=${literal(code)} AND mp.direction IN('inbound','both')
+          AND rp.status IN('active','future') AND rp.valid_from<=receipt.day AND (rp.valid_to IS NULL OR rp.valid_to>=receipt.day))
+      SELECT jsonb_build_object('code',${literal(code)},'day',(SELECT day FROM receipt),'count',(SELECT count(*) FROM profiles),
+        'profileKeys',(SELECT coalesce(jsonb_agg(profile_key ORDER BY profile_key),'[]') FROM profiles));`):null
+  const observation=await observePublicBirth(()=>createInboundEdielMessage({companyId:f.companyId,actorUserId:f.actorUserId,environment:'test',inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId,parsed:mail.parsed,outboundMatch,meteringPointMatch}))
+  assert.deepEqual(mailCustody(mail),transportCustody,'public_birth_preserves_retained_transport_and_parse')
+  if(!observation.id){
+    const birthRefusal=requireBirthRefusal(negativeField,raw,observation,profilePremise),authority=absentBirthAuthority(mail)
+    assert.deepEqual(authority,{sources:[],receptions:[],technicalBirths:[],receivedSources:[],contexts:[]})
+    return {mail,message:null,birthRefusal,authority,transportCustody}
+  }
+  const id=observation.id
   const message=(await getEdielMessageById(id))!
   expect(message.raw_payload).toBe(raw);expect(message.company_id).toBe(f.companyId)
   if(expectedSubtype)expect(message.rule_profile_key).toBe(`PRODAT:Z04:${expectedSubtype}:26.A:r3`)
   const rows=sql<Row[]>(`SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY id),'[]') FROM gridex_ediel_inbound_receptions.receptions r WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(id)};`)
   expect(rows).toHaveLength(1);expect(rows[0]).toMatchObject({classification:'first_reception',canonical_payload_hash:digest(raw),received_payload_hash:digest(raw)})
-  return {mail,message}
+  return {mail,message,transportCustody}
 }
 async function sendAcks(f:Fixture,m:EdielMessageRow){
   const result=await supabaseService.from('ediel_messages').select('*').eq('company_id',f.companyId).eq('related_message_id',m.id).eq('direction','outbound').order('message_family')
@@ -327,9 +396,69 @@ function withInvoicee(raw:string){
     messages:[{messageReference:randomUUID().slice(0,14),messageTypeToken:d.segments[a].elements[2],businessSegments:body}]})
 }
 type HeldCause={field:string}|{dimension:'customerIdentity'|'point'|'start'|'reason';reasons:string[]}|{cancelled:true}
+function messageEvents(f:Fixture,id:string){return sql<Row[]>(`SELECT coalesce(jsonb_agg(to_jsonb(e) ORDER BY id),'[]') FROM public.ediel_message_events e
+  WHERE company_id=${literal(f.companyId)} AND (ediel_message_id=${literal(id)} OR message_id=${literal(id)});`)}
+function requireOwnEvent(event:Row,f:Fixture,id:string){
+  assert.equal(event.company_id,f.companyId);assert.equal(event.ediel_message_id,id);assert.equal(event.message_id,id)
+  assert.equal(event.created_by,f.actorUserId);assert.deepEqual(event.event_payload,event.payload)
+}
+function physicalSingleScope(raw:string){
+  const wire=tokenizeEdifact(raw),unh=wire.segments.filter(s=>s.tag==='UNH'),lines=wire.segments.filter(s=>s.tag==='LIN')
+  assert.equal(unh.length,1);assert.equal(lines.length,1,'one_physical_fixture_register_required')
+  const point=segmentComposite(lines[0],3,wire.una)
+  assert.equal(segmentComposite(lines[0],2,wire.una).join(''),'','single_register_has_no_C829')
+  return {messageIndex:0,messageReference:segmentComposite(unh[0],1,wire.una)[0],objectId:point[0],identityAgency:point[3],
+    registers:[{lineIndex:0,segmentIndex:lines[0].index,lineNumber:segmentComposite(lines[0],1,wire.una)[0],registerIndex:null,registerPosition:1}]}
+}
+function requireHeldDomainAudit(f:Fixture,id:string,raw:string,reason:string,events:Row[],beforeIds:string[]){
+  const own=events.filter(e=>!beforeIds.includes(String(e.id))&&e.event_type==='validated'&&e.payload&&typeof e.payload==='object'
+    &&Object.hasOwn(e.payload,'sourceObjectPartition'))
+  assert.equal(own.length,1,'one_new_actual_all_held_public_owner_audit_required')
+  const event=own[0];requireOwnEvent(event,f,id);assert.equal(event.event_status,'warning')
+  const payload=event.payload as Row
+  assert.equal(payload.applied,false);assert.equal(payload.fullyApplied,false);assert.equal(payload.reviewRequired,true)
+  assert.equal(payload.idempotent,false);assert.equal(payload.permissionResults,null)
+  assert.deepEqual(payload.committedEffectReceiptIds,[])
+  assert.deepEqual(payload.sourceObjectPartition,[{object:physicalSingleScope(raw),disposition:'held',reason}])
+  assert(!events.some(e=>!beforeIds.includes(String(e.id))&&(e.payload as Row|undefined)?.supplySourceApply==='rolled_back'),'rollback_is_not_a_domain_refusal')
+  return event
+}
+function hasFieldDiagnostic(issues:unknown,field:string){return Array.isArray(issues)&&issues.some(issue=>
+  issue&&typeof issue==='object'&&issue.prodatDiagnostic?.kind==='field'&&issue.prodatDiagnostic.fieldNumber===field)}
+function requireFieldOwnerAudit(f:Fixture,message:EdielMessageRow,raw:string,field:string,events:Row[],beforeIds:string[]){
+  const fresh=events.filter(e=>!beforeIds.includes(String(e.id))),canonical=fresh.filter(e=>e.event_type==='validated'&&(e.payload as Row|undefined)?.batch==='2.5B')
+  assert.equal(message.raw_payload,raw);assert.equal((message as EdielMessageRow&{immutable_payload_hash:string}).immutable_payload_hash,digest(raw))
+  if(canonical.length){
+    assert.equal(canonical.length,1);const event=canonical[0];requireOwnEvent(event,f,message.id)
+    const report=message.validation_report as Row,runtime=report.canonicalRuntime as Row
+    assert(runtime&&hasFieldDiagnostic(runtime.issues,field),'actual_persisted_canonical_field_diagnostic_required')
+    assert(report.syntaxDecision==='rejected'||report.applicationDecision==='rejected'
+      ||(report.prodatProcessingDisposition as Row|undefined)?.kind==='internal_review','actual_field_refusal_disposition_required')
+    assert.equal(event.event_status,'warning');return {kind:'canonical_field_owner',field,event,report}
+  }
+  // Party/header routing is an earlier owner. Never accept this branch for
+  // unrelated fields or replace the domain partition with a generic warning.
+  assert(['207','208'].includes(field),'unexpected_early_field_processing_stop')
+  const stopped=fresh.filter(e=>e.event_type==='manual_note'&&(e.payload as Row|undefined)?.ackDecision==='no_negative_contrl_for_routing_unresolved')
+  assert.equal(stopped.length,1);requireOwnEvent(stopped[0],f,message.id);assert.equal(stopped[0].event_status,'warning')
+  const status=(stopped[0].payload as Row).tenantResolutionStatus
+  assert(['tenant_not_found','tenant_ambiguous'].includes(String(status)))
+  const routed=fresh.filter(e=>e.event_type==='manual_note'&&(e.payload as Row|undefined)?.referenceFallbackAllowed===false&&(e.payload as Row).issueType===status)
+  assert.equal(routed.length,1);requireOwnEvent(routed[0],f,message.id)
+  const wire=tokenizeEdifact(raw),snapshot=(routed[0].payload as Row).snapshot as Row
+  assert.equal(snapshot.messageReference,segmentComposite(wire.segments.find(s=>s.tag==='UNH')!,1,wire.una)[0])
+  assert.equal(snapshot.bgmReference,segmentComposite(wire.segments.find(s=>s.tag==='BGM')!,2,wire.una)[0])
+  return {kind:'exact_party_tenant_routing_owner',field,stopped:stopped[0],routing:routed[0]}
+}
+function positiveAperaks(f:Fixture){return sql<Row[]>(`SELECT coalesce(jsonb_agg(to_jsonb(m) ORDER BY id),'[]') FROM public.ediel_messages m
+  WHERE company_id=${literal(f.companyId)} AND message_family='APERAK' AND ack_outcome='positive';`)}
+function pointOriginalCohort(f:Fixture,point:string){return sql<string[]>(`SELECT coalesce(jsonb_agg(DISTINCT s.outbound_z03_message_id ORDER BY s.outbound_z03_message_id),'[]')
+  FROM public.supplier_switch_requests s JOIN public.metering_points p ON p.id=s.metering_point_id AND p.company_id=s.company_id
+  WHERE s.company_id=${literal(f.companyId)} AND p.ediel_metering_point_id=${literal(point)} AND s.outbound_z03_message_id IS NOT NULL;`)}
 async function held(f:Fixture,raw:string,label:string,cause:HeldCause){
-  const before=business(f),seals=fixtures.map(originalSeal),decoyBefore=business(decoy)
-  const {message,mail}=await receive(f,raw)
+  const before=business(f),seals=fixtures.map(originalSeal),decoyBefore=business(decoy),aperakBefore=positiveAperaks(f)
+  const {message,mail,birthRefusal,transportCustody:mailBefore}=await receive(f,raw,undefined,'field'in cause?cause.field:undefined)
+  const sourceBefore=message?sourceCustody(f,message):null
   const physical=tokenizeEdifact(mail.parsed.rawPayload)
   const physicalIssues=[...validateFieldMatrixPayload({family:'PRODAT',code:'Z04',direction:'inbound',
     applicationReference:EdifactEnvelopeCodec.decode(raw).applicationReference,rawSegments:physical.segments.map(s=>s.raw),una:physical.una,mode:'parse'},canonicalProdat26AFieldRules('Z04')),
@@ -347,22 +476,31 @@ async function held(f:Fixture,raw:string,label:string,cause:HeldCause){
     if('dimension'in cause)expect(received[cause.dimension],label+': frozen own correlation mismatch').not.toEqual(original[cause.dimension])
     else expect(periods(f)).toEqual([expect.objectContaining({id:f.periodId,status:'cancelled'})])
   }
-  let partitions:Row[]=[]
+  let partitions:Row[]=[],refusalReceipt:unknown=birthRefusal??null
   if(message){
+    const eventBefore=messageEvents(f,message.id).map(e=>String(e.id))
     await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:message.id})
     partitions=sql<Row[]>(`SELECT coalesce(jsonb_agg(to_jsonb(p)),'[]') FROM gridex_received_sources.supply_object_partitions p WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(message.id)};`)
-    for(const partition of partitions)expect((partition.result as Row).partition).toEqual([expect.objectContaining({disposition:'held'})])
+    expect(partitions,label+': all-held sources do not persist applied partitions').toEqual([])
+    const events=messageEvents(f,message.id)
     if(!('field'in cause)){
       const reasons='dimension'in cause?cause.reasons:['normal_z04_locked_original_scope_required']
-      expect(reasons.some(reason=>JSON.stringify(partitions).includes(reason)),label+': actual own refusal receipt').toBe(true)
-    }
+      assert.equal(reasons.length,1,'scenario_has_one_exact_first_refusal')
+      refusalReceipt=requireHeldDomainAudit(f,message.id,raw,reasons[0],events,eventBefore)
+    }else refusalReceipt=requireFieldOwnerAudit(f,(await getEdielMessageById(message.id))!,raw,cause.field,events,eventBefore)
+    for(const table of ['gridex_received_sources.supply_source_transitions','gridex_received_sources.supply_object_effect_receipts'])
+      assert.equal(sql<number>(`SELECT to_jsonb(count(*)) FROM ${table} WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(message.id)};`),0,'held_source_has_no_committed_effect:'+table)
     expect(sql<number>(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.normal_switch_confirmations WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(message.id)};`),label).toBe(0)
     expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND related_message_id=${literal(message.id)} AND message_family='APERAK' AND ack_outcome='positive';`),label).toBe(0)
   }
+  assert(refusalReceipt,'actual_source_specific_public_refusal_required')
+  if(message)expect(sourceCustody(f,message),label+': actual refused source custody').toEqual(sourceBefore)
+  expect(positiveAperaks(f),label+': no new or changed positive business ACK').toEqual(aperakBefore)
   expect(business(f),label).toEqual(before);expect(fixtures.map(originalSeal),label).toEqual(seals);expect(business(decoy)).toEqual(decoyBefore)
   const retained=sql<{raw:string}>(`SELECT jsonb_build_object('raw',raw_edifact_payload) FROM public.inbound_email_messages WHERE id=${literal(mail.inboundEmailMessageId)} AND company_id=${literal(f.companyId)};`)
   expect(retained.raw).toBe(raw)
-  return {label,cause,diagnostics,partitions,sourceId:message?.id??null,mailId:mail.inboundEmailMessageId,rawHash:digest(raw),no_market_effects:true}
+  expect(mailCustody(mail)).toEqual(mailBefore)
+  return {label,cause,diagnostics,partitions,refusalReceipt,sourceCustody:sourceBefore,mailCustody:mailBefore,sourceId:message?.id??null,mailId:mail.inboundEmailMessageId,rawHash:digest(raw),no_market_effects:true}
 }
 async function phase(f:Fixture,relation:'strictly-before'|'at-or-after',name:string){
   const target=relation==='strictly-before'?new Date(Date.parse(f.startAt)-120000).toISOString():f.startAt
@@ -478,6 +616,9 @@ describe.sequential('actual prospective normal supplier starts under one admitte
     const results=[]
     for(const subtype of ['LK','L'] as const){
       const f=pending[subtype],base=wire(f)
+      const pointContrast={ownPoint:f.external,foreignPoint:valid.L.external,ownOriginal:f.originalZ03.id,
+        ownCohort:pointOriginalCohort(f,f.external),foreignCohort:pointOriginalCohort(f,valid.L.external)}
+      expect(pointContrast.ownCohort).toEqual([f.originalZ03.id]);expect(pointContrast.foreignCohort).toEqual([])
       // Same LI alone is intentionally shared with the real unconfirmed own
       // original. Every negative differs physically before source birth.
       const variants:Record<string,string>={customer:base.replace(f.customerIdentity.id,'198001011234'),
@@ -487,7 +628,7 @@ describe.sequential('actual prospective normal supplier starts under one admitte
         sender:base.replace(`NAD+FR+${f.receiver}`,`NAD+FR+${decoy.receiver}`),
         receiver:base.replace(`NAD+DO+${f.sender}`,`NAD+DO+${decoy.sender}`)}
       const causes:Record<string,HeldCause>={customer:{dimension:'customerIdentity',reasons:['normal_z04_exact_sent_original_required']},
-        point:{dimension:'point',reasons:['normal_z04_exact_sent_original_required','normal_z04_owned_signed_contract_scope_required']},
+        point:{dimension:'point',reasons:['supply_original_cohort_changed']},
         start:{dimension:'start',reasons:['normal_z04_exact_sent_original_required']},reason:{dimension:'reason',reasons:['normal_z04_exact_sent_original_required']},
         agency:{field:'209'},wrongRole:{field:'311'},sender:{field:'207'},receiver:{field:'208'}}
       for(const [label,raw]of Object.entries(variants))results.push(await held(f,raw,subtype+':same-LI-'+label,causes[label]))
@@ -505,7 +646,8 @@ describe.sequential('actual prospective normal supplier starts under one admitte
       // Healthy real own original remains confirmable AFTER all omissions: the
       // negatives did not pass only because a pre-existing period conflicted.
       await confirm(f,withInvoicee(wire(f)))
-      results.push({label:subtype+':healthy-own-source-after-refusals',invoice_before_business:f.invoiceBaseline,state:activationSnapshot(f)})
+      results.push({label:subtype+':healthy-own-source-after-refusals',pointContrast,healthySourceId:f.confirmation!.id,
+        healthySameFixturePoint:periods(f)[0].metering_point_id,invoice_before_business:f.invoiceBaseline,state:activationSnapshot(f)})
     }
     const f=valid.L,before=business(f),seal=originalSeal(f)
     for(const {patch,code,message} of [{patch:{raw_payload:f.originalZ03.raw_payload+' '},code:'23514',message:'immutable_ediel_payload_cannot_change'},
