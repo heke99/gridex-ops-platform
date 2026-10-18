@@ -40,8 +40,12 @@ it('actual JWT same-review retirement crosses signed PG time, consumes separate 
  expect((await f.readonly.client.rpc('ediel_read_retention_decision_original_v1',{...read,p_include_document:true})).error).not.toBeNull()
  expect((await f.readonly.client.rpc('ediel_purge_decision_evidence_retention_v1',{...f.parameters,p_actor_user_id:f.readonly.id})).error).not.toBeNull()
  expect((await f.actor.client.rpc('ediel_purge_decision_evidence_retention_v1',{...purge,p_actor_user_id:f.reviewer.id})).error).not.toBeNull()
- for(const receipt of [signSyntheticDecisionOriginalPolicy(f.companyId,f.issuerId,f.metadataBasis,f.metadataDocument,{retainUntil:f.clock.boundary,journalRetainUntil:f.clock.witnessUntil}),signSyntheticCompletedReviewReasonPolicy(f.companyId,f.issuerId,f.metadataBasis,f.metadataDocument,{issuedAt:f.clock.issuedAt,expiresAt:f.clock.expiresAt,retainUntil:f.clock.boundary,journalRetainUntil:f.clock.witnessUntil,witnessFields:[]})]){
-  const unqualified=await f.actor.client.rpc('ediel_submit_decision_evidence_retention_v1',{p_company_id:f.companyId,p_actor_user_id:f.actor.id,p_retention_class:completedReviewReasonClass,p_target_id:f.sourceReviewId,p_document_base64:f.metadataDocument.toString('base64'),p_issuer_receipt:receipt})
+ const conflicting=await f.actor.client.rpc('ediel_submit_decision_evidence_retention_v1',{p_company_id:f.companyId,p_actor_user_id:f.actor.id,p_retention_class:completedReviewReasonClass,p_target_id:f.sourceReviewId,p_document_base64:f.metadataDocument.toString('base64'),p_issuer_receipt:signSyntheticDecisionOriginalPolicy(f.companyId,f.issuerId,f.metadataBasis,f.metadataDocument,{retainUntil:f.clock.boundary,journalRetainUntil:f.clock.witnessUntil})})
+ expect(conflicting.error?.message).toContain('decision_evidence_original_policy_conflict')
+ for(const kind of ['byte-only operation','missing witness fields'] as const){
+  const document=Buffer.from('SYNTHETIC independent negative underlay: '+kind)
+  const receipt=kind==='byte-only operation'?signSyntheticDecisionOriginalPolicy(f.companyId,f.issuerId,f.metadataBasis,document,{retainUntil:f.clock.boundary,journalRetainUntil:f.clock.witnessUntil}):signSyntheticCompletedReviewReasonPolicy(f.companyId,f.issuerId,f.metadataBasis,document,{issuedAt:f.clock.issuedAt,expiresAt:f.clock.expiresAt,retainUntil:f.clock.boundary,journalRetainUntil:f.clock.witnessUntil,witnessFields:[]})
+  const unqualified=await f.actor.client.rpc('ediel_submit_decision_evidence_retention_v1',{p_company_id:f.companyId,p_actor_user_id:f.actor.id,p_retention_class:completedReviewReasonClass,p_target_id:f.sourceReviewId,p_document_base64:document.toString('base64'),p_issuer_receipt:receipt})
   expect(unqualified.error).toBeNull();expect(unqualified.data.issuerQualified).toBe(false)
   const invalidParameters={p_company_id:f.companyId,p_policy_id:unqualified.data.policyId}
   expect((await f.reviewer.client.rpc('ediel_review_decision_evidence_retention_v1',{...invalidParameters,p_actor_user_id:f.reviewer.id,p_outcome:'approve',p_reason:'SYNTHETIC wrong operation or absent witness authority'})).data.status).toBe('held')
@@ -78,4 +82,19 @@ it.each(['actor permission','reviewer permission','receipt expiry'] as const)('a
  if(control==='receipt expiry'){expect(result.error).toBeNull();expect(result.data.status).toBe('held');expect(sql(`SELECT to_jsonb(clock_timestamp()>=${literal(f.clock.expiresAt)}::timestamptz)`)).toBe(true)}else expect(result.error).not.toBeNull()
  expect(retentionSql(`SELECT to_jsonb(r) FROM gridex_ediel_retention.decision_evidence_reviews r WHERE id=${literal(f.sourceReviewId)}`)).toEqual(before)
  expect(sql(`SELECT jsonb_build_object('tombstones',(SELECT count(*) FROM gridex_ediel_retention.decision_evidence_tombstones WHERE policy_id=${literal(f.policyId)}),'revocations',(SELECT count(*) FROM gridex_ediel_retention.decision_evidence_revocations WHERE policy_id=${literal(f.policyId)}),'audit',(SELECT count(*) FROM public.audit_logs WHERE entity_id=${literal(f.sourceReviewId)} AND action='ediel.retention.completed_review_reason_retired'))`)).toEqual({tombstones:0,revocations:0,audit:0})
+},120000)
+
+it.each(['scheduled class deny','expiring class allow'] as const)('actual JWT reason body read refuses %s after an observed selected-review lock wait',async(control)=>{
+ const f=await createCompletedReviewReasonNativeFixture(randomUUID()+'Aa1!'),read={p_company_id:f.companyId,p_actor_user_id:f.reviewer.id,p_retention_class:completedReviewReasonClass,p_target_id:f.sourceReviewId,p_include_document:true}
+ const current=await f.reviewer.client.rpc('ediel_read_retention_decision_original_v1',read);expect(current.error).toBeNull();expect(current.data.documentBase64).toBe(Buffer.from(f.sourceReason).toString('base64'))
+ const boundary=sql<string>(`SELECT to_jsonb(clock_timestamp()+interval '1 second')`)
+ if(control==='expiring class allow'){
+  sql(`DELETE FROM public.user_permissions WHERE company_id=${literal(f.companyId)} AND user_id=${literal(f.reviewer.id)} AND permission_key=${literal(completedReviewReasonPermission)};INSERT INTO public.user_permission_overrides(company_id,user_id,permission_key,effect,is_active,valid_to) VALUES(${literal(f.companyId)},${literal(f.reviewer.id)},${literal(completedReviewReasonPermission)},'allow',true,${literal(boundary)}::timestamptz)`)
+ }else{
+  sql(`INSERT INTO public.user_permission_overrides(company_id,user_id,permission_key,effect,is_active,valid_from) VALUES(${literal(f.companyId)},${literal(f.reviewer.id)},${literal(completedReviewReasonPermission)},'deny',true,${literal(boundary)}::timestamptz)`)
+ }
+ const blocked=await withObservedReviewReasonLock(f.sourceReviewId,async()=>await f.reviewer.client.rpc('ediel_read_retention_decision_original_v1',read),()=>waitForReviewReasonBoundary(boundary))
+ expect(blocked.error?.message).toContain('decision_evidence_current_class_grant_required');expect(blocked.data).toBeNull();expect(JSON.stringify(blocked)).not.toContain(Buffer.from(f.sourceReason).toString('base64'))
+ const fresh=await f.reviewer.client.rpc('ediel_read_retention_decision_original_v1',read);expect(fresh.error?.message).toContain('decision_evidence_current_class_grant_required');expect(fresh.data).toBeNull()
+ expect(retentionSql(`SELECT to_jsonb(reason) FROM gridex_ediel_retention.decision_evidence_reviews WHERE id=${literal(f.sourceReviewId)}`)).toBe(f.sourceReason)
 },120000)

@@ -232,6 +232,6 @@
     "20261015083414_ops_api_signing_retention_crosspaths_alignment.sql": "be993328f8141425267146b9a832279d01872332cbca86c8b5aa78bed14a6fb9",
     "20261015083829_ops_api_signature_price_cache_alignment.sql": "4f87d7a8626941c529e350f7784af0c42fab58740598db47c7c1ad5c5e04a705",
     "20261015100259_ops_api_signed_contract_price_cache_binding_guard_alignment.sql": "9c055dba7b020aad3bb867f6ff2b02f8854fee4bc136db2de4042bc6347dc83c",
-    "20261018104637_db05_completed_decision_review_reason_retention.sql": "69bd4085b1836a3e2ae7aebfc9edf5fe038741389d8c3451a8d6e34fc76aae36"
+    "20261018104637_db05_completed_decision_review_reason_retention.sql": "3725ee68d6883b93f47cafa3fb2322f76ad058e168f79a342c0cd33901b946c2"
   }
 }
