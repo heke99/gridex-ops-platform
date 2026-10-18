@@ -15,6 +15,8 @@ vi.mock('@/lib/email/manualOperationsMailbox', async (orig) => ({
 }))
 
 import { requestMissingFacilityInformation } from '@/lib/customer-operations/requestMissingFacilityInformationCore'
+import { recordManualCounterpartyReply } from '@/lib/inbound-mail/manualCounterpartyReply'
+import { assessManualReply } from '@/lib/inbound-mail/manualReplyAssessment'
 
 const CO = '11111111-1111-4111-8111-111111111111'
 const REQ = '22222222-2222-4222-8222-222222222222'
@@ -57,6 +59,51 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllEnvs() })
 
 describe('baseline', () => {
+  it.each(['completed', 'cancelled'])('keeps a concurrent %s state when PDF archiving fails', async (status) => {
+    const db = seed({ request: { status: 'ready_to_send_manual_email', poa_id: 'poa-1' } }); port.db = db
+    const storageFrom = db.client.storage.from
+    db.client.storage.from = (bucket) => ({ ...storageFrom(bucket), upload: async () => {
+      db.tables.grid_owner_information_requests[0].status = status
+      throw new Error('synthetic archive failure')
+    } })
+    await run()
+    expect(db.tables.grid_owner_information_requests[0].status).toBe(status)
+    expect(db.tables.manual_email_outbox).toHaveLength(0)
+  })
+  it('does not erase a newer rejection while recording an archive failure', async () => {
+    const db = seed({ request: { status: 'ready_to_send_manual_email', poa_id: 'poa-1' } }); port.db = db
+    const storageFrom = db.client.storage.from
+    db.client.storage.from = (bucket) => ({ ...storageFrom(bucket), upload: async () => {
+      await recordManualCounterpartyReply({ companyId: CO, request: { ...db.tables.grid_owner_information_requests[0] }, inboundId: 'latest-rejection',
+        assessment: assessManualReply('Vi nekar er fullmakt. Verifikationsnummer saknas.')! })
+      throw new Error('synthetic archive failure')
+    } })
+    expect((await run()).status).toBe('needs_review')
+    expect(db.tables.grid_owner_information_requests[0]).toMatchObject({ metadata: { counterparty_reply: { requires_review: true, inbound_id: 'latest-rejection' } } })
+    expect(db.tables.manual_email_outbox).toHaveLength(0)
+  })
+  it.each([false, true])('preserves a rejection arriving during PDF IO (reused outbox: %s)', async (reuse) => {
+    const db = seed({ request: { status: 'ready_to_send_manual_email', poa_id: 'poa-1' } }); port.db = db
+    if (reuse) await run()
+    const storageFrom = db.client.storage.from
+    let rejected = false
+    db.client.storage.from = (bucket) => {
+      const storage = storageFrom(bucket)
+      const reject = async () => {
+        if (rejected) return
+        rejected = true
+        await recordManualCounterpartyReply({ companyId: CO, request: { ...db.tables.grid_owner_information_requests[0] },
+          inboundId: 'new-rejection', assessment: assessManualReply('Vi nekar er fullmakt. Verifikationsnummer saknas.')! })
+      }
+      return { ...storage, upload: async (...args) => { await reject(); return storage.upload(...args) },
+        download: async (...args) => { await reject(); return storage.download(...args) } }
+    }
+    expect((await run()).status).toBe('needs_review')
+    expect(rejected).toBe(true)
+    expect(db.tables.grid_owner_information_requests[0]).toMatchObject({ status: 'needs_review', metadata: { counterparty_reply: { requires_review: true, inbound_id: 'new-rejection' } } })
+    expect(db.tables.manual_email_outbox).toHaveLength(1)
+    expect(db.tables.manual_email_outbox[0].status).toBe(reuse ? 'queued' : 'failed')
+  })
   it('replaces a queued attachment when a rejected fullmakt is replaced', async () => {
     const db = seed({ request: { status: 'needs_review', poa_id: 'old-poa', metadata: { counterparty_reply: { requires_review: true, poa_id: 'old-poa' } } },
       outbox: [{ id: 'old-mail', company_id: CO, request_id: REQ, status: 'queued', to_email: 'anlaggning@owner.example',

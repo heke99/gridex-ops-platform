@@ -462,7 +462,7 @@ async function markRequestNeedsReview(input: {
   const now = new Date().toISOString()
   const baseMetadata =
     input.baseMetadata && typeof input.baseMetadata === 'object' ? input.baseMetadata : {}
-  const result = await supabaseService
+  let update = supabaseService
     .from('grid_owner_information_requests')
     .update({
       status: 'needs_review',
@@ -473,9 +473,24 @@ async function markRequestNeedsReview(input: {
     })
     .eq('company_id', input.companyId)
     .eq('id', input.requestId)
+    .in('status', [
+      'draft', 'ready_to_send', 'ready_to_send_manual_email', 'needs_review', 'manual_email_queued',
+      'manual_email_sent', 'waiting_manual_response', 'manual_response_received',
+      'blocked_missing_poa', 'blocked_missing_grid_owner_contact', 'blocked_missing_manual_mailbox',
+    ])
     .select('id')
+  // Preserve a reply or other metadata written while this operation awaited IO.
+  update = input.baseMetadata == null
+    ? update.is('metadata', null)
+    : update.eq('metadata', JSON.stringify(input.baseMetadata))
+  const result = await update
   if (result.error) throw result.error
-  if (!result.data?.length) throw new Error('Nätägarärendet kunde inte uppdateras för rätt tenant.')
+  if (!result.data?.length) {
+    const current = await supabaseService.from('grid_owner_information_requests').select('id')
+      .eq('company_id', input.companyId).eq('id', input.requestId).maybeSingle()
+    if (current.error) throw current.error
+    if (!current.data) throw new Error('Nätägarärendet kunde inte uppdateras för rätt tenant.')
+  }
 }
 
 export async function requestMissingFacilityInformation(
@@ -712,6 +727,8 @@ export async function requestMissingFacilityInformation(
 
   // Create or reuse the manual information request (idempotent per open site/type).
   let request = await findOpenManualRequest({ companyId: input.companyId, siteId: input.siteId, requestType, gridOwnerId, siteAddressHash })
+  const reusedRequest = Boolean(request)
+  const initialRequestMetadata = request?.metadata ?? null
   const requestMetadata = (request?.metadata as JsonRecord | null) ?? {}
   const previousReply = (requestMetadata.counterparty_reply as JsonRecord | null) ?? {}
   if (request && previousReply.requires_review === true) {
@@ -796,6 +813,15 @@ export async function requestMissingFacilityInformation(
     return blocked('blocked', 'technical_error', 'Begäran kunde inte skapas. Försök igen.')
   }
 
+  const queueMetadataSnapshot = reusedRequest ? initialRequestMetadata : (request.metadata ?? null)
+  // A concurrent insert winner may already have received a reply after our
+  // original lookup. Never bypass its hold on the uniqueness-recovery path.
+  if (!reusedRequest && ((request.metadata as JsonRecord | null)?.counterparty_reply as JsonRecord | null)?.requires_review === true) {
+    const message = 'Ett nytt motpartssvar behöver granskas innan ärendet kan köas.'
+    return { status: 'needs_review', requestId: String(request.id), caseReference: clean(request.case_reference), channel: 'manual_email',
+      emailOutboxId: null, poaId: clean(poa.id), nextAction: { code: 'counterparty_reply_requires_review', message },
+      blockers: [{ code: 'counterparty_reply_requires_review', message }] }
+  }
   const requestId = String(request.id)
   let caseReference = clean(request.case_reference)
   if (!caseReference) {
@@ -1124,7 +1150,7 @@ export async function requestMissingFacilityInformation(
   // outbox row backs it (fresh insert or an active row). Requests parked in
   // needs_review or a persisted blocked_missing_* state advance too: all gates
   // passed and an e-mail row is queued, so leaving the old blocker would lie.
-  const requestUpdate = await supabaseService
+  let requestUpdateQuery = supabaseService
     .from('grid_owner_information_requests')
     .update({
       channel: 'manual_email',
@@ -1154,8 +1180,24 @@ export async function requestMissingFacilityInformation(
       'blocked_missing_poa', 'blocked_missing_grid_owner_contact', 'blocked_missing_manual_mailbox',
     ])
     .select('id')
+  requestUpdateQuery = queueMetadataSnapshot === null
+    ? requestUpdateQuery.is('metadata', null)
+    : requestUpdateQuery.eq('metadata', JSON.stringify(queueMetadataSnapshot))
+  const requestUpdate = await requestUpdateQuery
   if (requestUpdate.error) throw requestUpdate.error
-  if (!requestUpdate.data?.length && !alreadyQueued) throw new Error('Nätägarärendet kunde inte flyttas till köad status för rätt tenant.')
+  if (!requestUpdate.data?.length) {
+    // Only retire this operation's fresh, still-unclaimed queue row. An older
+    // active row remains guarded by the current request and its preserved reply.
+    if (!alreadyQueued && emailOutboxId) {
+      const cancelled = await supabaseService.from('manual_email_outbox').update({
+        status: 'failed', last_error: 'request_changed_before_queue', next_attempt_at: null, updated_at: new Date().toISOString(),
+      }).eq('company_id', input.companyId).eq('request_id', requestId).eq('id', emailOutboxId).eq('status', 'queued')
+      if (cancelled.error) throw cancelled.error
+    }
+    const message = 'Ärendet ändrades medan utskicket förbereddes. Det senaste svaret och eventuella spärrar har bevarats; granska ärendet.'
+    return { status: 'needs_review', requestId, caseReference, channel: 'manual_email', emailOutboxId, poaId: clean(poa.id),
+      nextAction: { code: 'request_changed_before_queue', message }, blockers: [{ code: 'request_changed_before_queue', message }] }
+  }
 
   // Archive checksums and versions are persisted by the archive service.
   // Record attachment to this delivery separately, only on a fresh queue.
