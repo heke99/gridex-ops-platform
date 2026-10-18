@@ -82,6 +82,6 @@ describe('checkout honors qualified automation runtime readiness', () => {
   })
 
   it('executes the forward repair against PostgreSQL semantics and its security/rollback regressions', async () => {
-    expect(await verifySupplyDeadlineRuntimeRepair()).toMatchObject({ status: 'PASS_MECHANICAL_SQL', checks: 55, production_writes: 0 })
+    expect(await verifySupplyDeadlineRuntimeRepair()).toMatchObject({ status: 'PASS_MECHANICAL_SQL', checks: 63, production_writes: 0 })
   }, 60_000)
 })

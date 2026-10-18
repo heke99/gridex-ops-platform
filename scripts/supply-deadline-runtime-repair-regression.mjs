@@ -100,6 +100,24 @@ try {
   await assert.rejects(install(), /supply_deadline_cursor_conflict/); checks++
   await db.exec('ROLLBACK;ALTER TABLE gridex_received_sources.normal_activation_sweep_cursors ALTER COLUMN last_start DROP DEFAULT')
   await install()
+  const cursorPrimaryKey = 'normal_activation_sweep_cursors_pkey'
+  await db.exec(`ALTER TABLE gridex_received_sources.normal_activation_sweep_cursors DROP CONSTRAINT ${cursorPrimaryKey};ALTER TABLE gridex_received_sources.normal_activation_sweep_cursors ADD PRIMARY KEY(scope_key) DEFERRABLE`)
+  equal((await value('select public.gridex_customer_application_runtime_contract_v1() as value')).ready, false)
+  await assert.rejects(install(), /supply_deadline_cursor_conflict/); checks++
+  await db.exec(`ROLLBACK;ALTER TABLE gridex_received_sources.normal_activation_sweep_cursors DROP CONSTRAINT ${cursorPrimaryKey};ALTER TABLE gridex_received_sources.normal_activation_sweep_cursors ADD PRIMARY KEY(scope_key)`)
+  await db.exec('ALTER TABLE gridex_received_sources.normal_activation_sweep_cursors ADD CONSTRAINT fixture_deferred UNIQUE(last_start) DEFERRABLE')
+  equal((await value('select public.gridex_customer_application_runtime_contract_v1() as value')).ready, false)
+  await assert.rejects(install(), /supply_deadline_cursor_conflict/); checks++
+  await db.exec('ROLLBACK;ALTER TABLE gridex_received_sources.normal_activation_sweep_cursors DROP CONSTRAINT fixture_deferred')
+  await db.exec("ALTER TABLE gridex_received_sources.normal_activation_sweep_cursors ADD CONSTRAINT fixture_wrong_scope CHECK(scope_key='all')")
+  equal((await value('select public.gridex_customer_application_runtime_contract_v1() as value')).ready, false)
+  await assert.rejects(install(), /supply_deadline_cursor_conflict/); checks++
+  await db.exec('ROLLBACK;ALTER TABLE gridex_received_sources.normal_activation_sweep_cursors DROP CONSTRAINT fixture_wrong_scope;DROP TABLE gridex_received_sources.normal_activation_sweep_cursors')
+  await db.exec("CREATE TABLE gridex_received_sources.normal_activation_sweep_cursors(scope_key text GENERATED ALWAYS AS ('fixed') STORED PRIMARY KEY,last_start timestamptz,last_period uuid);ALTER TABLE gridex_received_sources.normal_activation_sweep_cursors ENABLE ROW LEVEL SECURITY;REVOKE ALL ON gridex_received_sources.normal_activation_sweep_cursors FROM PUBLIC,anon,authenticated,service_role")
+  equal((await value('select public.gridex_customer_application_runtime_contract_v1() as value')).ready, false)
+  await assert.rejects(install(), /supply_deadline_cursor_conflict/); checks++
+  await db.exec('ROLLBACK;DROP TABLE gridex_received_sources.normal_activation_sweep_cursors')
+  await install()
 
   // Missing runtime cannot be hidden by a previously green readiness record.
   await db.exec('DROP FUNCTION gridex_received_sources.advance_supply_before_normal_switch_v1(uuid,uuid,integer)')

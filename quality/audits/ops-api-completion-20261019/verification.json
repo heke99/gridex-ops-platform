@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-10-18T23:24:37.087786+00:00",
+  "checked_at": "2026-10-18T23:32:19.768823+00:00",
   "scope": "Targeted OPS supply-deadline deployment drift, fail-closed readiness and coordinated signed POA API completion",
   "base": "63580ae0a84b97b3e44d46cc21bdc349b8c978fa",
   "source_receipt": "eaf07cdf9ee3313a4ec60f5ec85fa18c22e36fe3",
@@ -21,13 +21,13 @@
       "command": "vitest run __tests__/supply-deadline-readiness.test.ts __tests__/ediel-supply-market-consumers.test.ts __tests__/website-application-readiness-boundary.test.ts"
     },
     "mechanical_sql": {
-      "checks": 55,
+      "checks": 63,
       "production_writes": 0,
       "actual_sql": true,
       "limits": "Declared external permission, regulated-ground and legacy-activation ports; not native/market/live qualification"
     },
     "sql_red": "An empty CLI-created forward reproduced the missing entrypoint assertion before implementation",
-    "harness_correction": "Subprocess capture returned an empty terminal receipt under Vitest; the same SQL verifier is now exported and directly awaited. All original assertions remain, with an explicit 47-check terminal result. Standalone execution also passed.",
+    "harness_correction": "Subprocess capture returned an empty terminal receipt under Vitest; the same SQL verifier is exported and directly awaited. All original assertions remain. The final verifier returns an explicit63-check terminal result.",
     "app_typecheck": "PASS tsc --noEmit --incremental false",
     "test_typecheck": "PASS npm run typecheck:tests",
     "scoped_lint": "PASS final eslint --max-warnings=0",
@@ -43,7 +43,7 @@
       "suites": 4,
       "tests": 59,
       "failed": 0,
-      "source": "corrected working tree after91f55ee0 reviews"
+      "source": "corrected working tree after91f55ee0 ande2f05066 reviews"
     },
     "independent_initial_review": {
       "source": "91f55ee047fc33349d286fa2e738c4e32f775066",
@@ -67,6 +67,18 @@
         "/tmp/gridex-ops-api-deadline-review-b-91f55ee0.md"
       ],
       "corrected_source_approval": "PENDING"
+    },
+    "independent_followup_review": {
+      "source": "e2f05066981fbfda0afa10bea6d78b509fc277ae",
+      "decision": "CHANGES_REQUIRED",
+      "finding": "P2 cursor predicate admitted deferrable primary keys and generated scope keys that fail INSERT ON CONFLICT",
+      "red": "Actual predicate probes and new regression reproduced true compatibility for unusable keys",
+      "fix": "Both preflight and runtime require an ordinary nongenerated scope, immediate valid ready live primary arbiter, no extra unique/exclusion indexes, constraints, user triggers or rules. Actual SQL rejects four incompatible preimage variants atomically.",
+      "reports": [
+        "/tmp/gridex-ops-api-deadline-review-a-e2f05066.md",
+        "/tmp/gridex-ops-api-deadline-review-b-e2f05066.md"
+      ],
+      "corrected_source_approval": "PENDING"
     }
   },
   "live_read_only_preflight": {
@@ -81,7 +93,7 @@
   "migration": {
     "path": "supabase/migrations/20261018230141_restore_supply_deadline_runtime.sql",
     "created_by": "Official Supabase CLI2.81.3 migration new, downloaded archive verified against official checksum; current2.121 help could not initialize read-only global home",
-    "sha256": "246343cb0273a3c974cbe151afd6e1b02d8b306bdba0f67056831ad225b8cffd",
+    "sha256": "a3881fd16a51bb12af8b7ff72a01c8bc6ba4ef0d44c78d49bf2b14aca931ba3d",
     "runtime_index_registration": "Incumbent AGENT1 intake pending",
     "generated_outputs": "Incumbent qualified GEN/schema service intake pending",
     "applied_to_production": false
