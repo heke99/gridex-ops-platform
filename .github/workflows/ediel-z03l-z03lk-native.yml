@@ -1,0 +1,393 @@
+name: Ediel Z03L Z03LK source-bound native qualification
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+
+permissions:
+  contents: read
+  pull-requests: read
+  actions: read
+
+# One producer chain. Never cancel/restart an existing native/backend consumer.
+concurrency:
+  group: ediel-z03l-z03lk-native-producer
+  cancel-in-progress: false
+
+# Source publication is HOLD. Only a separate owner label and exact-head
+# admission may select the new suite. A skipped suite is NOT_RUN, never PASS.
+# Ordinary clean/upgrade/native/browser/parity gates remain mandatory.
+env:
+  SOURCE_RECEIPT: 04bdf827a29a4a621d54b53eddb61c28f33a8ae1
+  SOURCE_CLAIM_BASE: dbbfee16abef0bdf6ca455088c21e7e6f089138a
+  SOURCE_BRANCH: codex/agent3-z03-native-20261018
+  PRODUCER_REF: refs/tags/agent-claims/masterplan/producer-z03l-z03lk
+  OUTPUT_INTENT: ediel-z03l-z03lk-native-evidence-v1
+
+jobs:
+  admission:
+    name: Z03 admission (HOLD means native NOT_RUN)
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    outputs:
+      admitted: ${{ steps.admit.outputs.admitted }}
+      binding: ${{ steps.admit.outputs.binding }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Authenticate exact source and separate positive root admission
+        id: admit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY_ADMISSION'
+          import base64, hashlib, json, os, pathlib, re, subprocess, urllib.parse, urllib.request
+          repo = 'heke99/gridex-ops-platform'
+          workflow = '.github/workflows/ediel-z03l-z03lk-native.yml'
+          files = sorted([workflow, 'scripts/ediel-at-z03l-z03lk-supplier-native.config.ts',
+              'scripts/ediel-at-z03l-z03lk-supplier-native.test.ts', 'scripts/helpers/ediel-z03-native-supply-observation.ts',
+              'scripts/helpers/ediel-normal-switch-native-fixture.ts'])
+          claim = os.environ['SOURCE_RECEIPT']
+          producer_ref = os.environ['PRODUCER_REF']
+          event = json.loads(pathlib.Path(os.environ['GITHUB_EVENT_PATH']).read_text())
+          def output(key, value):
+              with open(os.environ['GITHUB_OUTPUT'], 'a') as target: target.write(key + '=' + value + '\n')
+          def hold(reason):
+              with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as target:
+                  target.write('Z03L/LK admission: HOLD; native: NOT_RUN; whole-contract credit: NONE.\n\n' + reason + '\n')
+              raise SystemExit(0)
+          output('admitted', 'false')
+          if not (event.get('action') == 'labeled' and event.get('label', {}).get('name') == 'ediel-z03-native-approved'
+              and event.get('sender', {}).get('login') == 'heke99' and os.environ.get('GITHUB_ACTOR') == 'heke99'
+              and os.environ.get('GITHUB_RUN_ATTEMPT') == '1'
+              and event['pull_request']['head']['repo']['full_name'] == repo
+              and event['pull_request']['head']['ref'] == os.environ['SOURCE_BRANCH']):
+              hold('A separate exact-head owner label, producer appointment and two source peers are pending.')
+          def api(path):
+              request = urllib.request.Request('https://api.github.com/repos/' + repo + '/' + path,
+                  headers={'Authorization': 'Bearer ' + os.environ['GH_TOKEN'], 'Accept': 'application/vnd.github+json'})
+              with urllib.request.urlopen(request, timeout=30) as response: return json.load(response)
+          def git(*args): return subprocess.check_output(['git', *args], text=True).strip()
+          def strict_json(text):
+              def pairs(rows):
+                  result = {}
+                  for key, value in rows:
+                      if key in result: raise ValueError('duplicate_json_key')
+                      result[key] = value
+                  return result
+              def constant(value): raise ValueError('non_json_constant')
+              return json.loads(text, object_pairs_hook=pairs, parse_constant=constant)
+          def exact_keys(value, keys): return isinstance(value, dict) and set(value) == set(keys)
+          def digest(value, n): return isinstance(value, str) and re.fullmatch('[0-9a-f]{' + str(n) + '}', value) is not None
+          def proper(sha, base, expected_files, operation):
+              commit = api('git/commits/' + sha)
+              base_commit = api('git/commits/' + base)
+              payload = strict_json(commit['message'])
+              assert exact_keys(payload, ['base', 'files', 'operation']), 'receipt_minimal_shape_required'
+              assert payload == {'base': base, 'files': expected_files, 'operation': operation}, 'receipt_payload_mismatch'
+              assert [parent['sha'] for parent in commit['parents']] == [base], 'receipt_sole_parent_required'
+              assert commit['tree']['sha'] == base_commit['tree']['sha'], 'receipt_neutral_tree_required'
+          head = event['pull_request']['head']['sha']
+          pr = api('pulls/' + str(event['number']))
+          assert pr['state'] == 'open' and pr['head']['sha'] == head and pr['head']['ref'] == os.environ['SOURCE_BRANCH'], 'current_pr_head_changed'
+          assert pr['head']['repo']['full_name'] == repo, 'same_repository_required'
+          assert git('rev-parse', 'HEAD') == head and digest(head, 40), 'checkout_head_mismatch'
+          source_tree = api('git/commits/' + head)['tree']['sha']
+          assert git('rev-parse', 'HEAD^{tree}') == source_tree, 'checkout_tree_mismatch'
+          admissions = []
+          for page in range(1, 21):
+              comments = api('issues/' + str(event['number']) + '/comments?per_page=100&page=' + str(page))
+              for comment in comments:
+                  if comment['user']['login'] != 'heke99' or not comment['body'].startswith('GRIDEX_NATIVE_ADMISSION_V1\n'): continue
+                  value = strict_json(comment['body'].removeprefix('GRIDEX_NATIVE_ADMISSION_V1\n'))
+                  if value.get('suite') == 'z03l-z03lk' and value.get('sourceHead') == head:
+                      admissions.append((value, comment['id']))
+              if len(comments) < 100: break
+          else: raise AssertionError('admission_comment_inventory_incomplete')
+          if not admissions: hold('No positive root admission exists for this exact source head.')
+          assert len(admissions) == 1, 'ambiguous_root_admission'
+          a, comment_id = admissions[0]
+          assert exact_keys(a, ['version','state','suite','sourceHead','sourceTree','sourceBase','sourceReceipt','producerRef',
+              'producerReceipt','inputEpochSHA256','outputIntent','sourceReviewSHA256','actor']), 'admission_shape_required'
+          assert a['version'] == 'gridex-native-admission-v1' and a['state'] == 'GO' and a['actor'] == 'heke99', 'positive_root_admission_required'
+          assert a['sourceTree'] == source_tree and a['sourceReceipt'] == claim and a['producerRef'] == producer_ref, 'admission_source_or_claim_mismatch'
+          assert a['outputIntent'] == os.environ['OUTPUT_INTENT'], 'output_intent_mismatch'
+          assert all(digest(a[k], 40) for k in ['sourceBase','producerReceipt']), 'admission_commit_shape_required'
+          assert digest(a['inputEpochSHA256'], 64), 'input_epoch_binding_required'
+          assert isinstance(a['sourceReviewSHA256'], list) and len(a['sourceReviewSHA256']) == 2 and len(set(a['sourceReviewSHA256'])) == 2, 'two_unique_source_peers_required'
+          assert all(digest(peer, 64) for peer in a['sourceReviewSHA256']), 'source_peer_digest_required'
+          subprocess.run(['git','merge-base','--is-ancestor',a['sourceBase'],head], check=True)
+          expected = {'id-AT-Z03L-SUPPLIER': claim, 'id-AT-Z03LK-SUPPLIER': claim}
+          expected.update({'file-' + hashlib.sha256(name.encode()).hexdigest(): claim for name in files})
+          expected[producer_ref.removeprefix('refs/tags/agent-claims/masterplan/')] = a['producerReceipt']
+          for name, receipt in sorted(expected.items()):
+              ref = api('git/ref/tags/agent-claims/masterplan/' + name)
+              assert ref['object']['type'] == 'commit' and ref['object']['sha'] == receipt, 'live_owner_custody_mismatch'
+          proper(claim, os.environ['SOURCE_CLAIM_BASE'], files,
+              'Reserve source files and rule IDs; resources-sha256=34fdeb4d6807549579ee360eefd2493ec11c2c88f30773043ec8aaeb2ed16ab4')
+          operation = ('Produce qualified native proof; suite=z03l-z03lk; source=' + head + '; source-tree=' + source_tree
+              + '; source-claim=' + claim + '; input-epoch-sha256=' + a['inputEpochSHA256'] + '; output=' + a['outputIntent'])
+          proper(a['producerReceipt'], a['sourceBase'], files, operation)
+          # The executing workflow can be a PR merge commit; its workflow bytes must
+          # exactly equal the admitted head. Record both identities without conflating them.
+          assert os.environ['GITHUB_WORKFLOW_REF'] == repo + '/' + workflow + '@refs/pull/' + str(event['number']) + '/merge', 'executing_workflow_ref_mismatch'
+          executing = api('contents/' + workflow + '?ref=' + urllib.parse.quote(os.environ['GITHUB_WORKFLOW_SHA'], safe=''))
+          assert executing['type'] == 'file', 'executing_workflow_file_required'
+          workflow_bytes = pathlib.Path(workflow).read_bytes()
+          assert base64.b64decode(executing['content'], validate=False) == workflow_bytes, 'executing_workflow_bytes_mismatch'
+          workflow_blob = hashlib.sha1(b'blob ' + str(len(workflow_bytes)).encode() + b'\0' + workflow_bytes).hexdigest()
+          assert executing['sha'] == workflow_blob, 'executing_workflow_blob_mismatch'
+          # Any previous selected native job consumes this one-run appointment, including
+          # an aborted or failed job. HOLD-only jobs have an explicitly skipped native job.
+          def bounded_history(path, key):
+              # The 100-row bound covers ALL attempts, never just latest. Two
+              # explicit 50-row pages must form one complete, stable inventory.
+              rows, ids, total = [], set(), None
+              for page in range(1, 3):
+                  listing = api(path + ('&' if '?' in path else '?') + 'per_page=50&page=' + str(page))
+                  count, batch = listing.get('total_count'), listing.get(key)
+                  assert type(count) is int and 0 <= count <= 100, 'prior_history_bound_exceeded'
+                  if total is None: total = count
+                  assert count == total and isinstance(batch, list), 'prior_history_inventory_changed'
+                  assert len(batch) == min(50, total - len(rows)), 'prior_history_inventory_incomplete'
+                  for row in batch:
+                      assert isinstance(row, dict) and type(row.get('id')) is int and row['id'] not in ids, 'prior_history_inventory_ambiguous'
+                      ids.add(row['id'])
+                  rows.extend(batch)
+                  if len(rows) == total: return rows
+              raise AssertionError('prior_history_inventory_incomplete')
+          runs = bounded_history('actions/workflows/ediel-z03l-z03lk-native.yml/runs?branch=' + urllib.parse.quote(os.environ['SOURCE_BRANCH'], safe='') + '&event=pull_request', 'workflow_runs')
+          for run in runs:
+              if str(run['id']) == os.environ['GITHUB_RUN_ID']: continue
+              if run['head_sha'] != head and not any(pull['head']['sha'] == head for pull in run.get('pull_requests', [])): continue
+              jobs = bounded_history('actions/runs/' + str(run['id']) + '/jobs?filter=all', 'jobs')
+              assert not any(job['name'] == 'Z03L/LK admitted native execution' and job['conclusion'] != 'skipped' for job in jobs), 'native_appointment_already_consumed'
+          hashes = {}
+          for name in subprocess.check_output(['git','ls-files','-z'], text=True).split('\0'):
+              if not name: continue
+              path = pathlib.Path(name)
+              assert path.is_file() and not path.is_symlink(), 'source_input_not_regular'
+              hashes[name] = hashlib.sha256(path.read_bytes()).hexdigest()
+              assert subprocess.check_output(['git','show',head + ':' + name]) == path.read_bytes(), 'committed_source_input_mismatch'
+          a.update({'admissionCommentId': comment_id, 'inputManifestSHA256': hashlib.sha256(json.dumps(hashes, sort_keys=True).encode()).hexdigest(),
+              'workflowRef': os.environ['GITHUB_WORKFLOW_REF'], 'workflowSHA': os.environ['GITHUB_WORKFLOW_SHA'],
+              'workflowBlobSHA': workflow_blob, 'workflowSHA256': hashlib.sha256(workflow_bytes).hexdigest()})
+          output('binding', json.dumps(a, separators=(',', ':')))
+          output('admitted', 'true')
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as target:
+              target.write('Separate exact-head admission verified. Native remains NOT_RUN until its selected job executes. No whole-contract credit.\n')
+          PY_ADMISSION
+
+  z03l-z03lk-native:
+    name: Z03L/LK admitted native execution
+    needs: admission
+    if: >-
+      needs.admission.outputs.admitted == 'true' &&
+      github.event.action == 'labeled' && github.event.label.name == 'ediel-z03-native-approved' &&
+      github.event.sender.login == 'heke99' && github.actor == 'heke99' && github.run_attempt == 1 &&
+      github.event.pull_request.head.repo.full_name == 'heke99/gridex-ops-platform' &&
+      github.event.pull_request.head.ref == 'codex/agent3-z03-native-20261018'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+      SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
+      NATIVE_ADMISSION: ${{ needs.admission.outputs.binding }}
+      GH_TOKEN: ${{ github.token }}
+      SUPABASE_TELEMETRY_DISABLED: '1'
+      SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Verify admission, exact inputs, current custody and isolated runner before backend
+        id: qualification
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          export SUPABASE_HOME="$RUNNER_TEMP/z03l-z03lk-supabase-state"
+          mkdir -p z03l-z03lk-native-working
+          python3 - <<'PY_QUALIFY'
+          import hashlib, json, os, pathlib, subprocess, urllib.request
+          a = json.loads(os.environ['NATIVE_ADMISSION'])
+          assert a['sourceHead'] == os.environ['SOURCE_SHA'] == subprocess.check_output(['git','rev-parse','HEAD'], text=True).strip(), 'native_checkout_changed'
+          assert a['sourceTree'] == subprocess.check_output(['git','rev-parse','HEAD^{tree}'], text=True).strip(), 'native_tree_changed'
+          assert a['workflowSHA'] == os.environ['GITHUB_WORKFLOW_SHA'] and a['workflowRef'] == os.environ['GITHUB_WORKFLOW_REF'], 'executing_workflow_changed'
+          files = ['.github/workflows/ediel-z03l-z03lk-native.yml', 'scripts/ediel-at-z03l-z03lk-supplier-native.config.ts',
+              'scripts/ediel-at-z03l-z03lk-supplier-native.test.ts', 'scripts/helpers/ediel-z03-native-supply-observation.ts',
+              'scripts/helpers/ediel-normal-switch-native-fixture.ts']
+          refs = {'id-AT-Z03L-SUPPLIER': a['sourceReceipt'], 'id-AT-Z03LK-SUPPLIER': a['sourceReceipt']}
+          refs.update({'file-' + hashlib.sha256(name.encode()).hexdigest(): a['sourceReceipt'] for name in files})
+          refs[a['producerRef'].removeprefix('refs/tags/agent-claims/masterplan/')] = a['producerReceipt']
+          for name, receipt in refs.items():
+              request = urllib.request.Request('https://api.github.com/repos/heke99/gridex-ops-platform/git/ref/tags/agent-claims/masterplan/' + name,
+                  headers={'Authorization': 'Bearer ' + os.environ['GH_TOKEN'], 'Accept': 'application/vnd.github+json'})
+              with urllib.request.urlopen(request, timeout=30) as response: ref = json.load(response)
+              assert ref['object']['type'] == 'commit' and ref['object']['sha'] == receipt, 'native_owner_custody_changed'
+          def current_api(path):
+              request = urllib.request.Request('https://api.github.com/repos/heke99/gridex-ops-platform/' + path,
+                  headers={'Authorization': 'Bearer ' + os.environ['GH_TOKEN'], 'Accept': 'application/vnd.github+json'})
+              with urllib.request.urlopen(request, timeout=30) as response: return json.load(response)
+          event = json.loads(pathlib.Path(os.environ['GITHUB_EVENT_PATH']).read_text())
+          pr = current_api('pulls/' + str(event['number']))
+          assert pr['state'] == 'open' and pr['head']['sha'] == a['sourceHead'], 'native_current_pr_changed'
+          comment = current_api('issues/comments/' + str(a['admissionCommentId']))
+          assert comment['user']['login'] == 'heke99' and comment['body'].startswith('GRIDEX_NATIVE_ADMISSION_V1\n'), 'native_root_admission_changed'
+          def unique_pairs(rows):
+              result = {}
+              for key, value in rows:
+                  if key in result: raise ValueError('native_duplicate_json_key')
+                  result[key] = value
+              return result
+          current = json.loads(comment['body'].removeprefix('GRIDEX_NATIVE_ADMISSION_V1\n'), object_pairs_hook=unique_pairs)
+          public = {key: value for key, value in a.items() if key not in ['admissionCommentId','inputManifestSHA256','workflowRef','workflowSHA','workflowBlobSHA','workflowSHA256']}
+          assert current == public, 'native_root_admission_changed'
+          hashes = {}
+          for name in subprocess.check_output(['git','ls-files','-z'], text=True).split('\0'):
+              if not name: continue
+              path = pathlib.Path(name)
+              assert path.is_file() and not path.is_symlink(), 'native_input_not_regular'
+              hashes[name] = hashlib.sha256(path.read_bytes()).hexdigest()
+          assert hashlib.sha256(json.dumps(hashes, sort_keys=True).encode()).hexdigest() == a['inputManifestSHA256'], 'native_source_manifest_changed'
+          info = json.loads(subprocess.check_output(['docker','info','--format','{{json .}}'], text=True))
+          capacity = os.statvfs(pathlib.Path(info['DockerRootDir']))
+          available = capacity.f_bavail * capacity.f_frsize
+          assert not subprocess.check_output(['docker','ps','-aq'], text=True).strip(), 'native_runner_not_quiescent'
+          assert available >= (40 if info['Driver'] == 'vfs' else 15) * 1024**3, 'native_runner_capacity_insufficient'
+          metadata = {'purpose': 'source_bound_native_qualification', 'admission': a, 'checkout_sha': a['sourceHead'], 'checkout_tree': a['sourceTree'],
+              'workflow_run_id': os.environ['GITHUB_RUN_ID'], 'workflow_run_attempt': int(os.environ['GITHUB_RUN_ATTEMPT']),
+              'workflow_ref': os.environ['GITHUB_WORKFLOW_REF'], 'workflow_sha': os.environ['GITHUB_WORKFLOW_SHA'], 'job': os.environ['GITHUB_JOB'],
+              'runner': {'docker_driver': info['Driver'], 'available_bytes': available}, 'input_sha256': hashes}
+          pathlib.Path(os.environ['RUNNER_TEMP'], 'z03l-z03lk-inputs.json').write_text(json.dumps(metadata) + '\n')
+          print('Exact source, current custody, complete inputs and disposable runner qualified before backend.')
+          PY_QUALIFY
+          # Retain the canonical replay's own EXIT cleanup until its consumers finish.
+          source scripts/gridex-aud-003-clean-replay.sh > "$RUNNER_TEMP/z03l-z03lk-replay.log" 2>&1
+          export GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/z03l-z03lk-native-status.json"
+          supabase status -o json > "$GRIDEX_NATIVE_STATUS"
+          native_exit=0
+          npx vitest run --config scripts/ediel-at-z03l-z03lk-supplier-native.config.ts \
+            --reporter=default --reporter=junit --outputFile=z03l-z03lk-native-working/native-junit.xml \
+            > z03l-z03lk-native-working/native.log 2>&1 || native_exit=$?
+          export Z03_NATIVE_EXIT="$native_exit"
+          cleanup
+          trap - EXIT
+          set -euo pipefail
+          python3 - <<'PY_RESTORE'
+          import hashlib, json, os, pathlib, subprocess, urllib.request, xml.etree.ElementTree as ET
+          m = json.loads(pathlib.Path(os.environ['RUNNER_TEMP'], 'z03l-z03lk-inputs.json').read_text())
+          assert subprocess.check_output(['git','rev-parse','HEAD'], text=True).strip() == m['checkout_sha'], 'native_source_changed'
+          for name, expected in m['input_sha256'].items():
+              path = pathlib.Path(name)
+              assert path.is_file() and not path.is_symlink() and hashlib.sha256(path.read_bytes()).hexdigest() == expected, 'native_input_restoration_unqualified'
+          assert not subprocess.check_output(['docker','ps','-aq'], text=True).strip(), 'native_backend_cleanup_unqualified'
+          assert '[GRIDEX-REM-002 replay] PASS: empty local Supabase' in pathlib.Path(os.environ['RUNNER_TEMP'], 'z03l-z03lk-replay.log').read_text(), 'canonical_replay_provenance_missing'
+          a = m['admission']
+          request = urllib.request.Request('https://api.github.com/repos/heke99/gridex-ops-platform/git/ref/' + a['producerRef'].removeprefix('refs/'),
+              headers={'Authorization': 'Bearer ' + os.environ['GH_TOKEN'], 'Accept': 'application/vnd.github+json'})
+          with urllib.request.urlopen(request, timeout=30) as response: ref = json.load(response)
+          assert ref['object']['type'] == 'commit' and ref['object']['sha'] == a['producerReceipt'], 'terminal_producer_custody_changed'
+          junit = ET.parse('z03l-z03lk-native-working/native-junit.xml')
+          cases = list(junit.iter('testcase'))
+          names = [(case.get('classname'), case.get('name')) for case in cases]
+          fixed = [
+              'holds a genuine Z04 with unknown UTILTS declaration when own field 259 is omitted',
+              'queues the signed own original and keeps physical ACKs distinct from the causal business confirmation',
+              'refuses each of the 23 required fields and the UD parent before public persistence',
+              'qualifies active IV and selected IT/address facts through the ordinary producer, then refuses each applicable D omission',
+              'refuses a genuine other grid party using the same own LI and object',
+              'rejects wrong direction, foreign actor and disabled environment at the actual public outbound boundary',
+              'refuses a formerly qualified supplier after real current-role expiry without persistence',
+              'rejects source raw/direction mutation through installed immutable-original guards']
+          fixed += ['refuses a counted received Z04 with wrong ' + contrast for contrast in
+              ['line reference','object','grid area','start date','opposite subtype']]
+          fixed += ['uses the actual public dispatch owner at the real ' + boundary + ' calendar boundary' for boundary in
+              ['latest lawful','one day late','fourteen months','first forbidden future start']]
+          expected = {('scripts/ediel-at-z03l-z03lk-supplier-native.test.ts',
+              'ordinary supplier Z03' + variant + ' native proposals > ' + title) for variant in ['L','LK'] for title in fixed}
+          assert len(cases) == 34 and len(set(names)) == 34 and set(names) == expected, 'native_expected_34_case_inventory_incomplete'
+          assert not any(case.find('skipped') is not None for case in cases), 'native_skipped_case_not_qualified'
+          failures = sum(case.find('failure') is not None or case.find('error') is not None for case in cases)
+          exit_code = int(os.environ['Z03_NATIVE_EXIT'])
+          assert (exit_code == 0) == (failures == 0), 'native_report_exit_disagrees'
+          m.update({'native_exit_code': exit_code, 'native': 'PASS' if exit_code == 0 else 'FAIL', 'canonical_replay': 'PASS',
+              'test_scope': ['scripts/ediel-at-z03l-z03lk-supplier-native.test.ts'], 'test_case_inventory': names,
+              'case_count': len(cases), 'failed_cases': failures, 'input_restoration': 'EXACT', 'backend_cleanup': 'QUALIFIED',
+              'terminal_producer_custody': 'GET_MATCH', 'ordinary_required_gates': 'NOT_REPLACED', 'schema_capture': 'NOT_RUN',
+              'browser_tests': 'NOT_RUN', 'upgrade_parity': 'NOT_RUN', 'authentic_market_evidence': 'NOT_PROVIDED', 'whole_contract_credit': 'NONE'})
+          pathlib.Path('z03l-z03lk-native-working/receipt.json').write_text(json.dumps(m, indent=2) + '\n')
+          PY_RESTORE
+          python3 - <<'PY_REDACT'
+          import pathlib, re
+          for path in pathlib.Path('z03l-z03lk-native-working').rglob('*'):
+              if path.is_file(): path.write_bytes(re.sub(rb'\bsb_(?:secret|publishable)_[A-Za-z0-9_-]+', b'[REDACTED_LOCAL_CREDENTIAL]', path.read_bytes()))
+          PY_REDACT
+          python3 scripts/gridex-redact-native-evidence.py --local-secrets "$GRIDEX_NATIVE_STATUS" --root z03l-z03lk-native-working
+          mv z03l-z03lk-native-working z03l-z03lk-native-evidence
+          rm -f "$GRIDEX_NATIVE_STATUS"
+          exit "$native_exit"
+      - name: Preserve redacted source-bound abort feedback without credit
+        if: always()
+        env:
+          QUALIFICATION_OUTCOME: ${{ steps.qualification.outcome }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          if [[ -d z03l-z03lk-native-evidence ]]; then exit 0; fi
+          mkdir -p z03l-z03lk-native-working
+          python3 - <<'PY_ABORT'
+          import hashlib, json, os, pathlib, re, urllib.request
+          root = pathlib.Path('z03l-z03lk-native-working')
+          temp = pathlib.Path(os.environ['RUNNER_TEMP'])
+          replay = temp / 'z03l-z03lk-replay.log'
+          raw = replay.read_bytes() if replay.is_file() else None
+          if raw is not None: (root / 'canonical-replay.log').write_bytes(raw)
+          receipt = {'admission': json.loads(os.environ['NATIVE_ADMISSION']), 'workflow_run_id': os.environ['GITHUB_RUN_ID'],
+              'workflow_run_attempt': int(os.environ['GITHUB_RUN_ATTEMPT']), 'workflow_ref': os.environ['GITHUB_WORKFLOW_REF'],
+              'workflow_sha': os.environ['GITHUB_WORKFLOW_SHA'], 'job': os.environ['GITHUB_JOB'],
+              'qualification_outcome': os.environ['QUALIFICATION_OUTCOME'], 'native': 'UNQUALIFIED', 'canonical_replay': 'UNQUALIFIED',
+              'input_restoration': 'UNQUALIFIED', 'backend_cleanup': 'UNQUALIFIED', 'terminal_producer_custody': 'UNQUALIFIED',
+              'whole_contract_credit': 'NONE', 'replay_log_sha256': hashlib.sha256(raw).hexdigest() if raw is not None else None}
+          admission = receipt['admission']
+          request = urllib.request.Request('https://api.github.com/repos/heke99/gridex-ops-platform/git/ref/' + admission['producerRef'].removeprefix('refs/'),
+              headers={'Authorization': 'Bearer ' + os.environ['GH_TOKEN'], 'Accept': 'application/vnd.github+json'})
+          with urllib.request.urlopen(request, timeout=30) as response: ref = json.load(response)
+          assert ref['object']['type'] == 'commit' and ref['object']['sha'] == admission['producerReceipt'], 'abort_producer_custody_changed'
+          receipt['terminal_producer_custody'] = 'GET_MATCH'
+          inputs = temp / 'z03l-z03lk-inputs.json'
+          if inputs.is_file(): receipt['recorded_inputs'] = json.loads(inputs.read_text())
+          (root / 'failure-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
+          for path in root.rglob('*'):
+              if path.is_file(): path.write_bytes(re.sub(rb'\bsb_(?:secret|publishable)_[A-Za-z0-9_-]+', b'[REDACTED_LOCAL_CREDENTIAL]', path.read_bytes()))
+          PY_ABORT
+          redactor_args=()
+          if [[ -s "$RUNNER_TEMP/z03l-z03lk-native-status.json" ]]; then
+            redactor_args=(--local-secrets "$RUNNER_TEMP/z03l-z03lk-native-status.json")
+          fi
+          python3 scripts/gridex-redact-native-evidence.py "${redactor_args[@]}" --root z03l-z03lk-native-working
+          mv z03l-z03lk-native-working z03l-z03lk-native-evidence
+          rm -f "$RUNNER_TEMP/z03l-z03lk-native-status.json"
+      - name: Upload redacted qualified or explicitly unqualified feedback
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ediel-z03l-z03lk-native-evidence-v1-${{ env.SOURCE_SHA }}-${{ github.run_attempt }}
+          path: z03l-z03lk-native-evidence/
+          if-no-files-found: error
+          retention-days: 14
