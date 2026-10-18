@@ -12,6 +12,8 @@ Den nya implementationen ska läsa ett äkta inkommande svar, fastställa tenant
 
 Den tidigare fullmakts-/AI-versionen var `8796eb0163577eae87bf4e5403f6a7c6a6f4f8b5`. En färsk kontroll av `app.gridex.se` visade senare main `987b970108061f98eacfbbf3e2761f4892dabd85`, deployment `dpl_3CgvvFjSdJ2uauzzXPnFRzJ9PXBz` READY. Produktionsaliaset hade alltså flyttats av ordinarie main-leverans. Den aktuella kandidaten integrerar därför denna main genom merge `9f19d549676efa7b323528da298e081050f5455a`. Ingen ny automatisk migration eller produktionspromovering görs gällande här.
 
+En ny remote-kontroll före slutlig leverans visade main `8ccad78709193f565500d60a9df13f9134b22d19`, ordinarie merge av PR825. Den integrerades konfliktfritt genom `e74c07b200d30b68b700c3b1fe102fdced814067`. Upstream-deltat innehåller fyra ägda CI-/kvalificerings-/test-/ledgerfiler för H05/H08, inga ändringar i applikationsruntime, POA-/mejlmoduler eller migrationen. Deras kvalificerade underlag och godkännanden bevaras som main-arv; denna uppgift tilldelar ingen egen native-/regelcredit och startar ingen omkörning av deras producent. Den sista applikationsverifieringen återkörs på den integrerade källan. Detta är en observation av Git-main, ingen ny kontroll av vilket bygge produktionsaliaset för närvarande pekar på.
+
 Tidigare produktionsbygge och syntetiskt OpenAI-anrop verifierade leverans och provideranslutning för föregående version. Ett riktigt svar genom Strato, inloggad tenant A/B-verifiering i drift, historisk fullmaktsinventering och verklig marknadsstart har inte attesterats. BankID är fortsatt inte integrerat.
 
 ## Implementerade delar i arbetskopian

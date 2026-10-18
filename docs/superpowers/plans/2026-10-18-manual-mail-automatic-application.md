@@ -4,7 +4,7 @@
 
 **Architecture:** Correlate independently of AI, verify the original sender, run a tool-free reader once, then normalize evidence on the server. An atomic service-only command rechecks the source/request/site and writes commercial facts and a safe date floor. Existing market permission, readiness and outbound commands remain authoritative.
 
-**Constraints:** Continue the isolated release branch, now integrated with main `987b9701`; preserve unrelated user files, Ediel ledger and shared producer scopes. No automatic contact changes, invented signatures, unauthorized test messages to suppliers or acceptance of conditional dates. Do not treat a raw quoted date as semantic proof. Canonical schema/types/checksum production remains with the existing qualified producer.
+**Constraints:** Continue the isolated release branch, now integrated with main `8ccad787`; preserve unrelated user files, Ediel ledger and shared producer scopes. No automatic contact changes, invented signatures, unauthorized test messages to suppliers or acceptance of conditional dates. Do not treat a raw quoted date as semantic proof. Canonical schema/types/checksum production remains with the existing qualified producer.
 
 ## Task 1: Pure commercial terms and date floors
 
