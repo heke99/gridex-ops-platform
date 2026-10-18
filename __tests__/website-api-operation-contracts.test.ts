@@ -71,7 +71,7 @@ vi.mock('@/lib/supabase/service', () => {
   }
   return { supabaseService: {
     from: (table: string) => new Query(table),
-    auth: { admin: { getUserById: async (userId: string) => ({ data: { user: { id: userId } }, error: null }) } },
+    auth: { admin: { getUserById: async (userId: string) => ({ data: { user: { id: userId, email_confirmed_at: '2026-01-01T00:00:00Z' } }, error: null }) } },
     rpc: async (name: string, args: Row = {}) => {
       io.rpcs.push({ name, args: structuredClone(args) })
       if (name === 'public_contract_feed_fingerprint_v1') return { data: [{ fingerprint: 'a'.repeat(32) }], error: null }
@@ -231,6 +231,7 @@ beforeEach(() => {
   io.client = { id: CLIENT, company_id: COMPANY, name: 'Synthetic Website', status: 'active', key_prefix: 'unit', secret_hash: 'synthetic-unit', scopes: [...TENANT_WEBSITE_RECOMMENDED_SCOPES, 'website_contracts.diagnostics', 'api_contracts.diagnostics'], allowed_ips: [], allowed_origins: ['https://synthetic.example.invalid'], rate_limit_per_minute: 100, expires_at: null, metadata: { api_contract_profiles: { website: '2026-10-09.1' } } }
   const empty = ['company_capabilities','webhook_subscriptions','customer_portal_identities','customer_portal_accounts','customers','customer_sites','metering_points','website_contract_quotes','integration_api_write_idempotency','canonical_energy_flow_events','canonical_energy_remediation_queue','website_customer_applications','customer_application_workflows','customer_operation_jobs','customer_supply_periods','supplier_switch_events','communication_logs','tenant_email_outbox','domain_events','webhook_deliveries','event_outbox','external_contract_intakes','audit_logs','portfolio_monthly_settlements','contract_charge_ledger','price_components','pricing_component_rules','price_plan_versions','portfolio_price_estimates','spot_price_monthly_summaries','market_price_previews','customer_legal_acceptances']
   io.rows = Object.fromEntries(empty.map(table => [table, []]))
+  io.rows.user_profiles = [{ id: id(99), user_status: 'active' }]
   io.rows.companies = [{ id: COMPANY, status: 'active', name: 'Synthetic electricity', org_number: '5560160680', slug: 'synthetic', external_tenant_reference: 'tenant_synthetic_0123456789abcdef0123456789', customer_portal_url: 'https://synthetic.example.invalid/portal', branding: {}, metadata: { website_portal_identity_mode: 'post_auth_allowed' } }]
   io.rows.tenant_website_readiness_v = [{ company_id: COMPANY, has_public_contracts: true, has_terms: true, has_privacy_policy: true, has_withdrawal: true, has_power_of_attorney_text: true, has_price_terms: true, has_verified_sender: true, has_mail_templates: true }]
   io.rows.company_email_settings = [{ id: id(60), company_id: COMPANY, verification_status: 'verified' }]
@@ -269,6 +270,13 @@ describe('Website operations: mounted routes against published contracts', () =>
     assertScope(['integration_context.read']); assertCompanyQuery('companies'); assertCompanyQuery('tenant_website_readiness_v')
     expect(asRecord(body.data)).toMatchObject({ api_version: 'v1', authoritative_identity: 'api_key', capabilities: { website_checkout_ready: true, complete_integration_ready: true } })
     expect(JSON.stringify(body)).not.toContain(COMPANY)
+  })
+  it.each([[], [{ id: id(99), user_status: 'disabled' }]])('integration context blocks checkout for an unqualified automation profile', async profiles => {
+    io.rows.user_profiles = profiles
+    const path = '/api/v1/integration/context'
+    const body = await bodyContract(await contextGET(request(path)), path)
+    expect(asRecord(asRecord(body.data).capabilities).website_checkout_ready).toBe(false)
+    expect(io.queries.every(query => query.mode === 'select')).toBe(true)
   })
   it('Website diagnostics executes canonical graph and pricing checks within the credential company', async () => {
     const path = '/api/v1/website/public-contracts/diagnostics'
