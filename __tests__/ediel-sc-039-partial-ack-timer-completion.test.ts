@@ -46,8 +46,8 @@ function wire(family: 'PRODAT' | 'APERAK', body: string[], acknowledgement = fal
 function source(options: { code?: string; missingLi?: boolean; multiRegister?: boolean } = {}) {
   const first = ['LIN+1++POINT-A:::9', 'RFF+LI:LI-A']
   const second = [`LIN+${options.multiRegister ? '3' : '2'}++POINT-B:::9`, ...(options.missingLi ? [] : ['RFF+LI:LI-B'])]
-  const registers = options.multiRegister ? ['LIN+2+1:2+POINT-A:::9'] : []
-  if (options.multiRegister) first[0] = 'LIN+1+1:1+POINT-A:::9'
+  const registers = options.multiRegister ? ['LIN+2++POINT-A:::9+1:2'] : []
+  if (options.multiRegister) first[0] = 'LIN+1++POINT-A:::9+1:1'
   return { id: 'source', company_id: 'tenant-a', environment: 'test' as const, direction: 'inbound' as const,
     message_family: 'PRODAT' as const, raw_payload: wire('PRODAT', [`BGM+${options.code ?? 'Z05'}+SOURCE-D+9`,
       'NAD+FR+LEGAL_S:160:SVK+++++++SE', 'NAD+DO+LEGAL_R:160:SVK+++++++SE', ...first, ...registers, ...second]) }
