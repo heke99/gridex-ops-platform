@@ -2,22 +2,24 @@ import {beforeEach,expect,it,vi} from 'vitest'
 import {NextRequest} from 'next/server'
 import {createHash} from 'node:crypto'
 const company='00000000-0000-4000-8000-000000000001',actor='00000000-0000-4000-8000-000000000002',target='00000000-0000-4000-8000-000000000003',policyId='00000000-0000-4000-8000-000000000004'
-const fixture=vi.hoisted(()=>({rpc:vi.fn(),auth:vi.fn(),permissions:[] as string[]}))
+const fixture=vi.hoisted(()=>({rpc:vi.fn(),auth:vi.fn(),permissions:[] as string[],purgeResult:null as unknown,purgeError:null as {code?:string;message:string}|null}))
 vi.mock('server-only',()=>({}))
 vi.mock('next/headers',()=>({cookies:async()=>({get:(key:string)=>key==='gridex_retention_company'?{value:'00000000-0000-4000-8000-000000000001'}:undefined})}))
 vi.mock('@/lib/supabase/server',()=>({createSupabaseServerClient:async()=>({auth:{getUser:fixture.auth},rpc:fixture.rpc})}))
-import {decisionEvidenceDocument,decisionEvidenceOriginal,decisionEvidencePurge,decisionEvidenceReview,decisionEvidenceSubmit} from '@/lib/ediel/retention/decisionEvidenceRetentionHttp'
+import {decisionEvidenceDocument,decisionEvidenceOriginal,decisionEvidencePurge,decisionEvidenceRead,decisionEvidenceReview,decisionEvidenceSubmit} from '@/lib/ediel/retention/decisionEvidenceRetentionHttp'
 const retentionClass='blob_retention_decision_original_bytes',classGrant='ediel.retention.blob_decision_evidence',document=Buffer.from('SYNTHETIC finite archived original, no legal approval'),documentHash=createHash('sha256').update(document).digest('hex')
 const metadata={companyId:company,policyId,retentionClass,targetId:target,sourceHash:'a'.repeat(64),targetMetadataHash:'b'.repeat(64),documentHash,documentByteLength:document.length,bytesAvailable:true,documentPurgedAt:null,documentBase64:null,submittedBy:target,createdAt:'2026-10-01T00:00:00Z',issuerQualified:false,currentQualified:false,revoked:false,reviews:[],purge:null,authority:'none'}
 const post=(body:unknown)=>new NextRequest('http://localhost/api/ediel/decision-evidence-retention',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
 beforeEach(()=>{
  vi.resetAllMocks();fixture.permissions=['ediel.retention.read','ediel.retention.submit','ediel.retention.review','ediel.retention.purge',classGrant]
+ fixture.purgeResult={status:'purged',retentionClass,targetId:target,sourceHash:metadata.sourceHash,byteLength:document.length,bytesAvailable:false,authority:'none',replay:true};fixture.purgeError=null
  fixture.auth.mockResolvedValue({data:{user:{id:actor}},error:null})
  fixture.rpc.mockImplementation(async(name:string,args:Record<string,unknown>)=>{
   if(name==='ediel_current_retention_session_v1')return{data:{companyId:company,actorUserId:actor,permissions:fixture.permissions},error:null}
   if(name==='ediel_read_decision_evidence_policy_v1')return{data:{...metadata,documentBase64:args.p_include_document?document.toString('base64'):null},error:null}
   if(name==='ediel_submit_decision_evidence_retention_v1')return{data:{status:'submitted',policyId,retentionClass,targetId:target,sourceHash:metadata.sourceHash,documentHash,issuerQualified:false},error:null}
   if(name==='ediel_review_decision_evidence_retention_v1')return{data:{status:'held',policyId,reviewId:target,missing:['authentic_issuer_receipt']},error:null}
+  if(name==='ediel_purge_decision_evidence_retention_v1')return{data:fixture.purgeResult,error:fixture.purgeError}
   throw Error('unexpected finite RPC '+name)
  })
 })
@@ -44,13 +46,59 @@ it('validates original bytes against actual returned native hash before download
  fixture.rpc.mockImplementation(async(name:string)=>name==='ediel_current_retention_session_v1'?{data:{companyId:company,actorUserId:actor,permissions:fixture.permissions},error:null}:{data:{...metadata,documentBase64:Buffer.from('different').toString('base64')},error:null})
  expect((await decisionEvidenceDocument(policyId)).status).toBe(403)
 })
-it('denies foreign policy tuple without returning original data or attempting purge',async()=>{
+it('denies a foreign returned read-policy tuple without returning original data',async()=>{
  fixture.rpc.mockImplementation(async(name:string)=>name==='ediel_current_retention_session_v1'?{data:{companyId:company,actorUserId:actor,permissions:fixture.permissions},error:null}:{data:{...metadata,companyId:target},error:null})
- const r=await decisionEvidencePurge(post({}),policyId);expect(r.status).toBe(403);expect(fixture.rpc.mock.calls.some(c=>c[0]==='ediel_purge_decision_evidence_retention_v1')).toBe(false);expect(JSON.stringify(await r.json())).not.toContain(documentHash)
+ const r=await decisionEvidenceRead(policyId);expect(r.status).toBe(403);expect(fixture.rpc.mock.calls.some(c=>c[0]==='ediel_purge_decision_evidence_retention_v1')).toBe(false);expect(JSON.stringify(await r.json())).not.toContain(documentHash)
 })
 it('does not reuse a previous session when current native role/grant is revoked',async()=>{
  fixture.rpc.mockResolvedValue({data:null,error:{message:'native_current_deny'}});expect((await decisionEvidenceDocument(policyId)).status).toBe(403);expect(fixture.rpc.mock.calls.map(c=>c[0])).toEqual(['ediel_current_retention_session_v1'])
 })
 it('rejects over-limit streamed request before original/archive access',async()=>{
  const req=new NextRequest('http://localhost/api/ediel/decision-evidence-retention',{method:'POST',headers:{'Content-Type':'application/json','Content-Length':'1450001'},body:'{}'});expect((await decisionEvidenceSubmit(req)).status).toBe(400);expect(fixture.rpc.mock.calls.map(c=>c[0])).toEqual(['ediel_current_retention_session_v1'])
+})
+
+// Actual facade/domain, with explicitly synthetic GoTrue and SQL transports.
+// The separate PGlite controls execute the real native owner's pre-effect gates.
+it.each([false,true])('reaches authorized completed replay without a disclosure read, after W=%s',async expired=>{
+ fixture.permissions.push('ediel.retention.completed_review_reason')
+ fixture.purgeResult={...(fixture.purgeResult as object),retentionClass:'completed_decision_review_reason'}
+ const native=fixture.rpc.getMockImplementation()!
+ fixture.rpc.mockImplementation(async(name:string,args:Record<string,unknown>)=>name==='ediel_read_decision_evidence_policy_v1'
+  ?expired?{data:null,error:{code:'42501',message:'completed_review_witness_disclosure_ended'}}:{data:{...metadata,retentionClass:'completed_decision_review_reason'},error:null}
+  :native(name,args))
+ const r=await decisionEvidencePurge(post({}),policyId)
+ expect(r.status).toBe(200);expect(await r.json()).toEqual({status:'purged',replay:true,authority:'none'})
+ expect(fixture.rpc.mock.calls.map(c=>c[0])).toEqual(['ediel_current_retention_session_v1','ediel_purge_decision_evidence_retention_v1'])
+ expect(fixture.rpc).toHaveBeenLastCalledWith('ediel_purge_decision_evidence_retention_v1',{p_company_id:company,p_actor_user_id:actor,p_policy_id:policyId})
+ expect(r.headers.get('Cache-Control')).toBe('private, no-store')
+})
+it('returns a minimal first-purge or held receipt without expired witness fields',async()=>{
+ fixture.purgeResult={...(fixture.purgeResult as object),replay:false}
+ const purged=await decisionEvidencePurge(post({}),policyId);expect(purged.status).toBe(200);expect(await purged.json()).toEqual({status:'purged',replay:false,authority:'none'})
+ fixture.purgeResult={status:'held',policyId,missing:['current_exact_original_deadline']}
+ const held=await decisionEvidencePurge(post({}),policyId);expect(held.status).toBe(200);expect(await held.json()).toEqual({status:'held',authority:'none'})
+ expect(fixture.rpc.mock.calls.some(c=>c[0]==='ediel_read_decision_evidence_policy_v1')).toBe(false)
+})
+it.each(['current_exact_class_denied','foreign_company_or_policy','decision_original_purge_replay_conflict'])('preserves authoritative native refusal without witness disclosure: %s',async message=>{
+ if(message==='current_exact_class_denied')fixture.permissions=fixture.permissions.filter(p=>p!==classGrant)
+ fixture.purgeError={code:'42501',message}
+ const r=await decisionEvidencePurge(post({}),policyId)
+ expect(r.status).toBe(403);expect(await r.json()).toEqual({error:'Aktuell bolags-, klass- eller källbehörighet saknas.'})
+ expect(fixture.rpc.mock.calls.map(c=>c[0])).toEqual(['ediel_current_retention_session_v1','ediel_purge_decision_evidence_retention_v1'])
+})
+it.each([
+ {status:'approved',policyId},
+ {status:'submitted',policyId,retentionClass,targetId:target,documentHash,sourceHash:metadata.sourceHash,issuerQualified:false},
+ {status:'held',policyId:target,missing:['foreign_policy']},
+ {status:'held',missing:['missing_policy']},
+ {status:'held',policyId,missing:['held'],unexpectedWitness:'PRIVATE'},
+ {status:'purged',retentionClass,targetId:target,sourceHash:'not-a-hash',byteLength:document.length,bytesAvailable:false,authority:'none',replay:true},
+ {status:'purged',retentionClass,targetId:target,sourceHash:metadata.sourceHash,byteLength:document.length,bytesAvailable:false,authority:'none',replay:true,unexpectedWitness:'PRIVATE'},
+])('refuses an unrelated, foreign or malformed native purge result: $status',async result=>{
+ fixture.purgeResult=result
+ const r=await decisionEvidencePurge(post({}),policyId);expect(r.status).toBe(403);expect(JSON.stringify(await r.json())).not.toContain('PRIVATE')
+})
+it('keeps an empty purge command and rejects caller authority before native mutation',async()=>{
+ const r=await decisionEvidencePurge(post({companyId:target,actorUserId:target,retentionClass}),policyId)
+ expect(r.status).toBe(400);expect(fixture.rpc.mock.calls.map(c=>c[0])).toEqual(['ediel_current_retention_session_v1'])
 })
