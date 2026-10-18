@@ -25,6 +25,7 @@ import {recordReceivedSourceValidation} from '@/lib/ediel/core/receivedSourceVal
 import {captureFreshEdielSourceRulePackEvidence} from '@/lib/ediel/core/sourceRulePackEvidence'
 import {createReceivedSourceOwnerSession} from '@/lib/ediel/sources/receivedSourceOwnerSession'
 import {applyInboundBusinessStateMachine} from '@/lib/ediel/flows/inboundBusinessStateMachine'
+import {applySupplyMarketSource} from '@/lib/ediel/flows/supplyMarketTransition'
 import {readMeteringMethodChangeSource} from '@/lib/ediel/production/meteringMethodChangeSource'
 import {reviewReceivedStructuralSource} from '@/lib/ediel/sources/reviewReceivedStructuralSource'
 import {readQualifiedCustomerStructure} from '@/lib/ediel/sources/qualifiedCustomerStructure'
@@ -403,7 +404,15 @@ async function baseline(f:Stage){
  const validation=await recordReceivedSourceValidation({original:message,validated:message,resolvedCompanyId:f.companyId,decision});expect(validation.status).toBe('recorded')
  await captureFreshEdielSourceRulePackEvidence(f.companyId,message.id)
  const session=createReceivedSourceOwnerSession(validation);expect(session).not.toBeNull()
- expect(await applyInboundBusinessStateMachine({message,actorUserId:f.actorUserId,matchedSwitchRequestId:f.switchId,onSourceSwitchCommitted:session!.onSwitchCommitted})).toMatchObject({outcome:'supplier_switch_accepted'});await session!.finish()
+ const switched=await applyInboundBusinessStateMachine({message,actorUserId:f.actorUserId,matchedSwitchRequestId:f.switchId,onSourceSwitchCommitted:session!.onSwitchCommitted})
+ if(switched.outcome!=='supplier_switch_accepted'){
+  // Value-free diagnosis: the state machine drops the supply owner's reason.
+  // Ask the same exported owner once more (a refused apply has no effect) and
+  // surface only its fixed reason code; never ids, SQL or payloads.
+  const supply=await applySupplyMarketSource({actorUserId:f.actorUserId,message})
+  throw Error(['fg_baseline_switch',switched.outcome,supply.applied?'applied_on_retry':supply.reason??'no_reason',...(supply.partition??[]).filter(entry=>entry.disposition!=='applied').slice(0,1).map(entry=>('reason' in entry?String(entry.reason):'held'))].join('_').replace(/[^a-z0-9_]/g,'_').slice(0,80))
+ }
+ await session!.finish()
  const review=await reviewReceivedStructuralSource({companyId:f.companyId,environment:'test',sourceMessageId:message.id,reviewerUserId:f.reviewer.id,confirmedOriginal:true,replacesSourceMessageId:null})
  if(review.status!=='recorded'||review.sourceDisposition!=='accepted'){
   // Value-free diagnosis: closed receipt enums plus the owner's own fixed
