@@ -13,6 +13,8 @@ import {
 } from '@/lib/legal/customerDocumentPackage'
 import { ensureAuthorizationDocumentFromPowerOfAttorney } from '@/lib/legal/authorizationChain'
 import { powerOfAttorneyCoverageFromScopes } from '@/lib/operations/powerOfAttorneyWorkflow'
+import { ensurePoaPdfArchive } from '@/lib/customers/poaDocuments'
+import { completePoaCaptureEvidence } from '@/lib/customers/poaEvidenceCompletion'
 
 type JsonRecord = Record<string, unknown>
 
@@ -217,6 +219,7 @@ type ResolvedLegalModule = {
   version: string
   hash: string
   title: string | null
+  body: string | null
 }
 
 type ResolvedLegalDocument = {
@@ -245,6 +248,7 @@ function resolvedLegalModule(row: Record<string, unknown>): ResolvedLegalModule 
     version,
     hash,
     title: clean(row.title),
+    body: clean(row.rendered_body),
   }
 }
 
@@ -276,7 +280,7 @@ async function resolveLegalDocument(input: {
   if (!input.refs.legalBundleVersionId) throw new Error('LEGAL_BUNDLE_NOT_RESOLVED')
   const result = await supabaseService
     .from('legal_bundle_version_documents')
-    .select('id,legal_bundle_version_id,module_key,legacy_legal_text_version_id,title,content_sha256,template_version,created_at,origin')
+    .select('id,legal_bundle_version_id,module_key,legacy_legal_text_version_id,title,rendered_body,content_sha256,template_version,created_at,origin')
     .eq('legal_bundle_version_id', input.refs.legalBundleVersionId)
   if (result.error) throw result.error
 
@@ -753,6 +757,7 @@ async function writePowerOfAttorney(input: {
   }
   const fullmaktSnapshot = {
     ...asRecord(input.poa.metadata),
+    legal_text: { id: poaModule.id, title: poaModule.title, version: poaModule.version, body: poaModule.body },
     document_reference: input.poa.document_reference,
     document_code: poaModule.moduleKey,
     document_version: poaModule.version,
@@ -768,11 +773,14 @@ async function writePowerOfAttorney(input: {
   const evidencePayload = {
     accepted: true,
     accepted_at: acceptedAt,
+    verification_reference: publicReference('poa_verification', input.client.company_id, `${input.identity.customer_id}:${poaModule.id}:${acceptedAt}`),
+    signature_verification_status: 'not_verified',
     method,
     scopes,
     signer_name: signerName,
     signer_identity_number: signerIdentityNumber,
     ip_address: clean(input.poa.ip_address),
+    ip_address_source: clean(input.poa.ip_address) ? 'signer_reported' : null,
     user_agent: clean(input.poa.user_agent),
     legal_bundle_version_id: legalDocument.legalBundleVersionId,
     legal_bundle_version_document_id: poaModule.id,
@@ -956,6 +964,9 @@ async function writePowerOfAttorney(input: {
   }
 
   if (externallySendable && persistedAsSigned) {
+    await completePoaCaptureEvidence({ companyId: input.client.company_id, customerId: input.identity.customer_id, powerOfAttorneyId }, {
+      signerName, signerIdentity: signerIdentityNumber, method, acceptedAt, signerIp: clean(input.poa.ip_address),
+    })
     await ensureAuthorizationDocumentFromPowerOfAttorney({
       companyId: input.client.company_id,
       customerId: input.identity.customer_id,
@@ -977,6 +988,7 @@ async function writePowerOfAttorney(input: {
         document_reference: input.poa.document_reference,
       },
     })
+    await ensurePoaPdfArchive({ companyId: input.client.company_id, customerId: input.identity.customer_id, powerOfAttorneyId })
   }
 
   return { result: resultKind, signed: externallySendable && persistedAsSigned }

@@ -11,6 +11,8 @@ import { LegalAcceptanceSchema, structuredPoaIsExternallySendable } from "./cust
 import type { NormalizedStructuredPoa } from "./customerApplicationSchemas";
 import { WebsiteApplicationError, clean, isObject, isUuid, missingSchema, schemaErrorDetail, stage } from "./customerApplicationShared";
 import type { RequestAuditMetadata } from "./customerApplicationShared";
+import { ensurePoaPdfArchive } from '@/lib/customers/poaDocuments';
+import { completePoaCaptureEvidence } from '@/lib/customers/poaEvidenceCompletion';
 
 export type WebsiteLegalAcceptanceVersion = {
   id: string;
@@ -1015,6 +1017,10 @@ export async function ensureWebsitePowerOfAttorney(input: {
     // text creates a new POA; OPS never widens an existing authorization.
     if (existingLooksSendable && exactScopesMatch && exactLegalVersionMatches) {
       const existingPowerOfAttorneyId = String(existingRow.id);
+      await completePoaCaptureEvidence({ companyId: input.companyId, customerId: input.customerId, powerOfAttorneyId: existingPowerOfAttorneyId }, {
+        signerName: input.structuredPoa.signerName, signerIdentity: input.structuredPoa.signerIdentityNumber, method: input.structuredPoa.method,
+        acceptedAt: input.structuredPoa.acceptedAt, signerIp: input.structuredPoa.ipAddress,
+      });
       await ensureWebsiteAuthorizationChainFromPowerOfAttorney({
         companyId: input.companyId,
         customerId: input.customerId,
@@ -1045,6 +1051,7 @@ export async function ensureWebsitePowerOfAttorney(input: {
           source: "website_api",
         },
       });
+      await ensurePoaPdfArchive({ companyId: input.companyId, customerId: input.customerId, powerOfAttorneyId: existingPowerOfAttorneyId });
       return existingPowerOfAttorneyId;
     }
   }
@@ -1084,7 +1091,12 @@ export async function ensureWebsitePowerOfAttorney(input: {
     scopes,
     signer_name: signerName,
     signer_identity_number: signerIdentityNumber,
-    ip_address: poa?.ipAddress ?? input.requestAudit?.ipAddress ?? null,
+    verification_reference: publicReference('poa_verification', input.companyId, input.applicationId),
+    signature_verification_status: 'not_verified',
+    ip_address: poa?.ipAddress ?? null,
+    ip_address_source: poa?.ipAddress ? 'signer_reported' : null,
+    api_request_ip_address: input.requestAudit?.ipAddress ?? null,
+    api_request_ip_hash: input.requestAudit?.ipHash ?? null,
     user_agent: poa?.userAgent ?? input.requestAudit?.userAgent ?? null,
     legal_text_version_id: legal.id,
     legal_text_version: legal.version,
@@ -1116,8 +1128,8 @@ export async function ensureWebsitePowerOfAttorney(input: {
     method,
     evidence_payload: evidencePayload,
     source: "website_api",
-    accepted_ip: poa?.ipAddress ?? input.requestAudit?.ipAddress ?? null,
-    accepted_ip_hash: input.requestAudit?.ipHash ?? null,
+    accepted_ip: poa?.ipAddress ?? null,
+    accepted_ip_hash: poa?.ipAddress ? createHash('sha256').update(poa.ipAddress).digest('hex') : null,
     accepted_user_agent:
       poa?.userAgent ?? input.requestAudit?.userAgent ?? null,
     accepted_source: "website",
@@ -1294,6 +1306,9 @@ export async function ensureWebsitePowerOfAttorney(input: {
       );
   }
 
+  if (powerOfAttorneyId && externallySendableAtCapture) {
+    await ensurePoaPdfArchive({ companyId: input.companyId, customerId: input.customerId, powerOfAttorneyId });
+  }
   return powerOfAttorneyId;
 }
 

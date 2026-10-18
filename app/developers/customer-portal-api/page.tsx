@@ -139,9 +139,11 @@ Content-Type: application/json
     "scope": ["supplier_switch", "facility_information_lookup"],
     "signerName": "Anna Andersson",
     "signerIdentityNumber": "19900101-1234",
-    "method": "online",
+    "method": "website_acceptance",
     "acceptedAt": "2026-08-19T10:00:00.000Z",
-    "textVersionId": "00000000-0000-4000-8000-000000000001"
+    "textVersionId": "00000000-0000-4000-8000-000000000001",
+    "ipAddress": "192.0.2.10",
+    "userAgent": "<customer browser user agent>"
   }
 }`
 
@@ -403,6 +405,15 @@ export default function CustomerPortalApiDocumentationPage() {
             </ol>
             <h3 className="text-lg font-semibold text-slate-950">Submit an application</h3>
             <CopyCodeBlock code={checkoutRequest} language="json" />
+            <p className="leading-7 text-slate-700">
+              For automated power-of-attorney email, record the customer’s IP at acceptance and send it as
+              <code> powerOfAttorney.ipAddress</code> from your trusted backend, with the original
+              <code> acceptedAt</code>. Gridex creates a stable verification number and archives the accepted text,
+              scopes and evidence as a PDF, with the verification number on every page. The IP of your API server
+              is recorded separately. A form click or <code>method: bankid</code> does not prove a verified BankID signature.
+              BankID is optional; missing evidence blocks external email until completed. Tenant users can retrieve
+              their PDFs in OPS under Fullmakter; platform administrators can search across tenants.
+            </p>
             <p className="text-sm leading-6 text-slate-600">
               The legal references, hashes and versions in this example are placeholders. In production, copy the exact values returned by the legal-bundle endpoint. Do not generate or modify them locally.
             </p>
