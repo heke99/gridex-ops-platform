@@ -38,12 +38,12 @@ export async function checkAckDeadlines(params: {
     // convert them into another tenant's operational record.
     if (typeof row.company_id !== 'string' || typeof row.ediel_message_id !== 'string') continue
     const { data: source, error: sourceError } = await supabaseService.from('ediel_messages')
-      .select('id,company_id,environment,message_family,raw_payload')
+      .select('id,company_id,environment,direction,message_family,raw_payload')
       .eq('company_id', row.company_id).eq('id', row.ediel_message_id).maybeSingle()
     if (sourceError) throw sourceError
     if (!source) continue
     const { data: acknowledgements, error: ackError } = await supabaseService.from('ediel_messages')
-      .select('id,company_id,environment,related_message_id,direction,status,message_sent_at,message_family,ack_outcome,validation_report')
+      .select('id,company_id,environment,related_message_id,direction,status,message_sent_at,message_family,ack_outcome,validation_report,raw_payload')
       .eq('company_id', row.company_id).eq('related_message_id', row.ediel_message_id)
       .eq('direction', 'outbound').in('message_family', ['CONTRL', 'APERAK', 'UTILTS_ERR']).limit(2000)
     if (ackError) throw ackError
