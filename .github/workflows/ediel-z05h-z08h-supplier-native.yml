@@ -315,7 +315,11 @@ jobs:
               if saved is not None: need(saved['frozen']==frozen,'h_allocated_admission_changed')
               # Receiving main can advance AFTER allocation. Observe it for DELIVERY,
               # never overwrite frozen B/F/T or turn actual native results into a failure.
-              return {'frozen':frozen,'sourceBase':base,'observedReceivingMain':observe_main(api),'observedPRBase':pr['base'].get('sha'),
+              observed_main=observe_main(api)
+              if phase=='admit':
+                  need(pr['base'].get('sha')==base,'h_initial_pr_base_changed')
+                  need(observed_main=={'state':'OBSERVED','sha':base},'h_initial_receiving_main_changed')
+              return {'frozen':frozen,'sourceBase':base,'observedReceivingMain':observed_main,'observedPRBase':pr['base'].get('sha'),
                   'deliveryApplicability':'SEPARATE_REVIEW_REQUIRED','phase':phase}
 
           def git(*args): return subprocess.check_output(['git',*args],text=True).strip()
