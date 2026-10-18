@@ -4096,8 +4096,20 @@
     },
     {
       "id": "AT-Z03C-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-at-z03c-supplier-required-fields.test.ts",
+        "__tests__/ediel-at-z03c-supplier-queue.test.ts",
+        "__tests__/ediel-at-z03c-z05c-supplier-profile.test.ts",
+        "__tests__/ediel-switch-cancellation-customer-source.test.ts",
+        "scripts/ediel-at-z03c-supplier-boundary-native.test.ts",
+        "scripts/ediel-cancellation-public-acceptance-native.test.ts",
+        "lib/ediel/production/switchCancellationSource.ts",
+        "lib/ediel/intent/renderers/switchCancellation.ts",
+        "quality/audits/ediel-masterplan-v2/z03c-supplier/contract-proof.json",
+        "quality/audits/ediel-masterplan-v2/z03c-supplier/native-cancellation.zip",
+        "quality/audits/ediel-masterplan-v2/z03c-supplier/native-z03c-boundary.zip"
+      ]
     },
     {
       "id": "AT-Z04C-SUPPLIER",
