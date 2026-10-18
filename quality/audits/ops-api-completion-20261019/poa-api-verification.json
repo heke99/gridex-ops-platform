@@ -1,0 +1,61 @@
+{
+  "checked_at": "2026-10-18T23:50:57.516896+00:00",
+  "state": "SOURCE77_TESTS_APP_TYPES_PASS_PENDING_FINAL_REVIEW_PUBLICATION",
+  "main": "63580ae0a84b97b3e44d46cc21bdc349b8c978fa",
+  "unchanged_dependency": "1e78dbbf7f16d1a144f205f5e58e1ce4d6ca0dba",
+  "local_dependency_merge": "47ba055136f14a1fefdc85d72defcc3c36176dbd",
+  "source_receipt": "4c81d3975234ff6e73b1ea170363de1c4cd9f339",
+  "finding": "Archived POA PDF/verification metadata are not consistently accessible through existing external projections. New authenticated evidence discovery/read routes provide an additive concrete supplement.",
+  "red": {
+    "missing_route_module": "FAIL expected absent endpoint",
+    "behavior": {
+      "tests": 25,
+      "failed": 25,
+      "stub_status": 501
+    }
+  },
+  "verification": {
+    "focused_archive_vitest": {
+      "suites": 4,
+      "tests": 77,
+      "failed": 0,
+      "own_cases": 31
+    },
+    "app_types": "PASS after clean lockfile installation",
+    "test_types": "PASS npm run typecheck:tests; focused final added-case check follows",
+    "scoped_lint": "PASS zero warnings, including final added cases",
+    "api_docs": "PASS npm run api:docs for existing active publication; this does not validate registration/publication of the new endpoints",
+    "proposed_contract": "PASS mounted discovery, verification and denial JSON validate against the embedded additive closed OpenAPI patch; private-path extra field rejected",
+    "ordinary_build": {
+      "result": "BLOCKED_ENVIRONMENT",
+      "message": "Next16.3.8 could not parse TypeScript --showConfig from child output",
+      "direct_show_config": "PASS valid JSON116228bytes/2109files",
+      "independent_capture_probe": "Node22.23.3 and24.19.0 child capture both returned exit0 but empty stdout; direct shell CLI returned valid JSON",
+      "source_change": "None: no Next config, dependency source or compiler gate patched"
+    }
+  },
+  "declared_ports": [
+    "API credential/scopes/rate-limit transport",
+    "portal identity resolver",
+    "retention guard",
+    "Supabase table/storage transport"
+  ],
+  "actual_components": [
+    "Fullmakt renderer and archive writer from frozen dependency",
+    "customer assertion ES256 signature/issuer/audience/subject/lifetime/replay verifier",
+    "customer reader, byte SHA256 and PDF structural check",
+    "mounted Next.js routes and representation wrapper",
+    "tenant/customer-bound opaque cursor",
+    "canonical customer merge resolver and event checks"
+  ],
+  "limits": [
+    "No production writes, downloads, extra signing or mail",
+    "No live RLS/native/market/provider proof",
+    "No active guide/OpenAPI/version publication claim",
+    "No existing Website/Partner/ordinary Customer closed DTO enrichment",
+    "Archive dependency/source merge is local test composition, not receiving-main/delivery credit",
+    "New GETs never generate or rewrite consent/archive/PDF; replay and audit writes retain security purpose"
+  ],
+  "next_action": "Finish types/lint/docs gates, two independent exact-source reviews, publish additive source offer. Obtain positive incumbent active publication-file intake/handoff and qualified PR828 delivery before release.",
+  "environment_correction": "Initial shared node_modules lacked the frozen dependency mailauth7.3.1, causing types to fail. Installed the exact existing PR828 package-lock with npm ci in this isolated worktree; no package/lock/source modification."
+}
