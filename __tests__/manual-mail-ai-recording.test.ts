@@ -8,7 +8,7 @@ import { recordManualMailAiReading } from '@/lib/inbound-mail/manualMailAiRecord
 const input = { inboundId: 'inbound-a', companyId: 'tenant-a', customerId: 'customer-a', requestId: 'request-a', authoredText: 'Avtalet löper till 2027-03-31.', senderCredible: true }
 const config = { enabled: true, apiKey: 'synthetic-secret' }
 const payload = { sender_credible: true, facility_id: 'synthetic-facility' }
-const completed = () => new Response(JSON.stringify({ status: 'completed', output: [{ type: 'message', role: 'assistant', status: 'completed', content: [{ type: 'output_text', text: JSON.stringify({ outcome: 'contract_information', outcome_source: 0, fields: [{ field: 'contract_end', value: '2027-03-31', source: 0 }] }) }] }], usage: { input_tokens: 200, output_tokens: 100 } }))
+const completed = () => new Response(JSON.stringify({ status: 'completed', output: [{ type: 'message', role: 'assistant', status: 'completed', content: [{ type: 'output_text', text: JSON.stringify({ outcome: 'contract_information', outcome_source: 0, review_reasons: [], fields: [{ field: 'contract_end', value: '2027-03-31', source: 0 }] }) }] }], usage: { input_tokens: 200, output_tokens: 100 } }))
 
 beforeEach(() => {
   io.db = createFakeDb({ manual_inbound_messages: [{ id: 'inbound-a', company_id: 'tenant-a', customer_id: 'customer-a', request_id: 'request-a', resolution_status: 'matched', extracted_payload: payload }], customers: [{ id: 'customer-a', contract_end: null }], manual_email_outbox: [] })

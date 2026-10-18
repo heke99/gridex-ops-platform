@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { readManualMailWithAi, prepareManualMailAiInput } from '@/lib/inbound-mail/manualMailAiReader'
+import { readManualMailWithAi, prepareManualMailAiInput, restoreManualMailAiReading } from '@/lib/inbound-mail/manualMailAiReader'
 
 const config = { enabled: true, apiKey: 'synthetic-secret' }
 const body = 'Avtalet löper till 2027-03-31. Tidigaste start är 2027-04-01 om uppsägningen kommer in senast 2027-02-28.'
-const parsed = { outcome: 'contract_information', outcome_source: 0, fields: [{ field: 'earliest_start', value: '2027-04-01', source: 0 }] }
+const parsed = { outcome: 'contract_information', outcome_source: 0, review_reasons: ['conditional'], fields: [{ field: 'earliest_start', value: '2027-04-01', source: 0 }] }
 function response(value: unknown = parsed, changes: Record<string, unknown> = {}) {
   return new Response(JSON.stringify({
     status: 'completed', model: 'gpt-6-luna',
@@ -43,10 +43,51 @@ describe('read-only manual mail AI boundary', () => {
       const request = JSON.parse(String(init?.body))
       expect(request).toMatchObject({ model: 'gpt-6-luna', store: false, tools: [], tool_choice: 'none', max_output_tokens: 1600, reasoning: { effort: 'none' } })
       expect(request.text.format).toMatchObject({ type: 'json_schema', strict: true })
+      expect(request.text.format.schema.required).toContain('review_reasons')
+      expect(request.text.format.schema.properties.review_reasons).toMatchObject({ type: 'array', maxItems: 7,
+        items: { type: 'string', enum: ['conditional', 'negated', 'multiple_customers', 'multiple_facilities', 'contradictory', 'uncertain', 'other_customer'] } })
       expect(JSON.stringify(request)).not.toContain('synthetic-secret')
       return response()
     }
     expect((await readManualMailWithAi(body, config, fetcher)).status).toBe('completed')
+  })
+
+  it.each(['conditional', 'negated', 'multiple_customers', 'multiple_facilities', 'contradictory', 'uncertain', 'other_customer'])(
+    'preserves the model global review reason %s alongside literal field evidence', async (reason) => {
+      const result = await readManualMailWithAi(body, config, async () => response({ ...parsed, review_reasons: [reason] }))
+      expect(result).toMatchObject({ status: 'completed', review_reasons: [reason],
+        fields: [{ field: 'earliest_start', value: '2027-04-01', quote: body }] })
+    },
+  )
+
+  it('keeps a qualifier from a later paragraph even when the date has a clean first-paragraph citation', async () => {
+    const first = 'Tidigaste startdatum: 2027-04-01'
+    const last = 'Detta gäller endast om kunden säger upp avtalet i tid. Det andra avtalet avser en annan kund.'
+    const result = await readManualMailWithAi(`${first}\n\n${last}`, config, async (_url, init) => {
+      const request = JSON.parse(String(init?.body))
+      const input = JSON.parse(request.input[0].content[0].text)
+      expect(input.untrusted_reply_paragraphs).toEqual([{ source: 0, text: first }, { source: 1, text: last }])
+      return response({ ...parsed, review_reasons: ['conditional', 'multiple_customers', 'other_customer'] })
+    })
+    expect(result).toMatchObject({ status: 'completed', review_reasons: ['conditional', 'multiple_customers', 'other_customer'],
+      fields: [{ field: 'earliest_start', value: '2027-04-01', quote: first }] })
+  })
+
+  it.each([undefined, null, 'uncertain', ['execute_email'], [1], { uncertain: true }, Array(8).fill('uncertain')])(
+    'fails closed for missing or invalid global review classifications %#', async (reviewReasons) => {
+      expect(await readManualMailWithAi(body, config, async () => response({ ...parsed, review_reasons: reviewReasons })))
+        .toMatchObject({ status: 'failed', reason: 'invalid_output' })
+    },
+  )
+
+  it('can restore fresh review reasons but never upgrades a legacy reading without the classification', async () => {
+    const result = await readManualMailWithAi(body, config, async () => response({ ...parsed, review_reasons: ['uncertain', 'multiple_customers'] }))
+    expect(result.status).toBe('completed')
+    expect(restoreManualMailAiReading(result, body)).toMatchObject({ status: 'completed', review_reasons: ['uncertain', 'multiple_customers'] })
+    const legacy = { ...result } as Record<string, unknown>
+    delete legacy.review_reasons
+    expect(restoreManualMailAiReading(legacy, body)).toBeUndefined()
+    expect(restoreManualMailAiReading({ ...result, review_reasons: ['perform_action'] }, body)).toBeUndefined()
   })
 
   it.each([

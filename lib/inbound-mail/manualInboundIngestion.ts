@@ -8,9 +8,16 @@ import {
 import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
 import { resolveManualInboundCorrelation } from '@/lib/inbound-mail/manualInboundCorrelation'
 import { autoReplyReason } from '@/lib/inbound-mail/autoReply'
-import { assessManualReply, authoredManualReply } from '@/lib/inbound-mail/manualReplyAssessment'
+import { assessManualReply, authoredManualReply, authoredManualReplyRequiresReview, stripQuotedManualReplyHtml } from '@/lib/inbound-mail/manualReplyAssessment'
 import { recordManualCounterpartyReply } from '@/lib/inbound-mail/manualCounterpartyReply'
 import { recordManualMailAiReading } from '@/lib/inbound-mail/manualMailAiRecording'
+import type { ManualSenderVerification } from '@/lib/inbound-mail/manualSenderVerification'
+import { createHash } from 'node:crypto'
+import { interpretManualMail } from '@/lib/inbound-mail/manualMailInterpretation'
+import { applyManualCommercialReply, continueManualCommercialReply, reviewManualReply } from '@/lib/inbound-mail/manualReplyApplication'
+import { normalizeManualFacilityFacts } from '@/lib/inbound-mail/manualFacilityFacts'
+import { tenantSelect } from '@/lib/supabase/tenantQuery'
+import { extractManualCustomerIdentityHints, manualCustomerIdentityMatches } from '@/lib/inbound-mail/manualCustomerIdentity'
 
 type JsonRecord = Record<string, unknown>
 
@@ -30,6 +37,10 @@ export type ManualInboundEmail = {
   attachments?: unknown[]
   // Root headers relevant to RFC 3834 auto-reply detection (lower-case names).
   autoReplyHeaders?: Record<string, string> | null
+  // Server-generated from the original RFC bytes, never accepted from a public payload.
+  senderVerification?: ManualSenderVerification
+  // Server-only MIME traversal result, never accepted from a public webhook.
+  mimeRequiresReview?: boolean
 }
 
 export type ManualInboundResult = {
@@ -63,6 +74,12 @@ function clean(value: unknown): string | null {
 
 function normalizeEmail(value: unknown): string | null {
   return clean(value)?.toLowerCase() ?? null
+}
+
+function sourceFingerprint(email: ManualInboundEmail): string {
+  return createHash('sha256').update(JSON.stringify([normalizeEmail(email.fromEmail), clean(email.subject),
+    clean(email.bodyText), clean(email.bodyHtml), Array.isArray(email.attachments) ? email.attachments : [],
+    ...(email.mimeRequiresReview === true ? ['mime_structure_incomplete'] : [])])).digest('hex')
 }
 
 function stripHtml(value: string | null): string {
@@ -134,7 +151,7 @@ async function findExistingInbound(input: {
 }): Promise<JsonRecord | null> {
   const { data, error } = await supabaseService
     .from('manual_inbound_messages')
-    .select('id,company_id,request_id,resolution_status,customer_id,customer_site_id,metering_point_id,intent,business_process,processing_state')
+    .select('id,company_id,request_id,resolution_status,customer_id,customer_site_id,metering_point_id,intent,business_process,processing_state,received_at,extracted_payload,from_email,subject,body_text,body_html,attachments,correlation_evidence')
     .eq('mailbox', input.mailbox)
     .eq('provider_message_id', input.providerMessageId)
     .order('created_at', { ascending: true })
@@ -148,10 +165,25 @@ async function persistRawInbound(input: {
   email: ManualInboundEmail
   mailbox: string
   providerMessageId: string | null
-}): Promise<{ inboundId: string; existing: JsonRecord | null }> {
+  collisionWithId?: string
+}): Promise<{ inboundId: string; existing: JsonRecord | null; receivedAt: string; quarantined?: boolean }> {
+  const fingerprint = sourceFingerprint(input.email)
+  const resumeExisting = async (existing: JsonRecord): Promise<{ inboundId: string; existing: JsonRecord | null; receivedAt: string; quarantined?: boolean }> => {
+    const stored = existing.extracted_payload as JsonRecord | null
+    const storedFingerprint = clean(stored?.source_fingerprint) ?? sourceFingerprint({ fromEmail: clean(existing.from_email),
+      subject: clean(existing.subject), bodyText: clean(existing.body_text), bodyHtml: clean(existing.body_html), attachments: existing.attachments as unknown[] })
+    if (storedFingerprint !== fingerprint) {
+      // An RFC Message-ID is sender-controlled. Preserve both originals, and
+      // quarantine a collision without rewriting the already processed source.
+      const collisionKey = createHash('sha256').update(`${input.providerMessageId}:${fingerprint}`).digest('hex')
+      return persistRawInbound({ ...input, providerMessageId: `collision:${collisionKey}`, collisionWithId: String(existing.id) })
+    }
+    return { inboundId: String(existing.id), existing, receivedAt: clean(existing.received_at) ?? new Date().toISOString(),
+      quarantined: Boolean(input.collisionWithId || (existing.correlation_evidence as JsonRecord | null)?.source_collision) }
+  }
   if (input.providerMessageId) {
     const existing = await findExistingInbound({ mailbox: input.mailbox, providerMessageId: input.providerMessageId })
-    if (existing) return { inboundId: String(existing.id), existing }
+    if (existing) return resumeExisting(existing)
   }
 
   const insert = await supabaseService
@@ -173,23 +205,24 @@ async function persistRawInbound(input: {
       reference_message_ids: Array.isArray(input.email.references) ? input.email.references.filter(Boolean).slice(0, 50) : [],
       attachments: Array.isArray(input.email.attachments) ? input.email.attachments : [],
       resolution_status: 'unmatched',
-      extracted_payload: {},
+      extracted_payload: { source_fingerprint: fingerprint, ...(input.email.mimeRequiresReview === true ? { mime_requires_review: true } : {}) },
       confidence_score: 0,
-      correlation_evidence: {},
-      processing_state: 'received',
+      correlation_evidence: input.collisionWithId ? { source_collision: true, collision_with_id: input.collisionWithId } : {},
+      processing_state: input.collisionWithId ? 'needs_review' : 'received',
+      received_at: new Date().toISOString(),
     })
-    .select('id')
+    .select('id,received_at')
     .maybeSingle()
 
   if (insert.error) {
     if (String(insert.error.code) === '23505' && input.providerMessageId) {
       const existing = await findExistingInbound({ mailbox: input.mailbox, providerMessageId: input.providerMessageId })
-      if (existing) return { inboundId: String(existing.id), existing }
+      if (existing) return resumeExisting(existing)
     }
     throw insert.error
   }
   if (!insert.data?.id) throw new Error('Inkommande e-post kunde inte persisteras före korrelation.')
-  return { inboundId: String(insert.data.id), existing: null }
+  return { inboundId: String(insert.data.id), existing: null, receivedAt: clean(insert.data.received_at) ?? new Date().toISOString(), quarantined: Boolean(input.collisionWithId) }
 }
 
 async function upsertInboundOperationEvent(input: {
@@ -298,7 +331,20 @@ export async function ingestManualInboundEmail(email: ManualInboundEmail): Promi
 
   const mailbox = normalizeEmail(email.mailbox ?? email.toEmail) ?? ''
   const providerMessageId = clean(email.providerMessageId)
-  const caseReference = extractCaseReference(email)
+  const verifiedSender = email.senderVerification?.status === 'verified'
+    && email.senderVerification.version === 1 && email.senderVerification.method === 'dkim'
+    && normalizeEmail(email.senderVerification.from_email) === normalizeEmail(email.fromEmail)
+    && email.senderVerification.signing_domain === normalizeEmail(email.fromEmail)?.split('@')[1]
+    && /^[a-f0-9]{64}$/.test(email.senderVerification.raw_sha256)
+    && email.senderVerification.signed_headers.includes('from')
+  const signed = (header: string) => verifiedSender && email.senderVerification!.signed_headers.includes(header)
+  const correlationEmail: ManualInboundEmail = verifiedSender ? { ...email,
+    subject: signed('subject') ? email.subject : null, toEmail: null,
+    threadId: signed('in-reply-to') ? email.inReplyTo ?? null : null,
+    inReplyTo: signed('in-reply-to') ? email.inReplyTo ?? null : null,
+    references: signed('references') ? email.references ?? [] : [],
+  } : email
+  const caseReference = extractCaseReference(correlationEmail)
   if (providerMessageId) {
     const { data: retired, error } = await supabaseService.rpc('gridex_manual_inbound_source_retired_v1', {
       p_mailbox: mailbox,
@@ -319,12 +365,20 @@ export async function ingestManualInboundEmail(email: ManualInboundEmail): Promi
     throw error
   }
 
+  if (raw.quarantined) return { inboundId: raw.inboundId, resolutionStatus: 'unmatched', requestId: null,
+    caseReference, companyId: null, customerId: null, customerSiteId: null, meteringPointId: null, processingState: 'needs_review', parse: null }
+
   // A terminal correlation is idempotent. Unmatched rows are intentionally
   // re-evaluated because new tenant/customer masterdata may have arrived since
   // the first attempt, and so is a row whose processing never reached a
   // terminal state (e.g. matched, but applying the response threw). Every step
   // below is an idempotent update/upsert keyed by the inbound row.
   if (raw.existing && !isReprocessable(raw.existing)) {
+    if (raw.existing.processing_state === 'applied' && raw.existing.company_id && raw.existing.customer_id
+      && raw.existing.customer_site_id && raw.existing.request_id) {
+      await continueManualCommercialReply({ inboundId: raw.inboundId, companyId: String(raw.existing.company_id),
+        customerId: String(raw.existing.customer_id), siteId: String(raw.existing.customer_site_id), requestId: String(raw.existing.request_id) })
+    }
     return resultFromExisting(raw.existing, caseReference)
   }
 
@@ -357,21 +411,29 @@ export async function ingestManualInboundEmail(email: ManualInboundEmail): Promi
     }
   }
 
-  const normalizedText = buildNormalizedManualInboundText(email)
-  const authoredText = authoredManualReply(clean(email.bodyText)
-    ?? stripHtml(clean(email.bodyHtml)?.replace(/<blockquote\b[\s\S]*$/i, '') ?? null))
-  const replyAssessment = assessManualReply(authoredText, clean(email.subject))
-  const extracted = extractManualFacilityFields([authoredText, attachmentText(email.attachments)].filter(Boolean).join('\n'))
+  const normalizedText = buildNormalizedManualInboundText(correlationEmail)
+  const htmlReply = stripQuotedManualReplyHtml(clean(email.bodyHtml) ?? '')
+  const replyText = clean(email.bodyText) ?? stripHtml(htmlReply.html)
+  const authoredText = authoredManualReply(replyText)
+  const sourceStructureRequiresReview = email.mimeRequiresReview === true
+    || (raw.existing?.extracted_payload as JsonRecord | null)?.mime_requires_review === true
+    || (!clean(email.bodyText) && htmlReply.requiresReview)
+    || authoredManualReplyRequiresReview(replyText)
+  const replyAssessment = assessManualReply(authoredText, clean(correlationEmail.subject))
+  let extracted = extractManualFacilityFields(authoredText)
+  const identity = extractManualCustomerIdentityHints(authoredText)
+  extracted = { ...extracted, ...identity.hints }
+  const sourceHash = createHash('sha256').update(authoredText).digest('hex')
   const confidence = scoreManualFacilityPayload(extracted)
   const correlation = await resolveManualInboundCorrelation({
     email: {
       mailbox,
       mailboxCompanyId: clean(email.mailboxCompanyId),
       fromEmail: clean(email.fromEmail),
-      toEmail: clean(email.toEmail),
-      threadId: clean(email.threadId),
-      inReplyTo: clean(email.inReplyTo ?? email.threadId),
-      references: email.references ?? [],
+      toEmail: clean(correlationEmail.toEmail),
+      threadId: clean(correlationEmail.threadId),
+      inReplyTo: clean(correlationEmail.inReplyTo ?? correlationEmail.threadId),
+      references: correlationEmail.references ?? [],
     },
     caseReference,
     normalizedText,
@@ -393,7 +455,16 @@ export async function ingestManualInboundEmail(email: ManualInboundEmail): Promi
   const customerSiteId = matched ? correlation.customerSiteId : null
   const meteringPointId = matched ? correlation.meteringPointId : null
   const gridOwnerId = matched ? correlation.gridOwnerId : null
-  const counterpartyReply = matched && correlation.senderCredible && correlation.request && companyId ? replyAssessment : null
+  const identityReasons = [...identity.reasons]
+  if (matched && companyId && customerId && Object.keys(identity.hints).length > 0) {
+    const customer = await tenantSelect(companyId, 'customers', 'id,company_id,personal_number,org_number')
+      .eq('id', customerId).maybeSingle()
+    if (customer.error) throw customer.error
+    const row = customer.data as JsonRecord | null
+    if (!row || row.id !== customerId || row.company_id !== companyId || !manualCustomerIdentityMatches(identity.hints, row)) identityReasons.push('customer_identity_mismatch')
+  }
+  const sourceRequiresReview = sourceStructureRequiresReview || identityReasons.length > 0
+  const counterpartyReply = matched && verifiedSender && !sourceRequiresReview && correlation.senderCredible && correlation.request && companyId ? replyAssessment : null
   if (counterpartyReply) {
     correlation.intent = counterpartyReply.intent
     correlation.evidence = { ...correlation.evidence, counterparty_reply: counterpartyReply }
@@ -422,18 +493,53 @@ export async function ingestManualInboundEmail(email: ManualInboundEmail): Promi
       confidence_score: confidence,
     })
     .eq('id', raw.inboundId)
+    .in('processing_state', ['received', 'normalized', 'matched', 'unmatched', 'ambiguous'])
     .select('id')
     .maybeSingle()
   if (correlationUpdate.error) throw correlationUpdate.error
-  if (!correlationUpdate.data) throw new Error('Inkommande e-post kunde inte uppdateras med korrelationsresultat.')
+  if (!correlationUpdate.data) {
+    const latest = await supabaseService.from('manual_inbound_messages').select('*').eq('id', raw.inboundId).maybeSingle()
+    if (latest.error) throw latest.error
+    if (!latest.data) throw new Error('manual_inbound_concurrent_change')
+    return resultFromExisting(latest.data as JsonRecord, caseReference)
+  }
 
   // An AI reservation/result is append-only. Conditional replacement prevents
   // a concurrent normalization/retry from erasing it and triggering a new bill.
   // The deterministic parser still owns the in-memory `extracted` used below.
   const extractionUpdate = await supabaseService.from('manual_inbound_messages')
-    .update({ extracted_payload: { ...extracted, sender_credible: correlation.senderCredible, reply_assessment: replyAssessment } })
+    .update({ extracted_payload: { ...extracted, sender_credible: correlation.senderCredible, reply_assessment: replyAssessment,
+      source_fingerprint: sourceFingerprint(email),
+      mime_requires_review: email.mimeRequiresReview === true,
+      manual_reply_structure_requires_review: sourceStructureRequiresReview,
+      customer_identity_review_reasons: identityReasons,
+      sender_verification: verifiedSender ? email.senderVerification : { status: 'unverified', reason: 'sender_not_authenticated' },
+      manual_automation: { version: 1, sourceHash },
+    } })
     .eq('id', raw.inboundId).is('extracted_payload->ai_read_only', null)
+    .is('extracted_payload->manual_automation->application', null)
+    .in('processing_state', ['received', 'normalized', 'matched'])
   if (extractionUpdate.error) throw extractionUpdate.error
+
+  let reading = matched && companyId && customerId && requestId
+    ? await recordManualMailAiReading({ inboundId: raw.inboundId, companyId, customerId, requestId,
+      senderCredible: verifiedSender && !sourceRequiresReview && correlation.senderCredible, authoredText }) : undefined
+  const aiRequired = matched && verifiedSender && !sourceRequiresReview && correlation.senderCredible && process.env.MANUAL_MAIL_AI_ENABLED === '1'
+  if (aiRequired && !reading && companyId && customerId && requestId) {
+    const pending = await supabaseService.from('manual_inbound_messages').select('extracted_payload')
+      .eq('id', raw.inboundId).eq('company_id', companyId).eq('customer_id', customerId).eq('request_id', requestId).maybeSingle()
+    if (pending.error) throw pending.error
+    const saved = (pending.data?.extracted_payload as JsonRecord | null)?.ai_read_only as JsonRecord | undefined
+    if (saved?.status === 'processing') throw new Error('manual_mail_reading_in_progress')
+    if (saved?.status === 'completed') reading = await recordManualMailAiReading({ inboundId: raw.inboundId,
+      companyId, customerId, requestId, senderCredible: true, authoredText })
+  }
+  const interpretation = interpretManualMail({ authoredText, extracted, reading })
+  if (sourceStructureRequiresReview) interpretation.reasons.push('manual_reply_structure_incomplete')
+  interpretation.reasons.push(...identityReasons)
+  if (aiRequired && reading?.status !== 'completed') interpretation.reasons.push('ai_reading_unavailable')
+  extracted = interpretation.extracted
+  const facilityFacts = normalizeManualFacilityFacts({ extracted, authoredText })
 
   const fingerprint = operationFingerprint({
     companyId,
@@ -475,19 +581,21 @@ export async function ingestManualInboundEmail(email: ManualInboundEmail): Promi
   if (counterpartyReply && correlation.request && correlation.companyId) {
     await recordManualCounterpartyReply({ companyId: correlation.companyId, request: correlation.request, inboundId: raw.inboundId, assessment: counterpartyReply })
     processingState = 'needs_review'
-  } else if (matched && correlation.senderCredible && correlation.request && correlation.companyId
-    && requestType === 'current_supplier_contract_information_request') {
-    // Receiving contract information stops reminders. Retain conditions and
-    // dates verbatim for review; this adapter cannot approve a market start.
-    const now = new Date().toISOString()
-    const received = await supabaseService.from('grid_owner_information_requests').update({
-      status: 'manual_response_received', next_follow_up_at: null, received_at: now, updated_at: now,
-      parsed_payload: { ...extracted, applied: false, review_reason: 'commercial_terms_require_review', inbound_id: raw.inboundId },
-      last_error_code: 'commercial_terms_require_review', last_error_message: 'Avtalsuppgifter har mottagits. Kontrollera datum, uppsägningsvillkor och eventuella förbehåll före leverantörsbyte.',
-    }).eq('company_id', correlation.companyId).eq('id', String(correlation.request.id))
-      .in('status', ['manual_email_queued', 'manual_email_sent', 'waiting_manual_response', 'manual_response_received']).select('id').maybeSingle()
-    if (received.error) throw received.error
+  } else if (matched && !verifiedSender) {
+    // An unauthenticated message is visible for review but has no authority to
+    // stop an existing conversation, spend an inference or mutate customer data.
     processingState = 'needs_review'
+  } else if (matched && correlation.request && companyId && (!correlation.senderCredible || interpretation.reasons.length > 0
+    || (canApplyFacilityResponse && !facilityFacts.ok))) {
+    const reasons = [...(!verifiedSender ? ['sender_not_authenticated'] : []), ...(!correlation.senderCredible ? ['sender_not_credible'] : []),
+      ...interpretation.reasons, ...(canApplyFacilityResponse ? facilityFacts.reasons : [])]
+    await reviewManualReply({ companyId, request: correlation.request, inboundId: raw.inboundId, extracted, reasons })
+    processingState = 'needs_review'
+  } else if (matched && correlation.request && companyId && customerId && customerSiteId
+    && requestType === 'current_supplier_contract_information_request') {
+    parse = await applyManualCommercialReply({ companyId, customerId, siteId: customerSiteId, request: correlation.request,
+      inboundId: raw.inboundId, extracted, authoredText, receivedAt: raw.receivedAt, sourceHash })
+    processingState = parse.outcome
   } else if (canApplyFacilityResponse && correlation.request && correlation.companyId) {
     parse = await applyManualFacilityResponse({
       companyId: correlation.companyId,
@@ -504,6 +612,7 @@ export async function ingestManualInboundEmail(email: ManualInboundEmail): Promi
       },
       senderCredible: correlation.senderCredible,
       source: 'manual_inbound_ingestion',
+      automaticInbound: { inboundId: raw.inboundId, sourceHash, facts: facilityFacts.facts },
     })
 
     processingState = parse.outcome === 'applied' ? 'applied' : 'needs_review'
@@ -521,9 +630,17 @@ export async function ingestManualInboundEmail(email: ManualInboundEmail): Promi
       .from('manual_inbound_messages')
       .update({ processing_state: processingState })
       .eq('id', raw.inboundId)
+      .in('processing_state', processingState === 'applied'
+        ? ['received', 'normalized', 'matched', 'applied'] : ['received', 'normalized', 'matched'])
       .select('id')
       .maybeSingle()
     if (stateUpdate.error) throw stateUpdate.error
+    if (!stateUpdate.data) {
+      const latest = await supabaseService.from('manual_inbound_messages').select('*').eq('id', raw.inboundId).maybeSingle()
+      if (latest.error) throw latest.error
+      if (!latest.data) throw new Error('manual_inbound_concurrent_change')
+      return resultFromExisting(latest.data as JsonRecord, caseReference)
+    }
 
     await upsertInboundOperationEvent({
       inboundId: raw.inboundId,
@@ -542,13 +659,6 @@ export async function ingestManualInboundEmail(email: ManualInboundEmail): Promi
       evidence: { ...correlation.evidence, parse_outcome: parse?.outcome ?? null },
       businessEventFingerprint: fingerprint,
     })
-  }
-
-  // Only the already resolved scope enters the reader. Its output is never
-  // consumed by correlation, facility application, reminders or market release.
-  if (matched && companyId && customerId && requestId) {
-    await recordManualMailAiReading({ inboundId: raw.inboundId, companyId, customerId, requestId,
-      senderCredible: correlation.senderCredible, authoredText })
   }
 
   return {

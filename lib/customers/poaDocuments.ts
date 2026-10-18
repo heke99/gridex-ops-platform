@@ -28,12 +28,59 @@ async function readPoa(scope: PoaDocumentScope): Promise<Row> {
   return data as Row
 }
 
-async function download(path: string, scope: PoaDocumentScope, verifiedPartnerOriginal = false): Promise<Buffer> {
-  if (!(verifiedPartnerOriginal && path.startsWith(`partner-api/${scope.companyId}/`) && /^partner-api\/[^/]+\/[A-Za-z0-9_-]+\.pdf$/.test(path))) assertPoaDocumentPath(path, scope)
+function archiveOwner(path: string, scope: PoaDocumentScope): { customerId: string; sha256: string } | null {
+  const match = path.match(/^companies\/([A-Za-z0-9_-]+)\/customers\/([A-Za-z0-9_-]+)\/powers-of-attorney\/([A-Za-z0-9_-]+)\/fullmakt-([a-f0-9]{64})\.pdf$/)
+  return match && match[1] === scope.companyId && match[3] === scope.powerOfAttorneyId ? { customerId: match[2], sha256: match[4] } : null
+}
+
+/** Only an existing archive of this exact POA may follow a canonical merge.
+ * Customer aliases alone never grant access to arbitrary former prefixes. */
+async function verifiedMergedArchive(path: string, scope: PoaDocumentScope, poa: Row): Promise<{ sha256: string } | null> {
+  const owner = archiveOwner(path, scope), archive = record(record(poa.metadata).document_archive)
+  if (!owner || owner.customerId === scope.customerId || poa.id !== scope.powerOfAttorneyId || poa.company_id !== scope.companyId
+    || poa.customer_id !== scope.customerId || archive.path !== path || archive.storage_bucket !== BUCKET
+    || archive.sha256 !== owner.sha256 || archive.evidence_sha256 !== evidenceFingerprint(poa)) return null
+  let customerId = owner.customerId
+  const visited = new Set<string>()
+  // query-loop-budget: bounded-canonical-merge-chain max=8
+  for (let depth = 0; depth < 8; depth += 1) {
+    if (visited.has(customerId)) return null
+    visited.add(customerId)
+    const customerResult = await supabaseService.from('customers').select('id,company_id,status,merge_status,merged_into_customer_id,merged_at,merged_by')
+      .eq('company_id', scope.companyId).eq('id', customerId).maybeSingle()
+    if (customerResult.error) throw customerResult.error
+    const customer = customerResult.data as Row | null
+    if (!customer || customer.company_id !== scope.companyId) return null
+    if (customerId === scope.customerId) return customer.merged_into_customer_id == null ? { sha256: owner.sha256 } : null
+    const next = clean(customer.merged_into_customer_id), actor = clean(customer.merged_by), mergedAt = clean(customer.merged_at)
+    if (!next || next === customerId || customer.merge_status !== 'merged' || !['inactive', 'archived'].includes(String(customer.status))
+      || !actor || !mergedAt || !Number.isFinite(Date.parse(mergedAt))) return null
+    const eventResult = await supabaseService.from('customer_merge_events').select('id,company_id,primary_customer_id,merged_customer_id,moved_counts,source_snapshot,created_by,created_at')
+      .eq('company_id', scope.companyId).eq('merged_customer_id', customerId).eq('primary_customer_id', next).eq('created_by', actor).limit(2)
+    if (eventResult.error) throw eventResult.error
+    const events = (eventResult.data ?? []) as Row[]
+    const event = events[0], moved = record(event?.moved_counts).powers_of_attorney
+    if (events.length !== 1 || record(event?.source_snapshot).id !== customerId || typeof moved !== 'number' || !Number.isInteger(moved) || moved < 1
+      || typeof event.created_at !== 'string' || Date.parse(event.created_at) !== Date.parse(mergedAt)) return null
+    customerId = next
+  }
+  return null
+}
+
+async function download(path: string, scope: PoaDocumentScope, verifiedPartnerOriginal = false, poa?: Row): Promise<Buffer> {
+  let mergedArchive: { sha256: string } | null = null
+  if (!(verifiedPartnerOriginal && path.startsWith(`partner-api/${scope.companyId}/`) && /^partner-api\/[^/]+\/[A-Za-z0-9_-]+\.pdf$/.test(path))) {
+    try { assertPoaDocumentPath(path, scope) }
+    catch (pathError) {
+      mergedArchive = poa ? await verifiedMergedArchive(path, scope, poa) : null
+      if (!mergedArchive) throw pathError
+    }
+  }
   const { data, error } = await supabaseService.storage.from(BUCKET).download(path)
   if (error || !data) throw error ?? new Error('Det sparade fullmaktsdokumentet kunde inte hämtas.')
   const bytes = Buffer.from(await data.arrayBuffer())
   if (!inspectPdfStructure(bytes).ok) throw new Error('Det sparade fullmaktsdokumentet är inte en läsbar PDF.')
+  if (mergedArchive && createHash('sha256').update(bytes).digest('hex') !== mergedArchive.sha256) throw new Error('Det tidigare fullmaktsarkivets kontrollsumma kunde inte verifieras.')
   return bytes
 }
 
@@ -46,8 +93,10 @@ export async function savePoaPdfArchive(scope: PoaDocumentScope, pdf: Buffer, ex
   const previousArchive = record(record(poa.metadata).document_archive)
   const archivePrefix = `companies/${scope.companyId}/customers/${scope.customerId}/powers-of-attorney/${scope.powerOfAttorneyId}/`
   const isArchived = previousPath?.startsWith(archivePrefix) && Boolean(previousArchive.sha256)
-  const originalUpload = Boolean(previousPath && !isArchived)
-  if (originalUpload) pdf = await download(previousPath!, scope, poa.source === 'partner_api')
+  const priorOwner = previousPath ? archiveOwner(previousPath, scope) : null
+  const movedArchive = Boolean(priorOwner && priorOwner.customerId !== scope.customerId && previousArchive.path === previousPath && previousArchive.sha256 === priorOwner.sha256)
+  const originalUpload = Boolean(previousPath && !isArchived && !movedArchive)
+  if (previousPath && !isArchived) pdf = await download(previousPath, scope, poa.source === 'partner_api', poa)
   const sha256 = createHash('sha256').update(pdf).digest('hex')
   if (isArchived && previousPath && previousArchive.sha256 === sha256) {
     return { path: previousPath, pdf: await download(previousPath, scope) }
@@ -60,6 +109,7 @@ export async function savePoaPdfArchive(scope: PoaDocumentScope, pdf: Buffer, ex
   if (result.error) {
     if (String((result.error as { statusCode?: unknown }).statusCode) !== '409') throw result.error
     original = await download(path, scope)
+    if (createHash('sha256').update(original).digest('hex') !== sha256) throw new Error('Det befintliga fullmaktsarkivets kontrollsumma matchar inte originalet.')
   }
   const archive = { storage_bucket: BUCKET, path, sha256: createHash('sha256').update(original).digest('hex'),
     saved_at: new Date().toISOString(), verification_number: poaMailEvidence(poa).verificationReference,
@@ -92,7 +142,7 @@ export async function ensurePoaPdfArchive(scope: PoaDocumentScope) {
   const archive = record(record(poa.metadata).document_archive)
   if (previousPath && /\.pdf$/i.test(previousPath)) {
     const archived = previousPath.startsWith(`companies/${scope.companyId}/customers/${scope.customerId}/powers-of-attorney/${scope.powerOfAttorneyId}/`) && Boolean(archive.sha256)
-    if (!archived) return savePoaPdfArchive(scope, await download(previousPath, scope, poa.source === 'partner_api'), evidenceFingerprint(poa))
+    if (!archived) return savePoaPdfArchive(scope, await download(previousPath, scope, poa.source === 'partner_api', poa), evidenceFingerprint(poa))
     if (archive.original_upload || archive.evidence_sha256 === evidenceFingerprint(poa)) return { path: previousPath, pdf: await download(previousPath, scope) }
   }
   if (!['signed', 'active', 'accepted', 'completed', 'expired', 'revoked', 'replaced', 'superseded'].includes(String(poa.status))) {

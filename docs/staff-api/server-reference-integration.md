@@ -126,6 +126,14 @@ try {
 
 `transport_outcome_unknown` means the server might already have committed. **503 `idempotency_completion_uncertain`** also preserves that possibility. **409 `idempotency_reconciliation_required`** requires checking the earlier operation's authoritative state before considering another key. `idempotency_in_progress` and `idempotency_previous_attempt_failed` remain distinct. Do not report success without confirmation, delete potentially committed resources, or silently turn any of these into a new operation. Session, binding or membership revocation must be resolved through the authorized onboarding/access process.
 
+## POA intake and incoming-mail continuation
+
+This Staff reference handles identity resolution, customer listing and support cases. Its case-creation method does not create a power of attorney, verify a customer's acceptance or submit an authenticated supplier reply. Existing Staff scopes and actor proofs do not substitute for those business permissions.
+
+Website intake uses the existing structured POA contract, original acceptance evidence and stable retry key described in the [Website integration guide](../external-website-api-integration-guide.md#legal-acceptance-identity-and-power-of-attorney). That guide also describes [automatic reply processing](../external-website-api-integration-guide.md#automatic-poa-replies-facility-data-and-start-dates): OPS owns the archived document, verified tenant/customer/site/request matching, validated facility and commercial facts, and continuation through normal market readiness. Client applications must follow the documented application status rather than treating a read AI result or a successful support-case write as a completed supplier switch.
+
+No new Staff endpoint, proof claim, scope or response version is introduced for this internal mail automation. Its required deployment/migration and operational limits are recorded in the [POA runbook](../manual-poa-mail-runbook.md).
+
 ## Evidence and remaining runtime acceptance
 
 Run the existing local quality port, with repository dependencies installed:

@@ -4,7 +4,9 @@
 // inbound-review: #8
 // inbound-review: coordinator-5 (auto-reply classification)
 import { createHmac } from 'node:crypto'
+import { isDeepStrictEqual } from 'node:util'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { manualVerifiedMail } from './helpers/manualVerifiedMail'
 
 type Row = Record<string, unknown>
 const io = vi.hoisted(() => ({
@@ -17,6 +19,8 @@ const io = vi.hoisted(() => ({
   seen: [] as number[],
   ingestError: null as Error | null,
   correlationPatch: {} as Row,
+  verifySender: vi.fn(),
+  rawInsertFailures: 0,
 }))
 
 vi.mock('@/lib/supabase/service', () => {
@@ -31,7 +35,17 @@ vi.mock('@/lib/supabase/service', () => {
     not() { return this }
     or() { return this }
     ilike() { return this }
-    eq(column: string, value: unknown) { this.filters.push((row) => row[column] === value); return this }
+    eq(column: string, value: unknown) {
+      this.filters.push((row) => {
+        const cell = column.split(/->>?/).reduce<unknown>((nested, key) => nested && typeof nested === 'object' ? (nested as Row)[key] : undefined, row)
+        if (cell == null) return false
+        if (typeof cell === 'object' && typeof value === 'string') {
+          try { return isDeepStrictEqual(cell, JSON.parse(value)) } catch { return false }
+        }
+        return cell === value
+      })
+      return this
+    }
     is(column: string, value: unknown) { this.filters.push((row) => (column.split(/->>?/).reduce<unknown>((cell, key) => cell && typeof cell === 'object' ? (cell as Row)[key] : undefined, row) ?? null) === value); return this }
     in(column: string, values: unknown[]) { this.filters.push((row) => values.includes(row[column])); return this }
     update(patch: Row) { this.op = 'update'; this.patch = patch; return this }
@@ -40,6 +54,7 @@ vi.mock('@/lib/supabase/service', () => {
     private run(): { data: Row[]; error: null } {
       const rows = (io.tables[this.table] ??= [])
       if (this.op === 'insert' || this.op === 'upsert') {
+        if (this.table === 'manual_inbound_messages' && io.rawInsertFailures > 0) { io.rawInsertFailures--; throw new Error('deadlock detected') }
         const row = { id: `row-${++io.seq}`, created_at: new Date().toISOString(), ...this.patch }
         rows.push(row)
         return { data: [row], error: null }
@@ -64,6 +79,7 @@ vi.mock('@/lib/supabase/service', () => {
 vi.mock('@/lib/platform/schemaReadiness', () => ({ assertPlatformSchemaReady: async () => undefined }))
 vi.mock('@/lib/customers/customerOperationEvents', () => ({ emitCustomerOperationEvent: async () => undefined }))
 vi.mock('@/lib/email/manualOperationsMailbox', () => ({ resolveManualMailboxSecret: () => 'pw' }))
+vi.mock('@/lib/inbound-mail/manualSenderVerification', () => ({ verifyManualMailSender: io.verifySender }))
 vi.mock('@/lib/customer-operations/manualFacilityResponseParser', () => ({
   extractManualFacilityFields: () => ({ facility_id: '735999100000000001' }),
   scoreManualFacilityPayload: () => 0.9,
@@ -103,6 +119,7 @@ const email = (extra: Row = {}) => ({
   subject: 'Re: [GX-FIR-ABCDEF12] Anläggnings-ID',
   bodyText: 'Anläggnings-ID 735999100000000001',
   providerMessageId: '<m1@natagare.se>',
+  senderVerification: manualVerifiedMail('kund@natagare.se'),
   ...extra,
 })
 
@@ -115,6 +132,8 @@ beforeEach(() => {
   io.imapMessages = []
   io.seen = []
   io.correlationPatch = {}
+  io.rawInsertFailures = 0
+  io.verifySender.mockReset().mockResolvedValue(manualVerifiedMail('a@b.se'))
   io.tables.grid_owner_information_requests = [
     { id: 'req-1', company_id: 'co-1', status: 'waiting_manual_response' },
     { id: 'req-1', company_id: 'co-other', status: 'waiting_manual_response' },
@@ -123,7 +142,7 @@ beforeEach(() => {
 
 describe('counterparty fullmakt responses', () => {
   it('stops reminders when a verified supplier contract response arrives and keeps it for review', async () => {
-    const request = { id: 'req-1', company_id: 'co-1', customer_id: 'cu-1', request_type: 'current_supplier_contract_information_request', status: 'waiting_manual_response', next_follow_up_at: '2026-11-01T08:00:00Z' }
+    const request = { id: 'req-1', company_id: 'co-1', customer_id: 'cu-1', customer_site_id: 'site-1', metadata: {}, request_type: 'current_supplier_contract_information_request', status: 'waiting_manual_response', next_follow_up_at: '2026-11-01T08:00:00Z' }
     io.tables.grid_owner_information_requests = [request]
     io.correlationPatch = { request }
     const result = await ingestManualInboundEmail(email({ bodyText: 'Uppsägningstid: 1 månad. Startdatum förutsätter att uppsägning sker i tid.' }))
@@ -137,12 +156,13 @@ describe('counterparty fullmakt responses', () => {
     expect(io.applyCalls).toBe(0)
   })
   it.each(['Fullmakten är godkänd. BankID krävs inte.', 'Fullmakten är godkänd och behöver inte kompletteras med organisationsnummer.'])('does not reject explicit acceptance: %s', async (bodyText) => {
-    const result = await ingestManualInboundEmail(email({ bodyText }))
+    const result = await ingestManualInboundEmail(email({ bodyText: `${bodyText}\nAnläggnings-ID 735999100000000001` }))
     expect(result.processingState).toBe('applied')
     expect(io.applyCalls).toBe(1)
   })
   it('records a BankID rejection on the exact tenant request and never applies quoted facility data', async () => {
-    const result = await ingestManualInboundEmail(email({ bodyText: 'Hej,\nVi nekar din fullmakt då den ej är komplett med kunds BankId signatur.\nÅterkom med ny.\n\n> Anläggnings-ID 735999100000000001' }))
+    const reply = email({ bodyText: 'Hej,\nVi nekar din fullmakt då den ej är komplett med kunds BankId signatur.\nÅterkom med ny.\n\n> Anläggnings-ID 735999100000000001' })
+    const result = await ingestManualInboundEmail(reply)
     expect(result).toMatchObject({ processingState: 'needs_review', intent: 'power_of_attorney_rejected' })
     expect(io.applyCalls).toBe(0)
     expect(io.tables.grid_owner_information_requests[0]).toMatchObject({
@@ -150,7 +170,7 @@ describe('counterparty fullmakt responses', () => {
       metadata: { retained: true, counterparty_reply: { outcome: 'rejected', requires_review: true, poa_id: 'poa-1' } },
     })
     expect(io.tables.grid_owner_information_requests[1].status).toBe('waiting_manual_response')
-    await ingestManualInboundEmail(email({ bodyText: 'Vi nekar din fullmakt. BankID-signatur saknas.' }))
+    await ingestManualInboundEmail(reply)
     expect(io.tables.manual_inbound_messages).toHaveLength(1)
     expect(io.applyCalls).toBe(0)
   })
@@ -235,7 +255,7 @@ describe('#7 poison messages are dead-lettered and Message-ID-less mail is dedup
       id: 'mb-1', company_id: null, environment: 'test', imap_host: 'imap.test', imap_username: 'u', from_email: 'leverantorsbyte@gridex.se',
       is_active: true, is_verified: true, metadata: {}, last_polled_at: null, locked_at: null,
     }]
-    const source = Buffer.from('Subject: x\r\nContent-Type: text/plain\r\n\r\nbody')
+    const source = Buffer.from('From: a@b.se\r\nSubject: x\r\nContent-Type: text/plain\r\n\r\nAnläggnings-ID 735999100000000001')
     io.imapMessages = [{ uid: 7, envelope: { subject: 'x', from: [{ address: 'a@b.se' }] }, source }]
     io.applyFailures = 99
     const { runManualInboundMailEngine } = await import('@/lib/inbound-mail/manualMailboxPoller')
@@ -279,7 +299,9 @@ describe('#5 manual inbound webhook status codes', () => {
     expect((await POST(signed('{not json') as never)).status).toBe(422)
     expect((await POST(signed(JSON.stringify({ mailbox: 'x@y.se' })) as never)).status).toBe(422)
 
-    io.applyFailures = 1
+    // The webhook cannot manufacture server DKIM evidence. Exercise its
+    // temporary-error boundary with a raw persistence failure instead.
+    io.rawInsertFailures = 1
     const body = JSON.stringify({ message_id: '<w1@n.se>', mailbox: 'leverantorsbyte@gridex.se', from: 'kund@natagare.se', subject: 'Re: [GX-FIR-ABCDEF12]' })
     const temporary = await POST(signed(body) as never)
     expect(temporary.status).toBe(503)

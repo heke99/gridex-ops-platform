@@ -9,18 +9,103 @@ export type ManualReplyAssessment = {
   message: string
 }
 
-export function authoredManualReply(text: string): string {
-  const lines = text.replace(/\r/g, '').slice(0, 100_000).split('\n')
+function inspectAuthoredManualReply(text: string): { text: string; requiresReview: boolean } {
+  // Callers reject oversized authored replies. Never silently remove a later
+  // condition while keeping the apparently unconditional date before it.
+  const lines = text.replace(/\r/g, '').split('\n')
   const authored: string[] = []
+  let history = false
+  let quoted = false
+  let requiresReview = false
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index]
-    if (/^\s*>/.test(line)
-      || /^\s*-{2,}\s*(?:original|ursprungligt|vidarebefordrat|forwarded)/i.test(line)
+    const historicalHeader = /^\s*-{2,}\s*(?:original|ursprungligt|vidarebefordrat|forwarded)/i.test(line)
       || /^\s*(?:On .+wrote:|Den .+skrev.*:)/i.test(line)
-      || (/^\s*(?:Från|From):/i.test(line) && /^(?:.*\n){0,5}.*(?:Skickat|Sent|Till|To|Ämne|Subject):/im.test(lines.slice(index + 1, index + 7).join('\n')))) break
-    authored.push(line)
+      || (/^\s*(?:Från|From):/i.test(line) && /^(?:.*\n){0,5}.*(?:Skickat|Sent|Till|To|Ämne|Subject):/im.test(lines.slice(index + 1, index + 7).join('\n')))
+    if (historicalHeader) { history = true; quoted = false; continue }
+    if (/^\s*>/.test(line)) { quoted = true; continue }
+    // A later unquoted line may be an inline answer or a wrapped old quote.
+    // Preserve it before a history boundary and conservatively flag ambiguity.
+    if (quoted && line.trim()) requiresReview = true
+    if (!history) authored.push(line)
   }
-  return authored.join('\n').trim()
+  return { text: authored.join('\n').trim(), requiresReview }
+}
+
+export function authoredManualReply(text: string): string {
+  return inspectAuthoredManualReply(text).text
+}
+
+export function authoredManualReplyRequiresReview(text: string): boolean {
+  return inspectAuthoredManualReply(text).requiresReview
+}
+
+/** Remove quoted HTML regions without dropping an authored suffix. This is a
+ * source selector, not an HTML renderer; malformed or interleaved structure is
+ * explicitly held for review while the original HTML remains on the message. */
+export function stripQuotedManualReplyHtml(html: string): { html: string; requiresReview: boolean } {
+  const output: string[] = []
+  let cursor = 0
+  let quoteDepth = 0
+  let seenQuote = false
+  let requiresReview = false
+  const appendText = (value: string) => {
+    if (quoteDepth) return
+    output.push(value)
+    if (seenQuote && value.replace(/&(?:nbsp|#160|#x0*a0);/gi, ' ').trim()) requiresReview = true
+  }
+  while (cursor < html.length) {
+    const start = html.indexOf('<', cursor)
+    if (start < 0) { appendText(html.slice(cursor)); break }
+    appendText(html.slice(cursor, start))
+    if (html.startsWith('<!--', start)) {
+      const end = html.indexOf('-->', start + 4)
+      if (end < 0) { requiresReview = true; break }
+      cursor = end + 3
+      continue
+    }
+    const tagStart = /^<\s*(\/?)\s*([a-z][a-z0-9:-]*)\b/i.exec(html.slice(start))
+    if (!tagStart && !/^<[!?]/.test(html.slice(start, start + 2))) {
+      appendText('<')
+      cursor = start + 1
+      continue
+    }
+    let quote: string | null = null
+    let end = start + 1
+    for (; end < html.length; end += 1) {
+      const character = html[end]
+      if (quote) { if (character === quote) quote = null }
+      else if (character === '"' || character === "'") quote = character
+      else if (character === '>') break
+    }
+    if (end >= html.length) { requiresReview = true; break }
+    const tag = html.slice(start, end + 1)
+    const name = tagStart?.[2].toLowerCase()
+    const closing = tagStart?.[1] === '/'
+    if (name === 'blockquote') {
+      seenQuote = true
+      if (closing) {
+        if (quoteDepth === 0) requiresReview = true
+        else quoteDepth -= 1
+      } else {
+        quoteDepth += 1
+        if (/\/\s*>$/.test(tag) || quoteDepth > 64) requiresReview = true
+      }
+      if (quoteDepth === 0) output.push('\n')
+    } else if (!closing && name && ['script', 'style', 'template'].includes(name)) {
+      // Raw-text elements may contain literal quote tags; they are not visible
+      // authored clauses and must not change the HTML quote nesting.
+      const close = new RegExp(`</${name}\\s*>`, 'ig')
+      close.lastIndex = end + 1
+      const match = close.exec(html)
+      if (!match) { requiresReview = true; break }
+      cursor = match.index + match[0].length
+      continue
+    } else if (quoteDepth === 0) output.push(tag)
+    cursor = end + 1
+  }
+  if (quoteDepth !== 0) requiresReview = true
+  return { html: output.join(''), requiresReview }
 }
 
 export function assessManualReply(text: string, subject?: string | null): ManualReplyAssessment | null {

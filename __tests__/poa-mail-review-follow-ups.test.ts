@@ -63,10 +63,34 @@ describe('#7 business-day due dates (Europe/Stockholm, market calendar)', () => 
 
 describe('#7 reminder and escalation', () => {
   it('keeps supplier contract follow-ups separate from network information, retaining the case and verification number', async () => {
-    const db = seed({ request: { request_type: 'current_supplier_contract_information_request' }, poa: { reference: 'POA-TEST', evidence_payload: { verification_reference: 'VERIFY-TEST' } } })
+    const db = seed({
+      request: { request_type: 'current_supplier_contract_information_request', grid_owner_id: null, recipient_email: 'fullmakt@supplier.example',
+        metadata: { channel_type: 'supplier_switch_manual', target_party: 'current_supplier', customer_info_request_id: 'cir-1',
+          supplier_id: 'supplier-1', supplier_actor_id: 'actor-1', supplier_contact_id: 'contact-1', authorization_document_id: 'doc-1' } },
+      poa: { reference: 'POA-TEST', evidence_payload: { verification_reference: 'VERIFY-TEST' }, document_id: 'doc-1',
+        site_id: 'site-1', customer_site_id: 'site-1', signed_scope_snapshot: ['current_supplier_contract'] },
+    })
+    // Supplier reminders re-read the canonical authorization and verified actor
+    // contact; a supplier request type alone never grants either permission.
+    Object.assign(db.tables.customer_sites[0], { customer_id: 'cu-1', current_supplier_id: 'supplier-1', protected_identity: false })
+    db.tables.customer_info_requests = [{ id: 'cir-1', company_id: CO, customer_id: 'cu-1', site_id: 'site-1', metering_point_id: null,
+      authorization_document_id: 'doc-1', request_type: 'supplier_contract_information', target_party_type: 'current_supplier', status: 'waiting_response' }]
+    db.tables.customer_authorization_documents = [{ id: 'doc-1', company_id: CO, customer_id: 'cu-1', site_id: 'site-1', metering_point_id: null,
+      power_of_attorney_id: 'poa-1', customer_contract_id: null, document_type: 'power_of_attorney', status: 'active' }]
+    db.tables.authorization_scopes = [{ id: 'scope-1', company_id: CO, customer_id: 'cu-1', authorization_document_id: 'doc-1', status: 'active',
+      revoked_at: null, valid_from: '2026-01-01', valid_to: '2099-01-01', covers_current_supplier_contract: true, created_at: '2026-01-01T00:00:00Z' }]
+    db.tables.electricity_suppliers = [{ id: 'supplier-1', company_id: null, is_active: true, platform_market_actor_id: 'actor-1' }]
+    db.tables.platform_market_actors = [{ id: 'actor-1', status: 'active', match_status: 'verified' }]
+    db.tables.platform_actor_roles = [{ actor_id: 'actor-1', actor_role: 'electricity_supplier', is_active: true }]
+    db.tables.platform_actor_contacts = [{ id: 'contact-1', actor_id: 'actor-1', contact_type: 'poa', channel: 'email',
+      email: 'fullmakt@supplier.example', is_verified: true, verified_at: '2026-01-01T00:00:00Z', valid_from: '2026-01-01', valid_to: null }]
+    db.tables.grid_owner_contact_channels = []
     port.db = db
-    await runManualGridOwnerFollowUpWatchdog({ now: new Date('2026-10-09T10:00:00Z') })
+    const result = await runManualGridOwnerFollowUpWatchdog({ now: new Date('2026-10-09T10:00:00Z') })
+    expect(result).toMatchObject({ reminders: 1, needsReview: 0, errors: [] })
+    expect(db.tables.manual_email_outbox).toHaveLength(1)
     const reminder = db.tables.manual_email_outbox[0]
+    expect(reminder.to_email).toBe('fullmakt@supplier.example')
     expect(reminder.subject).toContain('[GX-FIR-ABC] Påminnelse: Handelsuppgifter')
     expect(reminder.body_text).toContain('tidigaste start hos ny leverantör')
     expect(reminder.body_text).toContain('Verifikatsnummer: VERIFY-TEST')

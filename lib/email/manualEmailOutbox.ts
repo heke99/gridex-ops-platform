@@ -7,6 +7,9 @@ import {
   findGridOwnerManualContact,
   manualPoaIsCurrentlyValid,
   readPowerOfAttorneyForSend,
+  isManualSupplierInformationRequest,
+  readManualSupplierSendContext,
+  isPartialManualSupplierReply,
 } from '@/lib/customer-operations/manualGridOwnerSendGuards'
 import { getTenantOperationDecision } from '@/lib/tenant/operationPolicy'
 import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
@@ -67,7 +70,7 @@ function retryAt(attempts: number): string {
 async function readRequest(companyId: string, requestId: string) {
   const { data, error } = await supabaseService
     .from('grid_owner_information_requests')
-    .select('id,company_id,customer_id,customer_site_id,status,dispatch_status,metadata')
+    .select('id,company_id,customer_id,customer_site_id,request_type,status,dispatch_status,metadata,parsed_payload')
     .eq('company_id', companyId)
     .eq('id', requestId)
     .maybeSingle()
@@ -93,8 +96,8 @@ async function advanceLinkedRequest(input: {
       ? {
           // A reminder/escalation keeps the original sent_at so the follow-up
           // SLA keeps counting from the first request.
-          status: 'waiting_manual_response',
-          dispatch_status: 'waiting_response',
+          status: isPartialManualSupplierReply(current) ? 'manual_response_received' : 'waiting_manual_response',
+          dispatch_status: isPartialManualSupplierReply(current) ? 'response_received' : 'waiting_response',
           metadata: {
             ...baseMetadata,
             last_follow_up_kind: input.followUpKind,
@@ -118,17 +121,19 @@ async function advanceLinkedRequest(input: {
         })
     .eq('company_id', input.companyId)
     .eq('id', input.requestId)
-    .in('status', ['manual_email_queued', 'ready_to_send_manual_email', 'manual_email_sent', 'waiting_manual_response'])
+    .in('status', ['manual_email_queued', 'ready_to_send_manual_email', 'manual_email_sent', 'waiting_manual_response', ...(input.followUpKind && isPartialManualSupplierReply(current) ? ['manual_response_received'] : [])])
     .select('id')
   if (requestUpdate.error) throw requestUpdate.error
   if (!requestUpdate.data?.length) throw new Error('Nätägarärendet kunde inte flyttas till vänteläge.')
 
   const customerId = clean(current.customer_id)
   const siteId = clean(current.customer_site_id)
+  const supplierInformation = isManualSupplierInformationRequest(current)
+  const waitingMessage = supplierInformation ? 'Väntar på avtalsuppgifter från nuvarande elhandlare.' : 'Väntar på svar från nätägaren.'
   if (siteId) {
     const siteUpdate = await supabaseService
       .from('customer_sites')
-      .update({ facility_data_status: 'waiting_manual_response', next_action: 'Väntar på svar från nätägaren.', updated_at: now })
+      .update({ ...(supplierInformation ? {} : { facility_data_status: 'waiting_manual_response' }), next_action: waitingMessage, updated_at: now })
       .eq('company_id', input.companyId)
       .eq('id', siteId)
       .select('id')
@@ -138,12 +143,18 @@ async function advanceLinkedRequest(input: {
   if (customerId) {
     const customerUpdate = await supabaseService
       .from('customers')
-      .update({ next_action: 'Väntar på svar från nätägaren.', updated_at: now })
+      .update({ next_action: waitingMessage, updated_at: now })
       .eq('company_id', input.companyId)
       .eq('id', customerId)
       .select('id')
     if (customerUpdate.error) throw customerUpdate.error
     if (!customerUpdate.data?.length) throw new Error('Kunden för nätägarärendet saknas i samma tenant.')
+  }
+  if (supplierInformation && clean(baseMetadata.customer_info_request_id)) {
+    const cir = await supabaseService.from('customer_info_requests').update({ status: 'waiting_response', sent_at: now, updated_at: now })
+      .eq('company_id', input.companyId).eq('customer_id', String(current.customer_id)).eq('id', String(baseMetadata.customer_info_request_id))
+      .eq('verified_payload->>manual_supplier_request_id', String(current.id)).in('status', ['ready_to_send', 'sent', 'waiting_response']).select('id')
+    if (cir.error) throw cir.error
   }
 }
 
@@ -295,7 +306,7 @@ export function normalizeRfcMessageId(value: string): string {
 async function readRequestForSend(companyId: string, requestId: string) {
   const { data, error } = await supabaseService
     .from('grid_owner_information_requests')
-    .select('id,company_id,customer_id,status,grid_owner_id,poa_id,requires_poa,recipient_email,recipient_contact_channel_id,metadata')
+    .select('id,company_id,customer_id,customer_site_id,request_type,status,grid_owner_id,poa_id,requires_poa,recipient_email,recipient_contact_channel_id,metadata,parsed_payload')
     .eq('company_id', companyId)
     .eq('id', requestId)
     .maybeSingle()
@@ -385,7 +396,7 @@ export async function processManualEmailOutbox(input?: {
     let recipientResolution = jsonObject(row.recipient_resolution) ?? {}
     // A preview/test deployment may share the production database. It must
     // never send (or fail) a real grid-owner row: leave it queued untouched.
-    if (clean(recipientResolution.resolution_mode) === 'real_grid_owner_contact' && environment !== 'production') {
+    if (['real_grid_owner_contact', 'real_current_supplier_contact'].includes(clean(recipientResolution.resolution_mode) ?? '') && environment !== 'production') {
       result.skipped += 1
       result.errors.push(`environment ${id}: manual_ops_environment_not_production`)
       continue
@@ -495,10 +506,35 @@ export async function processManualEmailOutbox(input?: {
       // Re-check the power of attorney right before the provider call: it may
       // have been revoked, replaced or expired since the row was queued.
       const request = requestId ? await readRequestForSend(companyId, requestId) : null
-      if (clean(recipientResolution.follow_up_kind) && request?.status !== 'waiting_manual_response') {
-        throw new PermanentManualSendError('manual_follow_up_no_longer_waiting', 'Ett svar eller en åtgärd har redan registrerats. Den köade uppföljningen skickas inte.')
+      if (clean(recipientResolution.follow_up_kind)) {
+        const partial = request && isPartialManualSupplierReply(request)
+        const samePartialReply = partial && clean(recipientResolution.follow_up_reply_source_hash) === clean(jsonObject(request.parsed_payload)?.sourceHash)
+        if (request?.status !== 'waiting_manual_response' && !samePartialReply) {
+          throw new PermanentManualSendError('manual_follow_up_no_longer_waiting', 'Ett nytt svar eller en åtgärd har registrerats. Den köade uppföljningen skickas inte.')
+        }
       }
       let validatedPoa: JsonRecord | null = null
+      if (clean(recipientResolution.resolution_mode) === 'real_current_supplier_contact' && (!request || !isManualSupplierInformationRequest(request))) {
+        throw new PermanentManualSendError('supplier_request_missing', 'Handelsutskicket saknar ett korrekt bundet kundärende.')
+      }
+      if (request && isManualSupplierInformationRequest(request)) {
+        const supplierContext = await readManualSupplierSendContext({ companyId, request })
+        if (!supplierContext) throw new PermanentManualSendError('supplier_authority_or_route_changed', 'Fullmakt, nuvarande elhandlare eller verifierad handelskontakt har ändrats. Utskicket stoppades.')
+        validatedPoa = supplierContext.poa
+        const contact = supplierContext.contact
+        if (contact.email.toLowerCase() !== toEmail.toLowerCase()) {
+          recipientResolution = { ...recipientResolution, selected_to_email: contact.email, actual_supplier_contact_email: contact.email,
+            supplier_contact_id: contact.contactChannelId, recipient_changed_at_send: { previous_to_email: toEmail, current_to_email: contact.email, at: new Date().toISOString() } }
+          const changed = await supabaseService.from('manual_email_outbox').update({ to_email: contact.email, actual_recipient_email: contact.email, recipient_resolution: recipientResolution, updated_at: new Date().toISOString() })
+            .eq('company_id', companyId).eq('id', id).eq('status', 'sending').eq('locked_by', workerId).select('id').maybeSingle()
+          if (changed.error) throw changed.error
+          if (!changed.data) throw new Error('manual_email_claim_lost_before_supplier_recipient_update')
+          const requestChanged = await supabaseService.from('grid_owner_information_requests').update({ recipient_email: contact.email, updated_at: new Date().toISOString() })
+            .eq('company_id', companyId).eq('id', String(request.id)).select('id')
+          if (requestChanged.error) throw requestChanged.error
+          toEmail = contact.email
+        }
+      }
       if (request) {
         const counterpartyReply = jsonObject(jsonObject(request.metadata)?.counterparty_reply)
         if (counterpartyReply?.requires_review === true) {

@@ -1,4 +1,5 @@
 import { beforeEach, expect, it, vi } from 'vitest'
+import { isDeepStrictEqual } from 'node:util'
 
 type Row = Record<string, unknown>
 const io = vi.hoisted(() => ({
@@ -18,7 +19,18 @@ class Query {
   select() { return this }
   order() { return this }
   limit(value: number) { this.maximum = value; return this }
-  eq(column: string, value: unknown) { this.filters.push(row => row[column] === value); return this }
+  eq(column: string, value: unknown) {
+    this.filters.push(row => {
+      const cell = column.split(/->>?/).reduce<unknown>((nested, key) => nested && typeof nested === 'object' ? (nested as Row)[key] : undefined, row)
+      if (cell == null) return false
+      if (typeof cell === 'object' && typeof value === 'string') {
+        try { return isDeepStrictEqual(cell, JSON.parse(value)) } catch { return false }
+      }
+      return cell === value
+    })
+    return this
+  }
+  in(column: string, values: unknown[]) { this.filters.push(row => values.includes(row[column])); return this }
   is(column: string, value: unknown) { this.filters.push(row => (column.split(/->>?/).reduce<unknown>((cell, key) => cell && typeof cell === 'object' ? (cell as Row)[key] : undefined, row) ?? null) === value); return this }
   not(column: string, _operator: string, value: unknown) { this.filters.push(row => row[column] !== value); return this }
   or(value: string) {

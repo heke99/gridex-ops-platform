@@ -12,7 +12,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import { poaMailEvidence } from '@/lib/email/poaMailEvidence'
 import { ensurePoaVerificationReference } from '@/lib/customers/poaEvidenceCompletion'
 import { addBusinessDays } from '@/lib/ediel/calendar/marketCalendar'
-import { renderManualEmailTemplate } from '@/lib/email/manualGridOwnerTemplates'
+import { renderManualEmailTemplate, type ManualEmailTemplateVariables } from '@/lib/email/manualGridOwnerTemplates'
 import {
   resolveManualOperationsMailbox,
   resolveManualMailboxEnvironment,
@@ -23,6 +23,9 @@ import {
   findGridOwnerManualContact,
   manualPoaIsCurrentlyValid,
   readPowerOfAttorneyForSend,
+  isManualSupplierInformationRequest,
+  readManualSupplierSendContext,
+  isPartialManualSupplierReply,
 } from '@/lib/customer-operations/manualGridOwnerSendGuards'
 import { resolveManualRecipient } from '@/lib/customer-operations/requestMissingFacilityInformationCore'
 
@@ -114,7 +117,8 @@ async function markNeedsReview(request: JsonRecord, code: string, message: strin
     })
     .eq('company_id', String(request.company_id))
     .eq('id', String(request.id))
-    .eq('status', 'waiting_manual_response')
+    .eq('status', String(request.status))
+    .eq('metadata', JSON.stringify(metadata))
     .select('id')
   if (result.error) throw result.error
 }
@@ -143,6 +147,8 @@ async function processRequest(request: JsonRecord, now: Date): Promise<FollowUpO
   const companyId = String(request.company_id)
   const requestId = String(request.id)
   const count = Number(request.follow_up_count ?? 0)
+  const partialReply = isPartialManualSupplierReply(request)
+  if (request.status !== 'waiting_manual_response' && !partialReply) return 'skipped'
   if (!Number.isFinite(count) || count >= MAX_FOLLOW_UPS) return 'skipped'
   const sentAtRaw = clean(request.sent_at) ?? clean(jsonObject(request.metadata).manual_email_sent_at)
   const sentAt = sentAtRaw ? new Date(sentAtRaw) : null
@@ -156,7 +162,7 @@ async function processRequest(request: JsonRecord, now: Date): Promise<FollowUpO
       .update({ next_follow_up_at: dueAt.toISOString(), updated_at: now.toISOString() })
       .eq('company_id', companyId)
       .eq('id', requestId)
-      .eq('status', 'waiting_manual_response')
+      .eq('status', String(request.status))
       .eq('follow_up_count', count)
       .select('id')
     if (scheduled.error) throw scheduled.error
@@ -168,7 +174,8 @@ async function processRequest(request: JsonRecord, now: Date): Promise<FollowUpO
   const kind: 'reminder' | 'escalation' = count === 0 ? 'reminder' : 'escalation'
   const metadata = jsonObject(request.metadata)
   const requestChannel = clean(metadata.channel_type)
-  const channelType = requestChannel && MANUAL_CONTACT_CHANNEL_TYPES.has(requestChannel) ? requestChannel : 'facility_information_request'
+  const supplierInformation = isManualSupplierInformationRequest(request)
+  const channelType = supplierInformation ? 'supplier_switch_manual' : requestChannel && MANUAL_CONTACT_CHANNEL_TYPES.has(requestChannel) ? requestChannel : 'facility_information_request'
 
   const poaId = clean(request.poa_id)
   let poa = poaId ? await readPowerOfAttorneyForSend({ companyId, poaId }) : null
@@ -181,11 +188,20 @@ async function processRequest(request: JsonRecord, now: Date): Promise<FollowUpO
   // An escalation goes to the grid owner's escalation contact when one exists.
   let contactChannelType = channelType
   let contact = null as Awaited<ReturnType<typeof findGridOwnerManualContact>>
-  if (gridOwnerId && kind === 'escalation') {
+  if (supplierInformation) {
+    const context = await readManualSupplierSendContext({ companyId, request, now })
+    if (!context) {
+      await markNeedsReview(request, 'supplier_authority_or_route_changed', 'Handelsförfrågans fullmakt eller verifierade mottagare har ändrats. Uppföljningen stoppades.')
+      return 'needs_review'
+    }
+    contact = context.contact
+    poa = context.poa
+  }
+  if (!supplierInformation && gridOwnerId && kind === 'escalation') {
     contact = await findGridOwnerManualContact({ companyId, gridOwnerId, channelType: 'escalation' })
     if (contact) contactChannelType = 'escalation'
   }
-  if (gridOwnerId && !contact) contact = await findGridOwnerManualContact({ companyId, gridOwnerId, channelType })
+  if (!supplierInformation && gridOwnerId && !contact) contact = await findGridOwnerManualContact({ companyId, gridOwnerId, channelType })
   if (!contact) {
     await markNeedsReview(request, 'grid_owner_contact_missing', 'Verifierad kontaktväg till nätägaren saknas. Påminnelse skickades inte.')
     return 'needs_review'
@@ -209,6 +225,14 @@ async function processRequest(request: JsonRecord, now: Date): Promise<FollowUpO
     return 'needs_review'
   }
   poa = await ensurePoaVerificationReference({ companyId, customerId: String(request.customer_id), powerOfAttorneyId: String(poa.id) })
+  const parsed = jsonObject(request.parsed_payload)
+  const knownTerms = jsonObject(parsed.terms)
+  const allowedMissing = new Set(['earliest_supplier_start_date', 'termination_fee', 'notice_period', 'binding_period', 'cancellation_registered', 'cancellation_deadline'])
+  const suppliedMissing = Array.isArray(parsed.missingFields) ? parsed.missingFields.filter((field): field is string => typeof field === 'string' && allowedMissing.has(field)) : []
+  const missingFields = (suppliedMissing.length ? suppliedMissing : [
+    ...(!clean(knownTerms.earliestStartDate) ? ['earliest_supplier_start_date'] : []),
+    ...(!clean(knownTerms.terminationFee) ? ['termination_fee'] : []),
+  ]) as ManualEmailTemplateVariables['missing_supplier_fields']
   const rendered = renderManualEmailTemplate(kind, {
     request_purpose: channelType === 'current_supplier_contract_information' || String(request.request_type).includes('supplier_contract') ? 'supplier_contract' : 'network',
     case_reference: clean(request.case_reference),
@@ -221,6 +245,8 @@ async function processRequest(request: JsonRecord, now: Date): Promise<FollowUpO
     tenant_organization_number: company.organizationNumber,
     poa_reference: clean(poa.reference) ?? clean(poa.id),
     poa_verification_number: poaMailEvidence(poa).verificationReference,
+    reply_received_partial: partialReply,
+    missing_supplier_fields: partialReply ? missingFields : undefined,
   })
 
   const followUpNumber = count + 1
@@ -248,10 +274,13 @@ async function processRequest(request: JsonRecord, now: Date): Promise<FollowUpO
       queued_at: nowIso,
       recipient_resolution: {
         ...recipient,
-        recipient_contact_channel_id: contact.contactChannelId,
+        ...(supplierInformation ? { resolution_mode: 'real_current_supplier_contact', contact_source_table: 'platform_actor_contacts',
+          supplier_id: metadata.supplier_id, supplier_actor_id: metadata.supplier_actor_id, supplier_contact_id: metadata.supplier_contact_id,
+          actual_supplier_contact_email: contact.email } : { recipient_contact_channel_id: contact.contactChannelId }),
         contact_channel_type: contactChannelType,
         follow_up_kind: kind,
         follow_up_number: followUpNumber,
+        ...(partialReply ? { follow_up_reply_source_hash: parsed.sourceHash } : {}),
         template_key: rendered.templateKey,
         template_version: rendered.templateVersion,
       },
@@ -282,7 +311,8 @@ async function processRequest(request: JsonRecord, now: Date): Promise<FollowUpO
     })
     .eq('company_id', companyId)
     .eq('id', requestId)
-    .eq('status', 'waiting_manual_response')
+    .eq('status', String(request.status))
+    .eq('metadata', JSON.stringify(metadata))
     .eq('follow_up_count', count)
     .select('id')
   if (advanced.error) throw advanced.error
@@ -301,8 +331,8 @@ export async function runManualGridOwnerFollowUpWatchdog(input: { limit?: number
   const limit = Math.min(Math.max(Number(input.limit ?? 25) || 25, 1), 100)
   const { data, error } = await supabaseService
     .from('grid_owner_information_requests')
-    .select('id,company_id,customer_id,customer_site_id,grid_owner_id,poa_id,request_type,status,channel,case_reference,sent_at,follow_up_count,next_follow_up_at,metadata')
-    .eq('status', 'waiting_manual_response')
+    .select('id,company_id,customer_id,customer_site_id,grid_owner_id,poa_id,request_type,status,channel,case_reference,sent_at,follow_up_count,next_follow_up_at,metadata,parsed_payload')
+    .in('status', ['waiting_manual_response', 'manual_response_received'])
     .eq('channel', 'manual_email')
     .lt('follow_up_count', MAX_FOLLOW_UPS)
     .or(`next_follow_up_at.is.null,next_follow_up_at.lte.${now.toISOString()}`)

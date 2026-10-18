@@ -16,6 +16,7 @@ import { createHash } from 'node:crypto'
 import { inspectMimeStructure, mimeParameter } from '@/lib/inbound-mail/mimeStructure'
 import { binaryToBuffer, decodeTextBytes, toBinaryString } from '@/lib/inbound-mail/mimeCharset'
 import { extractAutoReplyHeaders } from '@/lib/inbound-mail/autoReply'
+import { verifyManualMailSender } from '@/lib/inbound-mail/manualSenderVerification'
 import { supabaseService } from '@/lib/supabase/service'
 import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
 import { resolveManualMailboxSecret } from '@/lib/email/manualOperationsMailbox'
@@ -65,9 +66,10 @@ function parseMessageHeaderValues(headerText: string): { inReplyTo: string | nul
 }
 
 // Small deterministic MIME reader for manual replies. It walks nested
-// multipart structures (multipart/mixed > multipart/alternative, forwarded
-// message/rfc822) and decodes text by each part's own charset without
-// executing or opening binary content.
+// multipart structures (multipart/mixed > multipart/alternative) and decodes
+// text by each part's own charset without executing or opening binary content.
+// Forwarded messages and attached MIME subtrees remain separate from the
+// newly authored reply, including when only their ancestor is an attachment.
 export function parseMimeSource(source: unknown): {
   bodyText: string | null
   bodyHtml: string | null
@@ -75,8 +77,9 @@ export function parseMimeSource(source: unknown): {
   inReplyTo: string | null
   references: string[]
   autoReplyHeaders: Record<string, string>
+  mimeRequiresReview: boolean
 } {
-  const empty = { bodyText: null, bodyHtml: null, attachments: [], inReplyTo: null, references: [], autoReplyHeaders: {} }
+  const empty = { bodyText: null, bodyHtml: null, attachments: [], inReplyTo: null, references: [], autoReplyHeaders: {}, mimeRequiresReview: false }
   if (!source) return empty
   const binary = Buffer.isBuffer(source) || source instanceof Uint8Array ? toBinaryString(source) : toBinaryString(String(source))
   const separator = binary.search(/\r?\n\r?\n/)
@@ -84,18 +87,28 @@ export function parseMimeSource(source: unknown): {
   const replyHeaders = parseMessageHeaderValues(headerText)
   const autoReplyHeaders = extractAutoReplyHeaders(headerText)
 
-  const { entities } = inspectMimeStructure(binary, { preserveBytes: true })
+  const { entities, issues, exceededLimits } = inspectMimeStructure(binary, { preserveBytes: true })
   const text: string[] = []
   const html: string[] = []
   const attachments: unknown[] = []
+  const excludedSubtrees = new Set<number>()
   for (const entity of entities) {
-    if (entity.mediaType.startsWith('multipart/') || entity.mediaType === 'message/rfc822' || entity.mediaType === 'message/global') continue
+    // Entities are in document order. Propagate an excluded parent's status so
+    // no nested text can be promoted to a current customer answer.
+    if (entity.parent !== null && excludedSubtrees.has(entity.parent)) {
+      excludedSubtrees.add(entity.index)
+      continue
+    }
     const disposition = entity.headers.get('content-disposition')?.[0] ?? ''
     const filename = mimeParameter(disposition, 'filename') ?? mimeParameter(entity.contentType, 'name')
+    const forwardedMessage = entity.mediaType === 'message/rfc822' || entity.mediaType === 'message/global'
+    const attachment = Boolean(filename) || /^attachment/i.test(disposition)
+    if (!forwardedMessage && !attachment && entity.mediaType.startsWith('multipart/')) continue
     const bytes = binaryToBuffer(entity.body)
     const isText = entity.mediaType.startsWith('text/')
     const decoded = isText ? decodeTextBytes(bytes, mimeParameter(entity.contentType, 'charset')) : null
-    if (filename || /^attachment/i.test(disposition)) {
+    if (forwardedMessage || attachment) {
+      excludedSubtrees.add(entity.index)
       attachments.push({
         filename,
         contentType: entity.mediaType,
@@ -111,6 +124,7 @@ export function parseMimeSource(source: unknown): {
     attachments,
     ...replyHeaders,
     autoReplyHeaders,
+    mimeRequiresReview: exceededLimits || issues.length > 0,
   }
 }
 
@@ -269,6 +283,7 @@ async function pollOneMailbox(mailbox: JsonRecord, workerId: string, result: Man
         const to = envelopeAddress(envelope.to)
         const subject = clean(envelope.subject)
         const source = (message as { source?: unknown }).source
+        const senderVerification = await verifyManualMailSender(source)
         const parsedMime = parseMimeSource(source)
         const envelopeInReplyTo = clean(envelope.inReplyTo)
         const dedupKey = manualMessageDedupKey(clean(envelope.messageId), source)
@@ -283,11 +298,15 @@ async function pollOneMailbox(mailbox: JsonRecord, workerId: string, result: Man
           bodyText: parsedMime.bodyText,
           bodyHtml: parsedMime.bodyHtml,
           providerMessageId: dedupKey,
-          threadId: envelopeInReplyTo ?? parsedMime.inReplyTo,
-          inReplyTo: parsedMime.inReplyTo ?? envelopeInReplyTo,
+          // Use the original raw reply headers. Ingestion must further limit
+          // correlation to fields listed in senderVerification.signed_headers.
+          threadId: senderVerification.status === 'verified' ? parsedMime.inReplyTo : envelopeInReplyTo ?? parsedMime.inReplyTo,
+          inReplyTo: senderVerification.status === 'verified' ? parsedMime.inReplyTo : parsedMime.inReplyTo ?? envelopeInReplyTo,
           references: parsedMime.references,
           attachments: parsedMime.attachments,
           autoReplyHeaders: parsedMime.autoReplyHeaders,
+          senderVerification,
+          mimeRequiresReview: parsedMime.mimeRequiresReview,
         }
         const uid = (message as { uid?: unknown }).uid
 

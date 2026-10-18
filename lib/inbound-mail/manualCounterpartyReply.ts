@@ -1,4 +1,5 @@
 import { supabaseService } from '@/lib/supabase/service'
+import { tenantUpdate } from '@/lib/supabase/tenantQuery'
 import { emitCustomerOperationEvent } from '@/lib/customers/customerOperationEvents'
 import type { ManualReplyAssessment } from './manualReplyAssessment'
 
@@ -9,20 +10,45 @@ export async function recordManualCounterpartyReply(input: {
 }): Promise<void> {
   const { request, assessment } = input
   if (request.company_id !== input.companyId) throw new Error('Motpartssvaret saknar verifierad tenantkoppling.')
+  const commercial = request.request_type === 'current_supplier_contract_information_request'
+  const holdCompletedCommercial = async () => {
+    const { data, error } = await supabaseService.rpc('gridex_hold_manual_counterparty_reply_v1', {
+      p_company_id: input.companyId, p_request_id: String(request.id), p_inbound_id: input.inboundId, p_assessment: assessment,
+    })
+    if (error) throw error
+    const result = data && typeof data === 'object' && !Array.isArray(data) ? data as Row : {}
+    if (result.ok === false && result.held === false) return
+    if (result.ok !== true || result.held !== true) {
+      throw new Error('manual_counterparty_hold_invalid_result')
+    }
+    if (result.customerId !== request.customer_id || result.customerSiteId !== request.customer_site_id) {
+      throw new Error('manual_counterparty_hold_scope_mismatch')
+    }
+    // The command owns the hold and its idempotent audit together. A stale or
+    // unauthenticated source is recorded for review without pausing the customer.
+  }
+  if (commercial && request.status === 'completed') {
+    await holdCompletedCommercial()
+    return
+  }
   const now = new Date().toISOString()
   const metadata = request.metadata && typeof request.metadata === 'object' ? request.metadata as Row : {}
-  const updated = await supabaseService.from('grid_owner_information_requests').update({
+  const updated = await tenantUpdate(input.companyId, 'grid_owner_information_requests', {
     status: 'needs_review', last_error_code: assessment.reason_codes[0], last_error_message: assessment.message,
     next_follow_up_at: null, received_at: now,
     metadata: { ...metadata, counterparty_reply: {
       ...assessment, requires_review: true, inbound_id: input.inboundId, poa_id: request.poa_id ?? null, received_at: now,
     } }, updated_at: now,
-  }).eq('company_id', input.companyId).eq('id', String(request.id))
+  }).eq('id', String(request.id))
     .in('status', ['manual_email_queued', 'manual_email_sent', 'waiting_manual_response', 'manual_response_received', 'needs_review', 'ready_to_send_manual_email'])
     .select('id').maybeSingle()
   if (updated.error) throw updated.error
-  // A completed/cancelled request must not be reopened by an older reply.
-  if (!updated.data) return
+  // A positive completion may have won after this caller loaded the request.
+  // The same source-aware command decides whether this denial is truly newer.
+  if (!updated.data) {
+    if (commercial) await holdCompletedCommercial()
+    return
+  }
   if (typeof request.customer_id === 'string') {
     await emitCustomerOperationEvent({
       companyId: input.companyId, customerId: request.customer_id,

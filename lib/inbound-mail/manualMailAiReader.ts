@@ -4,21 +4,26 @@ import { authoredManualReply } from '@/lib/inbound-mail/manualReplyAssessment'
 export const MANUAL_MAIL_AI_MODEL = 'gpt-6-luna'
 const fields = ['facility_id', 'metering_point_id', 'grid_area', 'annual_consumption', 'current_supplier',
   'metering_method', 'reporting_frequency', 'notice_period', 'binding_period', 'contract_end',
-  'earliest_start', 'cancellation_deadline', 'termination_fee', 'missing_evidence', 'recipient_correction'] as const
+  'earliest_start', 'cancellation_deadline', 'termination_fee', 'missing_evidence', 'recipient_correction',
+  'price_area', 'cancellation_registered', 'contract_status'] as const
 const outcomes = ['poa_rejected', 'completion_requested', 'facility_information', 'contract_information', 'other'] as const
+const reviewReasons = ['conditional', 'negated', 'multiple_customers', 'multiple_facilities', 'contradictory', 'uncertain', 'other_customer'] as const
+export type ManualMailAiReviewReason = typeof reviewReasons[number]
 const sourceIndex = z.number().int().min(0).max(79)
 const candidateSchema = z.object({
   outcome: z.enum(outcomes), outcome_source: sourceIndex.nullable(),
+  review_reasons: z.array(z.enum(reviewReasons)).max(7),
   fields: z.array(z.object({ field: z.enum(fields), value: z.string().min(1).max(500), source: sourceIndex }).strict()).max(16),
 }).strict()
 
 // No identity, routing, authority, actions, URLs or executable tools exist in
 // this schema. Server-owned paragraphs provide evidence, including conditions.
 const outputSchema = {
-  type: 'object', additionalProperties: false, required: ['outcome', 'outcome_source', 'fields'],
+  type: 'object', additionalProperties: false, required: ['outcome', 'outcome_source', 'review_reasons', 'fields'],
   properties: {
     outcome: { type: 'string', enum: outcomes },
     outcome_source: { type: ['integer', 'null'], minimum: 0, maximum: 79 },
+    review_reasons: { type: 'array', maxItems: 7, items: { type: 'string', enum: reviewReasons } },
     fields: { type: 'array', maxItems: 16, items: {
       type: 'object', additionalProperties: false, required: ['field', 'value', 'source'],
       properties: { field: { type: 'string', enum: fields }, value: { type: 'string', minLength: 1, maxLength: 500 }, source: { type: 'integer', minimum: 0, maximum: 79 } },
@@ -34,6 +39,7 @@ export type ManualMailAiResult =
   | { status: 'skipped'; reason: SkipReason }
   | { status: 'failed'; reason: FailureReason; usage?: Usage; estimated_cost_usd?: number }
   | { status: 'completed'; mode: 'read_only'; review_required: true; model: string; outcome: typeof outcomes[number];
+      review_reasons: ManualMailAiReviewReason[];
       outcome_quote: string | null; fields: Array<{ field: typeof fields[number]; value: string; quote: string }>;
       usage?: Usage; estimated_cost_usd?: number }
 
@@ -58,6 +64,33 @@ export function prepareManualMailAiInput(text: string):
   const paragraphs = masked.split(/\n\s*\n/).map((value) => value.trim()).filter(Boolean)
   if (paragraphs.length > 80 || paragraphs.some((value) => value.length > 2000)) return { status: 'skipped', reason: 'input_too_large' }
   return { status: 'ready', paragraphs }
+}
+
+/** Revalidate persisted candidates before resuming an interrupted application. */
+export function restoreManualMailAiReading(value: unknown, text: string): ManualMailAiResult | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return
+  const row = value as Record<string, unknown>
+  const input = prepareManualMailAiInput(text)
+  if (input.status !== 'ready' || row.status !== 'completed' || row.mode !== 'read_only'
+    || row.model !== MANUAL_MAIL_AI_MODEL || !Array.isArray(row.fields)) return
+  const index = (quote: unknown) => typeof quote === 'string' ? input.paragraphs.indexOf(quote) : -1
+  const parsed = candidateSchema.safeParse({ outcome: row.outcome,
+    outcome_source: row.outcome_quote === null ? null : index(row.outcome_quote),
+    // Older stored readings did not classify global qualifiers. Missing flags
+    // must never be upgraded to an empty (apparently safe) classification.
+    review_reasons: row.review_reasons,
+    fields: row.fields.map((entry: unknown) => {
+      const field = entry && typeof entry === 'object' ? entry as Record<string, unknown> : {}
+      return { field: field.field, value: field.value, source: index(field.quote) }
+    }),
+  })
+  if (!parsed.success || (parsed.data.outcome !== 'other' && parsed.data.outcome_source === null)
+    || parsed.data.fields.some((field) => !input.paragraphs[field.source]?.includes(field.value) || field.value.includes('[MASKERAT]'))) return
+  return { status: 'completed', mode: 'read_only', review_required: true, model: MANUAL_MAIL_AI_MODEL,
+    review_reasons: parsed.data.review_reasons,
+    outcome: parsed.data.outcome, outcome_quote: parsed.data.outcome_source === null ? null : input.paragraphs[parsed.data.outcome_source],
+    fields: parsed.data.fields.map((field) => ({ field: field.field, value: field.value, quote: input.paragraphs[field.source] })),
+    ...costMetadata(row.usage) }
 }
 
 function costMetadata(usage: unknown): { usage?: Usage; estimated_cost_usd?: number } {
@@ -87,6 +120,11 @@ export async function readManualMailWithAi(
           + 'Behåll datumens originalform; beräkna inga datum. Anta inte att en villkorad start är godkänd. Ta aldrig uppgifter ur signatur, citerad historik eller allmänna instruktioner som kundens avtalsvillkor. '
           + 'Inga kund-, tenant- eller personidentifierare. MASKERAT är ingen uppgift. Ingen fullmakt blir godkänd genom din tolkning. '
           + 'Vid motstridiga uppgifter eller flera anläggningar: lämna berörda fält tomma för mänsklig granskning. '
+          + 'review_reasons måste alltid vara en array. Läs SAMTLIGA författade svarsstycken innan du väljer flaggor, även om datum och värden står i ett tidigare tydligt stycke. '
+          + 'Markera varje tillämplig global begränsning: conditional för villkor eller förbehåll som påverkar uppgifterna; negated för nekad eller obekräftad uppgift; '
+          + 'multiple_customers för flera kunder; multiple_facilities för flera anläggningar; contradictory för motstridiga uppgifter; uncertain för osäker eller tvetydig betydelse; other_customer om svaret uttryckligen avser annan kund. '
+          + 'Ett uttryckligt besked om ingen brytavgift eller ingen bindningstid är en positiv uppgift och ger inte i sig negated. Lämna review_reasons tom endast när ingen av begränsningarna finns. '
+          + 'Flaggorna är läsklassificering, aldrig åtgärder, godkännanden eller val av kund/tenant. Behåll relevanta flaggor även när berörda fält lämnas tomma. '
           + 'outcome_source är index för stycket som stöder klassificeringen, null endast för other.',
         input: [{ role: 'user', content: [{ type: 'input_text', text: JSON.stringify({ untrusted_reply_paragraphs: input.paragraphs.map((text, source) => ({ source, text })) }) }] }],
         text: { format: { type: 'json_schema', name: 'manual_mail_read_only', strict: true, schema: outputSchema } },
@@ -116,6 +154,7 @@ export async function readManualMailWithAi(
       || candidate.fields.some((entry) => !input.paragraphs[entry.source]?.includes(entry.value) || entry.value.includes('[MASKERAT]'))) return invalid()
     return {
       status: 'completed', mode: 'read_only', review_required: true, model: MANUAL_MAIL_AI_MODEL,
+      review_reasons: candidate.review_reasons,
       outcome: candidate.outcome, outcome_quote: candidate.outcome_source === null ? null : input.paragraphs[candidate.outcome_source],
       fields: candidate.fields.map((entry) => ({ field: entry.field, value: entry.value, quote: input.paragraphs[entry.source] })), ...cost,
     }

@@ -79,7 +79,8 @@ export function createFakeDb(seed: Record<string, Row[]> = {}): FakeDb {
   }
 
   const from = (table: string) => {
-    let op: 'select' | 'insert' | 'update' = 'select'
+    let op: 'select' | 'insert' | 'update' | 'upsert' = 'select'
+    let conflictColumns: string[] = []
     let payload: Row | Row[] | null = null
     const filters: Filter[] = []
     let orderBy: { column: string; ascending: boolean; nullsFirst: boolean } | null = null
@@ -89,10 +90,14 @@ export function createFakeDb(seed: Record<string, Row[]> = {}): FakeDb {
     const rows = () => (db.tables[table] ??= [])
 
     const execute = (): { data: Row[] | null; error: DbError | null } => {
-      if (op === 'insert') {
+      if (op === 'insert' || op === 'upsert') {
         const list = (Array.isArray(payload) ? payload : [payload]) as Row[]
         const inserted: Row[] = []
         for (const item of list) {
+          if (op === 'upsert') {
+            const previous = rows().find((row) => conflictColumns.length > 0 && conflictColumns.every((column) => row[column] === item[column]))
+            if (previous) { Object.assign(previous, item); inserted.push({ ...previous }); db.writes.push({ table, op, payload: item }); continue }
+          }
           const next: Record<string, unknown> = { id: randomUUID(), created_at: new Date().toISOString(), ...item }
           for (const column of db.unique[table] ?? []) {
             if (next[column] !== undefined && rows().some((r) => r[column] === next[column])) {
@@ -149,6 +154,7 @@ export function createFakeDb(seed: Record<string, Row[]> = {}): FakeDb {
     const q: Record<string, unknown> = {}
     q.select = () => q
     q.insert = (p: Row | Row[]) => { op = 'insert'; payload = p; return q }
+    q.upsert = (p: Row | Row[], options?: { onConflict?: string }) => { op = 'upsert'; payload = p; conflictColumns = options?.onConflict?.split(',') ?? ['id']; return q }
     q.update = (p: Row) => { op = 'update'; payload = p; return q }
     q.eq = (c: string, v: unknown) => { filters.push((r) => {
       const cell = field(r, c)

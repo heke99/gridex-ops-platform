@@ -36,6 +36,8 @@ export type ManualEmailTemplateVariables = {
   request_purpose?: 'network' | 'supplier_contract'
   request_topic?: string | null
   requested_information?: string | null
+  reply_received_partial?: boolean
+  missing_supplier_fields?: Array<'earliest_supplier_start_date' | 'termination_fee' | 'notice_period' | 'binding_period' | 'cancellation_registered' | 'cancellation_deadline'>
 }
 
 // Bumping a version is a content change that downstream audit can reference.
@@ -244,15 +246,26 @@ export function renderManualEmailTemplate(
 ): RenderedManualEmail {
   const template = MANUAL_EMAIL_TEMPLATES[key]
   const supplier = variables.request_purpose === 'supplier_contract'
+  const partial = supplier && variables.reply_received_partial === true && ['reminder', 'escalation'].includes(key)
+  const missingLabels = {
+    earliest_supplier_start_date: 'Datum då kunden ovillkorligen tidigast kan starta hos en ny leverantör.',
+    termination_fee: 'Eventuell brytavgift. Ange uttryckligen 0 kr eller att ingen avgift finns när bytet kan ske utan kostnad.',
+    notice_period: 'Uppsägningstid.', binding_period: 'Bindningstid.',
+    cancellation_registered: 'Om kundens uppsägning har registrerats.', cancellation_deadline: 'Sista datum då uppsägning måste vara registrerad.',
+  }
+  const missing = [...new Set(variables.missing_supplier_fields ?? [])].filter((field) => Object.hasOwn(missingLabels, field))
   variables = { ...variables,
     request_topic: supplier ? 'Handelsuppgifter' : 'Nätuppgifter',
-    requested_information: supplier
+    requested_information: partial
+      ? `Vi saknar följande uppgifter:\n${(missing.length ? missing : ['earliest_supplier_start_date', 'termination_fee'] as const).map((field) => `- ${missingLabels[field]}`).join('\n')}`
+      : supplier
       ? 'Begäran gäller endast elhandelsavtalet: avtalsstatus, avtalslut, bindningstid, uppsägningstid, tidigaste start hos ny leverantör, sista uppsägningsdatum, om uppsägning registrerats och eventuell brytavgift.'
       : 'Begäran gäller endast nätuppgifter: anläggnings-ID, eventuellt separat mätpunkts-ID, nätområde, årsenergi, mätmetod, rapporteringsfrekvens och nuvarande elhandelsföretag om uppgiften finns tillgänglig.',
   }
   const subject = applyVariables(template.subject, variables).replace(/\s+/g, ' ').trim()
   const senderIdentity = `Ombud: {{tenant_company_name}}\nOrganisationsnummer: {{tenant_organization_number}}\nFullmaktsreferens: {{poa_reference}}\nVerifikatsnummer: {{poa_verification_number}}`
-  const bodyText = applyVariables(template.body, variables).replace('Hej,', `Hej,\n\n${applyVariables(senderIdentity, variables)}`)
+  const body = partial ? template.body.replace(/^(?:Vi har inte fått|Vi vill påminna)[^\n]+/m, 'Tack för ert svar. Vi behöver kompletterande uppgifter i ärende {{case_reference}} för att kunna slutföra kontrollen av kundens elhandelsavtal.') : template.body
+  const bodyText = applyVariables(body, variables).replace('Hej,', `Hej,\n\n${applyVariables(senderIdentity, variables)}`)
   const bodyHtml = `<pre style="font-family: inherit; white-space: pre-wrap; margin: 0;">${escapeHtml(bodyText)}</pre>`
   return {
     templateKey: key,

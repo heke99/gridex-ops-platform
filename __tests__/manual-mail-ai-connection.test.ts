@@ -22,7 +22,7 @@ describe('platform-admin AI connection check', () => {
     vi.stubGlobal('fetch', async (_url: unknown, init: RequestInit) => {
       const request = JSON.parse(String(init.body))
       expect(request.input[0].content[0].text).toContain('Avtalet löper till 2027-03-31.')
-      return new Response(JSON.stringify({ status: 'completed', output: [{ type: 'message', role: 'assistant', status: 'completed', content: [{ type: 'output_text', text: JSON.stringify({ outcome: 'contract_information', outcome_source: 0, fields: [{ field: 'contract_end', value: '2027-03-31', source: 0 }] }) }] }] }))
+      return new Response(JSON.stringify({ status: 'completed', output: [{ type: 'message', role: 'assistant', status: 'completed', content: [{ type: 'output_text', text: JSON.stringify({ outcome: 'contract_information', outcome_source: 0, review_reasons: [], fields: [{ field: 'contract_end', value: '2027-03-31', source: 0 }] }) }] }] }))
     })
     await expect(testManualMailAiConnection()).rejects.toThrow('/admin/manual-requests?ai_test=ok')
     await expect(testManualMailAiConnection()).rejects.toThrow('/admin/manual-requests?ai_test=rate_limited')

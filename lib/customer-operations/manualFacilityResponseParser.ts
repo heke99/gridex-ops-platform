@@ -14,6 +14,9 @@ import { FacilityLookupPostCommitError } from '@/lib/facility/facilityLookupWork
 type JsonRecord = Record<string, unknown>
 
 export type ManualFacilityExtractedPayload = {
+  personal_number?: string | null
+  org_number?: string | null
+  customer_identity_number?: string | null
   facility_id?: string | null
   metering_point_id?: string | null
   grid_area_code?: string | null
@@ -134,6 +137,7 @@ export async function applyManualFacilityResponse(input: {
   senderCredible: boolean
   actorUserId?: string | null
   source?: string | null
+  automaticInbound?: { inboundId: string; sourceHash: string; facts?: Record<string, unknown> }
 }): Promise<ManualFacilityParseResult> {
   const reasons: string[] = []
   const confidence = scoreManualFacilityPayload(input.extracted)
@@ -203,6 +207,50 @@ export async function applyManualFacilityResponse(input: {
   if (effectiveConfidence < 0.7) reasons.push('low_confidence')
 
   const safe = reasons.length === 0
+
+  if (input.automaticInbound) {
+    // Automatic mail owns no separate request writes. The source-aware
+    // canonical command validates and locks the inbound/request together,
+    // then commits the facility facts and their evidence atomically. A newer
+    // hold, completed request or rejected source must retain its existing
+    // state even when this adapter's earlier validation was successful.
+    if (!safe) {
+      return { outcome: 'needs_review', confidence: effectiveConfidence, extracted: input.extracted, reasons }
+    }
+
+    const completion = await completeFacilityLookupAndRunNextSteps({
+      companyId: input.companyId,
+      requestId,
+      actorUserId: input.actorUserId ?? null,
+      source: 'system',
+      facilityId,
+      meteringPointId: clean(input.extracted.metering_point_id),
+      gridAreaCode: effectiveGridAreaCode,
+      priceAreaCode: clean(input.extracted.price_area_code),
+      note: 'Automatiskt tolkat svar från nätägarens e-post.',
+      rawPayload: { ...(input.rawPayload ?? {}), extracted: input.extracted as unknown as JsonRecord },
+      automaticInbound: input.automaticInbound,
+    })
+    if (!completion.ok) {
+      return {
+        outcome: 'needs_review',
+        confidence: effectiveConfidence,
+        extracted: input.extracted,
+        reasons: [completion.blockerCode ?? 'data_conflict'],
+      }
+    }
+
+    // A post-commit continuation failure or transient database error must
+    // propagate so ingestion can resume idempotently. It must never rewrite
+    // committed source proof or turn a retryable failure into terminal review.
+    return {
+      outcome: 'applied',
+      confidence: effectiveConfidence,
+      extracted: input.extracted,
+      reasons: [],
+      nextStepDecision: completion.supplierSwitchResult?.decision ?? completion.intakeDecision?.state ?? null,
+    }
+  }
 
   const now = new Date().toISOString()
   const parsedPayload = { ...input.extracted, confidence: effectiveConfidence, applied: safe, grid_area_code_source: effectiveGridAreaCode && !isValidGridAreaCode(gridAreaCode) ? 'site_context' : 'reply' }
