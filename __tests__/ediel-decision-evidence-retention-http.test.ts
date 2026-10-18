@@ -5,7 +5,9 @@ const company='00000000-0000-4000-8000-000000000001',actor='00000000-0000-4000-8
 const fixture=vi.hoisted(()=>({rpc:vi.fn(),auth:vi.fn(),permissions:[] as string[],purgeResult:null as unknown,purgeError:null as {code?:string;message:string}|null}))
 vi.mock('server-only',()=>({}))
 vi.mock('next/headers',()=>({cookies:async()=>({get:(key:string)=>key==='gridex_retention_company'?{value:'00000000-0000-4000-8000-000000000001'}:undefined})}))
+vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:fixture.rpc}}))
 vi.mock('@/lib/supabase/server',()=>({createSupabaseServerClient:async()=>({auth:{getUser:fixture.auth},rpc:fixture.rpc})}))
+import {advanceCompletedWitnessDisposition} from '@/lib/ediel/retention/decisionEvidenceRetention'
 import {decisionEvidenceDocument,decisionEvidenceOriginal,decisionEvidencePurge,decisionEvidenceRead,decisionEvidenceReview,decisionEvidenceSubmit} from '@/lib/ediel/retention/decisionEvidenceRetentionHttp'
 const retentionClass='blob_retention_decision_original_bytes',classGrant='ediel.retention.blob_decision_evidence',document=Buffer.from('SYNTHETIC finite archived original, no legal approval'),documentHash=createHash('sha256').update(document).digest('hex')
 const metadata={companyId:company,policyId,retentionClass,targetId:target,sourceHash:'a'.repeat(64),targetMetadataHash:'b'.repeat(64),documentHash,documentByteLength:document.length,bytesAvailable:true,documentPurgedAt:null,documentBase64:null,submittedBy:target,createdAt:'2026-10-01T00:00:00Z',issuerQualified:false,currentQualified:false,revoked:false,reviews:[],purge:null,authority:'none'}
@@ -19,6 +21,7 @@ beforeEach(()=>{
   if(name==='ediel_read_decision_evidence_policy_v1')return{data:{...metadata,documentBase64:args.p_include_document?document.toString('base64'):null},error:null}
   if(name==='ediel_submit_decision_evidence_retention_v1')return{data:{status:'submitted',policyId,retentionClass,targetId:target,sourceHash:metadata.sourceHash,documentHash,issuerQualified:false},error:null}
   if(name==='ediel_review_decision_evidence_retention_v1')return{data:{status:'held',policyId,reviewId:target,missing:['authentic_issuer_receipt']},error:null}
+  if(name==='ediel_review_completed_witness_disposition_v1')return{data:{status:args.p_outcome==='approve'?'approved':'revoked',authority:'none'},error:null}
   if(name==='ediel_purge_decision_evidence_retention_v1')return{data:fixture.purgeResult,error:fixture.purgeError}
   throw Error('unexpected finite RPC '+name)
  })
@@ -101,4 +104,26 @@ it.each([
 it('keeps an empty purge command and rejects caller authority before native mutation',async()=>{
  const r=await decisionEvidencePurge(post({companyId:target,actorUserId:target,retentionClass}),policyId)
  expect(r.status).toBe(400);expect(fixture.rpc.mock.calls.map(c=>c[0])).toEqual(['ediel_current_retention_session_v1'])
+})
+
+it.each([{status:'disposed',replay:false,authority:'none'},{status:'disposed',replay:true,authority:'none'},{status:'expired',authority:'none'},{status:'unavailable',authority:'none'},{status:'purged',replay:true,authority:'none'}])('strict actual domain and HTTP expose only the new minimal $status receipt',async result=>{
+ fixture.purgeResult=result;const response=await decisionEvidencePurge(post({}),policyId);expect(response.status).toBe(200);expect(await response.json()).toEqual(result);expect(fixture.rpc.mock.calls.some(c=>c[0]==='ediel_read_decision_evidence_policy_v1')).toBe(false)
+})
+it.each(['disposed','expired','unavailable','purged'])('refuses expired metadata smuggled into minimal %s DTO',async status=>{
+ fixture.purgeResult={status,authority:'none',...(status==='disposed'||status==='purged'?{replay:true}:{}),expiredReviewId:actor};expect((await decisionEvidencePurge(post({}),policyId)).status).toBe(403)
+})
+it.each(['approve','revoke'])('uses the explicit signed physical-disposition %s branch without expired metadata preread',async outcome=>{
+ fixture.permissions.push('ediel.retention.completed_review_reason');const issuerReceipt={issuerId:target,payloadBase64:'SYNTHETIC',signatureHex:'a'.repeat(64)}
+ const response=await decisionEvidenceReview(post({phase:'completed-witness-disposition',outcome,issuerReceipt}),policyId);expect(response.status).toBe(200);expect(await response.json()).toEqual({status:outcome==='approve'?'approved':'revoked',authority:'none'})
+ expect(fixture.rpc.mock.calls.map(c=>c[0])).toEqual(['ediel_current_retention_session_v1','ediel_review_completed_witness_disposition_v1']);expect(fixture.rpc).toHaveBeenLastCalledWith('ediel_review_completed_witness_disposition_v1',{p_company_id:company,p_actor_user_id:actor,p_policy_id:policyId,p_outcome:outcome,p_receipt:issuerReceipt})
+})
+it('new phase review requires current exact class and refuses hidden reason or caller authority fields',async()=>{
+ expect((await decisionEvidenceReview(post({phase:'completed-witness-disposition',outcome:'approve',issuerReceipt:null}),policyId)).status).toBe(403)
+ fixture.permissions.push('ediel.retention.completed_review_reason');expect((await decisionEvidenceReview(post({phase:'completed-witness-disposition',outcome:'approve',issuerReceipt:null,reason:'hidden phase',actorUserId:target}),policyId)).status).toBe(400)
+ expect(fixture.rpc.mock.calls.every(c=>c[0]==='ediel_current_retention_session_v1')).toBe(true)
+})
+
+it('actual worker adapter passes only the validated configured actor and bounded limit to the existing service port',async()=>{
+ const counts={scanned:1,disposed:0,expired:0,clearedApprovals:0,held:1,authority:'none'};fixture.rpc.mockResolvedValue({data:counts,error:null});expect(await advanceCompletedWitnessDisposition({actorUserId:actor,limit:20})).toEqual(counts);expect(fixture.rpc).toHaveBeenCalledExactlyOnceWith('ediel_advance_completed_witness_disposition_v1',{p_actor_user_id:actor,p_limit:20})
+ fixture.rpc.mockResolvedValue({data:null,error:{message:'SYNTHETIC private receipt must not be logged'}});await expect(advanceCompletedWitnessDisposition({actorUserId:actor,limit:20})).rejects.toThrow('completed_witness_worker_failed')
 })

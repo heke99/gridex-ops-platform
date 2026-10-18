@@ -115,3 +115,20 @@ export async function withObservedReviewReasonLock<T>(target:string,operation:()
   await closed.catch(()=>null);await pending?.catch(()=>undefined)
  }
 }
+
+/** NEW physical-disposition admission fixture only. All legal field terms are
+ * declared synthetic and stay separate from actual GoTrue/JWT/SQL behavior. */
+export function signSyntheticCompletedWitnessDisposition(f:Awaited<ReturnType<typeof createCompletedReviewReasonNativeFixture>>,change:(payload:Record<string,unknown>)=>void=()=>{}){
+ const facts=retentionSql<{source:string;customers:string;fields:string[];W:string}>(`SELECT jsonb_build_object('source',gridex_ediel_retention.completed_witness_graph_v1(${literal(f.companyId)},${literal(f.policyId)}),'customers',gridex_ediel_retention.completed_witness_holds_v1(${literal(f.companyId)}),'fields',gridex_ediel_retention.completed_witness_fields_v1(${literal(f.companyId)},${literal(f.policyId)}),'W',(SELECT journal_retain_until FROM gridex_ediel_retention.decision_evidence_tombstones WHERE policy_id=${literal(f.policyId)}))`)
+ const R=new Date(new Date(facts.W).getTime()+10000).toISOString(),A=new Date(new Date(R).getTime()+60000).toISOString()
+ const term=(field:string,action:string,max:string)=>({field,purposeReference:'SYNTHETIC finite physical component purpose',basisReference:'SYNTHETIC qualified per-field authority GIVEN',min:new Date(new Date(facts.W).getTime()-60000).toISOString(),max,reviewBy:A,action})
+ const replay=['replay.company_id','replay.policy_id','replay.replay_until','replay.source_commitment']
+ const payload:Record<string,unknown>={format:'ediel_completed_witness_disposition_bundle_v1',replayScope:'committed_leaf_disposition_only',companyId:f.companyId,policyId:f.policyId,sourceCommitment:facts.source,customerScopeHash:facts.customers,issuerLegalReference:syntheticDecisionIssuerReference,issuedAt:new Date(Date.now()-1000).toISOString(),expiresAt:new Date(new Date(A).getTime()+60000).toISOString(),approvalUntil:A,executionMode:'interactive',executionActorId:f.actor.id,reviewerId:f.reviewer.id,W:facts.W,R,fields:facts.fields.map(field=>term(field,'erase',facts.W)),replayFields:replay.map(field=>term(field,'retain_until_R',R)),terminalFields:replay.map(field=>term(field,'erase',R)),approvalFields:['approved_at','company_id','expires_at','policy_id','receipt','receipt_hash','reviewer_user_id','source_commitment','stage'].map(field=>term('approval.'+field,'consume_or_expire',A))}
+ change(payload);const bytes=Buffer.from(JSON.stringify(payload));return{issuerId:f.issuerId,payloadBase64:bytes.toString('base64'),signatureHex:createHmac('sha256',syntheticDecisionIssuerKey).update(bytes).digest('hex')}
+}
+export async function createCompletedWitnessDispositionNativeFixture(password:string){
+ const f=await createCompletedReviewReasonNativeFixture(password,10,120,8);waitForReviewReasonBoundary(f.clock.boundary)
+ const retirement=await f.actor.client.rpc('ediel_purge_decision_evidence_retention_v1',{...f.parameters,p_actor_user_id:f.actor.id});expect(retirement.error).toBeNull();expect(retirement.data).toMatchObject({status:'purged',replay:false})
+ const receipt=signSyntheticCompletedWitnessDisposition(f),approval=await f.reviewer.client.rpc('ediel_review_completed_witness_disposition_v1',{...f.parameters,p_actor_user_id:f.reviewer.id,p_outcome:'approve',p_receipt:receipt});expect(approval.error).toBeNull();expect(approval.data).toEqual({status:'approved',authority:'none'})
+ return{...f,dispositionReceipt:receipt}
+}

@@ -1,3 +1,4 @@
+import { advanceCompletedWitnessDisposition } from '@/lib/ediel/retention/decisionEvidenceRetention'
 import { advanceSupplyMarketDeadlines } from '@/lib/ediel/flows/supplyMarketTransition'
 import { advancePermissionMarketDeadlines } from '@/lib/ediel/permissions/permissionMarketTransition'
 import { randomUUID, timingSafeEqual } from 'node:crypto'
@@ -179,7 +180,14 @@ async function run(request: NextRequest) {
         configurationBlocked: true,
       }
 
+  // Signed completed-review field disposition uses the same validated service
+  // actor and isolated worker path; configuring a schedule is separate admission.
+  const completedWitnessDisposition = actorUserId
+    ? await step('completedWitnessDisposition', () => advanceCompletedWitnessDisposition({ actorUserId, limit: requestedLimit }))
+    : { scanned: 0, disposed: 0, expired: 0, clearedApprovals: 0, held: 0, configurationBlocked: true }
+
   const result = {
+    completedWitnessDisposition,
     exactAddressResolution,
     legacyFacilityRequestReconciliation,
     customerApplicationReconciliation,

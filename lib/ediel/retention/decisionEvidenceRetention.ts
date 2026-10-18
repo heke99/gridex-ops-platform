@@ -12,6 +12,10 @@ const mutation=z.union([
  z.object({status:z.literal('purged'),retentionClass:kind,targetId:uuid,sourceHash:hash,byteLength:z.number().int().positive(),bytesAvailable:z.literal(false),authority:z.literal('none'),replay:z.boolean()}),
 ])
 const purgeResult=z.union([
+ z.object({status:z.literal('disposed'),replay:z.boolean(),authority:z.literal('none')}).strict(),
+ z.object({status:z.literal('expired'),authority:z.literal('none')}).strict(),
+ z.object({status:z.literal('purged'),replay:z.literal(true),authority:z.literal('none')}).strict(),
+ z.object({status:z.literal('unavailable'),authority:z.literal('none')}).strict(),
  z.object({status:z.literal('purged'),retentionClass:kind,targetId:uuid,sourceHash:hash,byteLength:z.number().int().positive(),bytesAvailable:z.literal(false),authority:z.literal('none'),replay:z.boolean()}).strict(),
  z.object({status:z.literal('held'),policyId:uuid,missing:z.array(z.string()).min(1)}).strict(),
 ])
@@ -72,4 +76,22 @@ export async function readDecisionEvidencePolicy(input:{companyId:string;policyI
  const includeDocument=input.includeDocument===true,result=decisionPolicySchema.parse(await call('ediel_read_decision_evidence_policy_v1',input.companyId,{p_policy_id:input.policyId,p_include_document:includeDocument}))
  if(result.companyId!==input.companyId||result.policyId!==input.policyId)throw Error('decision_evidence_policy_scope_mismatch')
  verifyBytes(result,includeDocument);return result
+}
+
+/** A fresh signed physical-disposition bundle is independent of legacy review. */
+export async function reviewCompletedWitnessDisposition(input:{companyId:string;policyId:string;outcome:'approve'|'revoke';issuerReceipt:Record<string,unknown>|null}){
+ uuid.parse(input.policyId);z.enum(['approve','revoke']).parse(input.outcome)
+ const result=z.object({status:z.enum(['approved','revoked']),authority:z.literal('none')}).strict().parse(await call('ediel_review_completed_witness_disposition_v1',input.companyId,{p_policy_id:input.policyId,p_outcome:input.outcome,p_receipt:input.issuerReceipt}))
+ if(result.status!==(input.outcome==='approve'?'approved':'revoked'))throw Error('completed_witness_review_result_invalid')
+ return result
+}
+const workerResult=z.object({scanned:z.number().int().min(0).max(100),disposed:z.number().int().min(0).max(100),expired:z.number().int().min(0).max(100),clearedApprovals:z.number().int().min(0).max(100),held:z.number().int().min(0).max(100),authority:z.literal('none')}).strict()
+/** Uses the existing validated cron actor; never creates an auth.uid session. */
+export async function advanceCompletedWitnessDisposition(input:{actorUserId:string;limit:number}){
+ uuid.parse(input.actorUserId);z.number().int().min(1).max(100).parse(input.limit)
+ const {supabaseService}=await import('@/lib/supabase/service')
+ const rpc=supabaseService.rpc.bind(supabaseService) as unknown as (name:string,args:Record<string,unknown>)=>Promise<{data:unknown;error:unknown}>
+ const {data,error}=await rpc('ediel_advance_completed_witness_disposition_v1',{p_actor_user_id:input.actorUserId,p_limit:input.limit})
+ if(error)throw Error('completed_witness_worker_failed')
+ return workerResult.parse(data)
 }

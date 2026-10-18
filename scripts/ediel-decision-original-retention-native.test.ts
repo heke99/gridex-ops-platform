@@ -1,6 +1,6 @@
 import {expect,it} from 'vitest'
 import {randomUUID} from 'node:crypto'
-import {createDecisionOriginalNativeFixture,decisionNativeSql as sql,hash,literal,signSyntheticDecisionOriginalPolicy,completedReviewReasonClass,completedReviewReasonPermission,completedReviewReasonMarker,createCompletedReviewReasonNativeFixture,signSyntheticCompletedReviewReasonPolicy,waitForReviewReasonBoundary,withObservedReviewReasonLock} from './helpers/ediel-decision-original-native-fixture'
+import {createDecisionOriginalNativeFixture,decisionNativeSql as sql,hash,literal,signSyntheticDecisionOriginalPolicy,completedReviewReasonClass,completedReviewReasonPermission,completedReviewReasonMarker,createCompletedReviewReasonNativeFixture,signSyntheticCompletedReviewReasonPolicy,waitForReviewReasonBoundary,withObservedReviewReasonLock,signSyntheticCompletedWitnessDisposition,createCompletedWitnessDispositionNativeFixture} from './helpers/ediel-decision-original-native-fixture'
 
 // Explicit private-owner scope for synthetic setup/readback only; product JWT calls retain their actors.
 const retentionSql=<T>(query:string)=>sql<T>(`BEGIN;SET LOCAL ROLE gridex_ediel_retention_owner;${query};COMMIT;`)
@@ -154,4 +154,40 @@ it('actual final metadata audit failure rolls back reason retirement and all lin
  }finally{sql(`DROP TRIGGER ${name} ON public.audit_logs;DROP FUNCTION public.${name}()`)}
  const retried=await f.actor.client.rpc('ediel_purge_decision_evidence_retention_v1',purge);expect(retried.error).toBeNull();expect(retried.data).toMatchObject({status:'purged',replay:false})
  expect((await f.actor.client.rpc('ediel_purge_decision_evidence_retention_v1',purge)).data.replay).toBe(true)
+},120000)
+
+// New physical-disposition native oracles below. The preceding thirteen
+// Source6/W oracles remain unchanged. These cases are SOURCE ONLY until the
+// existing producer admits this exact source/GEN/input/output binding.
+it('actual JWT physical leaf disposition respects W, current independent approval, finite R and irreversible read refusal',async()=>{
+ const f=await createCompletedWitnessDispositionNativeFixture(randomUUID()+'Aa1!'),params={...f.parameters,p_actor_user_id:f.actor.id},before=completedWitnessGraph(f)
+ expect((await f.actor.client.rpc('ediel_purge_decision_evidence_retention_v1',params)).data.status).toBe('held');expect(completedWitnessGraph(f)).toEqual(before)
+ waitForReviewReasonBoundary(f.clock.witnessUntil)
+ const effect=await f.actor.client.rpc('ediel_purge_decision_evidence_retention_v1',params);expect(effect.error).toBeNull();expect(effect.data).toEqual({status:'disposed',replay:false,authority:'none'})
+ expect(retentionSql(`SELECT to_jsonb(reason) FROM gridex_ediel_retention.decision_evidence_reviews WHERE id=${literal(f.sourceReviewId)}`)).toBe('')
+ expect((await f.actor.client.rpc('ediel_purge_decision_evidence_retention_v1',params)).data).toEqual({status:'disposed',replay:true,authority:'none'})
+ const payload=JSON.parse(Buffer.from(f.dispositionReceipt.payloadBase64,'base64').toString('utf8')) as {R:string};waitForReviewReasonBoundary(payload.R)
+ expect((await f.actor.client.rpc('ediel_purge_decision_evidence_retention_v1',params)).data).toEqual({status:'expired',authority:'none'});expect((await f.actor.client.rpc('ediel_purge_decision_evidence_retention_v1',params)).data).toEqual({status:'unavailable',authority:'none'})
+ for(const port of ['policy','original'] as const)expect((await readCompletedWitness(f,port)).error).not.toBeNull()
+ expect((await f.reviewer.client.rpc('ediel_read_retention_decision_original_v1',{p_company_id:f.companyId,p_actor_user_id:f.reviewer.id,p_retention_class:completedReviewReasonClass,p_target_id:f.sourceReviewId,p_include_document:true})).error?.code).toBe('42501')
+},120000)
+it.each(['actor','reviewer'] as const)('actual physical disposition rechecks %s class after an observed source-review wait without erasing fields',async control=>{
+ const f=await createCompletedWitnessDispositionNativeFixture(randomUUID()+'Aa1!');waitForReviewReasonBoundary(f.clock.witnessUntil)
+ const user=control==='actor'?f.actor.id:f.reviewer.id,boundary=sql<string>(`SELECT to_jsonb(clock_timestamp()+interval '1 second')`),before=completedWitnessGraph(f)
+ sql(`INSERT INTO public.user_permission_overrides(company_id,user_id,permission_key,effect,is_active,valid_from) VALUES(${literal(f.companyId)},${literal(user)},${literal(completedReviewReasonPermission)},'deny',true,${literal(boundary)}::timestamptz)`)
+ const result=await withObservedReviewReasonLock(f.sourceReviewId,async()=>await f.actor.client.rpc('ediel_purge_decision_evidence_retention_v1',{...f.parameters,p_actor_user_id:f.actor.id}),()=>waitForReviewReasonBoundary(boundary))
+ expect(result.error||result.data.status==='held').toBeTruthy();expect(completedWitnessGraph(f)).toEqual(before)
+},120000)
+it.each(['foreign tenant','wrong session','missing class'] as const)('actual physical phase review denies %s without new phase authority',async control=>{
+ const f=await createCompletedReviewReasonNativeFixture(randomUUID()+'Aa1!');waitForReviewReasonBoundary(f.clock.boundary);expect((await f.actor.client.rpc('ediel_purge_decision_evidence_retention_v1',{...f.parameters,p_actor_user_id:f.actor.id})).data.status).toBe('purged')
+ const receipt=signSyntheticCompletedWitnessDisposition(f)
+ if(control==='missing class')sql(`DELETE FROM public.user_permissions WHERE company_id=${literal(f.companyId)} AND user_id=${literal(f.reviewer.id)} AND permission_key=${literal(completedReviewReasonPermission)}`)
+ const result=await f.reviewer.client.rpc('ediel_review_completed_witness_disposition_v1',{...f.parameters,p_company_id:control==='foreign tenant'?f.foreignCompanyId:f.companyId,p_actor_user_id:control==='wrong session'?f.actor.id:f.reviewer.id,p_outcome:'approve',p_receipt:receipt});expect(result.error).not.toBeNull();expect(retentionSql(`SELECT to_jsonb(count(*)) FROM gridex_ediel_retention.completed_witness_phase_authorizations_v1 WHERE company_id=${literal(f.companyId)}`)).toBe(0)
+},120000)
+it('actual final physical delete failure rolls back all36 fields, replay projection and operational phase before retry',async()=>{
+ const f=await createCompletedWitnessDispositionNativeFixture(randomUUID()+'Aa1!');waitForReviewReasonBoundary(f.clock.witnessUntil)
+ const name='db05_physical_'+randomUUID().replaceAll('-',''),before=completedWitnessGraph(f),params={...f.parameters,p_actor_user_id:f.actor.id}
+ sql(`CREATE FUNCTION public.${name}() RETURNS trigger LANGUAGE plpgsql AS $$BEGIN RAISE EXCEPTION 'synthetic_late_physical_failure';END$$;CREATE TRIGGER ${name} AFTER DELETE ON gridex_ediel_retention.decision_evidence_policies FOR EACH ROW WHEN(OLD.id=${literal(f.policyId)}::uuid) EXECUTE FUNCTION public.${name}()`)
+ try{const result=await f.actor.client.rpc('ediel_purge_decision_evidence_retention_v1',params);expect(result.error?.message).toContain('synthetic_late_physical_failure');expect(completedWitnessGraph(f)).toEqual(before);expect(retentionSql(`SELECT to_jsonb(count(*)) FROM gridex_ediel_retention.completed_witness_replays_v1 WHERE company_id=${literal(f.companyId)}`)).toBe(0)}finally{sql(`DROP TRIGGER ${name} ON gridex_ediel_retention.decision_evidence_policies;DROP FUNCTION public.${name}()`)}
+ expect((await f.actor.client.rpc('ediel_purge_decision_evidence_retention_v1',params)).data).toEqual({status:'disposed',replay:false,authority:'none'})
 },120000)
