@@ -16,6 +16,7 @@ const io = vi.hoisted(() => ({
   imapMessages: [] as Row[],
   seen: [] as number[],
   ingestError: null as Error | null,
+  correlationPatch: {} as Row,
 }))
 
 vi.mock('@/lib/supabase/service', () => {
@@ -31,6 +32,8 @@ vi.mock('@/lib/supabase/service', () => {
     or() { return this }
     ilike() { return this }
     eq(column: string, value: unknown) { this.filters.push((row) => row[column] === value); return this }
+    is(column: string, value: unknown) { this.filters.push((row) => (column.split(/->>?/).reduce<unknown>((cell, key) => cell && typeof cell === 'object' ? (cell as Row)[key] : undefined, row) ?? null) === value); return this }
+    in(column: string, values: unknown[]) { this.filters.push((row) => values.includes(row[column])); return this }
     update(patch: Row) { this.op = 'update'; this.patch = patch; return this }
     insert(row: Row) { this.op = 'insert'; this.patch = row; return this }
     upsert(row: Row) { this.op = 'upsert'; this.patch = row; return this }
@@ -59,6 +62,7 @@ vi.mock('@/lib/supabase/service', () => {
   } }
 })
 vi.mock('@/lib/platform/schemaReadiness', () => ({ assertPlatformSchemaReady: async () => undefined }))
+vi.mock('@/lib/customers/customerOperationEvents', () => ({ emitCustomerOperationEvent: async () => undefined }))
 vi.mock('@/lib/email/manualOperationsMailbox', () => ({ resolveManualMailboxSecret: () => 'pw' }))
 vi.mock('@/lib/customer-operations/manualFacilityResponseParser', () => ({
   extractManualFacilityFields: () => ({ facility_id: '735999100000000001' }),
@@ -76,7 +80,8 @@ vi.mock('@/lib/inbound-mail/manualInboundCorrelation', () => ({
       resolutionStatus: 'matched', companyId: 'co-1', requestId: 'req-1', customerId: 'cu-1', customerSiteId: 'site-1',
       meteringPointId: null, gridOwnerId: 'go-1', tenantResolutionMethod: 'case_reference', entityResolutionMethod: 'request',
       evidence: {}, businessProcess: 'facility_lookup', intent: 'facility_response', intentConfidence: 1,
-      senderCredible: true, request: { id: 'req-1', request_type: 'facility_identifier_lookup' },
+      senderCredible: true, request: { id: 'req-1', company_id: 'co-1', customer_id: 'cu-1', customer_site_id: 'site-1', poa_id: 'poa-1', metadata: { retained: true }, request_type: 'facility_identifier_lookup' },
+      ...io.correlationPatch,
     }
   },
 }))
@@ -109,9 +114,81 @@ beforeEach(() => {
   io.correlationCalls = 0
   io.imapMessages = []
   io.seen = []
+  io.correlationPatch = {}
+  io.tables.grid_owner_information_requests = [
+    { id: 'req-1', company_id: 'co-1', status: 'waiting_manual_response' },
+    { id: 'req-1', company_id: 'co-other', status: 'waiting_manual_response' },
+  ]
+})
+
+describe('counterparty fullmakt responses', () => {
+  it('stops reminders when a verified supplier contract response arrives and keeps it for review', async () => {
+    const request = { id: 'req-1', company_id: 'co-1', customer_id: 'cu-1', request_type: 'current_supplier_contract_information_request', status: 'waiting_manual_response', next_follow_up_at: '2026-11-01T08:00:00Z' }
+    io.tables.grid_owner_information_requests = [request]
+    io.correlationPatch = { request }
+    const result = await ingestManualInboundEmail(email({ bodyText: 'Uppsägningstid: 1 månad. Startdatum förutsätter att uppsägning sker i tid.' }))
+    expect(result.processingState).toBe('needs_review')
+    expect(io.applyCalls).toBe(0)
+    expect(io.tables.grid_owner_information_requests[0]).toMatchObject({ status: 'manual_response_received', next_follow_up_at: null, parsed_payload: { applied: false, review_reason: 'commercial_terms_require_review' } })
+  })
+  it('recognizes a rejection expressed in the subject without applying body data', async () => {
+    const result = await ingestManualInboundEmail(email({ subject: 'Re: Fullmakt avvisad [GX-FIR-ABCDEF12]', bodyText: 'BankID-signatur saknas.\nAnläggnings-ID: 735999100000000001' }))
+    expect(result.processingState).toBe('needs_review')
+    expect(io.applyCalls).toBe(0)
+  })
+  it.each(['Fullmakten är godkänd. BankID krävs inte.', 'Fullmakten är godkänd och behöver inte kompletteras med organisationsnummer.'])('does not reject explicit acceptance: %s', async (bodyText) => {
+    const result = await ingestManualInboundEmail(email({ bodyText }))
+    expect(result.processingState).toBe('applied')
+    expect(io.applyCalls).toBe(1)
+  })
+  it('records a BankID rejection on the exact tenant request and never applies quoted facility data', async () => {
+    const result = await ingestManualInboundEmail(email({ bodyText: 'Hej,\nVi nekar din fullmakt då den ej är komplett med kunds BankId signatur.\nÅterkom med ny.\n\n> Anläggnings-ID 735999100000000001' }))
+    expect(result).toMatchObject({ processingState: 'needs_review', intent: 'power_of_attorney_rejected' })
+    expect(io.applyCalls).toBe(0)
+    expect(io.tables.grid_owner_information_requests[0]).toMatchObject({
+      status: 'needs_review', last_error_code: 'poa_bankid_signature_missing', next_follow_up_at: null,
+      metadata: { retained: true, counterparty_reply: { outcome: 'rejected', requires_review: true, poa_id: 'poa-1' } },
+    })
+    expect(io.tables.grid_owner_information_requests[1].status).toBe('waiting_manual_response')
+    await ingestManualInboundEmail(email({ bodyText: 'Vi nekar din fullmakt. BankID-signatur saknas.' }))
+    expect(io.tables.manual_inbound_messages).toHaveLength(1)
+    expect(io.applyCalls).toBe(0)
+  })
+
+  it('retains completion reasons and suggested contacts without changing verified routing', async () => {
+    const result = await ingestManualInboundEmail(email({ bodyText: 'Ert organisationsnummer framgår inte och fullmaktens verifikationsnummer saknas.\nSkicka förfrågningar till anlaggningsuppgifter@eon.se, inte till vår leverantörsbytesgrupp.\nNi behöver inkomma med en korrekt fullmakt innan vi kan lämna ut uppgifter.' }))
+    expect(result).toMatchObject({ processingState: 'needs_review', intent: 'power_of_attorney_completion_requested' })
+    expect(io.applyCalls).toBe(0)
+    const reply = (io.tables.grid_owner_information_requests[0].metadata as Row).counterparty_reply as Row
+    expect(reply.reason_codes).toEqual(expect.arrayContaining(['tenant_organization_number_missing', 'poa_verification_missing', 'recipient_correction_requested']))
+    expect(reply.suggested_recipients).toEqual(['anlaggningsuppgifter@eon.se'])
+    expect(io.tables.grid_owner_contact_channels).toBeUndefined()
+  })
+
+  it('does not turn a historical rejection in the quoted thread into a new rejection', async () => {
+    const result = await ingestManualInboundEmail(email({ bodyText: 'Tack, här kommer uppgifterna.\nAnläggnings-ID 735999100000000001\n\nFrån: Kundservice\nSkickat: igår\nVi nekar din fullmakt då BankID-signatur saknas.' }))
+    expect(result.processingState).toBe('applied')
+    expect(io.applyCalls).toBe(1)
+  })
+
+  it.each([{ senderCredible: false }, { resolutionStatus: 'ambiguous' }, { resolutionStatus: 'unmatched' }])('does not change request state for an unverified correlation: %o', async (patch) => {
+    io.correlationPatch = patch
+    await ingestManualInboundEmail(email({ bodyText: 'Vi nekar din fullmakt då BankID-signatur saknas.' }))
+    expect(io.tables.grid_owner_information_requests.every((row) => row.status === 'waiting_manual_response')).toBe(true)
+    expect(io.applyCalls).toBe(0)
+  })
 })
 
 describe('#6 matched-but-not-applied mail is re-processed', () => {
+  it('keeps the separate AI reservation on retries, including when AI is later disabled', async () => {
+    io.applyFailures = 1
+    await expect(ingestManualInboundEmail(email())).rejects.toThrow('deadlock detected')
+    const raw = io.tables.manual_inbound_messages[0]
+    raw.extracted_payload = { ...(raw.extracted_payload as Row), ai_read_only: { status: 'processing', attempt_id: 'reserved' } }
+    await ingestManualInboundEmail(email())
+    expect(raw.extracted_payload).toMatchObject({ ai_read_only: { status: 'processing', attempt_id: 'reserved' } })
+    expect(raw.processing_state).toBe('applied')
+  })
   it('a throw in applyManualFacilityResponse is retried on the next ingest', async () => {
     io.applyFailures = 1
     await expect(ingestManualInboundEmail(email())).rejects.toThrow('deadlock detected')

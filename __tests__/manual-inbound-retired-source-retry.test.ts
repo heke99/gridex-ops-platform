@@ -19,6 +19,7 @@ class Query {
   order() { return this }
   limit(value: number) { this.maximum = value; return this }
   eq(column: string, value: unknown) { this.filters.push(row => row[column] === value); return this }
+  is(column: string, value: unknown) { this.filters.push(row => (column.split(/->>?/).reduce<unknown>((cell, key) => cell && typeof cell === 'object' ? (cell as Row)[key] : undefined, row) ?? null) === value); return this }
   not(column: string, _operator: string, value: unknown) { this.filters.push(row => row[column] !== value); return this }
   or(value: string) {
     const cutoff = value.split('locked_at.lt.')[1]

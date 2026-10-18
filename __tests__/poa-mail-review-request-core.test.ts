@@ -9,7 +9,6 @@ vi.mock('@/lib/supabase/service', () => ({
 }))
 vi.mock('@/lib/platform/outboundFreeze', () => ({ assertOutboundAllowed: async () => undefined }))
 vi.mock('@/lib/customers/customerOperationEvents', () => ({ emitCustomerOperationEvent: async () => undefined }))
-vi.mock('@/lib/email/fullmaktPdf', () => ({ renderFullmaktPdfBase64: () => Buffer.from('%PDF-1.4').toString('base64') }))
 vi.mock('@/lib/email/manualOperationsMailbox', async (orig) => ({
   ...(await orig<object>()),
   resolveManualOperationsMailbox: async () => ({ id: 'mbx', mailboxType: 'facility_information_request', fromEmail: 'ops@gridex.example', replyToEmail: null }),
@@ -26,7 +25,7 @@ function poa(overrides: Record<string, unknown> = {}) {
   return {
     id: 'poa-1', company_id: CO, customer_id: 'cu-1', site_id: 'site-1', status: 'signed', scope: 'facility_information_lookup',
     scope_summary: {}, accepted_at: '2026-09-01T10:00:00Z', signer_name: 'Anna Kund', signer_identity_number: '199001011234',
-    method: 'bankid', fullmakt_snapshot: { title: 'Fullmakt' }, source: 'admin', valid_from: '2026-09-01', valid_to: '2099-01-01',
+    method: 'bankid', fullmakt_snapshot: { legal_text: { title: 'Fullmakt', body: 'Synthetic accepted authorization text' } }, source: 'admin', valid_from: '2026-09-01', valid_to: '2099-01-01',
     revoked_at: null, created_at: '2026-09-01T10:00:00Z', ...overrides,
   }
 }
@@ -35,7 +34,7 @@ function seed(input: { poa?: Record<string, unknown>; request?: Record<string, u
   return createFakeDb({
     customer_sites: [{ id: 'site-1', company_id: CO, customer_id: 'cu-1', grid_owner_id: GO, address_hash: 'hash-1', grid_area_code: 'ABC', street: 'Gatan 1', postal_code: '11122', city: 'Stockholm' }],
     customers: [{ id: 'cu-1', company_id: CO, customer_number: 'K1', full_name: 'Anna Kund', personal_number: '199001011234' }],
-    companies: [{ id: CO, legal_name: 'Elbolaget AB' }],
+    companies: [{ id: CO, legal_name: 'Elbolaget AB', org_number: '559999-9984' }],
     powers_of_attorney: [poa(input.poa)],
     grid_owner_contact_channels: [{ id: 'cc-1', grid_owner_id: GO, company_id: null, channel_type: 'facility_information_request', email: 'anlaggning@owner.example', source: 'platform_default', is_enabled: true, is_verified: true, verified_at: '2026-09-01T00:00:00Z' }],
     grid_owner_information_requests: input.request === null || input.request === undefined ? [] : [{
@@ -58,6 +57,53 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllEnvs() })
 
 describe('baseline', () => {
+  it('replaces a queued attachment when a rejected fullmakt is replaced', async () => {
+    const db = seed({ request: { status: 'needs_review', poa_id: 'old-poa', metadata: { counterparty_reply: { requires_review: true, poa_id: 'old-poa' } } },
+      outbox: [{ id: 'old-mail', company_id: CO, request_id: REQ, status: 'queued', to_email: 'anlaggning@owner.example',
+        idempotency_key: BASE_KEY, attachments: [{ kind: 'power_of_attorney_generated_pdf', poa_id: 'old-poa', content: 'old' }] }] })
+    port.db = db
+    expect((await run()).status).toBe('manual_email_queued')
+    expect(db.tables.manual_email_outbox[0].status).toBe('failed')
+    expect(db.tables.manual_email_outbox).toHaveLength(2)
+    expect((db.tables.manual_email_outbox[1].attachments as Array<Record<string, unknown>>)[0].poa_id).toBe('poa-1')
+  })
+  it('saves generated fullmakter under the exact tenant/customer and reuses the immutable PDF', async () => {
+    const db = seed({ poa: { fullmakt_snapshot: { legal_text: { title: 'Fullmakt', body: 'Synthetic accepted text', version: 'v1' } } } })
+    port.db = db
+    await run()
+    const poa = db.tables.powers_of_attorney[0]
+    expect(poa.document_path).toMatch(new RegExp(`^companies/${CO}/customers/cu-1/powers-of-attorney/poa-1/fullmakt-[a-f0-9]{64}\\.pdf$`))
+    const original = String((db.tables.manual_email_outbox[0].attachments as Array<Record<string, unknown>>)[0].content)
+    expect(db.storageFiles.get(`customer-documents/${poa.document_path}`)?.toString('base64')).toBe(original)
+    await run()
+    expect(db.storageUploads).toHaveLength(1)
+  })
+  it('exports tenant organization and fullmakt reference and requests only technical fields from the grid owner', async () => {
+    const db = seed({ poa: { reference: 'POA-SYNTHETIC-1' } })
+    port.db = db
+    expect((await run()).status).toBe('manual_email_queued')
+    expect(db.tables.manual_email_outbox[0].body_text).toContain('559999-9984')
+    expect(db.tables.manual_email_outbox[0].body_text).toContain('POA-SYNTHETIC-1')
+    expect(db.tables.grid_owner_information_requests[0].requested_fields).not.toContain('notice_period')
+    expect(db.tables.grid_owner_information_requests[0].requested_fields).not.toContain('current_contract_end_date')
+  })
+
+  it('does not automatically resend a fullmakt rejected by the counterparty', async () => {
+    const db = seed({ request: { status: 'needs_review', metadata: { counterparty_reply: { requires_review: true, outcome: 'rejected' } } } })
+    port.db = db
+    expect((await run()).status).toBe('needs_review')
+    expect(db.tables.manual_email_outbox).toHaveLength(0)
+  })
+
+  it('blocks production mail when the represented tenant has no organization number', async () => {
+    const db = seed()
+    delete db.tables.companies[0].org_number
+    port.db = db
+    expect((await run()).status).toBe('needs_review')
+    expect(db.tables.manual_email_outbox).toHaveLength(0)
+    expect(db.tables.grid_owner_information_requests[0].last_error_code).toBe('tenant_organization_number_missing')
+  })
+
   it('queues one outbox row and records the chosen contact channel on the request (#14)', async () => {
     const db = seed()
     port.db = db
@@ -75,6 +121,11 @@ describe('baseline', () => {
 })
 
 describe('#2 queue-time POA lifecycle', () => {
+  it('holds a legacy POA without its accepted legal text or uploaded original for review', async () => {
+    const db = seed({ poa: { fullmakt_snapshot: { title: 'Fullmakt' } } }); port.db = db
+    expect(await run()).toMatchObject({ status: 'needs_review', nextAction: { code: 'poa_document_archive_required' } })
+    expect(db.tables.manual_email_outbox).toHaveLength(0)
+  })
   for (const [label, overrides] of [
     ['revoked_at set', { revoked_at: '2026-09-15T00:00:00Z' }],
     ['valid_to passed', { valid_to: '2026-01-01' }],

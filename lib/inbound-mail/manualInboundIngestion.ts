@@ -8,6 +8,9 @@ import {
 import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
 import { resolveManualInboundCorrelation } from '@/lib/inbound-mail/manualInboundCorrelation'
 import { autoReplyReason } from '@/lib/inbound-mail/autoReply'
+import { assessManualReply, authoredManualReply } from '@/lib/inbound-mail/manualReplyAssessment'
+import { recordManualCounterpartyReply } from '@/lib/inbound-mail/manualCounterpartyReply'
+import { recordManualMailAiReading } from '@/lib/inbound-mail/manualMailAiRecording'
 
 type JsonRecord = Record<string, unknown>
 
@@ -355,7 +358,10 @@ export async function ingestManualInboundEmail(email: ManualInboundEmail): Promi
   }
 
   const normalizedText = buildNormalizedManualInboundText(email)
-  const extracted = extractManualFacilityFields(normalizedText)
+  const authoredText = authoredManualReply(clean(email.bodyText)
+    ?? stripHtml(clean(email.bodyHtml)?.replace(/<blockquote\b[\s\S]*$/i, '') ?? null))
+  const replyAssessment = assessManualReply(authoredText, clean(email.subject))
+  const extracted = extractManualFacilityFields([authoredText, attachmentText(email.attachments)].filter(Boolean).join('\n'))
   const confidence = scoreManualFacilityPayload(extracted)
   const correlation = await resolveManualInboundCorrelation({
     email: {
@@ -387,6 +393,11 @@ export async function ingestManualInboundEmail(email: ManualInboundEmail): Promi
   const customerSiteId = matched ? correlation.customerSiteId : null
   const meteringPointId = matched ? correlation.meteringPointId : null
   const gridOwnerId = matched ? correlation.gridOwnerId : null
+  const counterpartyReply = matched && correlation.senderCredible && correlation.request && companyId ? replyAssessment : null
+  if (counterpartyReply) {
+    correlation.intent = counterpartyReply.intent
+    correlation.evidence = { ...correlation.evidence, counterparty_reply: counterpartyReply }
+  }
 
   const correlationUpdate = await supabaseService
     .from('manual_inbound_messages')
@@ -408,7 +419,6 @@ export async function ingestManualInboundEmail(email: ManualInboundEmail): Promi
       intent: correlation.intent,
       processing_state: baseProcessingState,
       resolution_status: correlation.resolutionStatus,
-      extracted_payload: { ...extracted, sender_credible: correlation.senderCredible },
       confidence_score: confidence,
     })
     .eq('id', raw.inboundId)
@@ -416,6 +426,14 @@ export async function ingestManualInboundEmail(email: ManualInboundEmail): Promi
     .maybeSingle()
   if (correlationUpdate.error) throw correlationUpdate.error
   if (!correlationUpdate.data) throw new Error('Inkommande e-post kunde inte uppdateras med korrelationsresultat.')
+
+  // An AI reservation/result is append-only. Conditional replacement prevents
+  // a concurrent normalization/retry from erasing it and triggering a new bill.
+  // The deterministic parser still owns the in-memory `extracted` used below.
+  const extractionUpdate = await supabaseService.from('manual_inbound_messages')
+    .update({ extracted_payload: { ...extracted, sender_credible: correlation.senderCredible, reply_assessment: replyAssessment } })
+    .eq('id', raw.inboundId).is('extracted_payload->ai_read_only', null)
+  if (extractionUpdate.error) throw extractionUpdate.error
 
   const fingerprint = operationFingerprint({
     companyId,
@@ -454,7 +472,23 @@ export async function ingestManualInboundEmail(email: ManualInboundEmail): Promi
     && requestType !== null
     && FACILITY_REQUEST_TYPES.has(requestType)
 
-  if (canApplyFacilityResponse && correlation.request && correlation.companyId) {
+  if (counterpartyReply && correlation.request && correlation.companyId) {
+    await recordManualCounterpartyReply({ companyId: correlation.companyId, request: correlation.request, inboundId: raw.inboundId, assessment: counterpartyReply })
+    processingState = 'needs_review'
+  } else if (matched && correlation.senderCredible && correlation.request && correlation.companyId
+    && requestType === 'current_supplier_contract_information_request') {
+    // Receiving contract information stops reminders. Retain conditions and
+    // dates verbatim for review; this adapter cannot approve a market start.
+    const now = new Date().toISOString()
+    const received = await supabaseService.from('grid_owner_information_requests').update({
+      status: 'manual_response_received', next_follow_up_at: null, received_at: now, updated_at: now,
+      parsed_payload: { ...extracted, applied: false, review_reason: 'commercial_terms_require_review', inbound_id: raw.inboundId },
+      last_error_code: 'commercial_terms_require_review', last_error_message: 'Avtalsuppgifter har mottagits. Kontrollera datum, uppsägningsvillkor och eventuella förbehåll före leverantörsbyte.',
+    }).eq('company_id', correlation.companyId).eq('id', String(correlation.request.id))
+      .in('status', ['manual_email_queued', 'manual_email_sent', 'waiting_manual_response', 'manual_response_received']).select('id').maybeSingle()
+    if (received.error) throw received.error
+    processingState = 'needs_review'
+  } else if (canApplyFacilityResponse && correlation.request && correlation.companyId) {
     parse = await applyManualFacilityResponse({
       companyId: correlation.companyId,
       request: correlation.request,
@@ -508,6 +542,13 @@ export async function ingestManualInboundEmail(email: ManualInboundEmail): Promi
       evidence: { ...correlation.evidence, parse_outcome: parse?.outcome ?? null },
       businessEventFingerprint: fingerprint,
     })
+  }
+
+  // Only the already resolved scope enters the reader. Its output is never
+  // consumed by correlation, facility application, reminders or market release.
+  if (matched && companyId && customerId && requestId) {
+    await recordManualMailAiReading({ inboundId: raw.inboundId, companyId, customerId, requestId,
+      senderCredible: correlation.senderCredible, authoredText })
   }
 
   return {

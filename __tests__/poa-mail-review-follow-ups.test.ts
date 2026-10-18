@@ -32,7 +32,7 @@ function seed(input: { poa?: Record<string, unknown>; request?: Record<string, u
     grid_owner_contact_channels: [{ id: 'cc-1', grid_owner_id: GO, company_id: null, channel_type: 'facility_information_request', email: 'anlaggning@owner.example', source: 'platform_default', is_enabled: true, is_verified: true, verified_at: '2026-09-01T00:00:00Z' }],
     customers: [{ id: 'cu-1', company_id: CO, full_name: 'Anna Kund' }],
     customer_sites: [{ id: 'site-1', company_id: CO, street: 'Gatan 1', postal_code: '11122', city: 'Stockholm' }],
-    companies: [{ id: CO, legal_name: 'Elbolaget AB' }],
+    companies: [{ id: CO, legal_name: 'Elbolaget AB', org_number: '559999-9984' }],
     ediel_market_calendar_entries: input.calendar ?? [],
     manual_email_outbox: [],
     ediel_mailboxes: [],
@@ -62,6 +62,24 @@ describe('#7 business-day due dates (Europe/Stockholm, market calendar)', () => 
 })
 
 describe('#7 reminder and escalation', () => {
+  it('keeps supplier contract follow-ups separate from network information, retaining the case and verification number', async () => {
+    const db = seed({ request: { request_type: 'current_supplier_contract_information_request' }, poa: { reference: 'POA-TEST', evidence_payload: { verification_reference: 'VERIFY-TEST' } } })
+    port.db = db
+    await runManualGridOwnerFollowUpWatchdog({ now: new Date('2026-10-09T10:00:00Z') })
+    const reminder = db.tables.manual_email_outbox[0]
+    expect(reminder.subject).toContain('[GX-FIR-ABC] Påminnelse: Handelsuppgifter')
+    expect(reminder.body_text).toContain('tidigaste start hos ny leverantör')
+    expect(reminder.body_text).toContain('Verifikatsnummer: VERIFY-TEST')
+    expect(reminder.body_text).toContain('Organisationsnummer: 559999-9984')
+    expect(reminder.body_text).not.toContain('anläggnings-ID')
+  })
+  it('does not queue follow-ups for rejected or completed requests', async () => {
+    for (const status of ['needs_review', 'completed', 'cancelled']) {
+      const db = seed({ request: { status } }); port.db = db
+      await runManualGridOwnerFollowUpWatchdog({ now: new Date('2026-10-20T10:00:00Z') })
+      expect(db.tables.manual_email_outbox).toHaveLength(0)
+    }
+  })
   it('only schedules before the reminder is due', async () => {
     const db = seed()
     port.db = db

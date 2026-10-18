@@ -33,7 +33,9 @@ import {
   resolveManualMailboxEnvironment,
   type ManualOperationsMailbox,
 } from '@/lib/email/manualOperationsMailbox'
-import { renderFullmaktPdfBase64 } from '@/lib/email/fullmaktPdf'
+import { ensurePoaPdfArchive } from '@/lib/customers/poaDocuments'
+import { ensurePoaVerificationReference } from '@/lib/customers/poaEvidenceCompletion'
+import { poaMailEvidence, poaMailEvidenceIssues, poaMailEvidenceFingerprint } from '@/lib/email/poaMailEvidence'
 import {
   hasExternallySendablePoa,
   poaMissingExternalFields,
@@ -226,11 +228,14 @@ async function readCustomer(companyId: string, customerId: string) {
 
 // Signed POA with the correct scope. Scope is matched against scope_summary
 // (jsonb scopes), the scope text column and power_of_attorney_scopes rows.
-async function readTenantCompanyName(companyId: string): Promise<string> {
+async function readTenantCompanyIdentity(companyId: string): Promise<{ name: string; organizationNumber: string | null }> {
   const { data, error } = await supabaseService.from('companies').select('*').eq('id', companyId).maybeSingle()
   if (error) throw error
   const row = (data as JsonRecord | null) ?? null
-  return firstField(row, ['legal_name', 'company_name', 'display_name', 'name']) ?? 'Elhandelsbolaget'
+  return {
+    name: firstField(row, ['legal_name', 'company_name', 'display_name', 'name']) ?? 'Elhandelsbolaget',
+    organizationNumber: firstField(row, ['org_number', 'organization_number', 'organisation_number']),
+  }
 }
 
 async function findValidPowerOfAttorney(input: {
@@ -404,32 +409,8 @@ type ManualEmailAttachment = {
   contentType: string
   kind: string
   poa_id: string | null
-}
-
-function snapshotField(snapshot: unknown, key: string): string | null {
-  if (!snapshot || typeof snapshot !== 'object') return null
-  const value = (snapshot as JsonRecord)[key]
-  if (typeof value === 'object' && value !== null) {
-    return snapshotField(value, key)
-  }
-  return clean(value)
-}
-
-// Attempts to download an uploaded/signed PDF document from storage. Returns a
-// base64 string when a real PDF exists, otherwise null.
-async function downloadPoaDocument(documentPath: string | null): Promise<string | null> {
-  if (!documentPath) return null
-  try {
-    const { data, error } = await supabaseService.storage.from('customer-documents').download(documentPath)
-    if (error || !data) return null
-    const buffer = Buffer.from(await data.arrayBuffer())
-    if (buffer.length === 0) return null
-    // Only accept genuine PDF payloads for external attachment.
-    if (!buffer.subarray(0, 5).toString('latin1').startsWith('%PDF')) return null
-    return buffer.toString('base64')
-  } catch {
-    return null
-  }
+  poa_document_path?: string | null
+  poa_evidence_fingerprint?: string
 }
 
 // Builds the EXTERNAL fullmakt attachment. Never attaches raw JSON: attaches an
@@ -446,55 +427,22 @@ async function buildPoaAttachment(
     sitePostalCode: string | null
     siteCity: string | null
     tenantCompanyName: string | null
+    tenantOrganizationNumber: string | null
     actorUserId?: string | null
   },
 ): Promise<ManualEmailAttachment[]> {
   if (!poa) return []
-
-  const fullmaktSnapshot = poa.fullmakt_snapshot ?? null
-  const legalTextTitle = snapshotField(fullmaktSnapshot, 'title') ?? snapshotField(fullmaktSnapshot, 'legal_text')
-  const legalTextVersion = snapshotField(fullmaktSnapshot, 'version')
-
-  const uploaded = await downloadPoaDocument(clean(poa.document_path))
-  if (uploaded) {
-    return [
-      {
-        filename: `fullmakt-${caseReference}.pdf`,
-        content: uploaded,
-        contentType: 'application/pdf',
-        kind: 'power_of_attorney_uploaded_pdf',
-        poa_id: clean(poa.id),
-      },
-    ]
-  }
-
-  const pdfBase64 = renderFullmaktPdfBase64({
-    caseReference,
-    powerOfAttorneyId: clean(poa.id),
-    reference: clean(poa.reference),
-    customerName: context.customerName,
-    customerIdentity: context.customerIdentity ?? clean(poa.signer_identity_number),
-    siteAddress: context.siteAddress,
-    sitePostalCode: context.sitePostalCode,
-    siteCity: context.siteCity,
-    representativeName: context.tenantCompanyName ?? 'Gridex AB',
-    legalTextTitle,
-    legalTextVersion,
-    legalTextVersionId: clean(poa.legal_text_version_id),
-    acceptedAt: clean(poa.accepted_at) ?? clean(poa.signed_at),
-    signerName: clean(poa.signer_name),
-    signerIdentityNumber: clean(poa.signer_identity_number) ?? context.customerIdentity,
-    method: clean(poa.method),
-    source: clean(poa.source),
-  })
+  const archived = await ensurePoaPdfArchive({ companyId: context.companyId, customerId: String(poa.customer_id), powerOfAttorneyId: String(poa.id) })
 
   return [
     {
       filename: `fullmakt-${caseReference}.pdf`,
-      content: pdfBase64,
+      content: archived.pdf.toString('base64'),
       contentType: 'application/pdf',
-      kind: 'power_of_attorney_generated_pdf',
+      kind: 'power_of_attorney_archived_pdf',
       poa_id: clean(poa.id),
+      poa_document_path: archived.path,
+      poa_evidence_fingerprint: poaMailEvidenceFingerprint(poa),
     },
   ]
 }
@@ -690,7 +638,7 @@ export async function requestMissingFacilityInformation(
   const protectedIdentity = site.protected_identity === true || customer?.protected_identity === true
 
   // Power of attorney gate.
-  const poa = await findValidPowerOfAttorney({
+  let poa = await findValidPowerOfAttorney({
     companyId: input.companyId,
     customerId: input.customerId,
     siteId: input.siteId,
@@ -749,7 +697,7 @@ export async function requestMissingFacilityInformation(
   const senderReplyTo = manualMailbox.replyToEmail ?? manualMailbox.fromEmail
 
   const now = new Date().toISOString()
-  const requestedFields = ['facility_id', 'metering_point_id', 'grid_area_code', 'annual_consumption', 'current_supplier', 'notice_period', 'current_contract_end_date', 'metering_method', 'reporting_frequency']
+  const requestedFields = ['facility_id', 'metering_point_id', 'grid_area_code', 'annual_consumption', 'current_supplier', 'metering_method', 'reporting_frequency']
 
   // An open Ediel facility lookup owns the grid-owner conversation for this
   // site: do not open a parallel manual request.
@@ -764,6 +712,19 @@ export async function requestMissingFacilityInformation(
 
   // Create or reuse the manual information request (idempotent per open site/type).
   let request = await findOpenManualRequest({ companyId: input.companyId, siteId: input.siteId, requestType, gridOwnerId, siteAddressHash })
+  const requestMetadata = (request?.metadata as JsonRecord | null) ?? {}
+  const previousReply = (requestMetadata.counterparty_reply as JsonRecord | null) ?? {}
+  if (request && previousReply.requires_review === true) {
+    const replacementPoa = clean(previousReply.poa_id) && clean(previousReply.poa_id) !== clean(poa.id)
+    if (!replacementPoa) {
+      const message = 'Motpartens svar måste åtgärdas innan nytt utskick. Komplettera eller ersätt fullmakten och granska mottagaren.'
+      return {
+        status: 'needs_review', requestId: String(request.id), caseReference: clean(request.case_reference), channel: 'manual_email', emailOutboxId: null,
+        poaId: clean(poa.id), nextAction: { code: 'counterparty_reply_requires_review', message }, blockers: [{ code: 'counterparty_reply_requires_review', message }],
+      }
+    }
+    request = { ...request, metadata: { ...requestMetadata, counterparty_reply: { ...previousReply, requires_review: false, resolved_with_poa_id: poa.id, resolved_at: now } } }
+  }
   if (request) {
     const updated = await supabaseService
       .from('grid_owner_information_requests')
@@ -975,7 +936,21 @@ export async function requestMissingFacilityInformation(
   // site/grid owner — or a new request after the previous one completed — can
   // queue its own e-mail.
   const idempotencyKey = `manual-facility-request:${input.companyId}:${input.siteId}:${gridOwnerId}:${siteAddressHash}:${requestType}:${requestId}`
-  const tenantCompanyName = await readTenantCompanyName(input.companyId)
+  const tenantCompany = await readTenantCompanyIdentity(input.companyId)
+  const tenantCompanyName = tenantCompany.name
+  poa = await ensurePoaVerificationReference({ companyId: input.companyId, customerId: input.customerId, powerOfAttorneyId: String(poa.id) })
+  const issues = [
+    ...(!tenantCompany.organizationNumber ? [{ code: 'tenant_organization_number_missing', message: 'Ombudets organisationsnummer saknas. Komplettera tenantens bolagsuppgifter före utskick av fullmaktsförfrågan.' }] : []),
+    ...poaMailEvidenceIssues(poa),
+  ]
+  if (issues.length) {
+    await markRequestNeedsReview({ companyId: input.companyId, requestId, lastErrorCode: issues[0].code, lastErrorMessage: issues[0].message,
+      missingFields: issues.map((issue) => issue.code), baseMetadata: (request.metadata as JsonRecord | null) ?? null })
+    await patchSiteNextAction({ companyId: input.companyId, customerId: input.customerId, siteId: input.siteId,
+      status: 'needs_review', nextAction: issues[0].message, actorUserId: input.actorUserId })
+    return { status: 'needs_review', requestId, caseReference, channel: 'manual_email', emailOutboxId: null, poaId: clean(poa.id),
+      nextAction: issues[0], blockers: issues }
+  }
   const rendered = renderManualEmailTemplate(templateKey, {
     case_reference: caseReference,
     customer_number: resolvedCustomerNumber,
@@ -986,8 +961,12 @@ export async function requestMissingFacilityInformation(
     city: siteCity,
     ops_sender_name: clean(process.env.MANUAL_GRID_OWNER_SENDER_NAME) ?? 'Gridex Operations',
     tenant_company_name: tenantCompanyName,
+    tenant_organization_number: tenantCompany.organizationNumber,
+    poa_reference: poaMailEvidence(poa).reference,
+    poa_verification_number: poaMailEvidence(poa).verificationReference,
   })
-  const attachments = await buildPoaAttachment(poa, caseReference, {
+  let attachments: ManualEmailAttachment[]
+  try { attachments = await buildPoaAttachment(poa, caseReference, {
     companyId: input.companyId,
     customerName: resolvedCustomerName,
     customerIdentity: resolvedCustomerIdentity,
@@ -995,8 +974,15 @@ export async function requestMissingFacilityInformation(
     sitePostalCode,
     siteCity,
     tenantCompanyName,
+    tenantOrganizationNumber: tenantCompany.organizationNumber,
     actorUserId: input.actorUserId,
-  })
+  }) } catch {
+    const issue = { code: 'poa_document_archive_required', message: 'Fullmaktens originaldokument kunde inte verifieras och arkiveras. Kontrollera sparad godkänd text eller uppladdad PDF före utskick.' }
+    await markRequestNeedsReview({ companyId: input.companyId, requestId, lastErrorCode: issue.code, lastErrorMessage: issue.message,
+      missingFields: ['poa_document'], baseMetadata: (request.metadata as JsonRecord | null) ?? null })
+    return { status: 'needs_review', requestId, caseReference, channel: 'manual_email', emailOutboxId: null,
+      poaId: clean(poa.id), nextAction: issue, blockers: [issue] }
+  }
 
   let emailOutboxId: string | null = null
   let alreadyQueued = false
@@ -1005,7 +991,23 @@ export async function requestMissingFacilityInformation(
   // queued. Only a queued/sending row means "already queued"; a sent, failed,
   // blocked or uncertain row never silently masks the review signal.
   const existingOutbox = await readRequestOutboxRows({ companyId: input.companyId, requestId })
-  const activeOutbox = existingOutbox.find((row) => ACTIVE_OUTBOX_STATUSES.has(String(row.status)))
+  let activeOutbox = existingOutbox.find((row) => ACTIVE_OUTBOX_STATUSES.has(String(row.status)))
+  const activeAttachments = Array.isArray(activeOutbox?.attachments) ? activeOutbox.attachments as JsonRecord[] : []
+  const staleAttachment = activeAttachments.some((attachment) => String(attachment.kind ?? '').startsWith('power_of_attorney')
+    && (clean(attachment.poa_id) !== clean(poa.id) || (attachment.poa_evidence_fingerprint && attachment.poa_evidence_fingerprint !== poaMailEvidenceFingerprint(poa))))
+  if (activeOutbox && (staleAttachment || Boolean(clean(request.poa_id) && clean(request.poa_id) !== clean(poa.id)))) {
+    const stop = await supabaseService.from('manual_email_outbox').update({ status: 'failed', last_error_code: 'poa_attachment_superseded',
+      last_error: 'Fullmaktsunderlaget har ersatts. Det gamla utskicket skickas inte.', next_attempt_at: null,
+      attachments: activeAttachments.map((attachment) => { const audit: JsonRecord = { ...attachment }; delete audit.content; return audit }), updated_at: now })
+      .eq('company_id', input.companyId).eq('id', String(activeOutbox.id)).eq('status', 'queued').select('id').maybeSingle()
+    if (stop.error) throw stop.error
+    if (!stop.data) {
+      const message = 'Ett tidigare utskick behandlas redan. Kontrollera leveransstatus innan den ersatta fullmakten köas igen.'
+      return { status: 'needs_review', requestId, caseReference, channel: 'manual_email', emailOutboxId: clean(activeOutbox.id), poaId: clean(poa.id),
+        nextAction: { code: 'poa_attachment_in_flight', message }, blockers: [{ code: 'poa_attachment_in_flight', message }] }
+    }
+    activeOutbox = undefined
+  }
   const requestStatus = clean(request.status) ?? ''
   if (!activeOutbox && CONVERSATION_STATUSES.has(requestStatus)) {
     // The grid owner already has this request; the follow-up watchdog owns
@@ -1155,20 +1157,10 @@ export async function requestMissingFacilityInformation(
   if (requestUpdate.error) throw requestUpdate.error
   if (!requestUpdate.data?.length && !alreadyQueued) throw new Error('Nätägarärendet kunde inte flyttas till köad status för rätt tenant.')
 
-  // Audit: POA events (only on a fresh queue). A generated PDF records
-  // pdf_generated before attached_to_email; an uploaded PDF only records
-  // attached_to_email.
+  // Archive checksums and versions are persisted by the archive service.
+  // Record attachment to this delivery separately, only on a fresh queue.
   if (!alreadyQueued && clean(poa.id)) {
     const attachmentKind = attachments[0]?.kind ?? null
-    if (attachmentKind === 'power_of_attorney_generated_pdf') {
-      await supabaseService.from('power_of_attorney_events').insert({
-        company_id: input.companyId,
-        power_of_attorney_id: poa.id,
-        event_type: 'pdf_generated',
-        payload: { case_reference: caseReference, request_id: requestId, kind: 'generated_pdf' },
-        created_by: clean(input.actorUserId),
-      }).then(() => undefined, () => undefined)
-    }
     await supabaseService.from('power_of_attorney_events').insert({
       company_id: input.companyId,
       power_of_attorney_id: poa.id,
@@ -1252,7 +1244,7 @@ const CONVERSATION_STATUSES: ReadonlySet<string> = new Set(['manual_email_sent',
 async function readRequestOutboxRows(input: { companyId: string; requestId: string }): Promise<JsonRecord[]> {
   const { data, error } = await supabaseService
     .from('manual_email_outbox')
-    .select('id,status,idempotency_key,to_email,created_at')
+    .select('id,status,idempotency_key,to_email,created_at,attachments')
     .eq('company_id', input.companyId)
     .eq('request_id', input.requestId)
     .order('created_at', { ascending: false })

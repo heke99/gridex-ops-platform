@@ -110,7 +110,7 @@ const legalVersions = [{ id: POA_DOC, type: 'power_of_attorney', module_key: 'po
 function poa(textVersionId: string | null) {
   return { accepted: true, scope: ['supplier_switch'], signerName: 'Synthetic Signer', signerIdentityNumber: 'synthetic-identity', method: 'website_acceptance', acceptedAt: '2026-10-05T00:00:00.000Z', textVersionId, ipAddress: null, userAgent: null }
 }
-async function onboardWithPoa(textVersionId: string | null) {
+async function onboardWithPoa(textVersionId: string | null, requestIp: string | null = null) {
   const body = ApplicationSchema.parse(normalizeRawApplication(application({ site: undefined })))
   const readiness = assessWebsiteApplicationReadiness(body)
   await onboardCanonicalWebsiteCustomerGraph({
@@ -119,6 +119,7 @@ async function onboardWithPoa(textVersionId: string | null) {
     publicOffer: offer, offerReference: 'synthetic-offer-225', websiteQuote: null,
     readiness, legalVersions, structuredPoa: poa(textVersionId), agreementAcceptedAt: '2026-10-05T00:00:00.000Z',
     idempotencyKey: 'synthetic-225',
+    requestAudit: { ipAddress: requestIp },
   })
   return io.commands.at(-1) as Row | undefined
 }
@@ -128,6 +129,24 @@ beforeEach(() => {
 })
 
 describe('F28: website onboarding binds the exact accepted POA document', () => {
+  it('preserves the exact accepted text in the POA snapshot used by the external PDF', async () => {
+    const command = await onboardWithPoa(null)
+    expect(command?.power_of_attorney).toMatchObject({ fullmakt_snapshot: {
+      legal_text: { id: POA_DOC, body: 'text', version: 'v1' }, scopes: ['supplier_switch'],
+    } })
+  })
+  it('records a stable consent verification reference without treating the API caller IP as the signer IP or claiming BankID', async () => {
+    const command = await onboardWithPoa(null, '192.0.2.99')
+    const evidence = (command?.power_of_attorney as Row).evidence_payload as Row
+    expect(evidence.verification_reference).toMatch(/^poa_verification_[A-Za-z0-9_-]+$/)
+    expect(evidence.ip_address).toBeNull()
+    expect(evidence.api_request_ip_address).toBe('192.0.2.99')
+    expect(evidence.signature_verification_status).toBe('not_verified')
+    const firstReference = evidence.verification_reference
+    const repeated = await onboardWithPoa(null, '192.0.2.100')
+    expect(((repeated?.power_of_attorney as Row).evidence_payload as Row).verification_reference).toBe(firstReference)
+  })
+
   it('binds the accepted offer document when textVersionId is omitted', async () => {
     const command = await onboardWithPoa(null)
     expect(command).toMatchObject({ power_of_attorney: { legal_text_version_id: POA_DOC } })

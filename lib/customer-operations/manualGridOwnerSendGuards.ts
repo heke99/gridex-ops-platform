@@ -32,6 +32,7 @@ export const MANUAL_POA_SELECT = [
   'valid_from', 'valid_to', 'valid_until', 'expires_at', 'revoked_at',
   'fullmakt_snapshot', 'evidence_payload', 'metadata', 'document_id', 'document_path', 'reference',
   'signer_name', 'signer_identity_number', 'method', 'accepted_at', 'signed_at', 'legal_text_version_id', 'source',
+  'signed_scope_snapshot',
 ].join(',')
 
 function clean(value: unknown): string | null {

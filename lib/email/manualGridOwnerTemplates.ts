@@ -30,14 +30,20 @@ export type ManualEmailTemplateVariables = {
   city?: string | null
   ops_sender_name?: string | null
   tenant_company_name?: string | null
+  tenant_organization_number?: string | null
+  poa_reference?: string | null
+  poa_verification_number?: string | null
+  request_purpose?: 'network' | 'supplier_contract'
+  request_topic?: string | null
+  requested_information?: string | null
 }
 
 // Bumping a version is a content change that downstream audit can reference.
 export const MANUAL_EMAIL_TEMPLATES: Record<ManualEmailTemplateKey, ManualEmailTemplate> = {
   facility_information_request: {
     key: 'facility_information_request',
-    version: '2026-08-21-v2',
-    subject: '[{{case_reference}}] Begäran om anläggningsuppgifter inför leverantörsbyte',
+    version: '2026-10-18-v3',
+    subject: '[{{case_reference}}] Fullmakt – Nätuppgifter – {{tenant_company_name}}',
     body: `Hej,
 
 Vi företräder kunden enligt bifogad fullmakt och begär tekniska anläggningsuppgifter för att kunna genomföra rätt marknadsprocess.
@@ -71,8 +77,8 @@ Med vänlig hälsning,
   },
   current_supplier_contract_information_request: {
     key: 'current_supplier_contract_information_request',
-    version: '2026-08-21-v1',
-    subject: '[{{case_reference}}] Begäran om avtalsuppgifter för nuvarande elleverans',
+    version: '2026-10-18-v2',
+    subject: '[{{case_reference}}] Fullmakt – Handelsuppgifter – {{tenant_company_name}}',
     body: `Hej,
 
 Vi företräder kunden enligt bifogad fullmakt och behöver verifiera kundens nuvarande elhandelsavtal inför ett planerat leverantörsbyte.
@@ -91,6 +97,8 @@ Vi önskar få följande avtalsuppgifter:
 - Avtalets slutdatum
 - Bindningstid, om sådan finns
 - Uppsägningstid
+- Datum då kunden tidigast kan starta hos en ny leverantör, inklusive eventuella villkor
+- Datum då avtalet senast måste sägas upp för detta avslut, och om uppsägning redan har registrerats
 - Eventuell brytavgift eller annan kostnad vid förtida avslut
 
 Vi begär inte nätägarens tekniska anläggnings- eller mätpunktsdata i detta ärende.
@@ -104,8 +112,8 @@ Med vänlig hälsning,
   },
   supplier_switch_manual: {
     key: 'supplier_switch_manual',
-    version: '2026-06-26-v1',
-    subject: '[{{case_reference}}] Begäran om manuell hantering av leverantörsbyte',
+    version: '2026-10-18-v2',
+    subject: '[{{case_reference}}] Manuell hantering av leverantörsbyte – {{tenant_company_name}}',
     body: `Hej,
 
 Vi företräder kunden enligt bifogad fullmakt och begär manuell hantering av leverantörsbyte som inte kan hanteras via ordinarie elektroniskt flöde.
@@ -128,8 +136,8 @@ Med vänlig hälsning,
   },
   power_of_attorney_request: {
     key: 'power_of_attorney_request',
-    version: '2026-06-26-v1',
-    subject: '[{{case_reference}}] Fullmakt för hantering av kundens ärende',
+    version: '2026-10-18-v2',
+    subject: '[{{case_reference}}] Fullmakt – {{tenant_company_name}}',
     body: `Hej,
 
 Vi företräder kunden i ärende {{case_reference}}. Bifogad fullmakt styrker vår behörighet att begära och ta emot uppgifter samt hantera leverantörsbyte för kundens räkning.
@@ -149,8 +157,8 @@ Med vänlig hälsning,
   },
   ai_list_request: {
     key: 'ai_list_request',
-    version: '2026-06-26-v1',
-    subject: '[{{case_reference}}] Begäran om strukturerad anläggningslista (AI-lista)',
+    version: '2026-10-18-v2',
+    subject: '[{{case_reference}}] Anläggningslista (AI-lista) – {{tenant_company_name}}',
     body: `Hej,
 
 Vi företräder kunden enligt bifogad fullmakt och begär en strukturerad lista över anläggningar och tillhörande uppgifter inför avstämning.
@@ -171,11 +179,13 @@ Med vänlig hälsning,
   },
   reminder: {
     key: 'reminder',
-    version: '2026-06-26-v1',
-    subject: '[{{case_reference}}] Påminnelse: begäran om anläggningsuppgifter',
+    version: '2026-10-18-v3',
+    subject: '[{{case_reference}}] Påminnelse: {{request_topic}} – {{tenant_company_name}}',
     body: `Hej,
 
 Vi vill påminna om vår tidigare begäran i ärende {{case_reference}} avseende uppgifter inför leverantörsbyte.
+
+{{requested_information}}
 
 Kund:
 Namn: {{customer_name}}
@@ -191,11 +201,13 @@ Med vänlig hälsning,
   },
   escalation: {
     key: 'escalation',
-    version: '2026-06-26-v1',
-    subject: '[{{case_reference}}] Eskalering: utebliven återkoppling',
+    version: '2026-10-18-v3',
+    subject: '[{{case_reference}}] Eskalering: {{request_topic}} – {{tenant_company_name}}',
     body: `Hej,
 
 Vi har inte fått återkoppling i ärende {{case_reference}} trots tidigare begäran och påminnelse. Vi ber er hantera ärendet skyndsamt.
+
+{{requested_information}}
 
 Kund:
 Namn: {{customer_name}}
@@ -231,8 +243,16 @@ export function renderManualEmailTemplate(
   variables: ManualEmailTemplateVariables,
 ): RenderedManualEmail {
   const template = MANUAL_EMAIL_TEMPLATES[key]
+  const supplier = variables.request_purpose === 'supplier_contract'
+  variables = { ...variables,
+    request_topic: supplier ? 'Handelsuppgifter' : 'Nätuppgifter',
+    requested_information: supplier
+      ? 'Begäran gäller endast elhandelsavtalet: avtalsstatus, avtalslut, bindningstid, uppsägningstid, tidigaste start hos ny leverantör, sista uppsägningsdatum, om uppsägning registrerats och eventuell brytavgift.'
+      : 'Begäran gäller endast nätuppgifter: anläggnings-ID, eventuellt separat mätpunkts-ID, nätområde, årsenergi, mätmetod, rapporteringsfrekvens och nuvarande elhandelsföretag om uppgiften finns tillgänglig.',
+  }
   const subject = applyVariables(template.subject, variables).replace(/\s+/g, ' ').trim()
-  const bodyText = applyVariables(template.body, variables)
+  const senderIdentity = `Ombud: {{tenant_company_name}}\nOrganisationsnummer: {{tenant_organization_number}}\nFullmaktsreferens: {{poa_reference}}\nVerifikatsnummer: {{poa_verification_number}}`
+  const bodyText = applyVariables(template.body, variables).replace('Hej,', `Hej,\n\n${applyVariables(senderIdentity, variables)}`)
   const bodyHtml = `<pre style="font-family: inherit; white-space: pre-wrap; margin: 0;">${escapeHtml(bodyText)}</pre>`
   return {
     templateKey: key,

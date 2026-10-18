@@ -11,6 +11,7 @@ import {
 import { getTenantOperationDecision } from '@/lib/tenant/operationPolicy'
 import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
 import { supabaseService } from '@/lib/supabase/service'
+import { poaMailEvidenceIssues, poaMailEvidenceFingerprint } from '@/lib/email/poaMailEvidence'
 
 type JsonRecord = Record<string, unknown>
 const MAX_ATTEMPTS = 5
@@ -494,10 +495,19 @@ export async function processManualEmailOutbox(input?: {
       // Re-check the power of attorney right before the provider call: it may
       // have been revoked, replaced or expired since the row was queued.
       const request = requestId ? await readRequestForSend(companyId, requestId) : null
+      if (clean(recipientResolution.follow_up_kind) && request?.status !== 'waiting_manual_response') {
+        throw new PermanentManualSendError('manual_follow_up_no_longer_waiting', 'Ett svar eller en åtgärd har redan registrerats. Den köade uppföljningen skickas inte.')
+      }
+      let validatedPoa: JsonRecord | null = null
       if (request) {
+        const counterpartyReply = jsonObject(jsonObject(request.metadata)?.counterparty_reply)
+        if (counterpartyReply?.requires_review === true) {
+          throw new PermanentManualSendError('counterparty_reply_requires_review', 'Motparten har begärt komplettering eller nekat fullmakten. Granska ärendet innan nytt utskick.')
+        }
         const poaId = clean(request.poa_id)
         if (poaId) {
           const poa = await readPowerOfAttorneyForSend({ companyId, poaId })
+          validatedPoa = poa
           const sameCustomer = !clean(poa?.customer_id) || !clean(request.customer_id) || clean(poa?.customer_id) === clean(request.customer_id)
           if (!poa || !sameCustomer || !manualPoaIsCurrentlyValid(poa)) {
             throw new PermanentManualSendError(
@@ -561,6 +571,19 @@ export async function processManualEmailOutbox(input?: {
         }
       }
 
+      if (validatedPoa) {
+        const issues = poaMailEvidenceIssues(validatedPoa)
+        if (issues.length) throw new PermanentManualSendError(issues[0].code, issues[0].message)
+        const attachments = Array.isArray(row.attachments) ? row.attachments as JsonRecord[] : []
+        const poaAttachments = attachments.filter((attachment) => String(attachment.kind ?? '').startsWith('power_of_attorney'))
+        const apiPoa = ['website_api', 'customer_portal_api'].includes(String(validatedPoa.source))
+        if (poaAttachments.some((attachment) => (attachment.poa_id && attachment.poa_id !== validatedPoa!.id)
+          || (attachment.poa_document_path && attachment.poa_document_path !== validatedPoa!.document_path)
+          || (attachment.poa_evidence_fingerprint && attachment.poa_evidence_fingerprint !== poaMailEvidenceFingerprint(validatedPoa!))
+          || (apiPoa && !attachment.poa_evidence_fingerprint))) {
+          throw new PermanentManualSendError('poa_attachment_mismatch', 'Bilagan hör till ett annat eller äldre fullmaktsunderlag. Skapa om utskicket med den aktuella fullmakten.')
+        }
+      }
       rfcMessageId = manualOutboxRfcMessageId({ outboxId: id, requestId, fromEmail })
       const sent = await provider.sendEmail({
         from: fromEmail,

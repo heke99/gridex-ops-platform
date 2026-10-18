@@ -11,6 +11,7 @@ export type AdminPageKey =
   | 'customers.intake'
   | 'customers.segments'
   | 'customer.info_requests'
+  | 'customer.powers_of_attorney'
   | 'customer.cases'
   | 'support.cases'
   | 'contracts.catalog'
@@ -88,6 +89,7 @@ export const ADMIN_PAGE_ACCESS: Record<AdminPageKey, PermissionRequirement> = {
   'customers.intake': { anyOf: ['customers.write'] },
   'customers.segments': { anyOf: ['customers.read', 'reports.read'] },
   'customer.info_requests': { anyOf: ['customers.read', 'poa.read', 'metering.read'] },
+  'customer.powers_of_attorney': { anyOf: ['poa.read', 'customers.read', 'documents.read'] },
   'customer.cases': { anyOf: ['cases.read', 'customers.read'] },
   'support.cases': { allOf: ['cases.read'] },
   'contracts.catalog': { anyOf: ['contracts.read', 'contracts.write', 'pricing.write'] },

@@ -9,6 +9,8 @@
 // The outbox worker re-checks POA and recipient again right before sending.
 
 import { supabaseService } from '@/lib/supabase/service'
+import { poaMailEvidence } from '@/lib/email/poaMailEvidence'
+import { ensurePoaVerificationReference } from '@/lib/customers/poaEvidenceCompletion'
 import { addBusinessDays } from '@/lib/ediel/calendar/marketCalendar'
 import { renderManualEmailTemplate } from '@/lib/email/manualGridOwnerTemplates'
 import {
@@ -124,15 +126,15 @@ async function readOne(table: string, select: string, companyId: string, id: str
   return (data as JsonRecord | null) ?? null
 }
 
-async function tenantCompanyName(companyId: string): Promise<string> {
+async function tenantCompanyIdentity(companyId: string): Promise<{ name: string; organizationNumber: string | null }> {
   const { data, error } = await supabaseService.from('companies').select('*').eq('id', companyId).maybeSingle()
   if (error) throw error
   const row = (data as JsonRecord | null) ?? {}
   for (const key of ['legal_name', 'company_name', 'display_name', 'name']) {
     const value = clean(row[key])
-    if (value) return value
+    if (value) return { name: value, organizationNumber: clean(row.org_number) }
   }
-  return 'Elhandelsbolaget'
+  return { name: 'Elhandelsbolaget', organizationNumber: clean(row.org_number) }
 }
 
 type FollowUpOutcome = 'scheduled' | 'reminder' | 'escalation' | 'needs_review' | 'skipped'
@@ -169,7 +171,7 @@ async function processRequest(request: JsonRecord, now: Date): Promise<FollowUpO
   const channelType = requestChannel && MANUAL_CONTACT_CHANNEL_TYPES.has(requestChannel) ? requestChannel : 'facility_information_request'
 
   const poaId = clean(request.poa_id)
-  const poa = poaId ? await readPowerOfAttorneyForSend({ companyId, poaId }) : null
+  let poa = poaId ? await readPowerOfAttorneyForSend({ companyId, poaId }) : null
   if (!poa || !manualPoaIsCurrentlyValid(poa, now)) {
     await markNeedsReview(request, 'poa_not_valid', 'Fullmakten är inte längre giltig. Påminnelse till nätägaren skickades inte.')
     return 'needs_review'
@@ -197,19 +199,28 @@ async function processRequest(request: JsonRecord, now: Date): Promise<FollowUpO
     return 'needs_review'
   }
 
-  const [customer, site, companyName] = await Promise.all([
+  const [customer, site, company] = await Promise.all([
     readOne('customers', '*', companyId, clean(request.customer_id)),
     readOne('customer_sites', 'id,street,postal_code,city', companyId, clean(request.customer_site_id)),
-    tenantCompanyName(companyId),
+    tenantCompanyIdentity(companyId),
   ])
+  if (!company.organizationNumber) {
+    await markNeedsReview(request, 'tenant_organization_number_missing', 'Ombudets organisationsnummer saknas. Komplettera bolagsuppgifterna före påminnelse.')
+    return 'needs_review'
+  }
+  poa = await ensurePoaVerificationReference({ companyId, customerId: String(request.customer_id), powerOfAttorneyId: String(poa.id) })
   const rendered = renderManualEmailTemplate(kind, {
+    request_purpose: channelType === 'current_supplier_contract_information' || String(request.request_type).includes('supplier_contract') ? 'supplier_contract' : 'network',
     case_reference: clean(request.case_reference),
     customer_name: customerName(customer),
     site_address: clean(site?.street),
     postal_code: clean(site?.postal_code),
     city: clean(site?.city),
     ops_sender_name: clean(process.env.MANUAL_GRID_OWNER_SENDER_NAME) ?? 'Gridex Operations',
-    tenant_company_name: companyName,
+    tenant_company_name: company.name,
+    tenant_organization_number: company.organizationNumber,
+    poa_reference: clean(poa.reference) ?? clean(poa.id),
+    poa_verification_number: poaMailEvidence(poa).verificationReference,
   })
 
   const followUpNumber = count + 1
@@ -290,7 +301,7 @@ export async function runManualGridOwnerFollowUpWatchdog(input: { limit?: number
   const limit = Math.min(Math.max(Number(input.limit ?? 25) || 25, 1), 100)
   const { data, error } = await supabaseService
     .from('grid_owner_information_requests')
-    .select('id,company_id,customer_id,customer_site_id,grid_owner_id,poa_id,status,channel,case_reference,sent_at,follow_up_count,next_follow_up_at,metadata')
+    .select('id,company_id,customer_id,customer_site_id,grid_owner_id,poa_id,request_type,status,channel,case_reference,sent_at,follow_up_count,next_follow_up_at,metadata')
     .eq('status', 'waiting_manual_response')
     .eq('channel', 'manual_email')
     .lt('follow_up_count', MAX_FOLLOW_UPS)

@@ -1,6 +1,8 @@
 // Internal module extracted from customerApplications.ts to keep handwritten production files bounded.
 import type { IntegrationApiClient } from "@/lib/integrations/apiAuth";
 import { supabaseService } from "@/lib/supabase/service";
+import { completePoaCaptureEvidence } from "@/lib/customers/poaEvidenceCompletion";
+import { ensurePoaPdfArchive } from "@/lib/customers/poaDocuments";
 import { reserveApplicationNumber } from "@/lib/customer-numbers/customerNumbers";
 import { assessWebsiteApplicationReadiness } from "@/lib/website/applicationReview";
 import { patchMeteringPointEnergyContext } from "@/lib/energy/meteringPointContext";
@@ -444,6 +446,16 @@ export async function processWebsiteCustomerApplication(input: {
           );
         }
 
+        const savedPoaId = clean(existingIdempotent.response_payload?.power_of_attorney_id);
+        const savedCustomerId = clean(existingIdempotent.customer_id) ?? clean(existingIdempotent.response_payload?.customer_id);
+        if (savedPoaId && savedCustomerId && structuredPoa?.accepted) {
+          await stage("power_of_attorney", async () => {
+            const scope = { companyId: input.client.company_id, customerId: savedCustomerId, powerOfAttorneyId: savedPoaId };
+            await completePoaCaptureEvidence(scope, { signerName: structuredPoa.signerName, signerIdentity: structuredPoa.signerIdentityNumber,
+              method: structuredPoa.method, acceptedAt: structuredPoa.acceptedAt, signerIp: structuredPoa.ipAddress });
+            await ensurePoaPdfArchive(scope);
+          });
+        }
         return successResponse(
           {
             ...(existingIdempotent.response_payload ?? {}),

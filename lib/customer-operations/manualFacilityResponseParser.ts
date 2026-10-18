@@ -22,6 +22,12 @@ export type ManualFacilityExtractedPayload = {
   current_supplier?: string | null
   notice_period?: string | null
   current_contract_end_date?: string | null
+  binding_period?: string | null
+  earliest_supplier_start_date?: string | null
+  cancellation_deadline?: string | null
+  cancellation_registered?: string | null
+  termination_fee?: string | null
+  contract_status?: string | null
   metering_method?: string | null
   reporting_frequency?: string | null
 }
@@ -83,7 +89,7 @@ export function extractManualFacilityFields(bodyText: string): ManualFacilityExt
   const annual = matchAfterLabel(text, ['årsenergi', 'arsenergi', 'årsförbrukning', 'annual[\\s_-]*consumption'])
   const currentSupplier = matchAfterLabel(text, ['befintligt elhandelsföretag', 'nuvarande leverantör', 'current[\\s_-]*supplier', 'elhandelsföretag'])
   const noticePeriod = matchAfterLabel(text, ['uppsägningstid', 'uppsagningstid', 'notice[\\s_-]*period'])
-  const contractEnd = matchAfterLabel(text, ['slutdatum', 'avtalsslut', 'contract[\\s_-]*end'])
+  const contractEnd = matchAfterLabel(text, ['avtalets slutdatum', 'slutdatum', 'avtalsslut', 'contract[\\s_-]*end'])
   const meteringMethod = matchAfterLabel(text, ['mätmetod', 'matmetod', 'metering[\\s_-]*method'])
   const reportingFrequency = matchAfterLabel(text, ['rapporteringsfrekvens', 'reporting[\\s_-]*frequency'])
 
@@ -96,6 +102,12 @@ export function extractManualFacilityFields(bodyText: string): ManualFacilityExt
     current_supplier: currentSupplier,
     notice_period: noticePeriod,
     current_contract_end_date: contractEnd,
+    binding_period: matchAfterLabel(text, ['bindningstid', 'binding[\\s_-]*period']),
+    earliest_supplier_start_date: matchAfterLabel(text, ['tidigaste (?:leveransstart|start(?:datum)?(?: hos ny leverantör)?)', 'kunden kan (?:tidigast )?starta(?: hos (?:en )?ny leverantör)?', 'earliest[\\s_-]*start']),
+    cancellation_deadline: matchAfterLabel(text, ['sista uppsägnings(?:datum|dag)', 'senaste uppsägningsdatum', 'avtalet måste (?:senast )?sägas upp', 'cancellation[\\s_-]*deadline']),
+    cancellation_registered: matchAfterLabel(text, ['uppsägning registrerad', 'registrerad uppsägning']),
+    termination_fee: matchAfterLabel(text, ['brytavgift', 'termination[\\s_-]*fee']),
+    contract_status: matchAfterLabel(text, ['avtalsstatus', 'contract[\\s_-]*status']),
     metering_method: meteringMethod,
     reporting_frequency: reportingFrequency,
   }

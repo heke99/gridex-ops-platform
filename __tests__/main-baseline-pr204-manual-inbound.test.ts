@@ -26,7 +26,7 @@ vi.mock('@/lib/customer-operations/customerProcessNextStepEngine', () => ({
 
 import { resolveManualInboundCorrelation } from '@/lib/inbound-mail/manualInboundCorrelation'
 import { ingestManualInboundEmail } from '@/lib/inbound-mail/manualInboundIngestion'
-import { applyManualFacilityResponse } from '@/lib/customer-operations/manualFacilityResponseParser'
+import { applyManualFacilityResponse, extractManualFacilityFields } from '@/lib/customer-operations/manualFacilityResponseParser'
 import { POST } from '@/app/api/webhooks/manual-inbound/route'
 import { completeFacilityLookup } from '@/lib/facility/facilityLookupWorkflow'
 
@@ -64,6 +64,7 @@ class Query implements PromiseLike<Result> {
   constructor(private table: string) {}
   select() { return this }
   eq(key: string, value: unknown) { this.filters.push(row => row[key] === value); return this }
+  is(column: string, value: unknown) { this.filters.push(row => (column.split(/->>?/).reduce<unknown>((cell, key) => cell && typeof cell === 'object' ? (cell as Row)[key] : undefined, row) ?? null) === value); return this }
   in(key: string, values: unknown[]) { this.filters.push(row => values.includes(row[key])); return this }
   ilike(key: string, pattern: string) { this.filters.push(row => ilike(row[key], pattern)); return this }
   or(expression: string) {
@@ -165,6 +166,19 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllEnvs())
 
 describe('manual inbound sender and tenant boundaries', () => {
+  it('keeps contract dates, notice, binding, cancellation and fees distinct in the saved extraction', () => {
+    const fields = extractManualFacilityFields(`Avtalsstatus: aktivt
+Avtalets slutdatum: 2027-02-28
+Bindningstid: 12 månader
+Uppsägningstid: 1 månad
+Tidigaste start hos ny leverantör: 2027-03-01 om uppsägning sker i tid
+Sista uppsägningsdatum: 2027-01-31
+Uppsägning registrerad: nej
+Brytavgift: enligt faktisk återstående avtalstid`)
+    expect(fields).toMatchObject({ contract_status: 'aktivt', current_contract_end_date: '2027-02-28', binding_period: '12 månader', notice_period: '1 månad',
+      earliest_supplier_start_date: '2027-03-01 om uppsägning sker i tid', cancellation_deadline: '2027-01-31', cancellation_registered: 'nej', termination_fee: 'enligt faktisk återstående avtalstid' })
+    expect(fields.facility_id).toBeNull()
+  })
   it('does not treat a copied case number and bare From recipient equality as sender credibility', async () => {
     const result = await resolveManualInboundCorrelation({ email: email(), caseReference: CASE, normalizedText: '', extracted: {} })
     expect(result).toMatchObject({ resolutionStatus: 'ignored', senderCredible: false })
