@@ -32,7 +32,8 @@ import { evaluateSupplierSwitchSchedule } from '@/lib/operations/supplierSwitchS
 import { sendEdielMessageViaSmtp } from '@/lib/ediel/transport'
 import { assertEdielSmtpReadiness } from '@/lib/ediel/mailReadiness'
 import { readAcceptedEdielTransportProjection } from '@/lib/ediel/transport/acceptedProjection'
-import { getEdielMessageById, listEdielMessageEvents } from '@/lib/ediel/db'
+import { getEdielMessageById, getEdielRouteProfileByCommunicationRouteId, listEdielMessageEvents } from '@/lib/ediel/db'
+import { getEdielRouteRuntimeByCommunicationRouteId } from '@/lib/ediel/config'
 import { archiveNetworkRegistrySource, readNetworkRegistrySourceArtifact, reviewNetworkRegistrySource } from '@/lib/ediel/production/networkRegistrySource'
 import { readContractRequestedMethodSource } from '@/lib/ediel/production/contractRequestedMethodSource'
 import type { SupplyObjectPartition } from '@/lib/ediel/flows/supplyMarketTransition'
@@ -435,7 +436,7 @@ function assertOwnReadingOracle(observation:Awaited<ReturnType<typeof readStored
     registerAccepted:arm==='declared_true'?1:0,registerUnavailable:arm==='declared_true'?0:1,registerRejected:0})
 }
 
-function configureOwnContrlReturn(f:Fixture) {
+function configureOwnContrlReturn(f:Fixture, positiveAperak=false) {
   // Four dedicated sources only: configure a distinct prospective technical return
   // route from the actual immutable Z03 UNB before public inbound reception.
   // This configured-universe read does not prove source/mailbox/actor custody.
@@ -457,7 +458,7 @@ function configureOwnContrlReturn(f:Fixture) {
       is_enabled,is_active,message_family,business_code,sender_ediel_id,receiver_ediel_id,sender_subaddress,sender_sub_address,
       receiver_subaddress,receiver_sub_address,application_reference,mailbox,smtp_host,smtp_port,transport_profile_id)
     VALUES(${literal(contrlProfileId)},${literal(f.companyId)},${literal(contrlRouteId)},'Synthetic own CONTRL return profile','test','edifact','edifact',
-      true,true,'CONTRL',NULL,${literal(originalEnvelope.sender)},${literal(originalEnvelope.receiver)},
+      true,true,${literal(positiveAperak?null:'CONTRL')},NULL,${literal(originalEnvelope.sender)},${literal(originalEnvelope.receiver)},
       ${literal(originalEnvelope.senderSubAddress)},${literal(originalEnvelope.senderSubAddress)},
       ${literal(originalEnvelope.receiverSubAddress)},${literal(originalEnvelope.receiverSubAddress)},
       ${literal(originalEnvelope.applicationReference)},${literal(from)},${literal(host)},${literal(port)},NULL);`)
@@ -1286,7 +1287,19 @@ describe.each(['L','LK'] as const)('ordinary supplier Z03%s native proposals',va
     expect(sql(`SELECT jsonb_build_object('point',(SELECT to_jsonb(p.estimated_annual_consumption_kwh) FROM public.metering_points p WHERE id=${literal(staged.pointId)} AND company_id=${literal(staged.companyId)}),'site',(SELECT to_jsonb(s.annual_consumption_kwh) FROM public.customer_sites s WHERE id=${literal(staged.siteId)} AND company_id=${literal(staged.companyId)}));`)).toEqual({point:null,site:null})
     const started=Date.now(),f=await originate(staged),finished=Date.now()
 
-    const {originalEnvelope,contrlRouteId,contrlProfileId}=configureOwnContrlReturn(f)
+    // A requested final APERAK needs its own eligible return configuration.
+    // One family-open profile keeps the actual transport lookup unambiguous;
+    // technical-only/held fixtures retain their unchanged CONTRL-only default.
+    const {originalEnvelope,contrlRouteId,contrlProfileId}=configureOwnContrlReturn(f,true)
+    for(const family of ['CONTRL','APERAK'] as const) {
+      expect(await getEdielRouteRuntimeByCommunicationRouteId(contrlRouteId,{companyId:f.companyId,
+        ackProfile:{family,code:family,environment:'test',applicationReference:originalEnvelope.applicationReference!}}))
+        .toMatchObject({route_profile_id:contrlProfileId,company_id:f.companyId,communication_route_id:contrlRouteId,
+          environment:'test',application_reference:originalEnvelope.applicationReference,message_family:null,business_code:null})
+    }
+    expect(await getEdielRouteProfileByCommunicationRouteId(contrlRouteId,{companyId:f.companyId}))
+      .toMatchObject({id:contrlProfileId,company_id:f.companyId,communication_route_id:contrlRouteId,
+        environment:'test',application_reference:originalEnvelope.applicationReference,message_family:null,business_code:null})
     const original=f.original,wire=tokenizeEdifact(original.raw_payload!),history=originalHistory(f)
     expect(wire.segments.filter(s=>s.tag==='NAD'&&segmentComposite(s,1,wire.una)[0]==='IV')).toEqual([])
     expect(wire.segments.filter(s=>s.tag==='QTY'&&segmentComposite(s,1,wire.una)[0]==='31')).toEqual([])
