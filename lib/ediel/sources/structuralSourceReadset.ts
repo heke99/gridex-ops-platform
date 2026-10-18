@@ -4,7 +4,6 @@ import {readStructuralSourceWire,readStructuralMeasurementProjection} from './st
 import {isReviewedStructuralBusiness, type ReviewedStructuralBusiness} from './reviewedStructuralSource'
 import {projectProdatRegisterValidation} from '@/lib/ediel/prodat/prodatRegisterValidationEvidence'
 import {tokenizeEdifact,segmentComposite} from '@/lib/ediel/core/edifactTokenizer'
-import {normalizeEdifactMessageCode} from '@/lib/inbound-mail/edielEmailParser'
 import {readInboundAckSourceCorrelation} from '@/lib/ediel/ack/sourceCorrelation'
 import {resolveCanonicalEdielPolicy} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import {validateCanonicalAckGuide} from '@/lib/ediel/rulebook/ackGuidePolicy'
@@ -45,7 +44,9 @@ function receivedPhysicalAck(scope:ReceivedSourceScope,source:RawSource):boolean
       associationAssignedCode:family==='APERAK'?segmentComposite(unh,2,tokens.una)[4]??null:null})
     if(validateCanonicalAckGuide({policy,rawPayload:raw,rawSegments:tokens.segments.map(segment=>segment.raw),una:tokens.una}).length)return false
   }catch{return false}
-  return source.messageCode===normalizeEdifactMessageCode(family,bgm?segmentComposite(bgm,1,ack.una)[0]:null)
+  // Same rule as intake's normalizeEdifactMessageCode for these two families:
+  // the trimmed BGM code when present, otherwise the family itself.
+  return source.messageCode===((bgm?segmentComposite(bgm,1,ack.una)[0]?.trim():'')||family)
 }
 
 /** Lossless follow-up projection of a fully checked service snapshot. This pure
