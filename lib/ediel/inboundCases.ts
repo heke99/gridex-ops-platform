@@ -147,6 +147,11 @@ function buildInternalNotes(parsed: ParsedInboundProdat): string {
   return rows.join('\n')
 }
 
+function prodatBusinessFieldIsForbidden(messageCode: string, subtype: unknown, fieldNumber: CanonicalProdatBusinessProjectionField): boolean {
+  return canonicalProdatBusinessProjectionFieldIsForbidden(messageCode, fieldNumber)
+    || resolveProdatSourceSubtypeRequirement({messageCode, subtype, fieldNumber}) === 'forbidden'
+}
+
 export function parseInboundProdatBusinessData(message: EdielMessageRow, object?: {meteringPointId:string;identityAgency:string}): ParsedInboundProdat {
   const payload = message.parsed_payload ?? {}
   const source = parseProdatMessage(message)
@@ -174,19 +179,18 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow, object?
   const incomingWire = hasWireSource && message.direction === 'inbound'
   const sourceSubtype = prodatEndUserWireSubtype(messageCode, sourceSegments, una)
   const ignoredCanonicalField = (fieldNumber: CanonicalProdatBusinessProjectionField): boolean => incomingWire
-    && canonicalProdatBusinessProjectionFieldIsForbidden(messageCode, fieldNumber)
+    && prodatBusinessFieldIsForbidden(messageCode, sourceSubtype, fieldNumber)
   const ignoredUd = ignoredCanonicalField('END_USER_GROUP') || (incomingWire
     && isProdatFieldInInapplicableParent({ messageCode,
       subtype: sourceSubtype, fieldNumber: 'END_USER_GROUP' }))
   const ignoredIt = ignoredCanonicalField('INSTALLATION_GROUP') || (incomingWire
     && isProdatFieldInInapplicableParent({ messageCode, subtype: sourceSubtype, fieldNumber: 'INSTALLATION_GROUP' }))
-  const ignoredReference = ignoredCanonicalField('319') || (incomingWire
-    && resolveProdatSourceSubtypeRequirement({ messageCode, subtype: sourceSubtype, fieldNumber: '319' }) === 'forbidden')
+  const ignoredReference = ignoredCanonicalField('319')
   const ignoredBirthDate = ignoredCanonicalField('249')
   const ignoredBusinessScalar = (fieldNumber: '261' | '306' | '212'): boolean => ignoredCanonicalField(fieldNumber)
   const ud = readProdatParty('UD', ignoredUd ? [] : sourceSegments, una)
   const it = readProdatParty('IT', ignoredIt ? [] : sourceSegments, una)
-  const balanceResponsible = readProdatParty('Z02', sourceSegments, una)
+  const balanceResponsible = readProdatParty('Z02', ignoredCanonicalField('262') ? [] : sourceSegments, una)
   const partyValue = (value: string | null, ...fallbackKeys: string[]): string | null => hasWireSource
     ? value : valueFromParsed(payload, ...fallbackKeys)
   const meterPointId = hasWireSource ? selectedLine?.meteringPointId ?? null
@@ -196,15 +200,15 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow, object?
   const transactionType =
     characteristic('223', 'reasonForTransaction', 'reason_for_transaction', 'transactionType')
   const meteringMethod =
-    characteristic('217', 'meteringMethod', 'metering_method')
+    ignoredCanonicalField('217') ? null : characteristic('217', 'meteringMethod', 'metering_method')
   const productCode =
-    characteristic('242', 'productCode', 'product_code')
+    ignoredCanonicalField('242') ? null : characteristic('242', 'productCode', 'product_code')
   const settlementMethod =
-    characteristic('254', 'settlementMethod', 'settlement_method')
+    ignoredCanonicalField('254') ? null : characteristic('254', 'settlementMethod', 'settlement_method')
   const installationStatus =
     ignoredBusinessScalar('306') ? null : characteristic('306', 'installationStatus', 'installation_status')
   const annualEnergy =
-    numberOrNull(hasWireSource ? selectedLine?.annualConsumption : valueFromParsed(payload, 'annualEnergy', 'estimatedAnnualEnergy', 'annual_consumption_kwh'))
+    ignoredCanonicalField('213') ? null : numberOrNull(hasWireSource ? selectedLine?.annualConsumption : valueFromParsed(payload, 'annualEnergy', 'estimatedAnnualEnergy', 'annual_consumption_kwh'))
   const referenceToMeteringPoint =
     ignoredReference ? null : reference('319', 'referenceToMeteringPoint', 'reference_to_metering_point')
 
@@ -243,9 +247,9 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow, object?
     postalCode: partyValue(it.postalCode, 'sitePostalCode', 'facilityPostalCode'),
     city: partyValue(it.city, 'siteCity', 'facilityCity'),
     country: partyValue(it.country, 'siteCountry', 'facilityCountry'),
-    gridAreaCode: reference('260', 'gridAreaCode', 'networkAreaId'),
+    gridAreaCode: ignoredCanonicalField('260') ? null : reference('260', 'gridAreaCode', 'networkAreaId'),
     annualEnergyKwh: annualEnergy,
-    validityStartDate: hasWireSource ? prodatDateValue('216', sourceSegments, una) : valueFromParsed(payload, 'validityStartDate'),
+    validityStartDate: ignoredCanonicalField('216') ? null : hasWireSource ? prodatDateValue('216', sourceSegments, una) : valueFromParsed(payload, 'validityStartDate'),
     contractStartDate: contractStart,
   }
 
@@ -253,18 +257,18 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow, object?
     meterPointId,
     identityAgency: selectedLine?.identityAgency ?? null,
     registers: objects[0]?.registers ?? [],
-    observationLength: hasWireSource ? prodatDateValue('508', sourceSegments, una) : valueFromParsed(payload, 'observationLength'),
-    observationLengthFormat: hasWireSource ? prodatDateState('508', sourceSegments, una).format : valueFromParsed(payload, 'observationLengthFormat'),
+    observationLength: ignoredCanonicalField('508') ? null : hasWireSource ? prodatDateValue('508', sourceSegments, una) : valueFromParsed(payload, 'observationLength'),
+    observationLengthFormat: ignoredCanonicalField('508') ? null : hasWireSource ? prodatDateState('508', sourceSegments, una).format : valueFromParsed(payload, 'observationLengthFormat'),
     firstMeterReadingDate: ignoredBusinessScalar('212') ? null : hasWireSource ? prodatDateValue('212', sourceSegments, una) : valueFromParsed(payload, 'firstMeterReadingDate'),
     referenceToMeteringPoint,
     meteringMethod,
     meteringMethodLabel: edielCodeLabel('metering_method', meteringMethod),
-    meterNumber: reference('224', 'meterNumber'),
-    meterConstant: numberOrNull(hasWireSource ? prodatRegisterFieldValue('214',sourceSegments,una) : valueFromParsed(payload,'meterConstant')),
-    meterDigits: numberOrNull(hasWireSource ? prodatRegisterFieldValue('218',sourceSegments,una) : valueFromParsed(payload,'meterDigits')),
-    meterInterval: hasWireSource ? prodatRegisterFieldValue('259',sourceSegments,una) : valueFromParsed(payload,'meterInterval'),
+    meterNumber: ignoredCanonicalField('224') ? null : reference('224', 'meterNumber'),
+    meterConstant: ignoredCanonicalField('214') ? null : numberOrNull(hasWireSource ? prodatRegisterFieldValue('214',sourceSegments,una) : valueFromParsed(payload,'meterConstant')),
+    meterDigits: ignoredCanonicalField('218') ? null : numberOrNull(hasWireSource ? prodatRegisterFieldValue('218',sourceSegments,una) : valueFromParsed(payload,'meterDigits')),
+    meterInterval: ignoredCanonicalField('259') ? null : hasWireSource ? prodatRegisterFieldValue('259',sourceSegments,una) : valueFromParsed(payload,'meterInterval'),
     resolution: numberOrNull(valueFromParsed(payload, 'resolution')),
-    readingFrequency: characteristic('222', 'readingFrequency'),
+    readingFrequency: ignoredCanonicalField('222') ? null : characteristic('222', 'readingFrequency'),
     measurementType: messageCode === 'Z04' && productCode === 'L641Q' ? 'production' : 'consumption',
   }
 
@@ -272,7 +276,7 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow, object?
     startDate: contractStart,
     agreementReference: ignoredBusinessScalar('261') ? null : reference('261', 'agreementReference'),
     balanceResponsibleId: partyValue(balanceResponsible.id, 'balanceResponsibleId'),
-    gridAreaCode: reference('260', 'gridAreaCode', 'networkAreaId'),
+    gridAreaCode: ignoredCanonicalField('260') ? null : reference('260', 'gridAreaCode', 'networkAreaId'),
   }
 
   const production = {
@@ -767,6 +771,42 @@ function inboundCustomerCommand(params: {
 
 }
 
+/** Pending cases can predate the incoming projection fix. Hold only obsolete
+ * ignored-field slots; retain manual choices in applicable fields and do not
+ * rewrite the review row while deciding whether its command is still safe. */
+function assertCurrentIgnoredBusinessProjection(inboundCase: EdielInboundCaseRow, source: EdielMessageRow | null): void {
+  if (source?.message_family !== 'PRODAT' || source.direction !== 'inbound' || !source.raw_payload?.trim()) return
+  if (source.id !== inboundCase.ediel_message_id || source.company_id !== inboundCase.company_id) throw new Error('TENANT_CONTEXT_MISMATCH')
+  const facts = parseEdifactMessageFacts(source.raw_payload)
+  const code = facts.messageCode ?? ''
+  const firstLine = parseProdatMessage(source).lineItems[0]
+  const subtype = prodatEndUserWireSubtype(code, facts.lineItems[firstLine?.sourceOrder ?? 0]?.effectiveSegments ?? [], parseUna(source.raw_payload))
+  const current = parseInboundProdatBusinessData(source)
+  const slots = [
+    ['213', 'parsed_site', 'site', 'annualEnergyKwh'],
+    ['214', 'parsed_metering_point', 'meteringPoint', 'meterConstant'],
+    ['216', 'parsed_site', 'site', 'validityStartDate'],
+    ['217', 'parsed_metering_point', 'meteringPoint', 'meteringMethod'],
+    ['218', 'parsed_metering_point', 'meteringPoint', 'meterDigits'],
+    ['222', 'parsed_metering_point', 'meteringPoint', 'readingFrequency'],
+    ['224', 'parsed_metering_point', 'meteringPoint', 'meterNumber'],
+    ['242', 'parsed_production', 'production', 'productCode'],
+    ['254', 'parsed_production', 'production', 'settlementMethod'],
+    ['259', 'parsed_metering_point', 'meteringPoint', 'meterInterval'],
+    ['260', 'parsed_site', 'site', 'gridAreaCode'],
+    ['260', 'parsed_contract', 'contract', 'gridAreaCode'],
+    ['262', 'parsed_contract', 'contract', 'balanceResponsibleId'],
+    ['508', 'parsed_metering_point', 'meteringPoint', 'observationLength'],
+    ['508', 'parsed_metering_point', 'meteringPoint', 'observationLengthFormat'],
+  ] as const
+  for (const [field, cachedSection, currentSection, key] of slots) {
+    if (prodatBusinessFieldIsForbidden(code, subtype, field)
+      && !isDeepStrictEqual(inboundCase[cachedSection][key] ?? null, current[currentSection][key] ?? null)) {
+      throw new Error(`PRODAT_INBOUND_CASE_PROJECTION_OBSOLETE:${field}`)
+    }
+  }
+}
+
 export async function approveEdielInboundCase(params: {
   companyId?: string
   objectDecisions?: readonly EdielInboundObjectDecision[]
@@ -840,6 +880,8 @@ export async function approveEdielInboundCase(params: {
   if (!inboundCase.company_id) {
     throw new Error('Inbound-caset saknar company_id och kan inte appliceras säkert i SaaS-läge.')
   }
+
+  assertCurrentIgnoredBusinessProjection(inboundCase, sourceMessage)
 
   try {
     const mode = params.mode ?? (inboundCase.customer_id ? 'update_existing_customer' : 'create_new_customer')

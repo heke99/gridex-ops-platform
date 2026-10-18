@@ -99,8 +99,8 @@ const canonicalFacadePath = 'lib/ediel/rulebook/canonicalEdielFacade.ts'
 const canonicalFacadeRevision = 'ca892c14643181656e842bf4d8ffa8b6d829dec2'
 const expectedBaseFacade: GitInput = {mode: '100644', git_blob_oid: 'a170889bc7a9463e757302989cb596e30f527c6f',
   sha256: 'd395ebef617da8181879605aaf486cae889950316af7e1967d83525ece6a2d8f'}
-const expectedCurrentFacade: GitInput = {mode: '100644', git_blob_oid: '6012241de1210e35b50b55fa646e92930b8f330c',
-  sha256: 'f979775551293c9221d3cecff8fb51ae8b17f02dff99ee4222ae8dff0ed32d86'}
+const expectedCurrentFacade: GitInput = {mode: '100644', git_blob_oid: '541351571064dc40e4df379dfcadb642e0b6d46b',
+  sha256: '8b635d22a53729d8321fe6f1677d41137dc300736e51a7d85f32c2f87390d053'}
 const canonicalFacadeBasis = basis.canonical_facade_basis
 if (!canonicalFacadeBasis || Object.keys(canonicalFacadeBasis).length !== 6 || canonicalFacadeBasis.source_revision !== canonicalFacadeRevision ||
     canonicalFacadeBasis.path !== canonicalFacadePath || canonicalFacadeBasis.historical_alias !== 'BASE56' || canonicalFacadeBasis.current_alias !== 'ROOT' ||
