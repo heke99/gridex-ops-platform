@@ -707,7 +707,6 @@ create or replace function public.gridex_manual_supplier_terms_verified_v1(
         where held.id<>r.id and held.company_id=r.company_id and held.customer_id=r.customer_id and held.customer_site_id=r.customer_site_id
           and held.request_type='current_supplier_contract_information_request'
           and held.metadata->>'supplier_id'=s.current_supplier_id::text
-          and held.status not in ('cancelled','closed','completed','resolved')
           and held.metadata#>'{counterparty_reply,requires_review}'='true'::jsonb
           and (held_source.received_at is null or held_source.received_at>=i.received_at))
       and r.parsed_payload->>'customerInfoRequestId'=r.metadata->>'customer_info_request_id'
@@ -1036,6 +1035,7 @@ declare
   source_verified boolean;
   floor_date date;
   original_start date;
+  original_reason text;
 begin
   if new.entered_at is null or (tg_op='UPDATE' and old.entered_at is not null) then return new; end if;
   select * into m from public.ediel_messages where id=new.message_id and company_id=new.company_id and environment=new.environment;
@@ -1052,16 +1052,26 @@ begin
           or coalesce(candidate.current_supplier_termination_fee,0)>0 or coalesce(candidate.metadata,'{}'::jsonb) ? 'manual_supplier_terms'
           or exists(select 1 from public.grid_owner_information_requests r where r.company_id=candidate.company_id and r.customer_id=candidate.customer_id
             and r.customer_site_id=candidate.id and r.request_type='current_supplier_contract_information_request'
-            and r.metadata->>'supplier_id'=candidate.current_supplier_id::text and r.status not in ('cancelled','closed'))))
+            and r.metadata->>'supplier_id'=candidate.current_supplier_id::text and (r.status not in ('cancelled','closed') or r.metadata#>'{counterparty_reply,requires_review}'='true'::jsonb))))
       then raise exception 'manual_supplier_transport_not_ready' using errcode='23514'; end if;
     return new; -- Unrelated legacy/native source admission remains its owner's job.
   end if;
-  if ss.outbound_z03_message_id is distinct from m.id or ss.customer_id is distinct from m.customer_id
+  if ss.customer_id is distinct from m.customer_id
     or coalesce(ss.customer_site_id,ss.site_id) is distinct from m.site_id
     or (ss.customer_site_id is not null and ss.customer_site_id<>m.site_id) or (ss.site_id is not null and ss.site_id<>m.site_id)
     then raise exception 'manual_supplier_transport_not_ready' using errcode='23514'; end if;
-  if ss.request_type is distinct from 'switch' or ss.status='cancellation_requested'
-    or coalesce(ss.prodat_variant,'L') in ('LK','C') or coalesce(ss.prodat_reason,'Z22')<>'Z22' then return new; end if;
+  -- Native-owned immutable originals select the lane. Mutable switch fields
+  -- cannot turn a sealed normal Z22 message into a move or cancellation.
+  select o.original_object->>'reason' into original_reason from gridex_received_sources.switch_originals o
+    where o.message_id=m.id and o.company_id=m.company_id and o.switch_id=ss.id;
+  if original_reason is null and exists(select 1 from gridex_switch_cancellations.origins cancellation
+    where cancellation.message_id=m.id and cancellation.company_id=m.company_id and cancellation.switch_id=ss.id
+      and cancellation.original_message_id=ss.outbound_z03_message_id and cancellation.payload_hash=m.immutable_payload_hash
+      and m.immutable_rendered_at is not null and m.immutable_payload_hash=encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex'))
+    then return new; end if; -- Exact separately bound Z24; its native owner still admits entry.
+  if ss.outbound_z03_message_id is distinct from m.id
+    then raise exception 'manual_supplier_transport_not_ready' using errcode='23514'; end if;
+  if original_reason='Z23' then return new; end if;
   resolved_site:=coalesce(ss.customer_site_id,ss.site_id);
   -- Positive application and negative holds both own this row FOR UPDATE.
   -- Take site before switch, matching the new mail commands, and retain it
@@ -1074,15 +1084,13 @@ begin
     or (ss.customer_site_id is not null and ss.customer_site_id<>s.id) or (ss.site_id is not null and ss.site_id<>s.id)
     or m.switch_request_id is distinct from ss.id or m.customer_id is distinct from s.customer_id or m.site_id is distinct from s.id
     then raise exception 'manual_supplier_transport_not_ready' using errcode='23514'; end if;
-  if ss.request_type is distinct from 'switch' or ss.status='cancellation_requested'
-    or coalesce(ss.prodat_variant,'L') in ('LK','C') or coalesce(ss.prodat_reason,'Z22')<>'Z22' then return new; end if;
   if lower(coalesce(s.current_supplier_response_status,'')) in ('waiting_response','manual_review','binding_period','termination_fee','blocked')
     or coalesce(s.current_supplier_termination_fee,0)>0
     then raise exception 'manual_supplier_transport_not_ready' using errcode='23514'; end if;
   select exists(select 1 from public.grid_owner_information_requests r
     where r.company_id=s.company_id and r.customer_id=s.customer_id and r.customer_site_id=s.id
       and r.request_type='current_supplier_contract_information_request' and r.metadata->>'supplier_id'=s.current_supplier_id::text
-      and r.status not in ('cancelled','closed')) into manual_workflow;
+      and (r.status not in ('cancelled','closed') or r.metadata#>'{counterparty_reply,requires_review}'='true'::jsonb)) into manual_workflow;
   snapshot:=s.metadata->'manual_supplier_terms';
   if not manual_workflow and not (coalesce(s.metadata,'{}'::jsonb) ? 'manual_supplier_terms')
     and not (coalesce(ss.metadata,'{}'::jsonb) ? 'manual_supplier_terms') then return new; end if;
@@ -1113,8 +1121,7 @@ create or replace function public.gridex_lock_manual_commercial_hold_site_v1()
 returns trigger language plpgsql security invoker set search_path=public as $$
 begin
   if new.request_type is distinct from 'current_supplier_contract_information_request'
-    or new.metadata#>'{counterparty_reply,requires_review}' is distinct from 'true'::jsonb
-    or new.status in ('cancelled','closed','completed','resolved') then return new; end if;
+    or new.metadata#>'{counterparty_reply,requires_review}' is distinct from 'true'::jsonb then return new; end if;
   perform s.id from public.customer_sites s
     where s.company_id=new.company_id and s.customer_id=new.customer_id and s.id=new.customer_site_id
       and s.current_supplier_id::text=new.metadata->>'supplier_id' for update;

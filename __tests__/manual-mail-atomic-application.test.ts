@@ -41,11 +41,13 @@ beforeAll(async () => {
     create table public.manual_inbound_messages(id uuid primary key,company_id uuid,request_id uuid,customer_id uuid,customer_site_id uuid,resolution_status text,extracted_payload jsonb,received_at timestamptz,processing_state text);
     create table public.supplier_switch_requests(id uuid primary key,company_id uuid,customer_id uuid,site_id uuid,customer_site_id uuid,status text,requested_start_date date,metadata jsonb,submitted_at timestamptz,completed_at timestamptz,paused_at timestamptz,lifecycle_blocked boolean,outbound_z03_message_id uuid,updated_at timestamptz,request_type text);
     alter table public.supplier_switch_requests add column prodat_variant text,add column prodat_reason text;
-    create table public.ediel_messages(id uuid primary key,company_id uuid,environment text,direction text,message_family text,message_code text,customer_id uuid,site_id uuid,switch_request_id uuid);
+    create table public.ediel_messages(id uuid primary key,company_id uuid,environment text,direction text,message_family text,message_code text,customer_id uuid,site_id uuid,switch_request_id uuid,raw_payload text,immutable_payload_hash text,immutable_rendered_at timestamptz);
     create schema gridex_ediel_transport;
     create table gridex_ediel_transport.attempts(id uuid primary key,message_id uuid,company_id uuid,environment text,actor_user_id uuid,owner jsonb,binding jsonb,created_at timestamptz default now(),entered_at timestamptz,observed_at timestamptz,classification text,provider_result jsonb);
     create schema gridex_received_sources;
     create table gridex_received_sources.switch_originals(message_id uuid primary key,company_id uuid,switch_id uuid,original_object jsonb);
+    create schema gridex_switch_cancellations;
+    create table gridex_switch_cancellations.origins(message_id uuid primary key,company_id uuid,switch_id uuid,original_message_id uuid,payload_hash text);
     create table public.powers_of_attorney(id uuid primary key,company_id uuid,customer_id uuid,site_id uuid,customer_site_id uuid,document_id uuid,status text,revoked_at timestamptz,valid_from date,valid_to date,valid_until date,expires_at timestamptz,signed_at timestamptz,accepted_at timestamptz,legal_text_version_id uuid,evidence_payload jsonb,fullmakt_snapshot jsonb,signed_scope_snapshot jsonb,scope_summary jsonb,scope text,contract_id uuid,customer_contract_id uuid,metering_point_id uuid);
     create table public.customer_authorization_documents(id uuid primary key,company_id uuid,customer_id uuid,site_id uuid,power_of_attorney_id uuid,status text,document_type text,customer_contract_id uuid,metering_point_id uuid);
     create table public.authorization_scopes(id uuid primary key,company_id uuid,customer_id uuid,authorization_document_id uuid,status text,revoked_at timestamptz,valid_from date,valid_to date,covers_current_supplier_contract boolean);
@@ -86,7 +88,7 @@ beforeAll(async () => {
 afterAll(async () => { await db.close() })
 beforeEach(async () => {
   await db.exec(`
-    truncate public.companies,public.customers,public.customer_sites,public.grid_owner_information_requests,public.manual_inbound_messages,public.supplier_switch_requests,public.customer_info_requests,public.electricity_suppliers,public.platform_market_actors,public.platform_actor_contacts,public.grid_owners,public.manual_email_outbox,public.platform_actor_roles,public.customer_operation_events,public.metering_points,public.powers_of_attorney,public.customer_authorization_documents,public.authorization_scopes,public.customer_contracts,public.customer_site_resolution,public.ediel_messages,gridex_ediel_transport.attempts,gridex_received_sources.switch_originals;
+    truncate public.companies,public.customers,public.customer_sites,public.grid_owner_information_requests,public.manual_inbound_messages,public.supplier_switch_requests,public.customer_info_requests,public.electricity_suppliers,public.platform_market_actors,public.platform_actor_contacts,public.grid_owners,public.manual_email_outbox,public.platform_actor_roles,public.customer_operation_events,public.metering_points,public.powers_of_attorney,public.customer_authorization_documents,public.authorization_scopes,public.customer_contracts,public.customer_site_resolution,public.ediel_messages,gridex_ediel_transport.attempts,gridex_received_sources.switch_originals,gridex_switch_cancellations.origins;
     insert into public.companies values ('${CO}',true,'active',null,'active'),('${OTHER}',true,'active',null,'active');
     insert into public.customers values ('${CUSTOMER}','${CO}','active',null,null,null,null,'{}',false,'199001010015',null);
     insert into public.customer_sites(id,company_id,customer_id,is_active,status,protected_identity,metadata,grid_owner_id) values ('${SITE}','${CO}','${CUSTOMER}',true,'active',false,'{}','${OTHER}');
@@ -376,7 +378,7 @@ describe('purpose-bound outbound email guard', () => {
     "update public.electricity_suppliers set is_active=false",
     "update public.platform_market_actors set match_status='unverified'",
     "update public.platform_market_actors set status='inactive'",
-    "update public.platform_actor_roles set is_active=false", 
+    "update public.platform_actor_roles set is_active=false",
     `update public.electricity_suppliers set company_id='${OTHER}'`,
     `update public.customer_sites set current_supplier_id='${OTHER}'`,
     `update public.customer_info_requests set company_id='${OTHER}'`,
@@ -449,9 +451,14 @@ describe('complete supplier terms snapshot proof', () => {
     await siblingHold({ receipt: '2026-10-18T11:00:00Z' })
     expect(await verified()).toBe(true)
   })
+  it.each(['completed','cancelled','closed','resolved'])('keeps a newer unresolved sibling hold despite a status-only %s edit', async status => {
+    await apply()
+    await siblingHold({ status })
+    expect(await verified()).toBe(false)
+  })
   it.each([
     { company: OTHER }, { customer: OTHER }, { site: OTHER }, { supplier: OTHER }, { requestType: 'facility_lookup' },
-    { status: 'cancelled' }, { status: 'closed' }, { status: 'completed' }, { reviewed: true },
+    { status: 'cancelled', reviewed: true }, { status: 'closed', reviewed: true }, { status: 'completed', reviewed: true }, { reviewed: true },
   ])('does not apply an irrelevant or resolved sibling hold (%j)', async options => {
     await apply()
     await siblingHold(options)
@@ -504,7 +511,10 @@ describe('open commercial counterparty updates share the transport serialization
     await expect(openHoldLock({}, 'test_hold_writer')).rejects.toThrow(/permission denied.*customer_sites/)
     expect(await snapshot()).toEqual(before)
   })
-  it.each([{ requestType: 'facility_lookup' }, { status: 'cancelled' }, { reviewed: true }])('does not require that extra site lock for an irrelevant or resolved hold (%j)', async patch => {
+  it.each(['completed','cancelled','closed','resolved'])('also serializes an unresolved flag despite terminal status %s', async status => {
+    await expect(openHoldLock({ status }, 'test_hold_writer')).rejects.toThrow(/permission denied.*customer_sites/)
+  })
+  it.each([{ requestType: 'facility_lookup' }, { status: 'cancelled', reviewed: true }, { reviewed: true }])('does not require that extra site lock for an irrelevant or resolved hold (%j)', async patch => {
     await expect(openHoldLock(patch, 'test_hold_writer')).resolves.toBeUndefined()
   })
 })
@@ -823,7 +833,7 @@ describe('explicit customer identity numbers in commercial replies', () => {
 describe('manual supplier facts at first physical transport entry', () => {
   async function prepared(positive = true, originalStart = '202704010000+0200') {
     if (positive) expect(await apply()).toMatchObject({ ok: true, complete: true })
-    await db.exec(`update public.supplier_switch_requests set status='prepared',outbound_z03_message_id='${OTHER}';insert into public.ediel_messages values ('${OTHER}','${CO}','production','outbound','PRODAT','Z03','${CUSTOMER}','${SITE}','${SWITCH}');insert into gridex_received_sources.switch_originals values ('${OTHER}','${CO}','${SWITCH}','{"reason":"Z22","start":"${originalStart}"}');insert into gridex_ediel_transport.attempts(id,message_id,company_id,environment,actor_user_id,owner,binding) values ('${ACTOR}','${OTHER}','${CO}','production','${CONTACT}','{"kind":"direct"}','{}')`)
+    await db.exec(`update public.supplier_switch_requests set status='prepared',outbound_z03_message_id='${OTHER}';insert into public.ediel_messages values ('${OTHER}','${CO}','production','outbound','PRODAT','Z03','${CUSTOMER}','${SITE}','${SWITCH}',null,null,null);insert into gridex_received_sources.switch_originals values ('${OTHER}','${CO}','${SWITCH}','{"reason":"Z22","start":"${originalStart}"}');insert into gridex_ediel_transport.attempts(id,message_id,company_id,environment,actor_user_id,owner,binding) values ('${ACTOR}','${OTHER}','${CO}','production','${CONTACT}','{"kind":"direct"}','{}')`)
   }
   async function enter() {
     return db.transaction(async tx => {
@@ -902,6 +912,16 @@ describe('manual supplier facts at first physical transport entry', () => {
     await siblingHold()
     await denied()
   })
+  it('denies a newer unresolved sibling hold whose mutable status was changed to completed', async () => {
+    await prepared()
+    await siblingHold({ status: 'completed' })
+    await denied()
+  })
+  it('does not treat a cancelled initial inquiry with an unresolved hold and no snapshot as legacy clear', async () => {
+    await prepared(false)
+    await db.exec("update public.grid_owner_information_requests set status='cancelled',metadata=jsonb_set(metadata,'{counterparty_reply}','{\"requires_review\":true}')")
+    await denied()
+  })
   it('denies a bound original whose date predates the verified floor even when the projected request date is correct', async () => {
     await prepared(true, '202703010000+0100')
     await denied('manual_supplier_transport_start_before_floor')
@@ -923,9 +943,22 @@ describe('manual supplier facts at first physical transport entry', () => {
   })
   it.each([
     "request_type='move_in'", "request_type='move_out_takeover'", "prodat_variant='LK'", "prodat_variant='C'", "prodat_reason='Z24'", "status='cancellation_requested'",
-  ])('preserves a separate move/cancellation lane (%s)', async patch => {
+  ])('does not exempt an immutable normal Z22 original through mutable switch fields (%s)', async patch => {
     await prepared(false)
     await db.exec(`update public.supplier_switch_requests set ${patch};update public.customer_sites set current_supplier_response_status='manual_review'`)
+    await denied()
+  })
+  it('preserves an exact native-owned Z23 move original', async () => {
+    await prepared(false)
+    await db.exec("update gridex_received_sources.switch_originals set original_object=jsonb_set(original_object,'{reason}','\"Z23\"');update public.supplier_switch_requests set request_type='move_in',prodat_variant='LK',prodat_reason='Z23';update public.customer_sites set current_supplier_response_status='manual_review'")
+    await enter()
+    expect((await attempt()).entered_at).toBeInstanceOf(Date)
+  })
+  it('preserves a separately native-owned sealed cancellation without a normal switch-original row', async () => {
+    await prepared(false)
+    // The native cancellation owner binds a separate message. The switch keeps
+    // its original outbound reference; its private origin records that parent.
+    await db.exec(`insert into public.ediel_messages select '${ACTOR}',company_id,environment,direction,message_family,message_code,customer_id,site_id,switch_request_id,'native-owned-Z24',encode(sha256(convert_to('native-owned-Z24','UTF8')),'hex'),now() from public.ediel_messages where id='${OTHER}';insert into gridex_switch_cancellations.origins select id,company_id,switch_request_id,'${OTHER}',immutable_payload_hash from public.ediel_messages where id='${ACTOR}';update gridex_ediel_transport.attempts set message_id='${ACTOR}';update public.supplier_switch_requests set status='cancellation_requested';update public.customer_sites set current_supplier_response_status='manual_review'`)
     await enter()
     expect((await attempt()).entered_at).toBeInstanceOf(Date)
   })
