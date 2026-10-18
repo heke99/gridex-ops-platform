@@ -2,9 +2,9 @@
   "id": "AT-Z03C-SUPPLIER",
   "scope": "Frozen single supplier cancellation-origination contract; proof package for code approval review, not delivered main merge, market activation or external counterparty acceptance",
   "prepared_at": "2026-10-18T09:13:35.502240+00:00",
-  "owner": "PENDING_ATOMIC_CLAIM_RECORDED_ON_766",
-  "packet": "PENDING",
-  "pr": "PENDING",
+  "owner": "huvudagent 4 (claude-hq4); source receipts 5d90ac92687328776a2a16d322fa1d50fd92e808 + extension cb9745b18cd1bf9944544e03f8aa8ca0e835ad08",
+  "packet": "6217ad0e-7dda-44b0-b269-ed9fc37eb4e0",
+  "pr": "https://github.com/heke99/gridex-ops-platform/pull/820",
   "frozen_acceptance": {
     "id": "AT-Z03C-SUPPLIER",
     "name": "Meddelandefall Z03C",
@@ -132,6 +132,36 @@
         "actual native supplier cancellation chains > uses actual prospective LK public input at its zero-day cancellation boundary"
       ],
       "other_cases_excluded_from_z03c_credit": 30
+    },
+    {
+      "producer": ".github/workflows/ediel-cancellation-public-acceptance-native.yml",
+      "run": 39122073661,
+      "attempt": 1,
+      "event": "pull_request",
+      "head_sha": "d123c00221a62f816a151277095f2ac4ebb0e074",
+      "head_tree": "a9ee1ef947acfa0a85f7af8d26bf13a93842d162",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "id": 117659525125,
+          "name": "cancellation-public-acceptance-native",
+          "conclusion": "success"
+        }
+      ],
+      "artifacts": [
+        {
+          "id": 12134199287,
+          "name": "ediel-cancellation-public-acceptance-native-39122073661",
+          "sha256": "3c8f081e1c7a3184931558eba2cf996514860b214c4218f487cfdf1352c7b605",
+          "committed_as": "quality/audits/ediel-masterplan-v2/z03c-supplier/native-cancellation.zip"
+        }
+      ],
+      "junit": {
+        "tests": 33,
+        "failures": 0,
+        "errors": 0
+      },
+      "scope": "Final PR head original for criteria that pass through the changed inbound Z04/Z24 owner (criteria 3 and 4)."
     }
   ],
   "independent_proof_reviews": [
@@ -191,7 +221,14 @@
         621,
         558
       ],
-      "observed": "After prepare: cancellation_requested, completed null (599); provider 250 send keeps cancellation_requested (600-603); physical positive CONTRL then APERAK keep cancellation_requested and period unchanged (604-608); only the causal received Z04C completes cancelled_before_start and cancels the own confirmed future period (609-614); own positive APERAK+CONTRL produced and sent via sendOwnAcks (615; asserted at 558-562), replay leaves owned effects unchanged (616-618), original/permissions unchanged (619); decoy unchanged (620)."
+      "observed": "After prepare: cancellation_requested, completed null (599); provider 250 send keeps cancellation_requested (600-603); physical positive CONTRL then APERAK keep cancellation_requested and period unchanged (604-608); only the causal received Z04C completes cancelled_before_start and cancels the own confirmed future period (609-614); own positive APERAK+CONTRL produced and sent via sendOwnAcks (615; asserted at 558-562), replay leaves owned effects unchanged (616-618), original/permissions unchanged (619); decoy unchanged (620).",
+      "final_head_original": {
+        "run": 39122073661,
+        "job": 117659525125,
+        "artifact": 12134199287,
+        "head_sha": "d123c00221a62f816a151277095f2ac4ebb0e074",
+        "result": "33/33 PASS"
+      }
     },
     {
       "criterion": "Prohibited: wrong role",
@@ -226,7 +263,14 @@
           ],
           "observed": "ESCO DGI application profile refused for Z03C."
         }
-      ]
+      ],
+      "final_head_original": {
+        "run": 39122073661,
+        "job": 117659525125,
+        "artifact": 12134199287,
+        "head_sha": "d123c00221a62f816a151277095f2ac4ebb0e074",
+        "result": "33/33 PASS"
+      }
     },
     {
       "criterion": "Prohibited: wrong direction or mutation of the bound message",
@@ -349,7 +393,27 @@
       "quality/audits/2026-10-12-ops-api-contracts/README.md"
     ],
     "verdict": "PENDING independent review; all changed paths are agent memory, agent tooling/settings, AGENTS.md, two developer documentation page texts and documentation. No executed test, helper, workflow, library, migration or schema input differs, so the cd152e72 originals are proposed as applicable to dbbfee16 without relabelling them.",
-    "command": "git diff --name-only cd152e72 dbbfee16; git diff --stat cd152e72 dbbfee16 -- lib supabase scripts __tests__ .github"
+    "command": "git diff --name-only cd152e72 dbbfee16; git diff --stat cd152e72 dbbfee16 -- lib supabase scripts __tests__ .github",
+    "pr_final_head": {
+      "head": "d123c00221a62f816a151277095f2ac4ebb0e074",
+      "tree": "a9ee1ef947acfa0a85f7af8d26bf13a93842d162",
+      "base": "dbbfee16abef0bdf6ca455088c21e7e6f089138a",
+      "runtime_change": "supabase/migrations/20261018100000_ediel_z04c_current_sender_registry.sql only: adds the Z04/Z24 current-sender guard and duplicate-C hold to gridex_received_sources.other_supply_scope_effect_v1 (inbound received Z04 owner); plus byte-exact capture import of schema/types/fingerprint.",
+      "criteria_rebound_to_final_head": [
+        3,
+        4
+      ],
+      "criteria_reused_from_cd152e72": [
+        0,
+        1,
+        2,
+        5,
+        6
+      ],
+      "reuse_basis": "scripts/ediel-at-z03c-supplier-boundary-native.test.ts exercises outbound Z03C origination, calendar window, bound-message mutation and own-LI refusal; it does not call applySupplyMarketSource, processInboundEdielMessage or other_supply_scope_effect_v1 (grep), and no lib/, scripts/helpers/ or __tests__/helpers/ path differs between dbbfee16 and the final head.",
+      "criterion_7": "component test unchanged; runs in ordinary CI on the final head.",
+      "command": "git diff --stat dbbfee16 d123c00221a62f816a151277095f2ac4ebb0e074 -- lib supabase/migrations scripts/helpers __tests__/helpers"
+    }
   },
   "delivery": {
     "status": "NOT_DELIVERED",
