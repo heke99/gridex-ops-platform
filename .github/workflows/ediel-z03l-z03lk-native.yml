@@ -164,7 +164,9 @@ jobs:
           runs = bounded_history('actions/workflows/ediel-z03l-z03lk-native.yml/runs?branch=' + urllib.parse.quote(os.environ['SOURCE_BRANCH'], safe='') + '&event=pull_request', 'workflow_runs')
           for run in runs:
               if str(run['id']) == os.environ['GITHUB_RUN_ID']: continue
-              if run['head_sha'] != head and not any(pull['head']['sha'] == head for pull in run.get('pull_requests', [])): continue
+              # Linked PR heads are mutable after a push; only the run's own
+              # immutable source head can consume this exact-head appointment.
+              if run['head_sha'] != head: continue
               jobs = bounded_history('actions/runs/' + str(run['id']) + '/jobs?filter=all', 'jobs')
               assert not any(job['name'] == 'Z03L/LK admitted native execution' and job['conclusion'] != 'skipped' for job in jobs), 'native_appointment_already_consumed'
           hashes = {}
