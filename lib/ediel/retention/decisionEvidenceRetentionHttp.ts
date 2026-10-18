@@ -40,8 +40,9 @@ export function decisionEvidenceRevoke(request:NextRequest,policyId:string){retu
  await revokeDecisionEvidenceRetention({companyId:scope.companyId,policyId,reason:input.reason});return respond({status:'revoked',policyId})
 })}
 export function decisionEvidencePurge(request:NextRequest,policyId:string){return retentionHttp(['ediel.retention.purge'],async scope=>{
- z.object({}).strict().parse(await readRetentionJson(request,1000));const record=await readPolicy(scope,policyId)
+ z.object({}).strict().parse(await readRetentionJson(request,1000))
+ // Native resolves/locks this company+policy and checks its actual current
+ // class before any effect or replay. Expired disclosure is not a prerequisite.
  const result=await purgeDecisionEvidenceRetention({companyId:scope.companyId,policyId})
- if(result.status==='purged'&&(result.retentionClass!==record.retentionClass||result.targetId!==record.targetId||result.sourceHash!==record.sourceHash))throw Error('decision_evidence_http_purge_scope_mismatch')
- return respond(result)
+ return respond(result.status==='purged'?{status:result.status,replay:result.replay,authority:'none'}:{status:result.status,authority:'none'})
 })}

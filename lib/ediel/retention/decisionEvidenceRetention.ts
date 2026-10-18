@@ -11,6 +11,10 @@ const mutation=z.union([
  z.object({status:z.enum(['approved','held','rejected']),policyId:uuid.optional(),reviewId:uuid.optional(),missing:z.array(z.string()).optional()}),
  z.object({status:z.literal('purged'),retentionClass:kind,targetId:uuid,sourceHash:hash,byteLength:z.number().int().positive(),bytesAvailable:z.literal(false),authority:z.literal('none'),replay:z.boolean()}),
 ])
+const purgeResult=z.union([
+ z.object({status:z.literal('purged'),retentionClass:kind,targetId:uuid,sourceHash:hash,byteLength:z.number().int().positive(),bytesAvailable:z.literal(false),authority:z.literal('none'),replay:z.boolean()}).strict(),
+ z.object({status:z.literal('held'),policyId:uuid,missing:z.array(z.string()).min(1)}).strict(),
+])
 export const decisionOriginalSchema=z.object({companyId:uuid,retentionClass:kind,targetId:uuid,targetMetadataHash:hash,documentHash:hash,documentByteLength:z.number().int().positive(),bytesAvailable:z.boolean(),documentBase64:z.string().nullable(),purgedAt:z.string().nullable(),authority:z.literal('none')})
 export const decisionPolicySchema=z.object({companyId:uuid,policyId:uuid,retentionClass:kind,targetId:uuid,sourceHash:hash,targetMetadataHash:hash,documentHash:hash,documentByteLength:z.number().int().positive(),bytesAvailable:z.boolean(),documentPurgedAt:z.string().nullable(),documentBase64:z.string().nullable(),submittedBy:uuid,createdAt:z.string(),issuerQualified:z.boolean(),currentQualified:z.boolean(),revoked:z.boolean(),reviews:z.array(z.object({reviewId:uuid,actorUserId:uuid,outcome:z.enum(['approved','held','rejected']),reason:z.string(),createdAt:z.string()})),purge:z.object({purgedAt:z.string(),sourceHash:hash,byteLength:z.number().int().positive()}).nullable(),authority:z.literal('none')})
 async function session(companyId:string){
@@ -42,7 +46,14 @@ export async function reviewDecisionEvidenceRetention(input:{companyId:string;po
 export async function revokeDecisionEvidenceRetention(input:{companyId:string;policyId:string;reason:string}){uuid.parse(input.policyId);reason.parse(input.reason);await call('ediel_revoke_decision_evidence_retention_v1',input.companyId,{p_policy_id:input.policyId,p_reason:input.reason})}
 /** Revocation, current separate review, exact signed deadline and byte erasure
  * share one native transaction. A durable replay is historical, not approval. */
-export async function purgeDecisionEvidenceRetention(input:{companyId:string;policyId:string}){uuid.parse(input.policyId);return mutation.parse(await call('ediel_purge_decision_evidence_retention_v1',input.companyId,{p_policy_id:input.policyId}))}
+export async function purgeDecisionEvidenceRetention(input:{companyId:string;policyId:string}){
+ uuid.parse(input.policyId)
+ const parsed=purgeResult.safeParse(await call('ediel_purge_decision_evidence_retention_v1',input.companyId,{p_policy_id:input.policyId}))
+ if(!parsed.success)throw Error('decision_evidence_purge_result_invalid')
+ const result=parsed.data
+ if(result.status==='held'&&result.policyId!==input.policyId)throw Error('decision_evidence_purge_scope_mismatch')
+ return result
+}
 function verifyBytes(value:{documentHash:string;documentByteLength:number;documentBase64:string|null;bytesAvailable:boolean},requested:boolean){
  if(!value.bytesAvailable){if(value.documentBase64!==null)throw Error('decision_evidence_tombstone_bytes_present');return}
  if(!requested){if(value.documentBase64!==null)throw Error('decision_evidence_unrequested_bytes');return}

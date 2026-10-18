@@ -56,6 +56,9 @@ async function read(port:'policy'|'original',includeBody=false,companyId=company
   ? (await db.query<{value:Record<string,unknown>}>('SELECT public.ediel_read_decision_evidence_policy_v1($1,$2,$3,$4) value',[companyId,actor,policyId,includeBody])).rows[0].value
   : (await db.query<{value:Record<string,unknown>}>('SELECT public.ediel_read_retention_decision_original_v1($1,$2,$3,$4,$5) value',[companyId,actor,originalClass,policyId,includeBody])).rows[0].value
 }
+async function purge(companyId=company,policyId=policy){
+ return (await db.query<{value:Record<string,unknown>}>('SELECT public.ediel_purge_decision_evidence_retention_v1($1,$2,$3) value',[companyId,actor,policyId])).rows[0].value
+}
 async function attempt(operation:()=>Promise<unknown>){
  await db.exec('SAVEPOINT read_attempt')
  try{const value=await operation();await db.exec('RELEASE SAVEPOINT read_attempt');return {value,error:undefined}}
@@ -69,7 +72,7 @@ beforeAll(async()=>{
  db=new PGlite()
  await db.exec(`CREATE ROLE anon;CREATE ROLE authenticated;CREATE ROLE service_role;CREATE ROLE gridex_ediel_retention_owner NOLOGIN BYPASSRLS;
  CREATE SCHEMA gridex_ediel_retention AUTHORIZATION gridex_ediel_retention_owner;CREATE SCHEMA gridex_ediel_ack_replay;
- CREATE TABLE public.fixture_reader(company_id uuid,actor uuid,kind text,body_allowed boolean DEFAULT true,valid_until timestamptz DEFAULT 'infinity',PRIMARY KEY(company_id,actor,kind));
+ CREATE TABLE public.fixture_reader(company_id uuid,actor uuid,kind text,body_allowed boolean DEFAULT true,purge_allowed boolean DEFAULT true,valid_until timestamptz DEFAULT 'infinity',PRIMARY KEY(company_id,actor,kind));
  CREATE TABLE public.fixture_checkpoint(calls integer NOT NULL);INSERT INTO public.fixture_checkpoint VALUES(0);
  CREATE FUNCTION gridex_ediel_ack_replay.lock_current_graph_v2() RETURNS void LANGUAGE sql AS 'SELECT';
  CREATE FUNCTION gridex_ediel_retention.decision_evidence_lock_v1(uuid) RETURNS void LANGUAGE sql AS 'SELECT';`)
@@ -81,7 +84,7 @@ beforeAll(async()=>{
  // Declared identity/time boundary: same actual public SQL calls it before
  // the target read, then the new guard must repeat it after target locks.
  await db.exec(`CREATE FUNCTION gridex_ediel_retention.decision_evidence_actor_v1(c uuid,a uuid,k text,op text) RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$BEGIN
- IF current_setting('fixture.actor',true) IS DISTINCT FROM a::text OR NOT EXISTS(SELECT FROM public.fixture_reader WHERE company_id=c AND actor=a AND kind=k AND valid_until>clock_timestamp() AND (op<>'ediel.retention.review' OR body_allowed)) THEN RAISE EXCEPTION 'synthetic_current_reader_denied' USING ERRCODE='42501';END IF;
+ IF current_setting('fixture.actor',true) IS DISTINCT FROM a::text OR NOT EXISTS(SELECT FROM public.fixture_reader WHERE company_id=c AND actor=a AND kind=k AND valid_until>clock_timestamp() AND (op<>'ediel.retention.review' OR body_allowed) AND (op<>'ediel.retention.purge' OR purge_allowed)) THEN RAISE EXCEPTION 'synthetic_current_reader_denied' USING ERRCODE='42501';END IF;
  END$$;
  CREATE FUNCTION gridex_ediel_retention.decision_evidence_read_actor_v1(c uuid,a uuid,k text) RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$DECLARE n integer;delay_seconds double precision;BEGIN
  UPDATE public.fixture_checkpoint SET calls=calls+1 RETURNING calls INTO n;
@@ -91,14 +94,17 @@ beforeAll(async()=>{
   IF current_setting('fixture.fail_last_auth',true)='yes' THEN RAISE EXCEPTION 'synthetic_last_auth_failure' USING ERRCODE='42501';END IF;
  END IF;
  PERFORM gridex_ediel_retention.decision_evidence_actor_v1(c,a,k,'ediel.retention.read');END$$;
- CREATE FUNCTION gridex_ediel_retention.decision_evidence_receipt_v1(gridex_ediel_retention.decision_evidence_policies) RETURNS jsonb LANGUAGE sql AS 'SELECT NULL::jsonb';
+ CREATE FUNCTION gridex_ediel_retention.decision_evidence_receipt_v1(gridex_ediel_retention.decision_evidence_policies) RETURNS jsonb LANGUAGE sql AS $$SELECT nullif(current_setting('fixture.native_receipt',true),'')::jsonb$$;
+ CREATE FUNCTION gridex_ediel_retention.decision_evidence_lock_reviewer_v1(uuid,uuid,text) RETURNS void LANGUAGE sql AS 'SELECT';
+ CREATE FUNCTION gridex_ediel_retention.decision_evidence_basis_v1(uuid,text,uuid) RETURNS jsonb LANGUAGE sql AS $$SELECT nullif(current_setting('fixture.native_basis',true),'')::jsonb$$;
  CREATE FUNCTION gridex_ediel_retention.decision_evidence_policy_current_v1(gridex_ediel_retention.decision_evidence_policies) RETURNS boolean LANGUAGE sql AS 'SELECT false';`)
  await db.exec(definition(source6,'gridex_ediel_retention.completed_review_reason_scope_v1').text)
  for(const name of readerNames)await db.exec(source6Reader(name))
+ await db.exec(source6Reader('public.ediel_purge_decision_evidence_retention_v1'))
 },30000)
 
 beforeEach(async()=>{
- await db.exec(`BEGIN;SELECT set_config('fixture.actor',${literal(actor)},true);SELECT set_config('fixture.last_auth_delay','0',true);SELECT set_config('fixture.fail_last_auth','no',true);
+ await db.exec(`BEGIN;SELECT set_config('fixture.actor',${literal(actor)},true);SELECT set_config('fixture.last_auth_delay','0',true);SELECT set_config('fixture.fail_last_auth','no',true);SELECT set_config('fixture.native_receipt','',true);SELECT set_config('fixture.native_basis','',true);
  INSERT INTO public.fixture_reader(company_id,actor,kind) VALUES(${literal(company)},${literal(actor)},${literal(metadataClass)}),(${literal(company)},${literal(actor)},${literal(originalClass)});
  INSERT INTO gridex_ediel_retention.decision_evidence_catalog(retention_class,source_table,permission_key,revocation_table,revocation_id_column,receipt_function) VALUES(${literal(originalClass)},'decision_evidence_policies','synthetic.private.original','synthetic','synthetic','synthetic');
  INSERT INTO gridex_ediel_retention.decision_evidence_policies(id,company_id,retention_class,target_id,source_hash,target_metadata_hash,document_bytes,document_hash,document_byte_length,document_purged_at,submitted_by) VALUES
@@ -181,6 +187,42 @@ it('uncompleted unqualified intake remains reviewable without trusting a caller 
 it('unrelated original classes do not inherit a metadata witness deadline',async()=>{
  await db.exec(`UPDATE gridex_ediel_retention.decision_evidence_policies SET retention_class='unrelated_original' WHERE id=${literal(policy)};INSERT INTO public.fixture_reader(company_id,actor,kind) VALUES(${literal(company)},${literal(actor)},'unrelated_original');UPDATE gridex_ediel_retention.decision_evidence_tombstones SET journal_retain_until=clock_timestamp()-interval '1 day' WHERE policy_id=${literal(policy)}`)
  expect((await read('policy',true)).documentBase64).toBe(Buffer.from(body).toString('base64'))
+})
+
+// The real Source6-patched native owner remains the command authority. Current
+// identity/class/operation, graph locks and legal qualification are declared
+// synthetic ports, not native authorization or signed legal proof.
+it.each([false,true])('native completed replay survives W without reading or rewriting witnesses, expired=%s',async expired=>{
+ if(expired)await db.exec(`UPDATE gridex_ediel_retention.decision_evidence_tombstones SET journal_retain_until=clock_timestamp()-interval '1 hour' WHERE policy_id=${literal(policy)}`)
+ const before=await snapshot(),result=await purge()
+ expect(result).toMatchObject({status:'purged',retentionClass:metadataClass,targetId:selected,sourceHash:'d'.repeat(64),bytesAvailable:false,authority:'none',replay:true})
+ expect(await snapshot()).toEqual(before)
+ if(expired)expect((await attempt(()=>read('policy'))).error?.code).toBe('42501')
+ expect(await snapshot()).toEqual(before)
+})
+it.each(['class','purge'] as const)('native owner denies missing current %s authority before replay or effect',async missing=>{
+ if(missing==='class')await db.exec(`DELETE FROM public.fixture_reader WHERE kind=${literal(metadataClass)}`)
+ else await db.exec(`UPDATE public.fixture_reader SET purge_allowed=false WHERE kind=${literal(metadataClass)}`)
+ const before=await snapshot(),result=await attempt(()=>purge())
+ expect(result.error?.code).toBe('42501');expect(result.value).toBeUndefined();expect(await snapshot()).toEqual(before)
+})
+it('native owner denies foreign company and unknown policy without witness change',async()=>{
+ const before=await snapshot(),unknown='99999999-9999-4999-8999-999999999999'
+ expect((await attempt(()=>purge(unknown))).error).toBeDefined()
+ expect((await attempt(()=>purge(company,unknown))).error).toBeDefined();expect(await snapshot()).toEqual(before)
+})
+it.each(['policy_id','company_id'] as const)('native replay refuses conflicting tombstone %s without effect',async field=>{
+ // Deliberately corrupt synthetic seed; real historical rows are immutable.
+ await db.exec(`UPDATE gridex_ediel_retention.decision_evidence_tombstones SET ${field}=${literal('99999999-9999-4999-8999-999999999999')} WHERE policy_id=${literal(policy)}`)
+ const before=await snapshot(),result=await attempt(()=>purge())
+ expect(result.error?.message).toContain('decision_original_purge_replay_conflict');expect(result.value).toBeUndefined();expect(await snapshot()).toEqual(before)
+})
+it.each(['sourceHash','targetMetadataHash'] as const)('native first-mutation gate holds changed %s before any effect',async field=>{
+ await db.exec(`DELETE FROM gridex_ediel_retention.decision_evidence_tombstones WHERE policy_id=${literal(policy)};
+ SELECT set_config('fixture.native_receipt','{"retainUntil":"2000-01-01T00:00:00Z"}',true);
+ SELECT set_config('fixture.native_basis',(jsonb_build_object('sourceHash',source_hash,'targetMetadataHash',target_metadata_hash)||jsonb_build_object(${literal(field)},repeat('f',64)))::text,true) FROM gridex_ediel_retention.decision_evidence_policies WHERE id=${literal(policy)};`)
+ const before=await snapshot(),result=await purge()
+ expect(result).toEqual({status:'held',policyId:policy,missing:['unchanged_original_source_metadata']});expect(await snapshot()).toEqual(before)
 })
 it.skipIf(baseline)('private guard has no public application execute and unknown predecessor aborts both function replacements',async()=>{
  expect((await db.query<{allowed:boolean}>("SELECT has_function_privilege('authenticated','gridex_ediel_retention.require_completed_review_witness_disclosure_v1(uuid,uuid,uuid,text,boolean)','EXECUTE') allowed")).rows[0].allowed).toBe(false)
