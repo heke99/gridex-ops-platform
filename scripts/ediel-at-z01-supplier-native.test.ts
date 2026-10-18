@@ -30,6 +30,9 @@ import {stockholmBusinessDate} from '@/lib/ediel/core/executionContext'
 import {resolveCanonicalRulePack} from '@/lib/ediel/rulebook/canonicalRulePackRegistry'
 import {canonicalProdatProfileForMessage} from '@/lib/ediel/rulebook/canonicalEdielFacade'
 import {resolveCanonicalTenantEdielIdentityWithEvidence} from '@/lib/ediel/tenant/tenantEdielIdentity'
+import {requireRegistryDispatchSource} from '@/lib/actor-registry/registryMarketSource'
+import {readNetworkRegistrySourceArtifact} from '@/lib/ediel/production/networkRegistrySource'
+import {readContractRequestedMethodSource} from '@/lib/ediel/production/contractRequestedMethodSource'
 import {originalAckLegalNadSegment} from '@/lib/ediel/core/originalAckPartyIdentities'
 import {nativeSql as sql, literal, seedNormalSwitchNativeFixture, futureNativeSupplyDate} from './helpers/ediel-normal-switch-native-fixture'
 import {createZ01SupplierNativeFixture, originateZ01SupplierRequest, receiveZ01SupplierReply, attemptZ01SupplierMailIntake, exerciseZ01SupplierOutboundField, ensureZ01SupplierKnownWrongGridArea} from './helpers/ediel-z01-info-request-native-fixture'
@@ -470,6 +473,233 @@ function assertOnlyOwnUdFieldOmitted(rawOriginal: string, rawOmitted: string, fi
   expect(actual).toEqual(expected)
 }
 
+type CorrelationContrast = 'own LI' | 'legal sender' | 'legal receiver' | 'transport sender' | 'transport receiver' | 'customer identity' | 'grid area'
+type CorrelationIntake = Awaited<ReturnType<typeof attemptZ01SupplierMailIntake>>
+const causalRecord = (value: unknown): Record<string, unknown> => {
+  expect(value !== null && typeof value === 'object' && !Array.isArray(value)).toBe(true)
+  return value as Record<string, unknown>
+}
+/** Compare physical tuples, allowing only independent delivery identities and
+ * the selected contrast. A no-op or second business change cannot prove cause. */
+function assertCorrelationWire(controlRaw: string, negativeRaw: string, contrast: CorrelationContrast, override: ExternalZ02Overrides) {
+  const positive = tokenizeEdifact(controlRaw), negative = tokenizeEdifact(negativeRaw)
+  expect(negative.una).toEqual(positive.una)
+  const selector = contrast === 'own LI' ? {tag: 'RFF', qualifier: 'LI', element: 1, component: 1, expected: override.lineReference}
+    : contrast === 'grid area' ? {tag: 'RFF', qualifier: 'Z05', element: 1, component: 1, expected: override.gridAreaCode}
+      : contrast === 'transport sender' || contrast === 'transport receiver'
+        ? {tag: 'UNB', qualifier: null, element: contrast === 'transport sender' ? 2 : 3, component: 0,
+          expected: contrast === 'transport sender' ? override.transportSender : override.transportReceiver}
+        : {tag: 'NAD', qualifier: contrast === 'legal sender' ? 'FR' : contrast === 'legal receiver' ? 'DO' : 'UD', element: 2,
+          component: contrast === 'customer identity' ? null : 0,
+          expected: contrast === 'customer identity' ? override.customerIdentity : contrast === 'legal sender' ? override.legalSender : override.legalReceiver}
+  const selected = (wire: ReturnType<typeof tokenizeEdifact>) => {
+    const found = wire.segments.filter(s => s.tag === selector.tag && (selector.qualifier === null || segmentComposite(s, 1, wire.una)[0] === selector.qualifier))
+    expect(found).toHaveLength(1)
+    const value = segmentComposite(found[0], selector.element, wire.una)
+    return selector.component === null ? value : value[selector.component]
+  }
+  const expected = contrast === 'customer identity'
+    ? [override.customerIdentity?.id, override.customerIdentity?.qualifier, override.customerIdentity?.agency] : selector.expected
+  expect(expected).toBeDefined(); expect(selected(negative)).toEqual(expected)
+  expect(selected(negative)).not.toEqual(selected(positive))
+  const normalized = (wire: ReturnType<typeof tokenizeEdifact>) => wire.segments.map(s => {
+    const parts = Array.from({length: segmentElementCount(s, wire.una) + 1}, (_, index) => [...segmentComposite(s, index, wire.una)])
+    if (s.tag === selector.tag && (selector.qualifier === null || parts[1][0] === selector.qualifier)) {
+      if (selector.component === null) parts[selector.element] = ['[selected tuple]']
+      else parts[selector.element][selector.component] = '[selected tuple]'
+    }
+    const fresh = s.tag === 'UNB' ? [4, 5] : s.tag === 'UNH' ? [1] : s.tag === 'BGM' ? [2] : s.tag === 'UNT' || s.tag === 'UNZ' ? [2] : []
+    for (const index of fresh) {
+      expect(parts[index]).toHaveLength(s.tag === 'UNB' && index === 4 ? 2 : 1)
+      expect(parts[index].every(value => value.length > 0)).toBe(true)
+      parts[index] = parts[index].map(() => '[independent delivery]')
+    }
+    return {tag: s.tag, parts}
+  })
+  expect(normalized(negative)).toEqual(normalized(positive))
+  expect(sha(negativeRaw)).not.toBe(sha(controlRaw))
+}
+async function assertCorrelationNamespaces(f: Fixture, original: Original) {
+  const supplier = await resolveCanonicalTenantEdielIdentityWithEvidence({companyId: f.companyId, environment: 'test', requireExactCounts: true})
+  expect(supplier.identity).toMatchObject({companyId: f.companyId, environment: 'test',
+    legalEdielId: original.wire.parties.legalSender.id, transportEdielId: original.wire.envelope.sender})
+  expect(supplier.identity.roleCodes).toContain('electricity_supplier')
+  const dso = await requireRegistryDispatchSource({companyId: f.companyId, communicationRouteId: f.z01RouteId,
+    routeProfileId: f.z01RouteProfileId, environment: 'test', messageFamily: 'PRODAT', applicationReference: '23-DDQ-PRODAT'})
+  expect(dso).toMatchObject({status: 'source_qualified', legalEdielId: original.wire.parties.legalReceiver.id,
+    wire: {environment: 'test', interchangePartyId: original.wire.envelope.receiver}})
+  expect(dso.roles).toContain('grid_owner')
+  expect(await readNetworkRegistrySourceArtifact({companyId: f.companyId, actorUserId: f.networkRegistrySource.reviewerId,
+    artifactId: f.networkRegistrySource.artifact.artifactId})).toMatchObject({...f.networkRegistrySource.artifact,
+    status: 'authorized', sourceVersion: '2', networkActorId: f.marketActorId, networkEdielId: f.receiver})
+  expect((await readContractRequestedMethodSource({companyId: f.companyId, contractId: f.contractId,
+    actorUserId: f.actorUserId, environment: 'test'})).status).toBe('authorized')
+}
+function assertRetainedCorrelationMail(f: Fixture, intake: CorrelationIntake, raw: string) {
+  expect(intake.mailbox.parsed.rawPayload).toBe(raw)
+  expect(sql(`SELECT jsonb_build_object('mail',m.id,'parse',p.id,'company',m.company_id,'parseCompany',p.company_id,
+    'environment',m.environment,'rawBound',m.raw_edifact_payload=${literal(raw)} AND p.raw_payload=m.raw_edifact_payload,
+    'clockBound',isfinite(m.received_at)) FROM public.inbound_email_messages m
+    JOIN public.inbound_ediel_parse_results p ON p.inbound_email_message_id=m.id
+    WHERE m.id=${literal(intake.mailbox.inboundEmailMessageId)} AND p.id=${literal(intake.mailbox.parseResultId)}`))
+    .toEqual({mail: intake.mailbox.inboundEmailMessageId, parse: intake.mailbox.parseResultId, company: f.companyId,
+      parseCompany: f.companyId, environment: 'test', rawBound: true, clockBound: true})
+}
+async function createCorrelationReadControl(f: Fixture, original: Original) {
+  await assertCorrelationNamespaces(f, original)
+  const documentMinute = minute(), raw = z02(f, original, {}, false, documentMinute)
+  const intake = await attemptZ01SupplierMailIntake(f, raw)
+  if (!intake.id) throw Error('z01_correlation_positive_source_not_born')
+  const message = await getEdielMessageById(intake.id, {companyId: f.companyId})
+  if (!message?.raw_payload) throw Error('z01_correlation_positive_source_unreadable')
+  assertRetainedCorrelationMail(f, intake, raw)
+  assertGenuineZ02Birth(f, original, message, intake)
+  expect(sql(`SELECT to_jsonb(r) FROM gridex_ediel_inbound_context.receipts r WHERE source_message_id=${literal(message.id)}`))
+    .toMatchObject({status: 'ready', reason: null, company_id: f.companyId, environment: 'test', payload_sha256: sha(raw)})
+  return {documentMinute, raw, message, intake, basis: await readMatchedZ02Source(f, original, message),
+    sealed: sealedSource(message.id), originalSealed: sealedSource(original.originalZ01.id)}
+}
+type CorrelationReadControl = Awaited<ReturnType<typeof createCorrelationReadControl>>
+function assertCorrelationBasisStable(current: unknown, prior: unknown) {
+  const after = causalRecord(current), before = causalRecord(prior)
+  // The actual negative job owns these review projections. They are not source
+  // authority; every request link and all other basis fields remain exact.
+  const authority = (value: unknown) => Object.fromEntries(Object.entries(causalRecord(value)).filter(([key]) =>
+    !['status', 'blocker_code', 'blocker_reason', 'blocker_details', 'next_required_action', 'updated_at', 'updated_by'].includes(key)))
+  expect({...after, request: authority(after.request)}).toEqual({...before, request: authority(before.request)})
+}
+async function rereadCorrelationControl(f: Fixture, original: Original, control: CorrelationReadControl) {
+  const message = await getEdielMessageById(control.message.id, {companyId: f.companyId})
+  if (!message?.raw_payload) throw Error('z01_correlation_positive_source_reread_missing')
+  expect(message.raw_payload).toBe(control.raw)
+  assertCorrelationBasisStable(await readMatchedZ02Source(f, original, message), control.basis)
+  expect(sealedSource(message.id)).toEqual(control.sealed)
+  expect(sealedSource(original.originalZ01.id)).toEqual(control.originalSealed)
+  await assertCorrelationNamespaces(f, original)
+}
+function assertCausalSourceHold(raw: string, report: unknown, decision: Awaited<ReturnType<typeof resolveCanonicalRuntimeDecisionWithRegistry>>, recorded: unknown) {
+  const expected = [{code: 'RECEIVED_Z02_END_USER_ADDRESS_SOURCE_UNAVAILABLE', description: 'received_z02_end_user_address_source_unavailable'}]
+  expect([decision.syntaxDecision, decision.applicationDecision, decision.functionalDecision]).toEqual(['accepted', 'manual_review', 'manual_review'])
+  expect(decision.issues.map(({code, description}) => ({code, description}))).toEqual(expected)
+  const stored = causalRecord(report), runtime = causalRecord(stored.canonicalRuntime)
+  expect(stored).toMatchObject({canonicalRuntimeVersion: '2.5B', syntaxDecision: 'accepted', applicationDecision: 'manual_review', functionalDecision: 'manual_review'})
+  expect((runtime.issues as Array<{code: string; description: string}>).map(({code, description}) => ({code, description}))).toEqual(expected)
+  expect(decision.prodatProcessingDisposition?.kind).toBe('internal_review')
+  expect(decision.responsePlan.some(plan => plan.family === 'APERAK')).toBe(false)
+  expect(recorded).toMatchObject({owner: 'canonical-runtime-with-registry-v1', sourceHash: sha(raw), hashBound: true, clockBound: true,
+    facts: {version: 1, owner: 'canonical-runtime-with-registry-v1', sourceDisposition: 'not_established', originalTenantMatch: 'matched',
+      syntaxDecision: 'accepted', applicationDecision: 'manual_review', functionalDecision: 'manual_review', reasonCodes: [expected[0].code]}})
+}
+async function assertCorrelationSourceRefusal(f: Fixture, original: Original, received: Awaited<ReturnType<typeof receiveZ01SupplierReply>>, contrast: CorrelationContrast, control: CorrelationReadControl) {
+  const raw = received.message.raw_payload!
+  assertRetainedCorrelationMail(f, received, raw)
+  expect(received.tenant).toMatchObject({status: 'resolved', companyId: f.companyId})
+  expect(received.pointMatch).toMatchObject({status: 'matched', entityId: f.pointId})
+  expect(received.message).toMatchObject({company_id: f.companyId, environment: 'test', customer_id: f.customerId, site_id: f.siteId,
+    metering_point_id: f.pointId, immutable_payload_hash: sha(raw)})
+  if (contrast === 'own LI') expect(received.match).toMatchObject({status: 'missing', entityId: null, candidates: []})
+  else expect(received.match).toMatchObject({status: 'matched', entityId: original.request.outbound_request_id})
+  expect(sql(`SELECT jsonb_build_object('rawBound',s.raw_payload=m.raw_payload AND s.raw_payload=${literal(raw)} AND s.payload_hash=m.immutable_payload_hash,
+    'clockBound',isfinite(s.source_received_at) AND s.source_received_at=m.message_received_at)
+    FROM gridex_received_sources.sources s JOIN public.ediel_messages m ON m.id=s.source_message_id
+    WHERE s.source_message_id=${literal(received.id)} AND s.company_id=${literal(f.companyId)} AND s.environment='test'`)).toEqual({rawBound: true, clockBound: true})
+  expect(sql(`SELECT to_jsonb(r) FROM gridex_ediel_inbound_context.receipts r WHERE source_message_id=${literal(received.id)}`))
+    .toMatchObject({status: 'ready', reason: null, company_id: f.companyId, environment: 'test', payload_sha256: sha(raw)})
+  const basis = control.basis as {acceptedTransport: {id: string; observed_at: string}; acceptedTransportReceipt: {attemptId: string; observedAt: string}}
+  expect(basis.acceptedTransportReceipt.attemptId).toBe(basis.acceptedTransport.id)
+  // A negative mail received before the accepted original is a clock refusal,
+  // not evidence for the deliberately changed LI/party tuple.
+  expect(sql(`SELECT to_jsonb(isfinite(a.entered_at) AND isfinite(a.observed_at)
+    AND a.observed_at=${literal(basis.acceptedTransport.observed_at)}::timestamptz
+    AND a.observed_at=${literal(basis.acceptedTransportReceipt.observedAt)}::timestamptz
+    AND a.entered_at<=a.observed_at AND a.observed_at<=s.source_received_at)
+    FROM gridex_received_sources.sources s JOIN gridex_ediel_transport.attempts a
+      ON a.id=${literal(basis.acceptedTransport.id)} AND a.company_id=s.company_id AND a.environment=s.environment
+      AND a.message_id=${literal(original.originalZ01.id)} AND a.classification='accepted' AND a.binding->>'originalHash'=${literal(sha(original.originalZ01.raw_payload!))}
+    WHERE s.source_message_id=${literal(received.id)} AND s.company_id=${literal(f.companyId)}`)).toBe(true)
+  const refusal = await supabaseService.rpc('gridex_ediel_received_z02_address_source_basis_v1', {p_source_message_id: received.id, p_actor_user_id: f.actorUserId})
+  expect(refusal.error).toBeNull(); expect(refusal.data).toBeNull()
+  expect(await fetchReceivedZ02EndUserAddressContext({message: received.message, actorUserId: f.actorUserId})).toBeUndefined()
+  const decision = await resolveCanonicalRuntimeDecisionWithRegistry(received.message, {actorUserId: f.actorUserId})
+  const recorded = sql(`SELECT jsonb_build_object('owner',a.owner,'sourceHash',a.source_payload_hash,'facts',a.facts_text::jsonb,
+    'hashBound',a.facts_hash=encode(sha256(convert_to(a.facts_text,'UTF8')),'hex') AND a.source_payload_hash=s.payload_hash,
+    'clockBound',isfinite(a.assessed_at) AND a.assessed_at>=s.source_received_at)
+    FROM gridex_received_sources.validation_assessments a JOIN gridex_received_sources.sources s ON s.source_message_id=a.source_message_id
+    WHERE a.source_message_id=${literal(received.id)} AND a.company_id=${literal(f.companyId)}
+      AND NOT EXISTS(SELECT FROM gridex_received_sources.validation_assessments child WHERE child.previous_assessment_id=a.id)`)
+  assertCausalSourceHold(raw, received.message.validation_report, decision, recorded)
+  expect(readReceivedCanonicalProdatApplicationObjects(decision, received.message)).toBeNull()
+  expect(readReceivedCanonicalProdatResponseValidation(decision, received.message)).toBeNull()
+  expect(received.inboundResponseJobsBefore).toEqual([]); expect(received.inboundResponseJobsAfter).toEqual([])
+}
+function assertCausalJobRefusal(f: Fixture, original: Original, receivedId: string, jobs: unknown[], contrast: 'customer identity' | 'grid area', changed: string) {
+  expect(jobs).toHaveLength(1)
+  const job = causalRecord(jobs[0]), result = causalRecord(job.result)
+  const code = contrast === 'customer identity' ? 'z02_end_user_identity_conflict' : 'z02_original_grid_area_conflict'
+  expect(job).toMatchObject({company_id: f.companyId, customer_id: f.customerId, customer_site_id: f.siteId, operation_id: original.operationId,
+    job_type: 'apply_inbound_grid_owner_response', status: 'needs_review', payload: {ediel_message_id: receivedId, customer_info_request_id: original.requestId}})
+  expect(result).toMatchObject({reason: code, reason_code: code, z02_correlation_status: 'exact'})
+  expect(result.z02_atomic_core_applied).not.toBe(true)
+  if (contrast === 'customer identity') {
+    expect(result.z02_payload_validation_status).not.toBe('valid')
+    expect(result.z02_payload_validation).toMatchObject({gate: 'gridex_gate_inbound_z02_required_payload', inbound_message_id: receivedId,
+      customer_info_request_id: original.requestId, line_item_id: original.wire.point, line_reference: original.wire.lineReference,
+      grid_area: original.wire.gridAreaCode, measure_method: 'Z04', reason_for_transaction: original.wire.reason,
+      end_user_id: changed, end_user_qualifier: 'SE2', installation_id: original.wire.point})
+    if (result.z02_atomic_core !== undefined) expect(causalRecord(result.z02_atomic_core).ok).not.toBe(true)
+  } else {
+    expect(result).toMatchObject({z02_payload_validation_status: 'valid', z02_snapshot_freshness_status: 'valid', z02_atomic_core_applied: false,
+      z02_atomic_core: {ok: false, code, gridAreaCode: changed, originalGridAreaCode: original.wire.gridAreaCode}})
+  }
+}
+async function assertCorrelationJobRefusal(f: Fixture, original: Original, received: Awaited<ReturnType<typeof receiveZ01SupplierReply>>, contrast: 'customer identity' | 'grid area', changed: string) {
+  await assertPhysicalZ02Application(f, received, {...original.wire, gridAreaCode: contrast === 'grid area' ? changed : original.wire.gridAreaCode})
+  expect(await fetchReceivedZ02EndUserAddressContext({message: received.message, actorUserId: f.actorUserId})).toBeDefined()
+  const jobs = sql<unknown[]>(`SELECT coalesce(jsonb_agg(to_jsonb(j) ORDER BY id),'[]') FROM public.customer_operation_jobs j
+    WHERE company_id=${literal(f.companyId)} AND job_type='apply_inbound_grid_owner_response' AND payload->>'ediel_message_id'=${literal(received.id)}`)
+  assertCausalJobRefusal(f, original, received.id, jobs, contrast, changed)
+  expect(ownRequest(f, original)).toMatchObject({id: original.requestId, status: 'manual_review_required',
+    blocker_code: contrast === 'customer identity' ? 'z02_end_user_identity_conflict' : 'z02_original_grid_area_conflict'})
+}
+function assertCausalReceiverHold(f: Fixture, intake: CorrelationIntake, birthErrors: unknown[], receipt: unknown) {
+  expect(intake.tenant).toMatchObject({status: 'ambiguous', companyId: null, source: null, confidence: 0,
+    reasons: ['Juridisk mottagare, teknisk transportidentitet och tenantkontext är inte entydigt verifierade; inga lokala objektfel skapas.']})
+  expect(intake.tenant.evidence.filter(item => item.source === 'verified_legal_identity' && item.companyId === f.companyId)).toEqual([])
+  if (intake.id) {
+    expect(birthErrors).toEqual([])
+    expect(receipt).toMatchObject({source_message_id: intake.id, company_id: f.companyId, environment: 'test', direction: 'inbound',
+      status: 'held', reason: 'ediel_inbound_legal_context_required', payload_sha256: sha(intake.mailbox.parsed.rawPayload)})
+  } else {
+    expect(birthErrors).toEqual([{code: 'P0001', message: 'ediel_inbound_legal_context_required'}])
+    expect(receipt).toBeNull()
+  }
+}
+async function assertCorrelationReceiverRefusal(f: Fixture, original: Original, raw: string) {
+  const warnings = vi.spyOn(console, 'warn')
+  let intake: CorrelationIntake, birthErrors: Array<{code: unknown; message: unknown}>
+  try {
+    intake = await attemptZ01SupplierMailIntake(f, raw)
+    birthErrors = warnings.mock.calls.filter(call => call[0] === '[inbound-mail] Kunde inte skapa/uppdatera inbound ediel_message')
+      .map(call => {const error = causalRecord(call[1]); return {code: error.code, message: error.message}})
+  } finally {warnings.mockRestore()}
+  assertRetainedCorrelationMail(f, intake, raw)
+  expect(intake.match).toMatchObject({status: 'matched', entityId: original.request.outbound_request_id})
+  expect(intake.pointMatch).toMatchObject({status: 'matched', entityId: f.pointId})
+  const receipt = intake.id ? sql(`SELECT to_jsonb(r) FROM gridex_ediel_inbound_context.receipts r WHERE source_message_id=${literal(intake.id)}`) : null
+  assertCausalReceiverHold(f, intake, birthErrors, receipt)
+  if (intake.id) {
+    const message = await processInboundEdielMessage({actorUserId: f.actorUserId, edielMessageId: intake.id})
+    expect(message).toMatchObject({id: intake.id, company_id: f.companyId, raw_payload: raw, immutable_payload_hash: sha(raw),
+      tenant_resolution_status: 'tenant_ambiguous', processing_status: 'routing_unresolved', business_match_status: 'business_blocked'})
+    expect(message.validation_report).not.toHaveProperty('canonicalRuntimeVersion')
+    expect(sql(`SELECT jsonb_build_object('assessments',(SELECT count(*) FROM gridex_received_sources.validation_assessments WHERE source_message_id=${literal(intake.id)}),
+      'jobs',(SELECT count(*) FROM public.customer_operation_jobs WHERE payload->>'ediel_message_id'=${literal(intake.id)}),
+      'routingEvent',(SELECT count(*) FROM public.ediel_message_events WHERE ediel_message_id=${literal(intake.id)}
+        AND payload->>'tenantResolutionStatus'='tenant_ambiguous' AND payload->>'ackDecision'='no_negative_contrl_for_routing_unresolved'))`))
+      .toEqual({assessments: 0, jobs: 0, routingEvent: 1})
+  } else expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE inbound_email_message_id=${literal(intake.mailbox.inboundEmailMessageId)}`)).toBe(0)
+}
+
 describe.each(['L', 'LK'] as const)('actual SUPPLIER Z01%s information chain', variant => {
   it('normal operation, immutable DDQ source, SMTP projection and parallel watches never activate supply', async () => {
     const f = await createZ01SupplierNativeFixture(variant, provider), before = activation(f)
@@ -557,8 +787,17 @@ describe.each(['L', 'LK'] as const)('actual SUPPLIER Z01%s information chain', v
     // stops this test; unrelated earlier refusal never counts as target proof.
     const actualOverride: ExternalZ02Overrides = override
     if (_label === 'customer identity') expect(actualOverride.customerIdentity).not.toEqual(original.wire.customerIdentity)
-    const received = await receiveZ01SupplierReply(f, z02(f, original, actualOverride))
-    observeCorrelationCause(f, original, received, _label)
+    const control = await createCorrelationReadControl(f, original)
+    const raw = z02(f, original, actualOverride, false, control.documentMinute)
+    assertCorrelationWire(control.raw, raw, _label, actualOverride)
+    if (_label === 'legal receiver' || _label === 'transport receiver') await assertCorrelationReceiverRefusal(f, original, raw)
+    else {
+      const received = await receiveZ01SupplierReply(f, raw)
+      observeCorrelationCause(f, original, received, _label)
+      if (_label === 'customer identity') await assertCorrelationJobRefusal(f, original, received, _label, override.customerIdentity.id)
+      else await assertCorrelationSourceRefusal(f, original, received, _label, control)
+    }
+    await rereadCorrelationControl(f, original, control)
     expect(coreApplications(f, original.requestId)).toBe(0)
     expect(ownRequest(f, original).response_ediel_message_id).toBeNull()
     expect(customerState(f)).toEqual(before); expect(sealedSource(original.originalZ01.id)).toEqual(sealed)
@@ -610,9 +849,14 @@ describe.each(['L', 'LK'] as const)('actual SUPPLIER Z01%s information chain', v
     const wrong = await ensureZ01SupplierKnownWrongGridArea(f), before = customerState(f)
     expect(wrong.gridAreaCode).not.toBe(original.wire.gridAreaCode)
     expect(wrong.after).toEqual(wrong.before)
-    const received = await receiveZ01SupplierReply(f, z02(f, original, {gridAreaCode: wrong.gridAreaCode}))
+    const control = await createCorrelationReadControl(f, original), override = {gridAreaCode: wrong.gridAreaCode}
+    const raw = z02(f, original, override, false, control.documentMinute)
+    assertCorrelationWire(control.raw, raw, 'grid area', override)
+    const received = await receiveZ01SupplierReply(f, raw)
     observeCorrelationCause(f, original, received, 'known same-price original area')
     await assertPhysicalZ02Application(f, received, {...original.wire, gridAreaCode: wrong.gridAreaCode})
+    await assertCorrelationJobRefusal(f, original, received, 'grid area', wrong.gridAreaCode)
+    await rereadCorrelationControl(f, original, control)
     expect(coreApplications(f, original.requestId)).toBe(0)
     expect(ownRequest(f, original).response_ediel_message_id).toBeNull()
     expect(customerState(f)).toEqual(before); expect(sealedSource(original.originalZ01.id)).toEqual(sealed)
