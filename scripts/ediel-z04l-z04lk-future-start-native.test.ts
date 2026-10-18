@@ -28,6 +28,8 @@ import {createInboundEdielMessage} from '@/lib/inbound-mail/inboundStatusUpdater
 import {matchOutboundRequestForInbound,matchMeteringPointForInbound} from '@/lib/inbound-mail/inboundMatcher'
 import {processInboundEdielMessage} from '@/lib/ediel/flows/inboundProcessing'
 import {resolveCanonicalRuntimeDecisionWithRegistry} from '@/lib/ediel/core/runtimeDecision'
+import * as receivedSourceValidationLedger from '@/lib/ediel/core/receivedSourceValidationLedger'
+import {buildReceivedSourceValidationEvidence} from '@/lib/ediel/core/receivedSourceValidationEvidence'
 import {validateFieldMatrixPayload} from '@/lib/ediel/rulebook/fieldMatrix'
 import {canonicalProdat26AFieldRules} from '@/lib/ediel/prodat/prodat26AFieldMatrix'
 import {evaluateProdatTransactionReason} from '@/lib/ediel/prodat/prodatTransactionReason'
@@ -47,6 +49,7 @@ type Fixture=NormalSwitchStageNativeFixture&{subtype:Subtype;originalZ03:EdielMe
   startAt:string;originalSeal:unknown;confirmation?:EdielMessageRow;periodId?:string;confirmed?:Row;invoiceBaseline?:Row}
 const password=randomUUID()+randomUUID(),cronSecret=randomUUID()+randomUUID()
 const fixtures:Fixture[]=[],valid={} as Record<Subtype,Fixture>,cancelled={} as Record<Subtype,Fixture>,expires={} as Record<Subtype,Fixture>,pending={} as Record<Subtype,Fixture>,invoiceePositive={} as Record<Subtype,Fixture>
+const heldAttempts:Row[]=[]
 let decoy:Fixture,ordinaryDay:string
 const evidence:FutureStartNativeReceipt={schema:'ediel_z04_future_start_native_v1',accelerated_execution:true,
   actual_elapsed_14_days:false,authentic_external_market_history:false,whole_approval:false,
@@ -56,7 +59,7 @@ const digest=(raw:string)=>createHash('sha256').update(raw).digest('hex')
 function persist(){
   const root=process.env.GRIDEX_Z04_FUTURE_EVIDENCE
   if(!root||!root.startsWith(process.cwd()+'/'))throw Error('z04future_owned_evidence_directory_required')
-  writeFileSync(join(root,'product-future-start-receipt.json'),JSON.stringify(evidence,null,2)+'\n')
+  writeFileSync(join(root,'product-future-start-receipt.json'),JSON.stringify({...evidence,held_attempts:heldAttempts},null,2)+'\n')
 }
 function passed(name:string,facts:Row={}){evidence.cases.push({name,status:'PASSED',...facts});persist()}
 function configureSmtp(email='recipient@example.invalid'){
@@ -231,26 +234,27 @@ function envelope(f:Fixture,wire:string,reason=f.subtype==='L'?'Z22':'Z23'){
       messageTypeToken:'PRODAT:D:97A:UN:E2SE6A',businessSegments:body}]})
 }
 function wire(f:Fixture,reason?:string){return envelope(f,buildCancellationProspectiveZ04(f),reason)}
-type BirthObservation={id:string|null;thrown:unknown;warnings:unknown[][]}
+type BirthObservation={id:string|null;thrown:unknown;threw:boolean;warnings:unknown[][]}
 async function observePublicBirth(create:()=>Promise<string|null>):Promise<BirthObservation>{
   // Observe the real owner's diagnostic port; spyOn preserves console output.
   // The public creator is invoked ONCE, with no substituted return or retry.
-  const warning=vi.spyOn(console,'warn'),observation:BirthObservation={id:null,thrown:null,warnings:[]}
-  try{observation.id=await create()}catch(error){observation.thrown=error}
+  const warning=vi.spyOn(console,'warn'),observation:BirthObservation={id:null,thrown:null,threw:false,warnings:[]}
+  try{observation.id=await create()}catch(error){observation.thrown=error;observation.threw=true}
   finally{observation.warnings=warning.mock.calls.map(args=>args.slice());warning.mockRestore()}
   return observation
 }
 function requireBirthRefusal(field:string|undefined,raw:string,observation:BirthObservation,premise:Row|null){
   assert.equal(observation.id,null,'refused_public_birth_has_no_source')
+  assert.equal(typeof observation.threw,'boolean','actual_public_birth_exception_presence_required')
   assert(field,'unexpected_public_birth_refusal')
   const wire=tokenizeEdifact(raw),unh=wire.segments.find(s=>s.tag==='UNH')!,unb=wire.segments.find(s=>s.tag==='UNB')!,bgm=wire.segments.find(s=>s.tag==='BGM')!
   const app=segmentComposite(unb,7,wire.una)[0]??'',code=segmentComposite(bgm,1,wire.una)[0]??''
-  if(observation.thrown){
-    assert.equal(observation.warnings.length,0,'no_unrelated_birth_warning')
+  if(observation.threw){
     const expected=field==='312'&&!segmentComposite(unh,2,wire.una)[4]?'normal_switch_birth_association_mismatch':
       field==='311'&&app==='23-DGI-PRODAT'?'canonical_ediel_application_reference_not_allowed:Z04:23-DGI-PRODAT':null
     if(!expected||!(observation.thrown instanceof Error)||observation.thrown.name!=='Error'||observation.thrown.message!==expected)
-      throw new Error('unqualified_public_birth_exception',{cause:observation.thrown})
+      throw observation.thrown
+    assert.equal(observation.warnings.length,0,'no_unrelated_birth_warning')
     return {field,kind:'exact_public_birth_exception',name:observation.thrown.name,message:expected,public_invocations:1}
   }
   assert.equal(observation.warnings.length,1,'one_actual_public_birth_error_required')
@@ -304,7 +308,7 @@ async function receive(f:Fixture,raw:string,expectedSubtype?:Subtype|'C',negativ
       SELECT jsonb_build_object('code',${literal(code)},'day',(SELECT day FROM receipt),'count',(SELECT count(*) FROM profiles),
         'profileKeys',(SELECT coalesce(jsonb_agg(profile_key ORDER BY profile_key),'[]') FROM profiles));`):null
   const observation=await observePublicBirth(()=>createInboundEdielMessage({companyId:f.companyId,actorUserId:f.actorUserId,environment:'test',inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId,parsed:mail.parsed,outboundMatch,meteringPointMatch}))
-  if(negativeField===undefined&&observation.thrown)throw observation.thrown
+  if(negativeField===undefined&&observation.threw)throw observation.thrown
   assert.deepEqual(mailCustody(mail),transportCustody,'public_birth_preserves_retained_transport_and_parse')
   if(!observation.id){
     const birthRefusal=requireBirthRefusal(negativeField,raw,observation,profilePremise),authority=absentBirthAuthority(mail)
@@ -456,9 +460,153 @@ function positiveAperaks(f:Fixture){return sql<Row[]>(`SELECT coalesce(jsonb_agg
 function pointOriginalCohort(f:Fixture,point:string){return sql<string[]>(`SELECT coalesce(jsonb_agg(DISTINCT s.outbound_z03_message_id ORDER BY s.outbound_z03_message_id),'[]')
   FROM public.supplier_switch_requests s JOIN public.metering_points p ON p.id=s.metering_point_id AND p.company_id=s.company_id
   WHERE s.company_id=${literal(f.companyId)} AND p.ediel_metering_point_id=${literal(point)} AND s.outbound_z03_message_id IS NOT NULL;`)}
+type ValidationInput=Parameters<typeof receivedSourceValidationLedger.recordReceivedSourceValidation>[0]
+type ValidationReceipt=Awaited<ReturnType<typeof receivedSourceValidationLedger.recordReceivedSourceValidation>>
+type RpcObservation={args:Row;result:unknown;thrown:unknown;rejected:boolean;consumptions:number;abortSignals:unknown[]}
+type ProcessingObservation={processInput:{actorUserId:string;edielMessageId:string};recorderCalls:number;
+  input:ValidationInput|null;receipt:ValidationReceipt|null;recorderError:unknown;recorderThrew:boolean;rpc:RpcObservation[];error:unknown;threw:boolean}
+function errorFacts(error:unknown):Row{
+  if(error===undefined)return {type:'undefined'}
+  if(error===null)return {type:'null',value:null}
+  if(typeof error!=='object')return {type:typeof error,value:typeof error==='string'||typeof error==='boolean'
+    ||typeof error==='number'&&Number.isFinite(error)?error:String(error)}
+  const value=error as Row,result:Row={}
+  for(const key of ['name','message','code','details','hint','stack'])if(typeof value[key]==='string')result[key]=value[key]
+  return Object.keys(result).length?result:{type:typeof error}
+}
+// Observe only the owner's ONE consumption. A second await of a PostgREST
+// builder would execute another request; no observer starts a request here.
+function observeRpcThenable<T extends object>(target:T,observation:RpcObservation):T{
+  const proxy=new Proxy(target,{get(object,key){
+    const value=Reflect.get(object,key,object)
+    if(typeof value!=='function')return value
+    if(key==='then')return (fulfilled:unknown,rejected:unknown)=>{
+      observation.consumptions++
+      return Reflect.apply(value,object,[(result:unknown)=>{observation.result=result
+        return typeof fulfilled==='function'?fulfilled(result):result},(error:unknown)=>{observation.thrown=error;observation.rejected=true
+        if(typeof rejected==='function')return rejected(error);throw error}])
+    }
+    return (...args:unknown[])=>{
+      if(key==='abortSignal')observation.abortSignals.push(args[0])
+      const result=Reflect.apply(value,object,args)
+      return result===object?proxy:result
+    }
+  }})
+  return proxy
+}
+function validationSnapshot(f:Fixture,message:EdielMessageRow){
+  const tables=['validation_assessments','prodat_ignored_field_facets','prodat_object_validation_facets',
+    'prodat_response_facets','prodat_application_facets','prodat_source_function_facets']
+  return sql<Row>('SELECT jsonb_build_object('+tables.map(table=>`${literal(table)},(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY to_jsonb(x)::text),'[]')
+    FROM gridex_received_sources.${table} x WHERE company_id=${literal(f.companyId)} AND environment='test' AND source_message_id=${literal(message.id)})`).join(',')+');')
+}
+async function observeHeldProcessing(f:Fixture,message:EdielMessageRow,attempt:Row):Promise<ProcessingObservation>{
+  const observation:ProcessingObservation={processInput:{actorUserId:f.actorUserId,edielMessageId:message.id},
+    recorderCalls:0,input:null,receipt:null,recorderError:null,recorderThrew:false,rpc:[],error:null,threw:false}
+  const recorder=vi.spyOn(receivedSourceValidationLedger,'recordReceivedSourceValidation'),originalRpc=supabaseService.rpc
+  const rpc=vi.spyOn(supabaseService,'rpc').mockImplementation(function(this:typeof supabaseService,...args:Parameters<typeof originalRpc>){
+    const builder=Reflect.apply(originalRpc,this,args) as ReturnType<typeof originalRpc>
+    if(args[0]!=='gridex_record_prodat_source_validation_v6')return builder
+    const entry:RpcObservation={args:args[1] as Row,result:null,thrown:null,rejected:false,consumptions:0,abortSignals:[]}
+    observation.rpc.push(entry)
+    return observeRpcThenable(builder,entry)
+  })
+  try{await processInboundEdielMessage(observation.processInput)}catch(error){observation.error=error;observation.threw=true}
+  finally{
+    try{
+      observation.recorderCalls=recorder.mock.calls.length
+      observation.input=recorder.mock.calls[0]?.[0]??null
+      // The recorder is a REAL Promise, already consumed by its owner. Reading
+      // this same Promise does not execute the lazy RPC builder a second time.
+      if(recorder.mock.results[0]?.type==='return'){
+        try{observation.receipt=await recorder.mock.results[0].value}catch(error){observation.recorderError=error;observation.recorderThrew=true}
+      }
+      const input=observation.input
+      attempt.processing={processInput:observation.processInput,recorderCalls:observation.recorderCalls,
+        original:input?{id:input.original.id,companyId:input.original.company_id,rawHash:digest(input.original.raw_payload??'')}:null,
+        validated:input?{id:input.validated.id,companyId:input.validated.company_id,rawHash:digest(input.validated.raw_payload??'')}:null,
+        decision:input?{syntax:input.decision.syntaxDecision,application:input.decision.applicationDecision,
+          functional:input.decision.functionalDecision,register:input.decision.prodatRegisterValidation,
+          issues:input.decision.issues,hash:digest(JSON.stringify(input.decision))}:null,
+        receipt:observation.receipt,recorderThrew:observation.recorderThrew,recorderError:errorFacts(observation.recorderError),threw:observation.threw,error:errorFacts(observation.error),
+        rpc:observation.rpc.map(call=>({args:call.args,consumptions:call.consumptions,abortSignalCount:call.abortSignals.length,
+          result:call.result,rejected:call.rejected,thrown:errorFacts(call.thrown)}))}
+      persist()
+    }finally{rpc.mockRestore();recorder.mockRestore()}
+  }
+  return observation
+}
+function requireAgency209Refusal(f:Fixture,message:EdielMessageRow,raw:string,observation:ProcessingObservation,
+  before:Row,after:Row,cause:HeldCause){
+  assert('field'in cause&&cause.field==='209','only_physical_agency209_may_use_source_guard')
+  assert.equal(observation.threw,true);assert(observation.error instanceof Error);assert.equal(observation.error.message,'prodat_canonical_source_validation_unconfirmed')
+  assert.deepEqual(observation.processInput,{actorUserId:f.actorUserId,edielMessageId:message.id})
+  assert.equal(observation.recorderCalls,1);assert.equal(observation.recorderThrew,false);assert.equal(observation.recorderError,null)
+  const input=observation.input;assert(input,'actual_same_invocation_recorder_input_required')
+  for(const source of [message,input.original,input.validated]){
+    assert.equal(source.id,message.id);assert.equal(source.company_id,f.companyId);assert.equal(source.environment,'test')
+    assert.equal(source.direction,'inbound');assert.equal(source.message_family,'PRODAT');assert.equal(source.message_code,'Z04')
+    assert.equal(source.raw_payload,raw)
+  }
+  assert.equal((message as EdielMessageRow&{immutable_payload_hash:string}).immutable_payload_hash,digest(raw))
+  assert.equal(input.resolvedCompanyId,f.companyId)
+  const physical=physicalSingleScope(raw)
+  assert.equal(physical.messageIndex,0);assert.equal(typeof physical.messageReference,'string');assert(physical.messageReference)
+  assert.equal(physical.objectId,f.external);assert.equal(physical.identityAgency,'ZZ')
+  const tokens=tokenizeEdifact(raw),li=tokens.segments.filter(s=>s.tag==='RFF'&&segmentComposite(s,1,tokens.una)[0]==='LI')
+  assert.equal(li.length,1);assert.deepEqual(segmentComposite(li[0],1,tokens.una),['LI',f.caseReference])
+  const envelope=EdifactEnvelopeCodec.decode(raw)
+  assert.equal(envelope.applicationReference,'23-DDQ-PRODAT');assert.equal(envelope.sender,f.receiver);assert.equal(envelope.receiver,f.sender)
+  for(const [role,expected]of [['FR',f.receiver],['DO',f.sender]]){
+    const parties=tokens.segments.filter(s=>s.tag==='NAD'&&segmentComposite(s,1,tokens.una)[0]===role)
+    assert.equal(parties.length,1);assert.equal(segmentComposite(parties[0],2,tokens.una)[0],expected)
+  }
+  const pair=sql<{original:Row;received:Row}>(`SELECT jsonb_build_object('original',gridex_received_sources.normal_switch_wire_v1(${literal(f.originalZ03.raw_payload)}),'received',gridex_received_sources.normal_switch_wire_v1(${literal(raw)}));`)
+  const original=(pair.original.objects as Row[])[0],received=(pair.received.objects as Row[])[0]
+  for(const key of ['point','li','customerIdentity','start','reason'])assert.deepEqual(received[key],original[key],'agency_only_preserves_original_'+key)
+  assert.equal(original.point,f.external);assert.equal(original.li,f.caseReference)
+  const decision=input.decision
+  assert.equal(decision.syntaxDecision,'accepted');assert.equal(decision.applicationDecision,'rejected');assert.equal(decision.functionalDecision,'accepted')
+  assert.equal(decision.policy?.subtype,f.subtype)
+  const errors=decision.issues.filter(issue=>issue.severity==='error')
+  assert(errors.length>0);assert(errors.every(issue=>issue.prodatDiagnostic?.kind==='field'&&issue.prodatDiagnostic.fieldNumber==='209'))
+  const bound=buildReceivedSourceValidationEvidence(input);assert(bound,'actual_fresh_source_context_and_rule_witness_required')
+  assert.equal(bound.sourceMessageId,message.id);assert.equal(bound.companyId,f.companyId);assert.equal(bound.environment,'test');assert.equal(bound.sourcePayloadHash,digest(raw))
+  const facts=JSON.parse(bound.factsText) as Row,facet=facts.registerValidation as {objects:Row[]}
+  assert.equal(facet.objects.length,1)
+  const own=facet.objects[0],reasons=own.reasons as string[]
+  assert.deepEqual({...own,reasons:[]},{...physical,disposition:'rejected',reasons:[]})
+  assert(reasons.includes('FIELD_MATRIX_FIELD_FORMAT_INVALID'))
+  assert(reasons.every(reason=>['FIELD_MATRIX_FIELD_FORMAT_INVALID','PRODAT_DEPENDENT_CONDITION_UNDETERMINED'].includes(reason)))
+  assert.equal(observation.rpc.length,1)
+  const call=observation.rpc[0];assert.equal(call.consumptions,1);assert.equal(call.abortSignals.length,1)
+  assert(call.abortSignals[0] instanceof AbortSignal);assert.equal(call.rejected,false);assert.equal(call.thrown,null)
+  assert.equal(call.args.p_company_id,f.companyId);assert.equal(call.args.p_environment,'test');assert.equal(call.args.p_source_message_id,message.id)
+  assert.equal(call.args.p_source_payload_hash,digest(raw));assert.equal(call.args.p_facts_text,bound.factsText)
+  assert.deepEqual(call.args,{p_company_id:bound.companyId,p_environment:bound.environment,p_source_message_id:bound.sourceMessageId,
+    p_source_payload_hash:bound.sourcePayloadHash,p_facts_text:bound.factsText,
+    p_source_function_facts_text:bound.prodatSourceFunctionValidation?JSON.stringify(bound.prodatSourceFunctionValidation):null,
+    p_object_facts_text:bound.prodatObjectValidation?JSON.stringify(bound.prodatObjectValidation):null,
+    p_application_facts_text:bound.prodatApplicationValidation?JSON.stringify(bound.prodatApplicationValidation):null,
+    p_ignored_fields_text:bound.prodatIgnoredFields?JSON.stringify(bound.prodatIgnoredFields):null,
+    p_response_facts_text:bound.prodatResponseValidation?JSON.stringify(bound.prodatResponseValidation):null})
+  const result=call.result as {data:unknown;error:{code?:unknown;message?:unknown}|null}
+  assert(result);assert.equal(result.data,null);assert(result.error)
+  assert.equal(result.error.code,'23514');assert.equal(result.error.message,'received_register_unvalidated_scope')
+  assert.deepEqual(observation.receipt,{status:'unconfirmed',sourceDisposition:'not_established'})
+  assert.deepEqual(after,before,'source_guard_has_no_new_or_changed_assessment_or_facet')
+  return {kind:'canonical_source_validation_agency209_guard',field:'209',sourceId:message.id,companyId:f.companyId,
+    actorUserId:observation.processInput.actorUserId,rawHash:digest(raw),physical,facet,rpcError:result.error,
+    receipt:observation.receipt,validationBefore:before,validationAfter:after}
+}
 async function held(f:Fixture,raw:string,label:string,cause:HeldCause){
+  const attempt:Row={label,cause,companyId:f.companyId,actorUserId:f.actorUserId,rawHash:digest(raw),stage:'before_business_snapshot',status:'STARTED'}
+  heldAttempts.push(attempt);persist()
+  try{
   const before=business(f),seals=fixtures.map(originalSeal),decoyBefore=business(decoy),aperakBefore=positiveAperaks(f)
+  attempt.stage='public_birth';persist()
   const {message,mail,birthRefusal,transportCustody:mailBefore}=await receive(f,raw,undefined,'field'in cause?cause.field:undefined)
+  attempt.sourceId=message?.id??null;attempt.mailId=mail.inboundEmailMessageId;attempt.stage='canonical_preflight';persist()
   const sourceBefore=message?sourceCustody(f,message):null
   const physical=tokenizeEdifact(mail.parsed.rawPayload)
   const physicalIssues=[...validateFieldMatrixPayload({family:'PRODAT',code:'Z04',direction:'inbound',
@@ -480,7 +628,15 @@ async function held(f:Fixture,raw:string,label:string,cause:HeldCause){
   let partitions:Row[]=[],refusalReceipt:unknown=birthRefusal??null
   if(message){
     const eventBefore=messageEvents(f,message.id).map(e=>String(e.id))
-    await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:message.id})
+    const validationBefore=validationSnapshot(f,message)
+    attempt.stage='process_inbound';persist()
+    const processing=await observeHeldProcessing(f,message,attempt)
+    let agencyRefusal:unknown=null
+    if(processing.threw){
+      try{agencyRefusal=requireAgency209Refusal(f,message,raw,processing,validationBefore,validationSnapshot(f,message),cause)}
+      catch(qualificationError){attempt.qualificationError=errorFacts(qualificationError);throw processing.error}
+    }
+    attempt.stage='post_processing_oracle';persist()
     partitions=sql<Row[]>(`SELECT coalesce(jsonb_agg(to_jsonb(p)),'[]') FROM gridex_received_sources.supply_object_partitions p WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(message.id)};`)
     expect(partitions,label+': all-held sources do not persist applied partitions').toEqual([])
     const events=messageEvents(f,message.id)
@@ -488,20 +644,25 @@ async function held(f:Fixture,raw:string,label:string,cause:HeldCause){
       const reasons='dimension'in cause?cause.reasons:['normal_z04_locked_original_scope_required']
       assert.equal(reasons.length,1,'scenario_has_one_exact_first_refusal')
       refusalReceipt=requireHeldDomainAudit(f,message.id,raw,reasons[0],events,eventBefore)
-    }else refusalReceipt=requireFieldOwnerAudit(f,(await getEdielMessageById(message.id))!,raw,cause.field,events,eventBefore)
+    }else if(agencyRefusal)refusalReceipt=agencyRefusal
+    else refusalReceipt=requireFieldOwnerAudit(f,(await getEdielMessageById(message.id))!,raw,cause.field,events,eventBefore)
     for(const table of ['gridex_received_sources.supply_source_transitions','gridex_received_sources.supply_object_effect_receipts'])
       assert.equal(sql<number>(`SELECT to_jsonb(count(*)) FROM ${table} WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(message.id)};`),0,'held_source_has_no_committed_effect:'+table)
     expect(sql<number>(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.normal_switch_confirmations WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(message.id)};`),label).toBe(0)
     expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND related_message_id=${literal(message.id)} AND message_family='APERAK' AND ack_outcome='positive';`),label).toBe(0)
   }
   assert(refusalReceipt,'actual_source_specific_public_refusal_required')
+  attempt.stage='no_effects_and_custody';persist()
   if(message)expect(sourceCustody(f,message),label+': actual refused source custody').toEqual(sourceBefore)
   expect(positiveAperaks(f),label+': no new or changed positive business ACK').toEqual(aperakBefore)
   expect(business(f),label).toEqual(before);expect(fixtures.map(originalSeal),label).toEqual(seals);expect(business(decoy)).toEqual(decoyBefore)
   const retained=sql<{raw:string}>(`SELECT jsonb_build_object('raw',raw_edifact_payload) FROM public.inbound_email_messages WHERE id=${literal(mail.inboundEmailMessageId)} AND company_id=${literal(f.companyId)};`)
   expect(retained.raw).toBe(raw)
   expect(mailCustody(mail)).toEqual(mailBefore)
+  attempt.status='COMPLETED';attempt.stage='complete'
   return {label,cause,diagnostics,partitions,refusalReceipt,sourceCustody:sourceBefore,mailCustody:mailBefore,sourceId:message?.id??null,mailId:mail.inboundEmailMessageId,rawHash:digest(raw),no_market_effects:true}
+  }catch(error){attempt.status='FAILED';attempt.error=errorFacts(error);throw error}
+  finally{persist()}
 }
 async function phase(f:Fixture,relation:'strictly-before'|'at-or-after',name:string){
   const target=relation==='strictly-before'?new Date(Date.parse(f.startAt)-120000).toISOString():f.startAt
