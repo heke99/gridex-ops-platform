@@ -231,6 +231,11 @@
     "20261015082905_ops_api_prepare_signature_concurrency_alignment.sql": "3d07b517a8577ca841f2e8822c461a9204340f960058f167c3e78c036aff6d7d",
     "20261015083414_ops_api_signing_retention_crosspaths_alignment.sql": "be993328f8141425267146b9a832279d01872332cbca86c8b5aa78bed14a6fb9",
     "20261015083829_ops_api_signature_price_cache_alignment.sql": "4f87d7a8626941c529e350f7784af0c42fab58740598db47c7c1ad5c5e04a705",
-    "20261015100259_ops_api_signed_contract_price_cache_binding_guard_alignment.sql": "9c055dba7b020aad3bb867f6ff2b02f8854fee4bc136db2de4042bc6347dc83c"
+    "20261015100259_ops_api_signed_contract_price_cache_binding_guard_alignment.sql": "9c055dba7b020aad3bb867f6ff2b02f8854fee4bc136db2de4042bc6347dc83c",
+    "20261018104637_db05_completed_decision_review_reason_retention.sql": "3725ee68d6883b93f47cafa3fb2322f76ad058e168f79a342c0cd33901b946c2",
+    "20261018164728_db05_completed_review_witness_consumer_freeze.sql": "61df11f501aa667c2c6386c6aa2bb282018b672e5dfbe4c57663c42744da9691",
+    "20261018172327_ediel_sc031_inbound_ignored_register_projection.sql": "cf6e7b6085ee1529c6f254feb92e2907d8a8e036fcd924cbafaef670572ff8b6",
+    "20261018180859_db05_completed_witness_field_disposition.sql": "fc642d541201138c428699e432e2bad0c0b1c88c64238f1b9b4cf8a7889ae604",
+    "20261018220722_db05_completed_parent_purpose_disposition.sql": "0a1ade9d52e1de387e2b4eac8b184b4b1df74c4a67c74725c197122c0d97d7c1"
   }
 }

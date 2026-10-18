@@ -11,6 +11,14 @@ const mutation=z.union([
  z.object({status:z.enum(['approved','held','rejected']),policyId:uuid.optional(),reviewId:uuid.optional(),missing:z.array(z.string()).optional()}),
  z.object({status:z.literal('purged'),retentionClass:kind,targetId:uuid,sourceHash:hash,byteLength:z.number().int().positive(),bytesAvailable:z.literal(false),authority:z.literal('none'),replay:z.boolean()}),
 ])
+const purgeResult=z.union([
+ z.object({status:z.literal('disposed'),replay:z.boolean(),authority:z.literal('none')}).strict(),
+ z.object({status:z.literal('expired'),authority:z.literal('none')}).strict(),
+ z.object({status:z.literal('purged'),replay:z.literal(true),authority:z.literal('none')}).strict(),
+ z.object({status:z.literal('unavailable'),authority:z.literal('none')}).strict(),
+ z.object({status:z.literal('purged'),retentionClass:kind,targetId:uuid,sourceHash:hash,byteLength:z.number().int().positive(),bytesAvailable:z.literal(false),authority:z.literal('none'),replay:z.boolean()}).strict(),
+ z.object({status:z.literal('held'),policyId:uuid,missing:z.array(z.string()).min(1)}).strict(),
+])
 export const decisionOriginalSchema=z.object({companyId:uuid,retentionClass:kind,targetId:uuid,targetMetadataHash:hash,documentHash:hash,documentByteLength:z.number().int().positive(),bytesAvailable:z.boolean(),documentBase64:z.string().nullable(),purgedAt:z.string().nullable(),authority:z.literal('none')})
 export const decisionPolicySchema=z.object({companyId:uuid,policyId:uuid,retentionClass:kind,targetId:uuid,sourceHash:hash,targetMetadataHash:hash,documentHash:hash,documentByteLength:z.number().int().positive(),bytesAvailable:z.boolean(),documentPurgedAt:z.string().nullable(),documentBase64:z.string().nullable(),submittedBy:uuid,createdAt:z.string(),issuerQualified:z.boolean(),currentQualified:z.boolean(),revoked:z.boolean(),reviews:z.array(z.object({reviewId:uuid,actorUserId:uuid,outcome:z.enum(['approved','held','rejected']),reason:z.string(),createdAt:z.string()})),purge:z.object({purgedAt:z.string(),sourceHash:hash,byteLength:z.number().int().positive()}).nullable(),authority:z.literal('none')})
 async function session(companyId:string){
@@ -42,7 +50,14 @@ export async function reviewDecisionEvidenceRetention(input:{companyId:string;po
 export async function revokeDecisionEvidenceRetention(input:{companyId:string;policyId:string;reason:string}){uuid.parse(input.policyId);reason.parse(input.reason);await call('ediel_revoke_decision_evidence_retention_v1',input.companyId,{p_policy_id:input.policyId,p_reason:input.reason})}
 /** Revocation, current separate review, exact signed deadline and byte erasure
  * share one native transaction. A durable replay is historical, not approval. */
-export async function purgeDecisionEvidenceRetention(input:{companyId:string;policyId:string}){uuid.parse(input.policyId);return mutation.parse(await call('ediel_purge_decision_evidence_retention_v1',input.companyId,{p_policy_id:input.policyId}))}
+export async function purgeDecisionEvidenceRetention(input:{companyId:string;policyId:string}){
+ uuid.parse(input.policyId)
+ const parsed=purgeResult.safeParse(await call('ediel_purge_decision_evidence_retention_v1',input.companyId,{p_policy_id:input.policyId}))
+ if(!parsed.success)throw Error('decision_evidence_purge_result_invalid')
+ const result=parsed.data
+ if(result.status==='held'&&result.policyId!==input.policyId)throw Error('decision_evidence_purge_scope_mismatch')
+ return result
+}
 function verifyBytes(value:{documentHash:string;documentByteLength:number;documentBase64:string|null;bytesAvailable:boolean},requested:boolean){
  if(!value.bytesAvailable){if(value.documentBase64!==null)throw Error('decision_evidence_tombstone_bytes_present');return}
  if(!requested){if(value.documentBase64!==null)throw Error('decision_evidence_unrequested_bytes');return}
@@ -61,4 +76,22 @@ export async function readDecisionEvidencePolicy(input:{companyId:string;policyI
  const includeDocument=input.includeDocument===true,result=decisionPolicySchema.parse(await call('ediel_read_decision_evidence_policy_v1',input.companyId,{p_policy_id:input.policyId,p_include_document:includeDocument}))
  if(result.companyId!==input.companyId||result.policyId!==input.policyId)throw Error('decision_evidence_policy_scope_mismatch')
  verifyBytes(result,includeDocument);return result
+}
+
+/** A fresh signed physical-disposition bundle is independent of legacy review. */
+export async function reviewCompletedWitnessDisposition(input:{companyId:string;policyId:string;outcome:'approve'|'revoke';issuerReceipt:Record<string,unknown>|null}){
+ uuid.parse(input.policyId);z.enum(['approve','revoke']).parse(input.outcome)
+ const result=z.object({status:z.enum(['approved','revoked']),authority:z.literal('none')}).strict().parse(await call('ediel_review_completed_witness_disposition_v1',input.companyId,{p_policy_id:input.policyId,p_outcome:input.outcome,p_receipt:input.issuerReceipt}))
+ if(result.status!==(input.outcome==='approve'?'approved':'revoked'))throw Error('completed_witness_review_result_invalid')
+ return result
+}
+const workerResult=z.object({scanned:z.number().int().min(0).max(100),disposed:z.number().int().min(0).max(100),expired:z.number().int().min(0).max(100),clearedApprovals:z.number().int().min(0).max(100),held:z.number().int().min(0).max(100),authority:z.literal('none')}).strict()
+/** Uses the existing validated cron actor; never creates an auth.uid session. */
+export async function advanceCompletedWitnessDisposition(input:{actorUserId:string;limit:number}){
+ uuid.parse(input.actorUserId);z.number().int().min(1).max(100).parse(input.limit)
+ const {supabaseService}=await import('@/lib/supabase/service')
+ const rpc=supabaseService.rpc.bind(supabaseService) as unknown as (name:string,args:Record<string,unknown>)=>Promise<{data:unknown;error:unknown}>
+ const {data,error}=await rpc('ediel_advance_completed_witness_disposition_v1',{p_actor_user_id:input.actorUserId,p_limit:input.limit})
+ if(error)throw Error('completed_witness_worker_failed')
+ return workerResult.parse(data)
 }
