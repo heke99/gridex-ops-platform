@@ -4000,8 +4000,13 @@
     },
     {
       "id": "AT-Z01L-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/onboarding/infoRequests.ts",
+        "__tests__/ediel-at-z01l-z01lk-supplier-profile.test.ts",
+        "__tests__/ediel-z01-godr-supersession-scope.test.ts",
+        "scripts/ediel-at-z01-supplier-native.test.ts"
+      ]
     },
     {
       "id": "AT-Z02L-SUPPLIER",
@@ -4043,8 +4048,13 @@
     },
     {
       "id": "AT-Z01LK-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/onboarding/infoRequests.ts",
+        "__tests__/ediel-at-z01l-z01lk-supplier-profile.test.ts",
+        "__tests__/ediel-z01-godr-supersession-scope.test.ts",
+        "scripts/ediel-at-z01-supplier-native.test.ts"
+      ]
     },
     {
       "id": "AT-Z02LK-SUPPLIER",
@@ -4169,13 +4179,29 @@
     },
     {
       "id": "AT-Z05H-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-z05-rejected-identity-runtime.test.ts",
+        "__tests__/ediel-supply-end-field-omissions.test.ts",
+        "scripts/ediel-at-z05h-z08h-supplier-native.test.ts",
+        "lib/ediel/production/bilateralProdatProfileIntake.ts",
+        "lib/ediel/prodat/receivedZ05RejectedIdentityRejection.ts",
+        "lib/ediel/flows/supplyMarketTransition.ts",
+        "quality/audits/ediel-masterplan-v2/evidence/h05-h08-qualified-native-20261018.json"
+      ]
     },
     {
       "id": "AT-Z08H-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-supply-end-field-omissions.test.ts",
+        "scripts/ediel-at-z05h-z08h-supplier-native.test.ts",
+        "lib/ediel/flows/prodatSupplyRescission.ts",
+        "lib/ediel/production/supplyRescissionIntake.ts",
+        "lib/ediel/production/supplyRescissionOperation.ts",
+        "lib/ediel/flows/supplyMarketTransition.ts",
+        "quality/audits/ediel-masterplan-v2/evidence/h05-h08-qualified-native-20261018.json"
+      ]
     },
     {
       "id": "AT-Z08LK-SUPPLIER",

@@ -1,0 +1,418 @@
+{
+  "schema_version": 1,
+  "kind": "bounded_qualified_native_acceptance_adoption",
+  "scope": {
+    "only_ids": [
+      "AT-Z05H-SUPPLIER",
+      "AT-Z08H-SUPPLIER"
+    ],
+    "assessment": "WHOLE_CODE_ACCEPTANCE_ELIGIBLE",
+    "not_actual_delivery": true,
+    "actual_market_evidence": "NOT_PROVIDED"
+  },
+  "native_proof": {
+    "head": "1c450b2c6d76787731715152c69115f0e0e4946a",
+    "tree": "0c9a5b9f4747f15b35e0a4e465a0411d8703cc4b",
+    "base": "f8c99f40bb04bba2a7319ee4ee111eec8acdebd4",
+    "run": 39129717618,
+    "attempt": 1,
+    "job": 117682201817,
+    "artifact": 12138881751,
+    "zip_bytes": 1329131,
+    "zip_sha256": "203073b7664123435c4299229912b8d43f2aa19eb7411795409a870730903f43",
+    "run_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/39129717618",
+    "test_scope": [
+      "scripts/ediel-at-z05h-z08h-supplier-native.test.ts"
+    ],
+    "config": "scripts/ediel-z05h-z08h-supplier-native.config.ts",
+    "workflow": ".github/workflows/ediel-z05h-z08h-supplier-native.yml",
+    "immutable_inputs": 10747,
+    "all_modes_blob_oids_sha256": "EXACT",
+    "input_vector_sha256": "399f2ed3476c74cd5bc8d86535d0f9cd0ba88697f881956ece25fb5d6523f7a4",
+    "counts": {
+      "tests": 101,
+      "passed": 101,
+      "failures": 0,
+      "skipped": 0,
+      "errors": 0,
+      "reason": "passed"
+    },
+    "case_partition": {
+      "shared_source_controls": 5,
+      "H05": 50,
+      "H08": 46
+    },
+    "native_exit": 0,
+    "canonical_replay": "PASSED",
+    "cleanup": "ZERO_CONTAINERS",
+    "output_digests": {
+      "native.log": {
+        "bytes": 33808,
+        "sha256": "9b86e82cc6647bd9d40bf4ba87978440f375fe395e1eaf289543c0bafac19c19"
+      },
+      "native-summary.json": {
+        "bytes": 153,
+        "sha256": "040e375daa1deac6c399aa519da321e500406cf6ac5d749d9d88f5b7054f94a1"
+      },
+      "native-junit.xml": {
+        "bytes": 23039,
+        "sha256": "1f0091ede59325ef136a21acf0a20ab1af7a3af6160ea5bc6efaba87ff9b8531"
+      },
+      "native-cases.ndjson": {
+        "bytes": 30119,
+        "sha256": "1d7f70e0935f47f8e438a04a14e9c4e5ef065229adeafb910ff8b29681740973"
+      }
+    },
+    "receipt_sha256": "45d0a70064ec7d19501ca4226cd0e34272392ca8600847ede0b025111453eae1",
+    "receipt_limits": {
+      "purpose": "supplemental_actual_native_feedback",
+      "whole_h05_h08": "NOT_APPROVED_BY_RECEIPT_ALONE",
+      "authentic_market_evidence": "NOT_PROVIDED",
+      "ordinary_required_gates": "NOT_REPLACED",
+      "schema_capture": "NOT_RUN",
+      "upgrade_parity": "NOT_RUN",
+      "browser_tests": "NOT_RUN"
+    },
+    "originals_reused": true,
+    "new_native_execution_for_adoption": false
+  },
+  "actual_ports": {
+    "bilateral_ground": {
+      "code": "lib/ediel/production/bilateralProdatProfileIntake.ts",
+      "entrypoints": [
+        "readBilateralProdatGroundScope",
+        "archiveBilateralProdatGround",
+        "reviewBilateralProdatGround"
+      ]
+    },
+    "bilateral_capability": {
+      "code": "lib/ediel/core/prodatBilateralSourceCapability.ts",
+      "entrypoint": "readSourceQualifiedProdatBilateralCapability"
+    },
+    "public_birth": {
+      "code": "lib/inbound-mail/inboundStatusUpdater.ts",
+      "entrypoint": "createInboundEdielMessage"
+    },
+    "inbound": {
+      "code": "lib/ediel/flows/inboundProcessing.ts",
+      "entrypoint": "processInboundEdielMessage"
+    },
+    "supply": {
+      "code": "lib/ediel/flows/supplyMarketTransition.ts",
+      "entrypoint": "applySupplyMarketSource",
+      "rpc": "public.ediel_apply_supply_source_v1"
+    },
+    "transport": {
+      "code": "lib/ediel/transport/index.ts",
+      "entrypoint": "sendEdielMessageViaSmtp"
+    },
+    "fields": {
+      "code": "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+      "entrypoint": "validateCanonicalPolicyFields"
+    },
+    "original_guard": {
+      "code": "supabase/migrations/20261013000500_ediel_h_original_identity_guard.sql",
+      "entrypoints": [
+        "gridex_bilateral_prodat.confirm_h_end_v1",
+        "public.ediel_apply_supply_source_v1"
+      ]
+    },
+    "legal_intake": {
+      "code": "lib/ediel/production/supplyRescissionIntake.ts",
+      "entrypoints": [
+        "readSupplyRescissionScope",
+        "archiveSupplyRescission",
+        "reviewSupplyRescission"
+      ]
+    },
+    "legal_mandate": {
+      "code": "lib/ediel/production/supplyRescissionOperation.ts",
+      "entrypoint": "readSupplyRescissionMandate"
+    },
+    "billing": {
+      "code": "lib/billing/providerEventProcessor.ts",
+      "entrypoint": "processPendingInvoiceProviderEvents"
+    },
+    "H08_request": {
+      "code": "lib/ediel/flows/prodatSupplyRescission.ts",
+      "entrypoint": "prepareAndQueueSupplyRescissionZ08"
+    },
+    "received_ACK": {
+      "code": "lib/ediel/ack/committedInboundAck.ts",
+      "entrypoint": "readCommittedInboundAck"
+    },
+    "end_watch": {
+      "code": "supabase/migrations/20261001115200_ediel_national_supply_rescission_business_watch.sql",
+      "entrypoint": "gridex_business_expectations.reconcile_v1"
+    }
+  },
+  "contracts": {
+    "AT-Z05H-SUPPLIER": {
+      "frozen_card": {
+        "given": "SUPPLIER; Känd kod ≠ generell produktionsbehörighet; konkret avtal och exakta fält/timers krävs.",
+        "when": "Särskilt avtalad användning av ospecificerad/hävningsanknuten transaktion.",
+        "expected": "23-DDQ-PRODAT; BGM=Z05; fält223=Z25; Kvittens och affärsförlopp enligt uttrycklig bilateral process.; Ingen automatisk standardeffekt utan fastställd bilateral transitionsprofil.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas."
+      },
+      "criterion_mapping": [
+        {
+          "literal_clause": "SUPPLIER; Känd kod ≠ generell produktionsbehörighet; konkret avtal och exakta fält/timers krävs. Särskilt avtalad användning av ospecificerad/hävningsanknuten transaktion.",
+          "caseNames": [
+            "public H05 reception commits the same supply/history and only its actual commercial end before exact physical ACKs; replay preserves originals and effects",
+            "actual public H05 has no standard end effect when its own bilateral transition profile was never established"
+          ],
+          "actual_ports": [
+            "bilateral_ground",
+            "bilateral_capability"
+          ],
+          "observed_effect": "Actual signed synthetic own_end_h original binds selected parties/grammar/validity/operation; separate archive/review/readback passes. Known Z25/normal_start_h alone grants no end.",
+          "test_line": 437,
+          "case_ordinals_1based": "6,11",
+          "frozen_clause_refs": [
+            "given",
+            "when"
+          ]
+        },
+        {
+          "literal_clause": "23-DDQ-PRODAT; BGM=Z05; fält223=Z25; Kvittens och affärsförlopp enligt uttrycklig bilateral process.",
+          "caseNames": [
+            "public H05 reception commits the same supply/history and only its actual commercial end before exact physical ACKs; replay preserves originals and effects"
+          ],
+          "actual_ports": [
+            "inbound",
+            "transport"
+          ],
+          "observed_effect": "Physical23-DDQ-PRODAT/Z05/Z25/DTM93 and fixedUTC+1 end match; exactly two observed ingress+30min ACK timers, physical replies/outbox/identity+LI+agency and timely sentAt; replay preserves timers.",
+          "test_line": 437,
+          "case_ordinals_1based": "6",
+          "frozen_clause_refs": [
+            "expected"
+          ]
+        },
+        {
+          "literal_clause": "Ingen automatisk standardeffekt utan fastställd bilateral transitionsprofil.",
+          "caseNames": [
+            "public H05 reception commits the same supply/history and only its actual commercial end before exact physical ACKs; replay preserves originals and effects",
+            "public H05 signed binding source opens only human break-fee review and final-invoice work; replay never charges"
+          ],
+          "actual_ports": [
+            "supply"
+          ],
+          "observed_effect": "Only same own period ends. Start/history/foreign graphs stay exact; one termination/domain event/final-invoice task/case, binding12 human break-fee review only; no automatic invoice/charge.",
+          "test_line": 437,
+          "case_ordinals_1based": "6-7,11",
+          "frozen_clause_refs": [
+            "expected"
+          ]
+        },
+        {
+          "literal_clause": "Fel roll, fel riktning",
+          "caseNames": [
+            "actual H05 birth foreign_actor refuses the real retained mailbox and parse before source creation",
+            "actual H05 registered raw/direction and protected legal-context mutations are refused without rewriting originals"
+          ],
+          "actual_ports": [
+            "public_birth",
+            "supply"
+          ],
+          "observed_effect": "Foreign actor/current permission/supplier/reviewer withdrawal and outbound direction refuse. Raw/direction/context mutations cannot rewrite originals; global authority/business/ACK/outbox effects preserved.",
+          "test_line": 505,
+          "case_ordinals_1based": "8-10,12-13,20",
+          "frozen_clause_refs": [
+            "prohibited"
+          ]
+        },
+        {
+          "literal_clause": "saknade R/D-fält",
+          "caseNames": [
+            "public H05 refuses missing physical 311 without end, billing, history or positive business ACK",
+            "public H05 missing physical209 owns only its exact negative ACK; no business authority, original mutation or replay effect"
+          ],
+          "actual_ports": [
+            "fields",
+            "inbound"
+          ],
+          "observed_effect": "All25base/object+2country+5IV omissions and missing/malformed209 pass; no end/billing/positive business ACK. Narrow actual birth refusal is qualified; rejected209 owns only exact negative response; replay/clones add no authority.",
+          "test_line": 701,
+          "case_ordinals_1based": "22-53,100-101",
+          "frozen_clause_refs": [
+            "prohibited"
+          ]
+        },
+        {
+          "literal_clause": "felaktig korrelation eller mutation ska inte verkställas.",
+          "caseNames": [
+            "actual public H05 wrong agency correlation cannot end or bill any supply",
+            "actual H05 final audit failure rolls back market, contract, billing, transition and positive ACK writes atomically"
+          ],
+          "actual_ports": [
+            "inbound",
+            "original_guard"
+          ],
+          "observed_effect": "All6 wrong customer/grid/sender/receiver/object/agency controls pass; final audit failure rolls back actual period/contract/transition/billing/positive-ACK writes. Complete old/foreign/NULL/original rows survive replay.",
+          "test_line": 553,
+          "case_ordinals_1based": "14-21",
+          "frozen_clause_refs": [
+            "prohibited"
+          ]
+        }
+      ],
+      "all_executed_cases": {
+        "case_ordinals_1based": "6-53,100-101",
+        "passed": 50,
+        "failures": 0,
+        "skipped": 0,
+        "errors": 0
+      }
+    },
+    "AT-Z08H-SUPPLIER": {
+      "frozen_card": {
+        "given": "SUPPLIER; Juridiska förutsättningar för hävning måste vara dokumenterade; ingen automatisk hävning enbart vid betalningsflagga.",
+        "when": "Behörigt avslut/hävning av elhandelsavtal.",
+        "expected": "23-DDQ-PRODAT; BGM=Z08; fält223=Z25; CONTRL, APERAK och relevant Z05L enligt förlopp.; Bevakad avslutsbegäran och kontrollerat leveransslut.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas."
+      },
+      "criterion_mapping": [
+        {
+          "literal_clause": "SUPPLIER; Juridiska förutsättningar för hävning måste vara dokumenterade. Behörigt avslut/hävning av elhandelsavtal.",
+          "caseNames": [
+            "public H08 authentic archive/review creates only its own H request; physical CONTRL/APERAK precede matching public Z05L and untimed watch fulfilment",
+            "actual H08 archived but unreviewed legal original never becomes a mandate or outgoing rescission"
+          ],
+          "actual_ports": [
+            "legal_intake",
+            "legal_mandate"
+          ],
+          "observed_effect": "Actual authenticated signed synthetic original binds own period/contract/source grammar/effective minute/legal prerequisites; separate review quotes original bytes. Unreviewed archive cannot create mandate/request.",
+          "test_line": 762,
+          "case_ordinals_1based": "54,99",
+          "frozen_clause_refs": [
+            "given",
+            "when"
+          ]
+        },
+        {
+          "literal_clause": "Ingen automatisk hävning enbart vid betalningsflagga.",
+          "caseNames": [
+            "actual H08 overdue payment alone projects billing but never requests or applies supply rescission"
+          ],
+          "actual_ports": [
+            "billing"
+          ],
+          "observed_effect": "Real overdue consumer projects invoice/export item/underlay; supply/contract/legal artifacts/mandates/Z08/end/watch stay exact; replay no-op. Payment state never supplies rescission authority.",
+          "test_line": 973,
+          "case_ordinals_1based": "98",
+          "frozen_clause_refs": [
+            "given"
+          ]
+        },
+        {
+          "literal_clause": "23-DDQ-PRODAT; BGM=Z08; fält223=Z25; CONTRL, APERAK och relevant Z05L enligt förlopp.",
+          "caseNames": [
+            "public H08 authentic archive/review creates only its own H request; physical CONTRL/APERAK precede matching public Z05L and untimed watch fulfilment"
+          ],
+          "actual_ports": [
+            "H08_request",
+            "transport",
+            "received_ACK"
+          ],
+          "observed_effect": "Real original has23-DDQ-PRODAT/Z08/Z25+mandate LI and distinct current executor. Physical received CONTRL/APERAK bind exact original and do not end supply; only matching public Z05L closes own period.",
+          "test_line": 762,
+          "case_ordinals_1based": "54",
+          "frozen_clause_refs": [
+            "expected"
+          ]
+        },
+        {
+          "literal_clause": "Bevakad avslutsbegäran och kontrollerat leveransslut.",
+          "caseNames": [
+            "public H08 authentic archive/review creates only its own H request; physical CONTRL/APERAK precede matching public Z05L and untimed watch fulfilment",
+            "public H08 wrong_li cannot end any supply or produce a positive business ACK"
+          ],
+          "actual_ports": [
+            "inbound",
+            "supply",
+            "end_watch"
+          ],
+          "observed_effect": "PendingZ05/L due_at=null/remoteReceiptKnown=false fulfils only via immutable same-source matched end receipt with original/source/transition hashes; exact effective minute/own history/tasks/replay/copy. Unsent/wrongLI/end refuses.",
+          "test_line": 762,
+          "case_ordinals_1based": "54-56,59",
+          "frozen_clause_refs": [
+            "expected"
+          ]
+        },
+        {
+          "literal_clause": "Fel roll, fel riktning, saknade R/D-fält",
+          "caseNames": [
+            "actual H08 original missing physical 311 is refused before SMTP and cannot change any original, supply, watch or billing effect",
+            "actual H08 supplier_role withdrawal removes current mandate authority and creates no further original or business effect"
+          ],
+          "actual_ports": [
+            "fields",
+            "transport",
+            "legal_mandate"
+          ],
+          "observed_effect": "All30base/country/address/IV omissions pass physical diagnostics plus source-integrity/earlier syntax refusal before provider. SEND/current supplier/reviewer withdrawal, raw/direction change: no new original/end/business/provider effect.",
+          "test_line": 824,
+          "case_ordinals_1based": "61-91,94-97",
+          "frozen_clause_refs": [
+            "prohibited"
+          ]
+        },
+        {
+          "literal_clause": "felaktig korrelation eller mutation ska inte verkställas.",
+          "caseNames": [
+            "actual H08 wrong CONTRL physical source reference never commits a remote receipt or fulfils its untimed watch",
+            "actual accepted H08 direction candidate cannot rewrite its protected transport receipt or enter SMTP again"
+          ],
+          "actual_ports": [
+            "inbound",
+            "received_ACK",
+            "original_guard"
+          ],
+          "observed_effect": "WrongLI/object/agency/end/reviewer and foreign physical ACK reference create no end/positive business ACK/remote receipt/watch fulfilment; complete own/foreign/NULL/original/transport/oldACK/outbox rows and replay preserved.",
+          "test_line": 870,
+          "case_ordinals_1based": "55-60,92-95",
+          "frozen_clause_refs": [
+            "prohibited"
+          ]
+        }
+      ],
+      "all_executed_cases": {
+        "case_ordinals_1based": "54-99",
+        "passed": 46,
+        "failures": 0,
+        "skipped": 0,
+        "errors": 0
+      }
+    }
+  },
+  "current_applicability": {
+    "receiving_main": "3034e14d194dbf6d8add1b23a5de1d2924f3a1a7",
+    "receiving_tree": "e26787b1097655c52c505882d0ee1567bf2f96bc",
+    "sourceUnchanged": false,
+    "reviewed_H_union_tree_before_proof_and_ledger": "0018bcac2739fe7e89b4887bd0e5593286f2586b",
+    "source2_packet_files": {
+      "scripts/ediel-at-z05h-z08h-supplier-native.test.ts": "65d37f514fc2ee106a80404accb39a9b5d4b8a26777e9a63399b5cb80021d42d",
+      ".github/workflows/ediel-z05h-z08h-supplier-native.yml": "d3f1bfbadc7e43ca16ac70c473bb292d1e33a4b9a9c044f9b08d4c1a937b9573"
+    },
+    "source2_packet_applied_exactly": true,
+    "receiving_delta_from_original_base": [
+      ".github/workflows/ediel-z03c-supplier-boundary-native.yml"
+    ],
+    "other_10746_original_inputs_mode_oid_unchanged_in_union": true,
+    "delta_assessment": "Receiving main adds only the disjoint C03 native-workflow delta. H runtime/SQL/schema/types/helpers/config/canonical/ACK/transport/billing/timers/frozen criteria equal executed inputs; source2 applies its exact two files. H101 belongs only to original head, not101new receiving-main/composed cases. Final proof/ledger successor needs affected exact-version review.",
+    "acceptance_carrier_paths": [
+      "quality/audits/ediel-masterplan-v2/evidence/h05-h08-qualified-native-20261018.json",
+      "quality/audits/ediel-masterplan-v2/coverage.json"
+    ],
+    "acceptance_carrier_effect": "Only reviewed evidence and the two H acceptance rows; no runtime source change or new execution. Final carrier/ledger deltas require affected review."
+  },
+  "preserved_limits": [
+    "Bilateral/legal documents, issuer/tenant/customer/contract/route prerequisites and SMTP provider result are declared synthetic. Actual public/session/permission/canonical/source/ACK/effect/timer/billing consumers execute.",
+    "H05 ownOperation is protected by signed original/sourceHash, outside RPC scopehash; general automated document-policy interpretation is not claimed. Real supplier/DSO bilateral agreement and production issuer/representation/clauses absent.",
+    "H08 original says NOT REAL LEGAL CLAIM; real legal decision/prerequisites/issuer representation absent. Payment state supplies none. Actual market/provider/counterparty/LIVE/deployment acceptance NOT_PROVIDED.",
+    "Receipt alone does not approve a contract. Code approval and market activation remain separate. Ordinary mandatory gates and two independent exact final proof/ledger/source reviews remain required; frozen criteria and unrelated rows preserved.",
+    "Expected immutable-mutation SQL errors and narrow missing-field birth warnings are retained. No hidden retry, healthy rerun, new original collection or newly executed receiving-main H101 is claimed."
+  ]
+}
