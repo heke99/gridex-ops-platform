@@ -180,6 +180,21 @@ describe('Z13V open-ended ongoing reporting', () => {
   })
 })
 
+describe('Z13VH history window must end before the request day', () => {
+  it('the declared VH window passes the captured timing guard', () => {
+    expect(() => assertCapturedServiceRequestTiming(fixture('VH').basis)).not.toThrow()
+  })
+  it.each([
+    ['ends after the request day', '2026-11-01T00:00:00+01:00'],
+    ['ends on a later year', '2027-01-01T00:00:00+01:00'],
+  ])('a VH window that %s is refused as ongoing reporting', (_name, reportEnd) => {
+    const input = fixture('VH')
+    expect(input.basis.requestTiming).toMatchObject({ requestDay: '2026-10-05' })
+    const basis = { ...input.basis, objects: [{ ...input.basis.objects[0], reportEnd }] }
+    expect(() => assertCapturedServiceRequestTiming(basis)).toThrow('ediel_service_request_source_period_outside_captured_bounds')
+  })
+})
+
 describe.each([['V', 'S17'], ['VH', 'S18']] as const)('Z13%s/%s persisted request mutation at send', (mode, reason) => {
   it('the unchanged persisted request passes the source-bound send preflight and only expects Z14 or Z14N', async () => {
     const f = await rendered(fixture(mode))

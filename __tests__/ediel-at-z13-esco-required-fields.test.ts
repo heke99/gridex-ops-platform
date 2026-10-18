@@ -15,6 +15,7 @@ import { preflightEdielMessageRow } from '@/lib/ediel/core/messageBuilder/payloa
 import { validateProdatReportingPermission } from '@/lib/ediel/rulebook/prodatReportingPermissionPolicy'
 import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import { serializeUna } from '@/lib/ediel/core/una'
+import { createProdatRegisterEvidence } from '@/lib/ediel/prodat/prodatRegisterEvidence'
 import { omitPermissionField, permissionRequiredFields, type PermissionField } from '../scripts/helpers/ediel-permission-field-omissions'
 import type { ServicePermissionOriginBasis } from '@/lib/ediel/services/permissionOrigin'
 import type { EdielMessageIntent } from '@/lib/ediel/intent/types'
@@ -94,6 +95,12 @@ function drop(raw: string, field: Z13OwnField) {
 }
 function omit(raw: string, field: string) {
   return field in z13Own ? drop(raw, field as Z13OwnField) : omitPermissionField(raw, field as PermissionField)
+}
+// Persisted bytes AND their stored register evidence rewritten together.
+function withEvidence(f: Awaited<ReturnType<typeof rendered>>, raw: string): EdielMessageRow {
+  const business = tokenizeEdifact(raw).segments.filter(s => !['UNA', 'UNB', 'UNH', 'UNT', 'UNZ'].includes(s.tag)).map(s => s.raw)
+  const parsed = f.draft.parsedPayload as { prodatEngine: Record<string, unknown> }
+  return { ...f.row, raw_payload: raw, parsed_payload: { ...parsed, prodatEngine: { ...parsed.prodatEngine, registerEvidence: createProdatRegisterEvidence({ code: 'Z13', rawSegments: business, facts: f.facts }) } } } as EdielMessageRow
 }
 const reasonOf = (raw: string) => {
   const wire = tokenizeEdifact(raw), i = wire.segments.findIndex(s => s.tag === 'CCI' && segmentComposite(s, 2, wire.una)[0] === 'Z13')
@@ -182,8 +189,16 @@ describe.each([['V', 'S17'], ['VH', 'S18']] as const)('Z13%s/%s actual rendered 
   it('a bounded request missing its dependent end (321) is refused by the source-bound reporting validator and preflight', async () => {
     const f = await rendered(mode), raw = omit(f.raw, '321'), wire = tokenizeEdifact(raw)
     const issues = validateProdatReportingPermission({ code: 'Z13', rawSegments: wire.segments.map(s => s.raw), una: wire.una, facts: f.facts, reportingContext: f.context })
-    expect(issues.some(i => i.blocking)).toBe(true)
-    expect(preflightEdielMessageRow({ ...f.row, raw_payload: raw }, 'send', undefined, f.context).ok).toBe(false)
+    expect(issues.map(i => [i.code, i.blocking, i.fieldPath])).toEqual([['PRODAT_REPORTING_REQUIRED', true, 'DTM+91']])
+    expect(issues[0].description).toContain('Z13:321')
+    // Stale stored evidence no longer binds the changed bytes.
+    const stale = preflightEdielMessageRow({ ...f.row, raw_payload: raw }, 'send', undefined, f.context)
+    expect(stale.ok).toBe(false); expect(stale.issues.map(i => i.code)).toContain('PRODAT_REGISTER_EVIDENCE_INVALID')
+    if (mode === 'VH') expect(stale.issues.map(i => i.code)).toContain('PRODAT_Z13VH_DTM_91_MISSING')
+    // Evidence regenerated over the changed bytes: the independent source context refuses it.
+    const rewritten = preflightEdielMessageRow(withEvidence(f, raw), 'send', undefined, f.context)
+    expect(rewritten.ok).toBe(false)
+    expect(rewritten.issues.map(i => i.code)).toContain('PRODAT_DEPENDENT_PREFLIGHT_PRODAT_REPORTING_REQUIRED')
   })
 
   it('a swapped S17/S18 reason is refused by the source-bound reporting validator and preflight', async () => {
@@ -191,7 +206,15 @@ describe.each([['V', 'S17'], ['VH', 'S18']] as const)('Z13%s/%s actual rendered 
     const raw = f.raw.replace(`CCI++Z13'CAV+${reason}'`, `CCI++Z13'CAV+${other}'`), wire = tokenizeEdifact(raw)
     expect(reasonOf(raw)).toBe(other)
     const issues = validateProdatReportingPermission({ code: 'Z13', rawSegments: wire.segments.map(s => s.raw), una: wire.una, facts: f.facts, reportingContext: f.context })
-    expect(issues.some(i => i.blocking)).toBe(true)
-    expect(preflightEdielMessageRow({ ...f.row, raw_payload: raw }, 'send', undefined, f.context).ok).toBe(false)
+    // The source object expects its own reason: with the other reason no
+    // request/LI/UD/ANJ basis, no assessed purpose and no source object match.
+    expect(issues.map(i => [i.code, i.blocking])).toEqual([
+      ['PRODAT_REPORTING_UNDETERMINED', true], ['PRODAT_REPORTING_UNDETERMINED', true], ['PRODAT_REPORTING_SOURCE_OBJECT_MISSING', true]])
+    expect(issues.map(i => i.description.slice(0, 7))).toEqual(['Z13:321', 'Z13:323', 'Z13:321'])
+    const stale = preflightEdielMessageRow({ ...f.row, raw_payload: raw }, 'send', undefined, f.context)
+    expect(stale.ok).toBe(false); expect(stale.issues.map(i => i.code)).toContain('PRODAT_REGISTER_EVIDENCE_INVALID')
+    const rewritten = preflightEdielMessageRow(withEvidence(f, raw), 'send', undefined, f.context)
+    expect(rewritten.ok).toBe(false)
+    expect(rewritten.issues.map(i => i.code)).toEqual(expect.arrayContaining(['PRODAT_DEPENDENT_PREFLIGHT_PRODAT_REPORTING_UNDETERMINED', 'PRODAT_DEPENDENT_PREFLIGHT_PRODAT_REPORTING_SOURCE_OBJECT_MISSING']))
   })
 })

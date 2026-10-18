@@ -121,7 +121,7 @@ jobs:
                       raise SystemExit('native_git_blob_mismatch: ' + path)
                   require(pathlib.Path(path), inputs[path])
               frozen_native = {
-                  'scripts/ediel-at-z13v-z13vh-esco-native.test.ts': '24e2db6a4da93c69afb4a1b5909191e385e2a9c5614f8267b68f4e902fafb26d',
+                  'scripts/ediel-at-z13v-z13vh-esco-native.test.ts': 'cd99e2fdfa7b363f8c30a44e251c3b48eb8feaef03ef3616bde58385448dd14a',
                   'scripts/ediel-at-z13v-z13vh-esco-native.config.ts': '9da776c7059fd109060552b35db6e5336460d6cbfd14617c920b8b2f77136602',
               }
               for path, digest in frozen_native.items():

@@ -29,8 +29,28 @@ import {edielSmtpConfig} from '@/lib/ediel/mailReadiness'
 import {getEdielMessageById} from '@/lib/ediel/db'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 
-beforeEach(resetNativeEscoFixture)
-afterEach(()=>{vi.unstubAllEnvs();vi.restoreAllMocks()})
+// Rendering-defect seam: the ACTUAL renderer runs; only when a test sets
+// tamper.mutate are its bytes (and the register evidence over them) changed
+// before the real coordinator persists the draft. This models a renderer that
+// drifts from the frozen origin; the database origin binding is the authority.
+const tamper=vi.hoisted(()=>({mutate:null as null|((raw:string)=>string)}))
+vi.mock('@/lib/ediel/intent/renderers/servicePermission',async importOriginal=>{
+ const actual=await importOriginal<typeof import('@/lib/ediel/intent/renderers/servicePermission')>()
+ const {createProdatRegisterEvidence}=await import('@/lib/ediel/prodat/prodatRegisterEvidence')
+ const {tokenizeEdifact:tokenize}=await import('@/lib/ediel/core/edifactTokenizer')
+ return {...actual,buildServicePermissionDraft:async(input:Parameters<typeof actual.buildServicePermissionDraft>[0])=>{
+  const draft=await actual.buildServicePermissionDraft(input)
+  if(!tamper.mutate)return draft
+  const raw=tamper.mutate(draft.rawPayload!)
+  expect(raw).not.toBe(draft.rawPayload)
+  const business=tokenize(raw).segments.filter(x=>!['UNA','UNB','UNH','UNT','UNZ'].includes(x.tag)).map(x=>x.raw)
+  const engine=(draft.parsedPayload as {prodatEngine:Record<string,unknown>&{registerEvidence:{facts:Parameters<typeof createProdatRegisterEvidence>[0]['facts']}}}).prodatEngine
+  return {...draft,rawPayload:raw,parsedPayload:{...draft.parsedPayload,prodatEngine:{...engine,registerEvidence:createProdatRegisterEvidence({code:'Z13',rawSegments:business,facts:engine.registerEvidence.facts})}}}
+ }}
+})
+
+beforeEach(()=>{tamper.mutate=null;resetNativeEscoFixture()})
+afterEach(()=>{tamper.mutate=null;vi.unstubAllEnvs();vi.restoreAllMocks()})
 type Fixture=Awaited<ReturnType<typeof seed>>
 type Mode='V'|'VH'
 type Pending=PendingZ14&{mode:Mode;li:string}
@@ -44,10 +64,15 @@ const window:Record<Mode,{start:string;end:string|null}>={V:{start:'2026-06-01T0
 // ------------------------------------------------------ Z13 via request_access
 // The same public evidence path as the approved Z14V/Z14VH native proofs. The
 // queued Z13 is returned unsent so a test may first attempt to mutate it.
-async function queueRequest(mode:Mode){
+type EvidenceKind='end_user_contract'|'dso_contract'|'service_contract'|'downstream_use'|'privacy_roles'
+// Request-time conditions are separate: role, each evidence kind (end-user
+// agreement among them), the beneficiary bound by the issuer representation
+// and the history window. Options withhold exactly one of them.
+type PrepareOptions={omitKind?:EvidenceKind;foreignBeneficiaryKind?:EvidenceKind;vhEnd?:string}
+async function prepareAssignment(mode:Mode,options:PrepareOptions={}){
  let f:Fixture=await seed(mode)
  if(mode==='VH'){
-  const fields={...f.fields,mode:'VH' as const,data_start:window.VH.start,data_end:window.VH.end}
+  const fields={...f.fields,mode:'VH' as const,data_start:window.VH.start,data_end:options.vhEnd??window.VH.end}
   const created=await f.command({action:'create_assignment',commandId:randomUUID(),fields})
   expect(created.status).toBe('held');f={...f,fields,assignment:String(created.assignmentId)}
  }
@@ -55,7 +80,11 @@ async function queueRequest(mode:Mode){
  const pdf=Buffer.from('%PDF-1.7\nSYNTHETIC CODE FIXTURE ONLY. NO EXTERNAL MARKET OR LEGAL APPROVAL.\n%%EOF')
  const sourceHash=createHash('sha256').update(pdf).digest('hex'),key=Buffer.alloc(32,0x67),keyId=randomUUID()
  sql(`INSERT INTO gridex_ediel_services.issuer_keys(id,company_id,environment,issuer_code,legal_issuer_reference,legal_authority_source_hash,receipt_signing_key,valid_from,valid_to) VALUES(${lit(keyId)},${lit(f.ids.company)},'test','synthetic-native-issuer','SYNTHETIC EXTERNAL REGISTRY INPUT ONLY',${lit(sourceHash)},decode(${lit(key.toString('hex'))},'hex'),'2000-01-01','2099-01-01')`)
+ const foreignBeneficiary=randomUUID()
+ if(options.foreignBeneficiaryKind)sql(`INSERT INTO public.companies(id,name,status) VALUES(${lit(foreignBeneficiary)},'Synthetic foreign beneficiary','active')`)
  for(const kind of ['end_user_contract','dso_contract','service_contract','downstream_use','privacy_roles'] as const){
+  if(kind===options.omitKind)continue
+  const beneficiary=kind===options.foreignBeneficiaryKind?foreignBeneficiary:f.ids.beneficiary
   const a=await currentAssignment(f),representation=randomUUID(),reference='z13-'+mode+'-'+kind+'-'+randomUUID()
   const terms={valid_from:f.fields.valid_from,valid_to:f.fields.valid_to,permission_purpose_code:'B72' as const,permission_reporting_frequency:'D',permission_request_grid_area:'TES',
    permission_reporting_term_kind:mode==='V'?'indefinite' as const:'bounded' as const,permission_customer_classification:'private' as const,
@@ -64,12 +93,16 @@ async function queueRequest(mode:Mode){
   const bootstrap=await archiveEdielServiceEvidence({companyId:f.ids.company,actorUserId:f.ids.actor,submission:{assignmentId:f.assignment,scopeBasisVersion:a.scope_basis_version,kind,terms,source:{bytesBase64:pdf.toString('base64'),mimeType:'application/pdf',reference:'z13-bootstrap-'+randomUUID(),version:'synthetic-v1'}}})
   expect(bootstrap.missing).toContain('authentic_current_issuer_and_representation_receipt')
   const canonical=await readEdielServiceEvidenceArchive({companyId:f.ids.company,actorUserId:f.ids.reviewer,artifactId:bootstrap.artifactId})
-  sql(`INSERT INTO gridex_ediel_services.issuer_representations(id,company_id,environment,issuer_key_id,legal_actor_id,beneficiary_company_id,customer_id,dso_actor_id,evidence_kind,scope_hash,legal_representation_reference,legal_authority_source_hash,valid_from,valid_to) VALUES(${lit(representation)},${lit(f.ids.company)},'test',${lit(keyId)},${lit(f.ids.legal)},${lit(f.ids.beneficiary)},${lit(f.ids.customer)},${lit(f.ids.dso)},${lit(kind)},${lit(canonical.scopeHash)},'SYNTHETIC EXTERNAL REPRESENTATION INPUT ONLY',${lit(sourceHash)},'2000-01-01','2099-01-01')`)
+  sql(`INSERT INTO gridex_ediel_services.issuer_representations(id,company_id,environment,issuer_key_id,legal_actor_id,beneficiary_company_id,customer_id,dso_actor_id,evidence_kind,scope_hash,legal_representation_reference,legal_authority_source_hash,valid_from,valid_to) VALUES(${lit(representation)},${lit(f.ids.company)},'test',${lit(keyId)},${lit(f.ids.legal)},${lit(beneficiary)},${lit(f.ids.customer)},${lit(f.ids.dso)},${lit(kind)},${lit(canonical.scopeHash)},'SYNTHETIC EXTERNAL REPRESENTATION INPUT ONLY',${lit(sourceHash)},'2000-01-01','2099-01-01')`)
   const payload={format:'ediel_service_evidence_receipt_v1',issuerCode:'synthetic-native-issuer',receiptId:randomUUID(),companyId:f.ids.company,environment:'test',assignmentId:f.assignment,scopeBasisVersion:canonical.scopeBasisVersion,scope:canonical.scope,evidenceKind:kind,evidenceTerms:canonical.evidenceTerms,
    ...(kind==='dso_contract'||kind==='service_contract'?{periodicE66Reason:{version:1,reasonCode:'E23',applicationReference:'23-DGI-E66-T',senderEdielId:f.receiver,receiverEdielId:f.sender}}:{}),
    sourceHash,sourceReference:reference,sourceVersion:'synthetic-v1',transportRelationId:null,transportActorId:null,issuedAt:new Date().toISOString(),expiresAt:'2090-01-01T00:00:00Z'}
   const wire=Buffer.from(JSON.stringify(payload))
   const artifact=await archiveEdielServiceEvidence({companyId:f.ids.company,actorUserId:f.ids.actor,submission:{assignmentId:f.assignment,scopeBasisVersion:a.scope_basis_version,kind,terms,source:{bytesBase64:pdf.toString('base64'),mimeType:'application/pdf',reference,version:'synthetic-v1'},issuerReceipt:{keyId,representationId:representation,payloadBase64:wire.toString('base64'),signatureHex:createHmac('sha256',key).update(wire).digest('hex')}}})
+  if(kind===options.foreignBeneficiaryKind){
+   // A representation for another beneficiary never authenticates this assignment's evidence.
+   expect(artifact.missing,JSON.stringify(artifact)).toContain('authentic_current_issuer_and_representation_receipt');continue
+  }
   expect(artifact.missing).toEqual(['separate_qualified_reviewer_required'])
   const staged=await f.command({action:'stage_evidence',commandId:randomUUID(),assignmentId:f.assignment,expectedVersion:(await currentAssignment(f)).version,fields:{kind,source_reference:reference,source_sha256:sourceHash,source_version:'synthetic-v1',...terms}})
   expect(staged).toMatchObject({status:'pending',approvalGranted:false})
@@ -77,8 +110,14 @@ async function queueRequest(mode:Mode){
   expect(await reviewEdielServiceEvidence({companyId:f.ids.company,actorUserId:f.ids.reviewer,artifactId:artifact.artifactId,evidenceId:String(staged.evidenceId),review})).toMatchObject({status:'verified',missing:[],marketActivationGranted:false})
   if(kind==='dso_contract'||kind==='service_contract')expect(await reviewPeriodicDgiE66Reason({companyId:f.ids.company,actorUserId:f.ids.reviewer,artifactId:artifact.artifactId,evidenceId:String(staged.evidenceId),review:{...review,reason:'Separate review of synthetic signed DGI E23 clause'}})).toMatchObject({status:'approved',reasonCode:'E23',marketActivationGranted:false})
  }
- expect(await f.command({action:'approve_assignment',commandId:randomUUID(),assignmentId:f.assignment,expectedVersion:(await currentAssignment(f)).version})).toMatchObject({status:'approved_waiting_permission'})
- const prepared=await f.command({action:'request_access',assignmentId:f.assignment,expectedVersion:(await currentAssignment(f)).version,preferredRouteId:f.ids.route})
+ return f
+}
+const approve=async(f:Fixture)=>f.command({action:'approve_assignment',commandId:randomUUID(),assignmentId:f.assignment,expectedVersion:(await currentAssignment(f)).version})
+const requestAccess=async(f:Fixture)=>f.command({action:'request_access',assignmentId:f.assignment,expectedVersion:(await currentAssignment(f)).version,preferredRouteId:f.ids.route})
+async function queueRequest(mode:Mode){
+ const f=await prepareAssignment(mode)
+ expect(await approve(f)).toMatchObject({status:'approved_waiting_permission'})
+ const prepared=await requestAccess(f)
  expect(prepared,JSON.stringify(prepared)).toMatchObject({status:'queued',message:{message_code:'Z13'},blockingReasons:[]})
  return {f,queued:prepared.message as EdielMessageRow}
 }
@@ -112,13 +151,15 @@ function noRights(s:ReturnType<typeof state>,before:ReturnType<typeof state>){
 }
 
 // ------------------------------------------------- physical counterparty ACKs
-function externalAck(z13:EdielMessageRow,family:'CONTRL'|'APERAK',defect?:'unknown'|'wrongLI'){
+function externalAck(z13:EdielMessageRow,family:'CONTRL'|'APERAK',defect?:'unknown'|'wrongLI'|'wrongSender'){
  const e=EdifactEnvelopeCodec.decode(z13.raw_payload!)
  let segments=family==='CONTRL'?renderContrl2Ediel2({source:{rawPayload:z13.raw_payload},outcome:'positive'}).segments:renderAperakEdiel({source:{id:z13.id,messageFamily:'PRODAT',messageCode:'Z13',rawPayload:z13.raw_payload},refs:{},externalReference:randomUUID(),transactionReference:randomUUID(),outcome:'positive'}).segments
  if(defect==='unknown')segments=segments.map(s=>s.startsWith('UCI+')?s.replace(/^(UCI\+)[^+]*/,'$1UNKNOWN'):s.startsWith('RFF+ACW:')?'RFF+ACW:UNKNOWN':s)
  if(defect==='wrongLI')segments=segments.map(s=>s.startsWith('RFF+LI:')?'RFF+LI:UNKNOWN':s)
- return EdifactEnvelopeCodec.encode({sender:e.receiver!,receiver:e.sender!,senderQualifier:e.receiverQualifier,receiverQualifier:e.senderQualifier,senderSubAddress:e.receiverSubAddress,receiverSubAddress:e.senderSubAddress,applicationReference:e.applicationReference,acknowledgementRequest:false,environment:'test',interchangeReference:randomUUID().replaceAll('-','').slice(0,14),messages:[{messageReference:randomUUID().replaceAll('-','').slice(0,14),messageTypeToken:family==='CONTRL'?'CONTRL:2:2:UN:EDIEL2':'APERAK:D:96A:UN:E2SE6A',businessSegments:segments}]})
+ // wrongSender keeps the exact UCI/LI correlation but comes from another party.
+ return EdifactEnvelopeCodec.encode({sender:defect==='wrongSender'?wrongCounterparty:e.receiver!,receiver:e.sender!,senderQualifier:e.receiverQualifier,receiverQualifier:e.senderQualifier,senderSubAddress:e.receiverSubAddress,receiverSubAddress:e.senderSubAddress,applicationReference:e.applicationReference,acknowledgementRequest:false,environment:'test',interchangeReference:randomUUID().replaceAll('-','').slice(0,14),messages:[{messageReference:randomUUID().replaceAll('-','').slice(0,14),messageTypeToken:family==='CONTRL'?'CONTRL:2:2:UN:EDIEL2':'APERAK:D:96A:UN:E2SE6A',businessSegments:segments}]})
 }
+const wrongCounterparty='59999'
 async function receiveAck(p:Pending,raw:string){
  const {f}=p
  const mail=await seedOriginalMailboxNative(sql,lit,{companyId:f.ids.company,environment:'test',raw,smtpFrom:edielSmtpConfig().from,senderEmail:'dso-native@example.invalid'})
@@ -209,9 +250,9 @@ describe.each([['V','S17'],['VH','S18']] as const)('Z13%s/%s ESCO request',(mode
   expect(state(outsider)).toEqual(outsiderBefore)
  },240000)
 
- it('APERAK alone, an unknown CONTRL interchange and a wrong-LI APERAK change nothing',async()=>{
+ it('APERAK alone, an unknown CONTRL interchange, a wrong-LI APERAK and ACKs from a wrong counterparty change nothing',async()=>{
   const p=await request(mode),before=state(p)
-  for(const [family,defect] of [['CONTRL','unknown'],['APERAK','wrongLI']] as const){
+  for(const [family,defect] of [['CONTRL','unknown'],['APERAK','wrongLI'],['CONTRL','wrongSender'],['APERAK','wrongSender']] as const){
    const {message,decision}=await receiveAck(p,externalAck(p.z13,family,defect))
    expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision],JSON.stringify(decision.issues)).toEqual(['accepted','manual_review','manual_review'])
    expect(decision.issues.map(i=>i.code)).toContain('CANONICAL_ACK_SOURCE_EVIDENCE_UNAVAILABLE')
@@ -295,7 +336,95 @@ describe.each([['V','S17'],['VH','S18']] as const)('Z13%s/%s ESCO request',(mode
   // Wrong role: the ESCO no longer holds its current market role.
   sql(`UPDATE public.tenant_actor_roles SET role_code='supplier' WHERE company_id=${lit(f.ids.company)} AND actor_id=${lit(f.ids.legal)} AND environment='test' AND role_code='energy_service_company'`)
   await process(p,valid)
-  const after=state(p)
+  const after=state(p),refused=(await getEdielMessageById(valid.id))!
+  // Without the current ESCO role the receiving legal tenant is not verified: tenant resolution is ambiguous, nothing executes.
+  expect(refused.status).toBe('received')
+  expect(refused.validation_report).toMatchObject({tenantResolution:{status:'ambiguous',companyId:null,confidence:0,receiverEdielId:f.sender,candidateCompanyIds:[f.ids.company]}})
   expect(after.permission).toEqual(before.permission);noRights(after,before);expect(positiveAperaks(p,valid)).toBe(0)
+  // Positive control in the same chain: the restored current ESCO role lets a fresh, otherwise identical Z14 activate.
+  sql(`UPDATE public.tenant_actor_roles SET role_code='energy_service_company' WHERE company_id=${lit(f.ids.company)} AND actor_id=${lit(f.ids.legal)} AND environment='test' AND role_code='supplier'`)
+  const fresh=await receiveZ14(p,z14(p))
+  await process(p,fresh)
+  expect(state(p).permission).toMatchObject({status:'active',source_z14_message_id:fresh.id})
+  expect(positiveAperaks(p,fresh)).toBe(1)
+ },240000)
+
+ // AT "Skapa begäran": the origin frozen at request time is bound to the
+ // persisted bytes by the database. A rendered request whose start, product
+ // or frequency drifts from it is refused at insert, whatever the TS preflight.
+ const drift={
+  start:(raw:string)=>raw.replace(/DTM\+90:(\d{4})/,(_m,y:string)=>'DTM+90:'+(Number(y)-1)),
+  product:(raw:string)=>raw.replace('CAV+::::8716867000030','CAV+::::8716867000016'),
+  frequency:(raw:string)=>raw.replace('CAV+:::D','CAV+:::H'),
+ } as const
+ it.each(['start','product','frequency'] as const)('a Z13 whose %s differs from the frozen origin is refused with ediel_permission_origin_wire_request_mismatch',async target=>{
+  const f=await prepareAssignment(mode)
+  expect(await approve(f)).toMatchObject({status:'approved_waiting_permission'})
+  const before=requestState(f)
+  tamper.mutate=drift[target]
+  const outcome=await settle(requestAccess(f))
+  tamper.mutate=null
+  // The origin binding trigger (gridex_service_permission.bind_message_v1)
+  // aborts the insert; the gateway reports it and no message is born.
+  expect(outcome).toEqual({result:{status:'blocked',intentId:expect.stringMatching(/^[0-9a-f-]{36}$/),message:null,
+   blockingReasons:[{code:'render_failed',message:'P0001: ediel_permission_origin_wire_request_mismatch',severity:'block',details:{source:'render_gateway'}}]}})
+  expect(requestState(f)).toEqual(before)
+  // Positive control: the undrifted actual render binds and queues.
+  const queued=await requestAccess(f)
+  expect(queued,JSON.stringify(queued)).toMatchObject({status:'queued',message:{message_code:'Z13'}})
+  const bytes=(queued.message as EdielMessageRow).raw_payload!
+  expect(drift[target](bytes)).not.toBe(bytes)
  },240000)
 })
+
+const settle=(work:Promise<Record<string,unknown>>)=>work.then(result=>({result}),(error:unknown)=>({error:error instanceof Error?error.message:String(error)}))
+// Durable request-phase effects: no Z13 born, no bound origin or permission
+// request state, no object right, grant or supply change.
+function requestState(f:Fixture){
+ const c=lit(f.ids.company)
+ return sql(`SELECT jsonb_build_object(
+ 'z13',(SELECT count(*) FROM public.ediel_messages WHERE company_id=${c} AND message_code='Z13'),
+ 'boundPermissions',(SELECT count(*) FROM public.metering_permissions WHERE company_id=${c} AND (source_z13_message_id IS NOT NULL OR outbound_z13_message_id IS NOT NULL OR status NOT IN ('draft','z13_ready'))),
+ 'boundOrigins',(SELECT count(*) FROM gridex_service_permission.origins WHERE company_id=${c} AND message_id IS NOT NULL),
+ 'sites',(SELECT count(*) FROM public.metering_permission_sites WHERE company_id=${c}),
+ 'grants',(SELECT count(*) FROM public.ediel_data_access_grants WHERE company_id=${c}),
+ 'supply',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY x.id),'[]') FROM public.customer_supply_periods x WHERE company_id=${c}))`)
+}
+// Role, end-user agreement and beneficiary are separate request-time conditions.
+describe.each(['V','VH'] as const)('Z13%s request-time conditions',mode=>{
+ it('an ESCO without its current energy_service_company role is held before any Z13 (positive control: restored role queues)',async()=>{
+  const f=await prepareAssignment(mode)
+  expect(await approve(f)).toMatchObject({status:'approved_waiting_permission'})
+  sql(`UPDATE public.tenant_actor_roles SET role_code='supplier' WHERE company_id=${lit(f.ids.company)} AND actor_id=${lit(f.ids.legal)} AND environment='test' AND role_code='energy_service_company'`)
+  const before=requestState(f),outcome=await settle(requestAccess(f))
+  // The coordinator holds on the no longer authentic assignment; the actual
+  // assessment names the missing current legal ESCO role as the cause.
+  expect(outcome).toEqual({result:{status:'held',missing:['current_authentic_service_assignment_evidence_required']}})
+  expect(sql(`SELECT public.ediel_service_assignment_assessment_v1(${lit(f.ids.company)},${lit(f.assignment)})`)).toEqual({status:'held',missing:['provider_legal_esco_role_missing']})
+  expect(requestState(f)).toEqual(before)
+  sql(`UPDATE public.tenant_actor_roles SET role_code='energy_service_company' WHERE company_id=${lit(f.ids.company)} AND actor_id=${lit(f.ids.legal)} AND environment='test' AND role_code='supplier'`)
+  expect(await requestAccess(f)).toMatchObject({status:'queued',message:{message_code:'Z13'}})
+ },240000)
+ it.each([
+  ['missing end-user agreement evidence',{omitKind:'end_user_contract'},'end_user_contract'],
+  ['service evidence represented for a foreign beneficiary',{foreignBeneficiaryKind:'service_contract'},'service_contract'],
+ ] as const)('%s holds approval and request_access before any Z13',async(_name,options,kind)=>{
+  const f=await prepareAssignment(mode,options),before=requestState(f)
+  const approval=await approve(f)
+  expect(approval).toEqual({status:'held',missing:[kind]})
+  const outcome=await settle(requestAccess(f))
+  expect(outcome).toEqual({result:{status:'held',missing:['current_authentic_service_assignment_evidence_required']}})
+  expect(requestState(f)).toEqual(before)
+ },240000)
+})
+
+it('a VH history window that ends after the request day is held before any Z13',async()=>{
+ const end='2026-12-31T00:00:00Z'
+ expect(Date.parse(end)).toBeGreaterThan(Date.now())
+ const f=await prepareAssignment('VH',{vhEnd:end})
+ // The assignment evidence itself qualifies; the request-period rule holds it.
+ expect(await approve(f)).toMatchObject({status:'approved_waiting_permission',mode:'VH',accessGranted:false})
+ const before=requestState(f),outcome=await settle(requestAccess(f))
+ expect(outcome).toEqual({result:{status:'held',missing:['esco_historical_period_must_precede_request_day']}})
+ expect(requestState(f)).toEqual(before)
+},240000)
