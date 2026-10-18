@@ -68,7 +68,7 @@ jobs:
           require(head==os.environ['GRIDEX_Z04_FUTURE_EXPECTED_HEAD'],'checkout_head')
           pr=get('pulls/'+str(number))
           require(pr['state']=='open' and pr['head']['sha']==head and pr['head']['ref']=='codex/agent3-z04-future-start-20261018' and pr['head']['repo']['full_name']==os.environ['GITHUB_REPOSITORY'],'current_pr_scope')
-          suite='z04l-z04lk-future-start';claim='0586ff40817595e4c4fba105108b09c0c216144b'
+          suite='z04l-z04lk-future-start';claim='a3c208d61b32d5df23797a7c20cb961b873a7293'
           resource='refs/tags/agent-claims/masterplan/producer-z04-future-start'
           output='ediel-z04-future-start-restored-redacted-v1'
           files=['.github/workflows/ediel-z04l-z04lk-future-start-native.yml','scripts/ediel-z04l-z04lk-future-start-native.config.ts','scripts/ediel-z04l-z04lk-future-start-native.test.ts','scripts/helpers/ediel-prospective-market-clock-controller.py','scripts/helpers/ediel-prospective-market-clock-native.ts']
@@ -115,8 +115,8 @@ jobs:
           source_refs=['refs/tags/agent-claims/masterplan/file-'+hashlib.sha256(path.encode()).hexdigest() for path in files]+['refs/tags/agent-claims/masterplan/id-AT-Z04L-SUPPLIER','refs/tags/agent-claims/masterplan/id-AT-Z04LK-SUPPLIER']
           for named in source_refs:ref(named,claim)
           claimed=get('git/commits/'+claim);claim_body=strict(claimed['message'])
-          require(set(claim_body)=={'base','files','operation'} and claim_body['files']==files and claim_body['base']=='dbbfee16abef0bdf6ca455088c21e7e6f089138a' and isinstance(claim_body['operation'],str),'source_proper')
-          require(claimed['tree']['sha']=='1f6e8f57cca4113bda5b560ec8bd5d95d2f38a1a' and [p['sha'] for p in claimed['parents']]==[claim_body['base']],'neutral_source_proper')
+          require(set(claim_body)=={'base','files','operation'} and claim_body['files']==files and claim_body['base']=='63580ae0a84b97b3e44d46cc21bdc349b8c978fa' and isinstance(claim_body['operation'],str),'source_proper')
+          require(claimed['tree']['sha']=='cf7212ab07313736289bd9310e84f17c3805c05e' and [p['sha'] for p in claimed['parents']]==[claim_body['base']],'neutral_source_proper')
           ref(resource,admission['producerReceipt']);producer=get('git/commits/'+admission['producerReceipt'])
           operation='Produce qualified native proof; suite='+suite+'; source='+head+'; source-tree='+tree+'; source-claim='+claim+'; input-epoch-sha256='+admission['inputEpochSHA256']+'; output='+output
           require(strict(producer['message'])=={'base':source_base,'files':files,'operation':operation},'minimal_exact_producer_proper')

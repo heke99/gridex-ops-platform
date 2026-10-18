@@ -289,7 +289,7 @@ def main():
     admission_path=pathlib.Path(os.environ['GRIDEX_Z04_FUTURE_ADMISSION_FILE'])
     admission=json.loads(admission_path.read_text())
     binding=admission['admission']
-    if binding['sourceHead']!=head or binding['sourceTree']!=tree or binding['sourceReceipt']!='0586ff40817595e4c4fba105108b09c0c216144b' or binding['producerRef']!='refs/tags/agent-claims/masterplan/producer-z04-future-start' or binding['state']!='GO' or binding['suite']!='z04l-z04lk-future-start' or admission['runId']!=os.environ['GITHUB_RUN_ID'] or admission['attempt']!=1 or admission['job']!=os.environ['GITHUB_JOB'] or not re.fullmatch('[0-9a-f]{40}',binding['producerReceipt']):raise RuntimeError('z04future_exact_root_admission_required')
+    if binding['sourceHead']!=head or binding['sourceTree']!=tree or binding['sourceReceipt']!='a3c208d61b32d5df23797a7c20cb961b873a7293' or binding['producerRef']!='refs/tags/agent-claims/masterplan/producer-z04-future-start' or binding['state']!='GO' or binding['suite']!='z04l-z04lk-future-start' or admission['runId']!=os.environ['GITHUB_RUN_ID'] or admission['attempt']!=1 or admission['job']!=os.environ['GITHUB_JOB'] or not re.fullmatch('[0-9a-f]{40}',binding['producerReceipt']):raise RuntimeError('z04future_exact_root_admission_required')
     if call(['git','status','--porcelain','--untracked-files=no']):raise RuntimeError('z04future_clean_checkout_required')
     if working.exists() or final.exists() or state_path.exists() or restored_path.exists():raise RuntimeError('z04future_first_epoch_only')
     working.mkdir()

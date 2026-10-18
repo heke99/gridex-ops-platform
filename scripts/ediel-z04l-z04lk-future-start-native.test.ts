@@ -614,9 +614,13 @@ async function held(f:Fixture,raw:string,label:string,cause:HeldCause){
     ...evaluateProdatTransactionReason({code:'Z04',rawSegments:physical.segments.map(s=>s.raw),una:physical.una}).issues]
   const decision=message?await resolveCanonicalRuntimeDecisionWithRegistry(message,{actorUserId:f.actorUserId}):null
   const diagnostics=[...physicalIssues,...(decision?.issues??[])]
-  if('field'in cause)expect(diagnostics,label+': own field diagnostic').toContainEqual(expect.objectContaining({
-    prodatDiagnostic:expect.objectContaining({fieldNumber:cause.field})}))
-  else {
+  if('field'in cause){
+    if(message)expect(diagnostics,label+': own field diagnostic').toContainEqual(expect.objectContaining({
+      prodatDiagnostic:expect.objectContaining({fieldNumber:cause.field})}))
+    // receive() already qualified the exact public birth refusal and absence
+    // of source authority; a source that was never born has no later owner.
+    else assert(birthRefusal?.field===cause.field,'actual_public_birth_refusal_matches_requested_field')
+  }else {
     expect(message,label+': actual source required').not.toBeNull()
     expect(decision,label+': no unrelated field refusal').toMatchObject({syntaxDecision:'accepted',applicationDecision:'accepted',functionalDecision:'accepted'})
     const pair=sql<{original:Row;received:Row}>(`SELECT jsonb_build_object('original',gridex_received_sources.normal_switch_wire_v1(${literal(f.originalZ03.raw_payload)}),'received',gridex_received_sources.normal_switch_wire_v1(${literal(raw)}));`)
