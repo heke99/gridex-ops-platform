@@ -2,17 +2,23 @@
 // Z04/Z24 branch of gridex_received_sources.other_supply_scope_effect_v1.
 // The captured owner, its wire parsers, admission, sent-original predicate and
 // actual company-permission resolution run in one PGlite database. Tenant rows,
-// canonical facets and the provider-acceptance journal are declared synthetic
-// ports; the global graph lock is a finite no-op. No native/public-entrypoint,
+// canonical facets, the provider-acceptance journal and the current network
+// registry owner output are declared synthetic ports (the actual registry owner
+// is exercised by ediel-z05c-current-sender-sql-regression.mjs); the global
+// graph lock is a finite no-op. The forward migration
+// 20261018100000_ediel_z04c_current_sender_registry.sql is applied on top of the
+// captured predecessor unless EDIEL_Z04C_ORIGINAL_CONTROL=1 (RED control). No native/public-entrypoint,
 // ACK, concurrency, RLS or market claim; the owner caller writes transitions.
 import {readFileSync} from 'node:fs'
 import {pathToFileURL,fileURLToPath} from 'node:url'
 import {createHash} from 'node:crypto'
 import assert from 'node:assert/strict'
 const root=process.env.EDIEL_SQL_REPOSITORY??fileURLToPath(new URL('..',import.meta.url))
-// Postimage of 20261010101233_ediel_z05c_current_sender_registry.sql, the
-// latest migration redefining this owner; the Z04/Z24 branch is unchanged by it.
+// Captured predecessor (postimage of 20261010101233) and this fix's postimage.
 const capturedOwner='aab2d2f6dcbfe17e31f92c07a70c9f9346396a2c1435a5976b1d70c8e58cb2b7'
+const fixedOwner='e2bba947e4ade9d3a1128cc826f6b43b336da0733ba35d90eb43b498f53e350e'
+const forwardPath=process.env.EDIEL_Z04C_FORWARD_SQL??`${root}/supabase/migrations/20261018100000_ediel_z04c_current_sender_registry.sql`
+const originalControl=process.env.EDIEL_Z04C_ORIGINAL_CONTROL==='1'
 const schema=readFileSync(`${root}/supabase/schema.sql`,'utf8')
 const {PGlite}=await import(pathToFileURL(process.env.EDIEL_PGLITE_MODULE??`${root}/node_modules/@electric-sql/pglite/dist/index.js`).href)
 const db=new PGlite(),id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`
@@ -89,7 +95,9 @@ try{
  create schema gridex_requested_changes;create schema gridex_received_sources;create schema gridex_ai_processing;create schema gridex_ai_purpose_sources;create schema gridex_ediel_ack_replay;create schema gridex_regulated_supply;create schema gridex_network_registry_sources;create schema gridex_ediel_transport;
  create function gridex_ediel_ack_replay.lock_current_graph_v2() returns void language plpgsql as $$begin null;end$$;
  create function gridex_regulated_supply.ground_current_v1(uuid,uuid,uuid,timestamptz) returns boolean language plpgsql as $$begin raise exception 'out_of_scope_regulated_ground_port_called';end$$;
- create function gridex_network_registry_sources.network_for_company_v1(uuid,text,text) returns jsonb language plpgsql as $$begin raise exception 'out_of_scope_z05c_registry_port_called';end$$;
+ -- Declared current network registry owner output port (finite, synthetic).
+ create table gridex_network_registry_sources.synthetic_current(company_id uuid,network_ediel_id text,environment text,status text,basis_company text,basis_environment text,basis_network text);
+ create function gridex_network_registry_sources.network_for_company_v1(c uuid,network_id text,env text) returns jsonb language sql stable as $$select coalesce((select jsonb_build_object('status',s.status,'basis',jsonb_build_object('companyId',s.basis_company,'environment',s.basis_environment,'networkEdielId',s.basis_network)) from gridex_network_registry_sources.synthetic_current s where s.company_id=c and s.network_ediel_id=network_id and s.environment=env),jsonb_build_object('status','held'))$$;
  create table public.ediel_messages(id uuid primary key,company_id uuid,environment text,direction text,message_standard text,message_family text,message_code text,raw_payload text,status text,message_sent_at timestamptz,message_received_at timestamptz,immutable_rendered_at timestamptz,immutable_payload_hash text,customer_id uuid,metering_point_id uuid);
  create table public.customer_supply_periods(id uuid primary key,company_id uuid,customer_id uuid,metering_point_id uuid,contract_id uuid,customer_contract_id uuid,start_date date,actual_start_date date,end_date date,market_start_at timestamptz,market_end_at timestamptz,source text,source_process text,source_message_id uuid,source_end_message_id uuid,source_switch_request_id uuid,status text,market_state_version bigint,metadata jsonb,updated_at timestamptz default now());
  create table public.supplier_switch_requests(id uuid primary key,company_id uuid,customer_id uuid,metering_point_id uuid,site_id uuid,customer_site_id uuid,contract_id uuid,customer_contract_id uuid,outbound_z03_message_id uuid,inbound_z04_message_id uuid,rff_li_reference text,status text,lifecycle_blocked bool,confirmed_start_date date,updated_at timestamptz,updated_by uuid,completed_at timestamptz);
@@ -111,9 +119,18 @@ try{
  const installed=hash((await db.query("select prosrc from pg_proc where oid='gridex_received_sources.other_supply_scope_effect_v1(uuid,uuid,uuid,jsonb,uuid[],uuid)'::regprocedure")).rows[0].prosrc)
  console.log(`CAPTURED prosrc sha256=${installed}`)
  assert.equal(installed,capturedOwner,'z04c_unknown_captured_owner')
+ const metadata=async()=>(await db.query("select to_jsonb(p)-'prosrc' m from pg_proc p where p.oid='gridex_received_sources.other_supply_scope_effect_v1(uuid,uuid,uuid,jsonb,uuid[],uuid)'::regprocedure")).rows[0].m
+ const beforeMetadata=await metadata()
+ if(!originalControl)await db.exec(readFileSync(forwardPath,'utf8'))
+ const effective=hash((await db.query("select prosrc from pg_proc where oid='gridex_received_sources.other_supply_scope_effect_v1(uuid,uuid,uuid,jsonb,uuid[],uuid)'::regprocedure")).rows[0].prosrc)
+ assert.equal(effective,originalControl?capturedOwner:fixedOwner);assert.deepEqual(await metadata(),beforeMetadata)
+ console.log(`SOURCE effectiveBodySha256=${effective}; migrationApplication=${originalControl?'skipped_for_original_red_control':'applied_to_captured_predecessor'}`)
  await db.exec(`insert into companies values('${COMPANY}','active',true,'SYNTHETIC LEGAL COMPANY','5590000000');insert into auth.users(id,email_confirmed_at) values('${ACTOR}',now()),('${FOREIGN_ACTOR}',now());insert into user_profiles values('${ACTOR}','active'),('${FOREIGN_ACTOR}','active');
  insert into company_memberships(company_id,user_id,status,is_active,accepted_at) values('${COMPANY}','${ACTOR}','active',true,now());
- insert into tenant_actor_identifiers values('${id(4)}','${COMPANY}','test','${id(5)}','EdielId','${SUPPLIER}','2020-01-01',null);insert into tenant_actor_roles values('${id(6)}','${COMPANY}','test','${id(5)}','electricity_supplier','2020-01-01',null);insert into tenant_ediel_profiles values('${id(7)}','${COMPANY}','test','electricity',true,'2020-01-01',null);`)
+ insert into tenant_actor_identifiers values('${id(4)}','${COMPANY}','test','${id(5)}','EdielId','${SUPPLIER}','2020-01-01',null);insert into tenant_actor_roles values('${id(6)}','${COMPANY}','test','${id(5)}','electricity_supplier','2020-01-01',null);insert into tenant_ediel_profiles values('${id(7)}','${COMPANY}','test','electricity',true,'2020-01-01',null);
+ insert into gridex_network_registry_sources.synthetic_current values('${COMPANY}','${DSO}','test','authorized','${COMPANY}','test','${DSO}'),
+  -- A genuinely registered other grid owner: its C fails correlation, not authority.
+  ('${COMPANY}','${FOREIGN_DSO}','test','authorized','${COMPANY}','test','${FOREIGN_DSO}');`)
  for(const key of ['communication.write','communication.read','customers.read','customers.write','contracts.read','contracts.write','metering.write'])await db.exec(`insert into permissions(key,name,is_active) values('${key}','SYNTHETIC',true) on conflict(key) do nothing`)
  // The foreign actor holds permissions but no membership in this company.
  await db.exec(`insert into user_permissions(user_id,company_id,permission_id,permission_key,is_active,status,effect) select u.id,'${COMPANY}',p.id,p.key,true,'active','allow' from auth.users u cross join permissions p`)
@@ -177,7 +194,7 @@ try{
   await db.query('update public.ediel_messages set raw_payload=$2,immutable_payload_hash=$3 where id=$1',[ORIGINAL,other,hash(other)])
   await refused('Z25 original','z04c_exact_original_unavailable',await received())
  })
- await check('C before its original is sent is held for bounded correlation, then applies only to that original',async()=>{
+ await check('C before its original is sent is refused without effect; a later explicit re-invocation after the original is sent applies only to that original',async()=>{
   await db.exec(`update public.ediel_messages set status='queued',message_sent_at=null where id='${ORIGINAL}'`)
   const c=await received()
   await refused('unsent original','z04c_exact_original_unavailable',c)
@@ -253,9 +270,42 @@ try{
   await db.exec('rollback to savepoint unaccepted')
   assert.deepEqual(await effects(),before)
  })
+ // Current sender registry (fix 20261018100000): first Z04/C needs today's sender authority.
+ await check('Z04C from a sender without current network registry authority is held with no mutation',async()=>{
+  await db.exec(`update gridex_network_registry_sources.synthetic_current set status='held'`)
+  await refused('held registry','z04c_current_sender_network_registry_required',await received())
+ })
+ for(const [field,value] of [['basis_company',id(99)],['basis_environment','production'],['basis_network',FOREIGN_DSO]])
+  await check(`Z04C with registry output ${field} mismatch is held with no mutation`,async()=>{
+   await db.exec(`update gridex_network_registry_sources.synthetic_current set ${field}='${value}' where network_ediel_id='${DSO}'`)
+   await refused(field,'z04c_current_sender_network_registry_required',await received())
+  })
+ await check('Z05C keeps its own exact current-sender reason',async()=>{
+  await db.exec(`update gridex_network_registry_sources.synthetic_current set status='held'`)
+  await refused('z05c held registry','z05c_current_sender_network_registry_required',await received({code:'Z05'}))
+ })
+ await check('replay of an applied Z04C keeps its recorded truth after sender authority is withdrawn',async()=>{
+  const c=await received(),first=await call(c);assert.equal(first.applied,true)
+  const objects=(await db.query('select gridex_received_sources.normal_switch_wire_v1($1) v',[c.raw])).rows[0].v.objects
+  await db.query('insert into gridex_received_sources.supply_source_transitions values($1,$2,$3,$4,$5,$6,$7,$8,$9)',[c.id,COMPANY,hash(c.raw),'Z04',JSON.stringify(objects),JSON.stringify(first.previousStates),JSON.stringify(first.periods),[SWITCH],ACTOR])
+  await db.exec(`update gridex_network_registry_sources.synthetic_current set status='held'`)
+  const settled=await effects(),replay=await call(c)
+  assert.equal(replay.applied,true);assert.equal(replay.idempotent,true);assert.deepEqual(await effects(),settled)
+ })
+ // A second distinct C cannot re-apply or be misreported as compensation.
+ for(const linked of [true,false])await check(`second distinct C after an applied C is z04c_start_already_cancelled (period ${linked?'linked by switch':'linked only by confirmation'})`,async()=>{
+  if(!linked)await db.exec(`update public.customer_supply_periods set source_switch_request_id=null where id='${PERIOD}'`)
+  const c1=await received(),first=await call(c1);assert.equal(first.applied,true)
+  assert.deepEqual(first.plans.map(p=>[p.kind,p.periodId]),[['cancel_start',PERIOD]])
+  const objects=(await db.query('select gridex_received_sources.normal_switch_wire_v1($1) v',[c1.raw])).rows[0].v.objects
+  await db.query('insert into gridex_received_sources.supply_source_transitions values($1,$2,$3,$4,$5,$6,$7,$8,$9)',[c1.id,COMPANY,hash(c1.raw),'Z04',JSON.stringify(objects),JSON.stringify(first.previousStates),JSON.stringify(first.periods),[SWITCH],ACTOR])
+  await refused('second distinct C','z04c_start_already_cancelled',await received())
+  const sw=await row('public.supplier_switch_requests',SWITCH)
+  assert.equal(sw.inbound_z04_message_id,c1.id);assert.equal(sw.status,'cancelled_before_start')
+ })
  assert.deepEqual(await effects(),baseline,'every case rolled back to the shared baseline')
  console.log(`RESULT ${checks} PASS ${failures} FAIL; actual SQL component only, synthetic tenant/canonical/provider ports, NOT native/Supabase/public entrypoint or ACK proof`)
  console.log(`Z04C correlation own SQL: ${checks} cases ${failures?'FAIL':'PASS'};`)
- console.log('EDIEL_Z04C_CORRELATION_RESULT '+JSON.stringify({checks:passedChecks,failures,installedBodySha256:installed,proofLimits:{native:'NOT_EXERCISED',publicSupplyEntrypoint:'NOT_EXERCISED',ack:'NOT_EXERCISED',concurrency:'NOT_EXERCISED',rls:'NOT_EXERCISED',canonicalAdmission:'FINITE_DECLARED_FACET',providerAcceptance:'FINITE_DECLARED_JOURNAL',globalGraphLock:'FINITE_NO_OP',transitionWriter:'SYNTHETIC_RETAINED_RECEIPT'}}))
+ console.log('EDIEL_Z04C_CORRELATION_RESULT '+JSON.stringify({checks:passedChecks,failures,capturedPredecessorSha256:installed,effectiveBodySha256:effective,originalControl,proofLimits:{native:'NOT_EXERCISED',publicSupplyEntrypoint:'NOT_EXERCISED',ack:'NOT_EXERCISED',concurrency:'NOT_EXERCISED',rls:'NOT_EXERCISED',canonicalAdmission:'FINITE_DECLARED_FACET',providerAcceptance:'FINITE_DECLARED_JOURNAL',networkRegistryOwner:'FINITE_DECLARED_OUTPUT_PORT',globalGraphLock:'FINITE_NO_OP',transitionWriter:'SYNTHETIC_RETAINED_RECEIPT'}}))
  process.exitCode=failures?1:0
 }catch(error){console.error('SETUP OR EXECUTION ERROR',JSON.stringify({message:error.message,code:error.code,where:error.where}));process.exitCode=2}finally{await db.close()}

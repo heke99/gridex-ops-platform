@@ -1,6 +1,6 @@
 // masterplan: AT-Z04C-SUPPLIER
 // node:test wrapper for the captured Z04/Z24 owner correlation regression
-// (wrong LI/point/customer/start/parties, locked-original mismatch, conflicting
+// (current sender registry, duplicate C, wrong LI/point/customer/start/parties, locked-original mismatch, conflicting
 // periods, compensation for executed effects, role/direction/actor refusal,
 // exact positive control with decoy, idempotent replay). Actual SQL component
 // only; native/public-entrypoint evidence lives in the native Z04C test.
@@ -22,6 +22,9 @@ test('AT-Z04C-SUPPLIER captured owner correlation SQL regression', () => {
   assert.doesNotMatch(run.stdout, /^FAIL /m, output)
   const result = JSON.parse(run.stdout.split('\n').find((line) => line.startsWith('EDIEL_Z04C_CORRELATION_RESULT ')).slice('EDIEL_Z04C_CORRELATION_RESULT '.length))
   assert.equal(result.failures, 0)
+  // The forward fix 20261018100000 must be the executed owner body.
+  assert.equal(result.effectiveBodySha256, 'e2bba947e4ade9d3a1128cc826f6b43b336da0733ba35d90eb43b498f53e350e')
+  assert.equal(result.originalControl, false)
   for (const required of [
     'exact C cancels only the right confirmed future period and its switch; decoy untouched',
     'replay of the committed C is idempotent and changes nothing',
@@ -32,5 +35,10 @@ test('AT-Z04C-SUPPLIER captured owner correlation SQL regression', () => {
     'activated period requires compensation and is not cancelled',
     'wrong direction (outbound C) is refused',
     'receiver without a current supplier role is refused',
+    'Z04C from a sender without current network registry authority is held with no mutation',
+    'Z05C keeps its own exact current-sender reason',
+    'replay of an applied Z04C keeps its recorded truth after sender authority is withdrawn',
+    'second distinct C after an applied C is z04c_start_already_cancelled (period linked by switch)',
+    'second distinct C after an applied C is z04c_start_already_cancelled (period linked only by confirmation)',
   ]) assert.ok(result.checks.includes(required), `missing case: ${required}`)
 })

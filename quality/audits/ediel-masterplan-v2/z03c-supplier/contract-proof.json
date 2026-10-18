@@ -235,7 +235,15 @@
         329,
         343
       ],
-      "observed": "Actual triggers refuse raw_payload change (23514 immutable_ediel_payload_cannot_change), direction change and original_message_id rebinding (P0001 switch_cancellation_bound_message_immutable); no effects; decoy unchanged."
+      "observed": "Actual triggers refuse raw_payload change (23514 immutable_ediel_payload_cannot_change), direction change and original_message_id rebinding (P0001 switch_cancellation_bound_message_immutable); no effects; decoy unchanged.",
+      "supplementary": {
+        "source": "__tests__/ediel-at-z03c-supplier-required-fields.test.ts",
+        "lines": [
+          160,
+          170
+        ],
+        "observed": "The builder refuses a non-Z03 (grid-owner direction Z04) intent before bytes; a built Z03C received inbound is a direction review with no supply or cancellation lifecycle."
+      }
     },
     {
       "criterion": "Prohibited: missing R/D fields",
@@ -245,14 +253,24 @@
         328
       ],
       "observed": "Lawful reservation with own RFF+LI removed is refused by the actual customer-masterdata owner (customer_masterdata_cancellation_actual_wire_required); no bound message, queue or effect.",
-      "supplementary": {
-        "source": "__tests__/ediel-at-z03c-z05c-supplier-profile.test.ts",
-        "lines": [
-          99,
-          135
-        ],
-        "observed": "Component Z03C profile: own diagnostics for missing 314/226/260/227/223, own cancellation date 210 not borrowed from sibling, malformed date, installation parent and invoicee children."
-      }
+      "supplementary": [
+        {
+          "source": "__tests__/ediel-at-z03c-z05c-supplier-profile.test.ts",
+          "lines": [
+            99,
+            135
+          ],
+          "observed": "Component Z03C profile: own diagnostics for missing 314/226/260/227/223, own cancellation date 210 not borrowed from sibling, malformed date, installation parent and invoicee children."
+        },
+        {
+          "source": "__tests__/ediel-at-z03c-supplier-required-fields.test.ts",
+          "lines": [
+            116,
+            159
+          ],
+          "observed": "Full component sweep through the actual outbound cancellation builder and whole canonical policy: every Z03 R field of the frozen 26.A column (23 numbered fields plus END_USER_GROUP) omitted individually yields its own diagnostic; D fields with condition met (229 registered address, 233/234 present installation parent, separate contract invoicee group and children 250/251/252/253/317/318) are held; complete built Z03C has no blocking issue."
+        }
+      ]
     },
     {
       "criterion": "Prohibited: wrong correlation",

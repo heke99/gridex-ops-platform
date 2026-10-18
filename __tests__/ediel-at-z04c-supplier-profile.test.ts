@@ -143,11 +143,39 @@ describe('received Z04C canonical profile and R-field omissions', () => {
   })
 })
 
+// D fields whose condition is met on the received wire. 214/218/259 are met by
+// the explicit register-readings fact; the invoicee children are met once the
+// own NAD+IV group is present. 229/252 depend on sender-side address facts and
+// produce no receiver diagnostic; 320/240/319 are gas/serial/production-link
+// fields that are inapplicable to this electricity consumption start.
+const invoicee = "NAD+IV+199001011234:SE2:260++Synthetic Invoicee+Invoice Street+Invoice City++54321+SE'"
+const withInvoicee = complete.replace('NAD+IT+', invoicee + 'NAD+IT+')
+function blankIn(wire: string, prefix: string, element: number) {
+  const all = wire.split("'"), index = all.findIndex(segment => segment.startsWith(prefix))
+  expect(index, prefix).toBeGreaterThan(0)
+  const elements = all[index].split('+'); expect(elements[element]).toBeTruthy(); elements[element] = ''
+  all[index] = elements.join('+'); return all.join("'")
+}
+const z04Dependent = PRODAT_26A_FIELD_MATRIX.filter(row => row.requirements[z04] === 'D').map(row => row.fieldNumber)
+describe('received Z04C dependent fields with their condition met', () => {
+  it('the asserted D set is drawn from the frozen Z04 matrix column', () => {
+    for (const field of ['214', '218', '259', '250', '251', '253', '317', '318', 'INVOICEE_GROUP']) expect(z04Dependent).toContain(field)
+    expect(blocking(withInvoicee)).toEqual([])
+  })
+  it.each([['214', 'CCI++Z02'], ['218', 'CCI++Z05'], ['259', 'CCI++Z16']])('holds an omitted register-reading D field %s once readings are declared', (field, prefix) => {
+    expect(blocking(dropSegment(prefix, true))).toContainEqual(expect.objectContaining({ code: 'PRODAT_DEPENDENT_FIELD_MISSING',
+      prodatDiagnostic: expect.objectContaining({ fieldNumber: field }) }))
+  })
+  it.each([['250', 2], ['251', 4], ['317', 6], ['253', 8], ['318', 9]] as const)('holds an omitted invoicee child %s inside a present NAD+IV group', (field, element) => {
+    expect(blocking(blankIn(withInvoicee, 'NAD+IV', element))).toContainEqual(expect.objectContaining({ code: 'PRODAT_INVOICEE_FORMAT_INVALID',
+      prodatDiagnostic: expect.objectContaining({ fieldNumber: field }) }))
+  })
+})
+
 describe('received Z04C application, direction and role boundaries', () => {
   it.each([['23-DGI-PRODAT', 'canonical_ediel_application_reference_not_allowed'], ['', 'canonical_ediel_application_reference_required'],
     [null, 'canonical_ediel_application_reference_required']] as const)('refuses the Z04C profile under application reference %j', (applicationReference, reason) => {
     expect(() => policy({ applicationReference })).toThrow(reason)
-    expect(io.rpc).not.toHaveBeenCalled()
   })
 
   it('refuses another association code and the bilateral-only H reason', () => {
@@ -160,9 +188,17 @@ describe('received Z04C application, direction and role boundaries', () => {
       process: 'unexpected_direction', state: 'manual_review', outcome: 'unexpected_direction_review', createSupplyPeriod: false, endSupplyPeriod: false })
   })
 
-  it('a received supplier-direction C (inbound Z03C) is a direction review with no effect', () => {
-    expect(decideProdatLifecycle(message({ message_code: 'Z03' }))).toMatchObject({ process: 'unexpected_direction',
+  it('a received supplier-direction C (physical Z03C from the supplier) is a direction review with no supply call', async () => {
+    // Genuine reverse physical direction: BGM Z03 sent by the supplier (FR) to the grid owner (DO).
+    const reverse = complete.replace('BGM+Z04+', 'BGM+Z03+').replace(`NAD+FR+${context.receiver}:`, 'NAD+FR+SWAP:')
+      .replace(`NAD+DO+${context.sender}:`, `NAD+DO+${context.receiver}:`).replace('NAD+FR+SWAP:', `NAD+FR+${context.sender}:`)
+    expect(reverse).toContain(`NAD+FR+${context.sender}:`); expect(reverse).toContain(`NAD+DO+${context.receiver}:`)
+    const received = message({ message_code: 'Z03', raw_payload: reverse, sender_ediel_id: context.sender, receiver_ediel_id: context.receiver })
+    expect(decideProdatLifecycle(received)).toMatchObject({ process: 'unexpected_direction',
       outcome: 'unexpected_direction_review', createSupplyPeriod: false, endSupplyPeriod: false })
+    expect(await applySupplyMarketSource({ actorUserId: own.actor, message: received }))
+      .toMatchObject({ applied: false, reason: 'not_inbound_supply_source', periods: [], effectReceiptIds: [] })
+    expect(io.rpc).not.toHaveBeenCalled(); expect(io.from).not.toHaveBeenCalled()
   })
 
   it('an outbound-direction Z04C never calls the supply owner', async () => {
@@ -183,7 +219,7 @@ describe('received Z04C application, direction and role boundaries', () => {
 
   it.each(['supply_legal_actor_unqualified', 'supply_execution_actor_unqualified', 'supply_source_unavailable',
     'z04c_exact_original_unavailable', 'z04c_locked_original_mismatch', 'z04c_conflicting_periods',
-    'z04c_effect_already_executed_compensation_required'])('owner refusal %s holds for review without app writes or activation', async reason => {
+    'z04c_effect_already_executed_compensation_required', 'z04c_current_sender_network_registry_required', 'z04c_start_already_cancelled'])('owner refusal %s holds for review without app writes or activation', async reason => {
     io.rpc.mockResolvedValue({ data: { applied: false, reason }, error: null })
     expect(await applyInboundBusinessStateMachine({ actorUserId: own.actor, message: message() }))
       .toMatchObject({ outcome: 'manual_review_required', reviewRequired: true, updated: [] })

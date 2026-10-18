@@ -107,11 +107,37 @@ async function confirmed(f: Fixture) {
     status: 'confirmed_by_grid_owner', source_message_id: confirmation.id })
   return { confirmation, period: actual[0] }
 }
-function held(f: Fixture, before: ReturnType<typeof business>, sourceId: string) {
+// Durable refusal surfaces of one received source: the owner's held object
+// partition (validated event), a rolled-back apply, the frozen legal context and
+// the own outbound replies. Emitted as a finite observation for the receipt.
+type Refusal = { partition: Array<{ disposition: string; reason?: string }> | null; rolledBack: string[];
+  context: { status: string; reason: string | null } | null; replies: Array<[string, string]> }
+function refusal(f: Fixture, sourceId: string): Refusal {
+  const observed = sql<Refusal>(`SELECT jsonb_build_object(
+    'partition',(SELECT e.payload->'sourceObjectPartition' FROM public.ediel_message_events e WHERE e.company_id=${literal(f.companyId)}
+      AND e.ediel_message_id=${literal(sourceId)} AND e.event_type='validated' AND jsonb_typeof(e.payload->'sourceObjectPartition')='array'
+      ORDER BY e.created_at DESC,e.id DESC LIMIT 1),
+    'rolledBack',(SELECT coalesce(jsonb_agg(e.payload->>'reason' ORDER BY e.created_at,e.id),'[]') FROM public.ediel_message_events e WHERE e.company_id=${literal(f.companyId)}
+      AND e.ediel_message_id=${literal(sourceId)} AND e.payload->>'supplySourceApply'='rolled_back'),
+    'context',(SELECT jsonb_build_object('status',r.status,'reason',r.reason) FROM gridex_ediel_inbound_context.receipts r WHERE r.company_id=${literal(f.companyId)} AND r.source_message_id=${literal(sourceId)}),
+    'replies',(SELECT coalesce(jsonb_agg(jsonb_build_array(message_family,coalesce(ack_outcome,'none')) ORDER BY message_family,id),'[]') FROM public.ediel_messages
+      WHERE company_id=${literal(f.companyId)} AND related_message_id=${literal(sourceId)} AND direction='outbound'));`)
+  console.info('Z04C_REFUSAL_OBSERVATION', JSON.stringify(observed))
+  return observed
+}
+function held(f: Fixture, before: ReturnType<typeof business>, sourceId: string,
+  expected: { partitionReason?: string; contextReason?: string } = {}) {
   expect(business(f)).toEqual(before)
   expect(ownTransitions(f, sourceId)).toBe(0)
-  // A valid syntax CONTRL is permitted; no positive business APERAK is.
+  const observed = refusal(f, sourceId)
+  // A valid syntax CONTRL is permitted; no positive business APERAK is, and
+  // any business APERAK produced for this source is negative.
   expect(positiveAperaks(f, sourceId)).toBe(0)
+  expect(observed.replies.filter(([family, outcome]) => family === 'APERAK' && outcome === 'positive')).toEqual([])
+  expect(observed.partition?.filter(entry => entry.disposition === 'applied') ?? []).toEqual([])
+  if (expected.partitionReason) expect(observed.partition).toEqual([expect.objectContaining({ disposition: 'held', reason: expected.partitionReason })])
+  if (expected.contextReason) expect(observed.context).toEqual({ status: 'held', reason: expected.contextReason })
+  return observed
 }
 
 describe('actual native received Z04C prohibited effects', () => {
@@ -144,7 +170,22 @@ describe('actual native received Z04C prohibited effects', () => {
     const c = await receiveProdat(f, z04c(f), 'C'), before = business(f)
     expect(sql(`WITH changed AS (UPDATE public.tenant_actor_roles SET valid_to=clock_timestamp() WHERE company_id=${literal(f.companyId)} AND actor_id=${literal(f.actorUserId)} AND environment='test' AND role_code='electricity_supplier' AND valid_to IS NULL RETURNING id) SELECT to_jsonb(count(*)) FROM changed;`)).toBe(1)
     await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: c.id })
+    // The frozen legal context was captured while the role was current and the
+    // owner's legal actor is evaluated at reception time, so this refusal comes
+    // from a later current-authority layer; its exact surface is emitted as
+    // Z04C_REFUSAL_OBSERVATION and pinned after the first qualified run.
     held(f, before, c.id)
+  }, 180000)
+
+  it('a receiver supplier role expired before C reception holds the legal context and cannot cancel the confirmed start', async () => {
+    const f = await seed(); await confirmed(f)
+    const before = business(f)
+    expect(sql(`WITH changed AS (UPDATE public.tenant_actor_roles SET valid_to=clock_timestamp() WHERE company_id=${literal(f.companyId)} AND actor_id=${literal(f.actorUserId)} AND environment='test' AND role_code='electricity_supplier' AND valid_to IS NULL RETURNING id) SELECT to_jsonb(count(*)) FROM changed;`)).toBe(1)
+    const c = await receiveProdat(f, z04c(f), 'C')
+    for (let attempt = 0; attempt < 2; attempt++) {
+      await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: c.id })
+      held(f, before, c.id, { contextReason: 'ediel_inbound_legal_context_required' })
+    }
   }, 180000)
 
   it('a sender grid-owner role revoked before fresh C reception cannot cancel the confirmed start', async () => {
@@ -153,7 +194,8 @@ describe('actual native received Z04C prohibited effects', () => {
     expect(sql(`WITH changed AS (UPDATE public.platform_actor_roles SET is_active=false WHERE actor_id=${literal(f.marketActorId)} AND actor_role='grid_owner' AND is_active RETURNING id) SELECT to_jsonb(count(*)) FROM changed;`)).toBe(1)
     const c = await receiveProdat(f, z04c(f), 'C')
     await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: c.id })
-    held(f, before, c.id)
+    // Fixed by 20261018100000: the first Z04/C needs today's sender registry.
+    held(f, before, c.id, { partitionReason: 'z04c_current_sender_network_registry_required' })
   }, 180000)
 
   it('a genuine foreign execution actor cannot apply the own fresh C source', async () => {
@@ -188,7 +230,19 @@ describe('actual native received Z04C prohibited effects', () => {
     const c = await receiveProdat(f, z04c(f, wire => variant === 'li'
       ? wire.replace(`RFF+LI:${f.caseReference}`, 'RFF+LI:UNRELATED') : wire.replaceAll(f.external, CLOSURE_OBJECT)), 'C')
     await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: c.id })
-    held(f, before, c.id)
+    held(f, before, c.id, variant === 'li' ? { partitionReason: 'z04c_exact_original_unavailable' } : {})
+  }, 180000)
+
+  it('a second distinct C after the start is cancelled is held as a duplicate and keeps the first C binding', async () => {
+    const f = await seed(); await confirmed(f)
+    const first = await receiveProdat(f, z04c(f), 'C'); await process(f, first)
+    expect(switchState(f)).toMatchObject({ status: 'cancelled_before_start', inbound: first.id })
+    const before = business(f)
+    const second = await receiveProdat(f, z04c(f), 'C')
+    expect(second.id).not.toBe(first.id)
+    await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: second.id })
+    held(f, before, second.id, { partitionReason: 'z04c_start_already_cancelled' })
+    expect(switchState(f)).toMatchObject({ status: 'cancelled_before_start', inbound: first.id })
   }, 180000)
 
   it.each(['226', '260', '223', '210', '227', '228', '232', '231', '316', '233', '234', '262'])('holds individually omitted required Z04C field %s with its actual national diagnostic', async fieldNumber => {
@@ -251,7 +305,7 @@ describe('actual native received Z04C prohibited effects', () => {
       return
     }
     const c = await receiveProdat(f, wire, 'C')
-    const decision = await resolveCanonicalRuntimeDecisionWithRegistry(c)
+    const decision = await resolveCanonicalRuntimeDecisionWithRegistry(c, { actorUserId: f.actorUserId })
     expect(decision.syntaxDecision, JSON.stringify(decision.issues)).toBe('accepted')
     expect(decision.issues).toContainEqual(expect.objectContaining({ prodatDiagnostic: expect.objectContaining({ fieldNumber }) }))
     await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: c.id })
