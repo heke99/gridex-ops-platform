@@ -224,7 +224,7 @@
           "id": 12141551567,
           "name": "ediel-z03c-supplier-boundary-native-39138451143",
           "sha256": "283dc966893acf9167c2e1435e09c720c4bd123bee846fcf74d3c12f41d1e787",
-          "committed_as": "NOT_COMMITTED: bootstrap.log carries the local Supabase CLI default Storage S3 keys unredacted; cited by id and digest only"
+          "committed_as": "quality/audits/ediel-masterplan-v2/z03c-supplier/native-z03c-boundary.zip (publication-safe member subset; bootstrap.log excluded because it carries the local Supabase CLI default Storage S3 key values)"
         },
         {
           "id": 12141178500,
@@ -238,19 +238,117 @@
         "failures": 0,
         "errors": 0
       },
-      "scope": "Final PR head original for criteria 0, 1, 2, 5 and 6 (outbound C03 boundary, calendar window, mutation, own-LI refusal)."
+      "scope": "Final PR head original for criteria 0, 1, 2, 5 and 6 (outbound C03 boundary, calendar window, mutation, own-LI refusal).",
+      "publication_safe_subset": {
+        "path": "quality/audits/ediel-masterplan-v2/z03c-supplier/native-z03c-boundary.zip",
+        "zip_sha256": "97c8f95dd92e54362042b81d82d8372a5622ecaec05a43a8ed13771cad087889",
+        "source_archive": {
+          "artifact": 12141551567,
+          "sha256": "283dc966893acf9167c2e1435e09c720c4bd123bee846fcf74d3c12f41d1e787"
+        },
+        "members_byte_identical_to_source_archive": [
+          {
+            "path": "z03c-clock-preflight-evidence/clock-capability.json",
+            "sha256": "b09bd02a331b5f0fc08328dc940f325cf8afa7e9676c2a93acaabba1f798368c",
+            "size": 194
+          },
+          {
+            "path": "z03c-clock-preflight-evidence/clock-restoration.json",
+            "sha256": "020bb56e42aba6a7a13afa53dc59425d03f7986c09f17f4603a6c468820ae0ea",
+            "size": 1081
+          },
+          {
+            "path": "z03c-clock-preflight-evidence/receipt.json",
+            "sha256": "971857434b009a6d59248720573f169b62cb5861af00587069698c65001959b8",
+            "size": 786
+          },
+          {
+            "path": "z03c-clock-preflight-evidence/runtime-generated-comparison-inputs.json",
+            "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356",
+            "size": 3
+          },
+          {
+            "path": "z03c-clock-preflight-evidence/source-identity-before.json",
+            "sha256": "d7e10622b688b32025b6b3d4c8a47a07b0fc7733385ac216a8c2bdb89d44da7f",
+            "size": 2553787
+          },
+          {
+            "path": "z03c-clock-preflight-evidence/sync-restoration-observations.json",
+            "sha256": "680fd4c2ee7719819cf143d214a278b9f02b33fb4a55834a10de3d7c9746e9f4",
+            "size": 1184
+          },
+          {
+            "path": "z03c-supplier-boundary-native-evidence/clock-restoration.json",
+            "sha256": "1344a82b9e05f6a6d340902cc53345d7f11304e4d0b72fca21a4be753882949d",
+            "size": 1079
+          },
+          {
+            "path": "z03c-supplier-boundary-native-evidence/installed-sql-history.json",
+            "sha256": "d3964e0a61dacd98304d48a92b2547e5857d0eac61ffb08b1db1e9670796068f",
+            "size": 8979
+          },
+          {
+            "path": "z03c-supplier-boundary-native-evidence/native-junit.xml",
+            "sha256": "eadda9b50aee2945f77567ae1f302cc61699a0a6baafb83af7edb9af20e1671a",
+            "size": 1376
+          },
+          {
+            "path": "z03c-supplier-boundary-native-evidence/native.log",
+            "sha256": "b600a9c9f5b0049d4d794ea715a3a8eb8699cb1ee18ffc6dec52b328ef67cb12",
+            "size": 1043
+          },
+          {
+            "path": "z03c-supplier-boundary-native-evidence/product-boundary-receipt.json",
+            "sha256": "a302cac8a1f10e3ea970485060942d9b00c1a0476860656d11f98e70d4f73427",
+            "size": 390100
+          },
+          {
+            "path": "z03c-supplier-boundary-native-evidence/receipt.json",
+            "sha256": "91bc372a94c12ab0bc60876a9e837c3e3eaff738fe4ff305e04b5822b4a7912a",
+            "size": 783
+          },
+          {
+            "path": "z03c-supplier-boundary-native-evidence/runtime-generated-comparison-inputs.json",
+            "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356",
+            "size": 3
+          },
+          {
+            "path": "z03c-supplier-boundary-native-evidence/source-identity-before.json",
+            "sha256": "d7e10622b688b32025b6b3d4c8a47a07b0fc7733385ac216a8c2bdb89d44da7f",
+            "size": 2553787
+          },
+          {
+            "path": "z03c-supplier-boundary-native-evidence/sync-restoration-observations.json",
+            "sha256": "19568cf475a3018b6e96f32428aa9f19c7c8ce8033f47810bd2614c567be841b",
+            "size": 1177
+          }
+        ],
+        "excluded": [
+          {
+            "path": "z03c-supplier-boundary-native-evidence/bootstrap.log",
+            "sha256": "ef622c8f065bdd8e1b32467f88fd870f5457a39014560861bd709607cfe934fe",
+            "size": 2012629,
+            "reason": "retains disposable local Supabase CLI default Storage S3 key values; never published"
+          }
+        ],
+        "qualification": "junit 5/5 (0 failures, 0 errors, 0 skipped) and receipt checkout_sha 35a6e30f / tree 92523243 / workflow_run_id 39138451143 / exit_code 0 are inside the subset; member hashes recomputed from the downloaded source archive whose digest equals the GitHub artifact digest. Credential scan of all published members: no key, token or connection-string values."
+      }
     }
   ],
   "independent_proof_reviews": [
     {
-      "reviewer": "PENDING",
-      "sha256": "PENDING",
-      "verdict": "PENDING"
+      "reviewer": "E (independent non-coauthor DELIVERY reviewer, huvudagent 4 review pool)",
+      "bound_head": "e1c3e56071778a14e854eb20f1d106a0685d8c2a",
+      "verdict": "DELIVERY_APPROVE; AT-Z03C-SUPPLIER PASSED-eligible: yes; AT-Z04C-SUPPLIER: not approvable",
+      "locator": "https://github.com/heke99/gridex-ops-platform/pull/820#issuecomment-6252835756",
+      "sha256": "d3c4e7a007aeeb59a73c958f849004c856ed93f29062d72b091597626e1554f1"
     },
     {
-      "reviewer": "PENDING",
-      "sha256": "PENDING",
-      "verdict": "PENDING"
+      "reviewer": "F (independent non-coauthor DELIVERY reviewer, huvudagent 4 review pool)",
+      "bound_head": "e1c3e56071778a14e854eb20f1d106a0685d8c2a",
+      "verdict": "DELIVERY_APPROVE; AT-Z03C-SUPPLIER PASSED-eligible: yes",
+      "locator": "https://github.com/heke99/gridex-ops-platform/pull/820#issuecomment-6252835899",
+      "sha256": "233bc6264d20796a653c4cb9be309f7abc879a504d71561cdbb0d1111e597157"
     }
   ],
   "criteria": [
@@ -261,7 +359,7 @@
         345,
         372
       ],
-      "observed": "Actual queued Z03C message asserts application_reference 23-DDQ-PRODAT, message_code Z03, one CCI Z13 followed by CAV Z24, BGM Z03, valid envelope, own LI only (lines 352-357).",
+      "observed": "Actual queued Z03C message asserts application_reference 23-DDQ-PRODAT, message_code Z03, one CCI Z13 followed by CAV Z24, BGM Z03, valid envelope, own LI only (line 359).",
       "final_head_original": {
         "run": 39138451143,
         "job": 117713962572,
@@ -523,7 +621,15 @@
       "criteria_reused_from_cd152e72": [],
       "reuse_basis": "Not needed: every native criterion is bound to an original executed on this exact head. The cd152e72 originals remain historical corroboration only.",
       "criterion_7": "component test unchanged; runs in ordinary CI on the final head.",
-      "command": "git diff --stat dbbfee16 d123c00221a62f816a151277095f2ac4ebb0e074 -- lib supabase/migrations scripts/helpers __tests__/helpers"
+      "command": "git diff --stat dbbfee16 d123c00221a62f816a151277095f2ac4ebb0e074 -- lib supabase/migrations scripts/helpers __tests__/helpers",
+      "main_integration": {
+        "main": "3034e14d194dbf6d8add1b23a5de1d2924f3a1a7",
+        "merge_tree": "cfd2679b0155f1476067ca88dd05f30c1cb59434",
+        "paths_changed_vs_35a6e30f_outside_quality": [
+          ".github/workflows/ediel-z03c-supplier-boundary-native.yml"
+        ],
+        "note": "Only the already-delivered main version of the C03 producer workflow (stricter clock observation and preflight diagnostics) differs from the executed 35a6e30f originals; no test, helper, library, migration or schema input differs. The final head reruns the producer under ordinary gates."
+      }
     }
   },
   "delivery": {
@@ -533,5 +639,6 @@
     "merge_role": "REQUIRED_SERIAL_OWNER_ONLY",
     "external_legal_market_live_gates": "NOT_APPROVED",
     "other_ids": "NOT_APPROVED"
-  }
+  },
+  "independent_proof_reviews_canonicalization": "sha256 of the report text in the locator comment: the text after the first line consisting of --- and before the closing --- footer rule, trailing newlines reduced to exactly one"
 }
