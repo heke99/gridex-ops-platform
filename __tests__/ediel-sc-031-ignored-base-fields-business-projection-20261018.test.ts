@@ -8,6 +8,8 @@ import { alphabets, characteristic, type Parts } from '@/__tests__/fixtures/prod
 import { head, own, source } from '@/__tests__/fixtures/prodat-identity'
 import { structuralOwnerSource } from '@/__tests__/helpers/structuralOwnerFixtures'
 import { canonicalProdat26AFieldRules } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
+import { resolveProdatSourceSubtypeRequirement } from '@/lib/ediel/prodat/prodatSubtypeRequirement'
+import { msg as permissionMessage, object as permissionObject } from '@/__tests__/fixtures/prodat-prior-flow'
 
 // These tests call the full production parser, staging and approval consumers.
 // Only SDK persistence, event and canonical graph IO
@@ -84,7 +86,7 @@ const stage = () => createOrUpdateInboundProdatCase({ actorUserId: ACTOR, messag
 const approveSingle = () => approveEdielInboundCase({ actorUserId: ACTOR, companyId: COMPANY, caseId: CASE, mode: 'create_new_customer' })
 
 
-import { guideOrderedFixtureRaw } from '@/__tests__/helpers/prodatGuideOrderedFixture'
+import { guideOrderedFixtureBody, guideOrderedFixtureRaw } from '@/__tests__/helpers/prodatGuideOrderedFixture'
 const baseFields: [string, Parts[]][] = [
  ['213', [['QTY', ['31', '777', 'KWH']]]],
  ['224', [['RFF', ['MG', 'IGNORED']]]],
@@ -229,5 +231,108 @@ describe('SC031 actual canonical base-X fields stay out of incoming business dat
  it('outbound canonical rejection remains independent from incoming tolerance', () => {
   const d = resolveCanonicalRuntimeDecision({ ...z01(baseFields[0][1]), direction:'outbound' })
   expect(d.syntaxDecision).toBe('accepted'); expect(d.applicationDecision).toBe('rejected')
+ })
+})
+
+const subtypeFields: [string, Parts[]][] = [
+ ['217', characteristic('Z04', 'Z02')],
+ ['222', characteristic('Z12', 'D', 3)],
+ ['508', [['DTM', ['354', '15', '806']]]],
+ ['260', [['RFF', ['Z05', 'TES']]]],
+]
+function z14n(extra: Parts[] = [], alphabet: readonly string[] = alphabets[0]): EdielMessageRow {
+ return {...permissionMessage('Z14', 'Z96', 'SC031-N', guideOrderedFixtureBody([...permissionObject('Z14', 'Z96', 'SC031-N'), ...extra]), alphabet), company_id:COMPANY}
+}
+function stagedBusinessProjection() {
+ const meter = {...stored!.parsed_metering_point}; delete meter.registers
+ return {customer:stored!.parsed_customer,site:stored!.parsed_site,meteringPoint:meter,contract:stored!.parsed_contract,production:stored!.parsed_production}
+}
+function z09Object(seq:string,id:string,reason:string):Parts[] {
+ return [['LIN',seq,'',[id,'','','9']],['DTM',['157','202610010000','203']],
+  ...characteristic('Z13',reason),...characteristic('Z04','Z02'),['RFF',['LI',`SC031-${seq}`]]]
+}
+describe('SC031 source-qualified false D stays out of incoming business data', () => {
+ for (const alphabet of alphabets) for (const [field, extra] of subtypeFields) it(`Z14N ignored${field} preserves business projection (${alphabet.join('')})`, () => {
+  const baseline = z14n([],alphabet), row = z14n(extra,alphabet), original = structuredClone(row)
+  expect(canonicalProdat26AFieldRules('Z14').find(rule=>rule.fieldNumber===field)?.requirement).toBe('dependent')
+  expect(resolveProdatSourceSubtypeRequirement({messageCode:'Z14',subtype:'N',fieldNumber:field})).toBe('forbidden')
+  for (const candidate of [baseline,row]) {
+   const decision = resolveCanonicalRuntimeDecision(candidate)
+   expect([decision.syntaxDecision,decision.applicationDecision],JSON.stringify(decision.issues)).toEqual(['accepted','accepted'])
+   expect(decision.policy?.subtype).toBe('N')
+   expect(decision.responsePlan.some(plan=>plan.family==='APERAK'&&plan.outcome==='negative')).toBe(false)
+  }
+  expect(resolveCanonicalRuntimeDecision(row).prodatIgnoredFields).toContainEqual(expect.objectContaining({fieldNumber:field,sourceRule:'PRODAT26A:P119'}))
+  expect(businessProjection(row)).toEqual(businessProjection(baseline))
+  expect(row).toEqual(original)
+ })
+ for (const alphabet of alphabets) it(`persists all five N projections without subtype-excluded business values (${alphabet.join('')})`, async () => {
+  install(z14n([],alphabet)); await stage(); const baseline = stagedBusinessProjection()
+  install(z14n(subtypeFields.flatMap(([,extra])=>extra),alphabet)); const original = structuredClone(message)
+  await stage()
+  expect(stagedBusinessProjection()).toEqual(baseline)
+  expect(stored!.parsed_metering_point).toMatchObject({meteringMethod:null,readingFrequency:null,observationLength:null,observationLengthFormat:null})
+  expect(stored!.parsed_site.gridAreaCode).toBeNull(); expect(stored!.parsed_contract.gridAreaCode).toBeNull()
+  expect(commands).toEqual([]); expect(message).toEqual(original)
+  // Direct staging is a component boundary, not public N graph authorization.
+ })
+ const staleSlots = [
+  ['217','parsed_metering_point','meteringMethod','Z02'],
+  ['222','parsed_metering_point','readingFrequency','D'],
+  ['508','parsed_metering_point','observationLength','15'],
+  ['508','parsed_metering_point','observationLengthFormat','806'],
+  ['260','parsed_site','gridAreaCode','TES'],
+  ['260','parsed_contract','gridAreaCode','TES'],
+ ] as const
+ for (const [field, section, key, value] of staleSlots) it(`holds the explicit predecessor N ${section}.${key} cache before graph IO and on replay`, async () => {
+  install(z14n(subtypeFields.find(([number])=>number===field)![1])); await stage()
+  stored![section][key] = value
+  const pending = structuredClone(stored), original = structuredClone(message)
+  for (let attempt=0;attempt<2;attempt++) {
+   await expect(approveSingle()).rejects.toThrow(`PRODAT_INBOUND_CASE_PROJECTION_OBSOLETE:${field}`)
+   expect(stored).toEqual(pending); expect(message).toEqual(original); expect(commands).toEqual([])
+  }
+ })
+ for (const [subtype,reason,field,section,key,value] of [
+  ['D','Z70','216','parsed_site','validityStartDate','202610010000'],
+  ['B','Z27','217','parsed_metering_point','meteringMethod','Z02'],
+  ['D','Z70','217','parsed_metering_point','meteringMethod','Z02'],
+  ['E','E34','217','parsed_metering_point','meteringMethod','Z02'],
+ ] as const) it(`holds an obsolete Z09${subtype} field${field} pending slot without graph IO`, async () => {
+  install({...source(guideOrderedFixtureRaw([...head(),...z09Object('1','735123456789012345',reason)],'Z09'),'Z09'),company_id:COMPANY})
+  await stage(); stored![section][key] = value
+  const pending = structuredClone(stored), original = structuredClone(message)
+  await expect(approveSingle()).rejects.toThrow(`PRODAT_INBOUND_CASE_PROJECTION_OBSOLETE:${field}`)
+  expect(stored).toEqual(pending); expect(message).toEqual(original); expect(commands).toEqual([])
+ })
+ it('derives subtype from the physical own source despite forged cached code, reason and field values', () => {
+  const row = {...z14n(subtypeFields.flatMap(([,extra])=>extra)),message_code:'Z04',parsed_payload:{reasonForTransaction:'S17',subtype:'VH',meteringMethod:'Z04',readingFrequency:'M',observationLength:'60',gridAreaCode:'FORGED'}}
+  expect(businessProjection(row)).toEqual(businessProjection(z14n()))
+ })
+ it('keeps outgoing and no-wire legacy projections and the strict outgoing N decision', () => {
+  const row = z14n(subtypeFields.flatMap(([,extra])=>extra)), outgoing = {...row,direction:'outbound' as const}
+  expect(parseInboundProdatBusinessData(outgoing)).toMatchObject({site:{gridAreaCode:'TES'},contract:{gridAreaCode:'TES'},meteringPoint:{meteringMethod:'Z02',readingFrequency:'D',observationLength:'15',observationLengthFormat:'806'}})
+  expect(resolveCanonicalRuntimeDecision(outgoing).applicationDecision).toBe('rejected')
+  expect(parseInboundProdatBusinessData({...row,raw_payload:null,parsed_payload:{meteringMethod:'Z02',readingFrequency:'D',observationLength:'15',observationLengthFormat:'806',gridAreaCode:'LEGACY'}})).toMatchObject({site:{gridAreaCode:'LEGACY'},contract:{gridAreaCode:'LEGACY'},meteringPoint:{meteringMethod:'Z02',readingFrequency:'D',observationLength:'15',observationLengthFormat:'806'}})
+ })
+ it.each(['S17','S18'])('retains actual required Z14 positive-subtype values (%s)', reason => {
+  const row = {...permissionMessage('Z14',reason,'SC031-POSITIVE',guideOrderedFixtureBody(permissionObject('Z14',reason,'SC031-POSITIVE'))),company_id:COMPANY}
+  expect(parseInboundProdatBusinessData(row)).toMatchObject({site:{gridAreaCode:'NET'},contract:{gridAreaCode:'NET'},meteringPoint:{meteringMethod:'Z04',readingFrequency:'D',observationLength:'15',observationLengthFormat:'806'}})
+ })
+ it('does not infer a forbidden D from an unknown physical subtype', () => {
+  const row = z14n(subtypeFields.flatMap(([,extra])=>extra))
+  row.raw_payload = row.raw_payload!.replace('Z96','INVALID')
+  expect(parseInboundProdatBusinessData(row)).toMatchObject({site:{gridAreaCode:'TES'},contract:{gridAreaCode:'TES'},meteringPoint:{meteringMethod:'Z02',readingFrequency:'D',observationLength:'15',observationLengthFormat:'806'}})
+ })
+ it('uses the selected object for Z09D216 and Z09B/D/E217 without borrowing a sibling subtype', () => {
+  // Bounded parser controls for the other consumed source-resolved false-D
+  // cells; no whole-message canonical or public Z09 application is claimed.
+  for (const [subtype,reason,expectedDate,expectedMethod] of [['D','Z70',null,null],['B','Z27','202610010000',null],['E','E34','202610010000',null],['F','E64','202610010000','Z02'],['G','E32','202610010000','Z02']] as const) {
+   const row = {...source(guideOrderedFixtureRaw([...head(),...z09Object('1','735123456789012345','E64'),...z09Object('2','735123456789012352',reason)],'Z09'),'Z09'),company_id:COMPANY}
+   const selected = parseInboundProdatBusinessData(row,{meteringPointId:'735123456789012352',identityAgency:'9'})
+   expect(selected.site.validityStartDate,subtype).toBe(expectedDate)
+   expect(selected.meteringPoint.meteringMethod,subtype).toBe(expectedMethod)
+   expect(parseInboundProdatBusinessData(row,{meteringPointId:'735123456789012345',identityAgency:'9'})).toMatchObject({site:{validityStartDate:'202610010000'},meteringPoint:{meteringMethod:'Z02'}})
+  }
  })
 })

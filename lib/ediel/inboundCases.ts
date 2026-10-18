@@ -147,6 +147,11 @@ function buildInternalNotes(parsed: ParsedInboundProdat): string {
   return rows.join('\n')
 }
 
+function prodatBusinessFieldIsForbidden(messageCode: string, subtype: unknown, fieldNumber: CanonicalProdatBusinessProjectionField): boolean {
+  return canonicalProdatBusinessProjectionFieldIsForbidden(messageCode, fieldNumber)
+    || resolveProdatSourceSubtypeRequirement({messageCode, subtype, fieldNumber}) === 'forbidden'
+}
+
 export function parseInboundProdatBusinessData(message: EdielMessageRow, object?: {meteringPointId:string;identityAgency:string}): ParsedInboundProdat {
   const payload = message.parsed_payload ?? {}
   const source = parseProdatMessage(message)
@@ -174,14 +179,13 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow, object?
   const incomingWire = hasWireSource && message.direction === 'inbound'
   const sourceSubtype = prodatEndUserWireSubtype(messageCode, sourceSegments, una)
   const ignoredCanonicalField = (fieldNumber: CanonicalProdatBusinessProjectionField): boolean => incomingWire
-    && canonicalProdatBusinessProjectionFieldIsForbidden(messageCode, fieldNumber)
+    && prodatBusinessFieldIsForbidden(messageCode, sourceSubtype, fieldNumber)
   const ignoredUd = ignoredCanonicalField('END_USER_GROUP') || (incomingWire
     && isProdatFieldInInapplicableParent({ messageCode,
       subtype: sourceSubtype, fieldNumber: 'END_USER_GROUP' }))
   const ignoredIt = ignoredCanonicalField('INSTALLATION_GROUP') || (incomingWire
     && isProdatFieldInInapplicableParent({ messageCode, subtype: sourceSubtype, fieldNumber: 'INSTALLATION_GROUP' }))
-  const ignoredReference = ignoredCanonicalField('319') || (incomingWire
-    && resolveProdatSourceSubtypeRequirement({ messageCode, subtype: sourceSubtype, fieldNumber: '319' }) === 'forbidden')
+  const ignoredReference = ignoredCanonicalField('319')
   const ignoredBirthDate = ignoredCanonicalField('249')
   const ignoredBusinessScalar = (fieldNumber: '261' | '306' | '212'): boolean => ignoredCanonicalField(fieldNumber)
   const ud = readProdatParty('UD', ignoredUd ? [] : sourceSegments, una)
@@ -243,7 +247,7 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow, object?
     postalCode: partyValue(it.postalCode, 'sitePostalCode', 'facilityPostalCode'),
     city: partyValue(it.city, 'siteCity', 'facilityCity'),
     country: partyValue(it.country, 'siteCountry', 'facilityCountry'),
-    gridAreaCode: reference('260', 'gridAreaCode', 'networkAreaId'),
+    gridAreaCode: ignoredCanonicalField('260') ? null : reference('260', 'gridAreaCode', 'networkAreaId'),
     annualEnergyKwh: annualEnergy,
     validityStartDate: ignoredCanonicalField('216') ? null : hasWireSource ? prodatDateValue('216', sourceSegments, una) : valueFromParsed(payload, 'validityStartDate'),
     contractStartDate: contractStart,
@@ -272,7 +276,7 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow, object?
     startDate: contractStart,
     agreementReference: ignoredBusinessScalar('261') ? null : reference('261', 'agreementReference'),
     balanceResponsibleId: partyValue(balanceResponsible.id, 'balanceResponsibleId'),
-    gridAreaCode: reference('260', 'gridAreaCode', 'networkAreaId'),
+    gridAreaCode: ignoredCanonicalField('260') ? null : reference('260', 'gridAreaCode', 'networkAreaId'),
   }
 
   const production = {
@@ -773,7 +777,10 @@ function inboundCustomerCommand(params: {
 function assertCurrentIgnoredBusinessProjection(inboundCase: EdielInboundCaseRow, source: EdielMessageRow | null): void {
   if (source?.message_family !== 'PRODAT' || source.direction !== 'inbound' || !source.raw_payload?.trim()) return
   if (source.id !== inboundCase.ediel_message_id || source.company_id !== inboundCase.company_id) throw new Error('TENANT_CONTEXT_MISMATCH')
-  const code = parseEdifactMessageFacts(source.raw_payload).messageCode
+  const facts = parseEdifactMessageFacts(source.raw_payload)
+  const code = facts.messageCode ?? ''
+  const firstLine = parseProdatMessage(source).lineItems[0]
+  const subtype = prodatEndUserWireSubtype(code, facts.lineItems[firstLine?.sourceOrder ?? 0]?.effectiveSegments ?? [], parseUna(source.raw_payload))
   const current = parseInboundProdatBusinessData(source)
   const slots = [
     ['213', 'parsed_site', 'site', 'annualEnergyKwh'],
@@ -786,12 +793,14 @@ function assertCurrentIgnoredBusinessProjection(inboundCase: EdielInboundCaseRow
     ['242', 'parsed_production', 'production', 'productCode'],
     ['254', 'parsed_production', 'production', 'settlementMethod'],
     ['259', 'parsed_metering_point', 'meteringPoint', 'meterInterval'],
+    ['260', 'parsed_site', 'site', 'gridAreaCode'],
+    ['260', 'parsed_contract', 'contract', 'gridAreaCode'],
     ['262', 'parsed_contract', 'contract', 'balanceResponsibleId'],
     ['508', 'parsed_metering_point', 'meteringPoint', 'observationLength'],
     ['508', 'parsed_metering_point', 'meteringPoint', 'observationLengthFormat'],
   ] as const
   for (const [field, cachedSection, currentSection, key] of slots) {
-    if (canonicalProdatBusinessProjectionFieldIsForbidden(code, field)
+    if (prodatBusinessFieldIsForbidden(code, subtype, field)
       && !isDeepStrictEqual(inboundCase[cachedSection][key] ?? null, current[currentSection][key] ?? null)) {
       throw new Error(`PRODAT_INBOUND_CASE_PROJECTION_OBSOLETE:${field}`)
     }

@@ -216,7 +216,7 @@ export function canonicalRegisteredEdielGuideScopes(){
 import {PRODAT_26A_FIELD_MATRIX, canonicalProdat26AFieldRules} from '@/lib/ediel/prodat/prodat26AFieldMatrix'
 export type CanonicalProdatBusinessProjectionField =
   | 'END_USER_GROUP' | 'INSTALLATION_GROUP' | '319' | '249' | '261' | '306' | '212'
-  | '213' | '214' | '216' | '217' | '218' | '222' | '224' | '242' | '254' | '259' | '262' | '508'
+  | '213' | '214' | '216' | '217' | '218' | '222' | '224' | '242' | '254' | '259' | '260' | '262' | '508'
 
 /** Known base exclusions for the bounded incoming business projection. This
  * derived lookup does not select a guide or resolve dependent conditions. */
