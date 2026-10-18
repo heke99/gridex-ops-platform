@@ -44,6 +44,7 @@ import { processInboundAckMessage } from '@/lib/ediel/flows/inboundAckProcessing
 import { readCommittedInboundAck } from '@/lib/ediel/ack/committedInboundAck'
 import { listBusinessAckMessagesForSource } from '@/lib/ediel/inbound/businessAckMessages'
 import { recordReceivedSourceValidation } from '@/lib/ediel/core/receivedSourceValidationLedger'
+import * as receivedSourceValidationLedger from '@/lib/ediel/core/receivedSourceValidationLedger'
 import { buildContrlDraft, buildAperakDraft } from '@/lib/ediel/ack'
 import { createCanonicalOutboundMessage } from '@/lib/ediel/core/kernel'
 import { preflightEdielPayload } from '@/lib/ediel/core/messageBuilder/payloadPreflight'
@@ -816,10 +817,11 @@ function effects(f: NormalSwitchStageNativeFixture) {
     'events',(SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY s.id),'[]') FROM public.supplier_switch_events s WHERE switch_request_id=${literal(f.switchId)}),
     'cases',(SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY s.id),'[]') FROM public.customer_cases s WHERE company_id=${literal(f.companyId)}));`),providerCalls:smtp.mock.calls.length }
 }
-// Ordinary Z04 replay revalidates once. Its append-only audit may grow, while
-// every prior authority row and every non-audit effect must remain exact.
+// Identical accepted Z04 replay revalidates once, then the equivalent V6 SQL
+// owner retains its exact positive leaf and facets. No new authority may appear.
 function preserveZ04ValidationAudit(f: Fixture, source: EdielMessageRow, baseline: ReturnType<typeof effects>, actual: ReturnType<typeof effects>,
-  replay: { startedAt:number; finishedAt:number; ackMessages:EdielMessageRow[]; inboundCaseId:string }) {
+  replay: { startedAt:number; finishedAt:number; ackMessages:EdielMessageRow[]; inboundCaseId:string;
+    validation:{input:Parameters<typeof recordReceivedSourceValidation>[0];receipt:ReceivedSourceValidationReceipt} }) {
   type AuditRows = Record<string,Record<string,unknown>[]>
   const before=baseline.durable as AuditRows,normalized=structuredClone(actual),after=normalized.durable as AuditRows
   expect(source).toMatchObject({company_id:f.companyId,environment:'test',direction:'inbound',message_family:'PRODAT',message_code:'Z04'})
@@ -854,14 +856,14 @@ function preserveZ04ValidationAudit(f: Fixture, source: EdielMessageRow, baselin
     }
   }
   const assessments=additions('sourceValidations','id')
-  expect(assessments,'exactly one fresh own-source assessment').toHaveLength(1)
-  const assessment=assessments[0]
-  expect(assessment.id).toEqual(expect.stringMatching(/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/))
-  expect(assessment.id).not.toBe(leaf.id)
-  expect(assessment).toMatchObject({...scope,previous_assessment_id:leaf.id,owner:'canonical-runtime-with-registry-v1'})
-  factsHash(assessment,'facts_text','facts_hash')
-  clock(assessment.assessed_at,leaf.assessed_at)
-  expect(JSON.parse(assessment.facts_text as string)).toMatchObject({
+  expect(assessments,'identical accepted replay retains its exact canonical leaf').toHaveLength(0)
+  expect(replay.validation.input).toMatchObject({resolvedCompanyId:f.companyId,
+    original:{id:source.id,company_id:f.companyId,environment:'test',direction:'inbound',message_standard:'edifact',message_family:'PRODAT',message_code:'Z04',raw_payload:source.raw_payload},
+    validated:{id:source.id,company_id:f.companyId,environment:'test',direction:'inbound',message_standard:'edifact',message_family:'PRODAT',message_code:'Z04',raw_payload:source.raw_payload},
+    decision:{syntaxDecision:'accepted',applicationDecision:'accepted',functionalDecision:'accepted'}})
+  expect(replay.validation.receipt).toEqual({status:'recorded',sourceDisposition:'not_established',assessmentId:leaf.id,factsHash:leaf.facts_hash})
+  factsHash(leaf,'facts_text','facts_hash')
+  expect(JSON.parse(leaf.facts_text as string)).toMatchObject({
     owner:'canonical-runtime-with-registry-v1',syntaxDecision:'accepted',applicationDecision:'accepted',functionalDecision:'accepted',
   })
   for (const [key,primaryKey,textKey,hashKey] of [
@@ -872,18 +874,16 @@ function preserveZ04ValidationAudit(f: Fixture, source: EdielMessageRow, baselin
     ['prodatSourceFunctionValidations','assessment_id','function_facts_text','function_facts_hash'],
   ] as const) {
     const established=before[key].filter(row=>row[primaryKey]===leaf.id)
+    expect(established,key+' exact retained positive facet presence').toHaveLength(key==='prodatSourceFunctionValidations'?0:1)
     if (established.length) {
       expect(established,key+' single baseline leaf facet').toHaveLength(1)
       expect(established[0]).toMatchObject({...scope,[primaryKey]:leaf.id})
+      factsHash(established[0],textKey,hashKey)
     }
     // Normal Z04 has no customer-life-event source-function projection.
     if (key==='prodatSourceFunctionValidations') expect(before[key].filter(row=>row.source_message_id===source.id)).toHaveLength(0)
     const added=additions(key,primaryKey)
-    expect(added,key+' matches the actual baseline leaf facet presence').toHaveLength(established.length)
-    for (const row of added) {
-      expect(row).toMatchObject({...scope,[primaryKey]:assessment.id})
-      factsHash(row,textKey,hashKey)
-    }
+    expect(added,key+' identical replay appends no facet').toHaveLength(0)
   }
   // These protected business receipts retain the original execution actor,
   // unlike the service client's nullable creator on a later operational event.
@@ -904,7 +904,7 @@ function preserveZ04ValidationAudit(f: Fixture, source: EdielMessageRow, baselin
   expect(after.supplyPartitions).toEqual(before.supplyPartitions)
   expect(after.supplyEffectReceipts).toEqual(before.supplyEffectReceipts)
 
-  // Only this source's projected receipt and two audit clocks may change.
+  // The retained source receipt is exact; only its two audit clocks may change.
   const previousMessages=before.messages.filter(row=>row.id===source.id),currentMessages=after.messages.filter(row=>row.id===source.id)
   expect(previousMessages).toHaveLength(1); expect(currentMessages).toHaveLength(1)
   const previousMessage=previousMessages[0],currentMessage=currentMessages[0]
@@ -912,7 +912,7 @@ function preserveZ04ValidationAudit(f: Fixture, source: EdielMessageRow, baselin
   expect(previousMessage.updated_by).toBe(f.actorUserId); expect(currentMessage.updated_by).toBe(f.actorUserId)
   const previousReport=previousMessage.validation_report as Record<string,unknown>,currentReport=currentMessage.validation_report as Record<string,unknown>
   expect(previousReport.receivedSourceValidationEvidence).toEqual({status:'recorded',sourceDisposition:'not_established',assessmentId:leaf.id,factsHash:leaf.facts_hash})
-  expect(currentReport.receivedSourceValidationEvidence).toEqual({status:'recorded',sourceDisposition:'not_established',assessmentId:assessment.id,factsHash:assessment.facts_hash})
+  expect(currentReport.receivedSourceValidationEvidence).toEqual({status:'recorded',sourceDisposition:'not_established',assessmentId:leaf.id,factsHash:leaf.facts_hash})
   for (const key of ['validated_at','updated_at'] as const) {
     clock(currentMessage[key],previousMessage[key])
     currentMessage[key]=previousMessage[key]
@@ -1432,12 +1432,24 @@ describe.each(['L','LK'] as const)('ordinary supplier Z03%s native proposals',va
     const baselineCases=inboundCases()
     expect(baselineCases).toHaveLength(1)
     expect(baselineCases[0]).toEqual({id:expect.stringMatching(/^[0-9a-f-]{36}$/),company_id:f.companyId,ediel_message_id:source.id})
+    // The default spy delegates to the real recorder and returns its actual
+    // receipt unchanged. Zero appends alone cannot prove a fresh owner call.
+    const validationSpy=vi.spyOn(receivedSourceValidationLedger,'recordReceivedSourceValidation')
+    let replayValidation:Parameters<typeof preserveZ04ValidationAudit>[4]['validation']|undefined
     const replayStartedAt=Date.now()
-    await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:source.id})
+    try {
+      await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:source.id})
+      expect(validationSpy,'one real canonical recorder invocation on identical replay').toHaveBeenCalledTimes(1)
+      const result=validationSpy.mock.results[0]
+      expect(result.type).toBe('return')
+      if(result.type!=='return')throw Error('native_replay_validation_return_required')
+      replayValidation={input:validationSpy.mock.calls[0][0],receipt:await result.value}
+    } finally { validationSpy.mockRestore() }
     const replayFinishedAt=Date.now()
+    if(!replayValidation)throw Error('native_replay_validation_observation_required')
     expect(inboundCases()).toEqual(baselineCases)
     expect(preserveZ04ValidationAudit(f,source,confirmed,effects(f),{startedAt:replayStartedAt,finishedAt:replayFinishedAt,
-      ackMessages,inboundCaseId:baselineCases[0].id})).toEqual(confirmed); expect(replies(f,source.id).map(m=>m.id)).toEqual(replyIds)
+      ackMessages,inboundCaseId:baselineCases[0].id,validation:replayValidation})).toEqual(confirmed); expect(replies(f,source.id).map(m=>m.id)).toEqual(replyIds)
     expect(smtp.mock.calls.length).toBe(providerCalls); expect(originalHistory(f)).toEqual(history)
   })
 
