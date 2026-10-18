@@ -1,0 +1,189 @@
+name: Ediel Z04 L LK prospective future start
+
+on:
+  # SOURCE publication cannot start runtime; ROOT appoints a new producer and
+  # posts the exact-head/two-peer tuple before applying this label once.
+  pull_request:
+    types: [labeled]
+
+permissions:
+  contents: read
+  actions: read
+  issues: read
+  pull-requests: read
+
+concurrency:
+  group: ediel-z04-future-start-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  z04-future-start-native:
+    if: >-
+      github.event.action == 'labeled' &&
+      github.event.label.name == 'ediel-z04-future-start-approved' &&
+      github.event.sender.login == 'heke99' && github.run_attempt == 1 &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'codex/agent3-z04-future-start-20261018'
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+      GRIDEX_Z04_FUTURE_EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+      GRIDEX_EXECUTING_WORKFLOW_SHA: ${{ github.workflow_sha }}
+      GRIDEX_Z04_FUTURE_ADMISSION_FILE: ${{ runner.temp }}/z04-future-root-admission.json
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Require ROOT exact-head producer admission before any backend or clock
+        id: admission
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: &source_admission |
+          python3 - <<'PY'
+          import base64,hashlib,json,os,pathlib,re,subprocess
+          from urllib.parse import quote
+          def require(ok,code):
+              if not ok:raise RuntimeError('z04future_admission_'+code)
+          def strict(raw):
+              def pairs(items):
+                  result={}
+                  for key,value in items:
+                      require(key not in result,'duplicate_json_key');result[key]=value
+                  return result
+              return json.loads(raw,object_pairs_hook=pairs)
+          def get(path):
+              return strict(subprocess.check_output(['gh','api','--method','GET','repos/'+os.environ['GITHUB_REPOSITORY']+'/'+path],text=True,timeout=30))
+          def git(*args):return subprocess.check_output(['git',*args],text=True,timeout=30).strip()
+          def ref(resource,receipt):
+              observed=get('git/ref/'+resource.removeprefix('refs/'))
+              require(observed.get('ref')==resource and observed.get('object',{}).get('type')=='commit' and observed['object']['sha']==receipt,'ref_get_match')
+          def hex40(value):return isinstance(value,str) and re.fullmatch('[0-9a-f]{40}',value)
+          def hex64(value):return isinstance(value,str) and re.fullmatch('[0-9a-f]{64}',value)
+          head=git('rev-parse','HEAD');tree=git('rev-parse','HEAD^{tree}')
+          event=strict(pathlib.Path(os.environ['GITHUB_EVENT_PATH']).read_text());number=event['pull_request']['number']
+          require(os.environ['GITHUB_RUN_ATTEMPT']=='1' and event['action']=='labeled' and event['sender']['login']=='heke99' and event['label']['name']=='ediel-z04-future-start-approved','positive_first_event')
+          require(head==os.environ['GRIDEX_Z04_FUTURE_EXPECTED_HEAD'],'checkout_head')
+          pr=get('pulls/'+str(number))
+          require(pr['state']=='open' and pr['head']['sha']==head and pr['head']['ref']=='codex/agent3-z04-future-start-20261018' and pr['head']['repo']['full_name']==os.environ['GITHUB_REPOSITORY'],'current_pr_scope')
+          suite='z04l-z04lk-future-start';claim='0586ff40817595e4c4fba105108b09c0c216144b'
+          resource='refs/tags/agent-claims/masterplan/producer-z04-future-start'
+          output='ediel-z04-future-start-restored-redacted-v1'
+          files=['.github/workflows/ediel-z04l-z04lk-future-start-native.yml','scripts/ediel-z04l-z04lk-future-start-native.config.ts','scripts/ediel-z04l-z04lk-future-start-native.test.ts','scripts/helpers/ediel-prospective-market-clock-controller.py','scripts/helpers/ediel-prospective-market-clock-native.ts']
+          comments=[]
+          for page in range(1,11):
+              batch=get('issues/'+str(number)+'/comments?per_page=100&page='+str(page));comments.extend(batch)
+              if len(batch)<100:break
+          else:raise RuntimeError('z04future_admission_comment_universe_exceeds_bound')
+          matches=[];prefix='GRIDEX_NATIVE_ADMISSION_V1\n'
+          for comment in comments:
+              if comment['user']['login']!='heke99' or not comment['body'].startswith(prefix):continue
+              value=strict(comment['body'][len(prefix):])
+              if value.get('sourceHead')==head and value.get('suite')==suite and value.get('state')=='GO':matches.append((comment,value))
+          require(len(matches)==1,'one_unambiguous_root_comment')
+          comment,admission=matches[0]
+          keys={'version','state','suite','sourceHead','sourceTree','sourceBase','sourceReceipt','producerRef','producerReceipt','inputEpochSHA256','outputIntent','sourceReviewSHA256','actor'}
+          require(set(admission)==keys,'strict_root_tuple')
+          require(admission['version']=='gridex-native-admission-v1' and admission['state']=='GO' and admission['suite']==suite and admission['sourceHead']==head and admission['sourceTree']==tree and admission['sourceReceipt']==claim and admission['producerRef']==resource and admission['outputIntent']==output and admission['actor']=='heke99','root_binding')
+          # A later skipped/HOLD attempt cannot hide a consumed first epoch.
+          # Inspect every attempt, not GitHub's default latest jobs selection.
+          runs=[]
+          for page in range(1,11):
+              batch=get('actions/workflows/'+files[0].rsplit('/',1)[-1]+'/runs?event=pull_request&per_page=100&page='+str(page))['workflow_runs'];runs.extend(batch)
+              if len(batch)<100:break
+          else:raise RuntimeError('z04future_admission_run_history_exceeds_bound')
+          for prior in runs:
+              if str(prior['id'])==os.environ['GITHUB_RUN_ID']:continue
+              if prior['head_branch']!='codex/agent3-z04-future-start-20261018':continue
+              if prior['head_sha']!=head and not any(p.get('number')==number and p.get('head',{}).get('sha')==head for p in prior.get('pull_requests',[])):continue
+              for page in range(1,11):
+                  jobs=get('actions/runs/'+str(prior['id'])+'/jobs?filter=all&per_page=100&page='+str(page))['jobs']
+                  for previous_job in jobs:
+                      if previous_job['name']!='z04-future-start-native':continue
+                      attempted=any(s['name'] in {'Qualify this product VM actual clock and verified restoration','Execute one prospective original chain and restore before exposure'} and s.get('status')!='queued' and s.get('conclusion')!='skipped' for s in previous_job.get('steps',[]))
+                      require(not attempted,'prior_epoch_already_attempted')
+                  if len(jobs)<100:break
+              else:raise RuntimeError('z04future_admission_job_history_exceeds_bound')
+          require(hex40(admission['sourceBase']) and hex40(admission['producerReceipt']) and hex64(admission['inputEpochSHA256']),'source_producer_epoch_shape')
+          reviews=admission['sourceReviewSHA256'];require(isinstance(reviews,list) and len(reviews)==2 and all(hex64(x) for x in reviews) and len(set(reviews))==2,'two_unique_source_peers')
+          source_base=admission['sourceBase'];base=get('git/commits/'+source_base)
+          require(base['sha']==source_base and subprocess.run(['git','merge-base','--is-ancestor',source_base,head],timeout=30).returncode==0,'qualified_source_base')
+          source_refs=['refs/tags/agent-claims/masterplan/file-'+hashlib.sha256(path.encode()).hexdigest() for path in files]+['refs/tags/agent-claims/masterplan/id-AT-Z04L-SUPPLIER','refs/tags/agent-claims/masterplan/id-AT-Z04LK-SUPPLIER']
+          for named in source_refs:ref(named,claim)
+          claimed=get('git/commits/'+claim);claim_body=strict(claimed['message'])
+          require(set(claim_body)=={'base','files','operation'} and claim_body['files']==files and claim_body['base']=='dbbfee16abef0bdf6ca455088c21e7e6f089138a' and isinstance(claim_body['operation'],str),'source_proper')
+          require(claimed['tree']['sha']=='1f6e8f57cca4113bda5b560ec8bd5d95d2f38a1a' and [p['sha'] for p in claimed['parents']]==[claim_body['base']],'neutral_source_proper')
+          ref(resource,admission['producerReceipt']);producer=get('git/commits/'+admission['producerReceipt'])
+          operation='Produce qualified native proof; suite='+suite+'; source='+head+'; source-tree='+tree+'; source-claim='+claim+'; input-epoch-sha256='+admission['inputEpochSHA256']+'; output='+output
+          require(strict(producer['message'])=={'base':source_base,'files':files,'operation':operation},'minimal_exact_producer_proper')
+          require(producer['tree']['sha']==base['tree']['sha'] and [p['sha'] for p in producer['parents']]==[source_base],'neutral_producer_proper')
+          # Executing workflow identity is authenticated independently from test checkout.
+          workflow_sha=os.environ['GRIDEX_EXECUTING_WORKFLOW_SHA'];workflow_ref=os.environ['GITHUB_WORKFLOW_REF']
+          require(hex40(workflow_sha) and workflow_ref.startswith(os.environ['GITHUB_REPOSITORY']+'/'+files[0]+'@'),'executing_workflow_identity')
+          executing=get('contents/'+files[0]+'?ref='+quote(workflow_sha,safe=''));workflow_blob=base64.b64decode(executing['content'])
+          require(workflow_blob==pathlib.Path(files[0]).read_bytes() and executing['sha']==git('rev-parse',head+':'+files[0]),'executing_workflow_blob_match')
+          hashes={}
+          for path in files:
+              content=pathlib.Path(path).read_bytes();oid=hashlib.sha1(b'blob '+str(len(content)).encode()+b'\0'+content).hexdigest()
+              require(oid==git('rev-parse',head+':'+path),'source_input_blob');hashes[path]=hashlib.sha256(content).hexdigest()
+          identity={'admission':admission,'commentId':comment['id'],'commentBodySHA256':hashlib.sha256(comment['body'].encode()).hexdigest(),'sourceRefs':source_refs,'sourceInputSHA256':hashes,'executingWorkflow':{'ref':workflow_ref,'sha':workflow_sha,'blob':executing['sha'],'sha256':hashlib.sha256(workflow_blob).hexdigest()},'runId':os.environ['GITHUB_RUN_ID'],'attempt':1,'job':os.environ['GITHUB_JOB']}
+          path=pathlib.Path(os.environ['GRIDEX_Z04_FUTURE_ADMISSION_FILE'])
+          if os.environ.get('GRIDEX_Z04_FUTURE_RECHECK')=='1':
+              require(strict(path.read_text())==identity,'terminal_admission_unchanged')
+              # Last actually attempted epoch controls exposure. A restored
+              # first preflight failure is useful evidence with native NOT_RUN;
+              # it can never hide a later native restoration failure.
+              outcome=os.environ['GRIDEX_Z04_FUTURE_NATIVE_OUTCOME']
+              require(outcome in {'success','failure','cancelled','skipped'},'native_outcome_known')
+              attempted=outcome!='skipped'
+              directories=['z04future-clock-preflight-evidence']+(['z04-future-start-native-evidence'] if attempted else [])
+              for directory in directories:
+                  receipt=strict(pathlib.Path(directory,'receipt.json').read_text())
+                  require(receipt['restoration_verified'] and receipt['checkout_sha']==head and receipt['workflow_run_id']==os.environ['GITHUB_RUN_ID'] and receipt['workflow_run_attempt']=='1' and receipt['producer_admission']==identity,'terminal_restored_binding')
+              terminal={'sourceHead':head,'producerReceipt':admission['producerReceipt'],'inputEpochSHA256':admission['inputEpochSHA256'],'last_attempted_epoch':'native' if attempted else 'preflight','native_execution':'ATTEMPTED_SEE_RESULT' if attempted else 'NOT_RUN','terminal_GET_MATCH':True,'whole_approval':False}
+              pathlib.Path(directories[-1],'terminal-admission.json').write_text(json.dumps(terminal,sort_keys=True)+'\n')
+              with open(os.environ['GITHUB_OUTPUT'],'a') as out:out.write('admission_unchanged=true\n')
+          else:path.write_text(json.dumps(identity,sort_keys=True)+'\n')
+          PY
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Qualify this product VM actual clock and verified restoration
+        id: own_preflight
+        env:
+          GRIDEX_Z04_FUTURE_MODE: preflight
+        run: python3 scripts/helpers/ediel-prospective-market-clock-controller.py
+      - name: Execute one prospective original chain and restore before exposure
+        id: native
+        env:
+          GRIDEX_Z04_FUTURE_MODE: native
+        run: python3 scripts/helpers/ediel-prospective-market-clock-controller.py
+      - name: Recheck exact ROOT source and producer after verified restoration
+        if: always() && (steps.native.outputs.restored_evidence_ready == 'true' || steps.own_preflight.outputs.restored_evidence_ready == 'true')
+        id: terminal_admission
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GRIDEX_Z04_FUTURE_RECHECK: '1'
+          GRIDEX_Z04_FUTURE_NATIVE_OUTCOME: ${{ steps.native.outcome }}
+        run: *source_admission
+      - name: Upload only restored redacted evidence with terminal GET_MATCH
+        if: always() && steps.terminal_admission.outputs.admission_unchanged == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ediel-z04-future-start-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            z04future-clock-preflight-evidence
+            z04-future-start-native-evidence
+          if-no-files-found: error
+          retention-days: 14
+
+# Missing positive admission or skipped job => native NOT_RUN/pending; never PASS.
+# This new suite replaces no ordinary gate. Runtime remains HOLD until separately
+# qualified; accelerated real clocks do not establish elapsed/external history.

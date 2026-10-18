@@ -1,0 +1,434 @@
+#!/usr/bin/env python3
+"""SOURCE ONLY until exact root producer admission. Never import to run a probe.
+Source copy: C03 workflow 4e25309c0bf500571a57f9df75875cef67d80fbc7c155c6bae2e1ee126ca3054,
+embedded Python 514ab4768eb0fd68b9750158095e930022d44c42381a15159c34ac3474cac674.
+The advance/restore/watchdog/prior-sync core is retained. Disable-sync adds
+one-command bounded two-snapshot convergence and finite failure observations;
+other deltas are fixed suite inputs, admission and seven-case receipt adapter.
+Accelerated real clocks are not elapsed market history.
+"""
+
+
+def main():
+    import contextlib,email.utils,hashlib,json,math,os,pathlib,platform,re,signal,subprocess,sys,time,urllib.request
+    privileged_mode=len(sys.argv)>1 and sys.argv[1]=='--privileged-clock'
+    root=pathlib.Path(sys.argv[3]) if privileged_mode else pathlib.Path.cwd()
+    temporary=pathlib.Path(sys.argv[4]) if privileged_mode else pathlib.Path(os.environ['RUNNER_TEMP'])
+    mode=sys.argv[5] if privileged_mode else os.environ['GRIDEX_Z04_FUTURE_MODE']
+    if mode not in {'preflight','native'}: raise RuntimeError('z04future_mode_required')
+    working=root/('z04future-clock-preflight-working' if mode=='preflight' else 'z04-future-start-native-working')
+    final=root/('z04future-clock-preflight-evidence' if mode=='preflight' else 'z04-future-start-native-evidence')
+    state_path=temporary/('z04future-'+mode+'-clock-state.json')
+    lock_path=temporary/('z04future-'+mode+'-restore.lock')
+    restored_path=temporary/('z04future-'+mode+'-restoration.json')
+    def call(args,**kwargs):
+        return subprocess.check_output(args,text=True,timeout=30,**kwargs).strip()
+    def save(path,value):
+        # Watchdog must never observe a truncated current child PID or
+        # restoration state if its parent is interrupted mid-write.
+        import tempfile
+        with tempfile.NamedTemporaryFile(mode='w',dir=path.parent,prefix=path.name+'.',delete=False) as pending:
+            json.dump(value,pending,indent=2,sort_keys=True);pending.write('\n');pending.flush();os.fsync(pending.fileno())
+            pending_name=pending.name
+        if os.geteuid()==0 and 'SUDO_UID' in os.environ:
+            os.chown(pending_name,int(os.environ['SUDO_UID']),int(os.environ['SUDO_GID']))
+        os.replace(pending_name,path)
+    def safe_error(error):
+        value={'class':type(error).__name__}
+        if isinstance(error,RuntimeError) and re.fullmatch(r'z04future_[a-z0-9_]{1,100}',str(error)):value['code']=str(error)
+        if isinstance(error,subprocess.CalledProcessError):value['exit_code']=error.returncode
+        if isinstance(error,subprocess.TimeoutExpired):value['timeout_seconds']=error.timeout
+        return value
+    def process_start_ticks(pid):
+        try:return (pathlib.Path('/proc')/str(pid)/'stat').read_text().rsplit(')',1)[1].split()[19]
+        except FileNotFoundError:return None
+    def controller_alive(state):
+        return process_start_ticks(state['controller_pid'])==state['controller_start_ticks']
+    def sync_query_timeout(deadline):
+        remaining=deadline-time.monotonic()
+        if remaining<=0:raise RuntimeError('z04future_sync_observation_deadline')
+        return min(2.0,remaining)
+    def sync_services(deadline=None,attempt=None):
+        result={}
+        if attempt is not None:attempt['services']=result;attempt['service_exit_codes']={}
+        for name in ['systemd-timesyncd','chrony','chronyd','ntp','ntpd']:
+            if attempt is not None:attempt['query']=name
+            state=subprocess.run(['systemctl','is-active',name+'.service'],text=True,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,
+                timeout=10 if deadline is None else sync_query_timeout(deadline))
+            # is-active legitimately returns nonzero for inactive/not-found units.
+            # Preserve its raw state text; exact prior-state equality is the gate.
+            result[name]=state.stdout.strip()
+            if attempt is not None:attempt['service_exit_codes'][name]=state.returncode
+        return result
+    def sync_snapshot(deadline,attempt):
+        attempt['query']='NTP'
+        attempt['ntp']=subprocess.check_output(['timedatectl','show','-p','NTP','--value'],text=True,
+            stderr=subprocess.DEVNULL,timeout=sync_query_timeout(deadline)).strip()
+        services=sync_services(deadline,attempt)
+        return {'ntp':attempt['ntp'],'services':services}
+    def qualified_normal_clock(state):
+        elapsed=time.monotonic()-state['original_monotonic_s']
+        target=state['original_realtime_ms']/1000+elapsed;actual=time.time()
+        if not math.isfinite(actual) or not math.isfinite(target) or abs(actual-target)>3:raise RuntimeError('z04future_clock_restore_skew')
+        return {'target_normal_realtime_ms':target*1000,'actual_normal_realtime_ms':actual*1000,'monotonic_elapsed_s':elapsed}
+    def emit_sync_failure_summary(observations):
+        # Called ONLY after a fresh actual normal-clock qualification. No raw
+        # service string, exception message, native/bootstrap or credential data.
+        names=['systemd-timesyncd','chrony','chronyd','ntp','ntpd']
+        allowed={'active','inactive','activating','deactivating','failed','reloading','maintenance','refreshing','unknown','not-found'}
+        def service_states(value):return {name:value.get(name) if value.get(name) in allowed else 'UNEXPECTED' for name in names}
+        def ntp(value):return value if value in {'yes','no'} else 'UNEXPECTED'
+        expected=observations['expected'];observed=observations.get('last_attempt') or {}
+        error=observations.get('error') or {}
+        error_class=error.get('class') if error.get('class') in {'RuntimeError','TimeoutExpired','CalledProcessError','OSError','FileNotFoundError'} else 'OtherOrNone'
+        exit_code=error.get('exit_code');exit_code=exit_code if type(exit_code) is int and -255<=exit_code<=255 else None
+        summary={'stage':'SYNC_STATE_RESTORE','code':'z04future_sync_state_restore_failed',
+            'prior_ntp':ntp(expected['ntp']),'observed_ntp':ntp(observed.get('ntp')),
+            'prior_services':service_states(expected['services']),'observed_services':service_states(observed.get('services',{})),
+            'error':{'class':error_class,'exit_code':exit_code}}
+        line=json.dumps(summary,separators=(',',':'),sort_keys=True)+'\n'
+        if len(line.encode('utf-8'))>1024:line='{"code":"z04future_sync_state_restore_failed","stage":"SYNC_STATE_RESTORE","summary":"bounded_omission"}\n'
+        sys.stderr.write(line);sys.stderr.flush()
+    def converge_sync_restore(state):
+        started=time.monotonic();deadline=started+20.0
+        expected={'ntp':state['prior_ntp'],'services':state['prior_sync_services']}
+        observations={'schema':'z04future_sync_restore_observations_v1','stage':'SYNC_STATE_CONVERGENCE','expected':expected,
+            'first':None,'last':None,'last_attempt':None,'samples':0,'consecutive_exact':0,'matched':False,'error':None}
+        while time.monotonic()<deadline:
+            attempt={};observations['last_attempt']=attempt
+            try:snapshot=sync_snapshot(deadline,attempt)
+            except Exception as error:
+                observations['error']=safe_error(error);break
+            observations['samples']+=1
+            if observations['first'] is None:observations['first']=snapshot
+            observations['last']=snapshot
+            observations['consecutive_exact']=observations['consecutive_exact']+1 if snapshot==expected else 0
+            if observations['consecutive_exact']>=2 and time.monotonic()<=deadline:
+                observations['matched']=True;break
+            remaining=deadline-time.monotonic()
+            if remaining>0:time.sleep(min(0.25,remaining))
+        observations['elapsed_s']=time.monotonic()-started
+        save(working/'sync-restoration-observations.json',observations)
+        # This guard is mandatory on both success and refusal, BEFORE any safe
+        # diagnostic emission or the caller's same-lock terminal marker.
+        normal=qualified_normal_clock(state)
+        if not observations['matched']:
+            emit_sync_failure_summary(observations)
+            raise RuntimeError('z04future_sync_state_restore_failed')
+        return observations['last'],normal
+    def trusted_reference():
+        # Ordinary-clock only. No GitHub/dependency/OIDC/cloud request is
+        # initiated by the controlled work while its clock is advanced.
+        request=urllib.request.Request('https://api.github.com/',method='HEAD',headers={'User-Agent':'gridex-z04future-clock-qualification'})
+        with urllib.request.urlopen(request,timeout=15) as response:
+            stamp=email.utils.parsedate_to_datetime(response.headers['Date']).timestamp()
+        if abs(time.time()-stamp)>30: raise RuntimeError('z04future_trusted_normal_reference_skew')
+        return stamp
+    def stop_owned_work(state):
+        pid=state.get('owned_child_pgid')
+        if pid:
+            ticks=process_start_ticks(pid)
+            if ticks is not None and ticks!=state['owned_child_start_ticks']:raise RuntimeError('z04future_child_process_identity_changed')
+            with contextlib.suppress(ProcessLookupError):os.killpg(pid,signal.SIGKILL)
+        if mode=='native':
+            # Existing official replay's EXIT cleanup normally stops the
+            # stack first. This is an independent local fallback for a
+            # lost worker. Never contact hosted Supabase or a cloud API.
+            project=state['supabase_project_id']
+            names=call(['docker','ps','--format','{{.Names}}']).splitlines()
+            if any(name.endswith('_'+project) for name in names):
+                result=subprocess.run(['supabase','stop','--no-backup'],cwd=root,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=90,
+                    env=dict(os.environ,DO_NOT_TRACK='1',SUPABASE_TELEMETRY_DISABLED='1'))
+                if result.returncode:raise RuntimeError('z04future_owned_backend_stop_failed')
+                names=call(['docker','ps','--format','{{.Names}}']).splitlines()
+            if any(name.endswith('_'+project) for name in names):raise RuntimeError('z04future_owned_backend_still_running')
+        return True
+    def privileged(action,target=None):
+        # A privileged flock holder covers the COMPLETE realtime write,
+        # subprocess wait and durable terminal marker, independently of
+        # controller death. Advance and restore use the SAME kernel lock.
+        args=['sudo','-n','flock','-x',str(lock_path),sys.executable,str(pathlib.Path(__file__).resolve()),
+            '--privileged-clock',action,str(root),str(temporary),mode]
+        if target is not None:args.append(str(target))
+        return json.loads(subprocess.check_output(args,text=True,timeout=150))
+    def restore():return privileged('restore')
+    def advance(target):return privileged('advance',target)
+    def require_disable_epoch(state,deadline):
+        if restored_path.exists() or not controller_alive(state) or time.monotonic()>=min(deadline,state['deadline_monotonic_s']):
+            raise RuntimeError('z04future_current_clock_epoch_not_live')
+        child=state.get('owned_child_pgid')
+        if child is not None and process_start_ticks(child)!=state.get('owned_child_start_ticks'):
+            raise RuntimeError('z04future_child_process_identity_changed')
+    def qualify_disable_sync(state):
+        # Called ONLY by the privileged SAME-flock holder. The one mutation is
+        # waited once; only complete readonly state observations may repeat.
+        names=['systemd-timesyncd','chrony','chronyd','ntp','ntpd']
+        allowed={'active','inactive','activating','deactivating','failed','reloading','maintenance','refreshing','unknown','not-found'}
+        started=time.monotonic();deadline=min(started+20.0,state['deadline_monotonic_s'])
+        observations={'schema':'z04future_sync_disable_observations_v1','stage':'SYNC_DISABLE_CONVERGENCE',
+            'expected':{'ntp':'no','services':{name:'inactive' for name in names}},'command':{'attempted':False,'completed':False,'exit_code':None},
+            'first':None,'last':None,'last_attempt':None,'first_disjuncts':None,'last_disjuncts':None,
+            'samples':0,'snapshot_attempts':0,'consecutive_exact':0,'matched':False,'error':None}
+        def finite_attempt(attempt):
+            services=attempt.get('services',{});codes=attempt.get('service_exit_codes',{})
+            return {'query':attempt.get('query') if attempt.get('query') in ['NTP',*names] else 'UNEXPECTED',
+                'ntp':attempt.get('ntp') if attempt.get('ntp') in {'yes','no'} else 'UNEXPECTED',
+                'ntp_exit_code':0 if 'ntp' in attempt else None,
+                'services':{name:services[name] if services[name] in allowed else 'UNEXPECTED' for name in names if name in services},
+                'service_exit_codes':{name:codes[name] if type(codes[name]) is int and -255<=codes[name]<=255 else None for name in names if name in codes}}
+        def observed_disjuncts(attempt):
+            states=attempt.get('services',{});codes=attempt.get('service_exit_codes',{})
+            complete='ntp' in attempt and set(states)==set(names) and set(codes)==set(names)
+            return {'ntpNo':attempt.get('ntp')=='no','fiveStatesComplete':complete,
+                'inactiveExitCodesQualified':complete and all(codes[name] in {3,4} for name in names),
+                'anyActive':any(states.get(name)=='active' for name in names),
+                'services':{name:'stopped' if states.get(name)=='inactive' else 'active' if states.get(name)=='active'
+                    else 'transition' if states.get(name) in {'activating','deactivating','reloading','refreshing'} else 'unknown' for name in names}}
+        try:
+            require_disable_epoch(state,deadline)
+            remaining=deadline-time.monotonic()
+            if remaining<=0:raise RuntimeError('z04future_sync_observation_deadline')
+            observations['command']['attempted']=True
+            result=subprocess.run(['timedatectl','set-ntp','false'],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,
+                timeout=min(10.0,remaining))
+            observations['command'].update(completed=True,exit_code=result.returncode)
+            require_disable_epoch(state,deadline)
+            while time.monotonic()<deadline:
+                require_disable_epoch(state,deadline)
+                attempt={};observations['last_attempt']=attempt
+                observations['snapshot_attempts']+=1
+                try:snapshot=sync_snapshot(deadline,attempt)
+                finally:
+                    observations['last_attempt']=finite_attempt(attempt)
+                    observations['last_disjuncts']=observed_disjuncts(attempt)
+                states=snapshot.get('services',{})
+                disjuncts=observations['last_disjuncts']
+                complete=disjuncts['fiveStatesComplete'] and states==attempt.get('services') and snapshot.get('ntp')==attempt.get('ntp')
+                bounded={'ntp':snapshot.get('ntp') if snapshot.get('ntp') in {'yes','no'} else 'UNEXPECTED',
+                    'services':{name:states[name] if states[name] in allowed else 'UNEXPECTED' for name in names if name in states},
+                    'service_exit_codes':observations['last_attempt']['service_exit_codes']}
+                if complete:
+                    observations['samples']+=1
+                    if observations['first'] is None:observations['first']=bounded;observations['first_disjuncts']=disjuncts
+                    observations['last']=bounded
+                    if any(states[name]=='inactive' and attempt['service_exit_codes'][name] not in {3,4} for name in names):
+                        raise RuntimeError('z04future_sync_query_exit_unqualified')
+                exact=disjuncts['ntpNo'] and complete and disjuncts['inactiveExitCodesQualified'] and all(states[name]=='inactive' for name in names)
+                observations['consecutive_exact']=observations['consecutive_exact']+1 if exact else 0
+                if observations['consecutive_exact']>=2:
+                    require_disable_epoch(state,deadline);observations['matched']=True;break
+                remaining=deadline-time.monotonic()
+                if remaining>0:time.sleep(min(0.25,remaining))
+            if not observations['matched']:raise RuntimeError('z04future_sync_control_not_qualified')
+            require_disable_epoch(state,deadline)
+        except Exception as error:
+            observations['matched']=False;observations['error']=safe_error(error)
+            if isinstance(error,subprocess.CalledProcessError):
+                if not observations['command']['completed']:observations['command']['exit_code']=error.returncode
+                elif observations['last_attempt'] and observations['last_attempt']['query']=='NTP':observations['last_attempt']['ntp_exit_code']=error.returncode
+        observations['elapsed_s']=time.monotonic()-started
+        save(working/'sync-disable-observations.json',observations)
+        if not observations['matched']:raise RuntimeError('z04future_sync_control_not_qualified')
+        # A completed earlier sample cannot admit a now dead/restored epoch.
+        try:require_disable_epoch(state,deadline)
+        except Exception as error:
+            observations['matched']=False;observations['error']=safe_error(error);observations['elapsed_s']=time.monotonic()-started;save(working/'sync-disable-observations.json',observations)
+            raise RuntimeError('z04future_sync_control_not_qualified') from None
+        return observations
+    if privileged_mode:
+        if os.geteuid()!=0:raise RuntimeError('z04future_privileged_clock_executor_required')
+        state=json.loads(state_path.read_text())
+        if state['mode']!=mode or hashlib.sha256(pathlib.Path(__file__).read_bytes()).hexdigest()!=state['controller_source_sha256']:raise RuntimeError('z04future_clock_executor_source_changed')
+        action=sys.argv[2]
+        if action in {'advance','disable-sync'}:
+            # Recheck AFTER acquiring flock. An old pending forward setter
+            # cannot run after restoration or a dead/reused controller.
+            if restored_path.exists() or not controller_alive(state) or time.monotonic()>=state['deadline_monotonic_s']:raise RuntimeError('z04future_current_clock_epoch_not_live')
+            if action=='disable-sync':
+                qualify_disable_sync(state)
+                print(json.dumps({'sync_disabled':True,'shared_restore_lock':True}))
+            else:
+                target=float(sys.argv[6])
+                if not math.isfinite(target) or target<=time.time() or target>state['original_realtime_ms']/1000+35*86400:raise RuntimeError('z04future_forward_clock_target_invalid')
+                subprocess.run(['date','--set','@'+str(target)],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=10)
+                if abs(time.time()-target)>3:raise RuntimeError('z04future_forward_clock_skew')
+                print(json.dumps({'actual_realtime_ms':time.time()*1000,'target_realtime_ms':target*1000,'shared_restore_lock':True}))
+        elif action=='restore':
+            if restored_path.exists():
+                print(restored_path.read_text());sys.exit(0)
+            stopped=stop_owned_work(state)
+            target=state['original_realtime_ms']/1000+(time.monotonic()-state['original_monotonic_s'])
+            subprocess.run(['date','--set','@'+str(target)],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=10)
+            subprocess.run(['timedatectl','set-ntp',state['prior_ntp']],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=10)
+            matched_sync,normal=converge_sync_restore(state)
+            receipt={'schema':'z04future_clock_restoration_v1','mode':mode,'restored':True,'shared_advance_restore_lock':True,
+                'backend_and_workers_stopped_before_backward_restore':stopped,**normal,'restore_write_target_realtime_ms':target*1000,
+                'prior_ntp':state['prior_ntp'],'restored_ntp':matched_sync['ntp'],
+                'prior_sync_services':state['prior_sync_services'],'restored_sync_services':matched_sync['services'],
+                'checkout_sha':state['checkout_sha'],'repository':state['repository'],'workflow_run_id':state['workflow_run_id'],
+                'workflow_run_attempt':state['workflow_run_attempt'],'job_id':state['job_id']}
+            save(restored_path,receipt);print(json.dumps(receipt))
+        else:raise RuntimeError('z04future_clock_action_required')
+        sys.exit(0)
+    if len(sys.argv)>1 and sys.argv[1]=='--advance':
+        print(json.dumps(advance(float(sys.argv[2]))));sys.exit(0)
+    if len(sys.argv)>1 and sys.argv[1]=='--watchdog':
+        state=json.loads(state_path.read_text())
+        while not restored_path.exists():
+            if not controller_alive(state) or time.monotonic()>state['deadline_monotonic_s']:
+                try:restore()
+                except Exception as error:
+                    save(temporary/('z04future-'+mode+'-watchdog-failure.json'),{'stage':'WATCHDOG_RESTORE',**safe_error(error)})
+                break
+            time.sleep(0.5)
+        sys.exit(0)
+    if os.environ.get('GITHUB_ACTIONS')!='true' or os.environ.get('RUNNER_ENVIRONMENT')!='github-hosted':raise RuntimeError('z04future_fresh_standard_hosted_vm_required')
+    if not os.environ.get('ImageOS') or not os.environ.get('ImageVersion'):raise RuntimeError('z04future_hosted_image_provenance_required')
+    head=call(['git','rev-parse','HEAD']);tree=call(['git','rev-parse','HEAD^{tree}'])
+    if head!=os.environ['GRIDEX_Z04_FUTURE_EXPECTED_HEAD']:raise RuntimeError('z04future_exact_pr_head_required')
+    admission_path=pathlib.Path(os.environ['GRIDEX_Z04_FUTURE_ADMISSION_FILE'])
+    admission=json.loads(admission_path.read_text())
+    binding=admission['admission']
+    if binding['sourceHead']!=head or binding['sourceTree']!=tree or binding['sourceReceipt']!='0586ff40817595e4c4fba105108b09c0c216144b' or binding['producerRef']!='refs/tags/agent-claims/masterplan/producer-z04-future-start' or binding['state']!='GO' or binding['suite']!='z04l-z04lk-future-start' or admission['runId']!=os.environ['GITHUB_RUN_ID'] or admission['attempt']!=1 or admission['job']!=os.environ['GITHUB_JOB'] or not re.fullmatch('[0-9a-f]{40}',binding['producerReceipt']):raise RuntimeError('z04future_exact_root_admission_required')
+    if call(['git','status','--porcelain','--untracked-files=no']):raise RuntimeError('z04future_clean_checkout_required')
+    if working.exists() or final.exists() or state_path.exists() or restored_path.exists():raise RuntimeError('z04future_first_epoch_only')
+    working.mkdir()
+    stage='ORDINARY_CLOCK_ADMISSION';exit_code=1;watchdog=None;source={}
+    try:
+        trusted=trusted_reference()
+        prior_ntp=call(['timedatectl','show','-p','NTP','--value']);prior_sync_services=sync_services()
+        if prior_ntp not in {'yes','no'}:raise RuntimeError('z04future_sync_state_unknown')
+        subprocess.run(['sudo','-n','true'],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=10)
+        project=''
+        if mode=='native':
+            import tomllib
+            project=tomllib.loads((root/'supabase/config.toml').read_text())['project_id']
+            if not project or call(['docker','ps','-q']):raise RuntimeError('z04future_fresh_empty_docker_host_required')
+            if call(['supabase','--version'])!='2.101.0':raise RuntimeError('z04future_official_cli_version_required')
+            if '--no-backup' not in call(['supabase','stop','--help']):raise RuntimeError('z04future_cli_stop_contract_required')
+            if not call(['node','--version']).startswith('v22.'):raise RuntimeError('z04future_node22_required')
+            preflight=json.loads((root/'z04future-clock-preflight-evidence/receipt.json').read_text())
+            if preflight['checkout_sha']!=head or preflight['job_id']!=os.environ['GITHUB_JOB'] or preflight['mode']!='preflight' or not preflight['restoration_verified'] or preflight['exit_code']!=0:raise RuntimeError('z04future_this_product_vm_preflight_required')
+        entries=subprocess.check_output(['git','ls-tree','-rz','--full-tree','HEAD']).split(b'\0')
+        for entry in entries:
+            if not entry:continue
+            header,raw_path=entry.split(b'\t',1);file_mode,kind,oid=header.decode().split()
+            if kind!='blob':continue
+            name=raw_path.decode();path=root/name
+            blob=os.readlink(path).encode() if file_mode=='120000' else path.read_bytes()
+            if hashlib.sha1(b'blob '+str(len(blob)).encode()+b'\0'+blob).hexdigest()!=oid:raise RuntimeError('z04future_checkout_blob_mismatch')
+            source[name]={'mode':file_mode,'oid':oid,'sha256':hashlib.sha256(blob).hexdigest()}
+        save(working/'source-identity-before.json',source)
+        state={'admitted':True,'mode':mode,'controller_pid':os.getpid(),'controller_start_ticks':process_start_ticks(os.getpid()),
+            'controller_source_sha256':hashlib.sha256(pathlib.Path(__file__).read_bytes()).hexdigest(),
+            'owned_child_pgid':None,'owned_child_start_ticks':None,
+            'original_realtime_ms':time.time()*1000,'original_monotonic_s':time.monotonic(),
+            'deadline_monotonic_s':time.monotonic()+(120 if mode=='preflight' else 3000),
+            'deadline_monotonic_ms':(time.monotonic()+(120 if mode=='preflight' else 3000))*1000,
+            'prior_ntp':prior_ntp,'prior_sync_services':prior_sync_services,'trusted_normal_reference_s':trusted,'supabase_project_id':project,
+            'checkout_sha':head,'repository':os.environ['GITHUB_REPOSITORY'],'workflow_run_id':os.environ['GITHUB_RUN_ID'],
+            'workflow_run_attempt':os.environ['GITHUB_RUN_ATTEMPT'],'job_id':os.environ['GITHUB_JOB']}
+        save(state_path,state);os.chmod(state_path,0o600)
+        # Independent session survives the parent's TERM/KILL. No clock
+        # change occurs until its process is actually running.
+        watchdog=subprocess.Popen([sys.executable,__file__,'--watchdog'],start_new_session=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+        if watchdog.poll() is not None:raise RuntimeError('z04future_independent_watchdog_not_running')
+        privileged('disable-sync')
+        if mode=='preflight':
+            stage='REALTIME_FORWARD_CAPABILITY'
+            baseline=time.time();monotonic=time.monotonic();target=baseline+21*86400
+            advance(target)
+            if abs(time.time()-target)>3 or not 0<=time.monotonic()-monotonic<20:raise RuntimeError('z04future_forward_realtime_capability_failed')
+            save(working/'clock-capability.json',{'actual_forward_days':21,'actual_realtime_ms':time.time()*1000,
+                'target_realtime_ms':target*1000,'monotonic_elapsed_s':time.monotonic()-monotonic,'product_execution':False})
+            exit_code=0
+        else:
+            stage='BOOTSTRAP_AND_NATIVE'
+            status=temporary/'z04future-native-status.json'
+            environment=dict(os.environ,GRIDEX_NATIVE_STATUS=str(status),GRIDEX_Z04_FUTURE_CLOCK_CONTROL=str(state_path),
+                GRIDEX_Z04_FUTURE_CLOCK_CONTROLLER_SCRIPT=str(pathlib.Path(__file__).resolve()),
+                GRIDEX_Z04_FUTURE_EVIDENCE=str(working),GRIDEX_Z04_FUTURE_CLOCK_CAPABILITY_ADMITTED='1',SUPABASE_INTERNAL_IMAGE_REGISTRY='ghcr.io',
+                DO_NOT_TRACK='1',SUPABASE_TELEMETRY_DISABLED='1')
+            script=r'''set -euo pipefail
+    source scripts/gridex-aud-003-clean-replay.sh > "$RUNNER_TEMP/z04future-bootstrap.log" 2>&1
+    supabase status -o json > "$GRIDEX_NATIVE_STATUS"
+    psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -XAtq -v ON_ERROR_STOP=1 -c "SELECT jsonb_build_object('server_version',current_setting('server_version'),'postmaster_started_at',pg_postmaster_start_time(),'database',current_database(),'address',inet_server_addr(),'port',inet_server_port(),'functions',(SELECT jsonb_agg(jsonb_build_object('oid',p.oid,'signature',p.oid::regprocedure::text,'body_sha256',encode(sha256(convert_to(p.prosrc,'UTF8')),'hex'),'metadata',to_jsonb(p)-'prosrc') ORDER BY p.oid::regprocedure::text) FROM pg_proc p WHERE p.oid=ANY(ARRAY['public.activate_customer_supply_v1(uuid,uuid,uuid,date,uuid,text)'::regprocedure,'public.ediel_advance_supply_deadlines_v1(uuid,uuid,integer)'::regprocedure,'public.gridex_finalize_supplier_switch_activation(uuid,uuid,uuid)'::regprocedure,'public.gridex_process_ready_supplier_switch_activations(uuid,integer)'::regprocedure])),'canonical_applied_history',(SELECT jsonb_agg(jsonb_build_object('version',version,'filename',filename,'checksum',checksum) ORDER BY version,filename) FROM public.canonical_migration_manifest),'official_cli_history',(SELECT jsonb_agg(jsonb_build_object('version',version,'name',name) ORDER BY version) FROM supabase_migrations.schema_migrations));" > "$GRIDEX_Z04_FUTURE_EVIDENCE/installed-sql-history.json"
+    NODE_OPTIONS="$NODE_OPTIONS --require=$PWD/scripts/lib/unit-loopback-network-boundary.cjs" node node_modules/vitest/vitest.mjs run --config scripts/ediel-z04l-z04lk-future-start-native.config.ts --reporter=default --reporter=junit --outputFile="$GRIDEX_Z04_FUTURE_EVIDENCE/native-junit.xml" > "$GRIDEX_Z04_FUTURE_EVIDENCE/native.log" 2>&1
+    '''
+            # Child cannot execute bootstrap or clock work until its
+            # PGID/start identity has been durably recorded. Parent death
+            # before release closes the pipe: read fails and child exits.
+            gate='IFS= read -r admitted || exit 70; [[ "$admitted" == "Z04_FUTURE_OWNED_CHILD_GO" ]] || exit 71; exec bash -c "$1"'
+            child=subprocess.Popen(['bash','-c',gate,'z04future-gated-owned-child',script],env=environment,start_new_session=True,stdin=subprocess.PIPE)
+            state['owned_child_pgid']=child.pid;state['owned_child_start_ticks']=process_start_ticks(child.pid);save(state_path,state)
+            child.stdin.write(b'Z04_FUTURE_OWNED_CHILD_GO\n');child.stdin.flush();child.stdin.close()
+            exit_code=child.wait(timeout=2900)
+            # Replay EXIT cleanup must have restored source and stopped
+            # the backend before the controller's backward restoration.
+            state['owned_child_pgid']=None;state['owned_child_start_ticks']=None;save(state_path,state)
+            if (temporary/'z04future-bootstrap.log').is_file():
+                (working/'bootstrap.log').write_bytes((temporary/'z04future-bootstrap.log').read_bytes())
+            if exit_code==0:
+                import xml.etree.ElementTree as ET
+                document=ET.parse(working/'native-junit.xml')
+                tests=document.findall('.//testcase')
+                expected={'Z04-T0-CAUSAL-CANCELLATION', 'Z04-T0-PROSPECTIVE-L-LK-ORIGINALS', 'Z04-L-START-AND-REPLAY', 'Z04-LK-FUTURE-BEFORE', 'Z04-LK-START-AND-REPLAY', 'Z04-T0-CORRELATION-R-D-REFUSALS', 'Z04-L-FUTURE-BEFORE'}
+                actual={t.attrib.get('name','').split(' > ')[-1] for t in tests}
+                if len(tests)!=7 or actual!=expected or any(t.find('failure') is not None or t.find('error') is not None or t.find('skipped') is not None for t in tests):raise RuntimeError('z04future_all_seven_actual_cases_required')
+                product=json.loads((working/'product-future-start-receipt.json').read_text())
+                if len(product['cases'])!=7 or {c['name'] for c in product['cases']}!=expected or any(c['status']!='PASSED' for c in product['cases']):raise RuntimeError('z04future_measured_product_receipt_required')
+        stage='SOURCE_POSTIMAGE'
+        changed={}
+        for name,identity in source.items():
+            path=root/name
+            blob=os.readlink(path).encode() if identity['mode']=='120000' else path.read_bytes()
+            digest=hashlib.sha256(blob).hexdigest()
+            if digest!=identity['sha256']:changed[name]=digest
+        allowed={'supabase/database.types.ts','supabase/schema.sql','supabase/schema.fingerprint.json','scripts/supabase-types-manifest.json'}
+        if set(changed)-allowed:raise RuntimeError('z04future_unexpected_source_postimage')
+        save(working/'runtime-generated-comparison-inputs.json',changed)
+    except BaseException as error:
+        exit_code=exit_code or 1
+        save(working/'failure.json',{'stage':stage,**safe_error(error),
+            'native_execution':'INCOMPLETE_OR_FAILED' if stage=='BOOTSTRAP_AND_NATIVE' else 'NOT_CREDITED','whole_approval':False})
+    finally:
+        if mode=='native' and (temporary/'z04future-bootstrap.log').is_file():
+            (working/'bootstrap.log').write_bytes((temporary/'z04future-bootstrap.log').read_bytes())
+        restoration_verified=False
+        if state_path.exists():
+            try:
+                restored=restore()
+                # Independent current ordinary reference only after the
+                # local restored-clock receipt exists.
+                restored['trusted_normal_reference_s']=trusted_reference()
+                restored['trusted_normal_reference_verified']=True
+                save(restored_path,restored);save(working/'clock-restoration.json',restored)
+                restoration_verified=True
+            except Exception as error:
+                exit_code=1;save(working/'restoration-failure.json',{'stage':'RESTORE',**safe_error(error)})
+        if watchdog is not None:
+            with contextlib.suppress(subprocess.TimeoutExpired):watchdog.wait(timeout=5)
+        # No evidence directory is exposed to another action unless
+        # actual restoration and normal-reference checks succeeded.
+        receipt={'schema':'z04future_boundary_workflow_receipt_v1','mode':mode,'checkout_sha':head,'checkout_tree':tree,
+            'repository':os.environ['GITHUB_REPOSITORY'],'repository_id':os.environ['GITHUB_REPOSITORY_ID'],
+            'workflow_run_id':os.environ['GITHUB_RUN_ID'],'workflow_run_attempt':os.environ['GITHUB_RUN_ATTEMPT'],
+            'producer_admission':admission,
+            'job_id':os.environ['GITHUB_JOB'],'exit_code':exit_code,'restoration_verified':restoration_verified,
+            'image_os':os.environ['ImageOS'],'image_version':os.environ['ImageVersion'],'kernel':platform.release(),
+            'ordinary_required_gates':'NOT_REPLACED','canonical_GEN_capture':'NOT_RUN','whole_approval':False,
+            'authentic_external_market_history':False,'actual_elapsed_14_days':False,'private_runner_background_quiescence':'NOT_ATTESTED'}
+        save(working/'receipt.json',receipt)
+        if restoration_verified:
+            if mode=='native':
+                redactor=subprocess.run(['python3','scripts/gridex-redact-native-evidence.py','--local-secrets',str(temporary/'z04future-native-status.json'),'--root',str(working)],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=60)
+                if redactor.returncode:exit_code=1
+                else:working.rename(final)
+            else:working.rename(final)
+            if final.exists():
+                with open(os.environ['GITHUB_OUTPUT'],'a') as outputs:outputs.write('restored_evidence_ready=true\n')
+    sys.exit(exit_code)
+
+
+if __name__ == "__main__":
+    main()
