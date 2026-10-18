@@ -6,7 +6,8 @@
 // and history closes v1 exactly at v2; a same-company sibling period and a
 // foreign tenant stay untouched; the exact one-calendar-month notice boundary
 // in fixed UTC+1 (Etc/GMT-1), including month-end clamping; wrong grid area,
-// agreement and actors are held; an AI list creates no version.
+// agreement (future or foreign registry ground) and actors are held; negative
+// CONTRL/APERAK confirm nothing; an AI list creates no version.
 // The received supply-source helper and the ACK authority tables are declared
 // fixtures with their installed shapes; this is not native/authentic evidence.
 import{readFileSync}from'node:fs';import{pathToFileURL}from'node:url';import assert from'node:assert/strict'
@@ -132,6 +133,7 @@ try{
  assert.equal(await count('gridex_brp_changes.period_versions'),3);assert.equal((await db.query(`SELECT message_id FROM gridex_brp_changes.origins WHERE event_id='${id(101)}'`)).rows[0].message_id,null);checks++
  // The bind evaluates the same boundary: one minute later the genuine Z09 is refused.
  at('2027-02-27T23:01:00Z');await assert.rejects(bind(101,4),/brp_change_exact_wire_basis_required/);assert.equal(await count('gridex_brp_changes.period_versions'),3);checks++
+ at('2027-02-27T23:00:00Z');await assert.rejects(bind(101,4,{raw:(await wire(101,4)).replace('++23-DDQ-PRODAT','++23-DDQ-OTHER')}),/brp_change_exact_wire_basis_required/);checks++
  at('2027-02-27T23:00:00Z');await bind(101,4);assert.equal(await count('gridex_brp_changes.period_versions'),4);checks++
 
  // (a) Two distinct dated versions: v2 declared, then confirmed by its own ACKs; v1 unchanged throughout.
@@ -149,6 +151,16 @@ try{
  await ack(id(98),A,'CONTRL','positive',v2Hash);await ack(id(98),A,'APERAK','positive',v2Hash)
  assert.equal(await count('gridex_brp_changes.confirmations'),3);assert.equal(await count('gridex_brp_changes.period_versions'),4)
  assert.deepEqual((await history(A,id(4))).map(v=>v.status),['aperak_confirmed','source_declared']);checks++
+ // Negative ACK evidence for v2 (as the authority writes it, deferred check forced) confirms nothing; v1 unchanged.
+ const v1Entry=(await history(A,id(4)))[0]
+ for(const [contrl,aperak] of [['negative','negative'],['positive','negative']]){
+  const c1=id(ackN++),c2=id(ackN++),m=routeOf(4).message
+  await db.exec(`BEGIN;INSERT INTO gridex_ack_authority.source_correlations VALUES('${c1}','${m}','${A}','test','${v2Hash}','CONTRL','${contrl}'),('${c2}','${m}','${A}','test','${v2Hash}','APERAK','${aperak}');
+   INSERT INTO gridex_ack_authority.scope_outcomes VALUES('${m}','CONTRL','${contrl}','${c1}'),('${m}','APERAK','${aperak}','${c2}');SET CONSTRAINTS ALL IMMEDIATE`)
+  const during=await history(A,id(4))
+  assert.equal(await count('gridex_brp_changes.confirmations'),3);assert.equal(during[1].status,'source_declared');assert.equal(during[1].confirmedAt,null);assert.deepEqual(during[0],v1Entry)
+  await db.exec('ROLLBACK');checks++
+ }
  await ack(routeOf(4).message,A,'CONTRL','positive');assert.equal((await history(A,id(4)))[1].status,'source_declared');checks++
  await ack(routeOf(4).message,A,'APERAK','positive')
  h=await history(A,id(4));assert.deepEqual(h.map(v=>v.status),['aperak_confirmed','aperak_confirmed']);assert.equal(h[1].confirmationMessageId,routeOf(4).message);assert.equal(h[0].confirmationMessageId,routeOf(1).message)
@@ -180,6 +192,9 @@ try{
  await event(113,'A','2027-05-04 00:00',{legal:id(30)});await held(113,13,'current_source_approved_supply_relation')
  await event(114,'A','2027-05-05 00:00',{groundId:45});await held(114,14,'current_exact_verified_registry_actors_and_roles')
  await event(115,'A','2027-05-06 00:00',{legalEdiel:'99999'});await held(115,15,'current_unique_legal_supplier_profile')
+ // The DSO-BRP agreement context_v1 checks is the event's registry ground, read only within the
+ // event's own tenant/environment: a foreign tenant's otherwise valid ground (B's own 13) is held.
+ await event(116,'A','2027-05-07 00:00',{groundId:13});await held(116,16,'authentic_versioned_dso_brp_registry_ground')
  // A user who is not an active member of the tenant is refused outright.
  await assert.rejects(source(100,actorB),/actor_forbidden/);checks++
  // A correct-looking wire for a held (unreserved) event binds nothing: no origin, no version.

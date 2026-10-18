@@ -5,8 +5,9 @@
 // confirmation unchanged; v1 closed exactly at v2, v2 open); a sibling period
 // and a foreign tenant stay untouched; the one-calendar-month notice boundary
 // in fixed UTC+1 is authorized at the exact minute and held one minute later,
-// including month-end clamping; wrong area, agreement or actor is held; an AI
-// list creates no version.
+// including month-end clamping; wrong area, foreign or future agreement, or
+// wrong actor is held; negative CONTRL/APERAK confirm nothing; a wrong UNB
+// application reference is not bound; an AI list creates no version.
 import { spawnSync } from 'node:child_process'
 import { createRequire } from 'node:module'
 import path from 'node:path'
