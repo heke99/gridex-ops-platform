@@ -85,6 +85,22 @@ jobs:
               if isinstance(error,subprocess.CalledProcessError):value['exit_code']=error.returncode
               if isinstance(error,subprocess.TimeoutExpired):value['timeout_seconds']=error.timeout
               return value
+          def emit_pre_state_admission_failure(error,stage,state_publication_started):
+              # Fixed vocabulary only. A vanished previously published state may
+              # never be mistaken for an epoch that was not admitted.
+              if state_publication_started or state_path.exists():return
+              classes={'HTTPError','URLError','TimeoutError','OSError','FileNotFoundError','PermissionError',
+                  'CalledProcessError','TimeoutExpired','RuntimeError','ValueError','KeyError'}
+              stages={'TRUSTED_REFERENCE','ADMISSION_PRECHECKS','SOURCE_INPUT_INVENTORY'}
+              codes={'z03c_trusted_normal_reference_skew','z03c_sync_state_unknown','z03c_fresh_empty_docker_host_required',
+                  'z03c_official_cli_version_required','z03c_cli_stop_contract_required','z03c_node22_required',
+                  'z03c_this_product_vm_preflight_required','z03c_checkout_blob_mismatch'}
+              code='z03c_pre_state_admission_failed'
+              if type(error) is RuntimeError and len(error.args)==1 and type(error.args[0]) is str and error.args[0] in codes:code=error.args[0]
+              summary={'class':type(error).__name__ if type(error).__name__ in classes else 'OtherError',
+                  'code':code,'stage':stage if stage in stages else 'UNKNOWN_PRE_STATE_STAGE'}
+              # This is not a clock, restoration, native or artifact attestation.
+              sys.stderr.write(json.dumps(summary,separators=(',',':'),sort_keys=True)+'\n');sys.stderr.flush()
           def process_start_ticks(pid):
               try:return (pathlib.Path('/proc')/str(pid)/'stat').read_text().rsplit(')',1)[1].split()[19]
               except FileNotFoundError:return None
@@ -336,8 +352,10 @@ jobs:
           if working.exists() or final.exists() or state_path.exists() or restored_path.exists():raise RuntimeError('z03c_first_epoch_only')
           working.mkdir()
           stage='ORDINARY_CLOCK_ADMISSION';exit_code=1;watchdog=None;source={}
+          state_publication_started=False;pre_state_stage='TRUSTED_REFERENCE'
           try:
               trusted=trusted_reference()
+              pre_state_stage='ADMISSION_PRECHECKS'
               prior_ntp=call(['timedatectl','show','-p','NTP','--value']);prior_sync_services=sync_services()
               if prior_ntp not in {'yes','no'}:raise RuntimeError('z03c_sync_state_unknown')
               subprocess.run(['sudo','-n','true'],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=10)
@@ -351,6 +369,7 @@ jobs:
                   if not call(['node','--version']).startswith('v22.'):raise RuntimeError('z03c_node22_required')
                   preflight=json.loads((root/'z03c-clock-preflight-evidence/receipt.json').read_text())
                   if preflight['checkout_sha']!=head or preflight['job_id']!=os.environ['GITHUB_JOB'] or preflight['mode']!='preflight' or not preflight['restoration_verified'] or preflight['exit_code']!=0:raise RuntimeError('z03c_this_product_vm_preflight_required')
+              pre_state_stage='SOURCE_INPUT_INVENTORY'
               entries=subprocess.check_output(['git','ls-tree','-rz','--full-tree','HEAD']).split(b'\0')
               for entry in entries:
                   if not entry:continue
@@ -370,6 +389,7 @@ jobs:
                   'prior_ntp':prior_ntp,'prior_sync_services':prior_sync_services,'trusted_normal_reference_s':trusted,'supabase_project_id':project,
                   'checkout_sha':head,'repository':os.environ['GITHUB_REPOSITORY'],'workflow_run_id':os.environ['GITHUB_RUN_ID'],
                   'workflow_run_attempt':os.environ['GITHUB_RUN_ATTEMPT'],'job_id':os.environ['GITHUB_JOB']}
+              state_publication_started=True
               save(state_path,state);os.chmod(state_path,0o600)
               # Independent session survives the parent's TERM/KILL. No clock
               # change occurs until its process is actually running.
@@ -431,6 +451,7 @@ jobs:
               save(working/'runtime-generated-comparison-inputs.json',changed)
           except BaseException as error:
               exit_code=exit_code or 1
+              with contextlib.suppress(Exception):emit_pre_state_admission_failure(error,pre_state_stage,state_publication_started)
               save(working/'failure.json',{'stage':stage,**safe_error(error),
                   'native_execution':'INCOMPLETE_OR_FAILED' if stage=='BOOTSTRAP_AND_NATIVE' else 'NOT_CREDITED','whole_approval':False})
           finally:
