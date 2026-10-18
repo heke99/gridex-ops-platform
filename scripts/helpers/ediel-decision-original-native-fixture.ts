@@ -1,4 +1,4 @@
-import {execFileSync} from 'node:child_process'
+import {execFileSync,spawn} from 'node:child_process'
 import {createHash,createHmac,randomUUID} from 'node:crypto'
 import {createClient} from '@supabase/supabase-js'
 import {expect} from 'vitest'
@@ -41,4 +41,77 @@ export async function createDecisionOriginalNativeFixture(password:string){
  const read=await reviewer.client.rpc('ediel_read_retention_decision_original_v1',{p_company_id:companyId,p_actor_user_id:reviewer.id,p_retention_class:'blob_retention_decision_original_bytes',p_target_id:targetId,p_include_document:false});expect(read.error).toBeNull();expect(read.data).toMatchObject({companyId,targetId,documentHash:hash(sourceDocument),bytesAvailable:true,documentBase64:null,authority:'none'})
  expect({...decisionNativeSql<Record<string,unknown>>(`SELECT jsonb_build_object('assessments',(SELECT count(*) FROM gridex_received_sources.validation_assessments WHERE source_message_id=${literal(sourceMessageId)}),'attempts',(SELECT count(*) FROM gridex_ediel_transport.attempts WHERE company_id=${literal(companyId)}))`),...retentionSql<Record<string,unknown>>(`SELECT jsonb_build_object('reviews',count(*)) FROM gridex_ediel_retention.blob_reviews WHERE decision_id=${literal(targetId)}`)}).toEqual({assessments:0,attempts:0,reviews:0})
  return{companyId,foreignCompanyId,sourceMessageId,issuerId,targetId,sourceDocument,sourceHash:hash(sourceDocument),basis:{retentionClass:'blob_retention_decision_original_bytes',targetId,sourceHash:read.data.documentHash,targetMetadataHash:read.data.targetMetadataHash},actor,reviewer,readonly,foreign}
+}
+
+// These are explicit SYNTHETIC mechanism-purpose facts, never production
+// periods or authority. No source narrative is embedded in any new receipt.
+export const completedReviewReasonWitnessFields=['review.id','review.policy_id','review.actor_user_id','review.outcome','review.created_at','policy_evidence','retirement_review','retirement_revocation','retirement_tombstone','retirement_audit'] as const
+export const completedReviewReasonClass='completed_decision_review_reason' as const
+export const completedReviewReasonPermission='ediel.retention.completed_review_reason'
+export const completedReviewReasonMarker='[Retired retention review reason]'
+export function signSyntheticCompletedReviewReasonPolicy(companyId:string,issuerId:string,basis:Parameters<typeof signSyntheticDecisionOriginalPolicy>[2],document:Buffer,extra:Record<string,unknown>){
+ return signSyntheticDecisionOriginalPolicy(companyId,issuerId,basis,document,{
+  format:'ediel_retention_completed_review_reason_policy_v1',operation:'retire_completed_decision_review_reason',
+  legalBasisReference:'SYNTHETIC selected completed review narrative retirement only',
+  journalPurposeReference:'SYNTHETIC separately finite selected metadata witnesses only',
+  witnessFields:completedReviewReasonWitnessFields,...extra,
+ })
+}
+export async function createCompletedReviewReasonNativeFixture(password:string,leadSeconds=10,expiresAfterBoundarySeconds=120){
+ if(!Number.isInteger(leadSeconds)||leadSeconds<3||leadSeconds>12||expiresAfterBoundarySeconds<2)throw Error('synthetic_prospective_review_boundary_required')
+ const f=await createDecisionOriginalNativeFixture(password)
+ for(const [company,user]of [[f.companyId,f.actor.id],[f.companyId,f.reviewer.id],[f.companyId,f.readonly.id],[f.foreignCompanyId,f.foreign.id]]){
+  decisionNativeSql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key,is_active,status,effect) SELECT ${literal(user)},${literal(company)},id,key,true,'active','allow' FROM public.permissions WHERE key=${literal(completedReviewReasonPermission)}`)
+ }
+ const clock=decisionNativeSql<{issuedAt:string;boundary:string;expiresAt:string;witnessUntil:string}>(`SELECT jsonb_build_object('issuedAt',clock_timestamp()-interval '1 second','boundary',clock_timestamp()+make_interval(secs=>${leadSeconds}),'expiresAt',clock_timestamp()+make_interval(secs=>${leadSeconds+expiresAfterBoundarySeconds}),'witnessUntil',clock_timestamp()+make_interval(secs=>${leadSeconds+180}))`)
+ const sourceDocument=Buffer.from('SYNTHETIC separately approved original-byte policy'),sourceReason='SYNTHETIC_RETIRE_REASON_'+randomUUID()
+ const original=await f.actor.client.rpc('ediel_submit_decision_evidence_retention_v1',{p_company_id:f.companyId,p_actor_user_id:f.actor.id,p_retention_class:f.basis.retentionClass,p_target_id:f.targetId,p_document_base64:sourceDocument.toString('base64'),p_issuer_receipt:signSyntheticDecisionOriginalPolicy(f.companyId,f.issuerId,f.basis,sourceDocument,{issuedAt:clock.issuedAt,journalRetainUntil:clock.boundary})})
+ expect(original.error).toBeNull();expect(original.data.issuerQualified).toBe(true)
+ const sourcePolicyId=original.data.policyId as string,sourceParameters={p_company_id:f.companyId,p_policy_id:sourcePolicyId}
+ const sibling=await f.reviewer.client.rpc('ediel_review_decision_evidence_retention_v1',{...sourceParameters,p_actor_user_id:f.reviewer.id,p_outcome:'hold',p_reason:'SYNTHETIC sibling narrative retained independently'})
+ expect(sibling.error).toBeNull();expect(sibling.data.status).toBe('held')
+ const review=await f.reviewer.client.rpc('ediel_review_decision_evidence_retention_v1',{...sourceParameters,p_actor_user_id:f.reviewer.id,p_outcome:'approve',p_reason:sourceReason})
+ expect(review.error).toBeNull();expect(review.data.status).toBe('approved')
+ const sourceReviewId=review.data.reviewId as string
+ const originalPurge=await f.actor.client.rpc('ediel_purge_decision_evidence_retention_v1',{...sourceParameters,p_actor_user_id:f.actor.id})
+ expect(originalPurge.error).toBeNull();expect(originalPurge.data).toMatchObject({status:'purged',replay:false})
+ const selected=await f.readonly.client.rpc('ediel_read_retention_decision_original_v1',{p_company_id:f.companyId,p_actor_user_id:f.readonly.id,p_retention_class:completedReviewReasonClass,p_target_id:sourceReviewId,p_include_document:false})
+ expect(selected.error).toBeNull();expect(selected.data).toMatchObject({retentionClass:completedReviewReasonClass,targetId:sourceReviewId,documentHash:hash(Buffer.from(sourceReason)),bytesAvailable:true,documentBase64:null,authority:'none'})
+ const basis={retentionClass:completedReviewReasonClass,targetId:sourceReviewId,sourceHash:selected.data.documentHash as string,targetMetadataHash:selected.data.targetMetadataHash as string}
+ const document=Buffer.from('SYNTHETIC independent metadata legal underlay '+randomUUID()),receipt=signSyntheticCompletedReviewReasonPolicy(f.companyId,f.issuerId,basis,document,{issuedAt:clock.issuedAt,expiresAt:clock.expiresAt,retainUntil:clock.boundary,journalRetainUntil:clock.witnessUntil})
+ const metadata=await f.actor.client.rpc('ediel_submit_decision_evidence_retention_v1',{p_company_id:f.companyId,p_actor_user_id:f.actor.id,p_retention_class:completedReviewReasonClass,p_target_id:sourceReviewId,p_document_base64:document.toString('base64'),p_issuer_receipt:receipt})
+ expect(metadata.error).toBeNull();expect(metadata.data.issuerQualified).toBe(true)
+ const policyId=metadata.data.policyId as string,parameters={p_company_id:f.companyId,p_policy_id:policyId}
+ const approved=await f.reviewer.client.rpc('ediel_review_decision_evidence_retention_v1',{...parameters,p_actor_user_id:f.reviewer.id,p_outcome:'approve',p_reason:'SYNTHETIC separate current metadata review; source text not copied'})
+ expect(approved.error).toBeNull();expect(approved.data.status).toBe('approved')
+ return{...f,clock,sourcePolicyId,sourceReviewId,sourceReason,siblingReviewId:sibling.data.reviewId as string,metadataBasis:basis,metadataDocument:document,policyId,parameters}
+}
+export function waitForReviewReasonBoundary(boundary:string){
+ // Actual PG clock wait, bounded to this prospective fixture. It never updates
+ // a protected source timestamp or changes a SQL time/authority gate.
+ const observation=decisionNativeSql<{remaining:number}>(`SELECT jsonb_build_object('remaining',greatest(0,extract(epoch FROM ${literal(boundary)}::timestamptz-clock_timestamp())))`)
+ if(observation.remaining>13)throw Error('review_boundary_outside_owned_fixture')
+ decisionNativeSql(`SELECT to_jsonb(true) FROM (SELECT pg_sleep(greatest(0,extract(epoch FROM ${literal(boundary)}::timestamptz-clock_timestamp()))+0.02)) own_wait`)
+ expect(decisionNativeSql(`SELECT to_jsonb(clock_timestamp()>=${literal(boundary)}::timestamptz)`)).toBe(true)
+}
+export async function withObservedReviewReasonLock<T>(target:string,operation:()=>Promise<T>,afterObserved?:()=>void):Promise<T>{
+ if(process.env.NEXT_PUBLIC_SUPABASE_URL!=='http://127.0.0.1:54321')throw Error('review_reason_owned_local_only')
+ const name='db05-review-reason-'+randomUUID(),blocker=spawn('psql',['postgresql://postgres:postgres@127.0.0.1:54322/postgres','-XAtq','-v','ON_ERROR_STOP=1'],{env:{...process.env,PGAPPNAME:name},stdio:['pipe','pipe','pipe']})
+ let stderr='';blocker.stderr.on('data',chunk=>{stderr+=String(chunk)});blocker.stdout.resume()
+ const closed=new Promise<number|null>((resolve,reject)=>{blocker.once('error',reject);blocker.once('exit',code=>resolve(code))})
+ blocker.stdin.end(`BEGIN;SET LOCAL ROLE gridex_ediel_retention_owner;SELECT id FROM gridex_ediel_retention.decision_evidence_reviews WHERE id=${literal(target)} FOR UPDATE;SELECT pg_sleep(4);COMMIT;`)
+ const poll=async(check:()=>boolean)=>{const deadline=Date.now()+8000;while(!check()){if(Date.now()>deadline||blocker.exitCode!==null)throw Error('actual_review_reason_lock_not_observed:'+stderr);await new Promise(resolve=>setTimeout(resolve,20))}}
+ let pending:Promise<T>|undefined
+ try{
+  await poll(()=>decisionNativeSql<boolean>(`SELECT to_jsonb(EXISTS(SELECT FROM pg_stat_activity WHERE application_name=${literal(name)} AND wait_event='PgSleep'))`))
+  const pid=decisionNativeSql<number>(`SELECT to_jsonb(pid) FROM pg_stat_activity WHERE application_name=${literal(name)}`)
+  pending=operation()
+  // A real pending Data API backend must be blocked by our exact owned PID.
+  await poll(()=>decisionNativeSql<boolean>(`SELECT to_jsonb(EXISTS(SELECT FROM pg_stat_activity WHERE wait_event_type='Lock' AND ${pid}=ANY(pg_blocking_pids(pid))))`))
+  afterObserved?.()
+  const response=await pending;expect(await closed,stderr).toBe(0);return response
+ }finally{
+  if(blocker.exitCode===null)blocker.kill('SIGTERM')
+  await closed.catch(()=>null);await pending?.catch(()=>undefined)
+ }
 }
