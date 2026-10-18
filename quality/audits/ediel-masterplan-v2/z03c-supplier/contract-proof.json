@@ -157,6 +157,38 @@
           "id": 12134199287,
           "name": "ediel-cancellation-public-acceptance-native-39122073661",
           "sha256": "3c8f081e1c7a3184931558eba2cf996514860b214c4218f487cfdf1352c7b605",
+          "committed_as": "NOT_COMMITTED at final head (archive at archive_git_revision only; superseded by the final-head original)"
+        }
+      ],
+      "junit": {
+        "tests": 33,
+        "failures": 0,
+        "errors": 0
+      },
+      "scope": "Final PR head original for criteria that pass through the changed inbound Z04/Z24 owner (criteria 3 and 4).",
+      "provenance_status": "HISTORICAL",
+      "archive_git_revision": "f4c8ddec4ae45622e0a3588e1336cef116c6df73"
+    },
+    {
+      "producer": ".github/workflows/ediel-cancellation-public-acceptance-native.yml",
+      "run": 39138451084,
+      "attempt": 1,
+      "event": "pull_request",
+      "head_sha": "35a6e30f7b5a3d5caad90496728c5e080e0e21e7",
+      "head_tree": "9252324391679c5c70f45ef96b50c06edd77d08f",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "id": 117707720946,
+          "name": "cancellation-public-acceptance-native",
+          "conclusion": "success"
+        }
+      ],
+      "artifacts": [
+        {
+          "id": 12140684102,
+          "name": "ediel-cancellation-public-acceptance-native-39138451084",
+          "sha256": "6842b6ec35b124b1e56f000ede79747b48678b4ef53911eb4d96e6bde7b0be44",
           "committed_as": "quality/audits/ediel-masterplan-v2/z03c-supplier/native-cancellation.zip"
         }
       ],
@@ -165,7 +197,48 @@
         "failures": 0,
         "errors": 0
       },
-      "scope": "Final PR head original for criteria that pass through the changed inbound Z04/Z24 owner (criteria 3 and 4)."
+      "scope": "Final PR head original (after main f8c99f40 integration) for criteria 3 and 4."
+    },
+    {
+      "producer": ".github/workflows/ediel-z03c-supplier-boundary-native.yml",
+      "run": 39138451143,
+      "attempt": 1,
+      "event": "pull_request",
+      "head_sha": "35a6e30f7b5a3d5caad90496728c5e080e0e21e7",
+      "head_tree": "9252324391679c5c70f45ef96b50c06edd77d08f",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "id": 117707721017,
+          "name": "Ediel Z03C supplier boundary / clock-capability-preflight",
+          "conclusion": "success"
+        },
+        {
+          "id": 117713962572,
+          "name": "Ediel Z03C supplier boundary / z03c-supplier-boundary-native",
+          "conclusion": "success"
+        }
+      ],
+      "artifacts": [
+        {
+          "id": 12141551567,
+          "name": "ediel-z03c-supplier-boundary-native-39138451143",
+          "sha256": "283dc966893acf9167c2e1435e09c720c4bd123bee846fcf74d3c12f41d1e787",
+          "committed_as": "NOT_COMMITTED: bootstrap.log carries the local Supabase CLI default Storage S3 keys unredacted; cited by id and digest only"
+        },
+        {
+          "id": 12141178500,
+          "name": "ediel-z03c-clock-preflight-39138451143",
+          "sha256": "f16f5c062839c7954c618aca71b64cf90d765a3f1bf1b2e97f3a4a7b50b34f3e",
+          "committed_as": "NOT_COMMITTED"
+        }
+      ],
+      "junit": {
+        "tests": 5,
+        "failures": 0,
+        "errors": 0
+      },
+      "scope": "Final PR head original for criteria 0, 1, 2, 5 and 6 (outbound C03 boundary, calendar window, mutation, own-LI refusal)."
     }
   ],
   "independent_proof_reviews": [
@@ -188,7 +261,14 @@
         345,
         372
       ],
-      "observed": "Actual queued Z03C message asserts application_reference 23-DDQ-PRODAT, message_code Z03, one CCI Z13 followed by CAV Z24, BGM Z03, valid envelope, own LI only (lines 352-357)."
+      "observed": "Actual queued Z03C message asserts application_reference 23-DDQ-PRODAT, message_code Z03, one CCI Z13 followed by CAV Z24, BGM Z03, valid envelope, own LI only (lines 352-357).",
+      "final_head_original": {
+        "run": 39138451143,
+        "job": 117713962572,
+        "artifact": 12141551567,
+        "head_sha": "35a6e30f7b5a3d5caad90496728c5e080e0e21e7",
+        "result": "5/5 PASS"
+      }
     },
     {
       "criterion": "Given: reference the correct original case/object/customer",
@@ -197,7 +277,14 @@
         345,
         372
       ],
-      "observed": "Queued message binds original_message_id, switch_request_id, customer_id, site_id, metering_point_id, sender/receiver and transaction_reference to the sealed own original; one origin/intent/request/outbox each; original seal unchanged; decoy unchanged (351-368)."
+      "observed": "Queued message binds original_message_id, switch_request_id, customer_id, site_id, metering_point_id, sender/receiver and transaction_reference to the sealed own original; one origin/intent/request/outbox each; original seal unchanged; decoy unchanged (351-368).",
+      "final_head_original": {
+        "run": 39138451143,
+        "job": 117713962572,
+        "artifact": 12141551567,
+        "head_sha": "35a6e30f7b5a3d5caad90496728c5e080e0e21e7",
+        "result": "5/5 PASS"
+      }
     },
     {
       "criterion": "Given: L at the latest 4 days before start; LK at the latest on the move-in day",
@@ -215,6 +302,13 @@
           994
         ],
         "observed": "Actual prospective LK public input at day0 is authorized and queued (cancellation_requested)."
+      },
+      "final_head_original": {
+        "run": 39138451143,
+        "job": 117713962572,
+        "artifact": 12141551567,
+        "head_sha": "35a6e30f7b5a3d5caad90496728c5e080e0e21e7",
+        "result": "5/5 PASS"
       }
     },
     {
@@ -227,10 +321,10 @@
       ],
       "observed": "After prepare: cancellation_requested, completed null (599); provider 250 send keeps cancellation_requested (600-603); physical positive CONTRL then APERAK keep cancellation_requested and period unchanged (604-608); only the causal received Z04C completes cancelled_before_start and cancels the own confirmed future period (609-614); own positive APERAK+CONTRL produced and sent via sendOwnAcks (615; asserted at 558-562), replay leaves owned effects unchanged (616-618), original/permissions unchanged (619); decoy unchanged (620).",
       "final_head_original": {
-        "run": 39122073661,
-        "job": 117659525125,
-        "artifact": 12134199287,
-        "head_sha": "d123c00221a62f816a151277095f2ac4ebb0e074",
+        "run": 39138451084,
+        "job": 117707720946,
+        "artifact": 12140684102,
+        "head_sha": "35a6e30f7b5a3d5caad90496728c5e080e0e21e7",
         "result": "33/33 PASS"
       }
     },
@@ -269,10 +363,10 @@
         }
       ],
       "final_head_original": {
-        "run": 39122073661,
-        "job": 117659525125,
-        "artifact": 12134199287,
-        "head_sha": "d123c00221a62f816a151277095f2ac4ebb0e074",
+        "run": 39138451084,
+        "job": 117707720946,
+        "artifact": 12140684102,
+        "head_sha": "35a6e30f7b5a3d5caad90496728c5e080e0e21e7",
         "result": "33/33 PASS"
       }
     },
@@ -291,6 +385,13 @@
           170
         ],
         "observed": "The builder refuses a non-Z03 (grid-owner direction Z04) intent before bytes; a built Z03C received inbound is a direction review with no supply or cancellation lifecycle."
+      },
+      "final_head_original": {
+        "run": 39138451143,
+        "job": 117713962572,
+        "artifact": 12141551567,
+        "head_sha": "35a6e30f7b5a3d5caad90496728c5e080e0e21e7",
+        "result": "5/5 PASS"
       }
     },
     {
@@ -318,7 +419,14 @@
           ],
           "observed": "Full component sweep through the actual outbound cancellation builder and whole canonical policy: every Z03 R field of the frozen 26.A column (23 numbered fields plus END_USER_GROUP) omitted individually yields its own diagnostic; D fields with condition met (229 registered address, 233/234 present installation parent, separate contract invoicee group and children 250/251/252/253/317/318) are held; complete built Z03C has no blocking issue."
         }
-      ]
+      ],
+      "final_head_original": {
+        "run": 39138451143,
+        "job": 117713962572,
+        "artifact": 12141551567,
+        "head_sha": "35a6e30f7b5a3d5caad90496728c5e080e0e21e7",
+        "result": "5/5 PASS"
+      }
     },
     {
       "criterion": "Prohibited: wrong correlation",
@@ -399,22 +507,21 @@
     "verdict": "PENDING independent review; all changed paths are agent memory, agent tooling/settings, AGENTS.md, two developer documentation page texts and documentation. No executed test, helper, workflow, library, migration or schema input differs, so the cd152e72 originals are proposed as applicable to dbbfee16 without relabelling them.",
     "command": "git diff --name-only cd152e72 dbbfee16; git diff --stat cd152e72 dbbfee16 -- lib supabase scripts __tests__ .github",
     "pr_final_head": {
-      "head": "d123c00221a62f816a151277095f2ac4ebb0e074",
-      "tree": "a9ee1ef947acfa0a85f7af8d26bf13a93842d162",
-      "base": "dbbfee16abef0bdf6ca455088c21e7e6f089138a",
+      "head": "35a6e30f7b5a3d5caad90496728c5e080e0e21e7",
+      "tree": "9252324391679c5c70f45ef96b50c06edd77d08f",
+      "base": "f8c99f40bb04bba2a7319ee4ee111eec8acdebd4",
       "runtime_change": "supabase/migrations/20261018100000_ediel_z04c_current_sender_registry.sql only: adds the Z04/Z24 current-sender guard and duplicate-C hold to gridex_received_sources.other_supply_scope_effect_v1 (inbound received Z04 owner); plus byte-exact capture import of schema/types/fingerprint.",
       "criteria_rebound_to_final_head": [
-        3,
-        4
-      ],
-      "criteria_reused_from_cd152e72": [
         0,
         1,
         2,
+        3,
+        4,
         5,
         6
       ],
-      "reuse_basis": "scripts/ediel-at-z03c-supplier-boundary-native.test.ts exercises outbound Z03C origination, calendar window, bound-message mutation and own-LI refusal; it does not call applySupplyMarketSource, processInboundEdielMessage or other_supply_scope_effect_v1 (grep), and no lib/, scripts/helpers/ or __tests__/helpers/ path differs between dbbfee16 and the final head.",
+      "criteria_reused_from_cd152e72": [],
+      "reuse_basis": "Not needed: every native criterion is bound to an original executed on this exact head. The cd152e72 originals remain historical corroboration only.",
       "criterion_7": "component test unchanged; runs in ordinary CI on the final head.",
       "command": "git diff --stat dbbfee16 d123c00221a62f816a151277095f2ac4ebb0e074 -- lib supabase/migrations scripts/helpers __tests__/helpers"
     }
