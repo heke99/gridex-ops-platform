@@ -116,7 +116,9 @@ async function actor(companyId:string){
  sql(`INSERT INTO public.user_profiles(id,email,full_name,user_status) VALUES(${literal(id)},${literal(email)},'SYNTHETIC FG source actor','active') ON CONFLICT(id) DO UPDATE SET user_status='active';
  INSERT INTO public.company_memberships(company_id,user_id,membership_role,status,accepted_at,role,is_active,joined_at,role_key) VALUES(${literal(companyId)},${literal(id)},'member','active',clock_timestamp(),'member',true,clock_timestamp(),'member');
  ${nativeActorRoleSql(companyId,id)}
- INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key,is_active,status,effect) SELECT ${literal(id)},${literal(companyId)},id,key,true,'active','allow' FROM public.permissions WHERE key=ANY(ARRAY[${permissions.map(literal).join(',')}]::text[]);`)
+ -- The canonical tenant context projects role grants only (20261014004020);
+ -- grant on this actor's own disposable company role, as createBilateralSourceOperator does.
+ INSERT INTO public.role_permissions(role_id,role_key,permission_id,permission_key) SELECT r.id,r.key,p.id,p.key FROM public.user_roles ur JOIN public.roles r ON r.id=ur.role_id JOIN public.permissions p ON p.key=ANY(ARRAY[${permissions.map(literal).join(',')}]::text[]) WHERE ur.user_id=${literal(id)} AND ur.company_id=${literal(companyId)} AND r.key LIKE 'native_actor_%';`)
  const client=createClient('http://127.0.0.1:54321',process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,{auth:{persistSession:false,autoRefreshToken:false}})
  const signed=await client.auth.signInWithPassword({email,password:pass})
  for(const v of [signed.data.session?.access_token,signed.data.session?.refresh_token])if(v)secret(v)
