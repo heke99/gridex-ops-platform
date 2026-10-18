@@ -3,24 +3,24 @@
   "schema": "ediel-current-routing-v3",
   "status": "IN_PROGRESS",
   "campaign_complete": false,
-  "observed_at": "2026-10-17T20:59:07Z",
-  "observed_main": "ae25d6d3144fe9828bc00f51af43e607dc76d370",
-  "observed_tree": "3e356bf359aed2791e65a9758bb2e8398020c8d7",
+  "observed_at": "2026-10-18T23:18:10Z",
+  "observed_main": "63580ae0a84b97b3e44d46cc21bdc349b8c978fa",
+  "observed_tree": "cf7212ab07313736289bd9310e84f17c3805c05e",
   "canonical_state": ".agent-memory/current-state.md",
   "active_start": ".agent-memory/masterplan-current-start.md",
   "active_board": "https://github.com/heke99/gridex-ops-platform/issues/766",
   "coverage": {
     "path": "quality/audits/ediel-masterplan-v2/coverage.json",
-    "sha256": "d2bea375b9fc02fba5d4561b00018081a5ea98860ed60961032cfc486c48cb41",
+    "sha256": "cbee793cbeb4f5ebef3e5069c9d77b42adfd3e1de8403bdbaeb940065d3c0e79",
     "verifiedRules": 119,
     "totalRules": 121,
-    "passedContracts": 209,
+    "passedContracts": 214,
     "totalContracts": 231,
-    "approvedIds": 328,
+    "approvedIds": 333,
     "totalIds": 352,
-    "remainingIds": 24
+    "remainingIds": 19
   },
   "assignment_authority": "LATEST_EXPLICIT_HANDOFF_AND_VERIFIED_REFS; this dated snapshot grants no claims",
-  "next_action": "Finish documentation cleanup and delivery follow-up. Rule and contract work is paused until the next work round.",
+  "next_action": "Continue verified owned packets and bounded help under the standing user mandate. Claim verified free unapproved scope through the reservations protocol; correct, verify, obtain independent reviews and open or update PRs within own custody. Coordinate actively owned scope by bounded handoff. Agent1 retains normal serial delivery; scoped external and producer limits remain applicable.",
   "paused_310": true
 }
