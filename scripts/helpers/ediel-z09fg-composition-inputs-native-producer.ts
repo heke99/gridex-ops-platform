@@ -25,6 +25,7 @@ import {recordReceivedSourceValidation} from '@/lib/ediel/core/receivedSourceVal
 import {captureFreshEdielSourceRulePackEvidence} from '@/lib/ediel/core/sourceRulePackEvidence'
 import {createReceivedSourceOwnerSession} from '@/lib/ediel/sources/receivedSourceOwnerSession'
 import {applyInboundBusinessStateMachine} from '@/lib/ediel/flows/inboundBusinessStateMachine'
+import {decideProdatLifecycle} from '@/lib/ediel/stateMachines/prodatLifecycle'
 import {applySupplyMarketSource} from '@/lib/ediel/flows/supplyMarketTransition'
 import {readMeteringMethodChangeSource} from '@/lib/ediel/production/meteringMethodChangeSource'
 import {reviewReceivedStructuralSource} from '@/lib/ediel/sources/reviewReceivedStructuralSource'
@@ -408,12 +409,14 @@ async function baseline(f:Stage){
  const validation=await recordReceivedSourceValidation({original:message,validated:message,resolvedCompanyId:f.companyId,decision});expect(validation.status).toBe('recorded')
  await captureFreshEdielSourceRulePackEvidence(f.companyId,message.id)
  const session=createReceivedSourceOwnerSession(validation);expect(session).not.toBeNull()
- const switched=await applyInboundBusinessStateMachine({message,actorUserId:f.actorUserId,matchedSwitchRequestId:f.switchId,onSourceSwitchCommitted:session!.onSwitchCommitted})
+ // Keep the first native apply behind the state machine's same pure entry
+ // classification, after canonical validation and the one-use source session.
+ expect(message).toMatchObject({message_family:'PRODAT'})
+ expect(decideProdatLifecycle(message)?.outcome).toBe('supplier_switch_accepted')
+ const supply=await applySupplyMarketSource({actorUserId:f.actorUserId,message})
+ const switched=await applyInboundBusinessStateMachine({message,actorUserId:f.actorUserId,matchedSwitchRequestId:f.switchId,onSourceSwitchCommitted:session!.onSwitchCommitted,committedSupplyResult:supply})
  if(switched.outcome!=='supplier_switch_accepted'){
-  // Value-free diagnosis: the state machine drops the supply owner's reason.
-  // Ask the same exported owner once more (a refused apply has no effect) and
-  // surface only its fixed reason code; never ids, SQL or payloads.
-  const supply=await applySupplyMarketSource({actorUserId:f.actorUserId,message})
+  // Diagnose only the retained first native result; never invoke a writer again.
   // Exactly the fields ediel_apply_supply_source_v1 checks (20261001043234:195-196):
   // leaf count, leaf syntax/functional decisions, application header, and the
   // first leaf issue code. Closed enums/fixed codes only; a/m/r abbreviations.
@@ -423,7 +426,7 @@ async function baseline(f:Stage){
    'issue',lower(l.facts_text::jsonb#>>'{issues,0,code}')) FROM (SELECT v.* FROM gridex_received_sources.validation_assessments v WHERE v.source_message_id=${literal(message.id)} AND NOT EXISTS(SELECT FROM gridex_received_sources.validation_assessments c WHERE c.previous_assessment_id=v.id) ORDER BY v.id LIMIT 1) l`)
   const ledgerLabel=`fg_z04_leaf${ledger.leaves}_s${ab(ledger.syn)}_f${ab(ledger.fun)}_h${ab(ledger.hdr)}_${ledger.issue??'noissue'}`
   if(!supply.applied&&supply.reason==='supply_complete_own_application_and_function_required')throw Error(ledgerLabel.replace(/[^a-z0-9_]/g,'_').slice(0,80))
-  throw Error(['fg_baseline_switch',switched.outcome,supply.applied?'applied_on_retry':supply.reason??'no_reason',...(supply.partition??[]).filter(entry=>entry.disposition!=='applied').slice(0,1).map(entry=>('reason' in entry?String(entry.reason):'held'))].join('_').replace(/[^a-z0-9_]/g,'_').slice(0,80))
+  throw Error(['fg_baseline_switch',switched.outcome,supply.applied?'applied_before_projection':supply.reason??'no_reason',...(supply.partition??[]).filter(entry=>entry.disposition!=='applied').slice(0,1).map(entry=>('reason' in entry?String(entry.reason):'held'))].join('_').replace(/[^a-z0-9_]/g,'_').slice(0,80))
  }
  await session!.finish()
  const review=await reviewReceivedStructuralSource({companyId:f.companyId,environment:'test',sourceMessageId:message.id,reviewerUserId:f.reviewer.id,confirmedOriginal:true,replacesSourceMessageId:null})
