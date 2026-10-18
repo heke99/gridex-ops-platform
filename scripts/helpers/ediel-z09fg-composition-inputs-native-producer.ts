@@ -410,6 +410,15 @@ async function baseline(f:Stage){
   // Ask the same exported owner once more (a refused apply has no effect) and
   // surface only its fixed reason code; never ids, SQL or payloads.
   const supply=await applySupplyMarketSource({actorUserId:f.actorUserId,message})
+  // Exactly the fields ediel_apply_supply_source_v1 checks (20261001043234:195-196):
+  // leaf count, leaf syntax/functional decisions, application header, and the
+  // first leaf issue code. Closed enums/fixed codes only; a/m/r abbreviations.
+  const ab=(v:unknown)=>({accepted:'a',manual_review:'m',rejected:'r'} as Record<string,string>)[String(v)]??'x'
+  const ledger=sql<{leaves:number;syn:string|null;fun:string|null;hdr:string|null;issue:string|null}>(`SELECT jsonb_build_object('leaves',(SELECT count(*) FROM gridex_received_sources.validation_assessments v WHERE v.source_message_id=${literal(message.id)} AND NOT EXISTS(SELECT FROM gridex_received_sources.validation_assessments c WHERE c.previous_assessment_id=v.id)),
+   'syn',l.facts_text::jsonb->>'syntaxDecision','fun',l.facts_text::jsonb->>'functionalDecision','hdr',(SELECT f.application_facts_text::jsonb->>'headerDecision' FROM gridex_received_sources.prodat_application_facets f WHERE f.assessment_id=l.id),
+   'issue',lower(l.facts_text::jsonb#>>'{issues,0,code}')) FROM (SELECT v.* FROM gridex_received_sources.validation_assessments v WHERE v.source_message_id=${literal(message.id)} AND NOT EXISTS(SELECT FROM gridex_received_sources.validation_assessments c WHERE c.previous_assessment_id=v.id) ORDER BY v.id LIMIT 1) l`)
+  const ledgerLabel=`fg_z04_leaf${ledger.leaves}_s${ab(ledger.syn)}_f${ab(ledger.fun)}_h${ab(ledger.hdr)}_${ledger.issue??'noissue'}`
+  if(!supply.applied&&supply.reason==='supply_complete_own_application_and_function_required')throw Error(ledgerLabel.replace(/[^a-z0-9_]/g,'_').slice(0,80))
   throw Error(['fg_baseline_switch',switched.outcome,supply.applied?'applied_on_retry':supply.reason??'no_reason',...(supply.partition??[]).filter(entry=>entry.disposition!=='applied').slice(0,1).map(entry=>('reason' in entry?String(entry.reason):'held'))].join('_').replace(/[^a-z0-9_]/g,'_').slice(0,80))
  }
  await session!.finish()
