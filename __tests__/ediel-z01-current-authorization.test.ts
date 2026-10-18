@@ -22,7 +22,12 @@ vi.mock('@/lib/supabase/service', () => ({
       let inserted: Row[] = [], result: { data: Row[]; error: null } | null = null
       const matches = (row: Row) => filters.every(filter => {
         const actual = row[filter.column]
-        if (filter.kind === 'eq') return actual === filter.value
+        if (filter.kind === 'eq') {
+          if (actual && typeof actual === 'object' && typeof filter.value === 'string') {
+            try { return JSON.stringify(actual) === JSON.stringify(JSON.parse(filter.value)) } catch { return false }
+          }
+          return actual === filter.value
+        }
         if (filter.kind === 'neq') return actual !== filter.value
         if (filter.kind === 'is') return filter.value === null ? actual === null : actual === filter.value
         return Array.isArray(filter.value) && filter.value.includes(actual)
@@ -385,23 +390,35 @@ describe('[AT-Z01L-SUPPLIER] [AT-Z01LK-SUPPLIER] Z01 queue current authorization
     expect(state.tables.customer_info_requests[1]).toEqual(before)
   })
 
-  it('preserves supplier-only manual review without a GODR, environment, facility or outbound preparation', async () => {
+  it('blocks supplier-only mail without a verified supplier route and never prepares a GODR or Ediel outbound', async () => {
     Object.assign(state.tables.customer_info_requests[0], { request_type: 'binding_period', target_party_type: 'current_supplier',
       requested_data_categories: ['binding_period'] })
+    // A supplier contract scope grants permission to request terms, but an
+    // absent stable supplier identity must still stop the new manual mail path.
+    state.tables.companies = [{ id: ids.company, legal_name: 'Synthetic El AB', org_number: '559999-9984' }]
+    state.tables.customer_sites[0].current_supplier_id = null
+    state.tables.grid_owner_information_requests = []
+    state.tables.manual_email_outbox = []
     Object.assign(state.tables.authorization_scopes[0], { covers_grid_owner_data: false, covers_current_supplier_contract: true })
     Object.assign(state.tables.powers_of_attorney[0], { signed_scope_snapshot: ['current_supplier_contract'],
       scope_summary: { scopes: ['current_supplier_contract'] } })
     const result = await queue()
     expect(result.status).toBe('manual_review_required')
-    expect(result.blockerCode).toBeNull()
-    expect(state.tables.customer_info_requests[0].authorization_document_id).toBe(ids.document)
+    expect(result.blockerCode).toBe('supplier_contact_not_verified')
+    expect(state.tables.customer_info_requests[0]).toMatchObject({ authorization_document_id: ids.document,
+      status: 'manual_review_required', blocker_code: 'supplier_contact_not_verified',
+      grid_owner_data_request_id: null, outbound_request_id: null, ediel_message_id: null })
     expect(state.tables.customer_info_request_events).toEqual([expect.objectContaining({
       company_id: ids.company, customer_id: ids.customer, customer_info_request_id: ids.request,
-      event_type: 'manual_supplier_contract_check',
+      event_type: 'manual_supplier_contract_review_required',
     })])
     for (const port of [state.createGodr, state.prepare, state.environment, state.facility]) expect(port).not.toHaveBeenCalled()
     expect(state.queries.some(query => query.table === 'grid_owner_data_requests')).toBe(false)
     expect(state.tables.grid_owner_data_requests).toEqual([])
+    expect(state.tables.grid_owner_information_requests).toEqual([])
+    expect(state.tables.manual_email_outbox).toEqual([])
+    expect(state.tables.ediel_messages).toEqual([])
+    expect(state.tables.outbound_requests).toEqual([])
   })
 
   it('checks an optional contract reference identity while authority remains the document and signed scope', async () => {
