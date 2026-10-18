@@ -767,6 +767,37 @@ function inboundCustomerCommand(params: {
 
 }
 
+/** Pending cases can predate the incoming projection fix. Hold only obsolete
+ * ignored-field slots; retain manual choices in applicable fields and do not
+ * rewrite the review row while deciding whether its command is still safe. */
+function assertCurrentIgnoredBusinessProjection(inboundCase: EdielInboundCaseRow, source: EdielMessageRow | null): void {
+  if (source?.message_family !== 'PRODAT' || source.direction !== 'inbound' || !source.raw_payload?.trim()) return
+  if (source.id !== inboundCase.ediel_message_id || source.company_id !== inboundCase.company_id) throw new Error('TENANT_CONTEXT_MISMATCH')
+  const code = parseEdifactMessageFacts(source.raw_payload).messageCode
+  const current = parseInboundProdatBusinessData(source)
+  const slots = [
+    ['213', 'parsed_site', 'site', 'annualEnergyKwh'],
+    ['214', 'parsed_metering_point', 'meteringPoint', 'meterConstant'],
+    ['216', 'parsed_site', 'site', 'validityStartDate'],
+    ['217', 'parsed_metering_point', 'meteringPoint', 'meteringMethod'],
+    ['218', 'parsed_metering_point', 'meteringPoint', 'meterDigits'],
+    ['222', 'parsed_metering_point', 'meteringPoint', 'readingFrequency'],
+    ['224', 'parsed_metering_point', 'meteringPoint', 'meterNumber'],
+    ['242', 'parsed_production', 'production', 'productCode'],
+    ['254', 'parsed_production', 'production', 'settlementMethod'],
+    ['259', 'parsed_metering_point', 'meteringPoint', 'meterInterval'],
+    ['262', 'parsed_contract', 'contract', 'balanceResponsibleId'],
+    ['508', 'parsed_metering_point', 'meteringPoint', 'observationLength'],
+    ['508', 'parsed_metering_point', 'meteringPoint', 'observationLengthFormat'],
+  ] as const
+  for (const [field, cachedSection, currentSection, key] of slots) {
+    if (canonicalProdatBusinessProjectionFieldIsForbidden(code, field)
+      && !isDeepStrictEqual(inboundCase[cachedSection][key] ?? null, current[currentSection][key] ?? null)) {
+      throw new Error(`PRODAT_INBOUND_CASE_PROJECTION_OBSOLETE:${field}`)
+    }
+  }
+}
+
 export async function approveEdielInboundCase(params: {
   companyId?: string
   objectDecisions?: readonly EdielInboundObjectDecision[]
@@ -840,6 +871,8 @@ export async function approveEdielInboundCase(params: {
   if (!inboundCase.company_id) {
     throw new Error('Inbound-caset saknar company_id och kan inte appliceras säkert i SaaS-läge.')
   }
+
+  assertCurrentIgnoredBusinessProjection(inboundCase, sourceMessage)
 
   try {
     const mode = params.mode ?? (inboundCase.customer_id ? 'update_existing_customer' : 'create_new_customer')

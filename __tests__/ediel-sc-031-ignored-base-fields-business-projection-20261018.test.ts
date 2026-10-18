@@ -130,7 +130,68 @@ describe('SC031 actual canonical base-X fields stay out of incoming business dat
   expect(message.raw_payload).toBe(wire)
   expect(JSON.stringify(stored?.proposed_action.objects)).toContain('777')
  })
- it('supplier-received Z04L keeps a canonical unused216 out of actual staging and approval projections', async () => {
+ it('holds an explicit predecessor pending cache instead of applying ignored annual213 and reading222', async () => {
+  install(z01([...baseFields[0][1], ...baseFields[5][1]])); await stage()
+  const raw = message.raw_payload
+  // Explicitly model a pending row written by the predecessor projector.
+  // Its unchanged own source is current; these cached business values are old.
+  stored!.parsed_site.annualEnergyKwh = 777
+  stored!.parsed_metering_point.readingFrequency = 'D'
+  const pending = structuredClone(stored)
+  await expect(approveSingle()).rejects.toThrow('PRODAT_INBOUND_CASE_PROJECTION_OBSOLETE')
+  expect(commands).toEqual([])
+  expect(stored).toEqual(pending)
+  expect(message.raw_payload).toBe(raw)
+ })
+ it('refuses a source in another company before using it to qualify the pending projection', async () => {
+  install(z01([...baseFields[0][1], ...baseFields[5][1]])); await stage()
+  message = {...message, company_id:FOREIGN}
+  const pending = structuredClone(stored)
+  await expect(approveSingle()).rejects.toThrow('TENANT_CONTEXT_MISMATCH')
+  expect(commands).toEqual([])
+  expect(stored).toEqual(pending)
+ })
+ it('refuses a different physical source id before qualifying the cached projection', async () => {
+  install(z01()); await stage(); const pending = structuredClone(stored)
+  ports.read.mockResolvedValueOnce({...message,id:FOREIGN})
+  await expect(approveSingle()).rejects.toThrow('TENANT_CONTEXT_MISMATCH')
+  expect(commands).toEqual([]); expect(stored).toEqual(pending)
+ })
+ it('keeps an optional annual manual choice in an incoming Z03 pending row', async () => {
+  const base = structuralOwnerSource('Z04')
+  const wire = base.raw_payload!.replace('BGM+Z04','BGM+Z03').replace('NAD+UD', "RFF+ANJ:AGREEMENT'NAD+UD").replace(/UNT\+(\d+)\+/, (_all,count:string)=>`UNT+${Number(count)+1}+`)
+  install({...base,company_id:COMPANY,message_code:'Z03',raw_payload:wire})
+  expect(canonicalProdat26AFieldRules('Z03').find(r=>r.fieldNumber==='213')?.requirement).toBe('optional')
+  const decision = resolveCanonicalRuntimeDecision(message)
+  expect([decision.syntaxDecision,decision.applicationDecision],JSON.stringify(decision.issues)).toEqual(['accepted','accepted'])
+  await stage(); stored!.parsed_site.annualEnergyKwh = 654
+  await approveSingle()
+  expect(commands[0].site?.annual_consumption_kwh).toBe(654)
+ })
+ it('retains an explicitly no-wire legacy pending projection during approval', async () => {
+  install({...source('', 'Z01'),company_id:COMPANY,raw_payload:null,
+    parsed_payload:{meterPointId:'735123456789012345',annualEnergy:'456',readingFrequency:'D',customerName:'Legacy customer'}})
+  await stage(); await approveSingle()
+  expect(commands[0]).toMatchObject({site:{annual_consumption_kwh:456},metering_point:{reading_frequency:'daily'}})
+ })
+ it('keeps applicable manual values and explicit selections, mode and review note during single approval', async () => {
+  install({...structuralOwnerSource('Z04'), company_id:COMPANY}); await stage()
+  // Both fields are R for this actual Z04. These manual review choices must
+  // survive even though they differ from the unchanged original values.
+  stored!.parsed_site.annualEnergyKwh = 321
+  stored!.parsed_metering_point.readingFrequency = 'M'
+  stored!.parsed_customer.fullName = 'Reviewed customer'
+  stored!.parsed_metering_point.meterConstant = 99
+  expect(canonicalProdat26AFieldRules('Z04').find(r=>r.fieldNumber==='214')?.requirement).toBe('dependent')
+  await approveEdielInboundCase({actorUserId:ACTOR, companyId:COMPANY, caseId:CASE,
+    mode:'update_existing_customer', selectedCustomerId:CUSTOMER, selectedSiteId:'selected-site', selectedMeteringPointId:'selected-point', note:'Reviewed note'})
+  expect(commands).toHaveLength(1)
+  expect(commands[0]).toMatchObject({existing_customer_id:CUSTOMER, existing_site_id:'selected-site', existing_metering_point_id:'selected-point', update_existing:true,
+    site:{annual_consumption_kwh:321}, metering_point:{reading_frequency:'monthly'}, customer:{full_name:'Reviewed customer'}})
+  expect(stored!.review_decision).toMatchObject({mode:'update_existing_customer',note:'Reviewed note'})
+  expect(stored!.parsed_metering_point.meterConstant).toBe(99)
+ })
+ it('supplier-received Z04L keeps a canonical unused216 out of its actual staging projection', async () => {
   // This is the same consumer invoked after the Z04/Z05 supply source owner
   // in inboundProcessing; finite IO supplies no native/legal/market authority.
   const baseline = {...structuralOwnerSource('Z04'), company_id:COMPANY}
@@ -142,6 +203,8 @@ describe('SC031 actual canonical base-X fields stay out of incoming business dat
   }
   expect(resolveCanonicalRuntimeDecision(extra).prodatIgnoredFields).toContainEqual(expect.objectContaining({fieldNumber:'216'}))
   install(baseline); await stage(); await approveSingle()
+  // Field216 has no direct graph-command mapping; this assertion proves
+  // staging isolation, while unchanged command data is only a control.
   const before = {site:structuredClone(stored!.parsed_site),command:structuredClone(commands[0].site)}
   install(extra); await stage(); await approveSingle()
   expect(stored!.parsed_site).toEqual(before.site)
