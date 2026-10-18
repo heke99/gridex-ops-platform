@@ -1,0 +1,72 @@
+{
+  "checked_at": "2026-10-18T23:18:38.181214+00:00",
+  "scope": "Targeted OPS supply-deadline deployment drift, fail-closed readiness and coordinated signed POA API completion",
+  "base": "63580ae0a84b97b3e44d46cc21bdc349b8c978fa",
+  "source_receipt": "eaf07cdf9ee3313a4ec60f5ec85fa18c22e36fe3",
+  "state": "SOURCE_TESTED_PENDING_INDEPENDENT_FINALS_AND_QUALIFIED_CARRIER",
+  "findings": {
+    "deadline_schema": "PGRST202; public RPC, latest private helper and cursor absent; underlying cause of partial installation unknown",
+    "false_readiness": "Runtime diagnostic omitted deadline prerequisites; website readiness omitted runtime and aggregate automation result",
+    "poa_api": "PR828 owns archive implementation; existing public Website/Customer/Partner projections omit the new evidence/retrieval contract. Coordinated supplement pending; no conflicting source edited"
+  },
+  "verification": {
+    "readiness_red": {
+      "passed": 1,
+      "failed": 3
+    },
+    "focused_vitest": {
+      "suites": 3,
+      "tests": 33,
+      "failed": 0,
+      "command": "vitest run __tests__/supply-deadline-readiness.test.ts __tests__/ediel-supply-market-consumers.test.ts __tests__/website-application-readiness-boundary.test.ts"
+    },
+    "mechanical_sql": {
+      "checks": 47,
+      "production_writes": 0,
+      "actual_sql": true,
+      "limits": "Declared external permission, regulated-ground and legacy-activation ports; not native/market/live qualification"
+    },
+    "sql_red": "An empty CLI-created forward reproduced the missing entrypoint assertion before implementation",
+    "harness_correction": "Subprocess capture returned an empty terminal receipt under Vitest; the same SQL verifier is now exported and directly awaited. All original assertions remain, with an explicit 47-check terminal result. Standalone execution also passed.",
+    "app_typecheck": "PASS tsc --noEmit --incremental false",
+    "test_typecheck": "PASS npm run typecheck:tests",
+    "scoped_lint": "PASS --max-warnings=0",
+    "mounted_website_api": {
+      "suites": 1,
+      "tests": 26,
+      "failed": 0
+    },
+    "api_documentation_gates": "PASS npm run api:docs",
+    "public_contract_legal_migration_check": "PASS",
+    "migration_integrity": "BLOCKED: new forward checksum must be registered by incumbent runtime-index owner; no manifest edited or gate weakened"
+  },
+  "live_read_only_preflight": {
+    "missing_required_base_columns": [],
+    "expected_runtime_columns": 67,
+    "cursor_columns_excluded_until_restore": 3,
+    "existing_guard_owners": "postgres",
+    "activation_definitions_preserved": true,
+    "public_activation_definition_sha256": "79dfb35c8d3f0160a68bf133ac86b8a5b96aa6724f6db919c8383374c4594bfc",
+    "private_activation_definition_sha256": "02496f136bfd2983d522045b11ebb5152833b857301cb05eb119a03f07959682"
+  },
+  "migration": {
+    "path": "supabase/migrations/20261018230141_restore_supply_deadline_runtime.sql",
+    "created_by": "Official Supabase CLI2.81.3 migration new, downloaded archive verified against official checksum; current2.121 help could not initialize read-only global home",
+    "sha256": "1fe01ab0e0a81535ba9333a7230b05c0530a49a4d468acdc72311acd6c6cbece",
+    "runtime_index_registration": "Incumbent AGENT1 intake pending",
+    "generated_outputs": "Incumbent qualified GEN/schema service intake pending",
+    "applied_to_production": false
+  },
+  "boundaries": [
+    "No existing POA writer, runtime-index or generated-output path modified",
+    "No new GEN/native/backend producer",
+    "No production DDL or business mutation",
+    "No duplicate signing/application/email",
+    "No main merge or whole-system completion claim"
+  ],
+  "coordination": {
+    "request": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6256270982",
+    "pr830_full_review_carriers": "https://github.com/heke99/gridex-ops-platform/pull/830#issuecomment-6256336535"
+  },
+  "next_action": "Finish source tests/types and independent final review; hand the exact source/checksum/preflight to existing qualified producer. Then complete the coordinated signed POA API/docs supplement and actual runtime postflight."
+}
