@@ -295,8 +295,7 @@ jobs:
               if phase!='terminal':
                   current_run=api('actions/runs/'+env['GITHUB_RUN_ID'])
                   need(current_run['id']==int(env['GITHUB_RUN_ID']) and current_run['head_branch']==BRANCH
-                      and current_run['event']=='pull_request' and (current_run['head_sha']==head
-                      or any(row.get('head',{}).get('sha')==head for row in current_run.get('pull_requests',[]))),'h_current_run_changed')
+                      and current_run['event']=='pull_request' and current_run['head_sha']==head,'h_current_run_changed')
                   began=instant(comment['created_at']);now=(instant(current_run['created_at']),current_run['id'])
                   need(now[0]>=began,'h_admission_after_run')
                   runs=history(api,'actions/workflows/'+WORKFLOW.rsplit('/',1)[1]+'/runs?branch='+urllib.parse.quote(BRANCH,safe='')+'&event=pull_request','workflow_runs')
@@ -304,7 +303,7 @@ jobs:
                   for run in runs:
                       before=(instant(run['created_at']),run['id'])
                       if before>=now or before[0]<began or run['head_branch']!=BRANCH: continue
-                      if run['head_sha']!=head and not any(row.get('head',{}).get('sha')==head for row in run.get('pull_requests',[])): continue
+                      if run['head_sha']!=head: continue
                       jobs=history(api,'actions/runs/'+str(run['id'])+'/jobs?filter=all','jobs')
                       need(not any(job['name']=='h05h08-native' and job.get('conclusion')!='skipped' for job in jobs),'h_appointment_already_consumed')
               frozen={'sourceHead':head,'sourceTree':tree,'sourceBase':base,'pr':number,'admissionCommentId':comment['id'],
