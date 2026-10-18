@@ -6,6 +6,9 @@ import {projectProdatRegisterValidation} from '@/lib/ediel/prodat/prodatRegister
 import {tokenizeEdifact,segmentComposite} from '@/lib/ediel/core/edifactTokenizer'
 import {normalizeEdifactMessageCode} from '@/lib/inbound-mail/edielEmailParser'
 import {readInboundAckSourceCorrelation} from '@/lib/ediel/ack/sourceCorrelation'
+import {resolveCanonicalEdielPolicy} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
+import {validateCanonicalAckGuide} from '@/lib/ediel/rulebook/ackGuidePolicy'
+import {canonicalMessageCode} from '@/lib/ediel/core/messageIdentity'
 import {singleMessage} from '@/lib/ediel/utilts/receivedStructuralSources'
 import type {ReceivedSourceScope} from '@/lib/ediel/utilts/durableSourceDiscovery'
 import type {SourceObjectScope} from './sourceOwnerWire'
@@ -26,9 +29,10 @@ export type StructuralReadset={
 
 /** Received physical CONTRL/APERAK share the same ledger and carry no
  * structure. Only exactly one message that passes the canonical physical ACK
- * reader (exact UNT/UNZ counts, profile, environment) and whose recorded code
- * is the intake code of those same bytes is outside this universe. This grants
- * no correlation or business authority; every other byte stays a global hold. */
+ * reader (exact UNT/UNZ counts, profile, environment), whose body has no issue
+ * under the national inbound ACK guide of the cutoff date, and whose recorded
+ * code is the intake code of those same bytes is outside this universe. This
+ * grants no correlation or business authority; every other byte stays a hold. */
 function receivedPhysicalAck(scope:ReceivedSourceScope,source:RawSource):boolean{
   const raw=source.rawPayload!,ack=singleMessage(raw,'CONTRL')??singleMessage(raw,'APERAK')
   if(!ack)return false
@@ -36,6 +40,10 @@ function receivedPhysicalAck(scope:ReceivedSourceScope,source:RawSource):boolean
   try{
     const physical=readInboundAckSourceCorrelation({id:source.sourceMessageId,environment:scope.environment,direction:'inbound',raw_payload:raw,message_family:family})
     if(physical.classification.family!==family)return false
+    const tokens=tokenizeEdifact(raw),unh=tokens.segments.find(segment=>segment.tag==='UNH')
+    const policy=resolveCanonicalEdielPolicy({family:family!,messageCode:canonicalMessageCode(family!,''),direction:'inbound',referenceDate:scope.cutoffAt.slice(0,10),
+      associationAssignedCode:family==='APERAK'?segmentComposite(unh,2,tokens.una)[4]??null:null})
+    if(validateCanonicalAckGuide({policy,rawPayload:raw,rawSegments:tokens.segments.map(segment=>segment.raw),una:tokens.una}).length)return false
   }catch{return false}
   return source.messageCode===normalizeEdifactMessageCode(family,bgm?segmentComposite(bgm,1,ack.una)[0]:null)
 }

@@ -13,13 +13,14 @@ import {evidenceHash} from '@/lib/ediel/utilts/durableSourceDiscovery'
 // the structural universe into a global hold; physically unqualified bytes must.
 const closure=closureFixture().wire
 const TOKENS={CONTRL:'CONTRL:2:2:UN:EDIEL2',APERAK:'APERAK:D:96A:UN:E2SE6A'} as const
-function ack(family:'CONTRL'|'APERAK',options:{environment?:'test'|'production';token?:string;unknown?:boolean;mutate?:(segment:string)=>string}={}){
+function ack(family:'CONTRL'|'APERAK',options:{environment?:'test'|'production';token?:string;unknown?:boolean;mutate?:(segment:string)=>string;extra?:string[]}={}){
   const source=closure.replace('BGM+Z05','BGM+Z09'),e=EdifactEnvelopeCodec.decode(source)
   let segments=family==='CONTRL'?renderContrl2Ediel2({source:{rawPayload:source},outcome:'positive'}).segments
     :renderAperakEdiel({source:{id:'00000000-0000-4000-8000-0000000000a1',messageFamily:'PRODAT',messageCode:'Z09',rawPayload:source},refs:{},externalReference:'EXT1',transactionReference:'TRN1',outcome:'positive'}).segments
   // Same uncorrelatable references as the native negative control.
   if(options.unknown)segments=segments.map(s=>s.startsWith('UCI+')?s.replace(/^(UCI\+)[^+]*/,'$1UNKNOWN'):s.startsWith('RFF+ACW:')?'RFF+ACW:UNKNOWN':s)
   if(options.mutate)segments=segments.map(options.mutate)
+  if(options.extra)segments=[...segments,...options.extra]
   return EdifactEnvelopeCodec.encode({sender:e.receiver!,receiver:e.sender!,senderQualifier:e.receiverQualifier,receiverQualifier:e.senderQualifier,senderSubAddress:e.receiverSubAddress,receiverSubAddress:e.senderSubAddress,
     applicationReference:e.applicationReference,acknowledgementRequest:false,environment:options.environment??'test',interchangeReference:'IREF1',
     messages:[{messageReference:'MREF1',messageTypeToken:options.token??TOKENS[family],businessSegments:segments}]})
@@ -72,4 +73,13 @@ it.each(['CONTRL','APERAK'] as const)('a PRODAT body relabelled as %s in UNH sta
   const code=intakeCode(disguised)
   expect(code).toBe('Z05')
   expect(read(disguised,code).unresolvedSources).toBe(true)
+})
+it.each(['CONTRL','APERAK'] as const)('a valid %s carrying an extra PRODAT body (BGM/LIN/CCI) stays a global hold under the national ACK guide',family=>{
+  // Correct UNT/UNZ counts and, for CONTRL, a syntactically valid UCI action 1:
+  // only the existing body policy separates this hybrid from a genuine ACK.
+  const prodatBody=closure.split("'").filter(segment=>/^(BGM|DTM|NAD|LIN|IDE|CCI|CAV|RFF)\+/.test(segment))
+  const hybrid=ack(family,{extra:prodatBody})
+  expect(hybrid).toContain('LIN+');expect(hybrid).toContain('CCI+')
+  if(family==='CONTRL')expect(hybrid).toMatch(/UCI\+[^']*\+1'/)
+  expect(read(hybrid,intakeCode(hybrid)).unresolvedSources).toBe(true)
 })
