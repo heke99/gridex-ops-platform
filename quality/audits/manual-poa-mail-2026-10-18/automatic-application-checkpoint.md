@@ -2,6 +2,28 @@
 
 Observation: 2026-10-18, arbetskopia `/workspace/gridex-ops-release-20261018`. Detta är ett lokalt överlämningsunderlag, inte en attest för produktionsdrift eller registergodkännande i Ediel-masterplanen.
 
+## Aktuell fortsättning: snabb och effektiv behandling
+
+2026-10-18 21:45 UTC: tidigare `d6031c6a`/tree `371a92e1` är historisk frysning. SQL-migrationens SHA256 är fortsatt `d92f7ab706eb6bac415929255f218d38aa5e8f287bcad1c57f7438b9c590fc54`. Ett senare bekräftat P1 i pollern återkallar applikationsgodkännandenas slutgiltighet tills den nya exakta källan granskats. Den installerade ImapFlow-klienten blockerar STORE inne i en aktiv FETCH-generator; faktisk protokollregression reproducerade felet och verifierar avslutad UID-hämtning före flaggning. Ingen dataförlust påstods i det ursprungliga felet: affärsbehandlingen hann slutföras före blockeringen.
+
+Root äger cron/config/admin-default och de här uppgiftsdokumenten. Facility-agenten äger avgränsat poller, två nya protokoll-/schemaläggningstester och två berörda retry-fixtures tills positiv handback. Commercial-agentens guard för betrodda tydliga nekanden är återlämnad (35/35 PASS): onödigt AI-anrop tas bort, positiva svar behåller samma kontroller. Atomic-agenten gör endast avgränsad läsgranskning av cursor-/leaseordning. Två slutgranskare är inte medförfattare.
+
+Nya minutscheman för manual inbound och outbox, en minuts default för ny adminbrevlåda samt 300 sekunders plattformsgräns är förberedda. Två aktiva verifierade produktionsbrevlådor ändrades genom en begränsad rutinmässig inställningsuppdatering från fem till en minut; readback bekräftar två rader på en minut. Inga kundfakta, behörigheter, hemligheter eller schemaobjekt ändrades. Det nya schemat börjar gälla först efter appens normala leverans.
+
+Pollerns pågående avgränsning är 150 sekunders mjuk budget, färsk claimkonfiguration, worker-/metadatafenced finish och beständig UIDVALIDITY-/kontonamnsbunden frontier. Nya mejl efter en beständigt sparad bootstrap ska läsas även om operatören hunnit markera dem lästa. Befintlig oläst backlog och sparade UID-återförsök hanteras; äldre redan läst historik backfillas inte automatiskt. Budgeten kan inte avbryta en pågående nätverks-/affärsoperation och är inget garanterat SLA.
+
+Historiskt kallt Vercelbygge `dpl_7eJpWhTYia7yA9xVmVkiYubCk5G9` på `d6031c6a` blev READY. Syntetiskt riktigt produktionsnyckelprov PASS: 2 752 ms, 672 input-/50 outputtokens, uppskattat 0,0000922 USD för den korta texten; ingen kunddata och inga verktyg. Den första stagingkörningen slutade ERROR/BUILD_EXCEEDED_MAXIMUM_TIME. Den lyckade körningen hade både tom byggcache och större maskin, så cache är inte ensam bevisad rotorsak. Lokal isolerad kall kompilering PASS, 190,21 sekunder, noll provider-/backendanrop. Readerprotokollet är oförändrat av den nya negativa snabbvägen; provet är inget Strato-/tenant-/marknads-E2E.
+
+`app.gridex.se` stannade på befintliga releasen `dpl_4259kuRFDYvh52vGwsc9dmHainL7`/main `8ccad787`. Vercel tilldelade trots skip-domain standardaliaset till staging; det återställdes med lyckat alias-set. Ingen slutlig promovering, remote migration, kanoniskt testintag eller riktigt fullmaktsutskick är utfört. Kvalificerad checksum-/schema-/typcarrier är fortfarande ett konkret externt leveransberoende.
+
+Författaren har nu positivt återlämnat samtliga poller-/testfiler och testproducentcustody: 102/102 riktade tester PASS, inklusive verklig ImapFlow över tre pollningar, samt testtypkontroll, lint och diffkontroll PASS. UID-återförsök använder kontonamnrymd/UIDVALIDITY/UID i stället för Message-ID. Terminal lästmarkering görs först efter beständig fencad metadatafinish och är best-effort inom återstående budget. En misslyckad flush lämnar källan oläst.
+
+Aktuell ordinarie main/produktion gick därefter vidare till `61b29f0cadd04b28f467abd68e2b7c528a7e7baa` (PR820, `dpl_B861UzkKbqcpQQJaeZCLhEX7kfgF` READY). Den integrerades konfliktfritt efter filhandback. Arvet omfattar 18 kvalificerade Ediel-/schema-/manifest-/nativebevisfiler och en tidigare daterad migration; ingen av poller-/ingestionruntimefilerna ändrades. Alla dessa upstreamfiler bevaras byteidentiskt mot main och deras native-/GEN-underlag återanvänds med denna uttryckliga källtillämpning, utan ny insamling eller egen regelcredit.
+
+Samlad färsk verifiering på integrerad main `61b29f0c`: 49 valda sviter, 48 PASS/1 avsiktligt opt-in-SKIP; 1 269 tester PASS/1 SKIP på 18,97 sekunder. App-TypeScript, test-TypeScript, riktad lint för nio ändrade TS-filer och diffkontroll PASS. Separat cron-/konfigurationskontroll 38/38 PASS. De 18 upstreamägda filerna är verifierat byteidentiska mot main. Migrationshashen är oförändrad.
+
+Exakt nästa åtgärd: frys ny head/tree/base och inhämta två oberoende affected-source-bindningar. Uppdatera sedan användargodkänd #766-handoff och fortsätt normal leverans med incumbent-carriern. Inget orphan-testmejl och ingen egen GEN-produktion.
+
 ## Användarmål och mandat
 
 Användaren kräver: ”detta ske automatiskt, det är varför vi bygger den” och ”kund och tenant får rätt uppgifter, kund börjar vi rätt tid också, kund får rätt anläggningsid”. Det tidigare mandatet omfattar fullmaktsbevis/verifikatsnummer, arkiv och tenant-/superadminåtkomst, ämnesrader och uppföljningar, API-dokumentation samt produktion: ”kör det i drift”.
@@ -51,7 +73,7 @@ Ingen summering nedan är en global acceptans för hela arbetskopian. Root och �
 
 ## Skill-routing och filcustody
 
-Avgränsad implementation använder lokal TDD och verifiering före färdigpåstående. Supabase-guiden gäller den befintliga DB-porten och tenantgränserna. React-kvalitetsguiden och installerad Next.js-dokumentation gäller adminvisningen; komponenten förblir serverrenderad, utan nya klientpaket, hooks, nätanrop eller HTML-injektion. Ingen allmän prestandaoptimering, supply-chain-förändring, UI-omdesign eller Ediel-regelproduktion görs i detta delpaket.
+Avgränsad implementation använder lokal TDD och verifiering före färdigpåstående. Supabase-guiden gäller den befintliga DB-porten och tenantgränserna. React-kvalitetsguiden och installerad Next.js-dokumentation gäller adminvisningen; komponenten förblir serverrenderad, utan nya klientpaket, hooks, nätanrop eller HTML-injektion. Den senare uttryckliga prestandauppgiften använder performance-optimization för verifierade poller-/AI-väntetider enligt aktuell fortsättning ovan. Ingen supply-chain-förändring, UI-omdesign eller Ediel-regelproduktion görs i detta delpaket.
 
 Facility-adapter och dess test, därefter de tre legacy-testsamlingarna och syntetiska verifieringshjälparen, har återlämnats till root. Även sista avgränsningen — `ManualMailAiReading.tsx`, `manual-mail-ai-reading-ui.test.ts`, `docs/manual-poa-mail-runbook.md` och denna checkpunkt — återlämnas efter ovanstående gates. Inget deluppdrag gör egen commit, produktionsmutation eller ändring av delat Ediel-minne.
 

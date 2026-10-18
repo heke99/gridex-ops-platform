@@ -103,10 +103,14 @@ vi.mock('@/lib/inbound-mail/manualInboundCorrelation', () => ({
 }))
 vi.mock('imapflow', () => ({
   ImapFlow: class {
+    get mailbox() { return { uidValidity: BigInt(1), uidNext: Math.max(0, ...io.imapMessages.map(message => Number(message.uid))) + 1 } }
     async connect() {}
     async getMailboxLock() { return { release() {} } }
     async logout() {}
-    async *fetch() { for (const message of io.imapMessages) yield message }
+    async search(query: { uid?: string }) {
+      return io.imapMessages.filter(message => !query.uid || Number(message.uid) >= Number(query.uid.split(':')[0])).map(message => message.uid)
+    }
+    async fetchOne(uid: string) { return io.imapMessages.find(message => String(message.uid) === uid) ?? false }
     async messageFlagsAdd(uid: number) { io.seen.push(uid) }
   },
 }))
@@ -270,11 +274,11 @@ describe('#7 poison messages are dead-lettered and Message-ID-less mail is dedup
     expect(io.seen).toEqual([7])
     const attempts = (io.tables.manual_communication_mailboxes[0].metadata as Row).message_attempts as Record<string, Row>
     const [key] = Object.keys(attempts)
-    expect(key).toMatch(/^sha256:[0-9a-f]{64}$/)
+    expect(key).toMatch(/^uid:[0-9a-f]{64}:1:7$/)
     expect(attempts[key]).toMatchObject({ attempts: 2, dead_lettered_at: expect.any(String) })
     // Message without Message-ID was stored once under the fallback key.
     expect(io.tables.manual_inbound_messages).toHaveLength(1)
-    expect(io.tables.manual_inbound_messages[0].provider_message_id).toBe(key)
+    expect(io.tables.manual_inbound_messages[0].provider_message_id).toMatch(/^sha256:[0-9a-f]{64}$/)
     errorSpy.mockRestore()
     delete process.env.MANUAL_INBOUND_MAX_ATTEMPTS_PER_MESSAGE
   })

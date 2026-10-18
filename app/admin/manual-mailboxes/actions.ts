@@ -139,7 +139,7 @@ export async function saveManualMailboxAction(formData: FormData): Promise<void>
       } else {
         const { error } = await supabaseService
           .from("manual_communication_mailboxes")
-          .insert({ ...row, created_by: userId });
+          .insert({ ...row, poll_interval_minutes: 1, created_by: userId });
         if (error) throw error;
       }
     }

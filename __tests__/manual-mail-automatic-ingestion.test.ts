@@ -1,4 +1,5 @@
 import { beforeEach, expect, it, vi } from 'vitest'
+import { createHash } from 'node:crypto'
 import { createFakeDb } from './helpers/poaMailFakeDb'
 
 type Row = Record<string, unknown>
@@ -27,6 +28,7 @@ vi.mock('@/lib/inbound-mail/manualInboundCorrelation', () => ({ resolveManualInb
 } }))
 
 import { ingestManualInboundEmail, type ManualInboundEmail } from '@/lib/inbound-mail/manualInboundIngestion'
+import { assessManualReply } from '@/lib/inbound-mail/manualReplyAssessment'
 const request = { id: 'request-a', company_id: 'tenant-a', customer_id: 'customer-a', customer_site_id: 'site-a', created_by: 'actor-a',
   request_type: 'current_supplier_contract_information_request', status: 'waiting_manual_response', metadata: {}, case_reference: 'GX-FIR-ABCDEF12' }
 const email = (bodyText: string, patch: Partial<ManualInboundEmail> = {}): ManualInboundEmail => ({
@@ -107,7 +109,65 @@ it('never lets an unsigned rejection pause the real request or trigger a paid re
   const result = await ingestManualInboundEmail(email('Vi nekar er fullmakt. BankID-signatur saknas.', { senderVerification: undefined }))
   expect(result.processingState).toBe('needs_review')
   expect(io.db.tables.grid_owner_information_requests[0]).toMatchObject({ status: 'waiting_manual_response', metadata: {} })
+  expect(fetcher).not.toHaveBeenCalled(); expect(io.apply).not.toHaveBeenCalled()
+})
+
+it.each([
+  ['Vi nekar er fullmakt. BankID-signatur saknas.', 'rejected'],
+  ['Fullmakten saknar verifikatsnummer. Återkom med komplett fullmakt.', 'completion_requested'],
+])('records the trusted deterministic counterpart hold without reserving or calling AI: %s', async (bodyText, outcome) => {
+  vi.stubEnv('MANUAL_MAIL_AI_ENABLED', '1'); vi.stubEnv('OPENAI_API_KEY', 'synthetic')
+  const fetcher = vi.fn(async () => { throw new Error('Unexpected paid reading before the already determined hold.') })
+  vi.stubGlobal('fetch', fetcher)
+  // The database transaction is an external port here; its guard behavior is
+  // exercised separately by the actual counterparty-hold SQL suite.
+  io.apply.mockResolvedValue({ data: { ok: true, held: true, customerId: 'customer-a', customerSiteId: 'site-a' }, error: null })
+  const result = await ingestManualInboundEmail(email(bodyText))
+  expect(result.processingState).toBe('needs_review')
   expect(fetcher).not.toHaveBeenCalled()
+  expect(io.db.tables.manual_inbound_messages[0].extracted_payload).not.toHaveProperty('ai_read_only')
+  expect(io.apply).toHaveBeenCalledExactlyOnceWith('gridex_hold_manual_counterparty_reply_v1', expect.objectContaining({
+    p_company_id: 'tenant-a', p_request_id: 'request-a', p_inbound_id: result.inboundId,
+    p_assessment: expect.objectContaining({ outcome }),
+  }))
+  expect(io.facility).not.toHaveBeenCalled(); expect(io.continuation).not.toHaveBeenCalled()
+})
+
+it('does not wait for an earlier AI reservation before recording an already determined trusted rejection', async () => {
+  vi.stubEnv('MANUAL_MAIL_AI_ENABLED', '1'); vi.stubEnv('OPENAI_API_KEY', 'synthetic')
+  const message = email('Vi nekar er fullmakt. BankID-signatur saknas.')
+  const sourceHash = createHash('sha256').update(message.bodyText!).digest('hex')
+  const attempt = { version: 1, attempt_id: 'pending-attempt', status: 'processing', mode: 'read_only', review_required: true,
+    source_hash: sourceHash, started_at: '2026-10-18T10:00:00Z',
+    context: { company_id: 'tenant-a', customer_id: 'customer-a', request_id: 'request-a' } }
+  io.db.tables.manual_inbound_messages.push({ id: 'pending-rejection', mailbox: message.mailbox, provider_message_id: message.providerMessageId,
+    from_email: message.fromEmail, subject: message.subject, body_text: message.bodyText, body_html: null, attachments: [],
+    company_id: 'tenant-a', customer_id: 'customer-a', customer_site_id: 'site-a', request_id: 'request-a',
+    resolution_status: 'matched', processing_state: 'matched', received_at: '2026-10-18T10:00:00Z',
+    extracted_payload: { sender_credible: true, sender_verification: message.senderVerification,
+      reply_assessment: assessManualReply(message.bodyText!, message.subject), mime_requires_review: false,
+      manual_reply_structure_requires_review: false, customer_identity_review_reasons: [],
+      manual_automation: { version: 1, sourceHash }, ai_read_only: attempt } })
+  const fetcher = vi.fn()
+  vi.stubGlobal('fetch', fetcher)
+  io.apply.mockResolvedValue({ data: { ok: true, held: true, customerId: 'customer-a', customerSiteId: 'site-a' }, error: null })
+  const result = await ingestManualInboundEmail(message)
+  expect(result.processingState).toBe('needs_review')
+  expect(io.apply).toHaveBeenCalledExactlyOnceWith('gridex_hold_manual_counterparty_reply_v1', expect.objectContaining({ p_inbound_id: 'pending-rejection' }))
+  expect(fetcher).not.toHaveBeenCalled()
+  expect((io.db.tables.manual_inbound_messages[0].extracted_payload as Row).ai_read_only).toEqual(attempt)
+})
+
+it('does not spend AI or record a counterpart hold when the authenticated rejection names another customer', async () => {
+  io.db.tables.customers = [{ id: 'customer-a', company_id: 'tenant-a', personal_number: '200001010001', org_number: null }]
+  vi.stubEnv('MANUAL_MAIL_AI_ENABLED', '1'); vi.stubEnv('OPENAI_API_KEY', 'synthetic')
+  const fetcher = vi.fn()
+  vi.stubGlobal('fetch', fetcher)
+  const result = await ingestManualInboundEmail(email('Personnummer: 200002020002\nVi nekar er fullmakt. BankID-signatur saknas.'))
+  expect(result.processingState).toBe('needs_review')
+  expect(fetcher).not.toHaveBeenCalled(); expect(io.apply).not.toHaveBeenCalled()
+  expect(io.db.tables.grid_owner_information_requests[0].metadata).toEqual({})
+  expect(io.db.tables.manual_inbound_messages[0].extracted_payload).toMatchObject({ customer_identity_review_reasons: ['customer_identity_mismatch'] })
 })
 
 it('ignores unsigned subject and thread correlation even when DKIM authenticates the body', async () => {

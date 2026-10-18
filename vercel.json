@@ -17,11 +17,11 @@
     },
     {
       "path": "/api/internal/manual-email/outbox/process",
-      "schedule": "3-58/5 * * * *"
+      "schedule": "* * * * *"
     },
     {
       "path": "/api/internal/manual-inbound/cron?environment=production",
-      "schedule": "4-59/5 * * * *"
+      "schedule": "* * * * *"
     },
     {
       "path": "/api/cron/pricing/spot-prices",

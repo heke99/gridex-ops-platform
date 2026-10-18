@@ -68,10 +68,14 @@ vi.mock('@/lib/customer-operations/manualFacilityResponseParser', () => ({
 }))
 vi.mock('@/lib/email/manualOperationsMailbox', () => ({ resolveManualMailboxSecret: () => 'fixture-password' }))
 vi.mock('imapflow', () => ({ ImapFlow: class {
+  get mailbox() { return { uidValidity: BigInt(1), uidNext: Math.max(0, ...io.messages.map(message => Number(message.uid))) + 1 } }
   async connect() {}
   async getMailboxLock() { return { release() {} } }
   async logout() {}
-  async *fetch() { for (const message of io.messages) yield message }
+  async search(query: { uid?: string }) {
+    return io.messages.filter(message => !query.uid || Number(message.uid) >= Number(query.uid.split(':')[0])).map(message => message.uid)
+  }
+  async fetchOne(uid: string) { return io.messages.find(message => String(message.uid) === uid) ?? false }
   async messageFlagsAdd(uid: number, flags: string[]) {
     if (io.flagFailures > 0) { io.flagFailures -= 1; throw new Error('transient_seen_failure') }
     io.flags.push({ uid, flags })

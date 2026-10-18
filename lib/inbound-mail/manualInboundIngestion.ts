@@ -521,10 +521,12 @@ export async function ingestManualInboundEmail(email: ManualInboundEmail): Promi
     .in('processing_state', ['received', 'normalized', 'matched'])
   if (extractionUpdate.error) throw extractionUpdate.error
 
-  let reading = matched && companyId && customerId && requestId
+  // A trusted deterministic rejection/completion already selects the hold
+  // branch below. Its result never depends on a paid reading or its recovery.
+  let reading = !counterpartyReply && matched && companyId && customerId && requestId
     ? await recordManualMailAiReading({ inboundId: raw.inboundId, companyId, customerId, requestId,
       senderCredible: verifiedSender && !sourceRequiresReview && correlation.senderCredible, authoredText }) : undefined
-  const aiRequired = matched && verifiedSender && !sourceRequiresReview && correlation.senderCredible && process.env.MANUAL_MAIL_AI_ENABLED === '1'
+  const aiRequired = !counterpartyReply && matched && verifiedSender && !sourceRequiresReview && correlation.senderCredible && process.env.MANUAL_MAIL_AI_ENABLED === '1'
   if (aiRequired && !reading && companyId && customerId && requestId) {
     const pending = await supabaseService.from('manual_inbound_messages').select('extracted_payload')
       .eq('id', raw.inboundId).eq('company_id', companyId).eq('customer_id', customerId).eq('request_id', requestId).maybeSingle()
