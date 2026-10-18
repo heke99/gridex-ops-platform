@@ -44,7 +44,7 @@ import type {EdielMessageRow} from '@/lib/ediel/types'
 type Subtype='L'|'LK'
 type Row=Record<string,unknown>
 type Fixture=NormalSwitchStageNativeFixture&{subtype:Subtype;originalZ03:EdielMessageRow;caseReference:string;
-  startAt:string;originalSeal:unknown;confirmation?:EdielMessageRow;periodId?:string;confirmed?:Row}
+  startAt:string;originalSeal:unknown;confirmation?:EdielMessageRow;periodId?:string;confirmed?:Row;invoiceBaseline?:Row}
 const password=randomUUID()+randomUUID(),cronSecret=randomUUID()+randomUUID()
 const fixtures:Fixture[]=[],valid={} as Record<Subtype,Fixture>,cancelled={} as Record<Subtype,Fixture>,expires={} as Record<Subtype,Fixture>,pending={} as Record<Subtype,Fixture>,invoiceePositive={} as Record<Subtype,Fixture>
 let decoy:Fixture,ordinaryDay:string
@@ -77,7 +77,7 @@ function originalSeal(f:Fixture){return sql(`SELECT jsonb_build_object(
   'method',(SELECT to_jsonb(b) FROM gridex_received_sources.switch_contract_request_bindings b WHERE company_id=${literal(f.companyId)} AND message_id=${literal(f.originalZ03.id)}));`)}
 const businessTables=['public.supplier_switch_requests','public.customers','public.customer_sites','public.metering_points','public.customer_contracts',
   'public.customer_supply_periods','public.metering_permissions','public.customer_cases','public.customer_application_workflows',
-  'public.customer_application_workflow_events','public.customer_operation_jobs','public.domain_events','public.invoices',
+  'public.customer_application_workflow_events','public.customer_operation_jobs','public.domain_events','public.customer_invoices',
   'gridex_received_sources.normal_switch_confirmations','gridex_received_sources.normal_supply_activations',
   'gridex_received_sources.supply_source_transitions','gridex_received_sources.supply_object_effect_receipts'] as const
 // Held source partitions are rejection receipts, not market writes. held()
@@ -109,11 +109,14 @@ function activationSnapshot(f:Fixture){return sql<Row>(`SELECT jsonb_build_objec
   'billing_basis',${f.periodId?`gridex_received_sources.billing_supply_basis_v1(${literal(f.companyId)},${literal(f.periodId)},${literal(f.startAt)}::timestamptz,${literal(f.startAt)}::timestamptz+interval '1 minute')`:'NULL'},
   'events',(SELECT coalesce(jsonb_agg(to_jsonb(e) ORDER BY id),'[]') FROM public.domain_events e WHERE company_id=${literal(f.companyId)}),
   'jobs',(SELECT coalesce(jsonb_agg(to_jsonb(j) ORDER BY id),'[]') FROM public.customer_operation_jobs j WHERE company_id=${literal(f.companyId)}),
-  'invoices',(SELECT coalesce(jsonb_agg(to_jsonb(i) ORDER BY id),'[]') FROM public.invoices i WHERE company_id=${literal(f.companyId)}));`)}
+  'invoices',(SELECT coalesce(jsonb_agg(to_jsonb(i) ORDER BY id),'[]') FROM public.customer_invoices i WHERE company_id=${literal(f.companyId)}));`)}
+// This chain qualifies eligibility without invoking invoice generation. Drafts
+// and sibling-customer invoices remain visible in the tenant-wide full snapshot.
+function requireNoInvoices(s:Row){assert.deepEqual(s.invoices,[],'no_invoice_creation_in_future_start_chain')}
 // Actual cron also runs legitimate operational workers. Preserve full snapshots
 // as evidence, but replay must retain market facts and activation ID sets; it need
 // not freeze the status of an already-created notification job forever.
-function marketFacts(s:Row){return {switch:s.switch&&{id:(s.switch as Row).id,status:(s.switch as Row).status,
+function marketFacts(s:Row){requireNoInvoices(s);return {switch:s.switch&&{id:(s.switch as Row).id,status:(s.switch as Row).status,
   inbound:(s.switch as Row).inbound_z04_message_id,outbound:(s.switch as Row).outbound_z03_message_id},
   graph:s.graph,periods:s.periods,confirmations:s.confirmations,activations:s.activations,billing_basis:s.billing_basis,
   activationEvents:(s.events as Row[]).filter(x=>String(x.idempotency_key).startsWith('ediel-normal-activation:')),
@@ -266,6 +269,7 @@ async function latePhysicalAck(f:Fixture,family:'CONTRL'|'APERAK'){
     .toMatchObject({kind:'exact_receipt',sourceMessageId:f.originalZ03.id})
 }
 async function confirm(f:Fixture,raw=wire(f)){
+  f.invoiceBaseline=activationSnapshot(f);requireNoInvoices(f.invoiceBaseline)
   expect((await getEdielMessageById(f.originalZ03.id))?.aperak_status).toBe('pending')
   const {message}=await receive(f,raw,f.subtype);expect(message).not.toBeNull()
   f.confirmation=message!;await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:message!.id})
@@ -273,7 +277,7 @@ async function confirm(f:Fixture,raw=wire(f)){
   expect(own[0]).toMatchObject({company_id:f.companyId,customer_id:f.customerId,metering_point_id:f.pointId,source_switch_request_id:f.switchId,
     source_message_id:message!.id,status:'confirmed_by_grid_owner',start_date:f.requestedStartDate})
   expect(Date.parse(String(own[0].market_start_at))).toBe(Date.parse(f.startAt));f.periodId=String(own[0].id)
-  const before=activationSnapshot(f);expect(before.activations).toEqual([]);expect(before.billing_basis).toBeNull()
+  const before=activationSnapshot(f);requireNoInvoices(before);expect(before.activations).toEqual([]);expect(before.billing_basis).toBeNull()
   requireProspectiveContract(before)
   const immutable=sourceCustody(f,message!)
   await sendAcks(f,message!)
@@ -412,6 +416,7 @@ async function atStart(subtype:Subtype){
   const f=valid[subtype],name=`Z04-${subtype}-START-AND-REPLAY`;await phase(f,'at-or-after',name)
   const decoyBefore=activationSnapshot(decoy),cancelBefore=activationSnapshot(cancelled[subtype]),expireBefore=activationSnapshot(expires[subtype])
   const run=await cron(f,'at-or-after'),at=activationSnapshot(f),[p]=periods(f)
+  requireNoInvoices(at)
   expect(p).toMatchObject({id:f.periodId,status:'active',actual_start_date:f.requestedStartDate,source_message_id:f.confirmation!.id,source_switch_request_id:f.switchId})
   expect(at.activations).toEqual([expect.objectContaining({period_id:f.periodId,company_id:f.companyId,source_message_id:f.confirmation!.id,
     actor_user_id:f.actorUserId,resulting_period:expect.objectContaining({id:f.periodId,status:'active'})})])
@@ -459,6 +464,7 @@ describe.sequential('actual prospective normal supplier starts under one admitte
       pending[subtype]=await prospective('omission-positive-control-'+subtype,subtype,plusDays(ordinaryDay,30))
       invoiceePositive[subtype]=await prospective('invoicee-positive-premise-'+subtype,subtype,plusDays(ordinaryDay,30))
     }
+    for(const own of fixtures)requireNoInvoices(activationSnapshot(own))
   })
   it('Z04-T0-PROSPECTIVE-L-LK-ORIGINALS',async()=>{
     await confirm(decoy)
@@ -466,7 +472,7 @@ describe.sequential('actual prospective normal supplier starts under one admitte
     for(const f of [...Object.values(valid),...Object.values(cancelled),...Object.values(expires)])await confirm(f)
     for(const f of Object.values(invoiceePositive))await confirm(f,withInvoicee(wire(f)))
     expect(business(decoy)).toEqual(decoyBefore)
-    passed('Z04-T0-PROSPECTIVE-L-LK-ORIGINALS',{ordinaryDay,clock:readActualMarketClocks(),periods:fixtures.filter(f=>f.confirmation).map(f=>({subtype:f.subtype,original:f.originalZ03.id,source:f.confirmation!.id,period:f.periodId,start:f.startAt,state:activationSnapshot(f)}))})
+    passed('Z04-T0-PROSPECTIVE-L-LK-ORIGINALS',{ordinaryDay,clock:readActualMarketClocks(),periods:fixtures.filter(f=>f.confirmation).map(f=>({subtype:f.subtype,original:f.originalZ03.id,source:f.confirmation!.id,period:f.periodId,start:f.startAt,invoice_before_business:f.invoiceBaseline,state:activationSnapshot(f)}))})
   })
   it('Z04-T0-CORRELATION-R-D-REFUSALS',async()=>{
     const results=[]
@@ -499,6 +505,7 @@ describe.sequential('actual prospective normal supplier starts under one admitte
       // Healthy real own original remains confirmable AFTER all omissions: the
       // negatives did not pass only because a pre-existing period conflicted.
       await confirm(f,withInvoicee(wire(f)))
+      results.push({label:subtype+':healthy-own-source-after-refusals',invoice_before_business:f.invoiceBaseline,state:activationSnapshot(f)})
     }
     const f=valid.L,before=business(f),seal=originalSeal(f)
     for(const {patch,code,message} of [{patch:{raw_payload:f.originalZ03.raw_payload+' '},code:'23514',message:'immutable_ediel_payload_cannot_change'},
