@@ -186,7 +186,7 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow, object?
   const ignoredBusinessScalar = (fieldNumber: '261' | '306' | '212'): boolean => ignoredCanonicalField(fieldNumber)
   const ud = readProdatParty('UD', ignoredUd ? [] : sourceSegments, una)
   const it = readProdatParty('IT', ignoredIt ? [] : sourceSegments, una)
-  const balanceResponsible = readProdatParty('Z02', sourceSegments, una)
+  const balanceResponsible = readProdatParty('Z02', ignoredCanonicalField('262') ? [] : sourceSegments, una)
   const partyValue = (value: string | null, ...fallbackKeys: string[]): string | null => hasWireSource
     ? value : valueFromParsed(payload, ...fallbackKeys)
   const meterPointId = hasWireSource ? selectedLine?.meteringPointId ?? null
@@ -196,15 +196,15 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow, object?
   const transactionType =
     characteristic('223', 'reasonForTransaction', 'reason_for_transaction', 'transactionType')
   const meteringMethod =
-    characteristic('217', 'meteringMethod', 'metering_method')
+    ignoredCanonicalField('217') ? null : characteristic('217', 'meteringMethod', 'metering_method')
   const productCode =
-    characteristic('242', 'productCode', 'product_code')
+    ignoredCanonicalField('242') ? null : characteristic('242', 'productCode', 'product_code')
   const settlementMethod =
-    characteristic('254', 'settlementMethod', 'settlement_method')
+    ignoredCanonicalField('254') ? null : characteristic('254', 'settlementMethod', 'settlement_method')
   const installationStatus =
     ignoredBusinessScalar('306') ? null : characteristic('306', 'installationStatus', 'installation_status')
   const annualEnergy =
-    numberOrNull(hasWireSource ? selectedLine?.annualConsumption : valueFromParsed(payload, 'annualEnergy', 'estimatedAnnualEnergy', 'annual_consumption_kwh'))
+    ignoredCanonicalField('213') ? null : numberOrNull(hasWireSource ? selectedLine?.annualConsumption : valueFromParsed(payload, 'annualEnergy', 'estimatedAnnualEnergy', 'annual_consumption_kwh'))
   const referenceToMeteringPoint =
     ignoredReference ? null : reference('319', 'referenceToMeteringPoint', 'reference_to_metering_point')
 
@@ -245,7 +245,7 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow, object?
     country: partyValue(it.country, 'siteCountry', 'facilityCountry'),
     gridAreaCode: reference('260', 'gridAreaCode', 'networkAreaId'),
     annualEnergyKwh: annualEnergy,
-    validityStartDate: hasWireSource ? prodatDateValue('216', sourceSegments, una) : valueFromParsed(payload, 'validityStartDate'),
+    validityStartDate: ignoredCanonicalField('216') ? null : hasWireSource ? prodatDateValue('216', sourceSegments, una) : valueFromParsed(payload, 'validityStartDate'),
     contractStartDate: contractStart,
   }
 
@@ -253,18 +253,18 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow, object?
     meterPointId,
     identityAgency: selectedLine?.identityAgency ?? null,
     registers: objects[0]?.registers ?? [],
-    observationLength: hasWireSource ? prodatDateValue('508', sourceSegments, una) : valueFromParsed(payload, 'observationLength'),
-    observationLengthFormat: hasWireSource ? prodatDateState('508', sourceSegments, una).format : valueFromParsed(payload, 'observationLengthFormat'),
+    observationLength: ignoredCanonicalField('508') ? null : hasWireSource ? prodatDateValue('508', sourceSegments, una) : valueFromParsed(payload, 'observationLength'),
+    observationLengthFormat: ignoredCanonicalField('508') ? null : hasWireSource ? prodatDateState('508', sourceSegments, una).format : valueFromParsed(payload, 'observationLengthFormat'),
     firstMeterReadingDate: ignoredBusinessScalar('212') ? null : hasWireSource ? prodatDateValue('212', sourceSegments, una) : valueFromParsed(payload, 'firstMeterReadingDate'),
     referenceToMeteringPoint,
     meteringMethod,
     meteringMethodLabel: edielCodeLabel('metering_method', meteringMethod),
-    meterNumber: reference('224', 'meterNumber'),
-    meterConstant: numberOrNull(hasWireSource ? prodatRegisterFieldValue('214',sourceSegments,una) : valueFromParsed(payload,'meterConstant')),
-    meterDigits: numberOrNull(hasWireSource ? prodatRegisterFieldValue('218',sourceSegments,una) : valueFromParsed(payload,'meterDigits')),
-    meterInterval: hasWireSource ? prodatRegisterFieldValue('259',sourceSegments,una) : valueFromParsed(payload,'meterInterval'),
+    meterNumber: ignoredCanonicalField('224') ? null : reference('224', 'meterNumber'),
+    meterConstant: ignoredCanonicalField('214') ? null : numberOrNull(hasWireSource ? prodatRegisterFieldValue('214',sourceSegments,una) : valueFromParsed(payload,'meterConstant')),
+    meterDigits: ignoredCanonicalField('218') ? null : numberOrNull(hasWireSource ? prodatRegisterFieldValue('218',sourceSegments,una) : valueFromParsed(payload,'meterDigits')),
+    meterInterval: ignoredCanonicalField('259') ? null : hasWireSource ? prodatRegisterFieldValue('259',sourceSegments,una) : valueFromParsed(payload,'meterInterval'),
     resolution: numberOrNull(valueFromParsed(payload, 'resolution')),
-    readingFrequency: characteristic('222', 'readingFrequency'),
+    readingFrequency: ignoredCanonicalField('222') ? null : characteristic('222', 'readingFrequency'),
     measurementType: messageCode === 'Z04' && productCode === 'L641Q' ? 'production' : 'consumption',
   }
 
