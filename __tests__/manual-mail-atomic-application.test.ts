@@ -610,8 +610,8 @@ describe('open commercial counterparty updates share the transport serialization
   it.each(['completed','cancelled','closed','resolved'])('also serializes an unresolved flag despite terminal status %s', async status => {
     await expect(openHoldLock({ status }, 'test_hold_writer')).rejects.toThrow(/permission denied.*customer_sites/)
   })
-  it.each([{ requestType: 'facility_lookup' }, { status: 'cancelled', reviewed: true }, { reviewed: true }])('does not require that extra site lock for an irrelevant or resolved hold (%j)', async patch => {
-    await expect(openHoldLock(patch, 'test_hold_writer')).resolves.toBeUndefined()
+  it.each([{ requestType: 'facility_lookup' }, { status: 'cancelled', reviewed: true }, { reviewed: true }])('skips the commercial site lock for irrelevant/resolved writes while retaining service-only provenance (%j)', async patch => {
+    await expect(openHoldLock(patch, 'test_hold_writer')).rejects.toThrow(/manual_mail_provenance_service_role_required/)
   })
 })
 
@@ -705,6 +705,7 @@ describe('server-owned mail provenance under actual table privileges and RLS', (
       create function public.gridex_user_can_manage_company(p_id uuid) returns boolean language sql stable as $$ select public.gridex_can_read_company(p_id) $$;
       grant usage on schema auth to authenticated,service_role;
       grant select,insert,update,delete on public.manual_inbound_messages,public.grid_owner_information_requests to authenticated;
+      grant select,update on public.customer_sites to authenticated;
       alter table public.manual_inbound_messages enable row level security;
       alter table public.grid_owner_information_requests enable row level security;
       create policy manual_inbound_messages_tenant_read on public.manual_inbound_messages for select using (auth.role()='service_role' or public.gridex_user_is_platform_admin() or (company_id is not null and public.gridex_can_read_company(company_id)));
@@ -721,6 +722,80 @@ describe('server-owned mail provenance under actual table privileges and RLS', (
       return fn(tx)
     })
   }
+  async function metadataOnlyHold() {
+    await denialSource(CONTACT, '2026-10-18T13:00:00Z')
+    expect(await hold(CONTACT)).toMatchObject({ ok: true, held: true })
+    expect((await row('grid_owner_information_requests')).parsed_payload).toEqual({})
+  }
+  it('cannot move a real metadata-only sibling hold to another valid same-customer site and reauthorize the old proof', async () => {
+    await apply()
+    await db.exec(`insert into public.customer_sites(id,company_id,customer_id,is_active,status,protected_identity,metadata,current_supplier_id) values ('${OTHER}','${CO}','${CUSTOMER}',true,'active',false,'{}','${SUPPLIER}');insert into public.grid_owner_information_requests select (jsonb_populate_record(null::public.grid_owner_information_requests,to_jsonb(r)||jsonb_build_object('id','${ACTOR}','status','waiting_manual_response','parsed_payload','{}'::jsonb,'metadata',jsonb_set(r.metadata,'{customer_info_request_id}','"${OTHER}"')))).* from public.grid_owner_information_requests r where id='${REQUEST}';insert into public.customer_info_requests select (jsonb_populate_record(null::public.customer_info_requests,to_jsonb(cir)||jsonb_build_object('id','${OTHER}','status','waiting_response','verified_payload',jsonb_set(cir.verified_payload,'{manual_supplier_request_id}','"${ACTOR}"')))).* from public.customer_info_requests cir where id='${CIR}';alter table public.customer_sites add constraint metadata_hold_site_owner_fixture unique(company_id,customer_id,id);alter table public.grid_owner_information_requests add constraint metadata_hold_scope_fixture foreign key(company_id,customer_id,customer_site_id) references public.customer_sites(company_id,customer_id,id) not valid`)
+    try {
+      await denialSource(CONTACT, '2026-10-18T13:00:00Z', ACTOR)
+      expect(await hold(CONTACT, ACTOR)).toMatchObject({ ok: true, held: true })
+      expect((await db.query<{ parsed_payload: unknown }>('select parsed_payload from public.grid_owner_information_requests where id=$1', [ACTOR])).rows[0].parsed_payload).toEqual({})
+      const site = (await db.query<{ metadata: { manual_supplier_terms: unknown } }>('select metadata from public.customer_sites where id=$1', [SITE])).rows[0]
+      const snapshot = (site.metadata as { manual_supplier_terms: unknown }).manual_supplier_terms
+      const proof = () => db.transaction(async tx => {
+        await tx.exec('set local role service_role')
+        return (await tx.query<{ value: boolean }>('select public.gridex_manual_supplier_terms_verified_v1($1,$2,$3,$4::jsonb) value', [CO, CUSTOMER, SITE, JSON.stringify(snapshot)])).rows[0].value
+      })
+      expect(await proof()).toBe(false)
+      await expect(asHuman(false, tx => tx.query('update public.grid_owner_information_requests set customer_site_id=$1 where id=$2', [OTHER, ACTOR]))).rejects.toThrow(/manual_mail_provenance_service_role_required/)
+      expect(await proof()).toBe(false)
+    } finally { await db.exec('alter table public.grid_owner_information_requests drop constraint metadata_hold_scope_fixture;alter table public.customer_sites drop constraint metadata_hold_site_owner_fixture') }
+  })
+  it.each([
+    `customer_id='${OTHER}'`, `request_type='facility_lookup'`, `poa_id='${OTHER}'`, "recipient_email='changed@supplier.example'", `grid_owner_id='${OTHER}'`, "channel='market'",
+    `metadata=jsonb_set(metadata,'{supplier_id}','"${OTHER}"')`, `metadata=jsonb_set(metadata,'{authorization_document_id}','"${OTHER}"')`,
+  ])('reserves real metadata-only hold identity and routing (%s)', async patch => {
+    await metadataOnlyHold()
+    const before = await snapshot()
+    await expect(asHuman(false, tx => tx.exec(`update public.grid_owner_information_requests set ${patch} where id='${REQUEST}'`))).rejects.toThrow(/manual_mail_provenance_service_role_required/)
+    expect(await snapshot()).toEqual(before)
+  })
+  it('reserves tenant ownership of a metadata-only hold even for an authenticated platform admin', async () => {
+    await metadataOnlyHold()
+    await expect(asHuman(true, tx => tx.exec(`update public.grid_owner_information_requests set company_id='${OTHER}' where id='${REQUEST}'`))).rejects.toThrow(/manual_mail_provenance_service_role_required/)
+  })
+  it('reserves deletion of a real metadata-only hold', async () => {
+    await metadataOnlyHold()
+    await expect(asHuman(false, tx => tx.exec(`delete from public.grid_owner_information_requests where id='${REQUEST}'`))).rejects.toThrow(/manual_mail_provenance_service_role_required/)
+  })
+  it.each([
+    "metadata=metadata-'counterparty_reply'", "metadata=jsonb_set(metadata,'{counterparty_reply,requires_review}','false')",
+    "metadata=jsonb_set(metadata,'{counterparty_reply}','null')", "metadata=jsonb_set(metadata,'{counterparty_reply}','{}')",
+    "received_payload=received_payload-'counterparty_reply'",
+  ])('reserves metadata-only hold source removal and manual false-clear (%s)', async patch => {
+    await metadataOnlyHold()
+    const before = await snapshot()
+    await expect(asHuman(false, tx => tx.exec(`update public.grid_owner_information_requests set ${patch} where id='${REQUEST}'`))).rejects.toThrow(/manual_mail_provenance_service_role_required/)
+    expect(await snapshot()).toEqual(before)
+  })
+  it('does not let a newer raw source bypass provenance through an authenticated metadata update', async () => {
+    await metadataOnlyHold()
+    await denialSource(DOCUMENT, '2026-10-18T14:00:00Z')
+    await expect(asHuman(false, tx => tx.exec(`update public.grid_owner_information_requests set metadata=jsonb_set(metadata,'{counterparty_reply,inbound_id}','"${DOCUMENT}"') where id='${REQUEST}'`))).rejects.toThrow(/manual_mail_provenance_service_role_required/)
+  })
+  it.each(['requires_review','inbound_id','sourceHash'])('reserves injection of machine counterparty provenance %s into a non-machine request', async key => {
+    await expect(asHuman(false, tx => tx.query("update public.grid_owner_information_requests set metadata=jsonb_set(metadata,'{counterparty_reply}',$1::jsonb) where id=$2", [JSON.stringify({ [key]: key === 'requires_review' ? true : key === 'inbound_id' ? CONTACT : HASH }), REQUEST]))).rejects.toThrow(/manual_mail_provenance_service_role_required/)
+  })
+  it('keeps ordinary top-level and manual review notes writable beside a protected hold', async () => {
+    await metadataOnlyHold()
+    await asHuman(false, tx => tx.exec(`update public.grid_owner_information_requests set parsed_payload='{"manual_note":"Kontrollera underlaget"}',metadata=metadata||'{"manual_note":"Granskning pågår"}' where id='${REQUEST}'`))
+    expect(await row('grid_owner_information_requests')).toMatchObject({ parsed_payload: { manual_note: 'Kontrollera underlaget' }, metadata: { manual_note: 'Granskning pågår', counterparty_reply: { requires_review: true, inbound_id: CONTACT } } })
+  })
+  it.each([null, {}, { manual_note: 'Granska motpartens meddelande.' }])('reserves the counterparty source namespace even for empty or non-machine-looking injection (%j)', async value => {
+    await expect(asHuman(false, tx => tx.query("update public.grid_owner_information_requests set metadata=jsonb_set(metadata,'{counterparty_reply}',$1::jsonb) where id=$2", [JSON.stringify(value), REQUEST]))).rejects.toThrow(/manual_mail_provenance_service_role_required/)
+  })
+  it('preserves the explicit server review path for real metadata-only holds', async () => {
+    await metadataOnlyHold()
+    await db.transaction(async tx => {
+      await tx.exec('set local role service_role')
+      await tx.exec(`update public.grid_owner_information_requests set metadata=jsonb_set(metadata,'{counterparty_reply}',(metadata->'counterparty_reply')||jsonb_build_object('requires_review',false,'reviewed_at',now(),'reviewed_by','${ACTOR}','resolution_note','Fullmakten har granskats.')) where id='${REQUEST}'`)
+    })
+    expect(await row('grid_owner_information_requests')).toMatchObject({ metadata: { counterparty_reply: { requires_review: false, inbound_id: CONTACT, reviewed_by: ACTOR } } })
+  })
   it('does not misclassify a normal tenant as able to update the inbound attestation', async () => {
     const before = await row('manual_inbound_messages')
     const changed = await asHuman(false, tx => tx.query(`update public.manual_inbound_messages set extracted_payload=jsonb_set(extracted_payload,'{sender_verification,status}','"verified"') where id='${INBOUND}' returning id`))

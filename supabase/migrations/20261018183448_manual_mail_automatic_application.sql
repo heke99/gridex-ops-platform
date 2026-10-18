@@ -809,7 +809,7 @@ declare
   before_row jsonb:=case when tg_op='INSERT' then '{}'::jsonb else to_jsonb(old) end;
   after_row jsonb:=case when tg_op='DELETE' then '{}'::jsonb else to_jsonb(new) end;
   before_payload jsonb; after_payload jsonb;
-  protected boolean; k text;
+  protected boolean; hold_protected boolean; k text;
 begin
   if current_user in ('service_role','postgres','supabase_admin') then
     if tg_op='DELETE' then return old; else return new; end if;
@@ -839,11 +839,20 @@ begin
     after_payload:=coalesce(after_row->'parsed_payload','{}'::jsonb);
     protected:=before_payload ?| array['applied','sourceHash','inbound_id','inboundId','fieldSources']
       or after_payload ?| array['applied','sourceHash','inbound_id','inboundId','fieldSources'];
-    if protected then
-      if tg_op='DELETE' or before_payload is distinct from after_payload then
+    -- A verified denial is retained in metadata even when no positive terms
+    -- were parsed. Reserve the whole source namespace, including null/empty
+    -- injection or removal; ordinary top-level/manual notes remain writable.
+    hold_protected:=coalesce(before_row->'metadata','{}'::jsonb) ? 'counterparty_reply'
+      or coalesce(after_row->'metadata','{}'::jsonb) ? 'counterparty_reply';
+    if protected and before_payload is distinct from after_payload then
+      raise exception using errcode='42501',message='manual_mail_provenance_service_role_required';
+    end if;
+    if protected or hold_protected then
+      if tg_op='DELETE' or before_row#>'{received_payload,counterparty_reply}' is distinct from after_row#>'{received_payload,counterparty_reply}' then
         raise exception using errcode='42501',message='manual_mail_provenance_service_role_required';
       end if;
-      foreach k in array array['id','company_id','customer_id','customer_site_id','request_type','poa_id','received_at'] loop
+      foreach k in array array['id','company_id','customer_id','customer_site_id','request_type','poa_id','received_at',
+        'grid_owner_id','recipient_email','recipient_contact_channel_id','channel','case_reference'] loop
         if before_row->k is distinct from after_row->k then
           raise exception using errcode='42501',message='manual_mail_provenance_service_role_required';
         end if;
