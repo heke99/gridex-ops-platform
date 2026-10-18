@@ -21,7 +21,8 @@ import {nativeSql as sql,literal,seedNormalSwitchNativeFixture,type NormalSwitch
 import {nationalRescissionNativeChain,nationalRescissionFixturePlan,type NationalRescissionFixturePlan} from './helpers/nationalRescissionNative'
 import {createBilateralProdatGroundNativeFixture} from './helpers/ediel-bilateral-prodat-profile-native-fixture'
 import {seedOriginalMailboxNative} from './helpers/originalMailboxNative'
-import {archiveBilateralProdatGround,reviewBilateralProdatGround,readBilateralProdatGroundArtifact} from '@/lib/ediel/production/bilateralProdatProfileIntake'
+import {archiveBilateralProdatGround,reviewBilateralProdatGround,readBilateralProdatGroundArtifact,readBilateralProdatGroundScope,readBilateralProdatGroundBytes} from '@/lib/ediel/production/bilateralProdatProfileIntake'
+import {EDIEL_ACK_DEADLINE_MINUTES} from '@/lib/ediel/specRegistry'
 import {readSupplyRescissionScope,archiveSupplyRescission,reviewSupplyRescission,readSupplyRescissionBytes,readSupplyRescissionArtifact} from '@/lib/ediel/production/supplyRescissionIntake'
 import {prepareAndQueueSupplyRescissionZ08} from '@/lib/ediel/flows/prodatSupplyRescission'
 import {createInboundEdielMessage} from '@/lib/inbound-mail/inboundStatusUpdater'
@@ -217,11 +218,48 @@ async function publicHStart(input:Pick<NormalSwitchFixtureInput,'bindingMonths'|
 function endBody(f:Ground,reason:'Z25'|'Z22',li:string,nationalEndPlan?:NationalRescissionFixturePlan):Parts[]{return [...parties(f),line('1',f.external,undefined,'9'),['DTM',['93',nationalEndPlan?.endWireMinute??'202610161330','203']],...characteristic('Z13',reason),['RFF',['LI',li]],['RFF',['Z05',f.gridAreaCode]],endUser(f),point(f),['NAD','Z02',[f.brpEdielId,'160','SVK']]]}
 async function hEndGround(input:Pick<NormalSwitchFixtureInput,'bindingMonths'|'billingAddress'>={}){
  const start=await publicHStart(input),f=await createBilateralProdatGroundNativeFixture(start,'own_end_h')
- const artifact=await archiveBilateralProdatGround({companyId:f.companyId,actorUserId:f.actorUserId,...f.signed()})
- const review=await reviewBilateralProdatGround({companyId:f.companyId,actorUserId:f.reviewer,artifactId:String(artifact.artifactId),sourceHash:String(artifact.sourceHash),scopeHash:String(artifact.scopeHash),decision:'approve',reason:'Independent synthetic H-end legal-original review; no external legal approval'})
- expect(review.status,JSON.stringify(review)).toBe('authorized')
+ const selector={environment:f.submission.environment,kind:f.submission.kind,rulePackId:f.submission.rulePackId,
+  bilateralAgreementId:f.submission.bilateralAgreementId,gridAreaCode:f.submission.gridAreaCode,validFrom:f.submission.validFrom,validTo:f.submission.validTo}
+ const current=await readBilateralProdatGroundScope({companyId:f.companyId,actorUserId:f.actorUserId,...selector})
+ expect(current).toMatchObject({status:'scoped',scope:f.scoped.scope,scopeHash:f.scoped.scopeHash})
+ expect(current.scope).toMatchObject({companyId:f.companyId,environment:'test',kind:'own_end_h',legalSenderId:f.sender,
+  legalReceiverId:f.receiver,gridArea:f.gridAreaCode,rulePackId:selector.rulePackId,bilateralAgreementId:f.agreement,agreementBinding:{source_reference:f.submission.source.reference}})
+ const contractHash=sql<string>(`SELECT to_jsonb(gridex_received_sources.production_contract_hash_v1(c)) FROM public.customer_contracts c
+  WHERE c.id=${literal(f.contractId)} AND c.company_id=${literal(f.companyId)} AND c.customer_id=${literal(f.customerId)} AND c.metering_point_id=${literal(f.pointId)}`)
+ expect(contractHash).toMatch(/^[a-f0-9]{64}$/)
  const li='H-END-'+randomUUID().slice(0,8)
- return{...f,startSourceId:start.startSourceId,periodId:start.periodId,li,profileVersionId:String(review.profileVersionId),artifactId:String(artifact.artifactId)}
+ expect(EDIEL_ACK_DEADLINE_MINUTES).toBe(30)
+ // These clauses describe only this already selected synthetic own_end_h
+ // process. The signed RPC scope owns its actual parties/grammar/validity;
+ // the separately declared operation is not claimed to be hashed by that RPC.
+ const ownEndAgreement={format:'SYNTHETIC_CONTROLLED_H_OWN_END_AGREEMENT_V1',boundary:'Declared fixture issuer mechanism only; no real bilateral or legal acceptance',scope:current.scope,
+  ownOperation:{supplyPeriodId:start.periodId,supplyStartSourceMessageId:start.startSourceId,customerId:f.customerId,siteId:f.siteId,
+   pointId:f.pointId,objectId:f.external,identityAgency:'9',contractId:f.contractId,contractHash,lineItemReference:li},
+  source:{applicationReference:'23-DDQ-PRODAT',direction:'inbound',code:'Z05',reason:'Z25',requiredPhysicalReplies:['CONTRL','APERAK'],
+   fieldProfile:'scope.sourceGrammar',requiredPhysicalFieldsInThisFixture:[...h05Required]},
+  watches:{incoming:{minutes:30,anchor:'retained_message_received_at'},businessDeadline:null,nationalSubstitutions:[]},
+  transition:{process:'own_end_h',effectiveAt:'2026-10-16T12:30:00Z',wireEnd:['93','202610161330','203'],timeBase:'fixed UTC+1',
+   effect:'End only the same own period at its validated DTM93; retain the immutable source, start and history',
+   commercial:'Existing contract termination and final-metering/final-invoice work; binding source permits only human break-fee review, never an automatic charge'}}
+ const bytes=Buffer.from(JSON.stringify(ownEndAgreement,null,2),'utf8'),sourceHash=hash(bytes),version='explicit-controlled-h05-own-end-v1',sourceReference=f.submission.source.reference
+ const keyId=sql<string>(`SELECT to_jsonb(issuer_key_id) FROM gridex_bilateral_prodat.issuer_representations WHERE id=${literal(f.representationId)} AND company_id=${literal(f.companyId)}`)
+ const payload=Buffer.from(JSON.stringify({format:'ediel_bilateral_prodat_ground_receipt_v1',issuerCode:'SYNTHETIC',receiptId:randomUUID(),companyId:f.companyId,environment:'test',
+  scope:current.scope,sourceHash,sourceReference,sourceVersion:version,legalDecisionReference:'SYNTHETIC DECLARED MECHANISM ONLY',issuedAt:new Date(Date.now()-1000).toISOString(),expiresAt:'2100-01-01T00:00:00Z'}))
+ // Reuse only the configured synthetic verifier from the existing fixture.
+ // New source bytes/hash/receipt are signed; no generic PDF signature is reused.
+ const artifact=await archiveBilateralProdatGround({companyId:f.companyId,actorUserId:f.actorUserId,...selector,
+  source:{bytesBase64:bytes.toString('base64'),mimeType:'application/json',reference:sourceReference,version},
+  issuerReceipt:{keyId,representationId:f.representationId,payloadBase64:payload.toString('base64'),signatureHex:createHmac('sha256',Buffer.from('SYNTHETIC bilateral issuer verifier mechanism fixture only')).update(payload).digest('hex')}})
+ expect(artifact).toMatchObject({status:'archived',sourceHash,scopeHash:current.scopeHash})
+ const review=await reviewBilateralProdatGround({companyId:f.companyId,actorUserId:f.reviewer,artifactId:String(artifact.artifactId),sourceHash:String(artifact.sourceHash),scopeHash:String(artifact.scopeHash),decision:'approve',reason:'Independent synthetic H-end legal-original review adopts these explicit own_end_h clauses; no external legal approval'})
+ expect(review.status,JSON.stringify(review)).toBe('authorized')
+ const artifactScope={companyId:f.companyId,actorUserId:f.reviewer,artifactId:String(artifact.artifactId)},retained=await readBilateralProdatGroundBytes(artifactScope)
+ expect(retained).toMatchObject({mimeType:'application/json',sourceHash})
+ expect(Buffer.from(retained.bytes)).toEqual(bytes);expect(hash(Buffer.from(retained.bytes))).toBe(sourceHash)
+ expect(retained.bytes.byteLength).toBe(bytes.byteLength);expect(JSON.parse(Buffer.from(retained.bytes).toString('utf8'))).toEqual(ownEndAgreement)
+ expect(await readBilateralProdatGroundArtifact(artifactScope)).toMatchObject({status:'authorized',profileVersionId:review.profileVersionId,sourceHash,
+  scopeHash:current.scopeHash,scope:current.scope,sourceReference,sourceVersion:version,byteLength:bytes.byteLength,missing:[]})
+ return{...f,bytes,sourceHash,ownEndAgreement,startSourceId:start.startSourceId,periodId:start.periodId,li,profileVersionId:String(review.profileVersionId),artifactId:String(artifact.artifactId)}
 }
 
 // Full durable rows: no counters can hide rewritten history or foreign effects.
@@ -400,6 +438,21 @@ it('public H05 reception commits the same supply/history and only its actual com
  const f=await hEndGround(),m=await accepted(f,wire(f,'Z05',endBody(f,'Z25',f.li))),before=graph(),inputBefore=custody(m.sourceId),startBefore=custody(f.startSourceId),started=clock()
  await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:m.sourceId})
  const after=graph();commercialEnd(before,after,f,m.sourceId,started,clock())
+ const physical=tokenizeEdifact(m.wire),end=physical.segments.filter(segment=>segment.tag==='DTM'&&segmentComposite(segment,1,physical.una)[0]==='93')
+ expect(segmentComposite(physical.segments.find(segment=>segment.tag==='UNB'),7,physical.una)[0]).toBe(f.ownEndAgreement.source.applicationReference)
+ expect(segmentComposite(physical.segments.find(segment=>segment.tag==='BGM'),1,physical.una)[0]).toBe(f.ownEndAgreement.source.code)
+ expect(physical.segments.filter(segment=>segment.tag==='CAV').map(segment=>segmentComposite(segment,1,physical.una)[0])).toContain(f.ownEndAgreement.source.reason)
+ expect(end).toHaveLength(1);expect(segmentComposite(end[0],1,physical.una)).toEqual(f.ownEndAgreement.transition.wireEnd)
+ expect(Date.parse(String(after.periods.find(row=>row.id===f.periodId)!.market_end_at))).toBe(Date.parse(f.ownEndAgreement.transition.effectiveAt))
+ const ackTimers=()=>sql<Array<{timer_type:string;due_at:string;payload:{receivedAt:string;anchorKind:string;anchorCertainty:string}}>>(`SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY timer_type),'[]') FROM public.ediel_sla_timers t WHERE t.company_id=${literal(f.companyId)} AND t.ediel_message_id=${literal(m.sourceId)}`)
+ const timers=ackTimers(),receivedAt=Date.parse(m.source.message_received_at!)
+ expect(Number.isFinite(receivedAt)).toBe(true)
+ expect(timers.map(timer=>timer.timer_type).sort()).toEqual(['aperak_due','contrl_due'])
+ for(const timer of timers){
+  expect(timer.payload).toMatchObject({anchorKind:'local_ingress_at',anchorCertainty:'observed'})
+  expect(Date.parse(timer.payload.receivedAt)).toBe(receivedAt)
+  expect(Date.parse(timer.due_at)).toBe(receivedAt+f.ownEndAgreement.watches.incoming.minutes*60000)
+ }
  const receipt=sql<Row>(`SELECT to_jsonb(x) FROM gridex_bilateral_prodat.supply_effect_receipts x WHERE source_message_id=${literal(m.sourceId)}`)
  expect(receipt).toMatchObject({company_id:f.companyId,source_message_id:m.sourceId,environment:'test',payload_hash:hash(m.wire)})
  const grammarHash=sql<string>(`SELECT to_jsonb(a.scope->>'sourceGrammarHash') FROM gridex_bilateral_prodat.origins o JOIN gridex_bilateral_prodat.artifacts a ON a.id=o.artifact_id AND a.company_id=o.company_id WHERE o.ground_id=${literal(f.profileVersionId)} AND o.company_id=${literal(f.companyId)}`)
@@ -410,11 +463,19 @@ it('public H05 reception commits the same supply/history and only its actual com
  expect(transition.resulting_states).toEqual([after.periods.find(x=>x.id===f.periodId)])
  expect(custody(m.sourceId)).toEqual(inputBefore);expect(custody(f.startSourceId)).toEqual(startBefore)
  await sendOwnAcks(f,m,f.li)
+ const sentAcks=sql<EdielMessageRow[]>(`SELECT jsonb_agg(to_jsonb(a) ORDER BY message_family) FROM public.ediel_messages a WHERE a.company_id=${literal(f.companyId)} AND a.related_message_id=${literal(m.sourceId)} AND a.direction='outbound'`)
+ expect(sentAcks.map(ack=>ack.message_family).sort()).toEqual([...f.ownEndAgreement.source.requiredPhysicalReplies].sort())
+ for(const ack of sentAcks){
+  const timer=timers.find(row=>row.timer_type===(ack.message_family==='CONTRL'?'contrl_due':'aperak_due'))!,sentAt=Date.parse(ack.message_sent_at!)
+  expect(Number.isFinite(sentAt)).toBe(true);expect(sentAt).toBeGreaterThanOrEqual(receivedAt);expect(sentAt).toBeLessThanOrEqual(Date.parse(timer.due_at))
+ }
  expect(sql(`SELECT to_jsonb(count(*)) FROM public.customer_cases WHERE company_id=${literal(f.companyId)} AND reason_category='final_metering_and_billing' AND metadata->>'source_ediel_message_id'=${literal(m.sourceId)}`)).toBe(1)
  expect(sql(`SELECT to_jsonb(count(*)) FROM public.audit_logs WHERE company_id=${literal(f.companyId)} AND entity_id=${literal(m.sourceId)} AND action='ediel.bilateral_profile.supply_applied'`)).toBe(1)
  const original=custody(m.sourceId),saved=effects(f.companyId),protectedSaved=protectedOriginals(),calls=provider.mock.calls.length
+ const savedTimers=ackTimers()
  await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:m.sourceId})
  expect(graph()).toEqual(after);expect(effects(f.companyId)).toEqual(saved);expect(protectedOriginals()).toEqual(protectedSaved);expect(custody(m.sourceId)).toEqual(original);expect(provider).toHaveBeenCalledTimes(calls)
+ expect(ackTimers()).toEqual(savedTimers)
 },120000)
 
 it('public H05 signed binding source opens only human break-fee review and final-invoice work; replay never charges',async()=>{
