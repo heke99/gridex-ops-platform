@@ -1,3 +1,4 @@
+// masterplan: AT-Z09F-SUPPLIER, AT-Z09G-SUPPLIER
 // A metering-method Z09F/G original has no requested-change origin. The SQL
 // requested-change guard only proves that the method owner binds the message;
 // it receives no sender identity. The actual current sender (not the stored

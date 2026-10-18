@@ -60,7 +60,7 @@ type ProfileInput={
  subtype:'F'|'G';companyId:string;eventId:string;contractId:string;supplyPeriodId:string;
  baselineSourceMessageId:string;preferredRouteId:string;requestActor:Actor;reviewActor:Actor;
  declaration:ArtifactPin;event:ArtifactPin;
- expected:{customerId:string;siteId:string;meteringPointId:string;pointId:string;identityAgency:'9';legalSenderId:string;legalReceiverId:string;gridArea:string;brpEdielId:string;requestedStartDate:string;baselineMarketMinute:string;effectiveMarketMinute:string;baselineMethod:string;confirmedMethod:'Z04'|'Z02'};
+ expected:{customerId:string;siteId:string;meteringPointId:string;pointId:string;identityAgency:'9';legalSenderId:string;legalReceiverId:string;gridArea:string;brpEdielId:string;requestedStartDate:string;baselineMarketMinute:string;effectiveMarketMinute:string;baselineMethod:string;confirmedMethod:'Z04'|'Z01'};
 }
 type BackendIdentity={engineSchemaVersion:string;migrationVersion:string;functionDefinitionsSha256:string}
 export type CompositionInputs={schema:'ediel_z09fg_composition_inputs_v1';apiUrl:'http://127.0.0.1:54321';backend:BackendIdentity;profiles:[ProfileInput,ProfileInput]}
@@ -96,7 +96,7 @@ function inputs(subtype:'F'|'G'){
  requireInput(p.event.sourceId===p.eventId,'event_artifact_target_required')
  requireInput(p.expected.identityAgency==='9'&&/^\d{18}$/.test(p.expected.pointId),'physical_point_agency_required')
  requireInput(prodatMarketMinuteToUtc(p.expected.baselineMarketMinute)&&prodatMarketMinuteToUtc(p.expected.effectiveMarketMinute)&&p.expected.baselineMarketMinute<p.expected.effectiveMarketMinute,'ordered_exact_market_minutes_required')
- requireInput(p.expected.confirmedMethod===(subtype==='F'?'Z04':'Z02'),'F_Z04_G_independent_Z02_required')
+ requireInput(p.expected.confirmedMethod===(subtype==='F'?'Z04':'Z01'),'F_Z04_G_independent_Z01_required')
  for(const a of [p.requestActor,p.reviewActor])requireInput(typeof a.email==='string'&&a.email.endsWith('@example.invalid')&&typeof a.password==='string'&&a.password.length>0,'disposable_GoTrue_credentials_required')
  for(const a of [p.declaration,p.event])for(const key of ['sourceHash','agreementHash','claimsHash'] as const)requireInput(/^[0-9a-f]{64}$/.test(a[key]),`artifact_${key}_required`)
  requireInput(data.backend&&data.backend.engineSchemaVersion&&data.backend.migrationVersion&&/^[0-9a-f]{64}$/.test(data.backend.functionDefinitionsSha256),'installed_backend_pin_required')
@@ -181,18 +181,23 @@ export function externalAck(original:EdielMessageRow,family:'CONTRL'|'APERAK',de
  if(defect==='unknown')segments=segments.map(s=>s.startsWith('UCI+')?s.replace(/^(UCI\+)[^+]*/,'$1UNKNOWN'):s.startsWith('RFF+ACW:')?'RFF+ACW:UNKNOWN':s)
  return EdifactEnvelopeCodec.encode({sender:e.receiver!,receiver:e.sender!,senderQualifier:e.receiverQualifier,receiverQualifier:e.senderQualifier,senderSubAddress:e.receiverSubAddress,receiverSubAddress:e.senderSubAddress,applicationReference:e.applicationReference,acknowledgementRequest:false,environment:'test',interchangeReference:randomUUID().replaceAll('-','').slice(0,14),messages:[{messageReference:randomUUID().replaceAll('-','').slice(0,14),messageTypeToken:family==='CONTRL'?'CONTRL:2:2:UN:EDIEL2':'APERAK:D:96A:UN:E2SE6A',businessSegments:segments}]})
 }
-export function independentStructureWire(scope:Z06fNativeWireScope,subtype:'F'|'G',minute:string,confirmedMethod:'Z04'|'Z02'){
+// P26.A p20,68-69: a product admits only its own measuring/settlement pair.
+// The grid owner's independent G decision Z01 carries L917/Z31; F keeps L639Q/Z32.
+const CONFIRMED_PRODUCT={Z04:{product:'L639Q',settlement:'Z32'},Z01:{product:'L917',settlement:'Z31'}} as const
+export function independentStructureWire(scope:Z06fNativeWireScope,subtype:'F'|'G',minute:string,confirmedMethod:'Z04'|'Z01'){
  requireInput(prodatMarketMinuteToUtc(minute),'exact_Z06_market_minute_required')
  const source=EdifactEnvelopeCodec.decode(z06fNativeStructureWire(scope,subtype,randomUUID().replaceAll('-','').slice(0,30)))
- let methodCount=0,dateCount=0
+ let methodCount=0,dateCount=0,settlementCount=0,productCount=0
  const body=source.segments.filter(s=>!['UNB','UNH','UNT','UNZ'].includes(s.tag)).map((s,index,segments)=>{
   if(s.tag==='DTM'&&segmentComposite(s,1,source.una)[0]==='157'){dateCount++;return`DTM+157:${minute}:203`}
   if(s.tag==='DTM'&&segmentComposite(s,1,source.una)[0]==='137')return`DTM+137:${prodatNowDate203()}:203`
   const previous=segments[index-1]
   if(s.tag==='CAV'&&previous?.tag==='CCI'&&segmentComposite(previous,2,source.una)[0]==='Z04'){methodCount++;return`CAV+${confirmedMethod}`}
+  if(s.tag==='CAV'&&previous?.tag==='CCI'&&segmentComposite(previous,2,source.una)[0]==='Z15'){settlementCount++;return`CAV+${CONFIRMED_PRODUCT[confirmedMethod].settlement}`}
+  if(s.tag==='CAV'&&previous?.tag==='CCI'&&segmentComposite(previous,2,source.una)[0]==='Z14'&&segmentComposite(s,1,source.una)[3]==='L639Q'){productCount++;return s.raw.replace('L639Q',CONFIRMED_PRODUCT[confirmedMethod].product)}
   return s.raw
  })
- requireInput(dateCount===1&&methodCount===1,'own_Z06_date_method_fields_required')
+ requireInput(dateCount===1&&methodCount===1&&settlementCount===1&&productCount===1,'own_Z06_date_method_product_fields_required')
  return EdifactEnvelopeCodec.encode({sender:scope.receiver,receiver:scope.sender,senderQualifier:source.senderQualifier,receiverQualifier:source.receiverQualifier,applicationReference:'23-DDQ-PRODAT',acknowledgementRequest:true,environment:'test',timeZone:'Etc/GMT-1',interchangeReference:randomUUID().replaceAll('-','').slice(0,14),messages:[{messageReference:randomUUID().replaceAll('-','').slice(0,14),messageTypeToken:source.segments.find(s=>s.tag==='UNH')!.elements[2],businessSegments:body}]})
 }
 async function intake(p:ProfileInput,original:EdielMessageRow,raw:string){
@@ -362,20 +367,20 @@ it.each(['F','G'] as const)('native Z09%s own desired receipt/dispatch/physical 
 
 // Finite controls exercise the actual new wire helper and actual tokenizer /
 // envelope codec. They establish no database/source/permission/ACK authority.
-it('finite composition wire retains independent G Z02 confirmation, exact date, national306 and rejects impossible receipt order',()=>{
+it('finite composition wire retains independent G Z01/L917 confirmation, exact date, national306 and rejects impossible receipt order',()=>{
  const scope={external:'735123456789012345',sender:'54321',receiver:'12345',brpEdielId:'11111',caseReference:'INDEPENDENT-Z06',gridAreaCode:'NET-1',requestedStartDate:'2026-11-01'}
- for(const[subtype,method]of [['F','Z04'],['G','Z02']] as const){
+ for(const[subtype,method]of [['F','Z04'],['G','Z01']] as const){
   const raw=independentStructureWire(scope,subtype,'202611131315',method),wire=tokenizeEdifact(raw),envelope=EdifactEnvelopeCodec.decode(raw)
   expect(validateEdifactEnvelope(raw).syntaxOk).toBe(true);expect(envelope).toMatchObject({sender:'12345',receiver:'54321',applicationReference:'23-DDQ-PRODAT'})
   expect(wire.segments.filter(s=>s.tag==='DTM'&&segmentComposite(s,1,wire.una)[0]==='157').map(s=>segmentComposite(s,1,wire.una))).toEqual([['157','202611131315','203']])
-  for(const[qualifier,value]of [['Z04',method],['Z07','Z12'],['Z13',subtype==='F'?'E64':'E32']] as const){
+  for(const[qualifier,value]of [['Z04',method],['Z15',subtype==='F'?'Z32':'Z31'],['Z07','Z12'],['Z13',subtype==='F'?'E64':'E32']] as const){
    const positions=wire.segments.filter(s=>s.tag==='CCI'&&segmentComposite(s,2,wire.una)[0]===qualifier)
    expect(positions).toHaveLength(1)
    expect(segmentComposite(wire.segments[positions[0].index+1],1,wire.una)[0]).toBe(value)
   }
   expect(wire.segments.filter(s=>s.tag==='RFF'&&segmentComposite(s,1,wire.una)[0]==='LI').map(s=>segmentComposite(s,1,wire.una)[1])).toEqual(['INDEPENDENT-Z06'])
  }
- expect(()=>independentStructureWire(scope,'G','202602301315','Z02')).toThrow('exact_Z06_market_minute_required')
+ expect(()=>independentStructureWire(scope,'G','202602301315','Z01')).toThrow('exact_Z06_market_minute_required')
  assertReceivedAfterSend('2026-10-13T10:00:00Z','2026-10-13T10:00:01Z')
  for(const received of ['2026-10-13T10:00:00Z','2026-10-13T09:59:59Z','invalid'])expect(()=>assertReceivedAfterSend('2026-10-13T10:00:00Z',received)).toThrow('physical_received_clock_after_own_dispatch_required')
 })

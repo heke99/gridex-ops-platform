@@ -255,7 +255,7 @@ jobs:
               if not (work/name).is_file() or not (work/name).stat().st_size: raise RuntimeError('required_actual_proof_missing:'+name)
           preparation=list(ET.parse(work/'preparation-junit.xml').getroot().iter('testcase'))
           native=list(ET.parse(work/'native-junit.xml').getroot().iter('testcase'))
-          names=['native Z09F own desired receipt/dispatch/physical ACKs precede independent dated Z06 first application','native Z09G own desired receipt/dispatch/physical ACKs precede independent dated Z06 first application','finite composition wire retains independent G Z02 confirmation, exact date, national306 and rejects impossible receipt order','finite composition physical ACK rendering binds the supplied original and an unknown reference cannot qualify it']
+          names=['native Z09F own desired receipt/dispatch/physical ACKs precede independent dated Z06 first application','native Z09G own desired receipt/dispatch/physical ACKs precede independent dated Z06 first application','finite composition wire retains independent G Z01/L917 confirmation, exact date, national306 and rejects impossible receipt order','finite composition physical ACK rendering binds the supplied original and an unknown reference cannot qualify it']
           if len(preparation)!=1 or any(c.find(x) is not None for c in preparation for x in ['failure','error','skipped']): raise RuntimeError('actual_preparation_must_pass')
           if sorted(c.get('name') for c in native)!=sorted(names) or any(c.get('classname')!='scripts/ediel-at-z09fg-supplier-composition-native.test.ts' for c in native): raise RuntimeError('exact_four_composition_registrations_required')
           exit_code=int(os.environ['GRIDEX_FG_NATIVE_EXIT'])
