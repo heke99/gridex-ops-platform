@@ -1,10 +1,18 @@
 // masterplan: SC-039
 // Actual deadline projection/sweep with modeled storage. Not native or whole SC-039 approval.
-// Ported from donor c1ef7e96; P27 whole-rejection and direction cases added in review.
+// Ported from donor c1ef7e96; P27, duplicate-103, mirror and direction cases added in review.
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { EdifactEnvelopeCodec } from '@/lib/ediel/core/edifactEnvelopeCodec'
 import { inboundAckTimerCompletion } from '@/lib/ediel/sla/ackTimerCompletion'
 import { checkAckDeadlines } from '@/lib/ediel/sla/checkAckDeadlines'
+import { buildAperakDraft } from '@/lib/ediel/ack'
+import { resolveCanonicalRuntimeDecision } from '@/lib/ediel/core/runtimeDecision'
+import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
+import type { EdielMessageRow } from '@/lib/ediel/types'
+import { qty, type Parts } from './fixtures/prodat-register'
+import { guideOrderedFixtureRaw } from './helpers/prodatGuideOrderedFixture'
+import { source as prodatSource } from './fixtures/prodat-identity'
+import { mixedZ04Parts } from './helpers/mixedZ04Fixture'
 
 const io = vi.hoisted(() => ({ source: {} as Record<string, unknown>, acks: [] as Record<string, unknown>[],
   timer: {} as Record<string, unknown>, event: vi.fn() }))
@@ -122,19 +130,33 @@ describe('partial PRODAT responses retain every own object deadline', () => {
     expect(io.timer.status).toBe('resolved')
   })
 
-  // P27 rejects the whole original (P-17 LIN sequence, header, duplicate 103)
+  // P27 rejects the whole original (header field 202, P-17 LIN sequence 314)
   // even when it names only the defective object; it must not leave B to expire.
   const p27 = (refs: string[], extra: Record<string, unknown> = {}, acw = 'SOURCE-D') => ack([], { ack_outcome: 'negative',
     raw_payload: wire('APERAK', ['BGM+++27', `RFF+ACW:${acw}`, 'NAD+FR+LEGAL_R:160:SVK+++++++SE', 'NAD+DO+LEGAL_S:160:SVK+++++++SE',
-      'ERC+40::260', 'FTX+AAO++103::260+Dubblett av meddelandet', ...refs], true), validation_report: {}, ...extra })
-  it('resolves a physical P27 whole rejection that names only one object', () => {
+      ...(refs.length ? ['ERC+42::260', 'FTX+AAO++314::260+Felaktigt Sekvensnummer 1', ...refs] : ['ERC+41::260', 'FTX+AAO++202::260+Meddelandenamn saknas'])], true),
+    validation_report: {}, ...extra })
+  // Exact duplicateResponses.ts layout: a protocol 103 reply to a NEW reception of this original.
+  const duplicate103 = (extra: Record<string, unknown> = {}, code = '103') => ack([], { ack_outcome: 'negative', source_operation_id: 'ediel_duplicate103:reception',
+    raw_payload: wire('APERAK', ['BGM+++27', 'RFF+ACW:SOURCE-D', 'NAD+FR+LEGAL_R:160:SVK+++++++SE', 'NAD+DO+LEGAL_S:160:SVK+++++++SE',
+      'ERC+40::260', `FTX+AAO++${code}::260+Dubblett av meddelandet`, 'RFF+Z07:POINT-A', 'RFF+LI:LI-A', 'RFF+Z07:POINT-B', 'RFF+LI:LI-B'], true),
+    validation_report: {}, ...extra })
+  it('resolves a physical P27 sequence rejection that names only one object', () => {
     expect(completion([p27(['RFF+Z07:POINT-A', 'RFF+LI:LI-A'])])).toBe('resolved')
   })
-  it('resolves a physical P27 whole rejection without object references', () => {
+  it('resolves a physical P27 header rejection without object references', () => {
     expect(completion([p27([])])).toBe('resolved')
   })
   it('does not accept a P27 rejection of another original document', () => {
     expect(completion([p27(['RFF+Z07:POINT-A', 'RFF+LI:LI-A'], {}, 'OTHER-D')])).toBeNull()
+  })
+  it.each([
+    ['envelope sender', (raw: string) => raw.replace('TRANSPORT_R', 'OTHER')],
+    ['legal sender', (raw: string) => raw.replace('NAD+FR+LEGAL_R', 'NAD+FR+OTHER')],
+    ['legal receiver', (raw: string) => raw.replace('NAD+DO+LEGAL_S', 'NAD+DO+OTHER')],
+  ])('does not accept a P27 rejection whose %s does not mirror the source', (_name, change) => {
+    const reply = p27([]); reply.raw_payload = change(String(reply.raw_payload))
+    expect(completion([reply])).toBeNull()
   })
   it('does not accept a P27 rejection explicitly bound to another source', () => {
     expect(completion([p27([], { validation_report: { sourceMessageId: 'other', ackScope: 'message' } })])).toBeNull()
@@ -144,6 +166,21 @@ describe('partial PRODAT responses retain every own object deadline', () => {
   })
   it('does not accept an unsent P27 rejection', () => {
     expect(completion([p27([], { status: 'queued' })])).toBeNull()
+  })
+  it('does not let a duplicate-103 protocol reply complete the original when it is the only APERAK', () => {
+    expect(completion([duplicate103()])).toBeNull()
+  })
+  it('does not let a duplicate-103 protocol reply cover unanswered sibling B', () => {
+    expect(completion([ack([a]), duplicate103()])).toBeNull()
+  })
+  it.each([
+    ['physical FTX 103 alone', { source_operation_id: null }, '103'],
+    ['stored duplicate owner operation alone', {}, '40'],
+  ] as const)('recognizes a duplicate-103 reply by its %s', (_name, extra, code) => {
+    expect(completion([duplicate103(extra, code)])).toBeNull()
+  })
+  it('still resolves from the genuine own replies alongside a duplicate-103 reply', () => {
+    expect(completion([duplicate103(), ack([a]), ack([b])])).toBe('resolved')
   })
   it.each([['missing', undefined], ['outbound', 'outbound']] as const)('fails closed for %s source direction', (_name, direction) => {
     const original = { ...source(), direction } as unknown as ReturnType<typeof source>
@@ -155,5 +192,63 @@ describe('partial PRODAT responses retain every own object deadline', () => {
     expect(await checkAckDeadlines({ actorUserId: 'actor', companyId: 'tenant-a', now: '2026-10-13T12:31:00Z' }))
       .toEqual({ warning: 0, critical: 0, expired: 0, updated: 1 })
     expect(io.timer.status).toBe('resolved')
+  })
+  it('keeps the real sweep expired when only a duplicate-103 reply and one sibling were sent', async () => {
+    io.acks = [ack([a]), duplicate103()]
+    expect(await checkAckDeadlines({ actorUserId: 'actor', companyId: 'tenant-a', now: '2026-10-13T12:31:00Z' }))
+      .toEqual({ warning: 0, critical: 0, expired: 1, updated: 1 })
+    expect(io.timer.status).toBe('expired')
+  })
+})
+
+// The actual PRODAT runtime decision and APERAK renderer produce the replies.
+describe('producer-built PRODAT replies', () => {
+  const fixture = (parts: Parts[]) => guideOrderedFixtureRaw(parts, 'Z04')
+    .replace("UNB+UNOC:3+S+R+260917:1200+I++23-DDQ-PRODAT'", "UNB+UNOC:3+S:ZZ+R:ZZ+260917:1200+I++23-DDQ-PRODAT++1++1'")
+  const received = (raw: string) => ({ ...prodatSource(raw, 'Z04'), company_id: 'tenant-a' }) as EdielMessageRow
+  const sent = (sourceMessage: EdielMessageRow, rawPayload: string | null | undefined, outcome: 'positive' | 'negative', extra: Record<string, unknown> = {}) => ({
+    id: `reply-${Math.random()}`, company_id: 'tenant-a', environment: 'test', related_message_id: sourceMessage.id, direction: 'outbound',
+    status: 'sent', message_sent_at: '2026-10-13T12:00:00Z', message_family: 'APERAK', ack_outcome: outcome, raw_payload: rawPayload,
+    validation_report: {}, ...extra })
+  const done = (sourceMessage: EdielMessageRow, acks: Record<string, unknown>[]) =>
+    inboundAckTimerCompletion({ source: sourceMessage, timerType: 'aperak_due', acknowledgements: acks })
+  const valid = () => { const parts = mixedZ04Parts(), second = parts.findIndex(part => part[0] === 'LIN' && part[1] === '2'); parts.splice(second + 1, 0, qty('20')); return parts }
+  const negative = (sourceMessage: EdielMessageRow) => buildAperakDraft({ sourceMessage, outcome: 'negative',
+    applicationErrors: resolveCanonicalRuntimeDecision(sourceMessage).responsePlan.find(item => item.family === 'APERAK')!.applicationErrors }).rawPayload ?? ''
+  /** Same bytes as lib/ediel/inbound/duplicateResponses.ts, in the real renderer's envelope. */
+  const duplicateOf = (sourceMessage: EdielMessageRow) => {
+    const envelope = String(buildAperakDraft({ sourceMessage, outcome: 'positive' }).rawPayload), wire = tokenizeEdifact(sourceMessage.raw_payload)
+    const refs = [...new Set(wire.segments.flatMap(segment => segment.tag === 'LIN' ? [`RFF+Z07:${segment.raw.split('+')[3].split(':')[0]}`]
+      : segment.tag === 'RFF' && segment.raw.startsWith('RFF+LI:') ? [segment.raw] : []))]
+    const segments = envelope.split("'"), unh = segments.findIndex(part => part.startsWith('UNH+')), erc = segments.findIndex(part => part.startsWith('ERC+')),
+      unt = segments.findIndex(part => part.startsWith('UNT+'))
+    const body = [...segments.slice(0, erc), 'ERC+40::260', 'FTX+AAO++103::260+Dubblett av meddelandet', ...refs].map(part => part === 'BGM+++34' ? 'BGM+++27' : part)
+    return [...body, `UNT+${body.length - unh + 1}+${segments[unt].split('+')[2]}`, ...segments.slice(unt + 1)].join("'")
+  }
+
+  it('resolves the actual P27 LIN-sequence (314) rejection that names only the defective object', () => {
+    const parts = mixedZ04Parts(), second = parts.findIndex(part => part[0] === 'LIN' && part[1] === '2')
+    parts[second] = [...parts[second].slice(0, 1), '1', ...parts[second].slice(2)]
+    const sourceMessage = received(fixture(parts)), reply = negative(sourceMessage)
+    expect(reply).toContain('BGM+++27'); expect(reply).toContain('FTX+AAO++314::260'); expect(reply).not.toContain('735123456789012352')
+    expect(done(sourceMessage, [sent(sourceMessage, reply, 'negative')])).toBe('resolved')
+  })
+  it('resolves the actual P27 header (202) rejection', () => {
+    const sourceMessage = received(fixture(valid()).replace('BGM+Z04+D+9+AB', 'BGM++D+9+AB')), reply = negative(sourceMessage)
+    expect(reply).toContain('BGM+++27'); expect(reply).toContain('FTX+AAO++202::260')
+    expect(done(sourceMessage, [sent(sourceMessage, reply, 'negative')])).toBe('resolved')
+  })
+  it('resolves from the actual complete P34 reply', () => {
+    const sourceMessage = received(fixture(valid()))
+    expect(done(sourceMessage, [sent(sourceMessage, buildAperakDraft({ sourceMessage, outcome: 'positive' }).rawPayload, 'positive')])).toBe('resolved')
+  })
+  it('never completes from a duplicate-103 reply, with or without the stored owner marker', () => {
+    const sourceMessage = received(fixture(valid())), dup = duplicateOf(sourceMessage)
+    expect(dup).toContain('BGM+++27'); expect(dup).toContain('FTX+AAO++103::260')
+    for (const marker of [{ source_operation_id: 'ediel_duplicate103:reception' }, {}]) {
+      expect(done(sourceMessage, [sent(sourceMessage, dup, 'negative', marker)])).toBeNull()
+    }
+    // The genuine complete reply still completes; the duplicate neither adds nor blocks.
+    expect(done(sourceMessage, [sent(sourceMessage, dup, 'negative'), sent(sourceMessage, buildAperakDraft({ sourceMessage, outcome: 'positive' }).rawPayload, 'positive')])).toBe('resolved')
   })
 })

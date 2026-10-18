@@ -85,7 +85,7 @@ try{
   return db.exec(`INSERT INTO ediel_messages VALUES('${r.message}','${p.c}','test','outbound','${family}','${code}','${r.intent}',${quote(raw??await wire(n,k))},'${id(n)}','${r.request}','${p.customer}','${p.mp}','${id(13)}','${id(14)}','${transport}','54321','UNB-${k}','LI-${k}','${p.site}')`)}
  const originate=async(n,k)=>{await prepare(n,k);assert.equal((await reserve(n,k)).status,"reserved",JSON.stringify(await reserve(n,k)));await bind(n,k)}
  let ackN=500
- const ack=async(msg,c,family,outcome)=>{const a=id(ackN++),hash=(await db.query(`SELECT payload_hash h FROM gridex_brp_changes.origins WHERE message_id='${msg}'`)).rows[0]?.h??'f'.repeat(64)
+ const ack=async(msg,c,family,outcome,forcedHash)=>{const a=id(ackN++),hash=forcedHash??(await db.query(`SELECT payload_hash h FROM gridex_brp_changes.origins WHERE message_id='${msg}'`)).rows[0]?.h??'f'.repeat(64)
   await db.exec(`BEGIN;INSERT INTO gridex_ack_authority.source_correlations VALUES('${a}','${msg}','${c}','test','${hash}','${family}','${outcome}');INSERT INTO gridex_ack_authority.scope_outcomes VALUES('${msg}','${family}','${outcome}','${a}');COMMIT`)}
  const confirm=async(msg,c)=>{await ack(msg,c,'CONTRL','positive');await ack(msg,c,'APERAK','positive')}
  const history=(c,p,actor=c===A?actorA:actorB)=>db.query(`SELECT ediel_brp_responsibility_history_v1('${c}','${p}','${actor}') result`).then(r=>r.rows[0].result.versions)
@@ -127,11 +127,9 @@ try{
  assert.equal(await count(`gridex_brp_changes.origins WHERE event_id='${id(101)}'`),0);assert.equal(await count('gridex_brp_changes.period_versions'),3);checks++
  // At the exact boundary minute the real reservation and bind succeed.
  at('2027-02-27T23:00:00Z');assert.equal((await source(101)).status,'authorized');assert.equal((await reserve(101,4)).status,'reserved');checks++
- // (e) An AI list on v2's reserved intent cannot be bound as a BRP change; no version.
+ // (e) An AI list on v2's reserved intent cannot be bound as a BRP change; no version, origin stays unbound.
  await assert.rejects(bind(101,4,{family:'AI_LIST',code:'AI',raw:'SYNTHETIC AI LIST balansansvarsId=33333'}),/brp_change_exact_wire_basis_required/)
  assert.equal(await count('gridex_brp_changes.period_versions'),3);assert.equal((await db.query(`SELECT message_id FROM gridex_brp_changes.origins WHERE event_id='${id(101)}'`)).rows[0].message_id,null);checks++
- await db.exec(`INSERT INTO ediel_messages(id,company_id,environment,direction,message_family,message_code,raw_payload) VALUES('${id(98)}','${A}','test','outbound','AI_LIST','AI','SYNTHETIC AI LIST balansansvarsId=33333')`)
- await confirm(id(98),A);assert.equal(await count('gridex_brp_changes.period_versions'),3);assert.equal(await count('gridex_brp_changes.confirmations'),3);assert.equal((await history(A,id(4))).length,1);checks++
  // The bind evaluates the same boundary: one minute later the genuine Z09 is refused.
  at('2027-02-27T23:01:00Z');await assert.rejects(bind(101,4),/brp_change_exact_wire_basis_required/);assert.equal(await count('gridex_brp_changes.period_versions'),3);checks++
  at('2027-02-27T23:00:00Z');await bind(101,4);assert.equal(await count('gridex_brp_changes.period_versions'),4);checks++
@@ -142,6 +140,15 @@ try{
  assert.equal(h.length,2);assert.deepEqual(h.map(v=>v.eventId),[id(100),id(101)]);assert.deepEqual(h.map(v=>v.brpEdielId),['11111','33333'])
  assert.equal(instant(h[0].effectiveUntil),instant(h[1].effectiveAt));assert.equal(instant(h[1].effectiveAt),'2027-03-30T23:00:00.000Z');assert.equal(h[1].effectiveUntil,null)
  assert.deepEqual(h.map(v=>v.status),['aperak_confirmed','source_declared']);checks++
+ // (e) While v2 is bound but unconfirmed, an AI list can neither take over its
+ // origin (same intent) nor confirm it: positive CONTRL/APERAK evidence for the
+ // AI list, even carrying v2's own payload hash, leaves v2 source_declared.
+ const v2Hash=(await db.query(`SELECT payload_hash h FROM gridex_brp_changes.origins WHERE event_id='${id(101)}'`)).rows[0].h
+ await assert.rejects(db.exec(`INSERT INTO ediel_messages(id,company_id,environment,direction,message_family,message_code,intent_id,raw_payload) VALUES('${id(97)}','${A}','test','outbound','AI_LIST','AI','${routeOf(4).intent}','SYNTHETIC AI LIST balansansvarsId=33333')`),/brp_bound_message_immutable/);checks++
+ await db.exec(`INSERT INTO ediel_messages(id,company_id,environment,direction,message_family,message_code,raw_payload) VALUES('${id(98)}','${A}','test','outbound','AI_LIST','AI','SYNTHETIC AI LIST balansansvarsId=33333')`)
+ await ack(id(98),A,'CONTRL','positive',v2Hash);await ack(id(98),A,'APERAK','positive',v2Hash)
+ assert.equal(await count('gridex_brp_changes.confirmations'),3);assert.equal(await count('gridex_brp_changes.period_versions'),4)
+ assert.deepEqual((await history(A,id(4))).map(v=>v.status),['aperak_confirmed','source_declared']);checks++
  await ack(routeOf(4).message,A,'CONTRL','positive');assert.equal((await history(A,id(4)))[1].status,'source_declared');checks++
  await ack(routeOf(4).message,A,'APERAK','positive')
  h=await history(A,id(4));assert.deepEqual(h.map(v=>v.status),['aperak_confirmed','aperak_confirmed']);assert.equal(h[1].confirmationMessageId,routeOf(4).message);assert.equal(h[0].confirmationMessageId,routeOf(1).message)
