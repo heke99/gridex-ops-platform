@@ -622,12 +622,12 @@ describe.sequential('actual prospective normal supplier starts under one admitte
       expect(pointContrast.ownCohort).toEqual([f.originalZ03.id]);expect(pointContrast.foreignCohort).toEqual([])
       // Same LI alone is intentionally shared with the real unconfirmed own
       // original. Every negative differs physically before source birth.
-      const variants:Record<string,string>={customer:base.replace(f.customerIdentity.id,'198001011234'),
-        point:base.replaceAll(f.external,valid.L.external),start:base.replaceAll(f.requestedStartDate.replaceAll('-','')+'0000',plusDays(f.requestedStartDate,1).replaceAll('-','')+'0000'),
-        agency:base.replace(':::9',':::ZZ'),reason:base.replace('CAV+'+(subtype==='L'?'Z22':'Z23'),'CAV+'+(subtype==='L'?'Z23':'Z22')),
-        wrongRole:base.replace('23-DDQ-PRODAT','23-DGI-PRODAT'),
-        sender:base.replace(`NAD+FR+${f.receiver}`,`NAD+FR+${decoy.receiver}`),
-        receiver:base.replace(`NAD+DO+${f.sender}`,`NAD+DO+${decoy.sender}`)}
+      const variants:Record<string,string>={customer:wire(f).replace(f.customerIdentity.id,'198001011234'),
+        point:wire(f).replaceAll(f.external,valid.L.external),start:wire(f).replaceAll(f.requestedStartDate.replaceAll('-','')+'0000',plusDays(f.requestedStartDate,1).replaceAll('-','')+'0000'),
+        agency:wire(f).replace(':::9',':::ZZ'),reason:wire(f).replace('CAV+'+(subtype==='L'?'Z22':'Z23'),'CAV+'+(subtype==='L'?'Z23':'Z22')),
+        wrongRole:wire(f).replace('23-DDQ-PRODAT','23-DGI-PRODAT'),
+        sender:wire(f).replace(`NAD+FR+${f.receiver}`,`NAD+FR+${decoy.receiver}`),
+        receiver:wire(f).replace(`NAD+DO+${f.sender}`,`NAD+DO+${decoy.sender}`)}
       const causes:Record<string,HeldCause>={customer:{dimension:'customerIdentity',reasons:['normal_z04_exact_sent_original_required']},
         point:{dimension:'point',reasons:['supply_original_cohort_changed']},
         start:{dimension:'start',reasons:['normal_z04_exact_sent_original_required']},reason:{dimension:'reason',reasons:['normal_z04_exact_sent_original_required']},
