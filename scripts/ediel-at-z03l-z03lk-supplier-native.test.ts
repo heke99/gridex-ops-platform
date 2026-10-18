@@ -821,7 +821,9 @@ function effects(f: NormalSwitchStageNativeFixture) {
 // owner retains its exact positive leaf and facets. No new authority may appear.
 function preserveZ04ValidationAudit(f: Fixture, source: EdielMessageRow, baseline: ReturnType<typeof effects>, actual: ReturnType<typeof effects>,
   replay: { startedAt:number; finishedAt:number; ackMessages:EdielMessageRow[]; inboundCaseId:string;
-    validation:{input:Parameters<typeof recordReceivedSourceValidation>[0];receipt:ReceivedSourceValidationReceipt} }) {
+    validation:{input:Parameters<typeof recordReceivedSourceValidation>[0];receipt:ReceivedSourceValidationReceipt};
+    cases:{before:Record<string,unknown>[];after:Record<string,unknown>[]};
+    audit:{before:EdielMessageEventRow[];after:EdielMessageEventRow[]} }) {
   type AuditRows = Record<string,Record<string,unknown>[]>
   const before=baseline.durable as AuditRows,normalized=structuredClone(actual),after=normalized.durable as AuditRows
   expect(source).toMatchObject({company_id:f.companyId,environment:'test',direction:'inbound',message_family:'PRODAT',message_code:'Z04'})
@@ -919,35 +921,56 @@ function preserveZ04ValidationAudit(f: Fixture, source: EdielMessageRow, baselin
   }
   currentReport.receivedSourceValidationEvidence=previousReport.receivedSourceValidationEvidence
 
-  const priorEvents=before.events.filter(row=>row.event_type==='ediel_inbound_processed'&&(row.payload as Record<string,unknown>).edielMessageId===source.id)
-  expect(priorEvents,'one genuine baseline source processing event').toHaveLength(1)
-  const priorEvent=priorEvents[0],priorPayload=priorEvent.payload as Record<string,unknown>
-  const eventDefaults={company_id:f.companyId,switch_request_id:f.switchId,event_type:'ediel_inbound_processed',event_status:'success',
-    message:'Inbound PRODAT behandlad via canonical inbound flow och staging-case skapades för eventuell admin-granskning.',
-    created_by:null,metadata:{},archived_at:null,archived_by:null,archive_reason:null}
-  expect(priorEvent).toMatchObject(eventDefaults)
-  expect(priorPayload).toMatchObject({edielMessageId:source.id,inboundCaseId:replay.inboundCaseId,
-    customerInfoRequestLink:{applied:false,targetId:null,reason:'not_z02'},meteringPermissionLink:{applied:false,targetId:null,reason:'not_z14'}})
-  expect(priorPayload.businessState).toMatchObject({outcome:'supplier_switch_accepted',reviewRequired:false,
-    updated:['supplier_switch_requests','customer_supply_periods'],metadata:{companyId:f.companyId,messageFamily:'PRODAT',messageCode:'Z04',
-      matchedSwitchRequestId:f.switchId,customerInfoRequestId:null,source:'prodat_with_strong_switch_match',
-      prodatProcess:'supplier_switch',prodatSubtype:f.variant,prodatState:'switch_accepted'}})
+  // The physical own-object SQL receipt is authoritative even when the legacy
+  // flat-field matcher has no switch hint. Its separate switch audit is inert.
+  expect(after.events,'all supplier-switch audit rows remain exact').toEqual(before.events)
+  expect(replay.cases.before).toHaveLength(1); expect(replay.cases.after).toHaveLength(1)
+  const priorCase=replay.cases.before[0],currentCase=structuredClone(replay.cases.after[0])
+  expect(priorCase).toMatchObject({id:replay.inboundCaseId,company_id:f.companyId,ediel_message_id:source.id,
+    message_family:'PRODAT',message_code:'Z04',status:'pending_review',review_decision:null,
+    reviewed_by:null,reviewed_at:null,applied_at:null,failure_reason:null,updated_by:f.actorUserId})
+  clock(currentCase.updated_at,priorCase.updated_at)
+  currentCase.updated_at=priorCase.updated_at
+  // Full rows retain parsed customer/site/point/contract/production, proposals,
+  // match identity and review metadata; only the actual update clock may move.
+  expect(currentCase).toEqual(priorCase)
+
   expect(replay.ackMessages.map(row=>row.message_family).sort()).toEqual(['APERAK','CONTRL'])
   for (const ack of replay.ackMessages) expect(ack).toMatchObject({company_id:f.companyId,environment:'test',direction:'outbound',
     related_message_id:source.id,status:'sent',ack_outcome:'positive'})
   expect(replay.ackMessages.map(row=>row.id).sort()).toEqual(before.messages.filter(row=>row.related_message_id===source.id&&['CONTRL','APERAK'].includes(row.message_family as string)).map(row=>row.id).sort())
-  const events=additions('events','id')
-  expect(events,'exactly one processing audit attempt').toHaveLength(1)
-  const event=events[0]
+  const auditIds=new Set(replay.audit.before.map(row=>row.id))
+  expect(replay.audit.after.filter(row=>auditIds.has(row.id)),'all prior own-source audit rows remain exact').toEqual(replay.audit.before)
+  const freshAudit=replay.audit.after.filter(row=>!auditIds.has(row.id))
+  expect(new Set(replay.audit.after.map(row=>row.id)).size).toBe(replay.audit.after.length)
+  for (const row of freshAudit) {
+    expect(row).toMatchObject({company_id:f.companyId,ediel_message_id:source.id,message_id:source.id,created_by:f.actorUserId})
+    expect(row.event_payload).toEqual(row.payload)
+    clock(row.created_at)
+    if ('updated_at' in row) clock(row.updated_at)
+  }
+  const domainEvents=(rows:EdielMessageEventRow[])=>rows.filter(row=>row.event_type==='validated'&&'sourceObjectPartition' in row.payload)
+  const priorEvents=domainEvents(replay.audit.before),events=domainEvents(freshAudit)
+  expect(priorEvents,'one genuine baseline own-object processing event').toHaveLength(1)
+  expect(events,'exactly one fresh own-object replay audit').toHaveLength(1)
+  const priorEvent=priorEvents[0],event=events[0]
+  const eventDefaults={company_id:f.companyId,ediel_message_id:source.id,message_id:source.id,created_by:f.actorUserId,
+    event_type:'validated',event_status:'success',message:'Egna objekt och deras slutliga svar följer beständiga skrivkvitton.'}
+  const payload={inboundCaseId:replay.inboundCaseId,createdAckMessageIds:[replay.ackMessages.find(row=>row.message_family==='APERAK')!.id],
+    reviewRequired:false,fullyApplied:true,sourceObjectPartition:partitionObjects,committedEffectReceiptIds:[effect.id],
+    permissionResults:null,applied:true}
+  expect(priorEvent).toMatchObject(eventDefaults)
+  expect(priorEvent.payload).toEqual({...payload,idempotent:false})
+  expect(priorEvent.event_payload).toEqual(priorEvent.payload)
   expect(event.id).toEqual(expect.stringMatching(/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/))
-  clock(event.created_at,priorEvent.created_at); clock(event.updated_at,priorEvent.updated_at)
-  expect(event).toEqual({...eventDefaults,id:event.id,created_at:event.created_at,updated_at:event.updated_at,payload:{
-    edielMessageId:source.id,createdAckMessageIds:[replay.ackMessages.find(row=>row.message_family==='CONTRL')!.id],
-    canonicalAckState:'ack_originals_qualified',ackMessages:replay.ackMessages.map(row=>({id:row.id,family:row.message_family,
-      code:row.message_code,status:row.status,outcome:row.ack_outcome})),safeApplyProposalChanges:[],inboundCaseId:replay.inboundCaseId,
-    customerInfoRequestLink:{applied:false,targetId:null,reason:'not_z02'},meteringPermissionLink:{applied:false,targetId:null,reason:'not_z14'},
-    businessState:priorPayload.businessState,
-  }})
+  expect(Object.keys(event).sort()).toEqual(Object.keys(priorEvent).sort())
+  const normalizedEvent={...event} as Record<string,unknown>
+  for (const key of ['created_at','updated_at'] as const) {
+    if (!(key in priorEvent)) continue
+    clock(normalizedEvent[key],(priorEvent as unknown as Record<string,unknown>)[key])
+    normalizedEvent[key]=(priorEvent as unknown as Record<string,unknown>)[key]
+  }
+  expect(normalizedEvent).toEqual({...priorEvent,id:event.id,payload:{...payload,idempotent:true},event_payload:{...payload,idempotent:true}})
   return normalized
 }
 function noActivation(f: NormalSwitchStageNativeFixture) {
@@ -1428,10 +1451,11 @@ describe.each(['L','LK'] as const)('ordinary supplier Z03%s native proposals',va
     }
     const confirmed=effects(f),replyIds=replies(f,source.id).map(m=>m.id),providerCalls=smtp.mock.calls.length
     const ackMessages=await listBusinessAckMessagesForSource({companyId:f.companyId,sourceMessageId:source.id,actorUserId:f.actorUserId,environment:'test'})
-    const inboundCases=()=>sql<Array<{id:string;company_id:string;ediel_message_id:string}>>(`SELECT coalesce(jsonb_agg(jsonb_build_object('id',c.id,'company_id',c.company_id,'ediel_message_id',c.ediel_message_id) ORDER BY c.id),'[]') FROM public.ediel_inbound_cases c WHERE c.company_id=${literal(f.companyId)} AND c.ediel_message_id=${literal(source.id)};`)
-    const baselineCases=inboundCases()
+    const inboundCases=()=>sql<Record<string,unknown>[]>(`SELECT coalesce(jsonb_agg(to_jsonb(c) ORDER BY c.id),'[]') FROM public.ediel_inbound_cases c WHERE c.company_id=${literal(f.companyId)} AND c.ediel_message_id=${literal(source.id)};`)
+    const sourceAudit=()=>sql<EdielMessageEventRow[]>(`SELECT coalesce(jsonb_agg(to_jsonb(e) ORDER BY e.id),'[]') FROM public.ediel_message_events e WHERE e.company_id=${literal(f.companyId)} AND e.ediel_message_id=${literal(source.id)};`)
+    const baselineCases=inboundCases(),baselineAudit=sourceAudit()
     expect(baselineCases).toHaveLength(1)
-    expect(baselineCases[0]).toEqual({id:expect.stringMatching(/^[0-9a-f-]{36}$/),company_id:f.companyId,ediel_message_id:source.id})
+    expect(baselineCases[0]).toMatchObject({id:expect.stringMatching(/^[0-9a-f-]{36}$/),company_id:f.companyId,ediel_message_id:source.id})
     // The default spy delegates to the real recorder and returns its actual
     // receipt unchanged. Zero appends alone cannot prove a fresh owner call.
     const validationSpy=vi.spyOn(receivedSourceValidationLedger,'recordReceivedSourceValidation')
@@ -1447,9 +1471,9 @@ describe.each(['L','LK'] as const)('ordinary supplier Z03%s native proposals',va
     } finally { validationSpy.mockRestore() }
     const replayFinishedAt=Date.now()
     if(!replayValidation)throw Error('native_replay_validation_observation_required')
-    expect(inboundCases()).toEqual(baselineCases)
     expect(preserveZ04ValidationAudit(f,source,confirmed,effects(f),{startedAt:replayStartedAt,finishedAt:replayFinishedAt,
-      ackMessages,inboundCaseId:baselineCases[0].id,validation:replayValidation})).toEqual(confirmed); expect(replies(f,source.id).map(m=>m.id)).toEqual(replyIds)
+      ackMessages,inboundCaseId:baselineCases[0].id as string,validation:replayValidation,
+      cases:{before:baselineCases,after:inboundCases()},audit:{before:baselineAudit,after:sourceAudit()}})).toEqual(confirmed); expect(replies(f,source.id).map(m=>m.id)).toEqual(replyIds)
     expect(smtp.mock.calls.length).toBe(providerCalls); expect(originalHistory(f)).toEqual(history)
   })
 
