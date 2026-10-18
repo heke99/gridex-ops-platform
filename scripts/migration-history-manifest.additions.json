@@ -268,6 +268,7 @@
     "20261011121542_db05_retained_audit_ediel_journals.sql": "deae7a8ceb459acc6c428bba0011d238d3cd2e4eec6915fe9610cc06a0212303",
     "20261015172000_ops_staff_permission_catalog_alignment.sql": "3956c749d4045b9cfa54b8d8de1dfe0b64f1fc76df356b029751eb197affe009",
     "20261015172100_ops_contract_signing_prepare_final_expiry_guard.sql": "d798d8defd71a632617aaf34f99e6cfcab4e32d94d003f0ab18ee11d6468e8f2",
-    "20261015183000_ops_migration_provenance_tenant_boundary.sql": "f9e49edc513f9a744d6b0cf689662adb14c970253523f3d0a0d54c710bf57928"
+    "20261015183000_ops_migration_provenance_tenant_boundary.sql": "f9e49edc513f9a744d6b0cf689662adb14c970253523f3d0a0d54c710bf57928",
+    "20261018100000_ediel_z04c_current_sender_registry.sql": "0f81eb64a6c79c3d67e2a58069e8dbc06c7489ab2b86bfdf596cae2b7557937b"
   }
 }

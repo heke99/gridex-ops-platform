@@ -10,6 +10,8 @@ import assert from 'node:assert/strict'
 const root=process.env.EDIEL_SQL_REPOSITORY??fileURLToPath(new URL('..',import.meta.url))
 const forwardPath=process.env.EDIEL_RESTORE_FORWARD_SQL??`${root}/supabase/migrations/20261010101233_ediel_z05c_current_sender_registry.sql`
 const preimage='d2fd0bf5d193b6888d5a41c064a24e5b020446b3b5332493963fa1dedee3e5a9',postimage='aab2d2f6dcbfe17e31f92c07a70c9f9346396a2c1435a5976b1d70c8e58cb2b7'
+// Later captured owner (20261018100000) adds only the Z04/C sender and duplicate guards on top of this postimage.
+const laterPostimage='e2bba947e4ade9d3a1128cc826f6b43b336da0733ba35d90eb43b498f53e350e'
 const schema=readFileSync(`${root}/supabase/schema.sql`,'utf8')
 const {PGlite}=await import(pathToFileURL(process.env.EDIEL_PGLITE_MODULE??`${root}/node_modules/@electric-sql/pglite/dist/index.js`).href)
 const db=new PGlite(),id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`
@@ -77,13 +79,14 @@ try{
  const beforeDefinition=(await db.query("select p.prosrc, to_jsonb(p)-'prosrc' metadata from pg_proc p where p.oid='gridex_received_sources.other_supply_scope_effect_v1(uuid,uuid,uuid,jsonb,uuid[],uuid)'::regprocedure")).rows[0]
  const installedPreimage=hash(beforeDefinition.prosrc),originalControl=process.env.EDIEL_Z05C_ORIGINAL_CONTROL==='1'
  console.log(`CAPTURED prosrc sha256=${installedPreimage}`)
- if(installedPreimage!==preimage&&installedPreimage!==postimage)throw Error('z05c_finite_unknown_captured_owner')
+ if(installedPreimage!==preimage&&installedPreimage!==postimage&&installedPreimage!==laterPostimage)throw Error('z05c_finite_unknown_captured_owner')
+ if(installedPreimage===laterPostimage&&!beforeDefinition.prosrc.includes("'z05c_current_sender_network_registry_required'"))throw Error('z05c_later_postimage_lost_sender_guard')
  if(originalControl&&installedPreimage!==preimage)throw Error('z05c_original_control_requires_captured_preimage')
  if(originalControl)migrationApplication='skipped_for_original_red_control'
  else if(installedPreimage===preimage){await db.exec(readFileSync(forwardPath,'utf8'));migrationApplication='applied_to_captured_preimage'}
  else migrationApplication='already_captured_postimage'
  installedBodySha256=hash((await db.query("select prosrc from pg_proc where oid='gridex_received_sources.other_supply_scope_effect_v1(uuid,uuid,uuid,jsonb,uuid[],uuid)'::regprocedure")).rows[0].prosrc)
- assert.equal(installedBodySha256,originalControl?preimage:postimage)
+ assert.equal(installedBodySha256,originalControl?preimage:installedPreimage===laterPostimage?laterPostimage:postimage)
  assert.deepEqual((await db.query("select to_jsonb(p)-'prosrc' metadata from pg_proc p where p.oid='gridex_received_sources.other_supply_scope_effect_v1(uuid,uuid,uuid,jsonb,uuid[],uuid)'::regprocedure")).rows[0].metadata,beforeDefinition.metadata)
  console.log('PASS preserved installed function OID/owner/ACL/config/all pg_proc metadata except prosrc')
  await db.exec(`insert into companies values('${id(1)}','active',true,'SYNTHETIC LEGAL COMPANY','5590000000');insert into auth.users(id,email_confirmed_at) values('${id(2)}',now()),('${id(3)}',now());insert into user_profiles values('${id(2)}','active'),('${id(3)}','active');insert into company_memberships(company_id,user_id,status,is_active,accepted_at) values('${id(1)}','${id(2)}','active',true,now()),('${id(1)}','${id(3)}','active',true,now());
