@@ -50,7 +50,7 @@ type Profile=CompositionInputs['profiles'][number]
 type Artifact=Profile['declaration']
 type Stage=NormalSwitchStageNativeFixture&{request:Actor;reviewer:Actor;pdf:Buffer;initialDeclaration:Artifact}
 const digest=(value:Buffer|string)=>createHash('sha256').update(value).digest('hex')
-const permissions=['communication.read','communication.write','communication.send','customers.read','customers.write','contracts.read','contracts.write','contracts.publish','pricing.read','pricing.write','pricing.publish','metering.read','metering.write','operations.read','operations.write','ediel.source.review','ediel.network_registry.review']
+const permissions=['communication.read','communication.write','communication.send','customers.read','customers.write','contracts.read','contracts.write','contracts.create','contracts.publish','pricing.read','pricing.write','pricing.publish','metering.read','metering.write','operations.read','operations.write','ediel.source.review','ediel.network_registry.review']
 let stage='INITIALIZE',inventoryPath='',proofPath=''
 const secrets=new Set<string>()
 function tempPath(name:string){
@@ -74,7 +74,7 @@ const clock=()=>sql<string>('SELECT to_jsonb(clock_timestamp())')
 // as ediel-z04d-production-native-fixture.ts). Reference rows only: no role,
 // user grant, override or deny is written here; actor() still grants per actor
 // and asserts the canonical tenant context independently.
-const replayMissingCatalogKeys=['contracts.publish','pricing.read','pricing.write','pricing.publish']
+const replayMissingCatalogKeys=['contracts.create','contracts.publish','pricing.read','pricing.write','pricing.publish']
 function referenceCatalog(){
  stage='PERMISSION_CATALOG'
  sql(`INSERT INTO public.permissions(key,name,description,category,is_active)
