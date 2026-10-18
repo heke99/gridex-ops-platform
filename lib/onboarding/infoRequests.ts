@@ -1406,10 +1406,10 @@ export async function queueCustomerInfoRequestForDispatch(input: {
     .eq("id", request.id);
   if (linkNow.error) throw linkNow.error;
 
-  // Mark other stuck pending GODRs for the same customer/site/grid_owner/scope as failed
-  // to prevent accumulation of orphaned rows. Fire-and-forget — non-critical.
+  // Supersede only this CIR's pending duplicates on the exact source tuple.
+  // Preserve known preparation/original links; pending alone is not orphan proof.
   if (request.customer_id && request.grid_owner_id) {
-    supabaseService
+    let supersededRequests = supabaseService
       .from("grid_owner_data_requests")
       .update({
         status: "failed",
@@ -1422,16 +1422,32 @@ export async function queueCustomerInfoRequestForDispatch(input: {
       .eq("customer_id", request.customer_id)
       .eq("grid_owner_id", request.grid_owner_id)
       .eq("request_scope", "customer_masterdata")
+      .eq("request_payload->>customer_info_request_id", request.id)
       .eq("status", "pending")
       .neq("id", gridOwnerDataRequest.id)
-      .then(({ error: supersededError }) => {
-        if (supersededError) {
-          console.warn(
-            "[infoRequests] kunde inte markera gamla pending GODR som avslutade",
-            supersededError?.message,
-          );
-        }
-      });
+      .is("response_payload->>outboundRequestId", null)
+      .is("response_payload->>edielMessageId", null)
+      .is("response_payload->>ediel_message_id", null)
+      .is("response_payload->>intentId", null);
+
+    for (const [column, value] of [
+      ["site_id", request.site_id],
+      ["metering_point_id", request.metering_point_id],
+      ["operation_id", operationId],
+    ] as const) {
+      supersededRequests = value === null
+        ? supersededRequests.is(column, null)
+        : supersededRequests.eq(column, value);
+    }
+
+    supersededRequests.then(({ error: supersededError }) => {
+      if (supersededError) {
+        console.warn(
+          "[infoRequests] kunde inte markera gamla pending GODR som avslutade",
+          supersededError?.message,
+        );
+      }
+    });
   }
 
   const linkedRequest: CustomerInfoRequestRow = {
