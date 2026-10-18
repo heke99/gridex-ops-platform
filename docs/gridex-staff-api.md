@@ -55,6 +55,8 @@ Which claims you send depends on how your API client was registered:
 
 For independent identities every request checks the current central actor, membership and binding. A binding that is revoked, rotated to a newer version or whose registration was removed is rejected (`401/403 staff_identity_binding_invalid` or `403 staff_identity_registration_removed`); removing the registration never falls back to the central flow. Disabling, banning, soft-deleting or deleting the central Gridex account ends its access on the next request, including for still-valid assertions. Your backend must verify its own login session before signing each assertion. Gridex verifies the registered external Auth service with `getUser` during identity resolution and invitation acceptance; an already signed normal Staff assertion does not perform a new external Auth lookup.
 
+Use the [independent Staff server reference](staff-api/server-reference-integration.md) for the Node 22+ client, a concrete getUser adapter, explicit resolve/read/write/retry usage and the remaining runtime acceptance prerequisites.
+
 ## API readiness and integration setup
 
 The deployed API requires its central database functions and service-only grants. An individual integration additionally needs an active API credential with explicit Staff scopes, an active `purpose=staff` identity provider, and an active same-company staff membership. An independent login also requires its registered external Auth service and current binding. An unused or unconfigured integration is not evidence of an API implementation fault.
