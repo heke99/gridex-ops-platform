@@ -4024,8 +4024,16 @@
     },
     {
       "id": "AT-Z03L-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/flows/prodatSwitch.ts",
+        "lib/operations/edielAutomation.ts",
+        "lib/ediel/flows/inboundAckProcessing.ts",
+        "lib/ediel/flows/inboundProcessing.ts",
+        "__tests__/ediel-at-z03l-z03lk-supplier-profile.test.ts",
+        "__tests__/ediel-prodat-own-source-register-reading-component.test.ts",
+        "scripts/ediel-at-z03l-z03lk-supplier-native.test.ts"
+      ]
     },
     {
       "id": "AT-Z04L-SUPPLIER",
@@ -4072,8 +4080,16 @@
     },
     {
       "id": "AT-Z03LK-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/flows/prodatSwitch.ts",
+        "lib/operations/edielAutomation.ts",
+        "lib/ediel/flows/inboundAckProcessing.ts",
+        "lib/ediel/flows/inboundProcessing.ts",
+        "__tests__/ediel-at-z03l-z03lk-supplier-profile.test.ts",
+        "__tests__/ediel-prodat-own-source-register-reading-component.test.ts",
+        "scripts/ediel-at-z03l-z03lk-supplier-native.test.ts"
+      ]
     },
     {
       "id": "AT-Z04LK-SUPPLIER",
