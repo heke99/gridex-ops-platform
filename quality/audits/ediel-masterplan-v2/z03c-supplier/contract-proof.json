@@ -1,0 +1,644 @@
+{
+  "id": "AT-Z03C-SUPPLIER",
+  "scope": "Frozen single supplier cancellation-origination contract; proof package for code approval review, not delivered main merge, market activation or external counterparty acceptance",
+  "prepared_at": "2026-10-18T09:13:35.502240+00:00",
+  "owner": "huvudagent 4 (claude-hq4); source receipts 5d90ac92687328776a2a16d322fa1d50fd92e808 + extension cb9745b18cd1bf9944544e03f8aa8ca0e835ad08",
+  "packet": "6217ad0e-7dda-44b0-b269-ed9fc37eb4e0",
+  "pr": "https://github.com/heke99/gridex-ops-platform/pull/820",
+  "frozen_acceptance": {
+    "id": "AT-Z03C-SUPPLIER",
+    "name": "Meddelandefall Z03C",
+    "given": "SUPPLIER; Referera rätt originalärende/objekt/kund; L senast4dagar före, LK senast inflyttningsdagen.",
+    "when": "Återtag av eget bytes-/flyttärende inom kancelleringsfönstret.",
+    "expected": "23-DDQ-PRODAT; BGM=Z03; fält223=Z24; CONTRL, APERAK och enligt förloppet Z04C.; Markera kancellering begärd; inte färdig enbart på SMTP250.",
+    "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "layer": "Planerat meddelande-/rollprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  "frozen_acceptance_row_sha256": "c27d489eefecbfc5f5932aa0175717f05ffb8b7e7317ab24819eaaf43eea5139",
+  "frozen_acceptance_row_canonicalization": "json.dumps(row, ensure_ascii=False, sort_keys=True, separators=(',',':')) UTF-8",
+  "coverage_status_at_preparation": "NOT_EXECUTED",
+  "current_originals": [
+    {
+      "producer": ".github/workflows/ediel-z03c-supplier-boundary-native.yml",
+      "workflow_id": 386067590,
+      "run": 39057092911,
+      "attempt": 1,
+      "event": "pull_request",
+      "head_branch": "codex/c3-h-20261012",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "id": 117467173059,
+          "name": "Ediel Z03C supplier boundary / clock-capability-preflight",
+          "conclusion": "success"
+        },
+        {
+          "id": 117467555448,
+          "name": "Ediel Z03C supplier boundary / z03c-supplier-boundary-native",
+          "conclusion": "success"
+        }
+      ],
+      "artifacts": [
+        {
+          "id": 12110196282,
+          "name": "ediel-z03c-supplier-boundary-native-39057092911",
+          "archive_sha256": "7ca59f3cbd5c1961a17ccb3854fa94988fcf392ea8d1621fb728cb7fc63da2df",
+          "size_in_bytes": 1782574,
+          "includes": "z03c-clock-preflight-evidence/* and z03c-supplier-boundary-native-evidence/*"
+        },
+        {
+          "id": 12108999638,
+          "name": "ediel-z03c-clock-preflight-39057092911",
+          "archive_sha256": "0a50c827c8bfcd82a6899c3dfdd79c619175899a1a7793c3623e9d1f4638d38f",
+          "size_in_bytes": 790681
+        }
+      ],
+      "archive_copied": false,
+      "archive_not_copied_reason": "z03c-supplier-boundary-native-evidence/bootstrap.log line 1174-1175 retains the disposable local Supabase Storage S3 access/secret key (CLI local defaults) unredacted; per the no-credentials rule the archive is referenced by GitHub artifact id and digest only. Redactor gap reported separately.",
+      "head": "cd152e72f286f27bdb3d20f9f4eea9f8d40904a6",
+      "tree": "967d34dff98721bad9be5709d78cadafb737a4a0",
+      "source_blobs_exact": 10739,
+      "all_blob_oid_exact": true,
+      "runtime_changes_declared": {},
+      "receipt": {
+        "schema": "z03c_boundary_workflow_receipt_v1",
+        "exit_code": 0,
+        "restoration_verified": true,
+        "actual_elapsed_14_days": false,
+        "authentic_external_market_history": false,
+        "private_runner_background_quiescence": "NOT_ATTESTED",
+        "whole_approval": false,
+        "ordinary_required_gates": "NOT_REPLACED"
+      },
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "case_names": [
+        "AT-Z03C supplementary lawful boundary native > C03-MISSING-OWN-LI-OWNER-REFUSAL",
+        "AT-Z03C supplementary lawful boundary native > C03-BOUND-MUTATION-REFUSAL",
+        "AT-Z03C supplementary lawful boundary native > C03-LK-DAY1-HOLD",
+        "AT-Z03C supplementary lawful boundary native > C03-L4-ALLOW",
+        "AT-Z03C supplementary lawful boundary native > C03-L3-HOLD"
+      ]
+    },
+    {
+      "producer": ".github/workflows/ediel-cancellation-public-acceptance-native.yml",
+      "workflow_id": 377355645,
+      "run": 39057092903,
+      "attempt": 1,
+      "event": "pull_request",
+      "head_branch": "codex/c3-h-20261012",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "id": 117467173112,
+          "name": "cancellation-public-acceptance-native",
+          "conclusion": "success"
+        }
+      ],
+      "artifacts": [
+        {
+          "id": 12109779127,
+          "name": "ediel-cancellation-public-acceptance-native-39057092903",
+          "archive_sha256": "c8359d29c02d692c079bd3ab35dc0bf46d1dd8df62ccc39c3fe97e253735e11f",
+          "size_in_bytes": 1320085
+        }
+      ],
+      "provenance_status": "HISTORICAL",
+      "archive_git_revision": "d123c00221a62f816a151277095f2ac4ebb0e074",
+      "archive_git_blob": "56c4add5a2ef14a101ff61dfd76e335a115455a0",
+      "archive_reference_scope": "archive_copied and archive_path describe only the copy at archive_git_revision; they do not describe the bytes at archive_path in the current checkout.",
+      "archive_copied": true,
+      "archive_path": "quality/audits/ediel-masterplan-v2/z03c-supplier/native-cancellation.zip",
+      "archive_content_review": "native.log, native-junit.xml, receipt.json only (same composition as z05c native-3847.zip); no credential, key or token found",
+      "head": "cd152e72f286f27bdb3d20f9f4eea9f8d40904a6",
+      "tree": "967d34dff98721bad9be5709d78cadafb737a4a0",
+      "source_blobs_exact": 10739,
+      "all_blob_oid_exact": true,
+      "runtime_changes_declared": {},
+      "total": 33,
+      "passed": 33,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "z03c_relevant_case_names": [
+        "actual native supplier cancellation chains > keeps requested after actual provider250 and physical ACKs; only causal Z04C completes the own future start",
+        "actual native supplier cancellation chains > current sender-role revocation and a foreign actor cannot originate a cancellation of the preserved own original",
+        "actual native supplier cancellation chains > uses actual prospective LK public input at its zero-day cancellation boundary"
+      ],
+      "other_cases_excluded_from_z03c_credit": 30
+    },
+    {
+      "producer": ".github/workflows/ediel-cancellation-public-acceptance-native.yml",
+      "run": 39122073661,
+      "attempt": 1,
+      "event": "pull_request",
+      "head_sha": "d123c00221a62f816a151277095f2ac4ebb0e074",
+      "head_tree": "a9ee1ef947acfa0a85f7af8d26bf13a93842d162",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "id": 117659525125,
+          "name": "cancellation-public-acceptance-native",
+          "conclusion": "success"
+        }
+      ],
+      "artifacts": [
+        {
+          "id": 12134199287,
+          "name": "ediel-cancellation-public-acceptance-native-39122073661",
+          "sha256": "3c8f081e1c7a3184931558eba2cf996514860b214c4218f487cfdf1352c7b605",
+          "committed_as": "NOT_COMMITTED at final head (archive at archive_git_revision only; superseded by the final-head original)"
+        }
+      ],
+      "junit": {
+        "tests": 33,
+        "failures": 0,
+        "errors": 0
+      },
+      "scope": "Final PR head original for criteria that pass through the changed inbound Z04/Z24 owner (criteria 3 and 4).",
+      "provenance_status": "HISTORICAL",
+      "archive_git_revision": "f4c8ddec4ae45622e0a3588e1336cef116c6df73"
+    },
+    {
+      "producer": ".github/workflows/ediel-cancellation-public-acceptance-native.yml",
+      "run": 39138451084,
+      "attempt": 1,
+      "event": "pull_request",
+      "head_sha": "35a6e30f7b5a3d5caad90496728c5e080e0e21e7",
+      "head_tree": "9252324391679c5c70f45ef96b50c06edd77d08f",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "id": 117707720946,
+          "name": "cancellation-public-acceptance-native",
+          "conclusion": "success"
+        }
+      ],
+      "artifacts": [
+        {
+          "id": 12140684102,
+          "name": "ediel-cancellation-public-acceptance-native-39138451084",
+          "sha256": "6842b6ec35b124b1e56f000ede79747b48678b4ef53911eb4d96e6bde7b0be44",
+          "committed_as": "quality/audits/ediel-masterplan-v2/z03c-supplier/native-cancellation.zip"
+        }
+      ],
+      "junit": {
+        "tests": 33,
+        "failures": 0,
+        "errors": 0
+      },
+      "scope": "Final PR head original (after main f8c99f40 integration) for criteria 3 and 4."
+    },
+    {
+      "producer": ".github/workflows/ediel-z03c-supplier-boundary-native.yml",
+      "run": 39138451143,
+      "attempt": 1,
+      "event": "pull_request",
+      "head_sha": "35a6e30f7b5a3d5caad90496728c5e080e0e21e7",
+      "head_tree": "9252324391679c5c70f45ef96b50c06edd77d08f",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "id": 117707721017,
+          "name": "Ediel Z03C supplier boundary / clock-capability-preflight",
+          "conclusion": "success"
+        },
+        {
+          "id": 117713962572,
+          "name": "Ediel Z03C supplier boundary / z03c-supplier-boundary-native",
+          "conclusion": "success"
+        }
+      ],
+      "artifacts": [
+        {
+          "id": 12141551567,
+          "name": "ediel-z03c-supplier-boundary-native-39138451143",
+          "sha256": "283dc966893acf9167c2e1435e09c720c4bd123bee846fcf74d3c12f41d1e787",
+          "committed_as": "quality/audits/ediel-masterplan-v2/z03c-supplier/native-z03c-boundary.zip (publication-safe member subset; bootstrap.log excluded because it carries the local Supabase CLI default Storage S3 key values)"
+        },
+        {
+          "id": 12141178500,
+          "name": "ediel-z03c-clock-preflight-39138451143",
+          "sha256": "f16f5c062839c7954c618aca71b64cf90d765a3f1bf1b2e97f3a4a7b50b34f3e",
+          "committed_as": "NOT_COMMITTED"
+        }
+      ],
+      "junit": {
+        "tests": 5,
+        "failures": 0,
+        "errors": 0
+      },
+      "scope": "Final PR head original for criteria 0, 1, 2, 5 and 6 (outbound C03 boundary, calendar window, mutation, own-LI refusal).",
+      "publication_safe_subset": {
+        "path": "quality/audits/ediel-masterplan-v2/z03c-supplier/native-z03c-boundary.zip",
+        "zip_sha256": "97c8f95dd92e54362042b81d82d8372a5622ecaec05a43a8ed13771cad087889",
+        "source_archive": {
+          "artifact": 12141551567,
+          "sha256": "283dc966893acf9167c2e1435e09c720c4bd123bee846fcf74d3c12f41d1e787"
+        },
+        "members_byte_identical_to_source_archive": [
+          {
+            "path": "z03c-clock-preflight-evidence/clock-capability.json",
+            "sha256": "b09bd02a331b5f0fc08328dc940f325cf8afa7e9676c2a93acaabba1f798368c",
+            "size": 194
+          },
+          {
+            "path": "z03c-clock-preflight-evidence/clock-restoration.json",
+            "sha256": "020bb56e42aba6a7a13afa53dc59425d03f7986c09f17f4603a6c468820ae0ea",
+            "size": 1081
+          },
+          {
+            "path": "z03c-clock-preflight-evidence/receipt.json",
+            "sha256": "971857434b009a6d59248720573f169b62cb5861af00587069698c65001959b8",
+            "size": 786
+          },
+          {
+            "path": "z03c-clock-preflight-evidence/runtime-generated-comparison-inputs.json",
+            "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356",
+            "size": 3
+          },
+          {
+            "path": "z03c-clock-preflight-evidence/source-identity-before.json",
+            "sha256": "d7e10622b688b32025b6b3d4c8a47a07b0fc7733385ac216a8c2bdb89d44da7f",
+            "size": 2553787
+          },
+          {
+            "path": "z03c-clock-preflight-evidence/sync-restoration-observations.json",
+            "sha256": "680fd4c2ee7719819cf143d214a278b9f02b33fb4a55834a10de3d7c9746e9f4",
+            "size": 1184
+          },
+          {
+            "path": "z03c-supplier-boundary-native-evidence/clock-restoration.json",
+            "sha256": "1344a82b9e05f6a6d340902cc53345d7f11304e4d0b72fca21a4be753882949d",
+            "size": 1079
+          },
+          {
+            "path": "z03c-supplier-boundary-native-evidence/installed-sql-history.json",
+            "sha256": "d3964e0a61dacd98304d48a92b2547e5857d0eac61ffb08b1db1e9670796068f",
+            "size": 8979
+          },
+          {
+            "path": "z03c-supplier-boundary-native-evidence/native-junit.xml",
+            "sha256": "eadda9b50aee2945f77567ae1f302cc61699a0a6baafb83af7edb9af20e1671a",
+            "size": 1376
+          },
+          {
+            "path": "z03c-supplier-boundary-native-evidence/native.log",
+            "sha256": "b600a9c9f5b0049d4d794ea715a3a8eb8699cb1ee18ffc6dec52b328ef67cb12",
+            "size": 1043
+          },
+          {
+            "path": "z03c-supplier-boundary-native-evidence/product-boundary-receipt.json",
+            "sha256": "a302cac8a1f10e3ea970485060942d9b00c1a0476860656d11f98e70d4f73427",
+            "size": 390100
+          },
+          {
+            "path": "z03c-supplier-boundary-native-evidence/receipt.json",
+            "sha256": "91bc372a94c12ab0bc60876a9e837c3e3eaff738fe4ff305e04b5822b4a7912a",
+            "size": 783
+          },
+          {
+            "path": "z03c-supplier-boundary-native-evidence/runtime-generated-comparison-inputs.json",
+            "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356",
+            "size": 3
+          },
+          {
+            "path": "z03c-supplier-boundary-native-evidence/source-identity-before.json",
+            "sha256": "d7e10622b688b32025b6b3d4c8a47a07b0fc7733385ac216a8c2bdb89d44da7f",
+            "size": 2553787
+          },
+          {
+            "path": "z03c-supplier-boundary-native-evidence/sync-restoration-observations.json",
+            "sha256": "19568cf475a3018b6e96f32428aa9f19c7c8ce8033f47810bd2614c567be841b",
+            "size": 1177
+          }
+        ],
+        "excluded": [
+          {
+            "path": "z03c-supplier-boundary-native-evidence/bootstrap.log",
+            "sha256": "ef622c8f065bdd8e1b32467f88fd870f5457a39014560861bd709607cfe934fe",
+            "size": 2012629,
+            "reason": "retains disposable local Supabase CLI default Storage S3 key values; never published"
+          }
+        ],
+        "qualification": "junit 5/5 (0 failures, 0 errors, 0 skipped) and receipt checkout_sha 35a6e30f / tree 92523243 / workflow_run_id 39138451143 / exit_code 0 are inside the subset; member hashes recomputed from the downloaded source archive whose digest equals the GitHub artifact digest. Credential scan of all published members: no key, token or connection-string values."
+      }
+    }
+  ],
+  "independent_proof_reviews": [
+    {
+      "reviewer": "E (independent non-coauthor DELIVERY reviewer, huvudagent 4 review pool)",
+      "bound_head": "e1c3e56071778a14e854eb20f1d106a0685d8c2a",
+      "verdict": "DELIVERY_APPROVE; AT-Z03C-SUPPLIER PASSED-eligible: yes; AT-Z04C-SUPPLIER: not approvable",
+      "locator": "https://github.com/heke99/gridex-ops-platform/pull/820#issuecomment-6252835756",
+      "sha256": "d3c4e7a007aeeb59a73c958f849004c856ed93f29062d72b091597626e1554f1"
+    },
+    {
+      "reviewer": "F (independent non-coauthor DELIVERY reviewer, huvudagent 4 review pool)",
+      "bound_head": "e1c3e56071778a14e854eb20f1d106a0685d8c2a",
+      "verdict": "DELIVERY_APPROVE; AT-Z03C-SUPPLIER PASSED-eligible: yes",
+      "locator": "https://github.com/heke99/gridex-ops-platform/pull/820#issuecomment-6252835899",
+      "sha256": "233bc6264d20796a653c4cb9be309f7abc879a504d71561cdbb0d1111e597157"
+    }
+  ],
+  "criteria": [
+    {
+      "criterion": "Expected: 23-DDQ-PRODAT; BGM=Z03; own field 223=Z24 on the outbound cancellation",
+      "source": "scripts/ediel-at-z03c-supplier-boundary-native.test.ts",
+      "lines": [
+        345,
+        372
+      ],
+      "observed": "Actual queued Z03C message asserts application_reference 23-DDQ-PRODAT, message_code Z03, one CCI Z13 followed by CAV Z24, BGM Z03, valid envelope, own LI only (line 359).",
+      "final_head_original": {
+        "run": 39138451143,
+        "job": 117713962572,
+        "artifact": 12141551567,
+        "head_sha": "35a6e30f7b5a3d5caad90496728c5e080e0e21e7",
+        "result": "5/5 PASS"
+      }
+    },
+    {
+      "criterion": "Given: reference the correct original case/object/customer",
+      "source": "scripts/ediel-at-z03c-supplier-boundary-native.test.ts",
+      "lines": [
+        345,
+        372
+      ],
+      "observed": "Queued message binds original_message_id, switch_request_id, customer_id, site_id, metering_point_id, sender/receiver and transaction_reference to the sealed own original; one origin/intent/request/outbox each; original seal unchanged; decoy unchanged (351-368).",
+      "final_head_original": {
+        "run": 39138451143,
+        "job": 117713962572,
+        "artifact": 12141551567,
+        "head_sha": "35a6e30f7b5a3d5caad90496728c5e080e0e21e7",
+        "result": "5/5 PASS"
+      }
+    },
+    {
+      "criterion": "Given: L at the latest 4 days before start; LK at the latest on the move-in day",
+      "source": "scripts/ediel-at-z03c-supplier-boundary-native.test.ts",
+      "lines": [
+        344,
+        345,
+        373
+      ],
+      "observed": "Controlled clock: L at start-4 is allowed, L at start-3 and LK at start+1 are held with source_z03_cancellation_calendar_window and no effects (refuseCalendar 286-294).",
+      "supplementary": {
+        "source": "scripts/ediel-cancellation-public-acceptance-native.test.ts",
+        "lines": [
+          975,
+          994
+        ],
+        "observed": "Actual prospective LK public input at day0 is authorized and queued (cancellation_requested)."
+      },
+      "final_head_original": {
+        "run": 39138451143,
+        "job": 117713962572,
+        "artifact": 12141551567,
+        "head_sha": "35a6e30f7b5a3d5caad90496728c5e080e0e21e7",
+        "result": "5/5 PASS"
+      }
+    },
+    {
+      "criterion": "Expected: mark cancellation requested; not complete on SMTP 250 alone; CONTRL and APERAK then per the Z04C flow",
+      "source": "scripts/ediel-cancellation-public-acceptance-native.test.ts",
+      "lines": [
+        587,
+        621,
+        558
+      ],
+      "observed": "After prepare: cancellation_requested, completed null (599); provider 250 send keeps cancellation_requested (600-603); physical positive CONTRL then APERAK keep cancellation_requested and period unchanged (604-608); only the causal received Z04C completes cancelled_before_start and cancels the own confirmed future period (609-614); own positive APERAK+CONTRL produced and sent via sendOwnAcks (615; asserted at 558-562), replay leaves owned effects unchanged (616-618), original/permissions unchanged (619); decoy unchanged (620).",
+      "final_head_original": {
+        "run": 39138451084,
+        "job": 117707720946,
+        "artifact": 12140684102,
+        "head_sha": "35a6e30f7b5a3d5caad90496728c5e080e0e21e7",
+        "result": "33/33 PASS"
+      }
+    },
+    {
+      "criterion": "Prohibited: wrong role",
+      "source": "scripts/ediel-cancellation-public-acceptance-native.test.ts",
+      "lines": [
+        962,
+        973
+      ],
+      "observed": "Foreign actor gets 42501 switch_cancellation_actor_forbidden; revoked own supplier role gets P0001 ediel_inbound_legal_context_required; switch, original and origins unchanged.",
+      "supplementary": [
+        {
+          "source": "__tests__/ediel-at-z03c-supplier-queue.test.ts",
+          "lines": [
+            114,
+            118
+          ],
+          "observed": "ESCO actorRole held with prodat_actor_role_not_allowed before reservation; no finalizer/queue."
+        },
+        {
+          "source": "__tests__/ediel-at-z03c-supplier-queue.test.ts",
+          "lines": [
+            120,
+            135
+          ],
+          "observed": "Revoked authority at source/reservation/after finalization never queues."
+        },
+        {
+          "source": "__tests__/ediel-at-z03c-z05c-supplier-profile.test.ts",
+          "lines": [
+            137,
+            141
+          ],
+          "observed": "ESCO DGI application profile refused for Z03C."
+        }
+      ],
+      "final_head_original": {
+        "run": 39138451084,
+        "job": 117707720946,
+        "artifact": 12140684102,
+        "head_sha": "35a6e30f7b5a3d5caad90496728c5e080e0e21e7",
+        "result": "33/33 PASS"
+      }
+    },
+    {
+      "criterion": "Prohibited: wrong direction or mutation of the bound message",
+      "source": "scripts/ediel-at-z03c-supplier-boundary-native.test.ts",
+      "lines": [
+        329,
+        343
+      ],
+      "observed": "Actual triggers refuse raw_payload change (23514 immutable_ediel_payload_cannot_change), direction change and original_message_id rebinding (P0001 switch_cancellation_bound_message_immutable); no effects; decoy unchanged.",
+      "supplementary": {
+        "source": "__tests__/ediel-at-z03c-supplier-required-fields.test.ts",
+        "lines": [
+          160,
+          170
+        ],
+        "observed": "The builder refuses a non-Z03 (grid-owner direction Z04) intent before bytes; a built Z03C received inbound is a direction review with no supply or cancellation lifecycle."
+      },
+      "final_head_original": {
+        "run": 39138451143,
+        "job": 117713962572,
+        "artifact": 12141551567,
+        "head_sha": "35a6e30f7b5a3d5caad90496728c5e080e0e21e7",
+        "result": "5/5 PASS"
+      }
+    },
+    {
+      "criterion": "Prohibited: missing R/D fields",
+      "source": "scripts/ediel-at-z03c-supplier-boundary-native.test.ts",
+      "lines": [
+        309,
+        328
+      ],
+      "observed": "Lawful reservation with own RFF+LI removed is refused by the actual customer-masterdata owner (customer_masterdata_cancellation_actual_wire_required); no bound message, queue or effect.",
+      "supplementary": [
+        {
+          "source": "__tests__/ediel-at-z03c-z05c-supplier-profile.test.ts",
+          "lines": [
+            99,
+            135
+          ],
+          "observed": "Component Z03C profile: own diagnostics for missing 314/226/260/227/223, own cancellation date 210 not borrowed from sibling, malformed date, installation parent and invoicee children."
+        },
+        {
+          "source": "__tests__/ediel-at-z03c-supplier-required-fields.test.ts",
+          "lines": [
+            116,
+            159
+          ],
+          "observed": "Full component sweep through the actual outbound cancellation builder and whole canonical policy: every Z03 R field of the frozen 26.A column (23 numbered fields plus END_USER_GROUP) omitted individually yields its own diagnostic; D fields with condition met (229 registered address, 233/234 present installation parent, separate contract invoicee group and children 250/251/252/253/317/318) are held; complete built Z03C has no blocking issue."
+        }
+      ],
+      "final_head_original": {
+        "run": 39138451143,
+        "job": 117713962572,
+        "artifact": 12141551567,
+        "head_sha": "35a6e30f7b5a3d5caad90496728c5e080e0e21e7",
+        "result": "5/5 PASS"
+      }
+    },
+    {
+      "criterion": "Prohibited: wrong correlation",
+      "source": "__tests__/ediel-switch-cancellation-customer-source.test.ts",
+      "lines": [
+        198,
+        230
+      ],
+      "observed": "Component: forged native original customer/intent/hash and foreign/forged preparation operation/switch/actor/intent/route/original/hash/environment are rejected before finalization.",
+      "supplementary": [
+        {
+          "source": "scripts/ediel-at-z03c-supplier-boundary-native.test.ts",
+          "lines": [
+            329,
+            343
+          ],
+          "observed": "Native: rebinding the bound message to the decoy original is refused."
+        },
+        {
+          "source": "__tests__/ediel-at-z03c-supplier-queue.test.ts",
+          "lines": [
+            107,
+            112
+          ],
+          "observed": "Detached intent scope (company/switch/operation/family/code) rejected before source access."
+        }
+      ]
+    }
+  ],
+  "premises": {
+    "database": "Actual disposable PostgreSQL native replay on GitHub-hosted runners",
+    "authority": "Constructed tenant/market/role/registry/signed-source/mail inputs; synthetic network-registry issuer competence",
+    "external_transport": "Declared SMTP/provider double (synthetic 250); not authentic external delivery",
+    "clock": "Controlled hosted VM clock for the calendar-window boundary (preflight + restoration verified); not elapsed market time",
+    "history": "No natural 14-day or authentic market history (actual_elapsed_14_days=false)",
+    "counterparty": "No live counterparty; physical CONTRL/APERAK are rendered by the actual renderer from the tenant's own sent original",
+    "unit_tests": "Tagged component tests are finite ports, not native or physical ACK proof"
+  },
+  "source_applicability": {
+    "executed_head": "cd152e72f286f27bdb3d20f9f4eea9f8d40904a6",
+    "executed_tree": "967d34dff98721bad9be5709d78cadafb737a4a0",
+    "current_main": "dbbfee16abef0bdf6ca455088c21e7e6f089138a",
+    "current_main_tree": "1f6e8f57cca4113bda5b560ec8bd5d95d2f38a1a",
+    "ancestor": true,
+    "commits_between": 13,
+    "runtime_paths_changed": {
+      "lib": 0,
+      "supabase": 0,
+      "scripts": 0,
+      "__tests__": 0,
+      ".github": 0,
+      "package.json": 0,
+      "package-lock.json": 0
+    },
+    "changed_paths": [
+      ".agent-memory/README.md",
+      ".agent-memory/api-doc-final-ae25-root-20261017-checkpoint.md",
+      ".agent-memory/checkpoint.json",
+      ".agent-memory/current-state.md",
+      ".agent-memory/current-task.md",
+      ".agent-memory/ediel-claude-claims-docs-20261015.json",
+      ".agent-memory/handover.md",
+      ".agent-memory/masterplan-agent-workflow.md",
+      ".agent-memory/masterplan-current-start.md",
+      ".agent-memory/masterplan-five-agent-prompt-20261012.md",
+      ".agent-memory/masterplan-reservations.md",
+      ".agent-memory/open-blockers.md",
+      ".agent-memory/work-plan.md",
+      ".agents/tools/masterplan-claim.py",
+      ".agents/tools/masterplan-claim.test.py",
+      ".claude/settings.json",
+      "AGENTS.md",
+      "app/developers/customer-portal-api/page.tsx",
+      "app/developers/staff-api/page.tsx",
+      "docs/api-index.md",
+      "quality/audits/2026-10-12-ops-api-contracts/README.md"
+    ],
+    "verdict": "PENDING independent review; all changed paths are agent memory, agent tooling/settings, AGENTS.md, two developer documentation page texts and documentation. No executed test, helper, workflow, library, migration or schema input differs, so the cd152e72 originals are proposed as applicable to dbbfee16 without relabelling them.",
+    "command": "git diff --name-only cd152e72 dbbfee16; git diff --stat cd152e72 dbbfee16 -- lib supabase scripts __tests__ .github",
+    "pr_final_head": {
+      "head": "35a6e30f7b5a3d5caad90496728c5e080e0e21e7",
+      "tree": "9252324391679c5c70f45ef96b50c06edd77d08f",
+      "base": "f8c99f40bb04bba2a7319ee4ee111eec8acdebd4",
+      "runtime_change": "supabase/migrations/20261018100000_ediel_z04c_current_sender_registry.sql only: adds the Z04/Z24 current-sender guard and duplicate-C hold to gridex_received_sources.other_supply_scope_effect_v1 (inbound received Z04 owner); plus byte-exact capture import of schema/types/fingerprint.",
+      "criteria_rebound_to_final_head": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "criteria_reused_from_cd152e72": [],
+      "reuse_basis": "Not needed: every native criterion is bound to an original executed on this exact head. The cd152e72 originals remain historical corroboration only.",
+      "criterion_7": "component test unchanged; runs in ordinary CI on the final head.",
+      "command": "git diff --stat dbbfee16 d123c00221a62f816a151277095f2ac4ebb0e074 -- lib supabase/migrations scripts/helpers __tests__/helpers",
+      "main_integration": {
+        "main": "3034e14d194dbf6d8add1b23a5de1d2924f3a1a7",
+        "merge_tree": "cfd2679b0155f1476067ca88dd05f30c1cb59434",
+        "paths_changed_vs_35a6e30f_outside_quality": [
+          ".github/workflows/ediel-z03c-supplier-boundary-native.yml"
+        ],
+        "note": "Only the already-delivered main version of the C03 producer workflow (stricter clock observation and preflight diagnostics) differs from the executed 35a6e30f originals; no test, helper, library, migration or schema input differs. The final head reruns the producer under ordinary gates."
+      }
+    }
+  },
+  "delivery": {
+    "status": "NOT_DELIVERED",
+    "coverage_row": "NOT_CHANGED_BY_THIS_PACKAGE",
+    "ordinary_final_head_gates": "REQUIRED",
+    "merge_role": "REQUIRED_SERIAL_OWNER_ONLY",
+    "external_legal_market_live_gates": "NOT_APPROVED",
+    "other_ids": "NOT_APPROVED"
+  },
+  "independent_proof_reviews_canonicalization": "sha256 of the report text in the locator comment: the text after the first line consisting of --- and before the closing --- footer rule, trailing newlines reduced to exactly one"
+}

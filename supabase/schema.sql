@@ -26525,6 +26525,16 @@ BEGIN
    OR sender_basis#>>'{basis,networkEdielId}' IS DISTINCT FROM wire->>'sender'
    THEN RETURN jsonb_build_object('applied',false,'reason','z05c_current_sender_network_registry_required');END IF;
  END IF;
+ -- Only a first Z04/C cancellation requires today's actual sender registry.
+ -- Historical recorded outcomes returned above retain their original truth.
+ IF wire->>'code'='Z04' AND reason='Z24' THEN
+  sender_basis:=gridex_network_registry_sources.network_for_company_v1(m.company_id,wire->>'sender',m.environment);
+  IF sender_basis->>'status' IS DISTINCT FROM 'authorized'
+   OR sender_basis#>>'{basis,companyId}' IS DISTINCT FROM m.company_id::text
+   OR sender_basis#>>'{basis,environment}' IS DISTINCT FROM m.environment
+   OR sender_basis#>>'{basis,networkEdielId}' IS DISTINCT FROM wire->>'sender'
+   THEN RETURN jsonb_build_object('applied',false,'reason','z04c_current_sender_network_registry_required');END IF;
+ END IF;
  PERFORM tp.id FROM public.tenant_ediel_profiles tp WHERE tp.company_id=m.company_id AND tp.environment=m.environment ORDER BY tp.id FOR SHARE;
  PERFORM i.id FROM public.tenant_actor_identifiers i WHERE i.company_id=m.company_id AND i.environment=m.environment ORDER BY i.id FOR SHARE;
  PERFORM r.id FROM public.tenant_actor_roles r WHERE r.company_id=m.company_id AND r.environment=m.environment ORDER BY r.id FOR SHARE;
@@ -26577,6 +26587,8 @@ BEGIN
     OR origin.customer_id IS DISTINCT FROM sw.customer_id OR origin.metering_point_id IS DISTINCT FROM sw.metering_point_id OR (m.customer_id IS NOT NULL AND m.customer_id<>sw.customer_id) OR (m.metering_point_id IS NOT NULL AND m.metering_point_id<>sw.metering_point_id)
     OR NOT EXISTS(SELECT FROM jsonb_array_elements(original->'objects') o WHERE o->>'point'=own->>'point' AND o->>'identityAgency'=own->>'identityAgency' AND o->>'li'=own->>'li' AND o->>'customerIdentity'=own->>'customerIdentity' AND o->>'start'=own->>'start' AND o->>'reason' IN ('Z22','Z23'))
     THEN RETURN jsonb_build_object('applied',false,'reason','z04c_locked_original_mismatch');END IF;
+   -- A start already cancelled by another own C is a held duplicate.
+   IF sw.status='cancelled_before_start' THEN RETURN jsonb_build_object('applied',false,'reason','z04c_start_already_cancelled');END IF;
    IF (sw.status IN ('draft','prepared','queued','sent','submitted','waiting','waiting_for_z04','accepted','cancellation_requested','cancelled_before_start')) IS NOT TRUE THEN RETURN jsonb_build_object('applied',false,'reason','z04c_effect_already_executed_compensation_required');END IF;
    SELECT array_agg(p.id ORDER BY p.id) INTO ids FROM public.customer_supply_periods p WHERE p.company_id=m.company_id AND p.customer_id=sw.customer_id AND p.metering_point_id=sw.metering_point_id AND (p.source_switch_request_id=sw.id OR p.source_message_id=sw.inbound_z04_message_id);
    IF coalesce(cardinality(ids),0)>1 THEN RETURN jsonb_build_object('applied',false,'reason','z04c_conflicting_periods');END IF;
