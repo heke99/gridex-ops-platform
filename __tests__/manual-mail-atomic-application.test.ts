@@ -33,13 +33,19 @@ const payload = (terms: Record<string, unknown> = { contractEndDate: '2027-03-31
 beforeAll(async () => {
   db = new PGlite()
   await db.exec(`
-    create role anon; create role authenticated; create role service_role bypassrls;
+    create role anon; create role authenticated; create role service_role bypassrls; create role test_hold_writer bypassrls;
     create table public.companies(id uuid primary key,is_active boolean,lifecycle_status text,closed_at timestamptz,status text);
     create table public.customers(id uuid primary key,company_id uuid,status text,archived_at timestamptz,anonymized_at timestamptz,merged_into_customer_id uuid,lifecycle_closed_at timestamptz,metadata jsonb,protected_identity boolean,personal_number text,org_number text);
     create table public.customer_sites(id uuid primary key,company_id uuid,customer_id uuid,is_active boolean,status text,archived_at timestamptz,closed_at timestamptz,protected_identity boolean,metadata jsonb,updated_at timestamptz,current_supplier_contract_end_date date,current_supplier_notice_period text,current_supplier_termination_fee numeric,current_supplier_response_status text,current_supplier_contract_status text,facility_id text,grid_area_code text,price_area_code text,grid_owner_id uuid,current_supplier_id uuid,current_supplier_name text,current_supplier_unknown boolean default true,annual_consumption_kwh numeric,resolution_status text,resolution_id uuid);
     create table public.grid_owner_information_requests(id uuid primary key,company_id uuid,customer_id uuid,customer_site_id uuid,request_type text constraint grid_owner_information_requests_request_type_check check(request_type in ('facility_identifier_lookup','facility_lookup','metering_point_lookup','grid_area_confirmation','grid_contract_information','manual_custom_donor')),status text,metadata jsonb,parsed_payload jsonb,received_payload jsonb,received_at timestamptz,completed_at timestamptz,next_follow_up_at timestamptz,last_error_code text,last_error_message text,updated_at timestamptz,dispatch_status text,grid_owner_id uuid,recipient_email text,poa_id uuid);
     create table public.manual_inbound_messages(id uuid primary key,company_id uuid,request_id uuid,customer_id uuid,customer_site_id uuid,resolution_status text,extracted_payload jsonb,received_at timestamptz,processing_state text);
     create table public.supplier_switch_requests(id uuid primary key,company_id uuid,customer_id uuid,site_id uuid,customer_site_id uuid,status text,requested_start_date date,metadata jsonb,submitted_at timestamptz,completed_at timestamptz,paused_at timestamptz,lifecycle_blocked boolean,outbound_z03_message_id uuid,updated_at timestamptz,request_type text);
+    alter table public.supplier_switch_requests add column prodat_variant text,add column prodat_reason text;
+    create table public.ediel_messages(id uuid primary key,company_id uuid,environment text,direction text,message_family text,message_code text,customer_id uuid,site_id uuid,switch_request_id uuid);
+    create schema gridex_ediel_transport;
+    create table gridex_ediel_transport.attempts(id uuid primary key,message_id uuid,company_id uuid,environment text,actor_user_id uuid,owner jsonb,binding jsonb,created_at timestamptz default now(),entered_at timestamptz,observed_at timestamptz,classification text,provider_result jsonb);
+    create schema gridex_received_sources;
+    create table gridex_received_sources.switch_originals(message_id uuid primary key,company_id uuid,switch_id uuid,original_object jsonb);
     create table public.powers_of_attorney(id uuid primary key,company_id uuid,customer_id uuid,site_id uuid,customer_site_id uuid,document_id uuid,status text,revoked_at timestamptz,valid_from date,valid_to date,valid_until date,expires_at timestamptz,signed_at timestamptz,accepted_at timestamptz,legal_text_version_id uuid,evidence_payload jsonb,fullmakt_snapshot jsonb,signed_scope_snapshot jsonb,scope_summary jsonb,scope text,contract_id uuid,customer_contract_id uuid,metering_point_id uuid);
     create table public.customer_authorization_documents(id uuid primary key,company_id uuid,customer_id uuid,site_id uuid,power_of_attorney_id uuid,status text,document_type text,customer_contract_id uuid,metering_point_id uuid);
     create table public.authorization_scopes(id uuid primary key,company_id uuid,customer_id uuid,authorization_document_id uuid,status text,revoked_at timestamptz,valid_from date,valid_to date,covers_current_supplier_contract boolean);
@@ -64,14 +70,23 @@ beforeAll(async () => {
         return jsonb_build_object('ok',true,'resolutionId','canonical-resolution','facilityId',p_facility_id,'source',p_source,'meteringPointRecordId','${OTHER}');
       end $$;
     grant all on all tables in schema public to service_role;
+    grant select,update on public.grid_owner_information_requests to test_hold_writer;
+    grant select on public.customer_sites to test_hold_writer;
   `)
+  // Use the existing native date decoder unchanged. Native source creation and
+  // admission remain independent dependencies; fixtures provide their rows.
+  const nativeSql = fs.readFileSync('supabase/migrations/20260930144205_ediel_permission_source_atomic_transitions.sql', 'utf8')
+  const dateStart = nativeSql.indexOf('CREATE FUNCTION gridex_received_sources.permission_date_v1(')
+  const dateEnd = nativeSql.indexOf('CREATE FUNCTION gridex_received_sources.permission_time_v1(', dateStart)
+  await db.exec(nativeSql.slice(dateStart, dateEnd))
+  await db.exec(`create function public.test_manual_transport_enter(p_id uuid) returns void language plpgsql security definer set search_path=public as $$begin update gridex_ediel_transport.attempts set entered_at=now() where id=p_id;end$$; grant execute on function public.test_manual_transport_enter(uuid) to service_role`)
   await db.exec(fs.readFileSync(SQL_PATH, 'utf8'))
 })
 
 afterAll(async () => { await db.close() })
 beforeEach(async () => {
   await db.exec(`
-    truncate public.companies,public.customers,public.customer_sites,public.grid_owner_information_requests,public.manual_inbound_messages,public.supplier_switch_requests,public.customer_info_requests,public.electricity_suppliers,public.platform_market_actors,public.platform_actor_contacts,public.grid_owners,public.manual_email_outbox,public.platform_actor_roles,public.customer_operation_events,public.metering_points,public.powers_of_attorney,public.customer_authorization_documents,public.authorization_scopes,public.customer_contracts,public.customer_site_resolution;
+    truncate public.companies,public.customers,public.customer_sites,public.grid_owner_information_requests,public.manual_inbound_messages,public.supplier_switch_requests,public.customer_info_requests,public.electricity_suppliers,public.platform_market_actors,public.platform_actor_contacts,public.grid_owners,public.manual_email_outbox,public.platform_actor_roles,public.customer_operation_events,public.metering_points,public.powers_of_attorney,public.customer_authorization_documents,public.authorization_scopes,public.customer_contracts,public.customer_site_resolution,public.ediel_messages,gridex_ediel_transport.attempts,gridex_received_sources.switch_originals;
     insert into public.companies values ('${CO}',true,'active',null,'active'),('${OTHER}',true,'active',null,'active');
     insert into public.customers values ('${CUSTOMER}','${CO}','active',null,null,null,null,'{}',false,'199001010015',null);
     insert into public.customer_sites(id,company_id,customer_id,is_active,status,protected_identity,metadata,grid_owner_id) values ('${SITE}','${CO}','${CUSTOMER}',true,'active',false,'{}','${OTHER}');
@@ -89,7 +104,7 @@ beforeEach(async () => {
     insert into public.platform_actor_contacts values ('${CONTACT}','${ACTOR}','avtal@supplier.example',true,now(),'email','poa',null,null);
     insert into public.metering_points values ('${OTHER}','${CO}','${CUSTOMER}','${SITE}','${SITE}','hourly','{}',null,'735999123456789001','735999123456789001','735999123456789001');
     insert into public.grid_owners values ('${OTHER}',true,false,'verified');
-    insert into public.supplier_switch_requests values ('${SWITCH}','${CO}','${CUSTOMER}','${SITE}','${SITE}','draft','2027-03-01','{}',null,null,null,false,null,null,'switch');
+    insert into public.supplier_switch_requests values ('${SWITCH}','${CO}','${CUSTOMER}','${SITE}','${SITE}','draft','2027-03-01','{}',null,null,null,false,null,null,'switch',null,null);
   `)
 })
 
@@ -109,6 +124,11 @@ async function unchangedReject(mutate: string, p: ReturnType<typeof payload> & {
   expect(result.ok).toBe(false)
   expect(await snapshot()).toEqual(before)
   return result
+}
+async function siblingHold(options: { receipt?: string | null; company?: string; customer?: string; site?: string; supplier?: string; status?: string; reviewed?: boolean; requestType?: string } = {}) {
+  const { receipt = '2026-10-18T13:00:00Z', company = CO, customer = CUSTOMER, site = SITE, supplier = SUPPLIER, status = 'needs_review', reviewed = false, requestType = 'current_supplier_contract_information_request' } = options
+  await db.query(`insert into public.grid_owner_information_requests(id,company_id,customer_id,customer_site_id,request_type,status,metadata,parsed_payload,received_at) values ($1,$2,$3,$4,$5,$6,$7::jsonb,'{}','2026-10-25T12:00:00Z')`, [ACTOR, company, customer, site, requestType, status, JSON.stringify({ target_party: 'current_supplier', supplier_id: supplier, customer_info_request_id: OTHER, counterparty_reply: { requires_review: !reviewed, inbound_id: CONTACT, received_at: '2026-10-25T12:00:00Z' } })])
+  if (receipt !== null) await db.query(`insert into public.manual_inbound_messages(id,company_id,request_id,customer_id,customer_site_id,resolution_status,extracted_payload,received_at,processing_state) values ($1,$2,$3,$4,$5,'matched',$6::jsonb,$7,'needs_review')`, [CONTACT, company, ACTOR, customer, site, JSON.stringify({ sender_credible: true, sender_verification: { status: 'verified' }, manual_automation: { sourceHash: 'b'.repeat(64) } }), receipt])
 }
 
 describe('commercial mail transaction', () => {
@@ -232,6 +252,10 @@ describe('commercial mail transaction', () => {
   })
   it('blocks applying a date floor to an already bound outbound original', async () => {
     await unchangedReject(`update public.supplier_switch_requests set outbound_z03_message_id='${OTHER}'`)
+  })
+  it('rolls back all facts when a binding appears after the first outbound check', async () => {
+    await db.exec(`create function public.simulate_concurrent_native_binding() returns trigger language plpgsql as $$begin update public.supplier_switch_requests set status='prepared',outbound_z03_message_id='${OTHER}';return new;end$$;create trigger simulate_binding before update on public.customer_sites for each row when(new.current_supplier_response_status='free_to_switch') execute function public.simulate_concurrent_native_binding()`)
+    try { await unchangedReject('') } finally { await db.exec('drop trigger simulate_binding on public.customer_sites;drop function public.simulate_concurrent_native_binding()') }
   })
   it.each(['anon', 'authenticated'])('denies direct execution to %s', async role => {
     await expect(db.transaction(async tx => { await tx.exec(`set local role ${role}`); await tx.query('select public.gridex_apply_manual_commercial_reply_v1($1,$2,$3,$4::jsonb)', [CO, REQUEST, INBOUND, JSON.stringify(payload())]) })).rejects.toThrow(/permission denied/)
@@ -415,6 +439,24 @@ describe('complete supplier terms snapshot proof', () => {
     await apply()
     expect(await verified()).toBe(true)
   })
+  it.each(['2026-10-18T13:00:00Z','2026-10-18T12:00:00Z',null])('rejects a sibling unresolved hold with a newer/equal or unavailable source receipt (%s)', async receipt => {
+    await apply()
+    await siblingHold({ receipt })
+    expect(await verified()).toBe(false)
+  })
+  it('uses the durable older hold receipt rather than its later processing/request timestamp', async () => {
+    await apply()
+    await siblingHold({ receipt: '2026-10-18T11:00:00Z' })
+    expect(await verified()).toBe(true)
+  })
+  it.each([
+    { company: OTHER }, { customer: OTHER }, { site: OTHER }, { supplier: OTHER }, { requestType: 'facility_lookup' },
+    { status: 'cancelled' }, { status: 'closed' }, { status: 'completed' }, { reviewed: true },
+  ])('does not apply an irrelevant or resolved sibling hold (%j)', async options => {
+    await apply()
+    await siblingHold(options)
+    expect(await verified()).toBe(true)
+  })
   it.each([
     "update public.grid_owner_information_requests set status='needs_review'",
     `update public.grid_owner_information_requests set metadata=jsonb_set(metadata,'{counterparty_reply}','{"requires_review":true}')`,
@@ -438,6 +480,32 @@ describe('complete supplier terms snapshot proof', () => {
     const s = await row('customer_sites')
     const snapshot = (s.metadata as { manual_supplier_terms: object }).manual_supplier_terms
     expect(await verified({ ...snapshot, customerId: OTHER })).toBe(false)
+  })
+})
+
+describe('open commercial counterparty updates share the transport serialization row', () => {
+  async function openHoldLock(patch: { requestType?: string; status?: string; reviewed?: boolean } = {}, role = 'service_role') {
+    if (patch.requestType) await db.query('update public.grid_owner_information_requests set request_type=$1', [patch.requestType])
+    return db.transaction(async tx => {
+      await tx.exec(`set local role ${role}`)
+      await tx.query("update public.grid_owner_information_requests set status=$1,received_at=now(),metadata=jsonb_set(metadata,'{counterparty_reply}',$2::jsonb) where id=$3", [patch.status ?? 'needs_review', JSON.stringify({ requires_review: !patch.reviewed, inbound_id: INBOUND }), REQUEST])
+    })
+  }
+  it('retains the existing server open update without changing site facts', async () => {
+    const site = await row('customer_sites')
+    await openHoldLock()
+    expect(await row('customer_sites')).toEqual(site)
+  })
+  it('requires actual site row-lock permission before recording an unresolved commercial hold', async () => {
+    // PGlite has one session. UPDATE permission is required by PostgreSQL for
+    // SELECT FOR UPDATE, so this exercises the lock statement without claiming
+    // a parallel native/send attestation or relying on its reduced pg_locks.
+    const before = await snapshot()
+    await expect(openHoldLock({}, 'test_hold_writer')).rejects.toThrow(/permission denied.*customer_sites/)
+    expect(await snapshot()).toEqual(before)
+  })
+  it.each([{ requestType: 'facility_lookup' }, { status: 'cancelled' }, { reviewed: true }])('does not require that extra site lock for an irrelevant or resolved hold (%j)', async patch => {
+    await expect(openHoldLock(patch, 'test_hold_writer')).resolves.toBeUndefined()
   })
 })
 
@@ -747,5 +815,141 @@ describe('explicit customer identity numbers in commercial replies', () => {
     await db.exec("update public.customers set personal_number=null,org_number='5566778899'")
     await unchangedReject('', { ...payload(), extracted: { org_number: '556677-8800' } } as ReturnType<typeof payload>)
     expect(await apply({ ...payload(), extracted: { org_number: '556677-8899' } } as ReturnType<typeof payload>)).toMatchObject({ ok: true, complete: true })
+  })
+})
+
+// These tests execute the new trigger at the real journal boundary. They do
+// not replace the native owner/source qualification or claim native attestation.
+describe('manual supplier facts at first physical transport entry', () => {
+  async function prepared(positive = true, originalStart = '202704010000+0200') {
+    if (positive) expect(await apply()).toMatchObject({ ok: true, complete: true })
+    await db.exec(`update public.supplier_switch_requests set status='prepared',outbound_z03_message_id='${OTHER}';insert into public.ediel_messages values ('${OTHER}','${CO}','production','outbound','PRODAT','Z03','${CUSTOMER}','${SITE}','${SWITCH}');insert into gridex_received_sources.switch_originals values ('${OTHER}','${CO}','${SWITCH}','{"reason":"Z22","start":"${originalStart}"}');insert into gridex_ediel_transport.attempts(id,message_id,company_id,environment,actor_user_id,owner,binding) values ('${ACTOR}','${OTHER}','${CO}','production','${CONTACT}','{"kind":"direct"}','{}')`)
+  }
+  async function enter() {
+    return db.transaction(async tx => {
+      await tx.exec('set local role service_role')
+      await tx.query('select public.test_manual_transport_enter($1)', [ACTOR])
+    })
+  }
+  async function attempt() { return (await db.query<{ entered_at: Date | null; observed_at: Date | null }>('select entered_at,observed_at from gridex_ediel_transport.attempts')).rows[0] }
+  async function denied(message = 'manual_supplier_transport_not_ready') {
+    const before = await snapshot()
+    await expect(enter()).rejects.toThrow(message)
+    expect((await attempt()).entered_at).toBeNull()
+    expect(await snapshot()).toEqual(before)
+  }
+  it('permits the exact complete source and its bound original at the verified floor', async () => {
+    await prepared()
+    let providerCalls = 0
+    await enter()
+    providerCalls += 1
+    expect(providerCalls).toBe(1)
+    expect((await attempt()).entered_at).toBeInstanceOf(Date)
+  })
+  it.each(['waiting_response','manual_review','binding_period','termination_fee','blocked'])('denies %s without any prior manual snapshot', async status => {
+    await prepared(false)
+    await db.query('update public.customer_sites set current_supplier_response_status=$1', [status])
+    let providerCalls = 0
+    await expect((async () => { await enter(); providerCalls += 1 })()).rejects.toThrow('manual_supplier_transport_not_ready')
+    expect(providerCalls).toBe(0)
+    expect((await attempt()).entered_at).toBeNull()
+  })
+  it('denies an active initial commercial inquiry even if the site status was cleared', async () => {
+    await prepared(false)
+    await denied()
+  })
+  it('does not let a second move request with the same outbound reference exempt the canonical normal switch', async () => {
+    await prepared(false)
+    // Put the unrelated move first in heap order, as the unqualified previous
+    // lookup selected whichever row happened to reference this message first.
+    await db.exec(`update public.supplier_switch_requests set id='${ACTOR}',request_type='move_in';insert into public.supplier_switch_requests select (jsonb_populate_record(null::public.supplier_switch_requests,to_jsonb(ss)||jsonb_build_object('id','${SWITCH}','request_type','switch'))).* from public.supplier_switch_requests ss where id='${ACTOR}';update public.customer_sites set current_supplier_response_status='waiting_response'`)
+    await denied()
+  })
+  it('rejects a dangling canonical switch ID when a bound normal switch references the message', async () => {
+    await prepared(false)
+    await db.exec(`update public.ediel_messages set switch_request_id='${ACTOR}'`)
+    await denied()
+  })
+  it('rejects a missing canonical request when the message site still has a manual supplier inquiry', async () => {
+    await prepared(false)
+    await db.exec('delete from public.supplier_switch_requests')
+    await denied()
+  })
+  it('does not exempt a canonical move that does not own the exact message reference', async () => {
+    await prepared(false)
+    await db.exec(`update public.supplier_switch_requests set request_type='move_in',outbound_z03_message_id='${ACTOR}'`)
+    await denied()
+  })
+  it('leaves a missing nonmanual legacy source to the unchanged native source guard', async () => {
+    await prepared(false)
+    await db.exec('delete from public.supplier_switch_requests;delete from public.grid_owner_information_requests')
+    await enter()
+    expect((await attempt()).entered_at).toBeInstanceOf(Date)
+  })
+  it('denies a newer held conversation while preserving the already bound switch', async () => {
+    await prepared()
+    await db.exec("update public.grid_owner_information_requests set status='needs_review',metadata=jsonb_set(metadata,'{counterparty_reply}','{\"requires_review\":true}');update public.customer_sites set current_supplier_response_status='manual_review'")
+    await denied()
+    expect(await row('supplier_switch_requests')).toMatchObject({ status: 'prepared', outbound_z03_message_id: OTHER })
+  })
+  it('denies a held conversation even if the editable site status claims free to switch', async () => {
+    await prepared()
+    await db.exec("update public.grid_owner_information_requests set status='needs_review',metadata=jsonb_set(metadata,'{counterparty_reply}','{\"requires_review\":true}')")
+    await denied()
+  })
+  it('denies a later unresolved sibling hold even while the old source and site status still claim free to switch', async () => {
+    await prepared()
+    await siblingHold()
+    await denied()
+  })
+  it('denies a bound original whose date predates the verified floor even when the projected request date is correct', async () => {
+    await prepared(true, '202703010000+0100')
+    await denied('manual_supplier_transport_start_before_floor')
+  })
+  it('denies a changed projected request date below the verified floor', async () => {
+    await prepared()
+    await db.exec("update public.supplier_switch_requests set requested_start_date='2027-03-01'")
+    await denied('manual_supplier_transport_start_before_floor')
+  })
+  it('denies a source snapshot for a supplier who is no longer current', async () => {
+    await prepared()
+    await db.exec(`update public.customer_sites set current_supplier_id='${OTHER}'`)
+    await denied()
+  })
+  it('does not trust removal of the editable snapshot while a durable commercial application exists', async () => {
+    await prepared()
+    await db.exec("update public.customer_sites set metadata='{}'")
+    await denied()
+  })
+  it.each([
+    "request_type='move_in'", "request_type='move_out_takeover'", "prodat_variant='LK'", "prodat_variant='C'", "prodat_reason='Z24'", "status='cancellation_requested'",
+  ])('preserves a separate move/cancellation lane (%s)', async patch => {
+    await prepared(false)
+    await db.exec(`update public.supplier_switch_requests set ${patch};update public.customer_sites set current_supplier_response_status='manual_review'`)
+    await enter()
+    expect((await attempt()).entered_at).toBeInstanceOf(Date)
+  })
+  it('preserves the unrelated Z08 transport lane', async () => {
+    await prepared(false)
+    await db.exec("update public.ediel_messages set message_code='Z08';update public.customer_sites set current_supplier_response_status='manual_review'")
+    await enter()
+    expect((await attempt()).entered_at).toBeInstanceOf(Date)
+  })
+  it('preserves legacy clear normal switches with no manual workflow or snapshot', async () => {
+    await prepared(false)
+    await db.exec('delete from public.grid_owner_information_requests')
+    await enter()
+    expect((await attempt()).entered_at).toBeInstanceOf(Date)
+  })
+  it('preserves observation and historical entry replay after the first physical entry', async () => {
+    await prepared()
+    await enter()
+    await db.exec("update public.customer_sites set current_supplier_response_status='manual_review';update gridex_ediel_transport.attempts set observed_at=now(),classification='accepted';update gridex_ediel_transport.attempts set entered_at=entered_at")
+    expect((await attempt()).observed_at).toBeInstanceOf(Date)
+  })
+  it('also guards a new attempt inserted with its entry time already set', async () => {
+    await prepared(false)
+    await db.exec("update public.customer_sites set current_supplier_response_status='waiting_response';delete from gridex_ediel_transport.attempts")
+    await expect(db.exec(`insert into gridex_ediel_transport.attempts(id,message_id,company_id,environment,entered_at) values ('${ACTOR}','${OTHER}','${CO}','production',now())`)).rejects.toThrow('manual_supplier_transport_not_ready')
   })
 })

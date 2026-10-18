@@ -251,6 +251,13 @@ begin
     or (terms ? 'contractStatus' and site->>'current_supplier_contract_status' is not null and site->>'current_supplier_contract_status'<>terms->>'contractStatus')
     or (fee is not null and site->>'current_supplier_termination_fee' is not null and (site->>'current_supplier_termination_fee')::numeric<>fee)
     then return jsonb_build_object('ok',false,'code','manual_reply_existing_fact_conflict'); end if;
+  -- Native original binding locks the switch row before sealing its date.
+  -- Serialize existing normal switches before examining any outbound reference;
+  -- a concurrent binder must either finish first or observe the raised date.
+  perform ss.id from public.supplier_switch_requests ss
+    where ss.company_id=p_company_id and ss.customer_id=v_customer_id and coalesce(ss.customer_site_id,ss.site_id)=v_site_id
+      and ss.request_type='switch' and (ss.site_id is null or ss.site_id=v_site_id) and (ss.customer_site_id is null or ss.customer_site_id=v_site_id)
+    order by ss.id for update;
   if effective is not null and exists(select 1 from public.supplier_switch_requests ss
     where ss.company_id=p_company_id and ss.customer_id=v_customer_id and coalesce(ss.customer_site_id,ss.site_id)=v_site_id
       and ss.outbound_z03_message_id is not null)
@@ -300,6 +307,13 @@ begin
         and ss.submitted_at is null and ss.completed_at is null and ss.paused_at is null
         and ss.outbound_z03_message_id is null and ss.lifecycle_blocked=false;
   end if;
+  -- Defense in depth against a binding introduced by a statement trigger or
+  -- another application hook after the first check. Raising rolls back every
+  -- site/request/source/event write in this command, including hook effects.
+  if effective is not null and exists(select 1 from public.supplier_switch_requests ss
+    where ss.company_id=p_company_id and ss.customer_id=v_customer_id and coalesce(ss.customer_site_id,ss.site_id)=v_site_id
+      and ss.outbound_z03_message_id is not null)
+    then raise exception 'manual_reply_outbound_original_bound' using errcode='40001'; end if;
   return jsonb_build_object('ok',true,'applied',true,'alreadyApplied',false,'complete',complete,'effectiveStartDate',effective,'customerId',v_customer_id,'customerSiteId',v_site_id);
 exception when others then
   -- PL/pgSQL exception block rolls back every write in this command.
@@ -681,6 +695,21 @@ create or replace function public.gridex_manual_supplier_terms_verified_v1(
       and s.current_supplier_id::text=r.metadata->>'supplier_id'
       and r.request_type='current_supplier_contract_information_request' and r.status='completed'
       and r.metadata#>'{counterparty_reply,requires_review}' is distinct from 'true'::jsonb
+      -- A completed conversation cannot overrule a later unresolved denial
+      -- from another inquiry to the same current supplier. Open-recorder
+      -- received_at is a processing clock: order only by its retained inbound
+      -- source, and keep an unavailable/mismatched source on review.
+      and not exists(select 1 from public.grid_owner_information_requests held
+        left join public.manual_inbound_messages held_source
+          on held_source.id::text=held.metadata#>>'{counterparty_reply,inbound_id}'
+          and held_source.request_id=held.id and held_source.company_id=held.company_id
+          and held_source.customer_id=held.customer_id and held_source.customer_site_id=held.customer_site_id
+        where held.id<>r.id and held.company_id=r.company_id and held.customer_id=r.customer_id and held.customer_site_id=r.customer_site_id
+          and held.request_type='current_supplier_contract_information_request'
+          and held.metadata->>'supplier_id'=s.current_supplier_id::text
+          and held.status not in ('cancelled','closed','completed','resolved')
+          and held.metadata#>'{counterparty_reply,requires_review}'='true'::jsonb
+          and (held_source.received_at is null or held_source.received_at>=i.received_at))
       and r.parsed_payload->>'customerInfoRequestId'=r.metadata->>'customer_info_request_id'
       and r.parsed_payload->>'supplierId'=r.metadata->>'supplier_id'
       and r.parsed_payload->>'supplierActorId'=r.metadata->>'supplier_actor_id'
@@ -991,3 +1020,107 @@ begin
 end $$;
 revoke all on function public.gridex_hold_manual_counterparty_reply_v1(uuid,uuid,uuid,jsonb) from public,anon,authenticated;
 grant execute on function public.gridex_hold_manual_counterparty_reply_v1(uuid,uuid,uuid,jsonb) to service_role;
+
+-- A prepared normal-switch original may outlive a later commercial reply.
+-- Add a first-entry checkpoint at the journal's physical-effect boundary;
+-- native owner functions, source qualification and table ACLs stay intact.
+create or replace function public.gridex_guard_manual_supplier_transport_entry_v1()
+returns trigger language plpgsql security invoker set search_path=public as $$
+declare
+  m public.ediel_messages%rowtype;
+  ss public.supplier_switch_requests%rowtype;
+  s public.customer_sites%rowtype;
+  resolved_site uuid;
+  snapshot jsonb;
+  manual_workflow boolean;
+  source_verified boolean;
+  floor_date date;
+  original_start date;
+begin
+  if new.entered_at is null or (tg_op='UPDATE' and old.entered_at is not null) then return new; end if;
+  select * into m from public.ediel_messages where id=new.message_id and company_id=new.company_id and environment=new.environment;
+  if not found or m.direction is distinct from 'outbound' or m.message_family is distinct from 'PRODAT' or m.message_code is distinct from 'Z03' then return new; end if;
+  -- Only the message's canonical owner may select its switch/move/cancel
+  -- lane. An unrelated row can share an outbound reference and proves nothing.
+  select * into ss from public.supplier_switch_requests where id=m.switch_request_id and company_id=m.company_id;
+  if not found then
+    if exists(select 1 from public.supplier_switch_requests candidate where candidate.company_id=m.company_id
+      and candidate.outbound_z03_message_id=m.id and candidate.request_type='switch')
+      or exists(select 1 from public.customer_sites candidate where candidate.id=m.site_id and candidate.company_id=m.company_id
+        and candidate.customer_id=m.customer_id and (
+          lower(coalesce(candidate.current_supplier_response_status,'')) in ('waiting_response','manual_review','binding_period','termination_fee','blocked')
+          or coalesce(candidate.current_supplier_termination_fee,0)>0 or coalesce(candidate.metadata,'{}'::jsonb) ? 'manual_supplier_terms'
+          or exists(select 1 from public.grid_owner_information_requests r where r.company_id=candidate.company_id and r.customer_id=candidate.customer_id
+            and r.customer_site_id=candidate.id and r.request_type='current_supplier_contract_information_request'
+            and r.metadata->>'supplier_id'=candidate.current_supplier_id::text and r.status not in ('cancelled','closed'))))
+      then raise exception 'manual_supplier_transport_not_ready' using errcode='23514'; end if;
+    return new; -- Unrelated legacy/native source admission remains its owner's job.
+  end if;
+  if ss.outbound_z03_message_id is distinct from m.id or ss.customer_id is distinct from m.customer_id
+    or coalesce(ss.customer_site_id,ss.site_id) is distinct from m.site_id
+    or (ss.customer_site_id is not null and ss.customer_site_id<>m.site_id) or (ss.site_id is not null and ss.site_id<>m.site_id)
+    then raise exception 'manual_supplier_transport_not_ready' using errcode='23514'; end if;
+  if ss.request_type is distinct from 'switch' or ss.status='cancellation_requested'
+    or coalesce(ss.prodat_variant,'L') in ('LK','C') or coalesce(ss.prodat_reason,'Z22')<>'Z22' then return new; end if;
+  resolved_site:=coalesce(ss.customer_site_id,ss.site_id);
+  -- Positive application and negative holds both own this row FOR UPDATE.
+  -- Take site before switch, matching the new mail commands, and retain it
+  -- through native entry. Reading request proof adds no reverse row locks.
+  select * into s from public.customer_sites where id=resolved_site and company_id=ss.company_id and customer_id=ss.customer_id for share;
+  if not found then raise exception 'manual_supplier_transport_not_ready' using errcode='23514'; end if;
+  select * into ss from public.supplier_switch_requests where id=ss.id and company_id=m.company_id for share;
+  if ss.outbound_z03_message_id is distinct from m.id or ss.customer_id is distinct from s.customer_id
+    or coalesce(ss.customer_site_id,ss.site_id) is distinct from s.id
+    or (ss.customer_site_id is not null and ss.customer_site_id<>s.id) or (ss.site_id is not null and ss.site_id<>s.id)
+    or m.switch_request_id is distinct from ss.id or m.customer_id is distinct from s.customer_id or m.site_id is distinct from s.id
+    then raise exception 'manual_supplier_transport_not_ready' using errcode='23514'; end if;
+  if ss.request_type is distinct from 'switch' or ss.status='cancellation_requested'
+    or coalesce(ss.prodat_variant,'L') in ('LK','C') or coalesce(ss.prodat_reason,'Z22')<>'Z22' then return new; end if;
+  if lower(coalesce(s.current_supplier_response_status,'')) in ('waiting_response','manual_review','binding_period','termination_fee','blocked')
+    or coalesce(s.current_supplier_termination_fee,0)>0
+    then raise exception 'manual_supplier_transport_not_ready' using errcode='23514'; end if;
+  select exists(select 1 from public.grid_owner_information_requests r
+    where r.company_id=s.company_id and r.customer_id=s.customer_id and r.customer_site_id=s.id
+      and r.request_type='current_supplier_contract_information_request' and r.metadata->>'supplier_id'=s.current_supplier_id::text
+      and r.status not in ('cancelled','closed')) into manual_workflow;
+  snapshot:=s.metadata->'manual_supplier_terms';
+  if not manual_workflow and not (coalesce(s.metadata,'{}'::jsonb) ? 'manual_supplier_terms')
+    and not (coalesce(ss.metadata,'{}'::jsonb) ? 'manual_supplier_terms') then return new; end if;
+  -- This is a separate post-lock SPI statement. Under READ COMMITTED a
+  -- hold writer we waited for has committed before this proof snapshot starts.
+  select public.gridex_manual_supplier_terms_verified_v1(s.company_id,s.customer_id,s.id,snapshot) into source_verified;
+  if lower(coalesce(s.current_supplier_response_status,''))<>'free_to_switch'
+    or source_verified is distinct from true
+    then raise exception 'manual_supplier_transport_not_ready' using errcode='23514'; end if;
+  floor_date:=public.gridex_manual_supplier_start_floor_v1(s.company_id,s.customer_id,s.id);
+  select gridex_received_sources.permission_date_v1(o.original_object->>'start') into original_start
+    from gridex_received_sources.switch_originals o where o.message_id=m.id and o.company_id=m.company_id and o.switch_id=ss.id
+      and o.original_object->>'reason'='Z22';
+  if floor_date is null or ss.requested_start_date is null or original_start is null
+    or ss.requested_start_date<floor_date or original_start<floor_date
+    then raise exception 'manual_supplier_transport_start_before_floor' using errcode='23514'; end if;
+  return new;
+end $$;
+revoke all on function public.gridex_guard_manual_supplier_transport_entry_v1() from public,anon,authenticated,service_role;
+create trigger gridex_manual_supplier_transport_first_entry
+  before insert or update of entered_at on gridex_ediel_transport.attempts
+  for each row execute function public.gridex_guard_manual_supplier_transport_entry_v1();
+
+-- The existing open-request recorder writes a hold directly to GOIR. Join it
+-- to the same site serialization row used by atomic mail application and first
+-- physical entry; retain its existing business payload and write privileges.
+create or replace function public.gridex_lock_manual_commercial_hold_site_v1()
+returns trigger language plpgsql security invoker set search_path=public as $$
+begin
+  if new.request_type is distinct from 'current_supplier_contract_information_request'
+    or new.metadata#>'{counterparty_reply,requires_review}' is distinct from 'true'::jsonb
+    or new.status in ('cancelled','closed','completed','resolved') then return new; end if;
+  perform s.id from public.customer_sites s
+    where s.company_id=new.company_id and s.customer_id=new.customer_id and s.id=new.customer_site_id
+      and s.current_supplier_id::text=new.metadata->>'supplier_id' for update;
+  return new;
+end $$;
+revoke all on function public.gridex_lock_manual_commercial_hold_site_v1() from public,anon,authenticated,service_role;
+create trigger gridex_manual_commercial_hold_site_lock
+  before update of status,metadata,received_at,company_id,customer_id,customer_site_id,request_type on public.grid_owner_information_requests
+  for each row execute function public.gridex_lock_manual_commercial_hold_site_v1();
