@@ -36,7 +36,7 @@ export async function readPoaRegister(client: Pick<SupabaseClient, 'from'>, admi
     customerKeys.length ? client.from('customers').select('id,company_id,customer_number,full_name,company_name').in('id', customerKeys).in('company_id', companyKeys) : { data: [], error: null },
     admin.isPlatformAdmin ? client.from('companies').select('id,name,legal_name,org_number').order('name').limit(500)
       : client.from('companies').select('id,name,legal_name,org_number').eq('id', companyId!),
-    powers.length ? client.from('grid_owner_information_requests').select('id,company_id,customer_id,poa_id,last_error_message,metadata').in('company_id', companyKeys).in('poa_id', powers.map((row) => String(row.id))).eq('status', 'needs_review') : { data: [], error: null },
+    powers.length ? client.from('grid_owner_information_requests').select('id,company_id,customer_id,poa_id,last_error_message,metadata').in('company_id', companyKeys).in('poa_id', powers.map((row) => String(row.id))).eq('metadata->counterparty_reply->>requires_review', 'true') : { data: [], error: null },
   ])
   for (const response of [customers, companies, requests]) if (response.error) throw response.error
   const customerRows = (customers.data ?? []) as Row[]

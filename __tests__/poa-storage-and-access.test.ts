@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { NextRequest, NextResponse } from 'next/server'
 import { createHash } from 'node:crypto'
+import { renderToStaticMarkup } from 'react-dom/server'
 import { createFakeDb, type FakeDb } from './helpers/poaMailFakeDb'
 
 type Row = Record<string, unknown>
@@ -9,7 +10,8 @@ const io = vi.hoisted(() => ({ db: null as unknown as FakeDb,
   writable: true,
 }))
 vi.mock('next/cache', () => ({ revalidatePath: () => undefined }))
-vi.mock('@/lib/admin/guards', () => ({ requireAdminActionAccess: async () => io.guard }))
+vi.mock('@/lib/admin/guards', () => ({ requireAdminActionAccess: async () => io.guard, requireAdminPageKeyAccess: async () => io.guard }))
+vi.mock('@/components/admin/AdminHeader', () => ({ default: () => null }))
 vi.mock('@/lib/supabase/server', () => ({ createSupabaseServerClient: async () => io.db.client }))
 vi.mock('@/lib/tenant/scope', () => ({ assertUserCanOperateCompany: async (_userId: string, companyId: string) => {
   if (!io.writable) throw new Error(`Bolaget ${companyId} är pausat`)
@@ -39,6 +41,7 @@ import { readPoaRegister } from '@/lib/customers/poaRegister'
 import { resolveManualReplyReview } from '@/lib/inbound-mail/manualReplyReview'
 import { GET } from '@/app/api/admin/powers-of-attorney/[powerOfAttorneyId]/document/route'
 import { resolvePoaReplyAction } from '@/app/admin/powers-of-attorney/actions'
+import PowersOfAttorneyPage from '@/app/admin/powers-of-attorney/page'
 
 const A = '11111111-1111-4111-8111-111111111111', B = '22222222-2222-4222-8222-222222222222'
 const PA = '33333333-3333-4333-8333-333333333333', PB = '44444444-4444-4444-8444-444444444444'
@@ -59,7 +62,7 @@ function seed() {
     ],
   })
 }
-beforeEach(() => { io.db = seed(); io.guard.companyId = A; io.guard.isPlatformAdmin = false; io.denied = false; io.writable = true })
+beforeEach(() => { io.db = seed(); io.guard.companyId = A; io.guard.isPlatformAdmin = false; io.guard.permissions = ['poa.read']; io.denied = false; io.writable = true })
 
 describe('private fullmakt PDF storage', () => {
   it('archives once and keeps previous original bytes when evidence is safely completed', async () => {
@@ -136,6 +139,32 @@ describe('private fullmakt PDF storage', () => {
 
 describe('tenant and superadmin fullmakt register', () => {
   const client = () => io.db.client as unknown as Parameters<typeof readPoaRegister>[0]
+  it('shows a retained completed commercial hold and resolves it through the authenticated page action', async () => {
+    io.guard.permissions = ['poa.write']
+    const held = { id: 'held-commercial', company_id: A, customer_id: 'customer-a', customer_site_id: 'site-a', poa_id: PA,
+      request_type: 'current_supplier_contract_information_request', status: 'completed', last_error_message: 'Verifierat sent avslag',
+      metadata: { counterparty_reply: { requires_review: true, inbound_id: 'late-denial', poa_id: PA } } }
+    io.db.tables.grid_owner_information_requests = [held,
+      { ...held, id: 'foreign-tenant', company_id: B },
+      { ...held, id: 'foreign-customer', customer_id: 'customer-b' },
+      { ...held, id: 'foreign-poa', poa_id: PB },
+      { ...held, id: 'already-reviewed', metadata: { counterparty_reply: { requires_review: false } } },
+    ]
+    const result = await readPoaRegister(client(), io.guard, {})
+    expect(result.powers[0].reviewRequests.map((request) => request.id)).toEqual(['held-commercial'])
+    const html = renderToStaticMarkup(await PowersOfAttorneyPage({ searchParams: Promise.resolve({}) }))
+    expect(html).toContain('Motparten begär åtgärd')
+    expect(html).toContain('value="held-commercial"')
+    expect(html).toContain('Markera åtgärdat för nytt försök')
+    expect(html).not.toContain('foreign-tenant')
+    const form = new FormData()
+    form.set('request_id', 'held-commercial'); form.set('poa_id', PA)
+    form.set('resolution_note', 'Kompletterat original och verifikatsnummer har kontrollerats.')
+    await resolvePoaReplyAction(form)
+    expect(held).toMatchObject({ status: 'ready_to_send_manual_email', metadata: { counterparty_reply: { requires_review: false, reviewed_by: io.guard.userId } } })
+    expect((await readPoaRegister(client(), io.guard, {})).powers[0].reviewRequests).toHaveLength(0)
+  })
+
   it('keeps a tenant in its canonical scope even when a different company filter is supplied', async () => {
     const result = await readPoaRegister(client(), io.guard, { company: B })
     expect(result.powers.map((row) => (row as Row).id)).toEqual([PA])
