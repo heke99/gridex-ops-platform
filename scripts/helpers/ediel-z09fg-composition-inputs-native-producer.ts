@@ -404,7 +404,13 @@ async function baseline(f:Stage){
  await captureFreshEdielSourceRulePackEvidence(f.companyId,message.id)
  const session=createReceivedSourceOwnerSession(validation);expect(session).not.toBeNull()
  expect(await applyInboundBusinessStateMachine({message,actorUserId:f.actorUserId,matchedSwitchRequestId:f.switchId,onSourceSwitchCommitted:session!.onSwitchCommitted})).toMatchObject({outcome:'supplier_switch_accepted'});await session!.finish()
- expect(await reviewReceivedStructuralSource({companyId:f.companyId,environment:'test',sourceMessageId:message.id,reviewerUserId:f.reviewer.id,confirmedOriginal:true,replacesSourceMessageId:null})).toMatchObject({status:'recorded',sourceDisposition:'accepted'})
+ const review=await reviewReceivedStructuralSource({companyId:f.companyId,environment:'test',sourceMessageId:message.id,reviewerUserId:f.reviewer.id,confirmedOriginal:true,replacesSourceMessageId:null})
+ if(review.status!=='recorded'||review.sourceDisposition!=='accepted'){
+  // Value-free diagnosis: closed receipt enums plus the owner's own fixed
+  // reason-code prefixes (text before any ':'), never ids, SQL or payloads.
+  const reasons=review.status==='recorded'?sql<string[]>(`SELECT coalesce(jsonb_agg(DISTINCT lower(split_part(r,':',1))),'[]') FROM gridex_received_sources.object_assessments a CROSS JOIN LATERAL jsonb_array_elements((a.facts_text::jsonb)->'objects') o CROSS JOIN LATERAL jsonb_array_elements_text(o->'reasons') r WHERE a.id=${literal(review.assessmentId)}`):[]
+  throw Error(['fg_baseline_review',review.status,review.sourceDisposition,...reasons].join('_').replace(/[^a-z0-9_]/g,'_').slice(0,80))
+ }
  const period=sql<string>(`SELECT to_jsonb(id) FROM public.customer_supply_periods WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(message.id)} AND metering_point_id=${literal(f.pointId)}`);expect(period).toMatch(/^[0-9a-f-]{36}$/)
  return{source:message.id,period}
 }
