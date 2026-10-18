@@ -393,12 +393,16 @@ async function baseline(f:Stage){
  const sent=await getEdielMessageById(queued.id);expect(sent?.message_sent_at).toBeTruthy()
  expect(sql(`SELECT to_jsonb(gridex_received_sources.sent_source_is_current_v1(m)) FROM public.ediel_messages m WHERE id=${literal(queued.id)}`)).toBe(true)
  const tokenized=tokenizeEdifact(sent!.raw_payload!),li=tokenized.segments.find(t=>t.tag==='RFF'&&segmentComposite(t,1,tokenized.una)[0]==='LI'),caseReference=li?segmentComposite(li,1,tokenized.una)[1]:null;expect(caseReference).toBeTruthy()
- const wire=buildCancellationProspectiveZ04({...f,caseReference:caseReference!}),receivedAt=clock()
+ // The canonical intake stores message_received_at as a millisecond ISO
+ // instant (inboundStatusUpdater.ts:457). Retained mail, reception and source
+ // must name the same instant, so the DB-clock receipt is millisecond-exact.
+ const wire=buildCancellationProspectiveZ04({...f,caseReference:caseReference!}),receivedAt=new Date(Date.parse(clock())).toISOString()
  expect(Date.parse(receivedAt)).toBeGreaterThanOrEqual(Date.parse(sent!.message_sent_at!))
  const mail=await seedOriginalMailboxNative(sql,literal,{companyId:f.companyId,environment:'test',raw:wire,receivedAt,smtpFrom:assertEdielSmtpReadiness().from})
  const outboundMatch=await matchOutboundRequestForInbound({companyId:f.companyId,parsed:mail.parsed,inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId}),meteringPointMatch=await matchMeteringPointForInbound({companyId:f.companyId,parsed:mail.parsed})
  const id=await createInboundEdielMessage({companyId:f.companyId,actorUserId:f.actorUserId,environment:'test',inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId,parsed:mail.parsed,outboundMatch,meteringPointMatch});expect(id).toMatch(/^[0-9a-f-]{36}$/)
  const message=(await getEdielMessageById(id!))!;expect(message).toMatchObject({company_id:f.companyId,environment:'test',direction:'inbound',message_code:'Z04',raw_payload:wire,inbound_email_message_id:mail.inboundEmailMessageId})
+ expect(Date.parse(message.message_received_at!)).toBe(Date.parse(receivedAt))
  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_ediel_inbound_receptions.receptions WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(id)} AND inbound_email_message_id=${literal(mail.inboundEmailMessageId)} AND parse_result_id=${literal(mail.parseResultId)} AND classification='first_reception' AND canonical_payload_hash=${literal(digest(wire))}`)).toBe(1)
  const decision=await resolveCanonicalRuntimeDecisionWithRegistry(message,{actorUserId:f.actorUserId});expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision]).toEqual(['accepted','accepted','accepted'])
  const validation=await recordReceivedSourceValidation({original:message,validated:message,resolvedCompanyId:f.companyId,decision});expect(validation.status).toBe('recorded')
