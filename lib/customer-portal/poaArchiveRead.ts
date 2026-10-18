@@ -35,7 +35,9 @@ function archiveBinding(row: Row, scope: PoaArchiveCustomerScope) {
   const path = clean(row.document_path), hash = clean(archive.sha256)
   if (!path || !hash || !HASH.test(hash) || archive.path !== path || archive.storage_bucket !== BUCKET
     || archive.evidence_sha256 !== poaMailEvidenceFingerprint(row)
-    || !isPoaVerificationReference(proof.verificationReference) || archive.verification_number !== proof.verificationReference) unavailable()
+    || !isPoaVerificationReference(proof.verificationReference)
+    || record(row.evidence_payload).verification_reference !== proof.verificationReference
+    || archive.verification_number !== proof.verificationReference) unavailable()
   const parts = /^companies\/([A-Za-z0-9_-]+)\/customers\/([A-Za-z0-9_-]+)\/powers-of-attorney\/([A-Za-z0-9_-]+)\/fullmakt-([a-f0-9]{64})\.pdf$/.exec(path)
   if (!parts || parts[1] !== scope.companyId || parts[3] !== row.id || parts[4] !== hash) unavailable()
   return { path, hash, ownerCustomerId: parts[2], verificationReference: proof.verificationReference }

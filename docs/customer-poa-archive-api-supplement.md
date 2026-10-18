@@ -214,10 +214,24 @@ in that writer’s normal turn. It does not replace the entire active document.
             "$ref": "#/components/parameters/RequestId"
           },
           {
-            "$ref": "#/components/parameters/CustomerPortalUserId"
+            "name": "x-gridex-customer-portal-user-id",
+            "in": "header",
+            "required": false,
+            "description": "Send this header or the other linked user header. Its opaque value must match the verified customer assertion subject; both, if sent, must agree.",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
           },
           {
-            "$ref": "#/components/parameters/AuthUserId"
+            "name": "x-gridex-auth-user-id",
+            "in": "header",
+            "required": false,
+            "description": "Send this header or the other linked user header. Its opaque value must match the verified customer assertion subject; both, if sent, must agree.",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
           },
           {
             "name": "x-gridex-customer-assertion",
@@ -310,7 +324,8 @@ in that writer’s normal turn. It does not replace the entire active document.
               }
             }
           }
-        }
+        },
+        "description": "Supply at least one linked x-gridex-customer-portal-user-id or x-gridex-auth-user-id matching the verified assertion subject. Opaque external-account subjects are supported. If both headers are supplied, their resolved values must be identical. Customer identifiers alone are insufficient."
       }
     },
     "/api/v1/customer/powers-of-attorney/evidence/{verificationReference}": {
@@ -336,10 +351,24 @@ in that writer’s normal turn. It does not replace the entire active document.
             "$ref": "#/components/parameters/RequestId"
           },
           {
-            "$ref": "#/components/parameters/CustomerPortalUserId"
+            "name": "x-gridex-customer-portal-user-id",
+            "in": "header",
+            "required": false,
+            "description": "Send this header or the other linked user header. Its opaque value must match the verified customer assertion subject; both, if sent, must agree.",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
           },
           {
-            "$ref": "#/components/parameters/AuthUserId"
+            "name": "x-gridex-auth-user-id",
+            "in": "header",
+            "required": false,
+            "description": "Send this header or the other linked user header. Its opaque value must match the verified customer assertion subject; both, if sent, must agree.",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
           },
           {
             "name": "x-gridex-customer-assertion",
@@ -494,7 +523,8 @@ in that writer’s normal turn. It does not replace the entire active document.
               }
             }
           }
-        }
+        },
+        "description": "Supply at least one linked x-gridex-customer-portal-user-id or x-gridex-auth-user-id matching the verified assertion subject. Opaque external-account subjects are supported. If both headers are supplied, their resolved values must be identical. Customer identifiers alone are insufficient."
       }
     }
   },

@@ -10,7 +10,7 @@ import { createFakeDb, type FakeDb } from './helpers/poaMailFakeDb'
 type Row = Record<string, unknown>
 const io = vi.hoisted(() => ({ db: null as unknown as FakeDb, binding: 'portal_account', customer: '', company: '', subject: 'synthetic-subject',
   scopes: ['customer_power_of_attorney.read', 'customer_documents.read'], downloads: [] as string[], retained: true,
-  onDownload: null as (() => void) | null, oversized: false, audits: [] as Row[] }))
+  onDownload: null as (() => void) | null, oversized: false, audits: [] as Row[], realResolver: false }))
 vi.mock('server-only', () => ({}))
 vi.mock('@/lib/supabase/service', () => ({ get supabaseService() { return { ...io.db.client, storage: { from: (bucket: string) => ({
   ...io.db.client.storage.from(bucket), download: async (path: string) => {
@@ -35,7 +35,13 @@ vi.mock('@/lib/integrations/apiAuth', () => ({
   logIntegrationApiRequest: async (input: Row) => { io.audits.push(input) },
 }))
 vi.mock('@/lib/customer-portal/customerResolver', () => ({
-  resolvePortalCustomer: async () => ({ ok: true, binding: io.binding, customer: { company_id: io.company, customer_id: io.customer, customer_portal_user_id: io.subject, auth_user_id: null } }),
+  resolvePortalCustomer: async (input: unknown) => {
+    if (io.realResolver) {
+      const actual = await vi.importActual<typeof import('@/lib/customer-portal/customerResolver')>('@/lib/customer-portal/customerResolver')
+      return actual.resolvePortalCustomer(input as Parameters<typeof actual.resolvePortalCustomer>[0])
+    }
+    return { ok: true, binding: io.binding, customer: { company_id: io.company, customer_id: io.customer, customer_portal_user_id: io.subject, auth_user_id: null } }
+  },
   portalIdentifiersFromRequest: () => ({}),
 }))
 vi.mock('@/lib/ediel/retention/customerRecordClasses', () => ({
@@ -85,7 +91,7 @@ function proposedContract() {
 
 beforeEach(async () => {
   Object.assign(io, { company: A, customer: C, binding: 'portal_account', subject: 'synthetic-subject', retained: true,
-    scopes: ['customer_power_of_attorney.read', 'customer_documents.read'], downloads: [], oversized: false, onDownload: null, audits: [] })
+    scopes: ['customer_power_of_attorney.read', 'customer_documents.read'], downloads: [], oversized: false, onDownload: null, audits: [], realResolver: false })
   resetCustomerIdentityProviderCache()
   io.db = createFakeDb({ companies: [{ id: A, name: 'Synthetic Tenant' }], customers: [{ id: C, company_id: A, full_name: 'Synthetic Signer', status: 'active' }],
     powers_of_attorney: [{ id: P, company_id: A, customer_id: C, status: 'signed', source: 'website_api', method: 'website_acceptance',
@@ -102,6 +108,26 @@ beforeEach(async () => {
 })
 
 describe('customer-authorized existing POA archive', () => {
+  it.each(['x-gridex-customer-portal-user-id', 'x-gridex-auth-user-id'])('accepts and documents a single opaque %s through the real resolver', async header => {
+    io.realResolver = true
+    io.db.tables.customer_portal_accounts = [{ id: 'synthetic-linked-account', company_id: A, customer_id: C,
+      external_account_id: io.subject, status: 'active', is_active: true }]
+    const req = request()
+    req.headers.set(header, io.subject)
+    expect((await list(req)).status).toBe(200)
+    const document = proposedContract()
+    const operation = document.paths['/api/v1/customer/powers-of-attorney/evidence'].get
+    for (const raw of operation.parameters) {
+      const parameter = raw.$ref ? document.components.parameters[raw.$ref.split('/').at(-1)] : raw
+      if (parameter.in !== 'header') continue
+      const value = req.headers.get(parameter.name)
+      if (parameter.required) expect(value, `required header ${parameter.name}`).not.toBeNull()
+      if (value !== null) {
+        expect(parameter.schema.format, 'opaque portal subjects are not restricted to UUID').not.toBe('uuid')
+        expect(validateSchema(document, value, parameter.schema)).toEqual([])
+      }
+    }
+  })
   it('validates mounted JSON responses against the proposed closed publication schemas', async () => {
     const document = proposedContract()
     const listing = await (await list(request())).json(), verification = await (await read()).json()
@@ -203,6 +229,13 @@ describe('customer-authorized existing POA archive', () => {
     expect((await (await list(request())).json()).data[0].archive_status).toBe('missing')
     expect((await read()).status).toBe(409)
     expect(io.db.storageUploads).toEqual([])
+  })
+  it('does not advertise a lookup URL for a noncanonical stored verification reference', async () => {
+    ;(poa().evidence_payload as Row).verification_reference = ` ${reference} `
+    const body = await (await list(request())).json()
+    expect(body.data[0]).toMatchObject({ archive_status: 'unavailable', download_url: null })
+    expect(io.downloads).toEqual([])
+    expect(io.db.writes.filter(row => row.table === 'powers_of_attorney')).toEqual([])
   })
   it('rejects an ambiguous verification reference', async () => {
     io.db.tables.powers_of_attorney.push({ ...structuredClone(poa()), id: D })
