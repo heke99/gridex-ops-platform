@@ -441,7 +441,15 @@ async function qualifiedSupply(f:Stage,b:{source:string;period:string},effective
  expect(supply.error).toBeNull();expect(supply.data).toMatchObject({qualified:true,companyId:f.companyId,periodId:b.period,customerId:f.customerId,siteId:f.siteId,meteringPointId:f.pointId,initialSourceMessageId:b.source})
  expect(sql(`SELECT to_jsonb(start_date) FROM public.customer_supply_periods WHERE company_id=${literal(f.companyId)} AND id=${literal(b.period)}`)).toBe(f.requestedStartDate)
  const baseline=await getEdielMessageById(b.source)
- expect(baseline).toMatchObject({company_id:f.companyId,environment:'test',direction:'inbound',message_family:'PRODAT',message_code:'Z04',customer_id:f.customerId,site_id:f.siteId,metering_point_id:f.pointId})
+ const expectedRow={company_id:f.companyId,environment:'test',direction:'inbound',message_family:'PRODAT',message_code:'Z04',customer_id:f.customerId,site_id:f.siteId,metering_point_id:f.pointId} as Record<string,unknown>
+ const rowDiff=Object.keys(expectedRow).filter(key=>(baseline as Record<string,unknown>|null)?.[key]!==expectedRow[key])
+ if(rowDiff.length){
+  // Value-free: mismatched column names (null vs other) and the intake
+  // matchers' closed statuses for this company; never ids or payloads.
+  const attempts=sql<{mp:string|null;ob:string|null}>(`SELECT jsonb_build_object('mp',(SELECT match_status FROM public.inbound_ediel_match_attempts WHERE company_id=${literal(f.companyId)} AND match_type='metering_point' ORDER BY created_at DESC LIMIT 1),'ob',(SELECT match_status FROM public.inbound_ediel_match_attempts WHERE company_id=${literal(f.companyId)} AND match_type<>'metering_point' ORDER BY created_at DESC LIMIT 1))`)
+  const short={customer_id:'cus',site_id:'site',metering_point_id:'mp',company_id:'co',environment:'env',direction:'dir',message_family:'fam',message_code:'code'} as Record<string,string>
+  throw Error(['fg_baseline_row',...rowDiff.map(key=>short[key]+((baseline as Record<string,unknown>|null)?.[key]==null?'0':'x')),'m',attempts.mp??'none','o',attempts.ob??'none'].join('_').replace(/[^a-z0-9_]/g,'_').slice(0,80))
+ }
  expect(baseline?.raw_payload).toBeTruthy()
 }
 async function currentArtifact(f:Stage,a:Artifact,kind:'contract_requested_method'|'metering_method_event'){
