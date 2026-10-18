@@ -513,7 +513,7 @@ jobs:
           GRIDEX_Z03C_MODE: native
         run: *controlled_clock_process
       - name: Upload redacted proof only after verified restoration
-        if: always() && steps.native.outputs.restored_evidence_ready == 'true'
+        if: always() && (steps.native.outputs.restored_evidence_ready == 'true' || (steps.native.outcome == 'skipped' && steps.own_preflight.outputs.restored_evidence_ready == 'true'))
         uses: actions/upload-artifact@v4
         with:
           name: ediel-z03c-supplier-boundary-native-${{ github.run_id }}
