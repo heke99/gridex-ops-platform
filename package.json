@@ -305,6 +305,7 @@
     "fast-xml-parser": "5.11.2",
     "imapflow": "2.2.1",
     "ldapts": "^8.1.8",
+    "mailauth": "7.3.1",
     "next": "16.3.8",
     "node-forge": "^1.4.0",
     "nodemailer": "10.0.13",

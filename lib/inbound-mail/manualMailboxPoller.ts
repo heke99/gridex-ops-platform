@@ -12,10 +12,11 @@
 //   * reuses the env-only secret-reference + stale-lock patterns from Ediel.
 
 import { ImapFlow } from 'imapflow'
-import { createHash } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { inspectMimeStructure, mimeParameter } from '@/lib/inbound-mail/mimeStructure'
 import { binaryToBuffer, decodeTextBytes, toBinaryString } from '@/lib/inbound-mail/mimeCharset'
 import { extractAutoReplyHeaders } from '@/lib/inbound-mail/autoReply'
+import { verifyManualMailSender } from '@/lib/inbound-mail/manualSenderVerification'
 import { supabaseService } from '@/lib/supabase/service'
 import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
 import { resolveManualMailboxSecret } from '@/lib/email/manualOperationsMailbox'
@@ -65,9 +66,10 @@ function parseMessageHeaderValues(headerText: string): { inReplyTo: string | nul
 }
 
 // Small deterministic MIME reader for manual replies. It walks nested
-// multipart structures (multipart/mixed > multipart/alternative, forwarded
-// message/rfc822) and decodes text by each part's own charset without
-// executing or opening binary content.
+// multipart structures (multipart/mixed > multipart/alternative) and decodes
+// text by each part's own charset without executing or opening binary content.
+// Forwarded messages and attached MIME subtrees remain separate from the
+// newly authored reply, including when only their ancestor is an attachment.
 export function parseMimeSource(source: unknown): {
   bodyText: string | null
   bodyHtml: string | null
@@ -75,8 +77,9 @@ export function parseMimeSource(source: unknown): {
   inReplyTo: string | null
   references: string[]
   autoReplyHeaders: Record<string, string>
+  mimeRequiresReview: boolean
 } {
-  const empty = { bodyText: null, bodyHtml: null, attachments: [], inReplyTo: null, references: [], autoReplyHeaders: {} }
+  const empty = { bodyText: null, bodyHtml: null, attachments: [], inReplyTo: null, references: [], autoReplyHeaders: {}, mimeRequiresReview: false }
   if (!source) return empty
   const binary = Buffer.isBuffer(source) || source instanceof Uint8Array ? toBinaryString(source) : toBinaryString(String(source))
   const separator = binary.search(/\r?\n\r?\n/)
@@ -84,18 +87,28 @@ export function parseMimeSource(source: unknown): {
   const replyHeaders = parseMessageHeaderValues(headerText)
   const autoReplyHeaders = extractAutoReplyHeaders(headerText)
 
-  const { entities } = inspectMimeStructure(binary, { preserveBytes: true })
+  const { entities, issues, exceededLimits } = inspectMimeStructure(binary, { preserveBytes: true })
   const text: string[] = []
   const html: string[] = []
   const attachments: unknown[] = []
+  const excludedSubtrees = new Set<number>()
   for (const entity of entities) {
-    if (entity.mediaType.startsWith('multipart/') || entity.mediaType === 'message/rfc822' || entity.mediaType === 'message/global') continue
+    // Entities are in document order. Propagate an excluded parent's status so
+    // no nested text can be promoted to a current customer answer.
+    if (entity.parent !== null && excludedSubtrees.has(entity.parent)) {
+      excludedSubtrees.add(entity.index)
+      continue
+    }
     const disposition = entity.headers.get('content-disposition')?.[0] ?? ''
     const filename = mimeParameter(disposition, 'filename') ?? mimeParameter(entity.contentType, 'name')
+    const forwardedMessage = entity.mediaType === 'message/rfc822' || entity.mediaType === 'message/global'
+    const attachment = Boolean(filename) || /^attachment/i.test(disposition)
+    if (!forwardedMessage && !attachment && entity.mediaType.startsWith('multipart/')) continue
     const bytes = binaryToBuffer(entity.body)
     const isText = entity.mediaType.startsWith('text/')
     const decoded = isText ? decodeTextBytes(bytes, mimeParameter(entity.contentType, 'charset')) : null
-    if (filename || /^attachment/i.test(disposition)) {
+    if (forwardedMessage || attachment) {
+      excludedSubtrees.add(entity.index)
       attachments.push({
         filename,
         contentType: entity.mediaType,
@@ -111,6 +124,7 @@ export function parseMimeSource(source: unknown): {
     attachments,
     ...replyHeaders,
     autoReplyHeaders,
+    mimeRequiresReview: exceededLimits || issues.length > 0,
   }
 }
 
@@ -140,25 +154,43 @@ function isManualMailboxDueForPolling(mailbox: JsonRecord): boolean {
   const effectiveInterval = Number.isFinite(intervalMinutes) && intervalMinutes > 0 ? intervalMinutes : 5
   const lastPolledTime = Date.parse(lastPolledAt)
   if (Number.isNaN(lastPolledTime)) return true
-  return Date.now() - lastPolledTime >= effectiveInterval * 60_000
+  // Cron starts have small scheduling jitter. Without this bounded tolerance,
+  // a poll starting just before its configured interval skips a whole tick.
+  const intervalMs = effectiveInterval * 60_000
+  const earlyToleranceMs = Math.min(10_000, intervalMs / 2)
+  return Date.now() - lastPolledTime >= intervalMs - earlyToleranceMs
 }
 
-async function claimMailbox(mailboxId: string, workerId: string): Promise<boolean> {
+async function claimMailbox(mailbox: JsonRecord, workerId: string): Promise<JsonRecord | null> {
   const staleCutoff = new Date(Date.now() - envInt('MANUAL_INBOUND_STALE_MAILBOX_LOCK_MINUTES', 30) * 60_000).toISOString()
-  const { data, error } = await supabaseService
+  let query = supabaseService
     .from('manual_communication_mailboxes')
     .update({ last_polled_at: nowIso(), locked_at: nowIso(), locked_by: workerId, updated_at: nowIso() })
-    .eq('id', mailboxId)
+    .eq('id', String(mailbox.id)).eq('is_active', true).eq('is_verified', true)
     .or(`locked_at.is.null,locked_at.lt.${staleCutoff}`)
-    .select('id')
-    .maybeSingle()
+  const lastPolledAt = clean(mailbox.last_polled_at)
+  query = lastPolledAt ? query.eq('last_polled_at', lastPolledAt) : query.is('last_polled_at', null)
+  const { data, error } = await query.select('*').maybeSingle()
   if (error) throw error
-  return Boolean(data?.id)
+  return data as JsonRecord | null
 }
 
-type MessageAttempt = { attempts: number; last_attempt_at: string; dead_lettered_at?: string; uid?: number | null }
+type MessageAttempt = {
+  attempts: number; last_attempt_at: string; dead_lettered_at?: string; uid?: number | null
+  uid_validity?: string; mailbox_fingerprint?: string
+}
+type MailboxScan = { version: 1; uid_validity: string; mailbox_fingerprint: string; last_scanned_uid: number }
 
 const MAX_TRACKED_MESSAGE_ATTEMPTS = 500
+const RUN_BUDGET_MS = 150_000
+
+function validUid(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value > 0 && value <= 0xffff_ffff
+}
+
+function attemptInScan(attempt: MessageAttempt, scan: MailboxScan): boolean {
+  return attempt.uid_validity === scan.uid_validity && attempt.mailbox_fingerprint === scan.mailbox_fingerprint
+}
 
 function readMessageAttempts(metadata: unknown): Record<string, MessageAttempt> {
   const root = metadata && typeof metadata === 'object' && !Array.isArray(metadata) ? (metadata as JsonRecord) : {}
@@ -172,12 +204,15 @@ function readMessageAttempts(metadata: unknown): Record<string, MessageAttempt> 
   return attempts
 }
 
-function withMessageAttempts(metadata: unknown, attempts: Record<string, MessageAttempt>): JsonRecord {
+function withMessageAttempts(metadata: unknown, attempts: Record<string, MessageAttempt>, scan?: MailboxScan): JsonRecord {
   const root = metadata && typeof metadata === 'object' && !Array.isArray(metadata) ? (metadata as JsonRecord) : {}
+  const priority = (attempt: MessageAttempt) => scan && attemptInScan(attempt, scan) && !attempt.dead_lettered_at
+    ? 0 : attempt.dead_lettered_at ? 2 : 1
   const newestFirst = Object.entries(attempts)
-    .sort(([, a], [, b]) => String(b.last_attempt_at).localeCompare(String(a.last_attempt_at)))
+    .sort(([, a], [, b]) => priority(a) - priority(b)
+      || String(b.last_attempt_at).localeCompare(String(a.last_attempt_at)))
     .slice(0, MAX_TRACKED_MESSAGE_ATTEMPTS)
-  return { ...root, message_attempts: Object.fromEntries(newestFirst) }
+  return { ...root, message_attempts: Object.fromEntries(newestFirst), ...(scan ? { manual_imap_scan: scan } : {}) }
 }
 
 // Stable per-message dedup key: the RFC Message-ID, else the SHA-256 of the
@@ -189,7 +224,7 @@ export function manualMessageDedupKey(messageId: string | null, source: unknown)
   return null
 }
 
-async function finishMailbox(mailboxId: string, ok: boolean, errorMessage?: string | null, metadata?: JsonRecord): Promise<void> {
+async function finishMailbox(mailboxId: string, workerId: string, ok: boolean, errorMessage?: string | null, metadata?: JsonRecord, expectedMetadata?: unknown): Promise<void> {
   const patch: JsonRecord = { locked_at: null, locked_by: null, updated_at: nowIso() }
   if (metadata) patch.metadata = metadata
   if (ok) {
@@ -198,7 +233,19 @@ async function finishMailbox(mailboxId: string, ok: boolean, errorMessage?: stri
   } else if (errorMessage) {
     patch.last_error = String(errorMessage).replace(/[\r\n]+/g, ' ').slice(0, 300)
   }
-  await supabaseService.from('manual_communication_mailboxes').update(patch).eq('id', mailboxId).then(() => undefined, () => undefined)
+  let query = supabaseService.from('manual_communication_mailboxes').update(patch).eq('id', mailboxId).eq('locked_by', workerId)
+  if (metadata) query = query.eq('metadata', JSON.stringify(expectedMetadata ?? {}))
+  const finished = await query.select('id').maybeSingle()
+  if (finished.error) throw finished.error
+  if (!finished.data) {
+    // A changed metadata document must survive. Release only our own lease;
+    // never release or overwrite a replacement worker's checkpoint.
+    const released = await supabaseService.from('manual_communication_mailboxes')
+      .update({ locked_at: null, locked_by: null, updated_at: nowIso() })
+      .eq('id', mailboxId).eq('locked_by', workerId).select('id').maybeSingle()
+    if (released.error) throw released.error
+    throw new Error('manual_mailbox_state_or_claim_changed')
+  }
 }
 
 function countResolution(result: ManualMailboxPollResult, ingestResult: ManualInboundResult): void {
@@ -208,31 +255,24 @@ function countResolution(result: ManualMailboxPollResult, ingestResult: ManualIn
   else result.unmatched += 1
 }
 
-async function pollOneMailbox(mailbox: JsonRecord, workerId: string, result: ManualMailboxPollResult): Promise<void> {
-  const mailboxId = String(mailbox.id)
-  const host = clean(mailbox.imap_host)
-  const username = clean(mailbox.imap_username) ?? clean(mailbox.from_email)
-  if (!host || !username) {
+async function pollOneMailbox(listed: JsonRecord, workerId: string, result: ManualMailboxPollResult, hasBudget: () => boolean): Promise<void> {
+  if (!isManualMailboxDueForPolling(listed) || !hasBudget()) {
     result.skipped += 1
     return
   }
-
-  if (!isManualMailboxDueForPolling(mailbox)) {
-    result.skipped += 1
-    return
-  }
-
-  const claimed = await claimMailbox(mailboxId, workerId)
-  if (!claimed) {
+  const mailbox = await claimMailbox(listed, workerId)
+  if (!mailbox) {
     result.skipped += 1
     return
   }
   result.polled += 1
-
+  const mailboxId = String(mailbox.id)
+  const host = clean(mailbox.imap_host)
+  const username = clean(mailbox.imap_username) ?? clean(mailbox.from_email)
   const password = resolveManualMailboxSecret(clean(mailbox.imap_secret_reference), mailboxId)
-  if (!password) {
-    await finishMailbox(mailboxId, false, 'manuell brevlåda saknar giltig IMAP secret_reference/env-lösenord.')
-    result.errors.push(`mailbox ${mailboxId}: missing imap secret`)
+  if (!host || !username || !password) {
+    await finishMailbox(mailboxId, workerId, false, 'manuell brevlåda saknar giltig IMAP-konfiguration eller env-lösenord.')
+    result.errors.push(`mailbox ${mailboxId}: missing imap configuration or secret`)
     return
   }
 
@@ -250,84 +290,138 @@ async function pollOneMailbox(mailbox: JsonRecord, workerId: string, result: Man
     socketTimeout: 90_000,
   })
 
-  const maxMessages = envInt('MANUAL_INBOUND_MESSAGE_LIMIT_PER_MAILBOX', 25)
+  const maxMessages = Math.min(envInt('MANUAL_INBOUND_MESSAGE_LIMIT_PER_MAILBOX', 25), 100)
   const maxAttempts = envInt('MANUAL_INBOUND_MAX_ATTEMPTS_PER_MESSAGE', 5)
   const attempts = readMessageAttempts(mailbox.metadata)
+  const terminalSeenUids: number[] = []
+  let scan: MailboxScan | undefined
+  let mailboxError: string | null = null
   try {
     await client.connect()
     const folder = clean(mailbox.imap_folder) ?? 'INBOX'
     const lock = await client.getMailboxLock(folder)
     try {
-      let fetched = 0
-      for await (const message of client.fetch({ seen: false }, { uid: true, envelope: true, source: true })) {
-        if (fetched >= maxMessages) break
-        fetched += 1
-        result.fetched += 1
-
-        const envelope = (message as { envelope?: JsonRecord }).envelope ?? {}
-        const from = envelopeAddress(envelope.from)
-        const to = envelopeAddress(envelope.to)
-        const subject = clean(envelope.subject)
-        const source = (message as { source?: unknown }).source
-        const parsedMime = parseMimeSource(source)
-        const envelopeInReplyTo = clean(envelope.inReplyTo)
-        const dedupKey = manualMessageDedupKey(clean(envelope.messageId), source)
-
-        const email: ManualInboundEmail = {
-          mailbox: clean(mailbox.from_email) ?? username,
-          mailboxCompanyId: clean(mailbox.company_id),
-          fromEmail: from.address,
-          fromName: from.name,
-          toEmail: to.address ?? clean(mailbox.from_email),
-          subject,
-          bodyText: parsedMime.bodyText,
-          bodyHtml: parsedMime.bodyHtml,
-          providerMessageId: dedupKey,
-          threadId: envelopeInReplyTo ?? parsedMime.inReplyTo,
-          inReplyTo: parsedMime.inReplyTo ?? envelopeInReplyTo,
-          references: parsedMime.references,
-          attachments: parsedMime.attachments,
-          autoReplyHeaders: parsedMime.autoReplyHeaders,
+      const selected = client.mailbox
+      if (!selected || typeof selected.uidValidity !== 'bigint' || selected.uidValidity <= BigInt(0)
+        || !Number.isInteger(selected.uidNext) || selected.uidNext < 1 || selected.uidNext > 0x1_0000_0000) {
+        throw new Error('manual_mailbox_uid_snapshot_missing')
+      }
+      const fingerprint = createHash('sha256').update(JSON.stringify([
+        host.toLowerCase(), port, username, folder, mailbox.environment ?? null, mailbox.company_id ?? null,
+      ])).digest('hex')
+      const metadata = mailbox.metadata && typeof mailbox.metadata === 'object' ? mailbox.metadata as JsonRecord : {}
+      const stored = metadata.manual_imap_scan as Partial<MailboxScan> | undefined
+      const sameScan = stored?.version === 1 && stored.mailbox_fingerprint === fingerprint
+        && stored.uid_validity === String(selected.uidValidity)
+        && typeof stored.last_scanned_uid === 'number' && Number.isInteger(stored.last_scanned_uid)
+        && stored.last_scanned_uid >= 0 && stored.last_scanned_uid <= 0xffff_ffff
+      scan = { version: 1, mailbox_fingerprint: fingerprint, uid_validity: String(selected.uidValidity),
+        last_scanned_uid: sameScan ? stored.last_scanned_uid! : selected.uidNext - 1 }
+      if (!sameScan) {
+        // UID numbers from another account/folder/epoch must never route history.
+        for (const [key, value] of Object.entries(attempts)) {
+          const audit = { ...value }
+          delete audit.uid
+          delete audit.uid_validity
+          delete audit.mailbox_fingerprint
+          attempts[key] = audit
         }
-        const uid = (message as { uid?: unknown }).uid
-
+      }
+      const inCurrentScan = (attempt: MessageAttempt) => attemptInScan(attempt, scan!)
+      const retryUids = Object.values(attempts).filter(attempt => inCurrentScan(attempt) && !attempt.dead_lettered_at && validUid(attempt.uid)).map(attempt => attempt.uid as number)
+      const deadUids = new Set(Object.values(attempts).filter(attempt => inCurrentScan(attempt) && attempt.dead_lettered_at && validUid(attempt.uid)).map(attempt => attempt.uid as number))
+      // Bootstrap covers existing UNSEEN only. The captured UIDNEXT boundary
+      // excludes historical Seen mail; every later UID is scanned regardless Seen.
+      // Search new UIDs LAST so an arrival between searches cannot be skipped.
+      const unseenUids = await client.search({ seen: false }, { uid: true })
+      const newUids = scan.last_scanned_uid < 0xffff_ffff
+        ? await client.search({ uid: `${scan.last_scanned_uid + 1}:*` }, { uid: true }) : []
+      if (!Array.isArray(unseenUids) || !Array.isArray(newUids)) throw new Error('manual_mailbox_uid_search_failed')
+      // IMAP N:* can include a lower existing UID when N exceeds the highest.
+      const discovered = [...unseenUids.filter(validUid), ...newUids.filter(uid => validUid(uid) && uid > scan!.last_scanned_uid)].sort((a, b) => a - b)
+      const candidates = [...new Set([...retryUids.sort((a, b) => a - b), ...discovered])].filter(uid => !deadUids.has(uid)).slice(0, maxMessages)
+      // ImapFlow holds FETCH backpressure across an async-generator yield.
+      // Finish each bounded UID fetch before issuing Seen/STORE commands.
+      for (const messageUid of candidates) {
+        if (!hasBudget()) break
+        const clearUidAttempts = () => {
+          for (const [key, attempt] of Object.entries(attempts)) {
+            if (inCurrentScan(attempt) && attempt.uid === messageUid) delete attempts[key]
+          }
+        }
         try {
+          const message = await client.fetchOne(String(messageUid), { uid: true, envelope: true, source: true }, { uid: true })
+          if (!message) {
+            clearUidAttempts()
+            scan.last_scanned_uid = Math.max(scan.last_scanned_uid, messageUid)
+            continue // Expunged since SEARCH: there is no source to ingest.
+          }
+          result.fetched += 1
+          const envelope = (message as { envelope?: JsonRecord }).envelope ?? {}
+          const from = envelopeAddress(envelope.from)
+          const to = envelopeAddress(envelope.to)
+          const source = (message as { source?: unknown }).source
+          const senderVerification = await verifyManualMailSender(source)
+          const parsedMime = parseMimeSource(source)
+          const envelopeInReplyTo = clean(envelope.inReplyTo)
+          const dedupKey = manualMessageDedupKey(clean(envelope.messageId), source)
+          const email: ManualInboundEmail = {
+            mailbox: clean(mailbox.from_email) ?? username, mailboxCompanyId: clean(mailbox.company_id),
+            fromEmail: from.address, fromName: from.name, toEmail: to.address ?? clean(mailbox.from_email),
+            subject: clean(envelope.subject), bodyText: parsedMime.bodyText, bodyHtml: parsedMime.bodyHtml,
+            providerMessageId: dedupKey,
+            // Correlation remains limited to cryptographically signed headers.
+            threadId: senderVerification.status === 'verified' ? parsedMime.inReplyTo : envelopeInReplyTo ?? parsedMime.inReplyTo,
+            inReplyTo: senderVerification.status === 'verified' ? parsedMime.inReplyTo : parsedMime.inReplyTo ?? envelopeInReplyTo,
+            references: parsedMime.references, attachments: parsedMime.attachments, autoReplyHeaders: parsedMime.autoReplyHeaders,
+            senderVerification, mimeRequiresReview: parsedMime.mimeRequiresReview,
+          }
           const ingestResult: ManualInboundResult = await ingestManualInboundEmail(email)
           result.ingested += 1
           countResolution(result, ingestResult)
-          if (dedupKey) delete attempts[dedupKey]
-          if (typeof uid === 'number') await client.messageFlagsAdd(uid, ['\\Seen'], { uid: true })
+          await client.messageFlagsAdd(messageUid, ['\\Seen'], { uid: true })
+          clearUidAttempts()
+          scan.last_scanned_uid = Math.max(scan.last_scanned_uid, messageUid)
         } catch (ingestError) {
-          // A failed message stays unseen so the next poll retries a transient
-          // DB/schema/provider issue. After maxAttempts it is dead-lettered
-          // (marked Seen, recorded on the mailbox) so a poison message can never
-          // starve newer mail once failures fill the per-poll message limit.
           result.errors.push(`ingest ${mailboxId}: ${ingestError instanceof Error ? ingestError.message : String(ingestError)}`)
-          if (dedupKey) {
-            const previous = attempts[dedupKey]
-            const count = (previous?.attempts ?? 0) + 1
-            const deadLetter = count >= maxAttempts
-            attempts[dedupKey] = {
-              attempts: count,
-              last_attempt_at: nowIso(),
-              ...(deadLetter ? { dead_lettered_at: nowIso(), uid: typeof uid === 'number' ? uid : null } : {}),
-            }
-            if (deadLetter) {
-              result.deadLettered += 1
-              if (typeof uid === 'number') await client.messageFlagsAdd(uid, ['\\Seen'], { uid: true }).catch(() => undefined)
-            }
+          const previous = Object.values(attempts).find(attempt => inCurrentScan(attempt) && attempt.uid === messageUid)
+          const count = (previous?.attempts ?? 0) + 1
+          const deadLetter = count >= maxAttempts
+          clearUidAttempts()
+          attempts[`uid:${scan.mailbox_fingerprint}:${scan.uid_validity}:${messageUid}`] = {
+            attempts: count, last_attempt_at: nowIso(), uid: messageUid,
+            uid_validity: scan.uid_validity, mailbox_fingerprint: scan.mailbox_fingerprint,
+            ...(deadLetter ? { dead_lettered_at: nowIso() } : {}),
+          }
+          if (deadLetter) {
+            result.deadLettered += 1
+            terminalSeenUids.push(messageUid)
+            scan.last_scanned_uid = Math.max(scan.last_scanned_uid, messageUid)
+          } else if (messageUid > scan.last_scanned_uid) {
+            // Never move the future frontier beyond a failed source, including
+            // a committed ingest whose Seen update failed. Retry ignores Seen.
+            break
           }
         }
       }
     } finally {
       lock.release()
-      await client.logout().catch(() => undefined)
     }
-    await finishMailbox(mailboxId, true, null, withMessageAttempts(mailbox.metadata, attempts))
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Okänt manuellt pollingfel.'
-    result.errors.push(`mailbox ${mailboxId}: ${message}`)
-    await finishMailbox(mailboxId, false, message, withMessageAttempts(mailbox.metadata, attempts))
+    mailboxError = error instanceof Error ? error.message : 'Okänt manuellt pollingfel.'
+    result.errors.push(`mailbox ${mailboxId}: ${mailboxError}`)
+  }
+  try {
+    await finishMailbox(mailboxId, workerId, !mailboxError, mailboxError,
+      withMessageAttempts(mailbox.metadata, attempts, scan), mailbox.metadata)
+    // Terminal retry evidence must be durable before hiding a legacy source
+    // from UNSEEN. A failed flush leaves its flags and original source intact.
+    for (const uid of terminalSeenUids) {
+      if (!hasBudget()) break
+      await client.messageFlagsAdd(uid, ['\\Seen'], { uid: true }).catch(() => undefined)
+    }
+  } finally {
+    await client.logout().catch(() => undefined)
   }
 }
 
@@ -337,6 +431,8 @@ async function pollOneMailbox(mailbox: JsonRecord, workerId: string, result: Man
 export async function runManualInboundMailEngine(input?: {
   environment?: string | null
 }): Promise<ManualMailboxPollResult> {
+  const deadline = performance.now() + RUN_BUDGET_MS
+  const hasBudget = () => performance.now() < deadline
   await assertPlatformSchemaReady()
   const result: ManualMailboxPollResult = {
     mailboxes: 0,
@@ -351,12 +447,20 @@ export async function runManualInboundMailEngine(input?: {
     deadLettered: 0,
     errors: [],
   }
-  const workerId = `manual-inbound:${nowIso()}`
+  const workerId = `manual-inbound:${randomUUID()}`
 
   const mailboxes = await listActiveManualMailboxes(input?.environment)
   result.mailboxes = mailboxes.length
+  mailboxes.sort((a, b) => (Date.parse(clean(a.last_polled_at) ?? '') || 0) - (Date.parse(clean(b.last_polled_at) ?? '') || 0))
   for (const mailbox of mailboxes) {
-    await pollOneMailbox(mailbox, workerId, result)
+    if (!hasBudget()) break
+    try {
+      await pollOneMailbox(mailbox, workerId, result, hasBudget)
+    } catch (error) {
+      // A failed checkpoint remains uncommitted and must be visible, while an
+      // unrelated mailbox can still use the remaining run budget.
+      result.errors.push(`mailbox ${String(mailbox.id)}: ${error instanceof Error ? error.message : 'manual_mailbox_checkpoint_failed'}`)
+    }
   }
   return result
 }

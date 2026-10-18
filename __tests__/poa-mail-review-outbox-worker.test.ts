@@ -73,6 +73,37 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllEnvs() })
 
 describe('#2 POA is re-checked right before the provider call', () => {
+  it('does not deliver a queued reminder after a reply was received or a request was completed', async () => {
+    for (const status of ['manual_response_received', 'completed', 'needs_review', 'cancelled']) {
+      const db = seed(); port.db = db
+      request(db).status = status
+      outbox(db).recipient_resolution = { ...(outbox(db).recipient_resolution as Record<string, unknown>), follow_up_kind: 'reminder' }
+      await processManualEmailOutbox({ companyId: CO })
+      expect(port.sends).toHaveLength(0)
+      expect(outbox(db).last_error_code).toBe('manual_follow_up_no_longer_waiting')
+      expect(request(db).status).toBe(status)
+    }
+  })
+  it('never sends an attachment from a different fullmakt than the current request', async () => {
+    const db = seed()
+    ;(outbox(db).attachments as Array<Record<string, unknown>>)[0].poa_id = 'rejected-old-poa'
+    port.db = db
+    const result = await processManualEmailOutbox()
+    expect(port.sends).toHaveLength(0)
+    expect(result.failed).toBe(1)
+    expect(outbox(db).last_error_code).toBe('poa_attachment_mismatch')
+  })
+  it('stops a previously queued mail after a counterparty rejection was received', async () => {
+    const db = seed()
+    request(db).status = 'needs_review'
+    request(db).metadata = { counterparty_reply: { requires_review: true } }
+    port.db = db
+    const result = await processManualEmailOutbox()
+    expect(result.failed).toBe(1)
+    expect(port.sends).toHaveLength(0)
+    expect(outbox(db).last_error_code).toBe('counterparty_reply_requires_review')
+  })
+
   for (const [label, poa] of [
     ['revoked', { revoked_at: '2026-10-02T00:00:00Z' }],
     ['expired valid_to', { valid_to: '2026-01-01' }],

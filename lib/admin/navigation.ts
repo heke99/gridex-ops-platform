@@ -55,6 +55,7 @@ const COMPANY_NAVIGATION: AdminNavigationGroup[] = [
     description: 'Kund, intag och avtal',
     items: [
       { key: 'customers.list', label: 'Kunder', href: '/admin/customers', description: 'Sök kunder och öppna kundkort', pageKey: 'customers.list' },
+      { key: 'powers_of_attorney', label: 'Fullmakter', href: '/admin/powers-of-attorney', description: 'Sök fullmakter, verifikatsnummer och originaldokument', pageKey: 'customer.powers_of_attorney' },
       { key: 'customer_applications', label: 'Nya webbansökningar', href: '/admin/website-applications', description: 'Externa kundansökningar från hemsida/API', pageKey: 'customers.list' },
       { key: 'customers.intake', label: 'Kundintag', href: '/admin/customers/intake', description: 'Skapa kund, avtal och anläggning', pageKey: 'customers.intake' },
       { key: 'info_requests', label: 'Uppgiftsbegäran', href: '/admin/customer-info-requests', description: 'Kund-/anläggningsuppgifter och kompletteringar', pageKey: 'customer.info_requests' },
@@ -154,6 +155,7 @@ const PLATFORM_NAVIGATION: AdminNavigationGroup[] = [
     description: 'Kundregister, intag och prisvillkor',
     items: [
       { key: 'customers.list', label: 'Kunder', href: '/admin/customers', description: 'Sök kunder och öppna kundkort', pageKey: 'customers.list' },
+      { key: 'powers_of_attorney', label: 'Fullmakter', href: '/admin/powers-of-attorney', description: 'Fullmakter per tenant och kund', pageKey: 'customer.powers_of_attorney' },
       { key: 'customer_applications', label: 'Nya webbansökningar', href: '/admin/website-applications', description: 'Kundansökningar från hemsida och API', pageKey: 'customers.list' },
       { key: 'customers.intake', label: 'Kundintag', href: '/admin/customers/intake', description: 'Skapa kund, anläggning och fullmakt', pageKey: 'customers.intake' },
       { key: 'contracts', label: 'Avtal', href: '/admin/contracts', description: 'Avtalskatalog och kampanjer', pageKey: 'contracts.catalog' },

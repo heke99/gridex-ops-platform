@@ -48,6 +48,12 @@ describe('derivePowerOfAttorneyLifecycleStatus', () => {
     expect(hasLegalPoaAcceptance(unproven)).toBe(false)
     expect(derivePowerOfAttorneyLifecycleStatus(unproven, { now: NOW })).toBe('awaiting_signature')
   })
+  it('does not turn a system verification number into customer acceptance', () => {
+    const unproven = poa({ signed_at: null, accepted_at: null, legal_text_version_id: null,
+      evidence_payload: { verification_reference: 'system-document-verifier' }, signer_name: 'Synthetic Signer', method: 'manual_signature' })
+    expect(hasLegalPoaAcceptance(unproven)).toBe(false)
+    expect(derivePowerOfAttorneyLifecycleStatus(unproven, { now: NOW })).toBe('awaiting_signature')
+  })
 
   it('returns expired when valid_to has passed, regardless of stored status', () => {
     expect(

@@ -12875,7 +12875,8 @@
               "bankid",
               "electronic_signature",
               "manual_signature"
-            ]
+            ],
+            "description": "Actual consent method. A form click is electronic acceptance. A client-supplied bankid value does not attest BankID verification; that requires server-verified provider completion. BankID is optional and no live BankID service is enabled by this field."
           },
           "acceptedAt": {
             "type": "string",
@@ -12887,7 +12888,8 @@
             "description": "Use primary_document_id from the power_of_attorney requirement in the exact accepted legal bundle of offer_reference. Any other document id returns 409 power_of_attorney_offer_version_mismatch and nothing is stored. This is the legal document version the customer accepted and must match exactly; it is unrelated to the API documentation revision."
           },
           "ipAddress": {
-            "type": "string"
+            "type": "string",
+            "description": "Customer IP captured by the tenant backend at the original acceptedAt, validated through a trusted proxy chain. Do not substitute the API server IP. Required operational evidence for automated POA email; existing intake remains compatible when omitted, but external mail is held. OPS creates a stable verification number and private PDF archive."
           },
           "userAgent": {
             "type": "string"

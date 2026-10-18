@@ -11,6 +11,7 @@ import { findActiveSwitchLifecycleBlock } from '@/lib/operations/switchLifecycle
 import { evaluateCustomerProcessRouteReadiness } from '@/lib/customer-operations/customerProcessRouteReadiness'
 import { getGridOwnerVerification } from '@/lib/grid-owners/verification'
 import { verifyAuthorizationScopeCoverage } from '@/lib/legal/authorizationChain'
+import { evaluateManualSupplierReadiness } from '@/lib/customer-operations/manualSupplierReadiness'
 import type { SupplierSwitchRequestRow, SwitchReadinessResult } from '@/lib/operations/types'
 import type { EdielEnvironment } from '@/lib/ediel/types'
 import type { CustomerSiteRow, MeteringPointRow } from '@/lib/masterdata/types'
@@ -183,6 +184,21 @@ export async function checkSupplierSwitchReadiness(
       }
     }
     selectedSwitch = selected.data
+  }
+
+  const manualSupplierReadiness = await evaluateManualSupplierReadiness({
+    companyId: input.companyId,
+    customerId: input.customerId,
+    siteId: input.siteId,
+    site,
+    requestType: selectedSwitch?.request_type ?? 'switch',
+    requestStatus: selectedSwitch?.status,
+    transactionSubtype: selectedSwitch?.prodat_variant ?? selectedSwitch?.prodat_reason ?? null,
+    requestedStartDate: selectedSwitch ? selectedSwitch.requested_start_date : input.requestedStartDate,
+    requireRequestedStartDate: Boolean(selectedSwitch),
+  })
+  for (const blocker of manualSupplierReadiness.blockers) {
+    blockers.push({ ...blocker, source: 'contract' })
   }
 
   const meteringPoints = await listMeteringPointsForSite(supabaseService, site.id)
@@ -478,6 +494,7 @@ export async function checkSupplierSwitchReadiness(
       latest_power_of_attorney_id: siteReadiness.latestPowerOfAttorneyId,
     },
     authorization_scope: authorizationScopeSnapshot,
+    manual_supplier_commercial: manualSupplierReadiness.snapshot,
     contract: contractSnapshot,
     legal_acceptance_count: legalAcceptanceCount,
     lifecycle_block: lifecycleBlock
