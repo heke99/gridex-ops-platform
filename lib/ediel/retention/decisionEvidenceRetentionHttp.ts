@@ -1,7 +1,7 @@
 import 'server-only'
 import {NextRequest,NextResponse} from 'next/server'
 import {z} from 'zod'
-import {decisionEvidenceClasses,decisionEvidencePermission,purgeDecisionEvidenceRetention,readDecisionEvidencePolicy,readRetentionDecisionOriginal,reviewDecisionEvidenceRetention,revokeDecisionEvidenceRetention,submitDecisionEvidenceRetention} from './decisionEvidenceRetention'
+import {decisionEvidenceClasses,decisionEvidencePermission,purgeDecisionEvidenceRetention,readDecisionEvidencePolicy,readRetentionDecisionOriginal,reviewDecisionEvidenceRetention,reviewCompletedWitnessDisposition,revokeDecisionEvidenceRetention,submitDecisionEvidenceRetention} from './decisionEvidenceRetention'
 import {readRetentionJson,retentionHeaders,retentionHttp} from './retentionHttp'
 
 const uuid=z.string().uuid(),kind=z.enum(decisionEvidenceClasses),reason=z.string().trim().min(1).max(4000)
@@ -32,7 +32,13 @@ export function decisionEvidenceOriginal(retentionClass:string,targetId:string,i
 export function decisionEvidenceRead(policyId:string){return retentionHttp([],async scope=>respond(await readPolicy(scope,policyId)))}
 export function decisionEvidenceDocument(policyId:string){return retentionHttp(['ediel.retention.review'],async scope=>download(await readPolicy(scope,policyId,true),policyId))}
 export function decisionEvidenceReview(request:NextRequest,policyId:string){return retentionHttp(['ediel.retention.review'],async scope=>{
- const input=z.object({outcome:z.enum(['approve','hold','reject']),reason}).strict().parse(await readRetentionJson(request,20000));await readPolicy(scope,policyId)
+ const raw=await readRetentionJson(request,100000)
+ const phase=z.object({phase:z.literal('completed-witness-disposition'),outcome:z.enum(['approve','revoke']),issuerReceipt:z.record(z.string(),z.unknown()).nullable()}).strict()
+ if(raw&&typeof raw==='object'&&'phase' in raw){
+  const input=phase.parse(raw);uuid.parse(policyId);requireClass(scope,'completed_decision_review_reason')
+  return respond(await reviewCompletedWitnessDisposition({companyId:scope.companyId,policyId,outcome:input.outcome,issuerReceipt:input.issuerReceipt}))
+ }
+ const input=z.object({outcome:z.enum(['approve','hold','reject']),reason}).strict().parse(raw);await readPolicy(scope,policyId)
  return respond(await reviewDecisionEvidenceRetention({companyId:scope.companyId,policyId,...input}))
 })}
 export function decisionEvidenceRevoke(request:NextRequest,policyId:string){return retentionHttp(['ediel.retention.review'],async scope=>{
@@ -40,8 +46,9 @@ export function decisionEvidenceRevoke(request:NextRequest,policyId:string){retu
  await revokeDecisionEvidenceRetention({companyId:scope.companyId,policyId,reason:input.reason});return respond({status:'revoked',policyId})
 })}
 export function decisionEvidencePurge(request:NextRequest,policyId:string){return retentionHttp(['ediel.retention.purge'],async scope=>{
- z.object({}).strict().parse(await readRetentionJson(request,1000));const record=await readPolicy(scope,policyId)
+ z.object({}).strict().parse(await readRetentionJson(request,1000))
+ // Native resolves/locks this company+policy and checks its actual current
+ // class before any effect or replay. Expired disclosure is not a prerequisite.
  const result=await purgeDecisionEvidenceRetention({companyId:scope.companyId,policyId})
- if(result.status==='purged'&&(result.retentionClass!==record.retentionClass||result.targetId!==record.targetId||result.sourceHash!==record.sourceHash))throw Error('decision_evidence_http_purge_scope_mismatch')
- return respond(result)
+ return respond((result.status==='purged'||result.status==='disposed')?{status:result.status,replay:result.replay,authority:'none'}:{status:result.status,authority:'none'})
 })}
