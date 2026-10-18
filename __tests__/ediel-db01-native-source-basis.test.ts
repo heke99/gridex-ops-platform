@@ -16,8 +16,8 @@ const facade = 'lib/ediel/rulebook/canonicalEdielFacade.ts'
 const adoptedFacadeRevision = 'ca892c14643181656e842bf4d8ffa8b6d829dec2'
 const expectedBaseFacade: Input = {mode: '100644', git_blob_oid: 'a170889bc7a9463e757302989cb596e30f527c6f',
   sha256: 'd395ebef617da8181879605aaf486cae889950316af7e1967d83525ece6a2d8f'}
-const expectedCurrentFacade: Input = {mode: '100644', git_blob_oid: '95b9bfb2c29a1691893bd2381802af951bb64d0b',
-  sha256: 'f9d275ebcd9fd115cb9c2119bc3cb121f4df4786fa38f6a2674ff3b9612466b7'}
+const expectedCurrentFacade: Input = {mode: '100644', git_blob_oid: '541351571064dc40e4df379dfcadb642e0b6d46b',
+  sha256: '8b635d22a53729d8321fe6f1677d41137dc300736e51a7d85f32c2f87390d053'}
 const adoptedRevision = '231b9ef84e5a9c5e737c44dc9d72dd33edb0b56c'
 const dependencies = [kernel, kernelLegacy, 'lib/ediel/core/outboundOwnerWitness.ts',
   'lib/ediel/rulebook/canonicalEdielFacade.ts', 'lib/ediel/testing/tgtCanonicalDraftRoute.ts',

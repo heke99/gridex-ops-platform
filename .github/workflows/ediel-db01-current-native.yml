@@ -222,8 +222,8 @@ jobs:
           canonical_facade_revision = 'ca892c14643181656e842bf4d8ffa8b6d829dec2'
           expected_base_facade = {'mode':'100644','git_blob_oid':'a170889bc7a9463e757302989cb596e30f527c6f',
             'sha256':'d395ebef617da8181879605aaf486cae889950316af7e1967d83525ece6a2d8f'}
-          expected_current_facade = {'mode':'100644','git_blob_oid':'95b9bfb2c29a1691893bd2381802af951bb64d0b',
-            'sha256':'f9d275ebcd9fd115cb9c2119bc3cb121f4df4786fa38f6a2674ff3b9612466b7'}
+          expected_current_facade = {'mode':'100644','git_blob_oid':'541351571064dc40e4df379dfcadb642e0b6d46b',
+            'sha256':'8b635d22a53729d8321fe6f1677d41137dc300736e51a7d85f32c2f87390d053'}
           subprocess.run(['git','merge-base','--is-ancestor',canonical_facade_revision,head],check=True)
           canonical_facade_basis = {'source_revision':canonical_facade_revision,'path':canonical_facade_path,
             'historical_alias':'BASE56','current_alias':'ROOT',
@@ -792,8 +792,8 @@ jobs:
             'path':'lib/ediel/rulebook/canonicalEdielFacade.ts','historical_alias':'BASE56','current_alias':'ROOT',
             'base':{'mode':'100644','git_blob_oid':'a170889bc7a9463e757302989cb596e30f527c6f',
               'sha256':'d395ebef617da8181879605aaf486cae889950316af7e1967d83525ece6a2d8f'},
-            'root':{'mode':'100644','git_blob_oid':'95b9bfb2c29a1691893bd2381802af951bb64d0b',
-              'sha256':'f9d275ebcd9fd115cb9c2119bc3cb121f4df4786fa38f6a2674ff3b9612466b7'}}
+            'root':{'mode':'100644','git_blob_oid':'541351571064dc40e4df379dfcadb642e0b6d46b',
+              'sha256':'8b635d22a53729d8321fe6f1677d41137dc300736e51a7d85f32c2f87390d053'}}
           if basis.get('canonical_facade_basis')!=expected_canonical_facade_basis:
               raise RuntimeError('JUnit qualification requires exact historical/current canonical facade basis')
           subprocess.run(['git','merge-base','--is-ancestor',expected_canonical_facade_basis['source_revision'],receipt['checkout_sha']],check=True)
