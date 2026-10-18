@@ -304,6 +304,7 @@ async function receive(f:Fixture,raw:string,expectedSubtype?:Subtype|'C',negativ
       SELECT jsonb_build_object('code',${literal(code)},'day',(SELECT day FROM receipt),'count',(SELECT count(*) FROM profiles),
         'profileKeys',(SELECT coalesce(jsonb_agg(profile_key ORDER BY profile_key),'[]') FROM profiles));`):null
   const observation=await observePublicBirth(()=>createInboundEdielMessage({companyId:f.companyId,actorUserId:f.actorUserId,environment:'test',inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId,parsed:mail.parsed,outboundMatch,meteringPointMatch}))
+  if(negativeField===undefined&&observation.thrown)throw observation.thrown
   assert.deepEqual(mailCustody(mail),transportCustody,'public_birth_preserves_retained_transport_and_parse')
   if(!observation.id){
     const birthRefusal=requireBirthRefusal(negativeField,raw,observation,profilePremise),authority=absentBirthAuthority(mail)
