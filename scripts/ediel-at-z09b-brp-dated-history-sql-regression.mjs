@@ -153,14 +153,20 @@ try{
  assert.deepEqual((await history(A,id(4))).map(v=>v.status),['aperak_confirmed','source_declared']);checks++
  // Negative ACK evidence for v2 (as the authority writes it, deferred check forced) confirms nothing; v1 unchanged.
  const v1Entry=(await history(A,id(4)))[0]
- for(const [contrl,aperak] of [['negative','negative'],['positive','negative']]){
-  const c1=id(ackN++),c2=id(ackN++),m=routeOf(4).message
-  await db.exec(`BEGIN;INSERT INTO gridex_ack_authority.source_correlations VALUES('${c1}','${m}','${A}','test','${v2Hash}','CONTRL','${contrl}'),('${c2}','${m}','${A}','test','${v2Hash}','APERAK','${aperak}');
-   INSERT INTO gridex_ack_authority.scope_outcomes VALUES('${m}','CONTRL','${contrl}','${c1}'),('${m}','APERAK','${aperak}','${c2}');SET CONSTRAINTS ALL IMMEDIATE`)
-  const during=await history(A,id(4))
-  assert.equal(await count('gridex_brp_changes.confirmations'),3);assert.equal(during[1].status,'source_declared');assert.equal(during[1].confirmedAt,null);assert.deepEqual(during[0],v1Entry)
+ // Each case adds rows for v2's Z09; extra.correlation/extra.scope are additional negative rows next to
+ // a positive CONTRL and APERAK (a later negative CONTRL; a negative APERAK scope outcome of a mixed reply).
+ const m2=routeOf(4).message
+ const evidence=async({contrl='positive',aperak='positive',correlation=false,scope=false})=>{const c1=id(ackN++),c2=id(ackN++),c3=id(ackN++)
+  await db.exec(`BEGIN;INSERT INTO gridex_ack_authority.source_correlations VALUES('${c1}','${m2}','${A}','test','${v2Hash}','CONTRL','${contrl}'),('${c2}','${m2}','${A}','test','${v2Hash}','APERAK','${aperak}')${correlation?`,('${c3}','${m2}','${A}','test','${v2Hash}','CONTRL','negative')`:''};
+   INSERT INTO gridex_ack_authority.scope_outcomes VALUES('${m2}','CONTRL','${contrl}','${c1}'),('${m2}','APERAK','${aperak}','${c2}')${scope?`,('${m2}','APERAK','negative','${c2}')`:''};SET CONSTRAINTS ALL IMMEDIATE`)}
+ for(const own of [{contrl:'negative',aperak:'negative'},{aperak:'negative'},{correlation:true},{scope:true}]){
+  await evidence(own);const during=await history(A,id(4))
+  assert.equal(await count('gridex_brp_changes.confirmations'),3,JSON.stringify(own));assert.equal(during[1].status,'source_declared');assert.equal(during[1].confirmedAt,null);assert.deepEqual(during[0],v1Entry)
   await db.exec('ROLLBACK');checks++
  }
+ // Control: the same positive rows without the extra negative do confirm v2 (rolled back here).
+ await evidence({});assert.equal(await count('gridex_brp_changes.confirmations'),4);assert.equal((await history(A,id(4)))[1].status,'aperak_confirmed');await db.exec('ROLLBACK')
+ assert.equal(await count('gridex_brp_changes.confirmations'),3);checks++
  await ack(routeOf(4).message,A,'CONTRL','positive');assert.equal((await history(A,id(4)))[1].status,'source_declared');checks++
  await ack(routeOf(4).message,A,'APERAK','positive')
  h=await history(A,id(4));assert.deepEqual(h.map(v=>v.status),['aperak_confirmed','aperak_confirmed']);assert.equal(h[1].confirmationMessageId,routeOf(4).message);assert.equal(h[0].confirmationMessageId,routeOf(1).message)
