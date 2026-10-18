@@ -4000,8 +4000,13 @@
     },
     {
       "id": "AT-Z01L-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/onboarding/infoRequests.ts",
+        "__tests__/ediel-at-z01l-z01lk-supplier-profile.test.ts",
+        "__tests__/ediel-z01-godr-supersession-scope.test.ts",
+        "scripts/ediel-at-z01-supplier-native.test.ts"
+      ]
     },
     {
       "id": "AT-Z02L-SUPPLIER",
@@ -4043,8 +4048,13 @@
     },
     {
       "id": "AT-Z01LK-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/onboarding/infoRequests.ts",
+        "__tests__/ediel-at-z01l-z01lk-supplier-profile.test.ts",
+        "__tests__/ediel-z01-godr-supersession-scope.test.ts",
+        "scripts/ediel-at-z01-supplier-native.test.ts"
+      ]
     },
     {
       "id": "AT-Z02LK-SUPPLIER",
