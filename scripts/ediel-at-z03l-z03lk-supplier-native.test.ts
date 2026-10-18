@@ -920,6 +920,36 @@ function preserveZ04ValidationAudit(f: Fixture, source: EdielMessageRow, baselin
     currentMessage[key]=previousMessage[key]
   }
   currentReport.receivedSourceValidationEvidence=previousReport.receivedSourceValidationEvidence
+  // Replaying this own source performs a fresh legal-identity READ. Qualify
+  // only its named owner's three observation clocks; preserve every record,
+  // identity fact, route fact, other message and both stored mirrors exactly.
+  const previousPayload=previousMessage.parsed_payload as Record<string,unknown>,currentPayload=currentMessage.parsed_payload as Record<string,unknown>
+  expect(previousPayload.tenantResolution).toEqual(previousReport.tenantResolution)
+  expect(currentPayload.tenantResolution).toEqual(currentReport.tenantResolution)
+  const previousResolution=previousPayload.tenantResolution as Record<string,unknown>,currentResolution=currentPayload.tenantResolution as Record<string,unknown>
+  for(const resolution of [previousResolution,currentResolution])expect(resolution).toMatchObject({status:'resolved',companyId:f.companyId,source:'verified_legal_identity'})
+  const previousEvidence=previousResolution.evidence as Record<string,unknown>[],currentEvidence=currentResolution.evidence as Record<string,unknown>[]
+  expect(Array.isArray(previousEvidence)).toBe(true);expect(Array.isArray(currentEvidence)).toBe(true)
+  expect(previousEvidence.filter(row=>row.source==='verified_legal_identity')).toHaveLength(1)
+  expect(currentEvidence.filter(row=>row.source==='verified_legal_identity')).toHaveLength(1)
+  const identityIndex=previousEvidence.findIndex(row=>row.source==='verified_legal_identity')
+  expect(currentEvidence.findIndex(row=>row.source==='verified_legal_identity')).toBe(identityIndex)
+  for(const row of [previousEvidence[identityIndex],currentEvidence[identityIndex]])expect(row).toMatchObject({companyId:f.companyId,source:'verified_legal_identity',score:400})
+  const previousIdentity=(previousEvidence[identityIndex].details as Record<string,unknown>).identityEvidence as Record<string,unknown>,currentIdentity=(currentEvidence[identityIndex].details as Record<string,unknown>).identityEvidence as Record<string,unknown>
+  for(const identity of [previousIdentity,currentIdentity])expect(identity).toMatchObject({version:1,owner:'canonical-tenant-ediel-identity-v1',completeness:'exact_count',historicalKnowledge:'not_established',sourceDisposition:'not_established',consistency:'independent_reads'})
+  const identityTimes={evaluatedAt:currentIdentity.evaluatedAt,observedAt:currentIdentity.observedAt,completedAt:currentIdentity.completedAt}
+  for(const key of ['evaluatedAt','observedAt','completedAt'] as const){
+    clock(identityTimes[key],previousIdentity[key])
+    for(const value of [identityTimes[key],previousIdentity[key]])expect(value).toBe(new Date(Date.parse(value as string)).toISOString())
+    expect(Date.parse(previousIdentity[key] as string)).toBeLessThanOrEqual(replay.startedAt)
+    currentIdentity[key]=previousIdentity[key]
+  }
+  expect(Date.parse(identityTimes.evaluatedAt as string)).toBeLessThanOrEqual(Date.parse(identityTimes.observedAt as string))
+  expect(Date.parse(identityTimes.observedAt as string)).toBeLessThanOrEqual(Date.parse(identityTimes.completedAt as string))
+  expect(currentResolution).toEqual(previousResolution)
+  currentPayload.tenantResolution=previousPayload.tenantResolution
+  currentReport.tenantResolution=previousReport.tenantResolution
+
 
   // The physical own-object SQL receipt is authoritative even when the legacy
   // flat-field matcher has no switch hint. Its separate switch audit is inert.
