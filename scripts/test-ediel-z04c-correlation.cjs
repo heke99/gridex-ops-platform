@@ -22,8 +22,9 @@ test('AT-Z04C-SUPPLIER captured owner correlation SQL regression', () => {
   assert.doesNotMatch(run.stdout, /^FAIL /m, output)
   const result = JSON.parse(run.stdout.split('\n').find((line) => line.startsWith('EDIEL_Z04C_CORRELATION_RESULT ')).slice('EDIEL_Z04C_CORRELATION_RESULT '.length))
   assert.equal(result.failures, 0)
-  // The forward fix 20261018100000 must be the executed owner body.
-  assert.equal(result.effectiveBodySha256, 'e2bba947e4ade9d3a1128cc826f6b43b336da0733ba35d90eb43b498f53e350e')
+  // The deployed owner body: the 20261018100000 fix as spliced again by the
+  // executed-start compensation 20261019170000.
+  assert.equal(result.effectiveBodySha256, 'c30e7398338c7b0a39da7220ea62bffa4d8ae0134f1c7d8b272b09e07736e03e')
   assert.equal(result.originalControl, false)
   for (const required of [
     'exact C cancels only the right confirmed future period and its switch; decoy untouched',
