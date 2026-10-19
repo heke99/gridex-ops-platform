@@ -105,7 +105,7 @@ function contextIssue(row: Record<string, unknown>, cutoff: Receipt): string | n
 }
 
 /** One supported physical envelope, not a whole-message grammar certificate. */
-export function singleMessage(raw: string, family: 'UTILTS' | 'PRODAT'): CanonicalEdifactAst | null {
+export function singleMessage(raw: string, family: 'UTILTS' | 'PRODAT' | 'CONTRL' | 'APERAK'): CanonicalEdifactAst | null {
   if (Buffer.byteLength(raw, 'utf8') > MAX_WIRE_BYTES) throw new InspectionBudgetExceeded()
   const tokens = tokenizeEdifact(raw)
   if (tokens.segments.length > MAX_WIRE_SEGMENTS) throw new InspectionBudgetExceeded()
