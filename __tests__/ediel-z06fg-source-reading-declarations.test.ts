@@ -78,10 +78,29 @@ it('a stored root boolean keeps precedence; the source reader is not consulted f
 it.each([
   ['E (E34) is outside this reader',()=>{const m=structuralOwnerSource('Z06','E34');return {...m,parsed_payload:{subtype:'E'},validation_report:{}}}],
   ['an outbound Z06F is not a received declaration',()=>({...received('F'),direction:'outbound' as const})],
-  ['a gas application reference is outside this electricity reader',()=>received('F',raw=>raw.replace('23-DDQ-PRODAT','27-DDQ-PRODAT'))],
 ] as const)('%s',(_name,build)=>{
   const message=build(),decision=resolveCanonicalRuntimeDecision(message)
-  if(decision.policy)expect(sourceProdatZ06ReadingDeclarations({message,policy:decision.policy})).toBeNull()
+  expect(decision.policy).toBeTruthy()
+  expect(sourceProdatZ06ReadingDeclarations({message,policy:decision.policy!})).toBeNull()
+})
+
+it('a gas application reference resolves no electricity policy, and the reader refuses it under an electricity policy',()=>{
+  const gas=received('F',raw=>raw.replace('23-DDQ-PRODAT','27-DDQ-PRODAT'))
+  expect(resolveCanonicalRuntimeDecision(gas).policy).toBeFalsy()
+  const electricity=resolveCanonicalRuntimeDecision(received('F')).policy!
+  expect(sourceProdatZ06ReadingDeclarations({message:gas,policy:electricity})).toBeNull()
+})
+
+it('an interchange with two Z06 messages declares nothing and is not accepted',()=>{
+  const message=received('F',raw=>{
+    const body=raw.slice(raw.indexOf('UNH+'),raw.indexOf('UNZ+'))
+    return raw.replace("UNZ+1+I'",body.replace('UNH+M+','UNH+M2+').replace('UNT+35+M','UNT+35+M2')+"UNZ+2+I'")
+  })
+  expect((message.raw_payload!.match(/UNH\+/g)??[]).length).toBe(2)
+  const {decision,header:h}=header(message)
+  expect(decision.policy).toBeTruthy()
+  expect(sourceProdatZ06ReadingDeclarations({message,policy:decision.policy!})).toBeNull()
+  expect(h).not.toBe('accepted')
 })
 
 it('every object must carry the policy reason; a sibling object with another reason is unknown',()=>{

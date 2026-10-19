@@ -1,4 +1,4 @@
-// Prepared composition source for AT-Z09F/G-SUPPLIER; native remains NOT_RUN.
+// Composition source for AT-Z09F/G-SUPPLIER, executed in the F/G native workflow.
 // The sole existing producer supplies GRIDEX_Z09FG_COMPOSITION_INPUTS as a local
 // JSON file matching CompositionInputs below. No executable adapter is loaded.
 // Its disposable actors must log in through real GoTrue. Both artifact selectors

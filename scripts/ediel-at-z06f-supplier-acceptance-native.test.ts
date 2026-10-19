@@ -1,9 +1,9 @@
 // Acceptance evidence for AT-Z06F-SUPPLIER (human reference only).
-// Native execution remains NOT_RUN for these additive first-effect controls.
+// Executed by the existing producer in the F/G native workflow.
 // Retained already-applied cases and their assertions remain unchanged below.
 // Optional existing-fixture input/deferred-apply seams add real first-case,
 // physical ignored UD and source-refusal proofs without seeding acceptance.
-// Existing qualified producer alone executes the native suite. No coverage approval.
+// Existing qualified producer alone executes the native suite.
 import {createHash,randomUUID} from 'node:crypto'
 import {afterEach,beforeEach,expect,it,vi} from 'vitest'
 import {createZ06fReadingNativeFixture} from './helpers/ediel-z06f-reading-followup-native-fixture'
