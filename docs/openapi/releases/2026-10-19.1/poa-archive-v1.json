@@ -1,0 +1,1301 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Gridex customer POA archive and verification",
+    "version": "2026-10-19.1",
+    "description": "Independent additive evidence contract. Requires both existing read scopes, a linked portal account and a fresh verified customer assertion. Read operations preserve the common API envelope revision and never generate or archive a PDF. Verification reference and SHA-256 are not a cryptographic PDF signature or BankID claim. Shared envelope version markers follow the authenticated credential’s existing supported customer profile; the independent documentation revision does not force an upgrade of that profile."
+  },
+  "servers": [
+    {
+      "url": "https://app.gridex.se"
+    }
+  ],
+  "x-gridex-release-version": "2026-10-19.1",
+  "x-contract-schema-version": "2026-10-09.1",
+  "x-independent-contract": true,
+  "paths": {
+    "/api/v1/customer/powers-of-attorney/evidence": {
+      "get": {
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "legacyApiKeyAuth": []
+          }
+        ],
+        "x-required-scopes": [
+          "customer_power_of_attorney.read",
+          "customer_documents.read"
+        ],
+        "x-scope-combination": "allOf",
+        "x-idempotency-required": false,
+        "x-customer-assertion-required": true,
+        "x-customer-binding-required": "portal_account",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          },
+          {
+            "name": "x-gridex-customer-portal-user-id",
+            "in": "header",
+            "required": false,
+            "description": "Send this header or the other linked user header. Its opaque value must match the verified customer assertion subject; both, if sent, must agree.",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "x-gridex-auth-user-id",
+            "in": "header",
+            "required": false,
+            "description": "Send this header or the other linked user header. Its opaque value must match the verified customer assertion subject; both, if sent, must agree.",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "x-gridex-customer-assertion",
+            "in": "header",
+            "required": true,
+            "description": "Fresh verified customer assertion required even for report-mode/unconfigured providers; issuer/audience/subject/lifetime/replay validated. Send one linked portal/auth user header matching its subject.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 8192
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 2048
+            },
+            "description": "Opaque company/customer/resource-bound keyset cursor."
+          }
+        ],
+        "operationId": "getApiV1CustomerPowersOfAttorneyEvidence",
+        "summary": "Discover existing customer POA archives",
+        "responses": {
+          "200": {
+            "description": "Stored archive metadata; bytes are not verified by discovery.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerPoaArchiveListEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "410": {
+            "$ref": "#/components/responses/Gone"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "423": {
+            "$ref": "#/components/responses/Locked"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        },
+        "description": "Supply at least one linked x-gridex-customer-portal-user-id or x-gridex-auth-user-id matching the verified assertion subject. Opaque external-account subjects are supported. If both headers are supplied, their resolved values must be identical. Customer identifiers alone are insufficient.",
+        "x-scope-mode": "all",
+        "x-rate-limit-class": "read",
+        "x-cache-policy": "no-store",
+        "x-public-id-policy": "opaque-references"
+      }
+    },
+    "/api/v1/customer/powers-of-attorney/evidence/{verificationReference}": {
+      "get": {
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "legacyApiKeyAuth": []
+          }
+        ],
+        "x-required-scopes": [
+          "customer_power_of_attorney.read",
+          "customer_documents.read"
+        ],
+        "x-scope-combination": "allOf",
+        "x-idempotency-required": false,
+        "x-customer-assertion-required": true,
+        "x-customer-binding-required": "portal_account",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          },
+          {
+            "name": "x-gridex-customer-portal-user-id",
+            "in": "header",
+            "required": false,
+            "description": "Send this header or the other linked user header. Its opaque value must match the verified customer assertion subject; both, if sent, must agree.",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "x-gridex-auth-user-id",
+            "in": "header",
+            "required": false,
+            "description": "Send this header or the other linked user header. Its opaque value must match the verified customer assertion subject; both, if sent, must agree.",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "x-gridex-customer-assertion",
+            "in": "header",
+            "required": true,
+            "description": "Fresh verified customer assertion required even for report-mode/unconfigured providers; issuer/audience/subject/lifetime/replay validated. Send one linked portal/auth user header matching its subject.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 8192
+            }
+          },
+          {
+            "name": "verificationReference",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,159}$"
+            },
+            "description": "Stored opaque verification identifier; database UUIDs are refused. It is not authorization."
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "json",
+                "pdf"
+              ],
+              "default": "json"
+            }
+          },
+          {
+            "name": "sha256",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{64}$"
+            },
+            "description": "JSON only: compare supplied hash with actual original bytes."
+          }
+        ],
+        "operationId": "getApiV1CustomerPowersOfAttorneyEvidenceVerificationReference",
+        "summary": "Verify or download an existing customer POA original",
+        "responses": {
+          "200": {
+            "description": "Existing private original passed byte/evidence/ownership checks. JSON sha256 comparison is a boolean, not implied by HTTP200.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "private, no-store for PDF; no-store for JSON"
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "type": "string",
+                  "const": "nosniff"
+                },
+                "description": "PDF only"
+              },
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "PDF only; safe opaque attachment filename"
+              },
+              "X-Gridex-Document-SHA256": {
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "description": "PDF only; actual returned byte hash"
+              },
+              "X-Gridex-Verification-Reference": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "PDF only; stored verification reference"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerPoaArchiveVerificationEnvelope"
+                }
+              },
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "410": {
+            "$ref": "#/components/responses/Gone"
+          },
+          "422": {
+            "$ref": "#/components/responses/Unprocessable"
+          },
+          "423": {
+            "$ref": "#/components/responses/Locked"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        },
+        "description": "Supply at least one linked x-gridex-customer-portal-user-id or x-gridex-auth-user-id matching the verified assertion subject. Opaque external-account subjects are supported. If both headers are supplied, their resolved values must be identical. Customer identifiers alone are insufficient.",
+        "x-scope-mode": "all",
+        "x-rate-limit-class": "read",
+        "x-cache-policy": "no-store",
+        "x-public-id-policy": "opaque-references"
+      }
+    },
+    "/api/v1/openapi/poa-archive-v1.json": {
+      "get": {
+        "operationId": "getApiV1OpenapiPoaArchiveV1Json",
+        "summary": "Current POA archive OpenAPI document",
+        "security": [],
+        "x-required-scopes": [],
+        "x-scope-mode": "all",
+        "x-rate-limit-class": "read",
+        "x-idempotency-required": false,
+        "x-cache-policy": "private-revalidate",
+        "x-public-id-policy": "none",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "If-None-Match",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Independent OpenAPI contract document.",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "SHA-256 of actual serialized bytes."
+              },
+              "X-Gridex-Contract-Version": {
+                "schema": {
+                  "type": "string",
+                  "const": "2026-10-19.1"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "An OpenAPI 3.1 document with paths and reusable components."
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "The supplied ETag matches this exact serialized document; empty response body."
+          }
+        }
+      }
+    },
+    "/api/v1/openapi/2026-10-19.1/poa-archive-v1.json": {
+      "get": {
+        "operationId": "getApiV1Openapi202610191PoaArchiveV1Json",
+        "summary": "Pinned immutable POA archive OpenAPI document",
+        "security": [],
+        "x-required-scopes": [],
+        "x-scope-mode": "all",
+        "x-rate-limit-class": "read",
+        "x-idempotency-required": false,
+        "x-cache-policy": "public-immutable",
+        "x-public-id-policy": "none",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "If-None-Match",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Independent OpenAPI contract document.",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "SHA-256 of actual serialized bytes."
+              },
+              "X-Gridex-Contract-Version": {
+                "schema": {
+                  "type": "string",
+                  "const": "2026-10-19.1"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "An OpenAPI 3.1 document with paths and reusable components."
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "The supplied ETag matches this exact serialized document; empty response body."
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CustomerPoaArchiveSummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "power_of_attorney_reference",
+          "verification_reference",
+          "consent_status",
+          "archive_status",
+          "archived_sha256",
+          "download_url"
+        ],
+        "properties": {
+          "power_of_attorney_reference": {
+            "type": "string"
+          },
+          "verification_reference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "consent_status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "archive_status": {
+            "type": "string",
+            "enum": [
+              "missing",
+              "incomplete_evidence",
+              "archived_unverified",
+              "unavailable"
+            ]
+          },
+          "archived_sha256": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "download_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^/api/v1/customer/powers-of-attorney/evidence/"
+          }
+        }
+      },
+      "CustomerPoaArchiveVerification": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "power_of_attorney_reference",
+          "verification_reference",
+          "consent_status",
+          "archive_status",
+          "archived_sha256",
+          "download_url",
+          "archive_integrity",
+          "sha256",
+          "submitted_sha256_matches",
+          "accepted_at",
+          "accepted_at_source",
+          "signer_ip_address",
+          "signer_ip_source",
+          "capture_issues",
+          "bankid_verified",
+          "pdf_signature_validation",
+          "legal_text_version",
+          "signed_scopes"
+        ],
+        "properties": {
+          "power_of_attorney_reference": {
+            "type": "string"
+          },
+          "verification_reference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "consent_status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "archive_status": {
+            "type": "string",
+            "enum": [
+              "missing",
+              "incomplete_evidence",
+              "archived_unverified",
+              "unavailable"
+            ]
+          },
+          "archived_sha256": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "download_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^/api/v1/customer/powers-of-attorney/evidence/"
+          },
+          "archive_integrity": {
+            "type": "string",
+            "const": "verified"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "submitted_sha256_matches": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "accepted_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "accepted_at_source": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "accepted_at",
+              "signed_at",
+              null
+            ]
+          },
+          "signer_ip_address": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "signer_ip_source": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "signer_reported",
+              null
+            ]
+          },
+          "capture_issues": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "poa_acceptance_time_missing",
+                "poa_signer_ip_missing"
+              ]
+            }
+          },
+          "bankid_verified": {
+            "type": "boolean"
+          },
+          "pdf_signature_validation": {
+            "type": "string",
+            "const": "not_performed"
+          },
+          "legal_text_version": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "signed_scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "CustomerPoaArchiveListEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "data",
+          "page",
+          "request_id",
+          "contract_schema_version"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/CustomerPoaArchiveSummary"
+            }
+          },
+          "page": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "limit",
+              "offset",
+              "returned",
+              "has_more",
+              "next_cursor"
+            ],
+            "properties": {
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              },
+              "offset": {
+                "type": "integer",
+                "const": 0
+              },
+              "returned": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "has_more": {
+                "type": "boolean"
+              },
+              "next_cursor": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "contract_schema_version": {
+            "type": "string",
+            "enum": [
+              "2026-10-02.3",
+              "2026-10-04.1",
+              "2026-10-09.1"
+            ]
+          }
+        }
+      },
+      "CustomerPoaArchiveVerificationEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "data",
+          "request_id",
+          "contract_schema_version"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CustomerPoaArchiveVerification"
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "contract_schema_version": {
+            "type": "string",
+            "enum": [
+              "2026-10-02.3",
+              "2026-10-04.1",
+              "2026-10-09.1"
+            ]
+          }
+        }
+      },
+      "ErrorEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "error",
+          "request_id",
+          "correlation_id",
+          "contract_schema_version"
+        ],
+        "properties": {
+          "error": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "code",
+              "message",
+              "retryable",
+              "field",
+              "blockers"
+            ],
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "stage": {
+                "type": "string"
+              },
+              "field": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "hint": {
+                "type": "string"
+              },
+              "retryable": {
+                "type": "boolean"
+              },
+              "blockers": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ApiBlocker"
+                }
+              },
+              "details": {
+                "type": [
+                  "object",
+                  "array",
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "correlation_id": {
+            "type": "string"
+          },
+          "contract_schema_version": {
+            "type": "string",
+            "enum": [
+              "2026-10-02.3",
+              "2026-10-04.1",
+              "2026-10-09.1"
+            ]
+          }
+        },
+        "description": "Canonical error envelope. Business and provider failures use one nested error object; no parallel top-level aliases are emitted."
+      },
+      "ApiBlocker": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "message"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "field": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "resource_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "resource_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "count": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "recommended_action": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "metadata": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": true
+          }
+        }
+      }
+    },
+    "headers": {
+      "GridexContractVersion": {
+        "description": "Canonical contract version used for this response.",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "2026-10-02.3",
+            "2026-10-04.1",
+            "2026-10-09.1"
+          ]
+        }
+      },
+      "GridexDocumentationVersion": {
+        "description": "Optional documentation revision associated with this business response. It does not change contract_schema_version or the supported wire schema.",
+        "schema": {
+          "type": "string",
+          "const": "2026-10-12.1"
+        }
+      },
+      "RateLimitLimit": {
+        "schema": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "RateLimitRemaining": {
+        "schema": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "RateLimitReset": {
+        "schema": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "RequestId": {
+        "description": "Stable request identifier for support and audit.",
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    "parameters": {
+      "RequestId": {
+        "name": "x-request-id",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "maxLength": 200
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Request syntax or input validation failed.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        },
+        "headers": {
+          "X-Gridex-Contract-Version": {
+            "$ref": "#/components/headers/GridexContractVersion"
+          },
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestId"
+          },
+          "X-RateLimit-Limit": {
+            "$ref": "#/components/headers/RateLimitLimit"
+          },
+          "X-RateLimit-Remaining": {
+            "$ref": "#/components/headers/RateLimitRemaining"
+          },
+          "X-RateLimit-Reset": {
+            "$ref": "#/components/headers/RateLimitReset"
+          },
+          "X-Gridex-Documentation-Version": {
+            "$ref": "#/components/headers/GridexDocumentationVersion"
+          }
+        }
+      },
+      "Conflict": {
+        "description": "The archive, current evidence or stored reference cannot be matched consistently.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        },
+        "headers": {
+          "X-Gridex-Contract-Version": {
+            "$ref": "#/components/headers/GridexContractVersion"
+          },
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestId"
+          },
+          "X-RateLimit-Limit": {
+            "$ref": "#/components/headers/RateLimitLimit"
+          },
+          "X-RateLimit-Remaining": {
+            "$ref": "#/components/headers/RateLimitRemaining"
+          },
+          "X-RateLimit-Reset": {
+            "$ref": "#/components/headers/RateLimitReset"
+          },
+          "X-Gridex-Documentation-Version": {
+            "$ref": "#/components/headers/GridexDocumentationVersion"
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "Required scopes, customer identity, verified assertion or credential policy was refused.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        },
+        "headers": {
+          "X-Gridex-Contract-Version": {
+            "$ref": "#/components/headers/GridexContractVersion"
+          },
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestId"
+          },
+          "X-RateLimit-Limit": {
+            "$ref": "#/components/headers/RateLimitLimit"
+          },
+          "X-RateLimit-Remaining": {
+            "$ref": "#/components/headers/RateLimitRemaining"
+          },
+          "X-RateLimit-Reset": {
+            "$ref": "#/components/headers/RateLimitReset"
+          },
+          "X-Gridex-Documentation-Version": {
+            "$ref": "#/components/headers/GridexDocumentationVersion"
+          }
+        }
+      },
+      "Gone": {
+        "description": "The organization account is closed or inactive; API access is unavailable.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        },
+        "headers": {
+          "X-Gridex-Contract-Version": {
+            "$ref": "#/components/headers/GridexContractVersion"
+          },
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestId"
+          },
+          "X-RateLimit-Limit": {
+            "$ref": "#/components/headers/RateLimitLimit"
+          },
+          "X-RateLimit-Remaining": {
+            "$ref": "#/components/headers/RateLimitRemaining"
+          },
+          "X-RateLimit-Reset": {
+            "$ref": "#/components/headers/RateLimitReset"
+          },
+          "X-Gridex-Documentation-Version": {
+            "$ref": "#/components/headers/GridexDocumentationVersion"
+          }
+        }
+      },
+      "InternalError": {
+        "description": "The operation failed without disclosing internal database or storage details.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        },
+        "headers": {
+          "X-Gridex-Contract-Version": {
+            "$ref": "#/components/headers/GridexContractVersion"
+          },
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestId"
+          },
+          "X-RateLimit-Limit": {
+            "$ref": "#/components/headers/RateLimitLimit"
+          },
+          "X-RateLimit-Remaining": {
+            "$ref": "#/components/headers/RateLimitRemaining"
+          },
+          "X-RateLimit-Reset": {
+            "$ref": "#/components/headers/RateLimitReset"
+          },
+          "X-Gridex-Documentation-Version": {
+            "$ref": "#/components/headers/GridexDocumentationVersion"
+          }
+        }
+      },
+      "RateLimited": {
+        "description": "The registered API client request budget is exhausted.",
+        "headers": {
+          "Retry-After": {
+            "description": "Sekunder till nästa tillåtna försök.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "X-RateLimit-Limit": {
+            "$ref": "#/components/headers/RateLimitLimit"
+          },
+          "X-RateLimit-Remaining": {
+            "$ref": "#/components/headers/RateLimitRemaining"
+          },
+          "X-RateLimit-Reset": {
+            "$ref": "#/components/headers/RateLimitReset"
+          },
+          "X-Gridex-Contract-Version": {
+            "$ref": "#/components/headers/GridexContractVersion"
+          },
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestId"
+          },
+          "X-Gridex-Documentation-Version": {
+            "$ref": "#/components/headers/GridexDocumentationVersion"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "ServiceUnavailable": {
+        "description": "A required runtime, identity provider or protective service is unavailable.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        },
+        "headers": {
+          "X-Gridex-Contract-Version": {
+            "$ref": "#/components/headers/GridexContractVersion"
+          },
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestId"
+          },
+          "X-RateLimit-Limit": {
+            "$ref": "#/components/headers/RateLimitLimit"
+          },
+          "X-RateLimit-Remaining": {
+            "$ref": "#/components/headers/RateLimitRemaining"
+          },
+          "X-RateLimit-Reset": {
+            "$ref": "#/components/headers/RateLimitReset"
+          },
+          "X-Gridex-Documentation-Version": {
+            "$ref": "#/components/headers/GridexDocumentationVersion"
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "API credential is missing or invalid.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        },
+        "headers": {
+          "X-Gridex-Contract-Version": {
+            "$ref": "#/components/headers/GridexContractVersion"
+          },
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestId"
+          },
+          "X-RateLimit-Limit": {
+            "$ref": "#/components/headers/RateLimitLimit"
+          },
+          "X-RateLimit-Remaining": {
+            "$ref": "#/components/headers/RateLimitRemaining"
+          },
+          "X-RateLimit-Reset": {
+            "$ref": "#/components/headers/RateLimitReset"
+          },
+          "X-Gridex-Documentation-Version": {
+            "$ref": "#/components/headers/GridexDocumentationVersion"
+          }
+        }
+      },
+      "Unprocessable": {
+        "description": "The request cannot be processed under the required business and evidence rules.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        },
+        "headers": {
+          "X-Gridex-Contract-Version": {
+            "$ref": "#/components/headers/GridexContractVersion"
+          },
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestId"
+          },
+          "X-RateLimit-Limit": {
+            "$ref": "#/components/headers/RateLimitLimit"
+          },
+          "X-RateLimit-Remaining": {
+            "$ref": "#/components/headers/RateLimitRemaining"
+          },
+          "X-RateLimit-Reset": {
+            "$ref": "#/components/headers/RateLimitReset"
+          },
+          "X-Gridex-Documentation-Version": {
+            "$ref": "#/components/headers/GridexDocumentationVersion"
+          }
+        }
+      },
+      "NotFound": {
+        "description": "The linked customer or its own requested archive was not found.",
+        "headers": {
+          "X-Gridex-Contract-Version": {
+            "$ref": "#/components/headers/GridexContractVersion"
+          },
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestId"
+          },
+          "X-RateLimit-Limit": {
+            "$ref": "#/components/headers/RateLimitLimit"
+          },
+          "X-RateLimit-Remaining": {
+            "$ref": "#/components/headers/RateLimitRemaining"
+          },
+          "X-RateLimit-Reset": {
+            "$ref": "#/components/headers/RateLimitReset"
+          },
+          "X-Gridex-Documentation-Version": {
+            "$ref": "#/components/headers/GridexDocumentationVersion"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "Locked": {
+        "description": "API access is paused for the organization.",
+        "headers": {
+          "X-Gridex-Contract-Version": {
+            "$ref": "#/components/headers/GridexContractVersion"
+          },
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestId"
+          },
+          "X-RateLimit-Limit": {
+            "$ref": "#/components/headers/RateLimitLimit"
+          },
+          "X-RateLimit-Remaining": {
+            "$ref": "#/components/headers/RateLimitRemaining"
+          },
+          "X-RateLimit-Reset": {
+            "$ref": "#/components/headers/RateLimitReset"
+          },
+          "X-Gridex-Documentation-Version": {
+            "$ref": "#/components/headers/GridexDocumentationVersion"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "Gridex API token"
+      },
+      "legacyApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-key",
+        "deprecated": true,
+        "description": "Deprecated compatibility header. New integrations MUST use Authorization: Bearer <GRIDEX_API_KEY>. Sunset: 2026-10-31T23:59:59.000Z."
+      }
+    }
+  },
+  "x-supported-envelope-profiles": [
+    "2026-10-02.3",
+    "2026-10-04.1",
+    "2026-10-09.1"
+  ]
+}
