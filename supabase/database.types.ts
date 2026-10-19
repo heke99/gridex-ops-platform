@@ -28890,10 +28890,15 @@ export type Database = {
           country: string
           created_at: string
           created_by: string | null
+          current_supplier_contract_end_date: string | null
+          current_supplier_contract_status: string | null
           current_supplier_ediel_id: string | null
           current_supplier_id: string | null
           current_supplier_name: string | null
+          current_supplier_notice_period: string | null
           current_supplier_org_number: string | null
+          current_supplier_response_status: string | null
+          current_supplier_termination_fee: number | null
           current_supplier_unknown: boolean
           customer_id: string | null
           customer_number: string | null
@@ -28973,10 +28978,15 @@ export type Database = {
           country?: string
           created_at?: string
           created_by?: string | null
+          current_supplier_contract_end_date?: string | null
+          current_supplier_contract_status?: string | null
           current_supplier_ediel_id?: string | null
           current_supplier_id?: string | null
           current_supplier_name?: string | null
+          current_supplier_notice_period?: string | null
           current_supplier_org_number?: string | null
+          current_supplier_response_status?: string | null
+          current_supplier_termination_fee?: number | null
           current_supplier_unknown?: boolean
           customer_id?: string | null
           customer_number?: string | null
@@ -29056,10 +29066,15 @@ export type Database = {
           country?: string
           created_at?: string
           created_by?: string | null
+          current_supplier_contract_end_date?: string | null
+          current_supplier_contract_status?: string | null
           current_supplier_ediel_id?: string | null
           current_supplier_id?: string | null
           current_supplier_name?: string | null
+          current_supplier_notice_period?: string | null
           current_supplier_org_number?: string | null
+          current_supplier_response_status?: string | null
+          current_supplier_termination_fee?: number | null
           current_supplier_unknown?: boolean
           customer_id?: string | null
           customer_number?: string | null
@@ -73517,9 +73532,16 @@ export type Database = {
           contract_id: string | null
           created_at: string
           created_by: string | null
+          current_supplier_contract_end_date: string | null
+          current_supplier_contract_status: string | null
           current_supplier_ediel_id: string | null
+          current_supplier_id: string | null
           current_supplier_name: string | null
+          current_supplier_notice_period: string | null
           current_supplier_org_number: string | null
+          current_supplier_response_status: string | null
+          current_supplier_termination_fee: number | null
+          current_supplier_unknown: boolean
           customer_contract_id: string | null
           customer_id: string | null
           customer_site_id: string | null
@@ -73576,9 +73598,16 @@ export type Database = {
           contract_id?: string | null
           created_at?: string
           created_by?: string | null
+          current_supplier_contract_end_date?: string | null
+          current_supplier_contract_status?: string | null
           current_supplier_ediel_id?: string | null
+          current_supplier_id?: string | null
           current_supplier_name?: string | null
+          current_supplier_notice_period?: string | null
           current_supplier_org_number?: string | null
+          current_supplier_response_status?: string | null
+          current_supplier_termination_fee?: number | null
+          current_supplier_unknown?: boolean
           customer_contract_id?: string | null
           customer_id?: string | null
           customer_site_id?: string | null
@@ -73635,9 +73664,16 @@ export type Database = {
           contract_id?: string | null
           created_at?: string
           created_by?: string | null
+          current_supplier_contract_end_date?: string | null
+          current_supplier_contract_status?: string | null
           current_supplier_ediel_id?: string | null
+          current_supplier_id?: string | null
           current_supplier_name?: string | null
+          current_supplier_notice_period?: string | null
           current_supplier_org_number?: string | null
+          current_supplier_response_status?: string | null
+          current_supplier_termination_fee?: number | null
+          current_supplier_unknown?: boolean
           customer_contract_id?: string | null
           customer_id?: string | null
           customer_site_id?: string | null

@@ -44117,15 +44117,22 @@ END$$;
 CREATE FUNCTION public.ediel_advance_supply_deadlines_v1(p_company_id uuid, p_actor_user_id uuid, p_limit integer DEFAULT 100) RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
     AS $$
-DECLARE own record;result jsonb;activated integer:=0;cursor_row gridex_received_sources.normal_activation_sweep_cursors%rowtype;scope text:=coalesce(p_company_id::text,'all');
+DECLARE own record;result jsonb;activated integer:=0;cursor_row gridex_received_sources.normal_activation_sweep_cursors%rowtype;scope text:=coalesce(p_company_id::text,'all')||':'||p_actor_user_id::text;
 BEGIN
+ -- Verify the actor before any helper/cursor work. A service credential alone
+ -- is not a qualified tenant actor; rejected actors have no cursor effects.
+ PERFORM u.id FROM public.user_profiles u WHERE u.id=p_actor_user_id FOR SHARE;
+ IF p_actor_user_id IS NULL OR NOT EXISTS(SELECT FROM public.user_profiles u WHERE u.id=p_actor_user_id AND u.user_status='active')
+  OR NOT EXISTS(SELECT FROM public.company_memberships cm WHERE cm.user_id=p_actor_user_id AND (p_company_id IS NULL OR cm.company_id=p_company_id) AND cm.status='active' AND cm.is_active AND cm.accepted_at IS NOT NULL AND public.gridex_actor_has_company_permission(p_actor_user_id,cm.company_id,'metering.write') IS TRUE)
+ THEN RETURN jsonb_build_object('updated',0,'normalActivated',0,'reason','execution_actor_not_qualified');END IF;
  result:=gridex_received_sources.advance_supply_before_normal_switch_v1(p_company_id,p_actor_user_id,p_limit);
  INSERT INTO gridex_received_sources.normal_activation_sweep_cursors(scope_key) VALUES(scope) ON CONFLICT DO NOTHING;
  SELECT * INTO cursor_row FROM gridex_received_sources.normal_activation_sweep_cursors WHERE scope_key=scope FOR UPDATE;
- IF NOT EXISTS(SELECT FROM gridex_received_sources.normal_switch_confirmations c JOIN public.customer_supply_periods p ON p.id=c.period_id AND p.company_id=c.company_id WHERE (p_company_id IS NULL OR c.company_id=p_company_id) AND p.status='confirmed_by_grid_owner' AND c.market_start_at<=now() AND NOT EXISTS(SELECT FROM gridex_received_sources.normal_supply_activations a WHERE a.period_id=c.period_id) AND (cursor_row.last_start IS NULL OR (c.market_start_at,c.period_id)>(cursor_row.last_start,cursor_row.last_period))) THEN cursor_row.last_start:=NULL;cursor_row.last_period:=NULL;END IF;
+ IF NOT EXISTS(SELECT FROM gridex_received_sources.normal_switch_confirmations c JOIN public.customer_supply_periods p ON p.id=c.period_id AND p.company_id=c.company_id WHERE (p_company_id IS NULL OR c.company_id=p_company_id) AND public.gridex_actor_has_company_permission(p_actor_user_id,c.company_id,'metering.write') IS TRUE AND EXISTS(SELECT FROM public.company_memberships cm WHERE cm.company_id=c.company_id AND cm.user_id=p_actor_user_id AND cm.status='active' AND cm.is_active AND cm.accepted_at IS NOT NULL) AND p.status='confirmed_by_grid_owner' AND c.market_start_at<=now() AND NOT EXISTS(SELECT FROM gridex_received_sources.normal_supply_activations a WHERE a.period_id=c.period_id) AND (cursor_row.last_start IS NULL OR (c.market_start_at,c.period_id)>(cursor_row.last_start,cursor_row.last_period))) THEN cursor_row.last_start:=NULL;cursor_row.last_period:=NULL;END IF;
  FOR own IN SELECT c.* FROM gridex_received_sources.normal_switch_confirmations c JOIN public.customer_supply_periods p ON p.id=c.period_id AND p.company_id=c.company_id
-  WHERE (p_company_id IS NULL OR c.company_id=p_company_id) AND p.status='confirmed_by_grid_owner' AND c.market_start_at<=now() AND NOT EXISTS(SELECT FROM gridex_received_sources.normal_supply_activations a WHERE a.period_id=c.period_id)
+  WHERE (p_company_id IS NULL OR c.company_id=p_company_id) AND public.gridex_actor_has_company_permission(p_actor_user_id,c.company_id,'metering.write') IS TRUE AND EXISTS(SELECT FROM public.company_memberships cm WHERE cm.company_id=c.company_id AND cm.user_id=p_actor_user_id AND cm.status='active' AND cm.is_active AND cm.accepted_at IS NOT NULL) AND p.status='confirmed_by_grid_owner' AND c.market_start_at<=now() AND NOT EXISTS(SELECT FROM gridex_received_sources.normal_supply_activations a WHERE a.period_id=c.period_id)
    AND (cursor_row.last_start IS NULL OR (c.market_start_at,c.period_id)>(cursor_row.last_start,cursor_row.last_period))
   ORDER BY c.market_start_at,c.period_id LIMIT least(greatest(coalesce(p_limit,100),1),200) LOOP
   BEGIN
@@ -52239,7 +52246,12 @@ CREATE TABLE public.customer_sites (
     facility_reference text DEFAULT public.gridex_new_public_resource_reference('facility'::text) NOT NULL,
     is_active boolean GENERATED ALWAYS AS ((COALESCE(status, 'draft'::text) <> ALL (ARRAY['inactive'::text, 'closed'::text]))) STORED,
     current_supplier_id uuid,
-    current_supplier_unknown boolean DEFAULT false NOT NULL
+    current_supplier_unknown boolean DEFAULT false NOT NULL,
+    current_supplier_contract_status text,
+    current_supplier_contract_end_date date,
+    current_supplier_notice_period text,
+    current_supplier_termination_fee numeric,
+    current_supplier_response_status text
 );
 
 --
@@ -52579,6 +52591,13 @@ CREATE TABLE public.supplier_switch_requests (
     z03_variant text,
     communication_route_id uuid,
     ediel_route_profile_id uuid,
+    current_supplier_id uuid,
+    current_supplier_unknown boolean DEFAULT false NOT NULL,
+    current_supplier_contract_status text,
+    current_supplier_contract_end_date date,
+    current_supplier_notice_period text,
+    current_supplier_termination_fee numeric,
+    current_supplier_response_status text,
     CONSTRAINT supplier_switch_requests_expected_z02_variant_check CHECK (((expected_z02_variant IS NULL) OR (expected_z02_variant = ANY (ARRAY['L'::text, 'LK'::text])))),
     CONSTRAINT supplier_switch_requests_process_type_check CHECK (((process_type IS NULL) OR (process_type = ANY (ARRAY['supplier_switch_existing_site'::text, 'move_in'::text, 'move_out'::text, 'takeover'::text, 'unknown'::text])))),
     CONSTRAINT supplier_switch_requests_prodat_variant_check CHECK (((prodat_variant IS NULL) OR (prodat_variant = ANY (ARRAY['L'::text, 'LK'::text, 'H'::text])))),
@@ -65129,32 +65148,54 @@ CREATE FUNCTION public.gridex_customer_application_runtime_contract_v1() RETURNS
     AS $$
 with checks as (
   select
-    to_regclass('public.supplier_switch_requests') is not null as supplier_switch_requests_exists,
+    (SELECT c.oid FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname='supplier_switch_requests') is not null as supplier_switch_requests_exists,
     exists (
       select 1 from pg_catalog.pg_attribute
-      where attrelid = to_regclass('public.supplier_switch_requests')
+      where attrelid = (SELECT c.oid FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname='supplier_switch_requests')
         and attname = 'communication_route_id' and attnum > 0 and not attisdropped
     ) as communication_route_id_exists,
     exists (
       select 1 from pg_catalog.pg_attribute
-      where attrelid = to_regclass('public.supplier_switch_requests')
+      where attrelid = (SELECT c.oid FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname='supplier_switch_requests')
         and attname = 'ediel_route_profile_id' and attnum > 0 and not attisdropped
     ) as ediel_route_profile_id_exists,
-    to_regclass('public.communication_routes') is not null as communication_routes_exists,
-    to_regclass('public.ediel_route_profiles') is not null as ediel_route_profiles_exists,
-    to_regprocedure('extensions.digest(text,text)') is not null as pgcrypto_digest_exists,
-    to_regprocedure('public.gridex_set_grid_owner_request_idempotency_key()') is not null as request_idempotency_function_exists,
+    (SELECT c.oid FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname='communication_routes') is not null as communication_routes_exists,
+    (SELECT c.oid FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname='ediel_route_profiles') is not null as ediel_route_profiles_exists,
+    (SELECT p.oid FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='extensions' AND p.proname='digest' AND pg_catalog.oidvectortypes(p.proargtypes)='text, text') is not null as pgcrypto_digest_exists,
+    (SELECT p.oid FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.proname='gridex_set_grid_owner_request_idempotency_key' AND pg_catalog.oidvectortypes(p.proargtypes)='') is not null as request_idempotency_function_exists,
     coalesce(position(
-      'extensions.digest' in pg_get_functiondef(to_regprocedure('public.gridex_set_grid_owner_request_idempotency_key()'))
+      'extensions.digest' in pg_get_functiondef((SELECT p.oid FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.proname='gridex_set_grid_owner_request_idempotency_key' AND pg_catalog.oidvectortypes(p.proargtypes)=''))
     ) > 0, false) as request_idempotency_digest_qualified,
     exists (
       select 1 from pg_catalog.pg_trigger
-      where tgrelid = to_regclass('public.grid_owner_information_requests')
+      where tgrelid = (SELECT c.oid FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname='grid_owner_information_requests')
         and tgname = 'trg_grid_owner_information_requests_idempotency'
         and not tgisinternal
         and tgenabled <> 'D'
     ) as request_idempotency_trigger_enabled,
-    to_regprocedure('public.gridex_lock_signed_customer_contract()') is not null as signed_contract_integrity_function_exists
+    (SELECT p.oid FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.proname='gridex_lock_signed_customer_contract' AND pg_catalog.oidvectortypes(p.proargtypes)='') is not null as signed_contract_integrity_function_exists,
+    (SELECT p.oid FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.proname='ediel_advance_supply_deadlines_v1' AND pg_catalog.oidvectortypes(p.proargtypes)='uuid, uuid, integer') is not null as supply_deadline_rpc_exists,
+    (SELECT p.oid FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='gridex_received_sources' AND p.proname='advance_supply_before_normal_switch_v1' AND pg_catalog.oidvectortypes(p.proargtypes)='uuid, uuid, integer') is not null as supply_deadline_helper_exists,
+    (SELECT c.oid FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='gridex_received_sources' AND c.relname='normal_activation_sweep_cursors') is not null as supply_deadline_cursor_exists,
+    (SELECT c.oid FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='gridex_received_sources' AND c.relname='normal_switch_confirmations') is not null as normal_confirmation_ledger_exists,
+    (SELECT c.oid FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='gridex_received_sources' AND c.relname='normal_supply_activations') is not null as normal_activation_ledger_exists,
+    (SELECT p.oid FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.proname='activate_customer_supply_v1' AND pg_catalog.oidvectortypes(p.proargtypes)='uuid, uuid, uuid, date, uuid, text') is not null as normal_activation_command_exists,
+    (SELECT p.oid FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='gridex_regulated_supply' AND p.proname='lock_graph_v1' AND pg_catalog.oidvectortypes(p.proargtypes)='') is not null as regulated_supply_lock_exists,
+    (SELECT p.oid FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='gridex_regulated_supply' AND p.proname='ground_current_v1' AND pg_catalog.oidvectortypes(p.proargtypes)='uuid, uuid, uuid, timestamp with time zone') is not null as regulated_supply_ground_guard_exists,
+    coalesce(has_function_privilege('service_role',(SELECT p.oid FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.proname='ediel_advance_supply_deadlines_v1' AND pg_catalog.oidvectortypes(p.proargtypes)='uuid, uuid, integer'),'EXECUTE') AND NOT has_function_privilege('anon',(SELECT p.oid FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.proname='ediel_advance_supply_deadlines_v1' AND pg_catalog.oidvectortypes(p.proargtypes)='uuid, uuid, integer'),'EXECUTE') AND NOT has_function_privilege('authenticated',(SELECT p.oid FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.proname='ediel_advance_supply_deadlines_v1' AND pg_catalog.oidvectortypes(p.proargtypes)='uuid, uuid, integer'),'EXECUTE'),false) as supply_deadline_rpc_service_only,
+    coalesce(NOT has_function_privilege('service_role',(SELECT p.oid FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='gridex_received_sources' AND p.proname='advance_supply_before_normal_switch_v1' AND pg_catalog.oidvectortypes(p.proargtypes)='uuid, uuid, integer'),'EXECUTE') AND NOT has_function_privilege('anon',(SELECT p.oid FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='gridex_received_sources' AND p.proname='advance_supply_before_normal_switch_v1' AND pg_catalog.oidvectortypes(p.proargtypes)='uuid, uuid, integer'),'EXECUTE') AND NOT has_function_privilege('authenticated',(SELECT p.oid FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='gridex_received_sources' AND p.proname='advance_supply_before_normal_switch_v1' AND pg_catalog.oidvectortypes(p.proargtypes)='uuid, uuid, integer'),'EXECUTE'),false) as supply_deadline_helper_private,
+    coalesce((SELECT relrowsecurity FROM pg_class WHERE oid=(SELECT c.oid FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='gridex_received_sources' AND c.relname='normal_activation_sweep_cursors')) AND NOT has_table_privilege('service_role',(SELECT c.oid FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='gridex_received_sources' AND c.relname='normal_activation_sweep_cursors'),'SELECT,INSERT,UPDATE,DELETE,TRUNCATE') AND NOT has_table_privilege('anon',(SELECT c.oid FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='gridex_received_sources' AND c.relname='normal_activation_sweep_cursors'),'SELECT,INSERT,UPDATE,DELETE,TRUNCATE') AND NOT has_table_privilege('authenticated',(SELECT c.oid FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='gridex_received_sources' AND c.relname='normal_activation_sweep_cursors'),'SELECT,INSERT,UPDATE,DELETE,TRUNCATE'),false) as supply_deadline_cursor_private,
+    NOT EXISTS(SELECT FROM (VALUES('public.user_profiles','id'),('public.user_profiles','user_status'),('public.company_memberships','company_id'),('public.company_memberships','user_id'),('public.company_memberships','status'),('public.company_memberships','is_active'),('public.company_memberships','accepted_at'),('public.ediel_messages','id'),('public.ediel_messages','company_id'),('public.ediel_messages','raw_payload'),('public.ediel_messages','environment'),('public.customer_supply_periods','id'),('public.customer_supply_periods','company_id'),('public.customer_supply_periods','status'),('public.customer_supply_periods','market_end_at'),('public.customer_supply_periods','market_start_at'),('public.customer_supply_periods','source_end_message_id'),('public.customer_supply_periods','source_message_id'),('public.customer_supply_periods','market_state_version'),('public.customer_supply_periods','customer_id'),('public.customer_supply_periods','metering_point_id'),('public.customer_supply_periods','source_process'),('public.customer_supply_periods','metadata'),('public.customer_supply_periods','updated_at'),('public.tenant_bilateral_agreements','id'),('public.tenant_bilateral_agreements','company_id'),('public.tenant_bilateral_agreements','environment'),('public.tenant_bilateral_agreements','counterparty_actor_id'),('public.tenant_bilateral_agreements','is_enabled'),('public.tenant_bilateral_agreements','source_reference'),('public.tenant_bilateral_agreements','valid_from'),('public.tenant_bilateral_agreements','valid_to'),('public.tenant_actor_roles','company_id'),('public.tenant_actor_roles','environment'),('public.tenant_actor_roles','actor_id'),('public.tenant_actor_roles','role_code'),('public.tenant_actor_roles','valid_from'),('public.tenant_actor_roles','valid_to'),('public.tenant_ediel_profiles','company_id'),('public.tenant_ediel_profiles','environment'),('public.tenant_ediel_profiles','market'),('public.tenant_ediel_profiles','is_enabled'),('public.tenant_ediel_profiles','valid_from'),('public.tenant_ediel_profiles','valid_to'),('gridex_received_sources.supply_source_transitions','source_message_id'),('gridex_received_sources.supply_source_transitions','company_id'),('gridex_received_sources.supply_source_transitions','payload_hash'),('gridex_received_sources.supply_source_transitions','resulting_states'),('gridex_received_sources.regulated_supply_ground_versions','id'),('gridex_received_sources.regulated_supply_ground_versions','company_id'),('gridex_received_sources.regulated_supply_ground_versions','environment'),('gridex_received_sources.regulated_supply_ground_versions','bilateral_agreement_id'),('gridex_received_sources.regulated_supply_ground_versions','dso_actor_id'),('gridex_received_sources.regulated_supply_ground_versions','legal_actor_id'),('gridex_received_sources.regulated_supply_ground_versions','source_reference'),('gridex_received_sources.regulated_supply_ground_versions','revoked_at'),('gridex_received_sources.regulated_supply_ground_versions','valid_from'),('gridex_received_sources.regulated_supply_ground_versions','valid_to'),('gridex_received_sources.normal_switch_confirmations','period_id'),('gridex_received_sources.normal_switch_confirmations','company_id'),('gridex_received_sources.normal_switch_confirmations','market_start_at'),('gridex_received_sources.normal_switch_confirmations','switch_id'),('gridex_received_sources.normal_switch_confirmations','source_message_id'),('gridex_received_sources.normal_supply_activations','period_id'),('gridex_received_sources.normal_activation_sweep_cursors','scope_key'),('gridex_received_sources.normal_activation_sweep_cursors','last_start'),('gridex_received_sources.normal_activation_sweep_cursors','last_period')) expected(relation_name,column_name) WHERE NOT EXISTS(SELECT FROM pg_attribute a WHERE a.attrelid=(SELECT c.oid FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname=pg_catalog.split_part(expected.relation_name,'.',1) AND c.relname=pg_catalog.split_part(expected.relation_name,'.',2)) AND a.attname=expected.column_name AND a.attnum>0 AND NOT a.attisdropped)) as supply_deadline_runtime_columns_ready,
+    EXISTS(SELECT FROM pg_catalog.pg_class t JOIN pg_catalog.pg_namespace n ON n.oid=t.relnamespace WHERE n.nspname='gridex_received_sources' AND t.relname='normal_activation_sweep_cursors' AND t.relkind='r'
+      AND (SELECT count(*) FROM pg_catalog.pg_attribute a WHERE a.attrelid=t.oid AND a.attnum>0 AND NOT a.attisdropped)=3
+      AND EXISTS(SELECT FROM pg_catalog.pg_index i JOIN pg_catalog.pg_attribute a ON a.attrelid=i.indrelid AND a.attname='scope_key' WHERE i.indrelid=t.oid AND i.indisprimary AND i.indimmediate AND i.indisvalid AND i.indisready AND i.indislive AND i.indnatts=1 AND i.indkey[0]=a.attnum AND a.attnotnull AND a.attgenerated='')
+      AND NOT EXISTS(SELECT FROM (VALUES('scope_key','text'),('last_start','timestamp with time zone'),('last_period','uuid')) expected(name,type) WHERE NOT EXISTS(SELECT FROM pg_catalog.pg_attribute a WHERE a.attrelid=t.oid AND a.attname=expected.name AND pg_catalog.format_type(a.atttypid,a.atttypmod)=expected.type AND a.attnum>0 AND NOT a.attisdropped))
+      AND NOT EXISTS(SELECT FROM pg_catalog.pg_attribute a WHERE a.attrelid=t.oid AND a.attname IN('last_start','last_period') AND (a.attnotnull OR a.atthasdef OR a.attgenerated<>''))
+      AND NOT EXISTS(SELECT FROM pg_catalog.pg_attribute a WHERE a.attrelid=t.oid AND a.attnum>0 AND NOT a.attisdropped AND a.attgenerated<>'')
+      AND NOT EXISTS(SELECT FROM pg_catalog.pg_constraint c WHERE c.conrelid=t.oid AND c.contype NOT IN('p','n'))
+      AND NOT EXISTS(SELECT FROM pg_catalog.pg_index i WHERE i.indrelid=t.oid AND (i.indisunique OR i.indisexclusion) AND NOT i.indisprimary)
+      AND NOT EXISTS(SELECT FROM pg_catalog.pg_trigger g WHERE g.tgrelid=t.oid AND NOT g.tgisinternal)
+      AND NOT EXISTS(SELECT FROM pg_catalog.pg_rewrite r WHERE r.ev_class=t.oid)) as supply_deadline_cursor_shape_ready
 )
 select jsonb_build_object(
   'ready',
@@ -65167,7 +65208,20 @@ select jsonb_build_object(
     and request_idempotency_function_exists
     and request_idempotency_digest_qualified
     and request_idempotency_trigger_enabled
-    and signed_contract_integrity_function_exists,
+    and signed_contract_integrity_function_exists
+    and supply_deadline_rpc_exists
+    and supply_deadline_helper_exists
+    and supply_deadline_cursor_exists
+    and normal_confirmation_ledger_exists
+    and normal_activation_ledger_exists
+    and normal_activation_command_exists
+    and regulated_supply_lock_exists
+    and regulated_supply_ground_guard_exists
+    and supply_deadline_rpc_service_only
+    and supply_deadline_helper_private
+    and supply_deadline_cursor_private
+    and supply_deadline_runtime_columns_ready
+    and supply_deadline_cursor_shape_ready,
   'checks', jsonb_build_object(
     'supplier_switch_requests_exists', supplier_switch_requests_exists,
     'communication_route_id_exists', communication_route_id_exists,
@@ -65178,7 +65232,20 @@ select jsonb_build_object(
     'request_idempotency_function_exists', request_idempotency_function_exists,
     'request_idempotency_digest_qualified', request_idempotency_digest_qualified,
     'request_idempotency_trigger_enabled', request_idempotency_trigger_enabled,
-    'signed_contract_integrity_function_exists', signed_contract_integrity_function_exists
+    'signed_contract_integrity_function_exists', signed_contract_integrity_function_exists,
+    'supply_deadline_rpc_exists', supply_deadline_rpc_exists,
+    'supply_deadline_helper_exists', supply_deadline_helper_exists,
+    'supply_deadline_cursor_exists', supply_deadline_cursor_exists,
+    'normal_confirmation_ledger_exists', normal_confirmation_ledger_exists,
+    'normal_activation_ledger_exists', normal_activation_ledger_exists,
+    'normal_activation_command_exists', normal_activation_command_exists,
+    'regulated_supply_lock_exists', regulated_supply_lock_exists,
+    'regulated_supply_ground_guard_exists', regulated_supply_ground_guard_exists,
+    'supply_deadline_rpc_service_only', supply_deadline_rpc_service_only,
+    'supply_deadline_helper_private', supply_deadline_helper_private,
+    'supply_deadline_cursor_private', supply_deadline_cursor_private,
+    'supply_deadline_runtime_columns_ready', supply_deadline_runtime_columns_ready,
+    'supply_deadline_cursor_shape_ready', supply_deadline_cursor_shape_ready
   )
 )
 from checks;
