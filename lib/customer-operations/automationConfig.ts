@@ -13,6 +13,8 @@ import {
  * `actorUserId` for automatic EDIEL and supplier-switch operations when no
  * interactive session exists. Note: `public.profiles` does NOT exist in this
  * schema — the FK on customer_operation_jobs.created_by points to auth.users(id).
+ * Scheduled actor-dependent execution additionally requires an active
+ * `public.user_profiles` row; existence in Auth alone is not qualification.
  *
  * A missing or malformed value is a CONFIGURATION error, not a technical
  * error: it must fail fast (no retries) with a clear admin-action blocker.
@@ -108,6 +110,9 @@ export type AutomationUserConfigStatus = {
     | 'missing'
     | 'invalid_uuid'
     | 'user_not_found'
+    | 'user_inactive'
+    | 'profile_missing'
+    | 'profile_inactive'
     | 'verification_unavailable'
   message: string | null
 }
@@ -151,8 +156,8 @@ export async function validateAutomationUserConfig(): Promise<AutomationUserConf
     }
   }
 
-  // Best-effort existence check against auth.users. Verification failures
-  // (network, permissions) must not be reported as a broken config.
+  // Qualification must be positively verified. An unavailable check is distinct
+  // from an invalid account, but cannot authorize actor-dependent cron steps.
   try {
     const { data, error } = await supabaseService.auth.admin.getUserById(userId)
     if (error) {
@@ -165,9 +170,9 @@ export async function validateAutomationUserConfig(): Promise<AutomationUserConf
           message: `${AUTOMATION_USER_ENV_KEY} pekar på en användare som inte finns i auth.users.`,
         }
       }
-      return { ok: true, userId, issue: 'verification_unavailable', message: error.message ?? null }
+      return { ok: false, userId, issue: 'verification_unavailable', message: 'Automationskontots Auth-identitet kunde inte verifieras.' }
     }
-    if (!data?.user?.id) {
+    if (data?.user?.id !== userId) {
       return {
         ok: false,
         userId,
@@ -175,12 +180,49 @@ export async function validateAutomationUserConfig(): Promise<AutomationUserConf
         message: `${AUTOMATION_USER_ENV_KEY} pekar på en användare som inte finns i auth.users.`,
       }
     }
-  } catch (error) {
+
+    const user = data.user
+    const bannedUntil = user.banned_until ? Date.parse(user.banned_until) : null
+    if (user.deleted_at || !user.email_confirmed_at || !Number.isFinite(Date.parse(user.email_confirmed_at))
+      || (bannedUntil !== null && (!Number.isFinite(bannedUntil) || bannedUntil > Date.now()))) {
+      return {
+        ok: false,
+        userId,
+        issue: 'user_inactive',
+        message: `${AUTOMATION_USER_ENV_KEY} pekar på ett obekräftat, borttaget eller spärrat Auth-konto.`,
+      }
+    }
+
+    const profile = await supabaseService
+      .from('user_profiles')
+      .select('id,user_status')
+      .eq('id', userId)
+      .maybeSingle()
+    if (profile.error) {
+      return { ok: false, userId, issue: 'verification_unavailable', message: 'Automationskontots personalprofil kunde inte verifieras.' }
+    }
+    if (profile.data?.id !== userId) {
+      return {
+        ok: false,
+        userId,
+        issue: 'profile_missing',
+        message: `${AUTOMATION_USER_ENV_KEY} saknar en personalprofil i user_profiles.`,
+      }
+    }
+    if (profile.data.user_status !== 'active') {
+      return {
+        ok: false,
+        userId,
+        issue: 'profile_inactive',
+        message: `${AUTOMATION_USER_ENV_KEY} saknar en aktiv personalprofil i user_profiles.`,
+      }
+    }
+  } catch {
     return {
-      ok: true,
+      ok: false,
       userId,
       issue: 'verification_unavailable',
-      message: error instanceof Error ? error.message : null,
+      message: 'Automationskontots identitet eller personalprofil kunde inte verifieras.',
     }
   }
 
