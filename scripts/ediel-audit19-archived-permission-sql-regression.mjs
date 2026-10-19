@@ -1,5 +1,7 @@
 // Actual SQL bodies in isolated PGlite. Registry rows and graph-lock port are SYNTHETIC.
 // No SDK, auth.uid seam, GoTrue, backend, live policy or native evidence.
+// Fixture-admin setup/seed is separate from actual NOSUPER/NOINHERIT installation.
+// Direct private permission observations use the declared installer SET capability only.
 import {readFileSync} from 'node:fs'
 import {join} from 'node:path'
 import {createHash} from 'node:crypto'
@@ -23,10 +25,24 @@ assert.equal(sha(body),beforeHash,'only known actual Source6 predecessor or exac
 const oldDefinition=original.definition.slice(0,original.start)+body+original.definition.slice(original.end)
 const deps=['public.gridex_normalize_platform_role','public.gridex_get_user_permissions_in_company','public.gridex_actor_has_company_permission','public.ediel_retention_lock_auth_actor_v1','gridex_requested_changes.scoped_permission_v1'].map(extract)
 const phase=process.env.AUDIT_PERMISSION_PHASE||'after';assert(['before','after'].includes(phase))
+const authoritySQL=`SELECT jsonb_build_object('memberships',(SELECT jsonb_agg(to_jsonb(m) ORDER BY m.oid) FROM pg_auth_members m),'roles',(SELECT jsonb_agg(to_jsonb(r)-'rolpassword' ORDER BY r.oid) FROM pg_roles r),'namespaces',(SELECT jsonb_agg(to_jsonb(n) ORDER BY n.oid) FROM pg_namespace n WHERE n.nspname IN('public','gridex_ediel_retention'))) v`
+async function installer(d){
+ const identity=(await d.query(`SELECT current_user c,session_user s,rolsuper,rolinherit,rolcreaterole,rolbypassrls,pg_has_role('postgres','gridex_ediel_retention_owner','USAGE') inherited,pg_has_role('postgres','gridex_ediel_retention_owner','SET') can_set FROM pg_roles WHERE rolname=current_user`)).rows[0]
+ assert.deepEqual(identity,{c:'postgres',s:'postgres',rolsuper:false,rolinherit:true,rolcreaterole:true,rolbypassrls:true,inherited:false,can_set:true})
+ const edges=(await d.query(`SELECT jsonb_agg(jsonb_build_array(g.rolname,m.admin_option,m.inherit_option,m.set_option) ORDER BY g.rolname COLLATE "C") v FROM pg_auth_members m JOIN pg_roles g ON g.oid=m.grantor WHERE roleid='gridex_ediel_retention_owner'::regrole AND member='postgres'::regrole`)).rows[0].v
+ assert.deepEqual(edges,[['postgres',false,false,true],['supabase_admin',true,false,false]])
+ assert.equal((await d.query(`SELECT nspowner='gridex_ediel_retention_owner'::regrole::oid v FROM pg_namespace WHERE nspname='gridex_ediel_retention'`)).rows[0].v,true)
+ assert.equal((await d.query(`SELECT has_schema_privilege('gridex_ediel_retention_owner','auth','USAGE') v`)).rows[0].v,false)
+}
 async function fresh(apply=false){
  const d=new PGlite()
- await d.exec(`CREATE ROLE anon;CREATE ROLE authenticated;CREATE ROLE service_role;CREATE ROLE gridex_ediel_retention_owner NOLOGIN BYPASSRLS;
- CREATE SCHEMA auth;CREATE SCHEMA gridex_ediel_ack_replay;CREATE SCHEMA gridex_requested_changes;CREATE SCHEMA gridex_ediel_retention;
+ // PGlite's bootstrap OID10 stays superuser under the genuine bootstrap name.
+ // Only this explicit GIVEN setup/seed principal is privileged; never apply SQL as it.
+ await d.exec(`CREATE ROLE fixture_setup_admin LOGIN SUPERUSER;SET SESSION AUTHORIZATION fixture_setup_admin;ALTER ROLE postgres RENAME TO supabase_admin;SET SESSION AUTHORIZATION supabase_admin;
+ CREATE ROLE postgres LOGIN NOSUPERUSER INHERIT CREATEROLE BYPASSRLS;
+ CREATE ROLE anon;CREATE ROLE authenticated;CREATE ROLE service_role;CREATE ROLE gridex_ediel_retention_owner NOLOGIN NOINHERIT BYPASSRLS;
+ ALTER DATABASE postgres OWNER TO postgres;ALTER SCHEMA public OWNER TO postgres;
+ CREATE SCHEMA auth AUTHORIZATION supabase_admin;CREATE SCHEMA gridex_ediel_ack_replay AUTHORIZATION postgres;CREATE SCHEMA gridex_requested_changes AUTHORIZATION postgres;CREATE SCHEMA gridex_ediel_retention AUTHORIZATION gridex_ediel_retention_owner;
  CREATE TABLE auth.users(id uuid PRIMARY KEY,deleted_at timestamptz,banned_until timestamptz,email_confirmed_at timestamptz);
  CREATE TABLE public.user_profiles(id uuid PRIMARY KEY,user_status text,disabled_at timestamptz);
  CREATE TABLE public.companies(id uuid PRIMARY KEY,status text,is_active boolean);
@@ -42,21 +58,41 @@ async function fresh(apply=false){
  CREATE FUNCTION gridex_ediel_ack_replay.lock_current_graph_v2() RETURNS void LANGUAGE sql AS $$SELECT$$;`)
  for(const x of deps)await d.exec(x.definition)
  await d.exec(oldDefinition)
- await d.exec(`GRANT USAGE ON SCHEMA public,auth,gridex_requested_changes,gridex_ediel_ack_replay,gridex_ediel_retention TO gridex_ediel_retention_owner;GRANT SELECT ON ALL TABLES IN SCHEMA public,auth TO gridex_ediel_retention_owner;ALTER FUNCTION gridex_ediel_retention.permission_v1(uuid,uuid,text) OWNER TO gridex_ediel_retention_owner;REVOKE ALL ON FUNCTION gridex_ediel_retention.permission_v1(uuid,uuid,text) FROM PUBLIC;`)
- if(apply)await d.exec(sql)
+ // Public dependency owners can use their genuine auth-locking bodies; the
+ // private retention owner receives no auth-schema/table access.
+ await d.exec(`DO $$DECLARE r record;BEGIN FOR r IN SELECT c.relname FROM pg_class c WHERE c.relnamespace='public'::regnamespace AND c.relkind='r' LOOP EXECUTE format('ALTER TABLE public.%I OWNER TO postgres',r.relname);END LOOP;FOR r IN SELECT p.oid::regprocedure target FROM pg_proc p WHERE p.pronamespace IN('public'::regnamespace,'gridex_requested_changes'::regnamespace,'gridex_ediel_ack_replay'::regnamespace) LOOP EXECUTE format('ALTER FUNCTION %s OWNER TO postgres',r.target);END LOOP;END$$;
+ GRANT USAGE ON SCHEMA auth TO postgres;GRANT SELECT,UPDATE ON auth.users TO postgres;
+ GRANT USAGE ON SCHEMA public,gridex_requested_changes,gridex_ediel_ack_replay,gridex_ediel_retention TO gridex_ediel_retention_owner;
+ GRANT USAGE ON SCHEMA gridex_ediel_retention TO postgres;
+ GRANT SELECT ON ALL TABLES IN SCHEMA public TO gridex_ediel_retention_owner;
+ ALTER FUNCTION gridex_ediel_retention.permission_v1(uuid,uuid,text) OWNER TO gridex_ediel_retention_owner;REVOKE ALL ON FUNCTION gridex_ediel_retention.permission_v1(uuid,uuid,text) FROM PUBLIC;
+ GRANT gridex_ediel_retention_owner TO postgres WITH ADMIN TRUE,INHERIT FALSE,SET FALSE GRANTED BY supabase_admin;
+ SET SESSION AUTHORIZATION postgres;GRANT gridex_ediel_retention_owner TO postgres WITH ADMIN FALSE,INHERIT FALSE,SET TRUE GRANTED BY postgres;`)
+ await installer(d)
+ if(apply){const authority=(await d.query(authoritySQL)).rows[0].v;await d.exec(sql);await installer(d);assert.deepEqual((await d.query(authoritySQL)).rows[0].v,authority,'actual forward restores installer roles/edges/namespaces')}
  return d
 }
-async function seed(d){await d.exec(`TRUNCATE auth.users,public.user_profiles,public.companies,public.company_memberships,public.permissions,public.user_permissions,public.roles,public.user_roles,public.role_permissions,public.user_permission_overrides,public.admin_users;
+async function seed(d){
+ // Declared fixture-admin registry seeding; every test/installer resumes postgres.
+ await d.exec('SET SESSION AUTHORIZATION supabase_admin')
+ try{await d.exec(`TRUNCATE auth.users,public.user_profiles,public.companies,public.company_memberships,public.permissions,public.user_permissions,public.roles,public.user_roles,public.role_permissions,public.user_permission_overrides,public.admin_users;
  INSERT INTO auth.users VALUES('${actor}',NULL,NULL,clock_timestamp()),('${superactor}',NULL,NULL,clock_timestamp());
  INSERT INTO public.user_profiles VALUES('${actor}','active',NULL),('${superactor}','active',NULL);
  INSERT INTO public.companies VALUES('${c}','archived',true),('${foreign}','active',true);
  INSERT INTO public.company_memberships VALUES('${c}','${actor}','active',true,clock_timestamp()),('${c}','${superactor}','active',true,clock_timestamp());
  INSERT INTO public.permissions VALUES('${ids[0]}','${key}','audit',true),('${ids[1]}','${reason}','reason',true),('${ids[2]}','${business}','business',true);
  INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key,is_active,status,effect) SELECT u,'${c}',p.id,p.key,true,'active','allow' FROM unnest(ARRAY['${actor}','${superactor}']::uuid[]) u CROSS JOIN public.permissions p;
- INSERT INTO public.admin_users VALUES('${superactor}','super_admin',true);`)}
+ INSERT INTO public.admin_users VALUES('${superactor}','super_admin',true);`)}finally{await d.exec('SET SESSION AUTHORIZATION postgres')}
+ await installer(d)
+}
 let db
 before(async()=>{db=await fresh(phase==='after')});beforeEach(async()=>seed(db));after(async()=>db?.close())
-async function allowed(wanted=key,who=actor,company=c,d=db){return(await d.query('SELECT gridex_ediel_retention.permission_v1($1,$2,$3) AS v',[company,who,wanted])).rows[0].v}
+async function allowed(wanted=key,who=actor,company=c,d=db){
+ // This private predicate has no application EXECUTE grant. Observe it through
+ // the real SET=true installer edge, then restore the noninheriting installer.
+ await d.exec('SET ROLE gridex_ediel_retention_owner')
+ try{return(await d.query('SELECT gridex_ediel_retention.permission_v1($1,$2,$3) AS v',[company,who,wanted])).rows[0].v}finally{await d.exec('RESET ROLE')}
+}
 async function businessOwner(wanted=key,who=actor){return(await db.query('SELECT public.gridex_actor_has_company_permission($1,$2,$3) AS v',[who,c,wanted])).rows[0].v}
 for(const status of ['archived','pending_deletion','closed'])test(`current explicit audit grant survives ${status} through genuine retention owner`,async()=>{
  await db.query('UPDATE public.companies SET status=$1 WHERE id=$2',[status,c])

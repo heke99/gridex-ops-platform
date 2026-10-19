@@ -43,7 +43,7 @@ function source6Reader(name:string){
  if(digest(body)!==spec.after)throw Error('source6_actual_postimage_changed:'+name)
  return installed.text.replace(installed.body,body)
 }
-const forward=()=>readFileSync(nextPath,'utf8').replace(/^BEGIN;\s*/,'').replace(/COMMIT;\s*$/,'')
+const forward=()=>readFileSync(nextPath,'utf8')
 async function snapshot(){
  return (await db.query<{value:unknown}>(`SELECT jsonb_build_object(
  'policies',(SELECT jsonb_agg(to_jsonb(x) ORDER BY id) FROM gridex_ediel_retention.decision_evidence_policies x),
@@ -68,9 +68,40 @@ async function metadata(){
  return (await db.query<{value:unknown}>(`SELECT jsonb_agg(to_jsonb(p)-'prosrc' ORDER BY p.oid) value FROM pg_proc p WHERE p.oid=ANY($1::regprocedure[])`,[['public.ediel_read_decision_evidence_policy_v1(uuid,uuid,uuid,boolean)','public.ediel_read_retention_decision_original_v1(uuid,uuid,text,uuid,boolean)']])).rows[0].value
 }
 
+// Explicit privileged fixture setup/seed/observation remains separate from
+// every full migration transaction, which runs as the genuine NOSUPER installer.
+const fixtureAuthoritySQL=`SELECT jsonb_build_object('roles',(SELECT jsonb_agg(to_jsonb(r)-'rolpassword' ORDER BY r.oid) FROM pg_roles r),'memberships',(SELECT jsonb_agg(to_jsonb(m) ORDER BY m.oid) FROM pg_auth_members m),'namespaces',(SELECT jsonb_agg(to_jsonb(n) ORDER BY n.oid) FROM pg_namespace n WHERE n.nspname IN('public','gridex_ediel_retention'))) v`
+async function fixtureInstallerIdentity(d:PGlite){
+ expect((await d.query(`SELECT current_user c,session_user s,rolsuper,rolinherit,rolcreaterole,rolbypassrls,pg_has_role('postgres','gridex_ediel_retention_owner','USAGE') inherited,pg_has_role('postgres','gridex_ediel_retention_owner','SET') can_set FROM pg_roles WHERE rolname=current_user`)).rows[0]).toEqual({c:'postgres',s:'postgres',rolsuper:false,rolinherit:true,rolcreaterole:true,rolbypassrls:true,inherited:false,can_set:true})
+ expect((await d.query<{v:unknown}>(`SELECT jsonb_agg(jsonb_build_array(g.rolname,m.admin_option,m.inherit_option,m.set_option) ORDER BY g.rolname COLLATE "C") v FROM pg_auth_members m JOIN pg_roles g ON g.oid=m.grantor WHERE roleid='gridex_ediel_retention_owner'::regrole AND member='postgres'::regrole`)).rows[0].v).toEqual([['postgres',false,false,true],['supabase_admin',true,false,false]])
+ expect((await d.query<{v:boolean}>(`SELECT nspowner='gridex_ediel_retention_owner'::regrole::oid v FROM pg_namespace WHERE nspname='gridex_ediel_retention'`)).rows[0].v).toBe(true)
+}
+async function qualifyFixtureInstaller(d:PGlite){
+ // Baseline DDL is a declared projection. Assign its real public/private owners
+ // before invoking the installer; this does not grant application capabilities.
+ await d.exec(`DO $$DECLARE r record;target name;BEGIN
+ FOR r IN SELECT nspname FROM pg_namespace WHERE nspname NOT LIKE 'pg_%' AND nspname NOT IN('information_schema','auth','public','gridex_ediel_retention') LOOP EXECUTE format('ALTER SCHEMA %I OWNER TO postgres',r.nspname);END LOOP;
+ FOR r IN SELECT n.nspname,c.relname FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname NOT LIKE 'pg_%' AND n.nspname NOT IN('information_schema','auth') AND c.relkind IN('r','p','S') LOOP target:=CASE WHEN r.nspname='gridex_ediel_retention' THEN 'gridex_ediel_retention_owner' ELSE 'postgres' END;EXECUTE format('ALTER %s %I.%I OWNER TO %I',CASE WHEN (SELECT relkind FROM pg_class WHERE oid=format('%I.%I',r.nspname,r.relname)::regclass)='S' THEN 'SEQUENCE' ELSE 'TABLE' END,r.nspname,r.relname,target);END LOOP;
+ FOR r IN SELECT p.oid::regprocedure signature,n.nspname,p.proname FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname NOT LIKE 'pg_%' AND n.nspname NOT IN('information_schema','auth') LOOP target:=CASE WHEN r.nspname='gridex_ediel_retention' OR r.nspname='public' AND r.proname LIKE 'ediel_%' AND r.proname NOT IN('ediel_retention_session_actor_v1','ediel_retention_lock_auth_actor_v1') THEN 'gridex_ediel_retention_owner' ELSE 'postgres' END;EXECUTE format('ALTER FUNCTION %s OWNER TO %I',r.signature,target);END LOOP;
+ IF EXISTS(SELECT FROM pg_namespace WHERE nspname='auth') THEN GRANT USAGE ON SCHEMA auth TO postgres;GRANT SELECT,UPDATE,REFERENCES ON ALL TABLES IN SCHEMA auth TO postgres;END IF;
+ END$$;
+ GRANT USAGE ON SCHEMA gridex_ediel_retention TO postgres;
+ GRANT gridex_ediel_retention_owner TO postgres WITH ADMIN TRUE,INHERIT FALSE,SET FALSE GRANTED BY supabase_admin;
+ SET SESSION AUTHORIZATION postgres;GRANT gridex_ediel_retention_owner TO postgres WITH ADMIN FALSE,INHERIT FALSE,SET TRUE GRANTED BY postgres;`)
+ await fixtureInstallerIdentity(d)
+ await d.exec('SET SESSION AUTHORIZATION supabase_admin')
+}
+async function installFixtureSQL(d:PGlite,sql:string){
+ await d.exec('SET SESSION AUTHORIZATION postgres');await fixtureInstallerIdentity(d)
+ const before=(await d.query<{v:unknown}>(fixtureAuthoritySQL)).rows[0].v
+ try{await d.exec(sql);await fixtureInstallerIdentity(d);expect((await d.query<{v:unknown}>(fixtureAuthoritySQL)).rows[0].v).toEqual(before);expect((await d.query<{v:string|null}>("SELECT to_regclass('pg_temp.gridex_db05_install_scope') v")).rows[0].v).toBeNull()}
+ catch(error){await d.exec('ROLLBACK;SET SESSION AUTHORIZATION supabase_admin');throw error}
+ await d.exec('SET SESSION AUTHORIZATION supabase_admin')
+}
+
 beforeAll(async()=>{
  db=new PGlite()
- await db.exec(`CREATE ROLE anon;CREATE ROLE authenticated;CREATE ROLE service_role;CREATE ROLE gridex_ediel_retention_owner NOLOGIN BYPASSRLS;
+ await db.exec(`CREATE ROLE fixture_setup_admin LOGIN SUPERUSER;SET SESSION AUTHORIZATION fixture_setup_admin;ALTER ROLE postgres RENAME TO supabase_admin;SET SESSION AUTHORIZATION supabase_admin;CREATE ROLE postgres LOGIN NOSUPERUSER INHERIT CREATEROLE BYPASSRLS;ALTER DATABASE postgres OWNER TO postgres;ALTER SCHEMA public OWNER TO postgres;CREATE ROLE anon;CREATE ROLE authenticated;CREATE ROLE service_role;CREATE ROLE gridex_ediel_retention_owner NOLOGIN NOINHERIT BYPASSRLS;
  CREATE SCHEMA gridex_ediel_retention AUTHORIZATION gridex_ediel_retention_owner;CREATE SCHEMA gridex_ediel_ack_replay;
  CREATE TABLE public.fixture_reader(company_id uuid,actor uuid,kind text,body_allowed boolean DEFAULT true,purge_allowed boolean DEFAULT true,valid_until timestamptz DEFAULT 'infinity',PRIMARY KEY(company_id,actor,kind));
  CREATE TABLE public.fixture_checkpoint(calls integer NOT NULL);INSERT INTO public.fixture_checkpoint VALUES(0);
@@ -101,6 +132,9 @@ beforeAll(async()=>{
  await db.exec(definition(source6,'gridex_ediel_retention.completed_review_reason_scope_v1').text)
  for(const name of readerNames)await db.exec(source6Reader(name))
  await db.exec(source6Reader('public.ediel_purge_decision_evidence_retention_v1'))
+  await db.exec('GRANT USAGE ON SCHEMA gridex_ediel_ack_replay TO gridex_ediel_retention_owner;GRANT SELECT,UPDATE ON public.fixture_reader,public.fixture_checkpoint TO gridex_ediel_retention_owner')
+  await qualifyFixtureInstaller(db)
+  if(!baseline)await installFixtureSQL(db,forward())
 },30000)
 
 beforeEach(async()=>{
@@ -117,7 +151,6 @@ beforeEach(async()=>{
  INSERT INTO gridex_ediel_retention.decision_evidence_revocations(policy_id,actor_user_id,reason) VALUES(${literal(policy)},${literal(actor)},'Consumed completed-review reason retirement policy');
  INSERT INTO gridex_ediel_retention.decision_evidence_tombstones(retention_class,target_id,company_id,policy_id,review_id,source_hash,target_metadata_hash,byte_length,actor_user_id,journal_retain_until,journal_purpose_reference)
  SELECT retention_class,target_id,company_id,id,${literal(retirementReview)},source_hash,target_metadata_hash,30,${literal(actor)},clock_timestamp()+interval '1 hour','SYNTHETIC separately finite witness purpose' FROM gridex_ediel_retention.decision_evidence_policies WHERE id=${literal(policy)};`)
- if(!baseline)await db.exec(forward())
 },30000)
 afterEach(async()=>{await db.exec('ROLLBACK')})
 afterAll(async()=>{await db.close()})
@@ -230,6 +263,6 @@ it.skipIf(baseline)('private guard has no public application execute and unknown
  for(const name of readerNames)await db.exec(source6Reader(name).replace('CREATE FUNCTION','CREATE OR REPLACE FUNCTION'))
  const old=source6Reader(readerNames[1]);await db.exec(old.replace('CREATE FUNCTION','CREATE OR REPLACE FUNCTION').replace('DECLARE tab text','DECLARE unexpected_marker boolean;tab text'))
  const before=await metadata(),bodies=(await db.query<{prosrc:string}>(`SELECT prosrc FROM pg_proc WHERE oid=ANY($1::regprocedure[]) ORDER BY oid`,[['public.ediel_read_decision_evidence_policy_v1(uuid,uuid,uuid,boolean)','public.ediel_read_retention_decision_original_v1(uuid,uuid,text,uuid,boolean)']])).rows
- const result=await attempt(()=>db.exec(forward()));expect(result.error?.message).toContain('predecessor_changed');expect(await metadata()).toEqual(before)
+ const result=await attempt(()=>db.exec("SET SESSION AUTHORIZATION postgres;"+forward()));expect(result.error?.message).toContain('predecessor_changed');expect(await metadata()).toEqual(before)
  expect((await db.query<{prosrc:string}>(`SELECT prosrc FROM pg_proc WHERE oid=ANY($1::regprocedure[]) ORDER BY oid`,[['public.ediel_read_decision_evidence_policy_v1(uuid,uuid,uuid,boolean)','public.ediel_read_retention_decision_original_v1(uuid,uuid,text,uuid,boolean)']])).rows).toEqual(bodies)
 })
