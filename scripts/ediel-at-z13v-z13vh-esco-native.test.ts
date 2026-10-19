@@ -419,7 +419,9 @@ describe.each(['V','VH'] as const)('Z13%s request-time conditions',mode=>{
 })
 
 it('a VH history window that ends after the request day is held before any Z13',async()=>{
- const end='2026-12-31T00:00:00Z'
+ // Derived from the real clock (the case uses actual database time), so the
+ // window keeps ending after the request day whenever the suite runs.
+ const end=new Date(Date.now()+30*86400000).toISOString().slice(0,10)+'T00:00:00Z'
  expect(Date.parse(end)).toBeGreaterThan(Date.now())
  const f=await prepareAssignment('VH',{vhEnd:end})
  // The assignment evidence itself qualifies; the request-period rule holds it.
