@@ -4226,8 +4226,21 @@
     },
     {
       "id": "AT-Z04C-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-at-z04c-supplier-profile.test.ts",
+        "__tests__/ediel-at-z04c-supplier-acceptance.test.ts",
+        "scripts/test-ediel-z04c-correlation.cjs",
+        "scripts/ediel-z04c-correlation-sql-regression.mjs",
+        "lib/ediel/flows/supplyMarketTransition.ts",
+        "lib/ediel/flows/inboundProcessing.ts",
+        "lib/ediel/inboundCases.ts",
+        "supabase/migrations/20261018100000_ediel_z04c_current_sender_registry.sql",
+        "supabase/migrations/20261019170000_ediel_z04c_executed_start_compensation_receipt.sql",
+        "scripts/ediel-cancellation-public-acceptance-native.test.ts",
+        "scripts/ediel-cancellation-public-acceptance-native.config.ts",
+        ".github/workflows/ediel-cancellation-public-acceptance-native.yml"
+      ]
     },
     {
       "id": "AT-Z05C-SUPPLIER",
