@@ -1,3 +1,4 @@
+// masterplan: OPS-04, AT-OPS-04
 // OPS-04 / AT-OPS-04 prospective native qualification. NOT EXECUTED.
 // Real local Supabase, GoTrue/current tenant context, canonical received UTILTS,
 // service permission, ACK creation, incident read, MIME archive and entered
@@ -47,7 +48,7 @@ vi.mock('nodemailer', async importOriginal => {
 })
 
 import {supabaseService} from '@/lib/supabase/service'
-import {sendControlledLiveEdielMessage, type ControlledLiveSendRequest} from '@/lib/ediel/orchestrator'
+import {sendControlledLiveEdielMessage, sendQueuedEdielMessage, type ControlledLiveSendRequest} from '@/lib/ediel/orchestrator'
 import {sendEdielMessageViaSmtp} from '@/lib/ediel/transport'
 import {isSmtpDeliveryUncertain} from '@/lib/ediel/transport/smtpOutcome'
 import {assessControlledLiveSend} from '@/lib/ediel/transport/controlledLiveSendGuard'
@@ -129,6 +130,15 @@ function history(company: string) {
   return sql<Json>(`SELECT jsonb_build_object(${tables.map(table => `${lit(table)},
     (SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY id),'[]'::jsonb)
      FROM gridex_ediel_ops04.${table} x WHERE company_id=${lit(company)})`).join(',')})`)
+}
+function targetDispatchImage(f: Fixture, messageId = f.trial.id) {
+  // Preserve actual entry identity/time across a late uncertain outcome; its
+  // truthful result audit/classification may change. Early cases require [].
+  return sql<{attempts: Json[]; outbox: Json[]}>(`SELECT jsonb_build_object(
+    'attempts',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,'enteredAt',entered_at) ORDER BY id),'[]')
+      FROM gridex_ediel_transport.attempts WHERE company_id=${lit(f.companyId)} AND message_id=${lit(messageId)}),
+    'outbox',(SELECT coalesce(jsonb_agg(to_jsonb(o) ORDER BY id),'[]') FROM public.ediel_outbox o
+      WHERE company_id=${lit(f.companyId)} AND ediel_message_id=${lit(messageId)}))`)
 }
 function originalImage(source: string, ack: string) {
   return sql(`SELECT jsonb_build_object('messages',(SELECT jsonb_agg(to_jsonb(m) ORDER BY id)
@@ -340,6 +350,9 @@ function consumeSql(a: ConsumeArguments) {
     ${lit(a.p_actor_user_id)}::uuid,${lit(a.p_message_id)}::uuid,${lit(a.p_incident_id)}::uuid,
     ${lit(a.p_route_profile_id)}::uuid,${lit(a.p_agreement_id)}::uuid,NULL::uuid,false,${lit(a.p_binding)}::jsonb)`
 }
+function recordSql(company: string, actor: string, input: Record<string, string>) {
+  return `public.gridex_ediel_ops04_record_v1(${lit(company)}::uuid,${lit(actor)}::uuid,${lit(input)}::jsonb)`
+}
 function positiveRollback(a: ConsumeArguments) {
   const before = history(a.p_company_id)
   const receipt = sql<Json>(`BEGIN;SET LOCAL ROLE service_role;SELECT ${consumeSql(a)};ROLLBACK;`)
@@ -349,7 +362,7 @@ function positiveRollback(a: ConsumeArguments) {
   expect(history(a.p_company_id)).toEqual(before)
 }
 
-function consumeConnection(a: ConsumeArguments, application: string, role: 'service_role' | 'anon' | 'authenticated' = 'service_role') {
+function statementConnection(expression: string, application: string, role: 'service_role' | 'anon' | 'authenticated' = 'service_role') {
   const child = spawn('psql', [DB, '-XAtq', '-v', 'ON_ERROR_STOP=1', '-v', 'VERBOSITY=verbose'],
     {stdio: ['pipe', 'pipe', 'pipe'], env: nativeLockProcessEnv()})
   let stdout = '', stderr = ''
@@ -360,13 +373,16 @@ function consumeConnection(a: ConsumeArguments, application: string, role: 'serv
     child.on('close', code => resolve({code, stdout, stderr}))
   })
   child.stdin.end(`SET application_name=${lit(application)};BEGIN;SET LOCAL ROLE ${role};
-    SELECT ${consumeSql(a)};COMMIT;`)
+    SELECT ${expression};COMMIT;`)
   let disposed = false
   return {done, async dispose() {
     if (disposed) return; disposed = true
     if (child.exitCode === null) child.kill('SIGTERM')
     await done
   }}
+}
+function consumeConnection(a: ConsumeArguments, application: string, role: 'service_role' | 'anon' | 'authenticated' = 'service_role') {
+  return statementConnection(consumeSql(a), application, role)
 }
 function holding(statement: string, application = `ops04-holder-${randomUUID()}`) {
   const child = spawn('psql', [DB, '-XAtq', '-v', 'ON_ERROR_STOP=1'],
@@ -377,7 +393,7 @@ function holding(statement: string, application = `ops04-holder-${randomUUID()}`
     markerError: 'native_ops04_holder_not_ready', markerTimeoutMs: 10000, lifetimeMs: 60000})
   child.stdin.write(`SET application_name=${lit(application)};SELECT pg_backend_pid();BEGIN;
     ${statement}\n\\echo OPS04_HOLDER_READY\n`)
-  return {...owned, async pid() {await owned.ready; const id = Number(output.split('\n')[0]);
+  return {...owned, output: () => output, async pid() {await owned.ready; const id = Number(output.split('\n')[0]);
     expect(Number.isInteger(id) && id > 0).toBe(true); return id}}
 }
 async function eventually(predicate: () => boolean, message: string, milliseconds = 10000) {
@@ -432,6 +448,21 @@ it('actual authenticated normal trial consumes once after real entered MIME, sen
   expect(createHash('sha256').update(delivered.raw).digest('hex')).toBe(bound.mimeSha256)
   expect(delivered.raw.length).toBe(bound.mimeLength)
   const stable = history(f.companyId)
+  // The successful live trial records its own consumption; it never relabels
+  // the original reported business incident or permits history rewriting.
+  const incident = sql<Json>(`SELECT to_jsonb(i) FROM gridex_ediel_business_incidents.incidents i
+    WHERE id=${lit(f.incidentId)} AND company_id=${lit(f.companyId)}`)
+  expect(incident.status).toBe('reported')
+  for (const statement of [
+    `UPDATE gridex_ediel_business_incidents.incidents SET status=status WHERE id=${lit(f.incidentId)}`,
+    `DELETE FROM gridex_ediel_business_incidents.incidents WHERE id=${lit(f.incidentId)}`,
+  ]) expect(() => sql(`BEGIN;${statement};ROLLBACK;`)).toThrow('ediel_business_incident_immutable')
+  for (const statement of [
+    `UPDATE gridex_ediel_ops04.consumptions SET id=id WHERE id=${lit(rows[0].id)}`,
+    `DELETE FROM gridex_ediel_ops04.consumptions WHERE id=${lit(rows[0].id)}`,
+  ]) expect(() => sql(`BEGIN;${statement};ROLLBACK;`)).toThrow('ediel_ops04_evidence_immutable')
+  expect(history(f.companyId)).toEqual(stable)
+  expect(sql(`SELECT to_jsonb(i) FROM gridex_ediel_business_incidents.incidents i WHERE id=${lit(f.incidentId)}`)).toEqual(incident)
   expect(await sendControlledLiveEdielMessage(request(f))).toMatchObject({status: 'already_observed',
     messageId: f.trial.id, productionApproved: false})
   expect(history(f.companyId)).toEqual(stable)
@@ -439,6 +470,55 @@ it('actual authenticated normal trial consumes once after real entered MIME, sen
   expect(loopback.image()).toEqual({providerCalls: before.providerCalls + 1, connections: before.connections + 1,
     authenticated: before.authenticated + 1, accepted: before.accepted + 1})
   expect(originalImage(f.sourceId, f.originalAckId)).toEqual(f.retainedOriginal)
+})
+
+it.each(['ordinary-queue', 'bulk-plan'] as const)('fully positive native controlled trial refuses %s at its intended early strategy gate with no dispatch/authority/SMTP effects', async mode => {
+  const f = await fixture()
+  current.client = f.sender.client; current.company = f.companyId
+  await requirePositive(f, f.trial)
+  const authority = history(f.companyId), dispatch = targetDispatchImage(f), smtp = loopback.image()
+  expect(dispatch).toEqual({attempts: [], outbox: []})
+  if (mode === 'ordinary-queue') {
+    await expect(sendQueuedEdielMessage({actorUserId: f.sender.id, edielMessageId: f.trial.id}))
+      .rejects.toThrow('controlled_flow_entry_point_required')
+  } else {
+    const input = request(f); input.plan.source = 'bulk_import'
+    expect(await sendControlledLiveEdielMessage(input)).toEqual({status: 'held', messageId: f.trial.id,
+      observedAt: null, productionApproved: false, reasons: ['bulk_reference_import_not_a_test_strategy']})
+  }
+  expect(targetDispatchImage(f)).toEqual(dispatch)
+  expect(history(f.companyId)).toEqual(authority)
+  expect(loopback.image()).toEqual(smtp)
+  expect(originalImage(f.sourceId, f.originalAckId)).toEqual(f.retainedOriginal)
+  // This genuine new exchange is not a corrected-original resend. Its blind
+  // request would also fail resend_original_mismatch. The clean blind-vs-
+  // diagnosed contrast remains the existing readiness/guard component proof;
+  // no fabricated original_message_id or unrelated native hold is credited.
+})
+
+it.each(['route-profile', 'certificate'] as const)('actual mutable %s changes after positive entered consume rollback refuse the original final RPC with entered uncertainty and no new provider/dispatch/authority', async kind => {
+  const f = await fixture(), p = await pausedSend(f)
+  try {
+    positiveRollback(p.args)
+    const authority = history(f.companyId), dispatch = targetDispatchImage(f)
+    expect(dispatch.attempts).toHaveLength(1)
+    if (kind === 'route-profile') {
+      sql(`UPDATE public.ediel_route_profiles SET receiver_email='changed-after-entry@example.invalid'
+        WHERE id=${lit(f.tuple.routeProfileId)} AND company_id=${lit(f.companyId)}`)
+      expect(sql(`SELECT to_jsonb(receiver_email) FROM public.ediel_route_profiles WHERE id=${lit(f.tuple.routeProfileId)}`))
+        .toBe('changed-after-entry@example.invalid')
+    } else {
+      sql(`UPDATE public.ediel_certificates SET status='revoked' WHERE id=${lit(f.tuple.certificateId)} AND company_id=${lit(f.companyId)}`)
+      expect(sql(`SELECT to_jsonb(status) FROM public.ediel_certificates WHERE id=${lit(f.tuple.certificateId)}`)).toBe('revoked')
+    }
+    const afterInput = originalImage(f.sourceId, f.originalAckId)
+    const sourceOnly = (image: unknown) => Object.fromEntries(Object.entries(image as Json).filter(([key]) => key !== 'routeProfile'))
+    expect(sourceOnly(afterInput)).toEqual(sourceOnly(f.retainedOriginal))
+    await expectLateHold(p, kind === 'route-profile' ? 'ediel_ops04_source_binding_changed' : 'ediel_ops04_current_certificate_required')
+    expect(targetDispatchImage(f)).toEqual(dispatch)
+    expect(history(f.companyId)).toEqual(authority)
+    expect(originalImage(f.sourceId, f.originalAckId)).toEqual(afterInput)
+  } finally {await p.cleanup()}
 })
 
 it('positive dry rollback precedes real two-connection agreement expiry after the waiter has blocked while current', async () => {
@@ -500,24 +580,36 @@ it('two genuinely entered messages sharing one agreement serialize to exactly on
   const first = await pausedSend(f)
   let secondPending: Awaited<ReturnType<typeof pausedSend>> | undefined
   let owner: ReturnType<typeof holding> | undefined, loser: ReturnType<typeof consumeConnection> | undefined
+  let identical: ReturnType<typeof consumeConnection> | undefined
   try {
     secondPending = await pausedSend(f, second)
     positiveRollback(first.args); positiveRollback(secondPending.args)
     const before = history(f.companyId)
     owner = holding(`SET LOCAL ROLE service_role;CREATE TEMP TABLE native_ops04_receipt ON COMMIT DROP AS
       SELECT ${consumeSql(first.args)} AS receipt;
-      SELECT 1/CASE WHEN (receipt->>'replayed')::boolean IS FALSE THEN 1 ELSE 0 END FROM native_ops04_receipt;`)
+      SELECT 1/CASE WHEN (receipt->>'replayed')::boolean IS FALSE THEN 1 ELSE 0 END FROM native_ops04_receipt;
+      SELECT receipt FROM native_ops04_receipt;`)
     const pid = await owner.pid(), application = `ops04-oneuse-${randomUUID()}`
+    const firstReceipt = JSON.parse(owner.output().split('\n').find(line => line.startsWith('{'))!) as Json
+    expect(firstReceipt).toMatchObject({replayed: false, messageId: f.trial.id, consumptionId: expect.any(String)})
     loser = consumeConnection(secondPending.args, application)
     await eventually(() => blocked(application, pid, 'gridex_ediel_ops04.consumptions'), 'actual_oneuse_wait_required')
+    const sameApplication = `ops04-same-message-${randomUUID()}`
+    identical = consumeConnection(first.args, sameApplication)
+    await eventually(() => blocked(sameApplication, pid, 'gridex_ediel_ops04.consumptions'), 'actual_identical_message_wait_required')
     expect(external.send).toHaveBeenCalledTimes(first.providerBaseline)
     await owner.release('COMMIT')
     // Serialization can produce P0001 authorization_consumed. A 23505 is not
     // required, and timeout/early hold cannot satisfy the one-use oracle.
     expectRefusal(await loser.done, 'ediel_ops04_authorization_consumed')
+    const sameResult = await identical.done
+    expect(sameResult.code, sameResult.stderr).toBe(0)
+    expect(JSON.parse(sameResult.stdout.trim())).toMatchObject({replayed: true, messageId: f.trial.id,
+      consumptionId: firstReceipt.consumptionId, agreementId: f.agreementId})
     const after = history(f.companyId)
     for (const table of tables.filter(table => table !== 'consumptions')) expect(after[table]).toEqual(before[table])
     expect(after.consumptions).toEqual([expect.objectContaining({message_id: f.trial.id, agreement_id: f.agreementId})])
+    expect((after.consumptions as Json[])[0].id).toBe(firstReceipt.consumptionId)
     const replay = sql<Json>(`BEGIN;SET LOCAL ROLE service_role;SELECT ${consumeSql(first.args)};ROLLBACK;`)
     expect(replay).toMatchObject({replayed: true, messageId: f.trial.id})
     const a = await first.settle()
@@ -526,7 +618,7 @@ it('two genuinely entered messages sharing one agreement serialize to exactly on
     await expectLateHold(secondPending, 'ediel_ops04_authorization_consumed')
     expect(history(f.companyId)).toEqual(after)
     expect(external.send).toHaveBeenCalledTimes(first.providerBaseline)
-  } finally {await owner?.dispose(); await loser?.dispose(); await first.cleanup(); await secondPending?.cleanup()}
+  } finally {await owner?.dispose(); await loser?.dispose(); await identical?.dispose(); await first.cleanup(); await secondPending?.cleanup()}
 })
 
 it.each(['relay_capture', 'incident_correction'] as const)('real %s revocation after entered positive preflight refuses final consume and preserves retained originals', async kind => {
@@ -593,6 +685,43 @@ it('real native anon/authenticated RPC denial and private-schema/RLS boundaries 
       FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
       WHERE n.nspname='gridex_ediel_ops04' AND c.relkind='r'`))
       .toEqual({tables: 6, allRlsForced: true, policies: 0})
+    const publicFunctions = [
+      'public.gridex_ediel_ops04_record_v1(uuid,uuid,jsonb)',
+      'public.gridex_ediel_ops04_revoke_v1(uuid,uuid,jsonb)',
+      'public.gridex_ediel_ops04_controlled_flow_probe_v1(uuid,text,uuid,uuid)',
+      'public.gridex_ediel_ops04_controlled_live_evidence_v1(uuid,text,uuid,uuid,uuid,uuid)',
+      'public.gridex_ediel_ops04_consume_controlled_live_v1(uuid,text,uuid,uuid,uuid,uuid,uuid,uuid,boolean,jsonb)',
+    ]
+    const privateFunctions = ['gridex_ediel_ops04.relay_headers_allowed_v1(text)',
+      'gridex_ediel_ops04.immutable_v1()', 'gridex_ediel_ops04.authorized_v1(uuid,uuid,text)',
+      'gridex_ediel_ops04.replay_v1(text,uuid,uuid,uuid,jsonb)']
+    for (const [functions, serviceExecute] of [[publicFunctions, true], [privateFunctions, false]] as const) {
+      const grants = sql<Json[]>(`WITH required(signature) AS(VALUES ${functions.map(signature => `(${lit(signature)})`).join(',')})
+        SELECT jsonb_agg(jsonb_build_object('signature',signature,'present',p.oid IS NOT NULL,
+          'anon',has_function_privilege('anon',p.oid,'EXECUTE'),
+          'authenticated',has_function_privilege('authenticated',p.oid,'EXECUTE'),
+          'service',has_function_privilege('service_role',p.oid,'EXECUTE'),
+          'public',EXISTS(SELECT FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) a
+            WHERE a.grantee=0 AND a.privilege_type='EXECUTE')) ORDER BY signature)
+        FROM required LEFT JOIN pg_proc p ON p.oid=to_regprocedure(signature)`)
+      expect(grants).toHaveLength(functions.length)
+      for (const grant of grants) expect(grant).toMatchObject({present: true,
+        anon: false, authenticated: false, service: serviceExecute, public: false})
+    }
+    expect(sql(`SELECT to_jsonb(count(*)) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+      WHERE n.nspname='gridex_ediel_ops04'`)).toBe(4)
+    const triggers = sql<Json[]>(`SELECT jsonb_agg(jsonb_build_object('table',c.relname,
+      'immutable',EXISTS(SELECT FROM pg_trigger t WHERE t.tgrelid=c.oid AND NOT t.tgisinternal AND t.tgenabled IN('O','A')
+        AND t.tgtype=27 AND t.tgfoid='gridex_ediel_ops04.immutable_v1()'::regprocedure),
+      'truncateGuard',EXISTS(SELECT FROM pg_trigger t WHERE t.tgrelid=c.oid AND NOT t.tgisinternal AND t.tgenabled IN('O','A')
+        AND t.tgtype=34 AND t.tgfoid='public.gridex_guard_history_truncate_v1()'::regprocedure)) ORDER BY c.relname)
+      FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+      WHERE n.nspname='gridex_ediel_ops04' AND c.relkind='r'`)
+    expect(triggers).toHaveLength(6)
+    expect(triggers.map(trigger => trigger.table)).toEqual([...tables].sort())
+    for (const trigger of triggers) expect(trigger).toMatchObject({immutable: true, truncateGuard: true})
+    // This binds the actual guard, not an invented all-NOSUPER denial policy:
+    // postgres/supabase_admin keep their existing explicit name exceptions.
     for (const [table, id] of [['incident_corrections', f.correctionId],
       ['counterparty_agreements', f.agreementId], ['relay_captures', f.captureId]] as const) {
       expect(() => sql(`BEGIN;UPDATE gridex_ediel_ops04.${table} SET id=id WHERE id=${lit(id)};ROLLBACK;`))
@@ -604,6 +733,99 @@ it('real native anon/authenticated RPC denial and private-schema/RLS boundaries 
     await revoke(f, 'relay_capture', f.captureId)
     await expectLateHold(p, 'ediel_ops04_current_capture_required')
   } finally {await p.cleanup()}
+})
+
+it('positively qualified own evidence rejects each actual foreign selector, and actual agreement records enforce counterparty, overlap and existing bounded-validity policy without any state drift', async () => {
+  const f = await fixture(), foreign = siblings![0]
+  const authority = history(f.companyId), dispatch = targetDispatchImage(f), smtp = loopback.image()
+  const foreignImages = () => siblings!.map(sibling => ({authority: history(sibling.companyId),
+    original: originalImage(sibling.sourceId, sibling.originalAckId), dispatch: targetDispatchImage(sibling)}))
+  const retainedForeign = foreignImages()
+  const evidenceArgs = {p_company_id: f.companyId, p_environment: 'test', p_actor_user_id: f.sender.id,
+    p_message_id: f.trial.id, p_incident_id: f.incidentId, p_route_profile_id: f.tuple.routeProfileId}
+  const own = await rpc('gridex_ediel_ops04_controlled_live_evidence_v1', evidenceArgs)
+  expect(own.error).toBeNull()
+  expect(own.data).toMatchObject({companyId: f.companyId, environment: 'test', incidentId: f.incidentId,
+    routeProfileId: f.tuple.routeProfileId, incidentCorrection: {correctionRef: expect.any(String)},
+    counterpartyAgreement: {id: f.agreementId, consumedByMessageId: null}})
+  for (const [selector, foreignValue] of [['p_incident_id', foreign.incidentId],
+    ['p_route_profile_id', foreign.tuple.routeProfileId], ['p_message_id', foreign.trial.id]] as const) {
+    const response = await rpc('gridex_ediel_ops04_controlled_live_evidence_v1', {...evidenceArgs, [selector]: foreignValue})
+    expect(response.data).toBeNull()
+    expect(response.error).toMatchObject({code: '42501', message: 'ediel_ops04_evidence_unavailable'})
+    expect(history(f.companyId)).toEqual(authority)
+    expect(targetDispatchImage(f)).toEqual(dispatch)
+    expect(originalImage(f.sourceId, f.originalAckId)).toEqual(f.retainedOriginal)
+    expect(foreignImages()).toEqual(retainedForeign)
+    expect(loopback.image()).toEqual(smtp)
+  }
+  const bounds = sql<{futureFrom: string; futureTo: string; tooLongTo: string;
+    overlapFrom: string; overlapTo: string; current: boolean}>(`BEGIN;SET LOCAL TIME ZONE 'UTC';SELECT jsonb_build_object(
+      'futureFrom',valid_to,'futureTo',valid_to+interval '31 days','tooLongTo',valid_to+interval '31 days 1 second',
+      'overlapFrom',valid_from,'overlapTo',valid_to,'current',valid_from<=clock_timestamp() AND clock_timestamp()<valid_to)
+      FROM gridex_ediel_ops04.counterparty_agreements WHERE id=${lit(f.agreementId)};COMMIT;`)
+  expect(bounds.current).toBe(true)
+  const policyInput = {kind: 'counterparty_agreement', commandId: randomUUID(), routeProfileId: f.tuple.routeProfileId,
+    counterpartyId: f.tuple.counterpartyId, agreementRef: `SYNTHETIC policy trial ${randomUUID()}`,
+    validFrom: bounds.futureFrom, validTo: bounds.futureTo}
+  // Exact31 days is the existing implementation boundary, not a frozen OPS
+  // constant. The future [) range is adjacent/nonoverlapping and rolled back.
+  const admitted = sql<Json>(`BEGIN;SET LOCAL ROLE service_role;SELECT ${recordSql(f.companyId, f.sender.id, policyInput)};ROLLBACK;`)
+  expect(admitted).toMatchObject({kind: 'counterparty_agreement', companyId: f.companyId,
+    commandId: policyInput.commandId, id: expect.any(String)})
+  expect(history(f.companyId)).toEqual(authority)
+  for (const [patch, reason] of [
+    [{counterpartyId: foreign.tuple.counterpartyId}, 'ediel_ops04_route_counterparty_required'],
+    [{validFrom: bounds.overlapFrom, validTo: bounds.overlapTo}, 'ediel_ops04_overlapping_agreement'],
+    [{validTo: bounds.tooLongTo}, 'ediel_ops04_bounded_current_validity_required'],
+  ] as const) {
+    const input = {...policyInput, ...patch, commandId: randomUUID()}
+    const probe = statementConnection(recordSql(f.companyId, f.sender.id, input), `ops04-record-policy-${randomUUID()}`)
+    try {expectRefusal(await probe.done, reason)} finally {await probe.dispose()}
+    expect(history(f.companyId)).toEqual(authority)
+    expect(targetDispatchImage(f)).toEqual(dispatch)
+    expect(originalImage(f.sourceId, f.originalAckId)).toEqual(f.retainedOriginal)
+    expect(foreignImages()).toEqual(retainedForeign)
+    expect(loopback.image()).toEqual(smtp)
+  }
+})
+
+it('an actual positive idempotent correction-record replay waits behind current communication.write DENY and then refuses without authority/dispatch/SMTP changes', async () => {
+  const f = await fixture()
+  const stored = sql<{input: Record<string, string>; actor: string}>(`SELECT jsonb_build_object('input',input,'actor',actor_user_id)
+    FROM gridex_ediel_ops04.incident_corrections WHERE id=${lit(f.correctionId)} AND company_id=${lit(f.companyId)}`)
+  expect(stored.actor).toBe(f.sender.id)
+  const authority = history(f.companyId), dispatch = targetDispatchImage(f), smtp = loopback.image()
+  const replay = await rpc('gridex_ediel_ops04_record_v1', {p_company_id: f.companyId,
+    p_actor_user_id: stored.actor, p_input: stored.input})
+  expect(replay.error).toBeNull()
+  expect(replay.data).toEqual({kind: 'incident_correction', id: f.correctionId,
+    companyId: f.companyId, commandId: stored.input.commandId})
+  expect(history(f.companyId)).toEqual(authority)
+  let holder: ReturnType<typeof holding> | undefined, pending: ReturnType<typeof statementConnection> | undefined
+  try {
+    holder = holding(`LOCK TABLE public.user_permission_overrides IN SHARE ROW EXCLUSIVE MODE;
+      INSERT INTO public.user_permission_overrides(user_id,company_id,permission_key,effect,is_active,valid_from)
+      VALUES(${lit(stored.actor)},${lit(f.companyId)},'communication.write','deny',true,clock_timestamp());`)
+    const pid = await holder.pid(), application = `ops04-record-write-deny-${randomUUID()}`
+    pending = statementConnection(recordSql(f.companyId, stored.actor, stored.input), application)
+    await eventually(() => blocked(application, pid, 'public.user_permission_overrides'), 'actual_record_prepare_permission_wait_required')
+    await holder.release('COMMIT')
+    const postDeny = history(f.companyId)
+    expectRefusal(await pending.done, 'ediel_ops04_actor_forbidden', '42501')
+    for (const [permission, expected] of [['communication.write', false], ['communication.send', true]] as const) {
+      const currentPermission = await rpc('gridex_actor_has_company_permission', {p_actor_user_id: stored.actor,
+        p_company_id: f.companyId, p_permission: permission})
+      expect(currentPermission.error).toBeNull(); expect(currentPermission.data).toBe(expected)
+    }
+    expect(history(f.companyId)).toEqual(postDeny)
+    expect(postDeny).toEqual(authority)
+    expect(targetDispatchImage(f)).toEqual(dispatch)
+    expect(originalImage(f.sourceId, f.originalAckId)).toEqual(f.retainedOriginal)
+    expect(loopback.image()).toEqual(smtp)
+    // Replay established actual prepare authority; it does not pretend to
+    // perform a fresh incident-source validation on the idempotent branch.
+  } finally {await holder?.dispose(); await pending?.dispose()}
 })
 
 
