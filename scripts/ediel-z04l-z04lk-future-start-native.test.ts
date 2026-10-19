@@ -51,7 +51,7 @@ type Fixture=NormalSwitchStageNativeFixture&{subtype:Subtype;originalZ03:EdielMe
   startAt:string;originalSeal:unknown;confirmation?:EdielMessageRow;periodId?:string;confirmed?:Row;invoiceBaseline?:Row}
 const password=randomUUID()+randomUUID(),cronSecret=randomUUID()+randomUUID()
 const fixtures:Fixture[]=[],valid={} as Record<Subtype,Fixture>,cancelled={} as Record<Subtype,Fixture>,expires={} as Record<Subtype,Fixture>,pending={} as Record<Subtype,Fixture>,invoiceePositive={} as Record<Subtype,Fixture>
-const heldAttempts:Row[]=[],correlationProgress:Row[]=[],ackInventoryFailures:Row[]=[]
+const heldAttempts:Row[]=[],correlationProgress:Row[]=[],ackInventoryFailures:Row[]=[],healthyRpcFailures:Row[]=[]
 let decoy:Fixture,ordinaryDay:string
 const evidence:FutureStartNativeReceipt={schema:'ediel_z04_future_start_native_v1',accelerated_execution:true,
   actual_elapsed_14_days:false,authentic_external_market_history:false,whole_approval:false,
@@ -61,7 +61,7 @@ const digest=(raw:string)=>createHash('sha256').update(raw).digest('hex')
 function persist(){
   const root=process.env.GRIDEX_Z04_FUTURE_EVIDENCE
   if(!root||!root.startsWith(process.cwd()+'/'))throw Error('z04future_owned_evidence_directory_required')
-  writeFileSync(join(root,'product-future-start-receipt.json'),JSON.stringify({...evidence,held_attempts:heldAttempts,correlation_progress:correlationProgress,ack_inventory_failures:ackInventoryFailures},null,2)+'\n')
+  writeFileSync(join(root,'product-future-start-receipt.json'),JSON.stringify({...evidence,held_attempts:heldAttempts,correlation_progress:correlationProgress,ack_inventory_failures:ackInventoryFailures,healthy_rpc_failures:healthyRpcFailures},null,2)+'\n')
 }
 function passed(name:string,facts:Row={}){evidence.cases.push({name,status:'PASSED',...facts});persist()}
 function configureSmtp(email='recipient@example.invalid'){
@@ -374,7 +374,7 @@ async function confirm(f:Fixture,raw=wire(f)){
   f.invoiceBaseline=activationSnapshot(f);requireNoInvoices(f.invoiceBaseline)
   expect((await getEdielMessageById(f.originalZ03.id))?.aperak_status).toBe('pending')
   const {message}=await receive(f,raw,f.subtype);expect(message).not.toBeNull()
-  f.confirmation=message!;await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:message!.id})
+  f.confirmation=message!;await observeHealthyProcessing(f,message!)
   const own=periods(f);expect(own).toHaveLength(1)
   expect(own[0]).toMatchObject({company_id:f.companyId,customer_id:f.customerId,metering_point_id:f.pointId,source_switch_request_id:f.switchId,
     source_message_id:message!.id,status:'confirmed_by_grid_owner',start_date:f.requestedStartDate})
@@ -557,6 +557,79 @@ function observeRpcThenable<T extends object>(target:T,observation:RpcObservatio
   }})
   return proxy
 }
+function healthyRpcArguments(value:unknown):Row{
+  if(!value||typeof value!=='object'||Array.isArray(value))return {}
+  const result:Row={},uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  for(const key of ['p_company_id','p_source_message_id','p_message_id','p_actor_user_id']){
+    const own=Object.getOwnPropertyDescriptor(value,key)
+    if(own&&typeof own.value==='string'&&uuid.test(own.value))result[key]=own.value
+  }
+  for(const [key,allowed]of [['p_environment',['test','production']],['p_phase',['prepare','read','send']],
+    ['p_ack_family',['CONTRL','APERAK','UTILTS_ERR']]] as const){
+    const own=Object.getOwnPropertyDescriptor(value,key)
+    if(own&&typeof own.value==='string'&&(allowed as readonly string[]).includes(own.value))result[key]=own.value
+  }
+  return result
+}
+function healthyRpcErrorFacts(error:unknown):Row{
+  const facts=errorFacts(error)
+  if(error&&typeof error==='object'){
+    const cause=Object.getOwnPropertyDescriptor(error,'cause')
+    if(cause&&'value'in cause)facts.cause=errorFacts(cause.value)
+  }
+  return facts
+}
+function healthyRpcResponse(value:unknown):Row{
+  const row=value&&typeof value==='object'?value as Row:{}
+  return {status:typeof row.status==='number'&&Number.isFinite(row.status)?row.status:null,
+    statusText:typeof row.statusText==='string'?row.statusText:null,
+    error:row.error==null?null:healthyRpcErrorFacts(row.error)}
+}
+// Observe the actual first processing invocation in confirm, without a new
+// read, retry or thenable consumption. Successful RPC data never enters this
+// diagnostic record. The existing failure-only persist convention is fail-closed.
+async function observeHealthyProcessing(f:Fixture,message:EdielMessageRow){
+  const started=process.hrtime.bigint(),elapsed=()=>Number(process.hrtime.bigint()-started)/1e6
+  const calls:Array<{rpcName:string;started_elapsed_monotonic_ms:number;finished_elapsed_monotonic_ms:number|null;
+    consumption_started_elapsed_monotonic_ms:number|null;invocationThrew:boolean;observation:RpcObservation}>=[]
+  const originalRpc=supabaseService.rpc
+  const rpc=vi.spyOn(supabaseService,'rpc').mockImplementation(function(this:typeof supabaseService,...args:Parameters<typeof originalRpc>){
+    let response:Row|null=null,thrown:Row|null=null,consumptions=0
+    const call={rpcName:args[0],started_elapsed_monotonic_ms:elapsed(),finished_elapsed_monotonic_ms:null as number|null,
+      consumption_started_elapsed_monotonic_ms:null as number|null,invocationThrew:false,observation:null as unknown as RpcObservation}
+    const observation:RpcObservation={args:healthyRpcArguments(args[1]),rejected:false,abortSignals:[],
+      get result(){return response},set result(value:unknown){call.finished_elapsed_monotonic_ms=elapsed();response=healthyRpcResponse(value)},
+      get thrown(){return thrown},set thrown(error:unknown){call.finished_elapsed_monotonic_ms=elapsed();thrown=healthyRpcErrorFacts(error)},
+      get consumptions(){return consumptions},set consumptions(value:number){
+        if(consumptions===0&&value>0)call.consumption_started_elapsed_monotonic_ms=elapsed()
+        consumptions=value
+      }}
+    call.observation=observation;calls.push(call)
+    try{return observeRpcThenable(Reflect.apply(originalRpc,this,args) as ReturnType<typeof originalRpc>,observation)}
+    catch(error){call.invocationThrew=true;observation.thrown=error;observation.rejected=true;throw error}
+  })
+  try{return await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:message.id})}
+  finally{
+    rpc.mockRestore()
+    const failures=calls.filter(call=>{
+      const response=call.observation.result as Row|null
+      return call.observation.rejected||response!==null&&(response.error!==null||typeof response.status==='number'&&response.status>=400)
+    }).map(call=>({rpcName:call.rpcName,args:call.observation.args,
+      started_elapsed_monotonic_ms:call.started_elapsed_monotonic_ms,finished_elapsed_monotonic_ms:call.finished_elapsed_monotonic_ms,
+      elapsed_monotonic_ms:call.finished_elapsed_monotonic_ms===null?null:call.finished_elapsed_monotonic_ms
+        -(call.consumption_started_elapsed_monotonic_ms??call.started_elapsed_monotonic_ms),
+      consumptions:call.observation.consumptions,abortSignalCount:call.observation.abortSignals.length,
+      invocationThrew:call.invocationThrew,rejected:call.observation.rejected,response:call.observation.result,
+      thrown:call.observation.thrown}))
+    if(failures.length){
+      healthyRpcFailures.push({kind:'existing_healthy_rpc_failure_observation',authorizes_business_effect:false,
+        subtype:f.subtype,companyId:f.companyId,actorUserId:f.actorUserId,sourceMessageId:message.id,
+        sourcePayloadHash:digest(message.raw_payload??''),elapsed_monotonic_ms:elapsed(),failures})
+      persist()
+    }
+  }
+}
+
 function validationSnapshot(f:Fixture,message:EdielMessageRow){
   const tables=['validation_assessments','prodat_ignored_field_facets','prodat_object_validation_facets',
     'prodat_response_facets','prodat_application_facets','prodat_source_function_facets']
