@@ -51,7 +51,7 @@ type Fixture=NormalSwitchStageNativeFixture&{subtype:Subtype;originalZ03:EdielMe
   startAt:string;originalSeal:unknown;confirmation?:EdielMessageRow;periodId?:string;confirmed?:Row;invoiceBaseline?:Row}
 const password=randomUUID()+randomUUID(),cronSecret=randomUUID()+randomUUID()
 const fixtures:Fixture[]=[],valid={} as Record<Subtype,Fixture>,cancelled={} as Record<Subtype,Fixture>,expires={} as Record<Subtype,Fixture>,pending={} as Record<Subtype,Fixture>,invoiceePositive={} as Record<Subtype,Fixture>
-const heldAttempts:Row[]=[],correlationProgress:Row[]=[]
+const heldAttempts:Row[]=[],correlationProgress:Row[]=[],ackInventoryFailures:Row[]=[]
 let decoy:Fixture,ordinaryDay:string
 const evidence:FutureStartNativeReceipt={schema:'ediel_z04_future_start_native_v1',accelerated_execution:true,
   actual_elapsed_14_days:false,authentic_external_market_history:false,whole_approval:false,
@@ -61,7 +61,7 @@ const digest=(raw:string)=>createHash('sha256').update(raw).digest('hex')
 function persist(){
   const root=process.env.GRIDEX_Z04_FUTURE_EVIDENCE
   if(!root||!root.startsWith(process.cwd()+'/'))throw Error('z04future_owned_evidence_directory_required')
-  writeFileSync(join(root,'product-future-start-receipt.json'),JSON.stringify({...evidence,held_attempts:heldAttempts,correlation_progress:correlationProgress},null,2)+'\n')
+  writeFileSync(join(root,'product-future-start-receipt.json'),JSON.stringify({...evidence,held_attempts:heldAttempts,correlation_progress:correlationProgress,ack_inventory_failures:ackInventoryFailures},null,2)+'\n')
 }
 function passed(name:string,facts:Row={}){evidence.cases.push({name,status:'PASSED',...facts});persist()}
 function configureSmtp(email='recipient@example.invalid'){
@@ -327,7 +327,33 @@ async function receive(f:Fixture,raw:string,expectedSubtype?:Subtype|'C',negativ
 }
 async function sendAcks(f:Fixture,m:EdielMessageRow){
   const result=await supabaseService.from('ediel_messages').select('*').eq('company_id',f.companyId).eq('related_message_id',m.id).eq('direction','outbound').order('message_family')
-  expect(result.error).toBeNull();expect(result.data?.map(a=>[a.message_family,a.ack_outcome])).toEqual([['APERAK','positive'],['CONTRL','positive']])
+  expect(result.error).toBeNull()
+  if(JSON.stringify(result.data?.map(a=>[a.message_family,a.ack_outcome]))!==JSON.stringify([['APERAK','positive'],['CONTRL','positive']])){
+    const fields=['id','company_id','environment','direction','message_family','message_code','status','ack_outcome','related_message_id',
+      'raw_payload','immutable_payload_hash','interchange_reference','external_reference','transaction_reference']
+    const project=(row:Row)=>Object.fromEntries(fields.map(key=>[key,row[key]]))
+    ackInventoryFailures.push({kind:'existing_ack_inventory_observation',authorizes_business_effect:false,
+      subtype:f.subtype,actorUserId:f.actorUserId,companyId:f.companyId,source:project(m as unknown as Row),
+      rawHash:digest(m.raw_payload??''),scopedAckQueryRows:result.data?.map(row=>project(row as Row))??null,
+      persisted:sql<Row>(`WITH own AS(SELECT id FROM public.ediel_messages WHERE id=${literal(m.id)} AND company_id=${literal(f.companyId)})
+        SELECT jsonb_build_object(
+          'sourceRelatedAckRows',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',a.id,'company_id',a.company_id,
+            'environment',a.environment,'direction',a.direction,'message_family',a.message_family,'message_code',a.message_code,
+            'status',a.status,'ack_outcome',a.ack_outcome,'related_message_id',a.related_message_id,'raw_payload',a.raw_payload,
+            'immutable_payload_hash',a.immutable_payload_hash) ORDER BY a.id),'[]') FROM public.ediel_messages a
+            WHERE a.related_message_id=(SELECT id FROM own) AND a.direction='outbound'),
+          'ackGuardNotes',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',e.id,'company_id',e.company_id,
+            'ediel_message_id',e.ediel_message_id,'message_id',e.message_id,'event_type',e.event_type,'event_status',e.event_status,
+            'message',e.message,'created_by',e.created_by,'payload',e.payload,'event_payload',e.event_payload) ORDER BY e.id),'[]')
+            FROM public.ediel_message_events e WHERE e.company_id=${literal(f.companyId)}
+              AND (e.ediel_message_id=(SELECT id FROM own) OR e.message_id=(SELECT id FROM own))
+              AND e.payload->>'blockedBy'='canonical_inbound_ack_guard' AND e.payload->>'sourceMessageId'=${literal(m.id)}),
+          'technicalSources',(SELECT coalesce(jsonb_agg(to_jsonb(t)),'[]') FROM gridex_ediel_technical_ack.sources t WHERE t.source_message_id=(SELECT id FROM own)),
+          'syntaxFacets',(SELECT coalesce(jsonb_agg(to_jsonb(t)),'[]') FROM gridex_ediel_technical_ack.syntax_facets t WHERE t.source_message_id=(SELECT id FROM own)),
+          'technicalReplies',(SELECT coalesce(jsonb_agg(to_jsonb(t)),'[]') FROM gridex_ediel_technical_ack.replies t WHERE t.source_message_id=(SELECT id FROM own)));`)})
+    persist()
+  }
+  expect(result.data?.map(a=>[a.message_family,a.ack_outcome])).toEqual([['APERAK','positive'],['CONTRL','positive']])
   for(const a of result.data??[]){
     await sendEdielMessageViaSmtp(a as EdielMessageRow,{actorUserId:f.actorUserId,smtpMimeMode:'nodemailer-attachment'})
     const sent=(await getEdielMessageById(a.id))!;expect(sent.status).toBe('sent')
