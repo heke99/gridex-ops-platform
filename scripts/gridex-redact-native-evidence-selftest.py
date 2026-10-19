@@ -941,6 +941,74 @@ for name, body in [
               refused and records.read_bytes() == original and records.stat().st_ino == inode
               and not list(Path(directory).glob('*.redacting-*')))
 
+# A prevalidated HTML5 doctype must not disable qualified XML/entity/JSON
+# handling when the actual complete HTML-root document is well-formed XML.
+htmlxml_marker = b'DECLARED_HTMLXML_CREDENTIAL'
+htmlxml_doctype = b'<!DOCTYPE html>'
+htmlxml_open = b'<html class="public diagnostic"><system-out>'
+htmlxml_close = b'</system-out></html>'
+for name, payload in [('string', '"DECLARED_HTMLXML_CREDENTIAL"'), ('number', '123'),
+                      ('boolean', 'true'), ('null', 'null'),
+                      ('object', '{"inside":"DECLARED_HTMLXML_CREDENTIAL"}'),
+                      ('array', '["DECLARED_HTMLXML_CREDENTIAL"]')]:
+    body = htmlxml_open + ('{"pa\\u0073sword":' + payload + ',"safe":"public &amp; diagnostic"}').encode() + htmlxml_close
+    for qualified, prefix in [('no_doctype', b''), ('HTML5_doctype', htmlxml_doctype)]:
+        raw = prefix + body; ET.fromstring(raw)
+        clean = module.scrub(raw); parsed = ET.fromstring(clean)
+        actual = json.loads(parsed.find('system-out').text)
+        check('HTMLXML_typed_' + name + '_' + qualified,
+              actual == {'password':module.REDACTED,'safe':'public & diagnostic'}
+              and clean.startswith(prefix + htmlxml_open) and clean.endswith(htmlxml_close)
+              and module.scrub(clean) == clean)
+    with tempfile.TemporaryDirectory(prefix='native-redactor-HTMLXML-') as directory:
+        evidence = Path(directory)/'junit.xml'; evidence.write_bytes(raw)
+        completed = subprocess.run([sys.executable,str(Path(__file__).with_name('gridex-redact-native-evidence.py')),
+                    '--root',str(evidence)],capture_output=True,check=False)
+        written = evidence.read_bytes(); parsed = ET.fromstring(written)
+        check('HTMLXML_typed_' + name + '_actual_CLI', completed.returncode == 0
+              and json.loads(parsed.find('system-out').text) == {'password':module.REDACTED,'safe':'public & diagnostic'}
+              and written == clean and htmlxml_marker not in completed.stdout + completed.stderr)
+        evidence.write_bytes(raw); module.redact_line_records(evidence)
+        check('HTMLXML_typed_' + name + '_bounded_records', evidence.read_bytes() == clean
+              and json.loads(ET.fromstring(evidence.read_bytes()).find('system-out').text)
+              == {'password':module.REDACTED,'safe':'public & diagnostic'})
+for name, body in [
+    ('text_entities', b'<html class="public diagnostic">pass&#119;ord=&quot;' + htmlxml_marker + b'&quot; public &amp; diagnostic</html>'),
+    ('attribute_entities', b'<html class="public diagnostic" message="password=&quot;' + htmlxml_marker + b'&quot; public &amp; diagnostic"/>'),
+    ('named_attribute', b'<html class="public diagnostic" password="' + htmlxml_marker + b'">public &amp; diagnostic</html>'),
+    ('URL_attribute_entities', b'<html class="public diagnostic" message="postgresql://user&#58;' + htmlxml_marker + b'@host.invalid/path public &amp; diagnostic"/>'),
+]:
+    baseline = module.scrub(body)
+    for qualified, prefix in [('no_doctype', b''), ('HTML5_doctype', htmlxml_doctype)]:
+        raw = prefix + body; ET.fromstring(raw); clean = module.scrub(raw); parsed = ET.fromstring(clean)
+        decoded = ET.tostring(parsed, encoding='unicode')
+        check('HTMLXML_' + name + '_' + qualified, htmlxml_marker.decode() not in decoded
+              and module.REDACTED in decoded and parsed.attrib['class'] == 'public diagnostic'
+              and b'public &amp; diagnostic' in clean and clean == prefix + baseline
+              and module.scrub(clean) == clean)
+for name, raw in [
+    ('public_entities', b'<!DOCTYPE html><html class="public diagnostic" message="public &quot;quoted&quot; &amp; safe"><body>public &#99;af&#xE9;</body></html>'),
+    ('BOM_whitespace', b'\xef\xbb\xbf\r\n <!DOCTYPE html>\r\n<html class="public diagnostic">public &amp; safe</html>\r\n'),
+]:
+    ET.fromstring(raw)
+    identity('HTMLXML_' + name + '_byte_identity', raw)
+htmlxml_report = (htmlxml_doctype + b'<html><script id="playwrightReportBase64">data:application/zip;base64,'
+                  + base64.b64encode(html5_zip.getvalue())
+                  + b'</script><system-out>{"pa\\u0073sword":"DECLARED_HTMLXML_CREDENTIAL"}</system-out></html>')
+ET.fromstring(htmlxml_report); clean = module.scrub(htmlxml_report)
+check('HTMLXML_valid_report_ZIP_and_encoded_JSON',
+      html5_marker not in html5_member(clean) and b'public ZIP diagnostic' in html5_member(clean)
+      and json.loads(ET.fromstring(clean).find('system-out').text) == {'password':module.REDACTED}
+      and clean.startswith(htmlxml_doctype + b'<html>') and module.scrub(clean) == clean)
+with tempfile.TemporaryDirectory(prefix='native-redactor-HTMLXML-report-CLI-') as directory:
+    report = Path(directory)/'index.html'; report.write_bytes(htmlxml_report)
+    completed = subprocess.run([sys.executable,str(Path(__file__).with_name('gridex-redact-native-evidence.py')),
+                '--root',str(report)],capture_output=True,check=False)
+    check('HTMLXML_valid_report_actual_CLI', completed.returncode == 0 and report.read_bytes() == clean
+          and json.loads(ET.fromstring(report.read_bytes()).find('system-out').text) == {'password':module.REDACTED}
+          and html5_marker not in html5_member(report.read_bytes())
+          and htmlxml_marker not in completed.stdout + completed.stderr)
+
 failed = [name for name, okay in checks if not okay]
 for name in failed:
     print('NATIVE_EVIDENCE_SELFTEST_FAIL: ' + name)

@@ -241,7 +241,7 @@ def _scrub_named_values(data, preserve_quotes=False, xml_entities=False):
     return scrub_url_passwords(_apply_clean_spans(data, spans, xml_entities=xml_entities), xml_entities=xml_entities)
 
 
-def _secure_xml_parser():
+def _secure_xml_parser(allow_html5_doctype=False):
     parser = expat.ParserCreate()
     parser.buffer_text = False
     parser.SetParamEntityParsing(expat.XML_PARAM_ENTITY_PARSING_NEVER)
@@ -249,16 +249,21 @@ def _secure_xml_parser():
     def refuse(*args):
         raise ValueError('redaction_xml_DTD_or_external_entity_not_supported')
 
-    parser.StartDoctypeDeclHandler = refuse
+    def doctype(name, system_id, public_id, has_internal_subset):
+        if not (allow_html5_doctype and name.lower() == 'html'
+                and not system_id and not public_id and not has_internal_subset):
+            refuse()
+
+    parser.StartDoctypeDeclHandler = doctype
     parser.EntityDeclHandler = refuse
     parser.ExternalEntityRefHandler = refuse
     return parser
 
 
-def _xml_text_spans(data):
+def _xml_text_spans(data, allow_html5_doctype=False):
     # Raw byte offsets come from the parser, never from the length of decoded
     # callbacks: entities, CRLF and multibyte UTF-8 have different raw lengths.
-    parser = _secure_xml_parser()
+    parser = _secure_xml_parser(allow_html5_doctype=allow_html5_doctype)
     spans = []
     pending = None
     literal = False
@@ -364,18 +369,23 @@ def _scrub_xml(data):
     # token is retained across bounded records, and XML is never serialized.
     admission = data[3:] if data.startswith(b'\xef\xbb\xbf') else data
     html = admission.lstrip(b' \t\r\n\f')
+    allow_html5_doctype = False
     if HTML_DOCTYPE_START.match(html):
         # A bare HTML5 doctype plus a complete actual HTML opening tag is
         # the existing HTML/embedded-ZIP report format, not XML with a DTD.
         # Never exempt subsets, external identifiers or other root names.
         if HTML5_WRAPPER.match(html):
             _validate_html5_declarations(html)
-            return None
-        raise ValueError('redaction_xml_DTD_or_external_entity_not_supported')
+            allow_html5_doctype = True
+        else:
+            raise ValueError('redaction_xml_DTD_or_external_entity_not_supported')
     if not admission.lstrip().startswith(b'<'):
         return None
     try:
-        spans = _xml_text_spans(data)
+        # A harmless HTML5 declaration does not disqualify well-formed XML.
+        # Preserve its raw offsets and typed/entity handling; only actual XML
+        # parse failure falls back to the supported HTML/embedded-ZIP path.
+        spans = _xml_text_spans(data, allow_html5_doctype=allow_html5_doctype)
     except expat.ExpatError:
         return None
     output, cursor = [], 0
@@ -386,7 +396,7 @@ def _scrub_xml(data):
     output.append(_scrub_xml_attributes(data[cursor:]))
     result = b''.join(output)
     try:
-        _xml_text_spans(result)
+        _xml_text_spans(result, allow_html5_doctype=allow_html5_doctype)
     except expat.ExpatError:
         raise ValueError('redaction_xml_structure_changed') from None
     return result
