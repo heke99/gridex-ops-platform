@@ -1,5 +1,7 @@
 import { createHash } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
+import { tenantDb } from '@/lib/supabase/tenantDb'
+import { tenantSelect, tenantUpdate } from '@/lib/supabase/tenantQuery'
 import { renderFullmaktPdf } from '@/lib/email/fullmaktPdf'
 import { poaMailEvidence, poaMailEvidenceFingerprint } from '@/lib/email/poaMailEvidence'
 import { inspectPdfStructure } from '@/lib/documents/pdfStructure'
@@ -21,8 +23,8 @@ export function assertPoaDocumentPath(path: string, scope: PoaDocumentScope): vo
 }
 
 async function readPoa(scope: PoaDocumentScope): Promise<Row> {
-  const { data, error } = await supabaseService.from('powers_of_attorney').select('*')
-    .eq('company_id', scope.companyId).eq('customer_id', scope.customerId).eq('id', scope.powerOfAttorneyId).maybeSingle()
+  const { data, error } = await tenantSelect(scope.companyId, 'powers_of_attorney')
+    .eq('customer_id', scope.customerId).eq('id', scope.powerOfAttorneyId).maybeSingle()
   if (error) throw error
   if (!data) throw new Error('Fullmakten hittades inte.')
   return data as Row
@@ -46,8 +48,8 @@ async function verifiedMergedArchive(path: string, scope: PoaDocumentScope, poa:
   for (let depth = 0; depth < 8; depth += 1) {
     if (visited.has(customerId)) return null
     visited.add(customerId)
-    const customerResult = await supabaseService.from('customers').select('id,company_id,status,merge_status,merged_into_customer_id,merged_at,merged_by')
-      .eq('company_id', scope.companyId).eq('id', customerId).maybeSingle()
+    const customerResult = await tenantSelect(scope.companyId, 'customers', 'id,company_id,status,merge_status,merged_into_customer_id,merged_at,merged_by')
+      .eq('id', customerId).maybeSingle()
     if (customerResult.error) throw customerResult.error
     const customer = customerResult.data as Row | null
     if (!customer || customer.company_id !== scope.companyId) return null
@@ -55,8 +57,8 @@ async function verifiedMergedArchive(path: string, scope: PoaDocumentScope, poa:
     const next = clean(customer.merged_into_customer_id), actor = clean(customer.merged_by), mergedAt = clean(customer.merged_at)
     if (!next || next === customerId || customer.merge_status !== 'merged' || !['inactive', 'archived'].includes(String(customer.status))
       || !actor || !mergedAt || !Number.isFinite(Date.parse(mergedAt))) return null
-    const eventResult = await supabaseService.from('customer_merge_events').select('id,company_id,primary_customer_id,merged_customer_id,moved_counts,source_snapshot,created_by,created_at')
-      .eq('company_id', scope.companyId).eq('merged_customer_id', customerId).eq('primary_customer_id', next).eq('created_by', actor).limit(2)
+    const eventResult = await tenantSelect(scope.companyId, 'customer_merge_events', 'id,company_id,primary_customer_id,merged_customer_id,moved_counts,source_snapshot,created_by,created_at')
+      .eq('merged_customer_id', customerId).eq('primary_customer_id', next).eq('created_by', actor).limit(2)
     if (eventResult.error) throw eventResult.error
     const events = (eventResult.data ?? []) as Row[]
     const event = events[0], moved = record(event?.moved_counts).powers_of_attorney
@@ -118,9 +120,9 @@ export async function savePoaPdfArchive(scope: PoaDocumentScope, pdf: Buffer, ex
       previousArchive.original_upload ? { source_path: previousArchive.source_path, original_upload: true } : {}),
     previous_paths: [...(Array.isArray(previousArchive.previous_paths) ? previousArchive.previous_paths : []), ...(previousPath && previousPath !== path ? [previousPath] : [])],
   }
-  let update = supabaseService.from('powers_of_attorney').update({ document_path: path,
+  let update = tenantUpdate(scope.companyId, 'powers_of_attorney', { document_path: path,
     metadata: { ...record(poa.metadata), document_archive: archive }, updated_at: new Date().toISOString() })
-    .eq('company_id', scope.companyId).eq('customer_id', scope.customerId).eq('id', scope.powerOfAttorneyId)
+    .eq('customer_id', scope.customerId).eq('id', scope.powerOfAttorneyId)
   update = previousPath ? update.eq('document_path', previousPath) : update.is('document_path', null)
   update = poa.updated_at ? update.eq('updated_at', String(poa.updated_at)) : update.is('updated_at', null)
   const saved = await update.select('id').maybeSingle()
@@ -157,10 +159,11 @@ export async function ensurePoaPdfArchive(scope: PoaDocumentScope) {
     const documentId = clean(snapshot.legal_bundle_version_document_id) ?? clean(evidence.legal_bundle_version_document_id)
     const hash = clean(snapshot.document_hash) ?? clean(evidence.legal_document_sha256)
     if (bundleId && documentId && hash) {
-      const bundle = await supabaseService.from('legal_bundle_versions').select('id').eq('id', bundleId).eq('company_id', scope.companyId).maybeSingle()
+      const bundle = await tenantSelect(scope.companyId, 'legal_bundle_versions', 'id').eq('id', bundleId).maybeSingle()
       if (bundle.error) throw bundle.error
       if (!bundle.data) throw new Error('Det godkända juridikpaketet tillhör inte fullmaktens tenant.')
-      const document = await supabaseService.from('legal_bundle_version_documents').select('id,title,template_version,rendered_body,content_sha256')
+      // Documents have no company_id; the exact parent bundle was tenant-verified above.
+      const document = await tenantDb(scope.companyId).unscoped().from('legal_bundle_version_documents').select('id,title,template_version,rendered_body,content_sha256')
         .eq('id', documentId).eq('legal_bundle_version_id', bundleId).eq('content_sha256', hash).maybeSingle()
       if (document.error) throw document.error
       const body = document.data?.rendered_body
@@ -171,9 +174,10 @@ export async function ensurePoaPdfArchive(scope: PoaDocumentScope) {
   if (!proof.legalText) throw new Error('Fullmakten saknar den sparade godkända texten. Komplettera originalunderlaget före PDF-generering.')
   const siteId = clean(poa.customer_site_id) ?? clean(poa.site_id)
   const [customerResult, companyResult, siteResult] = await Promise.all([
-    supabaseService.from('customers').select('*').eq('company_id', scope.companyId).eq('id', scope.customerId).maybeSingle(),
-    supabaseService.from('companies').select('*').eq('id', scope.companyId).maybeSingle(),
-    siteId ? supabaseService.from('customer_sites').select('*').eq('company_id', scope.companyId).eq('customer_id', scope.customerId).eq('id', siteId).maybeSingle() : Promise.resolve({ data: null, error: null }),
+    tenantSelect(scope.companyId, 'customers').eq('id', scope.customerId).maybeSingle(),
+    // companies identifies the tenant by its own id, not a company_id column.
+    tenantDb(scope.companyId).unscoped().from('companies').select('*').eq('id', scope.companyId).maybeSingle(),
+    siteId ? tenantSelect(scope.companyId, 'customer_sites').eq('customer_id', scope.customerId).eq('id', siteId).maybeSingle() : Promise.resolve({ data: null, error: null }),
   ])
   for (const result of [customerResult, companyResult, siteResult]) if (result.error) throw result.error
   if (!customerResult.data || !companyResult.data || (siteId && !siteResult.data)) throw new Error('Fullmaktens kund-, tenant- eller anläggningskoppling kunde inte verifieras.')

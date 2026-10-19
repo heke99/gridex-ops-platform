@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 import { isIP } from 'node:net'
-import { supabaseService } from '@/lib/supabase/service'
+import { tenantSelect, tenantUpdate } from '@/lib/supabase/tenantQuery'
 import { publicReference } from '@/lib/integrations/publicReferences'
 import { poaMailEvidence } from '@/lib/email/poaMailEvidence'
 import type { PoaDocumentScope } from './poaDocuments'
@@ -14,8 +14,8 @@ const clean = (value: unknown): string | null => typeof value === 'string' && va
 export async function completePoaCaptureEvidence(scope: PoaDocumentScope, input: {
   signerName: string | null; signerIdentity: string | null; method: string | null; acceptedAt: string | null; signerIp: string | null
 }): Promise<void> {
-  const { data, error } = await supabaseService.from('powers_of_attorney').select('*')
-    .eq('company_id', scope.companyId).eq('customer_id', scope.customerId).eq('id', scope.powerOfAttorneyId).maybeSingle()
+  const { data, error } = await tenantSelect(scope.companyId, 'powers_of_attorney')
+    .eq('customer_id', scope.customerId).eq('id', scope.powerOfAttorneyId).maybeSingle()
   if (error) throw error
   if (!data) throw new Error('Fullmakten hittades inte vid komplettering.')
   const poa = data as Row, evidence = record(poa.evidence_payload), proof = poaMailEvidence(poa)
@@ -34,8 +34,8 @@ export async function completePoaCaptureEvidence(scope: PoaDocumentScope, input:
     patch.accepted_ip = signerIp
     patch.accepted_ip_hash = createHash('sha256').update(signerIp).digest('hex')
   }
-  let update = supabaseService.from('powers_of_attorney').update(patch)
-    .eq('company_id', scope.companyId).eq('customer_id', scope.customerId).eq('id', scope.powerOfAttorneyId)
+  let update = tenantUpdate(scope.companyId, 'powers_of_attorney', patch)
+    .eq('customer_id', scope.customerId).eq('id', scope.powerOfAttorneyId)
   update = clean(poa.updated_at) ? update.eq('updated_at', String(poa.updated_at)) : update.is('updated_at', null)
   const saved = await update.select('id').maybeSingle()
   if (saved.error) throw saved.error
@@ -46,8 +46,8 @@ export async function completePoaCaptureEvidence(scope: PoaDocumentScope, input:
 // document identifier, never a claim that OPS verified the uploaded signature.
 export async function ensurePoaVerificationReference(scope: PoaDocumentScope): Promise<Row> {
   const read = async () => {
-    const { data, error } = await supabaseService.from('powers_of_attorney').select('*')
-      .eq('company_id', scope.companyId).eq('customer_id', scope.customerId).eq('id', scope.powerOfAttorneyId).maybeSingle()
+    const { data, error } = await tenantSelect(scope.companyId, 'powers_of_attorney')
+      .eq('customer_id', scope.customerId).eq('id', scope.powerOfAttorneyId).maybeSingle()
     if (error) throw error
     if (!data) throw new Error('Fullmakten hittades inte.')
     return data as Row
