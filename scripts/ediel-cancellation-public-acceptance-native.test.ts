@@ -4,6 +4,7 @@
 // all parsing, origination, archives, native owners, ACKs and consumers are real.
 // Historical L4/L3 and LK-1 native cancellation boundaries remain unproved.
 // Fresh Z03L origination requires 14 days; it cannot supply an L4 original.
+import { approveEdielInboundCase } from '@/lib/ediel/inboundCases'
 import { createHash, randomUUID } from 'node:crypto'
 import { afterEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 const smtp = vi.hoisted(() => vi.fn())
@@ -701,6 +702,34 @@ async function seedGenuineEndedOwnStart(activate: boolean) {
 }
 
 describe('actual native supplier cancellation chains', () => {
+
+  // masterplan: AT-Z04C-SUPPLIER. An applied own cancellation is never an
+  // onboarding source: approving its review case cannot mutate master data.
+  it('refuses onboarding approval of an applied Z04C review case without mutating master data', async () => {
+    const f = await seed()
+    const confirmation = await receiveProdat(f, z04(f), 'Z04', 'L')
+    await process(f, confirmation); assertConfirmedSupplyPrecondition(f, confirmation)
+    const prepared = await prepareAndQueueSwitchCancellation({ companyId: f.companyId, switchRequestId: f.switchId, actorUserId: f.actorUserId, preferredRouteId: f.routeId, environment: 'test' as const })
+    if (!('message' in prepared)) throw Error('genuine_cancellation_required')
+    await sendEdielMessageViaSmtp(prepared.message, { actorUserId: f.actorUserId, smtpMimeMode: 'nodemailer-attachment' })
+    const completion = await receiveProdat(f, z04(f,'Z24'), 'Z04', 'C')
+    await process(f, completion)
+    expect(switchState(f)).toMatchObject({ status: 'cancelled_before_start', inbound: completion.id })
+    const graph=()=>sql(`SELECT jsonb_build_object('customers',(SELECT jsonb_agg(to_jsonb(x) ORDER BY id) FROM public.customers x WHERE company_id=${literal(f.companyId)}),
+      'sites',(SELECT jsonb_agg(to_jsonb(x) ORDER BY id) FROM public.customer_sites x WHERE company_id=${literal(f.companyId)}),
+      'points',(SELECT jsonb_agg(to_jsonb(x) ORDER BY id) FROM public.metering_points x WHERE company_id=${literal(f.companyId)}),
+      'periods',(SELECT jsonb_agg(to_jsonb(x) ORDER BY id) FROM public.customer_supply_periods x WHERE company_id=${literal(f.companyId)}),
+      'switches',(SELECT jsonb_agg(to_jsonb(x) ORDER BY id) FROM public.supplier_switch_requests x WHERE company_id=${literal(f.companyId)}),
+      'contracts',(SELECT jsonb_agg(to_jsonb(x) ORDER BY id) FROM public.customer_contracts x WHERE company_id=${literal(f.companyId)}));`)
+    const review=()=>sql<Array<{id:string;status:string;review_decision:unknown;updated_at:string}>>(`SELECT coalesce(jsonb_agg(to_jsonb(c)),'[]') FROM public.ediel_inbound_cases c
+      WHERE c.company_id=${literal(f.companyId)} AND c.ediel_message_id=${literal(completion.id)};`)
+    const [saved]=review(),before=graph()
+    expect(saved).toMatchObject({status:'pending_review'})
+    for(const mode of [undefined,'update_existing_customer','create_new_customer'] as const)
+      await expect(approveEdielInboundCase({ actorUserId: f.actorUserId, caseId: saved.id, companyId: f.companyId, mode }))
+        .rejects.toThrow('PRODAT_CANCELLATION_CASE_NOT_APPROVABLE')
+    expect(graph()).toEqual(before); expect(review()).toEqual([saved])
+  }, 180000)
   it('keeps requested after actual provider250 and physical ACKs; only causal Z04C completes the own future start', async () => {
     const f = await seed(), decoy = await seed(), decoyOriginal = original(decoy), decoySwitch = switchState(decoy)
     const confirmation = await receiveProdat(f, z04(f), 'Z04', 'L')
