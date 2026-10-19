@@ -12,7 +12,8 @@ vi.mock('next/headers',()=>({cookies:async()=>({get:(key:string)=>key==='gridex_
 vi.mock('@/lib/supabase/server',()=>({createSupabaseServerClient:async()=>({auth:{getUser:httpTransport.auth},rpc:httpTransport.rpc})}))
 import {NextRequest} from 'next/server'
 import {decisionEvidenceReview as httpReview,decisionEvidencePurge as httpPurge,decisionEvidenceRead as httpRead,decisionEvidenceOriginal as httpOriginal} from '@/lib/ediel/retention/decisionEvidenceRetentionHttp'
-const schema=readFileSync('supabase/schema.sql','utf8')
+import {db05PredecessorSchema} from './helpers/db05PredecessorSchema'
+const schema=db05PredecessorSchema(readFileSync('supabase/schema.sql','utf8'))
 const source6=readFileSync('supabase/migrations/20261018104637_db05_completed_decision_review_reason_retention.sql','utf8')
 const c='11111111-1111-4111-8111-111111111111',worker='22222222-2222-4222-8222-222222222222',source='33333333-3333-4333-8333-333333333333',selected='44444444-4444-4444-8444-444444444444',policy='55555555-5555-4555-8555-555555555555',ownReview='66666666-6666-4666-8666-666666666666',reviewer='77777777-7777-4777-8777-777777777777',target='88888888-8888-4888-8888-888888888888',issuer='99999999-9999-4999-8999-999999999999'
 const kind='completed_decision_review_reason',key=Buffer.from('ab'.repeat(32),'hex'),hash=(s:string|Buffer)=>createHash('sha256').update(s).digest('hex')

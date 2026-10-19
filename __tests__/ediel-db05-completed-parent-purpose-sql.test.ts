@@ -8,6 +8,7 @@ import {readFileSync,writeFileSync} from 'node:fs'
 import {join} from 'node:path'
 import {PGlite} from '@electric-sql/pglite'
 import {beforeAll,beforeEach,afterEach,afterAll,it,expect} from 'vitest'
+import {db05PredecessorSchema} from './helpers/db05PredecessorSchema'
 const receiverRoot=process.env.DB05_RECEIVER_ROOT??process.cwd()
 const receiverFile=(path:string)=>readFileSync(join(receiverRoot,path),'utf8')
 // Exact CLI2.101 filename allocated by root; this private candidate performs no repository write.
@@ -21,7 +22,7 @@ const newOwnedNames=["gridex_ediel_retention.completed_parent_receipt_v1", "grid
 const protectedNames=["gridex_received_sources.other_supply_scope_effect_v1", "gridex_prodat_object_batch.require_wire_projection_v1", "gridex_ediel_retention.permission_v1", "gridex_ediel_retention.completed_witness_graph_v1", "gridex_ediel_retention.completed_witness_holds_v1", "gridex_ediel_retention.completed_witness_worker_actor_v1", "gridex_ediel_retention.completed_witness_receipt_v1", "gridex_ediel_retention.completed_witness_approval_terms_v1", "gridex_ediel_retention.completed_witness_fields_v1", "gridex_ediel_retention.completed_witness_terms_v1", "gridex_ediel_retention.completed_witness_reason_intake_v1", "gridex_ediel_retention.completed_witness_guard_v1", "gridex_ediel_retention.completed_witness_permits_empty_v1", "gridex_ediel_retention.completed_witness_references_v1", "gridex_ediel_retention.completed_witness_route_v1", "gridex_ediel_retention.completed_witness_payload_terms_v1", "public.ediel_review_completed_witness_disposition_v1", "gridex_ediel_retention.completed_witness_execute_v1", "gridex_ediel_retention.completed_witness_status_v1", "gridex_ediel_retention.completed_witness_dispatch_v1", "public.ediel_advance_completed_witness_disposition_v1"]
 let atomicInstallReceipt:Record<string,unknown>
 async function catalogs(names:string[]){return(await db.query<{name:string;catalog:unknown}>("SELECT n.nspname||'.'||p.proname name,to_jsonb(p) catalog FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname||'.'||p.proname=ANY($1::text[]) ORDER BY name",[names])).rows}
-const schema=receiverFile('supabase/schema.sql')
+const schema=db05PredecessorSchema(receiverFile('supabase/schema.sql'))
 const source6=receiverFile('supabase/migrations/20261018104637_db05_completed_decision_review_reason_retention.sql')
 const c='11111111-1111-4111-8111-111111111111',worker='22222222-2222-4222-8222-222222222222',source='33333333-3333-4333-8333-333333333333',selected='44444444-4444-4444-8444-444444444444',policy='55555555-5555-4555-8555-555555555555',ownReview='66666666-6666-4666-8666-666666666666',reviewer='77777777-7777-4777-8777-777777777777',target='88888888-8888-4888-8888-888888888888',issuer='99999999-9999-4999-8999-999999999999'
 const kind='completed_decision_review_reason',key=Buffer.from('ab'.repeat(32),'hex'),hash=(s:string|Buffer)=>createHash('sha256').update(s).digest('hex')

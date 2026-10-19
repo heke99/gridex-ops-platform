@@ -6,8 +6,9 @@ import {createHash} from 'node:crypto'
 import {readFileSync} from 'node:fs'
 import {PGlite} from '@electric-sql/pglite'
 import {afterAll,afterEach,beforeAll,beforeEach,expect,it} from 'vitest'
+import {db05PredecessorSchema} from './helpers/db05PredecessorSchema'
 
-const schema=readFileSync('supabase/schema.sql','utf8')
+const schema=db05PredecessorSchema(readFileSync('supabase/schema.sql','utf8'))
 const source6=readFileSync('supabase/migrations/20261018104637_db05_completed_decision_review_reason_retention.sql','utf8')
 const nextPath='supabase/migrations/20261018164728_db05_completed_review_witness_consumer_freeze.sql'
 const baseline=process.env.DB05_FREEZE_COMPONENT_BASELINE==='1'
