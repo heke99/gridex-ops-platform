@@ -1,10 +1,10 @@
 {
   "generated_types": "supabase/database.types.ts",
-  "generated_at": "2026-10-19T20:53:18.742252+00:00",
-  "generated_with": "supabase-cli-2.101.0-authentic-ordinary-capture-run39322421227-job118299566354-attempt1",
+  "generated_at": "2026-10-19T23:30:00+00:00",
+  "generated_with": "supabase-cli-2.101.0-two-independent-local-clean-replays-main-c17621ed-plus-150000-160000-170000",
   "sha256": "9800dca6d71c2d26baa22d73b04b02fd9eb70c5ac5889c0178ca2123c0f43ca5",
-  "latest_migration": "20261019140000_ediel_ops04_controlled_live_evidence.sql",
-  "latest_migration_schema_effect": "Authentic ordinary capture of PR841 source de7d3a52265df03d269f274ab32b55a068a56ec4 (tree 5ad6f03e74bbe28ff6dea9f22c205b7a8bb8414a) after successful disposable canonical replay through 20261019140000_ediel_ops04_controlled_live_evidence.sql: adds private schema gridex_ediel_ops04 and the five service_role-only OPS-04 RPCs; outputs imported byte-exact.",
+  "latest_migration": "20261019170000_ediel_z04c_executed_start_compensation_receipt.sql",
+  "latest_migration_schema_effect": "Final stacked state main c17621ed (OPS-04 #841) + SC-039 150000 + SC-031 160000 + AT-Z04C 170000. Types are byte-identical to the #841 capture (9800dca6). schema.sql c4e86b3b and fingerprint be5b350f were produced byte-identically by two independent clean local replays (Agent4 and 3d branch claude/gen-b-20261019 fa0f3ae7); only function bodies differ from main. CI capture on this head verifies.",
   "composition_capture_pending": false,
   "capture": {
     "purpose": "capture_only",
@@ -98703,5 +98703,6 @@
     "proof_limits": "Ordinary capture only. No protected C2 PRIMARY/SC046 epoch, separate pg_proc/OID before-after receipt, installed-history row export, source-restoration/zero-container attestation or native/browser/parity/whole-final credit is inferred."
   }
     }
-  }
+  },
+  "z04c_842_stacked_previous_active_fields_20261019": {"generated_at": "2026-10-19T20:53:18.742252+00:00", "generated_with": "supabase-cli-2.101.0-authentic-ordinary-capture-run39322421227-job118299566354-attempt1", "latest_migration": "20261019140000_ediel_ops04_controlled_live_evidence.sql", "latest_migration_schema_effect": "Authentic ordinary capture of PR841 source de7d3a52265df03d269f274ab32b55a068a56ec4 (tree 5ad6f03e74bbe28ff6dea9f22c205b7a8bb8414a) after successful disposable canonical replay through 20261019140000_ediel_ops04_controlled_live_evidence.sql: adds private schema gridex_ediel_ops04 and the five service_role-only OPS-04 RPCs; outputs imported byte-exact."}
 }

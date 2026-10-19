@@ -18,6 +18,10 @@ const root=process.env.EDIEL_SQL_REPOSITORY??fileURLToPath(new URL('..',import.m
 const capturedOwner='aab2d2f6dcbfe17e31f92c07a70c9f9346396a2c1435a5976b1d70c8e58cb2b7'
 const fixedOwner='e2bba947e4ade9d3a1128cc826f6b43b336da0733ba35d90eb43b498f53e350e'
 const forwardPath=process.env.EDIEL_Z04C_FORWARD_SQL??`${root}/supabase/migrations/20261018100000_ediel_z04c_current_sender_registry.sql`
+// Executed-start compensation (20261019170000) splices this owner again; its
+// postimage is the current deployed body and keeps every case below.
+const compensationOwner='c30e7398338c7b0a39da7220ea62bffa4d8ae0134f1c7d8b272b09e07736e03e'
+const compensationPath=`${root}/supabase/migrations/20261019170000_ediel_z04c_executed_start_compensation_receipt.sql`
 const originalControl=process.env.EDIEL_Z04C_ORIGINAL_CONTROL==='1'
 const schema=readFileSync(`${root}/supabase/schema.sql`,'utf8')
 const {PGlite}=await import(pathToFileURL(process.env.EDIEL_PGLITE_MODULE??`${root}/node_modules/@electric-sql/pglite/dist/index.js`).href)
@@ -108,6 +112,9 @@ try{
  create table gridex_received_sources.prodat_application_facets(assessment_id uuid,source_message_id uuid,company_id uuid,application_facts_text text);
  create table gridex_received_sources.regulated_supply_ground_versions(id uuid,company_id uuid,legal_actor_id uuid);
  create table gridex_received_sources.supply_object_effect_receipts(id uuid,source_message_id uuid,company_id uuid,environment text,payload_hash text,effect_text text,effect_hash text,object_scope jsonb);
+ -- Own confirmation/activation receipts the executed-start compensation branch binds.
+ create table gridex_received_sources.normal_switch_confirmations(source_message_id uuid,period_id uuid,company_id uuid,switch_id uuid,original_message_id uuid,original_payload_hash text,market_start_at timestamptz);
+ create table gridex_received_sources.normal_supply_activations(period_id uuid,company_id uuid,source_message_id uuid);
  -- Declared provider-acceptance journal port (the real journal is native-only).
  create table gridex_ediel_transport.synthetic_provider_acceptances(message_id uuid primary key);
  create function gridex_ediel_transport.accepted_source_basis_v1(p_message public.ediel_messages) returns jsonb language sql stable as $$select jsonb_build_object('messageId',a.message_id) from gridex_ediel_transport.synthetic_provider_acceptances a where a.message_id=p_message.id$$;
@@ -118,7 +125,7 @@ try{
  for(const name of ['gridex_received_sources.wire_tokens_bounded_v1','gridex_received_sources.closure_wire_tokens_v2','gridex_received_sources.supply_wire_v1','gridex_received_sources.normal_switch_wire_v1','gridex_received_sources.permission_date_v1','gridex_received_sources.permission_time_v1','gridex_received_sources.prodat_application_object_accepted_v1','gridex_received_sources.require_supply_scope_admission_v1','gridex_received_sources.supply_wire_for_scope_v1','gridex_received_sources.supply_wire_for_period_receipt_v1','gridex_received_sources.sent_source_is_current_v1','gridex_received_sources.other_supply_scope_effect_v1'])await db.exec(actual(name))
  const installed=hash((await db.query("select prosrc from pg_proc where oid='gridex_received_sources.other_supply_scope_effect_v1(uuid,uuid,uuid,jsonb,uuid[],uuid)'::regprocedure")).rows[0].prosrc)
  console.log(`CAPTURED prosrc sha256=${installed}`)
- assert.ok(installed===capturedOwner||installed===fixedOwner,'z04c_unknown_captured_owner')
+ assert.ok(installed===capturedOwner||installed===fixedOwner||installed===compensationOwner,'z04c_unknown_captured_owner')
  const metadata=async()=>(await db.query("select to_jsonb(p)-'prosrc' m from pg_proc p where p.oid='gridex_received_sources.other_supply_scope_effect_v1(uuid,uuid,uuid,jsonb,uuid[],uuid)'::regprocedure")).rows[0].m
  const beforeMetadata=await metadata()
  if(installed===capturedOwner){if(!originalControl)await db.exec(readFileSync(forwardPath,'utf8'))}
@@ -127,12 +134,19 @@ try{
   // migration's own inverse (remove only its two guard texts) for the RED control.
   const forward=readFileSync(forwardPath,'utf8'),guard=name=>{const m=forward.match(new RegExp(` ${name} CONSTANT text:=\\$guard\\$([\\s\\S]*?)\\$guard\\$;`));assert.ok(m,`z04c_${name}_text_required`);return m[1]}
   const current=(await db.query("select prosrc,pg_get_functiondef(oid) d from pg_proc where oid='gridex_received_sources.other_supply_scope_effect_v1(uuid,uuid,uuid,jsonb,uuid[],uuid)'::regprocedure")).rows[0]
-  const predecessor=current.prosrc.replace(guard('z04c_guard'),'').replace(guard('duplicate_guard'),'')
+  // A compensation postimage is first reduced by that migration's own inverse.
+  let source=current.prosrc
+  if(installed===compensationOwner){
+   const later=readFileSync(compensationPath,'utf8'),part=(name,tag)=>{const m=later.match(new RegExp(` ${name} CONSTANT text:=\\$${tag}\\$([\\s\\S]*?)\\$${tag}\\$;`));assert.ok(m,`z04c_${name}_text_required`);return m[1]}
+   source=source.replace(part('compensation_branch','branch'),'').replace(part('case_apply','apply'),'')
+   assert.equal(hash(source),fixedOwner,'z04c_compensation_inverse_required')
+  }
+  const predecessor=source.replace(guard('z04c_guard'),'').replace(guard('duplicate_guard'),'')
   assert.equal(hash(predecessor),capturedOwner,'z04c_inverse_predecessor_required')
   await db.exec(current.d.replace(current.prosrc,predecessor))
  }
  const effective=hash((await db.query("select prosrc from pg_proc where oid='gridex_received_sources.other_supply_scope_effect_v1(uuid,uuid,uuid,jsonb,uuid[],uuid)'::regprocedure")).rows[0].prosrc)
- assert.equal(effective,originalControl?capturedOwner:fixedOwner);assert.deepEqual(await metadata(),beforeMetadata)
+ assert.equal(effective,originalControl?capturedOwner:installed===compensationOwner?compensationOwner:fixedOwner);assert.deepEqual(await metadata(),beforeMetadata)
  console.log(`SOURCE effectiveBodySha256=${effective}; migrationApplication=${originalControl?'skipped_for_original_red_control':'applied_to_captured_predecessor'}`)
  await db.exec(`insert into companies values('${COMPANY}','active',true,'SYNTHETIC LEGAL COMPANY','5590000000');insert into auth.users(id,email_confirmed_at) values('${ACTOR}',now()),('${FOREIGN_ACTOR}',now());insert into user_profiles values('${ACTOR}','active'),('${FOREIGN_ACTOR}','active');
  insert into company_memberships(company_id,user_id,status,is_active,accepted_at) values('${COMPANY}','${ACTOR}','active',true,now());
