@@ -10,7 +10,7 @@ import {defineConfig} from 'vitest/config'
 // source231b9ef8, and its facade to the reviewed adoptedca892 source. None
 // replaces the historical BASE aliases or their fixed canonical source bytes.
 // Its BASE public creator alone receives a prospective legacy
-// DTO hint. Two containment forwards and twelve delivered current reader/guard
+// DTO hint. Two containment forwards and thirteen delivered current reader/guard
 // forwards remain separately receipted phases before fresh ROOT owners.
 const root = realpathSync(resolve(__dirname, '..'))
 const phase = process.env.GRIDEX_DB01_NATIVE_PHASE
@@ -58,7 +58,7 @@ const fileHash = (path: string) => createHash('sha256').update(readFileSync(path
 const sameInput = (a: GitInput | undefined, b: GitInput | undefined) => !!a && !!b && a.mode === b.mode &&
   a.git_blob_oid === b.git_blob_oid && a.sha256 === b.sha256
 const basis = receipt.historical_source_basis, overlay = basis?.module_overrides?.[0]
-if (receipt.required_input_paths?.length !== 54 || new Set(receipt.required_input_paths).size !== 54 ||
+if (receipt.required_input_paths?.length !== 55 || new Set(receipt.required_input_paths).size !== 55 ||
     receipt.required_base_input_paths?.length !== 35 || new Set(receipt.required_base_input_paths).size !== 35 ||
     basis?.kind !== 'reconstructed_public_births' || basis.default_alias !== 'BASE56' || basis.module_overrides?.length !== 1 ||
     overlay?.specifier !== '@/lib/ediel/testing/agtEngine' || overlay.path !== producerPath || overlay.source !== 'ROOT' ||
@@ -195,6 +195,12 @@ export const currentReaderForwards: Array<GitInput & {path: string}> = [
     "mode": "100644",
     "git_blob_oid": "b6ba2018eafe08a6ba67c7ff307ba51c33a2b604",
     "sha256": "6646ea2bd9f819736ece5c943148c575238e55702a201fcc9b26f46e0f998af9"
+  },
+  {
+    "path": "supabase/migrations/20261019043000_ediel_retained_contrl_source_prefilter.sql",
+    "mode": "100644",
+    "git_blob_oid": "cc00cae05dad948b1680ef83c55b356cd12b702a",
+    "sha256": "f248ec8dab18e1b4b4c2cd6f8da73f538d15030ccabb6bf0281080797d586b02"
   }
 ]
 const currentDatabase = receipt.current_database_basis

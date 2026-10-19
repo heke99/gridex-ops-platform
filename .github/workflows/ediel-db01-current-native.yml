@@ -121,7 +121,11 @@ jobs:
            {'path': 'supabase/migrations/20261012120000_ediel_utilts_source_quantity_quality_v2.sql',
             'mode': '100644',
             'git_blob_oid': 'b6ba2018eafe08a6ba67c7ff307ba51c33a2b604',
-            'sha256': '6646ea2bd9f819736ece5c943148c575238e55702a201fcc9b26f46e0f998af9'}]
+            'sha256': '6646ea2bd9f819736ece5c943148c575238e55702a201fcc9b26f46e0f998af9'},
+           {'path': 'supabase/migrations/20261019043000_ediel_retained_contrl_source_prefilter.sql',
+            'mode': '100644',
+            'git_blob_oid': 'cc00cae05dad948b1680ef83c55b356cd12b702a',
+            'sha256': 'f248ec8dab18e1b4b4c2cd6f8da73f538d15030ccabb6bf0281080797d586b02'}]
           current_read_forwards = [item['path'] for item in current_read_manifest]
           current_reader_callers = ['lib/ediel/production/customerMasterdataOriginalRead.ts','lib/ediel/core/receivedZ04HAddressAvailability.ts']
           repair = 'supabase/migrations/20261006231122_ediel_test_configuration_route_environment_source.sql'
@@ -182,7 +186,7 @@ jobs:
                   if reader.wait() != 0: raise RuntimeError('Git inventory reader failed')
               return {'sha':revision,'tree':subprocess.check_output(['git','rev-parse',revision+'^{tree}'],text=True).strip(),'blobs':result}
           current, baseline = inventory(head), inventory(base_sha)
-          if len(required) != 54 or len(required) != len(set(required)) or not set(required).issubset(current['blobs']):
+          if len(required) != 55 or len(required) != len(set(required)) or not set(required).issubset(current['blobs']):
               raise RuntimeError('required input missing or duplicated')
           if len(required_base) != 35 or len(required_base) != len(set(required_base)) or not set(required_base).issubset(baseline['blobs']):
               raise RuntimeError('required BASE input missing or duplicated')
@@ -551,7 +555,7 @@ jobs:
           if mode=='before':
               before,db=observe()
               # Snapshot exact logical surroundings of existing private preparations,
-              # including every attached policy/trigger/constraint/index/ACL, before twelve
+              # including every attached policy/trigger/constraint/index/ACL, before thirteen
               # forward changes. This is retained BASE evidence, not ROOT parity.
               surroundings={repr(key):value for key,value in before.items() if key[0]=='gridex_customer_masterdata' and key[1]!='FUNCTION' and
                 not(key[1]=='ACL' and key[2].startswith('FUNCTION '))}
@@ -576,7 +580,7 @@ jobs:
                       receipt['current_read_forward_executions']=executed
                       receipt_path.write_text(json.dumps(receipt,indent=2)+'\n')
                       if code:sys.exit(code)
-                  # Keep all twelve declared forwards, then deliver only the later
+                  # Keep all thirteen declared forwards, then deliver only the later
                   # source-qualified API effects inside this same bounded phase.
                   apply_current_api_projection()
               finally:
@@ -766,7 +770,7 @@ jobs:
             'lib/ediel/rulebook/canonicalEdielFacade.ts','lib/ediel/testing/tgtCanonicalDraftRoute.ts',
             'lib/ediel/testing/agtRuntime.ts','lib/ediel/testing/agtRegistry.ts',
             'lib/ediel/testing/positiveFixtureAuthority.ts','lib/ediel/production/lifeEventCertificationSource.ts'}
-          if len(receipt['required_input_paths'])!=54 or len(set(receipt['required_input_paths']))!=54 or \
+          if len(receipt['required_input_paths'])!=55 or len(set(receipt['required_input_paths']))!=55 or \
               len(receipt['required_base_input_paths'])!=35 or len(set(receipt['required_base_input_paths']))!=35 or \
               set(basis.get('canonical_dependency_identity',{}))!=dependencies or \
               receipt['root_source']['blobs'][producer]!={key:expected_overlay[key] for key in ['mode','git_blob_oid','sha256']}:
@@ -824,7 +828,7 @@ jobs:
           guard=receipt.get('current_guard_result',{})
           api=receipt.get('current_api_schema_result',{})
           if database.get('kind')!='BASE56_repair_two_forwards_plus_delivered_reader_guard_closure' or \
-              database.get('schema_path')!='supabase/schema.sql' or len(database.get('forwards',[]))!=12 or \
+              database.get('schema_path')!='supabase/schema.sql' or len(database.get('forwards',[]))!=13 or \
               executions!=[{**item,'exit_code':0,'status':'PASS'} for item in database['forwards']] or \
               guard.get('status')!='PASS' or guard.get('source_sha')!=receipt['checkout_sha'] or \
               guard.get('reader_function_names')!=233 or guard.get('helper_function_names')!=372 or \
