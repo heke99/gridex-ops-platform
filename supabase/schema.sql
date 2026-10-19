@@ -21754,6 +21754,9 @@ BEGIN
   END IF;
  END LOOP;
  -- Consume canonical decisions without another subtype classifier.
+ IF '213'=ANY(own_fields) THEN qty:=NULL;END IF;
+ IF '222'=ANY(own_fields) THEN frequency:=NULL;END IF;
+ IF '242'=ANY(own_fields) THEN product:=NULL;END IF;
  IF 'END_USER_GROUP'=ANY(own_fields) THEN ud:=NULL;
  ELSE
   IF '227'=ANY(own_fields) THEN ud:=jsonb_set(ud,'{2}','[]'::jsonb);END IF;
