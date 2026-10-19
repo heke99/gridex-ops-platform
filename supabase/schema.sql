@@ -17471,7 +17471,7 @@ END $$;
 CREATE FUNCTION gridex_ediel_technical_ack.retained_source_v1(m public.ediel_messages, complete_chain boolean DEFAULT true) RETURNS uuid
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog'
-    AS $$
+    AS $_$
 DECLARE a jsonb;h jsonb;candidate uuid;ids uuid[]:='{}';source public.ediel_messages%rowtype;keys jsonb;payload_hash text;
 BEGIN
  IF m.id IS NULL OR m.company_id IS NULL OR m.direction IS DISTINCT FROM 'outbound' OR m.message_family IS DISTINCT FROM 'CONTRL' OR nullif(m.raw_payload,'') IS NULL THEN RETURN NULL;END IF;
@@ -17485,6 +17485,10 @@ BEGIN
   WHERE b.status='ready' AND b.company_id=m.company_id AND r.company_id=b.company_id AND b.environment=m.environment AND r.environment=b.environment
    AND s.direction='inbound' AND s.environment=b.environment AND (s.company_id=b.company_id OR s.company_id IS NULL)
    AND b.payload_sha256=r.payload_sha256 AND b.payload_sha256=encode(sha256(convert_to(s.raw_payload,'UTF8')),'hex')
+   AND (coalesce(a->>'uciRef','') COLLATE "C" !~ '^[A-Za-z0-9]{8,14}$'
+    OR (upper(left(s.raw_payload,3))='UNA' AND left(s.raw_payload,9)<>'UNA:+.? ''')
+    OR strpos(CASE WHEN upper(left(s.raw_payload,3))='UNA' THEN substr(s.raw_payload,10) ELSE s.raw_payload END,'?')>0
+    OR strpos(replace(replace(s.raw_payload,E'\r\n',''),E'\n',''),a->>'uciRef')>0)
   ORDER BY s.id FOR SHARE OF b,r,s LOOP
   h:=gridex_ediel_technical_ack.envelope(source.raw_payload);
   IF h IS NOT NULL AND a->'sender'=h->'receiver' AND a->'receiver'=h->'sender' AND a->>'environment'=h->>'environment'
@@ -17502,7 +17506,7 @@ BEGIN
   WHERE r.environment=m.environment AND r.sender_namespace=k->>'sender' AND r.application_namespace=k->>'application' AND r.reference_kind=k->>'kind'
    AND r.wire_reference=k->>'value' AND r.source_message_id=m.id AND r.company_id=m.company_id AND r.first_payload_sha256=payload_hash)) THEN RETURN NULL;END IF;
  RETURN candidate;
-END$$;
+END$_$;
 
 --
 -- Name: select_configured_reply_route_v2(uuid, jsonb, text, text, text, integer); Type: FUNCTION; Schema: gridex_ediel_technical_ack; Owner: -
