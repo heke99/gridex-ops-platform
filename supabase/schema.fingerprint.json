@@ -71,7 +71,7 @@
     },
     "constraints": {
       "count": 4685,
-      "sha256": "9972e8ebc4edd542552950c789dbfbd4ec90f9538e608cec62f6e6ce70b6e464"
+      "sha256": "8d7335ea622bfbd4a42a5bf4f5e7af5a141785cd967e85794405bd264ee0a31f"
     },
     "enums": {
       "count": 4,
@@ -82,16 +82,16 @@
       "sha256": "8932c4a79fcdd9faea353c042d57caa599bc42d04571424296270cdaa929338b"
     },
     "function_grants": {
-      "count": 3823,
-      "sha256": "ef341d6e2b884aba033d33230f556228485e1da02cfc227a4eb644e8dbe8ddb6"
+      "count": 3859,
+      "sha256": "cd743bfa2231687b32622a7e189a97538b39694879374c838e0f95ebb03502f1"
     },
     "functions": {
-      "count": 2218,
-      "sha256": "a5217205e9233110bcc348f33f3f1d119f90c68127717ece6852192dfd9c5f4d"
+      "count": 2236,
+      "sha256": "34ca341b0b1229b5e4fb92e34156dc33032b9d3bea4a2a83bce31b49972d8335"
     },
     "indexes": {
-      "count": 2991,
-      "sha256": "46c7553159725831212f66bb334772248cb38d1efc2806fed3e57eca2d202670"
+      "count": 2992,
+      "sha256": "7ca560b46ff4a9e4b65c935d6b16a54bf7f857fde01f56073739ab5a17d1ccfd"
     },
     "policies": {
       "count": 2565,
@@ -114,9 +114,9 @@
       "sha256": "fe9ad1c70f6bbc71c8a506f2dba2e8aacca557e82dd0c96bddf19aab5c2b8a03"
     },
     "triggers": {
-      "count": 1666,
-      "sha256": "51f24c0fd1e10cc55009f91a940764b4f12e4e8009635bc6686e09368bbd51d6"
+      "count": 1672,
+      "sha256": "3468d3b9516fcbf22cae475f69799a1244d84336e6c1194f30029152e221d735"
     }
   },
-  "sha256": "4d02f36a16d19f58bf844a9dfdfdc622682db99dad4f0628ff2553b265d38fca"
+  "sha256": "54a300056d3f19e3ddb485a814f49c74785cd65c0c64c4d22baca6df97a8d2bd"
 }

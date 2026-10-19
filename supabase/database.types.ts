@@ -97641,6 +97641,33 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_apply_manual_commercial_reply_v1: {
+        Args: {
+          p_company_id: string
+          p_inbound_id: string
+          p_payload: Json
+          p_request_id: string
+        }
+        Returns: Json
+      }
+      gridex_apply_manual_facility_reply_v1: {
+        Args: {
+          p_company_id: string
+          p_inbound_id: string
+          p_payload: Json
+          p_request_id: string
+        }
+        Returns: Json
+      }
+      gridex_apply_manual_multi_site_reply_v1: {
+        Args: {
+          p_company_id: string
+          p_inbound_id: string
+          p_parent_request_id: string
+          p_payload: Json
+        }
+        Returns: Json
+      }
       gridex_apply_public_contract_backfill_v1: {
         Args: {
           p_actor_user_id?: string
@@ -99568,6 +99595,15 @@ export type Database = {
         Args: { p_company_id: string; p_permission: string }
         Returns: boolean
       }
+      gridex_hold_manual_counterparty_reply_v1: {
+        Args: {
+          p_assessment: Json
+          p_company_id: string
+          p_inbound_id: string
+          p_request_id: string
+        }
+        Returns: Json
+      }
       gridex_import_billing_underlays_v1: {
         Args: {
           p_actor_user_id: string
@@ -99837,8 +99873,69 @@ export type Database = {
         Returns: string
       }
       gridex_make_source_hash: { Args: { p_payload: Json }; Returns: string }
+      gridex_manual_grid_owner_source_current_v2: {
+        Args: {
+          p_company_id: string
+          p_from_email: string
+          p_grid_owner_id: string
+        }
+        Returns: boolean
+      }
       gridex_manual_inbound_source_retired_v1: {
         Args: { p_mailbox: string; p_provider_id: string }
+        Returns: boolean
+      }
+      gridex_manual_reply_application_v2: {
+        Args: { p_request: Json; p_source: Json }
+        Returns: Json
+      }
+      gridex_manual_reply_context_v1: {
+        Args: {
+          p_company_id: string
+          p_inbound_id: string
+          p_kind: string
+          p_request_id: string
+          p_source_hash: string
+        }
+        Returns: Json
+      }
+      gridex_manual_reply_poa_current_v1: {
+        Args: {
+          p_company_id: string
+          p_customer_id: string
+          p_document_id: string
+          p_kind: string
+          p_metering_point_id?: string
+          p_poa_id: string
+          p_site_id: string
+        }
+        Returns: boolean
+      }
+      gridex_manual_reply_source_matches_v2: {
+        Args: { p_pending?: boolean; p_request: Json; p_source: Json }
+        Returns: boolean
+      }
+      gridex_manual_supplier_route_current_v1: {
+        Args: {
+          p_actor_id: string
+          p_company_id: string
+          p_contact_id: string
+          p_recipient_email: string
+          p_supplier_id: string
+        }
+        Returns: boolean
+      }
+      gridex_manual_supplier_start_floor_v1: {
+        Args: { p_company_id: string; p_customer_id: string; p_site_id: string }
+        Returns: string
+      }
+      gridex_manual_supplier_terms_verified_v1: {
+        Args: {
+          p_company_id: string
+          p_customer_id: string
+          p_site_id: string
+          p_snapshot: Json
+        }
         Returns: boolean
       }
       gridex_mark_customer_contract_signature_request_sent_v1: {
@@ -101492,6 +101589,15 @@ export type Database = {
           p_company_id: string
         }
         Returns: Json
+      }
+      gridex_store_manual_reply_application_v2: {
+        Args: {
+          p_application: Json
+          p_company_id: string
+          p_inbound_id: string
+          p_request_id: string
+        }
+        Returns: undefined
       }
       gridex_submit_customer_move_out_v1: {
         Args: { p_command: Json }
