@@ -707,6 +707,45 @@ except ValueError as error:
     refused = str(error).startswith('redaction_xml_')
 check('XML_DTD_external_reference_refused', refused)
 
+# Actual Playwright HTML reports open with the HTML5 doctype. A bare doctype
+# declares no DTD or entity: it keeps the existing HTML/ZIP sanitization path,
+# in memory and through the executable over a real report directory.
+html_trace = io.BytesIO()
+with zipfile.ZipFile(html_trace, 'w') as writer:
+    writer.writestr('trace.network', data)
+html_report = (b'<!DOCTYPE html>\n<html><head><meta charset="UTF-8"></head><body>\n<script>"data:application/zip;base64,'
+               + base64.b64encode(html_trace.getvalue()) + b'"</script>\npublic report diagnostic\n</body></html>\n')
+for name, payload in [('memory', html_report), ('BOM_upper', b'\xef\xbb\xbf' + html_report.replace(b'<!DOCTYPE html>', b'<!doctype HTML>'))]:
+    try:
+        clean = module.scrub(payload, [password]); network = zipfile.ZipFile(io.BytesIO(base64.b64decode(module.EMBEDDED_ZIP.search(clean)[1]))).read('trace.network')
+        okay = (all(value not in network for value in [password, token.encode(), b'opaque-refresh-token', b'sb-session-secret'])
+                and b'retained visible mutation' in network and b'public report diagnostic' in clean and module.scrub(clean, [password]) == clean)
+    except ValueError:
+        okay = False
+    check('HTML5_doctype_report_zip_' + name, okay)
+with tempfile.TemporaryDirectory(prefix='native-redactor-html-report-') as directory:
+    report = Path(directory) / 'e2e-artifacts' / 'playwright-report'
+    report.mkdir(parents=True)
+    (report / 'index.html').write_bytes(html_report)
+    completed = subprocess.run([sys.executable, str(Path(__file__).with_name('gridex-redact-native-evidence.py')),
+                                '--root', str(Path(directory) / 'e2e-artifacts')], capture_output=True, check=False)
+    written = (report / 'index.html').read_bytes()
+    network = zipfile.ZipFile(io.BytesIO(base64.b64decode(module.EMBEDDED_ZIP.search(written)[1]))).read('trace.network')
+    check('HTML5_doctype_report_actual_cli', completed.returncode == 0 and written.startswith(b'<!DOCTYPE html>')
+          and all(value not in network for value in [token.encode(), b'opaque-refresh-token', b'sb-session-secret'])
+          and b'public report diagnostic' in written)
+for name, payload in [
+    ('internal_subset', b'<!DOCTYPE html [<!ENTITY a "b">]><html>&a;</html>'),
+    ('public_id', b'<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html/>'),
+    ('system_id', b'<!DOCTYPE root SYSTEM "https://example.invalid/unread.dtd"><root/>'),
+]:
+    refused = False
+    try:
+        module.scrub(payload)
+    except ValueError as error:
+        refused = str(error).startswith('redaction_xml_')
+    check('XML_DTD_still_refused_' + name, refused)
+
 # Actual once-escaped XML quote regressions from the independent 1ac9 review.
 entity_marker = 'DECLARED_B_XML_ENTITY_CREDENTIAL;WITH,DELIMITERS'
 for quote in ['&quot;', '&apos;', '&#34;', '&#x22;', '&#39;', '&#x27;']:

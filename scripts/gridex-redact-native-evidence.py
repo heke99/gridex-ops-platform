@@ -235,6 +235,10 @@ def _scrub_named_values(data, preserve_quotes=False, xml_entities=False):
     return scrub_url_passwords(_apply_clean_spans(data, spans, xml_entities=xml_entities), xml_entities=xml_entities)
 
 
+class _NotQualifiedXml(Exception):
+    pass
+
+
 def _secure_xml_parser():
     parser = expat.ParserCreate()
     parser.buffer_text = False
@@ -243,7 +247,14 @@ def _secure_xml_parser():
     def refuse(*args):
         raise ValueError('redaction_xml_DTD_or_external_entity_not_supported')
 
-    parser.StartDoctypeDeclHandler = refuse
+    def doctype(name, system_id, public_id, has_internal_subset):
+        # A bare declaration such as HTML5 `<!DOCTYPE html>` defines no DTD or
+        # entity: the record is not qualified XML and keeps the plaintext path.
+        if system_id or public_id or has_internal_subset:
+            refuse()
+        raise _NotQualifiedXml
+
+    parser.StartDoctypeDeclHandler = doctype
     parser.EntityDeclHandler = refuse
     parser.ExternalEntityRefHandler = refuse
     return parser
@@ -334,7 +345,7 @@ def _scrub_xml(data):
         return None
     try:
         spans = _xml_text_spans(data)
-    except expat.ExpatError:
+    except (expat.ExpatError, _NotQualifiedXml):
         return None
     output, cursor = [], 0
     for start, end, kind in spans:
