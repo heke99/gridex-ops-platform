@@ -37,7 +37,7 @@ import {evaluateProdatTransactionReason} from '@/lib/ediel/prodat/prodatTransact
 import {buildContrlDraft,buildAperakDraft} from '@/lib/ediel/ack'
 import {readCommittedInboundAck} from '@/lib/ediel/ack/committedInboundAck'
 import {readPhysicalAckSourceCorrelation} from '@/lib/ediel/ack/sourceCorrelation'
-import {validateEdifactEnvelope} from '@/lib/ediel/core/edifactValidation'
+import {validateEdifactEnvelope,validateUnsmGrammar} from '@/lib/ediel/core/edifactValidation'
 import {validateEdifactSyntax} from '@/lib/ediel/core/syntaxValidator'
 import {EdifactEnvelopeCodec} from '@/lib/ediel/core/edifactEnvelopeCodec'
 import {tokenizeEdifact,segmentComposite} from '@/lib/ediel/core/edifactTokenizer'
@@ -418,7 +418,7 @@ function malformSuppliedAddress(raw:string,field:'229'|'252'){
   return serializeUna(p.una)+p.segments.map(s=>s===target?parts.join(p.una.dataElementSeparator):s.raw)
     .join(p.una.segmentTerminator)+p.una.segmentTerminator
 }
-type HeldCause={field:string;missing209HealthyRaw?:string}|{dimension:'customerIdentity'|'point'|'start'|'reason';reasons:string[]}|{party:'sender'}|{party:'receiver';healthyRaw:string}|{cancelled:true}
+type HeldCause={field:string;missing209HealthyRaw?:string;syntaxHealthyRaw?:string}|{dimension:'customerIdentity'|'point'|'start'|'reason';reasons:string[]}|{party:'sender'}|{party:'receiver';healthyRaw:string}|{cancelled:true}
 // This explicit contrast has one earlier routing owner. Freeze the healthy
 // physical source before changing only its own NAD+DO identifier; random
 // interchange/message references and every other supplied field stay identical.
@@ -762,6 +762,119 @@ function requireMissing209Refusal(f:Fixture,message:EdielMessageRow,raw:string,o
     rpcError:result.error,receipt:observation.receipt,validationBefore:before,validationAfter:after}
 }
 
+// Closed physical controls whose selected full UNSM syntax precedes the
+// national field owner. Missing identity and supplied address format stay distinct.
+const selectedSyntaxControls={
+  '207':{role:'FR',mutation:'missing_identity',path:'NAD/C082/3039[1]',code:'UNSM_MANDATORY_ELEMENT_MISSING',description:'PRODAT:D:97A:UN: obligatoriskt NAD/C082/3039[1] saknas.'},
+  '227':{role:'UD',mutation:'missing_identity',path:'NAD/C082/3039[1]',code:'UNSM_MANDATORY_ELEMENT_MISSING',description:'PRODAT:D:97A:UN: obligatoriskt NAD/C082/3039[1] saknas.'},
+  '233':{role:'IT',mutation:'missing_identity',path:'NAD/C082/3039[1]',code:'UNSM_MANDATORY_ELEMENT_MISSING',description:'PRODAT:D:97A:UN: obligatoriskt NAD/C082/3039[1] saknas.'},
+  '262':{role:'Z02',mutation:'missing_identity',path:'NAD/C082/3039[1]',code:'UNSM_MANDATORY_ELEMENT_MISSING',description:'PRODAT:D:97A:UN: obligatoriskt NAD/C082/3039[1] saknas.'},
+  '250':{role:'IV',mutation:'missing_identity',path:'NAD/C082/3039[1]',code:'UNSM_MANDATORY_ELEMENT_MISSING',description:'PRODAT:D:97A:UN: obligatoriskt NAD/C082/3039[1] saknas.'},
+  '229':{role:'UD',mutation:'supplied_address_length',path:'NAD/C059/3042[1]',code:'UNSM_ELEMENT_LENGTH_INVALID',description:'PRODAT:D:97A:UN: NAD/C059/3042[1] följer inte representation an..35.'},
+  '252':{role:'IV',mutation:'supplied_address_length',path:'NAD/C059/3042[1]',code:'UNSM_ELEMENT_LENGTH_INVALID',description:'PRODAT:D:97A:UN: NAD/C059/3042[1] följer inte representation an..35.'}
+} as const
+function requireSelectedSyntaxRefusal(f:Fixture,message:EdielMessageRow,raw:string,observation:ProcessingObservation,
+  before:Row,after:Row,events:Row[],beforeIds:string[],cause:HeldCause){
+  assert('field'in cause&&Object.hasOwn(selectedSyntaxControls,cause.field)&&typeof cause.syntaxHealthyRaw==='string','only_closed_physical_control_may_use_syntax_owner')
+  const control=selectedSyntaxControls[cause.field as keyof typeof selectedSyntaxControls],healthyRaw=cause.syntaxHealthyRaw
+  const expectedRaw=control.mutation==='missing_identity'?omit(healthyRaw,cause.field)
+    :malformSuppliedAddress(healthyRaw,cause.field as '229'|'252')
+  assert.equal(raw,expectedRaw,'only_exact_selected_mutation_differs_from_healthy_prebirth_wire')
+  const healthy=tokenizeEdifact(healthyRaw),wire=tokenizeEdifact(raw)
+  const own=(tokens:ReturnType<typeof tokenizeEdifact>)=>tokens.segments.filter(s=>s.tag==='NAD'&&segmentComposite(s,1,tokens.una)[0]===control.role)
+  const healthyParty=own(healthy),heldParty=own(wire)
+  assert.equal(healthyParty.length,1);assert.equal(heldParty.length,1)
+  const originalIdentity=segmentComposite(healthyParty[0],2,healthy.una)
+  assert(originalIdentity[0],'healthy_selected_party_has_identifier')
+  if(control.mutation==='missing_identity')assert.deepEqual(segmentComposite(heldParty[0],2,wire.una),['',...originalIdentity.slice(1)])
+  else{
+    const address=segmentComposite(healthyParty[0],5,healthy.una)
+    assert.equal(address.length,1);assert(address[0]&&address[0].length<=35)
+    assert.deepEqual(segmentComposite(heldParty[0],5,wire.una),['A'.repeat(36)])
+    assert.deepEqual(segmentComposite(heldParty[0],2,wire.una),originalIdentity)
+  }
+  if(cause.field==='207')assert.equal(originalIdentity[0],f.receiver)
+  if(cause.field==='227')assert.equal(originalIdentity[0],f.customerIdentity.id)
+  const healthyScope=physicalSingleScope(healthyRaw)
+  assert.equal(healthyScope.objectId,f.external);assert.equal(healthyScope.identityAgency,'9')
+  const healthyLi=healthy.segments.filter(s=>s.tag==='RFF'&&segmentComposite(s,1,healthy.una)[0]==='LI')
+  assert.equal(healthyLi.length,1);assert.deepEqual(segmentComposite(healthyLi[0],1,healthy.una),['LI',f.caseReference])
+  const healthyIssues=[...validateFieldMatrixPayload({family:'PRODAT',code:'Z04',direction:'inbound',applicationReference:EdifactEnvelopeCodec.decode(healthyRaw).applicationReference,
+    rawSegments:healthy.segments.map(s=>s.raw),una:healthy.una,mode:'parse'},canonicalProdat26AFieldRules('Z04')),
+    ...evaluateProdatTransactionReason({code:'Z04',rawSegments:healthy.segments.map(s=>s.raw),una:healthy.una}).issues]
+  assert.deepEqual(healthyIssues,[],'healthy_selected_control_has_no_physical_field_refusal')
+  const healthySyntax=validateEdifactSyntax({...message,raw_payload:healthyRaw,status:'received',syntax_check_status:'not_checked',validation_report:{},failure_reason:null})
+  assert.equal(healthySyntax.ok,true);assert.equal(healthySyntax.grammarQualification,'qualified')
+  if(observation.threw)throw observation.error
+  assert.equal(observation.error,null)
+  assert.deepEqual(observation.processInput,{actorUserId:f.actorUserId,edielMessageId:message.id})
+  assert.equal(observation.recorderCalls,1);assert.equal(observation.recorderThrew,false);assert.equal(observation.recorderError,null)
+  const input=observation.input;assert(input,'actual_same_invocation_selected_syntax_recorder_input_required')
+  for(const source of [message,input.original,input.validated]){
+    assert.equal(source.id,message.id);assert.equal(source.company_id,f.companyId);assert.equal(source.environment,'test')
+    assert.equal(source.direction,'inbound');assert.equal(source.message_standard,'edifact');assert.equal(source.message_family,'PRODAT');assert.equal(source.message_code,'Z04')
+    assert.equal(source.raw_payload,raw);assert.equal(source.rule_profile_key,`PRODAT:Z04:${f.subtype}:26.A:r3`)
+  }
+  assert.equal((message as EdielMessageRow&{immutable_payload_hash:string}).immutable_payload_hash,digest(raw))
+  assert.equal(input.resolvedCompanyId,f.companyId)
+  const expectedIssue={layer:'syntax',severity:'error',code:control.code,title:'Full versionsbunden UNSM-grammatik',
+    description:control.description,source:'validateEdifactSyntax'}
+  const decision=input.decision
+  assert.equal(decision.syntaxDecision,'rejected');assert.equal(decision.applicationDecision,'not_applicable');assert.equal(decision.functionalDecision,'not_applicable')
+  assert.equal(decision.policy,null);assert.deepEqual(decision.issues,[expectedIssue])
+  const syntax=validateEdifactSyntax({...message,status:'received',syntax_check_status:'not_checked',validation_report:{},failure_reason:null})
+  assert.equal(syntax.ok,false);assert.equal(syntax.grammarQualification,'qualified')
+  assert.deepEqual(syntax.grammarSources,healthySyntax.grammarSources,'same_selected_full_UNSM_sources')
+  const grammar=validateUnsmGrammar(raw)
+  assert.equal(grammar.qualification,'qualified');assert.equal(grammar.syntaxOk,false)
+  assert.deepEqual(grammar.issues,[{severity:'error',code:control.code,field:control.path,description:control.description,segmentIndex:heldParty[0].index}])
+  const {layer:syntaxLayer,source:syntaxSource,...syntaxIssue}=expectedIssue
+  assert.equal(syntaxLayer,'syntax');assert.equal(syntaxSource,'validateEdifactSyntax');assert.deepEqual(syntax.issues,[syntaxIssue])
+  assert.deepEqual(decision.validationReport.syntax,syntax);assert.deepEqual(decision.validationReport.issues,decision.issues)
+  assert.equal(decision.validationReport.syntaxDecision,'rejected');assert.equal(decision.validationReport.applicationDecision,'not_applicable');assert.equal(decision.validationReport.functionalDecision,'not_applicable')
+  assert.equal(decision.validationReport.canonicalPolicy,null)
+  const bound=buildReceivedSourceValidationEvidence(input);assert(bound,'actual_selected_syntax_source_context_binder_required')
+  const reference=segmentComposite(wire.segments.find(s=>s.tag==='UNH')!,1,wire.una)[0]
+  assert.deepEqual(JSON.parse(bound.factsText),{version:1,owner:'canonical-runtime-with-registry-v1',sourceDisposition:'not_established',
+    objectDisposition:'not_checked',partyDisposition:'not_checked',coverage:'canonical_runtime_only',originalTenantMatch:'matched',
+    syntaxDecision:'rejected',applicationDecision:'not_applicable',functionalDecision:'not_applicable',messageReference:reference,
+    reasonCodes:[control.code],rulePackEvidence:null})
+  assert.deepEqual(bound,{companyId:f.companyId,environment:'test',sourceMessageId:message.id,sourcePayloadHash:digest(raw),factsText:bound.factsText})
+  assert.equal(observation.rpc.length,1)
+  const call=observation.rpc[0];assert.equal(call.consumptions,1);assert.equal(call.abortSignals.length,1)
+  assert(call.abortSignals[0] instanceof AbortSignal);assert.equal(call.rejected,false);assert.equal(call.thrown,null)
+  assert.deepEqual(call.args,{p_company_id:f.companyId,p_environment:'test',p_source_message_id:message.id,p_source_payload_hash:digest(raw),
+    p_facts_text:bound.factsText,p_source_function_facts_text:null,p_object_facts_text:null,p_application_facts_text:null,p_ignored_fields_text:null,p_response_facts_text:null})
+  const receipt=observation.receipt;assert(receipt&&receipt.status==='recorded','selected_syntax_has_actual_recorded_syntax_assessment')
+  assert.match(receipt.assessmentId,/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/)
+  assert.deepEqual(receipt,{status:'recorded',sourceDisposition:'not_established',assessmentId:receipt.assessmentId,factsHash:digest(bound.factsText)})
+  const result=call.result as {data:unknown;error:unknown};assert(result);assert.equal(result.error,null)
+  assert.deepEqual(result.data,{version:6,companyId:f.companyId,environment:'test',sourceMessageId:message.id,sourcePayloadHash:digest(raw),
+    assessmentId:receipt.assessmentId,factsHash:receipt.factsHash,sourceDisposition:'not_established',sourceFunctionFactsHash:null,objectFactsHash:null,
+    applicationFactsHash:null,ignoredFieldsHash:null,responseFactsHash:null})
+  const tables=['validation_assessments','prodat_ignored_field_facets','prodat_object_validation_facets','prodat_response_facets','prodat_application_facets','prodat_source_function_facets']
+  assert.deepEqual(Object.keys(before).sort(),[...tables].sort());assert.deepEqual(Object.keys(after).sort(),[...tables].sort())
+  for(const table of tables){assert.deepEqual(before[table],[]);if(table!=='validation_assessments')assert.deepEqual(after[table],[])}
+  const assessments=after.validation_assessments as Row[];assert.equal(assessments.length,1)
+  const assessment=assessments[0]
+  assert.equal(assessment.id,receipt.assessmentId);assert.equal(assessment.source_message_id,message.id);assert.equal(assessment.company_id,f.companyId);assert.equal(assessment.environment,'test')
+  assert.equal(assessment.source_payload_hash,digest(raw));assert.equal(assessment.previous_assessment_id,null);assert.equal(assessment.owner,'canonical-runtime-with-registry-v1')
+  assert.equal(assessment.facts_text,bound.factsText);assert.equal(assessment.facts_hash,receipt.factsHash)
+  const report=message.validation_report as Row
+  assert.deepEqual(report.canonicalRuntime,decision.validationReport);assert.deepEqual(report.receivedSourceValidationEvidence,receipt)
+  assert.equal(report.canonicalRuntimeVersion,'2.5B');assert.deepEqual(report.responsePlan,decision.responsePlan)
+  assert.deepEqual(report.sourceRules,decision.sourceRules);assert.deepEqual(report.decisionTrace,decision.decisionTrace)
+  assert.equal(report.syntaxDecision,'rejected');assert.equal(report.applicationDecision,'not_applicable');assert.equal(report.functionalDecision,'not_applicable')
+  const fresh=events.filter(e=>!beforeIds.includes(String(e.id))&&e.event_type==='validated'&&(e.payload as Row|undefined)?.batch==='2.5B')
+  assert.equal(fresh.length,1,'one_fresh_selected_syntax_syntax_owner_event_required')
+  const event=fresh[0];requireOwnEvent(event,f,message.id);assert.equal(event.event_status,'warning')
+  const payload=event.payload as Row
+  for(const [key,value]of Object.entries({family:'PRODAT',messageCode:'Z04',syntaxDecision:'rejected',applicationDecision:'not_applicable',functionalDecision:'not_applicable',issueCount:1,
+    processGroup:decision.canonical.processGroup,responsePlan:decision.responsePlan,sourceRules:decision.sourceRules,decisionTrace:decision.decisionTrace}))assert.deepEqual(payload[key],value)
+  return {kind:'canonical_selected_syntax_owner',field:cause.field,sourceId:message.id,companyId:f.companyId,actorUserId:f.actorUserId,
+    healthyRawHash:digest(healthyRaw),rawHash:digest(raw),issue:expectedIssue,receipt,event,report,validationBefore:before,validationAfter:after}
+}
+
 async function held(f:Fixture,raw:string,label:string,cause:HeldCause){
   const attempt:Row={label,cause,companyId:f.companyId,actorUserId:f.actorUserId,rawHash:digest(raw),stage:'before_business_snapshot',status:'STARTED'}
   heldAttempts.push(attempt);persist()
@@ -846,6 +959,8 @@ async function held(f:Fixture,raw:string,label:string,cause:HeldCause){
       refusalReceipt=requireHeldDomainAudit(f,message.id,raw,reasons[0],events,eventBefore)
     }else if(missing209Refusal)refusalReceipt=missing209Refusal
     else if(agencyRefusal)refusalReceipt=agencyRefusal
+    else if(Object.hasOwn(selectedSyntaxControls,cause.field)&&cause.syntaxHealthyRaw!==undefined)
+      refusalReceipt=requireSelectedSyntaxRefusal(f,(await getEdielMessageById(message.id))!,raw,processing,validationBefore,validationSnapshot(f,message),events,eventBefore,cause)
     else refusalReceipt=requireFieldOwnerAudit(f,(await getEdielMessageById(message.id))!,raw,cause.field,events,eventBefore)
     for(const table of ['gridex_received_sources.supply_source_transitions','gridex_received_sources.supply_object_effect_receipts'])
       assert.equal(sql<number>(`SELECT to_jsonb(count(*)) FROM ${table} WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(message.id)};`),0,'held_source_has_no_committed_effect:'+table)
@@ -1006,11 +1121,18 @@ describe.sequential('actual prospective normal supplier starts under one admitte
       for(const field of required){
         const healthyRaw=envelope(f,base,subtype==='L'?'Z22':'Z23')
         results.push(await held(f,omit(healthyRaw,field),subtype+':missing-R-'+field,
-          field==='209'?{field,missing209HealthyRaw:healthyRaw}:{field}))
+          field==='209'?{field,missing209HealthyRaw:healthyRaw}:Object.hasOwn(selectedSyntaxControls,field)?{field,syntaxHealthyRaw:healthyRaw}:{field}))
       }
       const invoicee=withInvoicee(base)
-      for(const field of selectedDependent)results.push(await held(f,omit(envelope(f,invoicee,subtype==='L'?'Z22':'Z23'),field),subtype+':missing-selected-D-'+field,{field}))
-      for(const field of malformedSuppliedAddressFields)results.push(await held(f,malformSuppliedAddress(envelope(f,invoicee,subtype==='L'?'Z22':'Z23'),field),subtype+':malformed-supplied-address-'+field,{field}))
+      for(const field of selectedDependent){
+        const healthyRaw=envelope(f,invoicee,subtype==='L'?'Z22':'Z23')
+        results.push(await held(f,omit(healthyRaw,field),subtype+':missing-selected-D-'+field,
+          Object.hasOwn(selectedSyntaxControls,field)?{field,syntaxHealthyRaw:healthyRaw}:{field}))
+      }
+      for(const field of malformedSuppliedAddressFields){
+        const healthyRaw=envelope(f,invoicee,subtype==='L'?'Z22':'Z23')
+        results.push(await held(f,malformSuppliedAddress(healthyRaw,field),subtype+':malformed-supplied-address-'+field,{field,syntaxHealthyRaw:healthyRaw}))
+      }
       // Healthy real own original remains confirmable AFTER all omissions: the
       // negatives did not pass only because a pre-existing period conflicted.
       await confirm(f,withInvoicee(wire(f)))
