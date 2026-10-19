@@ -5,7 +5,7 @@ export type ManualFacilityFacts = {
   currentSupplierName?: string
   meteringMethod?: string
   reportingFrequency?: string
-  readingFrequency?: 'hourly' | 'daily' | 'monthly' | 'manual'
+  readingFrequency?: 'hourly' | 'daily' | 'monthly'
 }
 
 type FactField = {
@@ -51,10 +51,10 @@ function reportingFrequency(raw: string): ManualFacilityFacts | null {
   if (/^(?:tim|timme|timvis|per timme|varje timme|1 timme|60 minuter|hourly)$/i.test(raw)) readingFrequency = 'hourly'
   else if (/^(?:dag|dygn|daglig(?:en)?|dygnsvis|per dygn|varje (?:dag|dygn)|1 dag|24 timmar|daily)$/i.test(raw)) readingFrequency = 'daily'
   else if (/^(?:månad|månadsvis|månatlig(?:en)?|varje månad|1 månad|monthly)$/i.test(raw)) readingFrequency = 'monthly'
-  else if (/^(?:manuell(?:t)?|manual)$/i.test(raw)) readingFrequency = 'manual'
-  else if (!/^(?:kvart|kvartsvis|varje kvart|15 (?:minuter|min)|quarter[ -]hourly)$/i.test(raw)) return null
-  // Quarter-hour data has no corresponding reading_frequency enum value.
-  // Retain its original metadata without silently changing its granularity.
+  else if (!/^(?:kvart|kvartsvis|varje kvart|15 (?:minuter|min)|quarter[ -]hourly|manuell(?:t)?|manual)$/i.test(raw)) return null
+  // The deployed reading_frequency contract supports hourly/daily/monthly.
+  // Keep manual and quarter-hour reporting in source metadata without
+  // inventing a supported granularity or failing the canonical transaction.
   return readingFrequency ? { reportingFrequency: raw, readingFrequency } : { reportingFrequency: raw }
 }
 

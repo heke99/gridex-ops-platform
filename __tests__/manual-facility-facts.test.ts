@@ -130,13 +130,12 @@ describe('source-bound network facility facts', () => {
     ['Timvis', 'hourly'],
     ['Dygnsvis', 'daily'],
     ['Månadsvis', 'monthly'],
-    ['Manuell', 'manual'],
   ])('maps explicit reporting frequency %s to %s', (raw, expected) => {
     const result = normalizeManualFacilityFacts({ extracted: { reporting_frequency: raw }, authoredText: `Rapporteringsfrekvens: ${raw}` })
     expect(result).toEqual({ ok: true, reasons: [], facts: { reportingFrequency: raw, readingFrequency: expected } })
   })
 
-  it.each(['Kvartsvis', '15 minuter', 'quarter-hourly'])('retains quarter-hour reporting %s without pretending it is hourly', (raw) => {
+  it.each(['Kvartsvis', '15 minuter', 'quarter-hourly', 'Manuell', 'manuellt', 'manual'])('retains reporting %s as metadata when the canonical frequency column cannot represent it', (raw) => {
     const result = normalizeManualFacilityFacts({ extracted: { reporting_frequency: raw }, authoredText: `Rapporteringsfrekvens: ${raw}` })
     expect(result).toEqual({ ok: true, reasons: [], facts: { reportingFrequency: raw } })
     expect(result.facts.readingFrequency).toBeUndefined()
