@@ -314,7 +314,7 @@ try{
  })
  assert.deepEqual(await effects(),baseline,'every case rolled back to the shared baseline')
  console.log(`RESULT ${checks} PASS ${failures} FAIL; actual SQL component only, synthetic tenant/canonical/provider ports, NOT native/Supabase/public entrypoint or ACK proof`)
- console.log(`Z04C correlation own SQL: ${checks} cases ${failures?'FAIL':'PASS'};`)
+ console.log(`Z04C correlation own SQL: ${checks+failures} cases ${failures?'FAIL':'PASS'}; ${checks} passed, ${failures} failed`)
  console.log('EDIEL_Z04C_CORRELATION_RESULT '+JSON.stringify({checks:passedChecks,failures,capturedPredecessorSha256:installed,effectiveBodySha256:effective,originalControl,proofLimits:{native:'NOT_EXERCISED',publicSupplyEntrypoint:'NOT_EXERCISED',ack:'NOT_EXERCISED',concurrency:'NOT_EXERCISED',rls:'NOT_EXERCISED',canonicalAdmission:'FINITE_DECLARED_FACET',providerAcceptance:'FINITE_DECLARED_JOURNAL',networkRegistryOwner:'FINITE_DECLARED_OUTPUT_PORT',globalGraphLock:'FINITE_NO_OP',transitionWriter:'SYNTHETIC_RETAINED_RECEIPT'}}))
  process.exitCode=failures?1:0
 }catch(error){console.error('SETUP OR EXECUTION ERROR',JSON.stringify({message:error.message,code:error.code,where:error.where}));process.exitCode=2}finally{await db.close()}
