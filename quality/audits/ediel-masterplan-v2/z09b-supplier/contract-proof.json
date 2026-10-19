@@ -1,10 +1,10 @@
 {
   "id": "AT-Z09B-SUPPLIER",
-  "scope": "SKELETON DRAFT. Native supplement for the AT-Z09B-SUPPLIER notice, role, direction, R-field, AI-list and dated-history clauses; proof package for later code approval review, not delivered main merge, market activation or whole approval.",
-  "prepared_at": "PENDING_NATIVE_WORKFLOW_RUN",
+  "scope": "Native supplement for the AT-Z09B-SUPPLIER notice, role, foreign-tenant, direction, R-field, AI-list and dated-history clauses; proof package for code approval review, not delivered main merge, market activation or whole approval.",
+  "prepared_at": "2026-10-19T11:33:54.613763+00:00",
   "owner": "huvudagent 4; sole writer via positive handoff #766 6264962517 on claim 7ae0b7ae (own ACK 6265934742)",
-  "packet": "PENDING_NATIVE_WORKFLOW_RUN",
-  "pr": "PENDING_NATIVE_WORKFLOW_RUN",
+  "packet": "session-9933275f-9ceb-4485-b6de-5c5dd19ece6a (claim 7ae0b7ae08bf56cf6aee05a6adb90747b3248f34, handoff #766 6264962517)",
+  "pr": "https://github.com/heke99/gridex-ops-platform/pull/835",
   "frozen_acceptance": {
     "id": "AT-Z09B-SUPPLIER",
     "name": "Meddelandefall Z09B",
@@ -27,47 +27,29 @@
   "current_originals": [
     {
       "producer": ".github/workflows/ediel-z09b-supplier-boundary-native.yml",
-      "workflow_id": "PENDING_NATIVE_WORKFLOW_RUN",
-      "run": "PENDING_NATIVE_WORKFLOW_RUN",
-      "attempt": "PENDING_NATIVE_WORKFLOW_RUN",
+      "run": 39244634735,
+      "attempt": 1,
       "event": "pull_request",
-      "head_branch": "PENDING_NATIVE_WORKFLOW_RUN",
-      "conclusion": "PENDING_NATIVE_WORKFLOW_RUN",
+      "head_branch": "claude/awesome-lovelace-npwg24",
+      "head_sha": "6ec3c6819e1ea0b07dabaf4e3778ff693f87c79e",
+      "head_tree": "f9f989fbf141c52631a337a51936302f033b6c3c",
+      "conclusion": "success",
       "jobs": [
         {
-          "id": "PENDING_NATIVE_WORKFLOW_RUN",
+          "id": 118033468725,
           "name": "Ediel Z09B supplier boundary native / z09b-supplier-boundary-native",
-          "conclusion": "PENDING_NATIVE_WORKFLOW_RUN"
+          "conclusion": "success"
         }
       ],
       "artifacts": [
         {
-          "id": "PENDING_NATIVE_WORKFLOW_RUN",
-          "name": "PENDING_NATIVE_WORKFLOW_RUN",
-          "archive_sha256": "PENDING_NATIVE_WORKFLOW_RUN",
-          "size_in_bytes": "PENDING_NATIVE_WORKFLOW_RUN",
-          "includes": "z09b-supplier-boundary-native-evidence/*"
+          "id": 12183661567,
+          "name": "ediel-z09b-supplier-boundary-native-39244634735",
+          "archive_sha256": "1a537385ce39c284b58f07fc694170dfe58d7bfeff68fe8ac7cc7eba2ef94128",
+          "size_in_bytes": 1321091,
+          "includes": "native-junit.xml (10 tests, 0 failures, 0 errors, 0 skipped), native.log, receipt.json (checkout_sha 6ec3c6819e1ea0b07dabaf4e3778ff693f87c79e, native_exit_code 0)"
         }
-      ],
-      "archive_copied": false,
-      "archive_not_copied_reason": "PENDING_NATIVE_WORKFLOW_RUN",
-      "head": "PENDING_NATIVE_WORKFLOW_RUN",
-      "tree": "PENDING_NATIVE_WORKFLOW_RUN",
-      "source_blobs_exact": "PENDING_NATIVE_WORKFLOW_RUN",
-      "all_blob_oid_exact": "PENDING_NATIVE_WORKFLOW_RUN",
-      "receipt": {
-        "purpose": "supplemental_actual_native_feedback",
-        "native_exit_code": "PENDING_NATIVE_WORKFLOW_RUN",
-        "whole_at_z09b_supplier": "NOT_APPROVED_BY_RECEIPT_ALONE",
-        "authentic_market_evidence": "NOT_PROVIDED",
-        "ordinary_required_gates": "NOT_REPLACED"
-      },
-      "total": "PENDING_NATIVE_WORKFLOW_RUN",
-      "passed": "PENDING_NATIVE_WORKFLOW_RUN",
-      "failed": "PENDING_NATIVE_WORKFLOW_RUN",
-      "errors": "PENDING_NATIVE_WORKFLOW_RUN",
-      "skipped": "PENDING_NATIVE_WORKFLOW_RUN",
-      "case_names": "PENDING_NATIVE_WORKFLOW_RUN"
+      ]
     }
   ],
   "local_preparation_run": {
@@ -75,7 +57,36 @@
     "result": "10/10 PASS",
     "qualifies_as_original": false
   },
-  "independent_proof_reviews": [],
+  "independent_proof_reviews": [
+    {
+      "reviewer": "M (independent non-coauthor SOURCE reviewer)",
+      "bound_head": "2ce2a1c696feb569fcda94cc702c5b2974ac8b98",
+      "verdict": "SOURCE_APPROVE",
+      "locator": "https://github.com/heke99/gridex-ops-platform/pull/835#issuecomment-6266106661",
+      "sha256": "06838d5c27a224169a72573fded2a66b58302b929ee90d1028c18305f252d93a"
+    },
+    {
+      "reviewer": "N (independent non-coauthor SOURCE reviewer)",
+      "bound_head": "2ce2a1c696feb569fcda94cc702c5b2974ac8b98",
+      "verdict": "REQUEST_CHANGES (addressed in 6ec3c6819e1ea0b07dabaf4e3778ff693f87c79e)",
+      "locator": "https://github.com/heke99/gridex-ops-platform/pull/835#issuecomment-6266107086",
+      "sha256": "6a6b29f2fb8e54580dc2c82b5f283685f24e8d6495fa421a03ede1547db3faad"
+    },
+    {
+      "reviewer": "M (delta)",
+      "bound_head": "6ec3c6819e1ea0b07dabaf4e3778ff693f87c79e",
+      "verdict": "SOURCE_APPROVE",
+      "locator": "https://github.com/heke99/gridex-ops-platform/pull/835#issuecomment-6266148987",
+      "sha256": "77e9db105d0b3c31aa67b91914d0325b5442b0fe1ef68fa6fb7006215022071f"
+    },
+    {
+      "reviewer": "N (delta)",
+      "bound_head": "6ec3c6819e1ea0b07dabaf4e3778ff693f87c79e",
+      "verdict": "SOURCE_APPROVE",
+      "locator": "https://github.com/heke99/gridex-ops-platform/pull/835#issuecomment-6266149360",
+      "sha256": "03835070d6a08ffdc39c2d2c5a25696a0d19dd50c83daf71c522298a2ee9ea7e"
+    }
+  ],
   "criteria": [
     {
       "criterion": "Given: Senast en kalendermånad före (notice < 1 calendar month is held)",
@@ -88,11 +99,11 @@
       "reason_locator": "supabase/schema.sql:5795 (migration 20260930200545:226)",
       "observed": "Event at fixture start+1 day: actual read and producer return held; no intent, request, origin, message, outbox, version or confirmation; start+40 days contrast authorized.",
       "final_head_original": {
-        "run": "PENDING_NATIVE_WORKFLOW_RUN",
-        "job": "PENDING_NATIVE_WORKFLOW_RUN",
-        "artifact": "PENDING_NATIVE_WORKFLOW_RUN",
-        "head_sha": "PENDING_NATIVE_WORKFLOW_RUN",
-        "result": "PENDING_NATIVE_WORKFLOW_RUN"
+        "run": 39244634735,
+        "job": 118033468725,
+        "artifact": 12183661567,
+        "head_sha": "6ec3c6819e1ea0b07dabaf4e3778ff693f87c79e",
+        "result": "PASS (suite 10/10)"
       }
     },
     {
@@ -106,11 +117,11 @@
       "reason_locator": "supabase/schema.sql:5654 (migration 20260930200545:85)",
       "observed": "Active user without membership: read and producer reject 42501; no effects.",
       "final_head_original": {
-        "run": "PENDING_NATIVE_WORKFLOW_RUN",
-        "job": "PENDING_NATIVE_WORKFLOW_RUN",
-        "artifact": "PENDING_NATIVE_WORKFLOW_RUN",
-        "head_sha": "PENDING_NATIVE_WORKFLOW_RUN",
-        "result": "PENDING_NATIVE_WORKFLOW_RUN"
+        "run": 39244634735,
+        "job": 118033468725,
+        "artifact": 12183661567,
+        "head_sha": "6ec3c6819e1ea0b07dabaf4e3778ff693f87c79e",
+        "result": "PASS (suite 10/10)"
       }
     },
     {
@@ -121,8 +132,15 @@
         290
       ],
       "asserted_reason": "brp_change_actor_forbidden (42501) on the foreign tenant; authentic_brp_contract_and_market_decision_event when the own tenant names the foreign event",
-      "reason_locator": "supabase/schema.sql:5654 (actor); company-scoped event read in public.ediel_brp_change_source_v1",
-      "observed": "A qualified writer of tenant B is refused 42501 by the read and the producer for tenant A's event; tenant B naming tenant A's event id is held by read and producer alike; no intent, request, origin, message, outbox, version or confirmation in either tenant"
+      "reason_locator": "supabase/schema.sql:5654 (actor, 42501); company-filtered event read in gridex_brp_changes.context_v1, supabase/schema.sql:5656-5663 (held)",
+      "observed": "A qualified writer of tenant B is refused 42501 by the read and the producer for tenant A's event; tenant B naming tenant A's event id is held by read and producer alike; no intent, request, origin, message, outbox, version or confirmation in either tenant",
+      "final_head_original": {
+        "run": 39244634735,
+        "job": 118033468725,
+        "artifact": 12183661567,
+        "head_sha": "6ec3c6819e1ea0b07dabaf4e3778ff693f87c79e",
+        "result": "PASS (suite 10/10)"
+      }
     },
     {
       "criterion": "Prohibited: fel roll — tenant electricity_supplier role expired",
@@ -135,11 +153,11 @@
       "reason_locator": "supabase/schema.sql:5781 (migration 20260930200545:199-212)",
       "observed": "Own tenant_actor_roles electricity_supplier row expired: held; no effects.",
       "final_head_original": {
-        "run": "PENDING_NATIVE_WORKFLOW_RUN",
-        "job": "PENDING_NATIVE_WORKFLOW_RUN",
-        "artifact": "PENDING_NATIVE_WORKFLOW_RUN",
-        "head_sha": "PENDING_NATIVE_WORKFLOW_RUN",
-        "result": "PENDING_NATIVE_WORKFLOW_RUN"
+        "run": 39244634735,
+        "job": 118033468725,
+        "artifact": 12183661567,
+        "head_sha": "6ec3c6819e1ea0b07dabaf4e3778ff693f87c79e",
+        "result": "PASS (suite 10/10)"
       }
     },
     {
@@ -153,11 +171,11 @@
       "reason_locator": "supabase/schema.sql:5712 (migration 20260930200545:141-143)",
       "observed": "Distinct registry BRP role deactivated: held; no effects.",
       "final_head_original": {
-        "run": "PENDING_NATIVE_WORKFLOW_RUN",
-        "job": "PENDING_NATIVE_WORKFLOW_RUN",
-        "artifact": "PENDING_NATIVE_WORKFLOW_RUN",
-        "head_sha": "PENDING_NATIVE_WORKFLOW_RUN",
-        "result": "PENDING_NATIVE_WORKFLOW_RUN"
+        "run": 39244634735,
+        "job": 118033468725,
+        "artifact": 12183661567,
+        "head_sha": "6ec3c6819e1ea0b07dabaf4e3778ff693f87c79e",
+        "result": "PASS (suite 10/10)"
       }
     },
     {
@@ -171,11 +189,11 @@
       "reason_locator": "lib/ediel/core/kernel.ts:621-623; supabase/schema.sql:19010 (BEFORE trigger, fires ahead of the AFTER brp_bound_message_immutable guard)",
       "observed": "Inbound draft on reserved intent refused before any message; later UPDATE direction=inbound on the sent bound Z09 refused; effects, raw and status source_declared unchanged; nothing confirmed.",
       "final_head_original": {
-        "run": "PENDING_NATIVE_WORKFLOW_RUN",
-        "job": "PENDING_NATIVE_WORKFLOW_RUN",
-        "artifact": "PENDING_NATIVE_WORKFLOW_RUN",
-        "head_sha": "PENDING_NATIVE_WORKFLOW_RUN",
-        "result": "PENDING_NATIVE_WORKFLOW_RUN"
+        "run": 39244634735,
+        "job": 118033468725,
+        "artifact": 12183661567,
+        "head_sha": "6ec3c6819e1ea0b07dabaf4e3778ff693f87c79e",
+        "result": "PASS (suite 10/10)"
       }
     },
     {
@@ -189,11 +207,11 @@
       "reason_locator": "lib/ediel/rulebook/fieldMatrix.ts:733 (canonical policy)",
       "observed": "After actual reservation, body-bound wire without the segment refused; origin message_id stays NULL, no message/outbox/version; complete wire then binds normally. SQL brp_change_exact_wire_basis_required is NOT reached natively and NOT claimed.",
       "final_head_original": {
-        "run": "PENDING_NATIVE_WORKFLOW_RUN",
-        "job": "PENDING_NATIVE_WORKFLOW_RUN",
-        "artifact": "PENDING_NATIVE_WORKFLOW_RUN",
-        "head_sha": "PENDING_NATIVE_WORKFLOW_RUN",
-        "result": "PENDING_NATIVE_WORKFLOW_RUN"
+        "run": 39244634735,
+        "job": 118033468725,
+        "artifact": 12183661567,
+        "head_sha": "6ec3c6819e1ea0b07dabaf4e3778ff693f87c79e",
+        "result": "PASS (suite 10/10)"
       }
     },
     {
@@ -207,11 +225,11 @@
       "reason_locator": "lib/ediel/core/kernel.ts:637",
       "observed": "AI_LIST original on the reserved Z09 intent refused; no AI_LIST message; only the actual Z09B confirms after CONTRL+APERAK.",
       "final_head_original": {
-        "run": "PENDING_NATIVE_WORKFLOW_RUN",
-        "job": "PENDING_NATIVE_WORKFLOW_RUN",
-        "artifact": "PENDING_NATIVE_WORKFLOW_RUN",
-        "head_sha": "PENDING_NATIVE_WORKFLOW_RUN",
-        "result": "PENDING_NATIVE_WORKFLOW_RUN"
+        "run": 39244634735,
+        "job": 118033468725,
+        "artifact": 12183661567,
+        "head_sha": "6ec3c6819e1ea0b07dabaf4e3778ff693f87c79e",
+        "result": "PASS (suite 10/10)"
       }
     },
     {
@@ -225,11 +243,11 @@
       "reason_locator": "public.ediel_brp_responsibility_history_v1 (migration 20261011170000:68)",
       "observed": "Donor case reused from dbcd5ed306e7d2ca934769bf101781c2525da6cf:scripts/ediel-z09b-brp-change-native.test.ts: v1 closed exactly at v2, older original/confirmation retained, same-company sibling and company BRP settings unchanged.",
       "final_head_original": {
-        "run": "PENDING_NATIVE_WORKFLOW_RUN",
-        "job": "PENDING_NATIVE_WORKFLOW_RUN",
-        "artifact": "PENDING_NATIVE_WORKFLOW_RUN",
-        "head_sha": "PENDING_NATIVE_WORKFLOW_RUN",
-        "result": "PENDING_NATIVE_WORKFLOW_RUN"
+        "run": 39244634735,
+        "job": 118033468725,
+        "artifact": 12183661567,
+        "head_sha": "6ec3c6819e1ea0b07dabaf4e3778ff693f87c79e",
+        "result": "PASS (suite 10/10)"
       }
     }
   ],
@@ -248,10 +266,23 @@
     "Authentic market/counterparty evidence"
   ],
   "source_applicability": {
-    "executed_head": "PENDING_NATIVE_WORKFLOW_RUN",
-    "executed_tree": "PENDING_NATIVE_WORKFLOW_RUN",
-    "current_main": "f31f2381261",
-    "verdict": "PENDING_NATIVE_WORKFLOW_RUN"
+    "executed_head": "6ec3c6819e1ea0b07dabaf4e3778ff693f87c79e",
+    "executed_tree": "f9f989fbf141c52631a337a51936302f033b6c3c",
+    "current_main": "f31f2381261390db6599df1eec818b77c3d3191c",
+    "ancestor": true,
+    "changed_after_execution": [
+      "quality/audits/ediel-masterplan-v2/z09b-supplier/contract-proof.json"
+    ],
+    "runtime_paths_changed": {
+      "lib": 0,
+      "supabase": 0,
+      "scripts": 0,
+      "__tests__": 0,
+      ".github": 0,
+      "package.json": 0,
+      "package-lock.json": 0
+    },
+    "verdict": "APPLICABLE: only this proof file changes after the executed head; no runtime input of the native suite changes"
   },
   "delivery": {
     "status": "NOT_DELIVERED",
@@ -260,5 +291,6 @@
     "merge_role": "REQUIRED_SERIAL_OWNER_ONLY",
     "external_legal_market_live_gates": "NOT_APPROVED",
     "other_ids": "NOT_APPROVED"
-  }
+  },
+  "independent_proof_reviews_canonicalization": "sha256 of the report text in the locator comment: the text after the first line consisting of --- and before the closing --- footer rule, trailing newlines reduced to exactly one"
 }
