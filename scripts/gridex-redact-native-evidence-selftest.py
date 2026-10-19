@@ -301,12 +301,120 @@ with tempfile.TemporaryDirectory(prefix='native-redactor-s3-selftest-') as direc
               all(marker not in completed.stdout + completed.stderr
                   for marker in [s3_access, s3_secret]))
 
+# Reviewer probes on #838: credential forms that must be removed by name,
+# with no status file, around invalid UTF-8 and across line records.
+probe_value = b'syntheticS3VALUE0123456789abcdef'
+probe_secret = b'syntheticSECRETvalue9876543210xyz'
+before, after = b'visible-probe-diagnostic-before\n', b'\nvisible-probe-diagnostic-after'
+for name, body in [
+    ('env_plain', b'S3_PROTOCOL_ACCESS_KEY_ID=' + probe_value),
+    ('env_quoted', b'S3_PROTOCOL_ACCESS_KEY_SECRET="' + probe_value + b'"'),
+    ('env_export', b"export S3_PROTOCOL_ACCESS_KEY_ID='" + probe_value + b"'"),
+    ('legacy_colon', b'S3 Access Key: ' + probe_value),
+    ('json_in_log', b'2026-10-19T12:00:00Z status {"s3_protocol_access_key_secret":"' + probe_value + b'","region":"local"}'),
+    ('jwt_secret_env', b'JWT_SECRET="' + probe_value + b'"'),
+    ('db_url_password', b'DB_URL=postgresql://postgres:' + probe_value + b'@127.0.0.1:54322/postgres'),
+    ('table_lowercase', '│ access key │ '.encode() + probe_value + ' │'.encode()),
+    ('table_ascii', b'| Access Key | ' + probe_value + b' |'),
+    ('table_prefixed', '2026-10-19T12:00:00Z │ Secret Key │ '.encode() + probe_value + ' │'.encode()),
+    ('table_s3_label', '│ S3 Access Key │ '.encode() + probe_value + ' │'.encode()),
+    ('table_no_final_border', '│ Access Key │ '.encode() + probe_value),
+    ('table_wrapped', '│ Secret Key │ '.encode() + probe_value + ' │\n│            │ '.encode() + probe_secret + ' │\n│ Region     │ local │'.encode()),
+    ('label_next_line', b'Secret Key\n  ' + probe_value),
+    ('invalid_utf8_before_table', b'\xff\xfe binary prefix\n' + '│ Access Key │ '.encode() + probe_value + ' │'.encode()),
+]:
+    result = module.scrub(before + body + after)
+    check('probe_' + name + '_removed', all(marker not in result for marker in [probe_value, probe_secret]))
+    check('probe_' + name + '_diagnostics_preserved', result.startswith(before) and result.endswith(after))
+check('probe_table_wrapped_safe_row_retained',
+      '│ Region     │ local │'.encode() in module.scrub('│ Secret Key │ v1 │\n│            │ v2 │\n│ Region     │ local │'.encode()))
+check('probe_quoted_json_stays_json',
+      json.loads(module.scrub(b'{"s3_protocol_access_key_id":"' + probe_value + b'","safe":"visible"}'))['safe'] == 'visible')
+
+# The actual executable in line-record mode keeps wrapped-row and next-line
+# label state across records.
+with tempfile.TemporaryDirectory(prefix='native-redactor-probe-selftest-') as directory:
+    evidence = Path(directory) / 'replay.log'
+    evidence.write_bytes(before + '│ Secret Key │ '.encode() + probe_value + ' │\n│            │ '.encode() + probe_secret
+                         + ' │\nAccess Key\n'.encode() + probe_value + after)
+    completed = subprocess.run([sys.executable, str(Path(__file__).with_name('gridex-redact-native-evidence.py')),
+                                '--root', str(evidence), '--line-records', str(evidence)], capture_output=True, check=False)
+    result = evidence.read_bytes()
+    check('probe_actual_cli_line_records_removed', completed.returncode == 0
+          and all(marker not in result for marker in [probe_value, probe_secret]))
+    check('probe_actual_cli_line_records_diagnostics_preserved', result.startswith(before) and result.endswith(after))
+    check('probe_actual_cli_does_not_log_values',
+          all(marker not in completed.stdout + completed.stderr for marker in [probe_value, probe_secret]))
+
+for name, payload in [
+    ('foreign_key_error', b'ERROR: insert violates foreign key constraint "x_fkey"\n'),
+    ('duplicate_key_error', b'ERROR: duplicate key value violates unique constraint "x_key"\n'),
+    ('password_prose', b'Password reset required before login\n'),
+    ('ascii_safe_table', b'| Region | local |\n| URL | http://127.0.0.1:54321/storage/v1/s3 |\n'),
+    ('url_without_password', b'API URL: http://127.0.0.1:54321\n'),
+]:
+    identity(name, payload)
+
 for name, payload in [
     ('safe_storage_table', '│ Region │ local │\r\n│ URL │ http://127.0.0.1:54321/storage/v1/s3 │'.encode()),
     ('prose_mentions_access_key', b'Access Key lookup failed; diagnostic remains\r\n'),
     ('noncredential_table_label', '│ Access Key count │ 2 │'.encode()),
 ]:
     identity(name, payload)
+
+# Byte-level log matching must not corrupt structured JSON or its escaped
+# strings, and redaction must be stable when evidence is processed twice.
+for name, payload in [
+    ('number', {'password': 123, 'safe': 'visible-json-diagnostic'}),
+    ('boolean', {'api_key': False, 'safe': 'visible-json-diagnostic'}),
+    ('array', {'password': [1, 2], 'safe': 'visible-json-diagnostic'}),
+    ('object', {'password': {'a': 1}, 'safe': 'visible-json-diagnostic'}),
+    ('null', {'password': None, 'safe': 'visible-json-diagnostic'}),
+    ('formatted', {'password': 123, 'safe': 'visible-json-diagnostic'}),
+]:
+    raw = json.dumps(payload, indent=2 if name == 'formatted' else None).encode()
+    result = module.scrub(raw)
+    try:
+        decoded = json.loads(result)
+    except json.JSONDecodeError:
+        decoded = {}
+    key = 'api_key' if name == 'boolean' else 'password'
+    check('probe_json_typed_' + name + '_valid_and_redacted',
+          decoded.get(key) == module.REDACTED and decoded.get('safe') == 'visible-json-diagnostic')
+
+for name, value in [
+    ('simple', 'password=DECLARED_JSON_LOG_SECRET'),
+    ('escaped_quote', 'password=DECLARED_JSON_LOG_SECRET\\"tail'),
+    ('nested_json', json.dumps({'password': 123, 'safe': 'visible-json-diagnostic'})),
+]:
+    result = module.scrub(json.dumps({'body': value, 'safe': 'visible-json-diagnostic'}).encode())
+    try:
+        decoded = json.loads(result)
+    except json.JSONDecodeError:
+        decoded = {}
+    check('probe_json_string_' + name + '_valid_and_redacted',
+          decoded.get('safe') == 'visible-json-diagnostic'
+          and 'DECLARED_JSON_LOG_SECRET' not in decoded.get('body', 'DECLARED_JSON_LOG_SECRET')
+          and module.REDACTED in decoded.get('body', ''))
+
+ndjson = (b'{"body":"password=DECLARED_JSON_LOG_SECRET","safe":1}\r\n'
+          b'{"password":123,"safe":2}\n')
+result = module.scrub(ndjson)
+try:
+    decoded_records = [json.loads(line) for line in result.splitlines()]
+except json.JSONDecodeError:
+    decoded_records = []
+check('probe_ndjson_valid_and_redacted', len(decoded_records) == 2
+      and decoded_records[0].get('safe') == 1 and decoded_records[1].get('safe') == 2
+      and b'DECLARED_JSON_LOG_SECRET' not in result)
+for name, payload in [
+    ('env', b'S3_PROTOCOL_ACCESS_KEY_ID=DECLARED_IDEMPOTENT_SECRET'),
+    ('colon', b'S3 Access Key: DECLARED_IDEMPOTENT_SECRET'),
+    ('url', b'DB_URL=postgresql://postgres:DECLARED_IDEMPOTENT_SECRET@127.0.0.1/db'),
+]:
+    once = module.scrub(payload)
+    check('probe_redaction_idempotent_' + name,
+          b'DECLARED_IDEMPOTENT_SECRET' not in once and module.scrub(once) == once)
 
 failed = [name for name, okay in checks if not okay]
 for name in failed:
