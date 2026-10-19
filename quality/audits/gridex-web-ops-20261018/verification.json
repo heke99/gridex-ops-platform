@@ -1,0 +1,189 @@
+{
+  "observed_at": "2026-10-18T20:30:58.334600+00:00",
+  "base": "8ccad78709193f565500d60a9df13f9134b22d19",
+  "source": "7aa091f6ba7a632552081a04124aef0760aad313",
+  "pull_request": 830,
+  "scope": "Verify the configured scheduled automation actor before actor-dependent execution; no schema, grant, account or live business mutation",
+  "findings": [
+    {
+      "id": "OPS-AUTOMATION-VALIDATION",
+      "severity": "P2",
+      "status": "FIXED_IN_SOURCE",
+      "impact": "Auth verification failures or a missing/inactive personal profile were accepted; scheduled SQL then rejected the actor",
+      "evidence": "Repeated production permissionMarketDeadlines 42501 permission_execution_actor_unqualified; real validator RED/GREEN; cron and independent SQL gates traced",
+      "security_classification": "Operational validation gap; SQL authorization remains authoritative. No exploitable authorization bypass established."
+    }
+  ],
+  "checks": {
+    "focused_actor_cron_and_website_api": {
+      "status": "PASS",
+      "suites": 4,
+      "tests": 64,
+      "source": "7aa091f6ba7a632552081a04124aef0760aad313",
+      "final_rerun": {
+        "passed_tests": 64,
+        "passed_suites": 4,
+        "duration_seconds": 7.5,
+        "exit_code": 0
+      }
+    },
+    "red_baseline_validator": {
+      "status": "REPRODUCED",
+      "failed": 15,
+      "passed": 6
+    },
+    "red_unconfirmed_identity": {
+      "status": "REPRODUCED",
+      "failed": 2,
+      "passed": 21
+    },
+    "red_website_ready_fixture": {
+      "status": "REPRODUCED",
+      "failed": 3,
+      "passed": 23,
+      "resolution": "Verified confirmed Auth user and active profile fixture, preserving real handlers and contract assertions"
+    },
+    "app_typecheck": {
+      "status": "PASS",
+      "source": "7aa091f6ba7a632552081a04124aef0760aad313",
+      "command": "npm run typecheck",
+      "exit_code": 0
+    },
+    "script_typecheck": {
+      "status": "PASS"
+    },
+    "test_typecheck": {
+      "status": "PASS",
+      "source": "7aa091f6ba7a632552081a04124aef0760aad313"
+    },
+    "scoped_lint": {
+      "status": "PASS"
+    },
+    "repository_lint": {
+      "status": "PASS",
+      "errors": 0,
+      "warnings": 164,
+      "note": "Existing warnings outside this change; changed files have no scoped lint warnings"
+    },
+    "api_docs": {
+      "status": "PASS",
+      "release": "2026-10-12.1"
+    },
+    "api_compatibility": {
+      "status": "PASS"
+    },
+    "api_release_local_artifacts": {
+      "status": "PASS"
+    },
+    "api_runtime_openapi_parity": {
+      "status": "PASS"
+    },
+    "migration_checks": {
+      "status": "PASS",
+      "files": 1266,
+      "version_groups": 1169
+    },
+    "generated_database_types": {
+      "status": "PASS"
+    },
+    "tenant_service_role_ratchet": {
+      "status": "PASS"
+    },
+    "ops_hardening": {
+      "status": "PASS",
+      "checks": 18
+    },
+    "production_route_readiness": {
+      "status": "PASS",
+      "note": "Local renderer subprocess required supported execution permissions after EPERM"
+    },
+    "ops_behavior_hardening": {
+      "status": "PASS"
+    },
+    "ops_final_contract": {
+      "status": "PASS"
+    },
+    "production_build_final": {
+      "status": "PASS",
+      "source": "7aa091f6ba7a632552081a04124aef0760aad313",
+      "compiled_email_confirmation_check": true,
+      "exit_code": 0
+    },
+    "broad_test_suite": {
+      "status": "INITIAL_FAILURE_CORRECTED_IN_TARGETED_RERUN",
+      "initial_run": {
+        "production_source": "cb1cd96c231d94f1a1a10cc7df59677ffe13859a",
+        "passed_suites": 1172,
+        "failed_suites": 1,
+        "passed_tests": 19215,
+        "failed_tests": 3,
+        "skipped_tests": 1,
+        "duration_seconds": 923.92
+      },
+      "failed_suite": "__tests__/website-api-operation-contracts.test.ts",
+      "root_cause": "The synthetic ready fixture lacked the verified Auth email and active personal profile now required by the real validator. No API assertion was relaxed.",
+      "correction_source": "7aa091f6ba7a632552081a04124aef0760aad313",
+      "affected_suite_after_correction": {
+        "passed_tests": 28,
+        "failed_tests": 0
+      },
+      "note": "The whole suite was not restarted after this test-only fixture correction; the corrected suite and all actor/cron regression suites were rerun. The initial run remains recorded as failed."
+    },
+    "independent_reviews": {
+      "status": "PASS",
+      "source": "7aa091f6ba7a632552081a04124aef0760aad313",
+      "reviewers": 2,
+      "intermediate_test_issue": "Array row spreading corrected and reviewed before approval"
+    },
+    "existing_poa_candidate": {
+      "status": "PASS_TARGETED_ONLY",
+      "source": "7430ea9a1813b4380f893b77e60c954e103846b8",
+      "pull_request": 828,
+      "suites": 5,
+      "tests": 65,
+      "production_delivery": "BLOCKED"
+    }
+  },
+  "remaining": [
+    {
+      "id": "AUTOMATION-ACCOUNT-QUALIFICATION",
+      "status": "BLOCKED",
+      "next_action": "Verify the configured dedicated service identity has its intended active profile, company permissions and accepted memberships before normal release. No human identity substitution, arbitrary activation or privilege grant."
+    },
+    {
+      "id": "POA-PDF-VERIFICATION-DELIVERY",
+      "status": "BLOCKED",
+      "next_action": "Existing PR828 owner completes qualified checksum/schema/type carrier, mandatory gates and normal delivery; then recheck the already authorized test application. No duplicate agreement or email sent."
+    },
+    {
+      "id": "UPSTREAM-TIMEOUT-CAUSE",
+      "status": "UNVERIFIED",
+      "next_action": "Earlier bounded reads recovered; latest 30-minute Web error log query was empty. No unmeasured timeout increase or false root-cause fix."
+    }
+  ],
+  "custody_receipts": [
+    "13e8087087a7453bbb50b9368889bf31b3879f5d",
+    "1bc5bb8bf62a1fdf069a9235a3a75ac6e755450e"
+  ],
+  "production_changed": false,
+  "no_completion_claim": "This evidence is not a whole-system production GREEN verdict.",
+  "commands": [
+    "npx vitest run __tests__/automation-user-validation.test.ts __tests__/automation-config.test.ts __tests__/poa-mail-review-cron-isolation.test.ts __tests__/website-api-operation-contracts.test.ts",
+    "npm test -- --maxWorkers=4 --reporter=dot",
+    "npm run typecheck",
+    "npm run typecheck:scripts",
+    "npx tsc --noEmit -p tsconfig.tests.json",
+    "npm run lint",
+    "npm run build",
+    "npm run api:docs",
+    "npm run api:compatibility",
+    "npm run api:release:verify",
+    "npm run api:runtime:parity",
+    "npm run db:migrations:check",
+    "npm run tenant:service-role-ratchet",
+    "npm run gridex:production-route-readiness-regression",
+    "npm run ops:hardening-regression",
+    "npm run ops:hardening-behavior-regression",
+    "npm run ops:final-contract-regression"
+  ]
+}
