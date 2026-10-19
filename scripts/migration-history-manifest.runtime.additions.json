@@ -233,6 +233,7 @@
     "20261015083829_ops_api_signature_price_cache_alignment.sql": "4f87d7a8626941c529e350f7784af0c42fab58740598db47c7c1ad5c5e04a705",
     "20261015100259_ops_api_signed_contract_price_cache_binding_guard_alignment.sql": "9c055dba7b020aad3bb867f6ff2b02f8854fee4bc136db2de4042bc6347dc83c",
     "20261018183448_manual_mail_automatic_application.sql": "d92f7ab706eb6bac415929255f218d38aa5e8f287bcad1c57f7438b9c590fc54",
-    "20261019010000_manual_mail_multi_site_application.sql": "072b15204cf0ac6447c5cb6ec3599b111cecbcae52379fdb5fcfd9eb978c48e7"
+    "20261019010000_manual_mail_multi_site_application.sql": "072b15204cf0ac6447c5cb6ec3599b111cecbcae52379fdb5fcfd9eb978c48e7",
+    "20261019095200_manual_mail_supplier_terms_schema_prerequisites.sql": "525a17c43347c0fed0be60434418f90b078161c13bc93ce9f294d6eea5551923"
   }
 }
