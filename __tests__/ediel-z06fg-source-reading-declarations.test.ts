@@ -110,3 +110,57 @@ it('every object must carry the policy reason; a sibling object with another rea
   const foreign={...decision.policy!,subtype:'G'}
   expect(sourceProdatZ06ReadingDeclarations({message,policy:foreign})).toEqual([{meteringPointId:OWNER.external,identityAgency:'9',meterReadingsSentInUtilts:null}])
 })
+
+// Genuine second register of the same object, built the way prodatRegisterGroups
+// chains registers: same 209 identity+agency, C829 `1:<position>` on every LIN
+// (258 = 1, 2), and its own local 213/259/214/218 (P26.A p114-116: each register
+// carries its own reading values and a distinct 259 tariff code).
+const LIN1='LIN+1++735123456789012345:::9'
+const READING_LOCALS=['CCI++Z02','CAV+:::1','CCI++Z05','CAV+:::6']
+function twoRegisters(second259:string,first:(raw:string)=>string=raw=>raw){
+  const second=['LIN+2++735123456789012345:::9+1:2','QTY+31:20:KWH','CCI++Z16',second259,...READING_LOCALS]
+  return (raw:string)=>units(first(raw).replace(`${LIN1}'`,`${LIN1}+1:1'`).replace('UNT+',second.join("'")+"'UNT+"),second.length)
+}
+/** UNT 0074 must equal the actual UNH..UNT segment count. */
+function untMatches(raw:string){
+  const segments=raw.slice(raw.indexOf('UNH+'),raw.indexOf('UNZ+')).split("'").filter(Boolean)
+  return Number(/UNT\+(\d+)\+/.exec(raw)![1])===segments.length
+}
+
+it('positive control: a valid two-register Z06F with its own 259 on the first register declares the object and is accepted',()=>{
+  const message=received('F',twoRegisters('CAV+:::102'))
+  expect(message.raw_payload).toContain(`${LIN1}+1:1'`);expect(message.raw_payload).toContain("LIN+2++735123456789012345:::9+1:2'")
+  expect(untMatches(message.raw_payload!)).toBe(true)
+  const {decision,header:h,reasons}=header(message)
+  expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision],JSON.stringify(decision.issues)).toEqual(['accepted','accepted','accepted'])
+  expect(h).toBe('accepted');expect(reasons).toEqual([])
+  expect(sourceProdatZ06ReadingDeclarations({message,policy:decision.policy!})).toEqual([{meteringPointId:OWNER.external,identityAgency:'9',meterReadingsSentInUtilts:true}])
+})
+
+it('only the first register 259 declares: a 259 solely on the second register of a valid chain is no declaration and F is not accepted',()=>{
+  // The reader keeps only groups whose firstLineIndex===lineIndex, so register 2's 259 is never read as the object's declaration.
+  const message=received('F',twoRegisters('CAV+:::102',raw=>units(raw.replace(OWN259,''),-2)))
+  expect(message.raw_payload!.match(/CCI\+\+Z16'/g)).toHaveLength(1)
+  expect(message.raw_payload!.indexOf("CCI++Z16'")).toBeGreaterThan(message.raw_payload!.indexOf('LIN+2++'))
+  expect(untMatches(message.raw_payload!)).toBe(true)
+  const {decision,header:h,reasons}=header(message)
+  expect(sourceProdatZ06ReadingDeclarations({message,policy:decision.policy!})).toEqual([{meteringPointId:OWNER.external,identityAgency:'9',meterReadingsSentInUtilts:null}])
+  expect(h).not.toBe('accepted');expect(reasons).toContain('PRODAT_DEPENDENT_CONDITION_UNDETERMINED')
+})
+
+it('a malformed 259 on the second register voids the first register declaration; F is not accepted',()=>{
+  const message=received('F',twoRegisters('CAV+X::101'))
+  expect(message.raw_payload).toContain(OWN259);expect(untMatches(message.raw_payload!)).toBe(true)
+  const {decision,header:h}=header(message)
+  expect(sourceProdatZ06ReadingDeclarations({message,policy:decision.policy!})).toEqual([{meteringPointId:OWNER.external,identityAgency:'9',meterReadingsSentInUtilts:null}])
+  expect(h).not.toBe('accepted')
+})
+
+it('a broken register chain (second 258 out of sequence) declares nothing; F is not accepted',()=>{
+  // An invalid chain clears firstLineIndex for every register of the object, so no first register remains to declare it.
+  const message=received('F',raw=>twoRegisters('CAV+:::102')(raw).replace("LIN+2++735123456789012345:::9+1:2'","LIN+2++735123456789012345:::9+1:3'"))
+  expect(message.raw_payload).toContain(OWN259);expect(untMatches(message.raw_payload!)).toBe(true)
+  const {decision,header:h}=header(message)
+  expect(sourceProdatZ06ReadingDeclarations({message,policy:decision.policy!})).toBeNull()
+  expect(h).not.toBe('accepted')
+})
