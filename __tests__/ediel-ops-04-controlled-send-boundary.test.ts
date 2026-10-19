@@ -451,7 +451,8 @@ it('provider return without the required real entry callback cannot complete a t
  expect(f.providerCalls).toHaveLength(1);expect(f.projection()).toBeNull();f.protectedUnchanged()
 })
 for(const status of [null,'','revoked','expired'] as const)it('server certificate status other than active is held: '+JSON.stringify(status),async()=>{
- f.certificate.status=status
+ // Deliberately invalid server status values, including null.
+ f.certificate.status=status as unknown as string
  const result=await send()
  expect(result.status).toBe('held');expect(result.productionApproved).toBe(false)
  expect(f.providerCalls).toHaveLength(0);expect(f.consumptions).toHaveLength(0);f.protectedUnchanged()
