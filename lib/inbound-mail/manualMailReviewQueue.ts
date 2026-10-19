@@ -1,6 +1,18 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/supabase/database.types'
 
+// Review queries need three generated table contracts and the caller's RLS
+// client. Comparing the complete generated RPC schema at every page boundary
+// needlessly expands unrelated function types during the production build.
+type ReviewDatabase = {
+  public: {
+    Tables: Pick<Database['public']['Tables'], 'manual_inbound_messages' | 'companies' | 'customers'>
+    Views: Record<never, never>
+    Functions: Record<never, never>
+  }
+}
+type ReviewDb = Pick<SupabaseClient<ReviewDatabase>, 'from'>
+
 type Params = Record<string, string | string[] | undefined>
 export type ManualMailReviewFilters = { tenant?: string; customer?: string; from?: string; to?: string; page: number }
 export const object = (value: unknown): Record<string, unknown> => value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
@@ -53,7 +65,7 @@ export function manualMailReviewReasons(row: { resolution_status?: string; proce
 }
 
 /** Caller must pass the authenticated, platform-admin server client. No service-role bypass. */
-export async function getManualMailReviewQueue(db: SupabaseClient<Database>, params: Params, now = new Date()) {
+export async function getManualMailReviewQueue(db: ReviewDb, params: Params, now = new Date()) {
   const filters = normalizeManualMailReviewFilters(params)
   const stale = new Date(now.getTime() - 15 * 60000).toISOString()
   let query = db.from('manual_inbound_messages').select(columns, { count: 'exact' }).or([
@@ -106,7 +118,7 @@ export async function getManualMailReviewQueue(db: SupabaseClient<Database>, par
   return { rows: (data ?? []) as ManualMailReviewRow[], filters, page: filters.page, total: count ?? 0, hasMore: offset + 25 < (count ?? 0) }
 }
 
-export async function getManualMailReviewDetail(db: SupabaseClient<Database>, id: string) {
+export async function getManualMailReviewDetail(db: ReviewDb, id: string) {
   if (!uuid.test(id)) return null
   const { data, error } = await db.from('manual_inbound_messages').select(`${columns},body_text,normalized_text,correlation_evidence,attachments,provider_message_id,in_reply_to`).eq('id', id).maybeSingle()
   if (error) throw new Error('Mejlet kunde inte hämtas.')
@@ -121,7 +133,7 @@ export async function getManualMailReviewDetail(db: SupabaseClient<Database>, id
 
 
 /** Display names come only from the already assigned canonical foreign keys. */
-export async function getManualMailReviewNames(db: SupabaseClient<Database>, rows: Array<{ company_id: string | null; customer_id: string | null }>) {
+export async function getManualMailReviewNames(db: ReviewDb, rows: Array<{ company_id: string | null; customer_id: string | null }>) {
   const companyIds = [...new Set(rows.flatMap(row => row.company_id ? [row.company_id] : []))]
   const customerIds = [...new Set(rows.flatMap(row => row.customer_id ? [row.customer_id] : []))]
   const [companies, customers] = await Promise.all([
