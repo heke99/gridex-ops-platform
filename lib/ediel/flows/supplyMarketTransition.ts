@@ -10,7 +10,9 @@ export type SupplyObjectPartition = { object: SourceObjectScope } & (
 )
 export type SupplyMarketResult = { applied: boolean; reason: string | null; idempotent: boolean; periods: Array<{ id: string; status: string }>; commits: SupplyCommitScope[];
   /** Null identifies an established legacy result with no prospective own receipts. */
-  partition: SupplyObjectPartition[] | null; effectReceiptIds: string[]; fullyApplied: boolean; reviewRequired: boolean }
+  partition: SupplyObjectPartition[] | null; effectReceiptIds: string[]; fullyApplied: boolean; reviewRequired: boolean;
+  /** Explicit empty own-partition result distinguishes causal no-effect receipts from legacy results. */
+  switchIds?: string[] }
 const rpc = () => supabaseService.rpc.bind(supabaseService) as unknown as Rpc
 const uuid = (value: unknown): value is string => typeof value === 'string' && /^[a-f\d]{8}(?:-[a-f\d]{4}){3}-[a-f\d]{12}$/i.test(value)
 const record = (value: unknown): value is Record<string, unknown> => value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -63,6 +65,13 @@ export async function applySupplyMarketSource(input: { actorUserId: string; mess
       commits.push(value as SupplyCommitScope)
     }
   }
+  let switchIds: string[] | undefined
+  if (result.switchIds !== undefined) {
+    if (!Array.isArray(result.switchIds) || result.switchIds.length > 8192
+      || result.switchIds.some(id => !uuid(id)) || new Set(result.switchIds).size !== result.switchIds.length)
+      throw Error('supply_switch_ids_invalid')
+    switchIds = [...result.switchIds] as string[]
+  }
   const partition = result.partition === undefined ? null : readPartition(result.partition)
   const applied = result.applied === true
   const effectReceiptIds = partition?.flatMap(entry => entry.disposition === 'applied' ? [entry.effectReceiptId] : []) ?? []
@@ -72,7 +81,15 @@ export async function applySupplyMarketSource(input: { actorUserId: string; mess
   if (partition && !applied && commits.length) throw Error('supply_object_partition_effect_mismatch')
   const fullyApplied = applied && (partition === null || partition.every(entry => entry.disposition === 'applied'))
   return { applied, reason: typeof result.reason === 'string' ? result.reason : null, idempotent: result.idempotent === true,
-    periods,commits,partition,effectReceiptIds,fullyApplied,reviewRequired: partition !== null && !fullyApplied }
+    periods,commits,partition,effectReceiptIds,fullyApplied,reviewRequired: partition !== null && !fullyApplied,
+    ...(switchIds === undefined ? {} : { switchIds }) }
+}
+
+/** A complete own causal receipt can authorize its ACK without a new business effect.
+ * Missing prospective switch IDs retains established legacy ancillary behavior. */
+export function supplyMarketHasBusinessEffects(result: Pick<SupplyMarketResult, 'partition' | 'switchIds' | 'periods' | 'commits'>): boolean {
+  return result.partition === null || result.switchIds === undefined || result.switchIds.length > 0
+    || result.periods.length > 0 || result.commits.length > 0
 }
 
 export async function supplyStartAlreadyCancelled(input: { companyId: string; switchRequestId: string }): Promise<boolean> {
