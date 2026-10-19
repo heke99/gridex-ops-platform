@@ -374,7 +374,10 @@ async function confirm(f:Fixture,raw=wire(f)){
 const required=['311','312','202','203','313','205','206','207','208','314','209','210','508','213','217','306','222','223','254','242','224','260','226','227','228','231','232','316','233','234','262']
 // Own supplied259 selects reading214/218. Omitting259 removes that declaration
 // and cannot be relabelled as proof of a separately known reading prerequisite.
-const selectedDependent=['214','218','229','250','251','252','253','317','318']
+const selectedDependent=['214','218','250','251','253','317','318']
+// A supplied address does not establish the sender's knowledge after omission.
+// These separate controls prove supplied-format refusal, not missing229/252.
+const malformedSuppliedAddressFields=['229','252'] as const
 function omit(raw:string,field:string){
   const special:Record<string,[string,string]>={'210':['DTM','92'],'508':['DTM','354'],'213':['QTY','31'],'224':['RFF','MG']}
   const chars:Record<string,string>={'217':'Z04','306':'Z07','222':'Z12','254':'Z15','242':'Z14','214':'Z02','218':'Z05','259':'Z16'}
@@ -400,7 +403,19 @@ function withInvoicee(raw:string){
     applicationReference:d.applicationReference,environment:d.environment,acknowledgementRequest:true,interchangeReference:randomUUID().replaceAll('-','').slice(0,14),
     messages:[{messageReference:randomUUID().slice(0,14),messageTypeToken:d.segments[a].elements[2],businessSegments:body}]})
 }
-type HeldCause={field:string}|{dimension:'customerIdentity'|'point'|'start'|'reason';reasons:string[]}|{cancelled:true}
+function malformSuppliedAddress(raw:string,field:'229'|'252'){
+  const p=tokenizeEdifact(raw),role=field==='229'?'UD':'IV'
+  const parties=p.segments.filter(s=>s.tag==='NAD'&&segmentComposite(s,1,p.una)[0]===role)
+  assert.equal(parties.length,1,'one_own_supplied_address_party_required')
+  const target=parties[0],address=segmentComposite(target,5,p.una)
+  assert.equal(address.length,1,'single_supplied_address_component_required')
+  assert(address[0]&&address[0].length<=35,'valid_supplied_address_before_format_mutation_required')
+  const parts=target.raw.split(p.una.dataElementSeparator)
+  parts[5]='A'.repeat(36)
+  return serializeUna(p.una)+p.segments.map(s=>s===target?parts.join(p.una.dataElementSeparator):s.raw)
+    .join(p.una.segmentTerminator)+p.una.segmentTerminator
+}
+type HeldCause={field:string}|{dimension:'customerIdentity'|'point'|'start'|'reason';reasons:string[]}|{party:'sender'|'receiver'}|{cancelled:true}
 function messageEvents(f:Fixture,id:string){return sql<Row[]>(`SELECT coalesce(jsonb_agg(to_jsonb(e) ORDER BY id),'[]') FROM public.ediel_message_events e
   WHERE company_id=${literal(f.companyId)} AND (ediel_message_id=${literal(id)} OR message_id=${literal(id)});`)}
 function requireOwnEvent(event:Row,f:Fixture,id:string){
@@ -626,7 +641,13 @@ async function held(f:Fixture,raw:string,label:string,cause:HeldCause){
     const pair=sql<{original:Row;received:Row}>(`SELECT jsonb_build_object('original',gridex_received_sources.normal_switch_wire_v1(${literal(f.originalZ03.raw_payload)}),'received',gridex_received_sources.normal_switch_wire_v1(${literal(raw)}));`)
     const original=(pair.original.objects as Row[])[0],received=(pair.received.objects as Row[])[0]
     expect(received.li).toBe(original.li)
-    if('dimension'in cause)expect(received[cause.dimension],label+': frozen own correlation mismatch').not.toEqual(original[cause.dimension])
+    if('party'in cause){
+      const opposite=cause.party==='sender'?'receiver':'sender'
+      expect(pair.received[cause.party],label+': own reversed party mismatch').not.toEqual(pair.original[opposite])
+      expect(pair.received[opposite],label+': other reversed party unchanged').toBe(pair.original[cause.party])
+      for(const key of ['point','li','customerIdentity','start','reason'])
+        assert.deepEqual(received[key],original[key],'party_only_preserves_original_'+key)
+    }else if('dimension'in cause)expect(received[cause.dimension],label+': frozen own correlation mismatch').not.toEqual(original[cause.dimension])
     else expect(periods(f)).toEqual([expect.objectContaining({id:f.periodId,status:'cancelled'})])
   }
   let partitions:Row[]=[],refusalReceipt:unknown=birthRefusal??null
@@ -644,8 +665,11 @@ async function held(f:Fixture,raw:string,label:string,cause:HeldCause){
     partitions=sql<Row[]>(`SELECT coalesce(jsonb_agg(to_jsonb(p)),'[]') FROM gridex_received_sources.supply_object_partitions p WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(message.id)};`)
     expect(partitions,label+': all-held sources do not persist applied partitions').toEqual([])
     const events=messageEvents(f,message.id)
-    if(!('field'in cause)){
-      const reasons='dimension'in cause?cause.reasons:['normal_z04_locked_original_scope_required']
+    if('party'in cause&&cause.party==='receiver'){
+      refusalReceipt=requireFieldOwnerAudit(f,(await getEdielMessageById(message.id))!,raw,'208',events,eventBefore)
+      assert.equal((refusalReceipt as {kind:string}).kind,'exact_party_tenant_routing_owner','receiver_party_mismatch_requires_exact_tenant_routing_owner')
+    }else if(!('field'in cause)){
+      const reasons='party'in cause?['normal_z04_exact_sent_original_required']:'dimension'in cause?cause.reasons:['normal_z04_locked_original_scope_required']
       assert.equal(reasons.length,1,'scenario_has_one_exact_first_refusal')
       refusalReceipt=requireHeldDomainAudit(f,message.id,raw,reasons[0],events,eventBefore)
     }else if(agencyRefusal)refusalReceipt=agencyRefusal
@@ -796,7 +820,7 @@ describe.sequential('actual prospective normal supplier starts under one admitte
       const causes:Record<string,HeldCause>={customer:{dimension:'customerIdentity',reasons:['normal_z04_exact_sent_original_required']},
         point:{dimension:'point',reasons:['supply_original_cohort_changed']},
         start:{dimension:'start',reasons:['normal_z04_exact_sent_original_required']},reason:{dimension:'reason',reasons:['normal_z04_exact_sent_original_required']},
-        agency:{field:'209'},wrongRole:{field:'311'},sender:{field:'207'},receiver:{field:'208'}}
+        agency:{field:'209'},wrongRole:{field:'311'},sender:{party:'sender'},receiver:{party:'receiver'}}
       for(const [label,raw]of Object.entries(variants))results.push(await held(f,raw,subtype+':same-LI-'+label,causes[label]))
       // The public inbound entrypoint is also exercised with the genuine own
       // outbound original. The accepted Z04 direction is separately protected
@@ -809,6 +833,7 @@ describe.sequential('actual prospective normal supplier starts under one admitte
       for(const field of required)results.push(await held(f,omit(envelope(f,base,subtype==='L'?'Z22':'Z23'),field),subtype+':missing-R-'+field,{field}))
       const invoicee=withInvoicee(base)
       for(const field of selectedDependent)results.push(await held(f,omit(envelope(f,invoicee,subtype==='L'?'Z22':'Z23'),field),subtype+':missing-selected-D-'+field,{field}))
+      for(const field of malformedSuppliedAddressFields)results.push(await held(f,malformSuppliedAddress(envelope(f,invoicee,subtype==='L'?'Z22':'Z23'),field),subtype+':malformed-supplied-address-'+field,{field}))
       // Healthy real own original remains confirmable AFTER all omissions: the
       // negatives did not pass only because a pre-existing period conflicted.
       await confirm(f,withInvoicee(wire(f)))
@@ -829,7 +854,7 @@ describe.sequential('actual prospective normal supplier starts under one admitte
       expect(result.error).toMatchObject({code:'23514',message});expect(result.data).toBeNull()
       expect(business(own)).toEqual(before);expect(sourceCustody(own,own.confirmation!)).toEqual(custody)
     }
-    passed('Z04-T0-CORRELATION-R-D-REFUSALS',{required_fields:required,selected_dependent_fields:selectedDependent,results})
+    passed('Z04-T0-CORRELATION-R-D-REFUSALS',{required_fields:required,selected_dependent_fields:selectedDependent,malformed_supplied_address_fields:malformedSuppliedAddressFields,missing_address_availability:'NOT_CLAIMED',results})
   })
   it('Z04-T0-CAUSAL-CANCELLATION',async()=>{
     const results=[]
