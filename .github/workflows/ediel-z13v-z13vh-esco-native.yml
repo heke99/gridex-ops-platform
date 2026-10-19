@@ -1,0 +1,374 @@
+name: Ediel ESCO Z13V and Z13VH native request effects
+
+on:
+  pull_request:
+    paths:
+      - '__tests__/ediel-at-z13-esco-required-fields.test.ts'
+      - '__tests__/ediel-at-z13-esco-request-guards.test.ts'
+      - '__tests__/ediel-at-z13v-esco-profile.test.ts'
+      - '__tests__/ediel-at-z13vh-esco-profile.test.ts'
+      - '__tests__/ediel-z13-ack-customer-waiting-sql.test.ts'
+      - 'scripts/helpers/ediel-z14v-current-native-fixture.ts'
+      - 'scripts/ediel-at-z13v-z13vh-esco-native.config.ts'
+      - 'scripts/ediel-at-z13v-z13vh-esco-native.test.ts'
+      - 'scripts/ediel-sc014-technical-intake-native.test.ts'
+      - 'scripts/ediel-source-owner-native.config.ts'
+      - 'scripts/gridex-aud-003-clean-replay.sh'
+      - 'scripts/migration-history-manifest*.json'
+      - 'scripts/ediel-sc014-technical-intake-native.config.ts'
+      - 'scripts/fixtures/**'
+      - 'lib/**'
+      - 'scripts/helpers/**'
+      - '__tests__/helpers/**'
+      - '__tests__/fixtures/**'
+      - 'scripts/lib/**'
+      - 'scripts/sql/**'
+      - 'scripts/gridex-aud-003-*'
+      - 'scripts/gridex-redact-native-evidence.py'
+      - 'scripts/supabase-types-manifest.json'
+      - 'config/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig*'
+      - 'vitest.config.ts'
+      - '__tests__/setup.ts'
+      - 'docs/ediel/masterplan-v2/registers/**'
+      - 'supabase/**'
+      - '.github/workflows/ediel-z13v-z13vh-esco-native.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ediel-z13v-z13vh-esco-native-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+# Supplemental feedback only. All ordinary OPS clean/upgrade/native/browser
+# and parity gates remain mandatory; this does not approve any rule card.
+jobs:
+  z13v-z13vh-esco-native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Exercise actual Z13 request, physical ACK and Z14/Z14N permission effects after canonical clean replay
+        shell: bash
+        env:
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+          Z13_PR_NUMBER: ${{ github.event.pull_request.number }}
+          Z13_SOURCE_BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+          mkdir -p z13v-z13vh-esco-native-working
+          # The existing owner keeps its EXIT cleanup trap. Replay/status
+          # output can contain disposable credentials and is never uploaded.
+          native_tests=(scripts/ediel-at-z13v-z13vh-esco-native.test.ts)
+          export Z13_ESCO_NATIVE_TEST_SCOPE
+          Z13_ESCO_NATIVE_TEST_SCOPE="$(printf '%s\n' "${native_tests[@]}")"
+          export Z13_ESCO_INPUT_RECEIPT="$RUNNER_TEMP/z13-esco-inputs.json"
+          verify_native_inputs() {
+            python3 - "$@" <<'PY_INPUTS'
+          import hashlib, json, os, pathlib, platform, re, shutil, stat, subprocess, sys
+          phase = sys.argv[1]
+          snapshot = pathlib.Path(os.environ['RUNNER_TEMP']) / 'esco-z13-request-inputs.json'
+          def git(*args):
+              return subprocess.check_output(['git', *args])
+          head = git('rev-parse', 'HEAD').decode().strip()
+          tree = git('rev-parse', 'HEAD^{tree}').decode().strip()
+          object_format = git('rev-parse', '--show-object-format').decode().strip()
+          def entry(mode, data):
+              return {'mode': mode,
+                      'blob_oid': hashlib.new(object_format, b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest(),
+                      'sha256': hashlib.sha256(data).hexdigest()}
+          def working(path):
+              mode = path.lstat().st_mode
+              if stat.S_ISLNK(mode):
+                  return entry('120000', os.fsencode(os.readlink(path)))
+              if not stat.S_ISREG(mode):
+                  raise SystemExit('nonregular_native_input: ' + str(path))
+              return entry('100755' if mode & 0o111 else '100644', path.read_bytes())
+          def require(path, expected):
+              if working(path) != expected:
+                  raise SystemExit('native_input_mismatch: ' + str(path))
+          def directory(path):
+              return {p.relative_to(path).as_posix(): working(p)
+                      for p in sorted(path.rglob('*')) if not p.is_dir() or p.is_symlink()}
+          if phase == 'freeze':
+              inputs = {}
+              for record in git('ls-tree', '-rz', '--full-tree', head).split(b'\0'):
+                  if not record:
+                      continue
+                  meta, name = record.split(b'\t', 1)
+                  mode, kind, oid = meta.decode().split()
+                  if kind != 'blob' or mode not in ('100644', '100755', '120000'):
+                      raise SystemExit('unsupported_native_git_input: ' + os.fsdecode(name))
+                  path = os.fsdecode(name)
+                  inputs[path] = entry(mode, git('cat-file', 'blob', oid))
+                  if inputs[path]['blob_oid'] != oid:
+                      raise SystemExit('native_git_blob_mismatch: ' + path)
+                  require(pathlib.Path(path), inputs[path])
+              frozen_native = {
+                  'scripts/ediel-at-z13v-z13vh-esco-native.test.ts': '568bd18361c5bb4fd6a35458c4fc3012d0adbbeaceaa648a336c5ebf050dc26f',
+                  'scripts/ediel-at-z13v-z13vh-esco-native.config.ts': '9da776c7059fd109060552b35db6e5336460d6cbfd14617c920b8b2f77136602',
+              }
+              for path, digest in frozen_native.items():
+                  if inputs[path]['sha256'] != digest:
+                      raise SystemExit('native_source_drift: ' + path)
+              ledger_path = 'scripts/gridex-aud-003-main-ledger.json'
+              ledger_input = inputs[ledger_path]
+              ledger = json.loads(git('cat-file', 'blob', ledger_input['blob_oid']))
+              entries = ledger.get('entries', [])
+              if not entries:
+                  raise SystemExit('official_native_ledger_empty')
+              marker_bytes = b'-- GRIDEX-REM-002 local ledger marker.\nselect 1;\n'
+              expected_markers = {}
+              last = None
+              for e in entries:
+                  version, name = str(e['version']), e['name']
+                  if not re.fullmatch(r'[0-9]{14}', version) or not isinstance(name, str) or not re.fullmatch(r'[A-Za-z0-9_]+', name):
+                      raise SystemExit('invalid_official_native_ledger_entry')
+                  if last is not None and version <= last:
+                      raise SystemExit('official_native_ledger_not_strictly_ordered')
+                  last = version
+                  expected_markers[f'{version}_{name}.sql'] = entry('100644', marker_bytes)
+              def version(*args):
+                  return subprocess.check_output(args, text=True, stderr=subprocess.DEVNULL).strip()
+              runtime = {'node': version('node', '--version'), 'npm': version('npm', '--version'),
+                         'supabase_cli': version('supabase', '--version'),
+                         'python': platform.python_version(), 'platform': platform.platform()}
+              if not runtime['node'].startswith('v22.') or runtime['supabase_cli'] != '2.101.0':
+                  raise SystemExit('native_runtime_version_mismatch')
+              driver = version('docker', 'info', '--format', '{{.Driver}}')
+              free = shutil.disk_usage(os.environ['RUNNER_TEMP']).free
+              required_free = (40 if driver == 'vfs' else 15) * 1024**3
+              initial_containers = subprocess.check_output(['docker', 'ps', '-aq'], text=True).splitlines()
+              if initial_containers or free < required_free:
+                  raise SystemExit('native_runner_capacity_or_quiescence_unqualified')
+              frozen = {'checkout_sha': head, 'checkout_tree': tree, 'tracked_inputs': inputs,
+                        # No owned-proof epoch or custody receipt is asserted by this
+                        # workflow; HQ binds the exact PR/head after CI.
+                        'owned_proof': False,
+                        'input_epoch': None,
+                        'custody_receipt': None,
+                        'pull_request': os.environ['Z13_PR_NUMBER'],
+                        'source_branch': os.environ['Z13_SOURCE_BRANCH'],
+                        'runner': {'docker_driver': driver, 'free_bytes_before_replay': free,
+                                   'required_free_bytes': required_free, 'initial_container_ids': initial_containers},
+                        'runtime_versions': runtime,
+                        'original_native_source_sha256': frozen_native,
+                        'native_source_sha256': frozen_native,
+                        'native_source_version': 'esco_z13v_z13vh_request_ack_z14_v1',
+                        'workflow_run_id': os.environ['GITHUB_RUN_ID'],
+                        'workflow_run_attempt': os.environ['GITHUB_RUN_ATTEMPT'],
+                        'canonical_marker_expected': expected_markers,
+                        'canonical_marker_origin': {'ledger_path': ledger_path, 'ledger_input': ledger_input,
+                                                    'entry_count': len(entries),
+                                                    'marker_template_sha256': hashlib.sha256(marker_bytes).hexdigest()}}
+          else:
+              frozen = json.loads(snapshot.read_text())
+              if (head, tree) != (frozen['checkout_sha'], frozen['checkout_tree']):
+                  raise SystemExit('native_checkout_changed')
+              hold, seed_backup, markers = map(pathlib.Path, sys.argv[2:])
+              migrations = 'supabase/migrations/'
+              originals = {p[len(migrations):]: e for p, e in frozen['tracked_inputs'].items()
+                           if p.startswith(migrations)}
+              if directory(hold) != originals:
+                  raise SystemExit('original_migration_backup_mismatch')
+              for path, expected in frozen['tracked_inputs'].items():
+                  if not path.startswith(migrations) and path != 'supabase/seed.sql':
+                      require(pathlib.Path(path), expected)
+              seed_original = frozen['tracked_inputs']['supabase/seed.sql']
+              if hashlib.sha256(seed_backup.read_bytes()).hexdigest() != seed_original['sha256']:
+                  raise SystemExit('original_seed_backup_mismatch')
+              seed_actual = working(pathlib.Path('supabase/seed.sql'))
+              if seed_actual != entry(seed_original['mode'], b''):
+                  raise SystemExit('canonical_empty_seed_mismatch')
+              marker_files = sorted(markers.iterdir())
+              if any(not stat.S_ISREG(p.lstat().st_mode) for p in marker_files):
+                  raise SystemExit('canonical_migration_marker_shape_mismatch')
+              actual_markers = {p.name: working(p) for p in marker_files}
+              if actual_markers != frozen['canonical_marker_expected']:
+                  raise SystemExit('canonical_migration_marker_ledger_mismatch')
+              unchanged = {p: e for p, e in originals.items() if '/' in p or not p.endswith('.sql')}
+              if set(unchanged) & set(actual_markers) or directory(pathlib.Path('supabase/migrations')) != {**unchanged, **actual_markers}:
+                  raise SystemExit('canonical_migration_marker_mismatch')
+              transforms = {'seed_original': seed_original, 'seed_actual': seed_actual,
+                            'migration_markers_actual': actual_markers}
+              if phase == 'after-replay':
+                  frozen['canonical_replay_transforms'] = transforms
+              elif phase != 'after-native' or transforms != frozen['canonical_replay_transforms']:
+                  raise SystemExit('canonical_replay_transform_changed')
+          if git('rev-parse', 'HEAD').decode().strip() != head or git('rev-parse', 'HEAD^{tree}').decode().strip() != tree:
+              raise SystemExit('native_checkout_changed_during_verification')
+          snapshot.write_text(json.dumps(frozen, indent=2) + '\n')
+          PY_INPUTS
+          }
+          verify_native_inputs freeze
+          source scripts/gridex-aud-003-clean-replay.sh > "$RUNNER_TEMP/z13-esco-replay.log" 2>&1
+          verify_native_inputs after-replay "$HOLD" "$SEED_BACKUP" "$LEDGER_MARKERS"
+          export GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/z13v-z13vh-esco-native-status.json"
+          supabase status -o json > "$GRIDEX_NATIVE_STATUS"
+          native_exit=0
+          GRIDEX_NATIVE_STATUS="$GRIDEX_NATIVE_STATUS" npx vitest run \
+            --config scripts/ediel-at-z13v-z13vh-esco-native.config.ts \
+            "${native_tests[@]}" \
+            --reporter=default --reporter=junit \
+            --outputFile=z13v-z13vh-esco-native-working/native-junit.xml \
+            > z13v-z13vh-esco-native-working/native.log 2>&1 || native_exit=$?
+          export Z13_ESCO_NATIVE_EXIT="$native_exit"
+          verify_native_inputs after-native "$HOLD" "$SEED_BACKUP" "$LEDGER_MARKERS"
+          export Z13_ESCO_POSTGRES_SERVER_VERSION="$(psql 'postgresql://postgres:postgres@127.0.0.1:54322/postgres' -XAtq -v ON_ERROR_STOP=1 -c 'show server_version;')"
+          cleanup
+          trap - EXIT
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, stat, subprocess
+          frozen = json.loads((pathlib.Path(os.environ['RUNNER_TEMP']) / 'esco-z13-request-inputs.json').read_text())
+          def working(path):
+              mode = path.lstat().st_mode
+              if stat.S_ISLNK(mode):
+                  data, git_mode = os.fsencode(os.readlink(path)), '120000'
+              elif stat.S_ISREG(mode):
+                  data, git_mode = path.read_bytes(), '100755' if mode & 0o111 else '100644'
+              else:
+                  raise SystemExit('native_restored_input_not_regular')
+              return {'mode': git_mode, 'blob_oid': hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest(),
+                      'sha256': hashlib.sha256(data).hexdigest()}
+          for name, expected in frozen['tracked_inputs'].items():
+              if working(pathlib.Path(name)) != expected:
+                  raise SystemExit('native_cleanup_input_restoration_mismatch: ' + name)
+          migration_prefix = 'supabase/migrations/'
+          expected_migrations = {name[len(migration_prefix):]: item for name, item in frozen['tracked_inputs'].items()
+                                 if name.startswith(migration_prefix)}
+          actual_migrations = {p.relative_to('supabase/migrations').as_posix(): working(p)
+                               for p in pathlib.Path('supabase/migrations').rglob('*') if not p.is_dir() or p.is_symlink()}
+          if actual_migrations != expected_migrations:
+              raise SystemExit('native_cleanup_migration_inventory_mismatch')
+          final_containers = subprocess.check_output(['docker', 'ps', '-aq'], text=True).splitlines()
+          if final_containers:
+              raise SystemExit('native_backend_cleanup_unqualified')
+          replay_log = (pathlib.Path(os.environ['RUNNER_TEMP']) / 'z13-esco-replay.log').read_text()
+          if '[GRIDEX-REM-002 replay] PASS: empty local Supabase' not in replay_log:
+              raise SystemExit('native_canonical_replay_pass_not_observed')
+          if subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip() != frozen['checkout_sha'] or subprocess.check_output(['git', 'rev-parse', 'HEAD^{tree}'], text=True).strip() != frozen['checkout_tree']:
+              raise SystemExit('native_cleanup_checkout_changed')
+          test_scope = os.environ['Z13_ESCO_NATIVE_TEST_SCOPE'].splitlines()
+          receipt = {
+              'purpose': 'owned_changed_source_history_native' if frozen['owned_proof'] else 'ordinary_baseline_native_ci',
+              **frozen,
+              'canonical_replay': 'PASS', 'input_restoration': 'EXACT', 'backend_cleanup': 'QUALIFIED',
+              'runner_final_container_ids': final_containers,
+              'postgres_server_version': os.environ['Z13_ESCO_POSTGRES_SERVER_VERSION'],
+              'vendor_postgres_image_pin': '17.6.1.155', 'whole_id_credit': 'NONE',
+              'checkout_sha': subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+              'checkout_tree': subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip(),
+              'workflow_run_id': os.environ['GITHUB_RUN_ID'],
+              'native_exit_code': int(os.environ['Z13_ESCO_NATIVE_EXIT']),
+              'input_sha256': {p: e['sha256'] for p, e in frozen['tracked_inputs'].items()},
+              'tracked_input_count': len(frozen['tracked_inputs']),
+              'working_input_checks': ['before-replay','before-native','after-native','after-cleanup'],
+              'test_scope': test_scope,
+              'fixture_data': 'DECLARED_SYNTHETIC_EXTERNAL_ATTESTATION_INPUTS',
+              'request_phase': 'actual_request_access_Z13_S17_S18_physical_CONTRL_APERAK_then_Z14_or_Z14N; no_projection_or_supply_credit',
+              'business_source_acceptance': 'NOT_PROVIDED',
+              'ordinary_required_gates': 'NOT_REPLACED',
+              'schema_capture': 'NOT_RUN', 'browser_tests': 'NOT_RUN',
+              'upgrade_parity': 'NOT_RUN', 'authentic_market_evidence': 'NOT_PROVIDED',
+          }
+          pathlib.Path('z13v-z13vh-esco-native-working/receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          PY
+          python3 scripts/gridex-redact-native-evidence.py \
+            --local-secrets "$GRIDEX_NATIVE_STATUS" --root z13v-z13vh-esco-native-working
+          python3 - <<'PY'
+          import importlib.util, json, os, pathlib, re
+          spec = importlib.util.spec_from_file_location('canonical_redactor', 'scripts/gridex-redact-native-evidence.py')
+          redactor = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(redactor)
+          status = json.loads(pathlib.Path(os.environ['GRIDEX_NATIVE_STATUS']).read_text())
+          extra = [str(value).encode() for key, value in status.items()
+                   if key.lower() in ('secret_key', 'db_url') and isinstance(value, str)]
+          extra.append(b'postgresql://postgres:postgres@127.0.0.1:54322/postgres')
+          remaining = re.compile(rb'\b(?:eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+|sb_secret_[A-Za-z0-9_-]+)\b|postgres(?:ql)?://[^/\s:]+:[^@\s]+@')
+          for path in pathlib.Path('z13v-z13vh-esco-native-working').rglob('*'):
+              if path.is_file():
+                  data = path.read_bytes()
+                  tokens = re.findall(rb'\bsb_secret_[A-Za-z0-9_-]+\b', data)
+                  data = redactor.scrub(data, secrets=extra + tokens)
+                  if remaining.search(data): raise SystemExit('z13_esco_redaction_incomplete_no_artifact_published')
+                  path.write_bytes(data)
+          PY
+          # Only successfully redacted files enter the uploaded directory.
+          # Receipt/redaction failure leaves no artifact directory to upload.
+          mv z13v-z13vh-esco-native-working z13v-z13vh-esco-native-evidence
+          cat z13v-z13vh-esco-native-evidence/native.log
+          rm -f "$GRIDEX_NATIVE_STATUS"
+          exit "$native_exit"
+      - name: Preserve bounded abort feedback from this exact source
+        if: always()
+        shell: bash
+        env:
+          Z13_PR_NUMBER: ${{ github.event.pull_request.number }}
+          Z13_SOURCE_BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+          if [[ -d z13v-z13vh-esco-native-evidence ]]; then exit 0; fi
+          # The replay owner's EXIT cleanup already ran in the prior shell.
+          # An abort stays unqualified even if these exact inputs were restored.
+          mkdir -p z13v-z13vh-esco-native-working
+          python3 - <<'PY_ABORT'
+          import hashlib, json, os, pathlib, subprocess
+          temp = pathlib.Path(os.environ['RUNNER_TEMP'])
+          working = pathlib.Path('z13v-z13vh-esco-native-working')
+          snapshot = temp / 'esco-z13-request-inputs.json'
+          frozen = json.loads(snapshot.read_text()) if snapshot.is_file() else {}
+          replay = temp / 'z13-esco-replay.log'
+          receipt = {
+              'purpose': 'source_bound_abort_feedback', 'whole_id_credit': 'NONE',
+              'checkout_sha': subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+              'checkout_tree': subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip(),
+              'workflow_run_id': os.environ['GITHUB_RUN_ID'], 'workflow_run_attempt': os.environ['GITHUB_RUN_ATTEMPT'],
+              'owned_proof': False, 'input_epoch': None, 'custody_receipt': None,
+              'pull_request': os.environ['Z13_PR_NUMBER'], 'source_branch': os.environ['Z13_SOURCE_BRANCH'],
+              'frozen_input_sha256': {p: e['sha256'] for p, e in frozen.get('tracked_inputs', {}).items()},
+              'canonical_replay': 'UNQUALIFIED', 'native': 'UNQUALIFIED',
+              'input_restoration': 'UNQUALIFIED', 'backend_cleanup': 'UNQUALIFIED',
+              'ordinary_required_gates': 'NOT_REPLACED',
+              'original_private_replay_log_sha256': hashlib.sha256(replay.read_bytes()).hexdigest() if replay.is_file() else None,
+          }
+          if replay.is_file():
+              (working / 'replay-abort-redacted.log').write_bytes(replay.read_bytes())
+          (working / 'abort-receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          PY_ABORT
+          python3 scripts/gridex-redact-native-evidence.py \
+            --local-secrets "$RUNNER_TEMP/z13v-z13vh-esco-native-status.json" --root z13v-z13vh-esco-native-working
+          python3 - <<'PY_REDACTION'
+          import pathlib, re
+          remaining = re.compile(rb'\b(?:eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+|sb_(?:secret|publishable)_[A-Za-z0-9_-]+)\b|postgres(?:ql)?://[^/\s:]+:[^@\s]+@')
+          for path in pathlib.Path('z13v-z13vh-esco-native-working').rglob('*'):
+              if path.is_file():
+                  data = remaining.sub(b'[REDACTED_LOCAL_CREDENTIAL]', path.read_bytes())
+                  if remaining.search(data): raise SystemExit('native_abort_redaction_incomplete')
+                  path.write_bytes(data)
+          PY_REDACTION
+          mv z13v-z13vh-esco-native-working z13v-z13vh-esco-native-evidence
+      - name: Upload redacted native feedback
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ediel-z13v-z13vh-esco-native-${{ github.event.pull_request.head.sha }}
+          path: z13v-z13vh-esco-native-evidence/
+          if-no-files-found: warn
+          retention-days: 14
