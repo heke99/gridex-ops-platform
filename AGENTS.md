@@ -300,8 +300,10 @@ Applies to all work against `docs/ediel/masterplan-v2/` (owner decision 2026-10-
    Preserve one writer per file and one producer per source. READY and CI_GREEN
    bind the current exact candidate; MERGED requires authenticated normal delivery.
    Use role-merge for serial expected-head delivery and role-memory plus exact file
-   custody for shared summaries. Never edit an unclaimed coverage row or release
-   foreign resources. Finish current delivery/handoff before choosing another packet.
+   custody for shared summaries. Never edit an unclaimed coverage row. Release of
+   foreign resources follows only the existing bounded proxy/admin exception in
+   [the reservations protocol](.agent-memory/masterplan-reservations.md#proxy-vid401403-och-release).
+   Finish current delivery/handoff before choosing another packet.
 9. **Mandatory documentation before more work:** each agent records what it
    claimed, what it completed, exact commit/verification, blockers/dependencies
    and its next action before starting and after each meaningful transition.
