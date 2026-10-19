@@ -29,12 +29,16 @@
 // Preflight refuses missing, foreign or malformed inputs before wire-reference
 // reservation. Later authority changes are rechecked after journal entry; a
 // refusal then preserves entered uncertainty and never reaches SMTP.
+// Resend is classified server-side from the stored row's protected recovery
+// binding (readRecoveryOriginalBasis), never from the caller's plan alone:
+// original_message_id is also set on ordinary ACKs and is no resend signal.
 
 import { z } from 'zod'
 import { createHash } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
 import { getEdielRouteProfileByCommunicationRouteId } from '@/lib/ediel/db'
 import { readFreshEdielBusinessIncident } from '@/lib/ediel/incidents/freshBusinessIncident'
+import { readRecoveryOriginalBasis } from '@/lib/ediel/recovery/sourceContext'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { evaluateControlledLiveReadiness, type ControlledLiveInput, type LiveEnvironment } from './controlledLiveReadiness'
 import { evaluateRelayTrace } from './relayTrace'
@@ -243,14 +247,33 @@ export async function assessControlledLiveSend(message: EdielMessageRow, actorUs
   // The plan names exactly this message.
   if (flow.plan.references.length !== 1 || flow.plan.references[0] !== message.id) reasons.push('plan_reference_message_mismatch')
 
+  // Resend classification: the stored row's protected recovery binding (message ->
+  // authorized PRODAT recovery operation), tenant + actor scoped. NULL for every
+  // ordinary row, including ACKs that carry original_message_id.
+  let recoveredOriginal: string | null = null
+  try {
+    const recovery = await readRecoveryOriginalBasis({ companyId, messageId: message.id, actorUserId })
+    if (recovery) {
+      recoveredOriginal = recovery.originalMessageId
+      if (recovery.operationId !== message.source_operation_id || recovery.originalMessageId !== message.original_message_id
+        || recovery.correctedPayloadHash !== payloadHash(str(message.raw_payload))) reasons.push('resend_classification_mismatch')
+      // A stored recovery/retransmission is a resend whatever the plan declares.
+      if (!flow.plan.resend) reasons.push('blind_resend_not_a_test_strategy')
+    }
+  } catch {
+    reasons.push('resend_classification_unavailable')
+  }
+
   // Incident trace: own tenant + actor scoped native read.
   let incident: ControlledLiveInput['incident'] = null
   try {
     const receipt = await readFreshEdielBusinessIncident({ companyId, actorUserId, incidentId: flow.incidentId })
     if (receipt.environment !== environment) reasons.push('incident_environment_mismatch')
-    // A resend must be the corrected original this incident was reported on.
+    // A resend must be the corrected original this incident was reported on;
+    // a derived recovery must recover exactly that incident's source message.
     if (flow.plan.resend && (!message.original_message_id || message.original_message_id !== receipt.sourceMessageId))
       reasons.push('resend_original_mismatch')
+    if (recoveredOriginal !== null && recoveredOriginal !== receipt.sourceMessageId) reasons.push('resend_original_mismatch')
     incident = { id: receipt.incidentId, tenantId: receipt.companyId, status: 'open', correctionRef: null }
   } catch {
     reasons.push('incident_trace_unreadable')

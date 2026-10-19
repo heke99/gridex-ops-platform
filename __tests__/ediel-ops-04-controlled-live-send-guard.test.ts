@@ -16,7 +16,7 @@ import {energyHandoffMessage} from './helpers/utiltsObservationHandoff'
 
 const io=vi.hoisted(()=>({rpc:vi.fn(),from:vi.fn(),registry:vi.fn(),route:vi.fn(),events:[] as unknown[],archives:[] as unknown[],attempts:[] as Record<string,unknown>[],providerCalls:0,observedAt:null as string|null,
  rpcNames:[] as string[],tables:[] as string[],rows:{} as Record<string,Record<string,unknown>|null>,incident:null as null|((args:Record<string,unknown>)=>unknown),native:null as null|{data:unknown;error:unknown},
- probe:null as null|((args:Record<string,unknown>)=>{data:unknown;error:unknown}),forceConsumptionReplay:false,consumed:{} as Record<string,string>,consumptions:[] as Record<string,unknown>[]}))
+ probe:null as null|((args:Record<string,unknown>)=>{data:unknown;error:unknown}),recovery:null as null|((args:Record<string,unknown>)=>{data:unknown;error:unknown}),forceConsumptionReplay:false,consumed:{} as Record<string,string>,consumptions:[] as Record<string,unknown>[]}))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:io.rpc,from:io.from}}))
 vi.mock('@/lib/ediel/rulebook/canonicalRulePackRegistry',async original=>({...await original<typeof import('@/lib/ediel/rulebook/canonicalRulePackRegistry')>(),resolveCanonicalRulePack:io.registry}))
 vi.mock('@/lib/ediel/db',()=>({getEdielRouteProfileByCommunicationRouteId:io.route,createEdielMessageEvent:async(input:unknown)=>{io.events.push(structuredClone(input))}}))
@@ -46,6 +46,8 @@ const tlsHeaders=['Authentication-Results: mx.mailbox.example.invalid; spf=pass 
  'Received: from smtp.provider.example.invalid (smtp.provider.example.invalid [192.0.2.10])\r\n\tby mx.mailbox.example.invalid with ESMTPS id r2; Mon, 05 Oct 2026 10:00:02 +0200',
  'Received: from app.own.example.invalid (app.own.example.invalid [192.0.2.5])\r\n\tby smtp.provider.example.invalid with ESMTPSA id s1; Mon, 05 Oct 2026 10:00:01 +0200','Subject: SYNTHETIC',''].join('\r\n')
 type Env='test'|'production'
+// Server-side resend classification: the existing protected recovery operation binding of the stored row.
+const RECOVERY_BASIS_RPC='ediel_prodat_recovery_original_basis_v1',RECOVERY_OP='00000000-0000-4000-8000-0000000000c7',UNRELATED='00000000-0000-4000-8000-0000000000f9'
 
 // Legacy payload marker: never a selection channel, only refused without a server binding.
 const marker=(over:Record<string,unknown>={})=>({schema:'gridex_ops04_controlled_flow_v1',incidentId:INC,references:[MSG],source:'single_controlled',resend:null,...over})
@@ -76,7 +78,7 @@ function bind(env:Env='test'){
 
 beforeEach(()=>{
  vi.useFakeTimers().setSystemTime(new Date('2026-10-05T09:00:00Z'));vi.clearAllMocks()
- io.events=[];io.archives=[];io.attempts=[];io.providerCalls=0;io.observedAt=null;io.rpcNames=[];io.tables=[];io.forceConsumptionReplay=false;io.consumed={};io.consumptions=[]
+ io.events=[];io.archives=[];io.attempts=[];io.providerCalls=0;io.observedAt=null;io.rpcNames=[];io.tables=[];io.forceConsumptionReplay=false;io.consumed={};io.consumptions=[];io.recovery=null
  io.registry.mockResolvedValue({databaseProfileKey:snapshot.profileKey,profileKey:snapshot.profileKey,messageProfileId:profile,originalVersion:snapshot.version,sourceHash:snapshot.checksum,originalSnapshot:{guideRevision:snapshot.version}})
  bind()
  io.from.mockImplementation((table:string)=>{
@@ -96,6 +98,8 @@ beforeEach(()=>{
   if(name==='ediel_read_fresh_business_incident_v1')return io.incident?{data:io.incident(args),error:null}:{data:null,error:{message:'not found'}}
   if(name===CONTROLLED_LIVE_EVIDENCE_RPC)return io.native??{data:null,error:{code:'PGRST202',message:'function not found'}}
   if(name===CONTROLLED_FLOW_PROBE_RPC)return io.probe?io.probe(args):{data:null,error:{code:'PGRST202',message:'function not found'}}
+  // Protected PRODAT recovery link (message -> authorized recovery operation); NULL for every other row.
+  if(name===RECOVERY_BASIS_RPC)return io.recovery?io.recovery(args):{data:null,error:null}
   if(name===CONTROLLED_LIVE_CONSUME_RPC){
    // Finite model of the unique consumption keys (agreement, mandate, message).
    const keys=[`a:${args.p_agreement_id}`,...(args.p_mandate_id?[`m:${args.p_mandate_id}`]:[])]
@@ -415,6 +419,57 @@ describe('OPS-04 controlled live send guard on the actual SMTP path',()=>{
  })
  it('a resend without an original message is refused',async()=>{
   await refused(queued({original_message_id:null}),'resend_original_mismatch',sel({resend:{incidentId:INC,diagnosis:'synthetic diagnosis'}}))
+ })
+ // Resend classification is derived server-side from the stored row, never from the caller's plan.
+ const recoveryRow=(over:Partial<EdielMessageRow>={})=>queued({original_message_id:ORIGINAL,source_operation_id:RECOVERY_OP,...over})
+ const storedRecovery=(over:Record<string,unknown>={})=>{io.recovery=args=>({error:null,data:args.p_company_id===C&&args.p_message_id===MSG&&args.p_actor_user_id===actor?{
+  originalMessageId:ORIGINAL,sourceOriginMessageId:ORIGINAL,operationId:RECOVERY_OP,sourceAckMessageId:'00000000-0000-4000-8000-0000000000f3',kind:'contrl_correction',
+  correctedPayloadHash:createHash('sha256').update(recoveryRow().raw_payload!,'utf8').digest('hex'),allowedObjects:[{point:null,identityAgency:null}],...over}:null})}
+ const diagnosed=()=>sel({resend:{incidentId:INC,diagnosis:'synthetic diagnosis'}})
+ it('a stored PRODAT recovery sent with plan.resend=null is held as a blind resend: no consumption, no SMTP',async()=>{
+  storedRecovery()
+  await refused(recoveryRow(),'blind_resend_not_a_test_strategy')
+  expect(io.rpc.mock.calls.find(([n])=>n===RECOVERY_BASIS_RPC)?.[1]).toEqual({p_company_id:C,p_message_id:MSG,p_actor_user_id:actor})
+  expect(io.rpcNames).not.toContain(CONTROLLED_LIVE_CONSUME_RPC)
+ })
+ it('a stored recovery without a source operation column is still classified by its protected binding and held',async()=>{
+  storedRecovery()
+  await refused(recoveryRow({source_operation_id:null,original_message_id:null}),'blind_resend_not_a_test_strategy')
+ })
+ it('a stored recovery declared as a resend for an incident on an unrelated message is held',async()=>{
+  storedRecovery({originalMessageId:UNRELATED,sourceOriginMessageId:UNRELATED})
+  await refused(recoveryRow({original_message_id:UNRELATED}),'resend_original_mismatch',diagnosed())
+ })
+ it('a stored recovery whose protected original is not the row original cited by the incident is held',async()=>{
+  storedRecovery({originalMessageId:UNRELATED,sourceOriginMessageId:UNRELATED})
+  await refused(recoveryRow(),'resend_original_mismatch',diagnosed())
+ })
+ it('a stored recovery whose protected operation or corrected payload is not this row is held',async()=>{
+  storedRecovery({operationId:'00000000-0000-4000-8000-0000000000c8'})
+  await refused(recoveryRow(),'resend_classification_mismatch',diagnosed())
+  io.rpcNames=[];io.tables=[]
+  storedRecovery({correctedPayloadHash:'f'.repeat(64)})
+  await refused(recoveryRow(),'resend_classification_mismatch',diagnosed())
+ })
+ it('a stored recovery declared as a diagnosed resend of the incident original proceeds once as a resend',async()=>{
+  storedRecovery()
+  await send(recoveryRow(),diagnosed())
+  expect(io.providerCalls).toBe(1);expect(io.consumptions).toHaveLength(1);expect(io.consumptions[0]).toMatchObject({p_resend:true})
+ })
+ it('an unreadable resend classification is held (fail-closed) before consumption or SMTP',async()=>{
+  failRpc(RECOVERY_BASIS_RPC,async()=>({data:null,error:{message:'prodat_recovery_original_basis_unqualified'}}))
+  await refused(recoveryRow(),'resend_classification_unavailable')
+ })
+ it('an ordinary row carrying original_message_id (as ACKs do) and no recovery binding is unaffected with resend=null',async()=>{
+  const row=queued({original_message_id:ORIGINAL})
+  const sent=await send(row)
+  expect(sent.accepted).toEqual([row.receiver_email]);expect(io.providerCalls).toBe(1)
+  expect(io.consumptions).toHaveLength(1);expect(io.consumptions[0]).toMatchObject({p_resend:false})
+  expect(io.rpc.mock.calls.find(([n])=>n===RECOVERY_BASIS_RPC)?.[1]).toEqual({p_company_id:C,p_message_id:MSG,p_actor_user_id:actor})
+ })
+ it('an ordinary original carrying its own source operation id and no recovery binding is unaffected with resend=null',async()=>{
+  await send(queued({source_operation_id:RECOVERY_OP}))
+  expect(io.providerCalls).toBe(1);expect(io.consumptions[0]).toMatchObject({p_resend:false})
  })
  // Certificate selection mirrors the send path's `??` (review finding 4).
  it('an empty receiver certificate id is not replaced by the route certificate id',async()=>{

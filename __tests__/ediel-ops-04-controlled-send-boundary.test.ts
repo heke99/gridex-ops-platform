@@ -62,7 +62,7 @@ function fixture(){
  const immutable={message:clone(message),siblings:clone(store.ediel_messages.slice(1)),outbox:clone(store.ediel_outbox[1]),events:clone(store.ediel_message_events[0]),payload:clone(store.ediel_message_payloads[0]),exchange:clone(store.ediel_exchange_logs[0])}
  const queries:Row[]=[],rpcs:Row[]=[],attempts=new Map<string,Row>(),providerCalls:Row[]=[]
  const readCounters={profiles:0}
- const flags={permission:true,controlled:true,consumed:false,wireReserved:false,uncertain:false,readbackFailure:false,hideProjection:false,skipCallback:false,registryMismatch:false,beforeProjection:null as null|(()=>Promise<void>),beforeProfileRead:null as null|((readNo:number)=>Promise<void>),afterAttempt:null as null|((lane:'generic_journal'|'sealed_z08',action:string)=>Promise<void>)}
+ const flags={permission:true,controlled:true,consumed:false,wireReserved:false,uncertain:false,readbackFailure:false,hideProjection:false,skipCallback:false,registryMismatch:false,recovery:null as null|Row,beforeProjection:null as null|(()=>Promise<void>),beforeProfileRead:null as null|((readNo:number)=>Promise<void>),afterAttempt:null as null|((lane:'generic_journal'|'sealed_z08',action:string)=>Promise<void>)}
  const consumptions:Row[]=[]
  const allowed:Record<string,string[]>={ediel_messages:['id','company_id','environment'],ediel_route_profiles:['id','company_id','communication_route_id','environment','is_enabled','is_active'],ediel_route_runtime_v:['company_id','communication_route_id','route_profile_id','environment'],ediel_certificates:['id','company_id'],ediel_transport_profiles:['id','company_id'],company_memberships:['company_id','user_id','status','is_active','accepted_at'],user_profiles:['id','user_status'],ediel_test_run_messages:['ediel_message_id'],ediel_test_runs:['id'],ediel_outbox:['ediel_message_id','status'],ediel_message_events:[],ediel_message_payloads:[],ediel_exchange_logs:[]}
  const writes:Record<string,string[]>={ediel_messages:['transport_security_mode','route_transport_security_mode','was_smime_encrypted','expected_receiver_certificate_id','cms_expected_receiver_present','updated_by','updated_at','status','sent_at','failed_at','failure_reason','validation_report'],ediel_outbox:['status','last_error','updated_at','updated_by']}
@@ -114,6 +114,8 @@ function fixture(){
    scope(args);if(args.p_environment!==message.environment||args.p_communication_route_id!==message.communication_route_id)throw Error('PROBE_SCOPE_MISMATCH')
    return {data:{companyId:COMPANY,environment:message.environment,messageId:MESSAGE,controlled:flags.controlled||consumptions.length>0},error:null}
   }
+  // Protected PRODAT recovery link of the stored row (server-side resend classification); NULL otherwise.
+  if(name==='ediel_prodat_recovery_original_basis_v1'){scope(args);return {data:flags.recovery?clone(flags.recovery):null,error:null}}
   if(name===CONTROLLED_LIVE_EVIDENCE_RPC){
    scope(args);if(args.p_environment!==message.environment||args.p_incident_id!==INC||args.p_route_profile_id!==PROFILE)throw Error('EVIDENCE_SCOPE_MISMATCH')
    return {data:clone(evidence),error:null}
@@ -292,6 +294,16 @@ for(const [name,patch] of [
  patch();const r=await send()
  expect(r.status).toBe('held');expect(r.productionApproved).toBe(false);expect(r.reasons.length).toBeGreaterThan(0)
  expect(f.providerCalls).toHaveLength(0);expect(f.consumptions).toHaveLength(0);f.protectedUnchanged()
+})
+it('a stored recovery row sent through the entry point with plan.resend=null is held as a blind resend',async()=>{
+ const operation='00000000-0000-4000-8000-000000000026'
+ Object.assign(f.message,{original_message_id:ORIGINAL,source_operation_id:operation});f.rebaseSelectedFixture()
+ f.flags.recovery={originalMessageId:ORIGINAL,sourceOriginMessageId:ORIGINAL,operationId:operation,sourceAckMessageId:RULEPROFILE,kind:'contrl_correction',
+  correctedPayloadHash:hash(String(f.message.raw_payload)),allowedObjects:[{point:null,identityAgency:null}]}
+ const r=await send()
+ expect(r).toMatchObject({status:'held',productionApproved:false});expect(r.reasons).toContain('blind_resend_not_a_test_strategy')
+ expect(f.rpcs.find(x=>x.name==='ediel_prodat_recovery_original_basis_v1')?.args).toEqual({p_company_id:COMPANY,p_message_id:MESSAGE,p_actor_user_id:ACTOR})
+ expect(f.providerCalls).toHaveLength(0);expect(f.consumptions).toHaveLength(0);expect(f.rpcs.map(x=>x.name)).not.toContain(CONTROLLED_LIVE_CONSUME_RPC);f.protectedUnchanged()
 })
 it('caller-supplied approvals are never accepted as input',async()=>{
  const forged={...f.request,counterpartyAgreement:{ref:'CALLER',counterpartyId:PARTY,tenantId:COMPANY,environment:'test',routeId:PROFILE,validFrom:new Date(0),validTo:new Date(8.64e15)}}
