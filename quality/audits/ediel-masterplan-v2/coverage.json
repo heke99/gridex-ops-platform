@@ -4359,8 +4359,24 @@
     },
     {
       "id": "AT-Z13V-ESCO",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-at-z13-esco-required-fields.test.ts",
+        "__tests__/ediel-at-z13-esco-request-guards.test.ts",
+        "__tests__/ediel-at-z13v-esco-profile.test.ts",
+        "__tests__/ediel-z13-ack-customer-waiting-sql.test.ts",
+        "__tests__/ediel-esco-z14-process-legal-context.test.ts",
+        "__tests__/ediel-ack-route-profile-selection.test.ts",
+        "scripts/test-ediel-esco-z13-z14vh.cjs",
+        "scripts/ediel-at-z13v-z13vh-esco-native.test.ts",
+        "scripts/ediel-at-z13v-z13vh-esco-native.config.ts",
+        "scripts/helpers/ediel-z14v-current-native-fixture.ts",
+        ".github/workflows/ediel-z13v-z13vh-esco-native.yml",
+        "lib/ediel/intent/renderers/servicePermission.ts",
+        "lib/ediel/rulebook/prodatReportingPermissionPolicy.ts",
+        "lib/ediel/core/messageBuilder/payloadPreflight.ts",
+        "lib/ediel/permissions/permissionMarketTransition.ts"
+      ]
     },
     {
       "id": "AT-Z14V-ESCO",
@@ -4388,8 +4404,25 @@
     },
     {
       "id": "AT-Z13VH-ESCO",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-at-z13-esco-required-fields.test.ts",
+        "__tests__/ediel-at-z13-esco-request-guards.test.ts",
+        "__tests__/ediel-at-z13vh-esco-profile.test.ts",
+        "__tests__/ediel-z13-ack-customer-waiting-sql.test.ts",
+        "__tests__/ediel-esco-z14-process-legal-context.test.ts",
+        "__tests__/ediel-ack-route-profile-selection.test.ts",
+        "scripts/test-ediel-esco-z13-z14vh.cjs",
+        "scripts/ediel-at-z13v-z13vh-esco-native.test.ts",
+        "scripts/ediel-at-z13v-z13vh-esco-native.config.ts",
+        "scripts/helpers/ediel-z14v-current-native-fixture.ts",
+        ".github/workflows/ediel-z13v-z13vh-esco-native.yml",
+        "lib/ediel/intent/renderers/servicePermission.ts",
+        "lib/ediel/rulebook/prodatReportingPermissionPolicy.ts",
+        "lib/ediel/core/messageBuilder/payloadPreflight.ts",
+        "lib/ediel/permissions/permissionMarketTransition.ts",
+        "lib/ediel/services/requestTiming.ts"
+      ]
     },
     {
       "id": "AT-Z14VH-ESCO",
