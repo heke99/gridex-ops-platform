@@ -229,7 +229,7 @@ it('surfaces an authenticated matched reply for review when its transaction keep
 
   // Evaluate the emitted stale-state query against the real persisted source.
   // This is a PostgREST port contract, not a remote backend/transport test.
-  const now = new Date('2026-10-19T01:00:00Z')
+  const now = new Date(new Date(String(source.received_at)).getTime() + 60 * 60_000)
   let predicate = ''
   const q: Record<string, unknown> = {}
   for (const method of ['select', 'order', 'range']) q[method] = () => q
