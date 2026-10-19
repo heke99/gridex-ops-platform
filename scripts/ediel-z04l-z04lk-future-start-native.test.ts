@@ -51,7 +51,7 @@ type Fixture=NormalSwitchStageNativeFixture&{subtype:Subtype;originalZ03:EdielMe
   startAt:string;originalSeal:unknown;confirmation?:EdielMessageRow;periodId?:string;confirmed?:Row;invoiceBaseline?:Row}
 const password=randomUUID()+randomUUID(),cronSecret=randomUUID()+randomUUID()
 const fixtures:Fixture[]=[],valid={} as Record<Subtype,Fixture>,cancelled={} as Record<Subtype,Fixture>,expires={} as Record<Subtype,Fixture>,pending={} as Record<Subtype,Fixture>,invoiceePositive={} as Record<Subtype,Fixture>
-const heldAttempts:Row[]=[]
+const heldAttempts:Row[]=[],correlationProgress:Row[]=[]
 let decoy:Fixture,ordinaryDay:string
 const evidence:FutureStartNativeReceipt={schema:'ediel_z04_future_start_native_v1',accelerated_execution:true,
   actual_elapsed_14_days:false,authentic_external_market_history:false,whole_approval:false,
@@ -61,7 +61,7 @@ const digest=(raw:string)=>createHash('sha256').update(raw).digest('hex')
 function persist(){
   const root=process.env.GRIDEX_Z04_FUTURE_EVIDENCE
   if(!root||!root.startsWith(process.cwd()+'/'))throw Error('z04future_owned_evidence_directory_required')
-  writeFileSync(join(root,'product-future-start-receipt.json'),JSON.stringify({...evidence,held_attempts:heldAttempts},null,2)+'\n')
+  writeFileSync(join(root,'product-future-start-receipt.json'),JSON.stringify({...evidence,held_attempts:heldAttempts,correlation_progress:correlationProgress},null,2)+'\n')
 }
 function passed(name:string,facts:Row={}){evidence.cases.push({name,status:'PASSED',...facts});persist()}
 function configureSmtp(email='recipient@example.invalid'){
@@ -1091,8 +1091,15 @@ describe.sequential('actual prospective normal supplier starts under one admitte
     passed('Z04-T0-PROSPECTIVE-L-LK-ORIGINALS',{ordinaryDay,clock:readActualMarketClocks(),periods:fixtures.filter(f=>f.confirmation).map(f=>({subtype:f.subtype,original:f.originalZ03.id,source:f.confirmation!.id,period:f.periodId,start:f.startAt,invoice_before_business:f.invoiceBaseline,state:activationSnapshot(f)}))})
   })
   it('Z04-T0-CORRELATION-R-D-REFUSALS',async()=>{
-    const results=[]
+    const results=[],started=process.hrtime.bigint()
+    const progress=(subtype:Subtype,stage:'subtype_start'|'healthy_reconfirmation_start'|'healthy_reconfirmation_complete'|'subtype_complete')=>{
+      correlationProgress.push({sequence:correlationProgress.length+1,subtype,stage,
+        elapsed_monotonic_ms:Number(process.hrtime.bigint()-started)/1e6,
+        completed_held_attempts:heldAttempts.filter(attempt=>attempt.status==='COMPLETED').length})
+      persist()
+    }
     for(const subtype of ['LK','L'] as const){
+      progress(subtype,'subtype_start')
       const f=pending[subtype],base=wire(f)
       const pointContrast={ownPoint:f.external,foreignPoint:valid.L.external,ownOriginal:f.originalZ03.id,
         ownCohort:pointOriginalCohort(f,f.external),foreignCohort:pointOriginalCohort(f,valid.L.external)}
@@ -1135,9 +1142,12 @@ describe.sequential('actual prospective normal supplier starts under one admitte
       }
       // Healthy real own original remains confirmable AFTER all omissions: the
       // negatives did not pass only because a pre-existing period conflicted.
+      progress(subtype,'healthy_reconfirmation_start')
       await confirm(f,withInvoicee(wire(f)))
+      progress(subtype,'healthy_reconfirmation_complete')
       results.push({label:subtype+':healthy-own-source-after-refusals',pointContrast,healthySourceId:f.confirmation!.id,
         healthySameFixturePoint:periods(f)[0].metering_point_id,invoice_before_business:f.invoiceBaseline,state:activationSnapshot(f)})
+      progress(subtype,'subtype_complete')
     }
     const f=valid.L,before=business(f),seal=originalSeal(f)
     for(const {patch,code,message} of [{patch:{raw_payload:f.originalZ03.raw_payload+' '},code:'23514',message:'immutable_ediel_payload_cannot_change'},
@@ -1154,7 +1164,7 @@ describe.sequential('actual prospective normal supplier starts under one admitte
       expect(business(own)).toEqual(before);expect(sourceCustody(own,own.confirmation!)).toEqual(custody)
     }
     passed('Z04-T0-CORRELATION-R-D-REFUSALS',{required_fields:required,selected_dependent_fields:selectedDependent,malformed_supplied_address_fields:malformedSuppliedAddressFields,missing_address_availability:'NOT_CLAIMED',results})
-  })
+  },1_500_000)
   it('Z04-T0-CAUSAL-CANCELLATION',async()=>{
     const results=[]
     for(const subtype of ['LK','L'] as const){
