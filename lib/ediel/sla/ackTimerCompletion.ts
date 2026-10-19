@@ -1,4 +1,7 @@
 import { parseCanonicalEdifactAst } from '@/lib/ediel/core/canonicalEdifactAst'
+import { readPhysicalAckSourceCorrelation, type AckCorrelationMessage } from '@/lib/ediel/ack/sourceCorrelation'
+import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
+import { prodatRegisterGroups } from '@/lib/ediel/prodat/prodatRegisterGroups'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 
 type Row = Record<string, unknown>
@@ -11,7 +14,7 @@ function sent(row: Row): boolean {
 /** Completion is a read projection of existing durable outcomes, never a new
  * protocol decision. One sent sibling cannot satisfy other physical IDEs. */
 export function inboundAckTimerCompletion(input: {
-  source: Pick<EdielMessageRow, 'id' | 'company_id' | 'environment' | 'message_family' | 'raw_payload'>
+  source: Pick<EdielMessageRow, 'id' | 'company_id' | 'environment' | 'message_family' | 'raw_payload'> & Partial<Pick<EdielMessageRow, 'direction'>>
   timerType: string
   acknowledgements: readonly Row[]
   transactionResults?: readonly Row[]
@@ -24,6 +27,7 @@ export function inboundAckTimerCompletion(input: {
   if (input.timerType !== 'aperak_due') return null
   if (technical.some(row => row.ack_outcome === 'negative')) return 'cancelled'
   const application = sentRows.filter(row => ['APERAK', 'UTILTS_ERR'].includes(String(row.message_family)))
+  if (input.source.message_family === 'PRODAT') return prodatAperakCompletion(input.source, application)
   if (input.source.message_family !== 'UTILTS') return application.length ? 'resolved' : null
   // A source-qualified whole-message/header response owns the complete scope.
   if (application.some(row => {
@@ -44,4 +48,107 @@ export function inboundAckTimerCompletion(input: {
     return application.some(row => row.id === own[0].response_message_id
       && record(row.validation_report).relatedTransactionReference === id)
   }) ? 'resolved' : null
+}
+
+/** A genuine NEW reception of an already received original is answered with
+ * its own protocol 103 (duplicate) response, related to that original. It is
+ * never the original's application outcome, so it completes nothing. Both the
+ * physical FTX 103 and the duplicate owner's stored operation mark it. */
+function duplicateProtocolResponse(row: Row): boolean {
+  if (typeof row.source_operation_id === 'string' && row.source_operation_id.startsWith('ediel_duplicate103:')) return true
+  try {
+    const wire = tokenizeEdifact(row.raw_payload as string)
+    return wire.segments.some(segment => segment.tag === 'FTX' && segmentComposite(segment, 1, wire.una)[0] === 'AAO'
+      && segmentComposite(segment, 3, wire.una)[0] === '103')
+  } catch { return true }
+}
+function legalParty(wire: ReturnType<typeof tokenizeEdifact>, qualifier: string): string | null {
+  const parties = wire.segments.filter(segment => segment.tag === 'NAD' && segmentComposite(segment, 1, wire.una)[0] === qualifier)
+    .map(segment => segmentComposite(segment, 2, wire.una)[0] || '')
+  return parties.length === 1 && parties[0] ? parties[0] : null
+}
+function unbParty(wire: ReturnType<typeof tokenizeEdifact>, element: number): string | null {
+  const unb = wire.segments.filter(segment => segment.tag === 'UNB')
+  return unb.length === 1 ? JSON.stringify(segmentComposite(unb[0], element, wire.una)) : null
+}
+function unbApplication(wire: ReturnType<typeof tokenizeEdifact>): string | null {
+  const unb = wire.segments.filter(segment => segment.tag === 'UNB')
+  return unb.length === 1 ? segmentComposite(unb[0], 7, wire.una)[0] || null : null
+}
+/** The reply's envelope and legal parties mirror the actual received source. */
+function mirrorsSource(ack: ReturnType<typeof tokenizeEdifact>, source: ReturnType<typeof tokenizeEdifact>): boolean {
+  const ackSender = unbParty(ack, 2), ackReceiver = unbParty(ack, 3), sourceSender = unbParty(source, 2), sourceReceiver = unbParty(source, 3)
+  const sourceLegalSender = legalParty(source, 'FR'), sourceLegalReceiver = legalParty(source, 'DO')
+  return Boolean(ackSender && ackReceiver && ackSender === sourceReceiver && ackReceiver === sourceSender
+    && unbApplication(ack) && unbApplication(ack) === unbApplication(source)
+    && sourceLegalSender && sourceLegalReceiver && legalParty(ack, 'FR') === sourceLegalReceiver && legalParty(ack, 'DO') === sourceLegalSender)
+}
+
+/** PRODAT APERAKs are object-scoped (P34) unless the whole message is rejected
+ * (P27: header field or LIN sequence). Only the actual sent bytes, bound to the
+ * actual received source, can complete the timer: every first-register object
+ * needs its own physical response, or one physical P27 rejection must cover the
+ * source. A duplicate-103 protocol response, unknown direction, unreadable
+ * bytes or ambiguous scopes complete nothing. */
+function prodatAperakCompletion(source: Parameters<typeof inboundAckTimerCompletion>[0]['source'], application: readonly Row[]): 'resolved' | null {
+  if (source.direction !== 'inbound' || !source.company_id) return null
+  const replies = application.filter(row => row.message_family === 'APERAK' && typeof row.raw_payload === 'string' && !duplicateProtocolResponse(row))
+    .map(row => ({ row, message: { id: String(row.id ?? ''), company_id: source.company_id, environment: source.environment,
+      direction: 'outbound', message_family: 'APERAK', raw_payload: row.raw_payload as string } satisfies AckCorrelationMessage }))
+  const actualSource = { id: source.id, company_id: source.company_id, environment: source.environment, direction: source.direction,
+    message_family: source.message_family, raw_payload: source.raw_payload } satisfies AckCorrelationMessage
+  let sourceWire: ReturnType<typeof tokenizeEdifact> | null = null, sourceDocument: string | null = null
+  try {
+    const wire = tokenizeEdifact(source.raw_payload), bgm = wire.segments.filter(segment => segment.tag === 'BGM')
+    sourceDocument = bgm.length === 1 ? segmentComposite(bgm[0], 2, wire.una)[0] || null : null
+    sourceWire = sourceDocument ? wire : null
+  } catch { sourceWire = null; sourceDocument = null }
+  for (const { row, message } of replies) {
+    if (row.ack_outcome !== 'negative') continue
+    const report = record(row.validation_report)
+    // An explicit foreign binding is never overridden by the bytes.
+    if (report.sourceMessageId !== undefined && report.sourceMessageId !== source.id) continue
+    try {
+      // A readable source is read with the reply so an object-scoped P27 is
+      // qualified against it; an unreadable one only permits the stored binding.
+      const physical = sourceWire ? readPhysicalAckSourceCorrelation(message, actualSource) : readPhysicalAckSourceCorrelation(message)
+      if (physical.classification.family !== 'APERAK' || physical.classification.profile !== 'PRODAT_16_B'
+        || physical.classification.outcome !== 'negative') continue
+      const ack = tokenizeEdifact(message.raw_payload), ackBgm = ack.segments.filter(segment => segment.tag === 'BGM')
+      // P27 rejects the entire original (header field or LIN sequence) even
+      // when it names the defective objects. P34 never covers siblings.
+      const wholeRejection = physical.wholeSourceOutcome === 'negative'
+        || (ackBgm.length === 1 && segmentComposite(ackBgm[0], 3, ack.una)[0] === '27')
+      if (!wholeRejection) continue
+      const original = physical.lookupReferences.filter(reference => reference.type === 'BGM_REF').map(reference => reference.value)
+      const bound = sourceWire
+        ? original.length === 1 && original[0] === sourceDocument && mirrorsSource(ack, sourceWire)
+        : report.sourceMessageId === source.id && report.ackScope === 'message'
+      if (bound) return 'resolved'
+    } catch { /* Invalid or foreign response bytes grant no completion. */ }
+  }
+  let required: Array<{ index: number; objectId: string | null; agency: string | null; li: string | null }>
+  try {
+    const wire = tokenizeEdifact(source.raw_payload)
+    required = prodatRegisterGroups(wire.segments, wire.una).groups.filter(group => group.registerPosition === 1).map(group => {
+      const refs = group.segments.filter(segment => segment.tag === 'RFF' && segmentComposite(segment, 1, wire.una)[0] === 'LI')
+        .map(segment => segmentComposite(segment, 1, wire.una)[1]).filter(Boolean)
+      return { index: group.segments[0].index, objectId: group.itemId, agency: group.identityAgency, li: refs.length === 1 ? refs[0] : null }
+    })
+  } catch { return null }
+  if (!required.length) return null
+  const answered = new Set<number>()
+  for (const { message } of replies) {
+    try {
+      // Physical qualification against the actual source: UNB/legal mirror,
+      // environment, application reference, ACW and exact object membership.
+      const physical = readPhysicalAckSourceCorrelation(message, actualSource)
+      for (const own of physical.prodatObjectOutcomes ?? []) {
+        const match = required.find(item => item.index === own.firstLineIndex && item.objectId === own.objectId
+          && item.agency === own.identityAgency && item.li === own.lineItemReference)
+        if (match) answered.add(match.index)
+      }
+    } catch { /* Foreign, ambiguous or malformed scopes answer no sibling. */ }
+  }
+  return required.every(own => answered.has(own.index)) ? 'resolved' : null
 }
