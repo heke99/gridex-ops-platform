@@ -15008,12 +15008,10 @@
                 "type": "string"
               },
               "method": {
-                "type": "string",
-                "description": "Actual consent method; client metadata or a bankid string is not server-verified BankID. BankID is optional."
+                "type": "string"
               },
               "ip_address": {
-                "type": "string",
-                "description": "Customer IP recorded by the tenant backend at the original accepted_at, never the API server IP. OPS generates a stable verification number and archives the accepted document/evidence privately. Missing evidence blocks automated external email without adding a required intake field."
+                "type": "string"
               },
               "user_agent": {
                 "type": "string"

@@ -411,8 +411,8 @@ export default function CustomerPortalApiDocumentationPage() {
               <code> acceptedAt</code>. Gridex creates a stable verification number and archives the accepted text,
               scopes and evidence as a PDF, with the verification number on every page. The IP of your API server
               is recorded separately. A form click or <code>method: bankid</code> does not prove a verified BankID signature.
-              BankID is optional; missing evidence blocks external email until completed. Tenant users can retrieve
-              their PDFs in OPS under Fullmakter; platform administrators can search across tenants.
+              BankID is optional; missing evidence blocks external email until completed. Organization users can retrieve
+              their PDFs in OPS under Fullmakter; platform administrators can search across organizations.
             </p>
             <p className="text-sm leading-6 text-slate-600">
               The legal references, hashes and versions in this example are placeholders. In production, copy the exact values returned by the legal-bundle endpoint. Do not generate or modify them locally.
