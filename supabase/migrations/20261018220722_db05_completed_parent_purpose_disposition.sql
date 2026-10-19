@@ -1,4 +1,34 @@
 BEGIN;
+-- DB05_INSTALL_OWNER_SCOPE_BEGIN
+-- Same guarded atomic install capability as existing OPS part03/part11.
+-- No role/owner/application capability persists outside this transaction.
+DO $db05_install_preflight$
+BEGIN
+ IF current_user<>'postgres' OR session_user<>'postgres'
+ OR NOT EXISTS(SELECT FROM pg_roles WHERE rolname='postgres' AND NOT rolsuper AND rolinherit AND rolcreaterole AND rolbypassrls)
+ OR NOT EXISTS(SELECT FROM pg_roles WHERE rolname='gridex_ediel_retention_owner' AND NOT rolcanlogin AND NOT rolinherit AND NOT rolsuper AND NOT rolcreatedb AND NOT rolcreaterole AND NOT rolreplication AND rolbypassrls)
+ OR (SELECT nspowner FROM pg_namespace WHERE nspname='gridex_ediel_retention') IS DISTINCT FROM 'gridex_ediel_retention_owner'::regrole::oid
+ OR EXISTS(SELECT FROM pg_auth_members WHERE roleid='gridex_ediel_retention_owner'::regrole AND member<>'postgres'::regrole)
+ OR (SELECT jsonb_agg(jsonb_build_array(g.rolname,m.admin_option,m.inherit_option,m.set_option) ORDER BY g.rolname COLLATE "C") FROM pg_auth_members m JOIN pg_roles g ON g.oid=m.grantor WHERE m.roleid='gridex_ediel_retention_owner'::regrole AND m.member='postgres'::regrole)
+ IS DISTINCT FROM '[["postgres",false,false,true],["supabase_admin",true,false,false]]'::jsonb
+ OR pg_has_role('postgres','gridex_ediel_retention_owner','USAGE') IS DISTINCT FROM false
+ OR pg_has_role('postgres','gridex_ediel_retention_owner','SET') IS DISTINCT FROM true
+ OR pg_has_role('postgres','gridex_ediel_retention_owner','MEMBER') IS DISTINCT FROM true
+ THEN RAISE EXCEPTION 'db05_qualified_non_super_migration_owner_profile_required' USING ERRCODE='42501';END IF;
+ IF to_regclass('pg_temp.gridex_db05_install_scope') IS NOT NULL THEN RAISE EXCEPTION 'db05_unexpected_existing_install_scope';END IF;
+END $db05_install_preflight$;
+CREATE TEMPORARY TABLE gridex_db05_install_scope ON COMMIT DROP AS
+ SELECT (SELECT jsonb_agg(to_jsonb(m) ORDER BY m.oid) FROM pg_auth_members m) AS memberships,
+ (SELECT jsonb_agg(to_jsonb(r)-'rolpassword' ORDER BY r.oid) FROM pg_roles r) AS roles,
+ (SELECT jsonb_agg(to_jsonb(n) ORDER BY n.oid) FROM pg_namespace n WHERE n.nspname IN('public','gridex_ediel_retention')) AS namespaces,
+ has_schema_privilege('gridex_ediel_retention_owner','public','CREATE') AS owner_public_create;
+GRANT gridex_ediel_retention_owner TO postgres WITH ADMIN FALSE, INHERIT TRUE, SET TRUE GRANTED BY postgres;
+DO $db05_install_capability$ BEGIN
+ IF NOT pg_has_role('postgres','gridex_ediel_retention_owner','USAGE') THEN RAISE EXCEPTION 'db05_atomic_owner_inheritance_unavailable';END IF;
+ IF NOT has_schema_privilege('gridex_ediel_retention_owner','public','CREATE') THEN GRANT CREATE ON SCHEMA public TO gridex_ediel_retention_owner;END IF;
+END $db05_install_capability$;
+-- DB05_INSTALL_OWNER_SCOPE_END
+
 -- DB-05/AT-DB-05: atomically install bounded source-parent/purpose owners.
 -- Synthetic component qualification does not supply actual issuer/legal facts.
 DO $new_scope$ BEGIN
@@ -384,4 +414,18 @@ BEGIN
  SELECT encode(sha256(convert_to(prosrc,'UTF8')),'hex') INTO STRICT actual FROM pg_proc WHERE oid='public.ediel_read_decision_evidence_policy_v1(uuid,uuid,uuid,boolean)'::regprocedure;
  IF actual IS DISTINCT FROM expected_reader_body THEN RAISE EXCEPTION 'completed_parent_atomic_late_reader_anchor_required';END IF;
 END $atomic_install_final$;
+-- DB05_INSTALL_OWNER_RESTORE_BEGIN
+DO $db05_install_restore$
+DECLARE before_row record;BEGIN
+ SELECT * INTO STRICT before_row FROM pg_temp.gridex_db05_install_scope;
+ IF NOT before_row.owner_public_create THEN REVOKE CREATE ON SCHEMA public FROM gridex_ediel_retention_owner;END IF;
+ GRANT gridex_ediel_retention_owner TO postgres WITH ADMIN FALSE, INHERIT FALSE, SET TRUE GRANTED BY postgres;
+ IF current_user<>'postgres' OR session_user<>'postgres'
+ OR (SELECT jsonb_agg(to_jsonb(m) ORDER BY m.oid) FROM pg_auth_members m) IS DISTINCT FROM before_row.memberships
+ OR (SELECT jsonb_agg(to_jsonb(r)-'rolpassword' ORDER BY r.oid) FROM pg_roles r) IS DISTINCT FROM before_row.roles
+ OR (SELECT jsonb_agg(to_jsonb(n) ORDER BY n.oid) FROM pg_namespace n WHERE n.nspname IN('public','gridex_ediel_retention')) IS DISTINCT FROM before_row.namespaces
+ OR pg_has_role('postgres','gridex_ediel_retention_owner','USAGE') IS DISTINCT FROM false
+ THEN RAISE EXCEPTION 'db05_install_roles_memberships_namespaces_must_restore';END IF;
+END $db05_install_restore$;
+-- DB05_INSTALL_OWNER_RESTORE_END
 COMMIT;
