@@ -768,6 +768,11 @@ export async function resolvePortalCustomer(input: {
   mode?: PortalResolveMode
   /** Enforce the identity rules regardless of the rollout flag (new endpoints). */
   strict?: boolean
+  /** Optional caller policy, evaluated for the normalized intended user before link writes. */
+  beforeLink?: (customer: ResolvedPortalCustomer) => Promise<
+    | { ok: true }
+    | { ok: false; status: number; error: string; code: string }
+  >
 }): Promise<PortalCustomerResolution> {
   const mode: PortalResolveMode = input.mode ?? 'read'
   const identifiers: CustomerPortalIdentifiers = {
@@ -852,6 +857,15 @@ export async function resolvePortalCustomer(input: {
         }
       }
       return { ok: true, customer: resolved, binding: 'identifier_match' }
+    }
+
+    if (userId && input.beforeLink) {
+      const authorization = await input.beforeLink({
+        ...resolved,
+        auth_user_id: userId,
+        customer_portal_user_id: userId,
+      })
+      if (!authorization.ok) return { ...authorization, identifiers }
     }
 
     const linked = userId
