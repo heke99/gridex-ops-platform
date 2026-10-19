@@ -993,11 +993,11 @@ describe('actual native supplier cancellation chains', () => {
     expect(sql(`SELECT to_jsonb(status) FROM public.supplier_switch_requests WHERE id=${literal(f.switchId)};`)).toBe('cancellation_requested')
   },180000)
 
-  // SOURCE proposal only: the retained producer must execute this registered
-  // case under a separately qualified current source/backend/input epoch.
-  // LK/day0 is prospective public input. No original, period, confirmation,
-  // activation receipt or database clock is rewritten to create this premise.
-  it('holds cancellation of a genuinely activated own LK start in a durable source-bound compensation review', async () => {
+  // masterplan: AT-Z03C/Z04C-SUPPLIER. HB 26B 4.1.7/4.1.9: a Z04C of an own start
+  // already executed is accepted and answered; the start is corrected in a
+  // controlled process. LK/day0 is prospective public input. No original, period,
+  // confirmation, activation receipt or database clock is rewritten.
+  it('accepts cancellation of a genuinely activated own LK start with a source-bound compensation receipt and work case', async () => {
     configureSmtp()
     const today = sql<string>(`SELECT to_jsonb((clock_timestamp()+interval '1 hour')::date);`)
     const stage = await seedNormalSwitchNativeFixture({deferOriginal:true,requestedStartDate:today})
@@ -1049,38 +1049,62 @@ describe('actual native supplier cancellation chains', () => {
       const own=apply.mock.calls.flatMap((args,index)=>args[0].message.id===source.id&&args[0].actorUserId===f.actorUserId?[apply.mock.results[index]]:[])
       expect(own).toHaveLength(1);expect(own[0].type).toBe('return');result=await own[0].value as cancellationSupply.SupplyMarketResult
     }finally{apply.mockRestore()}
-    expect(result!).toMatchObject({applied:false,fullyApplied:false,reviewRequired:true,effectReceiptIds:[],commits:[],partition:[{
-      object:{objectId:f.external,identityAgency:'9'},disposition:'held',reason:'z04c_effect_already_executed_compensation_required'}]})
-    type Review={id:string;status:string;company_id:string;ediel_message_id:string;customer_id:string;site_id:string;metering_point_id:string;
-      parsed_customer:Record<string,unknown>;parsed_metering_point:Record<string,unknown>;parsed_contract:Record<string,unknown>;
-      proposed_action:{action:string;objectCount:number;objects:Array<{meteringPointId:string;registers:Array<{lineItemReference:string}>}>};review_decision:unknown;created_at:string}
-    const readReview=()=>sql<Review[]>(`SELECT coalesce(jsonb_agg(to_jsonb(c) ORDER BY id),'[]') FROM public.ediel_inbound_cases c
-      WHERE c.company_id=${literal(f.companyId)} AND c.ediel_message_id=${literal(source.id)};`)
-    const cases=readReview();expect(cases).toHaveLength(1)
-    const saved=cases[0]
-    expect(saved).toMatchObject({company_id:f.companyId,ediel_message_id:source.id,message_code:'Z04',transaction_type:'Z24',status:'pending_review',
-      customer_id:f.customerId,site_id:f.siteId,metering_point_id:f.pointId,created_by:f.actorUserId,
-      parsed_customer:{personalNumber:f.customerIdentity.id},parsed_metering_point:{meterPointId:f.external,identityAgency:'9'},
-      parsed_contract:{startDate:today.replaceAll('-','')+'0000'},proposed_action:{action:'pending_admin_review',objectCount:1}})
-    expect(saved.proposed_action.objects[0]).toMatchObject({meteringPointId:f.external,registers:[{lineItemReference:f.caseReference}]})
-    const warnings=()=>sql<Array<{id:string;payload:{inboundCaseId:string;sourceObjectPartition:unknown}}>>(`SELECT coalesce(jsonb_agg(to_jsonb(e) ORDER BY created_at,id),'[]') FROM public.ediel_message_events e
-      WHERE e.company_id=${literal(f.companyId)} AND e.ediel_message_id=${literal(source.id)} AND e.event_type='validated' AND e.event_status='warning'
-      AND e.payload->>'inboundCaseId'=${literal(saved.id)};`)
-    const firstWarnings=warnings();expect(firstWarnings).toHaveLength(1)
-    expect(firstWarnings[0]).toMatchObject({company_id:f.companyId,ediel_message_id:source.id,created_by:f.actorUserId,event_status:'warning',
-      payload:{inboundCaseId:saved.id,reviewRequired:true,fullyApplied:false,applied:false,committedEffectReceiptIds:[],sourceObjectPartition:result!.partition}})
-    expect(protectedGraph()).toEqual(before);expect(sourceIdentity()).toEqual(birth)
-    expect(positiveAperakCount(f,source.id)).toBe(0)
-    // A new database read after coordinator completion proves saved outputs;
-    // replay preserves the same review/bindings and creates no supply effect.
+    expect(result!).toMatchObject({applied:true,fullyApplied:true,reviewRequired:false,periods:[],commits:[],switchIds:[],partition:[{
+      object:{objectId:f.external,identityAgency:'9'},disposition:'applied'}]})
+    expect(result!.effectReceiptIds).toHaveLength(1)
+    const [receiptId]=result!.effectReceiptIds;expect(result!.partition?.[0]).toMatchObject({effectReceiptId:receiptId})
+    const receipts=sql<Array<{id:string;payload_bound:boolean;effect_bound:boolean;effect:{plan:Record<string,unknown>;previousSwitches:Array<Record<string,unknown>>}}>>(`
+      SELECT coalesce(jsonb_agg(jsonb_build_object('id',e.id,'payload_bound',e.payload_hash=encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex'),
+        'effect_bound',e.effect_hash=encode(sha256(convert_to(e.effect_text,'UTF8')),'hex'),'effect',e.effect_text::jsonb) ORDER BY e.id),'[]')
+      FROM gridex_received_sources.supply_object_effect_receipts e JOIN public.ediel_messages m ON m.id=e.source_message_id AND m.company_id=e.company_id
+      WHERE e.company_id=${literal(f.companyId)} AND e.source_message_id=${literal(source.id)};`)
+    expect(receipts).toHaveLength(1);expect(receipts[0]).toMatchObject({id:receiptId,payload_bound:true,effect_bound:true})
+    const plan=receipts[0].effect.plan
+    expect(plan).toMatchObject({kind:'executed_start_compensation',switchId:null,periodId:null,disposition:'controlled_review',
+      executedSwitchId:f.switchId,executedPeriodId:witness[0].period_id,originalId:sent.id,originalHash:sql<string>(`SELECT to_jsonb(immutable_payload_hash) FROM public.ediel_messages WHERE id=${literal(sent.id)} AND company_id=${literal(f.companyId)};`),
+      confirmationSourceMessageId:confirmation.id,executedPeriod:{id:witness[0].period_id,status:'active'},object:{point:f.external,li:f.caseReference}})
+    expect(receipts[0].effect.previousSwitches).toEqual([before.switch])
+    // The correction is a real open tenant work case bound to the exact C,
+    // original, switch and period; no review-required warning is recorded.
+    const tasks=()=>sql<Array<Record<string,unknown>>>(`SELECT coalesce(jsonb_agg(to_jsonb(c) ORDER BY c.id),'[]') FROM public.customer_cases c
+      WHERE c.company_id=${literal(f.companyId)} AND c.source_ediel_message_id=${literal(source.id)};`)
+    const task=tasks();expect(task).toHaveLength(1)
+    expect(task[0]).toMatchObject({id:plan.caseId,company_id:f.companyId,customer_id:f.customerId,metering_point_id:f.pointId,supplier_switch_request_id:f.switchId,
+      case_type:'other',status:'manual_follow_up',source:'ediel_inbound_state_machine',cancellation_status:'not_required',billing_blocked:false,
+      created_by:f.actorUserId,source_ediel_message_id:source.id,metadata:{review_intent:'executed_start_compensation',executed_switch_id:f.switchId,
+        executed_period_id:witness[0].period_id,original_message_id:sent.id,confirmation_source_message_id:confirmation.id}})
+    expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_message_events WHERE company_id=${literal(f.companyId)} AND ediel_message_id=${literal(source.id)}
+      AND event_type='validated' AND event_status='warning' AND (payload->>'reviewRequired')::boolean;`)).toBe(0)
+    // Only the own C's receipt, partition and transition are new.
+    const after=protectedGraph(),history=(state:typeof before)=>state.business.history as Record<'transitions'|'effects'|'partitions',Array<Record<string,unknown>>>
+    expect({...after,business:{...after.business,history:null}}).toEqual({...before,business:{...before.business,history:null}})
+    expect(history(after).effects.filter(row=>row.id!==receiptId)).toEqual(history(before).effects)
+    for(const key of ['transitions','partitions'] as const)expect(history(after)[key].filter(row=>row.source_message_id!==source.id)).toEqual(history(before)[key])
+    expect(history(after).transitions.filter(row=>row.source_message_id===source.id)).toEqual([expect.objectContaining({resulting_states:[],qualified_switch_ids:[]})])
+    expect(sourceIdentity()).toEqual(birth)
+    // Positive final response follows within the 30 minute deadline.
+    await sendOwnAcks(f,source.id)
+    const acks=sql<Array<{family:string;outcome:string;onTime:boolean}>>(`SELECT coalesce(jsonb_agg(jsonb_build_object('family',a.message_family,'outcome',a.ack_outcome,
+      'onTime',a.message_sent_at<=s.message_received_at+interval '30 minutes') ORDER BY a.message_family),'[]')
+      FROM public.ediel_messages a JOIN public.ediel_messages s ON s.id=a.related_message_id AND s.company_id=a.company_id
+      WHERE a.company_id=${literal(f.companyId)} AND a.related_message_id=${literal(source.id)} AND a.direction='outbound';`)
+    expect(acks).toEqual([{family:'APERAK',outcome:'positive',onTime:true},{family:'CONTRL',outcome:'positive',onTime:true}])
+    // Replay keeps the same receipt, case and response and adds no effect.
+    const settled=ownedEffects(f,source.id),graph=protectedGraph()
     await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:source.id})
-    const replay=readReview();expect(replay).toHaveLength(1)
-    expect(replay[0]).toMatchObject({id:saved.id,status:'pending_review',company_id:saved.company_id,ediel_message_id:saved.ediel_message_id,
-      customer_id:saved.customer_id,site_id:saved.site_id,metering_point_id:saved.metering_point_id,parsed_customer:saved.parsed_customer,
-      parsed_metering_point:saved.parsed_metering_point,parsed_contract:saved.parsed_contract,proposed_action:saved.proposed_action,
-      review_decision:saved.review_decision,created_at:saved.created_at})
-    expect(warnings().some(event=>event.id===firstWarnings[0].id)).toBe(true)
-    expect(protectedGraph()).toEqual(before);expect(sourceIdentity()).toEqual(birth);expect(positiveAperakCount(f,source.id)).toBe(0)
+    expect(ownedEffects(f,source.id)).toEqual(settled);expect(protectedGraph()).toEqual(graph);expect(tasks()).toEqual(task)
+    expect(sourceIdentity()).toEqual(birth);expect(positiveAperakCount(f,source.id)).toBe(1)
+    // A second distinct C for the same executed start is held: one correction.
+    const second=await receiveProdat(f,z04(f,'Z24'),'Z04','C'),repeat=vi.spyOn(cancellationSupply,'applySupplyMarketSource')
+    let held:cancellationSupply.SupplyMarketResult
+    try{
+      await process(f,second)
+      const own=repeat.mock.calls.flatMap((args,index)=>args[0].message.id===second.id?[repeat.mock.results[index]]:[])
+      expect(own).toHaveLength(1);expect(own[0].type).toBe('return');held=await own[0].value as cancellationSupply.SupplyMarketResult
+    }finally{repeat.mockRestore()}
+    expect(held!).toMatchObject({applied:false,reviewRequired:true,effectReceiptIds:[],commits:[],partition:[{
+      object:{objectId:f.external,identityAgency:'9'},disposition:'held',reason:'z04c_executed_start_compensation_already_recorded'}]})
+    expect(protectedGraph()).toEqual(graph);expect(ownedEffects(f,source.id)).toEqual(settled);expect(positiveAperakCount(f,second.id)).toBe(0)
   },180000)
 
   // Source-only SC039 supplement. Reuses public nativeB's C-first/late-L
