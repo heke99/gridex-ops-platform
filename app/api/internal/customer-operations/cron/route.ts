@@ -1,3 +1,4 @@
+import { advanceCompletedParent, advanceCompletedWitnessDisposition } from '@/lib/ediel/retention/decisionEvidenceRetention'
 import { advanceSupplyMarketDeadlines } from '@/lib/ediel/flows/supplyMarketTransition'
 import { advancePermissionMarketDeadlines } from '@/lib/ediel/permissions/permissionMarketTransition'
 import { randomUUID, timingSafeEqual } from 'node:crypto'
@@ -179,7 +180,21 @@ async function run(request: NextRequest) {
         configurationBlocked: true,
       }
 
+  // Signed completed-review field disposition uses the same validated service
+  // actor and isolated worker path; configuring a schedule is separate admission.
+  const completedWitnessDisposition = actorUserId
+    ? await step('completedWitnessDisposition', () => advanceCompletedWitnessDisposition({ actorUserId, limit: requestedLimit }))
+    : { scanned: 0, disposed: 0, expired: 0, clearedApprovals: 0, held: 0, configurationBlocked: true }
+
+  // Uses the same configured actor; a failed/absent schema remains isolated.
+  // Expiry GC removes operational approvals, not substantive purpose policy.
+  const completedParentDisposition = actorUserId
+    ? await step('completedParentDisposition', () => advanceCompletedParent({ actorUserId, limit: requestedLimit }))
+    : { scanned: 0, disposed: 0, clearedApprovals: 0, held: 0, configurationBlocked: true }
+
   const result = {
+    completedParentDisposition,
+    completedWitnessDisposition,
     exactAddressResolution,
     legacyFacilityRequestReconciliation,
     customerApplicationReconciliation,
