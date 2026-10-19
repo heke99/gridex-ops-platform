@@ -2169,11 +2169,21 @@
     },
     {
       "id": "SC-037",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
         "__tests__/ediel-sc-037-future-start.test.ts",
         "__tests__/supplier-switch-activation-sweep.test.ts",
-        "lib/operations/supplierSwitchActivation.ts"
+        "lib/operations/supplierSwitchActivation.ts",
+        "lib/ediel/flows/prodatSwitch.ts",
+        "lib/ediel/flows/inboundProcessing.ts",
+        "lib/ediel/sla/checkAckDeadlines.ts",
+        "app/api/internal/customer-operations/cron/route.ts",
+        "scripts/ediel-z04l-z04lk-future-start-native.test.ts",
+        "scripts/ediel-z04l-z04lk-future-start-native.config.ts",
+        ".github/workflows/ediel-z04l-z04lk-future-start-native.yml",
+        "supabase/migrations/20260930201111_ediel_normal_switch_source_atomic_confirmation.sql",
+        "supabase/migrations/20260903090000_atomic_supplier_switch_activation_sweep.sql",
+        "supabase/migrations/20261019043000_ediel_retained_contrl_source_prefilter.sql"
       ]
     },
     {
@@ -4343,23 +4353,70 @@
     },
     {
       "id": "AT-Z06F-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/inbound-mail/customerSourceFgBirthProfile.ts",
+        "lib/inbound-mail/inboundStatusUpdater.ts",
+        "lib/ediel/core/prodatZ06SourceReadingDeclarations.ts",
+        "lib/ediel/core/messagePolicy.ts",
+        "lib/ediel/sources/structuralSourceReadset.ts",
+        "supabase/migrations/20261018143000_ediel_requested_change_metering_method_original_guard.sql",
+        "__tests__/ediel-at-z06f-supplier-component.test.ts",
+        "__tests__/ediel-customer-source-fg-birth-profile.test.ts",
+        "__tests__/ediel-z06fg-source-reading-declarations.test.ts",
+        "__tests__/ediel-structural-readset-received-ack.test.ts",
+        "scripts/ediel-at-z06f-supplier-acceptance-native.test.ts",
+        "scripts/ediel-z06f-reading-followup-native.test.ts"
+      ]
     },
     {
       "id": "AT-Z09F-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/inbound-mail/customerSourceFgBirthProfile.ts",
+        "lib/inbound-mail/inboundStatusUpdater.ts",
+        "lib/ediel/core/prodatZ06SourceReadingDeclarations.ts",
+        "lib/ediel/core/messagePolicy.ts",
+        "lib/ediel/sources/structuralSourceReadset.ts",
+        "supabase/migrations/20261018143000_ediel_requested_change_metering_method_original_guard.sql",
+        "__tests__/ediel-at-z09f-z09g-supplier-profile.test.ts",
+        "__tests__/ediel-z09fg-method-original-current-sender.test.ts",
+        "scripts/ediel-at-z09fg-supplier-composition-native.test.ts",
+        "scripts/helpers/ediel-z09fg-composition-inputs-native-producer.ts"
+      ]
     },
     {
       "id": "AT-Z06G-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/inbound-mail/customerSourceFgBirthProfile.ts",
+        "lib/inbound-mail/inboundStatusUpdater.ts",
+        "lib/ediel/core/prodatZ06SourceReadingDeclarations.ts",
+        "lib/ediel/core/messagePolicy.ts",
+        "lib/ediel/sources/structuralSourceReadset.ts",
+        "supabase/migrations/20261018143000_ediel_requested_change_metering_method_original_guard.sql",
+        "__tests__/ediel-at-z06g-supplier-component.test.ts",
+        "__tests__/ediel-customer-source-fg-birth-profile.test.ts",
+        "__tests__/ediel-z06fg-source-reading-declarations.test.ts",
+        "__tests__/ediel-structural-readset-received-ack.test.ts",
+        "scripts/ediel-at-z06g-supplier-acceptance-native.test.ts"
+      ]
     },
     {
       "id": "AT-Z09G-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/inbound-mail/customerSourceFgBirthProfile.ts",
+        "lib/inbound-mail/inboundStatusUpdater.ts",
+        "lib/ediel/core/prodatZ06SourceReadingDeclarations.ts",
+        "lib/ediel/core/messagePolicy.ts",
+        "lib/ediel/sources/structuralSourceReadset.ts",
+        "supabase/migrations/20261018143000_ediel_requested_change_metering_method_original_guard.sql",
+        "__tests__/ediel-at-z09f-z09g-supplier-profile.test.ts",
+        "__tests__/ediel-z09fg-method-original-current-sender.test.ts",
+        "scripts/ediel-at-z09fg-supplier-composition-native.test.ts",
+        "scripts/helpers/ediel-z09fg-composition-inputs-native-producer.ts"
+      ]
     },
     {
       "id": "AT-Z09B-SUPPLIER",

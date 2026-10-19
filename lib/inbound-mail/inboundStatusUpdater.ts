@@ -9,6 +9,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import { resolveAssignedSupplyBirthProfile } from '@/lib/inbound-mail/assignedSupplyBirthProfile'
 import { resolveNormalSwitchBirthProfile } from '@/lib/inbound-mail/normalSwitchBirthProfile'
 import { resolveCustomerSourceBirthProfile } from '@/lib/inbound-mail/customerSourceBirthProfile'
+import { resolveCustomerSourceFgBirthProfile } from '@/lib/inbound-mail/customerSourceFgBirthProfile'
 import { resolveMeterChangeSourceBirthProfile } from '@/lib/inbound-mail/meterChangeSourceBirthProfile'
 import { resolveSupplierDataBirthProfile } from '@/lib/inbound-mail/supplierDataBirthProfile'
 import { resolveBilateralSwitchBirthProfile } from '@/lib/inbound-mail/bilateralSwitchBirthProfile'
@@ -490,6 +491,7 @@ export async function createInboundEdielMessage(input: {
   }
   if (input.parsed.messageFamily === 'PRODAT' && insertPayload.message_code === 'Z06') {
     const birthProfile = await resolveCustomerSourceBirthProfile({ rawPayload: insertPayload.raw_payload, receivedAt: mailSource.received_at })
+      ?? await resolveCustomerSourceFgBirthProfile({ rawPayload: insertPayload.raw_payload, receivedAt: mailSource.received_at })
     if (birthProfile) Object.assign(insertPayload, birthProfile)
   }
   if (insertPayload.message_family === 'PRODAT' && insertPayload.message_code === 'Z10') {

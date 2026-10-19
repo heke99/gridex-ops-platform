@@ -97836,5 +97836,637 @@
     }
   }
     }
+  },
+  "z04_b4fe_combined_capture_input_pending_20261019": {
+    "kind": "provisional_receiving_input_preservation_with_inherited_094f_RAW3",
+    "prior_pr_source": {
+  "head": "094fc260fb71526ca3a740004a9e41ff0cd71cc8",
+  "tree": "9a35cb69fb0842473006bf64934bbe124075261d",
+  "manifest_sha256": "d418371bd45c73fcd13966aab74b99609f9bb85e1c1bb0d8dd3a366802fbbfd1"
+},
+    "incoming_main_source": {
+  "head": "b4fe4cd461a0317743712e3437caa4095cba3db0",
+  "tree": "d7e05c6d2d862a51ed7ad37cadc9d68ad16360e9",
+  "manifest_sha256": "09c443ac696482f4dfe5f10a0a84c8c54b776ca600a3de54bb9e28a02d11ae8b"
+},
+    "inherited_RAW3_origin": {
+  "source_head": "0cbc6ced1518942a57b78fd84159d239140bedb0",
+  "source_tree": "78c636a344389a08af7625f8e4cb862721115a31",
+  "workflow_run_id": 39228913804,
+  "workflow_job_id": 117981854889,
+  "attempt": 1,
+  "artifact_id": 12176847081
+},
+    "combined_capture": "NOT_RUN",
+    "combined_RAW3": "NOT_GENERATED",
+    "scope": "Inherited source inputs only. No combined capture, input epoch, catalog parity, native/browser result or final-source approval is asserted. Existing current values keep their genuine old origin.",
+    "incoming_raw_values_scope": "Literal historical preservation from incoming main; these eight values are not relabelled as one new capture or as current inherited RAW3 provenance.",
+    "incoming_main_preserved_raw_values": {
+      "generated_at": "2026-10-18T22:36:34.070268+00:00",
+      "generated_with": "supabase-cli-2.101.0-authentic-ordinary-capture-run39171801043-job117806231437-attempt1",
+      "latest_migration": "20261018143000_ediel_requested_change_metering_method_original_guard.sql",
+      "latest_migration_schema_effect": "Authentic ordinary capture of PR816 source 0ac9ac7c after successful disposable canonical replay, through 20261018143000_ediel_requested_change_metering_method_original_guard.sql. The forward migration only adds the metering-method original bridge to the requested-change scope guard (ediel_require_requested_change_source_current_before_scope_fence_v1). Types ABI bytes remain identical; normalized schema/fingerprint reflect the bridge. Full native/browser/type-schema/parity and final-head CI are separate mandatory gates.",
+      "composition_note": "Current RAW3 are exact byte copies from successful ordinary capture run39171801043/job117806231437/attempt1/artifact12152998524 at PR816 source 0ac9ac7cf2e7296d56b70c12a4bedf5930625cfc (tree e579f3f3). database.types.ts is byte-identical to the previous import. Every existing capture/SC046/API history object remains a byte-identical historical original. Current final native/browser/parity/full CI remain required.",
+      "current_prefix_verification": {
+    "kind": "genuine_successful_ordinary_capture_RAW3_ONLY",
+    "source_head": "0ac9ac7cf2e7296d56b70c12a4bedf5930625cfc",
+    "source_tree": "e579f3f3ae06d26518b90aa6039c45b0b8eaa0e2",
+    "workflow_run_id": 39171801043,
+    "workflow_job_id": 117806231437,
+    "attempt": 1,
+    "artifact_id": 12152998524,
+    "artifact_sha256": "411d201edb424f01043bb1c41d1a66be94bfa7d9fcf7a485b5572d4c83cb80fc",
+    "raw_output_sha256": {
+      "database.types.ts": "aab753d89d938884e3ce83760379aa478505185f58667d241e7b38bc90c1859d",
+      "schema.sql": "21c132e2e91c6d11e403e08fa2804f5c845912b9aab42f9492ceb7b752c24659",
+      "schema.fingerprint.json": "f7bdfe90c99a91114abaa5c4b1497397dfcac26462b7eb7624de39a37f2f22f8"
+    },
+    "latest_replay_migration": {
+      "name": "20261018143000_ediel_requested_change_metering_method_original_guard.sql",
+      "sha256": "1084a44192a54df47954561562460b8aa56ce2f8e487f51ee549981df195fb24"
+    },
+    "receipt_sha256": "9cab0ac03f42769b36e072eb036a071d2258ee53dc72a75cd73b9aa088e6eba9",
+    "source_input_sha256_from_public_git": {
+      "scripts/gridex-aud-003-clean-replay.sh": "71262366feaf3df054c7436c2fd3d80e0b96b8aaddca1df260a71fa6bf36d885",
+      "scripts/migration-history-manifest.json": "66a735464c298b3e5e534f7e27df889cb1b01280d55b48d449c4f195eed7de01",
+      "scripts/migration-history-manifest.additions.json": "84d33873ed4fd7d3759494705abc55a5dd568963d4958a4eaf4a35a77bacb934",
+      "scripts/migration-history-manifest.runtime.additions.json": "069b7707c383c4abebb32e87b2521d1316eee1b7660757438e0815fecaa95fff",
+      "scripts/supabase-types-manifest.json": "29191afeb1ba8f44ce0faff12bc7477bfc596c9588c095821e5a3e50c9205215",
+      "scripts/apply-supabase-types-nullability-overrides.cjs": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
+      "scripts/gridex-schema-snapshot.cjs": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
+      "supabase/config.toml": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919"
+    },
+    "proof_limits": "Capture-only RAW3 import. No native/browser/parity/whole-acceptance or owned-epoch attestation; those remain separate mandatory gates on the importing head."
+  },
+      "source_latest_migration": {
+    "name": "20261015183000_ops_migration_provenance_tenant_boundary.sql",
+    "sha256": "f9e49edc513f9a744d6b0cf689662adb14c970253523f3d0a0d54c710bf57928"
+  },
+      "active_generated_outputs_origin": {
+    "kind": "genuine_f3_first_UPGRADED_RAW3_COMPONENT_ONLY",
+    "source_head": "f3e517dc4e0bd9a3083c04fbccf6b921bdea1c89",
+    "source_tree": "2fe97e5569a7d8bf0443fafccdbc3e2e96e1d435",
+    "source_base": "d9fc4397be806321723fb1cac42441ca2b3106f3",
+    "authentic_upgraded_component": {
+      "repository": "heke99/gridex-ops-platform",
+      "head": "f3e517dc4e0bd9a3083c04fbccf6b921bdea1c89",
+      "tree": "2fe97e5569a7d8bf0443fafccdbc3e2e96e1d435",
+      "PR_base": "d9fc4397be806321723fb1cac42441ca2b3106f3",
+      "strict_upgrade_ancestor": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
+      "run_id": 38797531449,
+      "job_id": 116637744724,
+      "attempt": 1,
+      "event": "pull_request",
+      "workflow_path": ".github/workflows/ops-hardening.yml",
+      "artifact_id": 12003936454,
+      "artifact_name": "gridex-rem-002-upgrade-replay"
+    },
+    "actual_job": {
+      "conclusion": "failure",
+      "started_at": "2026-10-15T20:00:59Z",
+      "completed_at": "2026-10-15T20:06:55Z",
+      "workflow_whole_at_metadata": "IN_PROGRESS_OTHER_CLEAN_JOB",
+      "metadata_source": {
+        "path": "/tmp/pr794-ci-diagnosis/cohort-f3e517/checks-progress-2028.json",
+        "bytes": 158848,
+        "sha256": "8b8a0ae581944fb959341aa9e2877ebbca45d840d14ff19b30ff029b8a11dfc2"
+      }
+    },
+    "artifact": {
+      "name": "gridex-rem-002-upgrade-replay",
+      "id": 12003936454,
+      "archive_sha256": "bb9cd6e04d71d045d0e119f9cd6c46918c493d5f762a949c38323c404bbdbae8",
+      "member_manifest_sha256": "ca833e7b3e99d9809bc3aedfaff85ce1dfbece4c10b457b34976c27e19fc96b2",
+      "raw3_members": {
+        "database.types.ts": "rem002-upgrade/upgraded/database.types.ts",
+        "schema/schema.sql": "rem002-upgrade/upgraded/schema/schema.sql",
+        "schema/schema.fingerprint.json": "rem002-upgrade/upgraded/schema/schema.fingerprint.json"
+      }
+    },
+    "authentic_generation_time_truth": {
+      "actual_generation_completion_UTC": "UNKNOWN_NOT_EMITTED_IN_BARE_OWNER_LOG",
+      "artifact_created_at": "2026-10-15T20:06:53Z",
+      "interpretation": "Artifact created_at is an availability upper bound, not asserted generation/capture finish time. qualified_observed_at is collector observation time. First UPGRADED RAW generation preceded later independent CLEAN replay in sequential source/owner log."
+    },
+    "qualified_observed_at": "2026-10-15T20:49:00.713721+00:00",
+    "active_generated_at_semantics": "Artifact created_at is an availability upper bound only; actual generation UTC UNKNOWN.",
+    "first_upgraded_completion": {
+      "strict_historical_preserved": 644,
+      "actual_forward_migrations": 620,
+      "canonical_tail": "20261015183000_ops_migration_provenance_tenant_boundary.sql",
+      "tail_apply_owner_log_line": 25799,
+      "tail_COMMIT_owner_log_line": 25822,
+      "current_source_canonical14digit_SQL_files": 1173,
+      "current_source_count_basis": "EXACT_PUBLIC_GIT_SOURCE_INVENTORY; not claiming each is an independent upgrade forward",
+      "retained_rows_before_after_equal": true,
+      "native_catalog_component": {
+        "tests": 141,
+        "passed": 1,
+        "skipped": 140,
+        "failed": 0,
+        "errors": 0
+      },
+      "catalog_source_head_tree_actual_owner_log_line": 25831
+    },
+    "authentic_tool_facts": {
+      "owner_log_line_5": "local_replay_postgres_image=17.6.1.155",
+      "owner_log_line_25824": "Supabase CLI currently installed v2.101.0; newer v2.121.0 available",
+      "version_fact_limit": "These are emitted tool facts, not an invented ordinary-capture receipt.",
+      "upgrade_producer_source": {
+        "path": "scripts/gridex-ediel-upgrade-replay.sh",
+        "bytes": 6888,
+        "sha256": "80702acf7eaa3ba0c8819a3426e4a42032f2da9aec6cbb4e30dd745eb34f7485",
+        "basis": "EXACT_PUBLIC_GIT_SOURCE_ONLY_NOT_ORDINARY_CAPTURE_RECEIPT_ATTESTED"
+      }
+    },
+    "ordinary_capture_receipt": "NONE",
+    "independent_CLEAN_RAW3": "ABSENT",
+    "CLEAN_UPGRADED_parity_qualified": false,
+    "output_sha256": {
+      "database.types.ts": "aab753d89d938884e3ce83760379aa478505185f58667d241e7b38bc90c1859d",
+      "schema/schema.sql": "a107da3e9bd724efa23f1227566c7390dd387bc640ab7594ff09e20283e87c68",
+      "schema/schema.fingerprint.json": "2dbb28b5a48c06f1485e292dcc9800fac028db0b39c3d8bb7ac2212462ac3f03"
+    },
+    "schema_fingerprint": "d30efe0b05af3b7b030d39fa7bac2bbc3b7bbc12c268aafae24ddc01b037731b",
+    "collector_qualification_file_sha256": "431c9660286dc337c34aeb91dc6dea47938168f62123f9d1a252ee3dcb6466e3",
+    "source_eight_input_sha256_from_public_git": {
+      "scripts/gridex-aud-003-clean-replay.sh": "71262366feaf3df054c7436c2fd3d80e0b96b8aaddca1df260a71fa6bf36d885",
+      "scripts/migration-history-manifest.json": "66a735464c298b3e5e534f7e27df889cb1b01280d55b48d449c4f195eed7de01",
+      "scripts/migration-history-manifest.additions.json": "644810eb83e363e9a2cdfdce0428fe524385c555cd546c3acad9e50ccd49c259",
+      "scripts/migration-history-manifest.runtime.additions.json": "afe3591839e362930fb11e44457e234cfeb1336ce52935b479db8882f8d1e978",
+      "scripts/supabase-types-manifest.json": "cee584755fdbd79537a266926b0071e4fc00ae97fd38ee78160da237f0e988e6",
+      "scripts/apply-supabase-types-nullability-overrides.cjs": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
+      "scripts/gridex-schema-snapshot.cjs": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
+      "supabase/config.toml": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919"
+    },
+    "donor_executed_derived_artifact_count": 7,
+    "donor_derived_execution_records": [
+      {
+        "path": "supabase/bootstrap/20261013_ops_quote_nonexpiring_replay_adapter.sql",
+        "sha256": "3afea47b4343c5d5e6d97a4f709bccf5c8cf6f7cf33c179f022629ff4d7c481b"
+      },
+      {
+        "path": "supabase/bootstrap/20261013_ops_current_permission_replay_adapter.sql",
+        "sha256": "d5e7d62982719ffea9ff0ca65149ca6b93e5e07e5caa3518f4e651c6688328f8"
+      },
+      {
+        "path": "supabase/bootstrap/20261013_ops_permission_catalog_replay_adapter.sql",
+        "sha256": "1c2bdd4276b99f15d838a80adb1bb63def487e8db2e31405e5821264f4a7c5d9"
+      },
+      {
+        "path": "supabase/bootstrap/20261013_ops_auth_expiry_replay_adapter.sql",
+        "sha256": "070b2e524b964c78e9e99a91553f8d4eab74811fb8a76e994cfe8e52088b84fa"
+      },
+      {
+        "path": "supabase/bootstrap/20261013_ops_market_actor_normalizer_replay_adapter.sql",
+        "sha256": "f1ad2cfd7a1a455baf606a0c565d9b0341e736c2570e6be7ad8e83966a96d219"
+      },
+      {
+        "path": "supabase/bootstrap/20261014_ops_signing_prepare_postlock_replay_adapter.sql",
+        "sha256": "3302b837142d4b48547a39d10b2583a0915161a0d1e59d7680be710f879cc8e3"
+      },
+      {
+        "path": "supabase/bootstrap/20261015_ops_atomic_bb0b_preflight_diagnostic_replay_adapter.sql",
+        "sha256": "6c139e8f94e86de4409e0097078f56d839cdd824fc3f6f7858549699ed7d87e8"
+      }
+    ],
+    "receiving_source_only_applicability_sha256": "0042bf493732adfc2005d7b6f6141eae150492d8bc2d36b54b14ba9face651d6",
+    "receiving_projected_derived_artifact_count": 8,
+    "receiving_projected_derived_execution_records": [
+      {
+        "path": "supabase/bootstrap/20261013_ops_quote_nonexpiring_replay_adapter.sql",
+        "sha256": "3afea47b4343c5d5e6d97a4f709bccf5c8cf6f7cf33c179f022629ff4d7c481b"
+      },
+      {
+        "path": "supabase/bootstrap/20261013_ops_current_permission_replay_adapter.sql",
+        "sha256": "d5e7d62982719ffea9ff0ca65149ca6b93e5e07e5caa3518f4e651c6688328f8"
+      },
+      {
+        "path": "supabase/bootstrap/20261013_ops_auth_expiry_replay_adapter.sql",
+        "sha256": "070b2e524b964c78e9e99a91553f8d4eab74811fb8a76e994cfe8e52088b84fa"
+      },
+      {
+        "path": "supabase/bootstrap/20261013_ops_permission_catalog_replay_adapter.sql",
+        "sha256": "1c2bdd4276b99f15d838a80adb1bb63def487e8db2e31405e5821264f4a7c5d9"
+      },
+      {
+        "path": "supabase/bootstrap/20261015_ops_atomic_bb0b_preflight_diagnostic_replay_adapter.sql",
+        "sha256": "6c139e8f94e86de4409e0097078f56d839cdd824fc3f6f7858549699ed7d87e8"
+      },
+      {
+        "path": "supabase/bootstrap/20261013_ops_market_actor_normalizer_replay_adapter.sql",
+        "sha256": "f1ad2cfd7a1a455baf606a0c565d9b0341e736c2570e6be7ad8e83966a96d219"
+      },
+      {
+        "path": "supabase/bootstrap/20261014_ops_signing_prepare_postlock_replay_adapter.sql",
+        "sha256": "3302b837142d4b48547a39d10b2583a0915161a0d1e59d7680be710f879cc8e3"
+      },
+      {
+        "path": "supabase/bootstrap/20261015_ops_signed_price_cache_logical_authority_replay.sql",
+        "sha256": "007a93cbc2a8af7abb4828e9fdc4473d91ef3075f8f13db77d22a11a85abb328"
+      }
+    ],
+    "sequencing_supersession": {
+      "immutable_original_source_prerequisite_sha256": "0042bf493732adfc2005d7b6f6141eae150492d8bc2d36b54b14ba9face651d6",
+      "root_scoped_sequencing_decision_sha256": "e6a44fd3d28af93ef0395f54dfd58e4dca093fc7558c261069ae8c0f753eb466",
+      "root_scoped_sequencing_decision": {
+        "kind": "ROOT_SCOPED_SOURCE_SEQUENCING_DECISION_NOT_IMPORT_OR_DELIVERY_APPROVAL",
+        "createdAt": "2026-10-15T20:51:42.851392+00:00",
+        "agent": "codex-pr794-takeover-20261015",
+        "donorSource": "f3e517dc4e0bd9a3083c04fbccf6b921bdea1c89",
+        "receivingTechnicalCommit": "f63320d16b47fb6548d5439208b272520989fb0c",
+        "receivingTechnicalTree": "929a0428a953a13fa23f680375c261f2e69d601d",
+        "immutableOriginalPrerequisite": {
+          "path": "/tmp/pr794-cross-job-receiving-prerequisites/receiving-source-prerequisites.json",
+          "SHA256": "0042bf493732adfc2005d7b6f6141eae150492d8bc2d36b54b14ba9face651d6"
+        },
+        "policyA": "414e7f29b9a45226af08728e4e3adba957cf1944a3ef6ac27778b2d7691b2a62",
+        "policyB": "55ea25b0a7e538f2015cbb249ea50c4ef99b5f7b13e25bc5c50c1f88461150ad",
+        "qualifiedFirstUpgradedLoan": "431c9660286dc337c34aeb91dc6dea47938168f62123f9d1a252ee3dcb6466e3",
+        "onlySupersededOptionalPreImportSequencing": [
+          {
+            "path": "/genuine_cross_job_RAW_qualification",
+            "old": "NOT_YET_AVAILABLE; no RAW consumed/copied; first-UPGRADED alone ineligible",
+            "new": "The two-origin pre-import sequence is superseded only for SOURCE adoption by the bounded QUALIFIED_FIRST_UPGRADED_COMPONENT_ONLY loan431c9660. Qualified firstUPGRADEDRAW3 may support a faithful proposal with truthful wholeUPGRADEFAIL, independentCLEAN beforeRAW failure, missing parity/c8/ordinaryreceipt, and expected receiving persisted-output applicability. No DELIVERY/current runtime attestation."
+          },
+          {
+            "path": "/must_still_happen/0",
+            "old": "Sole collector qualifies genuine f3CLEAN+firstUPGRADED RAW3 full byte parity/source binding",
+            "new": "Validate solecollector qualified existing FIRST_UPGRADED_COMPONENT_ONLY original loan431c9660 and exact RAW3/origin/failure provenance, then freeze faithful concrete proposal; a second donor RAW set is not required before this reversible SOURCE import."
+          },
+          {
+            "path": "/must_still_happen/1",
+            "old": "Explicit old-source→receiving-batch applicability and both qualified component job/artifact truth",
+            "new": "Explicit oldsource f3 to receiving f633 persisted-output applicability plus the qualified single UPGRADED component job/artifact truth. Preserve missing independent clean/ordinary receipt/parity/c8 and all final mandatory receiving checks."
+          }
+        ],
+        "everyOtherOriginalSourceFactAndRequirement": "UNCHANGED; original0042 receipt and its historical not-performed statements remain immutable asoforiginalreceipt, not current builder execution assertions",
+        "stillRequiredBeforeParentWrite": "Two independent nonauthor SOURCE approvals of concrete frozen RAW3/manifest postimages+origin truth/raw154otherfields/9exactarchives/inverse/persisted-output applicability; fresh exactGEN5custody andowncheckpointFIRST",
+        "stillRequiredBeforeMerge": "Actual CURRENT ordinarycapture SUCCESS +fullCLEANnative/all13browser/invariants/parity/driftselftest+UPGRADEbothhistories/fullRAWcomparison+allmandatoryCI+twoDELIVERY+normalexpected-headmerge",
+        "newProducerOrGateModification": false,
+        "manualCancelOrRerun": false
+      },
+      "only_three_optional_sequencing_field_paths_changed": true,
+      "inverse_restores_all_original_values_and_source_facts": true,
+      "original_historical_not_performed_statements_are_as_of_original_receipt": true,
+      "effective_SOURCE_only_prerequisite_values": {
+        "qualification": "SOURCE_ONLY_RECEIVING_BATCH_PREREQUISITES_NOT_CAPTURE_OR_EXECUTION_ATTESTATION",
+        "source_basis": "f3e517dc4e0bd9a3083c04fbccf6b921bdea1c89",
+        "source_tree": "2fe97e5569a7d8bf0443fafccdbc3e2e96e1d435",
+        "actual_main_basis": "d9fc4397be806321723fb1cac42441ca2b3106f3",
+        "receiving_technical_commit": "f63320d16b47fb6548d5439208b272520989fb0c",
+        "receiving_technical_tree": "929a0428a953a13fa23f680375c261f2e69d601d",
+        "publication_at_receipt": "NOT_PUBLISHED; public donor f3 still running",
+        "source_only_not_donor_run_attestation": true,
+        "canonical_all_1173_SQL_unchanged": true,
+        "canonical_source_inventory_git_blob_map_sha256": "d5b7de55bf3870b45bfe07fead6fc30f6d4b1320331c0f10838586264ee2e60d",
+        "ledger_unchanged": {
+          "path": "quality/audits/ediel-masterplan-v2/coverage.json",
+          "kind": "Masterplan coverage ledger, not a runtime schema_migrations snapshot",
+          "sha256": "d2bea375b9fc02fba5d4561b00018081a5ea98860ed60961032cfc486c48cb41",
+          "new_ledger_credit": 0
+        },
+        "runtime_erased_type_fix": {
+          "path": "__tests__/ops-migration-provenance-tenant-boundary.test.ts",
+          "javascript_byte_identical": true,
+          "all_145_string_SQL_literals_identical": true,
+          "pre_sha256": "56952aa4daa5d41881e0901bd51846ba164d9f071c4c417d581ea76fdebf6599",
+          "post_sha256": "7e14e41d4bc95f10debd9bee633713b90c5ec9f579fa8f43434035d351b3dd56",
+          "proof_file_sha256": "3f441b2b906f3f3641411593282d0835072928338d3a32903a187bf0d7375283"
+        },
+        "capture_classifier": {
+          "path": ".github/workflows/staff-api-schema-capture.yml",
+          "source_sha256": "e5eb15a3b859ebbb76630695d4a41a050a175c2e55210dd1434a0a0c68a340d8",
+          "receiving_workflow_sha256": "20973036b1ecd78bb96e3980f0c1014097799770ad060eed7491f8e3ea548a2c",
+          "whole_original_run_inverse_exact": true,
+          "original_capture_run_bytes_sha256": "5e3d946fdb77076b8f53a998dfea2cb8acb24d20d34f443cf54c68c2b687baf2",
+          "original_capture_run_byte_identical": true,
+          "whole_parsed_workflow_inverse_after_removing_only_added_id_and_failure_step": true,
+          "new_step_gate": "failure() && steps.sourced_capture.outcome == 'failure'",
+          "capture_success_path_and_original_four_artifact_members_unchanged": true,
+          "actual_failed_capture_cause": "UNKNOWN; classifier changes future failure visibility only",
+          "retained_93_component_checks": "Source-approved V1 evidence applies byte-exact to V2 parsed run; not rerun by this author"
+        },
+        "price_cache_projection": {
+          "canonical_source_path": "supabase/migrations/20261015100259_ops_api_signed_contract_price_cache_binding_guard_alignment.sql",
+          "canonical_source_sha256": "9c055dba7b020aad3bb867f6ff2b02f8854fee4bc136db2de4042bc6347dc83c",
+          "execution_artifact_path": "supabase/bootstrap/20261015_ops_signed_price_cache_logical_authority_replay.sql",
+          "execution_artifact_post_sha256": "007a93cbc2a8af7abb4828e9fdc4473d91ef3075f8f13db77d22a11a85abb328",
+          "descriptor_path": "scripts/gridex-aud-003-legacy-foundation.additions.json",
+          "descriptor_source_sha256": "d44ef59c0bed3bae819c8d25fa756e7bee0372756517c4b2b15fa494d883166c",
+          "descriptor_receiving_sha256": "5bac4e08b17009636a6d70035c288121a124c294984a104140ab4f72053baa99",
+          "all_original_DDL_function_bodies_and_metadata_unchanged": true,
+          "only_two_pg_class_snapshots_and_closed_boolean_DETAIL_changed": true,
+          "full_artifact_inverse_to_immutable_canonical_bytes": true,
+          "physical_fields_excluded": [
+            "relpages",
+            "reltuples",
+            "relallvisible",
+            "relallfrozen",
+            "relfrozenxid",
+            "relminmxid"
+          ],
+          "all_original_eight_authority_sections_and_logical_fields_retained": true,
+          "finite_component_cases_passed": 21,
+          "generic_resolver_materializer_cases_passed": 7,
+          "durable_isolated_unit": {
+            "path": "__tests__/ops-signed-price-cache-logical-authority-replay.test.ts",
+            "post_sha256": "4d3c4b4ec6d4cc514cbedfa0d09c346446f57da304b8b7eaec248ee6499ae3ac",
+            "actual_final_passes": 5,
+            "actual_reverted_artifact_RED": "ANALYZE 1FAIL+4PASS; exact artifact restored then5PASS",
+            "lint_errors": 0,
+            "typecheck_exit": 0,
+            "not_one_of_eight_capture_input_files": true,
+            "not_capture_generation_entrypoint": true,
+            "isolation": "Unit fixture only; not executed by capture workflow/generator; no new GEN input effect"
+          },
+          "actual_f3_failed_operand": "UNKNOWN; component proof does not attribute actual CI failure",
+          "native_full_original_install_or_GEN_claim": "NONE"
+        },
+        "old_executed_derived_artifact_count": 7,
+        "receiving_projected_derived_artifact_count": 8,
+        "donor_derived_execution_records": [
+          {
+            "path": "supabase/bootstrap/20261013_ops_quote_nonexpiring_replay_adapter.sql",
+            "sha256": "3afea47b4343c5d5e6d97a4f709bccf5c8cf6f7cf33c179f022629ff4d7c481b"
+          },
+          {
+            "path": "supabase/bootstrap/20261013_ops_current_permission_replay_adapter.sql",
+            "sha256": "d5e7d62982719ffea9ff0ca65149ca6b93e5e07e5caa3518f4e651c6688328f8"
+          },
+          {
+            "path": "supabase/bootstrap/20261013_ops_permission_catalog_replay_adapter.sql",
+            "sha256": "1c2bdd4276b99f15d838a80adb1bb63def487e8db2e31405e5821264f4a7c5d9"
+          },
+          {
+            "path": "supabase/bootstrap/20261013_ops_auth_expiry_replay_adapter.sql",
+            "sha256": "070b2e524b964c78e9e99a91553f8d4eab74811fb8a76e994cfe8e52088b84fa"
+          },
+          {
+            "path": "supabase/bootstrap/20261013_ops_market_actor_normalizer_replay_adapter.sql",
+            "sha256": "f1ad2cfd7a1a455baf606a0c565d9b0341e736c2570e6be7ad8e83966a96d219"
+          },
+          {
+            "path": "supabase/bootstrap/20261014_ops_signing_prepare_postlock_replay_adapter.sql",
+            "sha256": "3302b837142d4b48547a39d10b2583a0915161a0d1e59d7680be710f879cc8e3"
+          },
+          {
+            "path": "supabase/bootstrap/20261015_ops_atomic_bb0b_preflight_diagnostic_replay_adapter.sql",
+            "sha256": "6c139e8f94e86de4409e0097078f56d839cdd824fc3f6f7858549699ed7d87e8"
+          }
+        ],
+        "receiving_projected_derived_execution_records": [
+          {
+            "path": "supabase/bootstrap/20261013_ops_quote_nonexpiring_replay_adapter.sql",
+            "sha256": "3afea47b4343c5d5e6d97a4f709bccf5c8cf6f7cf33c179f022629ff4d7c481b"
+          },
+          {
+            "path": "supabase/bootstrap/20261013_ops_current_permission_replay_adapter.sql",
+            "sha256": "d5e7d62982719ffea9ff0ca65149ca6b93e5e07e5caa3518f4e651c6688328f8"
+          },
+          {
+            "path": "supabase/bootstrap/20261013_ops_auth_expiry_replay_adapter.sql",
+            "sha256": "070b2e524b964c78e9e99a91553f8d4eab74811fb8a76e994cfe8e52088b84fa"
+          },
+          {
+            "path": "supabase/bootstrap/20261013_ops_permission_catalog_replay_adapter.sql",
+            "sha256": "1c2bdd4276b99f15d838a80adb1bb63def487e8db2e31405e5821264f4a7c5d9"
+          },
+          {
+            "path": "supabase/bootstrap/20261015_ops_atomic_bb0b_preflight_diagnostic_replay_adapter.sql",
+            "sha256": "6c139e8f94e86de4409e0097078f56d839cdd824fc3f6f7858549699ed7d87e8"
+          },
+          {
+            "path": "supabase/bootstrap/20261013_ops_market_actor_normalizer_replay_adapter.sql",
+            "sha256": "f1ad2cfd7a1a455baf606a0c565d9b0341e736c2570e6be7ad8e83966a96d219"
+          },
+          {
+            "path": "supabase/bootstrap/20261014_ops_signing_prepare_postlock_replay_adapter.sql",
+            "sha256": "3302b837142d4b48547a39d10b2583a0915161a0d1e59d7680be710f879cc8e3"
+          },
+          {
+            "path": "supabase/bootstrap/20261015_ops_signed_price_cache_logical_authority_replay.sql",
+            "sha256": "007a93cbc2a8af7abb4828e9fdc4473d91ef3075f8f13db77d22a11a85abb328"
+          }
+        ],
+        "execution_inventory_basis": "SOURCE ONLY: unchanged committed generic resolver uses actual qualified620forward selection. Receiving8records have NOT executed in donor jobs. This is not all1173forward execution.",
+        "source_capture_input_FILE_hash_count": 8,
+        "source_eight_input_sha256_from_public_git": {
+          "scripts/gridex-aud-003-clean-replay.sh": "71262366feaf3df054c7436c2fd3d80e0b96b8aaddca1df260a71fa6bf36d885",
+          "scripts/migration-history-manifest.json": "66a735464c298b3e5e534f7e27df889cb1b01280d55b48d449c4f195eed7de01",
+          "scripts/migration-history-manifest.additions.json": "644810eb83e363e9a2cdfdce0428fe524385c555cd546c3acad9e50ccd49c259",
+          "scripts/migration-history-manifest.runtime.additions.json": "afe3591839e362930fb11e44457e234cfeb1336ce52935b479db8882f8d1e978",
+          "scripts/supabase-types-manifest.json": "cee584755fdbd79537a266926b0071e4fc00ae97fd38ee78160da237f0e988e6",
+          "scripts/apply-supabase-types-nullability-overrides.cjs": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
+          "scripts/gridex-schema-snapshot.cjs": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
+          "supabase/config.toml": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919"
+        },
+        "receiving_technical_eight_file_hashes_equal": true,
+        "eight_hash_scope_limit": "Public Git source-derived only, no ordinary receipt/restoration attestation. Descriptor/bootstrap change is outside these8 named files and explicitly bound above. A later GEN manifest adoption changes that manifest input and needs fresh ordinary capture.",
+        "receiving_non_GEN_postimages": [
+          {
+            "source_path": ".github/workflows/staff-api-schema-capture.yml",
+            "source_existed": true,
+            "source_sha256": "e5eb15a3b859ebbb76630695d4a41a050a175c2e55210dd1434a0a0c68a340d8",
+            "source_git_blob": "43c6546f9a652dd0258bbff5e8c610421ecda55c",
+            "receiving_git_blob": "85a612fa3c409c8a9f6c1cc0f2bbf1c1610796b6",
+            "post_sha256": "20973036b1ecd78bb96e3980f0c1014097799770ad060eed7491f8e3ea548a2c",
+            "post_bytes": 125527,
+            "postimage_path": "/workspace/pr794/.github/workflows/staff-api-schema-capture.yml"
+          },
+          {
+            "source_path": "__tests__/ops-migration-provenance-tenant-boundary.test.ts",
+            "source_existed": true,
+            "source_sha256": "56952aa4daa5d41881e0901bd51846ba164d9f071c4c417d581ea76fdebf6599",
+            "source_git_blob": "a1f38f401ab39f0d21b8d32bbd6d920570d5bc7d",
+            "receiving_git_blob": "3abc2b7179b6f4683723d0a7d7490256896a442c",
+            "post_sha256": "7e14e41d4bc95f10debd9bee633713b90c5ec9f579fa8f43434035d351b3dd56",
+            "post_bytes": 17854,
+            "postimage_path": "/workspace/pr794/__tests__/ops-migration-provenance-tenant-boundary.test.ts"
+          },
+          {
+            "source_path": "scripts/gridex-aud-003-legacy-foundation.additions.json",
+            "source_existed": true,
+            "source_sha256": "d44ef59c0bed3bae819c8d25fa756e7bee0372756517c4b2b15fa494d883166c",
+            "source_git_blob": "e911f0d80bcb49737403b73fd2bf9128a364ae43",
+            "receiving_git_blob": "5ed7dd5d65eccee375864622daf43dddf06e992b",
+            "post_sha256": "5bac4e08b17009636a6d70035c288121a124c294984a104140ab4f72053baa99",
+            "post_bytes": 38361,
+            "postimage_path": "/workspace/pr794/scripts/gridex-aud-003-legacy-foundation.additions.json"
+          },
+          {
+            "source_path": "supabase/bootstrap/20261015_ops_signed_price_cache_logical_authority_replay.sql",
+            "source_existed": false,
+            "source_sha256": null,
+            "source_git_blob": null,
+            "receiving_git_blob": "51c4ac98627ba9b0fd3171136ce34b9f6015cac8",
+            "post_sha256": "007a93cbc2a8af7abb4828e9fdc4473d91ef3075f8f13db77d22a11a85abb328",
+            "post_bytes": 10796,
+            "postimage_path": "/workspace/pr794/supabase/bootstrap/20261015_ops_signed_price_cache_logical_authority_replay.sql"
+          },
+          {
+            "source_path": "__tests__/ops-signed-price-cache-logical-authority-replay.test.ts",
+            "source_existed": false,
+            "source_sha256": null,
+            "source_git_blob": null,
+            "receiving_git_blob": "8601d45c9fa31ccaa7687c5d3a011c9fbcb3e93e",
+            "post_sha256": "4d3c4b4ec6d4cc514cbedfa0d09c346446f57da304b8b7eaec248ee6499ae3ac",
+            "post_bytes": 4281,
+            "postimage_path": "/workspace/pr794/__tests__/ops-signed-price-cache-logical-authority-replay.test.ts"
+          }
+        ],
+        "extra_own_checkpoint_path": ".agent-memory/pr794-takeover-20261015.json",
+        "every_other_donor_path_unchanged": true,
+        "old_RAW3_types_manifest_unchanged": true,
+        "exact_proof_files": [
+          {
+            "path": "/workspace/pr794-handoff/final-source-preflight/signed-cache-local-technical-commit.json",
+            "sha256": "2df4525e85070596061987e325352b4d057bbcb728d2e1e349d5dc1b2ce2e0c6"
+          },
+          {
+            "path": "/workspace/pr794-handoff/final-source-preflight/signed-cache-five-path-materialization.json",
+            "sha256": "22c5469c5135d17332f2f80c23a3fe98a2023deb4fd1f282e33a8853763b925b"
+          },
+          {
+            "path": "/workspace/pr794-handoff/final-source-preflight/committed-logical-authority-resolver-proof.json",
+            "sha256": "bd478981dc46e527d054e7e20316853765ff74d2f80066f60486354dd520cb65"
+          },
+          {
+            "path": "/workspace/pr794-handoff/final-source-preflight/ledger-preservation.json",
+            "sha256": "4032bd37f472584dea1a286f4015f746da08a3325905c7c6733e7322759e1674"
+          },
+          {
+            "path": "/workspace/pr794-handoff/final-source-preflight/tenant-unit-type-fix/manifest.json",
+            "sha256": "153ac00f0b44a759ae825c43bdebe43c03adc87b3f4ae5068c733e1fd005d364"
+          },
+          {
+            "path": "/workspace/pr794-handoff/final-source-preflight/tenant-unit-type-fix/runtime-erasure-proof.json",
+            "sha256": "3f441b2b906f3f3641411593282d0835072928338d3a32903a187bf0d7375283"
+          },
+          {
+            "path": "/workspace/pr794-handoff/final-source-preflight/tenant-unit-type-fix/SOURCE-A.json",
+            "sha256": "85f6a7cc53168c5283b05eaa7d2c71c7c02ff3beb1e6026b09b2953f037a6edf"
+          },
+          {
+            "path": "/workspace/pr794-handoff/final-source-preflight/tenant-unit-type-fix/SOURCE-B.json",
+            "sha256": "850298f4f9058b4731017ef4b011b71c62a91b2f1930d0043e4076dfe32eacb4"
+          },
+          {
+            "path": "/workspace/pr794-handoff/final-source-preflight/capture-failure-diagnostic/frozen-manifest.json",
+            "sha256": "b7effd94bec8556950f1cacad0935d627d324627f1d352439fa97acec24f2c84"
+          },
+          {
+            "path": "/workspace/pr794-handoff/final-source-preflight/capture-failure-diagnostic-v2/frozen-manifest.json",
+            "sha256": "550f023a8ac20cab6a46c132957f9094dce1a98f040872397a0605ae3950a2fa"
+          },
+          {
+            "path": "/workspace/pr794-handoff/final-source-preflight/capture-failure-diagnostic-v2/v1-to-v2-proof.json",
+            "sha256": "1b91f45f0ac61c49df29e8a2aba6d89bd84e1052902193eeb826c71084081926"
+          },
+          {
+            "path": "/workspace/pr794-handoff/final-source-preflight/capture-failure-diagnostic-v2/SOURCE-A.json",
+            "sha256": "7581c7364ddda3e6777232f20a8693f05a46481e31a576079a9555da8c4263fa"
+          },
+          {
+            "path": "/workspace/pr794-handoff/final-source-preflight/capture-failure-diagnostic-v2/SOURCE-B.json",
+            "sha256": "42298dcdb7a63ad3e8127dfe2eadb2b3ff4cceb5bded31673f70487d8548bedb"
+          },
+          {
+            "path": "/workspace/pr794-handoff/final-source-preflight/signed-cache-logical-authority-proposal/manifest.json",
+            "sha256": "1ff6d6da6bf0d7c7dbe70c8234836c11b73b50feae538f840c509f20a8488641"
+          },
+          {
+            "path": "/workspace/pr794-handoff/final-source-preflight/signed-cache-logical-authority-proposal/source-proof.json",
+            "sha256": "282bf52851f36e5a634c4f3daab9452abd122ec3e9ee9667e2693258bc125f21"
+          },
+          {
+            "path": "/workspace/pr794-handoff/final-source-preflight/signed-cache-logical-authority-proposal/verification.json",
+            "sha256": "ba53891589cfe80da2556802f872ea43c2ddfc96168e6389c1e9d3f612e39e58"
+          },
+          {
+            "path": "/workspace/pr794-handoff/final-source-preflight/signed-cache-logical-authority-proposal/evidence/component-21-results.json",
+            "sha256": "343b25a6cad3d010b3f10d02a3971ceb9322566f88602341cc3724603a968ac2"
+          },
+          {
+            "path": "/workspace/pr794-handoff/final-source-preflight/signed-cache-logical-authority-proposal/evidence/resolver-7-results.json",
+            "sha256": "14acadb9c8cca26428593261f432c417e6a116dce04b189eb3d540189d46a1e2"
+          },
+          {
+            "path": "/workspace/pr794-handoff/final-source-preflight/signed-cache-logical-authority-proposal/vitest-green-final.json",
+            "sha256": "4ded7125d0960152396248309d2bc1ec4a74c6acd974c44abd4f1660f307b872"
+          },
+          {
+            "path": "/workspace/pr794-handoff/final-source-preflight/signed-cache-logical-authority-proposal/vitest-red.json",
+            "sha256": "eeb6b9285c332a631a7c3f9effc5f8c8e99556bdf48e083b052ecd69151ecaec"
+          },
+          {
+            "path": "/workspace/pr794-handoff/final-source-preflight/signed-cache-logical-authority-proposal/closed-diagnostic-results.json",
+            "sha256": "d565c272323a3a9cc59daec9896190a9fe4263cdb6e8e753f62f3e868dc9375b"
+          },
+          {
+            "path": "/workspace/pr794-handoff/final-source-preflight/signed-cache-logical-authority-proposal/SOURCE-A.json",
+            "sha256": "adf9d73dffbde7e8f224dcfbcca27449ce4985d7f2f82914db905da0a3eca583"
+          },
+          {
+            "path": "/workspace/pr794-handoff/final-source-preflight/signed-cache-logical-authority-proposal/SOURCE-B.json",
+            "sha256": "e79f5476d349052fba227e1a70033bb361e5b373fc0050573f588721281910a8"
+          }
+        ],
+        "source_reviews": "All5exact postimages have2 independent SOURCE reviews; not DELIVERY or GEN-import approval",
+        "genuine_cross_job_RAW_qualification": "The two-origin pre-import sequence is superseded only for SOURCE adoption by the bounded QUALIFIED_FIRST_UPGRADED_COMPONENT_ONLY loan431c9660. Qualified firstUPGRADEDRAW3 may support a faithful proposal with truthful wholeUPGRADEFAIL, independentCLEAN beforeRAW failure, missing parity/c8/ordinaryreceipt, and expected receiving persisted-output applicability. No DELIVERY/current runtime attestation.",
+        "must_still_happen": [
+          "Validate solecollector qualified existing FIRST_UPGRADED_COMPONENT_ONLY original loan431c9660 and exact RAW3/origin/failure provenance, then freeze faithful concrete proposal; a second donor RAW set is not required before this reversible SOURCE import.",
+          "Explicit oldsource f3 to receiving f633 persisted-output applicability plus the qualified single UPGRADED component job/artifact truth. Preserve missing independent clean/ordinary receipt/parity/c8 and all final mandatory receiving checks.",
+          "Exact postimage/type/schema-effect checks and2 independent GEN SOURCE reviews before parent write",
+          "Genuine current ordinary capture SUCCESS and mandatory native/browser/upgrade/parity/final CI before merge"
+        ],
+        "not_performed_by_this_author": [
+          "No original fetch/extraction or RAW copy",
+          "No GEN builder/import",
+          "No native/backend/database/generation",
+          "No parent file/ref mutation"
+        ]
+      },
+      "root_explicit_EXEC_decision_reference": "Parent /root ROOT EXEC AUTHORIZED message after immutable loan431c9660; bounded SOURCE proposal only, root decision e6a44fd3 and policy A414e7f29/B55ea25b0",
+      "unchanged_final_requirements": "Successful actual-final-head ordinary capture, full CLEAN, both UPGRADE scenarios and independent parity, all mandatory CI, and two DELIVERY reviews still fully block merge."
+    },
+    "proof_limits": {
+      "whole_UPGRADE": "FAILURE",
+      "independent_CLEAN": {
+        "result": "FAILURE_BEFORE_RAW",
+        "script": "supabase/migrations/20261015100259_ops_api_signed_contract_price_cache_binding_guard_alignment.sql",
+        "source_sha256": "9c055dba7b020aad3bb867f6ff2b02f8854fee4bc136db2de4042bc6347dc83c",
+        "script_line": 133,
+        "original_error_log_line": 50686,
+        "error": "signed_price_cache_forward_postconditions_failed",
+        "context": "PL/pgSQL inline_code_block line122 atRAISE",
+        "exact_failed_disjunct": "NOT_EXPOSED_BY_ORIGINAL",
+        "checked_source_lines": [
+          125,
+          126,
+          127,
+          128,
+          129,
+          130
+        ]
+      },
+      "independent_CLEAN_RAW": "ABSENT; stopped before RAW generation",
+      "whole_upgrade_clean_parity": "NOT_RUN",
+      "later_c8_historical_scenario": "NOT_RUN",
+      "type_comparison_to_current_committed": "NOT_REACHED",
+      "ordinary_capture": "SEPARATE_FAILURE_ZERO_ARTIFACTS_NO_RECEIPT",
+      "ordinary_capture_root_equivalence": "UNPROVEN_INNER_ROOT_UNEXPOSED",
+      "full_CLEAN_native_browser": "NOT_QUALIFIED_BY_THIS_LOAN",
+      "whole_job_or_gate_PASS": "NONE_CLAIMED",
+      "generation_UTC": "UNKNOWN; generated_at is authentic artifact-created availability upper bound, not generation completion",
+      "source_eight_input_hashes": "PUBLIC_GIT_f3_SOURCE_DERIVED_ONLY; no ordinary receipt or restoration attestation",
+      "receiving_f633_eight_derived_artifacts": "SOURCE_ONLY projected inventory; donor executed only seven",
+      "owned_epoch_restoration_zero_all": "NOT_ATTESTED",
+      "current_ordinary_capture_CLEAN_UPGRADE_parity_native_browser_full_CI": "FULLY_BLOCKING_STILL_REQUIRED",
+      "two_independent_final_DELIVERY_reviews": "NOT_PASSED_BY_THIS_COMPONENT; remain required",
+      "final_delivery_or_merge_approval": false
+    }
+  }
+    }
   }
 }
