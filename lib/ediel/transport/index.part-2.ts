@@ -11,6 +11,7 @@ import { assertUtiltsPositiveAckAuthorityForSend } from '@/lib/ediel/utilts/posi
 import { wireFormatIdentityIssue } from '@/lib/ediel/core/messageWireFormat'
 import { assertAiListOutboundMessage } from '@/lib/ediel/aiListFormat'
 import { assertScopedEdielProductionCapability } from '@/lib/ediel/scopedCapabilityReadiness'
+import { assertControlledLiveSendAllowed, assertControlledLiveSendPreflight, controlledCertificateFingerprint, normalizeCertificateFingerprint, type ControlledLiveBinding } from './controlledLiveSendGuard'
 import {validateEdielMessageRowWithRulebook} from '@/lib/ediel/rulebook/validator'
 import {assertGasApplicabilitySendBoundary,gasApplicabilitySendIssue,gasApplicabilitySendFieldIssues} from '@/lib/ediel/prodat/prodatGasAuthority'
 import {deathStatusSendIssue} from '@/lib/ediel/prodat/prodatDeathStatusAuthority'
@@ -340,13 +341,17 @@ export async function withAcceptedInboundVersions(
 
 export async function sendEdielMessageViaSmtp(
   message: EdielMessageRow,
-  params?: { actorUserId?: string | null; smtpMimeMode?: EdielSmtpMimeMode | string | null; dispatchOwner?: OutboundDispatchOwner; temporarySecurityExceptionId?: string | null }
+  params?: { actorUserId?: string | null; smtpMimeMode?: EdielSmtpMimeMode | string | null; dispatchOwner?: OutboundDispatchOwner; temporarySecurityExceptionId?: string | null
+    /** OPS-04: minted only by sendControlledLiveEdielMessage; verified by the guard. */
+    controlledBinding?: ControlledLiveBinding }
 ): Promise<{
   accepted: string[]
   rejected: string[]
   messageId: string | null
   dispatchObservedAt: string
 }> {
+  // Captured once; an issued binding is deeply frozen (checked by the OPS-04 guard).
+  const controlledBinding = params?.controlledBinding ?? null
   const actorUserId = requireActorUserId(params?.actorUserId)
   if (!message.company_id) throw new Error('ediel_transport_company_required')
   const established = await readAcceptedEdielTransportProjection({ companyId: message.company_id,
@@ -431,6 +436,9 @@ export async function sendEdielMessageViaSmtp(
     ? prepareEdielMeteringMethodExpectationPlan(message, policy) : null
 
   if (!message.company_id) throw new Error('ediel_transport_company_required')
+  // OPS-04: after every existing pre-I/O hold, before retry basis, wire
+  // reference reservation, journal, archive and provider. Server-activated.
+  await assertControlledLiveSendPreflight(message, actorUserId, controlledBinding)
   const recoveryAuthorization = params?.dispatchOwner?.kind === 'worker'
     ? await readProdatTransportRetryBasis({ companyId: message.company_id, messageId: message.id,
       outboxId: params.dispatchOwner.outboxId, actorUserId })
@@ -471,6 +479,11 @@ export async function sendEdielMessageViaSmtp(
   // The shared mailbox certificate is our own/private transport material and must never
   // be used as recipientCertificatePem for another Ediel party.
   const effectiveCertificateId = routeProfile?.receiver_certificate_id ?? routeProfile?.certificate_id ?? null
+  // OPS-04: bind the SAME captured profile used below, never a separate checked reread.
+  if (controlledBinding && (JSON.stringify(routeProfile) !== controlledBinding.routeProfileSnapshot
+    || effectiveCertificateId !== controlledBinding.certificateId)) {
+    throw new Error('ops04_controlled_transport_binding_changed')
+  }
   // Legacy route-level "allow unencrypted production" is never an incident
   // source. Only an exact private current capability can reserve plaintext.
   if(message.environment==='production'&&effectiveEncryptionMode!=='smime'&&!plaintextException)
@@ -579,10 +592,31 @@ export async function sendEdielMessageViaSmtp(
     console.warn('[ediel-transport] Could not store raw payload snapshot', error)
   })
 
-  const sendFenced = (input: SendEdielEmailInput) => sendCorrectionFencedEmail(input, {
+  const sendFenced = (input: SendEdielEmailInput) => sendCorrectionFencedEmail(controlledBinding ? {
+    ...input,
+    // The common helper invokes this AFTER the existing generic/Z08 callback
+    // and immediately before the same SMTP provider call. Ordinary sends keep
+    // their original path and perform no extra final OPS-04 read.
+    finalProviderGate: actual => assertControlledLiveSendAllowed(message, actorUserId, controlledBinding, {
+      ...actual, originalHash: sha256(Buffer.from(message.raw_payload ?? '', 'utf8')),
+      routeId: message.communication_route_id, payloadHash: sha256(payloadBytes), payloadLength: payloadBytes.length,
+      encoding: mimeEncoding, mimeMode,
+    }),
+  } : input, {
     message, actorUserId, owner: params?.dispatchOwner, mimeMode,
     payload: payloadBytes, encoding: mimeEncoding, admissionDecision, businessExpectationPlan, technicalExpectationPlan, meteringMethodExpectationPlan, recoveryAuthorization, sourceRulePackEvidence, technicalSyntaxAckEvidence, prodatCommonHeaderRejectionEvidence,transportException,
   })
+  // OPS-04: a non-S/MIME controlled send re-reads the bound certificate (own tenant) before the provider.
+  if (controlledBinding && mimeMode !== 'ediel-smime-enveloped') {
+    const {data: certificate, error} = await supabaseService.from('ediel_certificates')
+      .select('id,company_id,fingerprint_sha256,certificate_fingerprint')
+      .eq('id', controlledBinding.certificateId).eq('company_id', message.company_id).maybeSingle()
+    if (error) throw error
+    if (!certificate || certificate.id !== controlledBinding.certificateId
+      || controlledCertificateFingerprint(certificate) !== controlledBinding.certificateFingerprint) {
+      throw new Error('ops04_controlled_transport_binding_changed')
+    }
+  }
   let result: SmtpSendResult & { dispatchReplay?: boolean; dispatchObservedAt?: string }
   let rawMimePreview: string | null = null
   let decodedPayloadPreview: string | null = null
@@ -634,6 +668,12 @@ export async function sendEdielMessageViaSmtp(
         message.sender_ediel_id ??
         null,
     }))
+    // OPS-04: check the actual resolved object immediately before consuming its PEMs.
+    if (controlledBinding && (outboundRecipientCertificate.id !== controlledBinding.certificateId
+      || typeof outboundRecipientCertificate.fingerprintSha256 !== 'string'
+      || normalizeCertificateFingerprint(outboundRecipientCertificate.fingerprintSha256) !== controlledBinding.certificateFingerprint)) {
+      throw new Error('ops04_controlled_transport_binding_changed')
+    }
     const recipientCertificatePems = outboundRecipientCertificate.recipientCertificates.map(certificate => certificate.publicCertificatePem)
     usedReceiverCertificateId = outboundRecipientCertificate.id
     const recipientCertPath = null
