@@ -49497,6 +49497,13 @@ BEGIN SELECT * INTO STRICT m FROM public.ediel_messages WHERE id=p_message_id AN
    END IF;
    RETURN;
   END IF;
+  IF EXISTS(SELECT FROM gridex_metering_method_changes.origins method_origin
+    WHERE method_origin.company_id=p_company_id AND method_origin.message_id=m.id
+     AND gridex_metering_method_changes.message_binding_v1(m,method_origin))
+   AND EXISTS(SELECT FROM jsonb_array_elements(tokens) t WHERE t->>'tag'='CAV' AND t#>>'{elements,1,0}' IN('E64','E32'))
+   AND NOT EXISTS(SELECT FROM jsonb_array_elements(tokens) t WHERE t->>'tag'='CAV' AND t#>>'{elements,1,0}'='E34') THEN
+   RETURN;
+  END IF;
   IF m.environment='test' AND m.message_standard='edifact' AND m.message_family='PRODAT' AND m.message_code='Z09' THEN
    -- The established fixture owner checks actual registered original/run/step/
    -- role and sole-consumed message. No live business approval is created.
