@@ -40,6 +40,12 @@ export function transportJournalFixture(options:{repairFailure?:()=>Error|null;o
    return{data:sourceEvidence(),error:null}
   }
   if(name==='ediel_reserve_wire_reference_namespace_v1')return{data:null,error:null}
+  // OPS-04 server-side activation probe: these ordinary routes carry no
+  // controlled-live binding. Absence grants nothing; it keeps normal sends normal.
+  if(name==='gridex_ediel_ops04_controlled_flow_probe_v1'){
+   if(!args.p_company_id||!args.p_message_id||!args.p_communication_route_id||!['test','production'].includes(String(args.p_environment)))throw Error('fixture_ops04_probe_scope_required')
+   return{data:{companyId:args.p_company_id,environment:args.p_environment,messageId:args.p_message_id,controlled:false},error:null}
+  }
   if(name==='gridex_actor_has_company_permission')return{data:true,error:null}
   if(name==='gridex_ediel_accepted_transport_projection_v1'||name==='gridex_ediel_repair_accepted_transport_projection_v1'){
    const record=attempts.get(key(args))
@@ -86,7 +92,9 @@ export function transportJournalFixture(options:{repairFailure?:()=>Error|null;o
   if(!entry?.archiveContext)throw Error('fixture_archive_context_required')
   const from=('raw'in input?input.envelopeFrom:input.from)??null
   const bytes='raw'in input?Buffer.from(input.raw):Buffer.from(`From: ${from}\r\nTo: ${input.to}\r\nMessage-ID: <synthetic-exact@example.invalid>\r\n\r\nSYNTHETIC MIME BYTES`, 'utf8')
-  await entry.beforeProviderCall({mode:'raw'in input?'raw':'attachment',from,to:input.to,rfcMessageId:'<synthetic-exact@example.invalid>',mimeArchiveRef:`private-unit-fixture/${entry.archiveContext.companyId}/${entry.archiveContext.messageId}`,mimeSha256:createHash('sha256').update(bytes).digest('hex'),mimeLength:bytes.length,mimePayloadSnapshotId:'00000000-0000-4000-8000-000000000099',rawBase64:bytes.toString('base64')})
+  const actual={mode:'raw'in input?'raw':'attachment',from,to:input.to,rfcMessageId:'<synthetic-exact@example.invalid>',mimeArchiveRef:`private-unit-fixture/${entry.archiveContext.companyId}/${entry.archiveContext.messageId}`,mimeSha256:createHash('sha256').update(bytes).digest('hex'),mimeLength:bytes.length,mimePayloadSnapshotId:'00000000-0000-4000-8000-000000000099',rawBase64:bytes.toString('base64')}
+  await entry.beforeProviderCall(actual)
+  await input.finalProviderGate?.(Object.freeze(structuredClone(actual)))
  }
  return{rpc,beforeProvider,actions,observedAt,get rulePackSnapshot(){if(!options.original)throw Error('fixture_predeclared_original_required');return{...options.original.rulePackSnapshot}}}
 }
