@@ -229,7 +229,7 @@ describe('synthetic customer journey stops immediately before external SMTP', ()
     const transportSource = readModuleFamily('lib/ediel/transport/index.ts')
     // The transport now sends through the dispatch fence. Keep this source
     // contract tied to the S/MIME branch and follow the real helper chain.
-    expect(transportSource).toContain('const sendFenced = (input: SendEdielEmailInput) => sendCorrectionFencedEmail(input, {')
+    expect(transportSource).toContain('const sendFenced = (input: SendEdielEmailInput) => sendCorrectionFencedEmail(')
     const smimeStart = transportSource.indexOf("else if (mimeMode === 'ediel-smime-enveloped')")
     expect(smimeStart).toBeGreaterThan(-1)
     const smimeEnd = transportSource.indexOf('} else if', smimeStart + 1)

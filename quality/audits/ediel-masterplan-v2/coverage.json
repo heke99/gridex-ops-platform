@@ -1603,8 +1603,20 @@
     {
       "id": "OPS-04",
       "acceptance_id": "AT-OPS-04",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/transport/controlledLiveSendGuard.ts",
+        "lib/ediel/transport/index.part-2.ts",
+        "lib/ediel/orchestrator.ts",
+        "lib/email/sendEdielEmail.ts",
+        "supabase/migrations/20261019140000_ediel_ops04_controlled_live_evidence.sql",
+        "__tests__/ediel-ops-04-controlled-live-send-guard.test.ts",
+        "__tests__/ediel-ops-04-controlled-send-boundary.test.ts",
+        "__tests__/ediel-ops-04-controlled-live-evidence-sql.test.ts",
+        "__tests__/ediel-email-final-provider-gate.test.ts",
+        "scripts/ediel-ops04-controlled-send-native.test.ts",
+        ".github/workflows/ediel-ops04-controlled-send-native.yml"
+      ]
     },
     {
       "id": "OPS-05",
@@ -3931,8 +3943,20 @@
     },
     {
       "id": "AT-OPS-04",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/transport/controlledLiveSendGuard.ts",
+        "lib/ediel/transport/index.part-2.ts",
+        "lib/ediel/orchestrator.ts",
+        "lib/email/sendEdielEmail.ts",
+        "supabase/migrations/20261019140000_ediel_ops04_controlled_live_evidence.sql",
+        "__tests__/ediel-ops-04-controlled-live-send-guard.test.ts",
+        "__tests__/ediel-ops-04-controlled-send-boundary.test.ts",
+        "__tests__/ediel-ops-04-controlled-live-evidence-sql.test.ts",
+        "__tests__/ediel-email-final-provider-gate.test.ts",
+        "scripts/ediel-ops04-controlled-send-native.test.ts",
+        ".github/workflows/ediel-ops04-controlled-send-native.yml"
+      ]
     },
     {
       "id": "AT-OPS-05",
