@@ -10,6 +10,7 @@ from pathlib import Path
 import re
 import tempfile
 import zipfile
+from html.parser import HTMLParser
 from xml.parsers import expat
 
 SENSITIVE = {'password', 'access_token', 'refresh_token', 'id_token', 'authorization', 'cookie', 'set-cookie', 'apikey', 'api_key', 'service_role_key', 'anon_key', 'jwt_secret', 's3_protocol_access_key_id', 's3_protocol_access_key_secret'}
@@ -39,6 +40,11 @@ TABLE_SEPARATORS = ('│'.encode(), '┃'.encode(), b'|')
 TABLE_BORDER_CHARS = set(' ─━┬┴┼┌┐└┘╭╮╰╯┏┓┗┛┣┫┳┻╋├┤│┃-+=|')
 XML_ATTRIBUTE = re.compile(rb'''(?<=[ \t\r\n])([^\x00-\x20=<>/'"]+)[ \t\r\n]*=[ \t\r\n]*(["'])(.*?)\2''', re.DOTALL)
 XML_ENTITY = re.compile(rb'&(?:amp|lt|gt|quot|apos|\#[0-9]+|\#x[0-9a-fA-F]+);')
+HTML_DOCTYPE_START = re.compile(rb'(?i)\A<!doctype[ \t\r\n\f]+html(?=[ \t\r\n\f>\[])')
+HTML5_WRAPPER = re.compile(
+    rb'(?i)\A<!doctype[ \t\r\n\f]+html[ \t\r\n\f]*>[ \t\r\n\f]*<html(?=[ \t\r\n\f>])'
+    rb'''(?:[^<>"']|"[^"]*"|'[^']*')*>''')
+HTML_ENTITY_DECLARATION = re.compile(rb'(?i)<!ENTITY(?=[ \t\r\n%>])')
 
 
 
@@ -235,10 +241,6 @@ def _scrub_named_values(data, preserve_quotes=False, xml_entities=False):
     return scrub_url_passwords(_apply_clean_spans(data, spans, xml_entities=xml_entities), xml_entities=xml_entities)
 
 
-class _NotQualifiedXml(Exception):
-    pass
-
-
 def _secure_xml_parser():
     parser = expat.ParserCreate()
     parser.buffer_text = False
@@ -247,14 +249,7 @@ def _secure_xml_parser():
     def refuse(*args):
         raise ValueError('redaction_xml_DTD_or_external_entity_not_supported')
 
-    def doctype(name, system_id, public_id, has_internal_subset):
-        # A bare declaration such as HTML5 `<!DOCTYPE html>` defines no DTD or
-        # entity: the record is not qualified XML and keeps the plaintext path.
-        if system_id or public_id or has_internal_subset:
-            refuse()
-        raise _NotQualifiedXml
-
-    parser.StartDoctypeDeclHandler = doctype
+    parser.StartDoctypeDeclHandler = refuse
     parser.EntityDeclHandler = refuse
     parser.ExternalEntityRefHandler = refuse
     return parser
@@ -336,16 +331,52 @@ def _scrub_xml_attributes(markup):
     return b''.join(output)
 
 
+def _validate_html5_declarations(data):
+    # Token callbacks distinguish actual declarations from public strings in
+    # scripts, raw text and comments. No HTML is serialized or entity resolved.
+    line_starts = [0] + [match.end() for match in re.finditer(b'\n', data)]
+
+    class Declarations(HTMLParser):
+        CDATA_CONTENT_ELEMENTS = HTMLParser.CDATA_CONTENT_ELEMENTS + (
+            'textarea', 'title', 'xmp', 'iframe', 'noembed', 'noframes', 'plaintext')
+        seen_doctype = False
+
+        def handle_decl(self, declaration):
+            if self.seen_doctype or ' '.join(declaration.split()).lower() != 'doctype html':
+                raise ValueError('redaction_xml_DTD_or_external_entity_not_supported')
+            self.seen_doctype = True
+
+        def handle_comment(self, value):
+            # HTMLParser reports unknown <!ENTITY ...> as a bogus comment;
+            # real <!-- ... --> comments retain their literal public bytes.
+            line, column = self.getpos()
+            if HTML_ENTITY_DECLARATION.match(data, line_starts[line - 1] + column):
+                raise ValueError('redaction_xml_DTD_or_external_entity_not_supported')
+
+    parser = Declarations(convert_charrefs=False)
+    parser.feed(data.decode('latin-1'))
+    parser.close()
+
+
 def _scrub_xml(data):
     # Complete XML documents/self-contained records have qualified text spans.
     # Other logs retain the existing plaintext path. No parser state or partial
     # token is retained across bounded records, and XML is never serialized.
     admission = data[3:] if data.startswith(b'\xef\xbb\xbf') else data
+    html = admission.lstrip(b' \t\r\n\f')
+    if HTML_DOCTYPE_START.match(html):
+        # A bare HTML5 doctype plus a complete actual HTML opening tag is
+        # the existing HTML/embedded-ZIP report format, not XML with a DTD.
+        # Never exempt subsets, external identifiers or other root names.
+        if HTML5_WRAPPER.match(html):
+            _validate_html5_declarations(html)
+            return None
+        raise ValueError('redaction_xml_DTD_or_external_entity_not_supported')
     if not admission.lstrip().startswith(b'<'):
         return None
     try:
         spans = _xml_text_spans(data)
-    except (expat.ExpatError, _NotQualifiedXml):
+    except expat.ExpatError:
         return None
     output, cursor = [], 0
     for start, end, kind in spans:

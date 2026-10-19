@@ -810,6 +810,137 @@ if hasattr(module, '_xml_entity_view'):
 else:
     check('XML_entity_exactly_once_numeric_and_boundary', False)
 
+# Standard HTML5 report wrapper regression after the actual c587 CLEAN failure.
+# Only declared synthetic HTML/ZIP/status/record bytes are used here.
+html5_marker = b'DECLARED_HTML5_CREDENTIAL'
+html5_zip = io.BytesIO()
+with zipfile.ZipFile(html5_zip, 'w') as writer:
+    writer.writestr('trace.network', b'password=' + html5_marker + b' public ZIP diagnostic')
+html5_body = (b'<html lang="en" data-public="quote > diagnostic"><head><meta charset="utf-8"></head><body>'
+              b'<script id="playwrightReportBase64" type="application/zip">data:application/zip;base64,')
+html5_suffix = b'</script><p>public HTML diagnostic</p></body></html>\r\n'
+
+def html5_clean_or_none(data):
+    try:
+        return module.scrub(data, [html5_marker])
+    except ValueError:
+        return None
+
+def html5_member(data):
+    if data is None:
+        return None
+    embedded = module.EMBEDDED_ZIP.search(data)
+    if embedded is None:
+        return None
+    with zipfile.ZipFile(io.BytesIO(base64.b64decode(embedded[1]))) as reader:
+        return reader.read('trace.network')
+
+for name, prefix in [
+    ('standard', b'<!DOCTYPE html>\n'),
+    ('BOM_whitespace', b'\xef\xbb\xbf \r\n<!doctype html>\r\n'),
+    ('HTML_case_whitespace', b' \t<!DoCtYpE \tHTML \f>\n'),
+]:
+    raw = prefix + html5_body + base64.b64encode(html5_zip.getvalue()) + html5_suffix
+    clean = html5_clean_or_none(raw)
+    member = html5_member(clean)
+    check('HTML5_wrapper_' + name + '_ZIP_sanitized', member is not None
+          and html5_marker not in member and b'public ZIP diagnostic' in member)
+    check('HTML5_wrapper_' + name + '_public_bytes_retained', clean is not None
+          and clean.startswith(prefix + html5_body) and clean.endswith(html5_suffix))
+    check('HTML5_wrapper_' + name + '_idempotent', clean is not None and module.scrub(clean) == clean)
+    with tempfile.TemporaryDirectory(prefix='native-redactor-HTML5-CLI-') as directory:
+        root = Path(directory); artifacts = root/'e2e-artifacts'; report = artifacts/'playwright-report'/'index.html'
+        report.parent.mkdir(parents=True); report.write_bytes(raw)
+        status = root/'local.json'; status.write_text(json.dumps({'API_URL':'http://127.0.0.1:54321','password':html5_marker.decode()}))
+        records = root/'gridex-clean-replay.raw.log'; records.write_bytes(b'public record before\npassword=' + html5_marker + b'\npublic record after\r\n')
+        completed = subprocess.run([sys.executable, str(Path(__file__).with_name('gridex-redact-native-evidence.py')),
+                    '--local-secrets',str(status),'--root',str(artifacts),
+                    '--root',str(records),'--line-records',str(records)],capture_output=True,check=False)
+        member = html5_member(report.read_bytes())
+        check('HTML5_actual_CLI_' + name + '_success', completed.returncode == 0)
+        check('HTML5_actual_CLI_' + name + '_ZIP_and_public_HTML', member is not None
+              and html5_marker not in member and b'public ZIP diagnostic' in member
+              and report.read_bytes().startswith(prefix + html5_body) and report.read_bytes().endswith(html5_suffix))
+        check('HTML5_actual_CLI_' + name + '_bounded_record_adapter', html5_marker not in records.read_bytes()
+              and records.read_bytes().startswith(b'public record before\n') and records.read_bytes().endswith(b'public record after\r\n'))
+        check('HTML5_actual_CLI_' + name + '_no_payload_diagnostic', html5_marker not in completed.stdout + completed.stderr)
+for name, raw in [
+    ('public_document', b'<!DOCTYPE html><html><body><p>public diagnostic &amp; safe</p></body></html>\r\n'),
+    ('BOM_public_document', b'\xef\xbb\xbf\n<!doctype html>\n<html lang="en"><body>public diagnostic</body></html>'),
+    ('literal_declarations', b'<!DOCTYPE html><html><script>const publicText="<!ENTITY public> <!DOCTYPE root>";</script><!--ENTITY public--><textarea><!ENTITY public></textarea><p>public diagnostic</p></html>'),
+]:
+    check('HTML5_secret_free_' + name + '_byte_identity', html5_clean_or_none(raw) == raw)
+for name, raw in [
+    ('bare_XML_doctype', b'<!DOCTYPE root><root/>'),
+    ('HTML_doctype_nonHTML_root', b'<!DOCTYPE html><root/>'),
+    ('HTML_root_name_boundary', b'<!DOCTYPE html><htmlish/>'),
+    ('HTML_namespaced_root', b'<!DOCTYPE html><html:report xmlns:html="urn:public"/>'),
+    ('HTML_missing_root', b'<!DOCTYPE html>'),
+    ('HTML_unterminated_root_quote', b'<!DOCTYPE html><html name="unterminated>'),
+    ('HTML_internal_ENTITY', b'<!DOCTYPE html [<!ENTITY secret "DECLARED_XML_ENTITY">]><html>&secret;</html>'),
+    ('HTML_external_SYSTEM', b'<!DOCTYPE html SYSTEM "https://example.invalid/not-read"><html>public</html>'),
+    ('HTML_external_PUBLIC', b'<!DOCTYPE html PUBLIC "-//DECLARED//HTML" "https://example.invalid/not-read"><html>public</html>'),
+    ('HTML_lowercase_internal_ENTITY', b'<!doctype html [<!ENTITY secret "DECLARED_XML_ENTITY">]><html>&secret;</html>'),
+    ('HTML_lowercase_external_SYSTEM', b'<!doctype html SYSTEM "https://example.invalid/not-read"><html>public</html>'),
+    ('HTML_later_ENTITY', b'<!DOCTYPE html><html><!ENTITY secret "DECLARED_XML_ENTITY"></html>'),
+    ('HTML_later_lowercase_ENTITY', b'<!doctype html><html>\n<!entity secret "DECLARED_XML_ENTITY"></html>'),
+    ('HTML_second_DOCTYPE', b'<!DOCTYPE html><html>\n<!DOCTYPE root><p>public</p></html>'),
+    ('XML_declaration_before_HTML', b'<?xml version="1.0"?><!DOCTYPE html><html>public</html>'),
+]:
+    refused = False
+    try:
+        module.scrub(raw)
+    except ValueError as error:
+        refused = str(error) == 'redaction_xml_DTD_or_external_entity_not_supported'
+    check('HTML5_exemption_refuses_' + name, refused)
+with tempfile.TemporaryDirectory(prefix='native-redactor-HTML5-DTD-CLI-') as directory:
+    evidence = Path(directory)/'untrusted.xml'; evidence.write_bytes(xml_dtd)
+    completed = subprocess.run([sys.executable,str(Path(__file__).with_name('gridex-redact-native-evidence.py')),
+                '--root',str(evidence)],capture_output=True,check=False)
+    check('HTML5_change_actual_CLI_XML_DTD_still_fail_closed', completed.returncode != 0 and evidence.read_bytes() == xml_dtd)
+
+# Independent b4fc finding: a bare NON-HTML doctype must never bypass the
+# qualified XML entity/structured-JSON sanitizer. These valid XML records use
+# only declared synthetic credentials; their no-doctype twins must sanitize.
+nonhtml_marker = b'DECLARED_NONHTML_XML_CREDENTIAL'
+for name, body in [
+    ('encoded_assignment', b'<root>pass&#119;ord=&quot;' + nonhtml_marker + b'&quot; public &amp; diagnostic</root>'),
+    ('encoded_JSON', b'<root>{"pass&#119;ord":"' + nonhtml_marker + b'","safe":"public &amp; diagnostic"}</root>'),
+    ('serializer_attribute', b'<root message="password=&quot;' + nonhtml_marker + b'&quot; public &amp; diagnostic"/>'),
+]:
+    raw = b'<!DOCTYPE root>' + body
+    ET.fromstring(raw)
+    clean = module.scrub(body)
+    parsed = ET.fromstring(clean)
+    decoded = ET.tostring(parsed, encoding='unicode')
+    check('NONHTML_XML_' + name + '_no_doctype_sanitizes',
+          nonhtml_marker.decode() not in decoded and 'public &amp; diagnostic' in decoded
+          and module.REDACTED in decoded and module.scrub(clean) == clean)
+    refused = False
+    try:
+        module.scrub(raw)
+    except ValueError as error:
+        refused = str(error) == 'redaction_xml_DTD_or_external_entity_not_supported'
+    check('NONHTML_XML_' + name + '_bare_doctype_refused', refused)
+    with tempfile.TemporaryDirectory(prefix='native-redactor-NONHTML-XML-') as directory:
+        evidence = Path(directory)/'junit.xml'; evidence.write_bytes(raw)
+        completed = subprocess.run([sys.executable,str(Path(__file__).with_name('gridex-redact-native-evidence.py')),
+                    '--root',str(evidence)],capture_output=True,check=False)
+        check('NONHTML_XML_' + name + '_actual_CLI_refuses_without_rewrite',
+              completed.returncode != 0 and evidence.read_bytes() == raw
+              and nonhtml_marker not in completed.stdout + completed.stderr)
+        records = Path(directory)/'xml-record.log'
+        original = b'password=DECLARED_RECORD_BEFORE\n' + raw + b'\n'
+        records.write_bytes(original); inode = records.stat().st_ino
+        refused = False
+        try:
+            module.redact_line_records(records)
+        except ValueError as error:
+            refused = str(error) == 'redaction_xml_DTD_or_external_entity_not_supported'
+        check('NONHTML_XML_' + name + '_bounded_records_refuse_atomically',
+              refused and records.read_bytes() == original and records.stat().st_ino == inode
+              and not list(Path(directory).glob('*.redacting-*')))
+
 failed = [name for name, okay in checks if not okay]
 for name in failed:
     print('NATIVE_EVIDENCE_SELFTEST_FAIL: ' + name)
