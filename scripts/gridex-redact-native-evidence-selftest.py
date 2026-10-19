@@ -7,6 +7,7 @@ import contextlib
 import json
 from pathlib import Path
 import sys
+import subprocess
 import tempfile
 import zipfile
 
@@ -211,6 +212,101 @@ for kind in ['secret','publishable']:
     key=('sb_'+kind+'_DECLARED_fake_opaque_api_key-0123456789').encode()
     result=module.scrub(b'public visible '+key+b' remains')
     check('opaque_supabase_'+kind+'_removed', key not in result and b'public visible' in result)
+
+# Supabase CLI 2.101.0 start prints these S3 status fields before the later
+# status file exists. All values below are declared synthetic fixtures.
+s3_access = b'DECLARED_S3_access|opaque-with-space value'
+s3_secret = b'DECLARED_S3_secret/+opaque=value'
+for key, marker in [
+    ('S3_PROTOCOL_ACCESS_KEY_ID', s3_access),
+    ('S3_PROTOCOL_ACCESS_KEY_SECRET', s3_secret),
+]:
+    for name, payload in [
+        ('json', json.dumps({'nested': {key: marker.decode()}, 'safe': 'visible-s3-diagnostic'}).encode()),
+        ('header', json.dumps({'headers': [{'name': key, 'value': marker.decode()}], 'safe': 'visible-s3-diagnostic'}).encode()),
+    ]:
+        result = module.scrub(payload)
+        check('s3_alias_' + key + '_' + name,
+              marker not in result and b'visible-s3-diagnostic' in result)
+
+s3_tables = [
+    ('plain', '\n'.join([
+        'visible-s3-diagnostic-before',
+        '╭────────────┬─────────────────────────────────────────────╮',
+        '│ Access Key │ ' + s3_access.decode() + ' │',
+        '│ Secret Key │ ' + s3_secret.decode() + ' │',
+        '│ Region     │ local                                       │',
+        '╰────────────┴─────────────────────────────────────────────╯',
+        'visible-s3-diagnostic-after',
+    ]).encode()),
+    ('ansi_cells', (
+        'visible-s3-diagnostic-before\r\n'
+        '│ \x1b[32mAccess Key\x1b[0m │ \x1b[33m' + s3_access.decode() + '\x1b[0m │\r\n'
+        '│ \x1b[32mSecret Key\x1b[0m │ \x1b[33m' + s3_secret.decode() + '\x1b[0m │\r\n'
+        'visible-s3-diagnostic-after').encode()),
+    ('ansi_rows', (
+        'visible-s3-diagnostic-before\n'
+        '\x1b[32m│ Access Key │ ' + s3_access.decode() + ' │\x1b[0m\n'
+        '\x1b[32m│ Secret Key │ ' + s3_secret.decode() + ' │\x1b[0m\n'
+        'visible-s3-diagnostic-after').encode()),
+]
+
+for name, payload in s3_tables:
+    result = module.scrub(payload)
+    check('s3_table_' + name + '_opaque_values_removed',
+          all(marker not in result for marker in [s3_access, s3_secret]))
+    check('s3_table_' + name + '_adjacent_diagnostics_preserved',
+          result.startswith(b'visible-s3-diagnostic-before')
+          and result.endswith(b'visible-s3-diagnostic-after'))
+    check('s3_table_' + name + '_field_labels_retained',
+          b'Access Key' in result and b'Secret Key' in result)
+    archive = io.BytesIO()
+    with zipfile.ZipFile(archive, 'w') as writer:
+        writer.writestr('replay.log', payload)
+    with zipfile.ZipFile(io.BytesIO(module.scrub(archive.getvalue()))) as reader:
+        result = reader.read('replay.log')
+        check('s3_zip_' + name + '_values_removed_diagnostics_preserved',
+              all(marker not in result for marker in [s3_access, s3_secret])
+              and b'visible-s3-diagnostic-after' in result)
+
+# Exercise the actual executable, including bounded log records, when status
+# was never produced, its path is missing, or exact-value S3 status is present.
+with tempfile.TemporaryDirectory(prefix='native-redactor-s3-selftest-') as directory:
+    root = Path(directory)
+    evidence = root / 'replay.log'
+    local = root / 'local.json'
+    for mode in ['no_status', 'missing_status', 'local_status']:
+        payload = s3_tables[1][1]
+        if mode == 'local_status':
+            local.write_text(json.dumps({
+                'API_URL': 'http://127.0.0.1:54321',
+                'S3_PROTOCOL_ACCESS_KEY_ID': s3_access.decode(),
+                'S3_PROTOCOL_ACCESS_KEY_SECRET': s3_secret.decode(),
+            }))
+            payload += b'\nuntyped copies: ' + s3_access + b' ' + s3_secret
+        evidence.write_bytes(payload)
+        command = [sys.executable, str(Path(__file__).with_name('gridex-redact-native-evidence.py')),
+                   '--root', str(evidence), '--line-records', str(evidence)]
+        if mode != 'no_status':
+            command += ['--local-secrets', str(local)]
+        completed = subprocess.run(command, capture_output=True, check=False)
+        result = evidence.read_bytes()
+        check('s3_actual_cli_' + mode + '_removed',
+              completed.returncode == 0
+              and all(marker not in result for marker in [s3_access, s3_secret]))
+        check('s3_actual_cli_' + mode + '_safe_evidence_retained',
+              b'visible-s3-diagnostic-before' in result
+              and b'visible-s3-diagnostic-after' in result)
+        check('s3_actual_cli_' + mode + '_does_not_log_values',
+              all(marker not in completed.stdout + completed.stderr
+                  for marker in [s3_access, s3_secret]))
+
+for name, payload in [
+    ('safe_storage_table', '│ Region │ local │\r\n│ URL │ http://127.0.0.1:54321/storage/v1/s3 │'.encode()),
+    ('prose_mentions_access_key', b'Access Key lookup failed; diagnostic remains\r\n'),
+    ('noncredential_table_label', '│ Access Key count │ 2 │'.encode()),
+]:
+    identity(name, payload)
 
 failed = [name for name, okay in checks if not okay]
 for name in failed:

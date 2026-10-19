@@ -10,13 +10,14 @@ import re
 import tempfile
 import zipfile
 
-SENSITIVE = {'password', 'access_token', 'refresh_token', 'id_token', 'authorization', 'cookie', 'set-cookie', 'apikey', 'api_key', 'service_role_key', 'anon_key', 'jwt_secret'}
+SENSITIVE = {'password', 'access_token', 'refresh_token', 'id_token', 'authorization', 'cookie', 'set-cookie', 'apikey', 'api_key', 'service_role_key', 'anon_key', 'jwt_secret', 's3_protocol_access_key_id', 's3_protocol_access_key_secret'}
 REDACTED = '[REDACTED_LOCAL_CREDENTIAL]'
 JWT = re.compile(rb'\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b')
 OPAQUE_API_KEY = re.compile(rb'sb_(?:secret|publishable)_[A-Za-z0-9_-]+')
 EMBEDDED_ZIP = re.compile(rb'data:application/zip;base64,([A-Za-z0-9+/=]+)')
 JWT_RUN = re.compile(rb'[A-Za-z0-9_-]+')
 JWT_START = re.compile(rb'\beyJ[A-Za-z0-9_-]')
+ANSI_CSI = re.compile(r'\x1b\[[0-?]*[ -/]*[@-~]')
 
 
 def scrub_jwts(data):
@@ -65,6 +66,20 @@ def scrub(data, secrets=()):
         text = data.decode('utf-8')
     except UnicodeDecodeError:
         return data
+
+    # CLI start can print S3 credentials before a local status file exists.
+    # Match the documented table labels; values are opaque, including pipes
+    # and ANSI styling. Other rows and surrounding diagnostics stay intact.
+    def status_row(line):
+        cells = line.split('│')
+        if (len(cells) >= 4
+                and not ANSI_CSI.sub('', cells[0]).strip()
+                and not ANSI_CSI.sub('', cells[-1]).strip()
+                and ANSI_CSI.sub('', cells[1]).strip() in {'Access Key', 'Secret Key'}):
+            return '│'.join([cells[0], cells[1], ' ' + REDACTED + ' ', cells[-1]])
+        return line
+
+    text = ''.join(status_row(line) for line in text.splitlines(keepends=True))
 
     def load(text):
         duplicate = False
