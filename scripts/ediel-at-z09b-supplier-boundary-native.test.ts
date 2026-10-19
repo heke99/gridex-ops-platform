@@ -3,10 +3,13 @@
 // clauses that otherwise rest on component/PGlite evidence: the one calendar
 // month notice, wrong actor/tenant role/BRP role, wrong direction, missing R
 // fields after reservation, an AI list on the reserved intent, and dated BRP
-// history without tenant-global overlay. Only SMTP, the synthetic BRP-change
-// event/registry rows (no approval API exists) and synthetic fixture tenants are
-// doubles; source/RBAC, renderer, finalizer, binding triggers, ACK authority and
-// outbox are the real product owners. Not authentic market evidence.
+// history without tenant-global overlay. Doubles: SMTP, the synthetic BRP-change
+// event/registry rows (no approval API exists), synthetic fixture tenants, and a
+// pass-through wrapper on the BRP renderer that alters its finished draft only in
+// the direction, R-field and AI-list cases (an injected defect after the actual
+// renderer ran, not renderer output). Source/RBAC, the renderer itself, finalizer,
+// binding triggers, ACK authority and outbox are the real product owners. Not
+// authentic market evidence.
 import { createHash, randomUUID } from 'node:crypto'
 import { afterEach, expect, it, vi } from 'vitest'
 import { createProductionReceiptNativeFixture } from './helpers/ediel-z04d-production-native-fixture'
@@ -31,8 +34,8 @@ import type { CreateEdielMessageInput, EdielMessageRow } from '@/lib/ediel/types
 
 const smtp = vi.hoisted(() => ({ provider: vi.fn() }))
 vi.mock('nodemailer', () => ({ default: { createTransport: () => ({ sendMail: smtp.provider }) } }))
-// The actual BRP renderer always runs. Only for the R-field and AI-list cases is
-// its finished draft then altered, so the actual finalizer and SQL binding
+// The actual BRP renderer always runs. Only for the direction, R-field and
+// AI-list cases is its finished draft then altered, so the actual finalizer and SQL binding
 // owner receive the defective original after the actual reservation.
 const wire = vi.hoisted(() => ({ mutate: null as null | ((draft: CreateEdielMessageInput) => CreateEdielMessageInput) }))
 vi.mock('@/lib/ediel/intent/renderers/brpChange', async importOriginal => {
@@ -267,6 +270,25 @@ it('AT-Z09B role: an active user who is not a member of the tenant is refused wi
   expect(effects(f, eventId)).toEqual(none)
 }, 900_000)
 
+it('AT-Z09B tenant: a member of another tenant can neither act on this tenant\'s BRP change nor bind it to their own tenant', async () => {
+  const { f, route } = await fixtureWithRoute()
+  const { f: other, route: otherRoute } = await fixtureWithRoute()
+  expect(other.companyId).not.toBe(f.companyId)
+  const eventId = await brpChangeEvent(f)
+  // The other tenant's actor is a qualified writer of its own tenant only.
+  await brpChangeEvent(other)
+  expect(sql(`SELECT to_jsonb(count(*)) FROM public.company_memberships WHERE company_id=${literal(f.companyId)} AND user_id=${literal(other.actorUserId)}`)).toBe(0)
+  const refused = { code: '42501', message: 'brp_change_actor_forbidden' }
+  await expect(readBrpChangeSource({ companyId: f.companyId, eventId, actorUserId: other.actorUserId })).rejects.toMatchObject(refused)
+  await expect(prepareAndQueueBrpChangeZ09({ companyId: f.companyId, eventId, actorUserId: other.actorUserId, preferredRouteId: route })).rejects.toMatchObject(refused)
+  // Its own tenant cannot select this tenant's event either.
+  const foreign = await readBrpChangeSource({ companyId: other.companyId, eventId, actorUserId: other.actorUserId })
+  expect(foreign).toEqual({ status: 'held', missing: ['authentic_brp_contract_and_market_decision_event'] })
+  expect(await prepareAndQueueBrpChangeZ09({ companyId: other.companyId, eventId, actorUserId: other.actorUserId, preferredRouteId: otherRoute })).toEqual(foreign)
+  expect(effects(f, eventId)).toEqual(none); expect(effects(other, eventId)).toEqual(none)
+  expect(version(f, eventId)).toBeUndefined(); expect(version(other, eventId)).toBeUndefined()
+}, 900_000)
+
 it('AT-Z09B role: a tenant whose own electricity_supplier role has expired is held before intent, request, origin or message', async () => {
   const { f, route } = await fixtureWithRoute()
   const eventId = await brpChangeEvent(f)
@@ -298,6 +320,7 @@ it('AT-Z09B direction: turning the bound sent Z09B into an inbound message is re
   await expect(prepareAndQueueBrpChangeZ09({ companyId: f.companyId, eventId, actorUserId: f.actorUserId, preferredRouteId: route })).rejects.toThrow(/canonical_outbound_owner_scope_required/)
   wire.mutate = null
   const reserved = effects(f, eventId)
+  expect(reserved.intents).toHaveLength(1); expect(reserved.requests).toHaveLength(1)
   expect(reserved.origins).toHaveLength(1); expect(reserved.origins[0].message_id).toBeNull()
   expect({ ...reserved, intents: [], requests: [], origins: [] }).toEqual(none)
   // The bound sent original cannot later be turned into an inbound message.

@@ -2,7 +2,7 @@
   "id": "AT-Z09B-SUPPLIER",
   "scope": "SKELETON DRAFT. Native supplement for the AT-Z09B-SUPPLIER notice, role, direction, R-field, AI-list and dated-history clauses; proof package for later code approval review, not delivered main merge, market activation or whole approval.",
   "prepared_at": "PENDING_NATIVE_WORKFLOW_RUN",
-  "owner": "huvudagent 4 (worker 4D draft); reservation PENDING on #766",
+  "owner": "huvudagent 4; sole writer via positive handoff #766 6264962517 on claim 7ae0b7ae (own ACK 6265934742)",
   "packet": "PENDING_NATIVE_WORKFLOW_RUN",
   "pr": "PENDING_NATIVE_WORKFLOW_RUN",
   "frozen_acceptance": {
@@ -72,7 +72,7 @@
   ],
   "local_preparation_run": {
     "note": "Local disposable Supabase clean replay in a private scratch copy of draft/4d; not a qualified original and not uploaded evidence.",
-    "result": "9/9 PASS",
+    "result": "10/10 PASS",
     "qualifies_as_original": false
   },
   "independent_proof_reviews": [],
@@ -81,7 +81,7 @@
       "criterion": "Given: Senast en kalendermånad före (notice < 1 calendar month is held)",
       "source": "scripts/ediel-at-z09b-supplier-boundary-native.test.ts",
       "lines": [
-        242,
+        245,
         254
       ],
       "asserted_reason": "one_calendar_month_notice_boundary",
@@ -99,8 +99,8 @@
       "criterion": "Prohibited: fel roll — non-member actor",
       "source": "scripts/ediel-at-z09b-supplier-boundary-native.test.ts",
       "lines": [
-        256,
-        268
+        259,
+        271
       ],
       "asserted_reason": "brp_change_actor_forbidden (42501)",
       "reason_locator": "supabase/schema.sql:5654 (migration 20260930200545:85)",
@@ -114,11 +114,22 @@
       }
     },
     {
+      "criterion": "Prohibited: fel roll — member of another tenant (TEN-05)",
+      "source": "scripts/ediel-at-z09b-supplier-boundary-native.test.ts",
+      "lines": [
+        273,
+        290
+      ],
+      "asserted_reason": "brp_change_actor_forbidden (42501) on the foreign tenant; authentic_brp_contract_and_market_decision_event when the own tenant names the foreign event",
+      "reason_locator": "supabase/schema.sql:5654 (actor); company-scoped event read in public.ediel_brp_change_source_v1",
+      "observed": "A qualified writer of tenant B is refused 42501 by the read and the producer for tenant A's event; tenant B naming tenant A's event id is held by read and producer alike; no intent, request, origin, message, outbox, version or confirmation in either tenant"
+    },
+    {
       "criterion": "Prohibited: fel roll — tenant electricity_supplier role expired",
       "source": "scripts/ediel-at-z09b-supplier-boundary-native.test.ts",
       "lines": [
-        270,
-        278
+        292,
+        300
       ],
       "asserted_reason": "current_unique_legal_supplier_profile",
       "reason_locator": "supabase/schema.sql:5781 (migration 20260930200545:199-212)",
@@ -135,8 +146,8 @@
       "criterion": "Prohibited: fel roll — registry BRP actor without balance_responsible",
       "source": "scripts/ediel-at-z09b-supplier-boundary-native.test.ts",
       "lines": [
-        280,
-        290
+        302,
+        309
       ],
       "asserted_reason": "current_exact_verified_registry_actors_and_roles",
       "reason_locator": "supabase/schema.sql:5712 (migration 20260930200545:141-143)",
@@ -153,8 +164,8 @@
       "criterion": "Prohibited: fel riktning",
       "source": "scripts/ediel-at-z09b-supplier-boundary-native.test.ts",
       "lines": [
-        292,
-        317
+        314,
+        335
       ],
       "asserted_reason": "canonical_outbound_owner_scope_required (finalizer); ediel_wire_reference_namespace_context_immutable (bound sent original)",
       "reason_locator": "lib/ediel/core/kernel.ts:621-623; supabase/schema.sql:19010 (BEFORE trigger, fires ahead of the AFTER brp_bound_message_immutable guard)",
@@ -171,8 +182,8 @@
       "criterion": "Prohibited: saknade R/D-fält (262 NAD+Z02, 260 RFF+Z05 are R for Z09 in prodat_fields.json)",
       "source": "scripts/ediel-at-z09b-supplier-boundary-native.test.ts",
       "lines": [
-        318,
-        341
+        344,
+        361
       ],
       "asserted_reason": "FIELD_MATRIX_REQUIRED_FIELD_MISSING",
       "reason_locator": "lib/ediel/rulebook/fieldMatrix.ts:733 (canonical policy)",
@@ -189,8 +200,8 @@
       "criterion": "Given: AI-lista ersätter inte Z09B",
       "source": "scripts/ediel-at-z09b-supplier-boundary-native.test.ts",
       "lines": [
-        343,
-        366
+        366,
+        384
       ],
       "asserted_reason": "ai_list_edifact_or_foreign_link_forbidden",
       "reason_locator": "lib/ediel/core/kernel.ts:637",
@@ -207,8 +218,8 @@
       "criterion": "Expected: versionera BRP-ansvar vid datumet, inte tenantglobal överlagring av historiken",
       "source": "scripts/ediel-at-z09b-supplier-boundary-native.test.ts",
       "lines": [
-        427,
-        514
+        450,
+        537
       ],
       "asserted_reason": "n/a (positive history case)",
       "reason_locator": "public.ediel_brp_responsibility_history_v1 (migration 20261011170000:68)",
@@ -226,9 +237,10 @@
     "database": "Actual disposable PostgreSQL native replay",
     "authority": "Constructed tenant/market/role/registry inputs; SYNTHETIC BRP-change event and registry rows (no approval API)",
     "external_transport": "Declared SMTP double (synthetic 250)",
-    "clock": "Not controlled; notice case uses fixture start+1 day",
+    "clock": "Not controlled. The notice case proves a change one day after the fixture start (today+14 days) is held and the default later date is authorized; the exact calendar-month edge is not asserted",
     "counterparty": "No live counterparty; CONTRL/APERAK rendered by the actual renderers from the sent original",
-    "unit_tests": "Tagged component tests are finite ports, not native proof"
+    "unit_tests": "Tagged component tests are finite ports, not native proof",
+    "renderer": "The actual BRP renderer always runs; a pass-through wrapper alters its finished draft only in the direction, R-field and AI-list cases (injected defect after the renderer, not renderer output)"
   },
   "not_proved": [
     "SQL brp_change_exact_wire_basis_required on a missing R field (TS canonical field matrix refuses first)",
