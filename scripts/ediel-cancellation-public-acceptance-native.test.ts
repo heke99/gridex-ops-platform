@@ -1106,7 +1106,14 @@ describe('actual native supplier cancellation chains', () => {
     // The coordinator returns an EdielMessageRow; only this actual adapter
     // invocation can supply SupplyMarketResult/partition evidence.
     const observedProcess = async (source:EdielMessageRow) => {
-      const apply = vi.spyOn(cancellationSupply,'applySupplyMarketSource')
+      const actualApply = cancellationSupply.applySupplyMarketSource
+      const apply = vi.spyOn(cancellationSupply,'applySupplyMarketSource').mockImplementation(async input => {
+        if (input.message.id === source.id) expect(positiveAperakCount(f,source.id)).toBe(0)
+        const result = await actualApply(input)
+        // No final positive reply may precede the actual durable own receipt.
+        if (input.message.id === source.id) expect(positiveAperakCount(f,source.id)).toBe(0)
+        return result
+      })
       try {
         const processed = await process(f,source)
         const own = apply.mock.calls.flatMap((args,index) => args[0].message.id === source.id
@@ -1223,23 +1230,52 @@ describe('actual native supplier cancellation chains', () => {
     const late = await receiveProdat(f,z04(f),'Z04','L'),lBirth = custody(late)
     expect(late.id).not.toBe(cancellation.id); expect(physicalLi(late)).toBe(f.caseReference)
     expect(Date.parse(late.message_received_at!)).toBeGreaterThanOrEqual(Date.parse(cancellation.message_received_at!))
-    const held = await observedProcess(late)
-    expect(held.result).toMatchObject({applied:false,fullyApplied:false,reviewRequired:true,effectReceiptIds:[],periods:[],commits:[],
-      partition:[{disposition:'held',reason:'normal_z04_locked_original_scope_required'}]})
-    expect(receipts(late)).toEqual({effects:[],partitions:[],transitions:[],normal:[]})
+    expect(positiveAperakCount(f,late.id)).toBe(0)
+    const superseded = await observedProcess(late)
+    expect(superseded.result).toMatchObject({applied:true,fullyApplied:true,reviewRequired:false,switchIds:[],periods:[],commits:[],
+      partition:[{disposition:'applied'}]})
+    const lateCommitted = receipts(late)
+    expect(lateCommitted.effects).toHaveLength(1); expect(lateCommitted.partitions).toHaveLength(1)
+    expect(lateCommitted.transitions).toHaveLength(1); expect(lateCommitted.normal).toEqual([])
+    const lateEffect = lateCommitted.effects[0],latePartition = lateCommitted.partitions[0]
+    expect(lateEffect).toMatchObject({source_message_id:late.id,company_id:f.companyId,environment:'test',
+      payload_hash:createHash('sha256').update(late.raw_payload!).digest('hex')})
+    expect(createHash('sha256').update(lateEffect.effect_text).digest('hex')).toBe(lateEffect.effect_hash)
+    expect(createHash('sha256').update(latePartition.partition_text).digest('hex')).toBe(latePartition.partition_hash)
+    const lateFacts = JSON.parse(lateEffect.effect_text)
+    expect(lateFacts).toMatchObject({owner:'inbound-supply-object-v1',sourceMessageId:late.id,sourcePayloadHash:lateEffect.payload_hash,
+      companyId:f.companyId,environment:'test',canonicalAssessmentId:lateEffect.canonical_assessment_id,
+      object:{objectId:f.external,identityAgency:'9'},wire:{li:f.caseReference},
+      plan:{kind:'superseded_by_cancellation',cancelledSwitchId:f.switchId,originalId:f.originalZ03.id,
+        originalHash:createHash('sha256').update(f.originalZ03.raw_payload!).digest('hex'),
+        cancellationSourceMessageId:cancellation.id,cancellationEffectReceiptId:effect.id},
+      previousStates:[],resultingStates:[],previousSwitches:[],resultingSwitches:[]})
+    expect(Object.hasOwn(lateFacts.plan,'switchId')).toBe(false)
+    expect(lateEffect.id).not.toBe(effect.id)
+    expect(latePartition).toMatchObject({source_message_id:late.id,payload_hash:lateEffect.payload_hash,
+      canonical_assessment_id:lateEffect.canonical_assessment_id,
+      result:{applied:true,switchIds:[],periods:[],commits:[],effectReceiptIds:[lateEffect.id]}})
+    expect(superseded.result.effectReceiptIds).toEqual([lateEffect.id])
+    const lateEvents = sql<Array<{payload:Record<string,unknown>}>>(`SELECT coalesce(jsonb_agg(to_jsonb(e) ORDER BY e.created_at,e.id),'[]')
+      FROM public.ediel_message_events e WHERE e.company_id=${literal(f.companyId)} AND e.ediel_message_id=${literal(late.id)}
+      AND e.event_type='validated' AND e.payload ? 'sourceObjectPartition';`)
+    expect(lateEvents.at(-1)!.payload).toMatchObject({fullyApplied:true,reviewRequired:false,applied:true,
+      committedEffectReceiptIds:[lateEffect.id],sourceObjectPartition:superseded.result.partition})
+    expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_message_events WHERE company_id=${literal(f.companyId)}
+      AND ediel_message_id=${literal(late.id)} AND event_type='outcome';`)).toBe(0)
+    expect(sql(`SELECT to_jsonb(s) FROM public.supplier_switch_requests s WHERE id=${literal(f.switchId)} AND company_id=${literal(f.companyId)};`)).toEqual(cancelledSwitch)
+    expect(periods(f)).toEqual([])
+    await sendOwnAcks(f,late.id)
     const lAcks = sql<EdielMessageRow[]>(`SELECT coalesce(jsonb_agg(to_jsonb(a) ORDER BY message_family),'[]')
       FROM public.ediel_messages a WHERE a.company_id=${literal(f.companyId)} AND a.related_message_id=${literal(late.id)} AND a.direction='outbound';`)
-    expect(lAcks.filter(ack => ack.message_family === 'APERAK' && ack.ack_outcome === 'positive')).toEqual([])
-    const technical = lAcks.filter(ack => ack.message_family === 'CONTRL')
-    expect(technical).toHaveLength(1)
-    await sendEdielMessageViaSmtp(technical[0],{actorUserId:f.actorUserId,smtpMimeMode:'nodemailer-attachment'})
-    assertSentWithinOwnDeadline(late,(await getEdielMessageById(technical[0].id))!)
-    // A timely technical reply is observed, not invented final business success
-    // or a claim that an eventual operator contact has already occurred.
+    expect(lAcks.map(ack => [ack.message_family,ack.ack_outcome])).toEqual([['APERAK','positive'],['CONTRL','positive']])
+    for (const ack of lAcks) assertSentWithinOwnDeadline(late,ack)
+    const lAperakWire = tokenizeEdifact(lAcks.find(ack => ack.message_family === 'APERAK')!.raw_payload!)
+    expect(lAperakWire.segments.some(segment => segment.tag === 'ERC' && segmentComposite(segment,1,lAperakWire.una)[0] === '100')).toBe(true)
     const lProtocol = protocol(late)
     for (const source of [cancellation,late]) {
       await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:source.id})
-      expect(receipts(cancellation)).toEqual(committed); expect(receipts(late)).toEqual({effects:[],partitions:[],transitions:[],normal:[]})
+      expect(receipts(cancellation)).toEqual(committed); expect(receipts(late)).toEqual(lateCommitted)
       expect(switchState(f)).toMatchObject({status:'cancelled_before_start',original:f.originalZ03.id,inbound:cancellation.id})
       expect(periods(f)).toEqual([]); expect(original(f)).toEqual(beforeOriginal); expect(permissions(f)).toEqual(beforePermission)
       expect(custody(cancellation)).toEqual(cBirth); expect(custody(late)).toEqual(lBirth)
