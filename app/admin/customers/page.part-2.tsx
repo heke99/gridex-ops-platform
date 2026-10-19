@@ -7,6 +7,7 @@ import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { listCustomersPage } from '@/lib/customers/getCustomers'
 import { supabaseService } from '@/lib/supabase/service'
+import { customerOperationsReadKind, readCustomerOperationsRows } from '@/lib/customers/operationsSummaryRead'
 
 import { type LatestCustomerContractSummary } from '@/lib/customer-contracts/db'
 import type { CustomerSiteRow } from '@/lib/masterdata/types'
@@ -14,7 +15,7 @@ import type { SupplierSwitchRequestRow } from '@/lib/operations/types'
 import type { OutboundRequestRow } from '@/lib/cis/types'
 
 import type { CustomerWithOperations, CustomersPageProps } from './page.part-1'
-import { PAGE_SIZE, PaginationLink, buildCustomerOperationsSummary, buildCustomersHref, contractStatusLabel, contractStatusTone, contractTypeLabel, customerDisplayName, customerStatusLabel, customerTypeLabel, formatCurrency, formatDate, matchesContractFilter, matchesOperationsFilter, normalizeContractFilter, normalizeCustomerFlagFilter, normalizeCustomerTypeFilter, normalizeOperationsFilter, normalizePage, normalizeStatusFilter, safeLatestContractsByCustomerIds, safeQueryRows, sortCustomersByOperations } from './page.part-1'
+import { PAGE_SIZE, PaginationLink, buildCustomerOperationsSummary, buildCustomersHref, contractStatusLabel, contractStatusTone, contractTypeLabel, customerDisplayName, customerStatusLabel, customerTypeLabel, formatCurrency, formatDate, matchesContractFilter, matchesOperationsFilter, normalizeContractFilter, normalizeCustomerFlagFilter, normalizeCustomerTypeFilter, normalizeOperationsFilter, normalizePage, normalizeStatusFilter, safeLatestContractsByCustomerIds, sortCustomersByOperations } from './page.part-1'
 
 export async function AdminCustomersPage({
  searchParams,
@@ -82,48 +83,60 @@ export async function AdminCustomersPage({
  const customers = pageResult.rows
  const customerIds = customers.map((customer) => customer.id)
 
- const [sites, switchRequests, outboundRequests, latestContractsByCustomerId] =
+ const selectedCompanyIds = [...new Set(customers.flatMap(customer => customer.company_id ? [customer.company_id] : []))]
+ const [sitesRead, requestsRead, outboundRead, latestContractsByCustomerId] =
  customerIds.length > 0
  ? await Promise.all([
- safeQueryRows<CustomerSiteRow>(() => {
+ readCustomerOperationsRows<CustomerSiteRow>(() => {
  let query = supabaseService
  .from('customer_sites')
- .select('id, company_id, customer_id, site_name, facility_id, status, grid_owner_id, grid_area_code, price_area_code, created_at, updated_at')
+ .select('id, company_id, customer_id, site_name, facility_id, status, grid_owner_id, grid_area_code, price_area_code, created_at, updated_at', { count: 'exact' })
  .in('customer_id', customerIds)
  if (scopedCompanyId) query = query.eq('company_id', scopedCompanyId)
+ else query = query.in('company_id', selectedCompanyIds)
  return query.order('created_at', { ascending: false }).limit(150)
- }),
- safeQueryRows<SupplierSwitchRequestRow>(() => {
+ }, customers, 'sites'),
+ readCustomerOperationsRows<SupplierSwitchRequestRow>(() => {
  let query = supabaseService
  .from('supplier_switch_requests')
- .select('id, company_id, customer_id, site_id, metering_point_id, request_type, status, external_reference, failure_reason, submitted_at, completed_at, failed_at, lifecycle_blocked, lifecycle_block_source, lifecycle_block_id, created_at, updated_at')
+ .select('id, company_id, customer_id, site_id, metering_point_id, request_type, status, external_reference, failure_reason, submitted_at, completed_at, failed_at, lifecycle_blocked, lifecycle_block_source, lifecycle_block_id, inbound_z04_message_id, confirmed_start_date, requested_start_date, created_at, updated_at', { count: 'exact' })
  .in('customer_id', customerIds)
  if (scopedCompanyId) query = query.eq('company_id', scopedCompanyId)
+ else query = query.in('company_id', selectedCompanyIds)
  return query.order('created_at', { ascending: false }).limit(150)
- }),
- safeQueryRows<OutboundRequestRow>(() => {
+ }, customers, 'requests'),
+ readCustomerOperationsRows<OutboundRequestRow>(() => {
  let query = supabaseService
  .from('outbound_requests')
- .select('id, company_id, customer_id, site_id, metering_point_id, request_type, source_type, source_id, status, channel_type, external_reference, failure_reason, queued_at, prepared_at, sent_at, acknowledged_at, failed_at, created_at, updated_at')
+ .select('id, company_id, customer_id, site_id, metering_point_id, request_type, source_type, source_id, status, channel_type, external_reference, failure_reason, queued_at, prepared_at, sent_at, acknowledged_at, failed_at, created_at, updated_at', { count: 'exact' })
  .eq('request_type', 'supplier_switch')
  .in('customer_id', customerIds)
  if (scopedCompanyId) query = query.eq('company_id', scopedCompanyId)
+ else query = query.in('company_id', selectedCompanyIds)
  return query.order('created_at', { ascending: false }).limit(150)
- }),
+ }, customers, 'outbound'),
  safeLatestContractsByCustomerIds(customerIds, scopedCompanyId),
  ])
  : [
- [] as CustomerSiteRow[],
- [] as SupplierSwitchRequestRow[],
- [] as OutboundRequestRow[],
+ await readCustomerOperationsRows<CustomerSiteRow>(() => Promise.resolve({ data: [], error: null, count: 0 }), [], 'sites'),
+ await readCustomerOperationsRows<SupplierSwitchRequestRow>(() => Promise.resolve({ data: [], error: null, count: 0 }), [], 'requests'),
+ await readCustomerOperationsRows<OutboundRequestRow>(() => Promise.resolve({ data: [], error: null, count: 0 }), [], 'outbound'),
  new Map<string, LatestCustomerContractSummary>(),
  ]
+
+ const sites = sitesRead.kind === 'unavailable' ? [] : sitesRead.data
+ const switchRequests = requestsRead.kind === 'unavailable' ? [] : requestsRead.data
+ const outboundRequests = outboundRead.kind === 'unavailable' ? [] : outboundRead.data
 
  const customersWithOperations: CustomerWithOperations[] = customers.map(
  (customer) => ({
  ...customer,
  operations: buildCustomerOperationsSummary({
  customerId: customer.id,
+ companyId: customer.company_id,
+ readKind: customerOperationsReadKind({ customerId: customer.id,
+ companyId: scopedCompanyId && customer.company_id !== scopedCompanyId ? null : customer.company_id,
+ sites: sitesRead, requests: requestsRead, outbound: outboundRead }),
  sites,
  switchRequests,
  outboundRequests,
@@ -134,7 +147,7 @@ export async function AdminCustomersPage({
  const sortedCustomers = sortCustomersByOperations(customersWithOperations)
 
  const customersMatchingOps = sortedCustomers.filter((customer) =>
- matchesOperationsFilter(customer.operations, opsFilter)
+ matchesOperationsFilter(customer.operations, opsFilter) || customer.operations.readKind !== 'ready'
  )
 
  const filteredCustomers = customersMatchingOps.filter((customer) =>
@@ -142,36 +155,37 @@ export async function AdminCustomersPage({
  )
 
  const blockedCustomers = sortedCustomers.filter(
- (customer) => customer.operations.blocked > 0
+ (customer) => customer.operations.readKind === 'ready' && customer.operations.blocked > 0
  ).length
 
  const readyToExecuteCustomers = sortedCustomers.filter(
- (customer) => customer.operations.readyToExecute > 0
+ (customer) => customer.operations.readKind === 'ready' && customer.operations.readyToExecute > 0
  ).length
 
  const awaitingResponseCustomers = sortedCustomers.filter(
- (customer) => customer.operations.awaitingResponse > 0
+ (customer) => customer.operations.readKind === 'ready' && customer.operations.awaitingResponse > 0
  ).length
 
  const awaitingDispatchCustomers = sortedCustomers.filter(
- (customer) => customer.operations.awaitingDispatch > 0
+ (customer) => customer.operations.readKind === 'ready' && customer.operations.awaitingDispatch > 0
  ).length
 
  const queuedForOutboundCustomers = sortedCustomers.filter(
- (customer) => customer.operations.queuedForOutbound > 0
+ (customer) => customer.operations.readKind === 'ready' && customer.operations.queuedForOutbound > 0
  ).length
 
  const failedCustomers = sortedCustomers.filter(
- (customer) => customer.operations.failed > 0
+ (customer) => customer.operations.readKind === 'ready' && customer.operations.failed > 0
  ).length
 
  const activeOperationsCustomers = sortedCustomers.filter(
- (customer) => customer.operations.activeOpen > 0
+ (customer) => customer.operations.readKind === 'ready' && customer.operations.activeOpen > 0
  ).length
 
  const noSignalCustomers = sortedCustomers.filter(
- (customer) => customer.operations.activeOpen === 0
+ (customer) => customer.operations.readKind === 'ready' && customer.operations.activeOpen === 0
  ).length
+ const unknownOperationsCustomers = sortedCustomers.filter(customer => customer.operations.readKind !== 'ready').length
 
  const latestContracts = Array.from(latestContractsByCustomerId.values()) as LatestCustomerContractSummary[]
  const noContractCustomers = customersMatchingOps.filter(
@@ -224,9 +238,13 @@ export async function AdminCustomersPage({
        ['Kundposter med aktiv status', pageResult.counts.active],
        ['Inaktiva kunder', pageResult.counts.inactive],
        ['Aktiva avtal på sidan', activeContractsOnPage],
-       ['Operationsuppföljning på sidan', activeOperationsCustomers],
+       ['Ärendeuppföljning på sidan', unknownOperationsCustomers ? 'Kan inte fastställas' : activeOperationsCustomers],
      ].map(([label, count]) => <div key={label}><dt className="text-xs text-slate-600">{label}</dt><dd className="mt-1 text-xl font-semibold tabular-nums text-slate-950">{count}</dd></div>)}
    </dl>
+   {unknownOperationsCustomers > 0 ? <section role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+     <p className="font-semibold">Vissa kunders ärendestatus kunde inte fastställas.</p>
+     <p className="mt-1">{unknownOperationsCustomers} kunder saknar komplett underlag. De visas för granskning även när ett ärendefilter är valt. Filterantal gäller endast kunder med komplett underlag.</p>
+   </section> : null}
 
    <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
      <div className="border-b border-slate-200 p-4">
@@ -269,15 +287,15 @@ export async function AdminCustomersPage({
                </select>
              </label>
            </div>
-           <p className="px-3 pb-3 text-xs text-slate-600">Välj filter och tryck Sök. Operations filtreras och prioriteras på den aktuella sidan.</p>
+           <p className="px-3 pb-3 text-xs text-slate-600">Välj filter och tryck Sök. Ärendestatusar filtreras och prioriteras på den aktuella sidan.</p>
          </details>
        </form>
        <p className="mt-3 text-xs text-slate-600">Visar {filteredCustomers.length} kunder på sida {pageResult.page} av {pageResult.totalPages}{query ? ` för “${query}”` : ''}. Prioriterade ärenden visas först.</p>
      </div>
 
      <table className="w-full table-fixed text-sm">
-       <caption className="sr-only">Kunder med anläggningar, senaste avtal och operationsläge</caption>
-       <thead className="sr-only bg-slate-50 text-left text-xs text-slate-600 md:not-sr-only md:table-header-group"><tr>{['Kund', 'Anläggningar', 'Senaste avtal', 'Operations', 'Åtgärder'].map((label) => <th key={label} scope="col" className="px-4 py-3 font-semibold">{label}</th>)}</tr></thead>
+       <caption className="sr-only">Kunder med anläggningar, senaste avtal och ärendestatus</caption>
+       <thead className="sr-only bg-slate-50 text-left text-xs text-slate-600 md:not-sr-only md:table-header-group"><tr>{['Kund', 'Anläggningar', 'Senaste avtal', 'Ärendestatus', 'Åtgärder'].map((label) => <th key={label} scope="col" className="px-4 py-3 font-semibold">{label}</th>)}</tr></thead>
        <tbody className="block md:table-row-group">
          {filteredCustomers.length === 0 ? <tr className="block md:table-row"><td colSpan={5} className="block px-4 py-10 text-center text-slate-600 md:table-cell">Inga kunder matchade sökningen eller filtren på denna sida.</td></tr> : filteredCustomers.map((customer) => {
            const operations = customer.operations
@@ -308,9 +326,9 @@ export async function AdminCustomersPage({
                </td>
                <td className="col-span-2 min-w-0 px-2 py-2 align-top md:w-[24%] md:px-4 md:py-4">
                  <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold ${operations.primaryTone}`}>{operations.primaryLabel}</span>
-                 {operations.activeOpen > 0 ? <span className="ml-2 text-xs text-slate-600">{operations.activeOpen} öppna</span> : null}
+                 {operations.readKind === 'ready' && operations.activeOpen > 0 ? <span className="ml-2 text-xs text-slate-600">{operations.activeOpen} öppna</span> : null}
                  <p className="mt-1 text-xs leading-5 text-slate-600">{operations.primaryDescription}</p>
-                 <details className="mt-1 text-xs text-slate-600"><summary className="cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">Operationsdetaljer</summary><p className="mt-1">{operations.priorityLabel} · Blockerade {operations.blocked} · Redo {operations.readyToExecute} · Väntar svar {operations.awaitingResponse} · Väntar utskick {operations.awaitingDispatch} · Saknar utskick {operations.queuedForOutbound} · Kräver åtgärd {operations.failed}</p></details>
+                 {operations.readKind === 'ready' ? <details className="mt-1 text-xs text-slate-600"><summary className="cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">Ärendedetaljer</summary><p className="mt-1">{operations.priorityLabel} · Blockerade {operations.blocked} · Redo {operations.readyToExecute} · Väntar svar {operations.awaitingResponse} · Väntar nätägarens bekräftelse {operations.awaitingMarketConfirmation} · Väntar startdatum {operations.awaitingEffectiveDate} · Väntar utskick {operations.awaitingDispatch} · Saknar utskick {operations.queuedForOutbound} · Kräver åtgärd {operations.failed}</p></details> : <p className="mt-1 text-xs text-amber-800">Antal och ärendefilter kan inte verifieras för denna kund.</p>}
                </td>
                <td className="col-span-2 px-2 py-2 text-right align-top md:px-4 md:py-4">
                  <CustomerActionsMenu ariaLabel={`Åtgärder för ${customerDisplayName(customer)}`}>
