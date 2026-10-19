@@ -271,6 +271,7 @@
     "20261015183000_ops_migration_provenance_tenant_boundary.sql": "f9e49edc513f9a744d6b0cf689662adb14c970253523f3d0a0d54c710bf57928",
     "20261018100000_ediel_z04c_current_sender_registry.sql": "0f81eb64a6c79c3d67e2a58069e8dbc06c7489ab2b86bfdf596cae2b7557937b",
     "20261019043000_ediel_retained_contrl_source_prefilter.sql": "f248ec8dab18e1b4b4c2cd6f8da73f538d15030ccabb6bf0281080797d586b02",
-    "20261019100000_ediel_sc039_late_normal_z04_superseded_by_cancellation.sql": "f07a08711b7888f620f79bdccd346d82b3d56116436380aba52e148ca2139b3a"
+    "20261019100000_ediel_sc039_late_normal_z04_superseded_by_cancellation.sql": "f07a08711b7888f620f79bdccd346d82b3d56116436380aba52e148ca2139b3a",
+    "20261019120000_ediel_z04c_executed_start_compensation_receipt.sql": "0753d3e52ebec6778239b3d046df48ed008d3e4be947960d3e7f819e94cc79fe"
   }
 }
