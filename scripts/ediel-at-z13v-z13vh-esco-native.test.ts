@@ -313,6 +313,16 @@ describe.each([['V','S17'],['VH','S18']] as const)('Z13%s/%s ESCO request',(mode
   expect(state(p)).toEqual(after)
  },240000)
 
+ it('a Z14 correlated to an unrelated LI after the ACK pair creates no object right and gets no positive APERAK',async()=>{
+  const p=await request(mode);await acknowledge(p)
+  const before=state(p),source=await receiveZ14(p,z14(p,{transactionReference:'UNRELATED-LI'}))
+  await process(p,source)
+  const after=state(p)
+  noRights(after,before);expect(after.permission).toEqual(before.permission);expect(after.sites).toEqual(before.sites)
+  expect(positiveAperaks(p,source)).toBe(0)
+  expect((await getEdielMessageById(p.z13.id))!.raw_payload).toBe(p.z13.raw_payload)
+ },240000)
+
  it('wrong role, wrong direction and a mutated outbound Z13 are never executed',async()=>{
   // Mutation of the queued request before it leaves: the sealed original refuses it.
   const {f,queued}=await queueRequest(mode),bytes=queued.raw_payload!
@@ -407,6 +417,7 @@ describe.each(['V','VH'] as const)('Z13%s request-time conditions',mode=>{
  },240000)
  it.each([
   ['missing end-user agreement evidence',{omitKind:'end_user_contract'},'end_user_contract'],
+  ['missing DSO agreement evidence',{omitKind:'dso_contract'},'dso_contract'],
   ['service evidence represented for a foreign beneficiary',{foreignBeneficiaryKind:'service_contract'},'service_contract'],
  ] as const)('%s holds approval and request_access before any Z13',async(_name,options,kind)=>{
   const f=await prepareAssignment(mode,options),before=requestState(f)
