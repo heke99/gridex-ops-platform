@@ -8,9 +8,9 @@ if (process.env.GRIDEX_VERIFY_PRODUCTION_AI === '1') {
   const result = spawnSync(process.execPath, [
     path.join(process.cwd(), 'node_modules/vitest/vitest.mjs'), 'run',
     '__tests__/manual-mail-ai-production-smoke.test.ts',
-  ], { stdio: 'inherit', timeout: 30_000 })
+  ], { stdio: 'inherit', timeout: 50_000 })
   if (result.status !== 0) {
-    console.error('Production AI connection verification failed; deployment must not be promoted.')
+    console.error('Production mail verification failed; deployment must not be promoted.')
     process.exit(1)
   }
 }

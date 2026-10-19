@@ -14,3 +14,14 @@ it.skipIf(process.env.GRIDEX_VERIFY_PRODUCTION_AI !== '1')('verifies the deploye
     status: result.status, model: result.model, usage: result.usage, estimated_cost_usd: result.estimated_cost_usd,
   }))
 }, 20_000)
+
+it.skipIf(process.env.GRIDEX_VERIFY_PRODUCTION_AI !== '1')('verifies the configured production automation actor without changing its identity or permissions', async () => {
+  const { getSupabaseServiceEnv } = await import('@/lib/env/supabaseServer')
+  if (new URL(getSupabaseServiceEnv().url).hostname !== 'piidsfebjqjmnepdpnas.supabase.co') {
+    throw new Error('Production mail check failed: unexpected_database_project')
+  }
+  const { validateAutomationUserConfig } = await import('@/lib/customer-operations/automationConfig')
+  const { ok, issue } = await validateAutomationUserConfig()
+  console.info('GRIDEX_MANUAL_MAIL_AUTOMATION_PRODUCTION_CHECK', JSON.stringify({ ok, issue, mode: 'read_only' }))
+  if (!ok) throw new Error(`Production mail check failed: automation_actor_${issue}`)
+}, 20_000)
