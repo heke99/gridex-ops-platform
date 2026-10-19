@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "node --max-old-space-size=4096 node_modules/next/dist/bin/next build --webpack",
-    "typecheck": "node --max-old-space-size=4096 node_modules/typescript/bin/tsc --noEmit -p tsconfig.app.json",
+    "build": "node --max-old-space-size=6144 node_modules/next/dist/bin/next build --webpack",
+    "typecheck": "node --max-old-space-size=6144 node_modules/typescript/bin/tsc --noEmit -p tsconfig.app.json",
     "start": "next start",
     "test": "vitest run",
     "test:watch": "vitest",
