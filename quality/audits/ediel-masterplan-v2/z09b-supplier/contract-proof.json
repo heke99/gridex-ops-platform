@@ -1,0 +1,252 @@
+{
+  "id": "AT-Z09B-SUPPLIER",
+  "scope": "SKELETON DRAFT. Native supplement for the AT-Z09B-SUPPLIER notice, role, direction, R-field, AI-list and dated-history clauses; proof package for later code approval review, not delivered main merge, market activation or whole approval.",
+  "prepared_at": "PENDING_NATIVE_WORKFLOW_RUN",
+  "owner": "huvudagent 4 (worker 4D draft); reservation PENDING on #766",
+  "packet": "PENDING_NATIVE_WORKFLOW_RUN",
+  "pr": "PENDING_NATIVE_WORKFLOW_RUN",
+  "frozen_acceptance": {
+    "id": "AT-Z09B-SUPPLIER",
+    "name": "Meddelandefall Z09B",
+    "given": "SUPPLIER; Senast en kalendermånad före; rätt aktör/område/avtal; AI-lista ersätter inte Z09B.",
+    "when": "Byte av balansansvarig för berörda leveransrelationer.",
+    "expected": "23-DDQ-PRODAT; BGM=Z09; fält223=Z27; CONTRL och APERAK; uppdatering enligt BRP-förloppet.; Versionera BRP-ansvar vid datumet, inte tenantglobal överlagring av historiken.",
+    "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "layer": "Planerat meddelande-/rollprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  "frozen_acceptance_row_sha256": "ba1b9452d4fc643db836956d804c79d3aaae05bb047eab9450406b60f9ec5cfb",
+  "frozen_acceptance_row_canonicalization": "json.dumps(row, ensure_ascii=False, sort_keys=True, separators=(',',':')) UTF-8",
+  "coverage_status_at_preparation": "PARTIAL",
+  "current_originals": [
+    {
+      "producer": ".github/workflows/ediel-z09b-supplier-boundary-native.yml",
+      "workflow_id": "PENDING_NATIVE_WORKFLOW_RUN",
+      "run": "PENDING_NATIVE_WORKFLOW_RUN",
+      "attempt": "PENDING_NATIVE_WORKFLOW_RUN",
+      "event": "pull_request",
+      "head_branch": "PENDING_NATIVE_WORKFLOW_RUN",
+      "conclusion": "PENDING_NATIVE_WORKFLOW_RUN",
+      "jobs": [
+        {
+          "id": "PENDING_NATIVE_WORKFLOW_RUN",
+          "name": "Ediel Z09B supplier boundary native / z09b-supplier-boundary-native",
+          "conclusion": "PENDING_NATIVE_WORKFLOW_RUN"
+        }
+      ],
+      "artifacts": [
+        {
+          "id": "PENDING_NATIVE_WORKFLOW_RUN",
+          "name": "PENDING_NATIVE_WORKFLOW_RUN",
+          "archive_sha256": "PENDING_NATIVE_WORKFLOW_RUN",
+          "size_in_bytes": "PENDING_NATIVE_WORKFLOW_RUN",
+          "includes": "z09b-supplier-boundary-native-evidence/*"
+        }
+      ],
+      "archive_copied": false,
+      "archive_not_copied_reason": "PENDING_NATIVE_WORKFLOW_RUN",
+      "head": "PENDING_NATIVE_WORKFLOW_RUN",
+      "tree": "PENDING_NATIVE_WORKFLOW_RUN",
+      "source_blobs_exact": "PENDING_NATIVE_WORKFLOW_RUN",
+      "all_blob_oid_exact": "PENDING_NATIVE_WORKFLOW_RUN",
+      "receipt": {
+        "purpose": "supplemental_actual_native_feedback",
+        "native_exit_code": "PENDING_NATIVE_WORKFLOW_RUN",
+        "whole_at_z09b_supplier": "NOT_APPROVED_BY_RECEIPT_ALONE",
+        "authentic_market_evidence": "NOT_PROVIDED",
+        "ordinary_required_gates": "NOT_REPLACED"
+      },
+      "total": "PENDING_NATIVE_WORKFLOW_RUN",
+      "passed": "PENDING_NATIVE_WORKFLOW_RUN",
+      "failed": "PENDING_NATIVE_WORKFLOW_RUN",
+      "errors": "PENDING_NATIVE_WORKFLOW_RUN",
+      "skipped": "PENDING_NATIVE_WORKFLOW_RUN",
+      "case_names": "PENDING_NATIVE_WORKFLOW_RUN"
+    }
+  ],
+  "local_preparation_run": {
+    "note": "Local disposable Supabase clean replay in a private scratch copy of draft/4d; not a qualified original and not uploaded evidence.",
+    "result": "9/9 PASS",
+    "qualifies_as_original": false
+  },
+  "independent_proof_reviews": [],
+  "criteria": [
+    {
+      "criterion": "Given: Senast en kalendermånad före (notice < 1 calendar month is held)",
+      "source": "scripts/ediel-at-z09b-supplier-boundary-native.test.ts",
+      "lines": [
+        242,
+        254
+      ],
+      "asserted_reason": "one_calendar_month_notice_boundary",
+      "reason_locator": "supabase/schema.sql:5795 (migration 20260930200545:226)",
+      "observed": "Event at fixture start+1 day: actual read and producer return held; no intent, request, origin, message, outbox, version or confirmation; start+40 days contrast authorized.",
+      "final_head_original": {
+        "run": "PENDING_NATIVE_WORKFLOW_RUN",
+        "job": "PENDING_NATIVE_WORKFLOW_RUN",
+        "artifact": "PENDING_NATIVE_WORKFLOW_RUN",
+        "head_sha": "PENDING_NATIVE_WORKFLOW_RUN",
+        "result": "PENDING_NATIVE_WORKFLOW_RUN"
+      }
+    },
+    {
+      "criterion": "Prohibited: fel roll — non-member actor",
+      "source": "scripts/ediel-at-z09b-supplier-boundary-native.test.ts",
+      "lines": [
+        256,
+        268
+      ],
+      "asserted_reason": "brp_change_actor_forbidden (42501)",
+      "reason_locator": "supabase/schema.sql:5654 (migration 20260930200545:85)",
+      "observed": "Active user without membership: read and producer reject 42501; no effects.",
+      "final_head_original": {
+        "run": "PENDING_NATIVE_WORKFLOW_RUN",
+        "job": "PENDING_NATIVE_WORKFLOW_RUN",
+        "artifact": "PENDING_NATIVE_WORKFLOW_RUN",
+        "head_sha": "PENDING_NATIVE_WORKFLOW_RUN",
+        "result": "PENDING_NATIVE_WORKFLOW_RUN"
+      }
+    },
+    {
+      "criterion": "Prohibited: fel roll — tenant electricity_supplier role expired",
+      "source": "scripts/ediel-at-z09b-supplier-boundary-native.test.ts",
+      "lines": [
+        270,
+        278
+      ],
+      "asserted_reason": "current_unique_legal_supplier_profile",
+      "reason_locator": "supabase/schema.sql:5781 (migration 20260930200545:199-212)",
+      "observed": "Own tenant_actor_roles electricity_supplier row expired: held; no effects.",
+      "final_head_original": {
+        "run": "PENDING_NATIVE_WORKFLOW_RUN",
+        "job": "PENDING_NATIVE_WORKFLOW_RUN",
+        "artifact": "PENDING_NATIVE_WORKFLOW_RUN",
+        "head_sha": "PENDING_NATIVE_WORKFLOW_RUN",
+        "result": "PENDING_NATIVE_WORKFLOW_RUN"
+      }
+    },
+    {
+      "criterion": "Prohibited: fel roll — registry BRP actor without balance_responsible",
+      "source": "scripts/ediel-at-z09b-supplier-boundary-native.test.ts",
+      "lines": [
+        280,
+        290
+      ],
+      "asserted_reason": "current_exact_verified_registry_actors_and_roles",
+      "reason_locator": "supabase/schema.sql:5712 (migration 20260930200545:141-143)",
+      "observed": "Distinct registry BRP role deactivated: held; no effects.",
+      "final_head_original": {
+        "run": "PENDING_NATIVE_WORKFLOW_RUN",
+        "job": "PENDING_NATIVE_WORKFLOW_RUN",
+        "artifact": "PENDING_NATIVE_WORKFLOW_RUN",
+        "head_sha": "PENDING_NATIVE_WORKFLOW_RUN",
+        "result": "PENDING_NATIVE_WORKFLOW_RUN"
+      }
+    },
+    {
+      "criterion": "Prohibited: fel riktning",
+      "source": "scripts/ediel-at-z09b-supplier-boundary-native.test.ts",
+      "lines": [
+        292,
+        317
+      ],
+      "asserted_reason": "canonical_outbound_owner_scope_required (finalizer); ediel_wire_reference_namespace_context_immutable (bound sent original)",
+      "reason_locator": "lib/ediel/core/kernel.ts:621-623; supabase/schema.sql:19010 (BEFORE trigger, fires ahead of the AFTER brp_bound_message_immutable guard)",
+      "observed": "Inbound draft on reserved intent refused before any message; later UPDATE direction=inbound on the sent bound Z09 refused; effects, raw and status source_declared unchanged; nothing confirmed.",
+      "final_head_original": {
+        "run": "PENDING_NATIVE_WORKFLOW_RUN",
+        "job": "PENDING_NATIVE_WORKFLOW_RUN",
+        "artifact": "PENDING_NATIVE_WORKFLOW_RUN",
+        "head_sha": "PENDING_NATIVE_WORKFLOW_RUN",
+        "result": "PENDING_NATIVE_WORKFLOW_RUN"
+      }
+    },
+    {
+      "criterion": "Prohibited: saknade R/D-fält (262 NAD+Z02, 260 RFF+Z05 are R for Z09 in prodat_fields.json)",
+      "source": "scripts/ediel-at-z09b-supplier-boundary-native.test.ts",
+      "lines": [
+        318,
+        341
+      ],
+      "asserted_reason": "FIELD_MATRIX_REQUIRED_FIELD_MISSING",
+      "reason_locator": "lib/ediel/rulebook/fieldMatrix.ts:733 (canonical policy)",
+      "observed": "After actual reservation, body-bound wire without the segment refused; origin message_id stays NULL, no message/outbox/version; complete wire then binds normally. SQL brp_change_exact_wire_basis_required is NOT reached natively and NOT claimed.",
+      "final_head_original": {
+        "run": "PENDING_NATIVE_WORKFLOW_RUN",
+        "job": "PENDING_NATIVE_WORKFLOW_RUN",
+        "artifact": "PENDING_NATIVE_WORKFLOW_RUN",
+        "head_sha": "PENDING_NATIVE_WORKFLOW_RUN",
+        "result": "PENDING_NATIVE_WORKFLOW_RUN"
+      }
+    },
+    {
+      "criterion": "Given: AI-lista ersätter inte Z09B",
+      "source": "scripts/ediel-at-z09b-supplier-boundary-native.test.ts",
+      "lines": [
+        343,
+        366
+      ],
+      "asserted_reason": "ai_list_edifact_or_foreign_link_forbidden",
+      "reason_locator": "lib/ediel/core/kernel.ts:637",
+      "observed": "AI_LIST original on the reserved Z09 intent refused; no AI_LIST message; only the actual Z09B confirms after CONTRL+APERAK.",
+      "final_head_original": {
+        "run": "PENDING_NATIVE_WORKFLOW_RUN",
+        "job": "PENDING_NATIVE_WORKFLOW_RUN",
+        "artifact": "PENDING_NATIVE_WORKFLOW_RUN",
+        "head_sha": "PENDING_NATIVE_WORKFLOW_RUN",
+        "result": "PENDING_NATIVE_WORKFLOW_RUN"
+      }
+    },
+    {
+      "criterion": "Expected: versionera BRP-ansvar vid datumet, inte tenantglobal överlagring av historiken",
+      "source": "scripts/ediel-at-z09b-supplier-boundary-native.test.ts",
+      "lines": [
+        427,
+        514
+      ],
+      "asserted_reason": "n/a (positive history case)",
+      "reason_locator": "public.ediel_brp_responsibility_history_v1 (migration 20261011170000:68)",
+      "observed": "Donor case reused from dbcd5ed306e7d2ca934769bf101781c2525da6cf:scripts/ediel-z09b-brp-change-native.test.ts: v1 closed exactly at v2, older original/confirmation retained, same-company sibling and company BRP settings unchanged.",
+      "final_head_original": {
+        "run": "PENDING_NATIVE_WORKFLOW_RUN",
+        "job": "PENDING_NATIVE_WORKFLOW_RUN",
+        "artifact": "PENDING_NATIVE_WORKFLOW_RUN",
+        "head_sha": "PENDING_NATIVE_WORKFLOW_RUN",
+        "result": "PENDING_NATIVE_WORKFLOW_RUN"
+      }
+    }
+  ],
+  "premises": {
+    "database": "Actual disposable PostgreSQL native replay",
+    "authority": "Constructed tenant/market/role/registry inputs; SYNTHETIC BRP-change event and registry rows (no approval API)",
+    "external_transport": "Declared SMTP double (synthetic 250)",
+    "clock": "Not controlled; notice case uses fixture start+1 day",
+    "counterparty": "No live counterparty; CONTRL/APERAK rendered by the actual renderers from the sent original",
+    "unit_tests": "Tagged component tests are finite ports, not native proof"
+  },
+  "not_proved": [
+    "SQL brp_change_exact_wire_basis_required on a missing R field (TS canonical field matrix refuses first)",
+    "SQL brp_bound_message_immutable on direction change (BEFORE wire-namespace trigger refuses first)",
+    "Authentic market/counterparty evidence"
+  ],
+  "source_applicability": {
+    "executed_head": "PENDING_NATIVE_WORKFLOW_RUN",
+    "executed_tree": "PENDING_NATIVE_WORKFLOW_RUN",
+    "current_main": "f31f2381261",
+    "verdict": "PENDING_NATIVE_WORKFLOW_RUN"
+  },
+  "delivery": {
+    "status": "NOT_DELIVERED",
+    "coverage_row": "NOT_CHANGED_BY_THIS_PACKAGE",
+    "ordinary_final_head_gates": "REQUIRED",
+    "merge_role": "REQUIRED_SERIAL_OWNER_ONLY",
+    "external_legal_market_live_gates": "NOT_APPROVED",
+    "other_ids": "NOT_APPROVED"
+  }
+}
