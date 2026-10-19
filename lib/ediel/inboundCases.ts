@@ -1167,7 +1167,7 @@ async function applyInboundObjects(params:{actorUserId:string;caseId:string;comp
   const message=data as EdielMessageRow|null
   if (!message?.raw_payload || message.direction !== 'inbound' || message.message_family !== 'PRODAT') throw new Error('PRODAT_OBJECT_APPLICATION_SOURCE_REQUIRED')
   const facts=parseEdifactMessageFacts(message.raw_payload)
-  if (validateProdatRegisterPayload({code:facts.messageCode ?? '',rawSegments:facts.rawSegments,una:parseUna(message.raw_payload)}).some(issue=>issue.blocking)) throw new Error('PRODAT_OBJECT_SELECTION_INVALID')
+  if (validateProdatRegisterPayload({code:facts.messageCode ?? '',rawSegments:facts.rawSegments,una:parseUna(message.raw_payload),direction:'inbound'}).some(issue=>issue.blocking)) throw new Error('PRODAT_OBJECT_SELECTION_INVALID')
   const parsed=parseProdatMessage(message)
   const objects=parsedProdatObjects(parsed)
   if (objects.length < 2 || objects.some(object=>!object.meteringPointId || !object.identityAgency || !object.validRegisterChain)) throw new Error('PRODAT_OBJECT_SELECTION_INVALID')
