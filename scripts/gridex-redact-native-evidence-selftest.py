@@ -495,6 +495,282 @@ with tempfile.TemporaryDirectory(prefix='native-redactor-quoted-scalar-selftest-
         check('probe_nested_quoted_scalar_actual_cli_' + mode + '_does_not_log_values',
               quoted_scalar_marker.encode() not in completed.stdout + completed.stderr)
 
+# Published caller/format regressions use synthetic inputs and the real caller
+# Python blocks, never replay/native/CI commands or original evidence.
+import ast
+import os
+import re
+import textwrap
+import xml.etree.ElementTree as ET
+
+named_marker = 'DECLARED_ALIAS_CREDENTIAL_20261019'
+for key in ['POSTGRES_PASSWORD', 'SUPABASE_JWT_SECRET', 'AWS_SECRET_ACCESS_KEY',
+            'secret_key', 'DB_PASSWORD', 'S3 Access Key', 'PGPASSWORD', 'accessToken', 'X-Api-Key']:
+    for form in ['text', 'json', 'header']:
+        payload = ((key + '=' + named_marker + '\n').encode() if form == 'text' else
+                   json.dumps({key: named_marker, 'safe': 'visible-alias'}).encode() if form == 'json' else
+                   json.dumps({'headers': [{'name': key, 'value': named_marker}], 'safe': 'visible-alias'}).encode())
+        result = module.scrub(payload)
+        check('public_alias_' + key + '_' + form, named_marker.encode() not in result
+              and module.scrub(result) == result)
+        if form != 'text':
+            check('public_alias_' + key + '_' + form + '_valid_json', json.loads(result)['safe'] == 'visible-alias')
+    if key in ['PGPASSWORD', 'accessToken', 'X-Api-Key']:
+        result = module.scrub((key + ': ' + named_marker + '\n').encode())
+        check('public_conventional_alias_colon_' + key, named_marker.encode() not in result)
+for payload in [b'\x1b[1mJWT_SECRET\x1b[0m=' + named_marker.encode() + b'\n',
+                b'JWT_\x1b[32mSECRET\x1b[0m="' + named_marker.encode() + b'"\n']:
+    result = module.scrub(b'\x1b[35mpublic-before\x1b[0m\n' + payload + b'public-after\r\n')
+    check('public_ANSI_name_credential_removed', named_marker.encode() not in result)
+    check('public_ANSI_safe_bytes_retained', result.startswith(b'\x1b[35mpublic-before\x1b[0m\n')
+          and result.endswith(b'public-after\r\n') and module.scrub(result) == result)
+for separator in ['│', '┃', '|']:
+    table = (separator + ' Access Key ' + separator + ' Secret Key ' + separator + '\n'
+             + separator + ' ' + named_marker + ' ' + separator + ' ' + named_marker + '2 ' + separator + '\n')
+    payload = ('public-header-before\n' + table + 'public-header-after\n').encode()
+    result = module.scrub(payload)
+    check('public_horizontal_header_' + separator, named_marker.encode() not in result
+          and result.startswith(b'public-header-before\n') and result.endswith(b'public-header-after\n')
+          and b'Access Key' in result and b'Secret Key' in result and module.scrub(result) == result)
+    with tempfile.TemporaryDirectory(prefix='native-redactor-header-') as directory:
+        evidence = Path(directory) / 'header.log'; evidence.write_bytes(payload)
+        module.redact_line_records(evidence)
+        check('public_horizontal_header_records_' + separator, evidence.read_bytes() == result)
+    xml = ('<testsuites><testsuite><testcase><system-out>' + separator + ' Access Key ' + separator
+           + ' ' + named_marker + ' ' + separator + '</system-out></testcase></testsuite></testsuites>\r\n').encode()
+    result = module.scrub(xml)
+    try:
+        ET.fromstring(result); valid_xml = True
+    except ET.ParseError:
+        valid_xml = False
+    check('public_table_XML_closing_suffix_' + separator, named_marker.encode() not in result and valid_xml
+          and result.endswith((separator + '</system-out></testcase></testsuite></testsuites>\r\n').encode())
+          and module.scrub(result) == result)
+
+for name, payload in [
+    ('safe_ANSI', b'\x1b[32mpublic SQL diagnostic\x1b[0m\r\n'),
+    ('safe_password_policy', b'{ "password_policy":"keep public policy", "access_key_count":2 }\r\n'),
+    ('safe_family_substring', b'notpassword=public\nPASSWORD_POLICY=public\n'),
+    ('safe_PGPASSWORD_suffix', b'{ "PGPASSWORD_COUNT": 1 }\n'),
+    ('safe_accessToken_suffix', b'{ "accessTokenCount": 1 }\n'),
+    ('safe_XApiKey_suffix', b'{ "X-Api-Key-Status": "public" }\n'),
+    ('safe_SQL_casts_and_assignment', b"SELECT 'missing_authorization'::text, 'DB_PASSWORD'::text;\nv_password := public_fixture;\nempty_feed_authorization = 'public_enum';\n"),
+    ('safe_URL_port_and_contact', b'https://example.invalid:443/public?contact=help@example.invalid\n'),
+    ('safe_JSON_surrogate_key', b'{ "\\ud800": "public diagnostic", "safe": 1 }\r\n'),
+    ('safe_URL', b'https://example.invalid/safe/path?mode=public\n'),
+    ('safe_long_scheme_URL', b'custom' + b'a' * 80 + b'://example.invalid/path\n'),
+]:
+    identity('public_' + name, payload)
+
+for value in ['DECLARED_QUOTED;CREDENTIAL,TAIL', 'DECLARED_QUOTED/CREDENTIAL']:
+    for quote in ["'", '"']:
+        result = module.scrub(('password=' + quote + value + quote + ' public-diagnostic\n').encode())
+        check('public_quoted_delimiter_extent', value.encode() not in result and result.endswith(b' public-diagnostic\n'))
+
+caller_specs = [
+    ('ediel-db04-current-consumers-native.yml', 'db04-current-consumers-native-working'),
+    ('ediel-db05-native.yml', 'db05-native-working'),
+    ('ediel-esco-z14vh-z15v-native.yml', 'esco-z14vh-z15v-native-working'),
+    ('ediel-sc014-z14v-native.yml', 'sc014-z14v-native-working'),
+]
+for workflow_name, working_name in caller_specs:
+    workflow = Path(__file__).parents[1] / '.github' / 'workflows' / workflow_name
+    lines = workflow.read_text().splitlines()
+    start = next(i for i, line in enumerate(lines) if "spec_from_file_location('canonical_redactor'" in line) - 1
+    end = next(i for i in range(start + 1, len(lines)) if lines[i].strip() == 'PY')
+    caller_block = textwrap.dedent('\n'.join(lines[start:end]))
+    tree = ast.parse(caller_block)
+    caller_loop = next(node for node in tree.body if isinstance(node, ast.For))
+    check('public_caller_' + workflow_name + '_actual_working_root', ast.literal_eval(caller_loop.iter.func.value.args[0]) == working_name)
+    regex = next(ast.literal_eval(node.value.args[0]) for node in tree.body if isinstance(node, ast.Assign)
+                 and any(isinstance(target, ast.Name) and target.id == 'remaining' for target in node.targets))
+    detector = re.compile(regex)
+    fixed_url = b'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
+    other_url = b'postgresql://user:DECLARED_OTHER_URL_CREDENTIAL@127.0.0.1:54322/postgres'
+    for raw in [fixed_url, other_url, token.encode(), b'sb_secret_DECLARED_caller_key']:
+        check('public_caller_' + workflow_name + '_negative_guard', detector.search(raw) is not None)
+    with tempfile.TemporaryDirectory(prefix='native-redactor-caller-') as directory:
+        root = Path(directory); working = root / working_name; working.mkdir()
+        scripts = root / 'scripts'; scripts.mkdir()
+        (scripts / 'gridex-redact-native-evidence.py').symlink_to(Path(__file__).with_name('gridex-redact-native-evidence.py').resolve())
+        status = root / 'local.json'; status.write_text(json.dumps({'API_URL':'http://127.0.0.1:54321',
+                   'DB_URL':fixed_url.decode(), 'SECRET_KEY':'DECLARED_STATUS_SECRET'}))
+        (working / 'native.log').write_bytes(b'public-caller-before\nDB URL: ' + fixed_url + b'\nother: ' + other_url + b'\npublic-caller-after\r\n')
+        (working / 'body.json').write_text(json.dumps({'db_url':other_url.decode(), 'safe':'public-json-caller'}))
+        (working / 'records.jsonl').write_text(json.dumps({'password':named_marker,'safe':1})+'\n'+json.dumps({'db_url':other_url.decode(),'safe':2})+'\n')
+        with zipfile.ZipFile(working / 'trace.zip', 'w') as archive:
+            archive.writestr('trace.network', b'public-zip-caller ' + other_url)
+        first = subprocess.run([sys.executable, str(Path(__file__).with_name('gridex-redact-native-evidence.py')),
+                '--root',str(working),'--local-secrets',str(status)],capture_output=True,check=False)
+        second = subprocess.run([sys.executable,'-c',caller_block],cwd=root,
+                env=dict(os.environ,GRIDEX_NATIVE_STATUS=str(status),PYTHONDONTWRITEBYTECODE='1'),capture_output=True,check=False)
+        check('public_caller_' + workflow_name + '_actual_CLI_then_actual_block', first.returncode == second.returncode == 0)
+        result = (working / 'native.log').read_bytes()
+        check('public_caller_' + workflow_name + '_safe_log_and_idempotence', detector.search(result) is None
+              and b'DECLARED_OTHER_URL_CREDENTIAL' not in result and result.startswith(b'public-caller-before\n')
+              and result.endswith(b'public-caller-after\r\n') and module.scrub(result) == result)
+        check('public_caller_' + workflow_name + '_valid_JSON', json.loads((working/'body.json').read_bytes())['safe']=='public-json-caller'
+              and detector.search((working/'body.json').read_bytes()) is None)
+        records = [json.loads(line) for line in (working/'records.jsonl').read_text().splitlines()]
+        check('public_caller_' + workflow_name + '_valid_NDJSON', [row['safe'] for row in records]==[1,2]
+              and named_marker not in (working/'records.jsonl').read_text())
+        with zipfile.ZipFile(working / 'trace.zip') as archive:
+            member=archive.read('trace.network')
+        check('public_caller_' + workflow_name + '_decoded_ZIP_member', detector.search(member) is None
+              and b'DECLARED_OTHER_URL_CREDENTIAL' not in member and b'public-zip-caller' in member)
+
+# No elapsed-time assertion: the new scanner's non-overlapping admission and
+# span consumption are reviewed explicitly. Large finite identity fixtures
+# run only with that scanner present; the uncorrected baseline remains bounded.
+if hasattr(module, 'scrub_url_passwords'):
+    for name, payload in [('dotted', b'a.' * 262144), ('prefixes', b'a://' * 131072), ('colons', b'ab:' * 131072), ('dotted_with_at', b'a.' * 262144 + b'@host.invalid')]:
+        identity('public_large_noncredential_' + name, payload)
+    storm = b'a://' * 131072 + b'@host.invalid'
+    identity('public_noncredential_prefix_storm_with_at', storm)
+    slash = b'postgresql://user:DECLARED_PERCENT%2FENCODED_CREDENTIAL@host.invalid/path'
+    check('public_valid_percent_encoded_userinfo', module.scrub(slash) == module.REDACTED.encode() + b'@host.invalid/path')
+    for scheme in [b'postgresql', b'custom' + b'a' * 80]:
+        result=module.scrub(scheme+b'://user:DECLARED_SCANNER_CREDENTIAL@host.invalid/path')
+        check('public_unbounded_scheme_credentials', b'DECLARED_SCANNER_CREDENTIAL' not in result
+              and b'user:' not in result and result.endswith(b'@host.invalid/path') and module.scrub(result)==result)
+else:
+    check('public_linear_URL_scanner_required', False)
+
+# ROOT's actual valid-XML failures: preserve lexical structure and outside-
+# frame diagnostics, including when the terminal table frame is absent.
+xml_root_marker = 'DECLARED_ROOT_ONLY'
+xml_open = '<testsuites><testsuite><testcase><system-out>'
+xml_close = '</system-out></testcase></testsuite></testsuites>'
+xml_cases = []
+plain_opaque = b'| Access Key | DECLARED_OPAQUE_FIRST|DECLARED_OPAQUE_SECOND |\n'
+plain_clean = module.scrub(plain_opaque)
+check('XML_change_preserves_plaintext_opaque_separator_redaction',
+      b'DECLARED_OPAQUE_FIRST' not in plain_clean and b'DECLARED_OPAQUE_SECOND' not in plain_clean)
+for separator in ['│', '┃', '|']:
+    for variant, tail in [('public_suffix', separator + ' public diagnostic'), ('no_frame', '')]:
+        body = separator + ' Access Key ' + separator + ' ' + xml_root_marker + ' ' + tail
+        raw = (xml_open + body + xml_close + '\r\n').encode()
+        xml_cases.append((separator + '_' + variant, raw,
+                          (tail + xml_close + '\r\n').encode()))
+xml_cases.extend([
+    ('entities_UTF8', (xml_open + '│ Secret Key │ ' + xml_root_marker + '&amp;tail │ public &amp; café' + xml_close + '\r\n').encode(),
+     ('│ public &amp; café' + xml_close + '\r\n').encode()),
+    ('CDATA', (xml_open + '<![CDATA[│ Access Key │ ' + xml_root_marker + ' │ public diagnostic]]>' + xml_close + '\n').encode(),
+     ('│ public diagnostic]]>' + xml_close + '\n').encode()),
+    ('nested_testcases', ('<testsuite>\n<testcase><system-out>│ Access Key │ ' + xml_root_marker
+                         + ' │ public-one</system-out></testcase>\n<testcase><system-out>│ Secret Key │ '
+                         + xml_root_marker + '</system-out></testcase>\n</testsuite>\r\n').encode(), b'</testsuite>\r\n'),
+    ('attribute_credential', ('<testsuite password="' + xml_root_marker + '"><testcase>public attribute diagnostic</testcase></testsuite>\n').encode(),
+     b'<testcase>public attribute diagnostic</testcase></testsuite>\n'),
+    ('attribute_URL', ('<testsuite message="postgresql://user:' + xml_root_marker + '@host.invalid/path"><testcase>public URL attribute diagnostic</testcase></testsuite>\n').encode(),
+     b'<testcase>public URL attribute diagnostic</testcase></testsuite>\n'),
+    ('attribute_inner_single_quote', ('<testsuite message="password=\'' + xml_root_marker + '\' public &amp; diagnostic"><testcase>public quote diagnostic</testcase></testsuite>\n').encode(),
+     b' public &amp; diagnostic"><testcase>public quote diagnostic</testcase></testsuite>\n'),
+    ('attribute_inner_double_quote', ("<testsuite message='password=\"" + xml_root_marker + "\" public &amp; diagnostic'><testcase>public quote diagnostic</testcase></testsuite>\n").encode(),
+     b" public &amp; diagnostic'><testcase>public quote diagnostic</testcase></testsuite>\n"),
+    ('Unicode_attribute_quote_boundary', ('<t ö=" password=\'' + xml_root_marker + '" safe="\'"/>\n').encode(),
+     b'" safe="\'"/>\n'),
+    ('comment_credential', ('<testsuite><!--password=' + xml_root_marker + '--><testcase>public comment diagnostic</testcase></testsuite>\n').encode(),
+     b'--><testcase>public comment diagnostic</testcase></testsuite>\n'),
+    ('JSON_text', ('<testsuite><system-out>{"password":"' + xml_root_marker + '","safe":"public JSON diagnostic"}</system-out></testsuite>\n').encode(),
+     b'</system-out></testsuite>\n'),
+])
+for name, raw, public_suffix in xml_cases:
+    ET.fromstring(raw)
+    result = module.scrub(raw)
+    try:
+        ET.fromstring(result); valid = True
+    except ET.ParseError:
+        valid = False
+    check('XML_structural_' + name, valid and xml_root_marker.encode() not in result
+          and result.endswith(public_suffix) and module.scrub(result) == result)
+    with tempfile.TemporaryDirectory(prefix='native-redactor-XML-structure-') as directory:
+        evidence=Path(directory)/'junit.xml';evidence.write_bytes(raw)
+        try:
+            module.redact_line_records(evidence)
+            ET.fromstring(evidence.read_bytes())
+            records_valid = evidence.read_bytes() == result
+        except (ValueError, ET.ParseError):
+            records_valid = False
+        check('XML_structural_records_' + name, records_valid)
+for name, raw in [
+    ('attrs_comments_entities', b'<?xml version="1.0"?><testsuite name="public &amp; safe"><!--public--><testcase><system-out>public &lt;diagnostic&gt;</system-out></testcase></testsuite>\r\n'),
+    ('CDATA_public', b'<testsuite><system-out><![CDATA[public <angle> & diagnostic]]></system-out></testsuite>\n'),
+    ('Unicode_attribute_name', '<t öpassword="public diagnostic"/>'.encode()),
+]:
+    identity('XML_structural_safe_' + name, raw)
+xml_dtd = b'<!DOCTYPE root [<!ENTITY ext SYSTEM "https://example.invalid/unread">]><root>&ext;</root>'
+refused = False
+try:
+    module.scrub(xml_dtd)
+except ValueError as error:
+    refused = str(error).startswith('redaction_xml_')
+check('XML_DTD_external_reference_refused', refused)
+
+# Actual once-escaped XML quote regressions from the independent 1ac9 review.
+entity_marker = 'DECLARED_B_XML_ENTITY_CREDENTIAL;WITH,DELIMITERS'
+for quote in ['&quot;', '&apos;', '&#34;', '&#x22;', '&#39;', '&#x27;']:
+    for context in ['attribute', 'text']:
+        body = 'password=' + quote + entity_marker + quote + ' public &amp; diagnostic'
+        raw = (('<testcase message="' + body + '"/>') if context == 'attribute'
+               else '<testcase><system-out>' + body + '</system-out></testcase>').encode()
+        ET.fromstring(raw)
+        clean = module.scrub(raw)
+        try:
+            ET.fromstring(clean); valid = True
+        except ET.ParseError:
+            valid = False
+        expected = raw.replace(entity_marker.encode(), module.REDACTED.encode())
+        check('XML_entity_once_' + context + '_' + quote, valid and clean == expected
+              and module.scrub(clean) == clean)
+        with tempfile.TemporaryDirectory(prefix='native-redactor-XML-entity-') as directory:
+            evidence = Path(directory)/'junit.xml'; evidence.write_bytes(raw)
+            module.redact_line_records(evidence)
+            check('XML_entity_records_' + context + '_' + quote, evidence.read_bytes() == expected)
+for name, raw in [
+    ('encoded_name', b'<t>pass&#119;ord=&quot;DECLARED_ENCODED_NAME&quot; public &amp; diagnostic</t>'),
+    ('encoded_value', b'<t message="password=&quot;DECLARED&#95;ENCODED_VALUE&quot; public &amp; diagnostic"/>'),
+    ('encoded_URL', b'<t message="postgresql://user&#58;DECLARED_ENCODED_URL@host.invalid/path public &amp; diagnostic"/>'),
+    ('BOM_LF_table', ('\ufeff\n  <t>│ Access Key │ DECLARED_BOM_VALUE │ public diagnostic</t>\n').encode()),
+    ('BOM_CRLF_no_frame', ('\ufeff\r\n  <t>│ Access Key │ DECLARED_BOM_VALUE</t>\r\n').encode()),
+]:
+    ET.fromstring(raw)
+    clean = module.scrub(raw)
+    try:
+        parsed = ET.fromstring(clean)
+        decoded = ET.tostring(parsed, encoding='unicode'); valid = True
+    except ET.ParseError:
+        decoded = ''; valid = False
+    check('XML_entity_' + name, valid and 'DECLARED' not in decoded and module.scrub(clean) == clean
+          and (not raw.startswith(b'\xef\xbb\xbf') or clean.startswith(b'\xef\xbb\xbf'))
+          and (b'public &amp; diagnostic' not in raw or b'public &amp; diagnostic' in clean))
+for name, payload in [('string', '"DECLARED_XML_JSON"'), ('number', '123'), ('boolean', 'true'),
+                      ('null', 'null'), ('object', '{"inside":"DECLARED_XML_JSON"}'),
+                      ('array', '["DECLARED_XML_JSON"]')]:
+    raw = ('<t name="public &amp; outside">{"pass&#119;ord":' + payload + ',"safe":"public &amp; diagnostic"}</t>').encode()
+    clean = module.scrub(raw)
+    parsed = json.loads(ET.fromstring(clean).text)
+    check('XML_entity_JSON_typed_' + name, parsed == {'password':module.REDACTED,'safe':'public & diagnostic'}
+          and clean.startswith(b'<t name="public &amp; outside">') and b'public &amp; diagnostic' in clean and module.scrub(clean) == clean)
+raw = b'<t>{"headers":[{"name":"Authoriz&#97;tion","value":"DECLARED_XML_HEADER"}],"safe":1}</t>'
+clean = module.scrub(raw); parsed = json.loads(ET.fromstring(clean).text)
+check('XML_entity_JSON_header_pair', parsed['headers'][0]['value'] == module.REDACTED
+      and parsed['safe'] == 1 and module.scrub(clean) == clean)
+for name, raw in [
+    ('public_attribute_entities', b'<t message="public &quot;diagnostic&quot; &apos;quoted&apos; &amp; &#99;af&#xE9; &amp;quot;"/>'),
+    ('public_text_entities', b'<t>public &lt;diagnostic&gt; &quot;quoted&quot; &amp;quot; &#99;af&#xE9;</t>'),
+    ('CDATA_literal_entities', b'<t><![CDATA[public &quot;diagnostic&quot; &amp;quot; &#34;]]></t>'),
+    ('comment_PI_literal_entities', b'<t><!--public &quot;diagnostic&quot;--><?public &amp;quot; &#34;?></t>'),
+    ('BOM_safe_identity', b'\xef\xbb\xbf\r\n  <t message="public &quot;diagnostic&quot;">public &amp; safe</t>\r\n'),
+]:
+    identity('XML_entity_safe_' + name, raw)
+if hasattr(module, '_xml_entity_view'):
+    view, boundary = module._xml_entity_view(b'&amp;quot; &#0000000034; &#x000000E9;')
+    check('XML_entity_exactly_once_numeric_and_boundary', view == b'&quot; " \xc3\xa9'
+          and boundary(len(view)) == len(b'&amp;quot; &#0000000034; &#x000000E9;'))
+else:
+    check('XML_entity_exactly_once_numeric_and_boundary', False)
+
 failed = [name for name, okay in checks if not okay]
 for name in failed:
     print('NATIVE_EVIDENCE_SELFTEST_FAIL: ' + name)
