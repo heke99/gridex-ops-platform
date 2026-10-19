@@ -26093,6 +26093,7 @@ DECLARE m public.ediel_messages%rowtype;original public.ediel_messages%rowtype;s
  prior gridex_received_sources.supply_source_transitions%rowtype;canonical gridex_received_sources.validation_assessments%rowtype;
  wire jsonb;oldwire jsonb;own jsonb;basis jsonb;plans jsonb:='[]';plan jsonb;after_states jsonb;before_switches jsonb:='[]';period public.customer_supply_periods%rowtype;
  ids uuid[];original_ids uuid[];switch_ids uuid[]:=ARRAY[]::uuid[];pid uuid;event_at timestamptz;customer_identity text;
+ cancellation_receipt_ids uuid[];
 BEGIN
  SELECT * INTO m FROM public.ediel_messages WHERE id=p_source_message_id AND company_id=p_company_id FOR UPDATE; IF gridex_received_sources.require_supply_scope_admission_v1(p_company_id,p_source_message_id,p_scope) IS DISTINCT FROM p_canonical_id THEN RAISE EXCEPTION 'supply_scoped_canonical_assessment_changed';END IF; IF jsonb_array_length(gridex_received_sources.require_prodat_application_objects_v1(p_company_id,p_source_message_id)->'objects')>1 THEN m.customer_id:=NULL;m.metering_point_id:=NULL;END IF;
  IF NOT FOUND OR m.direction IS DISTINCT FROM 'inbound' OR m.message_standard IS DISTINCT FROM 'edifact' OR m.message_family IS DISTINCT FROM 'PRODAT' OR m.message_code IS DISTINCT FROM 'Z04' THEN RETURN jsonb_build_object('applied',false,'reason','normal_z04_source_required');END IF;
@@ -26136,7 +26137,7 @@ BEGIN
   IF original.direction IS DISTINCT FROM 'outbound' OR original.message_family IS DISTINCT FROM 'PRODAT' OR original.message_code IS DISTINCT FROM 'Z03' OR gridex_received_sources.sent_source_is_current_v1(original) IS NOT TRUE
    OR original.customer_id IS DISTINCT FROM sw.customer_id OR original.metering_point_id IS DISTINCT FROM sw.metering_point_id OR oldwire->>'sender' IS DISTINCT FROM wire->>'receiver' OR oldwire->>'receiver' IS DISTINCT FROM wire->>'sender'
    OR NOT EXISTS(SELECT FROM jsonb_array_elements(oldwire->'objects') o WHERE o->>'li'=own->>'li' AND o->>'customerIdentity'=own->>'customerIdentity' AND o->>'start'=own->>'start' AND o->>'reason'=own->>'reason' AND (o->>'point' IS NULL OR o->>'point'=own->>'point') AND(o->>'point' IS NULL OR o->>'identityAgency'=own->>'identityAgency'))
-   OR (sw.status IN('prepared','queued','submitted','sent','waiting','waiting_response','waiting_for_z04','awaiting_confirmation')) IS NOT TRUE OR sw.lifecycle_blocked
+   OR (sw.status IN('prepared','queued','submitted','sent','waiting','waiting_response','waiting_for_z04','awaiting_confirmation','cancelled_before_start')) IS NOT TRUE OR sw.lifecycle_blocked
    OR sw.id=ANY(switch_ids) OR (m.customer_id IS NOT NULL AND m.customer_id IS DISTINCT FROM sw.customer_id) OR (m.metering_point_id IS NOT NULL AND m.metering_point_id IS DISTINCT FROM sw.metering_point_id) THEN RETURN jsonb_build_object('applied',false,'reason','normal_z04_locked_original_scope_required');END IF;
   SELECT * INTO point FROM public.metering_points WHERE id=sw.metering_point_id AND company_id=m.company_id FOR UPDATE;
   SELECT * INTO site FROM public.customer_sites WHERE id=coalesce(sw.site_id,sw.customer_site_id) AND company_id=m.company_id FOR SHARE;
@@ -26146,7 +26147,67 @@ BEGIN
   IF point.id IS NULL OR site.id IS NULL OR contract.id IS NULL OR point.ediel_metering_point_id IS DISTINCT FROM own->>'point' OR point.customer_id IS DISTINCT FROM sw.customer_id OR point.site_id IS DISTINCT FROM site.id OR site.customer_id IS DISTINCT FROM sw.customer_id OR own->>'customerIdentity' IS DISTINCT FROM customer_identity
    OR (sw.site_id IS NOT NULL AND sw.site_id IS DISTINCT FROM site.id) OR (sw.customer_site_id IS NOT NULL AND sw.customer_site_id IS DISTINCT FROM site.id) OR (sw.contract_id IS NOT NULL AND sw.contract_id IS DISTINCT FROM contract.id) OR (sw.customer_contract_id IS NOT NULL AND sw.customer_contract_id IS DISTINCT FROM contract.id)
    OR point.grid_owner_ediel_id IS DISTINCT FROM wire->>'sender' OR point.grid_area_code IS DISTINCT FROM own->>'gridArea' OR contract.customer_id IS DISTINCT FROM sw.customer_id OR contract.metering_point_id IS DISTINCT FROM point.id
-   OR (contract.status IN('signed','active')) IS NOT TRUE OR contract.signed_at IS NULL OR nullif(contract.signed_version,'') IS NULL OR nullif(contract.contract_version,'') IS NULL THEN RETURN jsonb_build_object('applied',false,'reason','normal_z04_owned_signed_contract_scope_required');END IF;
+   OR (contract.status IN('signed','active')) IS NOT TRUE OR contract.signed_at IS NULL OR nullif(contract.signed_version,'') IS NULL OR nullif(contract.contract_version,'') IS NULL THEN RETURN jsonb_build_object('applied',false,'reason',CASE WHEN sw.status='cancelled_before_start' THEN 'normal_z04_locked_original_scope_required' ELSE 'normal_z04_owned_signed_contract_scope_required' END);END IF;
+  -- A prior committed C may supersede this exact late normal L. No C-row
+  -- lock is acquired here: outer source-cohort locks already precede sw/point,
+  -- and the no-period C is not necessarily present in that original cohort.
+  IF sw.status='cancelled_before_start' THEN
+   SELECT array_agg(r.id ORDER BY r.id) INTO cancellation_receipt_ids
+   FROM gridex_received_sources.supply_object_effect_receipts r
+   JOIN public.ediel_messages c ON c.id=r.source_message_id AND c.company_id=r.company_id
+   JOIN gridex_received_sources.supply_object_partitions cp ON cp.source_message_id=c.id AND cp.company_id=c.company_id
+   JOIN gridex_received_sources.supply_source_transitions ct ON ct.source_message_id=c.id AND ct.company_id=c.company_id
+   JOIN gridex_received_sources.validation_assessments ca ON ca.id=r.canonical_assessment_id AND ca.company_id=c.company_id AND ca.source_message_id=c.id
+   JOIN gridex_received_sources.prodat_application_facets cf ON cf.assessment_id=ca.id AND cf.company_id=c.company_id AND cf.source_message_id=c.id
+   JOIN gridex_received_sources.prodat_response_facets cr ON cr.assessment_id=ca.id AND cr.company_id=c.company_id AND cr.source_message_id=c.id
+   JOIN gridex_ediel_inbound_context.receipts cc ON cc.source_message_id=c.id AND cc.company_id=c.company_id
+   JOIN gridex_ediel_source_rules.receipts cb ON cb.source_message_id=c.id AND cb.company_id=c.company_id
+   CROSS JOIN LATERAL (SELECT r.effect_text::jsonb facts,gridex_received_sources.supply_wire_for_scope_v1(c.raw_payload,r.object_scope) cwire) proof
+   WHERE r.company_id=m.company_id AND r.environment=m.environment AND r.source_message_id=sw.inbound_z04_message_id
+    AND r.xmin::text::numeric<>mod(pg_current_xact_id()::text::numeric,4294967296)
+    AND jsonb_array_length(wire->'objects')=1 AND plans='[]'::jsonb
+    AND c.environment=m.environment AND c.direction='inbound' AND c.message_standard='edifact' AND c.message_family='PRODAT' AND c.message_code='Z04'
+    AND (c.customer_id IS NULL OR c.customer_id=sw.customer_id) AND(c.metering_point_id IS NULL OR c.metering_point_id=sw.metering_point_id)
+    AND r.payload_hash=encode(sha256(convert_to(c.raw_payload,'UTF8')),'hex') AND r.effect_hash=encode(sha256(convert_to(r.effect_text,'UTF8')),'hex')
+    AND r.first_line_index=(r.object_scope#>>'{registers,0,segmentIndex}')::integer
+    AND r.object_scope->>'objectId'=own->>'point' AND r.object_scope->>'identityAgency'=own->>'identityAgency'
+    AND cp.environment=c.environment AND cp.payload_hash=r.payload_hash AND cp.canonical_assessment_id=ca.id
+    AND cp.partition_hash=encode(sha256(convert_to(cp.partition_text,'UTF8')),'hex') AND cp.result->>'applied'='true'
+    AND cp.result->'partition'=cp.partition_text::jsonb
+    AND cp.result->'effectReceiptIds' @> jsonb_build_array(r.id) AND cp.result->'switchIds' @> jsonb_build_array(sw.id)
+    AND EXISTS(SELECT FROM jsonb_array_elements(cp.partition_text::jsonb) part WHERE part->'object'=r.object_scope AND part->>'disposition'='applied' AND part->>'effectReceiptId'=r.id::text AND part->>'effectFactsHash'=r.effect_hash)
+    AND ct.payload_hash=r.payload_hash AND ct.source_code='Z04' AND sw.id=ANY(ct.qualified_switch_ids)
+    AND ct.source_objects @> jsonb_build_array(proof.facts->'wire') AND ct.resulting_states @> (proof.facts->'resultingStates')
+    AND ca.environment=c.environment AND ca.source_payload_hash=r.payload_hash AND ca.owner='canonical-runtime-with-registry-v1'
+    AND ca.facts_hash=encode(sha256(convert_to(ca.facts_text,'UTF8')),'hex')
+    AND ca.facts_text::jsonb->>'syntaxDecision'='accepted' AND ca.facts_text::jsonb->>'functionalDecision'='accepted'
+    AND cf.environment=c.environment AND cf.source_payload_hash=r.payload_hash AND cf.application_facts_hash=encode(sha256(convert_to(cf.application_facts_text,'UTF8')),'hex')
+    AND cf.application_facts_text::jsonb->>'headerDecision'='accepted'
+    AND cr.environment=c.environment AND cr.source_payload_hash=r.payload_hash AND cr.response_facts_hash=encode(sha256(convert_to(cr.response_facts_text,'UTF8')),'hex')
+    AND gridex_received_sources.validate_prodat_application_v1(c.raw_payload,ca.facts_text::jsonb,cf.application_facts_text::jsonb,cr.response_facts_text::jsonb) IS TRUE
+    AND EXISTS(SELECT FROM jsonb_array_elements(cf.application_facts_text::jsonb->'objects') app WHERE app-'applicationDecision'-'reasonCodes'=r.object_scope AND app->>'applicationDecision'='accepted')
+    AND cc.status='ready' AND cc.environment=c.environment AND cc.direction=c.direction AND cc.source_received_at=c.message_received_at AND cc.payload_sha256=r.payload_hash
+    AND cb.environment=c.environment AND cb.direction=c.direction AND cb.payload_sha256=r.payload_hash
+    AND ca.facts_text::jsonb->'rulePackEvidence'=jsonb_build_object('profileKey',cb.evidence->'profileKey','messageProfileId',cb.evidence->'messageProfileId','rulePackId',cb.evidence->'rulePackId','sourceHash',cb.evidence->'sourceHash','version',cb.evidence->'version','snapshot',jsonb_build_object('rulePack',cb.evidence#>'{snapshot,rulePack}','messageProfile',cb.evidence#>'{snapshot,messageProfile}','guideSources',cb.evidence#>'{snapshot,guideSources}'))
+    AND proof.cwire->>'code'='Z04' AND proof.cwire->>'sender'=wire->>'sender' AND proof.cwire->>'receiver'=wire->>'receiver'
+    AND jsonb_array_length(proof.cwire->'objects')=1 AND proof.facts->'wire'=proof.cwire#>'{objects,0}'
+    AND proof.facts->>'version'='1' AND proof.facts->>'owner'='inbound-supply-object-v1'
+    AND proof.facts->>'sourceMessageId'=c.id::text AND proof.facts->>'sourcePayloadHash'=r.payload_hash
+    AND proof.facts->>'companyId'=m.company_id::text AND proof.facts->>'environment'=m.environment AND proof.facts->>'canonicalAssessmentId'=ca.id::text
+    AND proof.facts->'object'=r.object_scope AND proof.facts->'legalContext'=cc.context
+    AND cc.context->>'actorRole'='electricity_supplier' AND cc.context->>'family'='PRODAT' AND cc.context->>'code'='Z04' AND cc.context->>'legalEdielId'=wire->>'receiver'
+    AND proof.facts#>>'{plan,kind}'='cancel_start' AND proof.facts#>>'{plan,switchId}'=sw.id::text AND proof.facts#>'{plan,object}'=proof.facts->'wire'
+    AND proof.facts#>>'{wire,reason}'='Z24' AND proof.facts#>>'{wire,point}'=own->>'point' AND proof.facts#>>'{wire,identityAgency}'=own->>'identityAgency'
+    AND proof.facts#>>'{wire,li}'=own->>'li' AND proof.facts#>>'{wire,customerIdentity}'=own->>'customerIdentity' AND proof.facts#>>'{wire,gridArea}'=own->>'gridArea' AND proof.facts#>>'{wire,start}'=own->>'start'
+    AND EXISTS(SELECT FROM jsonb_array_elements(proof.facts->'resultingSwitches') cancelled WHERE cancelled->>'id'=sw.id::text AND cancelled->>'company_id'=m.company_id::text
+     AND cancelled->>'customer_id'=sw.customer_id::text AND cancelled->>'metering_point_id'=sw.metering_point_id::text AND cancelled->>'outbound_z03_message_id'=original.id::text
+     AND cancelled->>'rff_li_reference'=own->>'li' AND cancelled->>'status'='cancelled_before_start' AND cancelled->>'inbound_z04_message_id'=c.id::text);
+   IF coalesce(cardinality(cancellation_receipt_ids),0)<>1 THEN RETURN jsonb_build_object('applied',false,'reason','normal_z04_locked_original_scope_required');END IF;
+   -- The caller records L's OWN receipt/partition/transition, with zero
+   -- relationship projections. cancelledSwitchId is causal data, not switchId.
+   RETURN jsonb_build_object('applied',true,'idempotent',false,'periods','[]'::jsonb,'switchIds','[]'::jsonb,'commits','[]'::jsonb,'previousStates','[]'::jsonb,'previousSwitches','[]'::jsonb,
+    'plans',jsonb_build_array(jsonb_build_object('kind','superseded_by_cancellation','cancelledSwitchId',sw.id,'originalId',original.id,'originalHash',original.immutable_payload_hash,'cancellationSourceMessageId',sw.inbound_z04_message_id,'cancellationEffectReceiptId',cancellation_receipt_ids[1])));
+  END IF;
   event_at:=gridex_received_sources.permission_time_v1(own->>'start');
   IF EXISTS(SELECT FROM public.customer_supply_periods p WHERE p.company_id=m.company_id AND p.metering_point_id=point.id AND p.status NOT IN('cancelled','ended') AND (p.market_end_at IS NULL OR p.market_end_at>event_at)) THEN RETURN jsonb_build_object('applied',false,'reason','normal_z04_conflicting_supply_period');END IF;
   pid:=gen_random_uuid();switch_ids:=array_append(switch_ids,sw.id);before_switches:=before_switches||jsonb_build_array(to_jsonb(sw));
