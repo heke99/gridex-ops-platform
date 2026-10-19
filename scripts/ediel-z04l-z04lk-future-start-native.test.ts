@@ -30,6 +30,7 @@ import {processInboundEdielMessage} from '@/lib/ediel/flows/inboundProcessing'
 import {resolveCanonicalRuntimeDecisionWithRegistry} from '@/lib/ediel/core/runtimeDecision'
 import * as receivedSourceValidationLedger from '@/lib/ediel/core/receivedSourceValidationLedger'
 import {buildReceivedSourceValidationEvidence} from '@/lib/ediel/core/receivedSourceValidationEvidence'
+import {receivedOriginalRulePackWitness} from '@/lib/ediel/rulebook/canonicalRulePackRegistry'
 import {validateFieldMatrixPayload} from '@/lib/ediel/rulebook/fieldMatrix'
 import {canonicalProdat26AFieldRules} from '@/lib/ediel/prodat/prodat26AFieldMatrix'
 import {evaluateProdatTransactionReason} from '@/lib/ediel/prodat/prodatTransactionReason'
@@ -37,6 +38,7 @@ import {buildContrlDraft,buildAperakDraft} from '@/lib/ediel/ack'
 import {readCommittedInboundAck} from '@/lib/ediel/ack/committedInboundAck'
 import {readPhysicalAckSourceCorrelation} from '@/lib/ediel/ack/sourceCorrelation'
 import {validateEdifactEnvelope} from '@/lib/ediel/core/edifactValidation'
+import {validateEdifactSyntax} from '@/lib/ediel/core/syntaxValidator'
 import {EdifactEnvelopeCodec} from '@/lib/ediel/core/edifactEnvelopeCodec'
 import {tokenizeEdifact,segmentComposite} from '@/lib/ediel/core/edifactTokenizer'
 import {serializeUna} from '@/lib/ediel/core/una'
@@ -379,6 +381,7 @@ const selectedDependent=['214','218','250','251','253','317','318']
 // These separate controls prove supplied-format refusal, not missing229/252.
 const malformedSuppliedAddressFields=['229','252'] as const
 function omit(raw:string,field:string){
+  if(field==='209')return omitRequired209(raw)
   const special:Record<string,[string,string]>={'210':['DTM','92'],'508':['DTM','354'],'213':['QTY','31'],'224':['RFF','MG']}
   const chars:Record<string,string>={'217':'Z04','306':'Z07','222':'Z12','254':'Z15','242':'Z14','214':'Z02','218':'Z05','259':'Z16'}
   if(!special[field]&&!chars[field])return omitSupplyEndField(raw,field)
@@ -415,7 +418,26 @@ function malformSuppliedAddress(raw:string,field:'229'|'252'){
   return serializeUna(p.una)+p.segments.map(s=>s===target?parts.join(p.una.dataElementSeparator):s.raw)
     .join(p.una.segmentTerminator)+p.una.segmentTerminator
 }
-type HeldCause={field:string}|{dimension:'customerIdentity'|'point'|'start'|'reason';reasons:string[]}|{party:'sender'|'receiver'}|{cancelled:true}
+type HeldCause={field:string;missing209HealthyRaw?:string}|{dimension:'customerIdentity'|'point'|'start'|'reason';reasons:string[]}|{party:'sender'}|{party:'receiver';healthyRaw:string}|{cancelled:true}
+// This explicit contrast has one earlier routing owner. Freeze the healthy
+// physical source before changing only its own NAD+DO identifier; random
+// interchange/message references and every other supplied field stay identical.
+function requireReceiverPartyContrast(f:Fixture,raw:string,healthyRaw:string){
+  const healthy=tokenizeEdifact(healthyRaw),received=tokenizeEdifact(raw)
+  assert.deepEqual(received.una,healthy.una,'receiver_contrast_preserves_service_advice')
+  const own=healthy.segments.filter(s=>s.tag==='NAD'&&segmentComposite(s,1,healthy.una)[0]==='DO')
+  const held=received.segments.filter(s=>s.tag==='NAD'&&segmentComposite(s,1,received.una)[0]==='DO')
+  assert.equal(own.length,1,'one_healthy_own_DO_required');assert.equal(held.length,1,'one_held_own_DO_required')
+  const originalParty=segmentComposite(own[0],2,healthy.una),receivedParty=segmentComposite(held[0],2,received.una)
+  assert.equal(originalParty[0],f.sender,'healthy_DO_is_own_original_supplier')
+  assert(receivedParty[0]&&receivedParty[0]!==originalParty[0],'receiver_contrast_changes_own_DO_identifier')
+  assert.deepEqual(receivedParty.slice(1),originalParty.slice(1),'receiver_contrast_preserves_DO_qualifiers')
+  const parts=own[0].raw.split(healthy.una.dataElementSeparator)
+  parts[2]=[receivedParty[0],...originalParty.slice(1)].join(healthy.una.componentDataElementSeparator)
+  assert.deepEqual(received.segments.map(s=>s.raw),healthy.segments.map(s=>s===own[0]?parts.join(healthy.una.dataElementSeparator):s.raw),
+    'receiver_contrast_changes_only_own_DO_identifier')
+  return {healthyRawHash:digest(healthyRaw),heldRawHash:digest(raw),ownReceiver:originalParty[0],heldReceiver:receivedParty[0]}
+}
 function messageEvents(f:Fixture,id:string){return sql<Row[]>(`SELECT coalesce(jsonb_agg(to_jsonb(e) ORDER BY id),'[]') FROM public.ediel_message_events e
   WHERE company_id=${literal(f.companyId)} AND (ediel_message_id=${literal(id)} OR message_id=${literal(id)});`)}
 function requireOwnEvent(event:Row,f:Fixture,id:string){
@@ -614,6 +636,132 @@ function requireAgency209Refusal(f:Fixture,message:EdielMessageRow,raw:string,ob
     actorUserId:observation.processInput.actorUserId,rawHash:digest(raw),physical,facet,rpcError:result.error,
     receipt:observation.receipt,validationBefore:before,validationAfter:after}
 }
+// Whole missing209 has no register identity. Qualify only its exact source guard.
+function omitRequired209(raw:string){
+  const wire=tokenizeEdifact(raw),lines=wire.segments.filter(row=>row.tag==='LIN')
+  assert.equal(lines.length,1,'missing209_has_one_original_LIN')
+  const line=lines[0],parts=line.raw.split(wire.una.dataElementSeparator)
+  assert.equal(parts.length,4,'missing209_has_no_C829')
+  const identity=segmentComposite(line,3,wire.una)
+  assert.equal(identity.length,4);assert(identity[0]);assert.equal(identity[3],'9')
+  parts[3]='' // Omit the entire field209/C212, including the identity agency.
+  return serializeUna(wire.una)+wire.segments.map(row=>row.index===line.index
+    ?parts.join(wire.una.dataElementSeparator):row.raw).join(wire.una.segmentTerminator)+wire.una.segmentTerminator
+}
+function requireMissing209Premise(f:Fixture,raw:string,healthyRaw:string){
+  assert.equal(typeof healthyRaw,'string');assert.equal(raw,omitRequired209(healthyRaw),'only_whole_C212_differs_from_healthy_prebirth_wire')
+  const healthy=physicalSingleScope(healthyRaw),physical=physicalSingleScope(raw)
+  assert.equal(healthy.objectId,f.external);assert.equal(healthy.identityAgency,'9')
+  assert.equal(physical.objectId,'');assert.equal(physical.identityAgency,undefined)
+  const wire=tokenizeEdifact(raw),lines=wire.segments.filter(row=>row.tag==='LIN')
+  assert.equal(lines.length,1);assert.deepEqual(segmentComposite(lines[0],3,wire.una),[''])
+  assert.equal(lines[0].raw,`LIN${wire.una.dataElementSeparator}1${wire.una.dataElementSeparator}${wire.una.dataElementSeparator}`)
+  for(const tag of ['UNB','UNH','BGM'])assert.equal(wire.segments.filter(row=>row.tag===tag).length,1)
+  const envelope=EdifactEnvelopeCodec.decode(raw)
+  assert.equal(envelope.applicationReference,'23-DDQ-PRODAT');assert.equal(envelope.sender,f.receiver);assert.equal(envelope.receiver,f.sender)
+  for(const [role,id]of [['FR',f.receiver],['DO',f.sender],['IT',f.external],['UD',f.customerIdentity.id]]){
+    const parties=wire.segments.filter(row=>row.tag==='NAD'&&segmentComposite(row,1,wire.una)[0]===role)
+    assert.equal(parties.length,1);assert.equal(segmentComposite(parties[0],2,wire.una)[0],id)
+  }
+  const li=wire.segments.filter(row=>row.tag==='RFF'&&segmentComposite(row,1,wire.una)[0]==='LI')
+  assert.equal(li.length,1);assert.deepEqual(segmentComposite(li[0],1,wire.una),['LI',f.caseReference])
+  const starts=wire.segments.filter(row=>row.tag==='DTM'&&segmentComposite(row,1,wire.una)[0]==='92')
+  assert.equal(starts.length,1);assert.deepEqual(segmentComposite(starts[0],1,wire.una),['92',f.requestedStartDate.replaceAll('-','')+'0000','203'])
+  for(const [qualifier,value]of [['Z13',f.subtype==='L'?'Z22':'Z23'],['Z16','101']]){
+    const cci=wire.segments.filter(row=>row.tag==='CCI'&&segmentComposite(row,2,wire.una)[0]===qualifier)
+    assert.equal(cci.length,1)
+    const cav=wire.segments[cci[0].index+1];assert.equal(cav.tag,'CAV')
+    assert.deepEqual(segmentComposite(cav,1,wire.una),qualifier==='Z13'?[value]:['','','',value])
+  }
+  return {physical:{...physical,objectId:null,identityAgency:null},healthyRawHash:digest(healthyRaw),rawHash:digest(raw)}
+}
+function requireMissing209Refusal(f:Fixture,message:EdielMessageRow,raw:string,observation:ProcessingObservation,
+  before:Row,after:Row,cause:HeldCause){
+  assert('field'in cause&&cause.field==='209'&&typeof cause.missing209HealthyRaw==='string','only_exact_whole_missing209_source_guard')
+  const premise=requireMissing209Premise(f,raw,cause.missing209HealthyRaw)
+  assert.equal(observation.threw,true);assert(observation.error instanceof Error)
+  assert.equal(observation.error.message,'prodat_canonical_source_validation_unconfirmed')
+  assert.deepEqual(observation.processInput,{actorUserId:f.actorUserId,edielMessageId:message.id})
+  assert.equal(observation.recorderCalls,1);assert.equal(observation.recorderThrew,false);assert.equal(observation.recorderError,null)
+  const input=observation.input;assert(input,'actual_same_invocation_missing209_recorder_input_required')
+  for(const source of [message,input.original,input.validated]){
+    assert.equal(source.id,message.id);assert.equal(source.company_id,f.companyId);assert.equal(source.environment,'test')
+    assert.equal(source.direction,'inbound');assert.equal(source.message_standard,'edifact')
+    assert.equal(source.message_family,'PRODAT');assert.equal(source.message_code,'Z04');assert.equal(source.raw_payload,raw)
+  }
+  assert.equal((message as EdielMessageRow&{immutable_payload_hash:string}).immutable_payload_hash,digest(raw))
+  assert.equal(input.resolvedCompanyId,f.companyId)
+  const decision=input.decision,policy=decision.policy;assert(policy)
+  assert.equal(policy.family,'PRODAT');assert.equal(policy.code,'Z04');assert.equal(policy.subtype,f.subtype)
+  assert.equal(policy.direction,'inbound');assert.equal(policy.applicationReference,'23-DDQ-PRODAT')
+  assert.equal(policy.prodatDependentFacts?.meterReadingsSentInUtilts,undefined)
+  assert.equal(policy.prodatDependentFacts?.registerObjects,undefined,'missing_point_has_no_borrowed_own_reading_authority')
+  assert.equal(decision.syntaxDecision,'accepted');assert.equal(decision.applicationDecision,'rejected');assert.equal(decision.functionalDecision,'accepted')
+  assert.equal(decision.prodatProcessingDisposition?.kind,'continue')
+  assert.equal(decision.issues.length,4,'only_required209_and_three_honest_reading_unknowns')
+  const errors=decision.issues.filter(issue=>issue.severity==='error')
+  assert.equal(errors.length,1);assert.equal(errors[0].code,'FIELD_MATRIX_REQUIRED_FIELD_MISSING')
+  const diagnostic=errors[0].prodatDiagnostic
+  assert(diagnostic?.kind==='field');assert.equal(diagnostic.fieldNumber,'209');assert.equal(diagnostic.errorKind,'missing')
+  assert.equal(diagnostic.occurrence.objectId,null);assert.equal(diagnostic.occurrence.identityAgency,null)
+  assert.equal(diagnostic.occurrence.lineItemReference,f.caseReference);assert.equal(diagnostic.occurrence.lineIndex,0)
+  const unknowns=decision.issues.filter(issue=>issue.code==='PRODAT_DEPENDENT_CONDITION_UNDETERMINED')
+  assert.equal(unknowns.length,3)
+  for(const unknown of unknowns){
+    assert.equal(unknown.severity,'warning');assert.equal(unknown.originalSeverity,'error')
+    assert.equal(unknown.prodatDiagnostic?.kind,'local_unknown')
+    assert.equal(unknown.prodatDiagnostic?.sourceRule,'PRODAT26A:register-readings')
+  }
+  const bound=buildReceivedSourceValidationEvidence(input);assert(bound,'actual_locked_source_witness_and_all_binders_required')
+  assert.equal(bound.sourceMessageId,message.id);assert.equal(bound.companyId,f.companyId);assert.equal(bound.environment,'test');assert.equal(bound.sourcePayloadHash,digest(raw))
+  const facts=JSON.parse(bound.factsText) as Row,witness=receivedOriginalRulePackWitness(decision.validationReport.rulePackEvidence)
+  assert(witness);assert.deepEqual(facts.rulePackEvidence,witness,'all_locked_registry_snapshot_bytes_preserved')
+  assert.match(witness.sourceHash,/^[a-f0-9]{64}$/);assert.equal(witness.snapshot.rulePack.source_hash,witness.sourceHash)
+  assert.deepEqual(facts.reasonCodes,['FIELD_MATRIX_REQUIRED_FIELD_MISSING','PRODAT_DEPENDENT_CONDITION_UNDETERMINED'])
+  const register=decision.prodatRegisterValidation;assert(register)
+  assert.deepEqual(facts.registerValidation,register)
+  assert.deepEqual(register,{version:1,owner:'validateProdatRegisterPolicy',coverage:'canonical_register_only',
+    objects:[{...premise.physical,disposition:'unavailable',reasons:['REGISTER_SCOPE_UNAVAILABLE']}]})
+  assert.deepEqual(bound.prodatObjectValidation,{version:1,owner:'canonical-full-prodat-object-validation-v1',coverage:'full_canonical_guide_objects_only',
+    sharedAccepted:false,reasonCodes:facts.reasonCodes,objects:[{objectId:null,identityAgency:null,messageReference:premise.physical.messageReference,
+      firstLineIndex:0,lineItemReference:f.caseReference,disposition:'unavailable',
+      reasons:['REGISTER_SCOPE_UNAVAILABLE','FIELD_MATRIX_REQUIRED_FIELD_MISSING','shared_source_not_qualified'],negativeFields:['209']}]})
+  assert.deepEqual(bound.prodatApplicationValidation,{version:1,owner:'canonical-prodat-application-all-v1',coverage:'canonical_own_application_only',
+    headerDecision:'held',objects:[{...premise.physical,applicationDecision:'held',
+      reasonCodes:['REGISTER_SCOPE_UNAVAILABLE','FIELD_MATRIX_REQUIRED_FIELD_MISSING','PRODAT_DEPENDENT_CONDITION_UNDETERMINED']}],sourcePayloadHash:digest(raw)})
+  const response=bound.prodatResponseValidation;assert(response)
+  assert.equal(response.version,1);assert.equal(response.sourcePayloadHash,digest(raw))
+  const index=premise.physical.registers[0].segmentIndex
+  assert.deepEqual(response.objects,[{lineIndex:index,registerLineIndices:[index],id:null,li:f.caseReference,outcome:'negative'}])
+  assert.equal(response.responses.length,1)
+  const expectedError=decision.responsePlan.filter(plan=>plan.family==='APERAK').flatMap(plan=>plan.applicationErrors??[])
+  assert.equal(expectedError.length,1);assert.equal(expectedError[0].fieldCode,'209');assert.equal(expectedError[0].ercCode,'41')
+  assert.deepEqual(response.responses,[{scope:'object',lineIndex:index,ercCode:'41',fieldCode:'209',text:expectedError[0].text,id:null,li:f.caseReference}])
+  assert.deepEqual(bound.prodatIgnoredFields,[]);assert.equal(bound.prodatSourceFunctionValidation,undefined)
+  assert.equal(observation.rpc.length,1)
+  const call=observation.rpc[0];assert.equal(call.consumptions,1);assert.equal(call.abortSignals.length,1)
+  assert(call.abortSignals[0] instanceof AbortSignal);assert.equal(call.rejected,false);assert.equal(call.thrown,null)
+  assert.deepEqual(call.args,{p_company_id:bound.companyId,p_environment:bound.environment,p_source_message_id:bound.sourceMessageId,
+    p_source_payload_hash:bound.sourcePayloadHash,p_facts_text:bound.factsText,
+    p_source_function_facts_text:null,p_object_facts_text:JSON.stringify(bound.prodatObjectValidation),
+    p_application_facts_text:JSON.stringify(bound.prodatApplicationValidation),p_ignored_fields_text:'[]',p_response_facts_text:JSON.stringify(response)})
+  const result=call.result as {data:unknown;error:{code?:unknown;message?:unknown}|null}
+  assert(result);assert.equal(result.data,null);assert(result.error)
+  // This exact full-object RAISE has no ERRCODE clause. It is distinct from
+  // the earlier ZZ-agency 23514/received_register_unvalidated_scope guard.
+  assert.equal(result.error.code,'P0001');assert.equal(result.error.message,'prodat_full_object_reason_changed')
+  assert.deepEqual(observation.receipt,{status:'unconfirmed',sourceDisposition:'not_established'})
+  const tables=['validation_assessments','prodat_ignored_field_facets','prodat_object_validation_facets',
+    'prodat_response_facets','prodat_application_facets','prodat_source_function_facets']
+  assert.deepEqual(Object.keys(before).sort(),[...tables].sort());assert.deepEqual(after,before,'whole_missing209_has_no_new_or_changed_assessment_or_facet')
+  return {kind:'canonical_source_validation_missing209_guard',field:'209',sourceId:message.id,companyId:f.companyId,actorUserId:f.actorUserId,
+    ...premise,decisionHash:digest(JSON.stringify(decision)),factsHash:digest(bound.factsText),
+    ruleWitnessHash:digest(JSON.stringify(witness)),ruleWitnessSnapshotHash:digest(JSON.stringify(witness.snapshot)),ruleSourceHash:witness.sourceHash,
+    objectFactsHash:digest(JSON.stringify(bound.prodatObjectValidation)),applicationFactsHash:digest(JSON.stringify(bound.prodatApplicationValidation)),
+    responseFactsHash:digest(JSON.stringify(response)),ignoredFactsHash:digest('[]'),
+    rpcError:result.error,receipt:observation.receipt,validationBefore:before,validationAfter:after}
+}
+
 async function held(f:Fixture,raw:string,label:string,cause:HeldCause){
   const attempt:Row={label,cause,companyId:f.companyId,actorUserId:f.actorUserId,rawHash:digest(raw),stage:'before_business_snapshot',status:'STARTED'}
   heldAttempts.push(attempt);persist()
@@ -621,13 +769,19 @@ async function held(f:Fixture,raw:string,label:string,cause:HeldCause){
   const before=business(f),seals=fixtures.map(originalSeal),decoyBefore=business(decoy),aperakBefore=positiveAperaks(f)
   attempt.stage='public_birth';persist()
   const {message,mail,birthRefusal,transportCustody:mailBefore}=await receive(f,raw,undefined,'field'in cause?cause.field:undefined)
-  attempt.sourceId=message?.id??null;attempt.mailId=mail.inboundEmailMessageId;attempt.stage='canonical_preflight';persist()
+  const receiverContrast='party'in cause&&cause.party==='receiver'?requireReceiverPartyContrast(f,raw,cause.healthyRaw):null
+  attempt.sourceId=message?.id??null;attempt.mailId=mail.inboundEmailMessageId
+  attempt.stage=receiverContrast?'receiver_routing_preflight':'canonical_preflight';persist()
   const sourceBefore=message?sourceCustody(f,message):null
   const physical=tokenizeEdifact(mail.parsed.rawPayload)
   const physicalIssues=[...validateFieldMatrixPayload({family:'PRODAT',code:'Z04',direction:'inbound',
     applicationReference:EdifactEnvelopeCodec.decode(raw).applicationReference,rawSegments:physical.segments.map(s=>s.raw),una:physical.una,mode:'parse'},canonicalProdat26AFieldRules('Z04')),
     ...evaluateProdatTransactionReason({code:'Z04',rawSegments:physical.segments.map(s=>s.raw),una:physical.una}).issues]
-  const decision=message?await resolveCanonicalRuntimeDecisionWithRegistry(message,{actorUserId:f.actorUserId}):null
+  // Real processing resolves tenant routing before canonical source/legal READs.
+  // Only the explicit DO contrast or an own physical207/208 diagnostic may
+  // defer this extra preflight; the actual fresh owner below remains mandatory.
+  const routingField='field'in cause&&['207','208'].includes(cause.field)&&hasFieldDiagnostic(physicalIssues,cause.field)
+  const decision=message&&!receiverContrast&&!routingField?await resolveCanonicalRuntimeDecisionWithRegistry(message,{actorUserId:f.actorUserId}):null
   const diagnostics=[...physicalIssues,...(decision?.issues??[])]
   if('field'in cause){
     if(message)expect(diagnostics,label+': own field diagnostic').toContainEqual(expect.objectContaining({
@@ -637,7 +791,12 @@ async function held(f:Fixture,raw:string,label:string,cause:HeldCause){
     else assert(birthRefusal?.field===cause.field,'actual_public_birth_refusal_matches_requested_field')
   }else {
     expect(message,label+': actual source required').not.toBeNull()
-    expect(decision,label+': no unrelated field refusal').toMatchObject({syntaxDecision:'accepted',applicationDecision:'accepted',functionalDecision:'accepted'})
+    if(receiverContrast){
+      expect(message,label+': actual receiver source profile').toMatchObject({direction:'inbound',message_family:'PRODAT',message_code:'Z04',rule_profile_key:`PRODAT:Z04:${f.subtype}:26.A:r3`})
+      expect(validateEdifactSyntax({...message!,status:'received',syntax_check_status:'not_checked',validation_report:{},failure_reason:null}),label+': actual receiver source syntax')
+        .toMatchObject({ok:true,grammarQualification:'qualified'})
+      expect(physicalIssues,label+': no unrelated physical field refusal').toEqual([])
+    }else expect(decision,label+': no unrelated field refusal').toMatchObject({syntaxDecision:'accepted',applicationDecision:'accepted',functionalDecision:'accepted'})
     const pair=sql<{original:Row;received:Row}>(`SELECT jsonb_build_object('original',gridex_received_sources.normal_switch_wire_v1(${literal(f.originalZ03.raw_payload)}),'received',gridex_received_sources.normal_switch_wire_v1(${literal(raw)}));`)
     const original=(pair.original.objects as Row[])[0],received=(pair.received.objects as Row[])[0]
     expect(received.li).toBe(original.li)
@@ -656,9 +815,22 @@ async function held(f:Fixture,raw:string,label:string,cause:HeldCause){
     const validationBefore=validationSnapshot(f,message)
     attempt.stage='process_inbound';persist()
     const processing=await observeHeldProcessing(f,message,attempt)
-    let agencyRefusal:unknown=null
+    if(receiverContrast){
+      if(processing.threw)throw processing.error
+      assert.deepEqual(processing.processInput,{actorUserId:f.actorUserId,edielMessageId:message.id})
+      assert.equal(processing.recorderCalls,0,'receiver_routing_precedes_canonical_recorder')
+      assert.equal(processing.input,null);assert.equal(processing.receipt,null)
+      assert.equal(processing.recorderThrew,false);assert.equal(processing.recorderError,null)
+      assert.deepEqual(processing.rpc,[],'receiver_routing_has_no_source_validation_RPC')
+      assert.deepEqual(validationSnapshot(f,message),validationBefore,'receiver_routing_preserves_validation_ledger')
+    }
+    let agencyRefusal:unknown=null,missing209Refusal:unknown=null
     if(processing.threw){
-      try{agencyRefusal=requireAgency209Refusal(f,message,raw,processing,validationBefore,validationSnapshot(f,message),cause)}
+      try{
+        if('field'in cause&&cause.field==='209'&&cause.missing209HealthyRaw!==undefined)
+          missing209Refusal=requireMissing209Refusal(f,message,raw,processing,validationBefore,validationSnapshot(f,message),cause)
+        else agencyRefusal=requireAgency209Refusal(f,message,raw,processing,validationBefore,validationSnapshot(f,message),cause)
+      }
       catch(qualificationError){attempt.qualificationError=errorFacts(qualificationError);throw processing.error}
     }
     attempt.stage='post_processing_oracle';persist()
@@ -672,7 +844,8 @@ async function held(f:Fixture,raw:string,label:string,cause:HeldCause){
       const reasons='party'in cause?['normal_z04_exact_sent_original_required']:'dimension'in cause?cause.reasons:['normal_z04_locked_original_scope_required']
       assert.equal(reasons.length,1,'scenario_has_one_exact_first_refusal')
       refusalReceipt=requireHeldDomainAudit(f,message.id,raw,reasons[0],events,eventBefore)
-    }else if(agencyRefusal)refusalReceipt=agencyRefusal
+    }else if(missing209Refusal)refusalReceipt=missing209Refusal
+    else if(agencyRefusal)refusalReceipt=agencyRefusal
     else refusalReceipt=requireFieldOwnerAudit(f,(await getEdielMessageById(message.id))!,raw,cause.field,events,eventBefore)
     for(const table of ['gridex_received_sources.supply_source_transitions','gridex_received_sources.supply_object_effect_receipts'])
       assert.equal(sql<number>(`SELECT to_jsonb(count(*)) FROM ${table} WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(message.id)};`),0,'held_source_has_no_committed_effect:'+table)
@@ -688,7 +861,7 @@ async function held(f:Fixture,raw:string,label:string,cause:HeldCause){
   expect(retained.raw).toBe(raw)
   expect(mailCustody(mail)).toEqual(mailBefore)
   attempt.status='COMPLETED';attempt.stage='complete'
-  return {label,cause,diagnostics,partitions,refusalReceipt,sourceCustody:sourceBefore,mailCustody:mailBefore,sourceId:message?.id??null,mailId:mail.inboundEmailMessageId,rawHash:digest(raw),no_market_effects:true}
+  return {label,cause,receiverContrast,diagnostics,partitions,refusalReceipt,sourceCustody:sourceBefore,mailCustody:mailBefore,sourceId:message?.id??null,mailId:mail.inboundEmailMessageId,rawHash:digest(raw),no_market_effects:true}
   }catch(error){attempt.status='FAILED';attempt.error=errorFacts(error);throw error}
   finally{persist()}
 }
@@ -816,11 +989,11 @@ describe.sequential('actual prospective normal supplier starts under one admitte
         agency:wire(f).replace(':::9',':::ZZ'),reason:wire(f).replace('CAV+'+(subtype==='L'?'Z22':'Z23'),'CAV+'+(subtype==='L'?'Z23':'Z22')),
         wrongRole:wire(f).replace('23-DDQ-PRODAT','23-DGI-PRODAT'),
         sender:wire(f).replace(`NAD+FR+${f.receiver}`,`NAD+FR+${decoy.receiver}`),
-        receiver:wire(f).replace(`NAD+DO+${f.sender}`,`NAD+DO+${decoy.sender}`)}
+        receiver:base.replace(`NAD+DO+${f.sender}`,`NAD+DO+${decoy.sender}`)}
       const causes:Record<string,HeldCause>={customer:{dimension:'customerIdentity',reasons:['normal_z04_exact_sent_original_required']},
         point:{dimension:'point',reasons:['supply_original_cohort_changed']},
         start:{dimension:'start',reasons:['normal_z04_exact_sent_original_required']},reason:{dimension:'reason',reasons:['normal_z04_exact_sent_original_required']},
-        agency:{field:'209'},wrongRole:{field:'311'},sender:{party:'sender'},receiver:{party:'receiver'}}
+        agency:{field:'209'},wrongRole:{field:'311'},sender:{party:'sender'},receiver:{party:'receiver',healthyRaw:base}}
       for(const [label,raw]of Object.entries(variants))results.push(await held(f,raw,subtype+':same-LI-'+label,causes[label]))
       // The public inbound entrypoint is also exercised with the genuine own
       // outbound original. The accepted Z04 direction is separately protected
@@ -830,7 +1003,11 @@ describe.sequential('actual prospective normal supplier starts under one admitte
       expect(business(f)).toEqual(directionBefore)
       expect(originalSeal(f)).toEqual(f.originalSeal)
       results.push({label:subtype+':outbound-original-at-inbound-entrypoint',sourceId:f.originalZ03.id,no_market_effects:true})
-      for(const field of required)results.push(await held(f,omit(envelope(f,base,subtype==='L'?'Z22':'Z23'),field),subtype+':missing-R-'+field,{field}))
+      for(const field of required){
+        const healthyRaw=envelope(f,base,subtype==='L'?'Z22':'Z23')
+        results.push(await held(f,omit(healthyRaw,field),subtype+':missing-R-'+field,
+          field==='209'?{field,missing209HealthyRaw:healthyRaw}:{field}))
+      }
       const invoicee=withInvoicee(base)
       for(const field of selectedDependent)results.push(await held(f,omit(envelope(f,invoicee,subtype==='L'?'Z22':'Z23'),field),subtype+':missing-selected-D-'+field,{field}))
       for(const field of malformedSuppliedAddressFields)results.push(await held(f,malformSuppliedAddress(envelope(f,invoicee,subtype==='L'?'Z22':'Z23'),field),subtype+':malformed-supplied-address-'+field,{field}))
