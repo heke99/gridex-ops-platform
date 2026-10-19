@@ -2097,11 +2097,20 @@
     },
     {
       "id": "SC-031",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
         "__tests__/ediel-prodat-incoming-unused-fields.test.ts",
         "__tests__/ediel-received-register-validation-binding.test.ts",
-        "lib/ediel/core/runtimeDecision.ts"
+        "lib/ediel/core/runtimeDecision.ts",
+        "supabase/migrations/20261019160000_ediel_sc031_inbound_ignored_register_projection.sql",
+        "__tests__/ediel-sc-031-ignored-register-projection-sql.test.ts",
+        "__tests__/ediel-prodat-register-consumers.test.ts",
+        "__tests__/ediel-sc-031-ignored-base-fields-business-projection-20261018.test.ts",
+        "__tests__/ediel-sc-031-ignored-ud-business-staging-root-20261013.test.ts",
+        "__tests__/ediel-sc-031-inbound-batch-register-extras.test.ts",
+        "__tests__/ediel-sc-031-source-owned-business-projection-root-20261014.test.ts",
+        "scripts/ediel-at-z14vh-z15v-esco-native.test.ts",
+        ".github/workflows/ediel-esco-z14vh-z15v-native.yml"
       ]
     },
     {
