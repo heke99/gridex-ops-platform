@@ -1,15 +1,17 @@
 import { tenantSelect, tenantUpdate } from '@/lib/supabase/tenantQuery'
 import { emitCustomerOperationEvent } from '@/lib/customers/customerOperationEvents'
+import type { Database } from '@/supabase/database.types'
 
 type Row = Record<string, unknown>
 export async function resolveManualReplyReview(input: {
   companyId: string; requestId: string; powerOfAttorneyId: string; actorUserId: string; note: string
 }) {
   if (input.note.trim().length < 8) throw new Error('Beskriv vad som har åtgärdats.')
-  const { data, error } = await tenantSelect(input.companyId, 'grid_owner_information_requests')
+  const { data: found, error } = await tenantSelect(input.companyId, 'grid_owner_information_requests')
     .eq('id', input.requestId).eq('poa_id', input.powerOfAttorneyId).maybeSingle()
   if (error) throw error
-  if (!data) throw new Error('Fullmaktsärendet hittades inte.')
+  if (!found) throw new Error('Fullmaktsärendet hittades inte.')
+  const data = found as Database['public']['Tables']['grid_owner_information_requests']['Row']
   const metadata = (data.metadata ?? {}) as Row, reply = (metadata.counterparty_reply ?? {}) as Row
   const completedCommercial = data.status === 'completed' && data.request_type === 'current_supplier_contract_information_request'
   if (reply.requires_review !== true || (data.status !== 'needs_review' && !completedCommercial)) return
