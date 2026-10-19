@@ -4420,7 +4420,7 @@
     },
     {
       "id": "AT-Z09B-SUPPLIER",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
         "scripts/ediel-z09b-brp-change-native.test.ts",
         ".github/workflows/ediel-p08-native.yml",
@@ -4431,7 +4431,13 @@
         "lib/ediel/intent/renderers/brpChange.ts",
         "lib/ediel/flows/prodatBrpChange.ts",
         "supabase/migrations/20260930200545_ediel_brp_change_source_origination.sql",
-        "supabase/migrations/20261011170000_ediel_brp_change_ack_received_confirmation.sql"
+        "supabase/migrations/20261011170000_ediel_brp_change_ack_received_confirmation.sql",
+        "__tests__/ediel-at-z09b-brp-dated-history.test.ts",
+        "scripts/ediel-at-z09b-brp-dated-history-sql-regression.mjs",
+        "scripts/ediel-at-z09b-supplier-boundary-native.test.ts",
+        "scripts/ediel-at-z09b-supplier-boundary-native.config.ts",
+        ".github/workflows/ediel-z09b-supplier-boundary-native.yml",
+        "quality/audits/ediel-masterplan-v2/z09b-supplier/contract-proof.json"
       ]
     },
     {
