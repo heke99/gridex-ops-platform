@@ -11,7 +11,7 @@ import {createHash} from 'node:crypto'
 const target='gridex_prodat_object_batch.require_wire_projection_v1(text,jsonb,jsonb,text,uuid)'
 const predecessor='6d5e21a429db0d8d1a0e07a08bf391f0ae643118b20ac19d2059490feaf2f500'
 const successor='4c9dd19aaa1c28efccd3faa17b04d68272891879859e3212b3746fa71b0ba43a'
-const migrationPath=new URL('../supabase/migrations/20261018172327_ediel_sc031_inbound_ignored_register_projection.sql',import.meta.url)
+const migrationPath=new URL('../supabase/migrations/20261019160000_ediel_sc031_inbound_ignored_register_projection.sql',import.meta.url)
 const hash=(v:string)=>createHash('sha256').update(v).digest('hex')
 const id=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`
 const COMPANY=id(1),SOURCE=id(2),ACTOR=id(3),ASSESSMENT=id(4)
