@@ -1,8 +1,8 @@
 # Aktuell Ediel-status
 
-Avstämning `2026-10-17T20:59:07Z`: main `ae25d6d3144fe9828bc00f51af43e607dc76d370`, tree `3e356bf359aed2791e65a9758bb2e8398020c8d7`. Läs faktisk main, [ledger](../quality/audits/ediel-masterplan-v2/coverage.json) och senaste [#766](https://github.com/heke99/gridex-ops-platform/issues/766) före beslut.
+Avstämning `2026-10-18T23:18:10Z`: main `63580ae0a84b97b3e44d46cc21bdc349b8c978fa`, tree `cf7212ab07313736289bd9310e84f17c3805c05e`. Läs faktisk main, [ledger](../quality/audits/ediel-masterplan-v2/coverage.json) och senaste [#766](https://github.com/heke99/gridex-ops-platform/issues/766) före beslut.
 
-**119/121 regler VERIFIED + 209/231 kontrakt PASSED = 328/352. Kvar: 2 regler och 22 kontrakt.** Ledgerns SHA256 är `d2bea375b9fc02fba5d4561b00018081a5ea98860ed60961032cfc486c48cb41`. Endast VERIFIED/PASSED ger registergodkännande.
+**119/121 regler VERIFIED + 214/231 kontrakt PASSED = 333/352. Kvar: 2 regler och 17 kontrakt.** Ledgerns SHA256 är `cbee793cbeb4f5ebef3e5069c9d77b42adfd3e1de8403bdbaeb940065d3c0e79`. Endast VERIFIED/PASSED ger registergodkännande; antalen beskriver Ediel-registret.
 
 ## Kvarvarande registerposter
 
@@ -11,17 +11,25 @@ Avstämning `2026-10-17T20:59:07Z`: main `ae25d6d3144fe9828bc00f51af43e607dc76d3
 | Regler NOT_VERIFIED | DB-05, OPS-04 |
 | Kontrakt PARTIAL | SC-031, SC-037, SC-039, AT-Z09B-SUPPLIER |
 | Kontrakt NOT_EXECUTED | AT-DB-05, AT-OPS-04 |
-| Kontrakt NOT_EXECUTED | AT-Z01L-SUPPLIER, AT-Z03L-SUPPLIER, AT-Z04L-SUPPLIER, AT-Z01LK-SUPPLIER, AT-Z03LK-SUPPLIER, AT-Z04LK-SUPPLIER, AT-Z03C-SUPPLIER, AT-Z04C-SUPPLIER |
-| Kontrakt NOT_EXECUTED | AT-Z05H-SUPPLIER, AT-Z08H-SUPPLIER, AT-Z06F-SUPPLIER, AT-Z09F-SUPPLIER, AT-Z06G-SUPPLIER, AT-Z09G-SUPPLIER |
+| Kontrakt NOT_EXECUTED | AT-Z03L-SUPPLIER, AT-Z04L-SUPPLIER, AT-Z03LK-SUPPLIER, AT-Z04LK-SUPPLIER, AT-Z04C-SUPPLIER |
+| Kontrakt NOT_EXECUTED | AT-Z06F-SUPPLIER, AT-Z09F-SUPPLIER, AT-Z06G-SUPPLIER, AT-Z09G-SUPPLIER |
 | Kontrakt NOT_EXECUTED | AT-Z13V-ESCO, AT-Z13VH-ESCO |
 
 Bedöm luckorna mot [regler](../docs/ediel/masterplan-v2/registers/rules.json), [acceptanskrav](../docs/ediel/masterplan-v2/registers/acceptance_tests.json) och ledgerbevis.
 
 ## Leverans och nästa steg
 
-[#776](https://github.com/heke99/gridex-ops-platform/pull/776) är normalt mergad som `f4daa1f03e0790a37db2aebc14b734238e13a36f`; [#810](https://github.com/heke99/gridex-ops-platform/pull/810) som ovanstående main. Se [main-kontroller](https://github.com/heke99/gridex-ops-platform/commit/ae25d6d3144fe9828bc00f51af43e607dc76d370/checks) och [öppna PR](https://github.com/heke99/gridex-ops-platform/pulls?q=is%3Apr+is%3Aopen) för aktuell körnings- och PR-status. Merge ger inget nytt registergodkännande.
+Senast avstämd normalleverans är [#829](https://github.com/heke99/gridex-ops-platform/pull/829), mergad som ovanstående main med ordnade föräldrar `61b29f0cadd04b28f467abd68e2b7c528a7e7baa` och `a69159ba0a1e893cba152640b574a1a090fde6b5`; se [leveranskvitto](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6256201587). Dess dokumentationsändring bevarar hela ledgern från första föräldern. Se [main-kontroller](https://github.com/heke99/gridex-ops-platform/commit/63580ae0a84b97b3e44d46cc21bdc349b8c978fa/checks) och [öppna PR](https://github.com/heke99/gridex-ops-platform/pulls?q=is%3Apr+is%3Aopen) för aktuella resultat; Agent1 sköter main-uppföljning och normal seriell merge.
 
-Nästa steg är att slutföra dokumentrensning och leveransuppföljning. Regel- och kontraktsarbete är pausat; nya paket väljs först i nästa arbetsomgång. Tidigare sonderingar av SC-037 och Z01 gav inga implementationclaims eller kodändringar.
+Fortsätt verifierat ägda paket, konkreta rättningar och hjälp till befintliga ägare. [Stående arbetsmandat](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6256305601) gäller för normalt arbete: ledig, ännu ej godkänd scope kan reserveras enligt protokollet och inom egen custody får agenten rätta, verifiera, ta oberoende granskning och öppna eller uppdatera PR utan nytt generellt ROOT-klartecken. Aktivt ägd scope kräver avgränsad handoff och egen verifierad custody.
+
+## Avgränsade hinder och nästa ägaråtgärd
+
+- DB-05/SC-031: [befintligt källunderlag](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6256151894) är SOURCE; E-under-HOLD, rättslig grund/behörig utfärdare och återstående användarflödesportar är inte slutgodkända. Befintlig ägare och kvalificerad tjänst binder nästa tillämpliga mottagning och bevis.
+- OPS-04/AT-OPS-04: [källavstämningen](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6255937712) efterfrågar den avsedda manuella/runbookbaserade bevisporten och ett kvalificerat bevarat beslut/kvitto eller exakt saknad bindning. Den inför inget generiskt CLI/API/LIVE-krav.
+- Z04L/LK: [befintlig ägares kvalificerade utfall](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6256239755) för PR822 är 1 PASS, 1 FAIL och 5 NOT_RUN, med observerad orakelordningsmismatch. Nästa steg är ägarens avgränsade lokala harnessrättning under egen custody; nya körningsfaser behåller sina separata producentgränser. Ingen produktdefekt eller äldre D5-rotorsak är attesterad.
+
+Dessa daterade hinder gäller sina scopes; oberoende tillåtet arbete fortsätter. Tidigare status och pausbesked bevaras i [state-originalet](https://github.com/heke99/gridex-ops-platform/blob/63580ae0a84b97b3e44d46cc21bdc349b8c978fa/.agent-memory/current-state.md) och [checkpoint-originalet](https://github.com/heke99/gridex-ops-platform/blob/63580ae0a84b97b3e44d46cc21bdc349b8c978fa/.agent-memory/checkpoint.json).
 
 ## Arbetssätt och kvarvarande gränser
 
