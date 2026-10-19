@@ -132,6 +132,11 @@ beforeEach(() => {
       expect(args).toEqual({ p_company_id: uid(2), p_message_id: uid(1) })
       return { data: null, error: null }
     }
+    // OPS-04 activation probe (read-only): these routes carry no controlled-live binding.
+    if (name === 'gridex_ediel_ops04_controlled_flow_probe_v1') {
+      expect(args).toMatchObject({ p_company_id: uid(2), p_environment: io.message?.environment, p_message_id: uid(1) })
+      return { data: { companyId: uid(2), environment: io.message?.environment, messageId: uid(1), controlled: false }, error: null }
+    }
     io.effects.push(`rpc:${name}`)
     throw Error(`UNDECLARED_RPC:${name}`)
   })
