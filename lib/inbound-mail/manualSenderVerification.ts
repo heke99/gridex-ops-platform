@@ -18,7 +18,9 @@ export type ManualSenderVerificationDependencies = {
   resolver?: (name: string, type: string) => Promise<string[][]>
 }
 
-const MAX_RAW_BYTES = 2 * 1024 * 1024
+// Six MiB of decoded attachments needs up to eight MiB in base64, with room
+// for MIME headers/body. Authentication always covers the whole original RFC.
+const MAX_RAW_BYTES = 12 * 1024 * 1024
 const MAX_HEADER_BYTES = 64 * 1024
 const MAX_SIGNATURES = 4
 const MAX_DNS_QUERIES = 4

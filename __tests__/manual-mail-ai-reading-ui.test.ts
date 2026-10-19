@@ -89,3 +89,29 @@ it('keeps a previous AI reading for another request hidden', () => {
   expect(html).toContain('gäller en annan matchning')
   expect(html).not.toContain('2028-01-01')
 })
+
+const childRequest = '22222222-2222-4222-8222-222222222222'
+const siteApplication = () => ({ version: 1, parentRequestId: 'request-a', companyId: 'tenant-a', customerId: 'customer-a', siteId: 'site-a', requestId: childRequest, sourceHash: 'a'.repeat(64), status: 'applied', application: { ...application(), requestId: childRequest, terms: { earliestStartDate: '2028-07-01' } } })
+it('shows confirmed per-site applications independently and preserves per-site dates', () => {
+  const value = payload()
+  ;(value.manual_automation as Row).site_applications = { [childRequest]: siteApplication() }
+  const html = render(value)
+  expect(html).toContain('Bekräftade uppgifter per anläggning')
+  expect(html).toContain('2028-07-01'); expect(html).toContain('site-a')
+})
+it.each([{ parentRequestId: 'other' }, { companyId: 'other' }, { customerId: 'other' }, { requestId: 'other' }, { sourceHash: 'b'.repeat(64) }, { status: 'needs_review' }])('hides per-site business facts with invalid provenance %o', patch => {
+  const value = payload()
+  ;(value.manual_automation as Row).site_applications = { [childRequest]: { ...siteApplication(), ...patch } }
+  expect(render(value)).not.toContain('2028-07-01')
+})
+it('does not show a child application whose own context differs from its site envelope', () => {
+  const value = payload()
+  ;(value.manual_automation as Row).site_applications = { [childRequest]: { ...siteApplication(), application: { ...siteApplication().application, customerId: 'other' } } }
+  expect(render(value)).not.toContain('2028-07-01')
+})
+
+it('shows up to 64 AI evidence fields only for a stored multiple-facility scope', () => {
+  const reading = { status: 'completed', scope_mode: 'multiple_facilities', context: { company_id: 'tenant-a', customer_id: 'customer-a', request_id: 'request-a' }, outcome: 'facility_information', fields: Array.from({ length: 64 }, (_, index) => ({ field: 'facility_id', value: `facility-${index}`, quote: `Anläggning: facility-${index}` })) }
+  expect(render({ ai_read_only: reading })).toContain('facility-63')
+  expect(render({ ai_read_only: { ...reading, scope_mode: undefined } })).not.toContain('facility-63')
+})

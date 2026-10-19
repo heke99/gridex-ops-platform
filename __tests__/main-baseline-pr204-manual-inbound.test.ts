@@ -37,6 +37,7 @@ const OTHER_COMPANY = '22222222-2222-4222-8222-222222222222'
 const CUSTOMER = '33333333-3333-4333-8333-333333333333'
 const SITE = '44444444-4444-4444-8444-444444444444'
 const OWNER = '55555555-5555-4555-8555-555555555555'
+const OWNER_ACTOR = '77777777-7777-4777-8777-777777777777'
 const REQUEST = '66666666-6666-4666-8666-666666666666'
 const CASE = 'GX-FIR-AABBCCDD'
 const FACILITY = '735999000000000001'
@@ -136,7 +137,7 @@ function requestRow(overrides: Row = {}): Row {
 }
 function verifiedContact(company: string | null = COMPANY) {
   io.tables.grid_owner_contact_channels.push({ company_id: company, grid_owner_id: OWNER,
-    email: FROM, channel_type: 'email', is_enabled: true, is_verified: true })
+    email: FROM, channel_type: 'email', is_enabled: true, is_verified: true, verified_at: '2026-01-01T00:00:00Z' })
 }
 function outgoingReply(requestId = REQUEST, companyId = COMPANY) {
   io.tables.manual_email_outbox.push({ id: `outbox-${requestId}`, company_id: companyId,
@@ -156,13 +157,18 @@ beforeEach(() => {
   io.tables = {
     grid_owner_information_requests: [requestRow()],
     customer_sites: [{ id: SITE, company_id: COMPANY, customer_id: CUSTOMER, grid_owner_id: OWNER,
-      facility_id: null, grid_area_code: 'ABC', price_area_code: 'SE3', protected_identity: false }],
+      facility_id: null, grid_area_code: 'ABC', price_area_code: 'SE3', protected_identity: false, is_active: true, status: 'active' }],
+    grid_owners: [{ id: OWNER, company_id: COMPANY, is_active: true, platform_market_actor_id: OWNER_ACTOR }],
+    platform_actor_contacts: [],
+    platform_market_actors: [{ id: OWNER_ACTOR, status: 'active', match_status: 'verified' }],
+    platform_actor_roles: [{ actor_id: OWNER_ACTOR, actor_role: 'grid_owner', is_active: true }],
     platform_grid_areas: [{ id: 'area', grid_area_code: 'ABC', grid_owner_id: OWNER, price_area: 'SE3', is_active: true }],
     platform_runtime_readiness: [{ id: true, is_ready: true, blocking_issues: [], schema_fingerprint: 'a'.repeat(64),
       schema_version: '20260803093300-gridex-runtime-readiness-v3', capabilities: {} }],
     grid_owner_contact_channels: [], manual_email_outbox: [], communication_log_events: [],
-    metering_points: [], customers: [], manual_inbound_messages: [], inbound_operation_events: [],
+    metering_points: [], customers: [{ id: CUSTOMER, company_id: COMPANY, status: 'active' }], manual_inbound_messages: [], inbound_operation_events: [],
     customer_operation_events: [], manual_communication_mailboxes: [],
+    supplier_switch_requests: [],
     website_customer_applications: [], customer_application_workflows: [],
   }
   io.from.mockImplementation(table => new Query(table))

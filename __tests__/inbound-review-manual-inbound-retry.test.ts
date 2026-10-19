@@ -89,16 +89,27 @@ vi.mock('@/lib/customer-operations/manualFacilityResponseParser', () => ({
     return { outcome: 'applied' }
   },
 }))
+function correlationResult() {
+  return {
+    resolutionStatus: 'matched', companyId: 'co-1', requestId: 'req-1', customerId: 'cu-1', customerSiteId: 'site-1',
+    meteringPointId: null, gridOwnerId: 'go-1', tenantResolutionMethod: 'case_reference', entityResolutionMethod: 'request',
+    evidence: {}, businessProcess: 'facility_lookup', intent: 'facility_response', intentConfidence: 1,
+    senderCredible: true, request: { id: 'req-1', company_id: 'co-1', customer_id: 'cu-1', customer_site_id: 'site-1', poa_id: 'poa-1', metadata: { retained: true }, request_type: 'facility_identifier_lookup' },
+    ...io.correlationPatch,
+  }
+}
 vi.mock('@/lib/inbound-mail/manualInboundCorrelation', () => ({
-  resolveManualInboundCorrelation: async () => {
-    io.correlationCalls += 1
-    return {
-      resolutionStatus: 'matched', companyId: 'co-1', requestId: 'req-1', customerId: 'cu-1', customerSiteId: 'site-1',
-      meteringPointId: null, gridOwnerId: 'go-1', tenantResolutionMethod: 'case_reference', entityResolutionMethod: 'request',
-      evidence: {}, businessProcess: 'facility_lookup', intent: 'facility_response', intentConfidence: 1,
-      senderCredible: true, request: { id: 'req-1', company_id: 'co-1', customer_id: 'cu-1', customer_site_id: 'site-1', poa_id: 'poa-1', metadata: { retained: true }, request_type: 'facility_identifier_lookup' },
-      ...io.correlationPatch,
-    }
+  resolveManualInboundCorrelation: async () => { io.correlationCalls += 1; return correlationResult() },
+}))
+// This suite already substitutes correlation as an external port. Typed document
+// discovery uses the same scoped result; its registry/identifier checks run in
+// the dedicated actual-routing suite, rather than against an undeclared DB.
+vi.mock('@/lib/inbound-mail/manualInboundRouting', () => ({
+  isVerifiedManualDocumentSender: async () => correlationResult().senderCredible === true,
+  resolveManualDocumentRouting: async (input: { authoredText: string; units: unknown[] }) => {
+    const correlation = correlationResult()
+    return { ...correlation, sites: [{ customerSiteId: correlation.customerSiteId,
+      facilityId: '735999100000000001', units: input.units, bodyText: input.authoredText }], reasons: [] }
   },
 }))
 vi.mock('imapflow', () => ({

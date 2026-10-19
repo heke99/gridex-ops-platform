@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
@@ -70,7 +71,7 @@ type InboundRow = {
 function formatDate(value: string | null | undefined): string {
   if (!value) return '—'
   try {
-    return new Intl.DateTimeFormat('sv-SE', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value))
+    return new Intl.DateTimeFormat('sv-SE', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Europe/Stockholm' }).format(new Date(value))
   } catch {
     return '—'
   }
@@ -158,6 +159,7 @@ export default async function ManualRequestDiagnosticsPage({ searchParams }: {
       />
 
       <main className="space-y-6 p-6 lg:p-8">
+        <nav aria-label="Mejlhantering" className="flex flex-wrap gap-4"><Link href="/admin/mail-review" className="font-semibold underline">Mejlgranskning – alla svar som behöver kontrolleras</Link><Link href="/admin/powers-of-attorney" className="underline">Fullmakter</Link></nav>
         <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
           <h2 className="font-black text-slate-950">AI-läsning av mejlsvar</h2>
           <p className="mt-1 text-sm text-slate-600">AI lämnar förslag med källcitat för granskning. Testet använder en fast exempeltext och skickar inga mejl.</p>
@@ -205,7 +207,7 @@ export default async function ManualRequestDiagnosticsPage({ searchParams }: {
                   const outbox = outboxByRequest.get(row.id) ?? []
                   const inbound = inboundByRequest.get(row.id) ?? []
                   return (
-                    <tr key={row.id} className="align-top hover:bg-slate-50">
+                    <tr key={row.id} id={`request-${row.id}`} className="align-top hover:bg-slate-50">
                       <td className="px-4 py-3">
                         <div className="font-bold text-slate-950">{row.case_reference ?? row.id.slice(0, 8)}</div>
                         <div className="mt-1 text-xs text-slate-500">{row.request_type}</div>
@@ -274,7 +276,7 @@ export default async function ManualRequestDiagnosticsPage({ searchParams }: {
                 {recentInbound.length === 0 ? (
                   <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-600">Inga inkommande manuella mail ännu.</td></tr>
                 ) : recentInbound.map((row) => (
-                  <tr key={row.id} className="align-top hover:bg-slate-50">
+                  <tr key={row.id} id={`request-${row.id}`} className="align-top hover:bg-slate-50">
                     <td className="px-4 py-3 text-xs text-slate-700">
                       <div className="font-semibold">{formatDate(row.received_at)}</div>
                       <div className="mt-1 max-w-[280px] truncate text-slate-500">{row.subject ?? '(utan ämne)'}</div>

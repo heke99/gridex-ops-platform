@@ -65,6 +65,11 @@ function parseMessageHeaderValues(headerText: string): { inReplyTo: string | nul
   return { inReplyTo, references }
 }
 
+const MAX_CAPTURED_ATTACHMENTS = 5
+const MAX_ATTACHMENT_BYTES = 4 * 1024 * 1024
+const MAX_TOTAL_ATTACHMENT_BYTES = 6 * 1024 * 1024
+const MAX_ATTACHMENT_TEXT_CHARACTERS = 200_000
+
 // Small deterministic MIME reader for manual replies. It walks nested
 // multipart structures (multipart/mixed > multipart/alternative) and decodes
 // text by each part's own charset without executing or opening binary content.
@@ -92,6 +97,8 @@ export function parseMimeSource(source: unknown): {
   const html: string[] = []
   const attachments: unknown[] = []
   const excludedSubtrees = new Set<number>()
+  let totalAttachmentBytes = 0
+  let captureRequiresReview = false
   for (const entity of entities) {
     // Entities are in document order. Propagate an excluded parent's status so
     // no nested text can be promoted to a current customer answer.
@@ -107,13 +114,28 @@ export function parseMimeSource(source: unknown): {
     const bytes = binaryToBuffer(entity.body)
     const isText = entity.mediaType.startsWith('text/')
     const decoded = isText ? decodeTextBytes(bytes, mimeParameter(entity.contentType, 'charset')) : null
-    if (forwardedMessage || attachment) {
+    const inlineBinary = !isText && !entity.mediaType.startsWith('multipart/')
+    if (forwardedMessage || attachment || inlineBinary) {
       excludedSubtrees.add(entity.index)
+      totalAttachmentBytes += bytes.length
+      const withinCaptureBudget = attachments.length < MAX_CAPTURED_ATTACHMENTS
+        && bytes.length <= MAX_ATTACHMENT_BYTES && totalAttachmentBytes <= MAX_TOTAL_ATTACHMENT_BYTES
+      const capturedIssue = !bytes.length ? 'attachment_content_missing'
+        : attachments.length >= MAX_CAPTURED_ATTACHMENTS ? 'attachment_count_limit'
+          : bytes.length > MAX_ATTACHMENT_BYTES ? 'attachment_size_limit'
+            : totalAttachmentBytes > MAX_TOTAL_ATTACHMENT_BYTES ? 'attachment_total_size_limit'
+              : decoded && decoded.length > MAX_ATTACHMENT_TEXT_CHARACTERS ? 'attachment_text_limit' : null
+      if (capturedIssue) captureRequiresReview = true
       attachments.push({
         filename,
         contentType: entity.mediaType,
         sizeBytes: bytes.length,
-        text: decoded ? decoded.slice(0, 200_000) : null,
+        text: !capturedIssue && decoded ? decoded : null,
+        sha256: createHash('sha256').update(bytes).digest('hex'),
+        mimePart: entity.index,
+        sourceRole: forwardedMessage ? 'forwarded' : /^inline\b/i.test(disposition) || !attachment ? 'inline' : 'attachment',
+        ...(withinCaptureBudget && bytes.length ? { contentBase64: bytes.toString('base64') } : {}),
+        ...(capturedIssue ? { capturedIssue } : {}),
       })
     } else if (entity.mediaType === 'text/html') html.push(decoded ?? '')
     else if (isText) text.push(decoded ?? '')
@@ -124,7 +146,7 @@ export function parseMimeSource(source: unknown): {
     attachments,
     ...replyHeaders,
     autoReplyHeaders,
-    mimeRequiresReview: exceededLimits || issues.length > 0,
+    mimeRequiresReview: exceededLimits || issues.length > 0 || captureRequiresReview,
   }
 }
 

@@ -28,21 +28,40 @@ export async function reviewManualReply(input: {
 
 export type ManualReplyContinuationInput = {
   inboundId: string; companyId: string; customerId: string; siteId: string; requestId: string; actorUserId?: string | null
+  /** Internal batch continuation; callers still prove every stored binding. */
+  memberOnly?: boolean
+  allowPartial?: boolean
 }
 
 /** Shared by the normal post-commit path and retry; mutable site hints are not proof. */
 export async function readAppliedManualReplyContext(input: ManualReplyContinuationInput): Promise<{
   payload: Row; automation: Row; application: Row; request: Row; actorUserId: string | null; sourceHash: string
+  member?: Row; sourceRequestId: string; sourceSiteId: string
 } | null> {
   const source = await tenantSelect(input.companyId, 'manual_inbound_messages')
     .eq('id', input.inboundId).eq('customer_id', input.customerId)
-    .eq('customer_site_id', input.siteId).eq('request_id', input.requestId)
     .eq('processing_state', 'applied').eq('resolution_status', 'matched').maybeSingle()
   if (source.error) throw source.error
   if (!source.data) return null
   const payload = record(record(source.data).extracted_payload)
   const automation = record(payload.manual_automation)
-  const application = record(automation.application)
+  const sourceRow = record(source.data)
+  const member = record(record(automation.site_applications)[input.requestId])
+  const isMember = member.version === 1 && member.status === 'applied'
+  const sourceRequestId = String(sourceRow.request_id ?? '')
+  const sourceSiteId = String(sourceRow.customer_site_id ?? '')
+  if (isMember) {
+    if (member.parentRequestId !== sourceRequestId || member.requestId !== input.requestId
+      || member.companyId !== input.companyId || member.customerId !== input.customerId || member.siteId !== input.siteId
+      || member.sourceHash !== automation.sourceHash) return null
+    const parent = await tenantSelect(input.companyId, 'grid_owner_information_requests')
+      .eq('id', sourceRequestId).eq('customer_id', input.customerId).eq('customer_site_id', sourceSiteId).maybeSingle()
+    if (parent.error) throw parent.error
+    const parentRow = record(parent.data)
+    if (!parent.data || record(record(parentRow.metadata).counterparty_reply).requires_review === true
+      || ['cancelled', 'failed', 'closed', 'needs_review'].includes(String(parentRow.status))) return null
+  } else if (sourceRequestId !== input.requestId || sourceSiteId !== input.siteId) return null
+  const application = record(isMember ? member.application : automation.application)
   const sourceHash = automation.sourceHash
   if (payload.sender_credible !== true || record(payload.sender_verification).status !== 'verified'
     || typeof sourceHash !== 'string' || !/^[a-f0-9]{64}$/.test(sourceHash)
@@ -57,22 +76,41 @@ export async function readAppliedManualReplyContext(input: ManualReplyContinuati
   const request = record(found.data)
   const hold = record(record(request.metadata).counterparty_reply)
   if (request.id !== input.requestId || request.company_id !== input.companyId || request.customer_id !== input.customerId
-    || request.customer_site_id !== input.siteId || request.status !== 'completed'
+    || request.customer_site_id !== input.siteId
+    || (request.status !== 'completed' && !(input.allowPartial && isMember && application.complete === false
+      && ['received', 'manual_response_received', 'ready_to_send_manual_email', 'manual_email_queued', 'manual_email_sent', 'waiting_manual_response'].includes(String(request.status))))
+    || (isMember && (member.powerOfAttorneyId !== request.poa_id || member.requestType !== request.request_type))
     || hold.requires_review === true || hold.hold === true || !isDeepStrictEqual(request.parsed_payload, application)) return null
-  return { payload, automation, application, request, actorUserId: typeof request.created_by === 'string' ? request.created_by : null, sourceHash }
+  return { payload, automation, application, request, actorUserId: typeof request.created_by === 'string' ? request.created_by : null, sourceHash,
+    ...(isMember ? { member } : {}), sourceRequestId, sourceSiteId }
 }
 
 /** Mark only the sibling continuation, preserving the committed application and paid reading. */
 export async function markManualReplyContinuation(input: ManualReplyContinuationInput & { supplierSwitchRequestId?: string | null }): Promise<void> {
+  await writeManualReplyContinuation(input, 'completed')
+}
+
+/** Store safe review metadata; never persist downstream error text. */
+export async function markManualReplyContinuationFailed(input: ManualReplyContinuationInput): Promise<void> {
+  await writeManualReplyContinuation(input, 'failed')
+}
+
+async function writeManualReplyContinuation(input: ManualReplyContinuationInput & { supplierSwitchRequestId?: string | null }, status: 'completed' | 'failed'): Promise<void> {
   for (let attempt = 0; attempt < 2; attempt++) {
     const context = await readAppliedManualReplyContext(input)
-    if (!context) throw new Error('manual_reply_continuation_context_changed')
-    if (record(context.automation.continuation).status === 'completed') return
+    if (!context) { if (status === 'failed') return; throw new Error('manual_reply_continuation_context_changed') }
+    if (record(context.member ? context.member.continuation : context.automation.continuation).status === 'completed') return
+    const continuation = { status, sourceHash: context.sourceHash, inboundId: input.inboundId, requestId: input.requestId,
+      ...(context.member ? { parentRequestId: context.sourceRequestId } : {}),
+      ...(status === 'completed' ? { completedAt: new Date().toISOString(), supplierSwitchRequestId: input.supplierSwitchRequestId ?? null }
+        : { failedAt: new Date().toISOString(), reason: 'continuation_failed' }) }
+    const automation = context.member ? { ...context.automation, ...(status === 'failed' ? { continuation } : {}), site_applications: {
+      ...record(context.automation.site_applications), [input.requestId]: { ...context.member, continuation },
+    } } : { ...context.automation, continuation }
     const updated = await tenantUpdate(input.companyId, 'manual_inbound_messages', { extracted_payload: {
-      ...context.payload, manual_automation: { ...context.automation, continuation: { status: 'completed', completedAt: new Date().toISOString(),
-        supplierSwitchRequestId: input.supplierSwitchRequestId ?? null } },
+      ...context.payload, manual_automation: automation,
     } }).eq('id', input.inboundId).eq('customer_id', input.customerId)
-      .eq('customer_site_id', input.siteId).eq('request_id', input.requestId).eq('processing_state', 'applied')
+      .eq('customer_site_id', context.sourceSiteId).eq('request_id', context.sourceRequestId).eq('processing_state', 'applied')
       .eq('extracted_payload', JSON.stringify(context.payload)).select('id').maybeSingle()
     if (updated.error) throw updated.error
     if (updated.data) return
@@ -82,8 +120,27 @@ export async function markManualReplyContinuation(input: ManualReplyContinuation
 
 /** Resume either applied mail adapter without a new inference or noncanonical data write. */
 export async function continueManualCommercialReply(input: ManualReplyContinuationInput): Promise<void> {
+  try { await continueManualCommercialReplyAttempt(input) }
+  catch (error) {
+    try { await markManualReplyContinuationFailed(input) } catch { /* Preserve the original failure and its canonical retry. */ }
+    throw error
+  }
+}
+
+async function continueManualCommercialReplyAttempt(input: ManualReplyContinuationInput): Promise<void> {
+  if (!input.memberOnly) {
+    const source = await tenantSelect(input.companyId, 'manual_inbound_messages').eq('id', input.inboundId)
+      .eq('customer_id', input.customerId).eq('request_id', input.requestId).eq('processing_state', 'applied').maybeSingle()
+    if (source.error) throw source.error
+    if (record(record(record(source.data).extracted_payload).manual_automation).multi_site) {
+      const { continueManualMultiSiteReply } = await import('@/lib/inbound-mail/manualMultiSiteReply')
+      await continueManualMultiSiteReply({ companyId: input.companyId, customerId: input.customerId,
+        parentRequestId: input.requestId, inboundId: input.inboundId })
+      return
+    }
+  }
   const context = await readAppliedManualReplyContext(input)
-  if (!context || record(context.automation.continuation).status === 'completed') return
+  if (!context || record(context.member ? context.member.continuation : context.automation.continuation).status === 'completed') return
   if (context.request.request_type !== 'current_supplier_contract_information_request') {
     const result = record(context.application.result)
     if (!['facility_identifier_lookup', 'facility_lookup'].includes(String(context.request.request_type)) || result.ok !== true
@@ -98,7 +155,8 @@ export async function continueManualCommercialReply(input: ManualReplyContinuati
       sourcePartyGridOwnerId: text(context.request.grid_owner_id), rawPayload: record(context.request.received_payload),
       automaticInbound: { inboundId: input.inboundId, sourceHash: context.sourceHash },
     })
-    if (completion.ok) await markManualReplyContinuation({ ...input, supplierSwitchRequestId: completion.supplierSwitchResult?.supplierSwitchRequestId ?? null })
+    if (!completion.ok) throw new Error('manual_facility_continuation_failed')
+    await markManualReplyContinuation({ ...input, supplierSwitchRequestId: completion.supplierSwitchResult?.supplierSwitchRequestId ?? null })
     return
   }
   if (context.application.complete !== true) return

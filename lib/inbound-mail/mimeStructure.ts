@@ -47,6 +47,21 @@ function decodedBody(body: string, encoding: string, preserveBytes = false): str
   return body
 }
 
+// Repeated regex groups can exhaust V8's stack on ordinary multi-MiB files.
+// Validate alphabet, quartet length and terminal padding with one linear pass.
+function validBase64(body: string): boolean {
+  const compact = body.replace(/\s/g, '')
+  if (compact.length % 4 !== 0) return false
+  let padding = 0
+  for (let i = 0; i < compact.length; i++) {
+    const code = compact.charCodeAt(i)
+    if (code === 61) {
+      if (++padding > 2) return false
+    } else if (padding || !(code >= 65 && code <= 90 || code >= 97 && code <= 122 || code >= 48 && code <= 57 || code === 43 || code === 47)) return false
+  }
+  return true
+}
+
 // With preserveBytes the input must be a latin1 "binary" string of the raw
 // message bytes; entity bodies stay byte-preserving and entities are listed in
 // document order.
@@ -78,7 +93,7 @@ export function inspectMimeStructure(raw: string, options: { preserveBytes?: boo
     if (encodings.length !== 1) { issues.add('mime_transfer_encoding_ambiguous'); continue }
     const encoding = encodings[0].toLowerCase()
     const encodedBody = next.raw.slice(separator).replace(/^\r?\n\r?\n/, '')
-    if (encoding === 'base64' && !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(encodedBody.replace(/\s/g, ''))) issues.add('mime_transfer_encoding_invalid')
+    if (encoding === 'base64' && !validBase64(encodedBody)) issues.add('mime_transfer_encoding_invalid')
     if (!['7bit','8bit','binary','base64','quoted-printable'].includes(encoding)) issues.add('mime_transfer_encoding_unsupported')
     const body = decodedBody(encodedBody, encoding, options.preserveBytes)
     const index = entities.length
@@ -89,22 +104,53 @@ export function inspectMimeStructure(raw: string, options: { preserveBytes?: boo
     if (!mediaType.startsWith('multipart/')) continue
     const boundary = mimeParameter(contentType, 'boundary')
     if (!boundary || boundary.length > 70) { issues.add('mime_boundary_invalid'); continue }
-    let part: string[] | null = null
     let closed = false
     const children: { raw: string; parent: number; depth: number }[] = []
-    const enqueue = (lines: string[]) => {
+    const enqueue = (rawPart: string) => {
       if (pending.length + children.length + entities.length >= 256) { exceededLimits = true; issues.add('mime_structure_limit'); return }
-      children.push({ raw: lines.join('\r\n'), parent: index, depth: next.depth + 1 })
+      children.push({ raw: rawPart, parent: index, depth: next.depth + 1 })
     }
-    for (const line of body.split(/\r?\n/)) {
-      const marker = line.replace(/[ \t]+$/, '')
-      if (marker === `--${boundary}` || marker === `--${boundary}--`) {
-        if (part) enqueue(part)
-        part = marker === `--${boundary}--` ? null : []
-        if (marker === `--${boundary}--`) { closed = true; break }
-      } else if (part) part.push(line)
+    if (options.preserveBytes) {
+      const open = `--${boundary}`, close = `${open}--`
+      let partStart: number | null = null
+      let lineStart = 0
+      while (lineStart < body.length) {
+        const newline = body.indexOf('\n', lineStart)
+        const lineEnd = newline < 0 ? body.length : newline
+        if (body.startsWith(open, lineStart)) {
+          const marker = body.slice(lineStart, lineEnd).replace(/\r$/, '').replace(/[ \t]+$/, '')
+          if (marker === open || marker === close) {
+            if (partStart !== null) {
+              // The CRLF immediately before a delimiter belongs to that
+              // delimiter, not the payload. Preserve every earlier byte.
+              let partEnd = lineStart
+              if (partEnd && body[partEnd - 1] === '\n') {
+                partEnd--
+                if (partEnd && body[partEnd - 1] === '\r') partEnd--
+              }
+              enqueue(body.slice(partStart, partEnd))
+            }
+            partStart = marker === close ? null : newline < 0 ? body.length : newline + 1
+            if (marker === close) { closed = true; break }
+          }
+        }
+        if (newline < 0) break
+        lineStart = newline + 1
+      }
+      if (partStart !== null && partStart < body.length) enqueue(body.slice(partStart))
+    } else {
+      // Keep the legacy decoded-text traversal's line normalization/order.
+      let part: string[] | null = null
+      for (const line of body.split(/\r?\n/)) {
+        const marker = line.replace(/[ \t]+$/, '')
+        if (marker === `--${boundary}` || marker === `--${boundary}--`) {
+          if (part) enqueue(part.join('\r\n'))
+          part = marker === `--${boundary}--` ? null : []
+          if (marker === `--${boundary}--`) { closed = true; break }
+        } else if (part) part.push(line)
+      }
+      if (part?.length) enqueue(part.join('\r\n'))
     }
-    if (part?.length) enqueue(part)
     // The traversal stack pops last-in first: push children reversed to visit
     // them in document order when the caller asked for it.
     pending.push(...(options.preserveBytes ? children.reverse() : children))

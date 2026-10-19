@@ -241,6 +241,7 @@ const PLATFORM_NAVIGATION: AdminNavigationGroup[] = [
       { key: 'inbound_mail.workspace', label: 'Mailboxar', href: '/admin/inbound-mail', description: 'Inkommande mail, parserresultat och osäkra matchningar', platformOnly: true },
       { key: 'inbound_mail.diagnostics', label: 'Diagnostik', href: '/admin/inbound-mail/diagnostics', description: 'Smoke tests för parser, tabeller och cron-secret', platformOnly: true },
       { key: 'manual_mailboxes', label: 'Manuella mailboxar', href: '/admin/manual-mailboxes', description: 'Avsändaradresser för manuell nätägarkommunikation (leverantörsbyte@)', platformOnly: true },
+      { key: 'mail_review', label: 'Mejlgranskning', href: '/admin/mail-review', description: 'Granska mejlsvar, kundmatchning, bilagor och anläggningsuppgifter', platformOnly: true },
       { key: 'manual_requests', label: 'Manuella förfrågningar', href: '/admin/manual-requests', description: 'Diagnostik för manuella nätägarförfrågningar, utkorg och inkommande svar', platformOnly: true },
       { key: 'outbound_unresolved', label: 'Osäkra matchningar', href: '/admin/outbound/unresolved', description: 'Meddelanden som kräver manuell granskning', pageKey: 'outbound.unresolved' },
     ],

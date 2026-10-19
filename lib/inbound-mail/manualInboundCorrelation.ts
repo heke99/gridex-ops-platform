@@ -143,7 +143,7 @@ export function classifyManualInboundIntent(text: string, requestType?: string |
   return { intent: 'unknown', businessProcess: 'unknown', confidence: 0.3 }
 }
 
-async function findRequestByCaseReference(caseReference: string): Promise<{ request: JsonRecord | null; ambiguous: boolean }> {
+export async function findRequestByCaseReference(caseReference: string): Promise<{ request: JsonRecord | null; ambiguous: boolean }> {
   const { data, error } = await supabaseService
     .from('grid_owner_information_requests')
     .select('*')
@@ -189,7 +189,7 @@ async function findResendProviderIdsByRfcMessageId(references: string[]): Promis
   )
 }
 
-async function findRequestByOutboundReferences(references: string[]): Promise<{
+export async function findRequestByOutboundReferences(references: string[]): Promise<{
   request: JsonRecord | null
   ambiguous: boolean
   outboxIds: string[]
@@ -280,18 +280,18 @@ async function findVerifiedSenderContacts(fromEmail: string | null): Promise<Jso
   return (data ?? []) as JsonRecord[]
 }
 
-async function findSitesByFacility(facilityId: string | null): Promise<JsonRecord[]> {
+export async function findSitesByFacility(facilityId: string | null, limit = 20): Promise<JsonRecord[]> {
   if (!facilityId || !/^\d{18}$/.test(facilityId)) return []
   const { data, error } = await supabaseService
     .from('customer_sites')
-    .select('id,company_id,customer_id,grid_owner_id,facility_id,normalized_facility_id,status')
+    .select('id,company_id,customer_id,grid_owner_id,facility_id,normalized_facility_id,status,is_active,protected_identity')
     .or(`facility_id.eq.${facilityId},normalized_facility_id.eq.${facilityId}`)
-    .limit(20)
+    .limit(limit)
   if (error) throw error
   return (data ?? []) as JsonRecord[]
 }
 
-async function findMeteringPoints(input: { meteringPointId: string | null; facilityId: string | null }): Promise<JsonRecord[]> {
+export async function findMeteringPoints(input: { meteringPointId: string | null; facilityId: string | null }): Promise<JsonRecord[]> {
   const filters: string[] = []
   if (input.meteringPointId && /^\d{18}$/.test(input.meteringPointId)) filters.push(`meter_point_id.eq.${input.meteringPointId}`)
   if (input.facilityId && /^\d{18}$/.test(input.facilityId)) filters.push(`site_facility_id.eq.${input.facilityId}`)

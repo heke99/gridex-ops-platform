@@ -1,20 +1,22 @@
+import Link from 'next/link'
 import { z } from 'zod'
 
 const readingSchema = z.object({
   status: z.enum(['processing', 'completed', 'failed', 'skipped']),
   context: z.object({ company_id: z.string(), customer_id: z.string(), request_id: z.string() }),
   outcome: z.string().optional(), reason: z.string().optional(),
+  scope_mode: z.literal('multiple_facilities').optional(),
   outcome_quote: z.string().max(2000).nullable().optional(),
-  fields: z.array(z.object({ field: z.string(), value: z.string().max(500), quote: z.string().max(2000) })).max(16).optional(),
+  fields: z.array(z.object({ field: z.string(), value: z.string().max(500), quote: z.string().max(2000) })).max(64).optional(),
   estimated_cost_usd: z.number().nonnegative().optional(),
   review_reasons: z.array(z.enum(['conditional', 'negated', 'multiple_customers', 'multiple_facilities', 'contradictory', 'uncertain', 'other_customer'])).max(7).optional(),
-})
+}).refine(value => (value.fields?.length ?? 0) <= 16 || value.scope_mode === 'multiple_facilities')
 
 const textFact = z.string().min(1).max(500)
 const hash = z.string().regex(/^[a-f0-9]{64}$/)
 const applicationSchema = z.object({
   version: z.literal(1), applied: z.literal(true), sourceHash: hash,
-  companyId: textFact, customerId: textFact, requestId: textFact,
+  companyId: textFact, customerId: textFact, requestId: textFact, siteId: textFact.optional(),
   complete: z.boolean().optional(), missingFields: z.array(textFact).max(16).optional(),
   terms: z.object({
     contractEndDate: textFact.optional(), earliestStartDate: textFact.optional(), effectiveStartDate: textFact.optional(),
@@ -32,6 +34,12 @@ const senderSchema = z.object({
   from_email: z.string().email(), signing_domain: textFact,
   signed_headers: z.array(textFact).refine(headers => headers.includes('from')),
 }).refine(value => value.from_email.split('@')[1] === value.signing_domain)
+
+const siteApplicationSchema = z.object({
+  version: z.literal(1), parentRequestId: textFact, companyId: textFact, customerId: textFact,
+  siteId: textFact, requestId: z.string().uuid(), sourceHash: hash, status: z.literal('applied'),
+  application: applicationSchema,
+})
 
 type MatchContext = { companyId: string | null; customerId: string | null; requestId: string | null }
 
@@ -91,6 +99,17 @@ export default function ManualMailAiReading({ payload, companyId, customerId, re
   const application = parsed.success && stored.sender_credible === true && senderSchema.safeParse(stored.sender_verification).success
     && parsed.data.companyId === companyId && parsed.data.customerId === customerId && parsed.data.requestId === requestId
     && parsed.data.sourceHash === automation.sourceHash ? parsed.data : null
+  const confirmedSites = stored.sender_credible === true && senderSchema.safeParse(stored.sender_verification).success
+    && automation.site_applications && typeof automation.site_applications === 'object' && !Array.isArray(automation.site_applications)
+    ? Object.entries(automation.site_applications as Record<string, unknown>).flatMap(([key, raw]) => {
+      const checked = siteApplicationSchema.safeParse(raw)
+      if (!checked.success) return []
+      const site = checked.data, applied = site.application
+      return key === site.requestId && site.parentRequestId === requestId && site.companyId === companyId
+        && site.customerId === customerId && site.sourceHash === automation.sourceHash
+        && applied.companyId === companyId && applied.customerId === customerId && applied.requestId === site.requestId
+        && applied.sourceHash === site.sourceHash && (!applied.siteId || applied.siteId === site.siteId) ? [site] : []
+    }) : []
   const terms = application?.terms
   const result = application?.result
   const saved: Array<[string, string | number | null | undefined]> = [
@@ -108,6 +127,14 @@ export default function ManualMailAiReading({ payload, companyId, customerId, re
         <dl className="mt-2 space-y-1">{saved.filter(([, value]) => value !== undefined && value !== null).map(([label, value]) => <div key={label}><dt className="inline font-semibold">{label}: </dt><dd className="inline">{value}</dd></div>)}</dl>
         {application.complete === false && application.missingFields?.length ? <p className="mt-2 text-amber-800">Inväntar komplettering: {application.missingFields.map(field => field === 'earliest_supplier_start_date' ? 'Tidigaste start hos ny leverantör' : labels[field] ?? 'Avtalsuppgift').join(', ')}.</p> : null}
       </div> : <p className="text-slate-500">Inväntar validering eller granskning. Ingen automatisk tillämpning är bekräftad här.</p>}
+      {confirmedSites.length > 0 && <section className="space-y-4">
+        <h3 className="font-semibold">Bekräftade uppgifter per anläggning</h3>
+        {confirmedSites.map(site => <div key={site.requestId} className="rounded-lg border border-slate-200 p-3">
+          <p className="mb-2 font-semibold">Anläggning: <Link className="underline" href={`/admin/customers/${encodeURIComponent(site.customerId)}?site=${encodeURIComponent(site.siteId)}`}>{site.siteId}</Link></p>
+          <ManualMailAiReading payload={{ sender_credible: true, sender_verification: stored.sender_verification,
+            manual_automation: { sourceHash: site.sourceHash, application: site.application } }} companyId={companyId} customerId={customerId} requestId={site.requestId} />
+        </div>)}
+      </section>}
       <AiReading raw={stored.ai_read_only} companyId={companyId} customerId={customerId} requestId={requestId} />
     </div>
   )

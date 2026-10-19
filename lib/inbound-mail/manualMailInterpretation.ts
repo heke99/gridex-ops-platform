@@ -77,6 +77,11 @@ function hasAdjacentMeaning(quote: string, value: string, field: string): boolea
   }
   return quote.split('\n').some((line) => {
     for (let start = line.indexOf(value); start >= 0; start = line.indexOf(value, start + value.length)) {
+      const suffix = line.slice(start + value.length)
+      // An exact substring is insufficient: "500" is not the value "5000",
+      // nor "1" the grouped number "1 000". Keep complete raw tokens.
+      if (/[\p{L}\p{N}]$/u.test(value) && /^[\p{L}\p{N}]/u.test(suffix)) continue
+      if (/\d$/.test(value) && /^[ \t.,]*\d/.test(suffix)) continue
       const prefix = line.slice(0, start)
       for (const meaning of prefix.matchAll(new RegExp(mapping.meaning.source, 'gi'))) {
         const link = prefix.slice((meaning.index ?? 0) + meaning[0].length)
@@ -107,6 +112,8 @@ export function interpretManualMail(input: {
   authoredText: string
   extracted: ManualFacilityExtractedPayload
   reading?: ManualMailAiResult
+  documentSources?: boolean
+  canonicalCustomerIdentity?: boolean
 }): { extracted: ManualFacilityExtractedPayload; reasons: string[] } {
   const extracted = { ...input.extracted }
   const reasons = new Set<string>()
@@ -126,12 +133,12 @@ export function interpretManualMail(input: {
     if (value && !identifiers.get(value)?.has(role)) reasons.add(`field_meaning_unverified:${role}`)
   }
   const identities = new Set(Array.from(text.matchAll(/\b(?:person(?:nummer)?|organisationsnummer|kundnummer)\s*[:#-]\s*([A-Z0-9+-]{5,20})/gi), (match) => match[1]))
-  if (identities.size > 1) reasons.add('multiple_customers')
+  if (identities.size > 1 && input.canonicalCustomerIdentity !== true) reasons.add('multiple_customers')
   if (input.reading?.status === 'completed') {
     const reviewReasons = 'review_reasons' in input.reading ? input.reading.review_reasons : undefined
     if (!Array.isArray(reviewReasons) || reviewReasons.some((reason) => typeof reason !== 'string' || !reason)) reasons.add('ai_evidence_invalid')
     else for (const reason of reviewReasons) reasons.add(`ai_review_required:${reason}`)
-    const prepared = prepareManualMailAiInput(text)
+    const prepared = prepareManualMailAiInput(text, { documentSources: input.documentSources })
     if (prepared.status !== 'ready') reasons.add('ai_evidence_invalid')
     else {
       if (input.reading.outcome === 'poa_rejected' || input.reading.outcome === 'completion_requested') reasons.add('counterparty_requires_action')
@@ -147,7 +154,7 @@ export function interpretManualMail(input: {
         }
         if (mapping.target === 'grid_area_code' || mapping.target === 'price_area_code') value = value.toUpperCase()
         const previous = extracted[mapping.target]
-        if (previous && !normalized(previous).includes(normalized(value))) { reasons.add(`conflicting_field:${mapping.target}`); continue }
+        if (previous && normalized(previous) !== normalized(value)) { reasons.add(`conflicting_field:${mapping.target}`); continue }
         extracted[mapping.target] = value
       }
     }

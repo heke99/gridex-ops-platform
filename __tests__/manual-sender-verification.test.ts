@@ -25,17 +25,19 @@ function signedMessage(options: {
   bodyLength?: number
   unsigned?: string[]
   extraHeaders?: string[]
+  body?: string
 } = {}): Buffer {
   const key = options.key ?? strongKey
   const algorithm = options.algorithm ?? 'sha256'
   const signed = headerFields.filter(([name]) => !options.unsigned?.includes(name.toLowerCase()))
-  const hashedBody = options.bodyLength === undefined ? Buffer.from(body) : Buffer.from(body).subarray(0, options.bodyLength)
+  const messageBody = options.body ?? body
+  const hashedBody = options.bodyLength === undefined ? Buffer.from(messageBody) : Buffer.from(messageBody).subarray(0, options.bodyLength)
   const bodyHash = createHash(algorithm).update(hashedBody).digest('base64')
   const signatureHeader = `DKIM-Signature: v=1; a=rsa-${algorithm}; c=simple/simple; d=${options.domain ?? 'example.test'}; s=${options.selector ?? 'ops'}; h=${signed.map(([name]) => name.toLowerCase()).join(':')}; ${options.bodyLength === undefined ? '' : `l=${options.bodyLength}; `}bh=${bodyHash}; b=`
   const signedHeaders = signed.map(([name, value]) => `${name}: ${value}\r\n`).join('')
   const signature = sign(algorithm, Buffer.from(`${signedHeaders}${signatureHeader}`), key.privateKey).toString('base64')
   const fields = headerFields.map(([name, value]) => `${name}: ${value}`)
-  return Buffer.from([`${signatureHeader}${signature}`, ...fields, ...(options.extraHeaders ?? []), '', body].join('\r\n'))
+  return Buffer.from([`${signatureHeader}${signature}`, ...fields, ...(options.extraHeaders ?? []), '', messageBody].join('\r\n'))
 }
 
 function keyResolver(key = strongKey) {
@@ -142,9 +144,17 @@ describe('cryptographic sender verification for manual replies', () => {
     expect(result.status).toBe('unverified')
   })
 
-  it('refuses inputs larger than two MiB before making DNS calls', async () => {
+  it('authenticates original signed RFC bytes above the old two-MiB limit for bounded attachments', async () => {
+    const raw = signedMessage({ body: `${'A'.repeat(76)}\r\n`.repeat(40_000) })
+    expect(raw.length).toBeGreaterThan(2 * 1024 * 1024)
+    const result = await verifyManualMailSender(raw, { resolver: keyResolver() })
+    expect(result.status).toBe('verified')
+    expect(result.raw_sha256).toBe(createHash('sha256').update(raw).digest('hex'))
+  })
+
+  it('refuses inputs larger than twelve MiB before making DNS calls', async () => {
     let lookups = 0
-    const result = await verifyManualMailSender(Buffer.concat([signedMessage(), Buffer.alloc(2 * 1024 * 1024)]), {
+    const result = await verifyManualMailSender(Buffer.concat([signedMessage(), Buffer.alloc(12 * 1024 * 1024)]), {
       resolver: async () => { lookups += 1; return [] },
     })
     expect(result.status).toBe('unverified')

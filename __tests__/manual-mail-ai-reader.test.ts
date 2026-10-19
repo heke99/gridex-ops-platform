@@ -13,6 +13,84 @@ function response(value: unknown = parsed, changes: Record<string, unknown> = {}
 }
 
 describe('read-only manual mail AI boundary', () => {
+  it('preserves separate raw candidates for several server-partitioned facilities in one bounded reading', async () => {
+    const paragraphs = Array.from({ length: 17 }, (_, index) => `Anläggnings-ID: 7359991000000000${String(index).padStart(2, '0')}\nTidigaste start: 2027-04-01`)
+    const value = { outcome: 'contract_information', outcome_source: 0, review_reasons: ['multiple_facilities'],
+      fields: paragraphs.map((_, source) => ({ field: 'earliest_start', value: '2027-04-01', source })) }
+    const result = await readManualMailWithAi(paragraphs.join('\n\n'), config, async () => response(value),
+      { documentSources: true, multiSite: true } as Parameters<typeof readManualMailWithAi>[3])
+    expect(result.status).toBe('completed')
+    if (result.status === 'completed') expect(result.fields.map(field => field.source)).toEqual(paragraphs.map((_, index) => index))
+  })
+  it('preserves document headers while masking identifiers and keeps body history filtering unchanged', () => {
+    const text = 'Kunduppgifter\n\nFrom: person@example.test\nTo: handling@example.test\nPersonnummer: 198001019999\nÄrende GX-FIR-ABC123\n\nTidigaste startdatum: 2027-04-01'
+    const documents = prepareManualMailAiInput(text, { documentSources: true })
+    expect(documents).toEqual({ status: 'ready', paragraphs: ['Kunduppgifter',
+      'From: [MASKERAT]\nTo: [MASKERAT]\nPersonnummer: [MASKERAT]\nÄrende [MASKERAT]',
+      'Tidigaste startdatum: 2027-04-01'] })
+    expect(prepareManualMailAiInput(text)).toEqual({ status: 'ready', paragraphs: ['Kunduppgifter'] })
+  })
+
+  it('grounds the final document source above the body-only source limit and restores its ordinal', async () => {
+    const paragraphs = [...Array.from({ length: 159 }, (_, index) => `Dokumentstycke ${index}`), 'Tidigaste startdatum: 2027-04-01']
+    const text = paragraphs.join('\n\n')
+    const result = await readManualMailWithAi(text, config, async (_url, init) => {
+      const request = JSON.parse(String(init?.body))
+      expect(request.text.format.schema.properties.outcome_source.maximum).toBe(159)
+      expect(request.text.format.schema.properties.fields.items.properties.source.maximum).toBe(159)
+      expect(JSON.parse(request.input[0].content[0].text).untrusted_reply_paragraphs[159])
+        .toEqual({ source: 159, text: 'Tidigaste startdatum: 2027-04-01' })
+      return response({ ...parsed, outcome_source: 159, fields: [{ field: 'earliest_start', value: '2027-04-01', source: 159 }] })
+    }, { documentSources: true })
+    expect(result).toMatchObject({ status: 'completed', outcome_source: 159,
+      fields: [{ field: 'earliest_start', value: '2027-04-01', source: 159, quote: 'Tidigaste startdatum: 2027-04-01' }] })
+    expect(restoreManualMailAiReading(result, text, { documentSources: true })).toMatchObject({ outcome_source: 159, fields: [{ source: 159 }] })
+    expect(restoreManualMailAiReading(result, text)).toBeUndefined()
+  })
+
+  it('accepts document input above the body size limit without changing body-only limits', async () => {
+    const text = [...Array(7).fill('x'.repeat(1800)), 'Tidigaste startdatum: 2027-04-01'].join('\n\n')
+    expect(prepareManualMailAiInput(text)).toEqual({ status: 'skipped', reason: 'input_too_large' })
+    expect((await readManualMailWithAi(text, config, async () => response({ ...parsed, outcome_source: 7,
+      fields: [{ field: 'earliest_start', value: '2027-04-01', source: 7 }] }), { documentSources: true })).status).toBe('completed')
+  })
+
+  it.each([
+    [...Array(13).fill('x'.repeat(1900))].join('\n\n'),
+    Array(161).fill('Stycke').join('\n\n'),
+    `Tidigaste startdatum: 2027-04-01\n\n${'x'.repeat(2001)}`,
+  ])('rejects oversized document input without truncation or provider calls %#', async (text) => {
+    let calls = 0
+    const result = await readManualMailWithAi(text, config, async () => { calls += 1; return response() }, { documentSources: true })
+    expect(result).toEqual({ status: 'skipped', reason: 'input_too_large' })
+    expect(calls).toBe(0)
+  })
+
+  it('preserves the selected ordinal when identical document paragraphs occur twice', async () => {
+    const quote = 'Tidigaste startdatum: 2027-04-01'
+    const text = `${quote}\n\n${quote}\n\nVillkoren är bekräftade.`
+    const result = await readManualMailWithAi(text, config, async () => response({ ...parsed, outcome_source: 1,
+      fields: [{ field: 'earliest_start', value: '2027-04-01', source: 1 }] }), { documentSources: true })
+    expect(restoreManualMailAiReading(result, text, { documentSources: true }))
+      .toMatchObject({ status: 'completed', outcome_source: 1, fields: [{ source: 1, quote }] })
+    expect(restoreManualMailAiReading({ ...result, outcome_source: 2 }, text, { documentSources: true })).toBeUndefined()
+    const restoredField = { field: 'earliest_start', value: '2027-04-01', quote, source: 2 }
+    expect(restoreManualMailAiReading({ ...result, fields: [restoredField] }, text, { documentSources: true })).toBeUndefined()
+  })
+
+  it('requires document source ordinals when restoring instead of inferring them from quotes', async () => {
+    const result = await readManualMailWithAi(body, config, async () => response())
+    expect(restoreManualMailAiReading(result, body, { documentSources: true })).toBeUndefined()
+    expect(result).not.toHaveProperty('outcome_source')
+    if (result.status === 'completed') expect(result.fields[0]).not.toHaveProperty('source')
+  })
+
+  it.each([-1, 160, 1.5])('rejects invalid document evidence ordinal %s', async (source) => {
+    expect(await readManualMailWithAi(body, config, async () => response({ ...parsed, outcome_source: source,
+      fields: [{ field: 'earliest_start', value: '2027-04-01', source }] }), { documentSources: true }))
+      .toMatchObject({ status: 'failed', reason: 'invalid_output' })
+  })
+
   it('does not call the provider when disabled, unconfigured or input exceeds its limit', async () => {
     const fetcher: typeof fetch = async () => { throw new Error('must not be called') }
     expect(await readManualMailWithAi(body, { enabled: false, apiKey: 'synthetic-secret' }, fetcher)).toEqual({ status: 'skipped', reason: 'disabled' })

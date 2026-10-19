@@ -1,8 +1,65 @@
 # Automatisk behandling av fullmaktssvar — arbetscheckpunkt
 
-Observation: 2026-10-18, arbetskopia `/workspace/gridex-ops-release-20261018`. Detta är ett lokalt överlämningsunderlag, inte en attest för produktionsdrift eller registergodkännande i Ediel-masterplanen.
+Leveranskandidaten bygger på main `63580ae0` och tidigare mejlkälla `1e78dbbf`, integrerade i `e535113a`. Slutlig källversion, fulla oberoende slutgranskningar och aktuellt leveransläge binds i [PR #828](https://github.com/heke99/gridex-ops-platform/pull/828). Detta dokument ger ingen produktionsattest eller nytt registergodkännande i Ediel-masterplanen.
 
-## Aktuell fortsättning: snabb och effektiv behandling
+## Aktuell fortsättning: dokument och flera anläggningar för samma kund
+
+Användaren har uttryckligen utökat uppdraget till automatisk PDF-/bild-/Excel-läsning och verifiering av hela kedjan. Sista korrigeringen är **en kund per utskick/svar, flera anläggningar för samma kund**. Ingen automatisk uppdelning mellan kunder eller tenants ingår. Servern ska hitta rätt kanoniska tenant/kund/ärende och binda varje anläggnings fakta, datum och villkor till sitt eget underlag. Okänd kund, motstridiga identifierare, osäker tolkning och saknad täckning ska bli synlig granskning hos superadmin.
+
+**APPLICATION HOLD gäller fortsatt.** Den användargodkända producentöverlämningen är publicerad i [#766, kommentar 6254717292](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6254717292). Kvalificerad checksum-/schema-/typcarrier har inte tagits emot här och ingen egen GEN-/native-/backendproducent startas. Två nya oberoende slutgranskningar ska bindas till den färdiga exakta bilagekandidaten. Tidigare `1e78dbbf`-granskningar, SQL-bevis och äldre stagingbyggen behåller endast sin dokumenterade källtillämpning; de godkänner inte senare runtime-, parser-, modell- eller UI-ändringar. Originalmigrationen har oförändrad SHA256 `d92f7ab706eb6bac415929255f218d38aa5e8f287bcad1c57f7438b9c590fc54`. Den framåtriktade fleranläggningsmigrationen `20261019010000_manual_mail_multi_site_application.sql` har SHA256 `072b15204cf0ac6447c5cb6ec3599b111cecbcae52379fdb5fcfd9eb978c48e7`. Faktiska checksumkontrollen kräver registrering av båda filerna; typkontrollen kräver den nya migrationstailen. Inga genererade filer eller manifest har redigerats manuellt.
+
+### Implementerat i bilagekandidaten
+
+- MIME-intaget behåller ursprungliga RFC-/delbytes, SHA-256, MIME-delnummer, typ, filnamn och roll. Avkodning och parser kontrollerar fullständighet, verklig filtyp, byteantal och hash. Citerad/vidarebefordrad historik blir inte aktuella affärsdata.
+- Lokal worker extraherar XLSX/XLS, CSV och UTF-8-text. Alla lagrade kalkylblad/celler och relevanta kommentarer/villkor traverseras inom gränserna; inget första-blad-/första-rader-urval. Formler körs inte. Externa länkar/formler, makron, kryptering, osäker numerisk återgivning och okänt/ofullständigt innehåll går till granskning.
+- En gemensam verktygsfri OCR/transkription läser alla tillåtna PDF-/bildfiler. Alla verkliga sidor och varje bild ska returneras exakt en gång. Tabellrader och fotnoter ska behålla sin koppling. OCR-text är uttryckligen maskinhärledd; den ger ingen egen avsändar-, identitets- eller affärsbehörighet.
+- OCR får läsas före kundkoppling endast efter kryptografiskt verifierad DKIM och exakt aktiv verifierad registeravsändare. Ett skyddat serverbevis och atomisk reservation sparas på originalets inkommande rad under `manual_automation.documentReading`. Sparad exakt NULL-kontext får återställas skrivskyddat efter kanonisk kundkoppling, men ger ingen ny reservation på en tilldelad rad.
+- Källkatalogen binder varje stycke till kropp eller filhash och sida/blad/cellintervall; den samlade källhashen inkluderar manifest och extraktorversion. Semantisk läsning och servernormalisering måste validera samma källa och kontext. Förändrat innehåll eller osäkert/ofullständigt underlag får inte smygas förbi dokumentsteget.
+- Fleranläggningskommandot behåller ett original och dess ursprungsärende; varje mål har eget verifierat källbevis, verklig fullmaktsbehörighet, datum och fortsättningsstatus. Tydligt täckta befintliga anläggningar kan få interna mottagna ärenden. Verkliga kompletteringsförfrågningar köas genom ordinarie fullmakts-/kontaktkontroller; inga utskickstider fabriceras. Senare avslag på parentkonversationen spärrar berörda marknadssteg och kompletteringsmejl.
+- Superadminens `/admin/mail-review` visar okända/tvetydiga/ofullständiga svar, osäkra betalda reservationer, blandade anläggningsresultat och misslyckad fortsatt handläggning. Sökning använder kanoniska tenantnamn och kundnamn/kundnummer eller exakta ID. Originalnedladdning är separat skyddad. Ett ofullständigt eller obetrott original tilldelas inte tenantläsbara främmande nycklar.
+- Källfingeravtryck version 2 binder även verifierade råbytes, svarsrubriker och mailboxscope. Ett återanvänt Message-ID med annan råkälla eller tråd sätts i separat karantän. Legacyuppgradering kräver bevarat originalinnehåll och rå-/rubrikbevis, med jämför-och-skriv.
+- Det interna flödet kräver inga nya publika wire-fält/API-versioner. Historiska OpenAPI-utgåvor ändras inte. Tidigare krav på riktig kund-IP, separat stabilt verifikatsnummer, bevarad juridisk text, arkivåtkomst och valfritt BankID gäller fortsatt.
+
+### Gränser, personuppgifter och kostnad
+
+| Steg | Aktuell gräns/hantering |
+| --- | --- |
+| Bilageintag | 5 bilagor, 4 MiB per fil, 6 MiB totalt; originalbytes/hash och MIME-roll bevaras |
+| Visuella dokument | 12 sidor totalt, inklusive en sida per bild; PDF samt PNG/JPEG/WebP |
+| Lokal worker | 16 kalkylblad, 20 000 celler, 16 MiB uppackat innehåll, 8 sekunder |
+| OCR | Ett anrop för alla tillåtna filer/sidor, högst 12 000 tecken, 45 sekunder, 6 000 output-token |
+| Semantisk dokumentläsning | Samlad katalog högst 24 000 tecken, 160 stycken, 2 000 tecken/stycke; 15 sekunder, 1 600 output-token. Vanlig kropp utan utökad källkatalog behåller 12 000/80-gränsen. |
+| Återförsök | Separat engångsreservation per betalt steg; `processing`, fel och timeout återställs inte för ett nytt betalt anrop |
+
+Fullständiga tillåtna PDF-/bildfiler lämnar servern till OpenAI för OCR. De maskeras inte först och kan innehålla personuppgifter. Semantiken maskerar vanliga svenska identitetsnummer, mejladresser och GX-referenser, men inte all fri text eller alla personuppgifter. Excel extraheras lokalt men den härledda texten kan därefter skickas till semantiken. Båda modellstegen använder fast Responses-destination, `store:false` och inga verktyg. Detta är inget generellt löfte om leverantörens retentionsvillkor.
+
+Kropp/text/Excel använder ett gemensamt semantiskt steg även för flera säkert uppdelade anläggningar. Visuella dokument tillför ett separat OCR-steg. Fleranläggningsläsningen lämnar högst 64 källbundna råvärden, som servern fördelar genom sin verifierade källkatalog. Använd inte textprovets 0,0008 USD som pris för ett PDF-/bildmejl. Varje steg har egen engångsreservation; inga automatiska betalda återförsök. OCR och semantik har separata användnings-/kostnadsmetadata när leverantören rapporterar dem. Något hårt globalt månadsbudgettak är inte implementerat. Storleksgränser innebär granskning, aldrig tyst avkapning.
+
+### Integrerad verifiering och återstående leverans
+
+Den samlade mejl-/fullmaktskörningen efter dokument-, fleranläggnings- och köintegrationen gav **1 691 PASS, ett avsiktligt SKIP, 61 sviter**. Körningen behöll loopback-nätgränsen och använde verklig lokal MIME-/IMAP-/SMTP-hantering, begränsad filworker, kanoniska adaptrar och exekverbar PGlite-SQL, med syntetiska DB-/modellportar där externa tjänster behövs. Detta är inte ett riktigt Strato-/OpenAI-OCR-/marknadsprov. Resultatet omfattar slutgranskningens rättningar av oklassificerade kundidentifierare och kontrollen genom det verkliga mejlintaget. Exakt källtillämpning binds i PR #828 tillsammans med sluthead/tree/base och två fulla oberoende slutrapporter.
+
+| Kontroll | Utfall och gräns |
+| --- | --- |
+| App-TypeScript | PASS på integrerad applikationskälla |
+| Test-TypeScript | PASS efter senaste integrationsregressionerna |
+| ESLint | PASS för samtliga 45 ändrade TS/TSX/CJS-filer |
+| API-kontrakt, OpenAPI-paritet, versioner, exempel, delade komponenter, public runtime-paritet och kontrakträttningar | Sju kontroller PASS; inga nya publika wire-fält |
+| `db:migrations:check`, kontraktshärdning | PASS |
+| `db:migrations:integrity` | BLOCKERAD: två migrationsfiler saknar legitim checksumregistrering |
+| `db:types:check` | BLOCKERAD: genuin generering krävs för migrationstail `20261019010000` |
+
+De två blockerade grindarna är faktiska misslyckade kommandon, inget undantag eller godkänt helhetsresultat. Originalmigrationen `d92f7ab7` är oförändrad; den nya framåtriktade migrationen är `072b1520`. Endast befintlig kvalificerad producent levererar checksum-/schema-/typcarrier, följt av ordinarie slutkontroller och seriell leverans. Inga genererade typer, index, fingerprint, manifest eller grindregler har ändrats för hand.
+
+Slutgranskningen har rättat verkliga fel i skalade/avrundade Excelvärden och utelämnade objekt/villkor, AI-värden som bara matchade en del av originalets nummer, kundidentifiering av verifierat avsändarbolag, källkatalogens faktiska cell-/styckelokatorer, källfingeravtryck över råbytes/trådrubriker, saknade skydd efter återkallad nätkontakt och synlighet för fortsättningsfel. Otypade anläggnings-/kundidentifierare i kropp och bilaga går till granskning före tenant-/kundkoppling; inga roller gissas. Alla autentiserade läsbara svar passerar samma kanoniska kontroll, även utan bilagor eller kända fältetiketter. Vanliga avsändartelefoner och uttryckligt leverantörsägda kundnummer har separata positiva kontroller. Ett autentiserat kundmatchat svar där tillämpningstransaktionen avbryts behåller sin återförsöksmöjlighet och blir synligt i superadminens kö efter 15 minuter. Två oberoende icke-medförfattare granskar den kompletta relevanta kedjan; deras slutliga beslut och eventuella återstående fynd binds till den frysta källan i leveransunderlaget.
+
+Det verkliga avskilda provet återstår: behörigt testintag → äkta lagrat fullmaktsgodkännande/IP/verifikat → arkiverad PDF → rätt utgående ämne/From/Reply-To/kontakt → verkligt Strato-svar → rätt tenant/kund/anläggning/fakta/datum. Det ska även omfatta PDF/bild/Excel, flera anläggningar, sista sidans/bladets villkor, granskningsfall och replay. Inget sådant prov, ny produktionsdriftsättning eller marknadsstart är attesterat här. Ingen fullmakts-PDF eller kundsignatur har fabricerats för att kunna skicka ett provmejl.
+
+Denna uppgiftscheckpunkt och tre runbook-/planfiler står under rootens verifierade exact-file-custody. Delat minne och Ediel-ledger förblir oförändrade. Skill-routing från tidigare checkpoints gäller fortsatt; nya beroenden är versions-/integritetspinnade och dokumenterade. Den använda OCR-/semantikmodellen saknar verktyg och egen behörighet att tilldela identitet, ändra register eller starta leverans.
+
+## Historiskt underlag: snabb och effektiv behandling före bilageutökningen
+
+Avsnitten nedan bevarar tidigare observationer och källbundna resultat från `/workspace/gridex-ops-release-20261018`. Deras dåvarande nästa steg och ägaruppgifter ersätter inte aktuell fortsättning ovan.
 
 2026-10-18 21:45 UTC: tidigare `d6031c6a`/tree `371a92e1` är historisk frysning. SQL-migrationens SHA256 är fortsatt `d92f7ab706eb6bac415929255f218d38aa5e8f287bcad1c57f7438b9c590fc54`. Ett senare bekräftat P1 i pollern återkallar applikationsgodkännandenas slutgiltighet tills den nya exakta källan granskats. Den installerade ImapFlow-klienten blockerar STORE inne i en aktiv FETCH-generator; faktisk protokollregression reproducerade felet och verifierar avslutad UID-hämtning före flaggning. Ingen dataförlust påstods i det ursprungliga felet: affärsbehandlingen hann slutföras före blockeringen.
 
@@ -47,7 +104,7 @@ Tidigare produktionsbygge och syntetiskt OpenAI-anrop verifierade leverans och p
 - Framåtmigrationen `20261018183448_manual_mail_automatic_application.sql` innehåller låsta kommandon för kommersiella/anläggningsuppgifter, exakt källa/tenant/kund/fullmakt/dokument/CIR/leverantörskontext och verifierade datumgränser. Den ska verifieras och levereras genom ordinarie migrationsflöde; interna funktioner är inga nya publika API-endpoints.
 - Readiness, datumval, oskickade bytesärenden och outbox har kontroller för verifierad kommersiell källa, tidigaste start och bindning till redan förberett/skickat original. Ofullständiga handelsbesked behåller saknade fält och uppföljning.
 - Handelsförfrågan och dess verifierade kontakt-/behörighetskontroller finns som separata moduler, integrerade efter anläggningssvar och vid återupptagning av efterföljande steg.
-- Adminvisningen skiljer läsunderlag från bekräftat sparade affärsfakta. Automatisk status kräver `applied: true`, samma tenant/kund/ärende/källhash och verifierat avsändarbevis; partiella besked visar saknade uppgifter. Runbook beskriver samma gränser och saknar påståenden om generell PDF-/Excel-/OCR-tolkning.
+- Den dåvarande adminvisningen skiljer läsunderlag från bekräftat sparade affärsfakta. Automatisk status kräver `applied: true`, samma tenant/kund/ärende/källhash och verifierat avsändarbevis; partiella besked visar saknade uppgifter. Dåvarande runbook omfattade inte PDF-/Excel-/OCR-tolkning; den senare bilageutökningen beskrivs ovan.
 
 ## Avgränsad verifiering utförd av facility/UI-agenten
 

@@ -100,7 +100,7 @@ describe('durable automatic reply continuation', () => {
   it('retries an already committed commercial reply after downstream failure without a second paid reading', async () => {
     io.reconcile.mockRejectedValueOnce(new Error('temporary reconciliation failure'))
     await expect(continueManualCommercialReply(input)).rejects.toThrow('temporary reconciliation failure')
-    expect(row(sourcePayload().manual_automation).continuation).toBeUndefined()
+    expect(row(sourcePayload().manual_automation).continuation).toMatchObject({ status: 'failed', reason: 'continuation_failed' })
     await continueManualCommercialReply(input)
     await continueManualCommercialReply(input)
     expect(io.reconcile).toHaveBeenCalledTimes(2)
