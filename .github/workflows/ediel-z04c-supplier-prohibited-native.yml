@@ -156,7 +156,9 @@ jobs:
           set -euo pipefail
           if [[ ! -d z04c-supplier-prohibited-native-evidence && -f "$RUNNER_TEMP/z04c-supplier-prohibited-replay.log" ]]; then
             mkdir -p z04c-supplier-prohibited-native-working
-            cp "$RUNNER_TEMP/z04c-supplier-prohibited-replay.log" z04c-supplier-prohibited-native-working/bootstrap.log
+            # Local stack output prints disposable keys the redactor has no
+            # pattern for; never upload any credential-bearing line.
+            grep -viE 'key|secret|token|password|jwt|s3' "$RUNNER_TEMP/z04c-supplier-prohibited-replay.log" > z04c-supplier-prohibited-native-working/bootstrap.log || true
             python3 - <<'PY'
           import json,os,pathlib,subprocess
           inputs=pathlib.Path(os.environ['RUNNER_TEMP'])/'z04c-supplier-prohibited-git-inputs.json'
