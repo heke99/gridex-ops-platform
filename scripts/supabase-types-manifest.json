@@ -1,10 +1,10 @@
 {
   "generated_types": "supabase/database.types.ts",
-  "generated_at": "2026-10-19T20:53:18.742252+00:00",
-  "generated_with": "supabase-cli-2.101.0-authentic-ordinary-capture-run39322421227-job118299566354-attempt1",
+  "generated_at": "2026-10-19T23:23:04.925176+00:00",
+  "generated_with": "supabase-cli-2.101.0-authentic-ordinary-capture-run39339759267-job118358099869-attempt1",
   "sha256": "9800dca6d71c2d26baa22d73b04b02fd9eb70c5ac5889c0178ca2123c0f43ca5",
-  "latest_migration": "20261019140000_ediel_ops04_controlled_live_evidence.sql",
-  "latest_migration_schema_effect": "Authentic ordinary capture of PR841 source de7d3a52265df03d269f274ab32b55a068a56ec4 (tree 5ad6f03e74bbe28ff6dea9f22c205b7a8bb8414a) after successful disposable canonical replay through 20261019140000_ediel_ops04_controlled_live_evidence.sql: adds private schema gridex_ediel_ops04 and the five service_role-only OPS-04 RPCs; outputs imported byte-exact.",
+  "latest_migration": "20261019150000_ediel_sc039_late_normal_z04_superseded_by_cancellation.sql",
+  "latest_migration_schema_effect": "Authentic ordinary capture of PR843 source 17224ed3853c977983b94127b0d0493f65f002af (tree 18e077c4cacca338a7d323623a5b28f2e31dd267) after successful disposable canonical replay through 20261019150000_ediel_sc039_late_normal_z04_superseded_by_cancellation.sql: adds the SC-039 late normal Z04 superseded-by-cancellation forward on top of OPS-04 (stacked); outputs imported byte-exact.",
   "composition_capture_pending": false,
   "capture": {
     "purpose": "capture_only",
@@ -875,23 +875,23 @@
   },
   "current_prefix_verification": {
     "kind": "genuine_successful_ordinary_capture_RAW3_ONLY",
-    "source_head": "de7d3a52265df03d269f274ab32b55a068a56ec4",
-    "source_tree": "5ad6f03e74bbe28ff6dea9f22c205b7a8bb8414a",
+    "source_head": "17224ed3853c977983b94127b0d0493f65f002af",
+    "source_tree": "18e077c4cacca338a7d323623a5b28f2e31dd267",
     "workflow_path": ".github/workflows/staff-api-schema-capture.yml",
-    "workflow_run_id": 39322421227,
-    "workflow_job_id": 118299566354,
+    "workflow_run_id": 39339759267,
+    "workflow_job_id": 118358099869,
     "attempt": 1,
-    "artifact_id": 12220692947,
-    "artifact_name": "staff-schema-capture-de7d3a52265df03d269f274ab32b55a068a56ec4",
-    "artifact_archive_sha256": "90a3fb1d301df8be07a88df5c92e8eb1047ee75c3f62d594905c5b6556432230",
-    "artifact_archive_bytes": 1753517,
-    "capture_receipt_sha256": "84159e0c2826f41e101b2f4562b31bc5c8274ccb3c71ea1a724425b70e3d2185",
+    "artifact_id": 12229605276,
+    "artifact_name": "staff-schema-capture-17224ed3853c977983b94127b0d0493f65f002af",
+    "artifact_archive_sha256": "e8bdc08e3ad4ca93f3f079bb8303245d0a03c559476cf1a4a65248d4d4a2a82e",
+    "artifact_archive_bytes": 1755358,
+    "capture_receipt_sha256": "454c06ba3b74589b46f17807af42104452a1d08f7f2e8785cde793e25bc53cbf",
     "raw_output_sha256": {
       "database.types.ts": "9800dca6d71c2d26baa22d73b04b02fd9eb70c5ac5889c0178ca2123c0f43ca5",
-      "schema.sql": "91597abecff998e285a308b16a9f7a12d93bb73a748618399274e158fc7b7779",
-      "schema.fingerprint.json": "12e90bb142a39ad304376019cda78a4e4d9a5bed2dcb0bae525e71062965459c"
+      "schema.sql": "1245a09ca0d74295e8622e095b12c6b910067be4a46735e55354ffda0b04ba0a",
+      "schema.fingerprint.json": "d68a90912969aef94ddf4e3be2e70d0a23c8af4c65ce2ee0324dc3333291f08c"
     },
-    "actual_capture_completed_at": "2026-10-19T20:53:18.742252+00:00",
+    "actual_capture_completed_at": "2026-10-19T23:23:04.925176+00:00",
     "workflow_job_conclusion": "SUCCESS",
     "native_tests": "NOT_RUN",
     "browser_tests": "NOT_RUN",
@@ -899,8 +899,8 @@
     "upgrade_parity": "NOT_RUN",
     "whole_approval": false,
     "latest_replay_migration": {
-      "name": "20261019140000_ediel_ops04_controlled_live_evidence.sql",
-      "sha256": "5691b79a523a4db6b3335f52661b0f76ac124cbf61bfcde36b618f2cac3b4954"
+      "name": "20261019150000_ediel_sc039_late_normal_z04_superseded_by_cancellation.sql",
+      "sha256": "f07a08711b7888f620f79bdccd346d82b3d56116436380aba52e148ca2139b3a"
     }
   },
   "superseded_capture": {
@@ -98702,6 +98702,46 @@
     },
     "proof_limits": "Ordinary capture only. No protected C2 PRIMARY/SC046 epoch, separate pg_proc/OID before-after receipt, installed-history row export, source-restoration/zero-container attestation or native/browser/parity/whole-final credit is inferred."
   }
+    }
+  },
+  "pre_pr843_capture_active_state_20261019": {
+    "archived_reason": "Previous active GEN fields before the authentic PR843 capture import; preserved literally.",
+    "fields": {
+      "generated_at": "2026-10-19T20:53:18.742252+00:00",
+      "generated_with": "supabase-cli-2.101.0-authentic-ordinary-capture-run39322421227-job118299566354-attempt1",
+      "sha256": "9800dca6d71c2d26baa22d73b04b02fd9eb70c5ac5889c0178ca2123c0f43ca5",
+      "latest_migration": "20261019140000_ediel_ops04_controlled_live_evidence.sql",
+      "latest_migration_schema_effect": "Authentic ordinary capture of PR841 source de7d3a52265df03d269f274ab32b55a068a56ec4 (tree 5ad6f03e74bbe28ff6dea9f22c205b7a8bb8414a) after successful disposable canonical replay through 20261019140000_ediel_ops04_controlled_live_evidence.sql: adds private schema gridex_ediel_ops04 and the five service_role-only OPS-04 RPCs; outputs imported byte-exact.",
+      "current_prefix_verification": {
+        "kind": "genuine_successful_ordinary_capture_RAW3_ONLY",
+        "source_head": "de7d3a52265df03d269f274ab32b55a068a56ec4",
+        "source_tree": "5ad6f03e74bbe28ff6dea9f22c205b7a8bb8414a",
+        "workflow_path": ".github/workflows/staff-api-schema-capture.yml",
+        "workflow_run_id": 39322421227,
+        "workflow_job_id": 118299566354,
+        "attempt": 1,
+        "artifact_id": 12220692947,
+        "artifact_name": "staff-schema-capture-de7d3a52265df03d269f274ab32b55a068a56ec4",
+        "artifact_archive_sha256": "90a3fb1d301df8be07a88df5c92e8eb1047ee75c3f62d594905c5b6556432230",
+        "artifact_archive_bytes": 1753517,
+        "capture_receipt_sha256": "84159e0c2826f41e101b2f4562b31bc5c8274ccb3c71ea1a724425b70e3d2185",
+        "raw_output_sha256": {
+          "database.types.ts": "9800dca6d71c2d26baa22d73b04b02fd9eb70c5ac5889c0178ca2123c0f43ca5",
+          "schema.sql": "91597abecff998e285a308b16a9f7a12d93bb73a748618399274e158fc7b7779",
+          "schema.fingerprint.json": "12e90bb142a39ad304376019cda78a4e4d9a5bed2dcb0bae525e71062965459c"
+        },
+        "actual_capture_completed_at": "2026-10-19T20:53:18.742252+00:00",
+        "workflow_job_conclusion": "SUCCESS",
+        "native_tests": "NOT_RUN",
+        "browser_tests": "NOT_RUN",
+        "type_schema_comparison": "NOT_RUN",
+        "upgrade_parity": "NOT_RUN",
+        "whole_approval": false,
+        "latest_replay_migration": {
+          "name": "20261019140000_ediel_ops04_controlled_live_evidence.sql",
+          "sha256": "5691b79a523a4db6b3335f52661b0f76ac124cbf61bfcde36b618f2cac3b4954"
+        }
+      }
     }
   }
 }
