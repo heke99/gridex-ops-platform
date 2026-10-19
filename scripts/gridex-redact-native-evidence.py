@@ -70,7 +70,8 @@ def _redacted_cell(cell):
 
 def _json_record(data):
     try:
-        json.loads(data)
+        # Only UTF-8 records may re-enter scrub after a binary-file fallback.
+        json.loads(data.decode('utf-8'))
     except (json.JSONDecodeError, UnicodeDecodeError):
         return False
     return True
@@ -143,7 +144,10 @@ def scrub(data, secrets=(), state=None):
     try:
         text = data.decode('utf-8')
     except UnicodeDecodeError:
-        return data
+        # Byte-level table/plaintext redaction has already run. Sanitize each
+        # complete UTF-8 JSON record independently; keep other binary bytes.
+        return b''.join(scrub(line, secrets) if _json_record(line) else line
+                        for line in data.splitlines(keepends=True))
 
     def load(text):
         duplicate = False
@@ -170,7 +174,10 @@ def scrub(data, secrets=(), state=None):
             if str(item.get('name', '')).lower() in SENSITIVE and 'value' in item:
                 item = {**item, 'value': REDACTED}
             return {key: REDACTED if key.lower() in SENSITIVE else value(x) for key, x in item.items()}
-        if isinstance(item, str) and item.lstrip().startswith(('{', '[')):
+        # Encoded JSON scalar strings can themselves contain credential logs.
+        # Successful decoding removes one encoding layer; unchanged values keep
+        # their original formatting, including numeric/boolean/null strings.
+        if isinstance(item, str):
             try:
                 parsed, duplicate = load(item)
                 cleaned = value(parsed)

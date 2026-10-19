@@ -416,6 +416,85 @@ for name, payload in [
     check('probe_redaction_idempotent_' + name,
           b'DECLARED_IDEMPOTENT_SECRET' not in once and module.scrub(once) == once)
 
+# A binary byte elsewhere in a log cannot disable sanitization of complete
+# UTF-8 JSON records. These fixtures contain declared synthetic values only.
+binary_json_marker = 'DECLARED_BINARY_JSON_CREDENTIAL'
+for name, record in [
+    ('alias', {'S3_PROTOCOL_ACCESS_KEY_SECRET': binary_json_marker, 'safe': 'visible-binary-json'}),
+    ('nested_alias', {'nested': {'S3_PROTOCOL_ACCESS_KEY_ID': binary_json_marker}, 'safe': 'visible-binary-json'}),
+    ('header', {'headers': [{'name': 'S3_PROTOCOL_ACCESS_KEY_SECRET', 'value': binary_json_marker}], 'safe': 'visible-binary-json'}),
+    ('nested_header', {'nested': {'headers': [{'name': 'S3_PROTOCOL_ACCESS_KEY_ID', 'value': binary_json_marker}]}, 'safe': 'visible-binary-json'}),
+]:
+    encoded = json.dumps(record).encode()
+    for position in ['prefix', 'suffix']:
+        prefix, suffix = (b'\xff\xfe\n', b'') if position == 'prefix' else (b'', b'\n\xfe\xff')
+        result = module.scrub(prefix + encoded + suffix)
+        check('probe_binary_json_' + name + '_' + position + '_credential_removed',
+              binary_json_marker.encode() not in result and b'visible-binary-json' in result)
+        check('probe_binary_json_' + name + '_' + position + '_binary_preserved',
+              (not prefix or result.startswith(prefix)) and (not suffix or result.endswith(suffix)))
+identity('binary_safe_json_records_byte_identity', b'\xff\n{ "safe" : 1 }\r\n\xfe')
+identity('binary_safe_scalar_records_byte_identity', b'\xff\n 42 \r\n"safe"\n\xfe')
+identity('binary_utf16_json_no_recursive_utf8_fallback', b'\xff\xfe' + '{\"safe\":\"binary-preserved\"}'.encode('utf-16-le'))
+
+with tempfile.TemporaryDirectory(prefix='native-redactor-binary-json-selftest-') as directory:
+    evidence = Path(directory) / 'replay.log'
+    for mode in ['whole_file', 'line_records']:
+        payload = (b'\xff\n' + json.dumps({'S3_PROTOCOL_ACCESS_KEY_SECRET': binary_json_marker,
+                   'safe': 'visible-binary-json'}).encode() + b'\n'
+                   + json.dumps({'headers': [{'name': 'S3_PROTOCOL_ACCESS_KEY_ID', 'value': binary_json_marker}],
+                                 'safe': 'visible-binary-json'}).encode() + b'\n\xfe')
+        evidence.write_bytes(payload)
+        command = [sys.executable, str(Path(__file__).with_name('gridex-redact-native-evidence.py')),
+                   '--root', str(evidence)]
+        if mode == 'line_records':
+            command += ['--line-records', str(evidence)]
+        completed = subprocess.run(command, capture_output=True, check=False)
+        result = evidence.read_bytes()
+        check('probe_binary_json_actual_cli_' + mode + '_removed',
+              completed.returncode == 0 and binary_json_marker.encode() not in result)
+        check('probe_binary_json_actual_cli_' + mode + '_safe_bytes_preserved',
+              result.startswith(b'\xff\n') and result.endswith(b'\n\xfe')
+              and result.count(b'visible-binary-json') == 2)
+        check('probe_binary_json_actual_cli_' + mode + '_does_not_log_values',
+              binary_json_marker.encode() not in completed.stdout + completed.stderr)
+
+# JSON-encoded scalar strings can carry the same named credential inside
+# bodies or arrays. Decode each finite layer before sanitizing its value.
+quoted_scalar_marker = 'DECLARED_QUOTED_SCALAR_CREDENTIAL'
+quoted_credential = 'S3_PROTOCOL_ACCESS_KEY_ID=' + quoted_scalar_marker
+for name, body in [
+    ('body', json.dumps(quoted_credential)),
+    ('array', [json.dumps(quoted_credential)]),
+    ('twice', json.dumps(json.dumps(quoted_credential))),
+    ('encoded_array', json.dumps([json.dumps(quoted_credential)])),
+]:
+    result = module.scrub(json.dumps({'body': body, 'safe': 'visible-quoted-scalar'}).encode())
+    check('probe_nested_quoted_scalar_' + name + '_removed', quoted_scalar_marker.encode() not in result)
+    check('probe_nested_quoted_scalar_' + name + '_valid_json_and_safe',
+          json.loads(result).get('safe') == 'visible-quoted-scalar')
+identity('nested_safe_json_scalars_keep_whitespace',
+         b'{ "body": " 42 ", "flag": " true ", "null": " null ", "quoted": " \\"safe\\" " }')
+
+with tempfile.TemporaryDirectory(prefix='native-redactor-quoted-scalar-selftest-') as directory:
+    evidence = Path(directory) / 'replay.log'
+    for mode in ['whole_file', 'line_records', 'binary_json_records']:
+        record = json.dumps({'body': [json.dumps(quoted_credential)], 'safe': 'visible-quoted-scalar'}).encode()
+        evidence.write_bytes(b'\xff\n' + record + b'\n\xfe' if mode == 'binary_json_records' else record)
+        command = [sys.executable, str(Path(__file__).with_name('gridex-redact-native-evidence.py')),
+                   '--root', str(evidence)]
+        if mode == 'line_records':
+            command += ['--line-records', str(evidence)]
+        completed = subprocess.run(command, capture_output=True, check=False)
+        result = evidence.read_bytes()
+        check('probe_nested_quoted_scalar_actual_cli_' + mode + '_removed',
+              completed.returncode == 0 and quoted_scalar_marker.encode() not in result)
+        check('probe_nested_quoted_scalar_actual_cli_' + mode + '_safe_bytes_preserved',
+              b'visible-quoted-scalar' in result
+              and (mode != 'binary_json_records' or result.startswith(b'\xff\n') and result.endswith(b'\n\xfe')))
+        check('probe_nested_quoted_scalar_actual_cli_' + mode + '_does_not_log_values',
+              quoted_scalar_marker.encode() not in completed.stdout + completed.stderr)
+
 failed = [name for name, okay in checks if not okay]
 for name in failed:
     print('NATIVE_EVIDENCE_SELFTEST_FAIL: ' + name)
