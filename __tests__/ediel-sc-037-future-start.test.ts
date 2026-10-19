@@ -1,4 +1,4 @@
-// masterplan: SC-037
+// masterplan: SC-037, AT-Z04L-SUPPLIER, AT-Z04LK-SUPPLIER
 // A correct Z04 with a future start is not activated early; it activates on
 // the Stockholm start date only while still accepted with its Z04, and
 // transport or technical acknowledgement never moves the start earlier.
