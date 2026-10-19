@@ -18,7 +18,7 @@ DO $z04c$DECLARE f record;body text;
     SELECT array_agg(p.id ORDER BY p.id) INTO ids FROM public.customer_supply_periods p
      JOIN gridex_received_sources.normal_switch_confirmations c ON c.period_id=p.id AND c.company_id=p.company_id
      JOIN gridex_received_sources.normal_supply_activations a ON a.period_id=p.id AND a.company_id=p.company_id AND a.source_message_id=c.source_message_id
-     WHERE p.company_id=m.company_id AND p.customer_id=sw.customer_id AND p.metering_point_id=sw.metering_point_id AND (p.status IN ('active','ending')) IS TRUE
+     WHERE p.company_id=m.company_id AND p.customer_id=sw.customer_id AND p.metering_point_id=sw.metering_point_id AND (p.status IN ('active','ending','ended')) IS TRUE
       AND c.switch_id=sw.id AND c.original_message_id=origin.id AND c.original_payload_hash=origin.immutable_payload_hash AND c.source_message_id=sw.inbound_z04_message_id
       AND p.start_date=gridex_received_sources.permission_date_v1(own->>'start') AND c.market_start_at<=now();
     IF coalesce(cardinality(ids),0)<>1 THEN RETURN jsonb_build_object('applied',false,'reason','z04c_effect_already_executed_compensation_required');END IF;
@@ -52,12 +52,12 @@ BEGIN
   OR position(compensation_branch IN f.prosrc)>0 OR position(case_apply IN f.prosrc)>0
   THEN RAISE EXCEPTION 'z04c_compensation_predecessor_required';END IF;
  body:=replace(replace(f.prosrc,executed_held,compensation_branch||executed_held),end_apply,case_apply||end_apply);
- IF encode(sha256(convert_to(body,'UTF8')),'hex') IS DISTINCT FROM 'f071b83ed2d720f9517ca90be50b32bbd1173ff7c4ee98e294e82374cb16d54e'
+ IF encode(sha256(convert_to(body,'UTF8')),'hex') IS DISTINCT FROM 'c30e7398338c7b0a39da7220ea62bffa4d8ae0134f1c7d8b272b09e07736e03e'
   OR replace(replace(body,compensation_branch,''),case_apply,'') IS DISTINCT FROM f.prosrc
   THEN RAISE EXCEPTION 'z04c_compensation_inverse_required';END IF;
  EXECUTE replace(f.definition,f.prosrc,body);
  IF (SELECT to_jsonb(p)-'prosrc' FROM pg_proc p WHERE p.oid=f.oid) IS DISTINCT FROM f.metadata
-  OR (SELECT encode(sha256(convert_to(p.prosrc,'UTF8')),'hex') FROM pg_proc p WHERE p.oid=f.oid) IS DISTINCT FROM 'f071b83ed2d720f9517ca90be50b32bbd1173ff7c4ee98e294e82374cb16d54e'
+  OR (SELECT encode(sha256(convert_to(p.prosrc,'UTF8')),'hex') FROM pg_proc p WHERE p.oid=f.oid) IS DISTINCT FROM 'c30e7398338c7b0a39da7220ea62bffa4d8ae0134f1c7d8b272b09e07736e03e'
   THEN RAISE EXCEPTION 'z04c_compensation_metadata_or_postimage_changed';END IF;
 END$z04c$;
 COMMIT;
