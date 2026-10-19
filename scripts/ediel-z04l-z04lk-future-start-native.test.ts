@@ -303,11 +303,11 @@ async function receive(f:Fixture,raw:string,expectedSubtype?:Subtype|'C',negativ
   assert.equal(transportCustody.raw,raw);assert.equal(transportCustody.parsedRaw,raw)
   const code=negativeField==='202'?'PRODAT_UNKNOWN':'Z04'
   const profilePremise=negativeField==='202'||negativeField==='311'&&!EdifactEnvelopeCodec.decode(raw).applicationReference
-    ?sql<Row>(`WITH receipt AS (SELECT received_at::date day FROM public.inbound_email_messages WHERE id=${literal(mail.inboundEmailMessageId)}),
+    ?sql<Row>(`WITH receipt AS (SELECT received_at::date AS receipt_day FROM public.inbound_email_messages WHERE id=${literal(mail.inboundEmailMessageId)}),
       profiles AS (SELECT mp.profile_key FROM public.ediel_message_profiles mp JOIN public.ediel_rule_packs rp ON rp.id=mp.rule_pack_id CROSS JOIN receipt
         WHERE mp.is_enabled=true AND mp.profile->>'family'='PRODAT' AND mp.message_code=${literal(code)} AND mp.direction IN('inbound','both')
-          AND rp.status IN('active','future') AND rp.valid_from<=receipt.day AND (rp.valid_to IS NULL OR rp.valid_to>=receipt.day))
-      SELECT jsonb_build_object('code',${literal(code)},'day',(SELECT day FROM receipt),'count',(SELECT count(*) FROM profiles),
+          AND rp.status IN('active','future') AND rp.valid_from<=receipt.receipt_day AND (rp.valid_to IS NULL OR rp.valid_to>=receipt.receipt_day))
+      SELECT jsonb_build_object('code',${literal(code)},'day',(SELECT receipt_day FROM receipt),'count',(SELECT count(*) FROM profiles),
         'profileKeys',(SELECT coalesce(jsonb_agg(profile_key ORDER BY profile_key),'[]') FROM profiles));`):null
   const observation=await observePublicBirth(()=>createInboundEdielMessage({companyId:f.companyId,actorUserId:f.actorUserId,environment:'test',inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId,parsed:mail.parsed,outboundMatch,meteringPointMatch}))
   if(negativeField===undefined&&observation.threw)throw observation.thrown
