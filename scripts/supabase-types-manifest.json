@@ -1,10 +1,10 @@
 {
   "generated_types": "supabase/database.types.ts",
-  "generated_at": "2026-10-19T12:40:22.030666+00:00",
-  "generated_with": "supabase-cli-2.101.0-authentic-ordinary-capture-run39251634797-job118056591201-attempt1",
+  "generated_at": "2026-10-19T21:45:00+00:00",
+  "generated_with": "supabase-cli-2.101.0-local-clean-replay-main775e-plus-150000-170000-pg17.6-pg_dump",
   "sha256": "aab753d89d938884e3ce83760379aa478505185f58667d241e7b38bc90c1859d",
-  "latest_migration": "20261019043000_ediel_retained_contrl_source_prefilter.sql",
-  "latest_migration_schema_effect": "Authentic ordinary capture of combined PR822 source8b6a172421e03957d692d9424380f06fda62faf8 after successful disposable canonical replay through20261019043000_ediel_retained_contrl_source_prefilter.sql. Captured RAW3 contain both the retained-CONTRL source prefilter and receiving-main requested-change metering-method guard. Types are byte-identical to both parents. Actual normalized schema has a full byte inverse to094f by only the FG guard definition and to b4fe by only the retained-source definition; all twelve non-function fingerprint sections are unchanged. This is capture-only qualification, not protected GEN, native/browser/parity, independent cleanup or whole approval.",
+  "latest_migration": "20261019170000_ediel_z04c_executed_start_compensation_receipt.sql",
+  "latest_migration_schema_effect": "SC-039 (20261019150000) and AT-Z04C (20261019170000) only replace two function bodies (gridex_received_sources.normal_switch_scope_effect_v1 and other_supply_scope_effect_v1). Generated public types are byte-identical; schema.sql/fingerprint come from a clean local replay of main 775e (same SQL as 101ce) plus exactly these two migrations, with only the functions section and the total changed. To be re-captured after #841/#843/#844 merge.",
   "composition_capture_pending": false,
   "capture": {
     "purpose": "capture_only",
@@ -98729,5 +98729,6 @@
     "proof_limits": "Ordinary capture only. No protected C2 PRIMARY/SC046 epoch, separate pg_proc/OID before-after receipt, installed-history row export, source-restoration/zero-container attestation or native/browser/parity/whole-final credit is inferred."
   }
     }
-  }
+  },
+  "z04c_842_previous_active_fields_20261019": {"generated_at": "2026-10-19T12:40:22.030666+00:00", "generated_with": "supabase-cli-2.101.0-authentic-ordinary-capture-run39251634797-job118056591201-attempt1", "latest_migration": "20261019043000_ediel_retained_contrl_source_prefilter.sql", "latest_migration_schema_effect": "Authentic ordinary capture of combined PR822 source8b6a172421e03957d692d9424380f06fda62faf8 after successful disposable canonical replay through20261019043000_ediel_retained_contrl_source_prefilter.sql. Captured RAW3 contain both the retained-CONTRL source prefilter and receiving-main requested-change metering-method guard. Types are byte-identical to both parents. Actual normalized schema has a full byte inverse to094f by only the FG guard definition and to b4fe by only the retained-source definition; all twelve non-function fingerprint sections are unchanged. This is capture-only qualification, not protected GEN, native/browser/parity, independent cleanup or whole approval."}
 }

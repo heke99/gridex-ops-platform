@@ -87,7 +87,7 @@
     },
     "functions": {
       "count": 2218,
-      "sha256": "29470829f4382b74a8721479c31eb2ad0d7d0dbd21ac147b2ea7a12fcc35029f"
+      "sha256": "d292da414c11387df05ce03f1168e9e6e6ac5ed087ae0474f9e4e46099f50cd6"
     },
     "indexes": {
       "count": 2991,
@@ -118,5 +118,5 @@
       "sha256": "51f24c0fd1e10cc55009f91a940764b4f12e4e8009635bc6686e09368bbd51d6"
     }
   },
-  "sha256": "206b1b8638fe56c0cda8d412d1da339706124f8eb3abc0bbe3616246194b86c5"
+  "sha256": "cef2edbb92518d4c51211bb5c090416e2307a4b79980dc9ab61da0172519a5da"
 }
