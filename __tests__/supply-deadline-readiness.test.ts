@@ -19,7 +19,7 @@ vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
       select() { return query },
       eq(key: string, value: unknown) { port.companies.push([key, value]); return query },
       async maybeSingle() {
-        if (table === 'companies') return { data: { id: 'tenant-a', status: 'active', external_tenant_reference: 'org-a', customer_portal_url: 'https://portal.example.test', metadata: {} }, error: null }
+        if (table === 'companies') return { data: { id: 'tenant-a', status: 'active', slug: 'tenant-a', external_tenant_reference: 'org-a', customer_portal_url: 'https://portal.example.test', metadata: {} }, error: null }
         if (table === 'tenant_website_readiness_v') return { data: Object.fromEntries(['has_public_contracts', 'has_terms', 'has_privacy_policy', 'has_withdrawal', 'has_power_of_attorney_text', 'has_price_terms', 'has_verified_sender', 'has_mail_templates'].map(key => [key, true])), error: null }
         throw Error(`Unexpected table ${table}`)
       },

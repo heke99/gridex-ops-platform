@@ -22,7 +22,7 @@ vi.mock('@/lib/supabase/service', () => {
 })
 vi.mock('@/lib/website/customerApplicationAutomationReadiness', () => ({
   evaluateCustomerApplicationAutomationReadiness: async () => ({ checks: { verified_customer_email_sender: true, required_email_templates_active: true, required_email_rules_active: true,
-    automation_user_configured: true, automation_user_verified: true, cron_secret_configured: true, manual_operations_mailbox_ready: true }, blockers: [], warnings: [] }),
+    automation_user_configured: true, automation_user_verified: true, cron_secret_configured: true, manual_operations_mailbox_ready: true, runtime_contract_ready: true }, ready: true, blockers: [], warnings: [] }),
 }))
 vi.mock('@/lib/tenant/operationPolicy', () => ({
   getTenantOperationDecision: async () => ({ allowed: true, reason_code: 'allowed', company_status: 'active', capability_status: 'active', production_status: 'active', state_version: 1 }),

@@ -62,6 +62,7 @@ vi.mock('@/lib/email/manualOperationsMailbox', () => ({ resolveManualMailboxSecr
 vi.mock('@/lib/inbound-mail/manualSenderVerification', () => ({ verifyManualMailSender: io.verify }))
 vi.mock('@/lib/inbound-mail/manualInboundIngestion', () => ({ ingestManualInboundEmail: io.ingest }))
 vi.mock('imapflow', () => ({ ImapFlow: class {
+  on() { return this }
   constructor(private options: { host: string }) {}
   get mailbox() { return { uidValidity: io.uidValidity, uidNext: Math.max(0, ...io.messages.map(message => Number(message.uid))) + 1 } }
   async connect() { io.trace.push('connect'); io.connectedHosts.push(this.options.host) }

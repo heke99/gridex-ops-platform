@@ -1,8 +1,8 @@
-// IMAP pollers must not issue a command while an imapflow fetch() iterator is
-// open: imapflow 2.2.1 documents "You can not run any IMAP commands in this
-// loop otherwise you will end up in a deadloop", and a real IMAPS server times
-// the socket out. The fake below enforces that contract instead of answering
-// every command immediately, which is how the earlier mocks missed it.
+// After connect, imapflow reports a lost or timed-out socket as an 'error'
+// event outside the caller's stack; without a listener Node throws it as an
+// uncaughtException and the whole cron process dies. The fetch-command
+// contract itself is covered against the real client in
+// manual-mailbox-imap-protocol.test.ts.
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 type Row = Record<string, unknown>
@@ -53,29 +53,24 @@ vi.mock('@/lib/inbound-mail/manualInboundIngestion', () => ({
 vi.mock('imapflow', async () => {
   const { EventEmitter } = await import('node:events')
   return { ImapFlow: class extends EventEmitter {
-    fetching = false
+    get mailbox() { return { uidValidity: BigInt(1), uidNext: Math.max(0, ...io.imapMessages.map(m => Number(m.uid))) + 1 } }
     async connect() {}
     async getMailboxLock() { return { release() {} } }
     async logout() {}
-    async *fetch() {
-      this.fetching = true
-      try {
-        if (io.socketErrorDuringFetch) {
-          // Like imapflow after connect: the socket timer emits 'error' outside the
-          // caller's stack (Node throws it as uncaughtException without a listener)
-          // and the in-flight command is rejected.
-          await new Promise(resolve => setTimeout(resolve, 0))
-          if (this.listenerCount('error') === 0) io.violations.push('error event without listener')
-          else this.emit('error', new Error('Socket timeout'))
-          throw new Error('Connection not available')
-        }
-        for (const message of io.imapMessages) yield message
-      } finally { this.fetching = false }
+    async search() { return io.imapMessages.map(m => Number(m.uid)) }
+    async fetchOne(uid: string) {
+      if (io.socketErrorDuringFetch) {
+        // Like imapflow after connect: the socket timer emits 'error' outside the
+        // caller's stack (Node throws it as uncaughtException without a listener)
+        // and the in-flight command is rejected.
+        await new Promise(resolve => setTimeout(resolve, 0))
+        if (this.listenerCount('error') === 0) io.violations.push('error event without listener')
+        else this.emit('error', new Error('Socket timeout'))
+        throw new Error('Connection not available')
+      }
+      return io.imapMessages.find(m => String(m.uid) === uid) ?? null
     }
-    async messageFlagsAdd(uid: number) {
-      if (this.fetching) { io.violations.push(`messageFlagsAdd(${uid}) during fetch`); throw new Error('Socket timeout') }
-      io.seen.push(uid)
-    }
+    async messageFlagsAdd(uid: number) { io.seen.push(uid) }
   } }
 })
 
@@ -96,27 +91,7 @@ beforeEach(() => {
   io.socketErrorDuringFetch = false
 })
 
-describe('manual mailbox poller against the imapflow fetch contract', () => {
-  it('ingests every unseen message and flags them Seen only after the fetch loop', async () => {
-    io.imapMessages = [message(11, 'one'), message(12, 'two'), message(13, 'three')]
-    const { runManualInboundMailEngine } = await import('@/lib/inbound-mail/manualMailboxPoller')
-    const result = await runManualInboundMailEngine()
-    expect(io.violations).toEqual([])
-    expect(result.errors).toEqual([])
-    expect(result.ingested).toBe(3)
-    expect(io.seen).toEqual([11, 12, 13])
-  })
-
-  it('leaves a failed message unseen for the next poll while flagging the others', async () => {
-    io.imapMessages = [message(21, 'ok-1'), message(22, 'fails'), message(23, 'ok-2')]
-    io.ingestFailures.add('fails')
-    const { runManualInboundMailEngine } = await import('@/lib/inbound-mail/manualMailboxPoller')
-    const result = await runManualInboundMailEngine()
-    expect(io.violations).toEqual([])
-    expect(result.ingested).toBe(2)
-    expect(io.seen).toEqual([21, 23])
-  })
-
+describe('manual mailbox poller and IMAP connection errors', () => {
   it('records an IMAP socket error on the mailbox instead of leaving it unhandled', async () => {
     io.imapMessages = [message(31, 'one')]
     io.socketErrorDuringFetch = true
