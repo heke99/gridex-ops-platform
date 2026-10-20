@@ -678,8 +678,9 @@ export async function processQueuedInboundProcessingJobs(
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Okänt processfel.";
-      const nextAttempts = Number(job.attempts_count ?? 0) + 1;
-      const shouldRetry = nextAttempts < maxAttempts;
+      // Both claim paths already count the attempt that just failed.
+      const attempts = Number(job.attempts_count ?? 0);
+      const shouldRetry = attempts < maxAttempts;
       await markInboundProcessingJobFinished({
         jobId: job.id,
         status: shouldRetry ? "retry" : "failed",
