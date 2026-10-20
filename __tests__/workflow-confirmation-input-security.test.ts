@@ -47,7 +47,8 @@ function runConfirmation(target: typeof targets[number], inputs: Record<string, 
     (_, scope: string, key: string) => (scope === 'inputs' ? inputs : secrets)[key] ?? '')
   const script = resolve(step.run)
   expect(script).not.toContain('${{')
-  const env = Object.fromEntries(Object.entries(step.env ?? {}).map(([key, value]) => [key, resolve(value)]))
+  const resolvedStepEnv = Object.fromEntries(Object.entries(step.env ?? {}).map(([key, value]) => [key, resolve(value)]))
+  const env: NodeJS.ProcessEnv = { NODE_ENV: 'test', ...resolvedStepEnv }
   // Execute only the six selected guard blocks. No job, action, downstream
   // command, credential from process.env, provider or network request is used.
   return new Promise<{ status: number | null; stdout: string; stderr: string }>((resolve, reject) => {
