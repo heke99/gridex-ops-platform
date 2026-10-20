@@ -87,3 +87,20 @@ export async function goLiveOnWebsite(tenant: LiveTenant, operatorUserId: string
   })
   return provisioned
 }
+
+/**
+ * Stands in for the step the platform has no supported path for (FINDINGS F36): Ediel certification
+ * of the supplier and platform approval of its first production send. Sets exactly the state that
+ * canonical go-live and first-send approval would leave: production state live with the first live
+ * send approved, and the production sender setting unlocked. Everything after it runs the real code.
+ */
+export function simulateEdielCertifiedGoLive(companyId: string, approverUserId: string) {
+  sql(`BEGIN; SELECT set_config('request.jwt.claims','{"role":"service_role"}',true);
+   INSERT INTO public.ediel_production_state(company_id,state,state_version,approved_by,approved_at,first_live_send_approved_by,first_live_send_approved_at,last_idempotency_key)
+    VALUES(${literal(companyId)},'live',1,${literal(approverUserId)},now(),${literal(approverUserId)},now(),'reality-simulated-certified-go-live')
+    ON CONFLICT(company_id) DO UPDATE SET state='live',state_version=public.ediel_production_state.state_version+1,approved_by=excluded.approved_by,approved_at=excluded.approved_at,
+     first_live_send_approved_by=excluded.first_live_send_approved_by,first_live_send_approved_at=excluded.first_live_send_approved_at,last_idempotency_key=excluded.last_idempotency_key,updated_at=now();
+   UPDATE public.ediel_actor_settings SET first_production_send_approved=true,approved_by=${literal(approverUserId)},approved_at=now()
+    WHERE company_id=${literal(companyId)} AND environment='production'; COMMIT;`)
+  return sql<Record<string, unknown>>(`SELECT jsonb_build_object('state',state,'firstLiveSendApproved',first_live_send_approved_at IS NOT NULL) FROM public.ediel_production_state WHERE company_id=${literal(companyId)}`)
+}

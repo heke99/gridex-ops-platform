@@ -123,17 +123,17 @@ export async function searchGridOwnerCertificate(context: BrowserContext, gridOw
 }
 
 /**
- * /admin/ediel/route-readiness?q=<EdielId>: "Materialisera production-route" for each of the tenant's
+ * /admin/ediel/route-readiness?q=<EdielId>&env=<lane>: "Materialisera <lane>-route" for each of the tenant's
  * blocked routes to the grid owner. The cards do not name the tenant (FINDINGS F33), so the form is
  * picked by its hidden companyId.
  */
-export async function materializeTenantRoutes(context: BrowserContext, companyId: string, edielId: string) {
+export async function materializeTenantRoutes(context: BrowserContext, companyId: string, edielId: string, environment: 'test' | 'production') {
   const clicks: Array<{ button: string; route: string; actionStatus: number; code: string | null }> = []
-  for (const name of ['Materialisera production-route']) {
+  for (const name of [environment === 'production' ? 'Materialisera production-route' : 'Materialisera test-route']) {
     const done = new Set<string>()
     for (let attempt = 0; attempt < 10; attempt++) {
       const page = await context.newPage()
-      await page.goto(`/admin/ediel/route-readiness?q=${edielId}&env=production`)
+      await page.goto(`/admin/ediel/route-readiness?q=${edielId}&env=${environment}`)
       const forms = page.locator(`form:has(input[name="companyId"][value="${companyId}"])`).filter({ has: page.getByRole('button', { name }) })
       let target: { index: number; route: string } | null = null
       for (let index = 0; index < await forms.count(); index++) {

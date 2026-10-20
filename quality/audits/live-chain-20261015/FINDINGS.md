@@ -282,6 +282,35 @@ Simuleringen gör samma steg som i drift.
 ### P2 "Materialisering tar cirka 70 s" — MÄTARTEFAKT, inte ett fel
 Alla skrivningar för materialiseringen (`communication_routes`, `ediel_route_profiles` och `company_market_party_routes`) sker inom samma sekund. Vyerna bakom sidan tar 15–25 ms. Tiden kom från simuleringens hjälpkod, som väntade 30 s per frånvarande dolt fält. Det är rättat i `operatorConsole.ts`.
 
+### F36 Ett nytt bolag kan inte bli live i produktion via något stödd väg — AVSIKTLIG SPÄRR plus ett cirkelberoende, ägarbeslut
+Granskat oberoende och verifierat på de angivna raderna.
+
+**1. Inget produktionsmeddelande före live**
+- En ny avsändarinställning är låst (`production_send_lock_enabled`, `first_production_send_approved=false`; `lib/ediel/senderSettingsResolver.ts:332`).
+- Ruttbeslutet lägger då till `production_send_locked` (`lib/routes/routeDecisionEngine.ts:772`). Z01 och Z03 avbryts innan något meddelande sparas (`z01: null` i jobbresultatet).
+- Låset hävs bara av `approveFirstProductionSend`, som kräver `ediel_production_state.state='live'` (`lib/ediel/productionSendApproval.ts:45`).
+- Live kräver i sin tur en dry run på ett sparat utgående produktionsmeddelande (`app/admin/platform/go-live/approval-actions.ts`).
+
+**2. Inget bevis kan skapas**
+- Dry run kräver dessutom scoped kapabilitetsbevis (`lib/ediel/productionReadiness.part-3.ts:24`).
+- Den enda skrivaren är `ediel_record_scoped_capability_evidence_v1`. Den kräver godkända TGT-, AGT-, SHADOW_PRODUCTION-, LIVE_TENANT_INTEGRITY- och RESTORE_REPLAY-certifieringar bundna till exakt det meddelandet.
+- Dess wrapper (`lib/ediel/scopedCapabilityReadiness.ts:93`) anropas bara från tester.
+- Migrationen säger det uttryckligen: "OPS-01 / CALL-16 prospective support. No production capability is enabled and no passed evidence is seeded."
+
+**Bedömning**
+- Lager 2 är en avsiktlig extern certifieringsgrind och inget fel.
+- Lager 1 är ett cirkelberoende som finns kvar även när beviset finns: beviset binds till ett meddelande som inte kan skapas före live.
+- Go-live-sidan erbjuder ändå "Kontrollera & godkänn production" utan att säga att det inte kan lyckas.
+- Dessutom läser `approveCompanyProductionAction` `ediel_production_state` med `.single()`, så den fallerar redan när raden saknas, som för ett helt nytt bolag.
+
+**Drift (läsfråga):** inget av de 3 bolagen är `live` (2 `disabled`, 1 `blocked`), och inget har ett utgående produktionsmeddelande.
+
+**Beslut som behövs (ägare):**
+- en stödd väg att förbereda och spara, men inte skicka, det första produktionsmeddelandet under låset, eller en dry run för första aktivering som inte kräver ett sparat meddelande
+- ett operatörsflöde som registrerar certifieringsbeviset
+
+**Simuleringen:** kör marknadsflödet i Ediels testmiljö, vilket är så ett bolag arbetar före certifiering. Miljöväljaren (`lib/ediel/customerInfoEnvironmentResolver.ts`) väljer `test` när bolaget bara har en test-avsändare.
+
 ### Korrekta spärrar som simuleringen bekräftade (inte fel)
 Go-live kräver:
 - standardmejl och regler för kunder
