@@ -58,3 +58,24 @@ reference loader with synthetic database I/O: one identity read suffices for a
 valid catalogue; suspended/archived/missing organizations and transient database
 failure retain their error behavior. Existing ETag, OpenAPI, concurrent tenant
 error-attribution and full website-operation regressions remain in place.
+
+## Concurrent public quote reads
+
+The website quote endpoint may share an already running canonical offer read
+with another quote using exactly the same company, API client, offer reference
+and customer type. No completed result is cached. The original resolver still
+performs every publication graph, legal, price-option and invoice-fee check.
+Each caller receives a separate clone; authentication, resolution binding,
+calculation, idempotency and quote persistence remain per request.
+
+Only this HTTP endpoint opts in. Final applications, default internal callers,
+Partner API and legacy lookups retain their ordinary fresh resolver calls. The
+pending map holds at most64 distinct keys, evicts both successes and failures,
+and uses an ordinary read on overflow. This is per-process coalescing, without
+a distributed lock, stale fallback, new schema, new API parameter or quota change.
+
+The controlled four-caller regression reduces duplicate offer reads from4 to1
+and still performs four independent calculations and persistence calls. This
+establishes the reduction in database fanout; live latency and capacity require
+the separate bounded production measurement. Earlier timed-out runs remain
+failed evidence until a qualified after-run succeeds.
