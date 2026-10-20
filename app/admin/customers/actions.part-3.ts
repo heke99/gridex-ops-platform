@@ -9,6 +9,14 @@ import { hasPermissionRequirement } from "@/lib/admin/accessModel"
 function canWriteContracts(guard: GuardResult): boolean {
   return isPlatformAdminContext(guard) || hasPermissionRequirement(guard.permissions, { allOf: ["contracts.write"] })
 }
+
+// Mirrors gridex_finalize_admin_imported_signed_agreement_v1, which imports an
+// uploaded signed agreement only for an actor holding contracts.create (owner
+// decision 2026-10-11). Checked before any write so a refused import never
+// leaves a half-registered customer behind (FINDINGS F59).
+function canImportSignedAgreement(guard: GuardResult): boolean {
+  return isPlatformAdminContext(guard) || hasPermissionRequirement(guard.permissions, { allOf: ["contracts.create"] })
+}
 import { supabaseService } from "@/lib/supabase/service"
 import { requireOperationalCompanyId } from "@/lib/tenant/scope"
 import { requireCompanyOperationalForWrites } from "@/lib/tenant/governance"
@@ -94,9 +102,22 @@ export async function createCustomerAction(
     const companyId = await requireOperationalCompanyId(actorUserId);
     await requireCompanyOperationalForWrites(companyId);
     let params = buildCreateCustomerParams(formData, actorUserId, companyId);
+    if (params.signedAgreementFile && !canImportSignedAgreement(guard)) {
+      return {
+        status: "error",
+        message:
+          "Kunden sparades inte. Du saknar behörighet att registrera ett redan signerat avtal (Skapa avtalsutkast). Välj att skicka avtalet för signering, spara som utkast eller be en behörig användare registrera det signerade avtalet.",
+        fieldErrors: {
+          signedAgreementFile:
+            "Kräver behörigheten Skapa avtalsutkast (contracts.create).",
+        },
+        values: getFormValues(formData),
+        createdCustomerId: null,
+      };
+    }
 
     const idempotencyKey = buildAdminIntakeIdempotencyKey(params);
-    const { intake } = await getOrCreateCustomerApplicationIntake({
+    const { intake, created: intakeCreatedNow } = await getOrCreateCustomerApplicationIntake({
       companyId,
       apiClientId: null,
       route: ADMIN_INTAKE_ROUTE,
@@ -134,8 +155,11 @@ export async function createCustomerAction(
       };
     }
 
+    // Only a row an earlier submission inserted can be in progress; the row this
+    // submission just inserted is received and fresh by construction.
     if (
       intake &&
+      !intakeCreatedNow &&
       intake.status !== "failed" &&
       intake.status !== "completed" &&
       Date.now() - new Date(intake.updated_at).getTime() <
