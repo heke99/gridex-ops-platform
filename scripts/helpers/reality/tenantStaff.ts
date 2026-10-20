@@ -21,11 +21,25 @@ export function ensureProductionCompanyAdminRoleParity() {
 }
 
 /**
+ * Replay vs production drift (FINDINGS F55): production's price_areas has RLS with four policies (read with
+ * masterdata.read/write, write with masterdata.write); the replay enables RLS with no policy at all, so no
+ * tenant user sees any price area and manual intake cannot choose one. Mirrors production's policies exactly.
+ */
+export function ensureProductionPriceAreaPolicyParity() {
+  if (sql<boolean>(`SELECT EXISTS(SELECT FROM pg_policy WHERE polrelid='public.price_areas'::regclass)`)) return
+  sql(`CREATE POLICY gridex_mp_9e3cbe6bc23874fa0e77 ON public.price_areas FOR SELECT TO authenticated USING (gridex_has_permission((SELECT auth.uid()), 'masterdata.read') OR gridex_has_permission((SELECT auth.uid()), 'masterdata.write') OR gridex_has_permission((SELECT auth.uid()), 'masterdata.write'));
+   CREATE POLICY gridex_mp_238f548b0a029425a889 ON public.price_areas FOR INSERT TO authenticated WITH CHECK (gridex_has_permission((SELECT auth.uid()), 'masterdata.write'));
+   CREATE POLICY gridex_mp_1f234790bf98bfe6fce4 ON public.price_areas FOR UPDATE TO authenticated USING (gridex_has_permission((SELECT auth.uid()), 'masterdata.write'));
+   CREATE POLICY gridex_mp_9e72fb6670d055765a4b ON public.price_areas FOR DELETE TO authenticated USING (gridex_has_permission((SELECT auth.uid()), 'masterdata.write'));`)
+}
+
+/**
  * A tenant employee with the company_admin role, created as an invited user ends up: an Auth user
  * (through GoTrue, so it can sign in), a profile, an active membership and the company role.
  */
 export async function createTenantStaff(companyId: string, name = 'E2E Kundtjänst') {
   ensureProductionCompanyAdminRoleParity()
+  ensureProductionPriceAreaPolicyParity()
   const id = randomUUID(), email = `e2e-staff-${id.slice(0, 8)}@example.invalid`, password = `Staff-${randomUUID()}`
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!url || !key) throw Error('tenant_staff_supabase_env_required')
