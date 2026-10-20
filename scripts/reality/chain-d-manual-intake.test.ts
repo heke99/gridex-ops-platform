@@ -17,7 +17,7 @@ import { configureTenant, literal, sql, type LiveTenant } from '../helpers/live-
 import { addGridOwnerContactChannel, checkGridOwners, closeOperatorConsole, confirmSafeBlankSubaddresses, importActorRegistry, operatorSession,
   reconcileOperationalCapabilities, sanitizedActorRegistry, searchGridOwnerCertificate, submitManualIntake, verifyActorForCustomerFlow } from '../helpers/reality/operatorConsole'
 import { seedDefaultCompanyEmailConfiguration } from '@/lib/email/bootstrap'
-import { configurePlatformManualMailbox } from '../helpers/reality/tenantWebsite'
+import { configurePlatformManualMailbox, ensureProductionWhiteLabelColumnParity } from '../helpers/reality/tenantWebsite'
 import { createTenantStaff } from '../helpers/reality/tenantStaff'
 import { prepareMarketData, runOperationalCronSlot } from '../helpers/reality/world'
 
@@ -66,6 +66,7 @@ describe.sequential('reality D — manual customer intake by a tenant employee',
   let customerId = ''
 
   it('D1 the tenant employee registers the customer with the signed agreement and power of attorney', async () => {
+    ensureProductionWhiteLabelColumnParity()
     tenant = await configureTenant(supabaseService as never)
     // Platform staff: Ediel's actor registry, the area's grid owner verified for the customer flow and its
     // facility-information contact, and the platform's manual-operations mailbox.
