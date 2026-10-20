@@ -259,7 +259,20 @@ export async function requireCustomerPortalApiContextForIdentifiers(
     return { ok: false, response: jsonError(auth.error, auth.status, auth.errorCode), startedAt }
   }
 
-  const resolution = await resolvePortalCustomer({ client: auth.client, request, identifiers, mode: options.mode, strict: options.enforceBinding })
+  let linkAssertion: Awaited<ReturnType<typeof customerAssertionGate>> | undefined
+  let linkAssertionSubject: string | null = null
+  const resolution = await resolvePortalCustomer({
+    client: auth.client,
+    request,
+    identifiers,
+    mode: options.mode,
+    strict: options.enforceBinding,
+    beforeLink: async (customer) => {
+      linkAssertionSubject = customer.customer_portal_user_id ?? customer.auth_user_id
+      linkAssertion = await customerAssertionGate(request, auth.client, customer)
+      return linkAssertion
+    },
+  })
   if (!resolution.ok) {
     await logIntegrationApiRequest({
       client: auth.client,
@@ -272,12 +285,24 @@ export async function requireCustomerPortalApiContextForIdentifiers(
     return { ok: false, response: jsonError(resolution.error, resolution.status, resolution.code), startedAt }
   }
 
+  // A fresh lifecycle check can refuse the attempted link after the proof was consumed.
+  // Reuse that proof only for the exact intended, successfully linked subject; never replay it.
+  if (linkAssertion && (
+    resolution.binding !== 'portal_account'
+    || (resolution.customer.customer_portal_user_id ?? resolution.customer.auth_user_id) !== linkAssertionSubject
+  )) {
+    await logIntegrationApiRequest({ client: auth.client, request, statusCode: 403, startedAt, errorCode: 'customer_identity_binding_required' })
+    return { ok: false, response: bindingRequiredError(), startedAt }
+  }
+
   if (!bindingGate(request.method, resolution.binding, options, auth.client)) {
     await logIntegrationApiRequest({ client: auth.client, request, statusCode: 403, startedAt, errorCode: 'customer_identity_binding_required' })
     return { ok: false, response: bindingRequiredError(), startedAt }
   }
 
-  const assertion = await customerAssertionGate(request, auth.client, resolution.customer)
+  // The link path already consumed a valid assertion's JTI before its first binding write.
+  // Existing links and read-only resolution still verify the actual resolved identity here.
+  const assertion = linkAssertion ?? await customerAssertionGate(request, auth.client, resolution.customer)
   if (!assertion.ok) {
     await logIntegrationApiRequest({ client: auth.client, request, statusCode: assertion.status, startedAt, errorCode: assertion.code })
     return { ok: false, response: jsonError(assertion.error, assertion.status, assertion.code), startedAt }
@@ -315,33 +340,7 @@ export async function requireCustomerPortalApiContext(
   | { ok: true; client: IntegrationApiClient; identity: LinkedPortalIdentity; startedAt: number }
   | { ok: false; response: NextResponse; startedAt: number }
 > {
-  const startedAt = Date.now()
-  const auth = await requireIntegrationApiAccess(request, scopes)
-  if (!auth.ok) {
-    await logIntegrationApiRequest({ client: auth.client ?? null, request, statusCode: auth.status, startedAt, errorCode: auth.errorCode })
-    return { ok: false, response: jsonError(auth.error, auth.status, auth.errorCode), startedAt }
-  }
-
-  const identity = await resolveLinkedPortalIdentity(request, auth.client, options)
-  if (!identity.ok) {
-    await logIntegrationApiRequest({
-      client: auth.client,
-      request,
-      statusCode: identity.status,
-      startedAt,
-      errorCode: identity.code,
-      metadata: { ...portalIdentifiersFromRequest(request) },
-    })
-    return { ok: false, response: jsonError(identity.error, identity.status, identity.code), startedAt }
-  }
-
-  const assertion = await customerAssertionGate(request, auth.client, identity.identity)
-  if (!assertion.ok) {
-    await logIntegrationApiRequest({ client: auth.client, request, statusCode: assertion.status, startedAt, errorCode: assertion.code })
-    return { ok: false, response: jsonError(assertion.error, assertion.status, assertion.code), startedAt }
-  }
-
-  return { ok: true, client: auth.client, identity: identity.identity, startedAt }
+  return requireCustomerPortalApiContextForIdentifiers(request, {}, scopes, options)
 }
 
 export async function logCustomerPortalSuccess(input: {

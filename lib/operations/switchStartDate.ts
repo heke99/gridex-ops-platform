@@ -22,10 +22,12 @@ export type SwitchStartDateRequestType =
 export type SwitchStartDateInput = {
   requestType: SwitchStartDateRequestType;
   requestedStartDate?: string | null;
-  /** current_supplier_notice_period — free text or a number of days. */
+  /** current_supplier_notice_period — a duration with an explicit unit. */
   noticePeriod?: string | number | null;
   /** current_supplier_contract_end_date (ISO date). */
   contractEndDate?: string | null;
+  /** Independently validated earliest supplier start (ISO date). Ignored for move-in flows. */
+  earliestSupplierStartDate?: string | null;
   /** customer_sites.move_in_date (ISO date). */
   moveInDate?: string | null;
   /** Canonical Z03L minimum lead in calendar days. Ignored for move-in flows. */
@@ -53,13 +55,29 @@ function toDate(value: string | Date | null | undefined): Date | null {
   if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
   const trimmed = String(value).trim();
   if (!trimmed) return null;
-  // Accept full ISO and date-only.
+  // Reject impossible calendar dates before Date can silently roll them forward.
+  // Accept full ISO and date-only, as before.
+  const calendar = trimmed.match(/^(\d{4}-\d{2}-\d{2})(?:$|T)/);
+  if (!calendar) return null;
+  const day = new Date(`${calendar[1]}T00:00:00Z`);
+  if (Number.isNaN(day.getTime()) || isoDate(day) !== calendar[1]) return null;
   const parsed = new Date(trimmed.length <= 10 ? `${trimmed}T00:00:00Z` : trimmed);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
 function isoDate(date: Date): string {
   return date.toISOString().slice(0, 10);
+}
+
+function marketToday(value: string | Date | null | undefined): Date | null {
+  const date = toDate(value);
+  if (!date) return null;
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value.trim())) return date;
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Stockholm", year: "numeric", month: "2-digit", day: "2-digit",
+  }).formatToParts(date);
+  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((item) => item.type === type)?.value;
+  return toDate(`${part("year")}-${part("month")}-${part("day")}`);
 }
 
 function addDays(date: Date, days: number): Date {
@@ -70,37 +88,44 @@ function addDays(date: Date, days: number): Date {
 
 function addMonths(date: Date, months: number): Date {
   const next = new Date(date.getTime());
+  const day = next.getUTCDate();
+  // Setting the month while still on the 31st can overflow into the next month.
+  next.setUTCDate(1);
   next.setUTCMonth(next.getUTCMonth() + months);
+  const lastDay = new Date(next.getTime());
+  lastDay.setUTCMonth(lastDay.getUTCMonth() + 1, 0);
+  next.setUTCDate(Math.min(day, lastDay.getUTCDate()));
   return next;
 }
 
-// Parse a notice period expressed as text or number into an estimated number of
-// days from `from`. Returns null when nothing parseable is found. We never throw.
+// Only simple, explicit durations can produce an automatic notice floor.
+// Conditional, fractional, unitless and implausibly large values need review.
 function noticeFloorFromPeriod(
   period: string | number | null | undefined,
   from: Date,
 ): Date | null {
   if (period === null || period === undefined) return null;
-  if (typeof period === "number" && Number.isFinite(period) && period > 0) {
-    // A bare number has no legally reliable unit. Require explicit days/weeks/months.
-    return null;
-  }
+  if (typeof period === "number") return null;
   const text = String(period).trim().toLowerCase();
-  if (!text) return null;
-  const numberMatch = text.match(/(\d+(?:[.,]\d+)?)/);
-  const amount = numberMatch ? Number(numberMatch[1].replace(",", ".")) : null;
-  if (amount === null || !Number.isFinite(amount) || amount <= 0) return null;
-  if (/(månad|manad|month|mån\b|mon\b)/.test(text)) return addMonths(from, Math.ceil(amount));
-  if (/(vecka|week|v\b)/.test(text)) return addDays(from, Math.ceil(amount) * 7);
-  if (/(år|year)/.test(text)) return addMonths(from, Math.ceil(amount) * 12);
-  // Unitless free text is ambiguous and must be completed before dispatch.
+  const match = text.match(/^(\d+|en|ett|två|tva|tre)\s*(dag(?:ar)?|days?|d|veck(?:a|or)|weeks?|v|mån(?:ad(?:er)?)?|manad(?:er)?|months?|mon|år|ar|years?)$/u);
+  if (!match) return null;
+  const words: Record<string, number> = { en: 1, ett: 1, två: 2, tva: 2, tre: 3 };
+  const amount = words[match[1]] ?? Number(match[1]);
+  if (!Number.isSafeInteger(amount) || amount < 0) return null;
+  const unit = match[2];
+  // Cap the accepted simple notice at roughly ten years; larger inputs must
+  // never overflow Date or silently move a customer far into the future.
+  if (/^(?:dag|day|d)/.test(unit)) return amount <= 3660 ? addDays(from, amount) : null;
+  if (/^(?:veck|week|v)/.test(unit)) return amount <= 520 ? addDays(from, amount * 7) : null;
+  if (/^(?:mån|manad|month|mon)/.test(unit)) return amount <= 120 ? addMonths(from, amount) : null;
+  if (/^(?:år|ar|year)/.test(unit)) return amount <= 10 ? addMonths(from, amount * 12) : null;
   return null;
 }
 
 export function calculateEarliestSwitchStartDate(
   input: SwitchStartDateInput,
 ): SwitchStartDateResult {
-  const today = toDate(input.today ?? new Date()) ?? new Date();
+  const today = marketToday(input.today ?? new Date()) ?? marketToday(new Date())!;
   const marketLeadDays = Number.isFinite(input.marketLeadDays as number)
     ? Math.max(0, Number(input.marketLeadDays))
     : 14;
@@ -129,6 +154,10 @@ export function calculateEarliestSwitchStartDate(
     if (contractEnd) {
       // Cannot switch before the current contract can legally end.
       floors.push({ source: "current_contract_end_date", date: contractEnd });
+    }
+    const supplierStart = toDate(input.earliestSupplierStartDate);
+    if (supplierStart) {
+      floors.push({ source: "supplier_confirmed_start", date: supplierStart });
     }
     const noticeFloor = noticeFloorFromPeriod(input.noticePeriod, today);
     if (noticeFloor) {

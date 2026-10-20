@@ -1,4 +1,5 @@
 import { applyPermissionMarketSource } from '@/lib/ediel/permissions/permissionMarketTransition';
+import { queueManualSupplierInformationRequest } from '@/lib/customer-operations/manualSupplierInformationRequest';
 import { validateInfoRequestClosure } from "@/lib/onboarding/infoRequestClosure";
 import { prepareManualServicePermission } from '@/lib/ediel/services/manualPermission';
 import type { EdielMessageRow } from '@/lib/ediel/types';
@@ -1250,19 +1251,13 @@ export async function queueCustomerInfoRequestForDispatch(input: {
     requestNeedsSupplierContractAuthorization(request) &&
     !requestNeedsGridOwnerAuthorization(request)
   ) {
+    const dispatch = await queueManualSupplierInformationRequest({ companyId, customerId: request.customer_id,
+      siteId: request.site_id ?? '', customerInfoRequestId: request.id, actorUserId });
     const { data, error } = await supabaseService
       .from("customer_info_requests")
-      .update({
-        status: "manual_review_required",
-        blocker_reason:
-          "Bindningstid, uppsägningstid och avtalsvillkor ska bekräftas från kund eller nuvarande elhandlare. Ingen nätägarroute används för detta.",
-        requested_at: new Date().toISOString(),
-        updated_by: actorUserId,
-        updated_at: new Date().toISOString(),
-      })
+      .select("*")
       .eq("company_id", companyId)
       .eq("id", request.id)
-      .select("*")
       .single();
 
     if (error) throw error;
@@ -1272,9 +1267,8 @@ export async function queueCustomerInfoRequestForDispatch(input: {
       requestId: request.id,
       customerId: request.customer_id,
       actorUserId,
-      eventType: "manual_supplier_contract_check",
-      message:
-        "Begäran markerades för manuell kontroll mot kund eller nuvarande elhandlare.",
+      eventType: dispatch.status === 'needs_review' ? 'manual_supplier_contract_review_required' : 'manual_supplier_contract_queued',
+      message: dispatch.blockerReason ?? 'Separat handelsförfrågan har köats till nuvarande elhandlares verifierade fullmaktskontakt.',
     });
 
     return {
@@ -1282,9 +1276,9 @@ export async function queueCustomerInfoRequestForDispatch(input: {
       gridOwnerDataRequestId: null,
       outboundRequestId: null,
       routeProfileId: null,
-      status: "manual_review_required",
-      blockerReason: null,
-      blockerCode: null,
+      status: dispatch.status === 'needs_review' ? 'manual_review_required' : dispatch.status === 'queued' ? 'ready_to_send' : 'waiting_response',
+      blockerReason: dispatch.blockerReason,
+      blockerCode: dispatch.blockerCode,
       blockerDetails: null,
     };
   }

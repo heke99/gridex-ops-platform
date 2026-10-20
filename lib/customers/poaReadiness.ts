@@ -81,6 +81,12 @@ function isNonEmptyObject(value: unknown): boolean {
 
 const ACCEPTED_STATUSES = new Set(['signed', 'active', 'accepted', 'completed'])
 
+function hasAcceptancePayload(value: unknown): boolean {
+  // A system-issued document verifier identifies an archive/transaction. It
+  // cannot create consent merely because the evidence object is nonempty.
+  return isNonEmptyObject(value) && Object.keys(value as object).some((key) => key !== 'verification_reference')
+}
+
 export function poaStatusIsAccepted(poa: PoaLike | null | undefined): boolean {
   return ACCEPTED_STATUSES.has((clean(poa?.status) ?? '').toLowerCase())
 }
@@ -96,7 +102,7 @@ export function hasLegalPoaAcceptance(poa: PoaLike | null | undefined): boolean 
     clean(poa.accepted_at) ||
       clean(poa.signed_at) ||
       clean(poa.legal_text_version_id) ||
-      isNonEmptyObject(poa.evidence_payload) ||
+      hasAcceptancePayload(poa.evidence_payload) ||
       isNonEmptyObject(poa.fullmakt_snapshot),
   )
 }

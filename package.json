@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "node --max-old-space-size=4096 node_modules/next/dist/bin/next build --webpack",
-    "typecheck": "node --max-old-space-size=4096 node_modules/typescript/bin/tsc --noEmit -p tsconfig.app.json",
+    "build": "node --max-old-space-size=6144 node_modules/next/dist/bin/next build --webpack",
+    "typecheck": "node --max-old-space-size=6144 node_modules/typescript/bin/tsc --noEmit -p tsconfig.app.json",
     "start": "next start",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -305,12 +305,15 @@
     "fast-xml-parser": "5.11.2",
     "imapflow": "2.2.1",
     "ldapts": "^8.1.8",
+    "mailauth": "7.3.1",
     "next": "16.3.8",
     "node-forge": "^1.4.0",
     "nodemailer": "10.0.13",
+    "pdf-lib": "1.17.1",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "resend": "^6.12.4",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zod": "^3.24.1"
   },
   "devDependencies": {

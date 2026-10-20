@@ -61,6 +61,8 @@ export type CompleteFacilityLookupInput = {
   note?: string | null
   rawPayload?: JsonRecord | null
   triggerNextStep?: boolean
+  /** Internal server capability: authenticated incoming-mail application only. */
+  automaticInbound?: { inboundId: string; sourceHash: string; facts?: Record<string, unknown> }
 }
 
 export type SuccessfulFacilityLookupCompletion = {
@@ -240,7 +242,13 @@ export async function completeFacilityLookup(input: CompleteFacilityLookupInput)
   const rpcClient = supabaseService as unknown as {
     rpc: (name: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: { message?: string; code?: string } | null }>
   }
-  const { data, error } = await rpcClient.rpc('gridex_complete_facility_response', {
+  const automatic = input.automaticInbound
+  const { data, error } = await rpcClient.rpc(automatic ? 'gridex_apply_manual_facility_reply_v1' : 'gridex_complete_facility_response', automatic ? {
+    p_company_id: input.companyId, p_request_id: input.requestId, p_inbound_id: automatic.inboundId,
+    p_payload: { sourceHash: automatic.sourceHash, facility_id: facilityId, metering_point_id: meteringPointId,
+      grid_area_code: gridAreaCode, price_area_code: priceAreaCode, raw_payload: input.rawPayload ?? {},
+      extracted: asRecord(input.rawPayload?.extracted), facts: automatic.facts ?? {} },
+  } : {
     p_company_id: input.companyId,
     p_request_id: input.requestId,
     p_actor_user_id: input.actorUserId ?? null,

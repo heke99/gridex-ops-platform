@@ -7,6 +7,9 @@ import { normalizeFacilityId, normalizeMeteringPointId } from "@/lib/energy/faci
 import { assertCanonicalSnapshot, buildCanonicalContractSnapshot } from "@/lib/pricing/contractSnapshot";
 import { canonicalIdempotencyKey, onboardCustomerGraph } from "@/lib/customers/canonicalOnboarding";
 import { createTenantContext } from "@/lib/tenant/context";
+import { publicReference } from "@/lib/integrations/publicReferences";
+import { createHash } from 'node:crypto';
+import { ensurePoaPdfArchive } from '@/lib/customers/poaDocuments';
 import { type WebsiteQuoteRecord } from "@/lib/pricing/websiteQuotes";
 import { selectBaseComponentsForPriceArea } from "@/lib/pricing/fixedAreaPricing";
 import { fullName, selectedOfferFields, websiteLegalVersionsSnapshot } from "./customerApplicationCommunication";
@@ -493,19 +496,29 @@ export async function onboardCanonicalWebsiteCustomerGraph(input: {
           accepted_at: input.structuredPoa.acceptedAt ?? now,
           valid_from: (input.structuredPoa.acceptedAt ?? now).slice(0, 10),
           legal_text_version_id: poaLegal?.id ?? input.structuredPoa.textVersionId ?? null,
+          fullmakt_snapshot: {
+            legal_text: { id: poaLegal?.id ?? null, type: poaLegal?.type ?? 'power_of_attorney',
+              title: poaLegal?.title ?? null, version: poaLegal?.version ?? null, body: poaLegal?.body ?? null },
+            scopes: exactSignedScopes, accepted_at: input.structuredPoa.acceptedAt ?? now,
+          },
           signer_name: input.structuredPoa.signerName,
           signer_identity_number: input.structuredPoa.signerIdentityNumber,
           method: input.structuredPoa.method,
           evidence_payload: {
             accepted: true,
             scopes: exactSignedScopes,
-            ip_address: input.structuredPoa.ipAddress ?? input.requestAudit?.ipAddress ?? null,
+            verification_reference: publicReference('poa_verification', companyId, input.applicationRowId),
+            signature_verification_status: 'not_verified',
+            ip_address: input.structuredPoa.ipAddress ?? null,
+            ip_address_source: input.structuredPoa.ipAddress ? 'signer_reported' : null,
+            api_request_ip_address: input.requestAudit?.ipAddress ?? null,
+            api_request_ip_hash: input.requestAudit?.ipHash ?? null,
             user_agent: input.structuredPoa.userAgent ?? input.requestAudit?.userAgent ?? null,
             externally_sendable_at_capture: true,
           },
           source: "website_api",
-          accepted_ip: input.structuredPoa.ipAddress ?? input.requestAudit?.ipAddress ?? null,
-          accepted_ip_hash: input.requestAudit?.ipHash ?? null,
+          accepted_ip: input.structuredPoa.ipAddress ?? null,
+          accepted_ip_hash: input.structuredPoa.ipAddress ? createHash('sha256').update(input.structuredPoa.ipAddress).digest('hex') : null,
           accepted_user_agent: input.structuredPoa.userAgent ?? input.requestAudit?.userAgent ?? null,
           accepted_source: "website",
           reference: `POA-${input.applicationRowId}`,
@@ -568,6 +581,9 @@ export async function onboardCanonicalWebsiteCustomerGraph(input: {
     });
   }
 
+  if (result.power_of_attorney_id) {
+    await ensurePoaPdfArchive({ companyId, customerId: result.customer_id, powerOfAttorneyId: result.power_of_attorney_id });
+  }
   const customerRow = await supabaseService
     .from("customers")
     .select("id,customer_number,email,full_name,company_name")
