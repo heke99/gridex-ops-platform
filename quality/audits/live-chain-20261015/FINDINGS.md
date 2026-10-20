@@ -407,6 +407,18 @@ Felen skrivs in här i den ordning de hittas.
 - **Drift:** indexet finns inte i drift (bara läsfrågor mot metadata), så produktionen är opåverkad.
 - **Rättning:** migrationen `20261020280000` ger EXECUTE på exakt de två rena parsningsfunktionerna (IMMUTABLE, utan sidoeffekter) till `service_role` och `authenticated`. Inga scheman öppnas.
 
+### F69 En Ediel-fil till ett okänt Ediel-ID blir aldrig en ohänförd Ediel-källa med granskningsärende — ÖPPEN, medel, kräver beslut
+- **Utfall (scenario E):** nätägaren skickar en E66 till Ediel-ID 69999, som ingen tenant har.
+  - Filen hamnar inte hos någon tenant, och tenantisoleringen håller.
+  - Mejlet sparas med bilaga och tolkningsresultat som `manual_review`/`unassigned` utan bolag och syns för plattformspersonalen i `/admin/inbound-mail`.
+  - Däremot skapas varken ett ohänfört `ediel_messages` eller ett `ediel_unresolved_items` (kö för tenantlösa filer).
+- **Orsak:** `gridex_unattributed_intake.selection_v1` kvalificerar bara MIME som saknar `Content-Transfer-Encoding: base64/quoted-printable`, PKCS7 och signerade eller krypterade multipart. Appen loggar `ediel_technical_intake_original_custody_required`.
+  - En EDIFACT-bilaga som `application/edifact` kodas i praktiken alltid base64, och här skickad med nodemailer.
+  - Riktig Ediel-trafik är dessutom S/MIME.
+  - Spåret för ohänförd teknisk mottagning nås därför i praktiken aldrig för riktiga mejl.
+- **Varför den inte rättas här:** regeln ingår i det godkända kontraktet SC-014 (PASSED). Att godta avkodade bilagor som originalbevis är ett säkerhets- och förvaringsbeslut inom ett godkänt område.
+- **Förslag:** antingen kvalificerar förvaringen avkodade bilagor, bundna till exakt base64-text och hash, eller så skapar mejlnivån ett granskningsärende för `unassigned` Ediel-mejl. Beslut krävs.
+
 ### S1 Simuleringens cron-körare hoppade över cron-jobb som körs varje minut — RÄTTAD (simuleringen, inte produkten)
 - **Utfall:** efter sammanslagningen med main stod nätägarförfrågan i scenario D köad i 6 minuter utan att skickas.
 - **Orsak:** main kör den manuella e-postutkorgen och manuell inkommande e-post med schemat `* * * * *`. `runOperationalCronSlot` kände bara igen `N-M/k`. Produkten skickade direkt när utkorgen anropades.

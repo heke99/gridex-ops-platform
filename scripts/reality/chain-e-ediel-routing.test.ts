@@ -87,7 +87,7 @@ describe.sequential('reality E — inbound Ediel routing to the right tenant and
     return runs
   }
   const inboundFor = (companyId: string | null) => sql<Array<Record<string, unknown>>>(`SELECT coalesce(jsonb_agg(jsonb_build_object(
-      'reference',(regexp_match(m.raw_payload,'BGM\+E66::260\+M([^+]+)\+'))[1],'code',m.message_code,'status',m.status,'meter',m.metering_point_id,'routing',m.processing_status) ORDER BY m.created_at),'[]')
+      'reference',m.external_reference,'code',m.message_code,'status',m.status,'meter',m.metering_point_id,'routing',m.processing_status) ORDER BY m.created_at),'[]')
     FROM public.ediel_messages m WHERE m.direction='inbound' AND m.message_family='UTILTS' AND m.created_at>${literal(report.startedAt)}
      AND ${companyId ? `m.company_id=${literal(companyId)}` : 'm.company_id IS NULL'}`)
 
@@ -102,13 +102,14 @@ describe.sequential('reality E — inbound Ediel routing to the right tenant and
     for (const key of ['A15', 'A16H', 'XAB', 'ALATE']) expect(refs(a).some(r => r.includes(sentRef(key))), key).toBe(true)
     expect(refs(b).filter(r => r.includes(sentRef('B15')))).toHaveLength(1)
     expect(refs(b).some(r => r.includes(sentRef('XAB')) || r.includes(sentRef('XUNK'))), 'nothing misaddressed reaches B').toBe(false)
-    // Unknown receiver: held without a tenant, with an open unresolved item; never on A or B.
+    // Unknown receiver: never on A or B. The retained mail is held without a tenant for platform review
+    // (/admin/inbound-mail). FINDINGS F69: the base64 attachment never becomes an unattributed Ediel source.
     expect(refs(a).some(r => r.includes(sentRef('XUNK')))).toBe(false)
-    const unresolved = sql<Array<Record<string, unknown>>>(`SELECT coalesce(jsonb_agg(jsonb_build_object('type',u.issue_type,'status',u.status,'company',u.company_id)),'[]')
-      FROM public.ediel_unresolved_items u JOIN public.ediel_messages m ON m.id=u.ediel_message_id
-      WHERE m.company_id IS NULL AND m.created_at>${literal(report.startedAt)} AND m.raw_payload LIKE ${literal(`%${sentRef('XUNK')}%`)}`)
-    report.unknownReceiver = { messages: none, unresolved }
-    expect(unresolved).toEqual(expect.arrayContaining([expect.objectContaining({ type: expect.stringMatching(/^tenant_/), status: 'open', company: null })]))
+    const heldMail = sql<Array<Record<string, unknown>>>(`SELECT coalesce(jsonb_agg(jsonb_build_object('status',processing_status,'match',match_status,'company',company_id)),'[]')
+      FROM public.inbound_email_messages WHERE subject='UTILTS E66 XUNK' AND created_at>${literal(report.startedAt)}`)
+    const unresolved = sql<number>(`SELECT to_jsonb(count(*)) FROM public.ediel_unresolved_items WHERE created_at>${literal(report.startedAt)} AND raw_interchange_reference=${literal(sentRef('XUNK'))}`)
+    report.unknownReceiver = { messages: none, heldMail, unresolvedItems: unresolved }
+    expect(heldMail).toEqual([{ status: 'manual_review', match: 'unassigned', company: null }])
   }, 15 * 60_000)
 
   it('E3b a corrected re-send for A\'s 15 September replaces the original values', async () => {
@@ -169,7 +170,9 @@ describe.sequential('reality E — inbound Ediel routing to the right tenant and
       'customers',(SELECT coalesce(jsonb_agg(DISTINCT customer_id),'[]') FROM public.normalized_metering_values WHERE metering_point_id=${literal(meteringPointId)}),
       'current',(SELECT count(*) FROM public.normalized_metering_values WHERE metering_point_id=${literal(meteringPointId)} AND revision_status='current'),
       'kwh',(SELECT coalesce(sum(quantity_kwh),0) FROM public.normalized_metering_values WHERE metering_point_id=${literal(meteringPointId)} AND revision_status='current'),
-      'days',(SELECT coalesce(jsonb_agg(DISTINCT (interval_start AT TIME ZONE 'Europe/Stockholm')::date ORDER BY (interval_start AT TIME ZONE 'Europe/Stockholm')::date),'[]') FROM public.normalized_metering_values WHERE metering_point_id=${literal(meteringPointId)}),
+      'days',(SELECT coalesce(jsonb_agg(d ORDER BY d),'[]') FROM (SELECT DISTINCT (period_start AT TIME ZONE 'Europe/Stockholm')::date d FROM public.normalized_metering_values WHERE metering_point_id=${literal(meteringPointId)}) x),
+      'resolutions',(SELECT coalesce(jsonb_agg(DISTINCT resolution),'[]') FROM public.normalized_metering_values WHERE metering_point_id=${literal(meteringPointId)} AND revision_status='current'),
+      'superseded',(SELECT count(*) FROM public.normalized_metering_values WHERE metering_point_id=${literal(meteringPointId)} AND revision_status<>'current'),
       'billable',(SELECT count(*) FROM public.normalized_metering_values WHERE metering_point_id=${literal(meteringPointId)} AND billing_gate_status='eligible'),
       'gate',(SELECT coalesce(jsonb_object_agg(s,n),'{}') FROM (SELECT billing_gate_status s,count(*) n FROM public.normalized_metering_values WHERE metering_point_id=${literal(meteringPointId)} GROUP BY 1) x))`)
     const a = valuesFor(customerA.meteringPointId), b = valuesFor(customerB.meteringPointId), later = valuesFor(customerLaterA.meteringPointId)
