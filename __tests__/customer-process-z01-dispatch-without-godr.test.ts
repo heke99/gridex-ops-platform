@@ -58,10 +58,11 @@ describe('tryPrepareZ01', () => {
   })
 
   it('a website onboarding request is not dispatched to the grid owner: the canonical customer-data job creates the Z01 request', async () => {
-    state.request = { id: requestId, request_type: 'website_customer_onboarding', target_party_type: 'customer', grid_owner_data_request_id: null, verified_payload: {} }
+    state.request = { id: requestId, request_type: 'website_customer_onboarding', target_party_type: 'customer', metering_point_id: '00000000-0000-4000-8000-000000000007', grid_owner_data_request_id: null, verified_payload: {} }
     enqueueCustomerData.mockResolvedValue({ id: 'job-1', operationId: 'operation-1', duplicate: false })
     const result = await tryPrepareZ01({ ...ids, operationId: 'operation-1' })
-    expect(enqueueCustomerData).toHaveBeenCalledWith({ companyId: ids.companyId, customerId: ids.customerId, siteId: ids.siteId, actorUserId: ids.actorUserId, operationId: 'operation-1', source: 'customer_process_next_step_engine' })
+    expect(enqueueCustomerData).toHaveBeenCalledWith({ companyId: ids.companyId, customerId: ids.customerId, siteId: ids.siteId, meteringPointId: '00000000-0000-4000-8000-000000000007',
+      actorUserId: ids.actorUserId, operationId: 'operation-1', source: 'customer_process_next_step_engine' })
     expect(dispatch).not.toHaveBeenCalled()
     expect(finalize).not.toHaveBeenCalled()
     expect(result).toMatchObject({ decision: 'prepare_z01', actionTaken: 'z01_customer_data_requested', z01: { customerOperationJobId: 'job-1' } })

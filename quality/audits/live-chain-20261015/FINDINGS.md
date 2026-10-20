@@ -398,7 +398,8 @@ Världen byggdes från noll med `up.sh` (ren replay, `next build` och `start`, s
   - Dispatchen skapade ändå en GODR, utan `authorization_document_id`.
   - Bindningskontrollen avvisade den, och nästa försök låstes av den obundna GODR:en.
 - **Rättning:** när ingen GODR finns och CIR:en inte är en Z01-begäran till nätägaren (`z01_customer_masterdata` riktad mot `grid_owner`) startar `tryPrepareZ01` det kanoniska jobbet `request_customer_data`. Det jobbet kontrollerar anläggningen, löser nätägaren, skapar en Z01-CIR med nätägarfullmakt och skickar den.
-- **Test:** `__tests__/customer-process-z01-dispatch-without-godr.test.ts`, 6 gröna. Utan rättningen fallerar det nya fallet.
+- **Uppföljning (körning 17:21):** den första versionen skickade inte med mätpunkten. Z01-begäran fick ingen mätpunkt, och fullmakten är bunden till mätpunkten. Den matchade därför inte: "Fullmakt/avtal måste täcka nätägarens anläggnings- och kunduppgifter". Nu följer anläggningens mätpunkt med till jobbet.
+- **Test:** `__tests__/customer-process-z01-dispatch-without-godr.test.ts`, 6 gröna. Utan rättningen fallerar det nya fallet, och testet kontrollerar att mätpunkten följer med.
 - **Regressioner:** next-step-regressionen och 25 relaterade tester gröna.
 
 ### F48 En UTILTS-route från Ediels register kan aldrig materialiseras för ett bolag — ÖPPEN, medel

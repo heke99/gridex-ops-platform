@@ -126,6 +126,8 @@ export async function tryPrepareZ01(input: {
       companyId: input.companyId,
       customerId: input.customerId,
       siteId: input.siteId,
+      // The power of attorney is bound to the facility's metering point; the Z01 request must carry it.
+      meteringPointId: text(cir?.metering_point_id),
       actorUserId: input.actorUserId,
       operationId: input.operationId ?? null,
       source: 'customer_process_next_step_engine',
