@@ -156,8 +156,12 @@ export type LiveTenant = {
  * a published quarter-hour spot product and billing automation. The grid-owner
  * issuer registry entry is a SYNTHETIC stand-in for external evidence EXT-ISSUER-01.
  */
-/** `brp: false` leaves the BRP to the onboarding step, as Gridex staff choose it in the go-live UI (FINDINGS F44). */
-export async function configureTenant(supabase: { rpc: (name: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: unknown }> }, options: { brp?: boolean } = {}): Promise<LiveTenant> {
+/**
+ * `brp: false` leaves the BRP to the onboarding step, as Gridex staff choose it in the go-live UI (FINDINGS F44).
+ * Publishing an offer requires a production BRP, so `beforePublish` runs that onboarding before the offer is published.
+ */
+export async function configureTenant(supabase: { rpc: (name: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: unknown }> },
+  options: { brp?: boolean; beforePublish?: (tenant: { companyId: string; operatorEmail: string; operatorPassword: string }) => Promise<void> } = {}): Promise<LiveTenant> {
   ensureHostedPermissionCatalog()
   ensureProductionRoleLookupParity()
   const companyId = randomUUID(), adminUserId = randomUUID(), gridOwnerId = randomUUID()
@@ -230,6 +234,7 @@ export async function configureTenant(supabase: { rpc: (name: string, args: Reco
     review_required=false,reviewed_at=now() WHERE company_id=${literal(companyId)};`)
   const legal = sql<string>(`SELECT to_jsonb(public.gridex_materialize_legal_bundle_version(${literal(companyId)},(SELECT contract_product_version_id FROM public.contract_offers WHERE id=${literal(offerId)}),NULL,${literal(adminUserId)}))`)
   sql(`UPDATE public.contract_offers SET legal_bundle_version_id=${literal(legal)} WHERE id=${literal(offerId)};`)
+  if (options.beforePublish) await options.beforePublish({ companyId, operatorEmail, operatorPassword })
   const published = await supabase.rpc('gridex_publish_internal_contract_version', { p_company_id: companyId, p_offer_id: offerId, p_actor_user_id: adminUserId })
   if (published.error || !(published.data as { ok?: boolean })?.ok) throw Error(`publish_rejected:${JSON.stringify(published.error ?? published.data)}`)
   sql(`WITH t AS (INSERT INTO public.contract_price_options(company_id,contract_product_version_id,price_plan_version_id,option_reference,option_code,customer_name,contract_type,

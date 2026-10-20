@@ -76,19 +76,22 @@ describe.sequential('reality A — website customers switch supplier', () => {
   it('A1 the supplier goes live: Ediel identity, grid owner, published offer and website integration', async () => {
     expect(LIVE.cronSecret && LIVE.automationUserId).toBeTruthy()
     expect(configurePlatformMailbox()).toBe(1)
-    tenant = await configureTenant(supabaseService as never, { brp: false })
-    report.marketData = await prepareMarketData()
     // Platform go-live, as Gridex staff do it in /admin/ediel/actors: import Ediel's published actor
     // registry (real Ediel IDs and roles; e-mail rewritten to example.invalid) including the grid owner
-    // registry, then verify the area's real grid owner for the customer flow.
+    // registry. Onboarding then chooses the supplier's balance responsible party from that registry
+    // (Bixia AB, 48800); an offer cannot be published without it.
     const registry = sanitizedActorRegistry()
-    staff = await operatorSession(tenant.operatorEmail, tenant.operatorPassword)
-    const imported = await importActorRegistry(staff, registry.path)
-    report.registryImport = imported
+    let imported = { actionStatus: 0, page: '' }
+    tenant = await configureTenant(supabaseService as never, { brp: false, beforePublish: async onboarding => {
+      staff = await operatorSession(onboarding.operatorEmail, onboarding.operatorPassword)
+      imported = await importActorRegistry(staff, registry.path)
+      report.registryImport = imported
+      report.tenantBrp = await chooseTenantBrp(staff, onboarding.companyId, 'Bixia AB', new Date().toISOString().slice(0, 10))
+    } })
+    report.marketData = await prepareMarketData()
+    // Then the area's real grid owner is verified for the customer flow.
     const verification = await verifyActorForCustomerFlow(staff, GRID_OWNER_NAME)
     report.gridOwnerVerification = verification
-    // Onboarding: the supplier's balance responsible party, chosen from the registry (Bixia AB, 48800).
-    report.tenantBrp = await chooseTenantBrp(staff, tenant.companyId, 'Bixia AB', new Date().toISOString().slice(0, 10))
     // The grid owner's S/MIME receiver certificate from the Ediel certificate directory (Expisoft, simulated),
     // and the registry's empty PRODAT/UTILTS subaddress confirmed as safe, then the grid owner check.
     await fetch('http://127.0.0.1:3902/__sim/actor', { method: 'POST', body: JSON.stringify({ edielId: GRID_OWNER_EDIEL_ID, name: GRID_OWNER_NAME, email: registry.mailboxFor(GRID_OWNER_EDIEL_ID) }) })
