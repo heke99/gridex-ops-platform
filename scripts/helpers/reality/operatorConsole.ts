@@ -134,7 +134,12 @@ export type ManualIntakeInput = {
 }
 export async function submitManualIntake(context: BrowserContext, input: ManualIntakeInput) {
   const page = await context.newPage()
+  const opened = Date.now()
   await page.goto('/admin/customers/intake')
+  // The form streams in after the shell; the operator waits until it can be used.
+  await page.locator('button[name="intakeCreateMode"][value="create"]').waitFor({ state: 'visible', timeout: 180_000 })
+  await page.locator('[name="street"]:visible').first().waitFor({ state: 'visible', timeout: 60_000 })
+  const usableAfterMs = Date.now() - opened
   // Some fields appear in more than one form section; the operator types into the visible one.
   const fill = (name: string, value: string) => page.locator(`[name="${name}"]:visible`).first().fill(value)
   const select = (name: string, value: string) => page.locator(`select[name="${name}"]:visible`).first().selectOption(value)
@@ -158,7 +163,7 @@ export async function submitManualIntake(context: BrowserContext, input: ManualI
   const text = (await page.locator('#admin-main').innerText().catch(() => '')).replace(/\s+/g, ' ')
   const url = page.url()
   await page.close()
-  return { actionStatus, url, text: text.slice(0, 1500) }
+  return { actionStatus, url, usableAfterMs, text: text.slice(0, 1500) }
 }
 
 /**
