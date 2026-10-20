@@ -13613,6 +13613,282 @@ CREATE FUNCTION gridex_ediel_retention.artifact_insert_length_v1() RETURNS trigg
 END$$;
 
 --
+-- Name: audit19_approvals_v1; Type: TABLE; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE TABLE gridex_ediel_retention.audit19_approvals_v1 (
+    company_id uuid NOT NULL,
+    target_audit_id uuid NOT NULL,
+    source_commitment text NOT NULL,
+    receipt jsonb NOT NULL,
+    receipt_hash text NOT NULL,
+    reviewer_user_id uuid NOT NULL,
+    approved_at timestamp with time zone NOT NULL,
+    execution_actor_id uuid NOT NULL,
+    expires_at timestamp with time zone NOT NULL,
+    CONSTRAINT audit19_approvals_v1_check CHECK ((isfinite(approved_at) AND isfinite(expires_at) AND (expires_at > approved_at))),
+    CONSTRAINT audit19_approvals_v1_check1 CHECK ((reviewer_user_id <> execution_actor_id))
+);
+
+--
+-- Name: audit19_a_hash_v1(gridex_ediel_retention.audit19_approvals_v1); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.audit19_a_hash_v1(a gridex_ediel_retention.audit19_approvals_v1) RETURNS text
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN
+ IF (SELECT array_agg(attname::text ORDER BY attnum) FROM pg_attribute WHERE attrelid='gridex_ediel_retention.audit19_approvals_v1'::regclass AND attnum>0 AND NOT attisdropped) IS DISTINCT FROM ARRAY['company_id','target_audit_id','source_commitment','receipt','receipt_hash','reviewer_user_id','approved_at','execution_actor_id','expires_at'] THEN RAISE EXCEPTION 'audit19_exact_A9_required' USING ERRCODE='42501';END IF;
+ RETURN encode(sha256(convert_to('audit19_A9_utc_v1:'||((to_jsonb(a)-ARRAY['approved_at','expires_at'])||jsonb_build_object('approved_at',to_char(a.approved_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),'expires_at',to_char(a.expires_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"')))::text,'UTF8')),'hex');END$$;
+
+--
+-- Name: audit19_a_terms_v1(jsonb, timestamp with time zone); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.audit19_a_terms_v1(p jsonb, at timestamp with time zone) RETURNS timestamp with time zone
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE f jsonb;e timestamptz:=(p->>'approvalUntil')::timestamptz;actual text[];BEGIN
+ SELECT array_agg(x->>'field' ORDER BY x->>'field') INTO actual FROM jsonb_array_elements(p->'approvalFields') x;
+ IF jsonb_typeof(p->'approvalFields') IS DISTINCT FROM 'array' OR actual IS DISTINCT FROM ARRAY(SELECT unnest(ARRAY['company_id','target_audit_id','source_commitment','receipt','receipt_hash','reviewer_user_id','approved_at','execution_actor_id','expires_at']) ORDER BY 1) THEN RAISE EXCEPTION 'audit19_exact_own_A9_terms_required' USING ERRCODE='42501';END IF;
+ FOR f IN SELECT value FROM jsonb_array_elements(p->'approvalFields') LOOP
+  IF EXISTS(SELECT FROM jsonb_object_keys(f) k WHERE k NOT IN('field','purpose','basis','min','max','reviewBy','action')) OR jsonb_typeof(f->'purpose') IS DISTINCT FROM 'string' OR length(btrim(f->>'purpose'))=0 OR jsonb_typeof(f->'basis') IS DISTINCT FROM 'string' OR length(btrim(f->>'basis'))=0 OR f->>'action' IS DISTINCT FROM 'consume_or_expire' OR isfinite((f->>'min')::timestamptz) IS DISTINCT FROM true OR isfinite((f->>'max')::timestamptz) IS DISTINCT FROM true OR isfinite((f->>'reviewBy')::timestamptz) IS DISTINCT FROM true OR (f->>'min')::timestamptz>at OR (f->>'max')::timestamptz<=at OR (f->>'reviewBy')::timestamptz<=at THEN RAISE EXCEPTION 'audit19_own_finite_A9_purpose_required' USING ERRCODE='42501';END IF;
+  e:=least(e,(f->>'max')::timestamptz,(f->>'reviewBy')::timestamptz);
+ END LOOP;IF e<=at THEN RAISE EXCEPTION 'audit19_A9_expired' USING ERRCODE='42501';END IF;RETURN e;
+END$$;
+
+--
+-- Name: audit19_context_v1(uuid, uuid); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.audit19_context_v1(c uuid, target uuid) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $_$
+DECLARE a public.audit_logs%rowtype;m jsonb;extra text[];actual text[];contract jsonb;BEGIN
+ PERFORM gridex_ediel_retention.audit19_schema_v1();SELECT * INTO a FROM public.audit_logs WHERE id=target AND company_id=c FOR UPDATE NOWAIT;
+ IF NOT FOUND THEN RAISE EXCEPTION 'audit19_exact_current_target_unavailable' USING ERRCODE='42501';END IF;
+ IF a.company_id IS NULL OR a.actor_user_id IS NULL OR a.old_values IS NOT NULL OR a.new_values IS NOT NULL OR a.actor_type<>'user' OR a.system_actor IS NOT NULL OR a.previous_status IS NOT NULL OR a.new_status IS NOT NULL OR a.entity_id!~'^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$' OR a.resource_type<>a.entity_type OR a.resource_id<>a.entity_id OR jsonb_typeof(a.metadata) IS DISTINCT FROM 'object' THEN RAISE EXCEPTION 'audit19_supported_NULL_OLD_NEW_shape_required' USING ERRCODE='42501';END IF;
+ contract:=gridex_ediel_retention.audit19_source_contract_v1(a.action);m:=a.metadata;
+ extra:=CASE a.action WHEN 'ediel.retention.decision_original_submitted' THEN ARRAY['retentionClass','targetId','sourceHash','documentHash'] WHEN 'ediel.retention.decision_original_reviewed' THEN ARRAY['reviewId','outcome'] WHEN 'ediel.retention.decision_original_bytes_removed' THEN ARRAY['policyId','reviewId','retentionClass','sourceHash','byteLength','journalRetainUntil','journalPurposeReference','freshAuthorityRevoked'] ELSE ARRAY['policyId','reviewId','retentionClass','sourceHash','journalRetainUntil','journalPurposeReference'] END;
+ SELECT array_agg(k ORDER BY k) INTO actual FROM jsonb_object_keys(m) k;
+ IF actual IS DISTINCT FROM ARRAY(SELECT unnest(extra||ARRAY['actor_type','request_id','correlation_id','resource_type','resource_id']) ORDER BY 1) OR m->>'actor_type' IS DISTINCT FROM a.actor_type OR m->>'request_id' IS DISTINCT FROM a.request_id OR m->>'correlation_id' IS DISTINCT FROM a.correlation_id OR m->>'resource_type' IS DISTINCT FROM a.resource_type OR m->>'resource_id' IS DISTINCT FROM a.resource_id THEN RAISE EXCEPTION 'audit19_exact_normalized_metadata_required' USING ERRCODE='42501';END IF;
+ IF a.entity_type IS DISTINCT FROM (CASE WHEN a.action='ediel.retention.completed_review_reason_retired' THEN 'retention_review' ELSE 'retention_decision_original' END) OR EXISTS(SELECT FROM jsonb_each(m) x WHERE x.key<>ALL(ARRAY['byteLength','freshAuthorityRevoked']) AND jsonb_typeof(x.value)<>'string') THEN RAISE EXCEPTION 'audit19_metadata_types_required' USING ERRCODE='42501';END IF;
+ IF a.action='ediel.retention.decision_original_reviewed' THEN IF m->>'outcome' NOT IN('approved','rejected') OR m->>'reviewId'!~'^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$' THEN RAISE EXCEPTION 'audit19_review_metadata_required' USING ERRCODE='42501';END IF;
+ ELSE
+  IF m->>'sourceHash'!~'^[a-f0-9]{64}$' OR NOT EXISTS(SELECT FROM gridex_ediel_retention.decision_evidence_catalog WHERE retention_class=m->>'retentionClass' AND retention_class<>'audit_normalized19_cleanup') OR a.action='ediel.retention.completed_review_reason_retired' AND m->>'retentionClass'<>'completed_decision_review_reason' THEN RAISE EXCEPTION 'audit19_actual_metadata_class_required' USING ERRCODE='42501';END IF;
+  IF a.action='ediel.retention.decision_original_submitted' THEN IF m->>'documentHash'!~'^[a-f0-9]{64}$' OR m->>'targetId'!~'^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$' THEN RAISE EXCEPTION 'audit19_submit_metadata_required' USING ERRCODE='42501';END IF;
+  ELSE
+   IF m->>'policyId'!~'^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$' OR m->>'reviewId'!~'^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$' OR length(m->>'journalPurposeReference')=0 OR isfinite((m->>'journalRetainUntil')::timestamptz) IS DISTINCT FROM true THEN RAISE EXCEPTION 'audit19_completed_metadata_required' USING ERRCODE='42501';END IF;
+   IF a.action='ediel.retention.decision_original_bytes_removed' AND (jsonb_typeof(m->'byteLength')<>'number' OR (m->>'byteLength')!~'^[0-9]+$' OR m->'freshAuthorityRevoked' IS DISTINCT FROM 'true'::jsonb) THEN RAISE EXCEPTION 'audit19_bytes_metadata_required' USING ERRCODE='42501';END IF;
+  END IF;
+ END IF;
+ RETURN contract||jsonb_build_object('rowHash',gridex_ediel_retention.audit19_hash_v1(a),'metadataKeys',to_jsonb(actual));
+END$_$;
+
+--
+-- Name: audit19_execution_actor_v1(uuid, uuid); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.audit19_execution_actor_v1(c uuid, actor uuid) RETURNS void
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$BEGIN
+ PERFORM public.ediel_retention_lock_auth_actor_v1(actor);PERFORM id FROM public.user_profiles WHERE id=actor FOR SHARE;PERFORM user_id FROM public.company_memberships WHERE company_id=c AND user_id=actor FOR SHARE;
+ IF NOT public.ediel_retention_lock_auth_actor_v1(actor) OR NOT EXISTS(SELECT FROM public.user_profiles WHERE id=actor AND user_status='active') OR NOT EXISTS(SELECT FROM public.company_memberships WHERE company_id=c AND user_id=actor AND status='active' AND is_active AND accepted_at IS NOT NULL) OR gridex_ediel_retention.permission_v1(c,actor,'ediel.retention.purge') IS NOT TRUE OR gridex_ediel_retention.permission_v1(c,actor,'ediel.retention.audit_normalized19_cleanup') IS NOT TRUE THEN RAISE EXCEPTION 'audit19_current_execution_actor_required' USING ERRCODE='42501';END IF;
+END$$;
+
+--
+-- Name: audit19_fields_v1(jsonb, jsonb, timestamp with time zone); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.audit19_fields_v1(p jsonb, context jsonb, at timestamp with time zone) RETURNS void
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE f jsonb;t jsonb;lo timestamptz:='-infinity';hi timestamptz:='infinity';mins timestamptz;maxs timestamptz;review_at timestamptz;actual text[];purpose_set text[];BEGIN
+ SELECT array_agg(x->>'field' ORDER BY x->>'field') INTO actual FROM jsonb_array_elements(p->'fields') x;
+ IF jsonb_typeof(p->'fields') IS DISTINCT FROM 'array' OR actual IS DISTINCT FROM ARRAY(SELECT attname::text FROM pg_attribute WHERE attrelid='public.audit_logs'::regclass AND attnum>0 AND NOT attisdropped ORDER BY attname) THEN RAISE EXCEPTION 'audit19_exact_all19_field_terms_required' USING ERRCODE='42501';END IF;
+ FOR f IN SELECT value FROM jsonb_array_elements(p->'fields') LOOP
+  IF EXISTS(SELECT FROM jsonb_object_keys(f) k WHERE k NOT IN('field','purposes','coveredKeys')) OR jsonb_typeof(f->'purposes') IS DISTINCT FROM 'array' OR jsonb_array_length(f->'purposes')=0 OR (SELECT count(*) FROM jsonb_array_elements(f->'purposes'))<>(SELECT count(DISTINCT x->>'purpose') FROM jsonb_array_elements(f->'purposes') x) THEN RAISE EXCEPTION 'audit19_finite_purpose_terms_required' USING ERRCODE='42501';END IF;
+  IF f->>'field'='metadata' AND f->'coveredKeys' IS DISTINCT FROM context->'metadataKeys' OR f->>'field'<>'metadata' AND f ? 'coveredKeys' THEN RAISE EXCEPTION 'audit19_exact_metadata_policy_coverage_required' USING ERRCODE='42501';END IF;
+  FOR t IN SELECT value FROM jsonb_array_elements(f->'purposes') LOOP
+   IF EXISTS(SELECT FROM jsonb_object_keys(t) k WHERE k NOT IN('purpose','basis','min','max','reviewBy','action')) OR jsonb_typeof(t->'purpose') IS DISTINCT FROM 'string' OR length(btrim(t->>'purpose'))=0 OR jsonb_typeof(t->'basis') IS DISTINCT FROM 'string' OR length(btrim(t->>'basis'))=0 OR t->>'action' IS DISTINCT FROM 'erase' OR isfinite((t->>'min')::timestamptz) IS DISTINCT FROM true OR isfinite((t->>'max')::timestamptz) IS DISTINCT FROM true OR isfinite((t->>'reviewBy')::timestamptz) IS DISTINCT FROM true THEN RAISE EXCEPTION 'audit19_explicit_purpose_basis_min_max_review_action_required' USING ERRCODE='42501';END IF;
+   mins:=(t->>'min')::timestamptz;maxs:=(t->>'max')::timestamptz;review_at:=(t->>'reviewBy')::timestamptz;
+   IF mins>maxs OR mins>review_at OR at>=review_at THEN RAISE EXCEPTION 'audit19_purpose_window_or_review_required' USING ERRCODE='42501';END IF;
+   lo:=greatest(lo,mins);hi:=least(hi,maxs);
+  END LOOP;
+ END LOOP;
+ SELECT array_agg(DISTINCT term.value->>'purpose' ORDER BY term.value->>'purpose') INTO purpose_set FROM jsonb_array_elements(p->'fields') fld CROSS JOIN LATERAL jsonb_array_elements(fld.value->'purposes') term;
+ IF p->'necessaryPurposeSet' IS DISTINCT FROM to_jsonb(purpose_set) OR lo>hi THEN RAISE EXCEPTION 'audit19_complete_compatible_actual_purposes_required' USING ERRCODE='42501';END IF;
+ IF at<lo THEN RAISE EXCEPTION 'audit19_actual_minimum_not_reached' USING ERRCODE='42501';END IF;
+ IF at>hi AND p->>'cleanupMode' IS DISTINCT FROM 'qualified_overdue_cleanup' OR p->>'cleanupMode' IS NULL OR p->>'cleanupMode' NOT IN('within_qualified_window','qualified_overdue_cleanup') THEN RAISE EXCEPTION 'audit19_current_overdue_cleanup_qualification_required' USING ERRCODE='42501';END IF;
+END$$;
+
+--
+-- Name: audit19_guard_v1(); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.audit19_guard_v1() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE c uuid;target uuid;h text;n text;a record;BEGIN
+ IF TG_RELID='public.audit_logs'::regclass THEN
+  IF current_user<>'gridex_ediel_retention_owner' THEN RETURN OLD;END IF;
+  c:=OLD.company_id;target:=OLD.id;h:=gridex_ediel_retention.audit19_hash_v1(OLD);
+  SELECT * INTO STRICT a FROM gridex_ediel_retention.audit19_approvals_v1 WHERE company_id=c AND target_audit_id=target FOR UPDATE NOWAIT;
+  IF h IS DISTINCT FROM a.source_commitment OR clock_timestamp()>=a.expires_at THEN RAISE EXCEPTION 'audit19_exact_final_OLD19_or_time_required' USING ERRCODE='42501';END IF;
+ ELSE
+  IF TG_OP='UPDATE' THEN RAISE EXCEPTION 'audit19_A9_is_immutable' USING ERRCODE='42501';END IF;
+  IF TG_OP='INSERT' THEN c:=NEW.company_id;target:=NEW.target_audit_id;n:=gridex_ediel_retention.audit19_a_hash_v1(NEW);
+  ELSE c:=OLD.company_id;target:=OLD.target_audit_id;h:=gridex_ediel_retention.audit19_a_hash_v1(OLD);END IF;
+ END IF;
+ DELETE FROM gridex_ediel_retention.audit19_permits_v1 WHERE backend=pg_backend_pid() AND xid=txid_current() AND relation=TG_RELID AND company_id=c AND target_id=target AND operation=TG_OP AND old_hash IS NOT DISTINCT FROM h AND new_hash IS NOT DISTINCT FROM n;
+ IF NOT FOUND THEN RAISE EXCEPTION 'audit19_exact_backend_xid_company_target_OLD_NEW_permit_required' USING ERRCODE='42501';END IF;
+ IF TG_OP='INSERT' THEN RETURN NEW;ELSE RETURN OLD;END IF;
+END$$;
+
+--
+-- Name: audit_logs; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.audit_logs (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid,
+    actor_user_id uuid,
+    entity_type text NOT NULL,
+    entity_id text NOT NULL,
+    action text NOT NULL,
+    old_values jsonb,
+    new_values jsonb,
+    metadata jsonb,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now(),
+    actor_type text NOT NULL,
+    system_actor text,
+    request_id text NOT NULL,
+    correlation_id text NOT NULL,
+    resource_type text NOT NULL,
+    resource_id text NOT NULL,
+    previous_status text,
+    new_status text,
+    CONSTRAINT audit_logs_actor_type_check CHECK ((actor_type = ANY (ARRAY['user'::text, 'system'::text]))),
+    CONSTRAINT audit_logs_system_actor_check CHECK (((actor_user_id IS NOT NULL) OR (NULLIF(system_actor, ''::text) IS NOT NULL)))
+);
+
+--
+-- Name: audit19_hash_v1(public.audit_logs); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.audit19_hash_v1(a public.audit_logs) RETURNS text
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN PERFORM gridex_ediel_retention.audit19_schema_v1();
+ RETURN encode(sha256(convert_to('audit19_canonical_utc_v1:'||((to_jsonb(a)-ARRAY['created_at','updated_at'])||jsonb_build_object('created_at',to_char(a.created_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),'updated_at',to_char(a.updated_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"')))::text,'UTF8')),'hex');END$$;
+
+--
+-- Name: audit19_lock_v1(uuid, uuid, text, boolean); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.audit19_lock_v1(c uuid, actor uuid, operation text, source_needed boolean) RETURNS void
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN
+ PERFORM gridex_ediel_ack_replay.lock_current_graph_v2();PERFORM gridex_ediel_retention.decision_evidence_lock_v1(c);
+ PERFORM gridex_ediel_retention.decision_evidence_actor_v1(c,actor,'audit_normalized19_cleanup',operation);
+ -- No blocking inversion with ordinary business writers that later insert audit.
+ IF source_needed THEN LOCK TABLE public.customers,public.audit_logs IN SHARE ROW EXCLUSIVE MODE NOWAIT;END IF;
+ LOCK TABLE gridex_ediel_retention.audit19_approvals_v1 IN SHARE ROW EXCLUSIVE MODE NOWAIT;
+END$$;
+
+--
+-- Name: audit19_permits_empty_v1(); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.audit19_permits_empty_v1() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$BEGIN
+ IF EXISTS(SELECT FROM gridex_ediel_retention.audit19_permits_v1 WHERE backend=pg_backend_pid() AND xid=txid_current()) THEN RAISE EXCEPTION 'audit19_unconsumed_transaction_permit' USING ERRCODE='42501';END IF;RETURN NULL;END$$;
+
+--
+-- Name: audit19_receipt_v1(uuid, uuid, jsonb); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.audit19_receipt_v1(c uuid, target uuid, envelope jsonb) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $_$
+DECLARE i gridex_ediel_retention.issuers%rowtype;p jsonb;bytes bytea;at timestamptz;BEGIN
+ IF jsonb_typeof(envelope) IS DISTINCT FROM 'object' OR EXISTS(SELECT FROM jsonb_object_keys(envelope) k WHERE k NOT IN('issuerId','payloadBase64','signatureHex')) OR coalesce(envelope->>'signatureHex','')!~'^[a-f0-9]{64}$' OR length(coalesce(envelope->>'payloadBase64','')) NOT BETWEEN 1 AND 65536 THEN RAISE EXCEPTION 'audit19_receipt_shape_required' USING ERRCODE='42501';END IF;
+ SELECT * INTO STRICT i FROM gridex_ediel_retention.issuers WHERE id=(envelope->>'issuerId')::uuid AND company_id=c FOR SHARE NOWAIT;
+ bytes:=decode(envelope->>'payloadBase64','base64');
+ IF encode(gridex_requested_changes.receipt_hmac_sha256_v1(bytes,i.signing_key),'hex') IS DISTINCT FROM envelope->>'signatureHex' OR encode(sha256(i.legal_evidence),'hex') IS DISTINCT FROM i.legal_hash OR EXISTS(SELECT FROM gridex_ediel_retention.issuer_revocations WHERE issuer_id=i.id) THEN RAISE EXCEPTION 'audit19_current_issuer_signature_required' USING ERRCODE='42501';END IF;
+ p:=convert_from(bytes,'UTF8')::jsonb;at:=clock_timestamp();
+ IF p->>'format' IS DISTINCT FROM 'ediel_audit19_qualified_cleanup_v1' OR p->>'operation' IS DISTINCT FROM 'erase_one_exact_normalized_audit19' OR p->>'companyId' IS DISTINCT FROM c::text OR p->>'auditId' IS DISTINCT FROM target::text OR p->>'issuerLegalReference' IS DISTINCT FROM i.legal_reference OR p->>'policyVersion' IS DISTINCT FROM 'audit19-cleanup-v1' OR EXISTS(SELECT FROM jsonb_object_keys(p) k WHERE k NOT IN('format','operation','companyId','auditId','issuerLegalReference','policyVersion','sourceCommitment','origin','issuedAt','expiresAt','approvalUntil','executionActorId','reviewerId','customerScopeHash','fields','approvalFields','necessaryPurposeSet','cleanupMode')) OR isfinite((p->>'issuedAt')::timestamptz) IS DISTINCT FROM true OR isfinite((p->>'expiresAt')::timestamptz) IS DISTINCT FROM true OR isfinite((p->>'approvalUntil')::timestamptz) IS DISTINCT FROM true OR at<i.valid_from OR at>=i.valid_to OR (p->>'issuedAt')::timestamptz<i.valid_from OR (p->>'issuedAt')::timestamptz>at OR (p->>'expiresAt')::timestamptz>i.valid_to OR (p->>'expiresAt')::timestamptz<=at OR (p->>'approvalUntil')::timestamptz>(p->>'expiresAt')::timestamptz OR (p->>'approvalUntil')::timestamptz<=at THEN RAISE EXCEPTION 'audit19_current_domain_and_signature_window_required' USING ERRCODE='42501';END IF;
+ RETURN p;
+END$_$;
+
+--
+-- Name: audit19_schema_v1(); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.audit19_schema_v1() RETURNS void
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN
+ IF (SELECT array_agg(attname::text ORDER BY attnum) FROM pg_attribute WHERE attrelid='public.audit_logs'::regclass AND attnum>0 AND NOT attisdropped)
+ IS DISTINCT FROM ARRAY['id','company_id','actor_user_id','entity_type','entity_id','action','old_values','new_values','metadata','created_at','updated_at','actor_type','system_actor','request_id','correlation_id','resource_type','resource_id','previous_status','new_status']
+ OR (SELECT array_agg(atttypid::regtype::text ORDER BY attnum) FROM pg_attribute WHERE attrelid='public.audit_logs'::regclass AND attnum>0 AND NOT attisdropped)
+ IS DISTINCT FROM ARRAY['uuid','uuid','uuid','text','text','text','jsonb','jsonb','jsonb','timestamp with time zone','timestamp with time zone','text','text','text','text','text','text','text','text'] THEN RAISE EXCEPTION 'audit19_exact_schema_required' USING ERRCODE='42501';END IF;
+END$$;
+
+--
+-- Name: audit19_source_contract_v1(text); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.audit19_source_contract_v1(action text) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $_$
+DECLARE expected constant jsonb:=$contracts${"gridex_bilateral_prodat.record_closure_end_v1":"1dc4ba8e396659bbbe5224c798e0d304de4bad2c9b7ccd069fecac03e71bf9f5","gridex_bilateral_prodat.record_supply_effect_v1":"ff3f154aa4c999812dc4af561c2b72b180389a9c25dfdadc1131a7624219d505","gridex_contract_source_intake.terminal_archive_body_v1":"5a7e3905d3b28e92b03f39542a1583f9546bace431ed38fb59ff96f84ae554eb","gridex_contract_source_intake.terminal_review_body_v1":"a7c4741b33e85167e10bb896eae244ca24f0841c02d80ac845b99efc794c4f05","gridex_supply_rescission.record_end_v1":"b837a3e065e1c355c90272b959845c88470653e698077398730fe72e797da58f","public.canonical_change_tenant_user_access":"0fb790b60ba4f1ae0333fcdab5a1b15898be760562defcfda721bc86f727da21","public.canonical_create_tenant_invitation":"0aa1d5afa8567ccefb944406dcc2827c0a3f9ce128ad812d960de4ac05dae13b","public.canonical_resolve_inbound_manual_review":"a28be4b80a864d7974ff5779c7e46e4ad364f305b45454ce603f434e769d77d0","public.ediel_begin_blob_purge_v1":"e5b9584f96b87d8d7aa932e69a884f727dfcbdade3e0902451a341bcec230378","public.ediel_begin_customer_record_retention_v1":"30fc90f9968223c0f95f22b3769dca36bef4daa95ab13f364fb01905efed98b9","public.ediel_compare_and_set_prodat_object_case_v1":"5b55449a2bfc7302c3e9707a73fda7df103dea597c7bbad29163e2d17153de2d","public.ediel_create_bilateral_prodat_original_v1":"b6a0001805661c1449375398ff9468b757e2ed278e39b6589209e2d3c520766c","public.ediel_create_national_supply_rescission_original_v1":"0f509705f91a66eec9b615ead51300e47599daa4630731e2292f8710aee54855","public.ediel_finish_blob_storage_purge_v1":"98e2f03b7873740a3f0451659465a756c35206dcfc315f7e30341cab911d25ee","public.ediel_finish_contract_document_retention_v1":"d4bd3053b1b2dda652a66196103183dfefed0805efafdd3f7a8dab53c0c4e989","public.ediel_pseudonymise_customer_retention_v1":"8e2b92e982a37a6a340e9046f3cc702c98d5bdb1f259aa07551e790e84f423d6","public.ediel_purge_artifact_retention_v1":"90afc7cfc5dbb3a27d89bf83f3a6dd9029a75e33c9532d9eb7ee6419a2babc9e","public.ediel_purge_decision_evidence_retention_v1":"2955596190537241aea6c4b083bea67829e84a1f93a34de9c35c945b55e43785","public.ediel_purge_finance_copy_retention_v1":"86d330ca63e26cea0bf3a9f535cef03bb53ca585bfdd8f0b1032dd699d6e54cd","public.ediel_purge_process_journal_retention_v1":"d3959c0e53b46bc306a027e31ff06793d43943bb96a64eac2aeaf63182dc363b","public.ediel_review_artifact_retention_v1":"90d5cbc0de45909c3a367c72e9a7030a41c8bdf318e071b437f399d7b3ef304f","public.ediel_review_blob_retention_v1":"885e6a46dafbb9b57075a205ccc80df9edf3f0de216d16767e1e5511a80a7d03","public.ediel_review_customer_record_retention_v1":"d8b849344ff304dd32dffff0de1d1a7023183410f168624a5ae6a7011f0ba8e5","public.ediel_review_customer_retention_v1":"cef49bc3cc0d1748a8c152baa767fa6f4c5af86bc7f2d713a42075a286309aad","public.ediel_review_decision_evidence_retention_v1":"9eea7976474ff7e16d1e022787eedce025d0b7a5617237860d82ac6bd502b5c5","public.ediel_review_finance_copy_retention_v1":"2cb1f48311a1931f571c48be172c554f2b1c22de87c33f475a37018b7c7a1a7d","public.ediel_review_process_journal_retention_v1":"0b7893d60e06f8e83940fe6c6b54dd277b5f840d2de36bed85a247dfb714bd4d","public.ediel_review_supply_rescission_v1":"50f4f56aa818f358aff91686481cc966adf68f71a186f4e5874e1ed9fdd5d89e","public.ediel_revoke_artifact_retention_v1":"99908d7bf36d9c3aab118f3a2048c44925dca3d6b08d92fad2546ceff20cf7eb","public.ediel_revoke_blob_retention_before_class_guard_v1":"fd77885dc005bd98e5b40e50e3a1d28cb1783f4a8fd43bb1c4e0acb2bc8a91f1","public.ediel_revoke_customer_record_retention_v1":"c9997203f692dbe8ccaa6e4fb920d894da9de0bad78a8f1eb49fbbce63a73587","public.ediel_revoke_customer_retention_v1":"fe047c503bd7fa0aef36441aa3e3e6c883b27abf75f1ad511c67b7717972fd30","public.ediel_submit_artifact_retention_v1":"b1d1cea40c72f9aa61c9d27e6c962bd5a5c2474bff0e304fb5f525b60b4ff509","public.ediel_submit_blob_retention_v1":"560b1db290414e9315344290636081b848c7047f1770e8e2de4dce362e1b8d58","public.ediel_submit_customer_record_retention_v1":"98898b6fc1e158cfb489e0fa8ed872be77c4149537daff068b68b00a24a252ee","public.ediel_submit_customer_retention_v1":"265082871e9b15c500247aa5a96f6431ca706be9569150138406fd1f17c59a6a","public.ediel_submit_decision_evidence_retention_v1":"1285b451711ce13024e88533a67bf3a99c22fbb4c9c2037ea900b8f6edfad575","public.ediel_submit_finance_copy_retention_v1":"98cdc6c8193282c26d3ee973213e3281e2e1432f2fb0f35d3e9cf50459b606b6","public.ediel_submit_process_journal_retention_v1":"7efa8bc14385788b522224a3f6dd46aa51c485bafa14be133385974f626af10d","public.gridex_anonymize_customer_v1":"cb3ea8bae84f19a7c0ebee45e1573894b416cf9e4e5184ecbc6a9c49a6dc1ba1","public.gridex_apply_public_contract_legal_backfill_v1":"219fb4d54a43b0f0766f974a736defca632b3f1f415466cad2272bd4b2dd8f82","public.gridex_archive_contract_product":"251af37882580c0e213c6f4e5ccf399ec40f8abb812f2eadda9b692da2fcfce1","public.gridex_archive_customer_v1":"ea3933e0dc4930e9ced0c64e9b01308ae7b99b12997bc6366ac2135494881a78","public.gridex_assign_company_to_whitelabel":"5383e946b45789f9a9889a111520d0ecd0e321ce0e7a88cccceda0224947e7d5","public.gridex_assign_customer_case":"3558610a10a25d3de37cf17db60024f1fa0fd75dee47cbfbafeef6fb78b20c52","public.gridex_audit_staff_identity_request_v1":"da9413b5efa4ba51d6d8f5cc47e457bdec4db7ea589fa348510cc96ee0be17c5","public.gridex_audit_staff_support_attachment_v1":"8bc85992a3e4a371e13392d81c14f89dc4b2465086ac5872912e56444f9f894b","public.gridex_backfill_invoice_fees":"c920d1fca9bfbafc18278f6df12d90f02a65bb66baf8b6268043c3f8b971710b","public.gridex_close_contract_product":"2b387433b664e4b02a1b6e61b653a3a7b49a0cb193855ae610cbd3863bd49833","public.gridex_complete_unreferenced_internal_invoice_fee_tasks":"7f89cb462efd11fcaca910bf60bafb8f3d29a308a3f164a73a1ecb977e91c506","public.gridex_create_invoice_export_file_v1":"26ea8f9fd128c2253d9e3e7a71b7fbd729a1798fe42819f96b0033a37b44b48b","public.gridex_create_staff_support_case_v1":"cb5e1db06688e79bd9695feaa713ab39a0862f1ed0f7de0cce4c44254fe48bef","public.gridex_customer_contact_change_v1":"dcc59600b4daa4a3dc25b5ff531ace5c9b4b6a7834408ed5751b5d82657bea54","public.gridex_decide_customer_identity_change_v1":"e5952f4a0d56c844e506fab6c1027a15366b88d5971bce33e3100a77113cc1e6","public.gridex_delete_test_customer_v1":"12542d754f8f3e0bd49a98525adc85ac817df7654280875941f7a5f0c3127b7f","public.gridex_delete_unused_contract":"917b639cdb75b7ac510a6a39d767568637da972083477ee7cde705123a1b2e7e","public.gridex_delete_unused_contract_v2":"b66393eab9ecb515be7e6f5f5a6ff657d605a0b45ad2adc5cf79471c487db647","public.gridex_end_contract_channel":"44ca5b9755283f8e034d40496307cd18d67c2f13a43b7de747fd9325f93f823d","public.gridex_finalize_contract_publication_v1":"04b22c1511ae4ebbb5d4d566d774fc3979a0c1e5aec05e6d5a621f1236e53efa","public.gridex_guard_company_hard_delete_v1":"2aee85ae0ea1d2478e9eb9631b4deb2046d8f6b7e598a109bce390ab7c929ae2","public.gridex_materialize_company_operational_routes":"53d2740e99111e03eee290324dbcb53f36fb8cd0b6a60375f7f4d6bde9e48f85","public.gridex_merge_customers_v1":"76a070a53a5789bc3a64e89e8eaeca3920443a258bf1d33972504e7d318c7b67","public.gridex_onboard_customer_graph_core":"1610d0a87a9eeae06e593b9465cc675a63abb403092241ce76dc5c2dc2db637f","public.gridex_onboard_customer_graph_quote_commit_v2":"14eefb36d7a955d34761612ee8aa6fef0b7f771ffbc287673eddc9a45ef24fd1","public.gridex_pause_contract_channels":"56a880cbac80b653624e7246efe20f75a62ec6329c45d8b2b4165a062d3b229d","public.gridex_provision_tenant_website_client_v1":"87550bada7602f0a1ff1797f53f583c1f298d7e587a02bac768f3c6aa411b3e4","public.gridex_publish_contract_channel":"e06f4b770cda17e95553f2297c0db310419022a3e817df01931b6359bfd36c47","public.gridex_publish_contract_version":"bc902dbf9a21e0ec0b98f321d871e4dff718d5e9664ce5a431515597b454f4b0","public.gridex_publish_internal_contract_version":"e65e9f046b558512e00a89622f5fdffe888dee5a57072982ee4a01292192732a","public.gridex_rebuild_company_legal_profile":"3d9b1f31318a53cc321d88de95ed7d8f1ea57e773c607baea4b21dbf9fd8cc1e","public.gridex_remove_contract_offer":"dbe179d2237cc3cfab38c949d902cfb6ea1c6da6e4d499395e4880e4880a1753","public.gridex_remove_internal_contract_offer":"4b13d2867a6f2f836a0251210304649fadac8d569cb28e6b6b5b10ea5e1b2c79","public.gridex_repair_contract_publication_links":"ba6ed8f86e47b496b3b24bebb70c39a51224b338b45ba36299124ac46660272a","public.gridex_repair_duplicate_primary_website_client_v1":"2ee2bf7a91d1168debefc0111cbebe4509caa5c8d3b0ca583e81ba6e7c2ed571","public.gridex_republish_active_public_contract_v1":"89c1799f06b7320dea75eb8d3ae77e47c945ce346d21d5f072bd7021b6aeb517","public.gridex_resolve_customer_match_review_case":"65e3a166ec3edce1dc4b109167168b47edbb658010d4a223f1000e170d57fd73","public.gridex_review_company_legal_profile":"6e55f97126d79e2a568bae42881b91d3308987141cc07e9c2ff8bc8c5c2bf0b3","public.gridex_seed_publication_price_option_template_v2":"5c650135a3c186897815eacbd191beb9f6fae373800aaa8de0cf705b24ee492d","public.gridex_select_invoice_provider_v1":"bb05e1d84ed27a1de8daaba61483aa196441aa940a0fb79a984630847a4d2287","public.gridex_set_contract_channel_permission":"8aafe9baca11f715fe6199cf98845c4590cadfcadfbd302fb839f2b79f1c016e","public.gridex_set_invoice_dispatch_enabled_v1":"94e9f5ace0487240657940e809f04d31918064a5d048d689af85d170e0235719","public.gridex_staff_support_event":"d20b2c1217b01223d300978de80fdb5811f8ef26675d0615750eb5289c82a4b5","public.gridex_submit_customer_move_out_v1":"73d3c38f0cc53a4e8b11ccdae2d676666dcff528f83c5129cbdb5c07058078e8","public.gridex_transition_tenant_lifecycle":"42e74fb43a869f09359ffb8eaefcf0270d98c679953913e7247985838af1583c","public.gridex_unpublish_contract_channel":"2686236c547d68ca40067469f9f4436dba86e674f725b5b27230bbaea9b885c1","public.gridex_update_company_and_rebuild_legal_profile":"04a5ad7e9968edc772e965ac52e3910bd635be62b9f1a40661e77f46d6e289a5","public.gridex_update_customer_case_status_with_actor_v1":"116b1e985a42a77cc8ffc33cc80adfad65c66456d7aabccc8477d8d8d3a02b9b","public.gridex_upsert_internal_contract_offer":"7e37e58fdaa9d32471e27de9033a8cbac5b6e4574b7c5d47ec2d7a17f22c2f79","gridex_ediel_retention.completed_review_reason_retire_v1":"e42039bd11fb2ad0436deaa73fcaf600bf32a35ccd8f6942841ea81b50662079","public.gridex_normalize_audit_context_v1":"1ca6520a3f00275448ca845bcb22ce41b30e8858d5c5786434ec0f260bf78f53","public.gridex_guard_history_truncate_v1":"332134e44d786ed24ae616494aabd79ec8f4e4f34dababb07d060f5a67bbc3bb"}$contracts$::jsonb;signatures constant jsonb:=$signatures${"gridex_bilateral_prodat.record_closure_end_v1":"gridex_bilateral_prodat.record_closure_end_v1(public.ediel_messages,jsonb)","gridex_bilateral_prodat.record_supply_effect_v1":"gridex_bilateral_prodat.record_supply_effect_v1(public.ediel_messages)","gridex_contract_source_intake.terminal_archive_body_v1":"gridex_contract_source_intake.terminal_archive_body_v1(uuid,uuid,uuid,text,text,jsonb)","gridex_contract_source_intake.terminal_review_body_v1":"gridex_contract_source_intake.terminal_review_body_v1(uuid,uuid,uuid,jsonb)","gridex_supply_rescission.record_end_v1":"gridex_supply_rescission.record_end_v1(public.ediel_messages,jsonb)","public.canonical_change_tenant_user_access":"public.canonical_change_tenant_user_access(jsonb)","public.canonical_create_tenant_invitation":"public.canonical_create_tenant_invitation(jsonb)","public.canonical_resolve_inbound_manual_review":"public.canonical_resolve_inbound_manual_review(uuid,uuid,text,text,uuid)","public.ediel_begin_blob_purge_v1":"public.ediel_begin_blob_purge_v1(uuid,uuid,uuid)","public.ediel_begin_customer_record_retention_v1":"public.ediel_begin_customer_record_retention_v1(uuid,uuid,uuid)","public.ediel_compare_and_set_prodat_object_case_v1":"public.ediel_compare_and_set_prodat_object_case_v1(uuid,uuid,uuid,uuid,timestamp with time zone,text,text,integer,jsonb)","public.ediel_create_bilateral_prodat_original_v1":"public.ediel_create_bilateral_prodat_original_v1(uuid,uuid,jsonb)","public.ediel_create_national_supply_rescission_original_v1":"public.ediel_create_national_supply_rescission_original_v1(uuid,uuid,jsonb)","public.ediel_finish_blob_storage_purge_v1":"public.ediel_finish_blob_storage_purge_v1(uuid,uuid,uuid)","public.ediel_finish_contract_document_retention_v1":"public.ediel_finish_contract_document_retention_v1(uuid,uuid,uuid)","public.ediel_pseudonymise_customer_retention_v1":"public.ediel_pseudonymise_customer_retention_v1(uuid,uuid,uuid)","public.ediel_purge_artifact_retention_v1":"public.ediel_purge_artifact_retention_v1(uuid,uuid,uuid)","public.ediel_purge_decision_evidence_retention_v1":"public.ediel_purge_decision_evidence_retention_v1(uuid,uuid,uuid)","public.ediel_purge_finance_copy_retention_v1":"public.ediel_purge_finance_copy_retention_v1(uuid,uuid,uuid)","public.ediel_purge_process_journal_retention_v1":"public.ediel_purge_process_journal_retention_v1(uuid,uuid,uuid)","public.ediel_review_artifact_retention_v1":"public.ediel_review_artifact_retention_v1(uuid,uuid,uuid,text,text)","public.ediel_review_blob_retention_v1":"public.ediel_review_blob_retention_v1(uuid,uuid,uuid,text,text)","public.ediel_review_customer_record_retention_v1":"public.ediel_review_customer_record_retention_v1(uuid,uuid,uuid,text,text)","public.ediel_review_customer_retention_v1":"public.ediel_review_customer_retention_v1(uuid,uuid,uuid,text,text)","public.ediel_review_decision_evidence_retention_v1":"public.ediel_review_decision_evidence_retention_v1(uuid,uuid,uuid,text,text)","public.ediel_review_finance_copy_retention_v1":"public.ediel_review_finance_copy_retention_v1(uuid,uuid,uuid,text,text)","public.ediel_review_process_journal_retention_v1":"public.ediel_review_process_journal_retention_v1(uuid,uuid,uuid,text,text)","public.ediel_review_supply_rescission_v1":"public.ediel_review_supply_rescission_v1(uuid,uuid,uuid,jsonb)","public.ediel_revoke_artifact_retention_v1":"public.ediel_revoke_artifact_retention_v1(uuid,uuid,uuid,text)","public.ediel_revoke_blob_retention_before_class_guard_v1":"public.ediel_revoke_blob_retention_before_class_guard_v1(uuid,uuid,uuid,text)","public.ediel_revoke_customer_record_retention_v1":"public.ediel_revoke_customer_record_retention_v1(uuid,uuid,uuid,text)","public.ediel_revoke_customer_retention_v1":"public.ediel_revoke_customer_retention_v1(uuid,uuid,uuid,text)","public.ediel_submit_artifact_retention_v1":"public.ediel_submit_artifact_retention_v1(uuid,uuid,uuid,text,jsonb)","public.ediel_submit_blob_retention_v1":"public.ediel_submit_blob_retention_v1(uuid,uuid,text,uuid,text,jsonb)","public.ediel_submit_customer_record_retention_v1":"public.ediel_submit_customer_record_retention_v1(uuid,uuid,text,uuid,text,jsonb)","public.ediel_submit_customer_retention_v1":"public.ediel_submit_customer_retention_v1(uuid,uuid,uuid,text,jsonb)","public.ediel_submit_decision_evidence_retention_v1":"public.ediel_submit_decision_evidence_retention_v1(uuid,uuid,text,uuid,text,jsonb)","public.ediel_submit_finance_copy_retention_v1":"public.ediel_submit_finance_copy_retention_v1(uuid,uuid,text,text,text,jsonb)","public.ediel_submit_process_journal_retention_v1":"public.ediel_submit_process_journal_retention_v1(uuid,uuid,text,text,text,jsonb)","public.gridex_anonymize_customer_v1":"public.gridex_anonymize_customer_v1(uuid,uuid,uuid)","public.gridex_apply_public_contract_legal_backfill_v1":"public.gridex_apply_public_contract_legal_backfill_v1(uuid,boolean,uuid)","public.gridex_archive_contract_product":"public.gridex_archive_contract_product(uuid,uuid,uuid)","public.gridex_archive_customer_v1":"public.gridex_archive_customer_v1(uuid,uuid,uuid,text)","public.gridex_assign_company_to_whitelabel":"public.gridex_assign_company_to_whitelabel(uuid,uuid)","public.gridex_assign_customer_case":"public.gridex_assign_customer_case(uuid,uuid,uuid,uuid,uuid,text)","public.gridex_audit_staff_identity_request_v1":"public.gridex_audit_staff_identity_request_v1()","public.gridex_audit_staff_support_attachment_v1":"public.gridex_audit_staff_support_attachment_v1()","public.gridex_backfill_invoice_fees":"public.gridex_backfill_invoice_fees()","public.gridex_close_contract_product":"public.gridex_close_contract_product(uuid,uuid,uuid,text)","public.gridex_complete_unreferenced_internal_invoice_fee_tasks":"public.gridex_complete_unreferenced_internal_invoice_fee_tasks()","public.gridex_create_invoice_export_file_v1":"public.gridex_create_invoice_export_file_v1(uuid,text,text,uuid,jsonb,text)","public.gridex_create_staff_support_case_v1":"public.gridex_create_staff_support_case_v1(uuid,uuid,uuid,uuid,text,text,text,text,text,jsonb)","public.gridex_customer_contact_change_v1":"public.gridex_customer_contact_change_v1(uuid,uuid,text,uuid,uuid,text,text,timestamp with time zone,jsonb,jsonb,text)","public.gridex_decide_customer_identity_change_v1":"public.gridex_decide_customer_identity_change_v1(uuid,uuid,text,text,uuid,jsonb)","public.gridex_delete_test_customer_v1":"public.gridex_delete_test_customer_v1(uuid,uuid,uuid)","public.gridex_delete_unused_contract":"public.gridex_delete_unused_contract(uuid,uuid,uuid)","public.gridex_delete_unused_contract_v2":"public.gridex_delete_unused_contract_v2(uuid,uuid,uuid,text)","public.gridex_end_contract_channel":"public.gridex_end_contract_channel(uuid,uuid,text,uuid)","public.gridex_finalize_contract_publication_v1":"public.gridex_finalize_contract_publication_v1(uuid,uuid,boolean)","public.gridex_guard_company_hard_delete_v1":"public.gridex_guard_company_hard_delete_v1()","public.gridex_materialize_company_operational_routes":"public.gridex_materialize_company_operational_routes(uuid,text,text,uuid,uuid,text,boolean)","public.gridex_merge_customers_v1":"public.gridex_merge_customers_v1(uuid,uuid,uuid[],uuid,text)","public.gridex_onboard_customer_graph_core":"public.gridex_onboard_customer_graph_core(jsonb)","public.gridex_onboard_customer_graph_quote_commit_v2":"public.gridex_onboard_customer_graph_quote_commit_v2(jsonb)","public.gridex_pause_contract_channels":"public.gridex_pause_contract_channels(uuid,uuid,uuid)","public.gridex_provision_tenant_website_client_v1":"public.gridex_provision_tenant_website_client_v1(uuid,text,text,text,text,text[],text[],integer,uuid,text)","public.gridex_publish_contract_channel":"public.gridex_publish_contract_channel(uuid,uuid,text,uuid)","public.gridex_publish_contract_version":"public.gridex_publish_contract_version(uuid,uuid,text,jsonb,jsonb,uuid)","public.gridex_publish_internal_contract_version":"public.gridex_publish_internal_contract_version(uuid,uuid,uuid)","public.gridex_rebuild_company_legal_profile":"public.gridex_rebuild_company_legal_profile(uuid,uuid,boolean)","public.gridex_remove_contract_offer":"public.gridex_remove_contract_offer(uuid,uuid,text,uuid)","public.gridex_remove_internal_contract_offer":"public.gridex_remove_internal_contract_offer(uuid,uuid,text,uuid)","public.gridex_repair_contract_publication_links":"public.gridex_repair_contract_publication_links(uuid,uuid,uuid)","public.gridex_repair_duplicate_primary_website_client_v1":"public.gridex_repair_duplicate_primary_website_client_v1(uuid,text,uuid,uuid,text)","public.gridex_republish_active_public_contract_v1":"public.gridex_republish_active_public_contract_v1(uuid,uuid,numeric)","public.gridex_resolve_customer_match_review_case":"public.gridex_resolve_customer_match_review_case(uuid,text,uuid,uuid,text)","public.gridex_review_company_legal_profile":"public.gridex_review_company_legal_profile(uuid,uuid)","public.gridex_seed_publication_price_option_template_v2":"public.gridex_seed_publication_price_option_template_v2(uuid,uuid)","public.gridex_select_invoice_provider_v1":"public.gridex_select_invoice_provider_v1(uuid,text,text,uuid)","public.gridex_set_contract_channel_permission":"public.gridex_set_contract_channel_permission(uuid,uuid,text,boolean,uuid,text)","public.gridex_set_invoice_dispatch_enabled_v1":"public.gridex_set_invoice_dispatch_enabled_v1(uuid,boolean,uuid)","public.gridex_staff_support_event":"public.gridex_staff_support_event(uuid,uuid,uuid,uuid,uuid,text,text,jsonb)","public.gridex_submit_customer_move_out_v1":"public.gridex_submit_customer_move_out_v1(jsonb)","public.gridex_transition_tenant_lifecycle":"public.gridex_transition_tenant_lifecycle(uuid,text,uuid,text)","public.gridex_unpublish_contract_channel":"public.gridex_unpublish_contract_channel(uuid,uuid,text,uuid)","public.gridex_update_company_and_rebuild_legal_profile":"public.gridex_update_company_and_rebuild_legal_profile(uuid,uuid,jsonb,boolean)","public.gridex_update_customer_case_status_with_actor_v1":"public.gridex_update_customer_case_status_with_actor_v1(uuid,uuid,text,uuid,text,text,text,uuid)","public.gridex_upsert_internal_contract_offer":"public.gridex_upsert_internal_contract_offer(uuid,uuid,jsonb,jsonb,uuid)","gridex_ediel_retention.completed_review_reason_retire_v1":"gridex_ediel_retention.completed_review_reason_retire_v1(gridex_ediel_retention.decision_evidence_policies,gridex_ediel_retention.decision_evidence_reviews,uuid)","public.gridex_normalize_audit_context_v1":"public.gridex_normalize_audit_context_v1()","public.gridex_guard_history_truncate_v1":"public.gridex_guard_history_truncate_v1()"}$signatures$::jsonb;writer text;f record;owned_oids oid[]:=ARRAY[to_regprocedure('gridex_ediel_retention.audit19_schema_v1()')::oid,to_regprocedure('gridex_ediel_retention.audit19_hash_v1(public.audit_logs)')::oid,to_regprocedure('gridex_ediel_retention.audit19_a_hash_v1(gridex_ediel_retention.audit19_approvals_v1)')::oid,to_regprocedure('gridex_ediel_retention.audit19_source_contract_v1(text)')::oid,to_regprocedure('gridex_ediel_retention.audit19_context_v1(uuid,uuid)')::oid,to_regprocedure('gridex_ediel_retention.audit19_fields_v1(jsonb,jsonb,timestamptz)')::oid,to_regprocedure('gridex_ediel_retention.audit19_a_terms_v1(jsonb,timestamptz)')::oid,to_regprocedure('gridex_ediel_retention.audit19_receipt_v1(uuid,uuid,jsonb)')::oid,to_regprocedure('gridex_ediel_retention.audit19_lock_v1(uuid,uuid,text,boolean)')::oid,to_regprocedure('gridex_ediel_retention.audit19_execution_actor_v1(uuid,uuid)')::oid,to_regprocedure('gridex_ediel_retention.audit19_verify_v1(uuid,uuid,jsonb,text)')::oid,to_regprocedure('gridex_ediel_retention.audit19_guard_v1()')::oid,to_regprocedure('gridex_ediel_retention.audit19_permits_empty_v1()')::oid,to_regprocedure('public.review_one_audit19_v1(uuid,uuid,uuid,jsonb)')::oid,to_regprocedure('public.dispose_one_audit19_v1(uuid,uuid,uuid)')::oid,to_regprocedure('public.expire_one_audit19_approval_v1(uuid,uuid,uuid)')::oid];BEGIN
+ -- Source-bound finite contract, not a claim that pg_constraint finds all JSON/application readers.
+ FOR f IN SELECT p.oid,n.nspname||'.'||p.proname AS name,p.prosrc,p.proname FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname NOT IN('pg_catalog','information_schema') AND (p.prosrc ILIKE '%audit_logs%' OR p.oid IN(SELECT objid FROM pg_depend WHERE classid='pg_proc'::regclass AND (refclassid='pg_class'::regclass AND refobjid='public.audit_logs'::regclass OR refclassid='pg_type'::regclass AND refobjid IN(SELECT t.oid FROM pg_type t WHERE t.oid=(SELECT reltype FROM pg_class WHERE oid='public.audit_logs'::regclass) OR t.typelem=(SELECT reltype FROM pg_class WHERE oid='public.audit_logs'::regclass))))) LOOP
+  IF f.oid=ANY(owned_oids) THEN CONTINUE;END IF;
+  IF f.oid IS DISTINCT FROM to_regprocedure(signatures->>f.name)::oid OR expected->>f.name IS DISTINCT FROM encode(sha256(convert_to(f.prosrc,'UTF8')),'hex') THEN RAISE EXCEPTION 'audit19_unowned_or_changed_semantic_consumer' USING ERRCODE='42501';END IF;
+ END LOOP;
+ IF EXISTS(SELECT FROM pg_constraint WHERE contype='f' AND confrelid='public.audit_logs'::regclass) THEN RAISE EXCEPTION 'audit19_incoming_FK_unsupported' USING ERRCODE='42501';END IF;
+ IF EXISTS(SELECT FROM pg_attribute a WHERE a.attnum>0 AND NOT a.attisdropped AND a.atttypid IN(SELECT t.oid FROM pg_type t WHERE t.oid=(SELECT reltype FROM pg_class WHERE oid='public.audit_logs'::regclass) OR t.typelem=(SELECT reltype FROM pg_class WHERE oid='public.audit_logs'::regclass))) OR EXISTS(SELECT FROM pg_type d WHERE d.typtype='d' AND d.typbasetype IN(SELECT t.oid FROM pg_type t WHERE t.oid=(SELECT reltype FROM pg_class WHERE oid='public.audit_logs'::regclass) OR t.typelem=(SELECT reltype FROM pg_class WHERE oid='public.audit_logs'::regclass))) THEN RAISE EXCEPTION 'audit19_incoming_composite_unsupported' USING ERRCODE='42501';END IF;
+ IF (SELECT count(*) FROM pg_trigger WHERE tgrelid='public.audit_logs'::regclass AND NOT tgisinternal)<>3 OR EXISTS(SELECT FROM pg_trigger WHERE tgrelid='public.audit_logs'::regclass AND NOT tgisinternal AND (tgenabled<>'O' OR tgqual IS NOT NULL OR tgnargs<>0 OR NOT(tgname='audit_logs_normalize_context_v1' AND tgfoid='public.gridex_normalize_audit_context_v1()'::regprocedure AND tgtype=23 OR tgname='gridex_history_truncate_guard' AND tgfoid='public.gridex_guard_history_truncate_v1()'::regprocedure AND tgtype=34 OR tgname='audit19_owner_delete_guard_v1' AND tgfoid='gridex_ediel_retention.audit19_guard_v1()'::regprocedure AND tgtype=11))) THEN RAISE EXCEPTION 'audit19_unowned_or_changed_trigger_unsupported' USING ERRCODE='42501';END IF;
+ IF NOT EXISTS(SELECT FROM pg_trigger WHERE tgrelid='gridex_ediel_retention.audit19_approvals_v1'::regclass AND tgname='audit19_a9_guard_v1' AND tgfoid='gridex_ediel_retention.audit19_guard_v1()'::regprocedure AND tgtype=31 AND tgenabled='O') THEN RAISE EXCEPTION 'audit19_actual_A9_guard_required' USING ERRCODE='42501';END IF;
+ IF (SELECT encode(sha256(convert_to(prosrc,'UTF8')),'hex') FROM pg_proc WHERE oid='public.gridex_normalize_audit_context_v1()'::regprocedure) IS DISTINCT FROM expected->>'public.gridex_normalize_audit_context_v1' THEN RAISE EXCEPTION 'audit19_normalizer_source_changed' USING ERRCODE='42501';END IF;
+ writer:=CASE action WHEN 'ediel.retention.decision_original_submitted' THEN 'public.ediel_submit_decision_evidence_retention_v1' WHEN 'ediel.retention.decision_original_reviewed' THEN 'public.ediel_review_decision_evidence_retention_v1' WHEN 'ediel.retention.decision_original_bytes_removed' THEN 'public.ediel_purge_decision_evidence_retention_v1' WHEN 'ediel.retention.completed_review_reason_retired' THEN 'gridex_ediel_retention.completed_review_reason_retire_v1' END;
+ IF writer IS NULL OR (SELECT encode(sha256(convert_to(p.prosrc,'UTF8')),'hex') FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname||'.'||p.proname=writer) IS DISTINCT FROM expected->>writer THEN RAISE EXCEPTION 'audit19_supported_source_contract_required' USING ERRCODE='42501';END IF;
+ RETURN jsonb_build_object('sourceVersion','7f7d827987896f949f35b9da5801a79fbc1bceb6','writerFunction',writer,'writerBodyHash',expected->>writer);
+END$_$;
+
+--
+-- Name: audit19_verify_v1(uuid, uuid, jsonb, text); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.audit19_verify_v1(c uuid, target uuid, p jsonb, expected_hash text) RETURNS void
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE context jsonb;holds text;origin jsonb;at timestamptz;BEGIN
+ context:=gridex_ediel_retention.audit19_context_v1(c,target);holds:=gridex_ediel_retention.completed_witness_holds_v1(c);origin:=p->'origin';
+ IF context->>'rowHash' IS DISTINCT FROM expected_hash OR p->>'sourceCommitment' IS DISTINCT FROM expected_hash THEN RAISE EXCEPTION 'audit19_exact_current_OLD19_required' USING ERRCODE='42501';END IF;
+ IF jsonb_typeof(origin) IS DISTINCT FROM 'object' OR EXISTS(SELECT FROM jsonb_object_keys(origin) k WHERE k NOT IN('sourceVersion','writerFunction','writerBodyHash','evidenceReference','qualificationReference')) OR origin->>'sourceVersion' IS DISTINCT FROM context->>'sourceVersion' OR origin->>'writerFunction' IS DISTINCT FROM context->>'writerFunction' OR origin->>'writerBodyHash' IS DISTINCT FROM context->>'writerBodyHash' OR jsonb_typeof(origin->'evidenceReference') IS DISTINCT FROM 'string' OR length(btrim(origin->>'evidenceReference'))=0 OR jsonb_typeof(origin->'qualificationReference') IS DISTINCT FROM 'string' OR length(btrim(origin->>'qualificationReference'))=0 OR p->>'customerScopeHash' IS DISTINCT FROM holds THEN RAISE EXCEPTION 'audit19_independently_qualified_origin_and_population_required' USING ERRCODE='42501';END IF;
+ at:=clock_timestamp();PERFORM gridex_ediel_retention.audit19_fields_v1(p,context,at);
+END$$;
+
+--
 -- Name: blob_basis_v1(uuid, text, uuid); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
 --
 
@@ -13887,6 +14163,898 @@ BEGIN IF TG_OP='UPDATE' AND gridex_ediel_retention.classification_copy_transitio
   RAISE EXCEPTION 'received_source_evidence_is_append_only' USING ERRCODE = '23514';
 END
 $$;
+
+--
+-- Name: completed_parent_actor_v1(uuid, uuid, text, boolean); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.completed_parent_actor_v1(c uuid, actor uuid, operation text, delegated boolean DEFAULT false) RETURNS void
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$BEGIN
+ IF delegated THEN
+  IF operation<>'ediel.retention.purge' THEN RAISE EXCEPTION 'parent_worker_operation_required' USING ERRCODE='42501';END IF;
+  PERFORM gridex_ediel_retention.completed_witness_worker_actor_v1(c,actor);
+  IF gridex_ediel_retention.permission_v1(c,actor,'ediel.retention.blob_decision_evidence') IS NOT TRUE THEN RAISE EXCEPTION 'parent_current_worker_blob_class_required' USING ERRCODE='42501';END IF;RETURN;
+ END IF;
+ PERFORM gridex_ediel_retention.decision_evidence_actor_v1(c,actor,'completed_decision_review_reason',operation);
+ PERFORM gridex_ediel_retention.decision_evidence_actor_v1(c,actor,'blob_retention_decision_original_bytes',operation);
+END$$;
+
+--
+-- Name: completed_parent_execute_v1(uuid, uuid, uuid, boolean); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.completed_parent_execute_v1(p_company_id uuid, p_actor_user_id uuid, p_policy_id uuid, delegated boolean) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $_$
+DECLARE a gridex_ediel_retention.completed_parent_approvals_v1%rowtype;p jsonb;g jsonb;holds text;tab text;at timestamptz;BEGIN
+ PERFORM gridex_ediel_ack_replay.lock_current_graph_v2();PERFORM gridex_ediel_retention.decision_evidence_lock_v1(p_company_id);
+ PERFORM gridex_ediel_retention.completed_parent_actor_v1(p_company_id,p_actor_user_id,'ediel.retention.purge',delegated);
+ SELECT * INTO a FROM gridex_ediel_retention.completed_parent_approvals_v1 WHERE company_id=p_company_id AND policy_id=p_policy_id FOR UPDATE;
+ IF NOT FOUND THEN RETURN jsonb_build_object('status','unavailable','authority','none');END IF;
+ IF encode(sha256(convert_to(a.receipt::text,'UTF8')),'hex') IS DISTINCT FROM a.receipt_hash THEN RAISE EXCEPTION 'parent_approval_integrity_required' USING ERRCODE='42501';END IF;
+ holds:=gridex_ediel_retention.completed_witness_holds_v1(p_company_id);g:=gridex_ediel_retention.completed_parent_graph_v1(p_company_id,p_policy_id);
+ PERFORM gridex_ediel_retention.completed_parent_references_v1(p_company_id,p_policy_id,(g->>'reviewId')::uuid);
+ p:=gridex_ediel_retention.completed_parent_receipt_v1(p_company_id,p_policy_id,a.receipt);
+ PERFORM gridex_ediel_retention.completed_parent_purpose_operation_v1(p_company_id,p_policy_id,p,false);
+ IF p->>'executionActorId' IS DISTINCT FROM p_actor_user_id::text OR p->>'reviewerId' IS DISTINCT FROM a.reviewer_user_id::text OR a.reviewer_user_id=p_actor_user_id OR p->>'sourceCommitment' IS DISTINCT FROM g->>'commitment' OR a.source_commitment IS DISTINCT FROM g->>'commitment' OR p->>'customerScopeHash' IS DISTINCT FROM holds OR p->>'R' IS DISTINCT FROM p->>'W' OR (p->>'W')::timestamptz<(g->>'minimum')::timestamptz OR p->>'executionMode' IS DISTINCT FROM (CASE WHEN delegated THEN 'delegated_worker' ELSE 'interactive' END) THEN RAISE EXCEPTION 'parent_current_exact_scope_required' USING ERRCODE='42501';END IF;
+ PERFORM gridex_ediel_retention.decision_evidence_lock_reviewer_v1(p_company_id,a.reviewer_user_id,'blob_retention_decision_original_bytes');PERFORM gridex_ediel_retention.decision_evidence_lock_reviewer_v1(p_company_id,a.reviewer_user_id,'completed_decision_review_reason');
+ PERFORM gridex_ediel_retention.completed_parent_actor_v1(p_company_id,p_actor_user_id,'ediel.retention.purge',delegated);
+ p:=gridex_ediel_retention.completed_parent_receipt_v1(p_company_id,p_policy_id,a.receipt);PERFORM gridex_ediel_retention.completed_witness_holds_v1(p_company_id);at:=clock_timestamp();
+ IF at>=a.expires_at THEN RAISE EXCEPTION 'parent_approval_expired' USING ERRCODE='42501';END IF;
+ IF at<(p->>'W')::timestamptz THEN RETURN jsonb_build_object('status','held','authority','none');END IF;
+ PERFORM gridex_ediel_retention.completed_witness_terms_v1(jsonb_build_object('executeBefore',a.expires_at,'fields',p->'fields','replayFields','[]'::jsonb),ARRAY(SELECT jsonb_array_elements_text(g->'fields')),'dispose',(p->>'W')::timestamptz,(p->>'W')::timestamptz,at);
+ PERFORM gridex_ediel_retention.completed_parent_purpose_operation_v1(p_company_id,p_policy_id,p,true);
+ FOREACH tab IN ARRAY ARRAY['decision_evidence_tombstones','decision_evidence_reviews','decision_evidence_revocations','decision_evidence_policies'] LOOP
+  IF tab='decision_evidence_policies' THEN
+   INSERT INTO gridex_ediel_retention.completed_witness_phase_permits_v1 SELECT pg_backend_pid(),txid_current(),tab,encode(sha256(convert_to(to_jsonb(x)::text,'UTF8')),'hex'),'DELETE',NULL FROM gridex_ediel_retention.decision_evidence_policies x WHERE id=p_policy_id AND company_id=p_company_id;
+   DELETE FROM gridex_ediel_retention.decision_evidence_policies WHERE id=p_policy_id AND company_id=p_company_id;
+  ELSE
+   EXECUTE format('INSERT INTO gridex_ediel_retention.completed_witness_phase_permits_v1 SELECT pg_backend_pid(),txid_current(),$1,encode(sha256(convert_to(to_jsonb(x)::text,''UTF8'')),''hex''),''DELETE'',NULL FROM gridex_ediel_retention.%I x WHERE policy_id=$2',tab) USING tab,p_policy_id;
+   EXECUTE format('DELETE FROM gridex_ediel_retention.%I WHERE policy_id=$1',tab) USING p_policy_id;
+  END IF;
+ END LOOP;
+ IF EXISTS(SELECT FROM gridex_ediel_retention.completed_witness_phase_permits_v1 WHERE backend=pg_backend_pid() AND xid=txid_current()) THEN RAISE EXCEPTION 'parent_unconsumed_permit';END IF;
+ DELETE FROM gridex_ediel_retention.completed_parent_approvals_v1 WHERE company_id=p_company_id AND policy_id=p_policy_id;
+ RETURN jsonb_build_object('status','disposed','replay',false,'authority','none');
+END$_$;
+
+--
+-- Name: completed_parent_graph_v1(uuid, uuid); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.completed_parent_graph_v1(c uuid, policy uuid) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE d gridex_ediel_retention.decision_evidence_policies%rowtype;q gridex_ediel_retention.decision_evidence_reviews%rowtype;t gridex_ediel_retention.decision_evidence_tombstones%rowtype;b gridex_ediel_retention.blob_decisions%rowtype;m public.ediel_messages%rowtype;payload public.ediel_message_payloads%rowtype;v jsonb;terms text[];BEGIN
+ IF NOT EXISTS(SELECT FROM gridex_ediel_retention.decision_evidence_catalog WHERE retention_class='blob_retention_decision_original_bytes' AND source_table='blob_decisions' AND permission_key='ediel.retention.blob_decision_evidence' AND revocation_table='blob_revocations' AND revocation_id_column='decision_id' AND receipt_function='blob_receipt_v1') THEN RAISE EXCEPTION 'parent_actual_blob_catalog_required' USING ERRCODE='42501';END IF;
+ LOCK TABLE gridex_ediel_retention.decision_evidence_policies,gridex_ediel_retention.decision_evidence_reviews,gridex_ediel_retention.decision_evidence_revocations,gridex_ediel_retention.decision_evidence_tombstones IN SHARE ROW EXCLUSIVE MODE NOWAIT;
+ SELECT * INTO STRICT d FROM gridex_ediel_retention.decision_evidence_policies WHERE id=policy AND company_id=c FOR UPDATE;
+ IF d.retention_class<>'blob_retention_decision_original_bytes' OR (d.document_bytes IS NOT NULL AND encode(sha256(d.document_bytes),'hex') IS DISTINCT FROM d.document_hash) THEN RAISE EXCEPTION 'parent_exact_blob_policy_required' USING ERRCODE='42501';END IF;
+ IF (SELECT count(*) FROM gridex_ediel_retention.decision_evidence_reviews WHERE policy_id=policy)<>1 OR (SELECT count(*) FROM gridex_ediel_retention.decision_evidence_tombstones WHERE policy_id=policy)<>1 THEN RAISE EXCEPTION 'parent_exact_one_review_completion_required' USING ERRCODE='42501';END IF;
+ SELECT * INTO STRICT q FROM gridex_ediel_retention.decision_evidence_reviews WHERE policy_id=policy FOR UPDATE;
+ SELECT * INTO STRICT t FROM gridex_ediel_retention.decision_evidence_tombstones WHERE policy_id=policy FOR UPDATE;
+ IF q.reason<>'' OR q.outcome<>'approved' OR q.actor_user_id=d.submitted_by OR t.company_id<>c OR t.retention_class<>d.retention_class OR t.target_id<>d.target_id OR t.review_id<>q.id OR t.source_hash<>d.source_hash OR t.target_metadata_hash<>d.target_metadata_hash OR NOT isfinite(t.journal_retain_until) THEN RAISE EXCEPTION 'parent_actual_zero_and_completion_scope_required' USING ERRCODE='42501';END IF;
+ SELECT * INTO STRICT b FROM gridex_ediel_retention.blob_decisions WHERE id=d.target_id AND company_id=c FOR SHARE;
+ SELECT * INTO STRICT m FROM public.ediel_messages WHERE id=b.message_id AND company_id=c FOR SHARE;
+ IF b.retention_class='received_ediel_message_content' THEN
+  IF b.target_id<>m.id THEN RAISE EXCEPTION 'parent_message_route_required' USING ERRCODE='42501';END IF;
+ ELSIF b.retention_class='transport_raw_mime_bytes' THEN
+  SELECT * INTO STRICT payload FROM public.ediel_message_payloads WHERE id=b.target_id AND company_id=c FOR SHARE;
+  IF payload.ediel_message_id IS DISTINCT FROM m.id THEN RAISE EXCEPTION 'parent_payload_route_required' USING ERRCODE='42501';END IF;
+ ELSE RAISE EXCEPTION 'parent_blob_class_required' USING ERRCODE='42501';END IF;
+ IF m.customer_id IS NOT NULL AND NOT EXISTS(SELECT FROM public.customers WHERE id=m.customer_id AND company_id=c) THEN RAISE EXCEPTION 'parent_foreign_customer_route_required' USING ERRCODE='42501';END IF;
+ -- A route projection alone is insufficient for deleting its original-byte witness.
+ IF b.document_bytes IS NOT NULL OR b.document_hash IS DISTINCT FROM t.source_hash OR b.document_byte_length IS DISTINCT FROM t.byte_length OR b.document_purged_at IS DISTINCT FROM t.created_at OR encode(sha256(convert_to((to_jsonb(b)-ARRAY['document_bytes','document_byte_length','document_purged_at'])::text,'UTF8')),'hex') IS DISTINCT FROM t.target_metadata_hash OR NOT EXISTS(SELECT FROM gridex_ediel_retention.blob_revocations WHERE decision_id=b.id) THEN RAISE EXCEPTION 'parent_actual_prior_bytes_effect_required' USING ERRCODE='42501';END IF;
+ SELECT jsonb_build_object('policy',to_jsonb(d),'review',to_jsonb(q),'completion',to_jsonb(t),'revocation',(SELECT to_jsonb(x) FROM gridex_ediel_retention.decision_evidence_revocations x WHERE policy_id=policy),'blob',to_jsonb(b),'blobRevocation',(SELECT to_jsonb(x) FROM gridex_ediel_retention.blob_revocations x WHERE decision_id=b.id),'message',to_jsonb(m),'payload',to_jsonb(payload)) INTO v;
+ SELECT array_agg(field ORDER BY field) INTO terms FROM (
+  SELECT 'parent_policy.'||jsonb_object_keys(to_jsonb(d)) field
+  UNION ALL SELECT 'parent_review.'||jsonb_object_keys(to_jsonb(q))
+  UNION ALL SELECT 'parent_completion.'||jsonb_object_keys(to_jsonb(t))
+  UNION ALL SELECT 'parent_revocation.'||jsonb_object_keys(to_jsonb(x)) FROM gridex_ediel_retention.decision_evidence_revocations x WHERE policy_id=policy
+ ) f;
+ RETURN jsonb_build_object('commitment',encode(sha256(convert_to(v::text,'UTF8')),'hex'),'fields',terms,'minimum',t.journal_retain_until,'reviewId',q.id,'submittedBy',d.submitted_by);
+END$$;
+
+--
+-- Name: completed_parent_purpose_closure_v1(uuid, uuid); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.completed_parent_purpose_closure_v1(c uuid, policy uuid) RETURNS void
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE f record;col text;hit boolean;BEGIN
+ FOR f IN SELECT DISTINCT conrelid FROM pg_constraint WHERE contype='f' AND confrelid='gridex_ediel_retention.completed_parent_purposes_v1'::regclass ORDER BY conrelid LOOP EXECUTE format('LOCK TABLE %s IN SHARE ROW EXCLUSIVE MODE NOWAIT',f.conrelid::regclass);END LOOP;
+ FOR f IN SELECT * FROM pg_constraint WHERE contype='f' AND confrelid='gridex_ediel_retention.completed_parent_purposes_v1'::regclass ORDER BY conrelid,oid LOOP
+  -- No owned P children exist in this component. Unknown/composite consumers
+  -- are never swept or exempted, even if their caller uses the same Q id.
+  IF cardinality(f.conkey)<>1 OR cardinality(f.confkey)<>1 THEN RAISE EXCEPTION 'purpose_unsupported_incoming_reference' USING ERRCODE='42501';END IF;
+  SELECT attname INTO STRICT col FROM pg_attribute WHERE attrelid=f.conrelid AND attnum=f.conkey[1];
+  RAISE EXCEPTION 'purpose_unowned_incoming_reference' USING ERRCODE='42501';
+ END LOOP;
+END$$;
+
+--
+-- Name: completed_parent_purpose_current_v1(uuid, uuid); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.completed_parent_purpose_current_v1(c uuid, policy uuid) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE x gridex_ediel_retention.completed_parent_purposes_v1%rowtype;p jsonb;g jsonb;BEGIN
+ SELECT * INTO x FROM gridex_ediel_retention.completed_parent_purposes_v1 WHERE company_id=c AND policy_id=policy FOR SHARE;
+ IF NOT FOUND THEN RETURN NULL;END IF;
+ -- Accepted substantive admission survives old issuer/window/execution-grant expiry.
+ -- Guarded row + admitted envelope hash and exact immutable Q generation are its
+ -- historical attestation. Current read actor checks remain in the real callers.
+ p:=convert_from(decode(x.receipt->>'payloadBase64','base64'),'UTF8')::jsonb;
+ IF encode(sha256(convert_to(x.receipt::text,'UTF8')),'hex') IS DISTINCT FROM x.receipt_hash OR p->>'format' IS DISTINCT FROM 'ediel_completed_source_parent_purpose_policy_v1' OR p->>'purpose' IS DISTINCT FROM 'ordinary_retention_evidence_use' OR p->>'companyId' IS DISTINCT FROM c::text OR p->>'policyId' IS DISTINCT FROM policy::text OR (p->>'version')::bigint IS DISTINCT FROM x.version OR p->>'reviewerId' IS DISTINCT FROM x.reviewer_user_id::text OR (p->>'D')::timestamptz IS DISTINCT FROM x.ordinary_until OR (p->>'E')::timestamptz IS DISTINCT FROM x.expires_at THEN RAISE EXCEPTION 'purpose_historical_admission_integrity_required' USING ERRCODE='42501';END IF;
+ g:=gridex_ediel_retention.completed_parent_purpose_scope_v1(c,policy);
+ IF p->>'familyCommitment' IS DISTINCT FROM g->>'familyCommitment' OR ARRAY(SELECT value->>'field' FROM jsonb_array_elements(p->'fields') ORDER BY value->>'field') IS DISTINCT FROM ARRAY(SELECT jsonb_array_elements_text(g->'fields')) THEN RAISE EXCEPTION 'purpose_current_generation_drift_refused' USING ERRCODE='42501';END IF;
+ RETURN jsonb_build_object('payload',p,'receiptHash',x.receipt_hash,'version',x.version,'D',x.ordinary_until,'E',x.expires_at);
+END$$;
+
+--
+-- Name: completed_parent_purpose_guard_v1(); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.completed_parent_purpose_guard_v1() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$BEGIN
+ DELETE FROM gridex_ediel_retention.completed_witness_phase_permits_v1 WHERE backend=pg_backend_pid() AND xid=txid_current() AND relation_name=TG_TABLE_NAME AND before_hash=encode(sha256(convert_to(to_jsonb(OLD)::text,'UTF8')),'hex') AND operation=TG_OP AND (TG_OP='DELETE' OR after_hash=encode(sha256(convert_to(to_jsonb(NEW)::text,'UTF8')),'hex'));
+ IF FOUND THEN IF TG_OP='DELETE' THEN RETURN OLD;ELSE RETURN NEW;END IF;END IF;
+ RAISE EXCEPTION 'purpose_admitted_source_is_guarded' USING ERRCODE='23514';
+END$$;
+
+--
+-- Name: completed_parent_purpose_operation_v1(uuid, uuid, jsonb, boolean); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.completed_parent_purpose_operation_v1(c uuid, policy uuid, a jsonb, cleanup boolean DEFAULT false) RETURNS void
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE p jsonb;at timestamptz;f jsonb;BEGIN
+ PERFORM 1 FROM gridex_ediel_retention.completed_parent_purposes_v1 WHERE company_id=c AND policy_id=policy FOR UPDATE;
+ p:=gridex_ediel_retention.completed_parent_purpose_current_v1(c,policy);
+ IF p IS NULL THEN IF a->>'purposeVersion' IS NOT NULL OR a->>'purposeHash' IS NOT NULL THEN RAISE EXCEPTION 'purpose_referenced_current_admission_required' USING ERRCODE='42501';END IF;RETURN;END IF;
+ IF a->>'purposeVersion' IS DISTINCT FROM p->>'version' OR a->>'purposeHash' IS DISTINCT FROM p->>'receiptHash' OR (a->>'W')::timestamptz IS DISTINCT FROM (p->>'D')::timestamptz THEN RAISE EXCEPTION 'purpose_current_version_bound_approval_required' USING ERRCODE='42501';END IF;
+ PERFORM gridex_ediel_retention.completed_parent_purpose_closure_v1(c,policy);
+ IF cleanup THEN
+  at:=clock_timestamp();IF at<(p->>'D')::timestamptz OR at>=(p->>'E')::timestamptz THEN RAISE EXCEPTION 'purpose_current_finite_cleanup_window_required' USING ERRCODE='42501';END IF;
+  FOR f IN SELECT value FROM jsonb_array_elements(p->'payload'->'fields') LOOP
+   IF (f->>'min')::timestamptz>at OR (f->>'reviewBy')::timestamptz<=at THEN RAISE EXCEPTION 'purpose_source_current_min_review_required' USING ERRCODE='42501';END IF;
+  END LOOP;
+  FOR f IN SELECT value FROM jsonb_array_elements(p->'payload'->'policyFields') LOOP
+   IF (f->>'min')::timestamptz>at OR (f->>'reviewBy')::timestamptz<=at THEN RAISE EXCEPTION 'purpose_own_current_min_review_required' USING ERRCODE='42501';END IF;
+  END LOOP;
+  INSERT INTO gridex_ediel_retention.completed_witness_phase_permits_v1 SELECT pg_backend_pid(),txid_current(),'completed_parent_purposes_v1',encode(sha256(convert_to(to_jsonb(x)::text,'UTF8')),'hex'),'DELETE',NULL FROM gridex_ediel_retention.completed_parent_purposes_v1 x WHERE company_id=c AND policy_id=policy;
+  DELETE FROM gridex_ediel_retention.completed_parent_purposes_v1 WHERE company_id=c AND policy_id=policy;
+ END IF;
+END$$;
+
+--
+-- Name: completed_parent_purpose_receipt_v1(uuid, uuid, jsonb); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.completed_parent_purpose_receipt_v1(c uuid, policy uuid, envelope jsonb) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $_$
+DECLARE issuer gridex_ediel_retention.issuers%rowtype;bytes bytea;p jsonb;at timestamptz;BEGIN
+ IF jsonb_typeof(envelope) IS DISTINCT FROM 'object' OR EXISTS(SELECT FROM jsonb_object_keys(envelope) k WHERE k NOT IN('issuerId','payloadBase64','signatureHex')) OR coalesce(envelope->>'signatureHex','')!~'^[a-f0-9]{64}$' OR length(coalesce(envelope->>'payloadBase64','')) NOT BETWEEN 1 AND 65536 THEN RAISE EXCEPTION 'purpose_signed_envelope_required' USING ERRCODE='42501';END IF;
+ SELECT * INTO STRICT issuer FROM gridex_ediel_retention.issuers WHERE id=(envelope->>'issuerId')::uuid AND company_id=c FOR SHARE;
+ bytes:=decode(envelope->>'payloadBase64','base64');
+ IF encode(gridex_requested_changes.receipt_hmac_sha256_v1(bytes,issuer.signing_key),'hex') IS DISTINCT FROM envelope->>'signatureHex' OR encode(sha256(issuer.legal_evidence),'hex') IS DISTINCT FROM issuer.legal_hash OR EXISTS(SELECT FROM gridex_ediel_retention.issuer_revocations WHERE issuer_id=issuer.id) THEN RAISE EXCEPTION 'purpose_current_qualified_signature_required' USING ERRCODE='42501';END IF;
+ p:=convert_from(bytes,'UTF8')::jsonb;at:=clock_timestamp();
+ IF p->>'format' IS DISTINCT FROM 'ediel_completed_source_parent_purpose_policy_v1' OR p->>'purpose' IS DISTINCT FROM 'ordinary_retention_evidence_use' OR p->>'scope' IS DISTINCT FROM 'ordinary_metadata_and_original_disclosure' OR p->>'holdTreatment' IS DISTINCT FROM 'preserve_under_hold_without_post_D_ordinary_disclosure' OR p->>'companyId' IS DISTINCT FROM c::text OR p->>'policyId' IS DISTINCT FROM policy::text OR p->>'issuerLegalReference' IS DISTINCT FROM issuer.legal_reference
+ OR EXISTS(SELECT FROM jsonb_object_keys(p) k WHERE k NOT IN('format','purpose','scope','holdTreatment','companyId','policyId','version','predecessorHash','familyCommitment','issuerLegalReference','issuedAt','expiresAt','D','E','reviewerId','fields','policyFields'))
+ OR (p->>'version')!~'^[1-9][0-9]{0,8}$' OR isfinite((p->>'issuedAt')::timestamptz) IS DISTINCT FROM true OR isfinite((p->>'expiresAt')::timestamptz) IS DISTINCT FROM true OR at<issuer.valid_from OR at>=issuer.valid_to OR (p->>'issuedAt')::timestamptz>at OR (p->>'issuedAt')::timestamptz<issuer.valid_from OR (p->>'expiresAt')::timestamptz>issuer.valid_to OR (p->>'expiresAt')::timestamptz<=at THEN RAISE EXCEPTION 'purpose_current_domain_scope_and_admission_window_required' USING ERRCODE='42501';END IF;
+ RETURN p;
+END$_$;
+
+--
+-- Name: completed_parent_purpose_scope_v1(uuid, uuid); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.completed_parent_purpose_scope_v1(c uuid, policy uuid) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE d gridex_ediel_retention.decision_evidence_policies%rowtype;q gridex_ediel_retention.decision_evidence_reviews%rowtype;t gridex_ediel_retention.decision_evidence_tombstones%rowtype;v jsonb;names text[];BEGIN
+ SELECT * INTO STRICT d FROM gridex_ediel_retention.decision_evidence_policies WHERE id=policy AND company_id=c FOR SHARE;
+ IF d.retention_class<>'blob_retention_decision_original_bytes' OR (SELECT count(*) FROM gridex_ediel_retention.decision_evidence_reviews WHERE policy_id=policy)<>1 OR (SELECT count(*) FROM gridex_ediel_retention.decision_evidence_tombstones WHERE policy_id=policy)<>1 THEN RAISE EXCEPTION 'purpose_current_family_integrity_required' USING ERRCODE='42501';END IF;
+ SELECT * INTO STRICT q FROM gridex_ediel_retention.decision_evidence_reviews WHERE policy_id=policy FOR SHARE;
+ SELECT * INTO STRICT t FROM gridex_ediel_retention.decision_evidence_tombstones WHERE policy_id=policy FOR SHARE;
+ IF q.reason<>'' OR q.outcome<>'approved' OR t.company_id<>c OR t.review_id<>q.id OR t.retention_class<>d.retention_class OR t.target_id<>d.target_id THEN RAISE EXCEPTION 'purpose_current_family_integrity_required' USING ERRCODE='42501';END IF;
+ v:=jsonb_build_object('policy',to_jsonb(d),'review',to_jsonb(q),'completion',to_jsonb(t),'revocation',(SELECT to_jsonb(x) FROM gridex_ediel_retention.decision_evidence_revocations x WHERE policy_id=policy));
+ SELECT array_agg(field ORDER BY field) INTO names FROM(SELECT 'parent_policy.'||jsonb_object_keys(to_jsonb(d)) field UNION ALL SELECT 'parent_review.'||jsonb_object_keys(to_jsonb(q)) UNION ALL SELECT 'parent_completion.'||jsonb_object_keys(to_jsonb(t)) UNION ALL SELECT 'parent_revocation.'||jsonb_object_keys(to_jsonb(x)) FROM gridex_ediel_retention.decision_evidence_revocations x WHERE policy_id=policy)s;
+ RETURN jsonb_build_object('familyCommitment',encode(sha256(convert_to(v::text,'UTF8')),'hex'),'fields',names,'minimum',t.journal_retain_until,'reviewId',q.id,'submittedBy',d.submitted_by);
+END$$;
+
+--
+-- Name: completed_parent_purpose_terms_v1(jsonb, jsonb, timestamp with time zone); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.completed_parent_purpose_terms_v1(p jsonb, g jsonb, at timestamp with time zone) RETURNS void
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE f jsonb;actual text[];D timestamptz:=(p->>'D')::timestamptz;E timestamptz:=(p->>'E')::timestamptz;BEGIN
+ IF isfinite(D) IS DISTINCT FROM true OR isfinite(E) IS DISTINCT FROM true OR E<=at OR E<=D OR D<(g->>'minimum')::timestamptz THEN RAISE EXCEPTION 'purpose_explicit_finite_D_E_and_original_floor_required' USING ERRCODE='42501';END IF;
+ SELECT array_agg(value->>'field' ORDER BY value->>'field') INTO actual FROM jsonb_array_elements(p->'fields');
+ IF actual IS DISTINCT FROM ARRAY(SELECT jsonb_array_elements_text(g->'fields')) THEN RAISE EXCEPTION 'purpose_exact_family_fieldset_required' USING ERRCODE='42501';END IF;
+ FOR f IN SELECT value FROM jsonb_array_elements(p->'fields') LOOP
+  IF EXISTS(SELECT FROM jsonb_object_keys(f) k WHERE k NOT IN('field','purposeReference','basisReference','min','max','reviewBy','action','ordinaryUseEnds')) OR jsonb_typeof(f->'purposeReference') IS DISTINCT FROM 'string' OR jsonb_typeof(f->'basisReference') IS DISTINCT FROM 'string' OR nullif(btrim(f->>'purposeReference'),'') IS NULL OR nullif(btrim(f->>'basisReference'),'') IS NULL OR isfinite((f->>'min')::timestamptz) IS DISTINCT FROM true OR (f->>'min')::timestamptz>at OR (f->>'min')::timestamptz>D OR (f->>'max')::timestamptz IS DISTINCT FROM D OR (f->>'ordinaryUseEnds')::timestamptz IS DISTINCT FROM D OR isfinite((f->>'reviewBy')::timestamptz) IS DISTINCT FROM true OR (f->>'reviewBy')::timestamptz<=at OR f->>'action' IS DISTINCT FROM 'erase_with_qualified_current_approval' THEN RAISE EXCEPTION 'purpose_all_family_field_purpose_basis_min_D_review_action_required' USING ERRCODE='42501';END IF;
+ END LOOP;
+ SELECT array_agg(value->>'field' ORDER BY value->>'field') INTO actual FROM jsonb_array_elements(p->'policyFields');
+ IF actual IS DISTINCT FROM ARRAY['purpose.admitted_at','purpose.company_id','purpose.expires_at','purpose.ordinary_until','purpose.policy_id','purpose.receipt','purpose.receipt_hash','purpose.reviewer_user_id','purpose.version']::text[] THEN RAISE EXCEPTION 'purpose_all_nine_own_fields_required' USING ERRCODE='42501';END IF;
+ FOR f IN SELECT value FROM jsonb_array_elements(p->'policyFields') LOOP
+  IF EXISTS(SELECT FROM jsonb_object_keys(f) k WHERE k NOT IN('field','purposeReference','basisReference','min','max','reviewBy','action')) OR jsonb_typeof(f->'purposeReference') IS DISTINCT FROM 'string' OR jsonb_typeof(f->'basisReference') IS DISTINCT FROM 'string' OR nullif(btrim(f->>'purposeReference'),'') IS NULL OR nullif(btrim(f->>'basisReference'),'') IS NULL OR isfinite((f->>'min')::timestamptz) IS DISTINCT FROM true OR (f->>'min')::timestamptz>at OR (f->>'max')::timestamptz IS DISTINCT FROM E OR isfinite((f->>'reviewBy')::timestamptz) IS DISTINCT FROM true OR (f->>'reviewBy')::timestamptz<=at OR (f->>'reviewBy')::timestamptz>E OR f->>'action' IS DISTINCT FROM 'erase_with_source_or_qualified_successor_by_E' THEN RAISE EXCEPTION 'purpose_own_qualified_finite_E_terms_required' USING ERRCODE='42501';END IF;
+ END LOOP;
+END$$;
+
+--
+-- Name: completed_parent_receipt_v1(uuid, uuid, jsonb); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.completed_parent_receipt_v1(c uuid, policy uuid, envelope jsonb) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $_$
+DECLARE issuer gridex_ediel_retention.issuers%rowtype;p jsonb;bytes bytea;at timestamptz;BEGIN
+ IF jsonb_typeof(envelope) IS DISTINCT FROM 'object' OR EXISTS(SELECT FROM jsonb_object_keys(envelope) k WHERE k NOT IN('issuerId','payloadBase64','signatureHex')) OR coalesce(envelope->>'signatureHex','')!~'^[a-f0-9]{64}$'
+ OR length(coalesce(envelope->>'payloadBase64','')) NOT BETWEEN 1 AND 65536 THEN RAISE EXCEPTION 'phase_receipt_shape_required' USING ERRCODE='42501';END IF;
+ SELECT * INTO STRICT issuer FROM gridex_ediel_retention.issuers WHERE id=(envelope->>'issuerId')::uuid AND company_id=c FOR SHARE;
+ -- Actual retention_issuer_revocation_lock takes this SAME issuer FOR UPDATE
+ -- before INSERT; an absent revocation is therefore not an unlocked phantom.
+ bytes:=decode(envelope->>'payloadBase64','base64');
+ IF encode(gridex_requested_changes.receipt_hmac_sha256_v1(bytes,issuer.signing_key),'hex') IS DISTINCT FROM envelope->>'signatureHex'
+ OR encode(sha256(issuer.legal_evidence),'hex') IS DISTINCT FROM issuer.legal_hash
+ OR EXISTS(SELECT FROM gridex_ediel_retention.issuer_revocations WHERE issuer_id=issuer.id)
+ THEN RAISE EXCEPTION 'phase_current_issuer_signature_required' USING ERRCODE='42501';END IF;
+ p:=convert_from(bytes,'UTF8')::jsonb;at:=clock_timestamp();
+ IF p->>'format' IS DISTINCT FROM 'ediel_completed_source_parent_disposition_bundle_v1'
+ OR p->>'replayScope' IS DISTINCT FROM 'no_parent_replay'
+ OR p->>'companyId' IS DISTINCT FROM c::text OR p->>'policyId' IS DISTINCT FROM policy::text
+ OR p->>'issuerLegalReference' IS DISTINCT FROM issuer.legal_reference
+ OR p->>'executionMode' IS NULL OR p->>'executionMode' NOT IN('interactive','delegated_worker')
+ OR EXISTS(SELECT FROM jsonb_object_keys(p) k WHERE k NOT IN('format','replayScope','companyId','policyId','sourceCommitment','customerScopeHash','issuerLegalReference','issuedAt','expiresAt','approvalUntil','executionMode','executionActorId','reviewerId','approvalFields','W','R','fields','replayFields','terminalFields','purposeVersion','purposeHash'))
+ OR isfinite((p->>'issuedAt')::timestamptz) IS DISTINCT FROM true
+ OR isfinite((p->>'expiresAt')::timestamptz) IS DISTINCT FROM true
+ OR isfinite((p->>'approvalUntil')::timestamptz) IS DISTINCT FROM true
+ OR at<issuer.valid_from OR at>=issuer.valid_to OR (p->>'issuedAt')::timestamptz>at
+ OR (p->>'issuedAt')::timestamptz<issuer.valid_from OR (p->>'expiresAt')::timestamptz>issuer.valid_to
+ OR (p->>'expiresAt')::timestamptz<=at OR (p->>'approvalUntil')::timestamptz> (p->>'expiresAt')::timestamptz
+ OR (p->>'approvalUntil')::timestamptz<=at
+ THEN RAISE EXCEPTION 'phase_current_domain_and_time_required' USING ERRCODE='42501';END IF;
+ RETURN p;
+END$_$;
+
+--
+-- Name: completed_parent_references_v1(uuid, uuid, uuid); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.completed_parent_references_v1(c uuid, policy uuid, review_id uuid) RETURNS void
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $_$
+DECLARE f record;col text;keycol text;ids uuid[];found_ref boolean;BEGIN
+ FOR f IN SELECT DISTINCT conrelid FROM pg_constraint WHERE contype='f' AND confrelid=ANY(ARRAY['gridex_ediel_retention.decision_evidence_policies'::regclass,'gridex_ediel_retention.decision_evidence_reviews'::regclass,'gridex_ediel_retention.decision_evidence_revocations'::regclass,'gridex_ediel_retention.decision_evidence_tombstones'::regclass]) ORDER BY conrelid LOOP
+  EXECUTE format('LOCK TABLE %s IN SHARE ROW EXCLUSIVE MODE NOWAIT',f.conrelid::regclass);
+ END LOOP;
+ FOR f IN SELECT * FROM pg_constraint WHERE contype='f' AND confrelid=ANY(ARRAY['gridex_ediel_retention.decision_evidence_policies'::regclass,'gridex_ediel_retention.decision_evidence_reviews'::regclass,'gridex_ediel_retention.decision_evidence_revocations'::regclass,'gridex_ediel_retention.decision_evidence_tombstones'::regclass]) ORDER BY conrelid,oid LOOP
+  IF cardinality(f.conkey)<>1 OR cardinality(f.confkey)<>1 THEN RAISE EXCEPTION 'parent_unsupported_incoming_reference' USING ERRCODE='42501';END IF;
+  SELECT attname INTO STRICT col FROM pg_attribute WHERE attrelid=f.conrelid AND attnum=f.conkey[1];SELECT attname INTO STRICT keycol FROM pg_attribute WHERE attrelid=f.confrelid AND attnum=f.confkey[1];
+  IF f.confrelid='gridex_ediel_retention.decision_evidence_reviews'::regclass AND keycol='id' THEN ids:=ARRAY[review_id];
+  ELSIF keycol IN('id','policy_id') THEN ids:=ARRAY[policy];ELSE RAISE EXCEPTION 'parent_unsupported_incoming_reference' USING ERRCODE='42501';END IF;
+  IF f.conrelid='gridex_ediel_retention.completed_parent_purposes_v1'::regclass AND f.confrelid='gridex_ediel_retention.decision_evidence_policies'::regclass AND col='policy_id' AND keycol='id' AND f.conname='completed_parent_purpose_exact_policy_fk' THEN
+   IF EXISTS(SELECT FROM gridex_ediel_retention.completed_parent_purposes_v1 WHERE policy_id=policy AND company_id<>c) THEN RAISE EXCEPTION 'purpose_exact_owned_fk_scope_required' USING ERRCODE='42501';END IF;
+   PERFORM gridex_ediel_retention.completed_parent_purpose_current_v1(c,policy);CONTINUE;
+  END IF;
+  IF f.conrelid='gridex_ediel_retention.decision_evidence_reviews'::regclass AND col='policy_id' AND f.confrelid='gridex_ediel_retention.decision_evidence_policies'::regclass THEN CONTINUE;END IF;
+  IF f.conrelid='gridex_ediel_retention.decision_evidence_revocations'::regclass AND col='policy_id' AND f.confrelid='gridex_ediel_retention.decision_evidence_policies'::regclass THEN CONTINUE;END IF;
+  IF f.conrelid='gridex_ediel_retention.decision_evidence_tombstones'::regclass AND col IN('policy_id','review_id') THEN
+   EXECUTE format('SELECT EXISTS(SELECT FROM gridex_ediel_retention.decision_evidence_tombstones WHERE %I=ANY($1) AND NOT(policy_id=$2 AND review_id=$3 AND company_id=$4))',col) INTO found_ref USING ids,policy,review_id,c;
+  ELSE EXECUTE format('SELECT EXISTS(SELECT FROM %s WHERE %I=ANY($1))',f.conrelid::regclass,col) INTO found_ref USING ids;END IF;
+  IF found_ref THEN RAISE EXCEPTION 'parent_incoming_consumer_required' USING ERRCODE='42501';END IF;
+ END LOOP;
+ IF EXISTS(SELECT FROM gridex_ediel_retention.decision_evidence_policies WHERE id<>policy AND target_id=ANY(ARRAY[policy,review_id])) THEN RAISE EXCEPTION 'parent_opaque_policy_consumer_required' USING ERRCODE='42501';END IF;
+END$_$;
+
+--
+-- Name: completed_review_reason_basis_v1(uuid, uuid); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.completed_review_reason_basis_v1(c uuid, target uuid) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE b jsonb;BEGIN
+ b:=gridex_ediel_retention.completed_review_reason_scope_v1(c,target);
+ IF (b->>'byteLength')::bigint=0 THEN RAISE EXCEPTION 'completed_review_reason_disposition_ended' USING ERRCODE='42501';END IF;
+ IF EXISTS(SELECT FROM gridex_ediel_retention.decision_evidence_tombstones
+  WHERE retention_class='completed_decision_review_reason' AND target_id=target AND company_id=c)
+ THEN RAISE EXCEPTION 'decision_evidence_actual_original_bytes_required';END IF;
+ RETURN b;
+END $$;
+
+--
+-- Name: completed_review_reason_guard_v1(); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.completed_review_reason_guard_v1() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN
+ IF TG_OP='UPDATE' AND gridex_ediel_retention.completed_review_reason_transition_v1(to_jsonb(OLD),to_jsonb(NEW)) IS TRUE THEN RETURN NEW;END IF;
+ RAISE EXCEPTION 'received_source_evidence_is_append_only' USING ERRCODE='23514';
+END $$;
+
+--
+-- Name: completed_review_reason_read_v1(uuid, uuid, boolean); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.completed_review_reason_read_v1(c uuid, target uuid, include_body boolean) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE b jsonb;t gridex_ediel_retention.decision_evidence_tombstones%rowtype;body text;BEGIN
+ b:=gridex_ediel_retention.completed_review_reason_scope_v1(c,target);
+ IF (b->>'byteLength')::bigint=0 THEN RAISE EXCEPTION 'completed_review_reason_disposition_ended' USING ERRCODE='42501';END IF;
+ SELECT * INTO t FROM gridex_ediel_retention.decision_evidence_tombstones WHERE retention_class='completed_decision_review_reason' AND target_id=target AND company_id=c;
+ IF t.target_id IS NOT NULL AND b->>'targetMetadataHash' IS DISTINCT FROM t.target_metadata_hash THEN RAISE EXCEPTION 'completed_review_reason_retained_scope_changed';END IF;
+ IF include_body AND t.target_id IS NULL THEN SELECT reason INTO STRICT body FROM gridex_ediel_retention.decision_evidence_reviews WHERE id=target;END IF;
+ RETURN jsonb_build_object('companyId',c,'retentionClass','completed_decision_review_reason','targetId',target,
+  'documentHash',coalesce(t.source_hash,b->>'sourceHash'),'targetMetadataHash',coalesce(t.target_metadata_hash,b->>'targetMetadataHash'),
+  'documentByteLength',coalesce(t.byte_length,(b->>'byteLength')::bigint),'bytesAvailable',t.target_id IS NULL,
+  'documentBase64',CASE WHEN body IS NOT NULL THEN replace(encode(convert_to(body,'UTF8'),'base64'),E'\n','') ELSE NULL END,
+  'purgedAt',t.created_at,'minimumRetainUntil',b->>'minimumRetainUntil','authority','none');
+END $$;
+
+--
+-- Name: decision_evidence_policies; Type: TABLE; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE TABLE gridex_ediel_retention.decision_evidence_policies (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    retention_class text NOT NULL,
+    target_id uuid NOT NULL,
+    source_hash text NOT NULL,
+    target_metadata_hash text NOT NULL,
+    document_bytes bytea,
+    document_hash text NOT NULL,
+    document_byte_length bigint,
+    document_purged_at timestamp with time zone,
+    issuer_receipt jsonb,
+    submitted_by uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT decision_evidence_policies_check CHECK ((target_id <> id)),
+    CONSTRAINT decision_evidence_policies_check1 CHECK ((((document_bytes IS NOT NULL) AND (document_purged_at IS NULL)) OR ((document_bytes IS NULL) AND (document_purged_at IS NOT NULL) AND (document_byte_length > 0)))),
+    CONSTRAINT decision_evidence_policies_document_bytes_check CHECK (((octet_length(document_bytes) >= 1) AND (octet_length(document_bytes) <= 1048576))),
+    CONSTRAINT decision_evidence_policies_document_hash_check CHECK ((document_hash ~ '^[a-f0-9]{64}$'::text)),
+    CONSTRAINT decision_evidence_policies_source_hash_check CHECK ((source_hash ~ '^[a-f0-9]{64}$'::text)),
+    CONSTRAINT decision_evidence_policies_target_metadata_hash_check CHECK ((target_metadata_hash ~ '^[a-f0-9]{64}$'::text))
+);
+
+ALTER TABLE ONLY gridex_ediel_retention.decision_evidence_policies FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: decision_evidence_reviews; Type: TABLE; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE TABLE gridex_ediel_retention.decision_evidence_reviews (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    policy_id uuid NOT NULL,
+    actor_user_id uuid NOT NULL,
+    outcome text NOT NULL,
+    reason text NOT NULL,
+    created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT decision_evidence_reviews_outcome_check CHECK ((outcome = ANY (ARRAY['approved'::text, 'held'::text, 'rejected'::text]))),
+    CONSTRAINT decision_evidence_reviews_reason_check CHECK (((length(reason) >= 0) AND (length(reason) <= 4000)))
+);
+
+ALTER TABLE ONLY gridex_ediel_retention.decision_evidence_reviews FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: completed_review_reason_retire_v1(gridex_ediel_retention.decision_evidence_policies, gridex_ediel_retention.decision_evidence_reviews, uuid); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.completed_review_reason_retire_v1(d gridex_ediel_retention.decision_evidence_policies, r gridex_ediel_retention.decision_evidence_reviews, actor uuid) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE b jsonb;p jsonb;at timestamptz;BEGIN
+ b:=gridex_ediel_retention.completed_review_reason_basis_v1(d.company_id,d.target_id);
+ IF b->>'sourceHash' IS DISTINCT FROM d.source_hash OR b->>'targetMetadataHash' IS DISTINCT FROM d.target_metadata_hash THEN RAISE EXCEPTION 'completed_review_reason_source_changed';END IF;
+ PERFORM gridex_ediel_retention.decision_evidence_actor_v1(d.company_id,actor,d.retention_class,'ediel.retention.purge');
+ PERFORM gridex_ediel_retention.decision_evidence_lock_reviewer_v1(d.company_id,r.actor_user_id,d.retention_class);
+ p:=gridex_ediel_retention.decision_evidence_receipt_v1(d);
+ PERFORM gridex_ediel_retention.decision_evidence_actor_v1(d.company_id,actor,d.retention_class,'ediel.retention.purge');
+ PERFORM gridex_ediel_retention.decision_evidence_lock_reviewer_v1(d.company_id,r.actor_user_id,d.retention_class);
+ at:=clock_timestamp();
+ IF p IS NULL OR (p->>'retainUntil')::timestamptz>at OR (p->>'expiresAt')::timestamptz<=at OR (p->>'journalRetainUntil')::timestamptz<=at
+ THEN RETURN jsonb_build_object('status','held','policyId',d.id,'missing',ARRAY['current_separate_metadata_purpose_deadline_and_witness_authority']);END IF;
+ -- Consume this separate metadata policy before changing the selected text.
+ INSERT INTO gridex_ediel_retention.decision_evidence_revocations(policy_id,actor_user_id,reason)
+ VALUES(d.id,actor,'Consumed completed-review reason retirement policy');
+ INSERT INTO gridex_ediel_retention.decision_evidence_tombstones(retention_class,target_id,company_id,policy_id,review_id,source_hash,target_metadata_hash,byte_length,actor_user_id,journal_retain_until,journal_purpose_reference,created_at)
+ VALUES(d.retention_class,d.target_id,d.company_id,d.id,r.id,d.source_hash,d.target_metadata_hash,(b->>'byteLength')::bigint,actor,(p->>'journalRetainUntil')::timestamptz,p->>'journalPurposeReference',at);
+ UPDATE gridex_ediel_retention.decision_evidence_reviews SET reason='[Retired retention review reason]' WHERE id=d.target_id;
+ -- No OLD/NEW body, reason, source snapshot or receipt payload is copied.
+ INSERT INTO public.audit_logs(actor_user_id,company_id,entity_type,entity_id,action,metadata)
+ VALUES(actor,d.company_id,'retention_review',d.target_id,'ediel.retention.completed_review_reason_retired',
+  jsonb_build_object('policyId',d.id,'reviewId',r.id,'retentionClass',d.retention_class,'sourceHash',d.source_hash,
+   'journalRetainUntil',p->>'journalRetainUntil','journalPurposeReference',p->>'journalPurposeReference'));
+ RETURN jsonb_build_object('status','purged','retentionClass',d.retention_class,'targetId',d.target_id,'sourceHash',d.source_hash,
+  'byteLength',(b->>'byteLength')::bigint,'bytesAvailable',false,'authority','none','replay',false);
+END $$;
+
+--
+-- Name: completed_review_reason_scope_v1(uuid, uuid); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.completed_review_reason_scope_v1(c uuid, target uuid) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE r gridex_ediel_retention.decision_evidence_reviews%rowtype;
+ q gridex_ediel_retention.decision_evidence_policies%rowtype;
+ t gridex_ediel_retention.decision_evidence_tombstones%rowtype;h text;
+BEGIN
+ SELECT x.* INTO STRICT r FROM gridex_ediel_retention.decision_evidence_reviews x
+ JOIN gridex_ediel_retention.decision_evidence_policies p ON p.id=x.policy_id
+ WHERE x.id=target AND p.company_id=c FOR UPDATE OF x;
+ SELECT * INTO STRICT q FROM gridex_ediel_retention.decision_evidence_policies WHERE id=r.policy_id AND company_id=c FOR UPDATE;
+ SELECT * INTO STRICT t FROM gridex_ediel_retention.decision_evidence_tombstones
+ WHERE policy_id=q.id AND company_id=c AND retention_class=q.retention_class AND target_id=q.target_id FOR SHARE;
+ -- Completed immutable receipt, not expired issuer competence or caller closure.
+ h:=encode(sha256(convert_to(jsonb_build_object('review',to_jsonb(r)-'reason',
+  'policy',to_jsonb(q)-ARRAY['document_bytes','document_byte_length','document_purged_at'],
+  'completion',to_jsonb(t))::text,'UTF8')),'hex');
+ RETURN jsonb_build_object('retentionClass','completed_decision_review_reason','targetId',r.id,
+  'sourceHash',encode(sha256(convert_to(r.reason,'UTF8')),'hex'),'targetMetadataHash',h,
+  'byteLength',octet_length(convert_to(r.reason,'UTF8')),'minimumRetainUntil',t.journal_retain_until,
+  'sourcePolicyId',q.id);
+END $$;
+
+--
+-- Name: completed_review_reason_terms_v1(gridex_ediel_retention.decision_evidence_policies, jsonb); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.completed_review_reason_terms_v1(d gridex_ediel_retention.decision_evidence_policies, p jsonb) RETURNS boolean
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE floor_at timestamptz;BEGIN
+ IF jsonb_typeof(p) IS DISTINCT FROM 'object' OR EXISTS(SELECT FROM jsonb_object_keys(p) k WHERE k NOT IN(
+  'format','operation','companyId','retentionClass','targetId','sourceHash','targetMetadataHash','documentHash',
+  'issuerLegalReference','legalBasisReference','journalPurposeReference','issuedAt','expiresAt','retainUntil','journalRetainUntil','witnessFields'))
+ OR p->'witnessFields' IS DISTINCT FROM '["review.id","review.policy_id","review.actor_user_id","review.outcome","review.created_at","policy_evidence","retirement_review","retirement_revocation","retirement_tombstone","retirement_audit"]'::jsonb THEN RETURN false;END IF;
+ SELECT t.journal_retain_until INTO floor_at FROM gridex_ediel_retention.decision_evidence_reviews r
+ JOIN gridex_ediel_retention.decision_evidence_policies q ON q.id=r.policy_id AND q.company_id=d.company_id
+ JOIN gridex_ediel_retention.decision_evidence_tombstones t ON t.policy_id=q.id AND t.company_id=q.company_id
+  AND t.retention_class=q.retention_class AND t.target_id=q.target_id
+ WHERE r.id=d.target_id;
+ -- Existing journal end is only a floor. A new signed metadata purpose and
+ -- finite journal end separately cover the deliberately retained witnesses.
+ RETURN floor_at IS NOT NULL AND (p->>'retainUntil')::timestamptz>=floor_at;
+END $$;
+
+--
+-- Name: completed_review_reason_transition_v1(jsonb, jsonb); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.completed_review_reason_transition_v1(o jsonb, n jsonb) RETURNS boolean
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE c uuid;t gridex_ediel_retention.decision_evidence_tombstones%rowtype;b jsonb;BEGIN
+ SELECT company_id INTO c FROM gridex_ediel_retention.decision_evidence_policies WHERE id=(o->>'policy_id')::uuid;
+ SELECT * INTO t FROM gridex_ediel_retention.decision_evidence_tombstones WHERE retention_class='completed_decision_review_reason'
+  AND target_id=(o->>'id')::uuid AND company_id=c;
+ IF t.target_id IS NULL OR NOT EXISTS(SELECT FROM gridex_ediel_retention.decision_evidence_revocations WHERE policy_id=t.policy_id AND actor_user_id=t.actor_user_id)
+ OR n->>'reason' IS DISTINCT FROM '[Retired retention review reason]'
+ OR o-'reason' IS DISTINCT FROM n-'reason' OR encode(sha256(convert_to(o->>'reason','UTF8')),'hex') IS DISTINCT FROM t.source_hash
+ THEN RETURN false;END IF;
+ b:=gridex_ediel_retention.completed_review_reason_scope_v1(c,t.target_id);
+ RETURN b->>'targetMetadataHash'=t.target_metadata_hash AND (b->>'byteLength')::bigint=t.byte_length;
+END $$;
+
+--
+-- Name: completed_witness_approval_terms_v1(jsonb, timestamp with time zone); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.completed_witness_approval_terms_v1(p jsonb, at timestamp with time zone) RETURNS void
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE f jsonb;fields text[];BEGIN
+ SELECT array_agg(value->>'field' ORDER BY value->>'field') INTO fields FROM jsonb_array_elements(p->'approvalFields');
+ IF fields IS DISTINCT FROM ARRAY['approval.approved_at','approval.company_id','approval.expires_at','approval.policy_id','approval.receipt','approval.receipt_hash','approval.reviewer_user_id','approval.source_commitment','approval.stage']::text[]
+ THEN RAISE EXCEPTION 'phase_all_nine_approval_fields_required' USING ERRCODE='42501';END IF;
+ FOR f IN SELECT value FROM jsonb_array_elements(p->'approvalFields') LOOP
+  IF jsonb_typeof(f->'purposeReference') IS DISTINCT FROM 'string' OR jsonb_typeof(f->'basisReference') IS DISTINCT FROM 'string' OR EXISTS(SELECT FROM jsonb_object_keys(f) k WHERE k NOT IN('field','purposeReference','basisReference','min','max','reviewBy','action')) OR nullif(btrim(f->>'purposeReference'),'') IS NULL OR nullif(btrim(f->>'basisReference'),'') IS NULL
+  OR f->>'action' IS DISTINCT FROM 'consume_or_expire'
+  OR isfinite((f->>'min')::timestamptz) IS DISTINCT FROM true OR (f->>'min')::timestamptz>at
+  OR (f->>'max')::timestamptz IS DISTINCT FROM (p->>'approvalUntil')::timestamptz
+  OR isfinite((f->>'reviewBy')::timestamptz) IS DISTINCT FROM true OR (f->>'reviewBy')::timestamptz<=at
+  THEN RAISE EXCEPTION 'phase_finite_approval_storage_terms_required' USING ERRCODE='42501';END IF;
+ END LOOP;
+END$$;
+
+--
+-- Name: completed_witness_dispatch_v1(uuid, uuid, uuid); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.completed_witness_dispatch_v1(c uuid, actor uuid, policy uuid) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE d gridex_ediel_retention.decision_evidence_policies%rowtype;t gridex_ediel_retention.decision_evidence_tombstones%rowtype;b jsonb;result jsonb;BEGIN
+ IF EXISTS(SELECT FROM gridex_ediel_retention.completed_witness_phase_authorizations_v1 WHERE company_id=c AND policy_id=policy) THEN
+  PERFORM gridex_ediel_retention.decision_evidence_actor_v1(c,actor,'completed_decision_review_reason','ediel.retention.purge');
+  BEGIN RETURN gridex_ediel_retention.completed_witness_execute_v1(c,actor,policy);EXCEPTION WHEN insufficient_privilege THEN
+   IF EXISTS(SELECT FROM gridex_ediel_retention.completed_witness_replays_v1 WHERE company_id=c AND policy_id=policy) THEN RETURN gridex_ediel_retention.completed_witness_status_v1(c,actor,policy);END IF;
+   RETURN jsonb_build_object('status','held','policyId',policy,'missing',ARRAY['current_qualified_leaf_disposition']);END;
+ END IF;
+ SELECT * INTO d FROM gridex_ediel_retention.decision_evidence_policies WHERE id=policy AND company_id=c FOR UPDATE;
+ IF NOT FOUND THEN RETURN gridex_ediel_retention.completed_witness_status_v1(c,actor,policy);END IF;
+ IF d.retention_class<>'completed_decision_review_reason' THEN RETURN NULL;END IF;
+ SELECT * INTO t FROM gridex_ediel_retention.decision_evidence_tombstones WHERE retention_class=d.retention_class AND target_id=d.target_id FOR SHARE;
+ IF NOT FOUND THEN RETURN NULL;END IF;
+ IF t.policy_id IS DISTINCT FROM d.id OR t.company_id IS DISTINCT FROM c OR t.source_hash IS DISTINCT FROM d.source_hash OR t.target_metadata_hash IS DISTINCT FROM d.target_metadata_hash THEN RAISE EXCEPTION 'decision_original_purge_replay_conflict';END IF;
+ b:=gridex_ediel_retention.completed_review_reason_scope_v1(c,d.target_id);
+ IF b->>'targetMetadataHash' IS DISTINCT FROM t.target_metadata_hash THEN RAISE EXCEPTION 'completed_witness_legacy_scope_conflict' USING ERRCODE='42501';END IF;
+ PERFORM gridex_ediel_retention.decision_evidence_actor_v1(c,actor,d.retention_class,'ediel.retention.purge');
+ IF clock_timestamp()<t.journal_retain_until THEN RETURN NULL;END IF;
+ RETURN jsonb_build_object('status','purged','replay',true,'authority','none');
+END $$;
+
+--
+-- Name: completed_witness_execute_v1(uuid, uuid, uuid, boolean); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.completed_witness_execute_v1(c uuid, actor uuid, policy uuid, delegated boolean DEFAULT false) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $_$
+DECLARE a gridex_ediel_retention.completed_witness_phase_authorizations_v1%rowtype;d gridex_ediel_retention.decision_evidence_policies%rowtype;t gridex_ediel_retention.decision_evidence_tombstones%rowtype;q gridex_ediel_retention.decision_evidence_reviews%rowtype;r gridex_ediel_retention.completed_witness_replays_v1%rowtype;p jsonb;w timestamptz;until_r timestamptz;at timestamptz;h text;tab text;holds text;BEGIN
+ IF delegated THEN PERFORM gridex_ediel_retention.completed_witness_worker_actor_v1(c,actor);ELSE PERFORM gridex_ediel_retention.decision_evidence_actor_v1(c,actor,'completed_decision_review_reason','ediel.retention.purge');END IF;
+ SELECT * INTO STRICT a FROM gridex_ediel_retention.completed_witness_phase_authorizations_v1 WHERE company_id=c AND policy_id=policy FOR UPDATE;
+ IF encode(sha256(convert_to(a.receipt::text,'UTF8')),'hex') IS DISTINCT FROM a.receipt_hash THEN RAISE EXCEPTION 'completed_witness_stored_receipt_integrity_required' USING ERRCODE='42501';END IF;
+ holds:=gridex_ediel_retention.completed_witness_holds_v1(c);p:=gridex_ediel_retention.completed_witness_receipt_v1(c,policy,a.receipt);
+ IF p->>'executionActorId' IS DISTINCT FROM actor::text OR p->>'reviewerId' IS DISTINCT FROM a.reviewer_user_id::text OR actor=a.reviewer_user_id OR delegated AND p->>'executionMode' IS DISTINCT FROM 'delegated_worker' OR NOT delegated AND p->>'executionMode' IS DISTINCT FROM 'interactive' OR p->>'sourceCommitment' IS DISTINCT FROM a.source_commitment OR p->>'customerScopeHash' IS DISTINCT FROM holds THEN RAISE EXCEPTION 'completed_witness_exact_execution_delegation_required' USING ERRCODE='42501';END IF;
+ IF a.stage='dispose' THEN
+  SELECT * INTO STRICT d FROM gridex_ediel_retention.decision_evidence_policies WHERE id=policy AND company_id=c FOR UPDATE;
+  SELECT * INTO STRICT t FROM gridex_ediel_retention.decision_evidence_tombstones WHERE policy_id=policy AND company_id=c FOR UPDATE;
+  SELECT * INTO STRICT q FROM gridex_ediel_retention.decision_evidence_reviews WHERE id=t.review_id AND policy_id=policy FOR UPDATE;
+  PERFORM policy_id FROM gridex_ediel_retention.decision_evidence_revocations WHERE policy_id=policy FOR UPDATE;
+  IF d.retention_class<>'completed_decision_review_reason' OR t.retention_class<>d.retention_class OR t.target_id<>d.target_id OR t.source_hash<>d.source_hash OR t.target_metadata_hash<>d.target_metadata_hash OR q.outcome<>'approved' OR q.actor_user_id=d.submitted_by
+  OR (SELECT count(*) FROM gridex_ediel_retention.decision_evidence_reviews WHERE policy_id=policy)<>1 OR NOT EXISTS(SELECT FROM gridex_ediel_retention.decision_evidence_revocations WHERE policy_id=policy AND actor_user_id=t.actor_user_id) THEN RAISE EXCEPTION 'completed_witness_exact_completed_leaf_required' USING ERRCODE='42501';END IF;
+  h:=gridex_ediel_retention.completed_witness_graph_v1(c,policy);
+  IF h IS DISTINCT FROM a.source_commitment OR p->>'customerScopeHash' IS DISTINCT FROM holds OR gridex_ediel_retention.completed_review_reason_scope_v1(c,d.target_id)->>'targetMetadataHash' IS DISTINCT FROM d.target_metadata_hash THEN RAISE EXCEPTION 'completed_witness_current_graph_commitment_required' USING ERRCODE='42501';END IF;
+  PERFORM gridex_ediel_retention.completed_witness_route_v1(c,policy);PERFORM gridex_ediel_retention.completed_witness_references_v1(c,policy,d.target_id);
+  w:=t.journal_retain_until;until_r:=(p->>'R')::timestamptz;
+ ELSE
+  SELECT * INTO STRICT r FROM gridex_ediel_retention.completed_witness_replays_v1 WHERE company_id=c AND policy_id=policy FOR UPDATE;
+  IF r.source_commitment IS DISTINCT FROM a.source_commitment OR (p->>'R')::timestamptz IS DISTINCT FROM r.replay_until THEN RAISE EXCEPTION 'completed_witness_exact_terminal_scope_required' USING ERRCODE='42501';END IF;
+ END IF;
+ -- Every wait/reference/issuer/current-authority lock precedes this final time.
+ PERFORM gridex_ediel_retention.decision_evidence_lock_reviewer_v1(c,a.reviewer_user_id,'completed_decision_review_reason');
+ IF delegated THEN PERFORM gridex_ediel_retention.completed_witness_worker_actor_v1(c,actor);ELSE PERFORM gridex_ediel_retention.decision_evidence_actor_v1(c,actor,'completed_decision_review_reason','ediel.retention.purge');END IF;
+ p:=gridex_ediel_retention.completed_witness_receipt_v1(c,policy,a.receipt);PERFORM gridex_ediel_retention.completed_witness_holds_v1(c);at:=clock_timestamp();
+ IF at>=a.expires_at THEN RAISE EXCEPTION 'completed_witness_approval_expired' USING ERRCODE='42501';END IF;
+ IF a.stage='expire' THEN
+  IF at<r.replay_until THEN RETURN gridex_ediel_retention.completed_witness_status_v1(c,actor,policy,delegated);END IF;
+  PERFORM gridex_ediel_retention.completed_witness_terms_v1(jsonb_build_object('executeBefore',a.expires_at,'fields',p->'terminalFields'),ARRAY['replay.company_id','replay.policy_id','replay.replay_until','replay.source_commitment'],'expire',r.replay_until,r.replay_until,at);
+  DELETE FROM gridex_ediel_retention.completed_witness_replays_v1 WHERE company_id=c AND policy_id=policy;DELETE FROM gridex_ediel_retention.completed_witness_phase_authorizations_v1 WHERE company_id=c AND policy_id=policy;
+  RETURN jsonb_build_object('status','expired','authority','none');
+ END IF;
+ IF at<w OR until_r>w AND at>=until_r THEN RAISE EXCEPTION 'completed_witness_disposition_window_required' USING ERRCODE='42501';END IF;
+ PERFORM gridex_ediel_retention.completed_witness_terms_v1(jsonb_build_object('executeBefore',a.expires_at,'fields',p->'fields','replayFields',p->'replayFields'),gridex_ediel_retention.completed_witness_fields_v1(c,policy),'dispose',w,until_r,at);
+ IF (SELECT reason FROM gridex_ediel_retention.decision_evidence_reviews WHERE id=d.target_id) IS DISTINCT FROM '[Retired retention review reason]' THEN RAISE EXCEPTION 'completed_witness_actual_prior_reason_retirement_required' USING ERRCODE='42501';END IF;
+ INSERT INTO gridex_ediel_retention.completed_witness_phase_permits_v1 SELECT pg_backend_pid(),txid_current(),'decision_evidence_reviews',encode(sha256(convert_to(to_jsonb(x)::text,'UTF8')),'hex'),'UPDATE',encode(sha256(convert_to((to_jsonb(x)||jsonb_build_object('reason',''))::text,'UTF8')),'hex') FROM gridex_ediel_retention.decision_evidence_reviews x WHERE id=d.target_id;
+ UPDATE gridex_ediel_retention.decision_evidence_reviews SET reason='' WHERE id=d.target_id;
+ IF until_r>w THEN INSERT INTO gridex_ediel_retention.completed_witness_replays_v1 VALUES(c,policy,a.source_commitment,until_r);END IF;
+ FOREACH tab IN ARRAY ARRAY['decision_evidence_tombstones','decision_evidence_reviews','decision_evidence_revocations','decision_evidence_policies'] LOOP
+  IF tab='decision_evidence_policies' THEN
+   INSERT INTO gridex_ediel_retention.completed_witness_phase_permits_v1 SELECT pg_backend_pid(),txid_current(),tab,encode(sha256(convert_to(to_jsonb(x)::text,'UTF8')),'hex'),'DELETE',NULL FROM gridex_ediel_retention.decision_evidence_policies x WHERE id=policy AND company_id=c;
+   DELETE FROM gridex_ediel_retention.decision_evidence_policies WHERE id=policy AND company_id=c;
+  ELSE
+   EXECUTE format('INSERT INTO gridex_ediel_retention.completed_witness_phase_permits_v1 SELECT pg_backend_pid(),txid_current(),$1,encode(sha256(convert_to(to_jsonb(x)::text,''UTF8'')),''hex''),''DELETE'',NULL FROM gridex_ediel_retention.%I x WHERE policy_id=$2',tab) USING tab,policy;
+   EXECUTE format('DELETE FROM gridex_ediel_retention.%I WHERE policy_id=$1',tab) USING policy;
+  END IF;
+ END LOOP;
+ IF EXISTS(SELECT FROM gridex_ediel_retention.completed_witness_phase_permits_v1 WHERE backend=pg_backend_pid() AND xid=txid_current()) THEN RAISE EXCEPTION 'completed_witness_unconsumed_permit';END IF;
+ IF until_r=w THEN DELETE FROM gridex_ediel_retention.completed_witness_phase_authorizations_v1 WHERE company_id=c AND policy_id=policy;ELSE UPDATE gridex_ediel_retention.completed_witness_phase_authorizations_v1 SET stage='expire' WHERE company_id=c AND policy_id=policy;END IF;
+ RETURN jsonb_build_object('status','disposed','replay',false,'authority','none');
+END $_$;
+
+--
+-- Name: completed_witness_fields_v1(uuid, uuid); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.completed_witness_fields_v1(c uuid, policy uuid) RETURNS text[]
+    LANGUAGE sql
+    AS $$
+ SELECT array_agg(field ORDER BY field) FROM (
+ SELECT 'policy.'||jsonb_object_keys(to_jsonb(x)) field FROM gridex_ediel_retention.decision_evidence_policies x WHERE id=policy AND company_id=c
+ UNION ALL SELECT 'review.'||jsonb_object_keys(to_jsonb(x)) FROM gridex_ediel_retention.decision_evidence_reviews x WHERE policy_id=policy
+ UNION ALL SELECT 'revocation.'||jsonb_object_keys(to_jsonb(x)) FROM gridex_ediel_retention.decision_evidence_revocations x WHERE policy_id=policy
+ UNION ALL SELECT 'tombstone.'||jsonb_object_keys(to_jsonb(x)) FROM gridex_ediel_retention.decision_evidence_tombstones x WHERE policy_id=policy
+ UNION ALL SELECT 'source_review.reason' FROM gridex_ediel_retention.decision_evidence_policies x WHERE id=policy AND company_id=c
+ ) f
+$$;
+
+--
+-- Name: completed_witness_graph_v1(uuid, uuid); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.completed_witness_graph_v1(c uuid, policy uuid) RETURNS text
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE d gridex_ediel_retention.decision_evidence_policies%rowtype;b jsonb;BEGIN
+ SELECT * INTO STRICT d FROM gridex_ediel_retention.decision_evidence_policies WHERE id=policy AND company_id=c FOR UPDATE;
+ b:=gridex_ediel_retention.completed_review_reason_scope_v1(c,d.target_id);
+ IF d.retention_class<>'completed_decision_review_reason' OR b->>'targetMetadataHash' IS DISTINCT FROM d.target_metadata_hash THEN RAISE EXCEPTION 'phase_original_commitment_required' USING ERRCODE='42501';END IF;
+ RETURN encode(sha256(convert_to(jsonb_build_object('policy',to_jsonb(d),'sourceScope',b,
+ 'reviews',(SELECT jsonb_agg(to_jsonb(x) ORDER BY id) FROM gridex_ediel_retention.decision_evidence_reviews x WHERE policy_id=policy),
+ 'revocation',(SELECT to_jsonb(x) FROM gridex_ediel_retention.decision_evidence_revocations x WHERE policy_id=policy),
+ 'completion',(SELECT to_jsonb(x) FROM gridex_ediel_retention.decision_evidence_tombstones x WHERE policy_id=policy))::text,'UTF8')),'hex');
+END$$;
+
+--
+-- Name: completed_witness_guard_v1(); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.completed_witness_guard_v1() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE h text;BEGIN
+ h:=encode(sha256(convert_to(to_jsonb(OLD)::text,'UTF8')),'hex');
+ DELETE FROM gridex_ediel_retention.completed_witness_phase_permits_v1
+ WHERE backend=pg_backend_pid() AND xid=txid_current() AND relation_name=TG_TABLE_NAME AND before_hash=h AND operation=TG_OP
+ AND (TG_OP='DELETE' OR after_hash=encode(sha256(convert_to(to_jsonb(NEW)::text,'UTF8')),'hex'));
+ IF FOUND THEN IF TG_OP='DELETE' THEN RETURN OLD;ELSE RETURN NEW;END IF;END IF;
+ IF TG_OP='UPDATE' AND TG_TABLE_NAME='decision_evidence_policies' AND gridex_ediel_retention.decision_evidence_transition_v1(TG_TABLE_NAME,to_jsonb(OLD),to_jsonb(NEW)) IS TRUE THEN RETURN NEW;END IF;
+ IF TG_OP='UPDATE' AND TG_TABLE_NAME='decision_evidence_reviews' AND OLD.reason<>'' AND gridex_ediel_retention.completed_review_reason_transition_v1(to_jsonb(OLD),to_jsonb(NEW)) IS TRUE THEN RETURN NEW;END IF;
+ RAISE EXCEPTION 'received_source_evidence_is_append_only' USING ERRCODE='23514';
+END $$;
+
+--
+-- Name: completed_witness_holds_v1(uuid); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.completed_witness_holds_v1(c uuid) RETURNS text
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE n integer;h text;BEGIN
+ -- Same conservative tenant-population policy as actual finance/process basis.
+ -- No caller list, missing-row clearance flag or single-message assumption.
+ LOCK TABLE public.customers IN SHARE ROW EXCLUSIVE MODE;
+ SELECT count(*),encode(sha256(convert_to(coalesce(jsonb_agg(jsonb_build_object('id',id,'legalHold',legal_hold) ORDER BY id),'[]'::jsonb)::text,'UTF8')),'hex')
+ INTO n,h FROM public.customers WHERE company_id=c;
+ IF n>10000 OR EXISTS(SELECT FROM public.customers WHERE company_id=c AND legal_hold) THEN RAISE EXCEPTION 'phase_current_customer_hold' USING ERRCODE='42501';END IF;
+ RETURN h;
+END$$;
+
+--
+-- Name: completed_witness_payload_terms_v1(uuid, uuid, jsonb); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.completed_witness_payload_terms_v1(c uuid, policy uuid, p jsonb) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE w timestamptz;r timestamptz;a timestamptz;BEGIN
+ SELECT journal_retain_until INTO STRICT w FROM gridex_ediel_retention.decision_evidence_tombstones WHERE policy_id=policy AND company_id=c;
+ r:=(p->>'R')::timestamptz;a:=(p->>'approvalUntil')::timestamptz;
+ IF (p->>'W')::timestamptz IS DISTINCT FROM w OR isfinite(w) IS DISTINCT FROM true OR isfinite(r) IS DISTINCT FROM true OR r<w OR a<=r THEN RAISE EXCEPTION 'completed_witness_exact_finite_phase_boundaries_required' USING ERRCODE='42501';END IF;
+ PERFORM gridex_ediel_retention.completed_witness_terms_v1(jsonb_build_object('executeBefore',a,'fields',p->'fields','replayFields',p->'replayFields'),gridex_ediel_retention.completed_witness_fields_v1(c,policy),'dispose',w,r,w);
+ IF r>w THEN PERFORM gridex_ediel_retention.completed_witness_terms_v1(jsonb_build_object('executeBefore',a,'fields',p->'terminalFields'),ARRAY['replay.company_id','replay.policy_id','replay.replay_until','replay.source_commitment'],'expire',r,r,r);
+ ELSIF p->'terminalFields' IS DISTINCT FROM '[]'::jsonb THEN RAISE EXCEPTION 'completed_witness_no_terminal_replay_scope_required' USING ERRCODE='42501';END IF;
+END $$;
+
+--
+-- Name: completed_witness_permits_empty_v1(); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.completed_witness_permits_empty_v1() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$BEGIN
+ IF EXISTS(SELECT FROM gridex_ediel_retention.completed_witness_phase_permits_v1 WHERE backend=pg_backend_pid() AND xid=txid_current()) THEN RAISE EXCEPTION 'completed_witness_unconsumed_permit' USING ERRCODE='23514';END IF;RETURN NULL;
+END$$;
+
+--
+-- Name: completed_witness_reason_intake_v1(); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.completed_witness_reason_intake_v1() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$BEGIN
+ IF NEW.reason IS NULL OR length(NEW.reason) NOT BETWEEN 1 AND 4000 THEN RAISE EXCEPTION 'decision_evidence_review_reason_intake_required' USING ERRCODE='23514';END IF;RETURN NEW;
+END$$;
+
+--
+-- Name: completed_witness_receipt_v1(uuid, uuid, jsonb); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.completed_witness_receipt_v1(c uuid, policy uuid, envelope jsonb) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $_$
+DECLARE issuer gridex_ediel_retention.issuers%rowtype;p jsonb;bytes bytea;at timestamptz;BEGIN
+ IF jsonb_typeof(envelope) IS DISTINCT FROM 'object' OR EXISTS(SELECT FROM jsonb_object_keys(envelope) k WHERE k NOT IN('issuerId','payloadBase64','signatureHex')) OR coalesce(envelope->>'signatureHex','')!~'^[a-f0-9]{64}$'
+ OR length(coalesce(envelope->>'payloadBase64','')) NOT BETWEEN 1 AND 65536 THEN RAISE EXCEPTION 'phase_receipt_shape_required' USING ERRCODE='42501';END IF;
+ SELECT * INTO STRICT issuer FROM gridex_ediel_retention.issuers WHERE id=(envelope->>'issuerId')::uuid AND company_id=c FOR SHARE;
+ -- Actual retention_issuer_revocation_lock takes this SAME issuer FOR UPDATE
+ -- before INSERT; an absent revocation is therefore not an unlocked phantom.
+ bytes:=decode(envelope->>'payloadBase64','base64');
+ IF encode(gridex_requested_changes.receipt_hmac_sha256_v1(bytes,issuer.signing_key),'hex') IS DISTINCT FROM envelope->>'signatureHex'
+ OR encode(sha256(issuer.legal_evidence),'hex') IS DISTINCT FROM issuer.legal_hash
+ OR EXISTS(SELECT FROM gridex_ediel_retention.issuer_revocations WHERE issuer_id=issuer.id)
+ THEN RAISE EXCEPTION 'phase_current_issuer_signature_required' USING ERRCODE='42501';END IF;
+ p:=convert_from(bytes,'UTF8')::jsonb;at:=clock_timestamp();
+ IF p->>'format' IS DISTINCT FROM 'ediel_completed_witness_disposition_bundle_v1'
+ OR p->>'replayScope' IS DISTINCT FROM 'committed_leaf_disposition_only'
+ OR p->>'companyId' IS DISTINCT FROM c::text OR p->>'policyId' IS DISTINCT FROM policy::text
+ OR p->>'issuerLegalReference' IS DISTINCT FROM issuer.legal_reference
+ OR p->>'executionMode' IS NULL OR p->>'executionMode' NOT IN('interactive','delegated_worker')
+ OR EXISTS(SELECT FROM jsonb_object_keys(p) k WHERE k NOT IN('format','replayScope','companyId','policyId','sourceCommitment','customerScopeHash','issuerLegalReference','issuedAt','expiresAt','approvalUntil','executionMode','executionActorId','reviewerId','approvalFields','W','R','fields','replayFields','terminalFields'))
+ OR isfinite((p->>'issuedAt')::timestamptz) IS DISTINCT FROM true
+ OR isfinite((p->>'expiresAt')::timestamptz) IS DISTINCT FROM true
+ OR isfinite((p->>'approvalUntil')::timestamptz) IS DISTINCT FROM true
+ OR at<issuer.valid_from OR at>=issuer.valid_to OR (p->>'issuedAt')::timestamptz>at
+ OR (p->>'issuedAt')::timestamptz<issuer.valid_from OR (p->>'expiresAt')::timestamptz>issuer.valid_to
+ OR (p->>'expiresAt')::timestamptz<=at OR (p->>'approvalUntil')::timestamptz> (p->>'expiresAt')::timestamptz
+ OR (p->>'approvalUntil')::timestamptz<=at
+ THEN RAISE EXCEPTION 'phase_current_domain_and_time_required' USING ERRCODE='42501';END IF;
+ RETURN p;
+END$_$;
+
+--
+-- Name: completed_witness_references_v1(uuid, uuid, uuid); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.completed_witness_references_v1(c uuid, policy uuid, source_review uuid) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $_$
+DECLARE f record;found_reference boolean;col text;keycol text;ids uuid[];parent gridex_ediel_retention.decision_evidence_policies%rowtype;BEGIN
+ SELECT p.* INTO STRICT parent FROM gridex_ediel_retention.decision_evidence_reviews r JOIN gridex_ediel_retention.decision_evidence_policies p ON p.id=r.policy_id WHERE r.id=source_review AND p.company_id=c FOR SHARE OF p;
+ LOCK TABLE gridex_ediel_retention.decision_evidence_policies,gridex_ediel_retention.decision_evidence_reviews,gridex_ediel_retention.decision_evidence_revocations,gridex_ediel_retention.decision_evidence_tombstones IN SHARE ROW EXCLUSIVE MODE NOWAIT;
+ FOR f IN SELECT DISTINCT conrelid FROM pg_constraint WHERE contype='f' AND confrelid=ANY(ARRAY['gridex_ediel_retention.decision_evidence_policies'::regclass,'gridex_ediel_retention.decision_evidence_reviews'::regclass,'gridex_ediel_retention.decision_evidence_revocations'::regclass,'gridex_ediel_retention.decision_evidence_tombstones'::regclass]) ORDER BY conrelid LOOP
+  EXECUTE format('LOCK TABLE %s IN SHARE ROW EXCLUSIVE MODE NOWAIT',f.conrelid::regclass);
+ END LOOP;
+ FOR f IN SELECT * FROM pg_constraint WHERE contype='f' AND confrelid=ANY(ARRAY['gridex_ediel_retention.decision_evidence_policies'::regclass,'gridex_ediel_retention.decision_evidence_reviews'::regclass,'gridex_ediel_retention.decision_evidence_revocations'::regclass,'gridex_ediel_retention.decision_evidence_tombstones'::regclass]) ORDER BY conrelid,oid LOOP
+  IF cardinality(f.conkey)<>1 OR cardinality(f.confkey)<>1 THEN RAISE EXCEPTION 'completed_witness_unsupported_incoming_reference' USING ERRCODE='42501';END IF;
+  SELECT attname INTO STRICT col FROM pg_attribute WHERE attrelid=f.conrelid AND attnum=f.conkey[1];
+  SELECT attname INTO STRICT keycol FROM pg_attribute WHERE attrelid=f.confrelid AND attnum=f.confkey[1];
+  IF f.confrelid='gridex_ediel_retention.decision_evidence_reviews'::regclass AND keycol='id' THEN
+   SELECT array_agg(id) INTO ids FROM gridex_ediel_retention.decision_evidence_reviews WHERE policy_id=policy;ids:=coalesce(ids,ARRAY[]::uuid[])||source_review;
+  ELSIF keycol IN('id','policy_id') THEN ids:=ARRAY[policy];
+  ELSE RAISE EXCEPTION 'completed_witness_unsupported_incoming_reference' USING ERRCODE='42501';END IF;
+  IF f.conrelid='gridex_ediel_retention.decision_evidence_reviews'::regclass AND col='policy_id' AND f.confrelid='gridex_ediel_retention.decision_evidence_policies'::regclass THEN CONTINUE;END IF;
+  IF f.conrelid='gridex_ediel_retention.decision_evidence_revocations'::regclass AND col='policy_id' AND f.confrelid='gridex_ediel_retention.decision_evidence_policies'::regclass THEN CONTINUE;END IF;
+  IF f.conrelid='gridex_ediel_retention.decision_evidence_tombstones'::regclass THEN
+   IF col='policy_id' AND f.confrelid='gridex_ediel_retention.decision_evidence_policies'::regclass THEN CONTINUE;END IF;
+   IF col='review_id' AND f.confrelid='gridex_ediel_retention.decision_evidence_reviews'::regclass THEN
+    IF EXISTS(SELECT FROM gridex_ediel_retention.decision_evidence_tombstones x WHERE x.review_id=ANY(ids)
+      AND NOT (x.policy_id=policy AND x.company_id=c AND x.review_id<>source_review
+       OR x.policy_id=parent.id AND x.review_id=source_review AND x.company_id=c AND x.retention_class=parent.retention_class AND x.target_id=parent.target_id AND x.source_hash=parent.source_hash AND x.target_metadata_hash=parent.target_metadata_hash))
+    THEN RAISE EXCEPTION 'completed_witness_foreign_completion_consumer' USING ERRCODE='42501';END IF;CONTINUE;
+   END IF;
+  END IF;
+  EXECUTE format('SELECT EXISTS(SELECT FROM %s WHERE %I=ANY($1))',f.conrelid::regclass,col) INTO found_reference USING ids;
+  IF found_reference THEN RAISE EXCEPTION 'completed_witness_incoming_reference_required' USING ERRCODE='42501';END IF;
+ END LOOP;
+ IF EXISTS(SELECT FROM gridex_ediel_retention.decision_evidence_policies x WHERE x.id<>policy AND x.target_id=ANY(ARRAY[policy,source_review]||(SELECT coalesce(array_agg(id),ARRAY[]::uuid[]) FROM gridex_ediel_retention.decision_evidence_reviews WHERE policy_id=policy))) THEN RAISE EXCEPTION 'completed_witness_untyped_policy_consumer' USING ERRCODE='42501';END IF;
+END $_$;
+
+--
+-- Name: completed_witness_route_v1(uuid, uuid); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.completed_witness_route_v1(c uuid, policy uuid) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE p gridex_ediel_retention.decision_evidence_policies%rowtype;b gridex_ediel_retention.blob_decisions%rowtype;m public.ediel_messages%rowtype;payload public.ediel_message_payloads%rowtype;BEGIN
+ SELECT q.* INTO STRICT p FROM gridex_ediel_retention.decision_evidence_policies d JOIN gridex_ediel_retention.decision_evidence_reviews r ON r.id=d.target_id JOIN gridex_ediel_retention.decision_evidence_policies q ON q.id=r.policy_id WHERE d.id=policy AND d.company_id=c AND q.company_id=c FOR SHARE OF q;
+ IF p.retention_class<>'blob_retention_decision_original_bytes' THEN RAISE EXCEPTION 'completed_witness_source_owner_not_admitted' USING ERRCODE='42501';END IF;
+ SELECT * INTO STRICT b FROM gridex_ediel_retention.blob_decisions WHERE id=p.target_id AND company_id=c FOR SHARE;
+ SELECT * INTO STRICT m FROM public.ediel_messages WHERE id=b.message_id AND company_id=c FOR SHARE;
+ IF b.retention_class='received_ediel_message_content' THEN
+  IF b.target_id<>m.id THEN RAISE EXCEPTION 'completed_witness_message_route_required' USING ERRCODE='42501';END IF;
+ ELSIF b.retention_class='transport_raw_mime_bytes' THEN
+  SELECT * INTO STRICT payload FROM public.ediel_message_payloads WHERE id=b.target_id AND company_id=c FOR SHARE;
+  IF payload.ediel_message_id IS DISTINCT FROM m.id THEN RAISE EXCEPTION 'completed_witness_payload_route_required' USING ERRCODE='42501';END IF;
+ ELSE RAISE EXCEPTION 'completed_witness_blob_class_required' USING ERRCODE='42501';END IF;
+ IF m.customer_id IS NOT NULL AND NOT EXISTS(SELECT FROM public.customers WHERE id=m.customer_id AND company_id=c) THEN RAISE EXCEPTION 'completed_witness_current_customer_route_required' USING ERRCODE='42501';END IF;
+END $$;
+
+--
+-- Name: completed_witness_status_v1(uuid, uuid, uuid, boolean); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.completed_witness_status_v1(c uuid, actor uuid, policy uuid, delegated boolean DEFAULT false) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE r gridex_ediel_retention.completed_witness_replays_v1%rowtype;BEGIN
+ IF delegated THEN PERFORM gridex_ediel_retention.completed_witness_worker_actor_v1(c,actor);ELSE PERFORM gridex_ediel_retention.decision_evidence_actor_v1(c,actor,'completed_decision_review_reason','ediel.retention.purge');END IF;
+ SELECT * INTO r FROM gridex_ediel_retention.completed_witness_replays_v1 WHERE company_id=c AND policy_id=policy FOR SHARE;
+ IF NOT FOUND OR clock_timestamp()>=r.replay_until THEN RETURN jsonb_build_object('status','unavailable','authority','none');END IF;
+ RETURN jsonb_build_object('status','disposed','replay',true,'authority','none');
+END $$;
+
+--
+-- Name: completed_witness_terms_v1(jsonb, text[], text, timestamp with time zone, timestamp with time zone, timestamp with time zone); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.completed_witness_terms_v1(p jsonb, expected text[], phase text, w timestamp with time zone, r timestamp with time zone, at timestamp with time zone) RETURNS void
+    LANGUAGE plpgsql
+    AS $$DECLARE f jsonb;actual text[];lo timestamptz;hi timestamptz;review_at timestamptz;BEGIN
+ IF isfinite((p->>'executeBefore')::timestamptz) IS DISTINCT FROM true OR (p->>'executeBefore')::timestamptz<=at THEN RAISE EXCEPTION 'completed_witness_finite_current_cleanup_mandate_required' USING ERRCODE='42501';END IF;
+ SELECT array_agg(value->>'field' ORDER BY value->>'field') INTO actual FROM jsonb_array_elements(p->'fields');
+ IF actual IS DISTINCT FROM expected THEN RAISE EXCEPTION 'completed_witness_exact_per_field_scope_required' USING ERRCODE='42501';END IF;
+ FOR f IN SELECT value FROM jsonb_array_elements(p->'fields') LOOP
+  lo:=(f->>'min')::timestamptz;hi:=(f->>'max')::timestamptz;review_at:=(f->>'reviewBy')::timestamptz;
+  IF jsonb_typeof(f->'purposeReference') IS DISTINCT FROM 'string' OR jsonb_typeof(f->'basisReference') IS DISTINCT FROM 'string' OR EXISTS(SELECT FROM jsonb_object_keys(f) k WHERE k NOT IN('field','purposeReference','basisReference','min','max','reviewBy','action')) OR nullif(btrim(f->>'purposeReference'),'') IS NULL OR nullif(btrim(f->>'basisReference'),'') IS NULL
+   OR isfinite(lo) IS DISTINCT FROM true OR isfinite(hi) IS DISTINCT FROM true OR isfinite(review_at) IS DISTINCT FROM true
+   OR lo>at OR review_at<=at OR lo>hi OR hi IS DISTINCT FROM (CASE WHEN phase='dispose' THEN w ELSE r END)
+   OR f->>'action' IS DISTINCT FROM 'erase'
+  THEN RAISE EXCEPTION 'completed_witness_current_per_field_purpose_min_max_review_action_required' USING ERRCODE='42501';END IF;
+ END LOOP;
+ IF phase='dispose' AND r=w THEN
+  IF p->'replayFields' IS DISTINCT FROM '[]'::jsonb THEN RAISE EXCEPTION 'completed_witness_no_post_W_replay_purpose' USING ERRCODE='42501';END IF;
+ ELSIF phase='dispose' THEN
+  SELECT array_agg(value->>'field' ORDER BY value->>'field') INTO actual FROM jsonb_array_elements(p->'replayFields');
+  IF actual IS DISTINCT FROM ARRAY['replay.company_id','replay.policy_id','replay.replay_until','replay.source_commitment']::text[] THEN RAISE EXCEPTION 'completed_witness_exact_finite_replay_terms_required' USING ERRCODE='42501';END IF;
+  FOR f IN SELECT value FROM jsonb_array_elements(p->'replayFields') LOOP
+   IF jsonb_typeof(f->'purposeReference') IS DISTINCT FROM 'string' OR jsonb_typeof(f->'basisReference') IS DISTINCT FROM 'string' OR EXISTS(SELECT FROM jsonb_object_keys(f) k WHERE k NOT IN('field','purposeReference','basisReference','min','max','reviewBy','action')) OR nullif(btrim(f->>'purposeReference'),'') IS NULL OR nullif(btrim(f->>'basisReference'),'') IS NULL OR f->>'action' IS DISTINCT FROM 'retain_until_R'
+    OR (f->>'max')::timestamptz IS DISTINCT FROM r OR isfinite((f->>'min')::timestamptz) IS DISTINCT FROM true OR isfinite((f->>'reviewBy')::timestamptz) IS DISTINCT FROM true OR (f->>'min')::timestamptz>w OR (f->>'reviewBy')::timestamptz<=at
+   THEN RAISE EXCEPTION 'completed_witness_separate_replay_purpose_required' USING ERRCODE='42501';END IF;
+  END LOOP;
+ END IF;
+END$$;
+
+--
+-- Name: completed_witness_worker_actor_v1(uuid, uuid); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.completed_witness_worker_actor_v1(c uuid, actor uuid) RETURNS void
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN
+ -- Deliberate service entrypoint: NEVER fabricate auth.uid/session claims.
+ -- All permission/membership checks use actual installed retention owners.
+ LOCK TABLE public.permissions,public.roles,public.user_roles,public.role_permissions,public.user_permissions,public.user_permission_overrides IN SHARE MODE;
+ PERFORM id FROM public.companies WHERE id=c FOR SHARE;
+ PERFORM id FROM public.user_profiles WHERE id=actor FOR SHARE;
+ PERFORM user_id FROM public.company_memberships WHERE company_id=c AND user_id=actor FOR SHARE;
+ IF public.ediel_retention_lock_auth_actor_v1(actor) IS NOT TRUE
+ OR NOT EXISTS(SELECT FROM public.user_profiles WHERE id=actor AND user_status='active')
+ OR NOT EXISTS(SELECT FROM public.company_memberships WHERE company_id=c AND user_id=actor AND status='active' AND is_active AND accepted_at IS NOT NULL)
+ OR gridex_ediel_retention.permission_v1(c,actor,'ediel.retention.purge') IS NOT TRUE
+ OR gridex_ediel_retention.permission_v1(c,actor,'ediel.retention.completed_review_reason') IS NOT TRUE
+ THEN RAISE EXCEPTION 'phase_current_delegated_actor_required' USING ERRCODE='42501';END IF;
+END$$;
 
 --
 -- Name: consumed_source_guard_v1(); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
@@ -14413,6 +15581,7 @@ CREATE FUNCTION gridex_ediel_retention.decision_evidence_basis_v1(c uuid, k text
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog'
     AS $_$DECLARE tab text;r jsonb;bytes bytea;BEGIN
+ IF k='completed_decision_review_reason' THEN RETURN gridex_ediel_retention.completed_review_reason_basis_v1(c,target);END IF;
  IF k IN('life_event_classification_source_original_bytes','life_event_classification_receipt_original_bytes','life_event_classification_revocation_original_bytes') THEN RETURN gridex_ediel_retention.classification_copy_basis_v1(c,k,target);END IF; IF k IN('masterdata_declaration_agreement_original_bytes','masterdata_declaration_source_original_bytes','masterdata_preparation_agreement_original_bytes','masterdata_preparation_source_original_bytes','metering_contract_request_agreement_original_bytes','metering_contract_request_source_original_bytes','metering_method_event_agreement_original_bytes','metering_method_event_source_original_bytes') THEN RETURN gridex_ediel_retention.contract_copy_basis_v1(c,k,target);END IF; IF EXISTS(SELECT FROM gridex_ediel_retention.protected_copy_specs WHERE retention_class=k) THEN RETURN gridex_ediel_retention.protected_copy_basis_v1(c,k,target);END IF; SELECT source_table INTO STRICT tab FROM gridex_ediel_retention.decision_evidence_catalog WHERE retention_class=k;
  EXECUTE format('SELECT to_jsonb(d),d.document_bytes FROM gridex_ediel_retention.%I d WHERE id=$1 AND company_id=$2 FOR UPDATE',tab) INTO r,bytes USING target,c;
  IF r IS NULL THEN RAISE EXCEPTION 'decision_evidence_original_scope_required';END IF;
@@ -14468,34 +15637,6 @@ END
 $$;
 
 --
--- Name: decision_evidence_policies; Type: TABLE; Schema: gridex_ediel_retention; Owner: -
---
-
-CREATE TABLE gridex_ediel_retention.decision_evidence_policies (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    company_id uuid NOT NULL,
-    retention_class text NOT NULL,
-    target_id uuid NOT NULL,
-    source_hash text NOT NULL,
-    target_metadata_hash text NOT NULL,
-    document_bytes bytea,
-    document_hash text NOT NULL,
-    document_byte_length bigint,
-    document_purged_at timestamp with time zone,
-    issuer_receipt jsonb,
-    submitted_by uuid NOT NULL,
-    created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
-    CONSTRAINT decision_evidence_policies_check CHECK ((target_id <> id)),
-    CONSTRAINT decision_evidence_policies_check1 CHECK ((((document_bytes IS NOT NULL) AND (document_purged_at IS NULL)) OR ((document_bytes IS NULL) AND (document_purged_at IS NOT NULL) AND (document_byte_length > 0)))),
-    CONSTRAINT decision_evidence_policies_document_bytes_check CHECK (((octet_length(document_bytes) >= 1) AND (octet_length(document_bytes) <= 1048576))),
-    CONSTRAINT decision_evidence_policies_document_hash_check CHECK ((document_hash ~ '^[a-f0-9]{64}$'::text)),
-    CONSTRAINT decision_evidence_policies_source_hash_check CHECK ((source_hash ~ '^[a-f0-9]{64}$'::text)),
-    CONSTRAINT decision_evidence_policies_target_metadata_hash_check CHECK ((target_metadata_hash ~ '^[a-f0-9]{64}$'::text))
-);
-
-ALTER TABLE ONLY gridex_ediel_retention.decision_evidence_policies FORCE ROW LEVEL SECURITY;
-
---
 -- Name: decision_evidence_policy_current_v1(gridex_ediel_retention.decision_evidence_policies); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
 --
 
@@ -14537,7 +15678,8 @@ CREATE FUNCTION gridex_ediel_retention.decision_evidence_receipt_v1(d gridex_edi
  IF issuer.id IS NULL OR encode(sha256(issuer.legal_evidence),'hex') IS DISTINCT FROM issuer.legal_hash OR clock_timestamp()<issuer.valid_from OR clock_timestamp()>=issuer.valid_to OR EXISTS(SELECT FROM gridex_ediel_retention.issuer_revocations WHERE issuer_id=issuer.id) OR EXISTS(SELECT FROM gridex_ediel_retention.decision_evidence_revocations WHERE policy_id=d.id) THEN RETURN NULL;END IF;
  bytes:=decode(d.issuer_receipt->>'payloadBase64','base64');IF encode(gridex_requested_changes.receipt_hmac_sha256_v1(bytes,issuer.signing_key),'hex') IS DISTINCT FROM d.issuer_receipt->>'signatureHex' THEN RETURN NULL;END IF;
  p:=convert_from(bytes,'UTF8')::jsonb;issued:=(p->>'issuedAt')::timestamptz;expires:=(p->>'expiresAt')::timestamptz;deadline:=(p->>'retainUntil')::timestamptz;journal_end:=(p->>'journalRetainUntil')::timestamptz;
- IF p->>'format' IS DISTINCT FROM 'ediel_retention_decision_original_policy_v1' OR p->>'operation' IS DISTINCT FROM 'erase_retention_decision_original_bytes' OR p->>'retentionClass' IS DISTINCT FROM d.retention_class OR p->>'companyId' IS DISTINCT FROM d.company_id::text OR p->>'targetId' IS DISTINCT FROM d.target_id::text OR p->>'sourceHash' IS DISTINCT FROM d.source_hash OR p->>'targetMetadataHash' IS DISTINCT FROM d.target_metadata_hash OR p->>'documentHash' IS DISTINCT FROM d.document_hash OR p->>'issuerLegalReference' IS DISTINCT FROM issuer.legal_reference OR nullif(btrim(p->>'legalBasisReference'),'') IS NULL OR nullif(btrim(p->>'journalPurposeReference'),'') IS NULL OR isfinite(issued) IS DISTINCT FROM true OR isfinite(expires) IS DISTINCT FROM true OR isfinite(deadline) IS DISTINCT FROM true OR isfinite(journal_end) IS DISTINCT FROM true OR issued>clock_timestamp() OR expires<=clock_timestamp() OR issued<issuer.valid_from OR expires>issuer.valid_to OR journal_end<=clock_timestamp() OR journal_end<deadline THEN RETURN NULL;END IF;
+ IF p->>'format' IS DISTINCT FROM (CASE WHEN d.retention_class='completed_decision_review_reason' THEN 'ediel_retention_completed_review_reason_policy_v1' ELSE 'ediel_retention_decision_original_policy_v1' END) OR p->>'operation' IS DISTINCT FROM (CASE WHEN d.retention_class='completed_decision_review_reason' THEN 'retire_completed_decision_review_reason' ELSE 'erase_retention_decision_original_bytes' END) OR p->>'retentionClass' IS DISTINCT FROM d.retention_class OR p->>'companyId' IS DISTINCT FROM d.company_id::text OR p->>'targetId' IS DISTINCT FROM d.target_id::text OR p->>'sourceHash' IS DISTINCT FROM d.source_hash OR p->>'targetMetadataHash' IS DISTINCT FROM d.target_metadata_hash OR p->>'documentHash' IS DISTINCT FROM d.document_hash OR p->>'issuerLegalReference' IS DISTINCT FROM issuer.legal_reference OR nullif(btrim(p->>'legalBasisReference'),'') IS NULL OR nullif(btrim(p->>'journalPurposeReference'),'') IS NULL OR isfinite(issued) IS DISTINCT FROM true OR isfinite(expires) IS DISTINCT FROM true OR isfinite(deadline) IS DISTINCT FROM true OR isfinite(journal_end) IS DISTINCT FROM true OR issued>clock_timestamp() OR expires<=clock_timestamp() OR issued<issuer.valid_from OR expires>issuer.valid_to OR journal_end<=clock_timestamp() OR journal_end<deadline THEN RETURN NULL;END IF;
+ IF d.retention_class='completed_decision_review_reason' AND gridex_ediel_retention.completed_review_reason_terms_v1(d,p) IS NOT TRUE THEN RETURN NULL;END IF;
  RETURN p;
 EXCEPTION WHEN invalid_text_representation OR invalid_parameter_value OR datetime_field_overflow OR character_not_in_repertoire THEN RETURN NULL;
 END$_$;
@@ -15400,7 +16542,7 @@ CREATE FUNCTION gridex_ediel_retention.permission_v1(c uuid, actor uuid, wanted 
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog'
     AS $$
-DECLARE retention_keys constant text[]:=ARRAY['ediel.retention.submit','ediel.retention.review','ediel.retention.purge','ediel.retention.source_bytes','ediel.retention.customer_fields','ediel.retention.original_bytes','ediel.retention.mime_bytes','ediel.retention.artifact_decision_evidence','ediel.retention.blob_decision_evidence','ediel.retention.record_decision_evidence','ediel.retention.process_decision_evidence','ediel.retention.decision_policy_evidence','ediel.retention.billing_source_evidence','ediel.retention.invoice_copy_evidence','ediel.retention.settlement_copy_evidence','ediel.retention.finance_decision_evidence'];
+DECLARE retention_keys constant text[]:=ARRAY['ediel.retention.submit','ediel.retention.review','ediel.retention.purge','ediel.retention.source_bytes','ediel.retention.customer_fields','ediel.retention.original_bytes','ediel.retention.mime_bytes','ediel.retention.artifact_decision_evidence','ediel.retention.blob_decision_evidence','ediel.retention.record_decision_evidence','ediel.retention.process_decision_evidence','ediel.retention.decision_policy_evidence','ediel.retention.billing_source_evidence','ediel.retention.invoice_copy_evidence','ediel.retention.settlement_copy_evidence','ediel.retention.finance_decision_evidence','ediel.retention.completed_review_reason','ediel.retention.audit_normalized19_cleanup'];
 retention_grant_observed_at timestamptz;
 BEGIN
  IF wanted<>ALL(retention_keys) THEN RETURN gridex_requested_changes.scoped_permission_v1(c,actor,wanted) IS TRUE
@@ -16201,6 +17343,67 @@ DECLARE spec gridex_ediel_retention.record_class_catalog%rowtype;t gridex_ediel_
  IF TG_OP='INSERT' AND TG_TABLE_NAME IN('customer_contract_documents','customer_contract_signature_requests','customer_contract_acceptances','customer_contract_evidence') AND EXISTS(SELECT FROM gridex_ediel_retention.record_tombstones WHERE company_id=new.company_id AND contract_id=(to_jsonb(new)->>'customer_contract_id')::uuid) THEN RAISE EXCEPTION 'customer_contract_records_retention_tombstoned';END IF;
  IF TG_OP='DELETE' THEN RAISE EXCEPTION 'customer_record_native_class_retention_required';ELSE RETURN new;END IF;
 END$$;
+
+--
+-- Name: require_completed_parent_purpose_disclosure_v1(uuid, uuid); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.require_completed_parent_purpose_disclosure_v1(c uuid, policy uuid) RETURNS void
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE p jsonb;at timestamptz;BEGIN
+ p:=gridex_ediel_retention.completed_parent_purpose_current_v1(c,policy);IF p IS NULL THEN RETURN;END IF;at:=clock_timestamp();
+ IF at>=(p->>'E')::timestamptz THEN RAISE EXCEPTION 'POLICY_OVERDUE: qualified purpose control storage requires resolution; ordinary use remains ended' USING ERRCODE='42501';END IF;
+ IF EXISTS(SELECT FROM jsonb_array_elements(p->'payload'->'policyFields') f WHERE (f->>'reviewBy')::timestamptz<=at) THEN RAISE EXCEPTION 'POLICY_REVIEW_OVERDUE: current qualified policy review required; no automatic renewal' USING ERRCODE='42501';END IF;
+ IF at>=(p->>'D')::timestamptz THEN RAISE EXCEPTION 'purpose_ordinary_use_ended' USING ERRCODE='42501';END IF;
+END$$;
+
+--
+-- Name: require_completed_review_witness_disclosure_v1(uuid, uuid, uuid, text, boolean); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.require_completed_review_witness_disclosure_v1(c uuid, actor uuid, policy uuid, requested_class text, include_body boolean) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE d gridex_ediel_retention.decision_evidence_policies%rowtype;
+ t gridex_ediel_retention.decision_evidence_tombstones%rowtype;
+ r gridex_ediel_retention.decision_evidence_reviews%rowtype;b jsonb;
+BEGIN
+ SELECT * INTO STRICT d FROM gridex_ediel_retention.decision_evidence_policies
+ WHERE id=policy AND company_id=c FOR SHARE;
+ IF d.retention_class<>'completed_decision_review_reason' THEN RETURN;END IF;
+ IF requested_class NOT IN('completed_decision_review_reason','decision_evidence_policy_original_bytes')
+ THEN RAISE EXCEPTION 'completed_review_witness_disclosure_namespace_required' USING ERRCODE='42501';END IF;
+ SELECT * INTO t FROM gridex_ediel_retention.decision_evidence_tombstones
+ WHERE retention_class=d.retention_class AND target_id=d.target_id AND company_id=c FOR SHARE;
+ -- An uncompleted intake has no qualified historical W. Keep its existing
+ -- review path; an untrusted caller payload never supplies a deadline here.
+ IF NOT FOUND THEN RETURN;END IF;
+ IF t.policy_id IS DISTINCT FROM d.id OR t.source_hash IS DISTINCT FROM d.source_hash
+ OR t.target_metadata_hash IS DISTINCT FROM d.target_metadata_hash
+ OR isfinite(t.journal_retain_until) IS DISTINCT FROM true
+ THEN RAISE EXCEPTION 'completed_review_witness_disclosure_scope_required' USING ERRCODE='42501';END IF;
+ -- Lock the actual selected review/source policy/completion graph. This
+ -- reuses its exact source-derived metadata hash, not a caller closure flag.
+ b:=gridex_ediel_retention.completed_review_reason_scope_v1(c,d.target_id);
+ IF b->>'targetMetadataHash' IS DISTINCT FROM t.target_metadata_hash
+ THEN RAISE EXCEPTION 'completed_review_witness_disclosure_scope_required' USING ERRCODE='42501';END IF;
+ SELECT * INTO r FROM gridex_ediel_retention.decision_evidence_reviews
+ WHERE id=t.review_id AND policy_id=d.id FOR SHARE;
+ IF NOT FOUND OR r.outcome IS DISTINCT FROM 'approved' OR r.actor_user_id=d.submitted_by
+ OR NOT EXISTS(SELECT FROM gridex_ediel_retention.decision_evidence_revocations
+ WHERE policy_id=d.id AND actor_user_id=t.actor_user_id)
+ THEN RAISE EXCEPTION 'completed_review_witness_disclosure_completion_required' USING ERRCODE='42501';END IF;
+ -- These are the requesting namespace's current READ/body permissions.
+ -- Historical reviewer authority is not reissued by a historical disclosure.
+ PERFORM gridex_ediel_retention.decision_evidence_read_actor_v1(c,actor,requested_class);
+ IF include_body THEN PERFORM gridex_ediel_retention.decision_evidence_actor_v1(c,actor,requested_class,'ediel.retention.review');END IF;
+ -- All potentially blocking graph/auth locks precede this decision instant.
+ IF clock_timestamp()>=t.journal_retain_until
+ THEN RAISE EXCEPTION 'completed_review_witness_disclosure_ended' USING ERRCODE='42501';END IF;
+END $$;
 
 --
 -- Name: revocation_lock_v1(); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
@@ -44174,6 +45377,72 @@ $$;
 COMMENT ON FUNCTION public.cleanup_energy_geodata_staging_v1(p_retention_days integer, p_dry_run boolean) IS 'Dry-run-first cleanup of expired failed/superseded geodata staging payloads. Never targets importing or verified versions; service role only.';
 
 --
+-- Name: dispose_one_audit19_v1(uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.dispose_one_audit19_v1(c uuid, actor uuid, target uuid) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE a gridex_ediel_retention.audit19_approvals_v1%rowtype;p jsonb;context jsonb;at timestamptz;n integer;BEGIN
+ PERFORM gridex_ediel_retention.audit19_lock_v1(c,actor,'ediel.retention.purge',true);
+ SELECT * INTO a FROM gridex_ediel_retention.audit19_approvals_v1 WHERE company_id=c AND target_audit_id=target FOR UPDATE NOWAIT;
+ IF NOT FOUND THEN RETURN jsonb_build_object('status','unavailable','authority','none');END IF;
+ IF encode(sha256(convert_to(a.receipt::text,'UTF8')),'hex') IS DISTINCT FROM a.receipt_hash THEN RAISE EXCEPTION 'audit19_stored_A_receipt_integrity_required' USING ERRCODE='42501';END IF;
+ p:=gridex_ediel_retention.audit19_receipt_v1(c,target,a.receipt);
+ IF a.execution_actor_id<>actor OR p->>'executionActorId' IS DISTINCT FROM actor::text OR p->>'reviewerId' IS DISTINCT FROM a.reviewer_user_id::text OR a.reviewer_user_id=actor THEN RAISE EXCEPTION 'audit19_exact_execution_and_review_required' USING ERRCODE='42501';END IF;
+ PERFORM gridex_ediel_retention.audit19_verify_v1(c,target,p,a.source_commitment);PERFORM gridex_ediel_retention.decision_evidence_lock_reviewer_v1(c,a.reviewer_user_id,'audit_normalized19_cleanup');
+ PERFORM gridex_ediel_retention.decision_evidence_actor_v1(c,actor,'audit_normalized19_cleanup','ediel.retention.purge');p:=gridex_ediel_retention.audit19_receipt_v1(c,target,a.receipt);PERFORM gridex_ediel_retention.audit19_verify_v1(c,target,p,a.source_commitment);at:=clock_timestamp();
+ IF at>=a.expires_at OR gridex_ediel_retention.audit19_A_terms_v1(p,at) IS DISTINCT FROM a.expires_at THEN RAISE EXCEPTION 'audit19_actual_A9_expired' USING ERRCODE='42501';END IF;
+ context:=gridex_ediel_retention.audit19_context_v1(c,target);
+ INSERT INTO gridex_ediel_retention.audit19_permits_v1 VALUES(pg_backend_pid(),txid_current(),'public.audit_logs'::regclass,c,target,'DELETE',a.source_commitment,NULL);
+ DELETE FROM public.audit_logs WHERE id=target AND company_id=c;GET DIAGNOSTICS n=ROW_COUNT;IF n<>1 THEN RAISE EXCEPTION 'audit19_exactly_one_DELETE_required' USING ERRCODE='42501';END IF;
+ -- Late current-authority/time recheck makes a late error restore DELETE and A together.
+ PERFORM gridex_ediel_retention.decision_evidence_actor_v1(c,actor,'audit_normalized19_cleanup','ediel.retention.purge');PERFORM gridex_ediel_retention.decision_evidence_lock_reviewer_v1(c,a.reviewer_user_id,'audit_normalized19_cleanup');p:=gridex_ediel_retention.audit19_receipt_v1(c,target,a.receipt);
+ IF clock_timestamp()>=a.expires_at THEN RAISE EXCEPTION 'audit19_late_A9_expiry' USING ERRCODE='42501';END IF;
+ INSERT INTO gridex_ediel_retention.audit19_permits_v1 VALUES(pg_backend_pid(),txid_current(),'gridex_ediel_retention.audit19_approvals_v1'::regclass,c,target,'DELETE',gridex_ediel_retention.audit19_a_hash_v1(a),NULL);
+ DELETE FROM gridex_ediel_retention.audit19_approvals_v1 WHERE company_id=c AND target_audit_id=target;GET DIAGNOSTICS n=ROW_COUNT;IF n<>1 THEN RAISE EXCEPTION 'audit19_exactly_one_A_consumption_required' USING ERRCODE='42501';END IF;
+ PERFORM gridex_ediel_retention.completed_witness_holds_v1(c);PERFORM gridex_ediel_retention.decision_evidence_actor_v1(c,actor,'audit_normalized19_cleanup','ediel.retention.purge');PERFORM gridex_ediel_retention.decision_evidence_lock_reviewer_v1(c,a.reviewer_user_id,'audit_normalized19_cleanup');p:=gridex_ediel_retention.audit19_receipt_v1(c,target,a.receipt);PERFORM gridex_ediel_retention.audit19_fields_v1(p,context,clock_timestamp());IF clock_timestamp()>=a.expires_at THEN RAISE EXCEPTION 'audit19_late_A9_expiry' USING ERRCODE='42501';END IF;
+ IF EXISTS(SELECT FROM gridex_ediel_retention.audit19_permits_v1 WHERE backend=pg_backend_pid() AND xid=txid_current()) THEN RAISE EXCEPTION 'audit19_permit_cleanup_required';END IF;
+ RETURN jsonb_build_object('status','disposed','replay',false,'authority','none');
+END$$;
+
+--
+-- Name: ediel_admit_completed_parent_purpose_v1(uuid, uuid, uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.ediel_admit_completed_parent_purpose_v1(p_company_id uuid, p_actor_user_id uuid, p_policy_id uuid, p_receipt jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE p jsonb;g jsonb;prior gridex_ediel_retention.completed_parent_purposes_v1%rowtype;fresh gridex_ediel_retention.completed_parent_purposes_v1%rowtype;at timestamptz;f jsonb;BEGIN
+ PERFORM gridex_ediel_ack_replay.lock_current_graph_v2();PERFORM gridex_ediel_retention.decision_evidence_lock_v1(p_company_id);
+ PERFORM gridex_ediel_retention.completed_parent_actor_v1(p_company_id,p_actor_user_id,'ediel.retention.review');
+ LOCK TABLE public.customers,gridex_ediel_retention.completed_parent_purposes_v1 IN SHARE ROW EXCLUSIVE MODE;
+ -- A hold does not invent/cancel ordinary-use authority; it is not an
+ -- admission clearance flag. Physical execution keeps the actual holds owner.
+ g:=gridex_ediel_retention.completed_parent_graph_v1(p_company_id,p_policy_id);
+ PERFORM gridex_ediel_retention.completed_parent_references_v1(p_company_id,p_policy_id,(g->>'reviewId')::uuid);
+ g:=gridex_ediel_retention.completed_parent_purpose_scope_v1(p_company_id,p_policy_id);
+ p:=gridex_ediel_retention.completed_parent_purpose_receipt_v1(p_company_id,p_policy_id,p_receipt);
+ IF p->>'reviewerId' IS DISTINCT FROM p_actor_user_id::text OR p->>'reviewerId' IS NOT DISTINCT FROM g->>'submittedBy' OR p->>'familyCommitment' IS DISTINCT FROM g->>'familyCommitment' THEN RAISE EXCEPTION 'purpose_exact_independent_review_and_family_required' USING ERRCODE='42501';END IF;
+ PERFORM gridex_ediel_retention.decision_evidence_lock_reviewer_v1(p_company_id,p_actor_user_id,'blob_retention_decision_original_bytes');PERFORM gridex_ediel_retention.decision_evidence_lock_reviewer_v1(p_company_id,p_actor_user_id,'completed_decision_review_reason');
+ p:=gridex_ediel_retention.completed_parent_purpose_receipt_v1(p_company_id,p_policy_id,p_receipt);at:=clock_timestamp();PERFORM gridex_ediel_retention.completed_parent_purpose_terms_v1(p,g,at);
+ SELECT * INTO prior FROM gridex_ediel_retention.completed_parent_purposes_v1 WHERE company_id=p_company_id AND policy_id=p_policy_id FOR UPDATE;
+ IF FOUND THEN
+  PERFORM gridex_ediel_retention.completed_parent_purpose_current_v1(p_company_id,p_policy_id);
+  IF (p->>'version')::bigint<>prior.version+1 OR p->>'predecessorHash' IS DISTINCT FROM prior.receipt_hash THEN RAISE EXCEPTION 'purpose_exact_qualified_successor_required' USING ERRCODE='42501';END IF;
+  FOR f IN SELECT value FROM jsonb_array_elements(convert_from(decode(prior.receipt->>'payloadBase64','base64'),'UTF8')::jsonb->'policyFields') LOOP IF (f->>'min')::timestamptz>at THEN RAISE EXCEPTION 'purpose_prior_own_minimum_required' USING ERRCODE='42501';END IF;END LOOP;
+ ELSE IF (p->>'version')::bigint<>1 OR p->>'predecessorHash' IS NOT NULL THEN RAISE EXCEPTION 'purpose_first_generation_required' USING ERRCODE='42501';END IF;END IF;
+ fresh:=(p_company_id,p_policy_id,(p->>'version')::bigint,p_receipt,encode(sha256(convert_to(p_receipt::text,'UTF8')),'hex'),p_actor_user_id,at,(p->>'D')::timestamptz,(p->>'E')::timestamptz)::gridex_ediel_retention.completed_parent_purposes_v1;
+ IF prior.policy_id IS NOT NULL THEN
+  INSERT INTO gridex_ediel_retention.completed_witness_phase_permits_v1 VALUES(pg_backend_pid(),txid_current(),'completed_parent_purposes_v1',encode(sha256(convert_to(to_jsonb(prior)::text,'UTF8')),'hex'),'UPDATE',encode(sha256(convert_to(to_jsonb(fresh)::text,'UTF8')),'hex'));
+  UPDATE gridex_ediel_retention.completed_parent_purposes_v1 SET version=fresh.version,receipt=fresh.receipt,receipt_hash=fresh.receipt_hash,reviewer_user_id=fresh.reviewer_user_id,admitted_at=fresh.admitted_at,ordinary_until=fresh.ordinary_until,expires_at=fresh.expires_at WHERE company_id=p_company_id AND policy_id=p_policy_id;
+ ELSE INSERT INTO gridex_ediel_retention.completed_parent_purposes_v1 SELECT (fresh).*;END IF;
+ RETURN jsonb_build_object('status','purpose_admitted','version',fresh.version,'authority','none');
+END$$;
+
+--
 -- Name: ediel_admit_unattributed_technical_source_v1(uuid, uuid, uuid, text, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -44234,6 +45503,85 @@ BEGIN
  result:=gridex_unattributed_intake.receipt_v1(born.id,p_actor_user_id);
  IF result IS NULL THEN RAISE EXCEPTION 'ediel_technical_intake_birth_required';END IF;
  RETURN result;
+END $$;
+
+--
+-- Name: ediel_advance_completed_parent_v1(uuid, integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.ediel_advance_completed_parent_v1(p_actor_user_id uuid, p_limit integer DEFAULT 20) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE a record;p jsonb;result jsonb;n integer:=0;disposed integer:=0;cleared integer:=0;held integer:=0;BEGIN
+ IF p_limit IS NULL OR p_limit NOT BETWEEN 1 AND 100 THEN RAISE EXCEPTION 'parent_worker_batch_limit_required';END IF;
+ PERFORM gridex_ediel_ack_replay.lock_current_graph_v2();
+ FOR a IN SELECT x.* FROM gridex_ediel_retention.completed_parent_approvals_v1 x
+ WHERE CASE WHEN x.expires_at<=clock_timestamp() THEN true ELSE
+  convert_from(decode(x.receipt->>'payloadBase64','base64'),'UTF8')::jsonb->>'executionMode'='delegated_worker'
+  AND convert_from(decode(x.receipt->>'payloadBase64','base64'),'UTF8')::jsonb->>'executionActorId'=p_actor_user_id::text
+  AND (convert_from(decode(x.receipt->>'payloadBase64','base64'),'UTF8')::jsonb->>'W')::timestamptz<=clock_timestamp()
+  AND NOT EXISTS(SELECT FROM public.customers c WHERE c.company_id=x.company_id AND c.legal_hold) END
+ ORDER BY x.expires_at,x.company_id,x.policy_id LIMIT p_limit LOOP
+  n:=n+1;
+  IF NOT pg_try_advisory_xact_lock(hashtextextended('gridex:retention:decision-original:'||a.company_id::text,0)) THEN held:=held+1;CONTINUE;END IF;
+  PERFORM gridex_ediel_retention.decision_evidence_lock_v1(a.company_id);
+  BEGIN
+   PERFORM gridex_ediel_retention.completed_parent_actor_v1(a.company_id,p_actor_user_id,'ediel.retention.purge',true);
+   IF a.expires_at<=clock_timestamp() THEN
+    DELETE FROM gridex_ediel_retention.completed_parent_approvals_v1 WHERE company_id=a.company_id AND policy_id=a.policy_id AND expires_at<=clock_timestamp();cleared:=cleared+1;CONTINUE;
+   END IF;
+   result:=gridex_ediel_retention.completed_parent_execute_v1(a.company_id,p_actor_user_id,a.policy_id,true);
+   IF result->>'status'='disposed' THEN disposed:=disposed+1;ELSE held:=held+1;END IF;
+  EXCEPTION WHEN insufficient_privilege OR no_data_found OR lock_not_available THEN held:=held+1;END;
+ END LOOP;
+ RETURN jsonb_build_object('scanned',n,'disposed',disposed,'clearedApprovals',cleared,'held',held);
+END$$;
+
+--
+-- Name: ediel_advance_completed_witness_disposition_v1(uuid, integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.ediel_advance_completed_witness_disposition_v1(p_actor_user_id uuid, p_limit integer DEFAULT 20) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE a record;result jsonb;p jsonb;scanned integer:=0;disposed integer:=0;expired integer:=0;cleared integer:=0;held integer:=0;removed integer;BEGIN
+ IF p_limit IS NULL OR p_limit NOT BETWEEN 1 AND 100 THEN RAISE EXCEPTION 'completed_witness_bounded_worker_required';END IF;
+ -- Graphlocks precede each company advisorylock, matching interactive entrypoints.
+ PERFORM gridex_ediel_ack_replay.lock_current_graph_v2();
+ -- Discovery only: all authority, routing, holds and time are rechecked under
+ -- locks before effects. Known holds/future commands do not consume the prefix.
+ -- Expired operation-authority state remains eligible even with customer holds.
+ FOR a IN
+  SELECT q.company_id,q.policy_id FROM gridex_ediel_retention.completed_witness_phase_authorizations_v1 q
+  CROSS JOIN LATERAL (SELECT convert_from(decode(q.receipt->>'payloadBase64','base64'),'UTF8')::jsonb payload) signed
+  WHERE q.expires_at<=clock_timestamp() OR (
+   signed.payload->>'executionMode'='delegated_worker' AND signed.payload->>'executionActorId'=p_actor_user_id::text
+   AND (q.stage='dispose' AND (signed.payload->>'W')::timestamptz<=clock_timestamp()
+    OR q.stage='expire' AND EXISTS(SELECT FROM gridex_ediel_retention.completed_witness_replays_v1 r WHERE r.company_id=q.company_id AND r.policy_id=q.policy_id AND r.replay_until<=clock_timestamp()))
+   AND NOT EXISTS(SELECT FROM public.customers h WHERE h.company_id=q.company_id AND h.legal_hold))
+  ORDER BY q.expires_at,q.company_id,q.policy_id LIMIT p_limit LOOP
+  scanned:=scanned+1;
+  BEGIN
+   -- Earlier batch scopes may retain mutation table locks. Never wait on
+   -- another company command that can itself be waiting on those locks.
+   IF pg_try_advisory_xact_lock(hashtextextended('gridex:retention:decision-original:'||a.company_id::text,0)) IS NOT TRUE THEN held:=held+1;CONTINUE;END IF;
+   PERFORM gridex_ediel_retention.decision_evidence_lock_v1(a.company_id);
+   PERFORM gridex_ediel_retention.completed_witness_worker_actor_v1(a.company_id,p_actor_user_id);
+   SELECT convert_from(decode(receipt->>'payloadBase64','base64'),'UTF8')::jsonb INTO STRICT p FROM gridex_ediel_retention.completed_witness_phase_authorizations_v1 WHERE company_id=a.company_id AND policy_id=a.policy_id FOR UPDATE;
+   IF EXISTS(SELECT FROM gridex_ediel_retention.completed_witness_phase_authorizations_v1 WHERE company_id=a.company_id AND policy_id=a.policy_id AND expires_at<=clock_timestamp()) THEN
+    -- Consumed/expired operation-authority state is not physical effect. Its signed finite storage
+    -- end cannot be prolonged by issuing an automatic recursive approval.
+    DELETE FROM gridex_ediel_retention.completed_witness_phase_authorizations_v1 WHERE company_id=a.company_id AND policy_id=a.policy_id AND receipt_hash=encode(sha256(convert_to(receipt::text,'UTF8')),'hex') AND expires_at=(p->>'approvalUntil')::timestamptz;
+    GET DIAGNOSTICS removed=ROW_COUNT;cleared:=cleared+removed;CONTINUE;
+   END IF;
+   result:=gridex_ediel_retention.completed_witness_execute_v1(a.company_id,p_actor_user_id,a.policy_id,true);
+   IF result->>'status'='disposed' AND result->>'replay'='false' THEN disposed:=disposed+1;ELSIF result->>'status'='expired' THEN expired:=expired+1;END IF;
+  EXCEPTION WHEN insufficient_privilege OR lock_not_available OR no_data_found THEN held:=held+1;
+  END;
+ END LOOP;
+ RETURN jsonb_build_object('scanned',scanned,'disposed',disposed,'expired',expired,'clearedApprovals',cleared,'held',held,'authority','none');
 END $$;
 
 --
@@ -45754,6 +47102,20 @@ DECLARE row_case public.ediel_inbound_cases%rowtype;proof jsonb;oldplan jsonb;pl
 END $$;
 
 --
+-- Name: ediel_completed_parent_purpose_status_v1(uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.ediel_completed_parent_purpose_status_v1(p_company_id uuid, p_actor_user_id uuid, p_policy_id uuid) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE p jsonb;at timestamptz;BEGIN
+ PERFORM gridex_ediel_ack_replay.lock_current_graph_v2();PERFORM gridex_ediel_retention.decision_evidence_lock_v1(p_company_id);PERFORM gridex_ediel_retention.decision_evidence_read_actor_v1(p_company_id,p_actor_user_id,'blob_retention_decision_original_bytes');
+ p:=gridex_ediel_retention.completed_parent_purpose_current_v1(p_company_id,p_policy_id);IF p IS NULL THEN RETURN jsonb_build_object('status','unavailable','authority','none');END IF;at:=clock_timestamp();
+ RETURN jsonb_build_object('status',CASE WHEN at>=(p->>'E')::timestamptz THEN 'POLICY_OVERDUE' WHEN EXISTS(SELECT FROM jsonb_array_elements(p->'payload'->'policyFields') f WHERE (f->>'reviewBy')::timestamptz<=at) THEN 'POLICY_REVIEW_OVERDUE' WHEN at>=(p->>'D')::timestamptz THEN 'ordinary_use_ended' ELSE 'active' END,'disposed',false,'authority','none');
+END$$;
+
+--
 -- Name: ediel_configuration_change_snapshot_trigger(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -46166,11 +47528,11 @@ DECLARE wanted text;own_class text;allowed text[]:=ARRAY[]::text[];BEGIN
  LOCK TABLE public.permissions,public.roles,public.user_roles,public.role_permissions,public.user_permissions,public.user_permission_overrides IN SHARE MODE;
  PERFORM public.ediel_retention_lock_auth_actor_v1(p_actor_user_id);PERFORM id FROM public.user_profiles WHERE id=p_actor_user_id FOR SHARE;PERFORM id FROM public.companies WHERE id=p_company_id FOR SHARE;PERFORM user_id FROM public.company_memberships WHERE company_id=p_company_id AND user_id=p_actor_user_id FOR SHARE;
  IF public.ediel_retention_session_actor_v1() IS DISTINCT FROM p_actor_user_id THEN RAISE EXCEPTION 'retention_current_session_actor_required' USING ERRCODE='42501';END IF;
- FOREACH wanted IN ARRAY ARRAY['ediel.retention.read','ediel.retention.submit','ediel.retention.review','ediel.retention.purge','ediel.retention.source_bytes','ediel.retention.customer_fields','ediel.retention.original_bytes','ediel.retention.mime_bytes','ediel.retention.contract_pdf','ediel.retention.signature','ediel.retention.address_history','ediel.retention.portal_history','ediel.retention.legal_history','ediel.retention.artifact_decision_evidence','ediel.retention.blob_decision_evidence','ediel.retention.record_decision_evidence','ediel.retention.process_decision_evidence','ediel.retention.decision_policy_evidence','ediel.retention.billing_source_evidence','ediel.retention.invoice_copy_evidence','ediel.retention.settlement_copy_evidence','ediel.retention.finance_decision_evidence'] LOOP
+ FOREACH wanted IN ARRAY ARRAY['ediel.retention.read','ediel.retention.submit','ediel.retention.review','ediel.retention.purge','ediel.retention.source_bytes','ediel.retention.customer_fields','ediel.retention.original_bytes','ediel.retention.mime_bytes','ediel.retention.contract_pdf','ediel.retention.signature','ediel.retention.address_history','ediel.retention.portal_history','ediel.retention.legal_history','ediel.retention.artifact_decision_evidence','ediel.retention.blob_decision_evidence','ediel.retention.record_decision_evidence','ediel.retention.process_decision_evidence','ediel.retention.decision_policy_evidence','ediel.retention.billing_source_evidence','ediel.retention.invoice_copy_evidence','ediel.retention.settlement_copy_evidence','ediel.retention.finance_decision_evidence','ediel.retention.completed_review_reason'] LOOP
   SELECT retention_class INTO own_class FROM gridex_ediel_retention.record_class_catalog WHERE permission_key=wanted ORDER BY retention_class LIMIT 1;IF wanted='ediel.retention.read' THEN own_class:='__read_scope__';END IF;
   IF (own_class IS NOT NULL AND gridex_ediel_retention.record_permission_v1(p_company_id,p_actor_user_id,own_class) IS TRUE) OR (own_class IS NULL AND gridex_ediel_retention.permission_v1(p_company_id,p_actor_user_id,wanted) IS TRUE) THEN allowed:=array_append(allowed,wanted);END IF;
  END LOOP;
- IF NOT allowed&&ARRAY['ediel.retention.read','ediel.retention.submit','ediel.retention.review','ediel.retention.purge'] OR NOT allowed&&ARRAY['ediel.retention.source_bytes','ediel.retention.customer_fields','ediel.retention.original_bytes','ediel.retention.mime_bytes','ediel.retention.contract_pdf','ediel.retention.signature','ediel.retention.address_history','ediel.retention.portal_history','ediel.retention.legal_history','ediel.retention.artifact_decision_evidence','ediel.retention.blob_decision_evidence','ediel.retention.record_decision_evidence','ediel.retention.process_decision_evidence','ediel.retention.decision_policy_evidence','ediel.retention.billing_source_evidence','ediel.retention.invoice_copy_evidence','ediel.retention.settlement_copy_evidence','ediel.retention.finance_decision_evidence'] THEN RAISE EXCEPTION 'retention_current_explicit_session_required' USING ERRCODE='42501';END IF;
+ IF NOT allowed&&ARRAY['ediel.retention.read','ediel.retention.submit','ediel.retention.review','ediel.retention.purge'] OR NOT allowed&&ARRAY['ediel.retention.source_bytes','ediel.retention.customer_fields','ediel.retention.original_bytes','ediel.retention.mime_bytes','ediel.retention.contract_pdf','ediel.retention.signature','ediel.retention.address_history','ediel.retention.portal_history','ediel.retention.legal_history','ediel.retention.artifact_decision_evidence','ediel.retention.blob_decision_evidence','ediel.retention.record_decision_evidence','ediel.retention.process_decision_evidence','ediel.retention.decision_policy_evidence','ediel.retention.billing_source_evidence','ediel.retention.invoice_copy_evidence','ediel.retention.settlement_copy_evidence','ediel.retention.finance_decision_evidence','ediel.retention.completed_review_reason'] THEN RAISE EXCEPTION 'retention_current_explicit_session_required' USING ERRCODE='42501';END IF;
  RETURN jsonb_build_object('companyId',p_company_id,'actorUserId',p_actor_user_id,'permissions',allowed);
 END$$;
 
@@ -46523,6 +47885,15 @@ CREATE FUNCTION public.ediel_customer_record_tombstones_v1(p_company_id uuid, p_
 END$$;
 
 --
+-- Name: ediel_dispose_completed_parent_v1(uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.ediel_dispose_completed_parent_v1(p_company_id uuid, p_actor_user_id uuid, p_policy_id uuid) RETURNS jsonb
+    LANGUAGE sql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$SELECT gridex_ediel_retention.completed_parent_execute_v1(p_company_id,p_actor_user_id,p_policy_id,false)$$;
+
+--
 -- Name: ediel_execute_beneficiary_export_v1(uuid, uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -46644,6 +48015,19 @@ CREATE FUNCTION public.ediel_fresh_business_incident_access_v1(p_company_id uuid
  IF gridex_ediel_business_incidents.actor_v2(p_company_id,p_actor_user_id,'read') IS NOT TRUE THEN RAISE EXCEPTION 'ediel_business_incident_reader_forbidden' USING ERRCODE='42501';END IF;
  RETURN jsonb_build_object('companyId',p_company_id,'canRead',true,'canReport',gridex_ediel_business_incidents.actor_v2(p_company_id,p_actor_user_id,'report'));
 END $$;
+
+--
+-- Name: ediel_gc_completed_parent_v1(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.ediel_gc_completed_parent_v1(p_company_id uuid, p_actor_user_id uuid) RETURNS integer
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE n integer;BEGIN
+ PERFORM gridex_ediel_ack_replay.lock_current_graph_v2();PERFORM gridex_ediel_retention.decision_evidence_lock_v1(p_company_id);PERFORM gridex_ediel_retention.completed_parent_actor_v1(p_company_id,p_actor_user_id,'ediel.retention.purge');
+ DELETE FROM gridex_ediel_retention.completed_parent_approvals_v1 WHERE company_id=p_company_id AND expires_at<=clock_timestamp();GET DIAGNOSTICS n=ROW_COUNT;RETURN n;
+END$$;
 
 --
 -- Name: ediel_guard_received_h05_original_v1(); Type: FUNCTION; Schema: public; Owner: -
@@ -47743,6 +49127,7 @@ CREATE FUNCTION public.ediel_purge_decision_evidence_retention_v1(p_company_id u
     SET search_path TO 'pg_catalog'
     AS $_$DECLARE d gridex_ediel_retention.decision_evidence_policies%rowtype;r gridex_ediel_retention.decision_evidence_reviews%rowtype;t gridex_ediel_retention.decision_evidence_tombstones%rowtype;spec gridex_ediel_retention.decision_evidence_catalog%rowtype;p jsonb;basis jsonb;at timestamptz:=clock_timestamp();BEGIN PERFORM gridex_ediel_ack_replay.lock_current_graph_v2();
  PERFORM gridex_ediel_retention.decision_evidence_lock_v1(p_company_id);
+ p:=gridex_ediel_retention.completed_witness_dispatch_v1(p_company_id,p_actor_user_id,p_policy_id);IF p IS NOT NULL THEN RETURN p;END IF;
  SELECT * INTO STRICT d FROM gridex_ediel_retention.decision_evidence_policies WHERE id=p_policy_id AND company_id=p_company_id FOR UPDATE;PERFORM gridex_ediel_retention.decision_evidence_actor_v1(p_company_id,p_actor_user_id,d.retention_class,'ediel.retention.purge');
  SELECT * INTO t FROM gridex_ediel_retention.decision_evidence_tombstones WHERE retention_class=d.retention_class AND target_id=d.target_id;
  IF FOUND THEN IF t.policy_id IS DISTINCT FROM d.id OR t.company_id IS DISTINCT FROM p_company_id THEN RAISE EXCEPTION 'decision_original_purge_replay_conflict';END IF;RETURN jsonb_build_object('status','purged','retentionClass',d.retention_class,'targetId',d.target_id,'sourceHash',t.source_hash,'byteLength',t.byte_length,'bytesAvailable',false,'authority','none','replay',true);END IF;
@@ -47758,6 +49143,7 @@ CREATE FUNCTION public.ediel_purge_decision_evidence_retention_v1(p_company_id u
  PERFORM gridex_ediel_retention.decision_evidence_actor_v1(p_company_id,p_actor_user_id,d.retention_class,'ediel.retention.purge');
  PERFORM gridex_ediel_retention.decision_evidence_lock_reviewer_v1(p_company_id,r.actor_user_id,d.retention_class);
  at:=clock_timestamp();IF p IS NULL OR (p->>'retainUntil')::timestamptz>at THEN RETURN jsonb_build_object('status','held','policyId',d.id,'missing',ARRAY['current_exact_original_deadline']);END IF;
+ IF d.retention_class='completed_decision_review_reason' THEN RETURN gridex_ediel_retention.completed_review_reason_retire_v1(d,r,p_actor_user_id);END IF;
  -- Invalidate the consumed original policy before physical byte removal. Its
  -- already completed receipts remain available as immutable historical facts.
  IF d.retention_class IN('masterdata_declaration_agreement_original_bytes','masterdata_declaration_source_original_bytes','masterdata_preparation_agreement_original_bytes','masterdata_preparation_source_original_bytes','metering_contract_request_agreement_original_bytes','metering_contract_request_source_original_bytes','metering_method_event_agreement_original_bytes','metering_method_event_source_original_bytes') THEN INSERT INTO gridex_ediel_retention.contract_copy_revocations(retention_class,target_id,company_id,policy_id,review_id,source_hash,actor_user_id) VALUES(d.retention_class,d.target_id,d.company_id,d.id,r.id,d.source_hash,p_actor_user_id);ELSIF d.retention_class IN('life_event_classification_source_original_bytes','life_event_classification_receipt_original_bytes','life_event_classification_revocation_original_bytes') THEN INSERT INTO gridex_ediel_retention.classification_copy_revocations(retention_class,classification_id,company_id,source_message_id,policy_id,review_id,source_hash,actor_user_id) SELECT d.retention_class,d.target_id,d.company_id,q.source_message_id,d.id,r.id,d.source_hash,p_actor_user_id FROM gridex_customer_life_events.inbound_classifications q WHERE q.id=d.target_id AND q.company_id=d.company_id;ELSE IF EXISTS(SELECT FROM gridex_ediel_retention.protected_copy_specs WHERE retention_class=d.retention_class) THEN INSERT INTO gridex_ediel_retention.protected_copy_revocations(retention_class,target_id,company_id,policy_id,review_id,source_hash,actor_user_id) VALUES(d.retention_class,d.target_id,d.company_id,d.id,r.id,d.source_hash,p_actor_user_id);ELSE EXECUTE format('INSERT INTO gridex_ediel_retention.%I(%I,actor_user_id,reason) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',spec.revocation_table,spec.revocation_id_column) USING d.target_id,p_actor_user_id,left('Qualified decision-original policy: '||(p->>'legalBasisReference'),4000); END IF; END IF;
@@ -48356,6 +49742,8 @@ CREATE FUNCTION public.ediel_read_decision_evidence_policy_v1(p_company_id uuid,
  p:=gridex_ediel_retention.decision_evidence_receipt_v1(d);SELECT * INTO t FROM gridex_ediel_retention.decision_evidence_tombstones WHERE retention_class=d.retention_class AND target_id=d.target_id AND company_id=p_company_id;
  SELECT coalesce(jsonb_agg(jsonb_build_object('reviewId',id,'actorUserId',actor_user_id,'outcome',outcome,'reason',reason,'createdAt',created_at) ORDER BY created_at,id),'[]') INTO r FROM gridex_ediel_retention.decision_evidence_reviews WHERE policy_id=d.id;
  bytes_length:=coalesce(octet_length(d.document_bytes),d.document_byte_length);
+ PERFORM gridex_ediel_retention.require_completed_parent_purpose_disclosure_v1(p_company_id,d.id);
+ PERFORM gridex_ediel_retention.require_completed_review_witness_disclosure_v1(p_company_id,p_actor_user_id,d.id,d.retention_class,p_include_document);
  RETURN jsonb_build_object('companyId',d.company_id,'policyId',d.id,'retentionClass',d.retention_class,'targetId',d.target_id,'sourceHash',d.source_hash,'targetMetadataHash',d.target_metadata_hash,'documentHash',d.document_hash,'documentByteLength',bytes_length,'bytesAvailable',d.document_bytes IS NOT NULL,'documentPurgedAt',d.document_purged_at,'documentBase64',CASE WHEN p_include_document AND d.document_bytes IS NOT NULL THEN replace(encode(d.document_bytes,'base64'),E'\n','') ELSE NULL END,'submittedBy',d.submitted_by,'createdAt',d.created_at,'issuerQualified',p IS NOT NULL,'currentQualified',gridex_ediel_retention.decision_evidence_policy_current_v1(d),'revoked',EXISTS(SELECT FROM gridex_ediel_retention.decision_evidence_revocations WHERE policy_id=d.id),'reviews',r,'purge',CASE WHEN t.target_id IS NULL THEN NULL ELSE jsonb_build_object('purgedAt',t.created_at,'sourceHash',t.source_hash,'byteLength',t.byte_length) END,'authority','none');
 END$$;
 
@@ -48801,10 +50189,17 @@ CREATE FUNCTION public.ediel_read_retention_decision_original_v1(p_company_id uu
     AS $_$DECLARE tab text;r jsonb;b bytea;t gridex_ediel_retention.decision_evidence_tombstones%rowtype;BEGIN PERFORM gridex_ediel_ack_replay.lock_current_graph_v2();
  PERFORM gridex_ediel_retention.decision_evidence_lock_v1(p_company_id);
  PERFORM gridex_ediel_retention.decision_evidence_read_actor_v1(p_company_id,p_actor_user_id,p_retention_class);IF p_include_document THEN PERFORM gridex_ediel_retention.decision_evidence_actor_v1(p_company_id,p_actor_user_id,p_retention_class,'ediel.retention.review');END IF;
+ IF p_retention_class='completed_decision_review_reason' THEN
+  r:=gridex_ediel_retention.completed_review_reason_read_v1(p_company_id,p_target_id,p_include_document);
+  PERFORM gridex_ediel_retention.decision_evidence_read_actor_v1(p_company_id,p_actor_user_id,p_retention_class);IF p_include_document THEN PERFORM gridex_ediel_retention.decision_evidence_actor_v1(p_company_id,p_actor_user_id,p_retention_class,'ediel.retention.review');END IF;
+  RETURN r;
+ END IF;
  IF p_retention_class IN('life_event_classification_source_original_bytes','life_event_classification_receipt_original_bytes','life_event_classification_revocation_original_bytes') THEN r:=gridex_ediel_retention.classification_copy_row_v1(p_company_id,p_retention_class,p_target_id);b:=decode(substr(r->>'document_bytes',3),'hex'); SELECT * INTO t FROM gridex_ediel_retention.decision_evidence_tombstones WHERE retention_class=p_retention_class AND target_id=p_target_id AND company_id=p_company_id; RETURN jsonb_build_object('companyId',p_company_id,'retentionClass',p_retention_class,'targetId',p_target_id,'documentHash',r->>'document_hash','targetMetadataHash',encode(sha256(convert_to((r-ARRAY['document_bytes','document_byte_length','document_purged_at'])::text,'UTF8')),'hex'),'documentByteLength',coalesce(octet_length(b),t.byte_length),'bytesAvailable',b IS NOT NULL,'documentBase64',CASE WHEN p_include_document AND b IS NOT NULL THEN replace(encode(b,'base64'),E'\n','') ELSE NULL END,'purgedAt',t.created_at,'authority','none');END IF; IF p_retention_class IN('masterdata_declaration_agreement_original_bytes','masterdata_declaration_source_original_bytes','masterdata_preparation_agreement_original_bytes','masterdata_preparation_source_original_bytes','metering_contract_request_agreement_original_bytes','metering_contract_request_source_original_bytes','metering_method_event_agreement_original_bytes','metering_method_event_source_original_bytes') THEN r:=gridex_ediel_retention.contract_copy_row_v1(p_company_id,p_retention_class,p_target_id);b:=decode(substr(r->>'document_bytes',3),'hex');SELECT * INTO t FROM gridex_ediel_retention.decision_evidence_tombstones WHERE retention_class=p_retention_class AND target_id=p_target_id AND company_id=p_company_id;RETURN jsonb_build_object('companyId',p_company_id,'retentionClass',p_retention_class,'targetId',p_target_id,'documentHash',r->>'document_hash','targetMetadataHash',encode(sha256(convert_to((r-ARRAY['document_bytes','document_byte_length','document_purged_at'])::text,'UTF8')),'hex'),'documentByteLength',coalesce(octet_length(b),t.byte_length),'bytesAvailable',b IS NOT NULL,'documentBase64',CASE WHEN p_include_document AND b IS NOT NULL THEN replace(encode(b,'base64'),E'\n','') ELSE NULL END,'purgedAt',t.created_at,'authority','none');END IF; IF EXISTS(SELECT FROM gridex_ediel_retention.protected_copy_specs WHERE retention_class=p_retention_class) THEN r:=gridex_ediel_retention.protected_copy_row_v1(p_company_id,p_retention_class,p_target_id);b:=decode(substr(r->>'document_bytes',3),'hex');SELECT * INTO t FROM gridex_ediel_retention.decision_evidence_tombstones WHERE retention_class=p_retention_class AND target_id=p_target_id AND company_id=p_company_id;RETURN jsonb_build_object('companyId',p_company_id,'retentionClass',p_retention_class,'targetId',p_target_id,'documentHash',r->>'document_hash','targetMetadataHash',encode(sha256(convert_to((r-ARRAY['document_bytes','document_byte_length','document_purged_at'])::text,'UTF8')),'hex'),'documentByteLength',coalesce(octet_length(b),t.byte_length),'bytesAvailable',b IS NOT NULL,'documentBase64',CASE WHEN p_include_document AND b IS NOT NULL THEN replace(encode(b,'base64'),E'
 ','') ELSE NULL END,'purgedAt',t.created_at,'authority','none');END IF; SELECT source_table INTO STRICT tab FROM gridex_ediel_retention.decision_evidence_catalog WHERE retention_class=p_retention_class;EXECUTE format('SELECT to_jsonb(d),d.document_bytes FROM gridex_ediel_retention.%I d WHERE id=$1 AND company_id=$2 FOR SHARE',tab) INTO r,b USING p_target_id,p_company_id;IF r IS NULL THEN RAISE EXCEPTION 'decision_evidence_original_scope_required';END IF;
  SELECT * INTO t FROM gridex_ediel_retention.decision_evidence_tombstones WHERE retention_class=p_retention_class AND target_id=p_target_id AND company_id=p_company_id;
  IF b IS NULL AND (t.target_id IS NULL OR r->>'document_hash' IS DISTINCT FROM t.source_hash) OR b IS NOT NULL AND encode(sha256(b),'hex') IS DISTINCT FROM r->>'document_hash' THEN RAISE EXCEPTION 'decision_evidence_original_custody_mismatch';END IF;
+ IF p_retention_class='decision_evidence_policy_original_bytes' THEN PERFORM gridex_ediel_retention.require_completed_parent_purpose_disclosure_v1(p_company_id,p_target_id);END IF;
+ IF p_retention_class='decision_evidence_policy_original_bytes' THEN PERFORM gridex_ediel_retention.require_completed_review_witness_disclosure_v1(p_company_id,p_actor_user_id,p_target_id,p_retention_class,p_include_document);END IF;
  RETURN jsonb_build_object('companyId',p_company_id,'retentionClass',p_retention_class,'targetId',p_target_id,'documentHash',r->>'document_hash','targetMetadataHash',encode(sha256(convert_to((r-ARRAY['document_bytes','document_byte_length','document_purged_at'])::text,'UTF8')),'hex'),'documentByteLength',coalesce(octet_length(b),t.byte_length),'bytesAvailable',b IS NOT NULL,'documentBase64',CASE WHEN p_include_document AND b IS NOT NULL THEN replace(encode(b,'base64'),E'\n','') ELSE NULL END,'purgedAt',t.created_at,'authority','none');
 END$_$;
 
@@ -50342,6 +51737,70 @@ DECLARE d gridex_ediel_retention.blob_decisions%rowtype;outcome text;r uuid;BEGI
 END$$;
 
 --
+-- Name: ediel_review_completed_parent_v1(uuid, uuid, uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.ediel_review_completed_parent_v1(p_company_id uuid, p_actor_user_id uuid, p_policy_id uuid, p_receipt jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE p jsonb;g jsonb;holds text;BEGIN
+ PERFORM gridex_ediel_ack_replay.lock_current_graph_v2();PERFORM gridex_ediel_retention.decision_evidence_lock_v1(p_company_id);
+ PERFORM gridex_ediel_retention.completed_parent_actor_v1(p_company_id,p_actor_user_id,'ediel.retention.review');
+ holds:=gridex_ediel_retention.completed_witness_holds_v1(p_company_id);g:=gridex_ediel_retention.completed_parent_graph_v1(p_company_id,p_policy_id);
+ PERFORM gridex_ediel_retention.completed_parent_references_v1(p_company_id,p_policy_id,(g->>'reviewId')::uuid);
+ p:=gridex_ediel_retention.completed_parent_receipt_v1(p_company_id,p_policy_id,p_receipt);
+ IF p->>'reviewerId' IS DISTINCT FROM p_actor_user_id::text OR p->>'executionActorId' IS NULL OR p->>'executionActorId'=p_actor_user_id::text OR p->>'executionMode' NOT IN('interactive','delegated_worker') OR p->>'sourceCommitment' IS DISTINCT FROM g->>'commitment' OR p->>'customerScopeHash' IS DISTINCT FROM holds OR p->>'W' IS NULL OR p->>'R' IS DISTINCT FROM p->>'W' OR (p->>'W')::timestamptz<(g->>'minimum')::timestamptz OR p->'replayFields' IS DISTINCT FROM '[]'::jsonb OR p->'terminalFields' IS DISTINCT FROM '[]'::jsonb THEN RAISE EXCEPTION 'parent_exact_separate_finite_scope_required' USING ERRCODE='42501';END IF;
+ PERFORM gridex_ediel_retention.completed_parent_purpose_operation_v1(p_company_id,p_policy_id,p,false);
+ PERFORM gridex_ediel_retention.completed_witness_approval_terms_v1(p,clock_timestamp());
+ -- Admission can precede the effect, but fieldshape/purpose/time must already qualify.
+ PERFORM gridex_ediel_retention.completed_witness_terms_v1(jsonb_build_object('executeBefore',p->>'approvalUntil','fields',p->'fields','replayFields','[]'::jsonb),ARRAY(SELECT jsonb_array_elements_text(g->'fields')),'dispose',(p->>'W')::timestamptz,(p->>'W')::timestamptz,clock_timestamp());
+ PERFORM gridex_ediel_retention.decision_evidence_lock_reviewer_v1(p_company_id,p_actor_user_id,'blob_retention_decision_original_bytes');PERFORM gridex_ediel_retention.decision_evidence_lock_reviewer_v1(p_company_id,p_actor_user_id,'completed_decision_review_reason');
+ p:=gridex_ediel_retention.completed_parent_receipt_v1(p_company_id,p_policy_id,p_receipt);
+ INSERT INTO gridex_ediel_retention.completed_parent_approvals_v1 VALUES(p_company_id,p_policy_id,g->>'commitment',p_receipt,encode(sha256(convert_to(p_receipt::text,'UTF8')),'hex'),p_actor_user_id,clock_timestamp(),'dispose',(p->>'approvalUntil')::timestamptz);
+ RETURN jsonb_build_object('status','approved','authority','none');
+END$$;
+
+--
+-- Name: ediel_review_completed_witness_disposition_v1(uuid, uuid, uuid, text, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.ediel_review_completed_witness_disposition_v1(p_company_id uuid, p_actor_user_id uuid, p_policy_id uuid, p_outcome text, p_receipt jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE p jsonb;h text;holds text;phase_stage text:='dispose';r gridex_ediel_retention.completed_witness_replays_v1%rowtype;BEGIN
+ PERFORM gridex_ediel_ack_replay.lock_current_graph_v2();PERFORM gridex_ediel_retention.decision_evidence_lock_v1(p_company_id);
+ PERFORM gridex_ediel_retention.decision_evidence_actor_v1(p_company_id,p_actor_user_id,'completed_decision_review_reason','ediel.retention.review');
+ PERFORM gridex_ediel_retention.decision_evidence_lock_reviewer_v1(p_company_id,p_actor_user_id,'completed_decision_review_reason');
+ IF p_outcome='revoke' THEN DELETE FROM gridex_ediel_retention.completed_witness_phase_authorizations_v1 WHERE company_id=p_company_id AND policy_id=p_policy_id ;RETURN jsonb_build_object('status','revoked','authority','none');END IF;
+ IF p_outcome IS DISTINCT FROM 'approve' THEN RAISE EXCEPTION 'completed_witness_explicit_review_outcome_required' USING ERRCODE='42501';END IF;
+ IF EXISTS(SELECT FROM gridex_ediel_retention.decision_evidence_policies WHERE id=p_policy_id AND company_id=p_company_id) THEN
+  h:=gridex_ediel_retention.completed_witness_graph_v1(p_company_id,p_policy_id);
+  PERFORM gridex_ediel_retention.completed_witness_route_v1(p_company_id,p_policy_id);
+  PERFORM gridex_ediel_retention.completed_witness_references_v1(p_company_id,p_policy_id,(SELECT target_id FROM gridex_ediel_retention.decision_evidence_policies WHERE id=p_policy_id AND company_id=p_company_id));
+ ELSE
+  -- Explicit recovery after an overdue terminal phase: the physical leaf is
+  -- already gone. This can only authorize erasing the exact surviving four
+  -- replay fields. It never changes their R or recreates disclosure/replay.
+  SELECT * INTO STRICT r FROM gridex_ediel_retention.completed_witness_replays_v1 WHERE company_id=p_company_id AND policy_id=p_policy_id FOR UPDATE;
+  IF clock_timestamp()<r.replay_until THEN RAISE EXCEPTION 'completed_witness_terminal_recovery_not_due' USING ERRCODE='42501';END IF;
+  h:=r.source_commitment;phase_stage:='expire';
+ END IF;
+ holds:=gridex_ediel_retention.completed_witness_holds_v1(p_company_id);p:=gridex_ediel_retention.completed_witness_receipt_v1(p_company_id,p_policy_id,p_receipt);
+ IF p->>'reviewerId' IS DISTINCT FROM p_actor_user_id::text OR p->>'executionActorId'=p_actor_user_id::text OR p->>'sourceCommitment' IS DISTINCT FROM h OR p->>'customerScopeHash' IS DISTINCT FROM holds THEN RAISE EXCEPTION 'completed_witness_separate_exact_review_required' USING ERRCODE='42501';END IF;
+ PERFORM gridex_ediel_retention.completed_witness_worker_actor_v1(p_company_id,(p->>'executionActorId')::uuid);
+ IF phase_stage='dispose' THEN PERFORM gridex_ediel_retention.completed_witness_payload_terms_v1(p_company_id,p_policy_id,p);
+ ELSE
+  IF (p->>'W')::timestamptz IS DISTINCT FROM r.replay_until OR (p->>'R')::timestamptz IS DISTINCT FROM r.replay_until OR p->'fields' IS DISTINCT FROM '[]'::jsonb OR p->'replayFields' IS DISTINCT FROM '[]'::jsonb THEN RAISE EXCEPTION 'completed_witness_exact_overdue_terminal_scope_required' USING ERRCODE='42501';END IF;
+  PERFORM gridex_ediel_retention.completed_witness_terms_v1(jsonb_build_object('executeBefore',p->>'approvalUntil','fields',p->'terminalFields'),ARRAY['replay.company_id','replay.policy_id','replay.replay_until','replay.source_commitment'],'expire',r.replay_until,r.replay_until,clock_timestamp());
+ END IF;
+ PERFORM gridex_ediel_retention.decision_evidence_lock_reviewer_v1(p_company_id,p_actor_user_id,'completed_decision_review_reason');p:=gridex_ediel_retention.completed_witness_receipt_v1(p_company_id,p_policy_id,p_receipt);PERFORM gridex_ediel_retention.completed_witness_approval_terms_v1(p,clock_timestamp());
+ INSERT INTO gridex_ediel_retention.completed_witness_phase_authorizations_v1 VALUES(p_company_id,p_policy_id,h,p_receipt,encode(sha256(convert_to(p_receipt::text,'UTF8')),'hex'),p_actor_user_id,clock_timestamp(),phase_stage,(p->>'approvalUntil')::timestamptz);
+ RETURN jsonb_build_object('status','approved','authority','none');
+END $$;
+
+--
 -- Name: ediel_review_contract_original_source_v1(uuid, uuid, uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -51569,6 +53028,26 @@ begin
   return new;
 end;
 $$;
+
+--
+-- Name: expire_one_audit19_approval_v1(uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.expire_one_audit19_approval_v1(c uuid, actor uuid, target uuid) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE a gridex_ediel_retention.audit19_approvals_v1%rowtype;BEGIN
+ PERFORM gridex_ediel_retention.audit19_lock_v1(c,actor,'ediel.retention.purge',false);
+ SELECT * INTO a FROM gridex_ediel_retention.audit19_approvals_v1 WHERE company_id=c AND target_audit_id=target FOR UPDATE NOWAIT;
+ IF NOT FOUND THEN RETURN jsonb_build_object('status','unavailable','authority','none');END IF;
+ IF encode(sha256(convert_to(a.receipt::text,'UTF8')),'hex') IS DISTINCT FROM a.receipt_hash THEN RAISE EXCEPTION 'audit19_stored_A_receipt_integrity_required' USING ERRCODE='42501';END IF;
+ IF clock_timestamp()<a.expires_at THEN RETURN jsonb_build_object('status','not_expired','authority','none');END IF;
+ -- Reclaim accepted expired operational A only, without issuer-current/signature-window/source/HOLD resurrection.
+ INSERT INTO gridex_ediel_retention.audit19_permits_v1 VALUES(pg_backend_pid(),txid_current(),'gridex_ediel_retention.audit19_approvals_v1'::regclass,c,target,'DELETE',gridex_ediel_retention.audit19_a_hash_v1(a),NULL);
+ DELETE FROM gridex_ediel_retention.audit19_approvals_v1 WHERE company_id=c AND target_audit_id=target;
+ RETURN jsonb_build_object('status','approval_expired','authority','none');
+END$$;
 
 --
 -- Name: gridex_accept_external_staff_invitation_v1(jsonb); Type: FUNCTION; Schema: public; Owner: -
@@ -100103,6 +101582,30 @@ from scored s where s.factor_count>0 order by s.factor_count desc,s.created_at d
 $$;
 
 --
+-- Name: review_one_audit19_v1(uuid, uuid, uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.review_one_audit19_v1(c uuid, actor uuid, target uuid, envelope jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE p jsonb;context jsonb;a gridex_ediel_retention.audit19_approvals_v1%rowtype;at timestamptz;expiry timestamptz;BEGIN
+ PERFORM gridex_ediel_retention.audit19_lock_v1(c,actor,'ediel.retention.review',true);PERFORM gridex_ediel_retention.decision_evidence_lock_reviewer_v1(c,actor,'audit_normalized19_cleanup');
+ context:=gridex_ediel_retention.audit19_context_v1(c,target);p:=gridex_ediel_retention.audit19_receipt_v1(c,target,envelope);
+ IF p->>'reviewerId' IS DISTINCT FROM actor::text OR p->>'executionActorId'=actor::text THEN RAISE EXCEPTION 'audit19_actual_independent_reviewer_required' USING ERRCODE='42501';END IF;
+ -- Actual executor registry checks without pretending the reviewer is that session.
+ PERFORM gridex_ediel_retention.audit19_execution_actor_v1(c,(p->>'executionActorId')::uuid);
+ IF gridex_ediel_retention.permission_v1(c,(p->>'executionActorId')::uuid,'ediel.retention.purge') IS NOT TRUE THEN RAISE EXCEPTION 'audit19_current_execution_actor_required' USING ERRCODE='42501';END IF;
+ PERFORM gridex_ediel_retention.audit19_verify_v1(c,target,p,context->>'rowHash');
+ PERFORM gridex_ediel_retention.decision_evidence_lock_reviewer_v1(c,actor,'audit_normalized19_cleanup');p:=gridex_ediel_retention.audit19_receipt_v1(c,target,envelope);PERFORM gridex_ediel_retention.audit19_verify_v1(c,target,p,context->>'rowHash');at:=clock_timestamp();expiry:=gridex_ediel_retention.audit19_A_terms_v1(p,at);
+ IF EXISTS(SELECT FROM gridex_ediel_retention.audit19_approvals_v1 WHERE company_id=c AND target_audit_id=target) THEN RAISE EXCEPTION 'audit19_existing_finite_A_must_be_resolved' USING ERRCODE='42501';END IF;
+ SELECT c,target,context->>'rowHash',envelope,encode(sha256(convert_to(envelope::text,'UTF8')),'hex'),actor,at,(p->>'executionActorId')::uuid,expiry INTO a;
+ INSERT INTO gridex_ediel_retention.audit19_permits_v1 VALUES(pg_backend_pid(),txid_current(),'gridex_ediel_retention.audit19_approvals_v1'::regclass,c,target,'INSERT',NULL,gridex_ediel_retention.audit19_a_hash_v1(a));
+ INSERT INTO gridex_ediel_retention.audit19_approvals_v1 SELECT a.*;
+ RETURN jsonb_build_object('status','approved','authority','none');
+END$$;
+
+--
 -- Name: run_tenant_integrity_audit(uuid, text, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -103036,6 +104539,21 @@ CREATE TABLE gridex_ediel_readiness.source_editions (
 ALTER TABLE ONLY gridex_ediel_readiness.source_editions FORCE ROW LEVEL SECURITY;
 
 --
+-- Name: audit19_permits_v1; Type: TABLE; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE TABLE gridex_ediel_retention.audit19_permits_v1 (
+    backend integer NOT NULL,
+    xid bigint NOT NULL,
+    relation oid NOT NULL,
+    company_id uuid NOT NULL,
+    target_id uuid NOT NULL,
+    operation text NOT NULL,
+    old_hash text,
+    new_hash text
+);
+
+--
 -- Name: blob_events; Type: TABLE; Schema: gridex_ediel_retention; Owner: -
 --
 
@@ -103191,6 +104709,99 @@ CREATE TABLE gridex_ediel_retention.classification_copy_revocations (
 );
 
 ALTER TABLE ONLY gridex_ediel_retention.classification_copy_revocations FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: completed_parent_approvals_v1; Type: TABLE; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE TABLE gridex_ediel_retention.completed_parent_approvals_v1 (
+    company_id uuid NOT NULL,
+    policy_id uuid NOT NULL,
+    source_commitment text NOT NULL,
+    receipt jsonb NOT NULL,
+    receipt_hash text NOT NULL,
+    reviewer_user_id uuid NOT NULL,
+    approved_at timestamp with time zone NOT NULL,
+    stage text NOT NULL,
+    expires_at timestamp with time zone NOT NULL,
+    CONSTRAINT completed_parent_approvals_v1_expires_at_check CHECK (isfinite(expires_at)),
+    CONSTRAINT completed_parent_approvals_v1_stage_check CHECK ((stage = 'dispose'::text))
+);
+
+ALTER TABLE ONLY gridex_ediel_retention.completed_parent_approvals_v1 FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: completed_parent_purposes_v1; Type: TABLE; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE TABLE gridex_ediel_retention.completed_parent_purposes_v1 (
+    company_id uuid NOT NULL,
+    policy_id uuid NOT NULL,
+    version bigint NOT NULL,
+    receipt jsonb NOT NULL,
+    receipt_hash text NOT NULL,
+    reviewer_user_id uuid NOT NULL,
+    admitted_at timestamp with time zone NOT NULL,
+    ordinary_until timestamp with time zone NOT NULL,
+    expires_at timestamp with time zone NOT NULL,
+    CONSTRAINT completed_parent_purposes_v1_check CHECK ((isfinite(expires_at) AND (expires_at > ordinary_until))),
+    CONSTRAINT completed_parent_purposes_v1_ordinary_until_check CHECK (isfinite(ordinary_until)),
+    CONSTRAINT completed_parent_purposes_v1_version_check CHECK ((version > 0))
+);
+
+ALTER TABLE ONLY gridex_ediel_retention.completed_parent_purposes_v1 FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: completed_witness_phase_authorizations_v1; Type: TABLE; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE TABLE gridex_ediel_retention.completed_witness_phase_authorizations_v1 (
+    company_id uuid NOT NULL,
+    policy_id uuid NOT NULL,
+    source_commitment text NOT NULL,
+    receipt jsonb NOT NULL,
+    receipt_hash text NOT NULL,
+    reviewer_user_id uuid NOT NULL,
+    approved_at timestamp with time zone NOT NULL,
+    stage text NOT NULL,
+    expires_at timestamp with time zone NOT NULL,
+    CONSTRAINT completed_witness_phase_authorizations_v1_check CHECK ((receipt_hash = encode(sha256(convert_to((receipt)::text, 'UTF8'::name)), 'hex'::text))),
+    CONSTRAINT completed_witness_phase_authorizations_v1_expires_at_check CHECK (isfinite(expires_at)),
+    CONSTRAINT completed_witness_phase_authorizations_v1_stage_check CHECK ((stage = ANY (ARRAY['dispose'::text, 'expire'::text])))
+);
+
+ALTER TABLE ONLY gridex_ediel_retention.completed_witness_phase_authorizations_v1 FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: completed_witness_phase_permits_v1; Type: TABLE; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE TABLE gridex_ediel_retention.completed_witness_phase_permits_v1 (
+    backend integer NOT NULL,
+    xid bigint NOT NULL,
+    relation_name text NOT NULL,
+    before_hash text NOT NULL,
+    operation text NOT NULL,
+    after_hash text,
+    CONSTRAINT completed_witness_phase_permits_v1_check CHECK ((((operation = 'DELETE'::text) AND (after_hash IS NULL)) OR ((operation = 'UPDATE'::text) AND (after_hash IS NOT NULL)))),
+    CONSTRAINT completed_witness_phase_permits_v1_operation_check CHECK ((operation = ANY (ARRAY['DELETE'::text, 'UPDATE'::text])))
+);
+
+ALTER TABLE ONLY gridex_ediel_retention.completed_witness_phase_permits_v1 FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: completed_witness_replays_v1; Type: TABLE; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE TABLE gridex_ediel_retention.completed_witness_replays_v1 (
+    company_id uuid NOT NULL,
+    policy_id uuid NOT NULL,
+    source_commitment text NOT NULL,
+    replay_until timestamp with time zone NOT NULL,
+    CONSTRAINT completed_witness_replays_v1_replay_until_check CHECK (isfinite(replay_until))
+);
+
+ALTER TABLE ONLY gridex_ediel_retention.completed_witness_replays_v1 FORCE ROW LEVEL SECURITY;
 
 --
 -- Name: contract_copy_catalog; Type: TABLE; Schema: gridex_ediel_retention; Owner: -
@@ -103350,29 +104961,13 @@ CREATE TABLE gridex_ediel_retention.decision_evidence_catalog (
     retention_class text NOT NULL,
     source_table text NOT NULL,
     permission_key text NOT NULL,
-    revocation_table text NOT NULL,
-    revocation_id_column text NOT NULL,
-    receipt_function text NOT NULL
+    revocation_table text,
+    revocation_id_column text,
+    receipt_function text,
+    CONSTRAINT completed_review_reason_dispatch CHECK ((((retention_class = 'completed_decision_review_reason'::text) AND (source_table = 'decision_evidence_reviews'::text) AND (permission_key = 'ediel.retention.completed_review_reason'::text) AND (revocation_table IS NULL) AND (revocation_id_column IS NULL) AND (receipt_function IS NULL)) OR ((retention_class <> 'completed_decision_review_reason'::text) AND (revocation_table IS NOT NULL) AND (revocation_id_column IS NOT NULL) AND (receipt_function IS NOT NULL))))
 );
 
 ALTER TABLE ONLY gridex_ediel_retention.decision_evidence_catalog FORCE ROW LEVEL SECURITY;
-
---
--- Name: decision_evidence_reviews; Type: TABLE; Schema: gridex_ediel_retention; Owner: -
---
-
-CREATE TABLE gridex_ediel_retention.decision_evidence_reviews (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    policy_id uuid NOT NULL,
-    actor_user_id uuid NOT NULL,
-    outcome text NOT NULL,
-    reason text NOT NULL,
-    created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
-    CONSTRAINT decision_evidence_reviews_outcome_check CHECK ((outcome = ANY (ARRAY['approved'::text, 'held'::text, 'rejected'::text]))),
-    CONSTRAINT decision_evidence_reviews_reason_check CHECK (((length(reason) >= 1) AND (length(reason) <= 4000)))
-);
-
-ALTER TABLE ONLY gridex_ediel_retention.decision_evidence_reviews FORCE ROW LEVEL SECURITY;
 
 --
 -- Name: decision_evidence_revocations; Type: TABLE; Schema: gridex_ediel_retention; Owner: -
@@ -108542,34 +110137,6 @@ UNION ALL
  SELECT 'data_quality_issues'::text AS check_key,
     (count(*))::integer AS row_count
    FROM public.data_quality_issues;
-
---
--- Name: audit_logs; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.audit_logs (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    company_id uuid,
-    actor_user_id uuid,
-    entity_type text NOT NULL,
-    entity_id text NOT NULL,
-    action text NOT NULL,
-    old_values jsonb,
-    new_values jsonb,
-    metadata jsonb,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now(),
-    actor_type text NOT NULL,
-    system_actor text,
-    request_id text NOT NULL,
-    correlation_id text NOT NULL,
-    resource_type text NOT NULL,
-    resource_id text NOT NULL,
-    previous_status text,
-    new_status text,
-    CONSTRAINT audit_logs_actor_type_check CHECK ((actor_type = ANY (ARRAY['user'::text, 'system'::text]))),
-    CONSTRAINT audit_logs_system_actor_check CHECK (((actor_user_id IS NOT NULL) OR (NULLIF(system_actor, ''::text) IS NOT NULL)))
-);
 
 --
 -- Name: auth_email_events; Type: TABLE; Schema: public; Owner: -
@@ -129167,6 +130734,20 @@ ALTER TABLE ONLY gridex_ediel_readiness.source_editions
     ADD CONSTRAINT source_editions_pkey PRIMARY KEY (source_version);
 
 --
+-- Name: audit19_approvals_v1 audit19_approvals_v1_pkey; Type: CONSTRAINT; Schema: gridex_ediel_retention; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_retention.audit19_approvals_v1
+    ADD CONSTRAINT audit19_approvals_v1_pkey PRIMARY KEY (company_id, target_audit_id);
+
+--
+-- Name: audit19_permits_v1 audit19_permits_v1_pkey; Type: CONSTRAINT; Schema: gridex_ediel_retention; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_retention.audit19_permits_v1
+    ADD CONSTRAINT audit19_permits_v1_pkey PRIMARY KEY (backend, xid, relation, company_id, target_id, operation);
+
+--
 -- Name: blob_decisions blob_decisions_company_id_retention_class_target_id_target__key; Type: CONSTRAINT; Schema: gridex_ediel_retention; Owner: -
 --
 
@@ -129221,6 +130802,41 @@ ALTER TABLE ONLY gridex_ediel_retention.blob_tombstones
 
 ALTER TABLE ONLY gridex_ediel_retention.classification_copy_revocations
     ADD CONSTRAINT classification_copy_revocations_pkey PRIMARY KEY (retention_class, classification_id);
+
+--
+-- Name: completed_parent_approvals_v1 completed_parent_approvals_v1_pkey; Type: CONSTRAINT; Schema: gridex_ediel_retention; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_retention.completed_parent_approvals_v1
+    ADD CONSTRAINT completed_parent_approvals_v1_pkey PRIMARY KEY (company_id, policy_id);
+
+--
+-- Name: completed_parent_purposes_v1 completed_parent_purposes_v1_pkey; Type: CONSTRAINT; Schema: gridex_ediel_retention; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_retention.completed_parent_purposes_v1
+    ADD CONSTRAINT completed_parent_purposes_v1_pkey PRIMARY KEY (company_id, policy_id);
+
+--
+-- Name: completed_witness_phase_authorizations_v1 completed_witness_phase_authorizations_v1_pkey; Type: CONSTRAINT; Schema: gridex_ediel_retention; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_retention.completed_witness_phase_authorizations_v1
+    ADD CONSTRAINT completed_witness_phase_authorizations_v1_pkey PRIMARY KEY (company_id, policy_id);
+
+--
+-- Name: completed_witness_phase_permits_v1 completed_witness_phase_permits_v1_pkey; Type: CONSTRAINT; Schema: gridex_ediel_retention; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_retention.completed_witness_phase_permits_v1
+    ADD CONSTRAINT completed_witness_phase_permits_v1_pkey PRIMARY KEY (backend, xid, relation_name, before_hash);
+
+--
+-- Name: completed_witness_replays_v1 completed_witness_replays_v1_pkey; Type: CONSTRAINT; Schema: gridex_ediel_retention; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_retention.completed_witness_replays_v1
+    ADD CONSTRAINT completed_witness_replays_v1_pkey PRIMARY KEY (company_id, policy_id);
 
 --
 -- Name: contract_copy_catalog contract_copy_catalog_pkey; Type: CONSTRAINT; Schema: gridex_ediel_retention; Owner: -
@@ -148969,6 +150585,18 @@ CREATE TRIGGER source_edition_no_mutation BEFORE DELETE OR UPDATE ON gridex_edie
 CREATE TRIGGER source_edition_no_truncate BEFORE TRUNCATE ON gridex_ediel_readiness.source_editions FOR EACH STATEMENT EXECUTE FUNCTION gridex_ediel_readiness.reject_mutation();
 
 --
+-- Name: audit19_approvals_v1 audit19_a9_guard_v1; Type: TRIGGER; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE TRIGGER audit19_a9_guard_v1 BEFORE INSERT OR DELETE OR UPDATE ON gridex_ediel_retention.audit19_approvals_v1 FOR EACH ROW EXECUTE FUNCTION gridex_ediel_retention.audit19_guard_v1();
+
+--
+-- Name: audit19_permits_v1 audit19_no_committed_permit_v1; Type: TRIGGER; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE CONSTRAINT TRIGGER audit19_no_committed_permit_v1 AFTER INSERT ON gridex_ediel_retention.audit19_permits_v1 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION gridex_ediel_retention.audit19_permits_empty_v1();
+
+--
 -- Name: blob_decisions blob_decisions_immutable; Type: TRIGGER; Schema: gridex_ediel_retention; Owner: -
 --
 
@@ -149051,6 +150679,24 @@ CREATE TRIGGER classification_copy_view_update INSTEAD OF UPDATE ON gridex_ediel
 --
 
 CREATE TRIGGER classification_copy_view_update INSTEAD OF UPDATE ON gridex_ediel_retention.customer_classification_source_originals FOR EACH ROW EXECUTE FUNCTION gridex_ediel_retention.classification_copy_view_update_v1();
+
+--
+-- Name: completed_parent_purposes_v1 completed_parent_purpose_immutable; Type: TRIGGER; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE TRIGGER completed_parent_purpose_immutable BEFORE DELETE OR UPDATE ON gridex_ediel_retention.completed_parent_purposes_v1 FOR EACH ROW EXECUTE FUNCTION gridex_ediel_retention.completed_parent_purpose_guard_v1();
+
+--
+-- Name: completed_witness_phase_permits_v1 completed_witness_permits_empty; Type: TRIGGER; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE CONSTRAINT TRIGGER completed_witness_permits_empty AFTER INSERT ON gridex_ediel_retention.completed_witness_phase_permits_v1 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION gridex_ediel_retention.completed_witness_permits_empty_v1();
+
+--
+-- Name: decision_evidence_reviews completed_witness_reason_intake; Type: TRIGGER; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE TRIGGER completed_witness_reason_intake BEFORE INSERT ON gridex_ediel_retention.decision_evidence_reviews FOR EACH ROW EXECUTE FUNCTION gridex_ediel_retention.completed_witness_reason_intake_v1();
 
 --
 -- Name: masterdata_declaration_agreements contract_copy_view_update; Type: TRIGGER; Schema: gridex_ediel_retention; Owner: -
@@ -149320,25 +150966,25 @@ CREATE TRIGGER immutable BEFORE DELETE OR UPDATE ON gridex_ediel_retention.decis
 -- Name: decision_evidence_policies immutable; Type: TRIGGER; Schema: gridex_ediel_retention; Owner: -
 --
 
-CREATE TRIGGER immutable BEFORE DELETE OR UPDATE ON gridex_ediel_retention.decision_evidence_policies FOR EACH ROW EXECUTE FUNCTION gridex_ediel_retention.decision_evidence_policies_original_guard_v1();
+CREATE TRIGGER immutable BEFORE DELETE OR UPDATE ON gridex_ediel_retention.decision_evidence_policies FOR EACH ROW EXECUTE FUNCTION gridex_ediel_retention.completed_witness_guard_v1();
 
 --
 -- Name: decision_evidence_reviews immutable; Type: TRIGGER; Schema: gridex_ediel_retention; Owner: -
 --
 
-CREATE TRIGGER immutable BEFORE DELETE OR UPDATE ON gridex_ediel_retention.decision_evidence_reviews FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+CREATE TRIGGER immutable BEFORE DELETE OR UPDATE ON gridex_ediel_retention.decision_evidence_reviews FOR EACH ROW EXECUTE FUNCTION gridex_ediel_retention.completed_witness_guard_v1();
 
 --
 -- Name: decision_evidence_revocations immutable; Type: TRIGGER; Schema: gridex_ediel_retention; Owner: -
 --
 
-CREATE TRIGGER immutable BEFORE DELETE OR UPDATE ON gridex_ediel_retention.decision_evidence_revocations FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+CREATE TRIGGER immutable BEFORE DELETE OR UPDATE ON gridex_ediel_retention.decision_evidence_revocations FOR EACH ROW EXECUTE FUNCTION gridex_ediel_retention.completed_witness_guard_v1();
 
 --
 -- Name: decision_evidence_tombstones immutable; Type: TRIGGER; Schema: gridex_ediel_retention; Owner: -
 --
 
-CREATE TRIGGER immutable BEFORE DELETE OR UPDATE ON gridex_ediel_retention.decision_evidence_tombstones FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+CREATE TRIGGER immutable BEFORE DELETE OR UPDATE ON gridex_ediel_retention.decision_evidence_tombstones FOR EACH ROW EXECUTE FUNCTION gridex_ediel_retention.completed_witness_guard_v1();
 
 --
 -- Name: finance_class_catalog immutable; Type: TRIGGER; Schema: gridex_ediel_retention; Owner: -
@@ -152657,6 +154303,12 @@ CREATE TRIGGER ai_original_message_binding AFTER INSERT ON public.ediel_messages
 --
 
 CREATE TRIGGER assigned_prodat_negative_original_immutable BEFORE DELETE OR UPDATE ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_ediel_header_negative_birth.original_guard_v1();
+
+--
+-- Name: audit_logs audit19_owner_delete_guard_v1; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER audit19_owner_delete_guard_v1 BEFORE DELETE ON public.audit_logs FOR EACH ROW EXECUTE FUNCTION gridex_ediel_retention.audit19_guard_v1();
 
 --
 -- Name: audit_logs audit_logs_normalize_context_v1; Type: TRIGGER; Schema: public; Owner: -
@@ -159257,6 +160909,27 @@ ALTER TABLE ONLY gridex_ediel_readiness.evidence
     ADD CONSTRAINT evidence_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE RESTRICT;
 
 --
+-- Name: audit19_approvals_v1 audit19_approvals_v1_company_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_retention; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_retention.audit19_approvals_v1
+    ADD CONSTRAINT audit19_approvals_v1_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id);
+
+--
+-- Name: audit19_approvals_v1 audit19_approvals_v1_execution_actor_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_retention; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_retention.audit19_approvals_v1
+    ADD CONSTRAINT audit19_approvals_v1_execution_actor_id_fkey FOREIGN KEY (execution_actor_id) REFERENCES auth.users(id);
+
+--
+-- Name: audit19_approvals_v1 audit19_approvals_v1_reviewer_user_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_retention; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_retention.audit19_approvals_v1
+    ADD CONSTRAINT audit19_approvals_v1_reviewer_user_id_fkey FOREIGN KEY (reviewer_user_id) REFERENCES auth.users(id);
+
+--
 -- Name: blob_decisions blob_decisions_company_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_retention; Owner: -
 --
 
@@ -159367,6 +161040,27 @@ ALTER TABLE ONLY gridex_ediel_retention.classification_copy_revocations
 
 ALTER TABLE ONLY gridex_ediel_retention.classification_copy_revocations
     ADD CONSTRAINT classification_copy_revocations_source_message_id_fkey FOREIGN KEY (source_message_id) REFERENCES public.ediel_messages(id);
+
+--
+-- Name: completed_parent_purposes_v1 completed_parent_purpose_exact_policy_fk; Type: FK CONSTRAINT; Schema: gridex_ediel_retention; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_retention.completed_parent_purposes_v1
+    ADD CONSTRAINT completed_parent_purpose_exact_policy_fk FOREIGN KEY (policy_id) REFERENCES gridex_ediel_retention.decision_evidence_policies(id);
+
+--
+-- Name: completed_parent_purposes_v1 completed_parent_purposes_v1_company_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_retention; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_retention.completed_parent_purposes_v1
+    ADD CONSTRAINT completed_parent_purposes_v1_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id);
+
+--
+-- Name: completed_parent_purposes_v1 completed_parent_purposes_v1_reviewer_user_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_retention; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_retention.completed_parent_purposes_v1
+    ADD CONSTRAINT completed_parent_purposes_v1_reviewer_user_id_fkey FOREIGN KEY (reviewer_user_id) REFERENCES auth.users(id);
 
 --
 -- Name: contract_copy_revocations contract_copy_revocations_actor_user_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_retention; Owner: -
@@ -171956,6 +173650,36 @@ ALTER TABLE gridex_ediel_retention.blob_tombstones ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE gridex_ediel_retention.classification_copy_revocations ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: completed_parent_approvals_v1; Type: ROW SECURITY; Schema: gridex_ediel_retention; Owner: -
+--
+
+ALTER TABLE gridex_ediel_retention.completed_parent_approvals_v1 ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: completed_parent_purposes_v1; Type: ROW SECURITY; Schema: gridex_ediel_retention; Owner: -
+--
+
+ALTER TABLE gridex_ediel_retention.completed_parent_purposes_v1 ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: completed_witness_phase_authorizations_v1; Type: ROW SECURITY; Schema: gridex_ediel_retention; Owner: -
+--
+
+ALTER TABLE gridex_ediel_retention.completed_witness_phase_authorizations_v1 ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: completed_witness_phase_permits_v1; Type: ROW SECURITY; Schema: gridex_ediel_retention; Owner: -
+--
+
+ALTER TABLE gridex_ediel_retention.completed_witness_phase_permits_v1 ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: completed_witness_replays_v1; Type: ROW SECURITY; Schema: gridex_ediel_retention; Owner: -
+--
+
+ALTER TABLE gridex_ediel_retention.completed_witness_replays_v1 ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: contract_copy_catalog; Type: ROW SECURITY; Schema: gridex_ediel_retention; Owner: -
@@ -194502,6 +196226,98 @@ REVOKE ALL ON FUNCTION gridex_ediel_retention.artifact_guard_v1() FROM PUBLIC;
 REVOKE ALL ON FUNCTION gridex_ediel_retention.artifact_insert_length_v1() FROM PUBLIC;
 
 --
+-- Name: FUNCTION audit19_a_hash_v1(a gridex_ediel_retention.audit19_approvals_v1); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.audit19_a_hash_v1(a gridex_ediel_retention.audit19_approvals_v1) FROM PUBLIC;
+
+--
+-- Name: FUNCTION audit19_a_terms_v1(p jsonb, at timestamp with time zone); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.audit19_a_terms_v1(p jsonb, at timestamp with time zone) FROM PUBLIC;
+
+--
+-- Name: FUNCTION audit19_context_v1(c uuid, target uuid); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.audit19_context_v1(c uuid, target uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION audit19_execution_actor_v1(c uuid, actor uuid); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.audit19_execution_actor_v1(c uuid, actor uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION audit19_fields_v1(p jsonb, context jsonb, at timestamp with time zone); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.audit19_fields_v1(p jsonb, context jsonb, at timestamp with time zone) FROM PUBLIC;
+
+--
+-- Name: FUNCTION audit19_guard_v1(); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.audit19_guard_v1() FROM PUBLIC;
+
+--
+-- Name: TABLE audit_logs; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.audit_logs TO authenticated;
+GRANT ALL ON TABLE public.audit_logs TO service_role;
+GRANT SELECT,INSERT,DELETE ON TABLE public.audit_logs TO gridex_ediel_retention_owner;
+
+--
+-- Name: COLUMN audit_logs.id; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT UPDATE(id) ON TABLE public.audit_logs TO gridex_ediel_retention_owner;
+
+--
+-- Name: FUNCTION audit19_hash_v1(a public.audit_logs); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.audit19_hash_v1(a public.audit_logs) FROM PUBLIC;
+
+--
+-- Name: FUNCTION audit19_lock_v1(c uuid, actor uuid, operation text, source_needed boolean); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.audit19_lock_v1(c uuid, actor uuid, operation text, source_needed boolean) FROM PUBLIC;
+
+--
+-- Name: FUNCTION audit19_permits_empty_v1(); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.audit19_permits_empty_v1() FROM PUBLIC;
+
+--
+-- Name: FUNCTION audit19_receipt_v1(c uuid, target uuid, envelope jsonb); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.audit19_receipt_v1(c uuid, target uuid, envelope jsonb) FROM PUBLIC;
+
+--
+-- Name: FUNCTION audit19_schema_v1(); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.audit19_schema_v1() FROM PUBLIC;
+
+--
+-- Name: FUNCTION audit19_source_contract_v1(action text); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.audit19_source_contract_v1(action text) FROM PUBLIC;
+
+--
+-- Name: FUNCTION audit19_verify_v1(c uuid, target uuid, p jsonb, expected_hash text); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.audit19_verify_v1(c uuid, target uuid, p jsonb, expected_hash text) FROM PUBLIC;
+
+--
 -- Name: FUNCTION blob_basis_v1(c uuid, k text, target uuid); Type: ACL; Schema: gridex_ediel_retention; Owner: -
 --
 
@@ -194591,6 +196407,216 @@ REVOKE ALL ON FUNCTION gridex_ediel_retention.classification_copy_view_update_v1
 --
 
 REVOKE ALL ON FUNCTION gridex_ediel_retention.classification_revocations_classification_copy_guard_v1() FROM PUBLIC;
+
+--
+-- Name: FUNCTION completed_parent_actor_v1(c uuid, actor uuid, operation text, delegated boolean); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.completed_parent_actor_v1(c uuid, actor uuid, operation text, delegated boolean) FROM PUBLIC;
+
+--
+-- Name: FUNCTION completed_parent_execute_v1(p_company_id uuid, p_actor_user_id uuid, p_policy_id uuid, delegated boolean); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.completed_parent_execute_v1(p_company_id uuid, p_actor_user_id uuid, p_policy_id uuid, delegated boolean) FROM PUBLIC;
+
+--
+-- Name: FUNCTION completed_parent_graph_v1(c uuid, policy uuid); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.completed_parent_graph_v1(c uuid, policy uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION completed_parent_purpose_closure_v1(c uuid, policy uuid); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.completed_parent_purpose_closure_v1(c uuid, policy uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION completed_parent_purpose_current_v1(c uuid, policy uuid); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.completed_parent_purpose_current_v1(c uuid, policy uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION completed_parent_purpose_guard_v1(); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.completed_parent_purpose_guard_v1() FROM PUBLIC;
+
+--
+-- Name: FUNCTION completed_parent_purpose_operation_v1(c uuid, policy uuid, a jsonb, cleanup boolean); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.completed_parent_purpose_operation_v1(c uuid, policy uuid, a jsonb, cleanup boolean) FROM PUBLIC;
+
+--
+-- Name: FUNCTION completed_parent_purpose_receipt_v1(c uuid, policy uuid, envelope jsonb); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.completed_parent_purpose_receipt_v1(c uuid, policy uuid, envelope jsonb) FROM PUBLIC;
+
+--
+-- Name: FUNCTION completed_parent_purpose_scope_v1(c uuid, policy uuid); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.completed_parent_purpose_scope_v1(c uuid, policy uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION completed_parent_purpose_terms_v1(p jsonb, g jsonb, at timestamp with time zone); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.completed_parent_purpose_terms_v1(p jsonb, g jsonb, at timestamp with time zone) FROM PUBLIC;
+
+--
+-- Name: FUNCTION completed_parent_receipt_v1(c uuid, policy uuid, envelope jsonb); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.completed_parent_receipt_v1(c uuid, policy uuid, envelope jsonb) FROM PUBLIC;
+
+--
+-- Name: FUNCTION completed_parent_references_v1(c uuid, policy uuid, review_id uuid); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.completed_parent_references_v1(c uuid, policy uuid, review_id uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION completed_review_reason_basis_v1(c uuid, target uuid); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.completed_review_reason_basis_v1(c uuid, target uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION completed_review_reason_guard_v1(); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.completed_review_reason_guard_v1() FROM PUBLIC;
+
+--
+-- Name: FUNCTION completed_review_reason_read_v1(c uuid, target uuid, include_body boolean); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.completed_review_reason_read_v1(c uuid, target uuid, include_body boolean) FROM PUBLIC;
+
+--
+-- Name: FUNCTION completed_review_reason_retire_v1(d gridex_ediel_retention.decision_evidence_policies, r gridex_ediel_retention.decision_evidence_reviews, actor uuid); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.completed_review_reason_retire_v1(d gridex_ediel_retention.decision_evidence_policies, r gridex_ediel_retention.decision_evidence_reviews, actor uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION completed_review_reason_scope_v1(c uuid, target uuid); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.completed_review_reason_scope_v1(c uuid, target uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION completed_review_reason_terms_v1(d gridex_ediel_retention.decision_evidence_policies, p jsonb); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.completed_review_reason_terms_v1(d gridex_ediel_retention.decision_evidence_policies, p jsonb) FROM PUBLIC;
+
+--
+-- Name: FUNCTION completed_review_reason_transition_v1(o jsonb, n jsonb); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.completed_review_reason_transition_v1(o jsonb, n jsonb) FROM PUBLIC;
+
+--
+-- Name: FUNCTION completed_witness_approval_terms_v1(p jsonb, at timestamp with time zone); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.completed_witness_approval_terms_v1(p jsonb, at timestamp with time zone) FROM PUBLIC;
+
+--
+-- Name: FUNCTION completed_witness_dispatch_v1(c uuid, actor uuid, policy uuid); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.completed_witness_dispatch_v1(c uuid, actor uuid, policy uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION completed_witness_execute_v1(c uuid, actor uuid, policy uuid, delegated boolean); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.completed_witness_execute_v1(c uuid, actor uuid, policy uuid, delegated boolean) FROM PUBLIC;
+
+--
+-- Name: FUNCTION completed_witness_fields_v1(c uuid, policy uuid); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.completed_witness_fields_v1(c uuid, policy uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION completed_witness_graph_v1(c uuid, policy uuid); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.completed_witness_graph_v1(c uuid, policy uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION completed_witness_guard_v1(); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.completed_witness_guard_v1() FROM PUBLIC;
+
+--
+-- Name: FUNCTION completed_witness_holds_v1(c uuid); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.completed_witness_holds_v1(c uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION completed_witness_payload_terms_v1(c uuid, policy uuid, p jsonb); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.completed_witness_payload_terms_v1(c uuid, policy uuid, p jsonb) FROM PUBLIC;
+
+--
+-- Name: FUNCTION completed_witness_permits_empty_v1(); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.completed_witness_permits_empty_v1() FROM PUBLIC;
+
+--
+-- Name: FUNCTION completed_witness_reason_intake_v1(); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.completed_witness_reason_intake_v1() FROM PUBLIC;
+
+--
+-- Name: FUNCTION completed_witness_receipt_v1(c uuid, policy uuid, envelope jsonb); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.completed_witness_receipt_v1(c uuid, policy uuid, envelope jsonb) FROM PUBLIC;
+
+--
+-- Name: FUNCTION completed_witness_references_v1(c uuid, policy uuid, source_review uuid); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.completed_witness_references_v1(c uuid, policy uuid, source_review uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION completed_witness_route_v1(c uuid, policy uuid); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.completed_witness_route_v1(c uuid, policy uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION completed_witness_status_v1(c uuid, actor uuid, policy uuid, delegated boolean); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.completed_witness_status_v1(c uuid, actor uuid, policy uuid, delegated boolean) FROM PUBLIC;
+
+--
+-- Name: FUNCTION completed_witness_terms_v1(p jsonb, expected text[], phase text, w timestamp with time zone, r timestamp with time zone, at timestamp with time zone); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.completed_witness_terms_v1(p jsonb, expected text[], phase text, w timestamp with time zone, r timestamp with time zone, at timestamp with time zone) FROM PUBLIC;
+
+--
+-- Name: FUNCTION completed_witness_worker_actor_v1(c uuid, actor uuid); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.completed_witness_worker_actor_v1(c uuid, actor uuid) FROM PUBLIC;
 
 --
 -- Name: FUNCTION consumed_source_guard_v1(); Type: ACL; Schema: gridex_ediel_retention; Owner: -
@@ -195268,6 +197294,18 @@ REVOKE ALL ON FUNCTION gridex_ediel_retention.record_revocation_lock_v1() FROM P
 --
 
 REVOKE ALL ON FUNCTION gridex_ediel_retention.record_target_guard_v1() FROM PUBLIC;
+
+--
+-- Name: FUNCTION require_completed_parent_purpose_disclosure_v1(c uuid, policy uuid); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.require_completed_parent_purpose_disclosure_v1(c uuid, policy uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION require_completed_review_witness_disclosure_v1(c uuid, actor uuid, policy uuid, requested_class text, include_body boolean); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.require_completed_review_witness_disclosure_v1(c uuid, actor uuid, policy uuid, requested_class text, include_body boolean) FROM PUBLIC;
 
 --
 -- Name: FUNCTION revocation_lock_v1(); Type: ACL; Schema: gridex_ediel_retention; Owner: -
@@ -199412,11 +201450,39 @@ REVOKE ALL ON FUNCTION public.cleanup_energy_geodata_staging_v1(p_retention_days
 GRANT ALL ON FUNCTION public.cleanup_energy_geodata_staging_v1(p_retention_days integer, p_dry_run boolean) TO service_role;
 
 --
+-- Name: FUNCTION dispose_one_audit19_v1(c uuid, actor uuid, target uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.dispose_one_audit19_v1(c uuid, actor uuid, target uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.dispose_one_audit19_v1(c uuid, actor uuid, target uuid) TO authenticated;
+
+--
+-- Name: FUNCTION ediel_admit_completed_parent_purpose_v1(p_company_id uuid, p_actor_user_id uuid, p_policy_id uuid, p_receipt jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.ediel_admit_completed_parent_purpose_v1(p_company_id uuid, p_actor_user_id uuid, p_policy_id uuid, p_receipt jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.ediel_admit_completed_parent_purpose_v1(p_company_id uuid, p_actor_user_id uuid, p_policy_id uuid, p_receipt jsonb) TO authenticated;
+
+--
 -- Name: FUNCTION ediel_admit_unattributed_technical_source_v1(p_inbound_email_message_id uuid, p_parse_result_id uuid, p_actor_user_id uuid, p_expected_payload_hash text, p_expected_environment text); Type: ACL; Schema: public; Owner: -
 --
 
 REVOKE ALL ON FUNCTION public.ediel_admit_unattributed_technical_source_v1(p_inbound_email_message_id uuid, p_parse_result_id uuid, p_actor_user_id uuid, p_expected_payload_hash text, p_expected_environment text) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.ediel_admit_unattributed_technical_source_v1(p_inbound_email_message_id uuid, p_parse_result_id uuid, p_actor_user_id uuid, p_expected_payload_hash text, p_expected_environment text) TO service_role;
+
+--
+-- Name: FUNCTION ediel_advance_completed_parent_v1(p_actor_user_id uuid, p_limit integer); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.ediel_advance_completed_parent_v1(p_actor_user_id uuid, p_limit integer) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.ediel_advance_completed_parent_v1(p_actor_user_id uuid, p_limit integer) TO service_role;
+
+--
+-- Name: FUNCTION ediel_advance_completed_witness_disposition_v1(p_actor_user_id uuid, p_limit integer); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.ediel_advance_completed_witness_disposition_v1(p_actor_user_id uuid, p_limit integer) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.ediel_advance_completed_witness_disposition_v1(p_actor_user_id uuid, p_limit integer) TO service_role;
 
 --
 -- Name: FUNCTION ediel_advance_permission_deadlines_v1(p_actor_user_id uuid, p_company_id uuid, p_limit integer); Type: ACL; Schema: public; Owner: -
@@ -199741,6 +201807,13 @@ REVOKE ALL ON FUNCTION public.ediel_compare_and_set_prodat_object_case_v1(p_comp
 GRANT ALL ON FUNCTION public.ediel_compare_and_set_prodat_object_case_v1(p_company_id uuid, p_case_id uuid, p_source_message_id uuid, p_actor_user_id uuid, p_expected_updated_at timestamp with time zone, p_expected_status text, p_expected_fingerprint text, p_expected_revision integer, p_patch jsonb) TO service_role;
 
 --
+-- Name: FUNCTION ediel_completed_parent_purpose_status_v1(p_company_id uuid, p_actor_user_id uuid, p_policy_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.ediel_completed_parent_purpose_status_v1(p_company_id uuid, p_actor_user_id uuid, p_policy_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.ediel_completed_parent_purpose_status_v1(p_company_id uuid, p_actor_user_id uuid, p_policy_id uuid) TO authenticated;
+
+--
 -- Name: FUNCTION ediel_configuration_change_snapshot_trigger(); Type: ACL; Schema: public; Owner: -
 --
 
@@ -199964,6 +202037,13 @@ REVOKE ALL ON FUNCTION public.ediel_customer_record_tombstones_v1(p_company_id u
 GRANT ALL ON FUNCTION public.ediel_customer_record_tombstones_v1(p_company_id uuid, p_customer_id uuid) TO service_role;
 
 --
+-- Name: FUNCTION ediel_dispose_completed_parent_v1(p_company_id uuid, p_actor_user_id uuid, p_policy_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.ediel_dispose_completed_parent_v1(p_company_id uuid, p_actor_user_id uuid, p_policy_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.ediel_dispose_completed_parent_v1(p_company_id uuid, p_actor_user_id uuid, p_policy_id uuid) TO authenticated;
+
+--
 -- Name: FUNCTION ediel_execute_beneficiary_export_v1(p_beneficiary_company_id uuid, p_actor_user_id uuid, p_job_id uuid, p_lease_token uuid); Type: ACL; Schema: public; Owner: -
 --
 
@@ -200004,6 +202084,13 @@ GRANT ALL ON FUNCTION public.ediel_finish_invoice_file_purge_v1(p_company_id uui
 
 REVOKE ALL ON FUNCTION public.ediel_fresh_business_incident_access_v1(p_company_id uuid, p_actor_user_id uuid) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.ediel_fresh_business_incident_access_v1(p_company_id uuid, p_actor_user_id uuid) TO service_role;
+
+--
+-- Name: FUNCTION ediel_gc_completed_parent_v1(p_company_id uuid, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.ediel_gc_completed_parent_v1(p_company_id uuid, p_actor_user_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.ediel_gc_completed_parent_v1(p_company_id uuid, p_actor_user_id uuid) TO authenticated;
 
 --
 -- Name: FUNCTION ediel_guard_received_h05_original_v1(); Type: ACL; Schema: public; Owner: -
@@ -201234,6 +203321,20 @@ REVOKE ALL ON FUNCTION public.ediel_review_blob_retention_v1(p_company_id uuid, 
 GRANT ALL ON FUNCTION public.ediel_review_blob_retention_v1(p_company_id uuid, p_actor_user_id uuid, p_decision_id uuid, p_outcome text, p_reason text) TO authenticated;
 
 --
+-- Name: FUNCTION ediel_review_completed_parent_v1(p_company_id uuid, p_actor_user_id uuid, p_policy_id uuid, p_receipt jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.ediel_review_completed_parent_v1(p_company_id uuid, p_actor_user_id uuid, p_policy_id uuid, p_receipt jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.ediel_review_completed_parent_v1(p_company_id uuid, p_actor_user_id uuid, p_policy_id uuid, p_receipt jsonb) TO authenticated;
+
+--
+-- Name: FUNCTION ediel_review_completed_witness_disposition_v1(p_company_id uuid, p_actor_user_id uuid, p_policy_id uuid, p_outcome text, p_receipt jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.ediel_review_completed_witness_disposition_v1(p_company_id uuid, p_actor_user_id uuid, p_policy_id uuid, p_outcome text, p_receipt jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.ediel_review_completed_witness_disposition_v1(p_company_id uuid, p_actor_user_id uuid, p_policy_id uuid, p_outcome text, p_receipt jsonb) TO authenticated;
+
+--
 -- Name: FUNCTION ediel_review_contract_original_source_v1(p_company_id uuid, p_actor_user_id uuid, p_artifact_id uuid, p_review jsonb); Type: ACL; Schema: public; Owner: -
 --
 
@@ -201662,6 +203763,13 @@ GRANT ALL ON FUNCTION public.ediel_witness_confirmed_customer_source_v1(p_compan
 --
 
 GRANT ALL ON FUNCTION public.ensure_customer_invoice_reference_v1() TO service_role;
+
+--
+-- Name: FUNCTION expire_one_audit19_approval_v1(c uuid, actor uuid, target uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.expire_one_audit19_approval_v1(c uuid, actor uuid, target uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.expire_one_audit19_approval_v1(c uuid, actor uuid, target uuid) TO authenticated;
 
 --
 -- Name: FUNCTION gridex_accept_external_staff_invitation_v1(p_command jsonb); Type: ACL; Schema: public; Owner: -
@@ -206984,6 +209092,13 @@ REVOKE ALL ON FUNCTION public.resolve_portal_customer_identity_v1(p_company_id u
 GRANT ALL ON FUNCTION public.resolve_portal_customer_identity_v1(p_company_id uuid, p_email text, p_customer_number text, p_identifier text, p_facility_id text, p_limit integer) TO service_role;
 
 --
+-- Name: FUNCTION review_one_audit19_v1(c uuid, actor uuid, target uuid, envelope jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.review_one_audit19_v1(c uuid, actor uuid, target uuid, envelope jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.review_one_audit19_v1(c uuid, actor uuid, target uuid, envelope jsonb) TO authenticated;
+
+--
 -- Name: FUNCTION run_tenant_integrity_audit(p_company_id uuid, p_scope text, p_requested_by uuid); Type: ACL; Schema: public; Owner: -
 --
 
@@ -207394,14 +209509,6 @@ GRANT ALL ON TABLE public.forecast_runs TO service_role;
 
 GRANT ALL ON TABLE public.analytics_forecasting_readiness_v TO authenticated;
 GRANT ALL ON TABLE public.analytics_forecasting_readiness_v TO service_role;
-
---
--- Name: TABLE audit_logs; Type: ACL; Schema: public; Owner: -
---
-
-GRANT ALL ON TABLE public.audit_logs TO authenticated;
-GRANT ALL ON TABLE public.audit_logs TO service_role;
-GRANT INSERT ON TABLE public.audit_logs TO gridex_ediel_retention_owner;
 
 --
 -- Name: TABLE auth_email_events; Type: ACL; Schema: public; Owner: -

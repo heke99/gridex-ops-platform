@@ -94796,6 +94796,19 @@ export type Database = {
           dry_run: boolean
         }[]
       }
+      dispose_one_audit19_v1: {
+        Args: { actor: string; c: string; target: string }
+        Returns: Json
+      }
+      ediel_admit_completed_parent_purpose_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_policy_id: string
+          p_receipt: Json
+        }
+        Returns: Json
+      }
       ediel_admit_unattributed_technical_source_v1: {
         Args: {
           p_actor_user_id: string
@@ -94804,6 +94817,14 @@ export type Database = {
           p_inbound_email_message_id: string
           p_parse_result_id: string
         }
+        Returns: Json
+      }
+      ediel_advance_completed_parent_v1: {
+        Args: { p_actor_user_id: string; p_limit?: number }
+        Returns: Json
+      }
+      ediel_advance_completed_witness_disposition_v1: {
+        Args: { p_actor_user_id: string; p_limit?: number }
         Returns: Json
       }
       ediel_advance_permission_deadlines_v1: {
@@ -95207,6 +95228,14 @@ export type Database = {
         }
         Returns: Json
       }
+      ediel_completed_parent_purpose_status_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_policy_id: string
+        }
+        Returns: Json
+      }
       ediel_confirmed_customer_snapshot_before_scope_fence_v1: {
         Args: {
           p_actor_user_id: string
@@ -95474,6 +95503,14 @@ export type Database = {
         Args: { p_company_id: string; p_customer_id: string }
         Returns: Json
       }
+      ediel_dispose_completed_parent_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_policy_id: string
+        }
+        Returns: Json
+      }
       ediel_execute_beneficiary_export_v1: {
         Args: {
           p_actor_user_id: string
@@ -95519,6 +95556,10 @@ export type Database = {
       ediel_fresh_business_incident_access_v1: {
         Args: { p_actor_user_id: string; p_company_id: string }
         Returns: Json
+      }
+      ediel_gc_completed_parent_v1: {
+        Args: { p_actor_user_id: string; p_company_id: string }
+        Returns: number
       }
       ediel_inbound_reception_request_v1: {
         Args: {
@@ -96941,6 +96982,25 @@ export type Database = {
         }
         Returns: Json
       }
+      ediel_review_completed_parent_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_policy_id: string
+          p_receipt: Json
+        }
+        Returns: Json
+      }
+      ediel_review_completed_witness_disposition_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_outcome: string
+          p_policy_id: string
+          p_receipt: Json
+        }
+        Returns: Json
+      }
       ediel_review_contract_original_source_v1: {
         Args: {
           p_actor_user_id: string
@@ -97454,6 +97514,10 @@ export type Database = {
           p_company_id: string
           p_source_message_id: string
         }
+        Returns: Json
+      }
+      expire_one_audit19_approval_v1: {
+        Args: { actor: string; c: string; target: string }
         Returns: Json
       }
       gridex_accept_external_staff_invitation_v1: {
@@ -102174,6 +102238,10 @@ export type Database = {
           org_number: string
           personal_number: string
         }[]
+      }
+      review_one_audit19_v1: {
+        Args: { actor: string; c: string; envelope: Json; target: string }
+        Returns: Json
       }
       run_tenant_integrity_audit: {
         Args: {
