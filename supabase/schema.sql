@@ -26718,6 +26718,24 @@ BEGIN
     THEN RETURN jsonb_build_object('applied',false,'reason','z04c_locked_original_mismatch');END IF;
    -- A start already cancelled by another own C is a held duplicate.
    IF sw.status='cancelled_before_start' THEN RETURN jsonb_build_object('applied',false,'reason','z04c_start_already_cancelled');END IF;
+   -- An executed own start is corrected under review; it is never reversed here.
+   IF sw.status='completed' THEN
+    IF EXISTS(SELECT FROM gridex_received_sources.supply_object_effect_receipts e WHERE e.company_id=m.company_id AND e.environment=m.environment
+     AND e.effect_text::jsonb#>>'{plan,kind}'='executed_start_compensation' AND e.effect_text::jsonb#>>'{plan,executedSwitchId}'=sw.id::text) THEN RETURN jsonb_build_object('applied',false,'reason','z04c_executed_start_compensation_already_recorded');END IF;
+    SELECT array_agg(p.id ORDER BY p.id) INTO ids FROM public.customer_supply_periods p
+     JOIN gridex_received_sources.normal_switch_confirmations c ON c.period_id=p.id AND c.company_id=p.company_id
+     JOIN gridex_received_sources.normal_supply_activations a ON a.period_id=p.id AND a.company_id=p.company_id AND a.source_message_id=c.source_message_id
+     WHERE p.company_id=m.company_id AND p.customer_id=sw.customer_id AND p.metering_point_id=sw.metering_point_id AND (p.status IN ('active','ending','ended')) IS TRUE
+      AND c.switch_id=sw.id AND c.original_message_id=origin.id AND c.original_payload_hash=origin.immutable_payload_hash AND c.source_message_id=sw.inbound_z04_message_id
+      AND p.start_date=gridex_received_sources.permission_date_v1(own->>'start') AND c.market_start_at<=now();
+    IF coalesce(cardinality(ids),0)<>1 THEN RETURN jsonb_build_object('applied',false,'reason','z04c_effect_already_executed_compensation_required');END IF;
+    SELECT * INTO sp FROM public.customer_supply_periods WHERE id=ids[1] AND company_id=m.company_id FOR SHARE;
+    previous_switches:=previous_switches||jsonb_build_array(to_jsonb(sw));
+    plans:=plans||jsonb_build_array(jsonb_build_object('kind','executed_start_compensation','switchId',NULL,'periodId',NULL,'disposition','controlled_review',
+     'executedSwitchId',sw.id,'executedPeriodId',sp.id,'executedPeriod',to_jsonb(sp),'originalId',origin.id,'originalHash',origin.immutable_payload_hash,
+     'confirmationSourceMessageId',sw.inbound_z04_message_id,'siteId',coalesce(sw.site_id,sw.customer_site_id),'caseId',gen_random_uuid(),'object',own));
+    CONTINUE;
+   END IF;
    IF (sw.status IN ('draft','prepared','queued','sent','submitted','waiting','waiting_for_z04','accepted','cancellation_requested','cancelled_before_start')) IS NOT TRUE THEN RETURN jsonb_build_object('applied',false,'reason','z04c_effect_already_executed_compensation_required');END IF;
    SELECT array_agg(p.id ORDER BY p.id) INTO ids FROM public.customer_supply_periods p WHERE p.company_id=m.company_id AND p.customer_id=sw.customer_id AND p.metering_point_id=sw.metering_point_id AND (p.source_switch_request_id=sw.id OR p.source_message_id=sw.inbound_z04_message_id);
    IF coalesce(cardinality(ids),0)>1 THEN RETURN jsonb_build_object('applied',false,'reason','z04c_conflicting_periods');END IF;
@@ -26776,6 +26794,16 @@ BEGIN
   ELSIF plan->>'kind'='cancel_start' THEN
    UPDATE public.supplier_switch_requests SET status='cancelled_before_start',inbound_z04_message_id=m.id,completed_at=now(),updated_at=now() WHERE id=(plan->>'switchId')::uuid AND company_id=m.company_id;
    UPDATE public.customer_supply_periods SET status='cancelled',market_state_version=market_state_version+1,updated_at=now(),metadata=coalesce(metadata,'{}')||jsonb_build_object('startCancellationSource',m.id) WHERE id=(plan->>'periodId')::uuid AND company_id=m.company_id;
+  ELSIF plan->>'kind'='executed_start_compensation' THEN
+   INSERT INTO public.customer_cases(id,company_id,customer_id,site_id,metering_point_id,customer_contract_id,supplier_switch_request_id,case_type,status,priority,title,description,reason_category,next_action,source,metadata,created_by,updated_by,source_ediel_message_id,source_business_process)
+    VALUES((plan->>'caseId')::uuid,m.company_id,(plan#>>'{executedPeriod,customer_id}')::uuid,(plan->>'siteId')::uuid,(plan#>>'{executedPeriod,metering_point_id}')::uuid,
+     coalesce(plan#>>'{executedPeriod,customer_contract_id}',plan#>>'{executedPeriod,contract_id}')::uuid,(plan->>'executedSwitchId')::uuid,'other','manual_follow_up','high',
+     'Annullering efter genomförd leveransstart – korrigera',
+     'Nätägaren har annullerat en leveransstart som redan genomförts. Annulleringen är besvarad. Korrigera starten med bibehållen historik och kompensera vid behov.',
+     'executed_start_cancellation','Utred och genomför korrigering av den genomförda starten.','ediel_inbound_state_machine',
+     jsonb_build_object('review_intent','executed_start_compensation','source_ediel_message_id',m.id,'executed_switch_id',plan->'executedSwitchId','executed_period_id',plan->'executedPeriodId',
+      'original_message_id',plan->'originalId','original_payload_hash',plan->'originalHash','confirmation_source_message_id',plan->'confirmationSourceMessageId','object',plan->'object'),
+     p_actor_user_id,p_actor_user_id,m.id,'supplier_switch');
   ELSIF plan->>'kind'='end' THEN
    UPDATE public.customer_supply_periods SET end_date=gridex_received_sources.permission_date_v1(plan#>>'{object,end}'),market_end_at=(plan->>'eventAt')::timestamptz,source_end_message_id=m.id,status=CASE WHEN (plan->>'eventAt')::timestamptz<=now() THEN 'ended' ELSE 'ending' END,market_state_version=market_state_version+1,updated_at=now() WHERE id=(plan->>'periodId')::uuid AND company_id=m.company_id;
   ELSIF plan->>'kind'='restore_end' THEN
