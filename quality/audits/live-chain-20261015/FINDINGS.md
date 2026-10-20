@@ -342,12 +342,17 @@ Granskat oberoende och verifierat på de angivna raderna.
 - **Test:** `__tests__/route-wizard-supersede-production-mode.test.ts` kör den riktiga åtgärden mot en databas med samma CHECK. Den fallerar utan rättningen med exakt driftens felmeddelande.
 - **Verifierat i appen:** guiden svarar "Production route skapad för PRODAT + UTILTS".
 
-### F41 Två route-modeller som utesluter varandra — ÖPPEN, ägarbeslut
+### F41 Två route-modeller som utesluter varandra — ÖPPEN, BLOCKERAR Z01 för nya bolag, ägarbeslut
 - **Guidens modell:** dynamiska profiler (`receiver_source=selected_metering_point_grid_owner`, `is_production_route=true`) som mottagaren hämtas till per kund. Det är bara dessa som miljöväljaren för kunduppgifter räknar (`routeMatchesCustomerGridOwner`).
 - **Route-beredskapens modell:** profiler per nätägare, materialiserade från registret med fast `receiver_ediel_id`.
 - **Krock 1:** guiden ersätter alla produktionsprofiler i familjen, även de materialiserade nätägarprofilerna.
 - **Krock 2:** beredskapsmotorn (`evaluateRouteProfileProductionReadiness`) kräver fast mottagare och mottagarcertifikat på profilen. Den ger `receiver_ediel_id_missing` för varje dynamisk profil, så en guide-profil kan aldrig bli produktionsgodkänd.
 - **Krock 3:** en materialiserad nätägarprofil räknas inte av miljöväljaren, så kundflödet hittar ingen miljö (`environment_not_resolved`, inga kandidatmiljöer).
+- **Krock 4:** efter guiden fallerar materialiseringen med `ediel_application_reference_route_mismatch:PRODAT:23-DDQ-PRODAT`, eftersom guidens profil har `application_reference=PRODAT`. Kundflödet stannar då på `platform_route_exists_but_not_materialized`.
+- **Bevisat åt båda hållen i simuleringen:**
+  - Bara materialiserad route ger `environment_not_resolved` (14:37).
+  - Guiden först ger att materialiseringen fallerar och `platform_route_exists_but_not_materialized` (14:43–14:46).
+- **Slutsats:** ingen ordning av operatörsstegen ger en Z01 för ett nytt bolag. Det krävs ett beslut om vilken modell som gäller. Antingen räknar miljöväljaren materialiserade nätägarprofiler, eller så räknar Z01-beredskapen (`evaluateCustomerProcessRouteReadiness`) guidens dynamiska profiler och beredskapsmotorn stöder dynamisk mottagare.
 
 ### Korrekta spärrar som simuleringen bekräftade (inte fel)
 Go-live kräver:
