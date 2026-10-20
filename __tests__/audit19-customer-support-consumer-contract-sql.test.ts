@@ -68,7 +68,7 @@ function section(sql: string, name: string) {
 function map(source: string, tag: string): Record<string, string> {
   return JSON.parse(source.split('$' + tag + '$')[1]) as Record<string, string>
 }
-const originalHelper = definition(schema, 'gridex_ediel_retention.audit19_source_contract_v1')
+const originalHelper = definition(ownerDonor, 'gridex_ediel_retention.audit19_source_contract_v1')
 const predecessor = originalHelper.replace(oldBlobSlot, newBlobSlot)
 function stripMaps(source: string) {
   return source.replace(/\$contracts\$.*?\$contracts\$/s, '<HASH_MAP>')
