@@ -9,6 +9,8 @@ const state = vi.hoisted(() => ({
   site: null as Row | null,
   resolved: null as Row | null,
   resolverCalls: [] as Row[],
+  precision: { status: 'unresolved', gridOwnerId: null, gridAreaCode: null } as Row,
+  precisionCalls: [] as Row[],
   siteUpdates: [] as Row[],
 }))
 
@@ -30,6 +32,9 @@ vi.mock('@/lib/energy/resolver', async importOriginal => ({
   ...(await importOriginal<object>()),
   resolveEnergyContext: vi.fn(async (input: Row) => { state.resolverCalls.push(input); return state.resolved }),
 }))
+vi.mock('@/lib/energy/opsPrecisionGridOwnerResolution', () => ({
+  resolveOpsPapiliteGridOwnerForSite: vi.fn(async (input: Row) => { state.precisionCalls.push(input); return state.precision }),
+}))
 vi.mock('@/lib/grid-owners/verification', () => ({
   getGridOwnerVerification: vi.fn(async () => ({ verificationStatus: 'verified', verifiedForCustomerFlow: true })),
 }))
@@ -42,7 +47,10 @@ const ids = { companyId: 'company-a', customerId: 'customer-1', siteId: 'site-1'
 const address = { street: 'Kungsgatan 12', postal_code: '441 30', city: 'Alingsås', country: 'SE' }
 const verifiedResolution = { gridOwnerId: 'go-alingsas', gridOwnerName: 'Alingsås Energi Elnät AB', gridAreaCode: 'ALS', automationAllowed: true, resolutionStatus: 'grid_area_master_validated' }
 
-beforeEach(() => { state.site = null; state.resolved = null; state.resolverCalls = []; state.siteUpdates = [] })
+beforeEach(() => {
+  state.site = null; state.resolved = null; state.resolverCalls = []; state.siteUpdates = []
+  state.precision = { status: 'unresolved', gridOwnerId: null, gridAreaCode: null }; state.precisionCalls = []
+})
 
 describe('manual intake resolves the site geography like a website application', () => {
   const run = (selectedGridOwnerId: string | null = 'go-alingsas') =>
@@ -61,10 +69,20 @@ describe('manual intake resolves the site geography like a website application',
     expect(await run('go-wrong')).toEqual([expect.stringContaining('Alingsås Energi Elnät AB')])
   })
 
-  it('holds the grid-owner request for review when the address cannot be resolved', async () => {
+  it('runs the website precision pass when the postal resolution is only a suggestion', async () => {
+    state.site = { ...address, resolution_status: null, grid_area_code: null }
+    state.resolved = { gridOwnerId: null, automationAllowed: false, resolutionStatus: 'postal_suggested', priceArea: 'SE3' }
+    state.precision = { status: 'verified', gridOwnerId: 'go-alingsas', gridAreaCode: 'ALS' }
+    expect(await run()).toEqual([])
+    expect(state.precisionCalls).toEqual([expect.objectContaining({ companyId: 'company-a', customerId: 'customer-1', siteId: 'site-1', postalCode: '441 30', currentPriceArea: 'SE3' })])
+  })
+
+  it('holds the grid-owner request for review and keeps the choice only as a candidate when nothing verifies', async () => {
     state.site = { ...address, resolution_status: null, grid_area_code: null }
     state.resolved = { gridOwnerId: null, automationAllowed: false, resolutionStatus: 'needs_review' }
     expect(await run()).toEqual([expect.stringContaining('väntar på granskning')])
+    expect(state.siteUpdates).toEqual([expect.objectContaining({ selected_grid_owner_id: 'go-alingsas' })])
+    expect(state.siteUpdates[0]).not.toHaveProperty('grid_owner_id')
   })
 
   it('leaves an already canonical site and an incomplete address alone', async () => {

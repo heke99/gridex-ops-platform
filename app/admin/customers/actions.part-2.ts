@@ -12,6 +12,7 @@ import { autoSendSigningLinkAfterCreate, type AutoSendSigningLinkResult } from "
 
 import { normalizeGridOwnerIdToOps } from "@/lib/grid-owners/platformGridOwnerResolver"
 import { resolveEnergyContext } from "@/lib/energy/resolver"
+import { resolveOpsPapiliteGridOwnerForSite } from "@/lib/energy/opsPrecisionGridOwnerResolution"
 import { matchCustomerIdentity, type CustomerMatchSignal } from "@/lib/customers/matchingService"
 
 import type { IntakeActionState, IntakeField, IntakeFieldErrors, IntakeFormValues } from "./actionState"
@@ -1200,6 +1201,7 @@ export async function resolveManualIntakeSiteGeography(input: {
   const city = normalizeOptionalString(site.city);
   if (!street || !postalCode || !city) return [];
 
+  const country = normalizeOptionalString(site.country) ?? "SE";
   const resolved = await resolveEnergyContext({
     companyId: input.companyId,
     customerId: input.customerId,
@@ -1207,18 +1209,45 @@ export async function resolveManualIntakeSiteGeography(input: {
     street,
     postalCode,
     city,
-    country: normalizeOptionalString(site.country) ?? "SE",
+    country,
     gridAreaCode: input.gridAreaCode,
     facilityId: input.facilityId,
   });
-  if (!resolved.automationAllowed || !resolved.gridOwnerId) {
+  let resolvedGridOwnerId = resolved.automationAllowed ? resolved.gridOwnerId : null;
+  let resolvedGridOwnerName = resolved.gridOwnerName;
+  if (!resolvedGridOwnerId || !resolved.gridAreaCode) {
+    // The website's second, precision pass (Papilite centroid inside one SVK
+    // grid area), run by the cron only for website applications.
+    const precision = await resolveOpsPapiliteGridOwnerForSite({
+      companyId: input.companyId,
+      customerId: input.customerId,
+      siteId: input.siteId,
+      postalCode,
+      city,
+      country,
+      currentPriceArea: resolved.priceArea,
+    });
+    resolvedGridOwnerId = precision.status === "verified" && precision.gridAreaCode ? precision.gridOwnerId : null;
+    resolvedGridOwnerName = null;
+  }
+  if (!resolvedGridOwnerId) {
+    // The employee's choice stays a review candidate, never send authority.
+    if (input.selectedGridOwnerId) {
+      const { error: candidateError } = await supabaseService
+        .from("customer_sites")
+        .update({ selected_grid_owner_id: input.selectedGridOwnerId, updated_at: new Date().toISOString() })
+        .eq("company_id", input.companyId)
+        .eq("customer_id", input.customerId)
+        .eq("id", input.siteId);
+      if (candidateError) throw candidateError;
+    }
     return [
       "Nätområdet kunde inte verifieras automatiskt från anläggningsadressen. Begäran till nätägaren väntar på granskning.",
     ];
   }
-  if (input.selectedGridOwnerId && input.selectedGridOwnerId !== resolved.gridOwnerId) {
+  if (input.selectedGridOwnerId && input.selectedGridOwnerId !== resolvedGridOwnerId) {
     return [
-      `Vald nätägare stämde inte med anläggningsadressen; adressens nätägare${resolved.gridOwnerName ? ` (${resolved.gridOwnerName})` : ""} används.`,
+      `Vald nätägare stämde inte med anläggningsadressen; adressens nätägare${resolvedGridOwnerName ? ` (${resolvedGridOwnerName})` : ""} används.`,
     ];
   }
   return [];
