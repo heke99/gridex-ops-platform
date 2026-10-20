@@ -16,6 +16,8 @@ export const WEBSITE_ORIGIN = 'https://elhandel.example.invalid'
  * as absent). Mirrors production's column, foreign key and indexes exactly.
  */
 export function ensureProductionWebhookClientParity() {
+  // DDL makes PostgREST reload its schema and reset its pool, cutting in-flight requests: only when missing.
+  if (sql<boolean>(`SELECT EXISTS(SELECT FROM information_schema.columns WHERE table_schema='public' AND table_name='webhook_subscriptions' AND column_name='api_client_id')`)) return
   sql(`ALTER TABLE public.webhook_subscriptions ADD COLUMN IF NOT EXISTS api_client_id uuid REFERENCES public.integration_api_clients(id) ON DELETE SET NULL;
    CREATE INDEX IF NOT EXISTS idx_fk_webhook_subscriptions_f32dc908898b6f81 ON public.webhook_subscriptions USING btree (api_client_id);
    CREATE INDEX IF NOT EXISTS webhook_subscriptions_api_client_idx ON public.webhook_subscriptions USING btree (api_client_id, status, created_at DESC) WHERE (api_client_id IS NOT NULL);
@@ -43,6 +45,8 @@ export function configurePlatformManualMailbox() {
  * foundation excerpt). Exact production definitions and grants.
  */
 export function ensureProductionNumberSeriesParity() {
+  if (sql<boolean>(`SELECT to_regprocedure('public.canonical_next_application_number(uuid)') IS NOT NULL AND to_regprocedure('public.canonical_next_customer_number(uuid)') IS NOT NULL
+    AND to_regprocedure('public.canonical_next_contract_number(uuid,text)') IS NOT NULL`)) return
   sql(`CREATE OR REPLACE FUNCTION public.canonical_next_application_number(p_company_id uuid) RETURNS text LANGUAGE sql SECURITY DEFINER SET search_path TO 'public', 'pg_temp'
     AS $function$ select public.gridex_next_application_number(p_company_id); $function$;
    CREATE OR REPLACE FUNCTION public.canonical_next_contract_number(p_company_id uuid, p_customer_number text DEFAULT NULL::text) RETURNS text LANGUAGE sql SECURITY DEFINER SET search_path TO 'public', 'pg_temp'

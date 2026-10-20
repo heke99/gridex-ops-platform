@@ -1,0 +1,123 @@
+// Gridex platform staff at work in the real admin UI (Playwright, real login),
+// for go-live steps that are operator actions in production.
+import { readFileSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { tmpdir } from 'node:os'
+import { chromium, type Browser, type BrowserContext, type Page } from '@playwright/test'
+import { LIVE } from '../live-chain-fixture'
+
+let browser: Browser | null = null
+const sessions = new Map<string, BrowserContext>()
+
+export async function operatorSession(email: string, password: string) {
+  const existing = sessions.get(email)
+  if (existing) return existing
+  browser ??= await chromium.launch(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE } : {})
+  const context = await browser.newContext({ baseURL: LIVE.appUrl })
+  const page = await context.newPage()
+  await page.goto('/login')
+  await page.fill('input[name="email"]', email)
+  await page.fill('input[name="password"]', password)
+  await Promise.all([page.waitForURL(url => !url.pathname.startsWith('/login'), { timeout: 60_000 }), page.click('button[type="submit"]')])
+  await page.close()
+  sessions.set(email, context)
+  return context
+}
+
+export async function closeOperatorConsole() { await browser?.close(); browser = null; sessions.clear() }
+
+/**
+ * Ediel's published actor registry (companies.xml from ediel.se, kept as a
+ * project fixture) with every e-mail address rewritten to example.invalid, so no
+ * message can ever reach a real market actor even if a transport is misconfigured.
+ * Each actor's Ediel SMTP address becomes ediel-<EdielId>@example.invalid.
+ */
+export function sanitizedActorRegistry(): { path: string; mailboxFor: (edielId: string) => string } {
+  const source = readFileSync('__tests__/fixtures/ediel-actor-registry/companies.xml', 'utf8')
+  const rewritten = source.replace(/<Company>([\s\S]*?)<\/Company>/g, company => {
+    const edielId = /<Key Type="EdielId">(\d+)<\/Key>/.exec(company)?.[1] ?? 'unknown'
+    return company
+      .replace(/(<CommunicationAddress Type="SMTP">)[^<]*(<\/CommunicationAddress>)/g, `$1ediel-${edielId}@example.invalid$2`)
+      .replace(/[A-Za-z0-9._%+-]+@(?!example\.invalid)[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, `contact-${edielId}@example.invalid`)
+  })
+  if (/@(?!example\.invalid)[A-Za-z0-9.-]+\.[A-Za-z]{2,}/.test(rewritten)) throw Error('registry_sanitization_incomplete')
+  const path = join(tmpdir(), `companies-reality-${process.pid}.xml`)
+  writeFileSync(path, rewritten)
+  return { path, mailboxFor: edielId => `ediel-${edielId}@example.invalid` }
+}
+
+/**
+ * Submits a server-action form and waits for the action's own response. A
+ * networkidle wait resolves at once on an idle page, so closing the page after
+ * it aborted the POST before the server ever saw it.
+ */
+async function submitServerAction(page: Page, submit: () => Promise<void>, timeout: number) {
+  const response = page.waitForResponse(r => r.request().method() === 'POST' && Boolean(r.request().headers()['next-action']), { timeout })
+  await submit()
+  const status = (await response).status()
+  await page.waitForLoadState('load')
+  return status
+}
+
+/** /admin/ediel/actors: upload, type IMPORTERA, "Godkänn och importera" (grid owner registry included). */
+export async function importActorRegistry(context: BrowserContext, filePath: string) {
+  const page = await context.newPage()
+  await page.goto('/admin/ediel/actors')
+  await page.setInputFiles('input[name="actorImportFile"]', filePath)
+  await page.fill('input[name="confirmApply"]', 'IMPORTERA')
+  const action = await submitServerAction(page, () => page.click('button[name="importMode"][value="apply"]'), 600_000)
+  const text = (await page.locator('main').innerText().catch(() => '')).replace(/\s+/g, ' ')
+  await page.close()
+  return { actionStatus: action, page: text.slice(0, 2000) }
+}
+
+/**
+ * Searches the register for the actor by name (the search box matches name,
+ * org.nr and source, not Ediel ID: FINDINGS F31) and presses "Verifiera för
+ * kundflöde" on that actor's card.
+ */
+export async function verifyActorForCustomerFlow(context: BrowserContext, actorName: string) {
+  const page = await context.newPage()
+  await page.goto(`/admin/ediel/actors?q=${encodeURIComponent(actorName)}&status=all`)
+  const card = page.locator('div.rounded-2xl', { has: page.getByText(actorName, { exact: true }) }).filter({ has: page.getByRole('button', { name: 'Verifiera för kundflöde' }) }).first()
+  const button = card.getByRole('button', { name: 'Verifiera för kundflöde' })
+  const enabled = await button.isEnabled().catch(() => false)
+  const action = enabled ? await submitServerAction(page, () => button.click(), 120_000) : null
+  const text = (await page.locator('main').innerText().catch(() => '')).replace(/\s+/g, ' ')
+  await page.close()
+  return { clicked: enabled, actionStatus: action, page: text.slice(0, 1500) }
+}
+
+/**
+ * /admin/network-owners: "Kontrollera nätägare" links each SVK grid area owner
+ * (platform_grid_owners) to its OPS grid owner and recomputes verification.
+ * Verifying the actor for the customer flow does not do this (FINDINGS F32).
+ */
+export async function checkGridOwners(context: BrowserContext) {
+  const page = await context.newPage()
+  await page.goto('/admin/network-owners')
+  const action = await submitServerAction(page, () => page.getByRole('button', { name: 'Kontrollera nätägare' }).click(), 300_000)
+  await page.close()
+  return { actionStatus: action }
+}
+
+/** /admin/ediel/auto-readiness → "Fler kontroller" → "Bekräfta säkra routes" (registry shows no subaddress required). */
+export async function confirmSafeBlankSubaddresses(context: BrowserContext) {
+  const page = await context.newPage()
+  await page.goto('/admin/ediel/auto-readiness')
+  await page.getByText('Fler kontroller').click()
+  const action = await submitServerAction(page, () => page.getByRole('button', { name: 'Bekräfta säkra routes' }).click(), 300_000)
+  await page.close()
+  return { actionStatus: action }
+}
+
+/** /admin/network-owners?edit=<id> → "Sök certifikat nu för vald nätägare" (Expisoft directory lookup). */
+export async function searchGridOwnerCertificate(context: BrowserContext, gridOwnerId: string) {
+  const page = await context.newPage()
+  await page.goto(`/admin/network-owners?edit=${gridOwnerId}`)
+  const action = await submitServerAction(page, () => page.getByRole('button', { name: 'Sök certifikat nu för vald nätägare' }).click(), 120_000)
+  await page.waitForURL(url => url.searchParams.has('status'), { timeout: 30_000 }).catch(() => undefined)
+  const url = new URL(page.url())
+  await page.close()
+  return { actionStatus: action, status: url.searchParams.get('status'), message: url.searchParams.get('message') }
+}

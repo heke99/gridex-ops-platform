@@ -11,6 +11,7 @@ import { afterAll, describe, expect, it } from 'vitest'
 import { supabaseService } from '@/lib/supabase/service'
 import { configurePlatformMailbox, configureTenant, LIVE, literal, sql, type LiveTenant } from '../helpers/live-chain-fixture'
 import { goLiveOnWebsite, WEBSITE_ORIGIN } from '../helpers/reality/tenantWebsite'
+import { checkGridOwners, closeOperatorConsole, confirmSafeBlankSubaddresses, importActorRegistry, searchGridOwnerCertificate, operatorSession, sanitizedActorRegistry, verifyActorForCustomerFlow } from '../helpers/reality/operatorConsole'
 import { runOperationalCronSlot, startGridOwner, type GridOwnerSim } from '../helpers/reality/world'
 import { detectStuckStates } from '../helpers/reality/stuckDetector'
 import { gs1 } from '../helpers/live-chain-wire'
@@ -30,6 +31,9 @@ function personnummer(birth: string, serial: string) {
 const RUN = Date.now().toString(36)
 // A real SE3 grid area imported from Svenska kraftnät (ALS, Alingsås); the grid owner itself is simulated.
 const GRID_AREA = 'ALS'
+/** Alingsås Energi Elnät AB in Ediel's actor registry (Netowner). */
+const GRID_OWNER_EDIEL_ID = '16700'
+const GRID_OWNER_NAME = 'Alingsås Energi Elnät AB'
 const facility = () => gs1(`735999${String(Math.floor(Math.random() * 1e11)).padStart(11, '0')}`)
 const person = (first: string, birth: string, serial: string, street: string): SimulatedPerson => ({ firstName: first, lastName: 'E2E-Reality', personalNumber: personnummer(birth, serial),
   email: `e2e-${first.toLowerCase()}-${serial}-${RUN}@example.invalid`, phone: '0701234567', address: { street, postalCode: '441 30', city: 'Alingsås' } })
@@ -61,8 +65,9 @@ function switchState() {
 }
 
 describe.sequential('reality A — website customers switch supplier', () => {
-  afterAll(() => {
+  afterAll(async () => {
     gridOwner?.stop()
+    await closeOperatorConsole()
     report.finishedAt = new Date().toISOString()
     writeFileSync(process.env.GRIDEX_REALITY_REPORT ?? '/tmp/reality-a-report.json', JSON.stringify(report, null, 2))
   })
@@ -71,7 +76,31 @@ describe.sequential('reality A — website customers switch supplier', () => {
     expect(LIVE.cronSecret && LIVE.automationUserId).toBeTruthy()
     expect(configurePlatformMailbox()).toBe(1)
     tenant = await configureTenant(supabaseService as never)
-    gridOwner = await startGridOwner({ edielId: tenant.issuerEdielId, email: tenant.gridOwnerEmail, pollMs: 10_000 })
+    // Platform go-live, as Gridex staff do it in /admin/ediel/actors: import Ediel's published actor
+    // registry (real Ediel IDs and roles; e-mail rewritten to example.invalid) including the grid owner
+    // registry, then verify the area's real grid owner for the customer flow.
+    const registry = sanitizedActorRegistry()
+    const staff = await operatorSession(tenant.operatorEmail, tenant.operatorPassword)
+    const imported = await importActorRegistry(staff, registry.path)
+    report.registryImport = imported
+    const verification = await verifyActorForCustomerFlow(staff, GRID_OWNER_NAME)
+    report.gridOwnerVerification = verification
+    // The grid owner's S/MIME receiver certificate from the Ediel certificate directory (Expisoft, simulated),
+    // and the registry's empty PRODAT/UTILTS subaddress confirmed as safe, then the grid owner check.
+    await fetch('http://127.0.0.1:3902/__sim/actor', { method: 'POST', body: JSON.stringify({ edielId: GRID_OWNER_EDIEL_ID, name: GRID_OWNER_NAME, email: registry.mailboxFor(GRID_OWNER_EDIEL_ID) }) })
+    const opsGridOwnerId = sql<string>(`SELECT to_jsonb(id::text) FROM public.grid_owners WHERE ediel_id=${literal(GRID_OWNER_EDIEL_ID)} AND company_id IS NULL`)
+    report.gridOwnerCertificate = await searchGridOwnerCertificate(staff, opsGridOwnerId)
+    report.gridOwnerSubaddress = await confirmSafeBlankSubaddresses(staff)
+    report.gridOwnerCheck = await checkGridOwners(staff)
+    report.gridOwnerMapping = sql(`SELECT coalesce(jsonb_agg(jsonb_build_object('platform',pgo.name,'ops',go.name,'ediel',go.ediel_id,'verified',go.verified_for_customer_flow,'status',go.verification_status)),'[]')
+      FROM public.platform_grid_owners pgo LEFT JOIN public.grid_owners go ON go.id=pgo.ops_grid_owner_id WHERE pgo.name=${literal(GRID_OWNER_NAME)}`)
+    expect(imported.actionStatus, imported.page).toBe(200)
+    expect(verification.clicked, verification.page).toBe(true)
+    expect(verification.actionStatus, verification.page).toBe(200)
+    // The real grid owner of ALS is now the verified OPS grid owner for the customer flow.
+    expect(report.gridOwnerMapping).toEqual([expect.objectContaining({ ediel: GRID_OWNER_EDIEL_ID, verified: true })])
+    // The real grid owner of ALS, played by the simulator on its rewritten mailbox.
+    gridOwner = await startGridOwner({ edielId: GRID_OWNER_EDIEL_ID, email: registry.mailboxFor(GRID_OWNER_EDIEL_ID), pollMs: 10_000 })
     const provisioned = await goLiveOnWebsite(tenant, tenant.adminUserId)
     report.tenant = { companyId: tenant.companyId, supplier: tenant.supplierEdielId, gridOwner: tenant.issuerEdielId }
     report.websiteGoLive = { state: provisioned.state, launchReady: provisioned.launchReady, visibleContracts: provisioned.visibleContractCount,

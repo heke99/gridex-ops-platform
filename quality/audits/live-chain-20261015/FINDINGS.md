@@ -246,6 +246,19 @@ Sviten finns i `scripts/reality/` (plan: `docs/testing/verklighetssimulering-pla
 - **Sökningen matchar inte Ediel-ID:** den matchar namn, org.nr, källa och antal routes. En operatör som söker "16700" får inga träffar. Simuleringen söker därför på namn.
 - **Förslag:** filtrera i databasen (namn, org.nr, Ediel-ID via `platform_actor_identifiers`) innan gränsen, och läs routes för de aktörer som visas.
 
+### F32 Att göra en nätägare redo för kundflödet kräver fem operatörssteg på tre sidor, utan vägledning — ÖPPEN (UX)
+Simuleringen gör samma steg som i drift.
+1. `/admin/ediel/actors`: importera registret.
+2. `/admin/ediel/actors`: "Verifiera för kundflöde". Sätter `grid_owners.verified_for_customer_flow`, men kopplar inte SVK-nätområdets ägare (`platform_grid_owners.ops_grid_owner_id`).
+3. `/admin/network-owners?edit=<id>`: "Sök certifikat nu för vald nätägare". Hämtar mottagarcertifikatet från Expisofts LDAP-katalog.
+4. `/admin/ediel/auto-readiness`: "Fler kontroller" → "Bekräfta säkra routes". Behövs för en tom PRODAT/UTILTS-subadress, som för Alingsås 16700 i det riktiga registret.
+5. `/admin/network-owners`: "Kontrollera nätägare". Kopplar nätområdet och räknar om status.
+
+- **Följd:** efter steg 2 visar aktören "verifierad". Men "Kontrollera nätägare" sätter tillbaka `verified_for_customer_flow=false` (`needs_subaddress`, `missing_or_invalid_certificate`) tills steg 3 och 4 är gjorda.
+- **Utan steg 5:** kundansökningar i området stannar på "Nätägare saknas" och "Nätområde saknas", och bytesjobbet går till `needs_review`.
+- **Förslag:** "Verifiera för kundflöde" bör köra kopplingen och visa vilka av certifikat och subadress som återstår.
+- **Separat (miljö):** utan `EDIEL_EXPISOFT_LDAP_HOST` slår varje miljö upp certifikat i Expisofts riktiga katalog (`sodir01.expisoft.se:389`), även lokala miljöer och testmiljöer med syntetiska adresser. Simuleringen pekar därför om till en lokal LDAP-katalog (`scripts/reality/simulators/certificateDirectory.ts`).
+
 ### Korrekta spärrar som simuleringen bekräftade (inte fel)
 Go-live kräver:
 - standardmejl och regler för kunder
