@@ -73,9 +73,53 @@ function builder(table: string) {
   return api
 }
 
+/**
+ * Synthetic transaction boundary for route/visibility/replay tests. Ordinary
+ * defaults still come from the unchanged shared case command. This port does
+ * not implement quota admission, locking or rollback: the actual migration is
+ * exercised separately in customer-support-quota-sql.test.ts.
+ */
+export function makeSupportTransactionPort(tables: Record<string, Row[]>, from: (table: string) => Record<string, unknown>) {
+  async function appendMessage(args: Row, caseId: unknown, message: unknown) {
+    const query = from('customer_case_events')
+    const insert = query.insert as (row: Row) => unknown
+    insert({ company_id: args.p_company_id, customer_id: args.p_customer_id,
+      customer_case_id: caseId, event_type: 'support_customer_message', event_status: 'info', message,
+      created_by: null, payload: { visibility: 'customer', author_type: 'customer', channel: 'customer_portal',
+        api_client_id: args.p_api_client_id, portal_identity_id: args.p_portal_identity_id } })
+    return (query.single as () => Promise<{ data: Row; error: null }>)()
+  }
+
+  return async (name: string, args: Row) => {
+    if (name === 'gridex_create_customer_support_case_v1') {
+      const { createTenantSupportCase } = await import('@/lib/customer-cases/support')
+      const { publicReference } = await import('@/lib/integrations/publicReferences')
+      const created = await createTenantSupportCase({
+        companyId: String(args.p_company_id), customerId: String(args.p_customer_id),
+        title: String(args.p_title), description: String(args.p_message), category: String(args.p_category),
+        channel: 'customer_portal', idempotencyKey: String(args.p_idempotency_key), actorUserId: null,
+        metadata: { description_visibility: 'customer', opened_by: 'customer',
+          api_client_id: args.p_api_client_id, portal_identity_id: args.p_portal_identity_id },
+      })
+      const row = tables.customer_cases.find(value => value.id === created.case.id)
+      if (!row) throw new Error('Synthetic support case result missing')
+      row.metadata = { ...(row.metadata as Row), support_public_reference: publicReference('support_case', String(args.p_company_id), row.id) }
+      if (!tables.customer_case_events.some(value => value.customer_case_id === row.id && value.event_type === 'support_customer_message')) {
+        await appendMessage(args, row.id, row.description)
+      }
+      return { data: { case: row, reused: created.reused }, error: null }
+    }
+    if (name === 'gridex_add_customer_support_message_v1') {
+      return appendMessage(args, args.p_case_id, args.p_message)
+    }
+    throw new Error('Unexpected synthetic support transaction port')
+  }
+}
+
 export const serviceMock = {
   supabaseService: {
     from: (table: string) => builder(table),
+    rpc: makeSupportTransactionPort(db, builder),
     storage: {
       from: () => ({
         upload: async (path: string, bytes: Buffer) => { objects.set(path, Buffer.from(bytes)); return { error: null } },
