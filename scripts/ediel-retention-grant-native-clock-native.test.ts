@@ -12,7 +12,7 @@ const retentionSql=<T>(query:string)=>sql<T>(`BEGIN;SET LOCAL ROLE gridex_ediel_
 const keys=['submit','review','purge','source_bytes','customer_fields','original_bytes','mime_bytes',
 'artifact_decision_evidence','blob_decision_evidence','record_decision_evidence','process_decision_evidence',
 'decision_policy_evidence','billing_source_evidence','invoice_copy_evidence','settlement_copy_evidence',
-'finance_decision_evidence'].map(k=>'ediel.retention.'+k)
+'finance_decision_evidence','completed_review_reason','audit_normalized19_cleanup'].map(k=>'ediel.retention.'+k)
 const permitted=(company:string,actor:string,key:string)=>retentionSql<boolean>(
 'SELECT to_jsonb(gridex_ediel_retention.permission_v1('+literal(company)+','+literal(actor)+','+literal(key)+'))')
 async function actorFixture(){
@@ -41,16 +41,16 @@ function nativeSqlProcess(input:string,expectLockMarker=false){
  child.stdin.end(input)
  return{child,ready,done}
 }
-it('actual installed retention-only function preserves sixteen current keys, private owner/ACL and native clock after current actor locks',()=>{
+it('actual installed retention-only function preserves eighteen current keys, private owner/ACL and native clock after current actor locks',()=>{
  const body=sql<{keys:string[];owner:string;securityDefiner:boolean;volatile:string;config:string[];oldOverrideClock:boolean;clockAfterCurrentActor:boolean}>(
  "SELECT jsonb_build_object('keys',ARRAY(SELECT (m)[1] FROM regexp_matches(p.prosrc,'''(ediel\\.retention\\.[^'']+)''','g') m),'owner',p.proowner::regrole::text,'securityDefiner',p.prosecdef,'volatile',p.provolatile,'config',p.proconfig,'oldOverrideClock',position('o.valid_from<=now()' in p.prosrc)>0 OR position('now()<o.valid_to' in p.prosrc)>0,'clockAfterCurrentActor',position('retention_grant_observed_at:=clock_timestamp()' in p.prosrc)>position('public.ediel_retention_lock_auth_actor_v1(actor)' in p.prosrc) AND position('retention_grant_observed_at:=clock_timestamp()' in p.prosrc)<position(' IF NOT EXISTS(SELECT FROM public.permissions WHERE key=wanted AND is_active)' in p.prosrc)) FROM pg_proc p WHERE p.oid='gridex_ediel_retention.permission_v1(uuid,uuid,text)'::regprocedure")
  expect(body.keys).toEqual(keys);expect(body.owner).toBe('gridex_ediel_retention_owner');expect(body.securityDefiner).toBe(true);expect(body.volatile).toBe('v');expect(body.config).toContain('search_path=pg_catalog');expect(body.oldOverrideClock).toBe(false);expect(body.clockAfterCurrentActor).toBe(true)
  const acl=sql<Record<string,boolean>>("SELECT jsonb_build_object('publicUsage',has_schema_privilege('authenticated','gridex_ediel_retention','USAGE'),'appExecute',has_function_privilege('authenticated','gridex_ediel_retention.permission_v1(uuid,uuid,text)','EXECUTE'),'serviceExecute',has_function_privilege('service_role','gridex_ediel_retention.permission_v1(uuid,uuid,text)','EXECUTE'),'anonExecute',has_function_privilege('anon','gridex_ediel_retention.permission_v1(uuid,uuid,text)','EXECUTE'),'authenticatorOwner',pg_has_role('authenticator','gridex_ediel_retention_owner','MEMBER'))")
  expect(Object.values(acl).every(value=>value===false)).toBe(true)
 },30000)
-it('all sixteen native classes require a current own grant and preserve future/expired/DENY/company boundaries',async()=>{
+it('all eighteen native classes require a current own grant and preserve future/expired/DENY/company boundaries',async()=>{
  const f=await actorFixture()
- expect(sql<number>('SELECT to_jsonb(count(*)) FROM public.permissions WHERE is_active AND key=ANY(ARRAY['+keys.map(literal).join(',')+'])')).toBe(16)
+ expect(sql<number>('SELECT to_jsonb(count(*)) FROM public.permissions WHERE is_active AND key=ANY(ARRAY['+keys.map(literal).join(',')+'])')).toBe(18)
  for(const key of keys){
   expect(permitted(f.company,f.actor.id,key)).toBe(false)
   const id=randomUUID()

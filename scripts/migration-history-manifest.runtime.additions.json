@@ -232,7 +232,13 @@
     "20261015083414_ops_api_signing_retention_crosspaths_alignment.sql": "be993328f8141425267146b9a832279d01872332cbca86c8b5aa78bed14a6fb9",
     "20261015083829_ops_api_signature_price_cache_alignment.sql": "4f87d7a8626941c529e350f7784af0c42fab58740598db47c7c1ad5c5e04a705",
     "20261015100259_ops_api_signed_contract_price_cache_binding_guard_alignment.sql": "9c055dba7b020aad3bb867f6ff2b02f8854fee4bc136db2de4042bc6347dc83c",
-    "20261019160000_ediel_sc031_inbound_ignored_register_projection.sql": "cf6e7b6085ee1529c6f254feb92e2907d8a8e036fcd924cbafaef670572ff8b6",
-    "20261018143000_ediel_requested_change_metering_method_original_guard.sql": "1084a44192a54df47954561562460b8aa56ce2f8e487f51ee549981df195fb24"
+    "20261019180000_db05_completed_decision_review_reason_retention.sql": "803255b651fb440c29a3a985ecf3a7e6a28d638e0f6bdb6835ee4fce3eebeddd",
+    "20261019180100_db05_completed_review_witness_consumer_freeze.sql": "729c896a36a780a46e1f2645878c22bf18c4638dd92140a31b396f7017948d17",
+    "20261019180200_db05_completed_witness_field_disposition.sql": "5a34113797b6b44365a41fd096ab4cefc8f846e661d0e4ec6ae89b7b2658aa6b",
+    "20261019180300_db05_completed_parent_purpose_disposition.sql": "ec796ffcbc43ee9a1ba1cbd7c0f5fcc1720cba7a7e78513a093a45e13be92cc4",
+    "20261019180400_db05_qualified_audit19_cleanup.sql": "18fcbbb3c0e8e5181539fcf1b33f54f7867cac18fe1e65a27a1898371cddde47",
+    "20261019180500_db05_audit19_archived_permission.sql": "db47da92f7c47f936da499bac1ea9b347239f5965856fb5149a14e83abd95f06",
+    "20261018143000_ediel_requested_change_metering_method_original_guard.sql": "1084a44192a54df47954561562460b8aa56ce2f8e487f51ee549981df195fb24",
+    "20261019160000_ediel_sc031_inbound_ignored_register_projection.sql": "cf6e7b6085ee1529c6f254feb92e2907d8a8e036fcd924cbafaef670572ff8b6"
   }
 }
