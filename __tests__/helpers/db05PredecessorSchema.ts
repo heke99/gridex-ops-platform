@@ -5,12 +5,17 @@ type Patch={preSha256:string;postSha256:string;hunks:{postStart:number;postCount
 const sha=(text:string)=>createHash('sha256').update(text).digest('hex')
 
 /** Exact pre-DB-05 schema.sql capture. The checked-in capture is either that
- * predecessor or the authenticated post-DB-05 GEN; the latter is reversed by
+ * predecessor or an authenticated post-DB-05 GEN; each is reversed by
  * the generated patch and the result must hash to the pinned predecessor.
  * Any other capture fails closed. */
 export function db05PredecessorSchema(schema:string):string{
- const patch:Patch=JSON.parse(readFileSync(new URL('../fixtures/db05-schema-predecessor.patch.json',import.meta.url),'utf8'))
+ let patch:Patch=JSON.parse(readFileSync(new URL('../fixtures/db05-schema-predecessor.patch.json',import.meta.url),'utf8'))
  const actual=sha(schema)
+ if(actual==='a15291106e26b9bea9f70dd99f3c19f6cae7e159afd8a5d4674a997d98c2eac6'){
+  const mailPatch:Patch=JSON.parse(readFileSync(new URL('../fixtures/db05-schema-predecessor-mail.patch.json',import.meta.url),'utf8'))
+  if(mailPatch.preSha256!==patch.preSha256)throw Error('db05_schema_predecessor_rebuild_mismatch')
+  patch=mailPatch
+ }
  if(actual===patch.preSha256)return schema
  if(actual!==patch.postSha256)throw Error('db05_schema_predecessor_unknown:'+actual)
  const lines=schema.split('\n')

@@ -3,6 +3,7 @@ import { evaluateCustomerIntake } from '@/lib/customer-operations/customerIntake
 import { evaluateAndRunNextCustomerStep } from '@/lib/customer-operations/customerProcessNextStepEngine'
 import { emitCustomerProcessEvent } from '@/lib/customer-operations/customerProcessEvents'
 import { transitionCorrelatedCustomerApplicationWorkflow } from '@/lib/website/customerApplicationWorkflowBridge'
+import { ensureManualSupplierInformationForSite } from '@/lib/customer-operations/ensureManualSupplierInformation'
 
 type JsonRecord = Record<string, unknown>
 
@@ -33,28 +34,55 @@ export async function completeFacilityLookupAndRunNextSteps(input: CompleteFacil
   let intakeDecision: Awaited<ReturnType<typeof evaluateCustomerIntake>> | null = null
   let supplierSwitchResult: Awaited<ReturnType<typeof evaluateAndRunNextCustomerStep>> | null = null
 
-  if (completion.ok && completion.meteringPointRecordId) {
+  if (completion.ok && (completion.meteringPointRecordId || input.automaticInbound)) {
     try {
-      intakeDecision = await evaluateCustomerIntake({
-        companyId: input.companyId,
-        customerId: completion.customerId,
-        siteId: completion.customerSiteId,
-        actorUserId: input.actorUserId ?? null,
-        apply: true,
-        autoEnsureFacilityLookup: false,
-      })
+      let actorUserId = input.actorUserId ?? null
+      const continuation = input.automaticInbound ? await import('@/lib/inbound-mail/manualReplyApplication') : null
+      const continuationScope = input.automaticInbound ? {
+        companyId: input.companyId, customerId: completion.customerId, siteId: completion.customerSiteId,
+        requestId: input.requestId, inboundId: input.automaticInbound.inboundId,
+      } : null
+      if (continuation && continuationScope) {
+        const context = await continuation.readAppliedManualReplyContext(continuationScope)
+        if (!context || context.sourceHash !== input.automaticInbound?.sourceHash) throw new Error('manual_reply_continuation_context_changed')
+        actorUserId = context.actorUserId
+        const supplier = await ensureManualSupplierInformationForSite({
+          companyId: input.companyId, customerId: completion.customerId, siteId: completion.customerSiteId,
+          actorUserId, operationId: completion.operationId, sourceRequestId: input.requestId,
+        })
+        if (supplier.status === 'waiting_response' || supplier.status === 'needs_review') {
+          supplierSwitchResult = {
+            decision: supplier.status === 'needs_review' ? 'manual_review' : 'blocked',
+            actionTaken: supplier.status === 'needs_review' ? 'supplier_information_requires_review' : 'supplier_information_requested',
+            blockers: [{ code: supplier.blockerCode ?? (supplier.status === 'needs_review' ? 'supplier_information_requires_review' : 'current_supplier_response_waiting'),
+              message: supplier.status === 'needs_review' ? 'Elhandelsuppgifterna behöver granskas innan leverantörsbytet kan fortsätta.' : 'En separat förfrågan om elhandelsavtalet inväntar svar.',
+              metadata: { supplier_information_request_id: supplier.requestId ?? null } }],
+          }
+        }
+      }
 
-      if (intakeDecision.nextAction === 'start_supplier_switch' || intakeDecision.state === 'ready_for_supplier_switch') {
-        supplierSwitchResult = await evaluateAndRunNextCustomerStep({
+      if (!supplierSwitchResult) {
+        intakeDecision = await evaluateCustomerIntake({
           companyId: input.companyId,
           customerId: completion.customerId,
           siteId: completion.customerSiteId,
-          operationId: completion.operationId,
-          trigger: 'facility_data_received',
-          actorUserId: input.actorUserId ?? null,
-          source: input.source === 'ediel_inbound' ? 'ediel_inbound' : input.source === 'manual' ? 'manual' : 'system',
-          skipZ01Finalization: true,
+          actorUserId,
+          apply: true,
+          autoEnsureFacilityLookup: false,
         })
+
+        if (completion.meteringPointRecordId && (intakeDecision.nextAction === 'start_supplier_switch' || intakeDecision.state === 'ready_for_supplier_switch')) {
+          supplierSwitchResult = await evaluateAndRunNextCustomerStep({
+            companyId: input.companyId,
+            customerId: completion.customerId,
+            siteId: completion.customerSiteId,
+            operationId: completion.operationId,
+            trigger: 'facility_data_received',
+            actorUserId,
+            source: input.source === 'ediel_inbound' ? 'ediel_inbound' : input.source === 'manual' ? 'manual' : 'system',
+            skipZ01Finalization: true,
+          })
+        }
       }
 
       const workflowState = supplierSwitchResult?.decision === 'prepare_supplier_switch'
@@ -93,7 +121,7 @@ export async function completeFacilityLookupAndRunNextSteps(input: CompleteFacil
         message: supplierSwitchResult?.supplierSwitchRequestId
           ? 'Anläggningsuppgifter är mottagna och leverantörsbyte har startats automatiskt.'
           : 'Anläggningsuppgifter är mottagna och nästa steg har kontrollerats.',
-        actorUserId: input.actorUserId ?? null,
+        actorUserId,
         status: supplierSwitchResult?.supplierSwitchRequestId ? 'waiting_response' : 'completed',
         severity: 'info',
         actionRequired: false,
@@ -105,6 +133,9 @@ export async function completeFacilityLookupAndRunNextSteps(input: CompleteFacil
         },
         idempotencyKey: `facility_response.orchestrated:${input.requestId}:${supplierSwitchResult?.supplierSwitchRequestId ?? intakeDecision?.state ?? 'checked'}`,
       })
+      if (continuation && continuationScope) {
+        await continuation.markManualReplyContinuation({ ...continuationScope, supplierSwitchRequestId: supplierSwitchResult?.supplierSwitchRequestId ?? null })
+      }
     } catch (cause) {
       throw new FacilityLookupPostCommitError(input.companyId, input.requestId, completion, cause)
     }

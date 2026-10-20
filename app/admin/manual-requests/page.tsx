@@ -1,7 +1,11 @@
+import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { formatStatusLabel } from '@/lib/ui/format'
+import ManualMailAiReading from './ManualMailAiReading'
+import { testManualMailAiConnection } from './actions'
+import SubmitButton from '@/components/admin/customers/document-card/SubmitButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -61,12 +65,13 @@ type InboundRow = {
   in_reply_to: string | null
   confidence_score: number | null
   received_at: string | null
+  extracted_payload: unknown
 }
 
 function formatDate(value: string | null | undefined): string {
   if (!value) return '—'
   try {
-    return new Intl.DateTimeFormat('sv-SE', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value))
+    return new Intl.DateTimeFormat('sv-SE', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Europe/Stockholm' }).format(new Date(value))
   } catch {
     return '—'
   }
@@ -83,8 +88,20 @@ function resolutionLabel(value: string): string {
   return 'Ej matchad'
 }
 
-export default async function ManualRequestDiagnosticsPage() {
+export default async function ManualRequestDiagnosticsPage({ searchParams }: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
   const context = await requirePlatformAdminAccess()
+  const params = await searchParams
+  const aiTest = typeof params.ai_test === 'string' ? params.ai_test : null
+  const aiTestMessages: Record<string, string> = {
+    ok: 'AI-testet lyckades: tjänsten läste avtalslutet i ett syntetiskt svar. Ingen kunddata eller e-post användes.',
+    not_configured: 'AI-nyckeln saknas i den körande servermiljön. Kontrollera Production-inställningen och driftsättningen.',
+    authentication: 'AI-nyckelns behörighet behöver kontrolleras. Responses API måste tillåta anrop.',
+    rate_limited: 'Anropsgränsen nåddes. Vänta en minut innan nästa anslutningstest.',
+    provider_unavailable: 'AI-tjänsten kunde inte nås eller avvisade anropet. Kontrollera leverantörens inställningar.',
+    transport_error: 'AI-anropet kunde inte slutföras.', invalid_output: 'AI-svaret klarade inte kontrollen av det syntetiska avtalslutet.',
+  }
   const supabase = await createSupabaseServerClient()
 
   const [{ data: requestData }, { data: recentInboundData }] = await Promise.all([
@@ -96,7 +113,7 @@ export default async function ManualRequestDiagnosticsPage() {
       .limit(100),
     supabase
       .from('manual_inbound_messages')
-      .select('id,company_id,request_id,grid_owner_id,customer_id,customer_site_id,metering_point_id,resolution_status,tenant_resolution_method,entity_resolution_method,intent,business_process,processing_state,from_email,to_email,subject,provider_message_id,in_reply_to,confidence_score,received_at')
+      .select('id,company_id,request_id,grid_owner_id,customer_id,customer_site_id,metering_point_id,resolution_status,tenant_resolution_method,entity_resolution_method,intent,business_process,processing_state,from_email,to_email,subject,provider_message_id,in_reply_to,confidence_score,received_at,extracted_payload')
       .order('received_at', { ascending: false })
       .limit(150),
   ])
@@ -142,6 +159,15 @@ export default async function ManualRequestDiagnosticsPage() {
       />
 
       <main className="space-y-6 p-6 lg:p-8">
+        <nav aria-label="Mejlhantering" className="flex flex-wrap gap-4"><Link href="/admin/mail-review" className="font-semibold underline">Mejlgranskning – alla svar som behöver kontrolleras</Link><Link href="/admin/powers-of-attorney" className="underline">Fullmakter</Link></nav>
+        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 className="font-black text-slate-950">AI-läsning av mejlsvar</h2>
+          <p className="mt-1 text-sm text-slate-600">AI lämnar förslag med källcitat för granskning. Testet använder en fast exempeltext och skickar inga mejl.</p>
+          <form action={testManualMailAiConnection} className="mt-3">
+            <SubmitButton idleLabel="Testa AI-anslutningen" pendingLabel="Testar AI-anslutningen…" />
+          </form>
+          {aiTest && aiTestMessages[aiTest] ? <p role="status" className={`mt-3 text-sm ${aiTest === 'ok' ? 'text-emerald-800' : 'text-amber-800'}`}>{aiTestMessages[aiTest]}</p> : null}
+        </section>
         <section className="grid gap-4 md:grid-cols-3">
           <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Manuella ärenden</div>
@@ -181,7 +207,7 @@ export default async function ManualRequestDiagnosticsPage() {
                   const outbox = outboxByRequest.get(row.id) ?? []
                   const inbound = inboundByRequest.get(row.id) ?? []
                   return (
-                    <tr key={row.id} className="align-top hover:bg-slate-50">
+                    <tr key={row.id} id={`request-${row.id}`} className="align-top hover:bg-slate-50">
                       <td className="px-4 py-3">
                         <div className="font-bold text-slate-950">{row.case_reference ?? row.id.slice(0, 8)}</div>
                         <div className="mt-1 text-xs text-slate-500">{row.request_type}</div>
@@ -243,13 +269,14 @@ export default async function ManualRequestDiagnosticsPage() {
                   <th className="px-4 py-3">Process</th>
                   <th className="px-4 py-3">Reply-evidens</th>
                   <th className="px-4 py-3">Avsändare</th>
+                  <th className="px-4 py-3">AI-läsning</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 bg-white">
                 {recentInbound.length === 0 ? (
-                  <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-600">Inga inkommande manuella mail ännu.</td></tr>
+                  <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-600">Inga inkommande manuella mail ännu.</td></tr>
                 ) : recentInbound.map((row) => (
-                  <tr key={row.id} className="align-top hover:bg-slate-50">
+                  <tr key={row.id} id={`request-${row.id}`} className="align-top hover:bg-slate-50">
                     <td className="px-4 py-3 text-xs text-slate-700">
                       <div className="font-semibold">{formatDate(row.received_at)}</div>
                       <div className="mt-1 max-w-[280px] truncate text-slate-500">{row.subject ?? '(utan ämne)'}</div>
@@ -280,6 +307,9 @@ export default async function ManualRequestDiagnosticsPage() {
                     <td className="px-4 py-3 text-xs text-slate-700">
                       <div className="break-all">{row.from_email ?? '—'}</div>
                       <div className="mt-1 break-all text-slate-500">till {row.to_email ?? '—'}</div>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-slate-700">
+                      <ManualMailAiReading payload={row.extracted_payload} companyId={row.company_id} customerId={row.customer_id} requestId={row.request_id} />
                     </td>
                   </tr>
                 ))}

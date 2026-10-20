@@ -15,6 +15,8 @@ import { emitCustomerOperationEvent } from '@/lib/customers/customerOperationEve
 import { enqueueSupplierSwitchAutomation } from '@/lib/customer-operations/automation'
 import { normalizeUuidOrNull, requireUuid } from '@/lib/validation/uuid'
 import { checkSupplierSwitchReadiness } from '@/lib/customer-operations/switchReadiness'
+import { evaluateManualSupplierReadiness } from '@/lib/customer-operations/manualSupplierReadiness'
+import { tenantUpdate } from '@/lib/supabase/tenantQuery'
 
 type JsonRecord = Record<string, unknown>
 
@@ -40,10 +42,12 @@ const MANAGED_SWITCH_REVIEW_BLOCKER_CODES = new Set<string>([
   'current_supplier_missing',
   'move_in_date_missing',
   'current_supplier_response_pending',
+  'current_supplier_waiting_response',
   'current_supplier_manual_review',
   'current_supplier_binding_period',
   'current_supplier_termination_fee',
   'current_supplier_blocked',
+  'supplier_commercial_start_too_early',
 ])
 
 const SUPPLIER_SWITCH_CREATION_BLOCKER_CODES = new Set<string>([
@@ -106,6 +110,88 @@ function splitReadinessIssuesForSwitchRequestCreation(input: {
   }
 
   return { creationBlockers, reviewBlockers }
+}
+
+// Retain the exact request state across both the monotonic date correction and
+// the later reconciliation patch. A concurrent binding, hold or date edit must
+// be retried rather than overwritten by a stale orchestration snapshot.
+function matchingExistingSwitchUpdate(input: {
+  companyId: string
+  customerId: string
+  siteId: string
+  existing: SupplierSwitchRequestRow
+  payload: JsonRecord
+}) {
+  let query = tenantUpdate(input.companyId, 'supplier_switch_requests', input.payload)
+    .eq('id', input.existing.id)
+    .eq('customer_id', input.customerId)
+    .eq('site_id', input.siteId)
+  const state: JsonRecord = { ...input.existing }
+  for (const column of [
+    'customer_site_id', 'status', 'request_type', 'prodat_variant', 'prodat_reason',
+    'requested_start_date', 'submitted_at', 'completed_at', 'outbound_z03_message_id',
+    'lifecycle_blocked', 'lifecycle_block_source', 'lifecycle_block_id',
+    'paused_at', 'paused_by', 'pause_reason', 'updated_at', 'metadata',
+  ]) {
+    const value = state[column]
+    query = value == null ? query.is(column, null)
+      : query.eq(column, column === 'metadata' ? JSON.stringify(value) : value)
+  }
+  return query
+}
+
+/** Raise only unsent normal dates; this is not permission to dispatch. */
+async function normalizeExistingManualSupplierDate(input: {
+  companyId: string
+  customerId: string
+  siteId: string
+  existing: SupplierSwitchRequestRow
+  site: CustomerSiteRow
+}): Promise<SupplierSwitchRequestRow> {
+  const { existing, site } = input
+  const state: JsonRecord = { ...existing }
+  if (existing.company_id !== input.companyId || existing.customer_id !== input.customerId
+    || existing.site_id !== input.siteId || (existing.customer_site_id != null && existing.customer_site_id !== input.siteId)
+    || existing.request_type !== 'switch' || !['queued', 'manual_followup_required'].includes(existing.status)
+    || ['LK', 'C'].includes(existing.prodat_variant ?? '') || ['Z23', 'Z24'].includes(existing.prodat_reason ?? '')
+    || existing.submitted_at != null || existing.completed_at != null || state.outbound_z03_message_id != null
+    || existing.lifecycle_block_id != null || site.current_supplier_unknown !== false || !clean(site.current_supplier_id)
+    || site.current_supplier_response_status !== 'free_to_switch' || site.current_supplier_termination_fee !== 0) return existing
+
+  const metadata = existing.metadata ?? {}
+  const previousBlockers = metadata.supplier_switch_blockers
+  if (previousBlockers != null && !Array.isArray(previousBlockers)) return existing
+  const pendingCodes = new Set(['current_supplier_response_pending', 'current_supplier_waiting_response', 'supplier_commercial_start_too_early'])
+  const reasons = (Array.isArray(previousBlockers) ? previousBlockers : []).map(blocker => clean((blocker as JsonRecord | null)?.code))
+  const pendingReason = clean(metadata.pending_review_reason)
+  if (pendingReason) reasons.push(pendingReason)
+  if (reasons.some(reason => !reason || !pendingCodes.has(reason))) return existing
+  const blockSource = clean(existing.lifecycle_block_source)
+  const managedPendingHold = existing.status === 'manual_followup_required' && reasons.length > 0
+    && Boolean(blockSource && pendingCodes.has(blockSource))
+  if ((existing.lifecycle_blocked || existing.paused_at || existing.pause_reason || blockSource) && !managedPendingHold) return existing
+  if (existing.status === 'manual_followup_required' && !managedPendingHold) return existing
+
+  const commercial = await evaluateManualSupplierReadiness({
+    companyId: input.companyId, customerId: input.customerId, siteId: input.siteId, site,
+    requestType: existing.request_type, requestStatus: existing.status,
+    transactionSubtype: existing.prodat_variant ?? existing.prodat_reason ?? null,
+    requestedStartDate: existing.requested_start_date, requireRequestedStartDate: true,
+  })
+  const floor = commercial.snapshot.earliestSupplierStartDate
+  if (commercial.snapshot.sourceVerified !== true || !commercial.snapshot.applies || !floor
+    || commercial.blockers.some(blocker => blocker.code !== 'supplier_commercial_start_too_early')
+    || !existing.requested_start_date || existing.requested_start_date >= floor) return existing
+
+  // The proof read and this request CAS are separate transactions. Only the
+  // monotonic date changes here; canonical readiness rereads the durable row
+  // and current source afterwards, and physical entry verifies it again.
+  const { data, error } = await matchingExistingSwitchUpdate({ ...input,
+    payload: { requested_start_date: floor, updated_at: new Date().toISOString() },
+  }).select('*').maybeSingle()
+  if (error) throw error
+  if (!data) throw new Error('supplier_switch_reconcile_changed')
+  return data as SupplierSwitchRequestRow
 }
 
 /**
@@ -296,7 +382,8 @@ export async function ensureSupplierSwitchRequestForReadySite(
     }
   }
 
-  const existing = await findOpenSupplierSwitchRequestForSite(supabaseService, { companyId, customerId, siteId })
+  const foundExisting = await findOpenSupplierSwitchRequestForSite(supabaseService, { companyId, customerId, siteId })
+  const existing = foundExisting ? await normalizeExistingManualSupplierDate({ companyId, customerId, siteId, existing: foundExisting, site }) : null
   const canonicalReadiness = await checkSupplierSwitchReadiness({
     companyId,
     customerId,
@@ -346,8 +433,7 @@ export async function ensureSupplierSwitchRequestForReadySite(
     const previousManagedBusinessReview = Array.from(previousBusinessBlockerCodes)
       .some((code) => MANAGED_SWITCH_REVIEW_BLOCKER_CODES.has(code))
     const lifecycleManagedByBusinessRule = Boolean(
-      (lifecycleBlockSource &&
-        (previousBusinessBlockerCodes.has(lifecycleBlockSource) || MANAGED_SWITCH_REVIEW_BLOCKER_CODES.has(lifecycleBlockSource))) ||
+      (lifecycleBlockSource && MANAGED_SWITCH_REVIEW_BLOCKER_CODES.has(lifecycleBlockSource)) ||
       (!existing.lifecycle_blocked && previousManagedBusinessReview),
     )
     const lifecycleBlockedByManagedBusinessRule = Boolean(
@@ -449,14 +535,11 @@ export async function ensureSupplierSwitchRequestForReadySite(
       updatePayload.pause_reason = null
     }
 
-    const { data: updatedData, error: updateError } = await supabaseService
-      .from('supplier_switch_requests')
-      .update(updatePayload)
-      .eq('id', existing.id)
-      .eq('company_id', companyId)
-      .select('*')
-      .single()
+    const { data: updatedData, error: updateError } = await matchingExistingSwitchUpdate({
+      companyId, customerId, siteId, existing, payload: updatePayload,
+    }).select('*').maybeSingle()
     if (updateError) throw updateError
+    if (!updatedData) throw new Error('supplier_switch_reconcile_changed')
     const updated = updatedData as SupplierSwitchRequestRow
 
     if (shouldClearManagedBusinessBlock) {

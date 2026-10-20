@@ -2,6 +2,21 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
+  serverExternalPackages: ['pdf-lib', 'xlsx'],
+  // The resource-bounded document worker is loaded by its filesystem path.
+  // Include its runtime dependencies in the two mail-ingestion functions.
+  outputFileTracingIncludes: {
+    '/api/internal/manual-inbound/cron': [
+      './lib/inbound-mail/manualMailDocumentParserWorker.cjs',
+      './node_modules/pdf-lib/**/*', './node_modules/@pdf-lib/**/*',
+      './node_modules/pako/**/*', './node_modules/tslib/**/*', './node_modules/xlsx/**/*',
+    ],
+    '/api/webhooks/manual-inbound': [
+      './lib/inbound-mail/manualMailDocumentParserWorker.cjs',
+      './node_modules/pdf-lib/**/*', './node_modules/@pdf-lib/**/*',
+      './node_modules/pako/**/*', './node_modules/tslib/**/*', './node_modules/xlsx/**/*',
+    ],
+  },
   // Keep the established Turbopack development server explicit when the
   // production-only webpack chunk hook below is present (Next 16).
   turbopack: {},

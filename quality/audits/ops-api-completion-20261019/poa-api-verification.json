@@ -1,0 +1,91 @@
+{
+  "checked_at": "2026-10-18T23:55:52.448688+00:00",
+  "state": "CORRECTED_SOURCE80_TESTS_TYPES_LINT_PASS_PENDING_FINAL_REBIND",
+  "main": "63580ae0a84b97b3e44d46cc21bdc349b8c978fa",
+  "unchanged_dependency": "1e78dbbf7f16d1a144f205f5e58e1ce4d6ca0dba",
+  "local_dependency_merge": "47ba055136f14a1fefdc85d72defcc3c36176dbd",
+  "source_receipt": "4c81d3975234ff6e73b1ea170363de1c4cd9f339",
+  "finding": "Archived POA PDF/verification metadata are not consistently accessible through existing external projections. New authenticated evidence discovery/read routes provide an additive concrete supplement.",
+  "red": {
+    "missing_route_module": "FAIL expected absent endpoint",
+    "behavior": {
+      "tests": 25,
+      "failed": 25,
+      "stub_status": 501
+    }
+  },
+  "verification": {
+    "focused_archive_vitest": {
+      "suites": 4,
+      "tests": 80,
+      "failed": 0,
+      "own_cases": 34
+    },
+    "app_types": "PASS after clean lockfile installation",
+    "test_types": "PASS full initial test typecheck and focused final corrected-source typecheck",
+    "scoped_lint": "PASS zero warnings final corrected source",
+    "api_docs": "PASS npm run api:docs for existing active publication; this does not validate registration/publication of the new endpoints",
+    "proposed_contract": "PASS mounted discovery, verification and denial JSON validate against the embedded additive closed OpenAPI patch; private-path extra field rejected",
+    "ordinary_build": {
+      "result": "BLOCKED_ENVIRONMENT",
+      "message": "Next16.3.8 could not parse TypeScript --showConfig from child output",
+      "direct_show_config": "PASS valid JSON116228bytes/2109files",
+      "independent_capture_probe": "Node22.23.3 and24.19.0 child capture both returned exit0 but empty stdout; direct shell CLI returned valid JSON",
+      "source_change": "None: no Next config, dependency source or compiler gate patched"
+    },
+    "api_error_boundaries": "PASS247 routes scanned",
+    "api_error_registry": "PASS25 published codes; no claim of new endpoint registry adoption"
+  },
+  "declared_ports": [
+    "API credential/scopes/rate-limit transport",
+    "portal identity resolver",
+    "retention guard",
+    "Supabase table/storage transport"
+  ],
+  "actual_components": [
+    "Fullmakt renderer and archive writer from frozen dependency",
+    "customer assertion ES256 signature/issuer/audience/subject/lifetime/replay verifier",
+    "customer reader, byte SHA256 and PDF structural check",
+    "mounted Next.js routes and representation wrapper",
+    "tenant/customer-bound opaque cursor",
+    "canonical customer merge resolver and event checks",
+    "Actual strict portal resolver exercised by both single opaque identity-header request-contract cases"
+  ],
+  "limits": [
+    "No production writes, downloads, extra signing or mail",
+    "No live RLS/native/market/provider proof",
+    "No active guide/OpenAPI/version publication claim",
+    "No existing Website/Partner/ordinary Customer closed DTO enrichment",
+    "Archive dependency/source merge is local test composition, not receiving-main/delivery credit",
+    "New GETs never generate or rewrite consent/archive/PDF; replay and audit writes retain security purpose"
+  ],
+  "next_action": "Finish types/lint/docs gates, two independent exact-source reviews, publish additive source offer. Obtain positive incumbent active publication-file intake/handoff and qualified PR828 delivery before release.",
+  "environment_correction": "Initial shared node_modules lacked the frozen dependency mailauth7.3.1, causing types to fail. Installed the exact existing PR828 package-lock with npm ci in this isolated worktree; no package/lock/source modification.",
+  "independent_initial_review": {
+    "source": "c74afc420525acf3b690061f8a27168815175334",
+    "decision": "CHANGES_REQUIRED",
+    "findings": [
+      {
+        "severity": "P2",
+        "issue": "Trimmed legacy reference could be advertised while exact stored-value lookup returned404",
+        "red": "New actual mounted regression1FAIL31PASS; A also independently reproduced original frozen source behavior",
+        "fix": "Require the exact raw stored evidence reference to equal the qualified archive reference; discovery marks noncanonical records unavailable without GET writes"
+      },
+      {
+        "severity": "P2",
+        "issue": "Proposed request schema reused two shared required UUID headers while runtime accepts one linked opaque subject header",
+        "red": "Two mounted requests passed actual strict resolver but failed the proposed request parameter contract;2FAIL32PASS",
+        "fix": "Inline optional string headers with at-least-one linked/matching subject requirement; both real resolver/schema cases pass"
+      }
+    ],
+    "corrected_final_reviews": "PENDING"
+  },
+  "live_read_only_status": {
+    "checked_at_utc": "2026-10-18T23:52:14Z",
+    "deadline_rpc_present": false,
+    "deadline_helper_present": false,
+    "deadline_cursor_present": false,
+    "authorized_existing_test_archive_present": false,
+    "mutations": 0
+  }
+}
