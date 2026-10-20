@@ -1,6 +1,13 @@
 import { isPriceArea, type PriceArea, type SpotPriceInterval } from '@/lib/pricing/types'
 
-const BASE_URL = 'https://www.elprisetjustnu.se/api/v1/prices'
+const DEFAULT_ORIGIN = 'https://www.elprisetjustnu.se'
+
+// ELPRISETJUSTNU_BASE_URL points a non-production stack at a provider
+// simulator (scripts/reality); unset, the public provider is used.
+function baseUrl(): string {
+  const origin = process.env.ELPRISETJUSTNU_BASE_URL?.trim().replace(/\/+$/, '') || DEFAULT_ORIGIN
+  return `${origin}/api/v1/prices`
+}
 const DEFAULT_TIMEOUT_MS = 10_000
 const DEFAULT_MAX_ATTEMPTS = 3
 
@@ -161,7 +168,7 @@ export function buildElprisetJustNuUrl(input: { date: string | Date; priceArea: 
   const date = typeof input.date === 'string' ? new Date(`${input.date.slice(0, 10)}T00:00:00.000Z`) : input.date
   if (Number.isNaN(date.getTime())) throw new Error('Ogiltigt datum för spotprisimport.')
   const { year, month, day } = toDateParts(date)
-  return `${BASE_URL}/${year}/${pad2(month)}-${pad2(day)}_${input.priceArea}.json`
+  return `${baseUrl()}/${year}/${pad2(month)}-${pad2(day)}_${input.priceArea}.json`
 }
 
 export async function fetchElprisetJustNuDay(input: {
