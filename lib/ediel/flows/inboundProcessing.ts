@@ -24,7 +24,7 @@ import {readUnattributedTechnicalIntake} from '@/lib/ediel/inbound/receptions';
 import {createReceivedErrApplicationAcks} from '@/lib/ediel/flows/receivedErrApplicationAcks';
 import {loadCustomerLifeEventValidationContext} from '@/lib/ediel/production/lifeEventSource';
 import {applyInboundCustomerLifeEvent} from '@/lib/ediel/flows/inboundCustomerLifeEvent';
-import {applySupplyMarketSource} from '@/lib/ediel/flows/supplyMarketTransition';
+import {applySupplyMarketSource,supplyMarketHasBusinessEffects} from '@/lib/ediel/flows/supplyMarketTransition';
 import {projectSupplyEndFollowup} from '@/lib/ediel/flows/supplyEndFollowup';
 import {applyPermissionMarketSource} from '@/lib/ediel/permissions/permissionMarketTransition';
 import {publishSourceSwitchCommit} from '@/lib/ediel/flows/sourceSwitchCommit';
@@ -1343,7 +1343,7 @@ export async function processInboundEdielMessage(params: {
         // Preserve the established single-supply projections through an exact
         // native replay only after every scope is committed. Multipart and
         // permission responses never select a first parsed target here.
-        if(supply?.fullyApplied&&canonicalRuntime.domainObjectCount===1){
+        if(supply?.fullyApplied&&supplyMarketHasBusinessEffects(supply)&&canonicalRuntime.domainObjectCount===1){
           try{await processInboundProdatMessage({actorUserId,message:runtimeMessage,committedSupplyResult:supply})}
           catch(error){await createEdielMessageEvent({actorUserId,edielMessageId:runtimeMessage.id,eventType:'manual_note',eventStatus:'warning',
             message:'Leveransutfallet och dess kvitto är fastställda; övriga projektioner inväntar granskning.',

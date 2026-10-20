@@ -2212,10 +2212,18 @@
     },
     {
       "id": "SC-039",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
         "__tests__/ediel-supply-market-consumers.test.ts",
-        "scripts/ediel-normal-switch-source-sql-regression.mjs"
+        "scripts/ediel-normal-switch-source-sql-regression.mjs",
+        "lib/ediel/flows/inboundProcessing.ts",
+        "lib/ediel/flows/supplyMarketTransition.ts",
+        "supabase/migrations/20261019150000_ediel_sc039_late_normal_z04_superseded_by_cancellation.sql",
+        "__tests__/ediel-sc039-superseded-late-l-result.test.ts",
+        "__tests__/ediel-sc039-waiting-ack-deadlines.test.ts",
+        "__tests__/ediel-sc-039-partial-ack-timer-completion.test.ts",
+        "scripts/ediel-cancellation-public-acceptance-native.test.ts",
+        ".github/workflows/ediel-cancellation-public-acceptance-native.yml"
       ]
     },
     {
