@@ -99240,6 +99240,49 @@ export type Database = {
         Args: { p_context: Json }
         Returns: Json
       }
+      gridex_ediel_ops04_consume_controlled_live_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_agreement_id: string
+          p_binding: Json
+          p_company_id: string
+          p_environment: string
+          p_incident_id: string
+          p_mandate_id: string
+          p_message_id: string
+          p_resend: boolean
+          p_route_profile_id: string
+        }
+        Returns: Json
+      }
+      gridex_ediel_ops04_controlled_flow_probe_v1: {
+        Args: {
+          p_communication_route_id: string
+          p_company_id: string
+          p_environment: string
+          p_message_id: string
+        }
+        Returns: Json
+      }
+      gridex_ediel_ops04_controlled_live_evidence_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_environment: string
+          p_incident_id: string
+          p_message_id: string
+          p_route_profile_id: string
+        }
+        Returns: Json
+      }
+      gridex_ediel_ops04_record_v1: {
+        Args: { p_actor_user_id: string; p_company_id: string; p_input: Json }
+        Returns: Json
+      }
+      gridex_ediel_ops04_revoke_v1: {
+        Args: { p_actor_user_id: string; p_company_id: string; p_input: Json }
+        Returns: Json
+      }
       gridex_ediel_positive_fixture_prepare_v1: {
         Args: { p_context: Json }
         Returns: Json

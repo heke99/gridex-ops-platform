@@ -125,7 +125,11 @@ jobs:
            {'path': 'supabase/migrations/20261019043000_ediel_retained_contrl_source_prefilter.sql',
             'mode': '100644',
             'git_blob_oid': 'cc00cae05dad948b1680ef83c55b356cd12b702a',
-            'sha256': 'f248ec8dab18e1b4b4c2cd6f8da73f538d15030ccabb6bf0281080797d586b02'}]
+            'sha256': 'f248ec8dab18e1b4b4c2cd6f8da73f538d15030ccabb6bf0281080797d586b02'},
+           {'path': 'supabase/migrations/20261019140000_ediel_ops04_controlled_live_evidence.sql',
+            'mode': '100644',
+            'git_blob_oid': '6ddf94077699971f13dba1498b20583bde5164af',
+            'sha256': '5691b79a523a4db6b3335f52661b0f76ac124cbf61bfcde36b618f2cac3b4954'}]
           current_read_forwards = [item['path'] for item in current_read_manifest]
           current_reader_callers = ['lib/ediel/production/customerMasterdataOriginalRead.ts','lib/ediel/core/receivedZ04HAddressAvailability.ts']
           repair = 'supabase/migrations/20261006231122_ediel_test_configuration_route_environment_source.sql'
@@ -186,7 +190,7 @@ jobs:
                   if reader.wait() != 0: raise RuntimeError('Git inventory reader failed')
               return {'sha':revision,'tree':subprocess.check_output(['git','rev-parse',revision+'^{tree}'],text=True).strip(),'blobs':result}
           current, baseline = inventory(head), inventory(base_sha)
-          if len(required) != 55 or len(required) != len(set(required)) or not set(required).issubset(current['blobs']):
+          if len(required) != 56 or len(required) != len(set(required)) or not set(required).issubset(current['blobs']):
               raise RuntimeError('required input missing or duplicated')
           if len(required_base) != 35 or len(required_base) != len(set(required_base)) or not set(required_base).issubset(baseline['blobs']):
               raise RuntimeError('required BASE input missing or duplicated')
@@ -551,11 +555,49 @@ jobs:
               receipt_path.write_text(json.dumps(receipt,indent=2)+'\n')
               if code:sys.exit(code)
 
+          # OPS-04 attaches its TRUNCATE guards to the canonical DB-05 callback,
+          # which BASE56 predates. Install only that callback and its exact ACL,
+          # byte-extracted from the frozen delivered DB-05 owner, never its broad
+          # company/customer delete/status/TRUNCATE triggers (those would change
+          # retained BASE surroundings and the BASE parent-delete proof).
+          forward_prerequisites={'supabase/migrations/20261019140000_ediel_ops04_controlled_live_evidence.sql':{
+            'donor':{'path':'supabase/migrations/20261005130000_hard_delete_guard_companies_customers.sql','mode':'100644',
+              'git_blob_oid':'1cf851fe9b9235cc626c2c028b7615026afd703a',
+              'sha256':'ed92e54ee5c21c781d1e06260e5e7b0a1569ec2896f9e7af0b95f61f3dc5bc3d'},
+            'statements':[['create or replace function public.gridex_guard_history_truncate_v1()','\n$function$;'],
+              ['revoke all on function public.gridex_guard_history_truncate_v1() from public, anon, authenticated, service_role;',';']],
+            'absent_before':'public.gridex_guard_history_truncate_v1()',
+            'sql_sha256':'e2b209c12edc9c57c3d6f13f3b0da24524c9acbe9bb920571b674feb46eb827c',
+            'catalog_keys':[('public','FUNCTION','gridex_guard_history_truncate_v1()'),('public','ACL','FUNCTION gridex_guard_history_truncate_v1()')]}}
+          prerequisite_keys=[key for spec in forward_prerequisites.values() for key in spec['catalog_keys']]
+          if any(key not in expected for key in prerequisite_keys):fail('forward prerequisite source object missing')
+
+          def apply_forward_prerequisite(target):
+              spec=forward_prerequisites[target];donor=spec['donor']
+              if receipt['root_source']['blobs'].get(donor['path'])!={key:donor[key] for key in ['mode','git_blob_oid','sha256']}:
+                  fail('forward prerequisite donor differs from frozen ROOT: '+donor['path'])
+              data=(root/donor['path']).read_bytes()
+              if hashlib.sha256(data).hexdigest()!=donor['sha256']:fail('forward prerequisite donor bytes changed: '+donor['path'])
+              text=data.decode('utf-8');statements=[]
+              for start,end in spec['statements']:
+                  if text.count(start)!=1:fail('forward prerequisite statement not unique: '+start)
+                  begin=text.index(start);statements.append(text[begin:text.index(end,begin)+len(end)])
+              prerequisite_sql='BEGIN;\n'+'\n'.join(statements)+'\nCOMMIT;\n'
+              if sha(prerequisite_sql)!=spec['sql_sha256']:fail('forward prerequisite extraction differs: '+target)
+              if sql("SELECT to_regprocedure('"+spec['absent_before']+"') IS NULL")!='t':fail('forward prerequisite already present')
+              with (private/'current-forward-prerequisites.log').open('ab') as log:
+                  code=subprocess.run(['psql',url,'-X','-v','ON_ERROR_STOP=1','-v','VERBOSITY=verbose'],
+                      input=prerequisite_sql.encode(),stdout=log,stderr=log).returncode
+              receipt.setdefault('current_read_forward_prerequisites',[]).append({'before':target,'donor':donor,
+                'sql_sha256':spec['sql_sha256'],'exit_code':code,'status':'PASS' if code==0 else 'FAIL'})
+              receipt_path.write_text(json.dumps(receipt,indent=2)+'\n')
+              if code:sys.exit(code)
+
           mode=sys.argv[1]
           if mode=='before':
               before,db=observe()
               # Snapshot exact logical surroundings of existing private preparations,
-              # including every attached policy/trigger/constraint/index/ACL, before thirteen
+              # including every attached policy/trigger/constraint/index/ACL, before fourteen
               # forward changes. This is retained BASE evidence, not ROOT parity.
               surroundings={repr(key):value for key,value in before.items() if key[0]=='gridex_customer_masterdata' and key[1]!='FUNCTION' and
                 not(key[1]=='ACL' and key[2].startswith('FUNCTION '))}
@@ -565,6 +607,7 @@ jobs:
               executed=[]
               try:
                   for item in receipt['current_database_basis']['forwards']:
+                      if item['path'] in forward_prerequisites:apply_forward_prerequisite(item['path'])
                       path=root/item['path'];data=path.read_bytes()
                       if hashlib.sha256(data).hexdigest()!=item['sha256']:fail('delivered forward bytes changed: '+item['path'])
                       logfile=private/'current-reader-forwards.log'
@@ -580,7 +623,7 @@ jobs:
                       receipt['current_read_forward_executions']=executed
                       receipt_path.write_text(json.dumps(receipt,indent=2)+'\n')
                       if code:sys.exit(code)
-                  # Keep all thirteen declared forwards, then deliver only the later
+                  # Keep all fourteen declared forwards, then deliver only the later
                   # source-qualified API effects inside this same bounded phase.
                   apply_current_api_projection()
               finally:
@@ -591,6 +634,10 @@ jobs:
               if db!=before['database'] or role_graph()!=before['roles'] or auth_uid()!=before['auth_uid']:
                   fail('owned database/platform role/helper identity changed during forwards')
               mismatches=logical_mismatches(actual)
+              # The installed prerequisite must equal the canonical ROOT catalog object
+              # and ACL exactly; it is outside the reader/guard selection counts.
+              prerequisite_mismatches=[{'identity':key,'expected_sha256':sha(expected[key]),
+                'actual_sha256':sha(actual[key]) if key in actual else None} for key in prerequisite_keys if actual.get(key)!=expected[key]]
               changes=set(map(repr,relation_keys))|set(map(repr,schema_keys))|set(map(repr,guard_relation_acl_keys))
               retained={repr(key):value for key,value in actual.items() if key[0]=='gridex_customer_masterdata' and key[1]!='FUNCTION' and
                 not(key[1]=='ACL' and key[2].startswith('FUNCTION ')) and repr(key) not in changes}
@@ -610,12 +657,15 @@ jobs:
                 'reader_function_names':len(reader_names),'helper_function_names':len(names),'function_definitions':len(function_keys),
                 'delivered_relation_objects':len(relation_keys),'selected_logical_objects':len(selected),
                 'database':db,'owners':owner_results,'mismatches':mismatches,
+                'forward_prerequisite_objects':[{'identity':key,'sha256':sha(actual[key])} for key in prerequisite_keys if key in actual],
+                'forward_prerequisite_mismatches':prerequisite_mismatches,
                 'object_hashes':[{'identity':key,'sha256':sha(actual[key])} for key in sorted(selected) if key in actual],
                 'retained_surroundings':'exact_BASE_private_guard_objects_except_18_delivered_ROOT_relation_changes',
                 'scope':'bounded_current_reader_functions_and_delivered_guard_objects_NOT_whole_ROOT_database_parity'}
               receipt['current_guard_result']=result;receipt_path.write_text(json.dumps(receipt,indent=2)+'\n')
               (receipt_path.parent/'current-guard-qualification.json').write_text(json.dumps(result,indent=2)+'\n')
               if mismatches:fail('current reader guard object definitions differ: '+repr([x['identity'] for x in mismatches]))
+              if prerequisite_mismatches:fail('forward prerequisite catalog objects differ: '+repr([x['identity'] for x in prerequisite_mismatches]))
           elif mode=='api':
               sql("NOTIFY pgrst, 'reload schema'")
               status=json.loads(pathlib.Path(os.environ['GRIDEX_NATIVE_STATUS']).read_text())
@@ -770,7 +820,7 @@ jobs:
             'lib/ediel/rulebook/canonicalEdielFacade.ts','lib/ediel/testing/tgtCanonicalDraftRoute.ts',
             'lib/ediel/testing/agtRuntime.ts','lib/ediel/testing/agtRegistry.ts',
             'lib/ediel/testing/positiveFixtureAuthority.ts','lib/ediel/production/lifeEventCertificationSource.ts'}
-          if len(receipt['required_input_paths'])!=55 or len(set(receipt['required_input_paths']))!=55 or \
+          if len(receipt['required_input_paths'])!=56 or len(set(receipt['required_input_paths']))!=56 or \
               len(receipt['required_base_input_paths'])!=35 or len(set(receipt['required_base_input_paths']))!=35 or \
               set(basis.get('canonical_dependency_identity',{}))!=dependencies or \
               receipt['root_source']['blobs'][producer]!={key:expected_overlay[key] for key in ['mode','git_blob_oid','sha256']}:
@@ -828,8 +878,14 @@ jobs:
           guard=receipt.get('current_guard_result',{})
           api=receipt.get('current_api_schema_result',{})
           if database.get('kind')!='BASE56_repair_two_forwards_plus_delivered_reader_guard_closure' or \
-              database.get('schema_path')!='supabase/schema.sql' or len(database.get('forwards',[]))!=13 or \
+              database.get('schema_path')!='supabase/schema.sql' or len(database.get('forwards',[]))!=14 or \
               executions!=[{**item,'exit_code':0,'status':'PASS'} for item in database['forwards']] or \
+              [(x.get('before'),x.get('donor',{}).get('path'),x.get('sql_sha256'),x.get('exit_code'),x.get('status'))
+                for x in receipt.get('current_read_forward_prerequisites',[])]!=[(
+                'supabase/migrations/20261019140000_ediel_ops04_controlled_live_evidence.sql',
+                'supabase/migrations/20261005130000_hard_delete_guard_companies_customers.sql',
+                'e2b209c12edc9c57c3d6f13f3b0da24524c9acbe9bb920571b674feb46eb827c',0,'PASS')] or \
+              guard.get('forward_prerequisite_mismatches')!=[] or len(guard.get('forward_prerequisite_objects',[]))!=2 or \
               guard.get('status')!='PASS' or guard.get('source_sha')!=receipt['checkout_sha'] or \
               guard.get('reader_function_names')!=233 or guard.get('helper_function_names')!=372 or \
               guard.get('function_definitions')!=372 or guard.get('delivered_relation_objects')!=18 or \

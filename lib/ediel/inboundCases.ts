@@ -868,6 +868,10 @@ export async function approveEdielInboundCase(params: {
     return data as EdielInboundCaseRow
   }
   if(params.structuralObjectLineIndices)throw new Error('structural_apply_source_required')
+  // A cancellation (Z04/Z05 Z24) is owned by the native supply partition; its
+  // review case never onboards or updates customer, site or metering point data.
+  if(sourceMessage?.message_family==='PRODAT'&&['Z04','Z05'].includes(sourceMessage.message_code)
+    &&(inboundCase.transaction_type==='Z24'||parseInboundProdatBusinessData(sourceMessage).transactionType==='Z24'))throw new Error('PRODAT_CANCELLATION_CASE_NOT_APPROVABLE')
   if (inboundCase.review_decision?.objectApplication || (Array.isArray(inboundCase.proposed_action.objects) && inboundCase.proposed_action.objects.length > 1)) {
     if (!params.objectDecisions) throw new Error('PRODAT_MULTIPLE_OBJECTS_REQUIRE_OBJECT_SCOPED_APPLICATION')
     if (!params.companyId || params.companyId !== inboundCase.company_id) throw new Error('TENANT_CONTEXT_REQUIRED')

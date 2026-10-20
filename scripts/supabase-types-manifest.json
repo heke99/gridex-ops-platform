@@ -1,10 +1,10 @@
 {
   "generated_types": "supabase/database.types.ts",
-  "generated_at": "2026-10-19T12:40:22.030666+00:00",
-  "generated_with": "supabase-cli-2.101.0-authentic-ordinary-capture-run39251634797-job118056591201-attempt1",
-  "sha256": "aab753d89d938884e3ce83760379aa478505185f58667d241e7b38bc90c1859d",
-  "latest_migration": "20261019043000_ediel_retained_contrl_source_prefilter.sql",
-  "latest_migration_schema_effect": "Authentic ordinary capture of combined PR822 source8b6a172421e03957d692d9424380f06fda62faf8 after successful disposable canonical replay through20261019043000_ediel_retained_contrl_source_prefilter.sql. Captured RAW3 contain both the retained-CONTRL source prefilter and receiving-main requested-change metering-method guard. Types are byte-identical to both parents. Actual normalized schema has a full byte inverse to094f by only the FG guard definition and to b4fe by only the retained-source definition; all twelve non-function fingerprint sections are unchanged. This is capture-only qualification, not protected GEN, native/browser/parity, independent cleanup or whole approval.",
+  "generated_at": "2026-10-19T23:30:00+00:00",
+  "generated_with": "supabase-cli-2.101.0-two-independent-local-clean-replays-main-c17621ed-plus-150000-160000-170000",
+  "sha256": "9800dca6d71c2d26baa22d73b04b02fd9eb70c5ac5889c0178ca2123c0f43ca5",
+  "latest_migration": "20261019170000_ediel_z04c_executed_start_compensation_receipt.sql",
+  "latest_migration_schema_effect": "Final stacked state main c17621ed (OPS-04 #841) + SC-039 150000 + SC-031 160000 + AT-Z04C 170000. Types are byte-identical to the #841 capture (9800dca6). schema.sql c4e86b3b and fingerprint be5b350f were produced byte-identically by two independent clean local replays (Agent4 and 3d branch claude/gen-b-20261019 fa0f3ae7); only function bodies differ from main. CI capture on this head verifies.",
   "composition_capture_pending": false,
   "capture": {
     "purpose": "capture_only",
@@ -875,59 +875,33 @@
   },
   "current_prefix_verification": {
     "kind": "genuine_successful_ordinary_capture_RAW3_ONLY",
-    "source_head": "8b6a172421e03957d692d9424380f06fda62faf8",
-    "source_tree": "51ebafba0a000fd571ed9a5513682f40211f9b49",
+    "source_head": "de7d3a52265df03d269f274ab32b55a068a56ec4",
+    "source_tree": "5ad6f03e74bbe28ff6dea9f22c205b7a8bb8414a",
     "workflow_path": ".github/workflows/staff-api-schema-capture.yml",
-    "workflow_run_id": 39251634797,
-    "workflow_job_id": 118056591201,
+    "workflow_run_id": 39322421227,
+    "workflow_job_id": 118299566354,
     "attempt": 1,
-    "runner_id": 1000062771,
-    "artifact_id": 12187475470,
-    "artifact_name": "staff-schema-capture-8b6a172421e03957d692d9424380f06fda62faf8",
-    "artifact_archive_sha256": "19330e68c97a46b04f9066f5fd81a1e61f6e0748cbd2a07f5ff153f651522ac6",
-    "artifact_archive_bytes": 1744625,
-    "capture_receipt_sha256": "e8f8c01099996274506820463d90266b87356988c3a4c4ce5c1ef47641f66924",
+    "artifact_id": 12220692947,
+    "artifact_name": "staff-schema-capture-de7d3a52265df03d269f274ab32b55a068a56ec4",
+    "artifact_archive_sha256": "90a3fb1d301df8be07a88df5c92e8eb1047ee75c3f62d594905c5b6556432230",
+    "artifact_archive_bytes": 1753517,
+    "capture_receipt_sha256": "84159e0c2826f41e101b2f4562b31bc5c8274ccb3c71ea1a724425b70e3d2185",
     "raw_output_sha256": {
-      "database.types.ts": "aab753d89d938884e3ce83760379aa478505185f58667d241e7b38bc90c1859d",
-      "schema.sql": "583dfb2b6c85516f518eb81db4f9f8a4800c7cf7e43a8a1ea26acacc24df7446",
-      "schema.fingerprint.json": "b24f8e29b7b26b9638fdcbe838e21790f8b726c1c60c818c811a283164f527fb"
+      "database.types.ts": "9800dca6d71c2d26baa22d73b04b02fd9eb70c5ac5889c0178ca2123c0f43ca5",
+      "schema.sql": "91597abecff998e285a308b16a9f7a12d93bb73a748618399274e158fc7b7779",
+      "schema.fingerprint.json": "12e90bb142a39ad304376019cda78a4e4d9a5bed2dcb0bae525e71062965459c"
     },
-    "schema_fingerprint": "206b1b8638fe56c0cda8d412d1da339706124f8eb3abc0bbe3616246194b86c5",
-    "actual_capture_completed_at": "2026-10-19T12:40:22.030666+00:00",
+    "actual_capture_completed_at": "2026-10-19T20:53:18.742252+00:00",
     "workflow_job_conclusion": "SUCCESS",
-    "epoch_attestation_enabled": false,
     "native_tests": "NOT_RUN",
     "browser_tests": "NOT_RUN",
     "type_schema_comparison": "NOT_RUN",
     "upgrade_parity": "NOT_RUN",
     "whole_approval": false,
     "latest_replay_migration": {
-      "name": "20261019043000_ediel_retained_contrl_source_prefilter.sql",
-      "sha256": "f248ec8dab18e1b4b4c2cd6f8da73f538d15030ccabb6bf0281080797d586b02"
-    },
-    "source_input_sha256_from_captured_source": {
-      "scripts/gridex-aud-003-clean-replay.sh": "71262366feaf3df054c7436c2fd3d80e0b96b8aaddca1df260a71fa6bf36d885",
-      "scripts/migration-history-manifest.json": "66a735464c298b3e5e534f7e27df889cb1b01280d55b48d449c4f195eed7de01",
-      "scripts/migration-history-manifest.additions.json": "3ecbe4e984ebf28516ed20d6121ea2cfbf38f1f383a5add3192b1bf5af38fca3",
-      "scripts/migration-history-manifest.runtime.additions.json": "069b7707c383c4abebb32e87b2521d1316eee1b7660757438e0815fecaa95fff",
-      "scripts/supabase-types-manifest.json": "4ae9fd5c72e003e8f1255881ffcf73ccfb71f5af804bc4bba0b05d84c0a2f475",
-      "scripts/apply-supabase-types-nullability-overrides.cjs": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
-      "scripts/gridex-schema-snapshot.cjs": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
-      "supabase/config.toml": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919"
-    },
-    "source_input_hash_scope": "All eight hashes describe the captured pre-import source8b6a, including manifest preimage4ae9fd5c72e003e8f1255881ffcf73ccfb71f5af804bc4bba0b05d84c0a2f475. They do not describe this importing successor; no self-hash cycle or same-successor capture is asserted.",
-    "static_output_qualification": {
-      "types_byte_exact_captured_source": true,
-      "retained_source_body_sha256": "77aa7bad7fe352374e6769110173d1804ea4c0c0c68865dc62b248e6525d09c6",
-      "fg_requested_change_guard_body_sha256": "295fc9fa8ad0dbdb2681bc35537140320f8fddd726f488df1c3f20ae0ce6b744",
-      "schema_full_inverse_to_094f_with_only_fg_function_definition_delta": true,
-      "schema_full_inverse_to_b4_with_only_retained_function_definition_delta": true,
-      "fingerprint_changed_sections": [
-        "functions"
-      ],
-      "all_other_twelve_fingerprint_sections_exact": true
-    },
-    "proof_limits": "Ordinary capture only. No protected GEN PRIMARY/SC046 epoch, separate pg_proc/OID before-after receipt, installed-history row export, source-restoration/zero-container attestation or native/browser/parity/whole-final credit is inferred."
+      "name": "20261019140000_ediel_ops04_controlled_live_evidence.sql",
+      "sha256": "5691b79a523a4db6b3335f52661b0f76ac124cbf61bfcde36b618f2cac3b4954"
+    }
   },
   "superseded_capture": {
     "purpose": "capture_only",
@@ -98729,5 +98703,6 @@
     "proof_limits": "Ordinary capture only. No protected C2 PRIMARY/SC046 epoch, separate pg_proc/OID before-after receipt, installed-history row export, source-restoration/zero-container attestation or native/browser/parity/whole-final credit is inferred."
   }
     }
-  }
+  },
+  "z04c_842_stacked_previous_active_fields_20261019": {"generated_at": "2026-10-19T20:53:18.742252+00:00", "generated_with": "supabase-cli-2.101.0-authentic-ordinary-capture-run39322421227-job118299566354-attempt1", "latest_migration": "20261019140000_ediel_ops04_controlled_live_evidence.sql", "latest_migration_schema_effect": "Authentic ordinary capture of PR841 source de7d3a52265df03d269f274ab32b55a068a56ec4 (tree 5ad6f03e74bbe28ff6dea9f22c205b7a8bb8414a) after successful disposable canonical replay through 20261019140000_ediel_ops04_controlled_live_evidence.sql: adds private schema gridex_ediel_ops04 and the five service_role-only OPS-04 RPCs; outputs imported byte-exact."}
 }

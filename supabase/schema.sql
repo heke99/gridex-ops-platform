@@ -167,6 +167,12 @@ CREATE SCHEMA gridex_ediel_inbound_receptions;
 CREATE SCHEMA gridex_ediel_legacy_archive;
 
 --
+-- Name: gridex_ediel_ops04; Type: SCHEMA; Schema: -; Owner: -
+--
+
+CREATE SCHEMA gridex_ediel_ops04;
+
+--
 -- Name: gridex_ediel_outbound_owner; Type: SCHEMA; Schema: -; Owner: -
 --
 
@@ -12794,6 +12800,61 @@ END
 $$;
 
 --
+-- Name: authorized_v1(uuid, uuid, text); Type: FUNCTION; Schema: gridex_ediel_ops04; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_ops04.authorized_v1(c uuid, actor uuid, phase text) RETURNS boolean
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$BEGIN
+ IF phase IS NULL OR phase NOT IN('prepare','send','live') THEN RETURN false;END IF;
+ PERFORM gridex_ediel_ack_replay.lock_current_graph_v2();
+ PERFORM gridex_ediel_duplicate_responses.require_business_read_actor_v1(c,actor,CASE phase WHEN 'prepare' THEN 'prepare' ELSE 'send' END);
+ IF phase='live' AND (public.gridex_actor_has_company_permission(actor,c,'ediel.send') IS NOT TRUE
+  OR NOT EXISTS(SELECT FROM public.canonical_tenant_operation_decision(c,'ediel.production.send') d WHERE d.allowed)) THEN RETURN false;END IF;
+ RETURN true;EXCEPTION WHEN insufficient_privilege THEN RETURN false;END $$;
+
+--
+-- Name: immutable_v1(); Type: FUNCTION; Schema: gridex_ediel_ops04; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_ops04.immutable_v1() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN RAISE EXCEPTION 'ediel_ops04_evidence_immutable';END $$;
+
+--
+-- Name: relay_headers_allowed_v1(text); Type: FUNCTION; Schema: gridex_ediel_ops04; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_ops04.relay_headers_allowed_v1(raw text) RETURNS boolean
+    LANGUAGE sql IMMUTABLE
+    SET search_path TO 'pg_catalog'
+    AS $$
+ SELECT raw IS NOT NULL AND octet_length(raw) BETWEEN 1 AND 65536
+  AND raw !~ '^[ \t]' AND raw ~* '(^|\n)received[ \t]*:'
+  AND NOT EXISTS(SELECT FROM regexp_split_to_table(raw,E'\r?\n') l(line)
+   WHERE line<>'' AND line !~ '^[ \t]' AND line !~* '^(received|received-spf|authentication-results)[ \t]*:')
+$$;
+
+--
+-- Name: replay_v1(text, uuid, uuid, uuid, jsonb); Type: FUNCTION; Schema: gridex_ediel_ops04; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_ops04.replay_v1(t text, c uuid, cmd uuid, actor uuid, input jsonb) RETURNS uuid
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $_$
+DECLARE fid uuid;fa uuid;fi jsonb;BEGIN
+ IF t IS NULL OR t NOT IN('incident_corrections','counterparty_agreements','live_mandates','relay_captures','revocations') THEN RAISE EXCEPTION 'ediel_ops04_table_invalid';END IF;
+ EXECUTE format('LOCK TABLE gridex_ediel_ops04.%I IN SHARE ROW EXCLUSIVE MODE',t);
+ LOCK TABLE gridex_ediel_ops04.revocations IN SHARE ROW EXCLUSIVE MODE;
+ EXECUTE format('SELECT id,actor_user_id,input FROM gridex_ediel_ops04.%I WHERE company_id=$1 AND command_id=$2',t) INTO fid,fa,fi USING c,cmd;
+ IF fid IS NOT NULL AND (fa IS DISTINCT FROM actor OR fi IS DISTINCT FROM input) THEN RAISE EXCEPTION 'ediel_ops04_command_conflict';END IF;
+ RETURN fid;END $_$;
+
+--
 -- Name: witnesses; Type: TABLE; Schema: gridex_ediel_outbound_owner; Owner: -
 --
 
@@ -21754,6 +21815,9 @@ BEGIN
   END IF;
  END LOOP;
  -- Consume canonical decisions without another subtype classifier.
+ IF '213'=ANY(own_fields) THEN qty:=NULL;END IF;
+ IF '222'=ANY(own_fields) THEN frequency:=NULL;END IF;
+ IF '242'=ANY(own_fields) THEN product:=NULL;END IF;
  IF 'END_USER_GROUP'=ANY(own_fields) THEN ud:=NULL;
  ELSE
   IF '227'=ANY(own_fields) THEN ud:=jsonb_set(ud,'{2}','[]'::jsonb);END IF;
@@ -26093,6 +26157,7 @@ DECLARE m public.ediel_messages%rowtype;original public.ediel_messages%rowtype;s
  prior gridex_received_sources.supply_source_transitions%rowtype;canonical gridex_received_sources.validation_assessments%rowtype;
  wire jsonb;oldwire jsonb;own jsonb;basis jsonb;plans jsonb:='[]';plan jsonb;after_states jsonb;before_switches jsonb:='[]';period public.customer_supply_periods%rowtype;
  ids uuid[];original_ids uuid[];switch_ids uuid[]:=ARRAY[]::uuid[];pid uuid;event_at timestamptz;customer_identity text;
+ cancellation_receipt_ids uuid[];
 BEGIN
  SELECT * INTO m FROM public.ediel_messages WHERE id=p_source_message_id AND company_id=p_company_id FOR UPDATE; IF gridex_received_sources.require_supply_scope_admission_v1(p_company_id,p_source_message_id,p_scope) IS DISTINCT FROM p_canonical_id THEN RAISE EXCEPTION 'supply_scoped_canonical_assessment_changed';END IF; IF jsonb_array_length(gridex_received_sources.require_prodat_application_objects_v1(p_company_id,p_source_message_id)->'objects')>1 THEN m.customer_id:=NULL;m.metering_point_id:=NULL;END IF;
  IF NOT FOUND OR m.direction IS DISTINCT FROM 'inbound' OR m.message_standard IS DISTINCT FROM 'edifact' OR m.message_family IS DISTINCT FROM 'PRODAT' OR m.message_code IS DISTINCT FROM 'Z04' THEN RETURN jsonb_build_object('applied',false,'reason','normal_z04_source_required');END IF;
@@ -26136,7 +26201,7 @@ BEGIN
   IF original.direction IS DISTINCT FROM 'outbound' OR original.message_family IS DISTINCT FROM 'PRODAT' OR original.message_code IS DISTINCT FROM 'Z03' OR gridex_received_sources.sent_source_is_current_v1(original) IS NOT TRUE
    OR original.customer_id IS DISTINCT FROM sw.customer_id OR original.metering_point_id IS DISTINCT FROM sw.metering_point_id OR oldwire->>'sender' IS DISTINCT FROM wire->>'receiver' OR oldwire->>'receiver' IS DISTINCT FROM wire->>'sender'
    OR NOT EXISTS(SELECT FROM jsonb_array_elements(oldwire->'objects') o WHERE o->>'li'=own->>'li' AND o->>'customerIdentity'=own->>'customerIdentity' AND o->>'start'=own->>'start' AND o->>'reason'=own->>'reason' AND (o->>'point' IS NULL OR o->>'point'=own->>'point') AND(o->>'point' IS NULL OR o->>'identityAgency'=own->>'identityAgency'))
-   OR (sw.status IN('prepared','queued','submitted','sent','waiting','waiting_response','waiting_for_z04','awaiting_confirmation')) IS NOT TRUE OR sw.lifecycle_blocked
+   OR (sw.status IN('prepared','queued','submitted','sent','waiting','waiting_response','waiting_for_z04','awaiting_confirmation','cancelled_before_start')) IS NOT TRUE OR sw.lifecycle_blocked
    OR sw.id=ANY(switch_ids) OR (m.customer_id IS NOT NULL AND m.customer_id IS DISTINCT FROM sw.customer_id) OR (m.metering_point_id IS NOT NULL AND m.metering_point_id IS DISTINCT FROM sw.metering_point_id) THEN RETURN jsonb_build_object('applied',false,'reason','normal_z04_locked_original_scope_required');END IF;
   SELECT * INTO point FROM public.metering_points WHERE id=sw.metering_point_id AND company_id=m.company_id FOR UPDATE;
   SELECT * INTO site FROM public.customer_sites WHERE id=coalesce(sw.site_id,sw.customer_site_id) AND company_id=m.company_id FOR SHARE;
@@ -26146,7 +26211,67 @@ BEGIN
   IF point.id IS NULL OR site.id IS NULL OR contract.id IS NULL OR point.ediel_metering_point_id IS DISTINCT FROM own->>'point' OR point.customer_id IS DISTINCT FROM sw.customer_id OR point.site_id IS DISTINCT FROM site.id OR site.customer_id IS DISTINCT FROM sw.customer_id OR own->>'customerIdentity' IS DISTINCT FROM customer_identity
    OR (sw.site_id IS NOT NULL AND sw.site_id IS DISTINCT FROM site.id) OR (sw.customer_site_id IS NOT NULL AND sw.customer_site_id IS DISTINCT FROM site.id) OR (sw.contract_id IS NOT NULL AND sw.contract_id IS DISTINCT FROM contract.id) OR (sw.customer_contract_id IS NOT NULL AND sw.customer_contract_id IS DISTINCT FROM contract.id)
    OR point.grid_owner_ediel_id IS DISTINCT FROM wire->>'sender' OR point.grid_area_code IS DISTINCT FROM own->>'gridArea' OR contract.customer_id IS DISTINCT FROM sw.customer_id OR contract.metering_point_id IS DISTINCT FROM point.id
-   OR (contract.status IN('signed','active')) IS NOT TRUE OR contract.signed_at IS NULL OR nullif(contract.signed_version,'') IS NULL OR nullif(contract.contract_version,'') IS NULL THEN RETURN jsonb_build_object('applied',false,'reason','normal_z04_owned_signed_contract_scope_required');END IF;
+   OR (contract.status IN('signed','active')) IS NOT TRUE OR contract.signed_at IS NULL OR nullif(contract.signed_version,'') IS NULL OR nullif(contract.contract_version,'') IS NULL THEN RETURN jsonb_build_object('applied',false,'reason',CASE WHEN sw.status='cancelled_before_start' THEN 'normal_z04_locked_original_scope_required' ELSE 'normal_z04_owned_signed_contract_scope_required' END);END IF;
+  -- A prior committed C may supersede this exact late normal L. No C-row
+  -- lock is acquired here: outer source-cohort locks already precede sw/point,
+  -- and the no-period C is not necessarily present in that original cohort.
+  IF sw.status='cancelled_before_start' THEN
+   SELECT array_agg(r.id ORDER BY r.id) INTO cancellation_receipt_ids
+   FROM gridex_received_sources.supply_object_effect_receipts r
+   JOIN public.ediel_messages c ON c.id=r.source_message_id AND c.company_id=r.company_id
+   JOIN gridex_received_sources.supply_object_partitions cp ON cp.source_message_id=c.id AND cp.company_id=c.company_id
+   JOIN gridex_received_sources.supply_source_transitions ct ON ct.source_message_id=c.id AND ct.company_id=c.company_id
+   JOIN gridex_received_sources.validation_assessments ca ON ca.id=r.canonical_assessment_id AND ca.company_id=c.company_id AND ca.source_message_id=c.id
+   JOIN gridex_received_sources.prodat_application_facets cf ON cf.assessment_id=ca.id AND cf.company_id=c.company_id AND cf.source_message_id=c.id
+   JOIN gridex_received_sources.prodat_response_facets cr ON cr.assessment_id=ca.id AND cr.company_id=c.company_id AND cr.source_message_id=c.id
+   JOIN gridex_ediel_inbound_context.receipts cc ON cc.source_message_id=c.id AND cc.company_id=c.company_id
+   JOIN gridex_ediel_source_rules.receipts cb ON cb.source_message_id=c.id AND cb.company_id=c.company_id
+   CROSS JOIN LATERAL (SELECT r.effect_text::jsonb facts,gridex_received_sources.supply_wire_for_scope_v1(c.raw_payload,r.object_scope) cwire) proof
+   WHERE r.company_id=m.company_id AND r.environment=m.environment AND r.source_message_id=sw.inbound_z04_message_id
+    AND r.xmin::text::numeric<>mod(pg_current_xact_id()::text::numeric,4294967296)
+    AND jsonb_array_length(wire->'objects')=1 AND plans='[]'::jsonb
+    AND c.environment=m.environment AND c.direction='inbound' AND c.message_standard='edifact' AND c.message_family='PRODAT' AND c.message_code='Z04'
+    AND (c.customer_id IS NULL OR c.customer_id=sw.customer_id) AND(c.metering_point_id IS NULL OR c.metering_point_id=sw.metering_point_id)
+    AND r.payload_hash=encode(sha256(convert_to(c.raw_payload,'UTF8')),'hex') AND r.effect_hash=encode(sha256(convert_to(r.effect_text,'UTF8')),'hex')
+    AND r.first_line_index=(r.object_scope#>>'{registers,0,segmentIndex}')::integer
+    AND r.object_scope->>'objectId'=own->>'point' AND r.object_scope->>'identityAgency'=own->>'identityAgency'
+    AND cp.environment=c.environment AND cp.payload_hash=r.payload_hash AND cp.canonical_assessment_id=ca.id
+    AND cp.partition_hash=encode(sha256(convert_to(cp.partition_text,'UTF8')),'hex') AND cp.result->>'applied'='true'
+    AND cp.result->'partition'=cp.partition_text::jsonb
+    AND cp.result->'effectReceiptIds' @> jsonb_build_array(r.id) AND cp.result->'switchIds' @> jsonb_build_array(sw.id)
+    AND EXISTS(SELECT FROM jsonb_array_elements(cp.partition_text::jsonb) part WHERE part->'object'=r.object_scope AND part->>'disposition'='applied' AND part->>'effectReceiptId'=r.id::text AND part->>'effectFactsHash'=r.effect_hash)
+    AND ct.payload_hash=r.payload_hash AND ct.source_code='Z04' AND sw.id=ANY(ct.qualified_switch_ids)
+    AND ct.source_objects @> jsonb_build_array(proof.facts->'wire') AND ct.resulting_states @> (proof.facts->'resultingStates')
+    AND ca.environment=c.environment AND ca.source_payload_hash=r.payload_hash AND ca.owner='canonical-runtime-with-registry-v1'
+    AND ca.facts_hash=encode(sha256(convert_to(ca.facts_text,'UTF8')),'hex')
+    AND ca.facts_text::jsonb->>'syntaxDecision'='accepted' AND ca.facts_text::jsonb->>'functionalDecision'='accepted'
+    AND cf.environment=c.environment AND cf.source_payload_hash=r.payload_hash AND cf.application_facts_hash=encode(sha256(convert_to(cf.application_facts_text,'UTF8')),'hex')
+    AND cf.application_facts_text::jsonb->>'headerDecision'='accepted'
+    AND cr.environment=c.environment AND cr.source_payload_hash=r.payload_hash AND cr.response_facts_hash=encode(sha256(convert_to(cr.response_facts_text,'UTF8')),'hex')
+    AND gridex_received_sources.validate_prodat_application_v1(c.raw_payload,ca.facts_text::jsonb,cf.application_facts_text::jsonb,cr.response_facts_text::jsonb) IS TRUE
+    AND EXISTS(SELECT FROM jsonb_array_elements(cf.application_facts_text::jsonb->'objects') app WHERE app-'applicationDecision'-'reasonCodes'=r.object_scope AND app->>'applicationDecision'='accepted')
+    AND cc.status='ready' AND cc.environment=c.environment AND cc.direction=c.direction AND cc.source_received_at=c.message_received_at AND cc.payload_sha256=r.payload_hash
+    AND cb.environment=c.environment AND cb.direction=c.direction AND cb.payload_sha256=r.payload_hash
+    AND ca.facts_text::jsonb->'rulePackEvidence'=jsonb_build_object('profileKey',cb.evidence->'profileKey','messageProfileId',cb.evidence->'messageProfileId','rulePackId',cb.evidence->'rulePackId','sourceHash',cb.evidence->'sourceHash','version',cb.evidence->'version','snapshot',jsonb_build_object('rulePack',cb.evidence#>'{snapshot,rulePack}','messageProfile',cb.evidence#>'{snapshot,messageProfile}','guideSources',cb.evidence#>'{snapshot,guideSources}'))
+    AND proof.cwire->>'code'='Z04' AND proof.cwire->>'sender'=wire->>'sender' AND proof.cwire->>'receiver'=wire->>'receiver'
+    AND jsonb_array_length(proof.cwire->'objects')=1 AND proof.facts->'wire'=proof.cwire#>'{objects,0}'
+    AND proof.facts->>'version'='1' AND proof.facts->>'owner'='inbound-supply-object-v1'
+    AND proof.facts->>'sourceMessageId'=c.id::text AND proof.facts->>'sourcePayloadHash'=r.payload_hash
+    AND proof.facts->>'companyId'=m.company_id::text AND proof.facts->>'environment'=m.environment AND proof.facts->>'canonicalAssessmentId'=ca.id::text
+    AND proof.facts->'object'=r.object_scope AND proof.facts->'legalContext'=cc.context
+    AND cc.context->>'actorRole'='electricity_supplier' AND cc.context->>'family'='PRODAT' AND cc.context->>'code'='Z04' AND cc.context->>'legalEdielId'=wire->>'receiver'
+    AND proof.facts#>>'{plan,kind}'='cancel_start' AND proof.facts#>>'{plan,switchId}'=sw.id::text AND proof.facts#>'{plan,object}'=proof.facts->'wire'
+    AND proof.facts#>>'{wire,reason}'='Z24' AND proof.facts#>>'{wire,point}'=own->>'point' AND proof.facts#>>'{wire,identityAgency}'=own->>'identityAgency'
+    AND proof.facts#>>'{wire,li}'=own->>'li' AND proof.facts#>>'{wire,customerIdentity}'=own->>'customerIdentity' AND proof.facts#>>'{wire,gridArea}'=own->>'gridArea' AND proof.facts#>>'{wire,start}'=own->>'start'
+    AND EXISTS(SELECT FROM jsonb_array_elements(proof.facts->'resultingSwitches') cancelled WHERE cancelled->>'id'=sw.id::text AND cancelled->>'company_id'=m.company_id::text
+     AND cancelled->>'customer_id'=sw.customer_id::text AND cancelled->>'metering_point_id'=sw.metering_point_id::text AND cancelled->>'outbound_z03_message_id'=original.id::text
+     AND cancelled->>'rff_li_reference'=own->>'li' AND cancelled->>'status'='cancelled_before_start' AND cancelled->>'inbound_z04_message_id'=c.id::text);
+   IF coalesce(cardinality(cancellation_receipt_ids),0)<>1 THEN RETURN jsonb_build_object('applied',false,'reason','normal_z04_locked_original_scope_required');END IF;
+   -- The caller records L's OWN receipt/partition/transition, with zero
+   -- relationship projections. cancelledSwitchId is causal data, not switchId.
+   RETURN jsonb_build_object('applied',true,'idempotent',false,'periods','[]'::jsonb,'switchIds','[]'::jsonb,'commits','[]'::jsonb,'previousStates','[]'::jsonb,'previousSwitches','[]'::jsonb,
+    'plans',jsonb_build_array(jsonb_build_object('kind','superseded_by_cancellation','cancelledSwitchId',sw.id,'originalId',original.id,'originalHash',original.immutable_payload_hash,'cancellationSourceMessageId',sw.inbound_z04_message_id,'cancellationEffectReceiptId',cancellation_receipt_ids[1])));
+  END IF;
   event_at:=gridex_received_sources.permission_time_v1(own->>'start');
   IF EXISTS(SELECT FROM public.customer_supply_periods p WHERE p.company_id=m.company_id AND p.metering_point_id=point.id AND p.status NOT IN('cancelled','ended') AND (p.market_end_at IS NULL OR p.market_end_at>event_at)) THEN RETURN jsonb_build_object('applied',false,'reason','normal_z04_conflicting_supply_period');END IF;
   pid:=gen_random_uuid();switch_ids:=array_append(switch_ids,sw.id);before_switches:=before_switches||jsonb_build_array(to_jsonb(sw));
@@ -26593,6 +26718,24 @@ BEGIN
     THEN RETURN jsonb_build_object('applied',false,'reason','z04c_locked_original_mismatch');END IF;
    -- A start already cancelled by another own C is a held duplicate.
    IF sw.status='cancelled_before_start' THEN RETURN jsonb_build_object('applied',false,'reason','z04c_start_already_cancelled');END IF;
+   -- An executed own start is corrected under review; it is never reversed here.
+   IF sw.status='completed' THEN
+    IF EXISTS(SELECT FROM gridex_received_sources.supply_object_effect_receipts e WHERE e.company_id=m.company_id AND e.environment=m.environment
+     AND e.effect_text::jsonb#>>'{plan,kind}'='executed_start_compensation' AND e.effect_text::jsonb#>>'{plan,executedSwitchId}'=sw.id::text) THEN RETURN jsonb_build_object('applied',false,'reason','z04c_executed_start_compensation_already_recorded');END IF;
+    SELECT array_agg(p.id ORDER BY p.id) INTO ids FROM public.customer_supply_periods p
+     JOIN gridex_received_sources.normal_switch_confirmations c ON c.period_id=p.id AND c.company_id=p.company_id
+     JOIN gridex_received_sources.normal_supply_activations a ON a.period_id=p.id AND a.company_id=p.company_id AND a.source_message_id=c.source_message_id
+     WHERE p.company_id=m.company_id AND p.customer_id=sw.customer_id AND p.metering_point_id=sw.metering_point_id AND (p.status IN ('active','ending','ended')) IS TRUE
+      AND c.switch_id=sw.id AND c.original_message_id=origin.id AND c.original_payload_hash=origin.immutable_payload_hash AND c.source_message_id=sw.inbound_z04_message_id
+      AND p.start_date=gridex_received_sources.permission_date_v1(own->>'start') AND c.market_start_at<=now();
+    IF coalesce(cardinality(ids),0)<>1 THEN RETURN jsonb_build_object('applied',false,'reason','z04c_effect_already_executed_compensation_required');END IF;
+    SELECT * INTO sp FROM public.customer_supply_periods WHERE id=ids[1] AND company_id=m.company_id FOR SHARE;
+    previous_switches:=previous_switches||jsonb_build_array(to_jsonb(sw));
+    plans:=plans||jsonb_build_array(jsonb_build_object('kind','executed_start_compensation','switchId',NULL,'periodId',NULL,'disposition','controlled_review',
+     'executedSwitchId',sw.id,'executedPeriodId',sp.id,'executedPeriod',to_jsonb(sp),'originalId',origin.id,'originalHash',origin.immutable_payload_hash,
+     'confirmationSourceMessageId',sw.inbound_z04_message_id,'siteId',coalesce(sw.site_id,sw.customer_site_id),'caseId',gen_random_uuid(),'object',own));
+    CONTINUE;
+   END IF;
    IF (sw.status IN ('draft','prepared','queued','sent','submitted','waiting','waiting_for_z04','accepted','cancellation_requested','cancelled_before_start')) IS NOT TRUE THEN RETURN jsonb_build_object('applied',false,'reason','z04c_effect_already_executed_compensation_required');END IF;
    SELECT array_agg(p.id ORDER BY p.id) INTO ids FROM public.customer_supply_periods p WHERE p.company_id=m.company_id AND p.customer_id=sw.customer_id AND p.metering_point_id=sw.metering_point_id AND (p.source_switch_request_id=sw.id OR p.source_message_id=sw.inbound_z04_message_id);
    IF coalesce(cardinality(ids),0)>1 THEN RETURN jsonb_build_object('applied',false,'reason','z04c_conflicting_periods');END IF;
@@ -26651,6 +26794,16 @@ BEGIN
   ELSIF plan->>'kind'='cancel_start' THEN
    UPDATE public.supplier_switch_requests SET status='cancelled_before_start',inbound_z04_message_id=m.id,completed_at=now(),updated_at=now() WHERE id=(plan->>'switchId')::uuid AND company_id=m.company_id;
    UPDATE public.customer_supply_periods SET status='cancelled',market_state_version=market_state_version+1,updated_at=now(),metadata=coalesce(metadata,'{}')||jsonb_build_object('startCancellationSource',m.id) WHERE id=(plan->>'periodId')::uuid AND company_id=m.company_id;
+  ELSIF plan->>'kind'='executed_start_compensation' THEN
+   INSERT INTO public.customer_cases(id,company_id,customer_id,site_id,metering_point_id,customer_contract_id,supplier_switch_request_id,case_type,status,priority,title,description,reason_category,next_action,source,metadata,created_by,updated_by,source_ediel_message_id,source_business_process)
+    VALUES((plan->>'caseId')::uuid,m.company_id,(plan#>>'{executedPeriod,customer_id}')::uuid,(plan->>'siteId')::uuid,(plan#>>'{executedPeriod,metering_point_id}')::uuid,
+     coalesce(plan#>>'{executedPeriod,customer_contract_id}',plan#>>'{executedPeriod,contract_id}')::uuid,(plan->>'executedSwitchId')::uuid,'other','manual_follow_up','high',
+     'Annullering efter genomförd leveransstart – korrigera',
+     'Nätägaren har annullerat en leveransstart som redan genomförts. Annulleringen är besvarad. Korrigera starten med bibehållen historik och kompensera vid behov.',
+     'executed_start_cancellation','Utred och genomför korrigering av den genomförda starten.','ediel_inbound_state_machine',
+     jsonb_build_object('review_intent','executed_start_compensation','source_ediel_message_id',m.id,'executed_switch_id',plan->'executedSwitchId','executed_period_id',plan->'executedPeriodId',
+      'original_message_id',plan->'originalId','original_payload_hash',plan->'originalHash','confirmation_source_message_id',plan->'confirmationSourceMessageId','object',plan->'object'),
+     p_actor_user_id,p_actor_user_id,m.id,'supplier_switch');
   ELSIF plan->>'kind'='end' THEN
    UPDATE public.customer_supply_periods SET end_date=gridex_received_sources.permission_date_v1(plan#>>'{object,end}'),market_end_at=(plan->>'eventAt')::timestamptz,source_end_message_id=m.id,status=CASE WHEN (plan->>'eventAt')::timestamptz<=now() THEN 'ended' ELSE 'ending' END,market_state_version=market_state_version+1,updated_at=now() WHERE id=(plan->>'periodId')::uuid AND company_id=m.company_id;
   ELSIF plan->>'kind'='restore_end' THEN
@@ -67069,6 +67222,367 @@ CREATE FUNCTION public.gridex_ediel_negative_fixture_read_v1(p_context jsonb) RE
  RETURN gridex_negative_fixtures.read_v1(p_context);END$$;
 
 --
+-- Name: gridex_ediel_ops04_consume_controlled_live_v1(uuid, text, uuid, uuid, uuid, uuid, uuid, uuid, boolean, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_ediel_ops04_consume_controlled_live_v1(p_company_id uuid, p_environment text, p_actor_user_id uuid, p_message_id uuid, p_incident_id uuid, p_route_profile_id uuid, p_agreement_id uuid, p_mandate_id uuid, p_resend boolean, p_binding jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $_$
+DECLARE now_ts timestamptz;m public.ediel_messages%rowtype;r public.ediel_route_profiles%rowtype;
+ cert public.ediel_certificates%rowtype;tp public.ediel_transport_profiles%rowtype;cp public.ediel_counterparties%rowtype;
+ snapshot public.ediel_message_payloads%rowtype;i gridex_ediel_business_incidents.incidents%rowtype;
+ fix gridex_ediel_ops04.incident_corrections%rowtype;agr gridex_ediel_ops04.counterparty_agreements%rowtype;
+ man gridex_ediel_ops04.live_mandates%rowtype;cap gridex_ediel_ops04.relay_captures%rowtype;
+ prior gridex_ediel_ops04.consumptions%rowtype;ga gridex_ediel_transport.attempts%rowtype;
+ za gridex_outbound_dispatch.attempts%rowtype;gr gridex_ediel_transport.reservations%rowtype;
+ zr gridex_outbound_dispatch.reservations%rowtype;n integer;cid uuid;aid uuid;lane text;
+ provider jsonb;message_binding jsonb;audit_binding jsonb;source_hash text;fingerprint text;
+BEGIN
+ IF p_company_id IS NULL OR p_actor_user_id IS NULL OR p_message_id IS NULL OR p_incident_id IS NULL OR p_route_profile_id IS NULL
+  OR p_agreement_id IS NULL OR p_resend IS NULL OR p_environment IS NULL OR p_environment NOT IN('test','production')
+  OR (p_environment='production')<>(p_mandate_id IS NOT NULL) THEN RAISE EXCEPTION 'ediel_ops04_scope_required' USING ERRCODE='22023';END IF;
+ IF jsonb_typeof(p_binding) IS DISTINCT FROM 'object'
+  OR NOT(p_binding ?& ARRAY['message','routeProfile','certificateId','certificateFingerprint','correctionRef','relayEvidenceRef','relayHeadersHash','provider'])
+  OR EXISTS(SELECT FROM jsonb_object_keys(p_binding) k WHERE k NOT IN('message','routeProfile','certificateId','certificateFingerprint','correctionRef','relayEvidenceRef','relayHeadersHash','provider'))
+  OR jsonb_typeof(p_binding->'message') IS DISTINCT FROM 'object' OR jsonb_typeof(p_binding->'routeProfile') IS DISTINCT FROM 'object'
+  OR jsonb_typeof(p_binding->'provider') IS DISTINCT FROM 'object'
+  OR NOT((p_binding->'message') ?& ARRAY['id','companyId','environment','direction','communicationRouteId','originalMessageId','sourcePayloadHash','recipient','senderEdielId','receiverEdielId'])
+  OR EXISTS(SELECT FROM jsonb_object_keys(p_binding->'message') k WHERE k NOT IN('id','companyId','environment','direction','communicationRouteId','originalMessageId','sourcePayloadHash','recipient','senderEdielId','receiverEdielId'))
+  OR EXISTS(SELECT FROM jsonb_each(p_binding) e WHERE e.key IN('certificateId','certificateFingerprint','correctionRef','relayEvidenceRef','relayHeadersHash') AND (jsonb_typeof(e.value)<>'string' OR nullif(btrim(e.value#>>'{}'),'') IS NULL))
+  THEN RAISE EXCEPTION 'ediel_ops04_binding_invalid' USING ERRCODE='22023';END IF;
+ provider:=p_binding->'provider';
+ IF NOT(provider ?& ARRAY['originalHash','routeId','to','from','payloadHash','payloadLength','encoding','mimeMode','mimeSha256','mimeLength','mimeArchiveRef','rfcMessageId','mimePayloadSnapshotId'])
+  OR EXISTS(SELECT FROM jsonb_each(provider) e WHERE e.key NOT IN('originalHash','routeId','to','from','payloadHash','payloadLength','encoding','mimeMode','mimeSha256','mimeLength','mimeArchiveRef','rfcMessageId','mimePayloadSnapshotId')
+   OR CASE WHEN e.key IN('payloadLength','mimeLength') THEN jsonb_typeof(e.value)<>'number' OR (e.value#>>'{}')!~'^[1-9][0-9]*$'
+    ELSE jsonb_typeof(e.value)<>'string' OR nullif(btrim(e.value#>>'{}'),'') IS NULL END)
+  OR provider->>'originalHash' !~ '^[a-f0-9]{64}$' OR provider->>'payloadHash' !~ '^[a-f0-9]{64}$'
+  OR provider->>'mimeSha256' !~ '^[a-f0-9]{64}$' OR p_binding->>'relayHeadersHash' !~ '^[a-f0-9]{64}$'
+  THEN RAISE EXCEPTION 'ediel_ops04_binding_invalid' USING ERRCODE='22023';END IF;
+
+ -- Qualified shared graph lock holds current membership/permission decisions
+ -- stable until commit. Acquire it before OPS evidence locks in every writer.
+ IF gridex_ediel_ops04.authorized_v1(p_company_id,p_actor_user_id,'send') IS NOT TRUE THEN RAISE EXCEPTION 'ediel_ops04_actor_forbidden' USING ERRCODE='42501';END IF;
+ LOCK TABLE gridex_ediel_ops04.consumptions IN SHARE ROW EXCLUSIVE MODE;
+ LOCK TABLE gridex_ediel_ops04.revocations IN SHARE MODE;
+ SELECT * INTO m FROM public.ediel_messages WHERE id=p_message_id AND company_id=p_company_id AND environment=p_environment AND direction='outbound' FOR SHARE;
+ IF NOT FOUND THEN RAISE EXCEPTION 'ediel_ops04_evidence_unavailable' USING ERRCODE='42501';END IF;
+ SELECT * INTO r FROM public.ediel_route_profiles p WHERE p.id=p_route_profile_id AND p.company_id=p_company_id AND p.environment=p_environment
+  AND p.is_enabled AND p.is_active IS NOT FALSE AND p.communication_route_id=m.communication_route_id AND (m.route_profile_id IS NULL OR m.route_profile_id=p.id) FOR SHARE;
+ IF NOT FOUND THEN RAISE EXCEPTION 'ediel_ops04_evidence_unavailable' USING ERRCODE='42501';END IF;
+ source_hash:=encode(sha256(convert_to(coalesce(m.raw_payload,''),'UTF8')),'hex');
+ message_binding:=jsonb_build_object('id',m.id,'companyId',m.company_id,'environment',m.environment,'direction',m.direction,
+  'communicationRouteId',m.communication_route_id,'originalMessageId',m.original_message_id,'sourcePayloadHash',source_hash,
+  'recipient',m.receiver_email,'senderEdielId',m.sender_ediel_id,'receiverEdielId',m.receiver_ediel_id);
+ IF p_binding->'message' IS DISTINCT FROM message_binding OR p_binding->'routeProfile' IS DISTINCT FROM to_jsonb(r)
+  OR provider->>'originalHash' IS DISTINCT FROM source_hash OR provider->>'routeId' IS DISTINCT FROM m.communication_route_id::text
+  OR provider->>'to' IS DISTINCT FROM m.receiver_email THEN RAISE EXCEPTION 'ediel_ops04_source_binding_changed';END IF;
+ SELECT * INTO cert FROM public.ediel_certificates WHERE id=coalesce(r.receiver_certificate_id,r.certificate_id)
+  AND company_id=p_company_id AND environment=p_environment FOR SHARE;
+ IF NOT FOUND THEN RAISE EXCEPTION 'ediel_ops04_current_certificate_required';END IF;
+ fingerprint:=lower(regexp_replace(coalesce(nullif(btrim(cert.fingerprint_sha256),''),nullif(btrim(cert.certificate_fingerprint),'')), '[[:space:]:]','','g'));
+ IF cert.id::text IS DISTINCT FROM p_binding->>'certificateId' OR fingerprint IS DISTINCT FROM p_binding->>'certificateFingerprint'
+  OR nullif(fingerprint,'') IS NULL OR cert.status IS DISTINCT FROM 'active' THEN RAISE EXCEPTION 'ediel_ops04_current_certificate_required';END IF;
+ SELECT * INTO tp FROM public.ediel_transport_profiles WHERE id=r.transport_profile_id AND company_id=p_company_id AND environment=p_environment AND is_active FOR SHARE;
+ IF NOT FOUND THEN RAISE EXCEPTION 'ediel_ops04_current_transport_profile_required';END IF;
+ SELECT * INTO cp FROM public.ediel_counterparties WHERE id=r.counterparty_id AND company_id=p_company_id AND environment=p_environment
+  AND is_active AND lifecycle_status IN('verified','active') FOR SHARE;
+ IF NOT FOUND THEN RAISE EXCEPTION 'ediel_ops04_route_counterparty_required';END IF;
+ SELECT * INTO i FROM gridex_ediel_business_incidents.incidents WHERE id=p_incident_id AND company_id=p_company_id AND environment=p_environment FOR SHARE;
+ IF NOT FOUND THEN RAISE EXCEPTION 'ediel_ops04_evidence_unavailable' USING ERRCODE='42501';END IF;
+ IF p_resend AND m.original_message_id IS DISTINCT FROM i.source_message_id::text THEN RAISE EXCEPTION 'ediel_ops04_resend_original_mismatch';END IF;
+ SELECT count(*) INTO n FROM gridex_ediel_ops04.incident_corrections x WHERE x.company_id=p_company_id AND x.environment=p_environment AND x.incident_id=i.id
+  AND NOT EXISTS(SELECT FROM gridex_ediel_ops04.revocations v WHERE v.correction_id=x.id);
+ IF n<>1 THEN RAISE EXCEPTION 'ediel_ops04_current_correction_required';END IF;
+ SELECT * INTO fix FROM gridex_ediel_ops04.incident_corrections x WHERE x.company_id=p_company_id AND x.environment=p_environment AND x.incident_id=i.id
+  AND NOT EXISTS(SELECT FROM gridex_ediel_ops04.revocations v WHERE v.correction_id=x.id);
+ IF fix.correction_ref IS DISTINCT FROM p_binding->>'correctionRef' THEN RAISE EXCEPTION 'ediel_ops04_correction_binding_changed';END IF;
+ SELECT count(*) INTO n FROM gridex_ediel_ops04.relay_captures x WHERE x.company_id=p_company_id AND x.environment=p_environment AND x.route_profile_id=r.id
+  AND NOT EXISTS(SELECT FROM gridex_ediel_ops04.revocations v WHERE v.capture_id=x.id);
+ IF n<>1 THEN RAISE EXCEPTION 'ediel_ops04_current_capture_required';END IF;
+ SELECT * INTO cap FROM gridex_ediel_ops04.relay_captures x WHERE x.company_id=p_company_id AND x.environment=p_environment AND x.route_profile_id=r.id
+  AND NOT EXISTS(SELECT FROM gridex_ediel_ops04.revocations v WHERE v.capture_id=x.id);
+ IF cap.evidence_ref IS DISTINCT FROM p_binding->>'relayEvidenceRef' OR cap.raw_headers_sha256 IS DISTINCT FROM p_binding->>'relayHeadersHash'
+  OR cap.raw_headers_sha256 IS DISTINCT FROM encode(sha256(convert_to(cap.raw_headers,'UTF8')),'hex')
+  OR gridex_ediel_ops04.relay_headers_allowed_v1(cap.raw_headers) IS NOT TRUE THEN RAISE EXCEPTION 'ediel_ops04_capture_binding_changed';END IF;
+ SELECT * INTO agr FROM gridex_ediel_ops04.counterparty_agreements a WHERE a.id=p_agreement_id AND a.company_id=p_company_id AND a.environment=p_environment
+  AND a.route_profile_id=r.id AND a.counterparty_id=r.counterparty_id AND NOT EXISTS(SELECT FROM gridex_ediel_ops04.revocations v WHERE v.agreement_id=a.id);
+ IF NOT FOUND THEN RAISE EXCEPTION 'ediel_ops04_current_agreement_required';END IF;
+ IF p_environment='production' THEN
+  SELECT * INTO man FROM gridex_ediel_ops04.live_mandates x WHERE x.id=p_mandate_id AND x.company_id=p_company_id AND x.incident_id=i.id
+   AND x.correction_id=fix.id AND NOT EXISTS(SELECT FROM gridex_ediel_ops04.revocations v WHERE v.mandate_id=x.id);
+  IF NOT FOUND OR gridex_ediel_ops04.authorized_v1(p_company_id,man.actor_user_id,'live') IS NOT TRUE
+   THEN RAISE EXCEPTION 'ediel_ops04_current_mandate_required';END IF;
+ END IF;
+ SELECT * INTO snapshot FROM public.ediel_message_payloads WHERE id=(provider->>'mimePayloadSnapshotId')::uuid AND company_id=p_company_id
+  AND ediel_message_id=m.id AND payload_kind IN('raw_mime','smime_enveloped') AND encrypted_payload_ref=provider->>'mimeArchiveRef'
+  AND metadata->>'archive_verified'='true' AND metadata->>'archived_mime_sha256'=provider->>'mimeSha256'
+  AND metadata->>'archived_mime_bytes'=provider->>'mimeLength' AND metadata->>'archived_rfc_message_id'=provider->>'rfcMessageId' FOR SHARE;
+ IF NOT FOUND THEN RAISE EXCEPTION 'ediel_ops04_entered_archive_required';END IF;
+ -- Current reservations are locked as in their existing entry/result writers;
+ -- message FOR SHARE also excludes those writers' message FOR UPDATE. Only
+ -- actual entered, unobserved authority can reach this final-use transaction.
+ SELECT * INTO gr FROM gridex_ediel_transport.reservations WHERE message_id=m.id FOR SHARE;
+ SELECT * INTO zr FROM gridex_outbound_dispatch.reservations WHERE message_id=m.id FOR SHARE;
+ IF gr.state='entered' THEN
+  SELECT * INTO ga FROM gridex_ediel_transport.attempts WHERE id=gr.attempt_id AND message_id=m.id AND company_id=p_company_id
+   AND environment=p_environment AND actor_user_id=p_actor_user_id AND entered_at IS NOT NULL AND observed_at IS NULL AND classification IS NULL
+   AND binding @> provider FOR SHARE;
+  IF FOUND THEN aid:=ga.id;lane:='generic_journal';END IF;
+ END IF;
+ IF zr.state='provider_call_entered' THEN
+  SELECT * INTO za FROM gridex_outbound_dispatch.attempts a WHERE a.id=zr.attempt_id AND a.message_id=m.id AND a.company_id=p_company_id
+   AND a.environment=p_environment AND a.actor_user_id=p_actor_user_id AND a.binding @> provider
+   AND EXISTS(SELECT FROM gridex_outbound_dispatch.events e WHERE e.attempt_id=a.id AND e.message_id=m.id AND e.company_id=p_company_id AND e.environment=p_environment AND e.kind='provider_call_entered')
+   AND NOT EXISTS(SELECT FROM gridex_outbound_dispatch.events e WHERE e.attempt_id=a.id AND e.message_id=m.id AND e.company_id=p_company_id AND e.environment=p_environment AND e.kind='provider_result') FOR SHARE;
+  IF FOUND THEN
+   IF aid IS NOT NULL THEN RAISE EXCEPTION 'ediel_ops04_entered_attempt_ambiguous';END IF;
+   aid:=za.id;lane:='sealed_z08';
+  END IF;
+ END IF;
+ IF aid IS NULL THEN RAISE EXCEPTION 'ediel_ops04_entered_attempt_required';END IF;
+ PERFORM public.ediel_read_fresh_business_incident_v1(p_company_id,p_actor_user_id,i.id);
+ -- Re-evaluate time-sensitive permission decisions after every lock wait too.
+ IF gridex_ediel_ops04.authorized_v1(p_company_id,p_actor_user_id,'send') IS NOT TRUE THEN RAISE EXCEPTION 'ediel_ops04_actor_forbidden' USING ERRCODE='42501';END IF;
+ IF p_environment='production' AND gridex_ediel_ops04.authorized_v1(p_company_id,man.actor_user_id,'live') IS NOT TRUE
+  THEN RAISE EXCEPTION 'ediel_ops04_current_mandate_required';END IF;
+ -- This clock is sampled AFTER all potentially waiting graph/source/archive/
+ -- reservation locks and current grantor checks, never before a lock wait.
+ now_ts:=clock_timestamp();
+ IF coalesce(cert.valid_from,cert.certificate_valid_from) IS NULL OR coalesce(cert.valid_to,cert.certificate_valid_to) IS NULL
+  OR now_ts<coalesce(cert.valid_from,cert.certificate_valid_from) OR now_ts>=coalesce(cert.valid_to,cert.certificate_valid_to)
+  THEN RAISE EXCEPTION 'ediel_ops04_current_certificate_required';END IF;
+ IF NOT(agr.valid_from<=now_ts AND now_ts<agr.valid_to) THEN RAISE EXCEPTION 'ediel_ops04_current_agreement_required';END IF;
+ IF p_environment='production' AND NOT(man.valid_from<=now_ts AND now_ts<man.valid_to) THEN RAISE EXCEPTION 'ediel_ops04_current_mandate_required';END IF;
+ -- Preserve only the bounded immutable projection and exact MIME/entry IDs.
+ -- Full profile/certificate rows, raw source, relay headers and secrets stay out.
+ audit_binding:=(p_binding-'routeProfile')||jsonb_build_object('routeProfileHash',encode(sha256(convert_to((p_binding->'routeProfile')::text,'UTF8')),'hex'),
+  'relayCaptureId',cap.id,'attemptId',aid,'lane',lane);
+ SELECT * INTO prior FROM gridex_ediel_ops04.consumptions WHERE company_id=p_company_id AND message_id=m.id;
+ IF FOUND THEN
+  IF prior.environment=p_environment AND prior.incident_id=i.id AND prior.correction_id=fix.id AND prior.route_profile_id=r.id
+   AND prior.agreement_id=agr.id AND prior.mandate_id IS NOT DISTINCT FROM man.id AND prior.resend=p_resend
+   AND prior.actor_user_id=p_actor_user_id AND prior.binding IS NOT DISTINCT FROM audit_binding
+  THEN RETURN jsonb_build_object('consumptionId',prior.id,'companyId',p_company_id,'environment',p_environment,'messageId',m.id,
+   'agreementId',agr.id,'mandateId',man.id,'replayed',true);END IF;
+  RAISE EXCEPTION 'ediel_ops04_consumption_conflict';
+ END IF;
+ IF EXISTS(SELECT FROM gridex_ediel_ops04.consumptions x WHERE x.agreement_id=agr.id OR (man.id IS NOT NULL AND x.mandate_id=man.id))
+  THEN RAISE EXCEPTION 'ediel_ops04_authorization_consumed';END IF;
+ INSERT INTO gridex_ediel_ops04.consumptions(company_id,environment,message_id,incident_id,correction_id,route_profile_id,agreement_id,mandate_id,resend,actor_user_id,binding)
+ VALUES(p_company_id,p_environment,m.id,i.id,fix.id,r.id,agr.id,man.id,p_resend,p_actor_user_id,audit_binding) RETURNING id INTO cid;
+ RETURN jsonb_build_object('consumptionId',cid,'companyId',p_company_id,'environment',p_environment,'messageId',m.id,
+  'agreementId',agr.id,'mandateId',man.id,'replayed',false);
+END $_$;
+
+--
+-- Name: gridex_ediel_ops04_controlled_flow_probe_v1(uuid, text, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_ediel_ops04_controlled_flow_probe_v1(p_company_id uuid, p_environment text, p_message_id uuid, p_communication_route_id uuid) RETURNS jsonb
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+DECLARE now_ts timestamptz:=clock_timestamp();m_route uuid;m_profile uuid;controlled boolean;BEGIN
+ IF p_company_id IS NULL OR p_message_id IS NULL OR p_environment IS NULL OR p_environment NOT IN('test','production')
+  THEN RAISE EXCEPTION 'ediel_ops04_scope_required' USING ERRCODE='22023';END IF;
+ SELECT m.communication_route_id,m.route_profile_id INTO m_route,m_profile FROM public.ediel_messages m WHERE m.id=p_message_id AND m.company_id=p_company_id;
+ controlled:=EXISTS(SELECT FROM gridex_ediel_ops04.consumptions x WHERE x.company_id=p_company_id AND x.message_id=p_message_id)
+  OR EXISTS(SELECT FROM gridex_ediel_ops04.counterparty_agreements a JOIN public.ediel_route_profiles r ON r.id=a.route_profile_id AND r.company_id=p_company_id
+   WHERE a.company_id=p_company_id AND a.environment=p_environment
+    AND (r.communication_route_id IN(p_communication_route_id,m_route) OR r.id=m_profile)
+    AND a.valid_from<=now_ts AND now_ts<a.valid_to AND NOT EXISTS(SELECT FROM gridex_ediel_ops04.revocations v WHERE v.agreement_id=a.id));
+ RETURN jsonb_build_object('companyId',p_company_id,'environment',p_environment,'messageId',p_message_id,'controlled',controlled);
+END $$;
+
+--
+-- Name: gridex_ediel_ops04_controlled_live_evidence_v1(uuid, text, uuid, uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_ediel_ops04_controlled_live_evidence_v1(p_company_id uuid, p_environment text, p_actor_user_id uuid, p_message_id uuid, p_incident_id uuid, p_route_profile_id uuid) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+DECLARE r public.ediel_route_profiles%rowtype;now_ts timestamptz;
+ fix gridex_ediel_ops04.incident_corrections%rowtype;agr gridex_ediel_ops04.counterparty_agreements%rowtype;
+ man gridex_ediel_ops04.live_mandates%rowtype;cap gridex_ediel_ops04.relay_captures%rowtype;n integer;
+BEGIN
+ IF p_company_id IS NULL OR p_actor_user_id IS NULL OR p_message_id IS NULL OR p_incident_id IS NULL OR p_route_profile_id IS NULL
+  OR p_environment IS NULL OR p_environment NOT IN('test','production') THEN RAISE EXCEPTION 'ediel_ops04_scope_required' USING ERRCODE='22023';END IF;
+ IF gridex_ediel_ops04.authorized_v1(p_company_id,p_actor_user_id,'send') IS NOT TRUE THEN RAISE EXCEPTION 'ediel_ops04_actor_forbidden' USING ERRCODE='42501';END IF;
+ IF NOT EXISTS(SELECT FROM gridex_ediel_business_incidents.incidents WHERE id=p_incident_id AND company_id=p_company_id AND environment=p_environment)
+  THEN RAISE EXCEPTION 'ediel_ops04_evidence_unavailable' USING ERRCODE='42501';END IF;
+ SELECT * INTO r FROM public.ediel_route_profiles WHERE id=p_route_profile_id AND company_id=p_company_id AND environment=p_environment;
+ IF NOT FOUND OR NOT EXISTS(SELECT FROM public.ediel_messages m WHERE m.id=p_message_id AND m.company_id=p_company_id AND m.environment=p_environment
+  AND m.direction='outbound' AND m.communication_route_id=r.communication_route_id AND (m.route_profile_id IS NULL OR m.route_profile_id=r.id))
+  THEN RAISE EXCEPTION 'ediel_ops04_evidence_unavailable' USING ERRCODE='42501';END IF;
+ LOCK TABLE gridex_ediel_ops04.revocations IN SHARE MODE;
+ now_ts:=clock_timestamp();
+
+ SELECT count(*) INTO n FROM gridex_ediel_ops04.incident_corrections x WHERE x.company_id=p_company_id AND x.environment=p_environment AND x.incident_id=p_incident_id
+  AND NOT EXISTS(SELECT FROM gridex_ediel_ops04.revocations v WHERE v.correction_id=x.id);
+ IF n>1 THEN RAISE EXCEPTION 'ediel_ops04_correction_ambiguous';END IF;
+ SELECT * INTO fix FROM gridex_ediel_ops04.incident_corrections x WHERE x.company_id=p_company_id AND x.environment=p_environment AND x.incident_id=p_incident_id
+  AND NOT EXISTS(SELECT FROM gridex_ediel_ops04.revocations v WHERE v.correction_id=x.id);
+
+ SELECT count(*) INTO n FROM gridex_ediel_ops04.counterparty_agreements a WHERE a.company_id=p_company_id AND a.environment=p_environment AND a.route_profile_id=r.id
+  AND a.valid_from<=now_ts AND now_ts<a.valid_to AND NOT EXISTS(SELECT FROM gridex_ediel_ops04.revocations v WHERE v.agreement_id=a.id);
+ IF n>1 THEN RAISE EXCEPTION 'ediel_ops04_agreement_ambiguous';END IF;
+ SELECT * INTO agr FROM gridex_ediel_ops04.counterparty_agreements a WHERE a.company_id=p_company_id AND a.environment=p_environment AND a.route_profile_id=r.id
+  AND a.valid_from<=now_ts AND now_ts<a.valid_to AND NOT EXISTS(SELECT FROM gridex_ediel_ops04.revocations v WHERE v.agreement_id=a.id);
+
+ IF p_environment='production' AND fix.id IS NOT NULL THEN
+  SELECT count(*) INTO n FROM gridex_ediel_ops04.live_mandates m WHERE m.company_id=p_company_id AND m.incident_id=p_incident_id AND m.correction_id=fix.id
+   AND m.valid_from<=now_ts AND now_ts<m.valid_to AND NOT EXISTS(SELECT FROM gridex_ediel_ops04.revocations v WHERE v.mandate_id=m.id);
+  IF n>1 THEN RAISE EXCEPTION 'ediel_ops04_mandate_ambiguous';END IF;
+  SELECT * INTO man FROM gridex_ediel_ops04.live_mandates m WHERE m.company_id=p_company_id AND m.incident_id=p_incident_id AND m.correction_id=fix.id
+   AND m.valid_from<=now_ts AND now_ts<m.valid_to AND NOT EXISTS(SELECT FROM gridex_ediel_ops04.revocations v WHERE v.mandate_id=m.id);
+  -- Grantor must still hold LIVE authority now.
+  IF man.id IS NOT NULL AND gridex_ediel_ops04.authorized_v1(p_company_id,man.actor_user_id,'live') IS NOT TRUE THEN man:=NULL;END IF;
+ END IF;
+
+ SELECT count(*) INTO n FROM gridex_ediel_ops04.relay_captures x WHERE x.company_id=p_company_id AND x.environment=p_environment AND x.route_profile_id=r.id
+  AND NOT EXISTS(SELECT FROM gridex_ediel_ops04.revocations v WHERE v.capture_id=x.id);
+ IF n>1 THEN RAISE EXCEPTION 'ediel_ops04_capture_ambiguous';END IF;
+ SELECT * INTO cap FROM gridex_ediel_ops04.relay_captures x WHERE x.company_id=p_company_id AND x.environment=p_environment AND x.route_profile_id=r.id
+  AND NOT EXISTS(SELECT FROM gridex_ediel_ops04.revocations v WHERE v.capture_id=x.id);
+ IF cap.id IS NOT NULL AND cap.raw_headers_sha256 IS DISTINCT FROM encode(sha256(convert_to(cap.raw_headers,'UTF8')),'hex')
+  THEN RAISE EXCEPTION 'ediel_ops04_capture_integrity_required';END IF;
+
+ RETURN jsonb_build_object('companyId',p_company_id,'environment',p_environment,'incidentId',p_incident_id,'routeProfileId',r.id,
+  'incidentCorrection',CASE WHEN fix.id IS NULL THEN NULL ELSE jsonb_build_object('companyId',fix.company_id,'environment',fix.environment,'incidentId',fix.incident_id,'correctionRef',fix.correction_ref) END,
+  'counterpartyAgreement',CASE WHEN agr.id IS NULL THEN NULL ELSE jsonb_build_object('id',agr.id,'companyId',agr.company_id,'environment',agr.environment,'ref',agr.agreement_ref,
+   'counterpartyId',agr.counterparty_id,'routeId',agr.route_profile_id,'validFrom',agr.valid_from,'validTo',agr.valid_to,
+   'consumedByMessageId',(SELECT x.message_id FROM gridex_ediel_ops04.consumptions x WHERE x.agreement_id=agr.id)) END,
+  'liveMandate',CASE WHEN man.id IS NULL THEN NULL ELSE jsonb_build_object('id',man.id,'companyId',man.company_id,'environment',man.environment,'ref',man.mandate_ref,'incidentId',man.incident_id,
+   'consumedByMessageId',(SELECT x.message_id FROM gridex_ediel_ops04.consumptions x WHERE x.mandate_id=man.id)) END,
+  'relayCapture',CASE WHEN cap.id IS NULL THEN NULL ELSE jsonb_build_object('companyId',cap.company_id,'environment',cap.environment,'evidenceRef',cap.evidence_ref,
+   'routeId',cap.route_profile_id,'rawHeaders',cap.raw_headers) END);
+END $$;
+
+--
+-- Name: gridex_ediel_ops04_record_v1(uuid, uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_ediel_ops04_record_v1(p_company_id uuid, p_actor_user_id uuid, p_input jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+DECLARE k text:=p_input->>'kind';keys text[];cmd uuid;rid uuid;vf timestamptz;vt timestamptz;raw text;inp jsonb;
+ i gridex_ediel_business_incidents.incidents%rowtype;r public.ediel_route_profiles%rowtype;fix gridex_ediel_ops04.incident_corrections%rowtype;
+BEGIN
+ keys:=CASE k WHEN 'incident_correction' THEN ARRAY['kind','commandId','incidentId','correctionRef']
+  WHEN 'counterparty_agreement' THEN ARRAY['kind','commandId','routeProfileId','counterpartyId','agreementRef','validFrom','validTo']
+  WHEN 'live_mandate' THEN ARRAY['kind','commandId','incidentId','correctionId','mandateRef','validFrom','validTo']
+  WHEN 'relay_capture' THEN ARRAY['kind','commandId','routeProfileId','evidenceRef','rawHeaders'] END;
+ IF p_company_id IS NULL OR p_actor_user_id IS NULL OR jsonb_typeof(p_input) IS DISTINCT FROM 'object' OR keys IS NULL
+  OR NOT(p_input ?& keys) OR EXISTS(SELECT FROM jsonb_each(p_input) e WHERE e.key<>ALL(keys) OR jsonb_typeof(e.value)<>'string')
+  THEN RAISE EXCEPTION 'ediel_ops04_input_invalid' USING ERRCODE='22023';END IF;
+ cmd:=(p_input->>'commandId')::uuid;
+ IF gridex_ediel_ops04.authorized_v1(p_company_id,p_actor_user_id,CASE k WHEN 'live_mandate' THEN 'live' ELSE 'prepare' END) IS NOT TRUE
+  THEN RAISE EXCEPTION 'ediel_ops04_actor_forbidden' USING ERRCODE='42501';END IF;
+ IF k IN('counterparty_agreement','live_mandate') THEN
+  vf:=(p_input->>'validFrom')::timestamptz;vt:=(p_input->>'validTo')::timestamptz;
+  IF vt<=vf OR vt<=clock_timestamp() OR vt>vf+(CASE k WHEN 'live_mandate' THEN interval '24 hours' ELSE interval '31 days' END)
+   THEN RAISE EXCEPTION 'ediel_ops04_bounded_current_validity_required';END IF;
+ END IF;
+
+ IF k='incident_correction' THEN
+  rid:=gridex_ediel_ops04.replay_v1('incident_corrections',p_company_id,cmd,p_actor_user_id,p_input);
+  IF rid IS NULL THEN
+   SELECT * INTO i FROM gridex_ediel_business_incidents.incidents WHERE id=(p_input->>'incidentId')::uuid AND company_id=p_company_id FOR SHARE;
+   IF NOT FOUND THEN RAISE EXCEPTION 'ediel_ops04_own_incident_required' USING ERRCODE='42501';END IF;
+   PERFORM public.ediel_read_fresh_business_incident_v1(p_company_id,p_actor_user_id,i.id); -- requalify current originals
+   IF i.actor_user_id=p_actor_user_id THEN RAISE EXCEPTION 'ediel_ops04_independent_correction_actor_required' USING ERRCODE='42501';END IF;
+   IF EXISTS(SELECT FROM gridex_ediel_ops04.incident_corrections x WHERE x.incident_id=i.id
+    AND NOT EXISTS(SELECT FROM gridex_ediel_ops04.revocations v WHERE v.correction_id=x.id)) THEN RAISE EXCEPTION 'ediel_ops04_current_correction_exists';END IF;
+   INSERT INTO gridex_ediel_ops04.incident_corrections(company_id,environment,incident_id,command_id,actor_user_id,correction_ref,input)
+   VALUES(p_company_id,i.environment,i.id,cmd,p_actor_user_id,btrim(p_input->>'correctionRef'),p_input) RETURNING id INTO rid;
+  END IF;
+
+ ELSIF k IN('counterparty_agreement','relay_capture') THEN
+  -- Capture input is stored without the raw text but with its hash, so replay compares exactly that.
+  inp:=CASE k WHEN 'relay_capture' THEN (p_input-'rawHeaders')||jsonb_build_object('rawHeadersSha256',encode(sha256(convert_to(p_input->>'rawHeaders','UTF8')),'hex')) ELSE p_input END;
+  rid:=gridex_ediel_ops04.replay_v1(CASE k WHEN 'relay_capture' THEN 'relay_captures' ELSE 'counterparty_agreements' END,p_company_id,cmd,p_actor_user_id,inp);
+  IF rid IS NULL THEN
+   SELECT * INTO r FROM public.ediel_route_profiles WHERE id=(p_input->>'routeProfileId')::uuid AND company_id=p_company_id FOR SHARE;
+   IF NOT FOUND OR r.is_enabled IS NOT TRUE OR r.is_active IS FALSE OR r.environment NOT IN('test','production')
+    THEN RAISE EXCEPTION 'ediel_ops04_own_usable_route_required' USING ERRCODE='42501';END IF;
+   IF k='counterparty_agreement' THEN
+    IF r.counterparty_id IS DISTINCT FROM (p_input->>'counterpartyId')::uuid
+     OR NOT EXISTS(SELECT FROM public.ediel_counterparties p WHERE p.id=r.counterparty_id AND p.company_id=p_company_id
+      AND p.environment=r.environment AND p.is_active AND p.lifecycle_status IN('verified','active'))
+     THEN RAISE EXCEPTION 'ediel_ops04_route_counterparty_required';END IF;
+    IF EXISTS(SELECT FROM gridex_ediel_ops04.counterparty_agreements a WHERE a.route_profile_id=r.id
+     AND tstzrange(a.valid_from,a.valid_to)&&tstzrange(vf,vt) AND NOT EXISTS(SELECT FROM gridex_ediel_ops04.revocations v WHERE v.agreement_id=a.id))
+     THEN RAISE EXCEPTION 'ediel_ops04_overlapping_agreement';END IF;
+    INSERT INTO gridex_ediel_ops04.counterparty_agreements(company_id,environment,route_profile_id,counterparty_id,agreement_ref,valid_from,valid_to,command_id,actor_user_id,input)
+    VALUES(p_company_id,r.environment,r.id,r.counterparty_id,btrim(p_input->>'agreementRef'),vf,vt,cmd,p_actor_user_id,inp) RETURNING id INTO rid;
+   ELSE
+    raw:=p_input->>'rawHeaders';
+    IF gridex_ediel_ops04.relay_headers_allowed_v1(raw) IS NOT TRUE THEN RAISE EXCEPTION 'ediel_ops04_relay_header_allowlist_required';END IF;
+    IF EXISTS(SELECT FROM gridex_ediel_ops04.relay_captures x WHERE x.route_profile_id=r.id
+     AND NOT EXISTS(SELECT FROM gridex_ediel_ops04.revocations v WHERE v.capture_id=x.id)) THEN RAISE EXCEPTION 'ediel_ops04_current_capture_exists';END IF;
+    INSERT INTO gridex_ediel_ops04.relay_captures(company_id,environment,route_profile_id,evidence_ref,raw_headers,raw_headers_sha256,command_id,actor_user_id,input)
+    VALUES(p_company_id,r.environment,r.id,btrim(p_input->>'evidenceRef'),raw,inp->>'rawHeadersSha256',cmd,p_actor_user_id,inp) RETURNING id INTO rid;
+   END IF;
+  END IF;
+
+ ELSE -- live_mandate
+  rid:=gridex_ediel_ops04.replay_v1('live_mandates',p_company_id,cmd,p_actor_user_id,p_input);
+  IF rid IS NULL THEN
+   SELECT * INTO i FROM gridex_ediel_business_incidents.incidents WHERE id=(p_input->>'incidentId')::uuid AND company_id=p_company_id AND environment='production' FOR SHARE;
+   IF NOT FOUND THEN RAISE EXCEPTION 'ediel_ops04_own_production_incident_required' USING ERRCODE='42501';END IF;
+   SELECT * INTO fix FROM gridex_ediel_ops04.incident_corrections WHERE id=(p_input->>'correctionId')::uuid AND company_id=p_company_id AND incident_id=i.id FOR SHARE;
+   IF NOT FOUND OR EXISTS(SELECT FROM gridex_ediel_ops04.revocations v WHERE v.correction_id=fix.id) THEN RAISE EXCEPTION 'ediel_ops04_current_correction_required';END IF;
+   IF fix.actor_user_id=p_actor_user_id THEN RAISE EXCEPTION 'ediel_ops04_independent_mandate_actor_required' USING ERRCODE='42501';END IF;
+   IF EXISTS(SELECT FROM gridex_ediel_ops04.live_mandates m WHERE m.incident_id=i.id
+    AND tstzrange(m.valid_from,m.valid_to)&&tstzrange(vf,vt) AND NOT EXISTS(SELECT FROM gridex_ediel_ops04.revocations v WHERE v.mandate_id=m.id))
+    THEN RAISE EXCEPTION 'ediel_ops04_overlapping_mandate';END IF;
+   INSERT INTO gridex_ediel_ops04.live_mandates(company_id,environment,incident_id,correction_id,mandate_ref,valid_from,valid_to,command_id,actor_user_id,input)
+   VALUES(p_company_id,'production',i.id,fix.id,btrim(p_input->>'mandateRef'),vf,vt,cmd,p_actor_user_id,p_input) RETURNING id INTO rid;
+  END IF;
+ END IF;
+ RETURN jsonb_build_object('kind',k,'id',rid,'companyId',p_company_id,'commandId',cmd);
+END $$;
+
+--
+-- Name: gridex_ediel_ops04_revoke_v1(uuid, uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_ediel_ops04_revoke_v1(p_company_id uuid, p_actor_user_id uuid, p_input jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE s text:=p_input->>'subjectKind';sid uuid;cmd uuid;rid uuid;BEGIN
+ IF p_company_id IS NULL OR p_actor_user_id IS NULL OR jsonb_typeof(p_input) IS DISTINCT FROM 'object'
+  OR NOT(p_input ?& ARRAY['commandId','subjectKind','subjectId','reasonRef'])
+  OR EXISTS(SELECT FROM jsonb_each(p_input) e WHERE e.key NOT IN('commandId','subjectKind','subjectId','reasonRef') OR jsonb_typeof(e.value)<>'string')
+  OR s IS NULL OR s NOT IN('incident_correction','counterparty_agreement','live_mandate','relay_capture')
+  THEN RAISE EXCEPTION 'ediel_ops04_input_invalid' USING ERRCODE='22023';END IF;
+ cmd:=(p_input->>'commandId')::uuid;sid:=(p_input->>'subjectId')::uuid;
+ IF gridex_ediel_ops04.authorized_v1(p_company_id,p_actor_user_id,'prepare') IS NOT TRUE THEN RAISE EXCEPTION 'ediel_ops04_actor_forbidden' USING ERRCODE='42501';END IF;
+ rid:=gridex_ediel_ops04.replay_v1('revocations',p_company_id,cmd,p_actor_user_id,p_input);
+ IF rid IS NULL THEN
+  IF NOT (CASE s
+   WHEN 'incident_correction' THEN EXISTS(SELECT FROM gridex_ediel_ops04.incident_corrections WHERE id=sid AND company_id=p_company_id)
+   WHEN 'counterparty_agreement' THEN EXISTS(SELECT FROM gridex_ediel_ops04.counterparty_agreements WHERE id=sid AND company_id=p_company_id)
+   WHEN 'live_mandate' THEN EXISTS(SELECT FROM gridex_ediel_ops04.live_mandates WHERE id=sid AND company_id=p_company_id)
+   ELSE EXISTS(SELECT FROM gridex_ediel_ops04.relay_captures WHERE id=sid AND company_id=p_company_id) END)
+   THEN RAISE EXCEPTION 'ediel_ops04_own_subject_required' USING ERRCODE='42501';END IF;
+  INSERT INTO gridex_ediel_ops04.revocations(company_id,correction_id,agreement_id,mandate_id,capture_id,reason_ref,command_id,actor_user_id,input)
+  VALUES(p_company_id,CASE s WHEN 'incident_correction' THEN sid END,CASE s WHEN 'counterparty_agreement' THEN sid END,
+   CASE s WHEN 'live_mandate' THEN sid END,CASE s WHEN 'relay_capture' THEN sid END,btrim(p_input->>'reasonRef'),cmd,p_actor_user_id,p_input)
+  ON CONFLICT DO NOTHING RETURNING id INTO rid;
+ END IF;
+ RETURN jsonb_build_object('revocationId',rid,'alreadyRevoked',rid IS NULL,'companyId',p_company_id,'commandId',cmd);
+END $$;
+
+--
 -- Name: gridex_ediel_positive_fixture_prepare_v1(jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -102331,6 +102845,145 @@ CREATE TABLE gridex_ediel_legacy_archive.ediel_party_addresses (
 );
 
 --
+-- Name: consumptions; Type: TABLE; Schema: gridex_ediel_ops04; Owner: -
+--
+
+CREATE TABLE gridex_ediel_ops04.consumptions (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    environment text NOT NULL,
+    message_id uuid NOT NULL,
+    incident_id uuid NOT NULL,
+    correction_id uuid NOT NULL,
+    route_profile_id uuid NOT NULL,
+    agreement_id uuid NOT NULL,
+    mandate_id uuid,
+    resend boolean NOT NULL,
+    actor_user_id uuid NOT NULL,
+    binding jsonb NOT NULL,
+    recorded_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT consumptions_binding_check CHECK ((jsonb_typeof(binding) = 'object'::text)),
+    CONSTRAINT consumptions_check CHECK (((environment = 'production'::text) = (mandate_id IS NOT NULL))),
+    CONSTRAINT consumptions_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text])))
+);
+
+ALTER TABLE ONLY gridex_ediel_ops04.consumptions FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: counterparty_agreements; Type: TABLE; Schema: gridex_ediel_ops04; Owner: -
+--
+
+CREATE TABLE gridex_ediel_ops04.counterparty_agreements (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    environment text NOT NULL,
+    route_profile_id uuid NOT NULL,
+    counterparty_id uuid NOT NULL,
+    agreement_ref text NOT NULL,
+    valid_from timestamp with time zone NOT NULL,
+    valid_to timestamp with time zone NOT NULL,
+    command_id uuid NOT NULL,
+    actor_user_id uuid NOT NULL,
+    input jsonb NOT NULL,
+    recorded_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT counterparty_agreements_agreement_ref_check CHECK (((length(btrim(agreement_ref)) >= 1) AND (length(btrim(agreement_ref)) <= 200))),
+    CONSTRAINT counterparty_agreements_check CHECK ((valid_to > valid_from)),
+    CONSTRAINT counterparty_agreements_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text])))
+);
+
+ALTER TABLE ONLY gridex_ediel_ops04.counterparty_agreements FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: incident_corrections; Type: TABLE; Schema: gridex_ediel_ops04; Owner: -
+--
+
+CREATE TABLE gridex_ediel_ops04.incident_corrections (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    environment text NOT NULL,
+    incident_id uuid NOT NULL,
+    command_id uuid NOT NULL,
+    actor_user_id uuid NOT NULL,
+    correction_ref text NOT NULL,
+    input jsonb NOT NULL,
+    recorded_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT incident_corrections_correction_ref_check CHECK (((length(btrim(correction_ref)) >= 1) AND (length(btrim(correction_ref)) <= 200))),
+    CONSTRAINT incident_corrections_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text])))
+);
+
+ALTER TABLE ONLY gridex_ediel_ops04.incident_corrections FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: live_mandates; Type: TABLE; Schema: gridex_ediel_ops04; Owner: -
+--
+
+CREATE TABLE gridex_ediel_ops04.live_mandates (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    environment text NOT NULL,
+    incident_id uuid NOT NULL,
+    correction_id uuid NOT NULL,
+    mandate_ref text NOT NULL,
+    valid_from timestamp with time zone NOT NULL,
+    valid_to timestamp with time zone NOT NULL,
+    command_id uuid NOT NULL,
+    actor_user_id uuid NOT NULL,
+    input jsonb NOT NULL,
+    recorded_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT live_mandates_check CHECK ((valid_to > valid_from)),
+    CONSTRAINT live_mandates_environment_check CHECK ((environment = 'production'::text)),
+    CONSTRAINT live_mandates_mandate_ref_check CHECK (((length(btrim(mandate_ref)) >= 1) AND (length(btrim(mandate_ref)) <= 200)))
+);
+
+ALTER TABLE ONLY gridex_ediel_ops04.live_mandates FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: relay_captures; Type: TABLE; Schema: gridex_ediel_ops04; Owner: -
+--
+
+CREATE TABLE gridex_ediel_ops04.relay_captures (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    environment text NOT NULL,
+    route_profile_id uuid NOT NULL,
+    evidence_ref text NOT NULL,
+    raw_headers text NOT NULL,
+    raw_headers_sha256 text NOT NULL,
+    command_id uuid NOT NULL,
+    actor_user_id uuid NOT NULL,
+    input jsonb NOT NULL,
+    recorded_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT relay_captures_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text]))),
+    CONSTRAINT relay_captures_evidence_ref_check CHECK (((length(btrim(evidence_ref)) >= 1) AND (length(btrim(evidence_ref)) <= 200))),
+    CONSTRAINT relay_captures_raw_headers_check CHECK (gridex_ediel_ops04.relay_headers_allowed_v1(raw_headers)),
+    CONSTRAINT relay_captures_raw_headers_sha256_check CHECK ((raw_headers_sha256 ~ '^[a-f0-9]{64}$'::text))
+);
+
+ALTER TABLE ONLY gridex_ediel_ops04.relay_captures FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: revocations; Type: TABLE; Schema: gridex_ediel_ops04; Owner: -
+--
+
+CREATE TABLE gridex_ediel_ops04.revocations (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    correction_id uuid,
+    agreement_id uuid,
+    mandate_id uuid,
+    capture_id uuid,
+    reason_ref text NOT NULL,
+    command_id uuid NOT NULL,
+    actor_user_id uuid NOT NULL,
+    input jsonb NOT NULL,
+    recorded_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT revocations_check CHECK ((num_nonnulls(correction_id, agreement_id, mandate_id, capture_id) = 1)),
+    CONSTRAINT revocations_reason_ref_check CHECK (((length(btrim(reason_ref)) >= 1) AND (length(btrim(reason_ref)) <= 200)))
+);
+
+ALTER TABLE ONLY gridex_ediel_ops04.revocations FORCE ROW LEVEL SECURITY;
+
+--
 -- Name: consumptions; Type: TABLE; Schema: gridex_ediel_outbound_owner; Owner: -
 --
 
@@ -128346,6 +128999,132 @@ ALTER TABLE ONLY gridex_ediel_legacy_archive.ediel_party_addresses
     ADD CONSTRAINT ediel_party_addresses_pkey PRIMARY KEY (id);
 
 --
+-- Name: consumptions consumptions_agreement_id_key; Type: CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_ops04.consumptions
+    ADD CONSTRAINT consumptions_agreement_id_key UNIQUE (agreement_id);
+
+--
+-- Name: consumptions consumptions_company_id_message_id_key; Type: CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_ops04.consumptions
+    ADD CONSTRAINT consumptions_company_id_message_id_key UNIQUE (company_id, message_id);
+
+--
+-- Name: consumptions consumptions_mandate_id_key; Type: CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_ops04.consumptions
+    ADD CONSTRAINT consumptions_mandate_id_key UNIQUE (mandate_id);
+
+--
+-- Name: consumptions consumptions_pkey; Type: CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_ops04.consumptions
+    ADD CONSTRAINT consumptions_pkey PRIMARY KEY (id);
+
+--
+-- Name: counterparty_agreements counterparty_agreements_company_id_command_id_key; Type: CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_ops04.counterparty_agreements
+    ADD CONSTRAINT counterparty_agreements_company_id_command_id_key UNIQUE (company_id, command_id);
+
+--
+-- Name: counterparty_agreements counterparty_agreements_pkey; Type: CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_ops04.counterparty_agreements
+    ADD CONSTRAINT counterparty_agreements_pkey PRIMARY KEY (id);
+
+--
+-- Name: incident_corrections incident_corrections_company_id_command_id_key; Type: CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_ops04.incident_corrections
+    ADD CONSTRAINT incident_corrections_company_id_command_id_key UNIQUE (company_id, command_id);
+
+--
+-- Name: incident_corrections incident_corrections_pkey; Type: CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_ops04.incident_corrections
+    ADD CONSTRAINT incident_corrections_pkey PRIMARY KEY (id);
+
+--
+-- Name: live_mandates live_mandates_company_id_command_id_key; Type: CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_ops04.live_mandates
+    ADD CONSTRAINT live_mandates_company_id_command_id_key UNIQUE (company_id, command_id);
+
+--
+-- Name: live_mandates live_mandates_pkey; Type: CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_ops04.live_mandates
+    ADD CONSTRAINT live_mandates_pkey PRIMARY KEY (id);
+
+--
+-- Name: relay_captures relay_captures_company_id_command_id_key; Type: CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_ops04.relay_captures
+    ADD CONSTRAINT relay_captures_company_id_command_id_key UNIQUE (company_id, command_id);
+
+--
+-- Name: relay_captures relay_captures_pkey; Type: CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_ops04.relay_captures
+    ADD CONSTRAINT relay_captures_pkey PRIMARY KEY (id);
+
+--
+-- Name: revocations revocations_agreement_id_key; Type: CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_ops04.revocations
+    ADD CONSTRAINT revocations_agreement_id_key UNIQUE (agreement_id);
+
+--
+-- Name: revocations revocations_capture_id_key; Type: CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_ops04.revocations
+    ADD CONSTRAINT revocations_capture_id_key UNIQUE (capture_id);
+
+--
+-- Name: revocations revocations_company_id_command_id_key; Type: CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_ops04.revocations
+    ADD CONSTRAINT revocations_company_id_command_id_key UNIQUE (company_id, command_id);
+
+--
+-- Name: revocations revocations_correction_id_key; Type: CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_ops04.revocations
+    ADD CONSTRAINT revocations_correction_id_key UNIQUE (correction_id);
+
+--
+-- Name: revocations revocations_mandate_id_key; Type: CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_ops04.revocations
+    ADD CONSTRAINT revocations_mandate_id_key UNIQUE (mandate_id);
+
+--
+-- Name: revocations revocations_pkey; Type: CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_ops04.revocations
+    ADD CONSTRAINT revocations_pkey PRIMARY KEY (id);
+
+--
 -- Name: consumptions consumptions_pkey; Type: CONSTRAINT; Schema: gridex_ediel_outbound_owner; Owner: -
 --
 
@@ -135549,6 +136328,12 @@ CREATE UNIQUE INDEX ediel_party_addresses_route_unique_idx ON gridex_ediel_legac
 --
 
 CREATE INDEX idx_fk_ediel_party_addresses_86cb43505bcf ON gridex_ediel_legacy_archive.ediel_party_addresses USING btree (receiver_certificate_id);
+
+--
+-- Name: counterparty_agreements_route_idx; Type: INDEX; Schema: gridex_ediel_ops04; Owner: -
+--
+
+CREATE INDEX counterparty_agreements_route_idx ON gridex_ediel_ops04.counterparty_agreements USING btree (company_id, environment, route_profile_id);
 
 --
 -- Name: ediel_scoped_readiness_evidence_lookup; Type: INDEX; Schema: gridex_ediel_readiness; Owner: -
@@ -148058,6 +148843,78 @@ CREATE TRIGGER immutable_truncate BEFORE TRUNCATE ON gridex_ediel_inbound_recept
 CREATE TRIGGER immutable_truncate BEFORE TRUNCATE ON gridex_ediel_inbound_receptions.technical_mailbox_births FOR EACH STATEMENT EXECUTE FUNCTION gridex_unattributed_intake.immutable_v1();
 
 --
+-- Name: consumptions gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_ediel_ops04; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_ediel_ops04.consumptions FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: counterparty_agreements gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_ediel_ops04; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_ediel_ops04.counterparty_agreements FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: incident_corrections gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_ediel_ops04; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_ediel_ops04.incident_corrections FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: live_mandates gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_ediel_ops04; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_ediel_ops04.live_mandates FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: relay_captures gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_ediel_ops04; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_ediel_ops04.relay_captures FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: revocations gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_ediel_ops04; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_ediel_ops04.revocations FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: consumptions immutable_ops04_evidence; Type: TRIGGER; Schema: gridex_ediel_ops04; Owner: -
+--
+
+CREATE TRIGGER immutable_ops04_evidence BEFORE DELETE OR UPDATE ON gridex_ediel_ops04.consumptions FOR EACH ROW EXECUTE FUNCTION gridex_ediel_ops04.immutable_v1();
+
+--
+-- Name: counterparty_agreements immutable_ops04_evidence; Type: TRIGGER; Schema: gridex_ediel_ops04; Owner: -
+--
+
+CREATE TRIGGER immutable_ops04_evidence BEFORE DELETE OR UPDATE ON gridex_ediel_ops04.counterparty_agreements FOR EACH ROW EXECUTE FUNCTION gridex_ediel_ops04.immutable_v1();
+
+--
+-- Name: incident_corrections immutable_ops04_evidence; Type: TRIGGER; Schema: gridex_ediel_ops04; Owner: -
+--
+
+CREATE TRIGGER immutable_ops04_evidence BEFORE DELETE OR UPDATE ON gridex_ediel_ops04.incident_corrections FOR EACH ROW EXECUTE FUNCTION gridex_ediel_ops04.immutable_v1();
+
+--
+-- Name: live_mandates immutable_ops04_evidence; Type: TRIGGER; Schema: gridex_ediel_ops04; Owner: -
+--
+
+CREATE TRIGGER immutable_ops04_evidence BEFORE DELETE OR UPDATE ON gridex_ediel_ops04.live_mandates FOR EACH ROW EXECUTE FUNCTION gridex_ediel_ops04.immutable_v1();
+
+--
+-- Name: relay_captures immutable_ops04_evidence; Type: TRIGGER; Schema: gridex_ediel_ops04; Owner: -
+--
+
+CREATE TRIGGER immutable_ops04_evidence BEFORE DELETE OR UPDATE ON gridex_ediel_ops04.relay_captures FOR EACH ROW EXECUTE FUNCTION gridex_ediel_ops04.immutable_v1();
+
+--
+-- Name: revocations immutable_ops04_evidence; Type: TRIGGER; Schema: gridex_ediel_ops04; Owner: -
+--
+
+CREATE TRIGGER immutable_ops04_evidence BEFORE DELETE OR UPDATE ON gridex_ediel_ops04.revocations FOR EACH ROW EXECUTE FUNCTION gridex_ediel_ops04.immutable_v1();
+
+--
 -- Name: consumptions immutable_rows; Type: TRIGGER; Schema: gridex_ediel_outbound_owner; Owner: -
 --
 
@@ -158188,6 +159045,202 @@ ALTER TABLE ONLY gridex_ediel_legacy_archive.ediel_party_addresses
 
 ALTER TABLE ONLY gridex_ediel_legacy_archive.ediel_party_addresses
     ADD CONSTRAINT ediel_party_addresses_receiver_certificate_id_fkey FOREIGN KEY (receiver_certificate_id) REFERENCES public.ediel_certificates(id) ON DELETE SET NULL;
+
+--
+-- Name: consumptions consumptions_actor_user_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_ops04.consumptions
+    ADD CONSTRAINT consumptions_actor_user_id_fkey FOREIGN KEY (actor_user_id) REFERENCES auth.users(id);
+
+--
+-- Name: consumptions consumptions_agreement_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_ops04.consumptions
+    ADD CONSTRAINT consumptions_agreement_id_fkey FOREIGN KEY (agreement_id) REFERENCES gridex_ediel_ops04.counterparty_agreements(id);
+
+--
+-- Name: consumptions consumptions_company_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_ops04.consumptions
+    ADD CONSTRAINT consumptions_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id);
+
+--
+-- Name: consumptions consumptions_correction_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_ops04.consumptions
+    ADD CONSTRAINT consumptions_correction_id_fkey FOREIGN KEY (correction_id) REFERENCES gridex_ediel_ops04.incident_corrections(id);
+
+--
+-- Name: consumptions consumptions_incident_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_ops04.consumptions
+    ADD CONSTRAINT consumptions_incident_id_fkey FOREIGN KEY (incident_id) REFERENCES gridex_ediel_business_incidents.incidents(id);
+
+--
+-- Name: consumptions consumptions_mandate_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_ops04.consumptions
+    ADD CONSTRAINT consumptions_mandate_id_fkey FOREIGN KEY (mandate_id) REFERENCES gridex_ediel_ops04.live_mandates(id);
+
+--
+-- Name: consumptions consumptions_message_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_ops04.consumptions
+    ADD CONSTRAINT consumptions_message_id_fkey FOREIGN KEY (message_id) REFERENCES public.ediel_messages(id);
+
+--
+-- Name: consumptions consumptions_route_profile_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_ops04.consumptions
+    ADD CONSTRAINT consumptions_route_profile_id_fkey FOREIGN KEY (route_profile_id) REFERENCES public.ediel_route_profiles(id);
+
+--
+-- Name: counterparty_agreements counterparty_agreements_actor_user_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_ops04.counterparty_agreements
+    ADD CONSTRAINT counterparty_agreements_actor_user_id_fkey FOREIGN KEY (actor_user_id) REFERENCES auth.users(id);
+
+--
+-- Name: counterparty_agreements counterparty_agreements_company_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_ops04.counterparty_agreements
+    ADD CONSTRAINT counterparty_agreements_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id);
+
+--
+-- Name: counterparty_agreements counterparty_agreements_counterparty_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_ops04.counterparty_agreements
+    ADD CONSTRAINT counterparty_agreements_counterparty_id_fkey FOREIGN KEY (counterparty_id) REFERENCES public.ediel_counterparties(id);
+
+--
+-- Name: counterparty_agreements counterparty_agreements_route_profile_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_ops04.counterparty_agreements
+    ADD CONSTRAINT counterparty_agreements_route_profile_id_fkey FOREIGN KEY (route_profile_id) REFERENCES public.ediel_route_profiles(id);
+
+--
+-- Name: incident_corrections incident_corrections_actor_user_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_ops04.incident_corrections
+    ADD CONSTRAINT incident_corrections_actor_user_id_fkey FOREIGN KEY (actor_user_id) REFERENCES auth.users(id);
+
+--
+-- Name: incident_corrections incident_corrections_company_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_ops04.incident_corrections
+    ADD CONSTRAINT incident_corrections_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id);
+
+--
+-- Name: incident_corrections incident_corrections_incident_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_ops04.incident_corrections
+    ADD CONSTRAINT incident_corrections_incident_id_fkey FOREIGN KEY (incident_id) REFERENCES gridex_ediel_business_incidents.incidents(id);
+
+--
+-- Name: live_mandates live_mandates_actor_user_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_ops04.live_mandates
+    ADD CONSTRAINT live_mandates_actor_user_id_fkey FOREIGN KEY (actor_user_id) REFERENCES auth.users(id);
+
+--
+-- Name: live_mandates live_mandates_company_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_ops04.live_mandates
+    ADD CONSTRAINT live_mandates_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id);
+
+--
+-- Name: live_mandates live_mandates_correction_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_ops04.live_mandates
+    ADD CONSTRAINT live_mandates_correction_id_fkey FOREIGN KEY (correction_id) REFERENCES gridex_ediel_ops04.incident_corrections(id);
+
+--
+-- Name: live_mandates live_mandates_incident_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_ops04.live_mandates
+    ADD CONSTRAINT live_mandates_incident_id_fkey FOREIGN KEY (incident_id) REFERENCES gridex_ediel_business_incidents.incidents(id);
+
+--
+-- Name: relay_captures relay_captures_actor_user_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_ops04.relay_captures
+    ADD CONSTRAINT relay_captures_actor_user_id_fkey FOREIGN KEY (actor_user_id) REFERENCES auth.users(id);
+
+--
+-- Name: relay_captures relay_captures_company_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_ops04.relay_captures
+    ADD CONSTRAINT relay_captures_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id);
+
+--
+-- Name: relay_captures relay_captures_route_profile_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_ops04.relay_captures
+    ADD CONSTRAINT relay_captures_route_profile_id_fkey FOREIGN KEY (route_profile_id) REFERENCES public.ediel_route_profiles(id);
+
+--
+-- Name: revocations revocations_actor_user_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_ops04.revocations
+    ADD CONSTRAINT revocations_actor_user_id_fkey FOREIGN KEY (actor_user_id) REFERENCES auth.users(id);
+
+--
+-- Name: revocations revocations_agreement_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_ops04.revocations
+    ADD CONSTRAINT revocations_agreement_id_fkey FOREIGN KEY (agreement_id) REFERENCES gridex_ediel_ops04.counterparty_agreements(id);
+
+--
+-- Name: revocations revocations_capture_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_ops04.revocations
+    ADD CONSTRAINT revocations_capture_id_fkey FOREIGN KEY (capture_id) REFERENCES gridex_ediel_ops04.relay_captures(id);
+
+--
+-- Name: revocations revocations_company_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_ops04.revocations
+    ADD CONSTRAINT revocations_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id);
+
+--
+-- Name: revocations revocations_correction_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_ops04.revocations
+    ADD CONSTRAINT revocations_correction_id_fkey FOREIGN KEY (correction_id) REFERENCES gridex_ediel_ops04.incident_corrections(id);
+
+--
+-- Name: revocations revocations_mandate_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_ops04.revocations
+    ADD CONSTRAINT revocations_mandate_id_fkey FOREIGN KEY (mandate_id) REFERENCES gridex_ediel_ops04.live_mandates(id);
 
 --
 -- Name: consumptions consumptions_witness_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_outbound_owner; Owner: -
@@ -170807,6 +171860,42 @@ CREATE POLICY gridex_launch_platform_only_select_restored ON gridex_ediel_legacy
 --
 
 CREATE POLICY gridex_launch_platform_only_update ON gridex_ediel_legacy_archive.ediel_party_addresses FOR UPDATE TO authenticated USING (( SELECT public.gridex_user_is_platform_admin() AS gridex_user_is_platform_admin)) WITH CHECK (( SELECT public.gridex_user_is_platform_admin() AS gridex_user_is_platform_admin));
+
+--
+-- Name: consumptions; Type: ROW SECURITY; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE gridex_ediel_ops04.consumptions ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: counterparty_agreements; Type: ROW SECURITY; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE gridex_ediel_ops04.counterparty_agreements ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: incident_corrections; Type: ROW SECURITY; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE gridex_ediel_ops04.incident_corrections ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: live_mandates; Type: ROW SECURITY; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE gridex_ediel_ops04.live_mandates ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: relay_captures; Type: ROW SECURITY; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE gridex_ediel_ops04.relay_captures ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: revocations; Type: ROW SECURITY; Schema: gridex_ediel_ops04; Owner: -
+--
+
+ALTER TABLE gridex_ediel_ops04.revocations ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: consumptions; Type: ROW SECURITY; Schema: gridex_ediel_outbound_owner; Owner: -
@@ -193208,6 +194297,30 @@ REVOKE ALL ON FUNCTION gridex_ediel_inbound_receptions.result_v1(r gridex_ediel_
 REVOKE ALL ON FUNCTION gridex_ediel_legacy_archive.refuse_new_address_reference_v1() FROM PUBLIC;
 
 --
+-- Name: FUNCTION authorized_v1(c uuid, actor uuid, phase text); Type: ACL; Schema: gridex_ediel_ops04; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_ops04.authorized_v1(c uuid, actor uuid, phase text) FROM PUBLIC;
+
+--
+-- Name: FUNCTION immutable_v1(); Type: ACL; Schema: gridex_ediel_ops04; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_ops04.immutable_v1() FROM PUBLIC;
+
+--
+-- Name: FUNCTION relay_headers_allowed_v1(raw text); Type: ACL; Schema: gridex_ediel_ops04; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_ops04.relay_headers_allowed_v1(raw text) FROM PUBLIC;
+
+--
+-- Name: FUNCTION replay_v1(t text, c uuid, cmd uuid, actor uuid, input jsonb); Type: ACL; Schema: gridex_ediel_ops04; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_ops04.replay_v1(t text, c uuid, cmd uuid, actor uuid, input jsonb) FROM PUBLIC;
+
+--
 -- Name: FUNCTION assert_message_before_native_ack_guide_v1(m public.ediel_messages, w gridex_ediel_outbound_owner.witnesses); Type: ACL; Schema: gridex_ediel_outbound_owner; Owner: -
 --
 
@@ -202354,6 +203467,41 @@ GRANT ALL ON FUNCTION public.gridex_ediel_negative_fixture_publish_v1(p_context 
 
 REVOKE ALL ON FUNCTION public.gridex_ediel_negative_fixture_read_v1(p_context jsonb) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_ediel_negative_fixture_read_v1(p_context jsonb) TO service_role;
+
+--
+-- Name: FUNCTION gridex_ediel_ops04_consume_controlled_live_v1(p_company_id uuid, p_environment text, p_actor_user_id uuid, p_message_id uuid, p_incident_id uuid, p_route_profile_id uuid, p_agreement_id uuid, p_mandate_id uuid, p_resend boolean, p_binding jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_ediel_ops04_consume_controlled_live_v1(p_company_id uuid, p_environment text, p_actor_user_id uuid, p_message_id uuid, p_incident_id uuid, p_route_profile_id uuid, p_agreement_id uuid, p_mandate_id uuid, p_resend boolean, p_binding jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_ediel_ops04_consume_controlled_live_v1(p_company_id uuid, p_environment text, p_actor_user_id uuid, p_message_id uuid, p_incident_id uuid, p_route_profile_id uuid, p_agreement_id uuid, p_mandate_id uuid, p_resend boolean, p_binding jsonb) TO service_role;
+
+--
+-- Name: FUNCTION gridex_ediel_ops04_controlled_flow_probe_v1(p_company_id uuid, p_environment text, p_message_id uuid, p_communication_route_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_ediel_ops04_controlled_flow_probe_v1(p_company_id uuid, p_environment text, p_message_id uuid, p_communication_route_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_ediel_ops04_controlled_flow_probe_v1(p_company_id uuid, p_environment text, p_message_id uuid, p_communication_route_id uuid) TO service_role;
+
+--
+-- Name: FUNCTION gridex_ediel_ops04_controlled_live_evidence_v1(p_company_id uuid, p_environment text, p_actor_user_id uuid, p_message_id uuid, p_incident_id uuid, p_route_profile_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_ediel_ops04_controlled_live_evidence_v1(p_company_id uuid, p_environment text, p_actor_user_id uuid, p_message_id uuid, p_incident_id uuid, p_route_profile_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_ediel_ops04_controlled_live_evidence_v1(p_company_id uuid, p_environment text, p_actor_user_id uuid, p_message_id uuid, p_incident_id uuid, p_route_profile_id uuid) TO service_role;
+
+--
+-- Name: FUNCTION gridex_ediel_ops04_record_v1(p_company_id uuid, p_actor_user_id uuid, p_input jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_ediel_ops04_record_v1(p_company_id uuid, p_actor_user_id uuid, p_input jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_ediel_ops04_record_v1(p_company_id uuid, p_actor_user_id uuid, p_input jsonb) TO service_role;
+
+--
+-- Name: FUNCTION gridex_ediel_ops04_revoke_v1(p_company_id uuid, p_actor_user_id uuid, p_input jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_ediel_ops04_revoke_v1(p_company_id uuid, p_actor_user_id uuid, p_input jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_ediel_ops04_revoke_v1(p_company_id uuid, p_actor_user_id uuid, p_input jsonb) TO service_role;
 
 --
 -- Name: FUNCTION gridex_ediel_positive_fixture_prepare_v1(p_context jsonb); Type: ACL; Schema: public; Owner: -

@@ -238,6 +238,7 @@
     "20261018220722_db05_completed_parent_purpose_disposition.sql": "7e48170d5c68945ea6f7cbcd1c661c679ea0775889a9a5b70b5078342388d199",
     "20261018232000_db05_qualified_audit19_cleanup.sql": "18fcbbb3c0e8e5181539fcf1b33f54f7867cac18fe1e65a27a1898371cddde47",
     "20261019070000_db05_audit19_archived_permission.sql": "db47da92f7c47f936da499bac1ea9b347239f5965856fb5149a14e83abd95f06",
-    "20261018143000_ediel_requested_change_metering_method_original_guard.sql": "1084a44192a54df47954561562460b8aa56ce2f8e487f51ee549981df195fb24"
+    "20261018143000_ediel_requested_change_metering_method_original_guard.sql": "1084a44192a54df47954561562460b8aa56ce2f8e487f51ee549981df195fb24",
+    "20261019160000_ediel_sc031_inbound_ignored_register_projection.sql": "cf6e7b6085ee1529c6f254feb92e2907d8a8e036fcd924cbafaef670572ff8b6"
   }
 }
