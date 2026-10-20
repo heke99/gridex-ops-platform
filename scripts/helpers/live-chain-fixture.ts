@@ -161,7 +161,9 @@ export type LiveTenant = {
  * Publishing an offer requires a production BRP, so `beforePublish` runs that onboarding before the offer is published.
  */
 export async function configureTenant(supabase: { rpc: (name: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: unknown }> },
-  options: { brp?: boolean; beforePublish?: (tenant: { companyId: string; operatorEmail: string; operatorPassword: string }) => Promise<void> } = {}): Promise<LiveTenant> {
+  options: { brp?: boolean; beforePublish?: (tenant: { companyId: string; operatorEmail: string; operatorPassword: string }) => Promise<void>
+    /** Reuse another tenant's grid owner (same Ediel id and mailbox): two suppliers in one grid area. */
+    sharedGridOwner?: Pick<LiveTenant, 'issuerEdielId' | 'gridOwnerEmail'> } = {}): Promise<LiveTenant> {
   ensureHostedPermissionCatalog()
   ensureProductionRoleLookupParity()
   const companyId = randomUUID(), adminUserId = randomUUID(), gridOwnerId = randomUUID()
@@ -171,9 +173,9 @@ export async function configureTenant(supabase: { rpc: (name: string, args: Reco
   const supplierEdielId = sql<string>(`BEGIN; SELECT pg_advisory_xact_lock(hashtextextended('native_utilts_consumption_receiver',0));
    SELECT to_jsonb(min(n)::text) FROM generate_series(70000,79999) n WHERE NOT EXISTS(SELECT FROM public.tenant_actor_identifiers i WHERE i.identifier_type='EdielId' AND i.identifier_value=n::text)
     AND NOT EXISTS(SELECT FROM public.ediel_actor_settings a WHERE a.ediel_id=n::text); COMMIT;`)
-  const issuerEdielId = sql<string>(`BEGIN; SELECT pg_advisory_xact_lock(hashtextextended('native_utilts_consumption_issuer',0));
+  const issuerEdielId = options.sharedGridOwner?.issuerEdielId ?? sql<string>(`BEGIN; SELECT pg_advisory_xact_lock(hashtextextended('native_utilts_consumption_issuer',0));
    SELECT to_jsonb(min(n)::text) FROM generate_series(80000,89999) n WHERE NOT EXISTS(SELECT FROM gridex_utilts_issuer.namespaces x WHERE x.registry_actor_key='SYNTHETIC-NATIVE-ISSUER:'||n::text); COMMIT;`)
-  const gridOwnerEmail = `e2e-natagare-${issuerEdielId}@example.invalid`
+  const gridOwnerEmail = options.sharedGridOwner?.gridOwnerEmail ?? `e2e-natagare-${issuerEdielId}@example.invalid`
   const user = (id: string, email: string, name: string, password?: string) => `
    INSERT INTO auth.users(id,instance_id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_sso_user,is_anonymous,confirmation_token,recovery_token,email_change_token_new,email_change)
    VALUES(${literal(id)},'00000000-0000-0000-0000-000000000000','authenticated','authenticated',${literal(email)},${password ? `extensions.crypt(${literal(password)},extensions.gen_salt('bf'))` : 'NULL'},now(),'{"provider":"email","providers":["email"]}','{}',now(),now(),false,false,'','','','');

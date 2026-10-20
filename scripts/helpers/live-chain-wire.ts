@@ -29,9 +29,16 @@ export function dayProfile(dayIndex: number): number[] {
 
 const pad = (n: number, w = 2) => String(n).padStart(w, '0')
 
-/** One grid-owner UTILTS E66 for one local (CEST, +0200) day: 96 energy-only quarter-hours. */
-export function dailyE66(input: { issuer: string; receiver: string; meterId: string; day: string; values: number[]; reference: string }) {
-  if (input.values.length !== 96) throw Error('dailyE66 requires 96 quarter-hours')
+/**
+ * One grid-owner UTILTS E66 for one local (CEST, +0200) day: energy-only quarter-hours (96 values) or, with
+ * `resolutionMinutes: 60`, hours (24 values). `registeredAfterHours` moves the registration time later, as a
+ * grid owner does when it re-sends corrected values for the same day.
+ */
+export function dailyE66(input: { issuer: string; receiver: string; meterId: string; day: string; values: number[]; reference: string;
+  resolutionMinutes?: 15 | 60; registeredAfterHours?: number }) {
+  const step = input.resolutionMinutes ?? 15
+  if (input.values.length !== (24 * 60) / step) throw Error(`dailyE66 requires ${(24 * 60) / step} values for ${step}-minute resolution`)
+  const registered = (6 + (input.registeredAfterHours ?? 0)) * 60
   const [y, m, d] = input.day.split('-').map(Number)
   const next = new Date(Date.UTC(y, m - 1, d + 1))
   const local = (date: Date, minutes: number) => {
@@ -41,19 +48,24 @@ export function dailyE66(input: { issuer: string; receiver: string; meterId: str
   const start = new Date(Date.UTC(y, m - 1, d))
   const lines = [
     "UNA:+.? '",
-    `UNB+UNOC:3+${input.issuer}:ZZ+${input.receiver}:ZZ+${local(next, 6 * 60).slice(2, 8)}:0600+${input.reference}++23-DDQ-E66-T++++1'`,
+    `UNB+UNOC:3+${input.issuer}:ZZ+${input.receiver}:ZZ+${local(next, registered).slice(2, 8)}:${local(next, registered).slice(8, 12)}+${input.reference}++23-DDQ-E66-T++++1'`,
     "UNH+1+UTILTS:D:02B:UN:E5SE5A'",
     `BGM+E66::260+M${input.reference}+9+AB'`,
-    `DTM+137:${local(next, 6 * 60)}:203'`, "DTM+735:?+0200:406'", "MKS+23+E02::260'",
+    `DTM+137:${local(next, registered)}:203'`, "DTM+735:?+0200:406'", "MKS+23+E02::260'",
     `NAD+MS+${input.issuer}:SVK:260'`, `NAD+MR+${input.receiver}:SVK:260'`, "NAD+DDQ'",
     `IDE+24+T${input.reference}'`, `LOC+172+${input.meterId}::9'`, "LOC+239+TES:SVK:260'",
     "LIN+++8716867000030:::9'", `DTM+324:${local(start, 0)}${local(next, 0)}:719'`,
-    `DTM+597:${local(next, 6 * 60)}:203'`, "DTM+354:15:806'", "STS+7++E88::260'", "MEA+AAZ++KWH'",
+    `DTM+597:${local(next, registered)}:203'`, `DTM+354:${step}:806'`, "STS+7++E88::260'", "MEA+AAZ++KWH'",
     "CCI+++E12::260'", "CAV+E17::260'",
   ]
   input.values.forEach((value, q) => {
-    lines.push(`SEQ++${q + 1}'`, `QTY+136:${kwhText(value)}'`, `DTM+597:${local(start, q * 15)}:203'`, "STS+7++21::260'")
+    lines.push(`SEQ++${q + 1}'`, `QTY+136:${kwhText(value)}'`, `DTM+597:${local(start, q * step)}:203'`, "STS+7++21::260'")
   })
   lines.push(`UNT+${lines.length - 1}+1'`, `UNZ+1+${input.reference}'`)
   return lines.join('\n')
+}
+
+/** Hourly sums of a quarter-hour profile (24 values). */
+export function hourlyFromQuarters(values: number[]): number[] {
+  return Array.from({ length: 24 }, (_, h) => Math.round(values.slice(h * 4, h * 4 + 4).reduce((a, b) => a + b, 0) * 1000) / 1000)
 }
