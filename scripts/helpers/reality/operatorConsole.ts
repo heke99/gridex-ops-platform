@@ -108,6 +108,19 @@ export async function chooseTenantBrp(context: BrowserContext, companyId: string
   return { actionStatus, status: url.searchParams.get('status'), message: url.searchParams.get('message'), shown: shown.slice(0, 400) }
 }
 
+/** Go-live page, "Driftkapabiliteter": platform staff reconcile e-mail, facility request and automation (F67). */
+export async function reconcileOperationalCapabilities(context: BrowserContext, companyId: string) {
+  const page = await context.newPage()
+  await page.goto(`/admin/platform/go-live/${companyId}#capabilities`)
+  const form = page.locator('section#capabilities form')
+  const actionStatus = await submitServerAction(page, () => form.getByRole('button', { name: 'Kontrollera driftkapabiliteter' }).click(), 120_000)
+  await page.waitForURL(url => url.searchParams.has('status'), { timeout: 30_000 }).catch(() => undefined)
+  const url = new URL(page.url())
+  const shown = (await page.locator('section#capabilities').innerText().catch(() => '')).replace(/\s+/g, ' ')
+  await page.close()
+  return { actionStatus, status: url.searchParams.get('status'), message: url.searchParams.get('message'), shown: shown.slice(0, 600) }
+}
+
 /**
  * /admin/network-owners/<id>/contact-channels: platform staff add the grid owner's verified contact for
  * facility-information requests (the single-channel form with "Kanaltyp").

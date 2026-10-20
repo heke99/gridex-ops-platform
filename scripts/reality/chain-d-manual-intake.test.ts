@@ -15,7 +15,8 @@ import { afterAll, describe, expect, it } from 'vitest'
 import { supabaseService } from '@/lib/supabase/service'
 import { configureTenant, literal, sql, type LiveTenant } from '../helpers/live-chain-fixture'
 import { addGridOwnerContactChannel, checkGridOwners, closeOperatorConsole, confirmSafeBlankSubaddresses, importActorRegistry, operatorSession,
-  sanitizedActorRegistry, searchGridOwnerCertificate, submitManualIntake, verifyActorForCustomerFlow } from '../helpers/reality/operatorConsole'
+  reconcileOperationalCapabilities, sanitizedActorRegistry, searchGridOwnerCertificate, submitManualIntake, verifyActorForCustomerFlow } from '../helpers/reality/operatorConsole'
+import { seedDefaultCompanyEmailConfiguration } from '@/lib/email/bootstrap'
 import { configurePlatformManualMailbox } from '../helpers/reality/tenantWebsite'
 import { createTenantStaff } from '../helpers/reality/tenantStaff'
 import { prepareMarketData, runOperationalCronSlot } from '../helpers/reality/world'
@@ -85,6 +86,11 @@ describe.sequential('reality D — manual customer intake by a tenant employee',
     await fetch('http://127.0.0.1:3901/__sim/geocode', { method: 'POST', body: JSON.stringify({ postal_code: '441 30', latitude: 57.9303, longitude: 12.534 }) })
     report.contactChannel = await addGridOwnerContactChannel(staffOperator, gridOwnerId, GRID_OWNER_FACILITY_CONTACT)
     configurePlatformManualMailbox()
+    // Go-live without a website (owner decision F67): "Install standard e-mail" in /admin/companies/[id],
+    // then the go-live page's operational capability check.
+    await seedDefaultCompanyEmailConfiguration(tenant.companyId)
+    report.capabilities = await reconcileOperationalCapabilities(staffOperator, tenant.companyId)
+    expect(report.capabilities, JSON.stringify(report.capabilities)).toMatchObject({ status: 'capabilities_ready' })
     // The tenant's own employee does the intake.
     const employee = await createTenantStaff(tenant.companyId)
     const staff = await operatorSession(employee.email, employee.password)

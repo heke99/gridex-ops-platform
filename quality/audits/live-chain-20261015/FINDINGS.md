@@ -390,6 +390,82 @@ Världen byggdes från noll med `up.sh` (ren replay, `next build` och `start`, s
 
 ## Manuellt kundintag (scenario D, 2026-10-20)
 
+Kedjan i scenario D, i ordning. Varje fel nedan dolde nästa. Alla är verifierade i en ren replay och, där det anges, mot driftens funktionskroppar (md5) eller aggregat (bara läsfrågor). Alla är rättade. De fem behörighets- och produktbesluten fattades av ägaren 2026-10-20.
+
+### F56 Inget manuellt intag kunde sparas — RÄTTAD, kritisk
+- **Utfall:** varje första inskick gav "En identisk intagning bearbetas redan" och ingen kund skapades. Drift har 0 intag via `admin/*`.
+- **Orsak:** `createCustomerAction` ignorerade `created` från idempotensloggen, så raden som just skapats tolkades som ett pågående dubbelinskick.
+- **Rättning:** spärren gäller bara en rad som fanns före inskicket. Test: `__tests__/admin-intake-fresh-ledger-row.test.ts`.
+
+### F57 Ett internt publicerat erbjudande kunde inte säljas manuellt — RÄTTAD, hög
+- **Orsak:** `gridex_ensure_internal_contract_publication` kände bara igen sin egen v1-snapshot och skapade en andra publicerad version bredvid kanalpubliceringens v6-version. Unikindexet stoppade det. Funktionen är md5-identisk i drift.
+- **Rättning:** migrationen `20261020240000` återanvänder erbjudandets publicerade interna kanalversion.
+
+### F58 Gemensam nätägare tappades när anläggningen sparades — RÄTTAD, hög (variant av F54)
+- **Orsak:** `normalizeGridOwnerIdToOps` filtrerade på `company_id = bolaget`.
+- **Rättning:** gemensam eller egen nätägare, aldrig ett annat bolags. Test: `__tests__/grid-owner-normalizer-shared-registry.test.ts`.
+
+### F59 Ingen anställd hos en tenant kunde registrera ett redan signerat avtal — RÄTTAD (ägarbeslut), hög
+- **Orsak:** importen kräver `contracts.create`, som i drift bara `pricing_manager` och `super_admin` har. Felet kom dessutom först efter att kund, anläggning och avtal skrivits.
+- **Rättning:**
+  - Migrationen `20261020250000` ger `contracts.create` till `company_admin`, `owner` och `customer_service_manager`.
+  - Intaget nekar redan före första skrivningen när behörigheten saknas.
+
+### F60 Ett uppladdat signerat avtal kunde aldrig importeras — RÄTTAD, kritisk
+- **Orsak:** importtriggern skapade ett andra priskvitto med samma `valid_from` som kontraktets bundna snapshot, och unikindexet stoppade det. Funktionen är md5-identisk i drift, och drift har 0 importer.
+- **Rättning:** migrationen `20261020260000` signerar den bundna, hashade snapshoten när den matchar exakt.
+
+### F61 Importen kraschade på händelseloggen — RÄTTAD, kritisk
+- **Orsak:** dokumentraden skrevs med användarsessionen, men triggerns händelselogg kräver `service_role`. Båda uppladdningsvägarna (intaget och kundkortet) var berörda. Drift har 0 avtal och 0 händelser.
+- **Rättning:**
+  - Raden skrivs med service-rollen och med den anställde som `created_by`. Triggern kontrollerar fortfarande behörighet och tenantkedja.
+  - En nekad import blir en varning på den sparade kunden, i stället för "kunde inte sparas".
+- **Test:** `__tests__/signed-agreement-import-service-role.test.ts`.
+
+### F62 Inget automatiskt leverantörsbyte kunde någonsin auktoriseras i drift — RÄTTAD (ägarbeslut), kritisk
+- **Orsak:**
+  - Switcharbetaren kräver `communication.write` och `operations.write`.
+  - I drift hade ingen roll `communication.write`, och den krävs i cirka 80 Ediel-steg.
+  - `operations.write` fanns inte ens i katalogen. Bara native-fixturer skapade den, och fixturerna ger dessutom alla nycklar direkt, vilket dolde felet.
+- **Rättning:** migrationen `20261020270000` och `lib/rbac/catalog.ts` lägger till nyckeln. `company_admin`, `owner`, `operations_manager` och `customer_service_manager` får båda rättigheterna.
+
+### F63 Manuellt registrerade anläggningar fick aldrig geografisk nätägare — RÄTTAD, kritisk
+- **Utfall:** nätägarförfrågan med fullmakt hölls alltid som "inte kanoniskt verifierad".
+- **Orsak:** intaget körde aldrig webbens `resolveEnergyContext` och precisionspass (Papilite + SVK).
+- **Rättning:** intaget kör båda för den exakta anläggningen. Om adressen pekar ut en annan nätägare än den valda vinner adressen och den anställde får veta det. Om adressen inte går att lösa sparas valet bara som granskningskandidat.
+- **Test:** `__tests__/manual-intake-site-geography.test.ts`.
+
+### F64 En nätägare utan nätområde blev "facility_verified" — RÄTTAD, medel
+- **Orsak:** genvägen i `resolveCustomerSiteGridOwner` litade på vilket `grid_owner_id` som helst.
+- **Rättning:** genvägen kräver nu också känt nätområde.
+
+### F65 Anläggningen saknade adressversion — RÄTTAD, hög
+- **Orsak:** varje nätägarkontakt binds till `address_hash`, men intaget skrev aldrig den.
+- **Rättning:** intaget går via samma atomiska adresscommit som kundkortet och webben (källa `manual_intake`).
+
+### F66 Fullmakten från intaget var aldrig sändbar — RÄTTAD (ägarbeslut), hög
+- **Orsak:** undertecknare och metod saknades.
+- **Rättning:**
+  - Formuläret har fält för undertecknare och dennes person- eller organisationsnummer.
+  - För privatkund används kundens namn och personnummer när fälten lämnas tomma. För företag antas aldrig någon undertecknare.
+  - Metoden blir `pdf_upload`.
+- **Test:** `__tests__/manual-intake-poa-signer.test.ts`.
+
+### F67 En elhandlare utan webbförsäljning kunde aldrig skicka nätägarförfrågan — RÄTTAD (ägarbeslut), kritisk
+- **Orsak:**
+  - Kapabiliteterna `email_outbound`, `facility_lookup` och `customer_automation` blev bara redo när en webbplatsklient konfigurerades.
+  - Utkorgen hoppade därför över med `capability_not_ready`.
+  - I drift har 2 av 3 aktiva bolag dessa som `not_configured`.
+- **Rättning:**
+  - Go-live-sidan har steget "Driftkapabiliteter" med samma kontroller som webbens go-live, men utan webbplatsklient. Kontrollen körs också vid godkännande för produktion.
+  - Webbspecifika kapabiliteter är oförändrade.
+- **Test:** `__tests__/tenant-operational-capabilities.test.ts`.
+
+### F55 Replayen saknar policyer på `price_areas` — PARITET (inte drift)
+- **Drift:** fyra policyer.
+- **Replay:** RLS är på men utan policy, så ingen bolagsanvändare kunde välja prisområde.
+- **I simuleringen:** `ensureProductionPriceAreaPolicyParity` speglar driftens policyer exakt.
+
 ### F53 Bolagsanvändare ser ingen gemensam nätägare: det manuella intaget kan inte välja någon riktig nätägare — RÄTTAD, hög
 - **Utfall:** en riktig bolagsanvändare med `company_admin` öppnade `/admin/customers/intake`. Listan "Nätägare" var tom, trots att Alingsås Energi Nät (16700) är verifierad för kundflödet.
 - **Orsak 1, RLS (samma i drift):** den tillåtande policyn på `grid_owners` släpper igenom `company_id IS NULL`, alltså gemensamma registerrader. Den begränsande livscykelspärren `tenant_lifecycle_select_guard` (`20260814162500`) kräver däremot `company_id IN (användarens bolag)`, och det är aldrig sant för NULL. Samma krock finns på `grid_owner_contact_channels`, `grid_owner_contact_routes` och `consumption_profiles` (drift, read-only).
