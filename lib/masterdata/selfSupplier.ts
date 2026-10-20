@@ -96,6 +96,43 @@ export async function resolveOwnElectricitySupplier(
   return { supplier: null, resolution: 'not_found' }
 }
 
+export type IncomingSupplierIdentity = {
+  name: string
+  orgNumber: string | null
+  resolution: Exclude<OwnElectricitySupplierResolution, 'not_found'> | 'company_identity'
+}
+
+/**
+ * The incoming supplier on a switch to us, as a name and org.nr on the switch
+ * request. It is a label: the market identity on the wire (UNB sender, NAD+FR)
+ * comes from the tenant's actor settings and identifiers, never from here.
+ * A marked own-supplier row wins; otherwise the tenant itself is the incoming
+ * supplier (FINDINGS F42: no admin page creates an own-supplier row, so every
+ * automatic switch failed). Company-scoped like the lookup above.
+ */
+export async function resolveIncomingSupplierIdentity(
+  supabase: SupabaseClient,
+  companyId: string | null | undefined,
+): Promise<IncomingSupplierIdentity | null> {
+  const scopedCompanyId = requireCompanyId(companyId)
+  const own = await resolveOwnElectricitySupplier(supabase, scopedCompanyId)
+  if (own.supplier?.name && own.resolution !== 'not_found') {
+    return { name: own.supplier.name, orgNumber: own.supplier.org_number ?? null, resolution: own.resolution }
+  }
+
+  const company = await supabase
+    .from('companies')
+    .select('name,org_number')
+    .eq('id', scopedCompanyId)
+    .maybeSingle()
+  if (company.error) throw company.error
+
+  const row = company.data as { name?: string | null; org_number?: string | null } | null
+  const name = row?.name?.trim()
+  if (!name) return null
+  return { name, orgNumber: row?.org_number?.trim() || null, resolution: 'company_identity' }
+}
+
 /**
  * Returns an `electricity_suppliers` row that belongs to `companyId`.
  *

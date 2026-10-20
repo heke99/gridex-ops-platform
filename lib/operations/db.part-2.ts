@@ -2,7 +2,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
 import type { CustomerSiteRow, MeteringPointRow } from "@/lib/masterdata/types"
 import { evaluateSiteSwitchReadiness } from "@/lib/operations/readiness"
-import { resolveOwnElectricitySupplier } from "@/lib/masterdata/selfSupplier"
+import { resolveIncomingSupplierIdentity } from "@/lib/masterdata/selfSupplier"
 import { calculateEarliestSwitchStartDate } from "@/lib/operations/switchStartDate"
 import { getSupplierSwitchActivationReadiness } from "@/lib/operations/supplierSwitchActivation"
 import { stockholmMarketDate } from "@/lib/operations/supplierSwitchActivation"
@@ -443,20 +443,19 @@ export async function createSupplierSwitchRequest(
     );
   }
 
-  const ownSupplierLookup = await resolveOwnElectricitySupplier(
+  const incomingSupplier = await resolveIncomingSupplierIdentity(
     supabase,
     switchCompanyId,
   );
-  const ownSupplier = ownSupplierLookup.supplier;
 
-  if (!ownSupplier?.name) {
+  if (!incomingSupplier) {
     throw new Error(
-      "Bolaget saknar en registrerad egen elhandlare. Markera bolagets leverantör som den egna innan ett byte till oss skapas.",
+      "Bolagets namn saknas, så inkommande leverantör på bytet kan inte anges. Komplettera bolagets namn innan ett byte till oss skapas.",
     );
   }
 
-  const incomingSupplierName = ownSupplier.name;
-  const incomingSupplierOrgNumber = ownSupplier.org_number ?? null;
+  const incomingSupplierName = incomingSupplier.name;
+  const incomingSupplierOrgNumber = incomingSupplier.orgNumber;
 
   // Compute the earliest legally/market-valid start date from notice period,
   // contract end and move-in date. We honor a provided requested date but fill
@@ -534,7 +533,7 @@ export async function createSupplierSwitchRequest(
       issues: params.readiness.issues,
       candidateMeteringPointId: params.readiness.candidateMeteringPointId,
       latestPowerOfAttorneyId: params.readiness.latestPowerOfAttorneyId,
-      ownSupplierResolution: ownSupplierLookup.resolution,
+      ownSupplierResolution: incomingSupplier.resolution,
       currentSupplier: {
         id: params.site.current_supplier_id ?? null,
         name: params.site.current_supplier_name ?? null,
@@ -581,7 +580,7 @@ export async function createSupplierSwitchRequest(
       requestedStartDate: params.requestedStartDate,
       incomingSupplierName,
       incomingSupplierOrgNumber,
-      ownSupplierResolution: ownSupplierLookup.resolution,
+      ownSupplierResolution: incomingSupplier.resolution,
       businessBlockers,
     },
       created_by: actorId,

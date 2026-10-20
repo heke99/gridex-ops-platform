@@ -358,7 +358,14 @@ Granskat oberoende och verifierat på de angivna raderna.
 
 Världen byggdes från noll med `up.sh` (ren replay, `next build` och `start`, simulatorer). Mätvärdena gäller den lokala stacken: PostgREST-pool med 10 anslutningar och Kong med 512 worker connections. Absoluta tider skiljer sig från drift, men antal anrop och beteende gör det inte.
 
-### F42 Inget bolag kan få automatiska leverantörsbyten: "egen elhandlare" kan inte registreras — ÖPPEN, hög
+### F42 Inget bolag kan få automatiska leverantörsbyten: "egen elhandlare" kan inte registreras — RÄTTAD
+- **Rättning:** `resolveIncomingSupplierIdentity` (`lib/masterdata/selfSupplier.ts`) slår upp i ordningen
+  1. en markerad egen rad,
+  2. en rad med bolagets namn,
+  3. bolagets egna `companies.name` och `org_number`.
+  
+  Den är bolagsscopad och läser aldrig något Ediel-ID. Z03-identiteten (UNB-avsändare och NAD+FR från avsändarinställning och identifierare, TEN-01/TEN-02) är oförändrad. Det är verifierat: Z03-segmenten byggs bara från `prodatRendered`, och namnet finns bara i diagnostikdata.
+- **Test:** `__tests__/supplier-switch-incoming-supplier-identity.test.ts`. F-9-testerna för bolagsisolering är gröna.
 - **Fel:** varje `start_supplier_switch` fallerade med "Bolaget saknar en registrerad egen elhandlare. Markera bolagets leverantör som den egna innan ett byte till oss skapas." (`lib/operations/db.part-2.ts:454`).
 - **Hur leverantören hittas:** `resolveOwnElectricitySupplier` (`lib/masterdata/selfSupplier.ts`) kräver en rad i `electricity_suppliers` med bolagets `company_id` och `is_own_supplier=true`, eller en rad med exakt bolagets namn.
 - **Varför ingen sådan rad finns:**
