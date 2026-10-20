@@ -83,7 +83,7 @@ function source(date: string, invalidPoint = false) {
 }
 const hash = (raw: string) => createHash('sha256').update(raw).digest('hex')
 
-it.each([['2026-09-30', '25-A-3'], ['2026-10-01', '25-A-4']])('SC-051 actual receipt %s carries one %s through final owner, consumption and ACK', async (date, guide) => {
+it.each([['2026-09-30', '25-A-3'], ['2026-10-01', '25-A-5']])('SC-051 actual receipt %s carries one %s through final owner, consumption and ACK', async (date, guide) => {
   const message = source(date), before = structuredClone(message)
   vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-10-20T12:00:00Z'))
   await processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: UTILTS_FIXTURE_ACTOR, edielMessageId: message.id })
@@ -105,7 +105,7 @@ it.each([['2026-09-30', true], ['2026-10-15', false]] as const)('SC-051 October 
   await processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: UTILTS_FIXTURE_ACTOR, edielMessageId: message.id })
   const persisted = io.rpc.mock.calls.find(([name]) => name === 'gridex_persist_utilts_consumption_v1')![1]
   expect(persisted.p_transactions[0].disposition).toBe(allowed ? 'accepted' : 'guide_rejected')
-  expect(persisted.p_transactions[0].consumptionContract.guideRevision).toBe(allowed ? '25-A-3' : '25-A-4')
+  expect(persisted.p_transactions[0].consumptionContract.guideRevision).toBe(allowed ? '25-A-3' : '25-A-5')
   expect(io.ack.mock.calls.map(([call]) => [call.ackFamily, call.outcome])).toEqual([['CONTRL', 'positive'], ['APERAK', allowed ? 'positive' : 'negative']])
   if (allowed) { expect(io.meter).toHaveBeenCalledTimes(1); expect(io.bill).toHaveBeenCalledTimes(1) }
   else {
@@ -142,8 +142,8 @@ it('SC-051 the real pre-send consumer captures its own fresh boundary before asy
   expect(before?.canonicalPolicy?.guide.guideRevision).toBe('25-A-3')
   expect(before?.rulePackSnapshot?.version).toBe('25-A-3:r3')
   const after = await assertRegistryRulebookAllowsSend(message)
-  expect(after?.canonicalPolicy?.guide.guideRevision).toBe('25-A-4')
-  expect(after?.rulePackSnapshot?.version).toBe('25-A-4:r4')
+  expect(after?.canonicalPolicy?.guide.guideRevision).toBe('25-A-5')
+  expect(after?.rulePackSnapshot?.version).toBe('25-A-5:r5')
   expect(io.rpc.mock.calls.filter(([name]) => name === 'resolve_canonical_ediel_rule_pack_with_witness_v1').map(([, args]) => args.p_business_date)).toEqual(['2026-09-30', '2026-10-01'])
   expect(hash(message.raw_payload!)).toBe(original)
 })
@@ -232,8 +232,8 @@ it('SC-051 the actual queued worker reconsiders the unchanged September E5SE5A o
   expect(result.error).toBe('ediel_source_rule_pack_basis_required')
   expect(actualAdmission).toHaveBeenCalledTimes(1)
   const currentAdmission = await actualAdmission.mock.results[0].value
-  expect(currentAdmission?.canonicalPolicy?.guide.guideRevision).toBe('25-A-4')
-  expect(currentAdmission?.rulePackSnapshot?.version).toBe('25-A-4:r4')
+  expect(currentAdmission?.canonicalPolicy?.guide.guideRevision).toBe('25-A-5')
+  expect(currentAdmission?.rulePackSnapshot?.version).toBe('25-A-5:r5')
   expect(currentAdmission?.canonicalPolicy?.referenceDate).toBe('2026-10-15')
   expect(io.rpc.mock.calls.filter(([name]) => name === 'resolve_canonical_ediel_rule_pack_with_witness_v1')
     .map(([, args]) => args.p_business_date)).toEqual(['2026-09-30', '2026-10-15'])

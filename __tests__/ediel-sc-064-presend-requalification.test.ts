@@ -162,7 +162,7 @@ describe('SC-064 current queue reconsideration at the actual worker boundary', (
     const original = structuredClone(message)
     vi.setSystemTime(new Date(at))
     const current = await assertRegistryRulebookAllowsSend(message)
-    expect(current?.canonicalPolicy?.guide.guideRevision).toBe('25-A-4')
+    expect(current?.canonicalPolicy?.guide.guideRevision).toBe('25-A-5')
     Object.assign(route, { message_family: 'UTILTS', business_code: 'E73', application_reference: '23-DDQ-E66-S' })
     io.realTransport = true
     expect(await send()).toEqual({ status: 'failed', messageId: null, error: 'ediel_send_original_rule_pack_mismatch' })

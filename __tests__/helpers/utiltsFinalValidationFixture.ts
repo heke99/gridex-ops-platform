@@ -42,7 +42,7 @@ export function createUtiltsFinalValidationIo() {
   const sourceWitnesses = new Map<string, Record<string, unknown>>()
   return (name: string, args: Record<string, unknown>) => {
     if (name === 'resolve_canonical_ediel_rule_pack_with_witness_v1') {
-      const revision = String(args.p_business_date) < '2026-10-01' ? '3' : '4'
+      const revision = String(args.p_business_date) < '2026-10-01' ? '3' : '5'
       const guide = `25-A-${revision}`
       const packId = `33333333-3333-4333-8333-33333333333${revision}`
       const profileId = fixtureUuid(`profile:${args.p_message_code}:${revision}`)
@@ -60,7 +60,13 @@ export function createUtiltsFinalValidationIo() {
         original_snapshot: {
           rulePack: { id: packId, source_hash: sourceHash, guide_version: guide, guide_revision: revision },
           messageProfile: { id: profileId, rule_pack_id: packId, profile_key: key },
-          guideSources: [{ id: fixtureUuid(`guide:${guide}`), rule_pack_id: packId }],
+          // Declared external fixture source, not a native/original acquisition.
+          // Historical U3 receipts retain their previous shape and identity.
+          guideSources: [{ id: fixtureUuid(`guide:${guide}`), rule_pack_id: packId,
+            ...(revision === '5' ? { source_type: 'technical_guide', revision: '25-A-5',
+              source_hash: 'b76a61b9aa6f136771e5db4948296d1b632b8d775314eb6c93783595ae419db2',
+              source_locator: 'https://www.ediel.se/Portal/Document/3364' } : {}),
+          }],
         },
       }])
     }
