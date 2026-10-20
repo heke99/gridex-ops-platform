@@ -388,6 +388,30 @@ Världen byggdes från noll med `up.sh` (ren replay, `next build` och `start`, s
   - Uppgiften används bara för namn och org.nr som inkommande leverantör på bytesärendet. Den finns redan i bolagets egen identitet, så kravet på en separat rad i `electricity_suppliers` tillför inget.
 - **Förslag:** skapa och markera bolagets egen leverantör när bolagets Ediel-avsändare sätts upp (namn, org.nr och Ediel-ID finns redan där). Alternativt läs den egna leverantören från bolagets avsändaridentitet i stället för från `electricity_suppliers`. Go-live-grinden bör kontrollera detta.
 
+## Ediel-routing till rätt tenant och kund (scenario E, 2026-10-20)
+
+Scenario E: två elhandlare delar nätägare. Nätägaren skickar via SMTPS
+- vanliga E66 och E66 med timvärden,
+- en korrigering,
+- en felriktad fil och en fil till ett okänt Ediel-ID,
+- värden för en kund före leveransstart.
+
+Felen skrivs in här i den ordning de hittas.
+
+### F68 Ingen inkommande Ediel-fil kunde sparas på grenen — RÄTTAD, kritisk (bara den här grenen, inte drift)
+- **Utfall:** efter ren replay togs alla sex filerna emot i brevlådan, men inga sparades som Ediel-meddelanden. Jobben föll med `ediel_inbound_original_persistence_required`, och appens logg visade `permission denied for function envelope`.
+- **Orsak:**
+  - Min egen prestandamigration `20261020120300` lade till uttrycksindexet `ediel_messages_inbound_envelope_uci_idx` på `gridex_ediel_technical_ack.envelope(raw_payload)`.
+  - Postgres utvärderar ett indexuttryck med rättigheterna hos rollen som skriver raden.
+  - `envelope()` och `gridex_utilts_binding.wire_tokens_v1()`, som den anropar, fick bara köras av `postgres`.
+- **Drift:** indexet finns inte i drift (bara läsfrågor mot metadata), så produktionen är opåverkad.
+- **Rättning:** migrationen `20261020280000` ger EXECUTE på exakt de två rena parsningsfunktionerna (IMMUTABLE, utan sidoeffekter) till `service_role` och `authenticated`. Inga scheman öppnas.
+
+### S1 Simuleringens cron-körare hoppade över cron-jobb som körs varje minut — RÄTTAD (simuleringen, inte produkten)
+- **Utfall:** efter sammanslagningen med main stod nätägarförfrågan i scenario D köad i 6 minuter utan att skickas.
+- **Orsak:** main kör den manuella e-postutkorgen och manuell inkommande e-post med schemat `* * * * *`. `runOperationalCronSlot` kände bara igen `N-M/k`. Produkten skickade direkt när utkorgen anropades.
+- **Rättning:** cron-jobb som körs varje minut ingår nu först i varje omgång.
+
 ## Manuellt kundintag (scenario D, 2026-10-20)
 
 Kedjan i scenario D, i ordning. Varje fel nedan dolde nästa. Alla är verifierade i en ren replay och, där det anges, mot driftens funktionskroppar (md5) eller aggregat (bara läsfrågor). Alla är rättade. De fem behörighets- och produktbesluten fattades av ägaren 2026-10-20.
