@@ -247,6 +247,8 @@ export async function applyAsWebsiteCustomer(input: {
    * whole payload for idempotency). Defaults to now.
    */
   acceptedAt?: string
+  /** The customer's verified Mina sidor session (auth user id), sent server-side like a real checkout under pre_auth_required. */
+  portalUserId?: string
 }): Promise<WebsiteApplicationResult> {
   const requests: RequestLog = []
   const ctx: HttpContext = { baseUrl: input.baseUrl, apiKey: input.apiKey, origin: input.origin, requests }
@@ -266,20 +268,18 @@ export async function applyAsWebsiteCustomer(input: {
   const feed = records(field(contracts.body, 'data'))
 
   // 2. Resolve the price area -> resolution_id. The route treats facility_id and
-  //    metering_point_id as references only; grid_area_code, postal_code or
-  //    street+city are what actually resolve an area.
+  //    metering_point_id as references only. Like a real checkout, the full
+  //    address is always sent; a grid area code is only a client claim that the
+  //    platform cross-validates against the address.
   const resolveBody: JsonRecord = {
     facility_id: site.facilityId,
     metering_point_id: site.facilityId,
+    street: siteAddress.street,
+    postal_code: siteAddress.postalCode,
+    city: siteAddress.city,
+    country: 'SE',
   }
-  if (site.gridAreaCode) {
-    resolveBody.grid_area_code = site.gridAreaCode
-  } else {
-    resolveBody.street = siteAddress.street
-    resolveBody.postal_code = siteAddress.postalCode
-    resolveBody.city = siteAddress.city
-    resolveBody.country = 'SE'
-  }
+  if (site.gridAreaCode) resolveBody.grid_area_code = site.gridAreaCode
   const resolved = await call(ctx, 'POST', '/api/v1/website/energy-area/resolve', { body: resolveBody })
   if (!is2xx(resolved.status)) return { step: 'energy_area_resolve', ...resolved, requests }
   const resolution = field(resolved.body, 'data')
@@ -388,6 +388,7 @@ export async function applyAsWebsiteCustomer(input: {
   if (poaTextVersionId) powerOfAttorney.textVersionId = poaTextVersionId
 
   const applicationBody = {
+    ...(input.portalUserId ? { auth_user_id: input.portalUserId, customer_portal_user_id: input.portalUserId } : {}),
     external_customer_reference: externalCustomerReference,
     offer_reference: selected.offerReference,
     quote_reference: quoteReference,

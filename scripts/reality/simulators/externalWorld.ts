@@ -7,6 +7,8 @@
 //              provider, cached on disk (REALITY_SPOT_SOURCE=real, default), or a
 //              deterministic synthetic curve (=synthetic) when offline
 //   resend POST /emails, POST /emails/batch, GET /domains[/id]
+//   papapi GET  /papapi/lite/?query=<postal code>  postal-code centroid from the registered
+//              (real) coordinates; POST /__sim/geocode {postal_code, latitude, longitude}
 //   control GET /__sim/state, POST /__sim/fault {service, mode, ms?, count?}
 //
 // Run: npx tsx scripts/reality/simulators/externalWorld.ts   (REALITY_WORLD_PORT, default 3901)
@@ -15,7 +17,7 @@ import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 
-type Service = 'spot' | 'resend'
+type Service = 'spot' | 'resend' | 'papapi'
 type FaultMode = 'ok' | 'rate_limited' | 'server_error' | 'slow' | 'hang' | 'invalid_json'
 type Fault = { mode: FaultMode; ms: number; remaining: number | null }
 
@@ -24,6 +26,7 @@ const cacheDir = process.env.REALITY_SPOT_CACHE ?? join(process.cwd(), '.reality
 const spotSource = process.env.REALITY_SPOT_SOURCE ?? 'real'
 const faults = new Map<Service, Fault>()
 const log: Array<{ at: string; service: Service; path: string; status: number; ms: number }> = []
+const postalCentroids = new Map<string, { latitude: number; longitude: number }>()
 const emails: Array<{ id: string; at: string; to: unknown; subject: unknown; idempotencyKey: string | null }> = []
 
 function body(req: IncomingMessage): Promise<string> {
@@ -76,6 +79,13 @@ async function spot(res: ServerResponse, path: string) {
   return send(res, 200, rows)
 }
 
+function papapi(res: ServerResponse, url: URL) {
+  const postal = (url.searchParams.get('query') ?? '').replace(/\s+/g, '')
+  const point = postalCentroids.get(postal)
+  if (!point) return send(res, 200, { results: [] })
+  return send(res, 200, { results: [{ postal_code: `${postal.slice(0, 3)} ${postal.slice(3)}`, latitude: point.latitude, longitude: point.longitude, country: 'SE' }] })
+}
+
 async function resend(req: IncomingMessage, res: ServerResponse, path: string) {
   if (req.method === 'POST' && (path === '/emails' || path === '/emails/batch')) {
     const parsed = JSON.parse((await body(req)) || '{}')
@@ -102,9 +112,15 @@ const server = createServer(async (req, res) => {
       else faults.set(input.service, { mode: input.mode, ms: input.ms ?? 0, remaining: input.count ?? null })
       return send(res, 200, { faults: Object.fromEntries(faults) })
     }
-    const service: Service = path.startsWith('/api/v1/prices') ? 'spot' : 'resend'
+    if (path === '/__sim/geocode' && req.method === 'POST') {
+      const input = JSON.parse(await body(req)) as { postal_code: string; latitude: number; longitude: number }
+      postalCentroids.set(input.postal_code.replace(/\s+/g, ''), { latitude: input.latitude, longitude: input.longitude })
+      return send(res, 200, { registered: postalCentroids.size })
+    }
+    const service: Service = path.startsWith('/api/v1/prices') ? 'spot' : path.startsWith('/papapi') ? 'papapi' : 'resend'
     if (await applyFault(service, res)) { log.push({ at: new Date().toISOString(), service, path, status: res.statusCode, ms: Date.now() - started }); return }
     if (service === 'spot') await spot(res, path)
+    else if (service === 'papapi') papapi(res, new URL(req.url ?? '/', 'http://local'))
     else await resend(req, res, path)
     log.push({ at: new Date().toISOString(), service, path, status: res.statusCode, ms: Date.now() - started })
   } catch (error) {

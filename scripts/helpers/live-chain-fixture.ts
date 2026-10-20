@@ -183,7 +183,8 @@ export async function configureTenant(supabase: { rpc: (name: string, args: Reco
    SELECT ${literal(id)},${literal(companyId)},p.id,p.key FROM public.permissions p WHERE p.key NOT LIKE 'ediel.production.%' AND p.key NOT LIKE 'ediel.retention.%'
    AND NOT EXISTS(SELECT FROM public.user_permissions u WHERE u.user_id=${literal(id)} AND u.company_id=${literal(companyId)} AND u.permission_key=p.key);
    ${nativeActorRoleSql(companyId, id)}`
-  sql(`INSERT INTO public.companies(id,name,status) VALUES(${literal(companyId)},'E2E Live Elhandel AB','active');
+  // Company creation sets the public slug (all production companies have one); legal document URLs use it.
+  sql(`INSERT INTO public.companies(id,name,status,slug) VALUES(${literal(companyId)},'E2E Live Elhandel AB','active',${literal(`e2e-live-elhandel-${companyId.slice(0, 8)}`)});
    ${user(adminUserId, adminEmail, 'E2E Live Admin', adminPassword)}
    ${member(adminUserId)}
    ${member(LIVE.automationUserId)}

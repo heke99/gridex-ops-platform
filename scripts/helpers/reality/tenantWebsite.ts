@@ -36,9 +36,33 @@ export function configurePlatformManualMailbox() {
     is_active=true,is_verified=true WHERE company_id IS NULL AND environment='production';`)
 }
 
+/**
+ * Replay vs production drift (FINDINGS F28): production has the canonical
+ * number-series wrappers used by the website application path; the canonical
+ * replay and supabase/schema.sql do not (20260801143000 only feeds a derived
+ * foundation excerpt). Exact production definitions and grants.
+ */
+export function ensureProductionNumberSeriesParity() {
+  sql(`CREATE OR REPLACE FUNCTION public.canonical_next_application_number(p_company_id uuid) RETURNS text LANGUAGE sql SECURITY DEFINER SET search_path TO 'public', 'pg_temp'
+    AS $function$ select public.gridex_next_application_number(p_company_id); $function$;
+   CREATE OR REPLACE FUNCTION public.canonical_next_contract_number(p_company_id uuid, p_customer_number text DEFAULT NULL::text) RETURNS text LANGUAGE sql SECURITY DEFINER SET search_path TO 'public', 'pg_temp'
+    AS $function$ select public.gridex_next_contract_number(p_company_id, p_customer_number); $function$;
+   CREATE OR REPLACE FUNCTION public.canonical_next_customer_number(p_company_id uuid) RETURNS text LANGUAGE sql SECURITY DEFINER SET search_path TO 'public', 'pg_temp'
+    AS $function$ select public.gridex_next_customer_number(p_company_id); $function$;
+   REVOKE ALL ON FUNCTION public.canonical_next_application_number(uuid), public.canonical_next_contract_number(uuid,text), public.canonical_next_customer_number(uuid) FROM PUBLIC, anon, authenticated;
+   GRANT EXECUTE ON FUNCTION public.canonical_next_application_number(uuid), public.canonical_next_contract_number(uuid,text), public.canonical_next_customer_number(uuid) TO service_role;
+   NOTIFY pgrst, 'reload schema';`)
+}
+
 export async function goLiveOnWebsite(tenant: LiveTenant, operatorUserId: string) {
   ensureProductionWebhookClientParity()
+  ensureProductionNumberSeriesParity()
   configurePlatformManualMailbox()
+  // /admin/pricing/market-sources: "Tillåt senaste indikativa data som fallback", so a spot quote can
+  // be shown for a start month whose prices are not published yet (FINDINGS F27: the default blocks it).
+  sql(`UPDATE public.company_market_price_sources SET allow_indicative_latest=true,
+     metadata=metadata||jsonb_build_object('updated_from','tenant_market_sources_admin','updated_by',${literal(tenant.adminUserId)}),updated_at=now()
+   WHERE company_id=${literal(tenant.companyId)} AND source_key='elprisetjustnu';`)
   // "Install standard e-mail" in /admin/companies/[id]: sender settings, templates and event rules.
   await seedDefaultCompanyEmailConfiguration(tenant.companyId)
   // The grid owner's facility-information contact, verified by platform staff in the admin UI
