@@ -201,7 +201,9 @@ export async function configureTenant(supabase: { rpc: (name: string, args: Reco
     price_areas: ['SE3'], base_components: [{ source_type: 'spot', label: 'Spotpris', weight_percent: 100, price_area: 'SE3' }],
     price_components: [
       { component_code: 'spot_markup', component_type: 'markup', name: 'Påslag', calculation_type: 'per_kwh', amount: 4, unit: 'ore_per_kwh', website_card_visible: true },
-      { component_code: 'monthly_fee', component_type: 'fee', name: 'Månadsavgift', calculation_type: 'fixed_monthly', amount: 49, unit: 'sek_month', website_card_visible: true }] }
+      { component_code: 'monthly_fee', component_type: 'fee', name: 'Månadsavgift', calculation_type: 'fixed_monthly', amount: 49, unit: 'sek_month', website_card_visible: true },
+      // Website/API channels require the invoice fee as a canonical component (0 kr = offer row invoice_fee_sek).
+      { component_code: 'invoice_fee', component_type: 'fee', name: 'Fakturaavgift', calculation_type: 'per_invoice', amount: 0, unit: 'sek_invoice', website_card_visible: true }] }
   const offer = { name: 'E2E Kvartspris', slug: `e2e-kvartspris-${companyId}`, lifecycle_status: 'draft', contract_type: 'variable_quarterly', customer_type: 'both', pricing_model: 'spot',
     energy_direction: 'consumption', terms_version: 'e2e-v1', spot_markup_ore_per_kwh: 4, monthly_fee_sek: 49, invoice_fee_sek: 0, default_binding_months: 0, default_notice_months: 1,
     automatic_renewal: true, automatic_renewal_term_months: 12, power_of_attorney_required: true, valid_from: '2026-06-01' }
