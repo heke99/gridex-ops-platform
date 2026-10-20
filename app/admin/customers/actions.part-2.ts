@@ -12,6 +12,7 @@ import { autoSendSigningLinkAfterCreate, type AutoSendSigningLinkResult } from "
 
 import { normalizeGridOwnerIdToOps } from "@/lib/grid-owners/platformGridOwnerResolver"
 import { resolveEnergyContext } from "@/lib/energy/resolver"
+import { applyCustomerSiteAddressCandidate } from "@/lib/customer-sites/addressIntake"
 import { resolveOpsPapiliteGridOwnerForSite } from "@/lib/energy/opsPrecisionGridOwnerResolution"
 import { matchCustomerIdentity, type CustomerMatchSignal } from "@/lib/customers/matchingService"
 
@@ -1082,6 +1083,7 @@ export async function createCustomerGraph(
         companyId: params.companyId,
         customerId: result.customer_id,
         siteId: result.site_id,
+        actorUserId: params.actorUserId,
         selectedGridOwnerId: normalizedGridOwnerId,
         gridAreaCode: normalizeOptionalString(params.gridAreaCode),
         facilityId: normalizedFacilityId,
@@ -1181,25 +1183,58 @@ export async function resolveManualIntakeSiteGeography(input: {
   companyId: string;
   customerId: string;
   siteId: string;
+  actorUserId: string;
   selectedGridOwnerId: string | null;
   gridAreaCode: string | null;
   facilityId: string | null;
 }): Promise<string[]> {
-  const { data, error } = await supabaseService
-    .from("customer_sites")
-    .select("street,postal_code,city,country,resolution_status,grid_area_code")
-    .eq("company_id", input.companyId)
-    .eq("customer_id", input.customerId)
-    .eq("id", input.siteId)
-    .maybeSingle();
-  if (error) throw error;
-  const site = data as Record<string, string | null> | null;
+  const loadSite = async () => {
+    const { data, error } = await supabaseService
+      .from("customer_sites")
+      .select("street,postal_code,city,country,care_of,address_hash,resolution_status,grid_area_code")
+      .eq("company_id", input.companyId)
+      .eq("customer_id", input.customerId)
+      .eq("id", input.siteId)
+      .maybeSingle();
+    if (error) throw error;
+    return data as Record<string, string | null> | null;
+  };
+  let site = await loadSite();
   if (!site) return [];
-  if (site.grid_area_code && CANONICAL_SITE_GEOGRAPHY.has(String(site.resolution_status ?? ""))) return [];
   const street = normalizeOptionalString(site.street);
   const postalCode = normalizeOptionalString(site.postal_code);
   const city = normalizeOptionalString(site.city);
   if (!street || !postalCode || !city) return [];
+  if (!site.address_hash) {
+    // The verified address version every external grid-owner contact is bound
+    // to, written through the same atomic commit as the customer card and the
+    // website (FINDINGS F65). It precedes geography: a new address version
+    // resets any earlier resolution.
+    const address = await applyCustomerSiteAddressCandidate({
+      companyId: input.companyId,
+      customerId: input.customerId,
+      siteId: input.siteId,
+      address: {
+        street,
+        postalCode,
+        city,
+        country: normalizeOptionalString(site.country) ?? "SE",
+        careOf: normalizeOptionalString(site.care_of),
+        source: "manual_intake",
+        sourceReference: input.siteId,
+        actorUserId: input.actorUserId,
+        claimedGridOwnerId: input.selectedGridOwnerId,
+        claimedGridAreaCode: input.gridAreaCode,
+        metadata: { source: "admin_customer_intake" },
+      },
+    });
+    if (address.status === "conflict") {
+      return ["Anläggningsadressen krockar med en tidigare verifierad adress och behöver granskas innan nätägaren kontaktas."];
+    }
+    site = await loadSite();
+    if (!site) return [];
+  }
+  if (site.grid_area_code && CANONICAL_SITE_GEOGRAPHY.has(String(site.resolution_status ?? ""))) return [];
 
   const country = normalizeOptionalString(site.country) ?? "SE";
   const resolved = await resolveEnergyContext({
