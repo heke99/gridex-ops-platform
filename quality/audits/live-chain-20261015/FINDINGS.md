@@ -426,7 +426,10 @@ Världen byggdes från noll med `up.sh` (ren replay, `next build` och `start`, s
 - **Följd:** bolaget får ingen operativ UTILTS-route till nätägaren. Det påverkar inte PRODAT-bytet. Det påverkar utgående UTILTS (till exempel ERR och S07) och route-beredskapen för UTILTS.
 - **Förslag:** materialisera UTILTS per meddelande som leverantören faktiskt sänder (enligt `assertCanonicalSupplierUtiltsOutboundAllowed`), eller låt en familje-route bära referensen för den mottagna huvudprofilen (E66). Det kräver ett beslut om vilka UTILTS-meddelanden ett elhandelsbolag ska sända i produktion.
 
-### F45 Webbplatsens avtal får aldrig `signed_version`, så Z03 kan inte förberedas för en webbkund — ÖPPEN, hög
+### F45 Webbplatsens avtal får aldrig `signed_version`, så Z03 kan inte förberedas för en webbkund — RÄTTAD framåt (ägarbeslut), hög
+- **Rättning:** migrationen `20261020200000_website_contract_signed_version.sql` ändrar kroppen i båda överlagringarna av `gridex_finalize_website_contract_signature`. Kroppen ändras på plats, oid behålls, och raden måste förekomma exakt en gång. Samma uppdatering som signerar sätter nu `signed_version=coalesce(terms_version,contract_version,'v1')` och `terms_signed_version`, som token-signering och admin-import redan gör.
+- **Ingen bakåtfyllnad:** `signed_version` är oföränderligt efter signering (`customer_contracts_lock_signed`, `signed_customer_contract_immutable`). Att skriva om redan signerade avtal skulle kräva att en skyddad spärr försvagas, och det görs inte. Det enda signerade avtalet i drift får signeras om, eller hanteras av ägaren.
+- **Bevis:** verklighetsscenario A, steg A2, kräver att varje webbavtal får `signed_version` lika med avtalets `terms_version`.
 - **Var:**
   - `gridex_finalize_website_contract_signature` (`schema.sql` cirka 73369–73389) sätter status, `signed_at`, `signature_snapshot` och dess sha256, men inte `signed_version`.
   - `gridex_create_website_customer_contract` sätter den inte heller.

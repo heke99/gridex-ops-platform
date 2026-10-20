@@ -171,6 +171,8 @@ describe.sequential('reality A — website customers switch supplier', () => {
     report.applications = results.map(({ who, result }) => ({ who, step: result.step, status: result.status, applicationNumber: result.applicationNumber,
       body: result.status >= 300 || result.status === 0 ? result.body : undefined, requests: result.requests }))
     for (const { who, result } of results) expect(result.status, `${who}: ${result.step} ${JSON.stringify(result.body).slice(0, 600)}`).toBeLessThan(300)
+    // F45: a website signature records the signed contract version.
+    expect(sql(`SELECT coalesce(jsonb_agg(DISTINCT coalesce(signed_version,'-')=coalesce(terms_version,'v1')),'[]') FROM public.customer_contracts WHERE company_id=${literal(tenant.companyId)} AND status IN ('signed','active')`)).toEqual([true])
   })
 
   it('A3 the world runs on the Vercel cron cadence until every switch has its answer', async () => {
