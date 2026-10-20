@@ -183,7 +183,8 @@ export async function configureTenant(supabase: { rpc: (name: string, args: Reco
   const member = (id: string) => `
    INSERT INTO public.company_memberships(company_id,user_id,membership_role,status,accepted_at,metadata,role,is_active,joined_at,role_key)
    VALUES(${literal(companyId)},${literal(id)},'company_admin','active',now(),'{}','company_admin',true,now(),'company_admin');
-   INSERT INTO public.user_roles(user_id,role_id,role,company_id,status,is_active) SELECT ${literal(id)},id,'company_admin',${literal(companyId)},'active',true FROM public.roles WHERE key='company_admin' ON CONFLICT DO NOTHING;
+   -- The single active company role is the disposable native actor role below. (A company_admin row was a
+   -- no-op while the replay had no roles; scenario D's production role parity, FINDINGS F52, would collide.)
    INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
    SELECT ${literal(id)},${literal(companyId)},p.id,p.key FROM public.permissions p WHERE p.key NOT LIKE 'ediel.production.%' AND p.key NOT LIKE 'ediel.retention.%'
    AND NOT EXISTS(SELECT FROM public.user_permissions u WHERE u.user_id=${literal(id)} AND u.company_id=${literal(companyId)} AND u.permission_key=p.key);
