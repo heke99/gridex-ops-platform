@@ -5,11 +5,12 @@ import { literal, sql } from '../live-chain-fixture'
  * Replay vs production drift (FINDINGS F52): production has the company roles with their permissions
  * (company_admin: 36 keys); the canonical replay seeds no roles or role_permissions, so a tenant user can
  * never open the admin workspace locally. Mirrors production's company_admin role and its exact keys, plus
- * contracts.create from forward migration 20261020250000 (F59), which finds no role to grant in the replay.
+ * contracts.create (20261020250000, F59) and communication.write/operations.write (20261020270000, F62) from
+ * forward migrations, which find no role to grant in the replay.
  */
 const COMPANY_ADMIN_PERMISSIONS = ['audit.read', 'billing_underlay.export', 'billing_underlay.read', 'cases.read', 'cases.write', 'communication.read',
-  'communication.send', 'contracts.create', 'contracts.read', 'contracts.write', 'customers.read', 'customers.write', 'documents.read', 'documents.write', 'integrations.read',
-  'integrations.write', 'masterdata.read', 'masterdata.write', 'metering_points.read', 'metering_points.write', 'metering.read', 'metering.write',
+  'communication.send', 'communication.write', 'contracts.create', 'contracts.read', 'contracts.write', 'customers.read', 'customers.write', 'documents.read', 'documents.write', 'integrations.read',
+  'integrations.write', 'masterdata.read', 'masterdata.write', 'metering_points.read', 'metering_points.write', 'metering.read', 'metering.write', 'operations.write',
   'partner_exports.read', 'partner_exports.write', 'poa.read', 'poa.write', 'pricing.read', 'pricing.write', 'reports.read', 'sites.read', 'sites.write',
   'switching.read', 'switching.write', 'tenants.invite', 'tenants.read', 'users.read', 'users.write']
 

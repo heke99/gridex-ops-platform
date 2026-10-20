@@ -389,6 +389,13 @@ const PERMISSION_CATALOG: BehörighetCatalogItem[] = [
     risk: 'high',
   },
   {
+    key: 'operations.write',
+    label: 'Driva kundoperationer',
+    description: 'Kan låta kundoperationer och automatiska jobb (t.ex. start av leverantörsbyte) utföras för bolaget.',
+    area: 'Operations',
+    risk: 'high',
+  },
+  {
     key: 'metering.read',
     label: 'Läsa mätning',
     description: 'Kan läsa meteringdata.',
