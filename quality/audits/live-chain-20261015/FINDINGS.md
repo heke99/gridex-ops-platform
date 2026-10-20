@@ -388,6 +388,19 @@ Världen byggdes från noll med `up.sh` (ren replay, `next build` och `start`, s
   - Uppgiften används bara för namn och org.nr som inkommande leverantör på bytesärendet. Den finns redan i bolagets egen identitet, så kravet på en separat rad i `electricity_suppliers` tillför inget.
 - **Förslag:** skapa och markera bolagets egen leverantör när bolagets Ediel-avsändare sätts upp (namn, org.nr och Ediel-ID finns redan där). Alternativt läs den egna leverantören från bolagets avsändaridentitet i stället för från `electricity_suppliers`. Go-live-grinden bör kontrollera detta.
 
+### F49 Webbkundens Z01 låstes med `missing_power_of_attorney` trots giltig fullmakt — RÄTTAD (följd av min F39-rättning)
+- **Utfall (körning 16:54):**
+  - Alla fyra webbkunders Z01 blockerades med "Nätägarbegärans bundna fullmakt och anläggning måste motsvara den aktuella behörigheten".
+  - Fullmakten var i sin ordning: signerad, `supplier_switch` täcker nätägaruppgifter, och scope, dokument och avtal stämmer. Den skapades före GODR.
+- **Orsak:** `tryPrepareZ01` (F39) tog den senaste CIR:en för anläggningen, alltså webbens egen onboarding-post, och skickade den genom Z01-dispatchen:
+  - `request_type='website_customer_onboarding'`, `target_party_type='customer'`, kategorierna `grid_area_code` och `grid_owner`.
+  - `requestNeedsGridOwnerAuthorization` gav `false`, så ingen nätägarfullmakt löstes ut.
+  - Dispatchen skapade ändå en GODR, utan `authorization_document_id`.
+  - Bindningskontrollen avvisade den, och nästa försök låstes av den obundna GODR:en.
+- **Rättning:** när ingen GODR finns och CIR:en inte är en Z01-begäran till nätägaren (`z01_customer_masterdata` riktad mot `grid_owner`) startar `tryPrepareZ01` det kanoniska jobbet `request_customer_data`. Det jobbet kontrollerar anläggningen, löser nätägaren, skapar en Z01-CIR med nätägarfullmakt och skickar den.
+- **Test:** `__tests__/customer-process-z01-dispatch-without-godr.test.ts`, 6 gröna. Utan rättningen fallerar det nya fallet.
+- **Regressioner:** next-step-regressionen och 25 relaterade tester gröna.
+
 ### F48 En UTILTS-route från Ediels register kan aldrig materialiseras för ett bolag — ÖPPEN, medel
 - **Utfall:** `Materialisera production-route` ger `ediel_route_profile_insert_failed` för UTILTS. PRODAT/Z01 materialiseras efter F41. Felet fanns också före F41.
 - **Orsak:** registrets UTILTS-route har ingen meddelandekod (`defaultMessageCode('UTILTS')` ger `null`). UTILTS-policyn (`getUtiltsApplicationReferenceTarget`) kräver en kod och kastar `utilts_application_reference_message_unsupported:missing`. Även en giltig UTILTS-referens hos avsändaren (`23-DDQ-E66-S`, SC-059) hjälper bara när routen bär en kod.

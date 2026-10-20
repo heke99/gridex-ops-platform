@@ -4,6 +4,7 @@ import { evaluateSiteSwitchReadiness } from '@/lib/operations/readiness'
 import { ensureInitialSwitchEdielAutomation } from '@/lib/operations/edielAutomation'
 import { finalizeStuckZ01GridOwnerDataRequest } from '@/lib/customer-operations/z01Finalizer'
 import { queueCustomerInfoRequestForDispatch } from '@/lib/onboarding/infoRequests'
+import { enqueueCustomerDataRequestAutomation } from '@/lib/customer-operations/automation'
 import { emitCustomerProcessEvent } from '@/lib/customer-operations/customerProcessEvents'
 import { evaluateCustomerProcessRouteReadiness } from '@/lib/customer-operations/customerProcessRouteReadiness'
 import { checkSupplierSwitchReadiness, persistSwitchReadinessSnapshot } from '@/lib/customer-operations/switchReadiness'
@@ -115,8 +116,22 @@ export async function tryPrepareZ01(input: {
     idempotencyKey: `z01.preparing:${input.companyId}:${input.siteId}:${gridOwnerDataRequestId ?? cir?.id}`,
   })
 
-  // A request that never reached the grid owner has no data request yet: it is dispatched through the
-  // normal guarded path, which creates it. Only an existing, stuck data request is finalized (FINDINGS F39).
+  // A Z01 request to the grid owner that never reached it has no data request yet: it is dispatched through
+  // the normal guarded path, which creates it. Only an existing, stuck data request is finalized (FINDINGS F39).
+  // Any other request (the website's own customer-onboarding record) is not a grid-owner request and carries
+  // no grid-owner authority: the canonical customer-data job creates the Z01 request (FINDINGS F49).
+  const gridOwnerZ01Request = cir?.request_type === 'z01_customer_masterdata' && cir?.target_party_type === 'grid_owner'
+  if (!gridOwnerDataRequestId && !gridOwnerZ01Request) {
+    const job = await enqueueCustomerDataRequestAutomation({
+      companyId: input.companyId,
+      customerId: input.customerId,
+      siteId: input.siteId,
+      actorUserId: input.actorUserId,
+      operationId: input.operationId ?? null,
+      source: 'customer_process_next_step_engine',
+    })
+    return { decision: 'prepare_z01', actionTaken: 'z01_customer_data_requested', blockers: [], z01: { customerOperationJobId: job.id, operationId: job.operationId } as JsonRecord }
+  }
   const z01 = gridOwnerDataRequestId
     ? await finalizeStuckZ01GridOwnerDataRequest({
       companyId: input.companyId,
