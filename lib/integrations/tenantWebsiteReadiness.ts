@@ -39,6 +39,8 @@ type CompanyReadinessRow = {
   id: string
   status: string | null
   external_tenant_reference: string | null
+  slug?: string | null
+  company_slug?: string | null
   customer_portal_url?: string | null
   website?: string | null
   branding?: JsonRecord | null
@@ -158,7 +160,7 @@ async function loadReadinessView(companyId: string): Promise<ReadinessViewRow | 
 async function loadCompany(companyId: string): Promise<CompanyReadinessRow | null> {
   const primary = await supabaseService
     .from('companies')
-    .select('id,status,external_tenant_reference,customer_portal_url,website,branding,metadata')
+    .select('id,status,external_tenant_reference,slug,company_slug,customer_portal_url,website,branding,metadata')
     .eq('id', companyId)
     .maybeSingle()
   if (!primary.error) {
@@ -170,7 +172,7 @@ async function loadCompany(companyId: string): Promise<CompanyReadinessRow | nul
 
   const fallback = await supabaseService
     .from('companies')
-    .select('id,status,external_tenant_reference,website,branding,metadata')
+    .select('id,status,external_tenant_reference,slug,company_slug,website,branding,metadata')
     .eq('id', companyId)
     .maybeSingle()
   if (fallback.error) throw fallback.error
@@ -268,6 +270,9 @@ export async function loadTenantWebsiteFlowReadiness(input: {
     withdrawal_present: readinessView?.has_withdrawal === true,
     power_of_attorney_text_present: readinessView?.has_power_of_attorney_text === true,
     price_terms_present: readinessView?.has_price_terms === true,
+    // The public legal document URLs are /legal/<slug>/... with the same
+    // slug ?? company_slug resolution; without it the legal bundle has no URLs.
+    public_legal_slug_present: Boolean(clean(company?.slug ?? company?.company_slug)),
     verified_sender_present:
       readinessView?.has_verified_sender === true &&
       automation?.checks.verified_customer_email_sender === true,
@@ -307,6 +312,7 @@ export async function loadTenantWebsiteFlowReadiness(input: {
   if (!checks.withdrawal_present) push(blockers, 'withdrawal_text_missing', 'legal', 'Publicerad ångerrättstext saknas.')
   if (!checks.power_of_attorney_text_present) push(blockers, 'power_of_attorney_text_missing', 'legal', 'Publicerad fullmaktstext saknas.')
   if (!checks.price_terms_present) push(blockers, 'price_terms_missing', 'legal', 'Publicerade prisvillkor saknas.')
+  if (checks.tenant_exists && !checks.public_legal_slug_present) push(blockers, 'legal_public_slug_missing', 'legal', 'Bolagets publika slug saknas, så de juridiska dokumenten saknar publik adress.')
   if (!checks.verified_sender_present) push(blockers, 'verified_email_sender_missing', 'email', 'Verifierad tenantavsändare för kundmail saknas.')
   if (!checks.required_email_templates_present) push(blockers, 'required_email_templates_missing', 'email', 'Obligatoriska kundmailmallar saknas eller är inaktiva.')
   if (!checks.required_email_rules_present) push(blockers, 'required_email_rules_missing', 'email', 'Obligatoriska kundmailregler saknas eller är inaktiva.')
@@ -383,6 +389,7 @@ export async function loadTenantWebsiteFlowReadiness(input: {
     checks.withdrawal_present,
     checks.power_of_attorney_text_present,
     checks.price_terms_present,
+    checks.public_legal_slug_present,
     checks.verified_sender_present,
     checks.required_email_templates_present,
     checks.required_email_rules_present,

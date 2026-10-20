@@ -206,6 +206,7 @@ Sviten finns i `scripts/reality/` (plan: `docs/testing/verklighetssimulering-pla
 - **Drift:** alla 3 bolag har standardvärdet (läsfråga, aggregat).
 - **Förslag:** grinden bör provköra en offert. Kontrollen bör också fånga ett bolag utan `slug`, eftersom då saknar alla juridiska dokument URL och juridiska paketet blir ofullständigt.
 - **Simuleringen:** admin-valet i `/admin/pricing/market-sources` görs som en del av go-live.
+- **Slug-delen RÄTTAD:** `tenantWebsiteReadiness` ger nu blockeringen `legal_public_slug_missing` (komponent `legal`) när `slug ?? company_slug` är tomt, med samma upplösning som det juridiska paketet. Kontrollen ingår också i `website_checkout_ready`. Test: `__tests__/tenant-website-readiness-legal-slug.test.ts`.
 - **ROOT (#840/6291333488):** slug-luckan är bekräftad och ska fångas av grinden. Prispolicyn står kvar: en komplett och färsk förhandsvisning fungerar med `false`. Påståendet "varje månad utan publicerade priser" ska först bindas till exakt prisfönster, elområde och upplösning innan det räknas som fel.
 
 ### F28 Nummerserierna för ansökan, kund och avtal saknas i den kanoniska replayen — ÖPPEN, replay/GEN-ägaren (allvarlig för nya miljöer)
