@@ -185,8 +185,17 @@ ok(canonicalOnboarding.includes('canonical_onboarding_rpc_missing') && canonical
 ok(!src.includes('const fallbackPayloads: Array<Record<string, unknown>>'), 'website intake no longer owns a direct site/metering fallback writer')
 ok(src.includes('const businessStatus =') && src.includes('schemaStatus ??') && src.includes('pending_review'), 'website partial/schema failures are recorded as pending_review for repair/retry')
 
-// 10) findValidPowerOfAttorney selects all externally-sendable + PDF fields (Task F).
-ok(poaOrchestrator.includes('signer_identity_number') && poaOrchestrator.includes('legal_text_version_id') && poaOrchestrator.includes('accepted_at') && poaOrchestrator.includes('method'), 'findValidPowerOfAttorney selects signer/method/legal/accepted fields')
+// 10) Follow the shared literal select into the canonical finder (Task F).
+const manualPoaSelectSource = read('lib/customer-operations/manualGridOwnerSendGuards.ts')
+const manualPoaSelectLiteral = manualPoaSelectSource.match(/\bexport\s+const\s+MANUAL_POA_SELECT\s*=\s*\[([\s\S]*?)\]\.join\(\s*(['"]),\2\s*\)/)?.[1] ?? ''
+ok(/^(?:\s*'[a-z_][a-z0-9_]*'\s*,)*\s*(?:'[a-z_][a-z0-9_]*')?\s*$/.test(manualPoaSelectLiteral), 'shared manual POA select is a literal column list')
+const manualPoaFields = Array.from(manualPoaSelectLiteral.matchAll(/'([a-z_][a-z0-9_]*)'/g), ([, field]) => field)
+const poaCoreSource = read('lib/customer-operations/requestMissingFacilityInformationCore.ts')
+const manualPoaImport = (poaCoreSource.match(/import\s*\{([^}]*)\}\s*from\s*['"]@\/lib\/customer-operations\/manualGridOwnerSendGuards['"]/)?.[1] ?? '').split(',').map((value) => value.trim())
+const validPoaFunction = poaCoreSource.match(/async function findValidPowerOfAttorney\([\s\S]*?\n\}(?=\n|$)/)?.[0] ?? ''
+ok(manualPoaImport.includes('MANUAL_POA_SELECT'), 'canonical POA finder imports the shared select')
+ok(/\.from\(\s*(['"])powers_of_attorney\1\s*\)\s*\.select\(\s*MANUAL_POA_SELECT\s*\)/.test(validPoaFunction), 'canonical POA finder uses the shared select for its POA query')
+ok(['signer_identity_number', 'legal_text_version_id', 'accepted_at', 'method'].every((field) => manualPoaFields.includes(field)), 'findValidPowerOfAttorney selects signer/method/legal/accepted fields')
 
 // 11) Docs document the new identity aliases, weak POA + nextAction codes.
 for (const token of ['personal_identity_number', 'poa_not_externally_sendable', 'missing_customer_identity', 'externally_sendable']) {

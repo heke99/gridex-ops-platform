@@ -161,6 +161,8 @@ function operationalChecks(
       automation?.checks.automation_user_configured === true &&
       automation?.checks.automation_user_verified === true,
     automation_cron_ready: automation?.checks.cron_secret_configured === true,
+    automation_runtime_ready: automation?.checks.runtime_contract_ready === true,
+    automation_ready: automation?.ready === true,
     facility_operations_mailbox_ready:
       automation?.checks.manual_operations_mailbox_ready === true,
   }
@@ -398,6 +400,8 @@ export async function loadTenantWebsiteFlowReadiness(input: {
   if (!checks.required_email_rules_present) push(blockers, 'required_email_rules_missing', 'email', 'Obligatoriska kundmailregler saknas eller är inaktiva.')
   if (!checks.automation_user_ready) push(blockers, 'automation_user_not_ready', 'automation', 'Kundautomationens verifierade systemanvändare är inte redo.')
   if (!checks.automation_cron_ready) push(blockers, 'automation_cron_not_ready', 'automation', 'Kundautomationens cron-secret är inte konfigurerad.')
+  if (!checks.automation_runtime_ready) push(blockers, 'automation_runtime_not_ready', 'database', 'Kundautomationens databasberoenden är inte verifierade. Teckning är stoppad tills runtime-kontraktet är klart.')
+  if (!checks.automation_ready) push(blockers, 'automation_not_ready', 'automation', 'Kundautomationens samlade beredskapskontroll är inte godkänd.')
   if (!checks.facility_operations_mailbox_ready) push(blockers, 'facility_mailbox_not_ready', 'facility', 'Verifierad production-mailbox för anläggningsuppslag saknas.')
   if (!checks.portal_url_schema_ready) push(blockers, 'customer_portal_url_schema_missing', 'database', 'Databasen saknar canonical customer_portal_url-kolumn.')
   if (!checks.portal_url_present) push(blockers, 'customer_portal_url_missing', 'portal', 'Tenantens HTTPS-adress till Mina sidor saknas.')
@@ -475,6 +479,8 @@ export async function loadTenantWebsiteFlowReadiness(input: {
     checks.required_email_rules_present,
     checks.automation_user_ready,
     checks.automation_cron_ready,
+    checks.automation_runtime_ready,
+    checks.automation_ready,
     checks.facility_operations_mailbox_ready,
     checks.operation_api_client_allowed,
     checks.operation_contract_channel_allowed,

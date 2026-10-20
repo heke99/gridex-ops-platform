@@ -5,6 +5,7 @@ import { catalogPricesOverridden, validateContractPricing } from "@/lib/customer
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 import { supabaseService } from "@/lib/supabase/service"
+import { ensurePoaPdfArchive } from "@/lib/customers/poaDocuments"
 import { autoSendSigningLinkAfterCreate, type AutoSendSigningLinkResult } from "@/lib/customer-contracts/autoSendSigningLink"
 
 
@@ -120,6 +121,9 @@ export async function uploadCustomerIntakeDocuments(params: {
       .eq("id", params.existingPowerOfAttorneyId);
     if (poaUpdateError) throw poaUpdateError;
 
+    const archived = await ensurePoaPdfArchive({ companyId: params.companyId, customerId: params.customerId,
+      powerOfAttorneyId: params.existingPowerOfAttorneyId });
+
     const { data: updatedDocument, error: documentUpdateError } = await supabaseService
       .from("customer_authorization_documents")
       .update({
@@ -132,7 +136,7 @@ export async function uploadCustomerIntakeDocuments(params: {
         mime_type: params.signedPowerOfAttorneyFile.type || null,
         file_size_bytes: params.signedPowerOfAttorneyFile.size || null,
         storage_bucket: bucket,
-        file_path: uploaded.filePath,
+        file_path: archived.path,
         file_checksum: uploaded.checksum,
         notes: "Uppladdad efter kanonisk kundtransaktion.",
         metadata: {

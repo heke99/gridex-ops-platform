@@ -34,6 +34,8 @@ const CUSTOMER_PORTAL_READ_SCOPES = [
 
 /** Canonical source for the public V1 endpoint catalogue and developer documentation. */
 const RAW_PUBLIC_API_ROUTES: PublicApiRouteDefinition[] = [
+  { method: 'GET', path: '/api/v1/openapi/poa-archive-v1.json', scopes: [], description: 'Independent additive customer POA archive and verification contract.', rateLimitClass: 'read' },
+  { method: 'GET', path: '/api/v1/openapi/2026-10-19.1/poa-archive-v1.json', scopes: [], description: 'Immutable customer POA archive OpenAPI release 2026-10-19.1.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/staff-onboarding-v1.json', scopes: [], description: 'Independent additive staff onboarding contract; separate from the frozen Staff API release.', rateLimitClass: 'read' },
   { method: 'POST', path: '/api/v1/staff-onboarding/invitations/accept', scopes: ['staff_users.write'], description: 'Explicitly accept the registered client invitation with verified independent tenant Auth and a purpose-bound single-use signed assertion.', idempotencyRequired: true, rateLimitClass: 'write' },
   { method: 'POST', path: '/api/v1/staff-onboarding/identity/resolve', scopes: ['staff_users.read'], description: 'Resolve an existing local-to-central staff identity binding using registered independent tenant Auth and a purpose-bound signed proof.', rateLimitClass: 'read' },
@@ -122,6 +124,8 @@ const RAW_PUBLIC_API_ROUTES: PublicApiRouteDefinition[] = [
   { method: 'GET', path: '/api/v1/customer/events', scopes: ['customer_events.read'], description: 'Retrieve customer-visible events.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/customer/documents', scopes: ['customer_documents.read'], description: 'Retrieve customer documents without exposing internal storage paths.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/customer/legal-acceptances', scopes: ['customer_legal.read'], description: 'Retrieve the customer’s recorded legal acceptances.', rateLimitClass: 'read' },
+  { method: 'GET', path: '/api/v1/customer/powers-of-attorney/evidence', scopes: ['customer_power_of_attorney.read', 'customer_documents.read'], description: 'List existing customer POA archives; requires a linked portal account and fresh verified customer assertion. Contract: /api/v1/openapi/poa-archive-v1.json.', rateLimitClass: 'read' },
+  { method: 'GET', path: '/api/v1/customer/powers-of-attorney/evidence/[verificationReference]', scopes: ['customer_power_of_attorney.read', 'customer_documents.read'], description: 'Verify or download an existing customer POA PDF by stored reference after checking its actual bytes; requires a linked portal account and fresh verified assertion. Contract: /api/v1/openapi/poa-archive-v1.json.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/customer/powers-of-attorney', scopes: ['customer_power_of_attorney.read'], description: 'Retrieve the customer’s powers of attorney.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/customer/notifications', scopes: ['customer_notifications.read'], description: 'Retrieve customer notifications.', rateLimitClass: 'read' },
   { method: 'POST', path: '/api/v1/customer/notifications/read', scopes: ['customer_notifications.write'], description: 'Mark customer notifications as read.', idempotencyRequired: true, rateLimitClass: 'write' },

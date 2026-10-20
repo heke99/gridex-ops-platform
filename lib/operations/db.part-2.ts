@@ -4,12 +4,14 @@ import type { CustomerSiteRow, MeteringPointRow } from "@/lib/masterdata/types"
 import { evaluateSiteSwitchReadiness } from "@/lib/operations/readiness"
 import { resolveIncomingSupplierIdentity } from "@/lib/masterdata/selfSupplier"
 import { calculateEarliestSwitchStartDate } from "@/lib/operations/switchStartDate"
+import { strictIsoDate } from "@/lib/time/stockholm"
 import { getSupplierSwitchActivationReadiness } from "@/lib/operations/supplierSwitchActivation"
 import { stockholmMarketDate } from "@/lib/operations/supplierSwitchActivation"
 import { scanAdminCandidates, type AdminCandidatePage } from "@/lib/operations/adminPagination"
 import { InvalidReadModelResponseError } from "@/lib/read-models/readResult"
 import { loadSupplierSwitchPolicy } from "@/lib/operations/supplierSwitchScheduler"
 import { resolveAuthorizationDocumentIdForPowerOfAttorney } from "@/lib/legal/authorizationChain"
+import { supabaseService } from "@/lib/supabase/service"
 import { assertNoActiveSwitchLifecycleBlock, OPEN_SUPPLIER_SWITCH_STATUSES } from "@/lib/operations/switchLifecycleBlocks"
 import type { CustomerOperationTaskRow, CustomerOperationTaskStatus, SupplierSwitchEventRow, SupplierSwitchRequestRow, SupplierSwitchRequestStatus, SupplierSwitchRequestType, SwitchReadinessResult } from "@/lib/operations/types"
 import { getActorId, getSupplierSwitchRequestById, listPowersOfAttorneyByCustomerId } from './db.part-1'
@@ -463,12 +465,87 @@ export async function createSupplierSwitchRequest(
   const resolvedPolicyCompanyId = params.companyId ?? params.site.company_id ?? params.meteringPoint.company_id ?? null;
   if (!resolvedPolicyCompanyId) throw new Error("supplier_switch_company_missing");
   const switchPolicy = await loadSupplierSwitchPolicy(resolvedPolicyCompanyId, "production");
+  const isMove = params.requestType === "move_in" || params.requestType === "move_out_takeover";
+  let switchSite = params.site;
+  let supplierStartFloor: string | null = null;
+  let manualSupplierTerms: Record<string, unknown> | null = null;
+  let confirmedEarliestStart = false;
+  if (!isMove) {
+    // A queued job can hold a site snapshot from before the supplier reply.
+    // Reload its exact ownership scope before calculating or recording terms.
+    const { data: currentSite, error: siteError } = await supabase.from("customer_sites")
+      .select("*")
+      .eq("id", params.site.id)
+      .eq("company_id", switchCompanyId)
+      .eq("customer_id", params.readiness.customerId)
+      .maybeSingle();
+    if (siteError) throw siteError;
+    if (!currentSite || currentSite.id !== params.site.id || currentSite.company_id !== switchCompanyId
+      || currentSite.customer_id !== params.readiness.customerId
+      || params.site.customer_id !== params.readiness.customerId || params.readiness.siteId !== params.site.id
+      || (params.site.company_id && params.site.company_id !== switchCompanyId)
+      || (params.meteringPoint.company_id && params.meteringPoint.company_id !== switchCompanyId)
+      || params.meteringPoint.site_id !== params.site.id
+      || (params.meteringPoint.customer_id && params.meteringPoint.customer_id !== params.readiness.customerId)) {
+      throw new Error("supplier_switch_site_scope_mismatch");
+    }
+    switchSite = currentSite as CustomerSiteRow;
+    // The caller's scoped RLS read above must succeed before private server
+    // proofs run. These read-only helpers remain service-only; canonical switch
+    // creation below still uses the caller's client and authorization.
+    const { data: verifiedFloor, error: proofError } = await supabaseService.rpc("gridex_manual_supplier_start_floor_v1", {
+      p_company_id: switchCompanyId,
+      p_customer_id: params.readiness.customerId,
+      p_site_id: params.site.id,
+    });
+    if (proofError) throw proofError;
+    if (verifiedFloor !== null) supplierStartFloor = strictIsoDate(verifiedFloor, "supplier_start_floor");
+
+    const record = (value: unknown): Record<string, unknown> | null =>
+      value !== null && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
+    const snapshot = record(record(currentSite.metadata)?.manual_supplier_terms);
+    const terms = record(snapshot?.terms);
+    if (supplierStartFloor && snapshot?.version === 1 && terms
+      && snapshot.companyId === switchCompanyId && snapshot.customerId === params.readiness.customerId && snapshot.siteId === params.site.id
+      && typeof snapshot.inboundId === "string" && /^[0-9a-f-]{36}$/i.test(snapshot.inboundId)
+      && typeof snapshot.requestId === "string" && /^[0-9a-f-]{36}$/i.test(snapshot.requestId)
+      && typeof snapshot.sourceHash === "string" && /^[0-9a-f]{64}$/i.test(snapshot.sourceHash)
+      && typeof snapshot.receivedAt === "string" && Number.isFinite(Date.parse(snapshot.receivedAt))) {
+      try {
+        const earliest = terms.earliestStartDate == null ? null : strictIsoDate(terms.earliestStartDate);
+        const effective = terms.effectiveStartDate == null ? null : strictIsoDate(terms.effectiveStartDate);
+        const snapshotFloor = earliest && effective ? (earliest > effective ? earliest : effective) : earliest ?? effective;
+        if (snapshotFloor === supplierStartFloor) {
+          manualSupplierTerms = snapshot;
+          confirmedEarliestStart = earliest !== null && switchSite.current_supplier_response_status === "free_to_switch";
+        }
+      } catch {
+        // Keep the authoritative floor and conservative notice on malformed or
+        // concurrently replaced metadata; never waive a notice by guessing.
+      }
+    }
+    if (confirmedEarliestStart && manualSupplierTerms) {
+      // A date proof does not prove that an editable site snapshot contained an
+      // explicit earliest start. Bind the entire snapshot to the applied reply
+      // before allowing it to remove the otherwise conservative notice floor.
+      const { data: snapshotVerified, error: snapshotError } = await supabaseService.rpc("gridex_manual_supplier_terms_verified_v1", {
+        p_company_id: switchCompanyId,
+        p_customer_id: params.readiness.customerId,
+        p_site_id: params.site.id,
+        p_snapshot: manualSupplierTerms,
+      });
+      if (snapshotError) throw snapshotError;
+      confirmedEarliestStart = snapshotVerified === true;
+      if (!confirmedEarliestStart) manualSupplierTerms = null;
+    }
+  }
   const startDateCalculation = calculateEarliestSwitchStartDate({
     requestType: params.requestType,
     requestedStartDate: params.requestedStartDate,
-    noticePeriod: params.site.current_supplier_notice_period ?? null,
-    contractEndDate: params.site.current_supplier_contract_end_date ?? null,
-    moveInDate: params.site.move_in_date ?? null,
+    noticePeriod: confirmedEarliestStart ? null : switchSite.current_supplier_notice_period ?? null,
+    contractEndDate: switchSite.current_supplier_contract_end_date ?? null,
+    earliestSupplierStartDate: supplierStartFloor,
+    moveInDate: switchSite.move_in_date ?? null,
     marketLeadDays: switchPolicy.marketLeadDays,
   });
   const effectiveRequestedStartDate = startDateCalculation.effectiveStartDate;
@@ -510,16 +587,16 @@ export async function createSupplierSwitchRequest(
     request_type: params.requestType,
     status: initialStatus,
     requested_start_date: effectiveRequestedStartDate,
-    current_supplier_id: params.site.current_supplier_id ?? null,
-    current_supplier_name: params.site.current_supplier_name,
-    current_supplier_org_number: params.site.current_supplier_org_number,
-    current_supplier_ediel_id: params.site.current_supplier_ediel_id ?? null,
-    current_supplier_unknown: Boolean(params.site.current_supplier_unknown),
-    current_supplier_contract_status: params.site.current_supplier_contract_status ?? null,
-    current_supplier_contract_end_date: params.site.current_supplier_contract_end_date ?? null,
-    current_supplier_notice_period: params.site.current_supplier_notice_period ?? null,
-    current_supplier_termination_fee: params.site.current_supplier_termination_fee ?? null,
-    current_supplier_response_status: params.site.current_supplier_response_status ?? null,
+    current_supplier_id: switchSite.current_supplier_id ?? null,
+    current_supplier_name: switchSite.current_supplier_name,
+    current_supplier_org_number: switchSite.current_supplier_org_number,
+    current_supplier_ediel_id: switchSite.current_supplier_ediel_id ?? null,
+    current_supplier_unknown: Boolean(switchSite.current_supplier_unknown),
+    current_supplier_contract_status: switchSite.current_supplier_contract_status ?? null,
+    current_supplier_contract_end_date: switchSite.current_supplier_contract_end_date ?? null,
+    current_supplier_notice_period: switchSite.current_supplier_notice_period ?? null,
+    current_supplier_termination_fee: switchSite.current_supplier_termination_fee ?? null,
+    current_supplier_response_status: switchSite.current_supplier_response_status ?? null,
     incoming_supplier_name: incomingSupplierName,
     incoming_supplier_org_number: incomingSupplierOrgNumber,
     grid_owner_id:
@@ -535,17 +612,18 @@ export async function createSupplierSwitchRequest(
       latestPowerOfAttorneyId: params.readiness.latestPowerOfAttorneyId,
       ownSupplierResolution: incomingSupplier.resolution,
       currentSupplier: {
-        id: params.site.current_supplier_id ?? null,
-        name: params.site.current_supplier_name ?? null,
-        orgNumber: params.site.current_supplier_org_number ?? null,
-        edielId: params.site.current_supplier_ediel_id ?? null,
-        unknown: Boolean(params.site.current_supplier_unknown),
-        contractStatus: params.site.current_supplier_contract_status ?? null,
-        contractEndDate: params.site.current_supplier_contract_end_date ?? null,
-        noticePeriod: params.site.current_supplier_notice_period ?? null,
-        terminationFee: params.site.current_supplier_termination_fee ?? null,
-        responseStatus: params.site.current_supplier_response_status ?? null,
+        id: switchSite.current_supplier_id ?? null,
+        name: switchSite.current_supplier_name ?? null,
+        orgNumber: switchSite.current_supplier_org_number ?? null,
+        edielId: switchSite.current_supplier_ediel_id ?? null,
+        unknown: Boolean(switchSite.current_supplier_unknown),
+        contractStatus: switchSite.current_supplier_contract_status ?? null,
+        contractEndDate: switchSite.current_supplier_contract_end_date ?? null,
+        noticePeriod: switchSite.current_supplier_notice_period ?? null,
+        terminationFee: switchSite.current_supplier_termination_fee ?? null,
+        responseStatus: switchSite.current_supplier_response_status ?? null,
       },
+      manualSupplierTerms,
       startDateCalculation,
       businessBlockers,
     },

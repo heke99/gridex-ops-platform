@@ -12,6 +12,9 @@ import { runManualInboundMailEngine } from '@/lib/inbound-mail/manualMailboxPoll
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+// The poller stops starting new work after 150s and releases its mailbox lease.
+// Leave headroom for the current message and connection cleanup.
+export const maxDuration = 300
 
 function clean(value: string | null | undefined): string | null {
   const trimmed = String(value ?? '').trim()

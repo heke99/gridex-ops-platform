@@ -45,7 +45,8 @@ describe('#3 nested multipart bodies are not lost', () => {
     expect(parsed.bodyText).toBe('Anläggnings-ID: 735999100000000001')
     expect(parsed.bodyHtml).toBe('<p>Anläggnings-ID</p>')
     expect(parsed.inReplyTo).toBe('<req-1@gridex.se>')
-    expect(parsed.attachments).toEqual([{ filename: 'svar.txt', contentType: 'text/plain', sizeBytes: 8, text: 'Västerås' }])
+    expect(parsed.attachments).toHaveLength(1)
+    expect(parsed.attachments[0]).toMatchObject({ filename: 'svar.txt', contentType: 'text/plain', sizeBytes: 8, text: 'Västerås' })
   })
 })
 

@@ -7,6 +7,7 @@ type Row = Record<string, unknown>
 const state = vi.hoisted(() => ({
   rows: [] as Row[], cap: 1000, pages: [] as number[], failOffset: -1, repeat: false,
   timestamps: new WeakMap<Row, Map<string, { raw: string; parsed: number }>>(),
+  requestRows: new Map<string, Row[]>(),
 }))
 
 function rowTimestamp(row: Row, column: string): number {
@@ -29,14 +30,15 @@ vi.mock('@/lib/integrations/apiAuth', () => ({
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
   from(table: string) {
     const filters: Array<(row: Row) => boolean> = []
+    const filterKeys: unknown[][] = []
     const orders: Array<{ column: string; ascending: boolean }> = []
     let offset = 0, limit = Infinity
     const q: any = {
       select: () => q,
-      eq: (k: string, v: unknown) => { filters.push(r => r[k] === v); return q },
-      in: (k: string, vs: unknown[]) => { filters.push(r => vs.includes(r[k])); return q },
-      gte: (k: string, v: string) => { const boundary = Date.parse(v); filters.push(r => rowTimestamp(r, k) >= boundary); return q },
-      lt: (k: string, v: string) => { const boundary = Date.parse(v); filters.push(r => rowTimestamp(r, k) < boundary); return q },
+      eq: (k: string, v: unknown) => { filterKeys.push(['eq', k, v]); filters.push(r => r[k] === v); return q },
+      in: (k: string, vs: unknown[]) => { filterKeys.push(['in', k, vs]); filters.push(r => vs.includes(r[k])); return q },
+      gte: (k: string, v: string) => { filterKeys.push(['gte', k, v]); const boundary = Date.parse(v); filters.push(r => rowTimestamp(r, k) >= boundary); return q },
+      lt: (k: string, v: string) => { filterKeys.push(['lt', k, v]); const boundary = Date.parse(v); filters.push(r => rowTimestamp(r, k) < boundary); return q },
       order: (column: string, options: { ascending: boolean }) => { orders.push({ column, ascending: options.ascending }); return q },
       limit: (n: number) => { limit = n; return q },
       range: (from: number, to: number) => { offset = from; limit = to - from + 1; return q },
@@ -48,7 +50,12 @@ vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
       then(resolve: (v: unknown) => unknown) {
         state.pages.push(offset)
         if (offset === state.failOffset) return Promise.resolve({ data: null, error: { code: '08006', message: 'synthetic page outage' } }).then(resolve)
-        const rows = sortRows(state.rows.filter(r => filters.every(f => f(r))), orders)
+        const key = JSON.stringify([table, filterKeys, orders])
+        let rows = state.requestRows.get(key)
+        if (rows === undefined) {
+          rows = sortRows(state.rows.filter(r => filters.every(f => f(r))), orders)
+          state.requestRows.set(key, rows)
+        }
         const start = state.repeat ? 0 : offset
         return Promise.resolve({ data: rows.slice(start, start + Math.min(limit, state.cap)), error: null }).then(resolve)
       },
@@ -59,11 +66,12 @@ vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
 import { handleSimplePartnerApi } from '@/lib/partner-api/simple'
 import { handlePartnerApi } from '@/lib/partner-api/core'
 
-beforeEach(() => { state.rows = []; state.cap = 1000; state.pages = []; state.failOffset = -1; state.repeat = false; state.timestamps = new WeakMap(); vi.spyOn(console, 'error').mockImplementation(() => {}) })
+beforeEach(() => { state.rows = []; state.cap = 1000; state.pages = []; state.failOffset = -1; state.repeat = false; state.timestamps = new WeakMap(); state.requestRows = new Map(); vi.spyOn(console, 'error').mockImplementation(() => {}) })
 function reading(i: number, extra: Row = {}): Row & { id: string; period_start: string } {
   return { id: `e0000000-0000-4000-8000-${String(i + 1).padStart(12, '0')}`, company_id: 'company_synthetic', customer_site_id: 'site_internal', period_start: new Date(Date.UTC(2026, 0, 1) + Math.floor(i / 2) * 900000).toISOString(), period_end: new Date(Date.UTC(2026, 0, 1) + (Math.floor(i / 2) + 1) * 900000).toISOString(), resolution: '15m', revision_status: 'current', quantity_kwh: i + 1, direction: i % 2 ? 'production' : 'consumption', unit: 'kWh', ...extra }
 }
 async function read(legacy = false) {
+  state.requestRows = new Map()
   const path = legacy ? ['sites', 'site_public', 'measurements'] : ['customer', 'customer_public', 'site', 'site_public', 'measurement']
   const request = new NextRequest(`https://example.invalid/api/partner/v1/${path.join('/')}?from_date=2026-01-01&to_date=2026-12-31&resolution=15m`)
   return (legacy ? handlePartnerApi(request, 'GET', path) : handleSimplePartnerApi(request, 'GET', path))

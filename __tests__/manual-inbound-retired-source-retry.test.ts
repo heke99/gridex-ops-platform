@@ -1,4 +1,5 @@
 import { beforeEach, expect, it, vi } from 'vitest'
+import { isDeepStrictEqual } from 'node:util'
 
 type Row = Record<string, unknown>
 const io = vi.hoisted(() => ({
@@ -18,7 +19,19 @@ class Query {
   select() { return this }
   order() { return this }
   limit(value: number) { this.maximum = value; return this }
-  eq(column: string, value: unknown) { this.filters.push(row => row[column] === value); return this }
+  eq(column: string, value: unknown) {
+    this.filters.push(row => {
+      const cell = column.split(/->>?/).reduce<unknown>((nested, key) => nested && typeof nested === 'object' ? (nested as Row)[key] : undefined, row)
+      if (cell == null) return false
+      if (typeof cell === 'object' && typeof value === 'string') {
+        try { return isDeepStrictEqual(cell, JSON.parse(value)) } catch { return false }
+      }
+      return cell === value
+    })
+    return this
+  }
+  in(column: string, values: unknown[]) { this.filters.push(row => values.includes(row[column])); return this }
+  is(column: string, value: unknown) { this.filters.push(row => (column.split(/->>?/).reduce<unknown>((cell, key) => cell && typeof cell === 'object' ? (cell as Row)[key] : undefined, row) ?? null) === value); return this }
   not(column: string, _operator: string, value: unknown) { this.filters.push(row => row[column] !== value); return this }
   or(value: string) {
     const cutoff = value.split('locked_at.lt.')[1]
@@ -56,10 +69,14 @@ vi.mock('@/lib/customer-operations/manualFacilityResponseParser', () => ({
 vi.mock('@/lib/email/manualOperationsMailbox', () => ({ resolveManualMailboxSecret: () => 'fixture-password' }))
 vi.mock('imapflow', () => ({ ImapFlow: class {
   on() { return this }
+  get mailbox() { return { uidValidity: BigInt(1), uidNext: Math.max(0, ...io.messages.map(message => Number(message.uid))) + 1 } }
   async connect() {}
   async getMailboxLock() { return { release() {} } }
   async logout() {}
-  async *fetch() { for (const message of io.messages) yield message }
+  async search(query: { uid?: string }) {
+    return io.messages.filter(message => !query.uid || Number(message.uid) >= Number(query.uid.split(':')[0])).map(message => message.uid)
+  }
+  async fetchOne(uid: string) { return io.messages.find(message => String(message.uid) === uid) ?? false }
   async messageFlagsAdd(uid: number, flags: string[]) {
     if (io.flagFailures > 0) { io.flagFailures -= 1; throw new Error('transient_seen_failure') }
     io.flags.push({ uid, flags })
