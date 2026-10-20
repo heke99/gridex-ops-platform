@@ -47,7 +47,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1 (branch snapshot)
         with:
           version: 2.101.0
       - name: Execute the P-08 production-contract chain after disposable clean replay
