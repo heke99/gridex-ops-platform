@@ -11,8 +11,8 @@ import { PGlite } from '@electric-sql/pglite'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 const schema = readFileSync('supabase/schema.sql', 'utf8')
-const tokenizer = readFileSync('supabase/migrations/20261015130000_ediel_wire_tokenizer_linear_time.sql', 'utf8')
-const forward = readFileSync('supabase/migrations/20261015231500_ediel_technical_ack_original_lookup_by_uci.sql', 'utf8')
+const tokenizer = readFileSync('supabase/migrations/20261020120000_ediel_wire_tokenizer_linear_time.sql', 'utf8')
+const forward = readFileSync('supabase/migrations/20261020120100_ediel_technical_ack_original_lookup_by_uci.sql', 'utf8')
 
 function definition(name: string, source = schema, create = 'CREATE FUNCTION') {
   const start = source.indexOf(`${create} ${name}(`)

@@ -108,8 +108,9 @@ function hEndEffects(f:{companyId:string;sourceId:string;startSourceId:string}){
 it('actual H end uses original captured H start, an independently reviewed current end profile and whole canonical original; end/history/profile commit precedes ERC100 and replay is immutable',async()=>{
  const f=await receivedHEnd(),before=hEndEffects(f) as {period:{id:string;market_state_version:number;source_end_message_id:string|null}}
  expect(before.period.source_end_message_id).toBeNull()
+ const observedBefore=sql<string>('SELECT to_jsonb(clock_timestamp())')
  await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:f.sourceId})
- const applied=hEndEffects(f);expect(applied).toMatchObject({period:{id:before.period.id,source_end_message_id:f.sourceId,market_state_version:before.period.market_state_version+1,market_end_at:'2026-10-16T12:30:00+00:00',status:'ending'},transitions:1,profiles:1,positive:1,followups:1,audits:1});heldP16b(f.sourceId)
+ const applied=hEndEffects(f);expect(applied).toMatchObject({period:{id:before.period.id,source_end_message_id:f.sourceId,market_state_version:before.period.market_state_version+1,market_end_at:'2026-10-16T12:30:00+00:00',status:Date.parse('2026-10-16T12:30:00Z')<=Date.parse(observedBefore)?'ended':'ending'},transitions:1,profiles:1,positive:1,followups:1,audits:1});heldP16b(f.sourceId)
  expect(sql(`SELECT to_jsonb(raw_payload) FROM public.ediel_messages WHERE id=${literal(f.sourceId)}`)).toBe(f.wire)
  await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:f.sourceId});expect(hEndEffects(f)).toEqual(applied)
  sql(`UPDATE public.user_permissions SET effect='deny' WHERE company_id=${literal(f.companyId)} AND user_id=${literal(f.reviewer)} AND permission_key='ediel.bilateral_profile.review'`)
@@ -124,7 +125,8 @@ it('last H end audit failure rolls back period end/version, full source transiti
 
 it('genuine LK operation, validated intent and atomic original remain a request until private accepted transport and the matching whole Z05 end; immutable replay and current reviewer revocation bind the captured original',async()=>{
  const f=await receivedLkEnd(true);expect(lkEffects(f)).toMatchObject({period:{source_end_message_id:null},ends:0,transitions:0,positive:0,audits:0})
- await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:f.sourceId});const after=lkEffects(f);expect(after).toMatchObject({period:{source_end_message_id:f.sourceId,market_state_version:2,status:'ending'},ends:1,transitions:1,positive:1,followups:1,audits:1});heldP16b(f.sourceId)
+ const observedBefore=sql<string>('SELECT to_jsonb(clock_timestamp())')
+ await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:f.sourceId});const after=lkEffects(f);expect(after).toMatchObject({period:{source_end_message_id:f.sourceId,market_state_version:2,status:Date.parse('2026-10-16T12:30:00Z')<=Date.parse(observedBefore)?'ended':'ending'},ends:1,transitions:1,positive:1,followups:1,audits:1});heldP16b(f.sourceId)
  expect(sql(`SELECT to_jsonb(raw_payload) FROM public.ediel_messages WHERE id=${literal(f.sourceId)}`)).toBe(f.wire)
  await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:f.sourceId});expect(lkEffects(f)).toEqual(after)
  sql(`UPDATE public.user_permissions SET effect='deny' WHERE company_id=${literal(f.companyId)} AND user_id=${literal(f.reviewer)} AND permission_key='ediel.bilateral_profile.review'`);expect(sql(`SELECT to_jsonb(gridex_bilateral_prodat.recorded_closure_end_current_v1(${literal(f.companyId)},${literal(f.sourceId)}))`)).toBe(false)
@@ -176,9 +178,9 @@ it('national Z05L requires its actually accepted own H original; unsent H never 
  await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:f.endSourceId});expect(nationalEndEffects(f)).toEqual(before)
 },120000)
 it('national Z05L commits exact H original/end receipt/history before positive ACK and final-metering followup; replay is immutable and deny disables current evidence',async()=>{
- const f=await receivedNationalRescissionEnd(true)
+ const f=await receivedNationalRescissionEnd(true),observedBefore=sql<string>('SELECT to_jsonb(clock_timestamp())')
  await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:f.endSourceId})
- const after=nationalEndEffects(f);expect(after).toMatchObject({period:{id:f.periodId,source_end_message_id:f.endSourceId,market_end_at:'2026-10-16T12:30:00+00:00',status:'ending'},transitions:1,ends:1,positive:1,followups:1,audits:1});heldP16b(f.endSourceId)
+ const after=nationalEndEffects(f);expect(after).toMatchObject({period:{id:f.periodId,source_end_message_id:f.endSourceId,market_end_at:f.nationalEndPlan.effectiveAt.replace('.000Z','+00:00'),status:Date.parse(f.nationalEndPlan.effectiveAt)<=Date.parse(observedBefore)?'ended':'ending'},transitions:1,ends:1,positive:1,followups:1,audits:1});heldP16b(f.endSourceId)
  expect(sql(`SELECT to_jsonb(raw_payload) FROM public.ediel_messages WHERE id=${literal(f.endSourceId)}`)).toBe(f.endWire)
  await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:f.endSourceId});expect(nationalEndEffects(f)).toEqual(after)
  sql(`UPDATE public.user_permissions SET effect='deny' WHERE company_id=${literal(f.companyId)} AND user_id=${literal(f.reviewer)} AND permission_key='ediel.supply_rescission.review'`)
@@ -207,13 +209,18 @@ it('actual prepare-only C and SEND-only E handoff preserves archived A/reviewer 
  await expect(qualifyPersistedBilateralProdatOutboundOriginal((await getEdielMessageById(f.original.id))!,f.currentExecutor)).rejects.toMatchObject({code:'42501'})
 },120000)
 it('a real clock-scoped prepare DENY becoming active during last audit write rolls back original, witness, receipt and intent binding',async()=>{
- const f=await nationalRescissionArtifact(),approved=await reviewSupplyRescission({companyId:f.companyId,actorUserId:f.reviewer,artifactId:f.artifactId,...f.review}),creator=nationalNativeOperator(f.companyId,['communication.write','metering.write','contracts.read']),cleanup=installNationalLastWriteDeny(f.companyId,creator,'ediel.supply_rescission.original_registered','communication.write')
+ const f=await nationalRescissionArtifact(),approved=await reviewSupplyRescission({companyId:f.companyId,actorUserId:f.reviewer,artifactId:f.artifactId,...f.review})
+ expect(approved.status,JSON.stringify(approved)).toBe('authorized');expect(approved.mandateId).toMatch(/^[a-f0-9-]{36}$/)
+ const creator=nationalNativeOperator(f.companyId,['communication.write','metering.write','contracts.read']),cleanup=installNationalLastWriteDeny(f.companyId,creator,'ediel.supply_rescission.original_registered','communication.write')
  try{await expect(prepareAndQueueSupplyRescissionZ08({companyId:f.companyId,actorUserId:creator,mandateId:String(approved.mandateId),preferredRouteId:f.routeId})).rejects.toMatchObject({message:expect.stringContaining('supply_rescission_terminal_producer_forbidden')});expect(sql(`SELECT jsonb_build_object('operations',(SELECT count(*) FROM gridex_supply_rescission.outbound_operations WHERE company_id=${literal(f.companyId)}),'receipts',(SELECT count(*) FROM gridex_supply_rescission.outbound_receipts WHERE company_id=${literal(f.companyId)}),'consumptions',(SELECT count(*) FROM gridex_ediel_outbound_owner.consumptions WHERE company_id=${literal(f.companyId)} AND source_message_id IN(SELECT id FROM public.ediel_messages WHERE source_operation_id=${literal(approved.mandateId)})),'boundIntents',(SELECT count(*) FROM public.ediel_message_intents WHERE company_id=${literal(f.companyId)} AND operation_id=${literal(approved.mandateId)} AND ediel_message_id IS NOT NULL))`)).toEqual({operations:0,receipts:0,consumptions:0,boundIntents:0})}finally{cleanup()}
 },120000)
 it('a real clock-scoped current executor DENY during final end audit rolls back period/history/end receipt and business-watch fulfillment',async()=>{
  const f=await receivedNationalRescissionEnd(true,true),source=(await getEdielMessageById(f.endSourceId))!
  // The apply admits only a persisted accepted canonical assessment.
  expect(await recordReceivedSourceValidation({original:source,validated:source,resolvedCompanyId:f.companyId,decision:await resolveCanonicalRuntimeDecisionWithRegistry(source)})).toMatchObject({status:'recorded'})
+ // Qualify the real exact sent-original/end pair before injecting the final deny.
+ expect(sql(`SELECT to_jsonb(gridex_supply_rescission.has_end_selector_v1(m,w.wire->'objects'->0) AND gridex_supply_rescission.matched_end_v1(m,w.wire,w.wire->'objects'->0) IS NOT NULL)
+  FROM public.ediel_messages m CROSS JOIN LATERAL(SELECT gridex_received_sources.normal_switch_wire_v1(m.raw_payload) wire) w WHERE m.id=${literal(f.endSourceId)}`)).toBe(true)
  const before=nationalEndEffects(f),cleanup=installNationalLastWriteDeny(f.companyId,f.currentExecutor,'ediel.supply_rescission.end_applied','metering.write')
  try{expect(()=>sql(`SELECT public.ediel_apply_supply_source_v1(${literal(f.companyId)},${literal(f.endSourceId)},${literal(f.currentExecutor)})`)).toThrow('supply_rescission_post_write_actor_forbidden');expect(nationalEndEffects(f)).toEqual(before)}finally{cleanup()}
 },120000)

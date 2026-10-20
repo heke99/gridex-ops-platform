@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const assert = require('node:assert/strict')
 const fs = require('node:fs')
-const { currentContractVersion, currentReleasePath } = require('./lib/current-api-contract.cjs')
+const { currentDocumentationVersion, currentReleasePath } = require('./lib/current-api-contract.cjs')
 
 function read(path) {
   return fs.readFileSync(path, 'utf8')
@@ -43,7 +43,7 @@ assert.match(readiness, /contract_price_snapshot_missing/)
 assert.match(readiness, /snapshotsById/)
 assert.match(guide, /locked `price_area` from the quote\/contract price snapshot/)
 assert.match(guide, /database also rejects direct writes of a billing underlay/)
-assert.equal(openapi.info.version, currentContractVersion)
+assert.equal(openapi.info.version, currentDocumentationVersion)
 assert.equal(typeof manifest.files[migrationName], 'string')
 assert.equal(typeof manifest.files[guardMigrationName], 'string')
 assert.equal(manifest.files[migrationName].length, 64)

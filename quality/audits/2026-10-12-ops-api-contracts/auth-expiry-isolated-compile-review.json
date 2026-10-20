@@ -1,0 +1,169 @@
+{
+  "schema": "ops_auth_expiry_isolated_compile_receipt_v1",
+  "status": "PASS_GENUINE_CREATE_VALIDATION_AND_CATALOG_IDENTITY; NOT_BUSINESS_EXECUTION_CERTIFICATION",
+  "created_at_utc": "2026-10-13T10:45:00.907915+00:00",
+  "sealed_forward": {
+    "path": "/tmp/gridex-api-audit-ops/quality/audits/2026-10-12-ops-api-contracts/release-proposals/auth-token-expiry-forward.sql",
+    "sha256": "9e3dc9544031b8d42acdaa850c9ba1963d8b6b6ff0c7d35c76f1be49368ba7bf",
+    "bytes": 77342,
+    "unchanged": true
+  },
+  "environment": {
+    "container": "gridex-ops-api-native-20261013",
+    "image": "postgres:17.6-alpine",
+    "network_mode_verified": "none",
+    "database": "ops_api_auth_expiry_compile_20261013",
+    "dedicated_database": true,
+    "base_database_cloned": "ops_api_auth_context_compile_20261013",
+    "base_actual_tables": 73,
+    "supplement_actual_tables": 15,
+    "empty_table_counts_verified": 88,
+    "actual_helper_core_definitions_restored": 20,
+    "check_function_bodies": "on",
+    "native_database_writes": false,
+    "business_rpc_invocations": false
+  },
+  "validation": {
+    "baseline_strict_compile_exit": 0,
+    "exact_forward_compile_exit": 0,
+    "exact_forward_idempotent_replay_exit": 0,
+    "clock_identity_rollback_probe_exit": 0,
+    "all_5_expected_after_body_hashes": true,
+    "complete_pg_proc_row_except_prosrc_preserved": true,
+    "all_oid_owner_acl_configuration_preserved": true,
+    "post_functions": [
+      {
+        "signature": "private.authenticate_integration_request_v1_secret_internal(text,text,text,text[],text[],text,text,integer,integer)",
+        "oid": "83189",
+        "body_md5": "67d81f7ae7ccd87a030dc3c25a311b69",
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres}",
+        "arguments": "p_key_prefix text, p_secret_hash text, p_route text, p_required_all text[] DEFAULT ARRAY[]::text[], p_required_any text[] DEFAULT ARRAY[]::text[], p_client_ip text DEFAULT NULL::text, p_origin text DEFAULT NULL::text, p_rate_limit_cost integer DEFAULT 1, p_window_seconds integer DEFAULT 60",
+        "proconfig": [
+          "search_path=public, pg_temp"
+        ]
+      },
+      {
+        "signature": "public.canonical_accept_tenant_invitation(jsonb)",
+        "oid": "83191",
+        "body_md5": "84da220e65ca1a019bdf55b33fa1664c",
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "arguments": "p_command jsonb",
+        "proconfig": [
+          "search_path=public, auth, pg_temp"
+        ]
+      },
+      {
+        "signature": "public.gridex_accept_external_staff_invitation_v1(jsonb)",
+        "oid": "83194",
+        "body_md5": "2a7f912ecc0d982365a5abd423afab0b",
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "arguments": "p_command jsonb",
+        "proconfig": [
+          "search_path=pg_catalog"
+        ]
+      },
+      {
+        "signature": "public.gridex_accept_staff_invitation_v1(jsonb)",
+        "oid": "83195",
+        "body_md5": "55ec7a03bf1dcc1f6f469d78527b0c8e",
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "arguments": "p_command jsonb",
+        "proconfig": [
+          "search_path=pg_catalog"
+        ]
+      },
+      {
+        "signature": "public.gridex_decide_customer_identity_change_v1(uuid,uuid,text,text,uuid,jsonb)",
+        "oid": "83199",
+        "body_md5": "63f7ccdf09f86e5fe8f917a6560fb00e",
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "arguments": "p_company_id uuid, p_request_id uuid, p_outcome text, p_decided_by text, p_actor_user_id uuid DEFAULT NULL::uuid, p_acceptance jsonb DEFAULT NULL::jsonb",
+        "proconfig": [
+          "search_path=pg_catalog"
+        ]
+      }
+    ]
+  },
+  "baseline_correction": {
+    "first_supplement_attempt": "ROLLED_BACK; actual FK requires actual standalone unique company_invitations(id,company_id) index",
+    "correction": "Restored actual v4d native metadata standalone unique indexes before actual FKs; same dedicated clone rerun successful. No forward edits, no table stubs, no disabled validators."
+  },
+  "scope_limits": [
+    "Genuine PostgreSQL CREATE validator parsed all five patched PL/pgSQL bodies and their real composite rowtypes. Static SQL helper definitions were restored with check_function_bodies enabled.",
+    "PL/pgSQL SQL expressions are planned lazily. This receipt does not claim all mutation statements or business authority/lock/race behavior was runtime-executed. No staff invitation, identity change or authentication business RPC was invoked.",
+    "Baseline has actual empty column/default/CHECK/PK/UNIQUE/FK/index shapes and RLS flags. Newly supplemented tables do not copy full trigger/policy execution; this is a bounded compile environment, not native production baseline acceptance.",
+    "Supporting rollback clock probe checks PostgreSQL time semantics only; code and actual native definitions remain the authority.",
+    "Source/native snapshot times are individually frozen. No personal, credential or customer/business rows were read."
+  ],
+  "artifacts": [
+    {
+      "path": "/tmp/gridex-api-review/auth-context-isolated-compile-receipt.json",
+      "sha256": "7844e4f0e70a4685355e1585a3790f07593bb40f82957327817436c2a289f5d3"
+    },
+    {
+      "path": "/tmp/gridex-api-review/auth-context-compile-metadata-expanded.json",
+      "sha256": "85a8e765d32518c763f91523af20130f7232a68edad6d2715b18fd3fee4c21f4"
+    },
+    {
+      "path": "/tmp/gridex-api-review/auth-expiry-native-relation-shapes.json",
+      "sha256": "b95af0118cddc22263beae37e0cc943889290249bc4c17b89057c3668c63aaff"
+    },
+    {
+      "path": "/tmp/gridex-api-review/auth-expiry-fresh-native-metadata.json",
+      "sha256": "d6c3caf5ed168754e7711bd925e353bf731dda7b8469afb7009a2de3ab8be54d"
+    },
+    {
+      "path": "/tmp/gridex-api-review/auth-expiry-current-staff-native-metadata.json",
+      "sha256": "4b055dd7d85e2b4c986e28422015172ffc391ef9c014c4b001e5994d57079621"
+    },
+    {
+      "path": "/tmp/gridex-api-review/auth-expiry-isolated-required-closure.json",
+      "sha256": "cfe5ef98c61781e107a33db3ac48920d3b2ad7627c17d624ea393126604c5fce"
+    },
+    {
+      "path": "/tmp/gridex-api-review/auth-expiry-isolated-supplement.sql",
+      "sha256": "c4ab19a63751531417524d566ec1de97180893b094906cc8ea2d47255b069fc7"
+    },
+    {
+      "path": "/tmp/gridex-api-review/auth-expiry-isolated-supplement.log",
+      "sha256": "8905c5733ecd7ce8bb5ec14a04f7cdf0af11aecf01172cf1c9e9a8ca93f1f764"
+    },
+    {
+      "path": "/tmp/gridex-api-review/auth-expiry-isolated-supplement-corrected.log",
+      "sha256": "ee277770c780e45bcd56d94618418a0177a3813229cd7bb30eacc5ca3f3afb47"
+    },
+    {
+      "path": "/tmp/gridex-api-review/auth-expiry-isolated-forward-compile.log",
+      "sha256": "28c99bd588cc0f7a4f75b26bd818771dfe98eb82b730d2cc03efbd6db6ae6e59"
+    },
+    {
+      "path": "/tmp/gridex-api-review/auth-expiry-isolated-forward-idempotent-replay.log",
+      "sha256": "28c99bd588cc0f7a4f75b26bd818771dfe98eb82b730d2cc03efbd6db6ae6e59"
+    },
+    {
+      "path": "/tmp/gridex-api-review/auth-expiry-isolated-precompile.json",
+      "sha256": "cf4de0af1541c6130d8e9865da72a53d4cfd67eeb8e4af6cda46b7caddce74ce"
+    },
+    {
+      "path": "/tmp/gridex-api-review/auth-expiry-isolated-postcompile.json",
+      "sha256": "9ea484f96a5cdba17e7946e4e6330352265d42ddb62124eb8a3614e3d8ebec82"
+    },
+    {
+      "path": "/tmp/gridex-api-review/auth-expiry-isolated-qualification.sql",
+      "sha256": "6809395dd1032ceb8da42e95f7473cc13dc54f90fb5ad5b3fe55c422331cd8f8"
+    },
+    {
+      "path": "/tmp/gridex-api-review/auth-expiry-isolated-qualification.log",
+      "sha256": "76b75d54990f2d8037dad1bdb378894e3b9cc0d2c2709214626bc65996940c64"
+    },
+    {
+      "path": "/tmp/gridex-api-review/auth-expiry-isolated-empty-counts.log",
+      "sha256": "c43844b6e6232bf738b13929834e4d7997a6dbebfd3741d47f0393387396575e"
+    }
+  ]
+}

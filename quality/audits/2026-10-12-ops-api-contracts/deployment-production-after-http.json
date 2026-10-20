@@ -1,0 +1,60 @@
+{
+  "checked_at_utc": "2026-10-13T18:13:03.253405+00:00",
+  "scope": "Readonly public documentation/login and missing-credential refusal only; no business calls/credentials/rows",
+  "observations": [
+    {
+      "path": "/api/v1/openapi/2026-10-12.1/website-integration-v1.json",
+      "status": 200,
+      "body_sha256": "d400b6730f4a51a0efb049daa73b3858763c0f7a7b4d8602735b49a9e679a47c",
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "x-gridex-contract-version": "2026-10-12.1"
+      },
+      "published_spec_matches_source": true,
+      "info_version": "2026-10-12.1"
+    },
+    {
+      "path": "/api/v1/openapi/2026-10-12.1/customer-portal-v1.json",
+      "status": 200,
+      "body_sha256": "20b3331e432f96c779748ad8e7a93a0b09deb25aaaa134f5a4e6887e5d03b185",
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "x-gridex-contract-version": "2026-10-12.1"
+      },
+      "published_spec_matches_source": true,
+      "info_version": "2026-10-12.1"
+    },
+    {
+      "path": "/api/v1/openapi/2026-10-12.1/staff-v1.json",
+      "status": 200,
+      "body_sha256": "d5c0f02947a409308367439114b3e594657c70df31132cc4b38a95314acd084b",
+      "headers": {
+        "content-type": "application/json; charset=utf-8",
+        "x-gridex-contract-version": "2026-10-12.1"
+      },
+      "published_spec_matches_source": true,
+      "info_version": "2026-10-12.1"
+    },
+    {
+      "path": "/api/v1/customer/me",
+      "status": 401,
+      "body_sha256": "65b606249c6ce992df48dfbc4308a31d8241ad5016624638080463807d80415b",
+      "headers": {
+        "content-type": "application/json",
+        "x-gridex-contract-version": "2026-10-09.1",
+        "x-gridex-documentation-version": "2026-10-12.1"
+      }
+    },
+    {
+      "path": "/login",
+      "status": 200,
+      "body_sha256": "c8b6965f44fa07d9e91f3f8bf71fb4f1bda2658899cb477676c3333f6478aad4",
+      "headers": {
+        "content-type": "text/html; charset=utf-8"
+      }
+    }
+  ],
+  "all_three_new_specs_match_source": true,
+  "existing_wire_refusal_preserved": true,
+  "login_healthy": true
+}

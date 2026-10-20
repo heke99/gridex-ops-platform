@@ -28,7 +28,7 @@ Statusvärden: **RÄTTAD** = rättad på branchen med regressionstest som är r�
 - **Var:** `gridex_utilts_binding.wire_tokens_v1`, `gridex_received_sources.wire_tokens_bounded_v1` (och `closure_wire_tokens_v2`), `gridex_prodat_object_batch.raw_segments_v1`, `gridex_ediel_technical_ack.envelope`.
 - **Bevis:** en månad med kvartsvärden (2 976 observationer) tog ~96 s per `wire_tokens_v1`-anrop (nu ~0,45 s). För `envelope` var siffrorna 8,4 s respektive 0,25 s. Resultatet är identiskt för 47 fixturer ur repot, specialfall och genererade storlekar. Ägare och ACL:er är oförändrade.
 - **Påverkan:** månadsfiler med tim- eller kvartsvärden gick inte att lagra (tidsgräns 8 s).
-- **Rättning:** migrationen `20261015130000_ediel_wire_tokenizer_linear_time.sql`. Test: `__tests__/ediel-wire-tokenizer-linear-time.test.ts`.
+- **Rättning:** migrationen `20261020120000_ediel_wire_tokenizer_linear_time.sql`. Test: `__tests__/ediel-wire-tokenizer-linear-time.test.ts`.
 - **Verifiering:** full `npm test` gav 18 699 gröna och 0 nya fel. 92 av 99 SQL-regressioner har identiskt utfall före och efter. De 7 som misslyckas gör det också på main.
 - **Kvar:** schema- och typ-capture görs av befintlig GEN-ägare.
 
@@ -84,8 +84,8 @@ Statusvärden: **RÄTTAD** = rättad på branchen med regressionstest som är r�
   - Med parallellitet 4 blev det 8 CONTRL, och 16 tidsgränser plus en `ediel_existing_ack_original_read_unavailable`.
 - **Påverkan:** kostnaden är kumulativ per bolag och miljö. Efter ungefär tio mottagna filer får ingen ny inkommande fil teknisk kvittens. Meddelandet blir kvar i `parsed`, utan affärsbehandling. Nätägaren får ingen CONTRL. Ett elbolag med normal volym (en E66 per mätpunkt och dygn) skulle slå i taket redan första dagen.
 - **Ingen automatisk omkörning observerad:** i körningen med parallellitet 4 fick de 17 filerna som fastnat ingen CONTRL vid senare cron-körningar.
-- **Rättning:** migrationen `20261015231500_ediel_technical_ack_original_lookup_by_uci.sql`. Ingen annan agent eller öppen PR arbetade med funktionerna (kontrollerat i #766 och PR-filerna), så rättningen gjordes här.
-  - `retained_source_v1` filtrerar den kopplade (unika) repliken på `originalUNB.uciReference = uciRef`, med index.
+- **Rättning:** migrationen `20261020120100_ediel_technical_ack_original_lookup_by_uci.sql`.
+  - Sammanslagning med main 2026-10-20: `retained_source_v1` fick samtidigt en egen förfiltrering på main (`20261019043000`, en annan agent). Min ändring av samma funktion togs bort, och mina migrationer flyttades efter main:s så att main:s hashlåsta migration kan köras.
   - `read_outbound_originals_v1` kör reserven bara när `may_reference_uci_v1` tillåter att `wire_v1` avkodar källans UCI-referens. Kontrollen följer `wire_tokens_v1`-reglerna och behåller full kontroll när ett release-tecken finns.
 - **Verifiering:**
   - Resultaten från `retained_source_v1` (båda lägena) och `read_outbound_originals_v1` är byte-identiska för alla 26 CONTRL och 83 inkommande källor före och efter.
@@ -140,7 +140,7 @@ Statusvärden: **RÄTTAD** = rättad på branchen med regressionstest som är r�
 
 ### F10b ACK-läsningen var fortfarande linjär i bolagets ACK-historik — RÄTTAD
 - **Varför fel:** efter F10 läste `read_outbound_originals_v1` fortfarande varje utgående ACK hos bolaget för att utvärdera sitt femdelade OR-villkor. Det kostade ~23 µs per CONTRL: 40 ms vid 130 och 240 ms vid 10 030. Med 3–4 läsningar per ACK nås gränsen på 8 s vid ungefär 100k ACK per bolag. F10 gjorde alltså kostnaden linjär, inte begränsad.
-- **Rättning:** `20261016013000_ediel_ack_original_candidates_indexed.sql`. Kandidaterna kommer från fem indexerade grenar, och det ursprungliga villkoret ligger kvar som filter.
+- **Rättning:** `20261020120200_ediel_ack_original_candidates_indexed.sql`. Kandidaterna kommer från fem indexerade grenar, och det ursprungliga villkoret ligger kvar som filter.
 - **Verifiering:** alla 639 ögonblicksresultat är identiska. Läsningen tar 80 ms vid 10 030 CONTRL. `scripts/ediel-ack-original-scale-native.test.ts` räknar de rader läsningen rör: under 50, mot 502 före.
 
 ### F18 En tenant eller en kvarlämnad körning stoppade månadsfaktureringen för alla — RÄTTAD
@@ -151,7 +151,7 @@ Statusvärden: **RÄTTAD** = rättad på branchen med regressionstest som är r�
 ### F19 CONTRL-kontrollen läste alla inkommande meddelanden på hela plattformen — RÄTTAD (kritisk)
 - **Var:** `gridex_ediel_technical_ack.require_contrl_v1` bevisar att CONTRL:ens UCI-referens (first14) pekar ut exakt ett inkommande original, globalt. Kandidatfiltret körde `strpos(translate(raw_payload))` över `raw_payload` för **varje inkommande meddelande hos alla tenanter**. Det sker vid varje CONTRL-skrivning (trigger) och 4 gånger per `gridex_read_outbound_acks_for_source_v2`.
 - **Varför fel och segt:** kostnaden växer med plattformens totala inkommande historik, inte med det enskilda bolaget. Uppmätt med syntetisk historik (meddelanden på 6,8 kB): ACK-läsningen tog 0,7 s vid 348, 1,25 s vid 1 348 och 2,5 s vid 3 348 inkommande meddelanden. Gränsen på 8 s nås vid ~12k inkommande meddelanden totalt. Ett enda elbolag får fler än så på några dagar (E66 per mätpunkt och dygn), och därefter får **ingen** tenant CONTRL.
-- **Rättning:** `20261016100000_ediel_technical_ack_original_uniqueness_indexed.sql`. Kandidaterna kommer från ett uttrycksindex på `envelope(raw_payload)->>'uciReference'` för inkommande rader. Ytterfiltret kräver redan exakt den projektionen och den implicerar det gamla filtret, så de räknade raderna är oförändrade. `envelope` är IMMUTABLE, har ingen `RAISE` och gav inget fel på 20 000 slumpade indata, så indexet kan inte stoppa inserts.
+- **Rättning:** `20261020120300_ediel_technical_ack_original_uniqueness_indexed.sql`. Kandidaterna kommer från ett uttrycksindex på `envelope(raw_payload)->>'uciReference'` för inkommande rader. Ytterfiltret kräver redan exakt den projektionen och den implicerar det gamla filtret, så de räknade raderna är oförändrade. `envelope` är IMMUTABLE, har ingen `RAISE` och gav inget fel på 20 000 slumpade indata, så indexet kan inte stoppa inserts.
 - **Kostnad:** indexet räknar `envelope` en gång per inkommande insert, ~6 ms vid 6,8 kB och ~45 ms vid 59 kB. Det ersätter 0,15 ms × alla inkommande meddelanden × 4 per ACK-läsning. Drift har i dag 1 inkommande meddelande, så indexbygget är trivialt.
 - **Verifiering:**
   - Resultat eller fel från `require_contrl_v1` är identiskt för alla 291 lokala CONTRL.

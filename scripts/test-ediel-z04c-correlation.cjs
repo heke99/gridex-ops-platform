@@ -1,0 +1,45 @@
+// masterplan: AT-Z04C-SUPPLIER
+// node:test wrapper for the captured Z04/Z24 owner correlation regression
+// (current sender registry, duplicate C, wrong LI/point/customer/start/parties, locked-original mismatch, conflicting
+// periods, compensation for executed effects, role/direction/actor refusal,
+// exact positive control with decoy, idempotent replay). Actual SQL component
+// only; native/public-entrypoint evidence lives in the native Z04C test.
+const test = require('node:test')
+const assert = require('node:assert/strict')
+const { spawnSync } = require('node:child_process')
+const path = require('node:path')
+
+test('AT-Z04C-SUPPLIER captured owner correlation SQL regression', () => {
+  const run = spawnSync(process.execPath, [path.join(__dirname, 'ediel-z04c-correlation-sql-regression.mjs')], {
+    cwd: path.join(__dirname, '..'),
+    encoding: 'utf8',
+    env: { ...process.env, EDIEL_PGLITE_MODULE: require.resolve('@electric-sql/pglite') },
+    maxBuffer: 64 * 1024 * 1024,
+  })
+  const output = `${run.stdout}\n${run.stderr}`
+  assert.equal(run.status, 0, output)
+  assert.match(run.stdout, /Z04C correlation own SQL: \d+ cases PASS;/, output)
+  assert.doesNotMatch(run.stdout, /^FAIL /m, output)
+  const result = JSON.parse(run.stdout.split('\n').find((line) => line.startsWith('EDIEL_Z04C_CORRELATION_RESULT ')).slice('EDIEL_Z04C_CORRELATION_RESULT '.length))
+  assert.equal(result.failures, 0)
+  // The deployed owner body: the 20261018100000 fix as spliced again by the
+  // executed-start compensation 20261019170000.
+  assert.equal(result.effectiveBodySha256, 'c30e7398338c7b0a39da7220ea62bffa4d8ae0134f1c7d8b272b09e07736e03e')
+  assert.equal(result.originalControl, false)
+  for (const required of [
+    'exact C cancels only the right confirmed future period and its switch; decoy untouched',
+    'replay of the committed C is idempotent and changes nothing',
+    'wrong LI is z04c_exact_original_unavailable with no mutation',
+    'C bound to a foreign customer row is z04c_locked_original_mismatch',
+    'two periods tied to the same switch are z04c_conflicting_periods',
+    'confirmed period whose start has passed (not activated) requires compensation',
+    'activated period requires compensation and is not cancelled',
+    'wrong direction (outbound C) is refused',
+    'receiver without a current supplier role is refused',
+    'Z04C from a sender without current network registry authority is held with no mutation',
+    'Z05C keeps its own exact current-sender reason',
+    'replay of an applied Z04C keeps its recorded truth after sender authority is withdrawn',
+    'second distinct C after an applied C is z04c_start_already_cancelled (period linked by switch)',
+    'second distinct C after an applied C is z04c_start_already_cancelled (period linked only by confirmation)',
+  ]) assert.ok(result.checks.includes(required), `missing case: ${required}`)
+})

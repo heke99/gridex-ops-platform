@@ -118,7 +118,8 @@ describe('supported client release matrix', () => {
       expect(readFileSync(file, 'utf8'), file).toContain(POLICY)
     }
     const guide = readFileSync('docs/api-migration-guide.md', 'utf8')
-    expect(guide).toContain('V1 has no breaking changes')
+    expect(guide).toContain('this does not certify every frozen strict validator')
+    expect(guide).toContain('api-validator-errata/README.md')
     expect(guide).toContain('api-compatibility-policy.md')
     expect(guide).not.toMatch(/\btenant\b/i)
     expect(guide).not.toMatch(/\bOPS\b/)

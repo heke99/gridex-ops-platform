@@ -1,0 +1,310 @@
+{
+  "scope": "OPS machine-readable documentation only",
+  "status": "DOCUMENTATION_SOURCE_COMPLETE_PROSPECTIVE_RELEASE_NATIVE_LIVE_QUALIFICATION_PENDING",
+  "documentation_version": "2026-10-12.1",
+  "runtime_contract_version": "2026-10-09.1",
+  "minimum_tenant_integration_version": "2026-10-02.3",
+  "independent_staff_onboarding_version": "2026-10-05.2",
+  "frozen_release_sha256_before": {
+    "docs/openapi/releases/2026-10-09.1/website-integration-v1.json": "3309e822ba52e9251c7f7a30608a3b9b779d450137138a7d313aa79df36d2341",
+    "docs/openapi/releases/2026-10-09.1/staff-v1.json": "03e12284bb8534945a8c5edf1b3e6aba8ac2db4a4e8b1644da691ceeb524960a",
+    "docs/openapi/releases/2026-10-09.1/customer-portal-v1.json": "9a9b92bc16c51507fa028c136f161b783dae8e30355002442a86a9128eeafa4c",
+    "docs/openapi/releases/2026-10-04.1/website-integration-v1.json": "311c1fd85a82aec158bc5e391bcd380a8a944d7762a7fdeebb24cc0ae7da6a47",
+    "docs/openapi/releases/2026-10-04.1/staff-v1.json": "460cf343a397c99f1173482ceb4c0045828399172fd47dd8c078e7d611e16de7",
+    "docs/openapi/releases/2026-10-04.1/customer-portal-v1.json": "2ada64c650234d8cf8e5191c68d6b6ab8b47586c5fef13feeb611a9bddb79294",
+    "docs/openapi/releases/2026-10-02.4/website-integration-v1.json": "10fb2f3051f112990fe4ef63ffa18b24ee5d9b5203b1f4429a2a3d88675c43be",
+    "docs/openapi/releases/2026-10-02.4/customer-portal-v1.json": "442ee521e2286a3364de082cce50b68be3085db7855caf151a8999005b790503",
+    "docs/openapi/releases/2026-10-02.3/website-integration-v1.json": "c6a13c2426f16bec0d630b3c912cec02b01336368196a7b9596b11b30332e948",
+    "docs/openapi/releases/2026-10-02.3/customer-portal-v1.json": "0a73e04c0c775b5b41e8eb14e26f8893acb9474f178ed8cb46965d30af4d28d0",
+    "docs/openapi/releases/2026-10-02.2/website-integration-v1.json": "96bd47c98b828849d8ca7456de654866a3adcea213a6ee92850e99c4d315bd36",
+    "docs/openapi/releases/2026-10-02.2/customer-portal-v1.json": "161559a56cc5e3bed2ebc94b9a11301ca3a6437cb180957ac4510a40ce4fc001",
+    "docs/openapi/releases/2026-10-02.1/website-integration-v1.json": "16dace2d8df4d0db4bbe890fbf7c1b4cd97088adc7fe6f618c299dac8bbdaea4",
+    "docs/openapi/releases/2026-10-02.1/customer-portal-v1.json": "32c20f111b02f150e15a8b6346f89223e2ef2e48f57fcb5d2d84da09ba62d802",
+    "docs/openapi/releases/2026-10-01.1/website-integration-v1.json": "bd9ba77659821a4f0466fd694a926c1dddbf5a1e361b0607764dcbdf82139887",
+    "docs/openapi/releases/2026-10-01.1/customer-portal-v1.json": "dbbbd964f7aa72826ec929cbeff176a464b83161d8603bf18eb5c66e39424ed3",
+    "docs/openapi/releases/2026-08-22.2/website-integration-v1.json": "b5866e352c7c211c98e7f6cb65d2b77b7168ca4667fc7826e1347ef69ae642b9",
+    "docs/openapi/releases/2026-08-22.2/customer-portal-v1.json": "882c4f203567e9dc28ce27caff9cb5d692674a0f54df3d07b506b7fa03051456",
+    "docs/openapi/releases/2026-08-22.1/website-integration-v1.json": "9dc264fe5adadc2304ab5ffaef188a66fe230990a6f58676fa6759a934fce8c2",
+    "docs/openapi/releases/2026-08-22.1/customer-portal-v1.json": "e4fc3961b4f7b16e81e23547ba9fbe983c4bb80837a585aed16b8e6b46e9f65a",
+    "docs/openapi/releases/2026-08-20.2/website-integration-v1.json": "35c20cb4d5ce0757557f170f656f13434a9f1c61c31ccc0f368ef81c503eaa29",
+    "docs/openapi/releases/2026-08-20.2/customer-portal-v1.json": "f061d0023544718fa49204b16ab943bdefc283d3aa6eb273504395f8a2cadc9d",
+    "docs/openapi/releases/2026-08-20.1/website-integration-v1.json": "837a2c1beb861265811765446c2ee64c035a51db5eaa1d164f96b067d0b34854",
+    "docs/openapi/releases/2026-08-20.1/customer-portal-v1.json": "a25bed60e40716f8b99578ce8cb7f3f06318c5ecad0973d913e2bf9e127c9a2b",
+    "docs/openapi/releases/2026-08-19.2/website-integration-v1.json": "43bf200e4f8f5a0d57ad745dcf26d8eb07bd9cbb9ed9e6e98c7d8161f510e7e2",
+    "docs/openapi/releases/2026-08-19.2/customer-portal-v1.json": "61cbb18bf7897bcd5f0de25ead109dacfbd4f9253b5697739e492b46d64a8503",
+    "docs/openapi/releases/2026-08-19.1/website-integration-v1.json": "f1b6d672e8db8a89056c2a4c353dc74cc8b50a886b38c12d7dcc730630c0b446",
+    "docs/openapi/releases/2026-08-19.1/customer-portal-v1.json": "e922976f77636c30839dffbce0235482acaae3cb53e220a3e7990d51983a7783",
+    "docs/openapi/releases/2026-08-14.1/website-integration-v1.json": "6726e9d2350d440d15b150afbe1ca5ed3e67ac14a07bd3b29da5c74636865bcd",
+    "docs/openapi/releases/2026-08-14.1/customer-portal-v1.json": "e6e667565b9e4760c9590dc02cb130a277edd0b3d5eb4178ed95fccd60df9de5",
+    "docs/openapi/releases/2026-08-10.1/website-integration-v1.json": "0dbe7cd7fb3f14f97fa8785c8809b9d6549ab6e05435757b77b4f010a233519b",
+    "docs/openapi/releases/2026-08-10.1/customer-portal-v1.json": "5543676bd67f4b55183e2618bb4f9af541936293395b8c650947992b523fb675",
+    "docs/openapi/releases/2026-08-05.2/website-integration-v1.json": "f35131378c66d8364a17b03e6e063287dbe88c82454a61f724c74f08401a8349",
+    "docs/openapi/releases/2026-08-05.2/customer-portal-v1.json": "2a998b7b8be3780fc9793ab1de742912915a9d4925bfb3246d84b2f1c3d9f65e",
+    "docs/openapi/releases/2026-08-05.1/website-integration-v1.json": "341aff52313d55acf7a688a3611482df5ed0a9684ea546c34ba78d99a8ea14d8",
+    "docs/openapi/releases/2026-08-05.1/customer-portal-v1.json": "038d039aec7a1cec0ccd5a89410b44bc94e9f0876f815d4504f648cae943a06f",
+    "docs/openapi/releases/2026-08-04.3/website-integration-v1.json": "cb646455421d1c56bd94ce11c970ad73560d88b72a9c9940c405ac754c0a6595",
+    "docs/openapi/releases/2026-08-04.3/customer-portal-v1.json": "16187883ad4df64ac8e67b9352753d2492369978961c3c84cef0eadb8739d922",
+    "docs/openapi/releases/2026-08-04.2/website-integration-v1.json": "8c1bc549b4b874ce66e8b68793cafb16184d1a70214ea980f2b4bed8b2583ec6",
+    "docs/openapi/releases/2026-08-04.2/customer-portal-v1.json": "b28e73ee068619e2677d966d3bd4be82a95d926c6e347c60e59df080ff94d95d",
+    "docs/openapi/releases/2026-08-04.1/website-integration-v1.json": "c895d14ac0c309a9d0fb7b4d8a63d705d8122bbcb9797c56235c5883d7e3fa96",
+    "docs/openapi/releases/2026-08-04.1/customer-portal-v1.json": "2bb81f17bea1740fe4e63bcacd830df3fa2fcd3179b166b624092b43acd3c39e",
+    "docs/openapi/releases/2026-08-03.1/website-integration-v1.json": "6b8828ff7331dce30d0f34b6c479e65d386033e4eac2a6c3c93f78b1e5f4bb25",
+    "docs/openapi/releases/2026-08-03.1/customer-portal-v1.json": "6bd12b1bd36b219737e3a3630471e2d7c5cc9a3bcdf049ce370bee9842e180f4",
+    "docs/openapi/releases/2026-08-02.1/website-integration-v1.json": "971f0f4e00330971c92a37046f54fa7d27416a5b64932c7d37d7892b79691e7a",
+    "docs/openapi/releases/2026-08-02.1/customer-portal-v1.json": "921daeb0c1bdfe4f4dc50cbbc3990defce8556bfe7cff0a88a0f4d96f4d6b779"
+  },
+  "red": {
+    "command": "Node 22 + unit-loopback preload vitest api-documentation-wire-revision.test.ts --maxWorkers=1",
+    "result": "3 expected failures: docs revision; missing organization410; missing Staff JSON 413"
+  },
+  "skills": {
+    "activated": [
+      "test-driven-development",
+      "verification-before-completion"
+    ],
+    "reviewed": [
+      "using-superpowers (subagent skip)",
+      "spec-to-code-compliance (new delegation prohibited by parent)"
+    ],
+    "skipped": [
+      "Database/tenant/schema changes, GEN, captures, deployment and UI are outside delegated docs scope"
+    ]
+  },
+  "inventory": {
+    "mutable_documents": 4,
+    "new_immutable_documents": 3,
+    "new_immutable_routes": 3,
+    "runtime_registry_routes": 122,
+    "OpenAPI_operations": 145,
+    "reachable_schemas": 58,
+    "historical_frozen_files_unchanged": 46
+  },
+  "findings": [
+    {
+      "id": "DOC-001",
+      "severity": "P1",
+      "status": "fixed",
+      "problem": "Documentation release metadata and business wire schema revision were conflated.",
+      "evidence": [
+        "lib/integrations/websiteIntegrationContract.ts",
+        "lib/integrations/openApiReleaseManifest.ts",
+        "scripts/lib/current-api-contract.cjs"
+      ],
+      "fix": "Independent API_DOCUMENTATION_VERSION = 2026-10-12.1, stable Website/Customer/Staff wire 2026-10-09.1; docs artifact selection and manifests use docs revision."
+    },
+    {
+      "id": "DOC-002",
+      "severity": "P2",
+      "status": "fixed",
+      "problem": "Organization lifecycle refusals 410/423 and Staff JSON 413 omitted from business operations.",
+      "evidence": [
+        "lib/integrations/apiAuth.ts:202",
+        "lib/api/strictRequest.ts:32",
+        "__tests__/api-documentation-wire-revision.test.ts"
+      ],
+      "fix": "Reusable common error responses for closed/inactive/paused organizations, existing payload_too_large envelope for JSON Staff writes; onboarding keeps independent 2026-10-05.2 schema."
+    },
+    {
+      "id": "DOC-003",
+      "severity": "P2",
+      "status": "fixed",
+      "problem": "Staff assertion documentation omitted the distinction between central actor/binding validation and tenant Auth login verification.",
+      "evidence": [
+        "lib/staff-api/context.ts",
+        "lib/staff-api/tenantAuth.ts",
+        "lib/staff-api/identityResolution.ts",
+        "lib/staff-api/onboarding.ts"
+      ],
+      "fix": "Precise normal signed-proof central checks and tenant getUser boundaries."
+    },
+    {
+      "id": "DOC-004",
+      "severity": "P2",
+      "status": "fixed",
+      "problem": "Eight mounted Customer collection responses carry page outside the closed published response schema.",
+      "evidence": [
+        "__tests__/customer-api-operation-contracts.test.ts",
+        "app/api/v1/customer/sites/route.ts:46",
+        "lib/customer-portal/publicDto.ts:418"
+      ],
+      "fix": "Optional page matching PortalPage or the closed sites-page wrapper; all required sets and requests unchanged."
+    },
+    {
+      "id": "DOC-005",
+      "severity": "P2",
+      "status": "fixed",
+      "problem": "Native move-out initial and replay receipts carry submitted_at outside the published closed schema.",
+      "evidence": [
+        "__tests__/customer-api-operation-contracts.test.ts",
+        "supabase/migrations/20260730153000_customer_portal_api_production_completion.sql:214",
+        "supabase/migrations/20260730153000_customer_portal_api_production_completion.sql:411"
+      ],
+      "fix": "Optional submitted_at string/date-time; required sets unchanged."
+    },
+    {
+      "id": "DOC-006",
+      "severity": "P2",
+      "status": "fixed",
+      "problem": "A valid fixed-price quote validation emits market_reference:null, rejected by the existing docs-only object schema.",
+      "evidence": [
+        "lib/pricing/publicMarketReference.ts:48",
+        "app/api/v1/website/quote/validate/route.ts:255",
+        "__tests__/website-api-operation-contracts.test.ts"
+      ],
+      "fix": "Exact MarketReference-or-null schema; market_reference remains required and wire revision stays09.1. Historical frozen docs retain their known omission."
+    },
+    {
+      "id": "DOC-007",
+      "severity": "P2",
+      "status": "fixed",
+      "problem": "Shared mutable UUID schema in the finalizer contaminated unrelated request, event, legal and resolution descriptions with portal-user pairing claims.",
+      "evidence": [
+        "scripts/finalize-openapi-release.cjs:323",
+        "scripts/finalize-openapi-release.cjs:386"
+      ],
+      "fix": "Clone application user UUID schemas before adding descriptions; correct energy resolution wording and remove misleading unrelated UUID metadata without format/type changes."
+    }
+  ],
+  "schema_change_allowlist": [
+    "OpenApiReleaseManifest documentation/runtime metadata separation",
+    "OpenApiReleaseSpecification documentation version",
+    "ClosedPortalResourceEnvelope.page optional",
+    "CustomerMoveOutData.submitted_at optional",
+    "WebsiteQuoteValidationData.market_reference anyOf existing MarketReference/null",
+    "Documentation descriptions only; all request property types and required sets unchanged"
+  ],
+  "verification": [
+    {
+      "command": "Node 22 + NODE_OPTIONS absolute unit-loopback preload: Vitest, nine documentation and mounted-operation files --maxWorkers=1",
+      "result": "108/110 PASS; 2 remaining root-owned onboarding-profile expectation failures. All 8 other files and documentation metadata assertions PASS."
+    },
+    {
+      "command": "Node 22 vitest api-documentation-wire-revision.test.ts --maxWorkers=1",
+      "result": "RED established 3 initial defects and manifestgenerator runtime conflation; nullablefixedmarketreference RED established. Latest combined run: 7 tests PASS."
+    },
+    {
+      "command": "Node 22 scripts/verify-openapi-release.cjs",
+      "result": "PASS; local artifacts/routes/rawhashes only, no remoteverification/deployment"
+    },
+    {
+      "command": "Node 22 scripts/check-openapi-runtime-parity.cjs",
+      "result": "PASS: 122 registry routes, 145 operations, 58 reachable schemas"
+    },
+    {
+      "command": "Node 22 scripts/check-api-compatibility.cjs",
+      "result": "PASS"
+    },
+    {
+      "command": "Node 22 scripts/check-public-contract-runtime-openapi.cjs",
+      "result": "PASS; existing09.1 runtime fixture reused, fixture version no longer rewritten by gate"
+    },
+    {
+      "command": "Node 22 scripts/gridex-website-quote-integrity-regression.mjs",
+      "result": "PASS; docs/wire equalitysplit and immutablecurrent matching maintained"
+    },
+    {
+      "command": "Historical SHA-256 byte guard",
+      "result": "PASS all 46 historical release files unchanged"
+    },
+    {
+      "command": "Node 22 scripts/check-api-documentation-version.cjs + check-api-documentation-examples.cjs",
+      "result": "PENDING root prose updates: 4 guides lack 2026-10-12.1; Website pointer lacks Current documentation heading"
+    },
+    {
+      "command": "Node 22 tsc --noEmit -p tsconfig.tests.json",
+      "result": "EXIT 2 outside docs-owned files: api-credential-response-profile, partner-measurement-completeness, webhook-batch-subscription-failure. Root notified."
+    },
+    {
+      "command": "git diff --check",
+      "result": "PASS"
+    },
+    {
+      "command": "Node 22 ESLint: six owned documentation test files and two integration metadata sources",
+      "result": "PASS, no warnings or errors. CJS scripts are ignored by project ESLint config; their syntax is checked separately."
+    }
+  ],
+  "downstream_static_gates": {
+    "passed": [
+      "canonical-external-api-runtime-parity",
+      "gridex-api-billing-tenant-hardening-regression",
+      "gridex-svk-billing-area-regression",
+      "gridex-canonical-portfolio-pricing-regression(168controls)",
+      "gridex-market-price-api-regression(19controls)",
+      "gridex-contract-commercial-selection-regression",
+      "gridex-price-area-assurance-regression",
+      "gridex-contract-go-live-regression(230controls)",
+      "gridex-multitenant-website-application-flow-regression",
+      "gridex-invoice-fee-canonical-regression"
+    ],
+    "remaining_unrelated_source_assertions": {
+      "gridex-canonical-fixed-area-flow-regression": "9/30 fail (DTO/resolver/pricing/intake/mail/worker/continuation/developerpage text); original HEAD script on same current tree reproduces these plus old docs-wire equality",
+      "gridex-canonical-market-resolution-quote-billing-regression": "1/36 fail settlementcron text; original HEAD script reproduces it plus docs-wire equality",
+      "gridex-contract-api-signature-visibility-regression": "5 customer admin UI textual assertions; original HEAD script same failures",
+      "gridex-contract-security-energy-direction-regression": "4 quote/billing/DTO textual assertions; original HEAD script same failures plus docs-wire equality"
+    }
+  },
+  "unverified_or_unused": [
+    {
+      "item": "Customer reusable Unauthorized response has obsolete top-level aliases",
+      "result": "No operation references it (recursive reachability found zero refs); unchanged. No reachable response defect claimed."
+    },
+    {
+      "item": "Website portfolio method schema object widening",
+      "result": "Held by root; Website owner corrected runtime to the existing string contract instead."
+    },
+    {
+      "item": "Remote/deployed release bytes, tenant repos, schema generation, live DB",
+      "result": "Outside authorization; no actions executed."
+    }
+  ],
+  "next_action": "Root completes prose guide revisions and independent onboarding-profile test expectations, then reruns combined verification; no remaining docs-owned edits expected.",
+  "modified_files": [
+    "lib/integrations/websiteIntegrationContract.ts",
+    "lib/integrations/openApiReleaseManifest.ts",
+    "lib/api/publicRouteRegistry.ts",
+    "docs/openapi/website-integration-v1.json",
+    "docs/openapi/customer-portal-v1.json",
+    "docs/openapi/staff-v1.json",
+    "docs/openapi/staff-onboarding-v1.json",
+    "docs/openapi/releases/2026-10-12.1/website-integration-v1.json",
+    "docs/openapi/releases/2026-10-12.1/customer-portal-v1.json",
+    "docs/openapi/releases/2026-10-12.1/staff-v1.json",
+    "app/api/v1/openapi/2026-10-12.1/website-integration-v1.json/route.ts",
+    "app/api/v1/openapi/2026-10-12.1/customer-portal-v1.json/route.ts",
+    "app/api/v1/openapi/2026-10-12.1/staff-v1.json/route.ts",
+    "__tests__/api-documentation-wire-revision.test.ts",
+    "__tests__/api-canonical-release.test.ts",
+    "__tests__/api-supported-client-release-matrix.test.ts",
+    "__tests__/post-128-openapi-tip-residuals.test.ts",
+    "__tests__/staff-api-openapi.test.ts",
+    "__tests__/support-detail-openapi-schema.test.ts",
+    "scripts/canonical-external-api-runtime-parity.cjs",
+    "scripts/check-api-compatibility.cjs",
+    "scripts/check-api-documentation-examples.cjs",
+    "scripts/check-api-documentation-version.cjs",
+    "scripts/check-public-contract-runtime-openapi.cjs",
+    "scripts/finalize-openapi-release.cjs",
+    "scripts/finalize-openapi-release.portal.cjs",
+    "scripts/gridex-api-billing-tenant-hardening-regression.cjs",
+    "scripts/gridex-canonical-fixed-area-flow-regression.cjs",
+    "scripts/gridex-canonical-market-resolution-quote-billing-regression.cjs",
+    "scripts/gridex-canonical-portfolio-pricing-regression.cjs",
+    "scripts/gridex-contract-api-signature-visibility-regression.cjs",
+    "scripts/gridex-contract-commercial-selection-regression.cjs",
+    "scripts/gridex-contract-go-live-regression.cjs",
+    "scripts/gridex-contract-security-energy-direction-regression.cjs",
+    "scripts/gridex-invoice-fee-canonical-regression.cjs",
+    "scripts/gridex-market-price-api-regression.cjs",
+    "scripts/gridex-multitenant-website-application-flow-regression.cjs",
+    "scripts/gridex-price-area-assurance-regression.cjs",
+    "scripts/gridex-svk-billing-area-regression.cjs",
+    "scripts/materialize-openapi-release.cjs",
+    "scripts/professionalize-openapi-contract.cjs",
+    "scripts/verify-openapi-release.cjs",
+    "scripts/gridex-website-quote-integrity-regression.mjs",
+    "scripts/lib/current-api-contract.cjs",
+    "scripts/lib/openapi-release-schemas.cjs",
+    "quality/audits/2026-10-12-ops-api-contracts/documentation-review.json"
+  ],
+  "root_final_receipt": "verification.json"
+}

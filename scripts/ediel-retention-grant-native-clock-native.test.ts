@@ -5,12 +5,15 @@ import {spawn} from 'node:child_process'
 import {randomUUID} from 'node:crypto'
 import {expect,it} from 'vitest'
 import {decisionNativeSql as sql,decisionUser,literal} from './helpers/ediel-decision-original-native-fixture'
+// Explicit private-owner scope for synthetic setup/readback only; product JWT calls retain their actors.
+const retentionSql=<T>(query:string)=>sql<T>(`BEGIN;SET LOCAL ROLE gridex_ediel_retention_owner;${query};COMMIT;`)
+
 
 const keys=['submit','review','purge','source_bytes','customer_fields','original_bytes','mime_bytes',
 'artifact_decision_evidence','blob_decision_evidence','record_decision_evidence','process_decision_evidence',
 'decision_policy_evidence','billing_source_evidence','invoice_copy_evidence','settlement_copy_evidence',
-'finance_decision_evidence'].map(k=>'ediel.retention.'+k)
-const permitted=(company:string,actor:string,key:string)=>sql<boolean>(
+'finance_decision_evidence','completed_review_reason','audit_normalized19_cleanup'].map(k=>'ediel.retention.'+k)
+const permitted=(company:string,actor:string,key:string)=>retentionSql<boolean>(
 'SELECT to_jsonb(gridex_ediel_retention.permission_v1('+literal(company)+','+literal(actor)+','+literal(key)+'))')
 async function actorFixture(){
  const company=randomUUID()
@@ -38,16 +41,16 @@ function nativeSqlProcess(input:string,expectLockMarker=false){
  child.stdin.end(input)
  return{child,ready,done}
 }
-it('actual installed retention-only function preserves sixteen current keys, private owner/ACL and native clock after current actor locks',()=>{
+it('actual installed retention-only function preserves eighteen current keys, private owner/ACL and native clock after current actor locks',()=>{
  const body=sql<{keys:string[];owner:string;securityDefiner:boolean;volatile:string;config:string[];oldOverrideClock:boolean;clockAfterCurrentActor:boolean}>(
  "SELECT jsonb_build_object('keys',ARRAY(SELECT (m)[1] FROM regexp_matches(p.prosrc,'''(ediel\\.retention\\.[^'']+)''','g') m),'owner',p.proowner::regrole::text,'securityDefiner',p.prosecdef,'volatile',p.provolatile,'config',p.proconfig,'oldOverrideClock',position('o.valid_from<=now()' in p.prosrc)>0 OR position('now()<o.valid_to' in p.prosrc)>0,'clockAfterCurrentActor',position('retention_grant_observed_at:=clock_timestamp()' in p.prosrc)>position('public.ediel_retention_lock_auth_actor_v1(actor)' in p.prosrc) AND position('retention_grant_observed_at:=clock_timestamp()' in p.prosrc)<position(' IF NOT EXISTS(SELECT FROM public.permissions WHERE key=wanted AND is_active)' in p.prosrc)) FROM pg_proc p WHERE p.oid='gridex_ediel_retention.permission_v1(uuid,uuid,text)'::regprocedure")
  expect(body.keys).toEqual(keys);expect(body.owner).toBe('gridex_ediel_retention_owner');expect(body.securityDefiner).toBe(true);expect(body.volatile).toBe('v');expect(body.config).toContain('search_path=pg_catalog');expect(body.oldOverrideClock).toBe(false);expect(body.clockAfterCurrentActor).toBe(true)
  const acl=sql<Record<string,boolean>>("SELECT jsonb_build_object('publicUsage',has_schema_privilege('authenticated','gridex_ediel_retention','USAGE'),'appExecute',has_function_privilege('authenticated','gridex_ediel_retention.permission_v1(uuid,uuid,text)','EXECUTE'),'serviceExecute',has_function_privilege('service_role','gridex_ediel_retention.permission_v1(uuid,uuid,text)','EXECUTE'),'anonExecute',has_function_privilege('anon','gridex_ediel_retention.permission_v1(uuid,uuid,text)','EXECUTE'),'authenticatorOwner',pg_has_role('authenticator','gridex_ediel_retention_owner','MEMBER'))")
  expect(Object.values(acl).every(value=>value===false)).toBe(true)
 },30000)
-it('all sixteen native classes require a current own grant and preserve future/expired/DENY/company boundaries',async()=>{
+it('all eighteen native classes require a current own grant and preserve future/expired/DENY/company boundaries',async()=>{
  const f=await actorFixture()
- expect(sql<number>('SELECT to_jsonb(count(*)) FROM public.permissions WHERE is_active AND key=ANY(ARRAY['+keys.map(literal).join(',')+'])')).toBe(16)
+ expect(sql<number>('SELECT to_jsonb(count(*)) FROM public.permissions WHERE is_active AND key=ANY(ARRAY['+keys.map(literal).join(',')+'])')).toBe(18)
  for(const key of keys){
   expect(permitted(f.company,f.actor.id,key)).toBe(false)
   const id=randomUUID()
@@ -66,7 +69,7 @@ it('all sixteen native classes require a current own grant and preserve future/e
 it('same native transaction refuses an ALLOW expired during elapsed time while transaction now still predates valid_to',async()=>{
  const f=await actorFixture(),id=randomUUID(),key=keys[1]
  const result=sql<{transactionBeforeExpiry:boolean;nativeAfterExpiry:boolean;permitted:boolean}>(
- 'BEGIN;INSERT INTO public.user_permission_overrides(id,user_id,company_id,permission_key,effect,is_active,valid_from,valid_to) VALUES('+literal(id)+','+literal(f.actor.id)+','+literal(f.company)+','+literal(key)+",'allow',true,now()-interval '1 hour',now()+interval '150 milliseconds');SELECT pg_sleep(0.3);SELECT jsonb_build_object('transactionBeforeExpiry',now()<valid_to,'nativeAfterExpiry',clock_timestamp()>=valid_to,'permitted',gridex_ediel_retention.permission_v1("+literal(f.company)+','+literal(f.actor.id)+','+literal(key)+')) FROM public.user_permission_overrides WHERE id='+literal(id)+';ROLLBACK')
+ 'BEGIN;INSERT INTO public.user_permission_overrides(id,user_id,company_id,permission_key,effect,is_active,valid_from,valid_to) VALUES('+literal(id)+','+literal(f.actor.id)+','+literal(f.company)+','+literal(key)+",'allow',true,now()-interval '1 hour',now()+interval '150 milliseconds');SELECT pg_sleep(0.3);SET LOCAL ROLE gridex_ediel_retention_owner;SELECT jsonb_build_object('transactionBeforeExpiry',now()<valid_to,'nativeAfterExpiry',clock_timestamp()>=valid_to,'permitted',gridex_ediel_retention.permission_v1("+literal(f.company)+','+literal(f.actor.id)+','+literal(key)+')) FROM public.user_permission_overrides WHERE id='+literal(id)+';ROLLBACK')
  expect(result).toEqual({transactionBeforeExpiry:true,nativeAfterExpiry:true,permitted:false})
  expect(sql<number>('SELECT to_jsonb(count(*)) FROM public.user_permission_overrides WHERE id='+literal(id))).toBe(0)
 },30000)
@@ -87,7 +90,7 @@ it('a genuinely blocked current Auth row lock cannot retain an ALLOW past expiry
  try{
   await holder.ready
   sql('INSERT INTO public.user_permission_overrides(id,user_id,company_id,permission_key,effect,is_active,valid_from,valid_to) VALUES('+literal(id)+','+literal(f.actor.id)+','+literal(f.company)+','+literal(key)+",'allow',true,clock_timestamp()-interval '1 hour',clock_timestamp()+interval '1 second')")
-  const waiter=nativeSqlProcess('BEGIN;SET LOCAL lock_timeout=\'6s\';WITH checked AS MATERIALIZED (SELECT gridex_ediel_retention.permission_v1('+literal(f.company)+','+literal(f.actor.id)+','+literal(key)+") permitted) SELECT jsonb_build_object('transactionBeforeExpiry',now()<(SELECT valid_to FROM public.user_permission_overrides WHERE id="+literal(id)+"),'nativeAfterExpiry',clock_timestamp()>=(SELECT valid_to FROM public.user_permission_overrides WHERE id="+literal(id)+"),'permitted',checked.permitted) FROM checked;ROLLBACK;")
+  const waiter=nativeSqlProcess('BEGIN;SET LOCAL lock_timeout=\'6s\';SET LOCAL ROLE gridex_ediel_retention_owner;WITH checked AS MATERIALIZED (SELECT gridex_ediel_retention.permission_v1('+literal(f.company)+','+literal(f.actor.id)+','+literal(key)+") permitted) SELECT jsonb_build_object('transactionBeforeExpiry',now()<(SELECT valid_to FROM public.user_permission_overrides WHERE id="+literal(id)+"),'nativeAfterExpiry',clock_timestamp()>=(SELECT valid_to FROM public.user_permission_overrides WHERE id="+literal(id)+"),'permitted',checked.permitted) FROM checked;ROLLBACK;")
   // This process has no lock-marker protocol; observe only its final SQL proof.
   const raw=await waiter.done,proof=JSON.parse(raw) as {transactionBeforeExpiry:boolean;nativeAfterExpiry:boolean;permitted:boolean}
   expect(proof.transactionBeforeExpiry).toBe(true);expect(proof.nativeAfterExpiry).toBe(true);expect(proof.permitted).toBe(false)

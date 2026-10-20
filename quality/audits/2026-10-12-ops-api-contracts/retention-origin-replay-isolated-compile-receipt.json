@@ -1,0 +1,1662 @@
+{
+  "checked_at_utc": "2026-10-13T13:59:55.168244+00:00",
+  "proposal_sha256": "19624482d3a4df867e999848e8b7b8ed72f9c8f2b4962ebb3c75b369c937d4ad",
+  "database": "ops_api_retention_replayfix_compile_20261013",
+  "container_network": "none",
+  "postgres": "PostgreSQL 17.6 on x86_64-pc-linux-musl, compiled by gcc (Alpine 14.2.0) 14.2.0, 64-bit",
+  "check_function_bodies": "on",
+  "clean_first_commit_exit_code": 0,
+  "approved_post_replay_commit_exit_code": 0,
+  "known_c579_canonical_helper_upgrade_commit_exit_code": 0,
+  "known_c579_upgrade_replay_exit_code": 0,
+  "known_c579_to_ba1e_helper_complete_pg_proc_except_prosrc_preserved": true,
+  "three_existing_targets_full_pg_proc_except_prosrc_preserved": true,
+  "stronger_external_a9ac_and_retained_history72b22_complete_functions_unchanged": true,
+  "complete_replay_all_functions_and_origin_table_catalog_unchanged": true,
+  "eight_executed_origin_sql_units_exact_canonical_bytes_and_sha": true,
+  "new_helper_after_body_md5": "ba1e28e057578a651fcc542a3af1087d",
+  "before": {
+    "version": "PostgreSQL 17.6 on x86_64-pc-linux-musl, compiled by gcc (Alpine 14.2.0) 14.2.0, 64-bit",
+    "database": "ops_api_retention_replayfix_compile_20261013",
+    "functions": [
+      {
+        "proc": {
+          "oid": "44962",
+          "proacl": [
+            "postgres=X/postgres"
+          ],
+          "probin": null,
+          "prosrc": "\nDECLARE\n old_row jsonb; new_row jsonb; old_fact jsonb; new_fact jsonb;\n old_company text; new_company text; selected_company uuid; fact_id bigint;\n fields text[]:=ARRAY[\n  'id','company_id','customer_id','customer_contract_id','contract_id','site_id','customer_site_id',\n  'metering_point_id','meter_point_id','normalized_metering_point_id','facility_id',\n  'normalized_facility_id','site_facility_id','ediel_metering_point_id','ediel_reference',\n  'grid_owner_id','grid_owner_ediel_id','switch_request_id','supplier_switch_request_id',\n  'customer_case_id','customer_operation_job_id','operation_id','outbound_request_id',\n  'cancellation_ediel_message_id','source_message_id','source_switch_request_id',\n  'outbound_z03_message_id','inbound_z04_message_id','rff_li_reference',\n  'event_type','event_status','event_code','case_type','job_type','task_type',\n  'request_type','process_type','source_process','source','status','start_status',\n  'cancellation_status','withdrawal_scenario','withdrawal_possible','switch_can_be_stopped',\n  'cancellation_required','billing_blocked','billing_manual_review','lifecycle_blocked',\n  'start_date','end_date','actual_start_date','actual_end_date','starts_at','ends_at',\n  'ended_at','signed_at','termination_notice_date','withdrawal_requested_at',\n  'requested_start_date','confirmed_start_date','completed_at','failed_at',\n  'submitted_at','resolved_at','closed_at','move_in_date','move_out_date',\n  'happened_at','occurred_at','created_at','updated_at','archived_at','source_type','operation_id',\n  'idempotency_key','actual_start_at','delivery_start_at','withdrawal_deadline_at'\n ];\nBEGIN\n IF TG_TABLE_SCHEMA<>'public' OR NOT EXISTS\n  (SELECT FROM gridex_correction_process.epochs e WHERE e.table_name=TG_TABLE_NAME) THEN\n  RAISE EXCEPTION 'correction_process_unregistered_producer' USING ERRCODE='23514';\n END IF;\n IF TG_OP<>'INSERT' THEN old_row:=to_jsonb(OLD); END IF;\n IF TG_OP<>'DELETE' THEN new_row:=to_jsonb(NEW); END IF;\n IF coalesce(octet_length(old_row::text),0)+coalesce(octet_length(new_row::text),0)>6291456 THEN\n  RAISE EXCEPTION 'correction_process_transition_too_large' USING ERRCODE='22001';\n END IF;\n SELECT jsonb_object_agg(key,value) INTO old_fact FROM jsonb_each(old_row) WHERE key=ANY(fields);\n SELECT jsonb_object_agg(key,value) INTO new_fact FROM jsonb_each(new_row) WHERE key=ANY(fields);\n IF coalesce(octet_length(old_fact::text),0)>65536 OR coalesce(octet_length(new_fact::text),0)>65536 THEN\n  RAISE EXCEPTION 'correction_process_fact_too_large' USING ERRCODE='22001';\n END IF;\n old_company:=old_row->>'company_id'; new_company:=new_row->>'company_id';\n selected_company:=coalesce(old_company,new_company)::uuid;\n INSERT INTO gridex_correction_process.facts(table_name,row_id,operation,company_id,old_fact,new_fact,facts_hash)\n VALUES (TG_TABLE_NAME,(coalesce(old_row,new_row)->>'id')::uuid,TG_OP,selected_company,old_fact,new_fact,\n  encode(sha256(convert_to(jsonb_build_object('table',TG_TABLE_NAME,'rowId',coalesce(old_row,new_row)->>'id',\n   'operation',TG_OP,'old',old_fact,'new',new_fact)::text,'UTF8')),'hex')) RETURNING id INTO fact_id;\n IF selected_company IS NULL OR (TG_OP='UPDATE' AND old_company IS DISTINCT FROM new_company) THEN\n  INSERT INTO gridex_correction_process.gaps(fact_id,reason,old_scope,new_scope)\n  VALUES(fact_id,CASE WHEN old_company IS NULL OR new_company IS NULL THEN 'unbound_company' ELSE 'company_changed' END,\n   old_fact,new_fact);\n END IF;\n IF TG_OP='DELETE' THEN RETURN OLD; END IF;\n RETURN NEW;\nEND ",
+          "procost": 100,
+          "prokind": "f",
+          "prolang": "13634",
+          "proname": "capture_v1",
+          "prorows": 0,
+          "pronargs": 0,
+          "proowner": "10",
+          "proconfig": [
+            "search_path=pg_catalog"
+          ],
+          "proretset": false,
+          "prosecdef": true,
+          "prorettype": "2279",
+          "prosqlbody": null,
+          "prosupport": "-",
+          "proargmodes": null,
+          "proargnames": null,
+          "proargtypes": [],
+          "proisstrict": false,
+          "proparallel": "u",
+          "protrftypes": null,
+          "provariadic": "0",
+          "provolatile": "v",
+          "proleakproof": false,
+          "pronamespace": "16393",
+          "proallargtypes": null,
+          "proargdefaults": null,
+          "pronargdefaults": 0
+        },
+        "body_md5": "ef20fd588333aca906dea9b6c2064210",
+        "signature": "gridex_correction_process.capture_v1()",
+        "definition": "CREATE OR REPLACE FUNCTION gridex_correction_process.capture_v1()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\nDECLARE\n old_row jsonb; new_row jsonb; old_fact jsonb; new_fact jsonb;\n old_company text; new_company text; selected_company uuid; fact_id bigint;\n fields text[]:=ARRAY[\n  'id','company_id','customer_id','customer_contract_id','contract_id','site_id','customer_site_id',\n  'metering_point_id','meter_point_id','normalized_metering_point_id','facility_id',\n  'normalized_facility_id','site_facility_id','ediel_metering_point_id','ediel_reference',\n  'grid_owner_id','grid_owner_ediel_id','switch_request_id','supplier_switch_request_id',\n  'customer_case_id','customer_operation_job_id','operation_id','outbound_request_id',\n  'cancellation_ediel_message_id','source_message_id','source_switch_request_id',\n  'outbound_z03_message_id','inbound_z04_message_id','rff_li_reference',\n  'event_type','event_status','event_code','case_type','job_type','task_type',\n  'request_type','process_type','source_process','source','status','start_status',\n  'cancellation_status','withdrawal_scenario','withdrawal_possible','switch_can_be_stopped',\n  'cancellation_required','billing_blocked','billing_manual_review','lifecycle_blocked',\n  'start_date','end_date','actual_start_date','actual_end_date','starts_at','ends_at',\n  'ended_at','signed_at','termination_notice_date','withdrawal_requested_at',\n  'requested_start_date','confirmed_start_date','completed_at','failed_at',\n  'submitted_at','resolved_at','closed_at','move_in_date','move_out_date',\n  'happened_at','occurred_at','created_at','updated_at','archived_at','source_type','operation_id',\n  'idempotency_key','actual_start_at','delivery_start_at','withdrawal_deadline_at'\n ];\nBEGIN\n IF TG_TABLE_SCHEMA<>'public' OR NOT EXISTS\n  (SELECT FROM gridex_correction_process.epochs e WHERE e.table_name=TG_TABLE_NAME) THEN\n  RAISE EXCEPTION 'correction_process_unregistered_producer' USING ERRCODE='23514';\n END IF;\n IF TG_OP<>'INSERT' THEN old_row:=to_jsonb(OLD); END IF;\n IF TG_OP<>'DELETE' THEN new_row:=to_jsonb(NEW); END IF;\n IF coalesce(octet_length(old_row::text),0)+coalesce(octet_length(new_row::text),0)>6291456 THEN\n  RAISE EXCEPTION 'correction_process_transition_too_large' USING ERRCODE='22001';\n END IF;\n SELECT jsonb_object_agg(key,value) INTO old_fact FROM jsonb_each(old_row) WHERE key=ANY(fields);\n SELECT jsonb_object_agg(key,value) INTO new_fact FROM jsonb_each(new_row) WHERE key=ANY(fields);\n IF coalesce(octet_length(old_fact::text),0)>65536 OR coalesce(octet_length(new_fact::text),0)>65536 THEN\n  RAISE EXCEPTION 'correction_process_fact_too_large' USING ERRCODE='22001';\n END IF;\n old_company:=old_row->>'company_id'; new_company:=new_row->>'company_id';\n selected_company:=coalesce(old_company,new_company)::uuid;\n INSERT INTO gridex_correction_process.facts(table_name,row_id,operation,company_id,old_fact,new_fact,facts_hash)\n VALUES (TG_TABLE_NAME,(coalesce(old_row,new_row)->>'id')::uuid,TG_OP,selected_company,old_fact,new_fact,\n  encode(sha256(convert_to(jsonb_build_object('table',TG_TABLE_NAME,'rowId',coalesce(old_row,new_row)->>'id',\n   'operation',TG_OP,'old',old_fact,'new',new_fact)::text,'UTF8')),'hex')) RETURNING id INTO fact_id;\n IF selected_company IS NULL OR (TG_OP='UPDATE' AND old_company IS DISTINCT FROM new_company) THEN\n  INSERT INTO gridex_correction_process.gaps(fact_id,reason,old_scope,new_scope)\n  VALUES(fact_id,CASE WHEN old_company IS NULL OR new_company IS NULL THEN 'unbound_company' ELSE 'company_changed' END,\n   old_fact,new_fact);\n END IF;\n IF TG_OP='DELETE' THEN RETURN OLD; END IF;\n RETURN NEW;\nEND $function$\n"
+      },
+      {
+        "proc": {
+          "oid": "44963",
+          "proacl": [
+            "postgres=X/postgres",
+            "service_role=X/postgres"
+          ],
+          "probin": null,
+          "prosrc": "\nbegin\n  insert into public.portfolio_settlement_audit_log(\n    company_id,portfolio_id,settlement_id,actor_user_id,permission,action,\n    old_values,new_values,reason,calculation_snapshot_sha256,approval\n  ) values(\n    case when tg_op='INSERT' then new.company_id else old.company_id end,\n    case when tg_op='INSERT' then new.portfolio_id else old.portfolio_id end,\n    case when tg_op='INSERT' then new.id else old.id end,\n    case\n      when tg_op='INSERT' then new.created_by\n      when new.locked_by is distinct from old.locked_by then new.locked_by\n      when new.approved_by is distinct from old.approved_by then new.approved_by\n      when new.reviewed_by is distinct from old.reviewed_by then new.reviewed_by\n      when new.calculated_by is distinct from old.calculated_by then new.calculated_by\n      else coalesce(\n        nullif(current_setting('gridex.portfolio_actor_user_id',true), '')::uuid,\n        new.created_by\n      )\n    end,\n    case\n      when tg_op='INSERT' then case when new.source='import' then 'portfolio_settlement.import' else 'portfolio_settlement.create' end\n      when new.is_current=false and old.is_current then 'portfolio_settlement.correct'\n      when new.status='calculated' and old.status is distinct from new.status then 'portfolio_settlement.calculate'\n      when new.status='reviewed' and old.status is distinct from new.status then 'portfolio_settlement.review'\n      when new.status='final' and old.status is distinct from new.status then 'portfolio_settlement.approve'\n      when new.status='locked' and old.status is distinct from new.status then 'portfolio_settlement.lock'\n      else 'portfolio_settlement.correct'\n    end,\n    case\n      when tg_op='INSERT' then 'settlement.created'\n      when new.is_current=false and old.is_current then 'settlement.superseded'\n      when new.status is distinct from old.status then 'settlement.'||new.status\n      else 'settlement.updated'\n    end,\n    case when tg_op='INSERT' then null else to_jsonb(old) end,\n    case when tg_op='DELETE' then null else to_jsonb(new) end,\n    coalesce(\n      nullif(current_setting('gridex.portfolio_audit_reason',true),''),\n      case when tg_op='INSERT' then new.correction_reason else coalesce(new.correction_reason,old.correction_reason) end\n    ),\n    new.calculation_snapshot_sha256,\n    case\n      when new.approved_by is not null then jsonb_build_object('approved_by',new.approved_by,'approved_at',new.approved_at)\n      else null\n    end\n  );\n  return new;\nend ",
+          "procost": 100,
+          "prokind": "f",
+          "prolang": "13634",
+          "proname": "gridex_audit_portfolio_settlement_write",
+          "prorows": 0,
+          "pronargs": 0,
+          "proowner": "10",
+          "proconfig": [
+            "search_path=public, pg_temp"
+          ],
+          "proretset": false,
+          "prosecdef": true,
+          "prorettype": "2279",
+          "prosqlbody": null,
+          "prosupport": "-",
+          "proargmodes": null,
+          "proargnames": null,
+          "proargtypes": [],
+          "proisstrict": false,
+          "proparallel": "u",
+          "protrftypes": null,
+          "provariadic": "0",
+          "provolatile": "v",
+          "proleakproof": false,
+          "pronamespace": "2200",
+          "proallargtypes": null,
+          "proargdefaults": null,
+          "pronargdefaults": 0
+        },
+        "body_md5": "12054f3bc27579c99ba847d0f33a0fc9",
+        "signature": "gridex_audit_portfolio_settlement_write()",
+        "definition": "CREATE OR REPLACE FUNCTION public.gridex_audit_portfolio_settlement_write()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public', 'pg_temp'\nAS $function$\nbegin\n  insert into public.portfolio_settlement_audit_log(\n    company_id,portfolio_id,settlement_id,actor_user_id,permission,action,\n    old_values,new_values,reason,calculation_snapshot_sha256,approval\n  ) values(\n    case when tg_op='INSERT' then new.company_id else old.company_id end,\n    case when tg_op='INSERT' then new.portfolio_id else old.portfolio_id end,\n    case when tg_op='INSERT' then new.id else old.id end,\n    case\n      when tg_op='INSERT' then new.created_by\n      when new.locked_by is distinct from old.locked_by then new.locked_by\n      when new.approved_by is distinct from old.approved_by then new.approved_by\n      when new.reviewed_by is distinct from old.reviewed_by then new.reviewed_by\n      when new.calculated_by is distinct from old.calculated_by then new.calculated_by\n      else coalesce(\n        nullif(current_setting('gridex.portfolio_actor_user_id',true), '')::uuid,\n        new.created_by\n      )\n    end,\n    case\n      when tg_op='INSERT' then case when new.source='import' then 'portfolio_settlement.import' else 'portfolio_settlement.create' end\n      when new.is_current=false and old.is_current then 'portfolio_settlement.correct'\n      when new.status='calculated' and old.status is distinct from new.status then 'portfolio_settlement.calculate'\n      when new.status='reviewed' and old.status is distinct from new.status then 'portfolio_settlement.review'\n      when new.status='final' and old.status is distinct from new.status then 'portfolio_settlement.approve'\n      when new.status='locked' and old.status is distinct from new.status then 'portfolio_settlement.lock'\n      else 'portfolio_settlement.correct'\n    end,\n    case\n      when tg_op='INSERT' then 'settlement.created'\n      when new.is_current=false and old.is_current then 'settlement.superseded'\n      when new.status is distinct from old.status then 'settlement.'||new.status\n      else 'settlement.updated'\n    end,\n    case when tg_op='INSERT' then null else to_jsonb(old) end,\n    case when tg_op='DELETE' then null else to_jsonb(new) end,\n    coalesce(\n      nullif(current_setting('gridex.portfolio_audit_reason',true),''),\n      case when tg_op='INSERT' then new.correction_reason else coalesce(new.correction_reason,old.correction_reason) end\n    ),\n    new.calculation_snapshot_sha256,\n    case\n      when new.approved_by is not null then jsonb_build_object('approved_by',new.approved_by,'approved_at',new.approved_at)\n      else null\n    end\n  );\n  return new;\nend $function$\n"
+      },
+      {
+        "proc": {
+          "oid": "44965",
+          "proacl": [
+            "postgres=X/postgres",
+            "service_role=X/postgres",
+            "authenticated=X/postgres"
+          ],
+          "probin": null,
+          "prosrc": "\n select exists(select 1 from public.customers c where c.company_id=p_company_id\n   and coalesce(c.source,'')<>'ediel_portal_test'\n   and coalesce(c.status,'') not in ('deleted','deleted_test_only','pending_deletion'))\n",
+          "procost": 100,
+          "prokind": "f",
+          "prolang": "14",
+          "proname": "gridex_company_has_customer_data",
+          "prorows": 0,
+          "pronargs": 1,
+          "proowner": "10",
+          "proconfig": [
+            "search_path=public, pg_temp"
+          ],
+          "proretset": false,
+          "prosecdef": false,
+          "prorettype": "16",
+          "prosqlbody": null,
+          "prosupport": "-",
+          "proargmodes": null,
+          "proargnames": [
+            "p_company_id"
+          ],
+          "proargtypes": [
+            "2950"
+          ],
+          "proisstrict": false,
+          "proparallel": "u",
+          "protrftypes": null,
+          "provariadic": "0",
+          "provolatile": "s",
+          "proleakproof": false,
+          "pronamespace": "2200",
+          "proallargtypes": null,
+          "proargdefaults": null,
+          "pronargdefaults": 0
+        },
+        "body_md5": "a9ac4ebe277b255fed1078bd18df6f7c",
+        "signature": "gridex_company_has_customer_data(uuid)",
+        "definition": "CREATE OR REPLACE FUNCTION public.gridex_company_has_customer_data(p_company_id uuid)\n RETURNS boolean\n LANGUAGE sql\n STABLE\n SET search_path TO 'public', 'pg_temp'\nAS $function$\n select exists(select 1 from public.customers c where c.company_id=p_company_id\n   and coalesce(c.source,'')<>'ediel_portal_test'\n   and coalesce(c.status,'') not in ('deleted','deleted_test_only','pending_deletion'))\n$function$\n"
+      },
+      {
+        "proc": {
+          "oid": "44966",
+          "proacl": [
+            "=X/postgres",
+            "postgres=X/postgres",
+            "service_role=X/postgres"
+          ],
+          "probin": null,
+          "prosrc": "\n  select array_remove(array[\n    case when exists (select 1 from public.customers c where c.company_id = p_company_id\n      and c.is_test_data is not true and coalesce(lower(c.source), '') not like '%test%') then 'customers' end,\n    case when exists (select 1 from public.customer_contracts x where x.company_id = p_company_id) then 'customer_contracts' end,\n    case when exists (select 1 from public.customer_invoices x where x.company_id = p_company_id) then 'customer_invoices' end,\n    case when exists (select 1 from public.invoice_documents x where x.company_id = p_company_id) then 'invoice_documents' end,\n    case when exists (select 1 from public.billing_underlays x where x.company_id = p_company_id) then 'billing_underlays' end,\n    case when exists (select 1 from public.contract_charge_ledger x where x.company_id = p_company_id) then 'contract_charge_ledger' end\n  ], null)\n",
+          "procost": 100,
+          "prokind": "f",
+          "prolang": "14",
+          "proname": "gridex_company_retained_history_v1",
+          "prorows": 0,
+          "pronargs": 1,
+          "proowner": "10",
+          "proconfig": [
+            "search_path=public, pg_temp"
+          ],
+          "proretset": false,
+          "prosecdef": false,
+          "prorettype": "1009",
+          "prosqlbody": null,
+          "prosupport": "-",
+          "proargmodes": null,
+          "proargnames": [
+            "p_company_id"
+          ],
+          "proargtypes": [
+            "2950"
+          ],
+          "proisstrict": false,
+          "proparallel": "u",
+          "protrftypes": null,
+          "provariadic": "0",
+          "provolatile": "s",
+          "proleakproof": false,
+          "pronamespace": "2200",
+          "proallargtypes": null,
+          "proargdefaults": null,
+          "pronargdefaults": 0
+        },
+        "body_md5": "72b22a22ef2e5f0d2ce79e02075ccee6",
+        "signature": "gridex_company_retained_history_v1(uuid)",
+        "definition": "CREATE OR REPLACE FUNCTION public.gridex_company_retained_history_v1(p_company_id uuid)\n RETURNS text[]\n LANGUAGE sql\n STABLE\n SET search_path TO 'public', 'pg_temp'\nAS $function$\n  select array_remove(array[\n    case when exists (select 1 from public.customers c where c.company_id = p_company_id\n      and c.is_test_data is not true and coalesce(lower(c.source), '') not like '%test%') then 'customers' end,\n    case when exists (select 1 from public.customer_contracts x where x.company_id = p_company_id) then 'customer_contracts' end,\n    case when exists (select 1 from public.customer_invoices x where x.company_id = p_company_id) then 'customer_invoices' end,\n    case when exists (select 1 from public.invoice_documents x where x.company_id = p_company_id) then 'invoice_documents' end,\n    case when exists (select 1 from public.billing_underlays x where x.company_id = p_company_id) then 'billing_underlays' end,\n    case when exists (select 1 from public.contract_charge_ledger x where x.company_id = p_company_id) then 'contract_charge_ledger' end\n  ], null)\n$function$\n"
+      },
+      {
+        "proc": {
+          "oid": "44964",
+          "proacl": [
+            "postgres=X/postgres"
+          ],
+          "probin": null,
+          "prosrc": "\ndeclare\n  v_retained text[];\nbegin\n  if current_user in ('postgres', 'supabase_admin') then\n    return old;\n  end if;\n  if old.status = 'deleted_test_only' then\n    v_retained := public.gridex_company_retained_history_v1(old.id);\n    if cardinality(v_retained) = 0 then\n      return old;\n    end if;\n    raise exception using\n      errcode = '23001',\n      message = 'company_hard_delete_blocked',\n      detail = 'Disposable tenant still holds retained history: ' || array_to_string(v_retained, ',');\n  end if;\n  raise exception using\n    errcode = '23001',\n    message = 'company_hard_delete_blocked',\n    detail = 'Retained audit, journal and billing history would be cascaded away; close the tenant through canonical_transition_tenant_lifecycle.';\nend\n",
+          "procost": 100,
+          "prokind": "f",
+          "prolang": "13634",
+          "proname": "gridex_guard_company_hard_delete_v1",
+          "prorows": 0,
+          "pronargs": 0,
+          "proowner": "10",
+          "proconfig": [
+            "search_path=public, pg_temp"
+          ],
+          "proretset": false,
+          "prosecdef": false,
+          "prorettype": "2279",
+          "prosqlbody": null,
+          "prosupport": "-",
+          "proargmodes": null,
+          "proargnames": null,
+          "proargtypes": [],
+          "proisstrict": false,
+          "proparallel": "u",
+          "protrftypes": null,
+          "provariadic": "0",
+          "provolatile": "v",
+          "proleakproof": false,
+          "pronamespace": "2200",
+          "proallargtypes": null,
+          "proargdefaults": null,
+          "pronargdefaults": 0
+        },
+        "body_md5": "b760388550527115f5c5048b2f7478b1",
+        "signature": "gridex_guard_company_hard_delete_v1()",
+        "definition": "CREATE OR REPLACE FUNCTION public.gridex_guard_company_hard_delete_v1()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO 'public', 'pg_temp'\nAS $function$\ndeclare\n  v_retained text[];\nbegin\n  if current_user in ('postgres', 'supabase_admin') then\n    return old;\n  end if;\n  if old.status = 'deleted_test_only' then\n    v_retained := public.gridex_company_retained_history_v1(old.id);\n    if cardinality(v_retained) = 0 then\n      return old;\n    end if;\n    raise exception using\n      errcode = '23001',\n      message = 'company_hard_delete_blocked',\n      detail = 'Disposable tenant still holds retained history: ' || array_to_string(v_retained, ',');\n  end if;\n  raise exception using\n    errcode = '23001',\n    message = 'company_hard_delete_blocked',\n    detail = 'Retained audit, journal and billing history would be cascaded away; close the tenant through canonical_transition_tenant_lifecycle.';\nend\n$function$\n"
+      }
+    ],
+    "check_function_bodies": "on"
+  },
+  "after": {
+    "version": "PostgreSQL 17.6 on x86_64-pc-linux-musl, compiled by gcc (Alpine 14.2.0) 14.2.0, 64-bit",
+    "database": "ops_api_retention_replayfix_compile_20261013",
+    "functions": [
+      {
+        "proc": {
+          "oid": "44962",
+          "proacl": [
+            "postgres=X/postgres"
+          ],
+          "probin": null,
+          "prosrc": "\nDECLARE\n old_row jsonb; new_row jsonb; old_fact jsonb; new_fact jsonb;\n old_company text; new_company text; selected_company uuid; fact_id bigint;\n fields text[]:=ARRAY[\n  'id','company_id','customer_id','customer_contract_id','contract_id','site_id','customer_site_id',\n  'metering_point_id','meter_point_id','normalized_metering_point_id','facility_id',\n  'normalized_facility_id','site_facility_id','ediel_metering_point_id','ediel_reference',\n  'grid_owner_id','grid_owner_ediel_id','switch_request_id','supplier_switch_request_id',\n  'customer_case_id','customer_operation_job_id','operation_id','outbound_request_id',\n  'cancellation_ediel_message_id','source_message_id','source_switch_request_id',\n  'outbound_z03_message_id','inbound_z04_message_id','rff_li_reference',\n  'event_type','event_status','event_code','case_type','job_type','task_type',\n  'request_type','process_type','source_process','source','status','start_status',\n  'cancellation_status','withdrawal_scenario','withdrawal_possible','switch_can_be_stopped',\n  'cancellation_required','billing_blocked','billing_manual_review','lifecycle_blocked',\n  'start_date','end_date','actual_start_date','actual_end_date','starts_at','ends_at',\n  'ended_at','signed_at','termination_notice_date','withdrawal_requested_at',\n  'requested_start_date','confirmed_start_date','completed_at','failed_at',\n  'submitted_at','resolved_at','closed_at','move_in_date','move_out_date',\n  'happened_at','occurred_at','created_at','updated_at','archived_at','source_type','operation_id',\n  'idempotency_key','actual_start_at','delivery_start_at','withdrawal_deadline_at'\n ];\nBEGIN IF TG_OP='UPDATE' AND public.ediel_capture_customer_record_retention_origin_v1(TG_TABLE_NAME,to_jsonb(OLD),to_jsonb(NEW)) THEN RETURN NEW;END IF;\n IF TG_TABLE_SCHEMA<>'public' OR NOT EXISTS\n  (SELECT FROM gridex_correction_process.epochs e WHERE e.table_name=TG_TABLE_NAME) THEN\n  RAISE EXCEPTION 'correction_process_unregistered_producer' USING ERRCODE='23514';\n END IF;\n IF TG_OP<>'INSERT' THEN old_row:=to_jsonb(OLD); END IF;\n IF TG_OP<>'DELETE' THEN new_row:=to_jsonb(NEW); END IF;\n IF coalesce(octet_length(old_row::text),0)+coalesce(octet_length(new_row::text),0)>6291456 THEN\n  RAISE EXCEPTION 'correction_process_transition_too_large' USING ERRCODE='22001';\n END IF;\n SELECT jsonb_object_agg(key,value) INTO old_fact FROM jsonb_each(old_row) WHERE key=ANY(fields);\n SELECT jsonb_object_agg(key,value) INTO new_fact FROM jsonb_each(new_row) WHERE key=ANY(fields);\n IF coalesce(octet_length(old_fact::text),0)>65536 OR coalesce(octet_length(new_fact::text),0)>65536 THEN\n  RAISE EXCEPTION 'correction_process_fact_too_large' USING ERRCODE='22001';\n END IF;\n old_company:=old_row->>'company_id'; new_company:=new_row->>'company_id';\n selected_company:=coalesce(old_company,new_company)::uuid;\n INSERT INTO gridex_correction_process.facts(table_name,row_id,operation,company_id,old_fact,new_fact,facts_hash)\n VALUES (TG_TABLE_NAME,(coalesce(old_row,new_row)->>'id')::uuid,TG_OP,selected_company,old_fact,new_fact,\n  encode(sha256(convert_to(jsonb_build_object('table',TG_TABLE_NAME,'rowId',coalesce(old_row,new_row)->>'id',\n   'operation',TG_OP,'old',old_fact,'new',new_fact)::text,'UTF8')),'hex')) RETURNING id INTO fact_id;\n IF selected_company IS NULL OR (TG_OP='UPDATE' AND old_company IS DISTINCT FROM new_company) THEN\n  INSERT INTO gridex_correction_process.gaps(fact_id,reason,old_scope,new_scope)\n  VALUES(fact_id,CASE WHEN old_company IS NULL OR new_company IS NULL THEN 'unbound_company' ELSE 'company_changed' END,\n   old_fact,new_fact);\n END IF;\n IF TG_OP='DELETE' THEN RETURN OLD; END IF;\n RETURN NEW;\nEND ",
+          "procost": 100,
+          "prokind": "f",
+          "prolang": "13634",
+          "proname": "capture_v1",
+          "prorows": 0,
+          "pronargs": 0,
+          "proowner": "10",
+          "proconfig": [
+            "search_path=pg_catalog"
+          ],
+          "proretset": false,
+          "prosecdef": true,
+          "prorettype": "2279",
+          "prosqlbody": null,
+          "prosupport": "-",
+          "proargmodes": null,
+          "proargnames": null,
+          "proargtypes": [],
+          "proisstrict": false,
+          "proparallel": "u",
+          "protrftypes": null,
+          "provariadic": "0",
+          "provolatile": "v",
+          "proleakproof": false,
+          "pronamespace": "16393",
+          "proallargtypes": null,
+          "proargdefaults": null,
+          "pronargdefaults": 0
+        },
+        "body_md5": "68fe8b6945faaf2d8b441bfea7cf2cbe",
+        "signature": "gridex_correction_process.capture_v1()",
+        "definition": "CREATE OR REPLACE FUNCTION gridex_correction_process.capture_v1()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\nDECLARE\n old_row jsonb; new_row jsonb; old_fact jsonb; new_fact jsonb;\n old_company text; new_company text; selected_company uuid; fact_id bigint;\n fields text[]:=ARRAY[\n  'id','company_id','customer_id','customer_contract_id','contract_id','site_id','customer_site_id',\n  'metering_point_id','meter_point_id','normalized_metering_point_id','facility_id',\n  'normalized_facility_id','site_facility_id','ediel_metering_point_id','ediel_reference',\n  'grid_owner_id','grid_owner_ediel_id','switch_request_id','supplier_switch_request_id',\n  'customer_case_id','customer_operation_job_id','operation_id','outbound_request_id',\n  'cancellation_ediel_message_id','source_message_id','source_switch_request_id',\n  'outbound_z03_message_id','inbound_z04_message_id','rff_li_reference',\n  'event_type','event_status','event_code','case_type','job_type','task_type',\n  'request_type','process_type','source_process','source','status','start_status',\n  'cancellation_status','withdrawal_scenario','withdrawal_possible','switch_can_be_stopped',\n  'cancellation_required','billing_blocked','billing_manual_review','lifecycle_blocked',\n  'start_date','end_date','actual_start_date','actual_end_date','starts_at','ends_at',\n  'ended_at','signed_at','termination_notice_date','withdrawal_requested_at',\n  'requested_start_date','confirmed_start_date','completed_at','failed_at',\n  'submitted_at','resolved_at','closed_at','move_in_date','move_out_date',\n  'happened_at','occurred_at','created_at','updated_at','archived_at','source_type','operation_id',\n  'idempotency_key','actual_start_at','delivery_start_at','withdrawal_deadline_at'\n ];\nBEGIN IF TG_OP='UPDATE' AND public.ediel_capture_customer_record_retention_origin_v1(TG_TABLE_NAME,to_jsonb(OLD),to_jsonb(NEW)) THEN RETURN NEW;END IF;\n IF TG_TABLE_SCHEMA<>'public' OR NOT EXISTS\n  (SELECT FROM gridex_correction_process.epochs e WHERE e.table_name=TG_TABLE_NAME) THEN\n  RAISE EXCEPTION 'correction_process_unregistered_producer' USING ERRCODE='23514';\n END IF;\n IF TG_OP<>'INSERT' THEN old_row:=to_jsonb(OLD); END IF;\n IF TG_OP<>'DELETE' THEN new_row:=to_jsonb(NEW); END IF;\n IF coalesce(octet_length(old_row::text),0)+coalesce(octet_length(new_row::text),0)>6291456 THEN\n  RAISE EXCEPTION 'correction_process_transition_too_large' USING ERRCODE='22001';\n END IF;\n SELECT jsonb_object_agg(key,value) INTO old_fact FROM jsonb_each(old_row) WHERE key=ANY(fields);\n SELECT jsonb_object_agg(key,value) INTO new_fact FROM jsonb_each(new_row) WHERE key=ANY(fields);\n IF coalesce(octet_length(old_fact::text),0)>65536 OR coalesce(octet_length(new_fact::text),0)>65536 THEN\n  RAISE EXCEPTION 'correction_process_fact_too_large' USING ERRCODE='22001';\n END IF;\n old_company:=old_row->>'company_id'; new_company:=new_row->>'company_id';\n selected_company:=coalesce(old_company,new_company)::uuid;\n INSERT INTO gridex_correction_process.facts(table_name,row_id,operation,company_id,old_fact,new_fact,facts_hash)\n VALUES (TG_TABLE_NAME,(coalesce(old_row,new_row)->>'id')::uuid,TG_OP,selected_company,old_fact,new_fact,\n  encode(sha256(convert_to(jsonb_build_object('table',TG_TABLE_NAME,'rowId',coalesce(old_row,new_row)->>'id',\n   'operation',TG_OP,'old',old_fact,'new',new_fact)::text,'UTF8')),'hex')) RETURNING id INTO fact_id;\n IF selected_company IS NULL OR (TG_OP='UPDATE' AND old_company IS DISTINCT FROM new_company) THEN\n  INSERT INTO gridex_correction_process.gaps(fact_id,reason,old_scope,new_scope)\n  VALUES(fact_id,CASE WHEN old_company IS NULL OR new_company IS NULL THEN 'unbound_company' ELSE 'company_changed' END,\n   old_fact,new_fact);\n END IF;\n IF TG_OP='DELETE' THEN RETURN OLD; END IF;\n RETURN NEW;\nEND $function$\n"
+      },
+      {
+        "proc": {
+          "oid": "45003",
+          "proacl": [
+            "gridex_ediel_retention_owner=X/gridex_ediel_retention_owner",
+            "postgres=X/gridex_ediel_retention_owner"
+          ],
+          "probin": null,
+          "prosrc": "DECLARE t gridex_ediel_retention.record_tombstones%rowtype;\n o gridex_ediel_retention.process_retention_origins%rowtype;\nBEGIN\n IF public.ediel_is_qualified_customer_record_transition_v1(p_table,p_old,p_new) IS NOT TRUE THEN RETURN false;END IF;\n SELECT x.* INTO STRICT t FROM gridex_ediel_retention.record_tombstones x\n  JOIN gridex_ediel_retention.record_class_catalog k ON k.retention_class=x.retention_class\n  WHERE k.source_table=p_table AND x.target_id=(p_old->>'id')::uuid AND x.company_id=(p_old->>'company_id')::uuid;\n SELECT x.* INTO o FROM gridex_ediel_retention.process_retention_origins x\n  WHERE x.company_id=t.company_id AND x.source_table=p_table AND x.target_id=t.target_id AND x.decision_id=t.decision_id;\n IF FOUND THEN\n  -- The captured full redacted hash is immutable evidence, not a hash of a\n  -- later row whose permitted updated_at may have changed repeatedly. Current\n  -- OLD/NEW state remains protected by the unchanged exact class qualifier.\n  IF o.original_hash IS DISTINCT FROM t.target_hash OR o.redacted_hash!~'^[a-f0-9]{64}$'\n   OR o.journal_retain_until IS DISTINCT FROM t.journal_retain_until\n   OR o.journal_purpose_reference IS DISTINCT FROM t.journal_purpose_reference THEN\n   RAISE EXCEPTION 'record_retention_existing_origin_binding_mismatch' USING ERRCODE='23514';END IF;\n  RETURN true; -- No insertion, replacement, new hash or historical fabrication.\n END IF;\n -- First capture still requires the exact immutable original before erasure.\n -- An already-redacted legacy row with no established origin must fail closed.\n SELECT x.* INTO STRICT t FROM gridex_ediel_retention.record_tombstones x\n  JOIN gridex_ediel_retention.record_class_catalog k ON k.retention_class=x.retention_class\n  WHERE k.source_table=p_table AND x.target_id=(p_old->>'id')::uuid\n   AND x.target_hash=encode(sha256(convert_to(p_old::text,'UTF8')),'hex');\n INSERT INTO gridex_ediel_retention.process_retention_origins(company_id,source_table,target_id,decision_id,original_hash,redacted_hash,journal_retain_until,journal_purpose_reference)\n VALUES(t.company_id,p_table,t.target_id,t.decision_id,t.target_hash,encode(sha256(convert_to(p_new::text,'UTF8')),'hex'),t.journal_retain_until,t.journal_purpose_reference) ON CONFLICT DO NOTHING;\n SELECT x.* INTO STRICT o FROM gridex_ediel_retention.process_retention_origins x\n  WHERE x.company_id=t.company_id AND x.source_table=p_table AND x.target_id=t.target_id AND x.decision_id=t.decision_id;\n IF o.original_hash IS DISTINCT FROM t.target_hash\n  OR o.redacted_hash IS DISTINCT FROM encode(sha256(convert_to(p_new::text,'UTF8')),'hex')\n  OR o.journal_retain_until IS DISTINCT FROM t.journal_retain_until\n  OR o.journal_purpose_reference IS DISTINCT FROM t.journal_purpose_reference THEN\n  RAISE EXCEPTION 'record_retention_first_origin_binding_mismatch' USING ERRCODE='23514';END IF;\n RETURN true;\nEND\n",
+          "procost": 100,
+          "prokind": "f",
+          "prolang": "13634",
+          "proname": "ediel_capture_customer_record_retention_origin_v1",
+          "prorows": 0,
+          "pronargs": 3,
+          "proowner": "17566",
+          "proconfig": [
+            "search_path=pg_catalog"
+          ],
+          "proretset": false,
+          "prosecdef": true,
+          "prorettype": "16",
+          "prosqlbody": null,
+          "prosupport": "-",
+          "proargmodes": null,
+          "proargnames": [
+            "p_table",
+            "p_old",
+            "p_new"
+          ],
+          "proargtypes": [
+            "25",
+            "3802",
+            "3802"
+          ],
+          "proisstrict": false,
+          "proparallel": "u",
+          "protrftypes": null,
+          "provariadic": "0",
+          "provolatile": "v",
+          "proleakproof": false,
+          "pronamespace": "2200",
+          "proallargtypes": null,
+          "proargdefaults": null,
+          "pronargdefaults": 0
+        },
+        "body_md5": "ba1e28e057578a651fcc542a3af1087d",
+        "signature": "ediel_capture_customer_record_retention_origin_v1(text,jsonb,jsonb)",
+        "definition": "CREATE OR REPLACE FUNCTION public.ediel_capture_customer_record_retention_origin_v1(p_table text, p_old jsonb, p_new jsonb)\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$DECLARE t gridex_ediel_retention.record_tombstones%rowtype;\n o gridex_ediel_retention.process_retention_origins%rowtype;\nBEGIN\n IF public.ediel_is_qualified_customer_record_transition_v1(p_table,p_old,p_new) IS NOT TRUE THEN RETURN false;END IF;\n SELECT x.* INTO STRICT t FROM gridex_ediel_retention.record_tombstones x\n  JOIN gridex_ediel_retention.record_class_catalog k ON k.retention_class=x.retention_class\n  WHERE k.source_table=p_table AND x.target_id=(p_old->>'id')::uuid AND x.company_id=(p_old->>'company_id')::uuid;\n SELECT x.* INTO o FROM gridex_ediel_retention.process_retention_origins x\n  WHERE x.company_id=t.company_id AND x.source_table=p_table AND x.target_id=t.target_id AND x.decision_id=t.decision_id;\n IF FOUND THEN\n  -- The captured full redacted hash is immutable evidence, not a hash of a\n  -- later row whose permitted updated_at may have changed repeatedly. Current\n  -- OLD/NEW state remains protected by the unchanged exact class qualifier.\n  IF o.original_hash IS DISTINCT FROM t.target_hash OR o.redacted_hash!~'^[a-f0-9]{64}$'\n   OR o.journal_retain_until IS DISTINCT FROM t.journal_retain_until\n   OR o.journal_purpose_reference IS DISTINCT FROM t.journal_purpose_reference THEN\n   RAISE EXCEPTION 'record_retention_existing_origin_binding_mismatch' USING ERRCODE='23514';END IF;\n  RETURN true; -- No insertion, replacement, new hash or historical fabrication.\n END IF;\n -- First capture still requires the exact immutable original before erasure.\n -- An already-redacted legacy row with no established origin must fail closed.\n SELECT x.* INTO STRICT t FROM gridex_ediel_retention.record_tombstones x\n  JOIN gridex_ediel_retention.record_class_catalog k ON k.retention_class=x.retention_class\n  WHERE k.source_table=p_table AND x.target_id=(p_old->>'id')::uuid\n   AND x.target_hash=encode(sha256(convert_to(p_old::text,'UTF8')),'hex');\n INSERT INTO gridex_ediel_retention.process_retention_origins(company_id,source_table,target_id,decision_id,original_hash,redacted_hash,journal_retain_until,journal_purpose_reference)\n VALUES(t.company_id,p_table,t.target_id,t.decision_id,t.target_hash,encode(sha256(convert_to(p_new::text,'UTF8')),'hex'),t.journal_retain_until,t.journal_purpose_reference) ON CONFLICT DO NOTHING;\n SELECT x.* INTO STRICT o FROM gridex_ediel_retention.process_retention_origins x\n  WHERE x.company_id=t.company_id AND x.source_table=p_table AND x.target_id=t.target_id AND x.decision_id=t.decision_id;\n IF o.original_hash IS DISTINCT FROM t.target_hash\n  OR o.redacted_hash IS DISTINCT FROM encode(sha256(convert_to(p_new::text,'UTF8')),'hex')\n  OR o.journal_retain_until IS DISTINCT FROM t.journal_retain_until\n  OR o.journal_purpose_reference IS DISTINCT FROM t.journal_purpose_reference THEN\n  RAISE EXCEPTION 'record_retention_first_origin_binding_mismatch' USING ERRCODE='23514';END IF;\n RETURN true;\nEND\n$function$\n"
+      },
+      {
+        "proc": {
+          "oid": "44963",
+          "proacl": [
+            "postgres=X/postgres",
+            "service_role=X/postgres"
+          ],
+          "probin": null,
+          "prosrc": "\nBEGIN IF TG_OP='UPDATE' AND public.ediel_is_qualified_finance_retention_transition_v1(TG_TABLE_SCHEMA,TG_TABLE_NAME,to_jsonb(OLD),to_jsonb(NEW)) THEN RETURN NEW;END IF;\n  insert into public.portfolio_settlement_audit_log(\n    company_id,portfolio_id,settlement_id,actor_user_id,permission,action,\n    old_values,new_values,reason,calculation_snapshot_sha256,approval\n  ) values(\n    case when tg_op='INSERT' then new.company_id else old.company_id end,\n    case when tg_op='INSERT' then new.portfolio_id else old.portfolio_id end,\n    case when tg_op='INSERT' then new.id else old.id end,\n    case\n      when tg_op='INSERT' then new.created_by\n      when new.locked_by is distinct from old.locked_by then new.locked_by\n      when new.approved_by is distinct from old.approved_by then new.approved_by\n      when new.reviewed_by is distinct from old.reviewed_by then new.reviewed_by\n      when new.calculated_by is distinct from old.calculated_by then new.calculated_by\n      else coalesce(\n        nullif(current_setting('gridex.portfolio_actor_user_id',true), '')::uuid,\n        new.created_by\n      )\n    end,\n    case\n      when tg_op='INSERT' then case when new.source='import' then 'portfolio_settlement.import' else 'portfolio_settlement.create' end\n      when new.is_current=false and old.is_current then 'portfolio_settlement.correct'\n      when new.status='calculated' and old.status is distinct from new.status then 'portfolio_settlement.calculate'\n      when new.status='reviewed' and old.status is distinct from new.status then 'portfolio_settlement.review'\n      when new.status='final' and old.status is distinct from new.status then 'portfolio_settlement.approve'\n      when new.status='locked' and old.status is distinct from new.status then 'portfolio_settlement.lock'\n      else 'portfolio_settlement.correct'\n    end,\n    case\n      when tg_op='INSERT' then 'settlement.created'\n      when new.is_current=false and old.is_current then 'settlement.superseded'\n      when new.status is distinct from old.status then 'settlement.'||new.status\n      else 'settlement.updated'\n    end,\n    case when tg_op='INSERT' then null else to_jsonb(old) end,\n    case when tg_op='DELETE' then null else to_jsonb(new) end,\n    coalesce(\n      nullif(current_setting('gridex.portfolio_audit_reason',true),''),\n      case when tg_op='INSERT' then new.correction_reason else coalesce(new.correction_reason,old.correction_reason) end\n    ),\n    new.calculation_snapshot_sha256,\n    case\n      when new.approved_by is not null then jsonb_build_object('approved_by',new.approved_by,'approved_at',new.approved_at)\n      else null\n    end\n  );\n  return new;\nend ",
+          "procost": 100,
+          "prokind": "f",
+          "prolang": "13634",
+          "proname": "gridex_audit_portfolio_settlement_write",
+          "prorows": 0,
+          "pronargs": 0,
+          "proowner": "10",
+          "proconfig": [
+            "search_path=public, pg_temp"
+          ],
+          "proretset": false,
+          "prosecdef": true,
+          "prorettype": "2279",
+          "prosqlbody": null,
+          "prosupport": "-",
+          "proargmodes": null,
+          "proargnames": null,
+          "proargtypes": [],
+          "proisstrict": false,
+          "proparallel": "u",
+          "protrftypes": null,
+          "provariadic": "0",
+          "provolatile": "v",
+          "proleakproof": false,
+          "pronamespace": "2200",
+          "proallargtypes": null,
+          "proargdefaults": null,
+          "pronargdefaults": 0
+        },
+        "body_md5": "ff6f4bfdeeaa7b68c9e5e99a81f188d9",
+        "signature": "gridex_audit_portfolio_settlement_write()",
+        "definition": "CREATE OR REPLACE FUNCTION public.gridex_audit_portfolio_settlement_write()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public', 'pg_temp'\nAS $function$\nBEGIN IF TG_OP='UPDATE' AND public.ediel_is_qualified_finance_retention_transition_v1(TG_TABLE_SCHEMA,TG_TABLE_NAME,to_jsonb(OLD),to_jsonb(NEW)) THEN RETURN NEW;END IF;\n  insert into public.portfolio_settlement_audit_log(\n    company_id,portfolio_id,settlement_id,actor_user_id,permission,action,\n    old_values,new_values,reason,calculation_snapshot_sha256,approval\n  ) values(\n    case when tg_op='INSERT' then new.company_id else old.company_id end,\n    case when tg_op='INSERT' then new.portfolio_id else old.portfolio_id end,\n    case when tg_op='INSERT' then new.id else old.id end,\n    case\n      when tg_op='INSERT' then new.created_by\n      when new.locked_by is distinct from old.locked_by then new.locked_by\n      when new.approved_by is distinct from old.approved_by then new.approved_by\n      when new.reviewed_by is distinct from old.reviewed_by then new.reviewed_by\n      when new.calculated_by is distinct from old.calculated_by then new.calculated_by\n      else coalesce(\n        nullif(current_setting('gridex.portfolio_actor_user_id',true), '')::uuid,\n        new.created_by\n      )\n    end,\n    case\n      when tg_op='INSERT' then case when new.source='import' then 'portfolio_settlement.import' else 'portfolio_settlement.create' end\n      when new.is_current=false and old.is_current then 'portfolio_settlement.correct'\n      when new.status='calculated' and old.status is distinct from new.status then 'portfolio_settlement.calculate'\n      when new.status='reviewed' and old.status is distinct from new.status then 'portfolio_settlement.review'\n      when new.status='final' and old.status is distinct from new.status then 'portfolio_settlement.approve'\n      when new.status='locked' and old.status is distinct from new.status then 'portfolio_settlement.lock'\n      else 'portfolio_settlement.correct'\n    end,\n    case\n      when tg_op='INSERT' then 'settlement.created'\n      when new.is_current=false and old.is_current then 'settlement.superseded'\n      when new.status is distinct from old.status then 'settlement.'||new.status\n      else 'settlement.updated'\n    end,\n    case when tg_op='INSERT' then null else to_jsonb(old) end,\n    case when tg_op='DELETE' then null else to_jsonb(new) end,\n    coalesce(\n      nullif(current_setting('gridex.portfolio_audit_reason',true),''),\n      case when tg_op='INSERT' then new.correction_reason else coalesce(new.correction_reason,old.correction_reason) end\n    ),\n    new.calculation_snapshot_sha256,\n    case\n      when new.approved_by is not null then jsonb_build_object('approved_by',new.approved_by,'approved_at',new.approved_at)\n      else null\n    end\n  );\n  return new;\nend $function$\n"
+      },
+      {
+        "proc": {
+          "oid": "44965",
+          "proacl": [
+            "postgres=X/postgres",
+            "service_role=X/postgres",
+            "authenticated=X/postgres"
+          ],
+          "probin": null,
+          "prosrc": "\n select exists(select 1 from public.customers c where c.company_id=p_company_id\n   and coalesce(c.source,'')<>'ediel_portal_test'\n   and coalesce(c.status,'') not in ('deleted','deleted_test_only','pending_deletion'))\n",
+          "procost": 100,
+          "prokind": "f",
+          "prolang": "14",
+          "proname": "gridex_company_has_customer_data",
+          "prorows": 0,
+          "pronargs": 1,
+          "proowner": "10",
+          "proconfig": [
+            "search_path=public, pg_temp"
+          ],
+          "proretset": false,
+          "prosecdef": false,
+          "prorettype": "16",
+          "prosqlbody": null,
+          "prosupport": "-",
+          "proargmodes": null,
+          "proargnames": [
+            "p_company_id"
+          ],
+          "proargtypes": [
+            "2950"
+          ],
+          "proisstrict": false,
+          "proparallel": "u",
+          "protrftypes": null,
+          "provariadic": "0",
+          "provolatile": "s",
+          "proleakproof": false,
+          "pronamespace": "2200",
+          "proallargtypes": null,
+          "proargdefaults": null,
+          "pronargdefaults": 0
+        },
+        "body_md5": "a9ac4ebe277b255fed1078bd18df6f7c",
+        "signature": "gridex_company_has_customer_data(uuid)",
+        "definition": "CREATE OR REPLACE FUNCTION public.gridex_company_has_customer_data(p_company_id uuid)\n RETURNS boolean\n LANGUAGE sql\n STABLE\n SET search_path TO 'public', 'pg_temp'\nAS $function$\n select exists(select 1 from public.customers c where c.company_id=p_company_id\n   and coalesce(c.source,'')<>'ediel_portal_test'\n   and coalesce(c.status,'') not in ('deleted','deleted_test_only','pending_deletion'))\n$function$\n"
+      },
+      {
+        "proc": {
+          "oid": "44966",
+          "proacl": [
+            "=X/postgres",
+            "postgres=X/postgres",
+            "service_role=X/postgres"
+          ],
+          "probin": null,
+          "prosrc": "\n  select array_remove(array[\n    case when exists (select 1 from public.customers c where c.company_id = p_company_id\n      and c.is_test_data is not true and coalesce(lower(c.source), '') not like '%test%') then 'customers' end,\n    case when exists (select 1 from public.customer_contracts x where x.company_id = p_company_id) then 'customer_contracts' end,\n    case when exists (select 1 from public.customer_invoices x where x.company_id = p_company_id) then 'customer_invoices' end,\n    case when exists (select 1 from public.invoice_documents x where x.company_id = p_company_id) then 'invoice_documents' end,\n    case when exists (select 1 from public.billing_underlays x where x.company_id = p_company_id) then 'billing_underlays' end,\n    case when exists (select 1 from public.contract_charge_ledger x where x.company_id = p_company_id) then 'contract_charge_ledger' end\n  ], null)\n",
+          "procost": 100,
+          "prokind": "f",
+          "prolang": "14",
+          "proname": "gridex_company_retained_history_v1",
+          "prorows": 0,
+          "pronargs": 1,
+          "proowner": "10",
+          "proconfig": [
+            "search_path=public, pg_temp"
+          ],
+          "proretset": false,
+          "prosecdef": false,
+          "prorettype": "1009",
+          "prosqlbody": null,
+          "prosupport": "-",
+          "proargmodes": null,
+          "proargnames": [
+            "p_company_id"
+          ],
+          "proargtypes": [
+            "2950"
+          ],
+          "proisstrict": false,
+          "proparallel": "u",
+          "protrftypes": null,
+          "provariadic": "0",
+          "provolatile": "s",
+          "proleakproof": false,
+          "pronamespace": "2200",
+          "proallargtypes": null,
+          "proargdefaults": null,
+          "pronargdefaults": 0
+        },
+        "body_md5": "72b22a22ef2e5f0d2ce79e02075ccee6",
+        "signature": "gridex_company_retained_history_v1(uuid)",
+        "definition": "CREATE OR REPLACE FUNCTION public.gridex_company_retained_history_v1(p_company_id uuid)\n RETURNS text[]\n LANGUAGE sql\n STABLE\n SET search_path TO 'public', 'pg_temp'\nAS $function$\n  select array_remove(array[\n    case when exists (select 1 from public.customers c where c.company_id = p_company_id\n      and c.is_test_data is not true and coalesce(lower(c.source), '') not like '%test%') then 'customers' end,\n    case when exists (select 1 from public.customer_contracts x where x.company_id = p_company_id) then 'customer_contracts' end,\n    case when exists (select 1 from public.customer_invoices x where x.company_id = p_company_id) then 'customer_invoices' end,\n    case when exists (select 1 from public.invoice_documents x where x.company_id = p_company_id) then 'invoice_documents' end,\n    case when exists (select 1 from public.billing_underlays x where x.company_id = p_company_id) then 'billing_underlays' end,\n    case when exists (select 1 from public.contract_charge_ledger x where x.company_id = p_company_id) then 'contract_charge_ledger' end\n  ], null)\n$function$\n"
+      },
+      {
+        "proc": {
+          "oid": "44964",
+          "proacl": [
+            "postgres=X/postgres"
+          ],
+          "probin": null,
+          "prosrc": "\ndeclare\n  v_retained text[];\nbegin\n  if current_user in ('postgres', 'supabase_admin') then\n    return old;\n  end if;\n  if old.status = 'deleted_test_only' then\n    v_retained := public.gridex_company_retained_history_v1(old.id) || array_remove(array[\n      case when exists (select 1 from public.canonical_audit_events x where x.company_id = old.id) then 'canonical_audit_events' end,\n      case when exists (select 1 from public.canonical_command_results x where x.company_id = old.id) then 'canonical_command_results' end,\n      case when exists (select 1 from public.canonical_domain_events x where x.company_id = old.id) then 'canonical_domain_events' end,\n      case when exists (select 1 from public.canonical_event_outbox x where x.company_id = old.id) then 'canonical_event_outbox' end,\n      case when exists (select 1 from public.pricing_audit_logs x where x.company_id = old.id) then 'pricing_audit_logs' end,\n      case when exists (select 1 from public.domain_events x where x.company_id = old.id) then 'domain_events' end,\n      case when exists (select 1 from public.ediel_ack_transaction_results x where x.company_id = old.id) then 'ediel_ack_transaction_results' end,\n      case when exists (select 1 from public.ediel_business_correlations x where x.company_id = old.id) then 'ediel_business_correlations' end,\n      case when exists (select 1 from public.ediel_business_errors x where x.company_id = old.id) then 'ediel_business_errors' end,\n      case when exists (select 1 from public.ediel_route_history x where x.company_id = old.id) then 'ediel_route_history' end,\n      case when exists (select 1 from public.ediel_certification_evidence x where x.company_id = old.id) then 'ediel_certification_evidence' end\n    ], null);\n    if cardinality(v_retained) = 0 then\n      return old;\n    end if;\n    raise exception using\n      errcode = '23001',\n      message = 'company_hard_delete_blocked',\n      detail = 'Disposable tenant still holds retained history: ' || array_to_string(v_retained, ',');\n  end if;\n  raise exception using\n    errcode = '23001',\n    message = 'company_hard_delete_blocked',\n    detail = 'Retained audit, journal and billing history would be cascaded away; close the tenant through canonical_transition_tenant_lifecycle.';\nend\n",
+          "procost": 100,
+          "prokind": "f",
+          "prolang": "13634",
+          "proname": "gridex_guard_company_hard_delete_v1",
+          "prorows": 0,
+          "pronargs": 0,
+          "proowner": "10",
+          "proconfig": [
+            "search_path=public, pg_temp"
+          ],
+          "proretset": false,
+          "prosecdef": false,
+          "prorettype": "2279",
+          "prosqlbody": null,
+          "prosupport": "-",
+          "proargmodes": null,
+          "proargnames": null,
+          "proargtypes": [],
+          "proisstrict": false,
+          "proparallel": "u",
+          "protrftypes": null,
+          "provariadic": "0",
+          "provolatile": "v",
+          "proleakproof": false,
+          "pronamespace": "2200",
+          "proallargtypes": null,
+          "proargdefaults": null,
+          "pronargdefaults": 0
+        },
+        "body_md5": "5fa9ea090a1f965c5b56bfc2b9d5fae9",
+        "signature": "gridex_guard_company_hard_delete_v1()",
+        "definition": "CREATE OR REPLACE FUNCTION public.gridex_guard_company_hard_delete_v1()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO 'public', 'pg_temp'\nAS $function$\ndeclare\n  v_retained text[];\nbegin\n  if current_user in ('postgres', 'supabase_admin') then\n    return old;\n  end if;\n  if old.status = 'deleted_test_only' then\n    v_retained := public.gridex_company_retained_history_v1(old.id) || array_remove(array[\n      case when exists (select 1 from public.canonical_audit_events x where x.company_id = old.id) then 'canonical_audit_events' end,\n      case when exists (select 1 from public.canonical_command_results x where x.company_id = old.id) then 'canonical_command_results' end,\n      case when exists (select 1 from public.canonical_domain_events x where x.company_id = old.id) then 'canonical_domain_events' end,\n      case when exists (select 1 from public.canonical_event_outbox x where x.company_id = old.id) then 'canonical_event_outbox' end,\n      case when exists (select 1 from public.pricing_audit_logs x where x.company_id = old.id) then 'pricing_audit_logs' end,\n      case when exists (select 1 from public.domain_events x where x.company_id = old.id) then 'domain_events' end,\n      case when exists (select 1 from public.ediel_ack_transaction_results x where x.company_id = old.id) then 'ediel_ack_transaction_results' end,\n      case when exists (select 1 from public.ediel_business_correlations x where x.company_id = old.id) then 'ediel_business_correlations' end,\n      case when exists (select 1 from public.ediel_business_errors x where x.company_id = old.id) then 'ediel_business_errors' end,\n      case when exists (select 1 from public.ediel_route_history x where x.company_id = old.id) then 'ediel_route_history' end,\n      case when exists (select 1 from public.ediel_certification_evidence x where x.company_id = old.id) then 'ediel_certification_evidence' end\n    ], null);\n    if cardinality(v_retained) = 0 then\n      return old;\n    end if;\n    raise exception using\n      errcode = '23001',\n      message = 'company_hard_delete_blocked',\n      detail = 'Disposable tenant still holds retained history: ' || array_to_string(v_retained, ',');\n  end if;\n  raise exception using\n    errcode = '23001',\n    message = 'company_hard_delete_blocked',\n    detail = 'Retained audit, journal and billing history would be cascaded away; close the tenant through canonical_transition_tenant_lifecycle.';\nend\n$function$\n"
+      }
+    ],
+    "check_function_bodies": "on"
+  },
+  "origin_catalog_after": {
+    "table": {
+      "owner": "gridex_ediel_retention_owner",
+      "catalog": {
+        "oid": "44985",
+        "relam": "2",
+        "relacl": [
+          "gridex_ediel_retention_owner=arwdDxtm/gridex_ediel_retention_owner"
+        ],
+        "relkind": "r",
+        "relname": "process_retention_origins",
+        "reltype": "44987",
+        "relnatts": 10,
+        "relowner": "17566",
+        "relpages": 0,
+        "relchecks": 0,
+        "reloftype": "0",
+        "reltuples": -1,
+        "relminmxid": "1",
+        "reloptions": null,
+        "relrewrite": "0",
+        "relfilenode": "44985",
+        "relhasindex": true,
+        "relhasrules": false,
+        "relisshared": false,
+        "relfrozenxid": "1216",
+        "relnamespace": "16394",
+        "relpartbound": null,
+        "relreplident": "d",
+        "relallvisible": 0,
+        "reltablespace": "0",
+        "reltoastrelid": "44990",
+        "relhassubclass": false,
+        "relhastriggers": true,
+        "relispartition": false,
+        "relispopulated": true,
+        "relpersistence": "p",
+        "relrowsecurity": true,
+        "relforcerowsecurity": true
+      },
+      "columns": [
+        {
+          "type": "uuid",
+          "attacl": null,
+          "attlen": 16,
+          "attnum": 1,
+          "attname": "id",
+          "default": "gen_random_uuid()",
+          "attalign": "c",
+          "attbyval": false,
+          "attndims": 0,
+          "attrelid": "44985",
+          "atttypid": "2950",
+          "atthasdef": true,
+          "atttypmod": -1,
+          "attislocal": true,
+          "attnotnull": true,
+          "attoptions": null,
+          "attstorage": "p",
+          "attcacheoff": -1,
+          "attidentity": "",
+          "attinhcount": 0,
+          "attcollation": "0",
+          "attgenerated": "",
+          "attisdropped": false,
+          "attfdwoptions": null,
+          "atthasmissing": false,
+          "attmissingval": null,
+          "attstattarget": null,
+          "attcompression": ""
+        },
+        {
+          "type": "uuid",
+          "attacl": null,
+          "attlen": 16,
+          "attnum": 2,
+          "attname": "company_id",
+          "default": null,
+          "attalign": "c",
+          "attbyval": false,
+          "attndims": 0,
+          "attrelid": "44985",
+          "atttypid": "2950",
+          "atthasdef": false,
+          "atttypmod": -1,
+          "attislocal": true,
+          "attnotnull": true,
+          "attoptions": null,
+          "attstorage": "p",
+          "attcacheoff": -1,
+          "attidentity": "",
+          "attinhcount": 0,
+          "attcollation": "0",
+          "attgenerated": "",
+          "attisdropped": false,
+          "attfdwoptions": null,
+          "atthasmissing": false,
+          "attmissingval": null,
+          "attstattarget": null,
+          "attcompression": ""
+        },
+        {
+          "type": "text",
+          "attacl": null,
+          "attlen": -1,
+          "attnum": 3,
+          "attname": "source_table",
+          "default": null,
+          "attalign": "i",
+          "attbyval": false,
+          "attndims": 0,
+          "attrelid": "44985",
+          "atttypid": "25",
+          "atthasdef": false,
+          "atttypmod": -1,
+          "attislocal": true,
+          "attnotnull": true,
+          "attoptions": null,
+          "attstorage": "x",
+          "attcacheoff": -1,
+          "attidentity": "",
+          "attinhcount": 0,
+          "attcollation": "100",
+          "attgenerated": "",
+          "attisdropped": false,
+          "attfdwoptions": null,
+          "atthasmissing": false,
+          "attmissingval": null,
+          "attstattarget": null,
+          "attcompression": ""
+        },
+        {
+          "type": "uuid",
+          "attacl": null,
+          "attlen": 16,
+          "attnum": 4,
+          "attname": "target_id",
+          "default": null,
+          "attalign": "c",
+          "attbyval": false,
+          "attndims": 0,
+          "attrelid": "44985",
+          "atttypid": "2950",
+          "atthasdef": false,
+          "atttypmod": -1,
+          "attislocal": true,
+          "attnotnull": true,
+          "attoptions": null,
+          "attstorage": "p",
+          "attcacheoff": -1,
+          "attidentity": "",
+          "attinhcount": 0,
+          "attcollation": "0",
+          "attgenerated": "",
+          "attisdropped": false,
+          "attfdwoptions": null,
+          "atthasmissing": false,
+          "attmissingval": null,
+          "attstattarget": null,
+          "attcompression": ""
+        },
+        {
+          "type": "uuid",
+          "attacl": null,
+          "attlen": 16,
+          "attnum": 5,
+          "attname": "decision_id",
+          "default": null,
+          "attalign": "c",
+          "attbyval": false,
+          "attndims": 0,
+          "attrelid": "44985",
+          "atttypid": "2950",
+          "atthasdef": false,
+          "atttypmod": -1,
+          "attislocal": true,
+          "attnotnull": true,
+          "attoptions": null,
+          "attstorage": "p",
+          "attcacheoff": -1,
+          "attidentity": "",
+          "attinhcount": 0,
+          "attcollation": "0",
+          "attgenerated": "",
+          "attisdropped": false,
+          "attfdwoptions": null,
+          "atthasmissing": false,
+          "attmissingval": null,
+          "attstattarget": null,
+          "attcompression": ""
+        },
+        {
+          "type": "text",
+          "attacl": null,
+          "attlen": -1,
+          "attnum": 6,
+          "attname": "original_hash",
+          "default": null,
+          "attalign": "i",
+          "attbyval": false,
+          "attndims": 0,
+          "attrelid": "44985",
+          "atttypid": "25",
+          "atthasdef": false,
+          "atttypmod": -1,
+          "attislocal": true,
+          "attnotnull": true,
+          "attoptions": null,
+          "attstorage": "x",
+          "attcacheoff": -1,
+          "attidentity": "",
+          "attinhcount": 0,
+          "attcollation": "100",
+          "attgenerated": "",
+          "attisdropped": false,
+          "attfdwoptions": null,
+          "atthasmissing": false,
+          "attmissingval": null,
+          "attstattarget": null,
+          "attcompression": ""
+        },
+        {
+          "type": "text",
+          "attacl": null,
+          "attlen": -1,
+          "attnum": 7,
+          "attname": "redacted_hash",
+          "default": null,
+          "attalign": "i",
+          "attbyval": false,
+          "attndims": 0,
+          "attrelid": "44985",
+          "atttypid": "25",
+          "atthasdef": false,
+          "atttypmod": -1,
+          "attislocal": true,
+          "attnotnull": true,
+          "attoptions": null,
+          "attstorage": "x",
+          "attcacheoff": -1,
+          "attidentity": "",
+          "attinhcount": 0,
+          "attcollation": "100",
+          "attgenerated": "",
+          "attisdropped": false,
+          "attfdwoptions": null,
+          "atthasmissing": false,
+          "attmissingval": null,
+          "attstattarget": null,
+          "attcompression": ""
+        },
+        {
+          "type": "timestamp with time zone",
+          "attacl": null,
+          "attlen": 8,
+          "attnum": 8,
+          "attname": "journal_retain_until",
+          "default": null,
+          "attalign": "d",
+          "attbyval": true,
+          "attndims": 0,
+          "attrelid": "44985",
+          "atttypid": "1184",
+          "atthasdef": false,
+          "atttypmod": -1,
+          "attislocal": true,
+          "attnotnull": true,
+          "attoptions": null,
+          "attstorage": "p",
+          "attcacheoff": -1,
+          "attidentity": "",
+          "attinhcount": 0,
+          "attcollation": "0",
+          "attgenerated": "",
+          "attisdropped": false,
+          "attfdwoptions": null,
+          "atthasmissing": false,
+          "attmissingval": null,
+          "attstattarget": null,
+          "attcompression": ""
+        },
+        {
+          "type": "text",
+          "attacl": null,
+          "attlen": -1,
+          "attnum": 9,
+          "attname": "journal_purpose_reference",
+          "default": null,
+          "attalign": "i",
+          "attbyval": false,
+          "attndims": 0,
+          "attrelid": "44985",
+          "atttypid": "25",
+          "atthasdef": false,
+          "atttypmod": -1,
+          "attislocal": true,
+          "attnotnull": true,
+          "attoptions": null,
+          "attstorage": "x",
+          "attcacheoff": -1,
+          "attidentity": "",
+          "attinhcount": 0,
+          "attcollation": "100",
+          "attgenerated": "",
+          "attisdropped": false,
+          "attfdwoptions": null,
+          "atthasmissing": false,
+          "attmissingval": null,
+          "attstattarget": null,
+          "attcompression": ""
+        },
+        {
+          "type": "timestamp with time zone",
+          "attacl": null,
+          "attlen": 8,
+          "attnum": 10,
+          "attname": "created_at",
+          "default": "clock_timestamp()",
+          "attalign": "d",
+          "attbyval": true,
+          "attndims": 0,
+          "attrelid": "44985",
+          "atttypid": "1184",
+          "atthasdef": true,
+          "atttypmod": -1,
+          "attislocal": true,
+          "attnotnull": true,
+          "attoptions": null,
+          "attstorage": "p",
+          "attcacheoff": -1,
+          "attidentity": "",
+          "attinhcount": 0,
+          "attcollation": "0",
+          "attgenerated": "",
+          "attisdropped": false,
+          "attfdwoptions": null,
+          "atthasmissing": false,
+          "attmissingval": null,
+          "attstattarget": null,
+          "attcompression": ""
+        }
+      ],
+      "policies": null,
+      "triggers": [
+        {
+          "oid": "44996",
+          "tgargs": "\\x",
+          "tgattr": [],
+          "tgfoid": "19223",
+          "tgname": "immutable",
+          "tgqual": null,
+          "tgtype": 27,
+          "tgnargs": 0,
+          "tgrelid": "44985",
+          "tgenabled": "O",
+          "definition": "CREATE TRIGGER immutable BEFORE DELETE OR UPDATE ON gridex_ediel_retention.process_retention_origins FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.reject_mutation()",
+          "tgnewtable": null,
+          "tgoldtable": null,
+          "tgparentid": "0",
+          "tgconstraint": "0",
+          "tgdeferrable": false,
+          "tgisinternal": false,
+          "tgconstrindid": "0",
+          "tgconstrrelid": "0",
+          "tginitdeferred": false
+        },
+        {
+          "oid": "44997",
+          "tgargs": "\\x",
+          "tgattr": [],
+          "tgfoid": "19223",
+          "tgname": "no_truncate",
+          "tgqual": null,
+          "tgtype": 34,
+          "tgnargs": 0,
+          "tgrelid": "44985",
+          "tgenabled": "O",
+          "definition": "CREATE TRIGGER no_truncate BEFORE TRUNCATE ON gridex_ediel_retention.process_retention_origins FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.reject_mutation()",
+          "tgnewtable": null,
+          "tgoldtable": null,
+          "tgparentid": "0",
+          "tgconstraint": "0",
+          "tgdeferrable": false,
+          "tgisinternal": false,
+          "tgconstrindid": "0",
+          "tgconstrrelid": "0",
+          "tginitdeferred": false
+        }
+      ],
+      "constraints": [
+        {
+          "oid": "44998",
+          "conbin": null,
+          "conkey": [
+            5
+          ],
+          "confkey": [
+            1
+          ],
+          "conname": "process_retention_origins_decision_id_fkey",
+          "contype": "f",
+          "conindid": "24214",
+          "conrelid": "44985",
+          "contypid": "0",
+          "conexclop": null,
+          "conffeqop": [
+            "2972"
+          ],
+          "confrelid": "17632",
+          "conpfeqop": [
+            "2972"
+          ],
+          "conppeqop": [
+            "2972"
+          ],
+          "conislocal": true,
+          "definition": "FOREIGN KEY (decision_id) REFERENCES gridex_ediel_retention.record_decisions(id)",
+          "condeferred": false,
+          "confdeltype": "a",
+          "confupdtype": "a",
+          "coninhcount": 0,
+          "conparentid": "0",
+          "connamespace": "16394",
+          "connoinherit": true,
+          "convalidated": true,
+          "condeferrable": false,
+          "confmatchtype": "s",
+          "confdelsetcols": null
+        },
+        {
+          "oid": "44993",
+          "conbin": null,
+          "conkey": [
+            1
+          ],
+          "confkey": null,
+          "conname": "process_retention_origins_pkey",
+          "contype": "p",
+          "conindid": "44992",
+          "conrelid": "44985",
+          "contypid": "0",
+          "conexclop": null,
+          "conffeqop": null,
+          "confrelid": "0",
+          "conpfeqop": null,
+          "conppeqop": null,
+          "conislocal": true,
+          "definition": "PRIMARY KEY (id)",
+          "condeferred": false,
+          "confdeltype": " ",
+          "confupdtype": " ",
+          "coninhcount": 0,
+          "conparentid": "0",
+          "connamespace": "16394",
+          "connoinherit": true,
+          "convalidated": true,
+          "condeferrable": false,
+          "confmatchtype": " ",
+          "confdelsetcols": null
+        },
+        {
+          "oid": "44995",
+          "conbin": null,
+          "conkey": [
+            3,
+            4,
+            5
+          ],
+          "confkey": null,
+          "conname": "process_retention_origins_source_table_target_id_decision_i_key",
+          "contype": "u",
+          "conindid": "44994",
+          "conrelid": "44985",
+          "contypid": "0",
+          "conexclop": null,
+          "conffeqop": null,
+          "confrelid": "0",
+          "conpfeqop": null,
+          "conppeqop": null,
+          "conislocal": true,
+          "definition": "UNIQUE (source_table, target_id, decision_id)",
+          "condeferred": false,
+          "confdeltype": " ",
+          "confupdtype": " ",
+          "coninhcount": 0,
+          "conparentid": "0",
+          "connamespace": "16394",
+          "connoinherit": true,
+          "convalidated": true,
+          "condeferrable": false,
+          "confmatchtype": " ",
+          "confdelsetcols": null
+        }
+      ]
+    },
+    "owner_role": {
+      "name": "gridex_ediel_retention_owner",
+      "login": false,
+      "inherit": false,
+      "superuser": false,
+      "bypass_rls": true
+    }
+  },
+  "known_canonical_helper_before": {
+    "version": "PostgreSQL 17.6 on x86_64-pc-linux-musl, compiled by gcc (Alpine 14.2.0) 14.2.0, 64-bit",
+    "database": "ops_api_retention_sealed_compile_20261013",
+    "functions": [
+      {
+        "proc": {
+          "oid": "44893",
+          "proacl": [
+            "postgres=X/postgres"
+          ],
+          "probin": null,
+          "prosrc": "\nDECLARE\n old_row jsonb; new_row jsonb; old_fact jsonb; new_fact jsonb;\n old_company text; new_company text; selected_company uuid; fact_id bigint;\n fields text[]:=ARRAY[\n  'id','company_id','customer_id','customer_contract_id','contract_id','site_id','customer_site_id',\n  'metering_point_id','meter_point_id','normalized_metering_point_id','facility_id',\n  'normalized_facility_id','site_facility_id','ediel_metering_point_id','ediel_reference',\n  'grid_owner_id','grid_owner_ediel_id','switch_request_id','supplier_switch_request_id',\n  'customer_case_id','customer_operation_job_id','operation_id','outbound_request_id',\n  'cancellation_ediel_message_id','source_message_id','source_switch_request_id',\n  'outbound_z03_message_id','inbound_z04_message_id','rff_li_reference',\n  'event_type','event_status','event_code','case_type','job_type','task_type',\n  'request_type','process_type','source_process','source','status','start_status',\n  'cancellation_status','withdrawal_scenario','withdrawal_possible','switch_can_be_stopped',\n  'cancellation_required','billing_blocked','billing_manual_review','lifecycle_blocked',\n  'start_date','end_date','actual_start_date','actual_end_date','starts_at','ends_at',\n  'ended_at','signed_at','termination_notice_date','withdrawal_requested_at',\n  'requested_start_date','confirmed_start_date','completed_at','failed_at',\n  'submitted_at','resolved_at','closed_at','move_in_date','move_out_date',\n  'happened_at','occurred_at','created_at','updated_at','archived_at','source_type','operation_id',\n  'idempotency_key','actual_start_at','delivery_start_at','withdrawal_deadline_at'\n ];\nBEGIN IF TG_OP='UPDATE' AND public.ediel_capture_customer_record_retention_origin_v1(TG_TABLE_NAME,to_jsonb(OLD),to_jsonb(NEW)) THEN RETURN NEW;END IF;\n IF TG_TABLE_SCHEMA<>'public' OR NOT EXISTS\n  (SELECT FROM gridex_correction_process.epochs e WHERE e.table_name=TG_TABLE_NAME) THEN\n  RAISE EXCEPTION 'correction_process_unregistered_producer' USING ERRCODE='23514';\n END IF;\n IF TG_OP<>'INSERT' THEN old_row:=to_jsonb(OLD); END IF;\n IF TG_OP<>'DELETE' THEN new_row:=to_jsonb(NEW); END IF;\n IF coalesce(octet_length(old_row::text),0)+coalesce(octet_length(new_row::text),0)>6291456 THEN\n  RAISE EXCEPTION 'correction_process_transition_too_large' USING ERRCODE='22001';\n END IF;\n SELECT jsonb_object_agg(key,value) INTO old_fact FROM jsonb_each(old_row) WHERE key=ANY(fields);\n SELECT jsonb_object_agg(key,value) INTO new_fact FROM jsonb_each(new_row) WHERE key=ANY(fields);\n IF coalesce(octet_length(old_fact::text),0)>65536 OR coalesce(octet_length(new_fact::text),0)>65536 THEN\n  RAISE EXCEPTION 'correction_process_fact_too_large' USING ERRCODE='22001';\n END IF;\n old_company:=old_row->>'company_id'; new_company:=new_row->>'company_id';\n selected_company:=coalesce(old_company,new_company)::uuid;\n INSERT INTO gridex_correction_process.facts(table_name,row_id,operation,company_id,old_fact,new_fact,facts_hash)\n VALUES (TG_TABLE_NAME,(coalesce(old_row,new_row)->>'id')::uuid,TG_OP,selected_company,old_fact,new_fact,\n  encode(sha256(convert_to(jsonb_build_object('table',TG_TABLE_NAME,'rowId',coalesce(old_row,new_row)->>'id',\n   'operation',TG_OP,'old',old_fact,'new',new_fact)::text,'UTF8')),'hex')) RETURNING id INTO fact_id;\n IF selected_company IS NULL OR (TG_OP='UPDATE' AND old_company IS DISTINCT FROM new_company) THEN\n  INSERT INTO gridex_correction_process.gaps(fact_id,reason,old_scope,new_scope)\n  VALUES(fact_id,CASE WHEN old_company IS NULL OR new_company IS NULL THEN 'unbound_company' ELSE 'company_changed' END,\n   old_fact,new_fact);\n END IF;\n IF TG_OP='DELETE' THEN RETURN OLD; END IF;\n RETURN NEW;\nEND ",
+          "procost": 100,
+          "prokind": "f",
+          "prolang": "13634",
+          "proname": "capture_v1",
+          "prorows": 0,
+          "pronargs": 0,
+          "proowner": "10",
+          "proconfig": [
+            "search_path=pg_catalog"
+          ],
+          "proretset": false,
+          "prosecdef": true,
+          "prorettype": "2279",
+          "prosqlbody": null,
+          "prosupport": "-",
+          "proargmodes": null,
+          "proargnames": null,
+          "proargtypes": [],
+          "proisstrict": false,
+          "proparallel": "u",
+          "protrftypes": null,
+          "provariadic": "0",
+          "provolatile": "v",
+          "proleakproof": false,
+          "pronamespace": "16393",
+          "proallargtypes": null,
+          "proargdefaults": null,
+          "pronargdefaults": 0
+        },
+        "body_md5": "68fe8b6945faaf2d8b441bfea7cf2cbe",
+        "signature": "gridex_correction_process.capture_v1()",
+        "definition": "CREATE OR REPLACE FUNCTION gridex_correction_process.capture_v1()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\nDECLARE\n old_row jsonb; new_row jsonb; old_fact jsonb; new_fact jsonb;\n old_company text; new_company text; selected_company uuid; fact_id bigint;\n fields text[]:=ARRAY[\n  'id','company_id','customer_id','customer_contract_id','contract_id','site_id','customer_site_id',\n  'metering_point_id','meter_point_id','normalized_metering_point_id','facility_id',\n  'normalized_facility_id','site_facility_id','ediel_metering_point_id','ediel_reference',\n  'grid_owner_id','grid_owner_ediel_id','switch_request_id','supplier_switch_request_id',\n  'customer_case_id','customer_operation_job_id','operation_id','outbound_request_id',\n  'cancellation_ediel_message_id','source_message_id','source_switch_request_id',\n  'outbound_z03_message_id','inbound_z04_message_id','rff_li_reference',\n  'event_type','event_status','event_code','case_type','job_type','task_type',\n  'request_type','process_type','source_process','source','status','start_status',\n  'cancellation_status','withdrawal_scenario','withdrawal_possible','switch_can_be_stopped',\n  'cancellation_required','billing_blocked','billing_manual_review','lifecycle_blocked',\n  'start_date','end_date','actual_start_date','actual_end_date','starts_at','ends_at',\n  'ended_at','signed_at','termination_notice_date','withdrawal_requested_at',\n  'requested_start_date','confirmed_start_date','completed_at','failed_at',\n  'submitted_at','resolved_at','closed_at','move_in_date','move_out_date',\n  'happened_at','occurred_at','created_at','updated_at','archived_at','source_type','operation_id',\n  'idempotency_key','actual_start_at','delivery_start_at','withdrawal_deadline_at'\n ];\nBEGIN IF TG_OP='UPDATE' AND public.ediel_capture_customer_record_retention_origin_v1(TG_TABLE_NAME,to_jsonb(OLD),to_jsonb(NEW)) THEN RETURN NEW;END IF;\n IF TG_TABLE_SCHEMA<>'public' OR NOT EXISTS\n  (SELECT FROM gridex_correction_process.epochs e WHERE e.table_name=TG_TABLE_NAME) THEN\n  RAISE EXCEPTION 'correction_process_unregistered_producer' USING ERRCODE='23514';\n END IF;\n IF TG_OP<>'INSERT' THEN old_row:=to_jsonb(OLD); END IF;\n IF TG_OP<>'DELETE' THEN new_row:=to_jsonb(NEW); END IF;\n IF coalesce(octet_length(old_row::text),0)+coalesce(octet_length(new_row::text),0)>6291456 THEN\n  RAISE EXCEPTION 'correction_process_transition_too_large' USING ERRCODE='22001';\n END IF;\n SELECT jsonb_object_agg(key,value) INTO old_fact FROM jsonb_each(old_row) WHERE key=ANY(fields);\n SELECT jsonb_object_agg(key,value) INTO new_fact FROM jsonb_each(new_row) WHERE key=ANY(fields);\n IF coalesce(octet_length(old_fact::text),0)>65536 OR coalesce(octet_length(new_fact::text),0)>65536 THEN\n  RAISE EXCEPTION 'correction_process_fact_too_large' USING ERRCODE='22001';\n END IF;\n old_company:=old_row->>'company_id'; new_company:=new_row->>'company_id';\n selected_company:=coalesce(old_company,new_company)::uuid;\n INSERT INTO gridex_correction_process.facts(table_name,row_id,operation,company_id,old_fact,new_fact,facts_hash)\n VALUES (TG_TABLE_NAME,(coalesce(old_row,new_row)->>'id')::uuid,TG_OP,selected_company,old_fact,new_fact,\n  encode(sha256(convert_to(jsonb_build_object('table',TG_TABLE_NAME,'rowId',coalesce(old_row,new_row)->>'id',\n   'operation',TG_OP,'old',old_fact,'new',new_fact)::text,'UTF8')),'hex')) RETURNING id INTO fact_id;\n IF selected_company IS NULL OR (TG_OP='UPDATE' AND old_company IS DISTINCT FROM new_company) THEN\n  INSERT INTO gridex_correction_process.gaps(fact_id,reason,old_scope,new_scope)\n  VALUES(fact_id,CASE WHEN old_company IS NULL OR new_company IS NULL THEN 'unbound_company' ELSE 'company_changed' END,\n   old_fact,new_fact);\n END IF;\n IF TG_OP='DELETE' THEN RETURN OLD; END IF;\n RETURN NEW;\nEND $function$\n"
+      },
+      {
+        "proc": {
+          "oid": "44934",
+          "proacl": [
+            "gridex_ediel_retention_owner=X/gridex_ediel_retention_owner",
+            "postgres=X/gridex_ediel_retention_owner"
+          ],
+          "probin": null,
+          "prosrc": "DECLARE t gridex_ediel_retention.record_tombstones%rowtype;BEGIN\n IF public.ediel_is_qualified_customer_record_transition_v1(p_table,p_old,p_new) IS NOT TRUE THEN RETURN false;END IF;\n SELECT x.* INTO STRICT t FROM gridex_ediel_retention.record_tombstones x JOIN gridex_ediel_retention.record_class_catalog k ON k.retention_class=x.retention_class WHERE k.source_table=p_table AND x.target_id=(p_old->>'id')::uuid AND x.target_hash=encode(sha256(convert_to(p_old::text,'UTF8')),'hex');\n INSERT INTO gridex_ediel_retention.process_retention_origins(company_id,source_table,target_id,decision_id,original_hash,redacted_hash,journal_retain_until,journal_purpose_reference) VALUES(t.company_id,p_table,t.target_id,t.decision_id,t.target_hash,encode(sha256(convert_to(p_new::text,'UTF8')),'hex'),t.journal_retain_until,t.journal_purpose_reference) ON CONFLICT DO NOTHING;RETURN true;END",
+          "procost": 100,
+          "prokind": "f",
+          "prolang": "13634",
+          "proname": "ediel_capture_customer_record_retention_origin_v1",
+          "prorows": 0,
+          "pronargs": 3,
+          "proowner": "17566",
+          "proconfig": [
+            "search_path=pg_catalog"
+          ],
+          "proretset": false,
+          "prosecdef": true,
+          "prorettype": "16",
+          "prosqlbody": null,
+          "prosupport": "-",
+          "proargmodes": null,
+          "proargnames": [
+            "p_table",
+            "p_old",
+            "p_new"
+          ],
+          "proargtypes": [
+            "25",
+            "3802",
+            "3802"
+          ],
+          "proisstrict": false,
+          "proparallel": "u",
+          "protrftypes": null,
+          "provariadic": "0",
+          "provolatile": "v",
+          "proleakproof": false,
+          "pronamespace": "2200",
+          "proallargtypes": null,
+          "proargdefaults": null,
+          "pronargdefaults": 0
+        },
+        "body_md5": "c5792bfb611b677f847ea923f42e4947",
+        "signature": "ediel_capture_customer_record_retention_origin_v1(text,jsonb,jsonb)",
+        "definition": "CREATE OR REPLACE FUNCTION public.ediel_capture_customer_record_retention_origin_v1(p_table text, p_old jsonb, p_new jsonb)\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$DECLARE t gridex_ediel_retention.record_tombstones%rowtype;BEGIN\n IF public.ediel_is_qualified_customer_record_transition_v1(p_table,p_old,p_new) IS NOT TRUE THEN RETURN false;END IF;\n SELECT x.* INTO STRICT t FROM gridex_ediel_retention.record_tombstones x JOIN gridex_ediel_retention.record_class_catalog k ON k.retention_class=x.retention_class WHERE k.source_table=p_table AND x.target_id=(p_old->>'id')::uuid AND x.target_hash=encode(sha256(convert_to(p_old::text,'UTF8')),'hex');\n INSERT INTO gridex_ediel_retention.process_retention_origins(company_id,source_table,target_id,decision_id,original_hash,redacted_hash,journal_retain_until,journal_purpose_reference) VALUES(t.company_id,p_table,t.target_id,t.decision_id,t.target_hash,encode(sha256(convert_to(p_new::text,'UTF8')),'hex'),t.journal_retain_until,t.journal_purpose_reference) ON CONFLICT DO NOTHING;RETURN true;END$function$\n"
+      },
+      {
+        "proc": {
+          "oid": "44894",
+          "proacl": [
+            "postgres=X/postgres",
+            "service_role=X/postgres"
+          ],
+          "probin": null,
+          "prosrc": "\nBEGIN IF TG_OP='UPDATE' AND public.ediel_is_qualified_finance_retention_transition_v1(TG_TABLE_SCHEMA,TG_TABLE_NAME,to_jsonb(OLD),to_jsonb(NEW)) THEN RETURN NEW;END IF;\n  insert into public.portfolio_settlement_audit_log(\n    company_id,portfolio_id,settlement_id,actor_user_id,permission,action,\n    old_values,new_values,reason,calculation_snapshot_sha256,approval\n  ) values(\n    case when tg_op='INSERT' then new.company_id else old.company_id end,\n    case when tg_op='INSERT' then new.portfolio_id else old.portfolio_id end,\n    case when tg_op='INSERT' then new.id else old.id end,\n    case\n      when tg_op='INSERT' then new.created_by\n      when new.locked_by is distinct from old.locked_by then new.locked_by\n      when new.approved_by is distinct from old.approved_by then new.approved_by\n      when new.reviewed_by is distinct from old.reviewed_by then new.reviewed_by\n      when new.calculated_by is distinct from old.calculated_by then new.calculated_by\n      else coalesce(\n        nullif(current_setting('gridex.portfolio_actor_user_id',true), '')::uuid,\n        new.created_by\n      )\n    end,\n    case\n      when tg_op='INSERT' then case when new.source='import' then 'portfolio_settlement.import' else 'portfolio_settlement.create' end\n      when new.is_current=false and old.is_current then 'portfolio_settlement.correct'\n      when new.status='calculated' and old.status is distinct from new.status then 'portfolio_settlement.calculate'\n      when new.status='reviewed' and old.status is distinct from new.status then 'portfolio_settlement.review'\n      when new.status='final' and old.status is distinct from new.status then 'portfolio_settlement.approve'\n      when new.status='locked' and old.status is distinct from new.status then 'portfolio_settlement.lock'\n      else 'portfolio_settlement.correct'\n    end,\n    case\n      when tg_op='INSERT' then 'settlement.created'\n      when new.is_current=false and old.is_current then 'settlement.superseded'\n      when new.status is distinct from old.status then 'settlement.'||new.status\n      else 'settlement.updated'\n    end,\n    case when tg_op='INSERT' then null else to_jsonb(old) end,\n    case when tg_op='DELETE' then null else to_jsonb(new) end,\n    coalesce(\n      nullif(current_setting('gridex.portfolio_audit_reason',true),''),\n      case when tg_op='INSERT' then new.correction_reason else coalesce(new.correction_reason,old.correction_reason) end\n    ),\n    new.calculation_snapshot_sha256,\n    case\n      when new.approved_by is not null then jsonb_build_object('approved_by',new.approved_by,'approved_at',new.approved_at)\n      else null\n    end\n  );\n  return new;\nend ",
+          "procost": 100,
+          "prokind": "f",
+          "prolang": "13634",
+          "proname": "gridex_audit_portfolio_settlement_write",
+          "prorows": 0,
+          "pronargs": 0,
+          "proowner": "10",
+          "proconfig": [
+            "search_path=public, pg_temp"
+          ],
+          "proretset": false,
+          "prosecdef": true,
+          "prorettype": "2279",
+          "prosqlbody": null,
+          "prosupport": "-",
+          "proargmodes": null,
+          "proargnames": null,
+          "proargtypes": [],
+          "proisstrict": false,
+          "proparallel": "u",
+          "protrftypes": null,
+          "provariadic": "0",
+          "provolatile": "v",
+          "proleakproof": false,
+          "pronamespace": "2200",
+          "proallargtypes": null,
+          "proargdefaults": null,
+          "pronargdefaults": 0
+        },
+        "body_md5": "ff6f4bfdeeaa7b68c9e5e99a81f188d9",
+        "signature": "gridex_audit_portfolio_settlement_write()",
+        "definition": "CREATE OR REPLACE FUNCTION public.gridex_audit_portfolio_settlement_write()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public', 'pg_temp'\nAS $function$\nBEGIN IF TG_OP='UPDATE' AND public.ediel_is_qualified_finance_retention_transition_v1(TG_TABLE_SCHEMA,TG_TABLE_NAME,to_jsonb(OLD),to_jsonb(NEW)) THEN RETURN NEW;END IF;\n  insert into public.portfolio_settlement_audit_log(\n    company_id,portfolio_id,settlement_id,actor_user_id,permission,action,\n    old_values,new_values,reason,calculation_snapshot_sha256,approval\n  ) values(\n    case when tg_op='INSERT' then new.company_id else old.company_id end,\n    case when tg_op='INSERT' then new.portfolio_id else old.portfolio_id end,\n    case when tg_op='INSERT' then new.id else old.id end,\n    case\n      when tg_op='INSERT' then new.created_by\n      when new.locked_by is distinct from old.locked_by then new.locked_by\n      when new.approved_by is distinct from old.approved_by then new.approved_by\n      when new.reviewed_by is distinct from old.reviewed_by then new.reviewed_by\n      when new.calculated_by is distinct from old.calculated_by then new.calculated_by\n      else coalesce(\n        nullif(current_setting('gridex.portfolio_actor_user_id',true), '')::uuid,\n        new.created_by\n      )\n    end,\n    case\n      when tg_op='INSERT' then case when new.source='import' then 'portfolio_settlement.import' else 'portfolio_settlement.create' end\n      when new.is_current=false and old.is_current then 'portfolio_settlement.correct'\n      when new.status='calculated' and old.status is distinct from new.status then 'portfolio_settlement.calculate'\n      when new.status='reviewed' and old.status is distinct from new.status then 'portfolio_settlement.review'\n      when new.status='final' and old.status is distinct from new.status then 'portfolio_settlement.approve'\n      when new.status='locked' and old.status is distinct from new.status then 'portfolio_settlement.lock'\n      else 'portfolio_settlement.correct'\n    end,\n    case\n      when tg_op='INSERT' then 'settlement.created'\n      when new.is_current=false and old.is_current then 'settlement.superseded'\n      when new.status is distinct from old.status then 'settlement.'||new.status\n      else 'settlement.updated'\n    end,\n    case when tg_op='INSERT' then null else to_jsonb(old) end,\n    case when tg_op='DELETE' then null else to_jsonb(new) end,\n    coalesce(\n      nullif(current_setting('gridex.portfolio_audit_reason',true),''),\n      case when tg_op='INSERT' then new.correction_reason else coalesce(new.correction_reason,old.correction_reason) end\n    ),\n    new.calculation_snapshot_sha256,\n    case\n      when new.approved_by is not null then jsonb_build_object('approved_by',new.approved_by,'approved_at',new.approved_at)\n      else null\n    end\n  );\n  return new;\nend $function$\n"
+      },
+      {
+        "proc": {
+          "oid": "44896",
+          "proacl": [
+            "postgres=X/postgres",
+            "service_role=X/postgres",
+            "authenticated=X/postgres"
+          ],
+          "probin": null,
+          "prosrc": "\n select exists(select 1 from public.customers c where c.company_id=p_company_id\n   and coalesce(c.source,'')<>'ediel_portal_test'\n   and coalesce(c.status,'') not in ('deleted','deleted_test_only','pending_deletion'))\n",
+          "procost": 100,
+          "prokind": "f",
+          "prolang": "14",
+          "proname": "gridex_company_has_customer_data",
+          "prorows": 0,
+          "pronargs": 1,
+          "proowner": "10",
+          "proconfig": [
+            "search_path=public, pg_temp"
+          ],
+          "proretset": false,
+          "prosecdef": false,
+          "prorettype": "16",
+          "prosqlbody": null,
+          "prosupport": "-",
+          "proargmodes": null,
+          "proargnames": [
+            "p_company_id"
+          ],
+          "proargtypes": [
+            "2950"
+          ],
+          "proisstrict": false,
+          "proparallel": "u",
+          "protrftypes": null,
+          "provariadic": "0",
+          "provolatile": "s",
+          "proleakproof": false,
+          "pronamespace": "2200",
+          "proallargtypes": null,
+          "proargdefaults": null,
+          "pronargdefaults": 0
+        },
+        "body_md5": "a9ac4ebe277b255fed1078bd18df6f7c",
+        "signature": "gridex_company_has_customer_data(uuid)",
+        "definition": "CREATE OR REPLACE FUNCTION public.gridex_company_has_customer_data(p_company_id uuid)\n RETURNS boolean\n LANGUAGE sql\n STABLE\n SET search_path TO 'public', 'pg_temp'\nAS $function$\n select exists(select 1 from public.customers c where c.company_id=p_company_id\n   and coalesce(c.source,'')<>'ediel_portal_test'\n   and coalesce(c.status,'') not in ('deleted','deleted_test_only','pending_deletion'))\n$function$\n"
+      },
+      {
+        "proc": {
+          "oid": "44897",
+          "proacl": [
+            "=X/postgres",
+            "postgres=X/postgres",
+            "service_role=X/postgres"
+          ],
+          "probin": null,
+          "prosrc": "\n  select array_remove(array[\n    case when exists (select 1 from public.customers c where c.company_id = p_company_id\n      and c.is_test_data is not true and coalesce(lower(c.source), '') not like '%test%') then 'customers' end,\n    case when exists (select 1 from public.customer_contracts x where x.company_id = p_company_id) then 'customer_contracts' end,\n    case when exists (select 1 from public.customer_invoices x where x.company_id = p_company_id) then 'customer_invoices' end,\n    case when exists (select 1 from public.invoice_documents x where x.company_id = p_company_id) then 'invoice_documents' end,\n    case when exists (select 1 from public.billing_underlays x where x.company_id = p_company_id) then 'billing_underlays' end,\n    case when exists (select 1 from public.contract_charge_ledger x where x.company_id = p_company_id) then 'contract_charge_ledger' end\n  ], null)\n",
+          "procost": 100,
+          "prokind": "f",
+          "prolang": "14",
+          "proname": "gridex_company_retained_history_v1",
+          "prorows": 0,
+          "pronargs": 1,
+          "proowner": "10",
+          "proconfig": [
+            "search_path=public, pg_temp"
+          ],
+          "proretset": false,
+          "prosecdef": false,
+          "prorettype": "1009",
+          "prosqlbody": null,
+          "prosupport": "-",
+          "proargmodes": null,
+          "proargnames": [
+            "p_company_id"
+          ],
+          "proargtypes": [
+            "2950"
+          ],
+          "proisstrict": false,
+          "proparallel": "u",
+          "protrftypes": null,
+          "provariadic": "0",
+          "provolatile": "s",
+          "proleakproof": false,
+          "pronamespace": "2200",
+          "proallargtypes": null,
+          "proargdefaults": null,
+          "pronargdefaults": 0
+        },
+        "body_md5": "72b22a22ef2e5f0d2ce79e02075ccee6",
+        "signature": "gridex_company_retained_history_v1(uuid)",
+        "definition": "CREATE OR REPLACE FUNCTION public.gridex_company_retained_history_v1(p_company_id uuid)\n RETURNS text[]\n LANGUAGE sql\n STABLE\n SET search_path TO 'public', 'pg_temp'\nAS $function$\n  select array_remove(array[\n    case when exists (select 1 from public.customers c where c.company_id = p_company_id\n      and c.is_test_data is not true and coalesce(lower(c.source), '') not like '%test%') then 'customers' end,\n    case when exists (select 1 from public.customer_contracts x where x.company_id = p_company_id) then 'customer_contracts' end,\n    case when exists (select 1 from public.customer_invoices x where x.company_id = p_company_id) then 'customer_invoices' end,\n    case when exists (select 1 from public.invoice_documents x where x.company_id = p_company_id) then 'invoice_documents' end,\n    case when exists (select 1 from public.billing_underlays x where x.company_id = p_company_id) then 'billing_underlays' end,\n    case when exists (select 1 from public.contract_charge_ledger x where x.company_id = p_company_id) then 'contract_charge_ledger' end\n  ], null)\n$function$\n"
+      },
+      {
+        "proc": {
+          "oid": "44895",
+          "proacl": [
+            "postgres=X/postgres"
+          ],
+          "probin": null,
+          "prosrc": "\ndeclare\n  v_retained text[];\nbegin\n  if current_user in ('postgres', 'supabase_admin') then\n    return old;\n  end if;\n  if old.status = 'deleted_test_only' then\n    v_retained := public.gridex_company_retained_history_v1(old.id) || array_remove(array[\n      case when exists (select 1 from public.canonical_audit_events x where x.company_id = old.id) then 'canonical_audit_events' end,\n      case when exists (select 1 from public.canonical_command_results x where x.company_id = old.id) then 'canonical_command_results' end,\n      case when exists (select 1 from public.canonical_domain_events x where x.company_id = old.id) then 'canonical_domain_events' end,\n      case when exists (select 1 from public.canonical_event_outbox x where x.company_id = old.id) then 'canonical_event_outbox' end,\n      case when exists (select 1 from public.pricing_audit_logs x where x.company_id = old.id) then 'pricing_audit_logs' end,\n      case when exists (select 1 from public.domain_events x where x.company_id = old.id) then 'domain_events' end,\n      case when exists (select 1 from public.ediel_ack_transaction_results x where x.company_id = old.id) then 'ediel_ack_transaction_results' end,\n      case when exists (select 1 from public.ediel_business_correlations x where x.company_id = old.id) then 'ediel_business_correlations' end,\n      case when exists (select 1 from public.ediel_business_errors x where x.company_id = old.id) then 'ediel_business_errors' end,\n      case when exists (select 1 from public.ediel_route_history x where x.company_id = old.id) then 'ediel_route_history' end,\n      case when exists (select 1 from public.ediel_certification_evidence x where x.company_id = old.id) then 'ediel_certification_evidence' end\n    ], null);\n    if cardinality(v_retained) = 0 then\n      return old;\n    end if;\n    raise exception using\n      errcode = '23001',\n      message = 'company_hard_delete_blocked',\n      detail = 'Disposable tenant still holds retained history: ' || array_to_string(v_retained, ',');\n  end if;\n  raise exception using\n    errcode = '23001',\n    message = 'company_hard_delete_blocked',\n    detail = 'Retained audit, journal and billing history would be cascaded away; close the tenant through canonical_transition_tenant_lifecycle.';\nend\n",
+          "procost": 100,
+          "prokind": "f",
+          "prolang": "13634",
+          "proname": "gridex_guard_company_hard_delete_v1",
+          "prorows": 0,
+          "pronargs": 0,
+          "proowner": "10",
+          "proconfig": [
+            "search_path=public, pg_temp"
+          ],
+          "proretset": false,
+          "prosecdef": false,
+          "prorettype": "2279",
+          "prosqlbody": null,
+          "prosupport": "-",
+          "proargmodes": null,
+          "proargnames": null,
+          "proargtypes": [],
+          "proisstrict": false,
+          "proparallel": "u",
+          "protrftypes": null,
+          "provariadic": "0",
+          "provolatile": "v",
+          "proleakproof": false,
+          "pronamespace": "2200",
+          "proallargtypes": null,
+          "proargdefaults": null,
+          "pronargdefaults": 0
+        },
+        "body_md5": "5fa9ea090a1f965c5b56bfc2b9d5fae9",
+        "signature": "gridex_guard_company_hard_delete_v1()",
+        "definition": "CREATE OR REPLACE FUNCTION public.gridex_guard_company_hard_delete_v1()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO 'public', 'pg_temp'\nAS $function$\ndeclare\n  v_retained text[];\nbegin\n  if current_user in ('postgres', 'supabase_admin') then\n    return old;\n  end if;\n  if old.status = 'deleted_test_only' then\n    v_retained := public.gridex_company_retained_history_v1(old.id) || array_remove(array[\n      case when exists (select 1 from public.canonical_audit_events x where x.company_id = old.id) then 'canonical_audit_events' end,\n      case when exists (select 1 from public.canonical_command_results x where x.company_id = old.id) then 'canonical_command_results' end,\n      case when exists (select 1 from public.canonical_domain_events x where x.company_id = old.id) then 'canonical_domain_events' end,\n      case when exists (select 1 from public.canonical_event_outbox x where x.company_id = old.id) then 'canonical_event_outbox' end,\n      case when exists (select 1 from public.pricing_audit_logs x where x.company_id = old.id) then 'pricing_audit_logs' end,\n      case when exists (select 1 from public.domain_events x where x.company_id = old.id) then 'domain_events' end,\n      case when exists (select 1 from public.ediel_ack_transaction_results x where x.company_id = old.id) then 'ediel_ack_transaction_results' end,\n      case when exists (select 1 from public.ediel_business_correlations x where x.company_id = old.id) then 'ediel_business_correlations' end,\n      case when exists (select 1 from public.ediel_business_errors x where x.company_id = old.id) then 'ediel_business_errors' end,\n      case when exists (select 1 from public.ediel_route_history x where x.company_id = old.id) then 'ediel_route_history' end,\n      case when exists (select 1 from public.ediel_certification_evidence x where x.company_id = old.id) then 'ediel_certification_evidence' end\n    ], null);\n    if cardinality(v_retained) = 0 then\n      return old;\n    end if;\n    raise exception using\n      errcode = '23001',\n      message = 'company_hard_delete_blocked',\n      detail = 'Disposable tenant still holds retained history: ' || array_to_string(v_retained, ',');\n  end if;\n  raise exception using\n    errcode = '23001',\n    message = 'company_hard_delete_blocked',\n    detail = 'Retained audit, journal and billing history would be cascaded away; close the tenant through canonical_transition_tenant_lifecycle.';\nend\n$function$\n"
+      }
+    ],
+    "check_function_bodies": "on"
+  },
+  "known_canonical_helper_after": {
+    "version": "PostgreSQL 17.6 on x86_64-pc-linux-musl, compiled by gcc (Alpine 14.2.0) 14.2.0, 64-bit",
+    "database": "ops_api_retention_sealed_compile_20261013",
+    "functions": [
+      {
+        "proc": {
+          "oid": "44893",
+          "proacl": [
+            "postgres=X/postgres"
+          ],
+          "probin": null,
+          "prosrc": "\nDECLARE\n old_row jsonb; new_row jsonb; old_fact jsonb; new_fact jsonb;\n old_company text; new_company text; selected_company uuid; fact_id bigint;\n fields text[]:=ARRAY[\n  'id','company_id','customer_id','customer_contract_id','contract_id','site_id','customer_site_id',\n  'metering_point_id','meter_point_id','normalized_metering_point_id','facility_id',\n  'normalized_facility_id','site_facility_id','ediel_metering_point_id','ediel_reference',\n  'grid_owner_id','grid_owner_ediel_id','switch_request_id','supplier_switch_request_id',\n  'customer_case_id','customer_operation_job_id','operation_id','outbound_request_id',\n  'cancellation_ediel_message_id','source_message_id','source_switch_request_id',\n  'outbound_z03_message_id','inbound_z04_message_id','rff_li_reference',\n  'event_type','event_status','event_code','case_type','job_type','task_type',\n  'request_type','process_type','source_process','source','status','start_status',\n  'cancellation_status','withdrawal_scenario','withdrawal_possible','switch_can_be_stopped',\n  'cancellation_required','billing_blocked','billing_manual_review','lifecycle_blocked',\n  'start_date','end_date','actual_start_date','actual_end_date','starts_at','ends_at',\n  'ended_at','signed_at','termination_notice_date','withdrawal_requested_at',\n  'requested_start_date','confirmed_start_date','completed_at','failed_at',\n  'submitted_at','resolved_at','closed_at','move_in_date','move_out_date',\n  'happened_at','occurred_at','created_at','updated_at','archived_at','source_type','operation_id',\n  'idempotency_key','actual_start_at','delivery_start_at','withdrawal_deadline_at'\n ];\nBEGIN IF TG_OP='UPDATE' AND public.ediel_capture_customer_record_retention_origin_v1(TG_TABLE_NAME,to_jsonb(OLD),to_jsonb(NEW)) THEN RETURN NEW;END IF;\n IF TG_TABLE_SCHEMA<>'public' OR NOT EXISTS\n  (SELECT FROM gridex_correction_process.epochs e WHERE e.table_name=TG_TABLE_NAME) THEN\n  RAISE EXCEPTION 'correction_process_unregistered_producer' USING ERRCODE='23514';\n END IF;\n IF TG_OP<>'INSERT' THEN old_row:=to_jsonb(OLD); END IF;\n IF TG_OP<>'DELETE' THEN new_row:=to_jsonb(NEW); END IF;\n IF coalesce(octet_length(old_row::text),0)+coalesce(octet_length(new_row::text),0)>6291456 THEN\n  RAISE EXCEPTION 'correction_process_transition_too_large' USING ERRCODE='22001';\n END IF;\n SELECT jsonb_object_agg(key,value) INTO old_fact FROM jsonb_each(old_row) WHERE key=ANY(fields);\n SELECT jsonb_object_agg(key,value) INTO new_fact FROM jsonb_each(new_row) WHERE key=ANY(fields);\n IF coalesce(octet_length(old_fact::text),0)>65536 OR coalesce(octet_length(new_fact::text),0)>65536 THEN\n  RAISE EXCEPTION 'correction_process_fact_too_large' USING ERRCODE='22001';\n END IF;\n old_company:=old_row->>'company_id'; new_company:=new_row->>'company_id';\n selected_company:=coalesce(old_company,new_company)::uuid;\n INSERT INTO gridex_correction_process.facts(table_name,row_id,operation,company_id,old_fact,new_fact,facts_hash)\n VALUES (TG_TABLE_NAME,(coalesce(old_row,new_row)->>'id')::uuid,TG_OP,selected_company,old_fact,new_fact,\n  encode(sha256(convert_to(jsonb_build_object('table',TG_TABLE_NAME,'rowId',coalesce(old_row,new_row)->>'id',\n   'operation',TG_OP,'old',old_fact,'new',new_fact)::text,'UTF8')),'hex')) RETURNING id INTO fact_id;\n IF selected_company IS NULL OR (TG_OP='UPDATE' AND old_company IS DISTINCT FROM new_company) THEN\n  INSERT INTO gridex_correction_process.gaps(fact_id,reason,old_scope,new_scope)\n  VALUES(fact_id,CASE WHEN old_company IS NULL OR new_company IS NULL THEN 'unbound_company' ELSE 'company_changed' END,\n   old_fact,new_fact);\n END IF;\n IF TG_OP='DELETE' THEN RETURN OLD; END IF;\n RETURN NEW;\nEND ",
+          "procost": 100,
+          "prokind": "f",
+          "prolang": "13634",
+          "proname": "capture_v1",
+          "prorows": 0,
+          "pronargs": 0,
+          "proowner": "10",
+          "proconfig": [
+            "search_path=pg_catalog"
+          ],
+          "proretset": false,
+          "prosecdef": true,
+          "prorettype": "2279",
+          "prosqlbody": null,
+          "prosupport": "-",
+          "proargmodes": null,
+          "proargnames": null,
+          "proargtypes": [],
+          "proisstrict": false,
+          "proparallel": "u",
+          "protrftypes": null,
+          "provariadic": "0",
+          "provolatile": "v",
+          "proleakproof": false,
+          "pronamespace": "16393",
+          "proallargtypes": null,
+          "proargdefaults": null,
+          "pronargdefaults": 0
+        },
+        "body_md5": "68fe8b6945faaf2d8b441bfea7cf2cbe",
+        "signature": "gridex_correction_process.capture_v1()",
+        "definition": "CREATE OR REPLACE FUNCTION gridex_correction_process.capture_v1()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\nDECLARE\n old_row jsonb; new_row jsonb; old_fact jsonb; new_fact jsonb;\n old_company text; new_company text; selected_company uuid; fact_id bigint;\n fields text[]:=ARRAY[\n  'id','company_id','customer_id','customer_contract_id','contract_id','site_id','customer_site_id',\n  'metering_point_id','meter_point_id','normalized_metering_point_id','facility_id',\n  'normalized_facility_id','site_facility_id','ediel_metering_point_id','ediel_reference',\n  'grid_owner_id','grid_owner_ediel_id','switch_request_id','supplier_switch_request_id',\n  'customer_case_id','customer_operation_job_id','operation_id','outbound_request_id',\n  'cancellation_ediel_message_id','source_message_id','source_switch_request_id',\n  'outbound_z03_message_id','inbound_z04_message_id','rff_li_reference',\n  'event_type','event_status','event_code','case_type','job_type','task_type',\n  'request_type','process_type','source_process','source','status','start_status',\n  'cancellation_status','withdrawal_scenario','withdrawal_possible','switch_can_be_stopped',\n  'cancellation_required','billing_blocked','billing_manual_review','lifecycle_blocked',\n  'start_date','end_date','actual_start_date','actual_end_date','starts_at','ends_at',\n  'ended_at','signed_at','termination_notice_date','withdrawal_requested_at',\n  'requested_start_date','confirmed_start_date','completed_at','failed_at',\n  'submitted_at','resolved_at','closed_at','move_in_date','move_out_date',\n  'happened_at','occurred_at','created_at','updated_at','archived_at','source_type','operation_id',\n  'idempotency_key','actual_start_at','delivery_start_at','withdrawal_deadline_at'\n ];\nBEGIN IF TG_OP='UPDATE' AND public.ediel_capture_customer_record_retention_origin_v1(TG_TABLE_NAME,to_jsonb(OLD),to_jsonb(NEW)) THEN RETURN NEW;END IF;\n IF TG_TABLE_SCHEMA<>'public' OR NOT EXISTS\n  (SELECT FROM gridex_correction_process.epochs e WHERE e.table_name=TG_TABLE_NAME) THEN\n  RAISE EXCEPTION 'correction_process_unregistered_producer' USING ERRCODE='23514';\n END IF;\n IF TG_OP<>'INSERT' THEN old_row:=to_jsonb(OLD); END IF;\n IF TG_OP<>'DELETE' THEN new_row:=to_jsonb(NEW); END IF;\n IF coalesce(octet_length(old_row::text),0)+coalesce(octet_length(new_row::text),0)>6291456 THEN\n  RAISE EXCEPTION 'correction_process_transition_too_large' USING ERRCODE='22001';\n END IF;\n SELECT jsonb_object_agg(key,value) INTO old_fact FROM jsonb_each(old_row) WHERE key=ANY(fields);\n SELECT jsonb_object_agg(key,value) INTO new_fact FROM jsonb_each(new_row) WHERE key=ANY(fields);\n IF coalesce(octet_length(old_fact::text),0)>65536 OR coalesce(octet_length(new_fact::text),0)>65536 THEN\n  RAISE EXCEPTION 'correction_process_fact_too_large' USING ERRCODE='22001';\n END IF;\n old_company:=old_row->>'company_id'; new_company:=new_row->>'company_id';\n selected_company:=coalesce(old_company,new_company)::uuid;\n INSERT INTO gridex_correction_process.facts(table_name,row_id,operation,company_id,old_fact,new_fact,facts_hash)\n VALUES (TG_TABLE_NAME,(coalesce(old_row,new_row)->>'id')::uuid,TG_OP,selected_company,old_fact,new_fact,\n  encode(sha256(convert_to(jsonb_build_object('table',TG_TABLE_NAME,'rowId',coalesce(old_row,new_row)->>'id',\n   'operation',TG_OP,'old',old_fact,'new',new_fact)::text,'UTF8')),'hex')) RETURNING id INTO fact_id;\n IF selected_company IS NULL OR (TG_OP='UPDATE' AND old_company IS DISTINCT FROM new_company) THEN\n  INSERT INTO gridex_correction_process.gaps(fact_id,reason,old_scope,new_scope)\n  VALUES(fact_id,CASE WHEN old_company IS NULL OR new_company IS NULL THEN 'unbound_company' ELSE 'company_changed' END,\n   old_fact,new_fact);\n END IF;\n IF TG_OP='DELETE' THEN RETURN OLD; END IF;\n RETURN NEW;\nEND $function$\n"
+      },
+      {
+        "proc": {
+          "oid": "44934",
+          "proacl": [
+            "gridex_ediel_retention_owner=X/gridex_ediel_retention_owner",
+            "postgres=X/gridex_ediel_retention_owner"
+          ],
+          "probin": null,
+          "prosrc": "DECLARE t gridex_ediel_retention.record_tombstones%rowtype;\n o gridex_ediel_retention.process_retention_origins%rowtype;\nBEGIN\n IF public.ediel_is_qualified_customer_record_transition_v1(p_table,p_old,p_new) IS NOT TRUE THEN RETURN false;END IF;\n SELECT x.* INTO STRICT t FROM gridex_ediel_retention.record_tombstones x\n  JOIN gridex_ediel_retention.record_class_catalog k ON k.retention_class=x.retention_class\n  WHERE k.source_table=p_table AND x.target_id=(p_old->>'id')::uuid AND x.company_id=(p_old->>'company_id')::uuid;\n SELECT x.* INTO o FROM gridex_ediel_retention.process_retention_origins x\n  WHERE x.company_id=t.company_id AND x.source_table=p_table AND x.target_id=t.target_id AND x.decision_id=t.decision_id;\n IF FOUND THEN\n  -- The captured full redacted hash is immutable evidence, not a hash of a\n  -- later row whose permitted updated_at may have changed repeatedly. Current\n  -- OLD/NEW state remains protected by the unchanged exact class qualifier.\n  IF o.original_hash IS DISTINCT FROM t.target_hash OR o.redacted_hash!~'^[a-f0-9]{64}$'\n   OR o.journal_retain_until IS DISTINCT FROM t.journal_retain_until\n   OR o.journal_purpose_reference IS DISTINCT FROM t.journal_purpose_reference THEN\n   RAISE EXCEPTION 'record_retention_existing_origin_binding_mismatch' USING ERRCODE='23514';END IF;\n  RETURN true; -- No insertion, replacement, new hash or historical fabrication.\n END IF;\n -- First capture still requires the exact immutable original before erasure.\n -- An already-redacted legacy row with no established origin must fail closed.\n SELECT x.* INTO STRICT t FROM gridex_ediel_retention.record_tombstones x\n  JOIN gridex_ediel_retention.record_class_catalog k ON k.retention_class=x.retention_class\n  WHERE k.source_table=p_table AND x.target_id=(p_old->>'id')::uuid\n   AND x.target_hash=encode(sha256(convert_to(p_old::text,'UTF8')),'hex');\n INSERT INTO gridex_ediel_retention.process_retention_origins(company_id,source_table,target_id,decision_id,original_hash,redacted_hash,journal_retain_until,journal_purpose_reference)\n VALUES(t.company_id,p_table,t.target_id,t.decision_id,t.target_hash,encode(sha256(convert_to(p_new::text,'UTF8')),'hex'),t.journal_retain_until,t.journal_purpose_reference) ON CONFLICT DO NOTHING;\n SELECT x.* INTO STRICT o FROM gridex_ediel_retention.process_retention_origins x\n  WHERE x.company_id=t.company_id AND x.source_table=p_table AND x.target_id=t.target_id AND x.decision_id=t.decision_id;\n IF o.original_hash IS DISTINCT FROM t.target_hash\n  OR o.redacted_hash IS DISTINCT FROM encode(sha256(convert_to(p_new::text,'UTF8')),'hex')\n  OR o.journal_retain_until IS DISTINCT FROM t.journal_retain_until\n  OR o.journal_purpose_reference IS DISTINCT FROM t.journal_purpose_reference THEN\n  RAISE EXCEPTION 'record_retention_first_origin_binding_mismatch' USING ERRCODE='23514';END IF;\n RETURN true;\nEND\n",
+          "procost": 100,
+          "prokind": "f",
+          "prolang": "13634",
+          "proname": "ediel_capture_customer_record_retention_origin_v1",
+          "prorows": 0,
+          "pronargs": 3,
+          "proowner": "17566",
+          "proconfig": [
+            "search_path=pg_catalog"
+          ],
+          "proretset": false,
+          "prosecdef": true,
+          "prorettype": "16",
+          "prosqlbody": null,
+          "prosupport": "-",
+          "proargmodes": null,
+          "proargnames": [
+            "p_table",
+            "p_old",
+            "p_new"
+          ],
+          "proargtypes": [
+            "25",
+            "3802",
+            "3802"
+          ],
+          "proisstrict": false,
+          "proparallel": "u",
+          "protrftypes": null,
+          "provariadic": "0",
+          "provolatile": "v",
+          "proleakproof": false,
+          "pronamespace": "2200",
+          "proallargtypes": null,
+          "proargdefaults": null,
+          "pronargdefaults": 0
+        },
+        "body_md5": "ba1e28e057578a651fcc542a3af1087d",
+        "signature": "ediel_capture_customer_record_retention_origin_v1(text,jsonb,jsonb)",
+        "definition": "CREATE OR REPLACE FUNCTION public.ediel_capture_customer_record_retention_origin_v1(p_table text, p_old jsonb, p_new jsonb)\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$DECLARE t gridex_ediel_retention.record_tombstones%rowtype;\n o gridex_ediel_retention.process_retention_origins%rowtype;\nBEGIN\n IF public.ediel_is_qualified_customer_record_transition_v1(p_table,p_old,p_new) IS NOT TRUE THEN RETURN false;END IF;\n SELECT x.* INTO STRICT t FROM gridex_ediel_retention.record_tombstones x\n  JOIN gridex_ediel_retention.record_class_catalog k ON k.retention_class=x.retention_class\n  WHERE k.source_table=p_table AND x.target_id=(p_old->>'id')::uuid AND x.company_id=(p_old->>'company_id')::uuid;\n SELECT x.* INTO o FROM gridex_ediel_retention.process_retention_origins x\n  WHERE x.company_id=t.company_id AND x.source_table=p_table AND x.target_id=t.target_id AND x.decision_id=t.decision_id;\n IF FOUND THEN\n  -- The captured full redacted hash is immutable evidence, not a hash of a\n  -- later row whose permitted updated_at may have changed repeatedly. Current\n  -- OLD/NEW state remains protected by the unchanged exact class qualifier.\n  IF o.original_hash IS DISTINCT FROM t.target_hash OR o.redacted_hash!~'^[a-f0-9]{64}$'\n   OR o.journal_retain_until IS DISTINCT FROM t.journal_retain_until\n   OR o.journal_purpose_reference IS DISTINCT FROM t.journal_purpose_reference THEN\n   RAISE EXCEPTION 'record_retention_existing_origin_binding_mismatch' USING ERRCODE='23514';END IF;\n  RETURN true; -- No insertion, replacement, new hash or historical fabrication.\n END IF;\n -- First capture still requires the exact immutable original before erasure.\n -- An already-redacted legacy row with no established origin must fail closed.\n SELECT x.* INTO STRICT t FROM gridex_ediel_retention.record_tombstones x\n  JOIN gridex_ediel_retention.record_class_catalog k ON k.retention_class=x.retention_class\n  WHERE k.source_table=p_table AND x.target_id=(p_old->>'id')::uuid\n   AND x.target_hash=encode(sha256(convert_to(p_old::text,'UTF8')),'hex');\n INSERT INTO gridex_ediel_retention.process_retention_origins(company_id,source_table,target_id,decision_id,original_hash,redacted_hash,journal_retain_until,journal_purpose_reference)\n VALUES(t.company_id,p_table,t.target_id,t.decision_id,t.target_hash,encode(sha256(convert_to(p_new::text,'UTF8')),'hex'),t.journal_retain_until,t.journal_purpose_reference) ON CONFLICT DO NOTHING;\n SELECT x.* INTO STRICT o FROM gridex_ediel_retention.process_retention_origins x\n  WHERE x.company_id=t.company_id AND x.source_table=p_table AND x.target_id=t.target_id AND x.decision_id=t.decision_id;\n IF o.original_hash IS DISTINCT FROM t.target_hash\n  OR o.redacted_hash IS DISTINCT FROM encode(sha256(convert_to(p_new::text,'UTF8')),'hex')\n  OR o.journal_retain_until IS DISTINCT FROM t.journal_retain_until\n  OR o.journal_purpose_reference IS DISTINCT FROM t.journal_purpose_reference THEN\n  RAISE EXCEPTION 'record_retention_first_origin_binding_mismatch' USING ERRCODE='23514';END IF;\n RETURN true;\nEND\n$function$\n"
+      },
+      {
+        "proc": {
+          "oid": "44894",
+          "proacl": [
+            "postgres=X/postgres",
+            "service_role=X/postgres"
+          ],
+          "probin": null,
+          "prosrc": "\nBEGIN IF TG_OP='UPDATE' AND public.ediel_is_qualified_finance_retention_transition_v1(TG_TABLE_SCHEMA,TG_TABLE_NAME,to_jsonb(OLD),to_jsonb(NEW)) THEN RETURN NEW;END IF;\n  insert into public.portfolio_settlement_audit_log(\n    company_id,portfolio_id,settlement_id,actor_user_id,permission,action,\n    old_values,new_values,reason,calculation_snapshot_sha256,approval\n  ) values(\n    case when tg_op='INSERT' then new.company_id else old.company_id end,\n    case when tg_op='INSERT' then new.portfolio_id else old.portfolio_id end,\n    case when tg_op='INSERT' then new.id else old.id end,\n    case\n      when tg_op='INSERT' then new.created_by\n      when new.locked_by is distinct from old.locked_by then new.locked_by\n      when new.approved_by is distinct from old.approved_by then new.approved_by\n      when new.reviewed_by is distinct from old.reviewed_by then new.reviewed_by\n      when new.calculated_by is distinct from old.calculated_by then new.calculated_by\n      else coalesce(\n        nullif(current_setting('gridex.portfolio_actor_user_id',true), '')::uuid,\n        new.created_by\n      )\n    end,\n    case\n      when tg_op='INSERT' then case when new.source='import' then 'portfolio_settlement.import' else 'portfolio_settlement.create' end\n      when new.is_current=false and old.is_current then 'portfolio_settlement.correct'\n      when new.status='calculated' and old.status is distinct from new.status then 'portfolio_settlement.calculate'\n      when new.status='reviewed' and old.status is distinct from new.status then 'portfolio_settlement.review'\n      when new.status='final' and old.status is distinct from new.status then 'portfolio_settlement.approve'\n      when new.status='locked' and old.status is distinct from new.status then 'portfolio_settlement.lock'\n      else 'portfolio_settlement.correct'\n    end,\n    case\n      when tg_op='INSERT' then 'settlement.created'\n      when new.is_current=false and old.is_current then 'settlement.superseded'\n      when new.status is distinct from old.status then 'settlement.'||new.status\n      else 'settlement.updated'\n    end,\n    case when tg_op='INSERT' then null else to_jsonb(old) end,\n    case when tg_op='DELETE' then null else to_jsonb(new) end,\n    coalesce(\n      nullif(current_setting('gridex.portfolio_audit_reason',true),''),\n      case when tg_op='INSERT' then new.correction_reason else coalesce(new.correction_reason,old.correction_reason) end\n    ),\n    new.calculation_snapshot_sha256,\n    case\n      when new.approved_by is not null then jsonb_build_object('approved_by',new.approved_by,'approved_at',new.approved_at)\n      else null\n    end\n  );\n  return new;\nend ",
+          "procost": 100,
+          "prokind": "f",
+          "prolang": "13634",
+          "proname": "gridex_audit_portfolio_settlement_write",
+          "prorows": 0,
+          "pronargs": 0,
+          "proowner": "10",
+          "proconfig": [
+            "search_path=public, pg_temp"
+          ],
+          "proretset": false,
+          "prosecdef": true,
+          "prorettype": "2279",
+          "prosqlbody": null,
+          "prosupport": "-",
+          "proargmodes": null,
+          "proargnames": null,
+          "proargtypes": [],
+          "proisstrict": false,
+          "proparallel": "u",
+          "protrftypes": null,
+          "provariadic": "0",
+          "provolatile": "v",
+          "proleakproof": false,
+          "pronamespace": "2200",
+          "proallargtypes": null,
+          "proargdefaults": null,
+          "pronargdefaults": 0
+        },
+        "body_md5": "ff6f4bfdeeaa7b68c9e5e99a81f188d9",
+        "signature": "gridex_audit_portfolio_settlement_write()",
+        "definition": "CREATE OR REPLACE FUNCTION public.gridex_audit_portfolio_settlement_write()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public', 'pg_temp'\nAS $function$\nBEGIN IF TG_OP='UPDATE' AND public.ediel_is_qualified_finance_retention_transition_v1(TG_TABLE_SCHEMA,TG_TABLE_NAME,to_jsonb(OLD),to_jsonb(NEW)) THEN RETURN NEW;END IF;\n  insert into public.portfolio_settlement_audit_log(\n    company_id,portfolio_id,settlement_id,actor_user_id,permission,action,\n    old_values,new_values,reason,calculation_snapshot_sha256,approval\n  ) values(\n    case when tg_op='INSERT' then new.company_id else old.company_id end,\n    case when tg_op='INSERT' then new.portfolio_id else old.portfolio_id end,\n    case when tg_op='INSERT' then new.id else old.id end,\n    case\n      when tg_op='INSERT' then new.created_by\n      when new.locked_by is distinct from old.locked_by then new.locked_by\n      when new.approved_by is distinct from old.approved_by then new.approved_by\n      when new.reviewed_by is distinct from old.reviewed_by then new.reviewed_by\n      when new.calculated_by is distinct from old.calculated_by then new.calculated_by\n      else coalesce(\n        nullif(current_setting('gridex.portfolio_actor_user_id',true), '')::uuid,\n        new.created_by\n      )\n    end,\n    case\n      when tg_op='INSERT' then case when new.source='import' then 'portfolio_settlement.import' else 'portfolio_settlement.create' end\n      when new.is_current=false and old.is_current then 'portfolio_settlement.correct'\n      when new.status='calculated' and old.status is distinct from new.status then 'portfolio_settlement.calculate'\n      when new.status='reviewed' and old.status is distinct from new.status then 'portfolio_settlement.review'\n      when new.status='final' and old.status is distinct from new.status then 'portfolio_settlement.approve'\n      when new.status='locked' and old.status is distinct from new.status then 'portfolio_settlement.lock'\n      else 'portfolio_settlement.correct'\n    end,\n    case\n      when tg_op='INSERT' then 'settlement.created'\n      when new.is_current=false and old.is_current then 'settlement.superseded'\n      when new.status is distinct from old.status then 'settlement.'||new.status\n      else 'settlement.updated'\n    end,\n    case when tg_op='INSERT' then null else to_jsonb(old) end,\n    case when tg_op='DELETE' then null else to_jsonb(new) end,\n    coalesce(\n      nullif(current_setting('gridex.portfolio_audit_reason',true),''),\n      case when tg_op='INSERT' then new.correction_reason else coalesce(new.correction_reason,old.correction_reason) end\n    ),\n    new.calculation_snapshot_sha256,\n    case\n      when new.approved_by is not null then jsonb_build_object('approved_by',new.approved_by,'approved_at',new.approved_at)\n      else null\n    end\n  );\n  return new;\nend $function$\n"
+      },
+      {
+        "proc": {
+          "oid": "44896",
+          "proacl": [
+            "postgres=X/postgres",
+            "service_role=X/postgres",
+            "authenticated=X/postgres"
+          ],
+          "probin": null,
+          "prosrc": "\n select exists(select 1 from public.customers c where c.company_id=p_company_id\n   and coalesce(c.source,'')<>'ediel_portal_test'\n   and coalesce(c.status,'') not in ('deleted','deleted_test_only','pending_deletion'))\n",
+          "procost": 100,
+          "prokind": "f",
+          "prolang": "14",
+          "proname": "gridex_company_has_customer_data",
+          "prorows": 0,
+          "pronargs": 1,
+          "proowner": "10",
+          "proconfig": [
+            "search_path=public, pg_temp"
+          ],
+          "proretset": false,
+          "prosecdef": false,
+          "prorettype": "16",
+          "prosqlbody": null,
+          "prosupport": "-",
+          "proargmodes": null,
+          "proargnames": [
+            "p_company_id"
+          ],
+          "proargtypes": [
+            "2950"
+          ],
+          "proisstrict": false,
+          "proparallel": "u",
+          "protrftypes": null,
+          "provariadic": "0",
+          "provolatile": "s",
+          "proleakproof": false,
+          "pronamespace": "2200",
+          "proallargtypes": null,
+          "proargdefaults": null,
+          "pronargdefaults": 0
+        },
+        "body_md5": "a9ac4ebe277b255fed1078bd18df6f7c",
+        "signature": "gridex_company_has_customer_data(uuid)",
+        "definition": "CREATE OR REPLACE FUNCTION public.gridex_company_has_customer_data(p_company_id uuid)\n RETURNS boolean\n LANGUAGE sql\n STABLE\n SET search_path TO 'public', 'pg_temp'\nAS $function$\n select exists(select 1 from public.customers c where c.company_id=p_company_id\n   and coalesce(c.source,'')<>'ediel_portal_test'\n   and coalesce(c.status,'') not in ('deleted','deleted_test_only','pending_deletion'))\n$function$\n"
+      },
+      {
+        "proc": {
+          "oid": "44897",
+          "proacl": [
+            "=X/postgres",
+            "postgres=X/postgres",
+            "service_role=X/postgres"
+          ],
+          "probin": null,
+          "prosrc": "\n  select array_remove(array[\n    case when exists (select 1 from public.customers c where c.company_id = p_company_id\n      and c.is_test_data is not true and coalesce(lower(c.source), '') not like '%test%') then 'customers' end,\n    case when exists (select 1 from public.customer_contracts x where x.company_id = p_company_id) then 'customer_contracts' end,\n    case when exists (select 1 from public.customer_invoices x where x.company_id = p_company_id) then 'customer_invoices' end,\n    case when exists (select 1 from public.invoice_documents x where x.company_id = p_company_id) then 'invoice_documents' end,\n    case when exists (select 1 from public.billing_underlays x where x.company_id = p_company_id) then 'billing_underlays' end,\n    case when exists (select 1 from public.contract_charge_ledger x where x.company_id = p_company_id) then 'contract_charge_ledger' end\n  ], null)\n",
+          "procost": 100,
+          "prokind": "f",
+          "prolang": "14",
+          "proname": "gridex_company_retained_history_v1",
+          "prorows": 0,
+          "pronargs": 1,
+          "proowner": "10",
+          "proconfig": [
+            "search_path=public, pg_temp"
+          ],
+          "proretset": false,
+          "prosecdef": false,
+          "prorettype": "1009",
+          "prosqlbody": null,
+          "prosupport": "-",
+          "proargmodes": null,
+          "proargnames": [
+            "p_company_id"
+          ],
+          "proargtypes": [
+            "2950"
+          ],
+          "proisstrict": false,
+          "proparallel": "u",
+          "protrftypes": null,
+          "provariadic": "0",
+          "provolatile": "s",
+          "proleakproof": false,
+          "pronamespace": "2200",
+          "proallargtypes": null,
+          "proargdefaults": null,
+          "pronargdefaults": 0
+        },
+        "body_md5": "72b22a22ef2e5f0d2ce79e02075ccee6",
+        "signature": "gridex_company_retained_history_v1(uuid)",
+        "definition": "CREATE OR REPLACE FUNCTION public.gridex_company_retained_history_v1(p_company_id uuid)\n RETURNS text[]\n LANGUAGE sql\n STABLE\n SET search_path TO 'public', 'pg_temp'\nAS $function$\n  select array_remove(array[\n    case when exists (select 1 from public.customers c where c.company_id = p_company_id\n      and c.is_test_data is not true and coalesce(lower(c.source), '') not like '%test%') then 'customers' end,\n    case when exists (select 1 from public.customer_contracts x where x.company_id = p_company_id) then 'customer_contracts' end,\n    case when exists (select 1 from public.customer_invoices x where x.company_id = p_company_id) then 'customer_invoices' end,\n    case when exists (select 1 from public.invoice_documents x where x.company_id = p_company_id) then 'invoice_documents' end,\n    case when exists (select 1 from public.billing_underlays x where x.company_id = p_company_id) then 'billing_underlays' end,\n    case when exists (select 1 from public.contract_charge_ledger x where x.company_id = p_company_id) then 'contract_charge_ledger' end\n  ], null)\n$function$\n"
+      },
+      {
+        "proc": {
+          "oid": "44895",
+          "proacl": [
+            "postgres=X/postgres"
+          ],
+          "probin": null,
+          "prosrc": "\ndeclare\n  v_retained text[];\nbegin\n  if current_user in ('postgres', 'supabase_admin') then\n    return old;\n  end if;\n  if old.status = 'deleted_test_only' then\n    v_retained := public.gridex_company_retained_history_v1(old.id) || array_remove(array[\n      case when exists (select 1 from public.canonical_audit_events x where x.company_id = old.id) then 'canonical_audit_events' end,\n      case when exists (select 1 from public.canonical_command_results x where x.company_id = old.id) then 'canonical_command_results' end,\n      case when exists (select 1 from public.canonical_domain_events x where x.company_id = old.id) then 'canonical_domain_events' end,\n      case when exists (select 1 from public.canonical_event_outbox x where x.company_id = old.id) then 'canonical_event_outbox' end,\n      case when exists (select 1 from public.pricing_audit_logs x where x.company_id = old.id) then 'pricing_audit_logs' end,\n      case when exists (select 1 from public.domain_events x where x.company_id = old.id) then 'domain_events' end,\n      case when exists (select 1 from public.ediel_ack_transaction_results x where x.company_id = old.id) then 'ediel_ack_transaction_results' end,\n      case when exists (select 1 from public.ediel_business_correlations x where x.company_id = old.id) then 'ediel_business_correlations' end,\n      case when exists (select 1 from public.ediel_business_errors x where x.company_id = old.id) then 'ediel_business_errors' end,\n      case when exists (select 1 from public.ediel_route_history x where x.company_id = old.id) then 'ediel_route_history' end,\n      case when exists (select 1 from public.ediel_certification_evidence x where x.company_id = old.id) then 'ediel_certification_evidence' end\n    ], null);\n    if cardinality(v_retained) = 0 then\n      return old;\n    end if;\n    raise exception using\n      errcode = '23001',\n      message = 'company_hard_delete_blocked',\n      detail = 'Disposable tenant still holds retained history: ' || array_to_string(v_retained, ',');\n  end if;\n  raise exception using\n    errcode = '23001',\n    message = 'company_hard_delete_blocked',\n    detail = 'Retained audit, journal and billing history would be cascaded away; close the tenant through canonical_transition_tenant_lifecycle.';\nend\n",
+          "procost": 100,
+          "prokind": "f",
+          "prolang": "13634",
+          "proname": "gridex_guard_company_hard_delete_v1",
+          "prorows": 0,
+          "pronargs": 0,
+          "proowner": "10",
+          "proconfig": [
+            "search_path=public, pg_temp"
+          ],
+          "proretset": false,
+          "prosecdef": false,
+          "prorettype": "2279",
+          "prosqlbody": null,
+          "prosupport": "-",
+          "proargmodes": null,
+          "proargnames": null,
+          "proargtypes": [],
+          "proisstrict": false,
+          "proparallel": "u",
+          "protrftypes": null,
+          "provariadic": "0",
+          "provolatile": "v",
+          "proleakproof": false,
+          "pronamespace": "2200",
+          "proallargtypes": null,
+          "proargdefaults": null,
+          "pronargdefaults": 0
+        },
+        "body_md5": "5fa9ea090a1f965c5b56bfc2b9d5fae9",
+        "signature": "gridex_guard_company_hard_delete_v1()",
+        "definition": "CREATE OR REPLACE FUNCTION public.gridex_guard_company_hard_delete_v1()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO 'public', 'pg_temp'\nAS $function$\ndeclare\n  v_retained text[];\nbegin\n  if current_user in ('postgres', 'supabase_admin') then\n    return old;\n  end if;\n  if old.status = 'deleted_test_only' then\n    v_retained := public.gridex_company_retained_history_v1(old.id) || array_remove(array[\n      case when exists (select 1 from public.canonical_audit_events x where x.company_id = old.id) then 'canonical_audit_events' end,\n      case when exists (select 1 from public.canonical_command_results x where x.company_id = old.id) then 'canonical_command_results' end,\n      case when exists (select 1 from public.canonical_domain_events x where x.company_id = old.id) then 'canonical_domain_events' end,\n      case when exists (select 1 from public.canonical_event_outbox x where x.company_id = old.id) then 'canonical_event_outbox' end,\n      case when exists (select 1 from public.pricing_audit_logs x where x.company_id = old.id) then 'pricing_audit_logs' end,\n      case when exists (select 1 from public.domain_events x where x.company_id = old.id) then 'domain_events' end,\n      case when exists (select 1 from public.ediel_ack_transaction_results x where x.company_id = old.id) then 'ediel_ack_transaction_results' end,\n      case when exists (select 1 from public.ediel_business_correlations x where x.company_id = old.id) then 'ediel_business_correlations' end,\n      case when exists (select 1 from public.ediel_business_errors x where x.company_id = old.id) then 'ediel_business_errors' end,\n      case when exists (select 1 from public.ediel_route_history x where x.company_id = old.id) then 'ediel_route_history' end,\n      case when exists (select 1 from public.ediel_certification_evidence x where x.company_id = old.id) then 'ediel_certification_evidence' end\n    ], null);\n    if cardinality(v_retained) = 0 then\n      return old;\n    end if;\n    raise exception using\n      errcode = '23001',\n      message = 'company_hard_delete_blocked',\n      detail = 'Disposable tenant still holds retained history: ' || array_to_string(v_retained, ',');\n  end if;\n  raise exception using\n    errcode = '23001',\n    message = 'company_hard_delete_blocked',\n    detail = 'Retained audit, journal and billing history would be cascaded away; close the tenant through canonical_transition_tenant_lifecycle.';\nend\n$function$\n"
+      }
+    ],
+    "check_function_bodies": "on"
+  },
+  "metadata_and_body_negatives": [
+    {
+      "name": "post_security_definer",
+      "exit_code": 3,
+      "error_prefix": "retention_audit_target_attributes",
+      "all_functions_and_full_origin_catalog_rollback_exact": true
+    },
+    {
+      "name": "post_owner",
+      "exit_code": 3,
+      "error_prefix": "retention_audit_target_attributes",
+      "all_functions_and_full_origin_catalog_rollback_exact": true
+    },
+    {
+      "name": "post_acl",
+      "exit_code": 3,
+      "error_prefix": "retention_audit_target_attributes",
+      "all_functions_and_full_origin_catalog_rollback_exact": true
+    },
+    {
+      "name": "post_strict",
+      "exit_code": 3,
+      "error_prefix": "retention_audit_target_attributes",
+      "all_functions_and_full_origin_catalog_rollback_exact": true
+    },
+    {
+      "name": "post_config",
+      "exit_code": 3,
+      "error_prefix": "retention_audit_target_attributes",
+      "all_functions_and_full_origin_catalog_rollback_exact": true
+    },
+    {
+      "name": "unknown_body",
+      "exit_code": 3,
+      "error_prefix": "retention_audit_target_body",
+      "all_functions_and_full_origin_catalog_rollback_exact": true
+    },
+    {
+      "name": "origin_column",
+      "exit_code": 3,
+      "error_prefix": "retention_audit_origin_columns",
+      "all_functions_and_full_origin_catalog_rollback_exact": true
+    },
+    {
+      "name": "origin_constraint",
+      "exit_code": 3,
+      "error_prefix": "retention_audit_origin_constraints",
+      "all_functions_and_full_origin_catalog_rollback_exact": true
+    },
+    {
+      "name": "origin_trigger",
+      "exit_code": 3,
+      "error_prefix": "retention_audit_origin_immutable_trigger",
+      "all_functions_and_full_origin_catalog_rollback_exact": true
+    },
+    {
+      "name": "helper_acl",
+      "exit_code": 3,
+      "error_prefix": "retention_audit_internal_helper",
+      "all_functions_and_full_origin_catalog_rollback_exact": true
+    },
+    {
+      "name": "unknown_helper_body",
+      "exit_code": 3,
+      "error_prefix": "retention_audit_internal_helper",
+      "all_functions_and_full_origin_catalog_rollback_exact": true
+    },
+    {
+      "name": "unknown_helper_strict",
+      "exit_code": 3,
+      "error_prefix": "retention_audit_internal_helper",
+      "all_functions_and_full_origin_catalog_rollback_exact": true
+    }
+  ],
+  "pure_pg_jsonb_hash_qualifier_primitives": {
+    "canonical_old_redacted_predicate": true,
+    "canonical_timestamp_only_new_predicate": true,
+    "canonical_redaction_is_stable_after_replay": true,
+    "old_full_redacted_hash_is_not_original_hash": true,
+    "later_permitted_timestamp_changes_full_redacted_hash": true
+  },
+  "primitive_log": "/tmp/gridex-api-review/retention-replayfix-pure-qualifier-primitives.log",
+  "supersedes_compiler_only_5e_receipt": "/tmp/gridex-api-review/retention-audit-isolated-compile-receipt.json",
+  "superseded_5e_semantic_replay_bug": "Canonical qualifier accepts already-redacted OLD and timestamp-only NEW, while c579 strict original-OLD-hash lookup failed. Revised helper checks existing immutable origin before exact-original first-capture path. Existing evidence tuple is verified, no insert/backfill on replay.",
+  "business_helper_functions_invoked": false,
+  "purge_delete_retention_functions_invoked": false,
+  "actual_native_writes": false,
+  "source_edits_by_verifier": false,
+  "business_rows_inserted": false,
+  "support_log_prefix": "/tmp/gridex-api-review/retention-replayfix-",
+  "qualification_limit": "Genuine strict SQL CREATE/DO/COMMIT/replay and actual-shaped metadata qualification in empty network-none PG17.6/PostGIS clones, plus pure PostgreSQL JSONB/hash expressions from canonical qualifier. No live business or erasure flow; embedded PLpgSQL runtime SQL remains deferred until invocation. Source-semantic approval belongs to independent peers."
+}

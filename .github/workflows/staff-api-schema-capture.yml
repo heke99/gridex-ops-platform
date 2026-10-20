@@ -78,6 +78,7 @@ jobs:
           echo "GRIDEX_PG_DUMP=/usr/lib/postgresql/$server_major/bin/pg_dump" >> "$GITHUB_ENV"
           "/usr/lib/postgresql/$server_major/bin/pg_dump" --version
       - name: Capture authentic artifacts from the sourced clean replay
+        id: sourced_capture
         if: steps.capture_turn.outputs.pending == 'true'
         shell: bash
         env:
@@ -743,6 +744,7 @@ jobs:
           import hashlib
           import json
           import os
+          import re
           from pathlib import Path
           import subprocess
 
@@ -752,7 +754,10 @@ jobs:
           output = Path('staff-schema-capture')
           artifact_names = ['database.types.ts', 'schema.sql', 'schema.fingerprint.json']
           replay_migrations = [Path(line) for line in Path(os.environ['CAPTURE_REPLAY_MIGRATIONS']).read_text().splitlines() if line]
-          latest = max(replay_migrations, key=lambda path: path.name)
+          latest = max(
+              (path for path in replay_migrations if re.fullmatch(r'[0-9]{14}_.+\.sql', path.name)),
+              key=lambda path: path.name,
+          )
           assert latest.name[:14] == os.environ['CAPTURE_LATEST_MIGRATION_VERSION']
           fingerprint = json.loads((output / 'schema.fingerprint.json').read_text())
           receipt = {
@@ -1044,6 +1049,76 @@ jobs:
           print('Exact original inputs restored and all disposable containers absent; capture-only limits retained.')
           PY_RESTORED
           fi
+      - name: Report a bounded sourced replay failure category
+        if: failure() && steps.sourced_capture.outcome == 'failure'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY_CAPTURE_DIAGNOSTIC'
+          import json
+          import os
+          import re
+          import stat
+
+          # Raw replay output remains private. Every emitted string is a fixed token;
+          # line numbers are bounded integers, and no captured text is ever interpolated.
+          result = {
+              'phase': 'unknown',
+              'exit_code': 'unavailable',
+              'source': 'unknown',
+              'source_line': 0,
+              'category': 'replay_log_unavailable',
+          }
+          try:
+              path = os.path.join(os.environ['RUNNER_TEMP'], 'staff-schema-capture-replay.log')
+              try:
+                  fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+              except FileNotFoundError:
+                  fd = None
+              if fd is None:
+                  raise ValueError('missing')
+              with os.fdopen(fd, 'rb') as stream:
+                  metadata = os.fstat(stream.fileno())
+                  if not stat.S_ISREG(metadata.st_mode):
+                      raise ValueError('nonregular')
+                  stream.seek(max(0, metadata.st_size - 65536))
+                  text = stream.read(65536).decode('utf-8', errors='replace')
+              result['phase'] = 'sourced_replay_output'
+              result['category'] = 'replay_failure_unclassified'
+              if '[GRIDEX-REM-002 replay] PASS: empty local Supabase -> verified reconstructed foundation -> canonical checksum-pinned history -> CLI-owned observed dev ledger' in text.splitlines():
+                  result['phase'] = 'replay_completed_in_log'
+                  result['category'] = 'replay_completed'
+              categories = (
+                  ('replay_source_pin_drift', r'(?:derived bootstrap checksum drift|derived bootstrap original-source pin mismatch|verified [A-Za-z -]+ checksum drift)'),
+                  ('replay_provenance_rejected', r'(?:missing replay provenance input|canonical foundation order is empty|missing derived bootstrap artifact|derived bootstrap metadata missing)'),
+                  ('postgres_permission_denied', r'(?:ERROR:\s+permission denied|FATAL:\s+permission denied)'),
+                  ('postgres_guard_rejected', r'ERROR:\s+(?:ops_atomic_|ops_auth_|ops_retention_)[a-z0-9_]+'),
+                  ('postgres_error', r'(?:^|\n)(?:psql:[^\n]{0,1024}:\d{1,6}:\s*)?(?:ERROR|FATAL):'),
+                  ('local_stack_start_failed', r'(?:local_storage_owner_bootstrap_invocation_failed|supabase start.*failed|failed to start container)'),
+              )
+              if result['phase'] != 'replay_completed_in_log':
+                  for category, pattern in categories:
+                      if re.search(pattern, text):
+                          result['category'] = category
+                          break
+              # Public repository source constants only. Never emit a captured path.
+              sources = (
+                  'scripts/gridex-aud-003-clean-replay.sh',
+                  'scripts/sql/gridex-local-storage-owner-bootstrap.sql',
+                  'supabase/bootstrap/20261015_ops_atomic_bb0b_preflight_diagnostic_replay_adapter.sql',
+              )
+              if result['phase'] != 'replay_completed_in_log':
+                  for source in sources:
+                      pattern = r'(?:^|\n)(?:psql:)?(?:/[^\n]{0,1024}/)?' + re.escape(source) + r':(?: line )?(\d{1,6}):'
+                      lines = re.findall(pattern, text)
+                      if lines:
+                          result['source'] = source
+                          result['source_line'] = int(lines[-1])
+                          break
+          except Exception:
+              pass  # Missing, unreadable, symlinked and nonregular logs keep fixed unknowns.
+          print(json.dumps(result, separators=(',', ':'), sort_keys=True))
+          PY_CAPTURE_DIAGNOSTIC
       - name: Upload capture-only artifacts
         if: always() && steps.capture_turn.outputs.pending == 'true'
         uses: actions/upload-artifact@v4

@@ -1,0 +1,61 @@
+{
+  "version": "ediel-handbook-26b-obligations/2026-10-20.v1",
+  "scope": "source-qualified policy arithmetic and truthful read-only operations visibility",
+  "frozenLedgerModified": false,
+  "criteria": [
+    {
+      "id": "HB26B-OBS-01",
+      "given": "Current handbook 26B, applicable Ei provisions and the frozen 26A package",
+      "when": "The new obligation context is assessed",
+      "expected": ["Versioned source refs identify each distinct obligation", "Existing Z06F validity-day message watch is preserved"],
+      "prohibited": ["Relabel every old technical edition as 26B", "Claim all frozen criteria recertified"],
+      "sourceRefs": ["Elmarknadshandboken-26B/4.1.14", "Elmarknadshandboken-26B/Z06F"],
+      "testPaths": ["__tests__/ediel-reporting-obligation-policy.test.ts", "__tests__/ediel-reporting-obligation-context.test.ts"]
+    },
+    {
+      "id": "HB26B-OBS-02",
+      "given": "Synthetic qualified complete receipt and method-change applicability",
+      "when": "Supplier notice is assessed",
+      "expected": ["Nominal outer day is receipt +40 calendar days", "Immediate-action requirement remains"],
+      "prohibited": ["Borrow SMTP/local apply as receipt", "Infer applicability from missing facts", "Declare actual notification or breach"],
+      "sourceRefs": ["EIFS-2025:1/11:11"],
+      "testPaths": ["__tests__/ediel-reporting-obligation-policy.test.ts", "__tests__/ediel-reporting-obligation-context.test.ts"]
+    },
+    {
+      "id": "HB26B-OBS-03",
+      "given": "Synthetic qualified physical-change need, complete receipt and any stated later start",
+      "when": "Physical completion is assessed",
+      "expected": ["Nominal outer day is max(receipt +40, stated later start)", "A qualified no-change case is not applicable; unknown facts remain held"],
+      "prohibited": ["Calculate later start +40", "Treat positive APERAK as physical completion or actual reporting"],
+      "sourceRefs": ["Elmarknadshandboken-26B/4.1.14", "Elmarknadshandboken-26B/4.3.5"],
+      "testPaths": ["__tests__/ediel-reporting-obligation-policy.test.ts"]
+    },
+    {
+      "id": "HB26B-OBS-04",
+      "given": "Synthetic qualified customer approval, confirmed start and no settlement-method change",
+      "when": "ESCO reporting start is assessed",
+      "expected": ["Ordinary internal monitor uses seven civil-date steps across DST", "Later confirmed start has no added week", "Unknown approval/method or unqualified exception remains held"],
+      "prohibited": ["Assume fixed 168 hours, ISO-week end or a legally exact hour", "Borrow another obligation's 40-day anchor", "Assert first UTILTS delivery"],
+      "sourceRefs": ["EIFS-2025:1/12:8", "SFS-1930:173/1-2"],
+      "testPaths": ["__tests__/ediel-reporting-obligation-policy.test.ts", "__tests__/ediel-reporting-obligation-context.test.ts"]
+    },
+    {
+      "id": "HB26B-OBS-05",
+      "given": "Current server-owned watch output without qualified legal receipt/approval facts",
+      "when": "Existing operations page reads the current owner decision",
+      "expected": ["Separate obligation context is held with null deadline", "The actual page shows missing evidence beside the unchanged message-watch date"],
+      "prohibited": ["Use self-qualified metadata as proof", "Promote Z14/ACK to reporting started", "Manufacture a deadline from local timestamps"],
+      "sourceRefs": ["EIFS-2025:1/12:8", "Elmarknadshandboken-26B/4.1.14"],
+      "testPaths": ["__tests__/ediel-reporting-obligation-context.test.ts"]
+    },
+    {
+      "id": "HB26B-OBS-06",
+      "given": "Current actor/company/environment/source-scoped owner reads",
+      "when": "New context is projected",
+      "expected": ["Existing tenant/source guards and old watch clocks remain intact", "No legal context appears for an invalid current source", "Rejected request creates no new reporting-start assertion"],
+      "prohibited": ["Add provider entry, resend, permission mutation or new source lookup", "Modify schema, GEN or frozen approvals", "Expose private owner errors"],
+      "sourceRefs": ["EIFS-2025:1/12:8"],
+      "testPaths": ["__tests__/ediel-reporting-obligation-context.test.ts", "__tests__/ediel-process-next-action-owner-port.test.ts", "__tests__/ediel-process-watches-view.test.ts"]
+    }
+  ]
+}

@@ -1,0 +1,1210 @@
+{
+  "scope": "All actual requireAdminApiAccess callsites and9direct/re-exported requestedChangeHttp wrapper aliases reachable from app/api; Gridex OPS only.",
+  "authority": "Actual source AST/literal/variable/imported arrays compared to fresh READ ONLY OPS permission catalog, no tests/business RPC/native writes.",
+  "updated_utc": "2026-10-13T10:36:55.230439+00:00",
+  "actual_catalog": {
+    "count": 69,
+    "active": 69,
+    "evidence": "/tmp/gridex-api-review/admin-api-current-active-permission-catalog.json"
+  },
+  "callsite_audit": {
+    "catalog_count": 69,
+    "call_count": 82,
+    "rows": [
+      {
+        "file": "app/api/admin/customer-contract-documents/[documentId]/route.ts",
+        "line": 20,
+        "callee": "requireAdminApiAccess",
+        "argument": "[\n    \"documents.read\",\n    \"customers.read\",\n  ]",
+        "keys": [
+          "documents.read",
+          "customers.read"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/admin/customer-documents/[documentId]/route.ts",
+        "line": 17,
+        "callee": "requireAdminApiAccess",
+        "argument": "['documents.read', 'poa.read', 'customers.read']",
+        "keys": [
+          "documents.read",
+          "poa.read",
+          "customers.read"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/admin/customer-documents/relations/route.ts",
+        "line": 25,
+        "callee": "requireAdminApiAccess",
+        "argument": "['customers.read', 'poa.read']",
+        "keys": [
+          "customers.read",
+          "poa.read"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/admin/customer-switch-form-options/route.ts",
+        "line": 36,
+        "callee": "requireAdminApiAccess",
+        "argument": "['customers.read', 'switching.read']",
+        "keys": [
+          "customers.read",
+          "switching.read"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/admin/ediel/production-contracts/route.ts",
+        "line": 9,
+        "callee": "requireAdminApiAccess",
+        "argument": "{ allOf: ['communication.write', 'communication.send'] }",
+        "keys": [
+          "communication.write",
+          "communication.send"
+        ],
+        "invalid": [
+          "communication.write"
+        ]
+      },
+      {
+        "file": "app/api/admin/ediel/recovery/route.ts",
+        "line": 13,
+        "callee": "requireAdminApiAccess",
+        "argument": "{ allOf: ['communication.write', 'communication.send'] }",
+        "keys": [
+          "communication.write",
+          "communication.send"
+        ],
+        "invalid": [
+          "communication.write"
+        ]
+      },
+      {
+        "file": "lib/ediel/production/requestedChangeHttp.ts",
+        "line": 44,
+        "callee": "requireAdminApiAccess",
+        "argument": "{allOf:permissions}",
+        "keys": null,
+        "invalid": null,
+        "resolution": "Forwarded permissions function parameter; all direct/re-exported callers resolved by actual literal/variable/imported arrays."
+      },
+      {
+        "file": "app/api/ediel/ai-purpose-sources/[artifactId]/review/route.ts",
+        "line": 6,
+        "callee": "aiPurposeSourceHttp",
+        "argument": "['communication.write','customers.write','contracts.write','ediel.ai_purpose.review']",
+        "keys": [
+          "communication.write",
+          "customers.write",
+          "contracts.write",
+          "ediel.ai_purpose.review"
+        ],
+        "invalid": [
+          "communication.write",
+          "ediel.ai_purpose.review"
+        ]
+      },
+      {
+        "file": "app/api/ediel/ai-purpose-sources/[artifactId]/route.ts",
+        "line": 6,
+        "callee": "aiPurposeSourceHttp",
+        "argument": "['communication.read','customers.read','contracts.read']",
+        "keys": [
+          "communication.read",
+          "customers.read",
+          "contracts.read"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/ediel/ai-purpose-sources/[artifactId]/source/route.ts",
+        "line": 6,
+        "callee": "aiPurposeSourceHttp",
+        "argument": "['communication.read','customers.read','contracts.read']",
+        "keys": [
+          "communication.read",
+          "customers.read",
+          "contracts.read"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/ediel/ai-purpose-sources/route.ts",
+        "line": 6,
+        "callee": "aiPurposeSourceHttp",
+        "argument": "['communication.write','customers.write','contracts.write']",
+        "keys": [
+          "communication.write",
+          "customers.write",
+          "contracts.write"
+        ],
+        "invalid": [
+          "communication.write"
+        ]
+      },
+      {
+        "file": "app/api/ediel/regulated-supply-sources/[artifactId]/review/route.ts",
+        "line": 6,
+        "callee": "regulatedSupplyHttp",
+        "argument": "['communication.write','contracts.read','metering.write','ediel.regulated_supply.review']",
+        "keys": [
+          "communication.write",
+          "contracts.read",
+          "metering.write",
+          "ediel.regulated_supply.review"
+        ],
+        "invalid": [
+          "communication.write",
+          "ediel.regulated_supply.review"
+        ]
+      },
+      {
+        "file": "app/api/ediel/regulated-supply-sources/[artifactId]/route.ts",
+        "line": 6,
+        "callee": "regulatedSupplyHttp",
+        "argument": "['communication.read','contracts.read','metering.read']",
+        "keys": [
+          "communication.read",
+          "contracts.read",
+          "metering.read"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/ediel/regulated-supply-sources/[artifactId]/source/route.ts",
+        "line": 6,
+        "callee": "regulatedSupplyHttp",
+        "argument": "['communication.read','contracts.read','metering.read']",
+        "keys": [
+          "communication.read",
+          "contracts.read",
+          "metering.read"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/ediel/regulated-supply-sources/route.ts",
+        "line": 6,
+        "callee": "regulatedSupplyHttp",
+        "argument": "['communication.write','contracts.read','metering.write']",
+        "keys": [
+          "communication.write",
+          "contracts.read",
+          "metering.write"
+        ],
+        "invalid": [
+          "communication.write"
+        ]
+      },
+      {
+        "file": "app/api/ediel/regulated-supply-sources/scope/route.ts",
+        "line": 6,
+        "callee": "regulatedSupplyHttp",
+        "argument": "['communication.read','contracts.read','metering.read']",
+        "keys": [
+          "communication.read",
+          "contracts.read",
+          "metering.read"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/ediel/requested-change-sources/[artifactId]/review/route.ts",
+        "line": 7,
+        "callee": "requestedChangeHttp",
+        "argument": "['communication.write','customers.write','ediel.source.review']",
+        "keys": [
+          "communication.write",
+          "customers.write",
+          "ediel.source.review"
+        ],
+        "invalid": [
+          "communication.write",
+          "ediel.source.review"
+        ]
+      },
+      {
+        "file": "app/api/ediel/requested-change-sources/[artifactId]/route.ts",
+        "line": 7,
+        "callee": "requestedChangeHttp",
+        "argument": "['communication.read','customers.read']",
+        "keys": [
+          "communication.read",
+          "customers.read"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/ediel/requested-change-sources/[artifactId]/source/route.ts",
+        "line": 7,
+        "callee": "requestedChangeHttp",
+        "argument": "['communication.read','customers.read']",
+        "keys": [
+          "communication.read",
+          "customers.read"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/ediel/requested-change-sources/route.ts",
+        "line": 7,
+        "callee": "requestedChangeHttp",
+        "argument": "['communication.write','customers.write']",
+        "keys": [
+          "communication.write",
+          "customers.write"
+        ],
+        "invalid": [
+          "communication.write"
+        ]
+      },
+      {
+        "file": "app/api/ediel/requested-changes/route.ts",
+        "line": 16,
+        "callee": "requireAdminApiAccess",
+        "argument": "['communication.write']",
+        "keys": [
+          "communication.write"
+        ],
+        "invalid": [
+          "communication.write"
+        ]
+      },
+      {
+        "file": "app/api/ediel/requested-customer-change-sources/[artifactId]/queue/route.ts",
+        "line": 6,
+        "callee": "requestedCustomerChangeHttp",
+        "argument": "['communication.write','customers.write','contracts.write']",
+        "keys": [
+          "communication.write",
+          "customers.write",
+          "contracts.write"
+        ],
+        "invalid": [
+          "communication.write"
+        ]
+      },
+      {
+        "file": "app/api/ediel/requested-customer-change-sources/[artifactId]/review/route.ts",
+        "line": 6,
+        "callee": "requestedCustomerChangeHttp",
+        "argument": "['communication.write','customers.write','contracts.write','ediel.source.review']",
+        "keys": [
+          "communication.write",
+          "customers.write",
+          "contracts.write",
+          "ediel.source.review"
+        ],
+        "invalid": [
+          "communication.write",
+          "ediel.source.review"
+        ]
+      },
+      {
+        "file": "app/api/ediel/requested-customer-change-sources/[artifactId]/route.ts",
+        "line": 6,
+        "callee": "requestedCustomerChangeHttp",
+        "argument": "['communication.read','customers.read','contracts.read']",
+        "keys": [
+          "communication.read",
+          "customers.read",
+          "contracts.read"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/ediel/requested-customer-change-sources/[artifactId]/source/route.ts",
+        "line": 6,
+        "callee": "requestedCustomerChangeHttp",
+        "argument": "['communication.read','customers.read','contracts.read']",
+        "keys": [
+          "communication.read",
+          "customers.read",
+          "contracts.read"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/ediel/requested-customer-change-sources/route.ts",
+        "line": 7,
+        "callee": "requestedCustomerChangeHttp",
+        "argument": "['communication.write','customers.write','contracts.write']",
+        "keys": [
+          "communication.write",
+          "customers.write",
+          "contracts.write"
+        ],
+        "invalid": [
+          "communication.write"
+        ]
+      },
+      {
+        "file": "app/api/ediel/services/commands/route.ts",
+        "line": 9,
+        "callee": "requireAdminApiAccess",
+        "argument": "['metering.write']",
+        "keys": [
+          "metering.write"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/ediel/services/commands/route.ts",
+        "line": 23,
+        "callee": "requireAdminApiAccess",
+        "argument": "['metering.read']",
+        "keys": [
+          "metering.read"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/ediel/signed-brp-declarations/[artifactId]/original/route.ts",
+        "line": 7,
+        "callee": "signedBrpHttp",
+        "argument": "signedBrpReadPermissions",
+        "keys": [
+          "communication.read",
+          "customers.read",
+          "contracts.read"
+        ],
+        "invalid": [],
+        "resolved_from": "lib/ediel/production/signedBrpDeclarationHttp.ts actual exported constant arrays"
+      },
+      {
+        "file": "app/api/ediel/signed-brp-declarations/[artifactId]/review/route.ts",
+        "line": 7,
+        "callee": "signedBrpHttp",
+        "argument": "[...signedBrpWritePermissions,'ediel.source.review']",
+        "keys": [
+          "communication.write",
+          "customers.write",
+          "contracts.write",
+          "ediel.source.review"
+        ],
+        "invalid": [
+          "communication.write",
+          "ediel.source.review"
+        ],
+        "resolved_from": "lib/ediel/production/signedBrpDeclarationHttp.ts actual exported constant arrays"
+      },
+      {
+        "file": "app/api/ediel/signed-brp-declarations/[artifactId]/revoke/route.ts",
+        "line": 7,
+        "callee": "signedBrpHttp",
+        "argument": "signedBrpWritePermissions",
+        "keys": [
+          "communication.write",
+          "customers.write",
+          "contracts.write"
+        ],
+        "invalid": [
+          "communication.write"
+        ],
+        "resolved_from": "lib/ediel/production/signedBrpDeclarationHttp.ts actual exported constant arrays"
+      },
+      {
+        "file": "app/api/ediel/signed-brp-declarations/[artifactId]/route.ts",
+        "line": 7,
+        "callee": "signedBrpHttp",
+        "argument": "signedBrpReadPermissions",
+        "keys": [
+          "communication.read",
+          "customers.read",
+          "contracts.read"
+        ],
+        "invalid": [],
+        "resolved_from": "lib/ediel/production/signedBrpDeclarationHttp.ts actual exported constant arrays"
+      },
+      {
+        "file": "app/api/ediel/signed-brp-declarations/route.ts",
+        "line": 6,
+        "callee": "signedBrpHttp",
+        "argument": "signedBrpWritePermissions",
+        "keys": [
+          "communication.write",
+          "customers.write",
+          "contracts.write"
+        ],
+        "invalid": [
+          "communication.write"
+        ],
+        "resolved_from": "lib/ediel/production/signedBrpDeclarationHttp.ts actual exported constant arrays"
+      },
+      {
+        "file": "app/api/ediel/signed-brp-declarations/scope/route.ts",
+        "line": 6,
+        "callee": "signedBrpHttp",
+        "argument": "signedBrpReadPermissions",
+        "keys": [
+          "communication.read",
+          "customers.read",
+          "contracts.read"
+        ],
+        "invalid": [],
+        "resolved_from": "lib/ediel/production/signedBrpDeclarationHttp.ts actual exported constant arrays"
+      },
+      {
+        "file": "app/api/ediel/supply-rescission-sources/[artifactId]/queue/route.ts",
+        "line": 8,
+        "callee": "supplyRescissionHttp",
+        "argument": "['communication.write','contracts.read','metering.write']",
+        "keys": [
+          "communication.write",
+          "contracts.read",
+          "metering.write"
+        ],
+        "invalid": [
+          "communication.write"
+        ]
+      },
+      {
+        "file": "app/api/ediel/supply-rescission-sources/[artifactId]/review/route.ts",
+        "line": 5,
+        "callee": "supplyRescissionHttp",
+        "argument": "['communication.write','contracts.read','metering.write','ediel.supply_rescission.review']",
+        "keys": [
+          "communication.write",
+          "contracts.read",
+          "metering.write",
+          "ediel.supply_rescission.review"
+        ],
+        "invalid": [
+          "communication.write",
+          "ediel.supply_rescission.review"
+        ]
+      },
+      {
+        "file": "app/api/ediel/supply-rescission-sources/[artifactId]/route.ts",
+        "line": 5,
+        "callee": "supplyRescissionHttp",
+        "argument": "['communication.read','contracts.read','metering.read']",
+        "keys": [
+          "communication.read",
+          "contracts.read",
+          "metering.read"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/ediel/supply-rescission-sources/[artifactId]/source/route.ts",
+        "line": 5,
+        "callee": "supplyRescissionHttp",
+        "argument": "['communication.read','contracts.read','metering.read']",
+        "keys": [
+          "communication.read",
+          "contracts.read",
+          "metering.read"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/ediel/supply-rescission-sources/route.ts",
+        "line": 5,
+        "callee": "supplyRescissionHttp",
+        "argument": "['communication.write','contracts.read','metering.write']",
+        "keys": [
+          "communication.write",
+          "contracts.read",
+          "metering.write"
+        ],
+        "invalid": [
+          "communication.write"
+        ]
+      },
+      {
+        "file": "app/api/ediel/supply-rescission-sources/scope/route.ts",
+        "line": 5,
+        "callee": "supplyRescissionHttp",
+        "argument": "['communication.read','contracts.read','metering.read']",
+        "keys": [
+          "communication.read",
+          "contracts.read",
+          "metering.read"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/internal/billing/generate-underlay/route.ts",
+        "line": 14,
+        "callee": "requireAdminApiAccess",
+        "argument": "['billing_underlay.export']",
+        "keys": [
+          "billing_underlay.export"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/internal/billing/period-locks/route.ts",
+        "line": 14,
+        "callee": "requireAdminApiAccess",
+        "argument": "['billing_underlay.read']",
+        "keys": [
+          "billing_underlay.read"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/internal/billing/period-locks/route.ts",
+        "line": 31,
+        "callee": "requireAdminApiAccess",
+        "argument": "['billing_underlay.export']",
+        "keys": [
+          "billing_underlay.export"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/internal/ediel/inbound-request-automation/route.ts",
+        "line": 11,
+        "callee": "requireAdminApiAccess",
+        "argument": "['communication.write']",
+        "keys": [
+          "communication.write"
+        ],
+        "invalid": [
+          "communication.write"
+        ]
+      },
+      {
+        "file": "app/api/internal/invoice-exports/[id]/retry/route.ts",
+        "line": 17,
+        "callee": "requireAdminApiAccess",
+        "argument": "['billing_underlay.export']",
+        "keys": [
+          "billing_underlay.export"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/internal/invoice-exports/[id]/route.ts",
+        "line": 17,
+        "callee": "requireAdminApiAccess",
+        "argument": "['billing_underlay.read']",
+        "keys": [
+          "billing_underlay.read"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/ediel/beneficiary/exports/[jobId]/route.ts",
+        "line": 10,
+        "callee": "requireAdminApiAccess",
+        "argument": "['metering.read']",
+        "keys": [
+          "metering.read"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/ediel/beneficiary/exports/process/route.ts",
+        "line": 11,
+        "callee": "requireAdminApiAccess",
+        "argument": "['metering.read']",
+        "keys": [
+          "metering.read"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/internal/invoice-exports/[id]/send/route.ts",
+        "line": 17,
+        "callee": "requireAdminApiAccess",
+        "argument": "['billing_underlay.export']",
+        "keys": [
+          "billing_underlay.export"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/internal/invoice-exports/create/route.ts",
+        "line": 16,
+        "callee": "requireAdminApiAccess",
+        "argument": "['billing_underlay.export']",
+        "keys": [
+          "billing_underlay.export"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/internal/invoices/[id]/credit/route.ts",
+        "line": 11,
+        "callee": "requireAdminApiAccess",
+        "argument": "['billing_underlay.export']",
+        "keys": [
+          "billing_underlay.export"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/internal/invoices/[id]/dispute/route.ts",
+        "line": 20,
+        "callee": "requireAdminApiAccess",
+        "argument": "['billing_underlay.export']",
+        "keys": [
+          "billing_underlay.export"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/ediel/beneficiary/series/[seriesId]/exports/route.ts",
+        "line": 12,
+        "callee": "requireAdminApiAccess",
+        "argument": "['metering.read']",
+        "keys": [
+          "metering.read"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/ediel/beneficiary/series/[seriesId]/route.ts",
+        "line": 11,
+        "callee": "requireAdminApiAccess",
+        "argument": "['metering.read']",
+        "keys": [
+          "metering.read"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/internal/pricing/lock-preview/route.ts",
+        "line": 10,
+        "callee": "requireAdminApiAccess",
+        "argument": "['pricing.write']",
+        "keys": [
+          "pricing.write"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/ediel/bilateral-prodat-sources/[artifactId]/review/route.ts",
+        "line": 6,
+        "callee": "bilateralProdatHttp",
+        "argument": "['communication.write','contracts.read','metering.write','ediel.bilateral_profile.review']",
+        "keys": [
+          "communication.write",
+          "contracts.read",
+          "metering.write",
+          "ediel.bilateral_profile.review"
+        ],
+        "invalid": [
+          "communication.write",
+          "ediel.bilateral_profile.review"
+        ]
+      },
+      {
+        "file": "app/api/ediel/bilateral-prodat-sources/[artifactId]/route.ts",
+        "line": 6,
+        "callee": "bilateralProdatHttp",
+        "argument": "['communication.read','contracts.read','metering.read']",
+        "keys": [
+          "communication.read",
+          "contracts.read",
+          "metering.read"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/internal/pricing/preview/route.ts",
+        "line": 14,
+        "callee": "requireAdminApiAccess",
+        "argument": "['pricing.write']",
+        "keys": [
+          "pricing.write"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/ediel/bilateral-prodat-sources/[artifactId]/source/route.ts",
+        "line": 6,
+        "callee": "bilateralProdatHttp",
+        "argument": "['communication.read','contracts.read','metering.read']",
+        "keys": [
+          "communication.read",
+          "contracts.read",
+          "metering.read"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/ediel/bilateral-prodat-sources/route.ts",
+        "line": 6,
+        "callee": "bilateralProdatHttp",
+        "argument": "['communication.write','contracts.read','metering.write']",
+        "keys": [
+          "communication.write",
+          "contracts.read",
+          "metering.write"
+        ],
+        "invalid": [
+          "communication.write"
+        ]
+      },
+      {
+        "file": "app/api/internal/pricing/reprice/route.ts",
+        "line": 10,
+        "callee": "requireAdminApiAccess",
+        "argument": "['pricing.write']",
+        "keys": [
+          "pricing.write"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/ediel/bilateral-prodat-sources/scope/route.ts",
+        "line": 6,
+        "callee": "bilateralProdatHttp",
+        "argument": "['communication.read','contracts.read','metering.read']",
+        "keys": [
+          "communication.read",
+          "contracts.read",
+          "metering.read"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/internal/spot/import-month/route.ts",
+        "line": 12,
+        "callee": "requireAdminApiAccess",
+        "argument": "['pricing.write']",
+        "keys": [
+          "pricing.write"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/internal/spot/lock-month/route.ts",
+        "line": 33,
+        "callee": "requireAdminApiAccess",
+        "argument": "['pricing.write']",
+        "keys": [
+          "pricing.write"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/ediel/brp/changes/route.ts",
+        "line": 11,
+        "callee": "requireAdminApiAccess",
+        "argument": "['communication.write']",
+        "keys": [
+          "communication.write"
+        ],
+        "invalid": [
+          "communication.write"
+        ]
+      },
+      {
+        "file": "app/api/ediel/brp/changes/route.ts",
+        "line": 18,
+        "callee": "requireAdminApiAccess",
+        "argument": "['communication.read']",
+        "keys": [
+          "communication.read"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/ediel/business-incidents/route.ts",
+        "line": 7,
+        "callee": "requestedChangeHttp",
+        "argument": "permissions",
+        "keys": [
+          "communication.write",
+          "communication.send"
+        ],
+        "invalid": [
+          "communication.write"
+        ]
+      },
+      {
+        "file": "app/api/ediel/business-incidents/route.ts",
+        "line": 11,
+        "callee": "requestedChangeHttp",
+        "argument": "['communication.read']",
+        "keys": [
+          "communication.read"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/ediel/customer-source-agreements/[artifactId]/apply/route.ts",
+        "line": 7,
+        "callee": "bilateralSourceHttp",
+        "argument": "['communication.write','customers.write','contracts.write']",
+        "keys": [
+          "communication.write",
+          "customers.write",
+          "contracts.write"
+        ],
+        "invalid": [
+          "communication.write"
+        ]
+      },
+      {
+        "file": "app/api/ediel/customer-source-agreements/[artifactId]/review/route.ts",
+        "line": 6,
+        "callee": "bilateralSourceHttp",
+        "argument": "['communication.write','customers.write','contracts.write','ediel.source.review']",
+        "keys": [
+          "communication.write",
+          "customers.write",
+          "contracts.write",
+          "ediel.source.review"
+        ],
+        "invalid": [
+          "communication.write",
+          "ediel.source.review"
+        ]
+      },
+      {
+        "file": "app/api/ediel/customer-source-agreements/[artifactId]/route.ts",
+        "line": 6,
+        "callee": "bilateralSourceHttp",
+        "argument": "['communication.read','customers.read','contracts.read']",
+        "keys": [
+          "communication.read",
+          "customers.read",
+          "contracts.read"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/internal/invoices/[id]/provider-status/route.ts",
+        "line": 24,
+        "callee": "requireAdminApiAccess",
+        "argument": "['billing_underlay.read']",
+        "keys": [
+          "billing_underlay.read"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/ediel/customer-source-agreements/[artifactId]/source/route.ts",
+        "line": 6,
+        "callee": "bilateralSourceHttp",
+        "argument": "['communication.read','customers.read','contracts.read']",
+        "keys": [
+          "communication.read",
+          "customers.read",
+          "contracts.read"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/ediel/customer-source-agreements/route.ts",
+        "line": 7,
+        "callee": "bilateralSourceHttp",
+        "argument": "['communication.write','customers.write','contracts.write']",
+        "keys": [
+          "communication.write",
+          "customers.write",
+          "contracts.write"
+        ],
+        "invalid": [
+          "communication.write"
+        ]
+      },
+      {
+        "file": "app/api/internal/invoices/[id]/purchase/route.ts",
+        "line": 18,
+        "callee": "requireAdminApiAccess",
+        "argument": "['billing_underlay.export']",
+        "keys": [
+          "billing_underlay.export"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/ediel/messages/[messageId]/delivery-reports/route.ts",
+        "line": 9,
+        "callee": "requireAdminApiAccess",
+        "argument": "['communication.read']",
+        "keys": [
+          "communication.read"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/ediel/messages/[messageId]/transport-copy/route.ts",
+        "line": 12,
+        "callee": "requireAdminApiAccess",
+        "argument": "['communication.read']",
+        "keys": [
+          "communication.read"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/ediel/network-registry-sources/[artifactId]/review/route.ts",
+        "line": 6,
+        "callee": "networkRegistrySourceHttp",
+        "argument": "['communication.write','customers.write','contracts.write','ediel.network_registry.review']",
+        "keys": [
+          "communication.write",
+          "customers.write",
+          "contracts.write",
+          "ediel.network_registry.review"
+        ],
+        "invalid": [
+          "communication.write",
+          "ediel.network_registry.review"
+        ]
+      },
+      {
+        "file": "app/api/ediel/network-registry-sources/[artifactId]/revoke/route.ts",
+        "line": 6,
+        "callee": "networkRegistrySourceHttp",
+        "argument": "['communication.write','customers.write','contracts.write','ediel.network_registry.review']",
+        "keys": [
+          "communication.write",
+          "customers.write",
+          "contracts.write",
+          "ediel.network_registry.review"
+        ],
+        "invalid": [
+          "communication.write",
+          "ediel.network_registry.review"
+        ]
+      },
+      {
+        "file": "app/api/ediel/network-registry-sources/[artifactId]/route.ts",
+        "line": 6,
+        "callee": "networkRegistrySourceHttp",
+        "argument": "['communication.read','customers.read','contracts.read']",
+        "keys": [
+          "communication.read",
+          "customers.read",
+          "contracts.read"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/ediel/network-registry-sources/[artifactId]/source/route.ts",
+        "line": 6,
+        "callee": "networkRegistrySourceHttp",
+        "argument": "['communication.read','customers.read','contracts.read']",
+        "keys": [
+          "communication.read",
+          "customers.read",
+          "contracts.read"
+        ],
+        "invalid": []
+      },
+      {
+        "file": "app/api/ediel/network-registry-sources/route.ts",
+        "line": 6,
+        "callee": "networkRegistrySourceHttp",
+        "argument": "['communication.write','customers.write','contracts.write']",
+        "keys": [
+          "communication.write",
+          "customers.write",
+          "contracts.write"
+        ],
+        "invalid": [
+          "communication.write"
+        ]
+      }
+    ],
+    "unresolved_route_calls": [],
+    "invalid_keys": [
+      "communication.write",
+      "ediel.ai_purpose.review",
+      "ediel.bilateral_profile.review",
+      "ediel.network_registry.review",
+      "ediel.regulated_supply.review",
+      "ediel.source.review",
+      "ediel.supply_rescission.review"
+    ],
+    "invalid_route_calls": 29
+  },
+  "source_alias_resolution": {
+    "billing.read": "billing_underlay.read",
+    "billing.write": "billing_underlay.export",
+    "billing.export": "billing_underlay.export",
+    "ediel.write": "communication.write"
+  },
+  "alias_proof": [
+    "Canonical fresh catalog billing_underlay.read/export active; no Supabase schema/migration definition for billing.read/write/export or ediel.write.",
+    "app/admin/billing/actions.ts18 and invoice-files/actions.ts13 guard existing billing writes with billing_underlay.export; billing/invoices/[id]/page.tsx45 reads billing_underlay.read.",
+    "Canonical Ediel preparation key communication.write distinct from external delivery communication.send; exact committed source20261001103735 defines it. Inbound evaluation is preparation, no external send."
+  ],
+  "fixed_routes": [
+    {
+      "path": "app/api/internal/billing/generate-underlay/route.ts",
+      "exact_claim_tag": "agent-claims/masterplan/file-a8a25a270f6fd37b2989661804ded0836798ffc9505de7da451eb6e4b289db0e",
+      "claim_result": "HTTP404 free before write",
+      "sha256": "1c0624ff4dc64208597411db6f15b28691123ecb8b1ca3c89adf8e267636228b"
+    },
+    {
+      "path": "app/api/internal/billing/period-locks/route.ts",
+      "exact_claim_tag": "agent-claims/masterplan/file-c982a3341c713b459caf7aad1f4d11909e81419ef69aef1297da730fd9d2817d",
+      "claim_result": "HTTP404 free before write",
+      "sha256": "3dca6c298ed5fc36a60582be3842dc269463f4fce775c8942447cf2b15e40d68"
+    },
+    {
+      "path": "app/api/internal/ediel/inbound-request-automation/route.ts",
+      "exact_claim_tag": "agent-claims/masterplan/file-c5a23c08965cbf0779da74b855b99823bffa926197102cbe1668c6c646d03fbf",
+      "claim_result": "HTTP404 free before write",
+      "sha256": "af95b8ea0217a28bc860d62a5e71b9a36bf17a173caf45cdeec38f9a3bd9aa29"
+    },
+    {
+      "path": "app/api/internal/invoice-exports/[id]/retry/route.ts",
+      "exact_claim_tag": "agent-claims/masterplan/file-e962b7c639c198350d9a450c8a8e00834ae3f2015fb0cc80fce11334c75e57f4",
+      "claim_result": "HTTP404 free before write",
+      "sha256": "7383e8d5da93e52916e87dd91c7733039307af9c0b4a00f024447d378fead7d8"
+    },
+    {
+      "path": "app/api/internal/invoice-exports/[id]/route.ts",
+      "exact_claim_tag": "agent-claims/masterplan/file-07fa463ad4f1a38451b9139155ec5c219a7ffda8b075a9ed31597450877f5981",
+      "claim_result": "HTTP404 free before write",
+      "sha256": "a1b502ad15361f5b7fbe1134c758e0fe79745dd6897428115992d93482d5642e"
+    },
+    {
+      "path": "app/api/internal/invoice-exports/[id]/send/route.ts",
+      "exact_claim_tag": "agent-claims/masterplan/file-a23a6c317285c8ad21a9cf29fbb4bd1772ec141f4534e95e21376e15913368b8",
+      "claim_result": "HTTP404 free before write",
+      "sha256": "2cdf376eb2dd38da31ff00e25871a904452793d35f63eb323a14d567daba9948"
+    },
+    {
+      "path": "app/api/internal/invoice-exports/create/route.ts",
+      "exact_claim_tag": "agent-claims/masterplan/file-1b9299198790a61fe011a9cff08512ebbf89ab8176cbec45a06b78db110794e2",
+      "claim_result": "HTTP404 free before write",
+      "sha256": "fe06f7a599ef460fca1ec92fa31c6e8d2868095d84ebfb6af1da4f857c2ea3b0"
+    },
+    {
+      "path": "app/api/internal/invoices/[id]/credit/route.ts",
+      "exact_claim_tag": "agent-claims/masterplan/file-352f1f22eaec20c449654e80b767ce67bf95fa6ada15fec68bf6eb174a3ad4aa",
+      "claim_result": "HTTP404 free before write",
+      "sha256": "12c856adf7134e03d15951eeb26bcb3f684474f436e47cd7f9e7b4db68e0a710"
+    },
+    {
+      "path": "app/api/internal/invoices/[id]/dispute/route.ts",
+      "exact_claim_tag": "agent-claims/masterplan/file-5aa51560ad1c4105ebf16c7b2dd4d3c2c5a31b09780f349acdc48104919e6f49",
+      "claim_result": "HTTP404 free before write",
+      "sha256": "87419b662990afe0199135526329ce48486dcec96bdf00f85325d7f0109c87bf"
+    },
+    {
+      "path": "app/api/internal/invoices/[id]/provider-status/route.ts",
+      "exact_claim_tag": "agent-claims/masterplan/file-75dab488e0426277f6c467d147185e6d523597ccfbb8ff90eae465c7f9f45996",
+      "claim_result": "HTTP404 free before write",
+      "sha256": "be9d84c8d103d82fb19f1b8241c64952e7d00dcdc76455f38d3694a6855035b4"
+    },
+    {
+      "path": "app/api/internal/invoices/[id]/purchase/route.ts",
+      "exact_claim_tag": "agent-claims/masterplan/file-d10b4b2b0d0eca713697ad2631789a697bb588c2264ca42a90b6536dc2838fc7",
+      "claim_result": "HTTP404 free before write",
+      "sha256": "1973bb80f27ba4cccfaa36c743cd34d350ee09a4003f21b5ed5620592c8d6093"
+    }
+  ],
+  "remaining_native_catalog_gaps": [
+    {
+      "key": "communication.write",
+      "source": "supabase/migrations/20261001103735_ediel_canonical_preparation_permission_catalog.sql",
+      "source_sha256": "bc21e91c4c25945a5e1f71b50e29b47a84ff1ac0a03026f71ab214add34f8d63",
+      "status": "Real canonical definition absent actual native; source-owned registration required, no role/user/override grant invented or seeded",
+      "routes": [
+        "app/api/admin/ediel/production-contracts/route.ts",
+        "app/api/admin/ediel/recovery/route.ts",
+        "app/api/ediel/ai-purpose-sources/[artifactId]/review/route.ts",
+        "app/api/ediel/ai-purpose-sources/route.ts",
+        "app/api/ediel/regulated-supply-sources/[artifactId]/review/route.ts",
+        "app/api/ediel/regulated-supply-sources/route.ts",
+        "app/api/ediel/requested-change-sources/[artifactId]/review/route.ts",
+        "app/api/ediel/requested-change-sources/route.ts",
+        "app/api/ediel/requested-changes/route.ts",
+        "app/api/ediel/requested-customer-change-sources/[artifactId]/queue/route.ts",
+        "app/api/ediel/requested-customer-change-sources/[artifactId]/review/route.ts",
+        "app/api/ediel/requested-customer-change-sources/route.ts",
+        "app/api/ediel/signed-brp-declarations/[artifactId]/review/route.ts",
+        "app/api/ediel/signed-brp-declarations/[artifactId]/revoke/route.ts",
+        "app/api/ediel/signed-brp-declarations/route.ts",
+        "app/api/ediel/supply-rescission-sources/[artifactId]/queue/route.ts",
+        "app/api/ediel/supply-rescission-sources/[artifactId]/review/route.ts",
+        "app/api/ediel/supply-rescission-sources/route.ts",
+        "app/api/internal/ediel/inbound-request-automation/route.ts",
+        "app/api/ediel/bilateral-prodat-sources/[artifactId]/review/route.ts",
+        "app/api/ediel/bilateral-prodat-sources/route.ts",
+        "app/api/ediel/brp/changes/route.ts",
+        "app/api/ediel/business-incidents/route.ts",
+        "app/api/ediel/customer-source-agreements/[artifactId]/apply/route.ts",
+        "app/api/ediel/customer-source-agreements/[artifactId]/review/route.ts",
+        "app/api/ediel/customer-source-agreements/route.ts",
+        "app/api/ediel/network-registry-sources/[artifactId]/review/route.ts",
+        "app/api/ediel/network-registry-sources/[artifactId]/revoke/route.ts",
+        "app/api/ediel/network-registry-sources/route.ts"
+      ]
+    },
+    {
+      "key": "ediel.source.review",
+      "source": "supabase/migrations/20260930232100_ediel_requested_change_source_intake_and_review.sql",
+      "source_sha256": "ad6d54df17793a204294efd7c50f40c7f6c9c0cf1382266f0313d663ae987490",
+      "status": "Real canonical definition absent actual native; source-owned registration required, no role/user/override grant invented or seeded",
+      "routes": [
+        "app/api/ediel/requested-change-sources/[artifactId]/review/route.ts",
+        "app/api/ediel/requested-customer-change-sources/[artifactId]/review/route.ts",
+        "app/api/ediel/signed-brp-declarations/[artifactId]/review/route.ts",
+        "app/api/ediel/customer-source-agreements/[artifactId]/review/route.ts"
+      ]
+    },
+    {
+      "key": "ediel.ai_purpose.review",
+      "source": "supabase/migrations/20261001020550_ediel_ai_purpose_source_owner.sql",
+      "source_sha256": "6eb0aa5ed1e377b60e2b0328922cc41a55f70113f089b6be944835d9e53d25c0",
+      "status": "Real canonical definition absent actual native; source-owned registration required, no role/user/override grant invented or seeded",
+      "routes": [
+        "app/api/ediel/ai-purpose-sources/[artifactId]/review/route.ts"
+      ]
+    },
+    {
+      "key": "ediel.bilateral_profile.review",
+      "source": "supabase/migrations/20261001013034_ediel_bilateral_prodat_archived_profile_review.sql",
+      "source_sha256": "84ce3df5c80c5220df3ba4e15e7aade37d3671a09dabd730c8cd781638602b6e",
+      "status": "Real canonical definition absent actual native; source-owned registration required, no role/user/override grant invented or seeded",
+      "routes": [
+        "app/api/ediel/bilateral-prodat-sources/[artifactId]/review/route.ts"
+      ]
+    },
+    {
+      "key": "ediel.network_registry.review",
+      "source": "supabase/migrations/20261001023514_ediel_network_registry_original_source_owner.sql",
+      "source_sha256": "4fc20e9ef58d215903bef7de5e3b5d67d8c6a8eb8f53e281a2900d5444c1a2ca",
+      "status": "Real canonical definition absent actual native; source-owned registration required, no role/user/override grant invented or seeded",
+      "routes": [
+        "app/api/ediel/network-registry-sources/[artifactId]/review/route.ts",
+        "app/api/ediel/network-registry-sources/[artifactId]/revoke/route.ts"
+      ]
+    },
+    {
+      "key": "ediel.regulated_supply.review",
+      "source": "supabase/migrations/20261001004331_ediel_regulated_supply_ground_archive_review.sql",
+      "source_sha256": "3be008d4711b571ebf3ce256646fac088767b865a9501229fc1d4fa061efbbb0",
+      "status": "Real canonical definition absent actual native; source-owned registration required, no role/user/override grant invented or seeded",
+      "routes": [
+        "app/api/ediel/regulated-supply-sources/[artifactId]/review/route.ts"
+      ]
+    },
+    {
+      "key": "ediel.supply_rescission.review",
+      "source": "supabase/migrations/20261001093425_ediel_national_supply_rescission_archived_mandate.sql",
+      "source_sha256": "c9537ffb88a91b77231e9c4925d694e0164e88993e3daf5dde7c42e2b685f5fa",
+      "status": "Real canonical definition absent actual native; source-owned registration required, no role/user/override grant invented or seeded",
+      "routes": [
+        "app/api/ediel/supply-rescission-sources/[artifactId]/review/route.ts"
+      ]
+    }
+  ],
+  "status": "Four proven code typo aliases fixed across12calls/11files. No unresolved route requirements. Seven genuine source-defined catalog keys remain absent native until root explicit registration. Do not call all routes green while these are absent.",
+  "public_contract": "Internal Admin route guard keys only; public/frozen API wire fields and tenant documentation versions unchanged.",
+  "catalog_forward": {
+    "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/admin-api-seven-permission-catalog-forward.sql",
+    "sha256": "2ce4e07ee2dee8ffb352e0e387092e7eb8a9bc6802723d408b40b9e0671e4519",
+    "native_status": "Prepared; root controls actual installation. Supersedes OPS69 closed-world prototype5d9. Portable across empty and additional canonical keys; preserves every existing catalog row/full UUID/attributes/disabled flags and role assignments.",
+    "independent_review": "Both noncoauthor peers approved exact2ce4 delta.",
+    "isolated_compile": "Network-none PG17.6 actual-shaped clones:69→76, empty0→7, additional disabled canonical retentionkey70→77; exact replay and existing disabledcommunication.write preserved; OID/owner/ACL/RLS/assignments unchanged.",
+    "receipt": "/tmp/gridex-api-review/seven-catalog-portable-isolated-compile-receipt.json"
+  }
+}

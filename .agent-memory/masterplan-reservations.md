@@ -1,35 +1,54 @@
 # Reservationer — aktuell receiptbunden custody
 
-Epoch: `gridex-five-agent-20261012`. [Owner STOP](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6122223028) och [205verifierade adminreleases](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6122307591) ersätter oldowner-onlyhandoff-waits endast för den utförda reseten. Alla framtida nya reservations-/releaseoperationer följer samma kvittobundna protokoll. Nya kvitton endast[#766](https://github.com/heke99/gridex-ops-platform/issues/766).
+Epoch: `gridex-five-agent-20261012`. Faktisk main, frysta krav/coverage, [aktuell start](masterplan-current-start.md) och senaste relevanta [#766](https://github.com/heke99/gridex-ops-platform/issues/766) styr. [Owner STOP](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6122223028) och [verifierad reset](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6122307591) är utförd historik, inte rätt att återclaima gamla resurser.
 
 ## Ny start
 
-Läs [masterplan-current-start.md](masterplan-current-start.md), faktisk main/frysta krav/ledger/donorhead, senaste [#766](https://github.com/heke99/gridex-ops-platform/issues/766) och aktuella refs. Baslinje/transition är historik. Befintliga slots, filrefs och producenter återclaimas inte från en äldre prompt; ny skrivscope kräver uttrycklig avgränsad överlämning. Nya agenter behöver inte kontakta gamla ägare. Slotlistan ger ingen technicalclaim. En existerande ny ref är upptagen; konflikter inom nyepok avstäms innanwrite. Ett sent gammaltkvitto dokumenteras som resetkonflikt och får inte forceoverwrites.
+Verifiera aktuella PR-heads och autentiserade exakta ID-/fil-/relevanta producentrefs. Gamla prompts, slotnamn, tystnad, ålder och repo-/auth-404 ger inget ägarskap. Följ [workflow](masterplan-agent-workflow.md) för bevis, granskning och leverans. Read-only review behöver ingen implementationclaim.
+
+## Modellneutralt deltagande
+
+Claude, Codex och andra behöriga agenter har samma claimväg inom aktuellt användarmandat. Agentnamn och branchprefix är identiteter, inte behörighetslistor. `CLAUDE.md` läser samma `AGENTS.md`.
+
+- **Ledig scope:** välj ännu ej VERIFIED/PASSED ID och verifierat lediga berörda resurser efter läsning av senaste #766, öppna PR:er och kopplade handoffs. Ingen tidigare ägares handoff behövs när ingen ägare finns. En saknad ID-ref räcker inte ensam.
+- **Aktivt ägd scope:** positiv bounded exact-ID/file/source/output-handoff, paus för tidigare skrivare inom exakt scope och egen verifierad custody krävs före write. Eventuellt separat FIRSTWRITE_GO i handoffen ska vara givet. Ingen force-overwrite eller samtidig write i annans workspace.
+- **Ny session:** använd unik `session-<packetUUID>` och `slot-session-<packetUUID>` i samma epoch/namespace. Upptagna R1/R2/C1/C2/C3 blockerar inte nya unika sessioner och är inga automatiskt lediga uppdrag. Sessionen ersätter inte ID-/fil-/producent-/rollås.
 
 ## Atomic masterplan-reservation-v1
 
-1. Uniqueagent/session, packetUUID, nybranch, owncheckpoint, actualmainSHA, exactIDs/exactUTF8POSIXrelativefiles och nextAction. ReceiptJSON anger protocol,packet,agent,branch,checkpoint,ids,files,base,createdAt,nextAction samt **epoch och slot**.
-2. POSTgit/commits med actualmain's exacttree och enparentmain; JSONmessage ovan. No change påmain. Spara receiptSHA.
-3. Resurser ligger under `refs/tags/agent-claims/masterplan/`: `slot-R1`/`slot-R2`/`slot-C1`/`slot-C2`/`slot-C3`, `id-<ID>`, `file-<sha256>` och relevant `producer-*`. Filhash är SHA256 av exactUTF8POSIXpath utannewline. Expandera directories; Coverage använder IDlocks, ownedrows-only och serialmergereconciliation.
-4. Sorteraresurser; POSTgit/refs CREATE_IF_ABSENT medreceiptSHA. Existingref occupied; neverforce/update. Ambiguousresponse kräverexactGET. På conflict rollbackas bara egna acquiredref medmatchedreceipt; partialacquisition ger ingen clearance. AdditionalIDs/files/producer ska acquired förewrite/push som aktiverar producent.
-5. GETalla resurser och kräv exactreceiptSHA. CLAIM/#766 binder agent/epoch/slot/packet/branch/IDs/files/resources/receipt/checkpoint/next och readback. Kod först efterfullverification. Ownuniquecheckpoint behöver ingen sharedfilelock.
+För NYA fria sourceclaims används det gemensamma verktyget `.agents/tools/masterplan-claim.py`. Det reserverar endast exakta ID:n/filer och en egen unik session. Det gör inga source-/branchändringar, roll-/producentacquires, releases eller meddelanden. Bedöm först kopplat ägarskap enligt ovan; CLI:s GET404 är en kollisionskontroll.
+
+Skapa en privat planmall och fyll i verklig mainSHA/treeSHA, egen ren worktree/branch, exakt sorterade IDs/filer, faktisk GitHub-login och redan givet lokalt användarmandat med filhash:
+
+```text
+python3 .agents/tools/masterplan-claim.py --example-plan > /tmp/egen-plan.json
+python3 .agents/tools/masterplan-claim.py --plan /tmp/egen-plan.json
+```
+
+Plan, mandat, checkpoint och journal hålls LOKALT utanför alla Git-worktrees. Mallens platshållare måste ersättas; `ids: []` gäller paket utan regeltilldelning. Bevara genererat packet/session och journalnamnet `<packetUUID>.claim-journal.json`. Första kommandot skapar bara en mall; andra gör lokal validering utan API-anrop. Använd den exakta planhash som valideringen skriver ut:
+
+```text
+python3 .agents/tools/masterplan-claim.py --plan /tmp/egen-plan.json --journal /tmp/<packetUUID>.claim-journal.json --expect-plan-sha256 <planSHA256> --execute
+```
+
+Verktyget autentiserar aktör/repo/main/tree, skapar ett neutralt receipt på samma main-tree med ensam main-parent och gör sorted CREATE_IF_ABSENT + GET_MATCH för HELA egna resurssetet. Filrefs är `file-<sha256>` av exakt UTF-8 POSIX-path utan newline; inga katalog-, symlink- eller `..`-claims. Orelaterade samtidiga CREATEs tolereras. Upptagen resurs, drift, delvis förvärv eller tvetydigt svar stoppar utan skrivrätt och utan automatisk mutation-retry/rollback. Behåll journalen; använd inte ny journalpath/packet för att återköra ett oklart utfall. En trasig befintlig journal kräver avstämning och ger ingen omkörningsrätt.
+
+Publik Gitreceipt-JSON innehåller ENDAST `{base, files, operation}`. `operation` binder SHA256 av exakt sorterade publika resursrefs inklusive unik session, så separata paket får distinkta receipts. Full `masterplan-reservation-v1`-identitet, mandat, branch, checkpoint, proxydelegation och körjournal stannar lokalt. Exportera inga privata värden eller credentials. CLI skickar inga #766-kommentarer; en uttryckligen auktoriserad kvittens hålls teknisk/publiceringssäker med scope, receipt och autentiserad ref-readback.
+
+**Befintliga maskinbindningar:** `staff-api-schema-capture.yml`, `ediel-db05-native.yml` och `ediel-z02-supplier-native.yml` behåller sina egna exakta legacyreceipts, refs och mandat. Source-only-formatet ersätter inte deras full-v1-producentbindningar. Det [äldre femstegsförfarandet](https://github.com/heke99/gridex-ops-platform/blob/ae25d6d3144fe9828bc00f51af43e607dc76d370/.agent-memory/masterplan-reservations.md#atomic-masterplan-reservation-v1) är referens för dessa redan särskilt bundna kedjor, inte en parallell ny sourceclaimväg.
 
 ## Producenter och helpers
 
-BaslinjeJSON producerSlots listar producer-z01/z02/z03/cancellation,esco/z10m/utilts/gen,h/fg/brp,db05,tr08/ops04. En producent/källa/inputepoch i taget; automatisknative/capture påpush måste redan vara scoped. Producerref hålls tills faktisk körning/insamling är terminal och qualified eller avslutad med checkpoint, sedan receiptmatchingrelease före ny producent.
+En skrivare per fil och en producent per källa/inputepoch. Sourcecustody aktiverar inte native/GEN/backend/LIVE, producent-/mergeroll eller VERIFIED/PASSED. Producentref hålls tills faktisk körning/insamling är terminal och qualified eller avslutad med checkpoint; receiptmatchingrelease föregår ny producent. Befintlig GEN-service enligt senaste verifierade handoff sköter delad schema/types/manifest seriellt. Gamla slotnamn utser ingen ny producent. Oförändrat bevis återanvänds endast med verifierad applicability.
 
-Befintlig enligt senaste verifierade handoff GEN-ägare är enda delade GEN-service; historiskt C2-slot utser ingen ny producent: fem exactpaths från baselineJSON, producer-gen, en källunion/capture/import åtgången. Nya canonical inputepoch/checksum/replay/appliedhistory gäller; source-bound gamla outputs återanvänds bara efterfullapplicability. GENmedförfattare är inte slutgranskare för egna output.
-
-Extrahelpers får granskning med läsbehörighet utan implementationclaim. Rättning i en annans fil kräver nyepochexactfilehandoff medsource/output och paus av föregående skrivare; oldagentkontakt krävs inte. Två slutgranskare som inte medförfattat; read-onlyhelpers kan komplettera reviewerantalet.
+Helpers kan granska read-only. Ändring i annans scope kräver exact filhandoff och paus; en medförfattare ersätts som slutgranskare. Frysta krav, verkliga negativa effekter och två oberoende slutgranskningar enligt workflow kvarstår.
 
 ## Proxy vid401/403 och release
 
-En behörig proxy kan utföra GitDataförfarandet för en NY ägares publicerade exakta claimbehov när dennes lokala gh ger401 eller refproxy403. receipt.agent är samma nya Claude-/Codexägare, delegatedBy anger proxy, epoch/slot/packet/branch/checkpoint/base/exactscope och nästa steg binds. Samma sortedcreate-if-absent/GET_MATCH/CLAIM; verifiera även slotens aktuella ägarbindning före en fileextension. Om ett giltigt originalreceipt redan finns får proxy spegla exakt det SHA:t med delegationen i körkvittot; annars skapas ett nytt giltigt GitDatareceipt. En lokal commit som ger remote404 kan inte vara refmål. Inga gamla mandates/ref-identiteter återupptas; credentials överförs eller printas inte.
+Använd egen behörig GitHub-åtkomst. Vid lokal gh401/refproxy403 får behörig proxy utföra exakt samma lokalt bundna sourceplan; ägaren gör egen autentiserad receipt-/ref-readback före write. Full privat ägar-/delegationsbindning stannar lokalt. Dela inga tokens och kringgå inget nekat innehålls-/publiceringsbeslut. För befintliga legacykedjor gäller deras redan särskilt bundna protokoll. En lokal commit med remote404 kan inte vara refmål. Kommentar utan ref är ingen claim; [tidigare åtkomstkvitton](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6125010625) ger ingen ny tilldelning.
 
-Ägaren verifierar proxykvittot och faktiska refs genom tillgänglig autentiserad läsning, även om lokal gh fortfarande saknar åtkomst. Bara det exactverifiedscope kan då fortsätta; nya files/IDs/producers kräver ytterligare verifiedrefs före första write, även lokalt. En kommentar utan ref eller ett framtida tilldelat slot-ID är ingen claim. [R1/R2/C2åtkomstkvitto](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6125010625) och [C2:s tillagda två filer](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6125274908) är utförda operationer, inte tillstånd att claima om samma resurser eller retroaktivt godkänna tidigare unreservedwrites.
+Om ägarens lokala plan inte kan verifieras i proxymiljön får proxyn inom redan givet exakt mandat skapa ett eget nytt källpaket på egen ren aktuell main/tree, med ny UUID/session och lokal mandatbindning, enligt samma officiella claimväg ovan. Det oanvända ägarförsöket pausas uttryckligen; oklara journalutfall avstäms först. Ägarens gamla plan/UUID/journal återanvänds inte. Efter verifierad claim ges separat framåtriktad exact-file-handoff med en skrivare. Den faktiska skrivaren verifierar själv kvittot och HELA målsetet (filer/ID och unik session) till samma receipt och lämnar ALL-target-ACK före write. Befintlig FIRSTWRITE_GO och producent-/roll-/publiceringsgräns kvarstår.
 
-role-memory och role-merge är singleatomicresources med ownreceipts. Gemensamt minne kräver role-memory+exactfiles. Acquire role-merge efter currentheadmandatorygates/twopeerreviews/relevantproof, refreshactualmain/head/ledger och normalexpected-headmerge. Verifyactualdelivery. Release mergeroleFIRST före memory/resourcecleanup; håll aldrig båda roller medan du väntar på den andra.
+Gemensamt minne kräver egen role-memory + exactfiles; håll rollen kort. Normal expected-head-merge kräver aktuell relevant proof, mandatory gates, två applicable reviews och egen role-merge. Verifiera faktisk leverans och släpp mergerollen FÖRST före minnes-/resurscleanup; håll aldrig båda roller medan du väntar på den andra.
 
-GETownedref, kräv exakt originalreceiptSHA, DELETEbara match och verifieraabsence. Ambiguousfail staysunresolved. Proxyrelease behöver nyaownerns exakta request. Helpers/nyaslotägare överlåter bara documentedboundedresources; ingen futureglobalunlock, silentexpiry ellerforeignbranchcleanup.
-
-Originalauthority och tidigare receipts ligger i [Git-historik](https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-reservations.md). Gamla205claims är redan administrativt avslutade; deras historiska producer-/owner-waittext är inte en ny startgrind.
+Release: GETownedref, kräv exakt ursprungligt eget receiptSHA, DELETE endast match och verifiera autentiserad absence. Tvetydigt utfall förblir olöst. Proxyrelease kräver exakta ägarens request eller ett separat uttryckligt bounded adminmandat. Ingen silentexpiry, generell foreignunlock eller foreignbranchcleanup. Coverage använder egna ID-rader och seriell reconciliation; ingen approval från adminstädning. Pensionerade agenter eller pausade automationer/#310 återupptas inte.

@@ -1,6 +1,6 @@
 // masterplan: DB-04
 // ACK original reads must not visit the tenant's whole ACK history. Before
-// 20261016013000 read_outbound_originals_v1 read every outbound ACK of the
+// 20261020120200 read_outbound_originals_v1 read every outbound ACK of the
 // tenant to evaluate its five-way OR (~23 us each; ~100k ACKs reached the 8 s
 // statement timeout). Candidates now come from indexed branches. The test
 // counts the ediel_messages tuples the read actually touches, which is

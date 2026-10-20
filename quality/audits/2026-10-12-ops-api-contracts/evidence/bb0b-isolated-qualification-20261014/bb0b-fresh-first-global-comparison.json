@@ -1,0 +1,20 @@
+{
+  "status": "PASS",
+  "mode": "source",
+  "exact_equal": false,
+  "before_sha256": "893780843e06da942e452bb734c79a5bd1e82fd0f6fb82c892c6c72242d6970b",
+  "after_sha256": "2ad5c0481786dc2c30ce5c0f91ba31fc59dca75237dc6b7934db7f9d3fd56cc7",
+  "errors": [],
+  "source_limit": "Source mode closes exact original76 row/subset preservation and source-derived23newpermission fields/defaults/generated UUID-now provenance, zero newrecordclasses, nativePRODAT predecessor hashes and original51source consumption; all-eight inline source postconditions remain required.",
+  "closed_global_source_proof": {
+    "original_permission_subset_md5": "4f1cdf127508b28e7a07fa0c5f218bcf",
+    "new_counts": {
+      "permissions": 23,
+      "record_class_catalog": 0
+    },
+    "generated_now_instants": [
+      "2026-10-14T09:45:35.287699+00:00"
+    ],
+    "literal_source_sha256": "c11997abcc9ed915954cf43eff9ed23a86e0ec3786a9059bfb025d8a042fa1c7"
+  }
+}

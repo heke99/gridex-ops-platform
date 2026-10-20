@@ -1,0 +1,41 @@
+{
+  "scope": "Explicit OPS-only append-only metadata population, separate from portable clean migration replay",
+  "project": "piidsfebjqjmnepdpnas",
+  "executed_source": "release-proposals/ops-provenance-population.sql",
+  "sql_sha256": "542c307bc275fcb0c5d1bae205fb7cfe2f5ffe2ccfd81b26a373a875025788b5",
+  "independent_noncoauthor_reviews": [
+    "final_api_source_review",
+    "native_forward_independent_review"
+  ],
+  "strict_preflight": "All 13 source/native byte input pairs, first new migration's bounded native semantic attributes and original/current portfolio Git lineage; no old checksum or ledger row overwritten",
+  "actual_postflight": {
+    "checked_at": "2026-10-13 09:09:04.118329+00",
+    "checked_role": "service_role",
+    "provenance": {
+      "receipt_count": 14,
+      "ledger_version_count": 419,
+      "latest_ledger_version": "20261013084535",
+      "lineage_receipt_count": 1,
+      "exact_input_receipt_count": 13,
+      "canonical_governance_blockers": [
+        "MIGRATION_LEDGER_UNMAPPED_VERSION"
+      ],
+      "canonical_governance_is_ready": false,
+      "effect_not_assessed_receipt_count": 13,
+      "canonical_unmapped_ledger_versions": 385,
+      "changed_bounded_schema_receipt_count": 0,
+      "current_bounded_schema_receipt_count": 1,
+      "ledger_versions_without_exact_input_receipt": 406,
+      "full_history_and_effect_qualification_claimed": false
+    }
+  },
+  "business_mutations": 0,
+  "provider_calls": 0,
+  "canonical_gen": 0,
+  "qualifications": [
+    "13 exact input receipts and one historical source-lineage receipt",
+    "Only first forward migration has bounded catalog effect verification",
+    "Old 38 canonical manifest rows unchanged; strict governance remains false due unmapped historic versions",
+    "This is not 13 complete business lifecycles or full ledger effect qualification"
+  ]
+}

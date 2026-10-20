@@ -1,0 +1,192 @@
+{
+  "schema": "ops_api_exact_sql_byte_transport_compile_v2",
+  "status": "B3_TWO_INDEPENDENT_PEERS_APPROVED_NOT_NATIVE_APPLIED",
+  "source_sha256": "bacf8944718c984d117f0400ed19fadd978feed6613ea9196784eff4591ac600",
+  "manifest_sha256": "33e08baac99ab01e62f43020402b9fe7747277b597e93643b64b7df0f5a66b4f",
+  "compile_logs": [
+    {
+      "path": "/tmp/gridex-api-review/native-additive-b3-final-staged-partial-upgrade.log",
+      "sha256": "2db7315debb0ed5a3ba5017ea8251ddd80e8855df50b3a2d2b2d098903812599",
+      "commit_count": 53,
+      "last_transaction_command": "COMMIT",
+      "error": false
+    },
+    {
+      "path": "/tmp/gridex-api-review/native-additive-b3-final-staged-partial-replay.log",
+      "sha256": "8b85fe23f282f8e81af2fe93b2fef6fcdf0ffb82d33e17c54c33daf4ef3db5e1",
+      "commit_count": 53,
+      "last_transaction_command": "COMMIT",
+      "error": false
+    },
+    {
+      "path": "/tmp/gridex-api-review/native-additive-b3-final-staged-current-complete.log",
+      "sha256": "8b85fe23f282f8e81af2fe93b2fef6fcdf0ffb82d33e17c54c33daf4ef3db5e1",
+      "commit_count": 53,
+      "last_transaction_command": "COMMIT",
+      "error": false
+    },
+    {
+      "path": "/tmp/gridex-api-review/native-additive-b3-final-staged-source-complete.log",
+      "sha256": "8b85fe23f282f8e81af2fe93b2fef6fcdf0ffb82d33e17c54c33daf4ef3db5e1",
+      "commit_count": 53,
+      "last_transaction_command": "COMMIT",
+      "error": false
+    },
+    {
+      "path": "/tmp/gridex-api-review/native-additive-b3-final-staged-all-strong-replay.log",
+      "sha256": "9f7911b3e7949d16f0d55a74b1f0c9a6170ee9acbe951fde1c105eab41e7875b",
+      "commit_count": 53,
+      "last_transaction_command": "COMMIT",
+      "error": false
+    }
+  ],
+  "business_function_invocations": false,
+  "business_rows_copied": false,
+  "GEN": false,
+  "native_writes": false,
+  "qualified_scope": "Exact empty actual-shaped partial upgrade, source-compatible module fixture with independent catalog UUIDs, current-complete and all approved stronger semantic forwards; not full historical clean-replay/E2E proof.",
+  "module_create_functions": 1205,
+  "source_business_body_repairs": 4,
+  "other_create_function_asts_unchanged": 1201,
+  "strong_replay_preservation": {
+    "functions": 1593,
+    "relations": 3552,
+    "policies": 1827,
+    "columns": 15924,
+    "defaults": 2584,
+    "exact_catalog_rows_equal": true
+  },
+  "helper_metadata_guards": "All knownweak/knownstrong four extra pg_proc attributes qualified before recognition; weak repairs retain entire pg_proc minus prosrc.",
+  "helper_negative_proofs": [
+    {
+      "kind": "cost",
+      "log": "/tmp/gridex-api-review/native-additive-b3-qualified-cost-refusal.log"
+    },
+    {
+      "kind": "support",
+      "log": "/tmp/gridex-api-review/native-additive-b3-qualified-support-refusal.log"
+    },
+    {
+      "kind": "cost",
+      "log": "/tmp/gridex-api-review/native-additive-b3-qualified-strong-cost-refusal.log"
+    },
+    {
+      "kind": "support",
+      "log": "/tmp/gridex-api-review/native-additive-b3-qualified-strong-support-refusal.log"
+    }
+  ],
+  "first_native_order_receipt": "/tmp/gridex-api-review/native-additive-b3-first-order-pipeline-receipt.json",
+  "first_order_qualification": "Inner OPS branch and all semantic CREATE bodies byte-identical across a127\u2192554\u2192bacf; final delivery guards hardened, genuine final staged initial install+replay separately compiled.",
+  "transport_negative_and_replay_proofs": [
+    {
+      "phase": "missing-clone",
+      "exit_code": 0,
+      "expected": 0,
+      "log": "/tmp/gridex-api-review/native-additive-b3-final-staged-negative-missing-clone.log",
+      "log_sha256": "691e4b64d448c6cffd680247056c2f445e4fbf2dcbc9be821934064e906d1ce7"
+    },
+    {
+      "phase": "missing-bootstrap",
+      "exit_code": 0,
+      "expected": 0,
+      "log": "/tmp/gridex-api-review/native-additive-b3-final-staged-negative-missing-bootstrap.log",
+      "log_sha256": "0c056796275b4524883d89f4ea09f430b2124627fd86c2d4bef86ff65146d78e"
+    },
+    {
+      "phase": "missing-refusal",
+      "exit_code": 3,
+      "expected": 3,
+      "log": "/tmp/gridex-api-review/native-additive-b3-final-staged-negative-missing-refusal.log",
+      "log_sha256": "d725dcc838d4f4a8bb35cff292c596aad366566a0f5c334a75a69e6dfeda1869"
+    },
+    {
+      "phase": "corrupt-clone",
+      "exit_code": 0,
+      "expected": 0,
+      "log": "/tmp/gridex-api-review/native-additive-b3-final-staged-negative-corrupt-clone.log",
+      "log_sha256": "691e4b64d448c6cffd680247056c2f445e4fbf2dcbc9be821934064e906d1ce7"
+    },
+    {
+      "phase": "corrupt-bootstrap",
+      "exit_code": 0,
+      "expected": 0,
+      "log": "/tmp/gridex-api-review/native-additive-b3-final-staged-negative-corrupt-bootstrap.log",
+      "log_sha256": "0c056796275b4524883d89f4ea09f430b2124627fd86c2d4bef86ff65146d78e"
+    },
+    {
+      "phase": "corrupt-parts",
+      "exit_code": 0,
+      "expected": 0,
+      "log": "/tmp/gridex-api-review/native-additive-b3-final-staged-negative-corrupt-parts.log",
+      "log_sha256": "d88907c57f8b8f6d61732cd681fc1b3b3f1b3539b0623612433d3c6b636978c4"
+    },
+    {
+      "phase": "corrupt-byte",
+      "exit_code": 0,
+      "expected": 0,
+      "log": "/tmp/gridex-api-review/native-additive-b3-final-staged-negative-corrupt-byte.log",
+      "log_sha256": "f6657a32f2006e23f508c8f6a079ff930462fe497f786b05d96611c0e573f0f6"
+    },
+    {
+      "phase": "corrupt-refusal",
+      "exit_code": 3,
+      "expected": 3,
+      "log": "/tmp/gridex-api-review/native-additive-b3-final-staged-negative-corrupt-refusal.log",
+      "log_sha256": "ae90522b335a9f966aec844a002c7827107a586e2babb164602cc86c172dcc9c"
+    },
+    {
+      "phase": "unknown-clone",
+      "exit_code": 0,
+      "expected": 0,
+      "log": "/tmp/gridex-api-review/native-additive-b3-final-staged-negative-unknown-clone.log",
+      "log_sha256": "691e4b64d448c6cffd680247056c2f445e4fbf2dcbc9be821934064e906d1ce7"
+    },
+    {
+      "phase": "unknown-bootstrap",
+      "exit_code": 0,
+      "expected": 0,
+      "log": "/tmp/gridex-api-review/native-additive-b3-final-staged-negative-unknown-bootstrap.log",
+      "log_sha256": "0c056796275b4524883d89f4ea09f430b2124627fd86c2d4bef86ff65146d78e"
+    },
+    {
+      "phase": "unknown-extra-column",
+      "exit_code": 0,
+      "expected": 0,
+      "log": "/tmp/gridex-api-review/native-additive-b3-final-staged-negative-unknown-extra-column.log",
+      "log_sha256": "2f3ea809dd6ab08b3759423ecc8eed3099bc85e680461ed0321c3bf9dfa0fe78"
+    },
+    {
+      "phase": "unknown-refusal",
+      "exit_code": 3,
+      "expected": 3,
+      "log": "/tmp/gridex-api-review/native-additive-b3-final-staged-negative-unknown-refusal.log",
+      "log_sha256": "9668940924c04e1c2c18d05efd86cc8bac5bdcc387f4ed8c813c0de1fc1859d3"
+    },
+    {
+      "phase": "same-part-first",
+      "exit_code": 0,
+      "expected": 0,
+      "log": "/tmp/gridex-api-review/native-additive-b3-final-staged-negative-same-part-first.log",
+      "log_sha256": "0c056796275b4524883d89f4ea09f430b2124627fd86c2d4bef86ff65146d78e"
+    },
+    {
+      "phase": "same-part-replay",
+      "exit_code": 0,
+      "expected": 0,
+      "log": "/tmp/gridex-api-review/native-additive-b3-final-staged-negative-same-part-replay.log",
+      "log_sha256": "0c056796275b4524883d89f4ea09f430b2124627fd86c2d4bef86ff65146d78e"
+    }
+  ],
+  "independent_reviews": [
+    {
+      "agent": "final_api_source_review",
+      "source_sha256": "bacf8944718c984d117f0400ed19fadd978feed6613ea9196784eff4591ac600",
+      "scope": "bounded source/security/portable and exact byte transport"
+    },
+    {
+      "agent": "native_forward_independent_review",
+      "source_sha256": "bacf8944718c984d117f0400ed19fadd978feed6613ea9196784eff4591ac600",
+      "scope": "independent source/composition/native catalog and exact byte transport"
+    }
+  ]
+}

@@ -1,0 +1,158 @@
+{
+  "status": "NEW_PRIVATE_PROPOSAL_NOT_REVIEWED_NOT_APPLIED",
+  "components": [
+    {
+      "order": 1,
+      "path": "/tmp/gridex-api-rebuild-20261014/main-proposal/auth-free-main-envelope.sql",
+      "bytes": 225576,
+      "sha256": "dfaa98279ab7186f420570f972c3863d18ac48838f3676e6abe991ac6ebfb9b0",
+      "executable_sha256": "9b4ad2963ff5af29bd1e98e92588b0d939741289bc2110600bdc05398edab6cb",
+      "transaction_tokens_removed": [
+        {
+          "start_byte": 69,
+          "end_byte": 75,
+          "deleted": "BEGIN;"
+        },
+        {
+          "start_byte": 225568,
+          "end_byte": 225575,
+          "deleted": "COMMIT;"
+        }
+      ]
+    },
+    {
+      "order": 2,
+      "path": "/tmp/gridex-ops-final/quality/audits/2026-10-12-ops-api-contracts/release-proposals/variant-part1-forward.sql",
+      "bytes": 251146,
+      "sha256": "d821d77e00f5dbb25d599e339bc3d36cfd73b78133e2d2f36e29b56557420ff7",
+      "executable_sha256": "f24da46fb264037c9fa3858bd2e7e0ddd3a9cd885bb070328351baa93a942b67",
+      "transaction_tokens_removed": [
+        {
+          "start_byte": 481,
+          "end_byte": 487,
+          "deleted": "BEGIN;"
+        },
+        {
+          "start_byte": 251138,
+          "end_byte": 251145,
+          "deleted": "COMMIT;"
+        }
+      ]
+    },
+    {
+      "order": 3,
+      "path": "/tmp/gridex-ops-final/quality/audits/2026-10-12-ops-api-contracts/release-proposals/variant-part2-forward.sql",
+      "bytes": 104955,
+      "sha256": "edcd6154285a0f960ecf3599e34e2e961a2075531434c7ae8e139e42b3e74858",
+      "executable_sha256": "7e2c14f653e8d282ec4678b870a58306165948131fc4f9e55a465567a05f8ab7",
+      "transaction_tokens_removed": [
+        {
+          "start_byte": 248,
+          "end_byte": 254,
+          "deleted": "BEGIN;"
+        },
+        {
+          "start_byte": 104947,
+          "end_byte": 104954,
+          "deleted": "COMMIT;"
+        }
+      ]
+    },
+    {
+      "order": 4,
+      "path": "/tmp/gridex-api-rebuild-20261014/main-proposal/derived-z02-strong-record-prerequisite.sql",
+      "bytes": 83709,
+      "sha256": "72793f458dac5407b7654aa577e31b7a4fbee72ba57f8c88bc64e78896c5032d",
+      "executable_sha256": "491578af2077004257e3e9018134f343e8a32cad50f34f372bdd4a1c77b2797c",
+      "transaction_tokens_removed": [
+        {
+          "start_byte": 394,
+          "end_byte": 400,
+          "deleted": "BEGIN;"
+        },
+        {
+          "start_byte": 83701,
+          "end_byte": 83708,
+          "deleted": "COMMIT;"
+        }
+      ]
+    },
+    {
+      "order": 5,
+      "path": "/tmp/gridex-ops-final/quality/audits/2026-10-12-ops-api-contracts/release-proposals/variant-existing-trigger-forward.sql",
+      "bytes": 118932,
+      "sha256": "5feebfef8c7935867b6846b1c841ca15b46ccab284474c0912406614ddd5535a",
+      "executable_sha256": "dc51c66c19e05dbc7ffbef2fa021c2e15e3d8ee03aa1d3954c95d40cd5a19f71",
+      "transaction_tokens_removed": [
+        {
+          "start_byte": 344,
+          "end_byte": 350,
+          "deleted": "BEGIN;"
+        },
+        {
+          "start_byte": 118924,
+          "end_byte": 118931,
+          "deleted": "COMMIT;"
+        }
+      ]
+    },
+    {
+      "order": 6,
+      "path": "/tmp/gridex-api-rebuild-20261014/main-proposal/derived-qualified-retention-install-pg-namespace-usage.sql",
+      "bytes": 94509,
+      "sha256": "334dedfdd68a3f64edeb17ef35021957e5acc4fd0b8be63569cec0e48ef5a2ac",
+      "executable_sha256": "b27be339afed2d12b396588e14a16aef99bb56df7ab48a2c5c1a9aad7f72c124",
+      "transaction_tokens_removed": [
+        {
+          "start_byte": 240,
+          "end_byte": 246,
+          "deleted": "BEGIN;"
+        },
+        {
+          "start_byte": 94501,
+          "end_byte": 94508,
+          "deleted": "COMMIT;"
+        }
+      ]
+    },
+    {
+      "order": 7,
+      "path": "/tmp/gridex-api-rebuild-20261014/finance-proposal/five-adapters-four-target-guards-qualified-runtime-envelope.sql",
+      "bytes": 62351,
+      "sha256": "7533f26a72226ab9d0c80cf3e4cea0fda0b0709d8398678a4a0bcb28f1efd533",
+      "executable_sha256": "7533f26a72226ab9d0c80cf3e4cea0fda0b0709d8398678a4a0bcb28f1efd533",
+      "transaction_tokens_removed": []
+    },
+    {
+      "order": 8,
+      "path": "/tmp/gridex-ops-final/quality/audits/2026-10-12-ops-api-contracts/release-proposals/semantic-forward-metadata-integrity.sql",
+      "bytes": 23828,
+      "sha256": "5aa1fd4fc45a85819b683dff4756d97ad3c3387e9e2d9bd1a9424b63ebb9d4c9",
+      "executable_sha256": "7e69a2260658c8bd90f09d2668397761fd2821b036ce6de09c600468bf272f01",
+      "transaction_tokens_removed": [
+        {
+          "start_byte": 320,
+          "end_byte": 326,
+          "deleted": "BEGIN;"
+        },
+        {
+          "start_byte": 23820,
+          "end_byte": 23827,
+          "deleted": "COMMIT;"
+        }
+      ]
+    }
+  ],
+  "atomic_sha256": "bb0bd0cedeabc3ba40872eae8cead8b6a8a9ff298c567baa324a1b4044045b04",
+  "atomic_bytes": 966553,
+  "outer_transactions": 1,
+  "stripping": "Only BEGIN/COMMIT keyword and semicolon token byte spans; complete other ASTs and comments preserved.",
+  "native_apply_performed": false,
+  "separate_semantic_child_ledger_entries_claimed": false,
+  "original_z02_sha256": "1e6af520f4946864bd3626fc5e4fc9b711380df1dce2875a649da788aadce448",
+  "derived_z02_sha256": "72793f458dac5407b7654aa577e31b7a4fbee72ba57f8c88bc64e78896c5032d",
+  "z02_body_pins_changed": 1,
+  "z02_full_abi_guard_added": true,
+  "active_signing_full_pg_proc_row_preserved_across_all_eight_inputs": true,
+  "outer_temporary_metadata_only_snapshot": true
+}

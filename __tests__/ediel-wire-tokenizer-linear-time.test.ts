@@ -9,7 +9,7 @@ import { energyHandoffMessage, observationHandoffMessage } from './helpers/utilt
 import { ownerSource } from './helpers/sourceOwnerFixtures'
 
 const schema = readFileSync('supabase/schema.sql', 'utf8')
-const forward = readFileSync('supabase/migrations/20261015130000_ediel_wire_tokenizer_linear_time.sql', 'utf8')
+const forward = readFileSync('supabase/migrations/20261020120000_ediel_wire_tokenizer_linear_time.sql', 'utf8')
 
 function definition(name: string, source = schema) {
   const start = source.indexOf(`CREATE FUNCTION ${name}(`)

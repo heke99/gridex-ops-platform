@@ -1,0 +1,228 @@
+{
+  "checked_at_utc": "2026-10-13T17:13:19.833924+00:00",
+  "scope": "Qualified installer source/proof publication only; actual code/catalog remain authority",
+  "api_docs": {
+    "command": "npm run api:docs",
+    "exit_code": 0,
+    "log_sha256": "967bb010cf4b0afa72b9bf8abd80c13e68cdb050054bba9020ffa3b61f3fc0d3",
+    "checks": 7
+  },
+  "migration_integrity": {
+    "command": "node scripts/check-migration-versions.cjs",
+    "exit_code": 0,
+    "files": 1220,
+    "version_groups": 1123
+  },
+  "production_application_source_changed_since_qualified_9f": false,
+  "new_build_or_business_calls": false,
+  "canonical_schema_sha256": "ced195d0f8af67b8a400ba71c2eca110cbcd639a0dba880d19e7dccff7a14492",
+  "actual_semantic_installation_applied": false,
+  "protected_owner_connection_available": false,
+  "source_hashes": [
+    {
+      "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/cli-created-pending/20261013165404_ops_api_native_reconciliation_privilege_qualified_install.sql",
+      "bytes": 41778,
+      "sha256": "fa0af500fb71a8b4d41a269b58f2ce0879ab6d8d4cd7b35d734d613100b8b53d"
+    },
+    {
+      "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/cli-created-pending/20261013165527_ops_api_retention_privilege_qualified_install.sql",
+      "bytes": 94467,
+      "sha256": "2ff105e0d8f1a9cc9e84fbf7c060a52bf6bdf8d7f9c7e75a843f4bb209fa0425"
+    },
+    {
+      "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/001-protected-auth-schema-usage.sql",
+      "bytes": 5239,
+      "sha256": "904118e7dd28884b2823646ddf219173fe6d4dfee9e13c8f80ba45872f539b69"
+    },
+    {
+      "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/002-protected-auth-users-select-update.sql",
+      "bytes": 5257,
+      "sha256": "5ab3b5a30d9fae806a2b0b8fa7633b69b66e8eeb9b3361783e1a557e989d9ccd"
+    },
+    {
+      "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/003-qualified-atomic-install.sql",
+      "bytes": 41778,
+      "sha256": "fa0af500fb71a8b4d41a269b58f2ce0879ab6d8d4cd7b35d734d613100b8b53d"
+    },
+    {
+      "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/004-qualified-retention-install.sql",
+      "bytes": 94467,
+      "sha256": "2ff105e0d8f1a9cc9e84fbf7c060a52bf6bdf8d7f9c7e75a843f4bb209fa0425"
+    },
+    {
+      "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/README.md",
+      "bytes": 8686,
+      "sha256": "7066742763f000dc3f1fe5cb338aa71c39bd2e81d9918c72a00460773c26d798"
+    },
+    {
+      "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-auth-and-owned-functions-native-metadata.json",
+      "bytes": 3868,
+      "sha256": "e87b8ab6c2ef03fd4cf8e4617eab507f3d42aa9359b83363239276ffd3a24a9f"
+    },
+    {
+      "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-auth-uid-genuine-native-metadata.json",
+      "bytes": 1589,
+      "sha256": "5f2fa29fa351aa8316708725c4c4d1f1e21bf931dd0c827c608d5930ccb54120"
+    },
+    {
+      "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-fa0-after-restaged-replay-snapshot.json",
+      "bytes": 6912,
+      "sha256": "8c2e45708948781202134f8dc2eb65fcf7209456826d272904f9a9a3dbf16720"
+    },
+    {
+      "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-fa0-after-snapshot.json",
+      "bytes": 6912,
+      "sha256": "8c2e45708948781202134f8dc2eb65fcf7209456826d272904f9a9a3dbf16720"
+    },
+    {
+      "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-fa0-auth-prerequisite-negative.log",
+      "bytes": 142,
+      "sha256": "727a2551b91431ade112718e824396751d94c55caaa9141e401236684340be1a"
+    },
+    {
+      "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-fa0-genuine-first.log",
+      "bytes": 1088,
+      "sha256": "308db7a83532073f20d69344c73e023858e78d48cf4b0d7ba79aa7b84e75a9a2"
+    },
+    {
+      "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-fa0-genuine-restaged-replay.log",
+      "bytes": 76,
+      "sha256": "0ce22e7018d2b3f8f3108ae7170444042e9ea0199aa2a381c625a35cef686ed8"
+    },
+    {
+      "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-fa0-negative-qualification.json",
+      "bytes": 1484,
+      "sha256": "d1f7644881dd137384d5056fb82183d907335eacbc49399214cac0875c1ae9d2"
+    },
+    {
+      "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-final-after-main-replay-full-semantic.json",
+      "bytes": 20224,
+      "sha256": "ca8339556030a7d0b182616083782cd26d24da049122fbf59b409e541f4a3e6f"
+    },
+    {
+      "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-final-after-six-main-replay.log",
+      "bytes": 76,
+      "sha256": "0ce22e7018d2b3f8f3108ae7170444042e9ea0199aa2a381c625a35cef686ed8"
+    },
+    {
+      "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-final-after-six-replay-full-semantic.json",
+      "bytes": 20224,
+      "sha256": "ca8339556030a7d0b182616083782cd26d24da049122fbf59b409e541f4a3e6f"
+    },
+    {
+      "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-final-before-main-replay-full-semantic.json",
+      "bytes": 20224,
+      "sha256": "ca8339556030a7d0b182616083782cd26d24da049122fbf59b409e541f4a3e6f"
+    },
+    {
+      "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-final-effective-capabilities.json",
+      "bytes": 856,
+      "sha256": "345aa6051e128a57fabf0f7d9d53a6f443193f3cd396ca3550c4efa115668914"
+    },
+    {
+      "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-final-native-before-caps.json",
+      "bytes": 1041,
+      "sha256": "4b50b21cdcbc2a9e7ee74710e4de71bd749a952befe17b7543ba2226dacbaf15"
+    },
+    {
+      "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-final-owner001-first.log",
+      "bytes": 24,
+      "sha256": "decc8335d90db271fc487d1597becbf719e968add184759bda0e0a9a1bde37b1"
+    },
+    {
+      "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-final-owner001-replay.log",
+      "bytes": 24,
+      "sha256": "decc8335d90db271fc487d1597becbf719e968add184759bda0e0a9a1bde37b1"
+    },
+    {
+      "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-final-owner002-first.log",
+      "bytes": 24,
+      "sha256": "decc8335d90db271fc487d1597becbf719e968add184759bda0e0a9a1bde37b1"
+    },
+    {
+      "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-final-owner002-replay.log",
+      "bytes": 24,
+      "sha256": "decc8335d90db271fc487d1597becbf719e968add184759bda0e0a9a1bde37b1"
+    },
+    {
+      "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-final-pending-sequence-replay-results.json",
+      "bytes": 1257,
+      "sha256": "8010d4e6b4c9cd71b258262f23ee565c1d755be6ac4dd5589f085c8dba259e4e"
+    },
+    {
+      "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-final-pending-sequence-results.json",
+      "bytes": 2302,
+      "sha256": "6c6a1bda30e8ef523a225913ecf3062b74e0e584779e8d74b829412c7bb938d4"
+    },
+    {
+      "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-privilege-qualified-native-metadata.json",
+      "bytes": 6926,
+      "sha256": "5ba237dbf00c5cad39c0079c5e29517a437a379f5566b56725f9275ef8bf120c"
+    },
+    {
+      "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-retention-five-exact-native-baseline.sql",
+      "bytes": 10728,
+      "sha256": "05fb9f18aa3db37eaab80b9cac5e13650b87a6a12bdbdfa5a48d5202a16b69ab"
+    },
+    {
+      "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-retention2ff-after-snapshot.json",
+      "bytes": 6912,
+      "sha256": "8109de46ec14252fea12e6627a84bb19aee278209865688f9d92f56083ef76d0"
+    },
+    {
+      "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-retention2ff-before-snapshot.json",
+      "bytes": 6912,
+      "sha256": "8c2e45708948781202134f8dc2eb65fcf7209456826d272904f9a9a3dbf16720"
+    },
+    {
+      "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-retention2ff-full-after-catalog.json",
+      "bytes": 98277,
+      "sha256": "fba5a753554bfdd78e624887dea0c6dc867dbf39d0a6c6bde834ea0257b54c39"
+    },
+    {
+      "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-retention2ff-full-replay-catalog.json",
+      "bytes": 98277,
+      "sha256": "fba5a753554bfdd78e624887dea0c6dc867dbf39d0a6c6bde834ea0257b54c39"
+    },
+    {
+      "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-retention2ff-negative-qualification.json",
+      "bytes": 1347,
+      "sha256": "3126356e96496e52f16e94abfc14c832f9119738fbc976cbb816cfb50f19ed1a"
+    },
+    {
+      "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-storage-full-authentic-native-acl.json",
+      "bytes": 1780,
+      "sha256": "698287de47eacd41678ccf5950fd4379e5f0af901fbf08fad3a9f256ec1a1983"
+    },
+    {
+      "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-trigger-six-exact-native-legal-acl-baseline.sql",
+      "bytes": 16386,
+      "sha256": "808e0bb10198e8b6beb507013f34b0c7c551d2af9adec9503e46a6b4534f5a6b"
+    },
+    {
+      "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/installer-z02-exact-missing-native-baseline.log",
+      "bytes": 61,
+      "sha256": "9e91c2689fdc26ff2b35c8b0d0bf30778b5dd66974cbd37fcf28fbde613e8ca3"
+    },
+    {
+      "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/evidence/qualified-retention-installer-source-byte-proof.json",
+      "bytes": 1493,
+      "sha256": "583bf74277832d4d66886220662fd7ef8957f1a82bcdfff83b8a0d13663b04db"
+    },
+    {
+      "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/final-actual-capability-block.json",
+      "bytes": 706,
+      "sha256": "d8242a5ad8d94d9fce61ba7dfa110a6546e3327864adf6f1d526dfeff044d2f0"
+    },
+    {
+      "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/manifest.json",
+      "bytes": 3786,
+      "sha256": "c06ceb1d7d2d365f12be4958d731f838635b78d45dd42fc7426d3c0f985afdcd"
+    },
+    {
+      "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/pending-semantic-execution-map.json",
+      "bytes": 3980,
+      "sha256": "07bf220f54c6f3f5219ce801234ccc1557917277483fb2554e1b0caae3c8d449"
+    }
+  ]
+}

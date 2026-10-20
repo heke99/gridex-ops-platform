@@ -133,8 +133,23 @@ jobs:
         env:
           SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
         run: |
+          # CURRENT-owned wrapper scopes the complete original step. OLD replay
+          # still owns its HOLD/seed/CLI ledger and existing cleanup lifecycle.
+          set -e -o pipefail
+          umask 077
+          : > "$RUNNER_TEMP/gridex-clean-replay.raw.log"
+          rm -f rem002-clean-replay.log
+          GRIDEX_STORAGE_STEP_DIR="$(mktemp -d "$RUNNER_TEMP/gridex-storage-step.XXXXXX")"
+          trap 'rm -rf -- "$GRIDEX_STORAGE_STEP_DIR"' EXIT
+          test "$(sha256sum scripts/gridex-local-storage-lifecycle.py | cut -d ' ' -f 1)" = "330b6d405869a12b7c57bc04da75e5f685ccebdbdb0478e03a02fbcd780292cd"
+          test "$(sha256sum scripts/sql/gridex-local-storage-owner-bootstrap.sql | cut -d ' ' -f 1)" = "c01914b7343bb6d84729ccf96b6ff442e78bf46dcd96b563d7f137d970db18c0"
+          # Preserve exact reviewed helper bytes. Its SQL sibling basename is
+          # internal staging only; canonical source paths remain the two above.
+          cp scripts/gridex-local-storage-lifecycle.py "$GRIDEX_STORAGE_STEP_DIR/gridex-local-storage-lifecycle.py"
+          cp scripts/sql/gridex-local-storage-owner-bootstrap.sql "$GRIDEX_STORAGE_STEP_DIR/ci-local-storage-owner-bootstrap-rls-guarded-private.sql"
+          cat > "$GRIDEX_STORAGE_STEP_DIR/unchanged-clean-step.sh" <<'GRIDEX_STORAGE_UNCHANGED_CLEAN_STEP'
           set -o pipefail
-          exec > >(tee rem002-clean-replay.log) 2>&1
+          # The complete wrapper output is captured privately by the caller.
           native_phase() { printf '[CI-PHASE] %s %s\n' "$(date -u +%FT%TZ)" "$1"; }
           native_phase clean_replay_start
           source scripts/gridex-aud-003-clean-replay.sh
@@ -481,11 +496,29 @@ jobs:
           # Independent receipts are retained, but every comparator stays blocking.
           native_phase schema_gates_complete
           [[ "$TYPE_COMPARISON_FAILED" == 0 && "$NATIVE_SUITE_FAILED" == 0 ]] || exit 1
+          GRIDEX_STORAGE_UNCHANGED_CLEAN_STEP
+          # Never stream disposable credentials to the Actions console.
+          set +e
+          python3 "$GRIDEX_STORAGE_STEP_DIR/gridex-local-storage-lifecycle.py" \
+            --cli-sha256 b67f22c508bb7434e4e36151b722e289130ed9e07a7ad4f9faadf4c83237286f -- \
+            bash --noprofile --norc -e -o pipefail "$GRIDEX_STORAGE_STEP_DIR/unchanged-clean-step.sh" \
+            >> "$RUNNER_TEMP/gridex-clean-replay.raw.log" 2>&1
+          GRIDEX_REPLAY_EXIT=$?
+          set -e
+          printf "REPLAY: completed; exit=%s; evidence awaits redaction\n" "$GRIDEX_REPLAY_EXIT"
+          exit "$GRIDEX_REPLAY_EXIT"
       - name: Redact disposable credentials from native and browser evidence
+        id: redact_clean_evidence
         if: always()
         shell: bash
         run: |
-          python3 scripts/gridex-redact-native-evidence.py \
+          set -euo pipefail
+          trap 'rm -f -- "$RUNNER_TEMP/gridex-clean-replay.raw.log" "$RUNNER_TEMP/gridex-clean-redaction.log"' EXIT
+          GRIDEX_LOG_ARGS=()
+          if [[ -f "$RUNNER_TEMP/gridex-clean-replay.raw.log" ]]; then
+            GRIDEX_LOG_ARGS=(--root "$RUNNER_TEMP/gridex-clean-replay.raw.log" --line-records "$RUNNER_TEMP/gridex-clean-replay.raw.log")
+          fi
+          if ! python3 scripts/gridex-redact-native-evidence.py \
             --local-secrets "$RUNNER_TEMP/e035-native-sensitive.json" \
             --root e2e-artifacts --root rem002-clean-replay.log \
             --root rem002-native-junit.xml --root rem002-case-native-junit.xml \
@@ -500,10 +533,17 @@ jobs:
             --root rem002-blob-retention-native-junit.xml --root rem002-blob-retention-after-browser-junit.xml \
             --root rem002-process-journal-retention-native-junit.xml --root rem002-process-journal-retention-after-browser-junit.xml \
             --root rem002-finance-copy-retention-native-junit.xml --root rem002-finance-copy-retention-after-browser-junit.xml \
-            --root rem002-decision-original-native-junit.xml --root rem002-decision-original-after-browser-junit.xml
+            --root rem002-decision-original-native-junit.xml --root rem002-decision-original-after-browser-junit.xml \
+            "${GRIDEX_LOG_ARGS[@]}" > "$RUNNER_TEMP/gridex-clean-redaction.log" 2>&1; then
+            echo '::error::clean_evidence_redaction_failed; artifact_upload_blocked' >&2
+            exit 1
+          fi
+          if [[ -f "$RUNNER_TEMP/gridex-clean-replay.raw.log" ]]; then
+            mv -- "$RUNNER_TEMP/gridex-clean-replay.raw.log" rem002-clean-replay.log
+          fi
           rm -f "$RUNNER_TEMP/e035-native-sensitive.json" "$RUNNER_TEMP/e035-native-status.json" "$RUNNER_TEMP/ediel-case-browser-fixture.json" "$RUNNER_TEMP/ediel-requested-change-browser-fixture.json" "$RUNNER_TEMP/ediel-regulated-supply-browser-fixture.json" "$RUNNER_TEMP/ediel-bilateral-customer-browser-fixture.json" "$RUNNER_TEMP/ediel-bilateral-prodat-browser-fixture.json" "$RUNNER_TEMP/ediel-ai-purpose-browser-fixture.json" "$RUNNER_TEMP/ediel-record-retention-browser-fixture.json" "$RUNNER_TEMP/ediel-business-incident-browser-fixture.json" "$RUNNER_TEMP/ediel-blob-retention-browser-fixture.json" "$RUNNER_TEMP/ediel-process-retention-browser-fixture.json" "$RUNNER_TEMP/ediel-finance-retention-browser-fixture.json" "$RUNNER_TEMP/ediel-decision-retention-browser-fixture.json"
       - name: Upload clean-replay evidence
-        if: always()
+        if: ${{ always() && steps.redact_clean_evidence.outcome == 'success' }}
         uses: actions/upload-artifact@v4
         with:
           name: gridex-rem-002-clean-replay
@@ -585,10 +625,56 @@ jobs:
         env:
           SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
         run: |
+          # CURRENT-owned wrapper scopes the complete original step. OLD replay
+          # still owns its HOLD/seed/CLI ledger and existing cleanup lifecycle.
+          set -e -o pipefail
+          umask 077
+          : > "$RUNNER_TEMP/gridex-upgrade-replay.raw.log"
+          rm -f rem002-upgrade-replay.log
+          GRIDEX_STORAGE_STEP_DIR="$(mktemp -d "$RUNNER_TEMP/gridex-storage-step.XXXXXX")"
+          trap 'rm -rf -- "$GRIDEX_STORAGE_STEP_DIR"' EXIT
+          test "$(sha256sum scripts/gridex-local-storage-lifecycle.py | cut -d ' ' -f 1)" = "330b6d405869a12b7c57bc04da75e5f685ccebdbdb0478e03a02fbcd780292cd"
+          test "$(sha256sum scripts/sql/gridex-local-storage-owner-bootstrap.sql | cut -d ' ' -f 1)" = "c01914b7343bb6d84729ccf96b6ff442e78bf46dcd96b563d7f137d970db18c0"
+          # Preserve exact reviewed helper bytes. Its SQL sibling basename is
+          # internal staging only; canonical source paths remain the two above.
+          cp scripts/gridex-local-storage-lifecycle.py "$GRIDEX_STORAGE_STEP_DIR/gridex-local-storage-lifecycle.py"
+          cp scripts/sql/gridex-local-storage-owner-bootstrap.sql "$GRIDEX_STORAGE_STEP_DIR/ci-local-storage-owner-bootstrap-rls-guarded-private.sql"
+          cat > "$GRIDEX_STORAGE_STEP_DIR/unchanged-upgrade-step.sh" <<'GRIDEX_STORAGE_UNCHANGED_UPGRADE_STEP'
           set -o pipefail
-          bash scripts/gridex-ediel-upgrade-replay.sh 2>&1 | tee rem002-upgrade-replay.log
-      - name: Upload authentic upgrade evidence
+          bash scripts/gridex-ediel-upgrade-replay.sh
+          GRIDEX_STORAGE_UNCHANGED_UPGRADE_STEP
+          # Never stream disposable credentials to the Actions console.
+          set +e
+          python3 "$GRIDEX_STORAGE_STEP_DIR/gridex-local-storage-lifecycle.py" \
+            --cli-sha256 b67f22c508bb7434e4e36151b722e289130ed9e07a7ad4f9faadf4c83237286f -- \
+            bash --noprofile --norc -e -o pipefail "$GRIDEX_STORAGE_STEP_DIR/unchanged-upgrade-step.sh" \
+            >> "$RUNNER_TEMP/gridex-upgrade-replay.raw.log" 2>&1
+          GRIDEX_REPLAY_EXIT=$?
+          set -e
+          printf "REPLAY: completed; exit=%s; evidence awaits redaction\n" "$GRIDEX_REPLAY_EXIT"
+          exit "$GRIDEX_REPLAY_EXIT"
+      - name: Redact disposable credentials from upgrade evidence
+        id: redact_upgrade_evidence
         if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          trap 'rm -f -- "$RUNNER_TEMP/gridex-upgrade-replay.raw.log" "$RUNNER_TEMP/gridex-upgrade-redaction.log"' EXIT
+          GRIDEX_LOG_ARGS=()
+          if [[ -f "$RUNNER_TEMP/gridex-upgrade-replay.raw.log" ]]; then
+            GRIDEX_LOG_ARGS=(--root "$RUNNER_TEMP/gridex-upgrade-replay.raw.log" --line-records "$RUNNER_TEMP/gridex-upgrade-replay.raw.log")
+          fi
+          if ! python3 scripts/gridex-redact-native-evidence.py \
+            --root rem002-upgrade-replay.log --root rem002-upgrade \
+            "${GRIDEX_LOG_ARGS[@]}" > "$RUNNER_TEMP/gridex-upgrade-redaction.log" 2>&1; then
+            echo '::error::upgrade_evidence_redaction_failed; artifact_upload_blocked' >&2
+            exit 1
+          fi
+          if [[ -f "$RUNNER_TEMP/gridex-upgrade-replay.raw.log" ]]; then
+            mv -- "$RUNNER_TEMP/gridex-upgrade-replay.raw.log" rem002-upgrade-replay.log
+          fi
+      - name: Upload authentic upgrade evidence
+        if: ${{ always() && steps.redact_upgrade_evidence.outcome == 'success' }}
         uses: actions/upload-artifact@v4
         with:
           name: gridex-rem-002-upgrade-replay

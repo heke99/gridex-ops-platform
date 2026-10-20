@@ -1,5 +1,6 @@
-// masterplan: DB-05, SC-070
-// Mechanism component only; no coverage approval.
+// masterplan: DB-05, AT-DB-05, SC-070
+// Component evidence for DB-05/AT-DB-05 (operational wind-down vs purge, held
+// vs pseudonymised); the native lock-wait chain remains supplemental.
 // The behaviour is proven by the three lock-wait probes in
 // scripts/db-05-customer-close-due-purge-native.test.ts (R1's native chain).
 // This guard pins that the forward migration is the current definitions with
@@ -79,49 +80,58 @@ describe('DB-05 retention decides at the post-lock instant', () => {
 // denied during the receipt call. This is not native issuer-lock concurrency,
 // JWT/ACL qualification, a legal original or whole DB-05 proof; the ten-case
 // same-customer native chain covers the actual lock/time interleaving.
+const company = '10000000-0000-4000-8000-000000000001'
+const customer = '20000000-0000-4000-8000-000000000002'
+const reviewer = '30000000-0000-4000-8000-000000000003'
+const purger = '40000000-0000-4000-8000-000000000004'
+const decision = '50000000-0000-4000-8000-000000000005'
+const review = '60000000-0000-4000-8000-000000000006'
+
+// Shared finite fixture: the production purge body over the actual customers
+// columns. `customerStatus`/`supplySql` vary only the operational state that the
+// purge's closed-and-no-active-supply gate reads.
+async function installComponent(db: PGlite, customerStatus = 'archived', supplySql = ''): Promise<void> {
+  const start = schema.indexOf('CREATE TABLE public.customers (')
+  const customerTable = schema.slice(start, schema.indexOf('\n);', start) + 3)
+    .replace(/^.* GENERATED ALWAYS AS .*\n/gm, '')
+    .replace("public.gridex_new_public_resource_reference('customer'::text)", "'synthetic-component'::text")
+  await db.exec(`CREATE SCHEMA gridex_ediel_retention; ${customerTable}
+    CREATE TABLE gridex_ediel_retention.customer_decisions(id uuid, company_id uuid, customer_id uuid, source_hash text, retention_class text);
+    CREATE TABLE gridex_ediel_retention.customer_reviews(id uuid, decision_id uuid, actor_user_id uuid, outcome text, created_at timestamptz);
+    CREATE TABLE gridex_ediel_retention.customer_tombstones(customer_id uuid, company_id uuid, decision_id uuid, review_id uuid, source_hash text, retention_class text, actor_user_id uuid, created_at timestamptz);
+    CREATE TABLE public.customer_supply_periods(company_id uuid, customer_id uuid, status text, actual_end_date date, end_date date);
+    CREATE TABLE public.customer_portal_accounts(company_id uuid, customer_id uuid, status text, is_active boolean, updated_at timestamptz);
+    CREATE TABLE public.customer_portal_claims(company_id uuid, customer_id uuid, status text, updated_at timestamptz);
+    CREATE TABLE public.user_profiles(id uuid, user_status text);
+    CREATE TABLE public.company_memberships(company_id uuid, user_id uuid, status text, is_active boolean, accepted_at timestamptz);
+    CREATE TABLE public.audit_logs(actor_user_id uuid, company_id uuid, entity_type text, entity_id text, action text, metadata jsonb);
+    CREATE FUNCTION public.ediel_retention_lock_auth_actor_v1(uuid) RETURNS boolean LANGUAGE sql AS $$SELECT true$$;
+    CREATE FUNCTION gridex_ediel_retention.actor_v1(uuid,uuid,text) RETURNS void LANGUAGE sql AS $$SELECT NULL::void$$;
+    CREATE FUNCTION gridex_ediel_retention.permission_v1(c uuid, actor uuid, wanted text) RETURNS boolean LANGUAGE sql AS $$
+      SELECT NOT (actor='${reviewer}'::uuid AND current_setting('test.r1_after_receipt',true)='true' AND wanted=current_setting('test.r1_denied',true))$$;
+    CREATE FUNCTION gridex_ediel_retention.class_permission_v1(c uuid, actor uuid, retention_class text) RETURNS boolean LANGUAGE sql AS $$
+      SELECT gridex_ediel_retention.permission_v1(c,actor,'ediel.retention.customer_fields')$$;
+    CREATE FUNCTION gridex_ediel_retention.customer_personal_fields_v1(public.customers) RETURNS jsonb LANGUAGE sql AS $$SELECT '{}'::jsonb$$;
+    CREATE FUNCTION gridex_ediel_retention.customer_receipt_v1(gridex_ediel_retention.customer_decisions) RETURNS jsonb LANGUAGE plpgsql AS $$BEGIN
+      PERFORM set_config('test.r1_after_receipt','true',false);
+      RETURN jsonb_build_object('retainUntil',clock_timestamp()-interval '1 day','legalBasisReference','SYNTHETIC finite component only'); END$$;
+    INSERT INTO public.customers(id,company_id,status,full_name,email,personal_number) VALUES('${customer}','${company}','${customerStatus}','Original Person','original@example.invalid','199001011234');
+    INSERT INTO gridex_ediel_retention.customer_decisions VALUES('${decision}','${company}','${customer}',encode(sha256(convert_to('{}','UTF8')),'hex'),'customer_canonical_personal_fields');
+    INSERT INTO gridex_ediel_retention.customer_reviews VALUES('${review}','${decision}','${reviewer}','approved',clock_timestamp());
+    INSERT INTO public.user_profiles VALUES('${reviewer}','active');
+    INSERT INTO public.company_memberships VALUES('${company}','${reviewer}','active',true,clock_timestamp());
+    INSERT INTO public.customer_portal_accounts VALUES('${company}','${customer}','active',true,clock_timestamp());
+    INSERT INTO public.customer_portal_claims VALUES('${company}','${customer}','active',clock_timestamp());
+    ${supplySql}
+    ${'CREATE OR REPLACE FUNCTION' + replaced('public.ediel_pseudonymise_customer_retention_v1')}`)
+}
+
 describe('DB-05 final reviewer authority after receipt evaluation', () => {
   it.each(['ediel.retention.review', 'ediel.retention.customer_fields', null])(
     'preserves personal fields when reviewer %s becomes denied at the final boundary', async (denied) => {
       const db = new PGlite()
-      const company = '10000000-0000-4000-8000-000000000001'
-      const customer = '20000000-0000-4000-8000-000000000002'
-      const reviewer = '30000000-0000-4000-8000-000000000003'
-      const purger = '40000000-0000-4000-8000-000000000004'
-      const decision = '50000000-0000-4000-8000-000000000005'
-      const review = '60000000-0000-4000-8000-000000000006'
       try {
-        const start = schema.indexOf('CREATE TABLE public.customers (')
-        const customerTable = schema.slice(start, schema.indexOf('\n);', start) + 3)
-          .replace(/^.* GENERATED ALWAYS AS .*\n/gm, '')
-          .replace("public.gridex_new_public_resource_reference('customer'::text)", "'synthetic-component'::text")
-        await db.exec(`CREATE SCHEMA gridex_ediel_retention; ${customerTable}
-          CREATE TABLE gridex_ediel_retention.customer_decisions(id uuid, company_id uuid, customer_id uuid, source_hash text, retention_class text);
-          CREATE TABLE gridex_ediel_retention.customer_reviews(id uuid, decision_id uuid, actor_user_id uuid, outcome text, created_at timestamptz);
-          CREATE TABLE gridex_ediel_retention.customer_tombstones(customer_id uuid, company_id uuid, decision_id uuid, review_id uuid, source_hash text, retention_class text, actor_user_id uuid, created_at timestamptz);
-          CREATE TABLE public.customer_supply_periods(company_id uuid, customer_id uuid, status text, actual_end_date date, end_date date);
-          CREATE TABLE public.customer_portal_accounts(company_id uuid, customer_id uuid, status text, is_active boolean, updated_at timestamptz);
-          CREATE TABLE public.customer_portal_claims(company_id uuid, customer_id uuid, status text, updated_at timestamptz);
-          CREATE TABLE public.user_profiles(id uuid, user_status text);
-          CREATE TABLE public.company_memberships(company_id uuid, user_id uuid, status text, is_active boolean, accepted_at timestamptz);
-          CREATE TABLE public.audit_logs(actor_user_id uuid, company_id uuid, entity_type text, entity_id text, action text, metadata jsonb);
-          CREATE FUNCTION public.ediel_retention_lock_auth_actor_v1(uuid) RETURNS boolean LANGUAGE sql AS $$SELECT true$$;
-          CREATE FUNCTION gridex_ediel_retention.actor_v1(uuid,uuid,text) RETURNS void LANGUAGE sql AS $$SELECT NULL::void$$;
-          CREATE FUNCTION gridex_ediel_retention.permission_v1(c uuid, actor uuid, wanted text) RETURNS boolean LANGUAGE sql AS $$
-            SELECT NOT (actor='${reviewer}'::uuid AND current_setting('test.r1_after_receipt',true)='true' AND wanted=current_setting('test.r1_denied',true))$$;
-          CREATE FUNCTION gridex_ediel_retention.class_permission_v1(c uuid, actor uuid, retention_class text) RETURNS boolean LANGUAGE sql AS $$
-            SELECT gridex_ediel_retention.permission_v1(c,actor,'ediel.retention.customer_fields')$$;
-          CREATE FUNCTION gridex_ediel_retention.customer_personal_fields_v1(public.customers) RETURNS jsonb LANGUAGE sql AS $$SELECT '{}'::jsonb$$;
-          CREATE FUNCTION gridex_ediel_retention.customer_receipt_v1(gridex_ediel_retention.customer_decisions) RETURNS jsonb LANGUAGE plpgsql AS $$BEGIN
-            PERFORM set_config('test.r1_after_receipt','true',false);
-            RETURN jsonb_build_object('retainUntil',clock_timestamp()-interval '1 day','legalBasisReference','SYNTHETIC finite component only'); END$$;
-          INSERT INTO public.customers(id,company_id,status,full_name,email,personal_number) VALUES('${customer}','${company}','archived','Original Person','original@example.invalid','199001011234');
-          INSERT INTO gridex_ediel_retention.customer_decisions VALUES('${decision}','${company}','${customer}',encode(sha256(convert_to('{}','UTF8')),'hex'),'customer_canonical_personal_fields');
-          INSERT INTO gridex_ediel_retention.customer_reviews VALUES('${review}','${decision}','${reviewer}','approved',clock_timestamp());
-          INSERT INTO public.user_profiles VALUES('${reviewer}','active');
-          INSERT INTO public.company_memberships VALUES('${company}','${reviewer}','active',true,clock_timestamp());
-          INSERT INTO public.customer_portal_accounts VALUES('${company}','${customer}','active',true,clock_timestamp());
-          INSERT INTO public.customer_portal_claims VALUES('${company}','${customer}','active',clock_timestamp());
-          ${'CREATE OR REPLACE FUNCTION' + replaced('public.ediel_pseudonymise_customer_retention_v1')}`)
+        await installComponent(db)
         await db.query("SELECT set_config('test.r1_after_receipt','false',false),set_config('test.r1_denied',$1,false)", [denied ?? ''])
         const result = (await db.query<{ result: { status: string; missing?: string[] } }>(
           'SELECT public.ediel_pseudonymise_customer_retention_v1($1,$2,$3) AS result', [company, purger, decision])).rows[0].result
@@ -142,4 +152,55 @@ describe('DB-05 final reviewer authority after receipt evaluation', () => {
         }
       } finally { await db.close() }
     }, 30_000)
+})
+
+// AT-DB-05 assignment/customer end: operational wind-down is separate from the
+// personal-data purge. The production purge body holds a still-operational
+// customer (not archived, or archived with a still-open supply period) with
+// `operative_customer_closed_and_no_active_supply` (migration
+// 20261012193000 line 89; schema.sql ediel_pseudonymise_customer_retention_v1)
+// and leaves fields, tombstones and portal access untouched. The satisfied
+// no-supply contrast (closed, no supply, valid receipt -> pseudonymised,
+// tombstone, portal revoked) is the `null` case of the describe block above;
+// the ended-supply contrast below proves that an ended assignment releases it.
+describe('DB-05 operational customer is not purge-eligible until wind-down completes', () => {
+  const openSupply = `INSERT INTO public.customer_supply_periods VALUES('${company}','${customer}','active',NULL,NULL);`
+  const futureSupply = `INSERT INTO public.customer_supply_periods VALUES('${company}','${customer}','active',NULL,current_date+30);`
+  const endedSupply = `INSERT INTO public.customer_supply_periods VALUES('${company}','${customer}','terminated',current_date-1,current_date-1);`
+
+  async function purge(customerStatus: string, supplySql: string) {
+    const db = new PGlite()
+    try {
+      await installComponent(db, customerStatus, supplySql)
+      await db.query("SELECT set_config('test.r1_after_receipt','false',false),set_config('test.r1_denied','',false)")
+      const result = (await db.query<{ result: { status: string; missing?: string[] } }>(
+        'SELECT public.ediel_pseudonymise_customer_retention_v1($1,$2,$3) AS result', [company, purger, decision])).rows[0].result
+      const fields = (await db.query<{ status: string; full_name: string; email: string | null; personal_number: string | null }>(
+        'SELECT status,full_name,email,personal_number FROM public.customers')).rows[0]
+      const effects = (await db.query<{ tombstones: number; audits: number; portals: string[]; claims: string[] }>(`SELECT
+        (SELECT count(*)::int FROM gridex_ediel_retention.customer_tombstones) AS tombstones,
+        (SELECT count(*)::int FROM public.audit_logs) AS audits,
+        (SELECT array_agg(status) FROM public.customer_portal_accounts) AS portals,
+        (SELECT array_agg(status) FROM public.customer_portal_claims) AS claims`)).rows[0]
+      return { result, fields, effects }
+    } finally { await db.close() }
+  }
+
+  it.each([
+    ['active customer without supply', 'active', ''],
+    ['archived customer with an open active supply period', 'archived', openSupply],
+    ['archived customer whose active supply ends in the future', 'archived', futureSupply],
+  ])('holds the purge for an %s and keeps personal fields and portal access', async (_label, customerStatus, supplySql) => {
+    const { result, fields, effects } = await purge(customerStatus, supplySql)
+    expect(result).toEqual({ status: 'held', missing: ['operative_customer_closed_and_no_active_supply'] })
+    expect(fields).toEqual({ status: customerStatus, full_name: 'Original Person', email: 'original@example.invalid', personal_number: '199001011234' })
+    expect(effects).toEqual({ tombstones: 0, audits: 0, portals: ['active'], claims: ['active'] })
+  }, 30_000)
+
+  it('purges once the assignment has ended: archived customer whose supply period is terminated', async () => {
+    const { result, fields, effects } = await purge('archived', endedSupply)
+    expect(result).toMatchObject({ status: 'pseudonymised', customerId: customer, replay: false })
+    expect(fields).toEqual({ status: 'archived', full_name: 'Pseudonymiserad kund', email: null, personal_number: null })
+    expect(effects).toEqual({ tombstones: 1, audits: 1, portals: ['revoked'], claims: ['revoked'] })
+  }, 30_000)
 })

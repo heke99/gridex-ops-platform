@@ -1,0 +1,16 @@
+{
+  "status": "PASS",
+  "mode": "exact",
+  "before_catalog_sha256": "80183e56db6dc38539f6477cd9dbc269565b0afc487b712d07fc4ab577a062d0",
+  "after_catalog_sha256": "80183e56db6dc38539f6477cd9dbc269565b0afc487b712d07fc4ab577a062d0",
+  "whole_catalog_exact_equal": true,
+  "protected_old_metadata_equal": true,
+  "old_auth_trigger_count": 475,
+  "preserved_old_auth_trigger_count": 475,
+  "actual_new_auth_ri_hook_count": 0,
+  "actual_new_auth_fk_pairs": 0,
+  "new_auth_hooks": [],
+  "effects": [],
+  "errors": [],
+  "source_mode_limit": "Source mode proves protected metadata and exact allowed Auth RI hooks. Other effects are reported with scope hints; final all-eight inline source postconditions and independent review remain required. Scope hints alone never certify arbitrary metadata changes."
+}

@@ -45,7 +45,12 @@ it('first Z05/C restoration requires the current physical sender registry and ex
   ])
   expect(report.failures).toBe(0)
   expect(['applied_to_captured_preimage', 'already_captured_postimage']).toContain(report.migrationApplication)
-  expect(report.installedBodySha256).toBe('aab2d2f6dcbfe17e31f92c07a70c9f9346396a2c1435a5976b1d70c8e58cb2b7')
+  // A captured preimage receives this migration's exact postimage; the current
+  // captured owner is that postimage plus only the Z04/C guards (20261018100000)
+  // and the Z04/C executed-start compensation (20261019170000).
+  expect(report.installedBodySha256).toBe(report.migrationApplication === 'applied_to_captured_preimage'
+    ? 'aab2d2f6dcbfe17e31f92c07a70c9f9346396a2c1435a5976b1d70c8e58cb2b7'
+    : 'c30e7398338c7b0a39da7220ea62bffa4d8ae0134f1c7d8b272b09e07736e03e')
   expect(report.metadataPreserved).toBe(true)
   expect(report.proofLimits).toEqual({
     nativeConcurrency: 'NOT_EXERCISED',

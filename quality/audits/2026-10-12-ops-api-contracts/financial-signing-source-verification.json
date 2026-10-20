@@ -1,0 +1,53 @@
+{
+  "scope": "Additional OPS source/native financial/signing/confirmation/admin corrections",
+  "authority": "Actual code and actual OPS catalog; compilation supports implementation, no test or isolated business-flow green claim",
+  "source_hashes": {
+    "app/admin/users/[id]/actions.ts": "77f356bb9de242348b631c7784c5e385a66341485b3c83fff01af15a6c05ce15",
+    "app/admin/users/[id]/page.tsx": "1b95100480361fb33a700e82bcda0e05c2c999ae3fd065fddf65d4e1091ceff0",
+    "app/admin/users/actions.ts": "6a3ee6a00cfaeb4f76d3803409a3d6e64960d890a4a0d00e3822975466222169",
+    "lib/admin/platformUserAccess.ts": "933b2aad2a07d6a8f348992b3afcca990e55a1bb40c1e50c588ec86cf4ba2868",
+    "lib/customer-contracts/agreementPdf.ts": "2dc99a4c2f14921fe1be510091b1ad7d030835324422d879327a3ae2ccf87eee",
+    "lib/customer-contracts/onlineSigning.ts": "f1de883d844e5531e004081c7618b05cb5e20fcb16bff68e26560f81cc952fab",
+    "lib/customer-contracts/frozenPriceDisplay.ts": "5c0a48ece7f150c0dbfc33216e6798c61cd3023159777e14b65f4ace9efda868",
+    "lib/pricing/engine.ts": "126d504f0bf1d4a3abe6ca64f10c464c012ad8960146639871579527831b030a",
+    "lib/pricing/intervalPricing.ts": "607637445737beaa7ba2701ebed227df148b821157a2ecae6ae5be20571181bd",
+    "lib/pricing/priceSourceResolver.ts": "a767f0a08011d102e71dd29dbed79997f660493f22b41364f90be74ccb7283a8",
+    "lib/pricing/snapshotComponents.ts": "2243de2a23ca86b47f57a04ee403645de1ed2d2aa700c9f4aa8cccc5aa1d0ccc",
+    "lib/rbac/getAdminUserById.ts": "70d3f506ea7c73dfa2c277f0213d976204e04382fec71318319305e8e6f7ccd6",
+    "lib/website/customerApplicationCommunication.ts": "1cdc70c0b83e3bf6da1f5132ea78d691a5ad09eb8999150591b1360b4ae7936f"
+  },
+  "independent_noncoauthor_reviews": [
+    "final_api_source_review",
+    "native_forward_independent_review"
+  ],
+  "reviews": "Reviewed exact final shared helper and confirmation CAS hashes; admin global-deny-only source separately approved; financial snapshot source/native approved before actual application",
+  "application_typecheck": "PASS current entire tsconfig.app.json, Node22.23.3, loopback boundary; includes uncommitted authorization-context source which requires its own final review",
+  "changed_source_lint": "PASS0errors; preexisting website unused stage warning retained; three CJS scripts ignored by repository ESLint and separately syntax-checked",
+  "migration_integrity": "1159source files/1062version groups, checksums passed after7appliedforwards",
+  "native_receipts": [
+    "signing-expiry-native-apply-receipt.json",
+    "signing-withdrawal-native-apply-receipt.json",
+    "website-quote-native-apply-receipt.json",
+    "pricing-snapshot-native-apply-receipt.json"
+  ],
+  "isolated_compile_receipts": [
+    "signing-isolated-compile-review.json",
+    "pricing-quote-isolated-compile.json"
+  ],
+  "actual_native_body_hashes": {
+    "pricing_persist": "5a267754feb565b43c86ec9fe2591c19",
+    "interval_reader": "4a6cf2926abf0b911e9fe6a9a49fc9f3",
+    "quote_commit": "007d078d9d0065395edf2190d4f1d3b6",
+    "online_signature_finalize": "86e49c3db54add3887de13f00bf63b7b",
+    "signature_receipt": "620d2a202a7fe821b0f6f0b4cd90306c",
+    "signature_prepare": "8bd61eb144c72df71c050350a6ed0e57",
+    "website_signature_finalize_active12arg": "aeb3e4cd457ca99d257720e7f1794521"
+  },
+  "limits": [
+    "No business RPC invocation or live signing/price/invoice/mail operation",
+    "No deployment; corrected source requires ordinary release",
+    "No canonical GEN edits; C2 owns coherent schema/type capture",
+    "Larger native RPC/trigger closure and current authorization-context/helper forward still pending",
+    "Old historic migration governance incompleteness retained honestly"
+  ]
+}

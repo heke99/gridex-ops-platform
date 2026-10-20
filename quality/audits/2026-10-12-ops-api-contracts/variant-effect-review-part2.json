@@ -1,0 +1,956 @@
+{
+  "schema": "ops_preserved_variant_effect_review_part2_v1",
+  "created_at_utc": "2026-10-13T11:12:23.390868+00:00",
+  "scope": "Sorted source contrast entries34..66;33 overload entries. Part1 owns1..33. Read-only code/native metadata/effect reasoning. Gridex Web excluded.",
+  "skill_routing": {
+    "activated": [
+      "spec-to-code compliance",
+      "differential/code review",
+      "variant analysis",
+      "false-positive check using exact implementation/native metadata",
+      "Supabase/PostgreSQL dependency/tenant/lock review"
+    ],
+    "supporting_scope": "Existing audit skills already loaded in preceding task; no test oracle, business calls, source/native mutation or GEN capture.",
+    "skipped": "UI/browser/provider execution/security scanners/deployment not needed to qualify these bounded exact function variants."
+  },
+  "status": "EFFECT_REVIEW_COMPLETE_WITH_CONFIRMED_COMPOSITION_GAPS_AND_EXPLICIT_LIMITS",
+  "counts": {
+    "assigned_entries": 33,
+    "confirmed_effect_gap_entries": 4,
+    "independent_fix_groups": 2
+  },
+  "entries": [
+    {
+      "index": 34,
+      "function": "public.gridex_dependency_circuit_record_v1",
+      "input_count": 5,
+      "actual_body_md5": "04f6a46218220a0a7fe6b65767051b3a",
+      "actual_capture_at": "2026-10-13T10:59:52.75299+00:00",
+      "canonical_body_md5": "9a016a093c58d8d2ff5cd29d49ad56e2",
+      "canonical_source_line": 65496,
+      "status": "SEMANTIC_EQUIVALENCE",
+      "effect_reasoning": "Same circuit input validation, atomic failure increment, state transition, reset and return row; only compact formatting differs. No Auth token expiry rule is inferred for circuit policy.",
+      "source_evidence": [],
+      "rpc_sites": [
+        {
+          "file": "lib/runtime/dependencyCircuit.ts",
+          "line": 15,
+          "owner": "withDependencyCircuit",
+          "route_function_call_chain": [
+            "app/api/platform/energy/import/svk-geometries/route.ts#POST",
+            "lib/energy/svkGeometryImport.ts#runSvkGeometryImport",
+            "lib/runtime/dependencyCircuit.ts#withDependencyCircuit"
+          ]
+        },
+        {
+          "file": "lib/runtime/dependencyCircuit.ts",
+          "line": 27,
+          "owner": "withDependencyCircuit",
+          "route_function_call_chain": [
+            "app/api/platform/energy/import/svk-geometries/route.ts#POST",
+            "lib/energy/svkGeometryImport.ts#runSvkGeometryImport",
+            "lib/runtime/dependencyCircuit.ts#withDependencyCircuit"
+          ]
+        }
+      ],
+      "tenant_authority": "Actual selected function signature/company filters and exact source counterpart reviewed. No tenant/customer/price/credential row values read."
+    },
+    {
+      "index": 35,
+      "function": "public.gridex_finalize_customer_contract_signature_v1",
+      "input_count": 3,
+      "actual_body_md5": "86e49c3db54add3887de13f00bf63b7b",
+      "actual_capture_at": "2026-10-13T10:59:52.75299+00:00",
+      "canonical_body_md5": "772abfbaeb6fdf4a2130a87d3e50284b",
+      "canonical_source_line": 68926,
+      "status": "NORMAL_CALL_GUARDS_AND_TRIGGER_COVERAGE; NATIVE_WRAPPER_PARITY_UNRESOLVED",
+      "effect_reasoning": "Actual signing core retains fresh post-lock expiry and authoritative acceptance/Stockholm deadline changes. Current server action calls finalize then onlineSigning checks retention before delivery. Full module target triggers reject tombstoned contract/acceptance mutations and cross-contract tombstones on new acceptance insertion. Canonical native outer availability guard is absent, but this alone does not prove a new valid-path signing mutation bypass; no blanket parity claim. Preserve signed replay and immutable PDF history.",
+      "source_evidence": [
+        "app/sign/contract/[token]/actions.ts:23",
+        "lib/customer-contracts/onlineSigning.ts:597",
+        "lib/customer-contracts/onlineSigning.ts:607",
+        "supabase/schema.sql:16018"
+      ],
+      "rpc_sites": [
+        {
+          "file": "lib/customer-contracts/onlineSigning.ts",
+          "line": 596,
+          "owner": "finalizeOnlineContractSignature",
+          "route_function_call_chain": null
+        },
+        {
+          "file": "lib/ediel/testing/invoiceTestContractLifecycle.ts",
+          "line": 73,
+          "owner": "signInvoiceTestContractCanonically",
+          "route_function_call_chain": null
+        }
+      ],
+      "tenant_authority": "Actual selected function signature/company filters and exact source counterpart reviewed. No tenant/customer/price/credential row values read."
+    },
+    {
+      "index": 36,
+      "function": "public.gridex_finalize_supplier_switch_activation",
+      "input_count": 3,
+      "actual_body_md5": "5f043628ca691c5678f69451e3671eda",
+      "actual_capture_at": "2026-10-13T10:59:52.75299+00:00",
+      "canonical_body_md5": "becc3a4196d2aa6c301d790070cf2207",
+      "canonical_source_line": 69091,
+      "status": "CONFIRMED_SOURCE_EFFECT_GAP",
+      "effect_reasoning": "Native activation finalizer checks scope/Z04/date and updates site/meter/switch directly. Canonical adds locked activate_customer_supply_v1 call, verifies exact normal_switch_confirmations + normal_supply_activations + active period receipt, then only updates an already completed switch. Existing/new Z04 guard checks tenant/message/status/date and does not create that canonical activation receipt. Native sweep reaches this routine. Current result can indicate completion without source-owned active supply materialization.",
+      "source_evidence": [
+        "supabase/schema.sql:80856",
+        "supabase/schema.sql:69085",
+        "supabase/schema.sql:66969"
+      ],
+      "rpc_sites": [],
+      "tenant_authority": "Actual selected function signature/company filters and exact source counterpart reviewed. No tenant/customer/price/credential row values read."
+    },
+    {
+      "index": 37,
+      "function": "public.gridex_finalize_supplier_switch_v1",
+      "input_count": 4,
+      "actual_body_md5": "69691adff6853aaf3120651ca39d6635",
+      "actual_capture_at": "2026-10-13T10:59:52.75299+00:00",
+      "canonical_body_md5": "635e123d9d99277fe8f57ef1a29c4999",
+      "canonical_source_line": 69343,
+      "status": "CONFIRMED_SOURCE_EFFECT_GAP",
+      "effect_reasoning": "Same missing canonical activation and exact source-owned receipt as entry36. Current operations action invokes actual v1 after TypeScript request/date readiness. Those readiness checks do not run canonical supply activation or produce native receipt. Site/meter/switch completion is not equivalent to the legal active supply basis required downstream.",
+      "source_evidence": [
+        "lib/operations/db.part-2.ts:780",
+        "app/admin/operations/actions.ts:409",
+        "app/admin/operations/actions.ts:452",
+        "supabase/schema.sql:69337"
+      ],
+      "rpc_sites": [
+        {
+          "file": "lib/operations/db.part-2.ts",
+          "line": 779,
+          "owner": "finalizeSupplierSwitchExecution",
+          "route_function_call_chain": null
+        }
+      ],
+      "tenant_authority": "Actual selected function signature/company filters and exact source counterpart reviewed. No tenant/customer/price/credential row values read."
+    },
+    {
+      "index": 38,
+      "function": "public.gridex_finalize_website_contract_signature",
+      "input_count": 11,
+      "actual_body_md5": "de908da1a91b83e91ce1748c13e17412",
+      "actual_capture_at": "2026-10-13T10:59:52.75299+00:00",
+      "canonical_body_md5": "de908da1a91b83e91ce1748c13e17412",
+      "canonical_source_line": 69476,
+      "status": "EXACT_CURRENT_BODY_MATCH",
+      "effect_reasoning": "11-input Website compatibility overload now matches source body exactly in fresh native metadata10:59. It is distinct from active12-input acceptance-evidence path. Earlier name-only index difference must not be treated as an overload fault.",
+      "source_evidence": [],
+      "rpc_sites": [
+        {
+          "file": "lib/website/customerApplicationCommunication.ts",
+          "line": 977,
+          "owner": "finalizeWebsiteContractSignature",
+          "route_function_call_chain": null
+        }
+      ],
+      "tenant_authority": "Actual selected function signature/company filters and exact source counterpart reviewed. No tenant/customer/price/credential row values read."
+    },
+    {
+      "index": 39,
+      "function": "public.gridex_finalize_website_contract_signature",
+      "input_count": 12,
+      "actual_body_md5": "aeb3e4cd457ca99d257720e7f1794521",
+      "actual_capture_at": "2026-10-13T10:59:52.75299+00:00",
+      "canonical_body_md5": "dc8e70d83602c629515f7c872961f532",
+      "canonical_source_line": 69597,
+      "status": "PRESERVE_NEWER_ACTUAL_CORRECTION",
+      "effect_reasoning": "Active12-input Website core differs by the root-applied Stockholm calendar withdrawal deadline correction. Source still has old accepted_at+interval14days; current actual is authoritative. Preserve persisted old PDF/date history; do not replace with old capture.",
+      "source_evidence": [
+        "quality/audits/2026-10-12-ops-api-contracts/signing-confirmation-native-review.json"
+      ],
+      "rpc_sites": [
+        {
+          "file": "lib/website/customerApplicationCommunication.ts",
+          "line": 977,
+          "owner": "finalizeWebsiteContractSignature",
+          "route_function_call_chain": null
+        }
+      ],
+      "tenant_authority": "Actual selected function signature/company filters and exact source counterpart reviewed. No tenant/customer/price/credential row values read."
+    },
+    {
+      "index": 40,
+      "function": "public.gridex_get_customer_contract_signature_receipt_v1",
+      "input_count": 1,
+      "actual_body_md5": "620d2a202a7fe821b0f6f0b4cd90306c",
+      "actual_capture_at": "2026-10-13T10:59:52.75299+00:00",
+      "canonical_body_md5": "42954602085248931a986f08459a4288",
+      "canonical_source_line": 70867,
+      "status": "NORMAL_CALL_GUARD_COVERED; NATIVE_WRAPPER_PARITY_UNRESOLVED",
+      "effect_reasoning": "Native receipt core retains wall-clock unused-link expiry and immutable signature receipt. loadOnlineSignatureReceipt immediately applies contract-record availability before external rendering. Canonical wrapper adds same native guard before returning; receipt core itself does not mutate. No confirmed current-handler disclosure bypass; native direct service-role surface parity remains separate.",
+      "source_evidence": [
+        "lib/customer-contracts/onlineSigning.ts:265",
+        "lib/customer-contracts/onlineSigning.ts:270"
+      ],
+      "rpc_sites": [
+        {
+          "file": "lib/customer-contracts/onlineSigning.ts",
+          "line": 264,
+          "owner": "loadOnlineSignatureReceipt",
+          "route_function_call_chain": null
+        },
+        {
+          "file": "lib/customer-contracts/onlineSigning.ts",
+          "line": 642,
+          "owner": "processPendingContractConfirmations",
+          "route_function_call_chain": [
+            "app/api/internal/customer-operations/cron/route.ts#GET",
+            "app/api/internal/customer-operations/cron/route.ts#run",
+            "lib/customer-contracts/onlineSigning.ts#processPendingContractConfirmations"
+          ]
+        }
+      ],
+      "tenant_authority": "Actual selected function signature/company filters and exact source counterpart reviewed. No tenant/customer/price/credential row values read."
+    },
+    {
+      "index": 41,
+      "function": "public.gridex_get_user_permissions",
+      "input_count": 1,
+      "actual_body_md5": "abc7cf42141a02abdfab33cbd013fee8",
+      "actual_capture_at": "2026-10-13T10:59:52.75299+00:00",
+      "canonical_body_md5": "d525bc3d56f0baaaca6a47f5694b1a80",
+      "canonical_source_line": 71352,
+      "status": "PRESERVE_STRONGER_ACTUAL_SECURITY",
+      "effect_reasoning": "Fresh actual adds active Auth/profile, active permission catalog and explicit global/company direct+scheduled override DENY precedence; canonical source lacks these new root-reviewed checks. Full-module preservation is required.",
+      "source_evidence": [
+        "lib/admin/apiGuards.ts"
+      ],
+      "rpc_sites": [
+        {
+          "file": "lib/rbac/getUserPermissions.ts",
+          "line": 155,
+          "owner": "getUserPermissions",
+          "route_function_call_chain": null
+        }
+      ],
+      "tenant_authority": "Actual selected function signature/company filters and exact source counterpart reviewed. No tenant/customer/price/credential row values read."
+    },
+    {
+      "index": 42,
+      "function": "public.gridex_get_user_permissions_in_company",
+      "input_count": 2,
+      "actual_body_md5": "cd48d5a1fc77db9fc4cfb62b58e5ad5c",
+      "actual_capture_at": "2026-10-13T10:59:52.75299+00:00",
+      "canonical_body_md5": "cbd5976b0516a7aef697f297d0bd0e49",
+      "canonical_source_line": 71415,
+      "status": "PRESERVE_STRONGER_ACTUAL_SECURITY",
+      "effect_reasoning": "Company-scoped actual getter adds current active actor/catalog and global/company DENY/validity checks. Current company input is explicit. Older canonical capture is weaker and must not overwrite current actual.",
+      "source_evidence": [
+        "lib/admin/apiGuards.ts"
+      ],
+      "rpc_sites": [],
+      "tenant_authority": "Actual selected function signature/company filters and exact source counterpart reviewed. No tenant/customer/price/credential row values read."
+    },
+    {
+      "index": 43,
+      "function": "public.gridex_grid_owner_name_key",
+      "input_count": 1,
+      "actual_body_md5": "5f153f65d46dad9aa6b61d21ad558cae",
+      "actual_capture_at": "2026-10-13T10:59:52.75299+00:00",
+      "canonical_body_md5": "c5516021ed0ac1e503fe9706475a0b8b",
+      "canonical_source_line": 71740,
+      "status": "PRESERVE_CORRECTED_ACTUAL_REGEX",
+      "effect_reasoning": "Actual uses PostgreSQL standard string regex \\s; captured source contains double backslashes, matching a literal backslash instead of whitespace. Root applied corrected name-key forward. Current actual is intentional correction, not an extra slash defect.",
+      "source_evidence": [
+        "quality/audits/2026-10-12-ops-api-contracts/release-proposals/grid-owner-name-forward.sql"
+      ],
+      "rpc_sites": [],
+      "tenant_authority": "Actual selected function signature/company filters and exact source counterpart reviewed. No tenant/customer/price/credential row values read."
+    },
+    {
+      "index": 44,
+      "function": "public.gridex_has_permission",
+      "input_count": 2,
+      "actual_body_md5": "62ab7072f95952b588f784c9e5956870",
+      "actual_capture_at": "2026-10-13T10:59:52.75299+00:00",
+      "canonical_body_md5": "95f70460c927b0b7133872ee8418bafe",
+      "canonical_source_line": 72466,
+      "status": "PRESERVE_STRONGER_ACTUAL_SECURITY",
+      "effect_reasoning": "Actual has_permission verifies active confirmed actor and delegates strengthened actual permission getter; canonical source omits actor check. Preserve deny fixes.",
+      "source_evidence": [
+        "lib/admin/apiGuards.ts"
+      ],
+      "rpc_sites": [],
+      "tenant_authority": "Actual selected function signature/company filters and exact source counterpart reviewed. No tenant/customer/price/credential row values read."
+    },
+    {
+      "index": 45,
+      "function": "public.gridex_import_grid_area_master_row",
+      "input_count": 6,
+      "actual_body_md5": "37887531c094358945b1f817e58bbe54",
+      "actual_capture_at": "2026-10-13T10:59:52.75299+00:00",
+      "canonical_body_md5": "5c72ee48fccbec940cf254a647c3cc53",
+      "canonical_source_line": 72831,
+      "status": "SEMANTIC_EQUIVALENCE",
+      "effect_reasoning": "Same normalized grid area/owner/price-area validation, native owner lookup/upsert and area upsert; multiline VALUES formatting differs. Actual fixed name-key helper governs whitespace.",
+      "source_evidence": [],
+      "rpc_sites": [
+        {
+          "file": "lib/energy/resolver.ts",
+          "line": 1377,
+          "owner": "upsertPlatformGridAreaMasterRows",
+          "route_function_call_chain": [
+            "app/api/platform/energy/import/grid-areas/route.ts#POST",
+            "lib/energy/resolver.ts#upsertPlatformGridAreaMasterRows"
+          ]
+        }
+      ],
+      "tenant_authority": "Actual selected function signature/company filters and exact source counterpart reviewed. No tenant/customer/price/credential row values read."
+    },
+    {
+      "index": 46,
+      "function": "public.gridex_ops_health_checks_v4",
+      "input_count": 0,
+      "actual_body_md5": "fab88f8c13db8db03385972f72bbb810",
+      "actual_capture_at": "2026-10-13T10:59:52.75299+00:00",
+      "canonical_body_md5": "ce28b3b5d9608a0d75819c0a93acbae8",
+      "canonical_source_line": 78520,
+      "status": "SEMANTIC_EQUIVALENCE",
+      "effect_reasoning": "v4 changes are explanatory comments distinguishing candidate/reference coverage from approved production route blocking; actual query semantics remain identical.",
+      "source_evidence": [],
+      "rpc_sites": [
+        {
+          "file": "lib/ops/health.ts",
+          "line": 32,
+          "owner": "getOpsHealth",
+          "route_function_call_chain": [
+            "app/api/internal/system/health/route.ts#GET",
+            "app/api/internal/system/health/route.ts#run",
+            "lib/ops/health.ts#getOpsHealth"
+          ]
+        }
+      ],
+      "tenant_authority": "Actual selected function signature/company filters and exact source counterpart reviewed. No tenant/customer/price/credential row values read."
+    },
+    {
+      "index": 47,
+      "function": "public.gridex_ops_health_checks_v5",
+      "input_count": 0,
+      "actual_body_md5": "6345502ed03a11dd0b86d0caa323b1cf",
+      "actual_capture_at": "2026-10-13T10:59:52.75299+00:00",
+      "canonical_body_md5": "92bb93339665de002c51947f30ac86b2",
+      "canonical_source_line": 78663,
+      "status": "SEMANTIC_EQUIVALENCE_SQL_AST",
+      "effect_reasoning": "Full v5 SQL body AST is identical after parser location/statement-length fields removed. Candidate/live profile conditions, counters and return details match despite103 versus299 display lines.",
+      "source_evidence": [],
+      "rpc_sites": [
+        {
+          "file": "lib/ops/health.ts",
+          "line": 27,
+          "owner": "getOpsHealth",
+          "route_function_call_chain": [
+            "app/api/internal/system/health/route.ts#GET",
+            "app/api/internal/system/health/route.ts#run",
+            "lib/ops/health.ts#getOpsHealth"
+          ]
+        }
+      ],
+      "tenant_authority": "Actual selected function signature/company filters and exact source counterpart reviewed. No tenant/customer/price/credential row values read."
+    },
+    {
+      "index": 48,
+      "function": "public.gridex_outbound_dispatch_v1",
+      "input_count": 1,
+      "actual_body_md5": "83ade92de12757c2a02130ef4070cb60",
+      "actual_capture_at": "2026-10-13T10:59:52.75299+00:00",
+      "canonical_body_md5": "f2fabf318452a92a832a156f5e89ee8b",
+      "canonical_source_line": 79088,
+      "status": "SEMANTIC_EQUIVALENCE",
+      "effect_reasoning": "Same service-role-only invoker facade delegates gridex_outbound_dispatch.mutate_v1. Actual underlying mutation semantics belong to part1; this facade difference is whitespace only.",
+      "source_evidence": [],
+      "rpc_sites": [
+        {
+          "file": "lib/ediel/sources/correctionOutboundDispatch.ts",
+          "line": 50,
+          "owner": "call",
+          "route_function_call_chain": null
+        }
+      ],
+      "tenant_authority": "Actual selected function signature/company filters and exact source counterpart reviewed. No tenant/customer/price/credential row values read."
+    },
+    {
+      "index": 49,
+      "function": "public.gridex_persist_pricing_run",
+      "input_count": 4,
+      "actual_body_md5": "5a267754feb565b43c86ec9fe2591c19",
+      "actual_capture_at": "2026-10-13T10:59:52.75299+00:00",
+      "canonical_body_md5": "40e5c757d605d6a899e2189cf36e16b0",
+      "canonical_source_line": 79227,
+      "status": "PRESERVE_STRONGER_ACTUAL_PRICING",
+      "effect_reasoning": "Actual retains newly reviewed exact Stockholm period instants, inclusive/exclusive metadata validation, required interval receipt and source-input SHARE locks plus native fingerprint recheck. Captured source old core lacks them. Pricing-run ID/company/underlay write binding is preserved; do not replace current core while composing future outer source guards.",
+      "source_evidence": [
+        "quality/audits/2026-10-12-ops-api-contracts/release-proposals/pricing-run-instant-forward.sql"
+      ],
+      "rpc_sites": [
+        {
+          "file": "lib/pricing/engine.ts",
+          "line": 353,
+          "owner": "persistPricingRun",
+          "route_function_call_chain": [
+            "app/api/internal/pricing/preview/route.ts#POST",
+            "lib/pricing/engine.ts#calculatePricingPreviewForUnderlay",
+            "lib/pricing/engine.ts#persistPricingRun"
+          ]
+        }
+      ],
+      "tenant_authority": "Actual selected function signature/company filters and exact source counterpart reviewed. No tenant/customer/price/credential row values read."
+    },
+    {
+      "index": 50,
+      "function": "public.gridex_platform_dashboard_summary_v1",
+      "input_count": 0,
+      "actual_body_md5": "ced0e11cd7207afa3896dab556c644bf",
+      "actual_capture_at": "2026-10-13T10:59:52.75299+00:00",
+      "canonical_body_md5": "93ee622b8f7416568c0d472d1734d5d0",
+      "canonical_source_line": 79367,
+      "status": "SEMANTIC_EQUIVALENCE_SQL_AST",
+      "effect_reasoning": "Full dashboard SQL AST is identical after parser source locations removed. It intentionally aggregates platform totals; platform admission remains current caller authority, not a difference-induced tenant leak.",
+      "source_evidence": [],
+      "rpc_sites": [
+        {
+          "file": "lib/performance/platformDashboardSummary.ts",
+          "line": 85,
+          "owner": "loadPlatformDashboardSummary",
+          "route_function_call_chain": null
+        }
+      ],
+      "tenant_authority": "Actual selected function signature/company filters and exact source counterpart reviewed. No tenant/customer/price/credential row values read."
+    },
+    {
+      "index": 51,
+      "function": "public.gridex_prepare_customer_contract_signature_request_v1",
+      "input_count": 8,
+      "actual_body_md5": "8bd61eb144c72df71c050350a6ed0e57",
+      "actual_capture_at": "2026-10-13T10:59:52.75299+00:00",
+      "canonical_body_md5": "1496a94629cf9f43d9fbd5d7d0f3f8e5",
+      "canonical_source_line": 79816,
+      "status": "NORMAL_CALL_GUARDS_AND_TRIGGER_COVERAGE; NATIVE_WRAPPER_PARITY_UNRESOLVED",
+      "effect_reasoning": "prepareOnlineContractSignature invokes contract availability before native request creation. Actual native validates exact locked contract/publication/legal/pricing and rechecks link expiry after locks. Full-module request/acceptance target INSERT triggers reject parent contract tombstones. Current actual direct core lacks canonical outer availability wrapper; ordinary insertion refusal is covered, while all replay/race parity is not certified.",
+      "source_evidence": [
+        "lib/customer-contracts/onlineSigning.ts:283",
+        "lib/customer-contracts/onlineSigning.ts:289",
+        "supabase/schema.sql:16018"
+      ],
+      "rpc_sites": [
+        {
+          "file": "lib/customer-contracts/onlineSigning.ts",
+          "line": 288,
+          "owner": "sendOnlineContractSignatureRequest",
+          "route_function_call_chain": null
+        },
+        {
+          "file": "lib/ediel/testing/invoiceTestContractLifecycle.ts",
+          "line": 61,
+          "owner": "signInvoiceTestContractCanonically",
+          "route_function_call_chain": null
+        }
+      ],
+      "tenant_authority": "Actual selected function signature/company filters and exact source counterpart reviewed. No tenant/customer/price/credential row values read."
+    },
+    {
+      "index": 52,
+      "function": "public.gridex_prepare_manual_contract_binding",
+      "input_count": 4,
+      "actual_body_md5": "2e350f61d1467bd1d320c21380cc9c46",
+      "actual_capture_at": "2026-10-13T10:59:52.75299+00:00",
+      "canonical_body_md5": "d2bfad81ebbd7903d44739ed0390cc79",
+      "canonical_source_line": 79836,
+      "status": "CONDITIONAL_SOURCE_FEATURE_GAP_CURRENT_HANDLER_UNPROVEN",
+      "effect_reasoning": "Actual manual materializer invokes publication without one-off transaction authorization; canonical requires contracts.create and creates exact offer/company/actor/txid authorization until publication completes. Paired actual publisher still requires contracts.publish+pricing.publish. A create-only actor would be denied, but exhaustive current app/api+lib identifier search found no consumer of createCustomerContract or exported update helper demonstrating this current frontend path. Do not claim observed current API failure.",
+      "source_evidence": [
+        "lib/customer-contracts/db.ts:493",
+        "lib/customer-contracts/db.ts:893",
+        "supabase/schema.sql:79830"
+      ],
+      "rpc_sites": [
+        {
+          "file": "lib/customer-contracts/db.ts",
+          "line": 492,
+          "owner": "prepareManualCanonicalBinding",
+          "route_function_call_chain": null
+        }
+      ],
+      "tenant_authority": "Actual selected function signature/company filters and exact source counterpart reviewed. No tenant/customer/price/credential row values read."
+    },
+    {
+      "index": 53,
+      "function": "public.gridex_publish_internal_contract_version",
+      "input_count": 3,
+      "actual_body_md5": "5ac716481f12ad2d0cf97f61894541bf",
+      "actual_capture_at": "2026-10-13T10:59:52.75299+00:00",
+      "canonical_body_md5": "c29cab9137099521a73f0437c0777751",
+      "canonical_source_line": 82689,
+      "status": "CONDITIONAL_SOURCE_FEATURE_GAP_CURRENT_HANDLER_UNPROVEN",
+      "effect_reasoning": "Paired publisher has full catalog publish checks; canonical allows exception only for exact same-transaction one-off authorization. Actual is stricter, not an authorization bypass. Restoring only publisher without exact source authorizer/role-policy review is unsafe; normal publishing must retain both publish rights.",
+      "source_evidence": [
+        "supabase/schema.sql:82683",
+        "lib/customer-contracts/db.ts:493"
+      ],
+      "rpc_sites": [],
+      "tenant_authority": "Actual selected function signature/company filters and exact source counterpart reviewed. No tenant/customer/price/credential row values read."
+    },
+    {
+      "index": 54,
+      "function": "public.gridex_record_legacy_api_key_use_v1",
+      "input_count": 2,
+      "actual_body_md5": "b086bf84f02bdb31d5721d61c8e04f5c",
+      "actual_capture_at": "2026-10-13T10:59:52.75299+00:00",
+      "canonical_body_md5": "d351a0113a2dd76f8b6f0efdf732b055",
+      "canonical_source_line": 84742,
+      "status": "SEMANTIC_EQUIVALENCE_SQL_AST",
+      "effect_reasoning": "Same legacy key usage telemetry update, request count/status transition/truncated route and timestamp. Native SQL body AST matches compact source exactly; no secret or customer values inspected.",
+      "source_evidence": [
+        "lib/integrations/apiAuth.ts"
+      ],
+      "rpc_sites": [
+        {
+          "file": "lib/integrations/apiAuth.ts",
+          "line": 416,
+          "owner": "resolveIntegrationApiAccess",
+          "route_function_call_chain": [
+            "app/api/partner/v1/[[...path]]/route.ts#GET",
+            "app/api/partner/v1/[[...path]]/route.ts#dispatch",
+            "app/api/partner/v1/[[...path]]/route.ts#preflightWebhookTarget",
+            "lib/integrations/apiAuth.ts#requireIntegrationApiAccess",
+            "lib/integrations/apiAuth.ts#resolveIntegrationApiAccess"
+          ]
+        }
+      ],
+      "tenant_authority": "Actual selected function signature/company filters and exact source counterpart reviewed. No tenant/customer/price/credential row values read."
+    },
+    {
+      "index": 55,
+      "function": "public.gridex_record_staff_identity_delivery_v1",
+      "input_count": 1,
+      "actual_body_md5": "cdf884f554ed350745f81c070f53874c",
+      "actual_capture_at": "2026-10-13T10:59:52.75299+00:00",
+      "canonical_body_md5": "f7b1ba24fbb9dffce6c52531cd3e1ef4",
+      "canonical_source_line": 84970,
+      "status": "SEMANTIC_EQUIVALENCE",
+      "effect_reasoning": "Only comments added about no email/UUID lookup, no conflict-upsert/remap. Same exact anchor/provider/local-subject binding insertion and mismatch refusal. Fresh expiry acceptance correction is separate.",
+      "source_evidence": [
+        "lib/staff-api/onboarding.ts"
+      ],
+      "rpc_sites": [
+        {
+          "file": "lib/auth/tenantStaffDelivery.ts",
+          "line": 168,
+          "owner": "deliverRegisteredStaffInvitation",
+          "route_function_call_chain": [
+            "app/api/internal/tenant-provisioning/cron/route.ts#GET",
+            "app/api/internal/tenant-provisioning/cron/route.ts#run",
+            "lib/tenant/provisioningWorker.ts#processCompanyProvisioningJobs",
+            "lib/tenant/provisioningWorker.ts#processClaimedJob",
+            "lib/auth/companyInvitationFlow.ts#deliverCompanyInvitationIntent",
+            "lib/auth/tenantStaffDelivery.ts#deliverRegisteredStaffInvitation"
+          ]
+        }
+      ],
+      "tenant_authority": "Actual selected function signature/company filters and exact source counterpart reviewed. No tenant/customer/price/credential row values read."
+    },
+    {
+      "index": 56,
+      "function": "public.gridex_refresh_customer_process_summary",
+      "input_count": 3,
+      "actual_body_md5": "5a0f32879e7dc63d64b6085cd2eca754",
+      "actual_capture_at": "2026-10-13T10:59:52.75299+00:00",
+      "canonical_body_md5": "58a116cd37702dbd2e008ca15eaabb3b",
+      "canonical_source_line": 85167,
+      "status": "CONDITIONAL_RETENTION_NOOP_GAP; NO_REINTRODUCTION_BYPASS",
+      "effect_reasoning": "Canonical summary refresh returns{} before work for customer retention tombstone. Actual calculates nonempty summary and attempts customers UPDATE. Full-module customer personal-field transition/target guards refuse restoring process_summary, so privacy mutation is blocked. Current intake orchestrator propagates such native errors; routine graceful-noop parity differs, but archived/tombstoned eligible intake path is not proven.",
+      "source_evidence": [
+        "lib/customer-operations/customerIntakeOrchestrator.ts:159",
+        "supabase/schema.sql:85160"
+      ],
+      "rpc_sites": [
+        {
+          "file": "lib/customer-operations/customerIntakeOrchestrator.ts",
+          "line": 159,
+          "owner": "persistDecision",
+          "route_function_call_chain": [
+            "app/api/webhooks/manual-inbound/route.ts#POST",
+            "lib/inbound-mail/manualInboundIngestion.ts#ingestManualInboundEmail",
+            "lib/customer-operations/manualFacilityResponseParser.ts#applyManualFacilityResponse",
+            "lib/customer-operations/facilityResponseOrchestrator.ts#completeFacilityLookupAndRunNextSteps",
+            "lib/customer-operations/customerIntakeOrchestrator.ts#evaluateCustomerIntake",
+            "lib/customer-operations/customerIntakeOrchestrator.ts#persistDecision"
+          ]
+        }
+      ],
+      "tenant_authority": "Actual selected function signature/company filters and exact source counterpart reviewed. No tenant/customer/price/credential row values read."
+    },
+    {
+      "index": 57,
+      "function": "public.gridex_set_metering_billing_gate",
+      "input_count": 4,
+      "actual_body_md5": "f3b33679b5eac8bff84f2894503d8a52",
+      "actual_capture_at": "2026-10-13T10:59:52.75299+00:00",
+      "canonical_body_md5": "b3736967faaebca20bd11287a31be877",
+      "canonical_source_line": 89820,
+      "status": "CONFIRMED_ATOMIC_SOURCE_VALIDATION_GAP",
+      "effect_reasoning": "Current matcher reads qualified native values, computes source/supply/contract readiness in TypeScript, then calls actual persistence RPC in a later transaction. Old persistence checks normalized current revision/link and writes billing_status/gate snapshot; it does not hold source/supply locks or revalidate native final quality/legal supply. Canonical outer gate locks values/source/supply, validates actual source quality and supply/contract periods, appends native basis to gate snapshot then delegates. Full-module normalized-meter adjunct only journals INSERT corrections; no gate UPDATE trigger substitutes for this atomic source validation. A source/supply change between current read and persistence can leave eligible/billable state based on old basis.",
+      "source_evidence": [
+        "lib/billing/meterValueBillingMatcher.ts:99",
+        "lib/billing/meterValueBillingMatcher.ts:151",
+        "lib/billing/meterValueBillingMatcher.ts:162",
+        "lib/billing/meterValueBillingMatcher.ts:58",
+        "supabase/schema.sql:5325",
+        "supabase/schema.sql:148506"
+      ],
+      "rpc_sites": [
+        {
+          "file": "lib/billing/meterValueBillingMatcher.ts",
+          "line": 58,
+          "owner": "persistBillingGate",
+          "route_function_call_chain": null
+        }
+      ],
+      "tenant_authority": "Actual selected function signature/company filters and exact source counterpart reviewed. No tenant/customer/price/credential row values read."
+    },
+    {
+      "index": 58,
+      "function": "public.gridex_staff_actor_permissions_v1",
+      "input_count": 3,
+      "actual_body_md5": "d8932cc7bb444fb8976244d8ced4bb0e",
+      "actual_capture_at": "2026-10-13T10:59:52.75299+00:00",
+      "canonical_body_md5": "6fada9ac078080a31d85422deb038281",
+      "canonical_source_line": 90063,
+      "status": "PRESERVE_STRONGER_ACTUAL_STAFF_SECURITY",
+      "effect_reasoning": "Actual no longer early-returns platform super profile before DENY; it applies current active catalog, global/company direct DENY and scheduled override DENY to role/direct grants. Canonical is weaker. Existing Staff scoped writer helpers consume the actual stronger projection.",
+      "source_evidence": [
+        "lib/staff-api/auth.ts"
+      ],
+      "rpc_sites": [],
+      "tenant_authority": "Actual selected function signature/company filters and exact source counterpart reviewed. No tenant/customer/price/credential row values read."
+    },
+    {
+      "index": 59,
+      "function": "public.gridex_staff_permission_overrides_v1",
+      "input_count": 2,
+      "actual_body_md5": "3ddf8008f28e84c11ccd694f5bd8cc68",
+      "actual_capture_at": "2026-10-13T10:59:52.75299+00:00",
+      "canonical_body_md5": "62ab8745b55d0b2b22086b30a04510b2",
+      "canonical_source_line": 90444,
+      "status": "PRESERVE_STRONGER_ACTUAL_STAFF_SECURITY",
+      "effect_reasoning": "Actual Staff override projection returns global/company DENY and scheduled override DENY plus removals for inactive/missing role catalog permissions. This keeps TypeScript static role projection aligned with locked native writer admission. Preserve actual new shape (same four output fields); canonical lacks these additional rows.",
+      "source_evidence": [
+        "lib/staff-api/auth.ts"
+      ],
+      "rpc_sites": [
+        {
+          "file": "lib/staff-api/context.ts",
+          "line": 74,
+          "owner": "permissionOverrides",
+          "route_function_call_chain": null
+        }
+      ],
+      "tenant_authority": "Actual selected function signature/company filters and exact source counterpart reviewed. No tenant/customer/price/credential row values read."
+    },
+    {
+      "index": 60,
+      "function": "public.gridex_stage_energy_geodata_features_v2",
+      "input_count": 2,
+      "actual_body_md5": "d8cd31764aed90983f003e9a0fa85b5d",
+      "actual_capture_at": "2026-10-13T10:59:52.75299+00:00",
+      "canonical_body_md5": "611b1f5b11f8c31201b750a6e552ac90",
+      "canonical_source_line": 90562,
+      "status": "SEMANTIC_EQUIVALENCE",
+      "effect_reasoning": "Both validate1..1000 feature arrays, importing svk_arcgis version, nonblank IDs/object GeoJSON, then same upsert/count return. Actual count materialized typed batch and canonical jsonb_array_elements count are equivalent for already admitted feature arrays; both invoke typed recordset validation before mutation. No PostGIS business call made.",
+      "source_evidence": [],
+      "rpc_sites": [
+        {
+          "file": "lib/energy/svkGeometryImport.ts",
+          "line": 301,
+          "owner": "runSvkGeometryImport",
+          "route_function_call_chain": [
+            "app/api/platform/energy/import/svk-geometries/route.ts#POST",
+            "lib/energy/svkGeometryImport.ts#runSvkGeometryImport"
+          ]
+        }
+      ],
+      "tenant_authority": "Actual selected function signature/company filters and exact source counterpart reviewed. No tenant/customer/price/credential row values read."
+    },
+    {
+      "index": 61,
+      "function": "public.gridex_store_billing_underlay",
+      "input_count": 4,
+      "actual_body_md5": "308925b74ad93a3094cd73e02373754b",
+      "actual_capture_at": "2026-10-13T10:59:52.75299+00:00",
+      "canonical_body_md5": "83b9d65803a4a4668b1a580d1e504415",
+      "canonical_source_line": 90581,
+      "status": "CONFIRMED_SOURCE_MATERIALIZATION_GAP",
+      "effect_reasoning": "Current underlayEngine batch delegates actual old storage core. Canonical outer storage locks/revalidates exact native meter source/quality/supply/contract/frozen price/totals, handles immutable existing binding/correction, then INSERTs underlay_bindings. Actual old core stores dates/instants/children/events but never creates binding. Full-module finance triggers check retention copies/immutability, not source binding creation. Current invoiceReadiness requires new native source-basis reader; missing binding yields qualifiedfalse and holds otherwise valid generated underlays. Also lacks canonical locked recheck of stale TS-derived totals/source facts. Preserve corrected exact-instant core under the outer guard; never clone old canonical date-only core blindly.",
+      "source_evidence": [
+        "lib/billing/underlayEngine.ts:1432",
+        "lib/billing/underlayEngine.ts:1375",
+        "supabase/schema.sql:90649",
+        "lib/billing/invoiceReadiness.ts:332",
+        "lib/billing/invoiceReadiness.ts:340",
+        "supabase/schema.sql:83176",
+        "supabase/schema.sql:5434",
+        "supabase/schema.sql:14584"
+      ],
+      "rpc_sites": [],
+      "tenant_authority": "Actual selected function signature/company filters and exact source counterpart reviewed. No tenant/customer/price/credential row values read."
+    },
+    {
+      "index": 62,
+      "function": "public.gridex_transition_customer_application_workflow",
+      "input_count": 9,
+      "actual_body_md5": "c0b6368393ff93f844db072abb36b37c",
+      "actual_capture_at": "2026-10-13T10:59:52.75299+00:00",
+      "canonical_body_md5": "d551de391055792d489edab6af36aadf",
+      "canonical_source_line": 92136,
+      "status": "SEMANTIC_EQUIVALENCE",
+      "effect_reasoning": "Terminal-state reopening guard, event idempotency, version increment and failure/completion timestamps match; diff only comments/indentation. Duplicate continuation remains same event-key authority.",
+      "source_evidence": [
+        "lib/website/customerApplicationRepair.ts"
+      ],
+      "rpc_sites": [
+        {
+          "file": "lib/website/applicationWorkflow.ts",
+          "line": 205,
+          "owner": "transitionCustomerApplicationWorkflow",
+          "route_function_call_chain": [
+            "app/api/webhooks/manual-inbound/route.ts#POST",
+            "lib/inbound-mail/manualInboundIngestion.ts#ingestManualInboundEmail",
+            "lib/customer-operations/manualFacilityResponseParser.ts#applyManualFacilityResponse",
+            "lib/customer-operations/facilityResponseOrchestrator.ts#completeFacilityLookupAndRunNextSteps",
+            "lib/website/customerApplicationWorkflowBridge.ts#transitionCorrelatedCustomerApplicationWorkflow",
+            "lib/website/applicationWorkflow.ts#transitionCustomerApplicationWorkflow"
+          ]
+        }
+      ],
+      "tenant_authority": "Actual selected function signature/company filters and exact source counterpart reviewed. No tenant/customer/price/credential row values read."
+    },
+    {
+      "index": 63,
+      "function": "public.gridex_transition_supplier_switch_v1",
+      "input_count": 4,
+      "actual_body_md5": "974a2bd5fcac4559215613ff80048144",
+      "actual_capture_at": "2026-10-13T10:59:52.75299+00:00",
+      "canonical_body_md5": "a496e34772bf41703a3dc3f1d54521cc",
+      "canonical_source_line": 92370,
+      "status": "SEMANTIC_EQUIVALENCE",
+      "effect_reasoning": "Only comment on existing per-key update behavior added. Protected tenant/identity fields, row locks and quoted pg_attribute dynamic update allowlist are unchanged.",
+      "source_evidence": [
+        "lib/operations/db.part-2.ts"
+      ],
+      "rpc_sites": [
+        {
+          "file": "lib/operations/db.part-2.ts",
+          "line": 632,
+          "owner": "updateSupplierSwitchRequestStatus",
+          "route_function_call_chain": null
+        },
+        {
+          "file": "lib/operations/switchLifecycleBlocks.ts",
+          "line": 350,
+          "owner": "pauseOpenSupplierSwitchesForLifecycleBlock",
+          "route_function_call_chain": null
+        }
+      ],
+      "tenant_authority": "Actual selected function signature/company filters and exact source counterpart reviewed. No tenant/customer/price/credential row values read."
+    },
+    {
+      "index": 64,
+      "function": "public.gridex_whitelabel_portfolio_overview",
+      "input_count": 2,
+      "actual_body_md5": "65f621d7f4238d3dd6671d48fab3e401",
+      "actual_capture_at": "2026-10-13T10:59:52.75299+00:00",
+      "canonical_body_md5": "3a5b0af02a9307d0765902605843e9a6",
+      "canonical_source_line": 95823,
+      "status": "PRESERVE_CORRECTED_ACTUAL_ASOF",
+      "effect_reasoning": "Actual passes exact requested as-of date into cached customer forecast while canonical truncates to first day of month. Root portfolio fix preserves exact day semantics with cohort/month normalization separately. Current actual should remain.",
+      "source_evidence": [],
+      "rpc_sites": [
+        {
+          "file": "lib/analytics/customerPortfolio.ts",
+          "line": 142,
+          "owner": "getWhiteLabelPortfolioOverview",
+          "route_function_call_chain": null
+        }
+      ],
+      "tenant_authority": "Actual selected function signature/company filters and exact source counterpart reviewed. No tenant/customer/price/credential row values read."
+    },
+    {
+      "index": 65,
+      "function": "public.public_contract_feed_fingerprint_v1",
+      "input_count": 3,
+      "actual_body_md5": "432b845ba6daaa136ff5526a06921a2f",
+      "actual_capture_at": "2026-10-13T10:59:52.75299+00:00",
+      "canonical_body_md5": "989f3fe3c5120c813c88f7b9d9b8933d",
+      "canonical_source_line": 96515,
+      "status": "SEMANTIC_EQUIVALENCE_SQL_AST",
+      "effect_reasoning": "Same tenant/channel/customer-type/publication revision+token+Stockholm date fingerprint and return columns. Full SQL AST identical after parser location removal.",
+      "source_evidence": [],
+      "rpc_sites": [
+        {
+          "file": "app/api/v1/website/public-contracts/route.ts",
+          "line": 97,
+          "owner": "getPublicContracts",
+          "route_function_call_chain": null
+        }
+      ],
+      "tenant_authority": "Actual selected function signature/company filters and exact source counterpart reviewed. No tenant/customer/price/credential row values read."
+    },
+    {
+      "index": 66,
+      "function": "public.run_tenant_integrity_audit",
+      "input_count": 3,
+      "actual_body_md5": "760fdc96d5cb43f3e7a3d774d591f414",
+      "actual_capture_at": "2026-10-13T10:59:52.75299+00:00",
+      "canonical_body_md5": "13c9ae2c631e5653e9b63cf40d5180dc",
+      "canonical_source_line": 96745,
+      "status": "REFUTED_MISSING_COLUMN_CANDIDATE; PRESERVE_STRONGER_LINK_CHECKS",
+      "effect_reasoning": "Actual integrity audit additionally checks outbound supplier-switch and contract tenant links. Fresh actual outbound_requests metadata includes all four supplier_switch_request_id/switch_request_id/customer_contract_id/contract_id columns; no undefined-column defect. Canonical capture omits those joins and adds meter customer mismatch check. Do not trade away actual link checks; potential additive meter check is a diagnostic enhancement, not proof of an API leak.",
+      "source_evidence": [
+        "lib/tenant/integrity.ts:110"
+      ],
+      "rpc_sites": [
+        {
+          "file": "lib/tenant/integrity.ts",
+          "line": 110,
+          "owner": "runTenantIntegrityAudit",
+          "route_function_call_chain": null
+        }
+      ],
+      "tenant_authority": "Actual selected function signature/company filters and exact source counterpart reviewed. No tenant/customer/price/credential row values read."
+    }
+  ],
+  "confirmed_findings": [
+    {
+      "priority": "P2",
+      "function": "public.gridex_finalize_supplier_switch_activation",
+      "index": 36,
+      "evidence": [
+        "supabase/schema.sql:80856",
+        "supabase/schema.sql:69085",
+        "supabase/schema.sql:66969"
+      ],
+      "proof": "Native activation finalizer checks scope/Z04/date and updates site/meter/switch directly. Canonical adds locked activate_customer_supply_v1 call, verifies exact normal_switch_confirmations + normal_supply_activations + active period receipt, then only updates an already completed switch. Existing/new Z04 guard checks tenant/message/status/date and does not create that canonical activation receipt. Native sweep reaches this routine. Current result can indicate completion without source-owned active supply materialization.",
+      "impact": "Current legitimate flow may return completion without source-owned supply effect, hold invoice readiness due absent locked underlay binding, or persist stale eligible state. This is code/native composition proof, not an observed customer incident."
+    },
+    {
+      "priority": "P2",
+      "function": "public.gridex_finalize_supplier_switch_v1",
+      "index": 37,
+      "evidence": [
+        "lib/operations/db.part-2.ts:780",
+        "app/admin/operations/actions.ts:409",
+        "app/admin/operations/actions.ts:452",
+        "supabase/schema.sql:69337"
+      ],
+      "proof": "Same missing canonical activation and exact source-owned receipt as entry36. Current operations action invokes actual v1 after TypeScript request/date readiness. Those readiness checks do not run canonical supply activation or produce native receipt. Site/meter/switch completion is not equivalent to the legal active supply basis required downstream.",
+      "impact": "Current legitimate flow may return completion without source-owned supply effect, hold invoice readiness due absent locked underlay binding, or persist stale eligible state. This is code/native composition proof, not an observed customer incident."
+    },
+    {
+      "priority": "P2",
+      "function": "public.gridex_set_metering_billing_gate",
+      "index": 57,
+      "evidence": [
+        "lib/billing/meterValueBillingMatcher.ts:99",
+        "lib/billing/meterValueBillingMatcher.ts:151",
+        "lib/billing/meterValueBillingMatcher.ts:162",
+        "lib/billing/meterValueBillingMatcher.ts:58",
+        "supabase/schema.sql:5325",
+        "supabase/schema.sql:148506"
+      ],
+      "proof": "Current matcher reads qualified native values, computes source/supply/contract readiness in TypeScript, then calls actual persistence RPC in a later transaction. Old persistence checks normalized current revision/link and writes billing_status/gate snapshot; it does not hold source/supply locks or revalidate native final quality/legal supply. Canonical outer gate locks values/source/supply, validates actual source quality and supply/contract periods, appends native basis to gate snapshot then delegates. Full-module normalized-meter adjunct only journals INSERT corrections; no gate UPDATE trigger substitutes for this atomic source validation. A source/supply change between current read and persistence can leave eligible/billable state based on old basis.",
+      "impact": "Current legitimate flow may return completion without source-owned supply effect, hold invoice readiness due absent locked underlay binding, or persist stale eligible state. This is code/native composition proof, not an observed customer incident."
+    },
+    {
+      "priority": "P2",
+      "function": "public.gridex_store_billing_underlay",
+      "index": 61,
+      "evidence": [
+        "lib/billing/underlayEngine.ts:1432",
+        "lib/billing/underlayEngine.ts:1375",
+        "supabase/schema.sql:90649",
+        "lib/billing/invoiceReadiness.ts:332",
+        "lib/billing/invoiceReadiness.ts:340",
+        "supabase/schema.sql:83176",
+        "supabase/schema.sql:5434",
+        "supabase/schema.sql:14584"
+      ],
+      "proof": "Current underlayEngine batch delegates actual old storage core. Canonical outer storage locks/revalidates exact native meter source/quality/supply/contract/frozen price/totals, handles immutable existing binding/correction, then INSERTs underlay_bindings. Actual old core stores dates/instants/children/events but never creates binding. Full-module finance triggers check retention copies/immutability, not source binding creation. Current invoiceReadiness requires new native source-basis reader; missing binding yields qualifiedfalse and holds otherwise valid generated underlays. Also lacks canonical locked recheck of stale TS-derived totals/source facts. Preserve corrected exact-instant core under the outer guard; never clone old canonical date-only core blindly.",
+      "impact": "Current legitimate flow may return completion without source-owned supply effect, hold invoice readiness due absent locked underlay binding, or persist stale eligible state. This is code/native composition proof, not an observed customer incident."
+    }
+  ],
+  "targeted_remediation": [
+    {
+      "entries": [
+        36,
+        37
+      ],
+      "scope": "Compose complete source-owned activation chain with current actual supply core under exact alias; preserve tenant/Z04/ownership/date/idempotency and historical validity. Must coordinate part1 activate_customer_supply and both finalizers.",
+      "priority": "P2"
+    },
+    {
+      "entries": [
+        57,
+        61
+      ],
+      "scope": "Compose complete canonical billing-source outer gate/storage checks around preserved actual native core; keep corrected Stockholm period instants and latest atomic price checks. Restore exact source binding/correction behavior; no historical business backfill without explicit qualification.",
+      "priority": "P2"
+    }
+  ],
+  "false_positive_register": [
+    "Native stronger deny/catalog/active-actor checks are reviewed later forwards, not faults.",
+    "Whole SQL AST proves v5health/platformsummary/legacy-key/feed-fingerprint formatting equivalence.",
+    "Actual outbound_requests retains full switch/contract reference columns; old integrity joins are valid.",
+    "Missing native retention wrapper alone is not classified as current signing disclosure/mutation bypass: current JS guards and full-module target triggers were traced.",
+    "Manual one-off create-only privilege difference is conditional; no current project caller proving that path was found."
+  ],
+  "limits": [
+    "Full960 module and its trigger behavior are prospective migration/source effects until root records actual application/post-catalog. Presence/compile does not certify runtime behavior.",
+    "No actual or isolated business RPC was invoked and no data rows read. Effects are established by exact code/body/lock/mutation/return authority.",
+    "Signing native direct surface/replay/concurrency retention equivalence remains unproven beyond qualified normal current handlers and source mutation triggers.",
+    "Portal claim approval and received append_validation/billing export belong to part1; no duplicate claim of completed review here.",
+    "Current source helpers may enforce additional gates and exact source legal scope; remedial composition must preserve newer actual fixes, historical legal V1 behavior and guarded source semantics rather than overwrite all65 variants."
+  ],
+  "verification": {
+    "actual_metadata_at": "2026-10-13T10:59:52.75299+00:00",
+    "actual_source_shapes": "Readonly frozen metadata, no credential/customer/business values.",
+    "new_report_exact_path_claim_check": "GitHub refs/tags/agent-claims/masterplan/file-5698f2fc15a0331a23c6db9f4001b6ad2aede7104b105fedae26578488b430ec returned404",
+    "source_schema_sha256": "ced195d0f8af67b8a400ba71c2eca110cbcd639a0dba880d19e7dccff7a14492",
+    "tests_used_as_authority": false
+  },
+  "evidence_artifacts": [
+    {
+      "path": "/tmp/gridex-api-review/variant-effect-part2-assigned.json",
+      "sha256": "4551394450638d022617e786a08f3d722fed4e82dcca6f825ba368539e7ecb68"
+    },
+    {
+      "path": "/tmp/gridex-api-review/variant-effect-part2-exact-body-diffs.json",
+      "sha256": "50c0fe5852b3e2315a4287865547bbd2c4c3026dc2ea21eb264e4834b4b09a6a"
+    },
+    {
+      "path": "/tmp/gridex-api-review/native-additive-portable-assembly-metadata.json",
+      "sha256": "9dfd9047fc720b92aab2c9bbd31d60e3c0efbaf108b3f1f905d363c646d64a66"
+    },
+    {
+      "path": "/tmp/gridex-api-review/native-additive-portable-complete-state-manifest.json",
+      "sha256": "c58a9a687983d118f6af375801306ee980030e29ed022a761a10772046470c7d"
+    },
+    {
+      "path": "/tmp/gridex-api-review/native-additive-corrected-prototype-v4e.sql",
+      "sha256": "f9fc63bfcc6cd9d30a0958f602e4baf012c743173bed53efdae3b0193e618caa"
+    },
+    {
+      "path": "/tmp/gridex-api-review/ops-all-rpc-source-inventory.json",
+      "sha256": "ccfef147252062c1352ba2019ff4120c3c717c46206111144a3e09c92b480b5d"
+    },
+    {
+      "path": "/tmp/gridex-api-review/auth-expiry-isolated-compile-review.json",
+      "sha256": "368bc4f7ffced724b1608abaa25bd1e45fecec1088b683e4c396e9a9ea317104"
+    }
+  ]
+}

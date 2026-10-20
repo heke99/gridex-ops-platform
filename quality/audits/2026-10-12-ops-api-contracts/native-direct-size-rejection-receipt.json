@@ -1,0 +1,13 @@
+{
+  "sql_sha256": "b2d9ab581833eb227be2807610324769d46e029b92d00c8ee91afabd735b023d",
+  "result": "TECHNICAL_REQUEST_BODY_TOO_LARGE_NOT_APPROVAL_REJECTION",
+  "actual_unapplied_postflight": {
+    "checked_at": "2026-10-13 12:13:13.657838+00",
+    "ledger_count": 430,
+    "attempted_migration": null,
+    "billing_source_schema": 0,
+    "source_alias": 0
+  },
+  "source_migration_status": "Only new unpublished15135 file archived; no actual version/checksum/history changed",
+  "next_action": "Deliver same byte-verified approved SQL through owner-only staged transport; final install one transaction after exact fragment and whole-source hashes. New transport source and actual ledger inputs require two independent review and genuine compile/replay."
+}

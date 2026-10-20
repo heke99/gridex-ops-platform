@@ -7,7 +7,7 @@ Gridex keeps the existing domain/regression certificate as the source of truth f
 - **Playwright 1.60.0**: real Chromium navigation, form interaction, traces, screenshots and videos on failure.
 - **@axe-core/playwright 4.11.3**: automated WCAG A/AA checks inside the real browser flow.
 - **Grafana k6 2.1.0**: low-volume staging performance smoke with explicit error-rate and latency thresholds.
-- **OWASP ZAP baseline action 0.15.0**: passive staging DAST baseline. It reports findings but does not block releases until a reviewed Gridex baseline is established.
+- **OWASP ZAP baseline action 0.15.0**: passive staging DAST baseline with blocking failure handling (`fail_action: true`). The staging certificate requires this job to execute and pass.
 
 Versions are pinned by `scripts/install-browser-e2e-tooling.sh` and `.github/workflows/browser-quality-e2e.yml`. `scripts/gridex-open-source-e2e-tooling-regression.cjs` fails if this wiring disappears or drifts.
 
@@ -20,8 +20,11 @@ Nightly/manual staging runs use these GitHub Actions secrets:
 - `GRIDEX_E2E_BROWSER_BASE_URL`
 - `GRIDEX_E2E_BROWSER_EMAIL`
 - `GRIDEX_E2E_BROWSER_PASSWORD`
+- `GRIDEX_E2E_K6_BEARER_TOKEN` — bounded integration API key for the isolated staging tenant, including `website_contracts.read` for the k6 profiles.
 
-The staging browser test logs in through the actual UI and traverses dashboard, operations and customers. k6 and ZAP use the same staging base URL. Missing secrets skip scheduled staging checks but cause a manually requested staging run to fail clearly.
+The staging browser test logs in through the actual UI and traverses dashboard, operations and customers. k6 and ZAP use the same staging base URL. Both scheduled and manually requested staging runs fail their configuration guards when required secrets are unavailable. The staging certificate is RED if a required browser, k6 or ZAP job does not execute and pass; an absent staging environment is not a passing test.
+
+Provision and qualify the isolated staging application, database and bounded test identities before configuring these secrets. A production deployment or an older preview is not an implicit staging fallback. Normal pull-request/main public-browser checks remain a separate CI mode.
 
 ## Local browser run
 

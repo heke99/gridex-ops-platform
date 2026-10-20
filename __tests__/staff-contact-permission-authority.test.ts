@@ -41,7 +41,7 @@ beforeAll(async () => {
     CREATE TABLE companies(id uuid PRIMARY KEY,status text,is_active boolean);
     CREATE TABLE company_memberships(company_id uuid,user_id uuid,role_key text,membership_role text,status text,is_active boolean,accepted_at timestamptz);
     CREATE TABLE user_profiles(id uuid PRIMARY KEY,user_status text);
-    CREATE TABLE auth.users(id uuid PRIMARY KEY,deleted_at timestamptz,banned_until timestamptz);
+    CREATE TABLE auth.users(id uuid PRIMARY KEY,deleted_at timestamptz,banned_until timestamptz,email_confirmed_at timestamptz);
     CREATE TABLE admin_users(user_id uuid,role text,is_active boolean);
     CREATE TABLE roles(id uuid PRIMARY KEY,key text,name text,is_active boolean);
     CREATE TABLE user_roles(user_id uuid,company_id uuid,role_id uuid,role text,status text,is_active boolean);
@@ -77,7 +77,7 @@ afterAll(async () => { await db?.close() })
 beforeEach(async () => {
   await db.exec(`BEGIN;
     INSERT INTO companies VALUES('${company}','active',true),('${foreignCompany}','active',true);
-    INSERT INTO auth.users(id) VALUES('${actor}');
+    INSERT INTO auth.users(id,email_confirmed_at) VALUES('${actor}',now());
     INSERT INTO user_profiles VALUES('${actor}','active');
     INSERT INTO company_memberships VALUES('${company}','${actor}','company_admin','company_admin','active',true,now());
     INSERT INTO integration_api_clients(id,company_id,status,scopes) VALUES('${client}','${company}','active',ARRAY['staff_customers.write']);

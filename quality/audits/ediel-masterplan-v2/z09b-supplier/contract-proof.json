@@ -1,0 +1,296 @@
+{
+  "id": "AT-Z09B-SUPPLIER",
+  "scope": "Native supplement for the AT-Z09B-SUPPLIER notice, role, foreign-tenant, direction, R-field, AI-list and dated-history clauses; proof package for code approval review, not delivered main merge, market activation or whole approval.",
+  "prepared_at": "2026-10-19T11:33:54.613763+00:00",
+  "owner": "huvudagent 4; sole writer via positive handoff #766 6264962517 on claim 7ae0b7ae (own ACK 6265934742)",
+  "packet": "session-9933275f-9ceb-4485-b6de-5c5dd19ece6a (claim 7ae0b7ae08bf56cf6aee05a6adb90747b3248f34, handoff #766 6264962517)",
+  "pr": "https://github.com/heke99/gridex-ops-platform/pull/835",
+  "frozen_acceptance": {
+    "id": "AT-Z09B-SUPPLIER",
+    "name": "Meddelandefall Z09B",
+    "given": "SUPPLIER; Senast en kalendermånad före; rätt aktör/område/avtal; AI-lista ersätter inte Z09B.",
+    "when": "Byte av balansansvarig för berörda leveransrelationer.",
+    "expected": "23-DDQ-PRODAT; BGM=Z09; fält223=Z27; CONTRL och APERAK; uppdatering enligt BRP-förloppet.; Versionera BRP-ansvar vid datumet, inte tenantglobal överlagring av historiken.",
+    "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "layer": "Planerat meddelande-/rollprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  "frozen_acceptance_row_sha256": "ba1b9452d4fc643db836956d804c79d3aaae05bb047eab9450406b60f9ec5cfb",
+  "frozen_acceptance_row_canonicalization": "json.dumps(row, ensure_ascii=False, sort_keys=True, separators=(',',':')) UTF-8",
+  "coverage_status_at_preparation": "PARTIAL",
+  "current_originals": [
+    {
+      "producer": ".github/workflows/ediel-z09b-supplier-boundary-native.yml",
+      "run": 39244634735,
+      "attempt": 1,
+      "event": "pull_request",
+      "head_branch": "claude/awesome-lovelace-npwg24",
+      "head_sha": "6ec3c6819e1ea0b07dabaf4e3778ff693f87c79e",
+      "head_tree": "f9f989fbf141c52631a337a51936302f033b6c3c",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "id": 118033468725,
+          "name": "Ediel Z09B supplier boundary native / z09b-supplier-boundary-native",
+          "conclusion": "success"
+        }
+      ],
+      "artifacts": [
+        {
+          "id": 12183661567,
+          "name": "ediel-z09b-supplier-boundary-native-39244634735",
+          "archive_sha256": "1a537385ce39c284b58f07fc694170dfe58d7bfeff68fe8ac7cc7eba2ef94128",
+          "size_in_bytes": 1321091,
+          "includes": "native-junit.xml (10 tests, 0 failures, 0 errors, 0 skipped), native.log, receipt.json (checkout_sha 6ec3c6819e1ea0b07dabaf4e3778ff693f87c79e, native_exit_code 0)"
+        }
+      ]
+    }
+  ],
+  "local_preparation_run": {
+    "note": "Local disposable Supabase clean replay in a private scratch copy of draft/4d; not a qualified original and not uploaded evidence.",
+    "result": "10/10 PASS",
+    "qualifies_as_original": false
+  },
+  "independent_proof_reviews": [
+    {
+      "reviewer": "M (independent non-coauthor SOURCE reviewer)",
+      "bound_head": "2ce2a1c696feb569fcda94cc702c5b2974ac8b98",
+      "verdict": "SOURCE_APPROVE",
+      "locator": "https://github.com/heke99/gridex-ops-platform/pull/835#issuecomment-6266106661",
+      "sha256": "06838d5c27a224169a72573fded2a66b58302b929ee90d1028c18305f252d93a"
+    },
+    {
+      "reviewer": "N (independent non-coauthor SOURCE reviewer)",
+      "bound_head": "2ce2a1c696feb569fcda94cc702c5b2974ac8b98",
+      "verdict": "REQUEST_CHANGES (addressed in 6ec3c6819e1ea0b07dabaf4e3778ff693f87c79e)",
+      "locator": "https://github.com/heke99/gridex-ops-platform/pull/835#issuecomment-6266107086",
+      "sha256": "6a6b29f2fb8e54580dc2c82b5f283685f24e8d6495fa421a03ede1547db3faad"
+    },
+    {
+      "reviewer": "M (delta)",
+      "bound_head": "6ec3c6819e1ea0b07dabaf4e3778ff693f87c79e",
+      "verdict": "SOURCE_APPROVE",
+      "locator": "https://github.com/heke99/gridex-ops-platform/pull/835#issuecomment-6266148987",
+      "sha256": "77e9db105d0b3c31aa67b91914d0325b5442b0fe1ef68fa6fb7006215022071f"
+    },
+    {
+      "reviewer": "N (delta)",
+      "bound_head": "6ec3c6819e1ea0b07dabaf4e3778ff693f87c79e",
+      "verdict": "SOURCE_APPROVE",
+      "locator": "https://github.com/heke99/gridex-ops-platform/pull/835#issuecomment-6266149360",
+      "sha256": "03835070d6a08ffdc39c2d2c5a25696a0d19dd50c83daf71c522298a2ee9ea7e"
+    }
+  ],
+  "criteria": [
+    {
+      "criterion": "Given: Senast en kalendermånad före (notice < 1 calendar month is held)",
+      "source": "scripts/ediel-at-z09b-supplier-boundary-native.test.ts",
+      "lines": [
+        245,
+        254
+      ],
+      "asserted_reason": "one_calendar_month_notice_boundary",
+      "reason_locator": "supabase/schema.sql:5795 (migration 20260930200545:226)",
+      "observed": "Event at fixture start+1 day: actual read and producer return held; no intent, request, origin, message, outbox, version or confirmation; start+40 days contrast authorized.",
+      "final_head_original": {
+        "run": 39244634735,
+        "job": 118033468725,
+        "artifact": 12183661567,
+        "head_sha": "6ec3c6819e1ea0b07dabaf4e3778ff693f87c79e",
+        "result": "PASS (suite 10/10)"
+      }
+    },
+    {
+      "criterion": "Prohibited: fel roll — non-member actor",
+      "source": "scripts/ediel-at-z09b-supplier-boundary-native.test.ts",
+      "lines": [
+        259,
+        271
+      ],
+      "asserted_reason": "brp_change_actor_forbidden (42501)",
+      "reason_locator": "supabase/schema.sql:5654 (migration 20260930200545:85)",
+      "observed": "Active user without membership: read and producer reject 42501; no effects.",
+      "final_head_original": {
+        "run": 39244634735,
+        "job": 118033468725,
+        "artifact": 12183661567,
+        "head_sha": "6ec3c6819e1ea0b07dabaf4e3778ff693f87c79e",
+        "result": "PASS (suite 10/10)"
+      }
+    },
+    {
+      "criterion": "Prohibited: fel roll — member of another tenant (TEN-05)",
+      "source": "scripts/ediel-at-z09b-supplier-boundary-native.test.ts",
+      "lines": [
+        273,
+        290
+      ],
+      "asserted_reason": "brp_change_actor_forbidden (42501) on the foreign tenant; authentic_brp_contract_and_market_decision_event when the own tenant names the foreign event",
+      "reason_locator": "supabase/schema.sql:5654 (actor, 42501); company-filtered event read in gridex_brp_changes.context_v1, supabase/schema.sql:5656-5663 (held)",
+      "observed": "A qualified writer of tenant B is refused 42501 by the read and the producer for tenant A's event; tenant B naming tenant A's event id is held by read and producer alike; no intent, request, origin, message, outbox, version or confirmation in either tenant",
+      "final_head_original": {
+        "run": 39244634735,
+        "job": 118033468725,
+        "artifact": 12183661567,
+        "head_sha": "6ec3c6819e1ea0b07dabaf4e3778ff693f87c79e",
+        "result": "PASS (suite 10/10)"
+      }
+    },
+    {
+      "criterion": "Prohibited: fel roll — tenant electricity_supplier role expired",
+      "source": "scripts/ediel-at-z09b-supplier-boundary-native.test.ts",
+      "lines": [
+        292,
+        300
+      ],
+      "asserted_reason": "current_unique_legal_supplier_profile",
+      "reason_locator": "supabase/schema.sql:5781 (migration 20260930200545:199-212)",
+      "observed": "Own tenant_actor_roles electricity_supplier row expired: held; no effects.",
+      "final_head_original": {
+        "run": 39244634735,
+        "job": 118033468725,
+        "artifact": 12183661567,
+        "head_sha": "6ec3c6819e1ea0b07dabaf4e3778ff693f87c79e",
+        "result": "PASS (suite 10/10)"
+      }
+    },
+    {
+      "criterion": "Prohibited: fel roll — registry BRP actor without balance_responsible",
+      "source": "scripts/ediel-at-z09b-supplier-boundary-native.test.ts",
+      "lines": [
+        302,
+        309
+      ],
+      "asserted_reason": "current_exact_verified_registry_actors_and_roles",
+      "reason_locator": "supabase/schema.sql:5712 (migration 20260930200545:141-143)",
+      "observed": "Distinct registry BRP role deactivated: held; no effects.",
+      "final_head_original": {
+        "run": 39244634735,
+        "job": 118033468725,
+        "artifact": 12183661567,
+        "head_sha": "6ec3c6819e1ea0b07dabaf4e3778ff693f87c79e",
+        "result": "PASS (suite 10/10)"
+      }
+    },
+    {
+      "criterion": "Prohibited: fel riktning",
+      "source": "scripts/ediel-at-z09b-supplier-boundary-native.test.ts",
+      "lines": [
+        314,
+        335
+      ],
+      "asserted_reason": "canonical_outbound_owner_scope_required (finalizer); ediel_wire_reference_namespace_context_immutable (bound sent original)",
+      "reason_locator": "lib/ediel/core/kernel.ts:621-623; supabase/schema.sql:19010 (BEFORE trigger, fires ahead of the AFTER brp_bound_message_immutable guard)",
+      "observed": "Inbound draft on reserved intent refused before any message; later UPDATE direction=inbound on the sent bound Z09 refused; effects, raw and status source_declared unchanged; nothing confirmed.",
+      "final_head_original": {
+        "run": 39244634735,
+        "job": 118033468725,
+        "artifact": 12183661567,
+        "head_sha": "6ec3c6819e1ea0b07dabaf4e3778ff693f87c79e",
+        "result": "PASS (suite 10/10)"
+      }
+    },
+    {
+      "criterion": "Prohibited: saknade R/D-fält (262 NAD+Z02, 260 RFF+Z05 are R for Z09 in prodat_fields.json)",
+      "source": "scripts/ediel-at-z09b-supplier-boundary-native.test.ts",
+      "lines": [
+        344,
+        361
+      ],
+      "asserted_reason": "FIELD_MATRIX_REQUIRED_FIELD_MISSING",
+      "reason_locator": "lib/ediel/rulebook/fieldMatrix.ts:733 (canonical policy)",
+      "observed": "After actual reservation, body-bound wire without the segment refused; origin message_id stays NULL, no message/outbox/version; complete wire then binds normally. SQL brp_change_exact_wire_basis_required is NOT reached natively and NOT claimed.",
+      "final_head_original": {
+        "run": 39244634735,
+        "job": 118033468725,
+        "artifact": 12183661567,
+        "head_sha": "6ec3c6819e1ea0b07dabaf4e3778ff693f87c79e",
+        "result": "PASS (suite 10/10)"
+      }
+    },
+    {
+      "criterion": "Given: AI-lista ersätter inte Z09B",
+      "source": "scripts/ediel-at-z09b-supplier-boundary-native.test.ts",
+      "lines": [
+        366,
+        384
+      ],
+      "asserted_reason": "ai_list_edifact_or_foreign_link_forbidden",
+      "reason_locator": "lib/ediel/core/kernel.ts:637",
+      "observed": "AI_LIST original on the reserved Z09 intent refused; no AI_LIST message; only the actual Z09B confirms after CONTRL+APERAK.",
+      "final_head_original": {
+        "run": 39244634735,
+        "job": 118033468725,
+        "artifact": 12183661567,
+        "head_sha": "6ec3c6819e1ea0b07dabaf4e3778ff693f87c79e",
+        "result": "PASS (suite 10/10)"
+      }
+    },
+    {
+      "criterion": "Expected: versionera BRP-ansvar vid datumet, inte tenantglobal överlagring av historiken",
+      "source": "scripts/ediel-at-z09b-supplier-boundary-native.test.ts",
+      "lines": [
+        450,
+        537
+      ],
+      "asserted_reason": "n/a (positive history case)",
+      "reason_locator": "public.ediel_brp_responsibility_history_v1 (migration 20261011170000:68)",
+      "observed": "Donor case reused from dbcd5ed306e7d2ca934769bf101781c2525da6cf:scripts/ediel-z09b-brp-change-native.test.ts: v1 closed exactly at v2, older original/confirmation retained, same-company sibling and company BRP settings unchanged.",
+      "final_head_original": {
+        "run": 39244634735,
+        "job": 118033468725,
+        "artifact": 12183661567,
+        "head_sha": "6ec3c6819e1ea0b07dabaf4e3778ff693f87c79e",
+        "result": "PASS (suite 10/10)"
+      }
+    }
+  ],
+  "premises": {
+    "database": "Actual disposable PostgreSQL native replay",
+    "authority": "Constructed tenant/market/role/registry inputs; SYNTHETIC BRP-change event and registry rows (no approval API)",
+    "external_transport": "Declared SMTP double (synthetic 250)",
+    "clock": "Not controlled. The notice case proves a change one day after the fixture start (today+14 days) is held and the default later date is authorized; the exact calendar-month edge is not asserted",
+    "counterparty": "No live counterparty; CONTRL/APERAK rendered by the actual renderers from the sent original",
+    "unit_tests": "Tagged component tests are finite ports, not native proof",
+    "renderer": "The actual BRP renderer always runs; a pass-through wrapper alters its finished draft only in the direction, R-field and AI-list cases (injected defect after the renderer, not renderer output)"
+  },
+  "not_proved": [
+    "SQL brp_change_exact_wire_basis_required on a missing R field (TS canonical field matrix refuses first)",
+    "SQL brp_bound_message_immutable on direction change (BEFORE wire-namespace trigger refuses first)",
+    "Authentic market/counterparty evidence"
+  ],
+  "source_applicability": {
+    "executed_head": "6ec3c6819e1ea0b07dabaf4e3778ff693f87c79e",
+    "executed_tree": "f9f989fbf141c52631a337a51936302f033b6c3c",
+    "current_main": "f31f2381261390db6599df1eec818b77c3d3191c",
+    "ancestor": true,
+    "changed_after_execution": [
+      "quality/audits/ediel-masterplan-v2/z09b-supplier/contract-proof.json"
+    ],
+    "runtime_paths_changed": {
+      "lib": 0,
+      "supabase": 0,
+      "scripts": 0,
+      "__tests__": 0,
+      ".github": 0,
+      "package.json": 0,
+      "package-lock.json": 0
+    },
+    "verdict": "APPLICABLE: only this proof file changes after the executed head; no runtime input of the native suite changes"
+  },
+  "delivery": {
+    "status": "NOT_DELIVERED",
+    "coverage_row": "NOT_CHANGED_BY_THIS_PACKAGE",
+    "ordinary_final_head_gates": "REQUIRED",
+    "merge_role": "REQUIRED_SERIAL_OWNER_ONLY",
+    "external_legal_market_live_gates": "NOT_APPROVED",
+    "other_ids": "NOT_APPROVED"
+  },
+  "independent_proof_reviews_canonicalization": "sha256 of the report text in the locator comment: the text after the first line consisting of --- and before the closing --- footer rule, trailing newlines reduced to exactly one"
+}

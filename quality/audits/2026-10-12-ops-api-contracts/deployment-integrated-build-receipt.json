@@ -1,0 +1,14 @@
+{
+  "elapsed_seconds": 281.14,
+  "maxrss_kb": 6524916,
+  "exit_code": 0,
+  "source_commit": "0256dddc21691726f4e63bd0dc34df628077b8c9",
+  "source_tree": "d1879815c3fcaddd0859f6823cc160bdb9b76489",
+  "input_files": 4221,
+  "inputs_changed_during_build": [],
+  "log_sha256": "8ad01b99c0c74e78b3764c3af20a4126433fb2e14780db75e0ebdb607a22ec32",
+  "checks_disabled": false,
+  "actual_external_connections": false,
+  "qualification": "Actual integrated production build and TypeScript/staticpages; application-only release, pending database semantic installation not qualified",
+  "tests_executed": false
+}

@@ -1,0 +1,11 @@
+{
+  "status": "PRIVATE_NEW_DERIVED_COMPONENT_NOT_APPLIED",
+  "original_path": "/tmp/gridex-ops-final/quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/004-qualified-retention-install.sql",
+  "original_sha256": "2ff105e0d8f1a9cc9e84fbf7c060a52bf6bdf8d7f9c7e75a843f4bb209fa0425",
+  "derived_path": "/tmp/gridex-api-rebuild-20261014/main-proposal/derived-qualified-retention-install-pg-namespace-usage.sql",
+  "derived_sha256": "334dedfdd68a3f64edeb17ef35021957e5acc4fd0b8be63569cec0e48ef5a2ac",
+  "change": "Only exact retention namespace ACL precondition now requires owner UC plus postgres U granted by retention owner. All snapshots, lease, role/member guards and function bodies preserved.",
+  "old_atom": "nspowner=(SELECT oid FROM pg_roles WHERE rolname='gridex_ediel_retention_owner') AND nspacl=ARRAY['gridex_ediel_retention_owner=UC/gridex_ediel_retention_owner']::aclitem[]",
+  "new_atom": "nspowner=(SELECT oid FROM pg_roles WHERE rolname='gridex_ediel_retention_owner') AND nspacl=ARRAY['gridex_ediel_retention_owner=UC/gridex_ediel_retention_owner','postgres=U/gridex_ediel_retention_owner']::aclitem[]",
+  "replacements": 1
+}

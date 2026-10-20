@@ -64,8 +64,8 @@ export default function StaffApiGuide() {
         <p><a className="underline" href={STAFF_OPENAPI_URL}>Current OpenAPI</a> · <a className="underline" href={STAFF_VERSIONED_OPENAPI_URL}>Immutable release</a> · <a className="underline" href="/api/v1/openapi/release-manifest.json">Release manifest</a></p>
       </header>
       <section className="space-y-4">
-        <h2 className="text-2xl font-semibold">Deployment qualification</h2>
-        <p>The October 12 review did not establish a working live Staff integration. Source review and local probes do not establish production readiness. Qualify the organization&apos;s credential, identity provider, current bindings and required OPS database functions before relying on these endpoints.</p>
+        <h2 className="text-2xl font-semibold">Integration readiness</h2>
+        <p>The documented Staff API is available for integration development. Production use requires the deployed API and OPS database prerequisites plus the organization&apos;s active credential, explicit Staff scopes, identity provider, membership and any independent-login binding. Verify an authenticated read and write with the intended role and company, correct audit attribution and a retry of the same logical operation before go-live.</p>
       </section>
       <section className="space-y-4">
         <h2 className="text-2xl font-semibold">Configure staff login</h2>

@@ -1,0 +1,26 @@
+{
+  "schema": "ediel-docs-claude-claim-source-v1",
+  "agent": "codex-ediel-docs-claude-access-20261015",
+  "packet": "3879a41b-c759-46f9-92f9-af74d564795c",
+  "epoch": "gridex-five-agent-20261012",
+  "slot": "helper",
+  "branch": "codex/ediel-claude-claims-docs-20261015",
+  "base": "6ce6d49eafa8ca24bcefbeec717dd55b63abad66",
+  "neutralReceipt": "a50e9d61759b5ee19812ade014ee9927cdcc811c",
+  "claimReceipt": 6186635596,
+  "ids": [],
+  "files": [
+    "AGENTS.md",
+    ".agent-memory/README.md",
+    ".agent-memory/masterplan-current-start.md",
+    ".agent-memory/masterplan-five-agent-prompt-20261012.md",
+    ".agent-memory/work-plan.md",
+    ".agent-memory/masterplan-agent-workflow.md",
+    ".agent-memory/masterplan-reservations.md"
+  ],
+  "state": "FROZEN_SOURCE_CANDIDATE",
+  "scope": "Agent-neutral free-scope reservation and shorter current-start routing; no coverage/runtime/GEN/producer change",
+  "verification": "Markdown links, beforeblob/bytes, receipt-format and preserved ownership invariants checked offline; no Claude GitHub authentication claim",
+  "next": "Two independent non-coauthor source finals, applicable ordinary CI and normal delivery by existing serial owner",
+  "createdAt": "2026-10-15T07:14:00.482825+00:00"
+}

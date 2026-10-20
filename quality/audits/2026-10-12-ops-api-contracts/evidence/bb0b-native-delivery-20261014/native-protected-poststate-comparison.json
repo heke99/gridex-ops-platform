@@ -1,0 +1,4304 @@
+{
+  "status": "PASS",
+  "before_sha256": "375b68f52fa4a154f029006928b4d782cd054d554e09773c41ca7cd937f75fb0",
+  "after_sha256": "d708fca797bbd7b4fbe5a0fdde97ac9594f6a3b41ef55f8e6acea592d24f14dc",
+  "preserved_old_auth_hooks": 422,
+  "old_auth_hooks": 422,
+  "after_auth_hooks": 648,
+  "source_qualified_hook_proof": {
+    "status": "PASS",
+    "mode": "source",
+    "before_catalog_sha256": "d93635e184ee5551331df4ad00567645cf2906fb0c5e2ac02cd4b596718f5117",
+    "after_catalog_sha256": "215021a9cbbdca49453c441cf09487291cd69bcc29d82cf53d0ea7ff61bc27e1",
+    "whole_catalog_exact_equal": false,
+    "protected_old_metadata_equal": true,
+    "old_auth_trigger_count": 422,
+    "preserved_old_auth_trigger_count": 422,
+    "actual_new_auth_ri_hook_count": 226,
+    "actual_new_auth_fk_pairs": 113,
+    "new_auth_hooks": [
+      {
+        "oid": "3006022",
+        "name": "RI_ConstraintTrigger_a_3006022",
+        "relation": "gridex_ai_purpose_sources.artifacts",
+        "constraint": "artifacts_submitted_by_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3006023",
+        "name": "RI_ConstraintTrigger_a_3006023",
+        "relation": "gridex_ai_purpose_sources.artifacts",
+        "constraint": "artifacts_submitted_by_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3006052",
+        "name": "RI_ConstraintTrigger_a_3006052",
+        "relation": "gridex_ai_purpose_sources.reviews",
+        "constraint": "reviews_reviewer_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3006053",
+        "name": "RI_ConstraintTrigger_a_3006053",
+        "relation": "gridex_ai_purpose_sources.reviews",
+        "constraint": "reviews_reviewer_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3006077",
+        "name": "RI_ConstraintTrigger_a_3006077",
+        "relation": "gridex_bilateral_customer_sources.artifacts",
+        "constraint": "artifacts_submitted_by_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3006078",
+        "name": "RI_ConstraintTrigger_a_3006078",
+        "relation": "gridex_bilateral_customer_sources.artifacts",
+        "constraint": "artifacts_submitted_by_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3006147",
+        "name": "RI_ConstraintTrigger_a_3006147",
+        "relation": "gridex_bilateral_customer_sources.reviews",
+        "constraint": "reviews_reviewer_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3006148",
+        "name": "RI_ConstraintTrigger_a_3006148",
+        "relation": "gridex_bilateral_customer_sources.reviews",
+        "constraint": "reviews_reviewer_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3006157",
+        "name": "RI_ConstraintTrigger_a_3006157",
+        "relation": "gridex_bilateral_prodat.artifacts",
+        "constraint": "artifacts_submitted_by_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3006158",
+        "name": "RI_ConstraintTrigger_a_3006158",
+        "relation": "gridex_bilateral_prodat.artifacts",
+        "constraint": "artifacts_submitted_by_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3006192",
+        "name": "RI_ConstraintTrigger_a_3006192",
+        "relation": "gridex_bilateral_prodat.closure_operations",
+        "constraint": "closure_operations_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3006193",
+        "name": "RI_ConstraintTrigger_a_3006193",
+        "relation": "gridex_bilateral_prodat.closure_operations",
+        "constraint": "closure_operations_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3006247",
+        "name": "RI_ConstraintTrigger_a_3006247",
+        "relation": "gridex_bilateral_prodat.outbound_operations",
+        "constraint": "outbound_operations_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3006248",
+        "name": "RI_ConstraintTrigger_a_3006248",
+        "relation": "gridex_bilateral_prodat.outbound_operations",
+        "constraint": "outbound_operations_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3006282",
+        "name": "RI_ConstraintTrigger_a_3006282",
+        "relation": "gridex_bilateral_prodat.reviews",
+        "constraint": "reviews_reviewer_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3006283",
+        "name": "RI_ConstraintTrigger_a_3006283",
+        "relation": "gridex_bilateral_prodat.reviews",
+        "constraint": "reviews_reviewer_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3006347",
+        "name": "RI_ConstraintTrigger_a_3006347",
+        "relation": "gridex_brp_changes.events",
+        "constraint": "events_approved_by_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3006348",
+        "name": "RI_ConstraintTrigger_a_3006348",
+        "relation": "gridex_brp_changes.events",
+        "constraint": "events_approved_by_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3006382",
+        "name": "RI_ConstraintTrigger_a_3006382",
+        "relation": "gridex_brp_changes.origins",
+        "constraint": "origins_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3006383",
+        "name": "RI_ConstraintTrigger_a_3006383",
+        "relation": "gridex_brp_changes.origins",
+        "constraint": "origins_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3006432",
+        "name": "RI_ConstraintTrigger_a_3006432",
+        "relation": "gridex_brp_changes.registry_grounds",
+        "constraint": "registry_grounds_approved_by_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3006433",
+        "name": "RI_ConstraintTrigger_a_3006433",
+        "relation": "gridex_brp_changes.registry_grounds",
+        "constraint": "registry_grounds_approved_by_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3006442",
+        "name": "RI_ConstraintTrigger_a_3006442",
+        "relation": "gridex_brp_changes.revocations",
+        "constraint": "revocations_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3006443",
+        "name": "RI_ConstraintTrigger_a_3006443",
+        "relation": "gridex_brp_changes.revocations",
+        "constraint": "revocations_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3006447",
+        "name": "RI_ConstraintTrigger_a_3006447",
+        "relation": "gridex_brp_declaration_intake.artifact_revocations",
+        "constraint": "artifact_revocations_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3006448",
+        "name": "RI_ConstraintTrigger_a_3006448",
+        "relation": "gridex_brp_declaration_intake.artifact_revocations",
+        "constraint": "artifact_revocations_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3006467",
+        "name": "RI_ConstraintTrigger_a_3006467",
+        "relation": "gridex_brp_declaration_intake.artifacts",
+        "constraint": "artifacts_submitted_by_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3006468",
+        "name": "RI_ConstraintTrigger_a_3006468",
+        "relation": "gridex_brp_declaration_intake.artifacts",
+        "constraint": "artifacts_submitted_by_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3006502",
+        "name": "RI_ConstraintTrigger_a_3006502",
+        "relation": "gridex_brp_declaration_intake.reviews",
+        "constraint": "reviews_reviewer_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3006503",
+        "name": "RI_ConstraintTrigger_a_3006503",
+        "relation": "gridex_brp_declaration_intake.reviews",
+        "constraint": "reviews_reviewer_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3006507",
+        "name": "RI_ConstraintTrigger_a_3006507",
+        "relation": "gridex_brp_sources.contract_declarations",
+        "constraint": "contract_declarations_approved_by_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3006508",
+        "name": "RI_ConstraintTrigger_a_3006508",
+        "relation": "gridex_brp_sources.contract_declarations",
+        "constraint": "contract_declarations_approved_by_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3006547",
+        "name": "RI_ConstraintTrigger_a_3006547",
+        "relation": "gridex_brp_sources.contract_revocations",
+        "constraint": "contract_revocations_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3006548",
+        "name": "RI_ConstraintTrigger_a_3006548",
+        "relation": "gridex_brp_sources.contract_revocations",
+        "constraint": "contract_revocations_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3006557",
+        "name": "RI_ConstraintTrigger_a_3006557",
+        "relation": "gridex_brp_sources.qualified_candidates",
+        "constraint": "qualified_candidates_qualified_by_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3006558",
+        "name": "RI_ConstraintTrigger_a_3006558",
+        "relation": "gridex_brp_sources.qualified_candidates",
+        "constraint": "qualified_candidates_qualified_by_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3006632",
+        "name": "RI_ConstraintTrigger_a_3006632",
+        "relation": "gridex_contract_source_intake.artifacts",
+        "constraint": "artifacts_submitted_by_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3006633",
+        "name": "RI_ConstraintTrigger_a_3006633",
+        "relation": "gridex_contract_source_intake.artifacts",
+        "constraint": "artifacts_submitted_by_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3006642",
+        "name": "RI_ConstraintTrigger_a_3006642",
+        "relation": "gridex_contract_source_intake.qualifications",
+        "constraint": "qualifications_approved_by_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3006643",
+        "name": "RI_ConstraintTrigger_a_3006643",
+        "relation": "gridex_contract_source_intake.qualifications",
+        "constraint": "qualifications_approved_by_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3006672",
+        "name": "RI_ConstraintTrigger_a_3006672",
+        "relation": "gridex_contract_source_intake.reviews",
+        "constraint": "reviews_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3006673",
+        "name": "RI_ConstraintTrigger_a_3006673",
+        "relation": "gridex_contract_source_intake.reviews",
+        "constraint": "reviews_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3006687",
+        "name": "RI_ConstraintTrigger_a_3006687",
+        "relation": "gridex_contract_source_intake.revocations",
+        "constraint": "revocations_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3006688",
+        "name": "RI_ConstraintTrigger_a_3006688",
+        "relation": "gridex_contract_source_intake.revocations",
+        "constraint": "revocations_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3006702",
+        "name": "RI_ConstraintTrigger_a_3006702",
+        "relation": "gridex_customer_life_events.certification_classifications",
+        "constraint": "certification_classifications_published_by_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3006703",
+        "name": "RI_ConstraintTrigger_a_3006703",
+        "relation": "gridex_customer_life_events.certification_classifications",
+        "constraint": "certification_classifications_published_by_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3006742",
+        "name": "RI_ConstraintTrigger_a_3006742",
+        "relation": "gridex_customer_life_events.events",
+        "constraint": "events_approved_by_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3006743",
+        "name": "RI_ConstraintTrigger_a_3006743",
+        "relation": "gridex_customer_life_events.events",
+        "constraint": "events_approved_by_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3006762",
+        "name": "RI_ConstraintTrigger_a_3006762",
+        "relation": "gridex_customer_life_events.inbound_classifications",
+        "constraint": "inbound_classifications_approved_by_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3006763",
+        "name": "RI_ConstraintTrigger_a_3006763",
+        "relation": "gridex_customer_life_events.inbound_classifications",
+        "constraint": "inbound_classifications_approved_by_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3006772",
+        "name": "RI_ConstraintTrigger_a_3006772",
+        "relation": "gridex_customer_life_events.inbound_context_receipts",
+        "constraint": "inbound_context_receipts_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3006773",
+        "name": "RI_ConstraintTrigger_a_3006773",
+        "relation": "gridex_customer_life_events.inbound_context_receipts",
+        "constraint": "inbound_context_receipts_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3006782",
+        "name": "RI_ConstraintTrigger_a_3006782",
+        "relation": "gridex_customer_life_events.inbound_grounds",
+        "constraint": "inbound_grounds_approved_by_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3006783",
+        "name": "RI_ConstraintTrigger_a_3006783",
+        "relation": "gridex_customer_life_events.inbound_grounds",
+        "constraint": "inbound_grounds_approved_by_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3006807",
+        "name": "RI_ConstraintTrigger_a_3006807",
+        "relation": "gridex_customer_life_events.origins",
+        "constraint": "origins_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3006808",
+        "name": "RI_ConstraintTrigger_a_3006808",
+        "relation": "gridex_customer_life_events.origins",
+        "constraint": "origins_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3006877",
+        "name": "RI_ConstraintTrigger_a_3006877",
+        "relation": "gridex_customer_masterdata.preparations",
+        "constraint": "preparations_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3006878",
+        "name": "RI_ConstraintTrigger_a_3006878",
+        "relation": "gridex_customer_masterdata.preparations",
+        "constraint": "preparations_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3006902",
+        "name": "RI_ConstraintTrigger_a_3006902",
+        "relation": "gridex_customer_masterdata.revocations",
+        "constraint": "revocations_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3006903",
+        "name": "RI_ConstraintTrigger_a_3006903",
+        "relation": "gridex_customer_masterdata.revocations",
+        "constraint": "revocations_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3006912",
+        "name": "RI_ConstraintTrigger_a_3006912",
+        "relation": "gridex_customer_masterdata.signed_declarations",
+        "constraint": "signed_declarations_approved_by_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3006913",
+        "name": "RI_ConstraintTrigger_a_3006913",
+        "relation": "gridex_customer_masterdata.signed_declarations",
+        "constraint": "signed_declarations_approved_by_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3006997",
+        "name": "RI_ConstraintTrigger_a_3006997",
+        "relation": "gridex_ediel_ack_replay.positive_service_scope_receipts",
+        "constraint": "positive_service_scope_receipts_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3006998",
+        "name": "RI_ConstraintTrigger_a_3006998",
+        "relation": "gridex_ediel_ack_replay.positive_service_scope_receipts",
+        "constraint": "positive_service_scope_receipts_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3007012",
+        "name": "RI_ConstraintTrigger_a_3007012",
+        "relation": "gridex_ediel_business_incidents.events",
+        "constraint": "events_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3007013",
+        "name": "RI_ConstraintTrigger_a_3007013",
+        "relation": "gridex_ediel_business_incidents.events",
+        "constraint": "events_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3007032",
+        "name": "RI_ConstraintTrigger_a_3007032",
+        "relation": "gridex_ediel_business_incidents.incidents",
+        "constraint": "incidents_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3007033",
+        "name": "RI_ConstraintTrigger_a_3007033",
+        "relation": "gridex_ediel_business_incidents.incidents",
+        "constraint": "incidents_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3007107",
+        "name": "RI_ConstraintTrigger_a_3007107",
+        "relation": "gridex_ediel_exports.jobs",
+        "constraint": "jobs_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3007108",
+        "name": "RI_ConstraintTrigger_a_3007108",
+        "relation": "gridex_ediel_exports.jobs",
+        "constraint": "jobs_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3007147",
+        "name": "RI_ConstraintTrigger_a_3007147",
+        "relation": "gridex_ediel_inbound_receptions.receptions",
+        "constraint": "receptions_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3007148",
+        "name": "RI_ConstraintTrigger_a_3007148",
+        "relation": "gridex_ediel_inbound_receptions.receptions",
+        "constraint": "receptions_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3007207",
+        "name": "RI_ConstraintTrigger_a_3007207",
+        "relation": "gridex_ediel_retention.blob_decisions",
+        "constraint": "blob_decisions_submitted_by_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3007208",
+        "name": "RI_ConstraintTrigger_a_3007208",
+        "relation": "gridex_ediel_retention.blob_decisions",
+        "constraint": "blob_decisions_submitted_by_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3007217",
+        "name": "RI_ConstraintTrigger_a_3007217",
+        "relation": "gridex_ediel_retention.blob_reviews",
+        "constraint": "blob_reviews_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3007218",
+        "name": "RI_ConstraintTrigger_a_3007218",
+        "relation": "gridex_ediel_retention.blob_reviews",
+        "constraint": "blob_reviews_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3007227",
+        "name": "RI_ConstraintTrigger_a_3007227",
+        "relation": "gridex_ediel_retention.blob_revocations",
+        "constraint": "blob_revocations_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3007228",
+        "name": "RI_ConstraintTrigger_a_3007228",
+        "relation": "gridex_ediel_retention.blob_revocations",
+        "constraint": "blob_revocations_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3007237",
+        "name": "RI_ConstraintTrigger_a_3007237",
+        "relation": "gridex_ediel_retention.blob_tombstones",
+        "constraint": "blob_tombstones_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3007238",
+        "name": "RI_ConstraintTrigger_a_3007238",
+        "relation": "gridex_ediel_retention.blob_tombstones",
+        "constraint": "blob_tombstones_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3007252",
+        "name": "RI_ConstraintTrigger_a_3007252",
+        "relation": "gridex_ediel_retention.classification_copy_revocations",
+        "constraint": "classification_copy_revocations_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3007253",
+        "name": "RI_ConstraintTrigger_a_3007253",
+        "relation": "gridex_ediel_retention.classification_copy_revocations",
+        "constraint": "classification_copy_revocations_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3007282",
+        "name": "RI_ConstraintTrigger_a_3007282",
+        "relation": "gridex_ediel_retention.contract_copy_revocations",
+        "constraint": "contract_copy_revocations_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3007283",
+        "name": "RI_ConstraintTrigger_a_3007283",
+        "relation": "gridex_ediel_retention.contract_copy_revocations",
+        "constraint": "contract_copy_revocations_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3007312",
+        "name": "RI_ConstraintTrigger_a_3007312",
+        "relation": "gridex_ediel_retention.customer_decisions",
+        "constraint": "customer_decisions_submitted_by_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3007313",
+        "name": "RI_ConstraintTrigger_a_3007313",
+        "relation": "gridex_ediel_retention.customer_decisions",
+        "constraint": "customer_decisions_submitted_by_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3007317",
+        "name": "RI_ConstraintTrigger_a_3007317",
+        "relation": "gridex_ediel_retention.customer_reviews",
+        "constraint": "customer_reviews_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3007318",
+        "name": "RI_ConstraintTrigger_a_3007318",
+        "relation": "gridex_ediel_retention.customer_reviews",
+        "constraint": "customer_reviews_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3007327",
+        "name": "RI_ConstraintTrigger_a_3007327",
+        "relation": "gridex_ediel_retention.customer_revocations",
+        "constraint": "customer_revocations_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3007328",
+        "name": "RI_ConstraintTrigger_a_3007328",
+        "relation": "gridex_ediel_retention.customer_revocations",
+        "constraint": "customer_revocations_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3007337",
+        "name": "RI_ConstraintTrigger_a_3007337",
+        "relation": "gridex_ediel_retention.customer_tombstones",
+        "constraint": "customer_tombstones_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3007338",
+        "name": "RI_ConstraintTrigger_a_3007338",
+        "relation": "gridex_ediel_retention.customer_tombstones",
+        "constraint": "customer_tombstones_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3007367",
+        "name": "RI_ConstraintTrigger_a_3007367",
+        "relation": "gridex_ediel_retention.decision_evidence_policies",
+        "constraint": "decision_evidence_policies_submitted_by_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3007368",
+        "name": "RI_ConstraintTrigger_a_3007368",
+        "relation": "gridex_ediel_retention.decision_evidence_policies",
+        "constraint": "decision_evidence_policies_submitted_by_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3007372",
+        "name": "RI_ConstraintTrigger_a_3007372",
+        "relation": "gridex_ediel_retention.decision_evidence_reviews",
+        "constraint": "decision_evidence_reviews_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3007373",
+        "name": "RI_ConstraintTrigger_a_3007373",
+        "relation": "gridex_ediel_retention.decision_evidence_reviews",
+        "constraint": "decision_evidence_reviews_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3007382",
+        "name": "RI_ConstraintTrigger_a_3007382",
+        "relation": "gridex_ediel_retention.decision_evidence_revocations",
+        "constraint": "decision_evidence_revocations_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3007383",
+        "name": "RI_ConstraintTrigger_a_3007383",
+        "relation": "gridex_ediel_retention.decision_evidence_revocations",
+        "constraint": "decision_evidence_revocations_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3007392",
+        "name": "RI_ConstraintTrigger_a_3007392",
+        "relation": "gridex_ediel_retention.decision_evidence_tombstones",
+        "constraint": "decision_evidence_tombstones_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3007393",
+        "name": "RI_ConstraintTrigger_a_3007393",
+        "relation": "gridex_ediel_retention.decision_evidence_tombstones",
+        "constraint": "decision_evidence_tombstones_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3007422",
+        "name": "RI_ConstraintTrigger_a_3007422",
+        "relation": "gridex_ediel_retention.decisions",
+        "constraint": "decisions_submitted_by_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3007423",
+        "name": "RI_ConstraintTrigger_a_3007423",
+        "relation": "gridex_ediel_retention.decisions",
+        "constraint": "decisions_submitted_by_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3007437",
+        "name": "RI_ConstraintTrigger_a_3007437",
+        "relation": "gridex_ediel_retention.finance_decisions",
+        "constraint": "finance_decisions_submitted_by_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3007438",
+        "name": "RI_ConstraintTrigger_a_3007438",
+        "relation": "gridex_ediel_retention.finance_decisions",
+        "constraint": "finance_decisions_submitted_by_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3007447",
+        "name": "RI_ConstraintTrigger_a_3007447",
+        "relation": "gridex_ediel_retention.finance_reviews",
+        "constraint": "finance_reviews_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3007448",
+        "name": "RI_ConstraintTrigger_a_3007448",
+        "relation": "gridex_ediel_retention.finance_reviews",
+        "constraint": "finance_reviews_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3007457",
+        "name": "RI_ConstraintTrigger_a_3007457",
+        "relation": "gridex_ediel_retention.finance_revocations",
+        "constraint": "finance_revocations_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3007458",
+        "name": "RI_ConstraintTrigger_a_3007458",
+        "relation": "gridex_ediel_retention.finance_revocations",
+        "constraint": "finance_revocations_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3007467",
+        "name": "RI_ConstraintTrigger_a_3007467",
+        "relation": "gridex_ediel_retention.finance_tombstones",
+        "constraint": "finance_tombstones_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3007468",
+        "name": "RI_ConstraintTrigger_a_3007468",
+        "relation": "gridex_ediel_retention.finance_tombstones",
+        "constraint": "finance_tombstones_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3007502",
+        "name": "RI_ConstraintTrigger_a_3007502",
+        "relation": "gridex_ediel_retention.invoice_file_decisions",
+        "constraint": "invoice_file_decisions_submitted_by_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3007503",
+        "name": "RI_ConstraintTrigger_a_3007503",
+        "relation": "gridex_ediel_retention.invoice_file_decisions",
+        "constraint": "invoice_file_decisions_submitted_by_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3007512",
+        "name": "RI_ConstraintTrigger_a_3007512",
+        "relation": "gridex_ediel_retention.invoice_file_reviews",
+        "constraint": "invoice_file_reviews_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3007513",
+        "name": "RI_ConstraintTrigger_a_3007513",
+        "relation": "gridex_ediel_retention.invoice_file_reviews",
+        "constraint": "invoice_file_reviews_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3007522",
+        "name": "RI_ConstraintTrigger_a_3007522",
+        "relation": "gridex_ediel_retention.invoice_file_revocations",
+        "constraint": "invoice_file_revocations_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3007523",
+        "name": "RI_ConstraintTrigger_a_3007523",
+        "relation": "gridex_ediel_retention.invoice_file_revocations",
+        "constraint": "invoice_file_revocations_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3007532",
+        "name": "RI_ConstraintTrigger_a_3007532",
+        "relation": "gridex_ediel_retention.invoice_file_sources",
+        "constraint": "invoice_file_sources_captured_by_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3007533",
+        "name": "RI_ConstraintTrigger_a_3007533",
+        "relation": "gridex_ediel_retention.invoice_file_sources",
+        "constraint": "invoice_file_sources_captured_by_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3007582",
+        "name": "RI_ConstraintTrigger_a_3007582",
+        "relation": "gridex_ediel_retention.process_decisions",
+        "constraint": "process_decisions_submitted_by_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3007583",
+        "name": "RI_ConstraintTrigger_a_3007583",
+        "relation": "gridex_ediel_retention.process_decisions",
+        "constraint": "process_decisions_submitted_by_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3007592",
+        "name": "RI_ConstraintTrigger_a_3007592",
+        "relation": "gridex_ediel_retention.process_reviews",
+        "constraint": "process_reviews_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3007593",
+        "name": "RI_ConstraintTrigger_a_3007593",
+        "relation": "gridex_ediel_retention.process_reviews",
+        "constraint": "process_reviews_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3007602",
+        "name": "RI_ConstraintTrigger_a_3007602",
+        "relation": "gridex_ediel_retention.process_revocations",
+        "constraint": "process_revocations_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3007603",
+        "name": "RI_ConstraintTrigger_a_3007603",
+        "relation": "gridex_ediel_retention.process_revocations",
+        "constraint": "process_revocations_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3007612",
+        "name": "RI_ConstraintTrigger_a_3007612",
+        "relation": "gridex_ediel_retention.process_tombstones",
+        "constraint": "process_tombstones_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3007613",
+        "name": "RI_ConstraintTrigger_a_3007613",
+        "relation": "gridex_ediel_retention.process_tombstones",
+        "constraint": "process_tombstones_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3007632",
+        "name": "RI_ConstraintTrigger_a_3007632",
+        "relation": "gridex_ediel_retention.protected_copy_revocations",
+        "constraint": "protected_copy_revocations_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3007633",
+        "name": "RI_ConstraintTrigger_a_3007633",
+        "relation": "gridex_ediel_retention.protected_copy_revocations",
+        "constraint": "protected_copy_revocations_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3007657",
+        "name": "RI_ConstraintTrigger_a_3007657",
+        "relation": "gridex_ediel_retention.purges",
+        "constraint": "purges_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3007658",
+        "name": "RI_ConstraintTrigger_a_3007658",
+        "relation": "gridex_ediel_retention.purges",
+        "constraint": "purges_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3007682",
+        "name": "RI_ConstraintTrigger_a_3007682",
+        "relation": "gridex_ediel_retention.record_revocations",
+        "constraint": "record_revocations_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3007683",
+        "name": "RI_ConstraintTrigger_a_3007683",
+        "relation": "gridex_ediel_retention.record_revocations",
+        "constraint": "record_revocations_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3007692",
+        "name": "RI_ConstraintTrigger_a_3007692",
+        "relation": "gridex_ediel_retention.reviews",
+        "constraint": "reviews_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3007693",
+        "name": "RI_ConstraintTrigger_a_3007693",
+        "relation": "gridex_ediel_retention.reviews",
+        "constraint": "reviews_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3007702",
+        "name": "RI_ConstraintTrigger_a_3007702",
+        "relation": "gridex_ediel_retention.revocations",
+        "constraint": "revocations_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3007703",
+        "name": "RI_ConstraintTrigger_a_3007703",
+        "relation": "gridex_ediel_retention.revocations",
+        "constraint": "revocations_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3007722",
+        "name": "RI_ConstraintTrigger_a_3007722",
+        "relation": "gridex_ediel_services.artifacts",
+        "constraint": "artifacts_submitted_by_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3007723",
+        "name": "RI_ConstraintTrigger_a_3007723",
+        "relation": "gridex_ediel_services.artifacts",
+        "constraint": "artifacts_submitted_by_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3007817",
+        "name": "RI_ConstraintTrigger_a_3007817",
+        "relation": "gridex_ediel_services.reviews",
+        "constraint": "reviews_reviewer_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3007818",
+        "name": "RI_ConstraintTrigger_a_3007818",
+        "relation": "gridex_ediel_services.reviews",
+        "constraint": "reviews_reviewer_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3007827",
+        "name": "RI_ConstraintTrigger_a_3007827",
+        "relation": "gridex_ediel_transport.attempts",
+        "constraint": "attempts_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_restrict_del"
+      },
+      {
+        "oid": "3007828",
+        "name": "RI_ConstraintTrigger_a_3007828",
+        "relation": "gridex_ediel_transport.attempts",
+        "constraint": "attempts_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3007867",
+        "name": "RI_ConstraintTrigger_a_3007867",
+        "relation": "gridex_ediel_transport.reconciliation_case_events",
+        "constraint": "reconciliation_case_events_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_restrict_del"
+      },
+      {
+        "oid": "3007868",
+        "name": "RI_ConstraintTrigger_a_3007868",
+        "relation": "gridex_ediel_transport.reconciliation_case_events",
+        "constraint": "reconciliation_case_events_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3007882",
+        "name": "RI_ConstraintTrigger_a_3007882",
+        "relation": "gridex_ediel_transport.reconciliation_cases",
+        "constraint": "reconciliation_cases_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_restrict_del"
+      },
+      {
+        "oid": "3007883",
+        "name": "RI_ConstraintTrigger_a_3007883",
+        "relation": "gridex_ediel_transport.reconciliation_cases",
+        "constraint": "reconciliation_cases_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3007907",
+        "name": "RI_ConstraintTrigger_a_3007907",
+        "relation": "gridex_metering_method_changes.contract_request_declarations",
+        "constraint": "contract_request_declarations_approved_by_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3007908",
+        "name": "RI_ConstraintTrigger_a_3007908",
+        "relation": "gridex_metering_method_changes.contract_request_declarations",
+        "constraint": "contract_request_declarations_approved_by_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3007942",
+        "name": "RI_ConstraintTrigger_a_3007942",
+        "relation": "gridex_metering_method_changes.contract_request_revocations",
+        "constraint": "contract_request_revocations_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3007943",
+        "name": "RI_ConstraintTrigger_a_3007943",
+        "relation": "gridex_metering_method_changes.contract_request_revocations",
+        "constraint": "contract_request_revocations_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3007962",
+        "name": "RI_ConstraintTrigger_a_3007962",
+        "relation": "gridex_metering_method_changes.events",
+        "constraint": "events_approved_by_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3007963",
+        "name": "RI_ConstraintTrigger_a_3007963",
+        "relation": "gridex_metering_method_changes.events",
+        "constraint": "events_approved_by_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3008002",
+        "name": "RI_ConstraintTrigger_a_3008002",
+        "relation": "gridex_metering_method_changes.origins",
+        "constraint": "origins_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3008003",
+        "name": "RI_ConstraintTrigger_a_3008003",
+        "relation": "gridex_metering_method_changes.origins",
+        "constraint": "origins_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3008032",
+        "name": "RI_ConstraintTrigger_a_3008032",
+        "relation": "gridex_metering_method_changes.recovery_receipts",
+        "constraint": "recovery_receipts_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3008033",
+        "name": "RI_ConstraintTrigger_a_3008033",
+        "relation": "gridex_metering_method_changes.recovery_receipts",
+        "constraint": "recovery_receipts_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3008077",
+        "name": "RI_ConstraintTrigger_a_3008077",
+        "relation": "gridex_metering_method_changes.revocations",
+        "constraint": "revocations_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3008078",
+        "name": "RI_ConstraintTrigger_a_3008078",
+        "relation": "gridex_metering_method_changes.revocations",
+        "constraint": "revocations_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3008197",
+        "name": "RI_ConstraintTrigger_a_3008197",
+        "relation": "gridex_network_registry_sources.artifacts",
+        "constraint": "artifacts_submitted_by_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3008198",
+        "name": "RI_ConstraintTrigger_a_3008198",
+        "relation": "gridex_network_registry_sources.artifacts",
+        "constraint": "artifacts_submitted_by_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3008237",
+        "name": "RI_ConstraintTrigger_a_3008237",
+        "relation": "gridex_network_registry_sources.reviews",
+        "constraint": "reviews_reviewer_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3008238",
+        "name": "RI_ConstraintTrigger_a_3008238",
+        "relation": "gridex_network_registry_sources.reviews",
+        "constraint": "reviews_reviewer_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3008372",
+        "name": "RI_ConstraintTrigger_a_3008372",
+        "relation": "gridex_received_sources.permission_effect_receipts",
+        "constraint": "permission_effect_receipts_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3008373",
+        "name": "RI_ConstraintTrigger_a_3008373",
+        "relation": "gridex_received_sources.permission_effect_receipts",
+        "constraint": "permission_effect_receipts_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3008402",
+        "name": "RI_ConstraintTrigger_a_3008402",
+        "relation": "gridex_received_sources.permission_partition_receipts",
+        "constraint": "permission_partition_receipts_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3008403",
+        "name": "RI_ConstraintTrigger_a_3008403",
+        "relation": "gridex_received_sources.permission_partition_receipts",
+        "constraint": "permission_partition_receipts_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3008507",
+        "name": "RI_ConstraintTrigger_a_3008507",
+        "relation": "gridex_received_sources.prodat_recovery_li_preparations",
+        "constraint": "prodat_recovery_li_preparations_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3008508",
+        "name": "RI_ConstraintTrigger_a_3008508",
+        "relation": "gridex_received_sources.prodat_recovery_li_preparations",
+        "constraint": "prodat_recovery_li_preparations_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3008532",
+        "name": "RI_ConstraintTrigger_a_3008532",
+        "relation": "gridex_received_sources.prodat_recovery_operations",
+        "constraint": "prodat_recovery_operations_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3008533",
+        "name": "RI_ConstraintTrigger_a_3008533",
+        "relation": "gridex_received_sources.prodat_recovery_operations",
+        "constraint": "prodat_recovery_operations_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3008577",
+        "name": "RI_ConstraintTrigger_a_3008577",
+        "relation": "gridex_received_sources.prodat_recovery_outboxes",
+        "constraint": "prodat_recovery_outboxes_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3008578",
+        "name": "RI_ConstraintTrigger_a_3008578",
+        "relation": "gridex_received_sources.prodat_recovery_outboxes",
+        "constraint": "prodat_recovery_outboxes_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3008642",
+        "name": "RI_ConstraintTrigger_a_3008642",
+        "relation": "gridex_received_sources.production_contract_events",
+        "constraint": "production_contract_events_approved_by_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3008643",
+        "name": "RI_ConstraintTrigger_a_3008643",
+        "relation": "gridex_received_sources.production_contract_events",
+        "constraint": "production_contract_events_approved_by_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3008727",
+        "name": "RI_ConstraintTrigger_a_3008727",
+        "relation": "gridex_received_sources.regulated_supply_ground_versions",
+        "constraint": "regulated_supply_ground_versions_approved_by_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3008728",
+        "name": "RI_ConstraintTrigger_a_3008728",
+        "relation": "gridex_received_sources.regulated_supply_ground_versions",
+        "constraint": "regulated_supply_ground_versions_approved_by_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3008917",
+        "name": "RI_ConstraintTrigger_a_3008917",
+        "relation": "gridex_registry_import.batches",
+        "constraint": "batches_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_restrict_del"
+      },
+      {
+        "oid": "3008918",
+        "name": "RI_ConstraintTrigger_a_3008918",
+        "relation": "gridex_registry_import.batches",
+        "constraint": "batches_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3008972",
+        "name": "RI_ConstraintTrigger_a_3008972",
+        "relation": "gridex_regulated_supply.artifacts",
+        "constraint": "artifacts_submitted_by_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3008973",
+        "name": "RI_ConstraintTrigger_a_3008973",
+        "relation": "gridex_regulated_supply.artifacts",
+        "constraint": "artifacts_submitted_by_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3009022",
+        "name": "RI_ConstraintTrigger_a_3009022",
+        "relation": "gridex_regulated_supply.reviews",
+        "constraint": "reviews_reviewer_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3009023",
+        "name": "RI_ConstraintTrigger_a_3009023",
+        "relation": "gridex_regulated_supply.reviews",
+        "constraint": "reviews_reviewer_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3009037",
+        "name": "RI_ConstraintTrigger_a_3009037",
+        "relation": "gridex_requested_changes.artifacts",
+        "constraint": "artifacts_submitted_by_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3009038",
+        "name": "RI_ConstraintTrigger_a_3009038",
+        "relation": "gridex_requested_changes.artifacts",
+        "constraint": "artifacts_submitted_by_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3009082",
+        "name": "RI_ConstraintTrigger_a_3009082",
+        "relation": "gridex_requested_changes.events",
+        "constraint": "events_approved_by_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3009083",
+        "name": "RI_ConstraintTrigger_a_3009083",
+        "relation": "gridex_requested_changes.events",
+        "constraint": "events_approved_by_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3009122",
+        "name": "RI_ConstraintTrigger_a_3009122",
+        "relation": "gridex_requested_changes.origins",
+        "constraint": "origins_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3009123",
+        "name": "RI_ConstraintTrigger_a_3009123",
+        "relation": "gridex_requested_changes.origins",
+        "constraint": "origins_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3009177",
+        "name": "RI_ConstraintTrigger_a_3009177",
+        "relation": "gridex_requested_changes.reviews",
+        "constraint": "reviews_reviewer_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3009178",
+        "name": "RI_ConstraintTrigger_a_3009178",
+        "relation": "gridex_requested_changes.reviews",
+        "constraint": "reviews_reviewer_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3009182",
+        "name": "RI_ConstraintTrigger_a_3009182",
+        "relation": "gridex_requested_changes.revocations",
+        "constraint": "revocations_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3009183",
+        "name": "RI_ConstraintTrigger_a_3009183",
+        "relation": "gridex_requested_changes.revocations",
+        "constraint": "revocations_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3009207",
+        "name": "RI_ConstraintTrigger_a_3009207",
+        "relation": "gridex_requested_customer_changes.artifacts",
+        "constraint": "artifacts_submitted_by_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3009208",
+        "name": "RI_ConstraintTrigger_a_3009208",
+        "relation": "gridex_requested_customer_changes.artifacts",
+        "constraint": "artifacts_submitted_by_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3009247",
+        "name": "RI_ConstraintTrigger_a_3009247",
+        "relation": "gridex_requested_customer_changes.reviews",
+        "constraint": "reviews_reviewer_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3009248",
+        "name": "RI_ConstraintTrigger_a_3009248",
+        "relation": "gridex_requested_customer_changes.reviews",
+        "constraint": "reviews_reviewer_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3009272",
+        "name": "RI_ConstraintTrigger_a_3009272",
+        "relation": "gridex_service_administration.commands",
+        "constraint": "commands_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3009273",
+        "name": "RI_ConstraintTrigger_a_3009273",
+        "relation": "gridex_service_administration.commands",
+        "constraint": "commands_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3009282",
+        "name": "RI_ConstraintTrigger_a_3009282",
+        "relation": "gridex_service_administration.manual_permission_requests",
+        "constraint": "manual_permission_requests_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3009283",
+        "name": "RI_ConstraintTrigger_a_3009283",
+        "relation": "gridex_service_administration.manual_permission_requests",
+        "constraint": "manual_permission_requests_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3009312",
+        "name": "RI_ConstraintTrigger_a_3009312",
+        "relation": "gridex_service_permission.origins",
+        "constraint": "origins_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_restrict_del"
+      },
+      {
+        "oid": "3009313",
+        "name": "RI_ConstraintTrigger_a_3009313",
+        "relation": "gridex_service_permission.origins",
+        "constraint": "origins_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3009357",
+        "name": "RI_ConstraintTrigger_a_3009357",
+        "relation": "gridex_supply_rescission.artifacts",
+        "constraint": "artifacts_submitted_by_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3009358",
+        "name": "RI_ConstraintTrigger_a_3009358",
+        "relation": "gridex_supply_rescission.artifacts",
+        "constraint": "artifacts_submitted_by_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3009417",
+        "name": "RI_ConstraintTrigger_a_3009417",
+        "relation": "gridex_supply_rescission.outbound_operations",
+        "constraint": "outbound_operations_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3009418",
+        "name": "RI_ConstraintTrigger_a_3009418",
+        "relation": "gridex_supply_rescission.outbound_operations",
+        "constraint": "outbound_operations_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3009462",
+        "name": "RI_ConstraintTrigger_a_3009462",
+        "relation": "gridex_supply_rescission.reviews",
+        "constraint": "reviews_reviewer_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3009463",
+        "name": "RI_ConstraintTrigger_a_3009463",
+        "relation": "gridex_supply_rescission.reviews",
+        "constraint": "reviews_reviewer_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3009502",
+        "name": "RI_ConstraintTrigger_a_3009502",
+        "relation": "gridex_transport_exception.alarms",
+        "constraint": "alarms_responsible_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3009503",
+        "name": "RI_ConstraintTrigger_a_3009503",
+        "relation": "gridex_transport_exception.alarms",
+        "constraint": "alarms_responsible_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3009507",
+        "name": "RI_ConstraintTrigger_a_3009507",
+        "relation": "gridex_transport_exception.approvals",
+        "constraint": "approvals_approved_by_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3009508",
+        "name": "RI_ConstraintTrigger_a_3009508",
+        "relation": "gridex_transport_exception.approvals",
+        "constraint": "approvals_approved_by_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3009527",
+        "name": "RI_ConstraintTrigger_a_3009527",
+        "relation": "gridex_transport_exception.operations",
+        "constraint": "operations_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3009528",
+        "name": "RI_ConstraintTrigger_a_3009528",
+        "relation": "gridex_transport_exception.operations",
+        "constraint": "operations_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3009547",
+        "name": "RI_ConstraintTrigger_a_3009547",
+        "relation": "gridex_transport_exception.revocations",
+        "constraint": "revocations_actor_user_id_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3009548",
+        "name": "RI_ConstraintTrigger_a_3009548",
+        "relation": "gridex_transport_exception.revocations",
+        "constraint": "revocations_actor_user_id_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3009872",
+        "name": "RI_ConstraintTrigger_a_3009872",
+        "relation": "public.customers",
+        "constraint": "customers_merged_by_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_setnull_del"
+      },
+      {
+        "oid": "3009873",
+        "name": "RI_ConstraintTrigger_a_3009873",
+        "relation": "public.customers",
+        "constraint": "customers_merged_by_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3009927",
+        "name": "RI_ConstraintTrigger_a_3009927",
+        "relation": "public.ediel_inbound_cases",
+        "constraint": "ediel_inbound_cases_reviewed_by_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_noaction_del"
+      },
+      {
+        "oid": "3009928",
+        "name": "RI_ConstraintTrigger_a_3009928",
+        "relation": "public.ediel_inbound_cases",
+        "constraint": "ediel_inbound_cases_reviewed_by_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3010007",
+        "name": "RI_ConstraintTrigger_a_3010007",
+        "relation": "public.ediel_service_evidence",
+        "constraint": "ediel_service_evidence_approved_by_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_restrict_del"
+      },
+      {
+        "oid": "3010008",
+        "name": "RI_ConstraintTrigger_a_3010008",
+        "relation": "public.ediel_service_evidence",
+        "constraint": "ediel_service_evidence_approved_by_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3010042",
+        "name": "RI_ConstraintTrigger_a_3010042",
+        "relation": "public.ediel_test_runs",
+        "constraint": "ediel_test_runs_created_by_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_setnull_del"
+      },
+      {
+        "oid": "3010043",
+        "name": "RI_ConstraintTrigger_a_3010043",
+        "relation": "public.ediel_test_runs",
+        "constraint": "ediel_test_runs_created_by_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      },
+      {
+        "oid": "3010052",
+        "name": "RI_ConstraintTrigger_a_3010052",
+        "relation": "public.ediel_test_runs",
+        "constraint": "ediel_test_runs_updated_by_fkey",
+        "type": 9,
+        "function": "pg_catalog.RI_FKey_setnull_del"
+      },
+      {
+        "oid": "3010053",
+        "name": "RI_ConstraintTrigger_a_3010053",
+        "relation": "public.ediel_test_runs",
+        "constraint": "ediel_test_runs_updated_by_fkey",
+        "type": 17,
+        "function": "pg_catalog.RI_FKey_noaction_upd"
+      }
+    ],
+    "source_qualified_new_roles": [
+      {
+        "oid": "2999834",
+        "rolname": "gridex_ediel_certificate_authority_owner",
+        "rolsuper": false,
+        "rolconfig": null,
+        "rolinherit": true,
+        "rolcanlogin": false,
+        "rolcreatedb": false,
+        "rolbypassrls": false,
+        "rolconnlimit": -1,
+        "rolcreaterole": false,
+        "rolvaliduntil": null,
+        "rolreplication": false
+      },
+      {
+        "oid": "2999836",
+        "rolname": "gridex_ediel_fixture_authority_owner",
+        "rolsuper": false,
+        "rolconfig": null,
+        "rolinherit": true,
+        "rolcanlogin": false,
+        "rolcreatedb": false,
+        "rolbypassrls": false,
+        "rolconnlimit": -1,
+        "rolcreaterole": false,
+        "rolvaliduntil": null,
+        "rolreplication": false
+      },
+      {
+        "oid": "2999838",
+        "rolname": "gridex_ediel_transport_exception_owner",
+        "rolsuper": false,
+        "rolconfig": null,
+        "rolinherit": true,
+        "rolcanlogin": false,
+        "rolcreatedb": false,
+        "rolbypassrls": false,
+        "rolconnlimit": -1,
+        "rolcreaterole": false,
+        "rolvaliduntil": null,
+        "rolreplication": false
+      }
+    ],
+    "source_qualified_new_memberships": [
+      {
+        "oid": "2999835",
+        "member": "16388",
+        "roleid": "2999834",
+        "grantor": "10",
+        "set_option": false,
+        "admin_option": true,
+        "inherit_option": false
+      },
+      {
+        "oid": "2999837",
+        "member": "16388",
+        "roleid": "2999836",
+        "grantor": "10",
+        "set_option": false,
+        "admin_option": true,
+        "inherit_option": false
+      },
+      {
+        "oid": "2999839",
+        "member": "16388",
+        "roleid": "2999838",
+        "grantor": "10",
+        "set_option": false,
+        "admin_option": true,
+        "inherit_option": false
+      }
+    ],
+    "effects": [
+      {
+        "category": "constraints",
+        "key": "auth.identities:identities_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "83c92bcbe58a3b93170ef0848bea4ec5ea9b57720aa40e735f848044799bdf12"
+      },
+      {
+        "category": "constraints",
+        "key": "auth.mfa_amr_claims:mfa_amr_claims_session_id_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "b56cc1ee6c30ca7dc4d2a6598b55ec32431b98b8e5e13d632a3d500143871678"
+      },
+      {
+        "category": "constraints",
+        "key": "auth.mfa_challenges:mfa_challenges_auth_factor_id_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "d1beb579a4e2b059880957592a40e83f50756a6373b51bb9b3fbfc17750f5942"
+      },
+      {
+        "category": "constraints",
+        "key": "auth.mfa_factors:mfa_factors_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "0c33e507644efa5f0225bf4c3ee5e728eb4d8544db80807d8fab43daaae3eec4"
+      },
+      {
+        "category": "constraints",
+        "key": "auth.mfa_recovery_code_sets:mfa_recovery_code_sets_mfa_factor_id_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "918d6c0c59114ce1984421e881cc57e60e35bcffc5bcbe6ad1038b7e848624c8"
+      },
+      {
+        "category": "constraints",
+        "key": "auth.mfa_recovery_code_sets:mfa_recovery_code_sets_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "244997c23344991e7527a778dbc7de6caf8e21a5e518b4da58e48f9822b63b17"
+      },
+      {
+        "category": "constraints",
+        "key": "auth.mfa_recovery_codes:mfa_recovery_codes_mfa_recovery_code_set_id_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "8ed22bee19c08952e07abfe10281a1c41763233830271d04d210ad16e5338ca2"
+      },
+      {
+        "category": "constraints",
+        "key": "auth.oauth_authorizations:oauth_authorizations_client_id_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "8999934cd3098bc6ca3f669675342f9cb760a5aa93946b30a5f77efbbad5eba1"
+      },
+      {
+        "category": "constraints",
+        "key": "auth.oauth_authorizations:oauth_authorizations_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "101fdd521552d324911abcb3f3ae7054aa497e162f84f41b6f13603c9454bb00"
+      },
+      {
+        "category": "constraints",
+        "key": "auth.oauth_consents:oauth_consents_client_id_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "251ffc446f24b397716e95e602809eae09b81a6cd62eadfe11d3cfb08840203d"
+      },
+      {
+        "category": "constraints",
+        "key": "auth.oauth_consents:oauth_consents_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "d27428369c7b9e6847596ba7adc87560074425b208602c097b84acca30fcf51c"
+      },
+      {
+        "category": "constraints",
+        "key": "auth.one_time_tokens:one_time_tokens_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "3a9bbdfb42edfea08ed4910c0a69ea4dd507f583f5e7ac2184d9976220e89ee6"
+      },
+      {
+        "category": "constraints",
+        "key": "auth.refresh_tokens:refresh_tokens_session_id_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "d4745b5951bed4394f127dd9a38bf7b1c653690cff495687a0a6025943492434"
+      },
+      {
+        "category": "constraints",
+        "key": "auth.saml_providers:saml_providers_sso_provider_id_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "eab81d9017866f1d740c6cc078cf722c787ff78fa2fc5da07627ec753ac8c664"
+      },
+      {
+        "category": "constraints",
+        "key": "auth.saml_relay_states:saml_relay_states_flow_state_id_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "43517c1aa215252b5eb95d038c4707071cc12f189d613455b634337fa0f0eb69"
+      },
+      {
+        "category": "constraints",
+        "key": "auth.saml_relay_states:saml_relay_states_sso_provider_id_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "bd5eef8da937e954ab989426d0c1d5ff3f29bcfde83a79c49ddd31280f02af68"
+      },
+      {
+        "category": "constraints",
+        "key": "auth.scim_tokens:scim_tokens_sso_provider_id_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "c8f61dfa8802ffe0ccfcb8400f444e75a60d0aae982fd0f1512ddf3da5b88b07"
+      },
+      {
+        "category": "constraints",
+        "key": "auth.scim_users:scim_users_sso_provider_id_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "f55a8b8215e5c0af96b05896a5ee219e6b2c59b8f8f1f85f6fee10d92181ee29"
+      },
+      {
+        "category": "constraints",
+        "key": "auth.scim_users:scim_users_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "c5447dda160bd44995716a5f95008495b09b2675f354264c3d720707e8cd5f9e"
+      },
+      {
+        "category": "constraints",
+        "key": "auth.sessions:sessions_oauth_client_id_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "9945ffed873514cfe380ffb3d740da32e2123024ac07b4830e8aee2d3f37bb89"
+      },
+      {
+        "category": "constraints",
+        "key": "auth.sessions:sessions_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "0ba7c75c83164357a2a7e07882cd444027d1d54a7732c8b9a144e0ef956a206e"
+      },
+      {
+        "category": "constraints",
+        "key": "auth.sso_domains:sso_domains_sso_provider_id_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "e7df39436b016ff5f90bb427f0c60edf6586b39b262a4da278479a5940d5c8b3"
+      },
+      {
+        "category": "constraints",
+        "key": "auth.webauthn_challenges:webauthn_challenges_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "1160e20147924322c8b2d989c21747b5a49ddefcbae0d5bfa78f27a331aaaa5d"
+      },
+      {
+        "category": "constraints",
+        "key": "auth.webauthn_credentials:webauthn_credentials_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "72dd70bd54b983e8b380ca92468baed9109e659454062651892943e12808cbb8"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_ai_purpose_sources.artifacts:artifacts_submitted_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "8f7522511827795c033ecf26773970dd8bfa76488fcf0455ce7bcd4ede419493"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_ai_purpose_sources.reviews:reviews_reviewer_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "fcf6b3a46ce2c8f9c2ca4d6814cae373a33b751bbf575eeea65be09fd0668ea9"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_bilateral_customer_sources.artifacts:artifacts_submitted_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "960cdbaefb05e69cd7e4ed48fdedd27ae42129d84f9cb6d953be27a63f056fa3"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_bilateral_customer_sources.reviews:reviews_reviewer_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "cf87a263330ba8326377835f85ebc5552a4e5f90b61f81348b79c3921e6e2a85"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_bilateral_prodat.artifacts:artifacts_submitted_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "5fadab4d504acc4e690d2219b829c701e3b4fe1fcd77241d9735510aeee87f3f"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_bilateral_prodat.closure_operations:closure_operations_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "253659fa76d42c461656f9f131c1218579192df4398631487b8664ce2559ac1a"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_bilateral_prodat.outbound_operations:outbound_operations_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "70f39be3d3fc1e96c5eb1fcb1646b8a113e444c196effcfe5825c19e3c7070f4"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_bilateral_prodat.reviews:reviews_reviewer_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "fe737e09c056d5945818dbee673c1877a75723871df87a6a808bb2a9c53a1549"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_brp_changes.events:events_approved_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "374809a793942d0868c3edcb2d62731e8ca44fc64a0383e3bc07842f1ed03e66"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_brp_changes.origins:origins_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "93d3be3e092af1c0f62b47be351682ce8f2e0952b47ee15d3bdccafc8f2514b6"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_brp_changes.registry_grounds:registry_grounds_approved_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "cf846d309fd2402bd2e3f6609ed667af7111aa19649124816879cd34c725c3d7"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_brp_changes.revocations:revocations_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "b15d763d5673b0ebdeeaae118bcac02121452340eb93031b61ddbfaa81c3325f"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_brp_declaration_intake.artifact_revocations:artifact_revocations_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "a8a94a7b09aa098bce734ca65a7b861050ee584fd731b4e21b38bd8924e9dcdf"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_brp_declaration_intake.artifacts:artifacts_submitted_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "590de6dd049af1b48c1b2147c62ae51a813321f3df2b9b471dbb0d4332383615"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_brp_declaration_intake.reviews:reviews_reviewer_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "2d8b8b9c9f64570194914355c6713c1db2bdecdb8e313098d6f5bd4f278c6ee1"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_brp_sources.contract_declarations:contract_declarations_approved_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "ec0711051a5f5ac1db1424cc49f9f2116a8914aa5573e6117ffa9c3f93aee632"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_brp_sources.contract_revocations:contract_revocations_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "5caa5b2ad541fc2a9d385fd544b317846e1f2d0d2f6910a60c5ba5dd976cc62f"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_brp_sources.qualified_candidates:qualified_candidates_qualified_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "2a4ca06fb7e046ab21c72bcbdb75899f1a1b056398166e571343c7f4882297b2"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_contract_source_intake.artifacts:artifacts_submitted_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "83c326a183077d64f48d04c76dea15e16459826c8c015b56eb5df3f644a48be8"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_contract_source_intake.qualifications:qualifications_approved_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "cea161d784e17745d989c88cf341dcef42d7713ce59ebf40ec2052d86bb8be0d"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_contract_source_intake.reviews:reviews_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "3e5250ac1d4b853faa373356b07eb2e68c88f6129446b8391d6631320b2e57c5"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_contract_source_intake.revocations:revocations_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "a14878054c09ab2825d2de0af03d1d3552856833b274ebc6723dffdce69c471e"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_customer_life_events.certification_classifications:certification_classifications_published_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "5fdd03cb7d652dc63d0611c743ce2f750adbcc98e849ba92297ce7b28386ff0c"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_customer_life_events.events:events_approved_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "87ac64e989787da6b9e0e53329b5ce3dcd8cab12f83053941f08803d2f8f53ee"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_customer_life_events.inbound_classifications:inbound_classifications_approved_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "dd8a336a4f735e5df5287f40bf3069c182305feae5e9be8eee684347769dd3bd"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_customer_life_events.inbound_context_receipts:inbound_context_receipts_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "0af225311e2d753e810497f6a443c1d8dff697b314e5797d59a63047d51295ea"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_customer_life_events.inbound_grounds:inbound_grounds_approved_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "d10d32f2edb2c483adfd5cb7644ff1de38fa8f3c353ad24465c9d12c1a6aa28c"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_customer_life_events.origins:origins_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "bd393f93d531f712069a469cad26f893515cb6cea860b52d0eacd4c7b05cc178"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_customer_masterdata.preparations:preparations_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "4bcffcdb479bbb4e1bc397a953a5afcd7af881b5dbc6039f342d48a7fdb94bdc"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_customer_masterdata.revocations:revocations_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "010432bf5273a53de7908282921a37ce132256d375d3f22f59cae9246bcc6ce7"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_customer_masterdata.signed_declarations:signed_declarations_approved_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "bcbbdb0b0188f9d680a956de58078dd052b21f9cddd70f25fa298a31f452c737"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_ediel_ack_replay.positive_service_scope_receipts:positive_service_scope_receipts_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "76487299e87e3d0467a39c52abce4c9f99fa4ecc84cc6980bc2e8048792a1f90"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_ediel_business_incidents.events:events_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "1b593735377e32e80482b5ceeba94da73f7be5c0b47acb0325046ee2859e0783"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_ediel_business_incidents.incidents:incidents_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "52d848b98c3ed097c04d972b82db9dfd78583c854b183cef5bac545005ab6e16"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_ediel_exports.jobs:jobs_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "8efb1e68ba3083e42320ac4d6036de6ecdaeafb0b66cdb3e6725919aae29fbc1"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_ediel_inbound_receptions.receptions:receptions_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "2923c7b9b346b15f89c51efa89d714b503ceb80ceff7c7c7d41e0716bee9e1ba"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_ediel_retention.blob_decisions:blob_decisions_submitted_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "41299c52f37d10e8ee235d7b261a75f2cf09e146ad9eaf14c49839e836ad4f32"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_ediel_retention.blob_reviews:blob_reviews_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "b9182b650deaf73c787a0d77ea91276957eb66bac4c8550df4d4478e4d808803"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_ediel_retention.blob_revocations:blob_revocations_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "984515fcd592176cdf8456eda4cc8c53ee365cad8de5e809cd953c5246f064a0"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_ediel_retention.blob_tombstones:blob_tombstones_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "6765f182c806b12882480d67cef0bcb554098a60bfb5cdbab67e49feb8d12e5f"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_ediel_retention.classification_copy_revocations:classification_copy_revocations_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "650df26d845a4bac6349f95d627b1944ba5612173e0e24b7fec9b4db73b77167"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_ediel_retention.contract_copy_revocations:contract_copy_revocations_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "40efefbcc27a863ab87096afd3e0d3838f1234c103fdbb2111a27dc485ef7283"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_ediel_retention.customer_decisions:customer_decisions_submitted_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "a4dade7d13910d9cc115ee681b27cfcdb3943942a2a0b7d62703d727e9a6ff32"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_ediel_retention.customer_reviews:customer_reviews_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "dd90e345952eb498bae06b32bce24145dce39bf40a818ef91266a0c1380d1698"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_ediel_retention.customer_revocations:customer_revocations_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "267d147bc7b15463b72917ede44d20d0ee6d0abed2d5e18cc30ce1b7e28c6d0c"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_ediel_retention.customer_tombstones:customer_tombstones_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "59dcc6f3d4c3f7d64da1daa683f8b76dd5d72ae88f7cc394710b6e15e33d993f"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_ediel_retention.decision_evidence_policies:decision_evidence_policies_submitted_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "b86aba928c04259ae241d90dd061a927da1e260b1dce7ab0fe3ff46df7dee394"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_ediel_retention.decision_evidence_reviews:decision_evidence_reviews_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "ed17334ad906991e17e0144a15dd3291fd66fbfff67759a4800e696b78c5e8ae"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_ediel_retention.decision_evidence_revocations:decision_evidence_revocations_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "009fdfc16cfc45aea2eda168e18141253e93a34d46a608a779060c8f52174294"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_ediel_retention.decision_evidence_tombstones:decision_evidence_tombstones_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "f1abd3a3fd29aebced0811d1b80bd1f2c9623e44eb92502c63f3e63d290b197d"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_ediel_retention.decisions:decisions_submitted_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "1e5c15155f8606de209ec55c970f147cc36bf24b5493fdf0160647ce787bf9fb"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_ediel_retention.finance_decisions:finance_decisions_submitted_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "926a548dc377445011e1a6c1deaa322014353f196cd1e8cbfeeb456ec2f9c6b4"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_ediel_retention.finance_reviews:finance_reviews_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "9b7ec3bd38722b38be05d381aef381f7766cdf377978aa3018e251d84d67cf35"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_ediel_retention.finance_revocations:finance_revocations_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "2f35265c6db0552648a632c172f9f1f9a82f423cedc9672e5cc75c6fa90cc193"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_ediel_retention.finance_tombstones:finance_tombstones_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "65a1ce3646e8f879a9681ad1ce66fc93f54e9d7c73f05afca29d636649793d04"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_ediel_retention.invoice_file_decisions:invoice_file_decisions_submitted_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "d53451d68a8346d4dfb191fbc279c2e0f039e5e9c2ce82065da4c5316a61c5ac"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_ediel_retention.invoice_file_reviews:invoice_file_reviews_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "a944236f94323a614d656cd70fc162b8c7bfe587bd7de98da37ab24db6b2798f"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_ediel_retention.invoice_file_revocations:invoice_file_revocations_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "706c8f0eda08086081b74e4104f8b0af3a8066a39649510d1e271aa3b53668d0"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_ediel_retention.invoice_file_sources:invoice_file_sources_captured_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "0b98ff6ddb53531ab8175b6821c0ea3a753f64f86b3dab8cc9f73df679465673"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_ediel_retention.process_decisions:process_decisions_submitted_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "770735b1443b56c3778e34fd070d8546164472a6889cd82afaaa3fd193cb1fe9"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_ediel_retention.process_reviews:process_reviews_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "1f6544e7989e9b84dcd7b7d655abcb31d1798bc0e94e3ef3354ea8b61a8c20c5"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_ediel_retention.process_revocations:process_revocations_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "3fb38ed1cf811ab1f2041f6468f4ac90c75cef29e8eb9f36a17595e589a84b6e"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_ediel_retention.process_tombstones:process_tombstones_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "6cb1dc9cfccad19062350454485568975e7535f29af744385beb041639f0d2e1"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_ediel_retention.protected_copy_revocations:protected_copy_revocations_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "28de13fd2728fc45945780b404f357ab8feca2f8599aef9799e3e2e137ab65fb"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_ediel_retention.purges:purges_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "1ce0e8cc747c1e8ec782d8a266dbc721d360b91dc34774e6277167bac990c517"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_ediel_retention.record_decisions:record_decisions_submitted_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "be391cb110a649b349b77e4768e2cc36a1646f8279dac00d73afb86a5d1eef06"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_ediel_retention.record_reviews:record_reviews_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "7c11fc6dfc3aef64b6aaa5ad7bbfc93c6a3c8986307ac6eac1c74419a84ff666"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_ediel_retention.record_revocations:record_revocations_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "a58be7f9ecb79baebea394d52baf148bee9e608adbcefa0022bda659240a0ae7"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_ediel_retention.record_tombstones:record_tombstones_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "5eee994bed93dd78dae05b408ba6103ce47177700ffe1bfac8818c6a6fa3abb9"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_ediel_retention.reviews:reviews_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "b30733d43b58f24f665b20b8ac1dc5adcd4629abab9eee3adb3c78355c310ded"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_ediel_retention.revocations:revocations_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "7bf3acd3bd1cc79361ff29d9eb50c51d818e1cf56a6e022e120bb534cf89e4c8"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_ediel_services.artifacts:artifacts_submitted_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "a1ab09c472ee6adcd13fe957010b987f0266637926f2d585ac22afe3f63c799b"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_ediel_services.reviews:reviews_reviewer_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "34a50b9b9622e50bfb818ff5afb42e19946da033f43dbe5525c13c8e1276c16d"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_ediel_transport.attempts:attempts_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "ccc7790b3434a2244772ba130cec75ae04bff9819e1ab9f6590e6c625cc81b36"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_ediel_transport.reconciliation_case_events:reconciliation_case_events_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "0c2342a1dfbd59458b93539b20702d980ab27ab88c53d8b584bca3f2873897ec"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_ediel_transport.reconciliation_cases:reconciliation_cases_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "b2ca25ac0405ea2f32498345d675b598137d6c15aeceb1a020229852a4756dd1"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_metering_method_changes.contract_request_declarations:contract_request_declarations_approved_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "eab21e34f193c028ed0b5366920cad3f215b14fbb36bd61ad944b09f9760a2b5"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_metering_method_changes.contract_request_revocations:contract_request_revocations_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "fc5e831001915ee80489a0c8e258e12d0c386d226ce93f99a68c6a3825ae2076"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_metering_method_changes.events:events_approved_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "d66ce7e4b12fa10c717279ce1c40153de2c0fb220896990eefb8140269ed9afa"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_metering_method_changes.origins:origins_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "13ead58fae69aba40e60cebdcac171dade3d4e678a783056b446fa78d54ab120"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_metering_method_changes.recovery_receipts:recovery_receipts_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "a7f4a36535c4a48c270b5e19c7d606a1a786f6340654ea397835a3ad0d040b61"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_metering_method_changes.revocations:revocations_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "2b34c1bc73e669fd071414462a9343b6a7ca64e9a6e8066a34457e3de0a70dbb"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_network_registry_sources.artifacts:artifacts_submitted_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "42d8eed5f8781fce31d1bfcdad1638b301aef48a8f0d16f91777499c0f88b120"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_network_registry_sources.reviews:reviews_reviewer_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "f869fd4cd1a490b83fb365324781fef17ba533c323e48e6c6827c00092ee91c6"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_received_sources.permission_effect_receipts:permission_effect_receipts_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "54a48c4c1d2bab2c4ae0b1fb004aa1e023335a433ddb395ddeffc5566edd34ff"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_received_sources.permission_partition_receipts:permission_partition_receipts_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "2c273f12f820aeb193137e9d298578116d2124942a12111a3d62bdca1387e76b"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_received_sources.prodat_recovery_li_preparations:prodat_recovery_li_preparations_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "f88b5e549952a3cbcb64f25e2c75cc5720afd75a6200ccf18945a09fe4df727c"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_received_sources.prodat_recovery_operations:prodat_recovery_operations_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "ef84f229f9ba34809e54b3f4f957902eb3abc2bb29632d7aa9e5bb8ecb18470c"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_received_sources.prodat_recovery_outboxes:prodat_recovery_outboxes_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "4caa4a8e6b2fa3ac78385b5a2a988123525a97bb1779414b55fb661316a686e7"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_received_sources.production_contract_events:production_contract_events_approved_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "bc795e6953d89079f67e7e8cd66857c1903d29292ca881716043c1b868f4a007"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_received_sources.regulated_supply_ground_versions:regulated_supply_ground_versions_approved_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "aa6f1964b75083ee1b46d96c710f9727a0ccd85d6c443a2341d0eaf252cf6ec6"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_registry_import.batches:batches_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "44a67277db8a0ea9fc88b3865f057f59be4f6cd80a6251bf0e116fcb63057ffc"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_regulated_supply.artifacts:artifacts_submitted_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "c462ccdd12586e78f206c0e4da5c09a7fffb5fc3bd5bcadef541467f3be912fd"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_regulated_supply.reviews:reviews_reviewer_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "22cd32f11b60cf961447a911130c38309437badd3f8bdbaa478c1695174daa70"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_requested_changes.artifacts:artifacts_submitted_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "fd13ae3bedc6e062aef1ed7848b41ef2604ba7f5dfebab17b36cce70ed113490"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_requested_changes.events:events_approved_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "3381a15b79a5340cd8e3dbaba2fe2fc51adde64ddefcbed9f77f5ebcfb2f67ee"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_requested_changes.origins:origins_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "f9b54d44e5e53d2d6fa9e11fe408f9107d0bee3f7d6c4261b8922ff0f16cb659"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_requested_changes.reviews:reviews_reviewer_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "6b3dfecf447d99fe9c60fb7891b2d27563b33f305987f32aa6c6296b8548fe85"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_requested_changes.revocations:revocations_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "1b672481b05b9c8007f73fecb8b448d9937876ee3dea56f82ec3621d699cf270"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_requested_customer_changes.artifacts:artifacts_submitted_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "13b36fec56c7c3f3ae3cc0ebc7db9e92a7e7d90c871a81fc0b0a067a5a738480"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_requested_customer_changes.reviews:reviews_reviewer_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "fdd975573e0fdafefc403192e5197bb8d7423ec36a89de39352b00be7b0fc068"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_service_administration.commands:commands_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "07d9d8190eacb7ec73344e1626cecfe0af315bd2d2b8bebcdafd1f8b0c8dc848"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_service_administration.manual_permission_requests:manual_permission_requests_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "2100d9a2e9246721d49f72ff00c0f9625ae239dfeb7beca1c231d5b8de8d66c8"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_service_permission.origins:origins_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "5f5e60a3662d10314cbe6ebddff6461b67b47778637325f3f75a5238ceb1e982"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_supply_rescission.artifacts:artifacts_submitted_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "5ce860885fd54f48643f31202c1637a1dfc91a13cbbcefdf14104c68ed12114c"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_supply_rescission.outbound_operations:outbound_operations_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "0dc7f80c7319e8000bece378635df0b4a30db7c40fd3c8ae654a4a9b856d6e65"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_supply_rescission.reviews:reviews_reviewer_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "f1a64d87d7dc09aa95b1bef9ca12000dfb87d32a6a8bb49d513d9701cd6ba938"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_transport_exception.alarms:alarms_responsible_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "8150f1998b257d5f8c5b90db7d287880ae320f24d10e8e6bec3f77209f4c2a5f"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_transport_exception.approvals:approvals_approved_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "f5d20a3f4ce937d77324b03057d69c5cc20e94bc25ba05be3f79a235a86ca0ad"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_transport_exception.operations:operations_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "0dee1010da38fd36cdc051609935c59e264a348f14b0a666f7f17e6d690d01b1"
+      },
+      {
+        "category": "constraints",
+        "key": "gridex_transport_exception.revocations:revocations_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "a8494bb3590665043195b32df649ac7c704c40f7fb379b563dc7946aa49a543e"
+      },
+      {
+        "category": "constraints",
+        "key": "public.actor_test_attempts:actor_test_attempts_created_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "9c74486945759b69a3c472d8e59dd5841dfdae9c68fc70fb92372b547aacfb85"
+      },
+      {
+        "category": "constraints",
+        "key": "public.actor_test_manual_attestations:actor_test_manual_attestations_approved_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "2ddf298e8e2b64a41539e0101209b3f0bf99796dda598410eb262066fedf2f60"
+      },
+      {
+        "category": "constraints",
+        "key": "public.actor_test_manual_attestations:actor_test_manual_attestations_requested_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "ae1d78342b397e3b34e60b4766ae733a1adb9b3c0c784f29631aeb9baf287a8c"
+      },
+      {
+        "category": "constraints",
+        "key": "public.actor_test_results:actor_test_results_created_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "6a0abad5c301864ac3ff60f8f30b25c156163bc7be6f5ccd638403d7b4ecdf50"
+      },
+      {
+        "category": "constraints",
+        "key": "public.actor_test_results:actor_test_results_updated_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "9a5709350bae048147c497ca8547d0d0060e2b89ef06d136ebbc37b058d59de9"
+      },
+      {
+        "category": "constraints",
+        "key": "public.auth_email_events:auth_email_events_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "3200ce8abb2eee2a4aab09d49af1b0166fbe2243c1d14de40d1b82e19f06487b"
+      },
+      {
+        "category": "constraints",
+        "key": "public.auth_email_events:auth_email_events_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "747b4fa0ac49a30bf2cabbaf0c5abf692681a1b3851d6ebbf8a746b70c13dad6"
+      },
+      {
+        "category": "constraints",
+        "key": "public.authorization_scopes:authorization_scopes_created_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "f7230f82032aa2469abf6f09dadd5d98df2bca6cdfa9a8a4b293267b5b0ad3f7"
+      },
+      {
+        "category": "constraints",
+        "key": "public.authorization_scopes:authorization_scopes_updated_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "68b1d5774ee8c21f91be9c5e7debdd572da5b0170c7d267ecbaea1444f1a9c07"
+      },
+      {
+        "category": "constraints",
+        "key": "public.billing_export_runs:billing_export_runs_created_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "082f91aa5e871f28ee577226379162da39844eb035d47eccddd1aa172839981b"
+      },
+      {
+        "category": "constraints",
+        "key": "public.billing_import_batches:billing_import_batches_created_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "7c067c01b8ba2ed6a97b74a08d52b4a201c989fa88996e7c693f7b7f2b87ddb1"
+      },
+      {
+        "category": "constraints",
+        "key": "public.canonical_audit_events:canonical_audit_events_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "1c421ddb289a89afb92dcef2271898bac755b195d9a6951be10edc9089b1714d"
+      },
+      {
+        "category": "constraints",
+        "key": "public.canonical_command_results:canonical_command_results_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "d4317fcca300d4bee7c0163734a2b4a4be29ba591e00b461b97b759613fca5a8"
+      },
+      {
+        "category": "constraints",
+        "key": "public.canonical_domain_events:canonical_domain_events_created_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "97837b6ab40596c6295889c584d161aa35f363d76d3d0bc6ae5b36913c55677d"
+      },
+      {
+        "category": "constraints",
+        "key": "public.canonical_ediel_profile_identities:canonical_ediel_profile_identities_bound_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "722c80c059e30591f5a75822e9d411c31ffd682b02f5c229a5ebfd7925cb003a"
+      },
+      {
+        "category": "constraints",
+        "key": "public.canonical_migration_manifest:canonical_migration_manifest_registered_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "9ac5820e2625224b2a64699cbe77db0cdbfcf757bebe5bab3b866e60590fa0e8"
+      },
+      {
+        "category": "constraints",
+        "key": "public.canonical_platform_access_audit_events:canonical_platform_access_audit_events_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "17de866f1a527ed4f99a70f16976117d432df01d3d557f1a81b630b002073674"
+      },
+      {
+        "category": "constraints",
+        "key": "public.canonical_platform_access_audit_events:canonical_platform_access_audit_events_target_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "74d317bd83e7dd942e1ba52c732596dbe88204d3581def46d542e006d94dac99"
+      },
+      {
+        "category": "constraints",
+        "key": "public.canonical_platform_access_command_results:canonical_platform_access_command_results_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "695c575226422ee7a5ba3a5983c84aa92ca709933760d7d65954b53fd54e64b5"
+      },
+      {
+        "category": "constraints",
+        "key": "public.canonical_platform_access_command_results:canonical_platform_access_command_results_target_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "3915ee014b97a00ce580328e8bcfaeb394c7db3ec12c4daf0b15ae4c3a819758"
+      },
+      {
+        "category": "constraints",
+        "key": "public.canonical_readiness_shadow_comparisons:canonical_readiness_shadow_comparisons_compared_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "f35270572722f33f61f40628dcef2a75402c5aa72510fc29fbb5e448a545ef66"
+      },
+      {
+        "category": "constraints",
+        "key": "public.communication_logs:communication_logs_created_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "e4b9449de331929d1e77e058bf58b07e09511e03a705038430a6f2dd9f42f8f8"
+      },
+      {
+        "category": "constraints",
+        "key": "public.communication_logs:communication_logs_handled_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "9d724e0bf23959a28cf5fd9f6e880e86fe200705d209c710052a5216aeed38b1"
+      },
+      {
+        "category": "constraints",
+        "key": "public.companies:companies_archived_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "73f06d2343b92173490b88425875fd2c77069eb3df9204953b83f0f7cf0eb72f"
+      },
+      {
+        "category": "constraints",
+        "key": "public.companies:companies_closed_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "98d9c13b584f63e4d74d376789054fc8cd11baa872325f22f23328bb347e656a"
+      },
+      {
+        "category": "constraints",
+        "key": "public.companies:companies_created_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "76e8ef544623e089662934ec795d93588322716f76ff22c3a06b1d43bca5d83b"
+      },
+      {
+        "category": "constraints",
+        "key": "public.companies:companies_deletion_requested_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "6cdfef1e5761a261d003979061e40d6bd692ab9b52be6383e5dcc039e30f2d55"
+      },
+      {
+        "category": "constraints",
+        "key": "public.companies:companies_ediel_first_live_send_approved_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "79d84858a5d38ffce491cd38cc71adb8f5a31ede75218910deec92d9537119ad"
+      },
+      {
+        "category": "constraints",
+        "key": "public.companies:companies_ediel_production_enabled_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "3ed763a0d1bdf04cb23b169b2128f77744094dc05fff9076ca9e2ac2f735fd69"
+      },
+      {
+        "category": "constraints",
+        "key": "public.companies:companies_ediel_production_paused_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "f09e9c70efe3517c9a07d478ecdc40a0e9617364c4e8526d4d7585a97fc18762"
+      },
+      {
+        "category": "constraints",
+        "key": "public.companies:companies_lifecycle_last_transition_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "ca55252cbdcbf79963d5150b669345b7a16be14011e8fcfffb96fd54f15f6667"
+      },
+      {
+        "category": "constraints",
+        "key": "public.companies:companies_live_approved_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "9950d0b59ed3726eda21b3d8b62318aa1297f0a169019627b6eedc73a73cd020"
+      },
+      {
+        "category": "constraints",
+        "key": "public.companies:companies_paused_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "6584ed9e528d84146d7be1a7b826fdf4f3f1b922a0d220af3a75ce20ab156a8c"
+      },
+      {
+        "category": "constraints",
+        "key": "public.companies:companies_reactivated_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "d71df317f7ea97d79a90cad66cd532e2faff8994b887d659d4fb8c935d52f311"
+      },
+      {
+        "category": "constraints",
+        "key": "public.companies:companies_suspended_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "372ae320442caffc6ea51e3c3b768036cd53f660bf9db948d0065a242fabe962"
+      },
+      {
+        "category": "constraints",
+        "key": "public.company_actor_test_runs:company_actor_test_runs_created_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "3bf348efa60bb2638a0c66c2176dba075e735bf48dcb1a8898bd90d7397f4cd6"
+      },
+      {
+        "category": "constraints",
+        "key": "public.company_go_live_reviews:company_go_live_reviews_approved_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "c58226d798f1246d14d1af53e6f6e3d096c6e6a97b053ec9335b1027a5df7484"
+      },
+      {
+        "category": "constraints",
+        "key": "public.company_go_live_reviews:company_go_live_reviews_reviewed_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "e495f192d61f222e0c7b15c15856bab4cee53ae0df9ada527cf95409e230835e"
+      },
+      {
+        "category": "constraints",
+        "key": "public.company_invitations:company_invitations_invited_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "76e0d7a52fddd44e25f3e9da18bd74ba5a58871309bfd2242c273f9280d5b728"
+      },
+      {
+        "category": "constraints",
+        "key": "public.company_invitations:company_invitations_invited_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "963d2b929fa57aed4d640b9262049dbe063b36530d765d9eee8f0519881b28f7"
+      },
+      {
+        "category": "constraints",
+        "key": "public.company_memberships:company_memberships_disabled_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "e0a00c257ac4a35f2dd4ae8c818df757944dd58bf660ed15faefae78af2917c9"
+      },
+      {
+        "category": "constraints",
+        "key": "public.company_memberships:company_memberships_invited_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "bbd394e33fab763620c9c2b1a39895a4fa09951859e12e28c5b28df337f552c6"
+      },
+      {
+        "category": "constraints",
+        "key": "public.company_memberships:company_memberships_removed_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "66956c5c42567f5be17194b444f3e13e0faca4a9ee4faaf42fbf0e22e38faf50"
+      },
+      {
+        "category": "constraints",
+        "key": "public.company_memberships:company_memberships_user_id_auth_users_fk",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "17d8beb6086bc6f9285c02378737ab6f5710ac151f3d61430f9558d94eccb47b"
+      },
+      {
+        "category": "constraints",
+        "key": "public.company_memberships:company_memberships_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "446e443efa803a16a986704f2eb9553d7f80af68467af26a2654682182c151a1"
+      },
+      {
+        "category": "constraints",
+        "key": "public.contract_offer_versions:contract_offer_versions_created_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "3692137f90e599ccc36054e18c11e3499dd4c48fcd9bb5f3fdaee66374e56715"
+      },
+      {
+        "category": "constraints",
+        "key": "public.contract_offers:contract_offers_closed_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "dc95fa67a7f775da0bbad7a12ba7e27f0727e1a364a34dc16df7229602d34c4e"
+      },
+      {
+        "category": "constraints",
+        "key": "public.customer_application_workflow_events:customer_application_workflow_events_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "f90ef8e087327b2e3b331948e1b80ac5a277d28b0e0f688cbee783bcb53ee44f"
+      },
+      {
+        "category": "constraints",
+        "key": "public.customer_blockers:customer_blockers_created_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "72aef7a420ac08a16125c2c35045f31a20c19005dbb6e2c9711510f2e02e584d"
+      },
+      {
+        "category": "constraints",
+        "key": "public.customer_blockers:customer_blockers_resolved_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "d76daf8bdaadddc0078930bb1bd814ed59bdb7c3e86b900a199d61096628c48b"
+      },
+      {
+        "category": "constraints",
+        "key": "public.customer_case_events:customer_case_events_created_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "c021a4ff939c1164dcee1b89f825d23a6f60ddbe562009387c3c5a35dbe9a3c4"
+      },
+      {
+        "category": "constraints",
+        "key": "public.customer_cases:customer_cases_assigned_to_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "a4b69947b240d884141bc2ab5ad63750a9ff1908a2cc4fb74dc1f84412c4cf51"
+      },
+      {
+        "category": "constraints",
+        "key": "public.customer_cases:customer_cases_created_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "e4563bc86730dda48c082b490681707b4e720c60a877101b5c81143acb3e64fe"
+      },
+      {
+        "category": "constraints",
+        "key": "public.customer_cases:customer_cases_updated_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "6728ce36a930fdb1881bbce43a1998fdb6328c65497e7ecaf1bc2766ac09952f"
+      },
+      {
+        "category": "constraints",
+        "key": "public.customer_contract_signature_requests:customer_contract_signature_requests_created_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "be74a91acef688819bb54c890d52b64824da75dc17273d91da61171381e6c061"
+      },
+      {
+        "category": "constraints",
+        "key": "public.customer_import_batches:customer_import_batches_created_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "3f53e781912250982988719890371ad97ac851646d10c776c11e95c5f80db147"
+      },
+      {
+        "category": "constraints",
+        "key": "public.customer_import_rows:customer_import_rows_reviewed_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "0ceabd508102ff1a9093f07d70863047f505c8b3bb039edee2e9e2d0646e6fc5"
+      },
+      {
+        "category": "constraints",
+        "key": "public.customer_info_request_events:customer_info_request_events_created_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "6fc87ec8769bd7127cb5dc0819df872a2dcbe1a5d4a7661757d75f28a64fd793"
+      },
+      {
+        "category": "constraints",
+        "key": "public.customer_info_requests:customer_info_requests_created_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "2d019d3b164bd18b83832770c1ad90f4cc8588b782597297680cb69f023fc206"
+      },
+      {
+        "category": "constraints",
+        "key": "public.customer_info_requests:customer_info_requests_updated_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "b2a6f07742b912386900227b31ebca186761df5a2517aecaeac76faf411a7aee"
+      },
+      {
+        "category": "constraints",
+        "key": "public.customer_internal_notes:customer_internal_notes_created_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "c903c2dc92342ff7ecb8edb7a403a6c183e5994219cccf4a167e1dde483799a6"
+      },
+      {
+        "category": "constraints",
+        "key": "public.customer_internal_notes:customer_internal_notes_updated_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "bad6d7c17edd317abc095a8f06fc21233ac6306a4006b7e0f00265e757f037fe"
+      },
+      {
+        "category": "constraints",
+        "key": "public.customer_legal_acceptances:customer_legal_acceptances_created_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "5485f77be62d8512bf523de263b633f936bb2e313ba9683c297346e1c8c3a6e5"
+      },
+      {
+        "category": "constraints",
+        "key": "public.customer_lifecycle_events:customer_lifecycle_events_created_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "e202c587d4487ec13fdf736b808ad574bb9f572b9bcbb36dbdcdf2f942ab8127"
+      },
+      {
+        "category": "constraints",
+        "key": "public.customer_operation_jobs:customer_operation_jobs_created_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "63221be0891497038b81367a0bb688e25c8dd1947b2aba327105ed68565a5ed7"
+      },
+      {
+        "category": "constraints",
+        "key": "public.customer_operation_jobs:customer_operation_jobs_review_owner_user_fk",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "419010e1bfe96bdb837dc94c36249588f419ad95f4c2d9a2a2a1cb05fdd577be"
+      },
+      {
+        "category": "constraints",
+        "key": "public.customer_operation_tasks:customer_operation_tasks_reassigned_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "6474bb7117cfa2995aa971a0990f2c6cfa58aaadbaa9b128d332c8b64e3da2fb"
+      },
+      {
+        "category": "constraints",
+        "key": "public.customer_portal_accounts:customer_portal_accounts_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "f210eafa875f514d2933b819ca0c11ce17bab39dfd7d0ed7330c95dc1372f6f1"
+      },
+      {
+        "category": "constraints",
+        "key": "public.customer_portal_completions:customer_portal_completions_created_by_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "eaf97d13948ff97596345c2e0c2ca5c9cf156500d7bd26cfb3fcfd153fce4658"
+      },
+      {
+        "category": "constraints",
+        "key": "public.customer_portal_completions:customer_portal_completions_reviewed_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "046093c90e491e6cb7c8adf55fab586bfddfa2922aac5cc90c6bd72e7426a7d1"
+      },
+      {
+        "category": "constraints",
+        "key": "public.customer_portal_events:customer_portal_events_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "ca17267780fcd694495a56a8feb0dac7ba94e76e12249c900cd9223a478a3f16"
+      },
+      {
+        "category": "constraints",
+        "key": "public.customer_site_address_conflicts:customer_site_address_conflicts_resolved_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "11de1e89917e5c12a082bf854745bd73239d1baa0f364f245c729018b5ce51c1"
+      },
+      {
+        "category": "constraints",
+        "key": "public.customer_site_address_history:customer_site_address_history_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "aafa9222e5850201a11a356c35ebba3248635a16aaa590f5dd4650adb2b3040f"
+      },
+      {
+        "category": "constraints",
+        "key": "public.customer_sites:customer_sites_address_verified_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "1574fb39a3f506e78170ae6344f7319aab0306ef123c368d676def089cf9f470"
+      },
+      {
+        "category": "constraints",
+        "key": "public.customer_sites:customer_sites_created_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "4b33266059446f718d93b2342798826aa2c3735b3073831dc114cad611cf4ea4"
+      },
+      {
+        "category": "constraints",
+        "key": "public.customer_sites:customer_sites_updated_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "3df48a3d179964839b19df84a5d57eb55a1acc2fa6da4d614917992ca48242e5"
+      },
+      {
+        "category": "constraints",
+        "key": "public.customers:customers_lifecycle_closed_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "03822f6356d9c38376afa7ecef2c91349f4d44432a878bc0adeeea119b21c509"
+      },
+      {
+        "category": "constraints",
+        "key": "public.customers:customers_merged_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "67eee5e8dd569f51241e71a04645129dbfd52a01d6da2093bab50bef5ff70883"
+      },
+      {
+        "category": "constraints",
+        "key": "public.data_quality_findings:data_quality_findings_resolved_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "2066a297057462aa8450876ce7ac661084f346a3680579923af7d9a71b11b739"
+      },
+      {
+        "category": "constraints",
+        "key": "public.domain_events:domain_events_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "e1afd6cbb57e37004697d7f24734e0523da517d3b7968bbfec4761bf3bc9b647"
+      },
+      {
+        "category": "constraints",
+        "key": "public.ediel_active_test_configurations:ediel_active_test_configurations_created_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "bec5404bbac65236c5910da2567d98799510fd9182db2ccb45b18acb745f1d5c"
+      },
+      {
+        "category": "constraints",
+        "key": "public.ediel_actor_settings:ediel_actor_settings_approved_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "31523593557692f013a7b6828832214c3292aaf5a2b4e5fd1546ebc4af198192"
+      },
+      {
+        "category": "constraints",
+        "key": "public.ediel_configuration_snapshots:ediel_configuration_snapshots_created_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "1c9928549c73f7a8af04864ee62d14aa2d2b3f09a4320090f507eaeffbc63cf6"
+      },
+      {
+        "category": "constraints",
+        "key": "public.ediel_counterparties:ediel_counterparties_created_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "cadafde6346cdec1d3486d4c09cee43678d72dc3d09e6fd211c87269dd1a4303"
+      },
+      {
+        "category": "constraints",
+        "key": "public.ediel_counterparties:ediel_counterparties_updated_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "cc1d5b9d51766b20e2cc111241add86fa9e2e248fdabd472b68a14dcdf5d9145"
+      },
+      {
+        "category": "constraints",
+        "key": "public.ediel_go_live_events:ediel_go_live_events_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "a0f1d7c98bcbdb87648a93662e5baf035d39ca80b07b5af37fc5a88f1784abfe"
+      },
+      {
+        "category": "constraints",
+        "key": "public.ediel_inbound_cases:ediel_inbound_cases_reviewed_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "6f8a515b51869325b70d5d0d69387bf777eaffa84dd28a7d479d9638499b1fe2"
+      },
+      {
+        "category": "constraints",
+        "key": "public.ediel_production_readiness_checks:ediel_production_readiness_checks_checked_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "44101f2802f0dc6ef0f9f8f6c9cb36b3382a750da592c1a2800d8e33f292f6ad"
+      },
+      {
+        "category": "constraints",
+        "key": "public.ediel_production_state:ediel_production_state_approved_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "8b74fe32af6a7158c03f3cdf6b744ac414dabac5e80f6e2b2a3d9edcd7c28e8c"
+      },
+      {
+        "category": "constraints",
+        "key": "public.ediel_production_state:ediel_production_state_first_live_send_approved_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "f3049cfd09e43339f89e53edef5ac4fcb37fa4084aa1858a5164bfcc31d12a4d"
+      },
+      {
+        "category": "constraints",
+        "key": "public.ediel_production_state:ediel_production_state_paused_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "be1a2bb993e2fb904e77a2163171312038f4f90b20b97177a5f20b38d19dbb40"
+      },
+      {
+        "category": "constraints",
+        "key": "public.ediel_route_history:ediel_route_history_created_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "8ea4605ca47ef4a93885992f39b7c16a38fb202105f4fad2263ad0726fc46938"
+      },
+      {
+        "category": "constraints",
+        "key": "public.ediel_routing_decisions:ediel_routing_decisions_created_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "37aba89d04cc64d875e9248a725183af7dc6b3725444df04c748fc2870b3084d"
+      },
+      {
+        "category": "constraints",
+        "key": "public.ediel_send_locks:ediel_send_locks_locked_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "35988afa7a3010df30f68ac7027780e135f063a88ac22c018e0ac7c9c115f90a"
+      },
+      {
+        "category": "constraints",
+        "key": "public.ediel_send_locks:ediel_send_locks_unlocked_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "bc3d7fd42a0b922ae9942d7c17cd8a5c1ae43bba662fdf4ca88b46a5175ba7d9"
+      },
+      {
+        "category": "constraints",
+        "key": "public.ediel_service_evidence:ediel_service_evidence_approved_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "cdd5a1e89375d1bf3897dd982999af918cffbfff4965f74f332e825ad70e0477"
+      },
+      {
+        "category": "constraints",
+        "key": "public.ediel_system_test_settings:ediel_system_test_settings_created_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "a6c547799f1bcef8aef6ad13179a11794aedb0091206058ebf143b95fdcded9a"
+      },
+      {
+        "category": "constraints",
+        "key": "public.ediel_system_test_settings:ediel_system_test_settings_updated_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "7dfd1662ded2e3547deeeb30dfc86c87ab2a7f620f5ab90e5bf2ada431b1b5d1"
+      },
+      {
+        "category": "constraints",
+        "key": "public.ediel_tenant_relation_quarantine:ediel_tenant_relation_quarantine_resolved_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "88d549446e55954548a1fa769930f4241b6d1213baebed58292f909c1bde6654"
+      },
+      {
+        "category": "constraints",
+        "key": "public.ediel_test_runs:ediel_test_runs_created_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "91dd79e136b2538b4f66273d163b6a08ee31ed552ed654cdcd7b34b2b495f97d"
+      },
+      {
+        "category": "constraints",
+        "key": "public.ediel_test_runs:ediel_test_runs_updated_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "6b36f07f6dd60ef6110a75607172b379218e6baab24d7f68843373ea7b1cb2af"
+      },
+      {
+        "category": "constraints",
+        "key": "public.ediel_transport_profiles:ediel_transport_profiles_created_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "129a7e6443c4286ca5c977137454dde8a45cffc5f9d574dfda58ae96199e35c3"
+      },
+      {
+        "category": "constraints",
+        "key": "public.ediel_transport_profiles:ediel_transport_profiles_updated_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "72dae36eed3d7dfe496bb9ba4664a700056aa4eee29c994daf630a82da06d473"
+      },
+      {
+        "category": "constraints",
+        "key": "public.grid_owners:grid_owners_created_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "05ab4a8f0024f5a16bdac2f44894efb3bb8c674824366d988b9db11c4b0d2d99"
+      },
+      {
+        "category": "constraints",
+        "key": "public.grid_owners:grid_owners_updated_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "070a152900c43ce3c907caaffeb0c7380c7d1abddf5f20be2ad7f837d7f4f98c"
+      },
+      {
+        "category": "constraints",
+        "key": "public.integration_api_clients:integration_api_clients_created_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "41b7fad9b787a80a5ba94486121a35639dd18c1c8aeac500eb1e39b6126feb5e"
+      },
+      {
+        "category": "constraints",
+        "key": "public.integration_api_clients:integration_api_clients_revoked_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "092c6715ae4f47ffa190e028caff23367efeae10732d1d331aadc2fe5a9d62d4"
+      },
+      {
+        "category": "constraints",
+        "key": "public.legal_text_versions:legal_text_versions_created_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "6b4f5b0dc360456f7e5cd70810e67662745a08c37ea87eaeccdf3cffa9237b4c"
+      },
+      {
+        "category": "constraints",
+        "key": "public.legal_text_versions:legal_text_versions_published_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "5bc915157d7d3e1f9c92af5a6cd953d4d66d44486c9365473e9bdfdde44fefbf"
+      },
+      {
+        "category": "constraints",
+        "key": "public.legal_text_versions:legal_text_versions_updated_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "f17d22185cd1058135c12dcd28ad77e82f7938c8e35112e39db92d334013630a"
+      },
+      {
+        "category": "constraints",
+        "key": "public.masterdata_audit_log:masterdata_audit_log_performed_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "130bf858a7eefcfa79fe67d1f9d7d5ab1c063f9daf1079267c364bfd97ea5814"
+      },
+      {
+        "category": "constraints",
+        "key": "public.metering_period_gaps:metering_period_gaps_created_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "d203743919fd1ee6bb9cb461bfe156233f1fcf169f653d52eb9b7c59bd2c886a"
+      },
+      {
+        "category": "constraints",
+        "key": "public.metering_period_gaps:metering_period_gaps_resolved_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "3ee6779a6a143acad27f036e7ad025c7b182c8fe382f3ce9afa12319d30d0144"
+      },
+      {
+        "category": "constraints",
+        "key": "public.metering_permissions:metering_permissions_created_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "90a8c0de9f19fcee2497ba5c816e5531e9ed8a628ca8b606464d1d861468e3c7"
+      },
+      {
+        "category": "constraints",
+        "key": "public.metering_permissions:metering_permissions_updated_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "221ab7d0d260c998fa5f7216e03a2050d81480c1aeba642e9377d3cb711fd46e"
+      },
+      {
+        "category": "constraints",
+        "key": "public.metering_points:metering_points_created_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "e4048b471a75d5be855ef961a87e29fd0987023f1ccaae6d21ba8c0ef7ab763f"
+      },
+      {
+        "category": "constraints",
+        "key": "public.metering_points:metering_points_updated_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "1680513f360f03dbf6344e1511bc7c35dcef749d9fb89046c6db607cb409c561"
+      },
+      {
+        "category": "constraints",
+        "key": "public.onboarding_sessions:onboarding_sessions_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "234d0a20c3800b31fd94b509b9cfeb512d2fb8d15d510c59f60d9ac842587cbd"
+      },
+      {
+        "category": "constraints",
+        "key": "public.operations_automation_runs:operations_automation_runs_created_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "534d56f1f596ab14f054b79f6722d0be9b91cbf360d409b13e2cefdc95e734d8"
+      },
+      {
+        "category": "constraints",
+        "key": "public.platform_inbound_quarantine:platform_inbound_quarantine_assigned_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "ea2a0d305bff703ddf0e5902f21432cb9bc907af1ad362c0535c0bb7e995b73f"
+      },
+      {
+        "category": "constraints",
+        "key": "public.platform_release_receipts:platform_release_receipts_recorded_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "f5f0a07f0b7ea201e1964a61ac7deac0f66fe0de4cb1d5ed62ec624bfabfe8b7"
+      },
+      {
+        "category": "constraints",
+        "key": "public.platform_session_revocations:platform_session_revocations_revoked_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "77c11759a9b7ca72f15c6db005e3f31e506a23f8a222c9dd0a7a8c2179e0d95c"
+      },
+      {
+        "category": "constraints",
+        "key": "public.platform_session_revocations:platform_session_revocations_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "c9b0c06fd1433051cae9af091e1fb2fb09dd4d381918fad4befe025a26268606"
+      },
+      {
+        "category": "constraints",
+        "key": "public.portfolio_settlement_invoice_bindings:portfolio_settlement_invoice_bindings_bound_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "d98e7b34b3a5291deb33851d95a2af89be6b3cfb7b6d485e5cfa39c752b1581f"
+      },
+      {
+        "category": "constraints",
+        "key": "public.portfolio_settlement_permission_grants:portfolio_settlement_permission_grants_granted_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "71aec68e3cfbf93ec930cdac8c2dc90044726a2f8e15119ebf0c20a0f2137c14"
+      },
+      {
+        "category": "constraints",
+        "key": "public.portfolio_settlement_permission_grants:portfolio_settlement_permission_grants_revoked_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "f97b187088467ad4675146a7a29cc804dda80ce38ab86cac85fdafad2aa14c44"
+      },
+      {
+        "category": "constraints",
+        "key": "public.portfolio_settlement_permission_grants:portfolio_settlement_permission_grants_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "e8470dcdac9418122d964bafb06a428f7d83df3f749f89d7571756e112732e56"
+      },
+      {
+        "category": "constraints",
+        "key": "public.pricing_component_rules:pricing_component_rules_created_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "07e0b1a22c3f1895ed96f124d9dc3100d0892a128284432b89fd95a0c5a38289"
+      },
+      {
+        "category": "constraints",
+        "key": "public.pricing_component_rules:pricing_component_rules_updated_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "28e9724cefcfc876e923f1a85ef18add32fe38017d3afbdd24a6933c73f8154d"
+      },
+      {
+        "category": "constraints",
+        "key": "public.production_route_wizard_runs:production_route_wizard_runs_created_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "917f8351be00c0b4d8a0c62a91ba079b0f17d9bb93a9161582fd957265ec3d2f"
+      },
+      {
+        "category": "constraints",
+        "key": "public.public_contract_offers:public_contract_offers_closed_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "a23063bb8fc51076964fa00584042d6844c02359a02f0abcfc5677f9ffc9fbc8"
+      },
+      {
+        "category": "constraints",
+        "key": "public.public_contract_offers:public_contract_offers_created_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "cc51c2d6cfa1c290399837deab3d0f50b6e5d5b2ceffbec8eedc5e929cbfc62a"
+      },
+      {
+        "category": "constraints",
+        "key": "public.public_contract_offers:public_contract_offers_updated_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "c2d9ff69ec7ad9fef692afe744181865ab1f6ba9cf94f92bfa3a4ebc2e06f478"
+      },
+      {
+        "category": "constraints",
+        "key": "public.supplier_switch_events:supplier_switch_events_archived_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "3534fbb15c98c52128578a0904608facfa2104dd646b683c009f02b77a170279"
+      },
+      {
+        "category": "constraints",
+        "key": "public.tenant_email_domains:tenant_email_domains_created_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "a9fb67a93e0a8acb7ef9d3255ad228010d8a8d6d469e915f03fec265894342dd"
+      },
+      {
+        "category": "constraints",
+        "key": "public.tenant_email_domains:tenant_email_domains_updated_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "b83af0aa42b1bed11333775074b8457dafba966215c94f1c2000ec3ed068292f"
+      },
+      {
+        "category": "constraints",
+        "key": "public.tenant_email_outbox:tenant_email_outbox_created_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "ccbba1310672cb893442e0026129c00f7b04eceaa2b7ec28f6b4e7db17ff536e"
+      },
+      {
+        "category": "constraints",
+        "key": "public.tenant_email_sender_profiles:tenant_email_sender_profiles_created_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "8c79c50b566ee65f4d578211b9d95271ae2f43b2ee54d5d0d1473639406e3b6d"
+      },
+      {
+        "category": "constraints",
+        "key": "public.tenant_email_sender_profiles:tenant_email_sender_profiles_updated_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "dfcc0a140d9f4ebf040e0faaf60992b5119f4ba1136387c50c0650eb198ec590"
+      },
+      {
+        "category": "constraints",
+        "key": "public.tenant_email_templates:tenant_email_templates_created_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "8dbfc4f6fcb103d2a983e74a6fd74c8b280799cd2ac761c53ada6f49637a63d3"
+      },
+      {
+        "category": "constraints",
+        "key": "public.tenant_email_templates:tenant_email_templates_updated_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "cef4760cf4d04be8657365804454cc0bfec3a75aa318fcc370485ae7c3d5ea7e"
+      },
+      {
+        "category": "constraints",
+        "key": "public.tenant_governance_events:tenant_governance_events_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "9554a6d739fa895e7a195be6dc15cfae9826e31255628631f71bdc63d2c236b7"
+      },
+      {
+        "category": "constraints",
+        "key": "public.tenant_governance_events:tenant_governance_events_target_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "40797d10655b45ae394b653a73ee99b2d25f6d69159c18aa0f99c8ae695b42b4"
+      },
+      {
+        "category": "constraints",
+        "key": "public.tenant_integrity_audit_runs:tenant_integrity_audit_runs_requested_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "0b170b024133e5eb87b645db2d39b3eded9b3e255114cb4157ec15a75d318024"
+      },
+      {
+        "category": "constraints",
+        "key": "public.tenant_staff_actor_anchors:tenant_staff_actor_anchors_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "b31cea4d5959030cc797863a562e38557c5894ec3010ad47087f6926bbc0970d"
+      },
+      {
+        "category": "constraints",
+        "key": "public.tenant_staff_identity_bindings:tenant_staff_identity_bindings_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "f903971e813e21cf2405f4b67799bcfabe5b26c38d34bc546f0c1f52c9566806"
+      },
+      {
+        "category": "constraints",
+        "key": "public.tenant_staff_identity_deliveries:tenant_staff_identity_deliveries_actor_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "7eb0da227db558daf8544a8c25c60776a01e0c123889931c37c8caf8aaeec942"
+      },
+      {
+        "category": "constraints",
+        "key": "public.user_profiles:user_profiles_id_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "fa20075c42da07f7ac8cac698bcef346a416b864382702e8e3a128afba8c6efa"
+      },
+      {
+        "category": "constraints",
+        "key": "public.user_profiles:user_profiles_last_auth_email_action_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "f54bdd71e1a13e712ba2ab6667d1920970f68d1278486c7d1a6d6fe83a17debf"
+      },
+      {
+        "category": "constraints",
+        "key": "public.user_roles:user_roles_disabled_by_fkey",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "8802323bb4e88ba5ad173d38b2c0dbd353bfdce7cec2eb7baa2fced47bb78959"
+      },
+      {
+        "category": "constraints",
+        "key": "public.user_roles:user_roles_user_id_auth_users_fk",
+        "status": "added",
+        "source_scope_hint": "canonical_relation",
+        "before_sha256": null,
+        "after_sha256": "580db9e366d750f31bae0df8d6bd662341d91abf1d00336ffcffee42f7e5f3bd"
+      },
+      {
+        "category": "constraints",
+        "key": "public.webhook_deliveries:webhook_deliveries_resent_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "dc47fb0c6e606df10498b6fea9674a82a89475c04d683b96a0c4ed0b7faeaa72"
+      },
+      {
+        "category": "constraints",
+        "key": "public.webhook_subscriptions:webhook_subscriptions_created_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "a58714d899e52b9d760921bad88f84e1f2eaaa863f3fd58267b7805b8c0cf4b2"
+      },
+      {
+        "category": "constraints",
+        "key": "public.webhook_subscriptions:webhook_subscriptions_rotated_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "39cb43f241ef420e1fe8a7af7b96eadcda67527873d3bdaa4d0e4e0439a53d90"
+      },
+      {
+        "category": "constraints",
+        "key": "public.webhook_subscriptions:webhook_subscriptions_updated_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "15a2f6ff5d70d144b75ee1694097d1686cbb6d2646bc51a709a895e2e749906f"
+      },
+      {
+        "category": "constraints",
+        "key": "public.website_application_review_items:website_application_review_items_assigned_to_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "f11f302a51929ed165710407e19940885cb1ac1244000355a78d11a5814fbbf1"
+      },
+      {
+        "category": "constraints",
+        "key": "public.website_application_review_items:website_application_review_items_resolved_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "b43e90be0a503d625a13cc31743ff818e81627c0eec8a954825cd3008ecc478e"
+      },
+      {
+        "category": "constraints",
+        "key": "public.website_customer_applications:website_customer_applications_assigned_to_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "e55216ab45641aee04abd0dfa4e75bb8c4260191f07458c9ee8c0485050566c7"
+      },
+      {
+        "category": "constraints",
+        "key": "public.website_customer_applications:website_customer_applications_repair_owner_user_fk",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "0dd615d8c8b11e50963894088a69524c9985ac3d6840026565cc38130c6d9b74"
+      },
+      {
+        "category": "constraints",
+        "key": "public.website_customer_applications:website_customer_applications_reviewed_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "d4bbe84ae8f923c3e0056e2dc4703d912c789012386c4d88127edda379ac25e1"
+      },
+      {
+        "category": "constraints",
+        "key": "public.white_label_platform_memberships:white_label_platform_memberships_invited_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "58f6b720e466c4887697423e200346d5fad39f1d5c6cefda68ef4b9159fbfb2c"
+      },
+      {
+        "category": "constraints",
+        "key": "public.white_label_platform_memberships:white_label_platform_memberships_user_id_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "a9c3d04e194d81c92b4b62ace46b20850bac6e86a8fa8b7ccaefc1af6960f05e"
+      },
+      {
+        "category": "constraints",
+        "key": "public.white_label_platforms:white_label_platforms_created_by_fkey",
+        "status": "added",
+        "source_scope_hint": null,
+        "before_sha256": null,
+        "after_sha256": "98a0f1e696ea3c958be2e12a7c72485405bd510c10b9e5a53d26df217c756ff4"
+      }
+    ],
+    "errors": [],
+    "source_mode_limit": "Source mode proves protected metadata and exact allowed Auth RI hooks. Other effects are reported with scope hints; final all-eight inline source postconditions and independent review remain required. Scope hints alone never certify arbitrary metadata changes."
+  },
+  "post_ledger": {
+    "count": 532,
+    "max_version": "20261014113214"
+  },
+  "transport_flags": {
+    "bb0b_payload": false,
+    "bb0b_namespace": false,
+    "original_payload": false,
+    "original_namespace": false
+  },
+  "function_catalog_count": 3172,
+  "errors": [],
+  "limit": "Protected native metadata, source-qualified new roles/memberships and exact113FK/226Auth RI hooks only. Final all-component function/body variants require the immutable atomic postconditions and independent final-function receipt comparison; a main-only manifest cannot qualify later component variants."
+}

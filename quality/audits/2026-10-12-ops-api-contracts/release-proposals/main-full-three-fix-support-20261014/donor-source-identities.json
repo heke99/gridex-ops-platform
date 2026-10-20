@@ -1,0 +1,270 @@
+{
+  "base": "573d74371086da585a5cff6abee95eadfe58899e",
+  "base_tree": "21ff53152c0f0057778eb4243ae336fad4790a12",
+  "donor": "6047439998a677a34f154b353c575687d01ca81a",
+  "donor_tree": "10cb302cab4bf87ed38722a5b98b18dc5b7ebf4e",
+  "files": [
+    {
+      "path": "scripts/gridex-website-quote-integrity-regression.mjs",
+      "base": {
+        "blob": "632728ef27fc4be9d66f17dacbe9c700599a3bf7",
+        "sha256": "90aeaeaf3e3c384faeacc7bd56d95e6c55ed284ae013789481b5260b414f1ba2",
+        "bytes": 8484
+      },
+      "donor": {
+        "blob": "86bf85ef582cbbed4d74f2612951e7d563364a38",
+        "sha256": "1aa9b3abd4168bf1db47d95543022d3a27b21ca822317b7c18e3be07966ace41",
+        "bytes": 8642
+      },
+      "unchanged": false
+    },
+    {
+      "path": "scripts/gridex-price-area-assurance-regression.cjs",
+      "base": {
+        "blob": "c2e0418246cceb6f6573ff621c8f929356db157d",
+        "sha256": "1ce3fd22d62625fc5d0cea4d56c0181547a8c69cf305f0569137db9c07fe3af4",
+        "bytes": 3367
+      },
+      "donor": {
+        "blob": "b72b962e1685215f0780a65ba342d01df604a327",
+        "sha256": "4b3a45bcda0823d04114ba48608d5c57f957d47003c83cf77676c40532a5b62d",
+        "bytes": 3416
+      },
+      "unchanged": false
+    }
+  ],
+  "source_dependencies": [
+    {
+      "path": "lib/integrations/websiteIntegrationContract.ts",
+      "base": {
+        "blob": "42deccba0d356483bbf9fb290346bfa105df96f1",
+        "sha256": "3f769698ef2af39f924b6c43c1f2d8404111364a9b7757c80478426977d6c933",
+        "bytes": 6884
+      },
+      "donor": {
+        "blob": "42deccba0d356483bbf9fb290346bfa105df96f1",
+        "sha256": "3f769698ef2af39f924b6c43c1f2d8404111364a9b7757c80478426977d6c933",
+        "bytes": 6884
+      },
+      "unchanged": true
+    },
+    {
+      "path": "scripts/lib/current-api-contract.cjs",
+      "base": {
+        "blob": "486e505e62c1e2ae35edd1c5dde2d69a45fab4a2",
+        "sha256": "932d507c46dee1b443199692c34673bd1deea92437906ea6afc834cdc8e94733",
+        "bytes": 1576
+      },
+      "donor": {
+        "blob": "486e505e62c1e2ae35edd1c5dde2d69a45fab4a2",
+        "sha256": "932d507c46dee1b443199692c34673bd1deea92437906ea6afc834cdc8e94733",
+        "bytes": 1576
+      },
+      "unchanged": true
+    },
+    {
+      "path": "scripts/finalize-openapi-release.cjs",
+      "base": {
+        "blob": "ca7d5f323fb1666a1ce747f52ef1f01b41401aad",
+        "sha256": "9e1c7f88453aed7d1f0f8fd6762a978bbf68dcb5646b82b88ad2af6a11d53c68",
+        "bytes": 52671
+      },
+      "donor": {
+        "blob": "ca7d5f323fb1666a1ce747f52ef1f01b41401aad",
+        "sha256": "9e1c7f88453aed7d1f0f8fd6762a978bbf68dcb5646b82b88ad2af6a11d53c68",
+        "bytes": 52671
+      },
+      "unchanged": true
+    },
+    {
+      "path": "scripts/finalize-openapi-release.portal.cjs",
+      "base": {
+        "blob": "aab8f003437a8fb029cbfb53c7678b709c9b489a",
+        "sha256": "ff3b90ff0f43d0a24f5b8d8b3f8bbb871fe6f9c3fbb4a00eb9926b222b6289b9",
+        "bytes": 41154
+      },
+      "donor": {
+        "blob": "aab8f003437a8fb029cbfb53c7678b709c9b489a",
+        "sha256": "ff3b90ff0f43d0a24f5b8d8b3f8bbb871fe6f9c3fbb4a00eb9926b222b6289b9",
+        "bytes": 41154
+      },
+      "unchanged": true
+    },
+    {
+      "path": "scripts/check-api-compatibility.cjs",
+      "base": {
+        "blob": "0f67cfd77a32ac9ab63ff25a0da27f465714f19c",
+        "sha256": "dff40f925aa83b5f8683694bb3e7a29fdc1ccb0477bf5c3cf3384ee73aa81cfb",
+        "bytes": 4272
+      },
+      "donor": {
+        "blob": "0f67cfd77a32ac9ab63ff25a0da27f465714f19c",
+        "sha256": "dff40f925aa83b5f8683694bb3e7a29fdc1ccb0477bf5c3cf3384ee73aa81cfb",
+        "bytes": 4272
+      },
+      "unchanged": true
+    },
+    {
+      "path": "scripts/verify-openapi-release.cjs",
+      "base": {
+        "blob": "01a95644bdd7ca30d70935f646fca4fcf1b8b441",
+        "sha256": "d91094aa70175f8c0fdbc90e18e544e5d1935705152103cc10b4f0b6e19d94aa",
+        "bytes": 4739
+      },
+      "donor": {
+        "blob": "01a95644bdd7ca30d70935f646fca4fcf1b8b441",
+        "sha256": "d91094aa70175f8c0fdbc90e18e544e5d1935705152103cc10b4f0b6e19d94aa",
+        "bytes": 4739
+      },
+      "unchanged": true
+    },
+    {
+      "path": "scripts/check-api-documentation-version.cjs",
+      "base": {
+        "blob": "cd2387cda2e130517dc9dba69a302e89a9ebb7dd",
+        "sha256": "9f58345519cfdd4dd28044b58f7e83d586df7519c04e595d14642698b354cea0",
+        "bytes": 8069
+      },
+      "donor": {
+        "blob": "cd2387cda2e130517dc9dba69a302e89a9ebb7dd",
+        "sha256": "9f58345519cfdd4dd28044b58f7e83d586df7519c04e595d14642698b354cea0",
+        "bytes": 8069
+      },
+      "unchanged": true
+    },
+    {
+      "path": "scripts/check-public-contract-runtime-openapi.cjs",
+      "base": {
+        "blob": "796d721c82875433efa7a1413d9cbfd1c0c193ae",
+        "sha256": "03c4eb73e465c6bb48ec74d58159709eec1f1acc4c6f45f6048c0f1f80f189ba",
+        "bytes": 5789
+      },
+      "donor": {
+        "blob": "796d721c82875433efa7a1413d9cbfd1c0c193ae",
+        "sha256": "03c4eb73e465c6bb48ec74d58159709eec1f1acc4c6f45f6048c0f1f80f189ba",
+        "bytes": 5789
+      },
+      "unchanged": true
+    },
+    {
+      "path": "lib/website/publicContractApi.ts",
+      "base": {
+        "blob": "04c8230aa9d70e6942e0827155a8ab61b7f5783d",
+        "sha256": "a79b88668e1e885d703580ea6ac7066db0285fdd1745b824941b700a174b3243",
+        "bytes": 9055
+      },
+      "donor": {
+        "blob": "04c8230aa9d70e6942e0827155a8ab61b7f5783d",
+        "sha256": "a79b88668e1e885d703580ea6ac7066db0285fdd1745b824941b700a174b3243",
+        "bytes": 9055
+      },
+      "unchanged": true
+    },
+    {
+      "path": "lib/integrations/apiResponseProfile.ts",
+      "base": {
+        "blob": "55e4e9aff097d90e6ee0138853bae165aaf3b9c4",
+        "sha256": "1e8c0a55371feefbae0530dc25221764315259b75bee5273b58d41bf41186122",
+        "bytes": 7964
+      },
+      "donor": {
+        "blob": "926f58c383048f6405b57735d663409a88f8bffd",
+        "sha256": "4c4193c762d0b739e11b2ade02e7dbc2a8bc2550b2d903322a481d620144ef75",
+        "bytes": 10476
+      },
+      "unchanged": false
+    },
+    {
+      "path": "app/api/v1/website/public-contracts/route.ts",
+      "base": {
+        "blob": "9941b8615b41a4655269edf0e1385daa69f6c700",
+        "sha256": "8f25b40672b39f2d245a6d0b43a19ff9d204524f6a1a3ae1a2b323218be854a0",
+        "bytes": 17548
+      },
+      "donor": {
+        "blob": "9941b8615b41a4655269edf0e1385daa69f6c700",
+        "sha256": "8f25b40672b39f2d245a6d0b43a19ff9d204524f6a1a3ae1a2b323218be854a0",
+        "bytes": 17548
+      },
+      "unchanged": true
+    },
+    {
+      "path": "docs/openapi/website-integration-v1.json",
+      "base": {
+        "blob": "4e7de3225428515e953ddda968b6a2b1a10830ee",
+        "sha256": "d400b6730f4a51a0efb049daa73b3858763c0f7a7b4d8602735b49a9e679a47c",
+        "bytes": 548274
+      },
+      "donor": {
+        "blob": "4e7de3225428515e953ddda968b6a2b1a10830ee",
+        "sha256": "d400b6730f4a51a0efb049daa73b3858763c0f7a7b4d8602735b49a9e679a47c",
+        "bytes": 548274
+      },
+      "unchanged": true
+    },
+    {
+      "path": "docs/openapi/customer-portal-v1.json",
+      "base": {
+        "blob": "2352ebb11adcb4d9d8b8ffd1b42c42b14aab65f2",
+        "sha256": "20b3331e432f96c779748ad8e7a93a0b09deb25aaaa134f5a4e6887e5d03b185",
+        "bytes": 568417
+      },
+      "donor": {
+        "blob": "2352ebb11adcb4d9d8b8ffd1b42c42b14aab65f2",
+        "sha256": "20b3331e432f96c779748ad8e7a93a0b09deb25aaaa134f5a4e6887e5d03b185",
+        "bytes": 568417
+      },
+      "unchanged": true
+    },
+    {
+      "path": "docs/openapi/staff-v1.json",
+      "base": {
+        "blob": "f841277bba48629c0c5e02746ab07068299a7407",
+        "sha256": "6995747437e07908922ed26e046229d447da24fcfa34a94d9f1af1ba4a338f20",
+        "bytes": 492600
+      },
+      "donor": {
+        "blob": "f841277bba48629c0c5e02746ab07068299a7407",
+        "sha256": "6995747437e07908922ed26e046229d447da24fcfa34a94d9f1af1ba4a338f20",
+        "bytes": 492600
+      },
+      "unchanged": true
+    },
+    {
+      "path": "docs/fixtures/public-contracts-response-2026-10-09.1.json",
+      "base": {
+        "blob": "2aa7cd6031afa7fe776dc04547452aaad58e3563",
+        "sha256": "5293b720d643e8811ea70b19ba6ea19a50aba96be9cbc8a9fe609763d9d35abe",
+        "bytes": 10123
+      },
+      "donor": {
+        "blob": "2aa7cd6031afa7fe776dc04547452aaad58e3563",
+        "sha256": "5293b720d643e8811ea70b19ba6ea19a50aba96be9cbc8a9fe609763d9d35abe",
+        "bytes": 10123
+      },
+      "unchanged": true
+    }
+  ],
+  "source_metadata": [
+    {
+      "name": "website-integration-v1",
+      "documentation": "2026-10-12.1",
+      "runtime": "2026-10-09.1",
+      "current_equals_release_bytes": true
+    },
+    {
+      "name": "customer-portal-v1",
+      "documentation": "2026-10-12.1",
+      "runtime": "2026-10-09.1",
+      "current_equals_release_bytes": true
+    },
+    {
+      "name": "staff-v1",
+      "documentation": "2026-10-12.1",
+      "runtime": "2026-10-09.1",
+      "current_equals_release_bytes": true
+    }
+  ],
+  "patch_sha256": "4a02c8a1af7b074ce7178fe41573dd92ba61b0eee202b275fa7e8c5926fc42dd",
+  "review_sha256": "92b208a7ae95e71ae2997e6ac9234b0e226a466db02a607e2391e9c035c64d6c"
+}

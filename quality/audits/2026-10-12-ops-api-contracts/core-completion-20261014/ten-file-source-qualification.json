@@ -1,0 +1,24 @@
+{
+  "schema": "ops_ten_file_replay_source_qualification_v1",
+  "status": "TWO_CURRENT_SEVEN_FILE_DELTA_SOURCE_APPROVALS_AND_INPUT_PREFLIGHT_PASS_FULL_SQL_PENDING",
+  "baseline": "6b3a51b2f84ea6dfaed6559a877d6db3c8130f77",
+  "newArtifacts": [
+    "supabase/bootstrap/20261013_ops_permission_catalog_replay_adapter.sql",
+    "supabase/bootstrap/20261014_ops_atomic_bb0b_sc031_replay_adapter.sql"
+  ],
+  "execution": "Both replacements at original immutable source timestamp position. No artificial terminal boundary; identity/executed paths and hashes separate.",
+  "clean_input_preflight": {
+    "exit": 0,
+    "foundation": 59,
+    "substitutions": 14,
+    "interleaved": 23,
+    "source_position": 2,
+    "canonical_timestamps": 1144
+  },
+  "source_guards": "Unknown mode, missing/unsafe/unqualified source, duplicate declaration/source, noncanonical overlap and missing original history refuse; both upgrade callers pass exact exclusions.",
+  "canonical_sql_originals_unchanged": true,
+  "app_runtime_unchanged_from_released_source": true,
+  "native_writes": 0,
+  "fullSQL": "NOT_RUN_CURRENT_SOURCE",
+  "canonicalSchemaTypes": "NOT_CAPTURED_CURRENT_SOURCE"
+}

@@ -4,6 +4,7 @@
 // synthetic; they confer no TGT/LIVE market or legal approval.
 import {createHash,createHmac,randomUUID} from 'node:crypto'
 import {afterEach,beforeEach,expect,it,vi} from 'vitest'
+import type {SupabaseClient} from '@supabase/supabase-js'
 import {seedNativeEscoFixture as seed,qualifyNativeEscoFixture as qualify,resetNativeEscoFixture,nativeEscoSql as sql,nativeEscoLiteral as lit} from './fixtures/ediel-service-evidence-native'
 import {seedOriginalMailboxNative,recordOriginalMailboxNativeReception} from './helpers/originalMailboxNative'
 import {omitPermissionField} from './helpers/ediel-permission-field-omissions'
@@ -23,7 +24,7 @@ import {validateEdifactEnvelope} from '@/lib/ediel/core/edifactValidation'
 import {edielSmtpConfig} from '@/lib/ediel/mailReadiness'
 import {getEdielMessageById} from '@/lib/ediel/db'
 import {applyPermissionMarketSource} from '@/lib/ediel/permissions/permissionMarketTransition'
-import {segmentComposite,tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
+import {segmentComposite,segmentElementCount,tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import {prepareNativeEscoPermissionFixture} from './fixtures/ediel-service-evidence-native'
 import {seedNormalSwitchNativeFixture} from './helpers/ediel-normal-switch-native-fixture'
@@ -38,6 +39,20 @@ import {supabaseService} from '@/lib/supabase/service'
 import {readReceivedProdatApplicationObjects} from '@/lib/ediel/core/receivedProdatApplicationObjects'
 import {prodatRegisterGroups} from '@/lib/ediel/prodat/prodatRegisterGroups'
 import {edielCodeLabel} from '@/lib/ediel/codeLabels'
+import {guideOrderedFixtureBody,guideOrderedFixtureRaw} from '../__tests__/helpers/prodatGuideOrderedFixture'
+import {characteristic,type Parts} from '../__tests__/fixtures/prodat-register'
+import {nationalRescissionNativeChain} from './helpers/nationalRescissionNative'
+import {prepareIndependentNationalEndTarget} from './helpers/ediel-z05-independent-end-native-fixture'
+
+// Only the new national prerequisite uses this real disposable Auth client.
+// Other cases retain the original server-client factory and SMTP fixture.
+const sc031Auth=vi.hoisted(()=>({client:null as SupabaseClient|null}))
+vi.mock('server-only',()=>({}))
+vi.mock('@/lib/supabase/server',async original=>{
+ const actual=await original<typeof import('@/lib/supabase/server')>()
+ return {...actual,createSupabaseServerClient:async()=>sc031Auth.client??actual.createSupabaseServerClient()}
+})
+afterEach(()=>{sc031Auth.client=null})
 
 beforeEach(resetNativeEscoFixture)
 afterEach(()=>{vi.unstubAllEnvs();vi.restoreAllMocks()})
@@ -898,3 +913,314 @@ it('SC031 real N extra UD/IT and ignored249/261/306/212 preserve five persisted 
  expect(extraBusiness).toEqual(baselineBusiness)
  expect(extraRaw).not.toEqual(baselineRaw)
 },120000)
+
+// Current source extension. These are executable native assertions, NOT a
+// claim of execution during source preparation. Every new tested source is
+// born through the public mailbox creator; prerequisite helpers keep their
+// existing declared setup provenance. No protected source/facet is rewritten.
+const sc031PhysicalFields=[
+ {field:'213',parts:[['QTY',['31','777','KWH']]]},
+ {field:'214',parts:characteristic('Z02','7',3)},
+ {field:'216',parts:[['DTM',['157','202610010000','203']]]},
+ {field:'217',parts:characteristic('Z04','Z02')},
+ {field:'218',parts:characteristic('Z05','7',3)},
+ {field:'222',parts:characteristic('Z12','D',3)},
+ {field:'224',parts:[['RFF',['MG','SC031-METER']]]},
+ {field:'242',parts:characteristic('Z14','L641Q',3)},
+ {field:'254',parts:characteristic('Z15','Z32')},
+ {field:'259',parts:characteristic('Z16','4',3)},
+ {field:'260',parts:[['RFF',['Z05','TES']]]},
+ {field:'262',parts:[['NAD','Z02',['54321','160','SVK'],'','','','','','','SE']]},
+ {field:'508',parts:[['DTM',['354','15','806']]]},
+] satisfies {field:string;parts:Parts[]}[]
+const sc031Z05Fields=sc031PhysicalFields.filter(({field})=>!['224','260','262'].includes(field))
+function sc031RenderPart(part:Parts){
+ return part.map(value=>(typeof value==='string'?[value]:value).map(component=>component.replace(/[?':+]/g,c=>'?'+c)).join(':')).join('+')
+}
+function sc031PhysicalNRaw(p:Awaited<ReturnType<typeof prepareNativeEscoPermissionFixture>>,f:Fixture,extra:boolean){
+ const raw=sc031N(p,f,false),wire=tokenizeEdifact(raw)
+ const parts:Parts[]=wire.segments.filter(s=>!['UNB','UNH','UNT','UNZ'].includes(s.tag)).map(s=>[s.tag,
+  ...Array.from({length:segmentElementCount(s,wire.una)},(_,index)=>{const values=segmentComposite(s,index+1,wire.una);return values.length===1?values[0]:values})])
+ const body=guideOrderedFixtureBody([...parts,...(extra?sc031PhysicalFields.flatMap(field=>field.parts):[])])
+ const outer=EdifactEnvelopeCodec.decode(raw)
+ return EdifactEnvelopeCodec.encode({sender:outer.sender!,receiver:outer.receiver!,applicationReference:outer.applicationReference,
+  interchangeReference:outer.interchangeReference!,environment:'test',acknowledgementRequest:true,
+  messages:[{messageReference:segmentComposite(wire.segments.find(s=>s.tag==='UNH'),1,wire.una)[0],messageTypeToken:version.messageTypeToken,businessSegments:body.map(sc031RenderPart)}]})
+}
+async function sc031PublicReceive(companyId:string,actorUserId:string,raw:string){
+ expect(validateEdifactEnvelope(raw).syntaxOk).toBe(true)
+ const receivedAt=new Date().toISOString()
+ const mail=await seedOriginalMailboxNative(sql,lit,{companyId,environment:'test',raw,receivedAt,smtpFrom:edielSmtpConfig().from})
+ const outboundMatch=await matchOutboundRequestForInbound({companyId,parsed:mail.parsed,inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId})
+ const meteringPointMatch=await matchMeteringPointForInbound({companyId,parsed:mail.parsed})
+ const input={companyId,actorUserId,environment:'test',inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId,parsed:mail.parsed,outboundMatch,meteringPointMatch}
+ const id=await createInboundEdielMessage(input)
+ expect(id).toMatch(/^[a-f0-9-]{36}$/)
+ const message=(await getEdielMessageById(id!))!
+ expect(message).toMatchObject({id,company_id:companyId,environment:'test',direction:'inbound',raw_payload:raw,
+  inbound_email_message_id:mail.inboundEmailMessageId,mailbox_message_id:mail.inboundEmailMessageId})
+ expect(Date.parse(String(message.message_received_at))).toBe(Date.parse(receivedAt))
+ return {message,mail,input}
+}
+function sc031PersistedCase(companyId:string,sourceId:string,caseId:string){
+ const row=sql<EdielInboundCaseRow>(`SELECT to_jsonb(c) FROM public.ediel_inbound_cases c WHERE company_id=${lit(companyId)} AND ediel_message_id=${lit(sourceId)} AND id=${lit(caseId)}`)
+ expect(row).toMatchObject({id:caseId,company_id:companyId,ediel_message_id:sourceId})
+ return row
+}
+function sc031Projection(row:EdielInboundCaseRow){
+ const {registers,...meter}=row.parsed_metering_point
+ expect(Array.isArray(registers)).toBe(true)
+ return {customer:row.parsed_customer,site:row.parsed_site,meter,contract:row.parsed_contract,production:row.parsed_production}
+}
+function sc031GraphOperations(companyId:string){
+ return sql<Sc031Row[]>(`SELECT coalesce(jsonb_agg(to_jsonb(o) ORDER BY id),'[]') FROM public.customer_onboarding_operations o WHERE company_id=${lit(companyId)} AND channel='ediel_inbound'`)
+}
+function sc031CompanyOutbox(companyId:string){
+ return sql<Sc031Row[]>(`SELECT coalesce(jsonb_agg(to_jsonb(o) ORDER BY id),'[]') FROM public.ediel_outbox o WHERE company_id=${lit(companyId)}`)
+}
+async function sc031PublicProcess(companyId:string,actorUserId:string,raw:string,fields:readonly string[],objects:number,positiveEffect=true){
+ const received=await sc031PublicReceive(companyId,actorUserId,raw),decision=await resolveCanonicalRuntimeDecisionWithRegistry(received.message,{actorUserId})
+ expect([decision.syntaxDecision,decision.applicationDecision],JSON.stringify(decision.issues)).toEqual(['accepted','accepted'])
+ if(positiveEffect)expect(decision.functionalDecision,JSON.stringify(decision.issues)).toBe('accepted')
+ const ignored=bindReceivedProdatIgnoredFields(decision.prodatIgnoredFields,raw)
+ expect(ignored).not.toBeNull()
+ for(const field of fields){
+  const own=ignored!.filter(f=>f.fieldNumber===field)
+  expect(own,field).toHaveLength(objects)
+  expect(own.every(f=>f.sourceRule==='PRODAT26A:P119')).toBe(true)
+ }
+ const recorded=await recordReceivedSourceValidation({original:received.message,validated:received.message,resolvedCompanyId:companyId,decision})
+ expect(recorded.status).toBe('recorded')
+ if(recorded.status!=='recorded')throw Error('SC031_public_canonical_record_required')
+ await captureFreshEdielSourceRulePackEvidence(companyId,received.message.id)
+ await processInboundEdielMessage({actorUserId,edielMessageId:received.message.id})
+ const message=(await getEdielMessageById(received.message.id))!
+ expect(message.raw_payload).toBe(raw)
+ expect(message.validation_report).toMatchObject({syntaxDecision:'accepted',applicationDecision:'accepted'})
+ const plan=await readReceivedProdatFinalResponsePlan({companyId,sourceMessageId:message.id,rawPayload:raw})
+ if(positiveEffect){expect(plan?.plans).toHaveLength(objects);expect(plan!.plans.every(p=>p.outcome==='positive')).toBe(true)}
+ const assessmentId=positiveEffect?plan!.plans[0].canonicalAssessmentId:recorded.assessmentId
+ const evidence=sc031BindEvidence(companyId,message,assessmentId)
+ expect(evidence.fields).toEqual(ignored)
+ const staged=await createOrUpdateInboundProdatCase({actorUserId,message})
+ expect(staged?.status).toBe('pending_review')
+ const persisted=sc031PersistedCase(companyId,message.id,staged!.id)
+ expect(sc031Projection(persisted)).toEqual(sc031Projection(staged!))
+ const acks=sc031ActualAcks(companyId,message.id),outer=EdifactEnvelopeCodec.decode(raw),aperakObjects:NonNullable<ReturnType<typeof readPhysicalAckSourceCorrelation>['prodatObjectOutcomes']>=[],aperakReferences:string[]=[]
+ if(positiveEffect)expect(acks.acks.filter(a=>a.message_family==='CONTRL')).toHaveLength(1)
+ if(positiveEffect)expect(acks.acks.filter(a=>a.message_family==='APERAK').length).toBeGreaterThanOrEqual(1)
+ for(const ack of acks.acks){
+  expect(ack).toMatchObject({company_id:companyId,environment:'test',direction:'outbound',related_message_id:message.id})
+  expect(validateEdifactEnvelope(ack.raw_payload!).syntaxOk).toBe(true)
+  const correlation=readPhysicalAckSourceCorrelation(ack,message)
+  expect(['positive','negative']).toContain(correlation.classification.outcome)
+  expect(ack.ack_outcome).toBe(correlation.classification.outcome)
+  if(positiveEffect)expect(correlation.classification.outcome).toBe('positive')
+  const envelope=EdifactEnvelopeCodec.decode(ack.raw_payload!)
+  expect([envelope.sender,envelope.receiver]).toEqual([outer.receiver,outer.sender])
+  if(ack.message_family==='CONTRL')expect(correlation.acknowledgedReferences).toEqual([outer.interchangeReference])
+  else{
+   const outcomes=correlation.prodatObjectOutcomes??[]
+   if(positiveEffect){expect(outcomes.length).toBeGreaterThan(0);expect(outcomes.every(o=>o.outcome==='positive')).toBe(true)}
+   aperakObjects.push(...outcomes);aperakReferences.push(...correlation.acknowledgedReferences)
+  }
+  expect(acks.outbox.filter(o=>o.ediel_message_id===ack.id)).toEqual([expect.objectContaining({company_id:companyId,source_message_id:message.id,message_family:ack.message_family,ack_outcome:ack.ack_outcome})])
+ }
+ const wire=tokenizeEdifact(raw),li=wire.segments.filter(s=>s.tag==='RFF'&&segmentComposite(s,1,wire.una)[0]==='LI').map(s=>segmentComposite(s,1,wire.una)[1])
+ if(positiveEffect){
+  expect(aperakObjects).toHaveLength(objects)
+  expect(new Set(aperakObjects.map(o=>`${o.firstLineIndex}:${o.objectId}:${o.lineItemReference}`)).size).toBe(objects)
+  for(const reference of li)expect(aperakReferences).toContain(reference)
+ }
+ expect(acks.outbox).toHaveLength(acks.acks.length)
+ const groups=prodatRegisterGroups(wire.segments,wire.una,message.message_code).groups
+ const outcomeShape={syntax:decision.syntaxDecision,application:decision.applicationDecision,functional:decision.functionalDecision,functionalIssues:decision.issues.filter(issue=>issue.layer==='functional').map(issue=>[issue.code,issue.severity]).sort(),
+  acks:acks.acks.map(ack=>[ack.message_family,ack.ack_outcome]).sort(),
+  objectOutcomes:aperakObjects.map(o=>({object:groups.findIndex(group=>group.itemId===o.objectId),outcome:o.outcome})).sort((a,b)=>a.object-b.object),
+  effects:(plan?.plans??[]).map(p=>[p.effectKind,p.outcome]).sort()}
+ return {...received,message,case:persisted,assessmentId,plan,evidence:evidence.evidence,acks,outcomeShape}
+}
+async function sc031PublicReplay(f:Awaited<ReturnType<typeof sc031PublicProcess>>,actorUserId:string){
+ const companyId=f.message.company_id!,master=sc031Master(companyId),operations=sc031GraphOperations(companyId),outbox=sc031CompanyOutbox(companyId),before=sc031PersistedCase(companyId,f.message.id,f.case.id)
+ expect(await createInboundEdielMessage(f.input)).toBe(f.message.id)
+ await processInboundEdielMessage({actorUserId,edielMessageId:f.message.id})
+ expect((await getEdielMessageById(f.message.id))?.raw_payload).toBe(f.message.raw_payload)
+ expect(sc031Master(companyId)).toEqual(master)
+ expect(sc031GraphOperations(companyId)).toEqual(operations)
+ expect(sc031ActualAcks(companyId,f.message.id)).toEqual(f.acks)
+ expect(sc031CompanyOutbox(companyId)).toEqual(outbox)
+ expect(sc031PersistedCase(companyId,f.message.id,f.case.id)).toEqual(before)
+ // Original and immutable canonical facets stay tied to the first assessment.
+ expect(sc031SourceEvidence(companyId,f.message.id,f.assessmentId)).toMatchObject({source:f.evidence.source,assessment:f.evidence.assessment,ignored:f.evidence.ignored,application:f.evidence.application,mail:f.evidence.mail})
+}
+it('SC031 public N thirteen ignored fields preserve physical positive ACKs and five persisted business projections, stale-cache hold and tenant isolation',async()=>{
+ const results=[]
+ for(const extra of [false,true]){
+  const f=await seed(),p=await prepareNativeEscoPermissionFixture(f)
+  ackRoute(f)
+  const master=sc031Master(f.ids.company),operations=sc031GraphOperations(f.ids.company),raw=sc031PhysicalNRaw(p,f,extra)
+  const result=await sc031PublicProcess(f.ids.company,f.ids.actor,raw,extra?sc031PhysicalFields.map(field=>field.field):[],1)
+  expect(market(f,p.permissionId).permission).toMatchObject({status:'rejected_passive_timeout',inbound_z14_message_id:result.message.id})
+  expect(sc031Master(f.ids.company)).toEqual(master);expect(sc031GraphOperations(f.ids.company)).toEqual(operations)
+  const projection=sc031Projection(result.case)
+  expect(projection.meter).toMatchObject({meteringMethod:null,readingFrequency:null,observationLength:null,observationLengthFormat:null})
+  expect(projection.site.gridAreaCode).toBeNull();expect(projection.contract.gridAreaCode).toBeNull()
+  const role=await supabaseService.rpc('ediel_read_prodat_object_batch_source_v1',{p_company_id:f.ids.company,p_source_message_id:result.message.id,p_actor_user_id:f.ids.actor})
+  expect(role.error?.message).toMatch(/prodat_object_batch_current_receiver_role_required/)
+  if(extra){
+   // Only the own pending cache models predecessor state. Source originals,
+   // reception, canonical decisions and immutable evidence are never edited.
+   for(const [column,key,value] of [
+    ['parsed_metering_point','meteringMethod','Z02'],['parsed_metering_point','readingFrequency','D'],
+    ['parsed_metering_point','observationLength','15'],['parsed_metering_point','observationLengthFormat','806'],
+    ['parsed_site','gridAreaCode','TES'],['parsed_contract','gridAreaCode','TES'],
+   ] as const){
+    const original=result.case[column],stale={...original,[key]:value}
+    expect(sql(`UPDATE public.ediel_inbound_cases SET ${column}=${lit(stale)}::jsonb WHERE company_id=${lit(f.ids.company)} AND ediel_message_id=${lit(result.message.id)} AND id=${lit(result.case.id)} AND status='pending_review' RETURNING to_jsonb(id)`)).toBe(result.case.id)
+    const pending=sc031PersistedCase(f.ids.company,result.message.id,result.case.id),outbox=sc031CompanyOutbox(f.ids.company)
+    for(let replay=0;replay<2;replay++)await expect(approveEdielInboundCase({companyId:f.ids.company,actorUserId:f.ids.actor,caseId:result.case.id,mode:'create_new_customer'})).rejects.toThrow('PRODAT_INBOUND_CASE_PROJECTION_OBSOLETE')
+    expect(sc031PersistedCase(f.ids.company,result.message.id,result.case.id)).toEqual(pending)
+    expect(sc031Master(f.ids.company)).toEqual(master);expect(sc031GraphOperations(f.ids.company)).toEqual(operations);expect(sc031ActualAcks(f.ids.company,result.message.id)).toEqual(result.acks)
+    expect(sc031CompanyOutbox(f.ids.company)).toEqual(outbox)
+    expect(sql(`UPDATE public.ediel_inbound_cases SET ${column}=${lit(original)}::jsonb WHERE company_id=${lit(f.ids.company)} AND id=${lit(result.case.id)} AND ${column}=${lit(stale)}::jsonb RETURNING to_jsonb(id)`)).toBe(result.case.id)
+   }
+  }
+  await sc031PublicReplay(result,f.ids.actor)
+  results.push({f,result,projection})
+ }
+ expect(results[1].projection).toEqual(results[0].projection)
+ for(const [own,foreign] of [[results[0],results[1]],[results[1],results[0]]]){
+  const before=sc031Master(foreign.f.ids.company),acks=sc031ActualAcks(foreign.f.ids.company,foreign.result.message.id)
+  await expect(createInboundEdielMessage({...own.result.input,companyId:foreign.f.ids.company})).rejects.toThrow()
+  await expect(approveEdielInboundCase({companyId:foreign.f.ids.company,actorUserId:own.f.ids.actor,caseId:own.result.case.id,mode:'create_new_customer'})).rejects.toThrow('TENANT_CONTEXT_MISMATCH')
+  expect(sc031Master(foreign.f.ids.company)).toEqual(before);expect(sc031ActualAcks(foreign.f.ids.company,foreign.result.message.id)).toEqual(acks)
+ }
+},240000)
+
+const sc031National=nationalRescissionNativeChain({provider:nativeEscoExternal.send,sourceSession:sc031Auth})
+type Sc031EndObject={external:string;gridAreaCode:string;customerIdentity:{id:string;qualifier:string;agency:string};brpEdielId:string;li:string}
+function sc031EndObject(f:Omit<Sc031EndObject,'li'>,li:string,end:string,sequence:string,extra:boolean,agency:string):Parts[]{
+ return [['LIN',sequence,'',[f.external,'','',agency]],['DTM',['93',end,'203']],...characteristic('Z13','Z22'),
+  ['RFF',['LI',li]],['RFF',['Z05',f.gridAreaCode]],['RFF',['MG','SC031-METER']],
+  ['NAD','UD',[f.customerIdentity.id,f.customerIdentity.qualifier,f.customerIdentity.agency],'','Synthetic','Street','City','','12345','SE'],
+  ['NAD','IT',[f.external,'',agency],'','','Street','Town','','12345','SE'],['NAD','Z02',[f.brpEdielId,'160','SVK']],
+  ...(extra?sc031Z05Fields.flatMap(field=>field.parts):[])]
+}
+function sc031EndRaw(header:{sender:string;receiver:string},rows:readonly Sc031EndObject[],end:string,extra:boolean,agency='9'){
+ const objects=rows.flatMap((row,index)=>sc031EndObject(row,row.li,end,String(index+1),extra,agency))
+ const body:Parts[]=[['NAD','FR',[header.receiver,'160','SVK'],'','','','','','','SE'],['NAD','DO',[header.sender,'160','SVK'],'','','','','','','SE'],...objects]
+ const raw=guideOrderedFixtureRaw(body,'Z05').replace('+S+R+',`+${header.receiver}:14+${header.sender}:14+`).replace("++23-DDQ-PRODAT'","++23-DDQ-PRODAT++1++1'")
+ const outer=EdifactEnvelopeCodec.decode(raw),wire=tokenizeEdifact(raw),identity='S'+randomUUID().replaceAll('-','').slice(0,13)
+ return EdifactEnvelopeCodec.encode({sender:outer.sender!,receiver:outer.receiver!,senderQualifier:outer.senderQualifier,receiverQualifier:outer.receiverQualifier,applicationReference:outer.applicationReference,
+  interchangeReference:identity,environment:'test',acknowledgementRequest:true,messages:[{messageReference:identity,messageTypeToken:version.messageTypeToken,
+   businessSegments:wire.segments.filter(s=>!['UNB','UNH','UNT','UNZ'].includes(s.tag)).map(s=>s.tag==='BGM'?s.raw.replace(/BGM\+Z05\+[^+]+/,'BGM+Z05+'+identity):s.raw)}]})
+}
+async function sc031PublicZ05(extra:boolean){
+ const sibling=await sc031National.nationalRescissionOperation()
+ nativeEscoExternal.send.mockResolvedValue({accepted:['recipient@example.invalid'],rejected:[],messageId:'synthetic-SC031-Z08-original',response:'250 synthetic accepted'})
+ await sendEdielMessageViaSmtp((await getEdielMessageById(sibling.original.id))!,{actorUserId:sibling.currentExecutor,smtpMimeMode:'nodemailer-attachment'})
+ // Own existing national builder remains strict: the actual persisted/sent
+ // Z08 H original never acquires the incoming Z05 extras. These are own-wire
+ // omission assertions, not a fabricated outbound producer/candidate grant.
+ const strictOriginal=(await getEdielMessageById(sibling.original.id))!,strictWire=tokenizeEdifact(strictOriginal.raw_payload!)
+ expect(strictOriginal).toMatchObject({message_code:'Z08',direction:'outbound',status:'sent',raw_payload:sibling.original.raw_payload})
+ expect(strictWire.segments.filter(s=>s.tag==='QTY'&&segmentComposite(s,1,strictWire.una)[0]==='31')).toEqual([])
+ expect(strictWire.segments.filter(s=>s.tag==='CCI'&&segmentComposite(s,2,strictWire.una)[0]==='Z12')).toEqual([])
+ expect(strictWire.segments.filter(s=>s.tag==='CCI'&&segmentComposite(s,2,strictWire.una)[0]==='Z14')).toEqual([])
+ const target=await prepareIndependentNationalEndTarget(sibling,nativeEscoExternal.send)
+ target.assertSiblingPreserved()
+ sc031Auth.client=await sc031National.actualNationalSourceSession(target.actorUserId)
+ const targetWire=tokenizeEdifact(target.source.raw_payload!),targetLi=targetWire.segments.filter(s=>s.tag==='RFF'&&segmentComposite(s,1,targetWire.una)[0]==='LI')
+ expect(targetLi).toHaveLength(1)
+ const rows=[{...target,li:segmentComposite(targetLi[0],1,targetWire.una)[1]}]
+ expect(rows.every(row=>row.companyId===target.companyId)).toBe(true)
+ const finalRaw=sc031EndRaw(target,rows,sibling.nationalEndPlan.endWireMinute,extra)
+ const config=edielSmtpConfig()
+ expect(sql(`WITH configured AS(UPDATE public.ediel_route_profiles p SET mailbox=${lit(config.from)},smtp_host=${lit(config.host)},smtp_port=${lit(config.port)},is_active=true FROM public.communication_routes r WHERE r.id=p.communication_route_id AND r.company_id=p.company_id AND r.company_id=${lit(target.companyId)} AND r.route_scope='ediel_ack' AND p.environment='test' RETURNING p.id) SELECT to_jsonb(count(*)) FROM configured`)).toBe(1)
+ const master=sc031Master(target.companyId)
+ const result=await sc031PublicProcess(target.companyId,target.actorUserId,finalRaw,extra?sc031Z05Fields.map(field=>field.field):[],rows.length)
+ expect(sc031Master(target.companyId)).toEqual(master)
+ for(const row of rows){
+  const period=sql<{source:string;end:string}>(`SELECT jsonb_build_object('source',source_end_message_id,'end',market_end_at) FROM public.customer_supply_periods WHERE company_id=${lit(target.companyId)} AND id=${lit(row.periodId)}`)
+  expect(period.source).toBe(result.message.id);expect(Date.parse(period.end)).toBe(Date.parse(sibling.nationalEndPlan.effectiveAt))
+ }
+ target.assertSiblingPreserved()
+ return {target,sibling,rows,result,master}
+}
+function sc031CommittedGraphs(companyId:string,caseId:string){
+ return sql<Sc031Graph[]>(`SELECT coalesce(jsonb_agg(jsonb_build_object('operation',to_jsonb(o),'customer',to_jsonb(c),'site',to_jsonb(s),'meter',to_jsonb(m),'application',to_jsonb(a)) ORDER BY o.id),'[]')
+  FROM public.customer_onboarding_operations o JOIN public.customer_onboarding_applications a ON a.onboarding_operation_id=o.id AND a.company_id=o.company_id
+  JOIN public.customers c ON c.id=(o.result_snapshot->>'customer_id')::uuid AND c.company_id=o.company_id
+  JOIN public.customer_sites s ON s.id=(o.result_snapshot->>'site_id')::uuid AND s.company_id=o.company_id AND s.customer_id=c.id
+  JOIN public.metering_points m ON m.id=(o.result_snapshot->>'metering_point_id')::uuid AND m.company_id=o.company_id AND m.customer_id=c.id AND m.site_id=s.id
+  WHERE o.company_id=${lit(companyId)} AND o.channel='ediel_inbound' AND (a.source_record_id=${lit(caseId)} OR a.source_record_id LIKE ${lit(caseId+':object:%')})`)
+}
+it('SC031 public Z05L own ten unused fields preserve physical ACKs, selected committed graphs, raw evidence and replay',async()=>{
+ const business=[]
+ for(const extra of [false,true]){
+  const f=await sc031PublicZ05(extra),{target,result}=f
+  expect(result.case.parsed_site.annualEnergyKwh).toBeNull();expect(result.case.parsed_metering_point.readingFrequency).toBeNull()
+  expect(result.case.parsed_site.gridAreaCode).toBe(target.gridAreaCode)
+  expect(result.case.parsed_metering_point.meterNumber).toBe('SC031-METER')
+  expect(result.case.parsed_contract.balanceResponsibleId).toBe(target.brpEdielId)
+  await approveEdielInboundCase({companyId:target.companyId,actorUserId:target.actorUserId,caseId:result.case.id,mode:'update_existing_customer',selectedCustomerId:target.customerId,selectedSiteId:target.siteId,selectedMeteringPointId:target.pointId})
+  const graphs=sc031CommittedGraphs(target.companyId,result.case.id)
+  expect(graphs).toHaveLength(1)
+  expect(graphs[0].operation).toMatchObject({company_id:target.companyId,status:'completed',result_snapshot:expect.objectContaining({ok:true,customer_id:target.customerId,site_id:target.siteId,metering_point_id:target.pointId})})
+  const command=graphs[0].operation.command_snapshot as {site:Sc031Row;metering_point:Sc031Row;application:{payload_snapshot:Sc031Row}}
+  expect(command.site.annual_consumption_kwh).toBeNull();expect(command.metering_point.reading_frequency).toBe('hourly')
+  expect(graphs[0].site.annual_consumption_kwh).toBeNull();expect(graphs[0].meter.reading_frequency).toBe('hourly')
+  expect(JSON.stringify(command.application.payload_snapshot.prodatRegisters).includes('777')).toBe(extra)
+  business.push({graph:sc031Business(graphs[0],target.external),projection:{...sc031Projection(result.case),site:{...result.case.parsed_site,facilityId:null,siteName:null},meter:{...sc031Projection(result.case).meter,meterPointId:null}}})
+  const persisted=sc031PersistedCase(target.companyId,result.message.id,result.case.id),master=sc031Master(target.companyId),operations=sc031GraphOperations(target.companyId)
+  await expect(approveEdielInboundCase({companyId:target.companyId,actorUserId:target.actorUserId,caseId:result.case.id,mode:'update_existing_customer',selectedCustomerId:target.customerId})).rejects.toThrow(/status applied/)
+  expect(sc031Master(target.companyId)).toEqual(master);expect(sc031GraphOperations(target.companyId)).toEqual(operations)
+  expect(sc031PersistedCase(target.companyId,result.message.id,result.case.id)).toEqual(persisted)
+  await sc031PublicReplay(result,target.actorUserId)
+  target.assertSiblingPreserved()
+ }
+ expect(business[1]).toEqual(business[0])
+},480000)
+async function sc031PublicProspectiveZ05(extra:boolean){
+ const base=await seedNormalSwitchNativeFixture({deferOriginal:true}),points=Array.from({length:2},(_,index)=>String.fromCharCode(65+index)+randomUUID().replaceAll('-','').slice(0,23).toUpperCase())
+ sql(`INSERT INTO public.permissions(key,name,is_active) VALUES('customers.write','Synthetic SC031 customer',true) ON CONFLICT(key) DO NOTHING;
+  INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key,effect,status,is_active) SELECT ${lit(base.actorUserId)},${lit(base.companyId)},p.id,p.key,'allow','active',true FROM public.permissions p WHERE p.key='customers.write';`)
+ const rows=points.map((external,index)=>({external,gridAreaCode:base.gridAreaCode,customerIdentity:{id:`SC031-CUSTOMER-${index}`,qualifier:'',agency:'89'},brpEdielId:base.brpEdielId,li:`SC031-${index}`}))
+ const raw=sc031EndRaw(base,rows,'202610171200',extra,'89'),master=sc031Master(base.companyId)
+ // Free prospective objects have no qualified end period. Preserve actual
+ // functional/ACK outcomes and compare them; never call this an end ACK.
+ const result=await sc031PublicProcess(base.companyId,base.actorUserId,raw,extra?sc031Z05Fields.map(field=>field.field):[],2,false)
+ expect(sc031Master(base.companyId)).toEqual(master)
+ return {...base,points,result,master}
+}
+it('SC031 public prospective two-object Z05L create_new preserves actual ACK outcomes and must commit masked213/222/242',async()=>{
+ // This deliberately retains the desired behavior oracle. Current SQL's
+ // raw comparator is expected to expose RED here until its separately owned
+ // forward fix is qualified; a caught comparator error is never a PASS.
+ const baseline=await sc031PublicProspectiveZ05(false),extra=await sc031PublicProspectiveZ05(true),business=[]
+ expect(extra.result.outcomeShape).toEqual(baseline.result.outcomeShape)
+ for(const f of [baseline,extra]){
+  const {result}=f
+  const applied=await approveEdielInboundCase({companyId:f.companyId,actorUserId:f.actorUserId,caseId:result.case.id,
+   objectDecisions:f.points.map(meteringPointId=>({meteringPointId,identityAgency:'89',mode:'create_new_customer' as const}))})
+  expect(applied.status).toBe('applied')
+  const graphs=sc031CommittedGraphs(f.companyId,result.case.id)
+  expect(graphs).toHaveLength(2)
+  for(const graph of graphs){
+   expect(graph.operation).toMatchObject({status:'completed',company_id:f.companyId})
+   expect(graph.site).toMatchObject({annual_consumption_kwh:null,site_type:'consumption'})
+   expect(graph.meter).toMatchObject({reading_frequency:'hourly',measurement_type:'consumption'})
+  }
+  business.push(f.points.map(point=>{
+   const own=graphs.filter(graph=>graph.meter.meter_point_id===point)
+   expect(own).toHaveLength(1)
+   return sc031Business(own[0],point)
+  }))
+  const after=sc031Master(f.companyId)
+  expect(after.customers.filter(row=>f.master.customers.some(old=>old.id===row.id))).toEqual(f.master.customers)
+  expect(after.sites.filter(row=>f.master.sites.some(old=>old.id===row.id))).toEqual(f.master.sites)
+  expect(after.meters.filter(row=>f.master.meters.some(old=>old.id===row.id))).toEqual(f.master.meters)
+  await sc031PublicReplay(result,f.actorUserId)
+ }
+ expect(business[1]).toEqual(business[0])
+},480000)

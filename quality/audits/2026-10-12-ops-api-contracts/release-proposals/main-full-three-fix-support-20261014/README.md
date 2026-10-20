@@ -1,0 +1,9 @@
+# Support for the three main release errors
+
+These proposals help the existing main delivery owners. The two immutable script corrections already exist in PR #794 at commit60474399; the patch supplies only their exact postimages against main573d7437. They correct the enforcement source's conflation of documentation12.1 with wire09.1, matching the actual exporter, API response and fixture. They change no product response, frozen schema or wire version.
+
+The new SQL proposal pins `public.gridex_data_quality_active_status_v1(text)` to `search_path=pg_catalog`. Its body matches the published historical source and native catalog. Full source/ABI/owner/ACL/attribute guards reject unknown states; the entire pg_proc row except proconfig must remain equal. First execution and replay passed in real isolated PostgreSQL17.6 with an ordinary postgres role. Two independent peers verified the source and actual captures/logs. Three aggregate SELECT snapshots evaluated eight pure classifications each; the historical receipt field `pure_classification_selects:24` means24 evaluations, not24 separate SELECT statements. No customer/provider RPC or managed production write occurred.
+
+The SQL is NOT an applied migration and does not modify the historical20261013094514 file or checksum. The receiving owner must create the eventual migration with the official CLI and qualify its complete clean/upgrade source context. Full GEN/native/CI/main delivery stays with the existing owners. No rule/coverage credit is claimed.
+
+The prepared #766 coordination comment was blocked by automatic approval review because separate issue-comment authorization could not be established. User approval is pending. Shared technical paths have not been changed and no claim/proxy/producer ref has been overwritten. My writing in the two donor paths is paused for the proposed selective handoff.

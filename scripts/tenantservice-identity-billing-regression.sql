@@ -19,6 +19,7 @@ DECLARE
   n integer;
   stale_before jsonb;
   stale_after jsonb;
+  p3_lock_function oid;
 BEGIN
   INSERT INTO public.companies(id,name,status) VALUES(c,'F12 synthetic A','active'),(other_c,'F12 synthetic B','active');
   INSERT INTO public.customers(id,company_id,customer_number,name,customer_type,personal_number,invoice_email,billing_street,billing_postal_code,billing_city)
@@ -50,17 +51,52 @@ BEGIN
     RAISE EXCEPTION 'P3 history delete was allowed';
   EXCEPTION WHEN insufficient_privilege THEN NULL; END;
 
-  -- P3: billing items lock the revision current at insert; it cannot be changed later. Real items
-  -- need a full billing underlay graph, so the production trigger function is exercised on a
-  -- temporary table with the same columns, and its attachment to the real table is asserted.
-  IF NOT EXISTS (SELECT 1 FROM pg_trigger t JOIN pg_proc p ON p.oid = t.tgfoid
-                  WHERE t.tgrelid = 'public.billing_export_run_items'::regclass AND NOT t.tgisinternal
-                    AND p.proname = 'gridex_billing_item_lock_profile_revision') THEN
+  -- P3: exercise the exact enabled production binding on the same temporary
+  -- columns. The finite API retention adapter preserves the original lock body;
+  -- its qualified-retention exception cannot authorize this temporary relation.
+  SELECT t.tgfoid INTO p3_lock_function FROM pg_trigger t
+  WHERE t.tgrelid='public.billing_export_run_items'::regclass
+    AND t.tgname='billing_export_run_items_lock_profile_revision'
+    AND NOT t.tgisinternal AND t.tgtype=23 AND t.tgenabled='O'
+    AND t.tgargs=''::bytea AND t.tgattr::text='' AND t.tgqual IS NULL
+    AND t.tgconstraint=0 AND NOT t.tgdeferrable AND NOT t.tginitdeferred
+    AND t.tgconstrrelid=0 AND t.tgparentid=0
+    AND t.tgoldtable IS NULL AND t.tgnewtable IS NULL;
+  IF NOT FOUND THEN
     RAISE EXCEPTION 'P3 lock trigger missing on billing_export_run_items';
   END IF;
+  -- Admit only the original guard or the source-qualified API adapter. A same-
+  -- named foreign body, changed authority/ABI, or disabled/partial trigger fails.
+  IF NOT EXISTS (SELECT FROM pg_proc p WHERE p.oid=p3_lock_function
+    AND pg_get_userbyid(p.proowner)='postgres' AND p.prokind='f'
+    AND p.prorettype='trigger'::regtype AND p.pronargs=0
+    AND p.proargtypes=''::oidvector AND p.proallargtypes IS NULL
+    AND p.proargnames IS NULL AND p.proargmodes IS NULL
+    AND p.pronargdefaults=0 AND p.proargdefaults IS NULL
+    AND p.prosecdef AND NOT p.proisstrict AND NOT p.proleakproof
+    AND p.provolatile='v' AND p.proparallel='u'
+    AND p.proconfig=ARRAY['search_path=pg_catalog']::text[]
+    AND p.procost=100 AND p.prorows=0 AND p.prosupport=0 AND p.provariadic=0
+    AND p.protrftypes IS NULL AND p.probin IS NULL AND p.prosqlbody IS NULL
+    AND (SELECT lanname FROM pg_language WHERE oid=p.prolang)='plpgsql'
+    AND ((p.oid=to_regprocedure('public.gridex_billing_item_lock_profile_revision()')
+      AND p.proacl::text='{postgres=X/postgres,service_role=X/postgres}'
+      AND octet_length(p.prosrc)=493
+      AND md5(p.prosrc)='59307680cadc60b8632dc519605a8d33'
+      AND encode(sha256(convert_to(p.prosrc,'UTF8')),'hex')='90e29e4005af5ef0671fe89d49ee97504a2e96b6a9c0e5c5a33bc20da89f64d7')
+    OR (p.oid=to_regprocedure('gridex_ediel_retention.finance_guard_api_ace058685c2b86bd37f10ec02f552213()')
+      AND p.proacl::text='{postgres=X/postgres}'
+      AND octet_length(p.prosrc)=834
+      AND md5(p.prosrc)='347707d1c1afd811e1e11b769199112e'
+      AND encode(sha256(convert_to(p.prosrc,'UTF8')),'hex')='f643e7ddf85cd5c3e209cf1b38e45967cb7417e890312fdb5cbd4f45006f5480'))) THEN
+    RAISE EXCEPTION 'P3 lock guard source or authority profile unknown';
+  END IF;
   CREATE TEMP TABLE p3_items (company_id uuid NOT NULL, customer_id uuid, customer_billing_profile_revision integer) ON COMMIT DROP;
-  CREATE TRIGGER p3_items_lock BEFORE INSERT OR UPDATE ON p3_items
-    FOR EACH ROW EXECUTE FUNCTION public.gridex_billing_item_lock_profile_revision();
+  EXECUTE format('CREATE TRIGGER p3_items_lock BEFORE INSERT OR UPDATE ON pg_temp.p3_items FOR EACH ROW EXECUTE FUNCTION %s',p3_lock_function::regprocedure);
+  IF NOT EXISTS (SELECT FROM pg_trigger WHERE tgrelid='pg_temp.p3_items'::regclass
+    AND tgname='p3_items_lock' AND tgfoid=p3_lock_function AND tgtype=23 AND tgenabled='O') THEN
+    RAISE EXCEPTION 'P3 temporary guard differs from production binding';
+  END IF;
   INSERT INTO p3_items(company_id, customer_id) VALUES (c, customer);
   IF (SELECT customer_billing_profile_revision FROM p3_items) <> 2 THEN RAISE EXCEPTION 'P3 billing item did not lock revision 2'; END IF;
   UPDATE public.customers SET billing_street = 'Nya gatan 2' WHERE id = customer;

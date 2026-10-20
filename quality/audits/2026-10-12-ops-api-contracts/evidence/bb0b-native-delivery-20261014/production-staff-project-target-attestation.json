@@ -1,0 +1,27 @@
+{
+  "at": "2026-10-14T11:59:29.815014+00:00",
+  "url": "https://app.gridex.se/api/v1/staff-onboarding/identity/resolve",
+  "method": "POST",
+  "authorization_header": false,
+  "cookies": false,
+  "body": {},
+  "requests": [
+    {
+      "expected_project": "piidsfebjqjmnepdpnas",
+      "status": 401,
+      "attested_project": "piidsfebjqjmnepdpnas",
+      "contract_version": "2026-10-05.2",
+      "error_code": "missing_api_token"
+    },
+    {
+      "expected_project": "00000000000000000000",
+      "status": 412,
+      "attested_project": "piidsfebjqjmnepdpnas",
+      "contract_version": "2026-10-05.2",
+      "error_code": "storage_project_mismatch"
+    }
+  ],
+  "source_boundary": "Exact deployed identityResolution handler checks SDK URL before auth. Missing machine credential returns before DB/client/telemetry/provider/identity lookup; wrong project returns before apiAccess. No business operation invoked.",
+  "business_rpc_calls": 0,
+  "tenant_accounts_or_records_changed": 0
+}

@@ -11,6 +11,7 @@ import { parseCanonicalMessageRow, type CanonicalEdielMessage } from '@/lib/edie
 import { resolveCanonicalEdielPolicy, type CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import {sourceQualifiedProdatBilateralCapability,type SourceQualifiedProdatBilateralCapability} from './prodatBilateralSourceCapability'
 import {sourceProdatRegisterReadingDeclarations} from './prodatSourceRegisterReadingDeclarations'
+import {sourceProdatZ06ReadingDeclarations} from './prodatZ06SourceReadingDeclarations'
 
 // Shared protocol date selection; receipt/object matching must not reselect a guide.
 function normalizeDate(value: unknown): string | null {
@@ -170,6 +171,10 @@ export function resolveCanonicalMessagePolicy(message: EdielMessageRow, canonica
       ??(ownZ10ReadingsSource&&options.ownZ10SourceReadingActorUserId?sourceProdatZ10OwnRegisterReadingDeclarations({message,
         actorUserId:options.ownZ10SourceReadingActorUserId,context:options.ownZ10SourceReadingContext,
         policy:selected,admissionAt:options.admissionAt}):null)
+      // A received Z06F/G declares its own readings in its own 259. A supplied
+      // root fact keeps precedence; absence stays unknown per object.
+      ??(typeof input.prodatDependentFacts?.meterReadingsSentInUtilts==='boolean'?null
+        :sourceProdatZ06ReadingDeclarations({message,policy:selected}))
     // Resolve final conditions from the same selected guide and exact object
     // declarations. Root hints cannot fill an object's unknown source fact.
     const policy=registerObjects?resolveCanonicalEdielPolicy({...input,selectedGuideRevision:selected.guide.guideRevision,

@@ -10,8 +10,9 @@ import {defineConfig} from 'vitest/config'
 // source231b9ef8, and its facade to the reviewed adoptedca892 source. None
 // replaces the historical BASE aliases or their fixed canonical source bytes.
 // Its BASE public creator alone receives a prospective legacy
-// DTO hint. Two containment forwards and twelve delivered current reader/guard
-// forwards remain separately receipted phases before fresh ROOT owners.
+// DTO hint. Two containment forwards and fourteen delivered current reader/guard
+// forwards remain separately receipted phases before fresh ROOT owners. The
+// OPS-04 forward is preceded only by the exact DB-05 TRUNCATE guard callback.
 const root = realpathSync(resolve(__dirname, '..'))
 const phase = process.env.GRIDEX_DB01_NATIVE_PHASE
 const receiptPath = process.env.GRIDEX_DB01_NATIVE_RECEIPT
@@ -58,7 +59,7 @@ const fileHash = (path: string) => createHash('sha256').update(readFileSync(path
 const sameInput = (a: GitInput | undefined, b: GitInput | undefined) => !!a && !!b && a.mode === b.mode &&
   a.git_blob_oid === b.git_blob_oid && a.sha256 === b.sha256
 const basis = receipt.historical_source_basis, overlay = basis?.module_overrides?.[0]
-if (receipt.required_input_paths?.length !== 54 || new Set(receipt.required_input_paths).size !== 54 ||
+if (receipt.required_input_paths?.length !== 56 || new Set(receipt.required_input_paths).size !== 56 ||
     receipt.required_base_input_paths?.length !== 35 || new Set(receipt.required_base_input_paths).size !== 35 ||
     basis?.kind !== 'reconstructed_public_births' || basis.default_alias !== 'BASE56' || basis.module_overrides?.length !== 1 ||
     overlay?.specifier !== '@/lib/ediel/testing/agtEngine' || overlay.path !== producerPath || overlay.source !== 'ROOT' ||
@@ -99,8 +100,8 @@ const canonicalFacadePath = 'lib/ediel/rulebook/canonicalEdielFacade.ts'
 const canonicalFacadeRevision = 'ca892c14643181656e842bf4d8ffa8b6d829dec2'
 const expectedBaseFacade: GitInput = {mode: '100644', git_blob_oid: 'a170889bc7a9463e757302989cb596e30f527c6f',
   sha256: 'd395ebef617da8181879605aaf486cae889950316af7e1967d83525ece6a2d8f'}
-const expectedCurrentFacade: GitInput = {mode: '100644', git_blob_oid: '6012241de1210e35b50b55fa646e92930b8f330c',
-  sha256: 'f979775551293c9221d3cecff8fb51ae8b17f02dff99ee4222ae8dff0ed32d86'}
+const expectedCurrentFacade: GitInput = {mode: '100644', git_blob_oid: '541351571064dc40e4df379dfcadb642e0b6d46b',
+  sha256: '8b635d22a53729d8321fe6f1677d41137dc300736e51a7d85f32c2f87390d053'}
 const canonicalFacadeBasis = basis.canonical_facade_basis
 if (!canonicalFacadeBasis || Object.keys(canonicalFacadeBasis).length !== 6 || canonicalFacadeBasis.source_revision !== canonicalFacadeRevision ||
     canonicalFacadeBasis.path !== canonicalFacadePath || canonicalFacadeBasis.historical_alias !== 'BASE56' || canonicalFacadeBasis.current_alias !== 'ROOT' ||
@@ -195,6 +196,18 @@ export const currentReaderForwards: Array<GitInput & {path: string}> = [
     "mode": "100644",
     "git_blob_oid": "b6ba2018eafe08a6ba67c7ff307ba51c33a2b604",
     "sha256": "6646ea2bd9f819736ece5c943148c575238e55702a201fcc9b26f46e0f998af9"
+  },
+  {
+    "path": "supabase/migrations/20261019043000_ediel_retained_contrl_source_prefilter.sql",
+    "mode": "100644",
+    "git_blob_oid": "cc00cae05dad948b1680ef83c55b356cd12b702a",
+    "sha256": "f248ec8dab18e1b4b4c2cd6f8da73f538d15030ccabb6bf0281080797d586b02"
+  },
+  {
+    "path": "supabase/migrations/20261019140000_ediel_ops04_controlled_live_evidence.sql",
+    "mode": "100644",
+    "git_blob_oid": "6ddf94077699971f13dba1498b20583bde5164af",
+    "sha256": "5691b79a523a4db6b3335f52661b0f76ac124cbf61bfcde36b618f2cac3b4954"
   }
 ]
 const currentDatabase = receipt.current_database_basis

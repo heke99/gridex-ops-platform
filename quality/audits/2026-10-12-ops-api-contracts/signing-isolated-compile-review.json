@@ -1,0 +1,93 @@
+{
+  "checked_at_utc": "2026-10-13T09:33:05.122907+00:00",
+  "scope": "Owned isolated SQL compile qualification; actual OPS metadata read-only, no live write/business calls",
+  "status": "PASS_BOUNDED_ISOLATED_COMPILE",
+  "container": "gridex-ops-api-native-20261013",
+  "database": "ops_api_signing_compile_20261013",
+  "network_mode": "none",
+  "ports": null,
+  "bootstrap": "13 empty actual-native column/nonnull shaped tables;4actual core functions and6exact actual helperdefinitions; observed enum type; real pgcrypto extension. Row defaults/FKs/RLS/triggers and lazy PLpgSQL SQL semantics are not represented as full business acceptance.",
+  "sql_sequence": [
+    {
+      "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/signing-expiry-forward.sql",
+      "sha256": "f346076b7684fc43d4d413b13524c46e4fbb0aa1484921d6a0717a03afdcd4bb",
+      "transaction": "COMMIT"
+    },
+    {
+      "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/signing-withdrawal-deadline-forward.sql",
+      "sha256": "917cd9af78a6d9974649a121aaf74ef95781b1c5ad4a182f9612b0511f45671d",
+      "transaction": "COMMIT"
+    }
+  ],
+  "native_postreceipt": {
+    "version": "PostgreSQL 17.6 on x86_64-pc-linux-musl, compiled by gcc (Alpine 14.2.0) 14.2.0, 64-bit",
+    "database": "ops_api_signing_compile_20261013",
+    "business_rows": 0,
+    "core_functions": [
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "body_md5": "86e49c3db54add3887de13f00bf63b7b",
+        "signature": "gridex_finalize_customer_contract_signature_v1(text,text,text)",
+        "search_path": [
+          "search_path=public, extensions, pg_temp"
+        ],
+        "security_definer": true
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "body_md5": "aeb3e4cd457ca99d257720e7f1794521",
+        "signature": "gridex_finalize_website_contract_signature(uuid,uuid,uuid,uuid,text,timestamp with time zone,jsonb,jsonb,jsonb,text,text,text)",
+        "search_path": [
+          "search_path=public, extensions, pg_temp"
+        ],
+        "security_definer": true
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "body_md5": "8bd61eb144c72df71c050350a6ed0e57",
+        "signature": "gridex_prepare_customer_contract_signature_request_v1(uuid,uuid,uuid,text,text,timestamp with time zone,uuid,text)",
+        "search_path": [
+          "search_path=public, private, extensions, pg_temp"
+        ],
+        "security_definer": true
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "body_md5": "620d2a202a7fe821b0f6f0b4cd90306c",
+        "signature": "gridex_get_customer_contract_signature_receipt_v1(text)",
+        "search_path": [
+          "search_path=public, extensions, pg_temp"
+        ],
+        "security_definer": true
+      }
+    ]
+  },
+  "checks": [
+    "Exact before-anchor source hashes recognized by proposal SQL",
+    "All4effective core afterbodyMD5s match approved packets",
+    "Original OID/owner/ACL/argtypes/names/returntype/definer/config/defaultcount preserved",
+    "3actual-absent record-retention aliases remain absent",
+    "Rollback-only clock_timestamp vs transaction now contrast",
+    "Rollback-only exact approved Stockholm deadline expression verified across2026 spring/fall DST"
+  ],
+  "tooling_correction": "Initial postreceipt SELECT ORDER BY alias::text invalid PostgreSQL alias expression. Both preceding identity/calendarDOs passed. Corrected ORDER BY original expression, rerun allqualification transaction exit0, original failedlog preserved. No proposal SQL modified.",
+  "files": {
+    "/tmp/gridex-api-review/signing-isolated-bootstrap.sql": "1a5ed9bcdf90e53b007c9ba2aea9c80105cf2a79d05e4d36fa2b7c76b2693db2",
+    "/tmp/gridex-api-review/signing-isolated-bootstrap.log": "aa50592ea0f7be7e10566b40ce7b352604f6a7144ede3cbab66ca47f2e6a29a4",
+    "/tmp/gridex-api-review/signing-isolated-expiry-compile.log": "28c99bd588cc0f7a4f75b26bd818771dfe98eb82b730d2cc03efbd6db6ae6e59",
+    "/tmp/gridex-api-review/signing-isolated-withdrawal-compile.log": "28c99bd588cc0f7a4f75b26bd818771dfe98eb82b730d2cc03efbd6db6ae6e59",
+    "/tmp/gridex-api-review/signing-isolated-postqualification.sql": "d9d2192e035c8e4d7df0c6eb7e8c0463dbbf413d47c5488477e75a3da5e272a3",
+    "/tmp/gridex-api-review/signing-isolated-postqualification.log": "068cc9e587802124b3d47e4b9278e9bb4119d2f0835e7bba973b3a9965fe6508",
+    "/tmp/gridex-api-review/signing-isolated-postqualification-corrected.log": "1b0df832c5a3e42fda5fbbb2991d1886020ee77a220f0281cf32ee8b50b39137",
+    "/tmp/gridex-api-review/signing-isolated-native-postreceipt.json": "30f6126da6c8db4657072950a79fab243d0a4ad80cfae13f31b803a2004d1a17",
+    "/tmp/gridex-api-review/signing-isolated-prerequisite-live-metadata.json": "e1f56d7b843c7bf6e8097c4f586ac27ba7e85c950c243cea62ab1d85be5f3608",
+    "/tmp/gridex-api-review/signing-isolated-helper-tables-live-metadata.json": "12d6cfd45f91463f18ce2487e987eb07b17c8794a38f8c19eaa80642606f0823"
+  },
+  "limits": [
+    "No signingRPC or actual customer/company business record read/created",
+    "No provider transmission, actual native DDL/ledger write or GEN changes",
+    "Does not prove lazy PLpgSQL businessqueries/fullmodule/canonicalwrapper native chain",
+    "Separate empty database, not root broadbaselineDB; kept for review"
+  ],
+  "next": "Root apply reviewed source-bound forwards to actual OPS and read back metadata under authorized workflow."
+}

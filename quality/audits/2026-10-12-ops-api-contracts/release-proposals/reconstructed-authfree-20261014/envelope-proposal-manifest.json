@@ -1,0 +1,17 @@
+{
+  "status": "PRIVATE_NEW_MAIN_PROPOSAL_NOT_REVIEWED_NOT_APPLIED",
+  "source_edits_sha256": "a7a7fa1f97f5f9f2cbb2f5a0e6ac68a74270cf4aef96d631d9fb91793d7f1bb2",
+  "derived_source_sha256": "cfe0abf95d99baf02664fb95162a56bf67e94b2123da36f68544eb27fa510dd8",
+  "envelope_sha256": "e9788627cf5b9b7469159ff803bb242be870fe6e1ad7484469b222a2a310b6e4",
+  "envelope_bytes": 132997,
+  "executable_sha256": "54ae0d68a28b223a25b22f4d4c32fd10f275f828913bf7554703a521f1fed1ca",
+  "auth_fk_source_constraints": 113,
+  "native_capture_at": "2026-10-14T06:09:58.056252+00:00",
+  "native_auth_triggers": 422,
+  "native_ledger_count": 519,
+  "auth_grants_added": false,
+  "dependent_semantic_inputs_composed": false,
+  "clock_edits_composed": true,
+  "five_adapter_input_composed": false,
+  "source_note": "New source proposal only. Original B3 stages remain byte-identical; all dependent inputs must share the outer atomic transaction before actual application."
+}

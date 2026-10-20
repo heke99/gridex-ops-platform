@@ -1,0 +1,31 @@
+{
+  "schema": "ops-api-audit-routing-v1",
+  "authority": "Read actual OPS implementation, caller paths and native PostgreSQL catalog first; local test results do not qualify deployed behavior.",
+  "applied": [
+    "using-superpowers: route project-local skills",
+    "using-git-worktrees: isolated API branch",
+    "writing-plans: family inventory, corrections, independent review and delivery",
+    "dispatching-parallel-agents: exact file ownership, user explicit multiagent request",
+    "acquire-codebase-knowledge / quality-playbook: family inventories and source/native evidence discipline",
+    "Supabase / postgres-best-practices: read-only catalog, RLS/ACL/constraint/body comparisons",
+    "code-review / find-bugs / differential-review / fp-check / variant-analysis / spec-to-code-compliance: confirmed root causes and false positive refutations",
+    "code-security / sharp-edges / auth-JWT: company ownership, claims, serialization, idempotency and denial precedence",
+    "systematic-debugging / test-driven-development: targeted reproductions support source-confirmed fixes",
+    "requesting-code-review / receiving-code-review: two noncoauthor readonly final peers",
+    "verification-before-completion: exact source freeze and supporting local gates"
+  ],
+  "conditional_or_limited": {
+    "finishing-a-development-branch": "Delivery uses autonomous draft PR authorization from developer; no needless option menu and no merge/deploy.",
+    "scan-secrets": "ggshield CLI absent and no authenticated GitGuardian setup; no secret values retrieved or alternate improvised scanner. Automated secret scan not qualified.",
+    "semgrep": "CLI and MCP unavailable; no Semgrep clean claim.",
+    "codeql": "CLI unavailable; no CodeQL extraction/taint result.",
+    "sarif-parsing": "No SARIF generated.",
+    "security-threat-model / threat-model-analyst": "Bounded threat analysis in family boundary/ownership review; no exhaustive standalone model generated.",
+    "supply-chain-risk-auditor": "Package lock unchanged; existing bounded production dependency gate run, result recorded separately.",
+    "property-based-testing": "Finite adversarial boundary/race and malformed-input checks; no whole-domain generated invariant campaign claimed.",
+    "web-design-guidelines / react performance": "Two developer pages changed for documentation wording only, no interaction/layout redesign or measured performance remediation.",
+    "sql-optimization-patterns / observability": "No measured query bottleneck, new production metric or cache optimization.",
+    "brainstorming / refactor / code-simplifier / writing-skills / install-hooks": "No new architecture ambiguity, broad refactor, skill authoring or requested hook installation."
+  },
+  "isolation": "Existing Ediel owners retain exact resources, GEN and shared current memory. Imported origin/main work is preserved rather than rewritten. No Gridex Web or other tenant repository edits."
+}

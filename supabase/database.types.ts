@@ -63330,6 +63330,69 @@ export type Database = {
           },
         ]
       }
+      ops_migration_provenance_receipts: {
+        Row: {
+          applied_ledger_name: string
+          applied_ledger_version: string
+          canonical_filename: string
+          current_source_git_commit: string | null
+          current_source_sha256: string | null
+          effect_evidence: Json
+          effect_scope: string
+          effect_verified: boolean
+          observed_at: string
+          project_ref: string
+          receipt_id: string
+          receipt_kind: string
+          recorded_input_md5: string
+          recorded_input_sha256: string
+          registered_at: string
+          source_file_git_commit: string | null
+          source_file_sha256: string
+          source_observation_head: string
+        }
+        Insert: {
+          applied_ledger_name: string
+          applied_ledger_version: string
+          canonical_filename: string
+          current_source_git_commit?: string | null
+          current_source_sha256?: string | null
+          effect_evidence?: Json
+          effect_scope: string
+          effect_verified?: boolean
+          observed_at: string
+          project_ref: string
+          receipt_id: string
+          receipt_kind: string
+          recorded_input_md5: string
+          recorded_input_sha256: string
+          registered_at?: string
+          source_file_git_commit?: string | null
+          source_file_sha256: string
+          source_observation_head: string
+        }
+        Update: {
+          applied_ledger_name?: string
+          applied_ledger_version?: string
+          canonical_filename?: string
+          current_source_git_commit?: string | null
+          current_source_sha256?: string | null
+          effect_evidence?: Json
+          effect_scope?: string
+          effect_verified?: boolean
+          observed_at?: string
+          project_ref?: string
+          receipt_id?: string
+          receipt_kind?: string
+          recorded_input_md5?: string
+          recorded_input_sha256?: string
+          registered_at?: string
+          source_file_git_commit?: string | null
+          source_file_sha256?: string
+          source_observation_head?: string
+        }
+        Relationships: []
+      }
       ops_publication_state: {
         Row: {
           changed_at: string | null
@@ -92849,6 +92912,24 @@ export type Database = {
         }
         Relationships: []
       }
+      ops_migration_provenance_summary_v1: {
+        Row: {
+          canonical_governance_blockers: string[] | null
+          canonical_governance_is_ready: boolean | null
+          canonical_unmapped_ledger_versions: number | null
+          changed_bounded_schema_receipt_count: number | null
+          current_bounded_schema_receipt_count: number | null
+          effect_not_assessed_receipt_count: number | null
+          exact_input_receipt_count: number | null
+          full_history_and_effect_qualification_claimed: boolean | null
+          latest_ledger_version: string | null
+          ledger_version_count: number | null
+          ledger_versions_without_exact_input_receipt: number | null
+          lineage_receipt_count: number | null
+          receipt_count: number | null
+        }
+        Relationships: []
+      }
       platform_actor_route_duplicates_v: {
         Row: {
           actor_id: string | null
@@ -94715,6 +94796,19 @@ export type Database = {
           dry_run: boolean
         }[]
       }
+      dispose_one_audit19_v1: {
+        Args: { actor: string; c: string; target: string }
+        Returns: Json
+      }
+      ediel_admit_completed_parent_purpose_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_policy_id: string
+          p_receipt: Json
+        }
+        Returns: Json
+      }
       ediel_admit_unattributed_technical_source_v1: {
         Args: {
           p_actor_user_id: string
@@ -94723,6 +94817,14 @@ export type Database = {
           p_inbound_email_message_id: string
           p_parse_result_id: string
         }
+        Returns: Json
+      }
+      ediel_advance_completed_parent_v1: {
+        Args: { p_actor_user_id: string; p_limit?: number }
+        Returns: Json
+      }
+      ediel_advance_completed_witness_disposition_v1: {
+        Args: { p_actor_user_id: string; p_limit?: number }
         Returns: Json
       }
       ediel_advance_permission_deadlines_v1: {
@@ -95126,6 +95228,14 @@ export type Database = {
         }
         Returns: Json
       }
+      ediel_completed_parent_purpose_status_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_policy_id: string
+        }
+        Returns: Json
+      }
       ediel_confirmed_customer_snapshot_before_scope_fence_v1: {
         Args: {
           p_actor_user_id: string
@@ -95393,6 +95503,14 @@ export type Database = {
         Args: { p_company_id: string; p_customer_id: string }
         Returns: Json
       }
+      ediel_dispose_completed_parent_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_policy_id: string
+        }
+        Returns: Json
+      }
       ediel_execute_beneficiary_export_v1: {
         Args: {
           p_actor_user_id: string
@@ -95438,6 +95556,10 @@ export type Database = {
       ediel_fresh_business_incident_access_v1: {
         Args: { p_actor_user_id: string; p_company_id: string }
         Returns: Json
+      }
+      ediel_gc_completed_parent_v1: {
+        Args: { p_actor_user_id: string; p_company_id: string }
+        Returns: number
       }
       ediel_inbound_reception_request_v1: {
         Args: {
@@ -96860,6 +96982,25 @@ export type Database = {
         }
         Returns: Json
       }
+      ediel_review_completed_parent_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_policy_id: string
+          p_receipt: Json
+        }
+        Returns: Json
+      }
+      ediel_review_completed_witness_disposition_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_outcome: string
+          p_policy_id: string
+          p_receipt: Json
+        }
+        Returns: Json
+      }
       ediel_review_contract_original_source_v1: {
         Args: {
           p_actor_user_id: string
@@ -97373,6 +97514,10 @@ export type Database = {
           p_company_id: string
           p_source_message_id: string
         }
+        Returns: Json
+      }
+      expire_one_audit19_approval_v1: {
+        Args: { actor: string; c: string; target: string }
         Returns: Json
       }
       gridex_accept_external_staff_invitation_v1: {
@@ -99159,6 +99304,49 @@ export type Database = {
         Args: { p_context: Json }
         Returns: Json
       }
+      gridex_ediel_ops04_consume_controlled_live_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_agreement_id: string
+          p_binding: Json
+          p_company_id: string
+          p_environment: string
+          p_incident_id: string
+          p_mandate_id: string
+          p_message_id: string
+          p_resend: boolean
+          p_route_profile_id: string
+        }
+        Returns: Json
+      }
+      gridex_ediel_ops04_controlled_flow_probe_v1: {
+        Args: {
+          p_communication_route_id: string
+          p_company_id: string
+          p_environment: string
+          p_message_id: string
+        }
+        Returns: Json
+      }
+      gridex_ediel_ops04_controlled_live_evidence_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_environment: string
+          p_incident_id: string
+          p_message_id: string
+          p_route_profile_id: string
+        }
+        Returns: Json
+      }
+      gridex_ediel_ops04_record_v1: {
+        Args: { p_actor_user_id: string; p_company_id: string; p_input: Json }
+        Returns: Json
+      }
+      gridex_ediel_ops04_revoke_v1: {
+        Args: { p_actor_user_id: string; p_company_id: string; p_input: Json }
+        Returns: Json
+      }
       gridex_ediel_positive_fixture_prepare_v1: {
         Args: { p_context: Json }
         Returns: Json
@@ -100414,6 +100602,18 @@ export type Database = {
           p_ack_message_id: string
           p_company_id: string
           p_environment: string
+        }
+        Returns: Json
+      }
+      gridex_read_interval_pricing_snapshot_v1: {
+        Args: {
+          p_billing_underlay_id: string
+          p_company_id: string
+          p_expected_underlay: Json
+          p_period_end: string
+          p_period_start: string
+          p_price_area: string
+          p_required_resolution: string
         }
         Returns: Json
       }
@@ -101787,6 +101987,43 @@ export type Database = {
       normalize_facility_id: { Args: { p_value: string }; Returns: string }
       normalize_personal_number: { Args: { p_value: string }; Returns: string }
       normalize_phone: { Args: { p_phone: string }; Returns: string }
+      ops_migration_governance_projection_v1: {
+        Args: never
+        Returns: {
+          blockers: string[]
+          duplicate_ledger_mappings: number
+          effect_verified_file_count: number
+          invalid_checksum_count: number
+          is_ready: boolean
+          last_verified_at: string
+          latest_ledger_version: string
+          ledger_version_count: number
+          manifest_file_count: number
+          manifest_version_count: number
+          missing_in_ledger: number
+          schema_effect_file_count: number
+          unmapped_ledger_versions: number
+          verified_file_count: number
+        }[]
+      }
+      ops_migration_provenance_projection_v1: {
+        Args: never
+        Returns: {
+          canonical_governance_blockers: string[]
+          canonical_governance_is_ready: boolean
+          canonical_unmapped_ledger_versions: number
+          changed_bounded_schema_receipt_count: number
+          current_bounded_schema_receipt_count: number
+          effect_not_assessed_receipt_count: number
+          exact_input_receipt_count: number
+          full_history_and_effect_qualification_claimed: boolean
+          latest_ledger_version: string
+          ledger_version_count: number
+          ledger_versions_without_exact_input_receipt: number
+          lineage_receipt_count: number
+          receipt_count: number
+        }[]
+      }
       portal_customer_documents_page_v1: {
         Args: {
           p_company_id: string
@@ -102001,6 +102238,10 @@ export type Database = {
           org_number: string
           personal_number: string
         }[]
+      }
+      review_one_audit19_v1: {
+        Args: { actor: string; c: string; envelope: Json; target: string }
+        Returns: Json
       }
       run_tenant_integrity_audit: {
         Args: {

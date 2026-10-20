@@ -13,6 +13,7 @@ import type { CustomerSiteRow } from '@/lib/masterdata/types'
 import type { SupplierSwitchRequestRow } from '@/lib/operations/types'
 import type { OutboundRequestRow } from '@/lib/cis/types'
 import type { CustomerContractRow } from '@/lib/customer-contracts/types'
+import type { OperationsSummaryReadKind } from '@/lib/customers/operationsSummaryRead'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,15 +29,20 @@ export type CustomersPageProps = {
  }>
 }
 
-export type CustomerOperationsSummary = {
+type CustomerOperationsCounts = {
  blocked: number
  queuedForOutbound: number
  awaitingDispatch: number
  awaitingResponse: number
+ awaitingMarketConfirmation: number
+ awaitingEffectiveDate: number
  readyToExecute: number
  failed: number
  completed: number
  activeOpen: number
+}
+
+type CustomerOperationsDisplay = {
  primaryLabel: string
  primaryHref: string
  primaryTone: string
@@ -44,6 +50,11 @@ export type CustomerOperationsSummary = {
  priorityRank: number
  priorityLabel: string
 }
+
+export type CustomerOperationsSummary = CustomerOperationsDisplay & (
+ | ({ readKind: 'ready' } & CustomerOperationsCounts)
+ | ({ readKind: 'partial' | 'unavailable' } & { [K in keyof CustomerOperationsCounts]: null })
+)
 
 export type CustomerWithOperations = CustomerListRow & {
  operations: CustomerOperationsSummary
@@ -190,19 +201,36 @@ export function getLatestOutboundForRequest(
  return rows[0] ?? null
 }
 
+function unknownCustomerOperationsSummary(customerId: string, readKind: Exclude<OperationsSummaryReadKind, 'ready'>): CustomerOperationsSummary {
+ return {
+ readKind, blocked: null, queuedForOutbound: null, awaitingDispatch: null, awaitingResponse: null,
+ awaitingMarketConfirmation: null, awaitingEffectiveDate: null, readyToExecute: null, failed: null, completed: null, activeOpen: null,
+ primaryLabel: readKind === 'partial' ? 'Underlaget är ofullständigt' : 'Ärendestatusen kunde inte läsas',
+ primaryHref: `/admin/customers/${customerId}`,
+ primaryTone: 'border-amber-200 bg-amber-50 text-amber-800',
+ primaryDescription: 'Kundens ärendestatus och antal öppna leverantörsbyten är okända. Öppna kundkortet eller läs listan igen.',
+ priorityRank: 0, priorityLabel: 'Granskning krävs',
+ }
+}
+
 export function buildCustomerOperationsSummary(params: {
  customerId: string
+ companyId?: string | null
+ readKind?: OperationsSummaryReadKind
  sites: CustomerSiteRow[]
  switchRequests: SupplierSwitchRequestRow[]
  outboundRequests: OutboundRequestRow[]
 }): CustomerOperationsSummary {
  const { customerId, sites, switchRequests, outboundRequests } = params
 
+ const readKind = params.companyId?.trim() ? params.readKind ?? 'partial' : 'unavailable'
+ if (readKind !== 'ready') return unknownCustomerOperationsSummary(customerId, readKind)
+
  const latestRequestsBySite = sites
- .filter((site) => site.customer_id === customerId)
+ .filter((site) => site.customer_id === customerId && site.company_id === params.companyId)
  .map((site) => {
  const requestsForSite = switchRequests
- .filter((request) => request.site_id === site.id)
+ .filter((request) => request.site_id === site.id && request.company_id === params.companyId && request.customer_id === customerId)
  .sort((a, b) => requestSortTime(b) - requestSortTime(a))
 
  return requestsForSite[0] ?? null
@@ -213,12 +241,15 @@ export function buildCustomerOperationsSummary(params: {
  let queuedForOutbound = 0
  let awaitingDispatch = 0
  let awaitingResponse = 0
+ let awaitingMarketConfirmation = 0
+ let awaitingEffectiveDate = 0
  let readyToExecute = 0
  let failed = 0
  let completed = 0
 
  for (const request of latestRequestsBySite) {
- const outbound = getLatestOutboundForRequest(request.id, outboundRequests)
+ const outbound = getLatestOutboundForRequest(request.id, outboundRequests.filter(row => row.company_id === request.company_id
+ && row.customer_id === request.customer_id && row.site_id === request.site_id))
 
  const lifecycle = getSwitchLifecycle({
  request,
@@ -239,6 +270,12 @@ export function buildCustomerOperationsSummary(params: {
  case 'awaiting_response':
  awaitingResponse += 1
  break
+ case 'awaiting_market_confirmation':
+ awaitingMarketConfirmation += 1
+ break
+ case 'awaiting_effective_date':
+ awaitingEffectiveDate += 1
+ break
  case 'ready_to_execute':
  readyToExecute += 1
  break
@@ -248,8 +285,11 @@ export function buildCustomerOperationsSummary(params: {
  case 'completed':
  completed += 1
  break
- default:
- break
+ default: {
+ const unhandledStage: never = lifecycle.stage
+ void unhandledStage
+ return unknownCustomerOperationsSummary(customerId, 'unavailable')
+ }
  }
  }
 
@@ -258,15 +298,20 @@ export function buildCustomerOperationsSummary(params: {
  queuedForOutbound +
  awaitingDispatch +
  awaitingResponse +
+ awaitingMarketConfirmation +
+ awaitingEffectiveDate +
  readyToExecute +
  failed
 
  if (blocked > 0) {
  return {
+ readKind: 'ready',
  blocked,
  queuedForOutbound,
  awaitingDispatch,
  awaitingResponse,
+ awaitingMarketConfirmation,
+ awaitingEffectiveDate,
  readyToExecute,
  failed,
  completed,
@@ -283,10 +328,13 @@ export function buildCustomerOperationsSummary(params: {
 
  if (readyToExecute > 0) {
  return {
+ readKind: 'ready',
  blocked,
  queuedForOutbound,
  awaitingDispatch,
  awaitingResponse,
+ awaitingMarketConfirmation,
+ awaitingEffectiveDate,
  readyToExecute,
  failed,
  completed,
@@ -295,18 +343,35 @@ export function buildCustomerOperationsSummary(params: {
  primaryHref: '/admin/operations/ready-to-execute',
  primaryTone: lifecycleTone('ready_to_execute'),
  primaryDescription:
- 'Det finns acknowledged switchar som kan finaliseras nu.',
+ 'Bekräftade leverantörsbyten har nått startdatumet och kan slutföras.',
  priorityRank: 2,
  priorityLabel: 'Slutför nu',
  }
  }
 
+ if (awaitingMarketConfirmation > 0 || awaitingEffectiveDate > 0) {
+ return {
+ readKind: 'ready', blocked, queuedForOutbound, awaitingDispatch, awaitingResponse,
+ awaitingMarketConfirmation, awaitingEffectiveDate, readyToExecute, failed, completed, activeOpen,
+ primaryLabel: awaitingMarketConfirmation > 0 ? 'Väntar på nätägarens bekräftelse' : 'Väntar på startdatum',
+ primaryHref: `/admin/customers/${customerId}#switch-operations`,
+ primaryTone: lifecycleTone('awaiting_response'),
+ primaryDescription: awaitingMarketConfirmation > 0
+ ? 'Utskicket är kvitterat men nätägarens bekräftelse av leverantörsbytet saknas fortfarande.'
+ : 'Leverantörsbytet är bekräftat men det avtalade startdatumet har inte nåtts.',
+ priorityRank: 3, priorityLabel: 'Följ upp leverantörsbytet',
+ }
+ }
+
  if (awaitingResponse > 0) {
  return {
+ readKind: 'ready',
  blocked,
  queuedForOutbound,
  awaitingDispatch,
  awaitingResponse,
+ awaitingMarketConfirmation,
+ awaitingEffectiveDate,
  readyToExecute,
  failed,
  completed,
@@ -315,7 +380,7 @@ export function buildCustomerOperationsSummary(params: {
  primaryHref: '/admin/operations/switches?stage=awaiting_response',
  primaryTone: lifecycleTone('awaiting_response'),
  primaryDescription:
- 'Minst en switch väntar på extern återkoppling.',
+ 'Minst ett leverantörsbyte väntar på extern återkoppling.',
  priorityRank: 3,
  priorityLabel: 'Följ upp svar',
  }
@@ -323,10 +388,13 @@ export function buildCustomerOperationsSummary(params: {
 
  if (awaitingDispatch > 0) {
  return {
+ readKind: 'ready',
  blocked,
  queuedForOutbound,
  awaitingDispatch,
  awaitingResponse,
+ awaitingMarketConfirmation,
+ awaitingEffectiveDate,
  readyToExecute,
  failed,
  completed,
@@ -343,10 +411,13 @@ export function buildCustomerOperationsSummary(params: {
 
  if (queuedForOutbound > 0) {
  return {
+ readKind: 'ready',
  blocked,
  queuedForOutbound,
  awaitingDispatch,
  awaitingResponse,
+ awaitingMarketConfirmation,
+ awaitingEffectiveDate,
  readyToExecute,
  failed,
  completed,
@@ -355,7 +426,7 @@ export function buildCustomerOperationsSummary(params: {
  primaryHref: '/admin/operations/switches?stage=queued_for_outbound',
  primaryTone: lifecycleTone('queued_for_outbound'),
  primaryDescription:
- 'Minst en switch saknar utskick och behöver förberedas eller kontrolleras.',
+ 'Minst ett leverantörsbyte saknar utskick och behöver förberedas eller kontrolleras.',
  priorityRank: 5,
  priorityLabel: 'Förbered utskick',
  }
@@ -363,10 +434,13 @@ export function buildCustomerOperationsSummary(params: {
 
  if (failed > 0) {
  return {
+ readKind: 'ready',
  blocked,
  queuedForOutbound,
  awaitingDispatch,
  awaitingResponse,
+ awaitingMarketConfirmation,
+ awaitingEffectiveDate,
  readyToExecute,
  failed,
  completed,
@@ -382,15 +456,18 @@ export function buildCustomerOperationsSummary(params: {
  }
 
  return {
+ readKind: 'ready',
  blocked,
  queuedForOutbound,
  awaitingDispatch,
  awaitingResponse,
+ awaitingMarketConfirmation,
+ awaitingEffectiveDate,
  readyToExecute,
  failed,
  completed,
  activeOpen,
- primaryLabel: completed > 0 ? 'Historik finns' : 'Ingen aktiv switchsignal',
+ primaryLabel: completed > 0 ? 'Historik finns' : 'Ingen aktiv signal för leverantörsbyte',
  primaryHref:
  completed > 0
  ? `/admin/customers/${customerId}#switch-operations`
@@ -398,8 +475,8 @@ export function buildCustomerOperationsSummary(params: {
  primaryTone: lifecycleTone(completed > 0 ? 'completed' : 'queued_for_outbound'),
  primaryDescription:
  completed > 0
- ? 'Kunden har switchhistorik men inget som sticker ut operativt just nu.'
- : 'Ingen tydlig aktiv switchkedja hittades för kunden ännu.',
+ ? 'Kunden har historik för leverantörsbyten men inga aktiva ärenden just nu.'
+ : 'Inget aktivt ärende för leverantörsbyte hittades för kunden.',
  priorityRank: completed > 0 ? 7 : 8,
  priorityLabel: completed > 0 ? 'Låg prioritet' : 'Ingen signal',
  }
@@ -412,7 +489,7 @@ export function sortCustomersByOperations(customers: CustomerWithOperations[]): 
  }
 
  if (a.operations.activeOpen !== b.operations.activeOpen) {
- return b.operations.activeOpen - a.operations.activeOpen
+ return (b.operations.activeOpen ?? 0) - (a.operations.activeOpen ?? 0)
  }
 
  if (a.site_count !== b.site_count) {
@@ -505,6 +582,7 @@ export function matchesOperationsFilter(
  operations: CustomerOperationsSummary,
  filter: OperationsFilterKey
 ): boolean {
+ if (operations.readKind !== 'ready') return filter === 'all'
  switch (filter) {
  case 'blocked':
  return operations.blocked > 0

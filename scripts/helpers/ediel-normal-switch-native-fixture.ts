@@ -56,7 +56,8 @@ export function futureNativeSupplyDate(days=14){
  const date=new Date(`${today}T00:00:00Z`);date.setUTCDate(date.getUTCDate()+days);return date.toISOString().slice(0,10)
 }
 export type NormalSwitchStageNativeFixture={companyId:string;actorUserId:string;customerId:string;siteId:string;pointId:string;contractId:string;switchId:string;external:string;sender:string;receiver:string;gridId:string;routeId:string;routeProfileId:string;marketActorId:string;customerIdentity:{id:string;qualifier:'SE2';agency:'260'};requestedStartDate:string;brpEdielId:string;gridAreaCode:string;documentSha256:string;authorizationDocumentId:string;powerOfAttorneyId:string}
-type NormalSwitchFixtureInput={requestedStartDate?:string;external?:string;provider?:(email:string)=>void;initialSubtype?:'L'|'H';customerName?:string}
+export type NormalSwitchNativeRequestInput=Omit<NormalSwitchStageNativeFixture,'switchId'>&{invoiceeSnapshot:Record<string,unknown>}
+type NormalSwitchFixtureInput={requestedStartDate?:string;external?:string;provider?:(email:string)=>void;initialSubtype?:'L'|'H';customerName?:string;createSwitchRequest?:(input:NormalSwitchNativeRequestInput)=>Promise<string>}
 export function seedNormalSwitchNativeFixture(input:NormalSwitchFixtureInput&{deferOriginal:true}):Promise<NormalSwitchStageNativeFixture>
 export function seedNormalSwitchNativeFixture(input?:NormalSwitchFixtureInput&{deferOriginal?:false}):Promise<NormalSwitchStageNativeFixture&{caseReference:string;originalZ03:EdielMessageRow}>
 export async function seedNormalSwitchNativeFixture(input:NormalSwitchFixtureInput&{deferOriginal?:boolean}={}){
@@ -299,15 +300,22 @@ export async function seedNormalSwitchNativeFixture(input:NormalSwitchFixtureInp
   endUser:{identity:{id:customerIdentity,qualifier:'SE2',agency:'260'},address:invoiceeAddress},
   invoicee:{identity:{id:customerIdentity,qualifier:'SE2',agency:'260'},nameLines:[customerName],address:invoiceeAddress,availability:'available'},
   event:{state:'none',reference:`fixture-invoicee:${switchId}`},source:{kind:'caller_selection',companyId,reference:`fixture-invoicee:${switchId}`}}]}}}
+ // An opt-in caller may exercise its public request creator before any case
+ // exists. Existing callers retain their exact prospective SQL input below.
+ let createdSwitchId:string=switchId
+ if(input.createSwitchRequest){
+  createdSwitchId=await input.createSwitchRequest({companyId,actorUserId,customerId,siteId,pointId,contractId,external,sender,receiver,gridId,routeId,routeProfileId,marketActorId:marketActor,customerIdentity:{id:customerIdentity,qualifier:'SE2',agency:'260'},requestedStartDate,brpEdielId,gridAreaCode:'TES',documentSha256,authorizationDocumentId:authorizationDocumentId!,powerOfAttorneyId:poa.id,invoiceeSnapshot})
+ }else{
  sql(`INSERT INTO public.supplier_switch_requests(id,company_id,customer_id,site_id,customer_site_id,metering_point_id,grid_owner_id,contract_id,customer_contract_id,power_of_attorney_id,authorization_document_id,request_type,status,requested_start_date,prodat_variant,prodat_reason,lifecycle_blocked,validation_snapshot) VALUES(${literal(switchId)},${literal(companyId)},${literal(customerId)},${literal(siteId)},${literal(siteId)},${literal(pointId)},${literal(gridId)},${literal(contractId)},${literal(contractId)},${literal(poa.id)},${literal(authorizationDocumentId)},'switch','ready',${literal(requestedStartDate)},${literal(input.initialSubtype??'L')},${literal(input.initialSubtype==='H'?'Z25':'Z22')},false,${literal(JSON.stringify(invoiceeSnapshot))}::jsonb);`)
+ }
  sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
  SELECT ${literal(actorUserId)},${literal(companyId)},id,key FROM public.permissions
  WHERE key IN('communication.read','communication.write','communication.send','metering.read','metering.write','operations.read','operations.write','contracts.read','contracts.write','customers.read','customers.write');
  DELETE FROM public.admin_users WHERE user_id=${literal(actorUserId)};`)
  for(const permission of ['communication.read','communication.write','communication.send','metering.read','metering.write'])expect(sql(`SELECT to_jsonb(public.gridex_actor_has_company_permission(${literal(actorUserId)},${literal(companyId)},${literal(permission)}))`)).toBe(true)
- const stage:NormalSwitchStageNativeFixture={companyId,actorUserId,customerId,siteId,pointId,contractId,switchId,external,sender,receiver,gridId,routeId,routeProfileId,marketActorId:marketActor,customerIdentity:{id:customerIdentity,qualifier:'SE2',agency:'260'},requestedStartDate,brpEdielId,gridAreaCode:'TES',documentSha256,authorizationDocumentId:authorizationDocumentId!,powerOfAttorneyId:poa.id}
+ const stage:NormalSwitchStageNativeFixture={companyId,actorUserId,customerId,siteId,pointId,contractId,switchId:createdSwitchId,external,sender,receiver,gridId,routeId,routeProfileId,marketActorId:marketActor,customerIdentity:{id:customerIdentity,qualifier:'SE2',agency:'260'},requestedStartDate,brpEdielId,gridAreaCode:'TES',documentSha256,authorizationDocumentId:authorizationDocumentId!,powerOfAttorneyId:poa.id}
  if(input.deferOriginal){expect(sql(`SELECT jsonb_build_object('messages',(SELECT count(*) FROM public.ediel_messages WHERE company_id=${literal(companyId)}),'originals',(SELECT count(*) FROM gridex_received_sources.switch_originals WHERE company_id=${literal(companyId)}),'periods',(SELECT count(*) FROM public.customer_supply_periods WHERE company_id=${literal(companyId)}))`)).toEqual({messages:0,originals:0,periods:0});return stage}
- const queued=await prepareAndQueueEdielZ03({actorUserId,switchRequestId:switchId,communicationRouteId:routeId,environment:'test'})
+ const queued=await prepareAndQueueEdielZ03({actorUserId,switchRequestId:createdSwitchId,communicationRouteId:routeId,environment:'test'})
  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.switch_originals WHERE message_id=${literal(queued.id)}`)).toBe(1)
  if(input.provider){input.provider('recipient@example.invalid');await sendEdielMessageViaSmtp(queued,{actorUserId,smtpMimeMode:'nodemailer-attachment'})}
  const originalZ03=await getEdielMessageById(queued.id);expect(originalZ03).not.toBeNull()

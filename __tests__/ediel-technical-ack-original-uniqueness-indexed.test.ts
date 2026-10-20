@@ -1,6 +1,6 @@
 // masterplan: SC-014
 // require_contrl_v1 proves one inbound original per CONTRL first14 UCI
-// projection, globally. Before 20261016100000 its candidate filter scanned the
+// projection, globally. Before 20261020120300 its candidate filter scanned the
 // raw_payload of every inbound message of every tenant (0.7 s at 348, 2.5 s at
 // 3,348 inbound messages per ACK read; 8 s at ~12k). Candidates now come from
 // an expression index on the envelope projection the guard itself compares.
@@ -13,7 +13,7 @@ import {PGlite} from '@electric-sql/pglite'
 import {afterAll,afterEach,beforeAll,beforeEach,describe,expect,it} from 'vitest'
 
 const schema=readFileSync(resolve('supabase/schema.sql'),'utf8')
-const migration=readFileSync(resolve('supabase/migrations/20261016100000_ediel_technical_ack_original_uniqueness_indexed.sql'),'utf8')
+const migration=readFileSync(resolve('supabase/migrations/20261020120300_ediel_technical_ack_original_uniqueness_indexed.sql'),'utf8')
 const signature='gridex_ediel_technical_ack.require_contrl_v1(public.ediel_messages)'
 const id=(n:number)=>`00000000-0000-0000-0000-${String(n).padStart(12,'0')}`
 const company=id(1),foreign=id(2),sourceId=id(10),ackId=id(11),prefix='ABCDEFGHIJKLMN'

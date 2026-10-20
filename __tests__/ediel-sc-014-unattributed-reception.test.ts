@@ -232,6 +232,22 @@ async function installCurrentAtomicCustody() {
   // The public snapshot excludes auth.users. The current lock-only helper
   // touches this empty external relation; it supplies no user/grant verdict.
   await db.exec('create table auth.users(id uuid)')
+  // Standard Supabase JWT subject/role ports; actual source admission remains real.
+  await db.exec(`create or replace function auth.uid() returns uuid
+language sql stable as $$
+  select coalesce(
+    nullif(current_setting('request.jwt.claim.sub', true), ''),
+    (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')
+  )::uuid
+$$;
+
+create or replace function auth.role() returns text
+language sql stable as $$
+  select coalesce(
+    nullif(current_setting('request.jwt.claim.role', true), ''),
+    (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'role')
+  )::text
+$$;`)
   for (const name of ['gridex_new_public_resource_reference', 'gridex_normalize_personal_number', 'gridex_normalize_facility_id', 'gridex_normalize_email', 'gridex_normalize_phone', 'gridex_normalize_metering_point_id']) await db.exec(definition('FUNCTION', `public.${name}(`))
   // Actual CHECK dependencies of the graph's empty service-evidence table.
   for (const name of ['canonical_tuple_projection_v1', 'requested_method_supported_v1']) await db.exec(definition('FUNCTION', `gridex_metering_method_changes.${name}(`))

@@ -1,0 +1,58 @@
+{
+  "scope": "Gridex OPS only",
+  "project_id": "piidsfebjqjmnepdpnas",
+  "authority": "Actual pg_proc and applied ledger; no tests, business RPC or grid-owner backfill invocation",
+  "source_created_by": "Official Supabase CLI2.101.0, initial version20261013000728; new unpublished file aligned to actual MCP-applied version after exact hash verification",
+  "sql_sha256": "d9e9b2b2c2a292b7ed571c82a32d19c0830b21439be34009f5ed99d245d8ce57",
+  "independent_noncoauthor_reviews": [
+    "final_api_source_review",
+    "native_forward_independent_review"
+  ],
+  "isolated_compile": "PostgreSQL17.6 actual observed column/function/ACL baseline; transactional creation passed; no business function invocation; verification of view semantics came from actual source/native catalog, isolated view shape alone is not semantic proof",
+  "previous_tool_attempt": "Invalid or expired requestState; actual07:45catalog/ledger confirmed unapplied before exactSQL retry",
+  "native_postflight": {
+    "checked_at": "2026-10-13 07:51:51.249203+00",
+    "migration_count": 418,
+    "migration": [
+      {
+        "name": "ops_api_global_deny_and_grid_owner_guards",
+        "sql_md5": "a65557b21a4a55c71537ca2367410578",
+        "version": "20261013074827"
+      }
+    ],
+    "functions": [
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "oid": "305204",
+        "name": "canonical_manage_platform_user_access",
+        "owner": "postgres",
+        "config": [
+          "search_path=public, auth, pg_temp"
+        ],
+        "body_md5": "fe16df3f663abb5e7fec9dad7741c862",
+        "volatility": "v",
+        "anon_execute": false,
+        "definition_md5": "8655ce0e2510e7c3350f35af76c97cde",
+        "service_execute": true,
+        "security_definer": true,
+        "authenticated_execute": false
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "oid": "67927",
+        "name": "gridex_backfill_grid_owner_verification",
+        "owner": "postgres",
+        "config": [
+          "search_path=public"
+        ],
+        "body_md5": "784f18f5f74b2c99503ec5e70db3323e",
+        "volatility": "v",
+        "anon_execute": false,
+        "definition_md5": "b9ac2bb0e470914ba87b8ebdb85f3861",
+        "service_execute": true,
+        "security_definer": true,
+        "authenticated_execute": false
+      }
+    ]
+  }
+}

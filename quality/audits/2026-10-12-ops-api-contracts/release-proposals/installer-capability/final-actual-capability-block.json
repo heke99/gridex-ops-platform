@@ -1,0 +1,27 @@
+{
+  "checked_at": "2026-10-13T16:56:28.861105+00:00",
+  "stage_bytes": 6628349,
+  "stage_parts": 51,
+  "current_role": "postgres",
+  "ledger_count": 506,
+  "stage_sha256": "bacf8944718c984d117f0400ed19fadd978feed6613ea9196784eff4591ac600",
+  "latest_version": "20261013151412",
+  "module_relation": null,
+  "origins_relation": null,
+  "protected_owners_set": [
+    {
+      "set": false,
+      "name": "supabase_admin"
+    },
+    {
+      "set": false,
+      "name": "supabase_auth_admin"
+    }
+  ],
+  "retention_auth_usage": false,
+  "retention_auth_select": false,
+  "retention_auth_update": false,
+  "postgres_auth_usage_go": false,
+  "postgres_auth_update_go": false,
+  "original_atomic_registered": 0
+}

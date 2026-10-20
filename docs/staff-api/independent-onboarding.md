@@ -1,18 +1,20 @@
 # Independent tenant staff onboarding
 
-The additive onboarding contract is separate from the immutable Staff release
-`2026-10-04.1`. Its active schema is
+The additive onboarding contract is separate from the Staff response contract
+`2026-10-09.1` and the documentation release `2026-10-12.1`. Its active schema is
 [`staff-onboarding-v1.json`](../openapi/staff-onboarding-v1.json), version
 `2026-10-05.2`. The earlier same-database prototype is archived under
 `docs/openapi/prototypes/2026-10-05.1`. Frozen Staff/Website/Customer release
 bytes remain unchanged.
 
-Gridex web and named `gridex-prod` (`ayiuxjlfazkjmmtlvhsl`) are one ordinary
-external tenant. Tenant Auth and delivery durability belong there. Central
-customers/cases/staff actors/membership/RBAC/audit remain in OPS. The central
-API project is independently configured and attested; no OPS migration history
-is copied into the tenant database. Prior catalog evidence is preserved but
-its Prod-as-OPS activation interpretation is superseded.
+The intended personal portal is `support123.gridex.se`, using tenant-local
+e-mail/password login. Tenant Auth and delivery durability belong to the
+separately registered tenant project. Central customers, cases, staff actors,
+membership, RBAC and audit remain in OPS. The central API project is independently
+configured and attested; no OPS migration history is copied into the tenant
+database. An existing Gridex Web project is not this portal's Auth registration
+by assumption. See the [support123 integration guide](support123-integration.md)
+for the exact registration and call sequence; an external SSO vendor is not required.
 
 ## Identity and access
 
@@ -31,7 +33,7 @@ sequenceDiagram
   OPS-->>Portal: Company-scoped customers and cases
 ```
 
-The server verifies `getUser` before reading a session bearer for transport.
+The tenant backend verifies `getUser` before reading a session bearer for transport.
 Cookie user claims and user metadata grant no authority. There is no implicit
 email match, local/central UUID equality fallback or cached binding admission.
 The tenant Auth SDK uses a registered public key, never the OPS service Auth
@@ -52,7 +54,10 @@ clients require `token_use: staff_access`, `staff_binding_id`,
 `staff_binding_version`, `local_auth_subject`, `local_auth_issuer`.
 Purpose-specific local proofs cannot be exchanged for normal Staff access,
 even when UUIDs collide. Every request checks current binding, client,
-provider, native membership and existing permission rules. Legacy clients
+provider, native membership and existing permission rules. This checks central
+account revocation and durable binding state. A normal already signed Staff
+assertion does not itself re-fetch tenant Auth; the tenant backend checks its
+local session before signing each new assertion. Legacy clients
 without external registration retain their existing central-sub flow.
 
 Every onboarding request expects the verified central API project through
@@ -73,7 +78,7 @@ The client registration is operator-owned; browser fields cannot supply it.
   "metadata": {
     "staff_onboarding_origin": "https://support123.gridex.se",
     "staff_tenant_auth": {
-      "url": "https://ayiuxjlfazkjmmtlvhsl.supabase.co",
+      "url": "https://<verified-tenant-project-ref>.supabase.co",
       "public_key": "<tenant public Auth key>"
     },
     "staff_tenant_delivery": {
@@ -150,8 +155,8 @@ passwords or access tokens are copied into central account rows or receipts.
 A signed tenant receipt establishes the immutable issuer/local-subject mapping
 and exact delivery provenance; no conflict-upsert merges an existing binding.
 
-The tenant’s single private delivery migration creates only a private durability
-registry and service-only claim/complete/Auth-recipient lookup RPCs. Claim commits
+The tenant must implement a private durability registry with service-only
+claim/complete/Auth-recipient lookup operations. Claim commits
 before the Auth/email provider call. A completed retry uses stored receipt data
 and signs a fresh receipt; a started delivery with an unknown outcome returns
 `409 delivery_indeterminate` and cannot automatically send a second email.
@@ -162,8 +167,10 @@ local account for an explicitly authorized invitation only; it grants no role.
 
 Tenant Auth must separately allow the own `/auth/invitation` callback. Registering
 an API origin does not configure Auth redirects. Qualify the actual email
-callback and tenant SMTP before enabling real delivery. Server configuration
-for the tenant bridge is documented in the web app’s `apps/support/README.md`.
+callback and tenant SMTP before enabling real delivery. The complete OPS-to-tenant
+request, signing configuration and closed receipt contract are documented in
+[Tenant invitation delivery](tenant-invitation-delivery.md). This specifies the
+required bridge; it does not certify an existing tenant implementation.
 
 ## Explicit acceptance and revocation
 
@@ -212,7 +219,7 @@ The required native workflow runs
 rolls back fixture effects. Corrected-source codegen, final native clean/upgrade,
 application/type/lint/parity and browser gates remain mandatory. Historical
 checks are never relabeled as new-source acceptance. Apply the OPS forward only
-to central OPS and the private delivery migration only to tenant Prod.
+to central OPS and the private delivery migration only to the verified tenant Auth project.
 No hosted migration, account, email, environment or domain changes are part of
 these source checks. Operational qualification has two stages:
 
@@ -231,7 +238,7 @@ these source checks. Operational qualification has two stages:
    delivery requires reconciliation, not an automatic second email.
 
 Apply central OPS forwards only to OPS, and tenant private delivery SQL only
-to tenant `gridex-prod`. The independently hosted Gridex customer portal keeps
+to the verified tenant Auth project. The independently hosted Gridex customer portal keeps
 its separate Customer API compatibility prerequisites: its current paired
 customer identity headers are not a provider assertion. Enforcing a Customer
 provider requires that portal's actual assertion integration before enabling

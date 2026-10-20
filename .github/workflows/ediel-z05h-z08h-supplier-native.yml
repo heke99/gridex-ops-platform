@@ -1,0 +1,710 @@
+name: Ediel H05 H08 public reception native feedback
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+    paths:
+      - 'scripts/ediel-at-z05h-z08h-supplier-native.test.ts'
+      - 'scripts/ediel-z05h-z08h-supplier-native.config.ts'
+      - '__tests__/ediel-supply-end-birth-profile.test.ts'
+      - '__tests__/ediel-supply-end-field-omissions.test.ts'
+      - 'scripts/ediel-source-owner-native.config.ts'
+      - 'scripts/fixtures/**'
+      - 'scripts/helpers/**'
+      - 'scripts/gridex-aud-003-clean-replay.sh'
+      - 'scripts/gridex-redact-native-evidence.py'
+      - 'scripts/migration-history-manifest*.json'
+      - 'lib/ediel/**'
+      - 'lib/billing/**'
+      - 'lib/events/**'
+      - 'lib/platform/schemaReadiness.ts'
+      - 'lib/integrations/**'
+      - 'lib/time/stockholm.ts'
+      - 'lib/inbound-mail/**'
+      - 'lib/supabase/**'
+      - 'supabase/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig*.json'
+      - '.github/workflows/ediel-z05h-z08h-supplier-native.yml'
+
+permissions:
+  contents: read
+  pull-requests: read
+  actions: read
+
+concurrency:
+  group: ${{ github.event.pull_request.head.ref == 'codex/agent1-h05h08-source-20261018' && 'ediel-z05h-z08h-supplier-native-admitted' || 'ediel-z05h-z08h-supplier-native-owned' }}
+  cancel-in-progress: ${{ github.event.pull_request.head.ref != 'codex/agent1-h05h08-source-20261018' }}
+
+# Additional genuine feedback. Ordinary full-native, clean/upgrade, browser,
+# tenant, parity and certificate gates remain mandatory. No receipt approves a whole contract.
+jobs:
+  h05h08-native:
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      (
+        (github.event.pull_request.head.ref == 'codex/c3-h-20261012' && github.event.action != 'labeled') ||
+        (
+          github.event.pull_request.head.ref == 'codex/agent1-h05h08-source-20261018' &&
+          github.event.action == 'labeled' &&
+          github.event.label.name == 'ediel-h05h08-native-approved' &&
+          github.event.sender.login == 'heke99' && github.actor == 'heke99' &&
+          github.run_attempt == 1
+        )
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+      GRIDEX_H_PULL_REQUEST: '776'
+      GRIDEX_H_BASE_SOURCE: 2a9729ecd2191f77f3d2ff1c10d213686a8e8360
+      GRIDEX_H_INPUT_EPOCH: pr776-current-main2a-completion-20261017
+      GRIDEX_H_SOURCE_RECEIPT: f878a672d65b9128ae0f3a7b937f82222ea088af
+      GRIDEX_H_PRODUCER_RECEIPT: 651598eb7b8d679d0105d401c066a37b69802393
+      GRIDEX_H_CONSTRUCTION_BRANCH: codex/pr776-completion-20261017
+      GRIDEX_H_PUBLICATION_BRANCH: codex/c3-h-20261012
+      GRIDEX_H_RESOURCE_CUSTODY: >-
+        {
+          "file_receipts": {
+            ".github/workflows/ediel-z05h-z08h-supplier-native.yml": "f878a672d65b9128ae0f3a7b937f82222ea088af",
+            "scripts/ediel-at-z05h-z08h-supplier-native.test.ts": "6e32bbb9604169aada9e64505410c1ef07e454f1",
+            "scripts/ediel-z05h-z08h-supplier-native.config.ts": "2255742ce5a41aa5968ace2d99baec3dcf40defd",
+            "scripts/helpers/ediel-h05h08-normal-switch-native-fixture.ts": "85202606c16dca1bb44ac1ecac324586c9f0cb12",
+            "scripts/helpers/nationalRescissionNative.ts": "6e32bbb9604169aada9e64505410c1ef07e454f1",
+            "scripts/helpers/ediel-supply-end-field-omissions.ts": "2255742ce5a41aa5968ace2d99baec3dcf40defd",
+            "__tests__/ediel-h-native-sql-output-buffer-completeness-c-final.test.ts": "cadd91b975c4e4819ad07cdb5f1bc7c00926ac9f",
+            "__tests__/ediel-supply-end-field-omissions.test.ts": "c0dee5caf7956673f2957bd7fb78093c09d9af83",
+            "__tests__/ediel-z05-rejected-identity-runtime.test.ts": "c0dee5caf7956673f2957bd7fb78093c09d9af83",
+            "lib/ediel/core/runtimeDecision.ts": "c0dee5caf7956673f2957bd7fb78093c09d9af83",
+            "lib/ediel/flows/inboundProcessing.ts": "c0dee5caf7956673f2957bd7fb78093c09d9af83",
+            "lib/ediel/prodat/receivedZ05RejectedIdentityRuntime.ts": "c0dee5caf7956673f2957bd7fb78093c09d9af83",
+            "scripts/gridex-redact-native-evidence.py": "c0dee5caf7956673f2957bd7fb78093c09d9af83",
+            "scripts/gridex-redact-native-evidence-selftest.py": "c0dee5caf7956673f2957bd7fb78093c09d9af83"
+          },
+          "retained_scope_receipts": {
+            "slot-C3": "2255742ce5a41aa5968ace2d99baec3dcf40defd",
+            "id-AT-Z05H-SUPPLIER": "2255742ce5a41aa5968ace2d99baec3dcf40defd",
+            "id-AT-Z08H-SUPPLIER": "2255742ce5a41aa5968ace2d99baec3dcf40defd"
+          },
+          "receiving": {
+            "resource": "slot-session-76174a45-114b-48a6-afb1-1a41f7b82836",
+            "receipt": "f878a672d65b9128ae0f3a7b937f82222ea088af"
+          },
+          "producer": {
+            "resource": "producer-h",
+            "receipt": "651598eb7b8d679d0105d401c066a37b69802393"
+          }
+        }
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - name: Authenticate exact source and postfreeze H runtime admission
+        id: h_source_admission
+        if: github.event.pull_request.head.ref == 'codex/agent1-h05h08-source-20261018'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/h-source-admission.py" <<'PY_H_ADMISSION'
+          import base64, datetime, hashlib, json, os, pathlib, re, subprocess, sys, urllib.parse, urllib.request
+
+          REPO='heke99/gridex-ops-platform'
+          BRANCH='codex/agent1-h05h08-source-20261018'
+          OWNER='heke99'
+          LABEL='ediel-h05h08-native-approved'
+          WORKFLOW='.github/workflows/ediel-z05h-z08h-supplier-native.yml'
+          NATIVE='scripts/ediel-at-z05h-z08h-supplier-native.test.ts'
+          NATIVE_SHA256='65d37f514fc2ee106a80404accb39a9b5d4b8a26777e9a63399b5cb80021d42d'
+          SOURCE_CLAIM='2aa98827102eb00f100cea5486941bfe1d2c4048'
+          CLAIM_BASE='9c8568e5242aec6a23371815f00031e6f30c57a9'
+          SOURCE_OPERATION='Reserve source files and rule IDs; resources-sha256=7c4a22d27ca75fc532d7456cf944ef14ae6fca1b9503673ece73ab55920e4603'
+          PRODUCER_REF='refs/tags/agent-claims/masterplan/producer-h'
+          PREPARATION_RECEIPT='ca62f2af7643c69b310911ac4bd16a2cd6081f06'
+          GO_PREFIX='GRIDEX_NATIVE_ADMISSION_V1\n'
+          AUTHORITY_PREFIX='GRIDEX_H_SERVICE_DISPOSITION_V1\n'
+          OUTPUT_INTENT='ediel-z05h-z08h-supplier-native-evidence-v1'
+          SERVICE={'repository':REPO,'workflow':WORKFLOW,'job':'h05h08-native'}
+          COLLECTOR={'actor':OWNER,'agent':'codex-agent1-8d439b61','exclusive':True}
+          BACKEND={'kind':'fresh-github-hosted-loopback-supabase','apiURL':'http://127.0.0.1:54321','supabaseCLI':'2.101.0','replay':'scripts/gridex-aud-003-clean-replay.sh','config':'scripts/ediel-z05h-z08h-supplier-native.config.ts','sharedBackend':False}
+          FILE_RECEIPTS={
+              ".github/workflows/ediel-z05h-z08h-supplier-native.yml": "2aa98827102eb00f100cea5486941bfe1d2c4048",
+              "scripts/ediel-at-z05h-z08h-supplier-native.test.ts": "2aa98827102eb00f100cea5486941bfe1d2c4048",
+              "scripts/ediel-z05h-z08h-supplier-native.config.ts": "2255742ce5a41aa5968ace2d99baec3dcf40defd",
+              "scripts/helpers/ediel-h05h08-normal-switch-native-fixture.ts": "931aed4a5a9d6b43ce449cc509eabd71c9307a58",
+              "scripts/helpers/nationalRescissionNative.ts": "42a7af60db45ca8645699ce665232b6d4f0b68fe",
+              "scripts/helpers/ediel-supply-end-field-omissions.ts": "2255742ce5a41aa5968ace2d99baec3dcf40defd",
+              "__tests__/ediel-h-native-sql-output-buffer-completeness-c-final.test.ts": "2a1bcb94ffd2b7c0ec80d812d95bcd2e3190a2d3",
+              "__tests__/ediel-supply-end-field-omissions.test.ts": "c0dee5caf7956673f2957bd7fb78093c09d9af83",
+              "__tests__/ediel-z05-rejected-identity-runtime.test.ts": "c0dee5caf7956673f2957bd7fb78093c09d9af83",
+              "lib/ediel/core/runtimeDecision.ts": "c0dee5caf7956673f2957bd7fb78093c09d9af83",
+              "lib/ediel/flows/inboundProcessing.ts": "c0dee5caf7956673f2957bd7fb78093c09d9af83",
+              "lib/ediel/prodat/receivedZ05RejectedIdentityRuntime.ts": "c0dee5caf7956673f2957bd7fb78093c09d9af83",
+              "scripts/gridex-redact-native-evidence.py": "c0dee5caf7956673f2957bd7fb78093c09d9af83",
+              "scripts/gridex-redact-native-evidence-selftest.py": "c0dee5caf7956673f2957bd7fb78093c09d9af83"
+          }
+          SOURCE_CUSTODY={'file_receipts':FILE_RECEIPTS,'retained_scope_receipts':{'slot-C3':'2255742ce5a41aa5968ace2d99baec3dcf40defd','id-AT-Z05H-SUPPLIER':SOURCE_CLAIM,'id-AT-Z08H-SUPPLIER':SOURCE_CLAIM},'receiving':{'resource':'slot-session-2b3d3025-92bc-47bb-ab92-3e8b9b3b25f0','receipt':SOURCE_CLAIM}}
+          SOURCE_REFS={**{'file-'+hashlib.sha256(name.encode()).hexdigest():value for name,value in FILE_RECEIPTS.items()},**SOURCE_CUSTODY['retained_scope_receipts'],SOURCE_CUSTODY['receiving']['resource']:SOURCE_CLAIM}
+
+          def need(ok, code):
+              if not ok: raise AssertionError(code)
+          def strict_json(text):
+              def pairs(rows):
+                  result={}
+                  for key,value in rows:
+                      need(key not in result,'h_duplicate_json_key');result[key]=value
+                  return result
+              def constant(_): raise AssertionError('h_non_json_constant')
+              try: return json.loads(text,object_pairs_hook=pairs,parse_constant=constant)
+              except (ValueError,TypeError): raise AssertionError('h_invalid_json') from None
+          def canonical(value): return json.dumps(value,sort_keys=True,ensure_ascii=False,separators=(',',':')).encode()
+          def digest(value): return hashlib.sha256(canonical(value)).hexdigest()
+          def shape(value, names): return type(value) is dict and set(value)==set(names.split())
+          def hexed(value,n): return type(value) is str and re.fullmatch('[0-9a-f]{'+str(n)+'}',value) is not None
+          def instant(value):
+              result=datetime.datetime.fromisoformat(value.replace('Z','+00:00'))
+              need(result.tzinfo is not None,'h_unqualified_timestamp');return result
+          def selected(event,env):
+              return (event.get('action')=='labeled' and event.get('label',{}).get('name')==LABEL
+                  and event.get('sender',{}).get('login')==OWNER and env.get('GITHUB_ACTOR')==OWNER
+                  and env.get('GITHUB_RUN_ATTEMPT')=='1' and env.get('GITHUB_REPOSITORY')==REPO
+                  and event.get('pull_request',{}).get('head',{}).get('ref')==BRANCH
+                  and event.get('pull_request',{}).get('head',{}).get('repo',{}).get('full_name')==REPO)
+          def history(api,path,key):
+              rows=[];total=None
+              for page in (1,2):
+                  value=api(path+('&' if '?' in path else '?')+'per_page=50&page='+str(page))
+                  count,batch=value.get('total_count'),value.get(key)
+                  need(type(count) is int and 0<=count<=100,'h_history_bound')
+                  if total is None: total=count
+                  need(count==total and type(batch) is list and len(batch)==min(50,max(0,total-len(rows))),'h_history_incomplete')
+                  rows.extend(batch)
+              need(len(rows)==total and len({row['id'] for row in rows})==total,'h_history_incomplete')
+              return rows
+          def observe_main(api):
+              try:
+                  value=api('git/ref/heads/main')['object']['sha']
+                  need(hexed(value,40),'h_receiving_observation_invalid')
+                  return {'state':'OBSERVED','sha':value}
+              except Exception: return {'state':'UNAVAILABLE'}
+
+          def validate(event,env,api,git,inputs,workflow_bytes,saved=None,phase='admit'):
+              need(selected(event,env),'h_owner_label_required')
+              if phase!='admit': need(saved is not None,'h_allocated_admission_missing')
+              number=event.get('number');head=event['pull_request']['head']['sha'];base=event['pull_request']['base']['sha']
+              need(type(number) is int and number>0 and hexed(head,40) and hexed(base,40),'h_event_source_invalid')
+              need(event['pull_request']['base']['ref']=='main','h_event_base_ref_changed')
+              need(git('rev-parse','HEAD')==head,'h_checkout_changed')
+              tree=git('rev-parse','HEAD^{tree}')
+              need(hexed(tree,40) and api('git/commits/'+head)['tree']['sha']==tree,'h_checkout_tree_changed')
+              for ancestor in ('35ad0e6d9fd2e100d22bf5c27cd1958f77063e3c','2a9729ecd2191f77f3d2ff1c10d213686a8e8360',base):
+                  git('merge-base','--is-ancestor',ancestor,'HEAD')
+              pr=api('pulls/'+str(number))
+              need(pr.get('state')=='open' and pr.get('draft') is False and pr.get('number')==number
+                  and pr.get('head',{}).get('sha')==head and pr.get('head',{}).get('ref')==BRANCH
+                  and pr.get('head',{}).get('repo',{}).get('full_name')==REPO and pr.get('base',{}).get('ref')=='main','h_current_pr_changed')
+              need(any(label.get('name')==LABEL for label in pr.get('labels',[])),'h_owner_label_removed')
+              ref=api('git/ref/tags/agent-claims/masterplan/producer-h')
+              need(ref.get('ref')==PRODUCER_REF and ref.get('object',{}).get('type')=='commit','h_producer_ref_invalid')
+              producer=ref['object']['sha'];need(hexed(producer,40),'h_producer_ref_invalid')
+              proper=api('git/commits/'+producer);p=strict_json(proper['message'])
+              # A label or current ref cannot promote the old PREPARATION_ONLY appointment.
+              need(type(p) is dict and p.get('preparationOnly') is False and p.get('runtimeAdmission')=='GRANTED','h_runtime_admission_not_granted')
+              need(shape(p,'protocol epoch bindingVersion base agent resources preparationOnly runtimeAdmission authority service source sourceReviewSHA256 inputEpoch collector outputIntent resourceCustody singleUse oldServiceDisposition'),'h_producer_shape')
+              need(p['protocol']=='masterplan-reservation-v1' and p['epoch']=='gridex-five-agent-20261012'
+                  and p['bindingVersion']=='gridex-h-runtime-binding-full-v1' and p['resources']==[PRODUCER_REF]
+                  and p['service']==SERVICE and p['singleUse'] is True,'h_full_producer_required')
+              need(p['base']==base and [row['sha'] for row in proper.get('parents',[])]==[base]
+                  and proper.get('tree',{}).get('sha')==api('git/commits/'+base)['tree']['sha'],'h_producer_proper_changed')
+              source={'head':head,'tree':tree,'base':base,'branch':BRANCH,'claim':SOURCE_CLAIM,'pr':number}
+              need(canonical(p['source'])==canonical(source),'h_producer_source_mismatch')
+              need(canonical(p['collector'])==canonical(COLLECTOR),'h_collector_mismatch')
+              need(p['outputIntent']==OUTPUT_INTENT,'h_output_intent_mismatch')
+              peers=p['sourceReviewSHA256']
+              need(type(peers) is list and len(peers)==2 and len(set(peers))==2 and all(hexed(v,64) for v in peers),'h_source_reviews_required')
+              epoch=p['inputEpoch']
+              need(shape(epoch,'id sourceInputsSHA256 workflowSHA256 nativeSHA256 backend') and type(epoch['id']) is str
+                  and re.fullmatch('[A-Za-z0-9][A-Za-z0-9._:-]{0,127}',epoch['id']) is not None,'h_input_epoch_required')
+              need(canonical(epoch['backend'])==canonical(BACKEND),'h_backend_scope_mismatch')
+              need(epoch['nativeSHA256']==NATIVE_SHA256 and epoch['workflowSHA256']==hashlib.sha256(workflow_bytes).hexdigest(),'h_input_source_changed')
+              need(hexed(epoch['sourceInputsSHA256'],64),'h_input_epoch_required')
+              if phase!='terminal':
+                  need(set(FILE_RECEIPTS)<=set(inputs) and digest(inputs)==epoch['sourceInputsSHA256']
+                      and inputs[NATIVE]['sha256']==NATIVE_SHA256 and inputs[WORKFLOW]['sha256']==epoch['workflowSHA256'],'h_input_vector_changed')
+              need(p['resourceCustody']==SOURCE_CUSTODY,'h_source_custody_map_changed')
+              need(len(FILE_RECEIPTS)==14 and len(SOURCE_REFS)==18,'h_source_resource_count_changed')
+              current={**SOURCE_REFS,'producer-h':producer};need(len(current)==19,'h_nineteen_resources_required')
+              for name,value in sorted(current.items()):
+                  row=api('git/ref/tags/agent-claims/masterplan/'+name)
+                  need(row.get('ref')=='refs/tags/agent-claims/masterplan/'+name and row.get('object',{}).get('type')=='commit'
+                      and row['object'].get('sha')==value,'h_current_resource_changed')
+              claim=api('git/commits/'+SOURCE_CLAIM)
+              need(strict_json(claim['message'])=={'base':CLAIM_BASE,'files':sorted([WORKFLOW,NATIVE]),'operation':SOURCE_OPERATION}
+                  and [row['sha'] for row in claim.get('parents',[])]==[CLAIM_BASE]
+                  and claim.get('tree',{}).get('sha')==api('git/commits/'+CLAIM_BASE)['tree']['sha'],'h_source_claim_mismatch')
+              authority=p['authority']
+              need(shape(authority,'actor controller dispositionCommentId dispositionSHA256 predecessorReceipt sameService')
+                  and authority['actor']==OWNER and authority['controller']==p['agent']
+                  and type(p['agent']) is str and re.fullmatch('[A-Za-z0-9][A-Za-z0-9._:-]{0,127}',p['agent']) is not None
+                  and type(authority['dispositionCommentId']) is int and authority['dispositionCommentId']>0
+                  and authority['predecessorReceipt']==PREPARATION_RECEIPT and authority['sameService'] is True,'h_service_authority_required')
+              old=p['oldServiceDisposition']
+              need(shape(old,'receipt lastNativeRun attempt job sourceHead rootObservedHistoryCount rootObservedActive privateProcessTerminationAttested')
+                  and hexed(old['receipt'],64) and type(old['lastNativeRun']) is int and old['lastNativeRun']==39057092870
+                  and type(old['attempt']) is int and old['attempt']==1 and type(old['job']) is int and old['job']==117467172983
+                  and old['sourceHead']=='cd152e72f286f27bdb3d20f9f4eea9f8d40904a6'
+                  and type(old['rootObservedHistoryCount']) is int and old['rootObservedHistoryCount']>=38
+                  and type(old['rootObservedActive']) is int and old['rootObservedActive']==0
+                  and old['privateProcessTerminationAttested'] is False,'h_old_service_disposition_required')
+              disposition=api('issues/comments/'+str(authority['dispositionCommentId']))
+              expected_authority={'version':'gridex-h-service-disposition-v1','state':'RUNTIME_CONTINUATION_GO','service':SERVICE,'source':source,
+                  'controller':p['agent'],'collector':COLLECTOR,'predecessorReceipt':PREPARATION_RECEIPT,'oldServiceTerminal':True,
+                  'oldServiceDispositionSHA256':digest(old),'inputEpochSHA256':digest(epoch)}
+              need(disposition.get('user',{}).get('login')==OWNER and disposition.get('issue_url')=='https://api.github.com/repos/'+REPO+'/issues/766'
+                  and disposition.get('created_at')==disposition.get('updated_at')
+                  and disposition.get('body','').startswith(AUTHORITY_PREFIX)
+                  and hashlib.sha256(disposition['body'].encode()).hexdigest()==authority['dispositionSHA256']
+                  and canonical(strict_json(disposition['body'][len(AUTHORITY_PREFIX):]))==canonical(expected_authority),'h_service_disposition_mismatch')
+              admissions=[]
+              for page in range(1,21):
+                  comments=api('issues/'+str(number)+'/comments?per_page=100&page='+str(page))
+                  need(type(comments) is list,'h_comment_inventory_incomplete')
+                  for comment in comments:
+                      if comment.get('user',{}).get('login')!=OWNER or not comment.get('body','').startswith(GO_PREFIX): continue
+                      a=strict_json(comment['body'][len(GO_PREFIX):]);need(type(a) is dict,'h_admission_shape')
+                      if a.get('suite')=='h05h08' and a.get('sourceHead')==head and a.get('pr')==number: admissions.append((a,comment))
+                  if len(comments)<100: break
+              else: raise AssertionError('h_comment_inventory_incomplete')
+              need(bool(admissions),'h_positive_admission_required');need(len(admissions)==1,'h_ambiguous_admission')
+              a,comment=admissions[0]
+              need(comment.get('created_at')==comment.get('updated_at'),'h_admission_edited')
+              need(shape(a,'version suite state actor pr sourceHead sourceTree sourceBase sourceReceipt producerRef producerReceipt producerBindingSHA256 inputEpochSHA256 controllerDispositionCommentId collector outputIntent sourceReviewSHA256 singleUse'),'h_admission_shape')
+              need(a['producerBindingSHA256']==digest(p),'h_producer_binding_changed')
+              expected={'version':'gridex-native-admission-v1','suite':'h05h08','state':'GO','actor':OWNER,'pr':number,'sourceHead':head,'sourceTree':tree,
+                  'sourceBase':base,'sourceReceipt':SOURCE_CLAIM,'producerRef':PRODUCER_REF,'producerReceipt':producer,'producerBindingSHA256':digest(p),
+                  'inputEpochSHA256':digest(epoch),'controllerDispositionCommentId':authority['dispositionCommentId'],'collector':COLLECTOR,'outputIntent':OUTPUT_INTENT,'sourceReviewSHA256':peers,'singleUse':True}
+              need(canonical(a)==canonical(expected),'h_admission_mismatch')
+              need(env['GITHUB_WORKFLOW_REF']==REPO+'/'+WORKFLOW+'@refs/pull/'+str(number)+'/merge','h_executing_workflow_changed')
+              executing=api('contents/'+WORKFLOW+'?ref='+urllib.parse.quote(env['GITHUB_WORKFLOW_SHA'],safe=''))
+              blob=hashlib.sha1(b'blob '+str(len(workflow_bytes)).encode()+b'\0'+workflow_bytes).hexdigest()
+              need(executing.get('type')=='file' and base64.b64decode(executing.get('content',''),validate=False)==workflow_bytes
+                  and executing.get('sha')==blob,'h_executing_workflow_changed')
+              if phase!='terminal':
+                  current_run=api('actions/runs/'+env['GITHUB_RUN_ID'])
+                  need(current_run['id']==int(env['GITHUB_RUN_ID']) and current_run['head_branch']==BRANCH
+                      and current_run['event']=='pull_request' and current_run['head_sha']==head,'h_current_run_changed')
+                  began=instant(comment['created_at']);now=(instant(current_run['created_at']),current_run['id'])
+                  need(now[0]>=began,'h_admission_after_run')
+                  runs=history(api,'actions/workflows/'+WORKFLOW.rsplit('/',1)[1]+'/runs?branch='+urllib.parse.quote(BRANCH,safe='')+'&event=pull_request','workflow_runs')
+                  need(any(row['id']==current_run['id'] for row in runs),'h_history_incomplete')
+                  for run in runs:
+                      before=(instant(run['created_at']),run['id'])
+                      if before>=now or before[0]<began or run['head_branch']!=BRANCH: continue
+                      if run['head_sha']!=head: continue
+                      jobs=history(api,'actions/runs/'+str(run['id'])+'/jobs?filter=all','jobs')
+                      need(not any(job['name']=='h05h08-native' and job.get('conclusion')!='skipped' for job in jobs),'h_appointment_already_consumed')
+              frozen={'sourceHead':head,'sourceTree':tree,'sourceBase':base,'pr':number,'admissionCommentId':comment['id'],
+                  'admissionBodySHA256':hashlib.sha256(comment['body'].encode()).hexdigest(),'producerReceipt':producer,'producerBindingSHA256':digest(p),
+                  'inputEpochSHA256':digest(epoch),'workflowRef':env['GITHUB_WORKFLOW_REF'],'workflowSHA':env['GITHUB_WORKFLOW_SHA'],
+                  'workflowSHA256':epoch['workflowSHA256'],'inputEpoch':epoch['id'],'collector':COLLECTOR,'outputIntent':OUTPUT_INTENT,
+                  'resourceCustody':{**SOURCE_CUSTODY,'producer':{'resource':'producer-h','receipt':producer}}}
+              if saved is not None: need(saved['frozen']==frozen,'h_allocated_admission_changed')
+              # Receiving main can advance AFTER allocation. Observe it for DELIVERY,
+              # never overwrite frozen B/F/T or turn actual native results into a failure.
+              observed_main=observe_main(api)
+              if phase=='admit':
+                  need(pr['base'].get('sha')==base,'h_initial_pr_base_changed')
+                  need(observed_main=={'state':'OBSERVED','sha':base},'h_initial_receiving_main_changed')
+              return {'frozen':frozen,'sourceBase':base,'observedReceivingMain':observed_main,'observedPRBase':pr['base'].get('sha'),
+                  'deliveryApplicability':'SEPARATE_REVIEW_REQUIRED','phase':phase}
+
+          def git(*args): return subprocess.check_output(['git',*args],text=True).strip()
+          def input_vector():
+              result={}
+              for entry in subprocess.check_output(['git','ls-tree','-rz','--full-tree','HEAD']).split(b'\0'):
+                  if not entry: continue
+                  header,name=entry.split(b'\t',1);mode,kind,oid=header.decode().split()
+                  if kind!='blob': continue
+                  path=pathlib.Path(name.decode());need(path.is_file() and not path.is_symlink(),'h_input_not_regular')
+                  value=path.read_bytes()
+                  need(hashlib.sha1(b'blob '+str(len(value)).encode()+b'\0'+value).hexdigest()==oid,'h_committed_input_changed')
+                  result[str(path)]={'mode':mode,'oid':oid,'sha256':hashlib.sha256(value).hexdigest()}
+              return result
+          def api(path):
+              request=urllib.request.Request('https://api.github.com/repos/'+REPO+'/'+path,
+                  headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json'})
+              with urllib.request.urlopen(request,timeout=30) as response: return strict_json(response.read().decode())
+          def main():
+              mode=sys.argv[1];need(mode in ('admit','prebackend','terminal'),'h_phase_invalid')
+              temp=pathlib.Path(os.environ['RUNNER_TEMP']);target=temp/'h-source-admission.json'
+              event=strict_json(pathlib.Path(os.environ['GITHUB_EVENT_PATH']).read_text());env=dict(os.environ)
+              saved=strict_json(target.read_text()) if target.is_file() else None
+              if mode=='terminal':
+                  try:
+                      need(saved is not None,'h_allocated_admission_missing')
+                      result=validate(event,env,api,git,{},pathlib.Path(WORKFLOW).read_bytes(),saved=saved,phase=mode)
+                      observation={'purpose':'postrun_admission_observation','authority':'UNCHANGED','allocated':saved['frozen'],
+                          'observedReceivingMain':result['observedReceivingMain'],'observedPRBase':result['observedPRBase']}
+                  except Exception as exc:
+                      observation={'purpose':'postrun_admission_observation','authority':'UNQUALIFIED','reason':str(exc) if isinstance(exc,AssertionError) else type(exc).__name__,
+                          'allocated':saved['frozen'] if saved else None,'observedReceivingMain':observe_main(api)}
+                  observation.update({'nativeOutcome':'PRESERVED_IN_ORIGINAL_LOG_JUNIT_RECEIPT; NOT_REINTERPRETED_HERE',
+                      'deliveryApplicability':'SEPARATE_REVIEW_REQUIRED','run':env['GITHUB_RUN_ID'],'attempt':env['GITHUB_RUN_ATTEMPT']})
+                  path=pathlib.Path('h05h08-native-evidence');path.mkdir(exist_ok=True)
+                  (path/'admission-postflight.json').write_text(json.dumps(observation,indent=2)+'\n');return
+              result=validate(event,env,api,git,input_vector(),pathlib.Path(WORKFLOW).read_bytes(),saved=saved if mode=='prebackend' else None,phase=mode)
+              target.write_text(json.dumps(result,indent=2)+'\n')
+              if mode=='admit':
+                  frozen=result['frozen']
+                  values={'GRIDEX_H_ADMISSION_ROUTE':'source','GRIDEX_H_INPUT_EPOCH':frozen['inputEpoch'],'GRIDEX_H_SOURCE_RECEIPT':SOURCE_CLAIM,
+                      'GRIDEX_H_PRODUCER_RECEIPT':frozen['producerReceipt'],'GRIDEX_H_CONSTRUCTION_BRANCH':BRANCH,'GRIDEX_H_PUBLICATION_BRANCH':BRANCH,
+                      'GRIDEX_H_RESOURCE_CUSTODY':json.dumps(frozen['resourceCustody'],separators=(',',':')),'GRIDEX_H_PULL_REQUEST':str(frozen['pr']),'GRIDEX_H_BASE_SOURCE':frozen['sourceBase']}
+                  with open(env['GITHUB_ENV'],'a') as output:
+                      for name,value in values.items():
+                          need('\n' not in value and '\r' not in value,'h_export_value_invalid');output.write(name+'='+value+'\n')
+              with open(env['GITHUB_STEP_SUMMARY'],'a') as output:
+                  output.write('Exact H source/full producer/owner GO and19refs verified; native remains NOT_RUN until backend step. Delivery applicability remains separate.\n')
+          if __name__=='__main__':
+              try: main()
+              except Exception as exc:
+                  reason=str(exc) if isinstance(exc,AssertionError) else type(exc).__name__
+                  with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as output: output.write('H admission DENIED; native NOT_RUN: '+reason+'\n')
+                  raise SystemExit(1)
+          PY_H_ADMISSION
+          python3 "$RUNNER_TEMP/h-source-admission.py" admit
+      - name: Validate handed-off source and exact resource custody
+        if: github.event.pull_request.head.ref == 'codex/c3-h-20261012'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = '${{ github.event.pull_request.head.sha }}'
+          git merge-base --is-ancestor 35ad0e6d9fd2e100d22bf5c27cd1958f77063e3c HEAD
+          git merge-base --is-ancestor 2a9729ecd2191f77f3d2ff1c10d213686a8e8360 HEAD
+          python3 - <<'PY'
+          import hashlib,json,os,pathlib,re,subprocess
+          repository=os.environ['GITHUB_REPOSITORY']
+          if repository!='heke99/gridex-ops-platform': raise RuntimeError('h_repository_scope_mismatch')
+          if os.environ['GRIDEX_H_INPUT_EPOCH']!='pr776-current-main2a-completion-20261017': raise RuntimeError('h_input_epoch_mismatch')
+          if os.environ['GRIDEX_H_CONSTRUCTION_BRANCH']!='codex/pr776-completion-20261017' or os.environ['GRIDEX_H_PUBLICATION_BRANCH']!='codex/c3-h-20261012': raise RuntimeError('h_branch_metadata_mismatch')
+          event=json.loads(pathlib.Path(os.environ['GITHUB_EVENT_PATH']).read_text())
+          if not isinstance(event,dict) or type(event.get('number')) is not int or event['number']!=776: raise RuntimeError('h_pull_request_scope_mismatch')
+          head=event.get('pull_request',{}).get('head',{})
+          if head.get('ref')!=os.environ['GRIDEX_H_PUBLICATION_BRANCH'] or head.get('repo',{}).get('full_name')!=repository: raise RuntimeError('h_publication_scope_mismatch')
+          files=['lib/ediel/core/runtimeDecision.ts','lib/ediel/flows/inboundProcessing.ts',
+                 'lib/ediel/prodat/receivedZ05RejectedIdentityRuntime.ts',
+                 '__tests__/ediel-z05-rejected-identity-runtime.test.ts',
+                 '.github/workflows/ediel-z05h-z08h-supplier-native.yml',
+                 '__tests__/ediel-supply-end-field-omissions.test.ts',
+                 'scripts/ediel-at-z05h-z08h-supplier-native.test.ts',
+                 'scripts/ediel-z05h-z08h-supplier-native.config.ts',
+                 'scripts/helpers/ediel-h05h08-normal-switch-native-fixture.ts',
+                 'scripts/helpers/nationalRescissionNative.ts',
+                 'scripts/helpers/ediel-supply-end-field-omissions.ts',
+                 '__tests__/ediel-h-native-sql-output-buffer-completeness-c-final.test.ts',
+                 'scripts/gridex-redact-native-evidence.py',
+                 'scripts/gridex-redact-native-evidence-selftest.py']
+          custody=json.loads(os.environ['GRIDEX_H_RESOURCE_CUSTODY'])
+          if not isinstance(custody,dict) or set(custody)!={'file_receipts','retained_scope_receipts','receiving','producer'}: raise RuntimeError('h_custody_metadata_shape')
+          file_receipts=custody['file_receipts'];retained=custody['retained_scope_receipts']
+          if not isinstance(file_receipts,dict) or set(file_receipts)!=set(files): raise RuntimeError('h_exact_fourteen_file_receipts_required')
+          if retained!={name:'2255742ce5a41aa5968ace2d99baec3dcf40defd' for name in ['slot-C3','id-AT-Z05H-SUPPLIER','id-AT-Z08H-SUPPLIER']}: raise RuntimeError('h_retained_scope_receipts_mismatch')
+          receiving=custody['receiving'];producer=custody['producer']
+          if receiving!={'resource':'slot-session-76174a45-114b-48a6-afb1-1a41f7b82836','receipt':os.environ['GRIDEX_H_SOURCE_RECEIPT']} or file_receipts['.github/workflows/ediel-z05h-z08h-supplier-native.yml']!=receiving['receipt']: raise RuntimeError('h_receiving_source_receipt_mismatch')
+          if producer!={'resource':'producer-h','receipt':os.environ['GRIDEX_H_PRODUCER_RECEIPT']}: raise RuntimeError('h_producer_receipt_mismatch')
+          expected={**retained,receiving['resource']:receiving['receipt'],producer['resource']:producer['receipt'],
+                    **{'file-'+hashlib.sha256(path.encode()).hexdigest():sha for path,sha in file_receipts.items()}}
+          if len(expected)!=19 or any(not isinstance(sha,str) or re.fullmatch('[0-9a-f]{40}',sha) is None for sha in expected.values()): raise RuntimeError('h_exact_nineteen_resource_receipts_required')
+          root='repos/'+repository+'/git/ref/tags/agent-claims/masterplan/'
+          for name,sha in sorted(expected.items()):
+              actual=json.loads(subprocess.check_output(['gh','api',root+name]))
+              if not isinstance(actual,dict) or actual.get('ref')!='refs/tags/agent-claims/masterplan/'+name or not isinstance(actual.get('object'),dict) or actual['object'].get('type')!='commit' or actual['object'].get('sha')!=sha: raise RuntimeError('h_custody_mismatch:'+name)
+          print('H05H08_CUSTODY exact19refs verified; current per-resource source/inputepoch')
+          PY
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Record public runner preflight without native credit
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json,os,pathlib,shutil,subprocess
+          memory={}
+          for line in pathlib.Path('/proc/meminfo').read_text().splitlines():
+              key,_,value=line.partition(':')
+              if key in {'MemTotal','MemAvailable'}: memory[key]=int(value.split()[0])
+          disk=shutil.disk_usage('.')
+          source=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+          tree=subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip()
+          receipt={'format':'gridex_h_runner_preflight_v1','source_head':source,'source_tree':tree,
+                   'run_id':os.environ['GITHUB_RUN_ID'],'run_attempt':os.environ['GITHUB_RUN_ATTEMPT'],
+                   'runner_os':os.environ['RUNNER_OS'],'runner_arch':os.environ['RUNNER_ARCH'],
+                   'cpu_count':os.cpu_count(),'memory_kib':memory,
+                   'disk_bytes':{'total':disk.total,'used':disk.used,'free':disk.free},
+                   'input_epoch':os.environ['GRIDEX_H_INPUT_EPOCH'],
+                   'source_receipt':os.environ['GRIDEX_H_SOURCE_RECEIPT'],
+                   'resource_custody':json.loads(os.environ['GRIDEX_H_RESOURCE_CUSTODY']),
+                   'construction_branch':os.environ['GRIDEX_H_CONSTRUCTION_BRANCH'],
+                   'publication_branch':os.environ['GRIDEX_H_PUBLICATION_BRANCH'],
+                   'pull_request':int(os.environ['GRIDEX_H_PULL_REQUEST']),
+                   'base_source':os.environ['GRIDEX_H_BASE_SOURCE'],
+                   'immutable_source_origin':'d8a0abdcc55877fbee9e8841afb59bfc518fd771',
+                   'producer_receipt':os.environ['GRIDEX_H_PRODUCER_RECEIPT'],
+                   'native':'NOT_EXECUTED','whole_h05_h08':'NOT_APPROVED'}
+          if os.environ.get('GRIDEX_H_ADMISSION_ROUTE')=='source':
+            receipt['admission']=json.loads((pathlib.Path(os.environ['RUNNER_TEMP'])/'h-source-admission.json').read_text())
+          target=pathlib.Path('h05h08-native-preflight');target.mkdir()
+          (target/'preflight.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          PY
+      - name: Upload public runner preflight
+        uses: actions/upload-artifact@v4
+        with:
+          name: ediel-z05h-z08h-supplier-preflight-${{ github.run_id }}
+          path: h05h08-native-preflight
+          if-no-files-found: error
+          retention-days: 14
+      - name: Recheck new source admission and 19 current refs before backend
+        if: github.event.pull_request.head.ref == 'codex/agent1-h05h08-source-20261018'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 "$RUNNER_TEMP/h-source-admission.py" prebackend
+      - name: Run genuine public H04 predecessor and H05 H08 consumers
+        shell: bash
+        env:
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+        run: |
+          set -euo pipefail
+          # Preserve the runner's HOME. Only the supported CLI cache is isolated.
+          export SUPABASE_HOME="$RUNNER_TEMP/h05h08-supabase-home"
+          export SUPABASE_TELEMETRY_DISABLED=true
+          test -z "$(docker ps -aq)"
+          mkdir -p h05h08-native-working
+          export GRIDEX_H_GIT_INPUTS="$RUNNER_TEMP/h05h08-git-inputs.json"
+          # Freeze original Git blobs before replay generates local types/schema.
+          python3 - <<'PY'
+          import hashlib,json,os,pathlib,subprocess
+          entries=subprocess.check_output(['git','ls-tree','-rz','--full-tree','HEAD']).split(b'\0')
+          source={}
+          for entry in entries:
+              if not entry: continue
+              header,path=entry.split(b'\t',1)
+              mode,kind,oid=header.decode().split()
+              if kind!='blob': continue
+              name=path.decode()
+              blob=subprocess.check_output(['git','cat-file','blob',oid])
+              source[name]={'mode':mode,'oid':oid,'sha256':hashlib.sha256(blob).hexdigest()}
+          required=['scripts/ediel-at-z05h-z08h-supplier-native.test.ts',
+                    'scripts/ediel-z05h-z08h-supplier-native.config.ts',
+                    'lib/inbound-mail/supplyEndBirthProfile.ts',
+                    '.github/workflows/ediel-z05h-z08h-supplier-native.yml']
+          if not all(name in source for name in required): raise RuntimeError('native_input_missing_from_frozen_git')
+          pathlib.Path(os.environ['GRIDEX_H_GIT_INPUTS']).write_text(json.dumps(dict(sorted(source.items())),indent=2)+'\n')
+          PY
+          printf '%s\n' 'H05H08_BOUNDARY INPUTS_FROZEN'
+          # Replay owns its EXIT cleanup. Disposable status/credentials stay local.
+          echo BOOTSTRAP > "$RUNNER_TEMP/h05h08-stage"
+          # The previous runner lost communication before any log/artifact
+          # survived. Stream only allowlisted phases and numeric host resources
+          # so a later host incident can be located without exposing raw inputs.
+          diagnostic_owner=$$
+          (
+            for sample in {1..180}; do
+              kill -0 "$diagnostic_owner" 2>/dev/null || break
+              phase=$(cat "$RUNNER_TEMP/h05h08-stage" 2>/dev/null || true)
+              case "$phase" in
+                BOOTSTRAP|STATUS|NATIVE|POST_NATIVE|SOURCE_IDENTITY|REDACTION) ;;
+                *) phase=UNKNOWN ;;
+              esac
+              memory=$(awk '/^MemTotal:|^MemAvailable:/ {printf "%s ", $2}' /proc/meminfo)
+              load=$(cut -d ' ' -f1-3 /proc/loadavg)
+              disk=$(df -Pm "$GITHUB_WORKSPACE" | awk 'NR==2 {print $2, $3, $4}')
+              printf 'H05H08_RESOURCE phase=%s memory_kib_total_available=%s load=%s disk_mib_total_used_available=%s\n' "$phase" "$memory" "$load" "$disk"
+              sleep 30
+            done
+          ) &
+          diagnostic_pid=$!
+          source scripts/gridex-aud-003-clean-replay.sh > "$RUNNER_TEMP/h05h08-replay.log" 2>&1
+          printf '%s\n' 'H05H08_BOUNDARY REPLAY_RETURNED'
+          echo STATUS > "$RUNNER_TEMP/h05h08-stage"
+          export GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/h05h08-native-status.json"
+          supabase status -o json > "$GRIDEX_NATIVE_STATUS"
+          printf '%s\n' 'H05H08_BOUNDARY STATUS_RETURNED'
+          native_exit=0
+          echo NATIVE > "$RUNNER_TEMP/h05h08-stage"
+          GRIDEX_NATIVE_STATUS="$GRIDEX_NATIVE_STATUS" npx vitest run \
+            --config scripts/ediel-z05h-z08h-supplier-native.config.ts \
+            > h05h08-native-working/native.log 2>&1 || native_exit=$?
+          printf '%s\n' 'H05H08_BOUNDARY NATIVE_RETURNED'
+          export GRIDEX_H_NATIVE_EXIT="$native_exit"
+          echo "$native_exit" > "$RUNNER_TEMP/h05h08-native-exit"
+          echo POST_NATIVE > "$RUNNER_TEMP/h05h08-stage"
+          # Restore replay's original tracked migrations/seed before comparing
+          # working files with their immutable pre-replay Git identities.
+          cleanup
+          printf '%s\n' 'H05H08_BOUNDARY CLEANUP_RETURNED'
+          trap - EXIT
+          set -euo pipefail
+          test -z "$(docker ps -aq)"
+          python3 - <<'PY'
+          import os,pathlib
+          marker='[GRIDEX-REM-002 replay] PASS: empty local Supabase'
+          if marker not in (pathlib.Path(os.environ['RUNNER_TEMP'])/'h05h08-replay.log').read_text():
+              raise RuntimeError('h_canonical_replay_pass_marker_missing')
+          PY
+          echo SOURCE_IDENTITY > "$RUNNER_TEMP/h05h08-stage"
+          python3 - <<'PY'
+          import hashlib,json,os,pathlib,subprocess,xml.etree.ElementTree as ET
+          source=json.loads(pathlib.Path(os.environ['GRIDEX_H_GIT_INPUTS']).read_text())
+          changed={}
+          for name,identity in source.items():
+              path=pathlib.Path(name)
+              if not path.is_file(): raise RuntimeError('tracked_native_runtime_input_missing:'+name)
+              actual=hashlib.sha256(path.read_bytes()).hexdigest()
+              if actual!=identity['sha256']: changed[name]=actual
+          allowed={'supabase/database.types.ts','supabase/schema.sql','supabase/schema.fingerprint.json',
+                   'scripts/supabase-types-manifest.json'}
+          if set(changed)-allowed: raise RuntimeError('unexpected_replay_runtime_source_change:'+','.join(sorted(set(changed)-allowed)))
+          junit=ET.parse('h05h08-native-working/native-junit.xml').getroot()
+          cases=junit.findall('.//testcase')
+          if len(cases)!=101 or junit.findall('.//skipped') or int(junit.attrib.get('errors','0')):
+              raise RuntimeError('h_native_complete_101_cases_required')
+          counts=json.loads(pathlib.Path('h05h08-native-working/native-summary.json').read_text())['counts']
+          failures=len(junit.findall('.//failure'))
+          native_exit=int(os.environ['GRIDEX_H_NATIVE_EXIT'])
+          if (counts['tests']!=101 or counts['failures']!=failures or counts['passed']!=101-failures
+                  or counts['errors'] or counts['skipped']
+                  or counts['reason']!=('failed' if failures else 'passed')
+                  or (native_exit==0)!=(failures==0)):
+              raise RuntimeError('h_native_outcome_receipt_mismatch')
+          original={}
+          for path in pathlib.Path('h05h08-native-working').iterdir():
+              if path.is_file():
+                  with path.open('rb') as stream: digest=hashlib.file_digest(stream,'sha256').hexdigest()
+                  original[path.name]={'bytes':path.stat().st_size,'sha256':digest}
+          pathlib.Path('h05h08-native-working/original-output-sha256.json').write_text(json.dumps(original,indent=2)+'\n')
+          receipt={
+              'purpose':'supplemental_actual_native_feedback',
+              'checkout_sha':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+              'checkout_tree':subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip(),
+              'repository':os.environ['GITHUB_REPOSITORY'],
+              'repository_id':os.environ['GITHUB_REPOSITORY_ID'],
+              'workflow_run_id':os.environ['GITHUB_RUN_ID'],
+              'workflow_run_attempt':os.environ['GITHUB_RUN_ATTEMPT'],
+              'native_exit_code':int(os.environ['GRIDEX_H_NATIVE_EXIT']),
+              'native_case_count':len(cases),'native_skipped_count':0,
+              'native_counts':counts,
+              'canonical_replay':'PASSED','cleanup':'ZERO_CONTAINERS',
+              'input_epoch':os.environ['GRIDEX_H_INPUT_EPOCH'],
+              'source_receipt':os.environ['GRIDEX_H_SOURCE_RECEIPT'],
+              'resource_custody':json.loads(os.environ['GRIDEX_H_RESOURCE_CUSTODY']),
+              'construction_branch':os.environ['GRIDEX_H_CONSTRUCTION_BRANCH'],
+              'publication_branch':os.environ['GRIDEX_H_PUBLICATION_BRANCH'],
+              'pull_request':int(os.environ['GRIDEX_H_PULL_REQUEST']),
+              'base_source':os.environ['GRIDEX_H_BASE_SOURCE'],
+              'immutable_source_origin':'d8a0abdcc55877fbee9e8841afb59bfc518fd771',
+              'producer_receipt':os.environ['GRIDEX_H_PRODUCER_RECEIPT'],
+              'input_identity':'immutable_checkout_before_replay',
+              'source_blobs':source,
+              'input_sha256':{name:identity['sha256'] for name,identity in source.items()},
+              'runtime_generated_input_sha256':changed,
+              'test_scope':['scripts/ediel-at-z05h-z08h-supplier-native.test.ts'],
+              'ordinary_required_gates':'NOT_REPLACED',
+              'schema_capture':'NOT_RUN','upgrade_parity':'NOT_RUN','browser_tests':'NOT_RUN',
+              'whole_h05_h08':'NOT_APPROVED_BY_RECEIPT_ALONE',
+              'authentic_market_evidence':'NOT_PROVIDED',
+          }
+          if os.environ.get('GRIDEX_H_ADMISSION_ROUTE')=='source':
+            receipt['admission']=json.loads((pathlib.Path(os.environ['RUNNER_TEMP'])/'h-source-admission.json').read_text())
+          pathlib.Path('h05h08-native-working/receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          PY
+          printf '%s\n' 'H05H08_BOUNDARY SOURCE_IDENTITY_WRITTEN'
+          echo REDACTION > "$RUNNER_TEMP/h05h08-stage"
+          python3 scripts/gridex-redact-native-evidence.py \
+            --local-secrets "$GRIDEX_NATIVE_STATUS" --root h05h08-native-working \
+            --line-records h05h08-native-working/native.log \
+            --line-records h05h08-native-working/native-junit.xml
+          mv h05h08-native-working h05h08-native-evidence
+          printf '%s\n' 'H05H08_BOUNDARY EVIDENCE_REDACTED'
+          tail -n 160 h05h08-native-evidence/native.log
+          rm -f "$GRIDEX_NATIVE_STATUS" "$GRIDEX_H_GIT_INPUTS"
+          kill "$diagnostic_pid" 2>/dev/null || true
+          wait "$diagnostic_pid" 2>/dev/null || true
+          exit "$native_exit"
+      - name: Preserve original failed stage without false execution credit
+        if: failure()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! -d h05h08-native-evidence && -f "$RUNNER_TEMP/h05h08-replay.log" ]]; then
+            mkdir -p h05h08-native-working
+            cp "$RUNNER_TEMP/h05h08-replay.log" h05h08-native-working/bootstrap.log
+            python3 - <<'PY'
+          import json,os,pathlib,subprocess
+          inputs=pathlib.Path(os.environ['RUNNER_TEMP'])/'h05h08-git-inputs.json'
+          if not inputs.is_file(): raise RuntimeError('bootstrap_original_git_inputs_unavailable')
+          stage=(pathlib.Path(os.environ['RUNNER_TEMP'])/'h05h08-stage').read_text().strip()
+          stages={'BOOTSTRAP','STATUS','NATIVE','POST_NATIVE','SOURCE_IDENTITY','REDACTION'}
+          if stage not in stages: raise RuntimeError('failed_native_stage_unknown')
+          exit_file=pathlib.Path(os.environ['RUNNER_TEMP'])/'h05h08-native-exit'
+          native_exit=int(exit_file.read_text()) if exit_file.is_file() else None
+          native='NOT_REACHED' if stage in {'BOOTSTRAP','STATUS'} else 'EXECUTION_INCOMPLETE' if stage=='NATIVE' else 'EXECUTED_WITH_EVIDENCE_FAILURE'
+          receipt={'purpose':'original_failed_stage',
+                   'checkout_sha':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+                   'checkout_tree':subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip(),
+                   'repository':os.environ['GITHUB_REPOSITORY'],
+                   'repository_id':os.environ['GITHUB_REPOSITORY_ID'],
+                   'workflow_run_id':os.environ['GITHUB_RUN_ID'],
+                   'workflow_run_attempt':os.environ['GITHUB_RUN_ATTEMPT'],
+                   'input_epoch':os.environ['GRIDEX_H_INPUT_EPOCH'],
+                   'source_receipt':os.environ['GRIDEX_H_SOURCE_RECEIPT'],
+                   'resource_custody':json.loads(os.environ['GRIDEX_H_RESOURCE_CUSTODY']),
+                   'construction_branch':os.environ['GRIDEX_H_CONSTRUCTION_BRANCH'],
+                   'publication_branch':os.environ['GRIDEX_H_PUBLICATION_BRANCH'],
+                   'pull_request':int(os.environ['GRIDEX_H_PULL_REQUEST']),
+                   'base_source':os.environ['GRIDEX_H_BASE_SOURCE'],
+                   'immutable_source_origin':'d8a0abdcc55877fbee9e8841afb59bfc518fd771',
+                   'producer_receipt':os.environ['GRIDEX_H_PRODUCER_RECEIPT'],
+                   'source_blobs':json.loads(inputs.read_text()),
+                   'failed_stage':stage,'bootstrap':'FAILED' if stage=='BOOTSTRAP' else 'PASSED',
+                   'native':native,'native_exit_code':native_exit,
+                   'test_scope':['scripts/ediel-at-z05h-z08h-supplier-native.test.ts'],
+                   'whole_h05_h08':'NOT_APPROVED','ordinary_required_gates':'NOT_REPLACED'}
+          if os.environ.get('GRIDEX_H_ADMISSION_ROUTE')=='source':
+            receipt['admission']=json.loads((pathlib.Path(os.environ['RUNNER_TEMP'])/'h-source-admission.json').read_text())
+          pathlib.Path('h05h08-native-working/failure-receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          PY
+            record_args=()
+            for file in bootstrap.log native.log native-junit.xml; do
+              if [[ -f "h05h08-native-working/$file" ]]; then
+                record_args+=(--line-records "h05h08-native-working/$file")
+              fi
+            done
+            python3 scripts/gridex-redact-native-evidence.py \
+              --local-secrets "$RUNNER_TEMP/h05h08-native-status.json" --root h05h08-native-working \
+              "${record_args[@]}"
+            mv h05h08-native-working h05h08-native-evidence
+          fi
+      - name: Preserve postrun H admission and receiving-main observation
+        if: always() && github.event.pull_request.head.ref == 'codex/agent1-h05h08-source-20261018' && steps.h_source_admission.outcome == 'success'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 "$RUNNER_TEMP/h-source-admission.py" terminal
+      - name: Upload redacted native proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ediel-z05h-z08h-supplier-native-${{ github.run_id }}
+          path: h05h08-native-evidence
+          if-no-files-found: ignore
+          retention-days: 14

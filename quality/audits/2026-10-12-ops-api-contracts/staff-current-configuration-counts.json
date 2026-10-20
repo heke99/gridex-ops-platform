@@ -1,0 +1,14 @@
+{
+  "project": "piidsfebjqjmnepdpnas",
+  "scope": "Read-only aggregate counts; no credentials, names or business rows",
+  "observation": {
+    "captured_at": "2026-10-13 13:32:02.680183+00",
+    "staff_bindings": 0,
+    "active_staff_providers": 0,
+    "active_explicit_staff_clients": 0,
+    "registered_staff_auth_clients": 0
+  },
+  "configured_staff_e2e": "NOT_QUALIFIED",
+  "reason": "No configured real Staff tenant/provider/client/binding identified; pending user supplied integration facts, not fabricated defaults",
+  "business_invocations": 0
+}

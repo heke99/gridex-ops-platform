@@ -1,0 +1,26 @@
+[
+  {
+    "case": "known-weak-19-cost101",
+    "exit": 3,
+    "errors": [
+      "psql:/tmp/gridex-api-rebuild-20261014/qualification-bb0b-19/known-weak-19-cost101.sql:620: ERROR:  ops_canonical_weak_repair_nonbody_attributes_unknown: gridex_ediel_retention.blob_current_v1(gridex_ediel_retention.blob_decisions)"
+    ],
+    "log_sha256": "44a75fd54163688325de3309bf529f6665e0eca28a73f4504855726b3ca33b82"
+  },
+  {
+    "case": "known-weak-19-varchar-support",
+    "exit": 3,
+    "errors": [
+      "psql:/tmp/gridex-api-rebuild-20261014/qualification-bb0b-19/known-weak-19-varchar-support.sql:620: ERROR:  ops_canonical_weak_repair_nonbody_attributes_unknown: gridex_ediel_retention.blob_current_v1(gridex_ediel_retention.blob_decisions)"
+    ],
+    "log_sha256": "9484e5cce84fb6f26d0997848fd6a5b8e65ae87940866de720b740e1342ec27c"
+  },
+  {
+    "case": "strong-19-cost101",
+    "exit": 3,
+    "errors": [
+      "psql:/tmp/gridex-api-rebuild-20261014/qualification-bb0b-19/strong-19-cost101.sql:157: ERROR:  ops_canonical_weak_repair_nonbody_attributes_unknown: gridex_ediel_retention.blob_current_v1(gridex_ediel_retention.blob_decisions)"
+    ],
+    "log_sha256": "79e450852488658d8bd5069c5d88baad4e6c4d37afb4f2743ee79c988bd6cd1e"
+  }
+]

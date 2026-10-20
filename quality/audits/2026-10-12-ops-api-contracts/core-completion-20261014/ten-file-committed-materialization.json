@@ -1,0 +1,31 @@
+{
+  "schema": "ops_ten_file_committed_materialization_v1",
+  "status": "PASS_ACTUAL_COMMITTED_INPUT_FILES_ONLY",
+  "rows": [
+    {
+      "kind": "ten-committed-upgrade",
+      "source": "a01f31bcb5c6554dce5c7805dd98eed10b7c50ce",
+      "tree": "2a5fe8fb88d8dd20ee2ccd77eef1a77420dbb25a",
+      "actualForwardFiles": 606,
+      "historicalInputs": 644,
+      "derivedInputs": 5,
+      "allMaterializedAndOriginalHashesMatch": true,
+      "receiptSha256": "56025925249bd155cdcf7cf453358f843f303dc703c49cd2f15c448b08e86425"
+    },
+    {
+      "kind": "ten-committed-history",
+      "source": "a01f31bcb5c6554dce5c7805dd98eed10b7c50ce",
+      "tree": "2a5fe8fb88d8dd20ee2ccd77eef1a77420dbb25a",
+      "actualForwardFiles": 364,
+      "historicalInputs": 886,
+      "derivedInputs": 5,
+      "allMaterializedAndOriginalHashesMatch": true,
+      "receiptSha256": "256fdeb607a103f191d88c5233b7c843662ee108da592b48875ebbb3a8abf3ab"
+    }
+  ],
+  "current_fullSQL": "NOT_RUN",
+  "currentSchemaTypes": "NOT_CAPTURED",
+  "nativeWrites": 0,
+  "actualApplicationCodeUnchanged": "6b3a51b2f84ea6dfaed6559a877d6db3c8130f77",
+  "nextAction": "Publish reviewed exactcurrent-source fix to approvedPR794; evaluate existing ordinary clean/upgrade/capture actualsource gates; use retained qualifiedservice for canonicaloutput reconciliation. Existing SC031 source/native alignment remains pending, no green or merge claim."
+}

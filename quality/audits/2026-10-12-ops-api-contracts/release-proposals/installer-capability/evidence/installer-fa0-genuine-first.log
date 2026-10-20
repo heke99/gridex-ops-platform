@@ -1,0 +1,15 @@
+BEGIN
+SET
+SET
+SET
+NOTICE:  identifier "ediel_require_requested_change_source_current_before_scope_fence_v1" will be truncated to "ediel_require_requested_change_source_current_before_scope_fenc"
+NOTICE:  identifier "ediel_require_requested_change_source_current_before_scope_fence_v1" will be truncated to "ediel_require_requested_change_source_current_before_scope_fenc"
+LINE 1: ... gridex_ediel_ack_replay.lock_current_graph_v2();PERFORM pub...
+                                                             ^
+QUERY:  BEGIN IF current_setting('role',true) IS DISTINCT FROM 'service_role' AND session_user<>'service_role' THEN RAISE EXCEPTION 'customer_source_service_required' USING ERRCODE='42501';END IF;PERFORM gridex_ediel_ack_replay.lock_current_graph_v2();PERFORM public.ediel_require_requested_change_source_current_before_scope_fence_v1(p_company_id,p_message_id);RETURN;END
+WARNING:  no privileges were granted for "auth"
+WARNING:  no privileges were granted for "uid"
+WARNING:  not all privileges were granted for "users"
+NOTICE:  ops_api_delivery_guarded_ops_upgrade
+DO
+COMMIT

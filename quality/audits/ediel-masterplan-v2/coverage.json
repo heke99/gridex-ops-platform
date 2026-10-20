@@ -1539,8 +1539,33 @@
     {
       "id": "DB-05",
       "acceptance_id": "AT-DB-05",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/retention/decisionEvidenceRetention.ts",
+        "lib/ediel/retention/decisionEvidenceRetentionHttp.ts",
+        "lib/ediel/retention/decisionEvidenceClasses.ts",
+        "lib/ediel/retention/customerLifecycleRetention.ts",
+        "app/api/internal/customer-operations/cron/route.ts",
+        "app/retention/decision-evidence/workspace.tsx",
+        "supabase/migrations/20261005130000_hard_delete_guard_companies_customers.sql",
+        "supabase/migrations/20261008160000_db05_closed_tenant_retention_scope.sql",
+        "supabase/migrations/20261011121542_db05_retained_audit_ediel_journals.sql",
+        "supabase/migrations/20261012193000_db05_retention_clock_after_lock.sql",
+        "supabase/migrations/20261019180000_db05_completed_decision_review_reason_retention.sql",
+        "supabase/migrations/20261019180100_db05_completed_review_witness_consumer_freeze.sql",
+        "supabase/migrations/20261019180200_db05_completed_witness_field_disposition.sql",
+        "supabase/migrations/20261019180300_db05_completed_parent_purpose_disposition.sql",
+        "supabase/migrations/20261019180400_db05_qualified_audit19_cleanup.sql",
+        "supabase/migrations/20261019180500_db05_audit19_archived_permission.sql",
+        "__tests__/db-05-closed-tenant-retention-admission.test.ts",
+        "__tests__/db-05-completed-review-witness-consumer-freeze.test.ts",
+        "__tests__/db-05-completed-witness-field-disposition.test.ts",
+        "__tests__/db-05-retained-audit-ediel-journals.test.ts",
+        "__tests__/db-05-retention-clock-after-lock.test.ts",
+        "__tests__/db-05-tenant-end-access-revoke.test.ts",
+        "__tests__/ediel-db05-audit19-cleanup-sql.test.ts",
+        "__tests__/ediel-db05-completed-parent-purpose-sql.test.ts"
+      ]
     },
     {
       "id": "DB-06",
@@ -1603,8 +1628,20 @@
     {
       "id": "OPS-04",
       "acceptance_id": "AT-OPS-04",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/transport/controlledLiveSendGuard.ts",
+        "lib/ediel/transport/index.part-2.ts",
+        "lib/ediel/orchestrator.ts",
+        "lib/email/sendEdielEmail.ts",
+        "supabase/migrations/20261019140000_ediel_ops04_controlled_live_evidence.sql",
+        "__tests__/ediel-ops-04-controlled-live-send-guard.test.ts",
+        "__tests__/ediel-ops-04-controlled-send-boundary.test.ts",
+        "__tests__/ediel-ops-04-controlled-live-evidence-sql.test.ts",
+        "__tests__/ediel-email-final-provider-gate.test.ts",
+        "scripts/ediel-ops04-controlled-send-native.test.ts",
+        ".github/workflows/ediel-ops04-controlled-send-native.yml"
+      ]
     },
     {
       "id": "OPS-05",
@@ -2097,11 +2134,20 @@
     },
     {
       "id": "SC-031",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
         "__tests__/ediel-prodat-incoming-unused-fields.test.ts",
         "__tests__/ediel-received-register-validation-binding.test.ts",
-        "lib/ediel/core/runtimeDecision.ts"
+        "lib/ediel/core/runtimeDecision.ts",
+        "supabase/migrations/20261019160000_ediel_sc031_inbound_ignored_register_projection.sql",
+        "__tests__/ediel-sc-031-ignored-register-projection-sql.test.ts",
+        "__tests__/ediel-prodat-register-consumers.test.ts",
+        "__tests__/ediel-sc-031-ignored-base-fields-business-projection-20261018.test.ts",
+        "__tests__/ediel-sc-031-ignored-ud-business-staging-root-20261013.test.ts",
+        "__tests__/ediel-sc-031-inbound-batch-register-extras.test.ts",
+        "__tests__/ediel-sc-031-source-owned-business-projection-root-20261014.test.ts",
+        "scripts/ediel-at-z14vh-z15v-esco-native.test.ts",
+        ".github/workflows/ediel-esco-z14vh-z15v-native.yml"
       ]
     },
     {
@@ -2169,11 +2215,21 @@
     },
     {
       "id": "SC-037",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
         "__tests__/ediel-sc-037-future-start.test.ts",
         "__tests__/supplier-switch-activation-sweep.test.ts",
-        "lib/operations/supplierSwitchActivation.ts"
+        "lib/operations/supplierSwitchActivation.ts",
+        "lib/ediel/flows/prodatSwitch.ts",
+        "lib/ediel/flows/inboundProcessing.ts",
+        "lib/ediel/sla/checkAckDeadlines.ts",
+        "app/api/internal/customer-operations/cron/route.ts",
+        "scripts/ediel-z04l-z04lk-future-start-native.test.ts",
+        "scripts/ediel-z04l-z04lk-future-start-native.config.ts",
+        ".github/workflows/ediel-z04l-z04lk-future-start-native.yml",
+        "supabase/migrations/20260930201111_ediel_normal_switch_source_atomic_confirmation.sql",
+        "supabase/migrations/20260903090000_atomic_supplier_switch_activation_sweep.sql",
+        "supabase/migrations/20261019043000_ediel_retained_contrl_source_prefilter.sql"
       ]
     },
     {
@@ -2190,10 +2246,18 @@
     },
     {
       "id": "SC-039",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
         "__tests__/ediel-supply-market-consumers.test.ts",
-        "scripts/ediel-normal-switch-source-sql-regression.mjs"
+        "scripts/ediel-normal-switch-source-sql-regression.mjs",
+        "lib/ediel/flows/inboundProcessing.ts",
+        "lib/ediel/flows/supplyMarketTransition.ts",
+        "supabase/migrations/20261019150000_ediel_sc039_late_normal_z04_superseded_by_cancellation.sql",
+        "__tests__/ediel-sc039-superseded-late-l-result.test.ts",
+        "__tests__/ediel-sc039-waiting-ack-deadlines.test.ts",
+        "__tests__/ediel-sc-039-partial-ack-timer-completion.test.ts",
+        "scripts/ediel-cancellation-public-acceptance-native.test.ts",
+        ".github/workflows/ediel-cancellation-public-acceptance-native.yml"
       ]
     },
     {
@@ -3854,8 +3918,33 @@
     },
     {
       "id": "AT-DB-05",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/retention/decisionEvidenceRetention.ts",
+        "lib/ediel/retention/decisionEvidenceRetentionHttp.ts",
+        "lib/ediel/retention/decisionEvidenceClasses.ts",
+        "lib/ediel/retention/customerLifecycleRetention.ts",
+        "app/api/internal/customer-operations/cron/route.ts",
+        "app/retention/decision-evidence/workspace.tsx",
+        "supabase/migrations/20261005130000_hard_delete_guard_companies_customers.sql",
+        "supabase/migrations/20261008160000_db05_closed_tenant_retention_scope.sql",
+        "supabase/migrations/20261011121542_db05_retained_audit_ediel_journals.sql",
+        "supabase/migrations/20261012193000_db05_retention_clock_after_lock.sql",
+        "supabase/migrations/20261019180000_db05_completed_decision_review_reason_retention.sql",
+        "supabase/migrations/20261019180100_db05_completed_review_witness_consumer_freeze.sql",
+        "supabase/migrations/20261019180200_db05_completed_witness_field_disposition.sql",
+        "supabase/migrations/20261019180300_db05_completed_parent_purpose_disposition.sql",
+        "supabase/migrations/20261019180400_db05_qualified_audit19_cleanup.sql",
+        "supabase/migrations/20261019180500_db05_audit19_archived_permission.sql",
+        "__tests__/db-05-closed-tenant-retention-admission.test.ts",
+        "__tests__/db-05-completed-review-witness-consumer-freeze.test.ts",
+        "__tests__/db-05-completed-witness-field-disposition.test.ts",
+        "__tests__/db-05-retained-audit-ediel-journals.test.ts",
+        "__tests__/db-05-retention-clock-after-lock.test.ts",
+        "__tests__/db-05-tenant-end-access-revoke.test.ts",
+        "__tests__/ediel-db05-audit19-cleanup-sql.test.ts",
+        "__tests__/ediel-db05-completed-parent-purpose-sql.test.ts"
+      ]
     },
     {
       "id": "AT-DB-06",
@@ -3913,8 +4002,20 @@
     },
     {
       "id": "AT-OPS-04",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/transport/controlledLiveSendGuard.ts",
+        "lib/ediel/transport/index.part-2.ts",
+        "lib/ediel/orchestrator.ts",
+        "lib/email/sendEdielEmail.ts",
+        "supabase/migrations/20261019140000_ediel_ops04_controlled_live_evidence.sql",
+        "__tests__/ediel-ops-04-controlled-live-send-guard.test.ts",
+        "__tests__/ediel-ops-04-controlled-send-boundary.test.ts",
+        "__tests__/ediel-ops-04-controlled-live-evidence-sql.test.ts",
+        "__tests__/ediel-email-final-provider-gate.test.ts",
+        "scripts/ediel-ops04-controlled-send-native.test.ts",
+        ".github/workflows/ediel-ops04-controlled-send-native.yml"
+      ]
     },
     {
       "id": "AT-OPS-05",
@@ -4000,8 +4101,13 @@
     },
     {
       "id": "AT-Z01L-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/onboarding/infoRequests.ts",
+        "__tests__/ediel-at-z01l-z01lk-supplier-profile.test.ts",
+        "__tests__/ediel-z01-godr-supersession-scope.test.ts",
+        "scripts/ediel-at-z01-supplier-native.test.ts"
+      ]
     },
     {
       "id": "AT-Z02L-SUPPLIER",
@@ -4019,13 +4125,44 @@
     },
     {
       "id": "AT-Z03L-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/flows/prodatSwitch.ts",
+        "lib/operations/edielAutomation.ts",
+        "lib/ediel/flows/inboundAckProcessing.ts",
+        "lib/ediel/flows/inboundProcessing.ts",
+        "__tests__/ediel-at-z03l-z03lk-supplier-profile.test.ts",
+        "__tests__/ediel-prodat-own-source-register-reading-component.test.ts",
+        "scripts/ediel-at-z03l-z03lk-supplier-native.test.ts"
+      ]
     },
     {
       "id": "AT-Z04L-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/flows/prodatSwitch.ts",
+        "lib/ediel/flows/inboundProcessing.ts",
+        "lib/ediel/sla/checkAckDeadlines.ts",
+        "lib/operations/supplierSwitchActivation.ts",
+        "app/api/internal/customer-operations/cron/route.ts",
+        "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+        "lib/ediel/rulebook/prodatEndUserAddressPolicy.ts",
+        "lib/ediel/rulebook/prodatInvoiceePolicy.ts",
+        "__tests__/ediel-sc-037-future-start.test.ts",
+        "__tests__/supplier-switch-activation-sweep.test.ts",
+        "__tests__/ediel-normal-switch-birth-profile.test.ts",
+        "__tests__/ediel-normal-switch-source-birth-intake.test.ts",
+        "__tests__/ediel-at-p01-field-contract-b6d3.test.ts",
+        "__tests__/ediel-prodat-register-readings.test.ts",
+        "__tests__/ediel-prodat-end-user-address.test.ts",
+        "__tests__/ediel-prodat-invoicee.test.ts",
+        "scripts/ediel-z04l-z04lk-future-start-native.test.ts",
+        "scripts/ediel-z04l-z04lk-future-start-native.config.ts",
+        ".github/workflows/ediel-z04l-z04lk-future-start-native.yml",
+        "supabase/migrations/20260930201111_ediel_normal_switch_source_atomic_confirmation.sql",
+        "supabase/migrations/20260903090000_atomic_supplier_switch_activation_sweep.sql",
+        "supabase/migrations/20261019043000_ediel_retained_contrl_source_prefilter.sql"
+      ]
     },
     {
       "id": "AT-Z05L-SUPPLIER",
@@ -4043,8 +4180,13 @@
     },
     {
       "id": "AT-Z01LK-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/onboarding/infoRequests.ts",
+        "__tests__/ediel-at-z01l-z01lk-supplier-profile.test.ts",
+        "__tests__/ediel-z01-godr-supersession-scope.test.ts",
+        "scripts/ediel-at-z01-supplier-native.test.ts"
+      ]
     },
     {
       "id": "AT-Z02LK-SUPPLIER",
@@ -4062,13 +4204,44 @@
     },
     {
       "id": "AT-Z03LK-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/flows/prodatSwitch.ts",
+        "lib/operations/edielAutomation.ts",
+        "lib/ediel/flows/inboundAckProcessing.ts",
+        "lib/ediel/flows/inboundProcessing.ts",
+        "__tests__/ediel-at-z03l-z03lk-supplier-profile.test.ts",
+        "__tests__/ediel-prodat-own-source-register-reading-component.test.ts",
+        "scripts/ediel-at-z03l-z03lk-supplier-native.test.ts"
+      ]
     },
     {
       "id": "AT-Z04LK-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/flows/prodatSwitch.ts",
+        "lib/ediel/flows/inboundProcessing.ts",
+        "lib/ediel/sla/checkAckDeadlines.ts",
+        "lib/operations/supplierSwitchActivation.ts",
+        "app/api/internal/customer-operations/cron/route.ts",
+        "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+        "lib/ediel/rulebook/prodatEndUserAddressPolicy.ts",
+        "lib/ediel/rulebook/prodatInvoiceePolicy.ts",
+        "__tests__/ediel-sc-037-future-start.test.ts",
+        "__tests__/supplier-switch-activation-sweep.test.ts",
+        "__tests__/ediel-normal-switch-birth-profile.test.ts",
+        "__tests__/ediel-normal-switch-source-birth-intake.test.ts",
+        "__tests__/ediel-at-p01-field-contract-b6d3.test.ts",
+        "__tests__/ediel-prodat-register-readings.test.ts",
+        "__tests__/ediel-prodat-end-user-address.test.ts",
+        "__tests__/ediel-prodat-invoicee.test.ts",
+        "scripts/ediel-z04l-z04lk-future-start-native.test.ts",
+        "scripts/ediel-z04l-z04lk-future-start-native.config.ts",
+        ".github/workflows/ediel-z04l-z04lk-future-start-native.yml",
+        "supabase/migrations/20260930201111_ediel_normal_switch_source_atomic_confirmation.sql",
+        "supabase/migrations/20260903090000_atomic_supplier_switch_activation_sweep.sql",
+        "supabase/migrations/20261019043000_ediel_retained_contrl_source_prefilter.sql"
+      ]
     },
     {
       "id": "AT-Z05LK-SUPPLIER",
@@ -4086,13 +4259,38 @@
     },
     {
       "id": "AT-Z03C-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-at-z03c-supplier-required-fields.test.ts",
+        "__tests__/ediel-at-z03c-supplier-queue.test.ts",
+        "__tests__/ediel-at-z03c-z05c-supplier-profile.test.ts",
+        "__tests__/ediel-switch-cancellation-customer-source.test.ts",
+        "scripts/ediel-at-z03c-supplier-boundary-native.test.ts",
+        "scripts/ediel-cancellation-public-acceptance-native.test.ts",
+        "lib/ediel/production/switchCancellationSource.ts",
+        "lib/ediel/intent/renderers/switchCancellation.ts",
+        "quality/audits/ediel-masterplan-v2/z03c-supplier/contract-proof.json",
+        "quality/audits/ediel-masterplan-v2/z03c-supplier/native-cancellation.zip",
+        "quality/audits/ediel-masterplan-v2/z03c-supplier/native-z03c-boundary.zip"
+      ]
     },
     {
       "id": "AT-Z04C-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-at-z04c-supplier-profile.test.ts",
+        "__tests__/ediel-at-z04c-supplier-acceptance.test.ts",
+        "scripts/test-ediel-z04c-correlation.cjs",
+        "scripts/ediel-z04c-correlation-sql-regression.mjs",
+        "lib/ediel/flows/supplyMarketTransition.ts",
+        "lib/ediel/flows/inboundProcessing.ts",
+        "lib/ediel/inboundCases.ts",
+        "supabase/migrations/20261018100000_ediel_z04c_current_sender_registry.sql",
+        "supabase/migrations/20261019170000_ediel_z04c_executed_start_compensation_receipt.sql",
+        "scripts/ediel-cancellation-public-acceptance-native.test.ts",
+        "scripts/ediel-cancellation-public-acceptance-native.config.ts",
+        ".github/workflows/ediel-cancellation-public-acceptance-native.yml"
+      ]
     },
     {
       "id": "AT-Z05C-SUPPLIER",
@@ -4169,13 +4367,29 @@
     },
     {
       "id": "AT-Z05H-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-z05-rejected-identity-runtime.test.ts",
+        "__tests__/ediel-supply-end-field-omissions.test.ts",
+        "scripts/ediel-at-z05h-z08h-supplier-native.test.ts",
+        "lib/ediel/production/bilateralProdatProfileIntake.ts",
+        "lib/ediel/prodat/receivedZ05RejectedIdentityRejection.ts",
+        "lib/ediel/flows/supplyMarketTransition.ts",
+        "quality/audits/ediel-masterplan-v2/evidence/h05-h08-qualified-native-20261018.json"
+      ]
     },
     {
       "id": "AT-Z08H-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-supply-end-field-omissions.test.ts",
+        "scripts/ediel-at-z05h-z08h-supplier-native.test.ts",
+        "lib/ediel/flows/prodatSupplyRescission.ts",
+        "lib/ediel/production/supplyRescissionIntake.ts",
+        "lib/ediel/production/supplyRescissionOperation.ts",
+        "lib/ediel/flows/supplyMarketTransition.ts",
+        "quality/audits/ediel-masterplan-v2/evidence/h05-h08-qualified-native-20261018.json"
+      ]
     },
     {
       "id": "AT-Z08LK-SUPPLIER",
@@ -4243,27 +4457,74 @@
     },
     {
       "id": "AT-Z06F-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/inbound-mail/customerSourceFgBirthProfile.ts",
+        "lib/inbound-mail/inboundStatusUpdater.ts",
+        "lib/ediel/core/prodatZ06SourceReadingDeclarations.ts",
+        "lib/ediel/core/messagePolicy.ts",
+        "lib/ediel/sources/structuralSourceReadset.ts",
+        "supabase/migrations/20261018143000_ediel_requested_change_metering_method_original_guard.sql",
+        "__tests__/ediel-at-z06f-supplier-component.test.ts",
+        "__tests__/ediel-customer-source-fg-birth-profile.test.ts",
+        "__tests__/ediel-z06fg-source-reading-declarations.test.ts",
+        "__tests__/ediel-structural-readset-received-ack.test.ts",
+        "scripts/ediel-at-z06f-supplier-acceptance-native.test.ts",
+        "scripts/ediel-z06f-reading-followup-native.test.ts"
+      ]
     },
     {
       "id": "AT-Z09F-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/inbound-mail/customerSourceFgBirthProfile.ts",
+        "lib/inbound-mail/inboundStatusUpdater.ts",
+        "lib/ediel/core/prodatZ06SourceReadingDeclarations.ts",
+        "lib/ediel/core/messagePolicy.ts",
+        "lib/ediel/sources/structuralSourceReadset.ts",
+        "supabase/migrations/20261018143000_ediel_requested_change_metering_method_original_guard.sql",
+        "__tests__/ediel-at-z09f-z09g-supplier-profile.test.ts",
+        "__tests__/ediel-z09fg-method-original-current-sender.test.ts",
+        "scripts/ediel-at-z09fg-supplier-composition-native.test.ts",
+        "scripts/helpers/ediel-z09fg-composition-inputs-native-producer.ts"
+      ]
     },
     {
       "id": "AT-Z06G-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/inbound-mail/customerSourceFgBirthProfile.ts",
+        "lib/inbound-mail/inboundStatusUpdater.ts",
+        "lib/ediel/core/prodatZ06SourceReadingDeclarations.ts",
+        "lib/ediel/core/messagePolicy.ts",
+        "lib/ediel/sources/structuralSourceReadset.ts",
+        "supabase/migrations/20261018143000_ediel_requested_change_metering_method_original_guard.sql",
+        "__tests__/ediel-at-z06g-supplier-component.test.ts",
+        "__tests__/ediel-customer-source-fg-birth-profile.test.ts",
+        "__tests__/ediel-z06fg-source-reading-declarations.test.ts",
+        "__tests__/ediel-structural-readset-received-ack.test.ts",
+        "scripts/ediel-at-z06g-supplier-acceptance-native.test.ts"
+      ]
     },
     {
       "id": "AT-Z09G-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/inbound-mail/customerSourceFgBirthProfile.ts",
+        "lib/inbound-mail/inboundStatusUpdater.ts",
+        "lib/ediel/core/prodatZ06SourceReadingDeclarations.ts",
+        "lib/ediel/core/messagePolicy.ts",
+        "lib/ediel/sources/structuralSourceReadset.ts",
+        "supabase/migrations/20261018143000_ediel_requested_change_metering_method_original_guard.sql",
+        "__tests__/ediel-at-z09f-z09g-supplier-profile.test.ts",
+        "__tests__/ediel-z09fg-method-original-current-sender.test.ts",
+        "scripts/ediel-at-z09fg-supplier-composition-native.test.ts",
+        "scripts/helpers/ediel-z09fg-composition-inputs-native-producer.ts"
+      ]
     },
     {
       "id": "AT-Z09B-SUPPLIER",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
         "scripts/ediel-z09b-brp-change-native.test.ts",
         ".github/workflows/ediel-p08-native.yml",
@@ -4274,7 +4535,13 @@
         "lib/ediel/intent/renderers/brpChange.ts",
         "lib/ediel/flows/prodatBrpChange.ts",
         "supabase/migrations/20260930200545_ediel_brp_change_source_origination.sql",
-        "supabase/migrations/20261011170000_ediel_brp_change_ack_received_confirmation.sql"
+        "supabase/migrations/20261011170000_ediel_brp_change_ack_received_confirmation.sql",
+        "__tests__/ediel-at-z09b-brp-dated-history.test.ts",
+        "scripts/ediel-at-z09b-brp-dated-history-sql-regression.mjs",
+        "scripts/ediel-at-z09b-supplier-boundary-native.test.ts",
+        "scripts/ediel-at-z09b-supplier-boundary-native.config.ts",
+        ".github/workflows/ediel-z09b-supplier-boundary-native.yml",
+        "quality/audits/ediel-masterplan-v2/z09b-supplier/contract-proof.json"
       ]
     },
     {
@@ -4305,8 +4572,24 @@
     },
     {
       "id": "AT-Z13V-ESCO",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-at-z13-esco-required-fields.test.ts",
+        "__tests__/ediel-at-z13-esco-request-guards.test.ts",
+        "__tests__/ediel-at-z13v-esco-profile.test.ts",
+        "__tests__/ediel-z13-ack-customer-waiting-sql.test.ts",
+        "__tests__/ediel-esco-z14-process-legal-context.test.ts",
+        "__tests__/ediel-ack-route-profile-selection.test.ts",
+        "scripts/test-ediel-esco-z13-z14vh.cjs",
+        "scripts/ediel-at-z13v-z13vh-esco-native.test.ts",
+        "scripts/ediel-at-z13v-z13vh-esco-native.config.ts",
+        "scripts/helpers/ediel-z14v-current-native-fixture.ts",
+        ".github/workflows/ediel-z13v-z13vh-esco-native.yml",
+        "lib/ediel/intent/renderers/servicePermission.ts",
+        "lib/ediel/rulebook/prodatReportingPermissionPolicy.ts",
+        "lib/ediel/core/messageBuilder/payloadPreflight.ts",
+        "lib/ediel/permissions/permissionMarketTransition.ts"
+      ]
     },
     {
       "id": "AT-Z14V-ESCO",
@@ -4334,8 +4617,25 @@
     },
     {
       "id": "AT-Z13VH-ESCO",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-at-z13-esco-required-fields.test.ts",
+        "__tests__/ediel-at-z13-esco-request-guards.test.ts",
+        "__tests__/ediel-at-z13vh-esco-profile.test.ts",
+        "__tests__/ediel-z13-ack-customer-waiting-sql.test.ts",
+        "__tests__/ediel-esco-z14-process-legal-context.test.ts",
+        "__tests__/ediel-ack-route-profile-selection.test.ts",
+        "scripts/test-ediel-esco-z13-z14vh.cjs",
+        "scripts/ediel-at-z13v-z13vh-esco-native.test.ts",
+        "scripts/ediel-at-z13v-z13vh-esco-native.config.ts",
+        "scripts/helpers/ediel-z14v-current-native-fixture.ts",
+        ".github/workflows/ediel-z13v-z13vh-esco-native.yml",
+        "lib/ediel/intent/renderers/servicePermission.ts",
+        "lib/ediel/rulebook/prodatReportingPermissionPolicy.ts",
+        "lib/ediel/core/messageBuilder/payloadPreflight.ts",
+        "lib/ediel/permissions/permissionMarketTransition.ts",
+        "lib/ediel/services/requestTiming.ts"
+      ]
     },
     {
       "id": "AT-Z14VH-ESCO",

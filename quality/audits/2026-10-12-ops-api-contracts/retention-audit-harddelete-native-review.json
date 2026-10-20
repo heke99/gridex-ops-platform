@@ -1,0 +1,259 @@
+{
+  "scope": "Gridex OPS only. Four remaining enabled trigger effect contrasts; exact source/native metadata and current caller/class/FK traces, no test oracle.",
+  "status": "Three confirmed prospective native gaps fixed in sealed proposal, both independent NONcoauthor peers approved, genuine isolated compile/replay/known-canonical upgrade/12 negative rollbacks PASS. Root alone owns actual installation after full additive prerequisites.",
+  "forward": {
+    "path": "release-proposals/variant-retention-audit-harddelete-forward.sql",
+    "sha256": "19624482d3a4df867e999848e8b7b8ed72f9c8f2b4962ebb3c75b369c937d4ad"
+  },
+  "source_schema_sha256": "ced195d0f8af67b8a400ba71c2eca110cbcd639a0dba880d19e7dccff7a14492",
+  "targets": [
+    {
+      "signature": "gridex_correction_process.capture_v1()",
+      "before_body_md5": "ef20fd588333aca906dea9b6c2064210",
+      "after_body_md5": "68fe8b6945faaf2d8b441bfea7cf2cbe",
+      "all_existing_pg_proc_attributes_preserved": true
+    },
+    {
+      "signature": "public.gridex_audit_portfolio_settlement_write()",
+      "before_body_md5": "12054f3bc27579c99ba847d0f33a0fc9",
+      "after_body_md5": "ff6f4bfdeeaa7b68c9e5e99a81f188d9",
+      "all_existing_pg_proc_attributes_preserved": true
+    },
+    {
+      "signature": "public.gridex_guard_company_hard_delete_v1()",
+      "before_body_md5": "b760388550527115f5c5048b2f7478b1",
+      "after_body_md5": "5fa9ea090a1f965c5b56bfc2b9d5fae9",
+      "all_existing_pg_proc_attributes_preserved": true
+    }
+  ],
+  "findings": [
+    {
+      "function": "gridex_correction_process.capture_v1()",
+      "classification": "confirmed provenance gap",
+      "current_path": "Customer record retention library calls ediel_begin_customer_record_retention_v1; customer_contracts UPDATE invokes existing correction capture trigger.",
+      "before": "Qualified signature-personal redaction appends an ordinary correction fact without immutable retention-origin/legal-purpose/deadline proof. Existing selected process fields do not include the personal signature fields; no observed personal-data disclosure is claimed.",
+      "after": "Exact canonical qualified customer-record transition records immutable future-only origin and bypasses ordinary correction fact; ordinary events continue unchanged."
+    },
+    {
+      "function": "public.gridex_audit_portfolio_settlement_write()",
+      "classification": "confirmed prospective retained-copy recreation",
+      "actual_relation": "public.portfolio_monthly_settlements",
+      "current_path": "Finance-copy purge library calls ediel_purge_finance_copy_retention_v1 for settlement_calculation_body.",
+      "before": "AFTER UPDATE appends to_jsonb(OLD) to settlement audit, recreating removed calculation_snapshot in a new old_values audit copy.",
+      "after": "Exact canonical qualified finance-retention predicate skips only the qualified redaction audit; normal settlement auditing remains. Existing historical audit copies have separate retention classes; no historical rewrite performed."
+    },
+    {
+      "function": "public.gridex_guard_company_hard_delete_v1()",
+      "classification": "confirmed prospective service REST cascade defense gap",
+      "current_path": "Admin deleteTestCompanyAction itself only tombstones and reports hardDeletePerformed=false; service_role has direct table DELETE authority, unlike authenticated ACL.",
+      "before": "deleted_test_only plus original six-table retained-history checks permits cascading deletion of eleven additional canonical audit/event/Ediel history tables. All eleven actual company FKs are ON DELETE CASCADE.",
+      "after": "Adds exact canonical eleven-table retention history predicate; preserves SECURITY INVOKER, original explicit postgres/supabase_admin bypass, paused/lifecycle policy and stronger current company_has_customer_data helper."
+    },
+    {
+      "function": "public.gridex_enforce_supplier_utilts_outbound_v1()",
+      "classification": "refuted current qualified unsent-raw erasure path",
+      "proof": "received_ediel_message_content basis requires inbound message plus original gridex_received_sources evidence; outbound MIME class only clears storage payload and never ediel_messages.raw. Current public blob purge can clear raw only for the inbound received class. No alternate qualified outbound raw eraser found. No guard change justified."
+    }
+  ],
+  "immutable_origin_closure": {
+    "table": {
+      "name": "gridex_ediel_retention.process_retention_origins",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "not_null": true,
+          "generated": "",
+          "identity": "",
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "company_id",
+          "type": "uuid",
+          "not_null": true,
+          "generated": "",
+          "identity": "",
+          "default": null
+        },
+        {
+          "name": "source_table",
+          "type": "text",
+          "not_null": true,
+          "generated": "",
+          "identity": "",
+          "default": null
+        },
+        {
+          "name": "target_id",
+          "type": "uuid",
+          "not_null": true,
+          "generated": "",
+          "identity": "",
+          "default": null
+        },
+        {
+          "name": "decision_id",
+          "type": "uuid",
+          "not_null": true,
+          "generated": "",
+          "identity": "",
+          "default": null
+        },
+        {
+          "name": "original_hash",
+          "type": "text",
+          "not_null": true,
+          "generated": "",
+          "identity": "",
+          "default": null
+        },
+        {
+          "name": "redacted_hash",
+          "type": "text",
+          "not_null": true,
+          "generated": "",
+          "identity": "",
+          "default": null
+        },
+        {
+          "name": "journal_retain_until",
+          "type": "timestamp with time zone",
+          "not_null": true,
+          "generated": "",
+          "identity": "",
+          "default": null
+        },
+        {
+          "name": "journal_purpose_reference",
+          "type": "text",
+          "not_null": true,
+          "generated": "",
+          "identity": "",
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "not_null": true,
+          "generated": "",
+          "identity": "",
+          "default": "clock_timestamp()"
+        }
+      ],
+      "constraints": [
+        {
+          "name": "process_retention_origins_pkey",
+          "type": "p",
+          "definition": "PRIMARY KEY (id)",
+          "validated": true
+        },
+        {
+          "name": "process_retention_origins_source_table_target_id_decision_i_key",
+          "type": "u",
+          "definition": "UNIQUE (source_table, target_id, decision_id)",
+          "validated": true
+        },
+        {
+          "name": "process_retention_origins_decision_id_fkey",
+          "type": "f",
+          "definition": "FOREIGN KEY (decision_id) REFERENCES gridex_ediel_retention.record_decisions(id)",
+          "validated": true
+        }
+      ],
+      "triggers": [
+        {
+          "name": "immutable",
+          "enabled": "O",
+          "definition": "CREATE TRIGGER immutable BEFORE DELETE OR UPDATE ON gridex_ediel_retention.process_retention_origins FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.reject_mutation()"
+        },
+        {
+          "name": "no_truncate",
+          "enabled": "O",
+          "definition": "CREATE TRIGGER no_truncate BEFORE TRUNCATE ON gridex_ediel_retention.process_retention_origins FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.reject_mutation()"
+        }
+      ]
+    },
+    "source_units": [
+      {
+        "sql_sha256": "4bf7bbbf8d3b3584ffe18a851489e407fb3d385b1069f853f28c111391837e18",
+        "source_byte_start": 6705756,
+        "source_byte_length": 580
+      },
+      {
+        "sql_sha256": "86729c4fd08c01d4461a6aa6ceff3a11204acd9b6f1ab0b1e75a3b4fe5a02177",
+        "source_byte_start": 6706337,
+        "source_byte_length": 92
+      },
+      {
+        "sql_sha256": "9a8f6cae8ad5858f9dc45a844259e77865681127f00b79d851db96877c7be541",
+        "source_byte_start": 7846344,
+        "source_byte_length": 267
+      },
+      {
+        "sql_sha256": "19773f1cab81ccbe2fc651954ff7d7e8947a05a83539e98d0a50aa2efb4b0534",
+        "source_byte_start": 7846612,
+        "source_byte_length": 362
+      },
+      {
+        "sql_sha256": "b0228411f4e21c0d48ea0b08db37c4561b3a34d2019e3add8cf06700799a4710",
+        "source_byte_start": 8660416,
+        "source_byte_length": 283
+      },
+      {
+        "sql_sha256": "174542c1e3381658d8c6bc818fbc570e227ee83306fc4e26f3aaf4b0355374b4",
+        "source_byte_start": 8670231,
+        "source_byte_length": 285
+      },
+      {
+        "sql_sha256": "46e746891be1002fea68ca9ccdb237137c3c65262f4ee417eb246c1d1a869210",
+        "source_byte_start": 9166594,
+        "source_byte_length": 358
+      },
+      {
+        "sql_sha256": "e6f4e27a2b7b351aaffa65d79671ca05779ab23828784a048e11adb96ee2442d",
+        "source_byte_start": 9728942,
+        "source_byte_length": 192
+      }
+    ],
+    "owner": "gridex_ediel_retention_owner",
+    "owner_actual_role": "NOLOGIN/NOSUPERUSER/NOINHERIT/BYPASSRLS; exact existing native role retained.",
+    "rls": "ENABLE and FORCE ROW LEVEL SECURITY, no policies, immutable UPDATE/DELETE/TRUNCATE guards.",
+    "grants": "No anonymous/authenticated/service table rights; helper EXECUTE only original capture owner postgres plus implicit retention owner.",
+    "helper": {
+      "signature": "public.ediel_capture_customer_record_retention_origin_v1(text,jsonb,jsonb)",
+      "known_canonical_before_body_md5": "c5792bfb611b677f847ea923f42e4947",
+      "after_body_md5": "ba1e28e057578a651fcc542a3af1087d",
+      "replay_fix": "Class-qualified OLD/NEW predicate already permits repeated no-op/updated_at-only redacted updates. Existing immutable origin is tied to scoped company/table/target/decision, original tombstone hash and legal purpose/deadline; replay performs no insertion/hash fabrication. First capture still requires strict original full OLD hash, then validates inserted first redacted hash. Missing/foreign origin fails closed. Existing c579 upgrade preserves complete function identity except body."
+    }
+  },
+  "preserved_actual_helpers": {
+    "public.gridex_company_has_customer_data(uuid)": "a9ac4ebe277b255fed1078bd18df6f7c from newly installed external 122550 source",
+    "public.gridex_company_retained_history_v1(uuid)": "72b22a22ef2e5f0d2ce79e02075ccee6",
+    "validation": "Whole before/after pg_proc identities remain exact; never replace either stronger helper."
+  },
+  "verification": {
+    "receipt": {
+      "path": "/tmp/gridex-api-review/retention-origin-replay-isolated-compile-receipt.json",
+      "sha256": "10c645093e30ebf305eb299984fb98906a936a87cbad6ab1e8a4a2a860a98dc0"
+    },
+    "first_apply_exit": 0,
+    "replay_exit": 0,
+    "known_canonical_upgrade_exit": 0,
+    "negative_contrasts": 12,
+    "independent_peers": [
+      "native_forward_independent_review: APPROVED exact 196244",
+      "final_api_source_review: APPROVED exact 196244"
+    ],
+    "qualification": "Network-none PostgreSQL17.6 actual empty table shapes and real helpers, validators on. Composite-aware compile and complete metadata checks; lazy PLpgSQL SQL execution planning remains uninvoked. Pure built-in JSONB/hash primitives qualify repeated timestamp replay; no business/helper/purge/delete RPC invocation."
+  },
+  "evidence": {
+    "retention-audit-harddelete-fresh-native-full-metadata.json": "/tmp/gridex-api-review/retention-audit-harddelete-fresh-native-full-metadata.json",
+    "retention-audit-record-class-role-native-metadata.json": "/tmp/gridex-api-review/retention-audit-record-class-role-native-metadata.json",
+    "four-retention-company-fk-native-metadata.json": "/tmp/gridex-api-review/four-retention-company-fk-native-metadata.json",
+    "retention-audit-isolated-fresh-native-metadata.json": "/tmp/gridex-api-review/retention-audit-isolated-fresh-native-metadata.json",
+    "retention-origin-supplement-source-plan.json": "/tmp/gridex-api-review/retention-origin-supplement-source-plan.json"
+  },
+  "actual_native_writes_by_author": false,
+  "business_or_personal_rows_read": false,
+  "historical_origin_backfill": false
+}

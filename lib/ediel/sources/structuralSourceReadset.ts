@@ -3,7 +3,11 @@ import {inspectReceivedSourceDecisionTimeline, type SourceDecisionTimeline, type
 import {readStructuralSourceWire,readStructuralMeasurementProjection} from './structuralSourceWire'
 import {isReviewedStructuralBusiness, type ReviewedStructuralBusiness} from './reviewedStructuralSource'
 import {projectProdatRegisterValidation} from '@/lib/ediel/prodat/prodatRegisterValidationEvidence'
-import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
+import {tokenizeEdifact,segmentComposite} from '@/lib/ediel/core/edifactTokenizer'
+import {readInboundAckSourceCorrelation} from '@/lib/ediel/ack/sourceCorrelation'
+import {resolveCanonicalEdielPolicy} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
+import {validateCanonicalAckGuide} from '@/lib/ediel/rulebook/ackGuidePolicy'
+import {canonicalMessageCode} from '@/lib/ediel/core/messageIdentity'
 import {singleMessage} from '@/lib/ediel/utilts/receivedStructuralSources'
 import type {ReceivedSourceScope} from '@/lib/ediel/utilts/durableSourceDiscovery'
 import type {SourceObjectScope} from './sourceOwnerWire'
@@ -20,6 +24,29 @@ export type StructuralReadset={
   timeline:SourceDecisionTimeline; versions:StructuralVersion[];closures:ClosureVersion[];closureBlockers:ScopedClosureBlocker[];
   correctionContextBlockers:CorrectionContextBlockerV1[];unresolvedSources:boolean
   sources:{sourceMessageId:string;rawPayload:string;payloadHash:string;asOf:RecordedSourceAssessment|null;objects:ObjectEntry[];assessments:RawAssessment[]}[]
+}
+
+/** Received physical CONTRL/APERAK share the same ledger and carry no
+ * structure. Only exactly one message that passes the canonical physical ACK
+ * reader (exact UNT/UNZ counts, profile, environment), whose body has no issue
+ * under the national inbound ACK guide of the cutoff date, and whose recorded
+ * code is the intake code of those same bytes is outside this universe. This
+ * grants no correlation or business authority; every other byte stays a hold. */
+function receivedPhysicalAck(scope:ReceivedSourceScope,source:RawSource):boolean{
+  const raw=source.rawPayload!,ack=singleMessage(raw,'CONTRL')??singleMessage(raw,'APERAK')
+  if(!ack)return false
+  const family=ack.messages[0].family,bgm=ack.messages[0].segments.find(segment=>segment.tag==='BGM')
+  try{
+    const physical=readInboundAckSourceCorrelation({id:source.sourceMessageId,environment:scope.environment,direction:'inbound',raw_payload:raw,message_family:family})
+    if(physical.classification.family!==family)return false
+    const tokens=tokenizeEdifact(raw),unh=tokens.segments.find(segment=>segment.tag==='UNH')
+    const policy=resolveCanonicalEdielPolicy({family:family!,messageCode:canonicalMessageCode(family!,''),direction:'inbound',referenceDate:scope.cutoffAt.slice(0,10),
+      associationAssignedCode:family==='APERAK'?segmentComposite(unh,2,tokens.una)[4]??null:null})
+    if(validateCanonicalAckGuide({policy,rawPayload:raw,rawSegments:tokens.segments.map(segment=>segment.raw),una:tokens.una}).length)return false
+  }catch{return false}
+  // Same rule as intake's normalizeEdifactMessageCode for these two families:
+  // the trimmed BGM code when present, otherwise the family itself.
+  return source.messageCode===((bgm?segmentComposite(bgm,1,ack.una)[0]?.trim():'')||family)
 }
 
 /** Lossless follow-up projection of a fully checked service snapshot. This pure
@@ -41,6 +68,7 @@ export function inspectStructuralReadset(scope:ReceivedSourceScope,receipt:unkno
       // recorded code is outside this universe; other bytes stay a global hold.
       const utilts=singleMessage(source.rawPayload,'UTILTS')
       if(utilts&&utilts.messages[0].messageCode===source.messageCode)continue
+      if(receivedPhysicalAck(scope,source))continue
       const ast=singleMessage(source.rawPayload,'PRODAT')
       if(!ast||ast.messages[0].messageCode!==source.messageCode){result.unresolvedSources=true;continue}
       segments+=ast.segments.length

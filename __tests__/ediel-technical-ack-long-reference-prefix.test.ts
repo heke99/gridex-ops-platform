@@ -1,5 +1,7 @@
 // masterplan: SC-014, AT-Z14V-ESCO
-// Execute the full captured require_contrl guard, lexer and envelope in PostgreSQL.
+// Execute the full closed prefix-era require_contrl guard, lexer and envelope.
+// A later captured parent-admission guard is inverted only through its exact
+// source-qualified full-body hashes inside this historical component fixture.
 // Public rows, captured-source basis and current-endpoint readers are declared
 // finite IO ports. No private accepted authority, native admission or SMTP is
 // seeded or claimed. Full-trigger/native qualification remains a separate gate.
@@ -17,6 +19,12 @@ const company=id(1),foreign=id(2),sourceId=id(10),ackId=id(11),prefix='ABCDEFGHI
 type Envelope={sender:string[];receiver:string[];interchangeReference:string;uciReference:string;applicationReference:string;environment:string;testIndicator:string}
 const forward=readFileSync(migration,'utf8')
 const epochHashes={old:'3232a29750f83738243ac958a500d572c21cdc0543c25a5bdcf46ea03869c2a3',new:'464abc12a297a8c6e6cd682499e1750f36f993b50abd1a97e311de5fb027551f'} as const
+// Source-only atomic bb0bd0ce declares the exact prefix-era before body and
+// the later parent-admission after body. Only this closed fixture reconstructs
+// the historical body; the captured production definition remains unchanged.
+const currentCaptureHash='93708f9ab5dccc2d798717fe0654bfedbcf62d602516cb17a91f0f01c2478ed1'
+const prefixParentLookup=" SELECT * INTO source FROM public.ediel_messages WHERE id=m.related_message_id AND direction='inbound' FOR SHARE;"
+const currentParentLookup=" SELECT parent.* INTO source FROM public.ediel_messages parent WHERE parent.id=m.related_message_id AND parent.direction='inbound' AND parent.environment=m.environment AND (parent.company_id=m.company_id OR parent.company_id IS NULL) AND EXISTS(\n   SELECT FROM gridex_ediel_technical_ack.sources receipt WHERE receipt.source_message_id=parent.id AND receipt.company_id=m.company_id\n    AND receipt.environment=parent.environment AND receipt.status='ready' AND receipt.source_received_at IS NOT DISTINCT FROM parent.message_received_at\n    AND receipt.payload_sha256=encode(sha256(convert_to(parent.raw_payload,'UTF8')),'hex')) FOR SHARE;"
 type Epoch=keyof typeof epochHashes
 const digest=(text:string)=>createHash('sha256').update(text).digest('hex')
 function definition(name:string){
@@ -35,15 +43,21 @@ function functionBody(definition:string){
  if(end<start)throw Error('closed_capture_body_unavailable')
  return definition.slice(start,end)
 }
-// 20261016100000 later replaces the candidate filter of this guard; this
+// 20261020120300 later replaces the candidate filter of this guard; this
 // lifecycle fixture verifies the epochs before it.
-const indexed=readFileSync(resolve('supabase/migrations/20261016100000_ediel_technical_ack_original_uniqueness_indexed.sql'),'utf8')
+const indexed=readFileSync(resolve('supabase/migrations/20261020120300_ediel_technical_ack_original_uniqueness_indexed.sql'),'utf8')
 const indexedNeedle=indexed.match(/needle CONSTANT text:=\$n\$([\s\S]*?)\$n\$/)?.[1]
 const indexedReplacement=indexed.match(/replacement CONSTANT text:=\$r\$([\s\S]*?)\$r\$/)?.[1]
 function closedEpochDefinition(captured:string,epoch:Epoch){
  if(!indexedNeedle||!indexedReplacement)throw Error('closed_capture_transform_unavailable')
- const definition=captured.split(indexedReplacement).length===2?captured.replace(indexedReplacement,()=>indexedNeedle):captured
- const body=functionBody(definition),hash=digest(body)
+ let definition=captured.split(indexedReplacement).length===2?captured.replace(indexedReplacement,()=>indexedNeedle):captured
+ let body=functionBody(definition),hash=digest(body)
+ if(hash===currentCaptureHash){
+  if(body.split(currentParentLookup).length!==2)throw Error('closed_capture_transform_unrecognized')
+  const historical=body.replace(currentParentLookup,()=>prefixParentLookup)
+  if(digest(historical)!==epochHashes.new)throw Error('closed_capture_transform_unrecognized')
+  definition=definition.replace(body,()=>historical);body=historical;hash=digest(body)
+ }
  if(hash!==epochHashes.old&&hash!==epochHashes.new)throw Error('closed_capture_epoch_unrecognized')
  if(hash===epochHashes[epoch])return definition
  // This single frozen inverse/forward is only a disposable capture/lifecycle
@@ -67,8 +81,8 @@ const split=(framing:string)=>long().replaceAll(prefix,prefix.slice(0,6)+framing
 const customRelease=()=>wire(prefix+'123456',{advice:"UNA:+.! '"}).replaceAll('+'+prefix,'+!'+prefix)
 const alternate=()=>wire(prefix+'123456',{advice:'UNA:*.? ~',separator:'*',terminator:'~'})
 
-// Both epochs are closed disposable fixture copies of the actual captured
-// definition. This is not a claim that GEN has published either capture.
+// Both epochs are historical disposable fixture copies reconstructed from the
+// exact captured definition. Neither fixture changes current production admission.
 describe.each(['old','new'] as const)('closed captured epoch %s',epoch=>{
 let db:PGlite
 let originalCatalog:unknown
@@ -143,7 +157,7 @@ async function refuses(row:ReturnType<typeof ack>,reason:string){
 
 it.each([
  ['plain20',long],['default release',released],['LF framing',()=>split('\n')],['CRLF framing',()=>split('\r\n')],['custom release',customRelease],['custom separators',alternate],
-])('the full current CONTRL guard qualifies the sole %s original using logical first14',async(_name,make)=>{
+])('the full prefix-era CONTRL guard qualifies the sole %s original using logical first14',async(_name,make)=>{
  const raw=make(),{envelope,evidence}=await admittedPort(raw),before=await snapshot()
  expect(envelope.interchangeReference).toBe(prefix+'123456');expect(envelope.uciReference).toBe(prefix)
  expect(await guard(ack(envelope))).toEqual(evidence)
@@ -223,7 +237,15 @@ it('an independently changed predecessor is refused without altering its body or
  await db.exec('ROLLBACK TO SAVEPOINT unknown_predecessor')
  expect((await db.query<{row:unknown}>('SELECT to_jsonb(p) row FROM pg_proc p WHERE oid=$1::regprocedure',[signature])).rows[0].row).toEqual(before)
 })
-it('a capture outside the two recognized bodies fails before guard installation',()=>{
+it('the current capture reconstructs the exact source-qualified prefix body and round-trips every byte',()=>{
+ const actual=definition('gridex_ediel_technical_ack.require_contrl_v1'),body=functionBody(actual)
+ expect(digest(body)).toBe(currentCaptureHash)
+ const historical=functionBody(closedEpochDefinition(actual,'new'))
+ expect(digest(historical)).toBe(epochHashes.new)
+ expect(historical.split(prefixParentLookup)).toHaveLength(2)
+ expect(historical.replace(prefixParentLookup,()=>currentParentLookup)).toBe(body)
+})
+it('a capture outside the source-qualified bodies fails before guard installation',()=>{
  const actual=definition('gridex_ediel_technical_ack.require_contrl_v1'),body=functionBody(actual)
  const unknown=actual.replace(body,()=>body+'\n-- unrecognized capture\n')
  expect(()=>closedEpochDefinition(unknown,epoch)).toThrow('closed_capture_epoch_unrecognized')

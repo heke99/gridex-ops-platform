@@ -17,7 +17,7 @@ This is a long-lived production project.
 Läs [.agent-memory/masterplan-current-start.md](.agent-memory/masterplan-current-start.md), faktisk main och [coverage.json](quality/audits/ediel-masterplan-v2/coverage.json), sedan senaste [#766](https://github.com/heke99/gridex-ops-platform/issues/766). Daterade baslinjer och tidigare rollprompter är historik; deras antal och ägaruppgifter är inga aktuella uppdrag.
 
 - Godkända regler räknas endast från VERIFIED och kontrakt från PASSED på faktisk main. Välj inte redan godkända eller aktivt ägda ID.
-- Befintliga ägare fortsätter enligt senaste uttryckliga handoff och verifierade refs. En ny agent börjar med read-only granskning och tar inget slot-/fil-/producentägarskap från en gammal prompt.
+- Claude, Codex och andra behöriga agenter har samma rätt att reservera ännu ej godkända och ej aktivt ägda regler/kontrakt inom användarmandatet. Verifiera aktuell main, #766 och exakta liveclaims, och gör egen atomisk CLAIM enligt [reservationsprotokollet](.agent-memory/masterplan-reservations.md#modellneutralt-deltagande) före write. Befintliga ägare behåller sina verifierade scopes; historiska slotnamn ger ingen ny tilldelning.
 - En skrivare per fil och en producent/insamlare per källa. Kod- och dokumenträttningar i aktivt ägd scope kräver avgränsad exact-file-handoff och verifierad egen custody före write. Delat minne kräver role-memory och exakt filcustody.
 - Den befintliga seriella leveransägaren kontrollerar normala main-merges. Aktuellt exakt PR-head/source/base/tree, alla obligatoriska kontroller, relevant genuint underlag och två oberoende slutgranskare krävs. En medförfattare granskar inte sin egen slutversion.
 - GEN, native, backend och originalinsamling sker endast hos befintlig kvalificerad producent. Ingen dubblering, blind CI-rerun, global refstädning eller gateförsvagning. Gamla kvalificerade original återanvänds med uttrycklig source-applicability.
@@ -62,8 +62,10 @@ production customer data or raw credentials in project memory.
 <!-- BEGIN:upstream-review-skills -->
 # Installed agent skills and execution contract
 
-The canonical installed-skill inventory is `skills-lock.json`. The repository
-currently contains 42 project-local skills under `.agents/skills/`.
+The repository contains 45 project-local skills under `.agents/skills/`.
+`skills-lock.json` records upstream sources and hashes for 42 imported skills.
+`browser-e2e`, `gridex-tenant-e2e` and `full-e2e-verification` are three additional
+project-local skills. Read each installed `SKILL.md` for its current instructions.
 
 For every non-trivial task, inspect the available skills before acting. Use all
 skills relevant to the task, but do not run unrelated skills merely to satisfy a
@@ -78,7 +80,7 @@ multi-tenant review, database review, API-contract review, performance review,
 or broad refactor, use the full baseline workflow below. A skill may only be
 skipped when its trigger is objectively absent; record the reason in the audit.
 
-## Canonical inventory: 42 installed skills
+## Installed inventory: 45 project-local skills
 
 ### Orchestration and delivery
 
@@ -139,6 +141,12 @@ skipped when its trigger is objectively absent; record the reason in the audit.
 40. `performance-optimization`
 41. `observability-and-instrumentation`
 42. `sql-optimization-patterns`
+
+### End-to-end verification
+
+43. `browser-e2e`
+44. `gridex-tenant-e2e`
+45. `full-e2e-verification`
 
 The installed `vercel-react-best-practices` skill is available for React and
 Next.js performance work. The repository's installed Next.js documentation in
@@ -286,12 +294,16 @@ Applies to all work against `docs/ediel/masterplan-v2/` (owner decision 2026-10-
 8. **Current assignments and reservations:** follow the latest explicit owner
    handoff and verified exact refs on #766. R1/R2/C1/C2/C3 are historical scope
    labels, not automatically free slots. Additional reviewers may join read-only;
-   writers require a bounded handoff and verified own custody before writes.
+   agents may atomically claim verified free, unapproved scopes under the current
+   user mandate, regardless of agent vendor. Writes in an actively owned scope
+   require a bounded handoff and verified own custody before writes.
    Preserve one writer per file and one producer per source. READY and CI_GREEN
    bind the current exact candidate; MERGED requires authenticated normal delivery.
    Use role-merge for serial expected-head delivery and role-memory plus exact file
-   custody for shared summaries. Never edit an unclaimed coverage row or release
-   foreign resources. Finish current delivery/handoff before choosing another packet.
+   custody for shared summaries. Never edit an unclaimed coverage row. Release of
+   foreign resources follows only the existing bounded proxy/admin exception in
+   [the reservations protocol](.agent-memory/masterplan-reservations.md#proxy-vid401403-och-release).
+   Finish current delivery/handoff before choosing another packet.
 9. **Mandatory documentation before more work:** each agent records what it
    claimed, what it completed, exact commit/verification, blockers/dependencies
    and its next action before starting and after each meaningful transition.

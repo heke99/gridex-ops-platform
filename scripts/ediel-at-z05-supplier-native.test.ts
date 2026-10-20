@@ -66,11 +66,11 @@ async function receivedEnd(variant:typeof variants[number],candidate:ReceivedEnd
   const f=await receivedNationalRescissionEnd(true,false,candidate,
    independent?sibling=>prepareIndependentNationalEndTarget(sibling,provider):undefined)
   await configureAckProfile(f.companyId,f.endWire)
-  return{...f,sourceId:f.endSourceId,wire:f.endWire,startSourceId:f.sourceId,effects:()=>nationalEndEffects(f)}
+  return{...f,endPlan:f.nationalEndPlan,sourceId:f.endSourceId,wire:f.endWire,startSourceId:f.sourceId,effects:()=>nationalEndEffects(f)}
  }
  const f=await receivedLkEnd(true,candidate)
  await configureAckProfile(f.companyId,f.wire)
- return{...f,effects:()=>lkEffects(f)}
+ return{...f,endPlan:{effectiveAt:'2026-10-16T12:30:00Z',endDate:'2026-10-16',endWireMinute:'202610161330'},effects:()=>lkEffects(f)}
 }
 const immutable=(id:string)=>sql(`SELECT jsonb_build_object('raw',raw_payload,
  'direction',direction,'company',company_id,'hash',immutable_payload_hash,'renderedAt',immutable_rendered_at,'receivedAt',message_received_at,
@@ -104,6 +104,7 @@ const ordered=(rows:DurableRow[])=>[...rows].sort((a,b)=>a.id.localeCompare(b.id
 function expectedContractFollowup(input:{before:DurableGraph;after:DurableGraph;period:Record<string,unknown>;
  f:Awaited<ReturnType<typeof receivedEnd>>;startedAt:string;finishedAt:string}):DurableGraph{
  const {before,after,period,f,startedAt,finishedAt}=input
+ const endDate=f.endPlan.endDate
  const contractId=period.customer_contract_id??period.contract_id
  expect(contractId).toBe(f.contractId)
  const contract=before.contracts.find(row=>row.id===contractId)!
@@ -112,7 +113,7 @@ function expectedContractFollowup(input:{before:DurableGraph;after:DurableGraph;
  expect(Number(contract.binding_months??0)).toBe(0)
  const events=newRows(before.contractEvents,after.contractEvents)
  expect(events).toHaveLength(1)
- const event=events[0],endKey=`source-end:${f.periodId}:2026-10-16`
+ const event=events[0],endKey=`source-end:${f.periodId}:${endDate}`
  const eventKey=`supply-end:${f.contractId}:${endKey}`,happenedAt=String(event.happened_at)
  expect(Number.isFinite(Date.parse(happenedAt))).toBe(true)
  expect(Date.parse(happenedAt)).toBeGreaterThanOrEqual(Date.parse(startedAt))
@@ -121,9 +122,9 @@ function expectedContractFollowup(input:{before:DurableGraph;after:DurableGraph;
   event_type:'terminated',actor_user_id:null})
  // The delivered trigger records the retained period basis here. The received
  // end's exact source link is separately asserted on the period and receipts.
- expect(event.metadata).toEqual({ends_at:'2026-10-16',termination_notice_date:happenedAt,
+ expect(event.metadata).toEqual({ends_at:endDate,termination_notice_date:happenedAt,
   termination_reason:'supply_end',reason_code:'supply_end',source_message_id:f.startSourceId,idempotency_key:eventKey})
- const expectedContract={...contract,status:'terminated',ended_at:'2026-10-16T00:00:00+00:00',
+ const expectedContract={...contract,status:'terminated',ended_at:`${endDate}T00:00:00+00:00`,
   termination_notice_date:happenedAt.slice(0,10),termination_reason:'supply_end',status_reason_code:'supply_end',
   metadata:{...(contract.metadata as Record<string,unknown>),status_reason_code:'supply_end'},updated_at:happenedAt,updated_by:null}
  expect(after.contracts.find(row=>row.id===contractId)).toEqual(expectedContract)
@@ -137,7 +138,7 @@ function expectedContractFollowup(input:{before:DurableGraph;after:DurableGraph;
  expect(tasks).toHaveLength(1)
  expect(tasks[0]).toMatchObject({company_id:f.companyId,customer_id:f.customerId,metering_point_id:f.pointId,
   task_type:'final_invoice_pending',status:'open',priority:'high',resolved_at:null})
- expect(tasks[0].metadata).toEqual({supply_end_date:'2026-10-16',end_reason:'supply_end',end_key:endKey,supply_period_id:f.periodId})
+ expect(tasks[0].metadata).toEqual({supply_end_date:endDate,end_reason:'supply_end',end_key:endKey,supply_period_id:f.periodId})
  // Preserve every other contract field, old event/task row, tenant and billing
  // row. Only these exact, independently scoped committed effects may differ.
  return{...before,contracts:before.contracts.map(row=>row.id===contractId?expectedContract:row),
@@ -352,7 +353,7 @@ it.each([{variant:'L',linked:true},{variant:'LK',linked:true},{variant:'L',linke
  expect(after).toMatchObject({period:{id:f.periodId,company_id:f.companyId,customer_id:f.customerId,
   metering_point_id:f.pointId,source_message_id:f.startSourceId,start_date:before.period.start_date,
   market_start_at:before.period.market_start_at,market_state_version:Number(before.period.market_state_version)+1,
-  end_date:'2026-10-16',market_end_at:'2026-10-16T12:30:00+00:00',source_end_message_id:f.sourceId,status:'ending'},
+  end_date:f.endPlan.endDate,market_end_at:f.endPlan.effectiveAt.replace(/(?:\.000)?Z$/,'+00:00'),source_end_message_id:f.sourceId,status:Date.parse(f.endPlan.effectiveAt)<=Date.parse(startedAt)?'ended':'ending'},
   ends:linked?1:0,transitions:1,positive:1,followups:1,audits:linked?1:0})
  const ordinaryReceiptState=()=>sql(`SELECT jsonb_build_object(
   'effects',(SELECT jsonb_agg(to_jsonb(r) ORDER BY id) FROM gridex_received_sources.supply_object_effect_receipts r WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(f.sourceId)}),
@@ -366,7 +367,7 @@ it.each([{variant:'L',linked:true},{variant:'LK',linked:true},{variant:'L',linke
    'effect',r.effect_text::jsonb)) FROM gridex_received_sources.supply_object_effect_receipts r WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(f.sourceId)}`)
   expect(receipts).toHaveLength(1);expect(receipts[0]).toMatchObject({company:f.companyId,environment:'test',source:f.sourceId,hashesValid:true,
    effect:{owner:'inbound-supply-object-v1',sourceMessageId:f.sourceId,companyId:f.companyId,environment:'test',
-    wire:{reason:'Z22',li:'L-INDEPENDENT-OWN-NOTICE',point:f.external,customerIdentity:f.customerIdentity.id,end:'202610161330'},
+    wire:{reason:'Z22',li:'L-INDEPENDENT-OWN-NOTICE',point:f.external,customerIdentity:f.customerIdentity.id,end:f.endPlan.endWireMinute},
     plan:{kind:'end',periodId:f.periodId},resultingStates:[{id:f.periodId,source_end_message_id:f.sourceId}]}})
  }
  const source=(await getEdielMessageById(f.sourceId))!,acks=acknowledgements(f.sourceId)
@@ -469,7 +470,12 @@ it.each(variants)('actual Z05%s current receiving supplier role withdrawal holds
 it.each([
  ['customer',{qualification:'observe',transformParts:(parts:Parts[])=>parts.map(p=>p[0]==='NAD'&&p[1]==='UD'
   ?['NAD','UD',['198001011234','SE2','260'],'','Synthetic Other','Street','City','','12345','SE']:p)}],
- ['end minute',{endDate:'202610161331'}],
+ ['end minute',{transformParts:(parts:Parts[])=>parts.map(p=>{
+  if(p[0]!=='DTM'||!Array.isArray(p[1])||p[1][0]!=='93')return p
+  const actual=String(p[1][1]),next=new Date(Date.UTC(Number(actual.slice(0,4)),Number(actual.slice(4,6))-1,Number(actual.slice(6,8)),Number(actual.slice(8,10)),Number(actual.slice(10,12))+1)).toISOString().slice(0,16).replace(/[-T:]/g,'')
+  expect(next).not.toBe(actual)
+  return ['DTM',['93',next,'203']] as Parts
+ })}],
 ] as const)('actual national L wrong %s cannot execute any end, positive ACK or final-value task',async(_label,candidate)=>{
  const f=await receivedEnd('L',candidate),before=f.effects(),graph=unrelated(f.periodId,f.sourceId),raw=immutable(f.sourceId),original=immutable(f.original.id)
  expect([f.decision.syntaxDecision,f.decision.applicationDecision,f.decision.functionalDecision],JSON.stringify(f.decision.issues)).toEqual(['accepted','accepted','accepted'])
@@ -485,7 +491,7 @@ it.each([
 
 it.each(['outbound H request','inbound L end'] as const)('actual sealed %s rejects byte mutation without losing immutable history or creating an end',async lane=>{
  const f=await receivedEnd('L'),id=lane==='outbound H request'?f.original.id:f.sourceId,before=f.effects(),graph=unrelated(f.periodId,f.sourceId),raw=immutable(f.sourceId),original=immutable(f.original.id)
- const wire=lane==='outbound H request'?f.original.raw_payload!:f.wire,mutated=wire.replace('202610161330','202610161331')
+ const wire=lane==='outbound H request'?f.original.raw_payload!:f.wire,mutated=wire.replace(f.endPlan.endWireMinute,new Date(Date.parse(f.endPlan.effectiveAt)+60000+3600000).toISOString().slice(0,16).replace(/[-T:]/g,''))
  expect(mutated).not.toBe(wire)
  expect(()=>sql(`UPDATE public.ediel_messages SET raw_payload=${literal(mutated)} WHERE id=${literal(id)}`)).toThrow('immutable_ediel_payload_cannot_change')
  expect(f.effects()).toEqual(before);expect(unrelated(f.periodId,f.sourceId)).toEqual(graph);expect(immutable(f.sourceId)).toEqual(raw);expect(immutable(f.original.id)).toEqual(original)

@@ -1,0 +1,23 @@
+{
+  "observed_at": "2026-10-14T08:00:20.473Z",
+  "project_id": "prj_xA3EDI1xztkkyx21e3LY4UhgYrWt",
+  "source_commit": "47a23b7573543021f79df172b44fb051024d2714",
+  "integrated_main": "7952177b13c911427fe529a56fd787d7f3abfc99",
+  "deployment_id": "dpl_ADAyDfYPLkbPx6GJZdvhBYuAk68C",
+  "state": "READY",
+  "target": "production",
+  "aliases": [
+    "app.gridex.se",
+    "gridex-ops-platform.vercel.app",
+    "gridex-ops-platform-div3rsa.vercel.app",
+    "gridex-ops-platform-git-47a23b7573543021f79df172-3861d2-div3rsa.vercel.app"
+  ],
+  "genuine_build_ms": 131855,
+  "reviewed_runtime_files": 3,
+  "authorization": "User explicitly authorized OPS code deployment; app.gridex.se explicitly confirmed as OPS",
+  "limitations": [
+    "No business/provider POST or authenticated Staff/customer flow run",
+    "Remaining Auth-free database installer not applied",
+    "Staff configured E2E remains unqualified"
+  ]
+}

@@ -1,0 +1,794 @@
+{
+  "scope": "Own audited API runtime source applicability, not whole-main regression or frontend database-binding certification",
+  "production_deployment": "dpl_2JbkdPS6zWD32qkgUqXUEfbHkbWX",
+  "state": "READY",
+  "source_sha": "7952177b13c911427fe529a56fd787d7f3abfc99",
+  "pr_source_sha": "de885bc3f00f91e9e924e1fcb71b68717ac10084",
+  "runtime_files": 99,
+  "openapi_files": 54,
+  "build_input_files": 3,
+  "all_compared_blobs_identical": true,
+  "rows": [
+    {
+      "path": "app/admin/customers/actions.part-2.ts",
+      "pr_blob": "e1e8be3bff715a3997a32260cab95af94b305da8",
+      "live_blob": "e1e8be3bff715a3997a32260cab95af94b305da8"
+    },
+    {
+      "path": "app/admin/users/[id]/actions.ts",
+      "pr_blob": "7e89979ff4a0a021f360a5f1a2030908936739b6",
+      "live_blob": "7e89979ff4a0a021f360a5f1a2030908936739b6"
+    },
+    {
+      "path": "app/admin/users/[id]/page.tsx",
+      "pr_blob": "bb709043ec7f4a9f3771a6d26083d92812c04463",
+      "live_blob": "bb709043ec7f4a9f3771a6d26083d92812c04463"
+    },
+    {
+      "path": "app/admin/users/actions.ts",
+      "pr_blob": "b67f92ffd965486045f4fc447f178fdbda92c040",
+      "live_blob": "b67f92ffd965486045f4fc447f178fdbda92c040"
+    },
+    {
+      "path": "app/api/internal/billing/generate-underlay/route.ts",
+      "pr_blob": "b78fc5079a9630aab7f6ecb9723a942bee63dd9f",
+      "live_blob": "b78fc5079a9630aab7f6ecb9723a942bee63dd9f"
+    },
+    {
+      "path": "app/api/internal/billing/period-locks/route.ts",
+      "pr_blob": "7c486c6f70480d970a244c5c2f41e9af3e2971b7",
+      "live_blob": "7c486c6f70480d970a244c5c2f41e9af3e2971b7"
+    },
+    {
+      "path": "app/api/internal/ediel/inbound-request-automation/route.ts",
+      "pr_blob": "f7bbbb9f204c2692e7307ad905105387ceaa0175",
+      "live_blob": "f7bbbb9f204c2692e7307ad905105387ceaa0175"
+    },
+    {
+      "path": "app/api/internal/invoice-exports/[id]/retry/route.ts",
+      "pr_blob": "1210976fb61b4e2c8c41eb4e21735d0378742e83",
+      "live_blob": "1210976fb61b4e2c8c41eb4e21735d0378742e83"
+    },
+    {
+      "path": "app/api/internal/invoice-exports/[id]/route.ts",
+      "pr_blob": "9682a89b43dd16fe373dfa9686c9462d35e6bac2",
+      "live_blob": "9682a89b43dd16fe373dfa9686c9462d35e6bac2"
+    },
+    {
+      "path": "app/api/internal/invoice-exports/[id]/send/route.ts",
+      "pr_blob": "4352f460c34e82772dc6c2847477813407457cc7",
+      "live_blob": "4352f460c34e82772dc6c2847477813407457cc7"
+    },
+    {
+      "path": "app/api/internal/invoice-exports/create/route.ts",
+      "pr_blob": "09f69c3c428783a49fd62da41ad178aa139e61cd",
+      "live_blob": "09f69c3c428783a49fd62da41ad178aa139e61cd"
+    },
+    {
+      "path": "app/api/internal/invoices/[id]/credit/route.ts",
+      "pr_blob": "9ed08f07524dc61d501b86d71f26f17b57972052",
+      "live_blob": "9ed08f07524dc61d501b86d71f26f17b57972052"
+    },
+    {
+      "path": "app/api/internal/invoices/[id]/dispute/route.ts",
+      "pr_blob": "1ffbc406a3d512e38c8772d7a6a13f714c0c22d4",
+      "live_blob": "1ffbc406a3d512e38c8772d7a6a13f714c0c22d4"
+    },
+    {
+      "path": "app/api/internal/invoices/[id]/provider-status/route.ts",
+      "pr_blob": "667ce0c75cff594b47e3d6a01fbfb5d0fab67831",
+      "live_blob": "667ce0c75cff594b47e3d6a01fbfb5d0fab67831"
+    },
+    {
+      "path": "app/api/internal/invoices/[id]/purchase/route.ts",
+      "pr_blob": "d636dd091a161a8469be75fe27102dc319340427",
+      "live_blob": "d636dd091a161a8469be75fe27102dc319340427"
+    },
+    {
+      "path": "app/api/internal/pricing/lock-preview/route.ts",
+      "pr_blob": "17a278a349013ae93ae2145926e00a98e5c654c7",
+      "live_blob": "17a278a349013ae93ae2145926e00a98e5c654c7"
+    },
+    {
+      "path": "app/api/internal/pricing/preview/route.ts",
+      "pr_blob": "c416b2e991ee4e69a3351722deb3d4da98c2ae48",
+      "live_blob": "c416b2e991ee4e69a3351722deb3d4da98c2ae48"
+    },
+    {
+      "path": "app/api/internal/pricing/reprice/route.ts",
+      "pr_blob": "d668713e02e11b06e24855283d976e53545f5b7c",
+      "live_blob": "d668713e02e11b06e24855283d976e53545f5b7c"
+    },
+    {
+      "path": "app/api/v1/contracts/route.ts",
+      "pr_blob": "9b4c95a49d3f5772b85d6bcb3b17fce57f1af679",
+      "live_blob": "9b4c95a49d3f5772b85d6bcb3b17fce57f1af679"
+    },
+    {
+      "path": "app/api/v1/customer-portal/sync/route.ts",
+      "pr_blob": "b61df99f3d1b4c619140648afc065de38d9f8f1b",
+      "live_blob": "b61df99f3d1b4c619140648afc065de38d9f8f1b"
+    },
+    {
+      "path": "app/api/v1/customer/contracts/route.ts",
+      "pr_blob": "60bdc5ab6d71644ddf7770cd88b59caa7333bb45",
+      "live_blob": "60bdc5ab6d71644ddf7770cd88b59caa7333bb45"
+    },
+    {
+      "path": "app/api/v1/customer/documents/route.ts",
+      "pr_blob": "952f29b0e7c8baeb810e3607f96c7d3348e060f9",
+      "live_blob": "952f29b0e7c8baeb810e3607f96c7d3348e060f9"
+    },
+    {
+      "path": "app/api/v1/customer/events/route.ts",
+      "pr_blob": "123fe93077993f345960d5584fbe090a248c0b50",
+      "live_blob": "123fe93077993f345960d5584fbe090a248c0b50"
+    },
+    {
+      "path": "app/api/v1/customer/invoices/[id]/route.ts",
+      "pr_blob": "2c8ff2605190d23cbecbf99b62cd2600eb091143",
+      "live_blob": "2c8ff2605190d23cbecbf99b62cd2600eb091143"
+    },
+    {
+      "path": "app/api/v1/customer/invoices/route.ts",
+      "pr_blob": "46a7c3455b728af0da18826621713fd516cc93cb",
+      "live_blob": "46a7c3455b728af0da18826621713fd516cc93cb"
+    },
+    {
+      "path": "app/api/v1/customer/legal-acceptances/route.ts",
+      "pr_blob": "d2e915a966ce94375dd41d3778efe8dc4e0f22e9",
+      "live_blob": "d2e915a966ce94375dd41d3778efe8dc4e0f22e9"
+    },
+    {
+      "path": "app/api/v1/customer/me/route.ts",
+      "pr_blob": "db5b446de776b6a77883483b89831ac784ae3776",
+      "live_blob": "db5b446de776b6a77883483b89831ac784ae3776"
+    },
+    {
+      "path": "app/api/v1/customer/metering-values/route.ts",
+      "pr_blob": "843392e550c42009e9f80411a2be1998f0e776bf",
+      "live_blob": "843392e550c42009e9f80411a2be1998f0e776bf"
+    },
+    {
+      "path": "app/api/v1/customer/move-out/route.ts",
+      "pr_blob": "2d2b70342a536a206256b1d82620e8a59c4954ac",
+      "live_blob": "2d2b70342a536a206256b1d82620e8a59c4954ac"
+    },
+    {
+      "path": "app/api/v1/customer/notifications/read/route.ts",
+      "pr_blob": "8af42438beb3bb3d1c8aea22aa3ee854100c4a56",
+      "live_blob": "8af42438beb3bb3d1c8aea22aa3ee854100c4a56"
+    },
+    {
+      "path": "app/api/v1/customer/notifications/route.ts",
+      "pr_blob": "ed74b832d2b877994bf13b3d893d8e29bb6c7656",
+      "live_blob": "ed74b832d2b877994bf13b3d893d8e29bb6c7656"
+    },
+    {
+      "path": "app/api/v1/customer/portal-bundle/route.ts",
+      "pr_blob": "e469ec48fa191a07585ac2fb92a2500982361556",
+      "live_blob": "e469ec48fa191a07585ac2fb92a2500982361556"
+    },
+    {
+      "path": "app/api/v1/customer/powers-of-attorney/route.ts",
+      "pr_blob": "d749b14c2b603c909635941e284aec7fc23399ee",
+      "live_blob": "d749b14c2b603c909635941e284aec7fc23399ee"
+    },
+    {
+      "path": "app/api/v1/customer/profile-update/route.ts",
+      "pr_blob": "a17d4975d6b55547beb876e737586fdbab761ac3",
+      "live_blob": "a17d4975d6b55547beb876e737586fdbab761ac3"
+    },
+    {
+      "path": "app/api/v1/customer/sites/route.ts",
+      "pr_blob": "e3ae93d2540788b226637e656983639261b095b8",
+      "live_blob": "e3ae93d2540788b226637e656983639261b095b8"
+    },
+    {
+      "path": "app/api/v1/customer/sync/route.ts",
+      "pr_blob": "d815db1cd3ee8ff080ba6369e969526e6a4fd945",
+      "live_blob": "d815db1cd3ee8ff080ba6369e969526e6a4fd945"
+    },
+    {
+      "path": "app/api/v1/events/route.ts",
+      "pr_blob": "4c2175f29c41cae54b0c187fa44a3636f8649817",
+      "live_blob": "4c2175f29c41cae54b0c187fa44a3636f8649817"
+    },
+    {
+      "path": "app/api/v1/integration/context/route.ts",
+      "pr_blob": "d47942bca43d2879bdcae015766d375cdfbaf92b",
+      "live_blob": "d47942bca43d2879bdcae015766d375cdfbaf92b"
+    },
+    {
+      "path": "app/api/v1/openapi/2026-10-12.1/customer-portal-v1.json/route.ts",
+      "pr_blob": "810ce760d65ae88c65737015506bab7b38f5ce0f",
+      "live_blob": "810ce760d65ae88c65737015506bab7b38f5ce0f"
+    },
+    {
+      "path": "app/api/v1/openapi/2026-10-12.1/staff-v1.json/route.ts",
+      "pr_blob": "6c580bde401871a658f6c633da4f4a6f6d608a34",
+      "live_blob": "6c580bde401871a658f6c633da4f4a6f6d608a34"
+    },
+    {
+      "path": "app/api/v1/openapi/2026-10-12.1/website-integration-v1.json/route.ts",
+      "pr_blob": "495e12a511bf4aef0863f1c1bc89081b9c0af1dc",
+      "live_blob": "495e12a511bf4aef0863f1c1bc89081b9c0af1dc"
+    },
+    {
+      "path": "app/api/v1/public-contracts/diagnostics/route.ts",
+      "pr_blob": "ae283ff9cdd9fa36ce2473a563dd2b07f982a2d2",
+      "live_blob": "ae283ff9cdd9fa36ce2473a563dd2b07f982a2d2"
+    },
+    {
+      "path": "app/api/v1/website/customer-applications/[applicationId]/route.ts",
+      "pr_blob": "d57e1dd75dc2bf6bb27887ed5e61d790b67654a3",
+      "live_blob": "d57e1dd75dc2bf6bb27887ed5e61d790b67654a3"
+    },
+    {
+      "path": "app/api/v1/website/customer-applications/route.ts",
+      "pr_blob": "d980d533a7e5cf869f5d5a3e770e2ce5039940cf",
+      "live_blob": "d980d533a7e5cf869f5d5a3e770e2ce5039940cf"
+    },
+    {
+      "path": "app/api/v1/website/customer-events/route.ts",
+      "pr_blob": "6c6b767eb15719906805e67a8f79b134f5580699",
+      "live_blob": "6c6b767eb15719906805e67a8f79b134f5580699"
+    },
+    {
+      "path": "app/api/v1/website/energy-area/resolve/route.ts",
+      "pr_blob": "89df89d27128c51fd13121131dba79254f38e394",
+      "live_blob": "89df89d27128c51fd13121131dba79254f38e394"
+    },
+    {
+      "path": "app/api/v1/website/legal-bundle/route.ts",
+      "pr_blob": "230cb22a7c326d8cb3e213d7221e3b65621abcd8",
+      "live_blob": "230cb22a7c326d8cb3e213d7221e3b65621abcd8"
+    },
+    {
+      "path": "app/api/v1/website/market-price/current/route.ts",
+      "pr_blob": "9f013f37e3e6aafb50648249949e4a1a802f02f1",
+      "live_blob": "9f013f37e3e6aafb50648249949e4a1a802f02f1"
+    },
+    {
+      "path": "app/api/v1/website/portfolio-prices/route.ts",
+      "pr_blob": "75637ed971b46fa4bbc7448b42a0070ab10e3840",
+      "live_blob": "75637ed971b46fa4bbc7448b42a0070ab10e3840"
+    },
+    {
+      "path": "app/api/v1/website/public-contracts/diagnostics/route.ts",
+      "pr_blob": "044995aadc1ffaf37e892828d69bd3fcb32b3ed5",
+      "live_blob": "044995aadc1ffaf37e892828d69bd3fcb32b3ed5"
+    },
+    {
+      "path": "app/api/v1/website/public-contracts/route.ts",
+      "pr_blob": "9941b8615b41a4655269edf0e1385daa69f6c700",
+      "live_blob": "9941b8615b41a4655269edf0e1385daa69f6c700"
+    },
+    {
+      "path": "app/api/v1/website/quote/route.ts",
+      "pr_blob": "cda7d181849bd7629447712acf664fabba0e7c00",
+      "live_blob": "cda7d181849bd7629447712acf664fabba0e7c00"
+    },
+    {
+      "path": "app/api/v1/website/quote/validate/route.ts",
+      "pr_blob": "a14a328d9b7fa79c21a80d896800dedcd7d3bedd",
+      "live_blob": "a14a328d9b7fa79c21a80d896800dedcd7d3bedd"
+    },
+    {
+      "path": "app/api/v1/website/switch-status/route.ts",
+      "pr_blob": "82c00f849505beaa9dae9f549d172a52d950d79c",
+      "live_blob": "82c00f849505beaa9dae9f549d172a52d950d79c"
+    },
+    {
+      "path": "app/developers/customer-portal-api/page.tsx",
+      "pr_blob": "fbb61197ff37169fe4eec98c74b0401ec962bd6f",
+      "live_blob": "fbb61197ff37169fe4eec98c74b0401ec962bd6f"
+    },
+    {
+      "path": "app/developers/staff-api/page.tsx",
+      "pr_blob": "be43b075811eb875ef8e8201dbb1f039cb15b07d",
+      "live_blob": "be43b075811eb875ef8e8201dbb1f039cb15b07d"
+    },
+    {
+      "path": "lib/admin/apiGuards.ts",
+      "pr_blob": "e77af486d5bd5dd4084cda007c4cc64f9779e663",
+      "live_blob": "e77af486d5bd5dd4084cda007c4cc64f9779e663"
+    },
+    {
+      "path": "lib/admin/platformUserAccess.ts",
+      "pr_blob": "5580742b0dd4ca7b9bd7f043ae59792c1548ef5c",
+      "live_blob": "5580742b0dd4ca7b9bd7f043ae59792c1548ef5c"
+    },
+    {
+      "path": "lib/api/publicPayloadSafety.ts",
+      "pr_blob": "460c8927c1004994ed0c7ec7796b7fad33f74ee6",
+      "live_blob": "460c8927c1004994ed0c7ec7796b7fad33f74ee6"
+    },
+    {
+      "path": "lib/api/publicRouteRegistry.ts",
+      "pr_blob": "0300b018be378b0838fadc93392842750a78dae5",
+      "live_blob": "0300b018be378b0838fadc93392842750a78dae5"
+    },
+    {
+      "path": "lib/billing/providerEventProcessor.ts",
+      "pr_blob": "07f5e5b631d5204864b301a60d52d3afb77a4959",
+      "live_blob": "07f5e5b631d5204864b301a60d52d3afb77a4959"
+    },
+    {
+      "path": "lib/billing/underlayEngine.ts",
+      "pr_blob": "bad02e0dedb0f6ada0be7890cae25a7528ee17a4",
+      "live_blob": "bad02e0dedb0f6ada0be7890cae25a7528ee17a4"
+    },
+    {
+      "path": "lib/contracts/adminContractSchema.ts",
+      "pr_blob": "1b1fbddec496ab98f212e3380dc692e2e83f213e",
+      "live_blob": "1b1fbddec496ab98f212e3380dc692e2e83f213e"
+    },
+    {
+      "path": "lib/customer-contracts/agreementPdf.ts",
+      "pr_blob": "67cdda5bd40e004ba4ec7861f946d8f9e441496e",
+      "live_blob": "67cdda5bd40e004ba4ec7861f946d8f9e441496e"
+    },
+    {
+      "path": "lib/customer-contracts/frozenPriceDisplay.ts",
+      "pr_blob": "3aa7e1c1c92924515526609887d1fdb3f4bd27b9",
+      "live_blob": "3aa7e1c1c92924515526609887d1fdb3f4bd27b9"
+    },
+    {
+      "path": "lib/customer-contracts/onlineSigning.ts",
+      "pr_blob": "19bbfa9c5ec7379a3e0a3fbffa122e8e5add0880",
+      "live_blob": "19bbfa9c5ec7379a3e0a3fbffa122e8e5add0880"
+    },
+    {
+      "path": "lib/customer-portal/customerAssertion.ts",
+      "pr_blob": "e892207d6ee3821d8c83eca4d8e3f5d0798530a3",
+      "live_blob": "e892207d6ee3821d8c83eca4d8e3f5d0798530a3"
+    },
+    {
+      "path": "lib/customer-portal/externalApi.ts",
+      "pr_blob": "46933afe051ea9fb22f37be5418d252f8f9ec9a8",
+      "live_blob": "46933afe051ea9fb22f37be5418d252f8f9ec9a8"
+    },
+    {
+      "path": "lib/customer-portal/publicDto.ts",
+      "pr_blob": "310712e0938ac7c8a0095afe2c85ed840a6c4217",
+      "live_blob": "310712e0938ac7c8a0095afe2c85ed840a6c4217"
+    },
+    {
+      "path": "lib/customer-service/supportApiHandlers.ts",
+      "pr_blob": "20e4b4caf5a3fc5bcdf801db3c8a063e474491c7",
+      "live_blob": "20e4b4caf5a3fc5bcdf801db3c8a063e474491c7"
+    },
+    {
+      "path": "lib/ediel/inboundRequestAutomation.ts",
+      "pr_blob": "1c8bb1629cecde6aff5d899caa38d3d52bb50ae6",
+      "live_blob": "1c8bb1629cecde6aff5d899caa38d3d52bb50ae6"
+    },
+    {
+      "path": "lib/integrations/apiAuth.ts",
+      "pr_blob": "ce918d1bfef4db10b5fc7dc30d88d99934b21d7d",
+      "live_blob": "ce918d1bfef4db10b5fc7dc30d88d99934b21d7d"
+    },
+    {
+      "path": "lib/integrations/apiContractCompatibility.ts",
+      "pr_blob": "6adbdb4fd0639dbe0aeb134fa8c110052218a520",
+      "live_blob": "6adbdb4fd0639dbe0aeb134fa8c110052218a520"
+    },
+    {
+      "path": "lib/integrations/apiResponseProfile.ts",
+      "pr_blob": "55e4e9aff097d90e6ee0138853bae165aaf3b9c4",
+      "live_blob": "55e4e9aff097d90e6ee0138853bae165aaf3b9c4"
+    },
+    {
+      "path": "lib/integrations/openApiReleaseManifest.ts",
+      "pr_blob": "f760bdb7d325dc873fbc5be108846c405a6c28db",
+      "live_blob": "f760bdb7d325dc873fbc5be108846c405a6c28db"
+    },
+    {
+      "path": "lib/integrations/public-api-error-registry.json",
+      "pr_blob": "b69bd7d93f9510e57ebd823f8b0cb28fcd330e9d",
+      "live_blob": "b69bd7d93f9510e57ebd823f8b0cb28fcd330e9d"
+    },
+    {
+      "path": "lib/integrations/webhooks.ts",
+      "pr_blob": "75ac436dd0eb198a4152b35808c7146686cc6a26",
+      "live_blob": "75ac436dd0eb198a4152b35808c7146686cc6a26"
+    },
+    {
+      "path": "lib/integrations/websiteIntegrationContract.ts",
+      "pr_blob": "42deccba0d356483bbf9fb290346bfa105df96f1",
+      "live_blob": "42deccba0d356483bbf9fb290346bfa105df96f1"
+    },
+    {
+      "path": "lib/partner-api/business.ts",
+      "pr_blob": "16ba1e59f1ac1bd7218ea61aa9b8b6b2891e2d27",
+      "live_blob": "16ba1e59f1ac1bd7218ea61aa9b8b6b2891e2d27"
+    },
+    {
+      "path": "lib/partner-api/businessOpenApi.ts",
+      "pr_blob": "74898fcdb34c4795c9e4576b53c1609d63c814d7",
+      "live_blob": "74898fcdb34c4795c9e4576b53c1609d63c814d7"
+    },
+    {
+      "path": "lib/partner-api/core.ts",
+      "pr_blob": "3ffde43ad2c8fb535636910b406e4057ea215909",
+      "live_blob": "3ffde43ad2c8fb535636910b406e4057ea215909"
+    },
+    {
+      "path": "lib/partner-api/measurementRead.ts",
+      "pr_blob": "acb4e1d778a1406879f4c23bead4fb061223c17d",
+      "live_blob": "acb4e1d778a1406879f4c23bead4fb061223c17d"
+    },
+    {
+      "path": "lib/partner-api/offerDirection.ts",
+      "pr_blob": "639cfad498dd3ec058a1ae723f803d1364b99e4e",
+      "live_blob": "639cfad498dd3ec058a1ae723f803d1364b99e4e"
+    },
+    {
+      "path": "lib/partner-api/openApi.ts",
+      "pr_blob": "19a2122e4d0157cc47c495c306115d6badaa0d7e",
+      "live_blob": "19a2122e4d0157cc47c495c306115d6badaa0d7e"
+    },
+    {
+      "path": "lib/partner-api/simple.ts",
+      "pr_blob": "83ea3fa30d3eadcd8b1890bf743d0c68dfbcf935",
+      "live_blob": "83ea3fa30d3eadcd8b1890bf743d0c68dfbcf935"
+    },
+    {
+      "path": "lib/pricing/contractPricingVersioning.ts",
+      "pr_blob": "380f1b6cf5f1eb3fe999e0b53349a2e49fcb9cdd",
+      "live_blob": "380f1b6cf5f1eb3fe999e0b53349a2e49fcb9cdd"
+    },
+    {
+      "path": "lib/pricing/engine.ts",
+      "pr_blob": "f5cbc19bb0eb4df81a871ca99e8bbfd671b8c377",
+      "live_blob": "f5cbc19bb0eb4df81a871ca99e8bbfd671b8c377"
+    },
+    {
+      "path": "lib/pricing/intervalPricing.ts",
+      "pr_blob": "027b5ad4e380b6e6bc3e44cec1175c9245f407ab",
+      "live_blob": "027b5ad4e380b6e6bc3e44cec1175c9245f407ab"
+    },
+    {
+      "path": "lib/pricing/offerQuote.ts",
+      "pr_blob": "af8960325e742f5f1f28f1b6e2bda60079343d6b",
+      "live_blob": "af8960325e742f5f1f28f1b6e2bda60079343d6b"
+    },
+    {
+      "path": "lib/pricing/priceSourceResolver.ts",
+      "pr_blob": "b0d64fe0f2baa0c0dcd9739b4af5634512dfd106",
+      "live_blob": "b0d64fe0f2baa0c0dcd9739b4af5634512dfd106"
+    },
+    {
+      "path": "lib/pricing/snapshotComponents.ts",
+      "pr_blob": "1fc3c794bd0716d089a6bef5ced1695caea4ad15",
+      "live_blob": "1fc3c794bd0716d089a6bef5ced1695caea4ad15"
+    },
+    {
+      "path": "lib/pricing/vat.ts",
+      "pr_blob": "0bd423f82dbc5782c694b0d66f38a0269ac34a29",
+      "live_blob": "0bd423f82dbc5782c694b0d66f38a0269ac34a29"
+    },
+    {
+      "path": "lib/rbac/getAdminUserById.ts",
+      "pr_blob": "76999774ffd39001eb47c55668eb9c9fdf15a83d",
+      "live_blob": "76999774ffd39001eb47c55668eb9c9fdf15a83d"
+    },
+    {
+      "path": "lib/staff-api/caseHandlers.ts",
+      "pr_blob": "3dee37456ca42a6c16d18498db8b617ea1414520",
+      "live_blob": "3dee37456ca42a6c16d18498db8b617ea1414520"
+    },
+    {
+      "path": "lib/staff-api/http.ts",
+      "pr_blob": "b7d22e6bf0555f26872add9597693b11e5be9ccf",
+      "live_blob": "b7d22e6bf0555f26872add9597693b11e5be9ccf"
+    },
+    {
+      "path": "lib/tenant/entityGuards.ts",
+      "pr_blob": "d6b127f60842cc0bc7ed88b2e652f6dff3e3e619",
+      "live_blob": "d6b127f60842cc0bc7ed88b2e652f6dff3e3e619"
+    },
+    {
+      "path": "lib/tenant/scope.ts",
+      "pr_blob": "16181d824476e83cb45672532f3ded97d5ec6d84",
+      "live_blob": "16181d824476e83cb45672532f3ded97d5ec6d84"
+    },
+    {
+      "path": "lib/website/customerApplicationCommunication.ts",
+      "pr_blob": "871206b323db6c11d42983fefc841c56701964de",
+      "live_blob": "871206b323db6c11d42983fefc841c56701964de"
+    },
+    {
+      "path": "lib/website/publicContractApi.ts",
+      "pr_blob": "04c8230aa9d70e6942e0827155a8ab61b7f5783d",
+      "live_blob": "04c8230aa9d70e6942e0827155a8ab61b7f5783d"
+    },
+    {
+      "path": "docs/openapi/customer-portal-v1.json",
+      "pr_blob": "2352ebb11adcb4d9d8b8ffd1b42c42b14aab65f2",
+      "live_blob": "2352ebb11adcb4d9d8b8ffd1b42c42b14aab65f2"
+    },
+    {
+      "path": "docs/openapi/prototypes/2026-10-05.1/staff-onboarding-v1.json",
+      "pr_blob": "fdaa34280a935265cb2124acea0a1c56b06fd0be",
+      "live_blob": "fdaa34280a935265cb2124acea0a1c56b06fd0be"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-02.1/customer-portal-v1.json",
+      "pr_blob": "1680fbf43d10dc1f6753841067759c95fcda4f20",
+      "live_blob": "1680fbf43d10dc1f6753841067759c95fcda4f20"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-02.1/website-integration-v1.json",
+      "pr_blob": "87ebc595d62429845ea3379f5c763d9c94e6d636",
+      "live_blob": "87ebc595d62429845ea3379f5c763d9c94e6d636"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-03.1/customer-portal-v1.json",
+      "pr_blob": "28c409ded33aed7aaaafab9705116144d86f1a34",
+      "live_blob": "28c409ded33aed7aaaafab9705116144d86f1a34"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-03.1/website-integration-v1.json",
+      "pr_blob": "287e57a46d78cac0a1f828bfb2cf656be5f0bfac",
+      "live_blob": "287e57a46d78cac0a1f828bfb2cf656be5f0bfac"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-04.1/customer-portal-v1.json",
+      "pr_blob": "2ad5530e42c5cfe439338ebf0e62005a4e9b0d54",
+      "live_blob": "2ad5530e42c5cfe439338ebf0e62005a4e9b0d54"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-04.1/website-integration-v1.json",
+      "pr_blob": "426fb27b9b64f84a5f7fed23aa52df9ea5d9fe7d",
+      "live_blob": "426fb27b9b64f84a5f7fed23aa52df9ea5d9fe7d"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-04.2/customer-portal-v1.json",
+      "pr_blob": "0491e49a6ed5ee030aa986637c19f6a19c36fd18",
+      "live_blob": "0491e49a6ed5ee030aa986637c19f6a19c36fd18"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-04.2/website-integration-v1.json",
+      "pr_blob": "7a0a68856579287addd8fd97cb313036e3993859",
+      "live_blob": "7a0a68856579287addd8fd97cb313036e3993859"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-04.3/customer-portal-v1.json",
+      "pr_blob": "b2bd3d128d9614527637258edb366c961ea7a3bc",
+      "live_blob": "b2bd3d128d9614527637258edb366c961ea7a3bc"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-04.3/website-integration-v1.json",
+      "pr_blob": "741fa79d826b011a1e942497ee7feb922310166d",
+      "live_blob": "741fa79d826b011a1e942497ee7feb922310166d"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-05.1/customer-portal-v1.json",
+      "pr_blob": "df0c227ff09b2f521d7170c2d8c1215af549f5dc",
+      "live_blob": "df0c227ff09b2f521d7170c2d8c1215af549f5dc"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-05.1/website-integration-v1.json",
+      "pr_blob": "b9cae4947fed39ed84126cc7bf9d70c96d821b6f",
+      "live_blob": "b9cae4947fed39ed84126cc7bf9d70c96d821b6f"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-05.2/customer-portal-v1.json",
+      "pr_blob": "33536ebafe66abe1991079f3d94612b3953bb5e3",
+      "live_blob": "33536ebafe66abe1991079f3d94612b3953bb5e3"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-05.2/website-integration-v1.json",
+      "pr_blob": "436d0208a28ddea3867f227e587d1bb10402e324",
+      "live_blob": "436d0208a28ddea3867f227e587d1bb10402e324"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-10.1/customer-portal-v1.json",
+      "pr_blob": "a50e2a25ea9ed10119287c280a157eb5672d5b36",
+      "live_blob": "a50e2a25ea9ed10119287c280a157eb5672d5b36"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-10.1/website-integration-v1.json",
+      "pr_blob": "d51d8652ed96044ba812d427c80ac15cebe13533",
+      "live_blob": "d51d8652ed96044ba812d427c80ac15cebe13533"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-14.1/customer-portal-v1.json",
+      "pr_blob": "502eceaea33dd66432e606092b01d385687ff59c",
+      "live_blob": "502eceaea33dd66432e606092b01d385687ff59c"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-14.1/website-integration-v1.json",
+      "pr_blob": "40073f1168ca9a3836f03a88d4e7d4c4d475b93d",
+      "live_blob": "40073f1168ca9a3836f03a88d4e7d4c4d475b93d"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-19.1/customer-portal-v1.json",
+      "pr_blob": "03c72765506ce5a7f2bcf14554bd65ffdce8ca78",
+      "live_blob": "03c72765506ce5a7f2bcf14554bd65ffdce8ca78"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-19.1/website-integration-v1.json",
+      "pr_blob": "18d28840f6ae6729d3a88757e5ee7ad7b19defe2",
+      "live_blob": "18d28840f6ae6729d3a88757e5ee7ad7b19defe2"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-19.2/customer-portal-v1.json",
+      "pr_blob": "704eb5d07e7501d80e40b873b73b07e967201288",
+      "live_blob": "704eb5d07e7501d80e40b873b73b07e967201288"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-19.2/website-integration-v1.json",
+      "pr_blob": "92945f1da9e4d1e334fb6baeeb81eb87e2967bff",
+      "live_blob": "92945f1da9e4d1e334fb6baeeb81eb87e2967bff"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-20.1/customer-portal-v1.json",
+      "pr_blob": "6e4eb6c60383f73a1c831d97869aca49c699e37b",
+      "live_blob": "6e4eb6c60383f73a1c831d97869aca49c699e37b"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-20.1/website-integration-v1.json",
+      "pr_blob": "dc3bab79d1b226ae912b916c944c7c25fcf2cebd",
+      "live_blob": "dc3bab79d1b226ae912b916c944c7c25fcf2cebd"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-20.2/customer-portal-v1.json",
+      "pr_blob": "763b6c7be957dd79cf38cf86923bf2ce8cd795e2",
+      "live_blob": "763b6c7be957dd79cf38cf86923bf2ce8cd795e2"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-20.2/website-integration-v1.json",
+      "pr_blob": "18c6570651c41ab7ceff0b4e1790dbba9580ec1a",
+      "live_blob": "18c6570651c41ab7ceff0b4e1790dbba9580ec1a"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-22.1/customer-portal-v1.json",
+      "pr_blob": "9f507754aef67e254a69e012fce8db508ae9118e",
+      "live_blob": "9f507754aef67e254a69e012fce8db508ae9118e"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-22.1/website-integration-v1.json",
+      "pr_blob": "528b582a38e43fb111457b0936c3ce715cd3b0ea",
+      "live_blob": "528b582a38e43fb111457b0936c3ce715cd3b0ea"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-22.2/customer-portal-v1.json",
+      "pr_blob": "b7e9f09da5cd6761447f0a78aea161d172b8d285",
+      "live_blob": "b7e9f09da5cd6761447f0a78aea161d172b8d285"
+    },
+    {
+      "path": "docs/openapi/releases/2026-08-22.2/website-integration-v1.json",
+      "pr_blob": "caf3a6ed189d83eda0f3739f4d9302bc845df791",
+      "live_blob": "caf3a6ed189d83eda0f3739f4d9302bc845df791"
+    },
+    {
+      "path": "docs/openapi/releases/2026-10-01.1/customer-portal-v1.json",
+      "pr_blob": "0ec897437f4e75a69912cc5a795fdd3aef2c5357",
+      "live_blob": "0ec897437f4e75a69912cc5a795fdd3aef2c5357"
+    },
+    {
+      "path": "docs/openapi/releases/2026-10-01.1/website-integration-v1.json",
+      "pr_blob": "12e7aa6c0b873685ae83f6a1484de53b111a2d59",
+      "live_blob": "12e7aa6c0b873685ae83f6a1484de53b111a2d59"
+    },
+    {
+      "path": "docs/openapi/releases/2026-10-02.1/customer-portal-v1.json",
+      "pr_blob": "0299725a9a3b191dd1da5b40977f5594b59520ca",
+      "live_blob": "0299725a9a3b191dd1da5b40977f5594b59520ca"
+    },
+    {
+      "path": "docs/openapi/releases/2026-10-02.1/website-integration-v1.json",
+      "pr_blob": "7168819e8cd885be3832d03805d567375b081397",
+      "live_blob": "7168819e8cd885be3832d03805d567375b081397"
+    },
+    {
+      "path": "docs/openapi/releases/2026-10-02.2/customer-portal-v1.json",
+      "pr_blob": "01d06f8eb6b4a2202a25e71d738689ff9007f979",
+      "live_blob": "01d06f8eb6b4a2202a25e71d738689ff9007f979"
+    },
+    {
+      "path": "docs/openapi/releases/2026-10-02.2/website-integration-v1.json",
+      "pr_blob": "5561a4306103dfcb1b67fd5dbb0ccaf7fdbeded0",
+      "live_blob": "5561a4306103dfcb1b67fd5dbb0ccaf7fdbeded0"
+    },
+    {
+      "path": "docs/openapi/releases/2026-10-02.3/customer-portal-v1.json",
+      "pr_blob": "9548faf1067565e1a2318da54fe56889ca052a20",
+      "live_blob": "9548faf1067565e1a2318da54fe56889ca052a20"
+    },
+    {
+      "path": "docs/openapi/releases/2026-10-02.3/website-integration-v1.json",
+      "pr_blob": "0bcf6cd77b06787779a607c1a5fdd3fb58fd66fc",
+      "live_blob": "0bcf6cd77b06787779a607c1a5fdd3fb58fd66fc"
+    },
+    {
+      "path": "docs/openapi/releases/2026-10-02.4/customer-portal-v1.json",
+      "pr_blob": "b360a51b81353539a7e7687866241538a106825d",
+      "live_blob": "b360a51b81353539a7e7687866241538a106825d"
+    },
+    {
+      "path": "docs/openapi/releases/2026-10-02.4/website-integration-v1.json",
+      "pr_blob": "d80a08ceafecea120e7291d1c4880c89a1d9dc46",
+      "live_blob": "d80a08ceafecea120e7291d1c4880c89a1d9dc46"
+    },
+    {
+      "path": "docs/openapi/releases/2026-10-04.1/customer-portal-v1.json",
+      "pr_blob": "33ce667a6fc253f0d233e77fd5ac02b864a47738",
+      "live_blob": "33ce667a6fc253f0d233e77fd5ac02b864a47738"
+    },
+    {
+      "path": "docs/openapi/releases/2026-10-04.1/staff-v1.json",
+      "pr_blob": "82e754b05f3d3b59e266991d328b3f5a8e87912a",
+      "live_blob": "82e754b05f3d3b59e266991d328b3f5a8e87912a"
+    },
+    {
+      "path": "docs/openapi/releases/2026-10-04.1/website-integration-v1.json",
+      "pr_blob": "0c8333cfc4429def4b48de08a40e7487a4094aa7",
+      "live_blob": "0c8333cfc4429def4b48de08a40e7487a4094aa7"
+    },
+    {
+      "path": "docs/openapi/releases/2026-10-09.1/customer-portal-v1.json",
+      "pr_blob": "0b3877b20e7b887f9f02a7173cdd4f67d9a8d3f2",
+      "live_blob": "0b3877b20e7b887f9f02a7173cdd4f67d9a8d3f2"
+    },
+    {
+      "path": "docs/openapi/releases/2026-10-09.1/staff-v1.json",
+      "pr_blob": "2049e6094d8ccdbce06c792943ea02de035b0f34",
+      "live_blob": "2049e6094d8ccdbce06c792943ea02de035b0f34"
+    },
+    {
+      "path": "docs/openapi/releases/2026-10-09.1/website-integration-v1.json",
+      "pr_blob": "eb401e995e2c623f35c2130c0e529edc20db3b30",
+      "live_blob": "eb401e995e2c623f35c2130c0e529edc20db3b30"
+    },
+    {
+      "path": "docs/openapi/releases/2026-10-12.1/customer-portal-v1.json",
+      "pr_blob": "2352ebb11adcb4d9d8b8ffd1b42c42b14aab65f2",
+      "live_blob": "2352ebb11adcb4d9d8b8ffd1b42c42b14aab65f2"
+    },
+    {
+      "path": "docs/openapi/releases/2026-10-12.1/staff-v1.json",
+      "pr_blob": "f841277bba48629c0c5e02746ab07068299a7407",
+      "live_blob": "f841277bba48629c0c5e02746ab07068299a7407"
+    },
+    {
+      "path": "docs/openapi/releases/2026-10-12.1/website-integration-v1.json",
+      "pr_blob": "4e7de3225428515e953ddda968b6a2b1a10830ee",
+      "live_blob": "4e7de3225428515e953ddda968b6a2b1a10830ee"
+    },
+    {
+      "path": "docs/openapi/staff-onboarding-v1.json",
+      "pr_blob": "c9ad8163138223f9430f577aa97c3fb8dc633aba",
+      "live_blob": "c9ad8163138223f9430f577aa97c3fb8dc633aba"
+    },
+    {
+      "path": "docs/openapi/staff-v1.json",
+      "pr_blob": "f841277bba48629c0c5e02746ab07068299a7407",
+      "live_blob": "f841277bba48629c0c5e02746ab07068299a7407"
+    },
+    {
+      "path": "docs/openapi/website-integration-v1.json",
+      "pr_blob": "4e7de3225428515e953ddda968b6a2b1a10830ee",
+      "live_blob": "4e7de3225428515e953ddda968b6a2b1a10830ee"
+    },
+    {
+      "path": "next.config.ts",
+      "pr_blob": "4d7937a4359df53410b019139b1323430f911415",
+      "live_blob": "4d7937a4359df53410b019139b1323430f911415"
+    },
+    {
+      "path": "package.json",
+      "pr_blob": "bf3a30b706a96bacf8dbcf158ed99ae405881689",
+      "live_blob": "bf3a30b706a96bacf8dbcf158ed99ae405881689"
+    },
+    {
+      "path": "package-lock.json",
+      "pr_blob": "0e19ad13ea476c169f63f0cb8f6c4d2164c13847",
+      "live_blob": "0e19ad13ea476c169f63f0cb8f6c4d2164c13847"
+    }
+  ],
+  "independent_read_only_reviewer": "/root/signing_forward_peer_one"
+}

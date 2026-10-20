@@ -1,0 +1,40 @@
+{
+  "project_id": "piidsfebjqjmnepdpnas",
+  "source_sha256": "63904985da1839411425fe1ff53ae32d185d4def91f40a83f1b6ffb2bb00fc78",
+  "source_commit": "5e63abe419094c0efe9d2a67fcb9459ebb0b0fc4",
+  "started_at": "2026-10-13 16:06:35 UTC",
+  "completed_at": "2026-10-13 16:06:45 UTC",
+  "tool_success": true,
+  "before": {
+    "captured_at": "2026-10-13 16:04:50.715365+00",
+    "receipt_count": 25,
+    "full_receipts_hash": "6b827d43dfff4516a8b65201fe5efec7",
+    "ledger_count": 506,
+    "full_ledger_hash": "958f8b2620727ff3d53c779209227c6a",
+    "candidate_existing": 0
+  },
+  "after": {
+    "captured_at": "2026-10-13 16:08:24.249524+00",
+    "receipt_count": 81,
+    "previous_receipt_count": 25,
+    "previous_full_receipts_hash": "6b827d43dfff4516a8b65201fe5efec7",
+    "ledger_count": 506,
+    "full_ledger_hash": "958f8b2620727ff3d53c779209227c6a",
+    "new_receipts": 56,
+    "source_transports": 52,
+    "bounded_inputs": 4,
+    "invalid_new_receipts": 0,
+    "native_input_mismatches": 0,
+    "atomic_registrations": 0
+  },
+  "previous_full_rows_and_ledger_preserved": true,
+  "new_receipts_source_input_only": true,
+  "effects_verified": false,
+  "full_module_registered": false,
+  "business_rpcs_called": false,
+  "prior_independent_approvals": [
+    "final_api_source_review",
+    "native_forward_independent_review"
+  ],
+  "isolated_compile_receipt_sha256": "1ca146f6aabcb61a3006507c16214c760ae60f1b89435823ad9ede9223ac2828"
+}

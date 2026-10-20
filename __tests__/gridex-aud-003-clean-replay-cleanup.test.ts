@@ -21,7 +21,10 @@ const inputs=[
  'supabase/bootstrap/20260902_inbound_ediel_pipeline_replay_prerequisite.sql',
  'supabase/bootstrap/20260902_grid_owner_name_key_replay_prerequisite.sql',
  'supabase/bootstrap/20260902_white_label_admin_membership_hygiene_replay_shim.sql',
+ 'scripts/sql/gridex-local-storage-owner-bootstrap.sql',
 ]
+// Version discovery is a finite CLI identity port; operational calls keep their original trace.
+const supabaseVersionPort="if [[ \"$1\" == --version ]]; then printf '2.101.0\\n'; exit 0; fi\n"
 const quote=(v:string)=>"'" + v.replaceAll("'","'\\''") + "'"
 function copy(root:string,relative:string){const target=join(root,relative);mkdirSync(dirname(target),{recursive:true});copyFileSync(join(repo,relative),target)}
 function executable(path:string,body:string){writeFileSync(path,'#!/bin/bash\nset -eu\n'+body);chmodSync(path,0o755)}
@@ -39,7 +42,7 @@ function fixture(full=false){
  const bin=join(root,'bin'),trace=join(root,'trace.txt');mkdirSync(bin)
  for(const name of ['dirname','mktemp','mkdir','rm','mv','sha256sum','awk'])symlinkSync('/usr/bin/'+name,join(bin,name))
  symlinkSync(python,join(bin,'python3'));symlinkSync('/usr/bin/cp',join(bin,'cp'))
- executable(join(bin,'supabase'),"printf 'supabase:%s\\n' \"$1\" >> "+quote(trace)+"\nif [[ \"$1\" == start ]]; then exit 71; fi\n")
+ executable(join(bin,'supabase'),supabaseVersionPort+"printf 'supabase:%s\\n' \"$1\" >> "+quote(trace)+"\nif [[ \"$1\" == start ]]; then exit 71; fi\n")
  executable(join(bin,'psql'),"printf 'psql\\n' >> "+quote(trace)+"\nexit 86\n")
  const run=()=>spawnSync('/bin/bash',[join(root,script)],{cwd:root,encoding:'utf8',timeout:30_000,env:{...process.env,PATH:bin,GRIDEX_REPLAY_DB_URL:'',TMPDIR:root}})
  const calls=()=>existsSync(trace)?readFileSync(trace,'utf8').trim().split('\n'):[]
@@ -84,6 +87,6 @@ it.each(['present','absent'] as const)('a failed local start restores sources an
 })
 it('first SQL failure after successful local start restores originals and stops only that attempted stack',()=>{
  const f=fixture(true),before=snapshot(f)
- executable(join(f.bin,'supabase'),"printf 'supabase:%s\\n' \"$1\" >> "+quote(f.trace)+"\n")
+ executable(join(f.bin,'supabase'),supabaseVersionPort+"printf 'supabase:%s\\n' \"$1\" >> "+quote(f.trace)+"\n")
  const result=preservedFailure(f,before);expect(result.status).toBe(86);expect(f.calls()).toEqual(['supabase:start','psql','supabase:stop']);expect(existsSync(join(f.root,'supabase/.temp/postgres-version'))).toBe(false)
 })

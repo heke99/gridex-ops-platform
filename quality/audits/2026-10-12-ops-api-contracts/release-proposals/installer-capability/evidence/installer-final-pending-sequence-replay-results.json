@@ -1,0 +1,38 @@
+[
+  {
+    "order": 1,
+    "sha256": "d821d77e00f5dbb25d599e339bc3d36cfd73b78133e2d2f36e29b56557420ff7",
+    "exit_code": 0,
+    "log": "/tmp/gridex-api-review/installer-final-sequence-1-genuine-replay.log"
+  },
+  {
+    "order": 2,
+    "sha256": "edcd6154285a0f960ecf3599e34e2e961a2075531434c7ae8e139e42b3e74858",
+    "exit_code": 0,
+    "log": "/tmp/gridex-api-review/installer-final-sequence-2-genuine-replay.log"
+  },
+  {
+    "order": 3,
+    "sha256": "1e6af520f4946864bd3626fc5e4fc9b711380df1dce2875a649da788aadce448",
+    "exit_code": 0,
+    "log": "/tmp/gridex-api-review/installer-final-sequence-3-genuine-replay.log"
+  },
+  {
+    "order": 4,
+    "sha256": "5feebfef8c7935867b6846b1c841ca15b46ccab284474c0912406614ddd5535a",
+    "exit_code": 0,
+    "log": "/tmp/gridex-api-review/installer-final-sequence-4-genuine-replay.log"
+  },
+  {
+    "order": 5,
+    "sha256": "2ff105e0d8f1a9cc9e84fbf7c060a52bf6bdf8d7f9c7e75a843f4bb209fa0425",
+    "exit_code": 0,
+    "log": "/tmp/gridex-api-review/installer-final-sequence-5-genuine-replay.log"
+  },
+  {
+    "order": 6,
+    "sha256": "5aa1fd4fc45a85819b683dff4756d97ad3c3387e9e2d9bd1a9424b63ebb9d4c9",
+    "exit_code": 0,
+    "log": "/tmp/gridex-api-review/installer-final-sequence-6-genuine-replay.log"
+  }
+]

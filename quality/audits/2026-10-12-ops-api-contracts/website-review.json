@@ -1,0 +1,1166 @@
+{
+  "schema": "ops-api-operation-review-v1",
+  "review_date": "2026-10-12",
+  "scope": "OPS Website/integration API only; gridex-web and tenant repositories excluded",
+  "baseline_commit": "f36dbba1",
+  "workspace": "/tmp/gridex-api-audit-ops",
+  "branch": "codex/ops-api-contract-review-20261012",
+  "verdict": "ALL_16_OPERATIONS_HAVE_MOUNTED_SYNTHETIC_SUCCESS_PROOF; production SQL, hosted providers and full customer E2E remain unverified",
+  "skill_routing": {
+    "activated": [
+      "spec-to-code-compliance",
+      "code-review",
+      "find-bugs",
+      "fp-check",
+      "supabase",
+      "supabase-postgres-best-practices",
+      "verification-before-completion",
+      "code-security",
+      "sharp-edges"
+    ],
+    "baseline_review_applied": "Repository truth, tenant boundaries, security and behavior reviews read within exact delegated scope. Parent owns global review plan/scans/release matrix.",
+    "skipped": [
+      "Ediel writer workflow: not this assignment",
+      "web-design-guidelines/react performance: no UI edits",
+      "hooks: not requested",
+      "SARIF: no output produced",
+      "new worktree creation: provided isolated worktree",
+      "multiagent: parent explicitly forbids further agents",
+      "full quality-playbook artifact/bootstrap: parent restricts artifact paths; evidence/behavior discipline applied only"
+    ]
+  },
+  "documents": [
+    "docs/external-website-api-integration-guide.md",
+    "docs/single-api-key-tenant-integration.md",
+    "docs/openapi/website-integration-v1.json",
+    "docs/api-compatibility-policy.md",
+    "docs/api-migration-guide.md"
+  ],
+  "common_boundary": {
+    "authentication": "Every operation calls requireIntegrationApiAccess with Website/API-specific scopes; authenticate_integration_request_v1 binds company_id from credential and applies tenant status/IP/rate policy. No caller companyId selects tenant.",
+    "response": "customerPortalJson supplies canonical error/requestID/contractschemaVersion/no-store headers and public payload safety. Feed success handlers use explicit safe NextResponse DTOs.",
+    "secondary_telemetry": "Request/usage logging not proof of successful durable domain effects.",
+    "review_limit": "No credentials inspected, no live mutation/deploy/schema/type generation, no Ediel activeowner writes."
+  },
+  "business_invariants": {
+    "selection": "offer_reference exclusively resolves tenant-visible canonical publication, then exact product/pricing/legal graph; no arbitrary internal selector intake.",
+    "pricing": "Authoritative calculator retains hidden fees; public DTO strips private market rowIDs. Area-bound quote commercial selection and hash include immutable accepted components.",
+    "settlement": "Only fixed energy locked signup; non-fixed preview data not future billing energy settlement.",
+    "legal": "Accepted bundle public ref maps exact internalimmutable version; signedPOA textVersionId must accepted bundle primary document; DB trigger tests rollback alternate document.",
+    "intake_attribution": "Onboarding command uses credential company_id, channel website, applicationRow source id, api_client metadata; external_contract_intakes company_id and source_channel external_website_api. Checked source; No current live successful customer pipeline tested.",
+    "asynchrony": "Canonical customer graph commit owns intake; continuation separate; signed agreement and delivery separate statuses. Statusread tests missing."
+  },
+  "compatibility": {
+    "supported_profiles_observed": [
+      "2026-10-02.3",
+      "2026-10-04.1",
+      "2026-10-09.1"
+    ],
+    "minimum": "2026-10-02.3",
+    "historical_fixtures_are_not_support_proof": true,
+    "schema_diff": "Supported Website business request/response fields and required lists were unchanged between 2026-10-02.3, 2026-10-04.1 and 2026-10-09.1. New unpublished 2026-10-12.1 corrects the historical nullable fixed-quote market reference schema; parent owns complete revision/projection matrix. Immutable schemas remain unchanged.",
+    "executed_proof": "api-legacy-client-profiles test asserts synthetic reference helper revision acceptance and malformed payload refusal, not generated strict client or frozen HTTP request replay.",
+    "remaining": "Parent owns supported frozen-client matrix and server-owned response profile integration. Historical fixed quotevalidation market_reference null mismatch remains in frozen 2026-10-02.3/2026-10-04.1 schemas; current 2026-10-12.1 corrected. No native/hosted compatibility assurance inferred from registry."
+  },
+  "operations": [
+    {
+      "operation_id": "getApiV1IntegrationContext",
+      "method": "GET",
+      "path": "/api/v1/integration/context",
+      "handler": "app/api/v1/integration/context/route.ts",
+      "required_scope": [
+        "integration_context.read"
+      ],
+      "sql_dependencies": [
+        "companies",
+        "tenant_website_readiness_v",
+        "company_capabilities",
+        "webhook_subscriptions"
+      ],
+      "asserting_tests": [
+        {
+          "file": "__tests__/website-api-operation-contracts.test.ts",
+          "assertion": "Actual context loader/readiness evaluator/public projector return ready own-company checkout and complete integration; required scope and company-filtered reads asserted.",
+          "level": "mounted_synthetic_transport_behavior",
+          "executed": "PASS"
+        }
+      ],
+      "coverage_gaps": [
+        "Hosted readiness and automation-account configuration remain unverified."
+      ],
+      "verdict": "MOUNTED_CURRENT_CONTRACT_SUCCESS_AND_BUSINESS_ASSERTIONS_PASS; native/hosted qualification limited"
+    },
+    {
+      "operation_id": "getApiV1WebsitePublicContracts",
+      "method": "GET",
+      "path": "/api/v1/website/public-contracts",
+      "handler": "app/api/v1/website/public-contracts/route.ts",
+      "required_scope": [
+        "website_contracts.read"
+      ],
+      "sql_dependencies": [
+        "public_contract_feed_fingerprint_v1",
+        "contract_publication_revisions",
+        "canonical_visible_public_contracts_v",
+        "canonical_public_contract_delivery_readiness_v",
+        "contract_publication_readiness_v",
+        "contract_price_options",
+        "contract_price_option_area_prices",
+        "legal_bundle_versions",
+        "legal_bundle_version_documents",
+        "portfolio_monthly_settlements",
+        "companies"
+      ],
+      "asserting_tests": [
+        {
+          "file": "__tests__/public-contract-route-openapi-regression.test.ts",
+          "assertion": "Actual GET response and headers against published OpenAPI; one malformed visible row refuses entire feed 503.",
+          "level": "behavior",
+          "executed": "PASS"
+        },
+        {
+          "file": "__tests__/public-contract-profile-etag.test.ts",
+          "assertion": "Conditional GET authenticated first; weak/list/wildcard; tenant/customer type/schema/representation/profile cache identity.",
+          "level": "behavior",
+          "executed": "PASS"
+        },
+        {
+          "file": "__tests__/main-baseline-pr223-public-contract-tenant-reference.test.ts",
+          "assertion": "Concurrent failing reads retain only their own tenant evidence.",
+          "level": "behavior",
+          "executed": "PASS"
+        },
+        {
+          "file": "__tests__/public-contract-canonical-model.test.ts",
+          "assertion": "Legal and price-option serialization hides implementation IDs and rejects incomplete canonical model.",
+          "level": "behavior",
+          "executed": "PASS"
+        }
+      ],
+      "coverage_gaps": [
+        "Handler mocks publication transport; full production SQL publication graph is not executed by these route tests."
+      ],
+      "verdict": "PARTIAL_BEHAVIOR_COVERAGE"
+    },
+    {
+      "operation_id": "getApiV1WebsitePublicContractsDiagnostics",
+      "method": "GET",
+      "path": "/api/v1/website/public-contracts/diagnostics",
+      "handler": "app/api/v1/website/public-contracts/diagnostics/route.ts",
+      "required_scope": [
+        "website_contracts.diagnostics"
+      ],
+      "sql_dependencies": [
+        "canonical_public_contract_delivery_readiness_v",
+        "contract_publication_revisions",
+        "companies",
+        "tenant_website_readiness_v"
+      ],
+      "asserting_tests": [
+        {
+          "file": "__tests__/public-contract-api-hardening.test.ts",
+          "assertion": "Shared query parser rejects unknown, duplicate, widening parameters.",
+          "level": "behavior",
+          "executed": "PASS"
+        },
+        {
+          "file": "__tests__/website-api-operation-contracts.test.ts",
+          "assertion": "Actual canonical diagnostics execute graph/pricing checks and safe projection; one own-company visible offer 200 without legacy id; correct scope/channel asserted.",
+          "level": "mounted_synthetic_transport_behavior",
+          "executed": "PASS"
+        }
+      ],
+      "coverage_gaps": [
+        "Native canonical diagnostics view computation not executed by finite transport."
+      ],
+      "verdict": "MOUNTED_CURRENT_CONTRACT_SUCCESS_AND_BUSINESS_ASSERTIONS_PASS; native/hosted qualification limited"
+    },
+    {
+      "operation_id": "getApiV1Contracts",
+      "method": "GET",
+      "path": "/api/v1/contracts",
+      "handler": "app/api/v1/contracts/route.ts",
+      "required_scope": [
+        "api_contracts.read"
+      ],
+      "sql_dependencies": [
+        "gridex_list_external_api_contracts",
+        "contract_publication_revisions",
+        "canonical_public_contract_delivery_readiness_v",
+        "companies",
+        "tenant_website_readiness_v"
+      ],
+      "asserting_tests": [
+        {
+          "file": "__tests__/api-channel-contract-etag.test.ts",
+          "assertion": "Real mounted handler refuses cross-customer-type 304, keeps same-filter 304 and authenticates before condition.",
+          "level": "behavior",
+          "executed": "PASS"
+        },
+        {
+          "file": "__tests__/api-channel-contract-feed.test.ts",
+          "assertion": "Actual mapped populated and canonical-empty responses validate published schema; mixed malformed+valid feed 503; emptyRPC with visible diagnostics503; alias same handler.",
+          "level": "behavior",
+          "executed": "PASS"
+        }
+      ],
+      "coverage_gaps": [
+        "DatabaseRPC and diagnostics are finite mocked transports; SQL publication eligibility is reviewed source, not live E2E."
+      ],
+      "verdict": "CONFIRMED_DEFECTS_FIXED_TARGETED_BEHAVIOR_PASS"
+    },
+    {
+      "operation_id": "getApiV1PublicContracts",
+      "method": "GET",
+      "path": "/api/v1/public-contracts",
+      "handler": "app/api/v1/public-contracts/route.ts -> contracts/route.ts",
+      "required_scope": [
+        "api_contracts.read"
+      ],
+      "sql_dependencies": [
+        "gridex_list_external_api_contracts",
+        "contract_publication_revisions",
+        "canonical_public_contract_delivery_readiness_v",
+        "companies",
+        "tenant_website_readiness_v"
+      ],
+      "asserting_tests": [
+        {
+          "file": "__tests__/api-channel-contract-etag.test.ts",
+          "assertion": "Real mounted handler refuses cross-customer-type 304, keeps same-filter 304 and authenticates before condition.",
+          "level": "behavior",
+          "executed": "PASS"
+        },
+        {
+          "file": "__tests__/api-channel-contract-feed.test.ts",
+          "assertion": "Actual mapped populated and canonical-empty responses validate published schema; mixed malformed+valid feed 503; emptyRPC with visible diagnostics503; alias same handler.",
+          "level": "behavior",
+          "executed": "PASS"
+        }
+      ],
+      "coverage_gaps": [
+        "DatabaseRPC and diagnostics are finite mocked transports; SQL publication eligibility is reviewed source, not live E2E."
+      ],
+      "verdict": "CONFIRMED_DEFECTS_FIXED_TARGETED_BEHAVIOR_PASS"
+    },
+    {
+      "operation_id": "postApiV1WebsiteQuote",
+      "method": "POST",
+      "path": "/api/v1/website/quote",
+      "handler": "app/api/v1/website/quote/route.ts",
+      "required_scope": [
+        "website_quotes.write"
+      ],
+      "sql_dependencies": [
+        "contract_publication_revisions",
+        "canonical_visible_public_contracts_v",
+        "canonical_public_contract_delivery_readiness_v",
+        "contract_publication_readiness_v",
+        "contract_price_options",
+        "contract_price_option_area_prices",
+        "legal_bundle_versions",
+        "legal_bundle_version_documents",
+        "portfolio_monthly_settlements",
+        "companies",
+        "customer_site_resolution",
+        "website_contract_quotes",
+        "integration_api_write_idempotency",
+        "spot_price_intervals",
+        "spot_price_daily_summaries",
+        "canonical_energy_flow_events",
+        "canonical_energy_remediation_queue",
+        "spot_price_monthly_summaries",
+        "market_price_previews",
+        "portfolio_price_estimates",
+        "price_plan_versions",
+        "price_components",
+        "pricing_component_rules"
+      ],
+      "asserting_tests": [
+        {
+          "file": "__tests__/website-quote-input-contract.test.ts",
+          "assertion": "Real handler requires customer_type before idempotency/calculation; actual calculator rejects1.5 instead of truncating; supported integer and private/business/company alias behavior.",
+          "level": "behavior",
+          "executed": "PASS"
+        },
+        {
+          "file": "__tests__/offer-quote-invoice-fee.test.ts",
+          "assertion": "Real calculator keeps a hidden invoice fee in quote totals/lines.",
+          "level": "behavior",
+          "executed": "PASS"
+        },
+        {
+          "file": "__tests__/public-website-quote.test.ts",
+          "assertion": "Safe public DTO projection; old cached success/error idempotency payload projection; deterministic serialization.",
+          "level": "behavior",
+          "executed": "PASS"
+        },
+        {
+          "file": "__tests__/website-quote-persistence-invariant.test.ts",
+          "assertion": "Input validation fails before insert on missing option/invoice selection and bad pricing schema.",
+          "level": "behavior",
+          "executed": "PASS"
+        },
+        {
+          "file": "__tests__/usage-event-and-integration-idempotency.test.ts",
+          "assertion": "Stable hash ordering; commercial changes change hash; requiredIdempotencyKey checked.",
+          "level": "behavior",
+          "executed": "PASS"
+        },
+        {
+          "file": "__tests__/website-api-operation-contracts.test.ts",
+          "assertion": "Actual offer resolver, commercial selection, calculator, immutable quote/hash persistence and public DTO produce SE3 fixed 125 \u00f6re and1,250 SEK monthly preview; company/legal/publication identity asserted. Same-key replay returns same quote; changed count 409 without another quote.",
+          "level": "mounted_synthetic_transport_behavior",
+          "executed": "PASS"
+        }
+      ],
+      "coverage_gaps": [
+        "Idempotency unique constraint is modeled by the finite transport, not native concurrent PostgreSQL execution.",
+        "Provider-backed market/portfolio quote calculation and production pricing persistence remain unverified; actual tested calculator uses fixed pricing."
+      ],
+      "verdict": "MOUNTED_CURRENT_CONTRACT_SUCCESS_AND_BUSINESS_ASSERTIONS_PASS; native/hosted qualification limited"
+    },
+    {
+      "operation_id": "postApiV1WebsiteQuoteValidate",
+      "method": "POST",
+      "path": "/api/v1/website/quote/validate",
+      "handler": "app/api/v1/website/quote/validate/route.ts",
+      "required_scope": [
+        "website_quotes.validate"
+      ],
+      "sql_dependencies": [
+        "website_contract_quotes",
+        "customer_site_resolution",
+        "website_customer_applications",
+        "canonical_energy_flow_events",
+        "contract_publication_revisions",
+        "canonical_visible_public_contracts_v",
+        "canonical_public_contract_delivery_readiness_v",
+        "contract_publication_readiness_v",
+        "contract_price_options",
+        "contract_price_option_area_prices",
+        "legal_bundle_versions",
+        "legal_bundle_version_documents",
+        "portfolio_monthly_settlements",
+        "companies"
+      ],
+      "asserting_tests": [
+        {
+          "file": "__tests__/quote-validation-api-contract.test.ts",
+          "assertion": "Closed fields and unchanged request schema parity only.",
+          "level": "static",
+          "executed": "PASS"
+        },
+        {
+          "file": "__tests__/website-quote-validate-contract-parity.test.ts",
+          "assertion": "Source retains valid_until and projects public market-reference only.",
+          "level": "static",
+          "executed": "PASS"
+        },
+        {
+          "file": "__tests__/external-pricing-boundary.test.ts",
+          "assertion": "Mounted endpoint returns401 before storage for anonymous request.",
+          "level": "behavior",
+          "executed": "PASS"
+        },
+        {
+          "file": "__tests__/website-api-operation-contracts.test.ts",
+          "assertion": "Real quote 201 followed by validation 200 executes persisted hash, publication/legal/resolution and commercial assertions. Tampered snapshot, revocation and other-application consumption 409; legacy expired quote reactivates despite elapsed resolution freshness.",
+          "level": "mounted_synthetic_transport_behavior",
+          "executed": "PASS"
+        }
+      ],
+      "coverage_gaps": [
+        "Actual native SQL quote integrity/consumption transaction under concurrent intake remains unverified.",
+        "Frozen supported 2026-10-02.3/2026-10-04.1 schemas incorrectly disallow fixed market_reference: null;12.1 corrects historical schema/runtime divergence without rewriting frozen bytes."
+      ],
+      "verdict": "MOUNTED_CURRENT_CONTRACT_SUCCESS_AND_BUSINESS_ASSERTIONS_PASS; native/hosted qualification limited"
+    },
+    {
+      "operation_id": "postApiV1WebsiteCustomerApplications",
+      "method": "POST",
+      "path": "/api/v1/website/customer-applications",
+      "handler": "app/api/v1/website/customer-applications/route.ts",
+      "required_scope": [
+        "website_applications.write"
+      ],
+      "sql_dependencies": [
+        "website_customer_applications",
+        "external_contract_intakes",
+        "canonical_onboard_customer_graph",
+        "customers",
+        "customer_sites",
+        "metering_points",
+        "customer_contracts",
+        "customer_onboarding_legal_snapshots",
+        "customer_legal_acceptances",
+        "powers_of_attorney",
+        "power_of_attorney_scopes",
+        "authorization_scopes",
+        "customer_authorization_documents",
+        "customer_application_workflows",
+        "customer_operation_jobs",
+        "domain_events",
+        "event_outbox",
+        "communication_logs",
+        "tenant_email_outbox",
+        "supplier_switch_requests",
+        "website_contract_quotes",
+        "customer_site_resolution",
+        "canonical_next_application_number",
+        "gridex_retry_website_contract_signature",
+        "gridex_finalize_website_contract_signature",
+        "gridex_commit_customer_application_provisioning",
+        "gridex_transition_customer_application_workflow",
+        "gridex_customer_application_runtime_contract_v1"
+      ],
+      "asserting_tests": [
+        {
+          "file": "__tests__/website-application-identity-number-canonical.test.ts",
+          "assertion": "Actual processor rejects bad person/organization identities422 before writes; canonical identity normalization.",
+          "level": "behavior",
+          "executed": "PASS"
+        },
+        {
+          "file": "__tests__/website-application-payload-field-contract.test.ts",
+          "assertion": "Runtime schema-derived top-level allowlist and unknown fields rejected.",
+          "level": "behavior",
+          "executed": "PASS"
+        },
+        {
+          "file": "__tests__/website-application-settlement-contract.test.ts",
+          "assertion": "Runtime settlement parsing enforces canonical acceptance model.",
+          "level": "behavior",
+          "executed": "PASS"
+        },
+        {
+          "file": "__tests__/website-poa-exact-accepted-document-ts.test.ts",
+          "assertion": "Real onboarding binds accepted POAdocument and refuses alternate before business commit.",
+          "level": "behavior",
+          "executed": "PASS"
+        },
+        {
+          "file": "__tests__/website-poa-exact-accepted-document.test.ts",
+          "assertion": "PGlite executes migration POA trigger and transaction rollback on wrong accepted-bundle doc.",
+          "level": "native_isolated_db",
+          "executed": "PASS"
+        },
+        {
+          "file": "__tests__/canonical-onboarding.test.ts",
+          "assertion": "Real client calls single transactionRPC; cross-tenant command rejected; ambiguity/unpersisted customer number fail closed.",
+          "level": "behavior",
+          "executed": "PASS"
+        },
+        {
+          "file": "__tests__/customer-merge-application-resume.test.ts",
+          "assertion": "Cached application identity UPSERT exact merge guard becomes409; unrelatedDB errors preserved.",
+          "level": "behavior",
+          "executed": "PASS"
+        },
+        {
+          "file": "__tests__/public-application-response.test.ts",
+          "assertion": "Public success DTO exposes safe opaque references and removes internal IDs.",
+          "level": "behavior",
+          "executed": "PASS"
+        },
+        {
+          "file": "__tests__/website-api-operation-contracts.test.ts",
+          "assertion": "Actual fresh route intake validates issuedquote and materializedlegal bundle, builds tenant/channel/API-client-attributed canonical RPC command, rereads finite transaction resources, signs exact legal snapshot, mirrors external_contract_intakes and commits queued continuation. Actual same-key committed replay creates no additional customer/application write.",
+          "level": "mounted_synthetic_transport_behavior",
+          "executed": "PASS"
+        }
+      ],
+      "coverage_gaps": [
+        "Canonical graph, signature and provisioning RPC receipts/resources are explicit finite transport fixtures; PostgreSQL atomicity, RLS and live customer persistence are not proved.",
+        "Provider/Ediel/email/webhook downstream delivery and current customer E2E remain unverified."
+      ],
+      "verdict": "MOUNTED_CURRENT_CONTRACT_SUCCESS_AND_BUSINESS_ASSERTIONS_PASS; native/hosted qualification limited"
+    },
+    {
+      "operation_id": "postApiV1WebsiteEnergyAreaResolve",
+      "method": "POST",
+      "path": "/api/v1/website/energy-area/resolve",
+      "handler": "app/api/v1/website/energy-area/resolve/route.ts",
+      "required_scope": [
+        "website_energy_area.resolve"
+      ],
+      "sql_dependencies": [
+        "platform_energy_lookup_cache",
+        "customer_site_resolution",
+        "platform_grid_areas",
+        "platform_grid_owners",
+        "platform_postal_code_grid_mappings",
+        "platform_address_lookup_cache",
+        "energy_geodata_versions",
+        "gridex_point_to_grid_area",
+        "gridex_lonlat_to_grid_area"
+      ],
+      "asserting_tests": [
+        {
+          "file": "__tests__/energy-area-id-only-input.test.ts",
+          "assertion": "Actual route accepts IDs as references with postcode; uses postcode for resolution.",
+          "level": "behavior",
+          "executed": "PASS"
+        },
+        {
+          "file": "__tests__/energy-resolution-capabilities.test.ts",
+          "assertion": "Verified/strong single-area evidence allows quote/pricing while switch dispatch staysfalse; low confidence/multi-area/expired blocks.",
+          "level": "behavior",
+          "executed": "PASS"
+        },
+        {
+          "file": "__tests__/website-resolution-cache.test.ts",
+          "assertion": "Cache tenant/input binding, expiry and failure fallback.",
+          "level": "behavior",
+          "executed": "PASS"
+        },
+        {
+          "file": "__tests__/energy-resolution-rebinding.test.ts",
+          "assertion": "Actual resolver/worker evidence boundaries preserve stronger geography and fresh state; weak centroid cannot become dispatch authority.",
+          "level": "behavior",
+          "executed": "PASS"
+        },
+        {
+          "file": "__tests__/external-pricing-boundary.test.ts",
+          "assertion": "Actual unauthenticated route401; legacy public resolver410.",
+          "level": "behavior",
+          "executed": "PASS"
+        }
+      ],
+      "coverage_gaps": [
+        "Mounted ID-only 422 and needs_review 409 actual body-vs-spec contract coverage incomplete; current spec response status map omits409 although route emits409.",
+        "Tests use synthetic coordinates/geodata/providerports; actual current provider network resolution not exercised."
+      ],
+      "verdict": "PARTIAL_BEHAVIOR_COVERAGE"
+    },
+    {
+      "operation_id": "getApiV1WebsiteSwitchStatus",
+      "method": "GET",
+      "path": "/api/v1/website/switch-status",
+      "handler": "app/api/v1/website/switch-status/route.ts",
+      "required_scope": [
+        "website_switch_status.read"
+      ],
+      "sql_dependencies": [
+        "website_customer_applications",
+        "supplier_switch_requests",
+        "supplier_switch_events",
+        "companies",
+        "tenant_website_readiness_v"
+      ],
+      "asserting_tests": [
+        {
+          "file": "__tests__/website-api-operation-contracts.test.ts",
+          "assertion": "Actual loader and handler select own application/switch, omit foreign events and publish opaque switch reference and ordered event status; company filters/scope asserted.",
+          "level": "mounted_synthetic_transport_behavior",
+          "executed": "PASS"
+        }
+      ],
+      "coverage_gaps": [
+        "Live supplier-switch lifecycle and counterpart/provider acknowledgements remain unverified."
+      ],
+      "verdict": "MOUNTED_CURRENT_CONTRACT_SUCCESS_AND_BUSINESS_ASSERTIONS_PASS; native/hosted qualification limited"
+    },
+    {
+      "operation_id": "postApiV1WebsiteMarketPriceCurrent",
+      "method": "POST",
+      "path": "/api/v1/website/market-price/current",
+      "handler": "app/api/v1/website/market-price/current/route.ts",
+      "required_scope": [
+        "website_market_prices.read"
+      ],
+      "sql_dependencies": [
+        "customer_site_resolution",
+        "spot_price_intervals",
+        "spot_price_daily_summaries",
+        "company_market_price_sources"
+      ],
+      "asserting_tests": [
+        {
+          "file": "__tests__/market-price source-selection.test.ts",
+          "assertion": "Sourcepriority/locked evidence/freshness/resolution selection functions.",
+          "level": "behavior",
+          "executed": "PASS"
+        },
+        {
+          "file": "__tests__/website-api-operation-contracts.test.ts",
+          "assertion": "Actual persistedresolution loader/current marketprice selector selects tenant-allowed verified quarter-hour interval and converts 0.5 SEK to 50 \u00f6re; foreignresolution404 before reading price policies.",
+          "level": "mounted_synthetic_transport_behavior",
+          "executed": "PASS"
+        }
+      ],
+      "coverage_gaps": [
+        "Real marketprovider ingestion/current production freshness not executed."
+      ],
+      "verdict": "MOUNTED_CURRENT_CONTRACT_SUCCESS_AND_BUSINESS_ASSERTIONS_PASS; native/hosted qualification limited"
+    },
+    {
+      "operation_id": "getApiV1WebsitePortfolioPrices",
+      "method": "GET",
+      "path": "/api/v1/website/portfolio-prices",
+      "handler": "app/api/v1/website/portfolio-prices/route.ts",
+      "required_scope": [
+        "website_contracts.read"
+      ],
+      "sql_dependencies": [
+        "contract_publication_revisions",
+        "canonical_visible_public_contracts_v",
+        "canonical_public_contract_delivery_readiness_v",
+        "contract_publication_readiness_v",
+        "contract_price_options",
+        "contract_price_option_area_prices",
+        "legal_bundle_versions",
+        "legal_bundle_version_documents",
+        "portfolio_monthly_settlements",
+        "companies"
+      ],
+      "asserting_tests": [
+        {
+          "file": "__tests__/website-api-operation-contracts.test.ts",
+          "assertion": "Actual canonical offer loader and public pricing mapper return stable method string and only own-company locked/final historical prices for SE3; estimated/other-area rows excluded.",
+          "level": "mounted_synthetic_transport_behavior",
+          "executed": "PASS"
+        }
+      ],
+      "coverage_gaps": [
+        "Native monthly settlement generation/finalization is not executed; fixture months follow PostgreSQL date YYYY-MM-01 type."
+      ],
+      "verdict": "MOUNTED_CURRENT_CONTRACT_SUCCESS_AND_BUSINESS_ASSERTIONS_PASS; native/hosted qualification limited"
+    },
+    {
+      "operation_id": "getApiV1WebsiteLegalBundle",
+      "method": "GET",
+      "path": "/api/v1/website/legal-bundle",
+      "handler": "app/api/v1/website/legal-bundle/route.ts",
+      "required_scope": {
+        "anyOf": [
+          "website_legal.read",
+          "website_contracts.read"
+        ]
+      },
+      "sql_dependencies": [
+        "canonical_visible_public_contracts_v",
+        "canonical_public_contract_delivery_readiness_v",
+        "contract_product_versions",
+        "legal_bundle_versions",
+        "legal_bundle_version_documents",
+        "companies"
+      ],
+      "asserting_tests": [
+        {
+          "file": "__tests__/public-contract-canonical-model.test.ts",
+          "assertion": "Actual legalserializer rejects invalid bundle/modules and publishes immutable document refs.",
+          "level": "behavior",
+          "executed": "PASS"
+        },
+        {
+          "file": "__tests__/website-api-operation-contracts.test.ts",
+          "assertion": "Actual exactoffer resolver/bundle builder/customer-document hash builder yield complete immutable legalbundle and exact documented organization/evidence schema. Six unrelated id/UUID paths stay rejected.",
+          "level": "mounted_synthetic_transport_behavior",
+          "executed": "PASS"
+        }
+      ],
+      "coverage_gaps": [
+        "Native legalbundle lock/FK/publication mutation guards remain outside mounted transport proof; existing isolated POAtrigger tests separately qualify accepted-document rollback."
+      ],
+      "verdict": "MOUNTED_CURRENT_CONTRACT_SUCCESS_AND_BUSINESS_ASSERTIONS_PASS; native/hosted qualification limited"
+    },
+    {
+      "operation_id": "postApiV1WebsiteCustomerEvents",
+      "method": "POST",
+      "path": "/api/v1/website/customer-events",
+      "handler": "app/api/v1/website/customer-events/route.ts",
+      "required_scope": [
+        "website_events.write"
+      ],
+      "sql_dependencies": [
+        "customer_portal_identities",
+        "customers",
+        "customer_portal_write_idempotency",
+        "customer_events",
+        "customer_cases",
+        "customer_case_events",
+        "domain_events",
+        "event_outbox",
+        "audit_logs"
+      ],
+      "asserting_tests": [
+        {
+          "file": "__tests__/customer-merge-event-api-conflicts.test.ts",
+          "assertion": "Mounted real event/support/idempotency handlers accept non-support event200; exact merged-write guard409; unrelated DB error 500.",
+          "level": "behavior",
+          "executed": "PASS"
+        }
+      ],
+      "coverage_gaps": [
+        "No current frozen-schema response assertion for customer-events success; replayed is a documented required field and does match the runtime projection.",
+        "No explicit own/foreign identity integration or support case+event atomic idempotency retry test in Website route; identity transport mocked."
+      ],
+      "verdict": "PARTIAL_BEHAVIOR_COVERAGE"
+    },
+    {
+      "operation_id": "getApiV1PublicContractsDiagnostics",
+      "method": "GET",
+      "path": "/api/v1/public-contracts/diagnostics",
+      "handler": "app/api/v1/public-contracts/diagnostics/route.ts",
+      "required_scope": [
+        "api_contracts.diagnostics"
+      ],
+      "sql_dependencies": [
+        "canonical_public_contract_delivery_readiness_v",
+        "contract_publication_revisions",
+        "companies",
+        "tenant_website_readiness_v"
+      ],
+      "asserting_tests": [
+        {
+          "file": "__tests__/website-api-operation-contracts.test.ts",
+          "assertion": "Actual canonical diagnostics and public DTO isolate API channel and company; offer reference remains safe and legacy id absent.",
+          "level": "mounted_synthetic_transport_behavior",
+          "executed": "PASS"
+        }
+      ],
+      "coverage_gaps": [
+        "Native API-channel graph/view conditions remain outside mounted transport proof."
+      ],
+      "verdict": "MOUNTED_CURRENT_CONTRACT_SUCCESS_AND_BUSINESS_ASSERTIONS_PASS; native/hosted qualification limited"
+    },
+    {
+      "operation_id": "getApiV1WebsiteCustomerApplicationsApplicationNumber",
+      "method": "GET",
+      "path": "/api/v1/website/customer-applications/{application_number}",
+      "handler": "app/api/v1/website/customer-applications/[applicationId]/route.ts",
+      "required_scope": [
+        "website_switch_status.read"
+      ],
+      "sql_dependencies": [
+        "website_customer_applications",
+        "customer_application_workflows",
+        "customer_contracts",
+        "customer_operation_jobs",
+        "communication_logs",
+        "domain_events",
+        "tenant_email_outbox",
+        "webhook_deliveries",
+        "event_outbox",
+        "supplier_switch_requests",
+        "customer_supply_periods"
+      ],
+      "asserting_tests": [
+        {
+          "file": "__tests__/website-api-operation-contracts.test.ts",
+          "assertion": "Actual lineage loader, agreement/delivery/automation/status projector keep signed agreement valid with queued confirmation and continuation; own-company filters and foreign application404 asserted.",
+          "level": "mounted_synthetic_transport_behavior",
+          "executed": "PASS"
+        }
+      ],
+      "coverage_gaps": [
+        "Live lifecycle/read consistency under concurrent continuation remains unverified."
+      ],
+      "verdict": "MOUNTED_CURRENT_CONTRACT_SUCCESS_AND_BUSINESS_ASSERTIONS_PASS; native/hosted qualification limited"
+    }
+  ],
+  "findings": [
+    {
+      "id": "WEB-01",
+      "status": "FIXED_TARGETED_RED_GREEN",
+      "severity": "P2",
+      "evidence": "Original API-channel GET private 200 then business with private ETag returned 304. SameDBrevision ignores filter. Mounted tests reproduced.",
+      "source_files": [
+        "app/api/v1/contracts/route.ts"
+      ],
+      "change": "Use existing scoped representation helper including tenant/customer_type/APIchannel/profile/schema/representation revision.",
+      "tests": [
+        "__tests__/api-channel-contract-etag.test.ts"
+      ],
+      "red": "1failed, 2 passed",
+      "green": "3 passed"
+    },
+    {
+      "id": "WEB-02",
+      "status": "FIXED_TARGETED_RED_GREEN",
+      "severity": "P1",
+      "evidence": "Actual API-channel mapped success and canonical empty failed current schema: missing feed state/empty authorization and deprecated alias null. Mixed valid/malformed publication silently became200 partial; emptyRPC without canonical check became200 empty.",
+      "business_consequence": "Integrator could incorrectly erase or hide valid contractual offers and cannot distinguish authoritative withdrawal from broken publication.",
+      "source_files": [
+        "app/api/v1/contracts/route.ts"
+      ],
+      "change": "Wholefeed 503 on mappingissue, scoped canonical empty authorization, requiredmetadata and boolean deprecated alias.",
+      "tests": [
+        "__tests__/api-channel-contract-feed.test.ts"
+      ],
+      "red": "4failed, 1 passed",
+      "green": "5 passed"
+    },
+    {
+      "id": "WEB-03",
+      "status": "FIXED_TARGETED_RED_GREEN",
+      "severity": "P2",
+      "evidence": "Missing required customer_type reached actual calculator and offerlookup. Null/empty/nonstring similarly defaulted private. FractionalsiteCount 1.5 actual calculator generated/persistedsiteCount 1.",
+      "business_consequence": "Required customer segment silently defaults; fee/selection per site could use different quantity from requested count.",
+      "source_files": [
+        "app/api/v1/website/quote/route.ts",
+        "lib/pricing/offerQuote.ts"
+      ],
+      "change": "Require explicit validtextcustomer_type before idempotency; validate siteCount integer before any truncation. Preserve supported customeraliases and integercounts.",
+      "tests": [
+        "__tests__/website-quote-input-contract.test.ts"
+      ],
+      "red": "missing/fraction2 failed; invalidpresent3 failed",
+      "green": "10 passed"
+    },
+    {
+      "id": "WEB-GAP-01",
+      "status": "CLOSED_AVAILABLE_MOUNTED_SUCCESS_GAPS",
+      "severity": "P2",
+      "evidence": "All 11 previously uncovered mounted authenticated success paths now have actual handler/business-code/schema assertions in website-api-operation-contracts.test.ts; finite RPC resources and provider rows do not claim native SQL or customer E2E.",
+      "business_consequence": "A green static contractcheck can coexist with wrong error status/body/tenant binding or incomplete durable data effects."
+    },
+    {
+      "id": "WEB-04",
+      "status": "FIXED_TARGETED_RED_GREEN",
+      "severity": "P1",
+      "source_files": [
+        "app/api/v1/website/public-contracts/diagnostics/route.ts",
+        "app/api/v1/public-contracts/diagnostics/route.ts"
+      ],
+      "evidence": "Both real diagnostics loaders produced legacy offers[n].id=offer_reference, rejected by global public payload guard; successful canonical diagnostics became500.",
+      "change": "Explicit public diagnostic DTO copies documented safe business fields and omits known legacy id; guard remains strict.",
+      "tests": [
+        "__tests__/website-api-operation-contracts.test.ts"
+      ],
+      "red": "Both actual mounted success probes 500.",
+      "green": "Both 200 and schema/business/scope assertions pass; id absent."
+    },
+    {
+      "id": "WEB-05",
+      "status": "FIXED_TARGETED_RED_GREEN",
+      "severity": "P1",
+      "source_files": [
+        "lib/api/publicPayloadSafety.ts",
+        "app/api/v1/website/legal-bundle/route.ts"
+      ],
+      "evidence": "Actual complete legalbuilder first failed503 on documented immutable evidence UUID at data.requirements[n].legal_bundle_version_id. After bounded path repair,200 still failed closed schema because builder tenant alias differs from documented organization.",
+      "change": "Extend only exact legacy legal-evidence path exceptions matching existing feed policy; explicit public bundle/organization DTO preserves internal builder and globally forbids unrelated IDs.",
+      "tests": [
+        "__tests__/website-api-operation-contracts.test.ts"
+      ],
+      "red": "Real complete bundle 503, then exact organization schema missing/unknown failure.",
+      "green": "Completebundle200 schema validates; six unrelated internal identifier shapes rejected."
+    },
+    {
+      "id": "WEB-06",
+      "status": "FIXED_TARGETED_RED_GREEN",
+      "severity": "P2",
+      "source_files": [
+        "app/api/v1/website/portfolio-prices/route.ts"
+      ],
+      "evidence": "Real portfolio response200 returned object in data.method; frozen/current schema expectsstring.",
+      "change": "Use safe canonical public method.pricing_model string, canonical portfolio_monthly_settlement fallback; model details stay in existing public-contract pricing model.",
+      "tests": [
+        "__tests__/website-api-operation-contracts.test.ts"
+      ],
+      "red": "Actual200 fails method type.",
+      "green": "Actual200 stable method string/schema and locked historical price assertions pass."
+    },
+    {
+      "id": "WEB-07",
+      "status": "CURRENT_DOCUMENTATION_FIXED_BY_DOCUMENTATION_RELEASE_AGENT; FROZEN_SCHEMA_LIMIT_RETAINED",
+      "severity": "P2",
+      "source_files": [
+        "docs/openapi/website-integration-v1.json"
+      ],
+      "evidence": "Actual fixedquote 201 then exact validated 200 correctly emits market_reference: null; frozen supported specs wrongly require an object.",
+      "change": "Unpublished12.1 WebsiteQuoteValidationData permitsnull for fixed/nonmarket source; immutable specifications unchanged.",
+      "tests": [
+        "__tests__/website-api-operation-contracts.test.ts"
+      ],
+      "red": "Actual valid200 failed schema expected object, got null.",
+      "green": "Current 2026-10-12.1 schema validates actual fixedquotevalidation 200.",
+      "qualification": "This historical schema/runtime discrepancy remains in immutable 2026-10-02.3/2026-10-04.1 documents; generic projection cannot invent market evidence."
+    }
+  ],
+  "verification": {
+    "runtime": "/tmp/gridex-audit-runtime/node_modules/node/bin/node (Node22)",
+    "preload": "scripts/lib/unit-loopback-network-boundary.cjs",
+    "workers": 1,
+    "executed_runs": [
+      {
+        "files": 30,
+        "tests": 212,
+        "status": "PASS",
+        "qualification": "Mixedstatic/component/mounted/nativePGlite; only assertingbehavior counted in operations."
+      },
+      {
+        "files": 9,
+        "tests": 103,
+        "status": "PASS",
+        "qualification": "Reference helper/cache/tenant selector/area/auth tests."
+      },
+      {
+        "files": 7,
+        "tests": 39,
+        "status": "PASS",
+        "qualification": "Final handed-off quote and API-channel tests plus commercial pricing and Partner regression tests."
+      },
+      {
+        "files": 1,
+        "tests": 25,
+        "status": "PASS",
+        "qualification": "All 11 new mounted success gaps plus finite fresh intake/quote/hash/idempotency/foreign-tenant/error/evidence assertions; all schema validation keywords used by published contracts implemented in test validator."
+      },
+      {
+        "files": 9,
+        "tests": 78,
+        "status": "77_PASS_1_EXISTING_TEST_DOCUMENTATION_WIRE_EXPECTATION_FAIL",
+        "qualification": "Existing public-contract-route-openapi-regression expected OpenAPI header wire 2026-10-09.1 but current document header 2026-10-12.1; parent/documentation agent owns correction. Not a business flow defect."
+      }
+    ],
+    "build_typecheck": "Parent owns global requiredchecks; not claimed here.",
+    "touched_files_eslint": "PASS: six handed-off source/test files (Node 22 ESLint).",
+    "diff_check": "PASS: handed-off source files git diff --check.",
+    "new_operation_suite_command": "/tmp/gridex-audit-runtime/node_modules/node/bin/node --require ./scripts/lib/unit-loopback-network-boundary.cjs node_modules/vitest/vitest.mjs run __tests__/website-api-operation-contracts.test.ts --maxWorkers=1",
+    "new_operation_suite_scope": "Finite DataAPI/transactionRPC/provider fixtures only; real route parsing, readiness, pricing, legal, intake, status and public projection code runs. Credential transport is replaced with controlled active tenant credentials; required scopes are enforced using real exported scope functions and asserted. Native authentication/RLS is evaluated elsewhere.",
+    "additional_touched_files_eslint": "PASS after final schema validator/ref-existence/scope fixture changes: new operation test and five bounded remediation source files; git diff --check also passes.",
+    "final_mounted_suite": "PASS: 25/25 tests at 2026-10-12 21:42 UTC using Node 22, one worker and the unit network boundary preload. Final scope fixture enforces the real exported scope-expansion/missing-scope functions and provides exact valid operation scopes."
+  },
+  "live_evidence": {
+    "catalog": "/tmp/gridex-api-review/ops-live-catalog.json",
+    "tables": 517,
+    "triggers": 752,
+    "functions_captured": 9,
+    "migration_count": 416,
+    "latest_migration": "20261010230000",
+    "qualification": "Existing metadata read only: 9 captured functions do not cover the Website surface, so absent entries do not prove missing RPCs. No current customer records were available, and no true customer E2E was tested."
+  },
+  "next_actions": [
+    "Parent: independently review newly handed-off diagnostics/legal/portfolio and exact payload-guard path changes, then finish shared profile wrappers and global checks.",
+    "Complete parent-owned supported frozen-client matrix; retain historical fixed market-reference schema limitation honestly.",
+    "Execute native SQL concurrency/transaction/RLS proof and hosted provider/downstream/customer flow when separately authorized; this audit makes no live mutation or E2E claim."
+  ],
+  "sql_source_declarations": {
+    "audit_logs": [
+      "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+      "supabase/migrations/20260522_db1_schema_repair_backfill_foundation.sql"
+    ],
+    "authorization_scopes": [
+      "supabase/migrations/20260520_batch_3_4_onboarding_pricing_billing_engine.sql"
+    ],
+    "canonical_energy_flow_events": [
+      "supabase/migrations/20260724120000_canonical_market_resolution_quote_billing_flow.sql"
+    ],
+    "canonical_energy_remediation_queue": [
+      "supabase/migrations/20260724120000_canonical_market_resolution_quote_billing_flow.sql"
+    ],
+    "canonical_onboard_customer_graph": [],
+    "canonical_public_contract_delivery_readiness_v": [],
+    "canonical_visible_public_contracts_v": [],
+    "communication_logs": [
+      "supabase/migrations/20260531213000_resend_tenant_email_engine.sql",
+      "supabase/migrations/20260609162000_batch_7_website_integration_foundation.sql"
+    ],
+    "companies": [
+      "supabase/migrations/20260522_db1_schema_repair_backfill_foundation.sql",
+      "supabase/migrations/20260530110000_gridcore_ediel_multitenant_foundation.sql",
+      "supabase/migrations/ediel_rules.sql"
+    ],
+    "company_capabilities": [
+      "supabase/migrations/20260801143000_canonical_multitenant_platform_hardening.sql"
+    ],
+    "contract_price_option_area_prices": [
+      "supabase/migrations/20260729200000_contract_commercial_selection_completion.sql"
+    ],
+    "contract_price_options": [
+      "supabase/migrations/20260729200000_contract_commercial_selection_completion.sql"
+    ],
+    "contract_product_versions": [
+      "supabase/migrations/20260714130000_canonical_contract_legal_publication_model.sql"
+    ],
+    "contract_publication_readiness_v": [],
+    "contract_publication_revisions": [
+      "supabase/migrations/20260721170000_contract_graph_api_revision_hardening.sql"
+    ],
+    "customer_application_workflows": [
+      "supabase/migrations/20260618213000_ops_completion_workflows_health.sql"
+    ],
+    "customer_authorization_documents": [
+      "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+      "supabase/migrations/20260522_db1_schema_repair_backfill_foundation.sql"
+    ],
+    "customer_case_events": [
+      "supabase/migrations/20260520_batch_5_cases_audit_email_ux.sql",
+      "supabase/migrations/20260923180557_restore_customer_case_events_atomic_status.sql"
+    ],
+    "customer_cases": [
+      "supabase/migrations/20260520_batch_5_cases_audit_email_ux.sql"
+    ],
+    "customer_contracts": [
+      "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+      "supabase/migrations/20260522_db1_schema_repair_backfill_foundation.sql"
+    ],
+    "customer_events": [
+      "supabase/migrations/20260612170000_ops_multitenant_website_contracts_events.sql",
+      "supabase/migrations/20260617203000_simplified_customer_ops_events_and_mail_architecture.sql"
+    ],
+    "customer_legal_acceptances": [
+      "supabase/migrations/20260613090000_batch_m_ops_master_legal_readiness.sql"
+    ],
+    "customer_onboarding_legal_snapshots": [
+      "supabase/migrations/20260720110000_canonical_customer_onboarding_transaction.sql"
+    ],
+    "customer_operation_jobs": [
+      "supabase/migrations/20260618110000_customer_operation_automation_jobs.sql"
+    ],
+    "customer_portal_identities": [
+      "supabase/migrations/20260609113000_batch_2_3_4_6_period_onboarding_ediel_portal.sql",
+      "supabase/migrations/20260609143000_batch_6_api_clients_customer_portal.sql"
+    ],
+    "customer_portal_write_idempotency": [
+      "supabase/migrations/20260712100000_gridex_end_to_end_integrity_hardening.sql",
+      "supabase/migrations/20260713150000_api_performance_tenant_hardening.sql"
+    ],
+    "customer_site_resolution": [
+      "supabase/migrations/20260611100000_energy_resolver_grid_area_operations.sql"
+    ],
+    "customer_sites": [
+      "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+      "supabase/migrations/20260522_db1_schema_repair_backfill_foundation.sql"
+    ],
+    "customer_supply_periods": [
+      "supabase/migrations/20260530110000_gridcore_ediel_multitenant_foundation.sql",
+      "supabase/migrations/ediel_rules.sql"
+    ],
+    "customers": [
+      "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+      "supabase/migrations/20260522_db1_schema_repair_backfill_foundation.sql"
+    ],
+    "domain_events": [
+      "supabase/migrations/20260531111600_system_readiness_foundation.sql",
+      "supabase/migrations/20260609162000_batch_7_website_integration_foundation.sql"
+    ],
+    "energy_geodata_versions": [
+      "supabase/migrations/20260724120000_canonical_market_resolution_quote_billing_flow.sql"
+    ],
+    "event_outbox": [
+      "supabase/migrations/20260531111600_system_readiness_foundation.sql",
+      "supabase/migrations/20260609162000_batch_7_website_integration_foundation.sql"
+    ],
+    "external_contract_intakes": [
+      "supabase/migrations/20260521_batch_2c_end_to_end_operations.sql"
+    ],
+    "gridex_list_external_api_contracts": [],
+    "gridex_lonlat_to_grid_area": [],
+    "gridex_point_to_grid_area": [],
+    "integration_api_write_idempotency": [
+      "supabase/migrations/20260804200732_usage_event_identity_and_integration_write_idempotency.sql"
+    ],
+    "legal_bundle_version_documents": [
+      "supabase/migrations/20260714130000_canonical_contract_legal_publication_model.sql"
+    ],
+    "legal_bundle_versions": [
+      "supabase/migrations/20260714130000_canonical_contract_legal_publication_model.sql"
+    ],
+    "market_price_previews": [
+      "supabase/migrations/20260724120000_canonical_market_resolution_quote_billing_flow.sql"
+    ],
+    "metering_points": [
+      "supabase/migrations/01_db1_schema_repair_core_helpers_and_canonical_tables.sql",
+      "supabase/migrations/20260522_db1_schema_repair_backfill_foundation.sql"
+    ],
+    "platform_address_lookup_cache": [
+      "supabase/migrations/20260611100000_energy_resolver_grid_area_operations.sql"
+    ],
+    "platform_energy_lookup_cache": [
+      "supabase/migrations/20260611100000_energy_resolver_grid_area_operations.sql"
+    ],
+    "platform_grid_areas": [
+      "supabase/migrations/20260611100000_energy_resolver_grid_area_operations.sql",
+      "supabase/migrations/20260621143000_company_route_materialization_production_readiness.sql"
+    ],
+    "platform_grid_owners": [
+      "supabase/migrations/20260611100000_energy_resolver_grid_area_operations.sql"
+    ],
+    "platform_postal_code_grid_mappings": [
+      "supabase/migrations/20260611100000_energy_resolver_grid_area_operations.sql"
+    ],
+    "portfolio_monthly_settlements": [
+      "supabase/migrations/20260718161000_portfolio_monthly_settlements_rbac.sql"
+    ],
+    "portfolio_price_estimates": [
+      "supabase/migrations/20260718161000_portfolio_monthly_settlements_rbac.sql"
+    ],
+    "power_of_attorney_scopes": [
+      "supabase/migrations/20260522_batch4_multisite_duplicate_billing_hardening.sql",
+      "supabase/migrations/20260522_batch4d_merge_poa_lifecycle_hardening.sql",
+      "supabase/migrations/20260522_db1_schema_repair_backfill_foundation.sql"
+    ],
+    "powers_of_attorney": [
+      "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+      "supabase/migrations/20260522_db1_schema_repair_backfill_foundation.sql"
+    ],
+    "price_components": [
+      "supabase/migrations/20260608120000_metering_billing_pricing_engine.sql"
+    ],
+    "price_plan_versions": [
+      "supabase/migrations/20260608120000_metering_billing_pricing_engine.sql"
+    ],
+    "pricing_component_rules": [
+      "supabase/migrations/20260520_batch_3_4_onboarding_pricing_billing_engine.sql"
+    ],
+    "public_contract_feed_fingerprint_v1": [],
+    "spot_price_daily_summaries": [
+      "supabase/migrations/20260608120000_metering_billing_pricing_engine.sql"
+    ],
+    "spot_price_intervals": [
+      "supabase/migrations/20260608120000_metering_billing_pricing_engine.sql"
+    ],
+    "spot_price_monthly_summaries": [
+      "supabase/migrations/20260608120000_metering_billing_pricing_engine.sql"
+    ],
+    "supplier_switch_events": [
+      "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+      "supabase/migrations/20260522_db1_schema_repair_backfill_foundation.sql"
+    ],
+    "supplier_switch_requests": [
+      "supabase/migrations/02_db1_operations_ediel_billing_dedupe_and_storage.sql",
+      "supabase/migrations/20260522_db1_schema_repair_backfill_foundation.sql"
+    ],
+    "tenant_email_outbox": [
+      "supabase/migrations/20260520_batch_5_cases_audit_email_ux.sql"
+    ],
+    "tenant_website_readiness_v": [],
+    "webhook_deliveries": [
+      "supabase/migrations/20260531111600_system_readiness_foundation.sql",
+      "supabase/migrations/20260609162000_batch_7_website_integration_foundation.sql"
+    ],
+    "webhook_subscriptions": [
+      "supabase/migrations/20260531111600_system_readiness_foundation.sql",
+      "supabase/migrations/20260609162000_batch_7_website_integration_foundation.sql"
+    ],
+    "website_contract_quotes": [
+      "supabase/migrations/20260722133000_external_tenant_quote_api_completion.sql"
+    ],
+    "website_customer_applications": [
+      "supabase/migrations/20260609162000_batch_7_website_integration_foundation.sql"
+    ],
+    "canonical_next_application_number": [],
+    "company_market_price_sources": [
+      "supabase/migrations/20260721170000_contract_graph_api_revision_hardening.sql"
+    ],
+    "gridex_commit_customer_application_provisioning": [],
+    "gridex_customer_application_runtime_contract_v1": [],
+    "gridex_finalize_website_contract_signature": [],
+    "gridex_retry_website_contract_signature": [],
+    "gridex_transition_customer_application_workflow": []
+  },
+  "sql_source_declarations_qualification": "Latest up to three matching migration declarations per entity; no current live function-body parity or execution coverage inferred.",
+  "coverage_summary": {
+    "spec_non_openapi_operations": 16,
+    "all_operations_mapped": true,
+    "mounted_success_behavior_available": 16,
+    "operations_without_mounted_success_behavior": 0,
+    "native_sql_behavior": "Isolated PGlite accepted POA document/rollback only; production migration chain, transactional concurrency and RLS not end-to-end verified.",
+    "qualification": "Every operation has an executed mounted authenticated success response and business assertion. The new eleven-operation suite runs real business code with controlled authentication, database and provider transport fixtures. Earlier operation proofs retain their recorded narrower mock boundaries. Native SQL/hosted/live qualification is not claimed."
+  },
+  "reviewed_current_documentation_version": "2026-10-12.1"
+}

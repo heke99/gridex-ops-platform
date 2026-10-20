@@ -1,4 +1,5 @@
 import {hasReceivedZ04HStructuralFieldRejection} from '@/lib/ediel/prodat/receivedZ04HStructuralFieldRejection'
+import {hasReceivedZ05RejectedIdentityRejection} from '@/lib/ediel/prodat/receivedZ05RejectedIdentityRejection'
 import {hasReceivedZ04HRequiredFieldRejection} from '@/lib/ediel/prodat/receivedZ04HRequiredFieldRejection'
 import {hasReceivedZ04HRegisterRejection} from '@/lib/ediel/prodat/receivedZ04HRegisterRejection';
 import { listBusinessAckMessagesForSource } from '@/lib/ediel/inbound/businessAckMessages';
@@ -23,7 +24,7 @@ import {readUnattributedTechnicalIntake} from '@/lib/ediel/inbound/receptions';
 import {createReceivedErrApplicationAcks} from '@/lib/ediel/flows/receivedErrApplicationAcks';
 import {loadCustomerLifeEventValidationContext} from '@/lib/ediel/production/lifeEventSource';
 import {applyInboundCustomerLifeEvent} from '@/lib/ediel/flows/inboundCustomerLifeEvent';
-import {applySupplyMarketSource} from '@/lib/ediel/flows/supplyMarketTransition';
+import {applySupplyMarketSource,supplyMarketHasBusinessEffects} from '@/lib/ediel/flows/supplyMarketTransition';
 import {projectSupplyEndFollowup} from '@/lib/ediel/flows/supplyEndFollowup';
 import {applyPermissionMarketSource} from '@/lib/ediel/permissions/permissionMarketTransition';
 import {publishSourceSwitchCommit} from '@/lib/ediel/flows/sourceSwitchCommit';
@@ -382,7 +383,8 @@ async function applyCanonicalRuntimeDecision(params: {
   const protectedPhysicalRejection=hasReceivedZ04RequiredStartRejection(decision,params.message,params.actorUserId)
     ||hasReceivedZ04HRegisterRejection(decision,params.message,params.actorUserId)
     ||hasReceivedZ04HRequiredFieldRejection(decision,params.message,params.actorUserId)
-    ||hasReceivedZ04HStructuralFieldRejection(decision,params.message,params.actorUserId);
+    ||hasReceivedZ04HStructuralFieldRejection(decision,params.message,params.actorUserId)
+    ||hasReceivedZ05RejectedIdentityRejection(decision,params.message,params.actorUserId);
   if(params.message.message_family==='PRODAT' && decision.syntaxDecision==='accepted' && (decision.policy||protectedPhysicalRejection) && !registryIncidentReview) {
     if(sourceValidationEvidence.status!=='recorded')throw new Error('prodat_canonical_source_validation_unconfirmed');
     await captureFreshEdielSourceRulePackEvidence(params.resolvedCompanyId,params.message.id);
@@ -1112,7 +1114,8 @@ export async function processInboundEdielMessage(params: {
     ||hasReceivedZ04RequiredStartRejection(canonicalRuntime.decision,tenantResolvedMessage,actorUserId)
     ||hasReceivedZ04HRegisterRejection(canonicalRuntime.decision,tenantResolvedMessage,actorUserId)
     ||hasReceivedZ04HRequiredFieldRejection(canonicalRuntime.decision,tenantResolvedMessage,actorUserId)
-    ||hasReceivedZ04HStructuralFieldRejection(canonicalRuntime.decision,tenantResolvedMessage,actorUserId)){
+    ||hasReceivedZ04HStructuralFieldRejection(canonicalRuntime.decision,tenantResolvedMessage,actorUserId)
+    ||hasReceivedZ05RejectedIdentityRejection(canonicalRuntime.decision,tenantResolvedMessage,actorUserId)){
     const plan=canonicalRuntime.decision.responsePlan.find(plan=>plan.family==='APERAK'&&plan.outcome==='negative');
     if(!plan?.applicationErrors?.length)throw new Error('prodat_required_start_negative_owner_unavailable');
     await createAckIfMissing({actorUserId,sourceMessage:runtimeMessage,ackFamily:'APERAK',outcome:'negative',
@@ -1340,7 +1343,7 @@ export async function processInboundEdielMessage(params: {
         // Preserve the established single-supply projections through an exact
         // native replay only after every scope is committed. Multipart and
         // permission responses never select a first parsed target here.
-        if(supply?.fullyApplied&&canonicalRuntime.domainObjectCount===1){
+        if(supply?.fullyApplied&&supplyMarketHasBusinessEffects(supply)&&canonicalRuntime.domainObjectCount===1){
           try{await processInboundProdatMessage({actorUserId,message:runtimeMessage,committedSupplyResult:supply})}
           catch(error){await createEdielMessageEvent({actorUserId,edielMessageId:runtimeMessage.id,eventType:'manual_note',eventStatus:'warning',
             message:'Leveransutfallet och dess kvitto är fastställda; övriga projektioner inväntar granskning.',
