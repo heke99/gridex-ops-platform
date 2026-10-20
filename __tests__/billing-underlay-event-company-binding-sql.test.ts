@@ -13,6 +13,7 @@ const otherUnderlay = '44444444-4444-4444-8444-444444444444'
 const event = '55555555-5555-4555-8555-555555555555'
 const legacyEvent = '66666666-6666-4666-8666-666666666666'
 const constraint = 'billing_underlay_events_company_underlay_fk'
+type EventRow = { id: string; company_id: string; billing_underlay_id: string | null }
 let db: PGlite
 
 function source(pattern: RegExp): string {
@@ -42,7 +43,7 @@ async function insert(owner: string, parent: string | null, id = event) {
 }
 
 async function events() {
-  return (await db.query('select id,company_id,billing_underlay_id from public.billing_underlay_events order by id')).rows
+  return (await db.query<EventRow>('select id,company_id,billing_underlay_id from public.billing_underlay_events order by id')).rows
 }
 
 describe('billing underlay event company binding', () => {
