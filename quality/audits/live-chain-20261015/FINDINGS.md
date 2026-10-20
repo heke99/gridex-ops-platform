@@ -365,6 +365,12 @@ Världen byggdes från noll med `up.sh` (ren replay, `next build` och `start`, s
   - `/admin/electricity-suppliers` (`saveElectricitySupplier`) sätter varken `company_id` eller `is_own_supplier`.
   - Flaggan sätts bara via en kryssruta i den manuella panelen för att skapa ett byte på ett kundkort (`switch-create-actions.ts:572`).
 - **Drift (läsfråga):** 9 leverantörsrader, 0 med `company_id`, 0 egna. 0 av 3 bolag kan lösas, så varje automatiskt byte i drift skulle fallera.
+- **Exempel Gridex El AB (drift, läsfråga):**
+  - Bolaget är självt elhandlare i Ediels register (21660, PowerSupplier).
+  - Avsändaren i produktion är 21660.
+  - Bixia AB (48800) är rätt inlagd som balansansvarig (`ediel_brp_settings`).
+  - Bixia ska alltså inte vara "egen elhandlare". Den egna elhandlaren är Gridex El AB själv.
+  - Uppgiften används bara för namn och org.nr som inkommande leverantör på bytesärendet. Den finns redan i bolagets egen identitet, så kravet på en separat rad i `electricity_suppliers` tillför inget.
 - **Förslag:** skapa och markera bolagets egen leverantör när bolagets Ediel-avsändare sätts upp (namn, org.nr och Ediel-ID finns redan där). Alternativt läs den egna leverantören från bolagets avsändaridentitet i stället för från `electricity_suppliers`. Go-live-grinden bör kontrollera detta.
 
 ### F43 Ett tillfälligt fel från databaslagret ger webbplatsen 500 "försök inte igen" — ÖPPEN, medel
