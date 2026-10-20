@@ -388,6 +388,24 @@ Världen byggdes från noll med `up.sh` (ren replay, `next build` och `start`, s
   - Uppgiften används bara för namn och org.nr som inkommande leverantör på bytesärendet. Den finns redan i bolagets egen identitet, så kravet på en separat rad i `electricity_suppliers` tillför inget.
 - **Förslag:** skapa och markera bolagets egen leverantör när bolagets Ediel-avsändare sätts upp (namn, org.nr och Ediel-ID finns redan där). Alternativt läs den egna leverantören från bolagets avsändaridentitet i stället för från `electricity_suppliers`. Go-live-grinden bör kontrollera detta.
 
+### F51 Z01 kan inte skapas för någon webbkund: kundens folkbokföringsadress samlas aldrig in — ÖPPEN, kritisk, ägarbeslut
+- **Utfall (körning 17:54, efter F49):**
+  - Z01-begäran till nätägaren skapas och godkänns mot fullmakten.
+  - Renderingen stoppas med `customer_masterdata_source_held:source_qualified_customer_identity_registered_address_at_requested_time`.
+- **Regeln** (`20261001014700`/`20261001025107`, skyddad): slutkundens UD i Z01 använder kundens egen registrerade adress, alltså `customer_addresses.type='registered'` som gäller i dag. Alternativet är en signerad, granskad kunddeklaration. "Neither an installation/invoice address nor a caller hint is a customer masterdata basis."
+- **Fakta:**
+  - Webb-API:t tar bara emot anläggningsadress och fakturaadress (`billingAddressSameAsSite`). Webbkunder får adresser av typen `billing` och `facility`.
+  - Ingen kod i appen och ingen migration skriver en `registered`-adress.
+  - Kunddeklarationen (`gridex_customer_masterdata.signed_declarations`) är oseedad och kräver granskat original.
+  - Drift (read-only): `customer_addresses` har bara 1 rad av typen `facility` och 0 `registered`.
+- **Följd:** ingen ny kund kan få Z01. Därmed når ingen ny kund Z03 heller (se även F45 och F46).
+- **Beslut som krävs:** var folkbokföringsadressen ska komma ifrån. Alternativen:
+  - webbformuläret och API:t samlar in den som ett eget fält;
+  - den hämtas från ett adressregister (SPAR eller motsvarande, extern tjänst);
+  - operatören anger den på kundkortet.
+
+  Regeln förbjuder att faktura- eller anläggningsadressen används i stället.
+
 ### F49 Webbkundens Z01 låstes med `missing_power_of_attorney` trots giltig fullmakt — RÄTTAD (följd av min F39-rättning)
 - **Utfall (körning 16:54):**
   - Alla fyra webbkunders Z01 blockerades med "Nätägarbegärans bundna fullmakt och anläggning måste motsvara den aktuella behörigheten".
