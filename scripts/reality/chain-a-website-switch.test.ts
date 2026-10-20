@@ -10,7 +10,7 @@ import { writeFileSync } from 'node:fs'
 import { afterAll, describe, expect, it } from 'vitest'
 import { supabaseService } from '@/lib/supabase/service'
 import { configurePlatformMailbox, configureTenant, LIVE, literal, sql, type LiveTenant } from '../helpers/live-chain-fixture'
-import { goLiveOnWebsite, simulateEdielCertifiedGoLive, WEBSITE_ORIGIN } from '../helpers/reality/tenantWebsite'
+import { approveTenantRouteProfiles, goLiveOnWebsite, publishReceiverCertificateTrust, simulateEdielCertifiedGoLive, WEBSITE_ORIGIN } from '../helpers/reality/tenantWebsite'
 import { checkGridOwners, closeOperatorConsole, confirmSafeBlankSubaddresses, importActorRegistry, materializeTenantRoutes, searchGridOwnerCertificate, operatorSession, sanitizedActorRegistry, verifyActorForCustomerFlow } from '../helpers/reality/operatorConsole'
 import { runOperationalCronSlot, startGridOwner, type GridOwnerSim } from '../helpers/reality/world'
 import { detectStuckStates } from '../helpers/reality/stuckDetector'
@@ -93,11 +93,15 @@ describe.sequential('reality A — website customers switch supplier', () => {
     report.gridOwnerCertificate = await searchGridOwnerCertificate(staff, opsGridOwnerId)
     report.gridOwnerSubaddress = await confirmSafeBlankSubaddresses(staff)
     report.gridOwnerCheck = await checkGridOwners(staff)
-    // The tenant's operational Ediel routes to the grid owner.
-    report.tenantRoutes = await materializeTenantRoutes(staff, tenant.companyId, GRID_OWNER_EDIEL_ID, 'production')
-    // FINDINGS F36: no supported path takes a new supplier live in production. The simulation stands in
-    // for the missing Ediel certification and first-send approval; everything after it is the real code.
+    // FINDINGS F36/F37: no supported path takes a new supplier live in production or publishes a receiver's
+    // certificate trust. The simulation stands in for Ediel certification, first-send approval and the external
+    // trust owner; everything after it is the real code. Routes are materialized after go-live, as for a supplier
+    // that is already live (a route profile snapshots the send lock when it is materialized: FINDINGS F38).
     report.certifiedGoLive = simulateEdielCertifiedGoLive(tenant.companyId, tenant.adminUserId)
+    report.certificateTrust = await publishReceiverCertificateTrust(tenant.companyId, GRID_OWNER_EDIEL_ID, tenant.adminUserId)
+    // The tenant's operational Ediel routes to the grid owner, then their production approval.
+    report.tenantRoutes = await materializeTenantRoutes(staff, tenant.companyId, GRID_OWNER_EDIEL_ID, 'production')
+    report.routeProfileApproval = await approveTenantRouteProfiles(tenant.companyId, tenant.adminUserId)
     report.gridOwnerMapping = sql(`SELECT coalesce(jsonb_agg(jsonb_build_object('platform',pgo.name,'ops',go.name,'ediel',go.ediel_id,'verified',go.verified_for_customer_flow,'status',go.verification_status)),'[]')
       FROM public.platform_grid_owners pgo LEFT JOIN public.grid_owners go ON go.id=pgo.ops_grid_owner_id WHERE pgo.name=${literal(GRID_OWNER_NAME)}`)
     expect(imported.actionStatus, imported.page).toBe(200)

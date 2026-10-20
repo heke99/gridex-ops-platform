@@ -11,12 +11,14 @@
 //           POST /__sim/actor {edielId, name, email, validDays?}  issue + publish a certificate
 //           POST /__sim/fault {mode: ok|hang|drop|empty, count?}  directory outage modes
 //           GET  /__sim/state                                      actors and search log
+//           GET  /__sim/trust/<EdielId>                            CA anchor, CRL, leaf fingerprint
 //
 // Run: npx tsx scripts/reality/simulators/certificateDirectory.ts
 import { createServer as createTcpServer, type Socket } from 'node:net'
 import { createServer as createHttpServer } from 'node:http'
 import { execFileSync } from 'node:child_process'
 import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 
@@ -147,12 +149,22 @@ function consumeFault() { if (fault.remaining !== null && --fault.remaining <= 0
 const dir = mkdtempSync(join(tmpdir(), 'reality-ldap-ca-'))
 const openssl = (...args: string[]) => execFileSync('openssl', args, { cwd: dir, stdio: ['ignore', 'pipe', 'pipe'] })
 openssl('req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-keyout', 'ca.key', '-out', 'ca.pem', '-days', '3650', '-subj', '/C=SE/O=Gridex Reality Test CA/CN=Reality Ediel Test CA')
-function issue(input: { edielId: string; name: string; email: string; validDays?: number }) {
+// The CA's certificate revocation list (none revoked), as an Ediel CA publishes it.
+writeFileSync(join(dir, 'index.txt'), '')
+writeFileSync(join(dir, 'crlnumber'), '01\n')
+writeFileSync(join(dir, 'ca.cnf'), `[ca]\ndefault_ca=reality\n[reality]\ndatabase=${join(dir, 'index.txt')}\ncrlnumber=${join(dir, 'crlnumber')}\ndefault_md=sha256\ndefault_crl_days=30\n`)
+const crl = () => { openssl('ca', '-gencrl', '-config', 'ca.cnf', '-keyfile', 'ca.key', '-cert', 'ca.pem', '-out', 'crl.pem'); return readFileSync(join(dir, 'crl.pem'), 'utf8') }
+const fingerprints = new Map<string, string>()
+function issue(input: { edielId: string; name: string; email: string; validDays?: number; reissue?: boolean }) {
   const base = `actor-${input.edielId}`
+  // An actor keeps its certificate until it is explicitly reissued, as in the real directory.
+  const current = entries.find(e => values(e, 'uid').includes(input.edielId) && values(e, 'mail').includes(input.email.toLowerCase()))
+  if (current && !input.reissue) return { dn: current.dn, pem: readFileSync(join(dir, `${base}.pem`), 'utf8') }
   writeFileSync(join(dir, `${base}.ext`), `subjectAltName=email:${input.email}\nkeyUsage=critical,digitalSignature,keyEncipherment\nextendedKeyUsage=emailProtection\n`)
   openssl('req', '-newkey', 'rsa:2048', '-nodes', '-keyout', `${base}.key`, '-out', `${base}.csr`, '-subj', `/C=SE/O=${input.name.replace(/[/=]/g, ' ')}/CN=${input.edielId}/emailAddress=${input.email}`)
   openssl('x509', '-req', '-in', `${base}.csr`, '-CA', 'ca.pem', '-CAkey', 'ca.key', '-CAcreateserial', '-out', `${base}.pem`, '-days', String(input.validDays ?? 365), '-extfile', `${base}.ext`)
   const der = openssl('x509', '-in', `${base}.pem`, '-outform', 'DER')
+  fingerprints.set(input.edielId, createHash('sha256').update(der).digest('hex'))
   const at = entries.findIndex(e => values(e, 'uid').includes(input.edielId))
   const entry: Entry = { dn: `mail=${input.email},o=${input.edielId},c=se`, attributes: {
     mail: [Buffer.from(input.email)], cn: [Buffer.from(`${input.name} ${input.edielId}`)], uid: [Buffer.from(input.edielId)], o: [Buffer.from(input.edielId)],
@@ -168,6 +180,12 @@ createHttpServer(async (req, res) => {
   try {
     if (req.url === '/__sim/state') return send(200, { fault, actors: entries.map(e => e.dn), searches: searches.slice(-200) })
     if (req.url === '/__sim/actor' && req.method === 'POST') return send(200, issue(JSON.parse(body)))
+    // Public trust originals for an actor: CA anchor, current CRL and the registered leaf fingerprint.
+    if (req.url?.startsWith('/__sim/trust/')) {
+      const edielId = req.url.slice('/__sim/trust/'.length)
+      if (!fingerprints.has(edielId)) return send(404, { message: 'actor not registered' })
+      return send(200, { anchors: [readFileSync(join(dir, 'ca.pem'), 'utf8')], intermediates: [], crls: [crl()], recipientFingerprints: [fingerprints.get(edielId)] })
+    }
     if (req.url === '/__sim/fault' && req.method === 'POST') { const input = JSON.parse(body); fault = { mode: input.mode, remaining: input.count ?? null }; return send(200, { fault }) }
     return send(404, { message: 'not simulated' })
   } catch (error) { return send(500, { message: error instanceof Error ? error.message : String(error) }) }

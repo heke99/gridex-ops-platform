@@ -284,7 +284,9 @@ export async function evaluateRouteProfileProductionReadiness(
 
   if (profile.is_enabled === false) addIssue(blockers, 'route_profile_disabled', 'Route profile är avstängd.')
   if (profile.is_active === false) addIssue(blockers, 'route_profile_inactive', 'Route profile är inte aktiv.')
-  if (production && (profile.is_production_ready === false || lower(profile.production_mode) === 'disabled')) {
+  // The profile's own not-yet-approved state is what approval changes (column defaults are false/'disabled'),
+  // so it blocks a status evaluation but never the approval itself; every real condition below still does.
+  if (production && !input.approveProduction && (profile.is_production_ready === false || lower(profile.production_mode) === 'disabled')) {
     addIssue(blockers, 'production_route_profile_not_ready', 'Route profile finns och är kopplad till routen men är inte produktionsklar.', {
       isProductionReady: profile.is_production_ready ?? null,
       productionMode: profile.production_mode ?? null,

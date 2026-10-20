@@ -2,9 +2,11 @@
 // publish the offer on the website channel and provision the website
 // integration (/admin/platform/api-clients → provisionTenantWebsiteIntegration).
 // The one-time API key is what the tenant's website then uses.
+import { execFileSync } from 'node:child_process'
 import { supabaseService } from '@/lib/supabase/service'
 import { provisionTenantWebsiteIntegration } from '@/lib/integrations/tenantWebsiteProvisioning'
 import { seedDefaultCompanyEmailConfiguration } from '@/lib/email/bootstrap'
+import { approveRouteProfileForProduction } from '@/lib/ediel/routeProfileProductionReadiness'
 import { LIVE, literal, sql, type LiveTenant } from '../live-chain-fixture'
 
 export const WEBSITE_ORIGIN = 'https://elhandel.example.invalid'
@@ -103,4 +105,38 @@ export function simulateEdielCertifiedGoLive(companyId: string, approverUserId: 
    UPDATE public.ediel_actor_settings SET first_production_send_approved=true,approved_by=${literal(approverUserId)},approved_at=now()
     WHERE company_id=${literal(companyId)} AND environment='production'; COMMIT;`)
   return sql<Record<string, unknown>>(`SELECT jsonb_build_object('state',state,'firstLiveSendApproved',first_live_send_approved_at IS NOT NULL) FROM public.ediel_production_state WHERE company_id=${literal(companyId)}`)
+}
+
+/**
+ * Production approval of the tenant's route profiles (readiness fixes, receiver certificate, security
+ * policy, production mode). The server action approveRouteProfileProductionAction does exactly this
+ * call, but no admin page renders it (FINDINGS F37), so the simulation calls the same function.
+ */
+export async function approveTenantRouteProfiles(companyId: string, actorUserId: string) {
+  const ids = sql<string[]>(`SELECT coalesce(jsonb_agg(id::text ORDER BY message_family),'[]') FROM public.ediel_route_profiles
+    WHERE company_id=${literal(companyId)} AND environment='production' AND communication_route_id IS NOT NULL`)
+  const results = []
+  for (const routeProfileId of ids) {
+    const result = await approveRouteProfileForProduction({ routeProfileId, actorUserId })
+    results.push({ routeProfileId, ready: result.ready, blockers: result.blockers.map(b => b.code), warnings: result.warnings.map(w => w.code) })
+  }
+  return results
+}
+
+/**
+ * Publishes the receiver's certificate trust authority (CA anchor, CRL, registered leaf fingerprint)
+ * as the external trust owner does it: through the dedicated database role, the only path the platform
+ * has (migration 20260930163734: no CA/CRL is seeded and no app path publishes one; FINDINGS F37).
+ * The originals come from the Ediel certificate directory simulator's test CA.
+ */
+export async function publishReceiverCertificateTrust(companyId: string, receiverEdielId: string, actorUserId: string, environment: 'test' | 'production' = 'production') {
+  const materials = await (await fetch(`http://127.0.0.1:3902/__sim/trust/${receiverEdielId}`)).json() as Record<string, string[]>
+  const scope = { companyId, environment, receiverEdielId, registerVersion: `reality-${Date.now()}`, originalReference: 'reality-simulated-ediel-ca-register',
+    legalAuthorityReference: 'reality-simulation', processAuthorityReference: 'reality-simulation', ownerRegisterReference: 'reality-certificate-directory',
+    validFrom: new Date(Date.now() - 60_000).toISOString(), validTo: new Date(Date.now() + 30 * 86_400_000).toISOString(), actorUserId }
+  // The owner role is a separate database identity; the platform's own roles cannot assume it.
+  const statement = `BEGIN; SET LOCAL ROLE gridex_ediel_certificate_authority_owner;
+   SELECT public.gridex_ediel_certificate_trust_publish_v1(${literal(JSON.stringify(scope))}::jsonb, convert_to(${literal(JSON.stringify(materials))},'UTF8'), ${literal(JSON.stringify(materials))}::jsonb); COMMIT;`
+  return execFileSync('docker', ['exec', '-i', 'supabase_db_gridex-ops-platform', 'psql', '-U', 'supabase_admin', '-d', 'postgres', '-XAtq', '-v', 'ON_ERROR_STOP=1'],
+    { input: statement, encoding: 'utf8' }).trim().split('\n').filter(line => /^[0-9a-f-]{36}$/.test(line))[0] ?? null
 }

@@ -311,6 +311,22 @@ Granskat oberoende och verifierat på de angivna raderna.
 
 **Simuleringen:** kör marknadsflödet i Ediels testmiljö, vilket är så ett bolag arbetar före certifiering. Miljöväljaren (`lib/ediel/customerInfoEnvironmentResolver.ts`) väljer `test` när bolaget bara har en test-avsändare.
 
+### F37 Produktionssändning kräver en tillitsversion (CA, CRL, mottagarens fingeravtryck) som bara en extern databasroll kan publicera — AVSIKTLIG SPÄRR, ägarbeslut
+- **Grinden:** utgående S/MIME i produktion stoppas med `receiver_certificate_trust_and_revocation_evidence_missing` utan en giltig version i `gridex_certificate_trust.authority_versions` för bolag, miljö och mottagare (`lib/ediel/security/outboundRecipientCertificate.ts:466`).
+- **Vem kan publicera:** bara rollen `gridex_ediel_certificate_authority_owner` (migration `20260930163734`: "Prospective external trust ownership only. No CA/CRL … is seeded"). Ingen väg i appen och inget gränssnitt finns.
+- **Drift (läsfråga):** 0 tillitsversioner och 0 scoped kapabilitetsbevis. Inget utgående Ediel-meddelande i produktion kan alltså skickas i dag.
+- **Relaterat:** åtgärderna för route-profilens produktionsgodkännande (`checkRouteProfileProductionReadinessAction`, `applyRouteProfileReadinessFixesAction`, `approveRouteProfileProductionAction`) finns, men ingen sida renderar dem.
+- **Simuleringen:** certifikatkatalog-simulatorn publicerar test-CA, CRL och fingeravtryck. Publiceringen görs genom ägarrollen, som en databasadministratör antar, och verifieras sedan med plattformens riktiga PKIX/CRL-kontroll (`openssl verify -crl_check_all`).
+
+### F38 Route-profilens produktionsgodkännande kunde aldrig lyckas för en ny profil — RÄTTAD
+- **Var:** `evaluateRouteProfileProductionReadiness` lade till `production_route_profile_not_ready` när `is_production_ready=false` eller `production_mode='disabled'`. Det är kolumnernas standardvärden, och `routeMaterializer` lämnar varje ny profil så.
+- **Varför fel:** godkännandet (`approveRouteProfileForProduction`) sätter `true`/`live` bara utan spärrar, så det spärrades av just det tillstånd det ska ändra.
+- **I simuleringen:** med avsändargodkännande, mottagarcertifikat, tillitsversion och route på plats var detta den enda kvarvarande spärren.
+- **Testtäckning före rättningen:** de godkända TR-06/IMP-05-testerna startar alla från en redan `live` profil.
+- **Rättning:** profilens eget ej godkända tillstånd räknas inte som spärr vid själva godkännandet. Alla verkliga villkor spärrar fortfarande: lås, certifikat, tillit, säkerhetspolicy, route, transport, ID och adresser. Statusutvärderingen rapporterar som tidigare.
+- **Test:** `__tests__/route-profile-production-approval-from-default.test.ts`. Det fallerar på 4 av 6 utan rättningen, och de 202 testerna märkta TR-06/IMP-05 är gröna.
+- **Närliggande:** profilen tar en ögonblicksbild av avsändarens sändlås när den materialiseras (`metadata.production_send_lock_status`). Ett senare godkännande av första sändningen ändrar inte profilen, och route-beredskapen erbjuder inte ommaterialisering när routen redan är operativ. Simuleringen materialiserar därför efter go-live. Det noteras här men är inte ändrat.
+
 ### Korrekta spärrar som simuleringen bekräftade (inte fel)
 Go-live kräver:
 - standardmejl och regler för kunder
