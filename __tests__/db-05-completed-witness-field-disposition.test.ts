@@ -14,13 +14,13 @@ import {NextRequest} from 'next/server'
 import {decisionEvidenceReview as httpReview,decisionEvidencePurge as httpPurge,decisionEvidenceRead as httpRead,decisionEvidenceOriginal as httpOriginal} from '@/lib/ediel/retention/decisionEvidenceRetentionHttp'
 import {db05PredecessorSchema} from './helpers/db05PredecessorSchema'
 const schema=db05PredecessorSchema(readFileSync('supabase/schema.sql','utf8'))
-const source6=readFileSync('supabase/migrations/20261018104637_db05_completed_decision_review_reason_retention.sql','utf8')
+const source6=readFileSync('supabase/migrations/20261019180000_db05_completed_decision_review_reason_retention.sql','utf8')
 const c='11111111-1111-4111-8111-111111111111',worker='22222222-2222-4222-8222-222222222222',source='33333333-3333-4333-8333-333333333333',selected='44444444-4444-4444-8444-444444444444',policy='55555555-5555-4555-8555-555555555555',ownReview='66666666-6666-4666-8666-666666666666',reviewer='77777777-7777-4777-8777-777777777777',target='88888888-8888-4888-8888-888888888888',issuer='99999999-9999-4999-8999-999999999999'
 const kind='completed_decision_review_reason',key=Buffer.from('ab'.repeat(32),'hex'),hash=(s:string|Buffer)=>createHash('sha256').update(s).digest('hex')
 const fields=['approved_at','company_id','expires_at','policy_id','receipt','receipt_hash','reviewer_user_id','source_commitment','stage']
 let db:PGlite
 function fn(sql:string,name:string){const start=sql.indexOf('CREATE FUNCTION '+name+'(');if(start<0)throw Error(name);const tail=sql.slice(start),match=/AS (\$[^$]*\$)([\s\S]*?)\1;/.exec(tail)!;return tail.slice(0,match.index+match[0].length)}
-const forwardPath='supabase/migrations/20261018180859_db05_completed_witness_field_disposition.sql'
+const forwardPath='supabase/migrations/20261019180200_db05_completed_witness_field_disposition.sql'
 function patched(name:string){
  const text=fn(schema,name),m=/AS (\$[^$]*\$)([\s\S]*?)\1;/.exec(text)!;let body=m[2]
  const spec=JSON.parse(/\$specs\$([\s\S]*?)\$specs\$/.exec(source6)![1]).find((x:{name:string})=>x.name===name)
@@ -125,7 +125,7 @@ beforeAll(async()=>{
  await db.exec('GRANT USAGE ON SCHEMA auth,gridex_ediel_retention,gridex_ediel_ack_replay,gridex_requested_changes,gridex_received_sources TO gridex_ediel_retention_owner;GRANT SELECT,UPDATE ON ALL TABLES IN SCHEMA public,auth,gridex_ediel_retention TO gridex_ediel_retention_owner;')
  await db.exec("INSERT INTO gridex_ediel_retention.decision_evidence_catalog(retention_class,source_table,permission_key) VALUES('completed_decision_review_reason','decision_evidence_reviews','ediel.retention.completed_review_reason')")
   await qualifyFixtureInstaller(db)
- await installFixtureSQL(db,readFileSync('supabase/migrations/20261018164728_db05_completed_review_witness_consumer_freeze.sql','utf8'))
+ await installFixtureSQL(db,readFileSync('supabase/migrations/20261019180100_db05_completed_review_witness_consumer_freeze.sql','utf8'))
  if(process.env.DB05_DISPOSITION_BASELINE!=='1')await installFixtureSQL(db,readFileSync(forwardPath,'utf8'))
  if(process.env.DB05_WORKER_DISCOVERY_BASELINE==='1'){
   const installed=(await db.query<{d:string}>("SELECT pg_get_functiondef('public.ediel_advance_completed_witness_disposition_v1(uuid,integer)'::regprocedure) d")).rows[0].d

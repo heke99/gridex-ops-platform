@@ -9,8 +9,8 @@ import {afterAll,afterEach,beforeAll,beforeEach,expect,it} from 'vitest'
 import {db05PredecessorSchema} from './helpers/db05PredecessorSchema'
 
 const schema=db05PredecessorSchema(readFileSync('supabase/schema.sql','utf8'))
-const source6=readFileSync('supabase/migrations/20261018104637_db05_completed_decision_review_reason_retention.sql','utf8')
-const nextPath='supabase/migrations/20261018164728_db05_completed_review_witness_consumer_freeze.sql'
+const source6=readFileSync('supabase/migrations/20261019180000_db05_completed_decision_review_reason_retention.sql','utf8')
+const nextPath='supabase/migrations/20261019180100_db05_completed_review_witness_consumer_freeze.sql'
 const baseline=process.env.DB05_FREEZE_COMPONENT_BASELINE==='1'
 const company='11111111-1111-4111-8111-111111111111',actor='22222222-2222-4222-8222-222222222222'
 const sourcePolicy='33333333-3333-4333-8333-333333333333',selected='44444444-4444-4444-8444-444444444444'

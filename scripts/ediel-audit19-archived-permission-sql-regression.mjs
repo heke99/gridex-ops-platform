@@ -9,8 +9,8 @@ import assert from 'node:assert/strict'
 import {test,before,beforeEach,after} from 'node:test'
 import {PGlite} from '@electric-sql/pglite'
 const root=process.env.DB05_PERMISSION_RECEIVER_ROOT||process.cwd()
-const forwardPath=process.env.DB05_PERMISSION_FORWARD||join(root,'supabase/migrations/20261019070000_db05_audit19_archived_permission.sql')
-const sql=readFileSync(forwardPath,'utf8'),schema=readFileSync(join(root,'supabase/schema.sql'),'utf8'),source6=readFileSync(join(root,'supabase/migrations/20261018104637_db05_completed_decision_review_reason_retention.sql'),'utf8')
+const forwardPath=process.env.DB05_PERMISSION_FORWARD||join(root,'supabase/migrations/20261019180500_db05_audit19_archived_permission.sql')
+const sql=readFileSync(forwardPath,'utf8'),schema=readFileSync(join(root,'supabase/schema.sql'),'utf8'),source6=readFileSync(join(root,'supabase/migrations/20261019180000_db05_completed_decision_review_reason_retention.sql'),'utf8')
 const beforeHash='6bedde3f4c01c504eae815ba0895b0872603dd2f6d8adace45669b640db689c7',afterHash='b4027dcae1ce6e709fd37afb329589649197104c801aeb4110454a60045cc0fa'
 const key='ediel.retention.audit_normalized19_cleanup',reason='ediel.retention.completed_review_reason',business='customers.write'
 const c='10000000-0000-4000-8000-000000000001',foreign='10000000-0000-4000-8000-000000000002',actor='20000000-0000-4000-8000-000000000001',superactor='20000000-0000-4000-8000-000000000002'
