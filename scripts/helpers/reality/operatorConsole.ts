@@ -143,7 +143,10 @@ export async function materializeTenantRoutes(context: BrowserContext, companyId
           .map(name => element.querySelector<HTMLInputElement>(`input[name="${name}"]`)?.value).filter(Boolean).join('/'))
         if (!done.has(route)) { target = { index, route }; break }
       }
-      if (!target) { await page.close(); break }
+      if (!target) {
+        if (attempt === 0) clicks.push({ button: name, route: 'none', actionStatus: 0, code: `not_found forms=${await forms.count()} cards=${await page.locator(`input[name="companyId"][value="${companyId}"]`).count()} text=${(await page.locator('main').innerText().catch(() => '')).replace(/\s+/g, ' ').slice(0, 200)}` })
+        await page.close(); break
+      }
       done.add(target.route)
       const actionStatus = await submitServerAction(page, () => forms.nth(target.index).getByRole('button', { name }).click(), 120_000)
       await page.waitForURL(url => url.searchParams.has('code') || url.searchParams.has('status'), { timeout: 30_000 }).catch(() => undefined)
@@ -164,6 +167,21 @@ export async function approveCompanyProduction(context: BrowserContext, companyI
   await page.fill('input[name="message_id"]', messageId)
   const actionStatus = await submitServerAction(page, () => page.getByRole('button', { name: 'Kontrollera & godkänn production' }).click(), 300_000)
   await page.waitForURL(url => url.searchParams.has('status'), { timeout: 60_000 }).catch(() => undefined)
+  const url = new URL(page.url())
+  await page.close()
+  return { actionStatus, status: url.searchParams.get('status'), message: url.searchParams.get('message') }
+}
+
+/**
+ * /admin/platform/go-live/<companyId>/route-wizard: "Skapa valda production routes" for PRODAT and UTILTS.
+ * These are the tenant's dynamic market routes whose receiver is the customer's verified grid owner.
+ */
+export async function createProductionRoutesFromWizard(context: BrowserContext, companyId: string) {
+  const page = await context.newPage()
+  await page.goto(`/admin/platform/go-live/${companyId}/route-wizard`)
+  for (const family of ['PRODAT', 'UTILTS']) await page.locator(`input[name="message_family"][value="${family}"]`).check()
+  const actionStatus = await submitServerAction(page, () => page.getByRole('button', { name: 'Skapa valda production routes' }).click(), 120_000)
+  await page.waitForURL(url => url.searchParams.has('status') || url.searchParams.has('message'), { timeout: 30_000 }).catch(() => undefined)
   const url = new URL(page.url())
   await page.close()
   return { actionStatus, status: url.searchParams.get('status'), message: url.searchParams.get('message') }

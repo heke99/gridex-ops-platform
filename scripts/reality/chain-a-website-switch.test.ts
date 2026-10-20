@@ -11,7 +11,7 @@ import { afterAll, describe, expect, it } from 'vitest'
 import { supabaseService } from '@/lib/supabase/service'
 import { configurePlatformMailbox, configureTenant, LIVE, literal, sql, type LiveTenant } from '../helpers/live-chain-fixture'
 import { approveTenantRouteProfiles, goLiveOnWebsite, publishReceiverCertificateTrust, simulateEdielCertifiedGoLive, WEBSITE_ORIGIN } from '../helpers/reality/tenantWebsite'
-import { checkGridOwners, closeOperatorConsole, confirmSafeBlankSubaddresses, importActorRegistry, materializeTenantRoutes, searchGridOwnerCertificate, operatorSession, sanitizedActorRegistry, verifyActorForCustomerFlow } from '../helpers/reality/operatorConsole'
+import { checkGridOwners, closeOperatorConsole, createProductionRoutesFromWizard, confirmSafeBlankSubaddresses, importActorRegistry, materializeTenantRoutes, searchGridOwnerCertificate, operatorSession, sanitizedActorRegistry, verifyActorForCustomerFlow } from '../helpers/reality/operatorConsole'
 import { runOperationalCronSlot, startGridOwner, type GridOwnerSim } from '../helpers/reality/world'
 import { detectStuckStates } from '../helpers/reality/stuckDetector'
 import { gs1 } from '../helpers/live-chain-wire'
@@ -99,6 +99,9 @@ describe.sequential('reality A — website customers switch supplier', () => {
     // that is already live (a route profile snapshots the send lock when it is materialized: FINDINGS F38).
     report.certifiedGoLive = simulateEdielCertifiedGoLive(tenant.companyId, tenant.adminUserId)
     report.certificateTrust = await publishReceiverCertificateTrust(tenant.companyId, GRID_OWNER_EDIEL_ID, tenant.adminUserId)
+    // The go-live route wizard: the tenant's PRODAT/UTILTS routes whose receiver is the customer's grid owner.
+    // It supersedes every production profile of the family, so it runs before the grid-owner routes (FINDINGS F41).
+    report.routeWizard = await createProductionRoutesFromWizard(staff, tenant.companyId)
     // The tenant's operational Ediel routes to the grid owner, then their production approval.
     report.tenantRoutes = await materializeTenantRoutes(staff, tenant.companyId, GRID_OWNER_EDIEL_ID, 'production')
     report.routeProfileApproval = await approveTenantRouteProfiles(tenant.companyId, tenant.adminUserId)

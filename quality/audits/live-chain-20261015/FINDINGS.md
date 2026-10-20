@@ -334,6 +334,21 @@ Granskat oberoende och verifierat på de angivna raderna.
 - **Rättning:** en begäran utan nätägarbegäran skickas genom den vanliga, skyddade vägen `queueCustomerInfoRequestForDispatch`, som skapar den och behåller alla spärrar. En fastnad begäran finaliseras som förut.
 - **Test:** `__tests__/customer-process-z01-dispatch-without-godr.test.ts` (5/5; 24 relaterade tester gröna).
 
+### F40 Go-live-guiden för routes fallerade för varje bolag som redan hade en produktionsprofil — RÄTTAD
+- **Var:** `deactivateExistingProductionFamily` (`app/admin/platform/go-live/[companyId]/route-wizard/actions.ts`) satte `production_mode: "superseded"` på befintliga profiler.
+- **Varför fel:** `ediel_route_profiles_production_mode_check` tillåter bara `disabled|shadow|dry_run|live|active`, och samma CHECK finns i drift (läsfråga).
+- **Följd:** "Skapa valda production routes" gav `status=failed` (`violates check constraint …`) så snart en PRODAT- eller UTILTS-profil fanns. Det gäller alla bolag som kan publicera avtal. Inget läser `"superseded"`.
+- **Rättning:** `production_mode: "disabled"` tillsammans med befintliga `is_enabled: false`.
+- **Test:** `__tests__/route-wizard-supersede-production-mode.test.ts` kör den riktiga åtgärden mot en databas med samma CHECK. Den fallerar utan rättningen med exakt driftens felmeddelande.
+- **Verifierat i appen:** guiden svarar "Production route skapad för PRODAT + UTILTS".
+
+### F41 Två route-modeller som utesluter varandra — ÖPPEN, ägarbeslut
+- **Guidens modell:** dynamiska profiler (`receiver_source=selected_metering_point_grid_owner`, `is_production_route=true`) som mottagaren hämtas till per kund. Det är bara dessa som miljöväljaren för kunduppgifter räknar (`routeMatchesCustomerGridOwner`).
+- **Route-beredskapens modell:** profiler per nätägare, materialiserade från registret med fast `receiver_ediel_id`.
+- **Krock 1:** guiden ersätter alla produktionsprofiler i familjen, även de materialiserade nätägarprofilerna.
+- **Krock 2:** beredskapsmotorn (`evaluateRouteProfileProductionReadiness`) kräver fast mottagare och mottagarcertifikat på profilen. Den ger `receiver_ediel_id_missing` för varje dynamisk profil, så en guide-profil kan aldrig bli produktionsgodkänd.
+- **Krock 3:** en materialiserad nätägarprofil räknas inte av miljöväljaren, så kundflödet hittar ingen miljö (`environment_not_resolved`, inga kandidatmiljöer).
+
 ### Korrekta spärrar som simuleringen bekräftade (inte fel)
 Go-live kräver:
 - standardmejl och regler för kunder

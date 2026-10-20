@@ -263,7 +263,8 @@ async function deactivateExistingProductionFamily(
       .from("ediel_route_profiles")
       .update({
         is_enabled: false,
-        production_mode: "superseded",
+        // ediel_route_profiles_production_mode_check allows disabled|shadow|dry_run|live|active only.
+        production_mode: "disabled",
         updated_by: actorUserId,
         updated_at: new Date().toISOString(),
       })
