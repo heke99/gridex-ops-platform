@@ -500,10 +500,12 @@ export async function resolveOrCreateGridOwnerForIntake(params: {
     return { gridOwnerId: null, warnings };
   }
 
+  // A shared registry grid owner or the tenant's own; never another tenant's row (FINDINGS F54).
   const { data, error } = await supabaseService
     .from("grid_owners")
     .select("id,name,is_active,lifecycle_status,verified_for_customer_flow,actor_registry_status,ediel_id")
     .eq("id", selectedGridOwnerId)
+    .or(`company_id.is.null,company_id.eq.${params.companyId}`)
     .maybeSingle();
 
   if (error) throw error;

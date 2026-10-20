@@ -239,6 +239,17 @@ export async function listGridOwners(
   return verifiedRows;
 }
 
+/**
+ * Grid owners a tenant may choose for a customer: the platform's shared registry grid owners and the
+ * tenant's own, never another tenant's. Readiness depends on platform-only registry facts (receiver
+ * certificates) that tenant sessions cannot read, so the shared reference list is read server-side and
+ * scoped to the company here (FINDINGS F53).
+ */
+export async function listCustomerFlowGridOwnersForCompany(companyId: string): Promise<GridOwnerRow[]> {
+  const rows = await listGridOwners(supabaseService, { customerFlowOnly: true });
+  return rows.filter((row) => row.company_id === null || row.company_id === companyId);
+}
+
 export async function getGridOwnerById(
   supabase: SupabaseClient,
   id: string,

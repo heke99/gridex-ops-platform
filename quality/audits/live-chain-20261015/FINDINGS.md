@@ -388,6 +388,28 @@ Världen byggdes från noll med `up.sh` (ren replay, `next build` och `start`, s
   - Uppgiften används bara för namn och org.nr som inkommande leverantör på bytesärendet. Den finns redan i bolagets egen identitet, så kravet på en separat rad i `electricity_suppliers` tillför inget.
 - **Förslag:** skapa och markera bolagets egen leverantör när bolagets Ediel-avsändare sätts upp (namn, org.nr och Ediel-ID finns redan där). Alternativt läs den egna leverantören från bolagets avsändaridentitet i stället för från `electricity_suppliers`. Go-live-grinden bör kontrollera detta.
 
+## Manuellt kundintag (scenario D, 2026-10-20)
+
+### F53 Bolagsanvändare ser ingen gemensam nätägare: det manuella intaget kan inte välja någon riktig nätägare — RÄTTAD, hög
+- **Utfall:** en riktig bolagsanvändare med `company_admin` öppnade `/admin/customers/intake`. Listan "Nätägare" var tom, trots att Alingsås Energi Nät (16700) är verifierad för kundflödet.
+- **Orsak 1, RLS (samma i drift):** den tillåtande policyn på `grid_owners` släpper igenom `company_id IS NULL`, alltså gemensamma registerrader. Den begränsande livscykelspärren `tenant_lifecycle_select_guard` (`20260814162500`) kräver däremot `company_id IN (användarens bolag)`, och det är aldrig sant för NULL. Samma krock finns på `grid_owner_contact_channels`, `grid_owner_contact_routes` och `consumption_profiles` (drift, read-only).
+- **Orsak 2:** beredskapsflaggan i vyn (`can_start_supplier_switch`) bygger på `platform_actor_certificates`, och den tabellen är bara läsbar för plattformsadmin.
+- **Rättning:**
+  - Migrationen `20261020230000_shared_reference_rows_through_lifecycle_guard.sql` låter gemensamma rader (NULL) passera spärren när sessionen är tillåten, på de fyra tabellerna. Uttrycket ändras bara om det är exakt det förväntade. Bolagsägda rader har oförändrad regel. Probe som bolag: 175 gemensamma rader och 1 egen av 9 bolagsägda.
+  - `listCustomerFlowGridOwnersForCompany`: intagets lista läses på servern och avgränsas till gemensamma nätägare plus bolagets egna. Certifikat-RLS:en lämnas orörd.
+  - `contract_invoice_fee_remediation_tasks`, som har samma mönster men är plattformsintern, lämnas orörd.
+- **Test:** `__tests__/intake-grid-owner-tenant-scope.test.ts`, 3 gröna. Utan rättningen fallerar 2. 57 relaterade tester är gröna.
+
+### F54 Intaget godtog ett annat bolags nätägare — RÄTTAD, medel (tenantisolering)
+- **Var:** `resolveOrCreateGridOwnerForIntake` läste `grid_owners` med service-rollen enbart på id. Ett postat id för ett annat bolags egen, verifierade nätägare godtogs och kopplades till kunden.
+- **Rättning:** `.or(company_id.is.null,company_id.eq.<bolaget>)`. Testet ovan kontrollerar avvisningen.
+
+### F52 Replayen saknar bolagsroller (`company_admin` m.fl.) — PARITET (inte drift)
+- **Drift:** `company_admin` har 36 behörigheter (read-only metadata).
+- **Replay:** inga roller och inga `role_permissions`, så en bolagsanvändare kan inte öppna adminytan lokalt. Den delade fixturen lägger dessutom en tillfällig `native_actor`-roll utan behörigheter på bolagets admin.
+- **I simuleringen:** `scripts/helpers/reality/tenantStaff.ts` speglar `company_admin` exakt och skapar bolagsanvändaren via GoTrue.
+- **Observation:** i drift saknar `company_admin` behörigheten `communication.write`, som Ediels affärshandlingar kräver.
+
 ### F51 Z01 kan inte skapas för någon webbkund: kundens folkbokföringsadress samlas aldrig in — ÖPPEN, kritisk, ägarbeslut
 - **Utfall (körning 17:54, efter F49):**
   - Z01-begäran till nätägaren skapas och godkänns mot fullmakten.

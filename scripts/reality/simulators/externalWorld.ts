@@ -17,7 +17,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 
 type Service = 'spot' | 'resend' | 'papapi' | 'lantmateriet'
 type FaultMode = 'ok' | 'rate_limited' | 'server_error' | 'slow' | 'hang' | 'invalid_json'
@@ -33,7 +33,8 @@ const exactAddresses: ExactAddress[] = []
 const label = (a: ExactAddress) => `${a.street} ${a.number}, ${a.postalCode.slice(0, 3)} ${a.postalCode.slice(3)} ${a.city}`
 const fold = (value: string) => value.toLowerCase().replace(/[\s,.\-]+/g, '')
 const postalCentroids = new Map<string, { latitude: number; longitude: number }>()
-const emails: Array<{ id: string; at: string; to: unknown; subject: unknown; idempotencyKey: string | null }> = []
+type SimAttachment = { filename: string | null; contentType: string | null; sizeBytes: number; sha256: string; pdf: boolean }
+const emails: Array<{ id: string; at: string; to: unknown; subject: unknown; idempotencyKey: string | null; attachments: SimAttachment[] }> = []
 
 function body(req: IncomingMessage): Promise<string> {
   return new Promise((resolve, reject) => { let s = ''; req.on('data', c => { s += c }); req.on('end', () => resolve(s)); req.on('error', reject) })
@@ -113,7 +114,13 @@ async function resend(req: IncomingMessage, res: ServerResponse, path: string) {
     const items = Array.isArray(parsed) ? parsed : [parsed]
     const ids = items.map(item => {
       const id = randomUUID()
-      emails.push({ id, at: new Date().toISOString(), to: item.to, subject: item.subject, idempotencyKey: String(req.headers['idempotency-key'] ?? '') || null })
+      // Resend receives base64 content; the simulator keeps its fingerprint, never the bytes.
+      const attachments = (Array.isArray(item.attachments) ? item.attachments : []).map((a: { filename?: string; content?: string; content_type?: string; contentType?: string }) => {
+        const bytes = Buffer.from(String(a.content ?? ''), 'base64')
+        return { filename: a.filename ?? null, contentType: a.content_type ?? a.contentType ?? null, sizeBytes: bytes.length,
+          sha256: createHash('sha256').update(bytes).digest('hex'), pdf: bytes.subarray(0, 5).toString('latin1') === '%PDF-' }
+      })
+      emails.push({ id, at: new Date().toISOString(), to: item.to, subject: item.subject, idempotencyKey: String(req.headers['idempotency-key'] ?? '') || null, attachments })
       return { id }
     })
     return send(res, 200, path === '/emails' ? ids[0] : { data: ids })

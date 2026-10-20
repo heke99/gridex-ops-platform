@@ -7,8 +7,8 @@ import CustomerActionsMenu from "@/components/admin/customers/CustomerActionsMen
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireAdminPageAccess } from "@/lib/admin/guards";
 import {
+  listCustomerFlowGridOwnersForCompany,
   listElectricitySuppliers,
-  listGridOwners,
   listPriceAreas,
 } from "@/lib/masterdata/db";
 import { listContractOffers } from "@/lib/customer-contracts/db";
@@ -62,9 +62,7 @@ export default async function CustomerIntakePage({ searchParams }: { searchParam
     contractOffersResult,
     goLiveSummary,
   ] = await Promise.all([
-    safeLoad("Nätägare", () =>
-      listGridOwners(supabase, { customerFlowOnly: true }),
-    ),
+    safeLoad("Nätägare", () => listCustomerFlowGridOwnersForCompany(companyId)),
     safeLoad("Elhandlare", () =>
       listElectricitySuppliers(supabase, {
         activeOnly: true,
