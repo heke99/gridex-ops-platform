@@ -8,21 +8,21 @@ import { stuckStateSql, type StuckRow } from '../helpers/reality/stuckDetector'
 
 const company = '00000000-0000-4000-8000-00000000c0de'
 
-/** INSERT that fills every NOT NULL column without default with a typed dummy, then applies overrides. */
+/** One INSERT with the given column expressions; every other NOT NULL column without default gets a typed dummy. */
 function plant(table: string, overrides: Record<string, string>) {
-  return `DO $plant$ DECLARE cols text:=''; vals text:=''; c record; BEGIN
+  const given = Object.entries(overrides)
+  return `DO $plant$ DECLARE cols text:=${`$v$${given.map(([c]) => c).join(',')}$v$`}; vals text:=${`$v$${given.map(([, v]) => v).join(',')}$v$`}; c record; BEGIN
   FOR c IN SELECT a.attname, format_type(a.atttypid,a.atttypmod) t FROM pg_attribute a
     WHERE a.attrelid='public.${table}'::regclass AND a.attnum>0 AND NOT a.attisdropped AND a.attnotnull AND a.attgenerated=''
-      AND NOT EXISTS (SELECT FROM pg_attrdef d WHERE d.adrelid=a.attrelid AND d.adnum=a.attnum) LOOP
-    cols:=cols||quote_ident(c.attname)||','; vals:=vals||CASE WHEN c.t='uuid' THEN 'gen_random_uuid()' WHEN c.t LIKE 'timestamp%' THEN 'now()'
-      WHEN c.t IN ('integer','bigint','smallint','numeric') THEN '0' WHEN c.t='boolean' THEN 'false' WHEN c.t LIKE 'json%' THEN '''{}''' ELSE '''x''' END||',';
+      AND NOT EXISTS (SELECT FROM pg_attrdef d WHERE d.adrelid=a.attrelid AND d.adnum=a.attnum)
+      AND a.attname <> ALL(${literalArray(given.map(([c]) => c))}) LOOP
+    cols:=concat_ws(',',nullif(cols,''),quote_ident(c.attname)); vals:=concat_ws(',',nullif(vals,''),CASE WHEN c.t='uuid' THEN 'gen_random_uuid()' WHEN c.t LIKE 'timestamp%' THEN 'now()'
+      WHEN c.t IN ('integer','bigint','smallint','numeric') THEN '0' WHEN c.t='boolean' THEN 'false' WHEN c.t LIKE 'json%' THEN '''{}''' ELSE '''x''' END);
   END LOOP;
-  EXECUTE format('CREATE TEMP TABLE IF NOT EXISTS planted_ids(id uuid)');
-  EXECUTE format('WITH r AS (INSERT INTO public.${table}(%s) VALUES(%s) RETURNING id) INSERT INTO planted_ids SELECT id FROM r', rtrim(cols,','), rtrim(vals,','));
-  ${Object.entries(overrides).map(([column, value]) => `EXECUTE 'UPDATE public.${table} SET ${column}=' || ${`$v$${value}$v$`} || ' WHERE id IN (SELECT id FROM planted_ids)';`).join('\n  ')}
-  DELETE FROM planted_ids;
+  EXECUTE CASE WHEN cols='' THEN 'INSERT INTO public.${table} DEFAULT VALUES' ELSE format('INSERT INTO public.${table}(%s) VALUES(%s)', cols, vals) END;
 END $plant$;`
 }
+const literalArray = (values: string[]) => `ARRAY[${values.map(v => `'${v}'`).join(',') || `''`}]::name[]`
 
 function detectWith(setup: string): StuckRow[] {
   return sql<StuckRow[]>(`BEGIN; SET LOCAL session_replication_role=replica;
@@ -50,7 +50,7 @@ describe('stuck-state detector against the replayed schema', () => {
     ['tenant_email_outbox', 'due_not_sent', 'stuck', { ...base, status: `'queued'`, next_attempt_at: old, created_at: old }],
     ['manual_email_outbox', 'delivery_uncertain', 'needs_operator', { ...base, status: `'delivery_uncertain'` }],
     ['webhook_deliveries', 'due_not_delivered', 'stuck', { ...base, status: `'queued'`, next_attempt_at: old }],
-    ['billing_automation_runs', 'running_orphaned', 'stuck', { ...base, status: `'running'`, started_at: old }],
+    ['billing_automation_runs', 'running_orphaned', 'stuck', { ...base, status: `'running'`, started_at: old, period_month: `'2026-09'` }],
     ['customer_operation_jobs', 'not_progressing', 'stuck', { ...base, status: `'queued'`, updated_at: old, heartbeat_at: old }],
     ['company_provisioning_jobs', 'not_progressing', 'stuck', { ...base, status: `'pending'`, available_at: old }],
     ['canonical_event_outbox', 'not_progressing', 'stuck', { ...base, status: `'pending'`, available_at: old, created_at: old }],
@@ -63,7 +63,7 @@ describe('stuck-state detector against the replayed schema', () => {
     expect(detectWith([
       plant('inbound_processing_jobs', { ...base, status: `'queued'`, updated_at: recent }),
       plant('ediel_outbox', { ...base, status: `'sent'`, queued_at: old, created_at: old }),
-      plant('billing_automation_runs', { ...base, status: `'completed'`, started_at: old }),
+      plant('billing_automation_runs', { ...base, status: `'completed'`, started_at: old, period_month: `'2026-09'` }),
     ].join('\n'))).toEqual([])
   })
 
