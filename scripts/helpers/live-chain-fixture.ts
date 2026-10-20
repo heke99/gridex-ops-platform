@@ -156,7 +156,8 @@ export type LiveTenant = {
  * a published quarter-hour spot product and billing automation. The grid-owner
  * issuer registry entry is a SYNTHETIC stand-in for external evidence EXT-ISSUER-01.
  */
-export async function configureTenant(supabase: { rpc: (name: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: unknown }> }): Promise<LiveTenant> {
+/** `brp: false` leaves the BRP to the onboarding step, as Gridex staff choose it in the go-live UI (FINDINGS F44). */
+export async function configureTenant(supabase: { rpc: (name: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: unknown }> }, options: { brp?: boolean } = {}): Promise<LiveTenant> {
   ensureHostedPermissionCatalog()
   ensureProductionRoleLookupParity()
   const companyId = randomUUID(), adminUserId = randomUUID(), gridOwnerId = randomUUID()
@@ -215,7 +216,7 @@ export async function configureTenant(supabase: { rpc: (name: string, args: Reco
   const offerId = offerResult.offer.id
   sql(`INSERT INTO public.ediel_actor_settings(company_id,environment,actor_name,actor_ediel_id,ediel_id)
     VALUES(${literal(companyId)},'production','E2E Live Elhandel',${literal(supplierEdielId)},${literal(supplierEdielId)}),(${literal(companyId)},'test','E2E Live Elhandel',${literal(supplierEdielId)},${literal(supplierEdielId)});
-   INSERT INTO public.ediel_brp_settings(company_id,environment,brp_ediel_id,brp_name) VALUES(${literal(companyId)},'production','54321','E2E BRP');
+   ${options.brp === false ? '' : `INSERT INTO public.ediel_brp_settings(company_id,environment,brp_ediel_id,brp_name) VALUES(${literal(companyId)},'production','54321','E2E BRP');`}
    INSERT INTO public.ediel_route_profiles(company_id,environment,route_name,message_family) VALUES(${literal(companyId)},'production','E2E PRODAT','PRODAT'),(${literal(companyId)},'production','E2E UTILTS','UTILTS');
    INSERT INTO public.company_email_settings(company_id,sender_name,sender_email,verification_status) VALUES(${literal(companyId)},'E2E Live','e2e-live@example.invalid','verified');
    INSERT INTO public.company_email_templates(company_id,template_key,name,subject,body_html,is_active) VALUES(${literal(companyId)},'contract.confirmation_sent','E2E','E2E','<p>E2E</p>',true);

@@ -277,6 +277,7 @@
     "20261020120000_ediel_wire_tokenizer_linear_time.sql": "be403a83e8f240e4a7d97797017ea8f246f28e66c45018d9e5c5d92e618f9334",
     "20261020120100_ediel_technical_ack_original_lookup_by_uci.sql": "4e87579cd2da93343f133e373eae2a23ab6f279ada86f0b78f317bdc91a58c41",
     "20261020120200_ediel_ack_original_candidates_indexed.sql": "97bb3404a6cfd9c881d7d27668150363ac0ea5eda50fa20fd5660685ffc23193",
-    "20261020120300_ediel_technical_ack_original_uniqueness_indexed.sql": "7c8ddd1172e2eac31ae0db2f68d752bafea81111410be2aaed6b5759facca43f"
+    "20261020120300_ediel_technical_ack_original_uniqueness_indexed.sql": "7c8ddd1172e2eac31ae0db2f68d752bafea81111410be2aaed6b5759facca43f",
+    "20261020190000_ediel_tenant_brp_agreement_source.sql": "c3ca5d1d690617501aa6350b66b3bbe4ef6b01137824fd64389fefbe1e3acb49"
   }
 }

@@ -89,6 +89,26 @@ export async function verifyActorForCustomerFlow(context: BrowserContext, actorN
 }
 
 /**
+ * /admin/platform/go-live/<companyId>#brp: the onboarding step where Gridex staff choose the tenant's
+ * balance responsible party from the Ediel registry and the date it applies from (FINDINGS F44).
+ */
+export async function chooseTenantBrp(context: BrowserContext, companyId: string, brpName: string, validFrom: string) {
+  const page = await context.newPage()
+  await page.goto(`/admin/platform/go-live/${companyId}#brp`)
+  const form = page.locator('section#brp form')
+  const option = await form.locator('select[name="brp_actor_id"] option').filter({ hasText: brpName }).first().getAttribute('value')
+  if (!option) { await page.close(); return { actionStatus: 0, status: 'option_missing', message: brpName } }
+  await form.locator('select[name="brp_actor_id"]').selectOption(option)
+  await form.locator('input[name="valid_from"]').fill(validFrom)
+  const actionStatus = await submitServerAction(page, () => form.getByRole('button', { name: 'Spara BRP' }).click(), 120_000)
+  await page.waitForURL(url => url.searchParams.has('status'), { timeout: 30_000 }).catch(() => undefined)
+  const url = new URL(page.url())
+  const shown = (await page.locator('section#brp').innerText().catch(() => '')).replace(/\s+/g, ' ')
+  await page.close()
+  return { actionStatus, status: url.searchParams.get('status'), message: url.searchParams.get('message'), shown: shown.slice(0, 400) }
+}
+
+/**
  * /admin/network-owners: "Kontrollera nätägare" links each SVK grid area owner
  * (platform_grid_owners) to its OPS grid owner and recomputes verification.
  * Verifying the actor for the customer flow does not do this (FINDINGS F32).
