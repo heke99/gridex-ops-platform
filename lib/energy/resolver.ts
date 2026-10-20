@@ -143,6 +143,20 @@ function hasFullAddress(input: EnergyResolverInput): boolean {
   return Boolean(clean(input.street) && normalizePostalCode(input.postalCode) && clean(input.city))
 }
 
+/**
+ * The next step for an unverified client grid-area code, naming why the code
+ * could not be cross-validated. Asking for a full address that was already
+ * sent hides the real gap (FINDINGS F26). Text only: the claim stays
+ * needs_review with automation off whatever the reason.
+ */
+export function gridAreaClaimNextAction(input: { fullAddress: boolean; exactAddressProviderAllowed: boolean; warnings: readonly string[] }): string {
+  const awaitVerified = 'Ärendet granskas manuellt eller väntar på verifierade anläggningsuppgifter från OPS/nätägaren.'
+  if (!input.fullAddress) return 'Nätområdeskoden är endast ett klientpåstående. Komplettera full adress eller invänta verifierade anläggningsuppgifter från OPS/nätägaren.'
+  if (!input.exactAddressProviderAllowed) return `Nätområdeskoden är endast ett klientpåstående. Full adress togs emot, men exakt adressverifiering används inte i den här kanalen, så koden kan inte korsvalideras. ${awaitVerified}`
+  if (input.warnings.some(warning => warning.startsWith('polygon_'))) return `Nätområdeskoden är endast ett klientpåstående. Adressens exakta punkt matchade inget nätområde i polygondata, så koden kan inte korsvalideras. ${awaitVerified}`
+  return `Nätområdeskoden är endast ett klientpåstående. Adressen finns ännu inte i det exakta adressregistret, så koden kan inte korsvalideras. ${awaitVerified}`
+}
+
 function exactAddressProviderAllowed(input: EnergyResolverInput): boolean {
   const metadata = input.metadata
   if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return true
@@ -1289,7 +1303,7 @@ export async function resolveEnergyContext(input: EnergyResolverInput): Promise<
         sourceChain: ['client_grid_area_claim', 'platform_grid_areas'],
         automationAllowed: false,
         conflictCode: 'grid_area_claim_unverified',
-        nextRequiredAction: 'Nätområdeskoden är endast ett klientpåstående. Komplettera full adress eller invänta verifierade anläggningsuppgifter från OPS/nätägaren.',
+        nextRequiredAction: gridAreaClaimNextAction({ fullAddress: hasFullAddress(input), exactAddressProviderAllowed: exactAddressProviderAllowed(input), warnings }),
         warnings: [...warnings, 'grid_area_claim_requires_address_cross_validation'],
       }))
     }

@@ -195,10 +195,11 @@ Sviten finns i `scripts/reality/` (plan: `docs/testing/verklighetssimulering-pla
 - **Följd:** varningen "Ingen aktiv nätägarkontakt via e-post hittades" kan aldrig försvinna. Live sågs den med en verifierad kontakt på plats. Den riktiga vägen (`customerSiteProcessContext.ts:577`) använder `facility_information_request` och verifierad.
 - **Rättning:** samma filter som den riktiga vägen.
 
-### F26 Webbplats som skickar `grid_area_code` får alltid 409 — ÖPPEN, produktfråga
+### F26 Webbplats som skickar `grid_area_code` får alltid 409 — TEXTEN RÄTTAD, gränsen kvar enligt ROOT
 - **Varför:** med en uttrycklig kod går `resolveEnergyContext` bara till cachen för exakta adresser. Webbvägen stänger av den (`exact_address_provider_allowed:false`), så postnummergeokodningen nås aldrig, och resultatet blir `needs_review`.
 - **Följd:** svaret säger "Komplettera full adress" fast full adress skickades. Utan koden löses samma adress automatiskt.
 - **Beslut som behövs:** antingen korsvalideras koden mot postnummerresultatet, eller så dokumenteras att webbplatser inte ska skicka den.
+- **Rättat:** `gridAreaClaimNextAction` i `lib/energy/resolver.ts` anger nu det faktiska skälet. Det kan vara att full adress togs emot men kanalen inte använder exakt adressverifiering, en miss i adresscachen eller en polygonmiss. Status, `conflictCode`, varningar och spärren för automatik är oförändrade. Test: `__tests__/energy-grid-area-claim-next-action.test.ts`.
 - **ROOT (#840/6291333488):** bindningsgränsen ska stå kvar. En kod räknas bara med exakt adress och polygon som bevis. Det som ska rättas är texten: svaret ska ange det faktiska cache-, polygon- eller masterdatafelet i stället för att be om en adress som redan skickats.
 
 ### F27 Go-live-grinden säger "redo" fast ingen spotofferert kan skapas — ÖPPEN
@@ -305,6 +306,15 @@ Gränser i drift: 8 s per SQL-sats, 8 s låsväntan, Vercel-funktion ~300 s, cro
 ### B1 `blocked_tenant_state` släpps aldrig när bolaget aktiveras igen — ÖPPEN, produktbeslut
 - **Verifierat i kod:** bara `company_provisioning_jobs` släpps när bolaget aktiveras igen (`canonical_sync_provisioning_jobs_for_lifecycle`). `ediel_outbox`, `tenant_email_outbox`, `manual_email_outbox`, `webhook_deliveries` och `canonical_event_outbox` har ingen väg tillbaka från `blocked_tenant_state`, varken i SQL eller i appen.
 - **Varför inte rättat automatiskt:** ett Ediel- eller kundmeddelande som skickas dagar senare kan vara skadligt (passerade tidsfrister, inaktuellt innehåll). Om posterna ska släppas, kasseras eller granskas är ett produktbeslut. Rekommendation: släpp poster yngre än en gräns och låt operatören hantera resten.
+
+### S1 Svepet för affärsförväntningar växer linjärt med antalet bolag och stannar vid 201 — ÖPPEN (skala)
+- **Var:** `sweepEdielBusinessExpectations` (`lib/ediel/operations/businessExpectationSweep.ts`), anropas i `/api/internal/customer-operations/cron` var 5:e minut.
+- **Kostnad:** för varje bolag och båda miljöerna görs read och expire för två ägare plus en next-action-projektion, i följd. Det blir cirka 12 RPC-anrop per bolag.
+- **Mätt i simuleringen:** 27 bolag gav 324 anrop per körning (`gridex_ediel_business_expectations_v1` och `gridex_ediel_metering_method_expectations_v1`).
+- **Drift idag:** 3 bolag, cirka 36 anrop per körning.
+- **Vid taket:** 200 bolag ger cirka 2 400 anrop i följd i en och samma cronkörning.
+- **Hårt stopp:** vid 201 medlemskap kastar svepet `ediel_expectation_sweep_scope_limit`. Då körs inga förväntningstimrar alls för någon tenant, och felet syns bara i stegresultatet.
+- **Förslag:** gör svepet sidindelat med en markör per körning i stället för att stoppa vid taket. Läs bara bolag och miljöer som har öppna förväntningar.
 
 ### Övriga stopp- och tidsrisker (verifierade i kod, inte ändrade)
 - **Ediel-utkorgen `delivery_uncertain`:** en post som fastnat i `sending` blir `delivery_uncertain` och väntar på avstämning mot transporten. Det finns ingen åtgärd i gränssnittet för att köa om Ediel-poster (för e-post finns `requeueUncertainEmailAction`). Automatisk omsändning vore fel, eftersom ett dubbelt EDIFACT-meddelande kan ha effekt. Operatörsvägen saknas dock.
