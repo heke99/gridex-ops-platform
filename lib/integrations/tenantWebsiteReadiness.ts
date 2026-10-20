@@ -144,6 +144,98 @@ function operationBlocker(operation: TenantOperation, decision: TenantOperationD
   return `${labels[operation]} (${decision.reason_code})`
 }
 
+/** E-mail, automation and facility-mailbox checks; shared by the website and operational reconciliations. */
+function operationalChecks(
+  readinessView: ReadinessViewRow | null,
+  automation: CustomerApplicationAutomationReadiness | null,
+) {
+  return {
+    verified_sender_present:
+      readinessView?.has_verified_sender === true &&
+      automation?.checks.verified_customer_email_sender === true,
+    required_email_templates_present:
+      readinessView?.has_mail_templates === true &&
+      automation?.checks.required_email_templates_active === true,
+    required_email_rules_present: automation?.checks.required_email_rules_active === true,
+    automation_user_ready:
+      automation?.checks.automation_user_configured === true &&
+      automation?.checks.automation_user_verified === true,
+    automation_cron_ready: automation?.checks.cron_secret_configured === true,
+    facility_operations_mailbox_ready:
+      automation?.checks.manual_operations_mailbox_ready === true,
+  }
+}
+
+type OperationalChecks = ReturnType<typeof operationalChecks>
+
+const OPERATIONAL_CAPABILITIES: Array<{ code: string; requires: Array<keyof OperationalChecks> }> = [
+  { code: 'email_outbound', requires: ['verified_sender_present', 'required_email_templates_present', 'required_email_rules_present'] },
+  { code: 'customer_automation', requires: ['automation_user_ready', 'automation_cron_ready'] },
+  { code: 'facility_lookup', requires: ['facility_operations_mailbox_ready'] },
+  { code: 'facility_lookup_enabled', requires: ['facility_operations_mailbox_ready'] },
+]
+
+export type TenantOperationalCapability = { code: string; ready: boolean; blockers: string[] }
+
+/**
+ * Go-live reconciliation of the capabilities a tenant needs to operate without
+ * a website (owner decision 2026-10-20, FINDINGS F67): outbound e-mail, the
+ * grid-owner facility request and customer automation, with exactly the
+ * checks the website reconciliation applies, but no website client required.
+ * Website-specific capabilities are left to reconcileTenantWebsiteCapabilities.
+ */
+export async function reconcileTenantOperationalCapabilities(input: {
+  companyId: string
+  actorUserId: string
+}): Promise<TenantOperationalCapability[]> {
+  const [readinessView, automation] = await Promise.all([
+    loadReadinessView(input.companyId),
+    evaluateCustomerApplicationAutomationReadiness(input.companyId).catch((error) => {
+      if (schemaMissing(error)) return null
+      throw error
+    }),
+  ])
+  const checks = operationalChecks(readinessView, automation)
+  const now = new Date().toISOString()
+  const capabilities = OPERATIONAL_CAPABILITIES.map(({ code, requires }) => {
+    const blockers = requires.filter((check) => !checks[check])
+    return { code, ready: blockers.length === 0, blockers }
+  })
+  const { error } = await supabaseService.from('company_capabilities').upsert(
+    capabilities.map(({ code, ready, blockers }) => ({
+      company_id: input.companyId,
+      capability_code: code,
+      enabled: ready,
+      readiness_status: ready ? 'ready' : 'blocked',
+      blockers,
+      configuration: { source: 'tenant_operational_readiness_v1', checks },
+      last_verified_at: now,
+      last_verified_by: input.actorUserId,
+      updated_by: input.actorUserId,
+      updated_at: now,
+    })),
+    { onConflict: 'company_id,capability_code' },
+  )
+  if (error) throw error
+  return capabilities
+}
+
+/** Current operational capability rows for the go-live page. */
+export async function listTenantOperationalCapabilities(companyId: string): Promise<TenantOperationalCapability[]> {
+  const codes = OPERATIONAL_CAPABILITIES.map((capability) => capability.code)
+  const { data, error } = await supabaseService
+    .from('company_capabilities')
+    .select('capability_code,enabled,readiness_status,blockers')
+    .eq('company_id', companyId)
+    .in('capability_code', codes)
+  if (error) throw error
+  const rows = (data ?? []) as Array<{ capability_code: string; enabled: boolean | null; readiness_status: string | null; blockers: string[] | null }>
+  return codes.map((code) => {
+    const row = rows.find((candidate) => candidate.capability_code === code)
+    return { code, ready: row?.enabled === true && row.readiness_status === 'ready', blockers: row?.blockers ?? [] }
+  })
+}
+
 async function loadReadinessView(companyId: string): Promise<ReadinessViewRow | null> {
   const { data, error } = await supabaseService
     .from('tenant_website_readiness_v')
@@ -273,19 +365,7 @@ export async function loadTenantWebsiteFlowReadiness(input: {
     // The public legal document URLs are /legal/<slug>/... with the same
     // slug ?? company_slug resolution; without it the legal bundle has no URLs.
     public_legal_slug_present: Boolean(clean(company?.slug ?? company?.company_slug)),
-    verified_sender_present:
-      readinessView?.has_verified_sender === true &&
-      automation?.checks.verified_customer_email_sender === true,
-    required_email_templates_present:
-      readinessView?.has_mail_templates === true &&
-      automation?.checks.required_email_templates_active === true,
-    required_email_rules_present: automation?.checks.required_email_rules_active === true,
-    automation_user_ready:
-      automation?.checks.automation_user_configured === true &&
-      automation?.checks.automation_user_verified === true,
-    automation_cron_ready: automation?.checks.cron_secret_configured === true,
-    facility_operations_mailbox_ready:
-      automation?.checks.manual_operations_mailbox_ready === true,
+    ...operationalChecks(readinessView, automation),
     portal_url_schema_ready: company?.portal_url_schema_ready === true,
     portal_url_present: Boolean(canonicalPortalUrl),
     webhook_subscription_present: webhookCount > 0,

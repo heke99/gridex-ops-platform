@@ -29,6 +29,11 @@ import { TenantWebsiteGoLivePanel } from "@/components/admin/go-live/TenantWebsi
 import { CertificationEvidencePanel } from "@/components/admin/go-live/CertificationEvidencePanel";
 import { approveCompanyProductionAction } from "@/app/admin/platform/go-live/approval-actions";
 import { saveTenantBrpAction } from "@/app/admin/platform/go-live/brp-actions";
+import { reconcileTenantOperationalCapabilitiesAction } from "@/app/admin/platform/go-live/capability-actions";
+import {
+  listTenantOperationalCapabilities,
+  type TenantOperationalCapability,
+} from "@/lib/integrations/tenantWebsiteReadiness";
 import {
   listRegistryBalanceResponsibleActors,
   listTenantBrpVersions,
@@ -103,7 +108,7 @@ export default async function PlatformGoLiveCompanyPage({
     return <div className="p-8">Bolaget hittades inte.</div>;
   }
 
-  const [readinessLoad, setupLoad, websiteLoad, evidenceLoad, brpActorsLoad, brpVersionsLoad] = await Promise.all([
+  const [readinessLoad, setupLoad, websiteLoad, evidenceLoad, brpActorsLoad, brpVersionsLoad, capabilitiesLoad] = await Promise.all([
     safeLoad<ProductionReadinessResult>("production readiness", () =>
       getCompanyProductionReadiness(companyId, { checkedBy: admin.userId }),
     ),
@@ -120,6 +125,7 @@ export default async function PlatformGoLiveCompanyPage({
       listRegistryBalanceResponsibleActors(),
     ),
     safeLoad<TenantBrpVersion[]>("brp versions", () => listTenantBrpVersions(companyId)),
+    safeLoad<TenantOperationalCapability[]>("operational capabilities", () => listTenantOperationalCapabilities(companyId)),
   ]);
 
   const readiness = readinessLoad.ok ? readinessLoad.data : null;
@@ -234,6 +240,11 @@ export default async function PlatformGoLiveCompanyPage({
           versions={brpVersionsLoad.ok ? brpVersionsLoad.data : null}
         />
 
+        <TenantOperationalCapabilitiesStep
+          companyId={companyId}
+          capabilities={capabilitiesLoad.ok ? capabilitiesLoad.data : null}
+        />
+
         <ActorCompanyIdentityCard summary={summary} />
 
         {setupSummary ? <CompanyGoLiveSetupPanel summary={setupSummary} /> : null}
@@ -285,6 +296,48 @@ export default async function PlatformGoLiveCompanyPage({
         </details>
       </div>
     </div>
+  );
+}
+
+const CAPABILITY_LABELS: Record<string, string> = {
+  email_outbound: "Utgående e-post",
+  facility_lookup: "Nätägarförfrågan med fullmakt",
+  customer_automation: "Kundautomation",
+};
+
+function TenantOperationalCapabilitiesStep({
+  companyId,
+  capabilities,
+}: {
+  companyId: string;
+  capabilities: TenantOperationalCapability[] | null;
+}) {
+  const shown = capabilities?.filter((capability) => CAPABILITY_LABELS[capability.code]) ?? null;
+  return (
+    <section id="capabilities" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-600">Go-live</p>
+      <h2 className="mt-2 text-xl font-black text-slate-950">Driftkapabiliteter</h2>
+      <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-700">
+        Bolaget behöver utgående e-post, nätägarförfrågan och kundautomation även utan webbförsäljning. Kontrollen använder samma krav som webbens go-live: verifierad avsändare, aktiva mallar och regler, driftbrevlåda och automationskonto. Den körs också när bolaget godkänns för production.
+      </p>
+      {shown === null ? (
+        <p className="mt-4 text-sm font-semibold text-red-800">Kapabiliteterna kunde inte läsas. Ladda om sidan.</p>
+      ) : (
+        <ul className="mt-4 space-y-1 text-sm font-semibold text-slate-800">
+          {shown.map((capability) => (
+            <li key={capability.code}>
+              {CAPABILITY_LABELS[capability.code]}: {capability.ready ? "redo" : `inte redo${capability.blockers.length ? ` (${capability.blockers.join(", ")})` : ""}`}
+            </li>
+          ))}
+        </ul>
+      )}
+      <form action={reconcileTenantOperationalCapabilitiesAction} className="mt-5">
+        <input type="hidden" name="company_id" value={companyId} />
+        <button className="rounded-2xl bg-emerald-700 px-6 py-3 text-sm font-black text-white shadow-sm hover:bg-emerald-800">
+          Kontrollera driftkapabiliteter
+        </button>
+      </form>
+    </section>
   );
 }
 

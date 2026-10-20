@@ -6,6 +6,7 @@ import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { getCompanyProductionReadiness, runProductionDryRun } from '@/lib/ediel/productionReadiness'
 import { supabaseService } from '@/lib/supabase/service'
 import { getEdielMessageById } from '@/lib/ediel/db'
+import { reconcileTenantOperationalCapabilities } from '@/lib/integrations/tenantWebsiteReadiness'
 
 function required(formData: FormData, key: string): string {
   const value = String(formData.get(key) ?? '').trim()
@@ -110,6 +111,16 @@ export async function approveCompanyProductionAction(formData: FormData) {
       })
       if (firstSend.error) throw firstSend.error
     }
+
+    // A live tenant also needs its operational capabilities reconciled, with
+    // or without a website (FINDINGS F67). Not-ready capabilities stay blocked
+    // and are shown on the go-live page; they never block the approval itself.
+    await reconcileTenantOperationalCapabilities({ companyId, actorUserId: admin.userId }).catch((error) => {
+      console.error('[go-live] operational capability reconciliation failed', {
+        companyId,
+        error: error instanceof Error ? error.message : String(error),
+      })
+    })
   } catch (error) {
     revalidate(companyId)
     const message = error instanceof Error ? error.message : 'Bolaget kunde inte godkännas för production.'
