@@ -44,6 +44,7 @@ export type WebsiteApplicationResult = {
   status: number
   body: unknown
   applicationNumber?: string
+  retry?: { status: number; applicationNumber?: string }
   requests: Array<{ method: string; path: string; status: number; ms: number }>
 }
 
@@ -249,6 +250,8 @@ export async function applyAsWebsiteCustomer(input: {
   acceptedAt?: string
   /** The customer's verified Mina sidor session (auth user id), sent server-side like a real checkout under pre_auth_required. */
   portalUserId?: string
+  /** Resend the final application request unchanged (same body and Idempotency-Key), as after a lost response. */
+  retryFinalSubmit?: boolean
 }): Promise<WebsiteApplicationResult> {
   const requests: RequestLog = []
   const ctx: HttpContext = { baseUrl: input.baseUrl, apiKey: input.apiKey, origin: input.origin, requests }
@@ -431,5 +434,10 @@ export async function applyAsWebsiteCustomer(input: {
   })
   if (!is2xx(application.status)) return { step: 'customer_application', ...application, requests }
   const applicationNumber = text(field(field(application.body, 'data'), 'application_number')) ?? undefined
-  return { step: 'customer_application', ...application, applicationNumber, requests }
+  // A website whose first response was lost resends exactly the same request with the same key.
+  const retry = input.retryFinalSubmit
+    ? await call(ctx, 'POST', '/api/v1/website/customer-applications', { body: applicationBody, idempotencyKey: applicationIdempotencyKey })
+    : undefined
+  return { step: 'customer_application', ...application, applicationNumber, requests,
+    ...(retry ? { retry: { status: retry.status, applicationNumber: text(field(field(retry.body, 'data'), 'application_number')) ?? undefined } } : {}) }
 }

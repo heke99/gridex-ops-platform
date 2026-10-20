@@ -8,6 +8,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import { configurePlatformMailbox, configureTenant, LIVE, sql, type LiveTenant } from '../helpers/live-chain-fixture'
 import { goLiveOnWebsite, WEBSITE_ORIGIN } from '../helpers/reality/tenantWebsite'
 import { detectStuckStates } from '../helpers/reality/stuckDetector'
+import { prepareMarketData } from '../helpers/reality/world'
 import { applyAsWebsiteCustomer, type SimulatedPerson, type SimulatedSite, type WebsiteApplicationResult } from './simulators/websiteCustomer'
 import { gs1 } from '../helpers/live-chain-wire'
 
@@ -56,6 +57,8 @@ describe.sequential('reality C — website API under real-world conditions', () 
 
   it('C0 two suppliers go live on their websites', async () => {
     expect(configurePlatformMailbox()).toBe(1)
+    report.marketData = await prepareMarketData()
+    expect(report.marketData).toMatchObject({ geodataVerified: true })
     tenantA = await configureTenant(supabaseService as never)
     tenantB = await configureTenant(supabaseService as never)
     keyA = (await goLiveOnWebsite(tenantA, tenantA.adminUserId)).credential?.token ?? ''
@@ -89,17 +92,28 @@ describe.sequential('reality C — website API under real-world conditions', () 
     for (const run of runs) expect(run.status, `${run.step} ${JSON.stringify(run.body).slice(0, 400)}`).toBeLessThan(300)
   })
 
-  it('C2 a website that retries with the same Idempotency-Key gets the same application, never a second one', async () => {
-    const p = person(50), s = site(), key = `reality-retry-${RUN}`
+  it('C2 a website that resends the same application after a lost response gets the same application, never a second one', async () => {
+    const p = person(50)
     const portalUserId = await portalAccount(p)
-    const first = await apply(keyA, 50, { p, s, portalUserId, idempotencyKey: key })
-    const second = await apply(keyA, 50, { p, s, portalUserId, idempotencyKey: key })
+    const result = await applyAsWebsiteCustomer({ baseUrl: LIVE.appUrl, apiKey: keyA, origin: WEBSITE_ORIGIN, person: p, site: site(), portalUserId, retryFinalSubmit: true })
     const rows = sql<number>(`SELECT to_jsonb(count(*)) FROM public.website_customer_applications WHERE company_id='${tenantA.companyId}' AND (payload::text LIKE '%${p.email}%' OR raw_payload::text LIKE '%${p.email}%')`)
-    report.idempotency = { first: [first.status, first.applicationNumber], second: [second.status, second.applicationNumber], rows }
+    report.idempotency = { first: [result.status, result.applicationNumber], retry: result.retry, rows }
     save()
-    expect(first.status).toBeLessThan(300)
-    expect(second.applicationNumber).toBe(first.applicationNumber)
+    expect(result.status).toBeLessThan(300)
+    expect(result.retry?.status).toBeLessThan(300)
+    expect(result.retry?.applicationNumber).toBe(result.applicationNumber)
     expect(rows).toBe(1)
+  })
+
+  it('C2b one public-contracts request: database round trips', async () => {
+    await new Promise(resolve => setTimeout(resolve, 2_000))
+    const since = new Date()
+    const response = await fetch(`${LIVE.appUrl}/api/v1/website/public-contracts?customer_type=private`, { headers: { authorization: `Bearer ${keyA}`, origin: WEBSITE_ORIGIN } })
+    await response.arrayBuffer()
+    await new Promise(resolve => setTimeout(resolve, 1_500))
+    report.publicContractsRoundTrips = { status: response.status, ...gatewayRequestsSince(since) }
+    save()
+    expect(response.status).toBe(200)
   })
 
   it("C3 another supplier's API key cannot read this supplier's application", async () => {
@@ -117,18 +131,22 @@ describe.sequential('reality C — website API under real-world conditions', () 
   it('C4 the per-client rate limit answers 429 with Retry-After instead of degrading', async () => {
     const statuses: number[] = []
     let retryAfter: string | null = null
+    const errorCodes: string[] = []
     const started = Date.now()
     await Promise.all(Array.from({ length: 150 }, async () => {
       const response = await fetch(`${LIVE.appUrl}/api/v1/website/public-contracts?customer_type=private`, { headers: { authorization: `Bearer ${keyB}`, origin: WEBSITE_ORIGIN } })
       statuses.push(response.status)
       if (response.status === 429) retryAfter ??= response.headers.get('retry-after')
-      await response.arrayBuffer()
+      const body = await response.text()
+      if (response.status >= 500) errorCodes.push(`${response.status}:${/"code":"([^"]+)"/.exec(body)?.[1] ?? 'none'}`)
     }))
     const counts = statuses.reduce<Record<number, number>>((acc, status) => ({ ...acc, [status]: (acc[status] ?? 0) + 1 }), {})
-    report.rateLimit = { requests: 150, limitPerMinute: 120, counts, retryAfter, ms: Date.now() - started }
+    report.rateLimit = { requests: 150, limitPerMinute: 120, counts, retryAfter, ms: Date.now() - started,
+      errorCodes: errorCodes.reduce<Record<string, number>>((acc, code) => ({ ...acc, [code]: (acc[code] ?? 0) + 1 }), {}) }
     save()
     expect(counts[429] ?? 0).toBeGreaterThan(0)
     expect(counts[500] ?? 0).toBe(0)
+    expect(counts[503] ?? 0, JSON.stringify(report.rateLimit)).toBe(0)
   })
 
   it('C5 third-party outages give the website a fast, explicit answer, never a hang', async () => {
@@ -138,6 +156,8 @@ describe.sequential('reality C — website API under real-world conditions', () 
       { service: 'lantmateriet', mode: 'hang' },
     ]
     const results: Array<Record<string, unknown>> = []
+    // Let the burst of C4 and its rate-limit window pass, so each outage is measured on a quiet system.
+    await new Promise(resolve => setTimeout(resolve, 65_000))
     for (const [index, c] of cases.entries()) {
       await fault(c.service, c.mode, c.extra)
       const started = Date.now()

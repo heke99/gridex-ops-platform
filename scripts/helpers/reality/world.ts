@@ -3,7 +3,7 @@
 import { spawn, type ChildProcess } from 'node:child_process'
 import { createServer } from 'node:net'
 import { readFileSync } from 'node:fs'
-import { cron, LIVE } from '../live-chain-fixture'
+import { cron, LIVE, sql } from '../live-chain-fixture'
 
 export type GridOwnerSim = {
   url: string; edielId: string; email: string
@@ -83,3 +83,24 @@ export async function runOperationalCronSlot() {
 }
 
 export const world = { appUrl: LIVE.appUrl }
+
+/**
+ * Market reference data a fresh environment must have before customers can be served, fetched by the
+ * platform's own crons: SVK's grid-area polygons (paged import, real public ArcGIS service) and the
+ * spot prices (the external-world simulator). Returns what was imported.
+ */
+export async function prepareMarketData(maxImportCalls = 60) {
+  const verified = () => sql<boolean>(`SELECT EXISTS(SELECT FROM public.energy_geodata_versions WHERE provider='svk_arcgis' AND status='verified')`)
+  const calls: Array<{ status: number; ms: number }> = []
+  for (let i = 0; i < maxImportCalls && !verified(); i++) {
+    const started = Date.now()
+    const result = await cron('/api/internal/platform/grid-areas/import/cron')
+    calls.push({ status: result.status, ms: Date.now() - started })
+    if (result.status >= 500) break
+  }
+  const spot = await cron('/api/cron/pricing/spot-prices')
+  return {
+    geodataVerified: verified(), importCalls: calls.length, importMs: calls.reduce((sum, c) => sum + c.ms, 0), failedCall: calls.find(c => c.status >= 400) ?? null,
+    gridAreas: sql<number>(`SELECT to_jsonb(count(*)) FROM public.platform_grid_area_geometries WHERE is_active`), spotStatus: spot.status,
+  }
+}

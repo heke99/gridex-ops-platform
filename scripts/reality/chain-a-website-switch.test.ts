@@ -12,7 +12,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import { configurePlatformMailbox, configureTenant, LIVE, literal, sql, type LiveTenant } from '../helpers/live-chain-fixture'
 import { approveTenantRouteProfiles, goLiveOnWebsite, publishReceiverCertificateTrust, simulateEdielCertifiedGoLive, WEBSITE_ORIGIN } from '../helpers/reality/tenantWebsite'
 import { checkGridOwners, closeOperatorConsole, createProductionRoutesFromWizard, confirmSafeBlankSubaddresses, importActorRegistry, materializeTenantRoutes, searchGridOwnerCertificate, operatorSession, sanitizedActorRegistry, verifyActorForCustomerFlow } from '../helpers/reality/operatorConsole'
-import { runOperationalCronSlot, startGridOwner, type GridOwnerSim } from '../helpers/reality/world'
+import { prepareMarketData, runOperationalCronSlot, startGridOwner, type GridOwnerSim } from '../helpers/reality/world'
 import { detectStuckStates } from '../helpers/reality/stuckDetector'
 import { gs1 } from '../helpers/live-chain-wire'
 import { applyAsWebsiteCustomer, type SimulatedPerson, type SimulatedSite, type WebsiteApplicationResult } from './simulators/websiteCustomer'
@@ -77,6 +77,7 @@ describe.sequential('reality A — website customers switch supplier', () => {
     expect(LIVE.cronSecret && LIVE.automationUserId).toBeTruthy()
     expect(configurePlatformMailbox()).toBe(1)
     tenant = await configureTenant(supabaseService as never)
+    report.marketData = await prepareMarketData()
     // Platform go-live, as Gridex staff do it in /admin/ediel/actors: import Ediel's published actor
     // registry (real Ediel IDs and roles; e-mail rewritten to example.invalid) including the grid owner
     // registry, then verify the area's real grid owner for the customer flow.
