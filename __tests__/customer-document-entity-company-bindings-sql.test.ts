@@ -10,6 +10,17 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 // no native/JWT/full replay or end-to-end parent deletion is certified here.
 const schema = readFileSync('supabase/schema.sql', 'utf8')
 const forward = readFileSync('supabase/migrations/20261020165029_db_customer_document_entity_company_bindings.sql', 'utf8')
+// Declared exact original DDL from fd4acbc50e9d73c7f2f317d3e806723522708b16,
+// supabase/schema.sql blob48a6e2b3ccc67cfc4ccac7bf278ec213c8a323b5,
+// SHA256 a15291106e26b9bea9f70dd99f3c19f6cae7e159afd8a5d4674a997d98c2eac6.
+// Later GEN exports include860/871 composite FKs; those must not constrain
+// committed legacy fixtures before their separate NOT VALID installation.
+const originalDocumentForeignKeys = `ALTER TABLE ONLY public.customer_documents
+    ADD CONSTRAINT customer_documents_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id);
+ALTER TABLE ONLY public.customer_documents
+    ADD CONSTRAINT customer_documents_contract_id_fkey FOREIGN KEY (contract_id) REFERENCES public.customer_contracts(id) ON DELETE SET NULL;
+ALTER TABLE ONLY public.customer_documents
+    ADD CONSTRAINT customer_documents_customer_company_fk FOREIGN KEY (customer_id, company_id) REFERENCES public.customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL;`
 const id = (value: number) => `10000000-0000-4000-8000-${value.toString(16).padStart(12, '0')}`
 const company = id(1), otherCompany = id(2), customer = id(3), otherCustomer = id(4)
 const contract = id(5), otherContractAlias = id(6)
@@ -90,11 +101,15 @@ describe('customer document site, meter and POA company bindings', () => {
     }
     await db.exec(source(/ALTER TABLE ONLY public\.customer_sites\n    ADD CONSTRAINT customer_sites_company_customer_id_uidx [^;]+;/))
     for (const name of ['customer_sites', 'metering_points']) await db.exec(source(new RegExp(`CREATE UNIQUE INDEX ${name}_company_id_id_uidx [^;]+;`)))
-    // Install every captured FK of the three parents, plus all original
-    // document FKs. Unrelated parent registries above remain finite foundations.
-    for (const name of [...links.map(link => link.table), 'customer_documents']) {
+    // Parent FKs remain scoped separately from the exact original document set.
+    // Unrelated parent registries above remain finite foundations.
+    for (const name of links.map(link => link.table)) {
       for (const match of schema.matchAll(new RegExp(`ALTER TABLE ONLY public\\.${name}\\n    ADD CONSTRAINT [^\\n]+FOREIGN KEY[^;]+;`, 'g'))) await db.exec(match[0])
     }
+    await db.exec(originalDocumentForeignKeys)
+    expect((await db.query<{ conname: string }>(`select conname from pg_constraint
+      where conrelid='public.customer_documents'::regclass and contype='f' order by conname`)).rows)
+      .toEqual(['customer_documents_company_id_fkey', 'customer_documents_contract_id_fkey', 'customer_documents_customer_company_fk'].map(conname => ({ conname })))
     await db.exec(source(/ALTER TABLE public\.customer_documents ENABLE ROW LEVEL SECURITY;/))
     for (const match of schema.matchAll(/CREATE POLICY [^\n]+ ON public\.customer_documents [^\n]+;/g)) await db.exec(match[0])
     await db.exec(source(/GRANT ALL ON TABLE public\.customer_documents TO authenticated;/))
