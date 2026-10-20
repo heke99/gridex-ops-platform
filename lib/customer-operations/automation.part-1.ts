@@ -960,7 +960,10 @@ export async function resolveCustomerSiteGridOwner(input: {
     ? await getGridOwnerVerification(knownGridOwnerId).catch(() => null)
     : null
 
-  const resolved: EnergyResolverResult = knownGridOwnerId && knownVerification?.verificationStatus === 'verified' && knownVerification.verifiedForCustomerFlow
+  // A known owner is facility-verified only together with its grid area; an
+  // owner alone (e.g. chosen at manual intake) is a claim the address resolver
+  // must confirm (FINDINGS F64).
+  const resolved: EnergyResolverResult = knownGridOwnerId && knownGridAreaCode && knownVerification?.verificationStatus === 'verified' && knownVerification.verifiedForCustomerFlow
     ? {
         gridAreaCode: knownGridAreaCode,
         gridAreaName: null,

@@ -11,6 +11,7 @@ import { autoSendSigningLinkAfterCreate, type AutoSendSigningLinkResult } from "
 
 
 import { normalizeGridOwnerIdToOps } from "@/lib/grid-owners/platformGridOwnerResolver"
+import { resolveEnergyContext } from "@/lib/energy/resolver"
 import { matchCustomerIdentity, type CustomerMatchSignal } from "@/lib/customers/matchingService"
 
 import type { IntakeActionState, IntakeField, IntakeFieldErrors, IntakeFormValues } from "./actionState"
@@ -679,8 +680,8 @@ export type CustomerGraphResult = CustomerGraphRow & {
   __createdPowerOfAttorneyId: string | null
   __createdCurrentSupplierName: string | null
   __uploadedDocumentLabels?: string[]
-  /** Post-commit document outcomes the employee must act on (e.g. a refused signed-agreement import). */
-  __documentWarnings?: string[]
+  /** Post-commit outcomes the employee must act on (site geography, a refused signed-agreement import). */
+  __postCommitWarnings?: string[]
   /** Outcome of the automatic signing-link send; null when not requested or no contract. */
   __signingLink?: AutoSendSigningLinkResult | null
 }
@@ -1072,6 +1073,20 @@ export async function createCustomerGraph(
     );
   }
 
+  // Same geographic resolution as a website application (FINDINGS F63): the
+  // address decides grid owner, grid area and price area before any facility
+  // request or power of attorney leaves for the grid owner.
+  const geographyWarnings = result.site_id
+    ? await resolveManualIntakeSiteGeography({
+        companyId: params.companyId,
+        customerId: result.customer_id,
+        siteId: result.site_id,
+        selectedGridOwnerId: normalizedGridOwnerId,
+        gridAreaCode: normalizeOptionalString(params.gridAreaCode),
+        facilityId: normalizedFacilityId,
+      })
+    : [];
+
   const documentUpload = await uploadCustomerIntakeDocuments({
     companyId: params.companyId,
     actorUserId: params.actorUserId,
@@ -1134,7 +1149,7 @@ export async function createCustomerGraph(
     __createdNewCustomer: result.created_new_customer,
     __reusedExistingSite: !result.created_new_customer && Boolean(result.site_id),
     __uploadedDocumentLabels: documentUpload.uploadedLabels,
-    __documentWarnings: documentUpload.warnings,
+    __postCommitWarnings: [...geographyWarnings, ...documentUpload.warnings],
     __createdSiteId: result.site_id,
     __createdMeteringPointId: result.metering_point_id,
     __createdGridOwnerId: normalizedGridOwnerId,
@@ -1143,6 +1158,70 @@ export async function createCustomerGraph(
       ? "Okänd nuvarande leverantör"
       : normalizeOptionalString(params.currentSupplierName),
   };
+}
+
+const CANONICAL_SITE_GEOGRAPHY = new Set([
+  "grid_area_master_validated",
+  "facility_data_requested",
+  "facility_data_received",
+  "facility_verified",
+  "manual_verified",
+]);
+
+/**
+ * Resolves a manually registered site from its address exactly like a website
+ * application: resolveEnergyContext materializes the geographic grid owner,
+ * grid area, price area and resolution status on the site. The employee's
+ * chosen grid owner is only a claim; when the address resolves to another
+ * owner the address wins and the employee is told. An address that cannot be
+ * resolved leaves the facility request held for review.
+ */
+export async function resolveManualIntakeSiteGeography(input: {
+  companyId: string;
+  customerId: string;
+  siteId: string;
+  selectedGridOwnerId: string | null;
+  gridAreaCode: string | null;
+  facilityId: string | null;
+}): Promise<string[]> {
+  const { data, error } = await supabaseService
+    .from("customer_sites")
+    .select("street,postal_code,city,country,resolution_status,grid_area_code")
+    .eq("company_id", input.companyId)
+    .eq("customer_id", input.customerId)
+    .eq("id", input.siteId)
+    .maybeSingle();
+  if (error) throw error;
+  const site = data as Record<string, string | null> | null;
+  if (!site) return [];
+  if (site.grid_area_code && CANONICAL_SITE_GEOGRAPHY.has(String(site.resolution_status ?? ""))) return [];
+  const street = normalizeOptionalString(site.street);
+  const postalCode = normalizeOptionalString(site.postal_code);
+  const city = normalizeOptionalString(site.city);
+  if (!street || !postalCode || !city) return [];
+
+  const resolved = await resolveEnergyContext({
+    companyId: input.companyId,
+    customerId: input.customerId,
+    customerSiteId: input.siteId,
+    street,
+    postalCode,
+    city,
+    country: normalizeOptionalString(site.country) ?? "SE",
+    gridAreaCode: input.gridAreaCode,
+    facilityId: input.facilityId,
+  });
+  if (!resolved.automationAllowed || !resolved.gridOwnerId) {
+    return [
+      "Nätområdet kunde inte verifieras automatiskt från anläggningsadressen. Begäran till nätägaren väntar på granskning.",
+    ];
+  }
+  if (input.selectedGridOwnerId && input.selectedGridOwnerId !== resolved.gridOwnerId) {
+    return [
+      `Vald nätägare stämde inte med anläggningsadressen; adressens nätägare${resolved.gridOwnerName ? ` (${resolved.gridOwnerName})` : ""} används.`,
+    ];
+  }
+  return [];
 }
 
 export const ADMIN_INTAKE_ROUTE = "admin/customers/intake";
