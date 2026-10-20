@@ -17,13 +17,19 @@ const io = vi.hoisted(() => ({
 vi.mock('@/lib/analytics/monthlyMetricsBuilder', () => ({
   hasCustomerAnalyticsData: io.hasData, buildCompanyMonthlyMetrics: io.build,
 }))
-vi.mock('@/lib/forecasting/meteringPointForecast', () => ({ calculateMeteringPointForecast: io.forecast }))
+vi.mock('@/lib/forecasting/meteringPointForecast', async original => ({
+  ...await original<typeof import('@/lib/forecasting/meteringPointForecast')>(), calculateMeteringPointForecast: io.forecast,
+}))
 vi.mock('@/lib/admin/guards', () => ({ requirePlatformAdminAccess: async () => ({ userId: 'admin' }) }))
 vi.mock('@/lib/analytics/cron', () => ({ listAnalyticsCompanyIds: async () => ['empty', 'real'] }))
 vi.mock('@/lib/analytics/dataQuality', () => ({ scanCompanyDataQuality: vi.fn() }))
 vi.mock('@/lib/audit/actionLogger', () => ({ logAdminActionAndUsage: io.audit }))
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
+  async rpc(name: string) {
+    if (name !== 'gridex_forecast_metering_period_totals_v1') throw new Error('unexpected_rpc:' + name)
+    return { data: [{ total_kwh: 0, value_count: 0 }], error: null }
+  },
   from(table: string) {
     const response = () => ({ data: table === 'metering_points' ? io.points : [], error: null })
     const query = {

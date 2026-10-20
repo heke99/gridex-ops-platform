@@ -17,10 +17,19 @@ vi.mock('@/lib/supabase/service', async () => {
     supabaseService: createClient('http://127.0.0.1:54321', 'synthetic-unit-key', {
       auth: { persistSession: false, autoRefreshToken: false },
       global: {
-        fetch: async input => {
+        fetch: async (input, init) => {
           const url = new URL(input instanceof Request ? input.url : String(input))
           const table = url.pathname.split('/').at(-1)!
           if (io.failures[table]) return new Response(JSON.stringify(io.failures[table]), { status: 500 })
+          if (table === 'gridex_forecast_metering_period_totals_v1') {
+            if (io.failures.metering_values) return new Response(JSON.stringify(io.failures.metering_values), { status: 500 })
+            const args = JSON.parse(input instanceof Request ? await input.clone().text() : String(init?.body ?? '{}')) as Record<string, string>
+            const selected = (io.tables.metering_values ?? []).filter(row => row.company_id === args.p_company_id
+              && row.metering_point_id === args.p_metering_point_id
+              && String(row.period_start) >= args.p_period_start && String(row.period_start) < args.p_period_end)
+            return new Response(JSON.stringify([{ total_kwh: selected.reduce((sum, row) => sum + Number(row.value_kwh ?? row.quantity_kwh ?? 0), 0), value_count: selected.length }]),
+              { headers: { 'content-type': 'application/json' } })
+          }
           let rows = [...(io.tables[table] ?? [])]
           function matches(row: Row, field: string, expression: string): boolean {
             const dot = expression.indexOf('.')

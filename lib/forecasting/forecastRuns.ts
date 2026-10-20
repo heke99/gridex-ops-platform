@@ -1,6 +1,6 @@
 import { supabaseService } from '@/lib/supabase/service'
 import { monthEndExclusive, monthStart } from '@/lib/analytics/utils'
-import { calculateMeteringPointForecast } from '@/lib/forecasting/meteringPointForecast'
+import { actualKwhForPeriod, calculateMeteringPointForecast } from '@/lib/forecasting/meteringPointForecast'
 import { buildCompanyMonthlyMetrics, hasCustomerAnalyticsData } from '@/lib/analytics/monthlyMetricsBuilder'
 
 const ACTIVE_STATUSES = ['active', 'live', 'ongoing']
@@ -74,16 +74,7 @@ export async function generateForecastRunItems(input: {
     })
     if (forecast.method === 'missing_basis') missing += 1
 
-    const { data: actualRows, error: actualError } = await supabaseService
-      .from('metering_values')
-      .select('quantity_kwh, value_kwh')
-      .eq('company_id', input.companyId)
-      .eq('metering_point_id', mp.id)
-      .gte('period_start', `${periodStart}T00:00:00.000Z`)
-      .lt('period_start', `${periodEnd}T00:00:00.000Z`)
-
-    if (actualError) throw actualError
-    const actualKwh = (actualRows ?? []).reduce((sum, row) => sum + Number(row.value_kwh ?? row.quantity_kwh ?? 0), 0)
+    const actualKwh = await actualKwhForPeriod(input.companyId, mp.id, periodStart, periodEnd)
     const diffKwh = forecast.forecastKwh === null ? null : actualKwh - forecast.forecastKwh
     const diffPercent = forecast.forecastKwh ? ((actualKwh - forecast.forecastKwh) / forecast.forecastKwh) * 100 : null
 
