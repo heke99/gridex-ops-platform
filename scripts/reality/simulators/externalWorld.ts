@@ -9,6 +9,8 @@
 //   resend POST /emails, POST /emails/batch, GET /domains[/id]
 //   papapi GET  /papapi/lite/?query=<postal code>  postal-code centroid from the registered
 //              (real) coordinates; POST /__sim/geocode {postal_code, latitude, longitude}
+//   lantmateriet GET /lantmateriet/autocomplete/adress, /referens/fritext, /<objektidentitet>
+//              exact address points (SWEREF99 TM) from POST /__sim/address; Basic auth required
 //   control GET /__sim/state, POST /__sim/fault {service, mode, ms?, count?}
 //
 // Run: npx tsx scripts/reality/simulators/externalWorld.ts   (REALITY_WORLD_PORT, default 3901)
@@ -17,7 +19,7 @@ import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 
-type Service = 'spot' | 'resend' | 'papapi'
+type Service = 'spot' | 'resend' | 'papapi' | 'lantmateriet'
 type FaultMode = 'ok' | 'rate_limited' | 'server_error' | 'slow' | 'hang' | 'invalid_json'
 type Fault = { mode: FaultMode; ms: number; remaining: number | null }
 
@@ -26,6 +28,10 @@ const cacheDir = process.env.REALITY_SPOT_CACHE ?? join(process.cwd(), '.reality
 const spotSource = process.env.REALITY_SPOT_SOURCE ?? 'real'
 const faults = new Map<Service, Fault>()
 const log: Array<{ at: string; service: Service; path: string; status: number; ms: number }> = []
+type ExactAddress = { id: string; street: string; number: string; postalCode: string; city: string; x: number; y: number }
+const exactAddresses: ExactAddress[] = []
+const label = (a: ExactAddress) => `${a.street} ${a.number}, ${a.postalCode.slice(0, 3)} ${a.postalCode.slice(3)} ${a.city}`
+const fold = (value: string) => value.toLowerCase().replace(/[\s,.\-]+/g, '')
 const postalCentroids = new Map<string, { latitude: number; longitude: number }>()
 const emails: Array<{ id: string; at: string; to: unknown; subject: unknown; idempotencyKey: string | null }> = []
 
@@ -86,6 +92,21 @@ function papapi(res: ServerResponse, url: URL) {
   return send(res, 200, { results: [{ postal_code: `${postal.slice(0, 3)} ${postal.slice(3)}`, latitude: point.latitude, longitude: point.longitude, country: 'SE' }] })
 }
 
+function lantmateriet(req: IncomingMessage, res: ServerResponse, url: URL) {
+  if (!String(req.headers.authorization ?? '').startsWith('Basic ')) return send(res, 401, { message: 'unauthorized' })
+  const path = url.pathname.replace(/^\/lantmateriet/, '')
+  const wanted = fold(url.searchParams.get('adress') ?? '')
+  const matches = exactAddresses.filter(a => fold(label(a)) === wanted)
+  if (path === '/autocomplete/adress') return send(res, 200, matches.map(label))
+  if (path === '/referens/fritext') {
+    if (matches.length === 0) return send(res, 404, { message: 'no match' })
+    return send(res, 200, matches.map(a => ({ objektidentitet: a.id, adress: { adressomrade: a.street, adressplatsnummer: a.number, postnummer: a.postalCode, postort: a.city } })))
+  }
+  const found = exactAddresses.find(a => path === `/${a.id}`)
+  if (!found) return send(res, 404, { message: 'not found' })
+  return send(res, 200, { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: [found.x, found.y] }, properties: { objektidentitet: found.id } }] })
+}
+
 async function resend(req: IncomingMessage, res: ServerResponse, path: string) {
   if (req.method === 'POST' && (path === '/emails' || path === '/emails/batch')) {
     const parsed = JSON.parse((await body(req)) || '{}')
@@ -117,10 +138,16 @@ const server = createServer(async (req, res) => {
       postalCentroids.set(input.postal_code.replace(/\s+/g, ''), { latitude: input.latitude, longitude: input.longitude })
       return send(res, 200, { registered: postalCentroids.size })
     }
-    const service: Service = path.startsWith('/api/v1/prices') ? 'spot' : path.startsWith('/papapi') ? 'papapi' : 'resend'
+    if (path === '/__sim/address' && req.method === 'POST') {
+      const input = JSON.parse(await body(req)) as Omit<ExactAddress, 'id'>
+      exactAddresses.push({ ...input, postalCode: input.postalCode.replace(/\s+/g, ''), id: randomUUID() })
+      return send(res, 200, { registered: exactAddresses.length })
+    }
+    const service: Service = path.startsWith('/api/v1/prices') ? 'spot' : path.startsWith('/papapi') ? 'papapi' : path.startsWith('/lantmateriet') ? 'lantmateriet' : 'resend'
     if (await applyFault(service, res)) { log.push({ at: new Date().toISOString(), service, path, status: res.statusCode, ms: Date.now() - started }); return }
     if (service === 'spot') await spot(res, path)
     else if (service === 'papapi') papapi(res, new URL(req.url ?? '/', 'http://local'))
+    else if (service === 'lantmateriet') lantmateriet(req, res, new URL(req.url ?? '/', 'http://local'))
     else await resend(req, res, path)
     log.push({ at: new Date().toISOString(), service, path, status: res.statusCode, ms: Date.now() - started })
   } catch (error) {

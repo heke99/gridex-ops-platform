@@ -59,21 +59,26 @@ export function vercelCronPaths(): Array<{ path: string; schedule: string }> {
 }
 
 /**
- * Runs the 5-minute operational crons the way Vercel does, one slot per call:
- * inbound mail, Ediel outbox, e-mail outbox, manual e-mail, manual inbound,
- * webhooks and customer operations, in their minute order. The test environment
- * is used where the production cron passes ?environment=production.
+ * Runs the frequent operational crons the way Vercel does, one 5-minute slot per
+ * call (inbound mail, Ediel outbox, e-mail outboxes, manual inbound, webhooks,
+ * customer operations; the 10- and 15-minute crons every 2nd/3rd slot), in
+ * their minute order. The test environment replaces ?environment=production.
  */
+let slotIndex = 0
 export async function runOperationalCronSlot() {
-  const fiveMinute = vercelCronPaths().filter(c => /^\d+-\d+\/5 /.test(c.schedule))
-    .sort((a, b) => Number(a.schedule.split('-')[0]) - Number(b.schedule.split('-')[0]))
+  const frequent = vercelCronPaths()
+    .map(c => ({ ...c, every: Number(/^\d+-\d+\/(\d+) \* \* \* \*$/.exec(c.schedule)?.[1] ?? 0), minute: Number(c.schedule.split('-')[0]) }))
+    .filter(c => [5, 10, 15].includes(c.every))
+    .sort((a, b) => (a.minute % 5) - (b.minute % 5) || a.minute - b.minute)
   const results: Array<{ path: string; status: number; ms: number; body: unknown }> = []
-  for (const entry of fiveMinute) {
+  for (const entry of frequent) {
+    if (slotIndex % (entry.every / 5) !== 0) continue
     const path = entry.path.replace('environment=production', 'environment=test')
     const started = Date.now()
     const result = await cron(path)
     results.push({ path, status: result.status, ms: Date.now() - started, body: result.body })
   }
+  slotIndex += 1
   return results
 }
 

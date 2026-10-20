@@ -176,6 +176,56 @@ Statusvärden: **RÄTTAD** = rättad på branchen med regressionstest som är r�
 - **Rättning:** när samma mejl hämtas igen (dedupliceras inom samma brevlåda) skapas det saknade jobbet, men **bara** om mejlet fortfarande är i sitt ursprungliga lagringsläge (`processing_status='received'` och `match_status='not_checked'`). Annars skulle ett redan behandlat oläst mejl, som hämtas vid varje pollning med `markSeen: false`, köas om. Det hittades när OPS-05-testet blev rött mot den första versionen.
 - **Test:** `__tests__/inbound-mail-missing-job-recovery.test.ts` (4 fall). 31 inkorgsfiler med 380 tester och OPS-05 är gröna.
 
+## Verklighetssimulering, scenario A (2026-10-20): webbkund → leverantörsbyte
+
+Sviten finns i `scripts/reality/` (plan: `docs/testing/verklighetssimulering-plan.md`).
+- **Riktig data där den finns:**
+  - Svenska kraftnäts 280 nätområden via plattformens egen importcron
+  - riktiga spotpriser via leverantörssimulatorn
+  - postnummerkoordinater som ligger i SVK:s riktiga polygon
+- **Motparter som egna processer:** nätägaren pratar bara SMTPS/IMAPS, och webbplatsen anropar bara det publika API:t.
+
+### F24 Kanonisk replay saknar `webhook_subscriptions.api_client_id` — ÖPPEN, replay/GEN-ägaren
+- **Varför fel:** `provisionTenantWebsiteIntegration` läser kolumnen. Drift har den (uuid, FK till `integration_api_clients`, tre index). Replayen och `schema.sql` saknar den, vilket `20260821103000` själv noterar som "absent".
+- **Följd i en miljö byggd från migrationerna:** go-live av webbplatsen faller. Anropet är en HEAD-förfrågan som får 400 utan kropp, så admin ser bara ett tomt felmeddelande.
+- **Simuleringen:** fixturen speglar driftens definition exakt (`ensureProductionWebhookClientParity`).
+
+### F25 Beredskapskontrollen letar nätägarkontakter med en kanaltyp som tabellen inte tillåter — ÖPPEN (liten)
+- **Varför fel:** `lib/website/customerApplicationAutomationReadiness.ts:61` filtrerar `channel_type='email'`, men `grid_owner_contact_channels_channel_type_check` tillåter bara `facility_information_request`, `supplier_switch_manual`, `power_of_attorney`, `ai_list` och `escalation`. Det gäller både i drift och lokalt.
+- **Följd:** varningen "Ingen aktiv nätägarkontakt via e-post hittades" kan aldrig försvinna. Live sågs den med en verifierad kontakt på plats. Den riktiga vägen (`customerSiteProcessContext.ts:577`) använder `facility_information_request` och verifierad.
+- **Rättning:** samma filter som den riktiga vägen.
+
+### F26 Webbplats som skickar `grid_area_code` får alltid 409 — ÖPPEN, produktfråga
+- **Varför:** med en uttrycklig kod går `resolveEnergyContext` bara till cachen för exakta adresser. Webbvägen stänger av den (`exact_address_provider_allowed:false`), så postnummergeokodningen nås aldrig, och resultatet blir `needs_review`.
+- **Följd:** svaret säger "Komplettera full adress" fast full adress skickades. Utan koden löses samma adress automatiskt.
+- **Beslut som behövs:** antingen korsvalideras koden mot postnummerresultatet, eller så dokumenteras att webbplatser inte ska skicka den.
+
+### F27 Go-live-grinden säger "redo" fast ingen spotofferert kan skapas — ÖPPEN
+- **Varför:** standardpolicyn `company_market_price_sources.allow_indicative_latest=false` stoppar offerter för en startmånad utan publicerade priser, med `422 market_price_unavailable`. Med 14 dagars varsel gäller det varje vanligt byte från mitten av månaden.
+- **Drift:** alla 3 bolag har standardvärdet (läsfråga, aggregat).
+- **Förslag:** grinden bör provköra en offert. Kontrollen bör också fånga ett bolag utan `slug`, eftersom då saknar alla juridiska dokument URL och juridiska paketet blir ofullständigt.
+- **Simuleringen:** admin-valet i `/admin/pricing/market-sources` görs som en del av go-live.
+
+### F28 Nummerserierna för ansökan, kund och avtal saknas i den kanoniska replayen — ÖPPEN, replay/GEN-ägaren (allvarlig för nya miljöer)
+- **Varför fel:** `canonical_next_application_number`, `canonical_next_customer_number` och `canonical_next_contract_number` finns i drift (SECURITY DEFINER, bara `service_role`). De finns inte i replayen och förekommer 0 gånger i `schema.sql`. `20260801143000` används bara som källa för ett härlett utdrag.
+- **Följd:** en miljö byggd från migrationerna tar inte emot en enda webbansökan. Det gäller ny staging, återställning efter katastrof och native-CI. Felet blir `500 internal_error` i steget `application_record_create`, utan rad i serverloggen. Det syns bara som `404` på `rpc/canonical_next_application_number` i Kong.
+- **Två fel:** dels driften mellan drift och replay, dels att felet inte loggas.
+- **Simuleringen:** speglar driftens exakta definitioner och behörigheter (`ensureProductionNumberSeriesParity`).
+
+### Korrekta spärrar som simuleringen bekräftade (inte fel)
+Go-live kräver:
+- standardmejl och regler för kunder
+- verifierad operationsbrevlåda
+- en fakturaavgift som kanonisk komponent
+
+Kontakt till nätägaren:
+- verifieras bara av plattformsadmin
+- får inte vara Ediel-gatewayens adress
+
+Adress och identitet:
+- en nätområdeskod räknas bara som påstående tills adressen korsvaliderats
+- `pre_auth_required` kräver kundens verifierade Mina sidor-identitet
+
 ### O1 Misslyckade utkorgsposter försöks inte igen automatiskt — avsiktligt
 `claim_ediel_outbox_items` hämtar bara `prepared` och `queued`. En post som fallerat före SMTP, till exempel för att arkivlagringen var nere, blir `failed` och kräver att en operatör köar om den. Det stämmer med TR-10 (fail-closed), men ett känt-ej-skickat fel skulle kunna köas om automatiskt. Det noteras som driftobservation.
 
@@ -264,6 +314,7 @@ Gränser i drift: 8 s per SQL-sats, 8 s låsväntan, Vercel-funktion ~300 s, cro
 - Den delade test-brevlådan finns som rad från migrationerna och konfigureras som plattformsadmin gör (lokal IMAPS/SMTPS).
 - Den rena replayn saknar rollraden `super_admin` (drift: 56 behörigheter). Driftens plattformsadmins är `super_admin` i `user_roles` utan bolag. Fixturen speglar rollraden som referensdata och skapar operatören på samma sätt.
 - Den lokala stacken körde först utan Storage. Arkivet `ediel-files` krävs före varje SMTP-sändning, så utan det blir sändningen `failed`/`name resolution failed` (Kong). Storage startades sedan med CLI:ns namn och nätverk.
+- I sandlådan går utgående HTTPS via en TLS-inspekterande proxy med egen CA. När `NODE_EXTRA_CA_CERTS` bara pekade på GreenMails CA nådde appen inga externa tjänster, och SVK-importen gav `dependency_unavailable`. Lösningen är ett kombinerat CA-paket och `NODE_USE_ENV_PROXY=1`. Det är ingen produktfråga, eftersom Vercel har direkt internet.
 - Produktionen (`gridex-ops-dev`, bara läsfrågor mot driftmetadata): 43 inkommande mejl totalt, inga EDIFACT-flöden. Därför kan F2–F5 varken bekräftas eller avfärdas där.
 
 ## Status för live-testets steg

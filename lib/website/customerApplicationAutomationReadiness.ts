@@ -58,7 +58,8 @@ export async function evaluateCustomerApplicationAutomationReadiness(companyId: 
     supabaseService.from('company_email_templates').select('id,company_id,template_key,name,subject,body_html,body_text,language,is_active,created_at,updated_at').eq('company_id', companyId).eq('language', 'sv'),
     supabaseService.from('email_event_rules').select('event_key,template_key,enabled,is_active').eq('company_id', companyId),
     supabaseService.from('manual_communication_mailboxes').select('id,company_id').eq('environment', 'production').eq('is_active', true).eq('is_verified', true).or(`company_id.is.null,company_id.eq.${companyId}`).limit(1),
-    supabaseService.from('grid_owner_contact_channels').select('id').eq('channel_type', 'email').eq('is_enabled', true).or(`company_id.is.null,company_id.eq.${companyId}`).limit(1),
+    // Same contact the facility lookup uses (customerSiteProcessContext); channel_type has no 'email' value.
+    supabaseService.from('grid_owner_contact_channels').select('id').eq('channel_type', 'facility_information_request').eq('is_enabled', true).eq('is_verified', true).or(`company_id.is.null,company_id.eq.${companyId}`).limit(1),
     supabaseService.rpc('gridex_customer_application_runtime_contract_v1'),
   ])
 
