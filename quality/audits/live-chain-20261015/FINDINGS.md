@@ -380,7 +380,13 @@ Världen byggdes från noll med `up.sh` (ren replay, `next build` och `start`, s
   - Uppgiften används bara för namn och org.nr som inkommande leverantör på bytesärendet. Den finns redan i bolagets egen identitet, så kravet på en separat rad i `electricity_suppliers` tillför inget.
 - **Förslag:** skapa och markera bolagets egen leverantör när bolagets Ediel-avsändare sätts upp (namn, org.nr och Ediel-ID finns redan där). Alternativt läs den egna leverantören från bolagets avsändaridentitet i stället för från `electricity_suppliers`. Go-live-grinden bör kontrollera detta.
 
-### F43 Ett tillfälligt fel från databaslagret ger webbplatsen 500 "försök inte igen" — ÖPPEN, medel
+### F43 Ett tillfälligt fel från databaslagret ger webbplatsen 500 "försök inte igen" — RÄTTAD, medel
+- **Rättning:** `lib/supabase/transientErrors.ts` (`isTransientSupabaseError`) känner igen transportfel (`fetch failed`, `UND_ERR_*`, gateway 502/503/504, Postgres 08xxx/57P01/57P03/53300, PGRST000–003). Valideringsfel, affärsfel, behörighetsfel och `57014` statement timeout räknas aldrig som tillfälliga. Följderna:
+  - `customer-applications` svarar `503` med `stage: dependency_unavailable`, `retryable: true` och `Retry-After: 2`.
+  - `classifyPublicContractsError` ger 503, och `public-contracts` sätter `retryable: true` och `Retry-After`.
+  - Okända fel förblir `500` med `retryable: false`.
+- **Test:** `__tests__/website-api-transient-upstream-errors.test.ts`, 16 gröna. Utan rättningen fallerar 8.
+- **Regressioner:** API-paritet, felregister och hardening är gröna.
 - **Utfall:** i 2 körningar av 2 fick 1 av 6 checkouter `500 website_application_failed` med `stage: internal_error` och `retryable: false`.
 - **Orsak:** en enda `canonical_tenant_operation_decision` fick 502 (`Connection reset by peer` mellan gateway och PostgREST, utan någon last). Appen loggade `An invalid response was received from the upstream server`.
 - **Varför det är fel:** felet är tillfälligt, och ett omförsök med samma Idempotency-Key är bevisat säkert (C2: samma ansökan, 1 rad). Webbplatsen får ändå beskedet att inte försöka igen, så kunden tappas.

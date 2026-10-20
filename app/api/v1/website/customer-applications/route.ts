@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto'
+import { isTransientSupabaseError } from '@/lib/supabase/transientErrors'
 import { withApiContractRepresentation } from '@/lib/integrations/apiResponseProfile'
 import { NextRequest } from 'next/server'
 import {
@@ -278,6 +279,29 @@ async function submitApplication(request: NextRequest) {
           error_stage: 'authorization',
         }, requestId),
         { status: error.status },
+      )
+    }
+
+    if (isTransientSupabaseError(error)) {
+      // The platform's database did not answer this request reliably. Nothing was decided, and a retry
+      // with the same Idempotency-Key is safe, so the website is told to retry (FINDINGS F43).
+      console.warn('[website-customer-application] dependency unavailable', { requestId, error })
+      await logIntegrationApiRequest({
+        client: auth.client,
+        request,
+        statusCode: 503,
+        startedAt,
+        errorCode: 'website_application_failed',
+        metadata: { request_id: requestId, transient: true },
+      })
+      return customerPortalJson(
+        buildErrorBody({
+          error: 'The customer application could not be processed at this time.',
+          code: 'website_application_failed',
+          error_stage: 'dependency_unavailable',
+          retryable: true,
+        }, requestId),
+        { status: 503, headers: { 'Retry-After': '2' } },
       )
     }
 
