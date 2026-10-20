@@ -259,6 +259,29 @@ Simuleringen gör samma steg som i drift.
 - **Förslag:** "Verifiera för kundflöde" bör köra kopplingen och visa vilka av certifikat och subadress som återstår.
 - **Separat (miljö):** utan `EDIEL_EXPISOFT_LDAP_HOST` slår varje miljö upp certifikat i Expisofts riktiga katalog (`sodir01.expisoft.se:389`), även lokala miljöer och testmiljöer med syntetiska adresser. Simuleringen pekar därför om till en lokal LDAP-katalog (`scripts/reality/simulators/certificateDirectory.ts`).
 
+### F33 Route-beredskapens kort visar inte vilket bolag de gäller — ÖPPEN (UX, liten)
+- **Var:** `/admin/ediel/route-readiness`. Korten listar nätägare, familj, kod och miljö för alla tenants, men inte bolagsnamnet. Bolag-ID finns bara i dolda formulärfält.
+- **Följd:** med flera elbolag mot samma nätägare kan operatören inte se vilket bolags route hen materialiserar.
+
+### F34 Route-beredskapssidan kraschar med hela Ediel-registret: URL för lång — RÄTTAD
+- **Var:** `app/admin/ediel/route-readiness/page.tsx`, `loadContacts`. Alla aktörs-ID på sidan skickades i en enda `.in('actor_id', ids)`.
+- **Mätt:**
+  - Drift har 434 olika aktörer bland sidans 500 rader (läsfråga, aggregat). Det ger en URL på cirka 17 kB.
+  - Lokalt svarar gatewayen `414 URI too long` från cirka 220 ID, alltså cirka 8 kB.
+- **Följd:**
+  - Next loggar `Error: {"message":"URI too long"}` och sidan visar "Adminvyn kunde inte laddas".
+  - Utan sidan kan ingen materialisera bolagets operativa route ("Materialisera production-route"). Alla Z01 stannar då på `platform_route_exists_but_not_materialized`.
+- **Rättning:** kontakterna läses i bitar om 100 ID (cirka 4 kB), med samma kolumner och samma hantering av saknat schema.
+- **Test:** `__tests__/route-readiness-contacts-chunked.test.ts` (434 aktörer ger 5 bitar, varje aktör en gång; fallerar utan rättningen).
+
+### F35 UTILTS-routen kan aldrig materialiseras från route-beredskapen — ÖPPEN
+- **Var:** raden UTILTS (utan meddelandekod) i `gridex_company_route_readiness_v` erbjuder knappen "Materialisera production-route".
+- **Utfall:** åtgärden fallerar alltid med `ediel_route_profile_insert_failed` (`utilts_application_reference_message_unsupported:missing`). Det gäller Alingsås 16700 i det riktiga registret, utan subadress och applikationsreferens.
+- **Följd:** knappen som sidan erbjuder kan aldrig lyckas, och raden ligger kvar som blockerad. Antingen ska vyn ange en meddelandekod (till exempel E66), eller så ska knappen inte visas.
+
+### P2 Att materialisera en route tog cirka 70 s lokalt — UNDER MÄTNING
+Från klick till omdirigering tog PRODAT/Z01 13:26:58 → 13:28:07. En del av tiden är sidladdning med hela registret (500 rader och kontakter). Den ska mätas separat innan något ändras.
+
 ### Korrekta spärrar som simuleringen bekräftade (inte fel)
 Go-live kräver:
 - standardmejl och regler för kunder

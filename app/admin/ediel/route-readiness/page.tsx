@@ -156,18 +156,25 @@ async function loadCompanyRouteReadiness(filters: CompanyRouteFilters) {
   return (result.data ?? []) as CompanyRouteReadinessRow[]
 }
 
+// Each ID costs about 39 URL bytes in an in-filter; the API gateway rejects
+// URLs over about 8 kB (414), which the full Ediel registry exceeds (FINDINGS F34).
+const CONTACT_ACTOR_CHUNK = 100
+
 async function loadContacts(actorIds: string[]) {
-  if (actorIds.length === 0) return [] as ContactRow[]
-  const result = await supabaseService
-    .from('platform_actor_contacts')
-    .select('actor_id,contact_type,email,phone,is_verified')
-    .in('actor_id', actorIds)
-    .limit(1000)
-  if (result.error) {
-    if (isMissingSchemaError(result.error)) return [] as ContactRow[]
-    throw result.error
+  const contacts: ContactRow[] = []
+  for (let start = 0; start < actorIds.length; start += CONTACT_ACTOR_CHUNK) {
+    const result = await supabaseService
+      .from('platform_actor_contacts')
+      .select('actor_id,contact_type,email,phone,is_verified')
+      .in('actor_id', actorIds.slice(start, start + CONTACT_ACTOR_CHUNK))
+      .limit(1000)
+    if (result.error) {
+      if (isMissingSchemaError(result.error)) return [] as ContactRow[]
+      throw result.error
+    }
+    contacts.push(...((result.data ?? []) as ContactRow[]))
   }
-  return (result.data ?? []) as ContactRow[]
+  return contacts
 }
 
 function firstParam(value: string | string[] | undefined): string | null {

@@ -121,3 +121,48 @@ export async function searchGridOwnerCertificate(context: BrowserContext, gridOw
   await page.close()
   return { actionStatus: action, status: url.searchParams.get('status'), message: url.searchParams.get('message') }
 }
+
+/**
+ * /admin/ediel/route-readiness?q=<EdielId>: "Materialisera production-route" for each of the tenant's
+ * blocked routes to the grid owner. The cards do not name the tenant (FINDINGS F33), so the form is
+ * picked by its hidden companyId.
+ */
+export async function materializeTenantRoutes(context: BrowserContext, companyId: string, edielId: string) {
+  const clicks: Array<{ button: string; route: string; actionStatus: number; code: string | null }> = []
+  for (const name of ['Materialisera production-route']) {
+    const done = new Set<string>()
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const page = await context.newPage()
+      await page.goto(`/admin/ediel/route-readiness?q=${edielId}&env=production`)
+      const forms = page.locator(`form:has(input[name="companyId"][value="${companyId}"])`).filter({ has: page.getByRole('button', { name }) })
+      let target: { index: number; route: string } | null = null
+      for (let index = 0; index < await forms.count(); index++) {
+        const form = forms.nth(index)
+        const route = [await form.locator('input[name="messageFamily"]').getAttribute('value').catch(() => null), await form.locator('input[name="messageCode"]').getAttribute('value').catch(() => null), await form.locator('input[name="actorSettingId"]').getAttribute('value').catch(() => null)].filter(Boolean).join('/')
+        if (!done.has(route)) { target = { index, route }; break }
+      }
+      if (!target) { await page.close(); break }
+      done.add(target.route)
+      const actionStatus = await submitServerAction(page, () => forms.nth(target.index).getByRole('button', { name }).click(), 120_000)
+      await page.waitForURL(url => url.searchParams.has('code') || url.searchParams.has('status'), { timeout: 30_000 }).catch(() => undefined)
+      clicks.push({ button: name, route: target.route, actionStatus, code: new URL(page.url()).searchParams.get('code') })
+      await page.close()
+    }
+  }
+  return clicks
+}
+
+/**
+ * /admin/platform/go-live/<companyId>: "Kontrollera & godkänn production" with the UUID of a saved
+ * outbound production message (readiness, dry run, live transition and first live send in one step).
+ */
+export async function approveCompanyProduction(context: BrowserContext, companyId: string, messageId: string) {
+  const page = await context.newPage()
+  await page.goto(`/admin/platform/go-live/${companyId}`)
+  await page.fill('input[name="message_id"]', messageId)
+  const actionStatus = await submitServerAction(page, () => page.getByRole('button', { name: 'Kontrollera & godkänn production' }).click(), 300_000)
+  await page.waitForURL(url => url.searchParams.has('status'), { timeout: 60_000 }).catch(() => undefined)
+  const url = new URL(page.url())
+  await page.close()
+  return { actionStatus, status: url.searchParams.get('status'), message: url.searchParams.get('message') }
+}

@@ -11,7 +11,7 @@ import { afterAll, describe, expect, it } from 'vitest'
 import { supabaseService } from '@/lib/supabase/service'
 import { configurePlatformMailbox, configureTenant, LIVE, literal, sql, type LiveTenant } from '../helpers/live-chain-fixture'
 import { goLiveOnWebsite, WEBSITE_ORIGIN } from '../helpers/reality/tenantWebsite'
-import { checkGridOwners, closeOperatorConsole, confirmSafeBlankSubaddresses, importActorRegistry, searchGridOwnerCertificate, operatorSession, sanitizedActorRegistry, verifyActorForCustomerFlow } from '../helpers/reality/operatorConsole'
+import { checkGridOwners, closeOperatorConsole, confirmSafeBlankSubaddresses, importActorRegistry, approveCompanyProduction, materializeTenantRoutes, searchGridOwnerCertificate, operatorSession, sanitizedActorRegistry, verifyActorForCustomerFlow } from '../helpers/reality/operatorConsole'
 import { runOperationalCronSlot, startGridOwner, type GridOwnerSim } from '../helpers/reality/world'
 import { detectStuckStates } from '../helpers/reality/stuckDetector'
 import { gs1 } from '../helpers/live-chain-wire'
@@ -21,6 +21,7 @@ const report: Record<string, unknown> = { scenario: 'A website switch', startedA
 let tenant: LiveTenant
 let gridOwner: GridOwnerSim
 let apiKey = ''
+let staff: Awaited<ReturnType<typeof operatorSession>>
 
 /** Swedish personal identity number (12 digits) with a valid Luhn check digit; synthetic birth dates. */
 function personnummer(birth: string, serial: string) {
@@ -80,7 +81,7 @@ describe.sequential('reality A — website customers switch supplier', () => {
     // registry (real Ediel IDs and roles; e-mail rewritten to example.invalid) including the grid owner
     // registry, then verify the area's real grid owner for the customer flow.
     const registry = sanitizedActorRegistry()
-    const staff = await operatorSession(tenant.operatorEmail, tenant.operatorPassword)
+    staff = await operatorSession(tenant.operatorEmail, tenant.operatorPassword)
     const imported = await importActorRegistry(staff, registry.path)
     report.registryImport = imported
     const verification = await verifyActorForCustomerFlow(staff, GRID_OWNER_NAME)
@@ -92,6 +93,8 @@ describe.sequential('reality A — website customers switch supplier', () => {
     report.gridOwnerCertificate = await searchGridOwnerCertificate(staff, opsGridOwnerId)
     report.gridOwnerSubaddress = await confirmSafeBlankSubaddresses(staff)
     report.gridOwnerCheck = await checkGridOwners(staff)
+    // The tenant's operational Ediel routes to the grid owner.
+    report.tenantRoutes = await materializeTenantRoutes(staff, tenant.companyId, GRID_OWNER_EDIEL_ID)
     report.gridOwnerMapping = sql(`SELECT coalesce(jsonb_agg(jsonb_build_object('platform',pgo.name,'ops',go.name,'ediel',go.ediel_id,'verified',go.verified_for_customer_flow,'status',go.verification_status)),'[]')
       FROM public.platform_grid_owners pgo LEFT JOIN public.grid_owners go ON go.id=pgo.ops_grid_owner_id WHERE pgo.name=${literal(GRID_OWNER_NAME)}`)
     expect(imported.actionStatus, imported.page).toBe(200)
@@ -158,6 +161,13 @@ describe.sequential('reality A — website customers switch supplier', () => {
       slots.push({ at: new Date().toISOString(), crons: ran.map(r => ({ path: r.path, status: r.status, ms: r.ms,
         ...(r.path.includes('customer-operations') ? { body: r.body } : {}) })) })
       state = switchState()
+      // The first market message waits behind the production send lock; platform staff then take the
+      // company live with that saved message as the dry-run evidence, as in production.
+      if (!report.productionApproval) {
+        const messageId = sql<string | null>(`SELECT to_jsonb((SELECT id::text FROM public.ediel_messages WHERE company_id=${literal(tenant.companyId)}
+          AND environment='production' AND direction='outbound' ORDER BY created_at LIMIT 1))`)
+        if (messageId) report.productionApproval = { messageId, ...(await approveCompanyProduction(staff, tenant.companyId, messageId)) }
+      }
       // Progress survives an interrupted run.
       writeFileSync(process.env.GRIDEX_REALITY_REPORT ?? '/tmp/reality-a-report.json', JSON.stringify({ ...report, cronSlots: slots, switches: state }, null, 2))
       const settled = state.length === 4 && state.every(row => ['accepted', 'active', 'completed', 'failed'].includes(String(row.switch_status)))
