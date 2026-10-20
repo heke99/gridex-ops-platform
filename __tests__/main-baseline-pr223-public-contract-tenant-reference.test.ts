@@ -15,7 +15,7 @@ vi.mock('@/lib/integrations/apiAuth', () => ({
 }))
 vi.mock('@/lib/integrations/tenantContext', async (original) => ({
   ...await original<typeof import('@/lib/integrations/tenantContext')>(),
-  loadExternalTenantContext: ports.tenant,
+  loadExternalTenantReference: ports.tenant,
 }))
 vi.mock('@/lib/website/publicContracts', async (original) => ({
   ...await original<typeof import('@/lib/website/publicContracts')>(),
@@ -56,14 +56,14 @@ afterEach(() => vi.restoreAllMocks())
 
 describe('public contract error tenant attribution across parallel reads', () => {
   it('retains the resolved tenant in a subsequent offer-load consistency failure', async () => {
-    const tenant = deferred<{ tenant_reference: string }>()
+    const tenant = deferred<string>()
     const offers = deferred<never>()
     const started = deferred<void>()
     ports.tenant.mockReturnValue(tenant.promise)
     ports.offers.mockImplementation(() => { started.resolve(); return offers.promise })
     const response = GET(request())
     await started.promise
-    tenant.resolve({ tenant_reference: 'tenant-known' })
+    tenant.resolve('tenant-known')
     await Promise.resolve()
     offers.reject(consistencyError())
     const result = await response
@@ -75,7 +75,7 @@ describe('public contract error tenant attribution across parallel reads', () =>
   })
 
   it('keeps the reference absent when tenant resolution is still pending at failure', async () => {
-    const tenant = deferred<{ tenant_reference: string }>()
+    const tenant = deferred<string>()
     const offers = deferred<never>()
     const started = deferred<void>()
     ports.tenant.mockReturnValue(tenant.promise)
@@ -86,12 +86,12 @@ describe('public contract error tenant attribution across parallel reads', () =>
     const result = await response
     expect(result.status).toBe(503)
     expect(await result.json()).toMatchObject({ error: { details: { tenant_reference: null } } })
-    tenant.resolve({ tenant_reference: 'tenant-late' })
+    tenant.resolve('tenant-late')
     await Promise.resolve()
   })
 
   it('keeps resolved references isolated between concurrently failing requests', async () => {
-    const tenants = [deferred<{ tenant_reference: string }>(), deferred<{ tenant_reference: string }>()]
+    const tenants = [deferred<string>(), deferred<string>()]
     const offers = [deferred<never>(), deferred<never>()]
     const started = deferred<void>()
     let tenantCalls = 0
@@ -104,8 +104,8 @@ describe('public contract error tenant attribution across parallel reads', () =>
     })
     const responses = [GET(request()), GET(request())]
     await started.promise
-    tenants[0].resolve({ tenant_reference: 'tenant-first' })
-    tenants[1].resolve({ tenant_reference: 'tenant-second' })
+    tenants[0].resolve('tenant-first')
+    tenants[1].resolve('tenant-second')
     await Promise.resolve()
     offers[1].reject(consistencyError())
     offers[0].reject(consistencyError())
