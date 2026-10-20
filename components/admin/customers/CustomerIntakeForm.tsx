@@ -1346,6 +1346,39 @@ export default function CustomerIntakeForm({
             />
             <FieldError state={state} name="authorizationValidTo" />
           </label>
+
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
+            <span className="text-slate-700">Fullmakten undertecknad av</span>
+            <input
+              type="text"
+              name="poaSignerName"
+              autoComplete="off"
+              defaultValue={state.values.poaSignerName ?? ""}
+              className={inputClassName(state, "poaSignerName")}
+            />
+            <span className="text-xs text-slate-600">
+              Lämna tomt för privatkund: kundens namn används. För företag och
+              förening anges firmatecknaren.
+            </span>
+            <FieldError state={state} name="poaSignerName" />
+          </label>
+
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
+            <span className="text-slate-700">
+              Undertecknarens person-/organisationsnummer
+            </span>
+            <input
+              type="text"
+              name="poaSignerIdentityNumber"
+              autoComplete="off"
+              defaultValue={state.values.poaSignerIdentityNumber ?? ""}
+              className={inputClassName(state, "poaSignerIdentityNumber")}
+            />
+            <span className="text-xs text-slate-600">
+              Lämna tomt för privatkund: kundens personnummer används.
+            </span>
+            <FieldError state={state} name="poaSignerIdentityNumber" />
+          </label>
         </Section>
 
         <Section

@@ -68,6 +68,8 @@ export type IntakeField =
   | 'authorizationStatus'
   | 'authorizationValidFrom'
   | 'authorizationValidTo'
+  | 'poaSignerName'
+  | 'poaSignerIdentityNumber'
   | 'expectedStartDate'
   | 'confirmedStartDate'
   | 'actualStartDate'

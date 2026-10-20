@@ -536,6 +536,8 @@ export async function buildCustomerParamsFromImportRow(params: {
       row.authorization_status || row.power_of_attorney_status || null,
     authorizationValidFrom: row.authorization_valid_from || null,
     authorizationValidTo: row.authorization_valid_to || null,
+    poaSignerName: null,
+    poaSignerIdentityNumber: null,
     expectedStartDate:
       row.expected_start_date || row.contract_expected_start_date || null,
     confirmedStartDate: row.confirmed_start_date || null,

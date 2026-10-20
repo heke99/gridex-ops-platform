@@ -89,6 +89,9 @@ export type CreateCustomerGraphParams = {
   authorizationStatus: string | null;
   authorizationValidFrom: string | null;
   authorizationValidTo: string | null;
+  /** Who signed the uploaded power of attorney (FINDINGS F66). */
+  poaSignerName: string | null;
+  poaSignerIdentityNumber: string | null;
   expectedStartDate: string | null;
   confirmedStartDate: string | null;
   actualStartDate: string | null;
@@ -200,6 +203,8 @@ export const INTAKE_VALUE_FIELDS: IntakeField[] = [
   "authorizationStatus",
   "authorizationValidFrom",
   "authorizationValidTo",
+  "poaSignerName",
+  "poaSignerIdentityNumber",
   "expectedStartDate",
   "confirmedStartDate",
   "actualStartDate",
@@ -764,6 +769,16 @@ export function validateCreateCustomerParams(
       "Organisationsnummer ska vara ett giltigt svenskt organisationsnummer med kontrollsiffra.";
   }
 
+  const poaSignerIdentity = normalizeOptionalString(params.poaSignerIdentityNumber);
+  if (
+    poaSignerIdentity &&
+    !isSwedishIdentityNumber(poaSignerIdentity) &&
+    !isSwedishOrgNumber(poaSignerIdentity)
+  ) {
+    errors.poaSignerIdentityNumber =
+      "Ange undertecknarens giltiga svenska person- eller organisationsnummer.";
+  }
+
   if (
     normalizeOptionalString(params.facilityId) &&
     !isValidFacilityId(params.facilityId)
@@ -930,6 +945,8 @@ export function buildCreateCustomerParams(
       "authorizationValidFrom",
     ),
     authorizationValidTo: getNullableString(formData, "authorizationValidTo"),
+    poaSignerName: getNullableString(formData, "poaSignerName"),
+    poaSignerIdentityNumber: getNullableString(formData, "poaSignerIdentityNumber"),
     expectedStartDate: getNullableString(formData, "expectedStartDate"),
     confirmedStartDate: getNullableString(formData, "confirmedStartDate"),
     actualStartDate: getNullableString(formData, "actualStartDate"),

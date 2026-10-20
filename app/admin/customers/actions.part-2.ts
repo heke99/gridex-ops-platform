@@ -1011,6 +1011,7 @@ export async function createCustomerGraph(
           valid_to: normalizeOptionalString(params.authorizationValidTo),
           reference: `INTAKE-POA-${idempotencyKey.slice(-12)}`,
           notes: "Signerad fullmakt registrerad genom kundintag.",
+          ...intakePoaSigner(params),
           signed_scopes: signedScopes,
           created_by: params.actorUserId,
           updated_by: params.actorUserId,
@@ -1160,6 +1161,26 @@ export async function createCustomerGraph(
     __createdCurrentSupplierName: params.currentSupplierUnknown
       ? "Okänd nuvarande leverantör"
       : normalizeOptionalString(params.currentSupplierName),
+  };
+}
+
+/**
+ * Who signed an uploaded power of attorney (owner decision 2026-10-20,
+ * FINDINGS F66). Without signer and method a fullmakt is never externally
+ * sendable, so the grid-owner request stopped at review. A private customer
+ * signs for themself: empty fields default to the customer's name and
+ * personal number. A company or association signer is never assumed.
+ */
+export function intakePoaSigner(params: Pick<CreateCustomerGraphParams,
+  "customerType" | "firstName" | "lastName" | "personalNumber" | "poaSignerName" | "poaSignerIdentityNumber" | "signedPowerOfAttorneyFile">,
+): { signer_name: string | null; signer_identity_number: string | null; method: string | null } {
+  const isPrivate = params.customerType === "private";
+  const customerName = [normalizeOptionalString(params.firstName), normalizeOptionalString(params.lastName)].filter(Boolean).join(" ");
+  return {
+    signer_name: normalizeOptionalString(params.poaSignerName) ?? (isPrivate && customerName ? customerName : null),
+    signer_identity_number:
+      normalizeOptionalString(params.poaSignerIdentityNumber) ?? (isPrivate ? normalizeOptionalString(params.personalNumber) : null),
+    method: params.signedPowerOfAttorneyFile ? "pdf_upload" : null,
   };
 }
 
