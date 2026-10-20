@@ -138,11 +138,14 @@ export async function submitManualIntake(context: BrowserContext, input: ManualI
   await page.goto('/admin/customers/intake')
   // The form streams in after the shell; the operator waits until it can be used.
   await page.locator('button[name="intakeCreateMode"][value="create"]').waitFor({ state: 'visible', timeout: 180_000 })
-  await page.locator('[name="street"]:visible').first().waitFor({ state: 'visible', timeout: 60_000 })
   const usableAfterMs = Date.now() - opened
-  // Some fields appear in more than one form section; the operator types into the visible one.
-  const fill = (name: string, value: string) => page.locator(`[name="${name}"]:visible`).first().fill(value)
-  const select = (name: string, value: string) => page.locator(`select[name="${name}"]:visible`).first().selectOption(value)
+  // The form's sections are collapsed <details>; the operator opens a section by its heading first.
+  const open = async (name: string) => {
+    const section = page.locator(`form details:has([name="${name}"])`).first()
+    if (await section.count() && !(await section.evaluate(element => (element as HTMLDetailsElement).open))) await section.locator('summary').first().click()
+  }
+  const fill = async (name: string, value: string) => { await open(name); await page.locator(`[name="${name}"]:visible`).first().fill(value) }
+  const select = async (name: string, value: string) => { await open(name); await page.locator(`select[name="${name}"]:visible`).first().selectOption(value) }
   await select('customerType', 'private'); await select('intakeFlowType', 'switch')
   await fill('firstName', input.firstName); await fill('lastName', input.lastName); await fill('personalNumber', input.personalNumber)
   await fill('email', input.email); await fill('phone', input.phone)
@@ -151,9 +154,12 @@ export async function submitManualIntake(context: BrowserContext, input: ManualI
   await fill('annualConsumptionKwh', input.annualConsumptionKwh)
   await select('currentSupplierId', '__unknown__')
   await select('contractOfferId', input.contractOfferId); await fill('contractStartDate', input.contractStartDate)
+  await open('contractSigningMethod')
   await page.locator('input[name="contractSigningMethod"][value="uploaded_signed"]:visible').first().check()
+  await open('signedAgreementFile')
   await page.setInputFiles('input[name="signedAgreementFile"]', input.signedAgreementPdf)
   await fill('contractSignedDate', input.validFrom)
+  await open('signedPowerOfAttorneyFile')
   await page.setInputFiles('input[name="signedPowerOfAttorneyFile"]', input.powerOfAttorneyPdf)
   await select('authorizationStatus', 'signed'); await select('customerConfirmationStatus', 'confirmed')
   await fill('authorizationValidFrom', input.validFrom)
