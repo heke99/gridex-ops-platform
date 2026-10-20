@@ -441,13 +441,17 @@ Världen byggdes från noll med `up.sh` (ren replay, `next build` och `start`, s
 - **Drift (read-only):** 1 av 1 signerade avtal saknar `signed_version`.
 - **Ägare:** native/SQL (GEN). Rättningen kräver en migration som sätter `signed_version` (avtalets `contract_version`) när webbsignaturen slutförs, plus bakåtfyllnad av signerade avtal.
 
-### F46 Varje nytt avtal och varje nätägare kräver en granskad källa med extern utfärdarsignatur, som ingen väg i appen kan skapa — DELVIS RÄTTAD (ägarbeslut: automatiskt), kritisk
+### F46 Varje nytt avtal och varje nätägare kräver en granskad källa med extern utfärdarsignatur, som ingen väg i appen kan skapa — RÄTTAD (ägarbeslut: automatiskt), kritisk
 - **Nätregistret, rättat:** migrationen `20261020210000_ediel_network_registry_platform_actor_source.sql`.
   - Om bolaget saknar granskad källa för nätägaren ger `network_for_company_v1` underlag från nätägaren som Gridex-personal verifierat i Ediels aktörsregister. Kraven: aktiv, `verified`, aktiv roll `grid_owner` och ett verifierat, gällande Ediel-ID.
   - En granskad källa avgör fortfarande när den finns.
   - Probe: 16700 ger `authorized`, en okänd nätägare ger `held`.
   - Nativetest `ediel-network-registry-source-native` och SQL-regressioner för nätregister, avtalsintag, Z04C och Z05C är gröna.
-- **Mätmetoden, återstår:** Z03-bindningen (`switch_contract_request_bindings.declaration_id`) har en FK till en verklig deklarationsrad. Lagringsspärren kräver också avtalets PDF-original med hash lika med `customer_contracts.document_sha256`. En automatisk deklaration måste därför skapas på servern från det arkiverade signerade avtalet, med metoden härledd ur den signerade prismodellen: `price_snapshot.interval_resolution='quarterly'` ger F (begär kvartsmätning), annars G (nätägaren avgör).
+- **Mätmetoden, rättad:** migrationen `20261020220000_ediel_contract_requested_method_from_signed_agreement.sql` och `lib/operations/switchRequestedMethodPreparation.ts`.
+  - **Före Z03:** i båda byte-vägarna (`edielAutomation`, `startSupplierSwitch`), alltså utanför den godkända renderingsvägen AT-Z03L, härleds deklarationen från det arkiverade signerade avtalet. Bytes laddas ner från Storage och sha256 måste vara lika med `document_sha256` på ett verifierat `signed_contract_pdf`.
+  - **Metoden:** tas ur den signerade prismodellen. `price_snapshot.interval_resolution='quarterly'` ger F, metod Z04 (begär kvartsmätning). Annars G, metod Z03 (nätägaren avgör). Värdena kommer från `canonical_tuple_projection_v1`.
+  - **Samma villkor som en granskad deklaration:** mätpunkt, nätägare, nätregister och avsändare kontrolleras på samma sätt. Mätpunkten måste vara en GS1-identitet med giltig kontrollsiffra (byrå 9). Avtal som har eller har haft en egen deklaration lämnas orörda. Raden uppfyller lagrings- och FK-kraven med verkliga originalbytes.
+  - **Tester:** `__tests__/ediel-contract-requested-method-source.test.ts` är grönt, och 175 tester i bytesflödet är gröna, inklusive AT-Z03L/LK och AT-P-06.
 - **Fakta:** Z03 för en ny kund kräver tre saker:
   - en mätmetodsdeklaration per avtal (`gridex_metering_method_changes.contract_request_declarations`);
   - en nätregisterkälla per bolag och nätägare (`network_for_company_v1`);

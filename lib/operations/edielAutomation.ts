@@ -8,6 +8,7 @@ import { createSupplierSwitchEvent, getSupplierSwitchRequestById } from '@/lib/o
 import { getCustomerSiteById, getGridOwnerById, getMeteringPointById } from '@/lib/masterdata/db'
 import { prepareAndQueueEdielZ03, prepareAndQueueEdielZ05, prepareAndQueueEdielZ09 } from '@/lib/ediel/orchestrator'
 import { evaluateSupplierSwitchSchedule } from '@/lib/operations/supplierSwitchScheduler'
+import { deriveRequestedMethodBeforeSwitch } from '@/lib/operations/switchRequestedMethodPreparation'
 import {
   checkSupplierSwitchReadiness,
   persistSwitchReadinessSnapshot,
@@ -282,6 +283,7 @@ export async function ensureInitialSwitchEdielAutomation(
     })
   }
 
+  await deriveRequestedMethodBeforeSwitch({ actorUserId: input.actorUserId, switchRequestId: context.switchRequest.id })
   const message = await prepareAndQueueEdielZ03({
     actorUserId: input.actorUserId,
     switchRequestId: context.switchRequest.id,

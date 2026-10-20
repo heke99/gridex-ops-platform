@@ -12,6 +12,7 @@ import {
   persistSwitchReadinessSnapshot,
 } from '@/lib/customer-operations/switchReadiness'
 import { supabaseService } from '@/lib/supabase/service'
+import { deriveRequestedMethodBeforeSwitch } from '@/lib/operations/switchRequestedMethodPreparation'
 
 type StartInput = {
   actorUserId: string
@@ -168,6 +169,7 @@ async function startWithPreflight(input: StartInput, preflight: BusinessActionPr
     return { ok: true, preflight, decision, duplicate: true, message: 'Leverantörsbytet är redan köat.' }
   }
 
+  await deriveRequestedMethodBeforeSwitch({ actorUserId: input.actorUserId, switchRequestId: input.switchRequestId })
   const message = await prepareAndQueueEdielZ03({
     actorUserId: input.actorUserId,
     switchRequestId: input.switchRequestId,

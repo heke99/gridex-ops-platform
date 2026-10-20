@@ -280,6 +280,7 @@
     "20261020120300_ediel_technical_ack_original_uniqueness_indexed.sql": "7c8ddd1172e2eac31ae0db2f68d752bafea81111410be2aaed6b5759facca43f",
     "20261020190000_ediel_tenant_brp_agreement_source.sql": "c3ca5d1d690617501aa6350b66b3bbe4ef6b01137824fd64389fefbe1e3acb49",
     "20261020200000_website_contract_signed_version.sql": "8ea94d30905b224ef0cb0bb8a16216118769e9e37c0a2191ccceac54c2f085e3",
-    "20261020210000_ediel_network_registry_platform_actor_source.sql": "6df015c9cc509096b7844c9f5bad79fc3034132c87975d3689f5143e635a25e2"
+    "20261020210000_ediel_network_registry_platform_actor_source.sql": "6df015c9cc509096b7844c9f5bad79fc3034132c87975d3689f5143e635a25e2",
+    "20261020220000_ediel_contract_requested_method_from_signed_agreement.sql": "049f4c31190d6b5f473be443093add10939c6ed63b07a38dc55424ca20841d24"
   }
 }
