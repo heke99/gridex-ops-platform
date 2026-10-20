@@ -12,7 +12,7 @@ describe('UTILTS canonical profile coverage', () => {
     try {
       const policy = resolveCanonicalEdielPolicy({ family: 'UTILTS', messageCode: 'E73', direction: 'outbound',
         referenceDate: '2026-10-15', applicationReference: '23-DDQ-E66-S', mode: 'catalog_evidence' })
-      expect(policy.guide.guideRevision).toBe('25-A-4')
+      expect(policy.guide.guideRevision).toBe('25-A-5')
       expect(policy.phase).toBe('metering')
       expect(policy.utiltsProfile?.phase).toBe('metering')
       expect(changed).toBe(false)

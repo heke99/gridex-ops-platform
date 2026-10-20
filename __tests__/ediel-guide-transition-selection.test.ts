@@ -21,18 +21,18 @@ describe('coherent two-week inbound guide selection', () => {
     const source = energyHandoffMessage('2026-09-30')
     const message = { ...source, message_received_at: '2026-10-15T10:00:00Z', raw_payload: source.raw_payload!.replace('735999260731000007::9', '735999260731000008::9') }
     const selected = resolveCanonicalMessagePolicy(message)!
-    expect(selected.guide.guideRevision).toBe('25-A-4')
+    expect(selected.guide.guideRevision).toBe('25-A-5')
     expect(runUtiltsRuntimeForMessage(message, { canonicalPolicy: selected }).validation.issues.some(issue => issue.code === 'UTILTS_METERING_POINT_GS1_CHECK_DIGIT_INVALID')).toBe(true)
     const decision = resolveCanonicalRuntimeDecision(message)
     expect(decision.validationReport.canonicalPolicy).toMatchObject({
-      guide: { guideRevision: '25-A-4', associationAssignedCode: 'E5SE5A' },
+      guide: { guideRevision: '25-A-5', associationAssignedCode: 'E5SE5A' },
       timeAnchors: { admissionDate: '2026-10-15' },
     })
   })
   it('retains the current guide when only functional object knowledge fails', () => {
     const message = { ...energyHandoffMessage('2026-10-01'), metering_point_id: null, business_match_status: 'unmatched' }
     const selected = resolveCanonicalMessagePolicy(message)!
-    expect(selected.guide.guideRevision).toBe('25-A-4')
+    expect(selected.guide.guideRevision).toBe('25-A-5')
     const runtime = runUtiltsRuntimeForMessage(message, { canonicalPolicy: selected })
     expect(runtime.validation.issues.some(issue => issue.kind === 'functional' && issue.severity === 'error')).toBe(true)
   })
