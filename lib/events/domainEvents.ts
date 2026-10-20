@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
 import { enqueueWebhookDeliveriesForEvent } from '@/lib/integrations/webhooks'
 
@@ -183,6 +184,22 @@ async function recoverStaleWebhookFanoutJobs() {
   if (error) throw error
 }
 
+type FanoutClaimReceipt = { id: string; locked_by: string; locked_at: string }
+
+async function finalizeWebhookFanoutJob(receipt: FanoutClaimReceipt, patch: Record<string, unknown>): Promise<boolean> {
+  const { data, error } = await supabaseService
+    .from('event_outbox')
+    .update({ ...patch, locked_at: null, locked_by: null, updated_at: new Date().toISOString() })
+    .eq('id', receipt.id)
+    .eq('status', 'processing')
+    .eq('locked_by', receipt.locked_by)
+    .eq('locked_at', receipt.locked_at)
+    .select('id')
+    .maybeSingle()
+  if (error) throw error
+  return Boolean(data?.id)
+}
+
 export async function processDomainEventWebhookFanout(input: {
   eventId?: string | null
   limit?: number
@@ -206,22 +223,29 @@ export async function processDomainEventWebhookFanout(input: {
   let completed = 0
   let failed = 0
   for (const candidate of (data ?? []) as FanoutJobRow[]) {
+    const workerId = `webhook-fanout:${randomUUID()}`
     const { data: claimed, error: claimError } = await supabaseService
       .from('event_outbox')
       .update({
         status: 'processing',
         locked_at: new Date().toISOString(),
-        locked_by: 'webhook_dispatch',
+        locked_by: workerId,
         updated_at: new Date().toISOString(),
       })
       .eq('id', candidate.id)
       .in('status', ['queued', 'failed'])
-      .select('id')
+      .lte('available_at', new Date().toISOString())
+      .select('id,status,locked_by,locked_at,attempts,max_attempts')
       .maybeSingle()
     if (claimError) throw claimError
     if (!claimed?.id) continue
+    if (claimed.id !== candidate.id || claimed.status !== 'processing' || claimed.locked_by !== workerId ||
+        typeof claimed.locked_at !== 'string' || !claimed.locked_at.trim()) {
+      throw new Error('webhook_fanout_claim_invalid')
+    }
+    const receipt: FanoutClaimReceipt = { id: claimed.id, locked_by: claimed.locked_by, locked_at: claimed.locked_at }
     processed += 1
-    const attempts = Number(candidate.attempts ?? 0) + 1
+    const attempts = Number(claimed.attempts ?? 0) + 1
     try {
       const eventResult = await supabaseService
         .from('domain_events')
@@ -230,39 +254,25 @@ export async function processDomainEventWebhookFanout(input: {
         .single()
       if (eventResult.error) throw eventResult.error
       const deliveryCount = await enqueueWebhookDeliveriesForEvent(eventResult.data as DomainEventRow, { strict: true })
-      const { error: completeError } = await supabaseService
-        .from('event_outbox')
-        .update({
-          status: 'sent',
-          attempts,
-          sent_at: new Date().toISOString(),
-          last_error: null,
-          locked_at: null,
-          locked_by: null,
-          payload: { delivery_count: deliveryCount },
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', candidate.id)
-      if (completeError) throw completeError
-      completed += 1
+      const committed = await finalizeWebhookFanoutJob(receipt, {
+        status: 'sent',
+        attempts,
+        sent_at: new Date().toISOString(),
+        last_error: null,
+        payload: { delivery_count: deliveryCount },
+      })
+      if (committed) completed += 1
     } catch (fanoutError) {
-      const terminal = attempts >= Number(candidate.max_attempts ?? 12)
+      const terminal = attempts >= Number(claimed.max_attempts ?? 12)
       const message = fanoutError instanceof Error ? fanoutError.message : 'webhook_fanout_failed'
-      const { error: failError } = await supabaseService
-        .from('event_outbox')
-        .update({
-          status: terminal ? 'dead_letter' : 'failed',
-          attempts,
-          available_at: terminal ? new Date().toISOString() : fanoutRetryAt(attempts),
-          failed_at: terminal ? new Date().toISOString() : null,
-          last_error: message,
-          locked_at: null,
-          locked_by: null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', candidate.id)
-      if (failError) throw failError
-      failed += 1
+      const committed = await finalizeWebhookFanoutJob(receipt, {
+        status: terminal ? 'dead_letter' : 'failed',
+        attempts,
+        available_at: terminal ? new Date().toISOString() : fanoutRetryAt(attempts),
+        failed_at: terminal ? new Date().toISOString() : null,
+        last_error: message,
+      })
+      if (committed) failed += 1
       if (input.eventId) throw fanoutError
     }
   }
