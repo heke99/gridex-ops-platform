@@ -79,6 +79,8 @@ env={
  'GRIDEX_SHARED_EDIEL_TEST_IMAP_USERNAME':mailbox,'GRIDEX_SHARED_EDIEL_TEST_IMAP_PASS':mail,
  'GRIDEX_SHARED_EDIEL_TEST_SMTP_HOST':'localhost','GRIDEX_SHARED_EDIEL_TEST_SMTP_PORT':'3465','GRIDEX_SHARED_EDIEL_TEST_SMTP_FROM':mailbox,
  'GRIDEX_MANUAL_OPERATIONS_MAILBOX_PASS':mail,
+ # The world simulates production: manual grid-owner mail uses the production manual-operations mailbox.
+ 'GRIDEX_MANUAL_OPS_ENVIRONMENT':'production',
  'NODE_EXTRA_CA_CERTS':home+'/tls/combined-ca.pem',
  # Every third party is a local simulator; nothing leaves the machine.
  'ELPRISETJUSTNU_BASE_URL':'http://127.0.0.1:3901','RESEND_BASE_URL':'http://127.0.0.1:3901','RESEND_API_KEY':'re_reality_simulator',

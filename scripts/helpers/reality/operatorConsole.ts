@@ -51,7 +51,7 @@ export function sanitizedActorRegistry(): { path: string; mailboxFor: (edielId: 
  * networkidle wait resolves at once on an idle page, so closing the page after
  * it aborted the POST before the server ever saw it.
  */
-async function submitServerAction(page: Page, submit: () => Promise<void>, timeout: number) {
+export async function submitServerAction(page: Page, submit: () => Promise<void>, timeout: number) {
   const response = page.waitForResponse(r => r.request().method() === 'POST' && Boolean(r.request().headers()['next-action']), { timeout })
   await submit()
   const status = (await response).status()
@@ -106,6 +106,58 @@ export async function chooseTenantBrp(context: BrowserContext, companyId: string
   const shown = (await page.locator('section#brp').innerText().catch(() => '')).replace(/\s+/g, ' ')
   await page.close()
   return { actionStatus, status: url.searchParams.get('status'), message: url.searchParams.get('message'), shown: shown.slice(0, 400) }
+}
+
+/**
+ * /admin/network-owners/<id>/contact-channels: platform staff add the grid owner's verified contact for
+ * facility-information requests (the single-channel form with "Kanaltyp").
+ */
+export async function addGridOwnerContactChannel(context: BrowserContext, gridOwnerId: string, email: string) {
+  const page = await context.newPage()
+  await page.goto(`/admin/network-owners/${gridOwnerId}/contact-channels`)
+  const form = page.locator('form:has(select[name="channel_type"])')
+  await form.locator('select[name="channel_type"]').selectOption('facility_information_request')
+  await form.locator('input[name="email"]').fill(email)
+  await form.locator('input[name="label"]').fill('Anläggningsuppgifter')
+  await form.locator('input[name="is_verified"]').check()
+  const actionStatus = await submitServerAction(page, () => form.locator('button[type="submit"], button:not([type])').last().click(), 60_000)
+  await page.close()
+  return { actionStatus }
+}
+
+/** The manual customer intake form, /admin/customers/intake, filled and submitted as a tenant employee. */
+export type ManualIntakeInput = {
+  firstName: string; lastName: string; personalNumber: string; email: string; phone: string
+  street: string; postalCode: string; city: string; siteName: string; gridOwnerId: string; priceAreaCode: string
+  annualConsumptionKwh: string; contractOfferId: string; contractStartDate: string; signedAgreementPdf: string; powerOfAttorneyPdf: string
+  validFrom: string; requestTarget: 'grid_owner' | 'current_supplier' | 'both'
+}
+export async function submitManualIntake(context: BrowserContext, input: ManualIntakeInput) {
+  const page = await context.newPage()
+  await page.goto('/admin/customers/intake')
+  const fill = (name: string, value: string) => page.locator(`[name="${name}"]`).first().fill(value)
+  const select = (name: string, value: string) => page.locator(`select[name="${name}"]`).first().selectOption(value)
+  await select('customerType', 'private'); await select('intakeFlowType', 'switch')
+  await fill('firstName', input.firstName); await fill('lastName', input.lastName); await fill('personalNumber', input.personalNumber)
+  await fill('email', input.email); await fill('phone', input.phone)
+  await fill('street', input.street); await fill('postalCode', input.postalCode); await fill('city', input.city)
+  await fill('siteName', input.siteName); await select('gridOwnerId', input.gridOwnerId); await select('priceAreaCode', input.priceAreaCode)
+  await fill('annualConsumptionKwh', input.annualConsumptionKwh)
+  await select('currentSupplierId', '__unknown__')
+  await select('contractOfferId', input.contractOfferId); await fill('contractStartDate', input.contractStartDate)
+  await page.locator('input[name="contractSigningMethod"][value="uploaded_signed"]').check()
+  await page.setInputFiles('input[name="signedAgreementFile"]', input.signedAgreementPdf)
+  await fill('contractSignedDate', input.validFrom)
+  await page.setInputFiles('input[name="signedPowerOfAttorneyFile"]', input.powerOfAttorneyPdf)
+  await select('authorizationStatus', 'signed'); await select('customerConfirmationStatus', 'confirmed')
+  await fill('authorizationValidFrom', input.validFrom)
+  await select('postCreateAction', 'open_customer'); await select('postCreateRequestTarget', input.requestTarget)
+  const actionStatus = await submitServerAction(page, () => page.locator('button[name="intakeCreateMode"][value="create"]').click(), 300_000)
+  await page.waitForLoadState('load')
+  const text = (await page.locator('#admin-main').innerText().catch(() => '')).replace(/\s+/g, ' ')
+  const url = page.url()
+  await page.close()
+  return { actionStatus, url, text: text.slice(0, 1500) }
 }
 
 /**
