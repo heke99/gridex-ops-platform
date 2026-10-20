@@ -354,6 +354,87 @@ Granskat oberoende och verifierat på de angivna raderna.
   - Guiden först ger att materialiseringen fallerar och `platform_route_exists_but_not_materialized` (14:43–14:46).
 - **Slutsats:** ingen ordning av operatörsstegen ger en Z01 för ett nytt bolag. Det krävs ett beslut om vilken modell som gäller. Antingen räknar miljöväljaren materialiserade nätägarprofiler, eller så räknar Z01-beredskapen (`evaluateCustomerProcessRouteReadiness`) guidens dynamiska profiler och beredskapsmotorn stöder dynamisk mottagare.
 
+## Körning 2026-10-20 från noll (`scripts/reality/up.sh`): scenario A och C
+
+Världen byggdes från noll med `up.sh` (ren replay, `next build` och `start`, simulatorer). Mätvärdena gäller den lokala stacken: PostgREST-pool med 10 anslutningar och Kong med 512 worker connections. Absoluta tider skiljer sig från drift, men antal anrop och beteende gör det inte.
+
+### F42 Inget bolag kan få automatiska leverantörsbyten: "egen elhandlare" kan inte registreras — ÖPPEN, hög
+- **Fel:** varje `start_supplier_switch` fallerade med "Bolaget saknar en registrerad egen elhandlare. Markera bolagets leverantör som den egna innan ett byte till oss skapas." (`lib/operations/db.part-2.ts:454`).
+- **Hur leverantören hittas:** `resolveOwnElectricitySupplier` (`lib/masterdata/selfSupplier.ts`) kräver en rad i `electricity_suppliers` med bolagets `company_id` och `is_own_supplier=true`, eller en rad med exakt bolagets namn.
+- **Varför ingen sådan rad finns:**
+  - `/admin/electricity-suppliers` (`saveElectricitySupplier`) sätter varken `company_id` eller `is_own_supplier`.
+  - Flaggan sätts bara via en kryssruta i den manuella panelen för att skapa ett byte på ett kundkort (`switch-create-actions.ts:572`).
+- **Drift (läsfråga):** 9 leverantörsrader, 0 med `company_id`, 0 egna. 0 av 3 bolag kan lösas, så varje automatiskt byte i drift skulle fallera.
+- **Förslag:** skapa och markera bolagets egen leverantör när bolagets Ediel-avsändare sätts upp (namn, org.nr och Ediel-ID finns redan där). Alternativt läs den egna leverantören från bolagets avsändaridentitet i stället för från `electricity_suppliers`. Go-live-grinden bör kontrollera detta.
+
+### F43 Ett tillfälligt fel från databaslagret ger webbplatsen 500 "försök inte igen" — ÖPPEN, medel
+- **Utfall:** i 2 körningar av 2 fick 1 av 6 checkouter `500 website_application_failed` med `stage: internal_error` och `retryable: false`.
+- **Orsak:** en enda `canonical_tenant_operation_decision` fick 502 (`Connection reset by peer` mellan gateway och PostgREST, utan någon last). Appen loggade `An invalid response was received from the upstream server`.
+- **Varför det är fel:** felet är tillfälligt, och ett omförsök med samma Idempotency-Key är bevisat säkert (C2: samma ansökan, 1 rad). Webbplatsen får ändå beskedet att inte försöka igen, så kunden tappas.
+- **Förslag:** klassa transportfel (`fetch failed`, `UND_ERR_SOCKET`, 502, 503 och 504 från databaslagret) som `503` med `retryable: true` och `Retry-After`. Skriv i API-dokumentationen att webbplatsen ska göra om anropet med samma nyckel.
+
+### P3 Avtalslistan räknar om bolagets hela beredskap vid varje anrop: 32 databasanrop — ÖPPEN, prestanda
+- **Mätt:** ett `GET /api/v1/website/public-contracts` gav 32 anrop till PostgREST.
+- **Var anropen hamnar:** `loadExternalTenantContext` → `loadTenantWebsiteFlowReadiness` utvärderar per anrop bolag, beredskapsvy, automationskontroller (e-postmallar, regler, avsändare, brevlåda, nätägarkontakter, runtime-kontrakt), webhooks och 6 separata `canonical_tenant_operation_decision`. Dessutom läses `companies` 3 gånger.
+- **Följd:** listan som webbplatsen visar för varje besökare kostar lika mycket som en admin-kontroll. Under last multipliceras det (P6).
+- **Förslag:**
+  1. Ett batch-anrop för alla operationsbeslut (6 till 1).
+  2. Läs bolaget en gång per anrop.
+  3. Skilj de kapabiliteter som visas (kan cachas per bolag i 30–60 s och ogiltigförklaras vid admin-ändring) från spärrbeslutet (live, ett enda anrop). Behörighetsbeslut cachas aldrig mellan anrop.
+
+### P4 En webbplats-checkout kostar cirka 181 databasanrop — ÖPPEN, prestanda
+- **Mätt:** 5 anrop (avtalslista, adress, offert, juridiskt paket, ansökan) gav 181 anrop till PostgREST. Ansökan har p50 cirka 0,8 s och p95 0,9–1,6 s. Övriga steg ligger på 100–330 ms.
+- **De mest upprepade anropen:**
+  - `companies` 12 gånger
+  - `canonical_tenant_operation_decision` 12 gånger
+  - `legal_bundle_versions` och `legal_bundle_version_documents` 6 gånger vardera
+  - `PATCH event_outbox` 6 gånger
+  - autentisering, `PATCH integration_api_clients` och `integration_api_requests` 5 gånger vardera
+- **Förslag:**
+  - Memorisera per anrop bolag, operationsbeslut och juridiskt paket, så att varje sak läses en gång.
+  - Samla eventen i outboxen till en skrivning per transaktion.
+  - Målet är under 60 anrop per checkout och under 400 ms p95 för ansökan.
+
+### P5 Varje API-anrop skriver samma rad (`integration_api_clients.last_used_at`) — ÖPPEN, prestanda
+- **Var:** `lib/integrations/apiAuth.ts:410` gör en UPDATE på klientraden efter varje autentiserat anrop, utan att vänta på svaret. Varje 429 skriver dessutom `rate_limited_until` på samma rad (`apiAuth.ts:255`).
+- **Följd:** under en burst köar alla anrop från en webbplats på samma radlås, och varje anrop kostar en extra HTTP-anslutning till databaslagret.
+- **Förslag:** skriv `last_used_at` högst en gång per minut och klient, med ett villkor (`last_used_at < now()-60s`) och ett minne i processen.
+
+### P6 En burst på 150 anrop ger 95 × 503 i stället för 429 — ÖPPEN, robusthet
+- **Mätt:** 150 samtidiga anrop mot avtalslistan med en nyckel som har gränsen 120/min gav 42 × 200, 11 × 429, 95 × `503 PUBLIC_CONTRACTS_TEMPORARILY_UNAVAILABLE` och 2 × 500.
+- **Orsak:** 150 × 32 är cirka 4 800 interna anrop. Kong slår i `512 worker_connections` och PostgREST-poolen har 10 anslutningar, så anslutningar stängs (`other side closed`).
+- **I drift:** gränserna är högre, men grundorsaken är densamma, nämligen antalet anrop per förfrågan (P3–P5).
+- **Förslag:**
+  - Minska antalet anrop per förfrågan.
+  - Kontrollera rate limit innan det dyra arbetet. I dag görs autentisering och loggning av förfrågan först, och sedan räknas hela beredskapen.
+- **Rate limitern fungerar:** de förfrågningar som nådde den fick 429 med `Retry-After`.
+
+### G1 En ny miljö saknar nätområden tills SVK-importen har körts, och go-live-grinden kontrollerar inte det — ÖPPEN, drift
+- **Utfall:** i en nybyggd miljö gav adressteget `price_area: null` (`postal_suggested`), och alla checkouter stannade.
+- **Varför det inte syns:** go-live svarade ändå `launchReady`.
+- **Importen själv fungerar:** plattformens cron (`/api/internal/platform/grid-areas/import/cron`) hämtade 280 nätområden från SVK på 2 anrop (cirka 5 s).
+- **Förslag:** go-live-grinden bör kräva en verifierad geodataversion (`energy_geodata_versions.status='verified'`) och färska spotpriser. En miljö kan inte sälja utan dem.
+- **Simuleringen:** `prepareMarketData()` gör detta via plattformens egna cron-jobb.
+
+### C-kostnader per cron-körning (scenario A, 11 körningar, 3 bolag)
+
+| Cron | p50 | max |
+|---|---|---|
+| `customer-operations` | 2,1 s | 5,8 s |
+| `inbound-mail` | 0,55 s | 7,9 s |
+| `email/outbox` | 22 ms | 1,4 s |
+| `tenant-provisioning` | 82 ms | 0,9 s |
+| övriga | under 0,5 s | |
+
+- `customer-operations` växer med antalet bolag (S1). `inbound-mail` nådde nästan 8 s med en enda brevlåda.
+- **Förslag:** mät stegtider i cron-svaret (`customer-operations` saknar `timings`), dela upp svepen per bolag med en markör (S1) och sätt larm på p95 över 50 % av funktionens tidsgräns.
+
+### Verifierat korrekt i körningen (inte fel)
+- **Idempotens:** samma ansökan skickad igen med samma nyckel ger samma ansökningsnummer och 1 rad (C2).
+- **Bolagsisolering:** ett annat elbolags API-nyckel får 404 `application_not_found` på en ansökan, utan bolagsdata i svaret (C3).
+- **Tredjepartsavbrott:** spot som hänger, svarar 500 eller 429, papapi som hänger eller ger trasig JSON, och Lantmäteriet som hänger ger alla en lyckad checkout på 1,1–1,9 s. Ingen förfrågan hängde (C5).
+- **Inget fastnat:** stuck-detektorn hittade inget med kategorin `stuck`. 8 jobb ligger korrekt som `needs_operator` (`needs_review`).
+
 ### Korrekta spärrar som simuleringen bekräftade (inte fel)
 Go-live kräver:
 - standardmejl och regler för kunder
