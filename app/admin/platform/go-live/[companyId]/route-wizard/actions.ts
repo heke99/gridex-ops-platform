@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requirePlatformAdminActionAccess } from "@/lib/admin/guards";
 import { supabaseService } from "@/lib/supabase/service";
+import { resolveProdatApplicationReferenceForProcess } from "@/lib/ediel/core/applicationReferenceResolver";
 
 type MessageFamily = "PRODAT" | "UTILTS";
 
@@ -13,7 +14,9 @@ const FAMILY_CONFIG: Record<
   {
     routeName: string;
     routeScope: string;
-    applicationReference: string;
+    // The message policy owns the reference; UTILTS differs per message, so the
+    // family template declares none (FINDINGS F41).
+    applicationReference: string | null;
     defaultMessageVersion: string;
     ackMode: string;
     encryptionMode: "smime" | "none";
@@ -26,7 +29,7 @@ const FAMILY_CONFIG: Record<
   PRODAT: {
     routeName: "PRODAT produktion",
     routeScope: "supplier_switch",
-    applicationReference: "PRODAT",
+    applicationReference: resolveProdatApplicationReferenceForProcess("supplier_switch"),
     defaultMessageVersion: "26A",
     ackMode: "contrl_and_aperak",
     encryptionMode: "smime",
@@ -39,7 +42,7 @@ const FAMILY_CONFIG: Record<
   UTILTS: {
     routeName: "UTILTS produktion",
     routeScope: "meter_values",
-    applicationReference: "UTILTS",
+    applicationReference: null,
     defaultMessageVersion: "D97A",
     ackMode: "contrl_and_aperak",
     encryptionMode: "none",
@@ -233,6 +236,17 @@ function routeMatchesFamily(
   );
 }
 
+function registryMaterialized(row: Record<string, unknown>): boolean {
+  const metadata =
+    row.metadata && typeof row.metadata === "object"
+      ? (row.metadata as Record<string, unknown>)
+      : {};
+  return (
+    typeof metadata.platform_actor_route_id === "string" &&
+    metadata.platform_actor_route_id.trim() !== ""
+  );
+}
+
 async function deactivateExistingProductionFamily(
   companyId: string,
   family: MessageFamily,
@@ -250,7 +264,11 @@ async function deactivateExistingProductionFamily(
   const rows = Array.isArray(data)
     ? (data as Array<Record<string, unknown>>)
     : [];
-  const existing = rows.filter((row) => routeMatchesFamily(row, family));
+  // Grid-owner routes materialized from the Ediel registry are not the wizard's
+  // own template; replacing them would cut the tenant off from its counterparties.
+  const existing = rows.filter(
+    (row) => routeMatchesFamily(row, family) && !registryMaterialized(row),
+  );
   const profileIds = existing
     .map((row) => String(row.id ?? "").trim())
     .filter(Boolean);
@@ -328,14 +346,6 @@ function validateProductionRoute(input: {
   )
     blockers.push("Ogiltig receiver_source för production route.");
   if (
-    String(input.applicationReference ?? "")
-      .toUpperCase()
-      .startsWith("23-DDQ")
-  )
-    blockers.push(
-      "Application Reference 23-DDQ är test/portal-referens och får inte användas i production route.",
-    );
-  if (
     String(input.targetEmail ?? "")
       .toLowerCase()
       .endsWith("@ediel.se")
@@ -343,13 +353,17 @@ function validateProductionRoute(input: {
     blockers.push(
       "Mottagaradressen ser ut som Edielportal/testmiljö. Ange riktig produktionsmailbox.",
     );
-  if (input.family === "PRODAT" && input.applicationReference !== "PRODAT")
+  if (
+    input.family === "PRODAT" &&
+    input.applicationReference !==
+      resolveProdatApplicationReferenceForProcess("supplier_switch")
+  )
     blockers.push(
-      "PRODAT production route måste använda Application Reference PRODAT.",
+      "PRODAT production route måste använda Ediels Application Reference 23-DDQ-PRODAT.",
     );
-  if (input.family === "UTILTS" && input.applicationReference !== "UTILTS")
+  if (input.family === "UTILTS" && input.applicationReference !== null)
     blockers.push(
-      "UTILTS production route måste använda Application Reference UTILTS.",
+      "UTILTS production route får inte deklarera en Application Reference; den bestäms per meddelande.",
     );
   return blockers;
 }

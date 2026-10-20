@@ -342,7 +342,15 @@ Granskat oberoende och verifierat på de angivna raderna.
 - **Test:** `__tests__/route-wizard-supersede-production-mode.test.ts` kör den riktiga åtgärden mot en databas med samma CHECK. Den fallerar utan rättningen med exakt driftens felmeddelande.
 - **Verifierat i appen:** guiden svarar "Production route skapad för PRODAT + UTILTS".
 
-### F41 Två route-modeller som utesluter varandra — ÖPPEN, BLOCKERAR Z01 för nya bolag, ägarbeslut
+### F41 Två route-modeller som utesluter varandra — RÄTTAD (kod), Z01 för nya bolag
+- **Beslut:** routes per nätägare, materialiserade från Ediels register, är produktionsmodellen.
+- **Rättning:**
+  1. `customerInfoEnvironmentResolver` räknar en profil med `metadata.platform_actor_route_id` som nätägar-route.
+  2. `routeMaterializer.upsertRouteProfile` tar PRODAT-referensen enbart från registerrouten eller policyn (`23-DDQ-PRODAT`). Avsändarinställningens `PRODAT` används inte längre. För UTILTS gäller avsändarens deklarerade referens fortfarande, enligt SC-059.
+  3. Route-guiden avaktiverar aldrig registermaterialiserade profiler. Den använder policyreferensen `23-DDQ-PRODAT` för PRODAT och ingen referens för UTILTS. Den felaktiga spärren "23-DDQ är test/portal-referens" är borttagen; masterplanens tabell anger `23-DDQ-*` som leverantörens produktionsreferens.
+- **Test:** `__tests__/route-model-registry-materialized-z01.test.ts`, 5 gröna. Utan rättningen fallerar 3.
+- **Regressioner:** 16 filer och 185 tester gröna, bland annat SC-058, SC-059, TEN-05/06, DB-01, IMP-05, TR-01 och AT-Z03L. Materialisering, partiell reparation, route-beredskap och Z01-route är gröna.
+
 - **Guidens modell:** dynamiska profiler (`receiver_source=selected_metering_point_grid_owner`, `is_production_route=true`) som mottagaren hämtas till per kund. Det är bara dessa som miljöväljaren för kunduppgifter räknar (`routeMatchesCustomerGridOwner`).
 - **Route-beredskapens modell:** profiler per nätägare, materialiserade från registret med fast `receiver_ediel_id`.
 - **Krock 1:** guiden ersätter alla produktionsprofiler i familjen, även de materialiserade nätägarprofilerna.

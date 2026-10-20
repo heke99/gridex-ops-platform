@@ -282,7 +282,7 @@ async function upsertCommunicationRoute(params: {
   return String((data as { id: string }).id);
 }
 
-async function upsertRouteProfile(params: {
+export async function upsertRouteProfile(params: {
   actorUserId: string | null;
   route: PlatformActorRouteRow;
   communicationRouteId: string;
@@ -307,7 +307,10 @@ async function upsertRouteProfile(params: {
   const receiverEdielId = text(params.route.interchange_party_id);
   if (!receiverEdielId) throw new Error("ediel_registry_technical_receiver_required");
   const isAiList = params.messageFamily === "AI_LIST";
-  const configuredApplicationReference = isAiList ? text(params.route.application_reference) :
+  // PRODAT's reference follows from the message code alone; a sender setting
+  // holds a tenant-wide label and must not override it (FINDINGS F41). UTILTS
+  // has no policy default, so the sender's declared reference still applies.
+  const configuredApplicationReference = isAiList || params.messageFamily === "PRODAT" ? text(params.route.application_reference) :
     text(params.route.application_reference) ??
     text(params.senderSettings.application_reference) ??
     text(params.senderSettings.default_application_reference);

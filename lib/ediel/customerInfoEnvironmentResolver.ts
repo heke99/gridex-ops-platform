@@ -86,7 +86,11 @@ function routeMatchesCustomerGridOwner(row: RouteProfileRow): boolean {
   const strategy = lower(row.dynamic_receiver_strategy);
   const meta = metadata(row.metadata);
   const metaOwner = lower(meta.receiverResolutionOwner ?? meta.receiver_resolution_owner);
+  // A profile materialized from the Ediel registry is one grid owner's route;
+  // the customer's verified grid owner selects it downstream (FINDINGS F41).
+  const registryRoute = typeof meta.platform_actor_route_id === "string" && meta.platform_actor_route_id.trim() !== "";
   return (
+    registryRoute ||
     row.is_production_route === true ||
     source === "selected_metering_point_grid_owner" ||
     strategy.includes("selected_metering_point_grid_owner") ||
