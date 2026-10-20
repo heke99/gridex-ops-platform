@@ -3,6 +3,7 @@ import { findCustomerSiteById, listMeteringPointsForSite, listPowersOfAttorneyBy
 import { evaluateSiteSwitchReadiness } from '@/lib/operations/readiness'
 import { ensureInitialSwitchEdielAutomation } from '@/lib/operations/edielAutomation'
 import { finalizeStuckZ01GridOwnerDataRequest } from '@/lib/customer-operations/z01Finalizer'
+import { queueCustomerInfoRequestForDispatch } from '@/lib/onboarding/infoRequests'
 import { emitCustomerProcessEvent } from '@/lib/customer-operations/customerProcessEvents'
 import { evaluateCustomerProcessRouteReadiness } from '@/lib/customer-operations/customerProcessRouteReadiness'
 import { checkSupplierSwitchReadiness, persistSwitchReadinessSnapshot } from '@/lib/customer-operations/switchReadiness'
@@ -87,7 +88,7 @@ async function clearFacilityBlocker(input: {
   })
 }
 
-async function tryPrepareZ01(input: {
+export async function tryPrepareZ01(input: {
   companyId: string
   customerId: string
   siteId: string
@@ -114,14 +115,19 @@ async function tryPrepareZ01(input: {
     idempotencyKey: `z01.preparing:${input.companyId}:${input.siteId}:${gridOwnerDataRequestId ?? cir?.id}`,
   })
 
-  const z01 = await finalizeStuckZ01GridOwnerDataRequest({
-    companyId: input.companyId,
-    actorUserId: input.actorUserId,
-    gridOwnerDataRequestId,
-    customerInfoRequestId: text(cir?.id),
-    environment: 'production',
-    dryRun: false,
-  })
+  // A request that never reached the grid owner has no data request yet: it is dispatched through the
+  // normal guarded path, which creates it. Only an existing, stuck data request is finalized (FINDINGS F39).
+  const z01 = gridOwnerDataRequestId
+    ? await finalizeStuckZ01GridOwnerDataRequest({
+      companyId: input.companyId,
+      actorUserId: input.actorUserId,
+      gridOwnerDataRequestId,
+      customerInfoRequestId: text(cir?.id),
+      environment: 'production',
+      dryRun: false,
+    })
+    : await queueCustomerInfoRequestForDispatch({ companyId: input.companyId, actorUserId: input.actorUserId, requestId: text(cir?.id)! })
+      .then(dispatch => ({ ...dispatch, edielMessageId: null as string | null }))
 
   if (z01.blockerCode) {
     await emitCustomerProcessEvent({

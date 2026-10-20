@@ -327,6 +327,13 @@ Granskat oberoende och verifierat på de angivna raderna.
 - **Test:** `__tests__/route-profile-production-approval-from-default.test.ts`. Det fallerar på 4 av 6 utan rättningen, och de 202 testerna märkta TR-06/IMP-05 är gröna.
 - **Närliggande:** profilen tar en ögonblicksbild av avsändarens sändlås när den materialiseras (`metadata.production_send_lock_status`). Ett senare godkännande av första sändningen ändrar inte profilen, och route-beredskapen erbjuder inte ommaterialisering när routen redan är operativ. Simuleringen materialiserar därför efter go-live. Det noteras här men är inte ändrat.
 
+### F39 Alla webbansökningars fortsättning fallerade med "grid_owner_data_request hittades inte." — RÄTTAD
+- **Reproducerat:** så snart bolagets Z01-route var redo fallerade samtliga 4 jobb av typen `customer_application_continuation` efter 5 försök med `technical_error`. Processen stannade innan någon Z01 skapades.
+- **Orsak:** `customerProcessNextStepEngine.tryPrepareZ01` tog bolagets senaste kunduppgiftsbegäran och gick vidare så fort den hade ett id, även utan kopplad nätägarbegäran. Den anropade sedan alltid `finalizeStuckZ01GridOwnerDataRequest`, som bara reparerar en befintlig, fastnad nätägarbegäran och kastar annars (`z01Finalizer.ts:756`).
+- **Varför det inte syntes:** felet nås först när routen är redo, och det var den aldrig före F36–F38.
+- **Rättning:** en begäran utan nätägarbegäran skickas genom den vanliga, skyddade vägen `queueCustomerInfoRequestForDispatch`, som skapar den och behåller alla spärrar. En fastnad begäran finaliseras som förut.
+- **Test:** `__tests__/customer-process-z01-dispatch-without-godr.test.ts` (5/5; 24 relaterade tester gröna).
+
 ### Korrekta spärrar som simuleringen bekräftade (inte fel)
 Go-live kräver:
 - standardmejl och regler för kunder
