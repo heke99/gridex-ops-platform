@@ -53,7 +53,8 @@ let db:PGlite
 beforeAll(async()=>{
  db=new PGlite()
  await db.exec(`CREATE SCHEMA gridex_utilts_binding;CREATE SCHEMA gridex_ediel_technical_ack;
- CREATE TABLE public.ediel_messages(id uuid PRIMARY KEY,company_id uuid,environment text,direction text,message_family text,related_message_id uuid,raw_payload text);
+ CREATE TABLE public.ediel_messages(id uuid PRIMARY KEY,company_id uuid,environment text,direction text,message_family text,related_message_id uuid,raw_payload text,message_received_at timestamptz);
+ CREATE TABLE gridex_ediel_technical_ack.sources(source_message_id uuid,company_id uuid,environment text,status text,source_received_at timestamptz,payload_sha256 text);
  CREATE TABLE public.probe_captured_basis(company_id uuid,source_id uuid,payload_hash text,evidence jsonb);
  CREATE FUNCTION gridex_ediel_technical_ack.require_source_v1(c uuid,s uuid) RETURNS jsonb LANGUAGE plpgsql AS $$DECLARE result jsonb;BEGIN
  SELECT b.evidence INTO result FROM public.probe_captured_basis b JOIN public.ediel_messages m ON m.id=b.source_id AND m.direction='inbound'
@@ -75,6 +76,8 @@ async function addSource(raw:string,n=10,tenant=company){
 }
 async function admitted(raw:string){
  await addSource(raw)
+ // The current guard reads its parent only through a ready technical-ACK source receipt.
+ await db.query(`INSERT INTO gridex_ediel_technical_ack.sources SELECT id,company_id,environment,'ready',message_received_at,encode(sha256(convert_to(raw_payload,'UTF8')),'hex') FROM ediel_messages WHERE id=$1`,[sourceId])
  const envelope=(await db.query<{e:Envelope}>('SELECT gridex_ediel_technical_ack.envelope($1) e',[raw])).rows[0].e
  const evidence={companyId:company,environment:envelope.environment,syntaxDecision:'accepted',originalUNB:envelope}
  await db.query(`INSERT INTO probe_captured_basis VALUES($1,$2,encode(sha256(convert_to($3,'UTF8')),'hex'),$4)`,[company,sourceId,raw,evidence])
