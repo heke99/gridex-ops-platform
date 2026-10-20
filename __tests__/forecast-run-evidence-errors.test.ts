@@ -20,6 +20,9 @@ vi.mock('@/lib/forecasting/meteringPointForecast', async original => ({
 vi.mock('@/lib/analytics/monthlyMetricsBuilder', () => ({ buildCompanyMonthlyMetrics: io.build }))
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
   async rpc(name: string, args: Record<string, string>) {
+    if (name === 'gridex_forecast_point_inventory_v1') return { data: [{ points: [
+      { id: 'point', customer_id: 'customer', site_id: 'site', grid_owner_id: 'owner', bidding_zone_code: 'SE3', source_customer: null },
+    ], total_count: 1 }], error: null }
     if (name !== 'gridex_forecast_metering_period_totals_v1') throw new Error('unexpected_rpc:' + name)
     io.rpcCalls.push({ name, args })
     return { data: [{ total_kwh: io.rows.reduce((sum, row) => sum + Number(row.value_kwh ?? row.quantity_kwh ?? 0), 0), value_count: io.rows.length }], error: io.actualError }
