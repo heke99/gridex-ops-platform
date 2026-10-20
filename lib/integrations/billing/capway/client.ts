@@ -61,9 +61,8 @@ export class CapwayApticClient {
       () => controller.abort(new Error('Capway request timeout')),
       30_000,
     )
-    let response: Response
     try {
-      response = await fetch(`${this.config.baseUrl}${path}`, {
+      const response = await fetch(`${this.config.baseUrl}${path}`, {
         ...init,
         headers: {
           Accept: 'application/json',
@@ -74,7 +73,33 @@ export class CapwayApticClient {
         cache: 'no-store',
         signal: init.signal ?? controller.signal,
       })
+
+      if (response.status === 204) return {} as T
+      const text = await response.text()
+      controller.signal.throwIfAborted()
+      let payload: Record<string, unknown> = {}
+      try {
+        payload = text ? JSON.parse(text) : {}
+      } catch {
+        payload = {}
+      }
+      if (!response.ok) {
+        const detail =
+          typeof payload?.detail === 'string'
+            ? payload.detail
+            : typeof payload?.title === 'string'
+              ? payload.title
+              : text
+        throw new CapwayApiError({
+          message: `Capway/Aptic API ${response.status}: ${detail || 'okänt fel'}`,
+          httpStatus: response.status,
+          kind: 'http',
+          responseExcerpt: text ? text.slice(0, 2000) : null,
+        })
+      }
+      return payload as T
     } catch (error) {
+      if (error instanceof CapwayApiError) throw error
       const isTimeout =
         error instanceof Error && /timeout|aborted|abort/i.test(error.message)
       throw new CapwayApiError({
@@ -85,30 +110,6 @@ export class CapwayApticClient {
     } finally {
       clearTimeout(timeout)
     }
-
-    if (response.status === 204) return {} as T
-    const text = await response.text()
-    let payload: Record<string, unknown> = {}
-    try {
-      payload = text ? JSON.parse(text) : {}
-    } catch {
-      payload = {}
-    }
-    if (!response.ok) {
-      const detail =
-        typeof payload?.detail === 'string'
-          ? payload.detail
-          : typeof payload?.title === 'string'
-            ? payload.title
-            : text
-      throw new CapwayApiError({
-        message: `Capway/Aptic API ${response.status}: ${detail || 'okänt fel'}`,
-        httpStatus: response.status,
-        kind: 'http',
-        responseExcerpt: text ? text.slice(0, 2000) : null,
-      })
-    }
-    return payload as T
   }
 
   ping() {
