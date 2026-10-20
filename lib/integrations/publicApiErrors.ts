@@ -1,3 +1,4 @@
+import { isTransientSupabaseError } from '@/lib/supabase/transientErrors'
 import {
   PUBLIC_CONTRACT_ERROR_CODES,
   PublicContractSerializationError,
@@ -141,7 +142,8 @@ export function classifyPublicContractsError(
     databaseCode === 'PGRST001' ||
     databaseCode === 'PGRST002' ||
     technical.includes('fetch failed') ||
-    technical.includes('timeout')
+    technical.includes('timeout') ||
+    isTransientSupabaseError(error)
   ) {
     return {
       status: 503,

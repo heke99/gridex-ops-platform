@@ -434,6 +434,8 @@ async function getPublicContracts(request: NextRequest) {
                 },
               }
             : {}),
+          // A temporary dependency failure (public-api-error-registry: 503, retryable).
+          ...(classified.status === 503 && classified.code === 'PUBLIC_CONTRACTS_TEMPORARILY_UNAVAILABLE' ? { retryable: true } : {}),
         },
       },
       {
@@ -441,6 +443,7 @@ async function getPublicContracts(request: NextRequest) {
         headers: {
           'X-Gridex-Contract-Version': PUBLIC_CONTRACT_RESPONSE_SCHEMA_VERSION,
           'X-Request-ID': currentRequestId,
+          ...(classified.status === 503 && classified.code === 'PUBLIC_CONTRACTS_TEMPORARILY_UNAVAILABLE' ? { 'Retry-After': '2' } : {}),
         },
       },
     )
