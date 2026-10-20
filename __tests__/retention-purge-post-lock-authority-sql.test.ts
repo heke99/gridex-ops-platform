@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { PGlite } from '@electric-sql/pglite'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
@@ -9,6 +10,13 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 // attested here: only its explicitly selected source/body blocks are installed.
 const schema = readFileSync('supabase/schema.sql', 'utf8')
 const forward = readFileSync('supabase/migrations/20261020155348_retention_purge_post_lock_authority.sql', 'utf8')
+// Immutable pre-forward sources remain valid after genuine GEN adoption.
+const historical = {
+  content: readFileSync('supabase/migrations/20261001000700_ediel_message_content_and_mime_retention.sql', 'utf8'),
+  classAuthority: readFileSync('supabase/migrations/20261001000710_ediel_archived_tenant_retention_class_authority.sql', 'utf8'),
+  invoice: readFileSync('supabase/migrations/20261001071000_ediel_invoice_file_copy_class_retention.sql', 'utf8'),
+  audit19: readFileSync('supabase/migrations/20261019180400_db05_qualified_audit19_cleanup.sql', 'utf8'),
+}
 const company = '10000000-0000-4000-8000-000000000001'
 const executor = '20000000-0000-4000-8000-000000000002'
 const reviewer = '30000000-0000-4000-8000-000000000003'
@@ -30,17 +38,43 @@ let db: PGlite
 
 function definition(sql: string, name: string, optional = false): string {
   const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  const start = new RegExp(`^CREATE(?: OR REPLACE)? FUNCTION ${escaped}\\(`, 'm').exec(sql)
+  const start = new RegExp(`^CREATE(?: OR REPLACE)? FUNCTION ${escaped}\\(`, 'im').exec(sql)
   if (!start) {
     if (optional) return ''
     throw new Error('Missing source function: ' + name)
   }
   const after = sql.slice(start.index)
-  const delimiter = /\bAS\s+(\$[^$]*\$)/.exec(after)
+  const delimiter = /\bAS\s+(\$[^$]*\$)/i.exec(after)
   if (!delimiter) throw new Error('Missing function delimiter: ' + name)
   const end = after.indexOf(delimiter[1] + ';', delimiter.index + delimiter[0].length)
   if (end < 0) throw new Error('Unterminated function: ' + name)
   return after.slice(0, end + delimiter[1].length + 1)
+}
+
+function replaceOnce(source: string, old: string, replacement: string) {
+  if (source.split(old).length !== 2) throw new Error('Historical source anchor must occur exactly once')
+  return source.replace(old, replacement)
+}
+function predecessor(name: string) {
+  const expected: Record<string, string> = {
+    'public.ediel_begin_blob_purge_v1': 'e5b9584f96b87d8d7aa932e69a884f727dfcbdade3e0902451a341bcec230378',
+    'public.ediel_begin_invoice_file_purge_v1': '897064c598486fd654ed7eb31433a1e61b9436241ca1e9d6caa9ca4ee428ffda',
+    'gridex_ediel_retention.invoice_file_current_v1': 'd719359fff25150bdd326b0df579385a4d6f1975e45d88023695d58ddff19c9d',
+    'gridex_ediel_retention.audit19_source_contract_v1': '3125b10daf69038fe4d4c5bd25ba26b34a9fdaeae4c5cbc5d5a0693e1fe0bf3b',
+  }
+  if (!(name in expected)) return definition(schema, name)
+  let ddl: string
+  if (name === 'public.ediel_begin_blob_purge_v1') {
+    ddl = definition(historical.content, name)
+    // Exactly the two literal begin-blob substitutions in immutable 00710.
+    ddl = replaceOnce(ddl, "IF gridex_ediel_retention.permission_v1(p_company_id,p_actor_user_id,'communication.write') IS NOT TRUE THEN RAISE EXCEPTION 'blob_retention_scoped_communication_required' USING ERRCODE='42501';END IF;", '')
+    ddl = replaceOnce(ddl, 'PERFORM id FROM public.ediel_messages WHERE', "IF gridex_ediel_retention.class_permission_v1(p_company_id,p_actor_user_id,d.retention_class) IS NOT TRUE THEN RAISE EXCEPTION 'retention_current_class_grant_required';END IF;PERFORM id FROM public.ediel_messages WHERE")
+  } else ddl = definition(name.endsWith('audit19_source_contract_v1') ? historical.audit19 : historical.invoice, name)
+  const delimiter = /\bAS\s+(\$[^$]*\$)/i.exec(ddl)!
+  const start = delimiter.index + delimiter[0].length
+  const actual = createHash('sha256').update(ddl.slice(start, ddl.indexOf(delimiter[1] + ';', start))).digest('hex')
+  if (actual !== expected[name]) throw new Error('Unqualified historical predecessor: ' + name)
+  return ddl
 }
 
 function taggedBlock(tag: string): string {
@@ -96,6 +130,9 @@ async function metadata() {
 
 describe('retention begin repeats authority after SQL wait/effect boundaries', () => {
   beforeAll(async () => {
+    for (const [name, expected] of Object.entries({ content: '3bd194eff1595b35b79478b7a1875bb0c042691956baae1e192c729f9af307e2', classAuthority: 'f959f8fa359b3eee07fa6530580bf06e477cb1f6423be891cd9938f6f114e461', invoice: '1b07b113b8e48923326c6d2d0fce0dea0f5fdb515a76161c345b94b538ffa9e9', audit19: '18fcbbb3c0e8e5181539fcf1b33f54f7867cac18fe1e65a27a1898371cddde47' })) {
+      expect(createHash('sha256').update(historical[name as keyof typeof historical]).digest('hex')).toBe(expected)
+    }
     db = new PGlite()
     await db.exec(`create schema auth;create schema fixture;create schema gridex_ediel_retention;create schema gridex_received_sources;
       create role anon;create role authenticated;create role service_role;
@@ -152,7 +189,7 @@ describe('retention begin repeats authority after SQL wait/effect boundaries', (
       create function fixture.invoice_insert_boundary() returns trigger language plpgsql as $$begin perform fixture.boundary('invoice_insert',new.source_id);return new;end$$;
       create trigger fixture_invoice_insert_boundary after insert on gridex_ediel_retention.invoice_file_tombstones for each row execute function fixture.invoice_insert_boundary();`)
     for (const name of ['public.ediel_retention_lock_auth_actor_v1', 'public.ediel_retention_session_actor_v1', 'gridex_ediel_retention.actor_v1', 'gridex_ediel_retention.class_permission_v1', 'gridex_ediel_retention.invoice_file_actor_v1', 'gridex_ediel_retention.blob_current_v1', 'public.gridex_normalize_audit_context_v1', 'public.gridex_guard_history_truncate_v1', 'gridex_ediel_retention.audit19_guard_v1', ...routines]) {
-      await db.exec(definition(schema, name))
+      await db.exec(predecessor(name))
     }
     await db.exec(`grant usage,create on schema public,gridex_ediel_retention to gridex_ediel_retention_owner;
       grant usage on schema auth,fixture,gridex_received_sources to gridex_ediel_retention_owner;
@@ -247,7 +284,7 @@ describe('retention begin repeats authority after SQL wait/effect boundaries', (
       encode(sha256(convert_to(prosrc,'UTF8')),'hex') as hash,prosrc as body
       from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname||'.'||p.proname=any($1::text[])`, [routines])).rows
     const current = rows.find(r => r.name.endsWith('audit19_source_contract_v1'))!
-    const baseline = definition(schema, 'gridex_ediel_retention.audit19_source_contract_v1')
+    const baseline = predecessor('gridex_ediel_retention.audit19_source_contract_v1')
     const parse = (body: string) => JSON.parse(body.match(/\$contracts\$([\s\S]*?)\$contracts\$/)![1]) as Record<string, string>
     const expected = parse(baseline)
     expected['public.ediel_begin_blob_purge_v1'] = rows.find(r => r.name === 'public.ediel_begin_blob_purge_v1')!.hash
@@ -270,10 +307,10 @@ describe('retention begin repeats authority after SQL wait/effect boundaries', (
   it.each(['body', 'ACL', 'owner', 'search_path'] as const)('refuses to overwrite an unexpected old %s profile', async drift => {
     const preflight = taggedBlock('retention_begin_body_preflight')
     expect(preflight).not.toBe('')
-    for (const name of routines) await db.exec(definition(schema, name).replace('CREATE FUNCTION', 'CREATE OR REPLACE FUNCTION'))
+    for (const name of routines) await db.exec(predecessor(name).replace('CREATE FUNCTION', 'CREATE OR REPLACE FUNCTION'))
     await db.exec(preflight)
     const signature = 'public.ediel_begin_blob_purge_v1(uuid,uuid,uuid)'
-    if (drift === 'body') await db.exec(definition(schema, 'public.ediel_begin_blob_purge_v1')
+    if (drift === 'body') await db.exec(predecessor('public.ediel_begin_blob_purge_v1')
       .replace('CREATE FUNCTION', 'CREATE OR REPLACE FUNCTION').replace('END$$;', () => '-- divergent source\nEND$$;'))
     else if (drift === 'ACL') await db.exec(`grant execute on function ${signature} to anon`)
     else if (drift === 'owner') await db.exec(`alter function ${signature} owner to postgres`)
