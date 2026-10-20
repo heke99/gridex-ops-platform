@@ -28,6 +28,20 @@ export function ensureProductionWebhookClientParity() {
 }
 
 /**
+ * Replay vs production drift (FINDINGS F47): production has companies.white_label_platform_id
+ * (uuid, nullable, FK to white_label_platforms ON DELETE SET NULL, btree index) and the go-live page reads
+ * it through getActorTestingSummary, but the canonical replay creates neither the column nor
+ * white_label_platforms, so every /admin/platform/go-live/<company> page fails with 42703. Mirrors the
+ * column and index; the FK target does not exist in the replay and no row here references a platform.
+ */
+export function ensureProductionWhiteLabelColumnParity() {
+  if (sql<boolean>(`SELECT EXISTS(SELECT FROM information_schema.columns WHERE table_schema='public' AND table_name='companies' AND column_name='white_label_platform_id')`)) return
+  sql(`ALTER TABLE public.companies ADD COLUMN IF NOT EXISTS white_label_platform_id uuid;
+   CREATE INDEX IF NOT EXISTS companies_white_label_platform_idx ON public.companies USING btree (white_label_platform_id);
+   NOTIFY pgrst, 'reload schema';`)
+}
+
+/**
  * The platform's shared manual-operations mailbox (facility lookups, manual grid
  * owner mail), as a platform admin points it at the mail server and verifies
  * it. Platform configuration, like the shared Ediel mailbox; local GreenMail.

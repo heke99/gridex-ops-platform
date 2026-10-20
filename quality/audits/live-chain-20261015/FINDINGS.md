@@ -388,6 +388,38 @@ Världen byggdes från noll med `up.sh` (ren replay, `next build` och `start`, s
   - Uppgiften används bara för namn och org.nr som inkommande leverantör på bytesärendet. Den finns redan i bolagets egen identitet, så kravet på en separat rad i `electricity_suppliers` tillför inget.
 - **Förslag:** skapa och markera bolagets egen leverantör när bolagets Ediel-avsändare sätts upp (namn, org.nr och Ediel-ID finns redan där). Alternativt läs den egna leverantören från bolagets avsändaridentitet i stället för från `electricity_suppliers`. Go-live-grinden bör kontrollera detta.
 
+### F45 Webbplatsens avtal får aldrig `signed_version`, så Z03 kan inte förberedas för en webbkund — ÖPPEN, hög
+- **Var:**
+  - `gridex_finalize_website_contract_signature` (`schema.sql` cirka 73369–73389) sätter status, `signed_at`, `signature_snapshot` och dess sha256, men inte `signed_version`.
+  - `gridex_create_website_customer_contract` sätter den inte heller.
+  - Bara admin-importen och signering med token sätter den.
+- **Följd:**
+  - Avtalsintaget (`scope_v1`) avvisar med `contract_intake_actual_signed_contract_tuple_required`.
+  - Mätmetodskällan (`contract_request_basis_v1`) ger `held: current_signed_new_customer_agreement`.
+  - Z03 kastar `prodat_new_agreement_requested_method_held`.
+- **Drift (read-only):** 1 av 1 signerade avtal saknar `signed_version`.
+- **Ägare:** native/SQL (GEN). Rättningen kräver en migration som sätter `signed_version` (avtalets `contract_version`) när webbsignaturen slutförs, plus bakåtfyllnad av signerade avtal.
+
+### F46 Varje nytt avtal och varje nätägare kräver en granskad källa med extern utfärdarsignatur, som ingen väg i appen kan skapa — ÖPPEN, kritisk, ägarbeslut
+- **Fakta:** Z03 för en ny kund kräver tre saker:
+  - en mätmetodsdeklaration per avtal (`gridex_metering_method_changes.contract_request_declarations`);
+  - en nätregisterkälla per bolag och nätägare (`network_for_company_v1`);
+  - för BRP, före F44, en deklaration per avtal.
+- **Hur källorna godkänns:** båda skapas bara via uppladdning och granskning av en annan person (fyra ögon). Godkännandet kräver också ett utfärdarkvitto: en HMAC med en `issuer_keys`-nyckel och en `representations`-rad, med `purpose='signed_contract_requested_metering_method'` respektive `format='ediel_network_registry_receipt_v1'`.
+- **Saknad väg:** ingen kod i appen skapar `issuer_keys` eller `representations`, bara testfixturer. Migrationerna säger själva "No issuer, representation, registry version, approval or grant is seeded".
+- **Värdet saknas också:** mätmetoden (`requestedMethod` F eller G) kommer från utfärdarens signerade paket, inte från avtalet.
+- **Drift (read-only):** 0 utfärdarnycklar (avtal och nätregister), 0 mätmetodsdeklarationer, 0 nätregisterkällor, 0 skickade Z03.
+- **Följd:** inget leverantörsbyte för en ny kund kan skickas i produktion. Felet syns inte heller som en operatörsuppgift. Z03-felet blir ett vanligt jobbfel (`customer_operation_failed`, `operation.failed`) efter omförsöken, inte en `needs_review`-blockerare (`automation.part-3.ts:474-553`).
+- **Beslut som krävs:** vem som är utfärdare. Alternativen:
+  - ett extern intag ansluts, med nycklar och representationer;
+  - bolagets egna uppgifter blir källa, så som BRP blev i F44. Mätmetoden ur avtalets prisprodukt (kvartspris ger kvartsmätning) och nätägaren ur den verifierade registeraktören.
+
+### F47 Replayen saknar `companies.white_label_platform_id`: go-live-sidan kraschar i replayen — PARITET (inte drift)
+- **Drift:** kolumnen finns (uuid, FK till `white_label_platforms`, index), och den finns i `schema.sql`.
+- **Replay:** den kanoniska replayen skapar varken kolumnen eller `white_label_platforms`. `getActorTestingSummary` ger 42703 för varje bolag, och `/admin/platform/go-live/<bolag>` kan inte visas lokalt. BRP-steget syntes därför inte i första körningen.
+- **I simuleringen:** paritetsshim `ensureProductionWhiteLabelColumnParity` speglar kolumnen och indexet, på samma sätt som F24 och F28.
+- **Ägare:** replay/GEN.
+
 ### F44 Ingen ny kund kan få ett leverantörsbyte (Z03): BRP (fält 262) har ingen användbar källa — RÄTTAD (ägarbeslut: automatiskt), hög
 - **Fakta i drift:** 0 registerunderlag (`gridex_brp_changes.registry_grounds`), 0 BRP-deklarationer per avtal och 0 utgående Z03. Bolagets BRP (Bixia AB 48800, rollen BalanceResponsible i Ediels register) finns i `ediel_brp_settings` men används inte av något meddelande.
 - **Orsak:** för en första leverans godtogs fält 262 bara från en signerad deklaration per avtal. Deklarationen kräver ett registerunderlag per nätägare och nätområde, och det kan ingen väg i appen skapa. Onboarding hade inget BRP-steg. BRP fanns bara som fritext på bolagskortet, utan någon länk dit från go-live, och onboardinglistan räknade även test-BRP.

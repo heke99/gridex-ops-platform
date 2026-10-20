@@ -10,7 +10,7 @@ import { writeFileSync } from 'node:fs'
 import { afterAll, describe, expect, it } from 'vitest'
 import { supabaseService } from '@/lib/supabase/service'
 import { configurePlatformMailbox, configureTenant, LIVE, literal, sql, type LiveTenant } from '../helpers/live-chain-fixture'
-import { approveTenantRouteProfiles, goLiveOnWebsite, publishReceiverCertificateTrust, simulateEdielCertifiedGoLive, WEBSITE_ORIGIN } from '../helpers/reality/tenantWebsite'
+import { approveTenantRouteProfiles, ensureProductionWhiteLabelColumnParity, goLiveOnWebsite, publishReceiverCertificateTrust, simulateEdielCertifiedGoLive, WEBSITE_ORIGIN } from '../helpers/reality/tenantWebsite'
 import { checkGridOwners, chooseTenantBrp, closeOperatorConsole, createProductionRoutesFromWizard, confirmSafeBlankSubaddresses, importActorRegistry, materializeTenantRoutes, searchGridOwnerCertificate, operatorSession, sanitizedActorRegistry, verifyActorForCustomerFlow } from '../helpers/reality/operatorConsole'
 import { prepareMarketData, runOperationalCronSlot, startGridOwner, type GridOwnerSim } from '../helpers/reality/world'
 import { detectStuckStates } from '../helpers/reality/stuckDetector'
@@ -80,6 +80,8 @@ describe.sequential('reality A — website customers switch supplier', () => {
     // registry (real Ediel IDs and roles; e-mail rewritten to example.invalid) including the grid owner
     // registry. Onboarding then chooses the supplier's balance responsible party from that registry
     // (Bixia AB, 48800); an offer cannot be published without it.
+    ensureProductionWhiteLabelColumnParity()
+    await new Promise(resolve => setTimeout(resolve, 3000))
     const registry = sanitizedActorRegistry()
     let imported = { actionStatus: 0, page: '' }
     tenant = await configureTenant(supabaseService as never, { brp: false, beforePublish: async onboarding => {
