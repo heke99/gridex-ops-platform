@@ -1,5 +1,6 @@
 import { supabaseService } from '@/lib/supabase/service'
 import type { ManualFacilityExtractedPayload } from '@/lib/customer-operations/manualFacilityResponseParser'
+import { findCurrentSupplierManualContact, isManualSupplierInformationRequest } from '@/lib/customer-operations/manualGridOwnerSendGuards'
 
 type JsonRecord = Record<string, unknown>
 
@@ -142,7 +143,7 @@ export function classifyManualInboundIntent(text: string, requestType?: string |
   return { intent: 'unknown', businessProcess: 'unknown', confidence: 0.3 }
 }
 
-async function findRequestByCaseReference(caseReference: string): Promise<{ request: JsonRecord | null; ambiguous: boolean }> {
+export async function findRequestByCaseReference(caseReference: string): Promise<{ request: JsonRecord | null; ambiguous: boolean }> {
   const { data, error } = await supabaseService
     .from('grid_owner_information_requests')
     .select('*')
@@ -188,7 +189,7 @@ async function findResendProviderIdsByRfcMessageId(references: string[]): Promis
   )
 }
 
-async function findRequestByOutboundReferences(references: string[]): Promise<{
+export async function findRequestByOutboundReferences(references: string[]): Promise<{
   request: JsonRecord | null
   ambiguous: boolean
   outboxIds: string[]
@@ -279,18 +280,18 @@ async function findVerifiedSenderContacts(fromEmail: string | null): Promise<Jso
   return (data ?? []) as JsonRecord[]
 }
 
-async function findSitesByFacility(facilityId: string | null): Promise<JsonRecord[]> {
+export async function findSitesByFacility(facilityId: string | null, limit = 20): Promise<JsonRecord[]> {
   if (!facilityId || !/^\d{18}$/.test(facilityId)) return []
   const { data, error } = await supabaseService
     .from('customer_sites')
-    .select('id,company_id,customer_id,grid_owner_id,facility_id,normalized_facility_id,status')
+    .select('id,company_id,customer_id,grid_owner_id,facility_id,normalized_facility_id,status,is_active,protected_identity')
     .or(`facility_id.eq.${facilityId},normalized_facility_id.eq.${facilityId}`)
-    .limit(20)
+    .limit(limit)
   if (error) throw error
   return (data ?? []) as JsonRecord[]
 }
 
-async function findMeteringPoints(input: { meteringPointId: string | null; facilityId: string | null }): Promise<JsonRecord[]> {
+export async function findMeteringPoints(input: { meteringPointId: string | null; facilityId: string | null }): Promise<JsonRecord[]> {
   const filters: string[] = []
   if (input.meteringPointId && /^\d{18}$/.test(input.meteringPointId)) filters.push(`meter_point_id.eq.${input.meteringPointId}`)
   if (input.facilityId && /^\d{18}$/.test(input.facilityId)) filters.push(`site_facility_id.eq.${input.facilityId}`)
@@ -370,8 +371,10 @@ function senderIsCredible(input: {
   request: JsonRecord | null
   contacts: JsonRecord[]
   requestBoundByReply: boolean
+  supplierSenderVerified?: boolean
 }): boolean {
   const from = normalizeEmail(input.fromEmail)
+  if (input.request && isManualSupplierInformationRequest(input.request)) return Boolean(from && input.companyId && input.supplierSenderVerified && input.requestBoundByReply && normalizeEmail(input.request.recipient_email) === from)
   if (!from || !input.companyId || !input.gridOwnerId) return false
   if (input.requestBoundByReply && normalizeEmail(input.request?.recipient_email) === from) return true
   return input.contacts.some((row) => {
@@ -405,6 +408,52 @@ async function senderSharesGridOwnerDomain(fromEmail: string | null, gridOwnerId
     .limit(50)
   if (error) throw error
   return ((data ?? []) as JsonRecord[]).some((row) => emailDomain(row.email) === senderDomain)
+}
+
+// A valid reply thread identifies the conversation, not permission to attach
+// another site's explicit facts to it. Compare body evidence with the bound
+// request and current canonical records before any matched FK is persisted.
+async function requestIdentityConflicts(input: {
+  companyId: string; request: JsonRecord; facilityId: string | null; meteringPointValue: string | null; customerNumber: string | null
+  sites: JsonRecord[]; meteringPoints: JsonRecord[]; customers: JsonRecord[]
+}): Promise<string[]> {
+  const conflicts = new Set<string>()
+  const request = input.request, customerId = clean(request.customer_id), siteId = clean(request.customer_site_id)
+  if (clean(request.company_id) !== input.companyId) conflicts.add('request_tenant_mismatch')
+  if (siteId && input.sites.some((row) => clean(row.id) !== siteId)) conflicts.add('body_facility_site_mismatch')
+  if (siteId && input.meteringPoints.some((row) => clean(row.site_id) !== siteId)) conflicts.add('body_metering_site_mismatch')
+  if (customerId && [...input.sites, ...input.meteringPoints].some((row) => clean(row.customer_id) && clean(row.customer_id) !== customerId)) conflicts.add('body_entity_customer_mismatch')
+  if (customerId && input.customers.some((row) => clean(row.id) !== customerId)) conflicts.add('body_customer_number_mismatch')
+  if (!siteId) return [...conflicts]
+  const [siteResult, pointResult, customerResult] = await Promise.all([
+    supabaseService.from('customer_sites').select('id,company_id,customer_id,facility_id,normalized_facility_id')
+      .eq('company_id', input.companyId).eq('id', siteId).maybeSingle(),
+    input.meteringPointValue ? supabaseService.from('metering_points').select('id,company_id,customer_id,site_id,meter_point_id,site_facility_id')
+      .eq('company_id', input.companyId).eq('site_id', siteId).limit(21) : Promise.resolve({ data: [], error: null }),
+    input.customerNumber && customerId ? supabaseService.from('customers').select('id,company_id,customer_number')
+      .eq('company_id', input.companyId).eq('id', customerId).maybeSingle() : Promise.resolve({ data: null, error: null }),
+  ])
+  if (siteResult.error) throw siteResult.error
+  if (pointResult.error) throw pointResult.error
+  if (customerResult.error) throw customerResult.error
+  const site = siteResult.data as JsonRecord | null
+  if (!site || (customerId && clean(site.customer_id) !== customerId)) conflicts.add('request_site_customer_mismatch')
+  const identifier = (value: unknown) => clean(value)?.replace(/[ \t-]/g, '') ?? null
+  const facilityIds = unique([identifier(site?.facility_id), identifier(site?.normalized_facility_id), identifier(request.facility_id)].filter((value): value is string => Boolean(value)))
+  if (input.facilityId && facilityIds.length && !facilityIds.every((value) => value === input.facilityId)) conflicts.add('body_facility_id_mismatch')
+  const points = (pointResult.data ?? []) as JsonRecord[]
+  if (points.length > 20) conflicts.add('request_metering_context_ambiguous')
+  if (customerId && points.some((row) => clean(row.customer_id) && clean(row.customer_id) !== customerId)) conflicts.add('request_metering_customer_mismatch')
+  const meteringIds = unique([
+    ...points.map((row) => identifier(row.meter_point_id)),
+    /^\d{18}$/.test(identifier(request.metering_point_id) ?? '') ? identifier(request.metering_point_id) : null,
+  ].filter((value): value is string => Boolean(value)))
+  if (input.meteringPointValue && meteringIds.length && !meteringIds.includes(input.meteringPointValue)) conflicts.add('body_metering_id_mismatch')
+  if (input.customerNumber && customerId) {
+    const canonicalNumber = clean(customerResult.data?.customer_number)?.toUpperCase()
+    if (!canonicalNumber || canonicalNumber !== input.customerNumber) conflicts.add('body_customer_number_mismatch')
+  }
+  return [...conflicts]
 }
 
 export async function resolveManualInboundCorrelation(input: {
@@ -451,6 +500,18 @@ export async function resolveManualInboundCorrelation(input: {
   }
   evidence.request_bound_by_reply = requestBoundByReply
 
+  let supplierSenderVerified = false
+  if (request && isManualSupplierInformationRequest(request) && requestBoundByReply) {
+    const metadata = request.metadata && typeof request.metadata === 'object' ? request.metadata as JsonRecord : {}
+    const companyId = clean(request.company_id), customerId = clean(request.customer_id), siteId = clean(request.customer_site_id)
+    if (companyId && customerId && siteId && clean(metadata.supplier_id) && clean(metadata.supplier_actor_id) && clean(metadata.supplier_contact_id)) {
+      const contact = await findCurrentSupplierManualContact({ companyId, customerId, siteId,
+        expectedSupplierId: String(metadata.supplier_id), expectedActorId: String(metadata.supplier_actor_id), expectedContactId: String(metadata.supplier_contact_id) })
+      supplierSenderVerified = Boolean(contact && normalizeEmail(contact.email) === normalizeEmail(input.email.fromEmail))
+    }
+    evidence.verified_current_supplier_sender = supplierSenderVerified
+  }
+
   const mailboxCompanyId = clean(input.email.mailboxCompanyId)
   if (mailboxCompanyId) addCompanyEvidence(companyEvidence, 'tenant_mailbox', mailboxCompanyId, 90, clean(input.email.mailbox))
 
@@ -494,6 +555,7 @@ export async function resolveManualInboundCorrelation(input: {
     request: exactCaseRequest,
     contacts: senderContacts,
     requestBoundByReply,
+    supplierSenderVerified,
   })) {
     const outweighed = companyEvidence.filter((row) => ENTITY_ONLY_EVIDENCE_SOURCES.has(row.source) && row.companyId !== caseCompanyId)
     if (outweighed.length) {
@@ -556,7 +618,7 @@ export async function resolveManualInboundCorrelation(input: {
   let gridOwnerId = requestGridOwnerId ?? (siteGridOwnerIds.length === 1 ? siteGridOwnerIds[0] : null)
   if (!gridOwnerId && senderGridOwnerIds.length === 1) gridOwnerId = senderGridOwnerIds[0]
   if (requestGridOwnerId && siteGridOwnerIds.length === 1 && requestGridOwnerId !== siteGridOwnerIds[0]) hardAmbiguous = true
-  if (gridOwnerId && senderGridOwnerIds.length > 0 && !senderGridOwnerIds.includes(gridOwnerId)) {
+  if (!(request && isManualSupplierInformationRequest(request)) && gridOwnerId && senderGridOwnerIds.length > 0 && !senderGridOwnerIds.includes(gridOwnerId)) {
     evidence.sender_grid_owner_mismatch = true
   }
 
@@ -578,6 +640,15 @@ export async function resolveManualInboundCorrelation(input: {
     }
   }
 
+  if (request && companyId) {
+    const conflicts = await requestIdentityConflicts({ companyId, request, facilityId, meteringPointValue: meteringPointIdValue, customerNumber,
+      sites: sites.filter((row) => clean(row.company_id) === companyId), meteringPoints: companyMetering, customers: companyCustomers })
+    if (conflicts.length) {
+      hardAmbiguous = true
+      evidence.request_identity_conflicts = conflicts
+    }
+  }
+
   const senderCredible = !hardAmbiguous && !evidence.sender_grid_owner_mismatch && senderIsCredible({
     fromEmail: clean(input.email.fromEmail),
     companyId,
@@ -585,6 +656,7 @@ export async function resolveManualInboundCorrelation(input: {
     request,
     contacts: senderContacts,
     requestBoundByReply,
+    supplierSenderVerified,
   })
 
   const requestId = clean(request?.id)

@@ -239,6 +239,10 @@
     "20261019180400_db05_qualified_audit19_cleanup.sql": "18fcbbb3c0e8e5181539fcf1b33f54f7867cac18fe1e65a27a1898371cddde47",
     "20261019180500_db05_audit19_archived_permission.sql": "db47da92f7c47f936da499bac1ea9b347239f5965856fb5149a14e83abd95f06",
     "20261018143000_ediel_requested_change_metering_method_original_guard.sql": "1084a44192a54df47954561562460b8aa56ce2f8e487f51ee549981df195fb24",
-    "20261019160000_ediel_sc031_inbound_ignored_register_projection.sql": "cf6e7b6085ee1529c6f254feb92e2907d8a8e036fcd924cbafaef670572ff8b6"
+    "20261019160000_ediel_sc031_inbound_ignored_register_projection.sql": "cf6e7b6085ee1529c6f254feb92e2907d8a8e036fcd924cbafaef670572ff8b6",
+    "20261018183448_manual_mail_automatic_application.sql": "d92f7ab706eb6bac415929255f218d38aa5e8f287bcad1c57f7438b9c590fc54",
+    "20261019010000_manual_mail_multi_site_application.sql": "072b15204cf0ac6447c5cb6ec3599b111cecbcae52379fdb5fcfd9eb978c48e7",
+    "20261019095200_manual_mail_supplier_terms_schema_prerequisites.sql": "525a17c43347c0fed0be60434418f90b078161c13bc93ce9f294d6eea5551923",
+    "20261018230141_restore_supply_deadline_runtime.sql": "a3881fd16a51bb12af8b7ff72a01c8bc6ba4ef0d44c78d49bf2b14aca931ba3d"
   }
 }

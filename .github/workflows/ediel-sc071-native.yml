@@ -97,28 +97,47 @@ jobs:
                           'de5a6ebeb93dff909fe2526cd724e8abc4b6b580233d4271b668ec6b0fe7097b')
           sharp_fix=('241f6cc84f581ec3acac22d970add3c9646e74603bac4a86d895e8864cbefa9c',
                      '8bf0aca13c2f57d92db355bda81f38e526b3bd50a33db7859d272daad8d9f5c5')
+          mail_ops_fix=('5df482bae5c6c115b3a04ba9b51ea5468fae88ff6dbf747a793dca6d09fa465c',
+                        'ff970a29bedc8fb54afa725a9694507d95889bfbeed645b1e47d937eade90e75')
           def hashes(root):return tuple(hashlib.sha256((root/p).read_bytes()).hexdigest() for p in paths)
           # Keep immutable BASE packages. Permit only its exact original pair
           # or either exact reviewed security repair: source-map-js 1.2.2,
           # then main #620 sharp 0.35.5 (c0385ee4; GHSA-wq5f-xc86-pv6w).
+          # The fourth exact pair adds mailauth/pdf-lib/xlsx and only the two
+          # 4096-to-6144 build/typecheck heap settings to that reviewed sharp pair.
           # Mixed pairs and every other dependency change remain fail-closed.
           base_pair,candidate_pair=hashes(base),hashes(candidate)
           assert base_pair==original,'sc071_base_dependency_inputs_changed'
-          assert candidate_pair in (original,source_map_fix,sharp_fix),'sc071_candidate_dependency_inputs_unqualified'
+          assert candidate_pair in (original,source_map_fix,sharp_fix,mail_ops_fix),'sc071_candidate_dependency_inputs_unqualified'
           expected='1.2.1' if candidate_pair==original else '1.2.2'
           installed=subprocess.check_output(['node','-p',"require('source-map-js/package.json').version"],cwd=candidate,text=True).strip()
           assert installed==expected,'sc071_installed_source_map_version_mismatch'
           sharp_installed=None
-          if candidate_pair==sharp_fix:
+          if candidate_pair in (sharp_fix,mail_ops_fix):
               sharp_installed=subprocess.check_output(['node','-p',"require('sharp').versions.sharp"],cwd=candidate,text=True).strip()
               assert sharp_installed=='0.35.5','sc071_installed_sharp_version_mismatch'
-          compatibility=('SHARP_0_35_5_AND_SOURCE_MAP_JS_1_2_2_SECURITY_FIX' if candidate_pair==sharp_fix else
+          mail_dependencies=None
+          if candidate_pair==mail_ops_fix:
+              direct={'mailauth':'7.3.1','pdf-lib':'1.17.1','xlsx':'0.20.3'}
+              locked=json.loads((candidate/'package-lock.json').read_text())['packages']
+              mail_dependencies={}
+              for name,version in direct.items():
+                  package=locked['node_modules/'+name]
+                  actual=json.loads((candidate/'node_modules'/name/'package.json').read_text())['version']
+                  assert package['version']==version,'sc071_locked_mail_dependency_version_mismatch'
+                  assert actual==version,'sc071_installed_mail_dependency_version_mismatch'
+                  mail_dependencies[name]={'locked':package['version'],'installed':actual,'resolved':package['resolved']}
+          compatibility=('EXACT_MANUAL_MAIL_DEPENDENCIES_AND_6144_HEAP_WITH_SECURITY_FIXES' if candidate_pair==mail_ops_fix else
+                         'SHARP_0_35_5_AND_SOURCE_MAP_JS_1_2_2_SECURITY_FIX' if candidate_pair==sharp_fix else
                          'SOURCE_MAP_JS_1_2_2_SECURITY_FIX' if candidate_pair==source_map_fix else 'BYTE_IDENTICAL_ORIGINAL')
           receipt={'dependency_install':'candidate npm ci; immutable BASE package pair plus exact reviewed security compatibility',
                    'base_package_sha256':dict(zip(paths,base_pair)),
                    'candidate_package_sha256':dict(zip(paths,candidate_pair)),
                    'compatibility':compatibility,
                    'actual_installed_source_map_js':installed,'actual_installed_sharp':sharp_installed,'base_packages_modified':False}
+          if mail_dependencies is not None:
+              receipt['dependency_install']='candidate npm ci; immutable BASE pair plus exact reviewed mail/heap/security compatibility'
+              receipt['actual_mail_dependency_versions']=mail_dependencies
           (pathlib.Path(os.environ['SC071_EVIDENCE'])/'dependency-inputs.json').write_text(json.dumps(receipt,indent=2)+'\n')
           PY
           ln -s "$SC071_CANDIDATE_ROOT/node_modules" "$SC071_BASE_ROOT/node_modules"

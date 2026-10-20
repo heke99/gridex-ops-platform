@@ -7,6 +7,7 @@ const platformGroups = getAdminNavigationGroups({ permissions: [], roles: [], is
 describe('admin navigation destination', () => {
   it.each([
     ['/admin', '/admin'],
+    ['/admin/mail-review/message-a', '/admin/mail-review'],
     ['/admin/customers/customer-1', '/admin/customers'],
     ['/admin/customers/intake', '/admin/customers/intake'],
     ['/admin/ediel/test-center/invoice-test', '/admin/ediel/test-center/invoice-test'],

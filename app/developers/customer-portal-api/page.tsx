@@ -139,9 +139,11 @@ Content-Type: application/json
     "scope": ["supplier_switch", "facility_information_lookup"],
     "signerName": "Anna Andersson",
     "signerIdentityNumber": "19900101-1234",
-    "method": "online",
+    "method": "website_acceptance",
     "acceptedAt": "2026-08-19T10:00:00.000Z",
-    "textVersionId": "00000000-0000-4000-8000-000000000001"
+    "textVersionId": "00000000-0000-4000-8000-000000000001",
+    "ipAddress": "192.0.2.10",
+    "userAgent": "<customer browser user agent>"
   }
 }`
 
@@ -403,6 +405,15 @@ export default function CustomerPortalApiDocumentationPage() {
             </ol>
             <h3 className="text-lg font-semibold text-slate-950">Submit an application</h3>
             <CopyCodeBlock code={checkoutRequest} language="json" />
+            <p className="leading-7 text-slate-700">
+              For automated power-of-attorney email, record the customer’s IP at acceptance and send it as
+              <code> powerOfAttorney.ipAddress</code> from your trusted backend, with the original
+              <code> acceptedAt</code>. Gridex creates a stable verification number and archives the accepted text,
+              scopes and evidence as a PDF, with the verification number on every page. The IP of your API server
+              is recorded separately. A form click or <code>method: bankid</code> does not prove a verified BankID signature.
+              BankID is optional; missing evidence blocks external email until completed. Organization users can retrieve
+              their PDFs in OPS under Fullmakter; platform administrators can search across organizations.
+            </p>
             <p className="text-sm leading-6 text-slate-600">
               The legal references, hashes and versions in this example are placeholders. In production, copy the exact values returned by the legal-bundle endpoint. Do not generate or modify them locally.
             </p>
@@ -455,6 +466,26 @@ export default function CustomerPortalApiDocumentationPage() {
               Your organization can let Gridex verify the end customer&apos;s own login (OPS → Inställningar → Kundinloggning). Your server then forwards the login&apos;s signed assertion in <code>x-gridex-customer-assertion</code>:
               a compact JWS (RS256, PS256 or ES256) with your organization&apos;s <code>iss</code> and <code>aud</code>, <code>sub</code> = the linked portal user id, <code>exp</code> at most 15 minutes after <code>iat</code> and a unique <code>jti</code>.
               In report mode a missing or invalid assertion is only logged; when verification is required the API returns <code>403 customer_assertion_required</code> or <code>403 customer_assertion_invalid</code>. Organizations without a configuration are unaffected.
+            </p>
+            <h3 className="text-lg font-semibold text-slate-950">Archived powers of attorney: PDF and verification</h3>
+            <p className="leading-7 text-slate-700">
+              The independent additive archive contract always requires a fresh, verified <code>x-gridex-customer-assertion</code>,
+              an active linked customer in the API key&apos;s organization, and BOTH <code>customer_power_of_attorney.read</code> AND <code>customer_documents.read</code>.
+              This requirement also applies in report mode; a missing provider configuration or an unverified assertion does not authorize archive access.
+              Keep the API key and assertion on your trusted server and expose an authenticated download through your own portal.
+            </p>
+            <p className="leading-7 text-slate-700">
+              List existing archives with <code>GET /customer/powers-of-attorney/evidence</code>. Discovery status <code>archived_unverified</code> describes metadata only.
+              Use the returned verification reference with <code>GET /customer/powers-of-attorney/evidence/&#123;verificationReference&#125;?format=json</code> to verify the actual original bytes,
+              or <code>format=pdf</code> to download the verified PDF (at most 15 MiB). The optional <code>sha256</code> query compares your supplied digest;
+              an incorrect digest returns <code>submitted_sha256_matches: false</code> in the JSON response without changing the archive.
+              These GET requests never generate a PDF or create consent. Missing original IP/time evidence remains missing;
+              <code> pdf_signature_validation: not_performed</code> does not claim cryptographic PDF-signature or BankID validation.
+            </p>
+            <p className="text-sm leading-6 text-slate-600">
+              Full schemas, limits and error responses: <a className="underline" href="/api/v1/openapi/poa-archive-v1.json">current POA archive OpenAPI</a>
+              {' '}or <a className="underline" href="/api/v1/openapi/2026-10-19.1/poa-archive-v1.json">pinned release 2026-10-19.1</a>.
+              Existing Website and Customer Portal contract releases are unchanged.
             </p>
             <EndpointTable rows={customerPortalRows} />
           </Section>

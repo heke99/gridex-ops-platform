@@ -5,7 +5,7 @@
   "sha256": "d512f77e6443a721190c6b7860c7e4990a3ecacc9d3d06a84d2851c086b7e4df",
   "latest_migration": "20261019180500_db05_audit19_archived_permission.sql",
   "latest_migration_schema_effect": "Authentic ordinary capture of PR846 source 879e6afb529d489d7eeca0413ac545d156a39253 (tree 95118b85bbd776bc3655dd4e08b12871db057789) after successful disposable canonical replay through 20261019180500_db05_audit19_archived_permission.sql: adds the six DB-05 completed-decision retention, witness disposition and qualified audit cleanup forwards (20261019180000-180500) on top of AT-Z04C; outputs imported byte-exact.",
-  "composition_capture_pending": false,
+  "composition_capture_pending": true,
   "capture": {
     "purpose": "capture_only",
     "captured_at": "2026-10-15T01:56:39.362659+00:00",
@@ -864,7 +864,7 @@
       }
     }
   },
-  "composition_note": "Current RAW3 are exact byte copies of genuine combined ordinary capture39251634797/job118056591201/a1/artifact12187475470 at source8b6a/tree51ebafba0a000fd571ed9a5513682f40211f9b49. Its eight recorded inputs bind the pre-import source, including manifest4ae9; this adopting successor is not the captured source. Previous active values are archived literally in z04_b4fe_combined_genuine_ordinary_capture_adoption_20261019. Both previous-origin and pending-composition records remain immutable historical facts. Existing false/composition and protected-epoch fields retain their historical meaning. No protected GEN, native/browser/parity, cleanup or whole-final result is added; importing-head gates remain required.",
+  "composition_note": "Mail6db + main5600 source composition is GEN PENDING. Retained RAW3 are unchanged genuine main baseline from ordinary capture39365261065/source879e/tree95118b85, and do not include the four Mail migrations. current_prefix_verification continues to describe that baseline only. The new union has 244 runtime-index entries and 1283 SQL files; the unchanged maximum migration filename does not prove union coverage. One genuine ordinary capture of the actual new source/head/tree and complete input inventory is required before importing new RAW3 and claiming union qualification. Prior composition_note is preserved literally in mail_main_union_capture_pending_20261020. No native/browser/parity/whole-final approval is inferred.",
   "upstream_main_manifest": {
     "commit": "507e8bfa20606be31933eea1582066267ff2577a",
     "path": "scripts/supabase-types-manifest.json",
@@ -98864,5 +98864,57 @@
         }
       }
     }
+  },
+  "mail_main_union_capture_pending_20261020": {
+    "status": "GEN_PENDING_NO_UNION_RAW3_CAPTURE_YET",
+    "receiving_main": "5600eea8028858c973530c3bfffd9e9475feb6d7",
+    "receiving_main_tree": "be70bb8db9e8164295c30bdeccc8aaae4a3858cf",
+    "mail_donor_head": "6db93e76da9337b4bfa36e091fe7d0a1d2d9b008",
+    "mail_donor_tree": "302597e8ec319062fa4c89bad20e6a2ab8a80697",
+    "runtime_index_rows": 244,
+    "runtime_index_sha256": "b234c5a1c0af1ac04575db8666dad23bb518d745213975267ce7ccdfbfde2c98",
+    "mail_migrations_sha256": {
+      "20261018183448_manual_mail_automatic_application.sql": "d92f7ab706eb6bac415929255f218d38aa5e8f287bcad1c57f7438b9c590fc54",
+      "20261019010000_manual_mail_multi_site_application.sql": "072b15204cf0ac6447c5cb6ec3599b111cecbcae52379fdb5fcfd9eb978c48e7",
+      "20261019095200_manual_mail_supplier_terms_schema_prerequisites.sql": "525a17c43347c0fed0be60434418f90b078161c13bc93ce9f294d6eea5551923",
+      "20261018230141_restore_supply_deadline_runtime.sql": "a3881fd16a51bb12af8b7ff72a01c8bc6ba4ef0d44c78d49bf2b14aca931ba3d"
+    },
+    "expected_migration_directory_paths": 1284,
+    "expected_sql_files": 1283,
+    "tail_alone_is_insufficient": true,
+    "retained_genuine_RAW3_baseline": {
+      "kind": "genuine_successful_ordinary_capture_RAW3_ONLY",
+      "source_head": "879e6afb529d489d7eeca0413ac545d156a39253",
+      "source_tree": "95118b85bbd776bc3655dd4e08b12871db057789",
+      "workflow_path": ".github/workflows/staff-api-schema-capture.yml",
+      "workflow_run_id": 39365261065,
+      "workflow_job_id": 118440536624,
+      "attempt": 1,
+      "artifact_id": 12239316638,
+      "artifact_name": "staff-schema-capture-879e6afb529d489d7eeca0413ac545d156a39253",
+      "artifact_archive_sha256": "e504323e15160979c656c42b280f540ee0c41ff5af2e36e1055c48ad39b13f46",
+      "artifact_archive_bytes": 1789729,
+      "capture_receipt_sha256": "7331e0998c4f0d001760407bf30f02a5721e869d005dc5768fd7aa278200ae3b",
+      "raw_output_sha256": {
+        "database.types.ts": "d512f77e6443a721190c6b7860c7e4990a3ecacc9d3d06a84d2851c086b7e4df",
+        "schema.sql": "55bcc42e5f0c0a8c83237256a286d70e9eb44a47650ee01826edf88b7f78c2da",
+        "schema.fingerprint.json": "7b83aa97973550c59df1aae65b0c73333e6538e1b7a9e22e71e9d2a64f8ade29"
+      },
+      "actual_capture_completed_at": "2026-10-20T03:41:03.555887+00:00",
+      "workflow_job_conclusion": "SUCCESS",
+      "native_tests": "NOT_RUN",
+      "browser_tests": "NOT_RUN",
+      "type_schema_comparison": "NOT_RUN",
+      "upgrade_parity": "NOT_RUN",
+      "whole_approval": false,
+      "latest_replay_migration": {
+        "name": "20261019180500_db05_audit19_archived_permission.sql",
+        "sha256": "db47da92f7c47f936da499bac1ea9b347239f5965856fb5149a14e83abd95f06"
+      }
+    },
+    "baseline_scope": "Unchanged current-main RAW3 bytes only; excludes the four Mail migrations. No union capture, native, browser, parity or full final acceptance has been claimed.",
+    "previous_composition_capture_pending": false,
+    "previous_composition_note": "Current RAW3 are exact byte copies of genuine combined ordinary capture39251634797/job118056591201/a1/artifact12187475470 at source8b6a/tree51ebafba0a000fd571ed9a5513682f40211f9b49. Its eight recorded inputs bind the pre-import source, including manifest4ae9; this adopting successor is not the captured source. Previous active values are archived literally in z04_b4fe_combined_genuine_ordinary_capture_adoption_20261019. Both previous-origin and pending-composition records remain immutable historical facts. Existing false/composition and protected-epoch fields retain their historical meaning. No protected GEN, native/browser/parity, cleanup or whole-final result is added; importing-head gates remain required.",
+    "producer": "Existing ordinary pull_request staff-api-schema-capture.yml lane; one actual frozen source epoch and one collector; no workflow edit or manual rerun."
   }
 }

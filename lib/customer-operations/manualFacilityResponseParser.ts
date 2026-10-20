@@ -14,6 +14,9 @@ import { FacilityLookupPostCommitError } from '@/lib/facility/facilityLookupWork
 type JsonRecord = Record<string, unknown>
 
 export type ManualFacilityExtractedPayload = {
+  personal_number?: string | null
+  org_number?: string | null
+  customer_identity_number?: string | null
   facility_id?: string | null
   metering_point_id?: string | null
   grid_area_code?: string | null
@@ -22,6 +25,12 @@ export type ManualFacilityExtractedPayload = {
   current_supplier?: string | null
   notice_period?: string | null
   current_contract_end_date?: string | null
+  binding_period?: string | null
+  earliest_supplier_start_date?: string | null
+  cancellation_deadline?: string | null
+  cancellation_registered?: string | null
+  termination_fee?: string | null
+  contract_status?: string | null
   metering_method?: string | null
   reporting_frequency?: string | null
 }
@@ -83,7 +92,7 @@ export function extractManualFacilityFields(bodyText: string): ManualFacilityExt
   const annual = matchAfterLabel(text, ['årsenergi', 'arsenergi', 'årsförbrukning', 'annual[\\s_-]*consumption'])
   const currentSupplier = matchAfterLabel(text, ['befintligt elhandelsföretag', 'nuvarande leverantör', 'current[\\s_-]*supplier', 'elhandelsföretag'])
   const noticePeriod = matchAfterLabel(text, ['uppsägningstid', 'uppsagningstid', 'notice[\\s_-]*period'])
-  const contractEnd = matchAfterLabel(text, ['slutdatum', 'avtalsslut', 'contract[\\s_-]*end'])
+  const contractEnd = matchAfterLabel(text, ['avtalets slutdatum', 'slutdatum', 'avtalsslut', 'contract[\\s_-]*end'])
   const meteringMethod = matchAfterLabel(text, ['mätmetod', 'matmetod', 'metering[\\s_-]*method'])
   const reportingFrequency = matchAfterLabel(text, ['rapporteringsfrekvens', 'reporting[\\s_-]*frequency'])
 
@@ -96,6 +105,12 @@ export function extractManualFacilityFields(bodyText: string): ManualFacilityExt
     current_supplier: currentSupplier,
     notice_period: noticePeriod,
     current_contract_end_date: contractEnd,
+    binding_period: matchAfterLabel(text, ['bindningstid', 'binding[\\s_-]*period']),
+    earliest_supplier_start_date: matchAfterLabel(text, ['tidigaste (?:leveransstart|start(?:datum)?(?: hos ny leverantör)?)', 'kunden kan (?:tidigast )?starta(?: hos (?:en )?ny leverantör)?', 'earliest[\\s_-]*start']),
+    cancellation_deadline: matchAfterLabel(text, ['sista uppsägnings(?:datum|dag)', 'senaste uppsägningsdatum', 'avtalet måste (?:senast )?sägas upp', 'cancellation[\\s_-]*deadline']),
+    cancellation_registered: matchAfterLabel(text, ['uppsägning registrerad', 'registrerad uppsägning']),
+    termination_fee: matchAfterLabel(text, ['brytavgift', 'termination[\\s_-]*fee']),
+    contract_status: matchAfterLabel(text, ['avtalsstatus', 'contract[\\s_-]*status']),
     metering_method: meteringMethod,
     reporting_frequency: reportingFrequency,
   }
@@ -122,6 +137,7 @@ export async function applyManualFacilityResponse(input: {
   senderCredible: boolean
   actorUserId?: string | null
   source?: string | null
+  automaticInbound?: { inboundId: string; sourceHash: string; facts?: Record<string, unknown> }
 }): Promise<ManualFacilityParseResult> {
   const reasons: string[] = []
   const confidence = scoreManualFacilityPayload(input.extracted)
@@ -191,6 +207,50 @@ export async function applyManualFacilityResponse(input: {
   if (effectiveConfidence < 0.7) reasons.push('low_confidence')
 
   const safe = reasons.length === 0
+
+  if (input.automaticInbound) {
+    // Automatic mail owns no separate request writes. The source-aware
+    // canonical command validates and locks the inbound/request together,
+    // then commits the facility facts and their evidence atomically. A newer
+    // hold, completed request or rejected source must retain its existing
+    // state even when this adapter's earlier validation was successful.
+    if (!safe) {
+      return { outcome: 'needs_review', confidence: effectiveConfidence, extracted: input.extracted, reasons }
+    }
+
+    const completion = await completeFacilityLookupAndRunNextSteps({
+      companyId: input.companyId,
+      requestId,
+      actorUserId: input.actorUserId ?? null,
+      source: 'system',
+      facilityId,
+      meteringPointId: clean(input.extracted.metering_point_id),
+      gridAreaCode: effectiveGridAreaCode,
+      priceAreaCode: clean(input.extracted.price_area_code),
+      note: 'Automatiskt tolkat svar från nätägarens e-post.',
+      rawPayload: { ...(input.rawPayload ?? {}), extracted: input.extracted as unknown as JsonRecord },
+      automaticInbound: input.automaticInbound,
+    })
+    if (!completion.ok) {
+      return {
+        outcome: 'needs_review',
+        confidence: effectiveConfidence,
+        extracted: input.extracted,
+        reasons: [completion.blockerCode ?? 'data_conflict'],
+      }
+    }
+
+    // A post-commit continuation failure or transient database error must
+    // propagate so ingestion can resume idempotently. It must never rewrite
+    // committed source proof or turn a retryable failure into terminal review.
+    return {
+      outcome: 'applied',
+      confidence: effectiveConfidence,
+      extracted: input.extracted,
+      reasons: [],
+      nextStepDecision: completion.supplierSwitchResult?.decision ?? completion.intakeDecision?.state ?? null,
+    }
+  }
 
   const now = new Date().toISOString()
   const parsedPayload = { ...input.extracted, confidence: effectiveConfidence, applied: safe, grid_area_code_source: effectiveGridAreaCode && !isValidGridAreaCode(gridAreaCode) ? 'site_context' : 'reply' }

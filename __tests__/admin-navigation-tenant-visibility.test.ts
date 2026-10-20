@@ -11,6 +11,7 @@ describe('tenant navigation visibility', () => {
   it('shows portfolio overview to a regular tenant but no white-label or Ediel source pages', () => {
     const visible = hrefs(tenant)
     expect(visible).toContain('/admin/analytics/portfolio')
+    expect(visible).not.toContain('/admin/mail-review')
     expect(visible.some((href) => href.startsWith('/admin/whitelabel'))).toBe(false)
     expect(visible).not.toContain('/admin/ediel/requested-changes')
     expect(visible).not.toContain('/admin/ediel/regulated-supply')
