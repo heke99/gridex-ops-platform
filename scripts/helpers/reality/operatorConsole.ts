@@ -138,7 +138,9 @@ export async function materializeTenantRoutes(context: BrowserContext, companyId
       let target: { index: number; route: string } | null = null
       for (let index = 0; index < await forms.count(); index++) {
         const form = forms.nth(index)
-        const route = [await form.locator('input[name="messageFamily"]').getAttribute('value').catch(() => null), await form.locator('input[name="messageCode"]').getAttribute('value').catch(() => null), await form.locator('input[name="actorSettingId"]').getAttribute('value').catch(() => null)].filter(Boolean).join('/')
+        // Read the hidden fields in one evaluation: a locator wait on an absent field costs its full timeout.
+        const route = await form.evaluate(element => ['messageFamily', 'messageCode', 'actorSettingId']
+          .map(name => element.querySelector<HTMLInputElement>(`input[name="${name}"]`)?.value).filter(Boolean).join('/'))
         if (!done.has(route)) { target = { index, route }; break }
       }
       if (!target) { await page.close(); break }

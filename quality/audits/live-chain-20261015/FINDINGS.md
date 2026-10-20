@@ -279,8 +279,8 @@ Simuleringen gör samma steg som i drift.
 - **Utfall:** åtgärden fallerar alltid med `ediel_route_profile_insert_failed` (`utilts_application_reference_message_unsupported:missing`). Det gäller Alingsås 16700 i det riktiga registret, utan subadress och applikationsreferens.
 - **Följd:** knappen som sidan erbjuder kan aldrig lyckas, och raden ligger kvar som blockerad. Antingen ska vyn ange en meddelandekod (till exempel E66), eller så ska knappen inte visas.
 
-### P2 Att materialisera en route tog cirka 70 s lokalt — UNDER MÄTNING
-Från klick till omdirigering tog PRODAT/Z01 13:26:58 → 13:28:07. En del av tiden är sidladdning med hela registret (500 rader och kontakter). Den ska mätas separat innan något ändras.
+### P2 "Materialisering tar cirka 70 s" — MÄTARTEFAKT, inte ett fel
+Alla skrivningar för materialiseringen (`communication_routes`, `ediel_route_profiles` och `company_market_party_routes`) sker inom samma sekund. Vyerna bakom sidan tar 15–25 ms. Tiden kom från simuleringens hjälpkod, som väntade 30 s per frånvarande dolt fält. Det är rättat i `operatorConsole.ts`.
 
 ### Korrekta spärrar som simuleringen bekräftade (inte fel)
 Go-live kräver:
