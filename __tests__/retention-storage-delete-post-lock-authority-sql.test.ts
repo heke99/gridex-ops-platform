@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { PGlite } from '@electric-sql/pglite'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
@@ -9,6 +10,14 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 // non-superuser installer envelope is separately preserved, not run here.
 const schema = readFileSync('supabase/schema.sql', 'utf8')
 const forward = readFileSync('supabase/migrations/20261020163321_retention_storage_delete_post_lock_authority.sql', 'utf8')
+// Pin the original isolated guard/current generation, independent of GEN output.
+const historical = {
+  content: readFileSync('supabase/migrations/20261001000700_ediel_message_content_and_mime_retention.sql', 'utf8'),
+  classAuthority: readFileSync('supabase/migrations/20261001000710_ediel_archived_tenant_retention_class_authority.sql', 'utf8'),
+  contract: readFileSync('supabase/migrations/20261001012305_ediel_customer_record_class_retention.sql', 'utf8'),
+  authBridge: readFileSync('supabase/migrations/20261001025642_ediel_retention_current_auth_owner_bridge.sql', 'utf8'),
+  invoice: readFileSync('supabase/migrations/20261001071000_ediel_invoice_file_copy_class_retention.sql', 'utf8'),
+}
 const company = '10000000-0000-4000-8000-000000000001'
 const otherCompany = '10000000-0000-4000-8000-000000000002'
 const executor = '20000000-0000-4000-8000-000000000002'
@@ -25,13 +34,40 @@ let db: PGlite
 
 function definition(sql: string, name: string, optional = false) {
   const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  const start = new RegExp(`^CREATE(?: OR REPLACE)? FUNCTION ${escaped}\\(`, 'm').exec(sql)
+  const start = new RegExp(`^CREATE(?: OR REPLACE)? FUNCTION ${escaped}\\(`, 'im').exec(sql)
   if (!start) { if (optional) return ''; throw new Error('Missing source function: ' + name) }
   const after = sql.slice(start.index)
-  const delimiter = /\bAS\s+(\$[^$]*\$)/.exec(after)!
+  const delimiter = /\bAS\s+(\$[^$]*\$)/i.exec(after)!
   const end = after.indexOf(delimiter[1] + ';', delimiter.index + delimiter[0].length)
   if (end < 0) throw new Error('Unterminated function: ' + name)
   return after.slice(0, end + delimiter[1].length + 1)
+}
+function replaceOnce(source: string, old: string, replacement: string) {
+  if (source.split(old).length !== 2) throw new Error('Historical source anchor must occur exactly once')
+  return source.replace(old, replacement)
+}
+function predecessor(name: string) {
+  const expected: Record<string, string> = {
+    'gridex_ediel_retention.storage_guard_v1': 'c13d549a2fc9ba39bcc543255493974cef4afd926660ada2e86ec55ea313744b',
+    'gridex_ediel_retention.contract_storage_guard_v1': '9bb603eb46f8c7687868c80205613f5ae4315cca1b6d614bbb597aa3f0ed4275',
+    'gridex_ediel_retention.invoice_file_storage_guard_v1': 'b9900b63b92399a6a210d83767bef73c27ca8aa785152ef5377e2ac4b93e8b9d',
+    'gridex_ediel_retention.invoice_file_current_v1': 'd719359fff25150bdd326b0df579385a4d6f1975e45d88023695d58ddff19c9d',
+  }
+  if (!(name in expected)) return definition(schema, name)
+  let ddl: string
+  if (name === 'gridex_ediel_retention.storage_guard_v1') {
+    ddl = definition(historical.content, name)
+    // Exact immutable 00710 class-authority and 025642 Auth-bridge changes.
+    ddl = replaceOnce(ddl, "gridex_ediel_retention.permission_v1(t.company_id,actor,'communication.write')", 'gridex_ediel_retention.class_permission_v1(t.company_id,actor,t.retention_class)')
+    ddl = replaceOnce(ddl, 'auth.uid()', 'public.ediel_retention_session_actor_v1()')
+  } else if (name === 'gridex_ediel_retention.contract_storage_guard_v1') {
+    ddl = replaceOnce(definition(historical.contract, name), 'auth.uid()', 'public.ediel_retention_session_actor_v1()')
+  } else ddl = definition(historical.invoice, name)
+  const delimiter = /\bAS\s+(\$[^$]*\$)/i.exec(ddl)!
+  const start = delimiter.index + delimiter[0].length
+  const actual = createHash('sha256').update(ddl.slice(start, ddl.indexOf(delimiter[1] + ';', start))).digest('hex')
+  if (actual !== expected[name]) throw new Error('Unqualified historical predecessor: ' + name)
+  return ddl
 }
 function table(name: string) {
   const start = schema.indexOf('CREATE TABLE ' + name + ' (')
@@ -83,6 +119,9 @@ async function invoiceCopies(bucket = 'billing-exports') {
 
 describe('actual composed Storage DELETE guards repeat selected authority', () => {
   beforeAll(async () => {
+    for (const [name, expected] of Object.entries({ content: '3bd194eff1595b35b79478b7a1875bb0c042691956baae1e192c729f9af307e2', classAuthority: 'f959f8fa359b3eee07fa6530580bf06e477cb1f6423be891cd9938f6f114e461', contract: 'b78d093f625a476a990b3786e8a02c87d41176586f673c172bf21a8830488db2', authBridge: 'ea2d087bd5860778b4125eb5e1bd52fccb79a7cf991da92a55ce5e830b07571f', invoice: '1b07b113b8e48923326c6d2d0fce0dea0f5fdb515a76161c345b94b538ffa9e9' })) {
+      expect(createHash('sha256').update(historical[name as keyof typeof historical]).digest('hex')).toBe(expected)
+    }
     db = new PGlite()
     await db.exec(`create schema auth;create schema fixture;create schema storage;create schema gridex_ediel_retention;
       create role anon;create role authenticated;create role service_role;create role gridex_ediel_retention_owner nologin noinherit bypassrls;
@@ -139,7 +178,7 @@ describe('actual composed Storage DELETE guards repeat selected authority', () =
       create trigger fixture_blob_event after insert on gridex_ediel_retention.blob_events for each row execute function fixture.event_boundary();
       create trigger fixture_record_event after insert on gridex_ediel_retention.record_events for each row execute function fixture.event_boundary();
       create trigger fixture_invoice_event after insert on gridex_ediel_retention.invoice_file_events for each row execute function fixture.event_boundary();`)
-    for (const name of ['public.ediel_retention_lock_auth_actor_v1', 'public.ediel_retention_session_actor_v1', 'gridex_ediel_retention.actor_v1', 'gridex_ediel_retention.class_permission_v1', 'gridex_ediel_retention.record_actor_v1', 'gridex_ediel_retention.invoice_file_actor_v1', 'gridex_ediel_retention.blob_current_v1', 'gridex_ediel_retention.record_current_review_v1', 'gridex_ediel_retention.invoice_file_current_v1', ...routines]) await db.exec(definition(schema, name))
+    for (const name of ['public.ediel_retention_lock_auth_actor_v1', 'public.ediel_retention_session_actor_v1', 'gridex_ediel_retention.actor_v1', 'gridex_ediel_retention.class_permission_v1', 'gridex_ediel_retention.record_actor_v1', 'gridex_ediel_retention.invoice_file_actor_v1', 'gridex_ediel_retention.blob_current_v1', 'gridex_ediel_retention.record_current_review_v1', 'gridex_ediel_retention.invoice_file_current_v1', ...routines]) await db.exec(predecessor(name))
     await db.exec('grant usage,create on schema public,gridex_ediel_retention to gridex_ediel_retention_owner;grant usage on schema auth,storage,fixture to gridex_ediel_retention_owner;grant all on all tables in schema public,auth,storage,fixture,gridex_ediel_retention to gridex_ediel_retention_owner;')
     for (const name of routines) await db.exec(`alter function ${name}() owner to gridex_ediel_retention_owner;revoke all on function ${name}() from public,anon,authenticated,service_role;`)
     for (const file of ['20261001012305_ediel_customer_record_class_retention.sql', '20261001000700_ediel_message_content_and_mime_retention.sql', '20261001071000_ediel_invoice_file_copy_class_retention.sql']) {
@@ -254,10 +293,10 @@ describe('actual composed Storage DELETE guards repeat selected authority', () =
   })
   it.each(['body', 'ACL', 'owner', 'search_path'] as const)('fails closed instead of repairing unexpected %s metadata', async drift => {
     const preflight = taggedBlock('retention_storage_body_preflight');expect(preflight).not.toBe('')
-    for (const name of routines) await db.exec(definition(schema, name).replace('CREATE FUNCTION', 'CREATE OR REPLACE FUNCTION'))
+    for (const name of routines) await db.exec(predecessor(name).replace('CREATE FUNCTION', 'CREATE OR REPLACE FUNCTION'))
     await db.exec(preflight)
     const signature = routines[0] + '()'
-    if (drift === 'body') await db.exec(definition(schema, routines[0]).replace('CREATE FUNCTION', 'CREATE OR REPLACE FUNCTION').replace('END$$;', () => '-- changed\nEND$$;'))
+    if (drift === 'body') await db.exec(predecessor(routines[0]).replace('CREATE FUNCTION', 'CREATE OR REPLACE FUNCTION').replace('END$$;', () => '-- changed\nEND$$;'))
     else if (drift === 'ACL') await db.exec(`grant execute on function ${signature} to anon`)
     else if (drift === 'owner') await db.exec(`alter function ${signature} owner to postgres`)
     else await db.exec(`alter function ${signature} set search_path=public`)
@@ -267,7 +306,7 @@ describe('actual composed Storage DELETE guards repeat selected authority', () =
   })
   it.each(['disabled', 'renamed'] as const)('refuses an unexpected %s trigger profile', async drift => {
     const preflight = taggedBlock('retention_storage_body_preflight');expect(preflight).not.toBe('')
-    for (const name of routines) await db.exec(definition(schema, name).replace('CREATE FUNCTION', 'CREATE OR REPLACE FUNCTION'))
+    for (const name of routines) await db.exec(predecessor(name).replace('CREATE FUNCTION', 'CREATE OR REPLACE FUNCTION'))
     await db.exec(preflight)
     if (drift === 'disabled') await db.exec('alter table storage.objects disable trigger invoice_file_retention_storage_guard')
     else await db.exec('alter trigger invoice_file_retention_storage_guard on storage.objects rename to earlier_invoice_guard')
