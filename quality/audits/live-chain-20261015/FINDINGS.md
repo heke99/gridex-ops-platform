@@ -388,6 +388,12 @@ Världen byggdes från noll med `up.sh` (ren replay, `next build` och `start`, s
   - Uppgiften används bara för namn och org.nr som inkommande leverantör på bytesärendet. Den finns redan i bolagets egen identitet, så kravet på en separat rad i `electricity_suppliers` tillför inget.
 - **Förslag:** skapa och markera bolagets egen leverantör när bolagets Ediel-avsändare sätts upp (namn, org.nr och Ediel-ID finns redan där). Alternativt läs den egna leverantören från bolagets avsändaridentitet i stället för från `electricity_suppliers`. Go-live-grinden bör kontrollera detta.
 
+### F48 En UTILTS-route från Ediels register kan aldrig materialiseras för ett bolag — ÖPPEN, medel
+- **Utfall:** `Materialisera production-route` ger `ediel_route_profile_insert_failed` för UTILTS. PRODAT/Z01 materialiseras efter F41. Felet fanns också före F41.
+- **Orsak:** registrets UTILTS-route har ingen meddelandekod (`defaultMessageCode('UTILTS')` ger `null`). UTILTS-policyn (`getUtiltsApplicationReferenceTarget`) kräver en kod och kastar `utilts_application_reference_message_unsupported:missing`. Även en giltig UTILTS-referens hos avsändaren (`23-DDQ-E66-S`, SC-059) hjälper bara när routen bär en kod.
+- **Följd:** bolaget får ingen operativ UTILTS-route till nätägaren. Det påverkar inte PRODAT-bytet. Det påverkar utgående UTILTS (till exempel ERR och S07) och route-beredskapen för UTILTS.
+- **Förslag:** materialisera UTILTS per meddelande som leverantören faktiskt sänder (enligt `assertCanonicalSupplierUtiltsOutboundAllowed`), eller låt en familje-route bära referensen för den mottagna huvudprofilen (E66). Det kräver ett beslut om vilka UTILTS-meddelanden ett elhandelsbolag ska sända i produktion.
+
 ### F45 Webbplatsens avtal får aldrig `signed_version`, så Z03 kan inte förberedas för en webbkund — ÖPPEN, hög
 - **Var:**
   - `gridex_finalize_website_contract_signature` (`schema.sql` cirka 73369–73389) sätter status, `signed_at`, `signature_snapshot` och dess sha256, men inte `signed_version`.

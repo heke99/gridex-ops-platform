@@ -118,8 +118,9 @@ describe.sequential('reality A — website customers switch supplier', () => {
     expect(imported.actionStatus, imported.page).toBe(200)
     expect(report.tenantBrp, JSON.stringify(report.tenantBrp)).toMatchObject({ status: 'brp_saved' })
     expect(sql(`SELECT to_jsonb(brp_ediel_id) FROM public.ediel_brp_settings WHERE company_id=${literal(tenant.companyId)} AND environment='production' AND is_active AND is_default`)).toBe('48800')
-    // F41: the grid-owner routes materialize from the registry with the policy reference.
-    expect((report.tenantRoutes as Array<{ code: string | null }>).map(click => click.code), JSON.stringify(report.tenantRoutes)).not.toContain('ediel_route_profile_insert_failed')
+    // F41: the PRODAT grid-owner route materializes from the registry with the policy reference. The UTILTS
+    // registry route carries no message code and cannot be materialized (FINDINGS F48); PRODAT does not need it.
+    expect((report.tenantRoutes as Array<{ route: string; code: string | null }>).find(click => click.route.startsWith('PRODAT'))?.code, JSON.stringify(report.tenantRoutes)).toBe('materialized')
     expect(verification.clicked, verification.page).toBe(true)
     expect(verification.actionStatus, verification.page).toBe(200)
     // The real grid owner of ALS is now the verified OPS grid owner for the customer flow.
