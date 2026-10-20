@@ -135,8 +135,9 @@ export type ManualIntakeInput = {
 export async function submitManualIntake(context: BrowserContext, input: ManualIntakeInput) {
   const page = await context.newPage()
   await page.goto('/admin/customers/intake')
-  const fill = (name: string, value: string) => page.locator(`[name="${name}"]`).first().fill(value)
-  const select = (name: string, value: string) => page.locator(`select[name="${name}"]`).first().selectOption(value)
+  // Some fields appear in more than one form section; the operator types into the visible one.
+  const fill = (name: string, value: string) => page.locator(`[name="${name}"]:visible`).first().fill(value)
+  const select = (name: string, value: string) => page.locator(`select[name="${name}"]:visible`).first().selectOption(value)
   await select('customerType', 'private'); await select('intakeFlowType', 'switch')
   await fill('firstName', input.firstName); await fill('lastName', input.lastName); await fill('personalNumber', input.personalNumber)
   await fill('email', input.email); await fill('phone', input.phone)
@@ -145,7 +146,7 @@ export async function submitManualIntake(context: BrowserContext, input: ManualI
   await fill('annualConsumptionKwh', input.annualConsumptionKwh)
   await select('currentSupplierId', '__unknown__')
   await select('contractOfferId', input.contractOfferId); await fill('contractStartDate', input.contractStartDate)
-  await page.locator('input[name="contractSigningMethod"][value="uploaded_signed"]').check()
+  await page.locator('input[name="contractSigningMethod"][value="uploaded_signed"]:visible').first().check()
   await page.setInputFiles('input[name="signedAgreementFile"]', input.signedAgreementPdf)
   await fill('contractSignedDate', input.validFrom)
   await page.setInputFiles('input[name="signedPowerOfAttorneyFile"]', input.powerOfAttorneyPdf)
