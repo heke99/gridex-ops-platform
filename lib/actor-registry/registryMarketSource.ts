@@ -16,6 +16,19 @@ export async function readRegistryRouteSource(routeId:string):Promise<SourceQual
   ||!['family','address','transport','partyId','interchangePartyId'].every(k=>typeof data.wire[k]==='string'&&data.wire[k])||!['subaddress','applicationReference'].every(k=>data.wire[k]===null||typeof data.wire[k]==='string'))throw Error('ediel_registry_route_source_result_invalid')
  return data
 }
+/** Many routes (admin register view): the same per-route read and validation,
+ * at most `concurrency` calls in flight. Each call locks the registry graph and
+ * rehashes its source batch, so an unbounded fan-out of hundreds of RPCs
+ * exhausts the API gateway's connections (FINDINGS F29). Input order is kept. */
+export async function readRegistryRouteSources(routeIds:readonly string[],options:{concurrency?:number}={}):Promise<Array<SourceQualifiedRegistryRoute|RegistryRouteSourceHeld>>{
+ const concurrency=options.concurrency??6
+ if(!Number.isInteger(concurrency)||concurrency<1)throw Error('ediel_registry_route_concurrency_invalid')
+ const results=new Array<SourceQualifiedRegistryRoute|RegistryRouteSourceHeld>(routeIds.length)
+ let next=0
+ const worker=async()=>{while(next<routeIds.length){const index=next++;results[index]=await readRegistryRouteSource(routeIds[index])}}
+ await Promise.all(Array.from({length:Math.min(concurrency,routeIds.length)},worker))
+ return results
+}
 export async function requireElRegistryRouteSource(routeId:string):Promise<SourceQualifiedRegistryRoute>{
  const source=await readRegistryRouteSource(routeId)
  if(source.status!=='source_qualified'||source.market!=='EL')throw Error('ediel_registry_current_el_route_source_required')

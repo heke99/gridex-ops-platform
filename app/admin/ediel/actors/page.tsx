@@ -1,4 +1,4 @@
-import { readRegistryRouteSource } from '@/lib/actor-registry/registryMarketSource'
+import { readRegistryRouteSources } from '@/lib/actor-registry/registryMarketSource'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
@@ -169,8 +169,8 @@ export default async function EdielActorsPage({ searchParams }: PageProps) {
   const marketActors = marketActorsResult.error ? [] : marketActorsResult.data ?? []
   const actorRoles = actorRolesResult.error ? [] : actorRolesResult.data ?? []
   const actorRoutes = actorRoutesResult.error ? [] : actorRoutesResult.data ?? []
-  const sourceEntries = await Promise.all(actorRoutes.map(async route => [route.id, await readRegistryRouteSource(route.id)] as const))
-  const routeSources = new Map(sourceEntries)
+  const sources = await readRegistryRouteSources(actorRoutes.map(route => route.id))
+  const routeSources = new Map(actorRoutes.map((route, index) => [route.id, sources[index]] as const))
   const sourceMarket = (routeId: string) => { const source = routeSources.get(routeId); return source?.status === 'source_qualified' ? source.market : null }
   const importIssues = importIssuesResult.error ? [] : importIssuesResult.data ?? []
   const messageRegler = semanticsResult.error ? [] : semanticsResult.data ?? []

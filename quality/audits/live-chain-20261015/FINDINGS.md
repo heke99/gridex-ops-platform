@@ -190,7 +190,7 @@ Sviten finns i `scripts/reality/` (plan: `docs/testing/verklighetssimulering-pla
 - **Följd i en miljö byggd från migrationerna:** go-live av webbplatsen faller. Anropet är en HEAD-förfrågan som får 400 utan kropp, så admin ser bara ett tomt felmeddelande.
 - **Simuleringen:** fixturen speglar driftens definition exakt (`ensureProductionWebhookClientParity`).
 
-### F25 Beredskapskontrollen letar nätägarkontakter med en kanaltyp som tabellen inte tillåter — ÖPPEN (liten)
+### F25 Beredskapskontrollen letar nätägarkontakter med en kanaltyp som tabellen inte tillåter — RÄTTAD (c48d806b)
 - **Varför fel:** `lib/website/customerApplicationAutomationReadiness.ts:61` filtrerar `channel_type='email'`, men `grid_owner_contact_channels_channel_type_check` tillåter bara `facility_information_request`, `supplier_switch_manual`, `power_of_attorney`, `ai_list` och `escalation`. Det gäller både i drift och lokalt.
 - **Följd:** varningen "Ingen aktiv nätägarkontakt via e-post hittades" kan aldrig försvinna. Live sågs den med en verifierad kontakt på plats. Den riktiga vägen (`customerSiteProcessContext.ts:577`) använder `facility_information_request` och verifierad.
 - **Rättning:** samma filter som den riktiga vägen.
@@ -199,18 +199,50 @@ Sviten finns i `scripts/reality/` (plan: `docs/testing/verklighetssimulering-pla
 - **Varför:** med en uttrycklig kod går `resolveEnergyContext` bara till cachen för exakta adresser. Webbvägen stänger av den (`exact_address_provider_allowed:false`), så postnummergeokodningen nås aldrig, och resultatet blir `needs_review`.
 - **Följd:** svaret säger "Komplettera full adress" fast full adress skickades. Utan koden löses samma adress automatiskt.
 - **Beslut som behövs:** antingen korsvalideras koden mot postnummerresultatet, eller så dokumenteras att webbplatser inte ska skicka den.
+- **ROOT (#840/6291333488):** bindningsgränsen ska stå kvar. En kod räknas bara med exakt adress och polygon som bevis. Det som ska rättas är texten: svaret ska ange det faktiska cache-, polygon- eller masterdatafelet i stället för att be om en adress som redan skickats.
 
 ### F27 Go-live-grinden säger "redo" fast ingen spotofferert kan skapas — ÖPPEN
 - **Varför:** standardpolicyn `company_market_price_sources.allow_indicative_latest=false` stoppar offerter för en startmånad utan publicerade priser, med `422 market_price_unavailable`. Med 14 dagars varsel gäller det varje vanligt byte från mitten av månaden.
 - **Drift:** alla 3 bolag har standardvärdet (läsfråga, aggregat).
 - **Förslag:** grinden bör provköra en offert. Kontrollen bör också fånga ett bolag utan `slug`, eftersom då saknar alla juridiska dokument URL och juridiska paketet blir ofullständigt.
 - **Simuleringen:** admin-valet i `/admin/pricing/market-sources` görs som en del av go-live.
+- **ROOT (#840/6291333488):** slug-luckan är bekräftad och ska fångas av grinden. Prispolicyn står kvar: en komplett och färsk förhandsvisning fungerar med `false`. Påståendet "varje månad utan publicerade priser" ska först bindas till exakt prisfönster, elområde och upplösning innan det räknas som fel.
 
 ### F28 Nummerserierna för ansökan, kund och avtal saknas i den kanoniska replayen — ÖPPEN, replay/GEN-ägaren (allvarlig för nya miljöer)
 - **Varför fel:** `canonical_next_application_number`, `canonical_next_customer_number` och `canonical_next_contract_number` finns i drift (SECURITY DEFINER, bara `service_role`). De finns inte i replayen och förekommer 0 gånger i `schema.sql`. `20260801143000` används bara som källa för ett härlett utdrag.
 - **Följd:** en miljö byggd från migrationerna tar inte emot en enda webbansökan. Det gäller ny staging, återställning efter katastrof och native-CI. Felet blir `500 internal_error` i steget `application_record_create`, utan rad i serverloggen. Det syns bara som `404` på `rpc/canonical_next_application_number` i Kong.
 - **Två fel:** dels driften mellan drift och replay, dels att felet inte loggas.
 - **Simuleringen:** speglar driftens exakta definitioner och behörigheter (`ensureProductionNumberSeriesParity`).
+
+### F29 Aktörsregistret i admin kraschar efter import: 300 parallella databasanrop per sidvisning — RÄTTAD (anropsstormen)
+- **Var:** `app/admin/ediel/actors/page.tsx:172`, `Promise.all(actorRoutes.map(route => readRegistryRouteSource(route.id)))`. `actorRoutes` är upp till 300 routes, alltså 300 samtidiga `rpc/ediel_registry_route_source_v1`.
+- **Följd i simuleringen:** efter importen av hela Ediel-registret (704 bolag, 1 068 routes) visar sidan alltid "Adminvyn kunde inte laddas" (React #441). Operatören kommer då aldrig fram till "Verifiera för kundflöde", så nätägaren kan inte kopplas till kundflödet.
+- **Bevis:**
+  - Kong loggar "512 worker_connections are not enough".
+  - Appens fetch får `UND_ERR_SOCKET`.
+  - En sidvisning gav 250 RPC-rader i Kong.
+- **Kostnad per anrop, mätt lokalt:** cirka 27 ms databastid, så 300 routes ger cirka 8 s.
+  - Cirka 16 ms går åt till att serialisera och hasha om hela det normaliserade registret (`n.records::text`, 283 kB).
+  - Cirka 1 ms går åt till att hasha om källfilen (788 kB).
+  - Cirka 2 ms går åt till att söka igenom 704 poster.
+  - Allt detta görs om för varje route, fast alla routes kommer från samma batch.
+- **Drift:** 1 160 routes och 649 aktörer (läsfråga, aggregat).
+- **Rättning:** `readRegistryRouteSources` i `lib/actor-registry/registryMarketSource.ts` gör samma läsning och validering per route, men med högst 6 anrop samtidigt och i samma ordning som indata. Sidan använder den.
+- **Test:** `__tests__/ediel-registry-route-sources-bounded.test.ts` (300 routes ger högst 6 samtidiga anrop och behållen ordning; validering, databasfel och ogiltigt ID).
+
+### F30 Varje route-läsning låser cirka 29 tabeller och hashar om hela registret — ÖPPEN, registerägaren
+- **Var:** `gridex_registry_import.route_source_v1` anropar `gridex_ediel_ack_replay.lock_current_graph_v2()`. Den tar `SHARE`-lås på bland annat `auth.users`, `companies`, `meter_reading_series`, `metering_permissions` och `ediel_ack_transaction_results`. Därefter låser den 6 registertabeller till i `SHARE`.
+- **Varför segt:** `SHARE` krockar med `ROW EXCLUSIVE`. Medan en route läses väntar alltså varje insert eller update på mätvärden, inloggningar (`auth.users`) och ACK-resultat, och tvärtom. En visning av adminsidan är 300 sådana läsningar, cirka 8 s databastid. Det är samma mönster som L1, men här i en ren läsväg.
+- **Förslag, inte gjort (registerägarens SQL och GEN):** en batchvariant, till exempel `ediel_registry_route_sources_v1(uuid[])`, som tar låsen en gång och verifierar varje källbatch hash en gång. Alla kontroller per route ska vara identiska, och ett ekvivalenstest ska visa att batchresultatet är lika med enkelläsningen för varje route, även för hållna fall. Det sänker 300 × 27 ms till cirka 27 ms + 300 × cirka 1 ms.
+
+### F31 Aktörsregistret visar och söker bara i ett urval — ÖPPEN (liten)
+- **Var:** sidan läser de 500 senast uppdaterade aktörerna och 300 routes utan ordning. Sökningen filtrerar i appen efter den gränsen.
+- **Följd:**
+  - I drift (649 aktörer, 1 160 routes) går 149 aktörer inte att hitta eller verifiera i vyn.
+  - Routes saknas slumpmässigt per aktör, så kortet kan säga "Route saknas" fast route finns.
+  - Räknaren "verifierade routes" blir för låg.
+- **Sökningen matchar inte Ediel-ID:** den matchar namn, org.nr, källa och antal routes. En operatör som söker "16700" får inga träffar. Simuleringen söker därför på namn.
+- **Förslag:** filtrera i databasen (namn, org.nr, Ediel-ID via `platform_actor_identifiers`) innan gränsen, och läs routes för de aktörer som visas.
 
 ### Korrekta spärrar som simuleringen bekräftade (inte fel)
 Go-live kräver:
