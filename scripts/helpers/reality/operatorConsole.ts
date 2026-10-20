@@ -151,7 +151,7 @@ export async function materializeTenantRoutes(context: BrowserContext, companyId
   const clicks: Array<{ button: string; route: string; actionStatus: number; code: string | null }> = []
   for (const name of [environment === 'production' ? 'Materialisera production-route' : 'Materialisera test-route']) {
     const done = new Set<string>()
-    for (let attempt = 0; attempt < 10; attempt++) {
+    for (let attempt = 0; attempt < 15; attempt++) {
       const page = await context.newPage()
       await page.goto(`/admin/ediel/route-readiness?q=${edielId}&env=${environment}`)
       const forms = page.locator(`form:has(input[name="companyId"][value="${companyId}"])`).filter({ has: page.getByRole('button', { name }) })
@@ -164,7 +164,9 @@ export async function materializeTenantRoutes(context: BrowserContext, companyId
         if (!done.has(route)) { target = { index, route }; break }
       }
       if (!target) {
-        if (attempt === 0) clicks.push({ button: name, route: 'none', actionStatus: 0, code: `not_found forms=${await forms.count()} cards=${await page.locator(`input[name="companyId"][value="${companyId}"]`).count()} text=${(await page.locator('main').innerText().catch(() => '')).replace(/\s+/g, ' ').slice(0, 200)}` })
+        // The streamed page can still hold the cards in its hidden boundary when the load event fires; retry.
+        if (done.size === 0 && attempt < 5) { await page.close(); await new Promise(resolve => setTimeout(resolve, 5_000)); continue }
+        if (done.size === 0) clicks.push({ button: name, route: 'none', actionStatus: 0, code: `not_found forms=${await forms.count()} cards=${await page.locator(`input[name="companyId"][value="${companyId}"]`).count()} text=${(await page.locator('#admin-main').innerText().catch(() => '')).replace(/\s+/g, ' ').slice(0, 200)}` })
         await page.close(); break
       }
       done.add(target.route)
