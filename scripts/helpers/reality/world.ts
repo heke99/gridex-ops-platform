@@ -66,8 +66,10 @@ export function vercelCronPaths(): Array<{ path: string; schedule: string }> {
  */
 let slotIndex = 0
 export async function runOperationalCronSlot() {
+  // Every-minute crons ("* * * * *") run in every slot, first; the others at their minute offset.
   const frequent = vercelCronPaths()
-    .map(c => ({ ...c, every: Number(/^\d+-\d+\/(\d+) \* \* \* \*$/.exec(c.schedule)?.[1] ?? 0), minute: Number(c.schedule.split('-')[0]) }))
+    .map(c => c.schedule === '* * * * *' ? { ...c, every: 5, minute: -1 }
+      : { ...c, every: Number(/^\d+-\d+\/(\d+) \* \* \* \*$/.exec(c.schedule)?.[1] ?? 0), minute: Number(c.schedule.split('-')[0]) })
     .filter(c => [5, 10, 15].includes(c.every))
     .sort((a, b) => (a.minute % 5) - (b.minute % 5) || a.minute - b.minute)
   const results: Array<{ path: string; status: number; ms: number; body: unknown }> = []

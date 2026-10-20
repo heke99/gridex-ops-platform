@@ -286,6 +286,7 @@
     "20261020240000_internal_contract_binding_reuses_channel_publication.sql": "608dcf89613e3fce7c95fb44ce3804cff3124b8b93029f98d379e5aa08a16cf0",
     "20261020250000_tenant_staff_signed_agreement_import_permission.sql": "26fe7647c496cad797373db4a30889ec78b842ab1f164ab20a55c83351db392d",
     "20261020260000_signed_agreement_import_reuses_bound_price_snapshot.sql": "7520ccd4815d805d14076510d824b0e033109602de0ea5048e65783e17d765d6",
-    "20261020270000_tenant_ediel_operation_permissions.sql": "85d72bad469d6df6c7059434bfe442b8e3208b46acd0d955f7e3b3582c2ad294"
+    "20261020270000_tenant_ediel_operation_permissions.sql": "85d72bad469d6df6c7059434bfe442b8e3208b46acd0d955f7e3b3582c2ad294",
+    "20261020280000_ediel_envelope_index_execute.sql": "932c8ab5ca97e6bdeb922d4d2ad1e558d96c5a23cccc6cda5b7ef7efb1de2a1c"
   }
 }
