@@ -20,6 +20,7 @@ export default function CompanyUserInviteForm({
       <input type="hidden" name="company_id" value={companyId} />
       <input
         name="email"
+        aria-label="E-post för inbjudan"
         type="email"
         required
         placeholder="namn@bolag.se"
@@ -27,10 +28,11 @@ export default function CompanyUserInviteForm({
       />
       <input
         name="full_name"
+        aria-label="Namn för inbjudan"
         placeholder="Namn"
         className="rounded-2xl border border-slate-300 px-4 py-3 text-sm"
       />
-      <select name="role_key" defaultValue="company_admin" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm">
+      <select name="role_key" aria-label="Systemroll för inbjudan" defaultValue="company_admin" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm">
         {COMPANY_USER_ROLE_OPTIONS.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
