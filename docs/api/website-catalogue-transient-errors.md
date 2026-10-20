@@ -42,3 +42,19 @@ synthetic upstream reads. It covers transport shapes, existing timeout/lock erro
 typed failures, query/auth rejection before data access and successful conditional
 HTTP304. Native verification uses read-only catalogue/price flows, never an
 original signing replay or a new agreement.
+
+## Catalogue identity reads
+
+On a fingerprint miss the catalogue uses the existing live, active-company
+reference loader. It does not calculate the full integration-context readiness
+object, whose automation/mail/facility diagnostics were discarded by this route.
+Authentication, scope/rate-limit checks, tenant-bound fingerprint, canonical
+publication graph, price-option/legal validation and diagnostics are unchanged.
+The separate integration-context and customer-application readiness paths retain
+their full checks. No authorization result is cached across requests.
+
+`__tests__/website-catalogue-identity-read.test.ts` executes the real GET and
+reference loader with synthetic database I/O: one identity read suffices for a
+valid catalogue; suspended/archived/missing organizations and transient database
+failure retain their error behavior. Existing ETag, OpenAPI, concurrent tenant
+error-attribution and full website-operation regressions remain in place.
