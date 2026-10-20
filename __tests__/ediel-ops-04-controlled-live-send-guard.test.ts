@@ -40,7 +40,7 @@ const INC='00000000-0000-4000-8000-0000000000a1',ROUTE='00000000-0000-4000-8000-
 const CERT='00000000-0000-4000-8000-0000000000c1',PROF='00000000-0000-4000-8000-0000000000d1',CP='00000000-0000-4000-8000-0000000000e1'
 const MSG='00000000-0000-4000-8000-000000000001',AGR='00000000-0000-4000-8000-0000000000e2',MAN='00000000-0000-4000-8000-0000000000e3',ORIGINAL='00000000-0000-4000-8000-0000000000f2'
 const profile='00000000-0000-4000-8000-000000000003',pack='00000000-0000-4000-8000-000000000004'
-const snapshot={profileKey:'UTILTS:E66:25-A-4',profileVersionId:profile,version:'25-A-4',checksum:'a'.repeat(64)}
+const snapshot={profileKey:'UTILTS:E66:25-A-5',profileVersionId:profile,version:'25-A-5',checksum:'a'.repeat(64)}
 const actor='synthetic-operator'
 const tlsHeaders=['Authentication-Results: mx.mailbox.example.invalid; spf=pass smtp.mailfrom=own.example.invalid',
  'Received: from smtp.provider.example.invalid (smtp.provider.example.invalid [192.0.2.10])\r\n\tby mx.mailbox.example.invalid with ESMTPS id r2; Mon, 05 Oct 2026 10:00:02 +0200',
