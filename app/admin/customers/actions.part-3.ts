@@ -245,7 +245,10 @@ export async function createCustomerAction(
       ...gridOwnerResolution.warnings,
       ...supplierResolution.warnings,
     ];
-    const allWarnings = [...duplicateWarnings, ...masterdataWarnings];
+    const documentWarnings = Array.isArray(customer.__documentWarnings)
+      ? customer.__documentWarnings
+      : [];
+    const allWarnings = [...duplicateWarnings, ...masterdataWarnings, ...documentWarnings];
     const usedExistingCustomer = customer.__createdNewCustomer === false;
     const uploadedDocumentLabels = Array.isArray(
       customer.__uploadedDocumentLabels,

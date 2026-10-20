@@ -18,7 +18,7 @@ import { getContractOfferById } from "@/lib/customer-contracts/db"
 import { SWEDISH_STANDARD_VAT_RATE } from "@/lib/pricing/vat"
 
 import { saveCustomerAuthorizationDocument } from "@/lib/operations/db"
-import { signedAgreementDocumentTiming } from "@/lib/customer-contracts/signingMethod"
+import { recordSignedAgreementDocument } from "@/lib/customer-contracts/importSignedAgreement"
 
 
 import { processManualCustomerIntake, processPdfCustomerIntake } from "@/lib/customer-operations/customerIntakeOrchestrator"
@@ -44,11 +44,12 @@ export async function uploadCustomerIntakeDocuments(params: {
   gridInvoiceFile: File | null;
   authorizationValidFrom: string | null;
   authorizationValidTo: string | null;
-}): Promise<IntakeDocumentUploadResult> {
-  const result: IntakeDocumentUploadResult = {
+}): Promise<IntakeDocumentUploadResult & { warnings: string[] }> {
+  const result: IntakeDocumentUploadResult & { warnings: string[] } = {
     uploadedDocumentIds: [],
     powerOfAttorneyId: null,
     uploadedLabels: [],
+    warnings: [],
   };
 
   if (!params.signedAgreementFile && !params.signedPowerOfAttorneyFile && !params.gridInvoiceFile) {
@@ -169,62 +170,69 @@ export async function uploadCustomerIntakeDocuments(params: {
     });
   }
 
-  if (params.signedAgreementFile) {
+  if (params.signedAgreementFile && !params.contractId) {
+    result.warnings.push(
+      "Det signerade avtalet registrerades inte eftersom inget avtal skapades. Ladda upp det på kundkortet när avtalet finns.",
+    );
+  } else if (params.signedAgreementFile && params.contractId) {
     const uploaded = await uploadFile(
       params.signedAgreementFile,
       "complete_agreement",
     );
-    const signedAgreementTiming = signedAgreementDocumentTiming({
-      declaredSignedDate: params.signedAgreementDeclaredDate,
-    });
 
-    const document = await saveCustomerAuthorizationDocument(supabase, {
-      companyId: params.companyId,
-      customer_id: params.customerId,
-      site_id: params.siteId,
-      metering_point_id: params.meteringPointId,
-      customer_contract_id: params.contractId,
-      document_type: "complete_agreement",
-      status: "active",
-      title: "Signerat avtal från kundintag",
-      file_name: params.signedAgreementFile.name || null,
-      mime_type: params.signedAgreementFile.type || null,
-      file_size_bytes: params.signedAgreementFile.size || null,
-      storage_bucket: bucket,
-      file_path: uploaded.filePath,
-      file_checksum: uploaded.checksum,
-      reference: params.contractId
-        ? `CONTRACT-${params.contractId.slice(0, 8)}`
-        : null,
-      notes: "Uppladdat vid kundskapande.",
-      // Real upload time; the canonical import uses metadata.declaredSignedDate
-      // as the signing date and records the import time separately.
-      uploaded_at: signedAgreementTiming.uploaded_at,
-      metadata: {
-        source: "customer_intake",
-        documentRole: "signed_agreement",
-        ...signedAgreementTiming.metadata,
-      },
-    });
-
-    result.uploadedDocumentIds.push(document.id);
-    result.uploadedLabels.push("signerat avtal");
-
-    await insertAuditLog({
-      actorUserId: params.actorUserId,
-      companyId: params.companyId,
-      entityType: "customer_authorization_document",
-      entityId: document.id,
-      action: "customer_intake_document_uploaded",
-      newValues: document as unknown as Record<string, unknown>,
-      metadata: {
+    // The customer graph is already committed: like the customer card, an
+    // import refusal is reported and the contract stays pending_signature,
+    // never a "could not be saved" for a saved customer (FINDINGS F61).
+    let document: Awaited<ReturnType<typeof recordSignedAgreementDocument>> | null = null;
+    try {
+      document = await recordSignedAgreementDocument({
+        companyId: params.companyId,
         customerId: params.customerId,
+        contractId: params.contractId,
         siteId: params.siteId,
         meteringPointId: params.meteringPointId,
+        actorUserId: params.actorUserId,
+        filePath: uploaded.filePath,
+        checksum: uploaded.checksum,
+        fileName: params.signedAgreementFile.name || null,
+        mimeType: params.signedAgreementFile.type || null,
+        fileSizeBytes: params.signedAgreementFile.size || null,
+        title: "Signerat avtal från kundintag",
+        notes: "Uppladdat vid kundskapande.",
+        declaredSignedDate: params.signedAgreementDeclaredDate ?? null,
+      });
+    } catch (error) {
+      console.error("[customer-intake] signed agreement import failed", {
+        companyId: params.companyId,
         contractId: params.contractId,
-        documentType: "complete_agreement",
-      },
-    });
+        error: error instanceof Error ? error.message : String(error),
+      });
+      await supabaseService.storage.from(bucket).remove([uploaded.filePath]).catch(() => undefined);
+      result.warnings.push(
+        "Kunden sparades, men det signerade avtalet kunde inte registreras. Avtalet väntar på signatur; ladda upp det signerade avtalet på kundkortet.",
+      );
+    }
+
+    if (document) {
+      result.uploadedDocumentIds.push(document.id);
+      result.uploadedLabels.push("signerat avtal");
+
+      await insertAuditLog({
+        actorUserId: params.actorUserId,
+        companyId: params.companyId,
+        entityType: "customer_authorization_document",
+        entityId: document.id,
+        action: "customer_intake_document_uploaded",
+        newValues: document as unknown as Record<string, unknown>,
+        metadata: {
+          customerId: params.customerId,
+          siteId: params.siteId,
+          meteringPointId: params.meteringPointId,
+          contractId: params.contractId,
+          documentType: "complete_agreement",
+        },
+      });
+    }
   }
 
   if (params.gridInvoiceFile) {
@@ -671,6 +679,8 @@ export type CustomerGraphResult = CustomerGraphRow & {
   __createdPowerOfAttorneyId: string | null
   __createdCurrentSupplierName: string | null
   __uploadedDocumentLabels?: string[]
+  /** Post-commit document outcomes the employee must act on (e.g. a refused signed-agreement import). */
+  __documentWarnings?: string[]
   /** Outcome of the automatic signing-link send; null when not requested or no contract. */
   __signingLink?: AutoSendSigningLinkResult | null
 }
@@ -1124,6 +1134,7 @@ export async function createCustomerGraph(
     __createdNewCustomer: result.created_new_customer,
     __reusedExistingSite: !result.created_new_customer && Boolean(result.site_id),
     __uploadedDocumentLabels: documentUpload.uploadedLabels,
+    __documentWarnings: documentUpload.warnings,
     __createdSiteId: result.site_id,
     __createdMeteringPointId: result.metering_point_id,
     __createdGridOwnerId: normalizedGridOwnerId,

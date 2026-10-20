@@ -299,6 +299,7 @@ async function completeContractSigningChoice(input: {
         contractId: input.contractId,
         siteId: input.siteId,
         meteringPointId: input.meteringPointId,
+        actorUserId: input.actorUserId,
         file: input.file,
         declaredSignedDate: input.choice.signedDate,
       })
