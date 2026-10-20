@@ -1539,8 +1539,33 @@
     {
       "id": "DB-05",
       "acceptance_id": "AT-DB-05",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/retention/decisionEvidenceRetention.ts",
+        "lib/ediel/retention/decisionEvidenceRetentionHttp.ts",
+        "lib/ediel/retention/decisionEvidenceClasses.ts",
+        "lib/ediel/retention/customerLifecycleRetention.ts",
+        "app/api/internal/customer-operations/cron/route.ts",
+        "app/retention/decision-evidence/workspace.tsx",
+        "supabase/migrations/20261005130000_hard_delete_guard_companies_customers.sql",
+        "supabase/migrations/20261008160000_db05_closed_tenant_retention_scope.sql",
+        "supabase/migrations/20261011121542_db05_retained_audit_ediel_journals.sql",
+        "supabase/migrations/20261012193000_db05_retention_clock_after_lock.sql",
+        "supabase/migrations/20261019180000_db05_completed_decision_review_reason_retention.sql",
+        "supabase/migrations/20261019180100_db05_completed_review_witness_consumer_freeze.sql",
+        "supabase/migrations/20261019180200_db05_completed_witness_field_disposition.sql",
+        "supabase/migrations/20261019180300_db05_completed_parent_purpose_disposition.sql",
+        "supabase/migrations/20261019180400_db05_qualified_audit19_cleanup.sql",
+        "supabase/migrations/20261019180500_db05_audit19_archived_permission.sql",
+        "__tests__/db-05-closed-tenant-retention-admission.test.ts",
+        "__tests__/db-05-completed-review-witness-consumer-freeze.test.ts",
+        "__tests__/db-05-completed-witness-field-disposition.test.ts",
+        "__tests__/db-05-retained-audit-ediel-journals.test.ts",
+        "__tests__/db-05-retention-clock-after-lock.test.ts",
+        "__tests__/db-05-tenant-end-access-revoke.test.ts",
+        "__tests__/ediel-db05-audit19-cleanup-sql.test.ts",
+        "__tests__/ediel-db05-completed-parent-purpose-sql.test.ts"
+      ]
     },
     {
       "id": "DB-06",
@@ -3893,8 +3918,33 @@
     },
     {
       "id": "AT-DB-05",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/retention/decisionEvidenceRetention.ts",
+        "lib/ediel/retention/decisionEvidenceRetentionHttp.ts",
+        "lib/ediel/retention/decisionEvidenceClasses.ts",
+        "lib/ediel/retention/customerLifecycleRetention.ts",
+        "app/api/internal/customer-operations/cron/route.ts",
+        "app/retention/decision-evidence/workspace.tsx",
+        "supabase/migrations/20261005130000_hard_delete_guard_companies_customers.sql",
+        "supabase/migrations/20261008160000_db05_closed_tenant_retention_scope.sql",
+        "supabase/migrations/20261011121542_db05_retained_audit_ediel_journals.sql",
+        "supabase/migrations/20261012193000_db05_retention_clock_after_lock.sql",
+        "supabase/migrations/20261019180000_db05_completed_decision_review_reason_retention.sql",
+        "supabase/migrations/20261019180100_db05_completed_review_witness_consumer_freeze.sql",
+        "supabase/migrations/20261019180200_db05_completed_witness_field_disposition.sql",
+        "supabase/migrations/20261019180300_db05_completed_parent_purpose_disposition.sql",
+        "supabase/migrations/20261019180400_db05_qualified_audit19_cleanup.sql",
+        "supabase/migrations/20261019180500_db05_audit19_archived_permission.sql",
+        "__tests__/db-05-closed-tenant-retention-admission.test.ts",
+        "__tests__/db-05-completed-review-witness-consumer-freeze.test.ts",
+        "__tests__/db-05-completed-witness-field-disposition.test.ts",
+        "__tests__/db-05-retained-audit-ediel-journals.test.ts",
+        "__tests__/db-05-retention-clock-after-lock.test.ts",
+        "__tests__/db-05-tenant-end-access-revoke.test.ts",
+        "__tests__/ediel-db05-audit19-cleanup-sql.test.ts",
+        "__tests__/ediel-db05-completed-parent-purpose-sql.test.ts"
+      ]
     },
     {
       "id": "AT-DB-06",
