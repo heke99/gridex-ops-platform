@@ -14,11 +14,11 @@ import { join } from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
 import { supabaseService } from '@/lib/supabase/service'
 import { configureTenant, literal, sql, type LiveTenant } from '../helpers/live-chain-fixture'
-import { addGridOwnerContactChannel, checkGridOwners, closeOperatorConsole, importActorRegistry, operatorSession, sanitizedActorRegistry,
-  submitManualIntake, verifyActorForCustomerFlow } from '../helpers/reality/operatorConsole'
+import { addGridOwnerContactChannel, checkGridOwners, closeOperatorConsole, confirmSafeBlankSubaddresses, importActorRegistry, operatorSession,
+  sanitizedActorRegistry, searchGridOwnerCertificate, submitManualIntake, verifyActorForCustomerFlow } from '../helpers/reality/operatorConsole'
 import { configurePlatformManualMailbox } from '../helpers/reality/tenantWebsite'
 import { createTenantStaff } from '../helpers/reality/tenantStaff'
-import { runOperationalCronSlot } from '../helpers/reality/world'
+import { prepareMarketData, runOperationalCronSlot } from '../helpers/reality/world'
 
 const GRID_OWNER_EDIEL_ID = '16700'
 const GRID_OWNER_NAME = 'Alingsås Energi Elnät AB'
@@ -68,11 +68,21 @@ describe.sequential('reality D — manual customer intake by a tenant employee',
     tenant = await configureTenant(supabaseService as never)
     // Platform staff: Ediel's actor registry, the area's grid owner verified for the customer flow and its
     // facility-information contact, and the platform's manual-operations mailbox.
+    // Same platform steps as scenario A1, so D also runs on a fresh world: SVK grid areas, the verified
+    // actor, its S/MIME certificate (Expisoft simulator) and the registry's safe blank subaddresses.
     const staffOperator = await operatorSession(tenant.operatorEmail, tenant.operatorPassword)
-    report.registryImport = await importActorRegistry(staffOperator, sanitizedActorRegistry().path)
+    const registry = sanitizedActorRegistry()
+    report.registryImport = await importActorRegistry(staffOperator, registry.path)
+    report.marketData = await prepareMarketData()
     report.gridOwnerVerification = await verifyActorForCustomerFlow(staffOperator, GRID_OWNER_NAME)
-    report.gridOwnerCheck = await checkGridOwners(staffOperator)
+    await fetch('http://127.0.0.1:3902/__sim/actor', { method: 'POST', body: JSON.stringify({ edielId: GRID_OWNER_EDIEL_ID, name: GRID_OWNER_NAME, email: registry.mailboxFor(GRID_OWNER_EDIEL_ID) }) })
     const gridOwnerId = sql<string>(`SELECT to_jsonb(id::text) FROM public.grid_owners WHERE ediel_id=${literal(GRID_OWNER_EDIEL_ID)} AND company_id IS NULL`)
+    report.gridOwnerCertificate = await searchGridOwnerCertificate(staffOperator, gridOwnerId)
+    report.gridOwnerSubaddress = await confirmSafeBlankSubaddresses(staffOperator)
+    report.gridOwnerCheck = await checkGridOwners(staffOperator)
+    expect(sql<boolean>(`SELECT verified_for_customer_flow FROM public.grid_owners WHERE id=${literal(gridOwnerId)}`), JSON.stringify(report)).toBe(true)
+    // Papilite's postal centroid for the facility's postcode (external-world simulator), as in scenario A2.
+    await fetch('http://127.0.0.1:3901/__sim/geocode', { method: 'POST', body: JSON.stringify({ postal_code: '441 30', latitude: 57.9303, longitude: 12.534 }) })
     report.contactChannel = await addGridOwnerContactChannel(staffOperator, gridOwnerId, GRID_OWNER_FACILITY_CONTACT)
     configurePlatformManualMailbox()
     // The tenant's own employee does the intake.
@@ -106,7 +116,8 @@ describe.sequential('reality D — manual customer intake by a tenant employee',
     report.storedPoaSha256 = storedPoa ? sha256(storedPoa) : null
     expect(stored.registeredAddress).toBe(1)
     expect(stored.sites).toEqual([{ grid_owner: true, company: true }])
-    expect(poa, JSON.stringify(stored)).toMatchObject({ company: true, hash: sha256(poaPdf) })
+    // A private customer signs for themself (owner decision F66): the fullmakt carries signer and method.
+    expect(poa, JSON.stringify(stored)).toMatchObject({ company: true, hash: sha256(poaPdf), signer: `${person.firstName} ${person.lastName}`, method: 'pdf_upload' })
     expect(report.storedPoaSha256).toBe(sha256(poaPdf))
     expect((stored.documents as Array<Record<string, unknown>>).find(d => d.type === 'power_of_attorney')).toMatchObject({ status: 'active', company: true, checksum: sha256(poaPdf), poa: true })
     expect(stored.scopes).toEqual(expect.arrayContaining([expect.objectContaining({ grid_owner_data: true, status: 'active' })]))
