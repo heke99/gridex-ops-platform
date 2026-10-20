@@ -40,6 +40,17 @@ export default async function EdielProcessWatchesPage({searchParams}:{searchPara
      <div><dt className="font-semibold">Affärsbevakning till</dt><dd>{d.timeBasis.businessDueAt??'Ingen numerisk tidsgräns i källbeslutet'}</dd></div><div><dt className="font-semibold">Teknisk bevakning till</dt><dd>{d.timeBasis.technicalDueAt??'Ingen aktiv teknisk tidsgräns'}</dd></div>
      <div><dt className="font-semibold">Blockerare</dt><dd>{d.blockers.length?'Källbeslutet kräver granskning':'Ingen aktuell blockerare i detta källbeslut'}</dd></div><div><dt className="font-semibold">Tillåtna åtgärder</dt><dd>{d.allowedActions.map(action=>action==='read_source'?'Läsa källbeslut':'Granska ärendet').join(', ')||'Aktuell läsbehörighet krävs'}</dd></div>
     </dl>
+    {Boolean(d.reportingObligations?.length)&&<section className="mt-4 space-y-2 border-t pt-3" aria-label="Separata rapporterings- och ändringsfrister">
+     <h3 className="font-semibold">Separata rapporterings- och ändringsfrister</h3>
+     <p className="text-sm text-slate-600">Meddelandets bevakningsdag fastställer inte dessa frister. Ett affärssvar eller en kvittens bevisar inte att rapporteringen har startat.</p>
+     <dl className="space-y-2 text-sm">{d.reportingObligations?.map(obligation=><div key={obligation.kind}>
+      <dt className="font-semibold">{obligation.kind==='supplier_method_notice'?'Leverantörsunderrättelse':obligation.kind==='physical_method_completion'?'Fysisk mätmetodsändring':'Rapporteringsstart till berättigad part'}</dt>
+      <dd>{obligation.status==='held'
+       ?`Kan inte fastställas: ${obligation.kind==='esco_reporting_start'?'kundens godkännandetid och underlaget för avräkningsmetod behöver styrkas.':'mottagandet av fullständig begäran och behovet av mätmetodsändring behöver styrkas.'}`
+       :obligation.status==='not_applicable'?'Ingen ändring krävs enligt det kvalificerade underlaget.'
+       :`Bevakningsdatum ${obligation.dueDay}. Datumet fastställer inte en rättslig överträdelse eller faktisk leverans.`}</dd>
+     </div>)}</dl>
+    </section>}
    </article>)}
   </>}
  </main></div>

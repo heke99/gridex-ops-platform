@@ -3,6 +3,8 @@ import { readEdielBusinessExpectations } from '@/lib/ediel/businessExpectations'
 import { readEdielMeteringMethodExpectations } from '@/lib/ediel/meteringMethodExpectations'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { tenantDb } from '@/lib/supabase/tenantDb'
+import { reportingObligationContext } from '@/lib/ediel/operations/reportingObligationContext'
+import type { ObligationAssessment } from '@/lib/ediel/rulebook/reportingObligationPolicy'
 
 type Source = Pick<EdielMessageRow,'id'|'company_id'|'environment'|'direction'|'message_family'|'message_code'|'status'|'requires_contrl'|'contrl_status'|'contrl_due_at'|'requires_aperak'|'aperak_status'>
 export type EdielProcessActionVisibility = Readonly<{canRead:boolean;canReview:boolean;canPrepare:boolean}>
@@ -12,9 +14,16 @@ export type EdielProcessNextAction = Readonly<{
   allowedActions:readonly ('read_source'|'review_case')[];summary:string;
   timeBasis:Readonly<{anchor:'actual_accepted_smtp_observed_at'|'z09_validity_day';anchorAt:string|null;businessDueAt:string|null;technicalDueAt:string|null;remoteReceiptKnown:false;timerKind:'internal_sender_watch'|'untimed_business_response'|'source_validity_day_watch'|null;validityDay?:string|null;dueDay?:string|null;actualAcceptedAt?:string|null}>;
   authorizesProviderEntry:false;automaticResendAllowed:false;
+  reportingObligations?:readonly ObligationAssessment[];
 }>
 const responses:Readonly<Record<string,string>>=Object.freeze({Z01:'Z02',Z13:'Z14',Z18:'Z15'})
 const timestamp=(value:unknown)=>typeof value==='string'&&Number.isFinite(Date.parse(value))?new Date(value).toISOString():null
+
+function obligationFields(sourceCode:string|null,validated:boolean,businessState:string):Pick<EdielProcessNextAction,'reportingObligations'>{
+ if(sourceCode!=='Z09'&&sourceCode!=='Z13')return {}
+ const rows=reportingObligationContext({sourceKind:sourceCode==='Z09'?'outbound_method_watch':'outbound_esco_request',currentOwnerScopeValidated:validated,businessState})
+ return rows.length?{reportingObligations:rows}:{}
+}
 
 /** Read-only display of an actual native owner decision, never operation
  * authorization. Each form/API/dispatch keeps its own fresh permission/source
@@ -29,6 +38,7 @@ export function deriveEdielProcessNextAction(input:{companyId:string;message:Sou
   version:1,sourceMessageId:m.id,cause,responsibility,waitingFor:Object.freeze(waitingFor),blockers:Object.freeze(blockers),summary,
   allowedActions:Object.freeze(visible?['read_source' as const,...(access.canReview&&blockers.length?['review_case' as const]:[])]:[]),
   timeBasis:Object.freeze({anchor:'actual_accepted_smtp_observed_at' as const,anchorAt,businessDueAt,technicalDueAt,remoteReceiptKnown:false as const,timerKind}),authorizesProviderEntry:false,automaticResendAllowed:false,
+  ...obligationFields(m.message_code,visible&&cause!=='source_context_held',e.status),
  })
  if(!sameScope||m.direction!=='outbound'||m.message_family!=='PRODAT'||responses[m.message_code??'']!==e.expected_code||e.source_message_id!==m.id
   ||!evaluatedAt||!anchorAt||Date.parse(evaluatedAt)<Date.parse(anchorAt)||metadata.anchorType!=='actual_accepted_smtp_observed_at'||metadata.remoteReceiptKnown!==false
@@ -73,6 +83,7 @@ export function deriveEdielMeteringMethodProcessNextAction(input:Parameters<type
   allowedActions:Object.freeze(visible?['read_source' as const,...(access.canReview&&blockers.length?['review_case' as const]:[])]:[]),
   timeBasis:Object.freeze({anchor:'z09_validity_day' as const,anchorAt:validityDay,validityDay,dueDay,actualAcceptedAt:acceptedAt,businessDueAt,technicalDueAt,
    remoteReceiptKnown:false as const,timerKind:'source_validity_day_watch' as const}),authorizesProviderEntry:false,automaticResendAllowed:false,
+  ...obligationFields(m.message_code,visible&&cause!=='source_context_held',e.status),
  })
  if(m.company_id!==input.companyId||m.direction!=='outbound'||m.message_family!=='PRODAT'||m.message_code!=='Z09'||e.expected_code!=='Z06'||e.source_message_id!==m.id
   ||meta.anchorType!=='z09_validity_day'||meta.timerKind!=='source_validity_day_watch'||meta.timerRuleId!=='TM-METHOD40'
