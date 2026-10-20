@@ -96,7 +96,8 @@ export async function recalculateCompanyOnboardingReadiness(
       c().from("ediel_actor_settings").select("id", { count: "exact", head: true }).eq("company_id", companyId).eq("environment", "production").eq("is_active", true),
     ),
     countRows(() =>
-      c().from("ediel_brp_settings").select("id", { count: "exact", head: true }).eq("company_id", companyId),
+      // Same rule as gridex_reconcile_company_onboarding_tasks_v1: an active production BRP.
+      c().from("ediel_brp_settings").select("id", { count: "exact", head: true }).eq("company_id", companyId).eq("environment", "production").eq("is_active", true).neq("brp_ediel_id", ""),
     ),
     countRows(() =>
       c().from("ediel_mailboxes").select("id", { count: "exact", head: true }).is("company_id", null),

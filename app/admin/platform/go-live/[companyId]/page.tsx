@@ -28,6 +28,13 @@ import {
 import { TenantWebsiteGoLivePanel } from "@/components/admin/go-live/TenantWebsiteGoLivePanel";
 import { CertificationEvidencePanel } from "@/components/admin/go-live/CertificationEvidencePanel";
 import { approveCompanyProductionAction } from "@/app/admin/platform/go-live/approval-actions";
+import { saveTenantBrpAction } from "@/app/admin/platform/go-live/brp-actions";
+import {
+  listRegistryBalanceResponsibleActors,
+  listTenantBrpVersions,
+  type RegistryBalanceResponsibleActor,
+  type TenantBrpVersion,
+} from "@/lib/ediel/tenantBrp";
 import { formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = "force-dynamic";
@@ -96,7 +103,7 @@ export default async function PlatformGoLiveCompanyPage({
     return <div className="p-8">Bolaget hittades inte.</div>;
   }
 
-  const [readinessLoad, setupLoad, websiteLoad, evidenceLoad] = await Promise.all([
+  const [readinessLoad, setupLoad, websiteLoad, evidenceLoad, brpActorsLoad, brpVersionsLoad] = await Promise.all([
     safeLoad<ProductionReadinessResult>("production readiness", () =>
       getCompanyProductionReadiness(companyId, { checkedBy: admin.userId }),
     ),
@@ -109,6 +116,10 @@ export default async function PlatformGoLiveCompanyPage({
     safeLoad<EdielCertificationEvidenceSnapshot>("certification evidence", () =>
       getEdielCertificationEvidenceSnapshot(companyId),
     ),
+    safeLoad<RegistryBalanceResponsibleActor[]>("brp registry", () =>
+      listRegistryBalanceResponsibleActors(),
+    ),
+    safeLoad<TenantBrpVersion[]>("brp versions", () => listTenantBrpVersions(companyId)),
   ]);
 
   const readiness = readinessLoad.ok ? readinessLoad.data : null;
@@ -180,7 +191,7 @@ export default async function PlatformGoLiveCompanyPage({
 
         {notice?.message ? (
           <div
-            className={`rounded-3xl border p-5 text-sm font-semibold ${notice.status === "live" || notice.status === "prepared" ? "border-emerald-200 bg-emerald-50 text-emerald-900" : notice.status === "blocked" ? "border-amber-200 bg-amber-50 text-amber-900" : "border-red-200 bg-red-50 text-red-900"}`}
+            className={`rounded-3xl border p-5 text-sm font-semibold ${notice.status === "live" || notice.status === "prepared" || notice.status === "brp_saved" ? "border-emerald-200 bg-emerald-50 text-emerald-900" : notice.status === "blocked" ? "border-amber-200 bg-amber-50 text-amber-900" : "border-red-200 bg-red-50 text-red-900"}`}
           >
             {notice.message}
           </div>
@@ -216,6 +227,12 @@ export default async function PlatformGoLiveCompanyPage({
             </form>
           </div>
         </section>
+
+        <TenantBrpStep
+          companyId={companyId}
+          actors={brpActorsLoad.ok ? brpActorsLoad.data : null}
+          versions={brpVersionsLoad.ok ? brpVersionsLoad.data : null}
+        />
 
         <ActorCompanyIdentityCard summary={summary} />
 
@@ -268,5 +285,90 @@ export default async function PlatformGoLiveCompanyPage({
         </details>
       </div>
     </div>
+  );
+}
+
+function TenantBrpStep({
+  companyId,
+  actors,
+  versions,
+}: {
+  companyId: string;
+  actors: RegistryBalanceResponsibleActor[] | null;
+  versions: TenantBrpVersion[] | null;
+}) {
+  const today = new Date().toISOString().slice(0, 10);
+  const current = versions?.find(
+    (version) =>
+      version.isActive &&
+      (!version.validFrom || version.validFrom <= today) &&
+      (!version.validTo || version.validTo >= today),
+  );
+  const currentActor = actors?.find((actor) => actor.edielId === current?.brpEdielId);
+  return (
+    <section id="brp" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-600">Onboarding</p>
+      <h2 className="mt-2 text-xl font-black text-slate-950">Balansansvarig (BRP)</h2>
+      <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-700">
+        Välj bolagets balansansvariga ur Ediels aktörsregister. Varje leverantörsbyte (Z03) anger den BRP som gäller på startdatumet. En ändring blir en ny version från ett senare datum, och tidigare versioner sparas.
+      </p>
+      <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-slate-800">
+        {versions === null
+          ? "BRP-versioner kunde inte läsas."
+          : current
+            ? `Gäller idag: ${current.brpName} (${current.brpEdielId})${current.validFrom ? ` från ${current.validFrom}` : " utan startdatum"}.`
+            : "Ingen BRP gäller idag. Bolaget kan inte gå live förrän en BRP är vald."}
+      </div>
+      {versions && versions.length > 1 ? (
+        <ul className="mt-3 space-y-1 text-xs font-semibold text-slate-600">
+          {versions.map((version) => (
+            <li key={version.id}>
+              {version.brpName} ({version.brpEdielId}): {version.validFrom ?? "utan startdatum"} till {version.validTo ?? "tills vidare"}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {actors === null ? (
+        <p className="mt-4 text-sm font-semibold text-red-800">Aktörsregistret kunde inte läsas. Ladda om sidan.</p>
+      ) : actors.length === 0 ? (
+        <p className="mt-4 text-sm font-semibold text-amber-900">
+          Inga balansansvariga finns i aktörsregistret. Importera Ediels aktörslista under{" "}
+          <Link href="/admin/ediel/actors" className="underline">Ediel-aktörer</Link> först.
+        </p>
+      ) : (
+        <form action={saveTenantBrpAction} className="mt-5 grid gap-4 md:grid-cols-[2fr_1fr_auto] md:items-end">
+          <input type="hidden" name="company_id" value={companyId} />
+          <label className="grid gap-1 text-sm font-bold text-slate-950">
+            Balansansvarig
+            <select
+              name="brp_actor_id"
+              required
+              defaultValue={currentActor?.actorId ?? ""}
+              className="rounded-xl border border-slate-300 bg-white px-3 py-2 font-normal"
+            >
+              <option value="">Välj ur Ediels register</option>
+              {actors.map((actor) => (
+                <option key={actor.actorId} value={actor.actorId}>
+                  {actor.name} ({actor.edielId}){actor.verified ? "" : ", verifieras vid val"}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="grid gap-1 text-sm font-bold text-slate-950">
+            Gäller från
+            <input
+              type="date"
+              name="valid_from"
+              required
+              defaultValue={today}
+              className="rounded-xl border border-slate-300 bg-white px-3 py-2 font-normal"
+            />
+          </label>
+          <button className="rounded-2xl bg-emerald-700 px-5 py-2.5 text-sm font-black text-white hover:bg-emerald-800">
+            Spara BRP
+          </button>
+        </form>
+      )}
+    </section>
   );
 }
