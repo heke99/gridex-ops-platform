@@ -71,8 +71,8 @@ function map(source: string, tag: string): Record<string, string> {
 const originalHelper = definition(ownerDonor, 'gridex_ediel_retention.audit19_source_contract_v1')
 const predecessor = originalHelper.replace(oldBlobSlot, newBlobSlot)
 function stripMaps(source: string) {
-  return source.replace(/\$contracts\$.*?\$contracts\$/s, '<HASH_MAP>')
-    .replace(/\$signatures\$.*?\$signatures\$/s, '<SIGNATURE_MAP>')
+  return source.replace(/\$contracts\$[\s\S]*?\$contracts\$/, '<HASH_MAP>')
+    .replace(/\$signatures\$[\s\S]*?\$signatures\$/, '<SIGNATURE_MAP>')
 }
 async function source(signature: string) {
   return (await db.query<{ prosrc: string }>('select prosrc from pg_proc where oid=$1::regprocedure', [signature])).rows[0].prosrc
