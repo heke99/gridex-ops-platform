@@ -67,7 +67,20 @@ const sha256 = (bytes: string | Buffer) => createHash('sha256').update(bytes).di
 // Normalize only the exact reviewed native-log capture/redaction/upload delta
 // inside this historical finite Git port. No changed workflow becomes current
 // native proof; unknown bytes remain subject to the unchanged producer guard.
+// Invert only the exact reviewed two Action pins inside this historical finite
+// Git port. This never admits changed workflow bytes as current native proof.
+function reviewedActionPinWorkflow(bytes: Buffer) {
+  if (sha256(bytes) !== '6b1c6f212913167ae0e5ff81a9b98e8ffae93e13cf0f4681ca4075010e590428') return bytes
+  const current = 'supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1 (branch snapshot)'
+  const previous = 'supabase/setup-cli@v1'
+  const source = bytes.toString('utf8')
+  if (source.split(current).length !== 3) throw Error('fixture_reviewed_action_pin_inverse_count')
+  const restored = Buffer.from(source.split(current).join(previous))
+  if (sha256(restored) !== '64ff9c4237e559f40dffb28399ba70412e8c9a02b24804d45189d77031acd13e') throw Error('fixture_reviewed_action_pin_inverse_digest_mismatch')
+  return restored
+}
 function reviewedNativeEvidenceLoggingWorkflow(bytes: Buffer) {
+  bytes = reviewedActionPinWorkflow(bytes)
   if (sha256(bytes) !== '64ff9c4237e559f40dffb28399ba70412e8c9a02b24804d45189d77031acd13e') return bytes
   const corrections: [string, string][] = [
     [
@@ -728,7 +741,10 @@ it.each(['foreign_rule_status', 'foreign_at_status', 'foreign_evidence', 'spec',
 // The historical DDQ port restores known bytes only; it does not run native cases.
 it('historical workflow port restores the exact reviewed producer after bounded key-download retries', () => {
   const file = '.github/workflows/ops-hardening.yml', current = readFileSync(file)
-  expect(sha256(current)).toBe('64ff9c4237e559f40dffb28399ba70412e8c9a02b24804d45189d77031acd13e')
+  expect(sha256(current)).toBe('6b1c6f212913167ae0e5ff81a9b98e8ffae93e13cf0f4681ca4075010e590428')
+  const actionPinPreimage = reviewedActionPinWorkflow(current)
+  expect(sha256(actionPinPreimage)).toBe('64ff9c4237e559f40dffb28399ba70412e8c9a02b24804d45189d77031acd13e')
+  expect(reviewedActionPinWorkflow(actionPinPreimage)).toEqual(actionPinPreimage)
   const source = reviewedStorageLifecycleWorkflow(current)
   expect(sha256(source)).toBe('f1c03e2be5a38d2b41d96c2cfcb53259c6a2dd9af99f5a17311c693c91237d9d')
   const original = reviewedProducerFixture(file, source)
@@ -737,6 +753,9 @@ it('historical workflow port restores the exact reviewed producer after bounded 
 })
 it.each([
   ['unknown suffix', (source: string) => source + '\n# unreviewed workflow\n'],
+  ['foreign Action commit', (source: string) => source.replaceAll('supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb', 'supabase/setup-cli@' + 'b'.repeat(40))],
+  ['only one Action pin', (source: string) => source.replace('supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1 (branch snapshot)', 'supabase/setup-cli@v1')],
+  ['duplicate Action pin', (source: string) => source + '\n# supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1 (branch snapshot)\n'],
   ['changed key anchor', (source: string) => source.replace('media/keys/ACCC4CF8.asc', 'media/keys/unreviewed.asc')],
   ['missing download', (source: string) => source.replace(source.match(/          # Retry transient DNS\/transfer faults;[^\n]*\n(?:[^\n]*\n){4}/)![0], '')],
   ['duplicate download', (source: string) => source + source.match(/          # Retry transient DNS\/transfer faults;[^\n]*\n(?:[^\n]*\n){4}/)![0]],

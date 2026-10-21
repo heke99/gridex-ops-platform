@@ -13,6 +13,7 @@
 //   node scripts/ediel-masterplan-test-coverage.cjs          report only
 //   node scripts/ediel-masterplan-test-coverage.cjs --check  fail if an
 //     approved ID (VERIFIED/PASSED) has no tagged test, or a tagged test fails
+// An unsuccessful Vitest runner or incomplete report always fails, including report-only mode.
 //
 // The script never changes coverage.json. Approval stays a reviewed edit in
 // the same PR as the code and tests, after every expected and prohibited
@@ -75,16 +76,45 @@ if (taggedFiles.length) {
     encoding: 'utf8',
     maxBuffer: 256 * 1024 * 1024,
   })
-  let report
-  try {
-    report = JSON.parse(run.stdout.slice(run.stdout.indexOf('{')))
-  } catch {
-    console.error('Could not read the vitest JSON report.')
-    console.error(run.stderr.slice(-2000))
+  const failRun = (message) => {
+    console.error(message)
+    if (typeof run.stderr === 'string' && run.stderr) console.error(run.stderr.slice(-2000))
     process.exit(1)
   }
+  if (run.status !== 0 || run.error || run.signal) {
+    failRun(`Vitest runner failed (status ${run.status}, signal ${run.signal ?? 'none'}).`)
+  }
+  let report
+  try {
+    if (typeof run.stdout !== 'string' || !run.stdout.includes('{')) throw new Error('Missing JSON report')
+    report = JSON.parse(run.stdout.slice(run.stdout.indexOf('{')))
+  } catch {
+    failRun('Could not read the vitest JSON report.')
+  }
+  if (!report || report.success !== true || !Array.isArray(report.testResults)) {
+    failRun('Vitest did not report a successful test run.')
+  }
+  const expected = new Set(taggedFiles.map((file) => path.resolve(root, file)))
+  const seen = new Set()
   for (const result of report.testResults) {
-    if (result.status !== 'passed') failedFiles.add(path.relative(root, result.name))
+    if (!result || typeof result.name !== 'string' || !result.name) {
+      failRun('Vitest reported a result without a test file name.')
+    }
+    const file = path.resolve(root, result.name)
+    if (!expected.has(file) || seen.has(file)) {
+      failRun(`Vitest reported an unexpected or duplicate test file: ${result.name}`)
+    }
+    seen.add(file)
+    const assertions = result.assertionResults
+    if (result.status !== 'passed' || !Array.isArray(assertions)
+      || !assertions.some((assertion) => assertion?.status === 'passed')
+      || !assertions.every((assertion) => ['passed', 'pending', 'todo'].includes(assertion?.status))) {
+      failRun(`Vitest did not report passing tests for: ${result.name}`)
+    }
+  }
+  const missing = [...expected].filter((file) => !seen.has(file))
+  if (missing.length) {
+    failRun(`Vitest omitted requested test files: ${missing.map((file) => path.relative(root, file)).join(', ')}`)
   }
 }
 

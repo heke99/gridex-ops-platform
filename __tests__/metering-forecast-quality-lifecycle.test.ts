@@ -15,6 +15,14 @@ vi.mock('@/lib/analytics/dataQuality', () => ({
 vi.mock('@/lib/forecasting/consumptionProfiles', () => ({ getMonthlyWeightPercent: async () => 10 }))
 vi.mock('@/lib/supabase/service', () => ({
   supabaseService: {
+    async rpc(name: string) {
+      if (name !== 'gridex_forecast_metering_period_totals_v1') throw new Error('unexpected_rpc:' + name)
+      const row = io.canonicalHistory.shift() ?? { quantity_kwh: io.history.shift() ?? 0 }
+      return {
+        data: [{ total_kwh: Number(('value_kwh' in row ? row.value_kwh : null) ?? row.quantity_kwh ?? 0), value_count: 1 }],
+        error: io.valueError ? { message: typeof io.valueError === 'string' ? io.valueError : 'database_read_failed' } : null,
+      }
+    },
     from(table: string) {
       if (table === 'metering_points') {
         const query = {

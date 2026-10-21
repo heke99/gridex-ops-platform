@@ -243,6 +243,26 @@
     "20261018183448_manual_mail_automatic_application.sql": "d92f7ab706eb6bac415929255f218d38aa5e8f287bcad1c57f7438b9c590fc54",
     "20261019010000_manual_mail_multi_site_application.sql": "072b15204cf0ac6447c5cb6ec3599b111cecbcae52379fdb5fcfd9eb978c48e7",
     "20261019095200_manual_mail_supplier_terms_schema_prerequisites.sql": "525a17c43347c0fed0be60434418f90b078161c13bc93ce9f294d6eea5551923",
-    "20261018230141_restore_supply_deadline_runtime.sql": "a3881fd16a51bb12af8b7ff72a01c8bc6ba4ef0d44c78d49bf2b14aca931ba3d"
+    "20261018230141_restore_supply_deadline_runtime.sql": "a3881fd16a51bb12af8b7ff72a01c8bc6ba4ef0d44c78d49bf2b14aca931ba3d",
+    "20261020152427_db_billing_underlay_event_company_binding.sql": "1c8fd54322c2bf942885f871e15cfc4f9b9e0c34246270c2bd32d4337360c3e7",
+    "20261020152428_public_password_reset_budget.sql": "a76c8eb6c7d5a596d2d264d786d0b0a8cd7f9036901696c3d3f3abcd57ff7474",
+    "20261020154131_db_customer_document_contract_company_bindings.sql": "5ab955b2a09f425854013c57db774a403b67bdc7947e8389b038291be94301fd",
+    "20261020155348_retention_purge_post_lock_authority.sql": "0b6730f162e9f122c7bc69e305926f5c746795cdfa88c34c5eb870a3d071c441",
+    "20261020160626_forecast_metering_period_totals.sql": "fdc3eda2de7f7fa95124802d3a3658c33407bc946152640a5e5d946126272f47",
+    "20261020160633_customer_support_quota_atomic.sql": "6de2dca407e9fe7e9276ec485ab3e98056f1dffd6bd17d5356affd93d2ee2d45",
+    "20261020163100_forecast_point_inventory_snapshot.sql": "4ab975caedceb08fd66cba157d699c8ea47540fe2bbc2694f73a6951ed32333e",
+    "20261020163321_retention_storage_delete_post_lock_authority.sql": "2151204a44d45a1aa63005ffb804cf73e980f911ae015a09d6e4348f6cb10280",
+    "20261020164020_anonymize_user_profile_optional_columns.sql": "0826b88190c925d215c33a512307725eb6e74d7114722a0f26982739dcd738d9",
+    "20261020165029_db_customer_document_entity_company_bindings.sql": "ae8b220997f8f7fe591c23a6e4b224deeaa7f8b2dae85d84a1b06c27676dd2d0",
+    "20261020180847_audit19_customer_support_consumer_contract.sql": "27f4da9d636c021d038d680ff8c36380d41adfd4f81cb219b51408ce58711ce9",
+    "20261020182423_anonymize_user_account_source_comment_alignment.sql": "31a7787c6fcc3b6d3bfe957bacccbeb20e856880979c2fb89e9ac376288d01a1",
+    "20261020184122_audit19_legacy_trigger_consumers_contract.sql": "40b47be927e923217082eebdc8389028fb13975d5bf0fb425c3539277548a8fe",
+    "20261020184151_retention_storage_guard_prerequisites.sql": "452a2b5679d9ab453226fc6a3ba512b9c95560c5f1298088c0fd80c719f72da3",
+    "20261020190908_audit19_schema_named_column_compatibility.sql": "658b479b7ce0c6dd87e52ab51e1400d9cb9232d596e0bbc5dbba7b616c5c83a6",
+    "20261020191228_retention_storage_admission_prerequisites.sql": "e0c8d9406a094b6f4f66ed2acd2b11cd263ade7b896abd244e0848976cb1bda6",
+    "20261020211439_customer_merge_portal_lifecycle_convergence.sql": "94caa92f9f92d0e6fb1f23b4655e8f32d4083acfdebbf778246ee55c81ffe960",
+    "20261020215757_ediel_private_supply_scope_prerequisites.sql": "7f30d5e1bc53f4bb61cb80e6b185eded68047156b69a5e991579c937b2994538",
+    "20261020220844_one_off_manual_publication_gate_convergence.sql": "4a4b3c00cbc18f2474673f377320ddbe54888d3b814db3f4cecb61b901325bca",
+    "20261020230048_ediel_supply_source_runtime_prerequisites.sql": "224e8fb44436462e5f2d3f15360855a7580e0ebebb7e3f261eaf10f058a2efc8"
   }
 }

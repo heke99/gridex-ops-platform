@@ -12,6 +12,7 @@ import { utiltsPackagingGuideViolations } from '@/lib/ediel/utilts/packagingGuid
 import { utiltsObservationOrderGuideIssues } from '@/lib/ediel/utilts/observationOrderGuide'
 import { resolveUtiltsHeaderGuideIssues } from '@/lib/ediel/utilts/headerGuide'
 import { resolveAuthoritativeEdielGuide } from '@/lib/ediel/rulebook/guideRegistry'
+import { hasQualifiedUtiltsOctoberIdentityRules } from '@/lib/ediel/rulebook/utilts25A5'
 import { resolveCanonicalEdielPolicy, type CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import type { UtiltsProcessabilityPolicy } from '@/lib/ediel/rulebook/utilts25A4'
 import type { EdielMessageRow } from '@/lib/ediel/types'
@@ -601,11 +602,11 @@ function invalidGs1Gsrn(value: string): boolean {
 function applyUtiltsSuppliedRegulatingObjectGuide(message: EdielMessageRow, result: UtiltsRuntimeResult, referenceDate: string, policy?: CanonicalEdielPolicy): UtiltsRuntimeResult {
   const messageCode = result.facts.messageCode
   if (!['E66', 'S01', 'E73', 'S06'].includes(messageCode ?? '')) return result
-  // S01/E73/S06 conditional LOC+175 is sourced from October 25-A-4.
+  // S01/E73/S06 conditional LOC+175 is qualified for U4 and Swedish U5 p63/78.
   // Retain the existing E66 behavior until its earlier-profile source is reviewed.
-  if (messageCode !== 'E66' && (policy?.guide ?? resolveAuthoritativeEdielGuide({
+  if (messageCode !== 'E66' && !hasQualifiedUtiltsOctoberIdentityRules((policy?.guide ?? resolveAuthoritativeEdielGuide({
     family: 'UTILTS', referenceDate, associationAssignedCode: message.message_version,
-  })).guideRevision !== '25-A-4') return result
+  })).guideRevision)) return result
   const wire = tokenizeEdifact(message.raw_payload)
   const issues: UtiltsValidationIssue[] = []
   let reference: string | null = null
@@ -645,7 +646,7 @@ function applyUtiltsSuppliedMeteringPointGuide(message: EdielMessageRow, result:
   // Validate supplied LOC+172 in the applicable data/request profiles in
   // U pp.51,54,63,123. E66/E73 absence depends on the 172/175 object domain.
   if (!['E30', 'E66', 'S07', 'E72', 'E73', 'S02'].includes(result.facts.messageCode ?? '')) return result
-  // UG-123-11/12 here is sourced from 25-A-4. A bounded English 25-A-3
+  // UG-123-11/12 is qualified for U4 and Swedish U5 pp78/123. A bounded prior
   // amendment covers E61/E62, but it has not qualified these identity rows;
   // the shared E5SE5A wire does not project this rule onto the prior guide.
   let selectedGuide = policy?.guide
@@ -658,7 +659,7 @@ function applyUtiltsSuppliedMeteringPointGuide(message: EdielMessageRow, result:
       selectedGuide = resolveAuthoritativeEdielGuide({ family: 'UTILTS', referenceDate, associationAssignedCode: message.message_version })
     }
   }
-  if (selectedGuide.guideRevision !== '25-A-4') return result
+  if (!hasQualifiedUtiltsOctoberIdentityRules(selectedGuide.guideRevision)) return result
   const wire = tokenizeEdifact(message.raw_payload)
   const issues: UtiltsValidationIssue[] = []
   for (const [index, observed] of (result.facts.utiltsObservedTransactions ?? []).entries()) {

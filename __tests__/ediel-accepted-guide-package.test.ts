@@ -20,15 +20,15 @@ describe('whole accepted guide candidate', () => {
     expect(selected.previousGuideGraceActive).toBe(true)
   })
   it('admits the current package with the same wire identifier', () => {
-    const selected = policy('2026-10-01', '25-A-4')
-    expect(selected.utiltsProfile?.guideVersion).toBe('25-A-4')
-    expect(selected.utiltsProcessability?.guideRevision).toBe('25-A-4')
+    const selected = policy('2026-10-01', '25-A-5')
+    expect(selected.utiltsProfile?.guideVersion).toBe('25-A-5')
+    expect(selected.utiltsProcessability?.guideRevision).toBe('25-A-5')
   })
   it('holds old candidates after the complete two-week window', () => {
     expect(() => policy('2026-10-15', '25-A-3')).toThrow(/guide_candidate_not_accepted/)
   })
   it('does not admit future guide candidates before effectiveness', () => {
-    expect(() => policy('2026-09-30', '25-A-4')).toThrow(/guide_candidate_not_accepted/)
+    expect(() => policy('2026-09-30', '25-A-5')).toThrow(/guide_candidate_not_accepted/)
   })
   it('requires the current guide for all outgoing messages', () => {
     expect(() => policy('2026-10-01', '25-A-3', 'outbound')).toThrow(/guide_candidate_not_accepted/)

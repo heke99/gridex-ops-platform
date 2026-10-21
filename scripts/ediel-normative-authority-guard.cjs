@@ -56,6 +56,7 @@ const VALIDITY_AUTHORITY_ALLOWLIST = new Set([
   'lib/ediel/rulebook/prodatRulebook.ts',
   'lib/ediel/rulebook/prodatSubtypeRegistry.ts',
   'lib/ediel/rulebook/utilts25A4.ts',
+  'lib/ediel/rulebook/utilts25A5.ts',
   'lib/ediel/rulebook/utiltsRulebook.ts',
 ])
 
@@ -80,6 +81,7 @@ const NORMATIVE_AUTHORITY_IMPORTS = [
   '@/lib/ediel/rulebook/prodatRulebook',
   '@/lib/ediel/rulebook/prodatSubtypeRegistry',
   '@/lib/ediel/rulebook/utilts25A4',
+  '@/lib/ediel/rulebook/utilts25A5',
   '@/lib/ediel/rulebook/utiltsApplicationReference',
   '@/lib/ediel/rulebook/utiltsFieldMatrix',
   '@/lib/ediel/rulebook/utiltsMarketEngine',

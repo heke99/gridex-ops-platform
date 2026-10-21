@@ -13,11 +13,11 @@ import {
 describe('effective-dated UTILTS canonical rules', () => {
   it('keeps E73 eligible in the first current-guide policy after an attempted active-code change', async () => {
     vi.resetModules()
-    const { UTILTS_25_A_4_POLICY, assertUtiltsOutboundMessageAllowed } = await import('@/lib/ediel/rulebook/utilts25A4')
+    const { UTILTS_25_A_5_POLICY, assertUtiltsOutboundMessageAllowed } = await import('@/lib/ediel/rulebook/utilts25A4')
     const { resolveCanonicalEdielPolicy } = await import('@/lib/ediel/rulebook/canonicalEdielPolicy')
     const input = { referenceDate: '2026-10-15', messageCode: 'E73' }
     expect(() => assertUtiltsOutboundMessageAllowed(input)).not.toThrow()
-    const codes = UTILTS_25_A_4_POLICY.activeOutboundMessageCodes
+    const codes = UTILTS_25_A_5_POLICY.activeOutboundMessageCodes
     const index = codes.indexOf('E73')
     expect(index).toBeGreaterThanOrEqual(0)
     const changed = Reflect.set(codes, String(index), 'BOGUS')
@@ -26,7 +26,7 @@ describe('effective-dated UTILTS canonical rules', () => {
         family: 'UTILTS', ...input, direction: 'outbound',
         applicationReference: '23-DDQ-E66-S', mode: 'catalog_evidence',
       })
-      expect(policy.guide.guideRevision).toBe('25-A-4')
+      expect(policy.guide.guideRevision).toBe('25-A-5')
       expect(policy.utiltsProcessability?.activeOutboundMessageCodes).toContain('E73')
       expect(changed).toBe(false)
     } finally {
@@ -37,7 +37,7 @@ describe('effective-dated UTILTS canonical rules', () => {
 
   it.each([
     ['2026-09-30', '25-A-3', true],
-    ['2026-10-01', '25-A-4', false],
+    ['2026-10-01', '25-A-5', false],
   ] as const)('keeps the published %s comparison rule after an attempted policy change', async (date, revision, compares) => {
     vi.resetModules()
     const { resolveUtiltsProcessabilityPolicy } = await import('@/lib/ediel/rulebook/utilts25A4')
@@ -90,7 +90,7 @@ describe('effective-dated UTILTS canonical rules', () => {
     const changed = Reflect.set(codes, '0', 'BOGUS')
     try {
       const assertAllowed = kind === 'rejection' ? source.assertUtiltsRejectionReasonAllowed : source.assertUtiltsTransactionReasonAllowed
-      expect(() => assertAllowed({ referenceDate: '2026-10-01', reasonCode })).toThrow(`utilts_${kind}_reason_removed:25-A-4:${reasonCode}`)
+      expect(() => assertAllowed({ referenceDate: '2026-10-01', reasonCode })).toThrow(`utilts_${kind}_reason_removed:25-A-5:${reasonCode}`)
       expect(changed).toBe(false)
     } finally {
       if (changed) Reflect.set(codes, '0', reasonCode)
@@ -98,11 +98,11 @@ describe('effective-dated UTILTS canonical rules', () => {
     }
   })
 
-  it('selects 25-A-3 through 2026-09-30 and 25-A-4 from 2026-10-01', () => {
+  it('selects 25-A-3 through 2026-09-30 and Swedish25-A-5 from 2026-10-01', () => {
     expect(resolveAuthoritativeEdielGuide({ family: 'UTILTS', referenceDate: '2026-09-30', associationAssignedCode: 'E5SE5A' }).guideRevision).toBe('25-A-3')
-    expect(resolveAuthoritativeEdielGuide({ family: 'UTILTS', referenceDate: '2026-10-01', associationAssignedCode: 'E5SE5A' }).guideRevision).toBe('25-A-4')
+    expect(resolveAuthoritativeEdielGuide({ family: 'UTILTS', referenceDate: '2026-10-01', associationAssignedCode: 'E5SE5A' }).guideRevision).toBe('25-A-5')
     expect(resolveUtiltsProcessabilityPolicy('2026-09-30').guideRevision).toBe('25-A-3')
-    expect(resolveUtiltsProcessabilityPolicy('2026-10-01').guideRevision).toBe('25-A-4')
+    expect(resolveUtiltsProcessabilityPolicy('2026-10-01').guideRevision).toBe('25-A-5')
   })
 
   it.each(['2025-06-01', '2026-09-30', '2026-10-01'])('qualifies source-backed meter/register comparison on %s', date => {
@@ -136,10 +136,10 @@ describe('effective-dated UTILTS canonical rules', () => {
 
   it('blocks removed future codes and discontinued S08 outbound', () => {
     expect(() => assertUtiltsTransactionReasonAllowed({ referenceDate: '2026-09-30', reasonCode: 'Z03' })).not.toThrow()
-    expect(() => assertUtiltsTransactionReasonAllowed({ referenceDate: '2026-10-01', reasonCode: 'Z03' })).toThrow('utilts_transaction_reason_removed:25-A-4:Z03')
+    expect(() => assertUtiltsTransactionReasonAllowed({ referenceDate: '2026-10-01', reasonCode: 'Z03' })).toThrow('utilts_transaction_reason_removed:25-A-5:Z03')
 
     expect(() => assertUtiltsRejectionReasonAllowed({ referenceDate: '2026-09-30', reasonCode: 'E19' })).not.toThrow()
-    expect(() => assertUtiltsRejectionReasonAllowed({ referenceDate: '2026-10-01', reasonCode: 'E19' })).toThrow('utilts_rejection_reason_removed:25-A-4:E19')
+    expect(() => assertUtiltsRejectionReasonAllowed({ referenceDate: '2026-10-01', reasonCode: 'E19' })).toThrow('utilts_rejection_reason_removed:25-A-5:E19')
 
     expect(() => assertUtiltsOutboundMessageAllowed({ referenceDate: '2026-10-01', messageCode: 'S08' })).toThrow('utilts_s08_outbound_discontinued:2026-10-01')
   })

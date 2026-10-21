@@ -1,34 +1,38 @@
 'use server'
 
+import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
-import {
-  FORGOT_PASSWORD_EMAIL_REQUIRED_MESSAGE,
-  FORGOT_PASSWORD_SEND_FAILED_MESSAGE,
-} from '@/lib/auth/loginError'
+import { after } from 'next/server'
+import { z } from 'zod'
+import { consumePublicPasswordResetBudget } from '@/lib/auth/publicPasswordResetBudget'
 import { sendTenantBrandedPasswordResetEmail } from '@/lib/tenant/passwordResetEmail'
 
-function normalizeEmail(value: string) {
-  return value.trim().toLowerCase()
-}
+const emailSchema = z.string().trim().toLowerCase().max(254).email()
 
 export async function requestPasswordResetAction(formData: FormData) {
-  const email = normalizeEmail(String(formData.get('email') ?? ''))
+  const parsed = emailSchema.safeParse(formData.get('email'))
 
-  if (!email) {
-    redirect(
-      `/login/forgot-password?error=${encodeURIComponent(FORGOT_PASSWORD_EMAIL_REQUIRED_MESSAGE)}`,
-    )
-  }
-
-  try {
-    await sendTenantBrandedPasswordResetEmail({
-      email,
-      source: 'public_forgot_password',
-    })
-  } catch {
-    redirect(
-      `/login/forgot-password?error=${encodeURIComponent(FORGOT_PASSWORD_SEND_FAILED_MESSAGE)}`,
-    )
+  if (parsed.success) {
+    try {
+      const requestHeaders = await headers()
+      // Next runs this callback after the response closes, including redirects.
+      // Neither user existence nor provider latency changes the public receipt.
+      after(async () => {
+        if (!await consumePublicPasswordResetBudget(parsed.data, requestHeaders)) return
+        try {
+          await sendTenantBrandedPasswordResetEmail({
+            email: parsed.data,
+            source: 'public_forgot_password',
+          })
+        } catch {
+          // Never expose account membership, raw provider errors or addresses.
+          console.warn('public_password_reset_processing_failed')
+        }
+      })
+    } catch {
+      // Missing request lifecycle/headers fails closed: do not start account work.
+      console.warn('public_password_reset_scheduling_failed')
+    }
   }
 
   redirect('/login/forgot-password?sent=1')

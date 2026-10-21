@@ -15,16 +15,16 @@ const guideRejected = (run: () => unknown) => { try { run(); return false } catc
 describe('GOV-04: outbound is tried against the guide in force at send time', () => {
   it('condition: outbound acceptance holds only the current guide, even inside the inbound two-week window', () => {
     const acceptance = resolveEdielGuideAcceptance({ family: 'UTILTS', referenceDate: '2026-10-05' })
-    expect(acceptance.acceptedOutbound.map(guide => guide.guideRevision)).toEqual(['25-A-4'])
-    expect(acceptance.acceptedInbound.map(guide => guide.guideRevision)).toEqual(expect.arrayContaining(['25-A-3', '25-A-4']))
+    expect(acceptance.acceptedOutbound.map(guide => guide.guideRevision)).toEqual(['25-A-5'])
+    expect(acceptance.acceptedInbound.map(guide => guide.guideRevision)).toEqual(expect.arrayContaining(['25-A-3', '25-A-5']))
   })
   it.each(['2026-10-01', '2026-10-05', '2026-10-14', '2026-10-15'])('prohibited: an outbound message cannot be tried against the preceding guide on %s', date => {
     expect(guideRejected(policy('outbound', date, '25-A-3'))).toBe(true)
-    expect(guideRejected(policy('outbound', date, '25-A-4'))).toBe(false)
+    expect(guideRejected(policy('outbound', date, '25-A-5'))).toBe(false)
   })
   it('control: before the version boundary the then-current guide is the outbound guide', () => {
     expect(guideRejected(policy('outbound', '2026-09-30', '25-A-3'))).toBe(false)
-    expect(guideRejected(policy('outbound', '2026-09-30', '25-A-4'))).toBe(true)
+    expect(guideRejected(policy('outbound', '2026-09-30', '25-A-5'))).toBe(true)
   })
   it('on_pass: a payload queued before the boundary is re-tried at the actual send instant and kept unchanged as history', () => {
     vi.useFakeTimers().setSystemTime(new Date('2026-10-05T09:00:00Z'))

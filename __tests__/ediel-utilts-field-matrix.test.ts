@@ -41,7 +41,7 @@ describe('UTILTS 25-A-3 canonical field registry', () => {
         family: 'UTILTS', messageCode: 'E73', direction: 'outbound', referenceDate: '2026-10-15',
         applicationReference: '23-DDQ-E66-S', mode: 'catalog_evidence',
       })
-      expect(policy.guide.guideRevision).toBe('25-A-4')
+      expect(policy.guide.guideRevision).toBe('25-A-5')
       const selected = policy.fieldRules.find((rule) => 'ruleKey' in rule && rule.ruleKey === '311_application_reference')
       expect(selected && 'requirements' in selected ? selected.requirements.E73 : null).toBe('R')
       expect(changed).toBe(false)

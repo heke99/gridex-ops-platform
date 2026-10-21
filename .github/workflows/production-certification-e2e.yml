@@ -50,13 +50,14 @@ jobs:
       - name: Confirm production and target configuration
         shell: bash
         env:
+          GRIDEX_CONFIRM_PRODUCTION: ${{ inputs.confirm_production }}
           GRIDEX_E2E_PROD_BASE_URL: ${{ secrets.GRIDEX_E2E_PROD_BASE_URL }}
           GRIDEX_E2E_TENANT_WEBSITE_URL: ${{ secrets.GRIDEX_E2E_TENANT_WEBSITE_URL }}
           GRIDEX_E2E_SUPERADMIN_EMAIL: ${{ secrets.GRIDEX_E2E_SUPERADMIN_EMAIL }}
           GRIDEX_E2E_SUPERADMIN_PASSWORD: ${{ secrets.GRIDEX_E2E_SUPERADMIN_PASSWORD }}
         run: |
           set -euo pipefail
-          [[ "${{ inputs.confirm_production }}" == "PRODUCTION" ]] || { echo "preflight requires confirm_production=PRODUCTION." >&2; exit 1; }
+          [[ "$GRIDEX_CONFIRM_PRODUCTION" == "PRODUCTION" ]] || { echo "preflight requires confirm_production=PRODUCTION." >&2; exit 1; }
           for name in GRIDEX_E2E_PROD_BASE_URL GRIDEX_E2E_TENANT_WEBSITE_URL GRIDEX_E2E_SUPERADMIN_EMAIL GRIDEX_E2E_SUPERADMIN_PASSWORD; do
             [[ -n "${!name:-}" ]] || { echo "Missing required secret: $name" >&2; exit 1; }
           done
@@ -103,6 +104,8 @@ jobs:
       - name: Confirm explicit synthetic production mutation
         shell: bash
         env:
+          GRIDEX_CONFIRM_PRODUCTION: ${{ inputs.confirm_production }}
+          GRIDEX_CONFIRM_SYNTHETIC_TENANT: ${{ inputs.confirm_synthetic_tenant }}
           GRIDEX_E2E_PROD_BASE_URL: ${{ secrets.GRIDEX_E2E_PROD_BASE_URL }}
           GRIDEX_E2E_SUPERADMIN_EMAIL: ${{ secrets.GRIDEX_E2E_SUPERADMIN_EMAIL }}
           GRIDEX_E2E_SUPERADMIN_PASSWORD: ${{ secrets.GRIDEX_E2E_SUPERADMIN_PASSWORD }}
@@ -110,8 +113,8 @@ jobs:
           GRIDEX_E2E_TENANT_ADMIN_PASSWORD: ${{ secrets.GRIDEX_E2E_TENANT_ADMIN_PASSWORD }}
         run: |
           set -euo pipefail
-          [[ "${{ inputs.confirm_production }}" == "PRODUCTION" ]] || { echo "tenant-bootstrap requires confirm_production=PRODUCTION." >&2; exit 1; }
-          [[ "${{ inputs.confirm_synthetic_tenant }}" == "CREATE_SYNTHETIC_TENANT" ]] || { echo "tenant-bootstrap requires confirm_synthetic_tenant=CREATE_SYNTHETIC_TENANT." >&2; exit 1; }
+          [[ "$GRIDEX_CONFIRM_PRODUCTION" == "PRODUCTION" ]] || { echo "tenant-bootstrap requires confirm_production=PRODUCTION." >&2; exit 1; }
+          [[ "$GRIDEX_CONFIRM_SYNTHETIC_TENANT" == "CREATE_SYNTHETIC_TENANT" ]] || { echo "tenant-bootstrap requires confirm_synthetic_tenant=CREATE_SYNTHETIC_TENANT." >&2; exit 1; }
           for name in GRIDEX_E2E_PROD_BASE_URL GRIDEX_E2E_SUPERADMIN_EMAIL GRIDEX_E2E_SUPERADMIN_PASSWORD GRIDEX_E2E_TENANT_ADMIN_EMAIL GRIDEX_E2E_TENANT_ADMIN_PASSWORD; do
             [[ -n "${!name:-}" ]] || { echo "Missing required secret: $name" >&2; exit 1; }
           done
@@ -157,13 +160,15 @@ jobs:
       - name: Confirm manual Strato verification checkpoint
         shell: bash
         env:
+          GRIDEX_CONFIRM_PRODUCTION: ${{ inputs.confirm_production }}
+          GRIDEX_CONFIRM_TENANT_ADMIN: ${{ inputs.confirm_tenant_admin }}
           GRIDEX_E2E_PROD_BASE_URL: ${{ secrets.GRIDEX_E2E_PROD_BASE_URL }}
           GRIDEX_E2E_TENANT_ADMIN_EMAIL: ${{ secrets.GRIDEX_E2E_TENANT_ADMIN_EMAIL }}
           GRIDEX_E2E_TENANT_ADMIN_PASSWORD: ${{ secrets.GRIDEX_E2E_TENANT_ADMIN_PASSWORD }}
         run: |
           set -euo pipefail
-          [[ "${{ inputs.confirm_production }}" == "PRODUCTION" ]] || { echo "tenant-admin-verify requires confirm_production=PRODUCTION." >&2; exit 1; }
-          [[ "${{ inputs.confirm_tenant_admin }}" == "VERIFIED_TENANT_ADMIN_MANUALLY" ]] || { echo "tenant-admin-verify requires confirm_tenant_admin=VERIFIED_TENANT_ADMIN_MANUALLY after the Strato email has been accepted and the configured password is active." >&2; exit 1; }
+          [[ "$GRIDEX_CONFIRM_PRODUCTION" == "PRODUCTION" ]] || { echo "tenant-admin-verify requires confirm_production=PRODUCTION." >&2; exit 1; }
+          [[ "$GRIDEX_CONFIRM_TENANT_ADMIN" == "VERIFIED_TENANT_ADMIN_MANUALLY" ]] || { echo "tenant-admin-verify requires confirm_tenant_admin=VERIFIED_TENANT_ADMIN_MANUALLY after the Strato email has been accepted and the configured password is active." >&2; exit 1; }
           for name in GRIDEX_E2E_PROD_BASE_URL GRIDEX_E2E_TENANT_ADMIN_EMAIL GRIDEX_E2E_TENANT_ADMIN_PASSWORD; do
             [[ -n "${!name:-}" ]] || { echo "Missing required secret: $name" >&2; exit 1; }
           done
@@ -208,6 +213,8 @@ jobs:
       - name: Confirm authorized live customer quote
         shell: bash
         env:
+          GRIDEX_CONFIRM_PRODUCTION: ${{ inputs.confirm_production }}
+          GRIDEX_CONFIRM_LIVE_CUSTOMER: ${{ inputs.confirm_live_customer }}
           GRIDEX_E2E_PROD_BASE_URL: ${{ secrets.GRIDEX_E2E_PROD_BASE_URL }}
           GRIDEX_E2E_TENANT_WEBSITE_URL: ${{ secrets.GRIDEX_E2E_TENANT_WEBSITE_URL }}
           GRIDEX_E2E_CUSTOMER_ADDRESS: ${{ secrets.GRIDEX_E2E_CUSTOMER_ADDRESS }}
@@ -216,8 +223,8 @@ jobs:
           GRIDEX_E2E_CUSTOMER_ANNUAL_KWH: ${{ secrets.GRIDEX_E2E_CUSTOMER_ANNUAL_KWH }}
         run: |
           set -euo pipefail
-          [[ "${{ inputs.confirm_production }}" == "PRODUCTION" ]] || { echo "live-customer-preflight requires confirm_production=PRODUCTION." >&2; exit 1; }
-          [[ "${{ inputs.confirm_live_customer }}" == "AUTHORIZED_LIVE_CUSTOMER" ]] || { echo "live-customer-preflight requires confirm_live_customer=AUTHORIZED_LIVE_CUSTOMER." >&2; exit 1; }
+          [[ "$GRIDEX_CONFIRM_PRODUCTION" == "PRODUCTION" ]] || { echo "live-customer-preflight requires confirm_production=PRODUCTION." >&2; exit 1; }
+          [[ "$GRIDEX_CONFIRM_LIVE_CUSTOMER" == "AUTHORIZED_LIVE_CUSTOMER" ]] || { echo "live-customer-preflight requires confirm_live_customer=AUTHORIZED_LIVE_CUSTOMER." >&2; exit 1; }
           for name in GRIDEX_E2E_PROD_BASE_URL GRIDEX_E2E_TENANT_WEBSITE_URL GRIDEX_E2E_CUSTOMER_ADDRESS GRIDEX_E2E_CUSTOMER_POSTAL_CODE GRIDEX_E2E_CUSTOMER_CITY GRIDEX_E2E_CUSTOMER_ANNUAL_KWH; do
             [[ -n "${!name:-}" ]] || { echo "Missing required secret: $name" >&2; exit 1; }
           done
