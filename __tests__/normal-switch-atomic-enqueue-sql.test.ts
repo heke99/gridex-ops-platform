@@ -67,8 +67,17 @@ beforeAll(async () => {
     create function gridex_bilateral_prodat.lock_source_receipts_v1() returns void language sql as $$select public.fixture_guard('source_lock')$$;
     create function gridex_bilateral_prodat.lock_outbound_v1() returns void language sql as $$select public.fixture_guard('outbound_lock')$$;
     create function gridex_ediel_transport.require_message_intent_v1(public.ediel_messages) returns void language sql as $$select public.fixture_guard('intent')$$;
-    create function gridex_received_sources.require_switch_contract_request_current_v1(uuid,uuid,uuid) returns void language sql as $$select public.fixture_guard('contract_source')$$;
-    create function gridex_received_sources.require_switch_brp_source_current_v1(uuid,uuid,uuid) returns void language sql as $$select public.fixture_guard('brp_source')$$;
+    -- Actual saved ABI: (COMPANY, message, actor), not (contract, message, actor).
+    -- Reject a wrong dependency invocation instead of hiding an early native RETURN.
+    create function public.fixture_native_args(c uuid,m uuid,a uuid) returns void language plpgsql as $$begin
+      if not exists(select from public.ediel_messages where company_id=c and id=m)
+        or not exists(select from public.user_profiles where id=a and user_status='active') then
+        raise exception 'synthetic_native_argument_mismatch'; end if;
+    end$$;
+    create function gridex_received_sources.require_switch_contract_request_current_v1(c uuid,m uuid,a uuid) returns void language plpgsql as $$begin
+      perform public.fixture_native_args(c,m,a); perform public.fixture_guard('contract_source'); end$$;
+    create function gridex_received_sources.require_switch_brp_source_current_v1(c uuid,m uuid,a uuid) returns void language plpgsql as $$begin
+      perform public.fixture_native_args(c,m,a); perform public.fixture_guard('brp_source'); end$$;
     create function gridex_bilateral_prodat.outbound_required_v1(text) returns boolean language sql as $$select exists(select from public.fixture_flags where mode='bilateral')$$;
     create function gridex_bilateral_prodat.require_outbound_original_v1(public.ediel_messages,boolean) returns void language sql as $$select public.fixture_guard('bilateral')$$;
     create function gridex_received_sources.production_contract_hash_v1(public.customer_contracts) returns text language sql as $$select ($1).metadata->>'fixtureHash'$$;
@@ -252,8 +261,8 @@ describe('atomic same-original enqueue coordinator', () => {
   })
   it.each([0, 599000, 600000, 1200000, -60000])('observes a current claim only inside strict ten-minute lease: age %s ms', async age => {
     await queuedOutbox('sending')
-    await db.exec("update public.ediel_messages set status='queued'")
-    await db.query("update public.ediel_outbox set locked_by='existing-worker',locked_at=clock_timestamp()-($1::integer*interval '1 millisecond')", [age])
+    await db.exec("update public.ediel_messages set status='queued'; update public.ediel_message_intents set outbox_status='queued'; update public.outbound_requests set status='prepared'")
+    await db.query("update public.ediel_outbox set attempts=1,send_attempt_count=1,current_send_attempt_id=$2,locked_by='existing-worker',locked_at=clock_timestamp()-($1::integer*interval '1 millisecond')", [age,id(25)])
     const before=await snapshot(); expect(await run()).toMatchObject({ status: age>=0&&age<600000?'in_progress':'held' }); expect(await snapshot()).toEqual(before)
   })
   it('cannot claim accepted when the existing authoritative repair no longer returns a receipt', async () => {
@@ -262,6 +271,15 @@ describe('atomic same-original enqueue coordinator', () => {
       originalHash: hash, attemptId: id(20), observedAt: '2026-10-21T12:00:00Z', authorizesProviderEntry: false, deliveryProven: false })
     await flag('repair_null'); const before=await snapshot()
     await expect(run()).rejects.toThrow('normal_switch_enqueue_accepted_repair_unconfirmed'); expect(await snapshot()).toEqual(before)
+  })
+  it.each(['contract_source','brp_source'])('passes exact COMPANY/message/actor to the native %s boundary', async guard => {
+    await flag(guard+'_fail')
+    await expect(run()).rejects.toThrow('synthetic_guard_failure:'+guard)
+    expect((await snapshot()).ediel_outbox).toHaveLength(0)
+  })
+  it('does not invent an active claim from a worker/time with no attempt or incremented counters', async () => {
+    await queuedOutbox('sending'); await db.exec("update public.ediel_messages set status='queued'; update public.ediel_message_intents set outbox_status='queued'; update public.outbound_requests set status='prepared'; update public.ediel_outbox set locked_by='invented',locked_at=now()")
+    const before=await snapshot(); expect(await run()).toMatchObject({ status: 'held' }); expect(await snapshot()).toEqual(before)
   })
   it('is service-only with fixed searchpath and no public or authenticated execution grant', async () => {
     const rows = (await db.query<Row>(`select prosecdef,proconfig,

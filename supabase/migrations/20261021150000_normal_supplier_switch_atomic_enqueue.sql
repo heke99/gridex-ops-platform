@@ -114,8 +114,8 @@ begin
   -- Native guards re-evaluate the original source/BRP/profile and signed consent
   -- at send phase. Their exceptions roll back the entire coordinator statement.
   perform gridex_ediel_transport.require_message_intent_v1(m);
-  perform gridex_received_sources.require_switch_contract_request_current_v1(c.id,m.id,p_actor_user_id);
-  perform gridex_received_sources.require_switch_brp_source_current_v1(c.id,m.id,p_actor_user_id);
+  perform gridex_received_sources.require_switch_contract_request_current_v1(m.company_id,m.id,p_actor_user_id);
+  perform gridex_received_sources.require_switch_brp_source_current_v1(m.company_id,m.id,p_actor_user_id);
   if gridex_bilateral_prodat.outbound_required_v1(m.raw_payload) then
     perform gridex_bilateral_prodat.require_outbound_original_v1(m,false);
   end if;
@@ -166,12 +166,15 @@ begin
     return held || jsonb_build_object('reason','existing_transport_history');
   end if;
 
-  -- Current sending claims are observed only; this API never enters, extends,
-  -- clears or retries them. Attempts without native history remain ambiguous.
+  -- Current claims have the exact existing claim RPC shape: both counters
+  -- incremented, a fresh attempt UUID and the worker's strict ten-minute lease.
+  -- Observe only; never enter, extend, clear or retry that worker's claim.
   if queue_count=1 and q.status='sending' then
-    if m.status in ('queued','sending') and q.locked_by is not null and q.locked_at is not null
+    if m.status in ('queued','sending') and i.outbox_status='queued' and r.status='prepared'
+      and nullif(btrim(q.locked_by),'') is not null and q.locked_at is not null
       and q.locked_at<=clock_timestamp() and q.locked_at>clock_timestamp()-interval '10 minutes'
-      and q.current_send_attempt_id is null and coalesce(q.send_attempt_count,0)=0 then
+      and q.current_send_attempt_id is not null and q.attempts>0 and q.send_attempt_count>0
+      and q.blocked_at is null and q.blocked_reason is null and q.last_error is null then
       return jsonb_build_object('status','in_progress','messageId',m.id,'outboxId',q.id,'authorizesProviderEntry',false,'deliveryProven',false);
     end if;
     return held || jsonb_build_object('reason','transport_claim_unconfirmed');
