@@ -52,20 +52,32 @@ async function resolveMissingBasisIssue(companyId: string, meteringPointId: stri
   await resolveManagedDataQualityIssue({ companyId, entityId: meteringPointId, issueType: 'forecast_basis_missing', periodMonth })
 }
 
-async function actualKwhForPeriod(companyId: string, meteringPointId: string, start: string, end: string): Promise<number> {
-  const { data, error } = await supabaseService
-    .from('metering_values')
-    .select('quantity_kwh, value_kwh')
-    .eq('company_id', companyId)
-    .eq('metering_point_id', meteringPointId)
-    .gte('period_start', `${start}T00:00:00.000Z`)
-    .lt('period_start', `${end}T00:00:00.000Z`)
-
-  if (error) {
-    throw error
+/** One aggregate row covers the complete existing raw selection in one SQL
+ * statement. Never fall back to a capped raw list when its evidence fails. */
+export async function actualKwhForPeriod(companyId: string, meteringPointId: string, start: string, end: string): Promise<number> {
+  const rpc = supabaseService.rpc.bind(supabaseService) as unknown as (
+    name: 'gridex_forecast_metering_period_totals_v1',
+    args: { p_company_id: string; p_metering_point_id: string; p_period_start: string; p_period_end: string },
+  ) => PromiseLike<{ data: unknown; error: unknown }>
+  const { data, error } = await rpc('gridex_forecast_metering_period_totals_v1', {
+    p_company_id: companyId,
+    p_metering_point_id: meteringPointId,
+    p_period_start: `${start}T00:00:00.000Z`,
+    p_period_end: `${end}T00:00:00.000Z`,
+  })
+  if (error) throw error
+  const row = Array.isArray(data) && data.length === 1 ? data[0] : null
+  if (!row || typeof row !== 'object' || Array.isArray(row)) throw new Error('forecast_metering_period_totals_result_invalid')
+  const { total_kwh: totalValue, value_count: countValue } = row as Record<string, unknown>
+  const numeric = (value: unknown): value is number | string => typeof value === 'number'
+    || typeof value === 'string' && /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i.test(value)
+  if (!numeric(totalValue) || !numeric(countValue)) throw new Error('forecast_metering_period_totals_result_invalid')
+  const total = Number(totalValue)
+  const count = Number(countValue)
+  if (!Number.isFinite(total) || !Number.isSafeInteger(count) || count < 0 || count === 0 && total !== 0) {
+    throw new Error('forecast_metering_period_totals_result_invalid')
   }
-
-  return (data ?? []).reduce((sum, row) => sum + asNumber(row.value_kwh ?? row.quantity_kwh), 0)
+  return total
 }
 
 export async function calculateMeteringPointForecast(input: {

@@ -72,7 +72,7 @@ print(json.dumps({'root':n['required'],'base':n['required_base'],'reader':n['cur
     root_source: {blobs: rootInputs}, base_source: {blobs: Object.fromEntries(dependencies.map(path => [path, identities[path].base]))},
     historical_source_basis: historical, current_source_basis: 'ROOT_only_no_legacy_hint_wrapper',
     current_database_basis: {kind: 'BASE56_repair_two_forwards_plus_delivered_reader_guard_closure', forwards: declared.reader, schema_path: 'supabase/schema.sql'},
-    current_guard_result: {status: 'PASS', source_sha: git('rev-parse', 'HEAD').trim(), reader_function_names: 233, helper_function_names: 372, function_definitions: 372, delivered_relation_objects: 18, mismatches: [],
+    current_guard_result: {status: 'PASS', source_sha: git('rev-parse', 'HEAD').trim(), reader_function_names: 233, helper_function_names: 373, function_definitions: 373, delivered_relation_objects: 18, mismatches: [],
       source_schema_sha256: createHash('sha256').update(readFileSync(join(root, 'supabase/schema.sql'))).digest('hex')},
     current_api_schema_result: {status: 'PASS', source_sha: git('rev-parse', 'HEAD').trim(),
       rpc_paths: ['/rpc/ediel_read_prodat_h_accepted_original_v1', '/rpc/ediel_read_prodat_customer_masterdata_original_v1']},
@@ -244,6 +244,38 @@ it('refuses a dropped predecessor and a forged reader SQL identity', async () =>
   inputs.blobs[reader.path].sha256 = 'f'.repeat(64)
   await expect(load('current')).rejects.toThrow('db01_native_current_reader_guard_basis_required')
 })
+const u5CurrentForwardPaths = [
+  'supabase/migrations/20261021052940_ediel_swedish_utilts25a5_registry_and_source_editions.sql',
+  'supabase/migrations/20261021094313_ediel_swedish_utilts25a5_inbound_profile_supersession.sql',
+] as const
+it.each(u5CurrentForwardPaths)('refuses a missing whole U5 current forward %s', async path => {
+  const basis = receipt.current_database_basis as {forwards: Array<Input & {path: string}>}
+  basis.forwards = basis.forwards.filter(item => item.path !== path)
+  await expect(load('current')).rejects.toThrow('db01_native_current_reader_guard_basis_required')
+})
+it.each(u5CurrentForwardPaths.flatMap(path => (['mode', 'git_blob_oid', 'sha256'] as const).map(field => ({path, field}))))(
+  'refuses a forged U5 forward $field for $path even with matching receipt inputs', async ({path, field}) => {
+    const basis = receipt.current_database_basis as {forwards: Array<Input & {path: string}>}
+    const forward = basis.forwards.find(item => item.path === path)!
+    forward[field] = field === 'mode' ? '100755' : 'f'.repeat(field === 'sha256' ? 64 : 40)
+    const inputs = receipt.root_source as {blobs: Record<string, Input>}
+    inputs.blobs[path][field] = forward[field]
+    await expect(load('current')).rejects.toThrow('db01_native_current_reader_guard_basis_required')
+  })
+it('refuses reversed U5 registry and inbound-selector forward order', async () => {
+  const basis = receipt.current_database_basis as {forwards: Array<Input & {path: string}>}
+  const registryIndex = basis.forwards.findIndex(item => item.path === u5CurrentForwardPaths[0])
+  const inboundIndex = basis.forwards.findIndex(item => item.path === u5CurrentForwardPaths[1])
+  ;[basis.forwards[registryIndex], basis.forwards[inboundIndex]] = [basis.forwards[inboundIndex], basis.forwards[registryIndex]]
+  await expect(load('current')).rejects.toThrow('db01_native_current_reader_guard_basis_required')
+})
+it.each(['helper_function_names', 'function_definitions'] as const)('refuses a changed exact guard counter %s', async field => {
+  const guard = receipt.current_guard_result as Record<string, unknown>
+  for (const count of [372, 374]) {
+    guard[field] = count
+    await expect(load('current')).rejects.toThrow('db01_native_actual_current_guard_qualification_required')
+  }
+})
 it.each(['current_guard_preparation', 'current_read_forwards', 'current_guard_qualification', 'current_api_schema'])('refuses failed or unexecuted actual current phase %s', async name => {
   const phases = receipt.phases as Record<string, {status: string; exit_code: number | null}>
   phases[name] = {status: 'NOT_RUN', exit_code: null}
@@ -266,10 +298,13 @@ s=pathlib.Path('.github/workflows/ediel-db01-current-native.yml').read_text()
 s=s.split('cat > "$DB01_PRIVATE/qualify-current-guards.py" <<\'PY\'\n',1)[1].split('\n          PY',1)[0]
 e={}
 exec(textwrap.dedent(s).split('mode=sys.argv[1]',1)[0],e)
-assert len(e['reader_names'])==233 and len(e['relation_keys'])==18 and len(e['names'])==372 and len(e['function_keys'])==372
+assert len(e['reader_names'])==233 and len(e['relation_keys'])==18 and len(e['names'])==373 and len(e['function_keys'])==373
 expected=e['expected']; compare=e['logical_mismatches']
 assert compare(dict(expected))==[]
-keys=[('gridex_ediel_technical_ack','FUNCTION','require_contrl_v1(public.ediel_messages)'),
+keys=[('gridex_ediel_source_rules','FUNCTION','pack_superseded_by_swedish_utilts25a5_v1(text, text, text, text, date)'),
+ ('gridex_ediel_source_rules','FUNCTION','pack_effective_v1(uuid, text, date)'),
+ ('public','FUNCTION','gridex_bind_inbound_ediel_rule_pack_evidence()'),
+ ('gridex_ediel_technical_ack','FUNCTION','require_contrl_v1(public.ediel_messages)'),
  ('public','FUNCTION','ediel_read_prodat_h_accepted_original_v1(uuid, uuid, uuid)'),
  ('public','ACL','FUNCTION ediel_read_prodat_h_accepted_original_v1(p_company_id uuid, p_message_id uuid, p_actor_user_id uuid)'),
  ('gridex_customer_masterdata','CONSTRAINT','preparations customer_masterdata_preparation_actor_operation_key'),

@@ -1,6 +1,7 @@
 import AdminDisclosurePanel from "@/components/admin/ui/AdminDisclosurePanel";
 import AdminHeader from "@/components/admin/AdminHeader";
 import CompanyUserInviteForm from "@/components/admin/companies/CompanyUserInviteForm";
+import CompanySettingsActionForm from "@/components/admin/companies/CompanySettingsActionForm";
 import { requireAdminPageKeyAccess } from "@/lib/admin/guards";
 import { resolveAdminSelectedCompanyReadScope } from "@/lib/tenant/adminScope";
 import {
@@ -21,18 +22,6 @@ import {
 
 export const dynamic = "force-dynamic";
 
-const emptyState = { ok: false, message: "" };
-
-async function updateCompanySettingsFormAction(formData: FormData) {
-  "use server";
-  await updateCompanySettingsAction(emptyState, formData);
-}
-
-async function updateResponsibleUserFormAction(formData: FormData) {
-  "use server";
-  await updateCompanyResponsibleUserAction(emptyState, formData);
-}
-
 function getBrandingValue(
   branding: Record<string, unknown> | null | undefined,
   key: string,
@@ -48,6 +37,8 @@ function roleLabel(value: string) {
 export default async function CompanySettingsPage() {
   const context = await requireAdminPageKeyAccess("company.settings");
   const scope = await resolveAdminSelectedCompanyReadScope(context, { allowMissing: true });
+  const canManageCompany = scope.isPlatformAdmin || context.permissions.some((permission) => permission === "tenants.invite" || permission === "users.write");
+  const canManageUsers = scope.isPlatformAdmin || context.permissions.includes("users.write");
   const companyId = scope.companyId;
   const company = companyId ? await getCompanyById(companyId) : null;
   const legalProfile = companyId ? await getTenantLegalProfile(companyId) : null;
@@ -66,7 +57,7 @@ export default async function CompanySettingsPage() {
     <div className="min-h-screen">
       <AdminHeader
         title="Bolagsinställningar"
-        subtitle="Uppdatera bolagets kontaktuppgifter, bolagsansvariga och inloggningsuppgifter inom ditt bolag."
+        subtitle={canManageCompany ? "Uppdatera bolagets kontaktuppgifter, bolagsansvariga och inloggningsuppgifter inom ditt bolag." : "Visa bolagets kontaktuppgifter, bolagsansvariga och inloggningsuppgifter inom ditt bolag."}
         userEmail={context.email}
       />
 
@@ -114,9 +105,10 @@ export default async function CompanySettingsPage() {
                   {!isLiveApproved ? <p className="mt-1 text-sm text-amber-800">Ert bolag är i testläge tills Gridex har godkänt driftstart.</p> : null}
                 </div>
               </div>
-              <form
+              <CompanySettingsActionForm
                 id="company-profile"
-                action={updateCompanySettingsFormAction}
+                action={updateCompanySettingsAction}
+                canWrite={canManageCompany}
                 className="mt-4 grid min-w-0 grid-cols-1 gap-3 lg:grid-cols-2"
               >
                 <input type="hidden" name="company_id" value={companyId} />
@@ -493,20 +485,20 @@ export default async function CompanySettingsPage() {
                   </div>
                 </AdminDisclosurePanel>
 
-                <div className="lg:col-span-2 flex justify-end">
+                {canManageCompany ? <div className="lg:col-span-2 flex justify-end">
                   <button className="rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-800">
                     Spara bolagsuppgifter
                   </button>
-                </div>
-              </form>
+                </div> : null}
+              </CompanySettingsActionForm>
 
 
             </section>
 
-            <AdminDisclosurePanel id="invite-company-user" title="Bjud in användare" className="rounded-2xl border border-slate-200 bg-white p-4">
+            {canManageUsers ? <AdminDisclosurePanel id="invite-company-user" title="Bjud in användare" className="rounded-2xl border border-slate-200 bg-white p-4">
               <p className="text-sm text-slate-700">Lägg till en ny användare i bolaget och välj roll direkt.</p>
               <CompanyUserInviteForm companyId={companyId} />
-            </AdminDisclosurePanel>
+            </AdminDisclosurePanel> : null}
 
             <section id="company-team" className="scroll-mt-48 rounded-2xl border border-slate-200 bg-white shadow-sm lg:scroll-mt-32">
               <div className="border-b border-slate-200 px-6 py-5">
@@ -514,8 +506,7 @@ export default async function CompanySettingsPage() {
                   Bolagets användare och roller
                 </h2>
                 <p className="mt-1 text-sm text-slate-700">
-                  Ändra namn, telefon, login-e-post och roll för alla användare
-                  i bolaget.
+                  {canManageUsers ? "Ändra namn, telefon, login-e-post och roll för alla användare i bolaget." : "Visa användare och roller i bolaget."}
                 </p>
               </div>
 
@@ -528,8 +519,9 @@ export default async function CompanySettingsPage() {
                   users.map((user) => (
                     <AdminDisclosurePanel key={user.membershipId} id={`company-user-${user.membershipId}`} title={`${user.fullName || user.email || user.invitedEmail || 'Användare'} · ${getCompanyUserRoleLabel(user.roleKey)}`} className="min-w-0 px-4 py-4 [&_summary]:break-words">
                     <p className="text-sm text-slate-600">{user.email ?? user.invitedEmail ?? user.userId} · {roleLabel(user.membershipRole)}</p>
-                    <form
-                      action={updateResponsibleUserFormAction}
+                    <CompanySettingsActionForm
+                      action={updateCompanyResponsibleUserAction}
+                      canWrite={canManageUsers}
                       className="mt-3 grid min-w-0 grid-cols-1 gap-3 lg:grid-cols-3"
                     >
                       <input
@@ -581,11 +573,11 @@ export default async function CompanySettingsPage() {
                           {getCompanyUserRoleLabel(user.roleKey)} ·{" "}
                           {user.email ?? user.userId}
                         </span>
-                        <button className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white hover:bg-black">
+                        {canManageUsers ? <button className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white hover:bg-black">
                           Uppdatera ansvarig
-                        </button>
+                        </button> : null}
                       </div>
-                    </form>
+                    </CompanySettingsActionForm>
                     </AdminDisclosurePanel>
                   ))
                 )}

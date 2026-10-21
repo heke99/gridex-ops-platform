@@ -1,3 +1,5 @@
+import { UTILTS_25_A_5_SOURCE } from './utilts25A5'
+
 /** P26.A §2.3 p35 defines future constraints, not operational authorization. */
 export const EDIEL_ENERGY_SHARING_CAPABILITY = Object.freeze({
   id: 'energy_sharing', effectiveFrom: '2027-01-01', activation: 'held',
@@ -20,6 +22,10 @@ export type AuthoritativeEdielGuide = {
   latestUpdated: string
   effectiveFrom: string
   effectiveTo: string | null
+  /** Source correction, distinct from a fabricated historical validity end. */
+  supersededFrom?: string
+  supersededBy?: string
+  primarySource?: typeof UTILTS_25_A_5_SOURCE
   semanticEffectiveFrom?: string
   activationDates?: readonly string[]
   authority: 'Svenska kraftnät'
@@ -51,8 +57,9 @@ function freezeGuideRegistry(guides: readonly AuthoritativeEdielGuide[]): readon
  * validity date from a file name, Git timestamp or association-assigned code.
  *
  * Important: UNH/S009/0057 is not by itself a guide-revision identifier. The
- * Swedish UTILTS guides 25-A-3 and 25-A-4 both use E5SE5A, while 25-A-4 does
- * not become effective until 2026-10-01. Runtime rule selection therefore has
+ * Swedish UTILTS guides 25-A-3/4/5 use E5SE5A. The actual Swedish25-A-5
+ * cover establishes 2026-10-01 and supersedes the registered U4 selection.
+ * Retained U4 originals remain named U4. Runtime rule selection therefore has
  * to use both the association-assigned code and the business/reference date.
  *
  * APERAK is source-family bound. The 26-A/16-B label in the PRODAT document is
@@ -82,12 +89,29 @@ export const AUTHORITATIVE_EDIEL_GUIDES: readonly AuthoritativeEdielGuide[] = fr
     latestUpdated: '2026-08-05',
     effectiveFrom: '2026-10-01',
     effectiveTo: null,
+    supersededFrom: '2026-10-01',
+    supersededBy: '25-A-5',
     authority: 'Svenska kraftnät',
     certificationScope: 'future_effective',
     // The active-message field matrix is the certified 25-A-3 base plus the
     // explicit 25-A-4 overlay in utilts25A4.ts. Removed S08-only fields and
     // processability/code-list changes are versioned there; no duplicated
     // independent matrix is allowed.
+    fieldMatrixStatus: 'certified',
+  },
+  {
+    family: 'UTILTS',
+    guideRevision: '25-A-5',
+    associationAssignedCode: 'E5SE5A',
+    documentName: UTILTS_25_A_5_SOURCE.document,
+    latestUpdated: UTILTS_25_A_5_SOURCE.published,
+    effectiveFrom: UTILTS_25_A_5_SOURCE.effectiveFrom,
+    effectiveTo: null,
+    primarySource: UTILTS_25_A_5_SOURCE,
+    authority: 'Svenska kraftnät',
+    certificationScope: 'production_current',
+    // Qualified shared active-field matrix plus the Swedish U5 policy overlay.
+    // Runtime/registry activation still requires the actual named source witness.
     fieldMatrixStatus: 'certified',
   },
   {
@@ -138,8 +162,23 @@ export const AUTHORITATIVE_EDIEL_GUIDES: readonly AuthoritativeEdielGuide[] = fr
     latestUpdated: '2026-08-05',
     effectiveFrom: '2026-10-01',
     effectiveTo: null,
+    supersededFrom: '2026-10-01',
+    supersededBy: '25-A-5',
     authority: 'Svenska kraftnät',
     certificationScope: 'future_effective',
+    fieldMatrixStatus: 'certified',
+  },
+  {
+    family: 'APERAK',
+    guideRevision: '25-A-5',
+    associationAssignedCode: 'E5SE5A',
+    documentName: UTILTS_25_A_5_SOURCE.document,
+    latestUpdated: UTILTS_25_A_5_SOURCE.published,
+    effectiveFrom: UTILTS_25_A_5_SOURCE.effectiveFrom,
+    effectiveTo: null,
+    primarySource: UTILTS_25_A_5_SOURCE,
+    authority: 'Svenska kraftnät',
+    certificationScope: 'production_current',
     fieldMatrixStatus: 'certified',
   },
   {
@@ -193,6 +232,7 @@ export function resolveAuthoritativeEdielGuide(input: {
     if (guide.family !== input.family) return false
     if (guide.effectiveFrom > date) return false
     if (guide.effectiveTo && guide.effectiveTo < date) return false
+    if (guide.supersededFrom && guide.supersededFrom <= date) return false
     if (association && guide.associationAssignedCode?.toUpperCase() !== association) return false
     return true
   })
@@ -221,8 +261,8 @@ export function resolveAuthoritativeEdielGuide(input: {
  * effect. Outbound traffic must always use the current guide.
  *
  * The grace window is the new guide's effective date plus 13 calendar days,
- * i.e. 2026-10-01..2026-10-14 for UTILTS 25-A-4. The association code is not
- * sufficient to select between 25-A-3 and 25-A-4 because both are E5SE5A.
+ * i.e. 2026-10-01..2026-10-14 for Swedish UTILTS25-A-5. The immediately
+ * preceding valid guide is U3; U4 has the same start and was superseded.
  */
 export function resolveEdielGuideAcceptance(input: {
   family: EdielGuideFamily
@@ -241,6 +281,8 @@ export function resolveEdielGuideAcceptance(input: {
     .filter((guide) => {
       if (guide.family !== current.family) return false
       if (guide.effectiveFrom >= current.effectiveFrom) return false
+      if (guide.supersededFrom && guide.supersededFrom < current.effectiveFrom) return false
+      if (guide.supersededFrom === guide.effectiveFrom) return false
       if (association && guide.associationAssignedCode?.toUpperCase() !== association) return false
       return true
     })

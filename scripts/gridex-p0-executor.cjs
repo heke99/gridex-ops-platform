@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 'use strict'
 
+// Validate mappings and optionally run deterministic support gates. Browser
+// paths are metadata: this executor does not attest browser or journey outcomes.
 const fs = require('node:fs')
 const path = require('node:path')
 const { spawnSync } = require('node:child_process')
@@ -55,7 +57,7 @@ if (issues.length === 0 && shouldExecute) {
   for (const id of selected) {
     const entry = manifest.scenarios[id]
     const gateResults = []
-    let scenarioStatus = 'passed'
+    let supportStatus = 'passed'
     for (const script of entry.npm_scripts) {
       const started = Date.now()
       const child = spawnSync(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['run', script], {
@@ -64,33 +66,48 @@ if (issues.length === 0 && shouldExecute) {
         encoding: 'utf8',
         maxBuffer: 20 * 1024 * 1024,
       })
-      const status = child.status === 0 ? 'passed' : 'failed'
-      gateResults.push({ script, status, exit_code: child.status ?? 1, duration_ms: Date.now() - started })
+      const status = child.status === 0 && !child.error && !child.signal ? 'passed' : 'failed'
+      gateResults.push({ script, status, exit_code: status === 'passed' ? 0 : child.status || 1, duration_ms: Date.now() - started })
       if (status === 'failed') {
-        scenarioStatus = 'failed'
+        supportStatus = 'failed'
         break
       }
     }
     scenarioResults.push({
       id,
-      status: scenarioStatus,
+      status: supportStatus === 'failed' ? 'failed' : 'not_verified',
+      deterministic_support_status: supportStatus,
+      browser_boundary_status: 'not_executed',
+      full_journey_status: 'not_verified',
       deterministic_gates: gateResults,
       browser_specs: entry.browser_specs,
     })
-    if (scenarioStatus === 'failed') break
+    if (supportStatus === 'failed') break
   }
 }
 
+const mappingStatus = issues.length === 0 ? 'passed' : 'failed'
+const supportStatus = scenarioResults.some((row) => row.deterministic_support_status === 'failed')
+  ? 'failed' : scenarioResults.length ? 'passed' : 'not_executed'
+const executed = new Set(scenarioResults.map((row) => row.id))
 const evidence = {
-  schema_version: 1,
+  schema_version: 2,
+  evidence_scope: 'mapping_and_deterministic_support',
   generated_at: new Date().toISOString(),
   commit_sha: process.env.GITHUB_SHA || null,
   contract: 'PROJECT_E2E.yaml',
   required_p0: uniqueP0,
   mapped_p0: mappedIds,
-  validation_status: issues.length === 0 ? 'passed' : 'failed',
+  // Retain this field for mapping-validation consumers of schema v1.
+  validation_status: mappingStatus,
+  mapping_validation_status: mappingStatus,
+  deterministic_support_status: supportStatus,
+  browser_boundary_status: 'not_executed',
+  full_journey_status: 'not_verified',
   issues,
   execution_requested: shouldExecute,
+  requested_scenarios: selected,
+  unexecuted_scenarios: selected.filter((id) => !executed.has(id)),
   scenarios: scenarioResults,
 }
 fs.writeFileSync(path.join(artifactDir, 'gridex-p0-executor-evidence.json'), `${JSON.stringify(evidence, null, 2)}\n`)
@@ -99,8 +116,9 @@ if (issues.length > 0) {
   console.error(`P0 executor contract failed:\n- ${issues.join('\n- ')}`)
   process.exit(1)
 }
-if (scenarioResults.some((row) => row.status !== 'passed')) {
-  console.error('One or more executed P0 scenarios failed.')
+if (supportStatus === 'failed') {
+  console.error('One or more deterministic P0 support gates failed.')
   process.exit(1)
 }
-console.log(`Gridex P0 executor contract passed for ${uniqueP0.length} required scenarios${shouldExecute ? `; executed ${scenarioResults.length}` : ''}.`)
+const supportSummary = shouldExecute ? `deterministic support passed for ${scenarioResults.length} selected scenarios` : 'deterministic support not executed'
+console.log(`Gridex P0 mapping validated for ${uniqueP0.length} required scenarios; ${supportSummary}; browser and full journey evidence not verified.`)

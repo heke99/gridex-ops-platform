@@ -10,7 +10,7 @@ import {defineConfig} from 'vitest/config'
 // source231b9ef8, and its facade to the reviewed adoptedca892 source. None
 // replaces the historical BASE aliases or their fixed canonical source bytes.
 // Its BASE public creator alone receives a prospective legacy
-// DTO hint. Two containment forwards and fourteen delivered current reader/guard
+// DTO hint. Two containment forwards and sixteen delivered current reader/guard
 // forwards remain separately receipted phases before fresh ROOT owners. The
 // OPS-04 forward is preceded only by the exact DB-05 TRUNCATE guard callback.
 const root = realpathSync(resolve(__dirname, '..'))
@@ -59,7 +59,7 @@ const fileHash = (path: string) => createHash('sha256').update(readFileSync(path
 const sameInput = (a: GitInput | undefined, b: GitInput | undefined) => !!a && !!b && a.mode === b.mode &&
   a.git_blob_oid === b.git_blob_oid && a.sha256 === b.sha256
 const basis = receipt.historical_source_basis, overlay = basis?.module_overrides?.[0]
-if (receipt.required_input_paths?.length !== 56 || new Set(receipt.required_input_paths).size !== 56 ||
+if (receipt.required_input_paths?.length !== 58 || new Set(receipt.required_input_paths).size !== 58 ||
     receipt.required_base_input_paths?.length !== 35 || new Set(receipt.required_base_input_paths).size !== 35 ||
     basis?.kind !== 'reconstructed_public_births' || basis.default_alias !== 'BASE56' || basis.module_overrides?.length !== 1 ||
     overlay?.specifier !== '@/lib/ediel/testing/agtEngine' || overlay.path !== producerPath || overlay.source !== 'ROOT' ||
@@ -208,6 +208,18 @@ export const currentReaderForwards: Array<GitInput & {path: string}> = [
     "mode": "100644",
     "git_blob_oid": "6ddf94077699971f13dba1498b20583bde5164af",
     "sha256": "5691b79a523a4db6b3335f52661b0f76ac124cbf61bfcde36b618f2cac3b4954"
+  },
+  {
+    "path": "supabase/migrations/20261021052940_ediel_swedish_utilts25a5_registry_and_source_editions.sql",
+    "mode": "100644",
+    "git_blob_oid": "a7eefc681e30e07ed40be689e046a39e0d4c7bff",
+    "sha256": "cc514c291e2b8f91c2b5ec1a591a4731bd3c586210941ab8c28f5d7c5f3b2734"
+  },
+  {
+    "path": "supabase/migrations/20261021094313_ediel_swedish_utilts25a5_inbound_profile_supersession.sql",
+    "mode": "100644",
+    "git_blob_oid": "5ca331bd6970a50eae108234c8cab44bf18f43f0",
+    "sha256": "8b51a7dfea2eec7019775f6cfccb0ce4692af517f8e1919794ea65c796155fb1"
   }
 ]
 const currentDatabase = receipt.current_database_basis
@@ -225,8 +237,8 @@ if (!currentDatabase || Object.keys(currentDatabase).length !== 3 || currentData
 if (phase === 'current' && (['current_guard_preparation', 'current_read_forwards', 'current_guard_qualification', 'current_api_schema'].some(name =>
     receipt.phases?.[name]?.status !== 'PASS' || receipt.phases[name].exit_code !== 0) ||
     receipt.current_guard_result?.status !== 'PASS' || receipt.current_guard_result.source_sha !== head ||
-    receipt.current_guard_result.reader_function_names !== 233 || receipt.current_guard_result.helper_function_names !== 372 ||
-    receipt.current_guard_result.function_definitions !== 372 || receipt.current_guard_result.delivered_relation_objects !== 18 ||
+    receipt.current_guard_result.reader_function_names !== 233 || receipt.current_guard_result.helper_function_names !== 373 ||
+    receipt.current_guard_result.function_definitions !== 373 || receipt.current_guard_result.delivered_relation_objects !== 18 ||
     !Array.isArray(receipt.current_guard_result.mismatches) || receipt.current_guard_result.mismatches.length !== 0 ||
     receipt.current_api_schema_result?.status !== 'PASS' || receipt.current_api_schema_result.source_sha !== head ||
     JSON.stringify(receipt.current_api_schema_result.rpc_paths) !== JSON.stringify([

@@ -1,7 +1,6 @@
-import { tenantInsert, tenantSelect, tenantUpdate } from '@/lib/supabase/tenantQuery'
+import { tenantInsert, tenantSelect } from '@/lib/supabase/tenantQuery'
 import { publicReference } from '@/lib/integrations/publicReferences'
 import { buildPortalDatabasePage, decodePortalCursor, portalPageLimit } from '@/lib/customer-portal/keysetPagination'
-import { createTenantSupportCase } from '@/lib/customer-cases/support'
 import type { CustomerCaseStatus } from '@/lib/customer-cases/types'
 import { supabaseService } from '@/lib/supabase/service'
 
@@ -301,34 +300,34 @@ export const SUPPORT_CUSTOMER_QUOTAS = {
   messagesPerHour: 150,
 } as const
 
-async function assertSupportQuota(
-  scope: CustomerScope,
-  kind: 'case' | 'message',
-): Promise<void> {
-  const windowMs = kind === 'case' ? 24 * 60 * 60 * 1000 : 60 * 60 * 1000
-  const since = new Date(Date.now() - windowMs).toISOString()
-  const query = kind === 'case'
-    ? tenantSelect(scope.companyId, 'customer_cases', 'id', { count: 'exact', head: true })
-        .eq('customer_id', scope.customerId)
-        .eq('metadata->>support_case', 'true')
-        .eq('metadata->>opened_by', 'customer')
-        .gte('created_at', since)
-    : tenantSelect(scope.companyId, 'customer_case_events', 'id', { count: 'exact', head: true })
-        .eq('customer_id', scope.customerId)
-        .eq('event_type', SUPPORT_EVENT_TYPES.customerMessage)
-        .gte('created_at', since)
-  const { count, error } = await query
-  if (error) throw error
-  const limit = kind === 'case' ? SUPPORT_CUSTOMER_QUOTAS.newCasesPerDay : SUPPORT_CUSTOMER_QUOTAS.messagesPerHour
-  if ((count ?? 0) >= limit) {
-    throw new SupportConversationError(
-      'support_quota_exceeded',
-      kind === 'case'
-        ? 'För många nya ärenden från kunden det senaste dygnet. Försök igen senare eller kontakta kundtjänst.'
-        : 'För många meddelanden från kunden den senaste timmen. Försök igen senare.',
-      429,
-    )
+type CustomerSupportRpc = (
+  name: 'gridex_create_customer_support_case_v1' | 'gridex_add_customer_support_message_v1',
+  args: Record<string, unknown>,
+) => PromiseLike<{ data: unknown; error: unknown }>
+
+async function customerSupportCommand(
+  name: Parameters<CustomerSupportRpc>[0],
+  args: Record<string, unknown>,
+): Promise<unknown> {
+  const rpc = supabaseService.rpc.bind(supabaseService) as unknown as CustomerSupportRpc
+  const { data, error } = await rpc(name, args)
+  if (error) {
+    const failure = error as { code?: unknown; message?: unknown }
+    if (failure.code === 'P0001' && ['support_case_quota_exceeded', 'support_message_quota_exceeded'].includes(String(failure.message))) {
+      throw new SupportConversationError('support_quota_exceeded',
+        failure.message === 'support_case_quota_exceeded'
+          ? 'För många nya ärenden från kunden det senaste dygnet. Försök igen senare eller kontakta kundtjänst.'
+          : 'För många meddelanden från kunden den senaste timmen. Försök igen senare.', 429)
+    }
+    if (failure.code === 'P0001' && failure.message === 'support_case_closed') {
+      throw new SupportConversationError('support_case_closed', 'Ärendet är avslutat. Skapa ett nytt ärende.', 409)
+    }
+    if (failure.code === 'P0002' && failure.message === 'support_case_not_found') {
+      throw new SupportConversationError('support_case_not_found', 'Ärendet hittades inte.', 404)
+    }
+    throw error
   }
+  return data
 }
 
 /** The authenticated end customer opens a support case through the tenant's portal API. */
@@ -344,58 +343,20 @@ export async function createCustomerSupportCase(input: CustomerScope & {
   if (!title) throw new SupportConversationError('support_title_required', 'Rubrik krävs.')
   const message = text(input.message, MESSAGE_MAX_LENGTH)
   if (!message) throw new SupportConversationError('support_message_required', 'Meddelande krävs.')
-  // A retry with an idempotency key that already created a case replays it; it never counts
-  // against (or is refused by) the new-case quota.
-  const existing = await tenantSelect(input.companyId, 'customer_cases', 'id')
-    .eq('customer_id', input.customerId)
-    .eq('metadata->>support_idempotency_key', input.idempotencyKey)
-    .limit(1)
-  if (existing.error) throw existing.error
-  if ((existing.data ?? []).length === 0) await assertSupportQuota(input, 'case')
-
-  const created = await createTenantSupportCase({
-    companyId: input.companyId,
-    customerId: input.customerId,
-    title,
-    description: message,
-    category: text(input.category, 120) ?? 'support',
-    channel: 'customer_portal',
-    idempotencyKey: input.idempotencyKey,
-    actorUserId: null,
-    metadata: {
-      description_visibility: 'customer',
-      opened_by: 'customer',
-      api_client_id: input.apiClientId,
-      portal_identity_id: input.portalIdentityId,
-    },
-  })
-  const row = created.case as unknown as SupportCaseRow
-  const reference = supportCaseReference(input.companyId, row.id)
-  // Steps after the case insert are repeatable: a retry with the same idempotency key after a crash
-  // completes the missing reference/first message instead of creating a second case.
-  if (row.metadata?.support_public_reference !== reference) {
-    const { error } = await tenantUpdate(input.companyId, 'customer_cases', { metadata: { ...(row.metadata ?? {}), support_public_reference: reference } })
-      .eq('customer_id', input.customerId)
-      .eq('id', row.id)
-    if (error) throw error
+  const key = text(input.idempotencyKey, 200)
+  if (!key) throw new Error('support_idempotency_key_required')
+  // Replay, rolling quota, case/reference/events/audit and bounded legacy
+  // repair share one SQL transaction. Never fall back to count-then-write.
+  const result = await customerSupportCommand('gridex_create_customer_support_case_v1', {
+    p_company_id: input.companyId, p_customer_id: input.customerId,
+    p_api_client_id: input.apiClientId, p_portal_identity_id: input.portalIdentityId,
+    p_title: title, p_message: message, p_category: text(input.category, 120) ?? 'support', p_idempotency_key: key,
+  }) as { case?: SupportCaseRow; reused?: unknown } | null
+  const row = result?.case
+  if (!row?.id || row.company_id !== input.companyId || row.customer_id !== input.customerId || typeof result?.reused !== 'boolean') {
+    throw new Error('support_customer_case_result_invalid')
   }
-  const firstMessage = await tenantSelect(input.companyId, 'customer_case_events', 'id')
-    .eq('customer_case_id', row.id)
-    .eq('event_type', SUPPORT_EVENT_TYPES.customerMessage)
-    .limit(1)
-  if (firstMessage.error) throw firstMessage.error
-  if ((firstMessage.data ?? []).length === 0) {
-    await insertSupportEvent({
-      companyId: input.companyId,
-      customerId: input.customerId,
-      caseId: row.id,
-      eventType: SUPPORT_EVENT_TYPES.customerMessage,
-      message,
-      payload: { visibility: 'customer', author_type: 'customer', channel: 'customer_portal', api_client_id: input.apiClientId, portal_identity_id: input.portalIdentityId },
-      actorUserId: null,
-    })
-  }
-  return { case: publicSupportCase({ ...row, metadata: { ...(row.metadata ?? {}), support_public_reference: reference } }), reused: created.reused }
+  return { case: publicSupportCase(row), reused: result.reused }
 }
 
 /** The authenticated end customer adds a message to one of their own open cases. */
@@ -411,16 +372,13 @@ export async function addCustomerSupportMessage(input: CustomerScope & {
   if (CLOSED_STATUSES.includes(supportCase.status)) {
     throw new SupportConversationError('support_case_closed', 'Ärendet är avslutat. Skapa ett nytt ärende.', 409)
   }
-  await assertSupportQuota(input, 'message')
-  const row = await insertSupportEvent({
-    companyId: input.companyId,
-    customerId: input.customerId,
-    caseId: supportCase.id,
-    eventType: SUPPORT_EVENT_TYPES.customerMessage,
-    message: body,
-    payload: { visibility: 'customer', author_type: 'customer', channel: 'customer_portal', api_client_id: input.apiClientId, portal_identity_id: input.portalIdentityId },
-    actorUserId: null,
-  })
+  const row = await customerSupportCommand('gridex_add_customer_support_message_v1', {
+    p_company_id: input.companyId, p_customer_id: input.customerId, p_case_id: supportCase.id,
+    p_api_client_id: input.apiClientId, p_portal_identity_id: input.portalIdentityId, p_message: body,
+  }) as SupportEventRow | null
+  if (!row?.id || row.customer_case_id !== supportCase.id || row.event_type !== SUPPORT_EVENT_TYPES.customerMessage || row.payload?.visibility !== 'customer') {
+    throw new Error('support_customer_message_result_invalid')
+  }
   return publicSupportMessage(input.companyId, row)
 }
 

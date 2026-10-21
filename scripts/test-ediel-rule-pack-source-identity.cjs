@@ -56,7 +56,7 @@ async function resolver(row, error = null) {
 }
 // Explicit synthetic named-row witness at the mocked DB boundary. Production
 // obtains this only from the locked native wrapper, never inferred metadata.
-function witness(row){return {...row,original_version:`${row.guide_version}:r${row.guide_revision}`,original_snapshot:{rulePack:{id:row.rule_pack_id,source_hash:row.source_hash,guide_version:row.guide_version,guide_revision:row.guide_revision},messageProfile:{id:row.message_profile_id,rule_pack_id:row.rule_pack_id,profile_key:row.profile_key,profile:row.profile},guideSources:[]}}}
+function witness(row){return {...row,original_version:`${row.guide_version}:r${row.guide_revision}`,original_snapshot:{rulePack:{id:row.rule_pack_id,source_hash:row.source_hash,guide_version:row.guide_version,guide_revision:row.guide_revision},messageProfile:{id:row.message_profile_id,rule_pack_id:row.rule_pack_id,profile_key:row.profile_key,profile:row.profile},guideSources:row.guide_revision==='5'?[{rule_pack_id:row.rule_pack_id,source_type:'technical_guide',revision:'25-A-5',source_hash:'b76a61b9aa6f136771e5db4948296d1b632b8d775314eb6c93783595ae419db2',source_locator:'https://www.ediel.se/Portal/Document/3364'}]:[]}}}
 function evidence(code = 'E66', revision = '3', overrides = {}, profileOverrides = {}) {
   const version = `25-A-${revision}`
   return {
@@ -76,7 +76,7 @@ function evidence(code = 'E66', revision = '3', overrides = {}, profileOverrides
 const input = { family: 'UTILTS', messageCode: 'E66', direction: 'inbound',
   businessDate: '2026-09-30', applicationReference: '23-DDQ-E66-S', requireBuilder: false }
 
-for (const [date, revision] of [['2026-09-30', '3'], ['2026-10-01', '4']]) {
+for (const [date, revision] of [['2026-09-30', '3'], ['2026-10-01', '5']]) {
   test(`selected E66 reference reaches evidence lookup on ${date}`, async () => {
     const { resolve, calls } = await resolver(evidence('E66', revision))
     const result = await resolve({ ...input, businessDate: date })
@@ -208,8 +208,8 @@ test('an activation ending before the guide never gains extra validity', async (
   assert.equal((await resolve({ ...s02, businessDate: '2026-09-25' })).validTo, '2026-09-25')
 })
 test('real leap dates remain usable with matching source and activation', async () => {
-  const { resolve, calls } = await resolver(evidence('S02', '4'))
-  assert.equal((await resolve({ ...s02, businessDate: '2028-02-29' })).guideVersion, '25-A-4')
+  const { resolve, calls } = await resolver(evidence('S02', '5'))
+  assert.equal((await resolve({ ...s02, businessDate: '2028-02-29' })).guideVersion, '25-A-5')
   assert.equal(calls.length, 1)
 })
 

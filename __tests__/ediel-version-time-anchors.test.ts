@@ -9,7 +9,7 @@ describe('source-owned version admission time', () => {
   it('uses receipt rather than the sender document date after the October transition', () => {
     const message = { ...observationHandoffMessage('2026-09-30'), message_received_at: '2026-10-15T09:00:00Z' }
     expect(canonicalBusinessDate(message)).toBe('2026-09-30')
-    expect(resolveCanonicalMessagePolicy(message)?.guide.guideRevision).toBe('25-A-4')
+    expect(resolveCanonicalMessagePolicy(message)?.guide.guideRevision).toBe('25-A-5')
     expect(canonicalAdmissionDate(message)).toBe('2026-10-15')
   })
   it('uses Stockholm calendar dates for a physical receipt instant', () => {

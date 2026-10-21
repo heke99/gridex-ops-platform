@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { assertAuthenticatedDestination, assertTenantCompanyTeam } from '../helpers/authenticated-page-contract.mjs'
 import {
   fingerprint,
   productionRunId,
@@ -29,28 +30,21 @@ test('manually verified tenant admin can access own tenant but not platform-only
     await loginAsTenantAdmin(page)
     checks.push({ name: 'tenant_admin_login', status: 'passed' })
 
-    await page.goto(`${prodBaseUrl}/admin/company-settings`)
-    await expect(page.getByText('Bolagsinställningar', { exact: true }).first()).toBeVisible()
-    await expect(page.locator('body')).not.toContainText('Kontot saknar aktiv bolagskoppling')
-
-    const companyIdInput = page.locator('input[name="company_id"]').first()
-    await expect(companyIdInput).toBeAttached()
-    companyId = await companyIdInput.inputValue()
-    expect(companyId).toMatch(/^[0-9a-f-]{36}$/i)
+    companyId = await assertTenantCompanyTeam(page, { baseUrl: prodBaseUrl, email: tenantAdminEmail })
     checks.push({ name: 'own_tenant_scope_resolved', status: 'passed' })
-
-    await page.goto(`${prodBaseUrl}/admin/companies/${companyId}/users`)
-    await expect(page).toHaveURL(new RegExp(`/admin/companies/${companyId}/users`))
-    await expect(page.locator('body')).toContainText(tenantAdminEmail)
     checks.push({ name: 'own_tenant_user_management', status: 'passed' })
 
-    await page.goto(`${prodBaseUrl}/admin/companies`)
-    await expect(page).toHaveURL(/\/admin\/company-settings(?:\?|$)/)
+    const ownUsersResponse = await page.goto(`${prodBaseUrl}/admin/companies/${companyId}/users`)
+    await assertAuthenticatedDestination(page, ownUsersResponse, { baseUrl: prodBaseUrl, route: '/admin/company-settings' })
+    checks.push({ name: 'platform_company_users_denied', status: 'passed' })
+
+    const companiesResponse = await page.goto(`${prodBaseUrl}/admin/companies`)
+    await assertAuthenticatedDestination(page, companiesResponse, { baseUrl: prodBaseUrl, route: '/admin/company-settings' })
     await expect(page.getByRole('heading', { name: 'Skapa nytt elhandelsbolag' })).toHaveCount(0)
     checks.push({ name: 'platform_company_admin_denied', status: 'passed' })
 
-    await page.goto(`${prodBaseUrl}/admin/platform/go-live`)
-    await expect(page).toHaveURL(/\/admin\/company-settings(?:\?|$)/)
+    const goLiveResponse = await page.goto(`${prodBaseUrl}/admin/platform/go-live`)
+    await assertAuthenticatedDestination(page, goLiveResponse, { baseUrl: prodBaseUrl, route: '/admin/company-settings' })
     checks.push({ name: 'platform_go_live_denied', status: 'passed' })
 
     writeEvidence('gridex-production-tenant-admin-verify.json', {

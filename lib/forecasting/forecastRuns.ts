@@ -1,9 +1,51 @@
 import { supabaseService } from '@/lib/supabase/service'
 import { monthEndExclusive, monthStart } from '@/lib/analytics/utils'
-import { calculateMeteringPointForecast } from '@/lib/forecasting/meteringPointForecast'
+import { actualKwhForPeriod, calculateMeteringPointForecast } from '@/lib/forecasting/meteringPointForecast'
 import { buildCompanyMonthlyMetrics, hasCustomerAnalyticsData } from '@/lib/analytics/monthlyMetricsBuilder'
 
-const ACTIVE_STATUSES = ['active', 'live', 'ongoing']
+type SourceCustomer = { company_id: string; source: string | null }
+type ForecastPoint = {
+  id: string
+  customer_id: string | null
+  site_id: string | null
+  grid_owner_id: string | null
+  bidding_zone_code: string | null
+  source_customer: SourceCustomer | SourceCustomer[] | null
+}
+
+/** A single SQL statement supplies both the bounded JSON snapshot and its
+ * complete count. Refuse incomplete evidence before producing any items. */
+async function forecastPointInventory(companyId: string): Promise<ForecastPoint[]> {
+  const rpc = supabaseService.rpc.bind(supabaseService) as unknown as (
+    name: 'gridex_forecast_point_inventory_v1', args: { p_company_id: string },
+  ) => PromiseLike<{ data: unknown; error: unknown }>
+  const { data, error } = await rpc('gridex_forecast_point_inventory_v1', { p_company_id: companyId })
+  if (error) throw error
+  const invalid = () => new Error('forecast_point_inventory_result_invalid')
+  const row = Array.isArray(data) && data.length === 1 ? data[0] : null
+  if (!row || typeof row !== 'object' || Array.isArray(row)) throw invalid()
+  const { points, total_count: countValue } = row as Record<string, unknown>
+  if (typeof countValue !== 'number' && !(typeof countValue === 'string' && /^\d+$/.test(countValue))) throw invalid()
+  const count = Number(countValue)
+  if (!Number.isSafeInteger(count) || count < 0 || count > 10000 || !Array.isArray(points) || points.length !== count) throw invalid()
+  const nullableString = (value: unknown) => value === null || typeof value === 'string'
+  const validCustomer = (value: unknown) => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+    const customer = value as Record<string, unknown>
+    return customer.company_id === companyId && nullableString(customer.source)
+  }
+  let previousId: string | null = null
+  for (const value of points) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) throw invalid()
+    const point = value as Record<string, unknown>
+    if (typeof point.id !== 'string' || !point.id || previousId !== null && point.id <= previousId
+      || !['customer_id', 'site_id', 'grid_owner_id', 'bidding_zone_code'].every(key => nullableString(point[key]))
+      || !(point.source_customer === null || (Array.isArray(point.source_customer)
+        ? point.source_customer.every(validCustomer) : validCustomer(point.source_customer)))) throw invalid()
+    previousId = point.id
+  }
+  return points as ForecastPoint[]
+}
 
 export class ForecastRunSkippedError extends Error {
   readonly reason = 'no_customer_data' as const
@@ -49,14 +91,7 @@ export async function generateForecastRunItems(input: {
 }): Promise<{ items: number; missing: number }> {
   const periodStart = monthStart(input.periodStart)
   const periodEnd = input.periodEnd ?? monthEndExclusive(periodStart)
-  const { data: meteringPoints, error } = await supabaseService
-    .from('metering_points')
-    .select('id, customer_id, site_id, grid_owner_id, bidding_zone_code, source_customer:customers!metering_points_company_customer_fk(company_id,source)')
-    .eq('company_id', input.companyId)
-    .in('status', ACTIVE_STATUSES)
-    .limit(10000)
-
-  if (error) throw error
+  const meteringPoints = await forecastPointInventory(input.companyId)
 
   let items = 0
   let missing = 0
@@ -74,16 +109,7 @@ export async function generateForecastRunItems(input: {
     })
     if (forecast.method === 'missing_basis') missing += 1
 
-    const { data: actualRows, error: actualError } = await supabaseService
-      .from('metering_values')
-      .select('quantity_kwh, value_kwh')
-      .eq('company_id', input.companyId)
-      .eq('metering_point_id', mp.id)
-      .gte('period_start', `${periodStart}T00:00:00.000Z`)
-      .lt('period_start', `${periodEnd}T00:00:00.000Z`)
-
-    if (actualError) throw actualError
-    const actualKwh = (actualRows ?? []).reduce((sum, row) => sum + Number(row.value_kwh ?? row.quantity_kwh ?? 0), 0)
+    const actualKwh = await actualKwhForPeriod(input.companyId, mp.id, periodStart, periodEnd)
     const diffKwh = forecast.forecastKwh === null ? null : actualKwh - forecast.forecastKwh
     const diffPercent = forecast.forecastKwh ? ((actualKwh - forecast.forecastKwh) / forecast.forecastKwh) * 100 : null
 
