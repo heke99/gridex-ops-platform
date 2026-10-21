@@ -129,7 +129,15 @@ jobs:
            {'path': 'supabase/migrations/20261019140000_ediel_ops04_controlled_live_evidence.sql',
             'mode': '100644',
             'git_blob_oid': '6ddf94077699971f13dba1498b20583bde5164af',
-            'sha256': '5691b79a523a4db6b3335f52661b0f76ac124cbf61bfcde36b618f2cac3b4954'}]
+            'sha256': '5691b79a523a4db6b3335f52661b0f76ac124cbf61bfcde36b618f2cac3b4954'},
+           {'path': 'supabase/migrations/20261021052940_ediel_swedish_utilts25a5_registry_and_source_editions.sql',
+            'mode': '100644',
+            'git_blob_oid': 'a7eefc681e30e07ed40be689e046a39e0d4c7bff',
+            'sha256': 'cc514c291e2b8f91c2b5ec1a591a4731bd3c586210941ab8c28f5d7c5f3b2734'},
+           {'path': 'supabase/migrations/20261021094313_ediel_swedish_utilts25a5_inbound_profile_supersession.sql',
+            'mode': '100644',
+            'git_blob_oid': '5ca331bd6970a50eae108234c8cab44bf18f43f0',
+            'sha256': '8b51a7dfea2eec7019775f6cfccb0ce4692af517f8e1919794ea65c796155fb1'}]
           current_read_forwards = [item['path'] for item in current_read_manifest]
           current_reader_callers = ['lib/ediel/production/customerMasterdataOriginalRead.ts','lib/ediel/core/receivedZ04HAddressAvailability.ts']
           repair = 'supabase/migrations/20261006231122_ediel_test_configuration_route_environment_source.sql'
@@ -190,7 +198,7 @@ jobs:
                   if reader.wait() != 0: raise RuntimeError('Git inventory reader failed')
               return {'sha':revision,'tree':subprocess.check_output(['git','rev-parse',revision+'^{tree}'],text=True).strip(),'blobs':result}
           current, baseline = inventory(head), inventory(base_sha)
-          if len(required) != 56 or len(required) != len(set(required)) or not set(required).issubset(current['blobs']):
+          if len(required) != 58 or len(required) != len(set(required)) or not set(required).issubset(current['blobs']):
               raise RuntimeError('required input missing or duplicated')
           if len(required_base) != 35 or len(required_base) != len(set(required_base)) or not set(required_base).issubset(baseline['blobs']):
               raise RuntimeError('required BASE input missing or duplicated')
@@ -417,6 +425,7 @@ jobs:
                       if dependency not in names:names.add(dependency);pending.append(dependency)
           function_keys={key for name in names for key,sig,body in source_functions[name]
               if not(name=='public.ediel_read_bilateral_prodat_outbound_original_v1' and sig.count(',')==1)}
+          if len(names)!=373 or len(function_keys)!=373:fail('current delivered guard call-closure identity changed')
           # FUNCTION dump definitions include volatility, security mode, language, result
           # and SET configuration. Explicit ACLs are selected by exact function identity;
           # absent ACLs retain PostgreSQL defaults, verified through the live catalog.
@@ -625,7 +634,7 @@ jobs:
           if mode=='before':
               before,db=observe()
               # Snapshot exact logical surroundings of existing private preparations,
-              # including every attached policy/trigger/constraint/index/ACL, before fourteen
+              # including every attached policy/trigger/constraint/index/ACL, before sixteen
               # forward changes. This is retained BASE evidence, not ROOT parity.
               surroundings={repr(key):value for key,value in before.items() if key[0]=='gridex_customer_masterdata' and key[1]!='FUNCTION' and
                 not(key[1]=='ACL' and key[2].startswith('FUNCTION '))}
@@ -651,7 +660,7 @@ jobs:
                       receipt['current_read_forward_executions']=executed
                       receipt_path.write_text(json.dumps(receipt,indent=2)+'\n')
                       if code:sys.exit(code)
-                  # Keep all fourteen declared forwards, then deliver only the later
+                  # Keep all sixteen declared forwards, then deliver only the later
                   # source-qualified API effects inside this same bounded phase.
                   apply_current_api_projection()
               finally:
@@ -848,7 +857,7 @@ jobs:
             'lib/ediel/rulebook/canonicalEdielFacade.ts','lib/ediel/testing/tgtCanonicalDraftRoute.ts',
             'lib/ediel/testing/agtRuntime.ts','lib/ediel/testing/agtRegistry.ts',
             'lib/ediel/testing/positiveFixtureAuthority.ts','lib/ediel/production/lifeEventCertificationSource.ts'}
-          if len(receipt['required_input_paths'])!=56 or len(set(receipt['required_input_paths']))!=56 or \
+          if len(receipt['required_input_paths'])!=58 or len(set(receipt['required_input_paths']))!=58 or \
               len(receipt['required_base_input_paths'])!=35 or len(set(receipt['required_base_input_paths']))!=35 or \
               set(basis.get('canonical_dependency_identity',{}))!=dependencies or \
               receipt['root_source']['blobs'][producer]!={key:expected_overlay[key] for key in ['mode','git_blob_oid','sha256']}:
@@ -906,7 +915,7 @@ jobs:
           guard=receipt.get('current_guard_result',{})
           api=receipt.get('current_api_schema_result',{})
           if database.get('kind')!='BASE56_repair_two_forwards_plus_delivered_reader_guard_closure' or \
-              database.get('schema_path')!='supabase/schema.sql' or len(database.get('forwards',[]))!=14 or \
+              database.get('schema_path')!='supabase/schema.sql' or len(database.get('forwards',[]))!=16 or \
               executions!=[{**item,'exit_code':0,'status':'PASS'} for item in database['forwards']] or \
               [(x.get('before'),x.get('donor',{}).get('path'),x.get('sql_sha256'),x.get('exit_code'),x.get('status'))
                 for x in receipt.get('current_read_forward_prerequisites',[])]!=[(
@@ -915,8 +924,8 @@ jobs:
                 'e2b209c12edc9c57c3d6f13f3b0da24524c9acbe9bb920571b674feb46eb827c',0,'PASS')] or \
               guard.get('forward_prerequisite_mismatches')!=[] or len(guard.get('forward_prerequisite_objects',[]))!=2 or \
               guard.get('status')!='PASS' or guard.get('source_sha')!=receipt['checkout_sha'] or \
-              guard.get('reader_function_names')!=233 or guard.get('helper_function_names')!=372 or \
-              guard.get('function_definitions')!=372 or guard.get('delivered_relation_objects')!=18 or \
+              guard.get('reader_function_names')!=233 or guard.get('helper_function_names')!=373 or \
+              guard.get('function_definitions')!=373 or guard.get('delivered_relation_objects')!=18 or \
               guard.get('mismatches')!=[] or \
               guard.get('source_schema_sha256')!=receipt['root_source']['blobs']['supabase/schema.sql']['sha256'] or \
               api.get('status')!='PASS' or api.get('source_sha')!=receipt['checkout_sha'] or \
