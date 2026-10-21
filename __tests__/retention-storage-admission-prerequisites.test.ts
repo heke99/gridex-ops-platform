@@ -9,7 +9,8 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 const forward = readFileSync('supabase/migrations/20261020191228_retention_storage_admission_prerequisites.sql', 'utf8')
 const owner = 'gridex_ediel_retention_owner'
 const hash = (value: string) => createHash('sha256').update(value).digest('hex')
-// Immutable fd4 schema/authority captures; independent constructor oracle.
+// Canonical fd4 helpers/policies and production column profile; independent oracle.
+// Canonical replay membership nullability is exercised explicitly below.
 // Guard input is exact reviewed post869 SQL 2151204a..., not mutable future GEN.
 const captured = {
   "helpers": [
@@ -642,6 +643,33 @@ async function visible(operation = 'storage.object.delete_many', user = actor) {
   finally { await db.exec('RESET ROLE') }
 }
 describe('whole final retention Storage admission prerequisite forward', () => {
+  it.each(['C0', 'H3P0', 'H3P6'])('admits canonical replay membership nullability in %s without changing prior metadata', async state => {
+    await db.exec('ALTER TABLE public.company_memberships ALTER COLUMN is_active SET NOT NULL, ALTER COLUMN membership_role DROP NOT NULL')
+    if (state !== 'C0') await canonicalHelpers(db)
+    if (state === 'H3P6') await policies()
+    const before = await snapshot(), prior = await snapshot(false), helpers = await helperProfiles()
+    try { await run() }
+    catch (error) {
+      expect(await snapshot()).toEqual(before)
+      throw error
+    }
+    expect(await snapshot(false)).toEqual(prior)
+    if (state !== 'C0') expect(await helperProfiles()).toEqual(helpers)
+    if (state === 'H3P6') expect(await snapshot()).toEqual(before)
+    await db.exec('SET search_path=pg_catalog')
+    expect(await targetState()).toEqual(expected)
+    const installed = await snapshot()
+    await run(); expect(await snapshot()).toEqual(installed)
+  })
+  it.each([
+    { active: true, role: true },
+    { active: false, role: false },
+  ])('refuses the unobserved membership nullability pair is_active=$active membership_role=$role without changing any metadata', async ({ active, role }) => {
+    await db.exec(`ALTER TABLE public.company_memberships ALTER COLUMN is_active ${active ? 'SET' : 'DROP'} NOT NULL, ALTER COLUMN membership_role ${role ? 'SET' : 'DROP'} NOT NULL`)
+    const before = await snapshot()
+    await expect(run()).rejects.toMatchObject({ code: '42501', message: expect.stringContaining('retention_admission_membership_nullability_profile_required') })
+    expect(await snapshot()).toEqual(before)
+  })
   it('admits inherited installer access while preserving exact direct helper grants and all prior metadata', async () => {
     const before = await snapshot()
     try { await run() }
@@ -844,6 +872,12 @@ describe('whole final retention Storage admission prerequisite forward', () => {
     expect(await visible()).toEqual(['synthetic.csv', 'synthetic.eml', 'synthetic.pdf'])
     for (const op of ['', 'storage.object.list', 'storage.object.get', 'storage.object.sign']) expect(await visible(op)).toEqual([])
     expect(await visible('storage.object.delete_many', foreignActor)).toEqual([])
+  })
+  it.each(['false', 'NULL'])('keeps is_active=%s membership closed under the unchanged canonical authority predicates', async active => {
+    await seedAuthorization(); await run()
+    expect(await visible()).toEqual(['synthetic.csv', 'synthetic.eml', 'synthetic.pdf'])
+    await db.exec(`UPDATE public.company_memberships SET is_active=${active}`)
+    expect(await visible()).toEqual([])
   })
   it.each(['deny', 'expired_grant', 'unaccepted_membership', 'inactive_actor', 'missing_invoice_permission', 'missing_invoice_tombstone', 'shared_foreign_invoice_target'])('keeps actual SQL authority failure %s closed', async mode => {
     await seedAuthorization(); await run()
