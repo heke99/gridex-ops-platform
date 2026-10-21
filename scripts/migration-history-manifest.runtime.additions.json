@@ -263,6 +263,7 @@
     "20261020211439_customer_merge_portal_lifecycle_convergence.sql": "94caa92f9f92d0e6fb1f23b4655e8f32d4083acfdebbf778246ee55c81ffe960",
     "20261020215757_ediel_private_supply_scope_prerequisites.sql": "7f30d5e1bc53f4bb61cb80e6b185eded68047156b69a5e991579c937b2994538",
     "20261020220844_one_off_manual_publication_gate_convergence.sql": "4a4b3c00cbc18f2474673f377320ddbe54888d3b814db3f4cecb61b901325bca",
-    "20261020230048_ediel_supply_source_runtime_prerequisites.sql": "224e8fb44436462e5f2d3f15360855a7580e0ebebb7e3f261eaf10f058a2efc8"
+    "20261020230048_ediel_supply_source_runtime_prerequisites.sql": "224e8fb44436462e5f2d3f15360855a7580e0ebebb7e3f261eaf10f058a2efc8",
+    "20261021052940_ediel_swedish_utilts25a5_registry_and_source_editions.sql": "cc514c291e2b8f91c2b5ec1a591a4731bd3c586210941ab8c28f5d7c5f3b2734"
   }
 }
