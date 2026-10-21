@@ -123,9 +123,13 @@ describe.sequential('Source20 complete supply source runtime prerequisites',()=>
   const result=(await db.query<{v:unknown}>('SELECT public.ediel_apply_supply_source_v1(NULL::uuid,NULL::uuid,NULL::uuid)v')).rows[0].v
   expect(result).toEqual({applied:false,reason:'supply_source_unavailable'});await db.exec('RESET ROLE');expect(await business()).toEqual(b)
  })
- it('qualifies complete C25 without any DDL while preserving OIDs, xmin and an existing comment',async()=>{
+ describe('qualified C25 fixture',()=>{
+  beforeEach(async()=>{
   await eventHook();await ordinary();await apply();await assertTargets();const events=(await db.query<{identity:string}>('SELECT identity FROM fixture.ddl_log ORDER BY n')).rows;expect(events).toHaveLength(25);expect(events.at(-1)?.identity).toContain(publicTarget.name)
+  },5000)
+  it('qualifies complete C25 without any DDL while preserving OIDs, xmin and an existing comment',async()=>{
   await db.exec("COMMENT ON FUNCTION "+targets[0].signature+" IS 'pre-existing qualified target comment'");const before=await state();const metadata=await targetMetadata();await apply();expect(await state()).toEqual(before);expect(await targetMetadata()).toEqual(metadata);expect((await db.query('SELECT * FROM fixture.ddl_log')).rows).toHaveLength(25)
+  })
  })
  for(const keep of [1,12,24])it(`refuses a known partial C${keep} cluster without completing it`,async()=>{
   await ordinary();await apply();for(const t of targets.slice(keep).reverse())await db.exec('DROP FUNCTION '+t.signature);await unchangedRefusal(migration,'sql20_uniform_absent_or_exact_cluster_required')
