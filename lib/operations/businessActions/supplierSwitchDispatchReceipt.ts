@@ -49,7 +49,7 @@ export async function readSupplierSwitchDispatchReceipt(scope: Scope): Promise<R
     || i.validation_status !== 'validated' || i.render_status !== 'rendered'
     || i.requested_effective_date !== s.requested_start_date || basis.requestType !== s.request_type
     || basis.transactionSubtype !== subtype || basis.reasonForTransaction !== (subtype === 'H' ? 'Z25' : subtype === 'LK' ? 'Z23' : 'Z22')
-    || (s.power_of_attorney_id != null && basis.power_of_attorney_id !== s.power_of_attorney_id)
+    || (basis.power_of_attorney_id ?? null) !== (s.power_of_attorney_id ?? null)
     || (s.authorization_document_id != null && basis.authorization_document_id !== s.authorization_document_id)
     || i.communication_route_id !== m.communication_route_id || i.route_profile_id !== m.route_profile_id
     || r.customer_id !== scope.customerId || r.site_id !== scope.siteId || r.metering_point_id !== scope.meteringPointId
@@ -68,7 +68,9 @@ export async function readSupplierSwitchDispatchReceipt(scope: Scope): Promise<R
         && o.current_send_attempt_id === null && o.locked_at === null && o.locked_by === null) return { state: 'queued', messageId: m.id, outboxId: o.id }
       const age = o.locked_at ? Date.now() - Date.parse(o.locked_at) : NaN
       if (o.status === 'sending' && ['queued', 'dispatching'].includes(m.status) && o.current_send_attempt_id && o.locked_by
-        && o.attempts > 0 && o.send_attempt_count > 0 && age >= 0 && age < 30 * 60000) return { state: 'in_progress', messageId: m.id, outboxId: o.id }
+        // Matches sendOutboxItem's strict ten-minute claim lease. An expired
+        // reservation is uncertain, not proof of an active worker.
+        && o.attempts > 0 && o.send_attempt_count > 0 && age >= 0 && age < 10 * 60000) return { state: 'in_progress', messageId: m.id, outboxId: o.id }
     }
   }
   // Fresh queue/active-lease confirmation above preserves the caller's

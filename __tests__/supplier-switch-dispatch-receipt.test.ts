@@ -22,6 +22,7 @@ beforeEach(() => {
   io.db = createFakeDb({ supplier_switch_requests: [{ id: scope.switchRequestId, company_id: scope.companyId, customer_id: scope.customerId,
     site_id: scope.siteId, metering_point_id: scope.meteringPointId, request_type: 'switch', prodat_variant: 'L', prodat_reason: 'Z22',
     requested_start_date: '2027-04-01', status: 'queued', lifecycle_blocked: false, lifecycle_block_id: null, paused_at: null,
+    power_of_attorney_id: null, authorization_document_id: null,
     outbound_z03_message_id: messageId }] })
   io.db.unique.ediel_dedupe_keys = ['dedupe_key']
   io.prepare.mockResolvedValue({ id: messageId, status: 'queued' })
@@ -38,7 +39,8 @@ function durable(status = 'queued') {
     supplier_switch_request_id: scope.switchRequestId, operation_id: scope.switchRequestId, ediel_message_id: messageId, outbound_request_id: outboundId,
     direction: 'outbound', message_family: 'PRODAT', message_code: 'Z03', environment: 'production', validation_status: 'validated', render_status: 'rendered',
     communication_route_id: id(11), route_profile_id: id(10), requested_effective_date: '2027-04-01',
-    payload: { transactionSubtype: 'L', reasonForTransaction: 'Z22', requestType: 'switch' } }]
+    payload: { transactionSubtype: 'L', reasonForTransaction: 'Z22', requestType: 'switch', power_of_attorney_id: null,
+      authorization_document_id: null } }]
   io.db.tables.outbound_requests = [{ id: outboundId, company_id: scope.companyId, customer_id: scope.customerId, site_id: scope.siteId,
     metering_point_id: scope.meteringPointId, source_type: 'supplier_switch_request', source_id: scope.switchRequestId,
     operation_id: scope.switchRequestId, request_type: 'supplier_switch', environment: 'production', communication_route_id: id(11), status: 'prepared' }]
@@ -154,5 +156,30 @@ describe('durable dispatch rather than an acquired idempotency key', () => {
       authorizesProviderEntry: false, deliveryProven: false }
     accepted[key] = 'invalid'; io.projection.mockResolvedValue({ data: accepted, error: null })
     await expect(startSupplierSwitch(input)).rejects.toThrow('supplier_switch_queue_commit_unconfirmed')
+  })
+  it.each([{ age: 599999, active: true }, { age: 600000, active: false }, { age: 1200000, active: false }, { age: -1, active: false }])('uses the actual sender lease boundary at age $age ms', async ({ age, active }) => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date('2026-10-21T12:30:00Z'))
+    try {
+      deduped(); durable(); Object.assign(io.db.tables.ediel_outbox[0], { status: 'sending', locked_by: 'original-worker',
+        attempts: 1, send_attempt_count: 1, current_send_attempt_id: id(16), locked_at: new Date(Date.now() - age).toISOString() })
+      const original = JSON.stringify(io.db.tables.ediel_outbox)
+      if (active) expect(await startSupplierSwitch(input)).toMatchObject({ ok: true, dispatchReceipt: { state: 'in_progress' } })
+      else await expect(startSupplierSwitch(input)).rejects.toThrow('supplier_switch_queue_commit_unconfirmed')
+      expect(JSON.stringify(io.db.tables.ediel_outbox)).toBe(original)
+      expect(io.prepare).not.toHaveBeenCalled()
+    } finally { vi.useRealTimers() }
+  })
+  it('rejects removal of the POA captured on the original even when every other queued binding still matches', async () => {
+    deduped(); durable(); io.db.tables.ediel_message_intents[0].payload = { ...(io.db.tables.ediel_message_intents[0].payload as object), power_of_attorney_id: id(17) }
+    expect(io.db.tables.supplier_switch_requests[0].power_of_attorney_id).toBeNull()
+    await expect(startSupplierSwitch(input)).rejects.toThrow('supplier_switch_queue_commit_unconfirmed')
+    expect(io.prepare).not.toHaveBeenCalled()
+  })
+  it('preserves a matching non-null POA and its genuinely derived document when the raw request document column is null', async () => {
+    deduped(); durable(); io.db.tables.supplier_switch_requests[0].power_of_attorney_id = id(17)
+    io.db.tables.ediel_message_intents[0].payload = { ...(io.db.tables.ediel_message_intents[0].payload as object),
+      power_of_attorney_id: id(17), authorization_document_id: id(18) }
+    expect(await startSupplierSwitch(input)).toMatchObject({ ok: true, dispatchReceipt: { state: 'queued' } })
+    expect(io.db.tables.supplier_switch_requests[0].authorization_document_id).toBeNull()
   })
 })
