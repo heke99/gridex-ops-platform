@@ -226,6 +226,7 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
   const facilityIdentifier = String(siteRecord.normalized_facility_id ?? siteRecord.facility_id ?? '').trim() || null
 
   const intent = await createEdielMessageIntent({
+    normalSwitchInsertOnly: true,
     actorUserId,
     companyId,
     environment: routeContext.environment,
