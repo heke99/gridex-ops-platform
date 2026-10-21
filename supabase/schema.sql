@@ -59309,6 +59309,7 @@ begin
     and mp.message_code = new.message_code
     and mp.direction in ('inbound','both')
     and rp.status in ('active','future')
+    and NOT gridex_ediel_source_rules.pack_superseded_by_swedish_utilts25a5_v1(rp.market,rp.family,rp.guide_version,rp.guide_revision,v_effective_date)
     and rp.valid_from <= v_effective_date
     and (rp.valid_to is null or rp.valid_to >= v_effective_date);
 
@@ -59327,6 +59328,7 @@ begin
     and mp.message_code = new.message_code
     and mp.direction in ('inbound','both')
     and rp.status in ('active','future')
+    and NOT gridex_ediel_source_rules.pack_superseded_by_swedish_utilts25a5_v1(rp.market,rp.family,rp.guide_version,rp.guide_revision,v_effective_date)
     and rp.valid_from <= v_effective_date
     and (rp.valid_to is null or rp.valid_to >= v_effective_date)
   limit 1;
