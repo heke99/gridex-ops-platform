@@ -198,14 +198,23 @@ describe.sequential('Source20 complete supply source runtime prerequisites',()=>
   await admin();for(const role of ['anon','authenticated']){await db.exec('SET LOCAL ROLE '+role);expect((await refused(()=>db.query('SELECT public.ediel_apply_supply_source_v1(NULL::uuid,NULL::uuid,NULL::uuid)')))?.code).toBe('42501');await db.exec('RESET ROLE')}
   await db.exec('SET LOCAL ROLE service_role');expect((await refused(()=>db.query('SELECT '+targets[0].name+'('+targets[0].argumentTypes.map(x=>'NULL::'+x).join(',')+')')))?.code).toBe('42501')
  })
- for(const mutation of ['argument name','argument type','return type','argument default'])it(`refuses exact public ${mutation} drift`,async()=>{
-  await ordinary();await apply();let def=(await db.query<{v:string}>('SELECT pg_get_functiondef($1::regprocedure)v',[publicTarget.signature])).rows[0].v
+ describe('qualified public profile fixture',()=>{
+  beforeAll(async()=>{
+   await db.exec('BEGIN')
+   try{await ordinary();await apply();await assertTargets();await db.exec('COMMIT')}
+   catch(e){await db.exec('ROLLBACK');throw e}
+   finally{await db.exec('SET SESSION AUTHORIZATION supabase_admin')}
+  },5000)
+  beforeEach(async()=>{await ordinary()},5000)
+  for(const mutation of ['argument name','argument type','return type','argument default'])it(`refuses exact public ${mutation} drift`,async()=>{
+  let def=(await db.query<{v:string}>('SELECT pg_get_functiondef($1::regprocedure)v',[publicTarget.signature])).rows[0].v
   await db.exec('DROP FUNCTION '+publicTarget.signature)
   if(mutation==='argument name')def=def.replaceAll('p_actor_user_id','different_actor_name')
   if(mutation==='argument type')def=def.replace('p_actor_user_id uuid','p_actor_user_id text')
   if(mutation==='return type')def=def.replace('RETURNS jsonb','RETURNS text')
   if(mutation==='argument default')def=def.replace('p_actor_user_id uuid','p_actor_user_id uuid DEFAULT NULL::uuid')
   await db.exec(def);await unchangedRefusal(migration,'sql20_exact_function_profile_required')
+ })
  })
 
 })
