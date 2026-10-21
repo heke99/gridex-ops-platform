@@ -86,7 +86,11 @@ export async function readAppliedManualReplyContext(input: ManualReplyContinuati
 }
 
 /** Mark only the sibling continuation, preserving the committed application and paid reading. */
-export async function markManualReplyContinuation(input: ManualReplyContinuationInput & { supplierSwitchRequestId?: string | null }): Promise<void> {
+type ContinuationOutcome = { supplierSwitchRequestId?: string | null; reviewRequired?: boolean; reviewReasons?: unknown[] }
+export function manualReplyReviewCodes(values: unknown[]): string[] {
+  return [...new Set(values.filter((value): value is string => typeof value === 'string' && /^[a-z][a-z0-9_]{0,95}$/.test(value)))].slice(0, 20)
+}
+export async function markManualReplyContinuation(input: ManualReplyContinuationInput & ContinuationOutcome): Promise<void> {
   await writeManualReplyContinuation(input, 'completed')
 }
 
@@ -95,14 +99,15 @@ export async function markManualReplyContinuationFailed(input: ManualReplyContin
   await writeManualReplyContinuation(input, 'failed')
 }
 
-async function writeManualReplyContinuation(input: ManualReplyContinuationInput & { supplierSwitchRequestId?: string | null }, status: 'completed' | 'failed'): Promise<void> {
+async function writeManualReplyContinuation(input: ManualReplyContinuationInput & ContinuationOutcome, status: 'completed' | 'failed'): Promise<void> {
   for (let attempt = 0; attempt < 2; attempt++) {
     const context = await readAppliedManualReplyContext(input)
     if (!context) { if (status === 'failed') return; throw new Error('manual_reply_continuation_context_changed') }
     if (record(context.member ? context.member.continuation : context.automation.continuation).status === 'completed') return
     const continuation = { status, sourceHash: context.sourceHash, inboundId: input.inboundId, requestId: input.requestId,
       ...(context.member ? { parentRequestId: context.sourceRequestId } : {}),
-      ...(status === 'completed' ? { completedAt: new Date().toISOString(), supplierSwitchRequestId: input.supplierSwitchRequestId ?? null }
+      ...(status === 'completed' ? { completedAt: new Date().toISOString(), supplierSwitchRequestId: input.supplierSwitchRequestId ?? null,
+        ...(input.reviewRequired === true ? { reviewRequired: true, reviewReasons: manualReplyReviewCodes(input.reviewReasons ?? []) } : {}) }
         : { failedAt: new Date().toISOString(), reason: 'continuation_failed' }) }
     const automation = context.member ? { ...context.automation, ...(status === 'failed' ? { continuation } : {}), site_applications: {
       ...record(context.automation.site_applications), [input.requestId]: { ...context.member, continuation },
@@ -164,7 +169,9 @@ async function continueManualCommercialReplyAttempt(input: ManualReplyContinuati
     companyId: input.companyId, customerId: input.customerId, siteId: input.siteId,
     actorUserId: context.actorUserId, source: 'manual_supplier_information_received',
   })
-  await markManualReplyContinuation({ ...input, supplierSwitchRequestId: result?.supplierSwitchRequestId ?? null })
+  await markManualReplyContinuation({ ...input, supplierSwitchRequestId: result?.supplierSwitchRequestId ?? null,
+    reviewRequired: result?.ok === false || result?.blockedBeforeDispatch === true,
+    reviewReasons: result?.blockers?.map(blocker => blocker.code) ?? [] })
 }
 
 export async function applyManualCommercialReply(input: {

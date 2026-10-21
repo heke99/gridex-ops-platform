@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import { createClient } from '@supabase/supabase-js'
 import { getManualMailReviewQueue, normalizeManualMailReviewFilters, manualMailReviewReasons } from '@/lib/inbound-mail/manualMailReviewQueue'
 
 describe('manual mail review queue', () => {
@@ -19,6 +20,8 @@ describe('manual mail review queue', () => {
     expect(filter).toContain('multi_site->>reviewCount.gt.0')
     expect(filter).toContain('failed')
     expect(filter).toContain('extracted_payload->manual_automation->continuation->>status.eq.failed')
+    expect(filter).toContain('gridex_manual_mail_has_pending_partial_v1.eq.true')
+    expect(filter).toContain('extracted_payload->manual_automation->continuation->>reviewRequired.eq.true')
     expect(filter).toContain('ai_read_only->>status.eq.processing,extracted_payload->ai_read_only->>started_at.lt.2026-10-18T23:45:00.000Z')
     expect(filter).toContain('documentReading->>status.eq.processing,extracted_payload->manual_automation->documentReading->>started_at.lt.2026-10-18T23:45:00.000Z')
     expect(calls.find(([name]) => name === 'select')?.[1]).not.toContain('attachments')
@@ -74,4 +77,36 @@ it('clears the failed-continuation reason after a completed retry', () => {
   expect(manualMailReviewReasons({ resolution_status: 'matched', processing_state: 'applied', extracted_payload: {
     manual_automation: { continuation: { status: 'completed' } },
   } })).not.toContain('Fortsatt handläggning kunde inte slutföras')
+})
+
+it('explains a positive fee even when no commercial fields are missing', () => {
+  expect(manualMailReviewReasons({ resolution_status: 'matched', processing_state: 'applied', extracted_payload: {
+    manual_automation: { application: { applied: true, complete: false, missingFields: [], terms: { terminationFee: '1250' } } },
+  } })).toContain('Brytavgift behöver granskas')
+})
+it('shows legitimate completed business review separately from a technical failure', () => {
+  const reasons = manualMailReviewReasons({ resolution_status: 'matched', processing_state: 'applied', extracted_payload: {
+    manual_automation: { continuation: { status: 'completed', reviewRequired: true, reviewReasons: ['supplier_information_requires_review'] } },
+  } })
+  expect(reasons).toContain('Fortsatt handläggning kräver manuell granskning')
+  expect(reasons).not.toContain('Fortsatt handläggning kunde inte slutföras')
+})
+
+it('serializes the pending predicate and tenant scope in the same SDK request as exact count and pagination', async () => {
+  const requests: Array<{ url: URL; headers: Headers }> = []
+  const db = createClient('https://fixture.invalid', 'synthetic-public-anon-key', { auth: { persistSession: false, autoRefreshToken: false },
+    global: { fetch: async (input, init) => {
+      requests.push({ url: new URL(String(input)), headers: new Headers(init?.headers) })
+      return new Response(JSON.stringify([{ id: 'last-review-row' }]), { status: 206, headers: { 'Content-Type': 'application/json', 'Content-Range': '25-25/26' } })
+    } } })
+  const result = await getManualMailReviewQueue(db as never, { page: '2', tenant: '11111111-1111-4111-8111-111111111111' })
+  expect(requests).toHaveLength(1)
+  const { url, headers } = requests[0]
+  expect(url.pathname).toBe('/rest/v1/manual_inbound_messages')
+  expect(url.searchParams.get('or')).toContain('gridex_manual_mail_has_pending_partial_v1.eq.true')
+  expect(url.searchParams.get('or')).toContain('resolution_status.in.(unmatched,ambiguous)')
+  expect(url.searchParams.get('company_id')).toBe('eq.11111111-1111-4111-8111-111111111111')
+  expect(url.searchParams.get('offset')).toBe('25'); expect(url.searchParams.get('limit')).toBe('25')
+  expect(headers.get('prefer')).toContain('count=exact')
+  expect(result).toMatchObject({ total: 26, page: 2, hasMore: false, rows: [{ id: 'last-review-row' }] })
 })

@@ -97,6 +97,27 @@ describe('durable automatic reply continuation', () => {
     expect(fetch).not.toHaveBeenCalled()
   })
 
+  it('retains a completed commercial application but exposes a blocked downstream business decision', async () => {
+    io.reconcile.mockResolvedValue({ ok: false, supplierSwitchRequestId: null,
+      blockers: [{ code: 'missing_customer_identity', message: 'Synthetic private explanatory text' }] })
+    await continueManualCommercialReply(input)
+    expect(continuation()).toMatchObject({ status: 'completed', reviewRequired: true, reviewReasons: ['missing_customer_identity'] })
+    expect(JSON.stringify(continuation())).not.toContain('Synthetic private explanatory text')
+    expect(row(row(sourcePayload().manual_automation).application)).toMatchObject({ applied: true, complete: true })
+    await continueManualCommercialReply(input)
+    expect(io.reconcile).toHaveBeenCalledTimes(1)
+  })
+
+  it('exposes a created switch held for business review without copying arbitrary blocker text', async () => {
+    io.reconcile.mockResolvedValue({ ok: true, supplierSwitchRequestId: 'switch-a', blockedBeforeDispatch: true,
+      blockers: [{ code: 'current_supplier_termination_fee', message: 'Synthetic private text' },
+        { code: 'Synthetic private text' }, { code: 'current_supplier_termination_fee' }] })
+    await continueManualCommercialReply(input)
+    expect(continuation()).toMatchObject({ status: 'completed', supplierSwitchRequestId: 'switch-a',
+      reviewRequired: true, reviewReasons: ['current_supplier_termination_fee'] })
+    expect(JSON.stringify(continuation())).not.toContain('Synthetic private text')
+  })
+
   it('retries an already committed commercial reply after downstream failure without a second paid reading', async () => {
     io.reconcile.mockRejectedValueOnce(new Error('temporary reconciliation failure'))
     await expect(continueManualCommercialReply(input)).rejects.toThrow('temporary reconciliation failure')
@@ -156,6 +177,20 @@ describe('durable automatic reply continuation', () => {
     expect(io.intake).not.toHaveBeenCalled()
     expect(io.next).not.toHaveBeenCalled()
     expect(continuation().status).toBe('completed')
+    expect(continuation().reviewRequired === true).toBe(status === 'needs_review')
+    expect(io.event).toHaveBeenCalledWith(expect.objectContaining({ actionRequired: status === 'needs_review' }))
+  })
+
+  it('projects a canonical intake review into the workflow, event and completed mail continuation', async () => {
+    seed('facility', false)
+    io.intake.mockResolvedValue({ state: 'needs_admin_review', nextAction: 'review_blocker',
+      blockers: [{ code: 'missing_customer_identity', message: 'Synthetic private description' }] })
+    await completeFacilityLookupAndRunNextSteps(facilityInput())
+    expect(continuation()).toMatchObject({ status: 'completed', reviewRequired: true, reviewReasons: ['missing_customer_identity'] })
+    expect(io.workflow).toHaveBeenCalledWith(expect.objectContaining({ state: 'manual_review' }))
+    expect(io.event).toHaveBeenCalledWith(expect.objectContaining({ status: 'needs_review', severity: 'warning', actionRequired: true }))
+    expect(io.next).not.toHaveBeenCalled()
+    expect(JSON.stringify(continuation())).not.toContain('Synthetic private description')
   })
 
   it('establishes the separate supplier conversation even when the canonical result has no metering-point record', async () => {

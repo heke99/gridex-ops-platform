@@ -85,7 +85,10 @@ export async function completeFacilityLookupAndRunNextSteps(input: CompleteFacil
         }
       }
 
-      const workflowState = supplierSwitchResult?.decision === 'prepare_supplier_switch'
+      const reviewRequired = supplierSwitchResult?.decision === 'manual_review'
+        || intakeDecision?.state === 'needs_admin_review' || intakeDecision?.nextAction === 'review_blocker'
+      const reviewReasons = [...(supplierSwitchResult?.blockers ?? []), ...(intakeDecision?.blockers ?? [])].map(blocker => blocker.code)
+      const workflowState = reviewRequired ? 'manual_review' : supplierSwitchResult?.decision === 'prepare_supplier_switch'
         ? 'switch_request_queued'
         : supplierSwitchResult?.decision === 'prepare_z01' || supplierSwitchResult?.decision === 'wait_for_ack'
           ? 'waiting_for_customer_data_response'
@@ -101,7 +104,7 @@ export async function completeFacilityLookupAndRunNextSteps(input: CompleteFacil
         operationId: completion.operationId,
         state: workflowState,
         eventCode: `workflow.facility_response.${workflowState}`,
-        reasonCode: supplierSwitchResult?.blockers[0]?.code ?? null,
+        reasonCode: supplierSwitchResult?.blockers?.[0]?.code ?? intakeDecision?.blockers?.[0]?.code ?? null,
         idempotencyKey: `workflow.facility_response:${input.requestId}:${workflowState}`,
         snapshotPatch: {
           next_action: supplierSwitchResult?.actionTaken ?? intakeDecision?.nextAction ?? 'facility_information_completed',
@@ -117,14 +120,14 @@ export async function completeFacilityLookupAndRunNextSteps(input: CompleteFacil
         meteringPointId: completion.meteringPointRecordId ?? null,
         operationId: completion.operationId,
         eventType: 'facility_response.orchestrated',
-        title: supplierSwitchResult?.supplierSwitchRequestId ? 'Leverantörsbyte startat automatiskt' : 'Anläggningssvar behandlat',
-        message: supplierSwitchResult?.supplierSwitchRequestId
+        title: reviewRequired ? 'Anläggningssvar kräver fortsatt granskning' : supplierSwitchResult?.supplierSwitchRequestId ? 'Leverantörsbyte startat automatiskt' : 'Anläggningssvar behandlat',
+        message: reviewRequired ? 'Anläggningsuppgifterna är mottagna. Ett hinder behöver granskas innan handläggningen kan fortsätta.' : supplierSwitchResult?.supplierSwitchRequestId
           ? 'Anläggningsuppgifter är mottagna och leverantörsbyte har startats automatiskt.'
           : 'Anläggningsuppgifter är mottagna och nästa steg har kontrollerats.',
         actorUserId,
-        status: supplierSwitchResult?.supplierSwitchRequestId ? 'waiting_response' : 'completed',
-        severity: 'info',
-        actionRequired: false,
+        status: reviewRequired ? 'needs_review' : supplierSwitchResult?.supplierSwitchRequestId ? 'waiting_response' : 'completed',
+        severity: reviewRequired ? 'warning' : 'info',
+        actionRequired: reviewRequired,
         source: 'facility_response_orchestrator',
         payload: {
           request_id: input.requestId,
@@ -134,7 +137,8 @@ export async function completeFacilityLookupAndRunNextSteps(input: CompleteFacil
         idempotencyKey: `facility_response.orchestrated:${input.requestId}:${supplierSwitchResult?.supplierSwitchRequestId ?? intakeDecision?.state ?? 'checked'}`,
       })
       if (continuation && continuationScope) {
-        await continuation.markManualReplyContinuation({ ...continuationScope, supplierSwitchRequestId: supplierSwitchResult?.supplierSwitchRequestId ?? null })
+        await continuation.markManualReplyContinuation({ ...continuationScope, supplierSwitchRequestId: supplierSwitchResult?.supplierSwitchRequestId ?? null,
+          reviewRequired, reviewReasons })
       }
     } catch (cause) {
       throw new FacilityLookupPostCommitError(input.companyId, input.requestId, completion, cause)
