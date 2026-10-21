@@ -1019,8 +1019,9 @@ BEGIN
    OR (actual.proacl IS NULL) IS DISTINCT FROM (spec->>'acl_null')::boolean
    OR (SELECT count(*) FROM pg_proc WHERE pronamespace=actual.pronamespace AND proname=actual.proname)<>1
    THEN RAISE EXCEPTION 'retention_admission_exact_routine_profile_required: %',spec->>'signature' USING ERRCODE='42501';END IF;
+   -- postgres inherits authenticated EXECUTE; the exact ACL above forbids a direct grant.
    IF (spec->>'new_helper')::boolean AND (has_function_privilege('authenticated',actual.oid,'EXECUTE') IS NOT TRUE
-    OR EXISTS(SELECT FROM pg_roles WHERE rolname IN('anon','service_role','postgres') AND has_function_privilege(oid,actual.oid,'EXECUTE')))
+    OR EXISTS(SELECT FROM pg_roles WHERE rolname IN('anon','service_role') AND has_function_privilege(oid,actual.oid,'EXECUTE')))
    THEN RAISE EXCEPTION 'retention_admission_canonical_helper_admission_required' USING ERRCODE='42501';END IF;
   END LOOP;
   IF phase=1 OR policy_count=6 THEN

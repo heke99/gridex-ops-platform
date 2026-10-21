@@ -506,6 +506,8 @@ async function setup() {
     CREATE ROLE ${owner} NOLOGIN NOINHERIT BYPASSRLS;
     CREATE ROLE supabase_storage_admin NOLOGIN NOINHERIT;CREATE ROLE supabase_auth_admin NOLOGIN NOINHERIT;
     CREATE ROLE anon;CREATE ROLE authenticated;CREATE ROLE service_role BYPASSRLS;CREATE ROLE dashboard_user;
+    -- Hosted postgres inherits these application roles without direct helper grants.
+    GRANT anon,authenticated,service_role TO postgres WITH ADMIN TRUE,INHERIT TRUE,SET TRUE GRANTED BY supabase_admin;
     ALTER DATABASE postgres OWNER TO postgres;ALTER SCHEMA public OWNER TO pg_database_owner;
     CREATE SCHEMA storage AUTHORIZATION supabase_storage_admin;CREATE SCHEMA auth AUTHORIZATION supabase_auth_admin;
     CREATE SCHEMA gridex_ediel_retention AUTHORIZATION ${owner};CREATE SCHEMA gridex_private;
@@ -640,6 +642,37 @@ async function visible(operation = 'storage.object.delete_many', user = actor) {
   finally { await db.exec('RESET ROLE') }
 }
 describe('whole final retention Storage admission prerequisite forward', () => {
+  it('admits inherited installer access while preserving exact direct helper grants and all prior metadata', async () => {
+    const before = await snapshot()
+    try { await run() }
+    catch (error) {
+      expect(await snapshot()).toEqual(before)
+      throw error
+    }
+    expect(await snapshot(false)).toEqual(before)
+    await db.exec('SET SESSION AUTHORIZATION postgres')
+    try {
+      const installer = (await db.query(`SELECT current_user AS actor,session_user AS session,
+        (SELECT rolsuper FROM pg_roles WHERE rolname=current_user) AS super,
+        (SELECT jsonb_agg(jsonb_build_object('role',r.rolname,'admin',m.admin_option,
+          'inherit',m.inherit_option,'set',m.set_option,'grantor',pg_get_userbyid(m.grantor)) ORDER BY r.rolname)
+          FROM pg_auth_members m JOIN pg_roles r ON r.oid=m.roleid
+          WHERE m.member='postgres'::regrole AND r.rolname IN('anon','authenticated','service_role')) AS memberships`)).rows[0]
+      expect(installer).toEqual({ actor: 'postgres', session: 'postgres', super: false,
+        memberships: ['anon', 'authenticated', 'service_role'].map(role => ({ role, admin: true, inherit: true, set: true, grantor: 'supabase_admin' })) })
+      for (const helper of captured.helpers) {
+        const privileges = (await db.query(`SELECT has_function_privilege('postgres',$1,'EXECUTE') AS installer,
+          has_function_privilege('authenticated',$1,'EXECUTE') AS authenticated,
+          has_function_privilege('anon',$1,'EXECUTE') AS anon,
+          has_function_privilege('service_role',$1,'EXECUTE') AS service,
+          EXISTS(SELECT FROM pg_proc p CROSS JOIN LATERAL aclexplode(p.proacl) a
+            WHERE p.oid=to_regprocedure($1) AND a.grantee='postgres'::regrole) AS direct_installer`, [helper.signature])).rows[0]
+        expect(privileges).toEqual({ installer: true, authenticated: true, anon: false, service: false, direct_installer: false })
+      }
+    } finally { await db.exec('SET SESSION AUTHORIZATION supabase_admin') }
+    await db.exec('SET search_path=pg_catalog')
+    expect(await targetState()).toEqual(expected)
+  })
   it('installs exact three canonical owner-only/authenticated helpers and six policies while preserving all prior metadata', async () => {
     const before = await snapshot(false)
     await run()
@@ -698,6 +731,13 @@ describe('whole final retention Storage admission prerequisite forward', () => {
     await canonicalHelpers(db)
     await db.exec('CREATE OR REPLACE FUNCTION public.ediel_storage_retention_target_v1(p_path text) RETURNS SETOF boolean LANGUAGE sql SECURITY DEFINER SET search_path=pg_catalog AS $$SELECT true$$')
     await rejectUnchanged()
+  })
+  it('refuses an extra direct postgres helper grant despite already inherited installer access', async () => {
+    await canonicalHelpers(db)
+    await db.exec(`SET ROLE ${owner};GRANT EXECUTE ON FUNCTION public.ediel_storage_retention_target_v1(text) TO postgres;RESET ROLE`)
+    const before = await snapshot()
+    await expect(run()).rejects.toMatchObject({ code: '42501', message: expect.stringContaining('retention_admission_exact_routine_profile_required') })
+    expect(await snapshot()).toEqual(before)
   })
   it.each([
     'ALTER POLICY ediel_qualified_retention_storage_delete ON storage.objects TO anon',
