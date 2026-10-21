@@ -18331,12 +18331,23 @@ CREATE FUNCTION gridex_ediel_source_rules.pack_effective_v1(p_pack_id uuid, p_di
     AS $$
  SELECT EXISTS(
   SELECT FROM public.ediel_rule_packs r
-  WHERE r.id=p_pack_id AND r.status IN('active','transition','future') AND r.valid_from<=p_date
+  WHERE r.id=p_pack_id AND NOT gridex_ediel_source_rules.pack_superseded_by_swedish_utilts25a5_v1(r.market,r.family,r.guide_version,r.guide_revision,p_date) AND r.status IN('active','transition','future') AND r.valid_from<=p_date
    AND (r.valid_to IS NULL OR p_date<=r.valid_to
     OR (p_direction='inbound' AND EXISTS(
      SELECT FROM public.ediel_rule_packs s
      WHERE s.family=r.family AND s.market=r.market AND s.id<>r.id AND s.status IN('active','transition','future')
       AND s.valid_from=r.valid_to+1 AND p_date>=s.valid_from AND p_date<=s.valid_from+13))))
+$$;
+
+--
+-- Name: pack_superseded_by_swedish_utilts25a5_v1(text, text, text, text, date); Type: FUNCTION; Schema: gridex_ediel_source_rules; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_source_rules.pack_superseded_by_swedish_utilts25a5_v1(p_market text, p_family text, p_version text, p_revision text, p_date date) RETURNS boolean
+    LANGUAGE sql IMMUTABLE
+    SET search_path TO 'pg_catalog'
+    AS $$
+ SELECT EXISTS(SELECT FROM jsonb_array_elements('[{"market":"electricity","family":"UTILTS","guideVersion":"25-A-4","guideRevision":"4","from":"2026-10-01","supersededBy":"25-A-5"}]'::jsonb)s WHERE s->>'market'=p_market AND s->>'family'=p_family AND s->>'guideVersion'=p_version AND s->>'guideRevision'=p_revision AND p_date>=(s->>'from')::date)
 $$;
 
 --
@@ -20331,10 +20342,10 @@ BEGIN
 END $$;
 
 --
--- Name: require_technical_expectation_plan_v1(public.ediel_messages, jsonb); Type: FUNCTION; Schema: gridex_ediel_transport; Owner: -
+-- Name: require_technical_expectation_plan_before_swedish_utilts25a5_v1(public.ediel_messages, jsonb); Type: FUNCTION; Schema: gridex_ediel_transport; Owner: -
 --
 
-CREATE FUNCTION gridex_ediel_transport.require_technical_expectation_plan_v1(m public.ediel_messages, p_plan jsonb) RETURNS jsonb
+CREATE FUNCTION gridex_ediel_transport.require_technical_expectation_plan_before_swedish_utilts25a5_v1(m public.ediel_messages, p_plan jsonb) RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog'
     AS $_$
@@ -20362,6 +20373,64 @@ BEGIN
   OR NOT EXISTS(SELECT FROM jsonb_array_elements(policy->'sourceTrace')x WHERE x->>'authority'='acknowledgement' AND x->>'document'=scope->>'documentName') THEN RAISE EXCEPTION 'ediel_technical_expectation_source_trace_required';END IF;
  RETURN p_plan;
 END $_$;
+
+--
+-- Name: require_technical_expectation_plan_swedish_utilts25a5_v1(public.ediel_messages, jsonb); Type: FUNCTION; Schema: gridex_ediel_transport; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_transport.require_technical_expectation_plan_swedish_utilts25a5_v1(m public.ediel_messages, p_plan jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $_$
+DECLARE projection jsonb;cfg jsonb;rule jsonb;expected_profile jsonb;basis jsonb;r jsonb;scope jsonb;policy jsonb;v text;reference_date date;
+BEGIN
+ SELECT e.projection INTO STRICT projection FROM gridex_ediel_transport.technical_expectation_editions e WHERE source_version='215af3f4794d17c84711e91071e48f713a1165741d2697c89bbed267571d8466';cfg:=projection->'constraints';
+ IF m.direction IS DISTINCT FROM 'outbound' OR m.company_id IS NULL OR (m.environment IS NULL OR m.environment NOT IN('test','production')) THEN RAISE EXCEPTION 'ediel_technical_expectation_source_scope_required';END IF;
+ IF m.message_family='AI_LIST' THEN IF p_plan IS NOT NULL AND p_plan<>'null'::jsonb THEN RAISE EXCEPTION 'ediel_technical_expectation_not_applicable';END IF;RETURN NULL;END IF;
+ SELECT x INTO rule FROM jsonb_array_elements(projection->'ackMatrix')x WHERE x->>'family'=m.message_family AND x->>'code' IN(gridex_ediel_transport.canonical_message_code_v1(m.message_family,m.message_code),'*') ORDER BY(x->>'code'='*') LIMIT 1;
+ IF rule IS NULL THEN RAISE EXCEPTION 'ediel_technical_expectation_unknown_family';END IF;
+ IF rule->>'technicalAck'='none' THEN IF p_plan IS NOT NULL AND p_plan<>'null'::jsonb THEN RAISE EXCEPTION 'ediel_technical_expectation_not_applicable';END IF;RETURN NULL;END IF;
+ IF jsonb_typeof(p_plan) IS DISTINCT FROM 'object' OR p_plan-'policy' IS DISTINCT FROM cfg OR jsonb_typeof(p_plan->'policy') IS DISTINCT FROM 'object' THEN RAISE EXCEPTION 'ediel_technical_expectation_source_plan_required';END IF;
+ policy:=p_plan->'policy';
+ IF (SELECT array_agg(k ORDER BY k) FROM jsonb_object_keys(policy)k) IS DISTINCT FROM ARRAY['guideRevision','profileKey','referenceDate','sourceTrace']::text[] OR jsonb_typeof(policy->'guideRevision') IS DISTINCT FROM 'string' OR nullif(policy->>'guideRevision','') IS NULL OR jsonb_typeof(policy->'referenceDate') IS DISTINCT FROM 'string' OR coalesce(policy->>'referenceDate','')!~'^[0-9]{4}-[0-9]{2}-[0-9]{2}$' OR jsonb_typeof(policy->'sourceTrace') IS DISTINCT FROM 'array' OR jsonb_array_length(policy->'sourceTrace')=0 THEN RAISE EXCEPTION 'ediel_technical_expectation_policy_required';END IF;
+ BEGIN reference_date:=(policy->>'referenceDate')::date;EXCEPTION WHEN OTHERS THEN RAISE EXCEPTION 'ediel_technical_expectation_reference_date_invalid';END;
+ IF reference_date::text IS DISTINCT FROM policy->>'referenceDate' OR extract(year FROM reference_date)<=0 THEN RAISE EXCEPTION 'ediel_technical_expectation_reference_date_invalid';END IF;
+ SELECT x INTO expected_profile FROM jsonb_array_elements(projection->'profiles')x WHERE x->>'family'=m.message_family AND x->>'code'=gridex_ediel_transport.canonical_message_code_v1(m.message_family,m.message_code);
+ IF expected_profile IS NULL OR policy->'profileKey' IS DISTINCT FROM expected_profile->'profileKey' THEN RAISE EXCEPTION 'ediel_technical_expectation_canonical_profile_required';END IF;
+ IF m.execution_context_snapshot->>'prodatCommonHeaderNegativeWitnessId' IS NOT NULL THEN basis:=gridex_ediel_common_header.require_ack_v1(m);r:=basis#>'{familyEdition,rulePack}';v:=basis#>>'{familyEdition,version}';
+ ELSE basis:=gridex_ediel_source_rules.require_v1(m.company_id,m.id);r:=basis#>'{snapshot,rulePack}';v:=basis->>'version';END IF;
+ SELECT x INTO scope FROM jsonb_array_elements(projection->'scopes')x WHERE x->>'family'=r->>'family' AND x->>'guideVersion'=r->>'guide_version' AND x->>'guideRevision'=r->>'guide_revision' ;
+ IF nullif(v,'') IS NULL OR (basis->>'kind' IS DISTINCT FROM 'prodat_common_header_rejection' AND basis#>>'{snapshot,version}' IS DISTINCT FROM v) OR scope IS NULL OR policy->>'guideRevision' IS DISTINCT FROM scope->>'canonicalGuideRevision' THEN RAISE EXCEPTION 'ediel_technical_expectation_original_guide_required';END IF;
+ IF EXISTS(SELECT FROM jsonb_array_elements(policy->'sourceTrace')x WHERE jsonb_typeof(x) IS DISTINCT FROM 'object' OR (SELECT array_agg(k ORDER BY k) FROM jsonb_object_keys(x)k) IS DISTINCT FROM ARRAY['authority','document','section']::text[] OR jsonb_typeof(x->'authority') IS DISTINCT FROM 'string' OR nullif(x->>'authority','') IS NULL OR jsonb_typeof(x->'document') IS DISTINCT FROM 'string' OR nullif(x->>'document','') IS NULL OR jsonb_typeof(x->'section') IS DISTINCT FROM 'string' OR nullif(x->>'section','') IS NULL)
+  OR NOT EXISTS(SELECT FROM jsonb_array_elements(policy->'sourceTrace')x WHERE x->>'authority'='guide' AND x->>'document'=scope->>'documentName')
+  OR NOT EXISTS(SELECT FROM jsonb_array_elements(policy->'sourceTrace')x WHERE x->>'authority'='acknowledgement' AND x->>'document'=scope->>'documentName') THEN RAISE EXCEPTION 'ediel_technical_expectation_source_trace_required';END IF;
+ RETURN p_plan;
+END $_$;
+
+--
+-- Name: require_technical_expectation_plan_v1(public.ediel_messages, jsonb); Type: FUNCTION; Schema: gridex_ediel_transport; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_transport.require_technical_expectation_plan_v1(m public.ediel_messages, p_plan jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE basis jsonb;r jsonb;
+BEGIN
+ -- Preserve non-applicable/unknown/invalid-scope and common-header old lanes
+ -- before any additional protected national-basis read.
+ IF m.direction IS DISTINCT FROM 'outbound' OR m.company_id IS NULL OR m.environment IS NULL OR m.environment NOT IN('test','production') OR m.message_family IS NULL OR m.message_family NOT IN('UTILTS','UTILTS_ERR','APERAK') OR m.execution_context_snapshot->>'prodatCommonHeaderNegativeWitnessId' IS NOT NULL THEN
+  RETURN gridex_ediel_transport.require_technical_expectation_plan_before_swedish_utilts25a5_v1(m,p_plan);
+ END IF;
+ basis:=gridex_ediel_source_rules.require_v1(m.company_id,m.id);r:=basis#>'{snapshot,rulePack}';
+ IF r->>'family'='UTILTS' AND r->>'guide_version'='25-A-5' AND r->>'guide_revision'='5' THEN
+  IF basis->>'version' IS DISTINCT FROM '25-A-5:r5' OR basis#>>'{snapshot,version}' IS DISTINCT FROM basis->>'version'
+   OR NOT EXISTS(SELECT FROM jsonb_array_elements(basis#>'{snapshot,guideSources}')s WHERE s->>'source_type'='technical_guide' AND s->>'revision'='25-A-5' AND s->>'source_hash'='b76a61b9aa6f136771e5db4948296d1b632b8d775314eb6c93783595ae419db2' AND nullif(btrim(s->>'source_locator'),'') IS NOT NULL) THEN RAISE EXCEPTION 'ediel_technical_expectation_u5_original_primary_required';END IF;
+  RETURN gridex_ediel_transport.require_technical_expectation_plan_swedish_utilts25a5_v1(m,p_plan);
+ END IF;
+ RETURN gridex_ediel_transport.require_technical_expectation_plan_before_swedish_utilts25a5_v1(m,p_plan);
+END
+$$;
 
 --
 -- Name: before_message_write(); Type: FUNCTION; Schema: gridex_ediel_wire_namespace; Owner: -
@@ -103331,6 +103400,7 @@ begin
     and mp.transaction_subtype=coalesce(upper(nullif(btrim(p_transaction_subtype),'')),'')
     and mp.direction in (p_direction,'both')
     and rp.status in ('active','transition','future')
+    and NOT gridex_ediel_source_rules.pack_superseded_by_swedish_utilts25a5_v1(rp.market,rp.family,rp.guide_version,rp.guide_revision,p_business_date)
     and p_business_date >= rp.valid_from and (rp.valid_to is null or p_business_date <= rp.valid_to);
   if v_count <> 1 then
     raise exception 'canonical_rule_pack_resolution_count:%:%:%:%',v_count,p_family,p_message_code,coalesce(p_transaction_subtype,'');
@@ -103349,6 +103419,7 @@ begin
     and mp.transaction_subtype=coalesce(upper(nullif(btrim(p_transaction_subtype),'')),'')
     and mp.direction in (p_direction,'both')
     and rp.status in ('active','transition','future')
+    and NOT gridex_ediel_source_rules.pack_superseded_by_swedish_utilts25a5_v1(rp.market,rp.family,rp.guide_version,rp.guide_revision,p_business_date)
     and p_business_date >= rp.valid_from and (rp.valid_to is null or p_business_date <= rp.valid_to);
 end $$;
 
@@ -199603,6 +199674,12 @@ REVOKE ALL ON FUNCTION gridex_ediel_source_rules.immutable() FROM PUBLIC;
 REVOKE ALL ON FUNCTION gridex_ediel_source_rules.pack_effective_v1(p_pack_id uuid, p_direction text, p_date date) FROM PUBLIC;
 
 --
+-- Name: FUNCTION pack_superseded_by_swedish_utilts25a5_v1(p_market text, p_family text, p_version text, p_revision text, p_date date); Type: ACL; Schema: gridex_ediel_source_rules; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_source_rules.pack_superseded_by_swedish_utilts25a5_v1(p_market text, p_family text, p_version text, p_revision text, p_date date) FROM PUBLIC;
+
+--
 -- Name: FUNCTION probe_v1(p_company_id uuid, p_message_id uuid); Type: ACL; Schema: gridex_ediel_source_rules; Owner: -
 --
 
@@ -200062,6 +200139,18 @@ REVOKE ALL ON FUNCTION gridex_ediel_transport.require_message_intent_v1(m public
 --
 
 REVOKE ALL ON FUNCTION gridex_ediel_transport.require_technical_expectation_binding_v1(m public.ediel_messages, p_binding jsonb) FROM PUBLIC;
+
+--
+-- Name: FUNCTION require_technical_expectation_plan_before_swedish_utilts25a5_v1(m public.ediel_messages, p_plan jsonb); Type: ACL; Schema: gridex_ediel_transport; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_transport.require_technical_expectation_plan_before_swedish_utilts25a5_v1(m public.ediel_messages, p_plan jsonb) FROM PUBLIC;
+
+--
+-- Name: FUNCTION require_technical_expectation_plan_swedish_utilts25a5_v1(m public.ediel_messages, p_plan jsonb); Type: ACL; Schema: gridex_ediel_transport; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_transport.require_technical_expectation_plan_swedish_utilts25a5_v1(m public.ediel_messages, p_plan jsonb) FROM PUBLIC;
 
 --
 -- Name: FUNCTION require_technical_expectation_plan_v1(m public.ediel_messages, p_plan jsonb); Type: ACL; Schema: gridex_ediel_transport; Owner: -
