@@ -6,7 +6,19 @@ const io = vi.hoisted(() => ({ db: null as unknown as ReturnType<typeof createFa
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`
 const scope = { companyId: id(1), customerId: id(2), siteId: id(3), meteringPointId: id(4), switchRequestId: id(5), actorUserId: id(6) }
 const messageId = id(7), intentId = id(8), outboundId = id(9), raw = 'Synthetic immutable original', hash = createHash('sha256').update(raw).digest('hex')
-vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: (table: string) => io.db.client.from(table), rpc: (...args: unknown[]) => io.projection(...args) } }))
+vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: (table: string) => {
+  const query = io.db.client.from(table) as { select: (columns?: string) => unknown }
+  if (table === 'outbound_requests') {
+    const select = query.select.bind(query)
+    query.select = columns => {
+      // Authenticated real schema has environment in payload, NOT a column.
+      const actualColumns = new Set(['id','payload','status','customer_id','site_id','metering_point_id','source_type','source_id','operation_id','request_type','communication_route_id'])
+      if ((columns ?? '').split(',').some(column => !actualColumns.has(column))) throw new Error('actual_outbound_column_missing')
+      return select(columns)
+    }
+  }
+  return query
+}, rpc: (...args: unknown[]) => io.projection(...args) } }))
 vi.mock('@/lib/operations/businessActions/actionPreflight', () => ({ actionPreflight: async () => ({ ok: true, ...scope }), actionPreflightForSupplierSwitchWorker: async () => ({ ok: true, ...scope }) }))
 vi.mock('@/lib/operations/businessActions/actionDecisionEngine', () => ({ decideBusinessAction: () => ({ operation: 'start_supplier_switch' }) }))
 vi.mock('@/lib/ediel/orchestrator', () => ({ prepareAndQueueEdielZ03: (...args: unknown[]) => io.prepare(...args) }))
@@ -43,7 +55,7 @@ function durable(status = 'queued') {
       authorization_document_id: null } }]
   io.db.tables.outbound_requests = [{ id: outboundId, company_id: scope.companyId, customer_id: scope.customerId, site_id: scope.siteId,
     metering_point_id: scope.meteringPointId, source_type: 'supplier_switch_request', source_id: scope.switchRequestId,
-    operation_id: scope.switchRequestId, request_type: 'supplier_switch', environment: 'production', communication_route_id: id(11), status: 'prepared' }]
+    operation_id: scope.switchRequestId, request_type: 'supplier_switch', payload: { environment: 'production' }, communication_route_id: id(11), status: 'prepared' }]
   io.db.tables.ediel_outbox = [{ id: id(12), company_id: scope.companyId, environment: 'production', ediel_message_id: messageId,
     intent_id: intentId, route_profile_id: id(10), source_message_id: null, status: 'queued', lock_key: `outbound:${outboundId}:${messageId}`,
     payload: { outboundRequestId: outboundId }, immutable_payload_hash: hash, attempts: 0, send_attempt_count: 0,
@@ -182,4 +194,38 @@ describe('durable dispatch rather than an acquired idempotency key', () => {
     expect(await startSupplierSwitch(input)).toMatchObject({ ok: true, dispatchReceipt: { state: 'queued' } })
     expect(io.db.tables.supplier_switch_requests[0].authorization_document_id).toBeNull()
   })
+  it.each([null, {}, [], 'production', { environment: 'test' }, { environment: null }])('holds missing/malformed/different outbound payload environment: %j', async payload => {
+    deduped(); durable(); io.db.tables.outbound_requests[0].payload=payload
+    await expect(startSupplierSwitch(input)).rejects.toThrow('supplier_switch_queue_commit_unconfirmed')
+    expect(io.prepare).not.toHaveBeenCalled(); expect(io.projection).not.toHaveBeenCalled()
+  })
+  it.each(['failed','cancelled','blocked','superseded'])('does not complete a duplicate from an outbound request in %s', async status => {
+    deduped(); durable(); io.db.tables.outbound_requests[0].status=status
+    await expect(startSupplierSwitch(input)).rejects.toThrow('supplier_switch_queue_commit_unconfirmed')
+    expect(io.prepare).not.toHaveBeenCalled(); expect(io.projection).not.toHaveBeenCalled()
+  })
+  it.each(['blocked_at','blocked_reason','last_error'])('does not confirm fresh queue while %s persists', async field => {
+    deduped(); durable(); io.db.tables.ediel_outbox[0][field]='existing hold'
+    await expect(startSupplierSwitch(input)).rejects.toThrow('supplier_switch_queue_commit_unconfirmed')
+    expect(io.prepare).not.toHaveBeenCalled()
+  })
+
+  it.each(['sent','acknowledged'])('does not relabel advanced outbound %s as fresh queued without an accepted receipt', async status => {
+    deduped(); durable(); io.db.tables.outbound_requests[0].status=status
+    await expect(startSupplierSwitch(input)).rejects.toThrow('supplier_switch_queue_commit_unconfirmed')
+    expect(io.prepare).not.toHaveBeenCalled()
+  })
+  it('preserves qualified accepted observation for an actually sent outbound', async () => {
+    deduped(); durable('sent'); io.db.tables.outbound_requests[0].status='sent'; io.db.tables.ediel_outbox=[]
+    io.projection.mockResolvedValue({ data: { status: 'accepted_projection', companyId: scope.companyId, messageId, environment: 'production',
+      attemptId: id(15), originalHash: hash, observedAt: '2026-10-21T12:01:00Z', authorizesProviderEntry: false, deliveryProven: false }, error: null })
+    expect(await startSupplierSwitch(input)).toMatchObject({ dispatchReceipt: { state: 'accepted' } })
+    expect(io.prepare).not.toHaveBeenCalled()
+  })
+  it.each(['blocked_at','blocked_reason','last_error'])('does not claim active work while queue %s persists', async field => {
+    deduped(); durable(); Object.assign(io.db.tables.ediel_outbox[0], { status: 'sending', locked_by: 'worker',
+      attempts: 1, send_attempt_count: 1, current_send_attempt_id: id(16), locked_at: new Date().toISOString(), [field]: 'existing hold' })
+    await expect(startSupplierSwitch(input)).rejects.toThrow('supplier_switch_queue_commit_unconfirmed'); expect(io.prepare).not.toHaveBeenCalled()
+  })
+
 })

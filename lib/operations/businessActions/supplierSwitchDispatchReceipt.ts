@@ -35,14 +35,14 @@ export async function readSupplierSwitchDispatchReceipt(scope: Scope): Promise<R
   const [intent, outbound] = await Promise.all([
     supabaseService.from('ediel_message_intents').select('id,environment,customer_id,customer_site_id,supplier_switch_request_id,operation_id,ediel_message_id,outbound_request_id,direction,message_family,message_code,validation_status,render_status,communication_route_id,route_profile_id,requested_effective_date,payload')
       .eq('company_id', scope.companyId).eq('id', m.intent_id).maybeSingle(),
-    supabaseService.from('outbound_requests').select('id,environment,customer_id,site_id,metering_point_id,source_type,source_id,operation_id,request_type,communication_route_id')
+    supabaseService.from('outbound_requests').select('id,payload,status,customer_id,site_id,metering_point_id,source_type,source_id,operation_id,request_type,communication_route_id')
       .eq('company_id', scope.companyId).eq('id', m.outbound_request_id).maybeSingle(),
   ])
   if (intent.error) throw intent.error
   if (outbound.error) throw outbound.error
   const i = intent.data, r = outbound.data
   const basis = record(i?.payload)
-  if (!i || !r || i.environment !== m.environment || r.environment !== m.environment
+  if (!i || !r || !['queued', 'prepared', 'sent', 'acknowledged'].includes(r.status) || i.environment !== m.environment || record(r.payload).environment !== m.environment
     || i.customer_id !== scope.customerId || i.customer_site_id !== scope.siteId || i.supplier_switch_request_id !== scope.switchRequestId
     || i.operation_id !== scope.switchRequestId || i.ediel_message_id !== m.id || i.outbound_request_id !== r.id
     || i.direction !== 'outbound' || i.message_family !== 'PRODAT' || i.message_code !== 'Z03'
@@ -56,18 +56,19 @@ export async function readSupplierSwitchDispatchReceipt(scope: Scope): Promise<R
     || r.source_type !== 'supplier_switch_request' || r.source_id !== scope.switchRequestId || r.operation_id !== scope.switchRequestId
     || r.request_type !== 'supplier_switch' || r.communication_route_id !== m.communication_route_id) return null
   const entries = await supabaseService.from('ediel_outbox')
-    .select('id,status,intent_id,route_profile_id,source_message_id,lock_key,payload,immutable_payload_hash,attempts,send_attempt_count,current_send_attempt_id,locked_at,locked_by')
+    .select('id,status,intent_id,route_profile_id,source_message_id,lock_key,payload,immutable_payload_hash,attempts,send_attempt_count,current_send_attempt_id,locked_at,locked_by,blocked_at,blocked_reason,last_error')
     .eq('company_id', scope.companyId).eq('environment', m.environment).eq('ediel_message_id', m.id).limit(2)
   if (entries.error) throw entries.error
   if (entries.data?.length === 1) {
     const o = entries.data[0]
+    if (o.blocked_at != null || o.blocked_reason != null || o.last_error != null) return null
     if (o.intent_id === i.id && o.route_profile_id === m.route_profile_id && o.source_message_id === null
       && o.lock_key === `outbound:${r.id}:${m.id}` && record(o.payload).outboundRequestId === r.id
       && (o.immutable_payload_hash === null || o.immutable_payload_hash === m.immutable_payload_hash)) {
-      if (o.status === 'queued' && m.status === 'queued' && o.attempts === 0 && o.send_attempt_count === 0
+      if (o.status === 'queued' && ['queued', 'prepared'].includes(r.status) && m.status === 'queued' && o.attempts === 0 && o.send_attempt_count === 0
         && o.current_send_attempt_id === null && o.locked_at === null && o.locked_by === null) return { state: 'queued', messageId: m.id, outboxId: o.id }
       const age = o.locked_at ? Date.now() - Date.parse(o.locked_at) : NaN
-      if (o.status === 'sending' && ['queued', 'dispatching'].includes(m.status) && o.current_send_attempt_id && o.locked_by
+      if (o.status === 'sending' && r.status === 'prepared' && ['queued', 'dispatching'].includes(m.status) && o.current_send_attempt_id && o.locked_by
         // Matches sendOutboxItem's strict ten-minute claim lease. An expired
         // reservation is uncertain, not proof of an active worker.
         && o.attempts > 0 && o.send_attempt_count > 0 && age >= 0 && age < 10 * 60000) return { state: 'in_progress', messageId: m.id, outboxId: o.id }
