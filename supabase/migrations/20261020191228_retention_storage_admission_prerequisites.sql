@@ -926,6 +926,7 @@ DECLARE
  before_functions jsonb; before_policies jsonb; before_triggers jsonb; before_relations jsonb;
  after_value jsonb; actual_acl jsonb; actual_roles jsonb;
  functions_count integer; policies_count integer; policy_grants jsonb;
+ membership_nullability jsonb;
 BEGIN
  PERFORM set_config('search_path','pg_catalog',true);
  IF current_setting('server_version_num')::integer NOT BETWEEN 170000 AND 179999
@@ -962,9 +963,19 @@ BEGIN
   OR NOT EXISTS(SELECT FROM pg_settings WHERE name='supautils.policy_grants' AND context='sighup')
   THEN RAISE EXCEPTION 'retention_admission_managed_policy_delegation_required' USING ERRCODE='42501';END IF;
  END IF;
+ -- Admit only the observed hosted and canonical replay nullability pairs.
+ SELECT jsonb_object_agg(attname,attnotnull) INTO membership_nullability
+ FROM pg_attribute WHERE attrelid=to_regclass('public.company_memberships')
+ AND attname IN('is_active','membership_role') AND attnum>0 AND NOT attisdropped;
+ IF membership_nullability IS DISTINCT FROM '{"is_active":false,"membership_role":true}'::jsonb
+ AND membership_nullability IS DISTINCT FROM '{"is_active":true,"membership_role":false}'::jsonb
+ THEN RAISE EXCEPTION 'retention_admission_membership_nullability_profile_required' USING ERRCODE='42501';END IF;
  FOR spec IN SELECT value FROM jsonb_array_elements(columns_specs) LOOP
   IF NOT EXISTS(SELECT FROM pg_attribute WHERE attrelid=to_regclass(spec->>'relation') AND attname=spec->>'name' AND attnum>0 AND NOT attisdropped
-   AND format_type(atttypid,atttypmod)=spec->>'type' AND attnotnull=(spec->>'notnull')::boolean AND attgenerated::text=spec->>'generated' AND attidentity::text=spec->>'identity')
+   AND format_type(atttypid,atttypmod)=spec->>'type' AND attnotnull=CASE
+    WHEN spec->>'relation'='public.company_memberships' AND spec->>'name' IN('is_active','membership_role')
+    THEN (membership_nullability->>(spec->>'name'))::boolean ELSE (spec->>'notnull')::boolean END
+   AND attgenerated::text=spec->>'generated' AND attidentity::text=spec->>'identity')
   THEN RAISE EXCEPTION 'retention_admission_column_prerequisite_required: %.%',spec->>'relation',spec->>'name' USING ERRCODE='42501';END IF;
  END LOOP;
  FOR actual IN SELECT DISTINCT value->>'relation' AS name FROM jsonb_array_elements(columns_specs) LOOP

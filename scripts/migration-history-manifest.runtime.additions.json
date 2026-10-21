@@ -259,7 +259,7 @@
     "20261020184122_audit19_legacy_trigger_consumers_contract.sql": "40b47be927e923217082eebdc8389028fb13975d5bf0fb425c3539277548a8fe",
     "20261020184151_retention_storage_guard_prerequisites.sql": "452a2b5679d9ab453226fc6a3ba512b9c95560c5f1298088c0fd80c719f72da3",
     "20261020190908_audit19_schema_named_column_compatibility.sql": "658b479b7ce0c6dd87e52ab51e1400d9cb9232d596e0bbc5dbba7b616c5c83a6",
-    "20261020191228_retention_storage_admission_prerequisites.sql": "47b7b556a16ff33f78b746150c35e9596573eaed13b17ebec4a95d93c8a08e4b",
+    "20261020191228_retention_storage_admission_prerequisites.sql": "e0c8d9406a094b6f4f66ed2acd2b11cd263ade7b896abd244e0848976cb1bda6",
     "20261020211439_customer_merge_portal_lifecycle_convergence.sql": "94caa92f9f92d0e6fb1f23b4655e8f32d4083acfdebbf778246ee55c81ffe960",
     "20261020215757_ediel_private_supply_scope_prerequisites.sql": "7f30d5e1bc53f4bb61cb80e6b185eded68047156b69a5e991579c937b2994538",
     "20261020220844_one_off_manual_publication_gate_convergence.sql": "4a4b3c00cbc18f2474673f377320ddbe54888d3b814db3f4cecb61b901325bca",
