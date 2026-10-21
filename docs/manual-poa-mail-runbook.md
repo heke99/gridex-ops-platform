@@ -2,7 +2,13 @@
 
 Det här flödet gäller manuell fullmaktskommunikation i OPS. Resend levererar utskicken; Strato tar emot svar. Inga nya publika API-fält krävs och inga historiska OpenAPI-utgåvor ändras.
 
-Automatisk svarstolkning, dokumentläsning och fleranläggningshantering är implementerade i leveranskandidaten. Exakt källversion och slutgranskningar binds i [PR #828](https://github.com/heke99/gridex-ops-platform/pull/828). Produktionsleveransen är fortsatt **APPLICATION HOLD** tills den befintliga kvalificerade databasproducenten har levererat checksum-/schema-/typunderlaget och obligatoriska kontroller passerat. Tidigare byggen och granskningar av `1e78dbbf` gäller endast den äldre omfattningen. Aktuellt läge finns i [checkpunkten för automatiken](../quality/audits/manual-poa-mail-2026-10-18/automatic-application-checkpoint.md). Ett riktigt svar genom Strato och kundens fortsatta startflöde har ännu inte verifierats för den här källversionen.
+Grundflödets svarstolkning, dokumentläsning och fleranläggningshantering finns i de mergade källpaketen [#828](https://github.com/heke99/gridex-ops-platform/pull/828) och [#850](https://github.com/heke99/gridex-ops-platform/pull/850). Produktionsstatus måste verifieras mot den faktiskt publicerade Vercel-källan och tillhörande databas-/kontrollkvitton. En mergad PR eller ett tidigare test bevisar inte att senare rättningar finns i produktion. Den fortsatta leveransen samordnas i [#840](https://github.com/heke99/gridex-ops-platform/issues/840); äldre checkpunkter och byggen gäller sina dåvarande källversioner. Hela kedjan från ett verkligt verifierat Strato-svar till kundens fortsatta startflöde behöver fortfarande kvalificeras på den slutliga leveransversionen.
+
+## Mottagningstid och relativa startdatum
+
+IMAP-adaptern hämtar `INTERNALDATE` tillsammans med originalets bytes och UID. En serverintern symbol överför observationen till första rålagringen; publika webhookfält, mejlets `Date`-header och AI-förslag kan inte ange detta bevis. `received_at` och `extracted_payload.mailbox_receipt` sparar samma ursprungliga tid med mailbox-/UID-bindning, råhash och källfingerprint. Ett återförsök använder enbart det sparade beviset och skriver aldrig över mottagningstiden med en senare observation.
+
+Ett tydligt besked som ”kunden kan starta om 30 dagar” räknas från den ursprungliga mottagningsdagen i `Europe/Stockholm` med kalenderdagar. Både enskilda anläggningar och fleranläggningssvar använder samma kvalificerade tidsunderlag. ”Inom 30 dagar”, saknat årtal, motsägelser eller enbart uppsägningstid ger inget påhittat exakt startdatum. Äldre mejl utan kvalificerad mottagningsproveniens får inte kompletteras med dagens klockslag eller ett senare IMAP-värde för att automatiskt godkänna ett relativt datum; de går till granskning. Kund-/tenant-/fullmakts-/avsändar- och marknadsgrindar gäller även när datumet kan normaliseras.
 
 ## Godkännande och dokument
 
