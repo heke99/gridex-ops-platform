@@ -10,7 +10,7 @@ const hash = 'a'.repeat(64)
 type Row = Record<string, unknown>
 const app = (requestId = request, siteId = site, inboundId = inbound): Row => ({ version: 1, applied: true, complete: false,
   sourceHash: hash, inboundId, inbound_id: inboundId, companyId: company, customerId: customer, siteId, requestId,
-  terms: { terminationFee: '1250' }, missingFields: [] })
+  terms: { terminationFee: '1250 kr' }, responseStatus: 'termination_fee', missingFields: [] })
 const payload = (application = app()): Row => ({ sender_credible: true, sender_verification: { status: 'verified' },
   manual_automation: { sourceHash: hash, application } })
 let db: PGlite

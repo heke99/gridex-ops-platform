@@ -61,7 +61,7 @@ export function manualMailReviewReasons(row: { resolution_status?: string; proce
   if (object(automation.continuation).reviewRequired === true) reasons.push('Fortsatt handläggning kräver manuell granskning')
   const applications = [object(automation.application), ...Object.values(object(automation.site_applications)).map(member => object(object(member).application))]
   if (applications.some(application => application.applied === true && application.complete === false
-    && Number(object(application.terms).terminationFee) > 0)) reasons.push('Brytavgift behöver granskas')
+    && application.responseStatus === 'termination_fee')) reasons.push('Brytavgift behöver granskas')
   if (object(automation.documentReading).status === 'failed') reasons.push('Bilagan kunde inte läsas säkert')
   if (object(payload.ai_read_only).status === 'failed') reasons.push('AI-läsningen kunde inte slutföras')
   if (!reasons.length) reasons.push('Uppgifter eller fortsatt handläggning behöver granskas')

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createClient } from '@supabase/supabase-js'
 import { getManualMailReviewQueue, normalizeManualMailReviewFilters, manualMailReviewReasons } from '@/lib/inbound-mail/manualMailReviewQueue'
+import { normalizeManualCommercialTerms } from '@/lib/inbound-mail/manualCommercialTerms'
 
 describe('manual mail review queue', () => {
   it('queries all review states before database pagination, including matched and partially applied multi-site replies', async () => {
@@ -79,10 +80,22 @@ it('clears the failed-continuation reason after a completed retry', () => {
   } })).not.toContain('Fortsatt handläggning kunde inte slutföras')
 })
 
-it('explains a positive fee even when no commercial fields are missing', () => {
+it.each(['1250 kr', '1250,50 SEK'])('explains a genuine normalized positive fee %s for both parent and child', fee => {
+  const normalized = normalizeManualCommercialTerms({ authoredText: `Tidigaste start: 2027-04-01\nBrytavgift: ${fee}`,
+    extracted: { earliest_supplier_start_date: '2027-04-01', termination_fee: fee }, receivedAt: '2027-01-31T12:00:00Z' })
+  expect(normalized.ok).toBe(true)
+  const application = { applied: true, complete: false, missingFields: [], terms: normalized.terms, responseStatus: 'termination_fee' }
+  for (const fields of [{ application }, { site_applications: { child: { application } } }]) {
+    expect(manualMailReviewReasons({ resolution_status: 'matched', processing_state: 'applied', extracted_payload: {
+      manual_automation: fields,
+    } })).toContain('Brytavgift behöver granskas')
+  }
+})
+it.each(['0 kr', '0,00 SEK', 'Ingen'])('does not explain %s as a positive fee', fee => {
   expect(manualMailReviewReasons({ resolution_status: 'matched', processing_state: 'applied', extracted_payload: {
-    manual_automation: { application: { applied: true, complete: false, missingFields: [], terms: { terminationFee: '1250' } } },
-  } })).toContain('Brytavgift behöver granskas')
+    manual_automation: { application: { applied: true, complete: false, missingFields: ['earliest_supplier_start_date'],
+      responseStatus: 'waiting_response', terms: { terminationFee: fee } } },
+  } })).not.toContain('Brytavgift behöver granskas')
 })
 it('shows legitimate completed business review separately from a technical failure', () => {
   const reasons = manualMailReviewReasons({ resolution_status: 'matched', processing_state: 'applied', extracted_payload: {

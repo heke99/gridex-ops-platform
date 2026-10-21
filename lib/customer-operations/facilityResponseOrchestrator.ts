@@ -33,6 +33,7 @@ export async function completeFacilityLookupAndRunNextSteps(input: CompleteFacil
 
   let intakeDecision: Awaited<ReturnType<typeof evaluateCustomerIntake>> | null = null
   let supplierSwitchResult: Awaited<ReturnType<typeof evaluateAndRunNextCustomerStep>> | null = null
+  let waitingForSupplierResponse = false
 
   if (completion.ok && (completion.meteringPointRecordId || input.automaticInbound)) {
     try {
@@ -51,6 +52,7 @@ export async function completeFacilityLookupAndRunNextSteps(input: CompleteFacil
           actorUserId, operationId: completion.operationId, sourceRequestId: input.requestId,
         })
         if (supplier.status === 'waiting_response' || supplier.status === 'needs_review') {
+          waitingForSupplierResponse = supplier.status === 'waiting_response'
           supplierSwitchResult = {
             decision: supplier.status === 'needs_review' ? 'manual_review' : 'blocked',
             actionTaken: supplier.status === 'needs_review' ? 'supplier_information_requires_review' : 'supplier_information_requested',
@@ -86,6 +88,7 @@ export async function completeFacilityLookupAndRunNextSteps(input: CompleteFacil
       }
 
       const reviewRequired = supplierSwitchResult?.decision === 'manual_review'
+        || (supplierSwitchResult?.decision === 'blocked' && !waitingForSupplierResponse)
         || intakeDecision?.state === 'needs_admin_review' || intakeDecision?.nextAction === 'review_blocker'
       const reviewReasons = [...(supplierSwitchResult?.blockers ?? []), ...(intakeDecision?.blockers ?? [])].map(blocker => blocker.code)
       const workflowState = reviewRequired ? 'manual_review' : supplierSwitchResult?.decision === 'prepare_supplier_switch'

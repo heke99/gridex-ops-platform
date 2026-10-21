@@ -193,6 +193,20 @@ describe('durable automatic reply continuation', () => {
     expect(JSON.stringify(continuation())).not.toContain('Synthetic private description')
   })
 
+  it('projects an actionable blocked next-engine result after ready intake without replaying the completed facts', async () => {
+    seed('facility', false)
+    io.next.mockResolvedValue({ decision: 'blocked', actionTaken: null,
+      blockers: [{ code: 'missing_automation_user', message: 'Synthetic private configuration description' }] })
+    await completeFacilityLookupAndRunNextSteps(facilityInput())
+    expect(continuation()).toMatchObject({ status: 'completed', reviewRequired: true, reviewReasons: ['missing_automation_user'] })
+    expect(io.workflow).toHaveBeenCalledWith(expect.objectContaining({ state: 'manual_review', reasonCode: 'missing_automation_user' }))
+    expect(io.event).toHaveBeenCalledWith(expect.objectContaining({ status: 'needs_review', severity: 'warning', actionRequired: true }))
+    expect(JSON.stringify(continuation())).not.toContain('Synthetic private configuration description')
+    await continueManualCommercialReply(input)
+    expect(io.next).toHaveBeenCalledTimes(1)
+    expect(sourcePayload().ai_read_only).toEqual({ status: 'completed', paid_attempt: 'original' })
+  })
+
   it('establishes the separate supplier conversation even when the canonical result has no metering-point record', async () => {
     io.pointId = null; seed('facility', false)
     io.ensureSupplier.mockResolvedValue({ status: 'waiting_response' })
