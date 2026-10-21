@@ -1,10 +1,10 @@
 {
   "generated_types": "supabase/database.types.ts",
-  "generated_at": "2026-10-20T11:15:47.721214+00:00",
-  "generated_with": "supabase-cli-2.101.0-authentic-ordinary-capture-run39412261483-job118592648609-attempt1",
-  "sha256": "648662a2054af47cbbecca91ff3fcd8872d33a303779a4c2dd2a09e3dbe217c2",
-  "latest_migration": "20261019180500_db05_audit19_archived_permission.sql",
-  "latest_migration_schema_effect": "Authentic ordinary capture of the full Mail6db/main5600 union at source a748be8f3b7cf87d49c6040e0ea85a989f74c3cf (tree 438e0b1743f2e6dfd6ee5b7cb8ea13a1b2f52577), retaining all delivered main SQL and including the four Mail migrations in the exact244-entry runtime index. The unchanged maximum migration filename alone is not coverage evidence. RAW3 imported byte-exactly; no native/browser/type-schema/upgrade-parity or whole-release result is implied.",
+  "generated_at": "2026-10-21T03:30:17.222494+00:00",
+  "generated_with": "supabase-cli-2.101.0-authentic-ordinary-capture-run39538189645-job119019614681-attempt1",
+  "sha256": "8e333aa17f6946556ef838377e8000ee5bbc15a95e7d854896e6e2260812c526",
+  "latest_migration": "20261020230048_ediel_supply_source_runtime_prerequisites.sql",
+  "latest_migration_schema_effect": "Genuine ordinary capture of the complete reviewed 20-SQL epoch and retained base at source 5e60fdb28849e7e8c7e933e5d0bf9a36909fe6f0 / tree 16b5255dfd83dd4bd012b6a5d0818045db1e61e1, with 264 runtime entries. The maximum filename alone is insufficient evidence. RAW3 copied byte-exactly; no native/browser/type-schema/upgrade-parity or production-installation result is implied.",
   "composition_capture_pending": false,
   "capture": {
     "purpose": "capture_only",
@@ -864,7 +864,7 @@
       }
     }
   },
-  "composition_note": "Current RAW3 are exact byte copies of genuine full-union ordinary capture39412261483/job118592648609/a1/artifact12260700430 at sourcea748be8f3b7cf87d49c6040e0ea85a989f74c3cf/tree438e0b1743f2e6dfd6ee5b7cb8ea13a1b2f52577. Its eight recorded inputs, including manifestbeaf5e7c, bind the captured pre-import source. This adopting successor is not the captured source: the manifest changes to record its own adoption, so that original input hash is preserved rather than replaced with a self-hash. Previous active fields are archived in mail_main_union_genuine_ordinary_capture_adoption_20261020; all other historical capture/SC046/pending fields, including mail_main_union_capture_pending_20261020, retain their original epoch scope. Current-prefix evidence covers capture only; importing-head CI, actual upgrade/parity and two final receiving reviews remain mandatory.",
+  "composition_note": "Byte-exact RAW3 from genuine ordinary capture 39538189645 / job 119019614681 / attempt 1 at source 5e60fdb28849e7e8c7e933e5d0bf9a36909fe6f0 / tree 16b5255dfd83dd4bd012b6a5d0818045db1e61e1. Its original input manifest is 46de0f13441a98ae5e3454c8a47b9750abec14b579797953d8ea878ddc7944fd; this adopting successor is not the captured checkout. The previous nine values and exact literal bytes are archived in audit_sql_union_genuine_ordinary_capture_adoption_20261020; all other 165 fields and historical pending scopes remain unchanged. Capture-only NOT_RUN limits and mandatory importing-head/native/clean-upgrade/parity reviews remain.",
   "upstream_main_manifest": {
     "commit": "507e8bfa20606be31933eea1582066267ff2577a",
     "path": "scripts/supabase-types-manifest.json",
@@ -875,50 +875,73 @@
   },
   "current_prefix_verification": {
     "kind": "genuine_successful_ordinary_capture_RAW3_ONLY",
-    "source_head": "a748be8f3b7cf87d49c6040e0ea85a989f74c3cf",
-    "source_tree": "438e0b1743f2e6dfd6ee5b7cb8ea13a1b2f52577",
+    "source_head": "5e60fdb28849e7e8c7e933e5d0bf9a36909fe6f0",
+    "source_tree": "16b5255dfd83dd4bd012b6a5d0818045db1e61e1",
     "workflow_path": ".github/workflows/staff-api-schema-capture.yml",
-    "workflow_run_id": 39412261483,
-    "workflow_job_id": 118592648609,
+    "workflow_run_id": 39538189645,
+    "workflow_job_id": 119019614681,
     "attempt": 1,
-    "artifact_id": 12260700430,
-    "artifact_name": "staff-schema-capture-a748be8f3b7cf87d49c6040e0ea85a989f74c3cf",
-    "artifact_archive_sha256": "ceaa4fce5c290cf769c8942d6b306f6b9b6bb6c6897516cfee883ce5555aa228",
-    "artifact_archive_bytes": 1815242,
-    "capture_receipt_sha256": "ca581a937f2eea2c724f762350b9806d62e6eb315960db68611473a7c7a53c91",
+    "artifact_id": 12318603960,
+    "artifact_name": "staff-schema-capture-5e60fdb28849e7e8c7e933e5d0bf9a36909fe6f0",
+    "artifact_archive_sha256": "2ca6c307b2b17ef595f8fc24df5273e450b20c53db85533fed0338fd12783f0b",
+    "artifact_archive_bytes": 1822161,
+    "capture_receipt_sha256": "ea9868da14f41763038e87a08be3ca771a98c5644bd11b086322429cea3b379f",
     "raw_output_sha256": {
-      "database.types.ts": "648662a2054af47cbbecca91ff3fcd8872d33a303779a4c2dd2a09e3dbe217c2",
-      "schema.sql": "a15291106e26b9bea9f70dd99f3c19f6cae7e159afd8a5d4674a997d98c2eac6",
-      "schema.fingerprint.json": "6800bf622fdbb9867d83fd7cb768ebf2230a6b6dc8ce2c9a2d5921acb397366f"
+      "database.types.ts": "8e333aa17f6946556ef838377e8000ee5bbc15a95e7d854896e6e2260812c526",
+      "schema.sql": "ee61e09b5979b8e45b7a4752860891236f6347a0a0c6852224681f983e2580ee",
+      "schema.fingerprint.json": "87d94ab93fec7ade4b3f401a454775eeab50005fd7a33fe6c927615fe660ff09"
     },
-    "schema_fingerprint": "5e06224acc092ab3462f4e0a81168b6c7cb379fbdfaad17531473563c4447255",
-    "actual_capture_completed_at": "2026-10-20T11:15:47.721214+00:00",
+    "schema_fingerprint": "298816400347198c2300edf2f4293e1e854630318a228b501defd32bb4f98500",
+    "actual_capture_completed_at": "2026-10-21T03:30:17.222494+00:00",
     "workflow_job_conclusion": "SUCCESS",
+    "epoch_attestation_enabled": false,
     "native_tests": "NOT_RUN",
     "browser_tests": "NOT_RUN",
     "type_schema_comparison": "NOT_RUN",
     "upgrade_parity": "NOT_RUN",
+    "required_gate": "OPS hardening clean/upgrade replay and parity remain mandatory",
     "whole_approval": false,
     "latest_replay_migration": {
-      "name": "20261019180500_db05_audit19_archived_permission.sql",
-      "sha256": "db47da92f7c47f936da499bac1ea9b347239f5965856fb5149a14e83abd95f06"
+      "name": "20261020230048_ediel_supply_source_runtime_prerequisites.sql",
+      "sha256": "224e8fb44436462e5f2d3f15360855a7580e0ebebb7e3f261eaf10f058a2efc8"
     },
     "input_sha256": {
       "scripts/gridex-aud-003-clean-replay.sh": "71262366feaf3df054c7436c2fd3d80e0b96b8aaddca1df260a71fa6bf36d885",
       "scripts/migration-history-manifest.json": "66a735464c298b3e5e534f7e27df889cb1b01280d55b48d449c4f195eed7de01",
       "scripts/migration-history-manifest.additions.json": "136435f17dd8ba9933718f88f5412ecfb97fd0d76e1979c5d7b7e624ffcf0f76",
-      "scripts/migration-history-manifest.runtime.additions.json": "b234c5a1c0af1ac04575db8666dad23bb518d745213975267ce7ccdfbfde2c98",
-      "scripts/supabase-types-manifest.json": "beaf5e7c6129de8f27f625c0cab71803c4e9b17fe9b14baf78acf3761b4b6c62",
+      "scripts/migration-history-manifest.runtime.additions.json": "ce042f4432b08b3469e224476477fee404641fae8b6288fc815a22d287a518b2",
+      "scripts/supabase-types-manifest.json": "46de0f13441a98ae5e3454c8a47b9750abec14b579797953d8ea878ddc7944fd",
       "scripts/apply-supabase-types-nullability-overrides.cjs": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
       "scripts/gridex-schema-snapshot.cjs": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
       "supabase/config.toml": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919"
     },
     "source_inventory": {
-      "migration_directory_paths": 1284,
-      "sql_files": 1283,
-      "runtime_index_rows": 244,
-      "migration_tuple_sha256": "542e857bd5411542bc79b993a383dd9dfc8bb7adbdc2d256e716ca606a79d910",
-      "tail_alone_is_insufficient": true
+      "immutable_sql_inputs": 20,
+      "runtime_index_rows": 264,
+      "base_runtime_rows_preserved": 244,
+      "tail_alone_is_insufficient": true,
+      "immutable_sql_sha256": {
+        "supabase/migrations/20261020152427_db_billing_underlay_event_company_binding.sql": "1c8fd54322c2bf942885f871e15cfc4f9b9e0c34246270c2bd32d4337360c3e7",
+        "supabase/migrations/20261020152428_public_password_reset_budget.sql": "a76c8eb6c7d5a596d2d264d786d0b0a8cd7f9036901696c3d3f3abcd57ff7474",
+        "supabase/migrations/20261020154131_db_customer_document_contract_company_bindings.sql": "5ab955b2a09f425854013c57db774a403b67bdc7947e8389b038291be94301fd",
+        "supabase/migrations/20261020155348_retention_purge_post_lock_authority.sql": "0b6730f162e9f122c7bc69e305926f5c746795cdfa88c34c5eb870a3d071c441",
+        "supabase/migrations/20261020160626_forecast_metering_period_totals.sql": "fdc3eda2de7f7fa95124802d3a3658c33407bc946152640a5e5d946126272f47",
+        "supabase/migrations/20261020160633_customer_support_quota_atomic.sql": "6de2dca407e9fe7e9276ec485ab3e98056f1dffd6bd17d5356affd93d2ee2d45",
+        "supabase/migrations/20261020163100_forecast_point_inventory_snapshot.sql": "4ab975caedceb08fd66cba157d699c8ea47540fe2bbc2694f73a6951ed32333e",
+        "supabase/migrations/20261020163321_retention_storage_delete_post_lock_authority.sql": "2151204a44d45a1aa63005ffb804cf73e980f911ae015a09d6e4348f6cb10280",
+        "supabase/migrations/20261020164020_anonymize_user_profile_optional_columns.sql": "0826b88190c925d215c33a512307725eb6e74d7114722a0f26982739dcd738d9",
+        "supabase/migrations/20261020165029_db_customer_document_entity_company_bindings.sql": "ae8b220997f8f7fe591c23a6e4b224deeaa7f8b2dae85d84a1b06c27676dd2d0",
+        "supabase/migrations/20261020180847_audit19_customer_support_consumer_contract.sql": "27f4da9d636c021d038d680ff8c36380d41adfd4f81cb219b51408ce58711ce9",
+        "supabase/migrations/20261020182423_anonymize_user_account_source_comment_alignment.sql": "31a7787c6fcc3b6d3bfe957bacccbeb20e856880979c2fb89e9ac376288d01a1",
+        "supabase/migrations/20261020184122_audit19_legacy_trigger_consumers_contract.sql": "40b47be927e923217082eebdc8389028fb13975d5bf0fb425c3539277548a8fe",
+        "supabase/migrations/20261020184151_retention_storage_guard_prerequisites.sql": "452a2b5679d9ab453226fc6a3ba512b9c95560c5f1298088c0fd80c719f72da3",
+        "supabase/migrations/20261020190908_audit19_schema_named_column_compatibility.sql": "658b479b7ce0c6dd87e52ab51e1400d9cb9232d596e0bbc5dbba7b616c5c83a6",
+        "supabase/migrations/20261020191228_retention_storage_admission_prerequisites.sql": "e0c8d9406a094b6f4f66ed2acd2b11cd263ade7b896abd244e0848976cb1bda6",
+        "supabase/migrations/20261020211439_customer_merge_portal_lifecycle_convergence.sql": "94caa92f9f92d0e6fb1f23b4655e8f32d4083acfdebbf778246ee55c81ffe960",
+        "supabase/migrations/20261020215757_ediel_private_supply_scope_prerequisites.sql": "7f30d5e1bc53f4bb61cb80e6b185eded68047156b69a5e991579c937b2994538",
+        "supabase/migrations/20261020220844_one_off_manual_publication_gate_convergence.sql": "4a4b3c00cbc18f2474673f377320ddbe54888d3b814db3f4cecb61b901325bca",
+        "supabase/migrations/20261020230048_ediel_supply_source_runtime_prerequisites.sql": "224e8fb44436462e5f2d3f15360855a7580e0ebebb7e3f261eaf10f058a2efc8"
+      }
     }
   },
   "superseded_capture": {
@@ -1541,8 +1564,8 @@
     "sha256": "3aaf7d57962e2e3c4941cb055e95cd79a19cb1f63f7111f95d9c0de174c4c892"
   },
   "source_latest_migration": {
-    "name": "20261019043000_ediel_retained_contrl_source_prefilter.sql",
-    "sha256": "f248ec8dab18e1b4b4c2cd6f8da73f538d15030ccabb6bf0281080797d586b02"
+    "name": "20261020230048_ediel_supply_source_runtime_prerequisites.sql",
+    "sha256": "224e8fb44436462e5f2d3f15360855a7580e0ebebb7e3f261eaf10f058a2efc8"
   },
   "main_f88_composition_history": {
     "previous_ops_head": "dc2a49fd139c9d34c26c92407984c06e79ffe89e",
@@ -2277,31 +2300,31 @@
   },
   "active_generated_outputs_origin": {
     "kind": "genuine_successful_ordinary_capture_RAW3_ONLY",
-    "source_head": "8b6a172421e03957d692d9424380f06fda62faf8",
-    "source_tree": "51ebafba0a000fd571ed9a5513682f40211f9b49",
+    "source_head": "5e60fdb28849e7e8c7e933e5d0bf9a36909fe6f0",
+    "source_tree": "16b5255dfd83dd4bd012b6a5d0818045db1e61e1",
     "workflow_path": ".github/workflows/staff-api-schema-capture.yml",
-    "workflow_run_id": 39251634797,
-    "workflow_job_id": 118056591201,
+    "workflow_run_id": 39538189645,
+    "workflow_job_id": 119019614681,
     "attempt": 1,
-    "runner_id": 1000062771,
-    "artifact_id": 12187475470,
-    "artifact_name": "staff-schema-capture-8b6a172421e03957d692d9424380f06fda62faf8",
-    "artifact_archive_sha256": "19330e68c97a46b04f9066f5fd81a1e61f6e0748cbd2a07f5ff153f651522ac6",
-    "artifact_archive_bytes": 1744625,
-    "capture_receipt_sha256": "e8f8c01099996274506820463d90266b87356988c3a4c4ce5c1ef47641f66924",
+    "artifact_id": 12318603960,
+    "artifact_name": "staff-schema-capture-5e60fdb28849e7e8c7e933e5d0bf9a36909fe6f0",
+    "artifact_archive_sha256": "2ca6c307b2b17ef595f8fc24df5273e450b20c53db85533fed0338fd12783f0b",
+    "artifact_archive_bytes": 1822161,
+    "capture_receipt_sha256": "ea9868da14f41763038e87a08be3ca771a98c5644bd11b086322429cea3b379f",
     "raw_output_sha256": {
-      "database.types.ts": "aab753d89d938884e3ce83760379aa478505185f58667d241e7b38bc90c1859d",
-      "schema.sql": "583dfb2b6c85516f518eb81db4f9f8a4800c7cf7e43a8a1ea26acacc24df7446",
-      "schema.fingerprint.json": "b24f8e29b7b26b9638fdcbe838e21790f8b726c1c60c818c811a283164f527fb"
+      "database.types.ts": "8e333aa17f6946556ef838377e8000ee5bbc15a95e7d854896e6e2260812c526",
+      "schema.sql": "ee61e09b5979b8e45b7a4752860891236f6347a0a0c6852224681f983e2580ee",
+      "schema.fingerprint.json": "87d94ab93fec7ade4b3f401a454775eeab50005fd7a33fe6c927615fe660ff09"
     },
-    "schema_fingerprint": "206b1b8638fe56c0cda8d412d1da339706124f8eb3abc0bbe3616246194b86c5",
-    "actual_capture_completed_at": "2026-10-19T12:40:22.030666+00:00",
+    "schema_fingerprint": "298816400347198c2300edf2f4293e1e854630318a228b501defd32bb4f98500",
+    "actual_capture_completed_at": "2026-10-21T03:30:17.222494+00:00",
     "workflow_job_conclusion": "SUCCESS",
     "epoch_attestation_enabled": false,
     "native_tests": "NOT_RUN",
     "browser_tests": "NOT_RUN",
     "type_schema_comparison": "NOT_RUN",
     "upgrade_parity": "NOT_RUN",
+    "required_gate": "OPS hardening clean/upgrade replay and parity remain mandatory",
     "whole_approval": false
   },
   "pre_intake_export_capture_manifest": {
@@ -99090,5 +99113,205 @@
     "historical_pending_record_scope": "mail_main_union_capture_pending_20261020 remains the literal pre-capture source-composition record. This separate later adoption resolves GEN acquisition only; old pending/NOT_RUN values remain historical facts.",
     "qualification_scope": "RAW3 capture and byte-exact adoption only. OPS upgrade failure118592648438 is under separate diagnosis. Importing-head consumers, mandatory clean/upgrade/type-schema/parity, two final reviews and normal delivery remain required.",
     "whole_approval": false
+  },
+  "audit_sql_union_genuine_ordinary_capture_adoption_20261020": {
+    "kind": "previous_active_fields_preserved_before_genuine_ordinary_capture_adoption",
+    "captured_at": "2026-10-21T03:30:17.222494+00:00",
+    "captured_source_head": "5e60fdb28849e7e8c7e933e5d0bf9a36909fe6f0",
+    "captured_source_tree": "16b5255dfd83dd4bd012b6a5d0818045db1e61e1",
+    "new_original_origin": {
+      "kind": "genuine_successful_ordinary_capture_RAW3_ONLY",
+      "source_head": "5e60fdb28849e7e8c7e933e5d0bf9a36909fe6f0",
+      "source_tree": "16b5255dfd83dd4bd012b6a5d0818045db1e61e1",
+      "workflow_path": ".github/workflows/staff-api-schema-capture.yml",
+      "workflow_run_id": 39538189645,
+      "workflow_job_id": 119019614681,
+      "attempt": 1,
+      "artifact_id": 12318603960,
+      "artifact_name": "staff-schema-capture-5e60fdb28849e7e8c7e933e5d0bf9a36909fe6f0",
+      "artifact_archive_sha256": "2ca6c307b2b17ef595f8fc24df5273e450b20c53db85533fed0338fd12783f0b",
+      "artifact_archive_bytes": 1822161,
+      "capture_receipt_sha256": "ea9868da14f41763038e87a08be3ca771a98c5644bd11b086322429cea3b379f",
+      "raw_output_sha256": {
+        "database.types.ts": "8e333aa17f6946556ef838377e8000ee5bbc15a95e7d854896e6e2260812c526",
+        "schema.sql": "ee61e09b5979b8e45b7a4752860891236f6347a0a0c6852224681f983e2580ee",
+        "schema.fingerprint.json": "87d94ab93fec7ade4b3f401a454775eeab50005fd7a33fe6c927615fe660ff09"
+      },
+      "schema_fingerprint": "298816400347198c2300edf2f4293e1e854630318a228b501defd32bb4f98500",
+      "actual_capture_completed_at": "2026-10-21T03:30:17.222494+00:00",
+      "workflow_job_conclusion": "SUCCESS",
+      "epoch_attestation_enabled": false,
+      "native_tests": "NOT_RUN",
+      "browser_tests": "NOT_RUN",
+      "type_schema_comparison": "NOT_RUN",
+      "upgrade_parity": "NOT_RUN",
+      "required_gate": "OPS hardening clean/upgrade replay and parity remain mandatory",
+      "whole_approval": false
+    },
+    "original_input_sha256": {
+      "scripts/gridex-aud-003-clean-replay.sh": "71262366feaf3df054c7436c2fd3d80e0b96b8aaddca1df260a71fa6bf36d885",
+      "scripts/migration-history-manifest.json": "66a735464c298b3e5e534f7e27df889cb1b01280d55b48d449c4f195eed7de01",
+      "scripts/migration-history-manifest.additions.json": "136435f17dd8ba9933718f88f5412ecfb97fd0d76e1979c5d7b7e624ffcf0f76",
+      "scripts/migration-history-manifest.runtime.additions.json": "ce042f4432b08b3469e224476477fee404641fae8b6288fc815a22d287a518b2",
+      "scripts/supabase-types-manifest.json": "46de0f13441a98ae5e3454c8a47b9750abec14b579797953d8ea878ddc7944fd",
+      "scripts/apply-supabase-types-nullability-overrides.cjs": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
+      "scripts/gridex-schema-snapshot.cjs": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
+      "supabase/config.toml": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919"
+    },
+    "captured_immutable_sql_sha256": {
+      "supabase/migrations/20261020152427_db_billing_underlay_event_company_binding.sql": "1c8fd54322c2bf942885f871e15cfc4f9b9e0c34246270c2bd32d4337360c3e7",
+      "supabase/migrations/20261020152428_public_password_reset_budget.sql": "a76c8eb6c7d5a596d2d264d786d0b0a8cd7f9036901696c3d3f3abcd57ff7474",
+      "supabase/migrations/20261020154131_db_customer_document_contract_company_bindings.sql": "5ab955b2a09f425854013c57db774a403b67bdc7947e8389b038291be94301fd",
+      "supabase/migrations/20261020155348_retention_purge_post_lock_authority.sql": "0b6730f162e9f122c7bc69e305926f5c746795cdfa88c34c5eb870a3d071c441",
+      "supabase/migrations/20261020160626_forecast_metering_period_totals.sql": "fdc3eda2de7f7fa95124802d3a3658c33407bc946152640a5e5d946126272f47",
+      "supabase/migrations/20261020160633_customer_support_quota_atomic.sql": "6de2dca407e9fe7e9276ec485ab3e98056f1dffd6bd17d5356affd93d2ee2d45",
+      "supabase/migrations/20261020163100_forecast_point_inventory_snapshot.sql": "4ab975caedceb08fd66cba157d699c8ea47540fe2bbc2694f73a6951ed32333e",
+      "supabase/migrations/20261020163321_retention_storage_delete_post_lock_authority.sql": "2151204a44d45a1aa63005ffb804cf73e980f911ae015a09d6e4348f6cb10280",
+      "supabase/migrations/20261020164020_anonymize_user_profile_optional_columns.sql": "0826b88190c925d215c33a512307725eb6e74d7114722a0f26982739dcd738d9",
+      "supabase/migrations/20261020165029_db_customer_document_entity_company_bindings.sql": "ae8b220997f8f7fe591c23a6e4b224deeaa7f8b2dae85d84a1b06c27676dd2d0",
+      "supabase/migrations/20261020180847_audit19_customer_support_consumer_contract.sql": "27f4da9d636c021d038d680ff8c36380d41adfd4f81cb219b51408ce58711ce9",
+      "supabase/migrations/20261020182423_anonymize_user_account_source_comment_alignment.sql": "31a7787c6fcc3b6d3bfe957bacccbeb20e856880979c2fb89e9ac376288d01a1",
+      "supabase/migrations/20261020184122_audit19_legacy_trigger_consumers_contract.sql": "40b47be927e923217082eebdc8389028fb13975d5bf0fb425c3539277548a8fe",
+      "supabase/migrations/20261020184151_retention_storage_guard_prerequisites.sql": "452a2b5679d9ab453226fc6a3ba512b9c95560c5f1298088c0fd80c719f72da3",
+      "supabase/migrations/20261020190908_audit19_schema_named_column_compatibility.sql": "658b479b7ce0c6dd87e52ab51e1400d9cb9232d596e0bbc5dbba7b616c5c83a6",
+      "supabase/migrations/20261020191228_retention_storage_admission_prerequisites.sql": "e0c8d9406a094b6f4f66ed2acd2b11cd263ade7b896abd244e0848976cb1bda6",
+      "supabase/migrations/20261020211439_customer_merge_portal_lifecycle_convergence.sql": "94caa92f9f92d0e6fb1f23b4655e8f32d4083acfdebbf778246ee55c81ffe960",
+      "supabase/migrations/20261020215757_ediel_private_supply_scope_prerequisites.sql": "7f30d5e1bc53f4bb61cb80e6b185eded68047156b69a5e991579c937b2994538",
+      "supabase/migrations/20261020220844_one_off_manual_publication_gate_convergence.sql": "4a4b3c00cbc18f2474673f377320ddbe54888d3b814db3f4cecb61b901325bca",
+      "supabase/migrations/20261020230048_ediel_supply_source_runtime_prerequisites.sql": "224e8fb44436462e5f2d3f15360855a7580e0ebebb7e3f261eaf10f058a2efc8"
+    },
+    "captured_runtime_index_sha256": "ce042f4432b08b3469e224476477fee404641fae8b6288fc815a22d287a518b2",
+    "capture_limits": {
+      "purpose": "capture_only",
+      "native_tests": "NOT_RUN",
+      "browser_tests": "NOT_RUN",
+      "type_schema_comparison": "NOT_RUN",
+      "upgrade_parity": "NOT_RUN",
+      "required_gate": "OPS hardening clean/upgrade replay and parity remain mandatory"
+    },
+    "adopting_successor_is_captured_source": false,
+    "previous_active_fields": {
+      "generated_at": "2026-10-20T11:15:47.721214+00:00",
+      "generated_with": "supabase-cli-2.101.0-authentic-ordinary-capture-run39412261483-job118592648609-attempt1",
+      "sha256": "648662a2054af47cbbecca91ff3fcd8872d33a303779a4c2dd2a09e3dbe217c2",
+      "latest_migration": "20261019180500_db05_audit19_archived_permission.sql",
+      "latest_migration_schema_effect": "Authentic ordinary capture of the full Mail6db/main5600 union at source a748be8f3b7cf87d49c6040e0ea85a989f74c3cf (tree 438e0b1743f2e6dfd6ee5b7cb8ea13a1b2f52577), retaining all delivered main SQL and including the four Mail migrations in the exact244-entry runtime index. The unchanged maximum migration filename alone is not coverage evidence. RAW3 imported byte-exactly; no native/browser/type-schema/upgrade-parity or whole-release result is implied.",
+      "composition_note": "Current RAW3 are exact byte copies of genuine full-union ordinary capture39412261483/job118592648609/a1/artifact12260700430 at sourcea748be8f3b7cf87d49c6040e0ea85a989f74c3cf/tree438e0b1743f2e6dfd6ee5b7cb8ea13a1b2f52577. Its eight recorded inputs, including manifestbeaf5e7c, bind the captured pre-import source. This adopting successor is not the captured source: the manifest changes to record its own adoption, so that original input hash is preserved rather than replaced with a self-hash. Previous active fields are archived in mail_main_union_genuine_ordinary_capture_adoption_20261020; all other historical capture/SC046/pending fields, including mail_main_union_capture_pending_20261020, retain their original epoch scope. Current-prefix evidence covers capture only; importing-head CI, actual upgrade/parity and two final receiving reviews remain mandatory.",
+      "current_prefix_verification": {
+        "kind": "genuine_successful_ordinary_capture_RAW3_ONLY",
+        "source_head": "a748be8f3b7cf87d49c6040e0ea85a989f74c3cf",
+        "source_tree": "438e0b1743f2e6dfd6ee5b7cb8ea13a1b2f52577",
+        "workflow_path": ".github/workflows/staff-api-schema-capture.yml",
+        "workflow_run_id": 39412261483,
+        "workflow_job_id": 118592648609,
+        "attempt": 1,
+        "artifact_id": 12260700430,
+        "artifact_name": "staff-schema-capture-a748be8f3b7cf87d49c6040e0ea85a989f74c3cf",
+        "artifact_archive_sha256": "ceaa4fce5c290cf769c8942d6b306f6b9b6bb6c6897516cfee883ce5555aa228",
+        "artifact_archive_bytes": 1815242,
+        "capture_receipt_sha256": "ca581a937f2eea2c724f762350b9806d62e6eb315960db68611473a7c7a53c91",
+        "raw_output_sha256": {
+          "database.types.ts": "648662a2054af47cbbecca91ff3fcd8872d33a303779a4c2dd2a09e3dbe217c2",
+          "schema.sql": "a15291106e26b9bea9f70dd99f3c19f6cae7e159afd8a5d4674a997d98c2eac6",
+          "schema.fingerprint.json": "6800bf622fdbb9867d83fd7cb768ebf2230a6b6dc8ce2c9a2d5921acb397366f"
+        },
+        "schema_fingerprint": "5e06224acc092ab3462f4e0a81168b6c7cb379fbdfaad17531473563c4447255",
+        "actual_capture_completed_at": "2026-10-20T11:15:47.721214+00:00",
+        "workflow_job_conclusion": "SUCCESS",
+        "native_tests": "NOT_RUN",
+        "browser_tests": "NOT_RUN",
+        "type_schema_comparison": "NOT_RUN",
+        "upgrade_parity": "NOT_RUN",
+        "whole_approval": false,
+        "latest_replay_migration": {
+          "name": "20261019180500_db05_audit19_archived_permission.sql",
+          "sha256": "db47da92f7c47f936da499bac1ea9b347239f5965856fb5149a14e83abd95f06"
+        },
+        "input_sha256": {
+          "scripts/gridex-aud-003-clean-replay.sh": "71262366feaf3df054c7436c2fd3d80e0b96b8aaddca1df260a71fa6bf36d885",
+          "scripts/migration-history-manifest.json": "66a735464c298b3e5e534f7e27df889cb1b01280d55b48d449c4f195eed7de01",
+          "scripts/migration-history-manifest.additions.json": "136435f17dd8ba9933718f88f5412ecfb97fd0d76e1979c5d7b7e624ffcf0f76",
+          "scripts/migration-history-manifest.runtime.additions.json": "b234c5a1c0af1ac04575db8666dad23bb518d745213975267ce7ccdfbfde2c98",
+          "scripts/supabase-types-manifest.json": "beaf5e7c6129de8f27f625c0cab71803c4e9b17fe9b14baf78acf3761b4b6c62",
+          "scripts/apply-supabase-types-nullability-overrides.cjs": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
+          "scripts/gridex-schema-snapshot.cjs": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
+          "supabase/config.toml": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919"
+        },
+        "source_inventory": {
+          "migration_directory_paths": 1284,
+          "sql_files": 1283,
+          "runtime_index_rows": 244,
+          "migration_tuple_sha256": "542e857bd5411542bc79b993a383dd9dfc8bb7adbdc2d256e716ca606a79d910",
+          "tail_alone_is_insufficient": true
+        }
+      },
+      "active_generated_outputs_origin": {
+        "kind": "genuine_successful_ordinary_capture_RAW3_ONLY",
+        "source_head": "8b6a172421e03957d692d9424380f06fda62faf8",
+        "source_tree": "51ebafba0a000fd571ed9a5513682f40211f9b49",
+        "workflow_path": ".github/workflows/staff-api-schema-capture.yml",
+        "workflow_run_id": 39251634797,
+        "workflow_job_id": 118056591201,
+        "attempt": 1,
+        "runner_id": 1000062771,
+        "artifact_id": 12187475470,
+        "artifact_name": "staff-schema-capture-8b6a172421e03957d692d9424380f06fda62faf8",
+        "artifact_archive_sha256": "19330e68c97a46b04f9066f5fd81a1e61f6e0748cbd2a07f5ff153f651522ac6",
+        "artifact_archive_bytes": 1744625,
+        "capture_receipt_sha256": "e8f8c01099996274506820463d90266b87356988c3a4c4ce5c1ef47641f66924",
+        "raw_output_sha256": {
+          "database.types.ts": "aab753d89d938884e3ce83760379aa478505185f58667d241e7b38bc90c1859d",
+          "schema.sql": "583dfb2b6c85516f518eb81db4f9f8a4800c7cf7e43a8a1ea26acacc24df7446",
+          "schema.fingerprint.json": "b24f8e29b7b26b9638fdcbe838e21790f8b726c1c60c818c811a283164f527fb"
+        },
+        "schema_fingerprint": "206b1b8638fe56c0cda8d412d1da339706124f8eb3abc0bbe3616246194b86c5",
+        "actual_capture_completed_at": "2026-10-19T12:40:22.030666+00:00",
+        "workflow_job_conclusion": "SUCCESS",
+        "epoch_attestation_enabled": false,
+        "native_tests": "NOT_RUN",
+        "browser_tests": "NOT_RUN",
+        "type_schema_comparison": "NOT_RUN",
+        "upgrade_parity": "NOT_RUN",
+        "whole_approval": false
+      },
+      "source_latest_migration": {
+        "name": "20261019043000_ediel_retained_contrl_source_prefilter.sql",
+        "sha256": "f248ec8dab18e1b4b4c2cd6f8da73f538d15030ccabb6bf0281080797d586b02"
+      }
+    },
+    "previous_active_literal_json_utf8_base64": {
+      "generated_at": "IjIwMjYtMTAtMjBUMTE6MTU6NDcuNzIxMjE0KzAwOjAwIg==",
+      "generated_with": "InN1cGFiYXNlLWNsaS0yLjEwMS4wLWF1dGhlbnRpYy1vcmRpbmFyeS1jYXB0dXJlLXJ1bjM5NDEyMjYxNDgzLWpvYjExODU5MjY0ODYwOS1hdHRlbXB0MSI=",
+      "sha256": "IjY0ODY2MmEyMDU0YWY0N2NiYmVjY2E5MWZmM2ZjZDg4NzJkMzNhMzAzNzc5YTRjMmRkMmEwOWUzZGJlMjE3YzIi",
+      "latest_migration": "IjIwMjYxMDE5MTgwNTAwX2RiMDVfYXVkaXQxOV9hcmNoaXZlZF9wZXJtaXNzaW9uLnNxbCI=",
+      "latest_migration_schema_effect": "IkF1dGhlbnRpYyBvcmRpbmFyeSBjYXB0dXJlIG9mIHRoZSBmdWxsIE1haWw2ZGIvbWFpbjU2MDAgdW5pb24gYXQgc291cmNlIGE3NDhiZThmM2I3Y2Y4N2Q0OWM2MDQwZTBlYTg1YTk4OWY3NGMzY2YgKHRyZWUgNDM4ZTBiMTc0M2YyZTZkZmQ2ZWU1YjdjYjhlYTEzYTFiMmY1MjU3NyksIHJldGFpbmluZyBhbGwgZGVsaXZlcmVkIG1haW4gU1FMIGFuZCBpbmNsdWRpbmcgdGhlIGZvdXIgTWFpbCBtaWdyYXRpb25zIGluIHRoZSBleGFjdDI0NC1lbnRyeSBydW50aW1lIGluZGV4LiBUaGUgdW5jaGFuZ2VkIG1heGltdW0gbWlncmF0aW9uIGZpbGVuYW1lIGFsb25lIGlzIG5vdCBjb3ZlcmFnZSBldmlkZW5jZS4gUkFXMyBpbXBvcnRlZCBieXRlLWV4YWN0bHk7IG5vIG5hdGl2ZS9icm93c2VyL3R5cGUtc2NoZW1hL3VwZ3JhZGUtcGFyaXR5IG9yIHdob2xlLXJlbGVhc2UgcmVzdWx0IGlzIGltcGxpZWQuIg==",
+      "composition_note": "IkN1cnJlbnQgUkFXMyBhcmUgZXhhY3QgYnl0ZSBjb3BpZXMgb2YgZ2VudWluZSBmdWxsLXVuaW9uIG9yZGluYXJ5IGNhcHR1cmUzOTQxMjI2MTQ4My9qb2IxMTg1OTI2NDg2MDkvYTEvYXJ0aWZhY3QxMjI2MDcwMDQzMCBhdCBzb3VyY2VhNzQ4YmU4ZjNiN2NmODdkNDljNjA0MGUwZWE4NWE5ODlmNzRjM2NmL3RyZWU0MzhlMGIxNzQzZjJlNmRmZDZlZTViN2NiOGVhMTNhMWIyZjUyNTc3LiBJdHMgZWlnaHQgcmVjb3JkZWQgaW5wdXRzLCBpbmNsdWRpbmcgbWFuaWZlc3RiZWFmNWU3YywgYmluZCB0aGUgY2FwdHVyZWQgcHJlLWltcG9ydCBzb3VyY2UuIFRoaXMgYWRvcHRpbmcgc3VjY2Vzc29yIGlzIG5vdCB0aGUgY2FwdHVyZWQgc291cmNlOiB0aGUgbWFuaWZlc3QgY2hhbmdlcyB0byByZWNvcmQgaXRzIG93biBhZG9wdGlvbiwgc28gdGhhdCBvcmlnaW5hbCBpbnB1dCBoYXNoIGlzIHByZXNlcnZlZCByYXRoZXIgdGhhbiByZXBsYWNlZCB3aXRoIGEgc2VsZi1oYXNoLiBQcmV2aW91cyBhY3RpdmUgZmllbGRzIGFyZSBhcmNoaXZlZCBpbiBtYWlsX21haW5fdW5pb25fZ2VudWluZV9vcmRpbmFyeV9jYXB0dXJlX2Fkb3B0aW9uXzIwMjYxMDIwOyBhbGwgb3RoZXIgaGlzdG9yaWNhbCBjYXB0dXJlL1NDMDQ2L3BlbmRpbmcgZmllbGRzLCBpbmNsdWRpbmcgbWFpbF9tYWluX3VuaW9uX2NhcHR1cmVfcGVuZGluZ18yMDI2MTAyMCwgcmV0YWluIHRoZWlyIG9yaWdpbmFsIGVwb2NoIHNjb3BlLiBDdXJyZW50LXByZWZpeCBldmlkZW5jZSBjb3ZlcnMgY2FwdHVyZSBvbmx5OyBpbXBvcnRpbmctaGVhZCBDSSwgYWN0dWFsIHVwZ3JhZGUvcGFyaXR5IGFuZCB0d28gZmluYWwgcmVjZWl2aW5nIHJldmlld3MgcmVtYWluIG1hbmRhdG9yeS4i",
+      "current_prefix_verification": "ewogICAgImtpbmQiOiAiZ2VudWluZV9zdWNjZXNzZnVsX29yZGluYXJ5X2NhcHR1cmVfUkFXM19PTkxZIiwKICAgICJzb3VyY2VfaGVhZCI6ICJhNzQ4YmU4ZjNiN2NmODdkNDljNjA0MGUwZWE4NWE5ODlmNzRjM2NmIiwKICAgICJzb3VyY2VfdHJlZSI6ICI0MzhlMGIxNzQzZjJlNmRmZDZlZTViN2NiOGVhMTNhMWIyZjUyNTc3IiwKICAgICJ3b3JrZmxvd19wYXRoIjogIi5naXRodWIvd29ya2Zsb3dzL3N0YWZmLWFwaS1zY2hlbWEtY2FwdHVyZS55bWwiLAogICAgIndvcmtmbG93X3J1bl9pZCI6IDM5NDEyMjYxNDgzLAogICAgIndvcmtmbG93X2pvYl9pZCI6IDExODU5MjY0ODYwOSwKICAgICJhdHRlbXB0IjogMSwKICAgICJhcnRpZmFjdF9pZCI6IDEyMjYwNzAwNDMwLAogICAgImFydGlmYWN0X25hbWUiOiAic3RhZmYtc2NoZW1hLWNhcHR1cmUtYTc0OGJlOGYzYjdjZjg3ZDQ5YzYwNDBlMGVhODVhOTg5Zjc0YzNjZiIsCiAgICAiYXJ0aWZhY3RfYXJjaGl2ZV9zaGEyNTYiOiAiY2VhYTRmY2U1YzI5MGNmNzY5Yzg5NDJkNmIzMDZmNmI5YjZiYjZjNjg5NzUxNmNmZWU4ODNjZTU1NTVhYTIyOCIsCiAgICAiYXJ0aWZhY3RfYXJjaGl2ZV9ieXRlcyI6IDE4MTUyNDIsCiAgICAiY2FwdHVyZV9yZWNlaXB0X3NoYTI1NiI6ICJjYTU4MWE5MzdmMmVlYTJjNzI0Zjc2MjM1MGI5ODA2ZDYyZTZlYjMxNTk2MGRiNjg2MTE0NzNhN2M3YTUzYzkxIiwKICAgICJyYXdfb3V0cHV0X3NoYTI1NiI6IHsKICAgICAgImRhdGFiYXNlLnR5cGVzLnRzIjogIjY0ODY2MmEyMDU0YWY0N2NiYmVjY2E5MWZmM2ZjZDg4NzJkMzNhMzAzNzc5YTRjMmRkMmEwOWUzZGJlMjE3YzIiLAogICAgICAic2NoZW1hLnNxbCI6ICJhMTUyOTExMDZlMjZiOWJlYTlmNzBkZDk5ZjNjMTlmNmNhZTdlMTU5YWZkOGE1ZDQ2NzRhOTk3ZDk4YzJlYWM2IiwKICAgICAgInNjaGVtYS5maW5nZXJwcmludC5qc29uIjogIjY4MDBiZjYyMmZkYmI5ODY3ZDgzZmQ3Y2I3NjhlYmYyMjMwYTZiNmRjOGNlMmM5YTJkNTkyMWFjYjM5NzM2NmYiCiAgICB9LAogICAgInNjaGVtYV9maW5nZXJwcmludCI6ICI1ZTA2MjI0YWNjMDkyYWIzNDYyZjRlMGE4MTE2OGI2YzdjYjM3OWZiZGZhYWQxNzUzMTQ3MzU2M2M0NDQ3MjU1IiwKICAgICJhY3R1YWxfY2FwdHVyZV9jb21wbGV0ZWRfYXQiOiAiMjAyNi0xMC0yMFQxMToxNTo0Ny43MjEyMTQrMDA6MDAiLAogICAgIndvcmtmbG93X2pvYl9jb25jbHVzaW9uIjogIlNVQ0NFU1MiLAogICAgIm5hdGl2ZV90ZXN0cyI6ICJOT1RfUlVOIiwKICAgICJicm93c2VyX3Rlc3RzIjogIk5PVF9SVU4iLAogICAgInR5cGVfc2NoZW1hX2NvbXBhcmlzb24iOiAiTk9UX1JVTiIsCiAgICAidXBncmFkZV9wYXJpdHkiOiAiTk9UX1JVTiIsCiAgICAid2hvbGVfYXBwcm92YWwiOiBmYWxzZSwKICAgICJsYXRlc3RfcmVwbGF5X21pZ3JhdGlvbiI6IHsKICAgICAgIm5hbWUiOiAiMjAyNjEwMTkxODA1MDBfZGIwNV9hdWRpdDE5X2FyY2hpdmVkX3Blcm1pc3Npb24uc3FsIiwKICAgICAgInNoYTI1NiI6ICJkYjQ3ZGE5MmY3YzQ3ZjkzNmRhNDk5YmFjMWVhOWIzNDcyMzlmNTk2NTg1NmZiNTE0OWExNGU4M2FiZDk1ZjA2IgogICAgfSwKICAgICJpbnB1dF9zaGEyNTYiOiB7CiAgICAgICJzY3JpcHRzL2dyaWRleC1hdWQtMDAzLWNsZWFuLXJlcGxheS5zaCI6ICI3MTI2MjM2NmZlYWYzZGYwNTRjNzQzNmMyZmQzZDgwZTBiOTZiOGFhZGRjYTFkZjI2MGE3MWZhNmJmMzZkODg1IiwKICAgICAgInNjcmlwdHMvbWlncmF0aW9uLWhpc3RvcnktbWFuaWZlc3QuanNvbiI6ICI2NmE3MzU0NjRjMjk4YjNlNWU1MzRmN2UyN2RmODg5Y2IxYjAxMjgwZDU1YjQ4ZDQ0OWM0ZjE5NWVlZDdkZTAxIiwKICAgICAgInNjcmlwdHMvbWlncmF0aW9uLWhpc3RvcnktbWFuaWZlc3QuYWRkaXRpb25zLmpzb24iOiAiMTM2NDM1ZjE3ZGQ4YmE5OTMzNzE4Zjg4ZjU0MTJlY2ZiOTdmZDBkNzZlMTk3OWM1ZDdiN2U2MjRmZmNmMGY3NiIsCiAgICAgICJzY3JpcHRzL21pZ3JhdGlvbi1oaXN0b3J5LW1hbmlmZXN0LnJ1bnRpbWUuYWRkaXRpb25zLmpzb24iOiAiYjIzNGM1YTFjMGFmMWFjMDQ1NzVkYjg2NjZkYWQyM2JiNTE4ZDc0NTIxMzk3NTI2N2NlN2NjZGZiZmRlMmM5OCIsCiAgICAgICJzY3JpcHRzL3N1cGFiYXNlLXR5cGVzLW1hbmlmZXN0Lmpzb24iOiAiYmVhZjVlN2M2MTI5ZGU4ZjI3ZjYyNWMwY2FiNzE4MDNjNGU5YjE3ZmU5YjE0YmFmNzhhY2YzNzYxYjRiNmM2MiIsCiAgICAgICJzY3JpcHRzL2FwcGx5LXN1cGFiYXNlLXR5cGVzLW51bGxhYmlsaXR5LW92ZXJyaWRlcy5janMiOiAiYzljZTEwMmY3NmZhMDI2MzRiN2U3MjUxMzZkYTg1ZTA1ZGFhMWNlNGU1MzJkN2JkOWYzZTUwN2Q2NWY4Y2VhYSIsCiAgICAgICJzY3JpcHRzL2dyaWRleC1zY2hlbWEtc25hcHNob3QuY2pzIjogIjU0MGIxOTAyOGM1OTM1ODdlNDgwZTMyZDk4NDNiZjEzZTkwN2FkNjNkYjE0MGYxNjYwMGU5ZTY0ZTE1MzFhNzEiLAogICAgICAic3VwYWJhc2UvY29uZmlnLnRvbWwiOiAiYjcwYjBkYzg4ODUzMDQ3OTBiYjVmMGIwMTljN2E1YjgzZTRmNDhmMjNkN2NmMWJjMmU0Yjg1OWU5MTNlMDkxOSIKICAgIH0sCiAgICAic291cmNlX2ludmVudG9yeSI6IHsKICAgICAgIm1pZ3JhdGlvbl9kaXJlY3RvcnlfcGF0aHMiOiAxMjg0LAogICAgICAic3FsX2ZpbGVzIjogMTI4MywKICAgICAgInJ1bnRpbWVfaW5kZXhfcm93cyI6IDI0NCwKICAgICAgIm1pZ3JhdGlvbl90dXBsZV9zaGEyNTYiOiAiNTQyZTg1N2JkNTQxMTU0MmJjNzliOTkzYTM4M2RkOWRmYzhiYjdhZGJkYzJkMjU2ZTcxNmNhNjA2YTc5ZDkxMCIsCiAgICAgICJ0YWlsX2Fsb25lX2lzX2luc3VmZmljaWVudCI6IHRydWUKICAgIH0KICB9",
+      "active_generated_outputs_origin": "ewogICAgImtpbmQiOiAiZ2VudWluZV9zdWNjZXNzZnVsX29yZGluYXJ5X2NhcHR1cmVfUkFXM19PTkxZIiwKICAgICJzb3VyY2VfaGVhZCI6ICI4YjZhMTcyNDIxZTAzOTU3ZDY5MmQ5NDI0MzgwZjA2ZmRhNjJmYWY4IiwKICAgICJzb3VyY2VfdHJlZSI6ICI1MWViYWZiYTBhMDAwZmQ1NzFlZDlhNTUxMzY4MmY0MDIxMWY5YjQ5IiwKICAgICJ3b3JrZmxvd19wYXRoIjogIi5naXRodWIvd29ya2Zsb3dzL3N0YWZmLWFwaS1zY2hlbWEtY2FwdHVyZS55bWwiLAogICAgIndvcmtmbG93X3J1bl9pZCI6IDM5MjUxNjM0Nzk3LAogICAgIndvcmtmbG93X2pvYl9pZCI6IDExODA1NjU5MTIwMSwKICAgICJhdHRlbXB0IjogMSwKICAgICJydW5uZXJfaWQiOiAxMDAwMDYyNzcxLAogICAgImFydGlmYWN0X2lkIjogMTIxODc0NzU0NzAsCiAgICAiYXJ0aWZhY3RfbmFtZSI6ICJzdGFmZi1zY2hlbWEtY2FwdHVyZS04YjZhMTcyNDIxZTAzOTU3ZDY5MmQ5NDI0MzgwZjA2ZmRhNjJmYWY4IiwKICAgICJhcnRpZmFjdF9hcmNoaXZlX3NoYTI1NiI6ICIxOTMzMGU2OGM5N2E0NmIwNGY5MDY2ZjVmZDgxYTFlNjFmNmUwNzQ4Y2JkMmEwN2Y1ZmYxNTNmNjUxNTIyYWM2IiwKICAgICJhcnRpZmFjdF9hcmNoaXZlX2J5dGVzIjogMTc0NDYyNSwKICAgICJjYXB0dXJlX3JlY2VpcHRfc2hhMjU2IjogImU4ZjhjMDEwOTk5OTYyNzQ1MDY4MjA0NjNkOTAyNjZiODczNTY5ODhjM2E0YzRjZTVjMWVmNDc2NDFmNjY5MjQiLAogICAgInJhd19vdXRwdXRfc2hhMjU2IjogewogICAgICAiZGF0YWJhc2UudHlwZXMudHMiOiAiYWFiNzUzZDg5ZDkzODg4NGUzY2U4Mzc2MDM3OWFhNDc4NTA1MTg1ZjU4NjY3ZDI0MWU3YjM4YmM5MGMxODU5ZCIsCiAgICAgICJzY2hlbWEuc3FsIjogIjU4M2RmYjJiNmM4NTUxNmY1MThlYjgxZGI0ZjlmOGE0ODAwYzdjZjdlNDNhOGExZWEyNmFjYWNjMjRkZjc0NDYiLAogICAgICAic2NoZW1hLmZpbmdlcnByaW50Lmpzb24iOiAiYjI0ZjhlMjliN2IyNmI5NjM4ZmRjYmU4MzhlMjE3OTBmOGI3MjZjMWM2MGM4MThjODExYTI4MzE2NGY1MjdmYiIKICAgIH0sCiAgICAic2NoZW1hX2ZpbmdlcnByaW50IjogIjIwNmIxYjg2MzhmZTU2YzBjZGE4ZDQxMmQxZGEzMzk3MDYxMjRmOGViM2FiYzBiYmUzNjE2MjQ2MTk0Yjg2YzUiLAogICAgImFjdHVhbF9jYXB0dXJlX2NvbXBsZXRlZF9hdCI6ICIyMDI2LTEwLTE5VDEyOjQwOjIyLjAzMDY2NiswMDowMCIsCiAgICAid29ya2Zsb3dfam9iX2NvbmNsdXNpb24iOiAiU1VDQ0VTUyIsCiAgICAiZXBvY2hfYXR0ZXN0YXRpb25fZW5hYmxlZCI6IGZhbHNlLAogICAgIm5hdGl2ZV90ZXN0cyI6ICJOT1RfUlVOIiwKICAgICJicm93c2VyX3Rlc3RzIjogIk5PVF9SVU4iLAogICAgInR5cGVfc2NoZW1hX2NvbXBhcmlzb24iOiAiTk9UX1JVTiIsCiAgICAidXBncmFkZV9wYXJpdHkiOiAiTk9UX1JVTiIsCiAgICAid2hvbGVfYXBwcm92YWwiOiBmYWxzZQogIH0=",
+      "source_latest_migration": "ewogICAgIm5hbWUiOiAiMjAyNjEwMTkwNDMwMDBfZWRpZWxfcmV0YWluZWRfY29udHJsX3NvdXJjZV9wcmVmaWx0ZXIuc3FsIiwKICAgICJzaGEyNTYiOiAiZjI0OGVjOGRhYjE4ZTFiNGI0YzJjZDZmOGRhNzNmNTM4ZDE1MDMwY2NhYmI2YmYwMjgxMDgwNzk3ZDU4NmIwMiIKICB9"
+    },
+    "previous_active_literal_sha256": {
+      "generated_at": "f8f2ca810a88335703833a8ad331f1aa23d9d48f3939634c1a814ccf9d35bd9a",
+      "generated_with": "27e1b3977cefbf4537dcadf26d448194500366510e500e53154690c8095b0e24",
+      "sha256": "1d7589522b10e3394b39e5ca1cc2cfc301eb7c6c06b71aaab2045644dbb5280f",
+      "latest_migration": "93d4dbc607fc1cdb9a9b932cb8fc517531ddf71ab2c0d8f13b4b1388e05be789",
+      "latest_migration_schema_effect": "e556ccefb94fcfe3f37f532ed778ce5f42c14f527332f8cb75bc60fc719dfc4d",
+      "composition_note": "696cfda8e942e08a6c928339901cced18ce66a743db3f34c0ca743763b8d564b",
+      "current_prefix_verification": "885b57433b16b0e347f4bd932fb5ca0e7d42bda0a115dcd21444e94c3d192918",
+      "active_generated_outputs_origin": "2b93449920a7fc71e005636ad2698606d2d4efe19985efb27f1864f12c26e600",
+      "source_latest_migration": "b27b6500065cc591e9b6a2be28fec071c6219f91d7997a4e736ae8f529801fdb"
+    },
+    "previous_active_compact_ordered_json_sha256": {
+      "generated_at": "f8f2ca810a88335703833a8ad331f1aa23d9d48f3939634c1a814ccf9d35bd9a",
+      "generated_with": "27e1b3977cefbf4537dcadf26d448194500366510e500e53154690c8095b0e24",
+      "sha256": "1d7589522b10e3394b39e5ca1cc2cfc301eb7c6c06b71aaab2045644dbb5280f",
+      "latest_migration": "93d4dbc607fc1cdb9a9b932cb8fc517531ddf71ab2c0d8f13b4b1388e05be789",
+      "latest_migration_schema_effect": "e556ccefb94fcfe3f37f532ed778ce5f42c14f527332f8cb75bc60fc719dfc4d",
+      "composition_note": "696cfda8e942e08a6c928339901cced18ce66a743db3f34c0ca743763b8d564b",
+      "current_prefix_verification": "b318d10e65a16bbbd11febfb3af6814826451075deccf1b35d83a615f9d0d05f",
+      "active_generated_outputs_origin": "d8edf34c05db419800ccbe7ab867627ae94495fc3795f1e0136fed0592bd8ed9",
+      "source_latest_migration": "880662fc1ca1f6c028dd0e3955000d0d48b4be579f78a8999be6ec58ecb4277a"
+    },
+    "source_manifest_preimage_sha256": "46de0f13441a98ae5e3454c8a47b9750abec14b579797953d8ea878ddc7944fd"
   }
 }
