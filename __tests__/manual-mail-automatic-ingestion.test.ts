@@ -94,7 +94,7 @@ it('anchors a delayed first read to the original Stockholm receipt day before ap
   const result = await ingestManualInboundEmail(receivedEmail('Kunden kan starta om 30 dagar\nBrytavgift: Ingen'))
   expect(result).toMatchObject({ processingState: 'applied', companyId: 'tenant-a', customerId: 'customer-a', customerSiteId: 'site-a' })
   expect(io.db.tables.manual_inbound_messages[0]).toMatchObject({ received_at: '2026-10-24T22:30:00.000Z',
-    extracted_payload: { mailbox_receipt: { source: 'imap_internal_date', receivedAt: '2026-10-24T22:30:00.000Z' } } })
+    extracted_payload: { manual_automation: { mailboxReceipt: { source: 'imap_internal_date', receivedAt: '2026-10-24T22:30:00.000Z' } } } })
   expect(io.apply.mock.calls[0][1]).toMatchObject({ p_payload: { terms: { earliestStartDate: '2026-11-24', effectiveStartDate: '2026-11-24' } } })
   expect(io.continuation).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ companyId: 'tenant-a', customerId: 'customer-a', siteId: 'site-a' }))
 })
@@ -210,14 +210,15 @@ it('transcribes the original PDF, applies its cited terms, and resumes a failed 
     return new Response(JSON.stringify({ status: 'completed', output: [{ type: 'message', role: 'assistant', status: 'completed', content: [{ type: 'output_text', text: JSON.stringify(content) }] }] }))
   })
   io.apply.mockRejectedValueOnce(new Error('synthetic transaction unavailable'))
-  const message = email('Se bilagan.', { attachments: [{ filename: 'avtal.pdf', contentType: 'application/pdf', sizeBytes: bytes.length,
+  const message = Object.assign(receivedEmail('Se bilagan.'), { attachments: [{ filename: 'avtal.pdf', contentType: 'application/pdf', sizeBytes: bytes.length,
     mimePart: 1, sha256, sourceRole: 'attachment', contentBase64: bytes.toString('base64') }] })
   await expect(ingestManualInboundEmail(message)).rejects.toThrow('synthetic transaction unavailable')
   expect(calls).toHaveLength(2)
   expect(await ingestManualInboundEmail(message)).toMatchObject({ processingState: 'applied' })
   expect(calls).toHaveLength(2)
   const payload = io.db.tables.manual_inbound_messages[0].extracted_payload as Row
-  expect(payload).toMatchObject({ manual_automation: { documentReading: { status: 'completed', context: { company_id: null } },
+  expect(payload).toMatchObject({ manual_automation: { mailboxReceipt: { receivedAt: '2026-10-24T22:30:00.000Z', source: 'imap_internal_date' },
+    documentReading: { status: 'completed', context: { company_id: null } },
     documentSources: { manifest: [expect.objectContaining({ sha256 })] } }, ai_read_only: { source_version: 2 } })
 })
 

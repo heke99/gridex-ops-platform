@@ -260,7 +260,10 @@ async function persistRawInbound(input: {
       ? { verifiedRawSha256: input.email.senderVerification.raw_sha256 } : {}) })
   const receivedAt = receipt?.receivedAt ?? new Date().toISOString()
   const initialPayload = { source_fingerprint: fingerprint, source_fingerprint_version: 2,
-    ...(receipt ? { mailbox_receipt: receipt } : {}), ...(input.email.mimeRequiresReview === true ? { mime_requires_review: true } : {}) }
+    // The deployed provenance trigger protects the entire server namespace,
+    // including nested insertion, replacement and removal by authenticated users.
+    ...(receipt ? { manual_automation: { mailboxReceipt: receipt } } : {}),
+    ...(input.email.mimeRequiresReview === true ? { mime_requires_review: true } : {}) }
   const insert = await supabaseService
     .from('manual_inbound_messages')
     .insert({

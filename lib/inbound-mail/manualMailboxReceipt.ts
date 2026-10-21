@@ -62,11 +62,11 @@ export function qualifyManualMailboxReceipt(input: {
   return { ...receipt, sourceFingerprint: input.sourceFingerprint }
 }
 
-/** Read only the original, source-bound persisted basis, never the retry input. */
+/** Read only the existing SQL-protected server namespace. No root-key fallback. */
 export function readStoredManualMailboxReceipt(input: {
   payload: unknown; receivedAt: string; sourceFingerprint: string
 }): StoredReceipt | null {
-  const payload = record(input.payload), receipt = payload.mailbox_receipt
+  const payload = record(input.payload), receipt = record(payload.manual_automation).mailboxReceipt
   if (!validReceipt(receipt) || record(receipt).sourceFingerprint !== input.sourceFingerprint
     || payload.source_fingerprint_version !== 2 || payload.source_fingerprint !== input.sourceFingerprint
     || Date.parse(input.receivedAt) !== Date.parse(receipt.receivedAt)) return null
