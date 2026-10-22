@@ -1247,6 +1247,40 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
 - **Följd:** det förklarar varför inga produktionsmeddelanden från de nya tenanterna har lämnat utkorgen i tidigare körningar.
 - **B1 bekräftat i flödet:** de spärrade posterna släpps aldrig när förmågan senare blir ready. Körningen kunde därför inte återhämta sig. B1 är fortfarande öppet och kräver ett produktbeslut.
 
+### T2b Den simulerade certifieringen saknade de certifieringsbevis som go-live kräver — RÄTTAD (commit `ebfb0c7f`), verklighetsvärlden
+- **Utfall (F körning 10):** produktionssändningar spärrades med `ediel_production_evidence_not_ready`.
+- **Orsak:** `canonical_ediel_production_evidence_readiness` kräver godkända bevis av typerna TGT, AGT, SHADOW_PRODUCTION, LIVE_TENANT_INTEGRITY och RESTORE_REPLAY, och LIMITED_PILOT efter första sändningen. Ersättaren för F36 registrerar dem nu, märkta `reality_simulated`.
+
+### T3 Testvärldens app saknade release-SHA — RÄTTAD (commit `67090f6c`), verklighetsvärlden
+- **Utfall (F körning 11):** första gången Z03 passerade alla tenantspärrar föll den i utkorgen med `ediel_release_sha_unavailable`.
+- **Orsak:** produktionssändning kräver `VERCEL_GIT_COMMIT_SHA` eller `GIT_COMMIT_SHA`. Vercel sätter variabeln vid varje deploy, men testvärlden gjorde det inte.
+- **Rättning:** `up.sh` skriver nu SHA:n från checkouten vid varje start.
+- **Följdfel (O1):** posten misslyckades och försöktes aldrig igen. Varje miljöfel kräver därför en ny körning.
+
+### F89 Ingen tenant kan skicka något Ediel-meddelande i produktion: inga bevis per meddelandetyp finns, och produkten kan inte skapa dem — EXTERNT BEROENDE (avsiktlig spärr), kritiskt för go-live
+- **Utfall (F körning 12):** alla gemensamma spärrar passerade, men transporten nekade med `ediel_scoped_capability_evidence_required` (`assertScopedEdielProductionCapability`).
+- **Bevis från produktionen (en summeringsfråga, bara läsning, 2026-10-22):**
+  - `gridex_ediel_readiness.evidence` har 0 rader;
+  - 0 utgående Ediel-meddelanden har någonsin skickats i produktion;
+  - 5 certifieringsbevis är godkända.
+- **Orsak:**
+  - `recordScopedEdielProductionEvidence` anropas bara från tester.
+  - Koden säger själv: "Future test-phase publication requires real approved, scope-bound evidence. No migration seeds evidence."
+  - För att registrera beviset krävs ett verifierat release-kvitto (`platform_release_receipts`) för exakt den körande release-SHA:n, och certifieringsbevis med testresultat per meddelandetyp.
+- **Bedömning:** spärren är avsiktlig, men utan en produktväg kan go-live inte ske. Det hör ihop med F36.
+- **Verklighetsvärlden:** en ersättare som använder plattformens egna funktioner byggs nu.
+
+### F90 Certifieringen per meddelandetyp kan bara gälla en typ åt gången och faller vid varje deploy — UNDER VERIFIERING, kritisk (designfel)
+- **Analys av koden (`20260930145202`):**
+  - `ediel_certification_evidence` är unik per (tenant, miljö, bevistyp, motorversion).
+  - Registreringen kräver att varje certifieringsrads `metadata.edielScopedReadiness.scope` är exakt den meddelandetyp som certifieras, med tester där `candidateSha` är release-SHA:n.
+  - Beredskapen kräver att raden fortfarande är byte-identisk med den lagrade kopian.
+- **Följd:**
+  - Att certifiera en andra typ, till exempel Z01 efter Z03, ändrar raderna och ogiltigförklarar den första typen.
+  - En ny deploy, det vill säga en ny release-SHA, ogiltigförklarar alla.
+  - En tenant skulle alltså aldrig kunna skicka mer än en meddelandetyp i produktion.
+- **Bevisas nu natively**, tillsammans med ett designförslag.
+
 ## Status för live-testets steg
 
 | Steg | Status |
