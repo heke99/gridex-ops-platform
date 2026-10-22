@@ -3,6 +3,8 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { MASTERDATA_PERMISSIONS } from '@/lib/admin/masterdataPermissions'
 import { supabaseService } from '@/lib/supabase/service'
+import { requireOperationalCompanyId } from '@/lib/tenant/scope'
+import CustomerRegisteredAddressForm from '@/components/admin/customers/CustomerRegisteredAddressForm'
 import type {
  CustomerAddressRow,
  CustomerContactRow,
@@ -212,9 +214,25 @@ async function saveCustomerAddressAction(formData: FormData) {
  throw new Error('Gatuadress krävs')
  }
 
- if (!['registered', 'billing', 'other'].includes(type)) {
+ if (type === 'registered') {
+ // FINDINGS F51: the registered address has its own editor, which keeps provenance and history.
+ throw new Error('Folkbokföringsadressen ändras under Folkbokföringsadress.')
+ }
+
+ if (!['billing', 'other'].includes(type)) {
  throw new Error('Anläggningsadress ändras under anläggningsuppgifter.')
  }
+
+ // Only a customer of the staff member's own active company.
+ const companyId = await requireOperationalCompanyId(actorUserId)
+ const { data: customer, error: customerError } = await supabaseService
+ .from('customers')
+ .select('id')
+ .eq('id', customerId)
+ .eq('company_id', companyId)
+ .maybeSingle()
+ if (customerError) throw customerError
+ if (!customer?.id) throw new Error('Kunden finns inte i ditt bolag.')
 
  const before = addressId
  ? await supabaseService
@@ -222,12 +240,18 @@ async function saveCustomerAddressAction(formData: FormData) {
  .select('*')
  .eq('id', addressId)
  .eq('customer_id', customerId)
+ .eq('company_id', companyId)
  .maybeSingle()
  : { data: null, error: null }
 
  if (before.error) throw before.error
+ if (addressId && !before.data) throw new Error('Adressen finns inte på kunden.')
+ if (before.data && !['billing', 'other'].includes(String(before.data.type))) {
+ throw new Error('Den här adressen ändras inte här.')
+ }
 
  const payload = {
+ company_id: companyId,
  customer_id: customerId,
  type,
  street_1: street1,
@@ -247,6 +271,7 @@ async function saveCustomerAddressAction(formData: FormData) {
  .update(payload)
  .eq('id', addressId)
  .eq('customer_id', customerId)
+ .eq('company_id', companyId)
  .select('*')
  .single()
  : await supabaseService
@@ -304,8 +329,81 @@ function addressIntro(customerType: CustomerType): string {
  return 'För företag är registrerad adress och fakturaadress ofta olika. Anläggningsadress hanteras separat under anläggningsuppgifter.'
 }
 
-function defaultAddressType(customerType: CustomerType): string {
- return customerType === 'private' ? 'registered' : 'billing'
+type RegisteredAddressRow = CustomerAddressRow & { metadata?: Record<string, unknown> | null }
+
+function stockholmToday(): string {
+ return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Stockholm', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
+}
+
+/** Rows the Ediel rule treats as the registered address today (active, not moved out). */
+function isCurrentRegistered(address: RegisteredAddressRow, today: string): boolean {
+ return address.is_active && (!address.moved_in_at || address.moved_in_at.slice(0, 10) <= today) &&
+ (!address.moved_out_at || today < address.moved_out_at.slice(0, 10))
+}
+
+function registeredSourceLabel(address: RegisteredAddressRow): string {
+ const source = address.metadata?.registered_address_source
+ if (source === 'staff_entry') return 'Angiven av personal'
+ if (source === 'website_declaration') return 'Angiven av kunden (webb)'
+ return 'Okänd källa (äldre post)'
+}
+
+function formatAddress(address: CustomerAddressRow): string {
+ return [address.street_1, address.street_2, [address.postal_code, address.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')
+}
+
+function RegisteredAddressSection({
+ customerId,
+ customerType,
+ addresses,
+}: {
+ customerId: string
+ customerType: CustomerType
+ addresses: RegisteredAddressRow[]
+}) {
+ const today = stockholmToday()
+ const current = addresses.filter((address) => isCurrentRegistered(address, today))
+ const history = addresses.filter((address) => !isCurrentRegistered(address, today))
+ const title = customerType === 'private' ? 'Folkbokföringsadress' : customerType === 'association' ? 'Föreningens registrerade adress' : 'Företagets registrerade adress'
+ return (
+ <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-slate-800">
+ <div className="font-semibold text-slate-950">{title}</div>
+ <p className="mt-1 text-xs leading-5 text-slate-700">
+ Kundens egen adress enligt folkbokföringen (för företag och förening: organisationens registrerade adress). Används som kundens adress i begäran till nätägaren (Z01). Anläggnings- eller fakturaadressen används aldrig i stället.
+ </p>
+ <div className="mt-3 space-y-2">
+ {current.length === 0 ? (
+ <div className="rounded-xl border border-amber-200 bg-white px-3 py-2 text-amber-900">Saknas – begäran till nätägaren väntar tills adressen är angiven.</div>
+ ) : current.map((address) => (
+ <div key={address.id} className="rounded-xl border border-emerald-100 bg-white px-3 py-2">
+ <div className="font-medium text-slate-950">{formatAddress(address)}</div>
+ <div className="mt-1 text-xs text-slate-500">{registeredSourceLabel(address)} • sparad {formatDateTime(address.created_at)}</div>
+ </div>
+ ))}
+ {current.length > 1 ? (
+ <div className="rounded-xl border border-amber-200 bg-white px-3 py-2 text-amber-900">Flera aktuella adresser. Spara rätt adress nedan så avslutas de övriga.</div>
+ ) : null}
+ </div>
+ <details className="mt-3">
+ <summary className="cursor-pointer list-none text-sm font-semibold text-slate-900">
+ {current.length > 0 ? 'Ändra folkbokföringsadress' : 'Ange folkbokföringsadress'}
+ </summary>
+ <div className="mt-3">
+ <CustomerRegisteredAddressForm customerId={customerId} current={current.length === 1 ? current[0] : null} />
+ </div>
+ </details>
+ {history.length > 0 ? (
+ <details className="mt-3">
+ <summary className="cursor-pointer list-none text-xs font-semibold text-slate-700">Historik ({history.length})</summary>
+ <ul className="mt-2 space-y-1 text-xs text-slate-600">
+ {history.map((address) => (
+ <li key={address.id}>{formatAddress(address)} • {registeredSourceLabel(address)} • {address.moved_in_at?.slice(0, 10) ?? '—'} – {address.moved_out_at?.slice(0, 10) ?? (address.is_active ? '' : 'inaktiv')}</li>
+ ))}
+ </ul>
+ </details>
+ ) : null}
+ </div>
+ )
 }
 
 function ContactForm({
@@ -442,10 +540,9 @@ function AddressForm({
  <span className="text-slate-700 ">Typ</span>
  <select
  name="type"
- defaultValue={address?.type ?? defaultAddressType(customerType)}
+ defaultValue={address?.type ?? 'billing'}
  className="rounded-2xl border border-slate-300 px-4 py-3 "
  >
- <option value="registered">Registered</option>
  <option value="billing">Billing</option>
  <option value="other">Other</option>
  </select>
@@ -558,7 +655,8 @@ export default function CustomerContactsAddressesCard({
  addresses: CustomerAddressRow[]
  sites: CustomerSiteRow[]
 }) {
- const contactAddresses = addresses.filter((address) => address.type !== 'facility')
+ const contactAddresses = addresses.filter((address) => address.type !== 'facility' && address.type !== 'registered')
+ const registeredAddresses = addresses.filter((address) => address.type === 'registered') as RegisteredAddressRow[]
  return (
  <section className="grid gap-6 xl:grid-cols-2">
  <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm ">
@@ -646,6 +744,8 @@ export default function CustomerContactsAddressesCard({
  </div>
 
  <div className="space-y-4 p-6">
+ <RegisteredAddressSection customerId={customerId} customerType={customerType} addresses={registeredAddresses} />
+
  <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-slate-800">
  <div className="font-semibold text-slate-950">Anläggningsadress</div>
  <p className="mt-1 text-xs leading-5 text-slate-700">Används för nätägarmatchning, Z01 och leverantörsbyte. Ändras under anläggningsuppgifter.</p>

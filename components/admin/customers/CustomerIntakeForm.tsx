@@ -594,6 +594,79 @@ export default function CustomerIntakeForm({
             />
             <FieldError state={state} name="phone" />
           </label>
+
+          <fieldset
+            className="grid min-w-0 grid-cols-1 gap-3 rounded-2xl border border-slate-200 p-3 md:col-span-2 md:grid-cols-2"
+            aria-describedby="registered-address-hint"
+          >
+            <legend
+              className="px-1 text-sm font-semibold text-slate-900"
+              data-label-for-customer
+              data-label-private="Folkbokföringsadress"
+              data-label-business="Företagets registrerade adress"
+              data-label-association="Föreningens registrerade adress"
+            >
+              Folkbokföringsadress
+            </legend>
+            <p id="registered-address-hint" className="text-xs leading-5 text-slate-600 md:col-span-2">
+              Kundens egen adress enligt folkbokföringen (för företag och
+              förening: organisationens registrerade adress) – inte
+              anläggnings- eller fakturaadressen, även om de ofta är samma.
+              Krävs när kunden ska byta leverantör eller när uppgifter begärs
+              från nätägaren.
+            </p>
+
+            <label className="grid min-w-0 grid-cols-1 gap-1 text-sm md:col-span-2">
+              <span className="text-slate-700">Gatuadress</span>
+              <input
+                name="registeredStreet"
+                autoComplete="off"
+                maxLength={35}
+                defaultValue={state.values.registeredStreet ?? ""}
+                placeholder="Gatuadress enligt folkbokföringen"
+                className={inputClassName(state, "registeredStreet")}
+              />
+              <FieldError state={state} name="registeredStreet" />
+            </label>
+
+            <label className="grid min-w-0 grid-cols-1 gap-1 text-sm md:col-span-2">
+              <span className="text-slate-700">Adressrad 2 (valfri, t.ex. c/o)</span>
+              <input
+                name="registeredStreet2"
+                autoComplete="off"
+                maxLength={35}
+                defaultValue={state.values.registeredStreet2 ?? ""}
+                className={inputClassName(state, "registeredStreet2")}
+              />
+              <FieldError state={state} name="registeredStreet2" />
+            </label>
+
+            <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
+              <span className="text-slate-700">Postnummer</span>
+              <input
+                name="registeredPostalCode"
+                autoComplete="off"
+                inputMode="numeric"
+                defaultValue={state.values.registeredPostalCode ?? ""}
+                placeholder="123 45"
+                className={inputClassName(state, "registeredPostalCode")}
+              />
+              <FieldError state={state} name="registeredPostalCode" />
+            </label>
+
+            <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
+              <span className="text-slate-700">Ort</span>
+              <input
+                name="registeredCity"
+                autoComplete="off"
+                maxLength={35}
+                defaultValue={state.values.registeredCity ?? ""}
+                placeholder="Postort"
+                className={inputClassName(state, "registeredCity")}
+              />
+              <FieldError state={state} name="registeredCity" />
+            </label>
+          </fieldset>
         </Section>
 
         <Section

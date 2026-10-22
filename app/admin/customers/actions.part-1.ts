@@ -8,6 +8,7 @@ import { supabaseService } from "@/lib/supabase/service"
 
 
 import { normalizeCustomerIdentityType } from "@/lib/customers/normalizeCustomerType"
+import { validateRegisteredAddress, type RegisteredAddressInput } from "@/lib/customers/registeredAddress"
 
 
 
@@ -92,6 +93,17 @@ export type CreateCustomerGraphParams = {
   /** Who signed the uploaded power of attorney (FINDINGS F66). */
   poaSignerName: string | null;
   poaSignerIdentityNumber: string | null;
+  /**
+   * The customer's own registered address (folkbokföringsadress; for a company or association the
+   * organisation's registered address), entered by the staff member (FINDINGS F51). Never derived from the
+   * facility (`street`…) or invoice (`billing*`) address.
+   */
+  registeredStreet?: string | null;
+  registeredStreet2?: string | null;
+  registeredPostalCode?: string | null;
+  registeredCity?: string | null;
+  /** Set by the manual intake form: the registered address is required when the intake leads to a grid-owner request. */
+  requireRegisteredAddress?: boolean;
   expectedStartDate: string | null;
   confirmedStartDate: string | null;
   actualStartDate: string | null;
@@ -205,6 +217,10 @@ export const INTAKE_VALUE_FIELDS: IntakeField[] = [
   "authorizationValidTo",
   "poaSignerName",
   "poaSignerIdentityNumber",
+  "registeredStreet",
+  "registeredStreet2",
+  "registeredPostalCode",
+  "registeredCity",
   "expectedStartDate",
   "confirmedStartDate",
   "actualStartDate",
@@ -877,6 +893,65 @@ export function validateCreateCustomerParams(
   }
 
   Object.assign(errors, validateContractSigningChoice(params));
+  Object.assign(errors, validateIntakeRegisteredAddress(params));
+  return errors;
+}
+
+type RegisteredAddressParams = Pick<CreateCustomerGraphParams,
+  "customerType" | "registeredStreet" | "registeredStreet2" | "registeredPostalCode" | "registeredCity">;
+
+/**
+ * The registered address exactly as the staff member entered it in the registered-address fields, or null
+ * when none was entered. It is never filled from the facility or invoice address (FINDINGS F51).
+ */
+export function intakeRegisteredAddress(params: RegisteredAddressParams): RegisteredAddressInput | null {
+  const street = normalizeOptionalString(params.registeredStreet);
+  const street2 = normalizeOptionalString(params.registeredStreet2);
+  const postalCode = normalizeOptionalString(params.registeredPostalCode);
+  const city = normalizeOptionalString(params.registeredCity);
+  if (!street && !street2 && !postalCode && !city) return null;
+  return { street: street ?? "", street2, postalCode: postalCode ?? "", city: city ?? "", country: "SE" };
+}
+
+/**
+ * Whether this intake leads to a grid-owner request or supplier switch (Z01 uses the registered address):
+ * a form intake with a flow or an immediate grid-owner request, unless it is saved blocked for later review
+ * or attached to an existing customer whose card already carries the address.
+ */
+export function intakeRequiresRegisteredAddress(
+  params: Pick<CreateCustomerGraphParams, "requireRegisteredAddress" | "intakeCreateMode" | "existingCustomerId" | "intakeFlowType" | "postCreateAction" | "postCreateRequestTarget">,
+): boolean {
+  if (!params.requireRegisteredAddress) return false;
+  if (params.intakeCreateMode === "create_blocked") return false;
+  if (normalizeOptionalString(params.existingCustomerId)) return false;
+  return Boolean(params.intakeFlowType) ||
+    (params.postCreateAction === "request_data" && params.postCreateRequestTarget !== "current_supplier");
+}
+
+const REGISTERED_ADDRESS_FIELDS = {
+  street: "registeredStreet",
+  street2: "registeredStreet2",
+  postalCode: "registeredPostalCode",
+  city: "registeredCity",
+} as const satisfies Record<string, IntakeField>;
+
+/** Field errors for the registered address; an organisation is asked for its own registered address. */
+export function validateIntakeRegisteredAddress(
+  params: RegisteredAddressParams & Parameters<typeof intakeRequiresRegisteredAddress>[0],
+): IntakeFieldErrors {
+  const address = intakeRegisteredAddress(params);
+  if (!address && !intakeRequiresRegisteredAddress(params)) return {};
+  const errors: IntakeFieldErrors = {};
+  const organisation = params.customerType !== "private";
+  for (const [key, message] of Object.entries(validateRegisteredAddress(address))) {
+    const field = REGISTERED_ADDRESS_FIELDS[key as keyof typeof REGISTERED_ADDRESS_FIELDS];
+    if (!field || !message) continue;
+    errors[field] = organisation && key === "street" && !normalizeOptionalString(address?.street)
+      ? "Ange organisationens registrerade gatuadress."
+      : organisation && key === "city" && !normalizeOptionalString(address?.city)
+        ? "Ange organisationens registrerade postort."
+        : message;
+  }
   return errors;
 }
 
@@ -947,6 +1022,11 @@ export function buildCreateCustomerParams(
     authorizationValidTo: getNullableString(formData, "authorizationValidTo"),
     poaSignerName: getNullableString(formData, "poaSignerName"),
     poaSignerIdentityNumber: getNullableString(formData, "poaSignerIdentityNumber"),
+    registeredStreet: getNullableString(formData, "registeredStreet"),
+    registeredStreet2: getNullableString(formData, "registeredStreet2"),
+    registeredPostalCode: getNullableString(formData, "registeredPostalCode"),
+    registeredCity: getNullableString(formData, "registeredCity"),
+    requireRegisteredAddress: true,
     expectedStartDate: getNullableString(formData, "expectedStartDate"),
     confirmedStartDate: getNullableString(formData, "confirmedStartDate"),
     actualStartDate: getNullableString(formData, "actualStartDate"),

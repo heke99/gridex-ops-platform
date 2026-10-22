@@ -35,7 +35,8 @@ import type { CustomerImportPreviewRowStatus, IntakeActionState } from "./action
 
 
 import type { ContractStatus, CreateCustomerGraphParams, PriceAreaCode, SiteType } from './actions.part-1'
-import { buildCreateCustomerParams, getActorUserId, getFormValues, getString, insertAuditLog, normalizeBillingLevel, normalizeCustomerType, normalizeDuplicateResolution, normalizeIntakeFlowType, parseContractType, parseGreenFeeMode, parseIntOrNull, parseNumber, parseOptionalFeeLines, resolveOrCreateCurrentSupplierForIntake, resolveOrCreateGridOwnerForIntake } from './actions.part-1'
+import { recordRegisteredAddress } from "@/lib/customers/registeredAddress"
+import { buildCreateCustomerParams, getActorUserId, getFormValues, getString, insertAuditLog, intakeRegisteredAddress, normalizeBillingLevel, normalizeCustomerType, normalizeDuplicateResolution, normalizeIntakeFlowType, parseContractType, parseGreenFeeMode, parseIntOrNull, parseNumber, parseOptionalFeeLines, resolveOrCreateCurrentSupplierForIntake, resolveOrCreateGridOwnerForIntake } from './actions.part-1'
 import type { CustomerGraphResult } from './actions.part-2'
 import { ADMIN_INTAKE_IN_PROGRESS_STALE_MS, ADMIN_INTAKE_ROUTE, createCustomerGraph, databaseObjectMissing, mapUnknownErrorToIntakeState } from './actions.part-2'
 import { rowValue } from './actions.part-4'
@@ -90,6 +91,40 @@ export function buildAdminIntakeIdempotencyKey(
   ].join("|");
   const digest = createHash("sha256").update(identity).digest("hex");
   return `customer_create:${params.companyId}:${digest}`;
+}
+
+/**
+ * Stores the registered address the staff member entered at intake (FINDINGS F51) through the shared
+ * writer, with provenance staff_entry, the logged-in staff member and the intake as reference. Only the
+ * registered-address fields are used; nothing is recorded when they were left empty.
+ */
+export async function recordIntakeRegisteredAddress(input: {
+  params: CreateCustomerGraphParams;
+  customerId: string;
+  reference: string;
+}): Promise<{ addressId: string | null; warnings: string[] }> {
+  const address = intakeRegisteredAddress(input.params);
+  if (!address) return { addressId: null, warnings: [] };
+  try {
+    const recorded = await recordRegisteredAddress({
+      companyId: input.params.companyId,
+      customerId: input.customerId,
+      address,
+      source: "staff_entry",
+      actorUserId: input.params.actorUserId,
+      declaredAt: new Date().toISOString(),
+      reference: input.reference,
+    });
+    return { addressId: recorded.addressId, warnings: [] };
+  } catch (error) {
+    console.error("[admin-intake] registered address not recorded", error);
+    return {
+      addressId: null,
+      warnings: [
+        "Folkbokföringsadressen kunde inte sparas. Ange den på kundkortet (Kunduppgifter) innan begäran till nätägaren skickas.",
+      ],
+    };
+  }
 }
 
 export async function createCustomerAction(
@@ -219,6 +254,14 @@ export async function createCustomerAction(
       throw graphError;
     }
 
+    // After commit, like the site geography and document uploads: a failure is reported, never thrown, so
+    // the committed customer is not reported as unsaved and the address can be entered on the customer card.
+    const registeredAddress = await recordIntakeRegisteredAddress({
+      params,
+      customerId: customer.id,
+      reference: intake?.id ?? idempotencyKey,
+    });
+
     if (intake) {
       await completeCustomerApplicationIntake({
         intakeId: intake.id,
@@ -231,6 +274,7 @@ export async function createCustomerAction(
           created_metering_point_id: customer.__createdMeteringPointId ?? null,
           created_power_of_attorney_id:
             customer.__createdPowerOfAttorneyId ?? null,
+          registered_address_id: registeredAddress.addressId,
         },
       }).catch(() => undefined);
     }
@@ -245,9 +289,10 @@ export async function createCustomerAction(
       ...gridOwnerResolution.warnings,
       ...supplierResolution.warnings,
     ];
-    const postCommitWarnings = Array.isArray(customer.__postCommitWarnings)
-      ? customer.__postCommitWarnings
-      : [];
+    const postCommitWarnings = [
+      ...(Array.isArray(customer.__postCommitWarnings) ? customer.__postCommitWarnings : []),
+      ...registeredAddress.warnings,
+    ];
     const allWarnings = [...duplicateWarnings, ...masterdataWarnings, ...postCommitWarnings];
     const usedExistingCustomer = customer.__createdNewCustomer === false;
     const uploadedDocumentLabels = Array.isArray(
@@ -281,6 +326,7 @@ export async function createCustomerAction(
       createdGridOwnerId: customer.__createdGridOwnerId ?? null,
       createdPowerOfAttorneyId: customer.__createdPowerOfAttorneyId ?? null,
       createdCurrentSupplierName: customer.__createdCurrentSupplierName ?? null,
+      createdRegisteredAddressId: registeredAddress.addressId,
       postCreateAction: params.postCreateAction,
       postCreateRequestTarget: params.postCreateRequestTarget,
       duplicateWarnings: allWarnings,

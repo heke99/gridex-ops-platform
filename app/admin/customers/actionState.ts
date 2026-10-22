@@ -70,6 +70,11 @@ export type IntakeField =
   | 'authorizationValidTo'
   | 'poaSignerName'
   | 'poaSignerIdentityNumber'
+  // FINDINGS F51: the customer's own registered address (folkbokföringsadress), never the facility/invoice address.
+  | 'registeredStreet'
+  | 'registeredStreet2'
+  | 'registeredPostalCode'
+  | 'registeredCity'
   | 'expectedStartDate'
   | 'confirmedStartDate'
   | 'actualStartDate'
@@ -106,6 +111,8 @@ export type IntakeActionState = {
   createdGridOwnerId?: string | null
   createdPowerOfAttorneyId?: string | null
   createdCurrentSupplierName?: string | null
+  /** The stored registered address row (FINDINGS F51); null when none was recorded. */
+  createdRegisteredAddressId?: string | null
   postCreateAction?: 'open_customer' | 'request_data' | 'create_new'
   postCreateRequestTarget?: 'grid_owner' | 'current_supplier' | 'both'
   duplicateWarnings?: string[]

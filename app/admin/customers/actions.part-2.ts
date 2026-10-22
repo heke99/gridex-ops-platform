@@ -854,19 +854,10 @@ export async function createCustomerGraph(
           updated_by: params.actorUserId,
         }
       : null,
-    address: normalizedStreet || normalizedPostalCode || normalizedCity
-      ? {
-          type: "registered",
-          street_1: normalizedStreet,
-          street_2: normalizedCareOf,
-          postal_code: normalizedPostalCode,
-          city: normalizedCity,
-          country: normalizedCountry,
-          is_active: true,
-          created_by: params.actorUserId,
-          updated_by: params.actorUserId,
-        }
-      : null,
+    // FINDINGS F51: the facility address is never stored as the customer's registered address. The site
+    // keeps it (and its `facility` address row via the address commit below); the registered address is
+    // only what the staff member entered as such, recorded after commit with its provenance.
+    address: null,
     site: normalizedFacilityId || normalizedStreet || params.existingCustomerId
       ? {
           site_name: normalizeOptionalString(params.siteName) || displayName || "Ny anläggning",

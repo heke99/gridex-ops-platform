@@ -1,21 +1,25 @@
 /**
  * Reality scenario D — a tenant employee registers a customer by hand (docs/testing/verklighetssimulering-runbook.md).
  *
- * A real company_admin user fills /admin/customers/intake: a private customer switching supplier, the facility
- * address, a shared registry grid owner, the published offer, an uploaded signed agreement and an uploaded
- * signed power of attorney. The scenario then proves what was stored (rows, storage objects, hashes, the
- * authority chain) and that the facility-information request reaches the grid owner with that exact power of
- * attorney attached (Resend simulator, sha256 of the attachment). Synthetic people only (example.invalid).
+ * A real company_admin user fills /admin/customers/intake: a private customer switching supplier, the
+ * customer's own registered address (folkbokföringsadress, FINDINGS F51 — deliberately different from the
+ * facility address), the facility address, a shared registry grid owner, the published offer, an uploaded
+ * signed agreement and an uploaded signed power of attorney. The scenario then proves what was stored (rows,
+ * storage objects, hashes, the authority chain, the registered address with its staff provenance) and that the
+ * facility-information request reaches the grid owner with that exact power of attorney attached (Resend
+ * simulator, sha256 of the attachment). Synthetic people only (example.invalid).
  */
 import { createHash, randomInt } from 'node:crypto'
 import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import type { BrowserContext } from '@playwright/test'
 import { afterAll, describe, expect, it } from 'vitest'
 import { supabaseService } from '@/lib/supabase/service'
 import { configureTenant, literal, sql, type LiveTenant } from '../helpers/live-chain-fixture'
 import { addGridOwnerContactChannel, checkGridOwners, closeOperatorConsole, confirmSafeBlankSubaddresses, importActorRegistry, operatorSession,
-  reconcileOperationalCapabilities, sanitizedActorRegistry, searchGridOwnerCertificate, submitManualIntake, verifyActorForCustomerFlow } from '../helpers/reality/operatorConsole'
+  reconcileOperationalCapabilities, sanitizedActorRegistry, searchGridOwnerCertificate, submitServerAction, verifyActorForCustomerFlow,
+  type ManualIntakeInput } from '../helpers/reality/operatorConsole'
 import { seedDefaultCompanyEmailConfiguration } from '@/lib/email/bootstrap'
 import { configurePlatformManualMailbox, ensureProductionWhiteLabelColumnParity } from '../helpers/reality/tenantWebsite'
 import { createTenantStaff } from '../helpers/reality/tenantStaff'
@@ -51,6 +55,53 @@ function personalNumber() {
   return `${base}${(10 - (sum % 10)) % 10}`
 }
 
+type RegisteredAddress = { street: string; street2: string; postalCode: string; city: string }
+
+/**
+ * The employee's intake in /admin/customers/intake, field by field as an operator fills it: the same steps as
+ * operatorConsole's submitManualIntake plus the customer's registered address in its own fields (section 1).
+ */
+async function submitManualIntakeWithRegisteredAddress(context: BrowserContext, input: ManualIntakeInput & { registered: RegisteredAddress }) {
+  const page = await context.newPage()
+  const opened = Date.now()
+  await page.goto('/admin/customers/intake')
+  await page.locator('button[name="intakeCreateMode"][value="create"]').waitFor({ state: 'visible', timeout: 180_000 })
+  const usableAfterMs = Date.now() - opened
+  const open = async (name: string) => {
+    const section = page.locator(`form details:has([name="${name}"])`).first()
+    if (await section.count() && !(await section.evaluate(element => (element as HTMLDetailsElement).open))) await section.locator('summary').first().click()
+  }
+  const fill = async (name: string, value: string) => { await open(name); await page.locator(`[name="${name}"]:visible`).first().fill(value) }
+  const select = async (name: string, value: string) => { await open(name); await page.locator(`select[name="${name}"]:visible`).first().selectOption(value) }
+  await select('customerType', 'private'); await select('intakeFlowType', 'switch')
+  await fill('firstName', input.firstName); await fill('lastName', input.lastName); await fill('personalNumber', input.personalNumber)
+  await fill('email', input.email); await fill('phone', input.phone)
+  // FINDINGS F51: the customer's own registered address, entered by the employee in its own fields.
+  await fill('registeredStreet', input.registered.street); await fill('registeredStreet2', input.registered.street2)
+  await fill('registeredPostalCode', input.registered.postalCode); await fill('registeredCity', input.registered.city)
+  await fill('street', input.street); await fill('postalCode', input.postalCode); await fill('city', input.city)
+  await fill('siteName', input.siteName); await select('gridOwnerId', input.gridOwnerId); await select('priceAreaCode', input.priceAreaCode)
+  await fill('annualConsumptionKwh', input.annualConsumptionKwh)
+  await select('currentSupplierId', '__unknown__')
+  await select('contractOfferId', input.contractOfferId); await fill('contractStartDate', input.contractStartDate)
+  await open('contractSigningMethod')
+  await page.locator('input[name="contractSigningMethod"][value="uploaded_signed"]:visible').first().check()
+  await open('signedAgreementFile')
+  await page.setInputFiles('input[name="signedAgreementFile"]', input.signedAgreementPdf)
+  await fill('contractSignedDate', input.validFrom)
+  await open('signedPowerOfAttorneyFile')
+  await page.setInputFiles('input[name="signedPowerOfAttorneyFile"]', input.powerOfAttorneyPdf)
+  await select('authorizationStatus', 'signed'); await select('customerConfirmationStatus', 'confirmed')
+  await fill('authorizationValidFrom', input.validFrom)
+  await select('postCreateAction', 'open_customer'); await select('postCreateRequestTarget', input.requestTarget)
+  const actionStatus = await submitServerAction(page, () => page.locator('button[name="intakeCreateMode"][value="create"]').click(), 300_000)
+  await page.waitForLoadState('load')
+  const text = (await page.locator('#admin-main').innerText().catch(() => '')).replace(/\s+/g, ' ')
+  const url = page.url()
+  await page.close()
+  return { actionStatus, url, usableAfterMs, text: text.slice(0, 1500) }
+}
+
 describe.sequential('reality D — manual customer intake by a tenant employee', () => {
   afterAll(async () => {
     await closeOperatorConsole()
@@ -59,6 +110,9 @@ describe.sequential('reality D — manual customer intake by a tenant employee',
   })
 
   const person = { firstName: 'Klara', lastName: `Manuell-${randomInt(1000, 9999)}`, personalNumber: personalNumber() }
+  // Folkbokförd at another address than the facility, so a copied facility address cannot pass for it.
+  const registeredAddress: RegisteredAddress = { street: 'Storgatan 5', street2: 'c/o Manuell', postalCode: '441 31', city: 'Alingsås' }
+  let employeeUserId = ''
   const agreementPdf = pdf(`Elavtal ${person.firstName} ${person.lastName} signerat`)
   const poaPdf = pdf(`Fullmakt ${person.firstName} ${person.lastName} signerad`)
   const agreementPath = join(files, 'avtal.pdf'), poaPath = join(files, 'fullmakt.pdf')
@@ -94,9 +148,11 @@ describe.sequential('reality D — manual customer intake by a tenant employee',
     expect(report.capabilities, JSON.stringify(report.capabilities)).toMatchObject({ status: 'capabilities_ready' })
     // The tenant's own employee does the intake.
     const employee = await createTenantStaff(tenant.companyId)
+    employeeUserId = employee.userId
     const staff = await operatorSession(employee.email, employee.password)
     const today = new Date().toISOString().slice(0, 10)
-    const intake = await submitManualIntake(staff, { ...person, email: `klara-${randomInt(1000, 9999)}@example.invalid`, phone: '0701234567',
+    const intake = await submitManualIntakeWithRegisteredAddress(staff, { ...person, email: `klara-${randomInt(1000, 9999)}@example.invalid`, phone: '0701234567',
+      registered: registeredAddress,
       street: 'Kungsgatan 12', postalCode: '441 30', city: 'Alingsås', siteName: 'Bostad Kungsgatan', gridOwnerId, priceAreaCode: 'SE3',
       annualConsumptionKwh: '14000', contractOfferId: tenant.offerId, contractStartDate: today, signedAgreementPdf: agreementPath,
       powerOfAttorneyPdf: poaPath, validFrom: today, requestTarget: 'grid_owner' })
@@ -108,7 +164,11 @@ describe.sequential('reality D — manual customer intake by a tenant employee',
 
   it('D2 everything is stored on this tenant and customer: rows, files and the authority chain', async () => {
     const stored = sql<Record<string, unknown>>(`SELECT jsonb_build_object(
-      'registeredAddress',(SELECT count(*) FROM public.customer_addresses a WHERE a.customer_id=${literal(customerId)} AND a.company_id=${literal(tenant.companyId)} AND a.type='registered' AND a.street_1='Kungsgatan 12'),
+      'registeredAddresses',(SELECT coalesce(jsonb_agg(jsonb_build_object('company',a.company_id=${literal(tenant.companyId)},'street',a.street_1,'street2',a.street_2,
+        'postalCode',a.postal_code,'city',a.city,'country',a.country,'active',a.is_active,'movedOut',a.moved_out_at,'createdBy',a.created_by,
+        'source',a.metadata->>'registered_address_source','declaredBy',a.metadata->>'declared_by','reference',a.metadata->>'source_reference')),'[]')
+        FROM public.customer_addresses a WHERE a.customer_id=${literal(customerId)} AND a.type='registered'),
+      'intakeLedger',(SELECT coalesce(jsonb_agg(i.id::text),'[]') FROM public.customer_application_intakes i WHERE i.company_id=${literal(tenant.companyId)} AND i.customer_id=${literal(customerId)}),
       'sites',(SELECT jsonb_agg(jsonb_build_object('grid_owner',s.grid_owner_id IS NOT NULL,'company',s.company_id=${literal(tenant.companyId)})) FROM public.customer_sites s WHERE s.customer_id=${literal(customerId)}),
       'poa',(SELECT jsonb_agg(jsonb_build_object('status',p.status,'company',p.company_id=${literal(tenant.companyId)},'path',p.document_path,'hash',p.document_hash,'signer',p.signer_name,'method',p.method,'scopes',p.signed_scope_snapshot)) FROM public.powers_of_attorney p WHERE p.customer_id=${literal(customerId)}),
       'documents',(SELECT jsonb_agg(jsonb_build_object('type',d.document_type,'status',d.status,'company',d.company_id=${literal(tenant.companyId)},'checksum',d.file_checksum,'path',d.file_path,'poa',d.power_of_attorney_id IS NOT NULL)) FROM public.customer_authorization_documents d WHERE d.customer_id=${literal(customerId)}),
@@ -121,7 +181,15 @@ describe.sequential('reality D — manual customer intake by a tenant employee',
     const download = poa?.path ? await supabaseService.storage.from('customer-documents').download(String(poa.path)) : null
     const storedPoa = download?.data ? Buffer.from(await download.data.arrayBuffer()) : null
     report.storedPoaSha256 = storedPoa ? sha256(storedPoa) : null
-    expect(stored.registeredAddress).toBe(1)
+    // FINDINGS F51: exactly one registered address — the one the employee entered, on this tenant, with staff
+    // provenance and the intake as reference. The facility address (Kungsgatan 12) is never stored as it.
+    const registeredRows = stored.registeredAddresses as Array<Record<string, unknown>>
+    expect(stored.intakeLedger, JSON.stringify(stored)).toHaveLength(1)
+    expect(registeredRows, JSON.stringify(stored)).toEqual([{
+      company: true, street: registeredAddress.street, street2: registeredAddress.street2, postalCode: registeredAddress.postalCode,
+      city: registeredAddress.city, country: 'SE', active: true, movedOut: null, createdBy: employeeUserId,
+      source: 'staff_entry', declaredBy: employeeUserId, reference: (stored.intakeLedger as string[])[0],
+    }])
     expect(stored.sites).toEqual([{ grid_owner: true, company: true }])
     // A private customer signs for themself (owner decision F66): the fullmakt carries signer and method.
     expect(poa, JSON.stringify(stored)).toMatchObject({ company: true, hash: sha256(poaPdf), signer: `${person.firstName} ${person.lastName}`, method: 'pdf_upload' })
