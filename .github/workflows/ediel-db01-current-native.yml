@@ -20,6 +20,7 @@ on:
 
 permissions:
   contents: read
+  packages: read
 
 concurrency:
   group: ediel-db01-current-native-${{ github.event.pull_request.number }}
@@ -48,6 +49,11 @@ jobs:
       - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1 (branch snapshot)
         with:
           version: 2.101.0
+      - name: Authenticate Docker to ghcr.io for Supabase images
+        # Anonymous pulls share the hosted-runner rate limit (toomanyrequests).
+        run: echo "$GITHUB_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Execute BASE56 clean, repaired historical births and fresh current owners
         shell: bash
         env:

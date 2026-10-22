@@ -69,7 +69,25 @@ const sha256 = (bytes: string | Buffer) => createHash('sha256').update(bytes).di
 // native proof; unknown bytes remain subject to the unchanged producer guard.
 // Invert only the exact reviewed two Action pins inside this historical finite
 // Git port. This never admits changed workflow bytes as current native proof.
+// Remove only the exact reviewed ghcr.io login steps inside this historical
+// finite Git port. This never admits changed workflow bytes as current native proof.
+function reviewedGhcrLoginWorkflow(bytes: Buffer) {
+  if (sha256(bytes) !== '437bd3dbb257539e4aa26bc51968b3f9d6dc5f1609128dfb313cd3989df36481') return bytes
+  const login = [
+    '      - name: Authenticate Docker to ghcr.io for Supabase images',
+    '        # Anonymous pulls share the hosted-runner rate limit (toomanyrequests).',
+    '        run: echo "$GITHUB_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin',
+    '        env:',
+    '          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}',
+    ''].join('\n')
+  const source = bytes.toString('utf8')
+  if (source.split(login).length !== 3) throw Error('fixture_reviewed_ghcr_login_inverse_count')
+  const restored = Buffer.from(source.split(login).join(''))
+  if (sha256(restored) !== '6b1c6f212913167ae0e5ff81a9b98e8ffae93e13cf0f4681ca4075010e590428') throw Error('fixture_reviewed_ghcr_login_inverse_digest_mismatch')
+  return restored
+}
 function reviewedActionPinWorkflow(bytes: Buffer) {
+  bytes = reviewedGhcrLoginWorkflow(bytes)
   if (sha256(bytes) !== '6b1c6f212913167ae0e5ff81a9b98e8ffae93e13cf0f4681ca4075010e590428') return bytes
   const current = 'supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1 (branch snapshot)'
   const previous = 'supabase/setup-cli@v1'
@@ -741,7 +759,10 @@ it.each(['foreign_rule_status', 'foreign_at_status', 'foreign_evidence', 'spec',
 // The historical DDQ port restores known bytes only; it does not run native cases.
 it('historical workflow port restores the exact reviewed producer after bounded key-download retries', () => {
   const file = '.github/workflows/ops-hardening.yml', current = readFileSync(file)
-  expect(sha256(current)).toBe('6b1c6f212913167ae0e5ff81a9b98e8ffae93e13cf0f4681ca4075010e590428')
+  expect(sha256(current)).toBe('437bd3dbb257539e4aa26bc51968b3f9d6dc5f1609128dfb313cd3989df36481')
+  const ghcrLoginPreimage = reviewedGhcrLoginWorkflow(current)
+  expect(sha256(ghcrLoginPreimage)).toBe('6b1c6f212913167ae0e5ff81a9b98e8ffae93e13cf0f4681ca4075010e590428')
+  expect(reviewedGhcrLoginWorkflow(ghcrLoginPreimage)).toEqual(ghcrLoginPreimage)
   const actionPinPreimage = reviewedActionPinWorkflow(current)
   expect(sha256(actionPinPreimage)).toBe('64ff9c4237e559f40dffb28399ba70412e8c9a02b24804d45189d77031acd13e')
   expect(reviewedActionPinWorkflow(actionPinPreimage)).toEqual(actionPinPreimage)

@@ -21,6 +21,7 @@ on:
 
 permissions:
   contents: read
+  packages: read
 
 concurrency:
   group: ediel-z10m-supplier-native-${{ github.event.pull_request.number }}
@@ -46,6 +47,11 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: 2.101.0
+      - name: Authenticate Docker to ghcr.io for Supabase images
+        # Anonymous pulls share the hosted-runner rate limit (toomanyrequests).
+        run: echo "$GITHUB_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Execute the actual reserved SUPPLIER first-effect proposal after disposable clean replay
         shell: bash
         env:

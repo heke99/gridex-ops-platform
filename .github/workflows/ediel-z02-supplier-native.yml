@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: read
+  packages: read
 
 # One source-bound chain for the owner of producer-z02; no push/main rerun.
 concurrency:
@@ -90,6 +91,11 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: 2.101.0
+      - name: Authenticate Docker to ghcr.io for Supabase images
+        # Anonymous pulls share the hosted-runner rate limit (toomanyrequests).
+        run: echo "$GITHUB_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Qualify runner and execute unchanged canonical replay plus original Z02 suite
         id: qualification
         run: |
