@@ -13,6 +13,10 @@ set -a; # shellcheck disable=SC1091
 . "$HOME_DIR/app.env"; set +a
 export GRIDEX_NATIVE_STATUS="$HOME_DIR/status.json" GRIDEX_REALITY_REPORT="$HOME_DIR/report.json"
 export PLAYWRIGHT_CHROMIUM_EXECUTABLE="${PLAYWRIGHT_CHROMIUM_EXECUTABLE:-$(ls -d /opt/pw-browsers/chromium 2>/dev/null || true)}"
+# Scenario simulators run detached and are only stopped by the scenario itself; a killed run leaves them polling the
+# same counterparty mailbox, where they take the next run's messages. Stop every leftover before a run starts.
+pkill -f "scripts/reality/simulators/(gridOwner[A-Za-z]*|mailFaults)[.]ts" 2>/dev/null || true
+sleep 1
 export GRIDEX_REALITY_ONLY="${1:-scripts/reality/**/*.test.ts}"
 shift || true
 npx vitest run -c scripts/reality/reality-native.config.ts "$@"
