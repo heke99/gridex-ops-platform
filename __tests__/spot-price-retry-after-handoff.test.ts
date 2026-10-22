@@ -162,9 +162,10 @@ describe('canonical claim source contract, without executing a database claim', 
     expect(start).toBeGreaterThanOrEqual(0)
     const sql = schema.slice(start, schema.indexOf('$$;', start) + 3)
     expect(sql).toContain('p_force boolean DEFAULT false')
-    const futureGuard = sql.match(/if (v_job\.status='retry_wait'[\s\S]*?) then\s*return query select v_job\.id,false,v_job\.status,v_job\.attempt_count,v_job\.correlation_id;\s*return;\s*end if;/)?.[1]
+    const futureGuard = sql.match(/if (\(?v_job\.status='retry_wait'[\s\S]*?) then\s*return query select v_job\.id,false,v_job\.status,v_job\.attempt_count,v_job\.correlation_id;\s*return;\s*end if;/)?.[1]
     expect(futureGuard).toBeDefined()
     expect(futureGuard).toContain('v_job.next_attempt_at is not null and v_job.next_attempt_at > now()')
+    expect(futureGuard).toContain("v_job.status='failed' and v_job.last_error_code='provider_rate_limited'")
     expect(futureGuard).not.toContain('p_force')
     expect(sql.indexOf(`if ${futureGuard} then`)).toBeLessThan(sql.indexOf('update public.spot_price_import_jobs j'))
   })
