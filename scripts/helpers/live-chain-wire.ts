@@ -29,29 +29,46 @@ export function dayProfile(dayIndex: number): number[] {
 
 const pad = (n: number, w = 2) => String(n).padStart(w, '0')
 
+/** Europe/Stockholm offset (minutes east of UTC) at the local midnight that starts `day`: 120 (CEST) or 60 (CET). */
+function stockholmMidnightOffsetMinutes(y: number, m: number, d: number) {
+  // Local midnight is never inside a Swedish DST transition (they happen at 02:00/03:00), so the offset at
+  // UTC 22:00 of the previous day decides it: 22:00Z is local 00:00 in CEST and 23:00 in CET.
+  const probe = new Date(Date.UTC(y, m - 1, d) - 2 * 3_600_000)
+  const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Stockholm', hour: '2-digit', hourCycle: 'h23' }).format(probe))
+  return hour === 0 ? 120 : 60
+}
+
 /**
- * One grid-owner UTILTS E66 for one local (CEST, +0200) day: energy-only quarter-hours (96 values) or, with
- * `resolutionMinutes: 60`, hours (24 values). `registeredAfterHours` moves the registration time later, as a
- * grid owner does when it re-sends corrected values for the same day.
+ * One grid-owner UTILTS E66 for one Stockholm calendar day: energy-only quarter-hours or, with
+ * `resolutionMinutes: 60`, hours. The whole message is in the fixed offset that is valid at the day's local
+ * midnight (DTM+735 +0200 in summer, +0100 in winter), so the period is exactly the civil day: 96 quarter-hours
+ * on a normal day, 100 on the last Sunday in October and 92 on the last Sunday in March (DST-H1; summer days are
+ * framed exactly as before). `registeredAfterHours` moves the registration time later, as a grid owner does when
+ * it re-sends corrected values for the same day.
  */
 export function dailyE66(input: { issuer: string; receiver: string; meterId: string; day: string; values: number[]; reference: string;
   resolutionMinutes?: 15 | 60; registeredAfterHours?: number }) {
   const step = input.resolutionMinutes ?? 15
-  if (input.values.length !== (24 * 60) / step) throw Error(`dailyE66 requires ${(24 * 60) / step} values for ${step}-minute resolution`)
-  const registered = (6 + (input.registeredAfterHours ?? 0)) * 60
   const [y, m, d] = input.day.split('-').map(Number)
-  const next = new Date(Date.UTC(y, m - 1, d + 1))
+  const offset = stockholmMidnightOffsetMinutes(y, m, d)
+  const nextOffset = stockholmMidnightOffsetMinutes(y, m, d + 1)
+  // The day's length in the fixed offset: 24 h plus the hour gained (autumn) or lost (spring) during the day.
+  const dayMinutes = 24 * 60 + (offset - nextOffset)
+  if (input.values.length !== dayMinutes / step) throw Error(`dailyE66 requires ${dayMinutes / step} values for ${step}-minute resolution on ${input.day}`)
+  const registered = (6 + (input.registeredAfterHours ?? 0)) * 60
   const local = (date: Date, minutes: number) => {
     const t = new Date(date.getTime() + minutes * 60_000)
     return `${t.getUTCFullYear()}${pad(t.getUTCMonth() + 1)}${pad(t.getUTCDate())}${pad(t.getUTCHours())}${pad(t.getUTCMinutes())}`
   }
+  // Wall-clock anchors in the declared fixed offset: the day's start and its (civil) end.
   const start = new Date(Date.UTC(y, m - 1, d))
+  const next = new Date(start.getTime() + dayMinutes * 60_000)
   const lines = [
     "UNA:+.? '",
     `UNB+UNOC:3+${input.issuer}:ZZ+${input.receiver}:ZZ+${local(next, registered).slice(2, 8)}:${local(next, registered).slice(8, 12)}+${input.reference}++23-DDQ-E66-T++++1'`,
     "UNH+1+UTILTS:D:02B:UN:E5SE5A'",
     `BGM+E66::260+M${input.reference}+9+AB'`,
-    `DTM+137:${local(next, registered)}:203'`, "DTM+735:?+0200:406'", "MKS+23+E02::260'",
+    `DTM+137:${local(next, registered)}:203'`, `DTM+735:?+${pad(offset / 60)}00:406'`, "MKS+23+E02::260'",
     `NAD+MS+${input.issuer}:SVK:260'`, `NAD+MR+${input.receiver}:SVK:260'`, "NAD+DDQ'",
     `IDE+24+T${input.reference}'`, `LOC+172+${input.meterId}::9'`, "LOC+239+TES:SVK:260'",
     "LIN+++8716867000030:::9'", `DTM+324:${local(start, 0)}${local(next, 0)}:719'`,

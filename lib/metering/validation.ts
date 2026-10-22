@@ -52,22 +52,34 @@ function chunk<T>(items: T[], size: number): T[][] {
   return output
 }
 
+// PostgREST returns at most its configured max_rows (1 000 in supabase/config.toml) per request whatever
+// .limit() asks for, and one quarter-hour month is 2 880–2 980 values per point. Read in ordered pages.
+const PAGE_SIZE = 1_000
+const MAX_ROWS = 500_000
+
 async function loadNormalizedValues(input: { companyId: string; meteringPointIds: string[]; startIso: string; endIso: string }): Promise<NormalizedValueRow[] | null> {
   const rows: NormalizedValueRow[] = []
   for (const ids of chunk(input.meteringPointIds, 100)) {
-    const { data, error } = await supabaseService
-      .from('normalized_metering_values')
-      .select('metering_point_id,period_start,period_end,quantity_kwh,quality_status')
-      .eq('company_id', input.companyId)
-      .in('metering_point_id', ids)
-      .lt('period_start', input.endIso)
-      .gt('period_end', input.startIso)
-      .limit(50_000)
-    if (error) {
-      if (schemaMissing(error)) return null
-      throw error
+    for (let offset = 0; ; offset += PAGE_SIZE) {
+      const { data, error } = await supabaseService
+        .from('normalized_metering_values')
+        .select('metering_point_id,period_start,period_end,quantity_kwh,quality_status')
+        .eq('company_id', input.companyId)
+        .in('metering_point_id', ids)
+        .lt('period_start', input.endIso)
+        .gt('period_end', input.startIso)
+        .order('period_start', { ascending: true })
+        .order('id', { ascending: true })
+        .range(offset, offset + PAGE_SIZE - 1)
+      if (error) {
+        if (schemaMissing(error)) return null
+        throw error
+      }
+      const page = (data ?? []) as NormalizedValueRow[]
+      rows.push(...page)
+      if (page.length < PAGE_SIZE) break
+      if (rows.length >= MAX_ROWS) throw new Error('Mätvärdeskontrollen överskred maximalt antal rader för en period.')
     }
-    rows.push(...((data ?? []) as NormalizedValueRow[]))
   }
   return rows
 }

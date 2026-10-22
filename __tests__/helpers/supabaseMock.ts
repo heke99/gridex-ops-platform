@@ -35,6 +35,7 @@ class FakeQueryBuilder implements PromiseLike<QueryResult> {
   private predicates: Array<(row: Row) => boolean> = []
   private orderBy: { column: string; ascending: boolean } | null = null
   private limitCount: number | null = null
+  private offsetCount = 0
   private singleMode: 'maybeSingle' | null = null
   private countMode = false
   private headMode = false
@@ -130,6 +131,13 @@ class FakeQueryBuilder implements PromiseLike<QueryResult> {
     return this
   }
 
+  /** PostgREST inclusive row window (offset pagination). */
+  range(from: number, to: number): this {
+    this.offsetCount = from
+    this.limitCount = to - from + 1
+    return this
+  }
+
   maybeSingle(): this {
     this.singleMode = 'maybeSingle'
     return this
@@ -171,6 +179,7 @@ class FakeQueryBuilder implements PromiseLike<QueryResult> {
         return ascending ? left.localeCompare(right) : right.localeCompare(left)
       })
     }
+    if (this.offsetCount > 0) rows = rows.slice(this.offsetCount)
     if (this.limitCount !== null) rows = rows.slice(0, this.limitCount)
 
     if (this.countMode && this.headMode) {

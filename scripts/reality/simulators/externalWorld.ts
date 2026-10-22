@@ -18,6 +18,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { createHash, randomUUID } from 'node:crypto'
+import { syntheticSpotDay } from '../../helpers/reality/dst'
 
 type Service = 'spot' | 'resend' | 'papapi' | 'lantmateriet'
 type FaultMode = 'ok' | 'rate_limited' | 'server_error' | 'slow' | 'hang' | 'invalid_json'
@@ -58,18 +59,14 @@ async function applyFault(service: Service, res: ServerResponse): Promise<boolea
   return false
 }
 
-/** Deterministic, plausible SE-area quarter-hour curve (SEK/kWh) for offline runs. */
+/**
+ * Deterministic, plausible SE-area quarter-hour curve (SEK/kWh) for offline runs: one row per actual
+ * quarter-hour of the Stockholm calendar day (92/96/100 around the DST changes, DST-H2), as elprisetjustnu
+ * publishes it. Formerly 96 rows from local midnight at a fixed +02:00, which left 25 October with a one-hour
+ * gap and put every winter day one hour into the previous day.
+ */
 function syntheticDay(date: string, area: string) {
-  const start = new Date(`${date}T00:00:00+02:00`).getTime()
-  const areaFactor = { SE1: 0.6, SE2: 0.65, SE3: 1, SE4: 1.25 }[area] ?? 1
-  return Array.from({ length: 96 }, (_, q) => {
-    const hour = q / 4
-    const shape = 0.35 + 0.25 * Math.max(0, Math.sin(((hour - 5) * Math.PI) / 14)) + (hour >= 17 && hour < 20 ? 0.3 : 0)
-    const sek = Math.round(shape * areaFactor * 100000) / 100000
-    return { SEK_per_kWh: sek, EUR_per_kWh: Math.round((sek / 11.2) * 100000) / 100000, EXR: 11.2,
-      time_start: new Date(start + q * 900_000).toISOString().replace('.000Z', '+00:00'),
-      time_end: new Date(start + (q + 1) * 900_000).toISOString().replace('.000Z', '+00:00') }
-  })
+  return syntheticSpotDay(date, area)
 }
 
 async function spot(res: ServerResponse, path: string) {
