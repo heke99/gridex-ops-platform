@@ -189,6 +189,11 @@ const reviewedServiceClientFiles = new Set([
   "app/admin/companies/[id]/email-automation-actions.ts",
   "app/admin/companies/[id]/legal-actions.ts",
   "app/admin/customers/[id]/business-actions.ts",
+  // Reviewed 2026-10-22 (F51): the registered-address action calls
+  // requireAdminActionAccess(customers.write) and resolves the staff member's
+  // operational company before any service-client access; the customer must
+  // belong to that company and every write is company scoped and audit logged.
+  "app/admin/customers/[id]/registered-address-actions.ts",
   "app/admin/ediel/auto-readiness/actions.ts",
   "app/admin/ediel/auto-readiness/page.tsx",
   "app/admin/ediel/bilateral-prodat-sources/page.tsx",
