@@ -74,7 +74,13 @@ function builder(table: string) {
   return api
 }
 
-vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: (table: string) => builder(table) } }))
+vi.mock('@/lib/supabase/service', async () => {
+  const { makeSupportTransactionPort } = await import('./helpers/supportPortalHarness')
+  return { supabaseService: {
+    from: (table: string) => builder(table),
+    rpc: (name: string, args: Row) => makeSupportTransactionPort(db, builder)(name, args),
+  } }
+})
 vi.mock('@/lib/customer-portal/keysetPagination', () => ({
   portalPageLimit: (value?: number | null) => Math.min(Math.max(Math.trunc(value ?? 50), 1), 100),
   decodePortalCursor: () => null,
