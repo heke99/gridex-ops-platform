@@ -210,9 +210,12 @@ jobs:
           dependency_paths = ['package.json','package-lock.json']
           expected_base_dependencies = {'package.json': {'mode': '100644', 'git_blob_oid': 'bf3a30b706a96bacf8dbcf158ed99ae405881689', 'sha256': '241f6cc84f581ec3acac22d970add3c9646e74603bac4a86d895e8864cbefa9c'}, 'package-lock.json': {'mode': '100644', 'git_blob_oid': '0e19ad13ea476c169f63f0cb8f6c4d2164c13847', 'sha256': '8bf0aca13c2f57d92db355bda81f38e526b3bd50a33db7859d272daad8d9f5c5'}}
           exact_mail_dependencies = {'package.json': {'mode': '100644', 'git_blob_oid': 'e237ee62d8a7e337e01ee596c2fbd5402cec4e04', 'sha256': '5df482bae5c6c115b3a04ba9b51ea5468fae88ff6dbf747a793dca6d09fa465c'}, 'package-lock.json': {'mode': '100644', 'git_blob_oid': '81bd616ba826ccf10f598e2c3f1302f4eff82750', 'sha256': 'ff970a29bedc8fb54afa725a9694507d95889bfbeed645b1e47d937eade90e75'}}
+          # Main #905 changes only next/@next/* 16.3.8 to 16.4.2 on that exact Mail pair
+          # (GHSA-2464-fhr4-w9xw, GHSA-p3m5-59mp-jv5r).
+          exact_next_security_dependencies = {'package.json': {'mode': '100644', 'git_blob_oid': '6773cdc230b659091700b6582181477e01856a86', 'sha256': '8106165e1d34761e56f1eba99f9268f3aaa2228f105f2f20e365d6bc2c9a5fde'}, 'package-lock.json': {'mode': '100644', 'git_blob_oid': '31f1c20801f94cfbef7ec71722e8452967cbb470', 'sha256': '59623bc0f74bc1e57c5940788e8ed0b3c65123d08193f34e9d6659c5065f9f7c'}}
           if {p:baseline['blobs'].get(p) for p in dependency_paths} != expected_base_dependencies:
               raise RuntimeError('db01_BASE_dependency_inputs_changed')
-          exact_mail = {p:current['blobs'].get(p) for p in dependency_paths} == exact_mail_dependencies
+          exact_mail = {p:current['blobs'].get(p) for p in dependency_paths} in (exact_mail_dependencies, exact_next_security_dependencies)
           for path in ['package.json','package-lock.json','.nvmrc','.npmrc']:
               if current['blobs'].get(path) != baseline['blobs'].get(path) and not (exact_mail and path in dependency_paths):
                   raise RuntimeError('BASE/current dependency inputs differ: '+path)

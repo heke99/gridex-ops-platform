@@ -99,16 +99,20 @@ jobs:
                      '8bf0aca13c2f57d92db355bda81f38e526b3bd50a33db7859d272daad8d9f5c5')
           mail_ops_fix=('5df482bae5c6c115b3a04ba9b51ea5468fae88ff6dbf747a793dca6d09fa465c',
                         'ff970a29bedc8fb54afa725a9694507d95889bfbeed645b1e47d937eade90e75')
+          next_security_fix=('8106165e1d34761e56f1eba99f9268f3aaa2228f105f2f20e365d6bc2c9a5fde',
+                             '59623bc0f74bc1e57c5940788e8ed0b3c65123d08193f34e9d6659c5065f9f7c')
           def hashes(root):return tuple(hashlib.sha256((root/p).read_bytes()).hexdigest() for p in paths)
           # Keep immutable BASE packages. Permit only its exact original pair
           # or either exact reviewed security repair: source-map-js 1.2.2,
           # then main #620 sharp 0.35.5 (c0385ee4; GHSA-wq5f-xc86-pv6w).
           # The fourth exact pair adds mailauth/pdf-lib/xlsx and only the two
           # 4096-to-6144 build/typecheck heap settings to that reviewed sharp pair.
+          # The fifth exact pair changes only next/@next/* 16.3.8 to 16.4.2 on that
+          # mail pair (main #905; GHSA-2464-fhr4-w9xw, GHSA-p3m5-59mp-jv5r).
           # Mixed pairs and every other dependency change remain fail-closed.
           base_pair,candidate_pair=hashes(base),hashes(candidate)
           assert base_pair==original,'sc071_base_dependency_inputs_changed'
-          assert candidate_pair in (original,source_map_fix,sharp_fix,mail_ops_fix),'sc071_candidate_dependency_inputs_unqualified'
+          assert candidate_pair in (original,source_map_fix,sharp_fix,mail_ops_fix,next_security_fix),'sc071_candidate_dependency_inputs_unqualified'
           expected='1.2.1' if candidate_pair==original else '1.2.2'
           installed=subprocess.check_output(['node','-p',"require('source-map-js/package.json').version"],cwd=candidate,text=True).strip()
           assert installed==expected,'sc071_installed_source_map_version_mismatch'

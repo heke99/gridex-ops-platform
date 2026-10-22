@@ -59244,6 +59244,7 @@ export type Database = {
           tenant_resolution_method: string | null
           thread_id: string | null
           to_email: string | null
+          gridex_manual_mail_has_pending_partial_v1: boolean | null
         }
         Insert: {
           attachments?: Json
@@ -99628,6 +99629,18 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_enqueue_normal_supplier_switch_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_expected_payload_hash: string
+          p_intent_id: string
+          p_message_id: string
+          p_outbound_request_id: string
+          p_switch_id: string
+        }
+        Returns: Json
+      }
       gridex_ensure_internal_contract_publication: {
         Args: {
           p_actor_user_id?: string
@@ -100186,6 +100199,14 @@ export type Database = {
       gridex_manual_inbound_source_retired_v1: {
         Args: { p_mailbox: string; p_provider_id: string }
         Returns: boolean
+      }
+      gridex_manual_mail_has_pending_partial_v1: {
+        Args: {
+          "": Database["public"]["Tables"]["manual_inbound_messages"]["Row"]
+        }
+        Returns: {
+          error: true
+        } & "the function public.gridex_manual_mail_has_pending_partial_v1 with parameter or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache"
       }
       gridex_manual_reply_application_v2: {
         Args: { p_request: Json; p_source: Json }
