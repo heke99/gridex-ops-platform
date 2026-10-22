@@ -8,6 +8,8 @@ import { API_DOCUMENTATION_VERSION } from '@/lib/integrations/websiteIntegration
  * assert real visibility and tenant/customer scoping instead of call shapes.
  */
 
+const rpc = vi.hoisted(() => vi.fn())
+
 type Row = Record<string, unknown>
 const db: Record<string, Row[]> = {}
 let idCounter = 0
@@ -68,7 +70,7 @@ function builder(table: string) {
   return api
 }
 
-vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: (table: string) => builder(table) } }))
+vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: (table: string) => builder(table), rpc } }))
 vi.mock('@/lib/customer-portal/keysetPagination', () => ({
   portalPageLimit: (value?: number | null) => Math.min(Math.max(Math.trunc(value ?? 50), 1), 100),
   decodePortalCursor: () => null,
@@ -95,6 +97,41 @@ beforeEach(() => {
   db.customer_cases = []
   db.customer_case_events = []
   db.audit_logs = []
+  // Synthetic transaction port for application/visibility tests. It delegates
+  // ordinary case defaults to the unchanged shared command. Quota decisions
+  // are injected responses here, never a second fake quota implementation;
+  // real enforcement/rollback lives in customer-support-quota-sql.test.ts.
+  rpc.mockReset().mockImplementation(async (name: string, args: Row) => {
+    if (name === 'gridex_create_customer_support_case_v1') {
+      const { createTenantSupportCase } = await import('@/lib/customer-cases/support')
+      const { publicReference } = await import('@/lib/integrations/publicReferences')
+      const created = await createTenantSupportCase({
+        companyId: String(args.p_company_id), customerId: String(args.p_customer_id),
+        title: String(args.p_title), description: String(args.p_message), category: String(args.p_category),
+        channel: 'customer_portal', idempotencyKey: String(args.p_idempotency_key), actorUserId: null,
+        metadata: { description_visibility: 'customer', opened_by: 'customer',
+          api_client_id: args.p_api_client_id, portal_identity_id: args.p_portal_identity_id },
+      })
+      const row = db.customer_cases.find(value => value.id === created.case.id)!
+      row.metadata = { ...(row.metadata as Row), support_public_reference: publicReference('support_case', String(args.p_company_id), row.id) }
+      if (!db.customer_case_events.some(value => value.customer_case_id === row.id && value.event_type === 'support_customer_message')) {
+        (builder('customer_case_events').insert as (row: Row) => unknown)({ company_id: args.p_company_id, customer_id: args.p_customer_id,
+          customer_case_id: row.id, event_type: 'support_customer_message', event_status: 'info', message: row.description,
+          created_by: null, payload: { visibility: 'customer', author_type: 'customer', channel: 'customer_portal',
+            api_client_id: args.p_api_client_id, portal_identity_id: args.p_portal_identity_id } })
+      }
+      return { data: { case: row, reused: created.reused }, error: null }
+    }
+    if (name === 'gridex_add_customer_support_message_v1') {
+      const query = builder('customer_case_events')
+      ;(query.insert as (row: Row) => unknown)({ company_id: args.p_company_id, customer_id: args.p_customer_id,
+        customer_case_id: args.p_case_id, event_type: 'support_customer_message', event_status: 'info', message: args.p_message,
+        created_by: null, payload: { visibility: 'customer', author_type: 'customer', channel: 'customer_portal',
+          api_client_id: args.p_api_client_id, portal_identity_id: args.p_portal_identity_id } })
+      return (query.single as () => Promise<{ data: Row; error: null }>)()
+    }
+    throw new Error('Unexpected synthetic transaction port')
+  })
 })
 
 const scopeA1 = { companyId: TENANT_A, customerId: CUSTOMER_A1 }
@@ -233,39 +270,59 @@ describe('idempotency and lifecycle', () => {
   })
 })
 
-describe('per-customer quotas (T10)', () => {
-  it('refuses the 11th new case in a day with 429, but replays an existing idempotency key', async () => {
-    const support = await import('@/lib/customer-service/supportConversation')
-    for (let i = 0; i < support.SUPPORT_CUSTOMER_QUOTAS.newCasesPerDay; i += 1) await openCase(`quota-${i}`)
-    await expect(openCase('quota-over')).rejects.toMatchObject({ code: 'support_quota_exceeded', status: 429 })
-    const replay = await openCase('quota-0')
-    expect(replay.reused).toBe(true)
-    expect(db.customer_cases).toHaveLength(support.SUPPORT_CUSTOMER_QUOTAS.newCasesPerDay)
-  })
-
-  it('cases older than the window and other customers do not count', async () => {
-    const support = await import('@/lib/customer-service/supportConversation')
-    for (let i = 0; i < support.SUPPORT_CUSTOMER_QUOTAS.newCasesPerDay; i += 1) await openCase(`old-${i}`)
-    for (const row of db.customer_cases) row.created_at = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString()
-    await expect(openCase('fresh')).resolves.toBeTruthy()
-    await expect(support.createCustomerSupportCase({
-      companyId: TENANT_A, customerId: CUSTOMER_A2, apiClientId: 'client-a', portalIdentityId: null, title: 'Annan kund', message: 'Hej', idempotencyKey: 'a2-1',
-    })).resolves.toBeTruthy()
-  })
-
-  it('refuses customer messages above the hourly quota with 429', async () => {
-    const support = await import('@/lib/customer-service/supportConversation')
-    const created = await openCase('msg-quota')
-    const send = () => support.addCustomerSupportMessage({
-      ...scopeA1, caseReference: created.case.case_reference, apiClientId: 'client-a', portalIdentityId: null, message: 'ping',
+describe('atomic quota transaction boundary (T10)', () => {
+  it('delegates case admission and creation together, with no client-controlled limits or time', async () => {
+    const created = await openCase('rpc-case')
+    expect(created.case.description).toBe('Jag har fått fel belopp.')
+    expect(rpc).toHaveBeenCalledExactlyOnceWith('gridex_create_customer_support_case_v1', {
+      p_company_id: TENANT_A, p_customer_id: CUSTOMER_A1, p_api_client_id: 'client-a', p_portal_identity_id: 'ident-a1',
+      p_title: 'Fel på fakturan', p_message: 'Jag har fått fel belopp.', p_category: 'support', p_idempotency_key: 'rpc-case',
     })
-    for (let i = 1; i < support.SUPPORT_CUSTOMER_QUOTAS.messagesPerHour; i += 1) await send()
-    await expect(send()).rejects.toMatchObject({ code: 'support_quota_exceeded', status: 429 })
   })
 
-  it('the API maps the quota error to HTTP 429', async () => {
+  it('maps the authoritative case quota rejection to 429 without a fallback write', async () => {
+    rpc.mockResolvedValueOnce({ data: null, error: { code: 'P0001', message: 'support_case_quota_exceeded' } })
+    await expect(openCase('denied')).rejects.toMatchObject({ code: 'support_quota_exceeded', status: 429 })
+    expect(db.customer_cases).toEqual([])
+    expect(db.customer_case_events).toEqual([])
+  })
+
+  it('maps message quota rejection to 429 without a separate event insert', async () => {
+    const support = await import('@/lib/customer-service/supportConversation')
+    const created = await openCase('message-quota')
+    const before = db.customer_case_events.length
+    rpc.mockResolvedValueOnce({ data: null, error: { code: 'P0001', message: 'support_message_quota_exceeded' } })
+    await expect(support.addCustomerSupportMessage({
+      ...scopeA1, caseReference: created.case.case_reference, apiClientId: 'client-a', portalIdentityId: null, message: 'ping',
+    })).rejects.toMatchObject({ code: 'support_quota_exceeded', status: 429 })
+    expect(db.customer_case_events).toHaveLength(before)
+  })
+
+  it('does not fall back to non-atomic writes during an RPC outage', async () => {
+    rpc.mockResolvedValueOnce({ data: null, error: { code: '08006', message: 'synthetic transaction unavailable' } })
+    await expect(openCase('outage')).rejects.toMatchObject({ code: '08006' })
+    expect(db.customer_cases).toEqual([])
+    expect(db.customer_case_events).toEqual([])
+  })
+
+  it('rejects malformed or foreign transaction results without exposing them', async () => {
+    rpc.mockResolvedValueOnce({ data: { case: { id: nextId(), company_id: TENANT_B, customer_id: CUSTOMER_A1 } }, error: null })
+    await expect(openCase('foreign-result')).rejects.toThrow('support_customer_case_result_invalid')
+  })
+
+  it('preserves the closed-case response if the SQL admission recheck loses a race with closing', async () => {
+    const support = await import('@/lib/customer-service/supportConversation')
+    const created = await openCase('close-race')
+    rpc.mockResolvedValueOnce({ data: null, error: { code: 'P0001', message: 'support_case_closed' } })
+    await expect(support.addCustomerSupportMessage({
+      ...scopeA1, caseReference: created.case.case_reference, apiClientId: 'client-a', portalIdentityId: null, message: 'ping',
+    })).rejects.toMatchObject({ code: 'support_case_closed', status: 409 })
+  })
+
+  it('keeps the published quota values and API error contract', async () => {
     const { toSupportApiError } = await import('@/lib/customer-service/supportApi')
-    const { SupportConversationError } = await import('@/lib/customer-service/supportConversation')
+    const { SupportConversationError, SUPPORT_CUSTOMER_QUOTAS } = await import('@/lib/customer-service/supportConversation')
+    expect(SUPPORT_CUSTOMER_QUOTAS).toEqual({ newCasesPerDay: 50, messagesPerHour: 150 })
     expect(toSupportApiError(new SupportConversationError('support_quota_exceeded', 'x', 429))).toMatchObject({ status: 429, code: 'support_quota_exceeded' })
   })
 })

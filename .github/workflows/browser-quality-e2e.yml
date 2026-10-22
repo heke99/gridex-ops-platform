@@ -246,7 +246,7 @@ jobs:
           set -euo pipefail
           [[ -n "$GRIDEX_E2E_ZAP_TARGET" ]] || { echo 'GRIDEX_E2E_BROWSER_BASE_URL is required for ZAP staging certification.' >&2; exit 1; }
       - name: Run blocking OWASP ZAP passive baseline
-        uses: zaproxy/action-baseline@v0.15.0
+        uses: zaproxy/action-baseline@de8ad967d3548d44ef623df22cf95c3b0baf8b25 # v0.15.0 (tag)
         with:
           target: ${{ env.GRIDEX_E2E_ZAP_TARGET }}
           allow_issue_writing: false

@@ -8,9 +8,9 @@ import { buildUtiltsTransactionPersistencePayload } from '@/lib/ediel/utilts/tra
 import { prepareUtiltsConsumptionContracts } from '@/lib/ediel/utilts/consumptionPreparation'
 import { s02PlanningFixture, s02PlanningPair, s02PlanningSecondSequence } from './helpers/utiltsS02PlanningFixture'
 
-// Hash-qualified originals: prior U/G01 pp52/53/98/133 and current U pp51/52/95/127.
+// Hash-qualified originals: prior U/G01 pp52/53/98/133 and current Swedish U5 pp51/52/95/127.
 // Own SG5 point209 and own SG8/SG11 planned quantity515 apply in both guide packages.
-const guides = ['25-A-3', '25-A-4'] as const
+const guides = ['25-A-3', '25-A-5'] as const
 function recount(raw: string) {
   const wire = tokenizeEdifact(raw)
   const start = wire.segments.findIndex(segment => segment.tag === 'UNH')

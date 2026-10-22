@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 const fs = require('fs')
+const { verifyFacilityCompletionRpcContract } = require('./lib/facility-completion-rpc-contract.cjs')
 function read(p){ return fs.readFileSync(p,'utf8') }
 function ok(cond,msg){ if(!cond){ console.error(`FAIL: ${msg}`); process.exitCode=1 } else console.log(`OK: ${msg}`) }
 const workflow = read('lib/facility/facilityLookupWorkflow.ts')
@@ -11,7 +12,7 @@ ok(workflow.includes("status: 'waiting_response'") && workflow.includes('manual_
 ok(workflow.includes('facility_lookup.manual_sent') && workflow.includes('Anläggningsbegäran skickad manuellt'), 'manual sent emits tenant timeline event')
 ok(!/sendEdielEmail|sendCompanyEmail|smtp/i.test(workflow.split('markFacilityLookupSentManually')[1].split('export async function completeFacilityLookup')[0]), 'manual sent action does not send SMTP/Ediel')
 ok(workflow.includes('completeFacilityLookup'), 'facility lookup complete workflow exists')
-ok(workflow.includes("rpc('gridex_complete_facility_response'"), 'complete workflow delegates all canonical writes to gridex_complete_facility_response')
+ok(verifyFacilityCompletionRpcContract(workflow).ok, 'complete workflow delegates all canonical writes to gridex_complete_facility_response')
 ok(authority.includes("status='completed',dispatch_status='completed'") && authority.includes('received_payload=v_received'), 'canonical RPC marks request completed and persists received payload')
 ok(authority.includes('customer_site_resolution') && authority.includes("facility_verified"), 'canonical RPC materializes facility-verified site resolution')
 ok(authority.includes("blocker_code=null") && authority.includes("route_resolution_status='facility_identifier_received'") && authority.includes("status='ready_for_switch'"), 'canonical RPC clears facility blocker and advances site-scoped customer info')

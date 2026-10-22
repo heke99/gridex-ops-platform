@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 const fs = require('node:fs')
+const { verifyFacilityCompletionRpcContract } = require('./lib/facility-completion-rpc-contract.cjs')
 
 function read(path) { return fs.readFileSync(path, 'utf8') }
 function ok(condition, message) {
@@ -18,7 +19,7 @@ ok(orchestrator.includes('skipZ01Finalization: true'), 'facility response starts
 ok(orchestrator.includes('facility_response.orchestrated') && orchestrator.includes('Leverantörsbyte startat automatiskt'), 'orchestrator emits business timeline event')
 
 const workflow = read('lib/facility/facilityLookupWorkflow.ts')
-ok(workflow.includes("rpc('gridex_complete_facility_response'"), 'facility completion delegates the transactional write to the canonical RPC')
+ok(verifyFacilityCompletionRpcContract(workflow).ok, 'facility completion delegates the transactional write to the canonical RPC')
 ok(workflow.includes('atomic_completion: true'), 'workflow records atomic facility completion evidence')
 ok(workflow.includes('customerId: completion.customerId') && workflow.includes('customerSiteId: completion.customerSiteId') && workflow.includes('operationId: completion.operationId'), 'facility completion returns context for orchestrator')
 

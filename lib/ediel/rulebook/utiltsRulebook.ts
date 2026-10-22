@@ -3,6 +3,7 @@ import { getUtiltsMarketProfile } from '@/lib/ediel/rulebook/utiltsMarketEngine'
 import {
   assertGuideFieldMatrixCertified,
   resolveAuthoritativeEdielGuide,
+  AUTHORITATIVE_EDIEL_GUIDES,
 } from '@/lib/ediel/rulebook/guideRegistry'
 import { getUtiltsFieldRequirement } from '@/lib/ediel/rulebook/utiltsFieldMatrix'
 
@@ -277,12 +278,14 @@ function guideImplementationRevision(guideRevision: string): string {
 
 /**
  * Resolve the profile and all guide metadata from one effective-dated source.
- * Never select 25-A-3/25-A-4 from the shared E5SE5A association code alone.
+ * Never select 25-A-3/4/5 from the shared E5SE5A association code alone.
  */
 export function resolveCanonicalUtiltsProfile(input: {
   messageCode: string | null | undefined
   businessDate: string
   version: string
+  /** Pure projection of a candidate/original already qualified by its owner. */
+  guideRevision?: string
 }): UtiltsCanonicalProfile {
   const base = getCanonicalUtiltsProfile(input.messageCode)
   if (!base) throw new Error(`utilts_profile_not_found:${String(input.messageCode ?? '')}`)
@@ -293,11 +296,14 @@ export function resolveCanonicalUtiltsProfile(input: {
   const businessDate = String(input.businessDate ?? '').trim().slice(0, 10)
   if (!/^\d{4}-\d{2}-\d{2}$/.test(businessDate)) throw new Error('utilts_profile_business_date_invalid')
 
-  const guide = resolveAuthoritativeEdielGuide({
+  const guide = input.guideRevision ? AUTHORITATIVE_EDIEL_GUIDES.find(candidate =>
+    candidate.family === 'UTILTS' && candidate.guideRevision === input.guideRevision && candidate.associationAssignedCode === version)
+    : resolveAuthoritativeEdielGuide({
     family: 'UTILTS',
     referenceDate: businessDate,
     associationAssignedCode: version,
   })
+  if (!guide) throw new Error(`utilts_profile_guide_unqualified:${input.guideRevision}`)
   assertGuideFieldMatrixCertified(guide)
 
   return {

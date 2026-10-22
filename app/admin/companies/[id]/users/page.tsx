@@ -211,16 +211,16 @@ export default async function CompanyUsersPage({
           <p className="mt-1 text-sm text-slate-700">Inbjudan skickas med bolagets varumärke, avsändare och supportuppgifter när e-postmiljön är konfigurerad.</p>
           <form action={inviteCompanyUserFormAction} className="mt-4 grid gap-3 lg:grid-cols-[1fr_1fr_180px_180px_140px]">
             <input type="hidden" name="company_id" value={company.id} />
-            <input name="email" type="email" required placeholder="namn@bolag.se" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
-            <input name="full_name" placeholder="Namn" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
-            <select name="membership_role" defaultValue="admin" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm">
+            <input name="email" aria-label="E-post för inbjudan" type="email" required placeholder="namn@bolag.se" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
+            <input name="full_name" aria-label="Namn för inbjudan" placeholder="Namn" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" />
+            <select name="membership_role" aria-label="Bolagsroll för inbjudan" defaultValue="admin" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm">
               <option value="owner">Ägare</option>
               <option value="admin">Admin</option>
               <option value="operations">Operations</option>
               <option value="support">Kundnära drift</option>
               <option value="viewer">Viewer</option>
             </select>
-            <select name="role_key" defaultValue="company_admin" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm">
+            <select name="role_key" aria-label="Systemroll för inbjudan" defaultValue="company_admin" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm">
               <option value="company_admin">Bolagsansvarig</option>
               <option value="operations_manager">Operationsansvarig</option>
               <option value="operations_agent">Operations</option>
@@ -291,14 +291,14 @@ export default async function CompanyUsersPage({
                         <form action={setCompanyUserRoleFormAction} className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-2">
                           <input type="hidden" name="company_id" value={company.id} />
                           <input type="hidden" name="user_id" value={user.userId} />
-                          <select name="membership_role" defaultValue={user.membershipRole} className="rounded-xl border border-slate-300 bg-white px-2.5 py-2 text-xs">
+                          <select name="membership_role" aria-label={`Bolagsroll för ${user.email || user.invitedEmail || user.fullName || user.userId}`} defaultValue={user.membershipRole} className="rounded-xl border border-slate-300 bg-white px-2.5 py-2 text-xs">
                             <option value="owner">Ägare</option>
                             <option value="admin">Admin</option>
                             <option value="operations">Operations</option>
                             <option value="support">Kundnära drift</option>
                             <option value="viewer">Viewer</option>
                           </select>
-                          <select name="role_key" defaultValue={user.roleKey ?? 'company_admin'} className="min-w-[150px] rounded-xl border border-slate-300 bg-white px-2.5 py-2 text-xs">
+                          <select name="role_key" aria-label={`Systemroll för ${user.email || user.invitedEmail || user.fullName || user.userId}`} defaultValue={user.roleKey ?? 'company_admin'} className="min-w-[150px] rounded-xl border border-slate-300 bg-white px-2.5 py-2 text-xs">
                             <option value="company_admin">Bolagsansvarig</option>
                             <option value="operations_manager">Operationsansvarig</option>
                             <option value="operations_agent">Operations</option>

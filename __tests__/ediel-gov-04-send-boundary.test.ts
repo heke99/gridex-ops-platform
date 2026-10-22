@@ -7,7 +7,7 @@ import {energyHandoffMessage} from './helpers/utiltsObservationHandoff'
 // Strict finite registry, source, archive and journal ports. The actual clock,
 // complete validator, send guard, source-pack comparison and attempt fence run.
 // This is application behavior, not PostgreSQL durability or market delivery.
-const io=vi.hoisted(()=>({rpc:vi.fn(),from:vi.fn(),registry:vi.fn(),route:vi.fn(),events:[] as unknown[],archives:[] as unknown[],attempts:[] as Record<string,unknown>[],providerCalls:0,originalRevision:'25-A-4',rollover:false,rolloverAction:'',observedAt:null as string|null}))
+const io=vi.hoisted(()=>({rpc:vi.fn(),from:vi.fn(),registry:vi.fn(),route:vi.fn(),events:[] as unknown[],archives:[] as unknown[],attempts:[] as Record<string,unknown>[],providerCalls:0,originalRevision:'25-A-5',rollover:false,rolloverAction:'',observedAt:null as string|null}))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:io.rpc,from:io.from}}))
 vi.mock('@/lib/ediel/rulebook/canonicalRulePackRegistry',async original=>({...await original<typeof import('@/lib/ediel/rulebook/canonicalRulePackRegistry')>(),resolveCanonicalRulePack:io.registry}))
 vi.mock('@/lib/ediel/db',()=>({getEdielRouteProfileByCommunicationRouteId:io.route,createEdielMessageEvent:async(input:unknown)=>{io.events.push(structuredClone(input))}}))
@@ -22,12 +22,12 @@ import {sendCorrectionFencedEmail} from '@/lib/ediel/sources/correctionOutboundD
 import {sendEdielMessageViaSmtp} from '@/lib/ediel/transport'
 
 const profile='00000000-0000-4000-8000-000000000003',pack='00000000-0000-4000-8000-000000000004'
-const identity=(revision:string)=>({profileKey:`UTILTS:E66:${revision}`,profileVersionId:profile,version:revision,checksum:(revision==='25-A-4'?'a':'b').repeat(64)})
+const identity=(revision:string)=>({profileKey:`UTILTS:E66:${revision}`,profileVersionId:profile,version:revision,checksum:(revision==='25-A-5'?'a':'b').repeat(64)})
 const queued=()=>({...energyHandoffMessage('2026-09-30','00000000-0000-4000-8000-000000000002'),raw_payload:energyHandoffMessage('2026-09-30').raw_payload!.replaceAll('\n',''),id:'00000000-0000-4000-8000-000000000001',direction:'outbound',status:'queued',message_received_at:null,receiver_email:'receiver@example.invalid',mime_type:'application/edifact'} as EdielMessageRow)
 
 beforeEach(()=>{
  vi.useFakeTimers().setSystemTime(new Date('2026-10-05T09:00:00Z'));vi.clearAllMocks()
- io.events=[];io.archives=[];io.attempts=[];io.providerCalls=0;io.originalRevision='25-A-4';io.rollover=false;io.rolloverAction='';io.observedAt=null
+ io.events=[];io.archives=[];io.attempts=[];io.providerCalls=0;io.originalRevision='25-A-5';io.rollover=false;io.rolloverAction='';io.observedAt=null
  io.registry.mockImplementation(async({canonicalPolicy}:{canonicalPolicy:{guide:{guideRevision:string}}})=>{
   const s=identity(canonicalPolicy.guide.guideRevision)
   return {databaseProfileKey:s.profileKey,profileKey:s.profileKey,messageProfileId:s.profileVersionId,originalVersion:s.version,sourceHash:s.checksum,originalSnapshot:{guideRevision:s.version}}
@@ -71,17 +71,17 @@ it('actual SMTP validates the current guide and binds the unchanged original byt
  const row=queued(),before=structuredClone(row)
  const sent=await sendEdielMessageViaSmtp(row,{actorUserId:'synthetic-operator',smtpMimeMode:'nodemailer-attachment'})
  expect(sent.accepted).toEqual([row.receiver_email]);expect(io.providerCalls).toBe(1)
- expect(io.registry.mock.calls[0][0].canonicalPolicy.guide.guideRevision).toBe('25-A-4')
+ expect(io.registry.mock.calls[0][0].canonicalPolicy.guide.guideRevision).toBe('25-A-5')
  expect(io.attempts.map(x=>x.action)).toEqual(['prepare','enter','observe'])
- expect(io.attempts[0].binding).toMatchObject({originalHash:createHash('sha256').update(before.raw_payload!).digest('hex'),admissionDecision:{referenceDate:'2026-10-05',guide:{guideRevision:'25-A-4'}},sourceRulePackEvidence:{version:'25-A-4'}})
+ expect(io.attempts[0].binding).toMatchObject({originalHash:createHash('sha256').update(before.raw_payload!).digest('hex'),admissionDecision:{referenceDate:'2026-10-05',guide:{guideRevision:'25-A-5'}},sourceRulePackEvidence:{version:'25-A-5'}})
  expect(row).toEqual(before);expect(io.archives.length).toBeGreaterThan(0)
 })
 
-it('a retained old queued original cannot gain the current guide label and preserves original history without provider entry',async()=>{
- const row=queued(),before=structuredClone(row);io.originalRevision='25-A-3'
+it.each(['25-A-3','25-A-4'])('a retained %s queued original cannot gain the current guide label and preserves original history without provider entry',async revision=>{
+ const row=queued(),before=structuredClone(row);io.originalRevision=revision
  await expect(sendEdielMessageViaSmtp(row,{actorUserId:'synthetic-operator',smtpMimeMode:'nodemailer-attachment'})).rejects.toThrow('ediel_send_original_rule_pack_mismatch')
  expect(io.providerCalls).toBe(0);expect(io.attempts).toEqual([]);expect(io.archives).toEqual([]);expect(io.events).toEqual([])
- expect(io.originalRevision).toBe('25-A-3');expect(row).toEqual(before)
+ expect(io.originalRevision).toBe(revision);expect(row).toEqual(before)
 })
 
 it('preparation crossing the Stockholm guide boundary cannot enter the provider with the preceding guide decision',async()=>{

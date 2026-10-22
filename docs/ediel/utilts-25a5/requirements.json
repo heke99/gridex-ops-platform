@@ -1,0 +1,132 @@
+{
+  "schema": "gridex-ediel-requirement-supplement-v1",
+  "version": 1,
+  "sourceManifest": "source-manifest.json",
+  "baselineUntouched": true,
+  "requirements": [
+    {
+      "id": "U5-SOURCE-01",
+      "source": "p1;1.8 p6",
+      "requirement": "Current UTILTS and source-family APERAK use the actual Swedish25-A-5 from2026-10-01; E5SE5A alone does not identify the revision.",
+      "implementation": [
+        "guideRegistry.ts",
+        "utilts25A5.ts"
+      ],
+      "verification": [
+        "ediel-utilts-25a5-governance.test.ts"
+      ],
+      "verificationExtent": "Current source selection; no fabricated historical U4 validity end"
+    },
+    {
+      "id": "U5-HISTORY-01",
+      "source": "Bilaga1 pp121–122; technical guide24-A-6 transition rule",
+      "requirement": "Preserve U3 bounded inbound grace and the exact named U4 original for its own later ACK; a new outbound message cannot select superseded U4.",
+      "implementation": [
+        "canonicalEdielPolicy.ts",
+        "utiltsRulebook.ts",
+        "utilts25A4.ts"
+      ],
+      "verification": [
+        "ediel-utilts-25a5-governance.test.ts",
+        "ediel-ack-inherited-guide-consumers.test.ts",
+        "ediel-gov-04-send-boundary.test.ts"
+      ],
+      "verificationExtent": "Pure policy and actual mocked runtime/send ports; no native durability proof"
+    },
+    {
+      "id": "U5-EVIDENCE-01",
+      "source": "p1 primary identity; internal witness authority contract",
+      "requirement": "A U5 activation witness must identify revision5 and contain the exact Swedish primary hash as a technical-guide source. Activation digest and PDF hash are distinct.",
+      "implementation": [
+        "canonicalRulePackRegistry.ts"
+      ],
+      "verification": [
+        "ediel-utilts-25a5-governance.test.ts",
+        "test-ediel-rule-pack-source-identity.cjs"
+      ],
+      "verificationExtent": "Synthetic RPC only; real new protected registry projection is producer-owned and outstanding"
+    },
+    {
+      "id": "U5-PROCESS-01",
+      "source": "1.8 p6;Bilaga2 pp130–133",
+      "requirement": "Retain U5 removal of E19/Z03 and individual E66 energy/stand comparison; retain source-qualified structural comparison and S06/S08 use restrictions.",
+      "implementation": [
+        "utilts25A4.ts",
+        "ackGuidePolicy.ts",
+        "utiltsEngine.ts"
+      ],
+      "verification": [
+        "ediel-utilts-effective-date.test.ts",
+        "ediel-utilts-err-canonical-guide.test.ts"
+      ],
+      "verificationExtent": "Qualified shared base/overlay; not a complete fresh production certification"
+    },
+    {
+      "id": "U5-ID-172",
+      "source": "3.9 p78;Bilaga1 p123",
+      "requirement": "Run source-qualified supplied LOC172 identity validation under U5; an invalid own identifier rejects that transaction without rejecting a clean sibling.",
+      "implementation": [
+        "utiltsEngine.ts",
+        "utilts25A5.ts"
+      ],
+      "verification": [
+        "ediel-utilts-25a5-process-cases.test.ts"
+      ],
+      "verificationExtent": "Pure real parser/runtime; typed GIAI and other existing qualification remain separate"
+    },
+    {
+      "id": "U5-ID-175",
+      "source": "3.7.3 p63;3.9 p78;Bilaga1 p123",
+      "requirement": "Retain conditional supplied LOC175 identity checks in E73/S01/S06 under qualified U5; no automatic propagation to an unknown future guide.",
+      "implementation": [
+        "utiltsEngine.ts",
+        "utilts25A5.ts"
+      ],
+      "verification": [
+        "ediel-utilts-25a5-process-cases.test.ts"
+      ],
+      "verificationExtent": "Own E73 wire checks exercised; S06 remains unavailable for new outbound use"
+    },
+    {
+      "id": "U5-Z06F-01",
+      "source": "3.6.13 pp41–43",
+      "requirement": "Preserve known zero values and permitted partial periods; daily reporting after disconnect/reconnect spans a day, with stated meter-read timestamps. Do not turn recommendations into universal receiver rejections.",
+      "implementation": [
+        "utiltsEngine.ts",
+        " existing observation/period parsers"
+      ],
+      "verification": [
+        "ediel-utilts-25a5-process-cases.test.ts"
+      ],
+      "verificationExtent": "Recipient known-zero96-quarter day and partial-month cases; full actual DSO-event/structure/DB/outbox chain is not proved here"
+    },
+    {
+      "id": "U5-NOTICE-01",
+      "source": "3.6.6 p37;5.2 pp106–107",
+      "requirement": "An otherwise valid newer correction receives positive APERAK despite late notice. Receiver MAY defer handling/storage; no second ACK after notice.",
+      "implementation": [
+        "amendment-source-corrections-2026-10-20.md",
+        " existing original/disposition owner"
+      ],
+      "verification": [
+        "Documentary clarification and existing U-14 evidence",
+        " no new pending-notice implementation"
+      ],
+      "verificationExtent": "A named waiting mode is not mandatory; no unsupported runtime failure claim"
+    },
+    {
+      "id": "U5-DGI-01",
+      "source": "1.8 p6;3.1 p15; PRODAT26-A2.3 p35",
+      "requirement": "Energy-sharing recipient role DGI does not confer customer/market authority or activate a future capability.",
+      "implementation": [
+        "guideRegistry.ts",
+        " existing futureCapabilityPolicy.ts"
+      ],
+      "verification": [
+        "ediel-utilts-25a5-process-cases.test.ts"
+      ],
+      "verificationExtent": "Activation remains held; no invented legal permission or future P27 activation"
+    }
+  ],
+  "executionReceipt": "See packet verification receipt for exact current commands, results and source hashes. A test name/link alone is not an executed proof."
+}

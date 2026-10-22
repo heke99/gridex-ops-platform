@@ -368,6 +368,15 @@ function assertDbEvidenceMatchesSource(input: {
     if (requiredProfileText(evidence.profile, 'guideRevision') !== expectedRevision) {
       throw new Error('canonical_rule_pack_evidence_profile_revision_mismatch')
     }
+    // A newly qualified source edition must carry its actual primary original
+    // in the locked witness. The activation digest is a distinct identifier;
+    // matching E5SE5A or relabeling old U4 rows does not qualify Swedish U5.
+    const primary = source.policy.guide.primarySource
+    if (primary && !evidence.originalSnapshot.guideSources.some(item =>
+      item.source_type === 'technical_guide' && item.revision === source.policy.guide.guideRevision
+      && item.source_hash === primary.sha256 && typeof item.source_locator === 'string' && item.source_locator.trim())) {
+      throw new Error('canonical_rule_pack_evidence_primary_source_mismatch')
+    }
     return
   }
 

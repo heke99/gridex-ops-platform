@@ -193,9 +193,8 @@ export async function getCapwayAccessToken(
     () => controller.abort(new Error('Capway token timeout')),
     15_000,
   )
-  let response: Response
   try {
-    response = await fetch(config.tokenUrl, {
+    const response = await fetch(config.tokenUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -205,26 +204,28 @@ export async function getCapwayAccessToken(
       cache: 'no-store',
       signal: controller.signal,
     })
+
+    const payload = (await response.json().catch(() => ({}))) as Partial<CapwayTokenResponse> & {
+      error?: string
+      error_description?: string
+    }
+    // A body abort must not become an invalid-token response or populate the cache.
+    controller.signal.throwIfAborted()
+    if (!response.ok || !payload.access_token) {
+      throw new Error(
+        `Capway token kunde inte hämtas (${response.status}): ${payload.error_description ?? payload.error ?? 'okänt fel'}`,
+      )
+    }
+
+    const expiresIn = typeof payload.expires_in === 'number' ? payload.expires_in : 3300
+    tokenCache.set(cacheKey, {
+      accessToken: payload.access_token,
+      expiresAt: Date.now() + expiresIn * 1000,
+    })
+    return payload.access_token
   } finally {
     clearTimeout(timeout)
   }
-
-  const payload = (await response.json().catch(() => ({}))) as Partial<CapwayTokenResponse> & {
-    error?: string
-    error_description?: string
-  }
-  if (!response.ok || !payload.access_token) {
-    throw new Error(
-      `Capway token kunde inte hämtas (${response.status}): ${payload.error_description ?? payload.error ?? 'okänt fel'}`,
-    )
-  }
-
-  const expiresIn = typeof payload.expires_in === 'number' ? payload.expires_in : 3300
-  tokenCache.set(cacheKey, {
-    accessToken: payload.access_token,
-    expiresAt: Date.now() + expiresIn * 1000,
-  })
-  return payload.access_token
 }
 
 export function clearCapwayTokenCache(companyId?: string) {

@@ -5010,6 +5010,20 @@ export type Database = {
             referencedRelation: "tenant_website_readiness_v"
             referencedColumns: ["company_id"]
           },
+          {
+            foreignKeyName: "billing_underlay_events_company_underlay_fk"
+            columns: ["company_id", "billing_underlay_id"]
+            isOneToOne: false
+            referencedRelation: "billing_export_readiness_v"
+            referencedColumns: ["company_id", "billing_underlay_id"]
+          },
+          {
+            foreignKeyName: "billing_underlay_events_company_underlay_fk"
+            columns: ["company_id", "billing_underlay_id"]
+            isOneToOne: false
+            referencedRelation: "billing_underlays"
+            referencedColumns: ["company_id", "id"]
+          },
         ]
       }
       billing_underlay_items: {
@@ -20351,6 +20365,83 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "customer_documents_company_contract_fk"
+            columns: ["company_id", "contract_id"]
+            isOneToOne: false
+            referencedRelation: "customer_contract_lifecycle_readiness_v"
+            referencedColumns: ["company_id", "customer_contract_id"]
+          },
+          {
+            foreignKeyName: "customer_documents_company_contract_fk"
+            columns: ["company_id", "contract_id"]
+            isOneToOne: false
+            referencedRelation: "customer_contracts"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "customer_documents_company_contract_fk"
+            columns: ["company_id", "contract_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_billing_launch_readiness_v"
+            referencedColumns: ["company_id", "contract_id"]
+          },
+          {
+            foreignKeyName: "customer_documents_company_contract_fk"
+            columns: ["company_id", "contract_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_customer_contracts_missing_price_snapshot_v"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "customer_documents_company_customer_contract_fk"
+            columns: ["company_id", "customer_contract_id"]
+            isOneToOne: false
+            referencedRelation: "customer_contract_lifecycle_readiness_v"
+            referencedColumns: ["company_id", "customer_contract_id"]
+          },
+          {
+            foreignKeyName: "customer_documents_company_customer_contract_fk"
+            columns: ["company_id", "customer_contract_id"]
+            isOneToOne: false
+            referencedRelation: "customer_contracts"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "customer_documents_company_customer_contract_fk"
+            columns: ["company_id", "customer_contract_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_billing_launch_readiness_v"
+            referencedColumns: ["company_id", "contract_id"]
+          },
+          {
+            foreignKeyName: "customer_documents_company_customer_contract_fk"
+            columns: ["company_id", "customer_contract_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_customer_contracts_missing_price_snapshot_v"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "customer_documents_company_customer_site_fk"
+            columns: ["company_id", "customer_site_id"]
+            isOneToOne: false
+            referencedRelation: "customer_sites"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "customer_documents_company_customer_site_fk"
+            columns: ["company_id", "customer_site_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_facility_work_queue_v"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "customer_documents_company_customer_site_fk"
+            columns: ["company_id", "customer_site_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_facility_work_queue_v"
+            referencedColumns: ["company_id", "site_id"]
+          },
+          {
             foreignKeyName: "customer_documents_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
@@ -20461,6 +20552,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenant_website_readiness_v"
             referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_documents_company_metering_point_fk"
+            columns: ["company_id", "metering_point_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_metering_points_incomplete_area_context_v"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "customer_documents_company_metering_point_fk"
+            columns: ["company_id", "metering_point_id"]
+            isOneToOne: false
+            referencedRelation: "metering_points"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "customer_documents_company_power_of_attorney_fk"
+            columns: ["company_id", "power_of_attorney_id"]
+            isOneToOne: false
+            referencedRelation: "powers_of_attorney"
+            referencedColumns: ["company_id", "id"]
           },
           {
             foreignKeyName: "customer_documents_contract_id_fkey"
@@ -97586,6 +97698,17 @@ export type Database = {
         Args: { p_run_type?: string }
         Returns: Json
       }
+      gridex_add_customer_support_message_v1: {
+        Args: {
+          p_api_client_id: string
+          p_case_id: string
+          p_company_id: string
+          p_customer_id: string
+          p_message: string
+          p_portal_identity_id: string
+        }
+        Returns: Json
+      }
       gridex_address_complete: { Args: { p_value: Json }; Returns: boolean }
       gridex_address_is_complete: { Args: { p_value: Json }; Returns: boolean }
       gridex_admin_dashboard_summary: {
@@ -98422,6 +98545,10 @@ export type Database = {
         Args: { p_api_client_id: string; p_company_id: string; p_limit: number }
         Returns: Json
       }
+      gridex_consume_public_password_reset_budget_v1: {
+        Args: { p_client_key: string; p_email_key: string }
+        Returns: boolean
+      }
       gridex_consume_utilts_billing_v1: {
         Args: {
           p_actor_id: string
@@ -98729,6 +98856,19 @@ export type Database = {
           p_street: string
         }
         Returns: string
+      }
+      gridex_create_customer_support_case_v1: {
+        Args: {
+          p_api_client_id: string
+          p_category: string
+          p_company_id: string
+          p_customer_id: string
+          p_idempotency_key: string
+          p_message: string
+          p_portal_identity_id: string
+          p_title: string
+        }
+        Returns: Json
       }
       gridex_create_external_staff_invitation_v1: {
         Args: { p_command: Json }
@@ -99613,6 +99753,25 @@ export type Database = {
           p_target_ids: string[]
         }
         Returns: Json
+      }
+      gridex_forecast_metering_period_totals_v1: {
+        Args: {
+          p_company_id: string
+          p_metering_point_id: string
+          p_period_end: string
+          p_period_start: string
+        }
+        Returns: {
+          total_kwh: number
+          value_count: number
+        }[]
+      }
+      gridex_forecast_point_inventory_v1: {
+        Args: { p_company_id: string }
+        Returns: {
+          points: Json
+          total_count: number
+        }[]
       }
       gridex_generate_portfolio_price_estimate: {
         Args: {

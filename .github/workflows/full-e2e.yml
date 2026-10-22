@@ -192,7 +192,7 @@ jobs:
         run: node scripts/gridex-p0-executor.cjs
       - name: Run full production release certificate
         env:
-          NODE_OPTIONS: --max-old-space-size=4096 --require=${{ github.workspace }}/scripts/lib/refactor-safe-static-read.cjs
+          NODE_OPTIONS: --max-old-space-size=8192 --require=${{ github.workspace }}/scripts/lib/refactor-safe-static-read.cjs
         run: node scripts/gridex-full-production-e2e.cjs --mode=full
       - name: Build sanitized AI verification handoff
         if: always()
