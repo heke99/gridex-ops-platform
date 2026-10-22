@@ -321,7 +321,7 @@ export type AugustSupplyCustomer = { customerId: string; email: string; faciliti
  * tenant's published offer: one contract per facility, signed through the platform's own signature RPCs
  * (which freeze the price snapshot and queue the signed-agreement confirmation), and a signed power of
  * attorney per facility through the admin writer and its authorization chain. The registered address is the
- * customer's masterdata. Unlike `existingSupplyCustomer` there is NO supply period: supply must come from the
+ * customer's masterdata, recorded through the registered-address writer. Unlike `existingSupplyCustomer` there is NO supply period: supply must come from the
  * grid owner's Z04 (a migrated period is never billable, FINDINGS F17). No switch request is created here.
  */
 export async function augustSupplyCustomer(tenant: LiveTenant, input: { firstName: string; lastName: string; personalNumber: string; email: string
@@ -334,9 +334,11 @@ export async function augustSupplyCustomer(tenant: LiveTenant, input: { firstNam
   const company = literal(tenant.companyId), customerId = randomUUID(), fullName = `${input.firstName} ${input.lastName}`
   sql(`INSERT INTO public.customers(id,company_id,first_name,last_name,full_name,personal_number,email,invoice_email,customer_type,is_test_data,source,billing_street,billing_postal_code,billing_city,billing_country)
     VALUES(${literal(customerId)},${company},${literal(input.firstName)},${literal(input.lastName)},${literal(fullName)},${literal(input.personalNumber)},${literal(input.email)},${literal(input.email)},'private',true,'e2e_reality_august',
-     ${literal(input.address.street)},${literal(input.address.postalCode)},${literal(input.address.city)},'SE');
-   INSERT INTO public.customer_addresses(company_id,customer_id,type,street_1,postal_code,city,country,is_active)
-    VALUES(${company},${literal(customerId)},'registered',${literal(input.address.street)},${literal(input.address.postalCode)},${literal(input.address.city)},'SE',true);`)
+     ${literal(input.address.street)},${literal(input.address.postalCode)},${literal(input.address.city)},'SE');`)
+  // FINDINGS F51: the registered address goes through the product's own writer (staff entry at the August intake).
+  const { recordRegisteredAddress } = await import('@/lib/customers/registeredAddress')
+  await recordRegisteredAddress({ companyId: tenant.companyId, customerId, address: input.address, source: 'staff_entry', actorUserId: tenant.adminUserId,
+    declaredAt: input.authorizedAt, reference: 'e2e_reality_august' })
   const facilities: AugustFacility[] = []
   for (const facility of input.facilities) {
     const siteId = randomUUID(), meteringPointId = randomUUID(), contractId = randomUUID(), gsrn = literal(facility.gsrn)
