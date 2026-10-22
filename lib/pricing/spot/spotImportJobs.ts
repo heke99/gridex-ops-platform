@@ -70,8 +70,12 @@ export async function failSpotImportJob(input: {
   const status = retry ? 'retry_wait' : 'failed'
   const fallbackDelay = Math.min(6 * 60 * 60_000, 15 * 60_000 * 2 ** Math.max(0, input.attemptCount - 1))
   const now = new Date()
+  const delay = Number.isNaN(input.retryAfterMs) ? fallbackDelay : input.retryAfterMs ?? fallbackDelay
+  const nextAttemptMs = now.getTime() + Math.max(60_000, delay)
+  // PostgreSQL timestamptz infinity keeps a positive, unrepresentable delay
+  // deferred. Capping it would allow a retry before the provider permits one.
   const nextAttemptAt = retry
-    ? new Date(now.getTime() + Math.max(60_000, input.retryAfterMs ?? fallbackDelay)).toISOString()
+    ? nextAttemptMs > 8_640_000_000_000_000 ? 'infinity' : new Date(nextAttemptMs).toISOString()
     : null
   const { error } = await supabaseService
     .from('spot_price_import_jobs')

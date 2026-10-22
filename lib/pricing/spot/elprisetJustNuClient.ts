@@ -113,7 +113,9 @@ function retryAfterMs(response: Response): number | null {
   const raw = response.headers.get('retry-after')?.trim()
   if (!raw) return null
   const seconds = Number(raw)
-  if (Number.isFinite(seconds) && seconds >= 0) return seconds * 1_000
+  // Unsigned delay-seconds can overflow Number before multiplication. Preserve
+  // that positive overflow for the durable job instead of retrying early.
+  if ((Number.isFinite(seconds) && seconds >= 0) || /^\d+$/.test(raw)) return seconds * 1_000
   const date = Date.parse(raw)
   return Number.isFinite(date) ? Math.max(0, date - Date.now()) : null
 }
@@ -219,7 +221,9 @@ export async function fetchElprisetJustNuDay(input: {
           ? new SpotPriceProviderError({ message: 'Spotprisanropet nådde sin timeout.', code: 'provider_timeout', retryable: true })
           : new SpotPriceProviderError({ message: error instanceof Error ? error.message : 'Spotprisleverantören kunde inte nås.', code: 'provider_unavailable', retryable: true })
       lastError = normalized
-      if (!normalized.retryable || attempt >= maxAttempts) throw normalized
+      // A 429 belongs to the durable import job, including short/missing delays.
+      // Never keep this invocation asleep or retry before that job is due.
+      if (normalized.code === 'provider_rate_limited' || !normalized.retryable || attempt >= maxAttempts) throw normalized
       await sleep(normalized.retryAfterMs ?? backoffMs(attempt))
     } finally {
       clearTimeout(timeout)
