@@ -422,6 +422,17 @@ Kandidaterna nedan kommer från kodkartläggningen. Var och en bekräftas eller 
 ### F77 Totalbeloppet öresavrundas inte; avrundningskomponenten avrundar energibeloppet — KANDIDAT, låg, kräver beslut
 - **Kod:** `finalizePricingPreview` summerar avrundade rader utan att avrunda totalen (`lib/pricing/pricePreviewBuilder.ts:10-52`). Komponenten `rounding` avrundar baspriset för energi till hela kronor (`priceComponentCalculator.ts:292-295`), och Capway får differensen som `rounding` (`payloadBuilder.ts:141`).
 
+### F86 En fortsatt Z03 hoppade över härledningen av mätmetod och kunddeklaration — RÄTTAD (commit `b138c2e14`), medel
+- **Utfall (scenario F körning 4, på en ren replay med F85 och F51):** F85 är bekräftat rättat, och Z03-byggaren nådde inte längre någon route-spärr. Alla fyra anläggningar hölls i stället med `customer_masterdata_source_held:source_qualified_customer_identity_registered_address_at_requested_time`, och det fanns 0 deklarationer.
+- **Orsak i testet:** F3 anropade byggaren direkt. Det gör automationen aldrig: den kör härledningen för F46/F51 (`deriveRequestedMethodBeforeSwitch`) precis före byggaren (`edielAutomation.ts:286`), och det gör även `startSupplierSwitch.ts:172`. Scenariot gör nu samma anrop och rapporterar deklarationerna.
+- **Samma lucka i produkten:** operatörens åtgärd "fortsätt med Z03" (`continueSwitchEdielAutomation`, anropad från `app/admin/customers/[id]/switch-actions.ts:246`) byggde Z03 utan härledningen. Ett återupptaget byte kunde därför stå kvar som hållet på en deklaration som aldrig härletts, och ett adressbyte slog inte igenom.
+- **Rättning:** den vägen härleder nu källorna före Z03. Z05 och Z09 påverkas inte. Test: `__tests__/switch-z03-source-derivation.test.ts`, 2/2. Det faller utan rättelsen.
+
+### T1 `up.sh` rapporterade en klar värld trots att bygget föll — RÄTTAD (commit `aed922d5`), verklighetsvärlden
+- **Utfall:** typkontrollen i `next build` fick slut på minne (standardgränsen 2 GB; kodbasen har vuxit). Ändå skrev `up.sh` "ready". Appen startade utan bygge, och scenario D föll på "connection refused".
+- **Rättning:** bygget körs med 8 GB heap. `up.sh` avbryter om `.next/BUILD_ID` saknas eller om appen inte svarar på inloggningssidan.
+- **Notering:** `npx tsc --noEmit` behöver också `--max-old-space-size=8192` i den här miljön.
+
 ### F85 Ingen ny elhandlare kan skicka Z03 i produktion: registret materialiserar bara PRODAT Z01 — RÄTTAD i koden (commit `8a02dbb5`), kritisk, verifieras i scenario F efter ombyggnad
 - **Utfall (scenario F körning 3):** den riktiga Z03-byggaren vägrade i produktion med `production_route_profile_not_ready`. Blockerarna var `receiver_ediel_id_missing`, `production_send_locked`, `receiver_certificate_missing`, `security_policy_not_approved` och `missing_receiver_subaddress`. Ingen Z03 har byggts i någon körning av verklighetssimuleringen, varken i scenario A eller F.
 - **Orsak (bekräftad i koden):**
