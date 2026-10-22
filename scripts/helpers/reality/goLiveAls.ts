@@ -17,7 +17,11 @@ export type LiveAlsSupplier = { tenant: LiveTenant; staff: Awaited<ReturnType<ty
   imported: { actionStatus: number; page: string }; verification: Awaited<ReturnType<typeof verifyActorForCustomerFlow>>
   provisioned: Awaited<ReturnType<typeof goLiveOnWebsite>> }
 
-export async function goLiveAlsSupplier(report: Record<string, unknown>, options: { terms?: { bindingMonths: number; noticeMonths: number; renewalMonths: number } } = {}): Promise<LiveAlsSupplier> {
+export async function goLiveAlsSupplier(report: Record<string, unknown>, options: {
+  terms?: { bindingMonths: number; noticeMonths: number; renewalMonths: number }
+  /** The BRP agreement's first day (default today). A supplier serving supply that started earlier had its BRP then. */
+  brpValidFrom?: string
+} = {}): Promise<LiveAlsSupplier> {
   if (configurePlatformMailbox() !== 1) throw Error('platform_mailbox_not_configured')
   // Platform go-live, as Gridex staff do it in /admin/ediel/actors: import Ediel's published actor
   // registry (real Ediel IDs and roles; e-mail rewritten to example.invalid) including the grid owner
@@ -32,7 +36,7 @@ export async function goLiveAlsSupplier(report: Record<string, unknown>, options
     staff = await operatorSession(onboarding.operatorEmail, onboarding.operatorPassword)
     imported = await importActorRegistry(staff, registry.path)
     report.registryImport = imported
-    report.tenantBrp = await chooseTenantBrp(staff, onboarding.companyId, 'Bixia AB', new Date().toISOString().slice(0, 10))
+    report.tenantBrp = await chooseTenantBrp(staff, onboarding.companyId, 'Bixia AB', options.brpValidFrom ?? new Date().toISOString().slice(0, 10))
   } })
   if (!staff) throw Error('operator_session_missing')
   report.marketData = await prepareMarketData()

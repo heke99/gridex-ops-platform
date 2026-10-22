@@ -302,7 +302,7 @@ describe.sequential('reality F — invoices for several facilities with contract
 
   it('F1 the supplier goes live with a 12-month binding offer', async () => {
     expect(LIVE.cronSecret && LIVE.automationUserId).toBeTruthy()
-    const live = await goLiveAlsSupplier(report, { terms: TERMS })
+    const live = await goLiveAlsSupplier(report, { terms: TERMS, brpValidFrom: '2026-08-01' })
     ;({ tenant, gridOwner, apiKey } = live)
     expect(live.provisioned.readinessBlockers, JSON.stringify(live.provisioned.readinessBlockers)).toEqual([])
     expect(apiKey).toBeTruthy()
