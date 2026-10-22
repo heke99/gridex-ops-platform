@@ -1,4 +1,4 @@
-// reality-defects: GOR-02, GOR-01, GOR-03 (scenario I, scripts/reality/chain-i-grid-owner-rejects.test.ts)
+// reality-defects: GOR-02, GOR-01, GOR-03, GOR-04 (scenario I, scripts/reality/chain-i-grid-owner-rejects.test.ts)
 // Rules exercised (specification only, not coverage tags): P-11 ("Sena kvittenser får inte backa ett giltigt
 // affärstillstånd"), ACK-07 (incident instead of reversing a final outcome), ACK-02/ACK-08 (object outcomes).
 //
@@ -99,13 +99,25 @@ describe('negative ACK after the grid owner already confirmed the switch (P-11)'
     expect(port.switchUpdates.filter(update => ['failed', 'rejected'].includes(String(update.status)))).toEqual([])
     // ACK-07: the contradiction is recorded on the switch for an operator, not silently dropped.
     expect(port.switchEvents.some(event => event.eventStatus === 'warning' && /Z04|bekräft/i.test(String(event.message)))).toBe(true)
+    // GOR-04: no operator rejection case and no customer rejection notice for a late negative after the Z04.
+    expect(result.businessRejection).toBe(false)
   })
 
   it('a whole-source negative APERAK still fails a switch that is only waiting (no Z04)', async () => {
     port.switchRow = { id: SWITCH, company_id: COMPANY, status: 'prepared', inbound_z04_message_id: null, external_reference: null }
     port.receipt = receipt({})
-    await processInboundAckMessage({ actorUserId: ACTOR, message: ack(HEADER_REJECTION) })
+    const result = await processInboundAckMessage({ actorUserId: ACTOR, message: ack(HEADER_REJECTION) })
     expect(port.switchUpdates).toEqual([expect.objectContaining({ requestId: SWITCH, status: 'failed' })])
+    // GOR-04: the inbound owner follows this rejection up (operator case, workflow, customer notice).
+    expect(result).toMatchObject({ businessRejection: true, switchRequestId: SWITCH })
+    expect(String(result.businessFailureReason)).toContain('ERC 40/102')
+  })
+
+  it('GOR-04 a negative ACK on an already failed switch is not a second rejection', async () => {
+    port.switchRow = { id: SWITCH, company_id: COMPANY, status: 'failed', inbound_z04_message_id: null, external_reference: null }
+    port.receipt = receipt({})
+    const result = await processInboundAckMessage({ actorUserId: ACTOR, message: ack(HEADER_REJECTION) })
+    expect(result.businessRejection).toBe(false)
   })
 })
 

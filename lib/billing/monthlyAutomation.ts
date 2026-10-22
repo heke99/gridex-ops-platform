@@ -9,6 +9,7 @@ import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
 import { formatErrorMessage } from '@/lib/errors'
 import { parseBillingMonth, previousStockholmBillingMonth } from '@/lib/time/stockholm'
 import { runMeteringMarketDataAutopilot, type MeteringAutopilotResult } from '@/lib/metering/monthlyAutopilot'
+import { regateSupplyEndValues } from '@/lib/billing/supplyEndRegate'
 
 type JsonRecord = Record<string, unknown>
 type MonthlyBillingAutomationStatus = 'running' | 'completed' | 'completed_with_blockers' | 'failed'
@@ -102,11 +103,13 @@ export async function runMonthlyBillingAutomationForCompany(input: { companyId: 
         }
 
         const metering = await runMeteringMarketDataAutopilot({ companyId: input.companyId, billingMonth: periodMonth, actorUserId })
+        // Values held only because their supply was ending are gated again before underlays (FINDINGS H2/H3).
+        const supplyEndRegate = await regateSupplyEndValues({ companyId: input.companyId, billingMonth: periodMonth })
         const underlayResult = await generateBillingUnderlaysForMonth({ companyId: input.companyId, billingMonth: periodMonth, createdBy: actorUserId })
         const preparation = await prepareInvoiceDraftsForReview({ companyId: input.companyId, billingMonth: periodMonth, environment, provider, actorUserId })
         const meteringBlockers = metering.review + metering.stopped + metering.requested
         const status: MonthlyBillingAutomationStatus = meteringBlockers > 0 || preparation.blocked > 0 || preparation.failed > 0 ? 'completed_with_blockers' : 'completed'
-        await finishRun({ companyId: input.companyId, automationRunId, actorUserId, status, totalUnderlays: preparation.underlays, totalBlocked: preparation.blocked + meteringBlockers, totalPrepared: preparation.created, metadata: { source: 'monthly_billing_prepare_only_v3', approval_required: true, metering_autopilot: metering, underlay_result: underlayResult, preparation } })
+        await finishRun({ companyId: input.companyId, automationRunId, actorUserId, status, totalUnderlays: preparation.underlays, totalBlocked: preparation.blocked + meteringBlockers, totalPrepared: preparation.created, metadata: { source: 'monthly_billing_prepare_only_v3', approval_required: true, metering_autopilot: metering, supply_end_regate: supplyEndRegate, underlay_result: underlayResult, preparation } })
         return { companyId: input.companyId, billingMonth: periodMonth, status, automationRunId, metering, underlayResult, preparation, prepared: preparation.created, blocked: preparation.blocked + meteringBlockers, failed: preparation.failed }
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Okänt fel i månatlig fakturaförberedelse.'

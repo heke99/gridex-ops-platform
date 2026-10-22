@@ -17,7 +17,7 @@ import {
 } from "@/lib/billing/consumptionEstimate";
 import { meteringResolutionForContract } from "@/lib/metering/contractMeteringResolution";
 import { ensureHistoricalMeteringRequest } from "@/lib/billing/historyRequest";
-import { supplyPeriodEndExclusiveDate } from "@/lib/billing/supplyPeriodEnd";
+import { BILLED_SUPPLY_PERIOD_STATUSES, supplyPeriodEndExclusiveDate } from "@/lib/billing/supplyPeriodEnd";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -248,7 +248,8 @@ async function loadSupplyPeriods(
       .from("customer_supply_periods")
       .select("*")
       .eq("company_id", companyId)
-      .in("status", ["active", "confirmed_by_grid_owner", "ended"])
+      // 'ending' is still supplied up to its received end; a re-run of an earlier month keeps it (FINDINGS H2).
+      .in("status", [...BILLED_SUPPLY_PERIOD_STATUSES])
       .lte("start_date", endDateInclusive)
       .or(`end_date.is.null,end_date.gte.${startDate}`)
       .order("start_date", { ascending: true })

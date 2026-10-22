@@ -8,6 +8,7 @@ import { validateAutomationUserConfig } from '@/lib/customer-operations/automati
 import { processReadyFacilityLookupEdifactDispatches } from '@/lib/customer-operations/facilityLookupEdifactDispatch'
 import { resumeStuckEdielIntents } from '@/lib/ediel/intent/resumeStuckIntents'
 import { runZ01ResponseSlaWatchdog } from '@/lib/ediel/operations/z01ResponseSlaWatchdog'
+import { runEdielAckSlaMonitor } from '@/lib/ediel/operations/ackSlaMonitor'
 import { expireOverduePowersOfAttorney } from '@/lib/operations/powerOfAttorneyExpiry'
 import { processReadySupplierSwitchActivations } from '@/lib/operations/supplierSwitchActivationSweep'
 import { reconcileCustomerApplicationContinuationJobs } from '@/lib/website/customerApplicationReconciliation'
@@ -129,6 +130,13 @@ async function run(request: NextRequest) {
   const z01ResponseSla = await step('z01ResponseSla', () => runZ01ResponseSlaWatchdog({
     limit: Math.min(requestedLimit * 2, 100),
   }))
+  // Our own sent messages whose CONTRL/APERAK is overdue (ediel_overdue_message_acks_v, e.g. a Z03 the grid
+  // owner never answers): one open ACK SLA event and message event per message for an operator. Escalation
+  // only; it never resends (TR-05).
+  const outboundAckSla = await step('outboundAckSla', () => runEdielAckSlaMonitor({
+    actorUserId,
+    limit: Math.min(requestedLimit * 2, 100),
+  }))
   const inboundAckSla = actorUserId
     ? await step('inboundAckSla', () => checkAckDeadlines({ actorUserId, limit: Math.min(requestedLimit * 2, 100) }))
     : { warning: 0, critical: 0, expired: 0, updated: 0, configurationBlocked: true }
@@ -201,6 +209,7 @@ async function run(request: NextRequest) {
     contractConfirmations,
     customerOperations,
     z01ResponseSla,
+    outboundAckSla,
     inboundAckSla,
     permissionMarketDeadlines,
     supplyMarketDeadlines,

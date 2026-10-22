@@ -55,10 +55,10 @@ const DEFECTS = [
   { id: 'GOR-03', severity: 'medium', status: 'confirmed (native), fixed in lib/ediel/flows/inboundAckProcessing.ts',
     where: 'SQL failure:=family||\' negative whole-source acknowledgement\'; inboundAckProcessing passed it unchanged',
     what: 'The failed switch/outbound/data request carried only "APERAK negative whole-source acknowledgement"; the DSO\'s ERC/FTX code and text were lost to the operator.' },
-  { id: 'GOR-04', severity: 'high', status: 'confirmed (native), open - patch proposed',
+  { id: 'GOR-04', severity: 'high', status: 'confirmed (native), fixed: lib/ediel/flows/ackRejectionFollowUp.ts wired in lib/ediel/flows/inboundProcessing.ts (negative CONTRL: operator case only, no customer notice)',
     where: 'lib/ediel/flows/inboundProcessing.ts:1259-1273 (ACK families return before applyInboundBusinessStateMachine)',
     what: 'A market rejection opens no operator case, does not move the website application to switch_rejected and queues no "supplier_switch.rejected" customer notification; the legacy state machine that does all three is never called for CONTRL/APERAK.' },
-  { id: 'GOR-05', severity: 'high', status: 'confirmed (native + live DB), open - patch proposed (migration)',
+  { id: 'GOR-05', severity: 'high', status: 'confirmed (native + live DB), fixed: migration 20261022160000_ediel_outbound_ack_overdue.sql, outboundAckSla cron step, getSwitchLifecycle "Kvittens försenad"',
     where: 'public.ediel_message_ack_state_v (awaiting_contrl/awaiting_aperak ranked before ack_overdue); lib/ediel/operations/ackSlaMonitor.ts (no caller); lib/ediel/sla/createAckTimers.ts (inbound only); business expectations only Z01/Z13/Z18/Z08',
     what: 'A Z03 the grid owner never answers is never overdue: the overdue view never lists a message still awaiting CONTRL/APERAK, no cron creates an SLA event or task for an outbound Z03, the control tower counts "pending" without a time limit, and the switch lifecycle shows "Väntar på kvittens" forever. (Z01 has its own working watchdog.)' },
   { id: 'GOR-06', severity: 'low', status: 'confirmed (code + native observation), open',
@@ -233,13 +233,14 @@ describe.sequential('reality I — the grid owner rejects or stays silent', () =
     report.I4operator = seen
     expect(seen.status).toBeLessThan(400)
     expect.soft(seen.found.length, 'every failure reason is on /admin/operations/switches').toBe(rows.filter(r => r.state?.failureReason).length)
-    // GOR-04 (open): no operator case and no customer rejection notice.
+    // GOR-04: one operator case and one customer rejection notice per rejected switch.
     const followUp = sql<{ cases: number; notifications: number; workflows: unknown }>(`SELECT jsonb_build_object(
       'cases',(SELECT count(*) FROM public.customer_cases WHERE company_id=${literal(tenant.companyId)} AND supplier_switch_request_id IS NOT NULL),
       'notifications',(SELECT count(*) FROM public.customer_operation_jobs WHERE company_id=${literal(tenant.companyId)} AND job_type='dispatch_lifecycle_notification' AND idempotency_key LIKE '%switch.action_required%'))`)
     report.I4followUp = followUp
-    expect.soft(followUp.cases, 'GOR-04: an operator case per rejected switch').toBeGreaterThanOrEqual(rows.length)
-    expect.soft(followUp.notifications, 'GOR-04: the customer is told the switch was rejected (switch.action_required)').toBeGreaterThanOrEqual(rows.length)
+    const rejected = rows.filter(r => r.state?.status === 'failed').length
+    expect(followUp.cases, 'GOR-04: an operator case per rejected switch').toBe(rejected + (stateOf('S6-contrl-negative', states)[0]?.status === 'failed' ? 1 : 0))
+    expect(followUp.notifications, 'GOR-04: the customer is told the switch was rejected (switch.action_required), once').toBe(rejected)
   })
 
   it('I5 negative CONTRL on a Z03: the switch fails, nothing more is processed or re-sent', async context => {
@@ -251,6 +252,9 @@ describe.sequential('reality I — the grid owner rejects or stays silent', () =
     expect(state.z03[0]).toMatchObject({ status: 'failed', contrl: 'failed' })
     expect(state.periods).toEqual([])
     expect(state.z03).toHaveLength(1)
+    // GOR-04: our own syntax error is an operator case only; the customer is not told.
+    expect(sql(`SELECT jsonb_build_object('cases',(SELECT count(*) FROM public.customer_cases WHERE company_id=${literal(tenant.companyId)} AND supplier_switch_request_id=${literal(state.switchId)} AND case_type='technical_rejection'),
+      'notices',(SELECT count(*) FROM public.customer_operation_jobs WHERE company_id=${literal(tenant.companyId)} AND job_type='dispatch_lifecycle_notification' AND payload->>'supplier_switch_request_id'=${literal(state.switchId)}))`)).toEqual({ cases: 1, notices: 0 })
   })
 
   it('I6 silence: a Z03 and a Z01 nobody answers become overdue for an operator and are never re-sent automatically', async context => {
@@ -264,10 +268,14 @@ describe.sequential('reality I — the grid owner rejects or stays silent', () =
     if (!sentAt) return expect.soft(0, 'S7: the Z03 ack deadline has not passed yet in this run (GRIDEX_REALITY_I3_MINUTES too short)').toBeGreaterThan(0)
     // Never re-sent: one Z03 at the grid owner, no automatic resend (TR-05).
     expect((await gridOwner.state()).received.filter(m => m.code === 'Z03' && m.facility === byKey('S7-silent').gsrn)).toHaveLength(1)
-    // GOR-05 (open): the platform's own overdue view and the switch never say "overdue".
-    expect.soft(state.z03[0].canonical, 'GOR-05: ediel_message_ack_state_v ranks awaiting_contrl before ack_overdue').toBe('ack_overdue')
-    expect.soft(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_ack_sla_events WHERE company_id=${literal(tenant.companyId)} AND ediel_message_id=${literal(state.z03[0].id)}`),
-      'GOR-05: no ACK SLA event / operator task for a silent Z03').toBeGreaterThan(0)
+    // GOR-05: the platform's own overdue view says overdue and the cron's outboundAckSla step opened one SLA event.
+    expect(state.z03[0].canonical).toBe('ack_overdue')
+    expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_ack_sla_events WHERE company_id=${literal(tenant.companyId)} AND ediel_message_id=${literal(state.z03[0].id)} AND status='open'`),
+      'GOR-05: one open ACK SLA event for the silent Z03').toBe(1)
+    // The operator's switch list says the acknowledgement is late (getSwitchLifecycle, GOR-05).
+    const seen = await operatorSeesSwitch(staff, ['Kvittens försenad'])
+    report.I6operator = seen
+    expect(seen.found, seen.excerpt).toEqual(['Kvittens försenad'])
     // The Z01 has its own watchdog (customer_data.response_overdue after 30 minutes).
     if (silentZ01.length && silentZ01[0].z01[0]?.status === 'sent') expect(silentZ01[0].overdueEvents, 'Z01 watchdog escalates the silent Z01').toBeGreaterThan(0)
   })

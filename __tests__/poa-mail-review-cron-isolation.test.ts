@@ -22,6 +22,7 @@ vi.mock('@/lib/customer-operations/automationConfig', () => ({
 vi.mock('@/lib/customer-operations/facilityLookupEdifactDispatch', () => ({ processReadyFacilityLookupEdifactDispatches: stepFn('facilityLookupDispatch') }))
 vi.mock('@/lib/ediel/intent/resumeStuckIntents', () => ({ resumeStuckEdielIntents: stepFn('resumedIntents') }))
 vi.mock('@/lib/ediel/operations/z01ResponseSlaWatchdog', () => ({ runZ01ResponseSlaWatchdog: stepFn('z01ResponseSla') }))
+vi.mock('@/lib/ediel/operations/ackSlaMonitor', () => ({ runEdielAckSlaMonitor: stepFn('outboundAckSla') }))
 vi.mock('@/lib/operations/powerOfAttorneyExpiry', () => ({ expireOverduePowersOfAttorney: stepFn('poaExpiry') }))
 vi.mock('@/lib/operations/supplierSwitchActivationSweep', () => ({ processReadySupplierSwitchActivations: stepFn('supplierSwitchActivations') }))
 vi.mock('@/lib/website/customerApplicationReconciliation', () => ({ reconcileCustomerApplicationContinuationJobs: stepFn('customerApplicationReconciliation') }))
@@ -38,7 +39,7 @@ import { POST } from '@/app/api/internal/customer-operations/cron/route'
 
 const ALL = [
   'exactAddressResolution', 'legacyFacilityRequestReconciliation', 'customerApplicationReconciliation', 'contractConfirmations',
-  'customerOperations', 'z01ResponseSla', 'inboundAckSla', 'permissionMarketDeadlines', 'supplyMarketDeadlines',
+  'customerOperations', 'z01ResponseSla', 'outboundAckSla', 'inboundAckSla', 'permissionMarketDeadlines', 'supplyMarketDeadlines',
   'businessExpectations', 'facilityLookupDispatch', 'resumedIntents', 'poaExpiry', 'manualGridOwnerFollowUps', 'supplierSwitchActivations', 'completedWitnessDisposition', 'completedParentDisposition',
 ]
 

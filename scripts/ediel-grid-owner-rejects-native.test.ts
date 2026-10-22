@@ -1,4 +1,4 @@
-// reality-defects: GOR-01 (fixed), GOR-03 (fixed), GOR-04 (open), GOR-05 (open) (scenario I, scripts/reality/chain-i-grid-owner-rejects.test.ts)
+// reality-defects: GOR-01, GOR-03, GOR-04, GOR-05 (all fixed) (scenario I, scripts/reality/chain-i-grid-owner-rejects.test.ts)
 // Rules exercised (specification only, not coverage tags): ACK-02, ACK-06, ACK-07, ACK-09, P-11, TR-05, ENV-04.
 //
 // Native proofs on the owned local Supabase: a real sent Z03 from the platform's own builder and transport
@@ -7,9 +7,7 @@
 // inbound-mail cron runs. Counterparty bytes are synthetic fixtures (scripts/helpers/reality/rejectsWire.ts).
 // Nothing is written to market state directly; the only clock fixture is GOR-05's ack deadline in the past.
 //
-// it.fails = an OPEN defect: the body asserts the expected behaviour and fails today. When the defect is fixed
-// the test turns red and must be flipped to it(...). GOR_SHOW_DEFECTS=1 runs them as plain tests, so the exact
-// failing assertion (and not a setup error) is visible.
+// Every GOR test asserts the expected behaviour; each failed before its fix (recorded in the scenario I report).
 import { randomUUID } from 'node:crypto'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 const smtp = vi.hoisted(() => vi.fn())
@@ -22,13 +20,14 @@ import { getEdielMessageById } from '@/lib/ediel/db'
 import { resolveCanonicalRuntimeDecisionWithRegistry } from '@/lib/ediel/core/runtimeDecision'
 import { recordReceivedSourceValidation } from '@/lib/ediel/core/receivedSourceValidationLedger'
 import { processInboundAckMessage } from '@/lib/ediel/flows/inboundAckProcessing'
+import { processInboundEdielMessage } from '@/lib/ediel/flows/inboundProcessing'
+import { runEdielAckSlaMonitor } from '@/lib/ediel/operations/ackSlaMonitor'
 import { prepareAndQueueEdielZ03 } from '@/lib/ediel/flows/prodatSwitch'
 import { checkAckDeadlines } from '@/lib/ediel/sla/checkAckDeadlines'
 import { sweepEdielBusinessExpectations } from '@/lib/ediel/operations/businessExpectationSweep'
 import { contrlFor, headerRejectionAperakFor, objectRejectionAperakFor, readReceivedRequest, syntaxRejectionContrlFor, REJECTION_CODES, type RejectionReason } from './helpers/reality/rejectsWire'
 
 type Fixture = Awaited<ReturnType<typeof seedNormalSwitchNativeFixture>>
-const openDefect = process.env.GOR_SHOW_DEFECTS ? it : it.fails
 afterEach(() => { smtp.mockReset(); vi.unstubAllEnvs() })
 function configureSmtp() {
   for (const [key, value] of Object.entries({ EDIEL_SHARED_MAILBOX_ADDRESS: 'synthetic@example.invalid', EDIEL_APP_DKIM_ENABLED: 'false', EMAIL_PROVIDER: 'resend',
@@ -54,6 +53,28 @@ async function receive(f: Fixture, raw: string) {
   expect(await recordReceivedSourceValidation({ original: message, validated: message, resolvedCompanyId: f.companyId, decision })).toMatchObject({ status: 'recorded' })
   const applied = await processInboundAckMessage({ actorUserId: f.actorUserId, message })
   return { message, applied }
+}
+/**
+ * The same file through the whole inbound owner the inbound-mail cron runs (processInboundEdielMessage): runtime
+ * decision, validation ledger, ACK owner and the rejection follow-up (GOR-04). Returns the stored ACK row.
+ */
+async function receiveInbound(f: Fixture, raw: string) {
+  const parsed = parseEdifactPayload(raw)
+  const { inboundEmailMessageId } = receiveUtiltsRetry(sql, literal, { companyId: f.companyId, actorUserId: f.actorUserId, raw, parsed })
+  const parseResultId = await createParseResult({ companyId: f.companyId, inboundEmailMessageId, parsed })
+  const id = await createInboundEdielMessage({ companyId: f.companyId, actorUserId: f.actorUserId, environment: 'test', inboundEmailMessageId, parseResultId, parsed })
+  expect(id).toBeTruthy()
+  await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: id! })
+  return (await getEdielMessageById(id!))!
+}
+/** Operator cases and customer rejection notices of the fixture tenant (GOR-04). */
+function followUps(f: Fixture) {
+  const c = literal(f.companyId)
+  return sql<{ business: number; technical: number; notices: number; caseSwitches: string[] }>(`SELECT jsonb_build_object(
+    'business',(SELECT count(*) FROM public.customer_cases WHERE company_id=${c} AND case_type='business_rejection'),
+    'technical',(SELECT count(*) FROM public.customer_cases WHERE company_id=${c} AND case_type='technical_rejection'),
+    'caseSwitches',(SELECT coalesce(jsonb_agg(DISTINCT supplier_switch_request_id),'[]') FROM public.customer_cases WHERE company_id=${c} AND case_type IN('business_rejection','technical_rejection')),
+    'notices',(SELECT count(*) FROM public.customer_operation_jobs WHERE company_id=${c} AND job_type='dispatch_lifecycle_notification' AND idempotency_key LIKE '%switch.action_required%'))`)
 }
 type Observed = {
   switch: { status: string; failure_reason: string | null; failed_at: string | null; z04: boolean }
@@ -144,19 +165,41 @@ describe('grid owner rejects a sent Z03 — whole message (BGM 27) and syntax (n
     expect(after.switch.failure_reason ?? '').toMatch(/102|Meddelandehuvudet kunde inte läsas/)
   }, 240_000)
 
-  // GOR-04 (open): a market rejection creates no operator case and no customer communication. The inbound
-  // business state machine (customer case, website workflow 'switch_rejected', 'supplier_switch.rejected'
-  // notification) never runs for CONTRL/APERAK (lib/ediel/flows/inboundProcessing.ts:1259-1273).
-  openDefect('GOR-04 a whole-message rejection opens an operator case and queues the customer rejection notice', async () => {
+  // GOR-04 (fixed): a market rejection used to create no operator case and no customer communication; the inbound
+  // business state machine never ran for CONTRL/APERAK (lib/ediel/flows/inboundProcessing.ts ACK branch).
+  it('GOR-04 a whole-message rejection opens one operator case and queues one customer rejection notice, even when the ACK is processed again', async () => {
     const f = await sentZ03()
-    await receive(f, contrlFor(f.originalZ03.raw_payload!, 'positive'))
-    const since = dbNow(), before = observe(f)
-    await receive(f, headerRejectionAperakFor(f.originalZ03.raw_payload!))
-    const after = observe(f), signals = operatorSignals(f, since)
-    console.info('GOR-04', JSON.stringify({ signals, notifications: { before: before.notifications, after: after.notifications } }))
-    expect(after.switch.status).toBe('failed')
-    expect(signals.cases + signals.events).toBeGreaterThan(0)
-    expect(after.notifications).toBeGreaterThan(before.notifications)
+    await receiveInbound(f, contrlFor(f.originalZ03.raw_payload!, 'positive'))
+    expect(followUps(f)).toMatchObject({ business: 0, technical: 0, notices: 0 })
+    const ack = await receiveInbound(f, headerRejectionAperakFor(f.originalZ03.raw_payload!))
+    const once = followUps(f)
+    console.info('GOR-04 BGM27', JSON.stringify({ once, switch: observe(f).switch }))
+    expect(observe(f).switch.status).toBe('failed')
+    expect(once).toEqual({ business: 1, technical: 0, notices: 1, caseSwitches: [f.switchId] })
+    // The inbound owner runs again on the same stored ACK (a cron re-visit): no second case or notice.
+    await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: ack.id }).catch(() => null)
+    expect(followUps(f)).toEqual(once)
+  }, 240_000)
+
+  it('GOR-04 a business rejection of the only object (BGM 34) opens one case and one customer notice', async () => {
+    const f = await sentZ03()
+    await receiveInbound(f, contrlFor(f.originalZ03.raw_payload!, 'positive'))
+    await receiveInbound(f, objectRejectionAperakFor(f.originalZ03.raw_payload!, 'unknown_gsrn'))
+    const after = followUps(f)
+    console.info('GOR-04 BGM34', JSON.stringify({ after, switch: observe(f).switch }))
+    expect(observe(f).switch).toMatchObject({ status: 'failed' })
+    expect(after).toEqual({ business: 1, technical: 0, notices: 1, caseSwitches: [f.switchId] })
+  }, 240_000)
+
+  it('GOR-04 a negative CONTRL (our own syntax error) opens an operator case only; the customer is not notified', async () => {
+    const f = await sentZ03()
+    const ack = await receiveInbound(f, syntaxRejectionContrlFor(f.originalZ03.raw_payload!))
+    const once = followUps(f)
+    console.info('GOR-04 CONTRL', JSON.stringify({ once, switch: observe(f).switch }))
+    expect(observe(f).switch.status).toBe('failed')
+    expect(once).toEqual({ business: 0, technical: 1, notices: 0, caseSwitches: [f.switchId] })
+    await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: ack.id }).catch(() => null)
+    expect(followUps(f)).toEqual(once)
   }, 240_000)
 
   it('negative CONTRL (UCI action 4) fails the switch; no APERAK/Z04 can follow and nothing is re-sent', async () => {
@@ -188,8 +231,9 @@ describe('duplicate and silent grid owner', () => {
     expect(twice.switchEvents.length).toBe(once.switchEvents.length)
   }, 240_000)
 
-  // GOR-05 (open): a Z03 that the grid owner never answers is never surfaced as overdue.
-  openDefect('GOR-05 a sent Z03 without CONTRL/APERAK past its deadline is overdue and reaches an operator', async () => {
+  // GOR-05 (fixed by migration 20261022160000 + the outboundAckSla cron step): a Z03 the grid owner never answers
+  // used to stay awaiting_contrl forever and was never escalated.
+  it('GOR-05 a sent Z03 without CONTRL/APERAK past its deadline is overdue and reaches an operator', async () => {
     const f = await sentZ03()
     const facts = readReceivedRequest(f.originalZ03.raw_payload!)
     expect(facts.code).toBe('Z03')
@@ -199,10 +243,16 @@ describe('duplicate and silent grid owner', () => {
     const since = dbNow()
     const deadlines = await checkAckDeadlines({ actorUserId: f.actorUserId, companyId: f.companyId })
     const sweep = await sweepEdielBusinessExpectations({ actorUserId: f.actorUserId })
+    // The customer-operations cron's outboundAckSla step, scoped to the fixture tenant.
+    const monitor = await runEdielAckSlaMonitor({ companyId: f.companyId, actorUserId: f.actorUserId })
+    const again = await runEdielAckSlaMonitor({ companyId: f.companyId, actorUserId: f.actorUserId })
     const after = observe(f), signals = operatorSignals(f, since)
-    console.info('GOR-05', JSON.stringify({ deadlines, sweep: { scopes: sweep.scopes, observed: sweep.observed, nextActions: sweep.nextActions.length }, z03: after.z03, signals }))
+    console.info('GOR-05', JSON.stringify({ deadlines, monitor, again, sweep: { scopes: sweep.scopes, observed: sweep.observed, nextActions: sweep.nextActions.length }, z03: after.z03, signals }))
+    // One open SLA event per overdue message; the next cron run does not repeat it. Never a resend.
+    expect(again.created).toBe(0)
+    expect(observe(f).z03Count).toBe(1)
     expect(after.z03.canonical).toBe('ack_overdue')
     expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_overdue_message_acks_v WHERE id=${literal(f.originalZ03.id)}`)).toBe(1)
-    expect(signals.sla + signals.events + signals.cases).toBeGreaterThan(0)
+    expect(signals.sla).toBe(1)
   }, 240_000)
 })

@@ -12,6 +12,7 @@ vi.mock('@/lib/platform/schemaReadiness', () => ({ assertPlatformSchemaReady: as
 vi.mock('@/lib/billing/invoiceReadiness', () => ({ getBillingPeriodLock: async () => null }))
 vi.mock('@/lib/metering/monthlyAutopilot', () => ({ runMeteringMarketDataAutopilot: async () => ({ review: 0, stopped: 0, requested: 0 }) }))
 vi.mock('@/lib/billing/underlayEngine', () => ({ generateBillingUnderlaysForMonth: async () => ({ created: 0 }) }))
+vi.mock('@/lib/billing/supplyEndRegate', () => ({ regateSupplyEndValues: async () => ({ candidates: 0, evaluated: 0, billable: 0, failed: 0, errors: [] }) }))
 vi.mock('@/lib/billing/invoiceReviewPrepare', () => ({ prepareInvoiceDraftsForReview: async (input: { companyId: string }) => { io.prepared.push(input.companyId); return { underlays: 1, created: 1, blocked: 0, failed: 0 } } }))
 vi.mock('@/lib/automation/locks', async () => {
   const actual = await vi.importActual<typeof import('@/lib/automation/locks')>('@/lib/automation/locks')

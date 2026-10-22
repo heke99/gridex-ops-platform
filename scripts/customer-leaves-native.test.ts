@@ -6,7 +6,6 @@
 // end_date = permission_date_v1(DTM+93), market_end_at = permission_time_v1(DTM+93), status ending|ended;
 // the reality scenario H drives the same state through real inbound messages). Synthetic data only.
 //
-// `it.fails` = defect CONFIRMED and still open; it turns red when fixed (then make it `it`).
 import { randomUUID } from 'node:crypto'
 import { describe, expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
@@ -82,7 +81,7 @@ describe('monthly billing around a received end of supply (scenario H)', () => {
     expect(november.results).toHaveLength(1)
   })
 
-  it.fails('H2: a September re-run after the Z05 arrived still covers the customer (today: the "ending" period is invisible)', async () => {
+  it('H2: a September re-run after the Z05 arrived still covers the customer', async () => {
     const company = tenant('ending'), a = customer(company, 'Avslutas')
     const mp = point(company, a)
     period(company, a, mp.id, { start_date: '2026-08-01', market_start_at: marketMinute('202608010000'), ...z05End('202611010000', 'ending') })

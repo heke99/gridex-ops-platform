@@ -1,7 +1,7 @@
 import { stockholmLocalToUtc } from "@/lib/time/stockholm";
 import { isCanonicalUtiltsDecimal } from '@/lib/ediel/utilts/exactDecimal';
 import type { BillingSourceBasis } from './sourceBasis';
-import { supplyPeriodLastSuppliedDate } from './supplyPeriodEnd';
+import { BILLED_SUPPLY_PERIOD_STATUSES, contractEndedBySupplyPeriod, supplyPeriodLastSuppliedDate } from './supplyPeriodEnd';
 
 export type BillingGateStatus =
   "eligible" | "pending_match" | "blocked" | "conflict";
@@ -128,7 +128,8 @@ const ESTIMATED_QUALITY = new Set([
   "e",
   "p",
 ]);
-const ACTIVE_SUPPLY_STATES = new Set(["active", "confirmed_by_grid_owner", "ended"]);
+// A received end leaves the period 'ending' until the end instant; it is still supplied until then (FINDINGS H2).
+const ACTIVE_SUPPLY_STATES = new Set<string>(BILLED_SUPPLY_PERIOD_STATUSES);
 const ACTIVE_CONTRACT_STATES = new Set(["signed", "active"]);
 const ACCEPTED_SOURCE_MESSAGE_STATES = new Set([
   "parsed",
@@ -260,10 +261,10 @@ export function evaluateBillingGate(input: {
     );
   if (supplyCount === 1) {
     const supplyStatus = (text(supply.status) ?? "").toLowerCase();
-    // An ended period is billable only up to a known end date.
+    // An ending or ended period is billable only up to a known end date.
     if (
       !ACTIVE_SUPPLY_STATES.has(supplyStatus) ||
-      (supplyStatus === "ended" && !text(supply.end_date))
+      ((supplyStatus === "ended" || supplyStatus === "ending") && !text(supply.end_date))
     ) {
       reasons.push(
         reason(
@@ -316,8 +317,11 @@ export function evaluateBillingGate(input: {
       ),
     );
   if (contractCount === 1) {
+    // A contract terminated by exactly this supply end still carries the period up to that end (FINDINGS H3);
+    // the supply period's own bounds (checked above) keep every value after the end out.
     if (
-      !ACTIVE_CONTRACT_STATES.has((text(contract.status) ?? "").toLowerCase())
+      !ACTIVE_CONTRACT_STATES.has((text(contract.status) ?? "").toLowerCase()) &&
+      !(supplyCount === 1 && contractEndedBySupplyPeriod(contract, supply))
     ) {
       reasons.push(
         reason("contract_not_active", "Avtalet är inte signerat eller aktivt."),

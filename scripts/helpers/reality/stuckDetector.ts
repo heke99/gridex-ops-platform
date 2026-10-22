@@ -46,6 +46,9 @@ ${[
     WHERE ${scope('x.company_id')} AND x.status IN ('blocked','blocked_tenant_state') AND x.last_error IS DISTINCT FROM 'active_ediel_send_lock'`, 'x.updated_at'),
     rule('ediel_outbox', 'delivery_uncertain', 'needs_operator', `public.ediel_outbox x
     WHERE ${scope('x.company_id')} AND x.status='delivery_uncertain'`, 'x.updated_at'),
+    // GOR-05: our sent message whose CONTRL/APERAK never came (a silent counterparty). Waits for a person; never resent.
+    rule('ediel_messages', 'outbound_ack_overdue', 'needs_operator', `public.ediel_overdue_message_acks_v x
+    WHERE ${scope('x.company_id')} AND x.direction='outbound' AND x.message_sent_at IS NOT NULL AND x.ack_due_at < now() - ${grace}`, 'x.ack_due_at'),
     ...(['tenant_email_outbox', 'manual_email_outbox'] as const).flatMap(table => [
       rule(table, 'due_not_sent', 'stuck', `public.${table} x
     WHERE ${scope('x.company_id')} AND x.status IN ('queued','processing','sending') AND coalesce(x.next_attempt_at, x.created_at) < now() - ${grace}

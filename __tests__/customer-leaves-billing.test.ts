@@ -4,9 +4,7 @@
 // sets end_date = permission_date_v1(DTM+93), market_end_at = permission_time_v1(DTM+93) (fixed +01:00) and
 // status 'ending' (end in the future) or 'ended'; its trigger gridex_supply_end_followup_v1 terminates the
 // contract at once (status 'terminated', termination_reason 'supply_end', ended_at = the end date).
-//
-// `it.fails` marks a defect that is CONFIRMED and still open (it passes while the defect exists). When the
-// proposed fix lands, the test fails: turn it into `it` then.
+// H2/H3 are fixed together with migration 20261022150000 (database gate); the boundaries stay strict.
 import { describe, expect, it } from 'vitest'
 import { evaluateBillingGate } from '@/lib/billing/billingGate'
 import { evaluateBillingReadinessCore, type BillingReadinessInput } from '@/lib/billing/billingReadiness'
@@ -67,17 +65,26 @@ describe('supply period end semantics (H1)', () => {
   })
 })
 
-describe('the remaining supply after a Z05 arrives (H2, H3: confirmed, open)', () => {
+describe('the remaining supply after a Z05 arrives (H2, H3)', () => {
   // The Z05 for a 1 November switch arrives in October; the period is 'ending' until 1 November and the
   // grid owner keeps sending the October days. Each value is gated once, at reception.
-  it.fails('H2: an October value of an "ending" period is billable (today: supply_period_not_active)', () => {
+  it('H2: an October value of an "ending" period is billable', () => {
     const result = gate({ at: quarter('2026-10-20T12:00:00', '+02:00'), supply: z05Period('ending'), contract: signed })
     expect(codes(result)).not.toContain('supply_period_not_active')
   })
 
-  it.fails('H3: the contract ended by this very supply end still carries its last supplied days (today: contract_not_active)', () => {
+  it('H3: the contract ended by this very supply end still carries its last supplied days', () => {
     const result = gate({ at: quarter('2026-10-31T23:45:00', '+01:00'), supply: z05Period('ended'), contract: terminated })
     expect(codes(result)).not.toContain('contract_not_active')
+  })
+
+  it('H2/H3 boundaries: nothing after the end, no other termination, no ending period without an end date', () => {
+    expect(codes(gate({ at: quarter('2026-11-01T00:00:00', '+01:00'), supply: z05Period('ending'), contract: terminated }))).toContain('supply_period_does_not_cover_value')
+    expect(codes(gate({ at: quarter('2026-10-20T12:00:00', '+02:00'), supply: z05Period('ended'), contract: { ...terminated, termination_reason: 'customer_request' } }))).toContain('contract_not_active')
+    expect(codes(gate({ at: quarter('2026-10-20T12:00:00', '+02:00'), supply: z05Period('ended'), contract: { ...terminated, ended_at: '2026-12-01T00:00:00+00:00' } }))).toContain('contract_not_active')
+    expect(codes(gate({ at: quarter('2026-10-20T12:00:00', '+02:00'), supply: z05Period('ended'), contract: { ...signed, status: 'cancelled' } }))).toContain('contract_not_active')
+    expect(codes(gate({ at: quarter('2026-10-20T12:00:00', '+02:00'), supply: { ...z05Period('ending'), end_date: null }, contract: signed }))).toContain('supply_period_not_active')
+    expect(codes(gate({ at: quarter('2026-10-20T12:00:00', '+02:00'), supply: { ...z05Period('ended'), status: 'cancelled' }, contract: signed }))).toContain('supply_period_not_active')
   })
 
   const readiness = (overrides: Partial<BillingReadinessInput>): BillingReadinessInput => ({
@@ -99,12 +106,22 @@ describe('the remaining supply after a Z05 arrives (H2, H3: confirmed, open)', (
     expect(evaluateBillingReadinessCore(readiness({})).blockers).toEqual([])
   })
 
-  it.fails('H3: the final invoice (October) is prepared after the switch away (today: contract_not_approved for "terminated")', () => {
+  it('H3: the final invoice (October) is prepared after the switch away', () => {
     const result = evaluateBillingReadinessCore(readiness({ contract: { ...readiness({}).contract!, status: 'terminated', termination_reason: 'supply_end', ended_at: '2026-11-01T00:00:00+00:00' } as BillingReadinessInput['contract'] }))
     expect(result.blockers.map(blocker => blocker.code)).not.toContain('contract_not_approved')
   })
 
-  it.fails('H2: September is still billable after the Z05 arrived in October (today: delivery_not_started for "ending")', () => {
+  it('H3 boundary: a contract terminated for another reason never makes the final month billable', () => {
+    const result = evaluateBillingReadinessCore(readiness({ contract: { ...readiness({}).contract!, status: 'terminated', termination_reason: 'customer_request', ended_at: '2026-11-01T00:00:00+00:00' } as BillingReadinessInput['contract'] }))
+    expect(result.blockers.map(blocker => blocker.code)).toContain('contract_not_approved')
+  })
+
+  it('H1: the month after the Z05 end has no supply in readiness', () => {
+    const result = evaluateBillingReadinessCore(readiness({ billingPeriod: { start: '2026-11-01', end: '2026-11-30' } }))
+    expect(result.blockers.map(blocker => blocker.code)).toContain('delivery_not_started')
+  })
+
+  it('H2: September is still billable after the Z05 arrived in October', () => {
     const result = evaluateBillingReadinessCore(readiness({ supplyPeriods: [{ ...z05Period('ending'), contract_id: 'ct1' }], billingPeriod: { start: '2026-09-01', end: '2026-09-30' } }))
     expect(result.blockers.map(blocker => blocker.code)).not.toContain('delivery_not_started')
   })

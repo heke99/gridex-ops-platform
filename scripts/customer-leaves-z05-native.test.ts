@@ -56,7 +56,9 @@ it('control: an independent Z05 L (switch away) ends our period; the month after
  expect(month.results).toEqual([])
 },300000)
 
-it.fails('H7: an independent Z05 LK (our customer moved out, a new customer moved in elsewhere) ends our period',async()=>{
+it('H7: an independent Z05 LK (our customer moved out, a new customer moved in elsewhere) ends our period (20261022140000)',async()=>{
  const {f,after}=await receiveIndependentEnd('LK')
- expect(after.period,JSON.stringify(after.events)).toMatchObject({source_end_message_id:f.endSourceId})
+ expect(after.period,JSON.stringify(after.events)).toMatchObject({source_end_message_id:f.endSourceId,end_date:f.nationalEndPlan.endDate})
+ expect(after.contract).toMatchObject({status:'terminated',reason:'supply_end'})
+ expect(after.tasks).toContain('final_invoice_pending')
 },300000)

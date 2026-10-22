@@ -4,7 +4,7 @@ import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
 import { stockholmDateForInstant } from '@/lib/time/stockholm'
 import { evaluateBillingGate, type BillingGateStatus } from '@/lib/billing/billingGate'
 import { loadQualifiedBillingValues } from './sourceBasis'
-import { supplyPeriodLastSuppliedDate } from './supplyPeriodEnd'
+import { BILLED_SUPPLY_PERIOD_STATUSES, supplyPeriodLastSuppliedDate } from './supplyPeriodEnd'
 
 type CanonicalBillingStatus = 'pending_match' | 'billable' | 'blocked' | 'conflict'
 
@@ -122,7 +122,8 @@ export async function updateMeterValueBillingReadiness(params: {
     .select('*')
     .eq('company_id', companyId)
     .eq('metering_point_id', meteringPointId)
-    .in('status', ['active', 'confirmed_by_grid_owner', 'ended'])
+    // 'ending' is still supplied up to its received end (FINDINGS H2).
+    .in('status', [...BILLED_SUPPLY_PERIOD_STATUSES])
     .lte('start_date', periodStart)
     .or(`end_date.is.null,end_date.gte.${periodEnd}`)
     .limit(3)

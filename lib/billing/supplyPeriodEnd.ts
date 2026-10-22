@@ -49,3 +49,36 @@ export function supplyPeriodLastSuppliedDate(period: PeriodEnd): string | null {
   const exclusive = supplyPeriodEndExclusiveDate(period)
   return exclusive ? addDays(exclusive, -1) : null
 }
+
+/**
+ * Supply period statuses billing reads. 'ending' is a period whose received market end lies ahead; it is
+ * still supplied up to that end (FINDINGS H2). 'ending' and 'ended' bill only up to their end date.
+ */
+export const BILLED_SUPPLY_PERIOD_STATUSES = ['active', 'confirmed_by_grid_owner', 'ending', 'ended'] as const
+
+type ContractEnd = { status?: unknown; termination_reason?: unknown; ended_at?: unknown }
+
+/** The Stockholm civil date of an instant (a plain date stays as it is). */
+function stockholmDate(value: string) {
+  if (ISO_DATE.test(value)) return value
+  const instant = new Date(value)
+  if (!Number.isFinite(instant.getTime())) return null
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Stockholm', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(instant)
+  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find(entry => entry.type === type)?.value ?? ''
+  return `${part('year')}-${part('month')}-${part('day')}`
+}
+
+/**
+ * A contract that the supply-end follow-up (gridex_supply_end_followup_v1) terminated because exactly this
+ * period ended still carries the period up to that end (FINDINGS H3). Same rule as the database's qualified
+ * supply basis (20261002235300) and billing gate (20261022150000): status 'terminated', termination_reason
+ * 'supply_end' and ended_at on the period's end date (UTC or Stockholm date). Any other terminated,
+ * cancelled or expired contract is refused.
+ */
+export function contractEndedBySupplyPeriod(contract: ContractEnd | null | undefined, period: { end_date?: unknown } | null | undefined): boolean {
+  if (!contract || !period || text(contract.status)?.toLowerCase() !== 'terminated' || text(contract.termination_reason) !== 'supply_end') return false
+  const endDate = text(period.end_date)?.slice(0, 10), endedAt = text(contract.ended_at)
+  if (!endDate || !endedAt) return false
+  const utc = Number.isFinite(Date.parse(endedAt)) && !ISO_DATE.test(endedAt) ? new Date(endedAt).toISOString().slice(0, 10) : endedAt.slice(0, 10)
+  return utc === endDate || stockholmDate(endedAt) === endDate
+}

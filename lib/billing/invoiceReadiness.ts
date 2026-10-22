@@ -466,7 +466,7 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
   if (contractIds.length > 0) {
     const contractResult = await supabaseService
       .from('customer_contracts')
-      .select('id,company_id,customer_id,status,customer_site_id,site_id,contract_price_snapshot_id,price_area_used,price_snapshot,metadata,invoice_recipient,invoice_email,invoice_reference,billing_street,billing_postal_code,billing_city,billing_address_same_as_site,vat_rate,export_blocked,export_block_reason,billing_blocker_reasons')
+      .select('id,company_id,customer_id,status,customer_site_id,site_id,contract_price_snapshot_id,price_area_used,price_snapshot,metadata,invoice_recipient,invoice_email,invoice_reference,billing_street,billing_postal_code,billing_city,billing_address_same_as_site,vat_rate,export_blocked,export_block_reason,billing_blocker_reasons,termination_reason,ended_at')
       .eq('company_id', input.companyId)
       .in('id', contractIds)
     if (contractResult.error) throw contractResult.error
@@ -529,7 +529,7 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
   if (meteringPointIds.length > 0) {
     const supplyResult = await supabaseService
       .from('customer_supply_periods')
-      .select('id,company_id,customer_id,metering_point_id,contract_id,customer_contract_id,status,start_date,end_date,actual_start_date,actual_end_date')
+      .select('id,company_id,customer_id,metering_point_id,contract_id,customer_contract_id,status,start_date,end_date,actual_start_date,actual_end_date,market_end_at')
       .eq('company_id', input.companyId)
       .in('metering_point_id', meteringPointIds)
       .lte('start_date', bounds.end)

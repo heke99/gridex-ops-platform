@@ -52,6 +52,11 @@ type AckProcessResult = {
   outboundRequestId: string | null;
   switchRequestId: string | null;
   gridOwnerDataRequestId: string | null;
+  /** GOR-04: this call moved a waiting switch / grid-owner data request to failed on a negative CONTRL/APERAK.
+   * False on replays, positive ACKs and a late negative after the Z04 (P-11). */
+  businessRejection?: boolean;
+  /** The failure reason written on the request, with the counterparty's ERC/FTX when present. */
+  businessFailureReason?: string | null;
 };
 
 const ACK_FAMILIES: readonly InboundAckFamily[] = [
@@ -415,6 +420,7 @@ async function syncSwitchFromInboundAck(params: {
   outcome: InboundAckOutcome;
   finalAckReached: boolean;
   failureReason: string | null;
+  onRejected?: () => void;
 }) {
   const switchRequestId = resolveSwitchRequestId({
     sourceMessage: params.sourceMessage,
@@ -458,6 +464,7 @@ async function syncSwitchFromInboundAck(params: {
   }
 
   if (params.outcome === "negative") {
+    const wasWaiting = !["failed", "rejected"].includes(current.status);
     const updated = await updateSupplierSwitchRequestStatus(supabase, {
       requestId: current.id,
       status: "failed",
@@ -483,6 +490,7 @@ async function syncSwitchFromInboundAck(params: {
       },
     });
 
+    if (wasWaiting) params.onRejected?.();
     return updated;
   }
 
@@ -544,6 +552,7 @@ async function syncGridOwnerDataRequestFromInboundAck(params: {
   outcome: InboundAckOutcome;
   finalAckReached: boolean;
   failureReason: string | null;
+  onRejected?: () => void;
 }): Promise<GridOwnerDataRequestRow | null> {
   const requestId = resolveGridOwnerDataRequestId({
     sourceMessage: params.sourceMessage,
@@ -556,6 +565,7 @@ async function syncGridOwnerDataRequestFromInboundAck(params: {
   if (!current) return null;
 
   if (params.outcome === "negative") {
+    if (current.status !== "failed") params.onRejected?.();
     return updateGridOwnerDataRequestStatus({
       actorUserId: params.actorUserId,
       requestId: current.id,
@@ -721,6 +731,9 @@ export async function processInboundAckMessage(params: {
     failureReason: businessFailureReason,
   }) : null;
 
+  // GOR-04: set only when this call moved a waiting request to failed (never on a late negative after Z04).
+  let businessRejection = false;
+  const onRejected = () => { if (ackMessage.message_family === "CONTRL" || ackMessage.message_family === "APERAK") businessRejection = true; };
   const switchResult = requestTransition ? await syncSwitchFromInboundAck({
     actorUserId,
     sourceMessage,
@@ -729,6 +742,7 @@ export async function processInboundAckMessage(params: {
     outcome,
     finalAckReached: sourcePatch.finalAckReached,
     failureReason: businessFailureReason,
+    onRejected,
   }) : null;
 
   const gridOwnerDataRequest = requestTransition ? await syncGridOwnerDataRequestFromInboundAck({
@@ -739,6 +753,7 @@ export async function processInboundAckMessage(params: {
     outcome,
     finalAckReached: sourcePatch.finalAckReached,
     failureReason: businessFailureReason,
+    onRejected,
   }) : null;
 
   const customerCase = allowBusinessTransition ? await syncCustomerCaseCancellationAck({
@@ -811,5 +826,7 @@ export async function processInboundAckMessage(params: {
     switchRequestId: switchResult?.id ?? sourceMessage.switch_request_id,
     gridOwnerDataRequestId:
       gridOwnerDataRequest?.id ?? sourceMessage.grid_owner_data_request_id,
+    businessRejection,
+    businessFailureReason,
   };
 }

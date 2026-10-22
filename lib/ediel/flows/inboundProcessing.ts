@@ -65,6 +65,7 @@ import {
 import { createCanonicalAckMessage } from "@/lib/ediel/core/kernel";
 import { processInboundUtiltsMessage } from "@/lib/ediel/flows/utiltsDataRequest";
 import { processInboundAckMessage } from "@/lib/ediel/flows/inboundAckProcessing";
+import { followUpAckRejection } from "@/lib/ediel/flows/ackRejectionFollowUp";
 import { syncActorTestingForMessage } from "@/lib/ediel/actorTestingEngine";
 import {
   resolveCanonicalRuntimeDecisionWithRegistry,
@@ -1261,7 +1262,14 @@ export async function processInboundEdielMessage(params: {
     runtimeMessage.message_family === "APERAK" ||
     runtimeMessage.message_family === "UTILTS_ERR"
   ) {
-    await processInboundAckMessage({ actorUserId, message: runtimeMessage });
+    const ackResult = await processInboundAckMessage({ actorUserId, message: runtimeMessage });
+    // GOR-04: a rejection that moved a waiting request to failed reaches the operator (case) and, for the grid
+    // owner's business rejection, the website workflow and the customer. Exactly once per received ACK.
+    if (ackResult.businessRejection) {
+      const linkedAck = await getEdielMessageById(runtimeMessage.id);
+      if (linkedAck) await followUpAckRejection({ actorUserId, ackMessage: linkedAck, switchRequestId: ackResult.switchRequestId,
+        gridOwnerDataRequestId: ackResult.gridOwnerDataRequestId, failureReason: ackResult.businessFailureReason ?? null });
+    }
     if(runtimeMessage.message_family==='UTILTS_ERR')await acknowledgeCommittedReceivedErr(actorUserId,runtimeMessage);
     await syncActorTestingGlobally({
       actorUserId,

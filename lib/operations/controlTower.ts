@@ -10,6 +10,10 @@ import type {
 } from '@/lib/operations/types'
 import { getSupplierSwitchActivationReadiness } from '@/lib/operations/supplierSwitchActivation'
 
+/** Same value as EDIEL_ACK_DEADLINE_MINUTES (lib/ediel/specRegistry.ts, TM-CONTRL 30 min). Kept local: this module
+ * is also imported by client components and must not pull the Ediel rulebooks into the browser bundle. */
+const SWITCH_ACK_DEADLINE_MINUTES = 30
+
 export type SwitchLifecycleStage =
   | 'blocked'
   | 'queued_for_outbound'
@@ -35,10 +39,14 @@ export function getSwitchLifecycle(params: {
   request: SupplierSwitchRequestRow
   readiness?: SwitchReadinessResult | null
   outboundRequest?: OutboundRequestRow | null
+  /** Evaluation time for the ACK overdue check (default now). */
+  now?: Date
 }): {
   stage: SwitchLifecycleStage
   label: string
   reason: string
+  /** Set when the sent Z03's CONTRL/APERAK is past its deadline (GOR-05). */
+  responseOverdue?: true
 } {
   const { request, readiness, outboundRequest } = params
 
@@ -78,6 +86,18 @@ export function getSwitchLifecycle(params: {
   }
 
   if (outboundRequest.status === 'sent') {
+    // GOR-05: the CONTRL/APERAK watch runs SWITCH_ACK_DEADLINE_MINUTES from the actual send. Past it the
+    // request is overdue for an operator; the stage stays awaiting_response and nothing is re-sent (TR-05).
+    const sentAtMs = outboundRequest.sent_at ? Date.parse(outboundRequest.sent_at) : Number.NaN
+    const nowMs = (params.now ?? new Date()).getTime()
+    if (Number.isFinite(sentAtMs) && nowMs - sentAtMs > SWITCH_ACK_DEADLINE_MINUTES * 60_000) {
+      return {
+        stage: 'awaiting_response',
+        label: 'Kvittens försenad',
+        reason: `PRODAT Z03 skickades ${outboundRequest.sent_at} men CONTRL/APERAK saknas efter ${SWITCH_ACK_DEADLINE_MINUTES} minuter. Kontrollera inkommande Ediel-mailbox och kontakta nätägaren. Ingen automatisk omsändning görs.`,
+        responseOverdue: true,
+      }
+    }
     return { stage: 'awaiting_response', label: 'Väntar på kvittens', reason: 'PRODAT Z03 är skickad och väntar på transport-/applikationskvittens.' }
   }
 

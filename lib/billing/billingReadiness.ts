@@ -22,6 +22,7 @@
 // persist a readiness flag must derive it from this function.
 
 import { resolveInvoiceDeliveryFor } from '@/lib/billing/effectiveInvoiceDelivery'
+import { BILLED_SUPPLY_PERIOD_STATUSES, contractEndedBySupplyPeriod, supplyPeriodLastSuppliedDate } from '@/lib/billing/supplyPeriodEnd'
 
 export type BillingBlocker = {
   code: string
@@ -46,7 +47,8 @@ export type BillingReadinessResult = {
 export const BILLABLE_CONTRACT_STATUSES = new Set(['active'])
 
 /** Supply-period statuses that count as active/confirmed delivery. */
-export const BILLABLE_SUPPLY_PERIOD_STATUSES = new Set(['active', 'confirmed_by_grid_owner', 'ended'])
+// 'ending' is still supplied up to its received end (FINDINGS H2).
+export const BILLABLE_SUPPLY_PERIOD_STATUSES = new Set<string>(BILLED_SUPPLY_PERIOD_STATUSES)
 
 const PRICE_AREAS = new Set(['SE1', 'SE2', 'SE3', 'SE4'])
 
@@ -89,6 +91,9 @@ export type BillingReadinessContract = {
   export_blocked?: boolean | null
   export_block_reason?: string | null
   billing_blocker_reasons?: Array<Record<string, unknown>> | null
+  /** Set by the supply-end follow-up when a received end terminated the contract. */
+  termination_reason?: string | null
+  ended_at?: string | null
 }
 
 export type BillingReadinessCustomer = {
@@ -132,6 +137,8 @@ export type BillingReadinessInput = {
     end_date?: string | null
     actual_start_date?: string | null
     actual_end_date?: string | null
+    /** A received market end (Z05): end_date is then the first day no longer supplied (FINDINGS H1). */
+    market_end_at?: string | null
   }> | null
   billingPeriod?: { start: string; end: string } | null
   priceArea?: string | null
@@ -369,7 +376,10 @@ export function evaluateBillingReadinessCore(input: BillingReadinessInput): Bill
         code: 'delivery_not_started',
         message: 'Avtalet är signerat men ännu inte aktiverat för leverans och fakturering.',
       })
-    } else if (!BILLABLE_CONTRACT_STATUSES.has(status)) {
+    } else if (!BILLABLE_CONTRACT_STATUSES.has(status) && !(input.supplyPeriods ?? []).some(period =>
+      // A contract terminated by exactly this supply end still carries its final period (FINDINGS H3).
+      (clean(period.customer_contract_id) ?? clean(period.contract_id) ?? clean(contract.id)) === clean(contract.id) &&
+      contractEndedBySupplyPeriod(contract, period))) {
       blockers.push({
         code: 'contract_not_approved',
         message: `Avtalet har status "${status || 'okänd'}" och är inte aktivt för fakturering.`,
@@ -404,7 +414,7 @@ export function evaluateBillingReadinessCore(input: BillingReadinessInput): Bill
   const activeSupplyPeriods = (input.supplyPeriods ?? []).filter((period) => {
     const status = clean(period.status)?.toLowerCase() ?? ''
     if (!BILLABLE_SUPPLY_PERIOD_STATUSES.has(status)) return false
-    if (status === 'ended' && !clean(period.end_date)) return false
+    if ((status === 'ended' || status === 'ending') && !clean(period.end_date)) return false
     if (clean(period.company_id) && clean(period.company_id) !== input.companyId) return false
     if (
       clean(period.customer_id) &&
@@ -422,7 +432,7 @@ export function evaluateBillingReadinessCore(input: BillingReadinessInput): Bill
       clean(period.metering_point_id) !== clean(input.meteringPoint?.id)
     ) return false
     const supplyStart = isoDate(period.actual_start_date) ?? isoDate(period.start_date)
-    const supplyEnd = isoDate(period.actual_end_date) ?? isoDate(period.end_date)
+    const supplyEnd = supplyPeriodLastSuppliedDate(period)
     return Boolean(
       billingStart &&
       billingEnd &&
