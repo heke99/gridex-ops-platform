@@ -60556,7 +60556,8 @@ begin
     return;
   end if;
 
-  if v_job.status='retry_wait' and v_job.next_attempt_at is not null and v_job.next_attempt_at > now() then
+  if (v_job.status='retry_wait' or (v_job.status='failed' and v_job.last_error_code='provider_rate_limited'))
+      and v_job.next_attempt_at is not null and v_job.next_attempt_at > now() then
     return query select v_job.id,false,v_job.status,v_job.attempt_count,v_job.correlation_id;
     return;
   end if;
