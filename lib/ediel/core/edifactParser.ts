@@ -1,5 +1,5 @@
 import { prodatDocumentSegment, prodatDocumentValue } from '@/lib/ediel/prodat/prodatDocumentFields'
-import { tokenizeEdifact, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
+import { segmentComposite, tokenizeEdifact, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
 import { parseUnb, type ParsedUnb } from '@/lib/ediel/core/unb'
 import { parseUnh, type ParsedUnh } from '@/lib/ediel/core/unh'
 import { parseUnt, type ParsedUnt } from '@/lib/ediel/core/unt'
@@ -19,9 +19,11 @@ export type ParsedEdifactInterchange = {
   rawPayload: string
 }
 
-function bgmCode(segment: EdifactTokenizedSegment | null): string | null {
-  const composite = segment?.elements[1] ?? ''
-  const first = composite.split(':')[0]?.trim() ?? ''
+// BGM/C002/1001 is read from the wire with the interchange's own UNA: a fixed
+// ':' split returned "E66;;260" for UNA component separator ';'.
+function bgmCode(segment: EdifactTokenizedSegment | null, una: EdifactServiceStringAdvice): string | null {
+  if (!segment) return null
+  const first = segmentComposite(segment, 1, una)[0]?.trim() ?? ''
   return first || null
 }
 
@@ -45,7 +47,7 @@ export function parseEdifact(rawPayload: string | null | undefined): ParsedEdifa
     unt: parseUnt(untSegment),
     unz: parseUnz(unzSegment),
     messageFamily: unh?.messageType ?? null,
-    businessCode: unh?.messageType === 'PRODAT' ? prodatDocumentValue('202', tokenized.segments, tokenized.una) : bgmCode(bgm),
+    businessCode: unh?.messageType === 'PRODAT' ? prodatDocumentValue('202', tokenized.segments, tokenized.una) : bgmCode(bgm, tokenized.una),
     rawPayload: raw,
   }
 }
