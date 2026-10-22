@@ -8,6 +8,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import { materializePlatformActorRoute, materializeCompanyGridOwnerRoute } from '@/lib/ediel/routeMaterializer'
 import { approveFirstProductionSend } from '@/lib/ediel/productionSendApproval'
 import { normalizeUuidOrNull } from '@/lib/validation/uuid'
+import { isMeteringAccessCode, isSupplierSwitchCode } from '@/lib/ediel/routeMatrix'
 
 const ROUTE_READINESS_PATH = '/admin/ediel/route-readiness'
 
@@ -151,6 +152,120 @@ export async function materializeCompanyGridOwnerRouteAction(formData: FormData)
 }
 
 
+type BulkMaterializationCandidate = {
+  company_id: string
+  grid_owner_id: string | null
+  grid_owner_name: string | null
+  grid_owner_ediel_id: string | null
+  platform_actor_route_id: string | null
+  message_family: string | null
+  message_code: string | null
+  environment: string | null
+  sender_settings_id: string | null
+}
+
+const BULK_CANDIDATE_PAGE = 1000
+
+// The rows gridex_materialize_company_operational_routes would select, read page by page.
+async function loadBulkMaterializationCandidates(input: { companyId: string; environment: 'test' | 'production' | null; messageFamily: string | null }) {
+  const candidates: BulkMaterializationCandidate[] = []
+  for (let from = 0; ; from += BULK_CANDIDATE_PAGE) {
+    let query = supabaseService
+      .from('gridex_company_route_readiness_v')
+      .select('company_id,grid_owner_id,grid_owner_name,grid_owner_ediel_id,platform_actor_route_id,message_family,message_code,environment,sender_settings_id')
+      .eq('company_id', input.companyId)
+      .eq('blocker_code', 'platform_route_exists_but_not_materialized')
+    if (input.environment) query = query.eq('environment', input.environment)
+    if (input.messageFamily) query = query.eq('message_family', input.messageFamily)
+    const { data, error } = await query
+      .order('platform_actor_route_id', { ascending: true })
+      .order('grid_owner_id', { ascending: true })
+      .order('message_code', { ascending: true })
+      .order('sender_settings_id', { ascending: true })
+      .range(from, from + BULK_CANDIDATE_PAGE - 1)
+    if (error) throw error
+    const page = (data ?? []) as BulkMaterializationCandidate[]
+    candidates.push(...page)
+    if (page.length < BULK_CANDIDATE_PAGE) return candidates
+  }
+}
+
+function materializedPerScope(candidate: BulkMaterializationCandidate): boolean {
+  if (String(candidate.message_family ?? '').toUpperCase() !== 'PRODAT') return false
+  return isSupplierSwitchCode(candidate.message_code) || isMeteringAccessCode(candidate.message_code)
+}
+
+function sqlBulkMaterializationKeys(candidates: BulkMaterializationCandidate[]) {
+  const keys = new Map<string, { messageFamily: string; messageCode: string }>()
+  for (const candidate of candidates) {
+    if (materializedPerScope(candidate)) continue
+    const key = { messageFamily: String(candidate.message_family ?? '').toUpperCase(), messageCode: candidate.message_code ?? '' }
+    keys.set(`${key.messageFamily}|${key.messageCode}`, key)
+  }
+  // PRODAT/Z01 before UTILTS, as in the single call's own family/code order.
+  return [...keys.values()].sort((a, b) => a.messageFamily.localeCompare(b.messageFamily) || a.messageCode.localeCompare(b.messageCode))
+}
+
+// Same eligibility as the SQL bulk function, one candidate per route, grid owner, code and environment.
+function scopedBulkMaterializationCandidates(candidates: BulkMaterializationCandidate[]) {
+  const scoped = new Map<string, BulkMaterializationCandidate>()
+  for (const candidate of candidates) {
+    if (!materializedPerScope(candidate) || !candidate.sender_settings_id || !candidate.platform_actor_route_id || !candidate.grid_owner_id
+      || !candidate.grid_owner_ediel_id || (candidate.environment !== 'test' && candidate.environment !== 'production')) continue
+    const key = [candidate.platform_actor_route_id, candidate.grid_owner_id, candidate.message_code, candidate.environment].join('|')
+    if (!scoped.has(key)) scoped.set(key, candidate)
+  }
+  return [...scoped.values()]
+}
+
+function scopedBulkRow(candidate: BulkMaterializationCandidate, result: Record<string, unknown>): Record<string, unknown> {
+  return {
+    company_id: candidate.company_id,
+    grid_owner_id: candidate.grid_owner_id,
+    grid_owner_name: candidate.grid_owner_name,
+    grid_owner_ediel_id: candidate.grid_owner_ediel_id,
+    platform_actor_route_id: candidate.platform_actor_route_id,
+    message_family: candidate.message_family,
+    message_code: candidate.message_code,
+    environment: candidate.environment,
+    communication_route_id: null,
+    ediel_route_profile_id: null,
+    company_market_party_route_id: null,
+    repaired_outbound_count: 0,
+    repaired_customer_info_count: 0,
+    details: { materializer: 'routeMaterializer' },
+    ...result,
+  }
+}
+
+async function materializeScopedBulkCandidate(candidate: BulkMaterializationCandidate, actorUserId: string) {
+  try {
+    const result = await materializeCompanyGridOwnerRoute({
+      companyId: candidate.company_id,
+      gridOwnerId: candidate.grid_owner_id!,
+      platformActorRouteId: candidate.platform_actor_route_id!,
+      messageFamily: candidate.message_family,
+      messageCode: candidate.message_code,
+      environment: candidate.environment,
+      actorUserId,
+    })
+    return scopedBulkRow(candidate, {
+      result_status: result.status,
+      reason_code: result.reasonCode,
+      communication_route_id: result.communicationRouteId,
+      ediel_route_profile_id: result.edielRouteProfileId,
+      company_market_party_route_id: result.companyMarketPartyRouteId,
+      details: { materializer: 'routeMaterializer', next_required_action: result.nextRequiredAction, technical_message: result.technicalMessage ?? null },
+    })
+  } catch (error) {
+    return scopedBulkRow(candidate, {
+      result_status: 'blocked',
+      reason_code: 'route_materialization_failed',
+      details: { materializer: 'routeMaterializer', technical_message: safeMessage(error) },
+    })
+  }
+}
+
 export async function bulkMaterializeOperationalRoutesAction(formData: FormData) {
   const context = await requirePlatformAdminActionAccess()
 
@@ -164,16 +279,28 @@ export async function bulkMaterializeOperationalRoutesAction(formData: FormData)
     if (!companyId) {
       outcome = { kind: 'error', code: 'missing_company' }
     } else {
-      const { data, error } = await supabaseService.rpc('gridex_materialize_company_operational_routes', {
-        p_company_id: companyId,
-        p_environment: environment,
-        p_message_family: messageFamily,
-        p_dry_run: dryRun,
-      })
+      const candidates = await loadBulkMaterializationCandidates({ companyId, environment, messageFamily })
+      const rows: Array<Record<string, unknown>> = []
+      // FINDINGS F85: the SQL bulk function repairs Z01 outbound requests and customer-info
+      // requests after every row it materializes, so it receives only the customer_masterdata
+      // and UTILTS rows, one exact (family, code) call each. Another PRODAT scope (Z03
+      // supplier_switch) goes through the TypeScript materializer, which writes only the
+      // route, profile and party route of that scope.
+      for (const key of sqlBulkMaterializationKeys(candidates)) {
+        const { data, error } = await supabaseService.rpc('gridex_materialize_company_operational_routes', {
+          p_company_id: companyId,
+          p_environment: environment,
+          p_message_family: key.messageFamily,
+          p_message_code: key.messageCode,
+          p_dry_run: dryRun,
+        })
+        if (error) throw error
+        if (Array.isArray(data)) rows.push(...(data as Array<Record<string, unknown>>))
+      }
+      for (const candidate of scopedBulkMaterializationCandidates(candidates)) {
+        rows.push(dryRun ? scopedBulkRow(candidate, { result_status: 'dry_run', reason_code: null }) : await materializeScopedBulkCandidate(candidate, context.userId))
+      }
 
-      if (error) throw error
-
-      const rows = Array.isArray(data) ? data as Array<Record<string, unknown>> : []
       const failed = rows.filter((row) => ['blocked', 'skipped'].includes(String(row.result_status ?? '')))
       const materialized = rows.filter((row) => String(row.result_status ?? '') === 'materialized')
       const dryRuns = rows.filter((row) => String(row.result_status ?? '') === 'dry_run')

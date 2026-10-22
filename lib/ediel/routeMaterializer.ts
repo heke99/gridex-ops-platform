@@ -12,7 +12,7 @@ import {
 import { projectCanonicalAckMode } from "@/lib/ediel/ack/routeAckModeProjection";
 import { validateRouteDeclaredApplicationReference } from "@/lib/ediel/core/applicationReferenceResolver";
 import { validateApplicationReferencePolicy } from "@/lib/ediel/intent/applicationReferencePolicy";
-import { canonicalAiListProfile } from "@/lib/ediel/rulebook/canonicalEdielFacade";
+import { canonicalAiListProfile, canonicalProdatProfiles } from "@/lib/ediel/rulebook/canonicalEdielFacade";
 import {
   routeScopeForProcess,
   targetSystemForEnvironment,
@@ -130,6 +130,49 @@ function defaultMessageCode(messageFamily: string): string | null {
   return null;
 }
 
+// One canonical PRODAT profile per route scope: the first message the supplier
+// sends to the grid owner in each scope (Z01 customer_masterdata, Z03 supplier_switch).
+function supplierToGridOwnerScopeProfiles() {
+  const byScope = new Map<string, ReturnType<typeof canonicalProdatProfiles>[number]>();
+  for (const profile of canonicalProdatProfiles()) {
+    if (profile.direction !== "actor_to_portal" || profile.senderRole !== "supplier" || profile.receiverRole !== "grid_owner") continue;
+    const scope = routeScopeForProcess({ messageFamily: "PRODAT", messageCode: profile.messageCode });
+    if (scope && !byScope.has(scope)) byScope.set(scope, profile);
+  }
+  return [...byScope.values()];
+}
+
+/**
+ * FINDINGS F85: a grid owner's registry PRODAT route carries every PRODAT scope
+ * the supplier sends to that grid owner, one operational route per scope:
+ * Z01 → customer_masterdata and Z03 → supplier_switch. The route engine selects
+ * by scope alone, so Z08 travels on the Z01 route and Z09 on the Z03 route; a
+ * second code per scope would make the scope's profile ambiguous. Z13/Z18 are
+ * ESCO messages on 23-DGI-PRODAT and are not a supplier scope. Z01 stays
+ * unconditional (F41); another scope is offered only when the route declares
+ * no Application Reference or that scope's own.
+ * Mirrors gridex_company_route_readiness_v (migration 20261022120000).
+ */
+export function registryRouteMessageCodes(
+  route: Pick<PlatformActorRouteRow, "metadata" | "application_reference">,
+  messageFamily: string,
+): Array<string | null> {
+  const declared = metadata(route.metadata).message_code;
+  const fallback = defaultMessageCode(messageFamily);
+  if (declared !== undefined && declared !== null) return [text(declared) ?? fallback];
+  if (upper(messageFamily) !== "PRODAT") return [fallback];
+  const declaredReference = upper(route.application_reference);
+  return supplierToGridOwnerScopeProfiles()
+    .filter((profile) => profile.messageCode === fallback || !declaredReference || declaredReference === profile.applicationReference)
+    .map((profile) => profile.messageCode);
+}
+
+// The Z01 route keeps its established name; another PRODAT scope of the same
+// registry route is named by its scope so the two routes are distinguishable.
+function prodatScopeSuffix(messageFamily: string, routeScope: string | null): string {
+  return upper(messageFamily) === "PRODAT" && routeScope && routeScope !== "customer_masterdata" ? ` ${routeScope}` : "";
+}
+
 function materializedFamily(sourceFamily: string): string {
   return upper(sourceFamily) === "AI" ? "AI_LIST" : upper(sourceFamily);
 }
@@ -216,7 +259,7 @@ async function upsertCommunicationRoute(params: {
   messageCode: string | null;
 }): Promise<string> {
   const routeScope = routeScopeForProcess({ messageFamily: params.messageFamily, messageCode: params.messageCode }) ?? "customer_masterdata";
-  const routeName = `${params.gridOwner.name ?? "Nätägare"} ${params.messageFamily} ${params.route.environment}`;
+  const routeName = `${params.gridOwner.name ?? "Nätägare"} ${params.messageFamily}${prodatScopeSuffix(params.messageFamily, routeScope)} ${params.route.environment}`;
   const authConfig = {
     platform_actor_route_id: params.route.id,
     platform_market_actor_id: params.route.actor_id,
@@ -333,6 +376,9 @@ export async function upsertRouteProfile(params: {
     messageFamily: params.messageFamily,
     messageCode: params.messageCode,
   });
+  const prodatRouteScope = params.messageFamily === "PRODAT"
+    ? routeScopeForProcess({ messageFamily: params.messageFamily, messageCode: params.messageCode })
+    : null;
   const routeMetadata = metadata(params.route.metadata);
   const metadataPayload = {
     platform_actor_route_id: params.route.id,
@@ -366,7 +412,7 @@ export async function upsertRouteProfile(params: {
     company_id: params.senderSettings.company_id,
     communication_route_id: params.communicationRouteId,
     environment: params.route.environment,
-    route_name: `${params.gridOwner.name ?? "Nätägare"} ${params.messageFamily}`,
+    route_name: `${params.gridOwner.name ?? "Nätägare"} ${params.messageFamily}${prodatScopeSuffix(params.messageFamily, prodatRouteScope)}`,
     route_type: "email",
     payload_format: isAiList ? "raw" : "edifact",
     message_standard: isAiList ? "ai_list" : "edifact",
@@ -559,6 +605,22 @@ export async function materializeCompanyGridOwnerRoute(params: {
   if (source.actorId !== route.actor_id || source.wire.family !== (messageFamily === "AI_LIST" ? "AI" : messageFamily) || source.wire.environment !== route.environment
     || messageFamily === "AI_LIST" && source.wire.applicationReference !== null) throw new Error("ediel_registry_materialization_scope_mismatch");
   if (messageFamily === "AI_LIST" && messageCode !== canonicalAiListProfile().supplierOutboundType) throw new Error("ediel_registry_ai_list_message_code_required");
+  if (messageFamily === "PRODAT" && !registryRouteMessageCodes(route, messageFamily).includes(messageCode)) {
+    return {
+      platformActorRouteId: route.id,
+      companyId: params.companyId,
+      gridOwnerId: params.gridOwnerId,
+      status: "blocked",
+      reasonCode: "platform_route_message_code_not_materializable",
+      nextRequiredAction: "Välj ett meddelande som leverantören skickar till nätägaren på denna route.",
+      communicationRouteId: null,
+      edielRouteProfileId: null,
+      companyMarketPartyRouteId: null,
+      messageFamily,
+      messageCode,
+      environment: route.environment,
+    };
+  }
 
   const gridOwner = await getGridOwnerForCompanyMaterialization(params.gridOwnerId);
   if (!gridOwner) {
@@ -800,12 +862,10 @@ export async function materializePlatformActorRoute(params: {
   if (!route) return [];
   const source = await requireElRegistryRouteSource(route.id);
   const messageFamily = materializedFamily(route.message_family);
-  const messageCode =
-    text(metadata(route.metadata).message_code) ??
-    defaultMessageCode(messageFamily);
+  const messageCodes = registryRouteMessageCodes(route, messageFamily);
   if (source.actorId !== route.actor_id || source.wire.family !== (messageFamily === "AI_LIST" ? "AI" : messageFamily) || source.wire.environment !== route.environment
     || messageFamily === "AI_LIST" && source.wire.applicationReference !== null) throw new Error("ediel_registry_materialization_scope_mismatch");
-  if (messageFamily === "AI_LIST" && messageCode !== canonicalAiListProfile().supplierOutboundType) throw new Error("ediel_registry_ai_list_message_code_required");
+  if (messageFamily === "AI_LIST" && messageCodes.some((messageCode) => messageCode !== canonicalAiListProfile().supplierOutboundType)) throw new Error("ediel_registry_ai_list_message_code_required");
   if (
     route.status !== "active" ||
     route.is_verified !== true ||
@@ -851,7 +911,7 @@ export async function materializePlatformActorRoute(params: {
       continue;
     }
 
-    for (const companyId of companies) {
+    for (const companyId of companies) for (const messageCode of messageCodes) {
       const sender = await resolveSenderSettings({
         companyId,
         environment: route.environment,
@@ -880,6 +940,9 @@ export async function materializePlatformActorRoute(params: {
           communicationRouteId: null,
           edielRouteProfileId: null,
           companyMarketPartyRouteId: null,
+          messageFamily,
+          messageCode,
+          environment: route.environment,
         });
         continue;
       }
@@ -928,6 +991,9 @@ export async function materializePlatformActorRoute(params: {
         communicationRouteId,
         edielRouteProfileId,
         companyMarketPartyRouteId,
+        messageFamily,
+        messageCode,
+        environment: route.environment,
       });
     }
   }
