@@ -16,6 +16,24 @@ import type {
 import { formatMaybe, messageLabel, routeLabel } from './helpers'
 
 type AckDraftType = 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
+
+/**
+ * FINDINGS F80: server-computed view of the single UTILTS resumability rule
+ * (lib/ediel/utilts/utiltsResumability.ts) for one inbound UTILTS source.
+ * The server component that renders the workbench derives it from
+ * readUtiltsSourceResumability(ForSources) + describeUtiltsSourceResumability;
+ * this client component only renders it. The server action re-checks the rule.
+ */
+export type InboundUtiltsResumabilityView = {
+ resumable: boolean
+ /** reason === 'held_transactions' */
+ held: boolean
+ /** describeUtiltsSourceResumability(decision) */
+ explanation: string
+}
+
+const UTILTS_RESUMABILITY_UNAVAILABLE =
+ 'Återupptagningsstatus kunde inte läsas för aktuell tenant och miljö. Engine visas inte förrän statusen kan kontrolleras.'
 type SupportedProdatCode = 'Z03' | 'Z04' | 'Z05' | 'Z06' | 'Z09' | 'Z10'
 
 function deriveAckTypeFromSelection(
@@ -78,6 +96,7 @@ export default function DispatchPanels({
  receiverEmail,
  setReceiverEmail,
  recommendedRouteText,
+ inboundUtiltsResumability = null,
 }: {
  selectedMessageId: string
  setSelectedMessageId: (value: string) => void
@@ -118,8 +137,13 @@ export default function DispatchPanels({
  receiverEmail: string
  setReceiverEmail: (value: string) => void
  recommendedRouteText: string
+ /** Server-computed F80 decisions keyed by inbound UTILTS source id. Missing => engine hidden (fail closed). */
+ inboundUtiltsResumability?: Readonly<Record<string, InboundUtiltsResumabilityView>> | null
 }) {
  const derivedAckType = deriveAckTypeFromSelection(selectedAckSource, prodatCode)
+ const selectedInboundUtiltsResumability = selectedInboundUtiltsId
+ ? inboundUtiltsResumability?.[selectedInboundUtiltsId] ?? null
+ : null
 
  return (
  <>
@@ -321,16 +345,43 @@ export default function DispatchPanels({
  </div>
  </div>
 
+ {selectedInboundUtiltsId && !selectedInboundUtiltsResumability?.resumable ? (
+ <div
+ data-testid="inbound-utilts-resumability-explanation"
+ className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800"
+ >
+ <div className="font-semibold">Engine körs inte igen</div>
+ <div className="mt-1">
+ {selectedInboundUtiltsResumability?.explanation ?? UTILTS_RESUMABILITY_UNAVAILABLE}
+ </div>
+ </div>
+ ) : null}
+
+ {selectedInboundUtiltsId && selectedInboundUtiltsResumability?.resumable ? (
+ <div
+ className={`rounded-2xl border px-4 py-3 text-sm ${selectedInboundUtiltsResumability.held ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-emerald-200 bg-emerald-50 text-emerald-800'}`}
+ >
+ {selectedInboundUtiltsResumability.held ? <div className="font-semibold">Hålls för intern granskning</div> : null}
+ <div className={selectedInboundUtiltsResumability.held ? 'mt-1' : ''}>
+ {selectedInboundUtiltsResumability.explanation}
+ </div>
+ </div>
+ ) : null}
+
  <div className="flex flex-wrap gap-2">
+ {selectedInboundUtiltsId && selectedInboundUtiltsResumability?.resumable ? (
  <form action={processEdielOperationalMessageAction}>
  <input type="hidden" name="edielMessageId" value={selectedInboundUtiltsId} />
  <button
- disabled={!selectedInboundUtiltsId}
- className="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
+ type="submit"
+ className="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
  >
- Kör UTILTS engine / skapa TGT-svar
+ {selectedInboundUtiltsResumability.held
+ ? 'Återuppta hållna transaktioner'
+ : 'Kör UTILTS engine / skapa TGT-svar'}
  </button>
  </form>
+ ) : null}
 
  <form action={createNegativeUtiltsResponseAction}>
  <input type="hidden" name="edielMessageId" value={selectedInboundUtiltsId} />

@@ -23,6 +23,7 @@ import {
 } from './utiltsDataRequest.part-1'
 import { processInboundUtiltsMessage as processActualMeteringUtiltsMessage } from './utiltsDataRequest.part-2'
 import { prepareUtiltsConsumptionContracts } from '@/lib/ediel/utilts/consumptionPreparation'
+import { appendUtiltsRuntimeHistory } from '@/lib/ediel/utilts/utiltsResumability'
 
 function resolveInboundPolicy(message: EdielMessageRow, retained?: CanonicalEdielPolicy | null) {
   if (message.message_family !== 'UTILTS') {
@@ -157,6 +158,13 @@ async function processExplicitNonBillingOutcome(params: {
   })
 
   const failed = runtime.validation.classification === 'syntax_rejected'
+  // F80: a (re)run replaces validation_report.utiltsRuntime; the earlier result
+  // (e.g. an internal-review hold) is kept in an append-only history.
+  const runtimeHistory = appendUtiltsRuntimeHistory({
+    validationReport: params.message.validation_report,
+    actorUserId: params.actorUserId,
+    at: new Date().toISOString(),
+  })
   const updated = await updateEdielMessageStatus({
     actorUserId: params.actorUserId,
     edielMessageId: params.message.id,
@@ -171,6 +179,7 @@ async function processExplicitNonBillingOutcome(params: {
     },
     validationReport: {
       ...(params.message.validation_report ?? {}),
+      utiltsRuntimeHistory: runtimeHistory,
       utiltsRuntime: {
         validation: runtime.validation,
         ackPlan,

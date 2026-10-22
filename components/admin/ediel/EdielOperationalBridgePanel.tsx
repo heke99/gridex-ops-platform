@@ -8,6 +8,11 @@ import {
 } from '@/app/admin/ediel/actions'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import {
+ describeUtiltsSourceResumability,
+ readUtiltsSourceResumabilityForSources,
+ type UtiltsSourceResumability,
+} from '@/lib/ediel/utilts/utiltsResumability'
+import {
  getEdielOperationalBridgeSummary,
  type EdielOperationalBridgeSummary,
 } from '@/lib/ediel/operationalBridge'
@@ -95,6 +100,64 @@ function isOperationalCandidate(row: EdielMessageRow): boolean {
  return ['CONTRL', 'APERAK', 'UTILTS_ERR'].includes(row.message_family)
 }
 
+function isInboundUtilts(row: EdielMessageRow): boolean {
+ return row.direction === 'inbound' && row.message_family === 'UTILTS'
+}
+
+const UTILTS_RESUMABILITY_UNAVAILABLE =
+ 'Återupptagningsstatus kunde inte läsas för aktuell tenant och miljö. Engine visas inte förrän statusen kan kontrolleras.'
+
+function OperationalEngineControl({
+ row,
+ utiltsDecision,
+}: {
+ row: EdielMessageRow
+ utiltsDecision: UtiltsSourceResumability | null
+}) {
+ if (!isInboundUtilts(row)) {
+ return (
+ <form action={processEdielOperationalMessageAction}>
+ <input type="hidden" name="edielMessageId" value={row.id} />
+ <button className="rounded-xl bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-800">
+ Kör engine / skapa svar
+ </button>
+ </form>
+ )
+ }
+
+ // FINDINGS F80: the same server-side rule as the message detail page, the
+ // message list and the server action (which re-checks it) decides whether the
+ // engine is offered for an inbound UTILTS source.
+ if (!utiltsDecision?.resumable) {
+ return (
+ <div className="basis-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-800">
+ <div className="font-semibold">Engine körs inte igen</div>
+ <div className="mt-1">
+ {utiltsDecision ? describeUtiltsSourceResumability(utiltsDecision) : UTILTS_RESUMABILITY_UNAVAILABLE}
+ </div>
+ </div>
+ )
+ }
+
+ const held = utiltsDecision.reason === 'held_transactions'
+ return (
+ <>
+ {held ? (
+ <div className="basis-full rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+ <div className="font-semibold">Hålls för intern granskning</div>
+ <div className="mt-1">{describeUtiltsSourceResumability(utiltsDecision)}</div>
+ </div>
+ ) : null}
+ <form action={processEdielOperationalMessageAction}>
+ <input type="hidden" name="edielMessageId" value={row.id} />
+ <button className="rounded-xl bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-800">
+ {held ? 'Återuppta hållna transaktioner' : 'Kör engine / skapa svar'}
+ </button>
+ </form>
+ </>
+ )
+}
+
 function switchTone(status: string): 'emerald' | 'amber' | 'red' | 'slate' {
  if (status === 'completed' || status === 'accepted') return 'emerald'
  if (status === 'submitted') return 'emerald'
@@ -124,7 +187,7 @@ function SummaryStrip({ summary }: { summary: EdielOperationalBridgeSummary }) {
  )
 }
 
-export default function EdielOperationalBridgePanel({
+export default async function EdielOperationalBridgePanel({
  messages,
  switchRequests,
  dataRequests,
@@ -145,6 +208,11 @@ export default function EdielOperationalBridgePanel({
  })
  const transportReadiness = getEdielTransportReadinessSummary(routes)
  const candidates = messages.filter(isOperationalCandidate).slice(0, 10)
+ // Server-side read of the F80 rule; a read failure fails closed (no engine button).
+ const utiltsCandidates = candidates.filter(isInboundUtilts)
+ const utiltsResumabilityBySource: Map<string, UtiltsSourceResumability> | null = utiltsCandidates.length > 0
+ ? await readUtiltsSourceResumabilityForSources(utiltsCandidates).catch(() => null)
+ : new Map()
  const switchCandidates = switchRequests
  .filter((row) => !['completed', 'failed', 'rejected', 'cancelled'].includes(row.status))
  .slice(0, 8)
@@ -251,12 +319,10 @@ export default function EdielOperationalBridgePanel({
  <div>Transaction ref: {row.transaction_reference ?? '—'}</div>
  </div>
  <div className="mt-3 flex flex-wrap gap-2">
- <form action={processEdielOperationalMessageAction}>
- <input type="hidden" name="edielMessageId" value={row.id} />
- <button className="rounded-xl bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-800">
- Kör engine / skapa svar
- </button>
- </form>
+ <OperationalEngineControl
+ row={row}
+ utiltsDecision={utiltsResumabilityBySource?.get(row.id) ?? null}
+ />
  <Link href={`/admin/ediel/messages/${row.id}`} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">
  Öppna meddelande
  </Link>

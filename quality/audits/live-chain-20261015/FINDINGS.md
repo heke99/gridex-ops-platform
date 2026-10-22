@@ -533,10 +533,15 @@ Felen skrivs in här i den ordning de hittas.
   - **Händelsetexten** för ett spärrat meddelande säger nu att transaktionerna hålls för intern granskning.
   - **Tester:** 24 nya (`__tests__/utilts-held-source-resumability*.test.ts`) och 521 gröna i 24 berörda sviter. Testerna visar bland annat att issuer-grunden läses om exakt för källan, att originalet är oförändrat och att resultatet blir ett positivt APERAK och en skrivning av mätvärden.
 - **Kvar (inte rättat ännu):**
-  - `components/admin/ediel/workbench/DispatchPanels.tsx` och `EdielOperationalBridgePanel.tsx` visar knappen utan att läsa regeln. Serveråtgärden vägrar och loggar sådana anrop, men panelerna ska följa samma regel.
-  - `lib/ediel/flows/utiltsInboundPolicyProcessor.ts:174` skriver fortfarande över `utiltsRuntime` utan historik.
+  - ~~`DispatchPanels.tsx` och `EdielOperationalBridgePanel.tsx` visar knappen utan att läsa regeln~~ **Rättat:** båda följer nu samma regel. 12 nya tester, och 133 tester i de berörda sviterna är gröna. **Inkonsekvens:** ingen av panelerna monteras i appen i dag, eftersom varken `EdielWorkbench` eller `EdielOperationalBridgePanel` importeras någonstans. Det är död kod. Monteras de senare måste `EdielWorkbench` skicka beslutet vidare.
+  - ~~`utiltsInboundPolicyProcessor.ts:174` skriver över `utiltsRuntime` utan historik~~ **Rättat:** samma historik som i `utiltsDataRequest.part-2.ts`.
   - Det unika indexet `ux_ediel_ack_related` omfattar även makulerade svar, så ett makulerat svar kan stoppa ett nytt för samma transaktion. Serveråtgärden rapporterar det tydligt.
   - Historiken växer utan tak. Det är avsiktligt för revision, och tak eller arkivering kräver ett beslut.
+
+### F84 Manuell UTILTS-ERR kan skapas utan att resumability-regeln kontrolleras — KANDIDAT, medel
+- **Kod:** `createNegativeUtiltsResponseAction` (`app/admin/ediel/actions.part-4.ts:368-418`, formuläret på detaljsidan rad 641) skapar en negativ UTILTS-ERR för vilket inkommande UTILTS-meddelande som helst. Det sker oavsett om transaktionerna redan fått ett slutligt positivt svar eller bara hålls för intern granskning.
+- **Risk:** ett motsägande applikationssvar till nätägaren. Det är ännu inte kontrollerat om `createNegativeUtiltsResponse` går genom dubblettskyddet (`ackDraftSource`/`blocked_final_ack_exists`).
+- **Nästa steg:** följ anropskedjan och pröva fallet. Om skyddet saknas ska samma regel som för F80 kontrolleras på servern.
 
 ### S2 Scenario E:s operatörssteg läste detaljsidan innan den hade renderat — RÄTTAD (simuleringen)
 - **Utfall:** `button.count()` väntar inte. Detaljsidan visar `loading.tsx` i 15–32 sekunder, och när filerna kom i en viss ordning gick nästa sida upp medan föregående serveråtgärd fortfarande renderade om. Testet gick då vidare efter ungefär en sekund utan att klicka.
