@@ -1234,6 +1234,14 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
   - **K-14:** tenanter kan skriva sina egna statistikrader.
 - **Blockerat:** replayen saknar white label-tabeller (F47). Scenario K speglar dem.
 
+### T4 Kvarlämnade nätägarsimulatorer tog nästa körnings meddelanden — RÄTTAD (commit `621403f7`), verklighetsvärlden
+- **Utfall (F körning 13):**
+  - För första gången i simuleringen skickades alla fyra Z03 i produktion (`sent`).
+  - Svar uteblev ändå: körningens egen nätägarsimulator hade inte tagit emot något (`received: []`).
+  - Fyra simulatorer från avbrutna körningar (17:12, 18:39, 19:44, 19:58) läste fortfarande samma brevlåda, `ediel-16700@example.invalid`.
+- **Orsak:** simulatorerna startas frikopplade (`detached`) och stoppas bara i scenariots `afterAll`.
+- **Rättning:** körskriptet stoppar alla kvarlämnade scenariosimulatorer innan en körning startar.
+
 ### J3 i världen (körning 1, 2026-10-22): 5 godkända, 1 överhoppad, 1 underkänd
 - **Godkända:**
   - Två bilagor och två interchange i ett mejl hölls som `multiple_interchanges`.
