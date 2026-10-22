@@ -1,6 +1,9 @@
 import { createHash } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
+import { tenantSelect } from '@/lib/supabase/tenantQuery'
+import type { Database } from '@/supabase/database.types'
 
+type Row<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row']
 type Scope = { companyId: string; customerId: string; siteId: string; meteringPointId: string; switchRequestId: string; actorUserId: string }
 type Receipt = { state: 'queued' | 'in_progress' | 'accepted'; messageId: string; outboxId?: string }
 const record = (value: unknown): Record<string, unknown> => value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
@@ -8,10 +11,10 @@ const record = (value: unknown): Record<string, unknown> => value && typeof valu
 /** Read-only confirmation, never a resume/requeue permission. The physical
  * enqueue/resume transaction remains owned by the canonical DB producer. */
 export async function readSupplierSwitchDispatchReceipt(scope: Scope): Promise<Receipt | null> {
-  const source = await supabaseService.from('supplier_switch_requests').select('id,site_id,customer_site_id,metering_point_id,outbound_z03_message_id,request_type,prodat_variant,prodat_reason,status,requested_start_date,power_of_attorney_id,authorization_document_id,lifecycle_blocked,lifecycle_block_id,paused_at')
-    .eq('company_id', scope.companyId).eq('customer_id', scope.customerId).eq('id', scope.switchRequestId).maybeSingle()
+  const source = await tenantSelect(scope.companyId, 'supplier_switch_requests', 'id,site_id,customer_site_id,metering_point_id,outbound_z03_message_id,request_type,prodat_variant,prodat_reason,status,requested_start_date,power_of_attorney_id,authorization_document_id,lifecycle_blocked,lifecycle_block_id,paused_at')
+    .eq('customer_id', scope.customerId).eq('id', scope.switchRequestId).maybeSingle()
   if (source.error) throw source.error
-  const s = source.data
+  const s = source.data as Row<'supplier_switch_requests'> | null
   if (!s?.outbound_z03_message_id || (s.site_id ?? s.customer_site_id) !== scope.siteId
     || (s.site_id != null && s.site_id !== scope.siteId) || (s.customer_site_id != null && s.customer_site_id !== scope.siteId)
     || s.metering_point_id !== scope.meteringPointId) return null
@@ -21,11 +24,10 @@ export async function readSupplierSwitchDispatchReceipt(scope: Scope): Promise<R
   const subtype = s.prodat_variant === 'H' || s.prodat_reason === 'Z25' ? 'H'
     : s.request_type === 'move_in' || s.prodat_variant === 'LK' || s.prodat_reason === 'Z23' ? 'LK' : 'L'
   if (subtype === 'H' && (s.prodat_variant !== 'H' || s.prodat_reason !== 'Z25')) return null
-  const original = await supabaseService.from('ediel_messages')
-    .select('id,environment,status,direction,message_standard,message_family,message_code,customer_id,site_id,metering_point_id,switch_request_id,source_operation_id,intent_id,outbound_request_id,route_profile_id,communication_route_id,immutable_payload_hash,immutable_rendered_at,raw_payload')
-    .eq('company_id', scope.companyId).eq('id', s.outbound_z03_message_id).maybeSingle()
+  const original = await tenantSelect(scope.companyId, 'ediel_messages', 'id,environment,status,direction,message_standard,message_family,message_code,customer_id,site_id,metering_point_id,switch_request_id,source_operation_id,intent_id,outbound_request_id,route_profile_id,communication_route_id,immutable_payload_hash,immutable_rendered_at,raw_payload')
+    .eq('id', s.outbound_z03_message_id).maybeSingle()
   if (original.error) throw original.error
-  const m = original.data
+  const m = original.data as Row<'ediel_messages'> | null
   if (!m || m.customer_id !== scope.customerId || m.site_id !== scope.siteId || m.metering_point_id !== scope.meteringPointId
     || m.switch_request_id !== scope.switchRequestId || m.source_operation_id !== scope.switchRequestId
     || m.direction !== 'outbound' || m.message_standard !== 'edifact' || m.message_family !== 'PRODAT' || m.message_code !== 'Z03'
@@ -33,14 +35,14 @@ export async function readSupplierSwitchDispatchReceipt(scope: Scope): Promise<R
     || !m.immutable_rendered_at || !m.raw_payload || !m.immutable_payload_hash
     || createHash('sha256').update(m.raw_payload, 'utf8').digest('hex') !== m.immutable_payload_hash) return null
   const [intent, outbound] = await Promise.all([
-    supabaseService.from('ediel_message_intents').select('id,environment,customer_id,customer_site_id,supplier_switch_request_id,operation_id,ediel_message_id,outbound_request_id,direction,message_family,message_code,validation_status,render_status,communication_route_id,route_profile_id,requested_effective_date,payload')
-      .eq('company_id', scope.companyId).eq('id', m.intent_id).maybeSingle(),
-    supabaseService.from('outbound_requests').select('id,payload,status,customer_id,site_id,metering_point_id,source_type,source_id,operation_id,request_type,communication_route_id')
-      .eq('company_id', scope.companyId).eq('id', m.outbound_request_id).maybeSingle(),
+    tenantSelect(scope.companyId, 'ediel_message_intents', 'id,environment,customer_id,customer_site_id,supplier_switch_request_id,operation_id,ediel_message_id,outbound_request_id,direction,message_family,message_code,validation_status,render_status,communication_route_id,route_profile_id,requested_effective_date,payload')
+      .eq('id', m.intent_id).maybeSingle(),
+    tenantSelect(scope.companyId, 'outbound_requests', 'id,payload,status,customer_id,site_id,metering_point_id,source_type,source_id,operation_id,request_type,communication_route_id')
+      .eq('id', m.outbound_request_id).maybeSingle(),
   ])
   if (intent.error) throw intent.error
   if (outbound.error) throw outbound.error
-  const i = intent.data, r = outbound.data
+  const i = intent.data as Row<'ediel_message_intents'> | null, r = outbound.data as Row<'outbound_requests'> | null
   const basis = record(i?.payload)
   if (!i || !r || !['queued', 'prepared', 'sent', 'acknowledged'].includes(r.status) || i.environment !== m.environment || record(r.payload).environment !== m.environment
     || i.customer_id !== scope.customerId || i.customer_site_id !== scope.siteId || i.supplier_switch_request_id !== scope.switchRequestId
@@ -55,12 +57,12 @@ export async function readSupplierSwitchDispatchReceipt(scope: Scope): Promise<R
     || r.customer_id !== scope.customerId || r.site_id !== scope.siteId || r.metering_point_id !== scope.meteringPointId
     || r.source_type !== 'supplier_switch_request' || r.source_id !== scope.switchRequestId || r.operation_id !== scope.switchRequestId
     || r.request_type !== 'supplier_switch' || r.communication_route_id !== m.communication_route_id) return null
-  const entries = await supabaseService.from('ediel_outbox')
-    .select('id,status,intent_id,route_profile_id,source_message_id,lock_key,payload,immutable_payload_hash,attempts,send_attempt_count,current_send_attempt_id,locked_at,locked_by,blocked_at,blocked_reason,last_error')
-    .eq('company_id', scope.companyId).eq('environment', m.environment).eq('ediel_message_id', m.id).limit(2)
+  const entries = await tenantSelect(scope.companyId, 'ediel_outbox', 'id,status,intent_id,route_profile_id,source_message_id,lock_key,payload,immutable_payload_hash,attempts,send_attempt_count,current_send_attempt_id,locked_at,locked_by,blocked_at,blocked_reason,last_error')
+    .eq('environment', m.environment).eq('ediel_message_id', m.id).limit(2)
   if (entries.error) throw entries.error
-  if (entries.data?.length === 1) {
-    const o = entries.data[0]
+  const outboxRows = entries.data as Row<'ediel_outbox'>[] | null
+  if (outboxRows?.length === 1) {
+    const o = outboxRows[0]
     if (o.blocked_at != null || o.blocked_reason != null || o.last_error != null) return null
     if (o.intent_id === i.id && o.route_profile_id === m.route_profile_id && o.source_message_id === null
       && o.lock_key === `outbound:${r.id}:${m.id}` && record(o.payload).outboundRequestId === r.id

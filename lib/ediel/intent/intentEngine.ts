@@ -7,6 +7,7 @@
 import {isEvidenceUuid} from '@/lib/ediel/utilts/durableSourceDiscovery'
 import {AI_LIST_SOURCE_PROFILE,aiListDate} from '@/lib/ediel/aiListFormat'
 import { isDeepStrictEqual } from 'node:util'
+import { tenantDb } from '@/lib/supabase/tenantDb'
 import { supabaseService } from '@/lib/supabase/service'
 import { collectPlaceholderViolations } from '@/lib/ediel/intent/noPlaceholderGuard'
 import { validateApplicationReferencePolicy } from '@/lib/ediel/intent/applicationReferencePolicy'
@@ -452,8 +453,9 @@ export async function createEdielMessageIntent(
   }
 
   if (input.normalSwitchInsertOnly) {
-    const { data, error } = await supabaseService.from('ediel_message_intents')
-      .upsert(row, { onConflict: 'company_id,environment,idempotency_key', ignoreDuplicates: true }).select('*').maybeSingle()
+    const insertOnly = tenantDb(input.companyId).from('ediel_message_intents')
+      .upsert(row, { onConflict: 'company_id,environment,idempotency_key', ignoreDuplicates: true }) as ReturnType<ReturnType<typeof supabaseService.from>['upsert']>
+    const { data, error } = await insertOnly.select('*').maybeSingle()
     if (error) throw error
     const winner = data ? mapRowToIntent(data as IntentRow) : await findExistingIntent({
       companyId: input.companyId, environment: input.environment, idempotencyKey: input.idempotencyKey,
