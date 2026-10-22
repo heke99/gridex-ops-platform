@@ -1239,6 +1239,14 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
 - **F4 avbröts:** bakgrundskörningen nådde sin tidsgräns på 2 timmar, inklusive bygget, när arbetsprocessen startades om.
 - Körs om på en ren replay.
 
+### T2 Den simulerade go-live-hjälparen satte aldrig förmågan `ediel_production` — RÄTTAD (commit `4bb4f54f`), verklighetsvärlden
+- **Utfall (F körning 9, ren replay):**
+  - Alla Z01 och Z03 i produktion stod kvar i utkorgen som `blocked_tenant_state` med orsaken `capability_not_ready`.
+  - Företaget hade `ediel_production_status=live`, men `company_capabilities.ediel_production` var `not_configured`.
+- **Orsak:** den riktiga övergången `canonical_transition_ediel_production` sätter förmågan till ready när tenanten går live. Ersättaren för den saknade certifieringsvägen (`simulateEdielCertifiedGoLive`, F36) gjorde inte det.
+- **Följd:** det förklarar varför inga produktionsmeddelanden från de nya tenanterna har lämnat utkorgen i tidigare körningar.
+- **B1 bekräftat i flödet:** de spärrade posterna släpps aldrig när förmågan senare blir ready. Körningen kunde därför inte återhämta sig. B1 är fortfarande öppet och kräver ett produktbeslut.
+
 ## Status för live-testets steg
 
 | Steg | Status |
