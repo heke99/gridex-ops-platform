@@ -73,6 +73,12 @@ export async function runOperationalCronSlot() {
     .filter(c => [5, 10, 15].includes(c.every))
     .sort((a, b) => (a.minute % 5) - (b.minute % 5) || a.minute - b.minute)
   const results: Array<{ path: string; status: number; ms: number; body: unknown }> = []
+  // Before the outbox runs: the stand-in for Ediel's per-scope test phase (FINDINGS F89/F90/F91) for tenants whose
+  // certification is simulated. Uses the platform's own record and readiness functions; never changes product SQL.
+  const certifyStarted = Date.now()
+  const { certifySimulatedEdielScopes } = await import('./scopedCertification')
+  const certified = await certifySimulatedEdielScopes().then(body => ({ status: 200, body }), (error: unknown) => ({ status: 500, body: { error: error instanceof Error ? error.message : String(error) } }))
+  results.push({ path: 'reality:certify-simulated-ediel-scopes', status: certified.status, ms: Date.now() - certifyStarted, body: certified.body })
   for (const entry of frequent) {
     if (slotIndex % (entry.every / 5) !== 0) continue
     const path = entry.path.replace('environment=production', 'environment=test')
