@@ -547,6 +547,7 @@ Felen skrivs in här i den ordning de hittas.
 ### S2 Scenario E:s operatörssteg läste detaljsidan innan den hade renderat — RÄTTAD (simuleringen)
 - **Utfall:** `button.count()` väntar inte. Detaljsidan visar `loading.tsx` i 15–32 sekunder, och när filerna kom i en viss ordning gick nästa sida upp medan föregående serveråtgärd fortfarande renderade om. Testet gick då vidare efter ungefär en sekund utan att klicka.
 - **Rättning:** steget väntar på den renderade detaljvyn, sparar URL och HTTP-status och väntar in serveråtgärdens svar (`submitServerAction`) innan nästa sida öppnas.
+- **Verifierat (körning 8, samma redan använda värld som körning 7):** 6 av 6 steg är gröna. Alla sex filerna fick knappen och serveråtgärden svarade 200. A: 96, 24 (korrigeringen), 96 och 96 värden, och den felriktade filen avvisades som okänd mätpunkt. B: 96 värden.
 
 ### P7 Detaljsidan för ett Ediel-meddelande tar 15–32 sekunder att rendera — ÖPPEN, medel (prestanda)
 - **Mätning (gatewaylogg, körning 6 och 7, lokalt):** från sidans läsning av kvittensstatus till renderad sida tog det 15–32 sekunder per UTILTS-meddelande.
