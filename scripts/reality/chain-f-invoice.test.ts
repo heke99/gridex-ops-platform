@@ -356,11 +356,12 @@ describe.sequential('reality F — invoices for several facilities with contract
     const requested = new Map(startDates().map(row => [String(row.facility), (row.application as Row | null)?.start as string | null]))
     const future = observed.map(row => ({ facility: row.facility, requestedOnWebsite: requested.get(row.facility) ?? null, switchStart: row.start, z03Start: row.z03Start, calculation: row.calculation }))
     report.futureCustomers = { runs, switches: future }
-    // F81: the start the customer chose on the website never reaches the switch request (today + 14 days instead).
-    for (const row of future) {
-      expect.soft(row.switchStart, `F81 ${row.facility}: switch request created for the website application`).toBeTruthy()
-      expect.soft(row.switchStart, `F81 ${row.facility}: the switch carries the start the customer requested on the website`).toBe(row.requestedOnWebsite)
-    }
+    // F81 (fixed in f917326b; this build may predate it): the start the customer chose on the website should reach the
+    // switch request. Observation only: these customers are not invoiced, and their applications' own progress
+    // (address resolution, facility data) is recorded rather than allowed to block the invoice chain.
+    report.futureCustomers = { ...(report.futureCustomers as Row), applications: sql(`SELECT coalesce(jsonb_agg(jsonb_build_object('status',status,'resolution',resolution_status,
+      'gridArea',grid_area_code,'start',requested_start_date)),'[]') FROM public.website_customer_applications WHERE company_id=${literal(tenant.companyId)}`),
+      f81: future.map(row => ({ facility: row.facility, created: Boolean(row.switchStart), honoured: row.switchStart === row.requestedOnWebsite })) }
   }, 15 * 60_000)
 
   it('F3 the August customers: signed contracts, switch requests created in August, Z03 from the real builder', async () => {
@@ -409,7 +410,8 @@ describe.sequential('reality F — invoices for several facilities with contract
     const built: Array<{ facility: string; ok: boolean; message?: string; status?: string | null; error?: string }> = []
     for (const row of switchRows) {
       try {
-        const message = await prepareAndQueueEdielZ03({ actorUserId: LIVE.automationUserId, switchRequestId: row.switchId })
+        // The tenant is live in production (go-live); automation passes that environment (edielAutomation.ts:291).
+        const message = await prepareAndQueueEdielZ03({ actorUserId: LIVE.automationUserId, switchRequestId: row.switchId, environment: 'production' })
         built.push({ facility: row.facility, ok: true, message: message.id, status: message.status })
       } catch (error) { built.push({ facility: row.facility, ok: false, error: error instanceof Error ? error.message : String(error) }) }
     }

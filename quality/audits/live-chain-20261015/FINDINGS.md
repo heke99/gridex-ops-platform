@@ -927,6 +927,8 @@ Gränser i drift: 8 s per SQL-sats, 8 s låsväntan, Vercel-funktion ~300 s, cro
 
 ## Under utredning
 
+- **O3 Webbansökningar i scenario F fastnar på `postal_suggested` (2026-10-22, körning 2 av F):** fyra webbansökningar för adresser i ALS stod efter 10 minuters cron-körningar kvar i `processing`, med `resolution_status=postal_suggested` och utan nätområde, och fick därför inget leverantörsbyte. Samma adresser löstes exakt i chain A. Skillnaden ska utredas: simulatorns adresspunkter registreras i F2, men tenanten är ny och nätägaren verifierades i F1. Det är oklart om felet sitter i simuleringen eller i produkten, så det är inte klassat än.
+
 ### U1 Deadlocks när mejl behandlas parallellt — orsaken bekräftad, se F11 och F10
 
 ### U2 → F15 Databasfel rapporteras som "Okänt pollingfel/processfel/fel" — RÄTTAD
