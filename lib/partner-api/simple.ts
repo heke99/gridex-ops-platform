@@ -1084,7 +1084,8 @@ async function getMeasurements(request: NextRequest, customerReference: string, 
     const resolutionValues = resolution === '15m'
       ? ['15m', 'PT15M', 'quarterly']
       : ['1h', 'PT1H', 'hourly']
-    const rows = await readCompletePartnerMeasurements((offset, size) => customerNormalizedMeteringValues(
+    // A site without a customer has no supply window, so nothing is visible (FINDINGS F79).
+    const rows = !site.customer_id ? [] : await readCompletePartnerMeasurements((offset, size) => customerNormalizedMeteringValues(
       // Only values inside the site customer's own access windows (FINDINGS F79), before paging.
       { companyId: context.client.company_id, customerIds: [String(site.customer_id)] },
       { customerSiteId: site.id, periodStartFrom: stockholmDayStartUtc(from).toISOString(), periodStartBefore: stockholmNextDayStartUtc(to).toISOString() },

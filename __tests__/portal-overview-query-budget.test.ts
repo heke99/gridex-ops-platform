@@ -11,6 +11,8 @@ const io = vi.hoisted(() => ({
   reads: [] as Read[],
   failures: {} as Record<string, { code: string; message: string }>,
   months: [] as Row[],
+  // FINDINGS F79: Mina sidor reads detail rows through the access-window RPC; windows per customer+point.
+  windows: [] as Array<{ customer_id: string; metering_point_id: string; from: string; to: string | null }>,
   authCalls: 0,
 }))
 
@@ -44,7 +46,22 @@ vi.mock('@/lib/supabase/service', async () => {
             return new Response(body, { status, headers: { 'content-type': 'application/json' } })
           }
           if (io.failures[resource]) return reply(io.failures[resource], 500)
-          if (url.pathname.includes('/rpc/')) {
+          let source: Row[] | null = null
+          if (resource === RAW) {
+            read.args = JSON.parse(String(init?.body)) as Row
+            const customers = read.args.p_customer_ids as string[]
+            if (read.args.p_company_id !== company || JSON.stringify(customers) !== JSON.stringify([customer])) {
+              return reply({ code: '42501', message: 'Synthetic customer scope refused' }, 403)
+            }
+            // The SQL rule: tenant, customer, then the whole interval inside a window of that customer+point,
+            // ordered and cut at p_limit; the caller's order/limit apply on top.
+            source = io.tables.metering_values
+              .filter(row => row.company_id === company && customers.includes(String(row.customer_id)))
+              .filter(row => io.windows.some(w => w.customer_id === row.customer_id && w.metering_point_id === row.metering_point_id
+                && String(row.period_start) >= w.from && (w.to === null || String(row.period_end) <= w.to)))
+              .sort((a, b) => String(b.period_start).localeCompare(String(a.period_start)))
+              .slice(0, Number(read.args.p_limit ?? Infinity))
+          } else if (url.pathname.includes('/rpc/')) {
             if (resource !== 'gridex_portal_monthly_consumption_v1') throw new Error(`Unexpected RPC: ${resource}`)
             read.args = JSON.parse(String(init?.body)) as Row
             if (read.args.p_company_id !== company || JSON.stringify(read.args.p_customer_ids) !== JSON.stringify([customer])) {
@@ -52,9 +69,9 @@ vi.mock('@/lib/supabase/service', async () => {
             }
             return reply(io.months)
           }
-          if (init?.method && init.method !== 'GET') throw new Error(`Unexpected write: ${resource}`)
-          if (!Object.hasOwn(io.tables, resource)) throw new Error(`Unexpected table: ${resource}`)
-          let rows = [...io.tables[resource]]
+          if (!source && init?.method && init.method !== 'GET') throw new Error(`Unexpected write: ${resource}`)
+          if (!source && !Object.hasOwn(io.tables, resource)) throw new Error(`Unexpected table: ${resource}`)
+          let rows = [...(source ?? io.tables[resource])]
           for (const [field, expression] of url.searchParams) {
             if (['select', 'order', 'limit'].includes(field)) continue
             const dot = expression.indexOf('.')
@@ -99,6 +116,7 @@ const uuid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0
 const company = uuid(1), customer = uuid(2), user = uuid(3), site = uuid(4), point = uuid(5), gridOwner = uuid(6)
 const foreignCompany = uuid(7), foreignCustomer = uuid(8)
 const timestamp = '2026-10-01T12:00:00.000Z'
+const RAW = 'gridex_customer_metering_values_v1'
 
 function rawRows(count: number): Row[] {
   return Array.from({ length: count }, (_, n) => ({
@@ -121,6 +139,7 @@ beforeEach(() => {
   io.failures = {}
   io.user = { id: user, email: 'synthetic@example.test' }
   io.months = [{ month_key: '2026-10', total_kwh: 700, value_count: 2500, is_complete: false }]
+  io.windows = [{ customer_id: customer, metering_point_id: point, from: '2026-09-01T00:00:00.000Z', to: null }]
   io.tables = {
     customer_portal_accounts: [{ user_id: user, customer_id: customer, company_id: company, is_active: true, activated_at: timestamp }],
     customers: [{ id: customer, company_id: company, customer_number: 'TEST-1', customer_type: 'private', status: 'active', full_name: 'Anna Test', email: 'synthetic@example.test', created_at: timestamp }],
@@ -152,7 +171,7 @@ function observe(data: unknown) {
     scope: 'Actual public loader and installed SDK against the same finite external transport fixture. Server loader JSON and adapter response bytes only; not browser/RSC/live latency.',
     fixed_clock: '2026-10-14T12:00:00.000Z', raw_fixture_rows: 250,
     auth_calls: io.authCalls, service_reads: io.reads.length,
-    raw_metering_reads: io.reads.filter(read => read.resource === 'metering_values').length,
+    raw_metering_reads: io.reads.filter(read => read.resource === RAW).length,
     loader_json_bytes: Buffer.byteLength(JSON.stringify(data)),
     transport_response_bytes: io.reads.reduce((total, read) => total + read.responseBytes, 0),
     reads: io.reads,
@@ -163,7 +182,7 @@ describe('actual portal overview query budget and preserved detail consumers', (
   it('reads no raw detail on overview while retaining native monthly totals and status basis', async () => {
     const data = await overview()
     observe(data)
-    expect(io.reads.filter(read => read.resource === 'metering_values')).toEqual([])
+    expect(io.reads.filter(read => read.resource === RAW)).toEqual([])
     expect(data.consumptionMonths).toEqual([{ monthKey: '2026-10', label: '2026-10', totalKwh: 700, valueCount: 2500, complete: false }])
     expect(data.customerStatus).toMatchObject({
       code: 'pending_supplier_switch', issues: [],
@@ -185,13 +204,13 @@ describe('actual portal overview query budget and preserved detail consumers', (
     expect(html).toContain('700 kWh')
     expect(html).toContain('Leverantörsbyte förbereds')
     expect(html).toContain('Faktura TEST-1')
-    expect(io.reads.filter(read => read.resource === 'metering_values')).toEqual([])
+    expect(io.reads.filter(read => read.resource === RAW)).toEqual([])
   })
 
   it('does not make overview availability depend on an unused raw-detail transport', async () => {
-    io.failures.metering_values = { code: '08006', message: 'Synthetic unused detail failure' }
+    io.failures[RAW] = { code: '08006', message: 'Synthetic unused detail failure' }
     await expect(overview()).resolves.toMatchObject({ portalDisplayName: 'Anna Test' })
-    expect(io.reads.some(read => read.resource === 'metering_values')).toBe(false)
+    expect(io.reads.some(read => read.resource === RAW)).toBe(false)
   })
 
   it.each([
@@ -228,10 +247,20 @@ describe('actual portal overview query budget and preserved detail consumers', (
     const html = renderToStaticMarkup(await ConsumptionPage())
     expect(html).toContain('Senaste 500 värden.')
     expect(html).toContain('700 kWh')
-    const raw = io.reads.filter(read => read.resource === 'metering_values')
+    const raw = io.reads.filter(read => read.resource === RAW)
     expect(raw).toHaveLength(1)
     expect(new URLSearchParams(raw[0].query).get('limit')).toBe('500')
+    expect(raw[0].args).toMatchObject({ p_company_id: company, p_customer_ids: [customer], p_limit: 500 })
     expect(io.reads.filter(read => read.resource === 'gridex_portal_monthly_consumption_v1')).toHaveLength(1)
+  })
+
+  it('detail rows outside the customer\'s supply window never reach the dashboard (F79)', async () => {
+    // Supply starts at 02:00 UTC on 1 October: the first eight quarters belong to no window of this customer.
+    io.windows = [{ customer_id: customer, metering_point_id: point, from: '2026-10-01T02:00:00.000Z', to: null }]
+    const data = await portalDb.getPortalDashboardData()
+    expect(data.meteringValues).toHaveLength(242)
+    expect(data.meteringValues.every(row => String(row.period_start) >= '2026-10-01T02:00:00.000Z')).toBe(true)
+    expect(io.reads.some(read => read.resource === 'metering_values')).toBe(false)
   })
 
   it('uses the existing active-tenant selection without mixing a less recent foreign account', async () => {

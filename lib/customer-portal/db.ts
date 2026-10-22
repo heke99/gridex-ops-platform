@@ -339,7 +339,7 @@ export async function listPortalMeteringValues(
       'id,customer_id,site_id,metering_point_id,source_request_id,grid_owner_id,reading_type,value_kwh,quality_code,read_at,period_start,period_end,source_system,created_at'
     )
     .order('period_start', { ascending: false, nullsFirst: false })
-    .order('read_at', { ascending: false })
+    .order('read_at', { ascending: false, nullsFirst: false })
     .limit(options.limit ?? 250)
 
   if (error) throw error

@@ -170,14 +170,20 @@ begin
   points as (
     select distinct cv.month_key, cv.customer_id, cv.metering_point_id from current_values cv
   ),
+  -- Expected time is the union of the customer's own supply windows in the month: overlapping or duplicate
+  -- periods count once, and a permission window never raises the expectation.
   windows as materialized (
-    select * from public.gridex_customer_metering_access_windows_v1(p_company_id, p_customer_ids)
+    select w.customer_id, w.metering_point_id, range_agg(tstzrange(w.access_from, w.access_to)) as covered
+    from public.gridex_customer_metering_access_windows_v1(p_company_id, p_customer_ids) w
+    where w.basis = 'supply_period'
+    group by w.customer_id, w.metering_point_id
   ),
   expected as (
     select pt.month_key,
-      sum(greatest(0, extract(epoch from (
-        least(coalesce(w.access_to, 'infinity'::timestamptz), ((to_date(pt.month_key, 'YYYY-MM') + interval '1 month')::timestamp at time zone 'Europe/Stockholm'))
-        - greatest(w.access_from, (to_date(pt.month_key, 'YYYY-MM')::timestamp at time zone 'Europe/Stockholm'))))))::bigint as seconds
+      sum(coalesce((select sum(extract(epoch from (upper(r) - lower(r))))
+        from unnest(w.covered * tstzmultirange(tstzrange(
+          (to_date(pt.month_key, 'YYYY-MM')::timestamp at time zone 'Europe/Stockholm'),
+          ((to_date(pt.month_key, 'YYYY-MM') + interval '1 month')::timestamp at time zone 'Europe/Stockholm')))) r), 0))::bigint as seconds
     from points pt
     join windows w on w.customer_id = pt.customer_id and w.metering_point_id = pt.metering_point_id
     group by pt.month_key
