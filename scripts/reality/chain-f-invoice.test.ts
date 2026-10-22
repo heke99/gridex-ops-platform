@@ -52,7 +52,7 @@ const EXACT_POINTS: Record<string, { latitude: number; longitude: number }> = {
 function startDates() {
   return sql<Array<Record<string, unknown>>>(`SELECT coalesce(jsonb_agg(jsonb_build_object('facility',mp.metering_point_id,
       'application',(SELECT jsonb_build_object('status',a.status,'start',a.requested_start_date) FROM public.website_customer_applications a WHERE a.company_id=mp.company_id AND a.metering_point_id=mp.id ORDER BY a.created_at DESC LIMIT 1),
-      'contract',(SELECT jsonb_build_object('status',c.status,'starts_at',c.starts_at,'binding',c.binding_months,'binding_end',c.binding_end_date,'notice',c.notice_months,'renew',c.auto_renew_enabled) FROM public.customer_contracts c WHERE c.company_id=mp.company_id AND c.metering_point_id=mp.id ORDER BY c.created_at DESC LIMIT 1),
+      'contract',(SELECT jsonb_build_object('status',c.status,'starts_at',c.starts_at,'binding',c.binding_months,'notice',c.notice_months,'renew',c.auto_renew_enabled) FROM public.customer_contracts c WHERE c.company_id=mp.company_id AND c.metering_point_id=mp.id ORDER BY c.created_at DESC LIMIT 1),
       'switch',(SELECT jsonb_build_object('status',s.status,'start',s.requested_start_date,'z03',s.outbound_z03_message_id) FROM public.supplier_switch_requests s WHERE s.company_id=mp.company_id AND s.metering_point_id=mp.id ORDER BY s.created_at DESC LIMIT 1))
     ORDER BY mp.created_at),'[]') FROM public.metering_points mp WHERE mp.company_id=${literal(tenant.companyId)}`)
 }
