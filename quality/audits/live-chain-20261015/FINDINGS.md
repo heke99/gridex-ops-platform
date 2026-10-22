@@ -422,6 +422,19 @@ Kandidaterna nedan kommer från kodkartläggningen. Var och en bekräftas eller 
 ### F77 Totalbeloppet öresavrundas inte; avrundningskomponenten avrundar energibeloppet — KANDIDAT, låg, kräver beslut
 - **Kod:** `finalizePricingPreview` summerar avrundade rader utan att avrunda totalen (`lib/pricing/pricePreviewBuilder.ts:10-52`). Komponenten `rounding` avrundar baspriset för energi till hela kronor (`priceComponentCalculator.ts:292-295`), och Capway får differensen som `rounding` (`payloadBuilder.ts:141`).
 
+### F85 Ingen ny elhandlare kan skicka Z03 i produktion: registret materialiserar bara PRODAT Z01 — UNDER RÄTTNING, kritisk
+- **Utfall (scenario F körning 3):** den riktiga Z03-byggaren vägrade i produktion med `production_route_profile_not_ready`. Blockerarna var `receiver_ediel_id_missing`, `production_send_locked`, `receiver_certificate_missing`, `security_policy_not_approved` och `missing_receiver_subaddress`. Ingen Z03 har byggts i någon körning av verklighetssimuleringen, varken i scenario A eller F.
+- **Orsak (bekräftad i koden):**
+  - Route-motorn kopplar Z03 till `route_scope='supplier_switch'` (`routeDecisionEngine.ts:482`). Den letar först efter nätägarens route (188-191) och faller annars tillbaka på en route utan nätägare (192).
+  - Registermodellen, som enligt F41 är den enda produktionsmodellen, materialiserar varje PRODAT-registerroute bara som Z01 → `customer_masterdata`:
+    - registerimporten (`20261001040159…:147`) sätter ingen `message_code`;
+    - vyn `gridex_company_route_readiness_v` faller tillbaka på Z01;
+    - `route-readiness/actions.ts:22` och `routeMaterializer.ts:127-131, 218` gör likadant.
+  - Z03 hamnar därför på go-live-guidens route utan nätägare. Den routen saknar fast mottagare, sändlås och adressbekräftelse och kan aldrig godkännas för produktion (`routeProfileProductionReadiness.ts:133-135, 228-230, 314-347`, samma som "Krock 2" i F41).
+- **Inte simuleringen:** go-live-guiden, materialiseringen och godkännandet kördes alla. Att lägga in registerdata med `message_code='Z03'` vore att hitta på uppgifter som Ediels register aldrig innehåller.
+- **Rättning (pågår):** en framåtriktad migration låter varje aktiv PRODAT-registerroute ge en rad per utgående scope (Z01 och Z03, och fler om elhandlaren skickar dem till nätägaren). Materialiseraren skapar då nätägarens `supplier_switch`-route med fast mottagare och samma adressbekräftelse som Z01. Motorns scopefilter ändras inte.
+- **Öppen fråga till ägaren:** ska go-live-guidens dynamiska produktionsprofiler finnas kvar, när de aldrig kan godkännas?
+
 ### F81 Kundens önskade startdatum från webben når aldrig leverantörsbytet — RÄTTAD i koden, hög, verifieras i scenario F efter ombyggnad
 - **Kod:** webbansökan sparar `contract.requested_start_date`. Bytet skapas av nästa-steg-motorn via `ensureSupplierSwitchRequestForReadySite` (`lib/customer-operations/customerProcessNextStepEngine.ts:273-283`) utan `requestedStartDate` och utan kontext. Funktionen tar då startdatumet bara från ett inflyttningsdatum (`supplierSwitchOrchestration.ts:374`). Kontextläsaren (`customerSiteProcessContext.ts:282`) läser avtalets datum, men den vägen används inte här.
 - **Påverkan:** ett vanligt byte får tidigast möjliga datum (idag + 14 dagar) i stället för kundens val. Om kunden valt ett senare datum, till exempel när bindningstiden hos nuvarande leverantör går ut, startar bytet för tidigt, och kunden kan få brytavgift hos den förra leverantören. Avtalet och bytet får också olika startdatum.
