@@ -312,6 +312,23 @@ export async function existingSupplyCustomer(supabase: { rpc: (name: string, arg
   return { customerId, siteId, meteringPointId, meterId, contractId, supplyPeriodId, email }
 }
 
+/**
+ * World establishment of a signature that happened in the past (owner decision 2026-10-22, scenario F): the
+ * platform's own signing function runs unchanged except that its clock reads `at` instead of now. Its exact
+ * definition is copied into a session-temporary function with only `clock_timestamp()` replaced, so every snapshot,
+ * hash, acceptance, evidence row, trigger and immutability guard is produced by the real signing code at that
+ * instant. Nothing is rewritten afterwards and the product code is untouched.
+ */
+export function finalizeSignatureAt(tokenHash: string, userAgent: string, at: string) {
+  const definition = sql<string>(`SELECT to_jsonb(pg_get_functiondef('public.gridex_finalize_customer_contract_signature_v1(text,text,text)'::regprocedure))`)
+  const header = 'CREATE OR REPLACE FUNCTION public.gridex_finalize_customer_contract_signature_v1('
+  if (!definition.startsWith(header) || (definition.match(/clock_timestamp\(\)/g) ?? []).length !== 2) throw Error('historical_signature_function_shape_changed')
+  const historical = definition.replace(header, 'CREATE FUNCTION pg_temp.reality_finalize_signature_at(')
+    .replaceAll('clock_timestamp()', `${literal(at)}::timestamptz`)
+  return sql<Record<string, unknown>>(`${historical};
+    SELECT to_jsonb(pg_temp.reality_finalize_signature_at(${literal(tokenHash)},NULL,${literal(userAgent)}));`)
+}
+
 export type AugustFacilityInput = { gsrn: string; street: string; postalCode: string; city: string; annualConsumptionKwh: number }
 export type AugustFacility = { gsrn: string; siteId: string; meteringPointId: string; contractId: string; powerOfAttorneyId: string; authorizationDocumentId: string }
 export type AugustSupplyCustomer = { customerId: string; email: string; facilities: AugustFacility[] }
@@ -361,8 +378,8 @@ export async function augustSupplyCustomer(tenant: LiveTenant, input: { firstNam
     const prepared = await supabaseService.rpc('gridex_prepare_customer_contract_signature_request_v1', { p_company_id: tenant.companyId, p_customer_id: customerId, p_contract_id: contractId,
       p_token_hash: tokenHash, p_recipient_email: input.email, p_expires_at: new Date(Date.now() + 3_600_000).toISOString(), p_actor_user_id: tenant.adminUserId, p_channel: 'internal' })
     if (prepared.error) throw Error(`signature_prepare_failed:${JSON.stringify(prepared.error)}`)
-    const finalized = await supabaseService.rpc('gridex_finalize_customer_contract_signature_v1', { p_token_hash: tokenHash, p_signed_ip_hash: null, p_signed_user_agent: 'E2E reality August customer' })
-    if (finalized.error) throw Error(`signature_finalize_failed:${JSON.stringify(finalized.error)}`)
+    // The customer signed in August: the real signing code runs with its clock at the August instant.
+    finalizeSignatureAt(tokenHash, 'E2E reality August customer', input.authorizedAt)
     // The customer's power of attorney for the switch, recorded through the admin writer (draft, then signed in August).
     const scopes = ['supplier_switch', 'grid_owner_data', 'metering_data']
     const reference = `POA${contractId.replaceAll('-', '').slice(0, 12).toUpperCase()}`
