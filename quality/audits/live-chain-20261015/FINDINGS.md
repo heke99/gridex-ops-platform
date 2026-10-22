@@ -422,6 +422,17 @@ Kandidaterna nedan kommer från kodkartläggningen. Var och en bekräftas eller 
 ### F77 Totalbeloppet öresavrundas inte; avrundningskomponenten avrundar energibeloppet — KANDIDAT, låg, kräver beslut
 - **Kod:** `finalizePricingPreview` summerar avrundade rader utan att avrunda totalen (`lib/pricing/pricePreviewBuilder.ts:10-52`). Komponenten `rounding` avrundar baspriset för energi till hela kronor (`priceComponentCalculator.ts:292-295`), och Capway får differensen som `rounding` (`payloadBuilder.ts:141`).
 
+### F81 Kundens önskade startdatum från webben når aldrig leverantörsbytet — BEKRÄFTAD i koden, hög, verifieras i scenario F
+- **Kod:** webbansökan sparar `contract.requested_start_date`. Bytet skapas av nästa-steg-motorn via `ensureSupplierSwitchRequestForReadySite` (`lib/customer-operations/customerProcessNextStepEngine.ts:273-283`) utan `requestedStartDate` och utan kontext. Funktionen tar då startdatumet bara från ett inflyttningsdatum (`supplierSwitchOrchestration.ts:374`). Kontextläsaren (`customerSiteProcessContext.ts:282`) läser avtalets datum, men den vägen används inte här.
+- **Påverkan:** ett vanligt byte får tidigast möjliga datum (idag + 14 dagar) i stället för kundens val. Om kunden valt ett senare datum, till exempel när bindningstiden hos nuvarande leverantör går ut, startar bytet för tidigt, och kunden kan få brytavgift hos den förra leverantören. Avtalet och bytet får också olika startdatum.
+- **Verifiering:** scenario F2 registrerar kundens valda datum och det datum plattformen valde, per anläggning.
+
+### F82 Prisberäkningen använder avtalets önskade start före den faktiska — KANDIDAT, medel
+- **Kod:** `lib/pricing/engine.ts:262-264` tar `starts_at` före `actual_start_at`. När marknadsstarten skiljer sig från det signerade önskade datumet kan förstagångs- och årsdagsavgifter beräknas från fel datum. Bekräftas eller avfärdas i scenario F.
+
+### F83 Avtals-PDF:en skriver det önskade startdatumet, inte det som nätägaren bekräftat — KANDIDAT, låg
+- **Kod:** PDF:en visar "Önskat startdatum" från den signerade begäran (`lib/customer-contracts/agreementPdf.ts`). Det bekräftade startdatumet syns inte. Hör ihop med F73. Bekräftas i scenario F.
+
 ## Ediel-routing till rätt tenant och kund (scenario E, 2026-10-20)
 
 Scenario E: två elhandlare delar nätägare. Nätägaren skickar via SMTPS
@@ -908,6 +919,7 @@ Gränser i drift: 8 s per SQL-sats, 8 s låsväntan, Vercel-funktion ~300 s, cro
 - Krav på operatören, verifierat i live-körningen: sidan kräver plattformsadmin (`super_admin`). Åtgärden kräver att aktören är aktiv medlem i bolaget med `communication.write` (`require_business_read_actor_v1`), annars `42501 ediel_business_ack_current_actor_required` (6 av 6 klick). Plattformsbehörighet räcker alltså inte; operatören måste också vara medlem i elbolaget. Bolagets egen admin har behörigheten men når inte sidan.
 
 ## Avsiktliga spärrar och externa beroenden (inte fel)
+- **Bakdaterad leverantörsbytesstart vägras på tre ställen, och det är korrekt (scenario F, 2026-10-22):** ett signerat avtals `starts_at`/`expected_start_at` kan inte ändras (`signed_customer_contract_immutable`, `20260818170828`). En ny bytesbegäran lyfts alltid till minst idag + 14 dagar (`db.part-2.ts:542`, `switchStartDate.ts`). En Z03 måste skickas minst 14 dagar före start (`deadlinePolicy.ts:80-83`, `supplierSwitchScheduler.ts:140-145`). Scenario F etablerar därför sin historiska leveransperiod som den skedde i augusti: kunderna och avtalen skapas via plattformens signaturväg med start 1 september, och Z03 byggs av den riktiga byggaren och besvaras av nätägaren med en riktig Z04. Bara tidsfönstret som representerar "nu är det augusti" hoppas över, och det redovisas i rapporten.
 
 - **E1 Utfärdarunderlag (EXT-ISSUER-01/EXT-ARCHIVE-02):** inga mätvärden blir fakturerbara förrän det externa underlaget finns. Det är en känd spärr (`external-evidence-requests-20260930.md`). I testet ersätts underlaget syntetiskt, uttryckligen märkt, på samma sätt som i projektets native-fixturer.
 - **E2 Strukturunderlag:** månads- och dygns-E66 med register kräver godkänd PRODAT-struktur. Energivärden per timme eller kvart undantas.
