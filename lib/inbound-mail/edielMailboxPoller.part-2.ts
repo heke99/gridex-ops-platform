@@ -9,8 +9,8 @@ import { processInboundEmailMessage } from "@/lib/inbound-mail/edielInboundProce
 import { supabaseService } from "@/lib/supabase/service"
 import {requireAiBiPersonalDataStorage} from '@/lib/ediel/aiBiPersonalDataStorage'
 import { unpackInboundSmimeIfNeeded } from "@/lib/ediel/transport/smime"
-import type { EdielMailboxRow, InboundEngineRunResult, InboundProcessingJobRow, PollMailboxResult, StoreInboundEmailInput } from './edielMailboxPoller.part-1'
-import { bufferToUtf8, diagnosticMessageCode, envInt, extractHeader, findExistingInboundEmail, isPlatformSharedMailbox, isPostgresUniqueViolation, isUnsafeBatch7aTransactionConflict, markMailboxPollFinished, markMailboxPollStarted, metadataBool, normalizeEnvironment, normalizeImapMailboxFolder, nowIso, parseInboundDedupeFacts, postgresErrorMessage, resolveEffectiveMailboxForPolling, resolveMailboxPasswordFromSecretReference, sha256, splitMimeParts, stringOrNull } from './edielMailboxPoller.part-1'
+import type { EdielMailboxRow, InboundEngineRunResult, InboundProcessingJobRow, InboundLeaseReceipt, PollMailboxResult, StoreInboundEmailInput } from './edielMailboxPoller.part-1'
+import { makeWorkerId, readInboundLeaseReceipt, bufferToUtf8, diagnosticMessageCode, envInt, extractHeader, findExistingInboundEmail, isPlatformSharedMailbox, isPostgresUniqueViolation, isUnsafeBatch7aTransactionConflict, markMailboxPollFinished, markMailboxPollStarted, metadataBool, normalizeEnvironment, normalizeImapMailboxFolder, nowIso, parseInboundDedupeFacts, postgresErrorMessage, resolveEffectiveMailboxForPolling, resolveMailboxPasswordFromSecretReference, sha256, splitMimeParts, stringOrNull } from './edielMailboxPoller.part-1'
 
 export async function storeInboundEmail(
   input: StoreInboundEmailInput,
@@ -457,14 +457,15 @@ export async function pollEdielMailbox(input: {
       await client.logout().catch(() => undefined);
     }
 
-    await markMailboxPollFinished({ mailboxId: input.mailbox.id, ok: true });
+    const committed = await markMailboxPollFinished({ claim: locked, ok: true });
+    if (!committed) result.errors.push("mailbox_poll_claim_lost");
     return result;
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Okänt pollingfel.";
     result.errors.push(message);
     await markMailboxPollFinished({
-      mailboxId: input.mailbox.id,
+      claim: locked,
       ok: false,
       errorMessage: message,
     });
@@ -476,14 +477,21 @@ export async function claimQueuedInboundProcessingJobs(
   workerId: string,
   limit = 50,
 ): Promise<InboundProcessingJobRow[]> {
+  const owner = makeWorkerId(workerId);
   const { data, error } = await supabaseService.rpc("claim_inbound_processing_jobs", {
     p_environment: null,
     p_limit: limit,
-    p_worker_id: workerId,
+    p_worker_id: owner,
     p_stale_after: `${envInt("EDIEL_INBOUND_STALE_JOB_LOCK_MINUTES", 15)} minutes`,
   });
 
-  if (!error) return (data ?? []) as InboundProcessingJobRow[];
+  if (!error) {
+    const rows = (data ?? []) as InboundProcessingJobRow[];
+    if (rows.some(row => readInboundLeaseReceipt(row)?.locked_by !== owner || row.status !== "processing")) {
+      throw new Error("inbound_processing_job_claim_invalid");
+    }
+    return rows;
+  }
 
   const message = postgresErrorMessage(error);
   if (!/claim_inbound_processing_jobs|schema cache|Could not find/i.test(message)) throw error;
@@ -494,16 +502,8 @@ export async function claimQueuedInboundProcessingJobs(
   const candidates = await listQueuedInboundProcessingJobs(limit);
   const claimed: InboundProcessingJobRow[] = [];
   for (const job of candidates) {
-    const locked = await markInboundProcessingJobStarted(job, workerId);
-    if (locked) {
-      claimed.push({
-        ...job,
-        status: "processing",
-        locked_by: workerId,
-        locked_at: nowIso(),
-        attempts_count: Number(job.attempts_count ?? 0) + 1,
-      });
-    }
+    const locked = await markInboundProcessingJobStarted(job, owner);
+    if (locked) claimed.push(locked);
   }
   return claimed;
 }
@@ -532,7 +532,8 @@ export async function listQueuedInboundProcessingJobs(
 export async function markInboundProcessingJobStarted(
   job: InboundProcessingJobRow,
   workerId: string,
-): Promise<boolean> {
+): Promise<InboundProcessingJobRow | null> {
+  const owner = makeWorkerId(workerId);
   const staleLockCutoff = new Date(
     Date.now() - envInt("EDIEL_INBOUND_STALE_JOB_LOCK_MINUTES", 15) * 60_000,
   ).toISOString();
@@ -543,7 +544,7 @@ export async function markInboundProcessingJobStarted(
       status: "processing",
       step: "processor_started",
       locked_at: nowIso(),
-      locked_by: workerId,
+      locked_by: owner,
       started_at: nowIso(),
       finished_at: null,
       attempts_count: nextAttempts,
@@ -553,19 +554,28 @@ export async function markInboundProcessingJobStarted(
     .eq("id", job.id)
     .or(`locked_at.is.null,locked_at.lt.${staleLockCutoff}`)
     .in("status", ["queued", "retry", "received", "processing"])
-    .select("id")
+    .select("*")
     .maybeSingle();
 
   if (error) throw error;
-  return Boolean(data);
+  const receipt = readInboundLeaseReceipt(data);
+  if (data && (!receipt || receipt.id !== job.id || receipt.locked_by !== owner)) {
+    throw new Error("inbound_processing_job_claim_invalid");
+  }
+  return (data ?? null) as InboundProcessingJobRow | null;
 }
+
+type InboundJobFinishAuthority =
+  | { kind: "claim"; receipt: InboundLeaseReceipt }
+  | { kind: "idle"; status: string; updatedAt: string };
 
 export async function markInboundProcessingJobFinished(input: {
   jobId: string;
+  authority: InboundJobFinishAuthority;
   status: "done" | "manual_review" | "retry" | "failed";
   step?: string | null;
   errorMessage?: string | null;
-}): Promise<void> {
+}): Promise<boolean> {
   // Resolving a review (including "Köa om" → queued) stamps review_resolved_at.
   // When the same job later returns to manual_review, clear the sticky resolution
   // and refresh operational review metadata so the open-review UI /
@@ -587,7 +597,7 @@ export async function markInboundProcessingJobFinished(input: {
         }
       : {};
 
-  const { error } = await supabaseService
+  let query = supabaseService
     .from("inbound_processing_jobs")
     .update({
       status: input.status,
@@ -601,7 +611,21 @@ export async function markInboundProcessingJobFinished(input: {
     })
     .eq("id", input.jobId);
 
+  const authority = input.authority;
+  if (authority?.kind === "claim") {
+    const receipt = readInboundLeaseReceipt(authority.receipt);
+    if (!receipt || receipt.id !== input.jobId) return false;
+    query = query.eq("status", "processing")
+      .eq("locked_by", receipt.locked_by).eq("locked_at", receipt.locked_at);
+  } else if (authority?.kind === "idle" &&
+      ["queued", "retry", "received", "manual_review"].includes(authority.status) &&
+      typeof authority.updatedAt === "string" && authority.updatedAt.trim()) {
+    query = query.eq("status", authority.status).eq("updated_at", authority.updatedAt)
+      .is("locked_by", null).is("locked_at", null);
+  } else return false;
+  const { data, error } = await query.select("id").maybeSingle();
   if (error) throw error;
+  return Boolean(data?.id);
 }
 
 export async function syncActiveInboundProcessingJobForMessage(input: {
@@ -614,7 +638,7 @@ export async function syncActiveInboundProcessingJobForMessage(input: {
 
   const { data, error } = await supabaseService
     .from("inbound_processing_jobs")
-    .select("id")
+    .select("id,status,locked_by,locked_at,updated_at")
     .eq("inbound_email_message_id", input.inboundEmailMessageId)
     .in("status", [
       "queued",
@@ -627,16 +651,17 @@ export async function syncActiveInboundProcessingJobForMessage(input: {
     .limit(1);
 
   if (error) throw error;
-  const jobId = (data?.[0] as { id?: string } | undefined)?.id;
-  if (!jobId) return false;
+  const job = data?.[0] as Pick<InboundProcessingJobRow, "id" | "status" | "locked_by" | "locked_at" | "updated_at"> | undefined;
+  if (!job?.id || job.status === "processing" || job.locked_by !== null || job.locked_at !== null ||
+      typeof job.updated_at !== "string" || !job.updated_at.trim()) return false;
 
-  await markInboundProcessingJobFinished({
-    jobId,
+  return markInboundProcessingJobFinished({
+    jobId: job.id,
+    authority: { kind: "idle", status: job.status, updatedAt: job.updated_at },
     status: nextStatus,
     step: input.outcomeStatus,
     errorMessage: input.errorMessage ?? null,
   });
-  return true;
 }
 
 export async function processQueuedInboundProcessingJobs(
@@ -653,14 +678,17 @@ export async function processQueuedInboundProcessingJobs(
   let failed = 0;
 
   for (const job of jobs) {
+    const receipt = readInboundLeaseReceipt(job);
+    if (!receipt || job.status !== "processing") throw new Error("inbound_processing_job_claim_invalid");
     if (!job.inbound_email_message_id) {
-      await markInboundProcessingJobFinished({
+      const committed = await markInboundProcessingJobFinished({
         jobId: job.id,
+        authority: { kind: "claim", receipt },
         status: "failed",
         step: "missing_inbound_email_message_id",
         errorMessage: "Job saknar inbound_email_message_id.",
       });
-      failed += 1;
+      if (committed) failed += 1;
       continue;
     }
 
@@ -669,25 +697,27 @@ export async function processQueuedInboundProcessingJobs(
         inboundEmailMessageId: job.inbound_email_message_id,
         actorUserId: input.actorUserId ?? null,
       });
-      await markInboundProcessingJobFinished({
+      const committed = await markInboundProcessingJobFinished({
         jobId: job.id,
+        authority: { kind: "claim", receipt },
         status: outcome.status === "processed" ? "done" : "manual_review",
         step: outcome.status,
       });
-      processed += 1;
+      if (committed) processed += 1;
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Okänt processfel.";
       // Both claim paths already count the attempt that just failed.
       const attempts = Number(job.attempts_count ?? 0);
       const shouldRetry = attempts < maxAttempts;
-      await markInboundProcessingJobFinished({
+      const committed = await markInboundProcessingJobFinished({
         jobId: job.id,
+        authority: { kind: "claim", receipt },
         status: shouldRetry ? "retry" : "failed",
         step: "processor_failed",
         errorMessage: message,
       });
-      failed += 1;
+      if (committed) failed += 1;
     }
   }
 
