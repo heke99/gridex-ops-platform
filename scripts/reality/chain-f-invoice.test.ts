@@ -306,8 +306,11 @@ describe.sequential('reality F — invoices for several facilities with contract
     ;({ tenant, gridOwner, apiKey } = live)
     expect(live.provisioned.readinessBlockers, JSON.stringify(live.provisioned.readinessBlockers)).toEqual([])
     expect(apiKey).toBeTruthy()
-    expect(sql(`SELECT jsonb_build_object('binding',binding_months,'notice',notice_months,'renew',auto_renew_enabled,'term',renewal_term_months)
-      FROM public.contract_price_options WHERE company_id=${literal(tenant.companyId)} AND is_default`)).toEqual({ binding: 12, notice: 1, renew: true, term: 12 })
+    // One default option row per published channel; every one carries the scenario's terms.
+    report.defaultPriceOptions = sql(`SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,'version',contract_product_version_id,'plan',price_plan_version_id)),'[]')
+      FROM public.contract_price_options WHERE company_id=${literal(tenant.companyId)} AND is_default`)
+    expect(sql(`SELECT coalesce(jsonb_agg(DISTINCT jsonb_build_object('binding',binding_months,'notice',notice_months,'renew',auto_renew_enabled,'term',renewal_term_months)),'[]')
+      FROM public.contract_price_options WHERE company_id=${literal(tenant.companyId)} AND is_default`)).toEqual([{ binding: 12, notice: 1, renew: true, term: 12 }])
   })
 
   it('F2 website customers applying today (future customers): the switch start the platform chooses (F81)', async () => {
@@ -332,7 +335,7 @@ describe.sequential('reality F — invoices for several facilities with contract
       }
     }
     report.applications = results
-    for (const result of results) expect(result.status, `${result.who}: ${result.step} ${JSON.stringify(result.body).slice(0, 600)}`).toBeLessThan(300)
+    for (const result of results) expect(result.status, `${result.who}: ${result.step} ${String(JSON.stringify(result.body ?? null)).slice(0, 600)}`).toBeLessThan(300)
     report.startDatesAfterApplication = startDates()
     // One customer per person: the three facilities belong to one customer.
     const customers = sql<Array<{ facilities: number }>>(`SELECT coalesce(jsonb_agg(jsonb_build_object('facilities',n) ORDER BY n),'[]') FROM (SELECT count(*) n FROM public.metering_points WHERE company_id=${literal(tenant.companyId)} GROUP BY customer_id) x`)
@@ -377,19 +380,11 @@ describe.sequential('reality F — invoices for several facilities with contract
         grid: { gridOwnerId: grid.id, gridOwnerEdielId: grid.ediel, gridAreaCode: GRID_AREA },
         facilities: customer.sites.map(s => ({ gsrn: s.facilityId, ...(s.address ?? customer.person.address), annualConsumptionKwh: s.annualConsumptionKwh })) })
       customers.push(one)
-      // Created right after signing: in August the signed contract's start_supplier_switch job found no switch and
-      // created this one. A cron run (also another simulation's) now finds it and never creates a second one.
-      for (const facility of one.facilities) switchRows.push(await createAugustSwitch(one.customerId, facility))
     }
     loadIds()
-    report.augustCustomers = { customers, switches: switchRows }
-    for (const row of switchRows) {
-      expect(row.startDateCalculation.requestedHonored, `${row.facility} start 2026-09-01 was valid on the August creation day`).toBe(true)
-      expect(row.window.windowOpen, `${row.facility} the send window was open in August: ${JSON.stringify(row.window)}`).toBe(true)
-      expect(row.existing, `${row.facility}: a switch request already existed (a cron ran the signed-contract job first)`).toBe(false)
-    }
     // The signed-agreement confirmation (archived PDF bound to the contract) is delivered by the same function the
     // customer-operations cron runs (contractConfirmations); it is called directly so no switch job runs before the Z03.
+    // A switch request requires the archived signed PDF (supplier_switch_not_ready: signed_pdf_not_archived_or_hash_mismatch).
     const deliveries: unknown[] = []
     const readiness = () => sql<Array<{ facility: string; ready: boolean; blockers: unknown }>>(`SELECT coalesce(jsonb_agg(jsonb_build_object('facility',mp.metering_point_id,'ready',r.switch_ready,'blockers',r.blockers)),'[]')
       FROM public.customer_contract_lifecycle_readiness_v r JOIN public.metering_points mp ON mp.id=r.metering_point_id
@@ -398,6 +393,15 @@ describe.sequential('reality F — invoices for several facilities with contract
     const ready = readiness()
     report.augustReadiness = { deliveries, ready }
     expect(ready.filter(row => !row.ready), 'every August contract is switch-ready (signed, PDF archived, power of attorney)').toEqual([])
+    // Then, as in August, the signed contract's start_supplier_switch job created the switch. A cron run (also another
+    // simulation's) now finds it and never creates a second one.
+    for (const one of customers) for (const facility of one.facilities) switchRows.push(await createAugustSwitch(one.customerId, facility))
+    report.augustCustomers = { customers, switches: switchRows }
+    for (const row of switchRows) {
+      expect(row.startDateCalculation.requestedHonored, `${row.facility} start 2026-09-01 was valid on the August creation day`).toBe(true)
+      expect(row.window.windowOpen, `${row.facility} the send window was open in August: ${JSON.stringify(row.window)}`).toBe(true)
+      expect(row.existing, `${row.facility}: a switch request already existed (a cron ran the signed-contract job first)`).toBe(false)
+    }
 
     // The Z03 from the platform's builder (lib/ediel/flows/prodatSwitch.ts), exactly as edielAutomation.ts:287 calls it,
     // but NOT behind evaluateSupplierSwitchSchedule (edielAutomation.ts:179): today that check correctly says the window
