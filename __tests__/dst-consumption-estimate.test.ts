@@ -1,4 +1,4 @@
-// masterplan: none (reality scenario G, finding DST-E1: preliminary estimates shift one hour across the DST change)
+// reality-defects: (reality scenario G, finding DST-E1: preliminary estimates shift one hour across the DST change)
 // estimateFromHistory (lib/billing/consumptionEstimate.ts) repeats reference weeks by subtracting 7 × 24 h of UTC
 // time and assigns the annual profile by UTC month. After 25 October 2026 a reference week that lies in summer
 // time is read one Stockholm wall-clock hour late, and the first hour of a Stockholm month is profiled as the

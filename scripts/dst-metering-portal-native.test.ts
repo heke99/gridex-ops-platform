@@ -1,4 +1,4 @@
-// masterplan: none (reality scenario G: end of daylight saving time 2026-10-25; DST-N1..N4 checks)
+// reality-defects: (reality scenario G: end of daylight saving time 2026-10-25; DST-N1..N4 checks)
 // Stored quarter-hours of whole Stockholm months that contain a DST change, read through the real SQL
 // functions and readers the customer channels and billing use: Mina sidor month cards
 // (gridex_portal_monthly_consumption_v1 via listPortalMonthlyConsumption), the customer/partner API value

@@ -1,4 +1,4 @@
-// masterplan: none (reality scenario G: end of daylight saving time 2026-10-25, findings DST-H1, DST-H2)
+// reality-defects: (reality scenario G: end of daylight saving time 2026-10-25, findings DST-H1, DST-H2)
 // A grid owner's E66 for the Stockholm civil days around a DST change: the real UTILTS parser, profile
 // validation, consumption preparation and persistence payload give one value per actual quarter-hour with
 // its own UTC instant (100 on 25 Oct 2026, 92 on 28 Mar 2027), never a gap or a duplicate in the repeated

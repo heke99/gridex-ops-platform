@@ -1,4 +1,4 @@
-// masterplan: none (FINDINGS F79, owner decision 2026-10-22)
+// reality-defects: (FINDINGS F79, owner decision 2026-10-22)
 // A customer channel returns only metering values inside the customer's own access windows: tenant,
 // customer, metering point and an established supply period (Ediel-confirmed start/end), or a value bound
 // to a grid-owner-approved metering permission. Real disposable replay, real SQL functions and the real

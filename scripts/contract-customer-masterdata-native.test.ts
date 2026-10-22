@@ -1,4 +1,4 @@
-// masterplan: none (FINDINGS F51, owner decisions 2026-10-22)
+// reality-defects: (FINDINGS F51, owner decisions 2026-10-22)
 // A Z03 with a start day other than today reads the end user's identity and registered address
 // only from an approved customer masterdata declaration. The declaration is derived from the
 // signed contract (website/online: the signed snapshot section whose lines are in the verified

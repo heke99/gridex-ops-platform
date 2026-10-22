@@ -1,4 +1,4 @@
-// masterplan: none (FINDINGS F51, owner decisions 2026-10-22)
+// reality-defects: (FINDINGS F51, owner decisions 2026-10-22)
 // The signed agreement PDF shows exactly the identity number and registered address that the
 // Ediel masterdata declaration sends to the grid owner; a contract without the section keeps
 // its PDF byte-identical.

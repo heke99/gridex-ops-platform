@@ -1,4 +1,4 @@
-// masterplan: none (FINDINGS F51, owner decisions 2026-10-22)
+// reality-defects: (FINDINGS F51, owner decisions 2026-10-22)
 // The customer signs the identity and registered address that are sent to the grid owner:
 // website signing binds the section into a v3 signature snapshot (v2 unchanged without it),
 // token-signed receipts render the snapshot's section into the archived PDF, and the
