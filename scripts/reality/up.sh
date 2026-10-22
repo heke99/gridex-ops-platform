@@ -92,6 +92,14 @@ open(home+'/app.env','w').write(''.join(f'{k}={v}\n' for k,v in env.items()))
 PY
   chmod 600 "$ENV_FILE"
 fi
+# The release the app runs, as Vercel provides VERCEL_GIT_COMMIT_SHA per deploy: production Ediel sends are refused
+# without it (ediel_release_sha_unavailable, lib/ediel/scopedCapabilityReadiness.ts). Follows the checkout on every run.
+python3 - "$ENV_FILE" "$(git -C "$ROOT" rev-parse HEAD)" <<'PY'
+import sys
+path,sha=sys.argv[1:]
+lines=[l for l in open(path).read().splitlines() if not l.startswith('GIT_COMMIT_SHA=')]
+open(path,'w').write('\n'.join(lines+['GIT_COMMIT_SHA='+sha])+'\n')
+PY
 set -a; # shellcheck disable=SC1090
 . "$ENV_FILE"; set +a
 
