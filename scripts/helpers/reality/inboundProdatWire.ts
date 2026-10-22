@@ -69,3 +69,30 @@ export function prodatFacts(raw: string) {
   return { li: /RFF\+LI:([^'+]+)/.exec(raw)?.[1] ?? '', facility: /LIN\+\d+\+\+([^:']+)/.exec(raw)?.[1] ?? '',
     start: /DTM\+92:(\d{8})/.exec(raw)?.[1] ?? '', document: /BGM\+[A-Z0-9]+\+([^+']+)/.exec(raw)?.[1] ?? '' }
 }
+
+/** One file the grid owner sends after its CONTRL/APERAK on our Z03 (see the J1 simulator). */
+export type InboundProdatStep = 'z04' | 'z04-later' | 'z04-earlier' | 'z04-no-counter' | 'z04c' | 'z04-again' | 'z04-resend' | 'z04-unknown-switch'
+/** How the grid owner answers one received Z03: positive CONTRL+APERAK before (or after) its business files. */
+export type InboundProdatPlan = { acksFirst: boolean; steps: InboundProdatStep[] }
+
+/**
+ * The platform's own answer to one of the grid owner's files, as the grid owner reads it. CONTRL: the acknowledged
+ * interchange (UCI 0020) and action 0083 (4 = rejected on UCI or any UCM). APERAK: the acknowledged document
+ * (RFF+ACW) and ERC codes (only ERC 100 = positive).
+ */
+export function readOurAnswer(raw: string): { family: 'CONTRL' | 'APERAK' | 'other'; reference: string; outcome: 'positive' | 'negative'; codes: string[] } {
+  const segments = raw.split(/(?<!\?)'/).map(s => s.trim()).filter(Boolean)
+  const family = /UNH\+[^+]*\+(CONTRL|APERAK)/.exec(raw)?.[1] as 'CONTRL' | 'APERAK' | undefined
+  if (family === 'CONTRL') {
+    const uci = segments.find(s => s.startsWith('UCI+'))?.split('+') ?? []
+    const actions = [uci[4] ?? '', ...segments.filter(s => s.startsWith('UCM+')).map(s => s.split('+')[3] ?? '')].map(a => a.split(':')[0])
+    return { family, reference: uci[1] ?? '', outcome: actions.includes('4') ? 'negative' : 'positive', codes: actions }
+  }
+  if (family === 'APERAK') {
+    const codes = segments.filter(s => s.startsWith('ERC+')).map(s => s.slice(4).split(':')[0])
+      .concat(segments.filter(s => s.startsWith('FTX+')).map(s => (s.split('+')[3] ?? '').split(':')[0]).filter(Boolean))
+    const ercs = segments.filter(s => s.startsWith('ERC+')).map(s => s.slice(4).split(':')[0])
+    return { family, reference: /RFF\+ACW:([^'+]+)/.exec(raw)?.[1] ?? '', outcome: ercs.length && ercs.every(c => c === '100') ? 'positive' : 'negative', codes }
+  }
+  return { family: 'other', reference: '', outcome: 'positive', codes: [] }
+}
