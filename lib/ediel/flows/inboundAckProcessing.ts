@@ -33,6 +33,7 @@ import {
 import type { SupplierSwitchRequestRow } from "@/lib/operations/types";
 import { syncCustomerCaseCancellationAck } from "@/lib/customer-cases/db";
 import { syncActorTestingForMessage } from "@/lib/ediel/actorTestingEngine";
+import { segmentComposite, tokenizeEdifact } from "@/lib/ediel/core/edifactTokenizer";
 
 type InboundAckFamily = Extract<
   EdielMessageFamily,
@@ -198,12 +199,39 @@ async function patchSourceMessageFromAck(params: {actorUserId: string; sourceMes
     p_ack_message_id: params.ackMessage.id, p_source_message_id: params.sourceMessage.id, p_actor_user_id: params.actorUserId,
   });
   if (error) throw error;
-  const result = data as {version?: unknown; sourceMessage?: EdielMessageRow; outcome?: unknown; finalAckReached?: unknown; wholeSourceRejected?: unknown; sourceAccepted?: unknown; failureReason?: unknown} | null;
+  const result = data as {version?: unknown; sourceMessage?: EdielMessageRow; outcome?: unknown; finalAckReached?: unknown; wholeSourceRejected?: unknown; sourceAccepted?: unknown; failureReason?: unknown; scope?: unknown; scopeOutcomes?: unknown} | null;
   if (!result || result.version !== 1 || !result.sourceMessage || result.sourceMessage.id !== params.sourceMessage.id
     || result.sourceMessage.company_id !== params.sourceMessage.company_id || result.outcome !== params.outcome
     || typeof result.finalAckReached !== 'boolean' || typeof result.wholeSourceRejected !== 'boolean' || typeof result.sourceAccepted !== 'boolean') throw new Error('ack_atomic_source_receipt_invalid');
+  const scopeOutcomes = Array.isArray(result.scopeOutcomes) ? result.scopeOutcomes.map(row => String((row as {outcome?: unknown} | null)?.outcome ?? '')) : [];
   return {updated: result.sourceMessage, finalAckReached: result.finalAckReached, wholeSourceRejected: result.wholeSourceRejected, sourceAccepted: result.sourceAccepted,
-    failureReason: typeof result.failureReason === 'string' ? result.failureReason : null};
+    failureReason: typeof result.failureReason === 'string' ? result.failureReason : null,
+    objectRejected: params.outcome === 'negative' && result.scope === 'object' && scopeOutcomes.length > 0 && scopeOutcomes.every(outcome => outcome === 'negative')
+      && sourceObjectCount(params.sourceMessage) === scopeOutcomes.length};
+}
+
+/** Physical objects (LIN) of our own PRODAT original; 0 when it cannot be read. */
+function sourceObjectCount(source: EdielMessageRow): number {
+  if (source.message_family !== 'PRODAT' || !source.raw_payload) return 0;
+  try { return tokenizeEdifact(source.raw_payload).segments.filter(segment => segment.tag === 'LIN').length; } catch { return 0; }
+}
+
+/** The counterparty's own rejection codes (ERC/FTX), e.g. "ERC 40/105 Anläggningen kan inte identifieras". */
+function ackRejectionDetails(ack: EdielMessageRow): string | null {
+  if (!ack.raw_payload) return null;
+  try {
+    const wire = tokenizeEdifact(ack.raw_payload), details: string[] = [];
+    wire.segments.forEach((segment, index) => {
+      if (segment.tag !== 'ERC') return;
+      const erc = segmentComposite(segment, 1, wire.una)[0];
+      if (!erc || erc === '100') return;
+      const ftx = wire.segments[index + 1]?.tag === 'FTX' ? wire.segments[index + 1] : null;
+      const code = ftx ? segmentComposite(ftx, 3, wire.una)[0] : '';
+      const text = ftx ? segmentComposite(ftx, 4, wire.una).filter(Boolean).join(' ') : '';
+      details.push(`ERC ${erc}${code ? `/${code}` : ''}${text ? ` ${text}` : ''}`);
+    });
+    return details.length ? details.join('; ') : null;
+  } catch { return null; }
 }
 
 async function getSwitchRequestById(
@@ -402,6 +430,32 @@ async function syncSwitchFromInboundAck(params: {
   if (!current) return null;
 
   const supabase = supabaseService;
+
+  // P-11 / ACK-07: once the grid owner's Z04 confirmed the switch, a late negative
+  // ACK must not move it back. Record the contradiction for an operator instead.
+  if (
+    params.outcome === "negative" &&
+    (current.inbound_z04_message_id ||
+      ["accepted", "confirmed", "active", "completed"].includes(current.status))
+  ) {
+    await createSupplierSwitchEvent(supabase, {
+      switchRequestId: current.id,
+      eventType: "ediel_ack_received",
+      eventStatus: "warning",
+      message: `${params.ackMessage.message_family} negativ kvittens mottagen efter nätägarens Z04-bekräftelse. Switchstatus behölls; granska motsägelsen med nätägaren.`,
+      payload: {
+        sourceEdielMessageId: params.sourceMessage.id,
+        ackEdielMessageId: params.ackMessage.id,
+        outboundRequestId: params.outboundRequest?.id ?? null,
+        outcome: params.outcome,
+        currentSwitchStatus: current.status,
+        inboundZ04MessageId: current.inbound_z04_message_id ?? null,
+        failureReason: params.failureReason,
+        manualReviewRequired: true,
+      },
+    });
+    return current;
+  }
 
   if (params.outcome === "negative") {
     const updated = await updateSupplierSwitchRequestStatus(supabase, {
@@ -649,33 +703,42 @@ export async function processInboundAckMessage(params: {
   });
 
   const allowBusinessTransition = sourcePatch.wholeSourceRejected || sourcePatch.sourceAccepted;
-  const outboundRequest = allowBusinessTransition ? await syncOutboundRequestFromInboundAck({
+  // A processed (BGM 34) APERAK that rejects every object of our own original is
+  // the grid owner's business rejection of the request (ACK-02/ACK-08). It moves
+  // the request it belongs to; the source message status stays the SQL owner's.
+  const requestTransition = allowBusinessTransition || sourcePatch.objectRejected;
+  // Keep the counterparty's own ERC/FTX with the generic receipt reason.
+  const rejectionDetails = outcome === "negative" ? ackRejectionDetails(ackMessage) : null;
+  const businessFailureReason = rejectionDetails
+    ? `${sourcePatch.failureReason ?? `${ackMessage.message_family} negativ kvittens`} · ${rejectionDetails}`
+    : sourcePatch.failureReason;
+  const outboundRequest = requestTransition ? await syncOutboundRequestFromInboundAck({
     actorUserId,
     sourceMessage,
     ackMessage,
     outcome,
     finalAckReached: sourcePatch.finalAckReached,
-    failureReason: sourcePatch.failureReason,
+    failureReason: businessFailureReason,
   }) : null;
 
-  const switchResult = allowBusinessTransition ? await syncSwitchFromInboundAck({
+  const switchResult = requestTransition ? await syncSwitchFromInboundAck({
     actorUserId,
     sourceMessage,
     ackMessage,
     outboundRequest,
     outcome,
     finalAckReached: sourcePatch.finalAckReached,
-    failureReason: sourcePatch.failureReason,
+    failureReason: businessFailureReason,
   }) : null;
 
-  const gridOwnerDataRequest = allowBusinessTransition ? await syncGridOwnerDataRequestFromInboundAck({
+  const gridOwnerDataRequest = requestTransition ? await syncGridOwnerDataRequestFromInboundAck({
     actorUserId,
     sourceMessage,
     ackMessage,
     outboundRequest,
     outcome,
     finalAckReached: sourcePatch.finalAckReached,
-    failureReason: sourcePatch.failureReason,
+    failureReason: businessFailureReason,
   }) : null;
 
   const customerCase = allowBusinessTransition ? await syncCustomerCaseCancellationAck({
