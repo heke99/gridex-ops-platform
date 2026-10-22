@@ -159,22 +159,22 @@ describe('canonical Ediel policy batch regression', () => {
     expect(() => assertUtiltsMessageUseAllowed({ referenceDate: '2026-08-28', messageCode: 'S08', mode: 'historical_replay' })).not.toThrow()
   })
 
-  it('locks the UTILTS 25-A-3/25-A-4 cutover and two-week inbound grace window', () => {
+  it('locks the UTILTS 25-A-3/25-A-5 cutover and two-week inbound grace window', () => {
     expect(resolveUtiltsProcessabilityPolicy('2026-09-30').guideRevision).toBe('25-A-3')
-    expect(resolveUtiltsProcessabilityPolicy('2026-10-01').guideRevision).toBe('25-A-4')
+    expect(resolveUtiltsProcessabilityPolicy('2026-10-01').guideRevision).toBe('25-A-5')
 
     const oct1 = resolveEdielGuideAcceptance({ family: 'UTILTS', referenceDate: '2026-10-01', associationAssignedCode: 'E5SE5A' })
     const oct14 = resolveEdielGuideAcceptance({ family: 'UTILTS', referenceDate: '2026-10-14', associationAssignedCode: 'E5SE5A' })
     const oct15 = resolveEdielGuideAcceptance({ family: 'UTILTS', referenceDate: '2026-10-15', associationAssignedCode: 'E5SE5A' })
 
-    expect(oct1.current.guideRevision).toBe('25-A-4')
+    expect(oct1.current.guideRevision).toBe('25-A-5')
     expect(oct1.previousGuideGraceActive).toBe(true)
-    expect(oct1.acceptedInbound.map((guide) => guide.guideRevision).sort()).toEqual(['25-A-3', '25-A-4'])
+    expect(oct1.acceptedInbound.map((guide) => guide.guideRevision).sort()).toEqual(['25-A-3', '25-A-5'])
     expect(oct14.previousGuideGraceActive).toBe(true)
-    expect(oct14.acceptedInbound.map((guide) => guide.guideRevision).sort()).toEqual(['25-A-3', '25-A-4'])
+    expect(oct14.acceptedInbound.map((guide) => guide.guideRevision).sort()).toEqual(['25-A-3', '25-A-5'])
     expect(oct15.previousGuideGraceActive).toBe(false)
-    expect(oct15.acceptedInbound.map((guide) => guide.guideRevision)).toEqual(['25-A-4'])
-    expect(oct15.acceptedOutbound.map((guide) => guide.guideRevision)).toEqual(['25-A-4'])
+    expect(oct15.acceptedInbound.map((guide) => guide.guideRevision)).toEqual(['25-A-5'])
+    expect(oct15.acceptedOutbound.map((guide) => guide.guideRevision)).toEqual(['25-A-5'])
   })
 
   it('maps every canonical supplier-facing UTILTS profile to an explicit non-ignored business outcome', () => {

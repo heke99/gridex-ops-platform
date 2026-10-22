@@ -1,0 +1,60 @@
+{
+  "schema": "gridex-ediel-source-supplement-v1",
+  "version": 1,
+  "issuedAt": "2026-10-20",
+  "scope": "Current Swedish UTILTS/APERAK25-A-5; source qualification is not operational authorization",
+  "baseline": {
+    "commit": "fd4acbc50e9d73c7f2f317d3e806723522708b16",
+    "frozenPackageManifestSha256": "750456429d79aed938baf1542c93c57f4833da99d6df35d60be2c41f0159b0d8",
+    "ruleCount": 121,
+    "contractCount": 231,
+    "coverageChanges": false
+  },
+  "primarySource": {
+    "id": "U5-SV",
+    "filename": "261001_Ediel_UTILTS-APERAK_Anvisning_version_25-A-5.pdf",
+    "url": "https://www.ediel.se/Portal/Document/3364",
+    "sha256": "b76a61b9aa6f136771e5db4948296d1b632b8d775314eb6c93783595ae419db2",
+    "language": "sv",
+    "pages": 135,
+    "guideRevision": "25-A-5",
+    "associationAssignedCode": "E5SE5A",
+    "publicationDate": "2026-10-01",
+    "effectiveFrom": "2026-10-01",
+    "authority": "Svenska kraftnät"
+  },
+  "qualifiedReuse": {
+    "fullReading": {
+      "pagesRead": 135,
+      "pageCount": 135,
+      "method": "Reuse of exact-original full source reading completed2026-10-20; relevant cover/history/3.6.6/3.6.12/3.6.13 reread for remediation",
+      "receiptSha256": "01f683f6754df91f304bf18afb66f2806864f01dc8e4591bb879a5d3e9a100d9"
+    },
+    "tableComparison": {
+      "tables": 38,
+      "rows": 471,
+      "differences": 0,
+      "method": "Every retained U table compared to Swedish U5 primary PDF; whitespace/None normalization only",
+      "receiptSha256": "c300b005ff8513c1dbbd326d2687404703fab5eaab89eb62f9abc815bcd86bd7",
+      "limit": "Table equivalence only; not complete historical U4/U5 prose equivalence"
+    },
+    "historicalU4": {
+      "sha256": "0524c18f38864ebe081dec9d3d53f1797b224ef0af7b01986627e895f47d99be",
+      "originalAvailableForFullProseDiff": false,
+      "handling": "Retain existing source identity, named protected witnesses and original rules; never relabel as U5"
+    },
+    "englishUtilts": "Excluded from current normative source qualification"
+  },
+  "wire": {
+    "UTILTS": "UTILTS:D:02B:UN:E5SE5A",
+    "UTILTS_APERAK": "APERAK:D:04A:UN:E5SE5A",
+    "payloadTimeOffset": "+0100",
+    "newWireIdentifier": false
+  },
+  "constraints": [
+    "Do not rewrite frozen masterplan/coverage/old migrations or protected original receipts",
+    "DGI and an energy-sharing source description do not grant market activation",
+    "Actual new U5 registry and native/GEN projections require the existing qualified producer; absent or old evidence remains blocking",
+    "No complete legal, organization, customer or market certification follows from this source supplement"
+  ]
+}

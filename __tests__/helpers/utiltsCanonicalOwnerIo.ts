@@ -18,7 +18,10 @@ export function receivedUtiltsOwnerFixture(message:EdielMessageRow):EdielMessage
 export function utiltsNamedOwnerWitness({canonicalPolicy:policy}:{canonicalPolicy:CanonicalEdielPolicy}) {
  const revision=policy.guide.guideRevision,number=revision.split('-').at(-1)!,databaseProfileKey=`UTILTS:${policy.code}:E5SE5A:${number}`
  return {profileKey:policy.profileKey,databaseProfileKey,messageProfileId:profileId,rulePackId:packId,sourceHash:'a'.repeat(64),originalVersion:`${revision}:r${number}`,
-  originalSnapshot:{rulePack:{id:packId,source_hash:'a'.repeat(64),guide_version:revision,guide_revision:number},messageProfile:{id:profileId,rule_pack_id:packId,profile_key:databaseProfileKey},guideSources:[{id:'55555555-5555-4555-8555-555555555555',rule_pack_id:packId}]}}
+  originalSnapshot:{rulePack:{id:packId,source_hash:'a'.repeat(64),guide_version:revision,guide_revision:number},messageProfile:{id:profileId,rule_pack_id:packId,profile_key:databaseProfileKey},guideSources:[{id:'55555555-5555-4555-8555-555555555555',rule_pack_id:packId,
+   // Explicit synthetic U5 primary-source row; older named originals stay older.
+   ...(revision==='25-A-5'?{source_type:'technical_guide',revision:'25-A-5',source_hash:'b76a61b9aa6f136771e5db4948296d1b632b8d775314eb6c93783595ae419db2',source_locator:'https://www.ediel.se/Portal/Document/3364'}:{}),
+  }]}}
 }
 export function utiltsCanonicalOwnerRpc(name:string,args:Record<string,string|null>) {
  if(name==='gridex_record_utilts_source_validation_v4') {

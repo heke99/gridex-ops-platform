@@ -211,11 +211,11 @@ function seed(transactions: Parameters<typeof utiltsErrGatewayFixture>[0]['trans
   const source = {
     ...utiltsErrGatewayFixture({ company, transactions, date }), id: randomUUID(),
     canonical_rule_pack_id: randomUUID(), rule_profile_key: 'synthetic-utilts-e66',
-    rule_profile_version_id: randomUUID(), rule_profile_version: '25-A-4:r4', rule_pack_checksum: 'a'.repeat(64),
+    rule_profile_version_id: randomUUID(), rule_profile_version: null, rule_pack_checksum: 'a'.repeat(64),
   } as EdielMessageRow
   if (transform) source.raw_payload = transform(source.raw_payload!)
   // Finite source-basis model declares the actual original packet; both editions are accepted during the grace interval.
-  const selected=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:source.message_code!,direction:'inbound',referenceDate:date,selectedGuideRevision:date==='2026-09-30'?'25-A-3':'25-A-4',applicationReference:source.application_reference,mode:'parse'})
+  const selected=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:source.message_code!,direction:'inbound',referenceDate:date,selectedGuideRevision:date==='2026-09-30'?'25-A-3':'25-A-5',applicationReference:source.application_reference,mode:'parse'})
   source.rule_profile_version=`${selected.guide.guideRevision}:r${selected.guide.guideRevision.split('-').at(-1)}`
   const runtime = runUtiltsRuntimeForMessage(source,{referenceDate:date,canonicalPolicy:selected})
   const reservations: Row[] = runtime.transactionDispositions.map(row => ({
@@ -229,7 +229,7 @@ function seed(transactions: Parameters<typeof utiltsErrGatewayFixture>[0]['trans
   const sourceRulePackEvidence={rulePackId:source.canonical_rule_pack_id,messageProfileId:source.rule_profile_version_id,profileKey,version,sourceHash:source.rule_pack_checksum,
     snapshot:{profileKey,profileVersionId:source.rule_profile_version_id,version,checksum:source.rule_pack_checksum,
       rulePack:{id:source.canonical_rule_pack_id,family:'UTILTS',guide_version:selected.guide.guideRevision,guide_revision:revision,source_hash:source.rule_pack_checksum},
-      messageProfile:{id:source.rule_profile_version_id,rule_pack_id:source.canonical_rule_pack_id,profile_key:profileKey},guideSources:[]}}
+      messageProfile:{id:source.rule_profile_version_id,rule_pack_id:source.canonical_rule_pack_id,profile_key:profileKey},guideSources:revision==='5'?[{rule_pack_id:source.canonical_rule_pack_id,source_type:'technical_guide',revision:'25-A-5',source_hash:'b76a61b9aa6f136771e5db4948296d1b632b8d775314eb6c93783595ae419db2',source_locator:'https://www.ediel.se/Portal/Document/3364'}]:[]}}
   database.sourceBases.set(source.id,{version:1,sourceMessage:structuredClone(source),sourceRulePackEvidence})
   for (const [table, rows] of Object.entries({
     ediel_messages: [source], ediel_message_events: [], ediel_ack_transaction_results: reservations, grid_owners: [],
@@ -593,7 +593,7 @@ it('SC-047 an object known only in another tenant is unknown here: the real look
  const matches=await matchUtiltsTransactionsForTenant({message:f.source,facts:f.runtime.facts})
  expect(matches).toEqual([expect.objectContaining({transactionReference:'OWN-E10',externalMeteringPointId:'735999260731000007',meteringPointId:null,matchStatus:'unmatched'})])
  const source={...f.source,parsed_payload:{...(f.source.parsed_payload??{}),utiltsTransactionMatches:matches}} as EdielMessageRow
- const policy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:'E66',direction:'inbound',referenceDate:'2026-10-01',selectedGuideRevision:'25-A-4',applicationReference:source.application_reference,mode:'parse'})
+ const policy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:'E66',direction:'inbound',referenceDate:'2026-10-01',selectedGuideRevision:'25-A-5',applicationReference:source.application_reference,mode:'parse'})
  const runtime=runUtiltsRuntimeForMessage(source,{referenceDate:'2026-10-01',canonicalPolicy:policy})
  // Syntax and guide pass; the object control is the prescribed functional outcome.
  expect(runtime.validation.issues.filter(i=>i.severity==='error').map(i=>[i.kind,i.utiltsErrCode])).toEqual([['functional','E10']])

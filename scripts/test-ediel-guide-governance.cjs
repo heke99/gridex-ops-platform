@@ -73,7 +73,7 @@ for (const [label, mutate] of [
     assert.throws(() => mutate(api.AUTHORITATIVE_EDIEL_GUIDES), TypeError)
     assert.equal(JSON.stringify(api.AUTHORITATIVE_EDIEL_GUIDES), before)
     assert.equal(api.resolveAuthoritativeEdielGuide(guide).guideRevision, '25-A-3')
-    assert.equal(api.resolveAuthoritativeEdielGuide({ ...guide, referenceDate: '2026-10-01' }).guideRevision, '25-A-4')
+    assert.equal(api.resolveAuthoritativeEdielGuide({ ...guide, referenceDate: '2026-10-01' }).guideRevision, '25-A-5')
   })
 }
 test('GOV-01: returned guide cannot be used to modify the next caller', async () => {
@@ -96,9 +96,9 @@ test('GOV-04/05: outbound stays current and inbound grace stops after the fourte
   const api = await runtime()
   for (const [date, current, inbound] of [
     ['2026-09-30', '25-A-3', ['25-A-3']],
-    ['2026-10-01', '25-A-4', ['25-A-4', '25-A-3']],
-    ['2026-10-14', '25-A-4', ['25-A-4', '25-A-3']],
-    ['2026-10-15', '25-A-4', ['25-A-4']],
+    ['2026-10-01', '25-A-5', ['25-A-5', '25-A-3']],
+    ['2026-10-14', '25-A-5', ['25-A-5', '25-A-3']],
+    ['2026-10-15', '25-A-5', ['25-A-5']],
   ]) {
     const actual = api.resolveEdielGuideAcceptance({ ...guide, referenceDate: date })
     assert.deepEqual(actual.acceptedOutbound.map(row => row.guideRevision), [current])
