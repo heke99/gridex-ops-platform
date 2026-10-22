@@ -3,8 +3,33 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { supabaseService } from "@/lib/supabase/service";
 import { requireContractRecordsAvailable, requireCustomerRecordAvailable } from '@/lib/ediel/retention/customerRecordClasses';
+import { contractCustomerMasterdataSection, type ContractCustomerMasterdataSection } from "@/lib/customer-contracts/agreementPdf";
 
 export const CUSTOMER_CONTRACT_DOCUMENT_BUCKET = "customer-contract-documents";
+
+/**
+ * FINDINGS F51: the customer masterdata section a contract is signed with — the customer's
+ * one current registered address with provenance (website declaration or staff entry) and
+ * full identity number, built by the same database builder that token signing uses, exactly
+ * as the Ediel masterdata rule reads it. Null when the customer has no such address; the
+ * contract is then signed without the section (and its Z03 masterdata stays held).
+ */
+export async function loadContractCustomerMasterdataSection(input: {
+  companyId: string;
+  customerId: string;
+}): Promise<ContractCustomerMasterdataSection | null> {
+  const { data, error } = await supabaseService.rpc("gridex_contract_customer_masterdata_section_v1", {
+    p_company_id: input.companyId,
+    p_customer_id: input.customerId,
+  });
+  if (error) throw error;
+  if (data === null || data === undefined) return null;
+  const section = contractCustomerMasterdataSection(data);
+  if (!section || section.customerId !== input.customerId) {
+    throw new Error("contract_customer_masterdata_section_invalid");
+  }
+  return section;
+}
 
 export type CustomerContractDocumentRow = {
   id: string;

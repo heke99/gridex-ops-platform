@@ -44,6 +44,70 @@ export type AgreementPdfInput = {
   noticeMonths?: number | null
   legalVersions: AgreementPdfLegalVersion[]
   signatureSnapshotSha256?: string | null
+  /**
+   * FINDINGS F51: the signed snapshot's customer masterdata section. When present the
+   * customer sees exactly the identity and registered address that are sent to the grid
+   * owner. Absent for contracts signed without it, whose PDF stays byte-identical.
+   * Callers pass the snapshot value as stored; only a section with exactly the rule's
+   * shape is rendered (contractCustomerMasterdataSection).
+   */
+  customerMasterdata?: ContractCustomerMasterdataSection | unknown
+}
+
+/**
+ * The hash-bound customer masterdata section of a signature snapshot
+ * (`customer_masterdata`, built by gridex_customer_masterdata.contract_section_v1 exactly
+ * like the Ediel masterdata rule basis_v1 builds it from the registered address).
+ */
+export type ContractCustomerMasterdataSection = {
+  schema: 'gridex_contract_customer_masterdata_v1'
+  customerId: string
+  registeredAddressId: string
+  source: 'website_declaration' | 'staff_entry'
+  declaredAt: string | null
+  customerIdentity: { id: string; qualifier: 'SE1' | 'SE2'; agency: '260' }
+  endUserMasterdata: { nameParts: string[]; streetParts: string[]; postalCode: string; city: string; country: string }
+}
+
+const MASTERDATA_KEYS = ['nameParts', 'streetParts', 'postalCode', 'city', 'country']
+const textPart = (value: unknown, min: number, max: number) =>
+  typeof value === 'string' && Array.from(value).length >= min && Array.from(value).length <= max && !/[\x00-\x1f\x7f]/.test(value)
+
+/** The section when it has exactly the rule's shape; otherwise null (never a partial section). */
+export function contractCustomerMasterdataSection(value: unknown): ContractCustomerMasterdataSection | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const section = value as Record<string, unknown>
+  const identity = section.customerIdentity as Record<string, unknown> | null | undefined
+  const masterdata = section.endUserMasterdata as Record<string, unknown> | null | undefined
+  if (section.schema !== 'gridex_contract_customer_masterdata_v1' || typeof section.customerId !== 'string' || typeof section.registeredAddressId !== 'string'
+    || (section.source !== 'website_declaration' && section.source !== 'staff_entry') || (section.declaredAt !== null && typeof section.declaredAt !== 'string')) return null
+  if (!identity || typeof identity !== 'object' || (identity.qualifier !== 'SE1' && identity.qualifier !== 'SE2') || identity.agency !== '260'
+    || !textPart(identity.id, 1, 35) || identity.id !== String(identity.id).trim()) return null
+  if (!masterdata || typeof masterdata !== 'object' || Object.keys(masterdata).some((key) => !MASTERDATA_KEYS.includes(key))) return null
+  const { nameParts, streetParts, postalCode, city, country } = masterdata
+  if (!Array.isArray(nameParts) || nameParts.length < 1 || nameParts.length > 2 || !nameParts.every((part) => textPart(part, 1, 35))) return null
+  if (!Array.isArray(streetParts) || streetParts.length < 1 || streetParts.length > 3 || !streetParts.every((part) => textPart(part, 0, 35))
+    || !streetParts.some((part) => part !== '' && part !== '.')) return null
+  if (!textPart(postalCode, 1, 9) || !textPart(city, 1, 35) || typeof country !== 'string' || !/^[A-Z]{2}$/.test(country)) return null
+  return section as ContractCustomerMasterdataSection
+}
+
+/**
+ * The customer-details lines of the agreement PDF. The derivation of the Ediel masterdata
+ * declaration (gridex_customer_masterdata.contract_pdf_lines_v1) requires each of these exact
+ * lines in the signed bytes, so both lists must stay identical.
+ */
+export function customerMasterdataPdfLines(section: ContractCustomerMasterdataSection): string[] {
+  const organization = section.customerIdentity.qualifier === 'SE1'
+  const masterdata = section.endUserMasterdata
+  return [
+    `Namn: ${masterdata.nameParts.join('')}`,
+    `${organization ? 'Organisationsnummer' : 'Personnummer'}: ${section.customerIdentity.id}`,
+    `${organization ? 'Registrerad adress' : 'Folkbokföringsadress'}: ${masterdata.streetParts[0] ?? ''}`,
+    ...masterdata.streetParts.slice(1).map((part, index) => `Adressrad ${index + 2}: ${part}`),
+    `Postnummer och ort: ${masterdata.postalCode} ${masterdata.city}`,
+    `Land: ${masterdata.country}`,
+  ]
 }
 
 export type PdfLine = {
@@ -192,6 +256,15 @@ function agreementLines(input: AgreementPdfInput): PdfLine[] {
   lines.push({ text: '' })
   addWrapped(lines, `Hej ${input.customerName},`, 'body')
   addWrapped(lines, `Tack för att du har valt ${brand}. Här är en sammanfattning av det elavtal du tecknade ${formatDateTime(input.signedAt)}. Spara denna bekräftelse.`, 'body')
+
+  const customerMasterdata = contractCustomerMasterdataSection(input.customerMasterdata)
+  if (customerMasterdata) {
+    lines.push({ text: '' })
+    lines.push({ text: 'KUNDUPPGIFTER', style: 'heading' })
+    // Each line is written whole (never wrapped) so the signed bytes carry it exactly.
+    for (const text of customerMasterdataPdfLines(customerMasterdata)) lines.push({ text })
+    addWrapped(lines, 'Dessa uppgifter lämnas till din nätägare när leverantörsbytet anmäls. Kontakta oss om de inte stämmer.', 'small', 88)
+  }
 
   lines.push({ text: '' })
   lines.push({ text: 'DITT AVTAL', style: 'heading' })

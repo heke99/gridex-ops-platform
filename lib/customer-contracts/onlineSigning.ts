@@ -446,6 +446,8 @@ export async function deliverSignedContractReceipt(receipt: OnlineSignatureRecei
     noticeMonths: price.noticeMonths,
     legalVersions,
     signatureSnapshotSha256: receipt.signature_snapshot_sha256,
+    // FINDINGS F51: the identity and registered address bound into the signed snapshot (v2).
+    customerMasterdata: asObject(contractState.signature_snapshot).customer_masterdata,
   });
   let pdfBuffer: Buffer;
   if (contractState.document_sha256) {

@@ -290,6 +290,7 @@
     "20261020280000_ediel_envelope_index_execute.sql": "932c8ab5ca97e6bdeb922d4d2ad1e558d96c5a23cccc6cda5b7ef7efb1de2a1c",
     "20261020290000_ediel_envelope_tokenizer_schema_usage.sql": "1ba38ccb803d27edb160beedd7e96dd64e97155d03d40b124e487ffe9d21103b",
     "20261022100000_customer_metering_access_windows.sql": "544af87d13efd1cc0ca4cae2f99c54cdbe9a44656c4129863f58d010883e09dc",
-    "20261022120000_registry_routes_materialize_supplier_scopes.sql": "970e1148c082fcf76d292f20733d8337425fbe24f7972cfbe6933ace8fc9a169"
+    "20261022120000_registry_routes_materialize_supplier_scopes.sql": "970e1148c082fcf76d292f20733d8337425fbe24f7972cfbe6933ace8fc9a169",
+    "20261022130000_contract_customer_masterdata_derivation.sql": "c5232b4209c9b3c6b167a994446eccb7c42b3fc8d515b38a63a4c7e2c96338e5"
   }
 }

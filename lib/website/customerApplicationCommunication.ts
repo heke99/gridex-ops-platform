@@ -7,12 +7,13 @@ import { stockholmDateForInstant } from "@/lib/time/stockholm";
 import { canonicalSwedishOrganizationNumber, canonicalSwedishPersonalNumber } from "@/lib/validation/customerFields";
 import { triggerEmailEvent } from "@/lib/email/emailEvents";
 import { legalAcceptanceTypeForModule, type PublicContractOffer } from "@/lib/website/publicContracts";
-import { buildAgreementPdfAttachment } from "@/lib/customer-contracts/agreementPdf";
+import { buildAgreementPdfAttachment, type ContractCustomerMasterdataSection } from "@/lib/customer-contracts/agreementPdf";
 import { frozenPriceLines, frozenPriceSummary } from "@/lib/customer-contracts/frozenPriceDisplay";
 import { requireContractRecordsAvailable } from "@/lib/ediel/retention/customerRecordClasses";
 import {
   archiveSignedCustomerContractPdf,
   downloadAndVerifyCustomerContractDocument,
+  loadContractCustomerMasterdataSection,
   type CustomerContractDocumentRow,
 } from "@/lib/customer-contracts/documents";
 import { fixedPriceOreForArea } from "@/lib/pricing/fixedAreaPricing";
@@ -471,6 +472,8 @@ export async function dispatchInitialWebsiteApplicationEmails(input: {
           })),
           signatureSnapshotSha256:
             input.contract.signature_snapshot_sha256 ?? null,
+          // FINDINGS F51: the identity and registered address the customer signed (snapshot v3).
+          customerMasterdata: input.contract.signature_snapshot?.customer_masterdata,
         })
       : null;
 
@@ -797,6 +800,8 @@ export type WebsiteContractCreateResult = {
   offer_reference?: string | null;
   energy_direction?: "consumption" | "production";
   signature_snapshot_sha256?: string | null;
+  /** The signed snapshot as stored on the contract (present when read back from customer_contracts). */
+  signature_snapshot?: Record<string, unknown> | null;
   contract_number: string | null;
   price_plan_id: string | null;
   price_plan_version_id: string | null;
@@ -890,8 +895,9 @@ function websiteSignatureSnapshot(input: {
   legalVersions: WebsiteLegalAcceptanceVersion[];
   contractPriceSnapshotId?: string | null;
   requestAudit?: RequestAuditMetadata;
+  customerMasterdata?: ContractCustomerMasterdataSection | null;
 }) {
-  return {
+  const snapshot = {
     schema: "gridex_website_contract_signature_v2",
     company_id: input.companyId,
     customer_id: input.customerId,
@@ -920,6 +926,11 @@ function websiteSignatureSnapshot(input: {
       user_agent: input.requestAudit?.userAgent ?? null,
     },
   };
+  // FINDINGS F51: v3 binds the customer masterdata section (full identity number and the
+  // declared registered address) into the hashed signature. Without it the v2 shape is unchanged.
+  return input.customerMasterdata
+    ? { ...snapshot, schema: "gridex_website_contract_signature_v3", customer_masterdata: input.customerMasterdata }
+    : snapshot;
 }
 
 export async function finalizeWebsiteContractSignature(input: {
@@ -959,6 +970,24 @@ export async function finalizeWebsiteContractSignature(input: {
       details: schemaErrorDetail(retryError),
     });
   }
+  let customerMasterdata: ContractCustomerMasterdataSection | null;
+  try {
+    customerMasterdata = await loadContractCustomerMasterdataSection({
+      companyId: input.companyId,
+      customerId: input.customerId,
+    });
+  } catch (error) {
+    throw new WebsiteApplicationError({
+      message:
+        "Kunduppgifterna (person-/organisationsnummer och folkbokföringsadress) kunde inte läsas in för signeringen.",
+      status: 500,
+      code: "contract_customer_masterdata_section_failed",
+      field: "contract",
+      stage: "legal_acceptance",
+      hint: "Kör migrationen för gridex_contract_customer_masterdata_section_v1 och kontrollera kundens registrerade adress.",
+      details: schemaErrorDetail(error),
+    });
+  }
   const snapshot = websiteSignatureSnapshot({
     companyId: input.companyId,
     customerId: input.customerId,
@@ -970,6 +999,7 @@ export async function finalizeWebsiteContractSignature(input: {
     legalVersions: input.legalVersions,
     contractPriceSnapshotId: input.contract.contract_price_snapshot_id ?? null,
     requestAudit: input.requestAudit,
+    customerMasterdata,
   });
   const snapshotHash = createHash("sha256")
     .update(JSON.stringify(snapshot), "utf8")
