@@ -163,7 +163,10 @@ export type LiveTenant = {
 export async function configureTenant(supabase: { rpc: (name: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: unknown }> },
   options: { brp?: boolean; beforePublish?: (tenant: { companyId: string; operatorEmail: string; operatorPassword: string }) => Promise<void>
     /** Reuse another tenant's grid owner (same Ediel id and mailbox): two suppliers in one grid area. */
-    sharedGridOwner?: Pick<LiveTenant, 'issuerEdielId' | 'gridOwnerEmail'> } = {}): Promise<LiveTenant> {
+    sharedGridOwner?: Pick<LiveTenant, 'issuerEdielId' | 'gridOwnerEmail'>
+    /** The offer's contract terms (default: no binding, one month notice, 12-month automatic renewal). */
+    terms?: { bindingMonths: number; noticeMonths: number; renewalMonths: number } } = {}): Promise<LiveTenant> {
+  const terms = options.terms ?? { bindingMonths: 0, noticeMonths: 1, renewalMonths: 12 }
   ensureHostedPermissionCatalog()
   ensureProductionRoleLookupParity()
   const companyId = randomUUID(), adminUserId = randomUUID(), gridOwnerId = randomUUID()
@@ -214,8 +217,8 @@ export async function configureTenant(supabase: { rpc: (name: string, args: Reco
       // Website/API channels require the invoice fee as a canonical component (0 kr = offer row invoice_fee_sek).
       { component_code: 'invoice_fee', component_type: 'fee', name: 'Fakturaavgift', calculation_type: 'per_invoice', amount: 0, unit: 'sek_invoice', website_card_visible: true }] }
   const offer = { name: 'E2E Kvartspris', slug: `e2e-kvartspris-${companyId}`, lifecycle_status: 'draft', contract_type: 'variable_quarterly', customer_type: 'both', pricing_model: 'spot',
-    energy_direction: 'consumption', terms_version: 'e2e-v1', spot_markup_ore_per_kwh: 4, monthly_fee_sek: 49, invoice_fee_sek: 0, default_binding_months: 0, default_notice_months: 1,
-    automatic_renewal: true, automatic_renewal_term_months: 12, power_of_attorney_required: true, valid_from: '2026-06-01' }
+    energy_direction: 'consumption', terms_version: 'e2e-v1', spot_markup_ore_per_kwh: 4, monthly_fee_sek: 49, invoice_fee_sek: 0, default_binding_months: terms.bindingMonths, default_notice_months: terms.noticeMonths,
+    automatic_renewal: true, automatic_renewal_term_months: terms.renewalMonths, power_of_attorney_required: true, valid_from: '2026-06-01' }
   const created = await supabase.rpc('gridex_upsert_internal_contract_offer_v2', { p_company_id: companyId, p_offer_id: null, p_payload: offer, p_pricing_snapshot: pricing, p_actor_user_id: adminUserId })
   if (created.error) throw Error(`offer_create_failed:${JSON.stringify(created.error)}`)
   const offerResult = created.data as { ok?: boolean; offer?: { id?: string } }
@@ -242,7 +245,7 @@ export async function configureTenant(supabase: { rpc: (name: string, args: Reco
   if (published.error || !(published.data as { ok?: boolean })?.ok) throw Error(`publish_rejected:${JSON.stringify(published.error ?? published.data)}`)
   sql(`WITH t AS (INSERT INTO public.contract_price_options(company_id,contract_product_version_id,price_plan_version_id,option_reference,option_code,customer_name,contract_type,
      binding_months,notice_months,auto_renew_enabled,renewal_term_months,status,customer_type,is_default,selection_required,created_by)
-    SELECT ${literal(companyId)},contract_product_version_id,price_plan_version_id,'e2e-default','e2e-default','Kvartspris','variable_quarterly',0,1,true,12,'active','both',true,false,${literal(adminUserId)}
+    SELECT ${literal(companyId)},contract_product_version_id,price_plan_version_id,'e2e-default','e2e-default','Kvartspris','variable_quarterly',${terms.bindingMonths},${terms.noticeMonths},true,${terms.renewalMonths},'active','both',true,false,${literal(adminUserId)}
     FROM public.contract_offers WHERE id=${literal(offerId)} RETURNING id,company_id,price_plan_version_id)
    INSERT INTO public.contract_price_option_area_prices(company_id,contract_price_option_id,price_plan_version_id,price_row_reference,price_area,amount,unit,created_by)
    SELECT company_id,id,price_plan_version_id,'e2e-se3','SE3',4,'ore_per_kwh',${literal(adminUserId)} FROM t;`)

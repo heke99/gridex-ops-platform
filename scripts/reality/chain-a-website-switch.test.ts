@@ -9,10 +9,11 @@
 import { writeFileSync } from 'node:fs'
 import { afterAll, describe, expect, it } from 'vitest'
 import { supabaseService } from '@/lib/supabase/service'
-import { configurePlatformMailbox, configureTenant, LIVE, literal, sql, type LiveTenant } from '../helpers/live-chain-fixture'
-import { approveTenantRouteProfiles, ensureProductionWhiteLabelColumnParity, goLiveOnWebsite, publishReceiverCertificateTrust, simulateEdielCertifiedGoLive, WEBSITE_ORIGIN } from '../helpers/reality/tenantWebsite'
-import { checkGridOwners, chooseTenantBrp, closeOperatorConsole, createProductionRoutesFromWizard, confirmSafeBlankSubaddresses, importActorRegistry, materializeTenantRoutes, searchGridOwnerCertificate, operatorSession, sanitizedActorRegistry, verifyActorForCustomerFlow } from '../helpers/reality/operatorConsole'
-import { prepareMarketData, runOperationalCronSlot, startGridOwner, type GridOwnerSim } from '../helpers/reality/world'
+import { LIVE, literal, sql, type LiveTenant } from '../helpers/live-chain-fixture'
+import { WEBSITE_ORIGIN } from '../helpers/reality/tenantWebsite'
+import { closeOperatorConsole } from '../helpers/reality/operatorConsole'
+import { runOperationalCronSlot, type GridOwnerSim } from '../helpers/reality/world'
+import { GRID_AREA, GRID_OWNER_EDIEL_ID, goLiveAlsSupplier } from '../helpers/reality/goLiveAls'
 import { detectStuckStates } from '../helpers/reality/stuckDetector'
 import { gs1 } from '../helpers/live-chain-wire'
 import { applyAsWebsiteCustomer, type SimulatedPerson, type SimulatedSite, type WebsiteApplicationResult } from './simulators/websiteCustomer'
@@ -21,7 +22,6 @@ const report: Record<string, unknown> = { scenario: 'A website switch', startedA
 let tenant: LiveTenant
 let gridOwner: GridOwnerSim
 let apiKey = ''
-let staff: Awaited<ReturnType<typeof operatorSession>>
 
 /** Swedish personal identity number (12 digits) with a valid Luhn check digit; synthetic birth dates. */
 function personnummer(birth: string, serial: string) {
@@ -30,11 +30,6 @@ function personnummer(birth: string, serial: string) {
   return `${birth}${serial}${(10 - (sum % 10)) % 10}`
 }
 const RUN = Date.now().toString(36)
-// A real SE3 grid area imported from Svenska kraftnät (ALS, Alingsås); the grid owner itself is simulated.
-const GRID_AREA = 'ALS'
-/** Alingsås Energi Elnät AB in Ediel's actor registry (Netowner). */
-const GRID_OWNER_EDIEL_ID = '16700'
-const GRID_OWNER_NAME = 'Alingsås Energi Elnät AB'
 const facility = () => gs1(`735999${String(Math.floor(Math.random() * 1e11)).padStart(11, '0')}`)
 const person = (first: string, birth: string, serial: string, street: string): SimulatedPerson => ({ firstName: first, lastName: 'E2E-Reality', personalNumber: personnummer(birth, serial),
   email: `e2e-${first.toLowerCase()}-${serial}-${RUN}@example.invalid`, phone: '0701234567', address: { street, postalCode: '441 30', city: 'Alingsås' } })
@@ -75,66 +70,21 @@ describe.sequential('reality A — website customers switch supplier', () => {
 
   it('A1 the supplier goes live: Ediel identity, grid owner, published offer and website integration', async () => {
     expect(LIVE.cronSecret && LIVE.automationUserId).toBeTruthy()
-    expect(configurePlatformMailbox()).toBe(1)
-    // Platform go-live, as Gridex staff do it in /admin/ediel/actors: import Ediel's published actor
-    // registry (real Ediel IDs and roles; e-mail rewritten to example.invalid) including the grid owner
-    // registry. Onboarding then chooses the supplier's balance responsible party from that registry
-    // (Bixia AB, 48800); an offer cannot be published without it.
-    ensureProductionWhiteLabelColumnParity()
-    await new Promise(resolve => setTimeout(resolve, 3000))
-    const registry = sanitizedActorRegistry()
-    let imported = { actionStatus: 0, page: '' }
-    tenant = await configureTenant(supabaseService as never, { brp: false, beforePublish: async onboarding => {
-      staff = await operatorSession(onboarding.operatorEmail, onboarding.operatorPassword)
-      imported = await importActorRegistry(staff, registry.path)
-      report.registryImport = imported
-      report.tenantBrp = await chooseTenantBrp(staff, onboarding.companyId, 'Bixia AB', new Date().toISOString().slice(0, 10))
-    } })
-    report.marketData = await prepareMarketData()
-    // Then the area's real grid owner is verified for the customer flow.
-    const verification = await verifyActorForCustomerFlow(staff, GRID_OWNER_NAME)
-    report.gridOwnerVerification = verification
-    // The grid owner's S/MIME receiver certificate from the Ediel certificate directory (Expisoft, simulated),
-    // and the registry's empty PRODAT/UTILTS subaddress confirmed as safe, then the grid owner check.
-    await fetch('http://127.0.0.1:3902/__sim/actor', { method: 'POST', body: JSON.stringify({ edielId: GRID_OWNER_EDIEL_ID, name: GRID_OWNER_NAME, email: registry.mailboxFor(GRID_OWNER_EDIEL_ID) }) })
-    const opsGridOwnerId = sql<string>(`SELECT to_jsonb(id::text) FROM public.grid_owners WHERE ediel_id=${literal(GRID_OWNER_EDIEL_ID)} AND company_id IS NULL`)
-    report.gridOwnerCertificate = await searchGridOwnerCertificate(staff, opsGridOwnerId)
-    report.gridOwnerSubaddress = await confirmSafeBlankSubaddresses(staff)
-    report.gridOwnerCheck = await checkGridOwners(staff)
-    // FINDINGS F36/F37: no supported path takes a new supplier live in production or publishes a receiver's
-    // certificate trust. The simulation stands in for Ediel certification, first-send approval and the external
-    // trust owner; everything after it is the real code. Routes are materialized after go-live, as for a supplier
-    // that is already live (a route profile snapshots the send lock when it is materialized: FINDINGS F38).
-    report.certifiedGoLive = simulateEdielCertifiedGoLive(tenant.companyId, tenant.adminUserId)
-    report.certificateTrust = await publishReceiverCertificateTrust(tenant.companyId, GRID_OWNER_EDIEL_ID, tenant.adminUserId)
-    // The go-live route wizard: the tenant's PRODAT/UTILTS routes whose receiver is the customer's grid owner.
-    // It leaves the registry-materialized grid-owner routes alone (FINDINGS F41).
-    report.routeWizard = await createProductionRoutesFromWizard(staff, tenant.companyId)
-    // The tenant's operational Ediel routes to the grid owner, then their production approval.
-    report.tenantRoutes = await materializeTenantRoutes(staff, tenant.companyId, GRID_OWNER_EDIEL_ID, 'production')
-    report.routeProfileApproval = await approveTenantRouteProfiles(tenant.companyId, tenant.adminUserId)
-    report.gridOwnerMapping = sql(`SELECT coalesce(jsonb_agg(jsonb_build_object('platform',pgo.name,'ops',go.name,'ediel',go.ediel_id,'verified',go.verified_for_customer_flow,'status',go.verification_status)),'[]')
-      FROM public.platform_grid_owners pgo LEFT JOIN public.grid_owners go ON go.id=pgo.ops_grid_owner_id WHERE pgo.name=${literal(GRID_OWNER_NAME)}`)
-    expect(imported.actionStatus, imported.page).toBe(200)
+    const live = await goLiveAlsSupplier(report)
+    ;({ tenant, gridOwner, apiKey } = live)
+    expect(live.imported.actionStatus, live.imported.page).toBe(200)
     expect(report.tenantBrp, JSON.stringify(report.tenantBrp)).toMatchObject({ status: 'brp_saved' })
     expect(sql(`SELECT to_jsonb(brp_ediel_id) FROM public.ediel_brp_settings WHERE company_id=${literal(tenant.companyId)} AND environment='production' AND is_active AND is_default`)).toBe('48800')
     // F41: the PRODAT grid-owner route materializes from the registry with the policy reference. The UTILTS
     // registry route carries no message code and cannot be materialized (FINDINGS F48); PRODAT does not need it.
     expect((report.tenantRoutes as Array<{ route: string; code: string | null }>).find(click => click.route.startsWith('PRODAT'))?.code, JSON.stringify(report.tenantRoutes)).toBe('materialized')
-    expect(verification.clicked, verification.page).toBe(true)
-    expect(verification.actionStatus, verification.page).toBe(200)
+    expect(live.verification.clicked, live.verification.page).toBe(true)
+    expect(live.verification.actionStatus, live.verification.page).toBe(200)
     // The real grid owner of ALS is now the verified OPS grid owner for the customer flow.
     expect(report.gridOwnerMapping).toEqual([expect.objectContaining({ ediel: GRID_OWNER_EDIEL_ID, verified: true })])
-    // The real grid owner of ALS, played by the simulator on its rewritten mailbox.
-    gridOwner = await startGridOwner({ edielId: GRID_OWNER_EDIEL_ID, email: registry.mailboxFor(GRID_OWNER_EDIEL_ID), pollMs: 10_000 })
-    const provisioned = await goLiveOnWebsite(tenant, tenant.adminUserId)
-    report.tenant = { companyId: tenant.companyId, supplier: tenant.supplierEdielId, gridOwner: tenant.issuerEdielId }
-    report.websiteGoLive = { state: provisioned.state, launchReady: provisioned.launchReady, visibleContracts: provisioned.visibleContractCount,
-      blockers: provisioned.readinessBlockers, warnings: provisioned.readinessWarnings }
-    apiKey = provisioned.credential?.token ?? ''
-    expect(provisioned.readinessBlockers, JSON.stringify(provisioned.readinessBlockers)).toEqual([])
+    expect(live.provisioned.readinessBlockers, JSON.stringify(live.provisioned.readinessBlockers)).toEqual([])
     // F25: with a verified facility-information contact the grid-owner contact warning is gone.
-    expect(provisioned.readinessWarnings.map(w => w.message).join(' | ')).not.toMatch(/nätägarkontakt/)
+    expect(live.provisioned.readinessWarnings.map(w => w.message).join(' | ')).not.toMatch(/nätägarkontakt/)
     expect(apiKey).toBeTruthy()
   })
 
