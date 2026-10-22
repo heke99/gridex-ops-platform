@@ -323,6 +323,11 @@ export async function continueSwitchEdielAutomation(
     communicationRouteId: input.communicationRouteId ?? null,
   })
 
+  // A continued Z03 derives its sources from the signed agreement exactly like the first one (FINDINGS F46, F51).
+  if (input.step === 'Z03') {
+    await deriveRequestedMethodBeforeSwitch({ actorUserId: input.actorUserId, switchRequestId: context.switchRequest.id })
+  }
+
   const message =
     input.step === 'Z03'
       ? await prepareAndQueueEdielZ03({

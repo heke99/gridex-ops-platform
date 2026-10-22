@@ -17,6 +17,7 @@ import { afterAll, describe, expect, it, type TestContext } from 'vitest'
 import { supabaseService } from '@/lib/supabase/service'
 import { renderInvoiceFile, type InvoiceFileRow } from '@/lib/billing/invoiceFileExport'
 import { prepareAndQueueEdielZ03 } from '@/lib/ediel/flows/prodatSwitch'
+import { deriveRequestedMethodBeforeSwitch } from '@/lib/operations/switchRequestedMethodPreparation'
 import { processPendingContractConfirmations } from '@/lib/customer-contracts/onlineSigning'
 import { calculateEarliestSwitchStartDate } from '@/lib/operations/switchStartDate'
 import { evaluateSupplierSwitchSendWindow, loadSupplierSwitchPolicy } from '@/lib/operations/supplierSwitchScheduler'
@@ -410,6 +411,9 @@ describe.sequential('reality F — invoices for several facilities with contract
     const built: Array<{ facility: string; ok: boolean; message?: string; status?: string | null; error?: string }> = []
     for (const row of switchRows) {
       try {
+        // As automation does right before the builder (edielAutomation.ts:286): the requested method (F46) and the
+        // customer masterdata declaration (F51) are derived from the signed agreement.
+        await deriveRequestedMethodBeforeSwitch({ actorUserId: LIVE.automationUserId, switchRequestId: row.switchId })
         // The tenant is live in production (go-live); automation passes that environment (edielAutomation.ts:291).
         const message = await prepareAndQueueEdielZ03({ actorUserId: LIVE.automationUserId, switchRequestId: row.switchId, environment: 'production' })
         built.push({ facility: row.facility, ok: true, message: message.id, status: message.status })
@@ -419,7 +423,11 @@ describe.sequential('reality F — invoices for several facilities with contract
     const perFacility = sql<Record<string, number>>(`SELECT coalesce(jsonb_object_agg(mp.metering_point_id,(SELECT count(*) FROM public.supplier_switch_requests s WHERE s.company_id=mp.company_id AND s.metering_point_id=mp.id)),'{}')
       FROM public.metering_points mp WHERE mp.company_id=${company} AND mp.metering_point_id=ANY(${augustGsrns()})`)
     established = state.length === FACILITIES.length && state.every(row => row.z03Start === SUPPLY_START.replaceAll('-', ''))
-    report.augustZ03 = { established, built, switches: state, switchRequestsPerFacility: perFacility }
+    // F51: the declaration each Z03 rests on, derived from the signed contract (never inserted by the test).
+    const declarations = sql<Row[]>(`SELECT coalesce(jsonb_agg(jsonb_build_object('customer',d.customer_id,'contract',d.contract_id,'environment',d.environment,'from',d.valid_from,'to',d.valid_to,
+        'source',split_part(d.source_reference,':',1),'revoked',EXISTS(SELECT FROM gridex_customer_masterdata.revocations r WHERE r.declaration_id=d.id)) ORDER BY d.customer_id,d.environment),'[]')
+      FROM gridex_customer_masterdata.signed_declarations d WHERE d.company_id=${company}`)
+    report.augustZ03 = { established, built, switches: state, switchRequestsPerFacility: perFacility, declarations }
     expect(perFacility, 'exactly one switch request per August facility').toEqual(Object.fromEntries(FACILITIES.map(f => [f.gsrn, 1])))
     // If the builder refuses, the run stops here and says exactly why (no workaround).
     expect(built.filter(b => !b.ok), `the real Z03 builder refused the August switch; tenant BRP at the supply start: ${JSON.stringify(brp)}`).toEqual([])
