@@ -422,6 +422,31 @@ Kandidaterna nedan kommer från kodkartläggningen. Var och en bekräftas eller 
 ### F77 Totalbeloppet öresavrundas inte; avrundningskomponenten avrundar energibeloppet — KANDIDAT, låg, kräver beslut
 - **Kod:** `finalizePricingPreview` summerar avrundade rader utan att avrunda totalen (`lib/pricing/pricePreviewBuilder.ts:10-52`). Komponenten `rounding` avrundar baspriset för energi till hela kronor (`priceComponentCalculator.ts:292-295`), och Capway får differensen som `rounding` (`payloadBuilder.ts:141`).
 
+### F87 Ingen Z03 kunde renderas i produktion: fakturamottagaren (NAD+IV) hade ingen källa — RÄTTAD (commit `8d1476b5`), kritisk
+- **Utfall (scenario F körning 7):**
+  - Z03 passerade nu routen (F85) och kunddeklarationen (F51).
+  - Renderingen stoppades med `PRODAT_DEPENDENT_CONDITION_UNDETERMINED`: "Z03:INVOICEE_GROUP, P26.A s.23/82/109 … oberoende valt underlag saknas".
+- **Orsak:**
+  - Villkoret för fakturamottagare godtar bara en oberoende vald, serverägd källa på bytet (`validation_snapshot.portalData.dependentConditionFacts.invoiceeObjects`). Ett sparat förhandsvärde räcker aldrig, vilket det godkända testet P-06 kräver.
+  - Ingen produktväg skrev källan för ett vanligt byte. Bara makuleringen (`switchCancellationSource.ts:120`), hävningen och stängningen läser `readContractInvoicee`.
+  - Spärren i routen (F85) dolde felet. Ingen Z03 hade tidigare kommit så långt.
+- **Rättning:** förberedelsen före Z03 (`selectInvoiceeBeforeSwitch` i `lib/operations/switchInvoiceePreparation.ts`) väljer fakturamottagaren från det signerade avtalet på samma sätt som makuleringen. Den jämför med slutanvändarens masterdata per begärd startdag. Den blockerar aldrig.
+- **Godkända tester:** 397 tester gröna, bland dem P-06, SC-001/002 och AT-Z03L/LK. Själva renderingsvägen är oförändrad.
+- **Test:** `__tests__/switch-invoicee-preparation.test.ts`, 3/3.
+
+### F88 Avtalsreferensen RFF+ANJ, som krävs för Z03, saknade skrivare — RÄTTAD (commit `8d1476b5`), kritisk
+- **Utfall:** nästa lager efter F87. Kuvertets kontroll stoppade Z03 med "FIELD_MATRIX_REQUIRED_FIELD_MISSING: RFF+ANJ krävs för PRODAT Z03".
+- **Orsak:** renderaren läser `powerOfAttorneyReference` bara från bytets sparade portaldata, och ingen skrev den för ett riktigt byte. Plattformens egen kontextbyggare (`lib/ediel/prodatContext.ts:291`) tar den från bytets bundna fullmakt.
+- **Rättning:** samma förberedelse sätter referensen från den signerade fullmakt som är bunden till bytet. Bara samma tenant och kund godtas, och bara status `signed` eller `active`. En annan tenants fullmakt eller ett utkast godtas aldrig, och testet visar det.
+- **Verifierat i världen:** den riktiga byggaren köade en produktions-Z03 med:
+  - `DTM+92:202609010000`
+  - `NAD+Z02+48800`
+  - `RFF+ANJ:POA…`
+  - `RFF+Z05:ALS`
+  - `NAD+UD` med den deklarerade folkbokföringsadressen
+
+  Det är första gången i hela simuleringen som en Z03 byggs.
+
 ### F86 En fortsatt Z03 hoppade över härledningen av mätmetod och kunddeklaration — RÄTTAD (commit `b138c2e14`), medel
 - **Utfall (scenario F körning 4, på en ren replay med F85 och F51):** F85 är bekräftat rättat, och Z03-byggaren nådde inte längre någon route-spärr. Alla fyra anläggningar hölls i stället med `customer_masterdata_source_held:source_qualified_customer_identity_registered_address_at_requested_time`, och det fanns 0 deklarationer.
 - **Orsak i testet:** F3 anropade byggaren direkt. Det gör automationen aldrig: den kör härledningen för F46/F51 (`deriveRequestedMethodBeforeSwitch`) precis före byggaren (`edielAutomation.ts:286`), och det gör även `startSupplierSwitch.ts:172`. Scenariot gör nu samma anrop och rapporterar deklarationerna.
@@ -1046,6 +1071,69 @@ Gränser i drift: 8 s per SQL-sats, 8 s låsväntan, Vercel-funktion ~300 s, cro
 - Den lokala stacken körde först utan Storage. Arkivet `ediel-files` krävs före varje SMTP-sändning, så utan det blir sändningen `failed`/`name resolution failed` (Kong). Storage startades sedan med CLI:ns namn och nätverk.
 - I sandlådan går utgående HTTPS via en TLS-inspekterande proxy med egen CA. När `NODE_EXTRA_CA_CERTS` bara pekade på GreenMails CA nådde appen inga externa tjänster, och SVK-importen gav `dependency_unavailable`. Lösningen är ett kombinerat CA-paket och `NODE_USE_ENV_PROXY=1`. Det är ingen produktfråga, eftersom Vercel har direkt internet.
 - Produktionen (`gridex-ops-dev`, bara läsfrågor mot driftmetadata): 43 inkommande mejl totalt, inga EDIFACT-flöden. Därför kan F2–F5 varken bekräftas eller avfärdas där.
+
+## Scenario G, H och I (2026-10-22, parallella agenter, kod och native; världskörning återstår)
+
+Agenterna fick inte röra den delade världen medan F körde, så allt nedan är verifierat med enhetstester och native-tester mot den lokala databasen. Scenariofilerna `chain-g-dst`, `chain-h-customer-leaves` och `chain-i-grid-owner-rejects` är skrivna och laddar, men de är ännu inte körda i världen.
+
+### G: vintertid 25 oktober (25 timmar, 100 kvartsvärden)
+- **Bekräftat korrekt (inte fel):**
+  - UTILTS-tolkning, lagring och antalskontroll: 100 värden, och 96 värden för ett civilt 25-timmarsdygn nekas med E87.
+  - Månadsfunktionen för portalen och åtkomstfönstren: oktober = 31 dygn + 1 timme.
+  - Partner-API:ts dygnsgränser.
+  - Underlagens täckning, intervallprissättning och spottäckning.
+- **DST-C1 Fullständighetskontrollen läste bara 1 000 värden per månad — RÄTTAD (commit `04cbf19b`), hög:**
+  - `loadNormalizedValues` (`lib/metering/validation.ts`) bad om 50 000 rader, men PostgREST returnerar högst 1 000. En kvartsmånad har 2 880–2 980 värden per mätpunkt.
+  - Varje kvartskund blev därför `metering_gap` ("33,6 % täckt"). Månadsautopiloten skickade en databegäran till nätägaren, och varje underlag spärrades för export.
+  - Felet gäller inte bara sommartid; gränsen på 1 000 rader finns även i hostad Supabase.
+  - Rättning: sidläsning. Native-test DST-N5 föll före rättningen och går igenom efter.
+- **DST-E1 Preliminära uppskattningar förskjuts en timme över tidsbytet — ÖPPEN, låg:** `lib/billing/consumptionEstimate.ts:188-191, 207-209` räknar referensveckor i UTC. Det påverkar bara tenanter med uppskattning påslagen. Testerna är `it.fails` och har ett patchförslag.
+- **Troliga fel av samma klass (öppna, inte verifierade):**
+  - Gränsen på 1 000 rader i `consumptionEstimate.ts:241`, `forecastRuns.ts:76-86` och `meteringPointForecast.ts:55-62`.
+  - UTC-månad i stället för Stockholmsmånad i prognos och analys (`meteringPointForecast.ts:61`, `forecastRuns.ts:82`, `analytics/db.ts:95,408`).
+- **Simuleringsfel (rättade):** nätägarsimulatorn och spotsimulatorn kunde bara bygga 96-värdesdygn i +0200.
+- **Öppna frågor:**
+  - Ska G köras efter 1 november med riktiga spotpriser, eller nu med syntetiska?
+  - Ska nätägarens fil vara ett civilt dygn eller ett fast CET-dygn (ENV-08)? Båda godtas.
+  - Kundens API tolkar ett rent datum i `from`/`to` som UTC-midnatt.
+
+### H: kunden lämnar
+- **H7 Flyttanmälan (Z05 LK) avslutar aldrig leveransen — ÖPPEN, kritisk (bekräftad native):**
+  - Varje Z05 med LK-objekt går till koden för bilateral stängning, som kräver en egen skickad Z08 LK. Anmälan rullas därför tillbaka med `bilateral_closure_exact_sent_original_required`.
+  - Perioden förblir öppen, avtalet förblir signerat och ingen slutfakturauppgift skapas. Faktureringen fortsätter efter flytten.
+  - Patchförslag: en migration i `apply_supply_before_rescission_v1`.
+- **H1 Z05:s slutdatum lästes som sista levererade dag — RÄTTAD (H-batch), hög:** en kund som lämnade 1 november fick ett novembersegment. Det blev ett spärrat underlag, en uppskattning eller en Z13 till nätägaren för en anläggning vi inte längre levererar. Vid inflyttning på samma mätare spärrades den nya kundens hela första månad.
+- **H4 Sista kvarten av varje avslutad period täcktes aldrig (`- 1 ms`) — RÄTTAD (H-batch), medel.**
+- **H2 Status `ending` (Z05 med framtida slut) känns inte igen av faktureringen — ÖPPEN, hög:** värdena för de sista veckorna spärras som `supply_period_missing` och prövas aldrig om.
+- **H3 Avtalet avslutas redan när Z05 kommer, så slutfakturan förbereds aldrig — ÖPPEN, hög:** databasgrinden `gridex_set_metering_billing_gate` godtar bara `active` eller `confirmed_by_grid_owner`. Rättningen kräver en migration och kod tillsammans; patchförslag finns.
+- **H5 En ny boende kan aldrig bli kund hos samma tenant på samma mätare — ÖPPEN, hög, produktbeslut:** unikt index på (tenant, mätar-ID), och grafkärnan återanvänder inte raden.
+- **H6 Brytavgiftsgranskning skapas även vid flytt — ÖPPEN, medel:** bindningsslutet räknas dessutom från `starts_at`.
+- **H8 Slutfakturatexten säger "till och med" nästa leverantörs första dag — ÖPPEN, låg.**
+- **H9 Kundens åtkomstfönster sommartid är en timme förskjutet mot faktureringen — TROLIGT, låg.**
+- **Ångerrätt:** fältet "spärra fakturering" lagras bara i metadata och har ingen effekt. Om Z03C faktiskt skickas visas i H8.
+- **Inte fel:**
+  - Plattformen avbryter byten med Z03C och Z04C, inte med Z09.
+  - Upprepade månadskörningar är idempotenta.
+- **Not:** H:s native-test föll två gånger av sex medan världens cron körde samtidigt, och gick igenom fyra gånger i rad när det kördes ensamt.
+
+### I: nätägaren avvisar eller tiger
+- **GOR-01 En vanlig affärsavvisning (APERAK BGM 34 med ERC per objekt) nådde aldrig bytet — RÄTTAD (I-batch, `inboundAckProcessing.ts`), hög:**
+  - Gäller koderna 40/105 okänd GSRN, 40/106 annan leverantörs byte, 42/210 startdag och 42/227 kund-id.
+  - Bytet stod kvar som `prepared` och Z03 som `sent`, utan förfallodatum. Detsamma gällde Z01.
+- **GOR-02 En sen negativ kvittens efter Z04 flyttade ett accepterat byte till `failed` — RÄTTAD, hög:** leveransen skulle aldrig ha startat (P-11). Nu skrivs i stället en varningshändelse för operatören.
+- **GOR-03 Nätägarens ERC-kod och text försvann ur felorsaken — RÄTTAD, medel.**
+- **GOR-04 En avvisning öppnar inget operatörsärende, flyttar inte webbansökan och köar inget kundbesked — ÖPPEN, hög:** patchförslag finns. Produktfråga: ska en negativ CONTRL, alltså vårt eget syntaxfel, ge kunden ett avvisningsbesked?
+- **GOR-05 En tyst nätägare blir aldrig försenad för Z03 — ÖPPEN, hög:**
+  - Vyn kontrollerar "inväntar" före "försenad", och `ackSlaMonitor` har ingen anropare.
+  - I den lokala databasen visas 8 Z01 som passerat sin frist som `awaiting_contrl`.
+  - Patchförslag: migration för vyn plus ett cronsteg.
+- **GOR-06 En positiv slutkvittens lämnar bytet som `prepared` — ÖPPEN, låg.**
+- **GOR-07 Listan över öppna byten i appen missar `prepared` och `sent` — TROLIGT, låg.**
+- **GOR-S1 Nätägarsimulatorns `rejectShare` skickar ingen APERAK alls — testharnesk, patchförslag.**
+
+### Observation under F körning 7 (inte produktfel)
+- F2 fick 503 `dependency_unavailable` (retryable) när API-gatewayen fick ett ogiltigt svar från PostgREST. Det sammanföll med att två native-sviter kördes mot samma databas.
+- Plattformen svarade korrekt. Scenarier och native-sviter körs hädanefter inte samtidigt.
 
 ## Status för live-testets steg
 
