@@ -26,6 +26,11 @@ export function db05PredecessorSchema(schema:string):string{
   if(audit22Patch.preSha256!==patch.preSha256)throw Error('db05_schema_predecessor_rebuild_mismatch')
   patch=audit22Patch
  }
+ if(actual==='1f1e8ca5458470bc7cd06ab027ffbace8af3cbc02013c83e692bc5215ad35d28'){
+  const audit23Patch:Patch=JSON.parse(readFileSync(new URL('../fixtures/db05-schema-predecessor-audit23.patch.json',import.meta.url),'utf8'))
+  if(audit23Patch.preSha256!==patch.preSha256)throw Error('db05_schema_predecessor_rebuild_mismatch')
+  patch=audit23Patch
+ }
  if(actual===patch.preSha256)return schema
  if(actual!==patch.postSha256)throw Error('db05_schema_predecessor_unknown:'+actual)
  const lines=schema.split('\n')
