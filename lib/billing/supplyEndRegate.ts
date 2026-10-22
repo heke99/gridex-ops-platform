@@ -15,6 +15,7 @@ import { updateMeterValueBillingReadiness } from './meterValueBillingMatcher'
 type Row = Record<string, unknown>
 const SUPPLY_END_HOLD_REASONS = new Set(['supply_period_missing', 'supply_period_not_active', 'contract_not_active'])
 const PAGE = 500
+const ID_CHUNK = 100
 
 export type SupplyEndRegateResult = { candidates: number; evaluated: number; billable: number; failed: number; errors: string[] }
 
@@ -36,21 +37,25 @@ export async function regateSupplyEndValues(input: { companyId: string; billingM
   if (points.length === 0) return result
 
   const held: Row[] = []
-  for (let from = 0; held.length < limit; from += PAGE) {
-    const page = await supabaseService.from('normalized_metering_values')
-      .select('id,company_id,metering_point_id,source_metering_value_id,source_message_id,billing_gate_status,billing_gate_reasons')
-      .eq('company_id', input.companyId).in('metering_point_id', points).eq('revision_status', 'current')
-      .neq('billing_gate_status', 'eligible').lt('period_start', bounds.end).gt('period_end', bounds.start)
-      .order('period_start', { ascending: true }).order('id', { ascending: true }).range(from, from + PAGE - 1)
-    if (page.error) throw page.error
-    const rows = (page.data ?? []) as Row[]
-    held.push(...rows.filter(heldForSupplyEnd))
-    if (rows.length < PAGE) break
+  // At most ID_CHUNK ids per in-filter: the URL limit is reached at about 240 UUIDs (FINDINGS J2-15).
+  for (let p = 0; p < points.length && held.length < limit; p += ID_CHUNK) {
+    const pointChunk = points.slice(p, p + ID_CHUNK)
+    for (let from = 0; held.length < limit; from += PAGE) {
+      const page = await supabaseService.from('normalized_metering_values')
+        .select('id,company_id,metering_point_id,source_metering_value_id,source_message_id,billing_gate_status,billing_gate_reasons')
+        .eq('company_id', input.companyId).in('metering_point_id', pointChunk).eq('revision_status', 'current')
+        .neq('billing_gate_status', 'eligible').lt('period_start', bounds.end).gt('period_end', bounds.start)
+        .order('period_start', { ascending: true }).order('id', { ascending: true }).range(from, from + PAGE - 1)
+      if (page.error) throw page.error
+      const rows = (page.data ?? []) as Row[]
+      held.push(...rows.filter(heldForSupplyEnd))
+      if (rows.length < PAGE) break
+    }
   }
   result.candidates = held.length
 
-  for (let i = 0; i < held.length; i += PAGE) {
-    const slice = held.slice(i, i + PAGE)
+  for (let i = 0; i < held.length; i += ID_CHUNK) {
+    const slice = held.slice(i, i + ID_CHUNK)
     const raw = await supabaseService.from('metering_values').select('*').eq('company_id', input.companyId)
       .in('id', slice.map(row => String(row.source_metering_value_id)))
     if (raw.error) throw raw.error

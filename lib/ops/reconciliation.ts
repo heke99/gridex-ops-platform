@@ -18,6 +18,7 @@ export type ReconciliationCheckResult = {
 
 const SAMPLE_LIMIT = 5
 const SCAN_LIMIT = 5000
+const SCAN_PAGE = 1000
 
 function stringValue(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
@@ -297,6 +298,23 @@ async function checkSentItemsWithoutProviderGuid(context: CheckContext): Promise
   }
 }
 
+/**
+ * Every row of a scan, page by page up to SCAN_LIMIT. PostgREST returns at most 1 000 rows per request
+ * whatever .limit() asks for (max_rows), so a bare .limit(SCAN_LIMIT) silently checked only the newest
+ * 1 000 rows (reality scenario J2, J2-12).
+ */
+async function scanRows(load: (from: number, to: number) => PromiseLike<{ data: unknown; error: unknown }>): Promise<Record<string, unknown>[]> {
+  const rows: Record<string, unknown>[] = []
+  for (let from = 0; from < SCAN_LIMIT; from += SCAN_PAGE) {
+    const { data, error } = await load(from, Math.min(from + SCAN_PAGE, SCAN_LIMIT) - 1)
+    if (error) throw error
+    const page = (data ?? []) as Record<string, unknown>[]
+    rows.push(...page)
+    if (page.length < SCAN_PAGE) break
+  }
+  return rows
+}
+
 async function checkDuplicateBillingPerContractPeriod(context: CheckContext): Promise<ReconciliationCheckResult[]> {
   const base = {
     key: 'duplicate_billing_per_contract_period',
@@ -305,28 +323,92 @@ async function checkDuplicateBillingPerContractPeriod(context: CheckContext): Pr
     severity: 'critical' as const,
   }
   try {
-    let query = supabaseService
-      .from('billing_underlays')
-      .select('id,contract_id,metering_point_id,underlay_year,underlay_month')
-      .order('created_at', { ascending: false })
-      .limit(SCAN_LIMIT)
-    if (context.companyId) query = query.eq('company_id', context.companyId)
-    const { data, error } = await query
-    if (error) throw error
+    const rows = await scanRows((from, to) => {
+      let query = supabaseService
+        .from('billing_underlays')
+        .select('id,contract_id,metering_point_id,underlay_year,underlay_month,energy_direction,billing_period_start,billing_period_end,source_system')
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
+        .range(from, to)
+      if (context.companyId) query = query.eq('company_id', context.companyId)
+      return query
+    })
     const groups = new Map<string, string[]>()
-    for (const row of (data ?? []) as Record<string, unknown>[]) {
+    for (const row of rows) {
       const anchor = stringValue(row.contract_id) ?? `mp:${stringValue(row.metering_point_id) ?? 'unknown'}`
-      const key = `${anchor}:${numberValue(row.underlay_year)}-${numberValue(row.underlay_month)}`
+      // One underlay per energy direction and supply segment is the engine's own unit: production next to
+      // consumption, two supply periods in one month, or the settlement of an earlier preliminary month
+      // (credit + final charge over that month's period) are not duplicates. Overlapping segments are.
+      const kind = stringValue(row.source_system) === 'consumption_estimate_reconciliation' ? 'settlement' : 'regular'
+      const key = `${anchor}:${numberValue(row.underlay_year)}-${numberValue(row.underlay_month)}:${stringValue(row.energy_direction) ?? 'consumption'}:${kind}`
       const ids = groups.get(key) ?? []
       ids.push(String(row.id))
       groups.set(key, ids)
     }
-    const duplicates = Array.from(groups.values()).filter((ids) => ids.length > 1)
+    const byId = new Map(rows.map((row) => [String(row.id), row]))
+    const overlapping = (ids: string[]) => {
+      const segments = ids.map((id) => byId.get(id)!).map((row) => ({ start: String(row.billing_period_start ?? ''), end: String(row.billing_period_end ?? '') }))
+        .sort((a, b) => a.start.localeCompare(b.start))
+      // billing_period_end is the exclusive end date: [start, end).
+      return segments.some((segment, index) => index > 0 && (!segment.start || !segments[index - 1].end || segment.start < segments[index - 1].end))
+    }
+    const duplicates = Array.from(groups.values()).filter((ids) => ids.length > 1 && overlapping(ids))
     return [{
       ...base,
       count: duplicates.length,
       sampleIds: duplicates.slice(0, SAMPLE_LIMIT).map((ids) => ids[0]),
     }]
+  } catch (error) {
+    if (missingSchema(error)) return [{ ...base, count: 0, sampleIds: [], error: 'schema_missing' }]
+    return [{ ...base, count: 0, sampleIds: [], error: error instanceof Error ? error.message : 'unknown' }]
+  }
+}
+
+/**
+ * Invoiced underlays whose metering values the grid owner corrected afterwards (an E66 correction for an
+ * invoiced month). The database journals the correction against the finalized underlay, but nothing billed or
+ * credited the difference and no check showed it: a locked month kept the old kWh for good (J2-02).
+ */
+async function checkMeteringCorrectionsAfterBilling(context: CheckContext): Promise<ReconciliationCheckResult[]> {
+  const base = {
+    key: 'metering_corrections_after_billing',
+    label: 'Mätvärden korrigerade efter fakturering',
+    description: 'Nätägaren har korrigerat mätvärden som redan ingår i ett fakturerat underlag. Fakturan ändras inte; differensen måste krediteras eller omfaktureras.',
+    severity: 'critical' as const,
+  }
+  try {
+    const items = await scanRows((from, to) => {
+      let query = supabaseService
+        .from('invoice_export_items')
+        .select('company_id,billing_underlay_id')
+        .neq('status', 'cancelled')
+        .not('billing_underlay_id', 'is', null)
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
+        .range(from, to)
+      if (context.companyId) query = query.eq('company_id', context.companyId)
+      return query
+    })
+    const byCompany = new Map<string, Set<string>>()
+    for (const item of items) {
+      const companyId = stringValue(item.company_id), underlayId = stringValue(item.billing_underlay_id)
+      if (!companyId || !underlayId) continue
+      byCompany.set(companyId, (byCompany.get(companyId) ?? new Set()).add(underlayId))
+    }
+    const corrected: string[] = []
+    for (const [companyId, underlayIds] of byCompany) {
+      const ids = [...underlayIds]
+      for (let offset = 0; offset < ids.length; offset += 1000) {
+        const { data, error } = await supabaseService.rpc('gridex_read_billing_underlay_source_basis_v1', {
+          p_company_id: companyId, p_underlay_ids: ids.slice(offset, offset + 1000),
+        })
+        if (error) throw error
+        for (const basis of (Array.isArray(data) ? data : []) as Record<string, unknown>[]) {
+          if (basis.correctionRequired === true) corrected.push(String(basis.id))
+        }
+      }
+    }
+    return [{ ...base, count: corrected.length, sampleIds: corrected.slice(0, SAMPLE_LIMIT) }]
   } catch (error) {
     if (missingSchema(error)) return [{ ...base, count: 0, sampleIds: [], error: 'schema_missing' }]
     return [{ ...base, count: 0, sampleIds: [], error: error instanceof Error ? error.message : 'unknown' }]
@@ -373,6 +455,7 @@ export async function runProductionConsistencyChecks(input: {
     checkInvoiceRunTotals(context),
     checkSentItemsWithoutProviderGuid(context),
     checkDuplicateBillingPerContractPeriod(context),
+    checkMeteringCorrectionsAfterBilling(context),
     checkRetryQueueHealth(context),
   ])).flat()
 

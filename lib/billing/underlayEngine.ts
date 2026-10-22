@@ -30,6 +30,8 @@ type UnderlayResult = {
 };
 
 const PAGE_SIZE = 1_000;
+/** Ids per `in` filter in a GET: 100 uuids ≈ 3.7 kB of URL (the gateway refuses ≈ 8 kB, FINDINGS F34). */
+const RECONCILED_LOOKUP_CHUNK = 100;
 
 function text(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;
@@ -215,10 +217,13 @@ async function loadNormalizedValues(
   start: string,
   end: string,
 ): Promise<JsonRecord[]> {
+  // Only the ids are needed here: the database returns the qualified rows below. A UTILTS row's raw_payload
+  // carries the whole day's consumption contract (≈43 kB per quarter-hour), so select("*") moved ≈128 MB per
+  // quarter-hour facility-month for nothing (reality scenario J2, J2-07).
   const rows = await paginatedRows<JsonRecord>(async (from, to) => {
     const response = await supabaseService
       .from("normalized_metering_values")
-      .select("*")
+      .select("id")
       .eq("company_id", companyId)
       .eq("revision_status", "current")
       .eq("billing_status", "billable")
@@ -480,6 +485,13 @@ function snapshotPayload(snapshot: JsonRecord | null): JsonRecord {
   };
 }
 
+/** The underlay blocker text for the outcome of ensureHistoricalMeteringRequest. */
+function historyRequestMessage(outcome: Awaited<ReturnType<typeof ensureHistoricalMeteringRequest>>, lead: string): string {
+  if (outcome === "draft_for_operator") return `history_request_pending: ${lead}; historikbegäran till nätägaren väntar på att skickas.`;
+  if (outcome === "answered_needs_operator") return `history_request_answered: ${lead}; den senaste historikbegäran är besvarad och en ny skickas inte automatiskt. Ärende till operatören.`;
+  return `history_requested: ${lead}; historik har begärts från nätägaren.`;
+}
+
 /** Interval step for estimates: the contract's resolution (quarter-hour or hour). */
 function estimateStepMs(contract: JsonRecord | null, snapshotJson: JsonRecord): number {
   const resolution = meteringResolutionForContract({
@@ -548,30 +560,36 @@ async function buildReconciliations(input: {
   customerScope: string | null;
   meteringPointScope: string | null;
 }): Promise<Array<{ underlay: JsonRecord; items: JsonRecord[]; result: Omit<UnderlayResult, "underlayId"> }>> {
-  let query = supabaseService
-    .from("billing_underlays")
-    .select("*")
-    .eq("company_id", input.companyId)
-    .eq("energy_direction", "consumption")
-    .in("source_system", ESTIMATE_SOURCE_SYSTEMS)
-    .or(`underlay_year.lt.${input.year},and(underlay_year.eq.${input.year},underlay_month.lt.${input.month})`)
-    .limit(500);
-  if (input.customerScope) query = query.eq("customer_id", input.customerScope);
-  if (input.meteringPointScope) query = query.eq("metering_point_id", input.meteringPointScope);
-  const { data: originals, error } = await query;
-  if (error) throw error;
-  const candidates = (originals ?? []) as JsonRecord[];
+  // Every earlier preliminary underlay, paged: a bare .limit(500) returned an arbitrary 500 that still
+  // included already reconciled ones, so with more history newer estimates were never reconciled (J2-11).
+  const candidates = await paginatedRows<JsonRecord>(async (from, to) => {
+    let query = supabaseService
+      .from("billing_underlays")
+      .select("*")
+      .eq("company_id", input.companyId)
+      .eq("energy_direction", "consumption")
+      .in("source_system", ESTIMATE_SOURCE_SYSTEMS)
+      .or(`underlay_year.lt.${input.year},and(underlay_year.eq.${input.year},underlay_month.lt.${input.month})`)
+      .order("id", { ascending: true });
+    if (input.customerScope) query = query.eq("customer_id", input.customerScope);
+    if (input.meteringPointScope) query = query.eq("metering_point_id", input.meteringPointScope);
+    const response = await query.range(from, to);
+    return { data: (response.data ?? []) as JsonRecord[], error: response.error };
+  });
   if (candidates.length === 0) return [];
 
-  const done = await supabaseService
-    .from("billing_underlays")
-    .select("payload")
-    .eq("company_id", input.companyId)
-    .in("payload->>reconciliation_of", candidates.map((row) => String(row.id)));
-  if (done.error) throw done.error;
-  const reconciled = new Set(
-    ((done.data ?? []) as JsonRecord[]).map((row) => text(object(row.payload).reconciliation_of)),
-  );
+  // In chunks: from about 250 ids the filter no longer fits in the request URL (414, FINDINGS F34).
+  const reconciled = new Set<string | null>();
+  for (let offset = 0; offset < candidates.length; offset += RECONCILED_LOOKUP_CHUNK) {
+    const chunk = candidates.slice(offset, offset + RECONCILED_LOOKUP_CHUNK).map((row) => String(row.id));
+    const done = await supabaseService
+      .from("billing_underlays")
+      .select("reconciliation_of:payload->>reconciliation_of")
+      .eq("company_id", input.companyId)
+      .in("payload->>reconciliation_of", chunk);
+    if (done.error) throw done.error;
+    for (const row of (done.data ?? []) as JsonRecord[]) reconciled.add(text(row.reconciliation_of));
+  }
 
   const lockByMonth = new Map<string, boolean>();
   const stores: Array<{ underlay: JsonRecord; items: JsonRecord[]; result: Omit<UnderlayResult, "underlayId"> }> = [];
@@ -727,6 +745,65 @@ async function buildReconciliations(input: {
   return stores;
 }
 
+const FINALIZED_UNDERLAY_REFUSAL = "billing_source_finalized_underlay_requires_correction";
+const FINALIZED_CORRECTION_WARNING =
+  "finalized_underlay_requires_correction: Mätvärden i ett redan låst fakturaunderlag har korrigerats. Underlaget och fakturan ändras inte; differensen kräver kreditering eller omfakturering.";
+
+function isFinalizedUnderlayRefusal(error: unknown): boolean {
+  const candidate = error as { code?: unknown; message?: unknown } | null;
+  return candidate?.code === "55000" && String(candidate?.message ?? "").includes(FINALIZED_UNDERLAY_REFUSAL);
+}
+
+/**
+ * Stores the month's underlays in one batch transaction. When the database refuses because a finalized
+ * underlay's source values were corrected after it was bound (an E66 correction for an invoiced segment),
+ * that one refusal used to roll back the whole batch and fail the tenant's month for every customer, on
+ * every run until the month was locked (reality scenario J2, J2-01). Then every underlay is stored on its
+ * own, under the same database checks; the refused one keeps its finalized content and is reported.
+ */
+async function storeUnderlays(
+  companyId: string,
+  entries: Array<{ underlay: JsonRecord; items: JsonRecord[] }>,
+  actorUserId: string | null,
+): Promise<Array<{ id: string | null; refused: boolean }>> {
+  const { data, error } = await supabaseService.rpc(
+    "gridex_store_billing_underlay_batch",
+    {
+      p_company_id: companyId,
+      p_commands: entries.map((entry) => ({
+        underlay: entry.underlay,
+        items: entry.items,
+      })),
+      p_actor_user_id: actorUserId,
+    },
+  );
+  if (!error) {
+    const storedIds = Array.isArray(data) ? data.map(String) : [];
+    if (storedIds.length !== entries.length)
+      throw new Error("billing_underlay_batch_result_count_mismatch");
+    return storedIds.map((id) => ({ id, refused: false }));
+  }
+  if (!isFinalizedUnderlayRefusal(error)) throw error;
+  const stored: Array<{ id: string | null; refused: boolean }> = [];
+  for (const entry of entries) {
+    const single = await supabaseService.rpc("gridex_store_billing_underlay", {
+      p_company_id: companyId,
+      p_underlay: entry.underlay,
+      p_items: entry.items,
+      p_actor_user_id: actorUserId,
+    });
+    if (single.error) {
+      if (!isFinalizedUnderlayRefusal(single.error)) throw single.error;
+      stored.push({ id: null, refused: true });
+      continue;
+    }
+    const id = text(single.data);
+    if (!id) throw new Error("billing_underlay_store_result_missing");
+    stored.push({ id, refused: false });
+  }
+  return stored;
+}
+
 export async function generateBillingUnderlaysForMonth(input: {
   companyId: string;
   billingMonth: string;
@@ -801,7 +878,11 @@ export async function generateBillingUnderlaysForMonth(input: {
   for (const row of values) {
     const meter = text(row.metering_point_id);
     if (!meter) throw new Error("Normaliserat mätvärde saknar mätpunkts-ID.");
-    valuesByMeter.set(meter, [...(valuesByMeter.get(meter) ?? []), row]);
+    // Append in place: copying the list per row was quadratic per meter (≈1 s per 50 quarter-hour
+    // facility-months, J2-07).
+    const list = valuesByMeter.get(meter);
+    if (list) list.push(row);
+    else valuesByMeter.set(meter, [row]);
   }
 
   const results: UnderlayResult[] = [];
@@ -936,11 +1017,7 @@ export async function generateBillingUnderlaysForMonth(input: {
               meteringPointId,
               actorUserId: input.createdBy ?? null,
             });
-            blockerMessages.push(
-              outcome === "draft_for_operator"
-                ? "history_request_pending: Historik saknas; historikbegäran till nätägaren väntar på att skickas."
-                : "history_requested: Historik saknas; historik har begärts från nätägaren.",
-            );
+            blockerMessages.push(historyRequestMessage(outcome, "Historik saknas"));
           } catch (error) {
             blockerMessages.push(
               `history_request_failed: Historikbegäran kunde inte skapas (${error instanceof Error ? error.message : "okänt fel"}).`,
@@ -1022,10 +1099,9 @@ export async function generateBillingUnderlaysForMonth(input: {
       for (const clippedRow of clippedRows) {
         const normalizedRow = normalizedBillingRow(clippedRow);
         const energyDirection = normalizeEnergyDirection(normalizedRow);
-        rowsByDirection.set(energyDirection, [
-          ...(rowsByDirection.get(energyDirection) ?? []),
-          normalizedRow,
-        ]);
+        const list = rowsByDirection.get(energyDirection);
+        if (list) list.push(normalizedRow);
+        else rowsByDirection.set(energyDirection, [normalizedRow]);
       }
 
       for (const [energyDirection, segmentRows] of rowsByDirection) {
@@ -1167,14 +1243,14 @@ export async function generateBillingUnderlaysForMonth(input: {
           customerId
         ) {
           try {
-            await ensureHistoricalMeteringRequest({
+            const outcome = await ensureHistoricalMeteringRequest({
               companyId: input.companyId,
               customerId,
               siteId: text(period.customer_site_id) ?? text(period.site_id),
               meteringPointId,
               actorUserId: input.createdBy ?? null,
             });
-            warnings.push("history_requested: Historik saknas för att uppskatta luckorna; historik har begärts från nätägaren.");
+            warnings.push(historyRequestMessage(outcome, "Historik saknas för att uppskatta luckorna"));
           } catch (error) {
             warnings.push(`history_request_failed: Historikbegäran kunde inte skapas (${error instanceof Error ? error.message : "okänt fel"}).`);
           }
@@ -1263,7 +1339,9 @@ export async function generateBillingUnderlaysForMonth(input: {
             previous_value_id: text(row.previous_value_id),
             billing_gate_snapshot: object(row.billing_gate_snapshot),
             source_basis: row.billing_source_basis,
-            raw_payload: object(row.raw_payload),
+            // A reference, not a copy: the value's raw_payload is the whole day's consumption contract
+            // (≈43 kB per quarter-hour item); the source basis above already binds its hash (J2-07).
+            source_observation_ordinal: object(row.raw_payload).sourceOrdinal ?? null,
             energy_direction: energyDirection,
             original_quantity_kwh: quantityKwh(row),
             source_price_area: normalizedPriceArea(
@@ -1353,24 +1431,23 @@ export async function generateBillingUnderlaysForMonth(input: {
   }
 
   if (pendingStores.length > 0) {
-    const { data, error } = await supabaseService.rpc(
-      "gridex_store_billing_underlay_batch",
-      {
-        p_company_id: input.companyId,
-        p_commands: pendingStores.map((entry) => ({
-          underlay: entry.underlay,
-          items: entry.items,
-        })),
-        p_actor_user_id: input.createdBy ?? null,
-      },
-    );
-    if (error) throw error;
-    const storedIds = Array.isArray(data) ? data.map(String) : [];
-    if (storedIds.length !== pendingStores.length)
-      throw new Error("billing_underlay_batch_result_count_mismatch");
+    const stored = await storeUnderlays(input.companyId, pendingStores, input.createdBy ?? null);
     pendingStores.forEach((entry, index) => {
+      if (stored[index].refused) {
+        results.push({
+          underlayId: null,
+          status: "needs_review",
+          sourceTable: entry.result.sourceTable,
+          sourceRows: entry.result.sourceRows,
+          warnings: [...new Set([
+            FINALIZED_CORRECTION_WARNING,
+            ...entry.result.warnings,
+          ])],
+        });
+        return;
+      }
       results.push({
-        underlayId: storedIds[index] ?? null,
+        underlayId: stored[index].id,
         ...entry.result,
       });
     });

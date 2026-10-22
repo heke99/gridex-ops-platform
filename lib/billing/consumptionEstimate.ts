@@ -215,6 +215,35 @@ export function estimateFromHistory(input: {
   return null;
 }
 
+const HISTORY_PAGE = 1_000;
+
+/**
+ * The meter's current values from a year before the gap up to its end, every page. PostgREST returns at most
+ * 1 000 rows per request whatever .limit() asks for (max_rows): a year of quarter-hour values is ≈ 35 000 rows,
+ * so the single read saw only the oldest ≈ 10 days and neither the same period last year nor the latest four
+ * weeks could ever be used (reality scenario J2, J2-09; same class as DST-C1).
+ */
+async function loadHistoryRows(companyId: string, meteringPointId: string, historyStart: string, historyEnd: string) {
+  const rows: Array<Record<string, unknown>> = [];
+  for (let from = 0; ; from += HISTORY_PAGE) {
+    const page = await supabaseService
+      .from("normalized_metering_values")
+      .select("period_start,period_end,quantity_kwh,quality_status")
+      .eq("company_id", companyId)
+      .eq("metering_point_id", meteringPointId)
+      .eq("revision_status", "current")
+      .lt("period_start", historyEnd)
+      .gt("period_end", historyStart)
+      .order("period_start", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, from + HISTORY_PAGE - 1);
+    if (page.error) throw page.error;
+    const data = (page.data ?? []) as Array<Record<string, unknown>>;
+    rows.push(...data);
+    if (data.length < HISTORY_PAGE) return rows;
+  }
+}
+
 /** Loads the meter's history and annual consumption, then estimates the missing windows. */
 export async function estimateMissingConsumption(input: {
   companyId: string;
@@ -228,17 +257,8 @@ export async function estimateMissingConsumption(input: {
   const historyStart = new Date(first - YEAR_SHIFT_MS - DAY_MS).toISOString();
   const historyEnd = new Date(last).toISOString();
 
-  const [historyResult, pointResult] = await Promise.all([
-    supabaseService
-      .from("normalized_metering_values")
-      .select("period_start,period_end,quantity_kwh,quality_status")
-      .eq("company_id", input.companyId)
-      .eq("metering_point_id", input.meteringPointId)
-      .eq("revision_status", "current")
-      .lt("period_start", historyEnd)
-      .gt("period_end", historyStart)
-      .order("period_start", { ascending: true })
-      .limit(100_000),
+  const [historyRows, pointResult] = await Promise.all([
+    loadHistoryRows(input.companyId, input.meteringPointId, historyStart, historyEnd),
     supabaseService
       .from("metering_points")
       .select("estimated_annual_consumption_kwh, customer_site_id, site_id")
@@ -246,11 +266,10 @@ export async function estimateMissingConsumption(input: {
       .eq("id", input.meteringPointId)
       .maybeSingle(),
   ]);
-  if (historyResult.error) throw historyResult.error;
   if (pointResult.error) throw pointResult.error;
 
   // Only final values form a reference; earlier estimates must not feed new ones.
-  const history = ((historyResult.data ?? []) as Array<Record<string, unknown>>).filter(
+  const history = historyRows.filter(
     (row) => !["estimated", "preliminary", "temp", "temporary", "calculated"].includes(String(row.quality_status ?? "").toLowerCase()),
   );
 

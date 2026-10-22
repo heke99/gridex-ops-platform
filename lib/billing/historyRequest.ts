@@ -13,6 +13,13 @@ const OPEN_PERMISSION_STATUSES = [
   "approved",
   "active",
 ];
+/** Statuses after which the grid owner or the customer has answered the request; never re-sent automatically. */
+const ANSWERED_PERMISSION_STATUSES = [
+  "rejected_active",
+  "rejected_passive_timeout",
+  "z14_received",
+  "blocked",
+];
 
 function isoDate(ms: number): string {
   return new Date(ms).toISOString().slice(0, 10);
@@ -32,7 +39,7 @@ export async function ensureHistoricalMeteringRequest(input: {
   siteId: string | null;
   meteringPointId: string;
   actorUserId: string | null;
-}): Promise<"requested" | "already_requested" | "draft_for_operator"> {
+}): Promise<"requested" | "already_requested" | "draft_for_operator" | "answered_needs_operator"> {
   const existing = await supabaseService
     .from("metering_permissions")
     .select("id")
@@ -42,6 +49,34 @@ export async function ensureHistoricalMeteringRequest(input: {
     .limit(1);
   if (existing.error) throw existing.error;
   if ((existing.data ?? []).length > 0) return "already_requested";
+
+  // The grid owner (or the customer) already answered the last request: a rejection, a passive timeout,
+  // a received Z14 or a blocked request. The monthly billing run reaches this every 6 hours; asking again
+  // automatically sent the same Z13 to the grid owner four times a day (reality scenario J2, J2-10).
+  // An operator decides instead: one open task per metering point.
+  const answered = await supabaseService
+    .from("metering_permissions")
+    .select("id,status")
+    .eq("company_id", input.companyId)
+    .eq("metering_point_id", input.meteringPointId)
+    .in("status", ANSWERED_PERMISSION_STATUSES)
+    .limit(1);
+  if (answered.error) throw answered.error;
+  const last = (answered.data ?? [])[0] as { status?: string | null } | undefined;
+  if (last) {
+    await createCustomerDataTask({
+      companyId: input.companyId,
+      customerId: input.customerId,
+      customerSiteId: input.siteId,
+      meteringPointId: input.meteringPointId,
+      taskType: "contact_grid_owner",
+      priority: "high",
+      description:
+        `Mätvärden och förbrukningshistorik saknas och den senaste historikbegäran (Z13) är besvarad (${last.status ?? "okänd status"}). Ingen ny begäran skickas automatiskt; kontakta nätägaren eller kunden.`,
+      actorUserId: null,
+    });
+    return "answered_needs_operator";
+  }
 
   const point = await supabaseService
     .from("metering_points")

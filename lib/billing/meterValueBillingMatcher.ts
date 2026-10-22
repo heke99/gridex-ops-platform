@@ -201,6 +201,10 @@ export async function updateMeterValueBillingReadiness(params: {
     // An unqualified supply source blocks every value of the period for the same
     // reason; one open item per supply period, not one per quarter-hour.
     const periodWide = gate.reasons.some((entry) => entry.code === 'supply_source_unqualified')
+    // Values outside every supply period (or between two) are held for the same reason for a whole file:
+    // one open item per metering point and received file, not one per quarter-hour (96 per day, ≈2 976 per
+    // month and facility; reality scenario J2, J2-08).
+    const fileWide = !periodWide && issueType !== 'billing_gate_blocked'
     await createBillingUnresolvedItem({
       companyId,
       sourceMessageId,
@@ -208,6 +212,8 @@ export async function updateMeterValueBillingReadiness(params: {
       severity: gate.status === 'conflict' ? 'critical' : 'warning',
       identifiers: periodWide
         ? { meteringPointId, supplyPeriodIds: periods.map((row) => row.id), reasonCodes: ['supply_source_unqualified'] }
+        : fileWide
+        ? { meteringPointId, sourceMessageId, supplyPeriodIds: periods.map((row) => row.id), reasonCodes: [...new Set(gate.reasons.map((entry) => entry.code))].sort() }
         : {
             meterValueId: params.meterValue.id,
             normalizedValueId,
