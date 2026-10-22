@@ -388,6 +388,39 @@ Världen byggdes från noll med `up.sh` (ren replay, `next build` och `start`, s
   - Uppgiften används bara för namn och org.nr som inkommande leverantör på bytesärendet. Den finns redan i bolagets egen identitet, så kravet på en separat rad i `electricity_suppliers` tillför inget.
 - **Förslag:** skapa och markera bolagets egen leverantör när bolagets Ediel-avsändare sätts upp (namn, org.nr och Ediel-ID finns redan där). Alternativt läs den egna leverantören från bolagets avsändaridentitet i stället för från `electricity_suppliers`. Go-live-grinden bör kontrollera detta.
 
+## Faktura: flera anläggningar, avtalstider och belopp (scenario F, 2026-10-21)
+
+Kandidaterna nedan kommer från kodkartläggningen. Var och en bekräftas eller avfärdas i scenario F (riktig fakturakörning). Status uppdateras här, och ingenting tas bort.
+
+### F70 Ingen samlingsfaktura: en kund med flera anläggningar får en faktura per mätpunkt — KANDIDAT, hög, kräver beslut
+- **Kod:** underlaget skapas per mätpunkt, leveransperiod och energiriktning (`lib/billing/underlayEngine.ts:813, 845, 1029`). Varje underlag blir ett eget fakturautkast (`lib/billing/invoiceReviewPrepare.ts:436-450`).
+- **`consolidated_invoice`/`billing_level`:** finns på kund, anläggning och avtal men sätter bara en etikett, `consolidated_invoice_group_key` (`invoiceReviewPrepare.ts:272-276`). Ingenting slår ihop underlag.
+- **Kodkommentar:** `invoiceFileExport.ts:298-299` säger själv "One invoice covers one billing underlay, i.e. one facility".
+- **Påverkan:** en kund som valt samlingsfaktura i intaget ("Samla flera anläggningar och mätpunkter på samma fakturaadress") får ändå en faktura per anläggning.
+
+### F71 Månadsavgift och fakturaavgift tas ut en gång per anläggningsfaktura — KANDIDAT, hög, kräver beslut
+- **Kod:** `underlayToInput` hårdkodar `siteCount: 1` och `invoiceCreated: true` (`lib/pricing/engine.ts:311-312`).
+- **Påverkan:** en kund med tre anläggningar betalar tre fakturaavgifter. Om månadsavgiften avtalats per kund betalar kunden också tre månadsavgifter. En avgift per anläggning kan vara avtalsenlig, men fakturaavgiften ska följa antalet faktiska fakturor och samlingsvalet (F70).
+
+### F72 Avtalsvillkoren syns inte på fakturan i de flesta utgångar — KANDIDAT, medel
+- **Var de finns:** bindningstid, bindningens slutdatum, återstående bindningstid, uppsägningstid och automatisk förlängning byggs bara i `buildContract` (`lib/billing/invoiceFileExport.ts:241-261`) och följer bara med i Nordfins XML och JSON.
+- **Var de saknas:** Capway-underlaget (`lib/integrations/billing/capway/payloadBuilder.ts`), CSV/XLSX-kolumnerna (`invoiceFileExport.ts:478-503`) och adminsidan för fakturor (`app/admin/billing/invoices/[id]/page.tsx`).
+
+### F73 Avtals-PDF:en saknar slutdatum, återstående avtalstid och automatisk förlängning — KANDIDAT, medel
+- **Kod:** `lib/customer-contracts/agreementPdf.ts:176-204` skriver bindningstid och uppsägningstid men inte avtalets slutdatum, förlängning eller förlängningsperiod.
+
+### F74 Två fältnamn för automatisk förlängning — KANDIDAT, medel
+- **Kod:** avtalet läser `auto_renew_enabled`, medan erbjudande och produktversion använder `automatic_renewal` (`20260716010000_...sql:351,450`). `AutoRenew` på fakturan kan därför bli fel för avtal skapade från ett erbjudande med automatisk förlängning.
+
+### F75 Betalreferens (OCR) saknas på Nordfin-fakturan — KANDIDAT, hög, kräver beslut
+- **Kod:** `PaymentReference` är null i väntan på beslut (`lib/billing/nordfinInvoiceXml.ts:81`). Utan OCR kan inbetalningar inte matchas automatiskt.
+
+### F76 Kunden ser aldrig fakturan i Mina sidor — KANDIDAT, medel
+- **Kod:** `upsertPartnerCustomerInvoice` (`lib/customer-portal/partnerInvoices.ts:102`) anropas aldrig, så `customer_invoice_documents` och `customer_invoice_lines` fylls inte.
+
+### F77 Totalbeloppet öresavrundas inte; avrundningskomponenten avrundar energibeloppet — KANDIDAT, låg, kräver beslut
+- **Kod:** `finalizePricingPreview` summerar avrundade rader utan att avrunda totalen (`lib/pricing/pricePreviewBuilder.ts:10-52`). Komponenten `rounding` avrundar baspriset för energi till hela kronor (`priceComponentCalculator.ts:292-295`), och Capway får differensen som `rounding` (`payloadBuilder.ts:141`).
+
 ## Ediel-routing till rätt tenant och kund (scenario E, 2026-10-20)
 
 Scenario E: två elhandlare delar nätägare. Nätägaren skickar via SMTPS
