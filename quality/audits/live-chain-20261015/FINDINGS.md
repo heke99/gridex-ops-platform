@@ -1270,7 +1270,7 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
 - **Bedömning:** spärren är avsiktlig, men utan en produktväg kan go-live inte ske. Det hör ihop med F36.
 - **Verklighetsvärlden:** en ersättare som använder plattformens egna funktioner byggs nu.
 
-### F90 Certifieringen per meddelandetyp kan bara gälla en typ åt gången och faller vid varje deploy — UNDER VERIFIERING, kritisk (designfel)
+### F90 Certifieringen per meddelandetyp kan bara gälla en typ åt gången och faller vid varje deploy — BEKRÄFTAD (native, commit `d3d647ff`), kritisk (designfel)
 - **Analys av koden (`20260930145202`):**
   - `ediel_certification_evidence` är unik per (tenant, miljö, bevistyp, motorversion).
   - Registreringen kräver att varje certifieringsrads `metadata.edielScopedReadiness.scope` är exakt den meddelandetyp som certifieras, med tester där `candidateSha` är release-SHA:n.
@@ -1279,7 +1279,30 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
   - Att certifiera en andra typ, till exempel Z01 efter Z03, ändrar raderna och ogiltigförklarar den första typen.
   - En ny deploy, det vill säga en ny release-SHA, ogiltigförklarar alla.
   - En tenant skulle alltså aldrig kunna skicka mer än en meddelandetyp i produktion.
-- **Bevisas nu natively**, tillsammans med ett designförslag.
+- **Bekräftat natively:** testet `scripts/ediel-scoped-capability-f90-native.test.ts` kör med en syntetisk tenant och rullas tillbaka.
+  - Z03 certifierades och blev ready.
+  - Z01 med samma rader nekades.
+  - En andra TGT-rad nekades av den unika nyckeln.
+  - När raderna knöts om till Z01 blev Z01 ready och Z03 `ready:false`, trots att Z03:s bevis fanns kvar och inte hade gått ut.
+  - Samma typ via en andra route gav en annan beroendehash.
+  - En ny release-SHA gjorde alla bevis ogiltiga.
+  - Slutsats: det är värre än befarat. En tenant kan bara ha **en kombination av meddelandetyp, route och release** sändbar åt gången.
+- **Designförslag (inte implementerat):**
+  - en oföränderlig tabell för testresultat per meddelandetyp, med release-SHA och separat godkännare, där certifieringsraden förblir ett godkännande för hela företaget;
+  - en ny version av registreringen (v2) som bara jämför godkännandefälten;
+  - CI som certifierar om aktiva meddelandetyper vid varje deploy;
+  - ett operatörsflöde med fyraögonsprincip;
+  - en övergång med enbart framåtriktade migrationer.
+
+### F91 `tenant_message_capabilities` har ingen skrivare — BEKRÄFTAD (kod + produktion), kritisk för go-live
+- **Orsak:** ingen migration, `lib`- eller `app`-kod skriver till tabellen.
+- **Produktion:** 0 rader (summeringsfråga, bara läsning, 2026-10-22).
+- **Följd:** utan en rad nekas varje utgående meddelandetyp redan innan bevisen kontrolleras.
+- **Release-kvitton:** `canonical_record_platform_release_receipt` har ingen anropare i CI. Produktionen har ett verifierat kvitto, men om det stämmer med den körande SHA:n kontrolleras bara när en ny deploy görs.
+- **Verklighetsvärlden:** ersättaren `scripts/helpers/reality/scopedCertification.ts` körs före utkorgen i varje cron-cykel, men bara för tenanter med simulerad certifiering.
+  - Den gör det en riktig publicering i Ediels testfas skulle lämna efter sig: ett release-kvitto, rader för förmågor per meddelandetyp, testresultat och registrering via plattformens egen funktion.
+  - På grund av F90 är Z03 sändbart och Z01 inte, så länge någon Z03 väntar.
+
 
 ## Status för live-testets steg
 
