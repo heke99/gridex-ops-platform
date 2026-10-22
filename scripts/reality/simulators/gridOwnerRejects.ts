@@ -18,12 +18,12 @@ import { ImapFlow } from 'imapflow'
 import { answersFor, readReceivedRequest, SILENT, type GridOwnerAnswerPlan } from '../../helpers/reality/rejectsWire'
 import { buildZ04ForSwitchRequest } from './gridOwnerWire'
 import { unwrapSmimeForActor } from './smimeUnwrap'
+import { platformMailboxFor } from './platformMailbox'
 
 const env = (name: string, fallback: string) => process.env[name] ?? fallback
 const config = {
   edielId: env('REALITY_GRID_OWNER_EDIEL_ID', '80001'),
   email: env('REALITY_GRID_OWNER_EMAIL', 'e2e-natagare@example.invalid'),
-  platformMailbox: env('GRIDEX_SHARED_EDIEL_TEST_EMAIL', 'gridex-ediel-test@example.invalid'),
   mailHost: env('REALITY_MAIL_HOST', 'localhost'),
   smtpsPort: Number(env('REALITY_SMTPS_PORT', '3465')),
   imapsPort: Number(env('REALITY_IMAPS_PORT', '3993')),
@@ -45,7 +45,7 @@ const transport = nodemailer.createTransport({ host: config.mailHost, port: conf
 
 async function deliver(kind: string, edifact: string, facility: string, inReplyTo: string) {
   const reference = /UNB\+[^']*?\+[^+']*\+[^+']*\+[^+']*\+([^+']+)/.exec(edifact)?.[1] ?? '?'
-  await transport.sendMail({ from: config.email, to: config.platformMailbox, subject: `${kind} ${reference}`, text: 'Ediel',
+  await transport.sendMail({ from: config.email, to: platformMailboxFor(edifact), subject: `${kind} ${reference}`, text: 'Ediel',
     attachments: [{ filename: `${kind.replace(/\W+/g, '_')}_${reference}.edi`, content: edifact, contentType: 'application/edifact' }] })
   sent.push({ at: new Date().toISOString(), kind, facility, inReplyTo, reference })
 }

@@ -270,7 +270,7 @@ const isInvoiceFee = (line: Row) => /fakturaavgift|invoice_fee/i.test(`${line.de
 /** One grid-owner metering run: the simulator sends each day as its own UTILTS E66 mail over SMTPS. */
 async function gridOwnerSendsE66(files: Array<Omit<SentFile, 'reference'> & { registeredAfterHours?: number }>) {
   const response = await fetch(`${gridOwner.url}/__sim/send-e66-batch`, { method: 'POST', body: JSON.stringify({ receiver: tenant.supplierEdielId,
-    files: files.map(file => ({ meterId: file.facility, day: file.day, values: file.values, registeredAfterHours: file.registeredAfterHours })) }) })
+    files: files.map(file => ({ meterId: file.facility, day: file.day, values: file.values, registeredAfterHours: file.registeredAfterHours, environment: 'production' })) }) })
   const body = await response.json().catch(() => null) as { sent?: Array<{ reference: string }> } | null
   if (!response.ok || body?.sent?.length !== files.length) throw Error(`grid_owner_send_failed:${response.status}:${JSON.stringify(body).slice(0, 300)}`)
   files.forEach((file, i) => sentFiles.push({ facility: file.facility, day: file.day, kind: file.kind, values: file.values, reference: body.sent![i].reference }))
@@ -283,10 +283,13 @@ async function receiveUntil(done: () => boolean, minutes: number) {
   const runs: unknown[] = []
   const deadline = Date.now() + minutes * 60_000
   for (;;) {
-    const inbound = await cron('/api/internal/inbound-mail/cron?environment=test')
+    // Vercel polls the production lane (vercel.json); the tenant is live in production (FINDINGS T7).
+    const inbound = await cron('/api/internal/inbound-mail/cron?environment=production')
+    const inboundTest = await cron('/api/internal/inbound-mail/cron?environment=test')
     const outbox = await cron('/api/ediel/outbox/process')
-    runs.push({ at: new Date().toISOString(), inbound: inbound.status, outbox: outbox.status })
+    runs.push({ at: new Date().toISOString(), inbound: inbound.status, inboundTest: inboundTest.status, outbox: outbox.status })
     expect(inbound.status, JSON.stringify(inbound.body)).toBe(200)
+    expect(inboundTest.status, JSON.stringify(inboundTest.body)).toBe(200)
     if (done() || Date.now() > deadline) break
     await pause(60_000)
   }

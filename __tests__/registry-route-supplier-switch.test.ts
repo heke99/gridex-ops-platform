@@ -2,7 +2,7 @@
 // that grid owner (Z01 customer_masterdata and Z03 supplier_switch), so the route engine finds the grid owner's
 // own supplier_switch route for Z03 instead of the go-live wizard's route without grid owner.
 //
-// Real code under test: migration 20261022120000 (readiness view and profile key) applied in PGlite over the
+// Real code under test: migration 20261022121000 (readiness view and profile key) applied in PGlite over the
 // view it replaces; the TypeScript materializer, the route decision engine and the bulk server action run
 // against that database through a small PostgREST-shaped bridge; the SQL bulk function is the one from
 // migration 20260622150000. Declared ports: the private registry source RPC, the dynamic receiver resolver,
@@ -147,7 +147,7 @@ import {
 import { decideCommunicationRoute } from '@/lib/routes/routeDecisionEngine'
 import { bulkMaterializeOperationalRoutesAction } from '@/app/admin/ediel/route-readiness/actions'
 
-const MIGRATION = 'supabase/migrations/20261022120000_registry_routes_materialize_supplier_scopes.sql'
+const MIGRATION = 'supabase/migrations/20261022121000_registry_routes_materialize_supplier_scopes.sql'
 const PREVIOUS_VIEW = 'supabase/migrations/20260622090000_company_route_readiness_utilts_null_message_code_fix.sql'
 const BULK_FUNCTION = 'supabase/migrations/20260622150000_ediel_route_ack_mode_fix_and_extended_materializer.sql'
 
@@ -284,7 +284,7 @@ beforeEach(async () => {
   await sender(OTHER_SENDER, OTHER_COMPANY)
 })
 
-describe('readiness view after migration 20261022120000', () => {
+describe('readiness view after migration 20261022121000', () => {
   it('keeps the column list, security_invoker, grants and dependent views of the view it replaces', async () => {
     expect(await viewColumns()).toEqual(before.columns)
     expect(before.columns).toHaveLength(20)

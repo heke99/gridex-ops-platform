@@ -290,13 +290,14 @@
     "20261020280000_ediel_envelope_index_execute.sql": "932c8ab5ca97e6bdeb922d4d2ad1e558d96c5a23cccc6cda5b7ef7efb1de2a1c",
     "20261020290000_ediel_envelope_tokenizer_schema_usage.sql": "1ba38ccb803d27edb160beedd7e96dd64e97155d03d40b124e487ffe9d21103b",
     "20261022100000_customer_metering_access_windows.sql": "544af87d13efd1cc0ca4cae2f99c54cdbe9a44656c4129863f58d010883e09dc",
-    "20261022120000_registry_routes_materialize_supplier_scopes.sql": "970e1148c082fcf76d292f20733d8337425fbe24f7972cfbe6933ace8fc9a169",
+    "20261022121000_registry_routes_materialize_supplier_scopes.sql": "970e1148c082fcf76d292f20733d8337425fbe24f7972cfbe6933ace8fc9a169",
     "20261022130000_contract_customer_masterdata_derivation.sql": "c5232b4209c9b3c6b167a994446eccb7c42b3fc8d515b38a63a4c7e2c96338e5",
     "20261022140000_supply_move_out_z05lk_end.sql": "f1acbcc1530ccabe13081878e5c98f1bc61c4b42c2455ba38e2500920f09507e",
     "20261022150000_supply_ending_billable.sql": "38b406ffaf34539a6c6dbd32df28e7e713fef90ca54cad583d30a054f72e134d",
     "20261022141000_supply_move_out_own_closure_relation.sql": "34420b9f3dcdf2982cf0a0a8f3b7a68b1a6e186576c7544990af7970e49e3d21",
     "20261022160000_ediel_outbound_ack_overdue.sql": "310443eebc968b093d4579e3dad6aca96f73b8d734fcdff777eccb1d2a188528",
     "20261022210000_statistics_stockholm_months_and_supply_counts.sql": "83d06a2b1d403921becf6db5c19d6136ef7337351ba64c9afd581b0b1606c0c9",
-    "20261022211000_statistics_dashboard_switch_and_value_counts.sql": "1c744e1b3a7cecaa5f42ee4e2bd28ee9f91a0d4fb53614b24e85402c70593f77"
+    "20261022211000_statistics_dashboard_switch_and_value_counts.sql": "1c744e1b3a7cecaa5f42ee4e2bd28ee9f91a0d4fb53614b24e85402c70593f77",
+    "20261022220000_ediel_mailboxes_production_column_parity.sql": "3043c81256876d9214c52e16d98a04a38448ffa753af831f70e28931a541dd25"
   }
 }

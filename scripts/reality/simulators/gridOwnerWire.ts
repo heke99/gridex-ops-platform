@@ -55,12 +55,21 @@ export function buildZ04ForSwitchRequest(input: { request: string; gridOwnerEdie
     if (s.tag === 'NAD' && segmentComposite(s, 1, template.una)[0] === 'Z02') return `${s.raw}+++++++SE`
     return s.raw
   })
+  // The grid owner declares the facility's own readings (fields 214/218/259: digits, decimals, tariff code), as
+  // the approved native test's withOwnReadings(body, true) does. Without them the receiver holds the Z04 with
+  // PRODAT_DEPENDENT_CONDITION_UNDETERMINED and the switch is never confirmed (FINDINGS T6).
+  if (body.some(segment => /^CCI\+\+Z(?:02|05|16)(?:[+:]|$)/.test(segment))) throw Error('z04_own_readings_already_present')
+  const line = body.findIndex(segment => segment.startsWith('LIN+'))
+  const boundary = body.findIndex((segment, index) => index > line && /^(?:RFF|NAD)\+/.test(segment))
+  if (line < 0 || boundary < 0) throw Error('z04_own_readings_boundary_missing')
+  body.splice(boundary, 0, 'CCI++Z02', 'CAV+:::1', 'CCI++Z05', 'CAV+:::6', 'CCI++Z16', 'CAV+:::101')
   const envelope = EdifactEnvelopeCodec.decode(input.request)
   const reference = randomUUID().replaceAll('-', '').slice(0, 14).toUpperCase()
   const raw = EdifactEnvelopeCodec.encode({
     sender: f.gridOwner, receiver: f.supplier, senderQualifier: envelope.receiverQualifier, receiverQualifier: envelope.senderQualifier,
     senderSubAddress: envelope.receiverSubAddress, receiverSubAddress: envelope.senderSubAddress, applicationReference: '23-DDQ-PRODAT',
-    acknowledgementRequest: true, environment: 'test', interchangeReference: reference,
+    // Answered in the lane the request came in: a production Z03 gets a production Z04 (FINDINGS T7).
+    acknowledgementRequest: true, environment: envelope.environment, interchangeReference: reference,
     messages: [{ messageReference: randomUUID().replaceAll('-', '').slice(0, 14), messageTypeToken: 'PRODAT:D:97A:UN:E2SE6A', businessSegments: body }],
   })
   return { raw, reference, facts: f }

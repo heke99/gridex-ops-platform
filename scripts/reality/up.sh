@@ -100,6 +100,18 @@ path,sha=sys.argv[1:]
 lines=[l for l in open(path).read().splitlines() if not l.startswith('GIT_COMMIT_SHA=')]
 open(path,'w').write('\n'.join(lines+['GIT_COMMIT_SHA='+sha])+'\n')
 PY
+# The shared production Ediel mailbox (FINDINGS T7): grid owners answer a production file to it and the platform
+# stores what arrives there in the production lane. Staff point the production row at it in /admin/inbound-mail
+# (scripts/helpers/reality/productionMailbox.ts); only the address and the IMAP secret live here. Added to an
+# existing world as well. GreenMail accepts any password; the value is random per world.
+python3 - "$ENV_FILE" <<'PY'
+import secrets,sys
+path=sys.argv[1]
+lines=open(path).read().splitlines()
+keys={l.split('=',1)[0] for l in lines if '=' in l}
+extra={'GRIDEX_SHARED_EDIEL_PRODUCTION_EMAIL':'gridex-ediel@example.invalid','GRIDEX_SHARED_EDIEL_PRODUCTION_IMAP_PASS':secrets.token_hex(12)}
+open(path,'w').write('\n'.join(lines+[f'{k}={v}' for k,v in extra.items() if k not in keys])+'\n')
+PY
 set -a; # shellcheck disable=SC1090
 . "$ENV_FILE"; set +a
 

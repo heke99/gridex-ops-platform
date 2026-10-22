@@ -55,7 +55,7 @@ export function readReceivedRequest(raw: string): ReceivedRequestFacts {
 
 /** The platform's file as the grid owner received it (its own perspective: inbound). */
 export function asReceived(raw: string, family = 'PRODAT'): EdielMessageRow {
-  return { id: randomUUID(), raw_payload: raw, company_id: null, environment: 'test', message_standard: 'edifact', message_family: family, direction: 'inbound' } as unknown as EdielMessageRow
+  return { id: randomUUID(), raw_payload: raw, company_id: null, environment: EdifactEnvelopeCodec.decode(raw).environment, message_standard: 'edifact', message_family: family, direction: 'inbound' } as unknown as EdielMessageRow
 }
 
 /** CONTRL for one received interchange: 'positive' (UCI action 7/1) or 'negative' (UCI action 4, syntax rejection). */
@@ -103,7 +103,7 @@ export function replyEnvelope(raw: string, messageTypeToken: string, businessSeg
   const envelope = EdifactEnvelopeCodec.decode(raw)
   return EdifactEnvelopeCodec.encode({ sender: envelope.receiver!, receiver: envelope.sender!, senderQualifier: envelope.receiverQualifier, receiverQualifier: envelope.senderQualifier,
     senderSubAddress: envelope.receiverSubAddress, receiverSubAddress: envelope.senderSubAddress, applicationReference: envelope.applicationReference,
-    acknowledgementRequest: false, environment: 'test', interchangeReference: randomUUID().replaceAll('-', '').slice(0, 14).toUpperCase(),
+    acknowledgementRequest: false, environment: envelope.environment, interchangeReference: randomUUID().replaceAll('-', '').slice(0, 14).toUpperCase(),
     messages: [{ messageReference: randomUUID().replaceAll('-', '').slice(0, 14), messageTypeToken, businessSegments }] })
 }
 

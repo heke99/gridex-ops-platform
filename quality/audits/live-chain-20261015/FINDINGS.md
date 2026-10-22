@@ -1354,6 +1354,57 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
   - Den gör det en riktig publicering i Ediels testfas skulle lämna efter sig: ett release-kvitto, rader för förmågor per meddelandetyp, testresultat och registrering via plattformens egen funktion.
   - På grund av F90 är Z03 sändbart och Z01 inte, så länge någon Z03 väntar.
 
+### F92 uppföljning (utredning klar 2026-10-22): BEKRÄFTAD, kritisk för go-live; rättning pågår
+- **Ingen produktväg skapar en kvittensroute** (kontrollerat i koden och i testvärldens admin-gränssnitt som operatör):
+  - Inget `route_scope`-val erbjuder `ediel_ack`: varken `/admin/integrations/routes`, de äldre redigeringsformulären eller bootstrapformuläret. Bootstrapformuläret visas dessutom bara när tenanten saknar routes.
+  - `saveCommunicationRoute` (`lib/cis/db-routes.ts`) sätter aldrig `environment_type`. Det kräver CHECK-villkoret `communication_routes_ediel_ack_environment_required`.
+  - Go-live-guiden erbjuder bara PRODAT och UTILTS.
+  - Registermaterialiseringen mappar inte CONTRL eller APERAK till något scope (`routeScopeForProcess`).
+- **Vad som krävs:** en route och en profil per applikationsreferens som nätägaren skickar (`23-DDQ-PRODAT`, `23-DDQ-E66-T`, …) och per kanal. Profilen ska ha omvänt UNB, exakt originalets applikationsreferens och samma SMTP-konto som utgående post.
+- **Z04:ns affärseffekt väntar inte på vår kvittens.**
+  - Leveransen aktiveras (`applySupplyMarketSource`) bara när minst ett objekt är accepterat (`domainObjectCount > 0`).
+  - Ett misslyckat CONTRL-försök loggas, och sedan fortsätter behandlingen.
+  - I körning 15 stoppades Z04 av två andra orsaker, T6 och T7 nedan.
+- **Beslutad rättning:** när nätägarens PRODAT- och UTILTS-routes materialiseras från aktörsregistret skapas även kvittensroutes, idempotent och utan att någon spärr lättas. Registermaterialiserade routes är redan den enda produktionsmodellen (F41), och det skalar till många nätägare.
+- **Sidofynd, bekräftat i koden:** `/admin/integrations/routes` postar `is_aktiv` (page.tsx:149), men `app/admin/cis/actions.ts:288` läser `is_active`. Varje route som sparas där blir därför inaktiv. ÖPPEN, medel.
+- **Sidofynd, sannolikt:** de äldre redigeringsformulären saknar alternativet `ediel_ack`. Att spara en befintlig kvittensroute där ändrar den troligen till `supplier_switch`. ÖPPEN.
+- **Sidofynd, antaget:** en Z04 som hålls med `PRODAT_DEPENDENT_CONDITION_UNDETERMINED` skapar varken ärende eller granskningspost. Operatören märker den bara genom SLA-timern. Om det är avsiktligt är oklart.
+
+### T6 Nätägarsimulatorns Z04 saknade avläsningsfälten 214, 218 och 259 — RÄTTAD, verklighetsvärlden
+- **Utfall (körning 15):** varje Z04 hölls med `PRODAT_DEPENDENT_CONDITION_UNDETERMINED` (`prodatRegisterPolicy.ts:139`, "Receiver-local readings condition unknown"). Objektet bedömdes `unavailable` med orsaken `source_owner_not_established`, och ingen leveransperiod skapades.
+- **Det är avsiktligt i produkten:** det godkända testet `scripts/ediel-at-z03l-z03lk-supplier-native.test.ts:1257` kräver just detta när fält 259 saknas. Dess positiva fall (rad 1405) lägger till `CCI++Z02/Z05/Z16`.
+- **Rättning:** simulatorn deklarerar avläsningarna exakt som `withOwnReadings(body, true)` i det godkända testet.
+
+### T7 Produktionssvar hamnade i testkanalen — RÄTTAD, verklighetsvärlden
+- **Utfall (körning 15):**
+  - Z03 var lagrade som `production`, men Z04, CONTRL och APERAK som `test`.
+  - Kvittenserna gav `ack_transport_environment_mismatch:test:production`, och bytena blev kvar som `prepared`.
+  - Även en godkänd Z04 hade fått `normal_z04_exact_sent_original_required`, eftersom Z03 och Z04 måste ligga i samma kanal.
+- **Orsaker:**
+  - Simulatorerna hårdkodade `environment: 'test'` (`gridOwnerWire.ts`, `gridOwner.ts asReceived`, `rejectsWire.ts`). E66 hade alltid testflaggan.
+  - Alla svar postades till testbrevlådan. Plattformen lagrar inkommande filer i brevlådans kanal.
+  - Världen hade ingen pollad produktionsbrevlåda. Produktionens seedade rad (`ediel@gridex.se`) saknar IMAP-värd.
+  - Scenariot pollade bara `?environment=test`, medan Vercel bara pollar `?environment=production` (`vercel.json`).
+- **Rättning:**
+  - Svaren skickas i förfrågans kanal och till den kanalens brevlåda (`scripts/reality/simulators/platformMailbox.ts`).
+  - E66 kan skickas i produktion.
+  - Operatören pekar produktionsraden mot världens GreenMail via `/admin/inbound-mail` (`scripts/helpers/reality/productionMailbox.ts`).
+  - Scenario F pollar båda kanalerna.
+
+### RPL-01 Den rena replayen saknar fem kolumner i `ediel_mailboxes` som produktionen och koden använder — RÄTTAD (framåtriktad migration `20261022220000`), hög för replay-beroende verifiering
+- **Utfall:**
+  - I testvärlden misslyckades varje lyckad pollning i `markMailboxPollFinished` med `PGRST204 'last_successful_poll_at'`, och lyckandet registrerades som ett fel.
+  - `/admin/inbound-mail` kunde varken lista eller spara en delad brevlåda (`smtp_host`, `smtp_port`).
+- **Orsak:**
+  - `20260601070000` lägger till kolumnerna, men replayen ersätter filen med den härledda bootstrapartefakten `bootstrap/20260601_ediel_production_readiness_foundation.sql` (`scripts/gridex-aud-003-legacy-foundation.json`). Artefakten saknar dem.
+  - `supabase/schema.sql` saknar dem också.
+  - Produktionen har alla fem: `smtp_host`, `smtp_port`, `last_poll_at`, `last_successful_poll_at` och `last_poll_status` (bara läsning av metadata, 2026-10-22).
+- **Rättning:** `add column if not exists`, som inte gör något i produktionen. Ägaren av GEN och replay behöver fånga om `schema.sql`, typerna och artefakten. Det är dokumenterat på #840, och jag har inte rört filerna.
+
+### MIG-01 Krock i migrationsversion med main — RÄTTAD (namnbyte av en ej körd migration)
+- F85-migrationen `20261022120000_registry_routes_materialize_supplier_scopes.sql` hade samma 14-siffriga version som `20261022120000_normal_supplier_switch_atomic_enqueue.sql` på main. Main:s migration är körd i produktionen som `20261022230935`.
+- Min migration har aldrig körts någonstans utom i testvärlden. Den heter nu `20261022121000_…`, och manifestet och testet pekar på det nya namnet.
+
 
 ## Status för live-testets steg
 

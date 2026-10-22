@@ -15,6 +15,7 @@ import { guideOrderedFixtureRaw } from '../../../__tests__/helpers/prodatGuideOr
 import { characteristic, line, type Parts } from '../../../__tests__/fixtures/prodat-register'
 import nodemailer from 'nodemailer'
 import { buildZ04ForSwitchRequest, readSwitchRequest } from './gridOwnerWire'
+import { platformMailboxFor } from './platformMailbox'
 
 export type LeavingFacts = {
   gridOwner: string; supplier: string; point: string; gridArea: string; brp: string
@@ -74,7 +75,7 @@ export async function gridOwnerSendsLeavingFile(input: { from: string; kind: str
   // Same transport as the grid-owner simulator: local GreenMail over SMTPS, TLS verified via the local CA.
   const transport = nodemailer.createTransport({ host: 'localhost', port: Number(process.env.REALITY_SMTPS_PORT ?? 3465), secure: true, requireTLS: true,
     auth: { user: input.from, pass: 'grid-owner-local' }, tls: { rejectUnauthorized: true, minVersion: 'TLSv1.2' } })
-  await transport.sendMail({ from: input.from, to: process.env.GRIDEX_SHARED_EDIEL_TEST_EMAIL ?? 'gridex-ediel-test@example.invalid', subject: `${input.kind} ${input.reference}`,
+  await transport.sendMail({ from: input.from, to: platformMailboxFor(input.edifact), subject: `${input.kind} ${input.reference}`,
     text: 'Ediel', attachments: [{ filename: `${input.kind}_${input.reference}.edi`, content: input.edifact, contentType: 'application/edifact' }] })
 }
 

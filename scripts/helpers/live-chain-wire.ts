@@ -47,7 +47,7 @@ function stockholmMidnightOffsetMinutes(y: number, m: number, d: number) {
  * it re-sends corrected values for the same day.
  */
 export function dailyE66(input: { issuer: string; receiver: string; meterId: string; day: string; values: number[]; reference: string;
-  resolutionMinutes?: 15 | 60; registeredAfterHours?: number }) {
+  resolutionMinutes?: 15 | 60; registeredAfterHours?: number; environment?: 'production' | 'test' }) {
   const step = input.resolutionMinutes ?? 15
   const [y, m, d] = input.day.split('-').map(Number)
   const offset = stockholmMidnightOffsetMinutes(y, m, d)
@@ -65,7 +65,7 @@ export function dailyE66(input: { issuer: string; receiver: string; meterId: str
   const next = new Date(start.getTime() + dayMinutes * 60_000)
   const lines = [
     "UNA:+.? '",
-    `UNB+UNOC:3+${input.issuer}:ZZ+${input.receiver}:ZZ+${local(next, registered).slice(2, 8)}:${local(next, registered).slice(8, 12)}+${input.reference}++23-DDQ-E66-T++++1'`,
+    `UNB+UNOC:3+${input.issuer}:ZZ+${input.receiver}:ZZ+${local(next, registered).slice(2, 8)}:${local(next, registered).slice(8, 12)}+${input.reference}++23-DDQ-E66-T${input.environment === 'production' ? '' : '++++1'}'`,
     "UNH+1+UTILTS:D:02B:UN:E5SE5A'",
     `BGM+E66::260+M${input.reference}+9+AB'`,
     `DTM+137:${local(next, registered)}:203'`, `DTM+735:?+${pad(offset / 60)}00:406'`, "MKS+23+E02::260'",

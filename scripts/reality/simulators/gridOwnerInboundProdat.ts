@@ -20,12 +20,12 @@ import { gs1 } from '../../helpers/live-chain-wire'
 import { contrlFor, positiveAperakFor, readReceivedRequest } from '../../helpers/reality/rejectsWire'
 import { prodatFacts, readOurAnswer, shiftDate, z04cFor, z04For, z04ForUnknownSwitch, type InboundProdatPlan, type InboundProdatStep } from '../../helpers/reality/inboundProdatWire'
 import { unwrapSmimeForActor } from './smimeUnwrap'
+import { platformMailboxFor } from './platformMailbox'
 
 const env = (name: string, fallback: string) => process.env[name] ?? fallback
 const config = {
   edielId: env('REALITY_GRID_OWNER_EDIEL_ID', '80001'),
   email: env('REALITY_GRID_OWNER_EMAIL', 'e2e-natagare@example.invalid'),
-  platformMailbox: env('GRIDEX_SHARED_EDIEL_TEST_EMAIL', 'gridex-ediel-test@example.invalid'),
   mailHost: env('REALITY_MAIL_HOST', 'localhost'),
   smtpsPort: Number(env('REALITY_SMTPS_PORT', '3465')),
   imapsPort: Number(env('REALITY_IMAPS_PORT', '3993')),
@@ -51,7 +51,7 @@ const interchangeOf = (edifact: string) => /UNB\+[^']*?\+[^+']*\+[^+']*\+[^+']*\
 
 async function deliver(kind: Sent['kind'], edifact: string, facility: string) {
   const interchange = interchangeOf(edifact), facts = prodatFacts(edifact)
-  await transport.sendMail({ from: config.email, to: config.platformMailbox, subject: `${kind} ${interchange}`, text: 'Ediel',
+  await transport.sendMail({ from: config.email, to: platformMailboxFor(edifact), subject: `${kind} ${interchange}`, text: 'Ediel',
     attachments: [{ filename: `${kind.replace(/\W+/g, '_')}_${interchange}.edi`, content: edifact, contentType: 'application/edifact' }] })
   sent.push({ at: new Date().toISOString(), kind, facility, object: facts.facility, interchange, document: facts.document, start: facts.start, li: facts.li, answers: [] })
 }

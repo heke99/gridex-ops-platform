@@ -6,6 +6,7 @@ import { configurePlatformMailbox, configureTenant, literal, sql, type LiveTenan
 import { approveTenantRouteProfiles, ensureProductionWhiteLabelColumnParity, goLiveOnWebsite, publishReceiverCertificateTrust, simulateEdielCertifiedGoLive } from './tenantWebsite'
 import { checkGridOwners, chooseTenantBrp, createProductionRoutesFromWizard, confirmSafeBlankSubaddresses, importActorRegistry, materializeTenantRoutes, searchGridOwnerCertificate, operatorSession, sanitizedActorRegistry, verifyActorForCustomerFlow } from './operatorConsole'
 import { prepareMarketData, startGridOwner, type GridOwnerSim } from './world'
+import { configureProductionMailboxAsOperator } from './productionMailbox'
 
 // A real SE3 grid area imported from Svenska kraftnät (ALS, Alingsås); the grid owner itself is simulated.
 export const GRID_AREA = 'ALS'
@@ -50,6 +51,8 @@ export async function goLiveAlsSupplier(report: Record<string, unknown>, options
   report.gridOwnerCertificate = await searchGridOwnerCertificate(staff, opsGridOwnerId)
   report.gridOwnerSubaddress = await confirmSafeBlankSubaddresses(staff)
   report.gridOwnerCheck = await checkGridOwners(staff)
+  // The shared production mailbox the grid owner answers production files to (FINDINGS T7).
+  report.productionMailbox = await configureProductionMailboxAsOperator(staff)
   // FINDINGS F36/F37: no supported path takes a new supplier live in production or publishes a receiver's
   // certificate trust. The simulation stands in for Ediel certification, first-send approval and the external
   // trust owner; everything after it is the real code. Routes are materialized after go-live, as for a supplier

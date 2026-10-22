@@ -17,11 +17,13 @@ import { randomUUID } from 'node:crypto'
 import nodemailer from 'nodemailer'
 import { ImapFlow } from 'imapflow'
 import { tokenizeEdifact, segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
+import { EdifactEnvelopeCodec } from '@/lib/ediel/core/edifactEnvelopeCodec'
 import { buildAperakDraft, buildContrlDraft } from '@/lib/ediel/ack'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { dailyE66, dayProfile } from '../../helpers/live-chain-wire'
 import { buildZ04ForSwitchRequest } from './gridOwnerWire'
 import { unwrapSmimeForActor } from './smimeUnwrap'
+import { platformMailboxFor } from './platformMailbox'
 
 export type GridOwnerProfile = {
   /** Answer our files at all (a silent counterparty tests our deadline handling). */
@@ -39,7 +41,6 @@ const env = (name: string, fallback: string) => process.env[name] ?? fallback
 const config = {
   edielId: env('REALITY_GRID_OWNER_EDIEL_ID', '80001'),
   email: env('REALITY_GRID_OWNER_EMAIL', 'e2e-natagare@example.invalid'),
-  platformMailbox: env('GRIDEX_SHARED_EDIEL_TEST_EMAIL', 'gridex-ediel-test@example.invalid'),
   mailHost: env('REALITY_MAIL_HOST', 'localhost'),
   smtpsPort: Number(env('REALITY_SMTPS_PORT', '3465')),
   imapsPort: Number(env('REALITY_IMAPS_PORT', '3993')),
@@ -64,7 +65,7 @@ const transport = nodemailer.createTransport({ host: config.mailHost, port: conf
 async function deliver(kind: string, edifact: string, reference: string, inReplyTo?: string) {
   const copies = decide(profile.duplicateShare, sent.length + 1) ? 2 : 1
   for (let copy = 0; copy < copies; copy += 1) {
-    await transport.sendMail({ from: config.email, to: config.platformMailbox, subject: `${kind} ${reference}`, text: 'Ediel',
+    await transport.sendMail({ from: config.email, to: platformMailboxFor(edifact), subject: `${kind} ${reference}`, text: 'Ediel',
       attachments: [{ filename: `${kind}_${reference}.edi`, content: edifact, contentType: 'application/edifact' }] })
     sent.push({ at: new Date().toISOString(), kind: copy ? `${kind} (duplicate)` : kind, reference, inReplyTo })
   }
@@ -77,7 +78,7 @@ function later(ms: number, task: () => Promise<void>) {
 
 /** The platform's file as the grid owner received it (its own perspective: inbound). */
 function asReceived(raw: string, family: string): EdielMessageRow {
-  return { id: randomUUID(), raw_payload: raw, company_id: null, environment: 'test', message_standard: 'edifact', message_family: family, direction: 'inbound' } as unknown as EdielMessageRow
+  return { id: randomUUID(), raw_payload: raw, company_id: null, environment: EdifactEnvelopeCodec.decode(raw).environment, message_standard: 'edifact', message_family: family, direction: 'inbound' } as unknown as EdielMessageRow
 }
 
 function handle(raw: string, subject: string) {
@@ -138,13 +139,13 @@ async function poll() {
  * reference then ends in C so it never collides with the original's.
  */
 type E66File = { meterId: string; day: string; receiver: string; values?: number[]; dayIndex?: number; reference?: string
-  registeredAfterHours?: number; resolutionMinutes?: 15 | 60 }
+  registeredAfterHours?: number; resolutionMinutes?: 15 | 60; environment?: 'production' | 'test' }
 
 async function sendE66(file: E66File) {
   const reference = file.reference ?? `${file.day.replaceAll('-', '').slice(2)}${file.meterId.slice(-6)}${file.registeredAfterHours ? 'C' : ''}`
   const values = file.values ?? dayProfile(file.dayIndex ?? 0)
   await deliver('UTILTS-E66', dailyE66({ issuer: config.edielId, receiver: file.receiver, meterId: file.meterId, day: file.day, values, reference,
-    resolutionMinutes: file.resolutionMinutes, registeredAfterHours: file.registeredAfterHours }), reference)
+    resolutionMinutes: file.resolutionMinutes, registeredAfterHours: file.registeredAfterHours, environment: file.environment }), reference)
   return { meterId: file.meterId, day: file.day, reference, kwh: Math.round(values.reduce((a, b) => a + b, 0) * 1000) / 1000 }
 }
 
