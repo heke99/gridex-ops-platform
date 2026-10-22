@@ -107,12 +107,24 @@ async function saveCustomerContactAction(formData: FormData) {
  const type = isPrimary ? 'primary' : typeInput
  const title = customerType === 'private' && isPrimary ? titleInput : titleInput
 
+ // Only a customer of the staff member's own active company; every read and write below stays in it.
+ const companyId = await requireOperationalCompanyId(actorUserId)
+ const { data: customer, error: customerError } = await supabaseService
+ .from('customers')
+ .select('id')
+ .eq('id', customerId)
+ .eq('company_id', companyId)
+ .maybeSingle()
+ if (customerError) throw customerError
+ if (!customer?.id) throw new Error('Kunden finns inte i ditt bolag.')
+
  const before = contactId
  ? await supabaseService
  .from('customer_contacts')
  .select('*')
  .eq('id', contactId)
  .eq('customer_id', customerId)
+ .eq('company_id', companyId)
  .maybeSingle()
  : { data: null, error: null }
 
@@ -123,6 +135,7 @@ async function saveCustomerContactAction(formData: FormData) {
  .from('customer_contacts')
  .update({ is_primary: false })
  .eq('customer_id', customerId)
+ .eq('company_id', companyId)
 
  const { error: clearError } = contactId
  ? await query.neq('id', contactId)
@@ -132,6 +145,7 @@ async function saveCustomerContactAction(formData: FormData) {
  }
 
  const payload = {
+ company_id: companyId,
  customer_id: customerId,
  type,
  name,
@@ -147,6 +161,7 @@ async function saveCustomerContactAction(formData: FormData) {
  .update(payload)
  .eq('id', contactId)
  .eq('customer_id', customerId)
+ .eq('company_id', companyId)
  .select('*')
  .single()
  : await supabaseService
@@ -166,6 +181,7 @@ async function saveCustomerContactAction(formData: FormData) {
  updated_at: new Date().toISOString(),
  })
  .eq('id', customerId)
+ .eq('company_id', companyId)
 
  if (customerSyncError) throw customerSyncError
  }
