@@ -6,6 +6,7 @@ import { getTenantLiveAccessForAdmin } from '@/lib/tenant/liveAccess'
 import { listBusinessAckStatusForSources, listEdielMessages } from '@/lib/ediel/db'
 import { businessAckStatusPresentation } from '@/lib/ediel/inbound/businessAckReadModel'
 import type { EdielMessageRow } from '@/lib/ediel/types'
+import { readUtiltsSourceResumabilityForSources } from '@/lib/ediel/utilts/utiltsResumability'
 import {
  deleteAllEdielMessagesAction,
  deleteEdielMessageAction,
@@ -194,6 +195,13 @@ export default async function AdminEdielMessagesPage({
  companyId,
  })
 
+ // F80: the same server-side rule as the detail page and the action decides
+ // whether "Kör engine" is offered. A held source stays resumable even when
+ // CONTRL or replies for sibling transactions already exist.
+ const resumabilityBySource = await readUtiltsSourceResumabilityForSources(
+ topLevelMessages.filter((message) => message.direction === 'inbound' && message.message_family === 'UTILTS'),
+ ).catch(() => null)
+
  const rows: RowWithAcks[] = topLevelMessages.map((message) => ({
  message,
  ackMessages: message.direction === 'inbound' ? ackMessagesBySource.get(message.id)?.messages ?? [] : [],
@@ -283,6 +291,8 @@ export default async function AdminEdielMessagesPage({
  const hasAperak = hasAckFamily(ackMessages, 'APERAK')
  const hasUtiltsErr = ackMessages.some(isUtiltsErrAck)
  const hasTgtResponse = hasContrl || hasAperak || hasUtiltsErr
+ const resumability = isInboundUtilts ? resumabilityBySource?.get(message.id) ?? null : null
+ const heldForReview = resumability?.reason === 'held_transactions'
 
  return (
  <article key={message.id} className="rounded-3xl border border-slate-200 bg-white p-5">
@@ -302,6 +312,15 @@ export default async function AdminEdielMessagesPage({
  {isInboundUtilts ? (
  <div className="mt-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
  Inbound UTILTS: {statusUnavailable || heldOriginalIds.length > 0 ? 'Kvittensstatus hålls för granskning.' : hasTgtResponse ? 'Svar finns redan. Skicka befintlig CONTRL/APERAK/UTILTS_ERR nedan.' : 'Öppna eller kör engine från kortet för att skapa svar.'}
+ {heldForReview && resumability ? (
+ <div className="mt-1 font-semibold text-amber-800">
+ {resumability.heldTransactionIds.length} transaktion(er) hålls för intern granskning utan svar och kan återupptas när underlaget är godkänt.
+ {resumability.rejectedTransactionIds.length > 0 ? ' Avvisade transaktioner kräver en ny fil från nätägaren.' : ''}
+ </div>
+ ) : null}
+ {!resumabilityBySource ? (
+ <div className="mt-1 text-amber-800">Återupptagningsstatus kunde inte läsas; öppna meddelandet för detaljer.</div>
+ ) : null}
  </div>
  ) : null}
 
@@ -346,11 +365,11 @@ export default async function AdminEdielMessagesPage({
  Öppna
  </Link>
 
- {isInboundUtilts && !hasTgtResponse ? (
+ {isInboundUtilts && resumability?.resumable ? (
  <form action={processEdielOperationalMessageAction}>
  <input type="hidden" name="edielMessageId" value={message.id} />
  <button type="submit" className="rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">
- Kör engine / skapa svar
+ {heldForReview ? 'Återuppta hållna transaktioner' : 'Kör engine / skapa svar'}
  </button>
  </form>
  ) : null}

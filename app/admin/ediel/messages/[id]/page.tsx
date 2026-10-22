@@ -34,6 +34,12 @@ import type { EdielMessageEventRow, EdielMessageRow } from '@/lib/ediel/types'
 import { evaluateProdatPortalReadiness } from '@/lib/ediel/prodatPortalReadiness'
 import { validateEdielSendContext } from '@/lib/ediel/sendContextConsistency'
 import { EdielSendButton } from '@/components/admin/ediel/EdielSendButton'
+import {
+ describeUtiltsSourceResumability,
+ explainUtiltsHeldIssueCode,
+ readUtiltsSourceResumability,
+ type UtiltsSourceResumability,
+} from '@/lib/ediel/utilts/utiltsResumability'
 
 export const dynamic = 'force-dynamic'
 
@@ -173,11 +179,94 @@ function getIssueEvents(events: EdielMessageEventRow[]): EdielMessageEventRow[] 
  )
 }
 
-function isUtiltsErrAckMessage(message: EdielMessageRow): boolean {
+const RESUMPTION_EVENT_PHASES = new Set(['utilts_source_resumption_attempt', 'utilts_source_resumption_refused'])
+
+function getLatestResumptionEvent(events: EdielMessageEventRow[]): EdielMessageEventRow | null {
+ return events
+ .filter((event) => typeof event.payload?.phase === 'string' && RESUMPTION_EVENT_PHASES.has(event.payload.phase))
+ .reduce<EdielMessageEventRow | null>((latest, event) => (!latest || event.created_at > latest.created_at ? event : latest), null)
+}
+
+function UtiltsResumabilityPanel({
+ messageId,
+ decision,
+ latestAttempt,
+}: {
+ messageId: string
+ decision: UtiltsSourceResumability | null
+ latestAttempt: EdielMessageEventRow | null
+}) {
+ const lastAttempt = latestAttempt ? (
+ <div className="mt-2 text-xs text-slate-700">
+ Senaste försök ({formatDate(latestAttempt.created_at)}): {latestAttempt.message ?? '—'}
+ </div>
+ ) : null
+
+ if (!decision) {
  return (
- String(message.message_family) === 'UTILTS_ERR' ||
- (String(message.message_family) === 'UTILTS' &&
- String(message.message_code ?? '').toUpperCase() === 'ERR')
+ <div className="max-w-xl rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+ Återupptagningsstatus kunde inte läsas för aktuell tenant och miljö. Engine visas inte förrän statusen kan kontrolleras.
+ {lastAttempt}
+ </div>
+ )
+ }
+
+ const rejectedNote = decision.rejectedTransactionIds.length > 0 ? (
+ <div className="mt-2 text-xs">
+ Avvisade transaktioner ({decision.rejectedTransactionIds.join(', ')}) har redan sitt slutliga svar och kan inte återupptas här. Enligt Ediel-processen måste avsändaren (nätägaren) skicka en ny, rättad fil för dem.
+ </div>
+ ) : null
+
+ if (!decision.resumable) {
+ return (
+ <div className="max-w-xl rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800">
+ <div className="font-semibold">Engine körs inte igen</div>
+ <div className="mt-1">{describeUtiltsSourceResumability(decision)}</div>
+ {decision.reason !== 'already_answered' ? rejectedNote : null}
+ {decision.heldWithReplyTransactionIds.length > 0 ? (
+ <div className="mt-2 text-xs text-red-700">
+ Transaktioner markerade som hållna har redan ett svar ({decision.heldWithReplyTransactionIds.join(', ')}). Detta kräver manuell granskning.
+ </div>
+ ) : null}
+ {lastAttempt}
+ </div>
+ )
+ }
+
+ const held = decision.reason === 'held_transactions'
+ return (
+ <div className="max-w-xl space-y-2">
+ <div className={`rounded-2xl border px-4 py-3 text-sm ${held ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-emerald-200 bg-emerald-50 text-emerald-800'}`}>
+ {held ? <div className="font-semibold">Hålls för intern granskning</div> : null}
+ <div className={held ? 'mt-1' : ''}>{describeUtiltsSourceResumability(decision)}</div>
+ {held ? (
+ <ul className="mt-2 list-disc space-y-1 pl-5 text-xs">
+ {decision.heldTransactions.map((transaction) => (
+ <li key={transaction.transactionId}>
+ <span className="font-semibold">{transaction.transactionId}</span>:{' '}
+ {transaction.issueCodes.length > 0
+ ? transaction.issueCodes.map(explainUtiltsHeldIssueCode).join(' ')
+ : 'Internt granskningsunderlag saknas.'}
+ </li>
+ ))}
+ </ul>
+ ) : null}
+ {held ? rejectedNote : null}
+ {decision.activeProtocolReplyIds.length > 0 ? (
+ <div className="mt-2 text-xs">CONTRL finns redan och återanvänds; den skickas inte igen.</div>
+ ) : null}
+ {lastAttempt}
+ </div>
+ <form action={processEdielOperationalMessageAction}>
+ <input type="hidden" name="edielMessageId" value={messageId} />
+ <button
+ type="submit"
+ className="rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
+ >
+ {held ? 'Återuppta hållna transaktioner' : 'Kör UTILTS engine / skapa TGT-svar'}
+ </button>
+ </form>
+ </div>
  )
 }
 
@@ -428,10 +517,16 @@ export default async function AdminEdielMessageDetailPage({
  const prodatPortalReadiness = evaluateProdatPortalReadiness(message)
  const tenantDiagnostics = getTenantResolutionDiagnostics(message)
  const relatedAckMessages = relatedAckStatus.messages
- const hasContrlDraft = relatedAckMessages.some((ack) => ack.message_family === 'CONTRL')
- const hasAperakDraft = relatedAckMessages.some((ack) => ack.message_family === 'APERAK')
- const hasUtiltsErrDraft = relatedAckMessages.some(isUtiltsErrAckMessage)
- const hasUtiltsApplicationResponse = hasAperakDraft || hasUtiltsErrDraft
+ // F80: one server-side rule decides whether the engine may (re)run this source.
+ const isInboundUtilts = message.direction === 'inbound' && message.message_family === 'UTILTS'
+ const utiltsResumability = isInboundUtilts
+ ? await readUtiltsSourceResumability({
+ companyId: message.company_id,
+ sourceMessageId: message.id,
+ environment: message.environment,
+ }).catch(() => null)
+ : null
+ const latestResumptionEvent = getLatestResumptionEvent(events)
 
  return (
  <div className="min-h-screen bg-slate-50">
@@ -496,29 +591,12 @@ Konfigurerat transportläge: {sendReadiness.resolvedEncryptionMode === 'smime' ?
  </form>
  ) : null}
 
- {message.direction === 'inbound' && message.message_family === 'UTILTS' ? (
- hasUtiltsApplicationResponse ? (
- <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
- APERAK/UTILTS-ERR finns redan för detta inbound-meddelande. Engine körs inte igen för att undvika dubbla applikationssvar. Skicka befintliga svar nedan eller radera fel testomgång först.
- </div>
- ) : (
- <div className="space-y-2">
- {hasContrlDraft ? (
- <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
- CONTRL finns redan, men applikationssvaret saknas. Engine kan därför skapa saknad APERAK/UTILTS-ERR utan att dubbelskicka CONTRL.
- </div>
- ) : null}
- <form action={processEdielOperationalMessageAction}>
- <input type="hidden" name="edielMessageId" value={message.id} />
- <button
- type="submit"
- className="rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
- >
- Kör UTILTS engine / skapa TGT-svar
- </button>
- </form>
- </div>
- )
+ {isInboundUtilts ? (
+ <UtiltsResumabilityPanel
+ messageId={message.id}
+ decision={utiltsResumability}
+ latestAttempt={latestResumptionEvent}
+ />
  ) : null}
 
  {message.direction === 'inbound' ? (

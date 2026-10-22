@@ -134,11 +134,11 @@ describe.sequential('live chain B — metering to invoice for an existing custom
       while (!visible && attempts < 3) {
         attempts += 1
         await page.goto(`/admin/ediel/messages/${source.id}`)
-        visible = await page.getByRole('button', { name: 'Kör UTILTS engine / skapa TGT-svar' }).count()
+        visible = await page.getByRole('button', { name: /Kör UTILTS engine \/ skapa TGT-svar|Återuppta hållna transaktioner/ }).count()
         if (!visible) pageText = (await page.locator('main, body').first().innerText()).replace(/\s+/g, ' ').slice(0, 300)
       }
       const started = Date.now()
-      if (visible) await Promise.all([page.waitForLoadState('networkidle'), page.getByRole('button', { name: 'Kör UTILTS engine / skapa TGT-svar' }).click()])
+      if (visible) await Promise.all([page.waitForLoadState('networkidle'), page.getByRole('button', { name: /Kör UTILTS engine \/ skapa TGT-svar|Återuppta hållna transaktioner/ }).click()])
       let stored = storedFor(source.id), stable = 0
       while (visible && stored < 96 && stable < 6 && Date.now() - started < 180_000) {
         await new Promise(resolve => setTimeout(resolve, 5_000))

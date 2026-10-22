@@ -150,7 +150,7 @@ describe.sequential('reality E — inbound Ediel routing to the right tenant and
         // The detail page streams behind loading.tsx and takes 15-30 s to render; count() does not wait, so the
         // run read the placeholder and skipped the reprocess (harness defect S2). Wait for the rendered detail.
         await page.getByText('Detaljvy för canonical kernel').first().waitFor({ timeout: 180_000 })
-        const button = page.getByRole('button', { name: 'Kör UTILTS engine / skapa TGT-svar' })
+        const button = page.getByRole('button', { name: /Kör UTILTS engine \/ skapa TGT-svar|Återuppta hållna transaktioner/ })
         const visible = await button.count()
         const pageState = { status: response?.status() ?? null, url: page.url() }
         // The server action finishes before the next page is opened.

@@ -27,6 +27,7 @@ import { findActiveMeteringPermissionForUtiltsMessage } from '@/lib/onboarding/i
 
 import { buildUtiltsTransactionPersistencePayload, persistUtiltsTransactionResults, resolveUtiltsTransactionId, storedUtiltsConsumption } from '@/lib/ediel/utilts/transactionPersistence'
 import { prepareUtiltsConsumptionContracts } from '@/lib/ediel/utilts/consumptionPreparation'
+import { appendUtiltsRuntimeHistory } from '@/lib/ediel/utilts/utiltsResumability'
 
 
 import type { UtiltsProcessResult } from './utiltsDataRequest.part-1'
@@ -375,7 +376,9 @@ export async function processInboundUtiltsMessage(params: {
 
   if(!message.company_id) throw new Error('UTILTS-meddelandet saknar tenantkoppling.')
   await assertEdielTenantActor({companyId:message.company_id,actorUserId,permission:'metering.write'})
-
+  // F80: a (re)run replaces validation_report.utiltsRuntime; the earlier result
+  // (e.g. an internal-review hold) is kept in an append-only history.
+  const runtimeHistory = appendUtiltsRuntimeHistory({ validationReport: message.validation_report, actorUserId, at: new Date().toISOString() })
 
   const runtimeTestCaseCode = await resolveUtiltsRuntimeTestCaseCode({
     sourceMessage: message,
@@ -559,7 +562,7 @@ export async function processInboundUtiltsMessage(params: {
       utiltsRuntimeTestCaseCode: runtimeTestCaseCode,
     },
     validationReport: {
-      ...(message.validation_report ?? {}),
+      ...(message.validation_report ?? {}), utiltsRuntimeHistory: runtimeHistory,
       utiltsRuntime: {
         validation: runtime.validation,
         ackPlan: ackPlan,
@@ -634,7 +637,7 @@ export async function processInboundUtiltsMessage(params: {
         billingUnderlayId: partialBillingUnderlay?.id ?? null,
       },
       validationReport: {
-        ...(message.validation_report ?? {}),
+        ...(message.validation_report ?? {}), utiltsRuntimeHistory: runtimeHistory,
         utiltsRuntime: {
           validation: runtime.validation,
           ackPlan: ackPlan,
@@ -643,6 +646,12 @@ export async function processInboundUtiltsMessage(params: {
       },
     })
 
+    // F80: a hold for internal review is not a rejection. Say so explicitly:
+    // no reply was sent and no values were stored for the held transactions.
+    const heldTransactionIds = transactionDispositions
+      .flatMap((item, index) => item.disposition === 'internal_review' ? [resolveUtiltsTransactionId(item.transactionId, index)] : [])
+    const nationallyRejectedCount = transactionDispositions
+      .filter(item => item.disposition !== 'internal_review' && item.disposition !== 'accepted').length
     await createEdielMessageEvent({
       actorUserId,
       edielMessageId: message.id,
@@ -652,8 +661,13 @@ export async function processInboundUtiltsMessage(params: {
         ? 'Inbound UTILTS väntar på godkänt strukturunderlag. Berörda transaktioner har inte kvitterats eller lagrats som mätvärden.'
         : consumeAcceptedGuideSiblings
           ? 'Inbound UTILTS avvisade guidefelaktiga transaktioner; endast separat accepterade transaktioner konsumerades och kvitterades.'
+        : heldTransactionIds.length > 0
+          ? nationallyRejectedCount > 0
+            ? `Inbound UTILTS: ${heldTransactionIds.length} transaktion(er) hålls för intern granskning (inget applikationssvar skickat, inga mätvärden lagrade). Övriga ${nationallyRejectedCount} avvisade transaktion(er) fick sitt kvittensflöde.`
+            : `Inbound UTILTS hålls för intern granskning: ${heldTransactionIds.length} transaktion(er) väntar på godkänt underlag. Inget applikationssvar har skickats och inga mätvärden har lagrats; ingenting har avvisats.`
         : 'Inbound UTILTS avvisades av produktionsruntime och korrekt kvittensflöde skapades.',
       payload: {
+        heldTransactionIds,
         createdAckMessageIds: ackIds,
         normalizedMeteringPayload: normalizedPayload,
         validation: runtime.validation,
@@ -725,7 +739,7 @@ export async function processInboundUtiltsMessage(params: {
           ingestedMeterValueIds,
         },
         validationReport: {
-          ...(message.validation_report ?? {}),
+          ...(message.validation_report ?? {}), utiltsRuntimeHistory: runtimeHistory,
           utiltsRuntime: {
             validation: runtime.validation,
             ackPlan: ackPlan,
@@ -796,7 +810,7 @@ export async function processInboundUtiltsMessage(params: {
           ingestedMeterValueIds,
         },
         validationReport: {
-          ...(message.validation_report ?? {}),
+          ...(message.validation_report ?? {}), utiltsRuntimeHistory: runtimeHistory,
           utiltsRuntime: {
             validation: runtime.validation,
             ackPlan: ackPlan,
@@ -959,7 +973,7 @@ export async function processInboundUtiltsMessage(params: {
       billingUnderlayId: billingUnderlay?.id ?? null,
     },
     validationReport: {
-      ...(message.validation_report ?? {}),
+      ...(message.validation_report ?? {}), utiltsRuntimeHistory: runtimeHistory,
       utiltsRuntime: {
         validation: runtime.validation,
         ackPlan: ackPlan,

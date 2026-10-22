@@ -509,7 +509,7 @@ Felen skrivs in här i den ordning de hittas.
   - På scenario E:s data ser kund A sina 144 av 144 värden, medan kunden med leverans från 1 oktober ser 0 av 96 sparade septembervärden.
 - **Kvar:** den positiva vägen för historik via ett verkligt Z14 är inte prövad native, eftersom databasen vägrar fejkade Z14-meddelanden, vilket är korrekt. Den prövas i ESCO-kedjan när en riktig Z14-mottagning finns.
 
-### F80 Ett meddelande med spärrade transaktioner kan låsas ute från ombearbetning — UNDER RÄTTNING, hög
+### F80 Ett meddelande med spärrade transaktioner kan låsas ute från ombearbetning — RÄTTAD i koden, hög, verifieras i scenario E efter ombyggnad
 - **Utfall (körning 5 och 7 av scenario E, på en redan använd värld):** efter godkänt issuer-bevis visade operatörens sida ingen knapp "Kör UTILTS engine / skapa TGT-svar" för tre av A:s spärrade E66-filer. Inga värden sparades. I körning 6 (ren värld) fungerade allt.
 - **Utredning (databas, kod och gatewaylogg):**
   - Akut orsak i körning 5 och 7: testriggen (S2 nedan). De tre meddelandena hade bara CONTRL, så knappvillkoret var inte uppfyllt. Sidan hade bara inte renderat färdigt.
@@ -520,7 +520,23 @@ Felen skrivs in här i den ordning de hittas.
     4. Ombearbetningen skriver över `validation_report.utiltsRuntime`, så den tidigare spärrdiagnosen finns bara kvar i händelserna. Det är en lucka i revisionsspåret.
     5. Händelsetexten för ett spärrat meddelande säger "avvisades av produktionsruntime och korrekt kvittensflöde skapades", fast ingenting avvisades och inget svar skickades.
   - Det som redan håller: utkast återanvänds för samma utfall och ger `blocked_final_ack_exists` vid ett annat. Slutsvaret per transaktion skrivs en gång. Mätvärden spelas upp i stället för att skrivas om. Issuer-grunden läses om från det bevarade originalet. Upprepade körningar gav exakt 96 värden per fil.
-- **Rättning (pågår):** en gemensam serverregel bestämmer om ombearbetning är tillåten. Den är det när minst en transaktion är `internal_review` utan slutsvar. Detaljsidan, listan och serveråtgärden använder samma regel. Tidigare svar raderas eller ändras aldrig. Nya svar skapas bara för transaktioner som lämnar granskning. Tidigare diagnoser bevaras i en historik som bara kan växa. Händelsetexten rättas.
+- **Rättning:**
+  - **Regeln:** `lib/ediel/utilts/utiltsResumability.ts` avgör om ombearbetning är tillåten. Det är den när minst en transaktion är `internal_review` utan slutsvar, eller när källan aldrig besvarats.
+    - CONTRL och svar på andra transaktioner blockerar inte.
+    - Makulerade och misslyckade svar räknas inte.
+    - En transaktion som redan har ett eget svar blir manuell granskning.
+    - För avvisade transaktioner säger sidan att nätägaren måste skicka en ny, korrigerad fil, och visar ingen knapp.
+  - **Samma regel överallt:** detaljsidan, listan och serveråtgärden använder regeln, och serveråtgärden kontrollerar den på nytt efter behörighetskontrollen.
+  - **Varje försök loggas** med vem, när, vilka transaktioner som var spärrade före och vilka som återupptogs eller fortfarande hålls.
+  - **Samtidiga och upprepade försök** stoppas av de befintliga dubblettskydden och ger "redan bearbetad" i stället för ett serverfel. Ett avvikande slutsvar behålls oförändrat och markeras för manuell granskning.
+  - **Revisionsspår:** `validation_report.utiltsRuntimeHistory` bevarar varje tidigare körning.
+  - **Händelsetexten** för ett spärrat meddelande säger nu att transaktionerna hålls för intern granskning.
+  - **Tester:** 24 nya (`__tests__/utilts-held-source-resumability*.test.ts`) och 521 gröna i 24 berörda sviter. Testerna visar bland annat att issuer-grunden läses om exakt för källan, att originalet är oförändrat och att resultatet blir ett positivt APERAK och en skrivning av mätvärden.
+- **Kvar (inte rättat ännu):**
+  - `components/admin/ediel/workbench/DispatchPanels.tsx` och `EdielOperationalBridgePanel.tsx` visar knappen utan att läsa regeln. Serveråtgärden vägrar och loggar sådana anrop, men panelerna ska följa samma regel.
+  - `lib/ediel/flows/utiltsInboundPolicyProcessor.ts:174` skriver fortfarande över `utiltsRuntime` utan historik.
+  - Det unika indexet `ux_ediel_ack_related` omfattar även makulerade svar, så ett makulerat svar kan stoppa ett nytt för samma transaktion. Serveråtgärden rapporterar det tydligt.
+  - Historiken växer utan tak. Det är avsiktligt för revision, och tak eller arkivering kräver ett beslut.
 
 ### S2 Scenario E:s operatörssteg läste detaljsidan innan den hade renderat — RÄTTAD (simuleringen)
 - **Utfall:** `button.count()` väntar inte. Detaljsidan visar `loading.tsx` i 15–32 sekunder, och när filerna kom i en viss ordning gick nästa sida upp medan föregående serveråtgärd fortfarande renderade om. Testet gick då vidare efter ungefär en sekund utan att klicka.
