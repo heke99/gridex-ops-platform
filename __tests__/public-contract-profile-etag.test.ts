@@ -21,7 +21,7 @@ const mocks = vi.hoisted(() => ({
   diagnosePublicContractOffers: vi.fn(),
   publicContractResponse: vi.fn(),
   loadPublicationRevision: vi.fn(),
-  loadExternalTenantContext: vi.fn(),
+  loadExternalTenantReference: vi.fn(),
   rpc: vi.fn(),
 }))
 
@@ -49,7 +49,7 @@ vi.mock('@/lib/integrations/apiAuth', () => ({
 }))
 
 vi.mock('@/lib/integrations/tenantContext', () => ({
-  loadExternalTenantContext: mocks.loadExternalTenantContext,
+  loadExternalTenantReference: mocks.loadExternalTenantReference,
   ExternalTenantContextError: class ExternalTenantContextError extends Error {},
 }))
 
@@ -101,7 +101,7 @@ async function currentEtag(customerType = 'private'): Promise<string> {
 
 function loadersCalled() {
   return mocks.loadPublicationRevision.mock.calls.length
-    + mocks.loadExternalTenantContext.mock.calls.length
+    + mocks.loadExternalTenantReference.mock.calls.length
     + mocks.listPublicContractOffers.mock.calls.length
 }
 
@@ -124,7 +124,7 @@ beforeEach(() => {
     token: 't',
     updatedAt: publicContractsFixture.meta.publication_updated_at,
   })
-  mocks.loadExternalTenantContext.mockResolvedValue({ tenant_reference: publicContractsFixture.meta.tenant_reference })
+  mocks.loadExternalTenantReference.mockResolvedValue(publicContractsFixture.meta.tenant_reference)
 })
 
 describe('F17: RFC 9110 If-None-Match on GET', () => {

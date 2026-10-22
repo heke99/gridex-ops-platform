@@ -10,7 +10,7 @@ import {
   PublicContractFeedConsistencyError,
 } from '@/lib/website/publicContracts'
 import { scheduleUsageEvent } from '@/lib/audit/actionLogger'
-import { loadExternalTenantContext } from '@/lib/integrations/tenantContext'
+import { loadExternalTenantReference } from '@/lib/integrations/tenantContext'
 import { classifyPublicContractsError } from '@/lib/integrations/publicApiErrors'
 import {
   buildPublicContractFeedEtag,
@@ -147,16 +147,20 @@ async function getPublicContracts(request: NextRequest) {
       const branchStart = Date.now()
       return work.then((value) => { timings[`load_${name}`] = Date.now() - branchStart; return value })
     }
-    const [revision, tenant, offers] = await Promise.all([
+    const [revision, tenantReference, offers] = await Promise.all([
       branch('revision', loadPublicationRevision(auth.context.companyId, 'website')),
-      branch('tenant', loadExternalTenantContext(auth.client).then((tenant) => {
-        currentTenantReference = tenant.tenant_reference
-        return tenant
+      // Catalogue output only needs identity. The full integration-context
+      // loader also evaluates automation/mail/facility readiness, whose result
+      // was discarded here. Keep its live active-company identity check while
+      // avoiding that unrelated database fan-out on every catalogue miss.
+      branch('tenant', loadExternalTenantReference(auth.context.companyId).then((reference) => {
+        currentTenantReference = reference
+        return reference
       })),
       branch('offers', loadPublicContracts({ client: auth.client, customerType: query.customerType })),
     ])
     lap('load')
-    const organizationReference = publicOrganizationReference(tenant.tenant_reference)
+    const organizationReference = publicOrganizationReference(tenantReference)
     if (!organizationReference) throw new Error('PUBLIC_ORGANIZATION_REFERENCE_UNAVAILABLE')
     const headers = responseHeaders({
       limit: auth.rateLimit.limit,
@@ -434,6 +438,8 @@ async function getPublicContracts(request: NextRequest) {
                 },
               }
             : {}),
+          // A temporary dependency failure (public-api-error-registry: 503, retryable).
+          ...(classified.status === 503 && classified.code === 'PUBLIC_CONTRACTS_TEMPORARILY_UNAVAILABLE' ? { retryable: true } : {}),
         },
       },
       {
@@ -441,6 +447,7 @@ async function getPublicContracts(request: NextRequest) {
         headers: {
           'X-Gridex-Contract-Version': PUBLIC_CONTRACT_RESPONSE_SCHEMA_VERSION,
           'X-Request-ID': currentRequestId,
+          ...(classified.status === 503 && classified.code === 'PUBLIC_CONTRACTS_TEMPORARILY_UNAVAILABLE' ? { 'Retry-After': '2' } : {}),
         },
       },
     )

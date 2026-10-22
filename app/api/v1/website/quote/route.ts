@@ -282,6 +282,7 @@ async function createQuote(request: NextRequest) {
       offerReference: quoteInput.offer_reference,
       resolutionId: quoteInput.resolution_id,
       resolutionBindingRequired: true,
+      sharePublicOfferRead: true,
       priceArea: null,
       annualConsumptionKwh: quoteInput.annual_consumption_kwh,
       startDate: quoteInput.start_date,

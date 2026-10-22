@@ -131,6 +131,23 @@ beforeEach(() => {
   vi.mocked(resolveBasePriceSourceValues).mockResolvedValue({});
 });
 
+describe('public offer read sharing remains an explicit quote-only option', () => {
+  it.each([false, true])('share=%s keeps every calculation and persistence separate', async (sharePublicOfferRead) => {
+    let release!: (value: PublicContractOffer) => void;
+    const ready = new Promise<PublicContractOffer>((resolve) => { release = resolve; });
+    vi.mocked(resolvePublicContractOffer).mockReturnValue(ready);
+    const calls = ['SE1', 'SE2', 'SE3', 'SE4'].map(priceArea => calculateOfferQuote({
+      client, offerReference: 'offer_quote_v1', priceArea, annualConsumptionKwh: 10000,
+      startDate: '2026-11-01', customerType: 'private', siteCount: 1,
+      ...(sharePublicOfferRead ? { sharePublicOfferRead: true } : {}),
+    }));
+    expect(resolvePublicContractOffer).toHaveBeenCalledTimes(sharePublicOfferRead ? 1 : 4);
+    release(offer(10));
+    await Promise.all(calls);
+    expect(persistWebsiteQuote).toHaveBeenCalledTimes(4);
+  });
+});
+
 
 import { NextRequest } from 'next/server'
 const routePorts = vi.hoisted(() => ({ claim: vi.fn(), resolution: vi.fn() }))

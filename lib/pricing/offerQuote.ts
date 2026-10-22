@@ -21,6 +21,7 @@ import {
   type PublicContractOffer,
 } from "@/lib/website/publicContracts";
 import { fixedPriceOreForArea } from "@/lib/pricing/fixedAreaPricing";
+import { resolveQuotePublicContractOffer } from "@/lib/website/quotePublicOfferRead";
 import { websiteSettlementForContract } from "@/lib/pricing/websiteSettlement";
 import {
   EnergyResolutionBindingError,
@@ -260,6 +261,8 @@ export async function calculateOfferQuote(input: {
   siteCount?: number;
   /** Publication/sales channel. Defaults to `website`; Partner API passes `api`. */
   channel?: "website" | "api";
+  /** Only the public website quote endpoint opts into pending-read sharing. */
+  sharePublicOfferRead?: boolean;
 }) {
   const channel = input.channel ?? "website";
   const offerReference = input.offerReference.trim();
@@ -351,7 +354,10 @@ export async function calculateOfferQuote(input: {
   }
   const customerType = normalizedCustomerType.value ?? "private";
   const { billingMonth, periodStart, periodEnd } = monthPeriod(startDate);
-  const offer = await resolvePublicContractOffer({
+  const resolveOffer = input.sharePublicOfferRead === true
+    ? resolveQuotePublicContractOffer
+    : resolvePublicContractOffer;
+  const offer = await resolveOffer({
     client: input.client,
     offerReference,
     customerType,
