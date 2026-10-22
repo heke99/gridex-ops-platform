@@ -461,6 +461,19 @@ Felen skrivs in här i den ordning de hittas.
   - En uppdatering som inte kan bli HOT (till exempel när kund, mätpunkt eller referens sätts) utvärderar indexet och faller. En ren HOT-uppdatering gör det inte, och därför syntes felet bara ibland.
 - **Bevis:** i en transaktion som rullades tillbaka föll en icke-HOT-uppdatering som `service_role` med samma fel efter `REVOKE USAGE`, och gick igenom med grant. Efter rättelsen gav samma `processInboundEdielMessage` status `validated`. Exakt de 24 ändrade kvartsvärdena fick revision 2 (2,220 → 2,508 kWh = 24 × 0,012), originalvärdena markerades `replaced` och de 72 oförändrade är kvar som `current`.
 - **Rättning:** migrationen `20261020290000` ger USAGE på `gridex_utilts_binding` till `service_role` och `authenticated`. Schemats tabeller saknar grants till rollerna, och den enda körbara funktionen är den rena tokenizern. PUBLIC EXECUTE dras in som standard för framtida funktioner i schemat.
+- **Följder som förklaras av F78 (inga egna fel):**
+  - Tenant B:s E66 låg kvar som `internal_review` med `UTILTS_ISSUER_IDENTITY_BASIS_UNAVAILABLE`, trots godkänt issuer-bevis och ombearbetning. Den första spärren var korrekt: beviset fanns ännu inte. Operatörens ombearbetning klockan 07:14:07 föll sedan på F78, vid den `UPDATE` som sätter kund och mätpunkt, så diagnosen låg kvar från första körningen. Efter rättelsen ger läsningen `qualified`, och B15 sparar 96 värden (8,898 kWh) på B:s kund.
+  - Det enda `ediel_historical_rule_pack_basis_unavailable` i appens logg kom vid samma tidpunkt och syntes för operatören som ett ohanterat serverfel. Det kontrolleras i körning 5 av scenario E.
+- **Körning 5 (efter rättelsen):** B:s fil ombearbetas av operatören och sparar 96 värden (8,898 kWh) på rätt tenant, kund och mätpunkt, utan något fel. För A visades däremot ingen ombearbetningsknapp. Det utreds som ett eget fynd nedan.
+
+### F79 Mina sidor och kund-API:t visar mätvärden från före kundens leveransstart — ÖPPEN, medel (integritet), kräver beslut
+- **Utfall (scenario E):** nätägaren skickar E66 för 15 september för en mätpunkt där tenant A:s leverans börjar 1 oktober (`ALATE`).
+  - Filen är korrekt adresserad till A och mätpunkten är A:s, så 96 värden sparas på kunden (`normalized_metering_values`, `billing_gate_status=pending_match`).
+  - Värdena faktureras aldrig, och faktureringsspärren håller.
+- **Kod:** `lib/customer-portal/apiData.ts` (Mina sidor) och `app/api/v1/customer/metering-values/route.ts` (kund-API) filtrerar bara på `company_id` och `customer_id`. De tar inte hänsyn till leveransperiod, billing gate eller historikbehörighet. Kunden ser därför förbrukningen från tiden före leveransen som sin egen.
+- **Varför det är ett integritetsproblem:** vid inflyttning tillhör förbrukningen före leveransstart den tidigare boende, alltså en annan person. Vid ett leverantörsbyte är det samma kund, men vi har ingen grund för uppgifterna, eftersom ingen Z14/Z15-historikbehörighet finns. Systemet skiljer inte de två fallen åt.
+- **Varför den inte rättas direkt:** vad kunden ska få se före leveransstart (inget, bara vid historikbehörighet, eller bara vid byte) är ett integritets- och produktbeslut. Det berör också partner-API:t (`lib/partner-api/*`), som läser samma tabell.
+- **Förslag:** kundens egna kanaler visar bara värden inom kundens leveransperioder för mätpunkten, eller värden som har en giltig historikbehörighet (`permission_id`). Övriga värden ligger kvar för drift och granskning.
 
 ### S1 Simuleringens cron-körare hoppade över cron-jobb som körs varje minut — RÄTTAD (simuleringen, inte produkten)
 - **Utfall:** efter sammanslagningen med main stod nätägarförfrågan i scenario D köad i 6 minuter utan att skickas.
