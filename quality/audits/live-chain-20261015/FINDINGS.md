@@ -690,6 +690,17 @@ Kedjan i scenario D, i ordning. Varje fel nedan dolde nästa. Alla är verifiera
   - En gemensam skrivare (`lib/customers/registeredAddress.ts`, commit `e1adc1ca`) validerar adressen mot Ediels masterdataform, sparar ursprung (`website_declaration` eller `staff_entry`) och historik, och garanterar exakt en gällande `registered`-adress.
   - Webbspåret och det manuella intaget byggs parallellt på den.
 - **Viktigt (regeln, `20261001014700`):** `registered`-adressen godtas bara när begärans marknadsdag är **idag**, som för Z01. För Z03 med en senare eller tidigare start krävs en signerad, granskad kunddeklaration (`gridex_customer_masterdata.signed_declarations`), bunden till det signerade avtalets version och hash. Den skapas av det befintliga arkiv- och granskningsflödet för avtalsoriginal (`ediel_archive_contract_original_source_v1`/`ediel_review_contract_original_source_v1`, `/admin/ediel/contract-originals`). Hur den deklarerade adressen ska nå det signerade avtalet och flödet utreds.
+- **Ägarbeslut 2026-10-22 (deklarationen för Z03):**
+  1. Deklarationen härleds **automatiskt** från det signerade avtalet, på samma sätt som F46. Den härleds bara med service-rollen, binds till avtalets hash och gäller från signeringen.
+  2. Fullt person- eller organisationsnummer och folkbokföringsadress ska stå **i den signerade avtals-PDF:en**.
+  3. Vid manuellt intag och importerade externa avtal **räcker personalens uppgift** som deklaration.
+  4. Vid adressbyte **ersätter en ny deklaration** den gamla från ändringsdagen, och historiken bevaras.
+- **Utredning (deklarationen):** i dag kan ingen deklaration skapas i produkten. PDF:en och snapshoten saknar identitet och adress, inget i signeringsflödet förbereder en deklaration, och arkivflödets utfärdarnyckel kan bara skrivas av migrationer. Native-fixturerna skriver `signed_declarations` direkt med en platshållaradress.
+- **Manuellt intag (commit `08f787f4`):** fältet finns i formuläret och på kundkortet, och adressen sparas som `staff_entry`. 13 och 6 nya tester, och 253 tester i 19 närliggande sviter är gröna.
+- **Fynd under rättningen:**
+  - **Befintligt brott mot regeln (rättat):** det manuella intaget kopierade anläggningsadressen som `registered` utan ursprung (`actions.part-2.ts`, tidigare rad 857-869), och scenario D kontrollerade det. **Öppet:** befintliga kunder från manuellt intag har kvar en sådan kopierad rad som Z01 kommer att använda. Den ersätts när personalen sparar en adress på kundkortet, men en städning kräver beslut.
+  - **Samma fel, inte rättat (utanför custody):** `lib/external-contracts/intake.ts:396-405` skriver anläggningsadressen som `registered`.
+  - **Tenantlucka (adressformuläret rättat, kontaktformuläret öppet):** det generella adressformuläret uppdaterade bara på `customer_id` och avgränsas nu till personalens bolag. `saveCustomerContactAction` i `CustomerContactsAddressesCard.tsx` (cirka rad 108-169) uppdaterar fortfarande `customer_contacts` och `customers` utan bolagskontroll.
 
 ### F49 Webbkundens Z01 låstes med `missing_power_of_attorney` trots giltig fullmakt — RÄTTAD (följd av min F39-rättning)
 - **Utfall (körning 16:54):**
