@@ -655,7 +655,7 @@ Kedjan i scenario D, i ordning. Varje fel nedan dolde nästa. Alla är verifiera
 - **I simuleringen:** `scripts/helpers/reality/tenantStaff.ts` speglar `company_admin` exakt och skapar bolagsanvändaren via GoTrue.
 - **Observation:** i drift saknar `company_admin` behörigheten `communication.write`, som Ediels affärshandlingar kräver.
 
-### F51 Z01 kan inte skapas för någon webbkund: kundens folkbokföringsadress samlas aldrig in — ÖPPEN, kritisk, ägarbeslut
+### F51 Z01 kan inte skapas för någon webbkund: kundens folkbokföringsadress samlas aldrig in — UNDER RÄTTNING (ägarbeslut 2026-10-22), kritisk
 - **Utfall (körning 17:54, efter F49):**
   - Z01-begäran till nätägaren skapas och godkänns mot fullmakten.
   - Renderingen stoppas med `customer_masterdata_source_held:source_qualified_customer_identity_registered_address_at_requested_time`.
@@ -672,6 +672,11 @@ Kedjan i scenario D, i ordning. Varje fel nedan dolde nästa. Alla är verifiera
   - operatören anger den på kundkortet.
 
   Regeln förbjuder att faktura- eller anläggningsadressen används i stället.
+- **Ägarbeslut 2026-10-22:** webbkunden anger själv sin folkbokföringsadress i webbformuläret och API:t. Vid manuellt intag anger operatören eller den inloggade personalen den.
+- **Rättning (pågår):**
+  - En gemensam skrivare (`lib/customers/registeredAddress.ts`, commit `e1adc1ca`) validerar adressen mot Ediels masterdataform, sparar ursprung (`website_declaration` eller `staff_entry`) och historik, och garanterar exakt en gällande `registered`-adress.
+  - Webbspåret och det manuella intaget byggs parallellt på den.
+- **Viktigt (regeln, `20261001014700`):** `registered`-adressen godtas bara när begärans marknadsdag är **idag**, som för Z01. För Z03 med en senare eller tidigare start krävs en signerad, granskad kunddeklaration (`gridex_customer_masterdata.signed_declarations`), bunden till det signerade avtalets version och hash. Den skapas av det befintliga arkiv- och granskningsflödet för avtalsoriginal (`ediel_archive_contract_original_source_v1`/`ediel_review_contract_original_source_v1`, `/admin/ediel/contract-originals`). Hur den deklarerade adressen ska nå det signerade avtalet och flödet utreds.
 
 ### F49 Webbkundens Z01 låstes med `missing_power_of_attorney` trots giltig fullmakt — RÄTTAD (följd av min F39-rättning)
 - **Utfall (körning 16:54):**
@@ -928,6 +933,9 @@ Gränser i drift: 8 s per SQL-sats, 8 s låsväntan, Vercel-funktion ~300 s, cro
 ## Under utredning
 
 - **O3 Webbansökningar i scenario F fastnar på `postal_suggested` (2026-10-22, körning 2 av F):** fyra webbansökningar för adresser i ALS stod efter 10 minuters cron-körningar kvar i `processing`, med `resolution_status=postal_suggested` och utan nätområde, och fick därför inget leverantörsbyte. Samma adresser löstes exakt i chain A. Skillnaden ska utredas: simulatorns adresspunkter registreras i F2, men tenanten är ny och nätägaren verifierades i F1. Det är oklart om felet sitter i simuleringen eller i produkten, så det är inte klassat än.
+  - **Utrett:** inget adressfel. Anläggningarna löstes till ALS med verifierad nätägare (0,97) inom en minut. Värdena på ansökningsraden skrivs bara vid intaget och blir föråldrade (D2 nedan). Kunderna fastnar i stället på Z01, som blockeras av F51. Nästa-steg-motorn tar Z01-grenen före bytet (`customerProcessNextStepEngine.ts:455-458`).
+  - **D2, ny, låg, bekräftad:** ansökningsradens `resolution_status`, `grid_area_code`, `blocking_reasons` och `missing_fields` uppdateras aldrig efter intaget (`opsPrecisionGridOwnerResolution.ts:326-345` uppdaterar bara anläggningen, och `customerApplicationRepair.ts:718-727` uppdaterar inte heller dem). Ansökan visar därför "Nätägare ej verifierad" fast anläggningen är verifierad.
+  - **D3, hypotes:** `start_supplier_switch`-jobben som skapas vid signering blev `needs_review` ("Nätägare saknas") 33 sekunder innan nätägaren var löst, och inget köar om dem.
 
 ### U1 Deadlocks när mejl behandlas parallellt — orsaken bekräftad, se F11 och F10
 
