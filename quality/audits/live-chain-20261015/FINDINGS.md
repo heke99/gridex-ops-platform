@@ -510,7 +510,7 @@ Felen skrivs in här i den ordning de hittas.
   - På scenario E:s data ser kund A sina 144 av 144 värden, medan kunden med leverans från 1 oktober ser 0 av 96 sparade septembervärden.
 - **Kvar:** den positiva vägen för historik via ett verkligt Z14 är inte prövad native, eftersom databasen vägrar fejkade Z14-meddelanden, vilket är korrekt. Den prövas i ESCO-kedjan när en riktig Z14-mottagning finns.
 
-### F80 Ett meddelande med spärrade transaktioner kan låsas ute från ombearbetning — RÄTTAD i koden, hög, verifieras i scenario E efter ombyggnad
+### F80 Ett meddelande med spärrade transaktioner kan låsas ute från ombearbetning — RÄTTAD och verifierad, hög
 - **Utfall (körning 5 och 7 av scenario E, på en redan använd värld):** efter godkänt issuer-bevis visade operatörens sida ingen knapp "Kör UTILTS engine / skapa TGT-svar" för tre av A:s spärrade E66-filer. Inga värden sparades. I körning 6 (ren värld) fungerade allt.
 - **Utredning (databas, kod och gatewaylogg):**
   - Akut orsak i körning 5 och 7: testriggen (S2 nedan). De tre meddelandena hade bara CONTRL, så knappvillkoret var inte uppfyllt. Sidan hade bara inte renderat färdigt.
@@ -533,6 +533,7 @@ Felen skrivs in här i den ordning de hittas.
   - **Revisionsspår:** `validation_report.utiltsRuntimeHistory` bevarar varje tidigare körning.
   - **Händelsetexten** för ett spärrat meddelande säger nu att transaktionerna hålls för intern granskning.
   - **Tester:** 24 nya (`__tests__/utilts-held-source-resumability*.test.ts`) och 521 gröna i 24 berörda sviter. Testerna visar bland annat att issuer-grunden läses om exakt för källan, att originalet är oförändrat och att resultatet blir ett positivt APERAK och en skrivning av mätvärden.
+- **Verifierat (scenario E körning 9, ren värld byggd med F79, F80 och F84):** 6 av 6 steg är gröna. Alla A:s och B:s spärrade filer återupptogs av operatören i den riktiga vyn efter godkänt issuer-bevis, och serveråtgärden svarade 200. A sparade 96, 96, 96 och 24 (korrigeringen) värden, och den felriktade filen avvisades som okänd mätpunkt. B sparade 96 värden.
 - **Kvar (inte rättat ännu):**
   - ~~`DispatchPanels.tsx` och `EdielOperationalBridgePanel.tsx` visar knappen utan att läsa regeln~~ **Rättat:** båda följer nu samma regel. 12 nya tester, och 133 tester i de berörda sviterna är gröna. **Inkonsekvens:** ingen av panelerna monteras i appen i dag, eftersom varken `EdielWorkbench` eller `EdielOperationalBridgePanel` importeras någonstans. Det är död kod. Monteras de senare måste `EdielWorkbench` skicka beslutet vidare.
   - ~~`utiltsInboundPolicyProcessor.ts:174` skriver över `utiltsRuntime` utan historik~~ **Rättat:** samma historik som i `utiltsDataRequest.part-2.ts`.
