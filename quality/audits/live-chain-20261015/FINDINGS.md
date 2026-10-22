@@ -1102,8 +1102,8 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
   - Varje Z05 med LK-objekt går till koden för bilateral stängning, som kräver en egen skickad Z08 LK. Anmälan rullas därför tillbaka med `bilateral_closure_exact_sent_original_required`.
   - Perioden förblir öppen, avtalet förblir signerat och ingen slutfakturauppgift skapas. Faktureringen fortsätter efter flytten.
   - Patchförslag: en migration i `apply_supply_before_rescission_v1`.
-- **H1 Z05:s slutdatum lästes som sista levererade dag — RÄTTAD (H-batch), hög:** en kund som lämnade 1 november fick ett novembersegment. Det blev ett spärrat underlag, en uppskattning eller en Z13 till nätägaren för en anläggning vi inte längre levererar. Vid inflyttning på samma mätare spärrades den nya kundens hela första månad.
-- **H4 Sista kvarten av varje avslutad period täcktes aldrig (`- 1 ms`) — RÄTTAD (H-batch), medel.**
+- **H1 Z05:s slutdatum lästes som sista levererade dag — RÄTTAD (commit `9724b51f`), hög:** en kund som lämnade 1 november fick ett novembersegment. Det blev ett spärrat underlag, en uppskattning eller en Z13 till nätägaren för en anläggning vi inte längre levererar. Vid inflyttning på samma mätare spärrades den nya kundens hela första månad.
+- **H4 Sista kvarten av varje avslutad period täcktes aldrig (`- 1 ms`) — RÄTTAD (commit `9724b51f`), medel.**
 - **H2 Status `ending` (Z05 med framtida slut) känns inte igen av faktureringen — ÖPPEN, hög:** värdena för de sista veckorna spärras som `supply_period_missing` och prövas aldrig om.
 - **H3 Avtalet avslutas redan när Z05 kommer, så slutfakturan förbereds aldrig — ÖPPEN, hög:** databasgrinden `gridex_set_metering_billing_gate` godtar bara `active` eller `confirmed_by_grid_owner`. Rättningen kräver en migration och kod tillsammans; patchförslag finns.
 - **H5 En ny boende kan aldrig bli kund hos samma tenant på samma mätare — ÖPPEN, hög, produktbeslut:** unikt index på (tenant, mätar-ID), och grafkärnan återanvänder inte raden.
@@ -1117,7 +1117,7 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
 - **Not:** H:s native-test föll två gånger av sex medan världens cron körde samtidigt, och gick igenom fyra gånger i rad när det kördes ensamt.
 
 ### I: nätägaren avvisar eller tiger
-- **GOR-01 En vanlig affärsavvisning (APERAK BGM 34 med ERC per objekt) nådde aldrig bytet — RÄTTAD (I-batch, `inboundAckProcessing.ts`), hög:**
+- **GOR-01 En vanlig affärsavvisning (APERAK BGM 34 med ERC per objekt) nådde aldrig bytet — RÄTTAD (commit `2219c5a5`), hög:**
   - Gäller koderna 40/105 okänd GSRN, 40/106 annan leverantörs byte, 42/210 startdag och 42/227 kund-id.
   - Bytet stod kvar som `prepared` och Z03 som `sent`, utan förfallodatum. Detsamma gällde Z01.
 - **GOR-02 En sen negativ kvittens efter Z04 flyttade ett accepterat byte till `failed` — RÄTTAD, hög:** leveransen skulle aldrig ha startat (P-11). Nu skrivs i stället en varningshändelse för operatören.
@@ -1134,6 +1134,110 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
 ### Observation under F körning 7 (inte produktfel)
 - F2 fick 503 `dependency_unavailable` (retryable) när API-gatewayen fick ett ogiltigt svar från PostgREST. Det sammanföll med att två native-sviter kördes mot samma databas.
 - Plattformen svarade korrekt. Scenarier och native-sviter körs hädanefter inte samtidigt.
+
+## Uppföljning 2026-10-22: H7, H2, H3, GOR-04 och GOR-05 rättade (ägarbeslut), commit `64829c21`
+
+- **H7:** migration `20261022140000`. En vanlig flyttanmälan (Z05 LK) avslutar leveransen, avslutar avtalet, skapar slutfakturauppgiften och får positiv APERAK och CONTRL. Bilateral stängning gäller bara när det finns en egen Z08 LK.
+- **H2/H3:** migration `20261022150000`.
+  - Faktureringsgrinden godtar en period med status `ending` eller `ended` som har slutdatum.
+  - Den godtar också ett avtal som avslutats av exakt det leveransslutet. Kod och databas gör samma bedömning.
+  - Månadskörningen prövar om värden som bara hölls på grund av leveransslutet.
+- **GOR-04:**
+  - En negativ APERAK ger ett operatörsärende, flyttar webbansökan till `switch_rejected` och köar ett kundbesked, en gång.
+  - En negativ CONTRL, alltså vårt eget fel, ger bara ett tekniskt ärende. Ägarbeslut: inget kundbesked.
+- **GOR-05:** migration `20261022160000` plus ett cronsteg. En tyst nätägare syns som `ack_overdue`, i bytet visas "Kvittens försenad", och stuck-detektorn rapporterar `needs_operator`.
+- **Verifierat:**
+  - 1 048 enhetstester.
+  - Masterplanens täckningskontroll: 352 av 352 gröna.
+  - Native-tester för H och GOR.
+- **Kvar att verifiera:** den godkända AT-Z05-sviten. Den kräver en ren replay utan samtidiga skrivare.
+
+## Inkommande Ediel och statistik (J1–J4, K), 2026-10-22, kod och native; världskörning pågår
+
+### J3 Robusthet för inkommande e-post — commit `cbd82bcc`
+- **J3-01 Varje EDIFACT-bilaga vars UNA slutar med CRLF eller börjar med BOM föll — RÄTTAD, kritisk:**
+  - Bilagan tolkades som två kopior och föll med `edifact_dangling_release_character` efter 5 försök. Ingen CONTRL skickades.
+  - De flesta riktiga Ediel-filer slutar med radbrytning. Inga testfixturer gjorde det, så felet syntes aldrig.
+- **J3-02 Två bilagor slogs ihop — RÄTTAD (hålls för granskning):** de slogs ihop från första UNA till sista "UNZ". Ett följebrev med ordet "unzip" räckte för att sträcka ut en giltig fil.
+- **J3-03/J3-04 En del med U+0000 föll vid insättning — RÄTTAD:**
+  - Ett sådant mejl markerades aldrig som läst och hämtades först vid varje körning. 25 sådana mejl blockerade hela brevlådan.
+  - Nu läggs mejlet åt sidan efter 3 försök, synligt och markerat som läst.
+- **J3-05 Ett testinterchange (0035=1) i produktionsbrevlådan behandlades som produktion — RÄTTAD:** det hålls nu som `environment_mismatch`.
+- **J3-06/J3-10 Trunkerad fil och ordet "unable" som UNA — RÄTTADE.**
+- **Öppna, kräver beslut:**
+  - **J3-07 (hög, säkerhet):** avsändaren verifieras aldrig. From-adress, S/MIME-signatur och DKIM kontrolleras inte, så vem som helst kan skicka i nätägarens namn.
+  - **J3-08:** CONTRL och APERAK som inte kunde skickas på grund av SMTP-avbrott försöks aldrig igen (samma som O1).
+  - **J3-09:** underadressen matchas inte.
+
+### J4 Tolkning av inkommande meddelanden — commit `a7b54f22` (+ D12 i `5f2db53e`)
+- **J4-D1 Escape-tecken avkodades två gånger — RÄTTAD, hög:** en giltig FTX som slutade med `??` fällde hela mejlet.
+- **J4-D2 — RÄTTAD:** FTX-kod och FTX-text blandades ihop.
+- **J4-D3/D4 Fel värden från CONTRL — RÄTTADE:**
+  - Åtgärdskoden lästes från felkodselementet.
+  - Segmentpositioner lagrades som felkoder.
+- **J4-D9 — RÄTTAD:** BGM-koden i en fil med egna separatorer behöll separatorerna.
+- **J4-D12 `isNegativeContrL` var inverterad (7 räknades som negativ, 4 inte) — RÄTTAD i `5f2db53e`.**
+- **Öppna, med patchförslag:**
+  - D5/D6: inramning i `canonicalEdifactAst`. Skyddas redan i e-postflödet av J3.
+  - D13: Latin-1-filer som märkts som utf-8 tappar ÅÄÖ.
+  - D7: S/MIME-teckenkodning.
+  - D10, D11, D14, och D8 (död kod).
+- **Korrekt:** UTILTS och PRODAT, fält för fält, och korrelationen per objekt.
+
+### J1 Inkommande PRODAT — commit `5f2db53e` (scenario och simulator pågår)
+- **J1-04 Varje matchad Z04 skrev `confirmed` innan den validerats — RÄTTAD, hög:** en Z04 som kom efter makuleringen (Z04C) återupplivade därmed det makulerade bytet.
+- **J1-01 En Z04 med annan startdag än begärd hålls — DELVIS RÄTTAD, hög:**
+  - Ingen leveransperiod skapas och nätägaren får ingen APERAK.
+  - Nu skapas en operatörsuppgift efter 30 minuter.
+  - **Beslut krävs:** godta nätägarens datum, eller avvisa med APERAK 42/210?
+- **Öppna:**
+  - **J1-02:** Z04 för ett byte vi aldrig skickat ger ingen APERAK och ingen uppgift.
+  - **J1-03:** en Z04 som skickas om får inget svar.
+  - **J1-05:** en makulerad bekräftad start ger inget ärende och inget kundbesked.
+  - **J1-10:** Z04 utan fält 259 hålls. Ett godkänt test kräver det, men specifikationen säger att fältet får saknas.
+  - **J1-11:** vår APERAK pekar på fel original när Z04 kommer före kvittensen.
+- **Troliga:** aktiveringen uppdaterar aldrig `starts_at`/`actual_start_at` (F82), och Z06 uppdaterar aldrig pris- eller nätområde.
+
+### J2 Inkommande UTILTS — commit `4b980b16`
+- **J2-01 En korrigering efter ett slutfört underlag fällde tenantens hela månad vid varje körning — RÄTTAD, hög.**
+- **J2-02 En korrigering för en fakturerad månad når aldrig kunden — ÖPPEN, hög, beslut krävs:**
+  - Ingen kreditering eller omfakturering sker.
+  - Nu syns det som avstämningskontrollen `metering_corrections_after_billing`.
+- **J2-03 Uppmätta värden ersätter aldrig uppskattade (STS 56) — ÖPPEN, hög:** de blir aldrig fakturerbara. Patch finns, men funktionen är hashlåst, så den går till GEN-ägaren.
+- **J2-04 Ett månadsvärde (P1M) för del av en månad persisteras inte alls — ÖPPEN, hög:** godkänt område U-09/U-10.
+- **J2-06 Fakturakällan läses om för varje värde, cirka 130 ms per värde — ÖPPEN, kritisk (prestanda):**
+  - Det blir cirka 11 minuter per kvartsanläggning och månad, så månadskörningen hinner bara med ungefär en kvartsanläggning per tenant.
+  - Patch föreslagen.
+- **J2-07/08/09/10/11/12/15 — RÄTTADE:**
+  - J2-07: 128 MB metadata per anläggning och månad.
+  - J2-08: en operatörspost per kvart i stället för per fil.
+  - J2-09: gränsen på 1 000 rader i uppskattningen.
+  - J2-10: en ny Z13 var 6:e timme efter ett svar.
+  - J2-11 och J2-15: 414 "URI too long".
+  - J2-12: kontrollen för dubbelfakturering.
+- **J2-13 Ingen jämförelse mellan uppmätt, fakturerat och E31/S03 — ÖPPEN, beslut.**
+- **J2-14 Prognosens utfall dubbelräknar revisioner och stannar vid 1 000 — ÖPPEN, patch finns.**
+
+### K Statistik (tenant och white label) — commit `1628acf7`
+- **Inget läckage mellan tenanter:** 980 tenantmånader är jämförda.
+- **RÄTTADE:**
+  - **K-01:** pågående byten saknade `prepared` och räknade med avslutade.
+  - **K-02:** korrigerade mätvärden räknades två gånger.
+  - **K-03/K-05:** månader räknades i UTC, så mätvärden och fullmakter hamnade i fel månad.
+  - **K-04:** "saknade mätvärden" räknade också anläggningar vi inte levererar till.
+  - **K-07/K-08:** testkunder och arkiverade kunder räknades, och anläggningar förblev aktiva efter att kunden lämnat.
+  - **K-09:** prognos och CSV stannade vid 1 000 rader.
+  - **K-11/K-12:** zonvärden och "idag" i UTC.
+- **Öppna:**
+  - **K-06:** vilken månad räknas churn i, sista leveransdag eller första dag utan leverans? Beslut krävs.
+  - **K-10:** användningssidan klipper vid 250 tenanter och räknar en status som inte finns.
+  - **K-14:** tenanter kan skriva sina egna statistikrader.
+- **Blockerat:** replayen saknar white label-tabeller (F47). Scenario K speglar dem.
+
+### Scenario F, körning 8 (2026-10-22)
+- **F1–F3 gick igenom:** Z03 byggdes och köades för alla fyra augustianläggningarna.
+- **F4 avbröts:** bakgrundskörningen nådde sin tidsgräns på 2 timmar, inklusive bygget, när arbetsprocessen startades om.
+- Körs om på en ren replay.
 
 ## Status för live-testets steg
 
