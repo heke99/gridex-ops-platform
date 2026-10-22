@@ -6,6 +6,8 @@
 
 import {isEvidenceUuid} from '@/lib/ediel/utilts/durableSourceDiscovery'
 import {AI_LIST_SOURCE_PROFILE,aiListDate} from '@/lib/ediel/aiListFormat'
+import { isDeepStrictEqual } from 'node:util'
+import { tenantDb } from '@/lib/supabase/tenantDb'
 import { supabaseService } from '@/lib/supabase/service'
 import { collectPlaceholderViolations } from '@/lib/ediel/intent/noPlaceholderGuard'
 import { validateApplicationReferencePolicy } from '@/lib/ediel/intent/applicationReferencePolicy'
@@ -338,9 +340,40 @@ export async function getEdielMessageIntentById(id: string): Promise<EdielMessag
   return data ? mapRowToIntent(data as IntentRow) : null
 }
 
+function assertNormalSwitchIntentSource(input: CreateEdielMessageIntentInput): void {
+  if (input.messageFamily !== 'PRODAT' || input.messageCode !== 'Z03' || input.businessProcess !== 'supplier_switch'
+    || (input.direction ?? 'outbound') !== 'outbound' || (input.market ?? 'electricity') !== 'electricity'
+    || !str(input.companyId) || !str(input.idempotencyKey) || !str(input.customerId) || !str(input.customerSiteId)
+    || !str(input.operationId) || input.operationId !== input.supplierSwitchRequestId || !str(input.requestedEffectiveDate)
+    || !['L', 'LK', 'H'].includes(String(input.payload?.transactionSubtype)) || input.payload?.actorRole !== 'supplier'
+    || !str(input.payload?.documentReference)) throw new Error('normal_switch_intent_source_required')
+}
+
+/** A duplicate may reuse the winning wire references, never change the source
+ * facts or reset a concurrent renderer/transport owner's lifecycle. */
+function reusableNormalSwitchIntent(input: CreateEdielMessageIntentInput, existing: EdielMessageIntent): EdielMessageIntent {
+  const fields = ['companyId', 'environment', 'messageFamily', 'messageCode', 'businessProcess',
+    'senderEdielId', 'senderSubaddress', 'receiverEdielId', 'receiverSubaddress', 'applicationReference',
+    'routeProfileId', 'communicationRouteId', 'certificateProfileId', 'customerId', 'customerSiteId',
+    'gridOwnerInformationRequestId', 'supplierSwitchRequestId', 'customerInfoRequestId', 'operationId',
+    'facilityId', 'meteringPointId', 'gridAreaCode', 'requestedEffectiveDate', 'sendNotBefore',
+    'sendWindowOpensAt', 'sendWindowClosesAt', 'expectedRuleVersion', 'expectedFieldMatrixVersion', 'idempotencyKey'] as const
+  const sourcePayload = (value: Record<string, unknown> | undefined) => {
+    const payload = { ...value }; delete payload.documentReference; return payload
+  }
+  if (existing.market !== (input.market ?? 'electricity') || existing.direction !== (input.direction ?? 'outbound')
+    || fields.some(field => str(existing[field]) !== str(input[field]))
+    || !isDeepStrictEqual(sourcePayload(existing.payload), sourcePayload(input.payload))) throw new Error('normal_switch_intent_source_conflict')
+  if (![existing.interchangeReference, existing.messageReference, existing.transactionReference, existing.payload.documentReference].every(str)) {
+    throw new Error('normal_switch_intent_winner_invalid')
+  }
+  return existing
+}
+
 export async function createEdielMessageIntent(
-  input: CreateEdielMessageIntentInput,
+  input: CreateEdielMessageIntentInput & { normalSwitchInsertOnly?: true },
 ): Promise<EdielMessageIntent> {
+  if (input.normalSwitchInsertOnly) assertNormalSwitchIntentSource(input)
   const validation = evaluateIntentValidation(input)
   const actorUserId = userActorUuid(input.actorUserId)
 
@@ -351,6 +384,7 @@ export async function createEdielMessageIntent(
       idempotencyKey: input.idempotencyKey,
     })
     if (existing) {
+      if (input.normalSwitchInsertOnly) return reusableNormalSwitchIntent(input, existing)
       const alreadyRenderedOrQueued = Boolean(existing.edielMessageId) || existing.outboxStatus !== 'not_queued'
       if (!alreadyRenderedOrQueued) {
         const revalidation = evaluateIntentValidation(existing)
@@ -416,6 +450,18 @@ export async function createEdielMessageIntent(
     outbox_status: 'not_queued' as EdielIntentOutboxStatus,
     created_by: actorUserId,
     updated_by: actorUserId,
+  }
+
+  if (input.normalSwitchInsertOnly) {
+    const insertOnly = tenantDb(input.companyId).from('ediel_message_intents')
+      .upsert(row, { onConflict: 'company_id,environment,idempotency_key', ignoreDuplicates: true }) as ReturnType<ReturnType<typeof supabaseService.from>['upsert']>
+    const { data, error } = await insertOnly.select('*').maybeSingle()
+    if (error) throw error
+    const winner = data ? mapRowToIntent(data as IntentRow) : await findExistingIntent({
+      companyId: input.companyId, environment: input.environment, idempotencyKey: input.idempotencyKey,
+    })
+    if (!winner) throw new Error('normal_switch_intent_winner_missing')
+    return reusableNormalSwitchIntent(input, winner)
   }
 
   const { data, error } = await supabaseService

@@ -30,6 +30,7 @@ Masterplan-övertagande 2026-10-19/20 (huvudagent 2, serial merge, uppföljning 
 - #843: SC-039 levererad till `a5d384ce38e81cbccd6cdd0a43db18bef1305fb5` (head `9741849c`, CI 41/41, granskare agent4 + 3d); ledger348.
 - #844: SC-031 levererad till `09d62829770d4634aaa96670d25063976741796a` (head `dd6b2ef2`, CI 41/41, granskare agent4 + oberoende Claude-granskare); ledger349.
 - #842: AT-Z04C-SUPPLIER levererad till `7fed7a1d34b30fceb2084f199ac4354dd3448fa1` (head `51864bc2`, CI 40/40, granskare huvudagent 2 + oberoende Claude-granskare); ledger350. Kvar: DB-05/AT-DB-05 (3d).
+- 2026-10-22 #901 + #876: Codex audit-union (41 PR:er) + U5 inbound state-rättning levererad till `7b40ebce`/`a6c4bd2e` (CI 59/59). Produktion: 13 migreringar installerade, Vercel `app.gridex.se` = `a6c4bd2e`. Kvar: #902 (mail, #899, dispatch-receipt, PERF005/006), review-completion, atomic-enqueue, ej installerade äldre main-migreringar ([#840](https://github.com/heke99/gridex-ops-platform/issues/840#issuecomment-6342649670)).
 
 Aktuella ägare och nästa steg läses i senaste [#766](https://github.com/heke99/gridex-ops-platform/issues/766), [current state](current-state.md) och [current task](current-task.md). Gamla GEN114- och resetmandat är historik; kvalificerade gamla outputoriginal bevaras. Privat processterminering och retroaktiv PASS för tidigare misslyckade körningar påstås inte. Främmande refs och pågående writers ändras inte av denna överlämning.
 

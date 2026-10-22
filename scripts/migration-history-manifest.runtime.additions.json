@@ -266,6 +266,8 @@
     "20261020230048_ediel_supply_source_runtime_prerequisites.sql": "224e8fb44436462e5f2d3f15360855a7580e0ebebb7e3f261eaf10f058a2efc8",
     "20261021052940_ediel_swedish_utilts25a5_registry_and_source_editions.sql": "cc514c291e2b8f91c2b5ec1a591a4731bd3c586210941ab8c28f5d7c5f3b2734",
     "20261021094313_ediel_swedish_utilts25a5_inbound_profile_supersession.sql": "8b51a7dfea2eec7019775f6cfccb0ce4692af517f8e1919794ea65c796155fb1",
+    "20261022090000_spot_claim_rate_limited_failed_deadline.sql": "fd3a3626945b735a96793b917ec4c9ff41708ecfd9d1333d5360bb2a75c93eb9",
+    "20261022095000_ediel_technical_expectation_edition_seed.sql": "b5b961fcf5075cafbda5798e7d9f12d0a03300d64a9d75a89cbc6ac8a382e9c3",
     "20261022100000_ediel_swedish_utilts25a5_inbound_state_capability.sql": "433170b212a297000c0c3dd9f8a640b7d6d098d3e35294b6d14e116d4dde2c7d"
   }
 }

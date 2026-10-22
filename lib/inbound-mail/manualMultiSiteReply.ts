@@ -28,7 +28,7 @@ export type ManualMultiSiteContinuation = { companyId: string; customerId: strin
 
 /** Pure per-site normalization followed by one source-locked database command. */
 export async function applyManualMultiSiteReply(input: {
-  companyId: string; customerId: string; parentRequest: Row; inboundId: string; sourceHash: string; receivedAt: string
+  companyId: string; customerId: string; parentRequest: Row; inboundId: string; sourceHash: string; receivedAt: string; receivedAtSource?: 'imap_internal_date'
   groups: ManualMultiSiteGroup[]
 }): Promise<ManualMultiSiteResult> {
   const parentRequestId = text(input.parentRequest.id)
@@ -46,7 +46,8 @@ export async function applyManualMultiSiteReply(input: {
       ...(group.meteringPointId ? { metering_point_id: group.meteringPointId } : {}) }
     let payload: Row
     if (commercial) {
-      const normalized = normalizeManualCommercialTerms({ extracted, authoredText: group.authoredText, receivedAt: input.receivedAt })
+      const normalized = normalizeManualCommercialTerms({ extracted, authoredText: group.authoredText,
+        receivedAt: input.receivedAt, receivedAtSource: input.receivedAtSource })
       reasons.push(...normalized.reasons)
       payload = { terms: normalized.terms, evidence: normalized.evidence, extracted, nextFollowUpAt }
     } else {

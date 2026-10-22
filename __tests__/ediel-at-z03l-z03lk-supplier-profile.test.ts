@@ -411,7 +411,8 @@ class FiniteQuery {
     }
     expect(this.filters).toEqual([])
     if (this.table === 'ediel_message_intents') {
-      expect(this.options).toEqual({ onConflict: 'company_id,environment,idempotency_key' })
+      // Normal switch creation is insert-only: a concurrent duplicate keeps the winner.
+      expect(this.options).toEqual({ onConflict: 'company_id,environment,idempotency_key', ignoreDuplicates: true })
       expect(this.values).toHaveLength(1)
       expect(this.values[0]).toMatchObject({ company_id: n.company, customer_id: n.customer, customer_site_id: n.site,
         operation_id: n.switch, supplier_switch_request_id: n.switch, message_family: 'PRODAT', message_code: 'Z03',
