@@ -84,9 +84,9 @@ describe('429 client -> importer -> durable job handoff', () => {
     ['short seconds', '1', at(60_000)],
     ['long seconds', '3600', at(3_600_000)],
     ['future HTTP date', new Date(now + 3_600_000).toUTCString(), at(3_600_000)],
-    ['finite delay beyond Date horizon', '8640000000000', 'infinity'],
-    ['finite seconds overflowing milliseconds', '1e308', 'infinity'],
-    ['huge unsigned seconds', '9'.repeat(400), 'infinity'],
+    ['finite delay beyond the 24 h cap', '8640000000000', at(24 * 3_600_000)],
+    ['finite seconds overflowing milliseconds', '1e308', at(24 * 3_600_000)],
+    ['huge unsigned seconds', '9'.repeat(400), at(24 * 3_600_000)],
     ['invalid header', 'not-a-delay', at(15 * 60_000)],
   ] as const)('saves %s without another fetch, inline sleep or price writes', async (_name, header, expected) => {
     const timers = captureTimers()
@@ -116,8 +116,10 @@ describe('durable retry dates and unchanged job policy', () => {
     ['NaN delay', Number.NaN, at(15 * 60_000)],
     ['missing delay', undefined, at(15 * 60_000)],
     ['null delay', null, at(15 * 60_000)],
-    ['positive infinity', Number.POSITIVE_INFINITY, 'infinity'],
-    ['positive Date overflow', 8_640_000_000_000_000, 'infinity'],
+    ['positive infinity', Number.POSITIVE_INFINITY, at(24 * 3_600_000)],
+    ['just over 24 h', 24 * 3_600_000 + 1, at(24 * 3_600_000)],
+    ['exactly 24 h', 24 * 3_600_000, at(24 * 3_600_000)],
+    ['positive Date overflow', 8_640_000_000_000_000, at(24 * 3_600_000)],
   ] as const)('saves %s with the intended durable date', async (_name, delay, expected) => {
     await expect(failSpotImportJob({ jobId: 'job-1', errorCode: 'provider_rate_limited', message: 'synthetic', retryable: true, attemptCount: 1, retryAfterMs: delay })).resolves.toBe('retry_wait')
     expect(ports.updates).toEqual([expect.objectContaining({ status: 'retry_wait', next_attempt_at: expected, completed_at: null })])
@@ -130,7 +132,7 @@ describe('durable retry dates and unchanged job policy', () => {
     await expect(failSpotImportJob({ jobId: 'job-1', errorCode: 'provider_rate_limited', message: 'synthetic', retryable, attemptCount, retryAfterMs: Number.POSITIVE_INFINITY })).resolves.toBe('failed')
     // PERF005: the terminal classification is unchanged, but the provider's
     // explicit not-before deadline survives on the failed row.
-    expect(ports.updates).toEqual([expect.objectContaining({ status: 'failed', next_attempt_at: 'infinity', completed_at: at(0) })])
+    expect(ports.updates).toEqual([expect.objectContaining({ status: 'failed', next_attempt_at: at(24 * 3_600_000), completed_at: at(0) })])
   })
 
   it('keeps a finite 429 deadline on the fifth (terminal) failure', async () => {

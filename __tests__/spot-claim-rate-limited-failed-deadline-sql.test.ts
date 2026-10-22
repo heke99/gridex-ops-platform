@@ -130,11 +130,16 @@ describe('with migration 20261022090000 installed', () => {
     expect(await job()).toMatchObject({ status: 'running', next_attempt_at: null, last_error_code: null })
   })
 
-  it('an infinite 429 deadline on a failed job never expires, even with force', async () => {
+  it('an unbounded 429 Retry-After is capped at 24 hours and then expires', async () => {
     const claim = await claimSpotImportJob(claimArgs(false))
     await failSpotImportJob({ jobId: claim.id, errorCode: 'provider_rate_limited', message: '429', retryable: true, attemptCount: 5, retryAfterMs: Number.POSITIVE_INFINITY })
-    expect(await job()).toMatchObject({ status: 'failed', is_infinity: true })
+    expect(await job()).toMatchObject({ status: 'failed', is_infinity: false })
+    const hours = Number((await io.db.query<{ h: number }>(`select extract(epoch from next_attempt_at - now())/3600 as h from public.spot_price_import_jobs`)).rows[0].h)
+    expect(hours).toBeGreaterThan(23.9)
+    expect(hours).toBeLessThanOrEqual(24)
     await expect(claimSpotImportJob(claimArgs(true))).resolves.toMatchObject({ claimed: false, status: 'failed' })
+    await expireDeadline()
+    await expect(claimSpotImportJob(claimArgs(false))).resolves.toMatchObject({ claimed: true, status: 'running' })
   })
 
   it('a terminal non-rate-limit failure remains immediately re-claimable (no new deadline)', async () => {
