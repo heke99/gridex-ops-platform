@@ -1234,6 +1234,29 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
   - **K-14:** tenanter kan skriva sina egna statistikrader.
 - **Blockerat:** replayen saknar white label-tabeller (F47). Scenario K speglar dem.
 
+### J3 i världen (körning 1, 2026-10-22): 5 godkända, 1 överhoppad, 1 underkänd
+- **Godkända:**
+  - Två bilagor och två interchange i ett mejl hölls som `multiple_interchanges`.
+  - En trunkerad fil hölls som `edifact_unparseable`.
+  - UTF-16, tom bilaga och PDF hölls som `missing_payload`.
+  - Ett mejl som kraschar behandlingen lades åt sidan efter 3 försök (`storage_dead_lettered`).
+  - Ingen CONTRL skickades för sammanslagna eller trunkerade filer.
+  - CRLF, BOM och ZIP gav positiv CONTRL.
+  - NOUNZ och felaktigt UNT-antal gav negativ CONTRL (åtgärd 4).
+- **J3-11 Den andra kopian av samma interchange fastnade tyst — RÄTTAD (commit `237dab119`), hög:**
+  - Mejl till den delade brevlådan sparas utan tenant. När kopia två skulle kopplas till tenanten bröt den mot det partiella unika indexet `ux_inbound_email_messages_company_sender_interchange`.
+  - Jobbet misslyckades 5 gånger, och mejlet blev kvar som `received/not_checked` utan något felmeddelande.
+  - Nu hålls kopian som `duplicate_interchange`, och ett mejl vars jobb ger upp markeras `failed`.
+- **J3-12 Teknisk CONTRL förloras när en sats når sin tidsgräns — ÖPPEN, hög:**
+  - COVER: CONTRL avbröts med `statement timeout 57014`. En senare CONTRL blev kvar som `draft` utan rad i utkorgen.
+  - CONTROL: samma sak, `draft` utan rad i utkorgen.
+  - LARGE (månadsfil): ingen CONTRL skapades alls.
+  - Inget av dem försöktes igen; SLA:n gick ut. Hör ihop med L1 (globala tabellås).
+- **J3-07 bekräftad i världen:** ett förfalskat mejl i nätägarens namn behandlades och fick positiv CONTRL.
+- **Observationer:**
+  - Fel underadress: behandlades, men ingen CONTRL skickades (`ediel_technical_ack_route_unavailable`).
+  - Produktionsfil i testbrevlådan: hölls, eftersom fält 208 saknades.
+
 ### Scenario F, körning 8 (2026-10-22)
 - **F1–F3 gick igenom:** Z03 byggdes och köades för alla fyra augustianläggningarna.
 - **F4 avbröts:** bakgrundskörningen nådde sin tidsgräns på 2 timmar, inklusive bygget, när arbetsprocessen startades om.
