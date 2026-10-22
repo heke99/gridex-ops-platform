@@ -146,7 +146,7 @@ export default async function CommunicationRoutesPage({
  <label className="inline-flex items-center gap-2 text-sm text-slate-700 ">
  <input
  type="checkbox"
- name="is_aktiv"
+ name="is_active"
  value="true"
  defaultChecked
  className="h-4 w-4"
