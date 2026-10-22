@@ -1,6 +1,7 @@
 import { supabaseService } from '@/lib/supabase/service'
 import { deriveContractRequestedMethodFromSignedAgreement } from '@/lib/ediel/production/contractRequestedMethodSource'
 import { deriveCustomerMasterdataBeforeSwitch } from '@/lib/operations/switchCustomerMasterdataPreparation'
+import { selectInvoiceeBeforeSwitch } from '@/lib/operations/switchInvoiceePreparation'
 
 /**
  * Before a new agreement's Z03 is prepared, the requested metering method is
@@ -10,7 +11,7 @@ import { deriveCustomerMasterdataBeforeSwitch } from '@/lib/operations/switchCus
  * identity for. Never blocks: a source that cannot be derived keeps Z03 held.
  * The end user's masterdata declaration is derived from the same signed
  * agreement (FINDINGS F51); both switch paths (automation and startSupplierSwitch)
- * call this one preparation.
+ * call this one preparation. The Z03's invoicee is selected from the same contract (FINDINGS F87).
  */
 export async function deriveRequestedMethodBeforeSwitch(input: { actorUserId: string; switchRequestId: string }) {
   const { data, error } = await supabaseService
@@ -26,4 +27,6 @@ export async function deriveRequestedMethodBeforeSwitch(input: { actorUserId: st
       .catch(failure => console.warn('[switch] requested method derivation skipped', { switchRequestId: input.switchRequestId, environment, failure }))
   }
   await deriveCustomerMasterdataBeforeSwitch(input)
+  // The invoicee is selected against that masterdata, so it runs last (FINDINGS F87).
+  await selectInvoiceeBeforeSwitch(input)
 }
