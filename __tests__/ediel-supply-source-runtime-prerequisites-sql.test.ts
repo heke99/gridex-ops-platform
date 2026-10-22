@@ -111,7 +111,9 @@ async function eventHook(faultAt=0){
  CREATE EVENT TRIGGER source20_fixture_watch ON ddl_command_end WHEN TAG IN('CREATE FUNCTION') EXECUTE FUNCTION fixture.ddl_watch();`)
 }
 
-describe.sequential('Source20 complete supply source runtime prerequisites',()=>{
+// Each PGlite case replays the constructor (~1.2-4.3 s unloaded); the 5 s default
+// leaves no headroom on shared CI runners, so follow the repo's 30 s PGlite convention.
+describe.sequential('Source20 complete supply source runtime prerequisites',{timeout:30_000},()=>{
  beforeAll(async()=>{try{await bootstrap()}catch(e){throw new Error("source20_fixture_setup:"+(e as Error).message)}})
  beforeEach(async()=>{await db.exec('BEGIN')})
  afterEach(async()=>{await db.exec('ROLLBACK;SET SESSION AUTHORIZATION supabase_admin')})
