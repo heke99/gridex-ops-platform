@@ -12,6 +12,7 @@ import {
   persistSwitchReadinessSnapshot,
 } from '@/lib/customer-operations/switchReadiness'
 import { supabaseService } from '@/lib/supabase/service'
+import { readSupplierSwitchDispatchReceipt } from './supplierSwitchDispatchReceipt'
 
 type StartInput = {
   actorUserId: string
@@ -165,7 +166,13 @@ async function startWithPreflight(input: StartInput, preflight: BusinessActionPr
   })
 
   if (!idempotency.acquired) {
-    return { ok: true, preflight, decision, duplicate: true, message: 'Leverantörsbytet är redan köat.' }
+    const receipt = await readSupplierSwitchDispatchReceipt({ companyId: readinessCompanyId, customerId: input.customerId,
+      siteId: readinessSiteId, meteringPointId: row.metering_point_id ?? preflight.meteringPointId ?? '',
+      switchRequestId: input.switchRequestId, actorUserId: input.actorUserId })
+    if (!receipt) throw new Error('supplier_switch_queue_commit_unconfirmed')
+    return { ok: true, preflight, decision, duplicate: true, dispatchReceipt: receipt,
+      message: receipt.state === 'accepted' ? 'Transportacceptans finns för det ursprungliga meddelandet.'
+        : receipt.state === 'in_progress' ? 'Utskicket för det ursprungliga meddelandet pågår.' : 'Leverantörsbytet är redan köat.' }
   }
 
   const message = await prepareAndQueueEdielZ03({

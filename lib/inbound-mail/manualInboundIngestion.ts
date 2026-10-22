@@ -22,10 +22,13 @@ import { prepareManualMailDocuments, type ManualDocumentUnit } from '@/lib/inbou
 import { recordManualMailDocumentReading } from '@/lib/inbound-mail/manualMailDocumentReading'
 import { createManualMailSourceCorpus } from '@/lib/inbound-mail/manualMailEvidenceSources'
 import { isVerifiedManualDocumentSender, resolveManualDocumentRouting } from '@/lib/inbound-mail/manualInboundRouting'
+import { MANUAL_MAILBOX_RECEIPT, qualifyManualMailboxReceipt, readStoredManualMailboxReceipt, type ManualMailboxReceipt } from '@/lib/inbound-mail/manualMailboxReceipt'
 
 type JsonRecord = Record<string, unknown>
 
 export type ManualInboundEmail = {
+  // Server-only observation: a public JSON payload cannot contain this symbol.
+  [MANUAL_MAILBOX_RECEIPT]?: ManualMailboxReceipt
   mailbox?: string | null
   mailboxCompanyId?: string | null
   fromEmail?: string | null
@@ -202,10 +205,10 @@ async function persistRawInbound(input: {
   mailbox: string
   providerMessageId: string | null
   collisionWithId?: string
-}): Promise<{ inboundId: string; existing: JsonRecord | null; receivedAt: string; quarantined?: boolean }> {
+}): Promise<{ inboundId: string; existing: JsonRecord | null; receivedAt: string; receivedAtSource?: 'imap_internal_date'; quarantined?: boolean }> {
   const fingerprint = sourceFingerprint(input.email)
   let legacyUpgradeAttempts = 0
-  const resumeExisting = async (existing: JsonRecord): Promise<{ inboundId: string; existing: JsonRecord | null; receivedAt: string; quarantined?: boolean }> => {
+  const resumeExisting = async (existing: JsonRecord): Promise<{ inboundId: string; existing: JsonRecord | null; receivedAt: string; receivedAtSource?: 'imap_internal_date'; quarantined?: boolean }> => {
     const stored = existing.extracted_payload as JsonRecord | null
     const original: ManualInboundEmail = { fromEmail: clean(existing.from_email),
       subject: clean(existing.subject), bodyText: clean(existing.body_text), bodyHtml: clean(existing.body_html), attachments: existing.attachments as unknown[] }
@@ -242,7 +245,9 @@ async function persistRawInbound(input: {
       }
       existing = { ...existing, extracted_payload: payload }
     }
-    return { inboundId: String(existing.id), existing, receivedAt: clean(existing.received_at) ?? new Date().toISOString(),
+    const receivedAt = clean(existing.received_at) ?? new Date().toISOString()
+    const receipt = readStoredManualMailboxReceipt({ payload: existing.extracted_payload, receivedAt, sourceFingerprint: fingerprint })
+    return { inboundId: String(existing.id), existing, receivedAt, ...(receipt ? { receivedAtSource: receipt.source } : {}),
       quarantined: Boolean(input.collisionWithId || (existing.correlation_evidence as JsonRecord | null)?.source_collision) }
   }
   if (input.providerMessageId) {
@@ -250,6 +255,15 @@ async function persistRawInbound(input: {
     if (existing) return resumeExisting(existing)
   }
 
+  const receipt = qualifyManualMailboxReceipt({ observation: input.email[MANUAL_MAILBOX_RECEIPT], mailbox: input.mailbox,
+    sourceFingerprint: fingerprint, ...(input.email.senderVerification?.status === 'verified'
+      ? { verifiedRawSha256: input.email.senderVerification.raw_sha256 } : {}) })
+  const receivedAt = receipt?.receivedAt ?? new Date().toISOString()
+  const initialPayload = { source_fingerprint: fingerprint, source_fingerprint_version: 2,
+    // The deployed provenance trigger protects the entire server namespace,
+    // including nested insertion, replacement and removal by authenticated users.
+    ...(receipt ? { manual_automation: { mailboxReceipt: receipt } } : {}),
+    ...(input.email.mimeRequiresReview === true ? { mime_requires_review: true } : {}) }
   const insert = await supabaseService
     .from('manual_inbound_messages')
     .insert({
@@ -269,11 +283,11 @@ async function persistRawInbound(input: {
       reference_message_ids: Array.isArray(input.email.references) ? input.email.references.filter(Boolean).slice(0, 50) : [],
       attachments: Array.isArray(input.email.attachments) ? input.email.attachments : [],
       resolution_status: 'unmatched',
-      extracted_payload: { source_fingerprint: fingerprint, source_fingerprint_version: 2, ...(input.email.mimeRequiresReview === true ? { mime_requires_review: true } : {}) },
+      extracted_payload: initialPayload,
       confidence_score: 0,
       correlation_evidence: input.collisionWithId ? { source_collision: true, collision_with_id: input.collisionWithId } : {},
       processing_state: input.collisionWithId ? 'needs_review' : 'received',
-      received_at: new Date().toISOString(),
+      received_at: receivedAt,
     })
     .select('id,received_at')
     .maybeSingle()
@@ -286,7 +300,10 @@ async function persistRawInbound(input: {
     throw insert.error
   }
   if (!insert.data?.id) throw new Error('Inkommande e-post kunde inte persisteras före korrelation.')
-  return { inboundId: String(insert.data.id), existing: null, receivedAt: clean(insert.data.received_at) ?? new Date().toISOString(), quarantined: Boolean(input.collisionWithId) }
+  const persistedAt = clean(insert.data.received_at) ?? new Date().toISOString()
+  const storedReceipt = readStoredManualMailboxReceipt({ payload: initialPayload, receivedAt: persistedAt, sourceFingerprint: fingerprint })
+  return { inboundId: String(insert.data.id), existing: null, receivedAt: persistedAt,
+    ...(storedReceipt ? { receivedAtSource: storedReceipt.source } : {}), quarantined: Boolean(input.collisionWithId) }
 }
 
 async function upsertInboundOperationEvent(input: {
@@ -811,7 +828,7 @@ export async function ingestManualInboundEmail(email: ManualInboundEmail): Promi
     })
     const { applyManualMultiSiteReply } = await import('@/lib/inbound-mail/manualMultiSiteReply')
     const result = await applyManualMultiSiteReply({ companyId, customerId, parentRequest: correlation.request,
-      inboundId: raw.inboundId, sourceHash, receivedAt: raw.receivedAt, groups })
+      inboundId: raw.inboundId, sourceHash, receivedAt: raw.receivedAt, receivedAtSource: raw.receivedAtSource, groups })
     processingState = result.outcome
     parse = { outcome: result.outcome, confidence: result.reviewCount ? 0 : 1, extracted: {},
       reasons: result.reviewCount ? ['multi_site_items_require_review'] : [] }
@@ -824,7 +841,7 @@ export async function ingestManualInboundEmail(email: ManualInboundEmail): Promi
   } else if (matched && correlation.request && companyId && customerId && customerSiteId
     && requestType === 'current_supplier_contract_information_request') {
     parse = await applyManualCommercialReply({ companyId, customerId, siteId: customerSiteId, request: correlation.request,
-      inboundId: raw.inboundId, extracted, authoredText, receivedAt: raw.receivedAt, sourceHash })
+      inboundId: raw.inboundId, extracted, authoredText, receivedAt: raw.receivedAt, receivedAtSource: raw.receivedAtSource, sourceHash })
     processingState = parse.outcome
   } else if (canApplyFacilityResponse && correlation.request && correlation.companyId) {
     try {

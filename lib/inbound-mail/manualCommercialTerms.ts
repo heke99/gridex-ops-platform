@@ -1,5 +1,6 @@
 import type { ManualFacilityExtractedPayload } from '@/lib/customer-operations/manualFacilityResponseParser'
 import { inspectManualMailIdentifierRoles, withoutExactPoaAcceptances } from '@/lib/inbound-mail/manualMailInterpretation'
+import { MANUAL_SUPPLIER_START_LABEL, relativeManualCommercialStartDate } from '@/lib/inbound-mail/manualCommercialStartDate'
 
 export type ManualCommercialTerms = {
   contractEndDate?: string
@@ -30,7 +31,7 @@ type Field = {
 
 const FIELDS: Field[] = [
   { source: 'current_contract_end_date', target: 'contractEndDate', reason: 'contract_end_date', label: /(?:avtalets?\s+(?:slutdatum|slutdag)|avtalsslut|slutdatum|contract[\s_-]*end|avtalet\s+(?:löper|gäller)\s+(?:till\s+och\s+med|t\.?\s*o\.?\s*m\.?|till))/i, kind: 'date' },
-  { source: 'earliest_supplier_start_date', target: 'earliestStartDate', reason: 'earliest_start_date', label: /(?:tidigaste\s+(?:leveransstart|start(?:datum)?(?:\s+hos\s+ny\s+leverantör)?)|kunden\s+kan\s+(?:tidigast\s+)?starta(?:\s+hos\s+(?:en\s+)?ny\s+leverantör)?|earliest[\s_-]*start)/i, kind: 'date' },
+  { source: 'earliest_supplier_start_date', target: 'earliestStartDate', reason: 'earliest_start_date', label: MANUAL_SUPPLIER_START_LABEL, kind: 'date' },
   { source: 'cancellation_deadline', target: 'cancellationDeadline', reason: 'cancellation_deadline', label: /(?:sista\s+uppsägnings(?:datum|dag)|senaste\s+uppsägningsdatum|avtalet\s+måste\s+(?:senast\s+)?sägas\s+upp|cancellation[\s_-]*deadline)/i, kind: 'date' },
   { source: 'notice_period', target: 'noticePeriod', reason: 'notice_period', label: /(?:uppsägningstid|uppsagningstid|notice[\s_-]*period)/i, kind: 'duration' },
   { source: 'binding_period', target: 'bindingPeriod', reason: 'binding_period', label: /(?:bindningstid|binding[\s_-]*period)/i, kind: 'duration' },
@@ -72,7 +73,7 @@ function normalizeDate(raw: string, receivedYear: number): string | null {
 }
 
 function normalizeDuration(raw: string): string | null {
-  const value = stripLabelSeparator(folded(raw))
+  const value = stripLabelSeparator(folded(raw)).replace(/^(?:är\s+)?(?:på\s+)?/, '')
   if (/^(?:ingen(?:\s+(?:uppsägningstid|bindningstid))?|utan\s+(?:uppsägningstid|bindningstid))$/.test(value)) return '0 dagar'
   const match = value.match(/^(\d{1,3}|en|ett|två|tre|fyra|fem|sex|sju|åtta|nio|tio|tolv)\s+(dag(?:ar)?|månad(?:er)?|mån)$/)
   if (!match) return null
@@ -81,8 +82,9 @@ function normalizeDuration(raw: string): string | null {
   return `${amount} ${days ? amount === 1 ? 'dag' : 'dagar' : amount === 1 ? 'månad' : 'månader'}`
 }
 
-function normalizeValue(field: Field, raw: string, receivedYear: number): string | null {
-  if (field.kind === 'date') return normalizeDate(raw, receivedYear)
+function normalizeValue(field: Field, raw: string, receivedDate: string, sourceLine: string, trustedReceipt: boolean): string | null {
+  if (field.kind === 'date') return normalizeDate(raw, Number(receivedDate.slice(0, 4)))
+    ?? (field.target === 'earliestStartDate' && trustedReceipt ? relativeManualCommercialStartDate({ raw, sourceLine, receivedDate }) : null)
   if (field.kind === 'duration') return normalizeDuration(raw)
   const value = stripLabelSeparator(folded(raw))
   if (field.kind === 'fee') return /^(?:\d+(?:[,.]\d{1,2})?\s*(?:kr|sek)|ingen(?:\s+brytavgift)?)$/.test(value) ? stripLabelSeparator(raw) : null
@@ -116,15 +118,19 @@ export function normalizeManualCommercialTerms(input: {
   extracted: ManualFacilityExtractedPayload
   authoredText: string
   receivedAt: string
+  // Server-only provenance of the immutable receivedAt. Neither processing
+  // time nor the sender-controlled RFC Date header qualifies. Current legacy
+  // callers omit this and therefore keep relative dates under manual review.
+  receivedAtSource?: 'imap_internal_date'
 }): ManualCommercialTermsResult {
   const reasons = new Set<string>()
   const terms: ManualCommercialTerms = {}
   const evidence: Record<string, string> = {}
   const receivedDate = stockholmDate(input.receivedAt)
+  const trustedReceipt = input.receivedAtSource === 'imap_internal_date'
   if (!receivedDate) return { ok: false, reasons: ['received_at_invalid'], terms, evidence }
   // Never truncate: a dropped last paragraph might contain a limiting condition.
   if (input.authoredText.length > 100_000) return { ok: false, reasons: ['authored_reply_too_large'], terms, evidence }
-  const receivedYear = Number(receivedDate.slice(0, 4))
   const text = input.authoredText.normalize('NFC')
   const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
   const entireReply = folded(text)
@@ -156,13 +162,14 @@ export function normalizeManualCommercialTerms(input: {
     }
     const candidateLines = lines.filter((line) => folded(line).includes(folded(raw)))
     const labelledLine = candidateLines.find((line) => field.label.test(line))
-    const sourceLine = labelledLine ?? (field.kind === 'registered' ? undefined : candidateLines[0])
+    const sourceLine = labelledLine ?? (field.kind === 'registered' || field.target === 'earliestStartDate' ? undefined : candidateLines[0])
     if (!sourceLine) {
       reasons.add(`${field.reason}_missing_evidence`)
       continue
     }
-    const value = normalizeValue(field, raw, receivedYear)
+    const value = normalizeValue(field, raw, receivedDate, sourceLine, trustedReceipt)
     if (!value) {
+      if (field.target === 'earliestStartDate' && !trustedReceipt && relativeManualCommercialStartDate({ raw, sourceLine, receivedDate })) reasons.add('earliest_start_date_missing_receipt_basis')
       reasons.add(`${field.reason}_invalid_or_ambiguous`)
       continue
     }
@@ -176,7 +183,7 @@ export function normalizeManualCommercialTerms(input: {
       if (!match || match.index === undefined) continue
       const labelledRaw = stripLabelSeparator(line.slice(match.index + match[0].length))
       if (!labelledRaw) continue
-      const repeated = normalizeValue(field, labelledRaw, receivedYear)
+      const repeated = normalizeValue(field, labelledRaw, receivedDate, line, trustedReceipt)
       if (repeated) repeatedValues.add(folded(repeated))
       else reasons.add(`${field.reason}_invalid_or_ambiguous`)
     }

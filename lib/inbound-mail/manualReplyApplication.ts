@@ -169,7 +169,7 @@ async function continueManualCommercialReplyAttempt(input: ManualReplyContinuati
 
 export async function applyManualCommercialReply(input: {
   companyId: string; customerId: string; siteId: string; request: Row; inboundId: string;
-  extracted: ManualFacilityExtractedPayload; authoredText: string; receivedAt: string; sourceHash: string;
+  extracted: ManualFacilityExtractedPayload; authoredText: string; receivedAt: string; receivedAtSource?: 'imap_internal_date'; sourceHash: string;
 }): Promise<ManualFacilityParseResult> {
   const normalized = normalizeManualCommercialTerms(input)
   if (!normalized.ok) {
