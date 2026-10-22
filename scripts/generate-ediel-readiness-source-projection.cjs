@@ -92,12 +92,13 @@ if(currentSwedishUtilts){
   const semantic=semantics.find(row=>row.code===profile.messageCode)
   if(!semantic||profile.guideVersion!=='25-A-5'||profile.guideRevision!=='5')throw Error('Current named canonical UTILTS profile required')
   // Registry activation is deliberately narrower than the guide: manual and
-  // partial supplier sends acquire no new outbound or state capability.
+  // partial supplier sends acquire no new outbound capability. Inbound runtime
+  // decisions require the state machine for every received profile.
   const builder=profile.productionReadiness==='full'||profile.productionReadiness==='ack_only'
   const direction=profile.messageCode==='ERR'?'both':builder?semantic.direction:'inbound'
   return {messageCode:profile.messageCode,direction,businessProcess:profile.businessProcess,phase:profile.phase,
    profileKey:`UTILTS:${profile.messageCode}:E5SE5A:5`,profile:{...profile,family:'UTILTS',canonicalDirection:direction,source:'canonical-swedish-utilts25a5-projection',sourceDependencies:{marketHandbook:currentSwedishUtilts.marketHandbook}},
-   capabilities:{parser:true,builder,validator:true,ack:true,state:profile.productionReadiness!=='partial'}}
+   capabilities:{parser:true,builder,validator:true,ack:true,state:true}}
  })
  registryProjection={primary:currentSwedishUtilts.sources[0],marketHandbook:currentSwedishUtilts.marketHandbook,supersessions:currentSwedishUtilts.supersessions,profiles}
 }
