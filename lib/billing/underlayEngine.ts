@@ -17,6 +17,7 @@ import {
 } from "@/lib/billing/consumptionEstimate";
 import { meteringResolutionForContract } from "@/lib/metering/contractMeteringResolution";
 import { ensureHistoricalMeteringRequest } from "@/lib/billing/historyRequest";
+import { supplyPeriodEndExclusiveDate } from "@/lib/billing/supplyPeriodEnd";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -344,9 +345,9 @@ function segmentBounds(
   monthEnd: string,
 ): { start: string; end: string } {
   const periodStart = localDateBoundary(String(period.start_date));
-  const periodEnd = period.end_date
-    ? localDateBoundary(addDays(String(period.end_date), 1))
-    : monthEnd;
+  // A received market end (Z05) is exclusive; a manual end date is the last supplied day (FINDINGS H1).
+  const endExclusive = supplyPeriodEndExclusiveDate(period);
+  const periodEnd = endExclusive ? localDateBoundary(endExclusive) : monthEnd;
   return {
     start: new Date(
       Math.max(Date.parse(monthStart), Date.parse(periodStart)),

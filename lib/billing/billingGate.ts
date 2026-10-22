@@ -1,6 +1,7 @@
 import { stockholmLocalToUtc } from "@/lib/time/stockholm";
 import { isCanonicalUtiltsDecimal } from '@/lib/ediel/utilts/exactDecimal';
 import type { BillingSourceBasis } from './sourceBasis';
+import { supplyPeriodLastSuppliedDate } from './supplyPeriodEnd';
 
 export type BillingGateStatus =
   "eligible" | "pending_match" | "blocked" | "conflict";
@@ -77,14 +78,14 @@ function instant(value: unknown, endOfDate = false): number | null {
     const month = Number(match[2]);
     const day = Number(match[3]);
     if (!endOfDate) return stockholmLocalToUtc({ year, month, day }).getTime();
+    // The exclusive end of the civil day: its last quarter-hour ends exactly at the next local midnight
+    // (FINDINGS H4: with "- 1 ms" the last quarter of every ended period was never covered).
     const nextDay = new Date(Date.UTC(year, month - 1, day + 1));
-    return (
-      stockholmLocalToUtc({
-        year: nextDay.getUTCFullYear(),
-        month: nextDay.getUTCMonth() + 1,
-        day: nextDay.getUTCDate(),
-      }).getTime() - 1
-    );
+    return stockholmLocalToUtc({
+      year: nextDay.getUTCFullYear(),
+      month: nextDay.getUTCMonth() + 1,
+      day: nextDay.getUTCDate(),
+    }).getTime();
   }
   const parsed = Date.parse(raw);
   return Number.isFinite(parsed) ? parsed : null;
@@ -288,7 +289,8 @@ export function evaluateBillingGate(input: {
     if (
       periodStart !== null &&
       periodEnd !== null &&
-      !covers(supply.start_date, supply.end_date, periodStart, periodEnd)
+      // A received market end (Z05) is exclusive: the end date is the first day no longer supplied (FINDINGS H1).
+      !covers(supply.start_date, supplyPeriodLastSuppliedDate(supply), periodStart, periodEnd)
     ) {
       reasons.push(
         reason(

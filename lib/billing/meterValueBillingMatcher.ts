@@ -4,6 +4,7 @@ import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
 import { stockholmDateForInstant } from '@/lib/time/stockholm'
 import { evaluateBillingGate, type BillingGateStatus } from '@/lib/billing/billingGate'
 import { loadQualifiedBillingValues } from './sourceBasis'
+import { supplyPeriodLastSuppliedDate } from './supplyPeriodEnd'
 
 type CanonicalBillingStatus = 'pending_match' | 'billable' | 'blocked' | 'conflict'
 
@@ -126,7 +127,12 @@ export async function updateMeterValueBillingReadiness(params: {
     .or(`end_date.is.null,end_date.gte.${periodEnd}`)
     .limit(3)
   if (periodsResponse.error) throw periodsResponse.error
-  const periods = (periodsResponse.data ?? []) as Array<Record<string, unknown>>
+  // A received market end (Z05) is exclusive: a value on the first day after it belongs to the next
+  // supply, never to the ended period (FINDINGS H1). The query above reads end_date as the last day.
+  const periods = ((periodsResponse.data ?? []) as Array<Record<string, unknown>>).filter((row) => {
+    const lastSupplied = supplyPeriodLastSuppliedDate(row)
+    return lastSupplied === null || lastSupplied >= periodEnd
+  })
   const period = periods.length === 1 ? periods[0] : null
 
   const contractId = typeof period?.contract_id === 'string' ? period.contract_id : null
