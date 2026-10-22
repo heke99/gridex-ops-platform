@@ -108,7 +108,8 @@ export async function goLiveOnWebsite(tenant: LiveTenant, operatorUserId: string
  * Stands in for the step the platform has no supported path for (FINDINGS F36): Ediel certification
  * of the supplier and platform approval of its first production send. Sets exactly the state that
  * canonical go-live and first-send approval would leave: production state live with the first live
- * send approved, the production sender setting unlocked, and the ediel_production capability ready. Everything after it runs the real code.
+ * send approved, the production sender setting unlocked, the ediel_production capability ready and the
+ * certification evidence passed. Everything after it runs the real code.
  */
 export function simulateEdielCertifiedGoLive(companyId: string, approverUserId: string) {
   sql(`BEGIN; SELECT set_config('request.jwt.claims','{"role":"service_role"}',true);
@@ -123,7 +124,16 @@ export function simulateEdielCertifiedGoLive(companyId: string, approverUserId: 
    INSERT INTO public.company_capabilities AS capability(company_id,capability_code,enabled,readiness_status,last_verified_at,last_verified_by,created_by,updated_by)
     VALUES(${literal(companyId)},'ediel_production',true,'ready',now(),${literal(approverUserId)},${literal(approverUserId)},${literal(approverUserId)})
     ON CONFLICT(company_id,capability_code) DO UPDATE SET enabled=true,readiness_status='ready',last_verified_at=now(),last_verified_by=excluded.last_verified_by,
-     updated_by=excluded.updated_by,updated_at=now(); COMMIT;`)
+     updated_by=excluded.updated_by,updated_at=now();
+   -- The certification evidence canonical go-live requires (canonical_ediel_production_evidence_readiness): passed,
+   -- approved and current for the engine schema, including the limited pilot required once a production message is sent.
+   -- Marked as simulated; the platform itself has no path that produces them (FINDINGS F36).
+   INSERT INTO public.ediel_certification_evidence(company_id,environment,evidence_type,status,engine_schema_version,external_reference,evidence_document_reference,tested_at,approved_by,approved_at,metadata)
+    SELECT ${literal(companyId)},'production',t,'passed',public.canonical_current_ediel_engine_schema_version(),'reality-simulated-certification:'||t,
+      'reality://simulated-certification/'||t,now()-interval '1 minute',${literal(approverUserId)},now(),'{"reality_simulated":true,"finding":"F36"}'::jsonb
+    FROM unnest(ARRAY['TGT','AGT','SHADOW_PRODUCTION','LIVE_TENANT_INTEGRITY','RESTORE_REPLAY','LIMITED_PILOT']) t
+    ON CONFLICT(company_id,environment,evidence_type,engine_schema_version) DO UPDATE SET status='passed',tested_at=excluded.tested_at,
+     approved_by=excluded.approved_by,approved_at=excluded.approved_at,valid_until=NULL,updated_at=now(); COMMIT;`)
   return sql<Record<string, unknown>>(`SELECT jsonb_build_object('state',state,'firstLiveSendApproved',first_live_send_approved_at IS NOT NULL) FROM public.ediel_production_state WHERE company_id=${literal(companyId)}`)
 }
 
