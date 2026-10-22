@@ -538,11 +538,11 @@ Felen skrivs in här i den ordning de hittas.
   - Det unika indexet `ux_ediel_ack_related` omfattar även makulerade svar, så ett makulerat svar kan stoppa ett nytt för samma transaktion. Serveråtgärden rapporterar det tydligt.
   - Historiken växer utan tak. Det är avsiktligt för revision, och tak eller arkivering kräver ett beslut.
 
-### F84 Manuell UTILTS-ERR kan skapas utan att resumability-regeln kontrolleras — BEKRÄFTAD i koden, medel
+### F84 Manuell UTILTS-ERR kan skapas utan att resumability-regeln kontrolleras — RÄTTAD, medel
 - **Kod:** `createNegativeUtiltsResponseAction` (`app/admin/ediel/actions.part-4.ts:368-418`, formuläret på detaljsidan rad 641) skapar en negativ UTILTS-ERR för vilket inkommande UTILTS-meddelande som helst. Det sker oavsett om transaktionerna redan fått ett slutligt positivt svar eller bara hålls för intern granskning.
 - **Risk:** ett motsägande applikationssvar till nätägaren.
 - **Kodspårning (2026-10-22):** `createNegativeUtiltsResponse` (`lib/ediel/flows/inboundProcessing.ts:1481`) anropar `createAckIfMissing` för hela meddelandet. Dubblettskyddet i `readExistingAckBeforeDraft` (`lib/ediel/core/ackDraftSource.ts`) jämför bara mot ett befintligt svar av **samma typ**, och det unika indexet `ux_ediel_ack_related` gäller också per typ. En UTILTS-ERR stoppas alltså inte av ett befintligt positivt APERAK för samma transaktioner. Bekräftat i koden, inte prövat i en körning.
-- **Nästa steg:** följ anropskedjan och pröva fallet. Om skyddet saknas ska samma regel som för F80 kontrolleras på servern.
+- **Rättning:** serveråtgärden läser F80-regeln först. En manuell UTILTS-ERR vägras och loggas om källan redan har ett applikationssvar, ett slutligt transaktionssvar eller transaktioner som hålls för intern granskning. Test: `__tests__/utilts-manual-err-guard.test.ts` (4 fall). Utan vakten faller exakt de tre vägran-fallen.
 
 ### S2 Scenario E:s operatörssteg läste detaljsidan innan den hade renderat — RÄTTAD (simuleringen)
 - **Utfall:** `button.count()` väntar inte. Detaljsidan visar `loading.tsx` i 15–32 sekunder, och när filerna kom i en viss ordning gick nästa sida upp medan föregående serveråtgärd fortfarande renderade om. Testet gick då vidare efter ungefär en sekund utan att klicka.

@@ -20,6 +20,7 @@ import { resolveCanonicalOutboundContext } from "@/lib/ediel/core/kernel"
 import { getSupplierSwitchRequestById } from "@/lib/operations/db"
 import { getCustomerSiteById, getGridOwnerById, getMeteringPointById } from "@/lib/masterdata/db"
 import { processInboundUtiltsMessage } from "@/lib/ediel/flows/utiltsDataRequest"
+import { readUtiltsSourceResumability } from "@/lib/ediel/utilts/utiltsResumability"
 
 
 
@@ -376,6 +377,33 @@ export async function createNegativeUtiltsResponseAction(formData: FormData) {
     edielMessageId,
     context,
   );
+  // FINDINGS F84: the duplicate guard only compares replies of the same family, so a manual UTILTS-ERR could
+  // contradict an APERAK already sent for the same transactions, or answer transactions still held for
+  // internal review. A manual application reply is only allowed while the source has none and holds nothing.
+  if (sourceMessage.message_family === "UTILTS" && sourceMessage.direction === "inbound") {
+    const state = await readUtiltsSourceResumability({
+      companyId: sourceMessage.company_id, sourceMessageId: sourceMessage.id, environment: sourceMessage.environment,
+    });
+    if (state.activeApplicationReplyIds.length > 0 || state.heldTransactionIds.length > 0 || state.finalizedTransactionIds.length > 0) {
+      await createEdielMessageEvent({
+        actorUserId: context.userId,
+        edielMessageId,
+        eventType: "manual_note",
+        eventStatus: "error",
+        message: state.heldTransactionIds.length > 0
+          ? "Manuell UTILTS-ERR stoppad: transaktioner hålls för intern granskning och får inget svar innan granskningen är klar."
+          : "Manuell UTILTS-ERR stoppad: källan har redan ett applikationssvar. Ett nytt svar skulle kunna motsäga det.",
+        payload: {
+          phase: "utilts_err_manual_guard",
+          heldTransactionIds: state.heldTransactionIds,
+          finalizedTransactionIds: state.finalizedTransactionIds,
+          existingApplicationReplyIds: state.activeApplicationReplyIds,
+        },
+      });
+      revalidateEdiel(edielMessageId);
+      return;
+    }
+  }
   const testCaseCode = formString(formData.get("testCaseCode"));
   const runtime =
     sourceMessage.message_family === "UTILTS"
