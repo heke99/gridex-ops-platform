@@ -108,7 +108,7 @@ export async function goLiveOnWebsite(tenant: LiveTenant, operatorUserId: string
  * Stands in for the step the platform has no supported path for (FINDINGS F36): Ediel certification
  * of the supplier and platform approval of its first production send. Sets exactly the state that
  * canonical go-live and first-send approval would leave: production state live with the first live
- * send approved, and the production sender setting unlocked. Everything after it runs the real code.
+ * send approved, the production sender setting unlocked, and the ediel_production capability ready. Everything after it runs the real code.
  */
 export function simulateEdielCertifiedGoLive(companyId: string, approverUserId: string) {
   sql(`BEGIN; SELECT set_config('request.jwt.claims','{"role":"service_role"}',true);
@@ -117,7 +117,13 @@ export function simulateEdielCertifiedGoLive(companyId: string, approverUserId: 
     ON CONFLICT(company_id) DO UPDATE SET state='live',state_version=public.ediel_production_state.state_version+1,approved_by=excluded.approved_by,approved_at=excluded.approved_at,
      first_live_send_approved_by=excluded.first_live_send_approved_by,first_live_send_approved_at=excluded.first_live_send_approved_at,last_idempotency_key=excluded.last_idempotency_key,updated_at=now();
    UPDATE public.ediel_actor_settings SET first_production_send_approved=true,approved_by=${literal(approverUserId)},approved_at=now()
-    WHERE company_id=${literal(companyId)} AND environment='production'; COMMIT;`)
+    WHERE company_id=${literal(companyId)} AND environment='production';
+   -- canonical_transition_ediel_production projects the ediel_production capability when it goes live; without it
+   -- every production send is held as blocked_tenant_state (capability_not_ready) and never released (FINDINGS B1).
+   INSERT INTO public.company_capabilities AS capability(company_id,capability_code,enabled,readiness_status,last_verified_at,last_verified_by,created_by,updated_by)
+    VALUES(${literal(companyId)},'ediel_production',true,'ready',now(),${literal(approverUserId)},${literal(approverUserId)},${literal(approverUserId)})
+    ON CONFLICT(company_id,capability_code) DO UPDATE SET enabled=true,readiness_status='ready',last_verified_at=now(),last_verified_by=excluded.last_verified_by,
+     updated_by=excluded.updated_by,updated_at=now(); COMMIT;`)
   return sql<Record<string, unknown>>(`SELECT jsonb_build_object('state',state,'firstLiveSendApproved',first_live_send_approved_at IS NOT NULL) FROM public.ediel_production_state WHERE company_id=${literal(companyId)}`)
 }
 
