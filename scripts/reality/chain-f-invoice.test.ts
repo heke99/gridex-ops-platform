@@ -1,19 +1,28 @@
 // Reality scenario F: invoices for a customer with several facilities, with contract terms (binding,
 // notice, automatic renewal) in every invoice and agreement file.
 //
-// Same world as scenario A: the supplier goes live in ALS, customers apply on the website, the switch
-// runs against the simulated grid owner over SMTPS/IMAPS, the grid owner sends metering values, and the
-// monthly billing cron invoices. Owner decision 2026-10-22: the one deviation from real time is the start
-// date. The customers are treated as having applied in August for supply from 1 September, so a whole
-// month can be invoiced today; the requested start date is set to 2026-09-01 before the switch request is
-// sent. Everything else is the real code. Synthetic data only (E2E-, example.invalid).
+// Same world as scenario A: the supplier goes live in ALS, the grid owner is simulated over SMTPS/IMAPS, it
+// sends metering values, and the monthly billing cron invoices.
+//
+// Coordinator decision 2026-10-22 (within the owner's frame: a correctly established historical supply period,
+// no bypassing of controls): the invoiced customers ARE August customers. They signed in August through the
+// platform's signature path, their switch requests were created in August for supply from 1 September, and the
+// Z03 is built by the platform's real builder. The only thing that represents "it is now August" is that the
+// Z03 is not passed through the send-window scheduler (today it correctly says the window closed on
+// 18 August). Everything after the Z03 is the real code path: outbox, grid owner, Z04, activation, metering,
+// billing. Website applications made today are observed separately (F2) and are not invoiced in September.
+// Synthetic data only (E2E-, example.invalid).
 import { writeFileSync } from 'node:fs'
 import { afterAll, describe, expect, it, type TestContext } from 'vitest'
 import { supabaseService } from '@/lib/supabase/service'
 import { renderInvoiceFile, type InvoiceFileRow } from '@/lib/billing/invoiceFileExport'
-import { LIVE, approveIssuerHistoryGround, cron, literal, sql, type LiveTenant } from '../helpers/live-chain-fixture'
+import { prepareAndQueueEdielZ03 } from '@/lib/ediel/flows/prodatSwitch'
+import { processPendingContractConfirmations } from '@/lib/customer-contracts/onlineSigning'
+import { calculateEarliestSwitchStartDate } from '@/lib/operations/switchStartDate'
+import { evaluateSupplierSwitchSendWindow, loadSupplierSwitchPolicy } from '@/lib/operations/supplierSwitchScheduler'
+import { LIVE, approveIssuerHistoryGround, augustSupplyCustomer, cron, literal, sql, type AugustFacility, type LiveTenant } from '../helpers/live-chain-fixture'
 import { WEBSITE_ORIGIN } from '../helpers/reality/tenantWebsite'
-import { closeOperatorConsole, operatorSession } from '../helpers/reality/operatorConsole'
+import { closeOperatorConsole, operatorSession, submitServerAction } from '../helpers/reality/operatorConsole'
 import { runOperationalCronSlot, type GridOwnerSim } from '../helpers/reality/world'
 import { GRID_AREA, GRID_OWNER_EDIEL_ID, goLiveAlsSupplier } from '../helpers/reality/goLiveAls'
 import { detectStuckStates } from '../helpers/reality/stuckDetector'
@@ -45,6 +54,7 @@ const person = (first: string, birth: string, serial: string, street: string): S
   email: `e2e-${first.toLowerCase()}-${serial}-${RUN}@example.invalid`, phone: '0701234567', address: { street, postalCode: '441 30', city: 'Alingsås' } })
 const site = (annualConsumptionKwh: number, street?: string): SimulatedSite => ({ facilityId: facility(), priceArea: 'SE3', annualConsumptionKwh,
   ...(street ? { address: { street, postalCode: '441 30', city: 'Alingsås' } } : {}) })
+/** Website customers applying today ("future" customers): observed in F2, supply starts after September. */
 const CUSTOMERS = [
   // One private customer with a house, a holiday home and a garage: three facilities, one person.
   { person: person('Tre', '19700101', '321', 'Kungsgatan 1'), sites: [site(18_000), site(4_500, 'Drottninggatan 2'), site(1_200, 'Nygatan 3')] },
@@ -55,8 +65,17 @@ const EXACT_POINTS: Record<string, { latitude: number; longitude: number }> = {
   'Kungsgatan 1': { latitude: 57.9303, longitude: 12.534 }, 'Drottninggatan 2': { latitude: 57.931, longitude: 12.5355 }, 'Nygatan 3': { latitude: 57.9298, longitude: 12.533 },
 }
 
+/** The August customers who are invoiced for September: one with three facilities, one control with one. */
+const AUGUST_CUSTOMERS = [
+  { person: person('Augusti', '19680304', '135', 'Kungsgatan 1'), sites: [site(18_000), site(4_500, 'Drottninggatan 2'), site(1_200, 'Nygatan 3')] },
+  { person: person('Kontroll', '19900920', '246', 'Kungsgatan 1'), sites: [site(9_000)] },
+]
+/** August timeline: the customer signs and authorizes, the platform creates the switch request a minute later. */
+const AUGUST_SIGNED_AT = '2026-08-12T09:30:00+02:00'
+const AUGUST_SWITCH_CREATED_AT = '2026-08-12T09:31:00+02:00'
+
 /** Every facility gets its own profile: the household profile scaled to its annual consumption and shifted. */
-const FACILITIES = CUSTOMERS.flatMap((customer, c) => customer.sites.map((one, s) => ({ who: customer.person.firstName, gsrn: one.facilityId,
+const FACILITIES = AUGUST_CUSTOMERS.flatMap((customer, c) => customer.sites.map((one, s) => ({ who: customer.person.firstName, gsrn: one.facilityId,
   scale: Math.round((one.annualConsumptionKwh / 3500) * 100) / 100, offset: c * 3 + s })))
 type Facility = (typeof FACILITIES)[number]
 const [HOUSE, HOLIDAY_HOME, GARAGE, CONTROL] = FACILITIES
@@ -66,7 +85,26 @@ const MISSING = { facility: HOLIDAY_HOME, day: '2026-09-14' }
 /** The house's 10 September is re-sent later with corrected values. */
 const CORRECTED = { facility: HOUSE, day: '2026-09-10' }
 /** The garage's last August days, before our supply started: never billable. */
-const AUGUST = { facility: GARAGE, days: ['2026-08-29', '2026-08-30', '2026-08-31'] }
+const BEFORE_SUPPLY = { facility: GARAGE, days: ['2026-08-29', '2026-08-30', '2026-08-31'] }
+
+/** Inconsistencies and defects noticed in the code while building this scenario (code reading, file:line). */
+const DEFECTS = [
+  { id: 'F81', status: 'confirmed (code)', where: 'lib/customer-operations/customerProcessNextStepEngine.ts:273-283, lib/customer-operations/supplierSwitchOrchestration.ts:374',
+    what: 'The website requested start date never reaches the switch request: the next-step engine passes no date, so createSupplierSwitchRequest uses today + 14 days (lib/operations/db.part-2.ts:542). Observed in F2.' },
+  { id: 'start-floor', status: 'confirmed (code), correct per Ediel', where: 'lib/operations/switchStartDate.ts:139-142,173-182; lib/ediel/rulebook/deadlinePolicy.ts:80-83; lib/operations/supplierSwitchScheduler.ts:140-145',
+    what: 'A Z03L must be sent at least 14 days before the start: a past start is raised to today + 14 at creation and is "expired" in the send window.' },
+  { id: 'signed-start-immutable', status: 'confirmed (code), correct', where: 'supabase/migrations/20260818170828_signed_contract_document_hash_binding.sql:26',
+    what: 'starts_at/expected_start_at of a signed contract cannot change (signed_customer_contract_immutable).' },
+  { id: 'brp-history', status: 'confirmed (code), correct', where: 'lib/ediel/tenantBrp.ts:144-147; supabase/migrations/20261020190000_ediel_tenant_brp_agreement_source.sql:38-40; scripts/helpers/reality/goLiveAls.ts:35',
+    what: 'Field 262 of a Z03 needs exactly one tenant BRP version valid on the supply start; go-live records the BRP from today and an earlier version can never be added afterwards ("historiken skrivs inte om"). A supplier that went live today has no BRP on 2026-09-01.' },
+  { id: 'pricing-contract-start', status: 'suspected', where: 'lib/pricing/engine.ts:262-264',
+    what: 'Pricing takes the contract start from starts_at before actual_start_at: first-period and anniversary charges follow the signed request, not the confirmed market start.' },
+  { id: 'agreement-pdf-start', status: 'suspected', where: 'lib/customer-contracts/agreementPdf.ts:202 (fed by lib/website/customerApplicationCommunication.ts:452, lib/customer-contracts/onlineSigning.ts:430)',
+    what: 'The agreement PDF prints the requested start (contract.starts_at) as "Önskat startdatum", never the date the grid owner confirmed.' },
+  { id: 'signed-job-expired', status: 'suspected', where: 'lib/customer-operations/automation.part-2.ts:900-902, lib/customer-operations/automation.part-3.ts:112',
+    what: 'Only supplier_switch_send_window_not_open is treated as scheduling; an expired window makes the signed-contract start_supplier_switch job a blocked job with a dispatch_blocker on the switch, even when the switch was already sent.' },
+]
+report.defects = DEFECTS
 const profileFor = (f: Facility, dayIndex: number) => dayProfile(dayIndex + f.offset).map(v => Math.round(v * f.scale * 1000) / 1000)
 const sum = (values: number[]) => Math.round(values.reduce((a, b) => a + b, 0) * 1000) / 1000
 
@@ -91,6 +129,8 @@ function loadIds() {
     FROM public.metering_points mp WHERE mp.company_id=${literal(tenant.companyId)}`)
   for (const row of rows) ids.set(row.gsrn, row)
 }
+/** The August facilities' GSRNs as a SQL text[] literal. */
+const augustGsrns = () => `${literal(`{${FACILITIES.map(f => f.gsrn).join(',')}}`)}::text[]`
 function idOf(f: Facility) {
   const found = ids.get(f.gsrn)
   if (!found) throw Error(`facility_not_on_tenant:${f.gsrn}`)
@@ -122,17 +162,45 @@ function switches() {
     WHERE mp.company_id=${literal(tenant.companyId)}`)
 }
 
-/** The one deviation from real time (owner decision). A refusal is recorded, never worked around. */
-function backdate(target: string, statement: string): { target: string; ok: boolean; rows?: number; refusal?: string } {
-  try { return { target, ok: true, rows: sql<number>(statement) } }
-  catch (error) { return { target, ok: false, refusal: String((error as { stderr?: string }).stderr || (error as Error).message).trim().split('\n')[0] } }
-}
-let backdated = false
-/** Steps after F3 need the established historical supply period; without it there is nothing to invoice for September. */
-function requireBackdate(step: string, context: TestContext) {
-  if (backdated) return
-  report[step] = 'skipped: the supply start 2026-09-01 was not established (F3), so September cannot be supplied or invoiced'
+let established = false
+/** Steps after F3 need the August switches with their Z03; without them there is nothing to supply or invoice for September. */
+function requireEstablished(step: string, context: TestContext) {
+  if (established) return
+  report[step] = 'skipped: the August switches (Z03 for 2026-09-01) were not established in F3, so September cannot be supplied or invoiced'
   return context.skip()
+}
+
+/**
+ * The August customer's switch request as the platform's own creation writes it (createSupplierSwitchRequest,
+ * lib/operations/db.part-2.ts, through gridex_create_supplier_switch_v1 with the same row and "created" event), on the
+ * path the signed contract's start_supplier_switch job takes in August (automation.part-3.ts processSupplierSwitch).
+ * The start-date calculation and the send window are the platform's own functions, evaluated on the August
+ * creation day; that dated evaluation is the only stand-in for "now is August".
+ */
+async function createAugustSwitch(customerId: string, facility: AugustFacility) {
+  const now = new Date(AUGUST_SWITCH_CREATED_AT), policy = loadSupplierSwitchPolicy({ subtype: 'L' })
+  const startDateCalculation = calculateEarliestSwitchStartDate({ requestType: 'switch', requestedStartDate: SUPPLY_START, noticePeriod: null, contractEndDate: null,
+    earliestSupplierStartDate: null, moveInDate: null, marketLeadDays: policy.marketLeadDays, today: now })
+  const window = evaluateSupplierSwitchSendWindow({ requestedStartDate: startDateCalculation.effectiveStartDate, policy, now })
+  const supplier = sql<{ name: string; org: string | null }>(`SELECT jsonb_build_object('name',coalesce(legal_name,name),'org',org_number) FROM public.companies WHERE id=${literal(tenant.companyId)}`)
+  const site = sql<Row>(`SELECT jsonb_build_object('gridOwner',grid_owner_id) FROM public.customer_sites WHERE id=${literal(facility.siteId)}`)
+  const request = { customer_id: customerId, contract_id: facility.contractId, customer_contract_id: facility.contractId, site_id: facility.siteId, customer_site_id: facility.siteId,
+    metering_point_id: facility.meteringPointId, power_of_attorney_id: facility.powerOfAttorneyId, authorization_document_id: facility.authorizationDocumentId,
+    request_type: 'switch', status: 'queued', requested_start_date: startDateCalculation.effectiveStartDate, current_supplier_unknown: true,
+    incoming_supplier_name: supplier.name, incoming_supplier_org_number: supplier.org, grid_owner_id: site.gridOwner, price_area_code: 'SE3',
+    validation_snapshot: { isReady: true, issues: [], candidateMeteringPointId: facility.meteringPointId, latestPowerOfAttorneyId: facility.powerOfAttorneyId,
+      ownSupplierResolution: 'company_record', currentSupplier: { id: null, name: null, orgNumber: null, edielId: null, unknown: true, contractStatus: null, contractEndDate: null,
+        noticePeriod: null, terminationFee: null, responseStatus: null }, manualSupplierTerms: null, startDateCalculation, businessBlockers: [] },
+    lifecycle_blocked: false, lifecycle_block_source: null, automation_origin: 'customer_operation_job',
+    automation_key: `customer-operation:${customerId}:${facility.siteId}:${facility.meteringPointId}`,
+    metadata: { supplier_switch_blockers: [], pending_review_reason: null, reality_august_establishment: { createdAt: AUGUST_SWITCH_CREATED_AT, sendWindow: window } },
+    created_by: LIVE.automationUserId, updated_by: LIVE.automationUserId, created_at: AUGUST_SWITCH_CREATED_AT, updated_at: AUGUST_SWITCH_CREATED_AT }
+  const created = await supabaseService.rpc('gridex_create_supplier_switch_v1', { p_company_id: tenant.companyId, p_request: request,
+    p_event: { event_type: 'created', event_status: 'success', message: 'Switchärende skapat och köat för vidare handläggning.', created_by: LIVE.automationUserId,
+      payload: { requestType: 'switch', requestedStartDate: SUPPLY_START, incomingSupplierName: supplier.name, incomingSupplierOrgNumber: supplier.org, ownSupplierResolution: 'company_record', businessBlockers: [] } } })
+  if (created.error) throw Error(`august_switch_create_failed:${facility.gsrn}:${JSON.stringify(created.error)}`)
+  const row = (created.data as { request: { id: string; requested_start_date: string; created_at: string }; existing: boolean })
+  return { facility: facility.gsrn, switchId: row.request.id, existing: row.existing, start: row.request.requested_start_date, createdAt: row.request.created_at, startDateCalculation, window }
 }
 
 type Row = Record<string, unknown>
@@ -242,7 +310,7 @@ describe.sequential('reality F — invoices for several facilities with contract
       FROM public.contract_price_options WHERE company_id=${literal(tenant.companyId)} AND is_default`)).toEqual({ binding: 12, notice: 1, renew: true, term: 12 })
   })
 
-  it('F2 a customer applies for three facilities and a control customer for one', async () => {
+  it('F2 website customers applying today (future customers): the switch start the platform chooses (F81)', async () => {
     for (const centroid of [{ postal_code: '441 30', latitude: 57.9303, longitude: 12.534 }]) await fetch('http://127.0.0.1:3901/__sim/geocode', { method: 'POST', body: JSON.stringify(centroid) })
     for (const customer of CUSTOMERS) for (const one of customer.sites) {
       const address = one.address ?? customer.person.address
@@ -269,61 +337,91 @@ describe.sequential('reality F — invoices for several facilities with contract
     // One customer per person: the three facilities belong to one customer.
     const customers = sql<Array<{ facilities: number }>>(`SELECT coalesce(jsonb_agg(jsonb_build_object('facilities',n) ORDER BY n),'[]') FROM (SELECT count(*) n FROM public.metering_points WHERE company_id=${literal(tenant.companyId)} GROUP BY customer_id) x`)
     expect(customers).toEqual([{ facilities: 1 }, { facilities: 3 }])
-  })
-
-  it('F3 the supply start is set to 1 September before any Z03 is built (owner decision)', async () => {
-    loadIds()
-    // The website application only queues its continuation job; the customer-operations cron runs it, creates
-    // the switch request and builds the Z03 in the same call (customerProcessNextStepEngine → edielAutomation).
-    const before = switches()
-    report.switchesBeforeBackdate = before
-    expect(before.filter(row => row.id || row.z03), 'a cron built switch requests before the backdate (shared world?)').toEqual([])
-    const company = literal(tenant.companyId), start = literal(SUPPLY_START)
-    const updated = (table: string, set: string, where = '') => `WITH u AS (UPDATE public.${table} SET ${set} WHERE company_id=${company}${where} RETURNING 1) SELECT to_jsonb(count(*)) FROM u`
-    const outcomes = [
-      backdate('website_customer_applications.requested_start_date', updated('website_customer_applications', `requested_start_date=${start},requested_start_mode='specific_date',updated_at=now()`)),
-      backdate('customer_application_workflows.snapshot.requested_start_date', updated('customer_application_workflows', `snapshot=snapshot||jsonb_build_object('requested_start_date',${start}::text),updated_at=now()`)),
-      backdate('customer_contracts.requested_start_date', updated('customer_contracts', `requested_start_date=${start}`)),
-      // The start of the signed contract (part of the signed, hash-bound record).
-      backdate('customer_contracts.starts_at+expected_start_at', updated('customer_contracts', `starts_at=${start},expected_start_at=${start}`)),
-    ]
+    // The customer-operations cron runs each application's continuation, which creates the switch request and
+    // builds its Z03 in the same call (customerApplicationRepair → customerProcessNextStepEngine → edielAutomation).
+    const websiteFacilities = CUSTOMERS.flatMap(customer => customer.sites.map(one => one.facilityId))
     const runs: unknown[] = []
-    const sinceBackdate = new Map<string, number>()
-    const deadline = Date.now() + Number(process.env.GRIDEX_REALITY_F3_MINUTES ?? 10) * 60_000
-    let state = before
+    const deadline = Date.now() + Number(process.env.GRIDEX_REALITY_F2_MINUTES ?? 10) * 60_000
+    let observed: SwitchRow[] = []
     for (;;) {
       const ran = await cron('/api/internal/customer-operations/cron')
-      runs.push({ at: new Date().toISOString(), status: ran.status, result: (ran.body as { result?: unknown }).result ?? ran.body })
-      state = switches()
-      for (const row of state) {
-        if (!row.id) continue
-        const seen = sinceBackdate.get(row.id)
-        if (seen !== undefined) { sinceBackdate.set(row.id, seen + 1); continue }
-        // A switch request that exists before its Z03 gets the start too, exactly once.
-        if (!row.z03 && row.start !== SUPPLY_START) {
-          outcomes.push(backdate(`supplier_switch_requests.requested_start_date ${row.facility}`,
-            updated('supplier_switch_requests', `requested_start_date=${start},updated_at=now()`, ` AND id=${literal(row.id)} AND outbound_z03_message_id IS NULL`)))
-          sinceBackdate.set(row.id, 0)
-        }
-      }
-      saveReport({ backdateProgress: { outcomes, runs, state } })
-      const done = state.length === 4 && state.every(row => row.z03 || (row.id && (sinceBackdate.get(row.id) ?? 0) >= 2))
-      if (done || Date.now() > deadline) break
+      runs.push({ at: new Date().toISOString(), status: ran.status })
+      observed = switches().filter(row => websiteFacilities.includes(row.facility))
+      if (observed.every(row => row.id) || Date.now() > deadline) break
       await pause(30_000)
     }
-    const z03Starts = state.map(row => ({ facility: row.facility, switchStatus: row.status, switchStart: row.start, z03: row.z03Status, z03Start: row.z03Start,
-      switchBackdated: Boolean(row.id && sinceBackdate.has(row.id)), calculation: row.calculation, blockers: row.blockers, events: row.events }))
-    backdated = state.length === 4 && state.every(row => row.z03Start === SUPPLY_START.replaceAll('-', ''))
-    const refusals = outcomes.filter(outcome => !outcome.ok)
-    report.backdate = { backdated, outcomes, refusals, z03Starts, customerOperationRuns: runs, startDates: startDates() }
-    // Owner decision: where the platform refuses the past start, the run says so and stops here.
-    expect.soft(refusals, `the platform refused the backdated start on: ${JSON.stringify(refusals)}`).toEqual([])
-    expect(z03Starts.map(row => row.z03Start), `every Z03 must carry the supply start 20260901; the real code built: ${JSON.stringify(z03Starts, null, 1).slice(0, 4000)}`)
-      .toEqual(FACILITIES.map(() => '20260901'))
+    const requested = new Map(startDates().map(row => [String(row.facility), (row.application as Row | null)?.start as string | null]))
+    const future = observed.map(row => ({ facility: row.facility, requestedOnWebsite: requested.get(row.facility) ?? null, switchStart: row.start, z03Start: row.z03Start, calculation: row.calculation }))
+    report.futureCustomers = { runs, switches: future }
+    // F81: the start the customer chose on the website never reaches the switch request (today + 14 days instead).
+    for (const row of future) {
+      expect.soft(row.switchStart, `F81 ${row.facility}: switch request created for the website application`).toBeTruthy()
+      expect.soft(row.switchStart, `F81 ${row.facility}: the switch carries the start the customer requested on the website`).toBe(row.requestedOnWebsite)
+    }
+  }, 15 * 60_000)
+
+  it('F3 the August customers: signed contracts, switch requests created in August, Z03 from the real builder', async () => {
+    const company = literal(tenant.companyId)
+    const grid = sql<{ id: string; ediel: string }>(`SELECT jsonb_build_object('id',id,'ediel',ediel_id) FROM public.grid_owners WHERE ediel_id=${literal(GRID_OWNER_EDIEL_ID)} AND company_id IS NULL`)
+    // Field 262 of a Z03 is the tenant BRP valid on the supply start (20261020190000_ediel_tenant_brp_agreement_source.sql:38-40).
+    const brp = sql<Row>(`SELECT jsonb_build_object('versions',(SELECT coalesce(jsonb_agg(jsonb_build_object('environment',environment,'brp',brp_ediel_id,'from',valid_from,'to',valid_to,'active',is_active) ORDER BY valid_from),'[]')
+        FROM public.ediel_brp_settings WHERE company_id=${company}),
+      'validOnSupplyStart',(SELECT coalesce(jsonb_object_agg(e,n),'{}') FROM (SELECT environment e,count(*) n FROM public.ediel_brp_settings WHERE company_id=${company} AND is_active
+        AND valid_from<=DATE '2026-09-01' AND (valid_to IS NULL OR valid_to>=DATE '2026-09-01') GROUP BY 1) x))`)
+    report.brpAtSupplyStart = brp
+    const customers: Array<{ customerId: string; facilities: AugustFacility[] }> = []
+    const switchRows: Array<Awaited<ReturnType<typeof createAugustSwitch>>> = []
+    for (const customer of AUGUST_CUSTOMERS) {
+      const one = await augustSupplyCustomer(tenant, { firstName: customer.person.firstName, lastName: customer.person.lastName, personalNumber: customer.person.personalNumber,
+        email: customer.person.email, address: customer.person.address, supplyStart: SUPPLY_START, authorizedAt: AUGUST_SIGNED_AT,
+        grid: { gridOwnerId: grid.id, gridOwnerEdielId: grid.ediel, gridAreaCode: GRID_AREA },
+        facilities: customer.sites.map(s => ({ gsrn: s.facilityId, ...(s.address ?? customer.person.address), annualConsumptionKwh: s.annualConsumptionKwh })) })
+      customers.push(one)
+      // Created right after signing: in August the signed contract's start_supplier_switch job found no switch and
+      // created this one. A cron run (also another simulation's) now finds it and never creates a second one.
+      for (const facility of one.facilities) switchRows.push(await createAugustSwitch(one.customerId, facility))
+    }
+    loadIds()
+    report.augustCustomers = { customers, switches: switchRows }
+    for (const row of switchRows) {
+      expect(row.startDateCalculation.requestedHonored, `${row.facility} start 2026-09-01 was valid on the August creation day`).toBe(true)
+      expect(row.window.windowOpen, `${row.facility} the send window was open in August: ${JSON.stringify(row.window)}`).toBe(true)
+      expect(row.existing, `${row.facility}: a switch request already existed (a cron ran the signed-contract job first)`).toBe(false)
+    }
+    // The signed-agreement confirmation (archived PDF bound to the contract) is delivered by the same function the
+    // customer-operations cron runs (contractConfirmations); it is called directly so no switch job runs before the Z03.
+    const deliveries: unknown[] = []
+    const readiness = () => sql<Array<{ facility: string; ready: boolean; blockers: unknown }>>(`SELECT coalesce(jsonb_agg(jsonb_build_object('facility',mp.metering_point_id,'ready',r.switch_ready,'blockers',r.blockers)),'[]')
+      FROM public.customer_contract_lifecycle_readiness_v r JOIN public.metering_points mp ON mp.id=r.metering_point_id
+      WHERE r.company_id=${company} AND mp.metering_point_id=ANY(${augustGsrns()})`)
+    for (let attempt = 0; attempt < 3 && !readiness().every(row => row.ready); attempt += 1) deliveries.push(await processPendingContractConfirmations(50))
+    const ready = readiness()
+    report.augustReadiness = { deliveries, ready }
+    expect(ready.filter(row => !row.ready), 'every August contract is switch-ready (signed, PDF archived, power of attorney)').toEqual([])
+
+    // The Z03 from the platform's builder (lib/ediel/flows/prodatSwitch.ts), exactly as edielAutomation.ts:287 calls it,
+    // but NOT behind evaluateSupplierSwitchSchedule (edielAutomation.ts:179): today that check correctly says the window
+    // closed on 18 August; it is the one check that stands for "now is August".
+    const built: Array<{ facility: string; ok: boolean; message?: string; status?: string | null; error?: string }> = []
+    for (const row of switchRows) {
+      try {
+        const message = await prepareAndQueueEdielZ03({ actorUserId: LIVE.automationUserId, switchRequestId: row.switchId })
+        built.push({ facility: row.facility, ok: true, message: message.id, status: message.status })
+      } catch (error) { built.push({ facility: row.facility, ok: false, error: error instanceof Error ? error.message : String(error) }) }
+    }
+    const state = switches().filter(row => FACILITIES.some(f => f.gsrn === row.facility))
+    const perFacility = sql<Record<string, number>>(`SELECT coalesce(jsonb_object_agg(mp.metering_point_id,(SELECT count(*) FROM public.supplier_switch_requests s WHERE s.company_id=mp.company_id AND s.metering_point_id=mp.id)),'{}')
+      FROM public.metering_points mp WHERE mp.company_id=${company} AND mp.metering_point_id=ANY(${augustGsrns()})`)
+    established = state.length === FACILITIES.length && state.every(row => row.z03Start === SUPPLY_START.replaceAll('-', ''))
+    report.augustZ03 = { established, built, switches: state, switchRequestsPerFacility: perFacility }
+    expect(perFacility, 'exactly one switch request per August facility').toEqual(Object.fromEntries(FACILITIES.map(f => [f.gsrn, 1])))
+    // If the builder refuses, the run stops here and says exactly why (no workaround).
+    expect(built.filter(b => !b.ok), `the real Z03 builder refused the August switch; tenant BRP at the supply start: ${JSON.stringify(brp)}`).toEqual([])
+    expect(state.map(row => row.z03Start), `every Z03 carries the supply start 20260901: ${JSON.stringify(state, null, 1).slice(0, 3000)}`).toEqual(FACILITIES.map(() => '20260901'))
   }, 15 * 60_000)
 
   it('F4 the world runs on cron cadence until every switch is confirmed and supply rests on the Z04 from 1 September', async (context) => {
-    requireBackdate('F4', context)
+    requireEstablished('F4', context)
     await gridOwner.profile({ contrlDelayMs: 20_000, aperakDelayMs: 40_000, z04DelayMs: 90_000 })
     const supply = () => sql<Array<{ facility: string; switchId: string | null; switch: string | null; start: string | null; z04: string | null; period: Row | null }>>(`SELECT coalesce(jsonb_agg(jsonb_build_object(
         'facility',mp.metering_point_id,'switchId',s.id,'switch',s.status,'start',coalesce(s.confirmed_start_date,s.requested_start_date),'z04',s.inbound_z04_message_id,
@@ -332,7 +430,7 @@ describe.sequential('reality F — invoices for several facilities with contract
           FROM public.customer_supply_periods p WHERE p.company_id=mp.company_id AND p.metering_point_id=mp.id ORDER BY p.created_at DESC LIMIT 1)) ORDER BY mp.created_at),'[]')
       FROM public.metering_points mp
       LEFT JOIN LATERAL (SELECT * FROM public.supplier_switch_requests x WHERE x.company_id=mp.company_id AND x.metering_point_id=mp.id ORDER BY x.created_at DESC LIMIT 1) s ON true
-      WHERE mp.company_id=${literal(tenant.companyId)}`)
+      WHERE mp.company_id=${literal(tenant.companyId)} AND mp.metering_point_id=ANY(${augustGsrns()})`)
     const deadline = Date.now() + Number(process.env.GRIDEX_REALITY_F4_MINUTES ?? 30) * 60_000
     const slots: unknown[] = []
     let state = supply()
@@ -341,7 +439,7 @@ describe.sequential('reality F — invoices for several facilities with contract
       slots.push({ at: new Date().toISOString(), crons: ran.map(r => ({ path: r.path, status: r.status, ms: r.ms, ...(r.path.includes('customer-operations') ? { body: r.body } : {}) })) })
       state = supply()
       saveReport({ worldSlots: slots, supply: state })
-      const settled = state.length === 4 && state.every(row => row.period?.status === 'active') || state.some(row => row.switch === 'failed')
+      const settled = state.length === FACILITIES.length && state.every(row => row.period?.status === 'active') || state.some(row => row.switch === 'failed')
       if (settled || Date.now() > deadline) break
       await pause(60_000)
     }
@@ -355,24 +453,31 @@ describe.sequential('reality F — invoices for several facilities with contract
       expect(row?.period, `${f.gsrn} ${JSON.stringify(row)}`).toMatchObject({ status: 'active', start: SUPPLY_START, atSupplyStart: true, customer: id.customer,
         contract: id.contract, message: row?.z04, switch: row?.switchId })
     }
+    // Billing may rest on the period: the received-source supply basis for September exists for every facility.
+    const basis = sql<Record<string, unknown>>(`SELECT coalesce(jsonb_object_agg(mp.metering_point_id,gridex_received_sources.billing_supply_basis_v1(p.company_id,p.id,
+        '2026-08-31T22:00:00Z'::timestamptz,'2026-09-30T22:00:00Z'::timestamptz)),'{}')
+      FROM public.customer_supply_periods p JOIN public.metering_points mp ON mp.id=p.metering_point_id
+      WHERE p.company_id=${literal(tenant.companyId)} AND mp.metering_point_id=ANY(${augustGsrns()})`)
+    report.billingSupplyBasis = basis
+    for (const f of FACILITIES) expect(basis[f.gsrn] ?? null, `${f.gsrn} billing supply basis for September`).not.toBeNull()
   }, 40 * 60_000)
 
   it('F5 the grid owner sends September for every facility, with one day missing and three August days', async (context) => {
-    requireBackdate('F5', context)
+    requireEstablished('F5', context)
     // SYNTHETIC stand-in for EXT-ISSUER-01: the issuer registry entry of the real ALS grid owner, exactly as the
     // live-chain fixture registers its fixture issuer (configureTenant). No value, period or gate is set here.
     registerUtiltsIssuer(sql as never, literal, GRID_OWNER_EDIEL_ID, tenant.adminUserId)
     await gridOwnerSendsE66([
       ...FACILITIES.flatMap(f => SEPTEMBER.flatMap((day, i) => f === MISSING.facility && day === MISSING.day ? [] : [{ facility: f.gsrn, day, kind: 'regular' as const, values: profileFor(f, i) }])),
-      ...AUGUST.days.map((day, i) => ({ facility: AUGUST.facility.gsrn, day, kind: 'august' as const, values: profileFor(AUGUST.facility, 30 + i) })),
+      ...BEFORE_SUPPLY.days.map((day, i) => ({ facility: BEFORE_SUPPLY.facility.gsrn, day, kind: 'august' as const, values: profileFor(BEFORE_SUPPLY.facility, 30 + i) })),
     ])
     report.sentFiles = sentFiles
     report.sentKwh = Object.fromEntries(FACILITIES.map(f => [f.gsrn, sum(SEPTEMBER.flatMap(day => effective(f.gsrn).get(day) ?? []))]))
-    expect(sentFiles).toHaveLength(FACILITIES.length * SEPTEMBER.length - 1 + AUGUST.days.length)
+    expect(sentFiles).toHaveLength(FACILITIES.length * SEPTEMBER.length - 1 + BEFORE_SUPPLY.days.length)
   }, 15 * 60_000)
 
   it('F6 the inbound cron receives every file on the tenant and acknowledges it', async (context) => {
-    requireBackdate('F6', context)
+    requireEstablished('F6', context)
     report.receptionRuns = await receiveUntil(() => inboundE66().length >= sentFiles.length, Number(process.env.GRIDEX_REALITY_F6_MINUTES ?? 30))
     const inbound = inboundE66()
     report.inbound = inbound
@@ -381,7 +486,7 @@ describe.sequential('reality F — invoices for several facilities with contract
   }, 40 * 60_000)
 
   it('F6b the grid owner re-sends one day with corrected values', async (context) => {
-    requireBackdate('F6b', context)
+    requireEstablished('F6b', context)
     const original = effective(CORRECTED.facility.gsrn).get(CORRECTED.day)!
     const corrected = original.map((value, q) => Math.round((value + (q % 4 === 0 ? 0.012 : 0)) * 1000) / 1000)
     correctedQuarters = corrected.filter((value, q) => value !== original[q]).length
@@ -393,26 +498,33 @@ describe.sequential('reality F — invoices for several facilities with contract
   }, 15 * 60_000)
 
   it('F6c after issuer evidence and operator reprocessing, values are stored on the right customer and only September is billable', async (context) => {
-    requireBackdate('F6c', context)
+    requireEstablished('F6c', context)
     const sources = inboundE66()
     for (const source of sources) approveIssuerHistoryGround(source.id, tenant.adminUserId)
     // No job re-evaluates held UTILTS: Gridex staff run the UTILTS engine per message (chain E, E5).
     const staff = await operatorSession(tenant.operatorEmail, tenant.operatorPassword)
     const page = await staff.newPage()
     const storedFor = (id: string) => sql<number>(`SELECT to_jsonb(count(*)) FROM public.normalized_metering_values WHERE source_message_id=${literal(id)}`)
-    const outcomes: Array<{ source: string; file: string | null; button: boolean; stored: number; expected: number; diagnosis?: unknown; pageText?: string }> = []
+    const outcomes: Array<{ source: string; file: string | null; button: boolean; label: string | null; pageStatus: number | null; actionStatus: number | null; stored: number; expected: number
+      diagnosis?: unknown; pageText?: string }> = []
     for (const source of sources) {
       const file = fileOf(source.reference)
       // A correction stores only the quarter-hours it changed (FINDINGS F78).
       const expected = file?.kind === 'correction' ? correctedQuarters : 96
-      await page.goto(`/admin/ediel/messages/${source.id}`)
-      const button = page.getByRole('button', { name: 'Kör UTILTS engine / skapa TGT-svar' })
+      const response = await page.goto(`/admin/ediel/messages/${source.id}`)
+      // The detail streams behind loading.tsx for 15-30 s (FINDINGS S2): wait for it before looking for the button.
+      // A held source offers "Återuppta hållna transaktioner" instead (F80 fix).
+      await page.getByText('Detaljvy för canonical kernel').first().waitFor({ timeout: 180_000 })
+      const button = page.getByRole('button', { name: /Kör UTILTS engine \/ skapa TGT-svar|Återuppta hållna transaktioner/ })
       const visible = await button.count()
-      if (visible) await Promise.all([page.waitForLoadState('networkidle'), button.click()])
+      const label = visible ? (await button.first().innerText()).trim() : null
+      // The server action finishes before the next message page is opened.
+      const actionStatus = visible ? await submitServerAction(page, () => button.first().click(), 600_000) : null
       const started = Date.now()
       let stored = storedFor(source.id)
       while (visible && stored < expected && Date.now() - started < 90_000) { await pause(3_000); stored = storedFor(source.id) }
-      const outcome: (typeof outcomes)[number] = { source: source.id, file: file ? `${file.kind} ${file.facility} ${file.day}` : null, button: Boolean(visible), stored, expected }
+      const outcome: (typeof outcomes)[number] = { source: source.id, file: file ? `${file.kind} ${file.facility} ${file.day}` : null, button: Boolean(visible), label,
+        pageStatus: response?.status() ?? null, actionStatus, stored, expected }
       if (stored < expected) {
         outcome.diagnosis = sql(`SELECT jsonb_build_object('status',m.status,
           'issues',(SELECT coalesce(jsonb_agg(i->>'code'),'[]') FROM jsonb_array_elements(coalesce(m.validation_report#>'{utiltsRuntime,validation,issues}','[]')) i),
@@ -465,7 +577,7 @@ describe.sequential('reality F — invoices for several facilities with contract
   }, 150 * 60_000)
 
   it('F7 the admin imports and locks the September SE3 spot prices', async (context) => {
-    requireBackdate('F7', context)
+    requireEstablished('F7', context)
     const admin = await operatorSession(tenant.adminEmail, tenant.adminPassword)
     const imported = await admin.request.post('/api/internal/spot/import-month', { data: { billing_month: MONTH, price_areas: ['SE3'] } })
     report.spotImport = { status: imported.status(), body: await imported.json().catch(() => null) }
@@ -478,7 +590,7 @@ describe.sequential('reality F — invoices for several facilities with contract
   })
 
   it('F8 the monthly billing cron prepares September: underlays, locked pricing, invoices, files and agreements', async (context) => {
-    requireBackdate('F8', context)
+    requireEstablished('F8', context)
     const result = await cron(`/api/cron/billing/monthly?company_id=${tenant.companyId}&billing_month=${MONTH}`)
     report.billingCron = result
     expect(result.status, JSON.stringify(result.body).slice(0, 2000)).toBe(200)
@@ -495,7 +607,7 @@ describe.sequential('reality F — invoices for several facilities with contract
   }, 15 * 60_000)
 
   it('F9 each invoice matches an independent calculation; terms, fees, payment reference and rounding (F70–F77)', async (context) => {
-    requireBackdate('F9', context)
+    requireEstablished('F9', context)
     // A second cron run must not prepare anything twice.
     const again = await cron(`/api/cron/billing/monthly?company_id=${tenant.companyId}&billing_month=${MONTH}`)
     const repeated = billingGraph()
@@ -546,7 +658,8 @@ describe.sequential('reality F — invoices for several facilities with contract
     // Contract terms as signed: 12 months binding and 1 month notice on every contract.
     const contracts = sql<Row[]>(`SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,'customer',customer_id,'consolidated',consolidated_invoice,'billingLevel',billing_level,
         'startsAt',starts_at,'actualStart',actual_start_date,'confirmedStart',confirmed_start_date,'endsAt',ends_at,'binding',binding_months,'notice',notice_months,
-        'renew',auto_renew_enabled,'renewTerm',auto_renew_term_months)),'[]') FROM public.customer_contracts WHERE company_id=${literal(tenant.companyId)}`)
+        'renew',auto_renew_enabled,'renewTerm',auto_renew_term_months)),'[]') FROM public.customer_contracts WHERE company_id=${literal(tenant.companyId)}
+        AND id=ANY(${literal(`{${FACILITIES.map(f => idOf(f).contract).join(',')}}`)}::uuid[])`)
     report.contracts = contracts
     for (const contract of contracts) expect(contract, 'signed binding and notice').toMatchObject({ binding: TERMS.bindingMonths, notice: TERMS.noticeMonths })
 
@@ -571,7 +684,7 @@ describe.sequential('reality F — invoices for several facilities with contract
     findings.F72 = { status: outputs.every(o => Object.values(o.terms).every(Boolean)) ? 'refuted' : 'confirmed: contract terms missing in invoice outputs',
       evidence: { outputs, filesAvailable: renderedFiles.length } }
     for (const o of outputs) expect.soft(o.terms, `F72 contract terms in ${o.output}`).toEqual(ALL_TERMS)
-    const pdfs = agreements.map(a => ({ contract: a.contract, error: a.error, terms: a.lines ? termsIn(a.lines.join('\n')) : null,
+    const pdfs = agreements.filter(a => FACILITIES.some(f => idOf(f).contract === a.contract)).map(a => ({ contract: a.contract, error: a.error, terms: a.lines ? termsIn(a.lines.join('\n')) : null,
       startLine: a.lines?.find(line => /startdatum/i.test(line)) ?? null }))
     findings.F73 = { status: pdfs.length && pdfs.every(p => p.terms && Object.values(p.terms).every(Boolean)) ? 'refuted' : 'confirmed: agreement PDF lacks terms', evidence: pdfs }
     expect.soft(pdfs.length, 'F73 every contract has an archived agreement PDF').toBe(FACILITIES.length)
@@ -589,7 +702,7 @@ describe.sequential('reality F — invoices for several facilities with contract
         AND i.status IN ('issued','sent','paid','overdue','cancelled','credited')),'statuses',(SELECT coalesce(jsonb_agg(DISTINCT i.status),'[]') FROM public.customer_invoices i WHERE i.company_id=c.company_id AND i.customer_id=c.id),
         'lines',(SELECT count(*) FROM public.customer_invoice_lines l WHERE l.company_id=c.company_id AND l.customer_id=c.id),
         'documents',(SELECT count(*) FROM public.customer_invoice_documents d WHERE d.company_id=c.company_id AND d.customer_id=c.id))),'[]')
-      FROM public.customers c WHERE c.company_id=${literal(tenant.companyId)}`)
+      FROM public.customers c WHERE c.company_id=${literal(tenant.companyId)} AND c.id=ANY(${literal(`{${[...new Set(FACILITIES.map(f => idOf(f).customer))].join(',')}}`)}::uuid[])`)
     findings.F76 = { status: portal.every(p => Number(p.lines) === 0 && Number(p.documents) === 0)
       ? 'confirmed for the prepared invoices: no invoice lines or documents for Mina sidor; drafts await approval and are not published by design' : 'refuted', evidence: portal }
     for (const p of portal) expect.soft(Number(p.lines), `F76 invoice lines for Mina sidor (customer ${p.customer})`).toBeGreaterThan(0)
@@ -603,18 +716,19 @@ describe.sequential('reality F — invoices for several facilities with contract
   }, 15 * 60_000)
 
   it('F10 isolation: the control invoice holds only its own facility, nothing crosses tenants, no queue is stuck', (context) => {
-    requireBackdate('F10', context)
+    requireEstablished('F10', context)
     const control = idOf(CONTROL)
     const controlUnderlays = graph.underlays.filter(u => u.customer === control.customer)
     expect(controlUnderlays.map(u => u.facility)).toEqual([CONTROL.gsrn])
     expect(graph.invoices.filter(i => i.customer === control.customer).map(i => i.underlay)).toEqual([controlUnderlays[0].id])
     // Every underlay is built only from its own facility's values.
     for (const underlay of graph.underlays) expect(graph.underlayItems[String(underlay.id)] ?? [], String(underlay.facility)).toEqual([ids.get(String(underlay.facility))?.mp])
-    const mine = [...ids.values()]
+    // Only the August customers are supplied and invoiced in September; the website (future) customers have no values.
+    const mine = FACILITIES.map(idOf)
     const uuids = (values: string[]) => `${literal(`{${values.join(',')}}`)}::uuid[]`
     const company = literal(tenant.companyId)
     const leaks = sql<Record<string, number>>(`SELECT jsonb_build_object(
-      'valuesElsewhere',(SELECT count(*) FROM public.normalized_metering_values WHERE company_id<>${company} AND (metering_point_id=ANY(${uuids(mine.map(m => m.mp))}) OR facility_id=ANY(${literal(`{${FACILITIES.map(f => f.gsrn).join(',')}}`)}::text[]))),
+      'valuesElsewhere',(SELECT count(*) FROM public.normalized_metering_values WHERE company_id<>${company} AND (metering_point_id=ANY(${uuids(mine.map(m => m.mp))}) OR facility_id=ANY(${augustGsrns()}))),
       'underlaysElsewhere',(SELECT count(*) FROM public.billing_underlays WHERE company_id<>${company} AND metering_point_id=ANY(${uuids(mine.map(m => m.mp))})),
       'invoicesElsewhere',(SELECT count(*) FROM public.customer_invoices WHERE company_id<>${company} AND customer_id=ANY(${uuids(mine.map(m => m.customer))})),
       'foreignValuesHere',(SELECT count(*) FROM public.normalized_metering_values WHERE company_id=${company} AND NOT (metering_point_id=ANY(${uuids(mine.map(m => m.mp))}))),

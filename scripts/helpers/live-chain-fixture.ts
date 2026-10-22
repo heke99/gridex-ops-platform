@@ -311,3 +311,70 @@ export async function existingSupplyCustomer(supabase: { rpc: (name: string, arg
     VALUES(${literal(supplyPeriodId)},${literal(tenant.companyId)},${literal(customerId)},${literal(meteringPointId)},${literal(contractId)},${literal(contractId)},${literal(input.supplyStart)},${literal(input.supplyStart)},'active','migration','{"e2e_live_chain":"existing_customer"}');`)
   return { customerId, siteId, meteringPointId, meterId, contractId, supplyPeriodId, email }
 }
+
+export type AugustFacilityInput = { gsrn: string; street: string; postalCode: string; city: string; annualConsumptionKwh: number }
+export type AugustFacility = { gsrn: string; siteId: string; meteringPointId: string; contractId: string; powerOfAttorneyId: string; authorizationDocumentId: string }
+export type AugustSupplyCustomer = { customerId: string; email: string; facilities: AugustFacility[] }
+
+/**
+ * A private customer who signed in August for supply of one or more facilities from `supplyStart`, on the
+ * tenant's published offer: one contract per facility, signed through the platform's own signature RPCs
+ * (which freeze the price snapshot and queue the signed-agreement confirmation), and a signed power of
+ * attorney per facility through the admin writer and its authorization chain. The registered address is the
+ * customer's masterdata. Unlike `existingSupplyCustomer` there is NO supply period: supply must come from the
+ * grid owner's Z04 (a migrated period is never billable, FINDINGS F17). No switch request is created here.
+ */
+export async function augustSupplyCustomer(tenant: LiveTenant, input: { firstName: string; lastName: string; personalNumber: string; email: string
+  address: { street: string; postalCode: string; city: string }; supplyStart: string; authorizedAt: string
+  grid: { gridOwnerId: string; gridOwnerEdielId: string; gridAreaCode: string }; facilities: AugustFacilityInput[] }): Promise<AugustSupplyCustomer> {
+  const { supabaseService } = await import('@/lib/supabase/service')
+  const { savePowerOfAttorney } = await import('@/lib/operations/db')
+  const { ensureAuthorizationDocumentFromPowerOfAttorney } = await import('@/lib/legal/authorizationChain')
+  const { powerOfAttorneyCoverageFromScopes } = await import('@/lib/operations/powerOfAttorneyWorkflow')
+  const company = literal(tenant.companyId), customerId = randomUUID(), fullName = `${input.firstName} ${input.lastName}`
+  sql(`INSERT INTO public.customers(id,company_id,first_name,last_name,full_name,personal_number,email,invoice_email,customer_type,is_test_data,source,billing_street,billing_postal_code,billing_city,billing_country)
+    VALUES(${literal(customerId)},${company},${literal(input.firstName)},${literal(input.lastName)},${literal(fullName)},${literal(input.personalNumber)},${literal(input.email)},${literal(input.email)},'private',true,'e2e_reality_august',
+     ${literal(input.address.street)},${literal(input.address.postalCode)},${literal(input.address.city)},'SE');
+   INSERT INTO public.customer_addresses(company_id,customer_id,type,street_1,postal_code,city,country,is_active)
+    VALUES(${company},${literal(customerId)},'registered',${literal(input.address.street)},${literal(input.address.postalCode)},${literal(input.address.city)},'SE',true);`)
+  const facilities: AugustFacility[] = []
+  for (const facility of input.facilities) {
+    const siteId = randomUUID(), meteringPointId = randomUUID(), contractId = randomUUID(), gsrn = literal(facility.gsrn)
+    sql(`INSERT INTO public.customer_sites(id,company_id,customer_id,site_name,site_type,status,country,facility_id,grid_owner_id,grid_owner_ediel_id,grid_area_code,price_area_code,street,postal_code,city,annual_consumption_kwh,current_supplier_unknown,is_test_data)
+      VALUES(${literal(siteId)},${company},${literal(customerId)},${literal(facility.street)},'consumption','active','SE',${gsrn},${literal(input.grid.gridOwnerId)},${literal(input.grid.gridOwnerEdielId)},${literal(input.grid.gridAreaCode)},'SE3',
+       ${literal(facility.street)},${literal(facility.postalCode)},${literal(facility.city)},${facility.annualConsumptionKwh},true,true);
+     INSERT INTO public.metering_points(id,company_id,customer_id,site_id,customer_site_id,metering_point_id,meter_point_id,ediel_metering_point_id,ediel_reference,site_facility_id,grid_owner_id,grid_owner_ediel_id,grid_area_code,price_area_code,
+       reading_frequency,measurement_type,product_direction,is_settlement_relevant,status,estimated_annual_consumption_kwh,is_test_data)
+      VALUES(${literal(meteringPointId)},${company},${literal(customerId)},${literal(siteId)},${literal(siteId)},${gsrn},${gsrn},${gsrn},${gsrn},${gsrn},${literal(input.grid.gridOwnerId)},${literal(input.grid.gridOwnerEdielId)},${literal(input.grid.gridAreaCode)},'SE3',
+       'quarter_hour','consumption','consumption',true,'active',${facility.annualConsumptionKwh},true);
+     INSERT INTO public.customer_contracts(id,company_id,customer_id,site_id,customer_site_id,metering_point_id,contract_offer_id,status,created_by,contract_publication_version_id,
+      contract_product_id,contract_product_version_id,price_plan_id,price_plan_version_id,price_book_id,legal_bundle_version_id,offer_reference,commercial_snapshot,legal_snapshot,
+      starts_at,requested_start_date,requested_start_mode,invoice_email)
+     SELECT ${literal(contractId)},${company},${literal(customerId)},${literal(siteId)},${literal(siteId)},${literal(meteringPointId)},${literal(tenant.offerId)},'pending_signature',${literal(tenant.adminUserId)},v.id,
+      p.contract_product_id,v.contract_product_version_id,v.price_plan_id,v.price_plan_version_id,v.price_book_id,v.legal_bundle_version_id,v.offer_reference,p.commercial_snapshot,l.rendered_snapshot,
+      ${literal(input.supplyStart)},${literal(input.supplyStart)},'specific_date',${literal(input.email)}
+     FROM public.contract_publication_versions v JOIN public.contract_product_versions p ON p.id=v.contract_product_version_id
+     JOIN public.legal_bundle_versions l ON l.id=v.legal_bundle_version_id WHERE v.id=${literal(tenant.publicationVersionId)};`)
+    const tokenHash = randomUUID().replaceAll('-', '') + randomUUID().replaceAll('-', '')
+    const prepared = await supabaseService.rpc('gridex_prepare_customer_contract_signature_request_v1', { p_company_id: tenant.companyId, p_customer_id: customerId, p_contract_id: contractId,
+      p_token_hash: tokenHash, p_recipient_email: input.email, p_expires_at: new Date(Date.now() + 3_600_000).toISOString(), p_actor_user_id: tenant.adminUserId, p_channel: 'internal' })
+    if (prepared.error) throw Error(`signature_prepare_failed:${JSON.stringify(prepared.error)}`)
+    const finalized = await supabaseService.rpc('gridex_finalize_customer_contract_signature_v1', { p_token_hash: tokenHash, p_signed_ip_hash: null, p_signed_user_agent: 'E2E reality August customer' })
+    if (finalized.error) throw Error(`signature_finalize_failed:${JSON.stringify(finalized.error)}`)
+    // The customer's power of attorney for the switch, recorded through the admin writer (draft, then signed in August).
+    const scopes = ['supplier_switch', 'grid_owner_data', 'metering_data']
+    const reference = `POA${contractId.replaceAll('-', '').slice(0, 12).toUpperCase()}`
+    const poaInput = { customer_id: customerId, site_id: siteId, companyId: tenant.companyId, reference, scope: 'supplier_switch' as const, valid_from: input.authorizedAt.slice(0, 10),
+      valid_to: `${Number(input.authorizedAt.slice(0, 4)) + 1}${input.authorizedAt.slice(4, 10)}`, method: 'manual_pdf', signer_name: fullName, signer_identity_number: input.personalNumber,
+      accepted_source: 'e2e_reality_august', signedScopes: scopes, scopeSummary: { scopes } }
+    const poa = await savePowerOfAttorney(supabaseService, { ...poaInput, status: 'draft', signed_at: null, accepted_at: null })
+    const linked = await supabaseService.from('powers_of_attorney').update({ contract_id: contractId, customer_contract_id: contractId }).eq('id', poa.id).eq('company_id', tenant.companyId)
+    if (linked.error) throw Error(`power_of_attorney_link_failed:${linked.error.message}`)
+    await savePowerOfAttorney(supabaseService, { ...poaInput, id: poa.id, status: 'signed', signed_at: input.authorizedAt, accepted_at: input.authorizedAt })
+    const authorization = await ensureAuthorizationDocumentFromPowerOfAttorney({ companyId: tenant.companyId, customerId, powerOfAttorneyId: poa.id, siteId, meteringPointId, contractId,
+      coverage: powerOfAttorneyCoverageFromScopes(scopes), signedScopes: scopes })
+    if (!authorization.authorizationDocumentId) throw Error(`authorization_document_missing:${facility.gsrn}`)
+    facilities.push({ gsrn: facility.gsrn, siteId, meteringPointId, contractId, powerOfAttorneyId: poa.id, authorizationDocumentId: authorization.authorizationDocumentId })
+  }
+  return { customerId, email: input.email, facilities }
+}
