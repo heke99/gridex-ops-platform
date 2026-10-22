@@ -1242,6 +1242,26 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
 - **Orsak:** simulatorerna startas frikopplade (`detached`) och stoppas bara i scenariots `afterAll`.
 - **Rättning:** körskriptet stoppar alla kvarlämnade scenariosimulatorer innan en körning startar.
 
+### F körning 13–15: första produktionsbytet hela vägen till nätägaren (2026-10-22)
+- **T5 Nätägarsimulatorn kastade S/MIME-krypterad produktionspost — RÄTTAD (commit `8c9c0a68`), verklighetsvärlden.**
+  - Produktionspost krypteras till mottagarens certifikat (enveloped-data), precis som i verklig Ediel-trafik.
+  - Simulatorerna letade bara efter klartext. De markerade alla Z03 som lästa men tog aldrig emot dem (`received: []`).
+  - Nu dekrypterar de med den nyckel som certifikatkatalogens simulator utfärdat.
+- **Körning 15, nätägarsidan:** nätägaren tog emot alla fyra Z03 och skickade CONTRL, APERAK och Z04 (start 2026-09-01) för varje anläggning. Plattformen tog emot allt.
+- **Körning 15, plattformssidan:**
+  - Z04 bedömdes som accepterad på alla nivåer (syntax, funktion och tillämpning). Svarsplanen var positiv CONTRL och positiv APERAK.
+  - **Ingen leveransperiod skapades, och bytet stod kvar som `prepared`.**
+  - Händelsen "CONTRL skapades inte: ediel_technical_ack_route_unavailable" visades, och `ediel_technical_ack_route_count:0`.
+
+### F92 Go-live skapar aldrig den tekniska kvittensrouten till nätägaren — UNDER UTREDNING, misstänkt kritisk
+- **Krav:** CONTRL och APERAK till nätägaren kräver exakt en aktiv route med `route_scope='ediel_ack'`. Dess profil måste matcha originalets UNB, fast omvänt: Ediel-ID, underadresser och applikationsreferens. Dessutom ska brevlåda och SMTP stämma.
+- **Saknas:** varken go-live-guiden eller registermaterialiseringen skapar en sådan route.
+- **Produktion (summeringsfråga, bara läsning):** 2 kvittensroutes, för 1 bolag, av totalt 361 routes.
+- **Utreds nu:**
+  - om Z04:ns affärseffekt (aktivering av leveransen) väntar på att vår kvittens skapas;
+  - vilken väg en operatör har i admin för att skapa routen;
+  - ett operatörssteg för verklighetsvärlden.
+
 ### J3 i världen (körning 1, 2026-10-22): 5 godkända, 1 överhoppad, 1 underkänd
 - **Godkända:**
   - Två bilagor och två interchange i ett mejl hölls som `multiple_interchanges`.
