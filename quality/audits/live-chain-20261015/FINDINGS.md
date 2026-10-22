@@ -170,6 +170,7 @@ Statusvärden: **RÄTTAD** = rättad på branchen med regressionstest som är r�
 ### F22 Försöksgränsen för inkorgsjobb var ett steg fel och ett hängande jobb kunde återtas i det oändliga — RÄTTAD
 - **Varför fel:** jämförelsen tillät ett försök för mycket, och ett jobb som återtogs som "stale" räknades aldrig mot gränsen. Ett jobb som alltid tar för lång tid kunde därför återtas varje körning för alltid.
 - **Rättning:** ett jobb med `attempts_count > maxAttempts` avslutas som `failed`, med steget `attempt_limit_exceeded`. Test: `__tests__/inbound-job-attempt-limit.test.ts`.
+- **Rättelse av beskrivningen (2026-10-22, efter jämförelse med Codex PR #853):** "ett försök för mycket" ovan är fel formulerat. Commit `f12a03f4` visar att försöken räknades två gånger, så bara 4 av 5 tillåtna försök kördes. Rättningen och testet är oförändrade. Den ursprungliga meningen står kvar som historik.
 
 ### F23 Mejl som sparats utan jobb behandlades aldrig — RÄTTAD
 - **Varför fel:** `storeInboundEmail` skriver mejlraden och jobbet i två separata skrivningar. Om körningen dödades mellan dem (tidsgräns, driftsättning) dedupliceras mejlet vid varje senare pollning utan att något jobb finns.
@@ -466,7 +467,7 @@ Felen skrivs in här i den ordning de hittas.
   - Det enda `ediel_historical_rule_pack_basis_unavailable` i appens logg kom vid samma tidpunkt och syntes för operatören som ett ohanterat serverfel. Det kontrolleras i körning 5 av scenario E.
 - **Körning 5 (efter rättelsen):** B:s fil ombearbetas av operatören och sparar 96 värden (8,898 kWh) på rätt tenant, kund och mätpunkt, utan något fel. För A visades däremot ingen ombearbetningsknapp. Det utreds som ett eget fynd nedan.
 
-### F79 Mina sidor och kund-API:t visar mätvärden från före kundens leveransstart — ÖPPEN, medel (integritet), kräver beslut
+### F79 Mina sidor och kund-API:t visar mätvärden från före kundens leveransstart — RÄTTAD (ägarbeslut 2026-10-22), medel (integritet)
 - **Utfall (scenario E):** nätägaren skickar E66 för 15 september för en mätpunkt där tenant A:s leverans börjar 1 oktober (`ALATE`).
   - Filen är korrekt adresserad till A och mätpunkten är A:s, så 96 värden sparas på kunden (`normalized_metering_values`, `billing_gate_status=pending_match`).
   - Värdena faktureras aldrig, och faktureringsspärren håller.
@@ -479,6 +480,45 @@ Felen skrivs in här i den ordning de hittas.
 - **Utfall:** efter sammanslagningen med main stod nätägarförfrågan i scenario D köad i 6 minuter utan att skickas.
 - **Orsak:** main kör den manuella e-postutkorgen och manuell inkommande e-post med schemat `* * * * *`. `runOperationalCronSlot` kände bara igen `N-M/k`. Produkten skickade direkt när utkorgen anropades.
 - **Rättning:** cron-jobb som körs varje minut ingår nu först i varje omgång.
+
+- **Ägarbeslut 2026-10-22:** en kund ser bara mätvärden som kunden har verifierad rätt till. Kopplingen till en anläggning ger inte hela anläggningens historik.
+- **Rättning (commit `7a50dce4`):** en gemensam databasregel styr alla kundkanaler (`20261022100000_customer_metering_access_windows.sql`, `lib/metering/customerMeteringAccess.ts`):
+  - Ett värde visas bara om hela intervallet ligger inom ett fönster för samma tenant, kund och mätpunkt.
+  - **Leveransfönster:** etablerad period (`confirmed_by_grid_owner`, `active`, `ending`, `ended`), från Ediel-bekräftad `market_start_at`/`market_end_at`, annars bekräftat startdatum och slutdatum som exklusiv gräns kl. 00:00 svensk tid. Varje period är ett eget fönster, glapp öppnas aldrig, och avslutade perioder behåller kundens egen historik.
+  - **Historik före vår leverans:** bara värden bundna till en behörighet som vilar på ett faktiskt mottaget PRODAT Z14 från nätägaren (kvalificerad övergång, status `active`/`ended`), inom det godkända rapportintervallet. `normalized_metering_values` saknar bindningen, så där är historiken stängd tills rätten kan styrkas.
+  - Filtreringen sker i databasen före gräns, sidbrytning, summor och diagram. Månadskorten mäter fullständighet mot kundens egna fönster.
+  - Läsvägar som går genom regeln: Mina sidor (detaljrader och månadskort), portal-bundlen, kund-API:t `metering-values` och partner-API:ts två mätvärdesläsningar.
+  - Lagrade värden, originalmeddelanden och personalens interna åtkomst är oförändrade. Funktionerna får bara köras av `service_role`.
+- **Inkonsekvenser som hittades på vägen:**
+  - Partner-API:t läste per anläggning (`customer_site_id`) utan periodkontroll.
+  - `metering_permissions.inbound_z14_message_id` saknar främmande nyckel, så en godtycklig uuid hade kunnat se ut som ett godkännande. Regeln kräver därför ett verkligt mottaget Z14.
+  - Statusarna `approved` och `z14_received` sätts inte av den kvalificerade Z14-vägen och öppnar ingenting.
+- **Bevis:**
+  - `scripts/customer-metering-access-native.test.ts` (9/9 mot replay-databasen) täcker inflyttning på samma anläggning, avslutad period, glapp, bakdaterad bekräftad start, flera anläggningar, makulerad period, obevisade och manuella behörigheter, intervallgränser, att filtret körs före gränsen, manipulerade anrop och läsningarna i Mina sidor.
+  - På scenario E:s data ser kund A sina 144 av 144 värden, medan kunden med leverans från 1 oktober ser 0 av 96 sparade septembervärden.
+- **Kvar:** den positiva vägen för historik via ett verkligt Z14 är inte prövad native, eftersom databasen vägrar fejkade Z14-meddelanden, vilket är korrekt. Den prövas i ESCO-kedjan när en riktig Z14-mottagning finns.
+
+### F80 Ett meddelande med spärrade transaktioner kan låsas ute från ombearbetning — UNDER RÄTTNING, hög
+- **Utfall (körning 5 och 7 av scenario E, på en redan använd värld):** efter godkänt issuer-bevis visade operatörens sida ingen knapp "Kör UTILTS engine / skapa TGT-svar" för tre av A:s spärrade E66-filer. Inga värden sparades. I körning 6 (ren värld) fungerade allt.
+- **Utredning (databas, kod och gatewaylogg):**
+  - Akut orsak i körning 5 och 7: testriggen (S2 nedan). De tre meddelandena hade bara CONTRL, så knappvillkoret var inte uppfyllt. Sidan hade bara inte renderat färdigt.
+  - Verkliga produktfel i samma flöde (bekräftade i koden):
+    1. Sidan (`app/admin/ediel/messages/[id]/page.tsx:430-434`) och serveråtgärden (`app/admin/ediel/actions.part-3.ts:85-115`) vägrar ombearbetning så snart *något* APERAK eller UTILTS-ERR finns för källan. En fil där en transaktion är spärrad och en syskontransaktion har avvisats (negativt APERAK/UTILTS-ERR, `utiltsDataRequest.part-1.ts:706-797`) kan därför aldrig återupptas. Spärren blir permanent.
+    2. Sidan räknar även makulerade svar, och serveråtgärden räknar bara aktiva. De två villkoren är inkonsekventa.
+    3. Listans "Kör engine" (`app/admin/ediel/messages/page.tsx:285,349`) döljs så snart en CONTRL finns, alltså alltid för ett spärrat meddelande.
+    4. Ombearbetningen skriver över `validation_report.utiltsRuntime`, så den tidigare spärrdiagnosen finns bara kvar i händelserna. Det är en lucka i revisionsspåret.
+    5. Händelsetexten för ett spärrat meddelande säger "avvisades av produktionsruntime och korrekt kvittensflöde skapades", fast ingenting avvisades och inget svar skickades.
+  - Det som redan håller: utkast återanvänds för samma utfall och ger `blocked_final_ack_exists` vid ett annat. Slutsvaret per transaktion skrivs en gång. Mätvärden spelas upp i stället för att skrivas om. Issuer-grunden läses om från det bevarade originalet. Upprepade körningar gav exakt 96 värden per fil.
+- **Rättning (pågår):** en gemensam serverregel bestämmer om ombearbetning är tillåten. Den är det när minst en transaktion är `internal_review` utan slutsvar. Detaljsidan, listan och serveråtgärden använder samma regel. Tidigare svar raderas eller ändras aldrig. Nya svar skapas bara för transaktioner som lämnar granskning. Tidigare diagnoser bevaras i en historik som bara kan växa. Händelsetexten rättas.
+
+### S2 Scenario E:s operatörssteg läste detaljsidan innan den hade renderat — RÄTTAD (simuleringen)
+- **Utfall:** `button.count()` väntar inte. Detaljsidan visar `loading.tsx` i 15–32 sekunder, och när filerna kom i en viss ordning gick nästa sida upp medan föregående serveråtgärd fortfarande renderade om. Testet gick då vidare efter ungefär en sekund utan att klicka.
+- **Rättning:** steget väntar på den renderade detaljvyn, sparar URL och HTTP-status och väntar in serveråtgärdens svar (`submitServerAction`) innan nästa sida öppnas.
+
+### P7 Detaljsidan för ett Ediel-meddelande tar 15–32 sekunder att rendera — ÖPPEN, medel (prestanda)
+- **Mätning (gatewaylogg, körning 6 och 7, lokalt):** från sidans läsning av kvittensstatus till renderad sida tog det 15–32 sekunder per UTILTS-meddelande.
+- **Påverkan:** operatören ser bara en laddningsvy. Långsamma sidor gör också att operatörer klickar två gånger eller går vidare för tidigt.
+- **Nästa steg:** mät vilka av sidans parallella läsningar som dominerar innan något ändras (prestandaregeln: mät, identifiera, åtgärda, verifiera).
 
 ## Manuellt kundintag (scenario D, 2026-10-20)
 
@@ -493,6 +533,7 @@ Kedjan i scenario D, i ordning. Varje fel nedan dolde nästa. Alla är verifiera
 - **Orsak:** `gridex_ensure_internal_contract_publication` kände bara igen sin egen v1-snapshot och skapade en andra publicerad version bredvid kanalpubliceringens v6-version. Unikindexet stoppade det. Funktionen är md5-identisk i drift.
 - **Rättning:** migrationen `20261020240000` återanvänder erbjudandets publicerade interna kanalversion.
 
+- **Följdfel (Codex #840/6297402243, bekräftat 2026-10-22):** migrationen `20261020240000` tålde inte att köras två gånger. Ersättningstexten slutar med söktexten, så kontrollen "exakt en förekomst" passerade igen och blocket lades in en gång till. **Rättat:** en redan omskriven funktionskropp lämnas orörd, och annars krävs exakt en föregångare. Migrationen finns bara på grenen och är inte applicerad i drift, så den ändrades på plats och manifestets hash uppdaterades. Bevis: två körningar i följd mot replay-databasen, och funktionen innehåller den nya bindningen exakt en gång.
 ### F58 Gemensam nätägare tappades när anläggningen sparades — RÄTTAD, hög (variant av F54)
 - **Orsak:** `normalizeGridOwnerIdToOps` filtrerade på `company_id = bolaget`.
 - **Rättning:** gemensam eller egen nätägare, aldrig ett annat bolags. Test: `__tests__/grid-owner-normalizer-shared-registry.test.ts`.
@@ -763,6 +804,26 @@ Adress och identitet:
 
 ### O1 Misslyckade utkorgsposter försöks inte igen automatiskt — avsiktligt
 `claim_ediel_outbox_items` hämtar bara `prepared` och `queued`. En post som fallerat före SMTP, till exempel för att arkivlagringen var nere, blir `failed` och kräver att en operatör köar om den. Det stämmer med TR-10 (fail-closed), men ett känt-ej-skickat fel skulle kunna köas om automatiskt. Det noteras som driftobservation.
+
+## Jämförelse med Codex fynd (2026-10-22)
+
+Codex har ingen egen verklighetssimulering i repot. Deras fynd kommer från kontrollerade drifttester (#766), granskningar av mejlkedjan (#840) och rättnings-PR:er. Fynd som rör min simulering:
+
+| Codex fynd | Hos mig | Läge |
+|---|---|---|
+| Försöken för inkorgsjobb räknades två gånger, så bara 4 av 5 kördes (PR #853) | F22 | Samma orsak och rättning. Min beskrivning var fel och är nu rättad under F22. |
+| F57-migrationen tål inte att köras två gånger | F57 | Bekräftat och rättat (se F57). |
+| PERF006: avslut av mejl- och jobblås saknar ägarkontroll (`edielMailboxPoller.part-1.ts:960-996`), så en gammal worker kan avsluta en nyare workers lås | saknades | Bekräftat i koden. Codex rättning väntar på filägarskap. **Ägs av Codex.** Följs upp på #840. |
+| PERF005: spot-importen tappar Retry-After vid femte försöket, och claim-SQL kör ett misslyckat jobb för tidigt (PR #870) | saknades (mitt C5 såg bara att kassan överlever 429) | **Ägs av Codex** (PR #870). |
+| Katalog och offert: korta databasfel ger 503 (PR #876) | F43 | Samma. Codex återanvänder min rättning. |
+| 4 offerter fick 504 med 57014 vid bara 4 samtidiga anrop i drift | P6 (bara lokalt) | **Ny driftdata.** Kontrollera vad offert-API:t svarar för 57014: F43 behandlar det som icke-transient. |
+| `startSupplierSwitch` reserverar dedupe-nyckeln före förberedelsen, så ett nytt försök svarar "redan köat" utan någon rad i utkorgen | saknades | **Ägs av Codex.** |
+| Delad kö markerar originalet som `queued` före utkorgsinserten | saknades (närliggande O1/F20) | **Ägs av Codex.** |
+| Två samtidiga avsikter om normalt leverantörsbyte: förloraren skriver över vinnaren (PR #899) | saknades | **Ägs av Codex** (PR #899). |
+| Manuell brevlåda sätter `received_at` till behandlingstid i stället för IMAP INTERNALDATE (PR #900) | saknades (min simulering använder inte den manuella fullmaktsmejlvägen för relativa datum) | **Ägs av Codex** (PR #900). |
+| `/customer/sync` kunde spara portalkopplingen före assertion-kontrollen | saknades | Redan rättat i den delade koden (`externalApi.ts:264-275`). |
+
+Det som bara min simulering täcker: start från noll, go-live för en ny tenant, nätägarsimulatorn på riktig Ediel-tråd, routing till rätt tenant (F68, F69, F78), manuellt kundintag (D), fakturor (F) och åtkomst till mätvärden (F79). Det som ingen av oss har kört live: avflytt, ånger/Z08 och avvisningsvägar för APERAK/CONTRL i en hel kedja. De står kvar som nästa scenarier.
 
 ## Tidsgränser i verkligheten (kontrollerat 2026-10-15, bara läsfrågor)
 

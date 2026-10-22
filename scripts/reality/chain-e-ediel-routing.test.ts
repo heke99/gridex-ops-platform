@@ -15,7 +15,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import { approveIssuerHistoryGround, configurePlatformMailbox, configureTenant, cron, existingSupplyCustomer, gridOwnerSends, literal, readInbox, sql,
   type LiveCustomer, type LiveTenant } from '../helpers/live-chain-fixture'
 import { dailyE66, dayProfile, hourlyFromQuarters } from '../helpers/live-chain-wire'
-import { closeOperatorConsole, operatorSession } from '../helpers/reality/operatorConsole'
+import { closeOperatorConsole, operatorSession, submitServerAction } from '../helpers/reality/operatorConsole'
 
 const report: Record<string, unknown> = { scenario: 'E inbound Ediel routing', startedAt: new Date().toISOString() }
 let tenantA: LiveTenant, tenantB: LiveTenant
@@ -146,10 +146,15 @@ describe.sequential('reality E — inbound Ediel routing to the right tenant and
       const page = await context.newPage()
       const outcomes: unknown[] = []
       for (const source of sources) {
-        await page.goto(`/admin/ediel/messages/${source.id}`)
+        const response = await page.goto(`/admin/ediel/messages/${source.id}`)
+        // The detail page streams behind loading.tsx and takes 15-30 s to render; count() does not wait, so the
+        // run read the placeholder and skipped the reprocess (harness defect S2). Wait for the rendered detail.
+        await page.getByText('Detaljvy för canonical kernel').first().waitFor({ timeout: 180_000 })
         const button = page.getByRole('button', { name: 'Kör UTILTS engine / skapa TGT-svar' })
         const visible = await button.count()
-        if (visible) await Promise.all([page.waitForLoadState('networkidle'), button.click()])
+        const pageState = { status: response?.status() ?? null, url: page.url() }
+        // The server action finishes before the next page is opened.
+        const actionStatus = visible ? await submitServerAction(page, () => button.click(), 600_000) : null
         const started = Date.now()
         let stored = 0
         while (visible && Date.now() - started < 120_000) {
@@ -165,7 +170,7 @@ describe.sequential('reality E — inbound Ediel routing to the right tenant and
           'transactions',(SELECT coalesce(jsonb_agg(jsonb_build_object('disposition',t.disposition,'persistence',t.persistence_status,'issues',t.issue_codes)),'[]') FROM public.ediel_ack_transaction_results t WHERE t.source_message_id=m.id),
           'lastEvents',(SELECT coalesce(jsonb_agg(e.message ORDER BY e.created_at DESC),'[]') FROM (SELECT message,created_at FROM public.ediel_message_events WHERE ediel_message_id=m.id ORDER BY created_at DESC LIMIT 4) e))
           FROM public.ediel_messages m WHERE m.id=${literal(source.id)}`)
-        outcomes.push({ source: source.id, button: Boolean(visible), stored, diagnosis })
+        outcomes.push({ source: source.id, button: Boolean(visible), pageState, actionStatus, stored, diagnosis })
       }
       await page.close()
       return outcomes

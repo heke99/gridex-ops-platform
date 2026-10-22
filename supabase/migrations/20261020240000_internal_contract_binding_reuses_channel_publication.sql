@@ -33,6 +33,9 @@ DO $rewrite$DECLARE f record;
   order by created_at desc limit 1;$r$;
 BEGIN
  SELECT p.oid,to_jsonb(p)-'prosrc' metadata,p.prosrc,pg_get_functiondef(p.oid) definition INTO STRICT f FROM pg_proc p WHERE oid=target::regprocedure;
+ -- The replacement ends with the needle, so the needle count cannot tell a second run apart: an already
+ -- rewritten body (exactly one replacement) is left as it is; otherwise exactly one predecessor is required.
+ IF (length(f.prosrc)-length(replace(f.prosrc,replacement,'')))/length(replacement)=1 THEN RETURN;END IF;
  IF (length(f.prosrc)-length(replace(f.prosrc,needle,'')))/length(needle)<>1 THEN RAISE EXCEPTION 'internal_publication_reuse_predecessor_required';END IF;
  EXECUTE replace(f.definition,f.prosrc,replace(f.prosrc,needle,replacement));
  IF(SELECT to_jsonb(p)-'prosrc' FROM pg_proc p WHERE oid=f.oid) IS DISTINCT FROM f.metadata THEN RAISE EXCEPTION 'internal_publication_reuse_metadata_changed';END IF;
