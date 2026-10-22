@@ -128,6 +128,22 @@ describe('durable retry dates and unchanged job policy', () => {
     [false, 1],
   ] as const)('preserves terminal policy: retryable=%s, attempt=%s', async (retryable, attemptCount) => {
     await expect(failSpotImportJob({ jobId: 'job-1', errorCode: 'provider_rate_limited', message: 'synthetic', retryable, attemptCount, retryAfterMs: Number.POSITIVE_INFINITY })).resolves.toBe('failed')
+    // PERF005: the terminal classification is unchanged, but the provider's
+    // explicit not-before deadline survives on the failed row.
+    expect(ports.updates).toEqual([expect.objectContaining({ status: 'failed', next_attempt_at: 'infinity', completed_at: at(0) })])
+  })
+
+  it('keeps a finite 429 deadline on the fifth (terminal) failure', async () => {
+    await expect(failSpotImportJob({ jobId: 'job-1', errorCode: 'provider_rate_limited', message: 'synthetic', retryable: true, attemptCount: 5, retryAfterMs: 3_600_000 })).resolves.toBe('failed')
+    expect(ports.updates).toEqual([expect.objectContaining({ status: 'failed', next_attempt_at: at(3_600_000), completed_at: at(0) })])
+  })
+
+  it.each([
+    ['429 without Retry-After', 'provider_rate_limited', null],
+    ['429 with NaN Retry-After', 'provider_rate_limited', Number.NaN],
+    ['non-rate-limit error with a delay', 'provider_unavailable', 3_600_000],
+  ] as const)('clears next_attempt_at on terminal failure: %s', async (_name, errorCode, retryAfterMs) => {
+    await expect(failSpotImportJob({ jobId: 'job-1', errorCode, message: 'synthetic', retryable: true, attemptCount: 5, retryAfterMs })).resolves.toBe('failed')
     expect(ports.updates).toEqual([expect.objectContaining({ status: 'failed', next_attempt_at: null, completed_at: at(0) })])
   })
 

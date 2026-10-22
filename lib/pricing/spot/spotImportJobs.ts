@@ -74,7 +74,11 @@ export async function failSpotImportJob(input: {
   const nextAttemptMs = now.getTime() + Math.max(60_000, delay)
   // PostgreSQL timestamptz infinity keeps a positive, unrepresentable delay
   // deferred. Capping it would allow a retry before the provider permits one.
-  const nextAttemptAt = retry
+  // A failed job still carries the provider's explicit not-before deadline.
+  // This does not change the five-attempt failure classification.
+  const rateLimitDeadline = input.errorCode === 'provider_rate_limited'
+    && input.retryAfterMs != null && input.retryAfterMs >= 0
+  const nextAttemptAt = retry || rateLimitDeadline
     ? nextAttemptMs > 8_640_000_000_000_000 ? 'infinity' : new Date(nextAttemptMs).toISOString()
     : null
   const { error } = await supabaseService
