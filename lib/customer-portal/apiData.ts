@@ -1,6 +1,7 @@
 import type { NextRequest } from 'next/server'
 import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
 import { supabaseService } from '@/lib/supabase/service'
+import { customerNormalizedMeteringValues } from '@/lib/metering/customerMeteringAccess'
 import { requirePortalRetentionAccess } from '@/lib/ediel/retention/customerRecordClasses'
 import { resolvePortalCustomer, isMissingPortalSchemaError } from '@/lib/customer-portal/customerResolver'
 import { PlatformSchemaNotReadyError } from '@/lib/platform/schemaReadiness'
@@ -380,26 +381,19 @@ const METERING_VALUES_MINIMAL_SELECT = 'id,metering_point_id,period_start,period
 export async function listPortalMeteringValues(context: PortalCustomerContext, route = '/api/v1/customer/metering-values', limit?: number | null) {
   await logPortalAccess({ context, route, action: 'read_metering_values' })
   const rowLimit = clampSectionLimit(limit, 500)
+  // Only values inside the customer's own access windows (FINDINGS F79); filtered before the limit.
+  const scope = { companyId: context.companyId, customerIds: [context.customerId] }
   return listWithSchemaFallback([
-    async () => await supabaseService
-      .from('normalized_metering_values')
+    async () => await customerNormalizedMeteringValues(scope, { limit: rowLimit })
       .select(METERING_VALUES_SELECT)
-      .eq('company_id', context.companyId)
-      .eq('customer_id', context.customerId)
       .order('period_start', { ascending: false })
       .limit(rowLimit) as ListResult,
-    async () => await supabaseService
-      .from('normalized_metering_values')
+    async () => await customerNormalizedMeteringValues(scope, { limit: rowLimit })
       .select(METERING_VALUES_LEGACY_SELECT)
-      .eq('company_id', context.companyId)
-      .eq('customer_id', context.customerId)
       .order('period_start', { ascending: false })
       .limit(rowLimit) as ListResult,
-    async () => await supabaseService
-      .from('normalized_metering_values')
+    async () => await customerNormalizedMeteringValues(scope, { limit: rowLimit })
       .select(METERING_VALUES_MINIMAL_SELECT)
-      .eq('company_id', context.companyId)
-      .eq('customer_id', context.customerId)
       .order('period_start', { ascending: false })
       .limit(rowLimit) as ListResult,
   ])

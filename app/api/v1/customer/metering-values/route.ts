@@ -1,6 +1,6 @@
 import { withApiContractRepresentation } from '@/lib/integrations/apiResponseProfile'
 import { NextRequest } from 'next/server'
-import { supabaseService } from '@/lib/supabase/service'
+import { customerNormalizedMeteringValues } from '@/lib/metering/customerMeteringAccess'
 import {
   customerPortalJson,
   handleCustomerPortalRouteError,
@@ -47,23 +47,22 @@ function optionalParam(request: NextRequest, key: string): string | null {
       resource,
     })
 
-    let query = supabaseService
-      .from('normalized_metering_values')
+    // Only values inside the customer's own access windows (FINDINGS F79). Range, facility and keyset
+    // narrow the result inside the same database filter, before the page limit.
+    const { data, error } = await customerNormalizedMeteringValues(
+      { companyId: context.client.company_id, customerIds: [context.identity.customer_id] },
+      {
+        facilityId: normalizedFacilityId,
+        periodStartFrom: from,
+        periodEndTo: to,
+        before: cursor ? { periodStart: String(cursor.orderValue), id: String(cursor.id) } : null,
+        limit: limit + 1,
+      },
+    )
       .select('id,customer_id,customer_site_id,site_id,metering_point_id,facility_id,price_area,period_start,period_end,resolution,quantity_kwh,quality_status,source_type,status,created_at')
-      .eq('company_id', context.client.company_id)
-      .eq('customer_id', context.identity.customer_id)
       .order('period_start', { ascending: false, nullsFirst: false })
       .order('id', { ascending: false })
       .limit(limit + 1)
-
-    if (from) query = query.gte('period_start', from)
-    if (to) query = query.lte('period_end', to)
-    if (normalizedFacilityId) query = query.eq('facility_id', normalizedFacilityId)
-    if (cursor) {
-      query = query.or(`period_start.lt.${cursor.orderValue},and(period_start.eq.${cursor.orderValue},id.lt.${cursor.id})`)
-    }
-
-    const { data, error } = await query
     if (error) {
       if (isMissingSchemaError(error)) {
         throw new PlatformSchemaNotReadyError('Canonical metering pagination is unavailable.', portalQueryErrorMetadata(error))

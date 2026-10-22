@@ -17,6 +17,7 @@ import {
 } from '@/lib/integrations/apiAuth'
 import { assertPublicWebhookTarget } from '@/lib/integrations/publicWebhookTransport'
 import { supabaseService } from '@/lib/supabase/service'
+import { customerNormalizedMeteringValues } from '@/lib/metering/customerMeteringAccess'
 import { buildPortalDatabasePage, decodePortalCursor, PortalCursorError } from '@/lib/customer-portal/keysetPagination'
 import { PARTNER_API_VERSION, partnerOpenApi } from './openApi'
 import { readCompletePartnerMeasurements } from './measurementRead'
@@ -1083,11 +1084,12 @@ async function getMeasurements(request: NextRequest, customerReference: string, 
     const resolutionValues = resolution === '15m'
       ? ['15m', 'PT15M', 'quarterly']
       : ['1h', 'PT1H', 'hourly']
-    const rows = await readCompletePartnerMeasurements((offset, size) => supabaseService
-      .from('normalized_metering_values')
+    const rows = await readCompletePartnerMeasurements((offset, size) => customerNormalizedMeteringValues(
+      // Only values inside the site customer's own access windows (FINDINGS F79), before paging.
+      { companyId: context.client.company_id, customerIds: [String(site.customer_id)] },
+      { customerSiteId: site.id, periodStartFrom: stockholmDayStartUtc(from).toISOString(), periodStartBefore: stockholmNextDayStartUtc(to).toISOString() },
+    )
       .select('id,period_start,quantity_kwh,direction')
-      .eq('company_id', context.client.company_id)
-      .eq('customer_site_id', site.id)
       // Only the current revision; replaced/superseded/void corrections are filtered before the limit.
       .eq('revision_status', 'current')
       // V1 vocabulary is gross CONSUMPTION/PRODUCTION. Net series are not part of this response

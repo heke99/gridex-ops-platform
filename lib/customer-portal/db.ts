@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { cache } from 'react'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { supabaseService } from '@/lib/supabase/service'
+import { customerMeteringValues } from '@/lib/metering/customerMeteringAccess'
 import type {
   CustomerInvoiceDocumentRow,
   CustomerInvoiceLineRow,
@@ -332,13 +333,11 @@ export async function listPortalMeteringValues(
 ): Promise<CustomerPortalMeteringValueRow[]> {
   if (context.customerIds.length === 0 || !context.companyId) return []
 
-  const { data, error } = await supabaseService
-    .from('metering_values')
+  // Only values inside the customers' own access windows (FINDINGS F79); filtered before the limit.
+  const { data, error } = await customerMeteringValues({ companyId: context.companyId, customerIds: context.customerIds }, { limit: options.limit ?? 250 })
     .select(
       'id,customer_id,site_id,metering_point_id,source_request_id,grid_owner_id,reading_type,value_kwh,quality_code,read_at,period_start,period_end,source_system,created_at'
     )
-    .eq('company_id', context.companyId)
-    .in('customer_id', context.customerIds)
     .order('period_start', { ascending: false, nullsFirst: false })
     .order('read_at', { ascending: false })
     .limit(options.limit ?? 250)
