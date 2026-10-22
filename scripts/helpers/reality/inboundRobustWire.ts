@@ -44,7 +44,8 @@ export function unsolicitedContrl(input: { issuer: string; receiver: string; ref
     "UNA:+.? '",
     `UNB+UNOC:3+${input.issuer}:ZZ+${input.receiver}:ZZ+261022:0800+${input.reference}++++++1'`,
     `UNH+1+CONTRL:D:3:UN:E5SE1A'`,
-    `UCI+${input.acknowledgedReference}+${input.receiver}:ZZ+${input.issuer}:ZZ+7'`,
+    // 0083 as the platform's CONTRL profile reads it: 1 accepted, 4 rejected (lib/ediel/ack/inboundAckOutcome.ts).
+    `UCI+${input.acknowledgedReference}+${input.receiver}:ZZ+${input.issuer}:ZZ+1'`,
   ]
   return [...lines, `UNT+${lines.length - 1}+1'`, `UNZ+1+${input.reference}'`].join('\n')
 }

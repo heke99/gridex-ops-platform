@@ -61,6 +61,12 @@ const DEFECTS = [
   { id: 'J3-08', severity: 'medium', status: 'confirmed (code), open (outbox owner / FINDINGS O1)',
     where: 'lib/ediel/outbox/sendOutboxItem.ts:341-355 + claim_ediel_outbox_items (prepared/queued only)',
     what: 'During an SMTP outage every CONTRL/APERAK whose connect fails becomes "failed" and is never retried automatically; known-not-sent (syscall connect, 4xx before DATA) could be requeued safely with backoff. delivery_uncertain correctly waits for reconciliation.' },
+  { id: 'J3-11', severity: 'high', status: 'confirmed (world run on 5f2db53e + unit), fixed in lib/inbound-mail/edielInboundProcessor.ts and edielMailboxPoller.part-2.ts',
+    where: 'lib/inbound-mail/edielInboundProcessor.ts attributeInboundEmailToTenant vs ux_inbound_email_messages_company_sender_interchange; part-2 processQueuedInboundProcessingJobs',
+    what: 'The same interchange in two mails: the copy attributed second violated the unique index (23505) on every retry, its job ended failed and the mail stayed received/not_checked with no error - silently stuck. Now held as duplicate_interchange (pointing at the first copy); a job that gives up marks its mail failed with the reason.' },
+  { id: 'J3-12', severity: 'high', status: 'confirmed (world run on 5f2db53e), open: technical ACK owner',
+    where: 'lib/ediel/flows/inboundProcessing.ts technical CONTRL (createAckIfMissing in the endpoint branch) and the later canonical-kernel CONTRL',
+    what: 'Under the J3 burst the technical CONTRL failed with 57014 statement timeout (COVER, LARGE). For COVER a later path then created a CONTRL that stayed "draft" and was never queued to the outbox; for the month file none was created. No retry; the SLA timer only expired.' },
   { id: 'J3-09', severity: 'low', status: 'likely (code), open: decision',
     where: 'lib/ediel/tenant/resolveInboundTenant.ts resolveInboundTenantFromIdentifiers (only verified_legal_identity decides; sub-address is evidence only)',
     what: 'A known receiver with an unconfigured UNB routing sub-address is attributed like a correct one; whether sub-address must match is not decided anywhere (J3-4 soft check records the observed outcome).' },
@@ -196,14 +202,15 @@ describe.sequential('reality J3 — inbound Ediel robustness', () => {
     expect(originalsFor(ref('DUPMSG'))).toHaveLength(1)
     expect(outcomeOf('DUPREF1').rows).toHaveLength(1)
     expect(outcomeOf('DUPREF2').rows).toHaveLength(1)
+    // J3-11: exactly one copy belongs to the tenant; the other is held as its duplicate, never stuck in "received".
+    const dupRows = [rowOf('DUPREF1'), rowOf('DUPREF2')]
+    expect(dupRows.filter(row => row.match === 'duplicate_interchange')).toEqual([expect.objectContaining({ status: 'manual_review', company: null })])
+    expect(dupRows.filter(row => row.company === tenant.companyId)).toHaveLength(1)
     softCheck('J3-3 duplicate interchange in a new mail', originalsFor(ref('DUPREF')).length === 1, { originals: originalsFor(ref('DUPREF')), second: rowOf('DUPREF2') },
       'The reception kernel classifies a byte-identical interchange in a new mail as protocol_duplicate (held, duplicate response prepared). Not asserted hard: depends on the duplicate-response route of the fixture tenant.')
     // Envelope-broken files: syntax owners exist (missing_unz, unt_count_mismatch); the negative technical CONTRL is the expected answer.
-    for (const key of ['NOUNZ', 'UNTCOUNT', 'BADUNA']) {
-      softCheck(`J3-3 ${key} negative CONTRL`, originalsFor(byKey(key).references[0]).every(row => row.contrl !== 'positive'),
-        { mail: rowOf(key), originals: originalsFor(byKey(key).references[0]) },
-        'Ediel requires a negative CONTRL (UCI action 7) for a readable UNB with envelope errors. Read below from the grid owner\'s inbox; the original\'s contrl_status is the platform\'s own view.')
-    }
+    // Envelope-broken files: recorded here, checked against the grid owner's inbox in J3-5.
+    report.envelopeBroken = ['NOUNZ', 'UNTCOUNT', 'BADUNA'].map(key => ({ key, mail: rowOf(key), originals: originalsFor(byKey(key).references[0]) }))
     report.valuesForCustomer = valuesSince(customer.meteringPointId, since)
     saveReport()
   })
@@ -229,10 +236,17 @@ describe.sequential('reality J3 — inbound Ediel robustness', () => {
     const contrl = await contrlReceivedByGridOwner(tenant.gridOwnerEmail)
     report.contrl = contrl
     const ackFor = (reference: string) => contrl.filter(c => c.acknowledged === reference)
+    // 0083 as the platform writes it: 1 accepted, 4 rejected.
     for (const key of ['CRLF', 'BOM', 'ZIP', 'COVER', 'LARGE', 'CONTROL']) {
-      softCheck(`J3-5 positive CONTRL ${key}`, ackFor(byKey(key).references[0]).some(c => c.action !== '7'), ackFor(byKey(key).references[0]),
-        'Sent by the outbox cron; the fixture tenant\'s technical CONTRL route decides whether one is due (scenario E observed positive CONTRL for every valid E66).')
+      softCheck(`J3-5 positive CONTRL ${key}`, ackFor(byKey(key).references[0]).some(c => c.action === '1'), ackFor(byKey(key).references[0]),
+        'Sent by the outbox cron. J3-12: under load the technical CONTRL can hit the 8 s statement timeout and then stays draft or is never created.')
     }
+    for (const key of ['NOUNZ', 'UNTCOUNT']) {
+      softCheck(`J3-5 negative CONTRL ${key}`, ackFor(byKey(key).references[0]).some(c => c.action === '4'), ackFor(byKey(key).references[0]),
+        'Ediel: a readable UNB with envelope errors gets a negative CONTRL (UCI 0083=4).')
+    }
+    softCheck('J3-5 no CONTRL for an unreadable UNA', ackFor(ref('BADUNA')).length === 0, ackFor(ref('BADUNA')),
+      'With the service string advice unreadable the sender cannot be identified safely; held for review.')
     // Never a CONTRL for a merged or unparsed interchange.
     for (const reference of [ref('TWOA'), ref('TWOB'), ref('ONEA'), ref('ONEB'), ref('TRUNC')]) expect(ackFor(reference), reference).toEqual([])
     // Exactly one CONTRL per interchange, also for the mail sent twice.

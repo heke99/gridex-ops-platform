@@ -860,6 +860,18 @@ export async function syncActiveInboundProcessingJobForMessage(input: {
   return true;
 }
 
+// A job that gave up left its mail "received"/"not_checked" with no reason:
+// in the inbox it looked like mail still waiting for its first poll (J3-11).
+// Only the processing state and reason are written; tenant and content stay.
+async function markInboundEmailProcessingFailed(inboundEmailMessageId: string, errorMessage: string): Promise<void> {
+  const { error } = await supabaseService
+    .from("inbound_email_messages")
+    .update({ processing_status: "failed", error_message: `Behandlingen gav upp: ${errorMessage}`.slice(0, 1000), updated_at: nowIso() })
+    .eq("id", inboundEmailMessageId)
+    .eq("processing_status", "received");
+  if (error) console.warn("[inbound-mail] Kunde inte markera mailet som misslyckat", { inboundEmailMessageId, code: error.code });
+}
+
 export async function processQueuedInboundProcessingJobs(
   input: {
     workerId?: string;
@@ -880,11 +892,13 @@ export async function processQueuedInboundProcessingJobs(
     // killed run. A job beyond the limit is not run again.
     const attempt = Number(job.attempts_count ?? 0);
     if (attempt > maxAttempts) {
+      const errorMessage = `Jobbet har gjorts om ${attempt} gånger utan att avslutas (max ${maxAttempts}).`;
+      if (job.inbound_email_message_id) await markInboundEmailProcessingFailed(job.inbound_email_message_id, errorMessage);
       await markInboundProcessingJobFinished({
         jobId: job.id,
         status: "failed",
         step: "attempt_limit_exceeded",
-        errorMessage: `Jobbet har gjorts om ${attempt} gånger utan att avslutas (max ${maxAttempts}).`,
+        errorMessage,
       });
       failed += 1;
       continue;
@@ -916,6 +930,9 @@ export async function processQueuedInboundProcessingJobs(
       const message =
         formatErrorMessage(error, "Okänt processfel.");
       const shouldRetry = attempt < maxAttempts;
+      // The mail's reason is written before the job is closed: a job that
+      // cannot be closed is reclaimed and ends in the attempt-limit branch.
+      if (!shouldRetry) await markInboundEmailProcessingFailed(job.inbound_email_message_id, message);
       await markInboundProcessingJobFinished({
         jobId: job.id,
         status: shouldRetry ? "retry" : "failed",

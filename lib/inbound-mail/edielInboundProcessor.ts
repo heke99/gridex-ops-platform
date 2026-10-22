@@ -77,13 +77,25 @@ function resolveTrustedTestCenterCompanyId(input: {
  * ediel_messages row is created from it: the database only links a message to
  * mail of the same company. Mail already owned by another tenant is a
  * conflict and stops processing instead of being re-attributed.
+ *
+ * Two mails carrying the same interchange (sender + UNB 0020, or sender +
+ * UNH 0062 + document reference) cannot both belong to one tenant: the unique
+ * indexes ux_inbound_email_messages_company_sender_interchange/_tx_external
+ * refuse the second attribution with 23505. That refusal is a duplicate
+ * delivery, not a transient error (J3-11): the earlier mail is returned.
  */
-async function attributeInboundEmailToTenant(input: { inboundEmailMessageId: string; companyId: string }) {
+async function attributeInboundEmailToTenant(input: { inboundEmailMessageId: string; companyId: string; row: Record<string, unknown> }):
+  Promise<{ duplicateOf: { id: string; samePayload: boolean } | null }> {
   const { error } = await supabaseService.from('inbound_email_messages')
     .update({ company_id: input.companyId, updated_at: new Date().toISOString() })
     .eq('id', input.inboundEmailMessageId)
     .is('company_id', null)
-  if (error) throw error
+  if (error) {
+    if ((error as { code?: unknown }).code !== '23505') throw error
+    const duplicateOf = await findAttributedTwin(input)
+    if (!duplicateOf) throw error
+    return { duplicateOf }
+  }
   const { data, error: readError } = await supabaseService.from('inbound_email_messages')
     .select('company_id')
     .eq('id', input.inboundEmailMessageId)
@@ -92,6 +104,32 @@ async function attributeInboundEmailToTenant(input: { inboundEmailMessageId: str
   if (!data || (data as { company_id?: unknown }).company_id !== input.companyId) {
     throw new Error('inbound_email_tenant_attribution_conflict')
   }
+  return { duplicateOf: null }
+}
+
+/** The tenant's earlier mail holding the same interchange identity as this one (the stored reception facts). */
+async function findAttributedTwin(input: { inboundEmailMessageId: string; companyId: string; row: Record<string, unknown> }) {
+  const environment = text(input.row.environment), sender = text(input.row.sender_ediel_id)
+  if (!environment || !sender) return null
+  const keys: Array<Record<string, string>> = []
+  const interchange = text(input.row.interchange_reference)
+  if (interchange) keys.push({ interchange_reference: interchange })
+  const transaction = text(input.row.transaction_reference), external = text(input.row.external_reference)
+  if (transaction && external) keys.push({ transaction_reference: transaction, external_reference: external })
+  for (const key of keys) {
+    let query = supabaseService.from('inbound_email_messages')
+      .select('id,raw_edifact_payload')
+      .eq('company_id', input.companyId)
+      .eq('environment', environment)
+      .eq('sender_ediel_id', sender)
+      .neq('id', input.inboundEmailMessageId)
+    for (const [column, value] of Object.entries(key)) query = query.eq(column, value)
+    const { data, error } = await query.limit(1)
+    if (error) throw error
+    const twin = (data ?? [])[0] as { id?: unknown; raw_edifact_payload?: unknown } | undefined
+    if (typeof twin?.id === 'string') return { id: twin.id, samePayload: twin.raw_edifact_payload === input.row.raw_edifact_payload }
+  }
+  return null
 }
 
 export async function processInboundEmailMessage(input: {
@@ -382,7 +420,24 @@ export async function processInboundEmailMessage(input: {
     return { status: 'manual_review', companyId: null, parseResultId }
   }
 
-  await attributeInboundEmailToTenant({ inboundEmailMessageId: input.inboundEmailMessageId, companyId: tenant.companyId })
+  const attribution = await attributeInboundEmailToTenant({ inboundEmailMessageId: input.inboundEmailMessageId, companyId: tenant.companyId, row })
+  if (attribution.duplicateOf) {
+    // A re-delivery of an interchange the tenant already received. The mail
+    // stays unattributed (the tenant owns the first copy) and is held visibly;
+    // nothing is applied or acknowledged a second time.
+    await updateInboundEmailProcessingStatus({
+      inboundEmailMessageId: input.inboundEmailMessageId,
+      companyId: null,
+      status: 'manual_review',
+      matchStatus: 'duplicate_interchange',
+      matchPayload: { duplicateOfInboundEmailMessageId: attribution.duplicateOf.id, samePayload: attribution.duplicateOf.samePayload,
+        tenantCompanyId: tenant.companyId, senderEdielId: parsed.senderEdielId, interchangeReference: parsed.interchangeReference, authorizesBusinessEffect: false },
+      errorMessage: attribution.duplicateOf.samePayload
+        ? 'Samma interchange har redan tagits emot i ett tidigare mail. Dubbletten har inte tillämpats eller kvitterats igen.'
+        : 'Avsändaren återanvände en interchange-referens med annat innehåll. Inget har tillämpats; kontrollera med avsändaren.',
+    })
+    return { status: 'manual_review', companyId: null, parseResultId }
+  }
 
   const outboundMatch = await matchOutboundRequestForInbound({
     companyId: tenant.companyId,
