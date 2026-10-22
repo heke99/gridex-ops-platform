@@ -158,7 +158,14 @@ describe.sequential('reality E — inbound Ediel routing to the right tenant and
           if (next === stored && next > 0) break
           stored = next
         }
-        outcomes.push({ source: source.id, button: Boolean(visible), stored })
+        const diagnosis = sql<Record<string, unknown>>(`SELECT jsonb_build_object(
+          'status',m.status,
+          'issues',(SELECT coalesce(jsonb_agg(i->>'code'),'[]') FROM jsonb_array_elements(coalesce(m.validation_report#>'{utiltsRuntime,validation,issues}','[]')) i),
+          'ackPlan',m.validation_report#>>'{utiltsRuntime,ackPlan,reason}',
+          'transactions',(SELECT coalesce(jsonb_agg(jsonb_build_object('disposition',t.disposition,'persistence',t.persistence_status,'issues',t.issue_codes)),'[]') FROM public.ediel_ack_transaction_results t WHERE t.source_message_id=m.id),
+          'lastEvents',(SELECT coalesce(jsonb_agg(e.message ORDER BY e.created_at DESC),'[]') FROM (SELECT message,created_at FROM public.ediel_message_events WHERE ediel_message_id=m.id ORDER BY created_at DESC LIMIT 4) e))
+          FROM public.ediel_messages m WHERE m.id=${literal(source.id)}`)
+        outcomes.push({ source: source.id, button: Boolean(visible), stored, diagnosis })
       }
       await page.close()
       return outcomes
