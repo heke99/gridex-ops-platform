@@ -422,10 +422,11 @@ Kandidaterna nedan kommer från kodkartläggningen. Var och en bekräftas eller 
 ### F77 Totalbeloppet öresavrundas inte; avrundningskomponenten avrundar energibeloppet — KANDIDAT, låg, kräver beslut
 - **Kod:** `finalizePricingPreview` summerar avrundade rader utan att avrunda totalen (`lib/pricing/pricePreviewBuilder.ts:10-52`). Komponenten `rounding` avrundar baspriset för energi till hela kronor (`priceComponentCalculator.ts:292-295`), och Capway får differensen som `rounding` (`payloadBuilder.ts:141`).
 
-### F81 Kundens önskade startdatum från webben når aldrig leverantörsbytet — BEKRÄFTAD i koden, hög, verifieras i scenario F
+### F81 Kundens önskade startdatum från webben når aldrig leverantörsbytet — RÄTTAD i koden, hög, verifieras i scenario F efter ombyggnad
 - **Kod:** webbansökan sparar `contract.requested_start_date`. Bytet skapas av nästa-steg-motorn via `ensureSupplierSwitchRequestForReadySite` (`lib/customer-operations/customerProcessNextStepEngine.ts:273-283`) utan `requestedStartDate` och utan kontext. Funktionen tar då startdatumet bara från ett inflyttningsdatum (`supplierSwitchOrchestration.ts:374`). Kontextläsaren (`customerSiteProcessContext.ts:282`) läser avtalets datum, men den vägen används inte här.
 - **Påverkan:** ett vanligt byte får tidigast möjliga datum (idag + 14 dagar) i stället för kundens val. Om kunden valt ett senare datum, till exempel när bindningstiden hos nuvarande leverantör går ut, startar bytet för tidigt, och kunden kan få brytavgift hos den förra leverantören. Avtalet och bytet får också olika startdatum.
 - **Verifiering:** scenario F2 registrerar kundens valda datum och det datum plattformen valde, per anläggning.
+- **Rättning:** nästa-steg-motorn läser det signerade avtalets önskade start (`isContractOperationallyReadyForSite`) och skickar den till bytesskapandet. Ett datum som är tidigare än marknadens framförhållning lyfts fortfarande till tidigast giltiga dag av skaparen. Test: `__tests__/supplier-switch-requested-start.test.ts`, som faller utan rättelsen. 56 tester i de närliggande sviterna är gröna. Den första körningen av scenario F gick på bygget från före rättelsen, så den visar fortfarande felet.
 
 ### F82 Prisberäkningen använder avtalets önskade start före den faktiska — KANDIDAT, medel
 - **Kod:** `lib/pricing/engine.ts:262-264` tar `starts_at` före `actual_start_at`. När marknadsstarten skiljer sig från det signerade önskade datumet kan förstagångs- och årsdagsavgifter beräknas från fel datum. Bekräftas eller avfärdas i scenario F.

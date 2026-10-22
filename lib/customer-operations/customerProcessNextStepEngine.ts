@@ -9,6 +9,7 @@ import { emitCustomerProcessEvent } from '@/lib/customer-operations/customerProc
 import { evaluateCustomerProcessRouteReadiness } from '@/lib/customer-operations/customerProcessRouteReadiness'
 import { checkSupplierSwitchReadiness, persistSwitchReadinessSnapshot } from '@/lib/customer-operations/switchReadiness'
 import { ensureSupplierSwitchRequestForReadySite } from '@/lib/customer-operations/supplierSwitchOrchestration'
+import { isContractOperationallyReadyForSite } from '@/lib/customer-operations/customerSiteProcessContext'
 import {
   isAutomationConfigurationError,
   makeMissingAutomationUserBlocker,
@@ -185,7 +186,7 @@ export async function tryPrepareZ01(input: {
   return { decision: 'prepare_z01', actionTaken: 'z01_prepared', blockers: [], z01: z01 as unknown as JsonRecord }
 }
 
-async function tryPrepareSupplierSwitch(input: {
+export async function tryPrepareSupplierSwitch(input: {
   companyId: string
   customerId: string
   site: CustomerSiteRow
@@ -270,11 +271,19 @@ async function tryPrepareSupplierSwitch(input: {
   // missing-facility completion produces identical supplier_switch_requests
   // rows (metadata, requested start date from move-in, request_created event)
   // and can never duplicate an open switch for the site.
+  // FINDINGS F81: the start the customer requested on the signed contract decides the switch date. The
+  // request creator still raises a date earlier than the market lead time to the earliest valid one.
+  const contract = await isContractOperationallyReadyForSite({
+    companyId: input.companyId,
+    customerId: input.customerId,
+    siteId: input.site.id,
+  }).catch(() => null)
   const ensured = await ensureSupplierSwitchRequestForReadySite({
     companyId: input.companyId,
     customerId: input.customerId,
     siteId: input.site.id,
     meteringPointId: input.meteringPoint.id,
+    requestedStartDate: contract?.requestedStartDate ?? null,
     actorUserId: input.actorUserId,
     operationId: input.operationId ?? null,
     automationOrigin: 'customer_process_next_step_engine',
