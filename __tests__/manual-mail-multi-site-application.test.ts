@@ -118,6 +118,20 @@ it('normalizes each site separately and sends one batch command under the immuta
     ] }) }))
 })
 
+it('propagates a qualified receipt day to each relative facility date without using the worker clock', async () => {
+  await applyManualMultiSiteReply({ ...scope, parentRequest: io.db.tables.grid_owner_information_requests[0], sourceHash: hash,
+    receivedAt: '2026-10-24T22:30:00.000Z', receivedAtSource: 'imap_internal_date', groups: [
+      { facilityId: '735999123456789001', authoredText: 'Kunden kan starta om 30 dagar\nBrytavgift: Ingen', extracted: { earliest_supplier_start_date: 'om 30 dagar', termination_fee: 'Ingen' } },
+      { facilityId: '735999123456789002', authoredText: 'Kunden kan starta om 31 dagar\nBrytavgift: Ingen', extracted: { earliest_supplier_start_date: 'om 31 dagar', termination_fee: 'Ingen' } },
+    ] })
+  const items = io.rpc.mock.calls[0][1].p_payload.items
+  expect(items.map((item: Row) => item.reasons)).toEqual([[], []])
+  expect(items.map((item: Row) => (item.payload as Row).terms)).toEqual([
+    expect.objectContaining({ earliestStartDate: '2026-11-24', effectiveStartDate: '2026-11-24' }),
+    expect.objectContaining({ earliestStartDate: '2026-11-25', effectiveStartDate: '2026-11-25' }),
+  ])
+})
+
 function realQueueDb(): ReturnType<typeof createFakeDb> {
   return createFakeDb({
     companies: [{ id: 'company', legal_name: 'Synthetic El AB', org_number: '559999-9984', status: 'active', is_active: true }],
