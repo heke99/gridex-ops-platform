@@ -8,7 +8,7 @@ See the [API migration guide](api-migration-guide.md) for what each documentatio
 
 ## Terms
 
-Current documentation revision is `2026-10-12.1`; the default Website, Customer and Staff wire representation remains `2026-10-09.1`. The separate Staff onboarding representation is `2026-10-05.2`. `info.version` and the manifest's `release_version` identify documentation. `x-contract-schema-version`, the manifest's `runtime_contract_version` and business `contract_schema_version` identify the wire contract. These values need not be equal.
+Current documentation revision is `2026-10-22.1`; the default Website, Customer and Staff wire representation remains `2026-10-09.1`. Exception to rule 1 (owner decision F51, 2026-10-22): `customer.registered_address` is a new required Website request field without opt-in or a new major, because grid-owner masterdata may never fall back to a billing or facility address; the Website surface is classified `breaking-client-update-required` and documented in the [migration guide](api-migration-guide.md). The separate Staff onboarding representation is `2026-10-05.2`. `info.version` and the manifest's `release_version` identify documentation. `x-contract-schema-version`, the manifest's `runtime_contract_version` and business `contract_schema_version` identify the wire contract. These values need not be equal.
 
 | Term | Rule |
 |---|---|

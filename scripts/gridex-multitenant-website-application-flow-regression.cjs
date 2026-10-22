@@ -182,9 +182,9 @@ check(legacyDocs.includes('data.checkout') && legacyDocs.includes('thank_you_rea
 check(portalPreAuthRelease.includes('breaking-client-update-required-for-portal-identity') && portalPreAuthRelease.includes('breaking-request-requirement'), 'historical portal pre-auth release preserves its breaking classification')
 check(
   releaseManifest.includes('API_COMPATIBILITY_CLASSIFICATION') &&
-    websiteContract.includes("release: 'backward-compatible'") &&
+    /release: '(backward-compatible|breaking-client-update-required)'/.test(websiteContract) &&
     websiteContract.includes("MINIMUM_TENANT_INTEGRATION_VERSION = '2026-10-02.3'"),
-  'schema-only correction remains compatible with the preceding tenant integration version',
+  'the release is classified and keeps the preceding minimum tenant integration version (2026-10-22.1 requires customer.registered_address, F51)',
 )
 check(websiteOpenApi.info.version === currentDocumentationVersion, `website OpenAPI version is ${currentDocumentationVersion}`)
 check(Boolean(websiteOpenApi.webhooks.customerApplicationStatusChanged) && Boolean(websiteOpenApi.webhooks.supplierSwitchUpdated), 'website OpenAPI publishes customer-application and supplier-switch webhook callbacks')

@@ -24,7 +24,8 @@ import type { WebsiteLegalAcceptanceVersion } from "./customerApplicationLegal";
 import { onboardCanonicalWebsiteCustomerGraph } from "./customerApplicationOnboarding";
 import { applicationBusinessConflictError, createApplicationRow, duplicateApplicationError, expectsSiteOrMetering, failureResponse, hasCompleteSiteAndMetering, idempotencyPayloadMismatchError, idempotentFailure, isFailedIdempotentApplication, isRetryableFailedSiteProvisioningApplication, loadConflictingBusinessApplication, loadEquivalentCommittedApplication, loadIdempotentApplication, markApplicationFailed, releaseRetryableFailedIdempotency, reserveWebsiteApplicationIdempotency, resumeCommittedIdempotentApplication, storedApplicationPayloadHash, successResponse } from "./customerApplicationPersistence";
 import { repairMissingPoaOnIdempotentApplication } from "./customerApplicationRepair";
-import { ApplicationSchema, WebsiteQuoteSettlementSchema, applicationBusinessKeyHash, applicationPayloadHash, normalizeStructuredPoa, structuredPoaIsExternallySendable, validateApplicationDates, validateCanonicalApplicationReferencePlacement, validateCustomerIdentityNumbers, validateIdempotencyKey, validateNestedPayloadFields, validateRequestedStartMode, validateStructuredPoaForExternalSendability } from "./customerApplicationSchemas";
+import { ApplicationSchema, WebsiteQuoteSettlementSchema, applicationBusinessKeyHash, applicationPayloadHash, applicationRegisteredAddress, normalizeStructuredPoa, requireApplicationRegisteredAddress, structuredPoaIsExternallySendable, validateApplicationDates, validateApplicationRegisteredAddress, validateCanonicalApplicationReferencePlacement, validateCustomerIdentityNumbers, validateIdempotencyKey, validateNestedPayloadFields, validateRequestedStartMode, validateStructuredPoaForExternalSendability } from "./customerApplicationSchemas";
+import { recordRegisteredAddress } from "@/lib/customers/registeredAddress";
 import { WEBSITE_APPLICATION_SIGNED_CONTRACT_STATUS, WebsiteApplicationError, calculatedEarliestStartDate, clean, controlledBusinessBlockingReason, controlledBusinessErrorCode, controlledBusinessNextStep, controlledBusinessStatus, errorMessage, isControlledBusinessError, isUuid, missingSchema, normalizedEmail, operationalErrorMessage, reviewAuditEvent, schemaRepairStatus, stage, technicalBlockingReason, timelineEvent, updateCustomerIntakeStatus, validationError } from "./customerApplicationShared";
 import type { CustomerRow, RequestAuditMetadata } from "./customerApplicationShared";
 
@@ -79,6 +80,8 @@ export async function processWebsiteCustomerApplication(input: {
   if (dateValidation) return failureResponse(dateValidation);
   const identityValidation = validateCustomerIdentityNumbers(normalizedRaw);
   if (identityValidation) return failureResponse(identityValidation);
+  const registeredAddressValidation = validateApplicationRegisteredAddress(normalizedRaw);
+  if (registeredAddressValidation) return failureResponse(registeredAddressValidation);
 
   // Reject unmappable customer types with a precise code instead of a generic
   // Zod validation error. Empty values default to 'private' in normalization.
@@ -480,6 +483,11 @@ export async function processWebsiteCustomerApplication(input: {
       }
     }
 
+    // FINDINGS F51: every new application declares the customer's registered
+    // address. A same-key replay above returns its original outcome unchanged.
+    const registeredAddressRequirement = requireApplicationRegisteredAddress(body);
+    if (registeredAddressRequirement) return failureResponse(registeredAddressRequirement);
+
     const equivalentCommittedApplication = await stage("idempotency", () =>
       loadEquivalentCommittedApplication({
         companyId: input.client.company_id,
@@ -857,6 +865,24 @@ export async function processWebsiteCustomerApplication(input: {
     meteringPoint = canonicalGraph.meteringPoint;
     contract = canonicalGraph.contract;
     canonicalPowerOfAttorneyId = canonicalGraph.result.power_of_attorney_id;
+
+    // FINDINGS F51: the declared registered address becomes the customer's one
+    // current 'registered' address, before the provisioning commit that starts
+    // Ediel automation. An identical address on replay or relink stays unchanged.
+    const declaredRegisteredAddress = applicationRegisteredAddress(body);
+    if (declaredRegisteredAddress) {
+      await stage("customer_create", () =>
+        recordRegisteredAddress({
+          companyId: input.client.company_id,
+          customerId: resolvedCustomerResult.customer.id,
+          address: declaredRegisteredAddress,
+          source: "website_declaration",
+          actorUserId: null,
+          declaredAt: agreementAcceptedAt,
+          reference: applicationNumber ?? applicationRowId,
+        }),
+      );
+    }
 
     if (contract?.id) {
       await recordCanonicalEnergyEvent({

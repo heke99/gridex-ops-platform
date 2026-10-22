@@ -13,7 +13,7 @@ import { PUBLIC_API_ROUTES, publicRouteContract } from '@/lib/api/publicRouteReg
 import { buildOpenApiReleaseManifest } from '@/lib/integrations/openApiReleaseManifest'
 import { serializeOpenApiDocument } from '@/lib/integrations/openApiResponse'
 import { GET as currentStaffDocument } from '@/app/api/v1/openapi/staff-v1.json/route'
-import { GET as immutableStaffDocument } from '@/app/api/v1/openapi/2026-10-12.1/staff-v1.json/route'
+import { GET as immutableStaffDocument } from '@/app/api/v1/openapi/2026-10-22.1/staff-v1.json/route'
 import { GET as firstStaffReleaseDocument } from '@/app/api/v1/openapi/2026-10-04.1/staff-v1.json/route'
 import { API_DOCUMENTATION_VERSION, STAFF_API_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
 

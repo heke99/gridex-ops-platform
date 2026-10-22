@@ -17,7 +17,7 @@ import {
 import { serializeOpenApiDocument } from '@/lib/integrations/openApiResponse'
 
 // Deterministic release preparation instant; publication is verified separately after deployment.
-export const OPENAPI_RELEASED_AT = '2026-10-12T12:00:00.000Z' as const
+export const OPENAPI_RELEASED_AT = '2026-10-22T12:00:00.000Z' as const
 
 function sha256(document: unknown): string {
   return createHash('sha256')
@@ -71,7 +71,7 @@ export function buildOpenApiReleaseManifest() {
         url: STAFF_OPENAPI_URL,
         immutable_url: STAFF_VERSIONED_OPENAPI_URL,
         sha256: sha256(staffOpenApi),
-        compatibility: API_COMPATIBILITY_CLASSIFICATION.release,
+        compatibility: API_COMPATIBILITY_CLASSIFICATION.staff,
       },
       website: {
         contract_name: 'website-integration-v1',

@@ -8,6 +8,7 @@ import {
   canonicalSwedishOrganizationNumber,
   canonicalSwedishPersonalNumber,
 } from "@/lib/validation/customerFields";
+import { validateRegisteredAddress, type RegisteredAddressInput } from "@/lib/customers/registeredAddress";
 
 const OPTIONAL_TEXT = z.preprocess(
   (value) =>
@@ -25,6 +26,17 @@ const OPTIONAL_BOOLEAN = z.preprocess((value) => {
   }
   return value;
 }, z.boolean().optional());
+
+// FINDINGS F51: the customer's own registered address (folkbokföringsadress; for a
+// business customer the organisation's registered address) as declared in the
+// application. It is never derived from the billing or facility address.
+const RegisteredAddressSchema = z.object({
+  street: OPTIONAL_TEXT,
+  street2: OPTIONAL_TEXT,
+  postal_code: OPTIONAL_TEXT,
+  city: OPTIONAL_TEXT,
+  country: OPTIONAL_TEXT,
+});
 
 const CustomerSchema = z
   .object({
@@ -56,6 +68,7 @@ const CustomerSchema = z
     billing_postal_code: OPTIONAL_TEXT,
     billing_city: OPTIONAL_TEXT,
     billing_country: OPTIONAL_TEXT,
+    registered_address: RegisteredAddressSchema.optional(),
   })
   .default({});
 
@@ -766,6 +779,109 @@ export function validateCustomerIdentityNumbers(
   return null;
 }
 
+const REGISTERED_ADDRESS_FIELD = "customer.registered_address";
+const REGISTERED_ADDRESS_KEYS = new Set(["street", "street2", "postal_code", "city", "country"]);
+const REGISTERED_ADDRESS_ERROR_FIELDS: Record<string, string> = {
+  street: "street",
+  street2: "street2",
+  postalCode: "postal_code",
+  city: "city",
+  country: "country",
+};
+const REGISTERED_ADDRESS_HINT =
+  "Skicka kundens folkbokföringsadress (för företag: organisationens registrerade adress) som customer.registered_address = { street, street2?, postal_code, city, country: \"SE\" }. Faktura- eller anläggningsadressen används aldrig i stället.";
+
+/** The declared registered address in the shape of the shared writer, or null when none was sent. */
+export function applicationRegisteredAddress(
+  body: Pick<ApplicationInput, "customer">,
+): RegisteredAddressInput | null {
+  const address = body.customer?.registered_address;
+  if (!address) return null;
+  return {
+    street: address.street ?? "",
+    street2: address.street2 ?? null,
+    postalCode: address.postal_code ?? "",
+    city: address.city ?? "",
+    country: address.country ?? "SE",
+  };
+}
+
+/**
+ * Rejects a customer.registered_address that is present but not a valid Swedish
+ * registered address (shape, unknown keys and the Ediel 35-character limits).
+ * Presence itself is enforced by requireApplicationRegisteredAddress.
+ */
+export function validateApplicationRegisteredAddress(
+  input: Record<string, unknown>,
+): WebsiteApplicationError | null {
+  const customer = nestedRecord(input, "customer");
+  if (!customer || customer.registered_address === undefined || customer.registered_address === null) return null;
+  const raw = customer.registered_address;
+  if (!isObject(raw)) {
+    return new WebsiteApplicationError({
+      message: `${REGISTERED_ADDRESS_FIELD} måste vara ett objekt.`,
+      status: 422,
+      code: "registered_address_invalid",
+      field: REGISTERED_ADDRESS_FIELD,
+      stage: "validation",
+      hint: REGISTERED_ADDRESS_HINT,
+    });
+  }
+  const unknownKeys = Object.keys(raw).filter((key) => !REGISTERED_ADDRESS_KEYS.has(key));
+  if (unknownKeys.length > 0) {
+    return new WebsiteApplicationError({
+      message: "Payloaden innehåller okända eller felplacerade fält.",
+      status: 422,
+      code: "unknown_field",
+      field: `${REGISTERED_ADDRESS_FIELD}.${unknownKeys[0]}`,
+      stage: "validation",
+      hint: REGISTERED_ADDRESS_HINT,
+      details: { fields: unknownKeys.map((key) => `${REGISTERED_ADDRESS_FIELD}.${key}`) },
+    });
+  }
+  const nonText = Object.entries(raw).find(([, value]) => value !== undefined && value !== null && typeof value !== "string");
+  const errors = nonText
+    ? { [nonText[0] === "postal_code" ? "postalCode" : nonText[0]]: "Värdet måste vara en textsträng." }
+    : validateRegisteredAddress({
+        street: clean(raw.street) ?? "",
+        street2: clean(raw.street2),
+        postalCode: clean(raw.postal_code) ?? "",
+        city: clean(raw.city) ?? "",
+        country: clean(raw.country),
+      });
+  const failed = Object.entries(errors);
+  if (failed.length === 0) return null;
+  const fields = failed.map(([key]) => `${REGISTERED_ADDRESS_FIELD}.${REGISTERED_ADDRESS_ERROR_FIELDS[key] ?? key}`);
+  return new WebsiteApplicationError({
+    message: failed.map(([, message]) => message).join(" "),
+    status: 422,
+    code: "registered_address_invalid",
+    field: fields[0],
+    stage: "validation",
+    hint: REGISTERED_ADDRESS_HINT,
+    details: { fields, errors: Object.fromEntries(failed.map(([, message], index) => [fields[index], message])) },
+  });
+}
+
+/**
+ * A new application must declare the customer's registered address: the protected
+ * Ediel masterdata rule (Z01) uses only that address as the end user's address,
+ * for private (SE2) and business (SE1) customers alike.
+ */
+export function requireApplicationRegisteredAddress(
+  body: Pick<ApplicationInput, "customer">,
+): WebsiteApplicationError | null {
+  if (applicationRegisteredAddress(body)) return null;
+  return new WebsiteApplicationError({
+    message: `${REGISTERED_ADDRESS_FIELD} krävs: kundens folkbokföringsadress behövs för nätägarens kunduppgifter (Ediel).`,
+    status: 422,
+    code: "registered_address_required",
+    field: REGISTERED_ADDRESS_FIELD,
+    stage: "validation",
+    hint: REGISTERED_ADDRESS_HINT,
+  });
+}
+
 export function validateRequestedStartMode(
   input: Record<string, unknown>,
 ): WebsiteApplicationError | null {
@@ -1067,6 +1183,7 @@ const NESTED_PAYLOAD_FIELDS: Record<string, Set<string>> = {
     "billingCity",
     "billing_country",
     "billingCountry",
+    "registered_address",
   ]),
   site: new Set([
     "facility_id",

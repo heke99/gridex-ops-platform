@@ -80,10 +80,11 @@ describe('supported client release matrix', () => {
     expect(manifest.specifications.staff.immutable_url).toContain(`/api/v1/openapi/${API_DOCUMENTATION_VERSION}/`)
   })
 
-  it('the docs-only release did not raise the minimum and stays backward-compatible', () => {
+  it('the F51 request requirement keeps the minimum wire revision and classifies only Website as a required client update', () => {
     expect(MINIMUM_TENANT_INTEGRATION_VERSION).toBe('2026-10-02.3')
     expect(buildOpenApiReleaseManifest().minimum_tenant_integration_version).toBe('2026-10-02.3')
-    expect(API_COMPATIBILITY_CLASSIFICATION).toEqual({ release: 'backward-compatible', website: 'backward-compatible', customerPortal: 'backward-compatible' })
+    expect(API_COMPATIBILITY_CLASSIFICATION).toEqual({ release: 'breaking-client-update-required', website: 'breaking-client-update-required', customerPortal: 'backward-compatible', staff: 'backward-compatible' })
+    expect(buildOpenApiReleaseManifest().specifications.staff.compatibility).toBe('backward-compatible')
     for (const surface of ['website', 'customer'] as const) {
       expect(assessApiContractCompatibility({ surface, major: 'v1', clientProfile: MINIMUM_TENANT_INTEGRATION_VERSION, requiredCapabilities: [], registry: API_CONTRACT_PROFILE_REGISTRY }).ok).toBe(true)
     }

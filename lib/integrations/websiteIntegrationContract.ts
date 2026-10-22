@@ -8,8 +8,9 @@
  */
 export const WEBSITE_INTEGRATION_CONTRACT_VERSION = '2026-10-09.1' as const
 // Documentation revisions are independent of the stable business response schema.
-export const API_DOCUMENTATION_VERSION = '2026-10-12.1' as const
-// Documentation-only releases never raise the minimum supported wire revision.
+export const API_DOCUMENTATION_VERSION = '2026-10-22.1' as const
+// Documentation releases never raise the minimum supported wire revision; a request
+// requirement that applies to every profile is classified below, not by a wire bump.
 export const MINIMUM_TENANT_INTEGRATION_VERSION = '2026-10-02.3' as const
 
 export const WEBSITE_INTEGRATION_ORIGIN = 'https://app.gridex.se' as const
@@ -54,6 +55,21 @@ export const WEBSITE_APPLICATION_REFERENCE_LOCATION = 'top_level' as const
  */
 
 /**
+ * 2026-10-22.1 documents a breaking Website request requirement (FINDINGS F51, owner decision
+ * 2026-10-22, effective immediately): POST /api/v1/website/customer-applications requires
+ * `customer.registered_address` { street, street2?, postal_code, city, country? } for private and
+ * business customers: the customer's own Swedish registered address (folkbokföringsadress; for a
+ * business the organisation's registered address), never the billing or facility address. Missing:
+ * 422 registered_address_required; invalid: 422 registered_address_invalid; unknown key: 422
+ * unknown_field (error.field customer.registered_address[.<field>]). Runtime request validation is
+ * not selected by a credential-pinned representation, so every supported profile is affected and no
+ * opt-in exists: the release is classified breaking-client-update-required for Website. Responses,
+ * error envelopes and contract_schema_version are unchanged, so the wire revision stays
+ * 2026-10-09.1 and the minimum stays 2026-10-02.3. Customer-portal and Staff documents only receive
+ * the new documentation revision.
+ *
+ * 2026-10-12.1 separates the documentation revision from the stable wire revision 2026-10-09.1.
+ *
  * 2026-10-09.1 is a documentation-only release (OPS API remediation Paket 17). It publishes the
  * OpenAPI text for runtime behaviour already in production: Staff x-gridex-expected-project-ref /
  * X-Gridex-Project-Ref / 412 storage_project_mismatch, Idempotency-Replayed semantics,
@@ -74,9 +90,12 @@ export const WEBSITE_APPLICATION_REFERENCE_LOCATION = 'top_level' as const
  * metadata and does not expire a customer-visible quote by wall-clock time.
  */
 export const API_COMPATIBILITY_CLASSIFICATION = {
-  release: 'backward-compatible',
-  website: 'backward-compatible',
+  // 2026-10-22.1: Website clients must send customer.registered_address (F51).
+  release: 'breaking-client-update-required',
+  website: 'breaking-client-update-required',
   customerPortal: 'backward-compatible',
+  // Staff requests and responses are unchanged by 2026-10-22.1.
+  staff: 'backward-compatible',
 } as const
 export type CompatibilityClassification =
   (typeof API_COMPATIBILITY_CLASSIFICATION)[keyof typeof API_COMPATIBILITY_CLASSIFICATION]

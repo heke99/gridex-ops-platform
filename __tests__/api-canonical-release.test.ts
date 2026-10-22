@@ -27,8 +27,9 @@ describe('canonical public API release', () => {
     expect(manifest.specifications.website.compatibility).toBe(
       manifest.compatibility_classification,
     )
+    // 2026-10-22.1 (F51): only Website requires a client update; Customer portal is unchanged.
     expect(manifest.specifications.customer_portal.compatibility).toBe(
-      manifest.compatibility_classification,
+      API_COMPATIBILITY_CLASSIFICATION.customerPortal,
     )
     expect(websiteOpenApi.paths['/api/v1/openapi/release-manifest.json']?.get).toBeDefined()
   })

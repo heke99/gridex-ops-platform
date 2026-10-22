@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Gridex Customer Portal API",
-    "version": "2026-10-12.1",
+    "version": "2026-10-22.1",
     "description": "Production API for customer portals. Access is organization-scoped by the server-side API credential and customer data is limited to the verified linked customer identity."
   },
   "servers": [
@@ -7419,7 +7419,7 @@
                 "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
-                  "const": "2026-10-12.1"
+                  "const": "2026-10-22.1"
                 }
               },
               "X-Request-ID": {
@@ -7457,7 +7457,7 @@
                 "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
-                  "const": "2026-10-12.1"
+                  "const": "2026-10-22.1"
                 }
               },
               "X-Request-ID": {
@@ -12812,6 +12812,90 @@
         "x-cache-policy": "public-immutable",
         "x-public-id-policy": "none"
       }
+    },
+    "/api/v1/openapi/2026-10-22.1/customer-portal-v1.json": {
+      "get": {
+        "summary": "Immutable Customer Portal OpenAPI release 2026-10-22.1",
+        "description": "Immutable Customer Portal OpenAPI release 2026-10-22.1.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Versionerad OpenAPI JSON",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "schema": {
+                  "type": "string",
+                  "const": "2026-10-22.1"
+                }
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Vary": {
+                "$ref": "#/components/headers/Vary"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/CacheControl"
+              },
+              "Content-Type": {
+                "$ref": "#/components/headers/ContentType"
+              },
+              "Content-Disposition": {
+                "$ref": "#/components/headers/ContentDisposition"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "schema": {
+                  "type": "string",
+                  "const": "2026-10-22.1"
+                }
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Vary": {
+                "$ref": "#/components/headers/Vary"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/CacheControl"
+              },
+              "Content-Type": {
+                "$ref": "#/components/headers/ContentType"
+              },
+              "Content-Disposition": {
+                "$ref": "#/components/headers/ContentDisposition"
+              }
+            }
+          }
+        },
+        "x-required-scopes": [],
+        "operationId": "getApiV1Openapi202610221CustomerPortalV1Json",
+        "x-scope-mode": "all",
+        "x-rate-limit-class": "read",
+        "x-idempotency-required": false,
+        "x-cache-policy": "public-immutable",
+        "x-public-id-policy": "none"
+      }
     }
   },
   "components": {
@@ -16080,19 +16164,19 @@
         "properties": {
           "release_version": {
             "type": "string",
-            "const": "2026-10-12.1"
+            "const": "2026-10-22.1"
           },
           "website_openapi_version": {
             "type": "string",
-            "const": "2026-10-12.1"
+            "const": "2026-10-22.1"
           },
           "customer_portal_openapi_version": {
             "type": "string",
-            "const": "2026-10-12.1"
+            "const": "2026-10-22.1"
           },
           "staff_openapi_version": {
             "type": "string",
-            "const": "2026-10-12.1"
+            "const": "2026-10-22.1"
           },
           "runtime_contract_version": {
             "type": "string",
@@ -16100,7 +16184,7 @@
           },
           "guide_version": {
             "type": "string",
-            "const": "2026-10-12.1"
+            "const": "2026-10-22.1"
           },
           "released_at": {
             "type": "string",
@@ -16188,7 +16272,7 @@
           },
           "contract_version": {
             "type": "string",
-            "const": "2026-10-12.1"
+            "const": "2026-10-22.1"
           },
           "url": {
             "type": "string",
@@ -16285,7 +16369,7 @@
         "description": "Optional documentation revision associated with this business response. It does not change contract_schema_version or the supported wire schema.",
         "schema": {
           "type": "string",
-          "const": "2026-10-12.1"
+          "const": "2026-10-22.1"
         }
       }
     }
@@ -16308,7 +16392,7 @@
       "description": "Verifiera API-nyckelns tenantkontext, fasta base URL och one-secret readiness."
     }
   ],
-  "x-gridex-release-version": "2026-10-12.1",
+  "x-gridex-release-version": "2026-10-22.1",
   "x-error-codes": [
     "missing_api_token",
     "invalid_api_token",

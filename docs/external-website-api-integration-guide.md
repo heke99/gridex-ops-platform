@@ -1,6 +1,6 @@
 # Gridex Website Integration API
 
-Current documentation: **2026-10-12.1**. Default response contract: **2026-10-09.1**.
+Current documentation: **2026-10-22.1**. Default response contract: **2026-10-09.1**.
 
 Documentation revisions describe the API and never require matching version headers on business requests. A newer documentation copy does not change the supported V1 response representation. Gridex can pin an older supported representation on the credential; see [API compatibility policy](api-compatibility-policy.md).
 
@@ -119,6 +119,19 @@ Transitional public aliases may remain documented for migration compatibility, b
 Swedish identity numbers are validated before anything is stored. `customer.personal_number` must be a real personnummer or samordningsnummer (valid date and check digit) as 10 or 12 digits, with or without `-` or `+`; otherwise the request is rejected with `422` and error code `personal_number_invalid`. `customer.org_number` must be a valid organisationsnummer (a sole trader may send the owner's personnummer); otherwise the request is rejected with `422` and error code `org_number_invalid`. Both errors name the field in `field` and are not retryable: correct the value and submit again. Accepted values are normalized, so `811218-9876` and `198112189876` identify the same customer; a 10-digit personnummer gets its century from the birth date, and the `+` separator marks a person aged 100 or more.
 
 For newly signed qualifying private distance agreements, Gridex stores `withdrawal_deadline_at` at the end of the fourteenth calendar day after the acceptance date in Europe/Stockholm. Use the returned stored timestamp; previously frozen agreements retain their recorded deadline. Confirmation delivery does not change that deadline.
+
+### Registered address (required from 2026-10-22.1)
+
+Every customer application must carry the customer's registered address in `customer.registered_address`, for both private and business customers:
+
+```json
+"registered_address": { "street": "Hemvägen 4", "street2": "lgh 1102", "postal_code": "41301", "city": "Göteborg", "country": "SE" }
+```
+
+- It is the customer's folkbokföringsadress, or the organisation's registered address for a business. Never copy `billing_*` or `site.*` into it; the grid owner receives it as the customer's masterdata address.
+- `street` and `city` are required, 1–35 characters. `street2` is optional, up to 35 characters. `postal_code` is five digits, with or without a space. `country` is optional and only `SE` is accepted. No other keys are allowed.
+- Errors (`422`, not retryable until corrected): `registered_address_required` (field `customer.registered_address`), `registered_address_invalid` (`field` names the first failing path; `details.fields` and `details.errors` list them all) and `unknown_field` (field `customer.registered_address.<key>`).
+- A changed registered address on a later application replaces the current one from that day; the previous address is kept as history.
 
 ## Asynchronous processing
 

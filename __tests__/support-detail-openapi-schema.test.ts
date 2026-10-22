@@ -191,10 +191,10 @@ describe('schema correction release metadata', () => {
     expect(served.headers.get('x-gridex-contract-version')).toBe(WEBSITE_INTEGRATION_CONTRACT_VERSION)
   })
 
-  it('does not require a client migration from the preceding published contract', () => {
+  it('requires a client migration only for the Website registered address (F51), not for the customer portal', () => {
     const manifest = buildOpenApiReleaseManifest()
-    expect(manifest.compatibility_classification).toBe('backward-compatible')
-    expect(manifest.specifications.website.compatibility).toBe('backward-compatible')
+    expect(manifest.compatibility_classification).toBe('breaking-client-update-required')
+    expect(manifest.specifications.website.compatibility).toBe('breaking-client-update-required')
     expect(manifest.specifications.customer_portal.compatibility).toBe('backward-compatible')
     expect(manifest.minimum_tenant_integration_version).toBe('2026-10-02.3')
   })

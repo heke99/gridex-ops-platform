@@ -1,6 +1,6 @@
-# Gridex Staff API — documentation 2026-10-12.1
+# Gridex Staff API — documentation 2026-10-22.1
 
-Current documentation: **2026-10-12.1**. Default response contract: **2026-10-09.1**.
+Current documentation: **2026-10-22.1**. Default response contract: **2026-10-09.1**.
 Documentation updates do not change the response contract. No documentation-version request header is required.
 
 Use the Staff API from your backend to manage staff accounts and handle customer service in your own application.
@@ -9,7 +9,7 @@ You do not need to match the latest documentation revision exactly to use a supp
 
 - Base URL: `https://app.gridex.se/api/v1/staff`
 - Current OpenAPI: `https://app.gridex.se/api/v1/openapi/staff-v1.json`
-- Immutable OpenAPI: `https://app.gridex.se/api/v1/openapi/2026-10-12.1/staff-v1.json`
+- Immutable OpenAPI: `https://app.gridex.se/api/v1/openapi/2026-10-22.1/staff-v1.json`
 - Release manifest: `https://app.gridex.se/api/v1/openapi/release-manifest.json`
 - Public guide: `https://app.gridex.se/developers/staff-api`
 

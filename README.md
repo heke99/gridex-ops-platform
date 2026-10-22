@@ -13,7 +13,7 @@ workflows, exposed to tenants through versioned HTTP APIs.
 The release manifest is the authority for the current contract version and the
 checksum of every published specification:
 `https://app.gridex.se/api/v1/openapi/release-manifest.json`
-(documentation `2026-10-12.1`, default wire `2026-10-09.1`, source `docs/openapi/`). Documentation-only updates do not change the wire representation. Frozen release bytes live in
+(documentation `2026-10-22.1`, default wire `2026-10-09.1`, source `docs/openapi/`). Documentation-only updates do not change the wire representation. Frozen release bytes live in
 `docs/openapi/releases/<version>/` and are never rewritten.
 
 | API | Current OpenAPI | Guide | Developer page |

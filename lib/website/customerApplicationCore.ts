@@ -687,6 +687,9 @@ export function normalizeRawApplication(rawBody: unknown): Record<string, unknow
       rawCustomer.billing_country ??
       rawCustomer.billingCountry ??
       rawAddress.country,
+    // FINDINGS F51: only the customer's own declaration; never filled from the
+    // billing, top-level address or site address above.
+    registered_address: rawCustomer.registered_address,
   };
 
   const topLevelMeteringPointId = firstClean(

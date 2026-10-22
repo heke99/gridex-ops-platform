@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Gridex Website Integration API",
-    "version": "2026-10-12.1",
+    "version": "2026-10-22.1",
     "description": "Production API for electricity retail websites and backend integrations. Gridex owns published offers, authoritative pricing and quotes, legal document versions, customer and contract lifecycle state, and downstream processing. Integrations provide verified customer input and use public references only."
   },
   "servers": [
@@ -2397,7 +2397,7 @@
           "Customer applications"
         ],
         "summary": "Submit a customer application with the exact accepted offer, quote, legal evidence and...",
-        "description": "Submit a customer application with the exact accepted offer, quote, legal evidence and customer data.",
+        "description": "Submit a customer application with the exact accepted offer, quote, legal evidence and customer data. Every new application must include customer.registered_address (street, optional street2, postal_code, city, optional country SE) for both private and business customers: the customer's own registered address (folkbokföringsadress; for a business the organisation's registered address), never the billing or facility address. Only a retry with the same Idempotency-Key of an application that was already committed returns its original result without the field.",
         "parameters": [
           {
             "name": "Idempotency-Key",
@@ -2570,7 +2570,7 @@
             }
           },
           "409": {
-            "description": "Expired, consumed or mismatched quote/idempotency state power_of_attorney_offer_version_mismatch: powerOfAttorney.textVersionId is not the power-of-attorney document of the accepted legal bundle; nothing is stored.",
+            "description": "Expired, consumed or mismatched quote/idempotency state power_of_attorney_offer_version_mismatch: powerOfAttorney.textVersionId is not the power-of-attorney document of the accepted legal bundle; nothing is stored. idempotency_key_payload_mismatch also applies when an Idempotency-Key is reused with a different customer.registered_address; a retry never changes the stored registered address.",
             "headers": {
               "X-Gridex-Contract-Version": {
                 "$ref": "#/components/headers/GridexContractVersion"
@@ -2603,7 +2603,7 @@
             "$ref": "#/components/responses/OrganizationGone"
           },
           "422": {
-            "description": "Application validation error",
+            "description": "Application validation error registered_address_required: customer.registered_address is missing; error.field is customer.registered_address. registered_address_invalid: customer.registered_address is not an object or fails validation (empty or \".\" street, street, street2 or city longer than 35 characters, postal code without exactly five digits, country other than SE, non-text value); error.field names the first failing path (customer.registered_address, or customer.registered_address.street, .street2, .postal_code, .city or .country) and error.details.fields and error.details.errors list every failing path. unknown_field: customer.registered_address contains a key other than street, street2, postal_code, city and country; error.field is customer.registered_address.<key> and error.details.fields lists every unknown key. A null customer.registered_address returns validation_error. No customer, address or application is created by these errors.",
             "headers": {
               "X-Gridex-Contract-Version": {
                 "$ref": "#/components/headers/GridexContractVersion"
@@ -3262,7 +3262,7 @@
                 "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
-                  "const": "2026-10-12.1"
+                  "const": "2026-10-22.1"
                 }
               },
               "X-Request-ID": {
@@ -3300,7 +3300,7 @@
                 "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
-                  "const": "2026-10-12.1"
+                  "const": "2026-10-22.1"
                 }
               },
               "X-Request-ID": {
@@ -3346,7 +3346,7 @@
                 "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
-                  "const": "2026-10-12.1"
+                  "const": "2026-10-22.1"
                 }
               },
               "X-Request-ID": {
@@ -3384,7 +3384,7 @@
                 "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
-                  "const": "2026-10-12.1"
+                  "const": "2026-10-22.1"
                 }
               },
               "X-Request-ID": {
@@ -9491,6 +9491,174 @@
         "x-cache-policy": "public-immutable",
         "x-public-id-policy": "none"
       }
+    },
+    "/api/v1/openapi/2026-10-22.1/website-integration-v1.json": {
+      "get": {
+        "summary": "Immutable Website Integration OpenAPI release 2026-10-22.1",
+        "description": "Immutable Website Integration OpenAPI release 2026-10-22.1.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Versionerad OpenAPI JSON",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "schema": {
+                  "type": "string",
+                  "const": "2026-10-22.1"
+                }
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Vary": {
+                "$ref": "#/components/headers/Vary"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/CacheControl"
+              },
+              "Content-Type": {
+                "$ref": "#/components/headers/ContentType"
+              },
+              "Content-Disposition": {
+                "$ref": "#/components/headers/ContentDisposition"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "schema": {
+                  "type": "string",
+                  "const": "2026-10-22.1"
+                }
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Vary": {
+                "$ref": "#/components/headers/Vary"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/CacheControl"
+              },
+              "Content-Type": {
+                "$ref": "#/components/headers/ContentType"
+              },
+              "Content-Disposition": {
+                "$ref": "#/components/headers/ContentDisposition"
+              }
+            }
+          }
+        },
+        "x-required-scopes": [],
+        "operationId": "getApiV1Openapi202610221WebsiteIntegrationV1Json",
+        "x-scope-mode": "all",
+        "x-rate-limit-class": "read",
+        "x-idempotency-required": false,
+        "x-cache-policy": "public-immutable",
+        "x-public-id-policy": "none"
+      }
+    },
+    "/api/v1/openapi/2026-10-22.1/customer-portal-v1.json": {
+      "get": {
+        "summary": "Immutable Customer Portal OpenAPI release 2026-10-22.1",
+        "description": "Immutable Customer Portal OpenAPI release 2026-10-22.1.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Versionerad OpenAPI JSON",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "schema": {
+                  "type": "string",
+                  "const": "2026-10-22.1"
+                }
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Vary": {
+                "$ref": "#/components/headers/Vary"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/CacheControl"
+              },
+              "Content-Type": {
+                "$ref": "#/components/headers/ContentType"
+              },
+              "Content-Disposition": {
+                "$ref": "#/components/headers/ContentDisposition"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "schema": {
+                  "type": "string",
+                  "const": "2026-10-22.1"
+                }
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Vary": {
+                "$ref": "#/components/headers/Vary"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/CacheControl"
+              },
+              "Content-Type": {
+                "$ref": "#/components/headers/ContentType"
+              },
+              "Content-Disposition": {
+                "$ref": "#/components/headers/ContentDisposition"
+              }
+            }
+          }
+        },
+        "x-required-scopes": [],
+        "operationId": "getApiV1Openapi202610221CustomerPortalV1Json",
+        "x-scope-mode": "all",
+        "x-rate-limit-class": "read",
+        "x-idempotency-required": false,
+        "x-cache-policy": "public-immutable",
+        "x-public-id-policy": "none"
+      }
     }
   },
   "components": {
@@ -10442,7 +10610,8 @@
             "type": "object",
             "required": [
               "customer_type",
-              "email"
+              "email",
+              "registered_address"
             ],
             "properties": {
               "customer_type": {
@@ -10485,6 +10654,9 @@
               },
               "billing_country": {
                 "type": "string"
+              },
+              "registered_address": {
+                "$ref": "#/components/schemas/CustomerRegisteredAddress"
               }
             },
             "additionalProperties": false
@@ -14617,19 +14789,19 @@
         "properties": {
           "release_version": {
             "type": "string",
-            "const": "2026-10-12.1"
+            "const": "2026-10-22.1"
           },
           "website_openapi_version": {
             "type": "string",
-            "const": "2026-10-12.1"
+            "const": "2026-10-22.1"
           },
           "customer_portal_openapi_version": {
             "type": "string",
-            "const": "2026-10-12.1"
+            "const": "2026-10-22.1"
           },
           "staff_openapi_version": {
             "type": "string",
-            "const": "2026-10-12.1"
+            "const": "2026-10-22.1"
           },
           "runtime_contract_version": {
             "type": "string",
@@ -14637,7 +14809,7 @@
           },
           "guide_version": {
             "type": "string",
-            "const": "2026-10-12.1"
+            "const": "2026-10-22.1"
           },
           "released_at": {
             "type": "string",
@@ -14725,7 +14897,7 @@
           },
           "contract_version": {
             "type": "string",
-            "const": "2026-10-12.1"
+            "const": "2026-10-22.1"
           },
           "url": {
             "type": "string",
@@ -16099,6 +16271,50 @@
           }
         },
         "description": "How the accepted product is settled. The authenticated API credential determines the organization; no organization selector is accepted here."
+      },
+      "CustomerRegisteredAddress": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "street",
+          "postal_code",
+          "city"
+        ],
+        "properties": {
+          "street": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 35,
+            "pattern": "\\S",
+            "description": "Street address with number exactly as registered, for example \"Hemvägen 4\". Required; at most 35 characters (Ediel customer master-data limit). An empty value or \".\" is rejected."
+          },
+          "street2": {
+            "type": "string",
+            "maxLength": 35,
+            "description": "Optional second address line, for example c/o or apartment (\"lgh 1102\"). At most 35 characters. Omit it when it is not used."
+          },
+          "postal_code": {
+            "type": "string",
+            "pattern": "^\\s*(?:\\d\\s*){5}$",
+            "description": "Swedish postal code: exactly five digits, with or without a space (\"41301\" or \"413 01\"). Gridex stores it as \"NNN NN\"."
+          },
+          "city": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 35,
+            "pattern": "\\S",
+            "description": "Postal town (postort) as registered. Required; at most 35 characters."
+          },
+          "country": {
+            "type": "string",
+            "enum": [
+              "SE"
+            ],
+            "default": "SE",
+            "description": "ISO 3166-1 alpha-2 country code. Only SE (Sweden) is accepted; when omitted Gridex uses SE. Any other country returns 422 registered_address_invalid with error.field customer.registered_address.country."
+          }
+        },
+        "description": "The customer's own registered address in Sweden: for customer_type private the folkbokföringsadress (population-register address), for customer_type business the organisation's registered address. Required in every new application for both customer types. It is not the billing address (customer.billing_*) and not the facility or supply address (site.*); Gridex never derives it from either and never substitutes them for it. Gridex stores it as the customer's single current registered address and uses it as the end-user address in the customer master data sent to the grid owner (Ediel). Text values are trimmed and repeated whitespace is collapsed before the length checks. Unknown keys (for example postalCode) are rejected."
       }
     },
     "responses": {
@@ -16463,7 +16679,7 @@
         "description": "Optional documentation revision associated with this business response. It does not change contract_schema_version or the supported wire schema.",
         "schema": {
           "type": "string",
-          "const": "2026-10-12.1"
+          "const": "2026-10-22.1"
         }
       }
     },
@@ -16493,7 +16709,7 @@
     "website_openapi_url": "https://app.gridex.se/api/v1/openapi/website-integration-v1.json",
     "customer_portal_openapi_url": "https://app.gridex.se/api/v1/openapi/customer-portal-v1.json"
   },
-  "x-gridex-release-version": "2026-10-12.1",
+  "x-gridex-release-version": "2026-10-22.1",
   "x-error-codes": [
     "missing_api_token",
     "invalid_api_token",

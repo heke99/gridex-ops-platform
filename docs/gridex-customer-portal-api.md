@@ -6,7 +6,7 @@ The structured `power_of_attorney` consent in organization customer sync uses `i
 
 BankID is optional. A form click and a client-supplied `method`/metadata value do not prove BankID verification. No live BankID integration is enabled. API intake remains compatible with older payloads; external email is held when signer IP or verification evidence is missing. Completing evidence for an existing acceptance cannot change its signer, original timestamp, legal document or scopes. Existing uploaded PDFs are copied byte-for-byte into the private archive. See the [manual POA mail runbook](manual-poa-mail-runbook.md) for routing, rejections and follow-up behavior.
 
-Current documentation: **2026-10-12.1**. Default response contract: **2026-10-09.1**.
+Current documentation: **2026-10-22.1**. Default response contract: **2026-10-09.1**.
 
 Documentation-only revisions leave the default wire contract unchanged. Business requests need no documentation-version header. An older supported representation can be pinned on the credential in OPS; the tenant does not need to copy the latest documentation to keep using the API.
 

@@ -90,6 +90,8 @@ vi.mock('@/lib/supabase/service', () => {
         return { data: { ok: true, code: 'customer_onboarding_committed', operation_id: id(91), correlation_id: command.correlation_id, customer_id: CUSTOMER, customer_number: 'SYNTHETIC-CUSTOMER', created_new_customer: true, site_id: SITE, metering_point_id: null, contract_id: CONTRACT, price_snapshot_id: id(92), power_of_attorney_id: null }, error: null }
       }
       if (name === 'gridex_retry_website_contract_signature') return { data: null, error: null }
+      // The signed contract's masterdata section (F51 declaration); none here, so the v2 snapshot is unchanged.
+      if (name === 'gridex_contract_customer_masterdata_section_v1') return { data: null, error: null }
       if (name === 'gridex_finalize_website_contract_signature') {
         const versions = args.p_legal_versions as Row[]
         const acceptanceIds = Object.fromEntries(versions.map((version, index) => [String(version.id), id(120 + index)]))
@@ -143,6 +145,8 @@ import { POST as applicationPOST } from '@/app/api/v1/website/customer-applicati
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`
 const COMPANY = id(1), FOREIGN = id(2), CLIENT = id(3), OFFER = id(4), PUBLICATION = id(5), PRODUCT = id(6), PRODUCT_VERSION = id(7), PLAN = id(8), PLAN_VERSION = id(9), BUNDLE = id(10), RESOLUTION = id(11), OPTION = id(12), CUSTOMER = id(13), SITE = id(14), METER = id(15), CONTRACT = id(16), APPLICATION = id(17), WORKFLOW = id(18), SWITCH = id(19)
 const NOW = '2026-10-12T12:00:00.000Z', START = '2026-11-01', OFFER_REFERENCE = 'offer_synthetic_fixed'
+// FINDINGS F51 (documentation 2026-10-22.1): the customer's own registered address, distinct from the facility address.
+const REGISTERED_ADDRESS = { street: 'Registered street 4', street2: 'lgh 1102', postal_code: '413 01', city: 'Goteborg', country: 'SE' }
 const document: Row = JSON.parse(readFileSync('docs/openapi/website-integration-v1.json', 'utf8'))
 function asRecord(value: unknown): Row { return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {} }
 function resolve(raw: unknown): Row {
@@ -229,7 +233,7 @@ beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date(NOW)); vi.stubEnv('GRIDEX_AUTOMATION_USER_ID', id(99)); vi.stubEnv('CUSTOMER_OPERATION_CRON_SECRET', 'synthetic-test-only');
   io.serial = 500; io.queries = []; io.rpcs = []; io.scopes = []
   io.client = { id: CLIENT, company_id: COMPANY, name: 'Synthetic Website', status: 'active', key_prefix: 'unit', secret_hash: 'synthetic-unit', scopes: [...TENANT_WEBSITE_RECOMMENDED_SCOPES, 'website_contracts.diagnostics', 'api_contracts.diagnostics'], allowed_ips: [], allowed_origins: ['https://synthetic.example.invalid'], rate_limit_per_minute: 100, expires_at: null, metadata: { api_contract_profiles: { website: '2026-10-09.1' } } }
-  const empty = ['company_capabilities','webhook_subscriptions','customer_portal_identities','customer_portal_accounts','customers','customer_sites','metering_points','website_contract_quotes','integration_api_write_idempotency','canonical_energy_flow_events','canonical_energy_remediation_queue','website_customer_applications','customer_application_workflows','customer_operation_jobs','customer_supply_periods','supplier_switch_events','communication_logs','tenant_email_outbox','domain_events','webhook_deliveries','event_outbox','external_contract_intakes','audit_logs','portfolio_monthly_settlements','contract_charge_ledger','price_components','pricing_component_rules','price_plan_versions','portfolio_price_estimates','spot_price_monthly_summaries','market_price_previews','customer_legal_acceptances']
+  const empty = ['company_capabilities','webhook_subscriptions','customer_portal_identities','customer_portal_accounts','customers','customer_sites','metering_points','website_contract_quotes','integration_api_write_idempotency','canonical_energy_flow_events','canonical_energy_remediation_queue','website_customer_applications','customer_application_workflows','customer_operation_jobs','customer_supply_periods','supplier_switch_events','communication_logs','tenant_email_outbox','domain_events','webhook_deliveries','event_outbox','external_contract_intakes','audit_logs','portfolio_monthly_settlements','contract_charge_ledger','price_components','pricing_component_rules','price_plan_versions','portfolio_price_estimates','spot_price_monthly_summaries','market_price_previews','customer_legal_acceptances','customer_addresses']
   io.rows = Object.fromEntries(empty.map(table => [table, []]))
   io.rows.user_profiles = [{ id: id(99), user_status: 'active' }]
   io.rows.companies = [{ id: COMPANY, status: 'active', name: 'Synthetic electricity', org_number: '5560160680', slug: 'synthetic', external_tenant_reference: 'tenant_synthetic_0123456789abcdef0123456789', customer_portal_url: 'https://synthetic.example.invalid/portal', branding: {}, metadata: { website_portal_identity_mode: 'post_auth_allowed' } }]
@@ -393,7 +397,7 @@ describe('Website operations: mounted routes against published contracts', () =>
   it('application submission validates canonical input before replaying a committed own-company result without creating another customer', async () => {
     const legal = asRecord((await (await legalGET(request('/api/v1/website/legal-bundle?offer_reference=' + OFFER_REFERENCE))).json()).data)
     const quote = asRecord((await (await quotePOST(request('/api/v1/website/quote', 'POST', quoteRequest(), 'synthetic-replay-preparation'))).json()).data)
-    const payload = { external_customer_id: 'synthetic-customer', ...quoteRequest(), customer: { customer_type: 'private', first_name: 'Synthetic', last_name: 'Applicant', personal_number: '198112189876', email: 'synthetic@example.invalid' }, site: { street: 'Synthetic street 1', postal_code: '58220', city: 'Linkoping', country: 'SE', annual_consumption_kwh: 12000 }, contract: { requested_start_date: START, requested_start_mode: 'specific_date' }, quote_reference: quote.quote_reference, legal_bundle_version: legal.bundle_version, legal_acceptances: (legal.requirements as Row[]).map(row => ({ requirement_code: row.requirement_code, document_reference: row.document_reference, document_version: row.document_version, document_hash: row.document_hash, accepted: true, accepted_at: NOW })), settlement: { model: 'fixed_price', customer_accepts: 'fixed_energy_price', energy_price_locked_at_signup: true, uses_actual_metered_consumption: true, market_data_role: 'not_applicable', settlement_resolution: 'fixed' } }
+    const payload = { external_customer_id: 'synthetic-customer', ...quoteRequest(), customer: { customer_type: 'private', first_name: 'Synthetic', last_name: 'Applicant', personal_number: '198112189876', email: 'synthetic@example.invalid', registered_address: REGISTERED_ADDRESS }, site: { street: 'Synthetic street 1', postal_code: '58220', city: 'Linkoping', country: 'SE', annual_consumption_kwh: 12000 }, contract: { requested_start_date: START, requested_start_mode: 'specific_date' }, quote_reference: quote.quote_reference, legal_bundle_version: legal.bundle_version, legal_acceptances: (legal.requirements as Row[]).map(row => ({ requirement_code: row.requirement_code, document_reference: row.document_reference, document_version: row.document_version, document_hash: row.document_hash, accepted: true, accepted_at: NOW })), settlement: { model: 'fixed_price', customer_accepts: 'fixed_energy_price', energy_price_locked_at_signup: true, uses_actual_metered_consumption: true, market_data_role: 'not_applicable', settlement_resolution: 'fixed' } }
     delete (payload as Row).customer_type; delete (payload as Row).start_date
     const normalized = ApplicationSchema.parse(normalizeRawApplication(payload))
     addApplication(); const existing = io.rows.website_customer_applications[0]
@@ -416,7 +420,7 @@ describe('Website operations: mounted routes against published contracts', () =>
     const payload = {
       external_customer_id: 'synthetic-customer', offer_reference: OFFER_REFERENCE, quote_reference: quote.quote_reference, resolution_id: RESOLUTION,
       annual_consumption_kwh: 12000, price_option_reference: 'fixed_standard', invoice_delivery_method: 'email', selected_component_references: [], site_count: 1,
-      customer: { customer_type: 'private', first_name: 'Synthetic', last_name: 'Applicant', personal_number: '198112189876', email: 'synthetic@example.invalid' },
+      customer: { customer_type: 'private', first_name: 'Synthetic', last_name: 'Applicant', personal_number: '198112189876', email: 'synthetic@example.invalid', registered_address: REGISTERED_ADDRESS },
       site: { street: 'Synthetic street 1', postal_code: '58220', city: 'Linkoping', country: 'SE' },
       contract: { requested_start_date: START, requested_start_mode: 'specific_date' },
       legal_bundle_version: legal.bundle_version, legal_acceptances: (legal.requirements as Row[]).map(row => ({ requirement_code: row.requirement_code, document_reference: row.document_reference, document_version: row.document_version, document_hash: row.document_hash, accepted: true, accepted_at: NOW })), settlement: quote.settlement,
@@ -432,6 +436,21 @@ describe('Website operations: mounted routes against published contracts', () =>
     expect(io.rows.external_contract_intakes).toHaveLength(1)
     expect(io.rows.external_contract_intakes[0]).toMatchObject({ company_id: COMPANY, source_channel: 'external_website_api', created_customer_id: CUSTOMER, created_site_id: SITE, created_contract_id: CONTRACT, payload: { external_customer_id: 'synthetic-customer' } })
     expect(io.rpcs.find(call => call.name === 'gridex_commit_customer_application_provisioning')?.args).toMatchObject({ p_company_id: COMPANY, p_customer_id: CUSTOMER, p_contract_id: CONTRACT })
+    expect(io.rows.customer_addresses).toEqual([expect.objectContaining({ company_id: COMPANY, customer_id: CUSTOMER, type: 'registered', is_active: true, street_1: 'Registered street 4', street_2: 'lgh 1102', postal_code: '413 01', city: 'Goteborg', country: 'SE' })])
+  })
+  it('the published application request requires customer.registered_address as a closed object for private and business customers', () => {
+    const path = '/api/v1/website/customer-applications'
+    const raw = asRecord(asRecord(asRecord(operation(path, 'POST').requestBody).content)['application/json']).schema
+    const customer = { customer_type: 'business', company_name: 'Synthetic AB', org_number: '556036-0793', email: 'synthetic@example.invalid' }
+    const customerSchema = asRecord(asRecord(resolve(raw).properties).customer)
+    expect(customerSchema.required).toContain('registered_address')
+    expect(validate({ ...customer, registered_address: REGISTERED_ADDRESS }, customerSchema)).toEqual([])
+    expect(validate(customer, customerSchema)).toContain('$: missing registered_address')
+    expect(validate({ ...customer, registered_address: { street: 'Registered street 4', postalCode: '41301', city: 'Goteborg' } }, customerSchema)).toEqual(expect.arrayContaining(['$.registered_address: missing postal_code', '$.registered_address: unknown postalCode']))
+    expect(validate({ ...customer, registered_address: { ...REGISTERED_ADDRESS, street: 'x'.repeat(36) } }, customerSchema)).toContain('$.registered_address.street: too long')
+    expect(validate({ ...customer, registered_address: { ...REGISTERED_ADDRESS, postal_code: '4130' } }, customerSchema)).toContain('$.registered_address.postal_code: pattern mismatch')
+    expect(validate({ ...customer, registered_address: { ...REGISTERED_ADDRESS, country: 'NO' } }, customerSchema)).toContain('$.registered_address.country: enum mismatch')
+    expect(String(asRecord(asRecord(operation(path, 'POST').responses)['422']).description)).toEqual(expect.stringContaining('registered_address_required'))
   })
   it('quote idempotency replays the accepted commercial selection and rejects a different count without another quote', async () => {
     const path = '/api/v1/website/quote', payload = quoteRequest(), key = 'synthetic-idempotency-quote'

@@ -14,6 +14,12 @@ Closed Website callback bodies follow their selected schema. Delivery IDs remain
 
 Strict validators copied from Customer `2026-10-02.3` support detail or Website `2026-10-02.3`/`2026-10-04.1` fixed-quote validation need a narrow schema correction. The original Customer detail schema cannot mathematically accept any response: its closed base forbids `messages`, while its extension requires them. A fixed quote legitimately has no market-reference object. Keep the immutable original and apply the appropriate [checksum-bound RFC6902 erratum](api-validator-errata/README.md) to a separate validator document. The platform does not remove required messages or fabricate market data to satisfy an inaccurate schema.
 
+### Documentation 2026-10-22.1: registered address required on Website applications
+
+`POST /api/v1/website/customer-applications` now requires `customer.registered_address` (the customer's folkbokföringsadress, or the organisation's registered address) for private and business customers. See [the Website integration guide](external-website-api-integration-guide.md#registered-address-required-from-2026-10-221) for the field rules and the `422` codes `registered_address_required`, `registered_address_invalid` and `unknown_field`.
+
+This is a request requirement, so the Website surface is classified `breaking-client-update-required`, following the 2026-08-04.1 portal precedent. It applies to every credential regardless of its pinned profile, effective immediately by owner decision (F51), because Ediel masterdata to the grid owner needs the registered address and may never use a billing or facility address instead. The default response representation stays `2026-10-09.1`; responses, error envelopes and `contract_schema_version` do not change. Customer Portal and Staff are unchanged (`backward-compatible`). A retry with the same `Idempotency-Key` of an already committed application still returns its original result.
+
 ### Documentation 2026-10-12.1
 
 Documentation and wire revisions are now independent. The default Website, Customer Portal and Staff response revision remains `2026-10-09.1`; this documentation publication does not require a request header or client upgrade. Staff onboarding retains its independent `2026-10-05.2` representation. Older qualified response profiles can be pinned on the credential by the platform operator, including the older closed response field sets and version constants.

@@ -26,6 +26,8 @@ export type SimulatedPerson = {
   email: string
   phone: string
   address: { street: string; postalCode: string; city: string }
+  /** Folkbokföringsadress; defaults to the person's home address above. */
+  registeredAddress?: { street: string; street2?: string; postalCode: string; city: string }
 }
 
 export type SimulatedSite = {
@@ -257,6 +259,7 @@ export async function applyAsWebsiteCustomer(input: {
   const ctx: HttpContext = { baseUrl: input.baseUrl, apiKey: input.apiKey, origin: input.origin, requests }
   const { person, site } = input
   const siteAddress = site.address ?? person.address
+  const registeredAddress: NonNullable<SimulatedPerson['registeredAddress']> = person.registeredAddress ?? person.address
   const moveInDate = text(site.moveInDate)
   const priceArea = site.priceArea
   const applicationIdempotencyKey = input.idempotencyKey ?? `sim-app-${randomUUID()}`
@@ -414,6 +417,14 @@ export async function applyAsWebsiteCustomer(input: {
       billing_postal_code: person.address.postalCode,
       billing_city: person.address.city,
       billing_country: 'SE',
+      // FINDINGS F51: the person declares their own registered (home) address.
+      registered_address: {
+        street: registeredAddress.street,
+        ...(registeredAddress.street2 ? { street2: registeredAddress.street2 } : {}),
+        postal_code: registeredAddress.postalCode,
+        city: registeredAddress.city,
+        country: 'SE',
+      },
     },
     site: applicationSite,
     metering_point: {

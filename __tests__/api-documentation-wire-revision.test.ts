@@ -59,34 +59,34 @@ describe('documentation releases preserve the business wire revision', () => {
   })
 
   it('generates a closed manifest schema with independent documentation and runtime revisions', () => {
-    const schemas = releaseManifestSchemas('2026-10-12.1', '2026-10-02.3', { runtimeVersion: '2026-10-09.1', includeStaff: true })
+    const schemas = releaseManifestSchemas('2026-10-22.1', '2026-10-02.3', { runtimeVersion: '2026-10-09.1', includeStaff: true })
     const manifest = buildOpenApiReleaseManifest()
     expect(validateSchema(website, manifest, schemas.OpenApiReleaseManifest)).toEqual([])
-    expect(validateSchema(website, { ...manifest, runtime_contract_version: '2026-10-12.1' }, schemas.OpenApiReleaseManifest)).not.toEqual([])
+    expect(validateSchema(website, { ...manifest, runtime_contract_version: '2026-10-22.1' }, schemas.OpenApiReleaseManifest)).not.toEqual([])
   })
   it('publishes new document revisions and immutable URLs while retaining the supported wire revision', () => {
     const manifest = buildOpenApiReleaseManifest()
-    expect(manifest.release_version).toBe('2026-10-12.1')
-    expect(manifest.guide_version).toBe('2026-10-12.1')
+    expect(manifest.release_version).toBe('2026-10-22.1')
+    expect(manifest.guide_version).toBe('2026-10-22.1')
     expect(manifest.runtime_contract_version).toBe('2026-10-09.1')
     expect(manifest.minimum_tenant_integration_version).toBe('2026-10-02.3')
     expect(WEBSITE_INTEGRATION_CONTRACT_VERSION).toBe('2026-10-09.1')
     for (const item of Object.values(manifest.specifications)) {
-      expect(item.contract_version).toBe('2026-10-12.1')
-      expect(item.immutable_url).toContain('/openapi/2026-10-12.1/')
+      expect(item.contract_version).toBe('2026-10-22.1')
+      expect(item.immutable_url).toContain('/openapi/2026-10-22.1/')
     }
     for (const document of [website, customer, staff]) {
-      expect(document.info.version).toBe('2026-10-12.1')
+      expect(document.info.version).toBe('2026-10-22.1')
       expect(document['x-contract-schema-version']).toBe('2026-10-09.1')
       expect(validateSchema(document, manifest, { $ref: '#/components/schemas/OpenApiReleaseManifest' })).toEqual([])
       expect(validateSchema(document, error('organization_paused'), { $ref: '#/components/schemas/ErrorEnvelope' })).toEqual([])
-      expect(validateSchema(document, { ...error('organization_paused'), contract_schema_version: '2026-10-12.1' }, { $ref: '#/components/schemas/ErrorEnvelope' })).not.toEqual([])
+      expect(validateSchema(document, { ...error('organization_paused'), contract_schema_version: '2026-10-22.1' }, { $ref: '#/components/schemas/ErrorEnvelope' })).not.toEqual([])
     }
     expect(onboarding.info.version).toBe('2026-10-05.2')
     expect(onboarding['x-contract-schema-version']).toBe('2026-10-05.2')
   })
 
-  it('retains frozen request contracts and business schemas except verified optional response documentation', () => {
+  it('retains frozen request contracts and business schemas except verified optional response documentation and the F51 registered address', () => {
     for (const [name, current] of [['website-integration-v1', website], ['customer-portal-v1', customer], ['staff-v1', staff]] as const) {
       const frozen = JSON.parse(readFileSync(`docs/openapi/releases/2026-10-09.1/${name}.json`, 'utf8')) as { components: { schemas: Record<string, unknown> } }
       for (const [schema, expected] of Object.entries(frozen.components.schemas)) {
@@ -95,6 +95,14 @@ describe('documentation releases preserve the business wire revision', () => {
         // These fields are already emitted by mounted runtime paths; only docs were incomplete.
         if (name === 'customer-portal-v1' && schema === 'ClosedPortalResourceEnvelope') delete actual.properties?.page
         if (name === 'customer-portal-v1' && schema === 'CustomerMoveOutData') delete actual.properties?.submitted_at
+        // 2026-10-22.1 (F51): the only request change is the required closed customer.registered_address.
+        if (name === 'website-integration-v1' && schema === 'CustomerApplicationRequest') {
+          const customer = actual.properties!.customer as { required: string[]; properties: Record<string, unknown> }
+          expect(customer.properties.registered_address).toEqual({ $ref: '#/components/schemas/CustomerRegisteredAddress' })
+          expect(customer.required).toContain('registered_address')
+          delete customer.properties.registered_address
+          customer.required = customer.required.filter(field => field !== 'registered_address')
+        }
         if (name === 'website-integration-v1' && schema === 'WebsiteQuoteValidationData') {
           expect(withoutDescriptions(actual.properties!.market_reference)).toEqual({ anyOf: [{ $ref: '#/components/schemas/MarketReference' }, { type: 'null' }] })
           actual.properties!.market_reference = { $ref: '#/components/schemas/MarketReference' }
