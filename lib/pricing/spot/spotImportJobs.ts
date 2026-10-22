@@ -70,9 +70,16 @@ export async function failSpotImportJob(input: {
   const status = retry ? 'retry_wait' : 'failed'
   const fallbackDelay = Math.min(6 * 60 * 60_000, 15 * 60_000 * 2 ** Math.max(0, input.attemptCount - 1))
   const now = new Date()
-  const nextAttemptAt = retry
-    ? new Date(now.getTime() + Math.max(60_000, input.retryAfterMs ?? fallbackDelay)).toISOString()
-    : null
+  // A provider Retry-After is honoured for at most 24 hours, so one oversized
+  // or overflowing header cannot lock this provider/area/day permanently.
+  const delay = Math.min(24 * 60 * 60_000,
+    Number.isNaN(input.retryAfterMs) ? fallbackDelay : input.retryAfterMs ?? fallbackDelay)
+  const nextAttemptMs = now.getTime() + Math.max(60_000, delay)
+  // A failed job still carries the provider's explicit not-before deadline.
+  // This does not change the five-attempt failure classification.
+  const rateLimitDeadline = input.errorCode === 'provider_rate_limited'
+    && input.retryAfterMs != null && input.retryAfterMs >= 0
+  const nextAttemptAt = retry || rateLimitDeadline ? new Date(nextAttemptMs).toISOString() : null
   const { error } = await supabaseService
     .from('spot_price_import_jobs')
     .update({
