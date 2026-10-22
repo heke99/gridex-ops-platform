@@ -452,6 +452,16 @@ Felen skrivs in här i den ordning de hittas.
 - **Varför den inte rättas här:** regeln ingår i det godkända kontraktet SC-014 (PASSED). Att godta avkodade bilagor som originalbevis är ett säkerhets- och förvaringsbeslut inom ett godkänt område.
 - **Förslag:** antingen kvalificerar förvaringen avkodade bilagor, bundna till exakt base64-text och hash, eller så skapar mejlnivån ett granskningsärende för `unassigned` Ediel-mejl. Beslut krävs.
 
+### F78 Rättelsen i F68 räckte inte: ändringar på inkommande Ediel-meddelanden föll fortfarande — RÄTTAD, kritisk (bara den här grenen, inte drift)
+- **Utfall (scenario E, körning 4):** korrigeringen A15C togs emot och sparades men blev stående i `received`/`manual_review` och behandlades aldrig. Ett direkt anrop av `processInboundEdielMessage` på meddelandet föll med `42501 permission denied for schema gridex_utilts_binding`. Databasens logg visade samma fel vid flera `UPDATE public.ediel_messages` från appen.
+- **Orsak:**
+  - Indexet `ediel_messages_inbound_envelope_uci_idx` från F68 utvärderas med den skrivande rollens rättigheter.
+  - `envelope()` är plpgsql, så dess anrop av `gridex_utilts_binding.wire_tokens_v1` slås upp vid körning och kräver USAGE på schemat.
+  - F68 gav bara EXECUTE.
+  - En uppdatering som inte kan bli HOT (till exempel när kund, mätpunkt eller referens sätts) utvärderar indexet och faller. En ren HOT-uppdatering gör det inte, och därför syntes felet bara ibland.
+- **Bevis:** i en transaktion som rullades tillbaka föll en icke-HOT-uppdatering som `service_role` med samma fel efter `REVOKE USAGE`, och gick igenom med grant. Efter rättelsen gav samma `processInboundEdielMessage` status `validated`. Exakt de 24 ändrade kvartsvärdena fick revision 2 (2,220 → 2,508 kWh = 24 × 0,012), originalvärdena markerades `replaced` och de 72 oförändrade är kvar som `current`.
+- **Rättning:** migrationen `20261020290000` ger USAGE på `gridex_utilts_binding` till `service_role` och `authenticated`. Schemats tabeller saknar grants till rollerna, och den enda körbara funktionen är den rena tokenizern. PUBLIC EXECUTE dras in som standard för framtida funktioner i schemat.
+
 ### S1 Simuleringens cron-körare hoppade över cron-jobb som körs varje minut — RÄTTAD (simuleringen, inte produkten)
 - **Utfall:** efter sammanslagningen med main stod nätägarförfrågan i scenario D köad i 6 minuter utan att skickas.
 - **Orsak:** main kör den manuella e-postutkorgen och manuell inkommande e-post med schemat `* * * * *`. `runOperationalCronSlot` kände bara igen `N-M/k`. Produkten skickade direkt när utkorgen anropades.
