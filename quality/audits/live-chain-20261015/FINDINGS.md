@@ -713,6 +713,37 @@ Kedjan i scenario D, i ordning. Varje fel nedan dolde nästa. Alla är verifiera
     - **Uppdatering: rättat (commit `3f172f1d`).** Filen gjordes claim på i #840. Formulärets adress sparas nu som `facility`, med intaget som källa i metadata (`externalIntakeAddress`). Test: `__tests__/external-contract-intake-address.test.ts`, 3/3. Folkbokföringsadressen anges av personalen på kundkortet vid granskningen (ägarbeslut: personalens uppgift räcker).
   - **Tenantlucka (adressformuläret rättat, kontaktformuläret öppet):** det generella adressformuläret uppdaterade bara på `customer_id` och avgränsas nu till personalens bolag. `saveCustomerContactAction` i `CustomerContactsAddressesCard.tsx` (cirka rad 108-169) uppdaterar fortfarande `customer_contacts` och `customers` utan bolagskontroll.
     - **Uppdatering: kontaktformuläret är också rättat (commit `f2b28960`).** `saveCustomerContactAction` använder `requireOperationalCompanyId`, kontrollerar att kunden tillhör bolaget och avgränsar alla frågor med `company_id`.
+- **Webb och API levererat (commit `a7eb0ae3`):**
+  - `POST /api/v1/website/customer-applications` kräver `customer.registered_address` för privat- och företagskunder. Ägarbeslutet var "obligatoriskt direkt".
+  - Fälten valideras mot Ediels masterdataform: högst 35 tecken, fem siffror i postnumret och bara `SE`.
+  - Adressen sparas genom den gemensamma skrivaren med ursprung `website_declaration`.
+  - En omsändning med samma nyckel ger det ursprungliga utfallet. Samma nyckel med en annan adress ger 409, aldrig en tyst adressändring.
+  - OpenAPI-release `2026-10-22.1`:
+    - Webben klassas `breaking-client-update-required`. Kundportal och Staff är `backward-compatible`.
+    - Standardversionen på tråden (`2026-10-09.1`) och miniminivån (`2026-10-02.3`) är oförändrade.
+    - Guider, README, kompatibilitetspolicy (med undantaget från regel 1 dokumenterat) och migrationsguide är uppdaterade.
+  - **gridex-web (annat repo) måste skicka fältet**, annars får varje ny webbansökan 422 `registered_address_required`.
+  - Hela enhetssviten kördes i en isolerad worktree: 22 204 av 22 211 tester gröna. De tre fallen:
+    - RBAC-granskningen, rättad nedan;
+    - två tester i `tenantservice-support-attachment-api`, som faller likadant på ren HEAD. Det är en 5-sekunders timeout som går igenom med längre gräns, alltså ett befintligt fel och inte orsakat här.
+- **RBAC (rättat, commit `b9a0795e`):** min åtgärd för folkbokföringsadress på kundkortet (`08f787f4`) saknades i listan över granskade filer som använder service-klienten. Den är nu granskad och registrerad med motivering. Granskningen: 24/24.
+- **Deklarationen för Z03 levererad (commit `d38a350e`, migration `20261022130000`):**
+  - Avtals-PDF:en och den signerade snapshoten får avsnittet KUNDUPPGIFTER med fullt person- eller organisationsnummer och folkbokföringsadress.
+  - Före bytet kontrolleras det arkiverade signerade originalet mot `document_sha256`. Varje rad i avsnittet måste finnas i de signerade byten.
+  - Manuellt intag använder personalens adress.
+  - Vid adressbyte återkallas den öppna deklarationen. Den återutfärdas fram till ändringsdagen och en ny öppnas från ändringsdagen, så exakt en gäller varje dag.
+  - Test: native mot den riktiga regeln 5/5, regressionen för tokensignering 14/14 och enhetstester 75/75.
+  - **Inte bevisat än:** tokensignering hela vägen med en folkbokföringsadress. Det verifieras i scenario F.
+- **Inkonsekvenser funna under deklarationsarbetet (bekräftade, öppna):**
+  - Ett adressbyte ersätter den öppna deklarationen. En Z03 som redan förberetts från den gamla, med start före ändringsdagen, faller då vid sändningskontrollen (`customer_masterdata_current_source_changed`) och måste förberedas igen.
+  - Folkbokföringsadresser som ändrats på plats, utan `moved_in_at`, kan inte dateras. Deklarationen hålls då med `registered_address_change_date_required`.
+  - Webb-PDF:en skapas efter signeringen. Kunden signerar den hashade snapshoten med avsnittet, och PDF:en är bekräftelsen av den.
+- **Öppna frågor till ägaren (deklarationen):**
+  1. Redan signerade webbavtal utan avsnitt (snapshot v2) har inget underlag, och personalen kan inte rätta det, eftersom samma adress igen ignoreras som oförändrad. Ska personalens uppgift godtas som reserv för dem?
+  2. Deklarationen gäller från exakt signeringstidpunkt. Ska den gälla från signeringsdagens början?
+  3. Kunden har en öppen deklaration, bunden till det första avtalet tills det upphör. Räcker det för kunder med flera avtal?
+  4. Deklarationer härleds för både test- och produktionsspåret vid varje byte. Godtas det?
+  5. Ett adressbyte slår igenom när nästa Z03 förbereds, inte när adressen sparas. Godtas det?
 
 ### F49 Webbkundens Z01 låstes med `missing_power_of_attorney` trots giltig fullmakt — RÄTTAD (följd av min F39-rättning)
 - **Utfall (körning 16:54):**
