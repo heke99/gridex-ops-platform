@@ -422,7 +422,7 @@ Kandidaterna nedan kommer från kodkartläggningen. Var och en bekräftas eller 
 ### F77 Totalbeloppet öresavrundas inte; avrundningskomponenten avrundar energibeloppet — KANDIDAT, låg, kräver beslut
 - **Kod:** `finalizePricingPreview` summerar avrundade rader utan att avrunda totalen (`lib/pricing/pricePreviewBuilder.ts:10-52`). Komponenten `rounding` avrundar baspriset för energi till hela kronor (`priceComponentCalculator.ts:292-295`), och Capway får differensen som `rounding` (`payloadBuilder.ts:141`).
 
-### F85 Ingen ny elhandlare kan skicka Z03 i produktion: registret materialiserar bara PRODAT Z01 — UNDER RÄTTNING, kritisk
+### F85 Ingen ny elhandlare kan skicka Z03 i produktion: registret materialiserar bara PRODAT Z01 — RÄTTAD i koden (commit `8a02dbb5`), kritisk, verifieras i scenario F efter ombyggnad
 - **Utfall (scenario F körning 3):** den riktiga Z03-byggaren vägrade i produktion med `production_route_profile_not_ready`. Blockerarna var `receiver_ediel_id_missing`, `production_send_locked`, `receiver_certificate_missing`, `security_policy_not_approved` och `missing_receiver_subaddress`. Ingen Z03 har byggts i någon körning av verklighetssimuleringen, varken i scenario A eller F.
 - **Orsak (bekräftad i koden):**
   - Route-motorn kopplar Z03 till `route_scope='supplier_switch'` (`routeDecisionEngine.ts:482`). Den letar först efter nätägarens route (188-191) och faller annars tillbaka på en route utan nätägare (192).
@@ -434,6 +434,16 @@ Kandidaterna nedan kommer från kodkartläggningen. Var och en bekräftas eller 
 - **Inte simuleringen:** go-live-guiden, materialiseringen och godkännandet kördes alla. Att lägga in registerdata med `message_code='Z03'` vore att hitta på uppgifter som Ediels register aldrig innehåller.
 - **Rättning (pågår):** en framåtriktad migration låter varje aktiv PRODAT-registerroute ge en rad per utgående scope (Z01 och Z03, och fler om elhandlaren skickar dem till nätägaren). Materialiseraren skapar då nätägarens `supplier_switch`-route med fast mottagare och samma adressbekräftelse som Z01. Motorns scopefilter ändras inte.
 - **Öppen fråga till ägaren:** ska go-live-guidens dynamiska produktionsprofiler finnas kvar, när de aldrig kan godkännas?
+- **Rättning levererad (commit `8a02dbb5`):**
+  - Migration `20261022120000`: en PRODAT-registerroute utan `message_code` ger både en Z01-rad (`customer_masterdata`) och en Z03-rad (`supplier_switch`) i readiness-vyn. Vyns kolumner, `security_invoker` och behörigheter är oförändrade. Profilernas unika index omfattar nu `message_code`.
+  - Z08 åker på Z01-routen och Z09 på Z03-routen, eftersom motorn väljer route per scope. Att materialisera dem separat skulle ge en tvetydig route. Z13/Z18 är ESCO-meddelanden och ingår inte.
+  - Massåtgärden skickar aldrig Z03 till den hashlåsta SQL-funktionen (`gridex_materialize_company_operational_routes`), eftersom den annars pekar om fastnade Z01-begäranden till Z03-routen och skriver över deras `message_code`. Ett test återskapar det felet.
+  - Test: `__tests__/registry-route-supplier-switch.test.ts`, 15/15, varav 11 faller utan migrationen. 113 tester i 14 närliggande sviter är gröna. Typkontroll och lint är rena.
+- **Nya fynd under rättningen (öppna):**
+  - **Den hashlåsta SQL-funktionen** pekar på samma sätt om fastnade Z01-begäranden när den kör UTILTS-rader. En rättning kräver ägarbeslut, eftersom funktionens hash är låst av audit19-kontraktet i `20261019180400`.
+  - **Registermaterialiserade profiler saknar transportläge och brevlåda**, så motorn rapporterar `missing_production_transport` i produktion. Gäller även Z01. Verifieras i scenario F.
+  - **Registerverifieringen sätter `auto_send_allowed=false`**, och materialiseraren hoppar över sådana routes. Verifieras i scenario F.
+  - **Ingen bakåtfyllnad:** befintliga tenants får Z03-routen först när en operatör materialiserar den.
 
 ### F81 Kundens önskade startdatum från webben når aldrig leverantörsbytet — RÄTTAD i koden, hög, verifieras i scenario F efter ombyggnad
 - **Kod:** webbansökan sparar `contract.requested_start_date`. Bytet skapas av nästa-steg-motorn via `ensureSupplierSwitchRequestForReadySite` (`lib/customer-operations/customerProcessNextStepEngine.ts:273-283`) utan `requestedStartDate` och utan kontext. Funktionen tar då startdatumet bara från ett inflyttningsdatum (`supplierSwitchOrchestration.ts:374`). Kontextläsaren (`customerSiteProcessContext.ts:282`) läser avtalets datum, men den vägen används inte här.
@@ -700,7 +710,9 @@ Kedjan i scenario D, i ordning. Varje fel nedan dolde nästa. Alla är verifiera
 - **Fynd under rättningen:**
   - **Befintligt brott mot regeln (rättat):** det manuella intaget kopierade anläggningsadressen som `registered` utan ursprung (`actions.part-2.ts`, tidigare rad 857-869), och scenario D kontrollerade det. **Öppet:** befintliga kunder från manuellt intag har kvar en sådan kopierad rad som Z01 kommer att använda. Den ersätts när personalen sparar en adress på kundkortet, men en städning kräver beslut.
   - **Samma fel, inte rättat (utanför custody):** `lib/external-contracts/intake.ts:396-405` skriver anläggningsadressen som `registered`.
+    - **Uppdatering: rättat (commit `3f172f1d`).** Filen gjordes claim på i #840. Formulärets adress sparas nu som `facility`, med intaget som källa i metadata (`externalIntakeAddress`). Test: `__tests__/external-contract-intake-address.test.ts`, 3/3. Folkbokföringsadressen anges av personalen på kundkortet vid granskningen (ägarbeslut: personalens uppgift räcker).
   - **Tenantlucka (adressformuläret rättat, kontaktformuläret öppet):** det generella adressformuläret uppdaterade bara på `customer_id` och avgränsas nu till personalens bolag. `saveCustomerContactAction` i `CustomerContactsAddressesCard.tsx` (cirka rad 108-169) uppdaterar fortfarande `customer_contacts` och `customers` utan bolagskontroll.
+    - **Uppdatering: kontaktformuläret är också rättat (commit `f2b28960`).** `saveCustomerContactAction` använder `requireOperationalCompanyId`, kontrollerar att kunden tillhör bolaget och avgränsar alla frågor med `company_id`.
 
 ### F49 Webbkundens Z01 låstes med `missing_power_of_attorney` trots giltig fullmakt — RÄTTAD (följd av min F39-rättning)
 - **Utfall (körning 16:54):**
