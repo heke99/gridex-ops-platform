@@ -39,9 +39,11 @@ jobs:
       - name: Require explicit manual confirmation when dispatched
         if: github.event_name == 'workflow_dispatch'
         shell: bash
+        env:
+          GRIDEX_CONFIRM_GATE: ${{ inputs.confirm_gate }}
         run: |
           set -euo pipefail
-          [[ "${{ inputs.confirm_gate }}" == "GRIDEX_OPS_TENANT_INVARIANTS" ]] || {
+          [[ "$GRIDEX_CONFIRM_GATE" == "GRIDEX_OPS_TENANT_INVARIANTS" ]] || {
             echo 'confirm_gate must be GRIDEX_OPS_TENANT_INVARIANTS' >&2
             exit 1
           }
