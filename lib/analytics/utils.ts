@@ -1,7 +1,15 @@
+import { currentStockholmCalendarDate } from '@/lib/time/stockholm'
+
+/** Today's Swedish calendar date (YYYY-MM-DD). Statistics months and "today" are Europe/Stockholm (FINDINGS K-12). */
+export function stockholmToday(now = new Date()): string {
+  return currentStockholmCalendarDate(now)
+}
+
 export function monthStart(input?: string | null): string {
-  const source = input && /^\d{4}-\d{2}/.test(input) ? `${input.slice(0, 7)}-01` : new Date().toISOString().slice(0, 8) + '01'
+  const current = `${stockholmToday().slice(0, 7)}-01`
+  const source = input && /^\d{4}-\d{2}/.test(input) ? `${input.slice(0, 7)}-01` : current
   const date = new Date(`${source}T00:00:00.000Z`)
-  if (Number.isNaN(date.getTime())) return new Date().toISOString().slice(0, 8) + '01'
+  if (Number.isNaN(date.getTime())) return current
   return date.toISOString().slice(0, 10)
 }
 

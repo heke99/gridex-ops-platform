@@ -1,5 +1,5 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { asNumber, buildCsv, monthStart } from '@/lib/analytics/utils'
+import { asNumber, buildCsv, monthStart, stockholmToday } from '@/lib/analytics/utils'
 import { supabaseService } from '@/lib/supabase/service'
 
 // "Kundportfölj": customer counts, churn and forward consumption per tenant.
@@ -115,7 +115,7 @@ export function mapForecastRow(row: Record<string, unknown>): PortfolioForecastM
 // selections share the same month-start anchor in overview, detail and exports.
 function portfolioAsOf(month: string): string {
   const selectedMonth = monthStart(month)
-  const today = new Date().toISOString().slice(0, 10)
+  const today = stockholmToday()
   return selectedMonth === `${today.slice(0, 7)}-01` ? today : selectedMonth
 }
 
@@ -191,7 +191,7 @@ export async function getActiveCustomerCounts(companyIds: string[], at?: string)
   if (companyIds.length === 0) return result
   const { data, error } = await supabaseService.rpc('gridex_customer_portfolio_active_counts', {
     p_company_ids: companyIds,
-    p_at: at ?? new Date().toISOString().slice(0, 10),
+    p_at: at ?? stockholmToday(),
   })
   if (error) throw error
   for (const row of (data ?? []) as Record<string, unknown>[]) {

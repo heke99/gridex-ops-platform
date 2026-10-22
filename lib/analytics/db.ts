@@ -1,6 +1,7 @@
 import { getPortfolioMonthForCompany } from '@/lib/analytics/customerPortfolio'
 import { supabaseService } from '@/lib/supabase/service'
 import { addMonths, asNumber, monthEndExclusive, monthStart } from '@/lib/analytics/utils'
+import { stockholmMonthBounds } from '@/lib/time/stockholm'
 import type { AnalyticsFilters, DeviationRow, ForecastSummaryRow, MonthlyMetricRow, ReportDefinition, SimpleChartRow } from '@/lib/analytics/types'
 
 const ACTIVE_STATUSES = ['active', 'live', 'active_customer', 'ongoing']
@@ -33,9 +34,36 @@ async function safeRows<T>(table: string, select: string, companyId: string, bui
   return (data ?? []) as T[]
 }
 
+// PostgREST returns at most max_rows (1 000) rows per request whatever .limit() asks for (supabase/config.toml).
+// Every statistic that sums or filters rows reads all pages, keyed on id (FINDINGS K-09, same class as DST-C1).
+const PAGE_ROWS = 1000
+
+async function safeAllRows<T>(table: string, select: string, companyId: string, build?: (query: any) => any, cap = 1_000_000): Promise<T[]> {
+  const rows: T[] = []
+  let after: string | null = null
+  while (rows.length < cap) {
+    let query = supabaseService.from(table).select(select).eq('company_id', companyId)
+    if (build) query = build(query)
+    if (after !== null) query = query.gt('id', after)
+    const { data, error } = await query.order('id', { ascending: true }).limit(Math.min(PAGE_ROWS, cap - rows.length))
+    if (error) {
+      if (isMissingRelationError(error)) return rows
+      throw error
+    }
+    const batch = (data ?? []) as unknown as T[]
+    rows.push(...batch)
+    const last = (batch.at(-1) as { id?: unknown } | undefined)?.id
+    if (batch.length < PAGE_ROWS || last === undefined || last === null) break
+    after = String(last)
+  }
+  return rows
+}
+
+const HIDDEN_CUSTOMER_STATUSES = ['archived', 'deleted', 'deleted_test_only', 'pending_deletion']
+
 export async function listAnalyticsFilterOptions(companyId: string) {
   const [meteringRows, gridOwners] = await Promise.all([
-    safeRows<{ bidding_zone_code: string | null; metering_method: string | null; status: string | null }>('metering_points', 'bidding_zone_code, metering_method, status', companyId, (query) => query.limit(2000)),
+    safeAllRows<{ bidding_zone_code: string | null; metering_method: string | null; status: string | null }>('metering_points', 'id, bidding_zone_code, metering_method, status', companyId),
     safeRows<{ id: string; name: string }>('grid_owners', 'id, name', companyId, (query) => query.order('name', { ascending: true }).limit(500)),
   ])
 
@@ -91,9 +119,13 @@ export async function countMissingMeteringPoints(companyId: string, month: strin
   return count
 }
 
+// Same definitions as the monthly snapshot (gridex_rebuild_company_analytics_month), so the page shows the same
+// numbers before and after the cron: customers without test-portal and hidden rows, supplied metering points
+// and current consumption values of the Swedish month (FINDINGS K-03, K-07, K-08).
 export async function buildLiveMonthlyFallback(companyId: string, month: string): Promise<MonthlyMetricRow> {
-  const start = `${monthStart(month)}T00:00:00.000Z`
-  const end = `${monthEndExclusive(month)}T00:00:00.000Z`
+  const bounds = stockholmMonthBounds(monthStart(month).slice(0, 7))
+  const start = bounds.start
+  const end = bounds.end
   const [
     totalCustomers,
     portfolio,
@@ -104,7 +136,9 @@ export async function buildLiveMonthlyFallback(companyId: string, month: string)
     meteringValuesReceived,
     openIssues,
   ] = await Promise.all([
-    safeCount('customers', companyId),
+    safeCount('customers', companyId, (query) => query
+      .or('source.is.null,source.neq.ediel_portal_test')
+      .or(`status.is.null,status.not.in.(${HIDDEN_CUSTOMER_STATUSES.join(',')})`)),
     getPortfolioMonthForCompany(companyId, month).catch((error: unknown) => {
       console.error('customer portfolio fallback failed', { companyId, month, error })
       return undefined
@@ -113,7 +147,12 @@ export async function buildLiveMonthlyFallback(companyId: string, month: string)
     safeCount('customer_sites', companyId, (query) => query.in('status', ACTIVE_STATUSES)),
     safeCount('metering_points', companyId),
     safeCount('metering_points', companyId, (query) => query.in('status', ACTIVE_STATUSES)),
-    safeCount('metering_values', companyId, (query) => query.gte('period_start', start).lt('period_start', end)),
+    safeCount('metering_values', companyId, (query) => query
+      .not('metering_point_id', 'is', null)
+      .or('is_current.is.null,is_current.eq.true')
+      .or('reading_type.is.null,reading_type.eq.consumption')
+      .or('value_kwh.not.is.null,quantity_kwh.not.is.null,quantity.not.is.null')
+      .gte('period_start', start).lt('period_start', end)),
     countMissingMeteringPoints(companyId, month),
   ])
 
@@ -127,7 +166,8 @@ export async function buildLiveMonthlyFallback(companyId: string, month: string)
     total_sites: totalSites,
     active_sites: activeSites,
     total_metering_points: totalMeteringPoints,
-    active_metering_points: activeMeteringPoints,
+    // Supplied at month end: the portfolio definition; status counts stay only if that RPC failed.
+    active_metering_points: portfolio === undefined ? activeMeteringPoints : portfolio?.activeMeteringPoints ?? 0,
     metering_values_received: meteringValuesReceived,
     metering_values_missing: openIssues,
     requested_metering_values: 0,
@@ -176,12 +216,13 @@ export async function getOverviewBreakdowns(companyId: string, month: string): P
   let biddingZones: SimpleChartRow[] = zoneMetrics.map((row) => ({
     key: row.bidding_zone_code ?? 'saknas',
     label: row.bidding_zone_code ?? 'Saknas',
-    value: asNumber(row.metering_points_count || row.forecast_kwh),
+    // Metering points per zone; a zone without points is 0, never its forecast kWh (FINDINGS K-11).
+    value: asNumber(row.metering_points_count),
     hint: row.forecast_kwh ? `${Math.round(asNumber(row.forecast_kwh) / 1000)} MWh prognos` : undefined,
   }))
 
   if (biddingZones.length === 0) {
-    const points = await safeRows<{ bidding_zone_code: string | null }>('metering_points', 'bidding_zone_code', companyId, (query) => query.limit(10000))
+    const points = await safeAllRows<{ bidding_zone_code: string | null }>('metering_points', 'id, bidding_zone_code', companyId)
     const groups = new Map<string, number>()
     for (const point of points) {
       const key = point.bidding_zone_code ?? 'Saknas'
@@ -218,6 +259,45 @@ function latestCompletedConsumptionRunQuery(companyId: string, month: string) {
     .limit(1)
 }
 
+type ForecastItemRow = {
+  bidding_zone_code: string | null
+  grid_owner_id: string | null
+  customer_id: string | null
+  metering_point_id: string | null
+  forecast_kwh: unknown
+  actual_kwh: unknown
+  diff_kwh: unknown
+  confidence_score: unknown
+  method: string | null
+}
+
+// Every forecast item of the run and month (all pages), narrowed by the page filters. The point and customer
+// filter sets are read completely too: a truncated allow-list silently dropped items (FINDINGS K-09).
+async function loadForecastItems(companyId: string, runId: string, targetMonth: string, filters: AnalyticsFilters): Promise<ForecastItemRow[]> {
+  let rows = await safeAllRows<ForecastItemRow>('forecast_run_items', 'id, bidding_zone_code, grid_owner_id, customer_id, metering_point_id, forecast_kwh, actual_kwh, diff_kwh, confidence_score, method', companyId, (query) => {
+    let itemQuery = query.eq('forecast_run_id', runId).gte('period_start', targetMonth).lt('period_start', monthEndExclusive(targetMonth))
+    if (filters.biddingZoneCode) itemQuery = itemQuery.eq('bidding_zone_code', filters.biddingZoneCode)
+    if (filters.gridOwnerId) itemQuery = itemQuery.eq('grid_owner_id', filters.gridOwnerId)
+    return itemQuery
+  })
+  if (filters.status || filters.meteringMethod) {
+    const points = await safeAllRows<{ id: string }>('metering_points', 'id', companyId, (query) => {
+      let pointQuery = query
+      if (filters.status) pointQuery = pointQuery.eq('status', filters.status)
+      if (filters.meteringMethod) pointQuery = pointQuery.eq('metering_method', filters.meteringMethod)
+      return pointQuery
+    })
+    const allowedPointIds = new Set(points.map((point) => point.id))
+    rows = rows.filter((row) => row.metering_point_id && allowedPointIds.has(row.metering_point_id))
+  }
+  if (filters.customerType) {
+    const customers = await safeAllRows<{ id: string }>('customers', 'id', companyId, (query) => query.eq('customer_type', filters.customerType))
+    const allowedCustomerIds = new Set(customers.map((customer) => customer.id))
+    rows = rows.filter((row) => row.customer_id && allowedCustomerIds.has(row.customer_id))
+  }
+  return rows
+}
+
 export async function getLatestForecastByBiddingZone(companyId: string, filters: AnalyticsFilters): Promise<ForecastSummaryRow[]> {
   const targetMonth = monthStart(filters.month)
   const { data: runs, error: runError } = await latestCompletedConsumptionRunQuery(companyId, targetMonth)
@@ -228,48 +308,7 @@ export async function getLatestForecastByBiddingZone(companyId: string, filters:
   const runId = runs?.[0]?.id
   if (!runId) return getBiddingZoneMetrics(companyId, filters.month)
 
-  let itemQuery = supabaseService
-    .from('forecast_run_items')
-    .select('bidding_zone_code, grid_owner_id, customer_id, metering_point_id, forecast_kwh, actual_kwh, diff_kwh, diff_percent, confidence_score, method')
-    .eq('company_id', companyId)
-    .eq('forecast_run_id', runId)
-    .gte('period_start', targetMonth)
-    .lt('period_start', monthEndExclusive(targetMonth))
-
-  if (filters.biddingZoneCode) itemQuery = itemQuery.eq('bidding_zone_code', filters.biddingZoneCode)
-  if (filters.gridOwnerId) itemQuery = itemQuery.eq('grid_owner_id', filters.gridOwnerId)
-  if (filters.status || filters.customerType || filters.meteringMethod) {
-    itemQuery = itemQuery.limit(10000)
-  }
-
-  const { data, error } = await itemQuery
-  if (error) {
-    if (isMissingRelationError(error)) return []
-    throw error
-  }
-
-  let filteredRows = data ?? []
-  if (filters.status || filters.meteringMethod) {
-    let pointQuery = supabaseService
-      .from('metering_points')
-      .select('id')
-      .eq('company_id', companyId)
-    if (filters.status) pointQuery = pointQuery.eq('status', filters.status)
-    if (filters.meteringMethod) pointQuery = pointQuery.eq('metering_method', filters.meteringMethod)
-    const { data: points } = await pointQuery.limit(10000)
-    const allowedPointIds = new Set((points ?? []).map((point) => point.id))
-    filteredRows = filteredRows.filter((row) => row.metering_point_id && allowedPointIds.has(row.metering_point_id))
-  }
-  if (filters.customerType) {
-    const { data: customers } = await supabaseService
-      .from('customers')
-      .select('id')
-      .eq('company_id', companyId)
-      .eq('customer_type', filters.customerType)
-      .limit(10000)
-    const allowedCustomerIds = new Set((customers ?? []).map((customer) => customer.id))
-    filteredRows = filteredRows.filter((row) => row.customer_id && allowedCustomerIds.has(row.customer_id))
-  }
+  const filteredRows = await loadForecastItems(companyId, runId, targetMonth, filters)
 
   const groups = new Map<string, { forecast: number; actual: number; diff: number; confidence: number; count: number; missing: number }>()
   for (const row of filteredRows) {
@@ -307,45 +346,7 @@ export async function getLatestForecastByGridOwner(companyId: string, filters: A
   const runId = runs?.[0]?.id
   if (!runId) return []
 
-  let itemQuery = supabaseService
-    .from('forecast_run_items')
-    .select('grid_owner_id, bidding_zone_code, customer_id, metering_point_id, forecast_kwh, actual_kwh, diff_kwh, confidence_score, method')
-    .eq('company_id', companyId)
-    .eq('forecast_run_id', runId)
-    .gte('period_start', targetMonth)
-    .lt('period_start', monthEndExclusive(targetMonth))
-
-  if (filters.biddingZoneCode) itemQuery = itemQuery.eq('bidding_zone_code', filters.biddingZoneCode)
-  if (filters.gridOwnerId) itemQuery = itemQuery.eq('grid_owner_id', filters.gridOwnerId)
-
-  const { data, error } = await itemQuery
-  if (error) {
-    if (isMissingRelationError(error)) return []
-    throw error
-  }
-
-  let filteredRows = data ?? []
-  if (filters.status || filters.meteringMethod) {
-    let pointQuery = supabaseService
-      .from('metering_points')
-      .select('id')
-      .eq('company_id', companyId)
-    if (filters.status) pointQuery = pointQuery.eq('status', filters.status)
-    if (filters.meteringMethod) pointQuery = pointQuery.eq('metering_method', filters.meteringMethod)
-    const { data: points } = await pointQuery.limit(10000)
-    const allowedPointIds = new Set((points ?? []).map((point) => point.id))
-    filteredRows = filteredRows.filter((row) => row.metering_point_id && allowedPointIds.has(row.metering_point_id))
-  }
-  if (filters.customerType) {
-    const { data: customers } = await supabaseService
-      .from('customers')
-      .select('id')
-      .eq('company_id', companyId)
-      .eq('customer_type', filters.customerType)
-      .limit(10000)
-    const allowedCustomerIds = new Set((customers ?? []).map((customer) => customer.id))
-    filteredRows = filteredRows.filter((row) => row.customer_id && allowedCustomerIds.has(row.customer_id))
-  }
+  const filteredRows = await loadForecastItems(companyId, runId, targetMonth, filters)
 
   const groups = new Map<string, { forecast: number; actual: number; diff: number; confidence: number; count: number; missing: number }>()
   for (const row of filteredRows) {
@@ -429,32 +430,50 @@ export async function getPlatformAnalyticsIssueSummary(month = monthStart()) {
   return rows.sort((a, b) => (b.openIssues + b.failedEdiel + b.unresolvedEdiel) - (a.openIssues + a.failedEdiel + a.unresolvedEdiel))
 }
 
+// CSV exports: up to 5 000 rows in the report's order, from every page (one request returned at most 1 000:
+// FINDINGS K-09). Rows are read by id and ordered here.
+const REPORT_ROW_CAP = 5000
+type ReportRow = Record<string, unknown> & { id?: unknown }
+
+function orderedReport(rows: ReportRow[], key?: string, direction: 'asc' | 'desc' = 'asc'): ReportRow[] {
+  if (!key) return rows.slice(0, REPORT_ROW_CAP)
+  const sign = direction === 'desc' ? -1 : 1
+  const value = (row: ReportRow) => row[key]
+  return [...rows].sort((a, b) => {
+    const left = value(a), right = value(b)
+    if (left === right) return 0
+    if (left === null || left === undefined) return 1
+    if (right === null || right === undefined) return -1
+    const numeric = Number(left) - Number(right)
+    return sign * (Number.isFinite(numeric) && typeof left !== 'string' ? numeric : String(left).localeCompare(String(right), 'sv'))
+  }).slice(0, REPORT_ROW_CAP)
+}
+
 export async function getReportRows(companyId: string, report: string, month: string): Promise<Array<Record<string, unknown>>> {
   const safeMonth = monthStart(month)
+  const rows = (table: string, build?: (query: any) => any) => safeAllRows<ReportRow>(table, '*', companyId, build)
   if (report === 'customer_monthly_metrics') {
-    return safeRows<Record<string, unknown>>('customer_monthly_metrics', '*', companyId, (query) => query.eq('month', safeMonth).order('actual_kwh', { ascending: false }).limit(5000))
+    return orderedReport(await rows('customer_monthly_metrics', (query) => query.eq('month', safeMonth)), 'actual_kwh', 'desc')
   }
   if (report === 'bidding_zone_metrics') {
-    return safeRows<Record<string, unknown>>('bidding_zone_monthly_metrics', '*', companyId, (query) => query.eq('month', safeMonth).order('bidding_zone_code', { ascending: true }))
+    return orderedReport(await rows('bidding_zone_monthly_metrics', (query) => query.eq('month', safeMonth)), 'bidding_zone_code')
   }
   if (report === 'grid_owner_metrics') {
-    return safeRows<Record<string, unknown>>('grid_owner_monthly_metrics', '*', companyId, (query) => query.eq('month', safeMonth).order('actual_kwh', { ascending: false }))
+    return orderedReport(await rows('grid_owner_monthly_metrics', (query) => query.eq('month', safeMonth)), 'actual_kwh', 'desc')
   }
   if (report === 'metering_points_by_grid_owner') {
-    return safeRows<Record<string, unknown>>('grid_owner_monthly_metrics', '*', companyId, (query) => query.eq('month', safeMonth).order('metering_points_count', { ascending: false }))
+    return orderedReport(await rows('grid_owner_monthly_metrics', (query) => query.eq('month', safeMonth)), 'metering_points_count', 'desc')
   }
   if (report === 'forecast_run_items') {
-    return safeRows<Record<string, unknown>>('forecast_run_items', '*', companyId, (query) => query.gte('period_start', safeMonth).lt('period_start', addMonths(safeMonth, 1)).limit(5000))
+    return orderedReport(await rows('forecast_run_items', (query) => query.gte('period_start', safeMonth).lt('period_start', addMonths(safeMonth, 1))))
   }
   if (report === 'missing_metering_values') {
-    return safeRows<Record<string, unknown>>('gridex_actionable_data_quality_issues_v', '*', companyId, (query) =>
-      query.eq('issue_type', 'missing_metering_values').limit(5000)
-    )
+    return orderedReport(await rows('gridex_actionable_data_quality_issues_v', (query) => query.eq('issue_type', 'missing_metering_values')))
   }
   if (report === 'data_quality_issues') {
-    return safeRows<Record<string, unknown>>('data_quality_issues', '*', companyId, (query) => query.limit(5000))
+    return orderedReport(await rows('data_quality_issues'))
   }
-  return safeRows<Record<string, unknown>>('company_monthly_metrics', '*', companyId, (query) => query.eq('month', safeMonth))
+  return orderedReport(await rows('company_monthly_metrics', (query) => query.eq('month', safeMonth)))
 }
 
 export async function getCustomerAnalytics(companyId: string, customerId: string, month: string) {

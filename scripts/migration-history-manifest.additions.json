@@ -294,6 +294,8 @@
     "20261022130000_contract_customer_masterdata_derivation.sql": "c5232b4209c9b3c6b167a994446eccb7c42b3fc8d515b38a63a4c7e2c96338e5",
     "20261022140000_supply_move_out_z05lk_end.sql": "f1acbcc1530ccabe13081878e5c98f1bc61c4b42c2455ba38e2500920f09507e",
     "20261022150000_supply_ending_billable.sql": "38b406ffaf34539a6c6dbd32df28e7e713fef90ca54cad583d30a054f72e134d",
-    "20261022160000_ediel_outbound_ack_overdue.sql": "310443eebc968b093d4579e3dad6aca96f73b8d734fcdff777eccb1d2a188528"
+    "20261022160000_ediel_outbound_ack_overdue.sql": "310443eebc968b093d4579e3dad6aca96f73b8d734fcdff777eccb1d2a188528",
+    "20261022210000_statistics_stockholm_months_and_supply_counts.sql": "83d06a2b1d403921becf6db5c19d6136ef7337351ba64c9afd581b0b1606c0c9",
+    "20261022211000_statistics_dashboard_switch_and_value_counts.sql": "1c744e1b3a7cecaa5f42ee4e2bd28ee9f91a0d4fb53614b24e85402c70593f77"
   }
 }
