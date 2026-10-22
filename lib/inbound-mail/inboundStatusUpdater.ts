@@ -77,8 +77,21 @@ function assertSameInboundSource(row:EdielMessageRow,input:{companyId:string;env
     ||(row.receiver_ediel_id??null)!==(input.parsed.receiverEdielId??null)||(row.application_reference??null)!==(input.parsed.applicationReference??null))throw new Error('canonical_inbound_duplicate_scope_or_original_conflict')
 }
 
+/** Data element 0083 (action, coded) of a UCI (element 4) or UCM (element 3) segment; '' when absent. */
+function contrlActionCode(segment: string, tag: 'UCI' | 'UCM'): string | null {
+  const elements = segment.replace(/'$/, '').split('+')
+  if (elements[0] !== tag) return null
+  return (elements[tag === 'UCI' ? 4 : 3] ?? '').split(':')[0].trim()
+}
+
+/**
+ * Ediel ACK-01: CONTRL:2:2 uses action 0083 = 1 (accepted) and 4 (rejected). The CONTRL is negative when the
+ * interchange (UCI) or any message (UCM) carries 4. (Before J4-D12 the helper read UCI action 7 as negative and
+ * never 4, so a real syntax rejection counted as positive.)
+ */
 function isNegativeContrL(parsed: ParsedEdifactEnvelope): boolean {
-  return parsed.messageFamily === 'CONTRL' && parsed.segments.some((segment) => /(^|\+)UCI\+[^']*\+7(\+|$)/.test(segment))
+  if (parsed.messageFamily !== 'CONTRL') return false
+  return parsed.segments.some(segment => contrlActionCode(segment, 'UCI') === '4' || contrlActionCode(segment, 'UCM') === '4')
 }
 
 function isNegativeAperak(parsed: ParsedEdifactEnvelope): boolean {
@@ -942,13 +955,11 @@ async function updateBusinessStatusFromInbound(input: {
   }
 
   if (sourceType === 'supplier_switch_request') {
-    if (input.parsed.messageFamily === 'PRODAT' && input.parsed.messageCode === 'Z04') {
-      await supabaseService
-        .from('supplier_switch_requests')
-        .update({ status: 'confirmed', completed_at: nowIso(), metadata: responsePayload, updated_at: nowIso() })
-        .eq('id', sourceId)
-        .eq('company_id', input.companyId)
-    }
+    // J1-04 (reality scenario J1): a received Z04 never writes the switch here. This runs at mail intake, before the
+    // canonical runtime and the native supply owner have validated the file; the native owner is the switch's only
+    // Z04 writer (inboundProcessing.ts). Writing 'confirmed' here (normalised to 'accepted' by the Z04 trigger once a
+    // Z04 is linked) brought a switch the grid owner had cancelled with Z04C back to 'accepted' without a supply
+    // period, and stamped completed_at / replaced metadata on every re-received Z04.
 
     if (isNegativeAperak(input.parsed) || input.parsed.messageFamily === 'UTILTS_ERR' || isNegativeContrL(input.parsed)) {
       await supabaseService

@@ -14,7 +14,7 @@ import { parseUtilts } from '@/lib/ediel/utilts/parseUtilts'
 import { parseEdifactPayload } from '@/lib/inbound-mail/edielEmailParser'
 
 // J4_SHOW_OPEN_DEFECTS=1 runs every case as a normal test to show the actual failure of each open defect.
-const OPEN = new Set(process.env.J4_SHOW_OPEN_DEFECTS ? [] : ['J4-D5', 'J4-D6', 'J4-D8', 'J4-D12', 'J4-D13'])
+const OPEN = new Set(process.env.J4_SHOW_OPEN_DEFECTS ? [] : ['J4-D5', 'J4-D6', 'J4-D8', 'J4-D13'])
 const defect = (id: string, name: string, fn: () => void) => (OPEN.has(id) ? it.fails : it)(`${id} ${name}`, fn)
 
 const APERAK = ["UNA:+.? '", "UNB+UNOC:3+16700:14+40000:14+261022:1200+R1++23-DDQ-PRODAT++++1'", "UNH+M1+APERAK:D:96A:UN:E2SE6A'", "BGM+++34'",
