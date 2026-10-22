@@ -107,10 +107,14 @@ INSERT INTO public.user_profiles(id,email,full_name,user_status) VALUES('$GRIDEX
 ON CONFLICT (id) DO UPDATE SET user_status='active';
 SQL
 fuser -k "$APP_PORT/tcp" >/dev/null 2>&1 || true
-if [ "${SKIP_BUILD:-0}" != "1" ]; then log "next build"; npx next build > "$HOME_DIR/logs/next-build.log" 2>&1; fi
+# The type check needs more than the default 2 GB heap; a failed build must stop here, never start an old or empty one.
+if [ "${SKIP_BUILD:-0}" != "1" ]; then log "next build"; rm -f .next/BUILD_ID
+  NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=8192" npx next build > "$HOME_DIR/logs/next-build.log" 2>&1 || true; fi
+[ -s .next/BUILD_ID ] || { log "next build failed: see $HOME_DIR/logs/next-build.log"; exit 1; }
 log "next start on 127.0.0.1:$APP_PORT"
 setsid nohup npx next start -H 127.0.0.1 -p "$APP_PORT" > "$HOME_DIR/logs/next-start.log" 2>&1 < /dev/null &
-for _ in $(seq 1 120); do curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$APP_PORT/login" 2>/dev/null | grep -q 200 && break; sleep 2; done
+APP_UP=0; for _ in $(seq 1 120); do curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$APP_PORT/login" 2>/dev/null | grep -q 200 && { APP_UP=1; break; }; sleep 2; done
+[ "$APP_UP" = 1 ] || { log "next start did not answer on $APP_PORT: see $HOME_DIR/logs/next-start.log"; exit 1; }
 
 # 5) Simulators, each in its own session so a test run can never kill them by accident.
 fuser -k 3901/tcp 3389/tcp 3902/tcp >/dev/null 2>&1 || true
