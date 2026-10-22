@@ -45,7 +45,7 @@ beforeAll(async () => {
       using(company_id=nullif(current_setting('fixture.company',true),'')::uuid);
     create policy fixture_request_tenant on public.grid_owner_information_requests for select to authenticated
       using(company_id=nullif(current_setting('fixture.company',true),'')::uuid);`)
-  await db.exec(readFileSync('supabase/migrations/20261021140000_manual_mail_pending_partial_review.sql', 'utf8'))
+  await db.exec(readFileSync('supabase/migrations/20261022110000_manual_mail_pending_partial_review.sql', 'utf8'))
 })
 afterAll(async () => { await db?.close() })
 beforeEach(async () => {

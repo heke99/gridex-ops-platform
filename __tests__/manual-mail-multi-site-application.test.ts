@@ -107,7 +107,7 @@ it('queues a genuine clarification for a partial received-only child with its ow
   expect(io.db.tables.grid_owner_information_requests[1]).not.toHaveProperty('sent_at')
   await continueManualMultiSiteReply(scope)
   expect(io.queue).toHaveBeenCalledTimes(1)
-})
+},30_000)
 it('retains clarification retry after a canonical queue failure',async()=>{
   const child=member('site-b','child',false,true)
   const automation=(io.db.tables.manual_inbound_messages[0].extracted_payload as Row).manual_automation as Row

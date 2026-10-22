@@ -93,7 +93,7 @@ beforeAll(async () => {
     create trigger fixture_message_failure before update on public.ediel_messages for each row execute function public.fixture_write_failure();
     create trigger fixture_intent_failure before update on public.ediel_message_intents for each row execute function public.fixture_write_failure();
     create trigger fixture_outbound_failure before update on public.outbound_requests for each row execute function public.fixture_write_failure();`)
-  await db.exec(readFileSync('supabase/migrations/20261021150000_normal_supplier_switch_atomic_enqueue.sql', 'utf8'))
+  await db.exec(readFileSync('supabase/migrations/20261022120000_normal_supplier_switch_atomic_enqueue.sql', 'utf8'))
 })
 afterAll(async () => { await db?.close() })
 beforeEach(async () => {

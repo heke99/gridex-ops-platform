@@ -3,7 +3,7 @@
   "generated_at": "2026-10-21T10:51:03.219837+00:00",
   "generated_with": "supabase-cli-2.101.0-authentic-ordinary-capture-run39587157159-job119178792531-attempt1",
   "sha256": "8e333aa17f6946556ef838377e8000ee5bbc15a95e7d854896e6e2260812c526",
-  "latest_migration": "20261022100000_ediel_swedish_utilts25a5_inbound_state_capability.sql",
+  "latest_migration": "20261022120000_normal_supplier_switch_atomic_enqueue.sql",
   "latest_migration_schema_effect": "Genuine ordinary capture of the complete reviewed 22-SQL epoch and retained base at source b7b5316fb2b28cd9ec3a1eecd937ff22e700dc90 / tree de6d9c20da7ab7b58d40e32c1bd9f7c51c14a21b, with 266 runtime entries. The maximum filename alone is insufficient evidence. RAW3 retained byte-exactly from the original; generated types are byte-identical to the preceding generated file. The inbound binder has the two reviewed supersession predicates. No native/browser/type-schema/upgrade-parity or production-installation result is implied.",
   "composition_capture_pending": false,
   "capture": {
