@@ -13,9 +13,25 @@ import { unpackInboundSmimeIfNeeded } from "@/lib/ediel/transport/smime"
 import type { EdielMailboxRow, InboundEngineRunResult, InboundProcessingJobRow, PollMailboxResult, StoreInboundEmailInput } from './edielMailboxPoller.part-1'
 import { bufferToUtf8, diagnosticMessageCode, envInt, extractHeader, findExistingInboundEmail, isPlatformSharedMailbox, isPostgresUniqueViolation, isUnsafeBatch7aTransactionConflict, markMailboxPollFinished, markMailboxPollStarted, metadataBool, normalizeEnvironment, normalizeImapMailboxFolder, nowIso, parseInboundDedupeFacts, postgresErrorMessage, resolveEffectiveMailboxForPolling, resolveMailboxPasswordFromSecretReference, sha256, splitMimeParts, stringOrNull } from './edielMailboxPoller.part-1'
 
+// PostgreSQL text cannot hold U+0000 (22P05 "unsupported Unicode escape
+// sequence"). A binary or UTF-16 part decodes to NUL characters; storing that
+// decoded projection failed the whole mail (body) or silently dropped every
+// attachment row of it (J3-03). The original stays in raw_email and its
+// sha256; only the derived text projections are made storable.
+export function storableText<T extends string | null | undefined>(value: T): T {
+  return (typeof value === "string" && value.includes("\u0000") ? value.replace(/\u0000/g, "\uFFFD") : value) as T;
+}
+
 export async function storeInboundEmail(
-  input: StoreInboundEmailInput,
+  rawInput: StoreInboundEmailInput,
 ): Promise<{ id: string; deduped: boolean }> {
+  const input: StoreInboundEmailInput = {
+    ...rawInput,
+    rawEdifactPayload: storableText(rawInput.rawEdifactPayload),
+    bodyText: storableText(rawInput.bodyText),
+    bodyHtml: storableText(rawInput.bodyHtml),
+    attachments: rawInput.attachments?.map((attachment) => ({ ...attachment, rawText: storableText(attachment.rawText) })),
+  };
   // Decode actual MIME before the very first raw container write, including
   // direct callers that did not provide separate body/attachment projections.
   const mime=input.rawEmail?splitMimeParts(input.rawEmail):null;
@@ -336,6 +352,85 @@ export async function storeMailboxFetchMessage(input: {
   return stored;
 }
 
+// A mail whose storage fails is never flagged \Seen, so every later poll
+// fetched it again, before newer mail, with no record but a poll-run error:
+// unbounded, and 25 such mails starved the mailbox (J3-04). Failures are
+// counted per message in ediel_mailboxes.metadata like the manual mailbox
+// poller; at the limit the mail is dead-lettered as a visible failed inbound
+// row without its content (the original stays in the IMAP folder) and \Seen.
+const STORE_ATTEMPTS_KEY = "ediel_store_attempts";
+const MAX_TRACKED_STORE_ATTEMPTS = 100;
+
+type StoreAttempt = {
+  attempts: number;
+  last_attempt_at: string;
+  last_error: string;
+  dead_lettered_at?: string;
+  quarantine_message_id?: string | null;
+};
+
+export function readStoreAttempts(metadata: unknown): Record<string, StoreAttempt> {
+  const root = metadata && typeof metadata === "object" && !Array.isArray(metadata) ? (metadata as Record<string, unknown>) : {};
+  const stored = root[STORE_ATTEMPTS_KEY];
+  if (!stored || typeof stored !== "object" || Array.isArray(stored)) return {};
+  const attempts: Record<string, StoreAttempt> = {};
+  for (const [key, value] of Object.entries(stored as Record<string, unknown>)) {
+    const count = Number((value as { attempts?: unknown } | null)?.attempts);
+    if (Number.isFinite(count) && count > 0) attempts[key] = { ...(value as StoreAttempt), attempts: Math.floor(count) };
+  }
+  return attempts;
+}
+
+export function fetchedMessageKey(message: Record<string, unknown>): string | null {
+  const envelope = message.envelope as Record<string, unknown> | null | undefined;
+  const messageId = stringOrNull(envelope?.messageId);
+  if (messageId) return `mid:${messageId}`;
+  const source = message.source;
+  if (Buffer.isBuffer(source) || source instanceof Uint8Array) return `sha256:${sha256(Buffer.from(source))}`;
+  if (typeof source === "string" && source) return `sha256:${sha256(source)}`;
+  return null;
+}
+
+async function storeDeadLetteredInboundEmail(input: {
+  mailbox: EdielMailboxRow;
+  message: Record<string, unknown>;
+  attempts: number;
+  lastError: string;
+}): Promise<string> {
+  const envelope = input.message.envelope as Record<string, unknown> | null | undefined;
+  const address = (value: unknown) => stringOrNull((Array.isArray(value) ? (value[0] as Record<string, unknown> | undefined) : undefined)?.address);
+  const source = input.message.source;
+  const rawMessageSha256 = Buffer.isBuffer(source) || source instanceof Uint8Array
+    ? sha256(Buffer.from(source)) : typeof source === "string" ? sha256(source) : null;
+  const messageId = stringOrNull(envelope?.messageId)
+    ?? (typeof input.message.uid === "number" ? `${input.mailbox.id}:uid:${input.message.uid}` : null);
+  const { data, error } = await supabaseService
+    .from("inbound_email_messages")
+    .insert({
+      mailbox_id: input.mailbox.id,
+      company_id: isPlatformSharedMailbox(input.mailbox) ? null : input.mailbox.company_id,
+      environment: normalizeEnvironment(input.mailbox.environment) ?? "test",
+      internet_message_id: messageId,
+      from_address: storableText(address(envelope?.from)),
+      to_address: storableText(address(envelope?.to)),
+      subject: storableText(stringOrNull(envelope?.subject)),
+      received_at: input.message.internalDate instanceof Date ? input.message.internalDate.toISOString() : nowIso(),
+      raw_email: null,
+      processing_status: "failed",
+      match_status: "storage_dead_lettered",
+      error_message: `Mailet kunde inte lagras efter ${input.attempts} försök och har satts i karantän. Originalet finns kvar i IMAP-mappen. Senaste fel: ${input.lastError}`.slice(0, 1000),
+      dedupe_key: messageId ? `${input.mailbox.id}:${messageId}` : null,
+      raw_message_sha256: rawMessageSha256,
+      dedupe_scope: "mailbox_only",
+      dedupe_reason: "storage_dead_lettered",
+      has_attachments: false,
+    })
+    .select("id")
+    .single();
+  if (error) throw error;
+  return (data as { id: string }).id;
+}
+
 export async function pollEdielMailbox(input: {
   mailbox: EdielMailboxRow;
   actorUserId?:string|null;
@@ -362,6 +457,7 @@ export async function pollEdielMailbox(input: {
     inboundEmailMessageIds: [],
     dedupedInboundEmailMessageIds: [],
     processed: 0,
+    deadLettered: 0,
     errors: [],
   };
 
@@ -374,6 +470,38 @@ export async function pollEdielMailbox(input: {
     result.skippedLocked = true;
     return result;
   }
+
+  const storeAttempts = readStoreAttempts(input.mailbox.metadata);
+  let storeAttemptsChanged = false;
+  const persistStoreAttempts = async () => {
+    if (!storeAttemptsChanged) return;
+    const tracked = Object.entries(storeAttempts)
+      .sort(([, a], [, b]) => Number(Boolean(a.dead_lettered_at)) - Number(Boolean(b.dead_lettered_at))
+        || String(b.last_attempt_at).localeCompare(String(a.last_attempt_at)))
+      .slice(0, MAX_TRACKED_STORE_ATTEMPTS);
+    // Merge only this key into the CURRENT metadata and compare-and-set on
+    // updated_at (a short URL filter): a concurrent configuration edit is
+    // never overwritten; on a race this run's counts are dropped.
+    const { data: current, error: readError } = await supabaseService
+      .from("ediel_mailboxes")
+      .select("metadata,updated_at")
+      .eq("id", input.mailbox.id)
+      .eq("locked_by", workerId)
+      .maybeSingle();
+    if (readError || !current) {
+      console.warn("[inbound-mail] Kunde inte läsa brevlådan för lagringsförsök", { mailboxId: input.mailbox.id, code: readError?.code ?? null });
+      return;
+    }
+    const row = current as { metadata?: Record<string, unknown> | null; updated_at?: string | null };
+    let update = supabaseService
+      .from("ediel_mailboxes")
+      .update({ metadata: { ...(row.metadata ?? {}), [STORE_ATTEMPTS_KEY]: Object.fromEntries(tracked) }, updated_at: nowIso() })
+      .eq("id", input.mailbox.id)
+      .eq("locked_by", workerId);
+    update = row.updated_at ? update.eq("updated_at", row.updated_at) : update.is("updated_at", null);
+    const { error } = await update;
+    if (error) console.warn("[inbound-mail] Kunde inte spara lagringsförsök", { mailboxId: input.mailbox.id, code: error.code });
+  };
 
   try {
     const mailbox = resolveEffectiveMailboxForPolling(input.mailbox);
@@ -435,6 +563,7 @@ export async function pollEdielMailbox(input: {
       // open (it deadlocks until the socket times out). Stored messages are
       // collected here and flagged \Seen after the fetch loops have ended.
       const storedUids: number[] = [];
+      const maxStoreAttempts = envInt("EDIEL_INBOUND_MAX_STORE_ATTEMPTS", 3);
 
       const handleFetchedMessage = async (
         message: unknown,
@@ -450,17 +579,50 @@ export async function pollEdielMailbox(input: {
         if (bucket === "unseen") result.unseenFetched += 1;
         if (bucket === "seenRecent") result.seenRecentFetched += 1;
 
+        const fetchedMessage = message as unknown as Record<string, unknown>;
+        const attemptKey = fetchedMessageKey(fetchedMessage);
+        const previousAttempt = attemptKey ? storeAttempts[attemptKey] : undefined;
+        if (previousAttempt?.dead_lettered_at) {
+          // Already quarantined; only the \Seen flag may have been lost.
+          if (input.markSeen !== false && typeof uid === "number") storedUids.push(uid);
+          return true;
+        }
+
         let stored: { id: string; deduped: boolean } | null = null;
         try {
           stored = await storeMailboxFetchMessage({
             mailbox: input.mailbox,
             actorUserId:input.actorUserId??null,
-            message: message as unknown as Record<string, unknown>,
+            message: fetchedMessage,
           });
         } catch (error) {
           const errorMessage = formatErrorMessage(error, 'Okänt fel vid IMAP-lagring.');
           result.errors.push(errorMessage);
+          if (!attemptKey) return true;
+          const attempt: StoreAttempt = {
+            attempts: (previousAttempt?.attempts ?? 0) + 1,
+            last_attempt_at: nowIso(),
+            last_error: errorMessage.replace(/[\r\n]+/g, " ").slice(0, 300),
+          };
+          storeAttempts[attemptKey] = attempt;
+          storeAttemptsChanged = true;
+          if (attempt.attempts >= maxStoreAttempts) {
+            try {
+              attempt.quarantine_message_id = await storeDeadLetteredInboundEmail({
+                mailbox: input.mailbox, message: fetchedMessage, attempts: attempt.attempts, lastError: attempt.last_error,
+              });
+              attempt.dead_lettered_at = nowIso();
+              result.deadLettered += 1;
+              if (input.markSeen !== false && typeof uid === "number") storedUids.push(uid);
+            } catch (quarantineError) {
+              result.errors.push(`Karantän misslyckades: ${formatErrorMessage(quarantineError, 'Okänt fel.')}`);
+            }
+          }
           return true;
+        }
+        if (attemptKey && previousAttempt) {
+          delete storeAttempts[attemptKey];
+          storeAttemptsChanged = true;
         }
 
         if (stored.deduped) {
@@ -503,6 +665,9 @@ export async function pollEdielMailbox(input: {
         }
       }
 
+      // The dead-letter record is durable before its source leaves UNSEEN.
+      await persistStoreAttempts();
+      storeAttemptsChanged = false;
       for (const uid of storedUids) {
         await client.messageFlagsAdd(uid, ["\\Seen"], { uid: true });
       }
@@ -517,6 +682,8 @@ export async function pollEdielMailbox(input: {
     const message =
       formatErrorMessage(error, "Okänt pollingfel.");
     result.errors.push(message);
+    // Failures counted before an IMAP outage still count.
+    await persistStoreAttempts().catch(() => undefined);
     await markMailboxPollFinished({
       mailboxId: input.mailbox.id,
       ok: false,
@@ -1139,6 +1306,7 @@ export async function logInboundPollRun(
         stored: item.stored,
         deduped: item.deduped,
         processed: item.processed,
+        deadLettered: item.deadLettered,
         errors: item.errors,
       })),
     },

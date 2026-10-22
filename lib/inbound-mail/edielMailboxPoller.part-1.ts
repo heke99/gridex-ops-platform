@@ -97,6 +97,8 @@ export type PollMailboxResult = {
   inboundEmailMessageIds: string[];
   dedupedInboundEmailMessageIds: string[];
   processed: number;
+  /** Mails whose storage failed EDIEL_INBOUND_MAX_STORE_ATTEMPTS times and were quarantined. */
+  deadLettered: number;
   errors: string[];
 };
 
