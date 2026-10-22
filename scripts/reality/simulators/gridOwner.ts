@@ -21,6 +21,7 @@ import { buildAperakDraft, buildContrlDraft } from '@/lib/ediel/ack'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { dailyE66, dayProfile } from '../../helpers/live-chain-wire'
 import { buildZ04ForSwitchRequest } from './gridOwnerWire'
+import { unwrapSmimeForActor } from './smimeUnwrap'
 
 export type GridOwnerProfile = {
   /** Answer our files at all (a silent counterparty tests our deadline handling). */
@@ -113,7 +114,10 @@ async function poll() {
     for (const uid of unseen || []) {
       const message = await client.fetchOne(String(uid), { source: true, envelope: true }, { uid: true })
       if (!message) continue
-      const text = message.source?.toString('utf8') ?? ''
+      // Production mail is S/MIME enveloped to this grid owner's certificate; read it as the real one does.
+      let text: string
+      try { text = message.source ? unwrapSmimeForActor(message.source, config.edielId) : '' }
+      catch (error) { failures.push({ at: new Date().toISOString(), error: `unreadable mail: ${error instanceof Error ? error.message : String(error)}` }); text = '' }
       // Attachments are base64 or 7bit EDIFACT; decode every part that holds a UNB.
       for (const part of text.split(/\r?\n--[^\r\n]+\r?\n/)) {
         const [head, ...rest] = part.split(/\r?\n\r?\n/)

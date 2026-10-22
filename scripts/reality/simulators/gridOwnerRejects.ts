@@ -17,6 +17,7 @@ import nodemailer from 'nodemailer'
 import { ImapFlow } from 'imapflow'
 import { answersFor, readReceivedRequest, SILENT, type GridOwnerAnswerPlan } from '../../helpers/reality/rejectsWire'
 import { buildZ04ForSwitchRequest } from './gridOwnerWire'
+import { unwrapSmimeForActor } from './smimeUnwrap'
 
 const env = (name: string, fallback: string) => process.env[name] ?? fallback
 const config = {
@@ -79,7 +80,10 @@ async function poll() {
     for (const uid of (await client.search({ seen: false }, { uid: true })) || []) {
       const message = await client.fetchOne(String(uid), { source: true, envelope: true }, { uid: true })
       if (!message) continue
-      const text = message.source?.toString('utf8') ?? ''
+      // Production mail is S/MIME enveloped to this grid owner's certificate; read it as the real one does.
+      let text: string
+      try { text = message.source ? unwrapSmimeForActor(message.source, config.edielId) : '' }
+      catch (error) { failures.push({ at: new Date().toISOString(), error: `unreadable mail: ${error instanceof Error ? error.message : String(error)}` }); text = '' }
       for (const part of text.split(/\r?\n--[^\r\n]+\r?\n/)) {
         const [head, ...rest] = part.split(/\r?\n\r?\n/)
         let content = rest.join('\n\n')
