@@ -228,7 +228,8 @@ export async function materializeTenantRoutes(context: BrowserContext, companyId
   const clicks: Array<{ button: string; route: string; actionStatus: number; code: string | null }> = []
   for (const name of [environment === 'production' ? 'Materialisera production-route' : 'Materialisera test-route']) {
     const done = new Set<string>()
-    for (let attempt = 0; attempt < 15; attempt++) {
+    let emptyLoads = 0
+    for (let attempt = 0; attempt < 20; attempt++) {
       const page = await context.newPage()
       await page.goto(`/admin/ediel/route-readiness?q=${edielId}&env=${environment}`)
       const forms = page.locator(`form:has(input[name="companyId"][value="${companyId}"])`).filter({ has: page.getByRole('button', { name }) })
@@ -241,12 +242,14 @@ export async function materializeTenantRoutes(context: BrowserContext, companyId
         if (!done.has(route)) { target = { index, route }; break }
       }
       if (!target) {
-        // The streamed page can still hold the cards in its hidden boundary when the load event fires; retry.
-        if (done.size === 0 && attempt < 5) { await page.close(); await new Promise(resolve => setTimeout(resolve, 5_000)); continue }
+        // The streamed page can still hold the cards in its hidden boundary when the load event fires, also after a
+        // click (the Z03 card of FINDINGS F85 was missed that way); retry before concluding every card is done.
+        if (emptyLoads < 4) { emptyLoads += 1; await page.close(); await new Promise(resolve => setTimeout(resolve, 5_000)); continue }
         if (done.size === 0) clicks.push({ button: name, route: 'none', actionStatus: 0, code: `not_found forms=${await forms.count()} cards=${await page.locator(`input[name="companyId"][value="${companyId}"]`).count()} text=${(await page.locator('#admin-main').innerText().catch(() => '')).replace(/\s+/g, ' ').slice(0, 200)}` })
         await page.close(); break
       }
       done.add(target.route)
+      emptyLoads = 0
       const actionStatus = await submitServerAction(page, () => forms.nth(target.index).getByRole('button', { name }).click(), 120_000)
       await page.waitForURL(url => url.searchParams.has('code') || url.searchParams.has('status'), { timeout: 30_000 }).catch(() => undefined)
       clicks.push({ button: name, route: target.route, actionStatus, code: new URL(page.url()).searchParams.get('code') })
