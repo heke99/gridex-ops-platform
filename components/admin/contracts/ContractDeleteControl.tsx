@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   archiveContractAction,
@@ -60,6 +60,20 @@ export default function ContractDeleteControl({
   const open = Boolean(
     state.requestId && state.requestId !== dismissedRequestId,
   );
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!open || !dialog) return;
+    const trigger = triggerRef.current;
+    if (!dialog.open) dialog.showModal();
+    closeButtonRef.current?.focus();
+    return () => {
+      trigger?.focus();
+    };
+  }, [open]);
 
   const preview = state.preview;
   const canDelete = Boolean(
@@ -97,6 +111,7 @@ export default function ContractDeleteControl({
       <form action={previewAction} className="mt-2">
         {hiddenFields}
         <button
+          ref={triggerRef}
           type="submit"
           disabled={pending}
           className={`${compact ? "" : "w-full "}rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-800 disabled:cursor-wait disabled:opacity-60`}
@@ -106,11 +121,16 @@ export default function ContractDeleteControl({
       </form>
 
       {open ? (
-        <div
-          role="dialog"
+        <dialog
+          ref={dialogRef}
           aria-modal="true"
           aria-labelledby={`delete-contract-${offerId}`}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4"
+          onCancel={(event) => {
+            event.preventDefault();
+            setDismissedRequestId(state.requestId);
+          }}
+          onClose={() => setDismissedRequestId(state.requestId)}
+          className="fixed inset-0 z-50 m-auto w-[calc(100%-2rem)] max-w-2xl overflow-visible border-0 bg-transparent p-0 backdrop:bg-slate-950/60"
         >
           <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
             <div className="flex items-start justify-between gap-4">
@@ -131,6 +151,7 @@ export default function ContractDeleteControl({
                 </p>
               </div>
               <button
+                ref={closeButtonRef}
                 type="button"
                 onClick={() => setDismissedRequestId(state.requestId)}
                 className="rounded-xl border border-slate-300 px-3 py-2 text-sm font-black text-slate-700"
@@ -218,7 +239,7 @@ export default function ContractDeleteControl({
               </>
             ) : null}
           </div>
-        </div>
+        </dialog>
       ) : null}
     </>
   );
