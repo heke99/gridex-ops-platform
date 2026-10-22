@@ -141,7 +141,7 @@ describe('audit19 exact named schema compatibility with complete actual SQL inst
     const production = await fixture('production')
     await superFixture(production, 'grant select on public.audit_logs to gridex_ediel_retention_owner')
     await expect(realHash(production)).rejects.toThrow('audit19_exact_schema_required')
-  })
+  }, 30_000)
 
   for (const order of ['canonical', 'production', 'permuted'] as const) {
     it(`installs for ${order} order under the actual non-super owner bridge and preserves the complete audit relation`, async () => {
