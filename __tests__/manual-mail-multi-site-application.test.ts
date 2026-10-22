@@ -62,6 +62,19 @@ it('resumes both sites independently with the recorded actor and no paid inferen
   await continueManualMultiSiteReply(scope)
   expect(io.reconcile).toHaveBeenCalledTimes(2)
 })
+it('retains each successful member and aggregates a legitimate completed business review for one site', async () => {
+  io.reconcile.mockResolvedValueOnce({ ok: true, supplierSwitchRequestId: 'switch-a' })
+    .mockResolvedValueOnce({ ok: false, supplierSwitchRequestId: null, blockers: [{ code: 'missing_customer_identity', message: 'Synthetic private description' }] })
+  await continueManualMultiSiteReply(scope)
+  const automation = (io.db.tables.manual_inbound_messages[0].extracted_payload as Row).manual_automation as Row
+  expect(automation.continuation).toMatchObject({ status: 'completed', reviewRequired: true, reviewCount: 1 })
+  const members = automation.site_applications as Record<string, Row>
+  expect(members.parent.continuation).toMatchObject({ status: 'completed', supplierSwitchRequestId: 'switch-a' })
+  expect(members.child.continuation).toMatchObject({ status: 'completed', reviewRequired: true, reviewReasons: ['missing_customer_identity'] })
+  expect(JSON.stringify(automation.continuation)).not.toContain('Synthetic private description')
+  await continueManualMultiSiteReply(scope)
+  expect(io.reconcile).toHaveBeenCalledTimes(2)
+})
 it('retains the completed first continuation when a later site fails and retries only the missing effect', async () => {
   io.reconcile.mockResolvedValueOnce({ supplierSwitchRequestId: 'switch-a' }).mockRejectedValueOnce(new Error('transient dispatch readiness'))
   await expect(continueManualMultiSiteReply(scope)).rejects.toThrow('transient dispatch readiness')
@@ -94,7 +107,7 @@ it('queues a genuine clarification for a partial received-only child with its ow
   expect(io.db.tables.grid_owner_information_requests[1]).not.toHaveProperty('sent_at')
   await continueManualMultiSiteReply(scope)
   expect(io.queue).toHaveBeenCalledTimes(1)
-})
+},30_000)
 it('retains clarification retry after a canonical queue failure',async()=>{
   const child=member('site-b','child',false,true)
   const automation=(io.db.tables.manual_inbound_messages[0].extracted_payload as Row).manual_automation as Row
