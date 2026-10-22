@@ -192,6 +192,27 @@ type CanonicalPublicOfferBinding = {
   valid_to: string | null;
 };
 
+/**
+ * FINDINGS F51: the form's address is the facility address. It is never the customer's registered address
+ * (folkbokföringsadress), which the Ediel masterdata rule uses for Z01; staff enter that on the customer card
+ * when reviewing this intake.
+ */
+export function externalIntakeAddress(
+  input: Pick<ExternalContractInput, "street" | "postalCode" | "city">,
+  intakeId: string,
+) {
+  if (!input.street && !input.postalCode && !input.city) return null;
+  return {
+    type: "facility" as const,
+    street_1: input.street,
+    postal_code: input.postalCode,
+    city: input.city,
+    country: "SE",
+    is_active: true,
+    metadata: { source: "external_contract_intake", externalContractIntakeId: intakeId },
+  };
+}
+
 async function resolveCanonicalPublicOffer(input: {
   companyId: string;
   offerReference: string;
@@ -393,16 +414,7 @@ export async function createExternalContractIntake(
             is_primary: true,
           }
         : null,
-      address: input.street || input.postalCode || input.city
-        ? {
-            type: "registered",
-            street_1: input.street,
-            postal_code: input.postalCode,
-            city: input.city,
-            country: "SE",
-            is_active: true,
-          }
-        : null,
+      address: externalIntakeAddress(input, intakeId),
       site: input.facilityId || input.street || input.postalCode || input.city
         ? {
             site_name: input.facilityId ?? displayName ?? "Extern avtalsingång",
