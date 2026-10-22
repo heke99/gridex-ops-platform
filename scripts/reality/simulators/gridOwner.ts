@@ -8,6 +8,8 @@
 //   control  GET  /__sim/state                  what it received and sent
 //            POST /__sim/profile {…}            change behaviour at runtime
 //            POST /__sim/send-e66 {meterId,day} send one day of quarter-hour values now
+//            POST /__sim/send-e66-batch {receiver, files:[{meterId,day,values?,…}]}
+//                                               several days and meters, one file (mail) each
 //
 // Run: npx tsx scripts/reality/simulators/gridOwner.ts  (env: REALITY_GRID_OWNER_* below)
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
@@ -126,6 +128,22 @@ async function poll() {
   } finally { lock.release(); await client.logout() }
 }
 
+/**
+ * One day of metering values for one meter. Without `values` the standard household profile of `dayIndex`
+ * is sent. `registeredAfterHours` re-sends the day as a correction (later registration time); its default
+ * reference then ends in C so it never collides with the original's.
+ */
+type E66File = { meterId: string; day: string; receiver: string; values?: number[]; dayIndex?: number; reference?: string
+  registeredAfterHours?: number; resolutionMinutes?: 15 | 60 }
+
+async function sendE66(file: E66File) {
+  const reference = file.reference ?? `${file.day.replaceAll('-', '').slice(2)}${file.meterId.slice(-6)}${file.registeredAfterHours ? 'C' : ''}`
+  const values = file.values ?? dayProfile(file.dayIndex ?? 0)
+  await deliver('UTILTS-E66', dailyE66({ issuer: config.edielId, receiver: file.receiver, meterId: file.meterId, day: file.day, values, reference,
+    resolutionMinutes: file.resolutionMinutes, registeredAfterHours: file.registeredAfterHours }), reference)
+  return { meterId: file.meterId, day: file.day, reference, kwh: Math.round(values.reduce((a, b) => a + b, 0) * 1000) / 1000 }
+}
+
 function body(req: IncomingMessage): Promise<string> {
   return new Promise((resolve, reject) => { let s = ''; req.on('data', c => { s += c }); req.on('end', () => resolve(s)); req.on('error', reject) })
 }
@@ -137,11 +155,15 @@ createServer(async (req, res) => {
     if (path === '/__sim/state') return reply(res, 200, { config, profile, received, sent, failures, pendingSends: pending.size })
     if (path === '/__sim/profile' && req.method === 'POST') { profile = { ...profile, ...JSON.parse(await body(req)) }; return reply(res, 200, profile) }
     if (path === '/__sim/send-e66' && req.method === 'POST') {
-      const input = JSON.parse(await body(req)) as { meterId: string; day: string; receiver: string; dayIndex?: number }
-      const reference = `${input.day.replaceAll('-', '').slice(2)}${input.meterId.slice(-6)}`
-      await deliver('UTILTS-E66', dailyE66({ issuer: config.edielId, receiver: input.receiver, meterId: input.meterId, day: input.day,
-        values: dayProfile(input.dayIndex ?? 0), reference }), reference)
+      const { reference } = await sendE66(JSON.parse(await body(req)) as E66File)
       return reply(res, 200, { reference })
+    }
+    if (path === '/__sim/send-e66-batch' && req.method === 'POST') {
+      const input = JSON.parse(await body(req)) as { receiver: string; files: Array<Omit<E66File, 'receiver'> & { receiver?: string }> }
+      // In order, one mail per file, like a grid owner's daily metering run.
+      const sentFiles: Array<Awaited<ReturnType<typeof sendE66>>> = []
+      for (const file of input.files) sentFiles.push(await sendE66({ ...file, receiver: file.receiver ?? input.receiver }))
+      return reply(res, 200, { sent: sentFiles })
     }
     return reply(res, 404, { message: 'not found' })
   } catch (error) { reply(res, 500, { message: error instanceof Error ? error.message : String(error) }) }
