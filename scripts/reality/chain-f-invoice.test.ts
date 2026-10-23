@@ -534,8 +534,12 @@ describe.sequential('reality F — invoices for several facilities with contract
     const staff = await operatorSession(tenant.operatorEmail, tenant.operatorPassword)
     const page = await staff.newPage()
     const storedFor = (id: string) => sql<number>(`SELECT to_jsonb(count(*)) FROM public.normalized_metering_values WHERE source_message_id=${literal(id)}`)
+    // The file's application reply (ACK-02/U-*: APERAK or UTILTS-ERR per transaction), not only its stored values (FINDINGS F107/T17).
+    const repliesFor = (id: string) => sql<Row>(`SELECT jsonb_build_object('replies',(SELECT coalesce(jsonb_agg(jsonb_build_object('family',o.message_family,'status',o.status)),'[]')
+        FROM public.ediel_messages o WHERE o.related_message_id=${literal(id)} AND o.direction='outbound' AND o.message_family IN ('APERAK','UTILTS_ERR','UTILTS')),
+      'attempt',(SELECT e.payload->>'outcome' FROM public.ediel_message_events e WHERE e.ediel_message_id=${literal(id)} AND e.payload ? 'outcome' ORDER BY e.created_at DESC LIMIT 1))`)
     const outcomes: Array<{ source: string; file: string | null; button: boolean; label: string | null; pageStatus: number | null; actionStatus: number | null; stored: number; expected: number
-      diagnosis?: unknown; pageText?: string }> = []
+      reply?: Row; diagnosis?: unknown; pageText?: string }> = []
     const reprocessSlots: unknown[] = []
     for (const source of sources) {
       const file = fileOf(source.reference)
@@ -554,7 +558,7 @@ describe.sequential('reality F — invoices for several facilities with contract
       let stored = storedFor(source.id)
       while (visible && stored < expected && Date.now() - started < 90_000) { await pause(3_000); stored = storedFor(source.id) }
       const outcome: (typeof outcomes)[number] = { source: source.id, file: file ? `${file.kind} ${file.facility} ${file.day}` : null, button: Boolean(visible), label,
-        pageStatus: response?.status() ?? null, actionStatus, stored, expected }
+        pageStatus: response?.status() ?? null, actionStatus, stored, expected, reply: repliesFor(source.id) }
       if (stored < expected) {
         outcome.diagnosis = sql(`SELECT jsonb_build_object('status',m.status,
           'issues',(SELECT coalesce(jsonb_agg(i->>'code'),'[]') FROM jsonb_array_elements(coalesce(m.validation_report#>'{utiltsRuntime,validation,issues}','[]')) i),
@@ -570,7 +574,12 @@ describe.sequential('reality F — invoices for several facilities with contract
     }
     await page.close()
     const notStored = outcomes.filter(outcome => outcome.stored < outcome.expected)
-    report.reprocess = { outcomes, slots: reprocessSlots, buttonMissing: outcomes.filter(outcome => !outcome.button).length, notStored: notStored.length }
+    const unanswered = outcomes.filter(outcome => !((outcome.reply?.replies as unknown[] | undefined)?.length))
+    report.reprocess = { outcomes, slots: reprocessSlots, buttonMissing: outcomes.filter(outcome => !outcome.button).length, notStored: notStored.length,
+      actionErrors: outcomes.filter(outcome => outcome.actionStatus !== 200).length, unanswered: unanswered.length }
+    // Every reprocessed file is answered (APERAK or UTILTS-ERR) and the operator's action reports success (F107, F111).
+    expect.soft(unanswered.map(outcome => ({ file: outcome.file, attempt: outcome.reply?.attempt ?? null })), 'every reprocessed E66 has its application reply').toEqual([])
+    expect.soft(outcomes.filter(outcome => outcome.actionStatus !== 200).map(outcome => ({ file: outcome.file, status: outcome.actionStatus })), 'the resume action answers 200').toEqual([])
 
     // Counted by instant (T15): "September" is the Ediel month [2026-08-31T23:00Z, 2026-09-30T23:00Z); a day is the
     // grid owner's Ediel day (00:00–24:00 +0100, Etc/GMT-1 in PostgreSQL); before supply = before market_start_at.
