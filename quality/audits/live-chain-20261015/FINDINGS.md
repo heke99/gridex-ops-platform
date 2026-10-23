@@ -1631,6 +1631,21 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
 ### F97 En utkorgspost sparar felet som `[object Object]` — ÖPPEN, medel (observation, ej utredd)
 - **Utfall (körning 19):** en Z01 i produktion fick `last_error='[object Object]'`, efter certifieringen. Den verkliga orsaken går därför inte att läsa, varken för operatören eller för SLA-hanteringen.
 
+- **RÄTTAD 2026-10-23 (agent):**
+  - **Orsak:** supabase-js returnerar fel som vanliga `{code,message,details,hint}`-objekt. `throw error` följt av `String(error)` gav därför `[object Object]`.
+    - Vägen till den fallerade Z01: `outboundAttempt.ts:51` kastar vidare, och catch-blocket i `sendOutboxItem` sparar texten som `last_error`.
+    - Samma fel fanns i spärren för manuell sändning i `orchestrator.ts`, som skriver till `failure_reason` och händelser.
+  - **Rättning:** `lib/ediel/outbox/storedErrorMessage.ts` sparar `code: message`, maskerat med `redactLogText`. `details` och `hint` kopieras aldrig, enligt samma integritetsregel som `smtpOutcome.ts`. Ett oläsbart fel sparas som `ediel_error_unreadable`.
+  - **Tester:**
+    - `__tests__/ediel-outbox-error-serialization.test.ts` 7 av 7 (alla föll med den gamla logiken);
+    - utkorgen 145 av 145;
+    - orkestreraren 105 av 105;
+    - typkontroll och eslint utan fel;
+    - täckningen 352 av 352.
+  - **Sidofynd (ÖPPNA):**
+    - `lib/ediel/transport/inboundProcessor.ts:53` sparar dead-letter-fel via `formatErrorMessage`, som kopierar `details` och `hint`, alltså möjlig persondata. Medel.
+    - `technicalAckRouteMaterializer.ts:349` har en `String(error)`-fallback. Låg.
+    - Utkorgens cron-rutt loggar `Unknown error` för fel som inte är `Error`. Gäller bara loggen. Låg.
 ### F körning 19 (2026-10-23): FÖRSTA BEKRÄFTADE PRODUKTIONSBYTET — leveransen vilar på nätägarens Z04
 - **Kedjan, hela vägen i produktionskanalen:** go-live, sedan Z01 och Z03 i produktion, sedan nätägarens CONTRL, APERAK och Z04, därefter `normal_switch_confirm_v1` och 4 leveransperioder.
 - **Utfallet:**

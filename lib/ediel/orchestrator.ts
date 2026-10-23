@@ -22,6 +22,7 @@ import {loadServiceReportingValidationContext} from '@/lib/ediel/services/report
 import {readAcceptedEdielTransportProjection} from '@/lib/ediel/transport/acceptedProjection'
 import {repairAcceptedEdielMessageProjection} from '@/lib/ediel/transport/acceptedProjectionRepair'
 import {projectSentEdielSourceState} from '@/lib/ediel/outbox/projectSentSources'
+import {edielStoredErrorMessage} from '@/lib/ediel/outbox/storedErrorMessage'
 // lib/ediel/orchestrator.ts
 
 import type { CreateEdielMessageInput, EdielMessageRow } from '@/lib/ediel/types'
@@ -346,7 +347,7 @@ export async function sendQueuedEdielMessage(params: {
         message,
       })
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error)
+      const errorMessage = edielStoredErrorMessage(error)
       await createEdielMessageEvent({
         actorUserId,
         edielMessageId: message.id,

@@ -10,6 +10,7 @@ import { getTenantOperationDecision } from '@/lib/tenant/operationPolicy'
 import { isSmtpDeliveryUncertain, SmtpDeliveryUncertainError } from '@/lib/ediel/transport/smtpOutcome'
 import { readAcceptedEdielTransportProjection } from '@/lib/ediel/transport/acceptedProjection'
 import { repairAcceptedEdielMessageProjection } from '@/lib/ediel/transport/acceptedProjectionRepair'
+import { edielStoredErrorMessage } from '@/lib/ediel/outbox/storedErrorMessage'
 
 function clean(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
@@ -310,7 +311,7 @@ export async function sendOutboxItem(params: {
     })
     return { status: 'sent', messageId: providerMessageId }
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error)
+    const errorMessage = edielStoredErrorMessage(error)
 
     if (providerAccepted || isSmtpDeliveryUncertain(error)) {
       if (error instanceof SmtpDeliveryUncertainError) providerMessageId = error.smtpMessageId ?? providerMessageId
@@ -329,7 +330,7 @@ export async function sendOutboxItem(params: {
           },
         })
       } catch (uncertainError) {
-        const uncertainMessage = uncertainError instanceof Error ? uncertainError.message : String(uncertainError)
+        const uncertainMessage = edielStoredErrorMessage(uncertainError)
         return {
           status: 'delivery_uncertain',
           messageId: providerMessageId,
