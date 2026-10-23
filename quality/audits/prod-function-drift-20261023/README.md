@@ -44,6 +44,37 @@ Gör det i små, verifierade steg, på samma sätt som installationerna 2026-10-
 4. **Funktioner som finns bara i produktion:** den äldre `public`-uppsättningen och schemat `private` ska inte tas bort utan en separat analys av vem som anropar dem.
 5. **Komplettera inventeringen:** jämför också tabeller, vyer, triggers, RLS och grants innan produktionen förklaras lik repot.
 
+## Tabeller, triggers och RLS (kompletterande kontroll)
+
+Den här jämförelsen gjordes per schema på kolumnnamn, triggernamn, policynamn och RLS-flaggan:
+
+- **Tabeller:** 3 saknas i produktion:
+  - `gridex_ediel_header_negative_birth.guide_extensions` (20261010102349)
+  - `gridex_received_sources.prodat_mixed_reply_consumptions` (20260930224726)
+  - `gridex_received_sources.supply_end_followups` (20261001054018)
+
+  Deras triggers saknas också (4 i `gridex_received_sources`). Övriga 850 tabeller har samma kolumnnamn. Avvikelsen i `gridex_requested_changes.events` är ett tolkningsfel i jämförelsen, som beror på en genererad kolumn.
+- **Bara i produktion:** cirka 40 äldre tabeller i `public`, med triggers och policyer. Det förklarar att produktionen har fler objekt (522 tabeller, 911 triggers och 3099 policyer mot repots 483, 777 och 2548).
+
+Slutsats: skillnaden mellan produktion och repo ligger nästan helt i funktionerna.
+
+## Vad appen anropar
+
+113 av funktionerna i `public` som skiljer sig refereras i appens kod eller i skript. Ungefär 45 saknade funktioner anropas från `lib/` eller `app/` och ger "function does not exist" i produktion om flödet körs. Exempel:
+
+- ACK-persistens: `ediel_create_outbound_ack_atomic_v1` och `ediel_create_outbound_ack_scope_atomic_v2` (`lib/ediel/core/atomicAckPersistence.ts`)
+- ACK replay-läsning: `ediel_read_outbound_ack_replay_v1` (`lib/ediel/core/ackPolicy.ts`)
+- Inkommande behandling: `gridex_read_outbound_acks_for_source_v1` (`lib/ediel/flows/inboundProcessing.ts`)
+- Requested change, customer masterdata, PRODAT recovery, supply rescission, service evidence, certificate trust, business expectations och metering method expectations.
+
+De flesta av dessa är Ediel-marknadsflöden som inte är aktiverade mot marknaden ännu. De 62 ändrade funktionerna innehåller både äldre versioner och funktioner som produktionen medvetet har utvecklat på plats (bb0b-formerna). Enligt installationsplanen 2026-10-22 skulle en överskrivning av vissa av dem vara en regression, till exempel `gridex_create_customer_site_with_address` med 20261012190000. **Ändrade funktioner ska därför granskas en och en och får inte konvergeras rakt av.**
+
+## Spärrade eller utelämnade filer som berörs
+
+- `canonical_transition_ediel_production`, `canonical_transition_ediel_production_v1_unchecked`: 20261006235632, spärrad (produktionen har divergerat).
+- `gridex_persist_utilts_consumption_v1`: 20261013141048, spärrad (målet med 7 argument saknas).
+- `gridex_create_customer_site_with_address`: 20261012190000, får aldrig köras om.
+
 ## Avvikelser per migrationsfil
 
 Kolumnerna "saknas" och "ändrad" anger antal funktioner. All rådata finns i `drift.json`.
