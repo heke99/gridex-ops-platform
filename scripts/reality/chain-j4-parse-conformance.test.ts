@@ -23,10 +23,10 @@ import { writeFileSync } from 'node:fs'
 import { afterAll, describe, expect, it, type TestContext } from 'vitest'
 import { supabaseService } from '@/lib/supabase/service'
 import { EdifactEnvelopeCodec } from '@/lib/ediel/core/edifactEnvelopeCodec'
-import { LIVE, cron, gs1, sql, type LiveTenant } from '../helpers/live-chain-fixture'
+import { LIVE, gs1, sql, type LiveTenant } from '../helpers/live-chain-fixture'
 import { WEBSITE_ORIGIN } from '../helpers/reality/tenantWebsite'
 import { closeOperatorConsole } from '../helpers/reality/operatorConsole'
-import { pollInboundMailLanes, runOperationalCronSlot, type GridOwnerSim } from '../helpers/reality/world'
+import { pollInboundMailLanes, runSlotAfterInbound, runOperationalCronSlot, type GridOwnerSim } from '../helpers/reality/world'
 import { GRID_AREA, goLiveAlsSupplier } from '../helpers/reality/goLiveAls'
 import { contrlFor } from '../helpers/reality/rejectsWire'
 import { OBJECT_REJECTION_TEXT, Z06_OBJECT1, contrlAction8, correlatedDetailedContrl, correlatedObjectRejection, e66TwoPoints, ourOriginal,
@@ -199,7 +199,7 @@ describe.sequential('reality J4 — every inbound Ediel message is parsed correc
     for (;;) {
       // Both lanes: production as Vercel polls it (the tenant is live in production), then test.
       const inbound = await pollInboundMailLanes()
-      const outbox = await cron('/api/ediel/outbox/process')
+      const outbox = await runSlotAfterInbound()
       runs.push({ at: new Date().toISOString(), inbound: inbound.production.status, inboundTest: inbound.test.status, outbox: outbox.status })
       expect(inbound.status, JSON.stringify(inbound.body).slice(0, 500)).toBe(200)
       for (const s of sent) stored.set(s.messageId, storedForMail(s.messageId))

@@ -7,9 +7,9 @@ import { prepareAndQueueEdielZ03 } from '@/lib/ediel/flows/prodatSwitch'
 import { deriveRequestedMethodBeforeSwitch } from '@/lib/operations/switchRequestedMethodPreparation'
 import { calculateEarliestSwitchStartDate } from '@/lib/operations/switchStartDate'
 import { evaluateSupplierSwitchSendWindow, loadSupplierSwitchPolicy } from '@/lib/operations/supplierSwitchScheduler'
-import { LIVE, approveIssuerHistoryGround, cron, gridOwnerSends, literal, sql, type AugustFacility, type LiveTenant } from '../live-chain-fixture'
+import { LIVE, approveIssuerHistoryGround, gridOwnerSends, literal, sql, type AugustFacility, type LiveTenant } from '../live-chain-fixture'
 import { operatorSession, submitServerAction } from './operatorConsole'
-import { pollInboundMailLanes } from './world'
+import { pollInboundMailLanes, runSlotAfterInbound } from './world'
 import type { UtiltsFile } from './inboundUtilts'
 
 type Row = Record<string, unknown>
@@ -72,7 +72,7 @@ export async function receiveUntil(done: () => boolean, minutes: number) {
   const deadline = Date.now() + minutes * 60_000
   for (;;) {
     const inbound = await pollInboundMailLanes()
-    const outbox = await cron('/api/ediel/outbox/process')
+    const outbox = await runSlotAfterInbound()
     runs.push({ at: new Date().toISOString(), inbound: inbound.production.status, inboundTest: inbound.test.status, outbox: outbox.status })
     if (inbound.status !== 200) throw Error(`inbound_cron_failed:${inbound.status}:${JSON.stringify(inbound.body).slice(0, 500)}`)
     if (done() || Date.now() > deadline) break

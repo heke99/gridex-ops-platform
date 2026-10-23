@@ -66,7 +66,7 @@ export function vercelCronPaths(): Array<{ path: string; schedule: string }> {
  * answer there; FINDINGS T9), and again for ?environment=test for the scenarios that run in the test lane.
  */
 let slotIndex = 0
-export async function runOperationalCronSlot() {
+export async function runOperationalCronSlot(options: { skip?: (path: string) => boolean } = {}) {
   // Every-minute crons ("* * * * *") run in every slot, first; the others at their minute offset.
   const frequent = vercelCronPaths()
     .map(c => c.schedule === '* * * * *' ? { ...c, every: 5, minute: -1 }
@@ -84,6 +84,7 @@ export async function runOperationalCronSlot() {
     if (slotIndex % (entry.every / 5) !== 0) continue
     const paths = entry.path.includes('environment=production') ? [entry.path, entry.path.replace('environment=production', 'environment=test')] : [entry.path]
     for (const path of paths) {
+      if (options.skip?.(path)) continue
       const started = Date.now()
       const result = await cron(path)
       results.push({ path, status: result.status, ms: Date.now() - started, body: result.body })
@@ -91,6 +92,20 @@ export async function runOperationalCronSlot() {
   }
   slotIndex += 1
   return results
+}
+
+/**
+ * The rest of one Vercel slot for a receive loop that has just polled both inbound lanes itself: the Ediel outbox,
+ * customer operations (which also sweeps the ACK SLA timers), the e-mail outboxes, manual inbound, webhooks and the
+ * 10/15-minute crons on their cadence. A receive loop that ran only inbound + outbox left every other cron idle for as
+ * long as it lasted, e.g. no ACK SLA sweep during scenario F's F6 (FINDINGS T14). Returns the outbox answer in the
+ * shape the loops record, plus customer operations and the whole slot.
+ */
+export async function runSlotAfterInbound() {
+  const slot = await runOperationalCronSlot({ skip: path => path.startsWith('/api/internal/inbound-mail/cron') })
+  const of = (prefix: string) => slot.find(result => result.path.startsWith(prefix)) ?? { path: prefix, status: 0, ms: 0, body: null as unknown }
+  const outbox = of('/api/ediel/outbox/process')
+  return { status: outbox.status, body: outbox.body, operations: of('/api/internal/customer-operations/cron'), slot }
 }
 
 export type InboundLanePoll = {

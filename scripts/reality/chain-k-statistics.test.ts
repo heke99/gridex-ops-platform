@@ -28,7 +28,7 @@ import { getPortfolioMonthForCompany, type PortfolioMonthRow } from '@/lib/analy
 import { stockholmLocalToUtc } from '@/lib/time/stockholm'
 import { LIVE, augustSupplyCustomer, configureTenant, cron, existingSupplyCustomer, gridOwnerSends, literal, sql, type AugustFacility, type LiveTenant } from '../helpers/live-chain-fixture'
 import { closeOperatorConsole, operatorSession } from '../helpers/reality/operatorConsole'
-import { pollInboundMailLanes, runOperationalCronSlot, type GridOwnerSim } from '../helpers/reality/world'
+import { pollInboundMailLanes, runSlotAfterInbound, runOperationalCronSlot, type GridOwnerSim } from '../helpers/reality/world'
 import { GRID_AREA, GRID_OWNER_EDIEL_ID, goLiveAlsSupplier } from '../helpers/reality/goLiveAls'
 import { createSignedContractSwitch, inboundSources, reprocessHeldUtilts, sourceDiagnosis, supplyState } from '../helpers/reality/leaving'
 import { createTenantStaff } from '../helpers/reality/tenantStaff'
@@ -139,8 +139,8 @@ async function receiveUntil(done: () => boolean, minutes: number) {
   for (;;) {
     // Both inbound lanes: production as Vercel polls it (the tenant is live in production), then test.
     const inbound = await pollInboundMailLanes()
-    const outbox = await cron('/api/ediel/outbox/process')
-    const operations = await cron('/api/internal/customer-operations/cron')
+    const outbox = await runSlotAfterInbound()
+    const operations = outbox.operations
     runs.push({ at: new Date().toISOString(), inbound: inbound.production.status, inboundTest: inbound.test.status, outbox: outbox.status, operations: operations.status })
     if (done() || Date.now() > deadline) break
     await pause(60_000)

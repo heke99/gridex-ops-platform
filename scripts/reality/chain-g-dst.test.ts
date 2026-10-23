@@ -40,7 +40,7 @@ import { stockholmMonthBounds } from '@/lib/time/stockholm'
 import { LIVE, approveIssuerHistoryGround, augustSupplyCustomer, cron, gridOwnerSends, literal, sql, type AugustFacility, type LiveTenant } from '../helpers/live-chain-fixture'
 import { WEBSITE_ORIGIN } from '../helpers/reality/tenantWebsite'
 import { closeOperatorConsole, operatorSession, submitServerAction } from '../helpers/reality/operatorConsole'
-import { pollInboundMailLanes, runOperationalCronSlot, type GridOwnerSim } from '../helpers/reality/world'
+import { pollInboundMailLanes, runSlotAfterInbound, runOperationalCronSlot, type GridOwnerSim } from '../helpers/reality/world'
 import { GRID_AREA, GRID_OWNER_EDIEL_ID, goLiveAlsSupplier } from '../helpers/reality/goLiveAls'
 import { detectStuckStates } from '../helpers/reality/stuckDetector'
 import { registerUtiltsIssuer } from '../helpers/utiltsConsumptionParties'
@@ -119,7 +119,7 @@ async function receiveUntil(done: () => boolean, minutes: number) {
   const deadline = Date.now() + minutes * 60_000
   for (;;) {
     const inbound = await pollInboundMailLanes()
-    const outbox = await cron('/api/ediel/outbox/process')
+    const outbox = await runSlotAfterInbound()
     runs.push({ at: new Date().toISOString(), inbound: inbound.production.status, inboundTest: inbound.test.status, outbox: outbox.status })
     expect(inbound.status, JSON.stringify(inbound.body)).toBe(200)
     if (done() || Date.now() > deadline) break

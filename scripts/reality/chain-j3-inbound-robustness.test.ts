@@ -25,7 +25,7 @@ import { brokenUna, crlfTerminated, productionIndicator, septemberMonthE66, trun
   withBom, withoutUnz, withReceiverSubaddress, wrongUntCount, type E66Input } from '../helpers/reality/inboundRobustWire'
 import { contrlReceivedByGridOwner, inboundOriginals, mailOutcomes, pollRunsSince, settled, sharedMailboxState, valuesSince,
   type MailOutcome } from '../helpers/reality/inboundRobustWorld'
-import { pollInboundMailLanes } from '../helpers/reality/world'
+import { pollInboundMailLanes, runSlotAfterInbound } from '../helpers/reality/world'
 import { composeMail, pdfBytes, sendRaw, singlePartMail, utf16, zipBytes, type FaultMail } from './simulators/mailFaults'
 
 const report: Record<string, unknown> = { scenario: 'J3 inbound Ediel robustness', startedAt: new Date().toISOString() }
@@ -153,7 +153,7 @@ describe.sequential('reality J3 — inbound Ediel robustness', () => {
       // Both lanes as the world runs them (production as Vercel polls it, then test). J3's mail goes to the test
       // mailbox; the per-lane counts show where it was fetched.
       const inbound = await pollInboundMailLanes()
-      const outbox = await cron('/api/ediel/outbox/process')
+      const outbox = await runSlotAfterInbound()
       runs.push({ at: new Date().toISOString(), inbound: inbound.production.status, inboundTest: inbound.test.status, outbox: outbox.status,
         fetched: inbound.fetchedMessages.total, fetchedByLane: { production: inbound.fetchedMessages.production, test: inbound.fetchedMessages.test } })
       expect(inbound.status, JSON.stringify(inbound.body).slice(0, 500)).toBe(200)

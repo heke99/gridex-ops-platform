@@ -24,7 +24,7 @@ import { evaluateSupplierSwitchSendWindow, loadSupplierSwitchPolicy } from '@/li
 import { LIVE, approveIssuerHistoryGround, augustSupplyCustomer, cron, literal, sql, type AugustFacility, type LiveTenant } from '../helpers/live-chain-fixture'
 import { WEBSITE_ORIGIN } from '../helpers/reality/tenantWebsite'
 import { closeOperatorConsole, operatorSession, submitServerAction } from '../helpers/reality/operatorConsole'
-import { runOperationalCronSlot, type GridOwnerSim } from '../helpers/reality/world'
+import { pollInboundMailLanes, runOperationalCronSlot, runSlotAfterInbound, type GridOwnerSim } from '../helpers/reality/world'
 import { GRID_AREA, GRID_OWNER_EDIEL_ID, goLiveAlsSupplier } from '../helpers/reality/goLiveAls'
 import { detectStuckStates } from '../helpers/reality/stuckDetector'
 import { registerUtiltsIssuer } from '../helpers/utiltsConsumptionParties'
@@ -284,9 +284,10 @@ async function receiveUntil(done: () => boolean, minutes: number) {
   const deadline = Date.now() + minutes * 60_000
   for (;;) {
     // Vercel polls the production lane (vercel.json); the tenant is live in production (FINDINGS T7).
-    const inbound = await cron('/api/internal/inbound-mail/cron?environment=production')
-    const inboundTest = await cron('/api/internal/inbound-mail/cron?environment=test')
-    const outbox = await cron('/api/ediel/outbox/process')
+    const lanes = await pollInboundMailLanes()
+    const inbound = lanes.production, inboundTest = lanes.test
+    // The rest of the Vercel slot: outbox, customer operations (ACK SLA sweep), webhooks, ... (FINDINGS T14).
+    const outbox = await runSlotAfterInbound()
     runs.push({ at: new Date().toISOString(), inbound: inbound.status, inboundTest: inboundTest.status, outbox: outbox.status })
     expect(inbound.status, JSON.stringify(inbound.body)).toBe(200)
     expect(inboundTest.status, JSON.stringify(inboundTest.body)).toBe(200)
@@ -524,6 +525,7 @@ describe.sequential('reality F — invoices for several facilities with contract
     const storedFor = (id: string) => sql<number>(`SELECT to_jsonb(count(*)) FROM public.normalized_metering_values WHERE source_message_id=${literal(id)}`)
     const outcomes: Array<{ source: string; file: string | null; button: boolean; label: string | null; pageStatus: number | null; actionStatus: number | null; stored: number; expected: number
       diagnosis?: unknown; pageText?: string }> = []
+    const reprocessSlots: unknown[] = []
     for (const source of sources) {
       const file = fileOf(source.reference)
       // A correction stores only the quarter-hours it changed (FINDINGS F78).
@@ -551,11 +553,13 @@ describe.sequential('reality F — invoices for several facilities with contract
         if (!visible) outcome.pageText = (await page.locator('main, body').first().innerText()).replace(/\s+/g, ' ').slice(0, 300)
       }
       outcomes.push(outcome)
+      // Vercel keeps running every cron while the operator works through the files, about one file a minute (FINDINGS T14).
+      if (outcomes.length % 5 === 0) reprocessSlots.push({ at: new Date().toISOString(), crons: (await runOperationalCronSlot()).map(r => ({ path: r.path, status: r.status, ms: r.ms })) })
       if (outcomes.length % 10 === 0) saveReport({ reprocessProgress: outcomes })
     }
     await page.close()
     const notStored = outcomes.filter(outcome => outcome.stored < outcome.expected)
-    report.reprocess = { outcomes, buttonMissing: outcomes.filter(outcome => !outcome.button).length, notStored: notStored.length }
+    report.reprocess = { outcomes, slots: reprocessSlots, buttonMissing: outcomes.filter(outcome => !outcome.button).length, notStored: notStored.length }
 
     const valuesFor = (mp: string) => sql<Row>(`WITH v AS (SELECT *,(period_start AT TIME ZONE 'Europe/Stockholm')::date d FROM public.normalized_metering_values WHERE metering_point_id=${literal(mp)}),
       s AS (SELECT * FROM v WHERE revision_status='current' AND d BETWEEN DATE '2026-09-01' AND DATE '2026-09-30')

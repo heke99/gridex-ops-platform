@@ -12,11 +12,11 @@
 import { writeFileSync } from 'node:fs'
 import { afterAll, describe, expect, it } from 'vitest'
 import { supabaseService } from '@/lib/supabase/service'
-import { approveIssuerHistoryGround, configurePlatformMailbox, configureTenant, cron, existingSupplyCustomer, gridOwnerSends, literal, readInbox, sql,
+import { approveIssuerHistoryGround, configurePlatformMailbox, configureTenant, existingSupplyCustomer, gridOwnerSends, literal, readInbox, sql,
   type LiveCustomer, type LiveTenant } from '../helpers/live-chain-fixture'
 import { dailyE66, dayProfile, hourlyFromQuarters } from '../helpers/live-chain-wire'
 import { closeOperatorConsole, operatorSession, submitServerAction } from '../helpers/reality/operatorConsole'
-import { pollInboundMailLanes } from '../helpers/reality/world'
+import { pollInboundMailLanes, runSlotAfterInbound } from '../helpers/reality/world'
 
 const report: Record<string, unknown> = { scenario: 'E inbound Ediel routing', startedAt: new Date().toISOString() }
 let tenantA: LiveTenant, tenantB: LiveTenant
@@ -81,7 +81,7 @@ describe.sequential('reality E — inbound Ediel routing to the right tenant and
       // Both lanes as the world runs them (production as Vercel polls it, then test). E's tenants are configured
       // for the test lane (configureTenant) and its files carry the test indicator, so they arrive in the test lane.
       const inbound = await pollInboundMailLanes()
-      const outbox = await cron('/api/ediel/outbox/process')
+      const outbox = await runSlotAfterInbound()
       runs.push({ at: new Date().toISOString(), inbound: inbound.production.status, inboundTest: inbound.test.status, outbox: outbox.status })
       expect(inbound.status, JSON.stringify(inbound.body)).toBe(200)
       if (done() || Date.now() > deadline) break

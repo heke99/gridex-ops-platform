@@ -1809,6 +1809,22 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
     3. **Underadress, möjlig risk:** `routeRegistry` använder aktörens underadress när profilen saknar en. Den atomiska insert-vägen kräver då att underadressen matchar, vilket kan ge `ediel_ack_atomic_route_changed`. Ej verifierat. Låg.
     4. **Svepets budget** är global och liten (`min(limit*2, 100)`) och kan halka efter med många tenanter. Låg.
 
+### T14 Mottagningsslingorna körde bara inkorg och utkorg — övriga cron-jobb stod still i timmar — RÄTTAD, verklighetsvärlden
+- **Upptäckt** av F106b-agenten:
+  - Senaste svepet av SLA-timrarna i världen gick 10:33:05. Därefter rördes inga timrar, trots att 63 CONTRL skickades 10:40–11:02.
+  - `checkAckDeadlines` körs av kundoperationernas cron, som Vercel kör var femte minut. F:s mottagningsslinga (F6) körde bara inkorg och utkorg, och omkörningen F6c körde ingen cron alls.
+  - Under flera timmar stod därför kundoperationer, SLA-svep, e-postutkorgar, webhooks, manuell inkorg och 10/15-minuterscron still.
+  - Samma lucka fanns i G, H, J2, J3 (insamlingen), J4, K och E.
+- **Konsekvens:** att SLA-timrarna inte stängdes var ett mätfel i världen, inte ett produktfel. Det tar bort en falsk signal i F106.
+- **Rättning:**
+  - `runSlotAfterInbound()` i `world.ts` kör resten av Vercel-sloten efter att slingan läst båda inkorgskanalerna. Utkorgens svar returneras i samma form som förut.
+  - Alla listade slingor använder den. H och K tar kundoperationernas svar från sloten i stället för att anropa den igen.
+  - F6c kör en hel slot efter var femte fil, ungefär var femte minut, och sparar slotarna i `report.reprocess.slots`.
+  - J3:s avsiktliga avbrottsslingor för testbrevlådan lämnas orörda.
+- **Verifiering:** typkontroll (`tsconfig.scripts.json`) och eslint utan fel. Byggartesterna 46 av 46.
+- **Observation:** en slot motsvarar 5 minuter men anropas varje minut i slingorna, alltså 5 gånger komprimerad tid. Samma konvention som F2-slingan.
+- **Gäller från nästa körning.** Körning 26 körs från en äldre checkout.
+
 ### P1 Mätvärdeslagringen går med ungefär 70 värden i minuten; kvittenshanteringen dominerar databastiden — MÄTT (världen, körning 26), medel; ej åtgärdat
 - **Körning 26, F6c:** 126 värden lagrade 11:11 och 475 kl. 11:16, alltså ungefär 70 i minuten. 123 filer à 96 kvartsvärden tar då nästan 3 timmar för en enda kund med 4 anläggningar. I produktion med många kunder räcker det inte.
 - **`pg_stat_statements`:** ackumulerat sedan världen startade, alla körningar och native-tester. De dyraste efter total tid:
