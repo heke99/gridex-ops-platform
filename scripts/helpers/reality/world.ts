@@ -62,7 +62,8 @@ export function vercelCronPaths(): Array<{ path: string; schedule: string }> {
  * Runs the frequent operational crons the way Vercel does, one 5-minute slot per
  * call (inbound mail, Ediel outbox, e-mail outboxes, manual inbound, webhooks,
  * customer operations; the 10- and 15-minute crons every 2nd/3rd slot), in
- * their minute order. The test environment replaces ?environment=production.
+ * their minute order. A cron Vercel runs for ?environment=production runs exactly so (tenants live in production
+ * answer there; FINDINGS T9), and again for ?environment=test for the scenarios that run in the test lane.
  */
 let slotIndex = 0
 export async function runOperationalCronSlot() {
@@ -81,10 +82,12 @@ export async function runOperationalCronSlot() {
   results.push({ path: 'reality:certify-simulated-ediel-scopes', status: certified.status, ms: Date.now() - certifyStarted, body: certified.body })
   for (const entry of frequent) {
     if (slotIndex % (entry.every / 5) !== 0) continue
-    const path = entry.path.replace('environment=production', 'environment=test')
-    const started = Date.now()
-    const result = await cron(path)
-    results.push({ path, status: result.status, ms: Date.now() - started, body: result.body })
+    const paths = entry.path.includes('environment=production') ? [entry.path, entry.path.replace('environment=production', 'environment=test')] : [entry.path]
+    for (const path of paths) {
+      const started = Date.now()
+      const result = await cron(path)
+      results.push({ path, status: result.status, ms: Date.now() - started, body: result.body })
+    }
   }
   slotIndex += 1
   return results

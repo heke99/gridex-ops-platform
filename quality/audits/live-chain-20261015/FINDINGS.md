@@ -1434,6 +1434,11 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
   - En driftsättning kan bara kvittera filer som tas emot på adressen i `EDIEL_SMTP_FROM`.
   - Kvittensroutes sparar adressen när de materialiseras (`mailbox`). Om kontot byts måste de materialiseras om.
 
+### T9 Världens cron-cykel pollade aldrig produktionskanalen — RÄTTAD, verklighetsvärlden
+- **Utfall (körning 18, och tidigare körningar som väntade på svar):** nätägaren svarade inom 2 minuter, men produktionsbrevlådan pollades inte i F4. `last_polled_at` stod still.
+- **Orsak:** `runOperationalCronSlot` (`scripts/helpers/reality/world.ts`) bytte `?environment=production` mot `?environment=test` i varje Vercel-cron. I körning 17 kom svaren bara in för att jag pollade manuellt.
+- **Rättning:** en cron som Vercel kör för produktionskanalen körs nu exakt så, och därefter även för testkanalen.
+
 ### T6 Nätägarsimulatorns Z04 saknade avläsningsfälten 214, 218 och 259 — RÄTTAD, verklighetsvärlden
 - **Utfall (körning 15):** varje Z04 hölls med `PRODAT_DEPENDENT_CONDITION_UNDETERMINED` (`prodatRegisterPolicy.ts:139`, "Receiver-local readings condition unknown"). Objektet bedömdes `unavailable` med orsaken `source_owner_not_established`, och ingen leveransperiod skapades.
 - **Det är avsiktligt i produkten:** det godkända testet `scripts/ediel-at-z03l-z03lk-supplier-native.test.ts:1257` kräver just detta när fält 259 saknas. Dess positiva fall (rad 1405) lägger till `CCI++Z02/Z05/Z16`.
