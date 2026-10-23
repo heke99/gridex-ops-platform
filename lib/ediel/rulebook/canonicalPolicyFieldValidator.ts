@@ -12,6 +12,7 @@ import {projectProdatApplicationObjects,type ProdatApplicationObjectValidation} 
 import {validateCanonicalAckGuide} from './ackGuidePolicy'
 import {validateEdifactHeaderGuide} from './edifactHeaderGuide'
 import {utiltsDecimalGuideViolations} from '@/lib/ediel/utilts/quantityPrecision'
+import {evaluateUtiltsFieldMatrix} from '@/lib/ediel/utilts/fieldMatrixProjection'
 import {segmentComposite,segmentElementCount,tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
 import {DEFAULT_UNA,serializeUna} from '@/lib/ediel/core/una'
 import {prodatRegisterGroups} from '@/lib/ediel/prodat/prodatRegisterGroups'
@@ -164,6 +165,27 @@ export function validateCanonicalPolicyFields(input: {
   una?: EdifactServiceStringAdvice
 }): EdielRulebookIssue[] {
   if (input.policy.family === 'APERAK' || input.policy.family === 'CONTRL' || input.policy.family === 'UTILTS_ERR') return validateCanonicalAckGuide(input)
+  if (input.policy.family === 'UTILTS' && input.scope !== 'dependent_only') {
+    const una = input.una ?? DEFAULT_UNA
+    const rawPayload = input.rawPayload ?? serializeUna(una) + (input.rawSegments ?? []).join(una.segmentTerminator) + una.segmentTerminator
+    const matrix = evaluateUtiltsFieldMatrix({ policy: input.policy, rawPayload })
+    if (matrix.sourceQualified) {
+      const issues: EdielRulebookIssue[] = matrix.issues.map(finding => ({
+        severity: 'error', blocking: true, code: finding.code,
+        title: finding.title, description: finding.description, fieldPath: finding.fieldPath,
+      }))
+      issues.push(...validateEdifactHeaderGuide({ direction: input.policy.direction as 'inbound' | 'outbound',
+        rawPayload: input.rawPayload, rawSegments: input.rawSegments, una: input.una }))
+      const wire = tokenizeEdifact(rawPayload)
+      issues.push(...utiltsDecimalGuideViolations(wire.segments, wire.una).map(violation => ({
+        severity: 'error' as const, code: violation.code, title: 'Felaktigt numeriskt fält',
+        description: violation.description, fieldPath: violation.field, blocking: true,
+      })))
+      // This projection owns only its qualified R/X slice. Dedicated header,
+      // condition, observation and business owners remain authoritative.
+      return issues
+    }
+  }
   let sourceFunctionConditions:ProdatDeathObjectCondition[]=[]
   const rules = input.policy.fieldRules.map(asRulebookFieldRule).filter(rule => !(input.policy.family === 'PRODAT' && input.policy.direction === 'inbound' && (['322','324','506'].includes(rule.fieldNumber ?? '') || rule.fieldNumber === '242' && incomingProduct242IsFalse(input.policy.code)))).flatMap((rule): RulebookFieldRule[] => {
     if (input.policy.code === 'Z14' && input.policy.direction === 'outbound' && isZ14DependentField(rule.fieldNumber ?? '')) return [rule]

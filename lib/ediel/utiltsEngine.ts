@@ -14,6 +14,7 @@ import { resolveUtiltsHeaderGuideIssues } from '@/lib/ediel/utilts/headerGuide'
 import { resolveAuthoritativeEdielGuide } from '@/lib/ediel/rulebook/guideRegistry'
 import { hasQualifiedUtiltsOctoberIdentityRules } from '@/lib/ediel/rulebook/utilts25A5'
 import { resolveCanonicalEdielPolicy, type CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
+import { evaluateUtiltsFieldMatrix } from '@/lib/ediel/utilts/fieldMatrixProjection'
 import type { UtiltsProcessabilityPolicy } from '@/lib/ediel/rulebook/utilts25A4'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { resolveUtiltsProcessabilityPolicy } from '@/lib/ediel/rulebook/utilts25A4'
@@ -702,6 +703,25 @@ function applyUtiltsSuppliedMeteringPointGuide(message: EdielMessageRow, result:
   return issues.length ? rebuildUtiltsRuntimeResult({ message, result, issues: [...result.validation.issues, ...issues] }) : result
 }
 
+/** Execute the same source-selected physical field projection as the public
+ * rulebook port, before guideOnly returns and before runtime ownership seals. */
+function applyUtiltsCanonicalFieldGuide(message: EdielMessageRow, result: UtiltsRuntimeResult, policy?: CanonicalEdielPolicy): UtiltsRuntimeResult {
+  if (policy?.family !== 'UTILTS' || policy.code !== result.facts.messageCode) return result
+  const matrix = evaluateUtiltsFieldMatrix({ policy, rawPayload: message.raw_payload ?? '' })
+  if (!matrix.sourceQualified || !matrix.issues.length) return result
+  const issues: UtiltsValidationIssue[] = matrix.issues.map(finding => {
+    const reference = resolveUtiltsTransactionId(finding.referenceNumber, finding.transactionIndex ?? 0)
+    return { severity: 'error', kind: 'application', code: finding.code,
+      title: finding.title, description: finding.description,
+      aperakErcCode: finding.kind === 'missing' ? '41' : '42', aperakFieldCode: finding.fieldNo,
+      aperakText: finding.kind === 'missing' ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',
+      ...(finding.occurrence ? { aperakInvalidOccurrence: finding.occurrence } : {}),
+      referenceQualifier: 'ACW', referenceNumber: reference, lineItemReference: reference,
+    }
+  })
+  return rebuildUtiltsRuntimeResult({ message, result, issues: [...result.validation.issues, ...issues] })
+}
+
 function applyUtiltsS02PlanningGuide(message: EdielMessageRow, result: UtiltsRuntimeResult, referenceDate: string, retained?: CanonicalEdielPolicy): UtiltsRuntimeResult {
   if (result.facts.messageCode !== 'S02') return result
   const transactions = result.facts.utiltsObservedTransactions ?? []
@@ -954,6 +974,7 @@ function runUtiltsRuntimeForMessageCore(
   }))
   const ordered = rebuildUtiltsRuntimeResult({message,result:guideEffective,issues:[...guideEffective.validation.issues,...packagingIssues,...utiltsQuantityUnitGuideIssues(message.raw_payload ?? ''),...utiltsDecimalGuideIssues(message.raw_payload ?? ''),...utiltsObservationOrderGuideIssues(message.raw_payload ?? '')]})
   let guided = applyUtiltsS02PlanningGuide(message, applyUtiltsSuppliedMeteringPointGuide(message, applyUtiltsSuppliedRegulatingObjectGuide(message, applyUtiltsGridAreaGuide(message, applyUtiltsIdeGuide(message, applyUtiltsHeaderGuide(message, ordered, sourceGuideIssues))), referenceDate, canonicalPolicy), referenceDate, canonicalPolicy), referenceDate, canonicalPolicy)
+  guided = applyUtiltsCanonicalFieldGuide(message, guided, canonicalPolicy)
   if (options?.guideOnly) return guided
   if(canonicalPolicy)guided=applyPeriodicReasonGuide({message,policy:canonicalPolicy,result:guided,authority:options?.periodicReasonAuthority,rebuild:rebuildUtiltsRuntimeResult})
   if(options?.issuerIdentityAuthority){
