@@ -1434,6 +1434,26 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
   - En driftsättning kan bara kvittera filer som tas emot på adressen i `EDIEL_SMTP_FROM`.
   - Kvittensroutes sparar adressen när de materialiseras (`mailbox`). Om kontot byts måste de materialiseras om.
 
+### F körning 21 (2026-10-23, ren replay efter omstart av containern): bytet och kvittenserna fungerar från noll
+- **Återuppspelningen:** godkändes (PASS) med alla nya migrationer: RPL-01, F95 och F96.
+- **Bytet:** 4 Z03 skickades och blev `acknowledged`; nätägarens Z04 togs emot; 4 leveransperioder blev `active`; 4 CONTRL skickades.
+- **E66, med F98:** nätägarens 25 E66 fick egna CONTRL (`draft`, sedan köade). Kvittensrouten för UTILTS hittas alltså nu.
+- **Z01 står kvar som `queued`:** F90 gör att certifieringen per meddelandetyp bara kan gälla en typ åt gången, och Z03 hade förtur. Det blockerar inte bytet.
+
+### F99 Indexet från min prestandarättning anropar `wire_v1`, som bara `postgres` får köra, så service-rollens uppdateringar av utgående CONTRL fallerar ibland med 42501 — BEKRÄFTAD (världen), hög; regression från denna gren (inte main, inte produktion); rättning pågår
+- **Utfall (körning 21):** en CONTRL skickades via SMTP. Utkorgens efterföljande uppdatering av `ediel_messages` fick ändå `permission denied for function wire_v1`, och posten blev `delivery_uncertain: ediel_smtp_uncertain_cause:42501`.
+- **Orsak:**
+  - `20261020120200_ediel_ack_original_candidates_indexed.sql` skapade indexet `ediel_messages_contrl_uci_ref_idx` på `gridex_ack_authority.wire_v1(raw_payload)`.
+  - Kodbasen återkallar avsiktligt EXECUTE på `wire_v1` från API-rollerna.
+  - Indexuttryck beräknas med den skrivande rollens rättigheter. Därför fallerar varje uppdatering utan HOT, och varje insättning från service-rollen. Med HOT behöver indexet inte uppdateras, vilket förklarar att felet bara uppstår ibland.
+- **Återskapat:** `SET ROLE service_role` och en uppdatering av `was_smime_encrypted` på en utgående CONTRL ger 42501.
+- **Produktionen påverkas inte:** indexet finns inte där (bara läsning av metadata).
+- **Rättning (agent, pågår):**
+  - Ett härlett fält, `contrl_uci_ref`, som en trigger med `SECURITY DEFINER` fyller i.
+  - Ett vanligt index på fältet.
+  - Läsfunktionens kandidatgren byggs om, så att resultatet blir identiskt.
+  - Ingen API-roll får EXECUTE på `wire_v1`.
+
 ### F körning 20 (2026-10-23): hela bytesflödet för körningens egen tenant, och våra kvittenser når nätägaren
 - **Bytet, i produktion:**
   - 4 Z01 och 4 Z03 skickades och blev `acknowledged`;
