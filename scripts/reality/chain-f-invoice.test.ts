@@ -239,7 +239,7 @@ function billingGraph() {
     'invoices',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',i.id,'customer',i.customer_id,'contract',coalesce(i.customer_contract_id,i.contract_id),'item',i.invoice_export_item_id,
         'underlay',coalesce(i.billing_underlay_id,(SELECT e.billing_underlay_id FROM public.invoice_export_items e WHERE e.id=i.invoice_export_item_id)),
         'number',i.invoice_number,'reference',i.invoice_reference,'status',i.status,'kwh',i.total_kwh,'exVat',i.amount_ex_vat,'vat',i.vat_amount,'incVat',i.amount_inc_vat,
-        'start',i.period_start,'end',i.period_end,'calculation',i.calculation_snapshot-'interval_evidence',
+        'start',i.period_start,'end',i.period_end,'billingPeriod',i.metadata->'billing_period','calculation',i.calculation_snapshot-'interval_evidence',
         'lines',(SELECT count(*) FROM public.customer_invoice_lines l WHERE l.invoice_id=i.id),'documents',(SELECT count(*) FROM public.customer_invoice_documents d WHERE d.invoice_id=i.id))
       ORDER BY i.created_at),'[]') FROM public.customer_invoices i WHERE i.company_id=${company}),
     'exportItems',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',e.id,'underlay',e.billing_underlay_id,'status',e.status,'provider',e.provider,'ocr',e.provider_ocr,
@@ -275,24 +275,6 @@ function termsIn(output: unknown) {
     remaining: /months_?remaining|monthsremaining|återstående/.test(t) }
 }
 const ALL_TERMS = { binding: true, notice: true, autoRenewal: true, endDate: true, remaining: true }
-/**
- * The billing period an output states, as UTC instants, if it states one as instants: pending billing agent (the
- * field names of the Ediel-month period are not known yet), so the common spellings are read and dates are ignored.
- */
-function periodIn(output: unknown): { start: string; end: string } | null {
-  const found: Record<string, string> = {}
-  const visit = (value: unknown, depth: number) => {
-    if (!value || typeof value !== 'object' || depth > 4) return
-    for (const [key, inner] of Object.entries(value as Record<string, unknown>)) {
-      if (typeof inner === 'string' && /T\d{2}:\d{2}/.test(inner) && !Number.isNaN(Date.parse(inner))) {
-        if (/^(billing_?)?period_?start(_at)?$|^start$|^periodStart$|^billingPeriodStart$/i.test(key)) found.start ??= new Date(inner).toISOString()
-        if (/^(billing_?)?period_?end(_at)?$|^end$|^periodEnd$|^billingPeriodEnd$/i.test(key)) found.end ??= new Date(inner).toISOString()
-      } else visit(inner, depth + 1)
-    }
-  }
-  visit(output, 0)
-  return found.start && found.end ? { start: found.start, end: found.end } : null
-}
 const isMonthlyFee = (line: Row) => /månadsavgift|monthly_fee/i.test(`${line.description} ${line.component} ${line.type}`)
 const isInvoiceFee = (line: Row) => /fakturaavgift|invoice_fee/i.test(`${line.description} ${line.component} ${line.type}`)
 
@@ -652,8 +634,8 @@ describe.sequential('reality F — invoices for several facilities with contract
     // Spot is a civil view: civil September has 30 × 96 quarter-hours.
     expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.spot_price_intervals WHERE price_area='SE3' AND resolution='quarter_hour'
       AND time_start>='2026-08-31T22:00:00Z' AND time_start<'2026-09-30T22:00:00Z'`)).toBe(30 * 96)
-    // Pending billing agent: which import covers the Ediel month's last hour (civil 1 October 00:00–01:00 CEST).
-    expect.soft(edielTail, 'pending billing agent: spot prices for 2026-09-30T22:00Z–23:00Z (the last hour of the Ediel month) exist').toBe(4)
+    // The Ediel month's last hour (civil 1 October 00:00–01:00) is filled by billing's own fill-only import during F8
+    // (lib/pricing/engine.ts, owner decision 2026-10-23 "Tillåt fyllnad"), never by the September settlement; checked there.
   })
 
   it('F8 the monthly billing cron prepares September: underlays, locked pricing, invoices, files and agreements', async (context) => {
@@ -671,14 +653,21 @@ describe.sequential('reality F — invoices for several facilities with contract
     // One underlay per facility, each for the whole supplied (Ediel) month.
     expect(graph.underlays.map(u => u.facility).sort(), JSON.stringify(graph.underlays)).toEqual(FACILITIES.map(f => f.gsrn).sort())
     for (const underlay of graph.underlays) expect(underlay.start, JSON.stringify(underlay)).toBe(SUPPLY_START)
-    // Pending billing agent (field names and form not known yet): the underlay and the invoice cover exactly the
-    // Ediel month [2026-08-31T23:00Z, 2026-09-30T23:00Z) and the invoice prints that period.
+    // Owner decision 2026-10-23 (F108): an Ediel supply is billed per Ediel month [2026-08-31T23:00Z, 2026-09-30T23:00Z)
+    // and the invoice prints that exact period (customer_invoices.metadata.billing_period, lib/billing/billingMonth.ts).
     report.invoicePeriods = { expected: EDIEL_MONTH, underlays: graph.underlays.map(u => ({ facility: u.facility, start: u.start, end: u.end })),
-      invoices: graph.invoices.map(i => ({ invoice: i.number ?? i.id, start: i.start, end: i.end, calculationPeriod: periodIn(i.calculation) })) }
+      invoices: graph.invoices.map(i => ({ invoice: i.number ?? i.id, start: i.start, end: i.end, billingPeriod: i.billingPeriod ?? null })) }
     for (const invoice of graph.invoices) {
-      expect.soft(periodIn(invoice.calculation) ?? periodIn({ start: invoice.start, end: invoice.end }),
-        `pending billing agent: invoice ${invoice.number ?? invoice.id} covers the Ediel month ${JSON.stringify(EDIEL_MONTH)}`).toEqual(EDIEL_MONTH)
+      const period = (invoice.billingPeriod ?? null) as Row | null
+      expect(period, `invoice ${invoice.number ?? invoice.id} states its billing period`).toMatchObject({ billing_month: MONTH, label: 'September 2026',
+        frame: 'ediel_fixed_normal_time', end_exclusive: true, text: '2026-09-01 01:00 – 2026-10-01 01:00 (svensk tid)' })
+      expect({ start: new Date(String(period?.start)).toISOString(), end: new Date(String(period?.end)).toISOString() },
+        `invoice ${invoice.number ?? invoice.id} covers the Ediel month`).toEqual(EDIEL_MONTH)
     }
+    // Pricing filled the Ediel month's last hour (civil 1 October 00:00–01:00) without locking or overwriting.
+    report.edielTailQuartersAfterBilling = sql<number>(`SELECT to_jsonb(count(*)) FROM public.spot_price_intervals WHERE price_area='SE3' AND resolution='quarter_hour'
+      AND time_start>='2026-09-30T22:00:00Z' AND time_start<${literal(EDIEL_MONTH.end)}`)
+    expect(report.edielTailQuartersAfterBilling, 'spot prices for the last hour of the Ediel month exist after billing').toBe(4)
   }, 15 * 60_000)
 
   it('F9 each invoice matches an independent calculation; terms, fees, payment reference and rounding (F70–F77)', async (context) => {
