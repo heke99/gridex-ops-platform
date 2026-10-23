@@ -27,6 +27,7 @@ import { LIVE, augustSupplyCustomer, literal, sql, type AugustSupplyCustomer, ty
 import { WEBSITE_ORIGIN } from '../helpers/reality/tenantWebsite'
 import { closeOperatorConsole, operatorSession } from '../helpers/reality/operatorConsole'
 import { runOperationalCronSlot, type GridOwnerSim } from '../helpers/reality/world'
+import { clockSettings, cronTick, loopTick } from '../helpers/reality/clock'
 import { GRID_AREA, GRID_OWNER_EDIEL_ID, goLiveAlsSupplier } from '../helpers/reality/goLiveAls'
 import { detectStuckStates } from '../helpers/reality/stuckDetector'
 import { gs1 } from '../helpers/live-chain-wire'
@@ -34,10 +35,9 @@ import { REJECTION_CODES, SILENT, type GridOwnerAnswerPlan, type RejectionReason
 import { createSwitchInAdmin, dataRequestStates, operatorSeesSwitch, overdueOutboundAcks, startRejectingGridOwner, switchStates, type RejectingGridOwner, type SwitchState } from '../helpers/reality/rejectsWorld'
 import { applyAsWebsiteCustomer, type SimulatedPerson } from './simulators/websiteCustomer'
 
-const report: Record<string, unknown> = { scenario: 'I grid owner rejects or stays silent', startedAt: new Date().toISOString() }
+const report: Record<string, unknown> = { scenario: 'I grid owner rejects or stays silent', startedAt: new Date().toISOString(), clock: clockSettings() }
 const REPORT = process.env.GRIDEX_REALITY_REPORT ?? '/tmp/reality-i-report.json'
 const saveReport = (extra: Record<string, unknown> = {}) => writeFileSync(REPORT, JSON.stringify({ ...report, ...extra }, null, 2))
-const pause = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 let tenant: LiveTenant
 let defaultGridOwner: GridOwnerSim | undefined
 let gridOwner: RejectingGridOwner
@@ -197,7 +197,8 @@ describe.sequential('reality I — the grid owner rejects or stays silent', () =
       const answered = sim.pendingSends === 0 && sim.received.filter(m => m.code === 'Z03').length >= SWITCHES.length && sim.received.filter(m => m.code === 'Z01').length >= WEBSITE.length
       const watchesDue = Date.now() - Date.parse(String(report.startedAt)) > 35 * 60_000
       if ((answered && watchesDue) || Date.now() > deadline) break
-      await pause(60_000)
+      // Once every answer is in, only the 30-minute watches remain: wall clock, polled at the real minute.
+      await loopTick(answered)
     }
     report.cronSlots = slots
     const sim = await gridOwner.state()
@@ -324,7 +325,7 @@ describe.sequential('reality I — the grid owner rejects or stays silent', () =
       await runOperationalCronSlot()
       states = stateOf(key, switchStates(tenant.companyId))
       if (states.some(st => st.status === 'accepted') || Date.now() > deadline) break
-      await pause(60_000)
+      await cronTick()
     }
     report.I9 = states
     const sim = (await gridOwner.state()).received.filter(m => m.code === 'Z03' && m.facility === s.gsrn)

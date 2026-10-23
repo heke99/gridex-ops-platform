@@ -27,6 +27,7 @@ import { LIVE, gs1, sql, type LiveTenant } from '../helpers/live-chain-fixture'
 import { WEBSITE_ORIGIN } from '../helpers/reality/tenantWebsite'
 import { closeOperatorConsole } from '../helpers/reality/operatorConsole'
 import { pollInboundMailLanes, runSlotAfterInbound, runOperationalCronSlot, type GridOwnerSim } from '../helpers/reality/world'
+import { clockSettings, cronTick } from '../helpers/reality/clock'
 import { GRID_AREA, goLiveAlsSupplier } from '../helpers/reality/goLiveAls'
 import { contrlFor } from '../helpers/reality/rejectsWire'
 import { OBJECT_REJECTION_TEXT, Z06_OBJECT1, contrlAction8, correlatedDetailedContrl, correlatedObjectRejection, e66TwoPoints, ourOriginal,
@@ -34,7 +35,7 @@ import { OBJECT_REJECTION_TEXT, Z06_OBJECT1, contrlAction8, correlatedDetailedCo
 import { j4Settled, sendJ4File, sentZ01ForFacility, storedForMail, subsetMismatches, type J4Stored } from '../helpers/reality/parseConformanceWorld'
 import { applyAsWebsiteCustomer, type SimulatedPerson } from './simulators/websiteCustomer'
 
-const report: Record<string, unknown> = { scenario: 'J4 every inbound Ediel message is parsed correctly', startedAt: new Date().toISOString() }
+const report: Record<string, unknown> = { scenario: 'J4 every inbound Ediel message is parsed correctly', startedAt: new Date().toISOString(), clock: clockSettings() }
 const REPORT = process.env.GRIDEX_REALITY_REPORT ?? '/tmp/reality-j4-report.json'
 const saveReport = () => writeFileSync(REPORT, JSON.stringify(report, null, 2))
 const pause = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
@@ -152,7 +153,7 @@ describe.sequential('reality J4 — every inbound Ediel message is parsed correc
       slots.push({ at: new Date().toISOString(), crons: ran.map(r => ({ path: r.path, status: r.status })) })
       for (const w of WEBSITE) { const sentZ01 = sentZ01ForFacility(tenant.companyId, w.gsrn); if (sentZ01) z01.set(w.key, sentZ01) }
       if (z01.size === WEBSITE.length || Date.now() > deadline) break
-      await pause(60_000)
+      await cronTick()
     }
     report.z01 = { slots, sent: [...z01.entries()].map(([key, row]) => ({ key, id: row.id, sentAt: row.sentAt, status: row.status })) }
     saveReport()
@@ -204,7 +205,7 @@ describe.sequential('reality J4 — every inbound Ediel message is parsed correc
       expect(inbound.status, JSON.stringify(inbound.body).slice(0, 500)).toBe(200)
       for (const s of sent) stored.set(s.messageId, storedForMail(s.messageId))
       if ([...stored.values()].every(j4Settled) || Date.now() > deadline) break
-      await pause(60_000)
+      await cronTick()
     }
     report.reception = runs
     report.stored = Object.fromEntries(sent.map(s => [s.file.key, summarize(stored.get(s.messageId))]))

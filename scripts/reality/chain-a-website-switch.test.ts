@@ -13,12 +13,13 @@ import { LIVE, literal, sql, type LiveTenant } from '../helpers/live-chain-fixtu
 import { WEBSITE_ORIGIN } from '../helpers/reality/tenantWebsite'
 import { closeOperatorConsole } from '../helpers/reality/operatorConsole'
 import { runOperationalCronSlot, type GridOwnerSim } from '../helpers/reality/world'
+import { clockSettings, cronTick } from '../helpers/reality/clock'
 import { GRID_AREA, GRID_OWNER_EDIEL_ID, goLiveAlsSupplier } from '../helpers/reality/goLiveAls'
 import { detectStuckStates } from '../helpers/reality/stuckDetector'
 import { gs1 } from '../helpers/live-chain-wire'
 import { applyAsWebsiteCustomer, type SimulatedPerson, type SimulatedSite, type WebsiteApplicationResult } from './simulators/websiteCustomer'
 
-const report: Record<string, unknown> = { scenario: 'A website switch', startedAt: new Date().toISOString() }
+const report: Record<string, unknown> = { scenario: 'A website switch', startedAt: new Date().toISOString(), clock: clockSettings() }
 let tenant: LiveTenant
 let gridOwner: GridOwnerSim
 let apiKey = ''
@@ -140,7 +141,7 @@ describe.sequential('reality A — website customers switch supplier', () => {
       writeFileSync(process.env.GRIDEX_REALITY_REPORT ?? '/tmp/reality-a-report.json', JSON.stringify({ ...report, cronSlots: slots, switches: state }, null, 2))
       const settled = state.length === 4 && state.every(row => ['accepted', 'active', 'completed', 'failed'].includes(String(row.switch_status)))
       if (settled || Date.now() > deadline) break
-      await new Promise(resolve => setTimeout(resolve, 60_000))
+      await cronTick()
     }
     report.cronSlots = slots
     report.switches = state

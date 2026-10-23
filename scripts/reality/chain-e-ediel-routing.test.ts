@@ -17,8 +17,9 @@ import { approveIssuerHistoryGround, configurePlatformMailbox, configureTenant, 
 import { dailyE66, dayProfile, hourlyFromQuarters } from '../helpers/live-chain-wire'
 import { closeOperatorConsole, operatorSession, submitServerAction } from '../helpers/reality/operatorConsole'
 import { pollInboundMailLanes, runSlotAfterInbound } from '../helpers/reality/world'
+import { clockSettings, cronTick } from '../helpers/reality/clock'
 
-const report: Record<string, unknown> = { scenario: 'E inbound Ediel routing', startedAt: new Date().toISOString() }
+const report: Record<string, unknown> = { scenario: 'E inbound Ediel routing', startedAt: new Date().toISOString(), clock: clockSettings() }
 let tenantA: LiveTenant, tenantB: LiveTenant
 let customerA: LiveCustomer, customerB: LiveCustomer, customerLaterA: LiveCustomer
 // An Ediel id no tenant holds (outside the fixture's 70000–79999 supplier range).
@@ -85,7 +86,7 @@ describe.sequential('reality E — inbound Ediel routing to the right tenant and
       runs.push({ at: new Date().toISOString(), inbound: inbound.production.status, inboundTest: inbound.test.status, outbox: outbox.status })
       expect(inbound.status, JSON.stringify(inbound.body)).toBe(200)
       if (done() || Date.now() > deadline) break
-      await new Promise(resolve => setTimeout(resolve, 60_000))
+      await cronTick()
     }
     return runs
   }

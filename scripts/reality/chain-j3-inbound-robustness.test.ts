@@ -26,9 +26,10 @@ import { brokenUna, crlfTerminated, productionIndicator, septemberMonthE66, trun
 import { contrlReceivedByGridOwner, inboundOriginals, mailOutcomes, pollRunsSince, settled, sharedMailboxState, valuesSince,
   type MailOutcome } from '../helpers/reality/inboundRobustWorld'
 import { pollInboundMailLanes, runSlotAfterInbound } from '../helpers/reality/world'
+import { clockSettings, cronTick } from '../helpers/reality/clock'
 import { composeMail, pdfBytes, sendRaw, singlePartMail, utf16, zipBytes, type FaultMail } from './simulators/mailFaults'
 
-const report: Record<string, unknown> = { scenario: 'J3 inbound Ediel robustness', startedAt: new Date().toISOString() }
+const report: Record<string, unknown> = { scenario: 'J3 inbound Ediel robustness', startedAt: new Date().toISOString(), clock: clockSettings() }
 const REPORT = process.env.GRIDEX_REALITY_REPORT ?? '/tmp/reality-j3-report.json'
 const saveReport = () => writeFileSync(REPORT, JSON.stringify(report, null, 2))
 const soft: Array<{ step: string; ok: boolean; observed: unknown; why: string }> = []
@@ -159,7 +160,7 @@ describe.sequential('reality J3 — inbound Ediel robustness', () => {
       expect(inbound.status, JSON.stringify(inbound.body).slice(0, 500)).toBe(200)
       outcomes = mailOutcomes(ids)
       if (outcomes.every(settled) || Date.now() > deadline) break
-      await new Promise(resolve => setTimeout(resolve, 60_000))
+      await cronTick()
     }
     report.receptionRuns = runs
     report.outcomes = outcomes
@@ -281,7 +282,7 @@ describe.sequential('reality J3 — inbound Ediel robustness', () => {
         // The cron answers (no hang until the platform limit) and records the failure on the mailbox.
         expect(inbound.status).toBe(200)
         if (sharedMailboxState().lastError || Date.now() > until) break
-        await new Promise(resolve => setTimeout(resolve, 60_000))
+        await cronTick()
       }
       report.outage = { runs }
       expect(sharedMailboxState().lastError).toBeTruthy()
@@ -294,7 +295,7 @@ describe.sequential('reality J3 — inbound Ediel robustness', () => {
       await cron('/api/internal/inbound-mail/cron?environment=test')
       await cron('/api/ediel/outbox/process')
       if (inboundOriginals([ref('OUTAGE')], String(report.startedAt)).length > 0 || Date.now() > deadline) break
-      await new Promise(resolve => setTimeout(resolve, 60_000))
+      await cronTick()
     }
     expect(inboundOriginals([ref('OUTAGE')], String(report.startedAt))).toHaveLength(1)
     saveReport()

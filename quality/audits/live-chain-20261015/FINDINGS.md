@@ -2257,6 +2257,20 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
   - Slutmånaden faktureras vid manuell flytt för leveranser som inte kom via Ediel.
   - Tenantisoleringen håller, och ingen avgift tas ut automatiskt.
 
+### T20 Harnessen väntade en hel minut i varje pollningsloop och körde ett scenario i taget — RÄTTAD (harness), testinfrastruktur
+- **Förändringar:**
+  - Snabbläge: `GRIDEX_REALITY_TICK_MS` i `scripts/helpers/reality/clock.ts`. `cronTick` används i loopar som pollar på ett villkor. `wallClockWait` behåller väntan på verklig tid där produkten räknar på klockan.
+  - Opt-in `GRIDEX_REALITY_F6C_PAGES` (1–4).
+  - Utvecklingsstorlek: `GRIDEX_REALITY_F_FACILITIES`, där standard är 4, det vill säga full acceptans.
+  - Rapport per scenario via `GRIDEX_REALITY_REPORT`.
+  - `run.sh` vägrar starta om en annan körning är aktiv.
+  - `run-many.sh` kör scenarier i körfält: "als" ett i taget eftersom de delar brevlådan `ediel-16700`, "free" (E, stuck-detector, wire) parallellt, och C och J3 ensamma.
+- **Kvarvarande tidstak i PRODUKTEN** (förslag, inte implementerade):
+  - Den inkommande brevlådan läses var femte minut med högst 25 brev per läsning (`EDIEL_INBOUND_MESSAGE_LIMIT_PER_MAILBOX`).
+  - ACK-fristen är fast på 30 minuter, så I och J1 väntar 35 minuter.
+  - Inget jobb tar upp hållna UTILTS igen, vilket kräver operatörsklick per fil i F6c (cirka 1,5 min per fil).
+- **Kontroller:** eslint och tsc utan fel på harnessen, enhetstesterna för reality-hjälparna 77 pass, `bash -n` ok. Ingen scenariokörning är gjord efter ändringen.
+
 ### P8 Ediel-utkorgen skickar högst 25 meddelanden per körning i en global FIFO-kö; ett annat bolags kö fördröjer tenantens CONTRL och APERAK — MÄTT (världen, körning 29), medel; ÖPPEN
 - **Bevis från körning 29** (tenant `69e8e257`): 33 CONTRL och 4 APERAK ställdes i kö 21:15–21:21. Den första sändningen kom 21:28, cirka 13 minuter senare. Klockan 21:32 var 8 CONTRL skickade och 56 köade.
 - **Kön före tenanten:**

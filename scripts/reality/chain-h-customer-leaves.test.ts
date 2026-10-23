@@ -26,6 +26,7 @@ import { customerNormalizedMeteringValues } from '@/lib/metering/customerMeterin
 import { LIVE, augustSupplyCustomer, cron, literal, sql, type AugustFacility, type LiveTenant } from '../helpers/live-chain-fixture'
 import { closeOperatorConsole, operatorSession, submitServerAction } from '../helpers/reality/operatorConsole'
 import { pollInboundMailLanes, runSlotAfterInbound, runOperationalCronSlot, type GridOwnerSim } from '../helpers/reality/world'
+import { clockSettings, cronTick } from '../helpers/reality/clock'
 import { GRID_AREA, GRID_OWNER_EDIEL_ID, goLiveAlsSupplier } from '../helpers/reality/goLiveAls'
 import { detectStuckStates } from '../helpers/reality/stuckDetector'
 import { registerUtiltsIssuer } from '../helpers/utiltsConsumptionParties'
@@ -34,10 +35,9 @@ import { billingMonth, createSignedContractSwitch, gatedValues, inboundSources, 
 import { buildZ04CancellationFor, buildZ05End, gridOwnerSendsLeavingFile, readLeavingWire } from './simulators/gridOwnerLeaving'
 
 type Row = Record<string, unknown>
-const report: Record<string, unknown> = { scenario: 'H the customer leaves', startedAt: new Date().toISOString() }
+const report: Record<string, unknown> = { scenario: 'H the customer leaves', startedAt: new Date().toISOString(), clock: clockSettings() }
 const REPORT = process.env.GRIDEX_REALITY_REPORT ?? '/tmp/reality-h-report.json'
 const saveReport = (extra: Record<string, unknown> = {}) => writeFileSync(REPORT, JSON.stringify({ ...report, ...extra }, null, 2))
-const pause = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 let tenant: LiveTenant
 let gridOwner: GridOwnerSim
 
@@ -118,7 +118,7 @@ async function receiveUntil(done: () => boolean, minutes: number) {
     const operations = outbox.operations
     runs.push({ at: new Date().toISOString(), inbound: inbound.production.status, inboundTest: inbound.test.status, outbox: outbox.status, operations: operations.status })
     if (done() || Date.now() > deadline) break
-    await pause(60_000)
+    await cronTick()
   }
   return runs
 }
@@ -185,7 +185,7 @@ describe.sequential('reality H — the customer leaves', () => {
       state = supplyState(tenant.companyId, LEAVING.map(p => p.gsrn))
       saveReport({ worldSlots: slots, supply: state })
       if (state.every(row => row.periods.some(p => p.status === 'active')) || state.some(row => row.switch === 'failed') || Date.now() > deadline) break
-      await pause(60_000)
+      await cronTick()
     }
     report.supplyAfterZ04 = state
     established = state.length === LEAVING.length && state.every(row => row.periods.some(p => p.status === 'active' && p.start === SUPPLY_START))
@@ -342,6 +342,8 @@ describe.sequential('reality H — the customer leaves', () => {
     }
     await page.close()
     report.withdrawalAction = withdrawal
+    // A fixed 3-minute wall-clock window (not compressed by GRIDEX_REALITY_TICK_MS; fast mode only runs more slots in it):
+    // "no supply period arises" is a negative check that needs the world to have run for a while.
     report.withdrawalRuns = await receiveUntil(() => false, 3)
     const wState = { switch: sql<Row>(`SELECT jsonb_build_object('status',status,'blocked',lifecycle_blocked,'pause',pause_reason) FROM public.supplier_switch_requests WHERE id=${literal(W.switchId!)}`),
       cancellations: sql<Row[]>(`SELECT coalesce(jsonb_agg(jsonb_build_object('status',status,'process',process_type,'raw',raw_payload IS NOT NULL)),'[]') FROM public.ediel_messages

@@ -24,11 +24,12 @@ import { seedDefaultCompanyEmailConfiguration } from '@/lib/email/bootstrap'
 import { configurePlatformManualMailbox, ensureProductionWhiteLabelColumnParity } from '../helpers/reality/tenantWebsite'
 import { createTenantStaff } from '../helpers/reality/tenantStaff'
 import { prepareMarketData, runOperationalCronSlot } from '../helpers/reality/world'
+import { clockSettings, cronTick } from '../helpers/reality/clock'
 
 const GRID_OWNER_EDIEL_ID = '16700'
 const GRID_OWNER_NAME = 'Alingsås Energi Elnät AB'
 const GRID_OWNER_FACILITY_CONTACT = `anlaggning-${GRID_OWNER_EDIEL_ID}@example.invalid`
-const report: Record<string, unknown> = { scenario: 'D manual intake', startedAt: new Date().toISOString() }
+const report: Record<string, unknown> = { scenario: 'D manual intake', startedAt: new Date().toISOString(), clock: clockSettings() }
 let tenant: LiveTenant
 const files = mkdtempSync(join(tmpdir(), 'reality-d-'))
 
@@ -208,7 +209,7 @@ describe.sequential('reality D — manual customer intake by a tenant employee',
         'blocked',o.blocked_reason,'attachments',(SELECT jsonb_agg(jsonb_build_object('filename',a->>'filename','sha256',a->>'sha256','kind',a->>'kind')) FROM jsonb_array_elements(coalesce(o.attachments,'[]')) a))),'[]')
         FROM public.manual_email_outbox o JOIN public.grid_owner_information_requests r ON r.id=o.request_id WHERE r.customer_id=${literal(customerId)}`)
       if (outbox.some(row => row.status === 'sent') || Date.now() > deadline) break
-      await new Promise(resolve => setTimeout(resolve, 30_000))
+      await cronTick(30_000)
     }
     report.manualOutbox = outbox
     report.facilityLookup = sql(`SELECT coalesce(jsonb_agg(jsonb_build_object('status',r.status,'dispatch',r.dispatch_status,'error',r.last_error_code,'message',left(coalesce(r.last_error_message,r.dispatch_error_message,''),200),'poa',r.poa_id IS NOT NULL,'company',r.company_id=${literal(tenant.companyId)})),'[]')

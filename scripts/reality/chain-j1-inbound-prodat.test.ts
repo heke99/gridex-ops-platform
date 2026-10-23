@@ -28,16 +28,16 @@ import { LIVE, augustSupplyCustomer, literal, sql, type AugustSupplyCustomer, ty
 import { gs1 } from '../helpers/live-chain-wire'
 import { closeOperatorConsole, operatorSession } from '../helpers/reality/operatorConsole'
 import { runOperationalCronSlot, type GridOwnerSim } from '../helpers/reality/world'
+import { clockSettings, loopTick } from '../helpers/reality/clock'
 import { GRID_AREA, GRID_OWNER_EDIEL_ID, goLiveAlsSupplier } from '../helpers/reality/goLiveAls'
 import { detectStuckStates } from '../helpers/reality/stuckDetector'
 import { createSwitchInAdmin } from '../helpers/reality/rejectsWorld'
 import { shiftDate, type InboundProdatPlan } from '../helpers/reality/inboundProdatWire'
 import { j1States, startInboundProdatGridOwner, unmatchedInboundProdat, type J1FacilityState, type J1GridOwner, type J1SentFile } from '../helpers/reality/inboundProdatWorld'
 
-const report: Record<string, unknown> = { scenario: 'J1 inbound PRODAT from the grid owner', startedAt: new Date().toISOString() }
+const report: Record<string, unknown> = { scenario: 'J1 inbound PRODAT from the grid owner', startedAt: new Date().toISOString(), clock: clockSettings() }
 const REPORT = process.env.GRIDEX_REALITY_REPORT ?? '/tmp/reality-j1-report.json'
 const saveReport = (extra: Record<string, unknown> = {}) => writeFileSync(REPORT, JSON.stringify({ ...report, ...extra }, null, 2))
-const pause = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 let tenant: LiveTenant
 let defaultGridOwner: GridOwnerSim | undefined
 let gridOwner: J1GridOwner
@@ -189,7 +189,8 @@ describe.sequential('reality J1 — inbound PRODAT from the grid owner', () => {
       const allSent = sim.pendingSends === 0 && sim.received.filter(m => m.code === 'Z03').length >= CASES.length
       quietSince = allSent ? quietSince ?? Date.now() : null
       if ((quietSince !== null && Date.now() - quietSince > 35 * 60_000) || Date.now() > deadline) break
-      await pause(60_000)
+      // Once every file is sent, only our 30-minute APERAK watch remains: wall clock, polled at the real minute.
+      await loopTick(quietSince !== null)
     }
     report.cronSlots = slots
     const sim = await gridOwner.state()

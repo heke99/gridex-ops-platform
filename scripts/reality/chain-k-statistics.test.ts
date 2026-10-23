@@ -30,6 +30,7 @@ import { stockholmLocalToUtc } from '@/lib/time/stockholm'
 import { LIVE, augustSupplyCustomer, configureTenant, cron, existingSupplyCustomer, gridOwnerSends, literal, sql, type AugustFacility, type LiveTenant } from '../helpers/live-chain-fixture'
 import { closeOperatorConsole, operatorSession } from '../helpers/reality/operatorConsole'
 import { pollInboundMailLanes, runSlotAfterInbound, runOperationalCronSlot, type GridOwnerSim } from '../helpers/reality/world'
+import { clockSettings, cronTick } from '../helpers/reality/clock'
 import { GRID_AREA, GRID_OWNER_EDIEL_ID, goLiveAlsSupplier } from '../helpers/reality/goLiveAls'
 import { createSignedContractSwitch, inboundSources, reprocessHeldUtilts, sourceDiagnosis, supplyState } from '../helpers/reality/leaving'
 import { createTenantStaff } from '../helpers/reality/tenantStaff'
@@ -43,10 +44,9 @@ import { buildZ05End, gridOwnerSendsLeavingFile } from './simulators/gridOwnerLe
 import { applyAsWebsiteCustomer, type SimulatedPerson } from './simulators/websiteCustomer'
 
 type Row = Record<string, unknown>
-const report: Record<string, unknown> = { scenario: 'K statistics', startedAt: new Date().toISOString() }
+const report: Record<string, unknown> = { scenario: 'K statistics', startedAt: new Date().toISOString(), clock: clockSettings() }
 const REPORT = process.env.GRIDEX_REALITY_REPORT ?? '/tmp/reality-k-report.json'
 const saveReport = (extra: Record<string, unknown> = {}) => writeFileSync(REPORT, JSON.stringify({ ...report, ...extra }, null, 2))
-const pause = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 let tenant: LiveTenant
 let control: LiveTenant
 let gridOwner: GridOwnerSim
@@ -148,7 +148,7 @@ async function receiveUntil(done: () => boolean, minutes: number) {
     const operations = outbox.operations
     runs.push({ at: new Date().toISOString(), inbound: inbound.production.status, inboundTest: inbound.test.status, outbox: outbox.status, operations: operations.status })
     if (done() || Date.now() > deadline) break
-    await pause(60_000)
+    await cronTick()
   }
   return runs
 }
@@ -242,7 +242,7 @@ describe.sequential('reality K — statistics are computed and shown correctly',
       state = supplyState(tenant.companyId, gsrns)
       saveReport({ worldSlots: slots, supply: state })
       if (state.every(row => row.periods.some(p => p.status === 'active')) || state.some(row => row.switch === 'failed') || Date.now() > deadline) break
-      await pause(60_000)
+      await cronTick()
     }
     report.supplyAfterZ04 = state
     const startOf = (p: Party) => state.find(row => row.facility === p.gsrn)?.periods.find(x => x.status === 'active')?.start
@@ -279,7 +279,7 @@ describe.sequential('reality K — statistics are computed and shown correctly',
       const ran = await runOperationalCronSlot()
       slots.push({ at: new Date().toISOString(), crons: ran.map(r => ({ path: r.path, status: r.status })) })
       if ((sent(N2.switchId) && sent(w1Switch() ?? undefined)) || Date.now() > deadline) break
-      await pause(60_000)
+      await cronTick()
     }
     report.pendingSlots = slots
     report.pendingSwitches = sql(`SELECT coalesce(jsonb_agg(jsonb_build_object('facility',mp.metering_point_id,'status',s.status,'start',s.requested_start_date,'z04',s.inbound_z04_message_id IS NOT NULL)),'[]')

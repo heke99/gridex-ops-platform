@@ -49,6 +49,7 @@ import { LIVE, approveIssuerHistoryGround, augustSupplyCustomer, cron, gridOwner
 import { WEBSITE_ORIGIN } from '../helpers/reality/tenantWebsite'
 import { closeOperatorConsole, operatorSession, submitServerAction } from '../helpers/reality/operatorConsole'
 import { pollInboundMailLanes, runSlotAfterInbound, runOperationalCronSlot, type GridOwnerSim } from '../helpers/reality/world'
+import { clockSettings, cronTick } from '../helpers/reality/clock'
 import { GRID_AREA, GRID_OWNER_EDIEL_ID, goLiveAlsSupplier } from '../helpers/reality/goLiveAls'
 import { detectStuckStates } from '../helpers/reality/stuckDetector'
 import { registerUtiltsIssuer } from '../helpers/utiltsConsumptionParties'
@@ -56,7 +57,7 @@ import { gs1 } from '../helpers/live-chain-wire'
 import { civilDayTotals, dayE66, e66DayProfile, edielMonthQuarterCount, edielMonthUtc, kwhSum, monthDays, stockholmDayOf, stockholmQuarterCount, stockholmQuarterStarts,
   type E66DayFraming } from '../helpers/reality/dst'
 
-const report: Record<string, unknown> = { scenario: 'G end of DST 2026-10-25', startedAt: new Date().toISOString() }
+const report: Record<string, unknown> = { scenario: 'G end of DST 2026-10-25', startedAt: new Date().toISOString(), clock: clockSettings() }
 const REPORT = process.env.GRIDEX_REALITY_REPORT ?? '/tmp/reality-g-report.json'
 const saveReport = (extra: Record<string, unknown> = {}) => writeFileSync(REPORT, JSON.stringify({ ...report, ...extra }, null, 2))
 const pause = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
@@ -138,7 +139,7 @@ async function receiveUntil(done: () => boolean, minutes: number) {
     runs.push({ at: new Date().toISOString(), inbound: inbound.production.status, inboundTest: inbound.test.status, outbox: outbox.status })
     expect(inbound.status, JSON.stringify(inbound.body)).toBe(200)
     if (done() || Date.now() > deadline) break
-    await pause(60_000)
+    await cronTick()
   }
   return runs
 }
@@ -255,7 +256,7 @@ describe.sequential('reality G — end of daylight saving time 2026-10-25 throug
       state = supply()
       saveReport({ worldSlots: slots, supply: state })
       if (state?.period?.status === 'active' || state?.switch === 'failed' || Date.now() > deadline) break
-      await pause(60_000)
+      await cronTick()
     }
     report.worldSlots = slots
     report.supply = state

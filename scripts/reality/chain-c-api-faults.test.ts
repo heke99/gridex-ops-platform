@@ -9,11 +9,12 @@ import { configurePlatformMailbox, configureTenant, LIVE, sql, type LiveTenant }
 import { goLiveOnWebsite, WEBSITE_ORIGIN } from '../helpers/reality/tenantWebsite'
 import { detectStuckStates } from '../helpers/reality/stuckDetector'
 import { prepareMarketData } from '../helpers/reality/world'
+import { clockSettings, wallClockWait } from '../helpers/reality/clock'
 import { applyAsWebsiteCustomer, type SimulatedPerson, type SimulatedSite, type WebsiteApplicationResult } from './simulators/websiteCustomer'
 import { gs1 } from '../helpers/live-chain-wire'
 
 const WORLD = 'http://127.0.0.1:3901'
-const report: Record<string, unknown> = { scenario: 'C website API under real-world conditions', startedAt: new Date().toISOString() }
+const report: Record<string, unknown> = { scenario: 'C website API under real-world conditions', startedAt: new Date().toISOString(), clock: clockSettings() }
 const RUN = Date.now().toString(36)
 let tenantA: LiveTenant, tenantB: LiveTenant
 let keyA = '', keyB = ''
@@ -157,7 +158,7 @@ describe.sequential('reality C — website API under real-world conditions', () 
     ]
     const results: Array<Record<string, unknown>> = []
     // Let the burst of C4 and its rate-limit window pass, so each outage is measured on a quiet system.
-    await new Promise(resolve => setTimeout(resolve, 65_000))
+    await wallClockWait(65_000)
     for (const [index, c] of cases.entries()) {
       await fault(c.service, c.mode, c.extra)
       const started = Date.now()

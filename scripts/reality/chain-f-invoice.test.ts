@@ -31,6 +31,7 @@ import { LIVE, approveIssuerHistoryGround, augustSupplyCustomer, cron, literal, 
 import { WEBSITE_ORIGIN } from '../helpers/reality/tenantWebsite'
 import { closeOperatorConsole, operatorSession, submitServerAction } from '../helpers/reality/operatorConsole'
 import { pollInboundMailLanes, runOperationalCronSlot, runSlotAfterInbound, type GridOwnerSim } from '../helpers/reality/world'
+import { clockSettings, cronTick } from '../helpers/reality/clock'
 import { GRID_AREA, GRID_OWNER_EDIEL_ID, goLiveAlsSupplier } from '../helpers/reality/goLiveAls'
 import { detectStuckStates } from '../helpers/reality/stuckDetector'
 import { registerUtiltsIssuer } from '../helpers/utiltsConsumptionParties'
@@ -38,7 +39,7 @@ import { dayProfile, edielDayUtc, gs1 } from '../helpers/live-chain-wire'
 import { edielMonthUtc } from '../helpers/reality/dst'
 import { applyAsWebsiteCustomer, type SimulatedPerson, type SimulatedSite } from './simulators/websiteCustomer'
 
-const report: Record<string, unknown> = { scenario: 'F invoices', startedAt: new Date().toISOString() }
+const report: Record<string, unknown> = { scenario: 'F invoices', startedAt: new Date().toISOString(), clock: clockSettings() }
 const REPORT = process.env.GRIDEX_REALITY_REPORT ?? '/tmp/reality-f-report.json'
 const saveReport = (extra: Record<string, unknown> = {}) => writeFileSync(REPORT, JSON.stringify({ ...report, ...extra }, null, 2))
 const pause = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
@@ -76,9 +77,22 @@ const EXACT_POINTS: Record<string, { latitude: number; longitude: number }> = {
   'Kungsgatan 1': { latitude: 57.9303, longitude: 12.534 }, 'Drottninggatan 2': { latitude: 57.931, longitude: 12.5355 }, 'Nygatan 3': { latitude: 57.9298, longitude: 12.533 },
 }
 
-/** The August customers who are invoiced for September: one with three facilities, one control with one. */
+/**
+ * Data size (development knob GRIDEX_REALITY_F_FACILITIES, default 4 = the acceptance run): the number of August
+ * facilities. 4: house, holiday home, garage, control (122 grid-owner files + 1 correction, each reprocessed in F6c).
+ * 3: no garage; its three August days before the supply start are sent for the house instead, so every role and
+ * assertion stays (92 + 1 files). 2: house and control only; the missing-day role (holiday home) is not exercised and
+ * its checks are recorded as skipped (63 + 1 files). Only a run with 4 is the acceptance size; the report says which size ran.
+ */
+const F_FACILITIES = (() => {
+  const raw = process.env.GRIDEX_REALITY_F_FACILITIES
+  const value = raw === undefined || raw.trim() === '' ? 4 : Number(raw)
+  if (![2, 3, 4].includes(value)) throw Error(`GRIDEX_REALITY_F_FACILITIES must be 2, 3 or 4 (got "${raw}")`)
+  return value
+})()
+/** The August customers who are invoiced for September: one with three facilities (at full size), one control with one. */
 const AUGUST_CUSTOMERS = [
-  { person: person('Augusti', '19680304', '135', 'Kungsgatan 1'), sites: [site(18_000), site(4_500, 'Drottninggatan 2'), site(1_200, 'Nygatan 3')] },
+  { person: person('Augusti', '19680304', '135', 'Kungsgatan 1'), sites: [site(18_000), site(4_500, 'Drottninggatan 2'), site(1_200, 'Nygatan 3')].slice(0, F_FACILITIES - 1) },
   { person: person('Kontroll', '19900920', '246', 'Kungsgatan 1'), sites: [site(9_000)] },
 ]
 /** August timeline: the customer signs and authorizes, the platform creates the switch request a minute later. */
@@ -89,15 +103,18 @@ const AUGUST_SWITCH_CREATED_AT = '2026-08-12T09:31:00+02:00'
 const FACILITIES = AUGUST_CUSTOMERS.flatMap((customer, c) => customer.sites.map((one, s) => ({ who: customer.person.firstName, gsrn: one.facilityId,
   scale: Math.round((one.annualConsumptionKwh / 3500) * 100) / 100, offset: c * 3 + s })))
 type Facility = (typeof FACILITIES)[number]
-const [HOUSE, HOLIDAY_HOME, GARAGE, CONTROL] = FACILITIES
+const [HOUSE, HOLIDAY_HOME, GARAGE] = FACILITIES.filter(f => f.who === 'Augusti') as [Facility, Facility | undefined, Facility | undefined]
+const CONTROL = FACILITIES.find(f => f.who === 'Kontroll')!
 /** The grid owner's (Ediel) days of September: 30 files of 96 values = exactly the Ediel month. */
 const SEPTEMBER = Array.from({ length: 30 }, (_, i) => `2026-09-${String(i + 1).padStart(2, '0')}`)
-/** The grid owner never sends this day for the holiday home: a gap, never zero consumption. */
-const MISSING = { facility: HOLIDAY_HOME, day: '2026-09-14' }
+/** The grid owner never sends this day for the holiday home: a gap, never zero consumption (absent at size 2). */
+const MISSING = HOLIDAY_HOME ? { facility: HOLIDAY_HOME, day: '2026-09-14' } : null
 /** The house's 10 September is re-sent later with corrected values. */
 const CORRECTED = { facility: HOUSE, day: '2026-09-10' }
-/** The garage's last August Ediel days (all before 2026-08-31T23:00Z), before our supply started: never billable. */
-const BEFORE_SUPPLY = { facility: GARAGE, days: ['2026-08-29', '2026-08-30', '2026-08-31'] }
+/** The garage's (below full size: the house's) last August Ediel days (all before 2026-08-31T23:00Z), before our supply started: never billable. */
+const BEFORE_SUPPLY = { facility: GARAGE ?? HOUSE, days: ['2026-08-29', '2026-08-30', '2026-08-31'] }
+report.dataSize = { facilities: FACILITIES.length, acceptanceSize: F_FACILITIES === 4, missingDayRole: MISSING ? MISSING.facility.gsrn : 'skipped (GRIDEX_REALITY_F_FACILITIES=2)',
+  beforeSupplyRole: BEFORE_SUPPLY.facility === GARAGE ? 'garage' : 'house' }
 
 /** Inconsistencies and defects noticed in the code while building this scenario (code reading, file:line). */
 const DEFECTS = [
@@ -303,7 +320,7 @@ async function receiveUntil(done: () => boolean, minutes: number) {
     expect(inbound.status, JSON.stringify(inbound.body)).toBe(200)
     expect(inboundTest.status, JSON.stringify(inboundTest.body)).toBe(200)
     if (done() || Date.now() > deadline) break
-    await pause(60_000)
+    await cronTick()
   }
   return runs
 }
@@ -367,7 +384,7 @@ describe.sequential('reality F — invoices for several facilities with contract
       runs.push({ at: new Date().toISOString(), status: ran.status })
       observed = switches().filter(row => websiteFacilities.includes(row.facility))
       if (observed.every(row => row.id) || Date.now() > deadline) break
-      await pause(30_000)
+      await cronTick(30_000)
     }
     const requested = new Map(startDates().map(row => [String(row.facility), (row.application as Row | null)?.start as string | null]))
     const future = observed.map(row => ({ facility: row.facility, requestedOnWebsite: requested.get(row.facility) ?? null, switchStart: row.start, z03Start: row.z03Start, calculation: row.calculation }))
@@ -470,7 +487,7 @@ describe.sequential('reality F — invoices for several facilities with contract
       saveReport({ worldSlots: slots, supply: state })
       const settled = state.length === FACILITIES.length && state.every(row => row.period?.status === 'active') || state.some(row => row.switch === 'failed')
       if (settled || Date.now() > deadline) break
-      await pause(60_000)
+      await cronTick()
     }
     report.worldSlots = slots
     report.supply = state
@@ -497,12 +514,12 @@ describe.sequential('reality F — invoices for several facilities with contract
     // live-chain fixture registers its fixture issuer (configureTenant). No value, period or gate is set here.
     registerUtiltsIssuer(sql as never, literal, GRID_OWNER_EDIEL_ID, tenant.adminUserId)
     await gridOwnerSendsE66([
-      ...FACILITIES.flatMap(f => SEPTEMBER.flatMap((day, i) => f === MISSING.facility && day === MISSING.day ? [] : [{ facility: f.gsrn, day, kind: 'regular' as const, values: profileFor(f, i) }])),
+      ...FACILITIES.flatMap(f => SEPTEMBER.flatMap((day, i) => f === MISSING?.facility && day === MISSING.day ? [] : [{ facility: f.gsrn, day, kind: 'regular' as const, values: profileFor(f, i) }])),
       ...BEFORE_SUPPLY.days.map((day, i) => ({ facility: BEFORE_SUPPLY.facility.gsrn, day, kind: 'august' as const, values: profileFor(BEFORE_SUPPLY.facility, 30 + i) })),
     ])
     report.sentFiles = sentFiles
     report.sentKwh = Object.fromEntries(FACILITIES.map(f => [f.gsrn, sum(SEPTEMBER.flatMap(day => effective(f.gsrn).get(day) ?? []))]))
-    expect(sentFiles).toHaveLength(FACILITIES.length * SEPTEMBER.length - 1 + BEFORE_SUPPLY.days.length)
+    expect(sentFiles).toHaveLength(FACILITIES.length * SEPTEMBER.length - (MISSING ? 1 : 0) + BEFORE_SUPPLY.days.length)
   }, 15 * 60_000)
 
   it('F6 the inbound cron receives every file on the tenant and acknowledges it', async (context) => {
@@ -532,16 +549,18 @@ describe.sequential('reality F — invoices for several facilities with contract
     for (const source of sources) approveIssuerHistoryGround(source.id, tenant.adminUserId)
     // No job re-evaluates held UTILTS: Gridex staff run the UTILTS engine per message (chain E, E5).
     const staff = await operatorSession(tenant.operatorEmail, tenant.operatorPassword)
-    const page = await staff.newPage()
     const storedFor = (id: string) => sql<number>(`SELECT to_jsonb(count(*)) FROM public.normalized_metering_values WHERE source_message_id=${literal(id)}`)
     // The file's application reply (ACK-02/U-*: APERAK or UTILTS-ERR per transaction), not only its stored values (FINDINGS F107/T17).
     const repliesFor = (id: string) => sql<Row>(`SELECT jsonb_build_object('replies',(SELECT coalesce(jsonb_agg(jsonb_build_object('family',o.message_family,'status',o.status)),'[]')
         FROM public.ediel_messages o WHERE o.related_message_id=${literal(id)} AND o.direction='outbound' AND o.message_family IN ('APERAK','UTILTS_ERR','UTILTS')),
       'attempt',(SELECT e.payload->>'outcome' FROM public.ediel_message_events e WHERE e.ediel_message_id=${literal(id)} AND e.payload ? 'outcome' ORDER BY e.created_at DESC LIMIT 1))`)
-    const outcomes: Array<{ source: string; file: string | null; button: boolean; label: string | null; pageStatus: number | null; actionStatus: number | null; stored: number; expected: number
-      reply?: Row; diagnosis?: unknown; pageText?: string }> = []
+    type Outcome = { source: string; file: string | null; button: boolean; label: string | null; pageStatus: number | null; actionStatus: number | null; stored: number; expected: number
+      reply?: Row; diagnosis?: unknown; pageText?: string; ms: number }
+    const outcomes: Outcome[] = []
     const reprocessSlots: unknown[] = []
-    for (const source of sources) {
+    /** One message as the operator handles it: open the detail page, press the engine/resume button, read the result. */
+    const reprocessOne = async (page: Awaited<ReturnType<typeof staff.newPage>>, source: (typeof sources)[number]): Promise<Outcome> => {
+      const begun = Date.now()
       const file = fileOf(source.reference)
       // A correction stores only the quarter-hours it changed (FINDINGS F78).
       const expected = file?.kind === 'correction' ? correctedQuarters : 96
@@ -552,13 +571,14 @@ describe.sequential('reality F — invoices for several facilities with contract
       const button = page.getByRole('button', { name: /Kör UTILTS engine \/ skapa TGT-svar|Återuppta hållna transaktioner/ })
       const visible = await button.count()
       const label = visible ? (await button.first().innerText()).trim() : null
-      // The server action finishes before the next message page is opened.
+      // The server action finishes before this page opens its next message (it stores synchronously; the loop below
+      // normally reads the final count at once).
       const actionStatus = visible ? await submitServerAction(page, () => button.first().click(), 600_000) : null
       const started = Date.now()
       let stored = storedFor(source.id)
       while (visible && stored < expected && Date.now() - started < 90_000) { await pause(3_000); stored = storedFor(source.id) }
-      const outcome: (typeof outcomes)[number] = { source: source.id, file: file ? `${file.kind} ${file.facility} ${file.day}` : null, button: Boolean(visible), label,
-        pageStatus: response?.status() ?? null, actionStatus, stored, expected, reply: repliesFor(source.id) }
+      const outcome: Outcome = { source: source.id, file: file ? `${file.kind} ${file.facility} ${file.day}` : null, button: Boolean(visible), label,
+        pageStatus: response?.status() ?? null, actionStatus, stored, expected, reply: repliesFor(source.id), ms: 0 }
       if (stored < expected) {
         outcome.diagnosis = sql(`SELECT jsonb_build_object('status',m.status,
           'issues',(SELECT coalesce(jsonb_agg(i->>'code'),'[]') FROM jsonb_array_elements(coalesce(m.validation_report#>'{utiltsRuntime,validation,issues}','[]')) i),
@@ -567,12 +587,38 @@ describe.sequential('reality F — invoices for several facilities with contract
           FROM public.ediel_messages m WHERE m.id=${literal(source.id)}`)
         if (!visible) outcome.pageText = (await page.locator('main, body').first().innerText()).replace(/\s+/g, ' ').slice(0, 300)
       }
-      outcomes.push(outcome)
-      // Vercel keeps running every cron while the operator works through the files, about one file a minute (FINDINGS T14).
-      if (outcomes.length % 5 === 0) reprocessSlots.push({ at: new Date().toISOString(), crons: (await runOperationalCronSlot()).map(r => ({ path: r.path, status: r.status, ms: r.ms })) })
-      if (outcomes.length % 10 === 0) saveReport({ reprocessProgress: outcomes })
+      outcome.ms = Date.now() - begun
+      return outcome
     }
-    await page.close()
+    // Vercel keeps running every cron while the operator works through the files, one slot per 5 files (FINDINGS T14).
+    // With one page the slot runs between two files, as before. With several pages (GRIDEX_REALITY_F6C_PAGES) it runs
+    // beside them, as Vercel's crons do, chained so that the number of slots stays one per 5 files.
+    const pages = Number(process.env.GRIDEX_REALITY_F6C_PAGES ?? 1)
+    if (!Number.isInteger(pages) || pages < 1 || pages > 4) throw Error(`GRIDEX_REALITY_F6C_PAGES must be 1-4 (got ${process.env.GRIDEX_REALITY_F6C_PAGES})`)
+    const runSlot = async () => { reprocessSlots.push({ at: new Date().toISOString(), crons: (await runOperationalCronSlot()).map(r => ({ path: r.path, status: r.status, ms: r.ms })) }) }
+    let slots: Promise<void> = Promise.resolve()
+    let next = 0
+    const order = new Map(sources.map((source, i) => [source.id, i]))
+    const reprocessStarted = Date.now()
+    // Several operator tabs of the same staff session; each message is opened by exactly one tab.
+    await Promise.all(Array.from({ length: Math.min(pages, sources.length) }, async () => {
+      const page = await staff.newPage()
+      try {
+        while (next < sources.length) {
+          const source = sources[next++]
+          outcomes.push(await reprocessOne(page, source))
+          if (outcomes.length % 5 === 0) {
+            if (pages === 1) await runSlot()
+            else { slots = slots.then(runSlot); slots.catch(() => undefined) } // a failed slot fails the step at `await slots`
+          }
+          if (outcomes.length % 10 === 0) saveReport({ reprocessProgress: outcomes })
+        }
+      } finally { await page.close() }
+    }))
+    await slots
+    outcomes.sort((a, b) => order.get(a.source)! - order.get(b.source)!)
+    report.reprocessTiming = { pages, files: outcomes.length, totalMs: Date.now() - reprocessStarted,
+      perFileMs: outcomes.length ? Math.round(outcomes.reduce((total, outcome) => total + outcome.ms, 0) / outcomes.length) : null }
     const notStored = outcomes.filter(outcome => outcome.stored < outcome.expected)
     const unanswered = outcomes.filter(outcome => !((outcome.reply?.replies as unknown[] | undefined)?.length))
     report.reprocess = { outcomes, slots: reprocessSlots, buttonMissing: outcomes.filter(outcome => !outcome.button).length, notStored: notStored.length,
@@ -618,9 +664,10 @@ describe.sequential('reality F — invoices for several facilities with contract
       expect(v.zeroValues, detail).toBe(0)
     }
     // The garage's three August Ediel days lie wholly before 2026-08-31T23:00Z: all 288 stored, none billable.
-    expect(values[BEFORE_SUPPLY.facility.gsrn].beforeSupply, 'garage: the August days are stored before the supply start').toBe(BEFORE_SUPPLY.days.length * 96)
+    expect(values[BEFORE_SUPPLY.facility.gsrn].beforeSupply, `${String((report.dataSize as Row).beforeSupplyRole)}: the August days are stored before the supply start`).toBe(BEFORE_SUPPLY.days.length * 96)
     // The gap stays a gap; the correction is in force for its day, the original is superseded, not added.
-    expect(values[MISSING.facility.gsrn].days).not.toContain(MISSING.day)
+    if (MISSING) expect(values[MISSING.facility.gsrn].days).not.toContain(MISSING.day)
+    else report.missingDay = 'skipped: GRIDEX_REALITY_F_FACILITIES=2 has no holiday home (development size)'
     expect(Number(values[CORRECTED.facility.gsrn].correctedDayKwh)).toBeCloseTo(sum(effective(CORRECTED.facility.gsrn).get(CORRECTED.day)!), 6)
     expect(Number(values[CORRECTED.facility.gsrn].superseded)).toBeGreaterThanOrEqual(correctedQuarters)
     // 123 files at about a minute each (FINDINGS P1) exceed 150 minutes; the operator flow is kept, the budget raised (T19).
@@ -705,7 +752,7 @@ describe.sequential('reality F — invoices for several facilities with contract
     for (const f of FACILITIES) {
       const underlay = graph.underlays.find(u => u.facility === f.gsrn)
       const invoice = underlay ? graph.invoices.find(i => i.underlay === underlay.id) : undefined
-      if (f === MISSING.facility) {
+      if (MISSING && f === MISSING.facility) {
         // A month with a gap is never invoiced as if the gap were zero consumption.
         report.missingDay = { facility: f.gsrn, day: MISSING.day, underlay, invoice: invoice ?? null }
         expect(Number(underlay?.missing), JSON.stringify(underlay)).toBeGreaterThanOrEqual(96)

@@ -41,6 +41,7 @@ import { customerNormalizedMeteringValues } from '@/lib/metering/customerMeterin
 import { LIVE, augustSupplyCustomer, cron, literal, sql, type AugustFacility, type LiveTenant } from '../helpers/live-chain-fixture'
 import { closeOperatorConsole } from '../helpers/reality/operatorConsole'
 import { runOperationalCronSlot, type GridOwnerSim } from '../helpers/reality/world'
+import { clockSettings, cronTick } from '../helpers/reality/clock'
 import { GRID_AREA, GRID_OWNER_EDIEL_ID, goLiveAlsSupplier } from '../helpers/reality/goLiveAls'
 import { detectStuckStates } from '../helpers/reality/stuckDetector'
 import { registerUtiltsIssuer } from '../helpers/utiltsConsumptionParties'
@@ -50,10 +51,9 @@ import { changedQuarters, correctedValues, hourlyFromQuarterValues, utiltsE31, u
 import { billingState, establishSwitch, gridOwnerMails, inboundUtilts, receiveUntil, reprocessAsOperator, sourceDiagnosis, storedDay, storedPerEdielDay,
   type InboundUtilts, type ReprocessOutcome } from '../helpers/reality/inboundUtiltsWorld'
 
-const report: Record<string, unknown> = { scenario: 'J2 inbound UTILTS', startedAt: new Date().toISOString() }
+const report: Record<string, unknown> = { scenario: 'J2 inbound UTILTS', startedAt: new Date().toISOString(), clock: clockSettings() }
 const REPORT = process.env.GRIDEX_REALITY_REPORT ?? '/tmp/reality-j2-report.json'
 const saveReport = (extra: Record<string, unknown> = {}) => writeFileSync(REPORT, JSON.stringify({ ...report, ...extra }, null, 2))
-const pause = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 type Row = Record<string, unknown>
 let tenant: LiveTenant
 let gridOwner: GridOwnerSim
@@ -198,7 +198,7 @@ describe.sequential('reality J2 — inbound UTILTS: metering, corrections, settl
       state = supply()
       saveReport({ worldSlots: slots, supply: state })
       if (state.every(row => row.period?.status === 'active') || state.some(row => row.switch === 'failed') || Date.now() > deadline) break
-      await pause(60_000)
+      await cronTick()
     }
     report.supply = state
     for (const f of FACILITIES) {

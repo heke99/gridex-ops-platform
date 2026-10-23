@@ -10,6 +10,7 @@ import { evaluateSupplierSwitchSendWindow, loadSupplierSwitchPolicy } from '@/li
 import { LIVE, approveIssuerHistoryGround, gridOwnerSends, literal, sql, type AugustFacility, type LiveTenant } from '../live-chain-fixture'
 import { operatorSession, submitServerAction } from './operatorConsole'
 import { pollInboundMailLanes, runSlotAfterInbound } from './world'
+import { cronTick } from './clock'
 import type { UtiltsFile } from './inboundUtilts'
 
 type Row = Record<string, unknown>
@@ -76,7 +77,7 @@ export async function receiveUntil(done: () => boolean, minutes: number) {
     runs.push({ at: new Date().toISOString(), inbound: inbound.production.status, inboundTest: inbound.test.status, outbox: outbox.status })
     if (inbound.status !== 200) throw Error(`inbound_cron_failed:${inbound.status}:${JSON.stringify(inbound.body).slice(0, 500)}`)
     if (done() || Date.now() > deadline) break
-    await pause(60_000)
+    await cronTick()
   }
   return runs
 }
