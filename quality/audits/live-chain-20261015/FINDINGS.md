@@ -1461,6 +1461,13 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
 - **Lärdom:** innan en körning kontrolleras att varje ny migration finns i världen.
 - **Observation:** migrationen saknar `notify pgrst, 'reload schema'`. I den lokala världen syntes den nya funktionen inte för PostgREST förrän cachen laddats om. Om den hostade miljön laddar om automatiskt vid DDL är inte kontrollerat. Låg.
 
+### T12 Körning 24 stoppades aldrig och gick parallellt med körning 25 — RÄTTAD, verklighetsvärlden (min egen miss)
+- **Utfall:** när körning 25 startade 09:47 levde körning 24:s vitest-process fortfarande (pid 14655, föräldralös under pid 1 efter `setsid`). Två körningar delade databasen, e-postservern och `report.json`, så cron-slotar och rapporter från körning 24 kunde blandas in i körning 25.
+- **Orsak:** stoppet av körning 24 dödade bara skalprocessen. Den frikopplade `npm exec vitest`-processen överlevde.
+- **Rättning:** båda processträden stoppades via exakta pid, och körning 26 startades i en ren process 09:49.
+- **Lärdom:** efter ett stopp kontrolleras att ingen `reality-native`-process lever innan nästa körning startas.
+- Resultat från körning 25 räknas inte.
+
 ### Ägarbeslut 2026-10-23
 - **F89/F90/F91, certifiering i produktion:** "Certifieringar ska vi använda oss av vår certifiering samt krypteringen vi har."
   - Produktionssändning vilar på bolagets egen godkända Ediel-certifiering (`ediel_certification_evidence`, `canonical_ediel_production_evidence_readiness`, förmågan `ediel_production`) och på vår egen S/MIME-kryptering.
