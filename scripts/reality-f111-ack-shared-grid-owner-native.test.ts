@@ -18,7 +18,7 @@ import { execFileSync } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, afterEach, describe, expect, it, vi } from 'vitest'
 const smtp = vi.hoisted(() => vi.fn())
 vi.mock('nodemailer', () => ({ default: { createTransport: () => ({ sendMail: smtp }) } }))
 import { seedNormalSwitchNativeFixture, futureNativeSupplyDate, nativeSql as sql, literal } from './helpers/ediel-normal-switch-native-fixture'
@@ -57,8 +57,15 @@ async function sentZ03WithSharedGridOwner(): Promise<Fixture> {
     INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,payload_format,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled,is_active,transport_security_mode,smtp_to,receiver_email,message_family,business_code,mailbox,smtp_host,smtp_port)
     VALUES(${literal(profile)},${literal(f.companyId)},${literal(route)},'Synthetic F111 ACK profile','test','edifact','edifact',${literal(f.sender)},${literal(f.receiver)},'23-DDQ-PRODAT',true,true,'unencrypted','recipient@example.invalid','recipient@example.invalid',NULL,NULL,${literal(mail.from)},${literal(mail.host)},${literal(mail.port)});
     UPDATE public.grid_owners SET company_id=NULL WHERE id=${literal(f.gridId)};`)
+  sharedForTest.push({ gridId: f.gridId, companyId: f.companyId })
   return f
 }
+// The shared row exists only for this test: it is given back to its synthetic tenant afterwards, so no other native
+// suite meets a stray shared "Synthetic normal grid" for area TES (FINDINGS F113 side finding 4).
+const sharedForTest: Array<{ gridId: string; companyId: string }> = []
+afterAll(() => {
+  for (const row of sharedForTest.splice(0)) sql(`UPDATE public.grid_owners SET company_id=${literal(row.companyId)} WHERE id=${literal(row.gridId)} AND company_id IS NULL;`)
+})
 /** One grid-owner file through the production intake, as the inbound-mail cron runs it (same as J1/F106). */
 async function receive(f: Fixture, raw: string) {
   const smtpFrom = assertEdielSmtpReadiness().from, mailboxId = randomUUID(), mailId = randomUUID(), receivedAt = new Date().toISOString()

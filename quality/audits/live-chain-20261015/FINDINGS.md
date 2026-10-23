@@ -2110,6 +2110,32 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
     6. **Risker:** en krasch mellan svaret och dess händelse lämnar ett osynligt utkast. Svaret köas före `finalizeUtiltsTransactionAck`. Urvalet läser de äldsta 1 000 händelserna. Index saknas på `ediel_message_events(event_type, created_at)`. Låg.
     7. Händelsetyperna `aperak_sent` och `contrl_sent` skrivs även när bara ett utkast finns. Låg.
 
+### F113 Delad nätägare i PRODAT-objektbatchen och den reglerade leveransens scope — BEKRÄFTAD (rullad-tillbaka reproduktion); scope RÄTTAD, objektbatchen HÅLLEN
+- **Bevis:**
+  - `gridex_prodat_object_batch.require_wire_projection_v1`, som admins godkännande av masterdata efter Z04/Z06 går igenom, slår upp nätområdet via `owner_code` bara bland tenantens egna rader. Ett kommando som namnger en delad nätägare får därför `prodat_object_batch_wire_grid_owner_required`.
+  - `gridex_regulated_supply.scope_v1` kräver `company_id=c`, så en delad nätägare ger NULL-scope.
+  - Båda reproducerades i transaktioner som rullades tillbaka.
+- **Levererat:** migration `20261023198000_regulated_supply_scope_shared_grid_owner.sql`, där enbart `scope_v1` ändras.
+  - Villkoret blir `company_id=c OR company_id IS NULL` för den nätägare som nås via tenantens egen anläggning. Ediel-id, miljö och `is_active` är oförändrade.
+  - Exakt textbyte, och ägare, ACL, säkerhetsläge och inställningar kontrolleras.
+- **HÅLLET:** objektbatchdelen. `require_wire_projection_v1` är skyddad av DB-05 (`20261019180300`, protectedNames) och låst av SC-031 (successor-hash `4c9dd19a…`). En ändring skulle få de godkända testerna att falla när schemat fångas om, och kräver därför en avgränsad överlämning från ägarna.
+  - Förslaget ligger i `quality/audits/live-chain-20261015/proposals/F113-object-batch-and-scope-shared-grid-owner.sql`. Den nya kroppen har hashen `4a19060e…`, och SC-031 och DB-05 måste i så fall godta den.
+- **Test:** native-testet `reality-f113-shared-grid-owner-object-batch-scope-native` ger 2 av 2.
+  - Båda kropparna bevisas från förslaget: delad nätägare godtas, ett tvetydigt fall nekas, en annan tenants nätägare nekas, och tenantens egen rad vinner. Med de gamla kropparna föll de.
+  - Testet kontrollerar dessutom att den levererade migrationens scope-del är exakt identisk med förslagets.
+  - F101-varianternas native-test ger 5 av 5, och relaterade vitest-tester 284 av 284. Täckningen är 352 av 352 (agenten, utan `app.env` laddad).
+- **Testkörningens förorening (egen miss i F111-testet):** `reality-f111-ack-shared-grid-owner-native` gjorde `UPDATE grid_owners SET company_id=NULL` utan att återställa, vilket lämnade 8 delade "Synthetic normal grid"-rader (TES) i världen. Varje delad TES-uppslagning blev därmed tvetydig.
+  - Testet återställer nu raden i `afterAll`.
+  - De 8 raderna har getts tillbaka till sitt enda fixturbolag, och 0 delade TES-rader finns kvar.
+- **Sidofynd, ÖPPNA:**
+  1. **Nätområde och `owner_code` matchar inte (hög):** registerrader har `owner_code` lika med Ediel-id (`gridOwnerReconciliation.ts:237`, `actors/actions.ts:540`), och 0 av 217 aktiva nätområden i världen matchar. De 4 väntande Z04-ärendena (område ALS) når därför inte ens den rättade koden, eftersom `getGridOwnerIdByGridArea` ger null. Förslag: slå upp området via `platform_grid_areas` → `ops_grid_owner_id`, både i TS och SQL.
+  2. **Godkännande kan rensa nätägaren (hög, sannolik):** ett Z04-godkännande i läget `update_existing_customer` kan rensa nätägaren på befintlig anläggning och mätpunkt. När området inte löses bär kommandot `grid_owner_id: null`, och `gridex_update_jsonb_row` skriver null. För världens 4 ärenden skulle `d0015158` raderas.
+  3. **Schemafångst (medel):** när F113-objektbatchen en gång levereras och schemat fångas om faller SC-031 och DB-05 tills de godtar den nya hashen. Det gäller bara den hållna delen.
+  4. **Vyn för materialiseringsberedskap (låg):** `gridex_route_materialization_readiness_v` kopplar på `= g.company_id`, så delade nätägare får aldrig någon route i vyn.
+  5. **Svagare kontroller (låg):** `scope_v1` kontrollerar inte att mätpunktens nätägare stämmer med anläggningens. Objektbatchens områdesuppslagning ignorerar `is_active` och miljö.
+  6. **Omvänd klass (låg):** `gridex_list_customer_operation_events` och `owner_rows_match` kopplar `grid_owners` på id utan tenantfilter.
+  7. **Typkontrollen (låg):** `npx tsc --noEmit -p .` kräver nu `--max-old-space-size=8192`.
+
 ### P1 Mätvärdeslagringen går med ungefär 70 värden i minuten; kvittenshanteringen dominerar databastiden — MÄTT (världen, körning 26), medel; ej åtgärdat
 - **Körning 26, F6c:** 126 värden lagrade 11:11 och 475 kl. 11:16, alltså ungefär 70 i minuten. 123 filer à 96 kvartsvärden tar då nästan 3 timmar för en enda kund med 4 anläggningar. I produktion med många kunder räcker det inte.
 - **`pg_stat_statements`:** ackumulerat sedan världen startade, alla körningar och native-tester. De dyraste efter total tid:
