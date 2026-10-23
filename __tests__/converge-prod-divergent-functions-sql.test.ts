@@ -54,6 +54,12 @@ describe('production bodies', () => {
     })
   })
 
+  it('keeps the Z02 core on the pg_catalog search_path', async () => {
+    const { rows } = await db.query<{ config: string[] }>(
+      "select proconfig as config from pg_proc where oid='public.gridex_apply_exact_z02_core(uuid,uuid,uuid,uuid,uuid,uuid,uuid)'::regprocedure")
+    expect(rows[0]?.config).toEqual(['search_path=pg_catalog'])
+  })
+
   it('half-opens an open circuit only once half_open_after is set and due', async () => {
     const before = (key: string) => db.query<{ allowed: boolean; circuit_state: string }>(
       'select allowed, circuit_state from public.gridex_dependency_circuit_before_request_v1($1)', [key]).then(result => result.rows[0])

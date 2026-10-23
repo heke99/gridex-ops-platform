@@ -1,31 +1,34 @@
 -- Converge five functions whose production body differs from the repository.
 --
 -- The first four take the production body byte-for-byte (prosrc sha256 noted
--- per function), so applying them in production is a no-op:
+-- per function):
 --   gridex_apply_exact_z02_core                    04902d0a… re-checks that the
 --     request and the site belong to the given company and customer, under
---     row locks, before the first application of a Z02.
+--     row locks, before the first application of a Z02. It keeps the
+--     repository's search_path 'pg_catalog' (production still has 'public');
+--     every relation and helper in the body is schema-qualified.
 --   gridex_dependency_circuit_before_request_v1    f164fc53… only half-opens an
 --     open circuit whose half_open_after is set.
 --   gridex_stage_energy_geodata_features_v2        da6b6286… same checks and
 --     upsert, written with a materialized batch CTE.
---   gridex_create_invoice_export_graph_v1_core     aa5e13cc… writes an explicit
---     draft invoice_reference; customer_invoices_public_reference_trg still
---     assigns the public reference on insert.
+--   gridex_create_invoice_export_graph_v1_core     aa5e13cc… leaves the draft
+--     invoice's partner_export_id null until the provider event records it,
+--     and writes an explicit draft invoice_reference that
+--     customer_invoices_public_reference_trg replaces on insert.
 --
 -- run_tenant_integrity_audit merges both OUTBOUND-001 variants. Production
 -- also compared the outbound request with its supplier switch and contract;
 -- the repository also compared its customer with the metering point customer.
 -- The switch and contract links are read through to_jsonb(o) because the
 -- typed replay schema of outbound_requests does not carry those columns
--- (20260830012500), so the body runs on both schemas. Attributes and grants of
--- all five functions are unchanged.
+-- (20260830012500), so the body runs on both schemas. Grants of all five
+-- functions are unchanged.
 
 CREATE OR REPLACE FUNCTION public.gridex_apply_exact_z02_core(p_company_id uuid, p_customer_id uuid, p_site_id uuid, p_request_id uuid, p_message_id uuid, p_operation_id uuid DEFAULT NULL::uuid, p_actor_user_id uuid DEFAULT NULL::uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'public'
+ SET search_path TO 'pg_catalog'
 AS $function$
 DECLARE m public.ediel_messages%rowtype;s gridex_received_sources.sources%rowtype;
  prior gridex_received_sources.z02_core_applications%rowtype;application jsonb;obj jsonb;
