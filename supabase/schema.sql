@@ -55519,9 +55519,23 @@ DECLARE m public.ediel_messages%rowtype;s gridex_received_sources.sources%rowtyp
 BEGIN
  IF current_setting('role',true) IS DISTINCT FROM 'service_role' AND session_user<>'service_role' THEN
   RAISE EXCEPTION 'z02_source_service_required' USING ERRCODE='42501';END IF;
+ -- Preserve the deployed atomic-core request -> message -> site lock order.
+ -- These are the same tenant/customer/site predicates as the protected kernel.
+ IF NOT EXISTS(SELECT FROM gridex_received_sources.z02_core_applications
+  WHERE source_message_id=p_message_id AND request_id=p_request_id) THEN
+  PERFORM r.id FROM public.customer_info_requests r WHERE r.id=p_request_id
+   AND r.company_id=p_company_id AND r.customer_id=p_customer_id AND r.site_id=p_site_id FOR UPDATE;
+  IF NOT FOUND THEN RETURN jsonb_build_object('ok',false,'code','z02_request_site_customer_mismatch');END IF;
+ END IF;
  SELECT * INTO m FROM public.ediel_messages WHERE id=p_message_id AND company_id=p_company_id FOR UPDATE;
  IF m.id IS NULL OR m.direction IS DISTINCT FROM 'inbound' OR m.message_family IS DISTINCT FROM 'PRODAT' OR m.message_code IS DISTINCT FROM 'Z02' THEN
   RETURN jsonb_build_object('ok',false,'code','z02_inbound_message_not_found');END IF;
+ IF NOT EXISTS(SELECT FROM gridex_received_sources.z02_core_applications
+  WHERE source_message_id=p_message_id AND request_id=p_request_id) THEN
+  PERFORM site.id FROM public.customer_sites site WHERE site.id=p_site_id
+   AND site.company_id=p_company_id AND site.customer_id=p_customer_id FOR UPDATE;
+  IF NOT FOUND THEN RETURN jsonb_build_object('ok',false,'code','z02_site_not_found');END IF;
+ END IF;
  SELECT * INTO s FROM gridex_received_sources.sources WHERE source_message_id=m.id AND company_id=p_company_id AND environment=m.environment AND message_code='Z02';
  IF s.source_message_id IS NULL OR s.raw_payload IS NULL OR s.raw_payload IS DISTINCT FROM m.raw_payload
   OR s.payload_hash IS DISTINCT FROM m.immutable_payload_hash OR s.payload_hash IS DISTINCT FROM encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex') THEN
@@ -65818,107 +65832,67 @@ begin
   end if;
   if jsonb_typeof(coalesce(p_items,'[]'::jsonb))<>'array'
      or jsonb_typeof(coalesce(p_invoices,'[]'::jsonb))<>'array'
-     or jsonb_array_length(coalesce(p_items,'[]'::jsonb))
-        <>jsonb_array_length(coalesce(p_invoices,'[]'::jsonb)) then
+     or jsonb_array_length(coalesce(p_items,'[]'::jsonb))<>jsonb_array_length(coalesce(p_invoices,'[]'::jsonb)) then
     raise exception using errcode='22023',message='invoice_export_graph_array_mismatch';
   end if;
-  perform pg_advisory_xact_lock(
-    hashtextextended(v_company_id::text||':'||v_idempotency_key,0)
-  );
-  select id into v_existing_id
-  from public.invoice_export_runs
-  where company_id=v_company_id and idempotency_key=v_idempotency_key;
-  if v_existing_id is not null then
-    return jsonb_build_object('run_id',v_existing_id,'existing',true);
-  end if;
+  perform pg_advisory_xact_lock(hashtextextended(v_company_id::text||':'||v_idempotency_key,0));
+  select id into v_existing_id from public.invoice_export_runs where company_id=v_company_id and idempotency_key=v_idempotency_key;
+  if v_existing_id is not null then return jsonb_build_object('run_id',v_existing_id,'existing',true); end if;
 
   insert into public.invoice_export_runs(
-    id,company_id,provider,environment,billing_month,financing_mode,status,
-    total_items,readiness_snapshot,metadata,requested_by,idempotency_key
+    id,company_id,provider,environment,billing_month,financing_mode,status,total_items,readiness_snapshot,metadata,requested_by,idempotency_key
   ) values (
-    v_run_id,v_company_id,coalesce(nullif(p_run->>'provider',''),'capway_aptic'),
-    coalesce(nullif(p_run->>'environment',''),'test'),p_run->>'billing_month',
-    coalesce(nullif(p_run->>'financing_mode',''),'invoice_service'),'draft',
-    jsonb_array_length(p_items),coalesce(p_run->'readiness_snapshot','{}'::jsonb),
-    coalesce(p_run->'metadata','{}'::jsonb),nullif(p_run->>'requested_by','')::uuid,
-    v_idempotency_key
+    v_run_id,v_company_id,coalesce(nullif(p_run->>'provider',''),'capway_aptic'),coalesce(nullif(p_run->>'environment',''),'test'),p_run->>'billing_month',
+    coalesce(nullif(p_run->>'financing_mode',''),'invoice_service'),'draft',jsonb_array_length(p_items),coalesce(p_run->'readiness_snapshot','{}'::jsonb),
+    coalesce(p_run->'metadata','{}'::jsonb),nullif(p_run->>'requested_by','')::uuid,v_idempotency_key
   );
 
   for v_item,v_invoice in
-    select i.value,n.value
-    from jsonb_array_elements(p_items) with ordinality i(value,ordinality)
-    join jsonb_array_elements(p_invoices) with ordinality n(value,ordinality)
-      using(ordinality)
+    select i.value,n.value from jsonb_array_elements(p_items) with ordinality i(value,ordinality)
+    join jsonb_array_elements(p_invoices) with ordinality n(value,ordinality) using(ordinality)
   loop
     v_export_item_id:=nullif(v_item->>'id','')::uuid;
-    select * into v_underlay
-    from public.billing_underlays
-    where id=nullif(v_item->>'billing_underlay_id','')::uuid
-      and company_id=v_company_id
-    for share;
+    select * into v_underlay from public.billing_underlays
+    where id=nullif(v_item->>'billing_underlay_id','')::uuid and company_id=v_company_id for share;
     if not found
        or v_underlay.customer_id is distinct from nullif(v_item->>'customer_id','')::uuid
-       or coalesce(v_underlay.customer_contract_id,v_underlay.contract_id)
-          is distinct from nullif(v_item->>'customer_contract_id','')::uuid then
+       or coalesce(v_underlay.customer_contract_id,v_underlay.contract_id) is distinct from nullif(v_item->>'customer_contract_id','')::uuid then
       raise exception using errcode='23514',message='invoice_export_underlay_customer_contract_mismatch';
     end if;
+
     insert into public.invoice_export_items(
-      id,company_id,export_run_id,customer_id,billing_underlay_id,
-      pricing_run_id,customer_contract_id,metering_point_id,period_start,
-      period_end,total_kwh,currency,provider,environment,status,financing_mode,
-      amount_ex_vat,vat_amount,amount_inc_vat,idempotency_key,metadata
+      id,company_id,export_run_id,customer_id,billing_underlay_id,pricing_run_id,customer_contract_id,metering_point_id,period_start,period_end,total_kwh,currency,
+      provider,environment,status,financing_mode,amount_ex_vat,vat_amount,amount_inc_vat,idempotency_key,metadata
     ) values (
-      v_export_item_id,v_company_id,v_run_id,nullif(v_item->>'customer_id','')::uuid,
-      v_underlay.id,nullif(v_item->>'pricing_run_id','')::uuid,
-      nullif(v_item->>'customer_contract_id','')::uuid,
-      nullif(v_item->>'metering_point_id','')::uuid,
-      nullif(v_item->>'period_start','')::date,nullif(v_item->>'period_end','')::date,
-      nullif(v_item->>'total_kwh','')::numeric,
-      coalesce(nullif(v_item->>'currency',''),'SEK'),
-      coalesce(nullif(v_item->>'provider',''),'capway_aptic'),
-      coalesce(nullif(v_item->>'environment',''),'test'),'pending',
-      coalesce(nullif(v_item->>'financing_mode',''),'invoice_service'),
-      coalesce(nullif(v_item->>'amount_ex_vat','')::numeric,0),
-      coalesce(nullif(v_item->>'vat_amount','')::numeric,0),
-      coalesce(nullif(v_item->>'amount_inc_vat','')::numeric,0),
+      v_export_item_id,v_company_id,v_run_id,nullif(v_item->>'customer_id','')::uuid,v_underlay.id,nullif(v_item->>'pricing_run_id','')::uuid,
+      nullif(v_item->>'customer_contract_id','')::uuid,nullif(v_item->>'metering_point_id','')::uuid,nullif(v_item->>'period_start','')::date,nullif(v_item->>'period_end','')::date,
+      nullif(v_item->>'total_kwh','')::numeric,coalesce(nullif(v_item->>'currency',''),'SEK'),coalesce(nullif(v_item->>'provider',''),'capway_aptic'),
+      coalesce(nullif(v_item->>'environment',''),'test'),'pending',coalesce(nullif(v_item->>'financing_mode',''),'invoice_service'),
+      coalesce(nullif(v_item->>'amount_ex_vat','')::numeric,0),coalesce(nullif(v_item->>'vat_amount','')::numeric,0),coalesce(nullif(v_item->>'amount_inc_vat','')::numeric,0),
       nullif(v_item->>'idempotency_key',''),coalesce(v_item->'metadata','{}'::jsonb)
     );
+
     if nullif(v_invoice->>'invoice_export_item_id','')::uuid is distinct from v_export_item_id
        or nullif(v_invoice->>'customer_id','')::uuid is distinct from v_underlay.customer_id
-       or nullif(v_invoice->>'customer_contract_id','')::uuid
-          is distinct from coalesce(v_underlay.customer_contract_id,v_underlay.contract_id) then
+       or nullif(v_invoice->>'customer_contract_id','')::uuid is distinct from coalesce(v_underlay.customer_contract_id,v_underlay.contract_id) then
       raise exception using errcode='23514',message='customer_invoice_export_identity_mismatch';
     end if;
+
     insert into public.customer_invoices(
-      company_id,customer_id,contract_id,customer_contract_id,
-      billing_underlay_id,partner_export_id,partner_invoice_reference,invoice_export_item_id,
-      canonical_export_item_id,
-      period_start,period_end,total_kwh,amount_ex_vat,vat_amount,amount_inc_vat,
-      currency,status,source_system,metadata,updated_at
+      company_id,customer_id,contract_id,customer_contract_id,billing_underlay_id,partner_export_id,partner_invoice_reference,invoice_reference,
+      invoice_export_item_id,canonical_export_item_id,period_start,period_end,total_kwh,amount_ex_vat,vat_amount,amount_inc_vat,currency,status,source_system,metadata,updated_at
     ) values (
-      v_company_id,v_underlay.customer_id,
-      coalesce(v_underlay.customer_contract_id,v_underlay.contract_id),
-      coalesce(v_underlay.customer_contract_id,v_underlay.contract_id),
-      v_underlay.id,v_export_item_id,
-      coalesce(
-        nullif(v_invoice->>'partner_invoice_reference',''),
-        'pending:' || v_export_item_id::text
-      ),
-      v_export_item_id,v_export_item_id,
-      nullif(v_invoice->>'period_start','')::date,
-      nullif(v_invoice->>'period_end','')::date,
-      nullif(v_invoice->>'total_kwh','')::numeric,
-      coalesce(nullif(v_invoice->>'amount_ex_vat','')::numeric,0),
-      coalesce(nullif(v_invoice->>'vat_amount','')::numeric,0),
-      coalesce(nullif(v_invoice->>'amount_inc_vat','')::numeric,0),
-      coalesce(nullif(v_invoice->>'currency',''),'SEK'),'draft',
-      'canonical_invoice_export',coalesce(v_invoice->'metadata','{}'::jsonb),now()
+      v_company_id,v_underlay.customer_id,coalesce(v_underlay.customer_contract_id,v_underlay.contract_id),coalesce(v_underlay.customer_contract_id,v_underlay.contract_id),
+      v_underlay.id,null,
+      coalesce(nullif(v_invoice->>'partner_invoice_reference',''),'pending:'||v_export_item_id::text),
+      coalesce(nullif(v_invoice->>'invoice_reference',''),'draft:'||v_export_item_id::text),
+      v_export_item_id,v_export_item_id,nullif(v_invoice->>'period_start','')::date,nullif(v_invoice->>'period_end','')::date,nullif(v_invoice->>'total_kwh','')::numeric,
+      coalesce(nullif(v_invoice->>'amount_ex_vat','')::numeric,0),coalesce(nullif(v_invoice->>'vat_amount','')::numeric,0),coalesce(nullif(v_invoice->>'amount_inc_vat','')::numeric,0),
+      coalesce(nullif(v_invoice->>'currency',''),'SEK'),'draft','canonical_invoice_export',coalesce(v_invoice->'metadata','{}'::jsonb),now()
     );
     v_count:=v_count+1;
   end loop;
-  return jsonb_build_object(
-    'run_id',v_run_id,'existing',false,'item_count',v_count
-  );
+  return jsonb_build_object('run_id',v_run_id,'existing',false,'item_count',v_count);
 end
 $$;
 
@@ -69523,16 +69497,56 @@ CREATE FUNCTION public.gridex_dependency_circuit_before_request_v1(p_dependency_
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog', 'public', 'pg_temp'
     AS $_$
-declare v_key text:=lower(btrim(coalesce(p_dependency_key,''))); v_row public.dependency_circuit_state%rowtype;
+declare
+  v_key text := lower(btrim(coalesce(p_dependency_key, '')));
+  v_row public.dependency_circuit_state%rowtype;
 begin
-  if v_key !~ '^[a-z0-9._:-]{2,100}$' or p_probe_lease_seconds<5 or p_probe_lease_seconds>300 then raise exception using errcode='22023',message='dependency_circuit_input_invalid'; end if;
-  insert into public.dependency_circuit_state(dependency_key) values(v_key) on conflict(dependency_key) do nothing;
-  select * into v_row from public.dependency_circuit_state where dependency_key=v_key for update;
-  if v_row.state='closed' then update public.dependency_circuit_state set last_attempt_at=now(),updated_at=now() where dependency_key=v_key; return query select true,'closed'::text,null::timestamptz; return; end if;
-  if v_row.state='open' and v_row.half_open_after<=now() then update public.dependency_circuit_state set state='half_open',probe_lease_expires_at=now()+make_interval(secs=>p_probe_lease_seconds),last_attempt_at=now(),updated_at=now() where dependency_key=v_key; return query select true,'half_open'::text,null::timestamptz; return; end if;
-  if v_row.state='half_open' and (v_row.probe_lease_expires_at is null or v_row.probe_lease_expires_at<=now()) then update public.dependency_circuit_state set probe_lease_expires_at=now()+make_interval(secs=>p_probe_lease_seconds),last_attempt_at=now(),updated_at=now() where dependency_key=v_key; return query select true,'half_open'::text,null::timestamptz; return; end if;
-  return query select false,v_row.state,coalesce(v_row.half_open_after,v_row.probe_lease_expires_at);
-end $_$;
+  if v_key !~ '^[a-z0-9._:-]{2,100}$' or p_probe_lease_seconds < 5 or p_probe_lease_seconds > 300 then
+    raise exception using errcode = '22023', message = 'dependency_circuit_input_invalid';
+  end if;
+
+  insert into public.dependency_circuit_state(dependency_key)
+  values (v_key)
+  on conflict (dependency_key) do nothing;
+
+  select * into v_row
+  from public.dependency_circuit_state
+  where dependency_key = v_key
+  for update;
+
+  if v_row.state = 'closed' then
+    update public.dependency_circuit_state
+    set last_attempt_at = now(), updated_at = now()
+    where dependency_key = v_key;
+    return query select true, 'closed'::text, null::timestamptz;
+    return;
+  end if;
+
+  if v_row.state = 'open' and v_row.half_open_after is not null and v_row.half_open_after <= now() then
+    update public.dependency_circuit_state
+    set state = 'half_open',
+        probe_lease_expires_at = now() + make_interval(secs => p_probe_lease_seconds),
+        last_attempt_at = now(),
+        updated_at = now()
+    where dependency_key = v_key;
+    return query select true, 'half_open'::text, null::timestamptz;
+    return;
+  end if;
+
+  if v_row.state = 'half_open'
+     and (v_row.probe_lease_expires_at is null or v_row.probe_lease_expires_at <= now()) then
+    update public.dependency_circuit_state
+    set probe_lease_expires_at = now() + make_interval(secs => p_probe_lease_seconds),
+        last_attempt_at = now(),
+        updated_at = now()
+    where dependency_key = v_key;
+    return query select true, 'half_open'::text, null::timestamptz;
+    return;
+  end if;
+
+  return query select false, v_row.state, coalesce(v_row.half_open_after, v_row.probe_lease_expires_at);
+end
+$_$;
 
 --
 -- Name: dependency_circuit_state; Type: TABLE; Schema: public; Owner: -
@@ -97411,17 +97425,80 @@ CREATE FUNCTION public.gridex_stage_energy_geodata_features_v2(p_geodata_version
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog', 'public', 'pg_temp'
     AS $$
-declare v_received integer; v_upserted integer;
+declare
+  v_received integer;
+  v_upserted integer;
 begin
- if p_geodata_version_id is null or p_features is null or jsonb_typeof(p_features)<>'array' or jsonb_array_length(p_features)<1 or jsonb_array_length(p_features)>1000 then raise exception using errcode='22023',message='invalid_energy_geodata_feature_batch'; end if;
- if not exists(select 1 from public.energy_geodata_versions where id=p_geodata_version_id and provider='svk_arcgis' and status='importing') then raise exception using errcode='55000',message='energy_geodata_version_not_importing'; end if;
- select count(*)::integer into v_received from jsonb_array_elements(p_features);
- if exists(select 1 from jsonb_to_recordset(p_features) f(feature_id text,properties jsonb,geometry_geojson jsonb,source_url text) where nullif(btrim(feature_id),'') is null or geometry_geojson is null or jsonb_typeof(geometry_geojson)<>'object') then raise exception using errcode='22023',message='invalid_energy_geodata_feature'; end if;
- insert into public.energy_geodata_features_staging(geodata_version_id,feature_id,source_url,properties,geometry_geojson,updated_at)
- select p_geodata_version_id,btrim(f.feature_id),nullif(btrim(coalesce(f.source_url,'')),''),coalesce(f.properties,'{}'::jsonb),f.geometry_geojson,now() from jsonb_to_recordset(p_features) f(feature_id text,properties jsonb,geometry_geojson jsonb,source_url text)
- on conflict(geodata_version_id,feature_id) do update set source_url=excluded.source_url,properties=excluded.properties,geometry_geojson=excluded.geometry_geojson,updated_at=now();
- get diagnostics v_upserted=row_count; return query select v_received,v_upserted;
-end $$;
+  if p_geodata_version_id is null
+     or p_features is null
+     or jsonb_typeof(p_features) <> 'array'
+     or jsonb_array_length(p_features) < 1
+     or jsonb_array_length(p_features) > 1000 then
+    raise exception using errcode = '22023', message = 'invalid_energy_geodata_feature_batch';
+  end if;
+
+  if not exists (
+    select 1 from public.energy_geodata_versions
+    where id = p_geodata_version_id and provider = 'svk_arcgis' and status = 'importing'
+  ) then
+    raise exception using errcode = '55000', message = 'energy_geodata_version_not_importing';
+  end if;
+
+  with batch as materialized (
+    select btrim(feature_id) as feature_id,
+           coalesce(properties, '{}'::jsonb) as properties,
+           geometry_geojson,
+           nullif(btrim(coalesce(source_url, '')), '') as source_url
+    from jsonb_to_recordset(p_features) as f(
+      feature_id text,
+      properties jsonb,
+      geometry_geojson jsonb,
+      source_url text
+    )
+  )
+  select count(*)::integer into v_received from batch;
+
+  if exists (
+    select 1
+    from jsonb_to_recordset(p_features) as f(
+      feature_id text,
+      properties jsonb,
+      geometry_geojson jsonb,
+      source_url text
+    )
+    where nullif(btrim(feature_id), '') is null
+       or geometry_geojson is null
+       or jsonb_typeof(geometry_geojson) <> 'object'
+  ) then
+    raise exception using errcode = '22023', message = 'invalid_energy_geodata_feature';
+  end if;
+
+  insert into public.energy_geodata_features_staging(
+    geodata_version_id, feature_id, source_url, properties, geometry_geojson, updated_at
+  )
+  select
+    p_geodata_version_id,
+    btrim(f.feature_id),
+    nullif(btrim(coalesce(f.source_url, '')), ''),
+    coalesce(f.properties, '{}'::jsonb),
+    f.geometry_geojson,
+    now()
+  from jsonb_to_recordset(p_features) as f(
+    feature_id text,
+    properties jsonb,
+    geometry_geojson jsonb,
+    source_url text
+  )
+  on conflict (geodata_version_id, feature_id) do update set
+    source_url = excluded.source_url,
+    properties = excluded.properties,
+    geometry_geojson = excluded.geometry_geojson,
+    updated_at = now();
+
+  get diagnostics v_upserted = row_count;
+  return query select v_received, v_upserted;
+end
+$$;
 
 --
 -- Name: gridex_store_billing_underlay(uuid, jsonb, jsonb, uuid); Type: FUNCTION; Schema: public; Owner: -
@@ -103970,26 +104047,31 @@ begin
       ) x
       join public.tenant_integrity_rule_registry r on r.rule_key='OPS-001' and r.is_enabled;
 
-      -- tenant_integrity_outbound_schema_safe
+      -- The switch and contract links are optional columns of outbound_requests:
+      -- to_jsonb(o) yields null for a column the table does not carry.
       insert into public.tenant_integrity_findings
         (run_id,rule_key,company_id,entity_type,entity_id,severity,title,message,fingerprint,evidence)
       select v_run_id,'OUTBOUND-001',coalesce(o.company_id,c.company_id), 'outbound_request',o.id,r.severity,r.title,
              'Outbound request tenant disagrees with one or more linked business entities.',
              md5('OUTBOUND-001:'||o.id::text),
-             jsonb_build_object('outbound_company_id',o.company_id,'customer_company_id',c.company_id,'site_company_id',s.company_id,'meter_company_id',mp.company_id,'customer_id',o.customer_id,'site_id',coalesce(o.customer_site_id,o.site_id),'metering_point_id',o.metering_point_id)
+             jsonb_build_object('outbound_company_id',o.company_id,'customer_company_id',c.company_id,'site_company_id',s.company_id,'meter_company_id',mp.company_id,'switch_company_id',sw.company_id,'contract_company_id',cc.company_id,'customer_id',o.customer_id,'meter_customer_id',mp.customer_id,'site_id',coalesce(o.customer_site_id,o.site_id),'metering_point_id',o.metering_point_id)
       from public.outbound_requests o
       join public.customers c on c.id=o.customer_id
       left join public.customer_sites s on s.id=coalesce(o.customer_site_id,o.site_id)
       left join public.metering_points mp on mp.id=o.metering_point_id
+      left join public.supplier_switch_requests sw on sw.id=coalesce(nullif(to_jsonb(o)->>'supplier_switch_request_id',''),nullif(to_jsonb(o)->>'switch_request_id',''))::uuid
+      left join public.customer_contracts cc on cc.id=coalesce(nullif(to_jsonb(o)->>'customer_contract_id',''),nullif(to_jsonb(o)->>'contract_id',''))::uuid
       join public.tenant_integrity_rule_registry r on r.rule_key='OUTBOUND-001' and r.is_enabled
       where (
           o.company_id is distinct from c.company_id
           or (s.id is not null and o.company_id is distinct from s.company_id)
           or (mp.id is not null and o.company_id is distinct from mp.company_id)
           or (mp.id is not null and mp.customer_id is not null and o.customer_id is distinct from mp.customer_id)
+          or (sw.id is not null and o.company_id is distinct from sw.company_id)
+          or (cc.id is not null and o.company_id is distinct from cc.company_id)
           or (o.customer_site_id is not null and o.site_id is not null and o.customer_site_id<>o.site_id)
         )
-        and (p_company_id is null or o.company_id=p_company_id or c.company_id=p_company_id or s.company_id=p_company_id or mp.company_id=p_company_id);
+        and (p_company_id is null or o.company_id=p_company_id or c.company_id=p_company_id or s.company_id=p_company_id or mp.company_id=p_company_id or sw.company_id=p_company_id or cc.company_id=p_company_id);
     end if;
 
     if v_scope in ('all','access') then
