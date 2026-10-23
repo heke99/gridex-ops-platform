@@ -2285,6 +2285,11 @@ Gäller F113:s sidofynd 1 och 2.
        1. avtalsvillkoret där kräver `supply_end`;
        2. perioden måste vara identisk med det tillstånd som det mottagna Ediel-meddelandet skapade.
        - Slutmånaden för en Ediel-kund med manuell avflyttning nekas därför fortfarande, med `*_qualified_supply_source_required`. Det är en fråga om rättslig grund för Ediel och har inte ändrats.
+       - **ÄGARBESLUT 2026-10-23 "Ediel-start + manuellt slut":**
+         - Starten kvalificeras av det mottagna Ediel-bytet.
+         - En manuell avflyttning, alltså när kunden meddelar avflyttning eller uppsägning via e-post eller telefon och operatören avslutar leveransen i plattformen, får korta perioden men aldrig förlänga den. Dagarna fram till avflyttningsdagen faktureras.
+         - Ett senare Z05 som anger ett annat slut rättar perioden.
+       - **Tillägg från ägaren:** en kund som har flyttat och saknar uppsägningstid, eller har en uppsägningstid på högst 14 dagar (privatpersoner), ska också räknas och hanteras rätt. Det utreds som H3d: hur uppsägningstid, bindningstid och avgifter beräknas vid flytt.
      - **Övrigt öppet:**
        - En Z05 LK som efter en manuell stängning anger slutet till nästa dag ger ett `ended_at` som inte stämmer, och då nekas faktureringen.
        - `gridex_close_customer_lifecycle_v1` i läget `terminate` skriver också `move_out`, och omfattas därmed.
