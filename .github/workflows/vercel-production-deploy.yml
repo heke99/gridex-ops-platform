@@ -89,3 +89,23 @@ jobs:
           done
           echo 'Timed out waiting for Vercel production deployment.' >&2
           exit 1
+
+      # FINDINGS F89/F91: the scoped Ediel production gate needs a verified release receipt for
+      # the running SHA. Recorded only from observed facts (see the script); skipped until the
+      # production Supabase secrets are configured for this repository.
+      - name: Record verified production release receipt
+        if: steps.credential.outputs.available == 'true'
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ github.sha }}
+          CI_RUN_ID: github:${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }}
+          DEPLOYMENT_ID: ${{ steps.create.outputs.deployment_id }}
+          GRIDEX_PRODUCTION_SUPABASE_URL: ${{ secrets.GRIDEX_PRODUCTION_SUPABASE_URL }}
+          GRIDEX_PRODUCTION_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.GRIDEX_PRODUCTION_SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${GRIDEX_PRODUCTION_SUPABASE_URL:-}" || -z "${GRIDEX_PRODUCTION_SUPABASE_SERVICE_ROLE_KEY:-}" ]]; then
+            echo '::warning::Production Supabase secrets are not configured; no release receipt recorded (scoped Ediel production sends stay held).'
+            exit 0
+          fi
+          node scripts/record-production-release-receipt.mjs

@@ -2,6 +2,7 @@ import { timingSafeEqual } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { processEdielOutbox } from '@/lib/ediel/outbox/processEdielOutbox'
 import { resolveConfiguredEdielAutomationActorId } from '@/lib/ediel/automationActor'
+import { recordCompanyCertifiedScopes } from '@/lib/ediel/companyCertifiedScopes'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -77,6 +78,18 @@ async function runOutboxProcessor(request: NextRequest, body: Record<string, unk
     parseEnvironment(String(body.environment ?? '')) ?? parseEnvironment(searchParams.get('environment'))
   const limit = parseLimit(body.limit ?? searchParams.get('limit'))
 
+  // Owner decision 2026-10-23 (F89/F90/F91): before production sends, the platform records the
+  // per-scope proof from the tenant's own company certification for every pending scope whose
+  // proof is missing or stale (new release, route or rule edition). The gate is unchanged and
+  // still refuses without a current proof; a failure here never stops the outbox (CONTRL/APERAK).
+  let scopeEvidence: unknown = null
+  if (environment !== 'test') {
+    scopeEvidence = await recordCompanyCertifiedScopes().catch((error: unknown) => {
+      console.error('[ediel-outbox-cron] company-certified scope evidence failed', error instanceof Error ? error.message : 'Unknown error')
+      return { status: 'failed', reason: 'ediel_company_certified_scopes_failed' }
+    })
+  }
+
   try {
     const result = await processEdielOutbox({
       actorUserId,
@@ -91,6 +104,7 @@ async function runOutboxProcessor(request: NextRequest, body: Record<string, unk
       environment,
       companyId: null,
       ignoredCompanyOverride: ignoredCompanyId ? 'blocked_on_generic_cron' : null,
+      scopeEvidence,
       result,
     })
   } catch (error) {

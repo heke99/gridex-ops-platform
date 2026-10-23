@@ -1469,6 +1469,31 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
     - Plattformen registrerar själv beviset för varje aktiverad meddelandetyp utifrån bolagets egen godkända certifiering: vid go-live och efter varje deploy, route-ändring eller ändrad regelversion. Det görs i ett jobb före utkorgen, aldrig i själva spärren.
     - Flera typer kan då gälla samtidigt, vilket rättar F90.
     - Implementeras av en agent.
+- **F89/F90/F91 — RÄTTADE ("Automatiska bevis", agent, native gröna):**
+  - **Varför v1 kan godta bevisen:** readiness v1 kräver att de lagrade certifieringsraderna är identiska med de levande, `passed` och inte utgångna. Den läser aldrig vilken meddelandetyp en rad är bunden till; det kravet finns bara i record-RPC:n och är själva F90-felet. Ett bevis med bolagets oförändrade rader godtas därför för hur många typer som helst. Det ogiltigförklaras fortfarande vid ändrad rad, ny release, route, regelpaket eller certifikat.
+  - **Ny funktion:** `ediel_record_company_certified_scope_evidence_v1` och en batchvariant, i migrationen `20261023160000`. Den registrerar bara när alla förutsättningar gäller:
+    - förmågan är ready;
+    - bolagsgrinden för certifieringsbevisen är ready;
+    - tenantoperationen är tillåten;
+    - rollen är tillåten;
+    - routeprofilen är produktionsgodkänd;
+    - ingen explicit deny finns;
+    - det finns ett verifierat release-kvitto.
+  - **F91:** förmågeraden skrivs i samma block och härleds från den godkända profilen.
+  - **Jobbet:** `lib/ediel/companyCertifiedScopes.ts` körs före utkorgen, aldrig i spärren. SC-069 gäller därmed fortfarande.
+  - **Release-kvittot:** ett nytt steg i `.github/workflows/vercel-production-deploy.yml` (`scripts/record-production-release-receipt.mjs`) skriver det bara från observerade fakta: git HEAD, `GITHUB_SHA` och Vercel-deploymentens commit stämmer överens, deploymenten är READY i produktion och `platform_runtime_readiness` är ready.
+    - **ÄGARÅTGÄRD:** lägg till GitHub-hemligheterna `GRIDEX_PRODUCTION_SUPABASE_URL` och `GRIDEX_PRODUCTION_SUPABASE_SERVICE_ROLE_KEY`. Tills dess hoppar steget över, och sändningar i produktion förblir spärrade.
+  - **Tester:**
+    - OPS-01, SC-069, OPS-04 och TR09 samt 2 nya enhetstester: 149 gröna;
+    - IMP-05: 43 PASS;
+    - F90-testet (oförändrat): grönt;
+    - nytt native-test, grönt: Z01, Z03 och UTILTS samtidigt; en ny SHA nekas tills jobbet har körts igen; en ändrad certifieringsrad ogiltigförklarar allt; nekade fall registrerar ingenting; en annan tenants certifiering räknas aldrig;
+    - typkontroll och eslint utan fel.
+  - **Täckningen:** först 350 av 352, där AT-Z02L/LK-SUPPLIER gav tidsrelaterade fel under belastning. `__tests__/ediel-z02-original-grid-refusal.test.ts` gav sedan 7 av 7 när det kördes ensamt.
+  - **FYND, inte rättade:**
+    - F36 kvarstår: beviset kräver att förmågan är ready, vilket den blir först vid live, så en provkörning före go-live får inget bevis.
+    - Ingen UTILTS-utgåva är aktiv i världen just nu: 2025-utgåvan slutade 2026-09-30 och nästa är `future`, så v1-capture nekar all utgående UTILTS i produktion där.
+    - Lucka vid första produktionssändningen: bevis som registrerats före den förblir giltiga i upp till 30 dagar, även när bolagsgrinden därefter kräver `LIMITED_PILOT`. Bara tenantoperationens kontroll nekar då. Låg till medel.
 - **K-06, churnmånad:** "spelar inte roll, gör det som är bäst."
   - Beslut: churn räknas i månaden för kundens **sista leveransdag**. Slutdatumet normaliseras efter källa: en Z05 är exklusiv och ett manuellt avslut är inklusivt.
   - Skäl: kortet säger redan "Sista leveransdag i månaden", det stämmer med hur leveransen faktiskt upphör, och samma avflytt hamnar då i samma månad oavsett källa.

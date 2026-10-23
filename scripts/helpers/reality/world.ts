@@ -74,12 +74,12 @@ export async function runOperationalCronSlot() {
     .filter(c => [5, 10, 15].includes(c.every))
     .sort((a, b) => (a.minute % 5) - (b.minute % 5) || a.minute - b.minute)
   const results: Array<{ path: string; status: number; ms: number; body: unknown }> = []
-  // Before the outbox runs: the stand-in for Ediel's per-scope test phase (FINDINGS F89/F90/F91) for tenants whose
-  // certification is simulated. Uses the platform's own record and readiness functions; never changes product SQL.
-  const certifyStarted = Date.now()
-  const { certifySimulatedEdielScopes } = await import('./scopedCertification')
-  const certified = await certifySimulatedEdielScopes().then(body => ({ status: 200, body }), (error: unknown) => ({ status: 500, body: { error: error instanceof Error ? error.message : String(error) } }))
-  results.push({ path: 'reality:certify-simulated-ediel-scopes', status: certified.status, ms: Date.now() - certifyStarted, body: certified.body })
+  // Before the outbox runs: the deploy pipeline's verified release receipt for the running build (FINDINGS F89/F91).
+  // The per-scope proofs themselves are recorded by the product's own job inside the Ediel outbox cron.
+  const receiptStarted = Date.now()
+  const { recordSimulatedReleaseReceipt } = await import('./scopedCertification')
+  const receipt = await recordSimulatedReleaseReceipt().then(body => ({ status: 200, body }), (error: unknown) => ({ status: 500, body: { error: error instanceof Error ? error.message : String(error) } }))
+  results.push({ path: 'reality:simulated-deploy-release-receipt', status: receipt.status, ms: Date.now() - receiptStarted, body: receipt.body })
   for (const entry of frequent) {
     if (slotIndex % (entry.every / 5) !== 0) continue
     const paths = entry.path.includes('environment=production') ? [entry.path, entry.path.replace('environment=production', 'environment=test')] : [entry.path]
