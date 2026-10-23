@@ -1638,6 +1638,22 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
     7. **Andra rader i `received`:** 25 Z04 i testkanalen (rester från native-tester) och en produktions-UTILTS (`c87918c4`) vars post står i `manual_review`. Inte utredda. Låg.
     8. **Index saknas** för återupptagningens urval över tenanter. Kostnaden är inte mätt. Låg.
 
+### P1 Mätvärdeslagringen går med ungefär 70 värden i minuten; kvittenshanteringen dominerar databastiden — MÄTT (världen, körning 26), medel; ej åtgärdat
+- **Körning 26, F6c:** 126 värden lagrade 11:11 och 475 kl. 11:16, alltså ungefär 70 i minuten. 123 filer à 96 kvartsvärden tar då nästan 3 timmar för en enda kund med 4 anläggningar. I produktion med många kunder räcker det inte.
+- **`pg_stat_statements`:** ackumulerat sedan världen startade, alla körningar och native-tester. De dyraste efter total tid:
+  | Funktion | Anrop | Snitt | Max | Totalt |
+  |---|---|---|---|---|
+  | `ediel_create_outbound_ack_atomic_v1` | 180 | 2 623 ms | 7,99 s | 472 s |
+  | `gridex_ediel_transport_attempt_v1` | 585 | 796 ms | 4,1 s | 466 s |
+  | `gridex_read_outbound_acks_for_source_v2` | 743 | 567 ms | 7,9 s | 421 s |
+  | `ediel_registry_route_source_v1` | 3 692 | 88 ms | 1,9 s | 327 s |
+  | `gridex_record_utilts_source_validation_v4` | 250 | 842 ms | 7,8 s | 210 s |
+  | `ediel_read_outbound_ack_replay_v1` | 311 | 530 ms | 8,0 s | 165 s |
+  | `gridex_consume_utilts_metering_v1` | 480 | 274 ms | 0,8 s | 131 s |
+  | `ediel_read_persisted_technical_contrl_basis_v2` | 77 | 1 502 ms | 3,4 s | 116 s |
+- **Koppling till F103:** flera funktioner närmar sig 8 sekunder. Klientens tidsgräns på 2 sekunder och statement timeouts (J3-12, L1) gör då att långsamma men lyckade skrivningar rapporteras som fel.
+- **Nästa steg:** mäta med `EXPLAIN (ANALYZE, BUFFERS)` i en vilande värld och jämföra före och efter. Ingen ändring utan mätt förbättring.
+
 ### Observationer i appens logg (körning 26, låg om inget annat anges)
 - `production route wizard runs could not be loaded` (PGRST205): tabellen `public.production_route_wizard_runs` finns inte i schemacachen. Antingen saknas migrationen i världen eller används tabellen utan att finnas.
 - `[manual-mailbox] imap_secret_reference rejected: not a MANUAL_MAILBOX_* variable` för brevlådan `21a35c21…`. Manuella inkorgen loggar fel varje minut.
