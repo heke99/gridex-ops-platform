@@ -1452,11 +1452,25 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
 - **Fel:** `P0U01 utilts_consumption_grid_owner_changed` från `gridex_utilts_binding.lock_attribution_v1`, som kräver `grid_owners.company_id = tenant`.
 - **Registermodellen (F41):** nätägaren är en plattformsgemensam rad (`company_id IS NULL`). Produktens egen webbväg kopplar tenantens mätpunkter till den raden; alla 8 mätpunkter i scenariot pekar på den gemensamma raden för 16700.
 - **Produktion:** 0 mätpunkter ännu, så inga data påverkas (summering, bara läsning).
-- **Utredning (agent):**
-  - vilket kanoniskt villkor som avgör att en gemensam nätägare är "tenantens";
-  - om andra funktioner bygger på samma antagande (variantanalys);
-  - vem som äger området;
-  - en rättning med native-test, om området inte ägs av någon annan.
+- **RÄTTAD (migration `20261023140000`, native 3/3):** ingen annan ägde området (kontrollerat mot #840, #766 och coverage). Rättningen anmäldes på #840.
+- **Den kanoniska regeln:** nätägaren är tenantens egen rad, eller en gemensam rad som tenantens egen mätpunkt, anläggning eller förfrågan pekar på (för samma kund). En annan tenants rad godtas aldrig.
+  - Samma regel används i `document_reference_facts_v1`, `gridex_manual_grid_owner_source_current_v2`, F58-resolvern och RLS på `grid_owners`.
+  - `FOR SHARE`, felkoden och låsordningen är oförändrade.
+- **Test:** `scripts/ediel-utilts-shared-grid-owner-native.test.ts`.
+  - En bunden gemensam nätägare: förbruknings- och faktureringsunderlag lagras, och en omkörning ger samma resultat.
+  - En obunden gemensam nätägare nekas.
+  - En annan tenants nätägare nekas.
+  - Utan migrationen återskapas felet.
+- **Övriga kontroller:**
+  - SC-046: 137 av 137;
+  - ERR-gateway: grön;
+  - UTILTS-förbrukning: 140 av 141, där ett test växlade mellan körningar med `utilts_final_canonical_transaction_evidence_unconfirmed`, som uppstår före lagringen. Det testet var grönt när det kördes ensamt.
+  - täckningen för masterplanen: 352 av 352.
+- **Varianter (samma antagande om tenantägd nätägare, inte rättade):**
+  - `gridex_bilateral_prodat.scope_v1` kräver `grid.company_id = point.company_id`.
+  - `gridex_rebuild_company_analytics_month` utesluter gemensamma nätägare ur statistiken per nätägare. Det berör scenario K.
+  - Uppslagningar i TypeScript med `.eq('company_id', …)`: `replyGridOwnerId` (`routeRegistry.ts`), `receiverGridOwner` (`prodatRequestedChange.ts`) och `getGridOwnerIdByGridArea` (`inboundCases.ts`).
+  - Samtliga ÖPPNA, medel.
 
 ### F100 Produktionsprofiler för UTILTS (och kvittenser till UTILTS) får `encryption_mode='none'`, men produktion kräver S/MIME för alla familjer — BEKRÄFTAD (världen + produktion), kritisk; RÄTTAD (kod + migration)
 - **Utfall (körning 21):** 25 CONTRL till nätägarens E66 spärrades i utkorgen med `production_smime_required`. Kvittensprofilen för PRODAT hade `smime` och ett certifikat, men de sex profilerna för UTILTS hade `none`.
