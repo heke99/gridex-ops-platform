@@ -213,9 +213,11 @@ jobs:
           # Main #905 changes only next/@next/* 16.3.8 to 16.4.2 on that exact Mail pair
           # (GHSA-2464-fhr4-w9xw, GHSA-p3m5-59mp-jv5r).
           exact_next_security_dependencies = {'package.json': {'mode': '100644', 'git_blob_oid': '6773cdc230b659091700b6582181477e01856a86', 'sha256': '8106165e1d34761e56f1eba99f9268f3aaa2228f105f2f20e365d6bc2c9a5fde'}, 'package-lock.json': {'mode': '100644', 'git_blob_oid': '31f1c20801f94cfbef7ec71722e8452967cbb470', 'sha256': '59623bc0f74bc1e57c5940788e8ed0b3c65123d08193f34e9d6659c5065f9f7c'}}
+          exact_zod_security_dependencies = {'package.json': {'mode': '100644', 'git_blob_oid': '7f0baef1da8ff1aa410a40d0835346749281a506', 'sha256': '52af42e9b40c440622dd09ad15126968278ad121f9fa66451c2fac68783f0f38'}, 'package-lock.json': {'mode': '100644', 'git_blob_oid': 'a6e86ff9b2dff932b18afcd0963c3d3fae12de58', 'sha256': 'd0501a03422daaa93721fc7813751eb5eee12a85ae85a6ff6902d48546d2edc4'}}
           if {p:baseline['blobs'].get(p) for p in dependency_paths} != expected_base_dependencies:
               raise RuntimeError('db01_BASE_dependency_inputs_changed')
-          exact_mail = {p:current['blobs'].get(p) for p in dependency_paths} in (exact_mail_dependencies, exact_next_security_dependencies)
+          exact_mail = {p:current['blobs'].get(p) for p in dependency_paths} in (exact_mail_dependencies, exact_next_security_dependencies, exact_zod_security_dependencies)
+          exact_zod = {p:current['blobs'].get(p) for p in dependency_paths} == exact_zod_security_dependencies
           for path in ['package.json','package-lock.json','.nvmrc','.npmrc']:
               if current['blobs'].get(path) != baseline['blobs'].get(path) and not (exact_mail and path in dependency_paths):
                   raise RuntimeError('BASE/current dependency inputs differ: '+path)
@@ -237,6 +239,15 @@ jobs:
               dependency_compatibility = {'compatibility':'EXACT_MAILAUTH_7_3_1_PDF_LIB_1_17_1_XLSX_0_20_3_WITH_SOURCE_MAP_JS_1_2_2_SHARP_0_35_5',
                   'dependency_install':'exact reviewed Mail candidate npm ci shared with immutable BASE; no BASE package rewrite',
                   'base_packages_modified':False,'actual_installed_versions':installed,'actual_supported_node':actual_node}
+          if exact_zod:
+              declared=json.loads((root/'package.json').read_text())
+              locked=json.loads((root/'package-lock.json').read_text())
+              actual=json.loads((root/'node_modules/zod/package.json').read_text())['version']
+              if not (declared['dependencies']['zod']==locked['packages']['']['dependencies']['zod']==locked['packages']['node_modules/zod']['version']==actual=='4.6.7'):
+                  raise RuntimeError('db01_zod_dependency_version_mismatch')
+              dependency_compatibility['compatibility']='EXACT_ZOD_4_6_7_WITH_NEXT_16_4_2_MAIL_AND_SECURITY_FIXES'
+              dependency_compatibility['actual_installed_versions']['zod']=actual
+              dependency_compatibility['actual_locked_zod']=locked['packages']['node_modules/zod']['version']
           for path,expected in expected_sql_hashes.items():
               if current['blobs'][path]['sha256'] != expected:
                   raise RuntimeError('exact SQL source identity changed: '+path)
@@ -778,7 +789,29 @@ jobs:
             if [[ "$repair_exit" != 0 ]]; then exit "$repair_exit"; fi
             export GRIDEX_DB01_NATIVE_PHASE=historical GRIDEX_DB01_SOURCE_ROOT="$DB01_BASE_ROOT"
             historical_exit=0
-            npx vitest run --config scripts/ediel-db01-current-native.config.ts \
+          python3 - <<'PYZOD'
+          import json,os,pathlib,subprocess
+          candidate=pathlib.Path(os.environ['CURRENT_ROOT'])
+          evidence=pathlib.Path(os.environ['DB01_PRIVATE'])/'evidence'
+          receipt=json.loads(pathlib.Path(os.environ['GRIDEX_DB01_NATIVE_RECEIPT']).read_text())
+          active=receipt['dependency_compatibility']['actual_installed_versions'] is not None and receipt['dependency_compatibility']['actual_installed_versions'].get('zod')=='4.6.7'
+          config=pathlib.Path(os.environ['CURRENT_ROOT'])/'scripts/ediel-db01-current-native.config.ts'
+          if active:
+              legacy_entry=subprocess.check_output(['node','-p',"require.resolve('zod/v3')"],cwd=candidate,text=True).strip()
+              root_entry=subprocess.check_output(['node','-p',"require.resolve('zod')"],cwd=candidate,text=True).strip()
+              base=pathlib.Path(os.environ['DB01_BASE_ROOT'])
+              parser=base/'lib/website/customerApplicationSchemas.ts'
+              import hashlib
+              assert hashlib.sha256(parser.read_bytes()).hexdigest()=='13ace1ff2a8d35b9041ffb8a76745c91f82175659678a1e82a912ca218295267','historical_zod_parser_source_unqualified'
+              wrapper='import {createHash} from \'node:crypto\'\nimport {realpathSync} from \'node:fs\'\nimport original from ORIGINAL_CONFIG\nconst target=realpathSync(BASE_PARSER)\nconst originalHash=\'13ace1ff2a8d35b9041ffb8a76745c91f82175659678a1e82a912ca218295267\'\nconst plugin={name:\'qualified-historical-zod3-parser\',enforce:\'pre\',transform(code,id){\n if(id.split(\'?\')[0]!==target)return null\n if(createHash(\'sha256\').update(code).digest(\'hex\')!==originalHash)throw new Error(\'historical_zod_parser_source_unqualified\')\n const needle=\'from "zod";\'\n if(code.split(needle).length!==2)throw new Error(\'historical_zod_parser_import_unqualified\')\n return {code:code.replace(needle,\'from "zod/v3";\'),map:null}\n}}\nexport default {...original,plugins:[plugin,...(original.plugins??[])]}\n'
+              wrapper=wrapper.replace('ORIGINAL_CONFIG',json.dumps(str(config.resolve()))).replace('BASE_PARSER',json.dumps(str(parser.resolve())))
+              config=evidence/'historical-zod-compat.config.mts'
+              config.write_text(wrapper)
+              receipt['historical_zod_parser_compatibility']={'scope':'ONLY immutable BASE website parser import transformed in memory; ROOT consumers unchanged','path':str(parser),'source_sha256':hashlib.sha256(parser.read_bytes()).hexdigest(),'virtual_source_sha256':hashlib.sha256(parser.read_text().replace('from "zod";','from "zod/v3";').encode()).hexdigest(),'runtime':'zod/v3 bundled within exact installed zod 4.6.7','resolved_legacy_entry':legacy_entry,'resolved_root_entry':root_entry,'legacy_entry_sha256':hashlib.sha256(pathlib.Path(legacy_entry).read_bytes()).hexdigest(),'config_sha256':hashlib.sha256(wrapper.encode()).hexdigest()}
+              pathlib.Path(os.environ['GRIDEX_DB01_NATIVE_RECEIPT']).write_text(json.dumps(receipt,indent=2)+'\n')
+          (evidence/'historical-config-path').write_text(str(config.resolve()))
+          PYZOD
+            npx vitest run --config "$(cat "$DB01_PRIVATE/evidence/historical-config-path")" \
               --reporter=default --reporter=junit --outputFile="$DB01_PRIVATE/evidence/historical-junit.xml" \
               > "$DB01_PRIVATE/evidence/historical-native.log" 2>&1 || historical_exit=$?
             update_phase historical "$historical_exit"

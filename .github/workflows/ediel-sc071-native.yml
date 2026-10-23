@@ -101,6 +101,8 @@ jobs:
                         'ff970a29bedc8fb54afa725a9694507d95889bfbeed645b1e47d937eade90e75')
           next_security_fix=('8106165e1d34761e56f1eba99f9268f3aaa2228f105f2f20e365d6bc2c9a5fde',
                              '59623bc0f74bc1e57c5940788e8ed0b3c65123d08193f34e9d6659c5065f9f7c')
+          zod_security_fix=('52af42e9b40c440622dd09ad15126968278ad121f9fa66451c2fac68783f0f38', 'd0501a03422daaa93721fc7813751eb5eee12a85ae85a6ff6902d48546d2edc4')
+          zod_git_blobs=('7f0baef1da8ff1aa410a40d0835346749281a506', 'a6e86ff9b2dff932b18afcd0963c3d3fae12de58')
           def hashes(root):return tuple(hashlib.sha256((root/p).read_bytes()).hexdigest() for p in paths)
           # Keep immutable BASE packages. Permit only its exact original pair
           # or either exact reviewed security repair: source-map-js 1.2.2,
@@ -112,16 +114,16 @@ jobs:
           # Mixed pairs and every other dependency change remain fail-closed.
           base_pair,candidate_pair=hashes(base),hashes(candidate)
           assert base_pair==original,'sc071_base_dependency_inputs_changed'
-          assert candidate_pair in (original,source_map_fix,sharp_fix,mail_ops_fix,next_security_fix),'sc071_candidate_dependency_inputs_unqualified'
+          assert candidate_pair in (original,source_map_fix,sharp_fix,mail_ops_fix,next_security_fix,zod_security_fix),'sc071_candidate_dependency_inputs_unqualified'
           expected='1.2.1' if candidate_pair==original else '1.2.2'
           installed=subprocess.check_output(['node','-p',"require('source-map-js/package.json').version"],cwd=candidate,text=True).strip()
           assert installed==expected,'sc071_installed_source_map_version_mismatch'
           sharp_installed=None
-          if candidate_pair in (sharp_fix,mail_ops_fix):
+          if candidate_pair in (sharp_fix,mail_ops_fix,next_security_fix,zod_security_fix):
               sharp_installed=subprocess.check_output(['node','-p',"require('sharp').versions.sharp"],cwd=candidate,text=True).strip()
               assert sharp_installed=='0.35.5','sc071_installed_sharp_version_mismatch'
           mail_dependencies=None
-          if candidate_pair==mail_ops_fix:
+          if candidate_pair in (mail_ops_fix,next_security_fix,zod_security_fix):
               direct={'mailauth':'7.3.1','pdf-lib':'1.17.1','xlsx':'0.20.3'}
               locked=json.loads((candidate/'package-lock.json').read_text())['packages']
               mail_dependencies={}
@@ -131,7 +133,19 @@ jobs:
                   assert package['version']==version,'sc071_locked_mail_dependency_version_mismatch'
                   assert actual==version,'sc071_installed_mail_dependency_version_mismatch'
                   mail_dependencies[name]={'locked':package['version'],'installed':actual,'resolved':package['resolved']}
-          compatibility=('EXACT_MANUAL_MAIL_DEPENDENCIES_AND_6144_HEAP_WITH_SECURITY_FIXES' if candidate_pair==mail_ops_fix else
+          zod_dependency=None
+          if candidate_pair==zod_security_fix:
+              for p,oid in zip(paths,zod_git_blobs):
+                  data=(candidate/p).read_bytes()
+                  assert hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest()==oid,'sc071_zod_git_blob_mismatch'
+              locked=json.loads((candidate/'package-lock.json').read_text())
+              declared=json.loads((candidate/'package.json').read_text())
+              actual=json.loads((candidate/'node_modules/zod/package.json').read_text())['version']
+              assert declared['dependencies']['zod']==locked['packages']['']['dependencies']['zod']==locked['packages']['node_modules/zod']['version']==actual=='4.6.7','sc071_zod_dependency_version_mismatch'
+              zod_dependency={'locked':locked['packages']['node_modules/zod']['version'],'installed':actual,'git_blobs':dict(zip(paths,zod_git_blobs))}
+          compatibility=('EXACT_ZOD_4_6_7_WITH_NEXT_16_4_2_MAIL_AND_SECURITY_FIXES' if candidate_pair==zod_security_fix else
+                         'EXACT_NEXT_16_4_2_WITH_MAIL_AND_SECURITY_FIXES' if candidate_pair==next_security_fix else
+                         'EXACT_MANUAL_MAIL_DEPENDENCIES_AND_6144_HEAP_WITH_SECURITY_FIXES' if candidate_pair==mail_ops_fix else
                          'SHARP_0_35_5_AND_SOURCE_MAP_JS_1_2_2_SECURITY_FIX' if candidate_pair==sharp_fix else
                          'SOURCE_MAP_JS_1_2_2_SECURITY_FIX' if candidate_pair==source_map_fix else 'BYTE_IDENTICAL_ORIGINAL')
           receipt={'dependency_install':'candidate npm ci; immutable BASE package pair plus exact reviewed security compatibility',
@@ -139,6 +153,7 @@ jobs:
                    'candidate_package_sha256':dict(zip(paths,candidate_pair)),
                    'compatibility':compatibility,
                    'actual_installed_source_map_js':installed,'actual_installed_sharp':sharp_installed,'base_packages_modified':False}
+          if zod_dependency is not None:receipt['actual_zod_dependency']=zod_dependency
           if mail_dependencies is not None:
               receipt['dependency_install']='candidate npm ci; immutable BASE pair plus exact reviewed mail/heap/security compatibility'
               receipt['actual_mail_dependency_versions']=mail_dependencies
@@ -245,10 +260,32 @@ jobs:
                   time.sleep(0.5)
           (out/'rpc-readiness.json').write_text(json.dumps(witnessed,indent=2)+'\n')
           PY
+          python3 - <<'PYZOD'
+          import json,os,pathlib,subprocess
+          candidate=pathlib.Path(os.environ['SC071_CANDIDATE_ROOT'])
+          evidence=pathlib.Path(os.environ['SC071_EVIDENCE'])
+          receipt=json.loads((evidence/'dependency-inputs.json').read_text())
+          active='actual_zod_dependency' in receipt
+          config=pathlib.Path(os.environ['SC071_BASE_ROOT'])/'quality/audits/ediel-masterplan-v2/sc071-revocation/native.config.ts'
+          if active:
+              legacy_entry=subprocess.check_output(['node','-p',"require.resolve('zod/v3')"],cwd=candidate,text=True).strip()
+              root_entry=subprocess.check_output(['node','-p',"require.resolve('zod')"],cwd=candidate,text=True).strip()
+              base=pathlib.Path(os.environ['SC071_BASE_ROOT'])
+              parser=base/'lib/website/customerApplicationSchemas.ts'
+              import hashlib
+              assert hashlib.sha256(parser.read_bytes()).hexdigest()=='13ace1ff2a8d35b9041ffb8a76745c91f82175659678a1e82a912ca218295267','historical_zod_parser_source_unqualified'
+              wrapper='import {createHash} from \'node:crypto\'\nimport {realpathSync} from \'node:fs\'\nimport original from ORIGINAL_CONFIG\nconst target=realpathSync(BASE_PARSER)\nconst originalHash=\'13ace1ff2a8d35b9041ffb8a76745c91f82175659678a1e82a912ca218295267\'\nconst plugin={name:\'qualified-historical-zod3-parser\',enforce:\'pre\',transform(code,id){\n if(id.split(\'?\')[0]!==target)return null\n if(createHash(\'sha256\').update(code).digest(\'hex\')!==originalHash)throw new Error(\'historical_zod_parser_source_unqualified\')\n const needle=\'from "zod";\'\n if(code.split(needle).length!==2)throw new Error(\'historical_zod_parser_import_unqualified\')\n return {code:code.replace(needle,\'from "zod/v3";\'),map:null}\n}}\nexport default {...original,plugins:[plugin,...(original.plugins??[])]}\n'
+              wrapper=wrapper.replace('ORIGINAL_CONFIG',json.dumps(str(config.resolve()))).replace('BASE_PARSER',json.dumps(str(parser.resolve())))
+              config=evidence/'historical-zod-compat.config.mts'
+              config.write_text(wrapper)
+              receipt['historical_zod_parser_compatibility']={'scope':'ONLY immutable BASE website parser import transformed in memory; ROOT consumers unchanged','path':str(parser),'source_sha256':hashlib.sha256(parser.read_bytes()).hexdigest(),'virtual_source_sha256':hashlib.sha256(parser.read_text().replace('from "zod";','from "zod/v3";').encode()).hexdigest(),'runtime':'zod/v3 bundled within exact installed zod 4.6.7','resolved_legacy_entry':legacy_entry,'resolved_root_entry':root_entry,'legacy_entry_sha256':hashlib.sha256(pathlib.Path(legacy_entry).read_bytes()).hexdigest(),'config_sha256':hashlib.sha256(wrapper.encode()).hexdigest()}
+              (evidence/'dependency-inputs.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          (evidence/'historical-config-path').write_text(str(config.resolve()))
+          PYZOD
           printf native > "$RUNNER_TEMP/sc071-stage"
           native_exit=0
           npx vitest run \
-            --config quality/audits/ediel-masterplan-v2/sc071-revocation/native.config.ts \
+            --config "$(cat "$SC071_EVIDENCE/historical-config-path")" \
             --reporter=default --reporter=junit \
             --outputFile="$SC071_EVIDENCE/native-junit.xml" \
             > "$SC071_EVIDENCE/native.log" 2>&1 || native_exit=$?
