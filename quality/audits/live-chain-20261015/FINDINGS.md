@@ -1825,6 +1825,35 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
 - **Observation:** en slot motsvarar 5 minuter men anropas varje minut i slingorna, alltså 5 gånger komprimerad tid. Samma konvention som F2-slingan.
 - **Gäller från nästa körning.** Körning 26 körs från en äldre checkout.
 
+### F körning 26 (tenant `7b53f121`, 09:49–13:42): F1–F3, F5, F6, F6b gröna; F4, F6c, F7–F10 röda
+- **Bytet:**
+  - 4 Z01 och 4 Z03 skickades och kvitterades i produktion, vilket verifierar F90.
+  - 3 av 4 Z04 tolkades och fick aktiva perioder. Den fjärde strandade (F103).
+- **F4** föll, men inte på F103. Det första som föll var anläggningen `…324819`, som hade `atSupplyStart: false`. `market_start_at` är `2026-08-31T23:00Z`, alltså 00:00 i fast normaltid (UTC+1). Testet väntade sig svensk civil midnatt, 22:00Z. Se F108.
+- **F6c:** nådde testets tidsgräns på 150 minuter efter cirka 100 av 123 filer (10 000 värden) med 0 misslyckade meddelanden. Långsamheten är P1. Alla knapptryck gav 500 trots lagring (F107).
+- **F7:** admins spotprisimport svarade 403 "Ej behörig". Ingen tidigare körning har nått F7. Se F109.
+- **F8–F10:** följdfel (inga fakturor och inga spotpriser).
+- **Rapport:** `report-f-run26.json` i scratchpad.
+
+### F108 Leveransstartens tidsgräns: Ediel-fast normaltid (23:00Z) mot svensk civil midnatt (22:00Z) — BEKRÄFTAD (världen), hög för debitering; utreds
+- **Plattformen** lagrar Z04:ans `DTM+92 202609010000` som `market_start_at = 2026-08-31T23:00Z`. Det följer den godkända ENV-08: payload i fast normaltid, lagra UTC plus offset och affärsdatum.
+- **Andra vägar:**
+  - Plattformens egen reservväg utan Ediel-tid använder "00:00 svensk tid", alltså 22:00Z sommartid (rad 558 här ovan).
+  - Simulatorns E66-dygn är civila Stockholmsdygn.
+  - Testet F4 väntar sig civil midnatt.
+- **Spår i körning 22:** de 8 värdena som blockerades med `supply_source_unqualified` motsvarar exakt 4 kvartar × 2 anläggningar, alltså första civila timmen den 1 september före 23:00Z.
+- **Frågor:**
+  - Vilken timme den 1 september tillhör vem vid ett leverantörsbyte?
+  - Ska debiteringens dygnsgränser följa Ediels fasta CET-dygn (96 kvartar) eller civila dygn?
+  - Gäller premissen i scenario G om 100 kvartar på vintertidsdygnet?
+  - ENV-08:s `on_failure` säger "Använd inte … 92/100 kvartar per fast-CET-dygn".
+- Utreds av agent mot masterplanen och handboken.
+
+### F109 Tenantadmin får 403 på `/api/internal/spot/import-month` — BEKRÄFTAD (världen, körning 26), hög; utreds
+- Routen kräver `requireAdminApiAccess(['pricing.write'])` och `requireOperationalCompanyId`.
+- `company_admin` har `pricing.write` i `lib/admin/accessModel.ts`, men tenantens admin fick ändå "Ej behörig".
+- F7 i F, G och J2 använder samma anrop.
+
 ### P1 Mätvärdeslagringen går med ungefär 70 värden i minuten; kvittenshanteringen dominerar databastiden — MÄTT (världen, körning 26), medel; ej åtgärdat
 - **Körning 26, F6c:** 126 värden lagrade 11:11 och 475 kl. 11:16, alltså ungefär 70 i minuten. 123 filer à 96 kvartsvärden tar då nästan 3 timmar för en enda kund med 4 anläggningar. I produktion med många kunder räcker det inte.
 - **`pg_stat_statements`:** ackumulerat sedan världen startade, alla körningar och native-tester. De dyraste efter total tid:
