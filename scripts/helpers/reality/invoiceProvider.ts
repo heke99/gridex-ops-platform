@@ -1,6 +1,7 @@
 // The tenant's own billing admin chooses its invoice provider under Fakturering → Integrationer
-// (/admin/billing/integrations, selectInvoiceProviderAction), as a supplier does before its first billing month.
-// Without it the monthly billing cron refuses the tenant ("Ingen fakturaleverantör är vald för bolaget", FINDINGS T18).
+// (/admin/billing/integrations, selectInvoiceProviderAction), as a supplier does before go-live (goLiveAlsSupplier).
+// Without it the monthly billing cron refuses the tenant ("Ingen fakturaleverantör är vald för bolaget", FINDINGS T18),
+// and go-live readiness refuses the transition to live production (FINDINGS F115, invoice_provider_missing).
 // The test provider environment: the run prepares and reviews invoices, nothing is dispatched. Synthetic data only.
 import { literal, sql } from '../live-chain-fixture'
 import { operatorSession, submitServerAction } from './operatorConsole'

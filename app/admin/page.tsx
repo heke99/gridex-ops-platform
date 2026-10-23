@@ -11,6 +11,7 @@ import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { getEdielSummary, type EdielSummary } from '@/lib/ediel/summary'
 import { getActiveEdielActorSettings } from '@/lib/ediel/config'
 import { getCompanyDashboardSummary } from '@/lib/performance/companySummaries'
+import { evaluateTenantInvoiceProviderReadiness, loadTenantInvoiceProviderSelection } from '@/lib/billing/providers/registry'
 
 export const dynamic = 'force-dynamic'
 
@@ -236,6 +237,11 @@ export default async function AdminDashboardPage() {
  const inThirtyDays = inThirtyDaysDate.toISOString().slice(0, 10)
  const latestMeteringSince = latestMeteringSinceDate.toISOString()
  const dashboardSummary = await getCompanyDashboardSummary(supabase, summaryCompanyId)
+ // F115: go-live requires the invoice provider the monthly billing cron requires. The tenant's own
+ // admin chooses it; an unreadable selection shows nothing rather than a false action.
+ const invoiceProviderSelection = !isPlatformAdmin && companyId
+  ? loadTenantInvoiceProviderSelection(companyId).catch(() => undefined)
+  : Promise.resolve(undefined)
 
  const [
  ediel,
@@ -302,6 +308,8 @@ export default async function AdminDashboardPage() {
  ])
 
  const actor = productionActor ?? testActor
+ const selectedInvoiceProvider = await invoiceProviderSelection
+ const invoiceProviderReadiness = selectedInvoiceProvider === undefined ? null : evaluateTenantInvoiceProviderReadiness(selectedInvoiceProvider ?? {})
  const liveWarnings =
  typeof pendingTasks === 'number' && typeof openGridOwnerRequests === 'number'
  ? ediel.failedMessages + ediel.ackPendingMessages + ediel.ackOverdueMessages + pendingTasks + openGridOwnerRequests
@@ -348,6 +356,17 @@ export default async function AdminDashboardPage() {
  </div>
  </div>
  </section>
+
+ {invoiceProviderReadiness && !invoiceProviderReadiness.ready ? (
+ <section className="rounded-2xl border border-amber-300 bg-amber-50 p-5 shadow-sm">
+ <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-900">Åtgärd före go-live</p>
+ <h2 className="mt-1 text-xl font-semibold text-slate-950">Fakturaleverantör saknas</h2>
+ <p className="mt-2 max-w-4xl text-sm font-bold leading-6 text-slate-800">{invoiceProviderReadiness.message}</p>
+ <Link href={invoiceProviderReadiness.actionHref} className="mt-3 inline-flex min-h-10 items-center rounded-xl bg-emerald-700 px-4 py-2 text-sm font-black text-white shadow-sm transition hover:bg-emerald-800">
+ {invoiceProviderReadiness.actionLabel}
+ </Link>
+ </section>
+ ) : null}
 
  <section className="grid grid-cols-2 gap-2 xl:grid-cols-6">
  <MetricCard label="Kunder" value={customers} hint="Aktuellt kundregister" href="/admin/customers" tone="emerald" />

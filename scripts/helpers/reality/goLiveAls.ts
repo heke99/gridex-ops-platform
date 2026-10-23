@@ -7,6 +7,7 @@ import { approveTenantRouteProfiles, ensureProductionWhiteLabelColumnParity, goL
 import { checkGridOwners, chooseTenantBrp, createProductionRoutesFromWizard, confirmSafeBlankSubaddresses, importActorRegistry, materializeTenantRoutes, searchGridOwnerCertificate, operatorSession, sanitizedActorRegistry, verifyActorForCustomerFlow } from './operatorConsole'
 import { prepareMarketData, startGridOwner, type GridOwnerSim } from './world'
 import { configureProductionMailboxAsOperator } from './productionMailbox'
+import { selectInvoiceProviderAsTenant } from './invoiceProvider'
 
 // A real SE3 grid area imported from Svenska kraftnät (ALS, Alingsås); the grid owner itself is simulated.
 export const GRID_AREA = 'ALS'
@@ -53,6 +54,10 @@ export async function goLiveAlsSupplier(report: Record<string, unknown>, options
   report.gridOwnerCheck = await checkGridOwners(staff)
   // The shared production mailbox the grid owner answers production files to (FINDINGS T7).
   report.productionMailbox = await configureProductionMailboxAsOperator(staff)
+  // Go-live requires a selected invoice provider (FINDINGS F115, owner decision 2026-10-23 "Spärra go-live"): the tenant's own
+  // billing admin chooses it under Fakturering → Integrationer before the platform takes the supplier live, as a real supplier must.
+  report.invoiceProvider = await selectInvoiceProviderAsTenant(tenant.companyId)
+  if (!(report.invoiceProvider as { stored?: { provider?: string | null } }).stored?.provider) throw Error(`invoice_provider_not_selected_before_go_live:${JSON.stringify(report.invoiceProvider)}`)
   // FINDINGS F36/F37: no supported path takes a new supplier live in production or publishes a receiver's
   // certificate trust. The simulation stands in for Ediel certification, first-send approval and the external
   // trust owner; everything after it is the real code. Routes are materialized after go-live, as for a supplier

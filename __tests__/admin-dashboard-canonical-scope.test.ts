@@ -9,6 +9,7 @@ const io = vi.hoisted(() => ({
   summary: vi.fn(),
   actors: vi.fn(),
   ediel: vi.fn(),
+  invoiceProvider: vi.fn(),
   queries: [] as Array<{ table: string; filters: Array<[string, unknown]> }>,
   rpcs: [] as Array<{ name: string; args: unknown }>,
 }))
@@ -29,6 +30,10 @@ vi.mock('@/lib/tenant/scope', () => ({
 vi.mock('@/lib/performance/companySummaries', () => ({ getCompanyDashboardSummary: io.summary }))
 vi.mock('@/lib/ediel/config', () => ({ getActiveEdielActorSettings: io.actors }))
 vi.mock('@/lib/ediel/summary', () => ({ getEdielSummary: io.ediel }))
+vi.mock('@/lib/billing/providers/registry', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/billing/providers/registry')>()),
+  loadTenantInvoiceProviderSelection: io.invoiceProvider,
+}))
 vi.mock('@/components/admin/AdminHeader', () => ({ default: ({ workspaceName }: { workspaceName?: string | null }) => React.createElement('header', null, workspaceName) }))
 vi.mock('@/components/admin/ui/AdminActionsMenu', () => ({ default: () => null }))
 vi.mock('next/link', () => ({ default: ({ href, children }: { href: string; children: React.ReactNode }) => React.createElement('a', { href }, children) }))
@@ -62,6 +67,7 @@ beforeEach(() => {
   io.summary.mockReset().mockImplementation(async () => io.summaryAvailable ? new Proxy({}, { get: () => 0 }) : null)
   io.actors.mockReset().mockResolvedValue(null)
   io.ediel.mockReset().mockResolvedValue({ failedMessages: 0, ackPendingMessages: 0, ackOverdueMessages: 0 })
+  io.invoiceProvider.mockReset().mockResolvedValue({ invoice_export_target_system: 'nordfin', billing_provider_environment: 'test', invoice_export_enabled: true })
   vi.stubGlobal('React', React)
 })
 
@@ -97,4 +103,22 @@ it('preserves platform-wide summary and fallback counts independently of a selec
   expect(io.queries.every(query => !query.filters.some(([column]) => column === 'company_id'))).toBe(true)
   expect(io.rpcs).toEqual([{ name: 'gridex_pending_website_application_count', args: { p_company_id: null } }])
   expect(io.actors.mock.calls.map(call => call[1])).toEqual(['legacy-B', 'legacy-B'])
+})
+
+// reality-defects: F115
+it('shows the tenant admin the go-live action to choose an invoice provider, read for the guarded company only', async () => {
+  io.invoiceProvider.mockResolvedValue({ invoice_export_target_system: null, billing_provider_environment: null, invoice_export_enabled: false })
+  const html = renderToStaticMarkup(await AdminDashboardPage())
+  expect(io.invoiceProvider.mock.calls).toEqual([['guard-A']])
+  expect(html).toContain('Fakturaleverantör saknas')
+  expect(html).toContain('href="/admin/billing/integrations"')
+  expect(html).toContain('Go-live kräver en vald fakturaleverantör')
+
+  io.invoiceProvider.mockResolvedValue({ invoice_export_target_system: 'nordfin', billing_provider_environment: 'test', invoice_export_enabled: false })
+  expect(renderToStaticMarkup(await AdminDashboardPage())).not.toContain('Fakturaleverantör saknas')
+
+  io.invoiceProvider.mockClear()
+  io.platform = true
+  expect(renderToStaticMarkup(await AdminDashboardPage())).not.toContain('Fakturaleverantör saknas')
+  expect(io.invoiceProvider).not.toHaveBeenCalled()
 })

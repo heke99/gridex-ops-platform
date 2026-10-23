@@ -87,7 +87,17 @@ function IssueList({
           <li>Inga poster.</li>
         ) : (
           issues.map((issue) => (
-            <li key={`${issue.code}-${issue.message}`}>{issue.message}</li>
+            <li key={`${issue.code}-${issue.message}`}>
+              {issue.message}
+              {issue.actionHref ? (
+                <>
+                  {" "}
+                  <Link href={issue.actionHref} className="font-semibold underline underline-offset-2">
+                    {issue.actionLabel ?? "Åtgärda"}
+                  </Link>
+                </>
+              ) : null}
+            </li>
           ))
         )}
       </ul>

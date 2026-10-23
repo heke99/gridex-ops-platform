@@ -59,6 +59,50 @@ export function requireTenantInvoiceProvider(company: {
   return { provider, environment }
 }
 
+/** Where the tenant's own admin chooses its invoice provider (selectInvoiceProviderAction). */
+export const INVOICE_PROVIDER_SETTINGS_PATH = '/admin/billing/integrations'
+/** Stable go-live readiness code for a tenant the monthly billing cron would refuse (FINDINGS F115). */
+export const INVOICE_PROVIDER_MISSING_CODE = 'invoice_provider_missing'
+
+export type TenantInvoiceProviderReadiness =
+  | { ready: true; provider: DispatchProvider; environment: InvoiceProviderEnvironment }
+  | {
+      ready: false
+      code: typeof INVOICE_PROVIDER_MISSING_CODE
+      /** The billing code the cron raises: invoice_provider_not_selected / _not_available / _environment_missing. */
+      reason: string
+      message: string
+      actionLabel: string
+      actionHref: string
+    }
+
+/**
+ * "A provider is selected", by the same definition the monthly billing cron uses
+ * (requireTenantInvoiceProvider): ready exactly when the cron would accept the tenant.
+ * Never throws for a configuration gap; it reports it with an action for the tenant's admin.
+ */
+export function evaluateTenantInvoiceProviderReadiness(company: {
+  invoice_export_target_system?: unknown
+  billing_provider_environment?: unknown
+}): TenantInvoiceProviderReadiness {
+  try {
+    return { ready: true, ...requireTenantInvoiceProvider(company) }
+  } catch (error) {
+    if (!(error instanceof InvoiceProviderConfigError)) throw error
+    const action = error.message.includes('Fakturering → Integrationer')
+      ? ''
+      : ' Bolagets administratör åtgärdar det under Fakturering → Integrationer.'
+    return {
+      ready: false,
+      code: INVOICE_PROVIDER_MISSING_CODE,
+      reason: error.code,
+      message: `${error.message}${action} Go-live kräver en vald fakturaleverantör, annars nekar månadsdebiteringen bolaget efter första leveransmånaden.`,
+      actionLabel: 'Välj fakturaleverantör',
+      actionHref: INVOICE_PROVIDER_SETTINGS_PATH,
+    }
+  }
+}
+
 export type TenantInvoiceProviderSelection = {
   invoice_export_target_system: string | null
   billing_provider_environment: string | null

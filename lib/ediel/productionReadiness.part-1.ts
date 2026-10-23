@@ -32,7 +32,11 @@ export type ProductionReadinessIssue = {
     | "mailbox"
     | "tests"
     | "operations"
-    | "safety";
+    | "safety"
+    | "billing";
+  /** An action the tenant takes itself, e.g. choosing its invoice provider. */
+  actionLabel?: string;
+  actionHref?: string;
 };
 
 export type ProductionReadinessResult = {
@@ -153,6 +157,8 @@ export type CompanyRow = Record<string, unknown> & {
   ediel_primary_actor_setting_id?: string | null;
   ediel_primary_production_route_profile_id?: string | null;
   ediel_primary_test_route_profile_id?: string | null;
+  invoice_export_target_system?: string | null;
+  billing_provider_environment?: string | null;
 };
 
 export type RouteProfileRow = Record<string, unknown> & {

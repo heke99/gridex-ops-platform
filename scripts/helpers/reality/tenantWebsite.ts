@@ -7,6 +7,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import { provisionTenantWebsiteIntegration } from '@/lib/integrations/tenantWebsiteProvisioning'
 import { seedDefaultCompanyEmailConfiguration } from '@/lib/email/bootstrap'
 import { approveRouteProfileForProduction } from '@/lib/ediel/routeProfileProductionReadiness'
+import { evaluateTenantInvoiceProviderReadiness } from '@/lib/billing/providers/registry'
 import { LIVE, literal, sql, type LiveTenant } from '../live-chain-fixture'
 
 export const WEBSITE_ORIGIN = 'https://elhandel.example.invalid'
@@ -112,6 +113,11 @@ export async function goLiveOnWebsite(tenant: LiveTenant, operatorUserId: string
  * certification evidence passed. Everything after it runs the real code.
  */
 export function simulateEdielCertifiedGoLive(companyId: string, approverUserId: string) {
+  // Canonical go-live refuses a tenant without the invoice provider the monthly billing cron requires
+  // (FINDINGS F115, owner decision 2026-10-23); the simulation must not take a tenant live that the real gate refuses.
+  const invoiceProvider = evaluateTenantInvoiceProviderReadiness(sql<Record<string, unknown>>(`SELECT jsonb_build_object('invoice_export_target_system',invoice_export_target_system,
+    'billing_provider_environment',billing_provider_environment) FROM public.companies WHERE id=${literal(companyId)}`) ?? {})
+  if (!invoiceProvider.ready) throw Error(`${invoiceProvider.code}:${invoiceProvider.reason}`)
   sql(`BEGIN; SELECT set_config('request.jwt.claims','{"role":"service_role"}',true);
    INSERT INTO public.ediel_production_state(company_id,state,state_version,approved_by,approved_at,first_live_send_approved_by,first_live_send_approved_at,last_idempotency_key)
     VALUES(${literal(companyId)},'live',1,${literal(approverUserId)},now(),${literal(approverUserId)},now(),'reality-simulated-certified-go-live')

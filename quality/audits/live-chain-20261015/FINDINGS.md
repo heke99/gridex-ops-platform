@@ -2210,6 +2210,22 @@ Gäller F113:s sidofynd 1 och 2.
 - Förslag: beredskapskontrollen för go-live eller onboarding-checklistan bör visa saknad fakturaleverantör som blockerare eller tydlig varning. Ska utredas och beslutas.
 
 - **ÄGARBESLUT 2026-10-23 "Spärra go-live":** go-live-beredskapen kräver en vald fakturaleverantör, och tenantens administratör ser steget som en åtgärd.
+- **RÄTTAT:**
+  - `evaluateTenantInvoiceProviderReadiness` (`lib/billing/providers/registry.ts`) använder samma definition som månadsdebiteringen (`requireTenantInvoiceProvider`).
+  - `getCompanyProductionReadiness` ger blockeraren `invoice_provider_missing` med åtgärdslänken `/admin/billing/integrations`.
+  - Alla go-live-åtgärder, både aktörstestningens och godkännandet med ett klick, går via beredskapen. Den sparade blockeraren nekas även i SQL av `canonical_company_readiness`.
+  - Tenanter som redan har varit live får en varning, och trafiken spärras inte i efterhand.
+  - Tenantens instrumentpanel visar kortet "Åtgärd före go-live".
+  - Harnessen: `goLiveAlsSupplier` låter tenantens administratör välja Nordfin (test) i gränssnittet före go-live, och `simulateEdielCertifiedGoLive` vägrar utan leverantör. F8 kontrollerar bara att valet finns kvar.
+- **Tester:**
+  - `reality-f115-go-live-invoice-provider` 18 av 18, varav 7 föll före rättningen. Instrumentpanelens test 5 av 5, där en mock har lagts till.
+  - 23 importörsfiler 280 av 280. Täckningen 352/352, tsc och eslint utan fel.
+- **ÖPPNA:**
+  1. En leverantör vald i miljön `test` godtas, precis som cron godtar den. Om go-live ska kräva `production` behövs ett ägarbeslut.
+  2. Plattformens checklista (`actorTesting.ts` `goLiveBlockers`) listar inte blockeraren, men serveråtgärden nekar.
+  3. Ingen direkt kolumnkontroll i SQL; skyddet går via den sparade beredskapskontrollen.
+  4. Regressionen `canonical-production-hardening` faller på `app/admin/ediel/actions.ts`, som inte är ändrad. Felet fanns före denna ändring och är inte utrett.
+  5. Den nya go-live-vägen i harnessen har ännu inte körts i världen.
 
 ### P8 Ediel-utkorgen skickar högst 25 meddelanden per körning i en global FIFO-kö; ett annat bolags kö fördröjer tenantens CONTRL och APERAK — MÄTT (världen, körning 29), medel; ÖPPEN
 - **Bevis från körning 29** (tenant `69e8e257`): 33 CONTRL och 4 APERAK ställdes i kö 21:15–21:21. Den första sändningen kom 21:28, cirka 13 minuter senare. Klockan 21:32 var 8 CONTRL skickade och 56 köade.

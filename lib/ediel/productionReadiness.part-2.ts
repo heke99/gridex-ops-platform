@@ -7,6 +7,7 @@ import { ACTOR_TEST_CASES } from "@/lib/ediel/actorTesting"
 import { evaluateCanonicalActorTestReadiness, type CanonicalGoLiveReadinessSnapshot } from '@/lib/ediel/productionReadinessTestAuthority'
 import { evaluateCertificateStatus } from "@/lib/ediel/security/certificateStatus"
 import { getLatestSystemClockHealth } from "@/lib/ediel/operations/runtimeHealth"
+import { evaluateTenantInvoiceProviderReadiness } from "@/lib/billing/providers/registry"
 
 
 import type { ActorSettingRow, BrpSettingRow, MailboxRow, ProductionReadinessIssue, ProductionReadinessResult, RouteProfileRow, SendLockRow } from './productionReadiness.part-1'
@@ -1026,6 +1027,31 @@ export async function getCompanyProductionReadiness(
       "Första live-send väntar",
       "Första production outbound kräver superadmin-godkännande.",
     );
+
+  // F115 (owner decision 2026-10-23): go-live requires the invoice provider the monthly billing
+  // cron requires, by the cron's own definition. A tenant that has already been live keeps its
+  // traffic (pause/resume and sends are not retroactively blocked); it sees the same action as a warning.
+  const invoiceProvider = evaluateTenantInvoiceProviderReadiness(company);
+  const hasBeenLive =
+    Boolean(text(company.live_approved_at) ?? text(company.ediel_production_enabled_at)) ||
+    priorProductionSentCount > 0;
+  if (invoiceProvider.ready)
+    pass(
+      "billing",
+      "invoice_provider_selected",
+      "Fakturaleverantör är vald",
+      `Fakturaleverantör ${invoiceProvider.provider} (${invoiceProvider.environment === "production" ? "produktion" : "test"}) är vald.`,
+    );
+  else
+    (hasBeenLive ? warnings : blocking).push({
+      code: invoiceProvider.code,
+      label: "Fakturaleverantör saknas",
+      message: invoiceProvider.message,
+      severity: hasBeenLive ? "warning" : "blocking",
+      area: "billing",
+      actionLabel: invoiceProvider.actionLabel,
+      actionHref: invoiceProvider.actionHref,
+    });
 
   const status = deriveProductionReadinessStatus({
     blockingIssues: blocking,

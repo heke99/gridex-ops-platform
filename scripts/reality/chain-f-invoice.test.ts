@@ -33,7 +33,6 @@ import { closeOperatorConsole, operatorSession, submitServerAction } from '../he
 import { pollInboundMailLanes, runOperationalCronSlot, runSlotAfterInbound, type GridOwnerSim } from '../helpers/reality/world'
 import { GRID_AREA, GRID_OWNER_EDIEL_ID, goLiveAlsSupplier } from '../helpers/reality/goLiveAls'
 import { detectStuckStates } from '../helpers/reality/stuckDetector'
-import { selectInvoiceProviderAsTenant } from '../helpers/reality/invoiceProvider'
 import { registerUtiltsIssuer } from '../helpers/utiltsConsumptionParties'
 import { dayProfile, edielDayUtc, gs1 } from '../helpers/live-chain-wire'
 import { edielMonthUtc } from '../helpers/reality/dst'
@@ -651,9 +650,12 @@ describe.sequential('reality F — invoices for several facilities with contract
 
   it('F8 the monthly billing cron prepares September: underlays, locked pricing, invoices, files and agreements', async (context) => {
     requireEstablished('F8', context)
-    // The supplier chooses its invoice provider before its first billing month (Fakturering → Integrationer, FINDINGS T18).
-    report.invoiceProvider = await selectInvoiceProviderAsTenant(tenant.companyId)
+    // The supplier chose its invoice provider under Fakturering → Integrationer before go-live (goLiveAlsSupplier, FINDINGS
+    // T18/F115: go-live requires it); the selection is still the one the billing cron reads.
     expect(report.invoiceProvider, JSON.stringify(report.invoiceProvider)).toMatchObject({ stored: { provider: 'nordfin', environment: 'test' } })
+    report.invoiceProviderAtBilling = sql(`SELECT jsonb_build_object('provider',invoice_export_target_system,'environment',billing_provider_environment)
+      FROM public.companies WHERE id=${literal(tenant.companyId)}`)
+    expect(report.invoiceProviderAtBilling).toEqual({ provider: 'nordfin', environment: 'test' })
     const result = await cron(`/api/cron/billing/monthly?company_id=${tenant.companyId}&billing_month=${MONTH}`)
     report.billingCron = result
     expect(result.status, JSON.stringify(result.body).slice(0, 2000)).toBe(200)
