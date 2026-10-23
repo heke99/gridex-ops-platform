@@ -547,23 +547,41 @@ describe.sequential('reality F — invoices for several facilities with contract
     requireEstablished('F6c', context)
     const sources = inboundE66()
     for (const source of sources) approveIssuerHistoryGround(source.id, tenant.adminUserId)
-    // No job re-evaluates held UTILTS: Gridex staff run the UTILTS engine per message (chain E, E5).
+    // Two ways the held E66 leave internal review once the issuer evidence exists (GRIDEX_REALITY_F6C_MODE):
+    //  * operator (default): Gridex staff run the UTILTS engine per message on /admin/ediel/messages/[id] (chain E, E5);
+    //  * cron: staff run it for the first GRIDEX_REALITY_F6C_OPERATOR_SAMPLE files (default 3), so that path stays
+    //    proven, and the scheduled held-UTILTS resume in the inbound-mail cron (FINDINGS O2) resumes the rest.
+    // Both modes keep every per-file assertion (values stored, application reply present).
+    const mode = process.env.GRIDEX_REALITY_F6C_MODE ?? 'operator'
+    if (mode !== 'operator' && mode !== 'cron') throw Error(`GRIDEX_REALITY_F6C_MODE must be operator or cron (got ${mode})`)
+    const sample = Number(process.env.GRIDEX_REALITY_F6C_OPERATOR_SAMPLE ?? 3)
+    if (!Number.isInteger(sample) || sample < 0) throw Error(`GRIDEX_REALITY_F6C_OPERATOR_SAMPLE must be an integer >= 0 (got ${process.env.GRIDEX_REALITY_F6C_OPERATOR_SAMPLE})`)
+    const cronMinutes = Number(process.env.GRIDEX_REALITY_F6C_CRON_MINUTES ?? 180)
+    if (!Number.isFinite(cronMinutes) || cronMinutes <= 0) throw Error(`GRIDEX_REALITY_F6C_CRON_MINUTES must be > 0 (got ${process.env.GRIDEX_REALITY_F6C_CRON_MINUTES})`)
+    const operatorSources = mode === 'cron' ? sources.slice(0, sample) : sources
+    const cronSources = mode === 'cron' ? sources.slice(sample) : []
     const staff = await operatorSession(tenant.operatorEmail, tenant.operatorPassword)
     const storedFor = (id: string) => sql<number>(`SELECT to_jsonb(count(*)) FROM public.normalized_metering_values WHERE source_message_id=${literal(id)}`)
     // The file's application reply (ACK-02/U-*: APERAK or UTILTS-ERR per transaction), not only its stored values (FINDINGS F107/T17).
     const repliesFor = (id: string) => sql<Row>(`SELECT jsonb_build_object('replies',(SELECT coalesce(jsonb_agg(jsonb_build_object('family',o.message_family,'status',o.status)),'[]')
         FROM public.ediel_messages o WHERE o.related_message_id=${literal(id)} AND o.direction='outbound' AND o.message_family IN ('APERAK','UTILTS_ERR','UTILTS')),
       'attempt',(SELECT e.payload->>'outcome' FROM public.ediel_message_events e WHERE e.ediel_message_id=${literal(id)} AND e.payload ? 'outcome' ORDER BY e.created_at DESC LIMIT 1))`)
-    type Outcome = { source: string; file: string | null; button: boolean; label: string | null; pageStatus: number | null; actionStatus: number | null; stored: number; expected: number
-      reply?: Row; diagnosis?: unknown; pageText?: string; ms: number }
+    type Outcome = { source: string; via: 'operator' | 'cron'; file: string | null; button: boolean; label: string | null; pageStatus: number | null; actionStatus: number | null
+      stored: number; expected: number; reply?: Row; diagnosis?: unknown; pageText?: string; ms: number }
+    // A correction stores only the quarter-hours it changed (FINDINGS F78).
+    const expectedFor = (source: (typeof sources)[number]) => fileOf(source.reference)?.kind === 'correction' ? correctedQuarters : 96
+    const diagnosisOf = (id: string) => sql(`SELECT jsonb_build_object('status',m.status,
+          'issues',(SELECT coalesce(jsonb_agg(i->>'code'),'[]') FROM jsonb_array_elements(coalesce(m.validation_report#>'{utiltsRuntime,validation,issues}','[]')) i),
+          'transactions',(SELECT coalesce(jsonb_agg(jsonb_build_object('disposition',t.disposition,'persistence',t.persistence_status,'issues',t.issue_codes)),'[]') FROM public.ediel_ack_transaction_results t WHERE t.source_message_id=m.id),
+          'lastEvents',(SELECT coalesce(jsonb_agg(e.message ORDER BY e.created_at DESC),'[]') FROM (SELECT message,created_at FROM public.ediel_message_events WHERE ediel_message_id=m.id ORDER BY created_at DESC LIMIT 4) e))
+          FROM public.ediel_messages m WHERE m.id=${literal(id)}`)
     const outcomes: Outcome[] = []
     const reprocessSlots: unknown[] = []
     /** One message as the operator handles it: open the detail page, press the engine/resume button, read the result. */
     const reprocessOne = async (page: Awaited<ReturnType<typeof staff.newPage>>, source: (typeof sources)[number]): Promise<Outcome> => {
       const begun = Date.now()
       const file = fileOf(source.reference)
-      // A correction stores only the quarter-hours it changed (FINDINGS F78).
-      const expected = file?.kind === 'correction' ? correctedQuarters : 96
+      const expected = expectedFor(source)
       const response = await page.goto(`/admin/ediel/messages/${source.id}`)
       // The detail streams behind loading.tsx for 15-30 s (FINDINGS S2): wait for it before looking for the button.
       // A held source offers "Återuppta hållna transaktioner" instead (F80 fix).
@@ -577,14 +595,10 @@ describe.sequential('reality F — invoices for several facilities with contract
       const started = Date.now()
       let stored = storedFor(source.id)
       while (visible && stored < expected && Date.now() - started < 90_000) { await pause(3_000); stored = storedFor(source.id) }
-      const outcome: Outcome = { source: source.id, file: file ? `${file.kind} ${file.facility} ${file.day}` : null, button: Boolean(visible), label,
+      const outcome: Outcome = { source: source.id, via: 'operator', file: file ? `${file.kind} ${file.facility} ${file.day}` : null, button: Boolean(visible), label,
         pageStatus: response?.status() ?? null, actionStatus, stored, expected, reply: repliesFor(source.id), ms: 0 }
       if (stored < expected) {
-        outcome.diagnosis = sql(`SELECT jsonb_build_object('status',m.status,
-          'issues',(SELECT coalesce(jsonb_agg(i->>'code'),'[]') FROM jsonb_array_elements(coalesce(m.validation_report#>'{utiltsRuntime,validation,issues}','[]')) i),
-          'transactions',(SELECT coalesce(jsonb_agg(jsonb_build_object('disposition',t.disposition,'persistence',t.persistence_status,'issues',t.issue_codes)),'[]') FROM public.ediel_ack_transaction_results t WHERE t.source_message_id=m.id),
-          'lastEvents',(SELECT coalesce(jsonb_agg(e.message ORDER BY e.created_at DESC),'[]') FROM (SELECT message,created_at FROM public.ediel_message_events WHERE ediel_message_id=m.id ORDER BY created_at DESC LIMIT 4) e))
-          FROM public.ediel_messages m WHERE m.id=${literal(source.id)}`)
+        outcome.diagnosis = diagnosisOf(source.id)
         if (!visible) outcome.pageText = (await page.locator('main, body').first().innerText()).replace(/\s+/g, ' ').slice(0, 300)
       }
       outcome.ms = Date.now() - begun
@@ -595,17 +609,20 @@ describe.sequential('reality F — invoices for several facilities with contract
     // beside them, as Vercel's crons do, chained so that the number of slots stays one per 5 files.
     const pages = Number(process.env.GRIDEX_REALITY_F6C_PAGES ?? 1)
     if (!Number.isInteger(pages) || pages < 1 || pages > 4) throw Error(`GRIDEX_REALITY_F6C_PAGES must be 1-4 (got ${process.env.GRIDEX_REALITY_F6C_PAGES})`)
-    const runSlot = async () => { reprocessSlots.push({ at: new Date().toISOString(), crons: (await runOperationalCronSlot()).map(r => ({ path: r.path, status: r.status, ms: r.ms })) }) }
+    // The inbound-mail cron's held-UTILTS resume (FINDINGS O2), when it ran.
+    const heldResumeOf = (body: unknown) => (((body as Row | null)?.result as Row | undefined)?.debug as Row | undefined)?.heldUtiltsResume ?? null
+    const runSlot = async () => { reprocessSlots.push({ at: new Date().toISOString(), crons: (await runOperationalCronSlot()).map(r => ({ path: r.path, status: r.status, ms: r.ms,
+      ...(heldResumeOf(r.body) ? { heldUtiltsResume: heldResumeOf(r.body) } : {}) })) }) }
     let slots: Promise<void> = Promise.resolve()
     let next = 0
     const order = new Map(sources.map((source, i) => [source.id, i]))
     const reprocessStarted = Date.now()
     // Several operator tabs of the same staff session; each message is opened by exactly one tab.
-    await Promise.all(Array.from({ length: Math.min(pages, sources.length) }, async () => {
+    await Promise.all(Array.from({ length: Math.min(pages, operatorSources.length) }, async () => {
       const page = await staff.newPage()
       try {
-        while (next < sources.length) {
-          const source = sources[next++]
+        while (next < operatorSources.length) {
+          const source = operatorSources[next++]
           outcomes.push(await reprocessOne(page, source))
           if (outcomes.length % 5 === 0) {
             if (pages === 1) await runSlot()
@@ -616,16 +633,42 @@ describe.sequential('reality F — invoices for several facilities with contract
       } finally { await page.close() }
     }))
     await slots
+    // Cron mode: nobody clicks; Vercel's slots run (inbound-mail cron with the held-UTILTS resume, then the outbox that
+    // sends the queued replies) until every remaining file is stored and answered, or the deadline passes.
+    const cronStarted = Date.now()
+    if (cronSources.length) {
+      const doneAt = new Map<string, number>()
+      const answered = (id: string) => ((repliesFor(id).replies as unknown[] | undefined)?.length ?? 0) > 0
+      const deadline = cronStarted + cronMinutes * 60_000
+      for (;;) {
+        await runSlot()
+        for (const source of cronSources) {
+          if (!doneAt.has(source.id) && storedFor(source.id) >= expectedFor(source) && answered(source.id)) doneAt.set(source.id, Date.now())
+        }
+        saveReport({ reprocessProgress: { mode, operator: outcomes.length, cronDone: doneAt.size, cronPending: cronSources.length - doneAt.size } })
+        if (doneAt.size === cronSources.length || Date.now() > deadline) break
+        await cronTick()
+      }
+      for (const source of cronSources) {
+        const file = fileOf(source.reference), expected = expectedFor(source), stored = storedFor(source.id)
+        const outcome: Outcome = { source: source.id, via: 'cron', file: file ? `${file.kind} ${file.facility} ${file.day}` : null, button: false, label: null,
+          pageStatus: null, actionStatus: null, stored, expected, reply: repliesFor(source.id), ms: (doneAt.get(source.id) ?? Date.now()) - cronStarted }
+        if (stored < expected) outcome.diagnosis = diagnosisOf(source.id)
+        outcomes.push(outcome)
+      }
+    }
     outcomes.sort((a, b) => order.get(a.source)! - order.get(b.source)!)
-    report.reprocessTiming = { pages, files: outcomes.length, totalMs: Date.now() - reprocessStarted,
-      perFileMs: outcomes.length ? Math.round(outcomes.reduce((total, outcome) => total + outcome.ms, 0) / outcomes.length) : null }
+    const operatorOutcomes = outcomes.filter(outcome => outcome.via === 'operator')
+    report.reprocessTiming = { mode, pages, files: outcomes.length, operatorFiles: operatorOutcomes.length, cronFiles: cronSources.length,
+      totalMs: Date.now() - reprocessStarted, cronMs: cronSources.length ? Date.now() - cronStarted : null,
+      perFileMs: operatorOutcomes.length ? Math.round(operatorOutcomes.reduce((total, outcome) => total + outcome.ms, 0) / operatorOutcomes.length) : null }
     const notStored = outcomes.filter(outcome => outcome.stored < outcome.expected)
     const unanswered = outcomes.filter(outcome => !((outcome.reply?.replies as unknown[] | undefined)?.length))
-    report.reprocess = { outcomes, slots: reprocessSlots, buttonMissing: outcomes.filter(outcome => !outcome.button).length, notStored: notStored.length,
-      actionErrors: outcomes.filter(outcome => outcome.actionStatus !== 200).length, unanswered: unanswered.length }
+    report.reprocess = { mode, outcomes, slots: reprocessSlots, buttonMissing: operatorOutcomes.filter(outcome => !outcome.button).length, notStored: notStored.length,
+      actionErrors: operatorOutcomes.filter(outcome => outcome.actionStatus !== 200).length, unanswered: unanswered.length }
     // Every reprocessed file is answered (APERAK or UTILTS-ERR) and the operator's action reports success (F107, F111).
     expect.soft(unanswered.map(outcome => ({ file: outcome.file, attempt: outcome.reply?.attempt ?? null })), 'every reprocessed E66 has its application reply').toEqual([])
-    expect.soft(outcomes.filter(outcome => outcome.actionStatus !== 200).map(outcome => ({ file: outcome.file, status: outcome.actionStatus })), 'the resume action answers 200').toEqual([])
+    expect.soft(operatorOutcomes.filter(outcome => outcome.actionStatus !== 200).map(outcome => ({ file: outcome.file, status: outcome.actionStatus })), 'the resume action answers 200').toEqual([])
 
     // Counted by instant (T15): "September" is the Ediel month [2026-08-31T23:00Z, 2026-09-30T23:00Z); a day is the
     // grid owner's Ediel day (00:00–24:00 +0100, Etc/GMT-1 in PostgreSQL); before supply = before market_start_at.
@@ -648,7 +691,7 @@ describe.sequential('reality F — invoices for several facilities with contract
     const values = Object.fromEntries(FACILITIES.map(f => [f.gsrn, valuesFor(idOf(f).mp)]))
     report.values = values
     // FINDINGS F80: the reprocess button can be hidden; then nothing is stored and the run says where.
-    expect(notStored.map(outcome => `${outcome.file}: ${outcome.stored}/${outcome.expected}${outcome.button ? '' : ' (no reprocess button, F80)'}`),
+    expect(notStored.map(outcome => `${outcome.file}: ${outcome.stored}/${outcome.expected}${outcome.via === 'cron' ? ' (not resumed by the cron, O2)' : outcome.button ? '' : ' (no reprocess button, F80)'}`),
       `values not stored for ${notStored.length} of ${outcomes.length} sources`).toEqual([])
     for (const f of FACILITIES) {
       const v = values[f.gsrn], id = idOf(f), days = effective(f.gsrn)

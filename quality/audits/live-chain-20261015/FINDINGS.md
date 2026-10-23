@@ -1050,6 +1050,28 @@ Gränser i drift: 8 s per SQL-sats, 8 s låsväntan, Vercel-funktion ~300 s, cro
 - **Rättning:** befintliga `formatErrorMessage` (`lib/errors.ts`) används på de fem ställena. Test: `__tests__/inbound-poller-error-messages.test.ts`. 48 inkorgsfiler med 735 tester är gröna.
 - **Varianter (ÖPPET, inte ändrat):** samma mönster finns på 121 ställen i `lib` och `app`. Det är bara fel där ett PostgREST-objekt kan nå koden via `throw error`. Det bör avgöras per ställe, till exempel med en lint-regel eller `formatErrorMessage`, och inte genom en blind massändring.
 
+### O2 uppföljning 2026-10-23: hållna UTILTS tas upp automatiskt av inbound-cron — RÄTTAD (TS)
+- **Ny funktion:** `lib/ediel/utilts/heldUtiltsResume.ts`, som körs i `runInboundEdielMailEngine` bredvid F103-, F106- och F112-jobben.
+  - Den tar upp en källa bara om varje hållen transaktion har en orsak som kan lösas utan människa, och kontrollen för orsaken passerar:
+    - utfärdarens identitet: RPC:n för utfärdarauktoritet ger `qualified`;
+    - periodisk orsak: `qualified` eller `not_applicable`;
+    - struktur som saknas: kontrolleras på nytt 15 min, 1 h, 6 h och 24 h efter hållningen, eftersom det inte finns någon läs-RPC utan sidoeffekter.
+  - Tvetydiga fall, filens egna fel, ägare till reglerande objekt och okända koder förblir manuella.
+  - Samma motorväg som operatörens åtgärd, nu delad i `utiltsHeldSourceResumption.ts`. Ursprunget är operativt, så svaren går via utkorgen och alla sändspärrar (F112). TGT, AGT, testfall och systemtest hoppas över.
+  - Varje källa claimas med compare-and-set. Ett försök registreras som händelse före åtgärden. Varje bevisfingeravtryck prövas en gång, med högst 6 försök per källa.
+  - Bolagen tas i tur och ordning. Budgeten per körning är 10 källor, 100 utvärderade och 120 s, och styrs av `EDIEL_INBOUND_HELD_UTILTS_RESUME_*`.
+- **Harnessen:** `GRIDEX_REALITY_F6C_MODE=cron` låter operatören klicka på ett stickprov (standard 3 filer) och låter cron ta resten. Kontrollerna per fil av lagrade värden och svar gäller alla filer.
+- **Tester:** `reality-o2-held-utilts-resume` 14/14, där kopplingen till cron föll mot HEAD. 45 importörsfiler 700 pass. Täckningen 352/352, tsc och eslint utan fel.
+  - I världen ger alla 260 utfärdarhållna källor hos gamla tenants redan `qualified` men står kvar i `internal_review`, vilket är exakt O2-tillståndet. Det bekräftades i en transaktion som rullades tillbaka.
+- **Fanns före ändringen, ej ändrat:** de tre regressionerna `ediel-inbound-tenant-resolution`, `gridex-manual-grid-owner-information-request` och `gridex-shared-mailbox-tenant-resolution` faller även på HEAD. Kontrollerat i `gx-wt-test`.
+- **ÖPPNA:**
+  - Ingen körning i världen än. Vid driftsättning tas cirka 260 gamla källor upp, 10 per körning.
+  - Genomströmning: 3–6 källor per körning med 20–40 s per motorkörning.
+  - Urvalet läser en sida om 1000 rader, så en tenant med mer än 1000 hållna rader kan svälta andra.
+  - Ingen ny kontroll efter 24 h.
+  - Källor där svaret misslyckades efter att värdena lagrats (F107) omfattas inte.
+  - Tenantens admin når fortfarande inte operatörssidan.
+
 ### F14 Hållna UTILTS beskrivs som "avvisades" — ÖPPEN (texten)
 `lib/ediel/flows/utiltsDataRequest.part-2.ts` använder "Inbound UTILTS avvisades av produktionsruntime och korrekt kvittensflöde skapades." både för verkliga avvisningar och för filer som hålls i väntan på utfärdarunderlag (`internal_review`, ingen APERAK). För en hållen fil är texten vilseledande. Det som skiljer fallen åt är `validation_report.utiltsRuntime.validation.classification` och `ediel_ack_transaction_results.disposition`.
 

@@ -10,6 +10,7 @@ import { createInboundOverdueTasks } from "@/lib/inbound-mail/inboundOverdueMoni
 import type { StrandedResumeResult } from "@/lib/inbound-mail/strandedInboundEdielResume"
 import type { MissedTechnicalAckResumeResult } from "@/lib/inbound-mail/missedTechnicalAckResume"
 import type { UnqueuedUtiltsReplyResumeResult } from "@/lib/inbound-mail/unqueuedUtiltsRuntimeReplyResume"
+import type { HeldUtiltsResumeResult } from "@/lib/ediel/utilts/heldUtiltsResume"
 import type { InboundEngineRunResult } from './edielMailboxPoller.part-1'
 import { NO_ACTIVE_EDIEL_MAILBOX_ERROR, envInt, listConfiguredEdielMailboxes, mailboxDebugItem, mailboxSkipReason, nowIso } from './edielMailboxPoller.part-1'
 import { ensureDiagnosticEdielMessagesForInboundEmails, listEdielMessageIdsForInboundEmails, listRecentParsedInboundEmailIds, logInboundPollRun, mapWithConcurrency, pollEdielMailbox, processQueuedInboundProcessingJobs } from './edielMailboxPoller.part-2'
@@ -241,6 +242,31 @@ export async function runInboundEdielMailEngine(
       autoProcessErrors.push(`utilts-reply-resume: ${formatErrorMessage(error, "Okänt fel")}`);
     }
   }
+  // Reality O2: an inbound UTILTS held for internal review is re-evaluated by no
+  // other run once its hold reason is resolved (issuer/periodic evidence now
+  // present, structure data re-check); resume it through the operator's path.
+  let heldUtiltsResume: HeldUtiltsResumeResult | null = null;
+  if (input.resumeStrandedInboundMessages && resumeEnvironment && input.actorUserId) {
+    try {
+      const { resumeHeldInboundUtilts } = await import("@/lib/ediel/utilts/heldUtiltsResume");
+      heldUtiltsResume = await resumeHeldInboundUtilts({
+        environment: resumeEnvironment,
+        companyId: input.companyId ?? null,
+        excludeIds: edielMessageIds,
+        actorUserId: input.actorUserId,
+        workerId,
+        limit: envInt("EDIEL_INBOUND_HELD_UTILTS_RESUME_LIMIT", 10),
+        probeLimit: envInt("EDIEL_INBOUND_HELD_UTILTS_RESUME_PROBE_LIMIT", 100),
+        timeBudgetMs: envInt("EDIEL_INBOUND_HELD_UTILTS_RESUME_TIME_BUDGET_MS", 120_000),
+        graceMinutes: envInt("EDIEL_INBOUND_HELD_UTILTS_RESUME_GRACE_MINUTES", 5),
+        lookbackHours: envInt("EDIEL_INBOUND_HELD_UTILTS_RESUME_LOOKBACK_HOURS", 45 * 24),
+        maxAttempts: envInt("EDIEL_INBOUND_HELD_UTILTS_RESUME_MAX_ATTEMPTS", 6),
+      });
+      autoProcessErrors.push(...heldUtiltsResume.errors.map((error) => `held-utilts-resume ${error}`));
+    } catch (error) {
+      autoProcessErrors.push(`held-utilts-resume: ${formatErrorMessage(error, "Okänt fel")}`);
+    }
+  }
   let customerOperationJobs: { claimed: number; completed: number; needsReview: number; failed: number; errors: string[] } | null = null;
   try {
     const { processCustomerOperationJobs } = await import("@/lib/customer-operations/automation");
@@ -311,6 +337,13 @@ export async function runInboundEdielMailEngine(
         ? { candidates: utiltsReplyResume.candidates, claimedSources: utiltsReplyResume.claimedSources, claimed: utiltsReplyResume.claimed,
             requeued: utiltsReplyResume.requeued, notApplicable: utiltsReplyResume.notApplicable, failed: utiltsReplyResume.failed,
             exhausted: utiltsReplyResume.exhausted }
+        : null,
+      heldUtiltsResume: heldUtiltsResume
+        ? { heldSources: heldUtiltsResume.heldSources, evaluated: heldUtiltsResume.evaluated, manual: heldUtiltsResume.manual,
+            waiting: heldUtiltsResume.waiting, notOperational: heldUtiltsResume.notOperational, alreadyTried: heldUtiltsResume.alreadyTried,
+            exhausted: heldUtiltsResume.exhausted, claimed: heldUtiltsResume.claimed, resumed: heldUtiltsResume.resumed,
+            stillHeld: heldUtiltsResume.stillHeld, notApplicable: heldUtiltsResume.notApplicable, failed: heldUtiltsResume.failed,
+            skippedCompanies: heldUtiltsResume.skippedCompanies, budgetExhausted: heldUtiltsResume.budgetExhausted }
         : null,
     },
     results,
