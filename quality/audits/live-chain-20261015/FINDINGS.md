@@ -1570,6 +1570,32 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
   - `gridex_rebuild_company_analytics_month` utesluter gemensamma nätägare ur statistiken per nätägare. Det berör scenario K.
   - Uppslagningar i TypeScript med `.eq('company_id', …)`: `replyGridOwnerId` (`routeRegistry.ts`), `receiverGridOwner` (`prodatRequestedChange.ts`) och `getGridOwnerIdByGridArea` (`inboundCases.ts`).
   - Samtliga ÖPPNA, medel.
+- **Varianterna RÄTTADE 2026-10-23 (agent + granskning):**
+  - **Migration** `20261023170000_shared_grid_owner_variants.sql` byter exakt de textavsnitt som ska ersättas i de installerade funktionskropparna och kräver att K-06-kroppen redan finns. Ägare, behörigheter, säkerhetsläge och inställningar kontrolleras efteråt.
+    - Statistiken tar nu med delade nätägare som tenantens egna mätpunkter, anläggningar eller begäranden pekar ut.
+    - `scope_v1` godtar en delad nätägare som nås via tenantens egen anläggning.
+  - **TypeScript:** `selectTenantUsableGridOwners` i `platformGridOwnerResolver.ts` söker först bland tenantens egna rader och tar delade rader bara när egna saknas. En annan tenants rad returneras aldrig.
+    - Alla tre uppslagningarna använder den.
+    - **Beteendeändring:** två egna rader för samma nätområde ger i `getGridOwnerIdByGridArea` nu "ingen nätägare" i stället för ett fel från `maybeSingle`, i linje med regeln att aldrig gissa.
+  - **Ny variant som hittades och rättades:** `lib/analytics/db.ts` slog bara upp namn bland tenantens egna nätägare. Delade nätägare i de nya statistikraderna skulle då visas som "Saknad nätägare".
+    - Rättningen gör två parametriserade frågor: egna rader och `company_id IS NULL`. Inget strängfilter med tenant-id.
+    - Test: `statistics-k-analytics-readers` (F101). Det föll med den gamla logiken. En annan tenants nätägare visas aldrig med namn.
+    - Testets falska PostgREST-anslutning i `forecast-completed-period-read.test.ts` saknade operatorn `is`. Utan den fastnade sex tester i timeout tills stöd lades till. Det var en brist i testet, inte i produkten.
+  - **Verifiering:**
+    - native 5 av 5. Den gamla kroppen gav 0 statistikrader för en delad nätägare.
+    - enhetstester 13 av 13, där 8 föll utan rättningen;
+    - analysläsarna 79 av 79;
+    - 104 berörda testfiler, 2 181 tester;
+    - tvåpartssviterna `ediel-bilateral-prodat-profile`, `-h-original`, `confirmed-customer-bilateral` och `z08lk` gröna;
+    - typkontroll och eslint utan fel, täckningen 352 av 352;
+    - migrationen applicerad i världen.
+  - **EJ VERIFIERAT:** de godkända sviterna `ediel-at-z03h-z04h-supplier-native` (fel vid critical_negative_208, sedan timeout efter 900 s) och `ediel-z05h-z08h-supplier-native` (7 fel, ändrade utkorgsrader) föll medan verklighetskörning 26 gick.
+    - Hypotes: körningens utkorgs-cron behandlar hela utkorgen, alltså också native-testernas köade rader. Deras fixturer har en tenantägd nätägare, så den nya uppslagningen ger samma första träff som förut.
+    - Ska köras om i en vilande värld. Faller de, rättas det framåt.
+  - **Kvar, ÖPPNA:**
+    - `gridex_regulated_supply.scope_v1` kräver också `company_id = c` och ger NULL för en delad nätägare. Medel. Kräver kontroll av dess godkända tester.
+    - Nätägarfiltret i `listAnalyticsFilterOptions` (`lib/analytics/db.ts:67`) listar bara tenantens egna nätägare. Låg.
+    - GEN-ägaren behöver fånga om `schema.sql`.
 
 ### F100 Produktionsprofiler för UTILTS (och kvittenser till UTILTS) får `encryption_mode='none'`, men produktion kräver S/MIME för alla familjer — BEKRÄFTAD (världen + produktion), kritisk; RÄTTAD (kod + migration)
 - **Utfall (körning 21):** 25 CONTRL till nätägarens E66 spärrades i utkorgen med `production_smime_required`. Kvittensprofilen för PRODAT hade `smime` och ett certifikat, men de sex profilerna för UTILTS hade `none`.

@@ -1,4 +1,4 @@
-// reality-defects: K-11 K-12 (scenario K: statistics are computed and shown correctly)
+// reality-defects: K-11 K-12 F101 (scenario K: statistics are computed and shown correctly)
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const io = vi.hoisted(() => ({ tables: {} as Record<string, Array<Record<string, unknown>>>, rpc: vi.fn() }))
@@ -11,8 +11,10 @@ vi.mock('@/lib/supabase/service', () => ({
       const filters: Array<(row: Record<string, unknown>) => boolean> = []
       const query: Record<string, unknown> = {}
       const chain = (name: string, apply?: (...args: unknown[]) => void) => { query[name] = (...args: unknown[]) => { apply?.(...args); return query } }
-      chain('select'); chain('order'); chain('limit'); chain('in'); chain('lt'); chain('gte'); chain('lte'); chain('or'); chain('not')
+      chain('select'); chain('order'); chain('limit'); chain('lt'); chain('gte'); chain('lte'); chain('or'); chain('not')
       chain('eq', (column, value) => filters.push(row => row[column as string] === value))
+      chain('is', (column, value) => filters.push(row => (row[column as string] ?? null) === value))
+      chain('in', (column, values) => filters.push(row => (values as unknown[]).includes(row[column as string])))
       chain('gt', (column, value) => filters.push(row => String(row[column as string]) > String(value)))
       query.then = (resolve: (value: unknown) => unknown) => Promise.resolve({ data: (io.tables[table] ?? []).filter(row => filters.every(f => f(row))), error: null }).then(resolve)
       return query
@@ -46,5 +48,21 @@ describe('scenario K: analytics readers', () => {
     ]
     const { biddingZones } = await getOverviewBreakdowns('k', '2026-10-01')
     expect(biddingZones.map(zone => [zone.label, zone.value])).toEqual([['SE3', 2], ['SE4', 0]])
+  })
+
+  it('F101 a shared registry grid owner the tenant\'s points name is shown by name; another tenant\'s grid owner never', async () => {
+    io.tables.grid_owner_monthly_metrics = [
+      { company_id: 'k', month: '2026-10-01', grid_owner_id: 'own', metering_values_missing: 3 },
+      { company_id: 'k', month: '2026-10-01', grid_owner_id: 'shared', metering_values_missing: 2 },
+      { company_id: 'k', month: '2026-10-01', grid_owner_id: 'foreign', metering_values_missing: 1 },
+    ]
+    io.tables.grid_owners = [
+      { id: 'own', company_id: 'k', name: 'Egen Nät AB' },
+      { id: 'shared', company_id: null, name: 'Delad Nät AB' },
+      { id: 'foreign', company_id: 'other', name: 'Annan Tenants Nät AB' },
+    ]
+    const { missingByGridOwner } = await getOverviewBreakdowns('k', '2026-10-01')
+    expect(missingByGridOwner.map(row => [row.key, row.label])).toEqual([
+      ['own', 'Egen Nät AB'], ['shared', 'Delad Nät AB'], ['foreign', 'Saknad nätägare']])
   })
 })

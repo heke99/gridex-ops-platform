@@ -33,6 +33,7 @@ vi.mock('@/lib/supabase/service', async () => {
             const value = expression.slice(dot + 1)
             rows = rows.filter((row) => {
               const actual = row[field]
+              if (op === 'is') return value === 'null' ? actual === null || actual === undefined : String(actual) === value
               if (actual === null || actual === undefined) return false
               if (op === 'eq') return String(actual) === value
               if (op === 'gt') return String(actual) > value

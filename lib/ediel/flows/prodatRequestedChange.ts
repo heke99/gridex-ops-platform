@@ -1,12 +1,12 @@
 import {resolveCanonicalOutboundContext} from '@/lib/ediel/core/kernel'
 import {readRequestedChangeSource,originateRequestedChange} from '@/lib/ediel/production/requestedChangeSource'
 import {renderAndQueueRequestedChange} from '@/lib/ediel/intent/lifeEventGateway'
-import {supabaseService} from '@/lib/supabase/service'
-/** The tenant's own active grid owner for the exact legal receiver; ambiguity or absence selects none. */
+import {selectTenantUsableGridOwners} from '@/lib/grid-owners/platformGridOwnerResolver'
+/** The active grid owner usable by the tenant for the exact legal receiver: its own row, else a shared
+ * registry row, never another tenant's (FINDINGS F101); ambiguity or absence selects none. */
 async function receiverGridOwner(companyId:string,legalReceiverId:string){
- const {data,error}=await supabaseService.from('grid_owners').select('id,name,ediel_id').eq('company_id',companyId).eq('ediel_id',legalReceiverId).eq('is_active',true).limit(2)
- if(error)throw error
- return data?.length===1?{id:data[0].id as string,name:data[0].name as string|null,ediel_id:data[0].ediel_id as string|null}:null
+ const data=await selectTenantUsableGridOwners<{id:string;name:string|null;ediel_id:string|null}>({companyId,select:'id,name,ediel_id',match:{ediel_id:legalReceiverId,is_active:true}})
+ return data.length===1?{id:data[0].id,name:data[0].name,ediel_id:data[0].ediel_id}:null
 }
 /** The selector is an approved immutable source event, never a switch, a typed
  * date/status, a preview or a customer UUID supplied as authorization. */

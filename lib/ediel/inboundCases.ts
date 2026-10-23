@@ -21,6 +21,7 @@ import { parseUna } from '@/lib/ediel/core/una'
 // lib/ediel/inboundCases.ts
 
 import { supabaseService } from '@/lib/supabase/service'
+import { selectTenantUsableGridOwners } from '@/lib/grid-owners/platformGridOwnerResolver'
 import { tenantDb } from '@/lib/supabase/tenantDb'
 import { createEdielMessageEvent, getEdielMessageById, linkEdielMessage } from '@/lib/ediel/db'
 import {readReceivedProdatApplicationObjects} from '@/lib/ediel/core/receivedProdatApplicationObjects'
@@ -610,17 +611,12 @@ export async function getEdielInboundCaseForMessage(companyId: string, messageId
     review_decision:{...row.review_decision,structuralProjection:{appliedObjectCount:final?.plans.length??0,totalObjectCount:application?.objects.length??0,protectedEffectAvailable:final!==null}}}
 }
 
-async function getGridOwnerIdByGridArea(companyId: string, gridAreaCode: string | null): Promise<string | null> {
+/** The grid owner usable by the tenant for the grid area: its own row, else a shared registry row,
+ * never another tenant's (FINDINGS F101); ambiguity or absence selects none. */
+export async function getGridOwnerIdByGridArea(companyId: string, gridAreaCode: string | null): Promise<string | null> {
   if (!gridAreaCode) return null
-  const { data, error } = await supabaseService
-    .from('grid_owners')
-    .select('id,owner_code')
-    .eq('company_id', companyId)
-    .eq('owner_code', gridAreaCode)
-    .maybeSingle()
-
-  if (error) throw error
-  return (data as { id?: string } | null)?.id ?? null
+  const data = await selectTenantUsableGridOwners<{ id: string }>({ companyId, select: 'id,owner_code', match: { owner_code: gridAreaCode } })
+  return data.length === 1 ? data[0].id : null
 }
 
 async function insertAuditLog(params: {

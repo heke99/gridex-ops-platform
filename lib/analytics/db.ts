@@ -34,6 +34,16 @@ async function safeRows<T>(table: string, select: string, companyId: string, bui
   return (data ?? []) as T[]
 }
 
+// Names of the grid owners the tenant's own statistic rows name: its own grid owners and shared registry rows
+// (company_id null, F41), never another tenant's (FINDINGS F101 variant; same rule as normalizeGridOwnerIdToOps).
+async function gridOwnerNames(companyId: string, ids: string[]): Promise<{ id: string; name: string }[]> {
+  if (!ids.length) return []
+  const own = await safeRows<{ id: string; name: string }>('grid_owners', 'id, name', companyId, (query) => query.in('id', ids))
+  const { data, error } = await supabaseService.from('grid_owners').select('id, name').is('company_id', null).in('id', ids)
+  if (error && !isMissingRelationError(error)) throw error
+  return [...own, ...((data ?? []) as { id: string; name: string }[])]
+}
+
 // PostgREST returns at most max_rows (1 000) rows per request whatever .limit() asks for (supabase/config.toml).
 // Every statistic that sums or filters rows reads all pages, keyed on id (FINDINGS K-09, same class as DST-C1).
 const PAGE_ROWS = 1000
@@ -235,7 +245,7 @@ export async function getOverviewBreakdowns(companyId: string, month: string): P
     query.eq('month', safeMonth).gt('metering_values_missing', 0).order('metering_values_missing', { ascending: false }).limit(6)
   )
   const ownerIds = ownerMetrics.map((row) => row.grid_owner_id).filter(Boolean) as string[]
-  const owners = ownerIds.length ? await safeRows<{ id: string; name: string }>('grid_owners', 'id, name', companyId, (query) => query.in('id', ownerIds)) : []
+  const owners = await gridOwnerNames(companyId, ownerIds)
   const ownerName = new Map(owners.map((owner) => [owner.id, owner.name]))
   const missingByGridOwner = ownerMetrics.map((row) => ({
     key: row.grid_owner_id ?? 'saknas',
@@ -363,7 +373,7 @@ export async function getLatestForecastByGridOwner(companyId: string, filters: A
   }
 
   const ownerIds = Array.from(groups.keys()).filter((key) => key !== 'saknas')
-  const owners = ownerIds.length ? await safeRows<{ id: string; name: string }>('grid_owners', 'id, name', companyId, (query) => query.in('id', ownerIds)) : []
+  const owners = await gridOwnerNames(companyId, ownerIds)
   const ownerName = new Map(owners.map((owner) => [owner.id, owner.name]))
 
   return Array.from(groups.entries()).map(([gridOwnerId, group]) => ({
@@ -493,9 +503,7 @@ export async function getCustomerAnalytics(companyId: string, customerId: string
     query.eq('customer_id', customerId).limit(500)
   )
   const ownerIds = Array.from(new Set(pointRows.map((row) => row.grid_owner_id).filter(Boolean))) as string[]
-  const owners = ownerIds.length
-    ? await safeRows<{ id: string; name: string }>('grid_owners', 'id, name', companyId, (query) => query.in('id', ownerIds))
-    : []
+  const owners = await gridOwnerNames(companyId, ownerIds)
 
   return {
     current: current[0] ?? null,

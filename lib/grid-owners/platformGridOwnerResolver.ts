@@ -53,6 +53,36 @@ export async function resolvePlatformGridOwnerByAnyId(input: {
   return (byOpsId.data as unknown as JsonRecord | null) ?? null
 }
 
+/**
+ * Grid owner rows a tenant may use for an exact key such as an Ediel id or a
+ * grid area code (FINDINGS F101 variants; same rule as F58 below): the
+ * tenant's own rows first and, only when it has none, the shared registry rows
+ * (company_id null). Another tenant's row is never returned. The result is the
+ * first non-empty tier (at most `limit` rows), so every caller keeps its own
+ * "exactly one, never guess" rule and an ambiguous own tier never falls
+ * through to a shared row.
+ */
+export async function selectTenantUsableGridOwners<T>(input: {
+  companyId: string
+  select: string
+  match: Record<string, string | boolean>
+  limit?: number
+}): Promise<T[]> {
+  const limit = input.limit ?? 2
+  const scoped = (shared: boolean) => {
+    let query = supabaseService.from('grid_owners').select(input.select)
+    query = shared ? query.is('company_id', null) : query.eq('company_id', input.companyId)
+    for (const [column, value] of Object.entries(input.match)) query = query.eq(column, value)
+    return query.limit(limit)
+  }
+  const own = await scoped(false)
+  if (own.error) throw own.error
+  if (own.data?.length) return own.data as unknown as T[]
+  const shared = await scoped(true)
+  if (shared.error) throw shared.error
+  return (shared.data ?? []) as unknown as T[]
+}
+
 export type OpsGridOwnerNormalization = {
   opsGridOwnerId: string | null
   source: 'ops' | 'platform_mapped' | 'platform_unmapped' | 'unknown' | 'none'
