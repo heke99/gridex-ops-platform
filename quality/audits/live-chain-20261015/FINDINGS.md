@@ -1454,6 +1454,13 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
 - **F6c, operatörens omkörning:** varje omkörning via "Återuppta hållna transaktioner" gav 500, med `0 av 96` lagrade värden per fil. Körningen stoppades efter att rapporten sparats (`report-f-run21.json` i scratchpad).
 - **Statement timeouts:** under F6 avbröts många satser på grund av tidsgränsen (≥ 7 per anslutning). Det hör ihop med J3-12 och L1.
 
+### T11 Körning 24: F90-migrationen var inte applicerad i världen — RÄTTAD, verklighetsvärlden (min egen miss)
+- **Utfall:** alla 4 Z01 och 4 Z03 föll med `ediel_scoped_capability_evidence_required`. Jobbet för certifieringsbevisen gav `ediel_company_certified_scopes_failed`.
+- **Orsak:** agenten körde sina tester av `20261023160000_ediel_company_certified_scope_evidence.sql` i transaktioner som rullades tillbaka, och migrationen applicerades aldrig i världen.
+- **Rättning:** migrationen applicerades, och efter `notify pgrst, 'reload schema'` körde jobbet (`status: ran`). Körning 24 kan inte återhämta sig (O1) och ersattes av körning 25.
+- **Lärdom:** innan en körning kontrolleras att varje ny migration finns i världen.
+- **Observation:** migrationen saknar `notify pgrst, 'reload schema'`. I den lokala världen syntes den nya funktionen inte för PostgREST förrän cachen laddats om. Om den hostade miljön laddar om automatiskt vid DDL är inte kontrollerat. Låg.
+
 ### Ägarbeslut 2026-10-23
 - **F89/F90/F91, certifiering i produktion:** "Certifieringar ska vi använda oss av vår certifiering samt krypteringen vi har."
   - Produktionssändning vilar på bolagets egen godkända Ediel-certifiering (`ediel_certification_evidence`, `canonical_ediel_production_evidence_readiness`, förmågan `ediel_production`) och på vår egen S/MIME-kryptering.
