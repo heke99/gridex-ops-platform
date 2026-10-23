@@ -1418,6 +1418,7 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
   - `20260601070000` lägger till kolumnerna, men replayen ersätter filen med den härledda bootstrapartefakten `bootstrap/20260601_ediel_production_readiness_foundation.sql` (`scripts/gridex-aud-003-legacy-foundation.json`). Artefakten saknar dem.
   - `supabase/schema.sql` saknar dem också.
   - Produktionen har alla fem: `smtp_host`, `smtp_port`, `last_poll_at`, `last_successful_poll_at` och `last_poll_status` (bara läsning av metadata, 2026-10-22).
+- **F körning 16 (2026-10-23):** operatörens sparning av produktionsbrevlådan gav 500 med `PGRST204 'updated_by'`. Produktionen har också `created_by` och `updated_by` (uuid), och `smtp_port` har standardvärdet 587 där. Migrationen, som aldrig har körts i produktionen, täcker nu alla sju kolumnerna.
 - **Rättning:** `add column if not exists`, som inte gör något i produktionen. Ägaren av GEN och replay behöver fånga om `schema.sql`, typerna och artefakten. Det är dokumenterat på #840, och jag har inte rört filerna.
 
 ### MIG-01 Krock i migrationsversion med main — RÄTTAD (namnbyte av en ej körd migration)
