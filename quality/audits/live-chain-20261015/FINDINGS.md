@@ -1434,6 +1434,28 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
   - En driftsättning kan bara kvittera filer som tas emot på adressen i `EDIEL_SMTP_FROM`.
   - Kvittensroutes sparar adressen när de materialiseras (`mailbox`). Om kontot byts måste de materialiseras om.
 
+### F körning 20 (2026-10-23): hela bytesflödet för körningens egen tenant, och våra kvittenser når nätägaren
+- **Bytet, i produktion:**
+  - 4 Z01 och 4 Z03 skickades och blev `acknowledged`;
+  - nätägarens CONTRL, APERAK och Z04 togs emot;
+  - 4 leveransperioder blev `active` från 2026-09-01.
+- **Våra 4 CONTRL till nätägaren skickades** (`sent`). Därmed är F92, T8 och F96 verifierade i världen.
+- **Mätvärden:** 25 E66 togs emot och tolkades. Ingen CONTRL kunde skapas för dem, se F98: 50 försök gav `ediel_technical_ack_route_unavailable`.
+
+### F98 Inga kvittensroutes för UTILTS: registrets UTILTS-routes saknar meddelandekod, så nätägarens E66 kan aldrig kvitteras — BEKRÄFTAD (världen + produktion), kritisk; RÄTTAD (native)
+- **Utfall (körning 20):** materialiseringen av UTILTS gav `ediel_route_profile_insert_failed`, med det tekniska felet `utilts_application_reference_message_unsupported:missing`.
+  - Registrets UTILTS-route har ingen `metadata.message_code`, så den utgående UTILTS-profilen kan inte skapas.
+  - Kvittensroutes (F92) skapades först efter en lyckad affärsroute, så inga UTILTS-kvittensroutes fanns.
+- **Produktion (summering, bara läsning):** alla 507 UTILTS-routes i registret saknar meddelandekod, och detsamma gäller alla 493 PRODAT-routes.
+- **Rättning:** kvittensroutes för inkommande filer skapas nu direkt efter att avsändaren har lösts upp. De beror bara på den verifierade registerrouten, nätägaren och avsändaren, och aldrig på den utgående affärsrouten. Resultatet följer med i varje svar, även när den utgående profilen hålls.
+  - Gäller både `materializeCompanyGridOwnerRoute` och bulkvägen.
+- **Test:** native-testet för F92/F98 har fått ett nytt fall, en UTILTS-route utan meddelandekod. Affärsrouten hålls, men 6 kvittensroutes skapas, och väljaren hittar exakt en route för CONTRL och APERAK för E66-T och E66-S. 2 av 2 gröna.
+- **Övriga kontroller:**
+  - materialiserarens 5 testfiler: 54 av 54;
+  - typkontroll och eslint utan fel;
+  - täckningen för masterplanen: 352 av 352.
+- **Kvar (F94, öppen):** den utgående UTILTS-affärsprofilen kan fortfarande inte materialiseras utan meddelandekod. Det är ett produktbeslut vilket UTILTS leverantören skickar till nätägaren.
+
 ### Rättelse till körning 19 (2026-10-23): leveransperioderna tillhörde körning 18:s tenant
 - **Vad som hände:** de fyra aktiva perioderna (`completed`) tillhör körning 18:s tenant. Dess Z03 skickades kl. 01:43, och nätägaren svarade innan körningen stoppades. Svaren togs emot i körning 19:s första cron-cykel, efter T9-rättningen.
 - **Vad det visar:** den kedja som beskrivs nedan är verklig och gäller körning 18:s tenant. Det första produktionsbytet är alltså bekräftat i världen, med Z04 som källa och perioder från 2026-09-01.

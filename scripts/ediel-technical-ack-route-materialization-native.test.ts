@@ -1,4 +1,4 @@
-// reality-defects: F92 (an inbound grid-owner file can be answered: registry materialization creates the technical CONTRL/APERAK reply routes)
+// reality-defects: F92, F98 (an inbound grid-owner file can be answered: registry materialization creates the technical CONTRL/APERAK reply routes)
 // Native proof against the installed schema and the installed ACK route selector.
 // A synthetic grid owner is imported through the public actor-registry importer
 // (PRODAT and UTILTS production routes), verified by a platform administrator,
@@ -219,4 +219,28 @@ it('materializing a grid owner route gives the supplier exactly one technical re
     routes: [{ applicationReference: '23-DDQ-PRODAT', action: 'kept_existing', communicationRouteId: handRoute, edielRouteProfileId: handProfile }] } })
   expect(ackState(companyC)).toEqual({ routes: 1, profiles: 1, routeIds: [handRoute], profileIds: [handProfile] })
   expect(configuredAckCandidates(companyC, 'CONTRL', inboundUnb(legal, supplierC, 'PRODAT', '23-DDQ-PRODAT'))).toEqual({ routeIds: [handRoute], profileIds: [handProfile] })
+
+  // F98: a registry UTILTS route as published (no message code, like all 507 in production) cannot become an
+  // outbound UTILTS business profile, yet every inbound E66 must still be acknowledged. The reply routes are
+  // materialized before, and independently of, the business route.
+  const companyD = randomUUID(), gridD = randomUUID()
+  const [supplierD] = sql<string[]>(`SELECT jsonb_agg(n::text) FROM (SELECT n FROM generate_series(60000,69999) n
+    WHERE NOT EXISTS(SELECT FROM public.tenant_actor_identifiers i WHERE i.identifier_type='EdielId' AND i.identifier_value=n::text)
+      AND NOT EXISTS(SELECT FROM public.ediel_actor_settings a WHERE a.ediel_id=n::text OR a.actor_ediel_id=n::text) ORDER BY n DESC LIMIT 1) s`)
+  sql(`${settings(companyD, supplierD)}
+    UPDATE public.platform_actor_routes SET metadata=metadata-'message_code' WHERE id=${literal(byFamily.UTILTS.routeId)} AND actor_id=${literal(actorId)};
+    INSERT INTO public.grid_owners(id,company_id,name,ediel_id,environment,is_active,lifecycle_status,platform_market_actor_id)
+    VALUES(${literal(gridD)},${literal(companyD)},'Synthetic F92 Nät AB',${literal(legal)},'production',true,'active',${literal(actorId)});`)
+  cleanup.push(() => sql(`UPDATE public.grid_owners SET is_active=false WHERE id=${literal(gridD)}`))
+  const unpublishedCode = await materializeCompanyGridOwnerRoute({ companyId: companyD, gridOwnerId: gridD, platformActorRouteId: byFamily.UTILTS.routeId,
+    messageFamily: 'UTILTS', messageCode: null, environment: 'production', actorUserId: admin })
+  expect(unpublishedCode, JSON.stringify(unpublishedCode)).toMatchObject({ status: 'blocked', messageFamily: 'UTILTS', messageCode: null,
+    technicalAck: { status: 'materialized', applicationReferences: inboundTechnicalAckApplicationReferences('UTILTS') } })
+  expect(unpublishedCode.technicalAck!.routes.map(route => route.action)).toEqual(Array(6).fill('created'))
+  for (const app of ['23-DDQ-E66-T', '23-DDQ-E66-S'] as const) for (const reply of ['CONTRL', 'APERAK'] as const) {
+    const pair = unpublishedCode.technicalAck!.routes.find(route => route.applicationReference === app)!
+    expect(configuredAckCandidates(companyD, reply, inboundUnb(legal, supplierD, 'UTILTS', app)), `${reply} ${app}`)
+      .toEqual({ routeIds: [pair.communicationRouteId], profileIds: [pair.edielRouteProfileId] })
+  }
+  expect(ackState(companyA)).toEqual(before)
 }, 300_000)

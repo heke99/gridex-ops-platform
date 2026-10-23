@@ -739,6 +739,19 @@ export async function materializeCompanyGridOwnerRoute(params: {
     };
   }
 
+  // FINDINGS F92/F98: the technical reply routes answer the files the grid owner sends us. They depend only on
+  // the verified registry route, the grid owner and our sender, never on the business route we send on: a
+  // registry UTILTS route carries no message code (all 507 in production), so the outbound UTILTS profile can
+  // be unmaterializable while every inbound E66 still has to be acknowledged.
+  const technicalAck = await materializeTechnicalAckRoutes({
+    actorUserId: params.actorUserId ?? null,
+    companyId: params.companyId,
+    route,
+    gridOwner,
+    senderSettings: sender.setting,
+    messageFamily,
+  });
+
   const failure = (reasonCode: string, nextRequiredAction: string, error: unknown): RouteMaterializationResult => ({
     platformActorRouteId: route.id,
     companyId: params.companyId,
@@ -753,6 +766,7 @@ export async function materializeCompanyGridOwnerRoute(params: {
     messageFamily,
     messageCode,
     environment: route.environment,
+    technicalAck,
   });
 
   let communicationRouteId: string;
@@ -857,6 +871,7 @@ export async function materializeCompanyGridOwnerRoute(params: {
         messageFamily,
         messageCode,
         environment: route.environment,
+        technicalAck,
       };
     }
   } catch (error) {
@@ -876,17 +891,9 @@ export async function materializeCompanyGridOwnerRoute(params: {
       messageFamily,
       messageCode,
       environment: route.environment,
+      technicalAck,
     };
   }
-
-  const technicalAck = await materializeTechnicalAckRoutes({
-    actorUserId: params.actorUserId ?? null,
-    companyId: params.companyId,
-    route,
-    gridOwner,
-    senderSettings: sender.setting,
-    messageFamily,
-  });
 
   return {
     platformActorRouteId: route.id,
@@ -999,6 +1006,17 @@ export async function materializePlatformActorRoute(params: {
         });
         continue;
       }
+      // Before the business route (F98): the reply routes never depend on it. One registry route serves several PRODAT scopes; its reply routes are ensured once per tenant and grid owner.
+      const ackKey = `${companyId}|${gridOwner.id}`;
+      const technicalAck = technicalAckByTenant.get(ackKey) ?? await materializeTechnicalAckRoutes({
+        actorUserId: params.actorUserId ?? null,
+        companyId,
+        route,
+        gridOwner,
+        senderSettings: sender.setting,
+        messageFamily,
+      });
+      technicalAckByTenant.set(ackKey, technicalAck);
       const communicationRouteId = await upsertCommunicationRoute({
         actorUserId: params.actorUserId ?? null,
         companyId,
@@ -1034,17 +1052,6 @@ export async function materializePlatformActorRoute(params: {
         senderSettings: sender.setting,
         route,
       });
-      // One registry route serves several PRODAT scopes; its reply routes are ensured once per tenant and grid owner.
-      const ackKey = `${companyId}|${gridOwner.id}`;
-      const technicalAck = technicalAckByTenant.get(ackKey) ?? await materializeTechnicalAckRoutes({
-        actorUserId: params.actorUserId ?? null,
-        companyId,
-        route,
-        gridOwner,
-        senderSettings: sender.setting,
-        messageFamily,
-      });
-      technicalAckByTenant.set(ackKey, technicalAck);
       results.push({
         platformActorRouteId: route.id,
         companyId,
