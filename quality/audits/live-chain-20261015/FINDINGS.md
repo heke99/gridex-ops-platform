@@ -1468,11 +1468,22 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
   - Indexuttryck beräknas med den skrivande rollens rättigheter. Därför fallerar varje uppdatering utan HOT, och varje insättning från service-rollen. Med HOT behöver indexet inte uppdateras, vilket förklarar att felet bara uppstår ibland.
 - **Återskapat:** `SET ROLE service_role` och en uppdatering av `was_smime_encrypted` på en utgående CONTRL ger 42501.
 - **Produktionen påverkas inte:** indexet finns inte där (bara läsning av metadata).
-- **Rättning (agent, pågår):**
-  - Ett härlett fält, `contrl_uci_ref`, som en trigger med `SECURITY DEFINER` fyller i.
-  - Ett vanligt index på fältet.
-  - Läsfunktionens kandidatgren byggs om, så att resultatet blir identiskt.
-  - Ingen API-roll får EXECUTE på `wire_v1`.
+- **RÄTTAD (migration `20261023120000`, native gröna):**
+  - Det härledda fältet `contrl_uci_ref` fylls i av triggern `a_00_ediel_contrl_uci_ref_derive` (`SECURITY DEFINER`). Den skriver alltid över, så en skribent kan inte förfalska värdet, och den bevarar värdet vid en retentionsövergång.
+  - Indexet `ediel_messages_contrl_uci_ref_col_idx` ligger på ett vanligt fält.
+  - Läsfunktionens kandidatgren läser fältet, och det ursprungliga villkoret är kvar som filter.
+  - Bakfyllnaden körde utan att någon trigger stängdes av: 49 av 49 rader i världen stämmer.
+  - Ingen API-roll har EXECUTE på `wire_v1`.
+- **Tester:**
+  - nytt `scripts/ediel-contrl-uci-ref-service-role-native.test.ts`: service-rollens insättning och uppdatering utan HOT fungerar; förfalskning skrivs över; läsningen ger samma original som den gamla skanningen;
+  - skalningstestet: indexet används och färre än 50 rader läses;
+  - first-reception, Z09E-received-ack och outbound-ack-replay: gröna;
+  - täckningen för masterplanen: 352 av 352.
+- **F99b, samma fel i ett annat index från grenen — RÄTTAD:**
+  - `ediel_messages_inbound_envelope_uci_idx` (`20261020120300`) anropar `gridex_ediel_technical_ack.envelope()`.
+  - F68 gav EXECUTE till `service_role` och `authenticated`, men inte till den interna rollen `gridex_ediel_retention_owner`. Dess uppdateringar utan HOT fick därför 42501, och `ediel-blob-retention-native` fallerade.
+  - Migrationen `20261023121000` ger den rollen EXECUTE på de två rena tolkningsfunktionerna, enligt F68:s förebild. Retentionstestet är nu grönt.
+  - Indexet finns inte i produktionen.
 
 ### F körning 20 (2026-10-23): hela bytesflödet för körningens egen tenant, och våra kvittenser når nätägaren
 - **Bytet, i produktion:**
