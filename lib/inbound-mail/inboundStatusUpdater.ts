@@ -22,6 +22,7 @@ import type { ParsedEdifactEnvelope } from '@/lib/inbound-mail/edielEmailParser'
 import { normalizeEdifactMessageCode } from '@/lib/inbound-mail/edielEmailParser'
 import type { InboundEntityMatch } from '@/lib/inbound-mail/inboundMatcher'
 import { createInboundMailTask } from '@/lib/inbound-mail/inboundTaskFactory'
+import { inboundEdielTestFlag } from '@/lib/inbound-mail/inboundTestFlag'
 import { classifyProductionInboundDecision } from '@/lib/ediel/inbound/productionInboundDecisionEngine'
 import { tenantResolutionForStorage, type InboundTenantResolution } from '@/lib/ediel/tenant/resolveInboundTenant'
 import type { Database } from '@/supabase/database.types'
@@ -396,6 +397,7 @@ export async function createInboundEdielMessage(input: {
   const insertPayload = {
     company_id: companyId,
     environment: normalizedEnvironment,
+    test_flag: inboundEdielTestFlag(normalizedEnvironment, input.parsed.rawPayload),
     operation_id: matchedOperationId,
     direction: 'inbound',
     message_standard: 'edifact',

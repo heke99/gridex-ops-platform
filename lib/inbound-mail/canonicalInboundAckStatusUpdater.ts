@@ -2,6 +2,7 @@ import { classifyCanonicalInboundAck } from '@/lib/ediel/ack/inboundAckOutcome'
 import type { ParsedEdifactEnvelope } from '@/lib/inbound-mail/edielEmailParser'
 import type { InboundEntityMatch } from '@/lib/inbound-mail/inboundMatcher'
 import { createInboundMailTask } from '@/lib/inbound-mail/inboundTaskFactory'
+import { inboundEdielTestFlag } from '@/lib/inbound-mail/inboundTestFlag'
 import type { InboundTenantResolution } from '@/lib/ediel/tenant/resolveInboundTenant'
 import { tenantResolutionForStorage } from '@/lib/ediel/tenant/resolveInboundTenant'
 import { supabaseService } from '@/lib/supabase/service'
@@ -107,9 +108,12 @@ async function persistInboundAck(input: {
     tenantResolution,
   }
 
+  const environment = input.environment === 'test' || input.environment === 'production' ? input.environment : null
   const insertPayload = {
     company_id: input.companyId,
-    environment: input.environment === 'test' || input.environment === 'production' ? input.environment : null,
+    environment,
+    // The column default (1) marked every production ACK as a test message (F102).
+    ...(environment ? { test_flag: inboundEdielTestFlag(environment, input.parsed.rawPayload) } : {}),
     direction: 'inbound',
     message_standard: 'edifact',
     message_family: input.parsed.messageFamily,

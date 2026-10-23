@@ -1570,6 +1570,37 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
   - `actorTestingEngine` väljer testmeddelanden på flaggan.
 - **Produktion (bara aggregat):** ett enda Ediel-meddelande, ett test/inbound. Felet är alltså latent där.
 
+- **RÄTTAD 2026-10-23 (agent + granskning):**
+  - **Orsak:** tre inkommande insert-vägar satte aldrig `test_flag`, så kolumnens standardvärde 1 gällde:
+    1. `inboundStatusUpdater.ts` (`createInboundEdielMessage`);
+    2. `canonicalInboundAckStatusUpdater.ts` (`persistInboundAck`, de inkommande CONTRL/APERAK);
+    3. SQL-funktionen `gridex_ediel_header_negative_birth.create_v1`.
+  - **Bevisade följder** (anrop av koden, inte strängsökning):
+    - **Hög:** `decideProdatAperak` (`decisionEngine.ts:247`) hoppar över `manual_review_required` för en produktions-Z14, Z15 eller Z18 utan koppling till process eller fullmakt, och planerar i stället ett positivt APERAK.
+    - **Hög:** admins "RADERA TESTDATA" (`actions.part-2.ts:105`) behandlar inkommande produktionsoriginal som testdata. Den raderar deras händelser, ärenden och testkopplingar innan oföränderlighetsspärren stoppar själva raden, så sidotabellerna förstörs utan atomicitet.
+    - **Utan bevis, bara läsning:** `contextKind` i `edielProcessingPipeline.ts:35` märker körningen fel.
+    - **Ingen följd (bevisat):** kundärendets svar (källan är det utgående Z03:et) och E66-portalkontrollen.
+    - Min hypotes om `production_test_flag` för ärendesvar var alltså fel och avfärdas.
+  - **Rättning:** `inboundTestFlag.ts` sätter test → 1 och produktion → 0. En utväxling med UNB 0035=1 får alltid 1, så J3-05 försvagas inte. Båda TypeScript-vägarna använder funktionen. Kolumnens standardvärde ligger kvar på 1, eftersom `createEdielMessage` själv har standardmiljön test och 1 därmed är konsekvent och säkert för utgående meddelanden.
+  - **Migration `20261023180000_ediel_inbound_production_test_flag.sql`:**
+    - ersätter `create_v1` med en kropp som är identisk utom att flaggan sätts uttryckligen;
+    - rättar inkommande produktionsrader utan 0035=1 en gång, med `metadata.f102_test_flag_from`, utan att röra `updated_at`;
+    - torrkörd i en transaktion som rullades tillbaka: 409 rader, inga sidoeffekter från triggers;
+    - **INTE applicerad i världen ännu**, eftersom den skulle skriva om 16 rader för körning 26:s levande tenant. Den appliceras efter körningen.
+  - **Tester:**
+    - `reality-f102-inbound-production-test-flag` 9 av 9, där 7 föll med den gamla koden;
+    - 184 relaterade testfiler, 2 805 tester;
+    - typkontroll och eslint utan fel;
+    - täckningen 352 av 352. SC-014 föll en gång under parallell last men var grön ensam och vid omkörningen.
+  - **Sidofynd, ÖPPNA:**
+    1. J3-05 håller bara i en riktning. En testbrevlåda som tar emot en produktionsutväxling hålls inte. En produktionsbrevlåda som får 0035=1 hoppar över spärren när en Test Center-bindning finns (`edielInboundProcessor.ts:355`). Medel.
+    2. Ett avbrottsärende utan källa skapas som test (`environment:'test'`, `testFlag:1`) även för en produktionstenant (`customer-cases/engine.ts:503`). Medel.
+    3. Testdatarensningen gissar på mottagare 91100, `@ediel.se`, AGT/TGT eller "test" i brevlådenamnet. Den läser bara `limit(5000)` utan ordning och raderar inte atomiskt. Hög.
+    4. `actions.part-4.ts:1051` och `selftest.ts:656` anropar `registerInboundCanonicalMessage` utan miljö och kastar därför alltid `canonical_inbound_scope_required`. Medel.
+    5. Fyra inkommande produktions-E66 i världen saknar postkoppling och `validation_report`. Troligen direkta seeds. Låg.
+    6. En inkommande Z04 i testkanalen (`0e79c120…`) har `raw_payload` null och står kvar i `received`. Låg.
+    7. SC-014 är tidskänsligt under last. Låg.
+
 ### F103 En av fyra Z04 från samma inkommande körning blev aldrig behandlad och står kvar i `received` — BEKRÄFTAD (världen, körning 26), hög; utreds av agent
 - **Utfall:** de fyra Z04 togs emot 10:04:16 och lagrades 10:05:53–55. Tre blev `parsed` inom 14 sekunder med aktiva perioder. Den fjärde (`db3b04be…`, anläggning `…170171`) har bara händelsen `linked` och står kvar i `received`.
   - Postraden är `processed/matched`, och bytet står kvar som `prepared`.
