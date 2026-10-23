@@ -1,5 +1,6 @@
 import { getUtiltsFieldRules, type UtiltsFieldRequirement, type UtiltsFieldRule } from '@/lib/ediel/rulebook/utiltsFieldMatrix'
-import { resolveEdielGuideAcceptance } from '@/lib/ediel/rulebook/guideRegistry'
+import { resolveEdielGuideAcceptance, UTILTS_25_A_3_SHARED_MATRIX_SOURCE } from '@/lib/ediel/rulebook/guideRegistry'
+export { UTILTS_25_A_3_SHARED_MATRIX_SOURCE } from '@/lib/ediel/rulebook/guideRegistry'
 import { UTILTS_25_A_5_SOURCE } from '@/lib/ediel/rulebook/utilts25A5'
 import { hasUtiltsFieldReader, observeUtiltsFieldScopes, readUtiltsFieldOccurrences, type UtiltsFieldOccurrence } from './fieldMatrixOccurrences'
 
@@ -67,20 +68,10 @@ function sourceQualified(policy: UtiltsFieldMatrixPolicy): boolean {
     && policy.referenceDate >= UTILTS_25_A_5_SOURCE.effectiveFrom && policy.referenceDate >= policy.guide.effectiveFrom
     && (!policy.guide.effectiveTo || policy.referenceDate <= policy.guide.effectiveTo)
 }
-/** Swedish U3 original, independent of the registered English prose witness.
- * The retained planning/operation/request matrix cells match U5: 105 row
- * vectors, with S08 omitted. This authorizes the existing physical R/X slice
- * only. It does not authorize U5 dependent/product rules for U3. */
-export const UTILTS_25_A_3_SHARED_MATRIX_SOURCE = Object.freeze({
-  guideRevision: '25-A-3', language: 'sv',
-  document: '251001_Ediel_UTILTS-APERAK_Anvisning_version_25-A-3',
-  sha256: 'a4ae498e5231df22e043ec24b93f97563095bb9880ee296683acf7a0f6973fff',
-  effectiveFrom: '2025-06-01',
-} as const)
 type MatrixSource = Pick<typeof UTILTS_25_A_5_SOURCE, 'guideRevision' | 'sha256'>
   | Pick<typeof UTILTS_25_A_3_SHARED_MATRIX_SOURCE, 'guideRevision' | 'sha256'>
 function sharedPredecessorSource(policy: UtiltsFieldMatrixPolicy): MatrixSource | null {
-  if (policy.family !== 'UTILTS' || policy.direction !== 'inbound' || policy.guide.guideRevision !== '25-A-3'
+  if (policy.family !== 'UTILTS' || policy.direction !== 'inbound' || policy.guide.guideRevision !== UTILTS_25_A_3_SHARED_MATRIX_SOURCE.guideRevision
     || policy.guide.primarySource !== undefined) return null
   const date = policy.referenceDate
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date.startsWith('0000-')) return null
@@ -90,7 +81,8 @@ function sharedPredecessorSource(policy: UtiltsFieldMatrixPolicy): MatrixSource 
   // October 1–14 grace are accepted; caller-supplied lists cannot extend it.
   try {
     const accepted = resolveEdielGuideAcceptance({ family: 'UTILTS', referenceDate: date,
-      associationAssignedCode: 'E5SE5A' }).acceptedInbound.find(guide => guide.guideRevision === '25-A-3')
+      associationAssignedCode: UTILTS_25_A_3_SHARED_MATRIX_SOURCE.associationAssignedCode }).acceptedInbound
+      .find(guide => guide.guideRevision === UTILTS_25_A_3_SHARED_MATRIX_SOURCE.guideRevision)
     if (!accepted || policy.guide.documentName !== accepted.documentName
       || policy.guide.effectiveFrom !== accepted.effectiveFrom || policy.guide.effectiveTo !== accepted.effectiveTo) return null
   } catch { return null }
