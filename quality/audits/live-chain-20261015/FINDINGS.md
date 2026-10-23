@@ -1777,6 +1777,38 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
     5. **APERAK besvarad med APERAK:** 9 utgående APERAK köades som svar på inkommande APERAK i den syntetiska tenanten "Synthetic normal switch native" (testkanalen, 12:16–12:27). Den godkända ACK-05 förbjuder det. Hög, orsak ej verifierad.
     6. **Radlås:** `retained_source_v1` låste varje kandidatrad FOR SHARE, vilket blockerar statusuppdateringar. Migrationen minskar det till den matchande raden.
 
+- **F106 del B RÄTTAD 2026-10-23 (agent + granskning).** Tre av mina antaganden var fel:
+  - Svarsrouten för APERAK fanns redan.
+  - "APERAK skapades inte" stod på Z04, inte på APERAK.
+  - F105:s påstådda timerregression gällde två olika timrar.
+  - **Orsak 1 – APERAK får ingen CONTRL:**
+    - `persistInboundAck` (`canonicalInboundAckStatusUpdater.ts`) lagrade varje inkommande CONTRL och APERAK utan `mailbox_message_id` och utan mottagningsrad. Väljaren `select_configured_reply_route_v2` kastade då `ediel_original_mailbox_source_required`, och det rapporterades som "route unavailable".
+    - Testat i en transaktion som rullades tillbaka: när kopplingen och mottagningen sattes valdes PRODAT-routen `d647b006`. Ingen inkommande APERAK hos någon tenant kunde alltså få en CONTRL.
+    - Regler: ACK-01 (CONTRL på all EDIFACT utom CONTRL) och ACK-05 (aldrig APERAK på APERAK).
+    - **Rättning:** en inkommande kvittens får nu `mailbox_message_id` och sin mottagningsrad via den befintliga mottagnings-RPC:n.
+      - Ett fel vid mottagningen loggas som en varning och backar inte kvittensens effekt.
+      - `requires_contrl`/`requires_aperak` kommer nu från ACK-matrisen: CONTRL får false/false och APERAK true/false. Det rättar också F106a:s sidofynd (d).
+  - **Orsak 2 – Z04 får ingen APERAK:**
+    - `findBestCommunicationRoute` tillåter bara en aktiv `ediel_ack`-route per nätägare och kanal, men F92/F98 skapar en per applikationsreferens, 7 i världen. På HEAD gav det `communication_route_ambiguous`. Världens app är äldre än F101-varianterna och gav därför "Ingen aktiv".
+    - Regel: ACK-02 kräver APERAK på PRODAT.
+    - **Rättning:** bara vid just tvetydighetsfelet smalnas valet av till de routes vars aktiverade profil i kanalen har exakt källans applikationsreferens, en kompatibel svarsfamilj och svarskod, och källans avsändare som mottagare. Exakt en träff används. Annars kastas det ursprungliga felet vidare, så det blir aldrig en gissning.
+  - **SLA-timrarna:**
+    - `contrl_due`/`aperak_due` är vår egen svarsplikt inom 30 minuter. De stängs bara av svepet `checkAckDeadlines`, och det senaste svepet i världen gick 10:33:05.
+    - Alla 63 skickade CONTRL uppfyller villkoret för att stänga sin timer. Det är alltså en lucka i testkörningen (T14), inte ett produktfel.
+    - E66 kräver också APERAK per transaktion eller UTILTS-ERR (`UCASE-E66-SUPPLIER-inbound`), så de 123 `aperak_due` är rätteligen öppna.
+    - Timern backar inte: svepet läser aldrig stängda rader och uppdaterar villkorat. Ett test låser fast det.
+  - **Tester:**
+    - `reality-f106-ack-reply-route-and-timers` 11 av 11, där 4 föll med HEAD;
+    - native 2 av 2, och med den gamla koden föll båda exakt som i världen;
+    - 107 relaterade filer, 1 988 tester;
+    - typkontroll och eslint utan fel, täckningen 352 av 352 med 0 fallerande;
+    - jag körde om F106, F102 och F105: 63 av 63.
+  - **Sidofynd, ÖPPNA:**
+    1. **Gamla kvittensrader** (världens 4 APERAK och alla tidigare) saknar fortfarande koppling och mottagning. F106a:s återupptagning kommer därför att få `ediel_original_mailbox_source_required` för dem. Ingen bakåtfyllnad gjord. Medel.
+    2. **Mottagningstid skrivs över:** ett nytt intag av en befintlig inkommande kvittens skriver över `message_received_at`, vilket bryter kontrollen av den frysta källan. Timrarna förankras dessutom vid intaget i stället för brevets `received_at` (10:05:53 i stället för 10:03:16). Medel.
+    3. **Underadress, möjlig risk:** `routeRegistry` använder aktörens underadress när profilen saknar en. Den atomiska insert-vägen kräver då att underadressen matchar, vilket kan ge `ediel_ack_atomic_route_changed`. Ej verifierat. Låg.
+    4. **Svepets budget** är global och liten (`min(limit*2, 100)`) och kan halka efter med många tenanter. Låg.
+
 ### P1 Mätvärdeslagringen går med ungefär 70 värden i minuten; kvittenshanteringen dominerar databastiden — MÄTT (världen, körning 26), medel; ej åtgärdat
 - **Körning 26, F6c:** 126 värden lagrade 11:11 och 475 kl. 11:16, alltså ungefär 70 i minuten. 123 filer à 96 kvartsvärden tar då nästan 3 timmar för en enda kund med 4 anläggningar. I produktion med många kunder räcker det inte.
 - **`pg_stat_statements`:** ackumulerat sedan världen startade, alla körningar och native-tester. De dyraste efter total tid:

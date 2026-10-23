@@ -83,12 +83,73 @@ async function getCommunicationRouteById(
   return (data as CommunicationRouteRow | null) ?? null
 }
 
+type AckRouteBasis = {
+  family: EdielAckRouteProfileSelection['family']
+  code: string
+  applicationReference: string | null
+  receiverEdielId: string | null
+}
+
+/**
+ * F106: a grid owner carries one technical reply route per application reference it
+ * sends us (FINDINGS F92/F98: 23-DDQ-PRODAT, 23-DDQ-E66-T, ...), so its ACK routes in
+ * one lane are several by design. The generic one-route-per-scope lookup refuses that
+ * as ambiguous, and an APERAK to the grid owner's Z04 could never be routed. Only then,
+ * the reply is narrowed to the routes whose enabled profile in this lane carries exactly
+ * the source's application reference, a compatible reply family/code and the source
+ * sender as receiver: the same identity the ACK profile selection requires afterwards.
+ * Exactly one route answers; anything else keeps the original refusal (never a guess).
+ */
+async function narrowAckReplyRoute(params: {
+  companyId: string
+  environment: EdielEnvironment
+  gridOwnerId: string | null
+  basis: AckRouteBasis
+}): Promise<CommunicationRouteRow | null> {
+  const applicationReference = trimOrNull(params.basis.applicationReference)
+  if (!applicationReference) return null
+  const { supabaseService } = await import('@/lib/supabase/service')
+  const tier = async (gridOwnerId: string | null): Promise<CommunicationRouteRow[]> => {
+    let query = supabaseService.from('communication_routes').select('*')
+      .eq('company_id', params.companyId).eq('route_scope', 'ediel_ack').eq('is_active', true)
+    query = params.environment === 'production'
+      ? query.eq('environment_type', 'production')
+      : query.in('environment_type', ['tgt_test', 'agt_test', 'bilateral_test'])
+    query = gridOwnerId ? query.eq('grid_owner_id', gridOwnerId) : query.is('grid_owner_id', null)
+    const { data, error } = await query.limit(50)
+    if (error) throw error
+    return ((data ?? []) as CommunicationRouteRow[]).filter((row) => row.company_id === params.companyId && row.is_active === true
+      && routeMatchesEnvironment(row, params.environment))
+  }
+  // The same tier the generic lookup refused: the grid owner's own routes, else the generic ones.
+  let routes = params.gridOwnerId ? await tier(params.gridOwnerId) : []
+  if (routes.length === 0) routes = await tier(null)
+  if (routes.length < 2) return null
+  const { data, error } = await supabaseService.from('ediel_route_profiles')
+    .select('id,company_id,communication_route_id,environment,application_reference,message_family,business_code,receiver_ediel_id,is_enabled,is_active')
+    .eq('company_id', params.companyId).eq('environment', params.environment).eq('application_reference', applicationReference)
+    .in('communication_route_id', routes.map((row) => row.id)).limit(200)
+  if (error) throw error
+  const receiver = trimOrNull(params.basis.receiverEdielId)
+  const answering = new Set(((data ?? []) as Array<Record<string, unknown>>).filter((profile) =>
+    profile.company_id === params.companyId && profile.environment === params.environment
+    && profile.application_reference === applicationReference && profile.is_enabled === true
+    && (profile.is_active === null || profile.is_active === true)
+    && (profile.message_family === null || profile.message_family === params.basis.family)
+    && (profile.business_code === null || profile.business_code === params.basis.code)
+    && (receiver === null || trimOrNull(profile.receiver_ediel_id as string | null) === null || profile.receiver_ediel_id === receiver))
+    .map((profile) => String(profile.communication_route_id)))
+  const matches = routes.filter((row) => answering.has(row.id))
+  return matches.length === 1 ? matches[0] : null
+}
+
 async function resolveCommunicationRoute(params: {
   requestType: CanonicalRouteRequestType
   gridOwnerId?: string | null
   preferredRouteId?: string | null
   companyId?: string | null
   environment: EdielEnvironment
+  ackBasis?: AckRouteBasis | null
 }): Promise<{
   route: CommunicationRouteRow | null
   source: 'explicit_route' | 'auto_route'
@@ -103,14 +164,24 @@ async function resolveCommunicationRoute(params: {
     }
   }
 
-  return {
-    route: await findBestCommunicationRoute({
-      companyId: params.companyId ?? null,
-      requestType: params.requestType,
-      gridOwnerId: params.gridOwnerId ?? null,
-      environment: params.environment,
-    }),
-    source: 'auto_route',
+  try {
+    return {
+      route: await findBestCommunicationRoute({
+        companyId: params.companyId ?? null,
+        requestType: params.requestType,
+        gridOwnerId: params.gridOwnerId ?? null,
+        environment: params.environment,
+      }),
+      source: 'auto_route',
+    }
+  } catch (error) {
+    const companyId = trimOrNull(params.companyId)
+    if (params.requestType !== 'ediel_ack' || !params.ackBasis || !companyId
+      || !(error instanceof Error) || !error.message.startsWith('communication_route_ambiguous:')) throw error
+    const narrowed = await narrowAckReplyRoute({ companyId, environment: params.environment,
+      gridOwnerId: params.gridOwnerId ?? null, basis: params.ackBasis })
+    if (!narrowed) throw error
+    return { route: narrowed, source: 'auto_route' }
   }
 }
 
@@ -152,6 +223,8 @@ export async function resolveCanonicalRouteContext(params: {
     preferredRouteId: params.preferredRouteId ?? null,
     companyId,
     environment,
+    ackBasis: params.ackProfile ? { family: params.ackProfile.family, code: params.ackProfile.code,
+      applicationReference: params.applicationReference ?? null, receiverEdielId: params.receiverEdielId ?? null } : null,
   })
   const route = resolvedRoute.route
 

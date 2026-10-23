@@ -6,6 +6,8 @@ import { inboundEdielTestFlag } from '@/lib/inbound-mail/inboundTestFlag'
 import type { InboundTenantResolution } from '@/lib/ediel/tenant/resolveInboundTenant'
 import { tenantResolutionForStorage } from '@/lib/ediel/tenant/resolveInboundTenant'
 import { supabaseService } from '@/lib/supabase/service'
+import { recordInboundReception } from '@/lib/ediel/inbound/receptions'
+import { canonicalAckRequirementsForFamilyCode } from '@/lib/ediel/rulebook/canonicalEdielFacade'
 import { OUTBOUND_POSITIVE_CONTRL_GUARD_FILTER, OUTBOUND_SETTLED_STATUS_FILTER } from '@/lib/cis/outboundStatusLattice'
 
 function nowIso(): string {
@@ -52,7 +54,7 @@ async function findExistingInboundAck(input: {
   companyId: string
   inboundEmailMessageId: string
   parsed: ParsedEdifactEnvelope
-}): Promise<string | null> {
+}): Promise<{ id: string; sameMail: boolean } | null> {
   const byEmail = await supabaseService
     .from('ediel_messages')
     .select('id')
@@ -62,7 +64,7 @@ async function findExistingInboundAck(input: {
     .limit(1)
     .maybeSingle()
   if (!byEmail.error && (byEmail.data as { id?: string } | null)?.id) {
-    return (byEmail.data as { id: string }).id
+    return { id: (byEmail.data as { id: string }).id, sameMail: true }
   }
 
   if (!input.parsed.interchangeReference || !input.parsed.senderEdielId || !input.parsed.receiverEdielId) return null
@@ -77,7 +79,42 @@ async function findExistingInboundAck(input: {
     .limit(1)
     .maybeSingle()
   if (byInterchange.error) return null
-  return (byInterchange.data as { id?: string } | null)?.id ?? null
+  const id = (byInterchange.data as { id?: string } | null)?.id
+  return id ? { id, sameMail: false } : null
+}
+
+/** F106: the technical reply route selector (select_configured_reply_route_v2) answers
+ * only an original bound to its retained mailbox reception: mailbox_message_id set at
+ * birth and one first_reception row, exactly as business originals get them in
+ * inboundStatusUpdater. Without it a received APERAK, which Ediel requires us to answer
+ * with a CONTRL (ACK-01), was held as ediel_technical_ack_route_unavailable although
+ * the grid owner's reply route exists. This records custody only; it authorizes no
+ * reply, and a missing actor or parse leaves the source fail-closed as before. */
+async function recordInboundAckReception(input: {
+  companyId: string
+  messageId: string
+  inboundEmailMessageId: string
+  parseResultId?: string | null
+  actorUserId?: string | null
+}): Promise<void> {
+  if (!input.actorUserId || !input.parseResultId) return
+  let reason: string | null = null
+  try {
+    const reception = await recordInboundReception({ companyId: input.companyId, messageId: input.messageId,
+      actorUserId: input.actorUserId, inboundEmailMessageId: input.inboundEmailMessageId, parseResultId: input.parseResultId })
+    if (reception.classification !== 'first_reception') reason = reception.reason ?? reception.classification
+  } catch (error) {
+    reason = error instanceof Error ? error.message : String((error as { message?: unknown } | null)?.message ?? error)
+  }
+  if (reason === null) return
+  await supabaseService.from('ediel_message_events').insert({
+    company_id: input.companyId,
+    ediel_message_id: input.messageId,
+    event_type: 'manual_note',
+    event_status: 'warning',
+    message: 'Mottagningskustodi för kvittensen kunde inte registreras; teknisk kvittens (CONTRL) kan inte skapas.',
+    payload: { receptionCustody: 'unrecorded', reason, inboundEmailMessageId: input.inboundEmailMessageId },
+  })
 }
 
 async function persistInboundAck(input: {
@@ -89,6 +126,7 @@ async function persistInboundAck(input: {
   outboundMatch: InboundEntityMatch
   meteringPointMatch: InboundEntityMatch
   tenantResolution?: InboundTenantResolution | null
+  actorUserId?: string | null
 }): Promise<string | null> {
   const classification = classifyCanonicalInboundAck(input.parsed)
   const matched = input.outboundMatch.status === 'matched'
@@ -110,6 +148,11 @@ async function persistInboundAck(input: {
   }
 
   const environment = input.environment === 'test' || input.environment === 'production' ? input.environment : null
+  // A received CONTRL is never acknowledged; a received APERAK gets only a CONTRL and
+  // never an APERAK (ACK-01, ACK-05). The column default (requires_contrl=true) said otherwise.
+  const requirements = input.parsed.messageFamily === 'CONTRL' || input.parsed.messageFamily === 'APERAK'
+    ? canonicalAckRequirementsForFamilyCode({ family: input.parsed.messageFamily, code: input.parsed.messageCode })
+    : null
   const insertPayload = {
     company_id: input.companyId,
     environment,
@@ -152,17 +195,22 @@ async function persistInboundAck(input: {
     message_received_at: nowIso(),
     parsed_at: nowIso(),
     failure_reason: invalid ? classification.reason : undefined,
+    ...(requirements ? { requires_contrl: requirements.requiresContrl, requires_aperak: requirements.requiresAperak } : {}),
     ...ackColumns(input.parsed),
   }
 
-  const existingId = await findExistingInboundAck({
+  const existing = await findExistingInboundAck({
     companyId: input.companyId,
     inboundEmailMessageId: input.inboundEmailMessageId,
     parsed: input.parsed,
   })
-  const result = existingId
-    ? await supabaseService.from('ediel_messages').update({ ...insertPayload, updated_at: nowIso() }).eq('id', existingId).select('id').maybeSingle()
-    : await supabaseService.from('ediel_messages').insert(insertPayload).select('id').maybeSingle()
+  const existingId = existing?.id ?? null
+  // The reception selector (mailbox_message_id) binds the original to its own retained mail at
+  // birth. It is never moved to another mail's copy of the same interchange.
+  const receptionBirth = { mailbox_message_id: input.inboundEmailMessageId }
+  const result = existing
+    ? await supabaseService.from('ediel_messages').update({ ...insertPayload, ...(existing.sameMail ? receptionBirth : {}), updated_at: nowIso() }).eq('id', existing.id).select('id').maybeSingle()
+    : await supabaseService.from('ediel_messages').insert({ ...insertPayload, ...receptionBirth }).select('id').maybeSingle()
 
   if (result.error) {
     console.warn('[inbound-mail] Kunde inte persist canonical inbound ACK', result.error)
@@ -181,6 +229,10 @@ async function persistInboundAck(input: {
         : `${negative ? 'Negativ' : 'Positiv'} ${ackLabel(input.parsed)} mottagen.`,
       payload,
     })
+    if (!existing || existing.sameMail) {
+      await recordInboundAckReception({ companyId: input.companyId, messageId: id, inboundEmailMessageId: input.inboundEmailMessageId,
+        parseResultId: input.parseResultId, actorUserId: input.actorUserId })
+    }
   }
   return id
 }
