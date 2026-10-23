@@ -33,6 +33,15 @@ Förslag: ingen åtgärd. Hela listan finns i `changed62.json`, kategorin `A_kos
 
 ## 4. Repot är nyare: kandidater för installation (10)
 
+**Genomfört 2026-10-23:** alla 10 i tabellen och `gridex_enforce_supplier_utilts_outbound_v1` är installerade med repots kropp, som `drift_converge_01` till `_11`.
+
+Varje steg kontrollerade först att produktionens kropp fortfarande hade den förväntade sha256, och avbröts annars. Funktionen installerades sedan med `CREATE OR REPLACE`. Till sist verifierades sha256 mot `schema.sql` och att ACL och ägare var oförändrade.
+
+Före installationen kontrollerades två saker särskilt:
+
+- `persist_series_v1`: produktionens spärrade anropare `gridex_persist_utilts_consumption_v1` skapar en receipt med `contract_version=1` och hamnar därför i `persist_series_legacy_v1`. Den skiljer sig från den tidigare kroppen bara genom tre kontroller som gör den strängare.
+- `canonical_provision_company_v3_pre_invitation_intent`: idempotenshashen beräknas på samma sätt som förut, på `p_command - 'actor_user_id'`.
+
 För var och en finns produktionens kropp ordagrant i en äldre migration, och repot har senare utökat den. Alla beroenden finns i produktion: retentionsfunktionerna, `customer_retention_tombstoned_v1`, `ediel_is_qualified_retention_transition_v1` och kolumnen `canonical_provisioning_requests.request_hash`.
 
 | Funktion | Vad repot lägger till | Prod / repo-fil | Anropas från appen |
