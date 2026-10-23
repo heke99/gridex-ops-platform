@@ -1978,6 +1978,16 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
   6. **Kontrafaktisk fil godtas:** plattformen godtar en civil fil med 100 värden i +0100 utan E87, eftersom ENV-08 bara avvisar 92 eller 100 värden per fast CET-dygn. Observation.
   7. **Ej körda native-tester:** native-tester som använder de ändrade hjälparna (`live-metering-billing-chain-native`, `ediel-grid-owner-rejects-native`) är inte körda.
 
+### T16 Tredje containeromstarten (cirka 16:41) — ÅTERSTÄLLD, verklighetsvärlden
+- **Upptäckt:** vid appliceringen av F108-migrationen svarade inte Docker. Maskinen hade varit uppe i 16 minuter.
+- **Återställning:**
+  - Startade om `dockerd` efter att ha tagit bort `docker.pid`.
+  - Supabase-containrarna kom upp med sina volymer, och omdirigeringen 54322→55322 lades tillbaka.
+  - `gx-mail` togs bort och skapades om av `up.sh` (`SKIP_REPLAY=1`).
+- **Data kvar:** 714 bolag fanns kvar, och F102-migrationen syntes på 548 inkommande produktionsrader med `test_flag=0`.
+- F108-migrationen applicerades, och världen byggdes på `edd43974a`. F-körning 27 startade 17:03.
+- Inga körningar pågick vid omstarten.
+
 ### P1 Mätvärdeslagringen går med ungefär 70 värden i minuten; kvittenshanteringen dominerar databastiden — MÄTT (världen, körning 26), medel; ej åtgärdat
 - **Körning 26, F6c:** 126 värden lagrade 11:11 och 475 kl. 11:16, alltså ungefär 70 i minuten. 123 filer à 96 kvartsvärden tar då nästan 3 timmar för en enda kund med 4 anläggningar. I produktion med många kunder räcker det inte.
 - **`pg_stat_statements`:** ackumulerat sedan världen startade, alla körningar och native-tester. De dyraste efter total tid:
