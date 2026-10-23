@@ -83,6 +83,68 @@ export async function selectTenantUsableGridOwners<T>(input: {
   return (shared.data ?? []) as unknown as T[]
 }
 
+/**
+ * The grid owner a tenant may use for a wire grid area code (FINDINGS F114). In the registry model (F41) grid owner
+ * rows carry `owner_code` = the Ediel id, so an area code no longer names a grid owner row; the area is mapped by
+ * platform_grid_areas (active, inside its validity window) -> platform_grid_owners (active) -> ops_grid_owner_id.
+ *   1. The tenant's own grid_owners row whose owner_code is the area code (the legacy convention), when one exists.
+ *      Two own rows are ambiguous and never fall through.
+ *   2. Otherwise every shared candidate: a shared row (company_id null) whose owner_code is the area code, and, with
+ *      `registryArea`, the area's mapped grid owner when that row is the tenant's own or a shared row.
+ * Exactly one distinct candidate is returned; none or several give null. Another tenant's row is never returned.
+ */
+export async function selectTenantGridOwnerIdForGridArea(input: {
+  companyId: string
+  gridAreaCode: string | null | undefined
+  registryArea: boolean
+  today?: string
+}): Promise<string | null> {
+  const code = typeof input.gridAreaCode === 'string' ? input.gridAreaCode.trim() : ''
+  if (!code) return null
+  const byCode = await selectTenantUsableGridOwners<{ id: string; company_id: string | null }>({
+    companyId: input.companyId, select: 'id,company_id', match: { owner_code: code },
+  })
+  if (byCode.some(row => row.company_id === input.companyId)) return byCode.length === 1 ? byCode[0].id : null
+  const candidates = new Set(byCode.map(row => row.id))
+  if (candidates.size > 1) return null
+  if (input.registryArea) {
+    const mapped = await selectRegistryAreaGridOwnerId(code.replace(/\s+/g, '').toUpperCase(), input.today ?? new Date().toISOString().slice(0, 10))
+    if (mapped === 'ambiguous') return null
+    if (mapped) {
+      const usable = await selectTenantUsableGridOwners<{ id: string }>({
+        companyId: input.companyId, select: 'id', match: { id: mapped, is_active: true },
+      })
+      for (const row of usable) candidates.add(row.id)
+    }
+  }
+  return candidates.size === 1 ? [...candidates][0] : null
+}
+
+/** OPS grid owner id the platform registry maps an area code to, unscoped; tenant usability is checked by the caller. */
+async function selectRegistryAreaGridOwnerId(code: string, today: string): Promise<string | 'ambiguous' | null> {
+  const areas = await supabaseService
+    .from('platform_grid_areas')
+    .select('grid_owner_id,valid_from,valid_to')
+    .eq('grid_area_code', code)
+    .eq('is_active', true)
+    .limit(2)
+  if (areas.error) throw areas.error
+  const current = ((areas.data ?? []) as Array<{ grid_owner_id: string | null; valid_from: string | null; valid_to: string | null }>)
+    .filter(area => (!area.valid_from || area.valid_from <= today) && (!area.valid_to || area.valid_to >= today))
+  if (current.length > 1) return 'ambiguous'
+  const platformId = current[0]?.grid_owner_id
+  if (!platformId) return null
+  const owner = await supabaseService
+    .from('platform_grid_owners')
+    .select('ops_grid_owner_id')
+    .eq('id', platformId)
+    .eq('is_active', true)
+    .maybeSingle()
+  if (owner.error) throw owner.error
+  const opsId = (owner.data as { ops_grid_owner_id?: string | null } | null)?.ops_grid_owner_id
+  return typeof opsId === 'string' && opsId.trim() ? opsId.trim() : null
+}
+
 export type OpsGridOwnerNormalization = {
   opsGridOwnerId: string | null
   source: 'ops' | 'platform_mapped' | 'platform_unmapped' | 'unknown' | 'none'

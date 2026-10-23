@@ -75,3 +75,23 @@ end
 $f113$;
 
 commit;
+
+-- ADDITIONAL NOTE, NOT SHIPPED (FINDINGS F114, 2026-10-23). The object-batch part above is still insufficient in the
+-- registry model: shared grid owner rows carry owner_code = the Ediel id (gridOwnerReconciliation.ts, actors/actions.ts),
+-- never the area code, so `company_id IS NULL AND owner_code=area` matches no row (world: 0 of 278 active areas). The
+-- area is mapped only by platform_grid_areas (is_active, valid_from/valid_to; no environment column) ->
+-- platform_grid_owners (is_active) -> ops_grid_owner_id, e.g. ALS -> d0015158 (Alingsås 16700, company_id NULL).
+-- When this body is handed off, its shared tier should take that mapped row (when it is the tenant's own row or a shared
+-- row, is_active, and named by the command's own site/metering point), unioned with any shared owner_code=area row;
+-- exactly one distinct candidate, otherwise prodat_object_batch_grid_namespace_ambiguous / _wire_grid_owner_required.
+-- This mirrors the TypeScript resolver selectTenantGridOwnerIdForGridArea (lib/grid-owners/platformGridOwnerResolver.ts).
+-- Until then lib/ediel/inboundCases.ts calls it with registryArea:false for the object batch, so object-batch commands
+-- keep their current shape (and replay hash) and are not refused by the installed body.
+-- Sketch of the shared-tier candidate (not a needle; to be written against the then-installed body):
+--   SELECT g.id FROM public.platform_grid_areas a
+--     JOIN public.platform_grid_owners p ON p.id=a.grid_owner_id AND p.is_active
+--     JOIN public.grid_owners g ON g.id=p.ops_grid_owner_id AND g.is_active
+--      AND (g.company_id=(command->>'company_id')::uuid OR g.company_id IS NULL)
+--    WHERE a.grid_area_code=upper(area) AND a.is_active
+--      AND (a.valid_from IS NULL OR a.valid_from<=current_date) AND (a.valid_to IS NULL OR a.valid_to>=current_date)
+--      AND g.id::text IN(command#>>'{site,grid_owner_id}',command#>>'{metering_point,grid_owner_id}')

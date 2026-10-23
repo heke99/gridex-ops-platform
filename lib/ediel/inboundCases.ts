@@ -21,7 +21,7 @@ import { parseUna } from '@/lib/ediel/core/una'
 // lib/ediel/inboundCases.ts
 
 import { supabaseService } from '@/lib/supabase/service'
-import { selectTenantUsableGridOwners } from '@/lib/grid-owners/platformGridOwnerResolver'
+import { selectTenantGridOwnerIdForGridArea } from '@/lib/grid-owners/platformGridOwnerResolver'
 import { tenantDb } from '@/lib/supabase/tenantDb'
 import { createEdielMessageEvent, getEdielMessageById, linkEdielMessage } from '@/lib/ediel/db'
 import {readReceivedProdatApplicationObjects} from '@/lib/ediel/core/receivedProdatApplicationObjects'
@@ -611,12 +611,14 @@ export async function getEdielInboundCaseForMessage(companyId: string, messageId
     review_decision:{...row.review_decision,structuralProjection:{appliedObjectCount:final?.plans.length??0,totalObjectCount:application?.objects.length??0,protectedEffectAvailable:final!==null}}}
 }
 
-/** The grid owner usable by the tenant for the grid area: its own row, else a shared registry row,
- * never another tenant's (FINDINGS F101); ambiguity or absence selects none. */
-export async function getGridOwnerIdByGridArea(companyId: string, gridAreaCode: string | null): Promise<string | null> {
-  if (!gridAreaCode) return null
-  const data = await selectTenantUsableGridOwners<{ id: string }>({ companyId, select: 'id,owner_code', match: { owner_code: gridAreaCode } })
-  return data.length === 1 ? data[0].id : null
+/** The grid owner usable by the tenant for the grid area: its own row by owner_code, else the shared row for the
+ * area, including the platform registry mapping platform_grid_areas -> platform_grid_owners.ops_grid_owner_id
+ * (FINDINGS F101, F114). Never another tenant's row; ambiguity or absence selects none.
+ * `registryArea: false` keeps the owner_code-only lookup for the PRODAT object batch: its protected wire projection
+ * (gridex_prodat_object_batch.require_wire_projection_v1, DB-05/SC-031) still resolves the area by owner_code among
+ * the tenant's own rows and refuses any other grid owner (held F113 proposal). */
+export async function getGridOwnerIdByGridArea(companyId: string, gridAreaCode: string | null, options: { registryArea?: boolean } = {}): Promise<string | null> {
+  return selectTenantGridOwnerIdForGridArea({ companyId, gridAreaCode, registryArea: options.registryArea ?? true })
 }
 
 async function insertAuditLog(params: {
@@ -746,6 +748,14 @@ function inboundCustomerCommand(params: {
           mode,
         },
       },
+    }
+    // FINDINGS F114: gridex_update_jsonb_row assigns every key present in the payload, so an unresolved grid area
+    // (null) would clear the grid owner already on the selected or matched site and metering point. The key is
+    // omitted instead (an insert gets the column default, null); a resolved grid owner, also a different one, stays.
+    // The object batch path (sourceId) keeps its replay-hashed command shape; its update modes drop nulls below.
+    if (!params.sourceId && gridOwnerId === null) {
+      delete command.site?.grid_owner_id
+      delete command.metering_point?.grid_owner_id
     }
     if (!params.sourceId || mode==='create_new_customer') return command
     // Selected graph IDs are checked against the exact source object before any
@@ -1229,7 +1239,7 @@ async function applyInboundObjects(params:{actorUserId:string;caseId:string;comp
       const scopedCase:EdielInboundCaseRow={...current,customer_id:null,site_id:null,metering_point_id:null,
         case_type:projection.caseType,transaction_type:projection.transactionType,parsed_customer:projection.customer,parsed_site:projection.site,
         parsed_metering_point:projection.meteringPoint,parsed_contract:projection.contract,parsed_production:projection.production,proposed_action:projection.proposedAction}
-      const gridOwnerId=await getGridOwnerIdByGridArea(params.companyId,trimOrNull(projection.site.gridAreaCode))
+      const gridOwnerId=await getGridOwnerIdByGridArea(params.companyId,trimOrNull(projection.site.gridAreaCode),{registryArea:false})
       // Object identity, not register index or array position, owns replay and
       // application identity. Changing a later decision cannot create a new key.
       const sourceId=`${current.id}:object:${digestObject([decision.meteringPointId,decision.identityAgency])}`

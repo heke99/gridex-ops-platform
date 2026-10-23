@@ -179,7 +179,7 @@ export async function applyManualFacilityResponse(input: {
   if (effectiveGridAreaCode) {
     const areaResult = await supabaseService
       .from('platform_grid_areas')
-      .select('id,grid_area_code,grid_owner_id,price_area,is_active')
+      .select('id,grid_area_code,grid_owner_id,price_area,is_active,platform_grid_owners(ops_grid_owner_id)')
       .eq('grid_area_code', effectiveGridAreaCode.toUpperCase())
       .eq('is_active', true)
       .limit(2)
@@ -189,7 +189,11 @@ export async function applyManualFacilityResponse(input: {
     else reasons.push(areas.length === 0 ? 'grid_area_not_in_masterdata' : 'grid_area_masterdata_ambiguous')
   }
   const expectedGridOwnerId = clean(input.request.grid_owner_id) ?? clean(site?.grid_owner_id)
-  if (verifiedGridArea && expectedGridOwnerId && clean(verifiedGridArea.grid_owner_id) !== expectedGridOwnerId) {
+  // platform_grid_areas.grid_owner_id is a platform_grid_owners id, while sites (and most requests) carry the OPS
+  // grid_owners id; the area's grid owner is either namespace of the same row (FINDINGS F114).
+  const areaOwner = verifiedGridArea?.platform_grid_owners as { ops_grid_owner_id?: unknown } | null | undefined
+  const areaGridOwnerIds = [clean(verifiedGridArea?.grid_owner_id), clean(areaOwner?.ops_grid_owner_id)].filter(Boolean)
+  if (verifiedGridArea && expectedGridOwnerId && !areaGridOwnerIds.includes(expectedGridOwnerId)) {
     reasons.push('grid_area_grid_owner_mismatch')
   }
   const replyPriceArea = clean(input.extracted.price_area_code)

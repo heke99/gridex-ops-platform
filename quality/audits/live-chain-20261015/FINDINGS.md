@@ -2155,6 +2155,41 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
 - Omkörningen tar cirka en minut per fil (P1), så 150 minuter räcker inte.
 - Budgeten är höjd till 240 minuter. Operatörsflödet är oförändrat. P1 är den verkliga orsaken och är fortfarande öppen.
 
+### F114 Nätområdet slås inte upp i registret, och godkännande rensar nätägaren — BEKRÄFTAD (världen och rullad tillbaka-körning), hög; RÄTTAD (TS), med ett nytt KRITISKT sidofynd ÖPPET
+Gäller F113:s sidofynd 1 och 2.
+- **Bevis i världen, endast läsning:**
+  - `getGridOwnerIdByGridArea('53d47067…','ALS')` gav null.
+  - I `platform_grid_areas` finns 278 aktiva områden, och inget matchar ett `owner_code`.
+  - ALS mappas via `platform_grid_owners` `5c438e5f` till `ops_grid_owner_id` `d0015158`, som är delad, 16700, production. Alla 20 väntande ALS-ärenden pekar redan på `d0015158`.
+- **Bevis i en transaktion som rullades tillbaka, med syntetisk tenant och 0 rader kvar:** kommandot från `approveEdielInboundCase` (`update_existing_customer`, området oupplöst) satte anläggningens och mätpunktens nätägare från `d0015158` till null.
+- **Orsaker:**
+  1. Områdesuppslagningen använde bara konventionen att `owner_code` är området.
+  2. Envägskommandot (utan `sourceId`) skickar alla nycklar, även null, och `gridex_update_jsonb_row` tilldelar varje nyckel som finns.
+- **Rättningar:**
+  - **`selectTenantGridOwnerIdForGridArea`** (`platformGridOwnerResolver.ts`):
+    - tenantens egen rad via `owner_code` vinner; två egna rader ger null;
+    - annars delad rad via `owner_code` samt registermappningen. Området ska vara aktivt och inom sitt giltighetsfönster, plattformsägaren aktiv, och den mappade raden aktiv och tenantens egen eller delad;
+    - exakt en kandidat krävs, annars null. En annan tenants rad returneras aldrig.
+  - **Objektbatchen** behåller uppslagningen via `owner_code` (`registryArea:false`). Den skyddade wire-projektionen skulle annars neka med `prodat_object_batch_wire_grid_owner_required`, så kommandon och replay-hash är oförändrade.
+  - **Envägskommandot** utelämnar `grid_owner_id` när området är oupplöst. Ett medvetet byte till en annan nätägare skrivs fortfarande.
+- **Variant:** `manualFacilityResponseParser` jämförde områdets `platform_grid_owners`-id med anläggningens `grid_owners`-id. Varje riktigt svar hölls därför med `grid_area_grid_owner_mismatch`. Nu godtas båda namnrymderna för samma rad.
+- **Tester:**
+  - nya testfiler `reality-f114-grid-area-registry-grid-owner` (16 tester) och `reality-f114-manual-facility-area-namespace` (3 tester); 7 av de 19 föll på HEAD;
+  - mockarna i två godkända SC-031-tester och i `shared-grid-owner-variants` deklarerar `platform_grid_areas` som en tom tabell. Inga påståenden ändrades;
+  - 98 importörsfiler 2000/2000. Native-sviter: objektbatch 11/11, avbeställning 37/37, z06f/g 12/12, z10m 5/5. tsc och eslint utan fel. Täckningen 352/352;
+  - jag körde om de 5 berörda filerna själv: 107/107.
+- **Det hållna F113-förslaget** har fått en kommentar: den delade nivån `company_id IS NULL AND owner_code=område` kan aldrig matcha i registermodellen, och objektbatchen behöver uppslagningen via `platform_grid_areas`. Blocket `$f113$` är oförändrat.
+- **Sidofynd, ÖPPNA:**
+  1. **KRITISK, BEKRÄFTAD (rullad tillbaka):** godkännande av en enskild Z04/Z06 i läget update/link sätter en aktiv kund, anläggning och mätpunkt till `draft`. Det nollar också `personal_number`, gatuadress, postnummer, ort och `annual_consumption_kwh`, och ersätter kundens `metadata`. Att godkänna de väntande ALS-ärendena i dag skulle göra detta.
+     - Förslag: använd objektvägens `withoutNulls` och borttagningen av `status`/`created_by`/`metadata` även i envägslägena update och link.
+     - Inte rättat: det godkända SC-031-testet `ediel-at-z14vh-z15v-esco-native` påstår att `command.site.annual_consumption_kwh` är null, så det KRÄVER ÄGARBESLUT eller en överlämning från SC-031-ägaren.
+  2. **Medel:** `canonical_onboard_customer_graph` och tabellerna godtar en annan tenants `grid_owner_id`. Bara TS skyddar; ett skydd i databasen kräver en migration.
+  3. **Medel, sannolik:** UTILTS E73/E66 utgående sätter området till `gridOwner.owner_code ?? ediel_id` (`utiltsDataRequest.part-2.ts:131,304`, `utiltsSupplierRequest.ts:217`). Det ger `LOC+239+16700` med registerägare. Samma reserv finns i `prodatSwitch.ts:250`, `customerMasterdataZ01.ts:60` och `facilityLookupZ01.ts:132`.
+  4. **Medel:** objektbatchens godkännanden kan inte använda registermappningen förrän den skyddade kroppen har lämnats över.
+  5. **Låg:** 61 av 278 aktiva områden mappar till plattformsägare utan `ops_grid_owner_id`. `grid_owners.platform_grid_owner_id` är null på alla 476 överbryggade rader.
+  6. **Låg:** `findGridAreaByCode` i `lib/energy/resolver.ts` returnerar den överbryggade nätägaren utan tenantkontroll.
+  7. **Låg:** de befintliga testerna för den manuella tolkningen dolde namnrymdsfelet genom att ge område och anläggning samma id.
+
 ### F115 En tenant kan gå live utan fakturaleverantör, och felet syns först vid första debiteringen — BEKRÄFTAD (världen, körning 28), medel; ÖPPEN
 - Go-live (certifierad, `firstLiveSendApproved`) och bytena går igenom utan att någon fakturaleverantör är vald.
 - Månadsdebiteringen nekar först efter en hel månads leverans, och då är tenanten redan skyldig kunderna fakturor.

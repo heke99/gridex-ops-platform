@@ -17,6 +17,11 @@ const io = vi.hoisted(() => ({
 vi.mock('@/lib/supabase/service', () => ({
   supabaseService: {
     from: (table: string) => {
+      // F114: the area lookup also reads the platform registry; these synthetic areas have no registry row.
+      if (table === 'platform_grid_areas') {
+        const empty = { select: () => empty, eq: () => empty, limit: async () => ({ data: [], error: null }) }
+        return empty
+      }
       if (table !== 'grid_owners') throw Error(`UNEXPECTED_TABLE:${table}`)
       const filters: Array<[string, string, unknown]> = []
       io.queries.push(filters)

@@ -64,7 +64,8 @@ function execute(q: Query) {
     const rows = [{ id: CUSTOMER, company_id: COMPANY, org_number: '0000000000', personal_number: '000000000000' }, { id: FOREIGN, company_id: FOREIGN, org_number: '0000000000', personal_number: '000000000000' }]
     return { data: rows.find(matches) ?? null, error: null }
   }
-  if (['metering_points', 'customer_sites', 'grid_owners', 'audit_logs'].includes(q.table)) return { data: null, error: null }
+  // platform_grid_areas: the F114 grid area registry lookup; no registry row is declared.
+  if (['metering_points', 'customer_sites', 'grid_owners', 'platform_grid_areas', 'audit_logs'].includes(q.table)) return { data: null, error: null }
   throw Error(`UNEXPECTED_DECLARED_TABLE:${q.table}`)
 }
 function install(row: EdielMessageRow) {
