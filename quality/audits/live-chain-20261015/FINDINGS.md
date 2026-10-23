@@ -2008,6 +2008,28 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
   - Samtidigt försvann konstanten `CONTACT_ACTOR_CHUNK` och F34-kommentaren. Båda återställdes innan typkontrollen.
 - **Sidofynd, ÖPPEN:** `loadRouteReadiness` (`gridex_route_readiness_v`) på samma sida har också `.limit(500)` utan markering. Medel.
 
+### F körning 28 (tenant `53d47067`, start 17:25), delresultat 18:20 — F106 verifierad i världen
+- **Bytet:**
+  - F110-rättningen fungerade: PRODAT Z01 och Z03 materialiserades. UTILTS gav `ediel_route_profile_insert_failed` som tidigare (känt, se rad 280).
+  - Alla 4 Z01 och 4 Z03 skickades. Alla 4 Z04 tolkades och fick aktiva perioder, första gången utan strandad Z04.
+- **CONTRL till nätägaren (F106 verifierad):** varje inkommande fil har fått en skickad CONTRL:
+  - APERAK 4 av 4 (F106b);
+  - Z04 4 av 4;
+  - E66 123 av 123 (F106a, ingen förlust under last).
+  - Inkommande CONTRL kräver ingen CONTRL (`requires_contrl=false`, ACK-01).
+- **SLA 18:20:**
+  - `contrl_due`: E66 40 resolved och 83 open trots skickad CONTRL. Svepet ligger efter, se F106b sidofynd 4 om liten global budget. Följs upp.
+  - `aperak_due`: Z04 4 expired, se F111.
+  - `aperak_due`: E66 40 expired och 83 open. E66 hålls för intern granskning tills operatörens omkörning (F6c), så APERAK eller UTILTS-ERR per transaktion hinner inte ut inom 30 minuter.
+    - Produktfrågan: inget jobb omvärderar hållna UTILTS (känt sedan scenario E). I produktion blir varje hållen fil ett SLA-brott. Hög, ÖPPEN.
+
+### F111 APERAK på Z04 från en delad nätägare nekas som "främmande resurs" — BEKRÄFTAD (världen, körning 28), hög; utreds av agent
+- **Utfall:** alla 4 Z04 har "APERAK skapades inte: ediel_ack_atomic_foreign_source_resource · kod: P0001". Ingen APERAK skickas, i strid med ACK-02, och `aperak_due` gick ut.
+- **Orsak (trolig):**
+  - Den atomiska kvittensskaparen (senast i `20261010102349`, cirka rad 905–913) ärver källans resurslänkar och kontrollerar dem med `r.company_id = c`, också för `grid_owners`.
+  - Registrets nätägare är delade (`company_id IS NULL`, F41).
+  - Samma klass som F101 och varianterna. Svarsrouten löstes i F106b, och nu stoppar resurskontrollen.
+
 ### P1 Mätvärdeslagringen går med ungefär 70 värden i minuten; kvittenshanteringen dominerar databastiden — MÄTT (världen, körning 26), medel; ej åtgärdat
 - **Körning 26, F6c:** 126 värden lagrade 11:11 och 475 kl. 11:16, alltså ungefär 70 i minuten. 123 filer à 96 kvartsvärden tar då nästan 3 timmar för en enda kund med 4 anläggningar. I produktion med många kunder räcker det inte.
 - **`pg_stat_statements`:** ackumulerat sedan världen startade, alla körningar och native-tester. De dyraste efter total tid:
