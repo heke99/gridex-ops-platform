@@ -299,8 +299,15 @@ async function upsertOutboundRecipientCertificate(input: {
     purpose: 'encryption',
     certificate_type: 'smime',
     display_name: `Expisoft ${input.edielId ?? input.smtpEmail}${input.subaddress ? `:${input.subaddress}` : ''}`,
-    message_family: 'PRODAT',
-    message_type: 'PRODAT',
+    // The Expisoft directory publishes one encryption certificate per Ediel
+    // mailbox/actor, not per message family. It is party/mailbox scoped, so it
+    // must stay family- and code-agnostic (NULL): PRODAT, UTILTS, CONTRL and
+    // APERAK to the same owner all encrypt to it (reality defect F96). Owner,
+    // subaddress, environment, usage, purpose and validity still bind it.
+    // A re-lookup updates the existing row by fingerprint, so a legacy
+    // PRODAT/PRODAT row is rewritten in place rather than duplicated.
+    message_family: null,
+    message_type: null,
     source: 'expisoft_ldap',
     public_certificate_pem: input.pem,
     subject: input.cert.subject,
@@ -332,10 +339,9 @@ async function upsertOutboundRecipientCertificate(input: {
       edifactPartyId: clean(input.partyId),
       ownerSubaddress: clean(input.subaddress),
       owner_subaddress: clean(input.subaddress),
-      messageFamily: 'PRODAT',
-      message_family: 'PRODAT',
-      messageType: 'PRODAT',
-      message_type: 'PRODAT',
+      // No messageFamily/messageType keys: readers fall back from the NULL
+      // columns to these metadata keys, so carrying them would re-scope the
+      // mailbox certificate to one family.
       usage: 'outbound_recipient',
       purpose: 'encryption',
       secretReference: publicSecretReference,

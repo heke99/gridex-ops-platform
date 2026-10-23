@@ -299,6 +299,7 @@
     "20261022210000_statistics_stockholm_months_and_supply_counts.sql": "83d06a2b1d403921becf6db5c19d6136ef7337351ba64c9afd581b0b1606c0c9",
     "20261022211000_statistics_dashboard_switch_and_value_counts.sql": "1c744e1b3a7cecaa5f42ee4e2bd28ee9f91a0d4fb53614b24e85402c70593f77",
     "20261022220000_ediel_mailboxes_production_column_parity.sql": "562c0370b6d7d39fd616f3fc303dc53dce1b70aefdbb64aa644c943fcb9ac354",
-    "20261023100000_contract_version_at_signing.sql": "1010e7c008f8fe3ed087794bd4b4995b50fb5e09d2b7d941e7663af660adc778"
+    "20261023100000_contract_version_at_signing.sql": "1010e7c008f8fe3ed087794bd4b4995b50fb5e09d2b7d941e7663af660adc778",
+    "20261023110000_expisoft_certificates_mailbox_scope.sql": "3b7529567a353bd8551773ed950ee54bb0318e6680433dc71497782b1cadfb96"
   }
 }

@@ -1464,10 +1464,24 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
   - Katalogen publicerar ett krypteringscertifikat per postlåda, inte per familj.
   - Spärren `certificateMessageScopeBlocker` (TR-06, godkänd) nekar korrekt ett PRODAT-certifikat för en annan familj.
 - **Produktion (summering, bara läsning):** alla 168 aktiva Expisoft-certifikat för mottagare är PRODAT/PRODAT, och 78 utgångna likaså. I produktionen skulle alltså varje CONTRL, APERAK och UTILTS till en nätägare spärras.
-- **Rättning (agent, pågår):**
-  - Certifikatet sparas utan familj, eftersom det gäller postlådan.
+- **Rättning — RÄTTAD (native 3/3), väntar på verifiering i världen:**
+  - `expisoftCertificateDirectory.ts` sparar certifikatet med familj och typ satta till NULL, även i metadata. Läsarna faller annars tillbaka på metadatanycklarna.
   - TR-06-spärren är oförändrad.
-  - Befintliga produktionsrader hanteras genom ett förslag och utan migration.
+  - En ny uppslagning skriver om en gammal rad på plats via fingeravtrycket, så inga dubbletter uppstår.
+- **Befintliga rader:** migrationen `20261023110000_expisoft_certificates_mailbox_scope.sql` skriver om de rader uppslagningen själv skapat (`expisoft_ldap`, PRODAT/PRODAT), med markeringen `f96_rescoped_from` för tillbakarullning. Ingen cron hade gjort det: nattjobbet uppdaterar bara spärrade, saknade och utgångna certifikat.
+  - Påverkade rader: 168 i produktionen och 5 i världen.
+- **Test:** `scripts/ediel-expisoft-certificate-family-scope-native.test.ts`.
+  - Ett nytt certifikat släpper igenom PRODAT, CONTRL, APERAK och UTILTS. Fel ägare, underadress eller miljö nekas fortfarande.
+  - Ett manuellt UTILTS-certifikat nekar fortfarande andra familjer.
+  - En gammal PRODAT-rad nekar CONTRL tills den uppdateras.
+  - Testet fallerar mot den gamla koden.
+- **Övriga kontroller:**
+  - 8 relaterade testfiler: 72 av 72;
+  - typkontroll och eslint utan fel;
+  - täckningen för masterplanen: 352 av 352.
+- **Sidofynd (öppna, inte rättade, utanför F96):**
+  - Den befintliga raden matchas på fingeravtryck över alla tenanter och källor. En uppslagning för en tenant kan därför skriva över en annan tenants rad, eller en manuellt importerad rad, inklusive `company_id`. Medel.
+  - `actorAutoReadiness` skickar inget `companyId`, så en uppslagning nollar `company_id` men behåller scope. Medel.
 
 ### T9 Världens cron-cykel pollade aldrig produktionskanalen — RÄTTAD, verklighetsvärlden
 - **Utfall (körning 18, och tidigare körningar som väntade på svar):** nätägaren svarade inom 2 minuter, men produktionsbrevlådan pollades inte i F4. `last_polled_at` stod still.
