@@ -40,6 +40,7 @@ import { attachAperakErrorDetailsToMessage, resolveAndStoreProdatAperakErrors } 
 
 import { processEdielOperationalMessage } from "@/lib/ediel/operationalBridge"
 import { describeUtiltsSourceResumability, readUtiltsSourceResumability, type UtiltsSourceResumability } from "@/lib/ediel/utilts/utiltsResumability"
+import { readUtiltsReplyFailedAfterStore } from "@/lib/ediel/utilts/utiltsReplyAfterStore"
 
 
 
@@ -61,7 +62,8 @@ export type EdielOperationalMessageActionResult =
   | { status: "processed"; resumedTransactionIds: string[]; stillHeldTransactionIds: string[] }
   | { status: "refused"; reason: UtiltsSourceResumability["reason"] | "application_reply_exists" }
   | { status: "already_processing_or_done"; reason: string }
-  | { status: "final_reply_conflict"; reason: string };
+  | { status: "final_reply_conflict"; reason: string }
+  | { status: "reply_failed_after_store"; reason: string; storedMeterValueCount: number; pendingReplyTransactionIds: string[] };
 
 // Errors raised by the existing DB/draft guards when a second, concurrent or
 // repeated attempt meets work that another attempt already committed.
@@ -257,6 +259,31 @@ async function resumeInboundUtiltsSource(params: {
   } catch (error) {
     const kind = classifyUtiltsResumptionError(error);
     const reason = errorChainText(error).slice(0, 500);
+    const storedWithoutReply = kind ? null : readUtiltsReplyFailedAfterStore(error);
+    if (storedWithoutReply) {
+      // F107: values are stored; only the application reply is missing. Report
+      // that durably and to the operator instead of an opaque 500.
+      const afterFailure = await readUtiltsSourceResumability(scope).catch(() => null);
+      const pendingReplyTransactionIds = afterFailure
+        ? before.heldTransactionIds.filter((id) => !afterFailure.heldTransactionIds.includes(id) && !afterFailure.finalizedTransactionIds.includes(id))
+        : [];
+      const storedMeterValueCount = storedWithoutReply.storedMeterValueIds.length;
+      await createEdielMessageEvent({
+        actorUserId, edielMessageId, eventType: "manual_note", eventStatus: "error",
+        message: `Återupptagning lagrade ${storedMeterValueCount} mätvärde(n) från bevarat original, men applikationssvaret (APERAK/UTILTS-ERR) kunde inte skapas: ${storedWithoutReply.error}. Lagrade värden behålls; svaret saknas tills engine körs igen när orsaken är åtgärdad.`,
+        payload: {
+          ...basePayload,
+          outcome: "reply_failed_after_store",
+          error: reason,
+          storedMeterValueCount,
+          billingUnderlayId: storedWithoutReply.billingUnderlayId,
+          pendingReplyTransactionIds,
+          heldTransactionIdsAfter: afterFailure?.heldTransactionIds ?? null,
+        },
+      }).catch(() => null);
+      await finish();
+      return { status: "reply_failed_after_store", reason, storedMeterValueCount, pendingReplyTransactionIds };
+    }
     if (!kind) {
       await createEdielMessageEvent({
         actorUserId, edielMessageId, eventType: "manual_note", eventStatus: "error",

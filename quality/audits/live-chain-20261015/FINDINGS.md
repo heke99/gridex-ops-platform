@@ -1723,6 +1723,27 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
 - **Konsekvens:** operatören ser ett fel efter en lyckad åtgärd. Det kan leda till upprepade tryck och ärenden i onödan, och det döljer riktiga fel bakom samma 500.
 - Troligen samma klass som F103: en lång kedja där ett efterföljande steg kastar eller tidsgränsen löper ut efter att lagringen redan är gjord. Ska utredas efter körningen.
 
+- **RÄTTAD 2026-10-23 (agent + granskning):**
+  - **Orsak:**
+    - Åtgärden `processEdielOperationalMessageAction` (`actions.part-3.ts`) går via `processInboundUtiltsMessage` (`utiltsDataRequest.part-2.ts`). Den uppgraderar transaktionen i liggaren, lagrar värdena, skapar underlaget och anropar först därefter `createUtiltsRuntimeAcks` för APERAK. Det anropet kastade.
+    - Catch-blocket i åtgärden kände inte igen felet. Det skrev "… misslyckades. Inga tidigare svar har ändrats.", vilket är fel eftersom 96 värden redan var lagrade, och kastade vidare, vilket gav HTTP 500.
+    - Felen bakom: i körning 28 F111 (`ediel_ack_atomic_foreign_source_resource`, 14 rader i loggen). I körning 26 F106b ("Ingen aktiv communication_route för ediel_ack", 81 källor) och statement timeouts (28).
+    - Testkörningen läste inte fel: `submitServerAction` ger den verkliga statusen.
+  - **Rättning:**
+    - `lib/ediel/utilts/utiltsReplyAfterStore.ts`: om svaret fallerar efter att värden eller underlag lagrats skrivs en felhändelse på källan, med fasen `utilts_reply_failed_after_store`, id:n, antal och fel. Felet märks och kastas oförändrat vidare, så andra anropare beter sig som förut.
+    - Åtgärden svarar 200 med `{status:"reply_failed_after_store"}`, skriver ett försök med utfall, antal lagrade värden, saknat svar och orsak, och revaliderar sidan. Omärkta fel kastas som förut.
+    - Sidan visar senaste misslyckade försök i rött.
+    - Idempotens och spärrar är oförändrade.
+  - **Tester:** `reality-f107-utilts-reply-after-store-processor` och `reality-f107-utilts-resume-action-report`, 9 av 9. Fyra föll med den gamla koden. Agenten körde 36 relaterade sviter med 675 tester. Typkontroll och eslint utan fel, och täckningen 352 av 352.
+  - **Sidofynd:**
+    1. **KRITISKT, ÖPPET:** ingen hållen E66 har någonsin fått sin APERAK eller UTILTS-ERR efter omkörningen. 239 källor har lagrade värden men inget applikationssvar, och SLA har gått ut. F111 löser den nuvarande blockeringen; verifieras i nästa F-körning.
+    2. `failure_reason` behåller den gamla hålltexten även efter lagring, eftersom `updateEdielMessageStatus` aldrig kan rensa den. Medel.
+    3. Det finns ingen status som betyder "lagrad, väntar på svar". Meddelandet står kvar som `parsed`. Låg.
+    4. Efter ett misslyckat försök byter knappen namn till "Kör UTILTS engine / skapa TGT-svar", vilket är rätt men lätt att missa. Låg.
+    5. Lagringen tar cirka 64 sekunder per fil med 96 värden (P1).
+    6. Loggbrus: PGRST205 för `production_route_wizard_runs`, tenant-provisioneringen, IMAP-hemligheten för den manuella brevlådan (sedan tidigare), samt 123 "Skipping customer-scoped task because no canonical customer is resolved". Låg.
+  - **Testkörningen (T17):** F6c kontrollerar bara lagrade mot förväntade värden. Den ska också läsa utfallet för `utilts_source_resumption_attempt` eller om APERAK/UTILTS-ERR finns. Läggs till.
+
 ### F106 Våra tekniska kvittenser till nätägaren går förlorade under last, och SLA-timrarna stängs inte — BEKRÄFTAD (världen, körning 26), kritisk för Ediel-efterlevnad; utreds
 - **Underlag** (skrivskyddat, tenant `7b53f121`, 12:40):
   - **E66:** 123 har tagits emot, och 81 har en utgående CONTRL (63 `sent`, 18 `draft`). 42 E66 från 10:51–11:09 har ingen CONTRL alls.

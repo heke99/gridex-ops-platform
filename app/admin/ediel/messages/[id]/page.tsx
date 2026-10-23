@@ -197,7 +197,7 @@ function UtiltsResumabilityPanel({
  latestAttempt: EdielMessageEventRow | null
 }) {
  const lastAttempt = latestAttempt ? (
- <div className="mt-2 text-xs text-slate-700">
+ <div className={`mt-2 text-xs ${latestAttempt.event_status === 'error' ? 'font-semibold text-red-700' : 'text-slate-700'}`}>
  Senaste försök ({formatDate(latestAttempt.created_at)}): {latestAttempt.message ?? '—'}
  </div>
  ) : null

@@ -28,6 +28,7 @@ import { findActiveMeteringPermissionForUtiltsMessage } from '@/lib/onboarding/i
 import { buildUtiltsTransactionPersistencePayload, persistUtiltsTransactionResults, resolveUtiltsTransactionId, storedUtiltsConsumption } from '@/lib/ediel/utilts/transactionPersistence'
 import { prepareUtiltsConsumptionContracts } from '@/lib/ediel/utilts/consumptionPreparation'
 import { appendUtiltsRuntimeHistory } from '@/lib/ediel/utilts/utiltsResumability'
+import { createUtiltsRepliesAfterStore } from '@/lib/ediel/utilts/utiltsReplyAfterStore'
 
 
 import type { UtiltsProcessResult } from './utiltsDataRequest.part-1'
@@ -616,13 +617,14 @@ export async function processInboundUtiltsMessage(params: {
           normalizedPayload,
         }) : null
     const partialMeterValueIds = partialMeterValues.map(row => row.id)
-    const ackIds = await createUtiltsRuntimeAcks({
+    const ackIds = await createUtiltsRepliesAfterStore({ actorUserId, sourceMessageId: message.id,
+      storedMeterValueIds: partialMeterValueIds, billingUnderlayId: partialBillingUnderlay?.id ?? null }, () => createUtiltsRuntimeAcks({
       actorUserId,
       sourceMessage: runtimeSourceMessage,
       ackPlan: ackPlan,
       transactionDispositions,
       testCaseCode: runtimeTestCaseCode,
-    })
+    }))
 
     await updateEdielMessageStatus({
       actorUserId,
@@ -718,13 +720,14 @@ export async function processInboundUtiltsMessage(params: {
       })
 
       const ingestedMeterValueIds = ingestedMeterValues.map((row) => row.id)
-      const ackIds = await createUtiltsRuntimeAcks({
+      const ackIds = await createUtiltsRepliesAfterStore({ actorUserId, sourceMessageId: message.id,
+        storedMeterValueIds: ingestedMeterValueIds }, () => createUtiltsRuntimeAcks({
         actorUserId,
         sourceMessage: runtimeSourceMessage,
         ackPlan: ackPlan,
         transactionDispositions,
         testCaseCode: runtimeTestCaseCode,
-      })
+      }))
 
       await updateEdielMessageStatus({
         actorUserId,
@@ -789,13 +792,14 @@ export async function processInboundUtiltsMessage(params: {
       })
 
       const ingestedMeterValueIds = ingestedMeterValues.map((row) => row.id)
-      const ackIds = await createUtiltsRuntimeAcks({
+      const ackIds = await createUtiltsRepliesAfterStore({ actorUserId, sourceMessageId: message.id,
+        storedMeterValueIds: ingestedMeterValueIds }, () => createUtiltsRuntimeAcks({
         actorUserId,
         sourceMessage: runtimeSourceMessage,
         ackPlan: ackPlan,
         transactionDispositions,
         testCaseCode: runtimeTestCaseCode,
-      })
+      }))
 
       await updateEdielMessageStatus({
         actorUserId,
@@ -952,13 +956,14 @@ export async function processInboundUtiltsMessage(params: {
     },
   })
 
-  const ackIds = await createUtiltsRuntimeAcks({
+  const ackIds = await createUtiltsRepliesAfterStore({ actorUserId, sourceMessageId: message.id,
+    storedMeterValueIds: ingestedMeterValueIds, billingUnderlayId: billingUnderlay?.id ?? null }, () => createUtiltsRuntimeAcks({
     actorUserId,
     sourceMessage: runtimeSourceMessage,
     ackPlan: ackPlan,
     transactionDispositions,
     testCaseCode: runtimeTestCaseCode,
-  })
+  }))
 
   await updateEdielMessageStatus({
     actorUserId,
