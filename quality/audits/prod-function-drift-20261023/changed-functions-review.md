@@ -4,7 +4,7 @@ Produktionens kroppar hämtades 2026-10-23. Ögonblicksbilden är kontrollerad m
 
 Klassningen gjordes i två steg. Först rensades kommentarer bort och blanksteg normaliserades, sedan jämfördes kropparna token för token. Kolumnen "Prod-kroppen finns i" anger om produktionens exakta kropp förekommer i någon migrationsfil.
 
-Ingenting i det här dokumentet har installerats. Varje rad under 3–5 kräver ett beslut.
+Grupp 4 och 5 är genomförda; se respektive avsnitt. Grupp 3 är spärrad.
 
 ## Sammanfattning
 
@@ -75,6 +75,17 @@ Produktionens kropp finns inte i någon migrationsfil. Den har alltså ändrats 
 | `gridex_create_invoice_export_graph_v1_core` | Skriver `invoice_reference`, med fallback `draft:…`. | Skriver inte kolumnen. | Beslut behövs. Kontrollera vilken tabell och kolumn produktionen skriver till. |
 | `run_tenant_integrity_audit` | Kontrollerar att switch- och kontraktsrader har samma `company_id`. | Kontrollerar i stället att mätpunktens kund stämmer. | Beslut behövs. Versionerna kontrollerar olika saker; den naturliga lösningen är att slå ihop dem. |
 | `gridex_enforce_supplier_utilts_outbound_v1` | Saknar retention-undantaget. | Har undantaget. | Installera troligen repots version (se under 4). |
+
+**Genomfört 2026-10-23 (grupp 5):**
+
+- `gridex_can`: repot följer produktionen ([#907](https://github.com/heke99/gridex-ops-platform/pull/907), migration 20261023130000). Kroppen är byte-identisk, så produktionen ändrades inte.
+- `gridex_apply_exact_z02_core`, `gridex_dependency_circuit_before_request_v1`, `gridex_stage_energy_geodata_features_v2` och `gridex_create_invoice_export_graph_v1_core`: repot följer produktionens kropp ([#908](https://github.com/heke99/gridex-ops-platform/pull/908), migration 20261023150000).
+  - Z02-kärnan behåller repots `search_path 'pg_catalog'`. Produktionen ändrades från `'public'` till `'pg_catalog'`.
+  - Fakturaexporten lämnar `partner_export_id` tom på utkastet tills leverantörshändelsen sätter den. Triggern ersätter `invoice_reference` vid insert.
+- `run_tenant_integrity_audit`: båda kontrollerna i OUTBOUND-001 är sammanslagna, och den nya kroppen (sha `504ad4e0…`) är installerad i produktion.
+  - Kolumnerna för byte och kontrakt läses via `to_jsonb(o)`, så funktionen fungerar även med repots schema, som saknar dem.
+- Produktionsinstallationen `converge_prod_divergent_functions_908` verifierade sha, `search_path`, ACL och ägare.
+- Testkörningen av revisionen rullades tillbaka och gav `ok`. Den hittade två ACCESS-002-fynd (medlemskapsrollen stämmer inte med rollmappningen). De gäller befintlig data och påverkas inte av ändringen.
 
 ## Hur en installation går till
 
