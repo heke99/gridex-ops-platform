@@ -1975,6 +1975,10 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
   - **EJ VERIFIERAT:** de godkända sviterna `ediel-at-z03h-z04h-supplier-native` (fel vid critical_negative_208, sedan timeout efter 900 s) och `ediel-z05h-z08h-supplier-native` (7 fel, ändrade utkorgsrader) föll medan verklighetskörning 26 gick.
     - Hypotes: körningens utkorgs-cron behandlar hela utkorgen, alltså också native-testernas köade rader. Deras fixturer har en tenantägd nätägare, så den nya uppslagningen ger samma första träff som förut.
     - Ska köras om i en vilande värld. Faller de, rättas det framåt.
+  - **Omkörning i vilande värld 2026-10-23 (HEAD `2577e1097`):** båda sviterna nådde min tidsgräns på 25 minuter och gav ingen utdata före tidsgränsen (standardreportern).
+    - I CI körs de mot en färsk databas från en ren replay med 30 minuters jobbtidsgräns inklusive replay (`.github/workflows/ediel-z03h-z04h-supplier-native.yml:32,85`).
+    - Världens databas har tusentals meddelanden och hundratals syntetiska tenanter, och tre agenter körde native-tester samtidigt. Timeouten är därför inget giltigt underlag för pass eller fail.
+    - Status: **EJ VERIFIERAD lokalt**. Körs om med utförlig reporter och lång tidsgräns när världen är ledig, annars avgör CI på en ren replay.
   - **Kvar, ÖPPNA:**
     - `gridex_regulated_supply.scope_v1` kräver också `company_id = c` och ger NULL för en delad nätägare. Medel. Kräver kontroll av dess godkända tester.
     - Nätägarfiltret i `listAnalyticsFilterOptions` (`lib/analytics/db.ts:67`) listar bara tenantens egna nätägare. Låg.
