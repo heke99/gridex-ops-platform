@@ -2227,6 +2227,27 @@ Gäller F113:s sidofynd 1 och 2.
   4. Regressionen `canonical-production-hardening` faller på `app/admin/ediel/actions.ts`, som inte är ändrad. Felet fanns före denna ändring och är inte utrett.
   5. Den nya go-live-vägen i harnessen har ännu inte körts i världen.
 
+### H3d Flytt och uppsägning: uppsägningstiden ignoreras, uppsägning utan flytt fungerar inte och kundens uppsägningsdatum skrivs över — BEKRÄFTAD (kod och transaktioner som rullades tillbaka), hög; ÖPPEN, kräver ÄGARBESLUT
+Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-notice.md` (D1–D13, med bevis och förslag).
+- **D1 (hög, ägarbeslut):**
+  - Det finns ingen modell för uppsägningstid vid flytt efter kundtyp eller skäl. `notice_months` lagras bara i hela månader, så "högst 14 dagar" går inte att ange.
+  - Båda manuella vägarna avslutar avtalet på det datum operatören anger.
+- **D2 (hög):** uppsägning utan flytt fungerar inte hela vägen.
+  - Att spara ett signerat avtal med uppsägning nekas av databasen.
+  - "Uppsägning mottagen" lagrar bara datumet.
+  - "Avslutat" lämnar leveransen öppen och skickar inget till nätägaren, så resten debiteras aldrig.
+- **D3:** kundens uppsägningsdatum skrivs över med dagens datum.
+- **D4:** Z05 LK vid flytt skapar en avgiftsgranskning, som är H6.
+- **D5:** portalen avvisar en flytt bakåt i tiden.
+- **D6:** kundkortets avslut stänger hela kunden, även en inflytt på den nya adressen.
+- **D7:** kundkortets avslut avbryter uppgifter för slutfaktura och avgiftsgranskning och skapar ingen slutfaktura.
+- **D8:** regeln från H3 och H3b kräver att avtalets slut är lika med leveransens slut. Om avtal i framtiden ska löpa till uppsägningstidens slut nekas slutmånaden.
+- **D9–D13:** mindre fynd, se rapporten.
+- **Rätt i dag:**
+  - Ingen dag faktureras efter slutet och ingen dubbelfaktureras.
+  - Slutmånaden faktureras vid manuell flytt för leveranser som inte kom via Ediel.
+  - Tenantisoleringen håller, och ingen avgift tas ut automatiskt.
+
 ### P8 Ediel-utkorgen skickar högst 25 meddelanden per körning i en global FIFO-kö; ett annat bolags kö fördröjer tenantens CONTRL och APERAK — MÄTT (världen, körning 29), medel; ÖPPEN
 - **Bevis från körning 29** (tenant `69e8e257`): 33 CONTRL och 4 APERAK ställdes i kö 21:15–21:21. Den första sändningen kom 21:28, cirka 13 minuter senare. Klockan 21:32 var 8 CONTRL skickade och 56 köade.
 - **Kön före tenanten:**
