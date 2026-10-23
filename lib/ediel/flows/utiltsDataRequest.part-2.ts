@@ -29,6 +29,7 @@ import { buildUtiltsTransactionPersistencePayload, persistUtiltsTransactionResul
 import { prepareUtiltsConsumptionContracts } from '@/lib/ediel/utilts/consumptionPreparation'
 import { appendUtiltsRuntimeHistory } from '@/lib/ediel/utilts/utiltsResumability'
 import { createUtiltsRepliesAfterStore } from '@/lib/ediel/utilts/utiltsReplyAfterStore'
+import type { UtiltsRuntimeReplyOrigin } from '@/lib/ediel/utilts/utiltsRuntimeReplyDispatch'
 
 
 import type { UtiltsProcessResult } from './utiltsDataRequest.part-1'
@@ -366,6 +367,8 @@ export async function processInboundUtiltsMessage(params: {
   testCaseCode?: string | null
   canonicalPolicy?: CanonicalEdielPolicy | null
   canonicalDecision?: CanonicalRuntimeDecision | null
+  /** F112: 'operational' queues the runtime replies in the tenant's lane; omitted keeps drafts (Test Center/TGT). */
+  replyOrigin?: UtiltsRuntimeReplyOrigin | null
 }): Promise<UtiltsProcessResult> {
   const actorUserId = ensureActorUserId(params.actorUserId)
   const message = await getEdielMessageById(params.edielMessageId)
@@ -624,6 +627,7 @@ export async function processInboundUtiltsMessage(params: {
       ackPlan: ackPlan,
       transactionDispositions,
       testCaseCode: runtimeTestCaseCode,
+      replyOrigin: params.replyOrigin ?? null,
     }))
 
     await updateEdielMessageStatus({
@@ -727,6 +731,7 @@ export async function processInboundUtiltsMessage(params: {
         ackPlan: ackPlan,
         transactionDispositions,
         testCaseCode: runtimeTestCaseCode,
+        replyOrigin: params.replyOrigin ?? null,
       }))
 
       await updateEdielMessageStatus({
@@ -799,6 +804,7 @@ export async function processInboundUtiltsMessage(params: {
         ackPlan: ackPlan,
         transactionDispositions,
         testCaseCode: runtimeTestCaseCode,
+        replyOrigin: params.replyOrigin ?? null,
       }))
 
       await updateEdielMessageStatus({
@@ -856,6 +862,7 @@ export async function processInboundUtiltsMessage(params: {
       ackPlan: ackPlan,
       transactionDispositions,
       testCaseCode: runtimeTestCaseCode,
+      replyOrigin: params.replyOrigin ?? null,
     })
 
     await createEdielMessageEvent({
@@ -963,6 +970,7 @@ export async function processInboundUtiltsMessage(params: {
     ackPlan: ackPlan,
     transactionDispositions,
     testCaseCode: runtimeTestCaseCode,
+    replyOrigin: params.replyOrigin ?? null,
   }))
 
   await updateEdielMessageStatus({

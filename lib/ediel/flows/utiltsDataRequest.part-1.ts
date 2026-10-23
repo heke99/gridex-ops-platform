@@ -20,6 +20,9 @@ import { finalizeUtiltsTransactionAck, resolveUtiltsTransactionId, type UtiltsTr
 import type { UtiltsTransactionDisposition } from '@/lib/ediel/utiltsEngine'
 import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import {physicalUtiltsReference} from '@/lib/ediel/utilts/physicalReference'
+import { createOutboxItem } from '@/lib/ediel/outbox/createOutboxItem'
+import { formatErrorMessage } from '@/lib/errors'
+import { resolveUtiltsRuntimeReplyDispatch, type UtiltsRuntimeReplyDispatch, type UtiltsRuntimeReplyOrigin } from '@/lib/ediel/utilts/utiltsRuntimeReplyDispatch'
 
 export type UtiltsProcessResult = {
   message: EdielMessageRow
@@ -531,8 +534,14 @@ export async function createAckIfMissing(params: {
   ackScope?: EdielAckScope | null
   relatedTransactionReference?: string | null
   utiltsHeaderRejected?: boolean
+  /** F112: 'operational_outbox' queues a freshly created reply; anything else keeps it a draft. */
+  replyDispatch?: UtiltsRuntimeReplyDispatch
 }) {
-  const prepared=await prepareSourceAckDraft(params)
+  const {replyDispatch,...draftInput}=params
+  const prepared=await prepareSourceAckDraft(draftInput)
+  // A protected retained original is returned unchanged: no second queue entry
+  // and no new audit (as in inboundProcessing). A stranded draft of an earlier
+  // run is queued by the inbound cron's unqueued-reply resume instead.
   if(prepared.kind==='existing')return prepared.message
   const draft=prepared.draft
 
@@ -543,6 +552,40 @@ export async function createAckIfMissing(params: {
     outcome: params.outcome,
     draft,
   })
+
+  // Operational lanes queue the reply exactly like inboundProcessing's
+  // createAckIfMissing: insertion-only on the reply's unique ACK lock key, and
+  // every send gate (tenant state, send lock, route contract, readiness,
+  // S/MIME) is applied later by the outbox worker. A queue failure never
+  // undoes the stored reply; it is recorded and resumed by the inbound cron.
+  const dispatch: UtiltsRuntimeReplyDispatch = replyDispatch === 'operational_outbox' ? 'operational_outbox' : 'draft_only'
+  let outboxQueued: boolean | null = null
+  let outboxError: string | null = null
+  if (dispatch === 'operational_outbox' && ['draft', 'prepared', 'queued', 'failed'].includes(String(ackMessage.status))) {
+    try {
+      await createOutboxItem({
+        actorUserId: params.actorUserId,
+        message: ackMessage,
+        sourceMessageId: params.sourceMessage.id,
+        status: 'queued',
+        queueOnlyIfInserted: true,
+        payload: {
+          createdBy: 'utilts_runtime_reply',
+          ackFamily: params.ackFamily,
+          outcome: params.outcome ?? null,
+          sourceMessageId: params.sourceMessage.id,
+          messageFamily: params.sourceMessage.message_family,
+          messageCode: params.sourceMessage.message_code,
+          ackScope: params.ackScope ?? null,
+          relatedTransactionReference: params.relatedTransactionReference ?? null,
+        },
+      })
+      outboxQueued = true
+    } catch (error) {
+      outboxQueued = false
+      outboxError = formatErrorMessage(error, 'okänt fel').slice(0, 500)
+    }
+  }
 
   await createEdielMessageEvent({
     actorUserId: params.actorUserId,
@@ -560,8 +603,22 @@ export async function createAckIfMissing(params: {
       outcome: params.outcome ?? null,
       ackScope: params.ackScope ?? null,
       relatedTransactionReference: params.relatedTransactionReference ?? null,
+      replyDispatch: dispatch,
+      outboxQueued,
+      ...(outboxError ? { outboxError } : {}),
     },
   })
+
+  if (outboxQueued === false) {
+    await createEdielMessageEvent({
+      actorUserId: params.actorUserId,
+      edielMessageId: params.sourceMessage.id,
+      eventType: 'manual_note',
+      eventStatus: 'warning',
+      message: `${params.ackFamily} skapades men kunde inte köas för sändning: ${outboxError}. Inbound-cron köar svaret automatiskt.`,
+      payload: { blockedBy: 'utilts_runtime_reply_outbox', ackFamily: params.ackFamily, ackMessageId: ackMessage.id, error: outboxError },
+    }).catch(() => null)
+  }
 
   return ackMessage
 }
@@ -662,7 +719,13 @@ export async function createUtiltsRuntimeAcks(params: {
   ackPlan: ReturnType<typeof runUtiltsRuntimeForMessage>['ackPlan']
   transactionDispositions?: readonly UtiltsTransactionDisposition[]
   testCaseCode?: string | null
+  /** F112: only the operational path queues replies; Test Center/TGT/AGT and unknown callers keep drafts. */
+  replyOrigin?: UtiltsRuntimeReplyOrigin | null
 }) {
+  const { dispatch: replyDispatch } = resolveUtiltsRuntimeReplyDispatch({
+    origin: params.replyOrigin ?? null, sourceMessage: params.sourceMessage, testCaseCode: params.testCaseCode ?? null,
+  })
+  const createReply = (input: Omit<Parameters<typeof createAckIfMissing>[0], 'replyDispatch'>) => createAckIfMissing({ ...input, replyDispatch })
   const createdIds: string[] = []
   const transactionDispositions = params.transactionDispositions ?? []
   const hasSyntaxRejection = transactionDispositions.some((item) => item.disposition === 'syntax_rejected')
@@ -675,7 +738,7 @@ export async function createUtiltsRuntimeAcks(params: {
   }
 
   if (params.ackPlan.shouldSendContrl && params.ackPlan.contrlOutcome) {
-    const contrl = await createAckIfMissing({
+    const contrl = await createReply({
       actorUserId: params.actorUserId,
       sourceMessage: params.sourceMessage,
       ackFamily: 'CONTRL',
@@ -688,7 +751,7 @@ export async function createUtiltsRuntimeAcks(params: {
   if (headerRejection) {
     const companyId = stringOrNull(params.sourceMessage.company_id)
     if (!companyId) throw new Error('UTILTS huvudkvittens saknar tenantkoppling')
-    const aperak = await createAckIfMissing({
+    const aperak = await createReply({
       actorUserId: params.actorUserId, sourceMessage: params.sourceMessage,
       ackFamily: 'APERAK', outcome: 'negative', messageText: params.ackPlan.reason,
       applicationErrors: headerRejection.applicationErrors, ackScope: 'message',
@@ -725,7 +788,7 @@ export async function createUtiltsRuntimeAcks(params: {
             return reference === null || reference === transactionReference
           })
           .map((detail) => detail.code)
-        const utiltsErr = await createAckIfMissing({
+        const utiltsErr = await createReply({
           actorUserId: params.actorUserId,
           sourceMessage: params.sourceMessage,
           ackFamily: 'UTILTS_ERR',
@@ -751,7 +814,7 @@ export async function createUtiltsRuntimeAcks(params: {
           const reference = physicalUtiltsReference(item.referenceNumber ?? item.lineItemReference)
           return reference === null || reference === transactionReference
         })
-        const aperak = await createAckIfMissing({
+        const aperak = await createReply({
           actorUserId: params.actorUserId,
           sourceMessage: params.sourceMessage,
           ackFamily: 'APERAK',
@@ -774,7 +837,7 @@ export async function createUtiltsRuntimeAcks(params: {
       }
 
       if (params.ackPlan.shouldSendAperak || sourceRequestsApplicationAcknowledgement(params.sourceMessage)) {
-        const aperak = await createAckIfMissing({
+        const aperak = await createReply({
           actorUserId: params.actorUserId,
           sourceMessage: params.sourceMessage,
           ackFamily: 'APERAK',
@@ -802,7 +865,7 @@ export async function createUtiltsRuntimeAcks(params: {
     const utiltsErrMessages = isUtiltsBTestCaseMessage(params.sourceMessage) ? codes : [codes.join('|')]
 
     for (const messageText of utiltsErrMessages) {
-      const utiltsErr = await createAckIfMissing({
+      const utiltsErr = await createReply({
         actorUserId: params.actorUserId,
         sourceMessage: params.sourceMessage,
         ackFamily: 'UTILTS_ERR',
@@ -822,7 +885,7 @@ export async function createUtiltsRuntimeAcks(params: {
 
     if (transactionScoped) {
       for (const target of getUtiltsAckTransactionTargets(params.sourceMessage)) {
-        const aperak = await createAckIfMissing({
+        const aperak = await createReply({
           actorUserId: params.actorUserId,
           sourceMessage: params.sourceMessage,
           ackFamily: 'APERAK',
@@ -835,7 +898,7 @@ export async function createUtiltsRuntimeAcks(params: {
         createdIds.push(aperak.id)
       }
     } else {
-      const aperak = await createAckIfMissing({
+      const aperak = await createReply({
         actorUserId: params.actorUserId,
         sourceMessage: params.sourceMessage,
         ackFamily: 'APERAK',

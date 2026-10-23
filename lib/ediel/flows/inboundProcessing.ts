@@ -1445,6 +1445,9 @@ export async function processInboundEdielMessage(params: {
       edielMessageId: runtimeMessage.id,
       canonicalPolicy: canonicalRuntime.decision.policy,
       canonicalDecision: canonicalRuntime.decision,
+      // F112: the inbound pipeline is the operational path; its replies are
+      // queued like every other ACK here (TGT/AGT test contexts stay drafts).
+      replyOrigin: "operational",
     });
     await applyInboundBusinessStateMachine({
       actorUserId,

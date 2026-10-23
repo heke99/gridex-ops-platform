@@ -83,16 +83,32 @@ function payloadOf(value: unknown): Row {
   return value && typeof value === "object" && !Array.isArray(value) ? (value as Row) : {};
 }
 
+/**
+ * PostgREST puts .in() lists in the request URL. With hundreds of ids the
+ * request failed with "URI too long" on every run (world, F run 28: 384 failure
+ * notes), so no missed reply was ever resumed (F112). Lists are read in chunks.
+ */
+const IN_CHUNK = 50;
+async function rowsIn(ids: readonly string[], query: (chunk: string[]) => PromiseLike<{ data: unknown; error: unknown }>): Promise<Row[]> {
+  const rows: Row[] = [];
+  const unique = Array.from(new Set(ids));
+  for (let index = 0; index < unique.length; index += IN_CHUNK) {
+    const { data, error } = await query(unique.slice(index, index + IN_CHUNK));
+    if (error) throw error;
+    rows.push(...((data ?? []) as Row[]));
+  }
+  return rows;
+}
+
 async function countAttempts(ids: string[]): Promise<Map<string, number>> {
   const counts = new Map<string, number>();
   if (ids.length === 0) return counts;
-  const { data, error } = await supabaseService
+  const data = await rowsIn(ids, (chunk) => supabaseService
     .from("ediel_message_events")
     .select("ediel_message_id,payload")
-    .in("ediel_message_id", ids)
-    .eq("event_type", "manual_note");
-  if (error) throw error;
-  for (const row of (data ?? []) as Array<{ ediel_message_id?: string | null; payload?: unknown }>) {
+    .in("ediel_message_id", chunk)
+    .eq("event_type", "manual_note"));
+  for (const row of data as Array<{ ediel_message_id?: string | null; payload?: unknown }>) {
     const payload = payloadOf(row.payload);
     if (!row.ediel_message_id || payload.resume !== MISSED_TECHNICAL_ACK_RESUME_MARKER || payload.kind !== "attempt") continue;
     counts.set(row.ediel_message_id, (counts.get(row.ediel_message_id) ?? 0) + 1);
@@ -133,18 +149,19 @@ export async function claimMissedTechnicalAcks(options: MissedTechnicalAckResume
     .filter((id): id is string => Boolean(id) && !exclude.has(id as string))));
   if (sourceIds.length === 0) return { candidates: 0, claimed: [] };
 
-  let sourcesQuery = supabaseService
-    .from("ediel_messages")
-    .select("id,company_id,environment,message_family,status,processing_status,updated_at")
-    .in("id", sourceIds)
-    .eq("direction", "inbound")
-    .eq("message_standard", "edifact")
-    .eq("environment", options.environment)
-    .not("company_id", "is", null);
-  if (options.companyId) sourcesQuery = sourcesQuery.eq("company_id", options.companyId);
-  const { data: sourceRows, error: sourceError } = await sourcesQuery;
-  if (sourceError) throw sourceError;
-  const sources = ((sourceRows ?? []) as Row[]).flatMap((row): SourceRow[] => {
+  const sourceRows = await rowsIn(sourceIds, (chunk) => {
+    let sourcesQuery = supabaseService
+      .from("ediel_messages")
+      .select("id,company_id,environment,message_family,status,processing_status,updated_at")
+      .in("id", chunk)
+      .eq("direction", "inbound")
+      .eq("message_standard", "edifact")
+      .eq("environment", options.environment)
+      .not("company_id", "is", null);
+    if (options.companyId) sourcesQuery = sourcesQuery.eq("company_id", options.companyId);
+    return sourcesQuery;
+  });
+  const sources = sourceRows.flatMap((row): SourceRow[] => {
     const id = text(row.id), companyId = text(row.company_id);
     if (!id || !companyId || row.environment !== options.environment || (options.companyId && companyId !== options.companyId)) return [];
     if (row.message_family === "CONTRL" || row.status === "cancelled") return [];
@@ -155,30 +172,28 @@ export async function claimMissedTechnicalAcks(options: MissedTechnicalAckResume
   if (sources.length === 0) return { candidates: 0, claimed: [] };
   const sourceById = new Map(sources.map((row) => [row.id, row]));
 
-  const { data: contrlRows, error: contrlError } = await supabaseService
+  const contrlRows = await rowsIn(sources.map((row) => row.id), (chunk) => supabaseService
     .from("ediel_messages")
     .select("id,company_id,environment,status,related_message_id")
-    .in("related_message_id", sources.map((row) => row.id))
+    .in("related_message_id", chunk)
     .eq("direction", "outbound")
-    .eq("message_family", "CONTRL");
-  if (contrlError) throw contrlError;
-  const contrls = ((contrlRows ?? []) as Row[]).flatMap((row): ContrlRow[] => {
+    .eq("message_family", "CONTRL"));
+  const contrls = contrlRows.flatMap((row): ContrlRow[] => {
     const id = text(row.id), related = text(row.related_message_id), source = related ? sourceById.get(related) : undefined;
     // Only the source's own tenant and lane; anything else is never repaired here.
     if (!id || !source || row.company_id !== source.company_id || row.environment !== source.environment) return [];
     return [{ id, company_id: source.company_id, environment: source.environment, status: text(row.status), related_message_id: source.id }];
   });
-  const repliedSources = new Set(((contrlRows ?? []) as Row[]).map((row) => text(row.related_message_id)).filter(Boolean));
+  const repliedSources = new Set(contrlRows.map((row) => text(row.related_message_id)).filter(Boolean));
 
   const drafts = contrls.filter((row) => row.status === "draft");
   const queued = new Set<string>();
   if (drafts.length > 0) {
-    const { data: outboxRows, error: outboxError } = await supabaseService
+    const outboxRows = await rowsIn(drafts.map((row) => row.id), (chunk) => supabaseService
       .from("ediel_outbox")
       .select("ediel_message_id")
-      .in("ediel_message_id", drafts.map((row) => row.id));
-    if (outboxError) throw outboxError;
-    for (const row of (outboxRows ?? []) as Row[]) { const id = text(row.ediel_message_id); if (id) queued.add(id); }
+      .in("ediel_message_id", chunk));
+    for (const row of outboxRows) { const id = text(row.ediel_message_id); if (id) queued.add(id); }
   }
 
   const candidates: Array<Omit<MissedTechnicalAckTarget, "attempt" | "maxAttempts">> = [

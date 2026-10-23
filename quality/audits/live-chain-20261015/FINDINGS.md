@@ -2081,6 +2081,34 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
 - **F112:** dessa APERAK står som `draft` utan rad i `ediel_outbox` och skickas därför aldrig till nätägaren, i strid med ACK-02 och UCASE-E66-SUPPLIER-inbound.
   - `createUtiltsRuntimeAcks` → `createAckIfMissing` (`utiltsDataRequest.part-1.ts`) anropar aldrig `createOutboxItem`. Det är samma sak som F106a:s sidofynd 1 (49 CONTRL-utkast för E66 i produktion), nu bekräftat också för APERAK.
   - Test Center-kedjan utesluter avsiktligt sändning på den vägen. Exakt var undantaget hör hemma utreds.
+- **F112 RÄTTAD 2026-10-23 (agent + granskning):**
+  - **Orsak:** `createAckIfMissing` i `utiltsDataRequest.part-1.ts` skapar svaret och händelsen men anropar aldrig `createOutboxItem`. Inkommande vägens `createAckIfMissing` (`inboundProcessing.ts`) köar med `queueOnlyIfInserted`.
+    - Senaste tre dygnen fanns UTILTS-svarsutkast utan utkorgsrad: i produktion 7 APERAK och 49 CONTRL, i testkanalen 16 APERAK, 15 CONTRL och 11 UTILTS_ERR.
+  - **Test Center-regeln:** ingen godkänd regel kräver manuell sändning. ENV-05 säger att en TGT-referens aldrig körs som produktionsaffär.
+    - Det faktiska undantaget finns i `runTestCenterMeteringToInvoiceChain` (`externalSideEffectsAllowed: false`) och i TGT, där operatören skickar svaret för hand.
+    - Nya `lib/ediel/utilts/utiltsRuntimeReplyDispatch.ts` beslutar per svar och är stängd som standard. Bara en operativ anropare köar, och bara när källan inte är Test Center, TGT (uttrycklig eller lagrad kod, aktiv UTILTS-testkörning, portal E66-T), AGT/systemtest eller portalen 91100.
+    - Fritext som en hålltext räknas inte som testfallskod.
+  - **Köandet:**
+    - Ett nytt svar köas en gång (bara insert, `queued`) genom samma utkorg och därmed alla sändspärrar: tenantläge, sändlås, routekontrakt, readiness och S/MIME.
+    - Ett behållet svar köas aldrig om.
+    - Ett fel vid köandet registreras men kastas inte.
+    - Inkommande pipeline, operatörens omkörning och `processEdielUtiltsBillingAction` deklarerar sig som operativa.
+  - **Återupptagning (`unqueuedUtiltsRuntimeReplyResume.ts`):** körs i inkorgs-cronen bredvid F106a, per kanal och tenant, med anspråk via compare-and-set, högst 10 källor och 50 svar per körning, och 3 försök.
+    - Den tar produktionssvar från före rättningen och svar vars köande föll.
+    - Den tar aldrig utkast som är märkta drafts-only, testkanalens gamla utkast eller tekniska CONTRL som F106a äger.
+    - Svaren köas från det skyddade originalet som `prepared`, bara insert.
+  - **Nytt fel rättat (hög): F106a:s återupptagning har aldrig körts.** Varje inkorgskörning i världen loggade `technical-ack-resume: URI too long` i båda kanalerna, eftersom upp till 1 000 id:n lades i en `.in()`-URL. Världen har 0 försökshändelser. Läsningarna delas nu upp i bitar om 50.
+  - **Egen miss:** min F106a-commit (`9fff5cfbc`) bröt `__tests__/ediel-z02-terminal-protocol-replay.test.ts` (8 tester). Testets harness saknade `acknowledgeInboundTechnicalSyntax`, och testet är inte masterplantaggat, så täckningskontrollen fångade det inte. Det är rättat i testet. Lärdom: kör alla tester som importerar en ändrad modul, inte bara de taggade.
+  - **Torrkörning mot världen** (skrivskyddad SQL): den nya återupptagningen tar de 7 APERAK-utkasten för E66 i produktion, och den rättade F106a tar de 49 CONTRL-utkasten. Inga testkanalsutkast tas.
+  - **Tester:** `reality-f112-utilts-runtime-reply-queue` (12), `reality-f112-unqueued-utilts-reply-resume` (10) och `reality-f112-operational-reply-origin` (1). Med HEAD-koden föll 12 av 13. Agenten körde 107 relaterade filer med 1 786 tester, och typkontroll och eslint var utan fel. Min omkörning av F103–F112 och Z02 gav 92 av 92. Min täckningskontroll gav 352 av 352 med 0 fallerande.
+  - **Sidofynd, ÖPPNA:**
+    1. `readTgtCaseCodeFromMessageContext` läser `failure_reason` som testfallskod, och 203 produktions-E66 sparar hålltexten som `utiltsRuntimeTestCaseCode`. Medel.
+    2. `isEdielPortalUtiltsE66TgtMessage` behandlar referensen "E66-T" som TGT, men "23-DDQ-E66-T" är en vanlig produktionsvariant. Kravet på parten 91100 håller det säkert. Låg.
+    3. `registerInboundUtiltsAction` sätter aldrig miljö och kastar därför alltid. Vägen är död. Låg.
+    4. `processEdielUtiltsBillingAction` hoppar över `requireScopedEdielMessageForAction` och omkörningsregeln. Låg.
+    5. Inkommande pipeline köar TGT:s tekniska CONTRL automatiskt, men applikationssvaren skickas för hand. Inkonsekvent sedan tidigare. Låg.
+    6. **Risker:** en krasch mellan svaret och dess händelse lämnar ett osynligt utkast. Svaret köas före `finalizeUtiltsTransactionAck`. Urvalet läser de äldsta 1 000 händelserna. Index saknas på `ediel_message_events(event_type, created_at)`. Låg.
+    7. Händelsetyperna `aperak_sent` och `contrl_sent` skrivs även när bara ett utkast finns. Låg.
 
 ### P1 Mätvärdeslagringen går med ungefär 70 värden i minuten; kvittenshanteringen dominerar databastiden — MÄTT (världen, körning 26), medel; ej åtgärdat
 - **Körning 26, F6c:** 126 värden lagrade 11:11 och 475 kl. 11:16, alltså ungefär 70 i minuten. 123 filer à 96 kvartsvärden tar då nästan 3 timmar för en enda kund med 4 anläggningar. I produktion med många kunder räcker det inte.

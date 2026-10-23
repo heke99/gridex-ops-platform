@@ -177,7 +177,7 @@ function fixture(variant: 'L' | 'LK' = 'L', responseFunction = 'AB', secondObjec
 function coordinator() {
   const file = readFileSync('lib/ediel/flows/inboundProcessing.ts', 'utf8')
   const ast = ts.createSourceFile('inboundProcessing.ts', file, ts.ScriptTarget.Latest, true)
-  const names = new Set(['processInboundEdielMessage', 'processInboundProdatMessage', 'shouldProcessInboundMessage', 'technicalActorRefusal', 'inboundActorRefusal', 'prodatInternalReview', 'hasRetainedPositiveZ02Protocol'])
+  const names = new Set(['processInboundEdielMessage', 'processInboundProdatMessage', 'shouldProcessInboundMessage', 'technicalActorRefusal', 'inboundActorRefusal', 'prodatInternalReview', 'hasRetainedPositiveZ02Protocol', 'acknowledgeInboundTechnicalSyntax'])
   const code = ast.statements.filter(node => ts.isFunctionDeclaration(node) && node.name && names.has(node.name.text))
     .map(node => node.getText(ast).replace(/^export\s+/, '')).join('\n')
   const canonical = async ({ message }: { message: EdielMessageRow }) => ({ message, domainObjectCount: 0, authorizedPartialOwner: false,

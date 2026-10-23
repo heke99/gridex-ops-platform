@@ -9,6 +9,7 @@ import { createInboundOverdueTasks } from "@/lib/inbound-mail/inboundOverdueMoni
 
 import type { StrandedResumeResult } from "@/lib/inbound-mail/strandedInboundEdielResume"
 import type { MissedTechnicalAckResumeResult } from "@/lib/inbound-mail/missedTechnicalAckResume"
+import type { UnqueuedUtiltsReplyResumeResult } from "@/lib/inbound-mail/unqueuedUtiltsRuntimeReplyResume"
 import type { InboundEngineRunResult } from './edielMailboxPoller.part-1'
 import { NO_ACTIVE_EDIEL_MAILBOX_ERROR, envInt, listConfiguredEdielMailboxes, mailboxDebugItem, mailboxSkipReason, nowIso } from './edielMailboxPoller.part-1'
 import { ensureDiagnosticEdielMessagesForInboundEmails, listEdielMessageIdsForInboundEmails, listRecentParsedInboundEmailIds, logInboundPollRun, mapWithConcurrency, pollEdielMailbox, processQueuedInboundProcessingJobs } from './edielMailboxPoller.part-2'
@@ -217,6 +218,29 @@ export async function runInboundEdielMailEngine(
       autoProcessErrors.push(`technical-ack-resume: ${formatErrorMessage(error, "Okänt fel")}`);
     }
   }
+  // F112: an operational UTILTS runtime reply (APERAK / UTILTS-ERR / CONTRL)
+  // that was created but never queued is revisited by no other run; queue it.
+  let utiltsReplyResume: UnqueuedUtiltsReplyResumeResult | null = null;
+  if (input.resumeStrandedInboundMessages && resumeEnvironment && input.actorUserId) {
+    try {
+      const { resumeUnqueuedUtiltsRuntimeReplies } = await import("@/lib/inbound-mail/unqueuedUtiltsRuntimeReplyResume");
+      utiltsReplyResume = await resumeUnqueuedUtiltsRuntimeReplies({
+        environment: resumeEnvironment,
+        companyId: input.companyId ?? null,
+        excludeIds: edielMessageIds,
+        actorUserId: input.actorUserId,
+        workerId,
+        limit: envInt("EDIEL_INBOUND_UTILTS_REPLY_RESUME_LIMIT", 10),
+        replyLimit: envInt("EDIEL_INBOUND_UTILTS_REPLY_RESUME_REPLY_LIMIT", 50),
+        graceMinutes: envInt("EDIEL_INBOUND_UTILTS_REPLY_RESUME_GRACE_MINUTES", 10),
+        lookbackHours: envInt("EDIEL_INBOUND_UTILTS_REPLY_RESUME_LOOKBACK_HOURS", 72),
+        maxAttempts: envInt("EDIEL_INBOUND_UTILTS_REPLY_RESUME_MAX_ATTEMPTS", 3),
+      });
+      autoProcessErrors.push(...utiltsReplyResume.errors.map((error) => `utilts-reply-resume ${error}`));
+    } catch (error) {
+      autoProcessErrors.push(`utilts-reply-resume: ${formatErrorMessage(error, "Okänt fel")}`);
+    }
+  }
   let customerOperationJobs: { claimed: number; completed: number; needsReview: number; failed: number; errors: string[] } | null = null;
   try {
     const { processCustomerOperationJobs } = await import("@/lib/customer-operations/automation");
@@ -282,6 +306,11 @@ export async function runInboundEdielMailEngine(
         ? { candidates: technicalAckResume.candidates, claimed: technicalAckResume.claimed, created: technicalAckResume.created,
             requeued: technicalAckResume.requeued, notApplicable: technicalAckResume.notApplicable, failed: technicalAckResume.failed,
             exhausted: technicalAckResume.exhausted }
+        : null,
+      utiltsReplyResume: utiltsReplyResume
+        ? { candidates: utiltsReplyResume.candidates, claimedSources: utiltsReplyResume.claimedSources, claimed: utiltsReplyResume.claimed,
+            requeued: utiltsReplyResume.requeued, notApplicable: utiltsReplyResume.notApplicable, failed: utiltsReplyResume.failed,
+            exhausted: utiltsReplyResume.exhausted }
         : null,
     },
     results,

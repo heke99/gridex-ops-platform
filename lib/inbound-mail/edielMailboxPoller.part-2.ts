@@ -1323,6 +1323,7 @@ export async function logInboundPollRun(
       autoProcessErrors: result.debug.autoProcessErrors,
       strandedInboundResume: result.debug.strandedInboundResume ?? null,
       technicalAckResume: result.debug.technicalAckResume ?? null,
+      utiltsReplyResume: result.debug.utiltsReplyResume ?? null,
       pollOptions: {
         includeSeenRecent: result.results.some((item) =>
           Boolean(item.searchedSeenRecentSince),

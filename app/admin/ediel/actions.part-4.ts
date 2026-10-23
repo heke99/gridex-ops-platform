@@ -1159,6 +1159,8 @@ export async function processEdielUtiltsBillingAction(formData: FormData) {
   await processInboundUtiltsMessage({
     actorUserId: context.userId,
     edielMessageId,
+    // F112: operator processing of the tenant's own source is operational.
+    replyOrigin: "operational",
   });
 
   await revalidateRelatedMessage(edielMessageId);

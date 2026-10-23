@@ -24,6 +24,7 @@ import {
 import { processInboundUtiltsMessage as processActualMeteringUtiltsMessage } from './utiltsDataRequest.part-2'
 import { prepareUtiltsConsumptionContracts } from '@/lib/ediel/utilts/consumptionPreparation'
 import { appendUtiltsRuntimeHistory } from '@/lib/ediel/utilts/utiltsResumability'
+import type { UtiltsRuntimeReplyOrigin } from '@/lib/ediel/utilts/utiltsRuntimeReplyDispatch'
 
 function resolveInboundPolicy(message: EdielMessageRow, retained?: CanonicalEdielPolicy | null) {
   if (message.message_family !== 'UTILTS') {
@@ -99,6 +100,7 @@ async function processExplicitNonBillingOutcome(params: {
   actorUserId: string
   message: EdielMessageRow
   testCaseCode?: string | null
+  replyOrigin?: UtiltsRuntimeReplyOrigin | null
   canonicalPolicy?: CanonicalEdielPolicy | null
   canonicalDecision: CanonicalRuntimeDecision
 }): Promise<UtiltsProcessResult> {
@@ -155,6 +157,7 @@ async function processExplicitNonBillingOutcome(params: {
     ackPlan,
     transactionDispositions: persisted.dispositions,
     testCaseCode: runtimeTestCaseCode,
+    replyOrigin: params.replyOrigin ?? null,
   })
 
   const failed = runtime.validation.classification === 'syntax_rejected'
@@ -244,6 +247,12 @@ export async function processInboundUtiltsMessageByCanonicalPolicy(params: {
   testCaseCode?: string | null
   canonicalPolicy?: CanonicalEdielPolicy | null
   canonicalDecision?: CanonicalRuntimeDecision | null
+  /**
+   * F112: 'operational' (inbound pipeline, operator resume of the tenant's own
+   * source) queues the runtime replies through the outbox in an operational
+   * lane. Omitted keeps them drafts: the Test Center chain, TGT and AGT runs.
+   */
+  replyOrigin?: UtiltsRuntimeReplyOrigin | null
 }): Promise<UtiltsProcessResult> {
   const actorUserId = ensureActorUserId(params.actorUserId)
   const message = await getEdielMessageById(params.edielMessageId)
@@ -270,6 +279,7 @@ export async function processInboundUtiltsMessageByCanonicalPolicy(params: {
       testCaseCode: params.testCaseCode ?? null,
       canonicalPolicy: policy,
       canonicalDecision: initialDecision,
+      replyOrigin: params.replyOrigin ?? null,
     })
   }
 
@@ -279,5 +289,6 @@ export async function processInboundUtiltsMessageByCanonicalPolicy(params: {
     testCaseCode: params.testCaseCode ?? null,
     canonicalPolicy: policy,
     canonicalDecision: initialDecision,
+    replyOrigin: params.replyOrigin ?? null,
   })
 }

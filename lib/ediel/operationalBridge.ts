@@ -182,6 +182,9 @@ export async function processEdielOperationalMessage(params: {
       actorUserId: params.actorUserId,
       edielMessageId: message.id,
       testCaseCode: params.testCaseCode ?? null,
+      // F112: the operator runs the tenant's own source; an operational lane
+      // queues the replies, a TGT run keeps them for manual sending.
+      replyOrigin: 'operational',
     })
     return {
       messageId: message.id,

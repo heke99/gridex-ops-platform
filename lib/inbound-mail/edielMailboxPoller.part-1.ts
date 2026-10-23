@@ -155,6 +155,7 @@ export type InboundEngineRunResult = {
     autoProcessErrors: string[];
     strandedInboundResume?: { candidates: number; claimed: number; resumed: number; stillReceived: number; failed: number; exhausted: number } | null;
     technicalAckResume?: { candidates: number; claimed: number; created: number; requeued: number; notApplicable: number; failed: number; exhausted: number } | null;
+    utiltsReplyResume?: { candidates: number; claimedSources: number; claimed: number; requeued: number; notApplicable: number; failed: number; exhausted: number } | null;
   };
   results: PollMailboxResult[];
 };
