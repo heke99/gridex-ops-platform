@@ -1448,6 +1448,15 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
 - **F6c, operatörens omkörning:** varje omkörning via "Återuppta hållna transaktioner" gav 500, med `0 av 96` lagrade värden per fil. Körningen stoppades efter att rapporten sparats (`report-f-run21.json` i scratchpad).
 - **Statement timeouts:** under F6 avbröts många satser på grund av tidsgränsen (≥ 7 per anslutning). Det hör ihop med J3-12 och L1.
 
+### F körning 22 (2026-10-23): mätvärdena lagras för första gången hela vägen från nätägarens E66
+- **Bytet:** Z03 skickades och kvitterades; nätägaren svarade med Z04; 4 leveransperioder blev aktiva.
+- **Kvittenser:** 59 CONTRL skickades till nätägaren, för både Z03 och alla E66. F92, F96, F98 och F100 är därmed verifierade i världen.
+- **F6c, operatörens omkörning:** 3 744 septembervärden för 2 anläggningar lagrades. 3 736 är `eligible` och 8 är `blocked: supply_source_unqualified`. F101 är därmed verifierad i världen.
+  - Efter migrationen lagrades även 1 297 värden för körning 21:s tenant.
+- **Avbrott:** körningen stoppades av verktygets tidsgräns på 2 timmar för bakgrundskommandon, mitt i F6c. Omkörningen tar ungefär 1 minut per fil.
+  - Detta är en begränsning i testmiljön, inte i produkten. Körning 23 startas därför frikopplad.
+- **Att följa upp:** de 8 spärrade värdena med `supply_source_unqualified`, sannolikt gränsen vid leveransstarten.
+
 ### F101 UTILTS-förbrukning kräver en tenantägd nätägare, men registermodellens nätägare är plattformsgemensamma — så inga mätvärden kan lagras — BEKRÄFTAD (världen), kritisk för fakturering; utreds
 - **Fel:** `P0U01 utilts_consumption_grid_owner_changed` från `gridex_utilts_binding.lock_attribution_v1`, som kräver `grid_owners.company_id = tenant`.
 - **Registermodellen (F41):** nätägaren är en plattformsgemensam rad (`company_id IS NULL`). Produktens egen webbväg kopplar tenantens mätpunkter till den raden; alla 8 mätpunkter i scenariot pekar på den gemensamma raden för 16700.
