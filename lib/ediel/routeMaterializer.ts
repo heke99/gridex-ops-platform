@@ -17,6 +17,10 @@ import {
   routeScopeForProcess,
   targetSystemForEnvironment,
 } from "@/lib/ediel/routeMatrix";
+import {
+  ensureGridOwnerTechnicalAckRoutes,
+  type TechnicalAckMaterializationResult,
+} from "@/lib/ediel/technicalAckRouteMaterializer";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -99,6 +103,8 @@ export type RouteMaterializationResult = {
   messageFamily?: string | null;
   messageCode?: string | null;
   environment?: string | null;
+  /** FINDINGS F92: the grid owner's technical CONTRL/APERAK reply routes, ensured after a successful materialization. */
+  technicalAck?: TechnicalAckMaterializationResult | null;
 };
 
 function text(value: unknown): string | null {
@@ -151,7 +157,7 @@ function supplierToGridOwnerScopeProfiles() {
  * ESCO messages on 23-DGI-PRODAT and are not a supplier scope. Z01 stays
  * unconditional (F41); another scope is offered only when the route declares
  * no Application Reference or that scope's own.
- * Mirrors gridex_company_route_readiness_v (migration 20261022120000).
+ * Mirrors gridex_company_route_readiness_v (migration 20261022121000).
  */
 export function registryRouteMessageCodes(
   route: Pick<PlatformActorRouteRow, "metadata" | "application_reference">,
@@ -325,6 +331,51 @@ async function upsertCommunicationRoute(params: {
   return String((data as { id: string }).id);
 }
 
+// Our sub-address for a family: the sender sub-address of our files to the grid
+// owner and the one the grid owner addresses its files to us with.
+function ownSubaddressForFamily(senderSettings: ActorSettingRow, messageFamily: string): string | null {
+  if (messageFamily === "AI_LIST") return text(senderSettings.sender_subaddress) ?? text(senderSettings.sender_sub_address);
+  const familySubaddress = messageFamily === "PRODAT" ? senderSettings.sender_subaddress_prodat : senderSettings.sender_subaddress_utilts;
+  return text(familySubaddress) ?? text(senderSettings.sender_subaddress) ?? text(senderSettings.sender_sub_address);
+}
+
+/**
+ * FINDINGS F92: after the grid owner's PRODAT/UTILTS route is materialized, the
+ * tenant also gets the technical reply routes for the files that grid owner sends
+ * it. Never fails the business materialization; the outcome is reported.
+ */
+async function materializeTechnicalAckRoutes(params: {
+  actorUserId: string | null;
+  companyId: string;
+  route: PlatformActorRouteRow;
+  gridOwner: GridOwnerMaterializationRow;
+  senderSettings: ActorSettingRow;
+  messageFamily: string;
+}): Promise<TechnicalAckMaterializationResult> {
+  const result = await ensureGridOwnerTechnicalAckRoutes({
+    actorUserId: params.actorUserId,
+    companyId: params.companyId,
+    route: params.route,
+    gridOwner: params.gridOwner,
+    senderSettings: params.senderSettings,
+    ownSubaddress: ownSubaddressForFamily(params.senderSettings, params.messageFamily),
+    messageFamily: params.messageFamily,
+  });
+  for (const route of result.routes) {
+    if (route.action === "kept_existing") continue;
+    await applySafeRouteProfileReadiness({ routeProfileId: route.edielRouteProfileId, actorUserId: params.actorUserId });
+  }
+  if (result.status !== "materialized" && result.reasonCode !== "technical_ack_family_not_applicable") {
+    console.warn("[routeMaterializer] Technical ACK routes not materialized", {
+      companyId: params.companyId,
+      gridOwnerId: params.gridOwner.id,
+      platformActorRouteId: params.route.id,
+      reasonCode: result.reasonCode,
+    });
+  }
+  return result;
+}
+
 export async function upsertRouteProfile(params: {
   actorUserId: string | null;
   route: PlatformActorRouteRow;
@@ -337,16 +388,7 @@ export async function upsertRouteProfile(params: {
   const senderEdielId =
     text(params.senderSettings.ediel_id) ??
     text(params.senderSettings.actor_ediel_id);
-  const senderSubaddress =
-    params.messageFamily === "AI_LIST"
-      ? (text(params.senderSettings.sender_subaddress) ?? text(params.senderSettings.sender_sub_address))
-      : params.messageFamily === "PRODAT"
-      ? (text(params.senderSettings.sender_subaddress_prodat) ??
-        text(params.senderSettings.sender_subaddress) ??
-        text(params.senderSettings.sender_sub_address))
-      : (text(params.senderSettings.sender_subaddress_utilts) ??
-        text(params.senderSettings.sender_subaddress) ??
-        text(params.senderSettings.sender_sub_address));
+  const senderSubaddress = ownSubaddressForFamily(params.senderSettings, params.messageFamily);
   const receiverEdielId = text(params.route.interchange_party_id);
   if (!receiverEdielId) throw new Error("ediel_registry_technical_receiver_required");
   const isAiList = params.messageFamily === "AI_LIST";
@@ -837,6 +879,15 @@ export async function materializeCompanyGridOwnerRoute(params: {
     };
   }
 
+  const technicalAck = await materializeTechnicalAckRoutes({
+    actorUserId: params.actorUserId ?? null,
+    companyId: params.companyId,
+    route,
+    gridOwner,
+    senderSettings: sender.setting,
+    messageFamily,
+  });
+
   return {
     platformActorRouteId: route.id,
     companyId: params.companyId,
@@ -851,6 +902,7 @@ export async function materializeCompanyGridOwnerRoute(params: {
     messageFamily,
     messageCode,
     environment: route.environment,
+    technicalAck,
   };
 }
 
@@ -889,6 +941,7 @@ export async function materializePlatformActorRoute(params: {
 
   const gridOwners = await getMappedGridOwners(route.actor_id);
   const results: RouteMaterializationResult[] = [];
+  const technicalAckByTenant = new Map<string, TechnicalAckMaterializationResult>();
   for (const gridOwner of gridOwners) {
     const companies = await candidateCompanyIds({
       gridOwnerCompanyId: gridOwner.company_id,
@@ -981,6 +1034,17 @@ export async function materializePlatformActorRoute(params: {
         senderSettings: sender.setting,
         route,
       });
+      // One registry route serves several PRODAT scopes; its reply routes are ensured once per tenant and grid owner.
+      const ackKey = `${companyId}|${gridOwner.id}`;
+      const technicalAck = technicalAckByTenant.get(ackKey) ?? await materializeTechnicalAckRoutes({
+        actorUserId: params.actorUserId ?? null,
+        companyId,
+        route,
+        gridOwner,
+        senderSettings: sender.setting,
+        messageFamily,
+      });
+      technicalAckByTenant.set(ackKey, technicalAck);
       results.push({
         platformActorRouteId: route.id,
         companyId,
@@ -994,6 +1058,7 @@ export async function materializePlatformActorRoute(params: {
         messageFamily,
         messageCode,
         environment: route.environment,
+        technicalAck,
       });
     }
   }

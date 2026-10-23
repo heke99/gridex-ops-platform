@@ -1370,6 +1370,25 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
 - **Sidofynd, sannolikt:** de äldre redigeringsformulären saknar alternativet `ediel_ack`. Att spara en befintlig kvittensroute där ändrar den troligen till `supplier_switch`. ÖPPEN.
 - **Sidofynd, antaget:** en Z04 som hålls med `PRODAT_DEPENDENT_CONDITION_UNDETERMINED` skapar varken ärende eller granskningspost. Operatören märker den bara genom SLA-timern. Om det är avsiktligt är oklart.
 
+### F92 rättning implementerad (2026-10-23): kvittensroutes materialiseras med nätägarens routes — RÄTTAD (native), väntar på verifiering i världen
+- **Kod:**
+  - Den nya modulen `lib/ediel/technicalAckRouteMaterializer.ts` anropas från `materializeCompanyGridOwnerRoute` och `materializePlatformActorRoute`.
+  - Den skapar en `ediel_ack`-route och en profil per applikationsreferens och kanal. Referenserna härleds bara via den kanoniska fasaden:
+    - PRODAT ger `23-DDQ-PRODAT`;
+    - UTILTS ger `23-DDQ-E31-S/T`, `23-DDQ-E66-S/T`, `23-DDQ-S02-S` och `23-DDQ-S03-S`.
+  - Idempotent: en befintlig handgjord rad behålls, och tvetydiga träffar hålls (`technical_ack_route_ambiguous`).
+  - Saknad SMTP-konfiguration hoppar över kvittensroutes (`ediel_smtp_not_configured`) och fäller aldrig affärsrouten.
+- **Test:** `scripts/ediel-technical-ack-route-materialization-native.test.ts` (`// reality-defects: F92`), 2 av 2 gröna.
+  - Testet kör väljarfunktionens egna route-predikat ur den installerade definitionen (`pg_get_functiondef`) mot de materialiserade raderna.
+  - Det kontrollerar PRODAT, E66-T och E66-S: exakt en route för både CONTRL och APERAK.
+  - Det kontrollerar också att fel referens eller underadress ger ingen träff, att en andra körning inte skapar nya rader, att en annan tenant inte får någon träff, att saknad SMTP fungerar och att en handgjord rad behålls.
+- **Begränsning:** väljaren körs inte hela vägen i testet, eftersom det kräver en verklig mottagen fil. Det verifieras i världen (scenario F).
+- **F93 Registermaterialisering i testkanalen fallerar — ÖPPEN, medel (från agentens utredning, inte körd i världen):**
+  - `upsertCommunicationRoute` skriver `environment_type = route.environment`, men `'test'` är inget giltigt värde i `ediel_environment_type`.
+  - Bara produktionskanalen får därför routes, inklusive kvittensroutes, via den här vägen.
+- **F94 En UTILTS-registerroute utan `metadata.message_code` fallerar i efterkontrollen av beredskapen — ÖPPEN, låg (från agentens utredning).**
+- **Gamla regressionsfel, även på main:** `gridex-communication-route-materializer-contract-regression.cjs` (2 kontroller) och `gridex-tenant-customer-edifact-production-flow-regression.cjs` (3 kontroller) fallerar både på `origin/main` och på grenen utan F92. Inte F92:s fel. Ägs av respektive regressionsägare.
+
 ### T6 Nätägarsimulatorns Z04 saknade avläsningsfälten 214, 218 och 259 — RÄTTAD, verklighetsvärlden
 - **Utfall (körning 15):** varje Z04 hölls med `PRODAT_DEPENDENT_CONDITION_UNDETERMINED` (`prodatRegisterPolicy.ts:139`, "Receiver-local readings condition unknown"). Objektet bedömdes `unavailable` med orsaken `source_owner_not_established`, och ingen leveransperiod skapades.
 - **Det är avsiktligt i produkten:** det godkända testet `scripts/ediel-at-z03l-z03lk-supplier-native.test.ts:1257` kräver just detta när fält 259 saknas. Dess positiva fall (rad 1405) lägger till `CCI++Z02/Z05/Z16`.
