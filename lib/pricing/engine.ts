@@ -14,6 +14,7 @@ import {
   resolvePricingConfiguration,
 } from "@/lib/pricing/priceSourceResolver";
 import { ensureSpotPricesForBillingMonth } from "@/lib/pricing/spot/spotImportScheduler";
+import { importSpotPricesForDayArea } from "@/lib/pricing/spot/spotPriceImporter";
 import { assertBillingPeriodOpen } from "@/lib/billing/invoiceReadiness";
 import {
   stockholmDateForInstant,
@@ -119,6 +120,19 @@ function underlayIntervalPeriod(
     }
   }
   return { start, end };
+}
+
+/**
+ * Stockholm civil delivery days the billed period touches outside its civil price month. An Ediel-month underlay
+ * (00:00 +0100 on the 1st, FINDINGS F108) ends at 23:00Z on the last civil day in summer: its last hour lies in the
+ * first civil delivery day of the next month (e.g. 1 October for September), which the month import does not cover.
+ */
+export function civilDeliveryDaysOutsideMonth(periodStart: string, periodEnd: string, priceMonth: string): string[] {
+  const startMs = Date.parse(periodStart);
+  const endMs = Date.parse(periodEnd);
+  if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) return [];
+  const days = new Set([stockholmDateForInstant(new Date(startMs)), stockholmDateForInstant(new Date(endMs - 1))]);
+  return [...days].filter((day) => day.slice(0, 7) !== priceMonth).sort();
 }
 
 async function loadBillingUnderlay(
@@ -535,6 +549,17 @@ export async function calculatePricingPreviewForUnderlay(input: {
     const spotWeight = config.baseComponents
       .filter((component) => component.sourceType === "spot")
       .reduce((sum, component) => sum + component.weightPercent, 0);
+    // Interval prices are read by instant (spot_price_intervals, pinned by the snapshot fingerprint); no month lock
+    // is involved. The edge day of an Ediel month is filled from the provider if it is missing: fill-only (a
+    // verified or locked day is never re-imported or overwritten) and never locked here (owner decision 2026-10-23).
+    for (const day of civilDeliveryDaysOutsideMonth(underlay.periodStartInstant, underlay.periodEndInstant, priceMonth)) {
+      try {
+        const edge = await importSpotPricesForDayArea({ calendarDate: day, priceArea: underlay.priceArea as PriceArea, force: false });
+        if (edge.error) warnings.push(`Spotpris för leveransdygnet ${day} kunde inte hämtas: ${edge.error}`);
+      } catch (error) {
+        warnings.push(`Spotpris för leveransdygnet ${day} kunde inte hämtas: ${error instanceof Error ? error.message : "okänt fel"}`);
+      }
+    }
     const intervalPricing = await resolveIntervalSpotPricing({
       companyId: input.companyId,
       billingUnderlayId: input.billingUnderlayId,

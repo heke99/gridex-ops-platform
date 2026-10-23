@@ -11,6 +11,7 @@ import {
 } from '@/lib/pricing/underlayPricingAdapter'
 import { lockPricingPreview } from '@/lib/pricing/engine'
 import { emitDomainEvent } from '@/lib/events/domainEvents'
+import { invoiceBillingPeriod } from '@/lib/billing/billingMonth'
 
 type Row = Record<string, unknown>
 
@@ -54,7 +55,7 @@ async function loadUnderlays(companyId: string, billingMonth: string) {
   for (let from = 0; ; from += 1_000) {
     const result = await supabaseService
       .from('billing_underlays')
-      .select('id,company_id,customer_id,site_id,customer_site_id,metering_point_id,contract_id,customer_contract_id,underlay_year,underlay_month,status,readiness_status,total_kwh,currency,billing_period_start,billing_period_end,missing_values_count,source_meter_value_count,price_area,pricing_snapshot_id,contract_price_snapshot_id,price_plan_id,price_plan_version_id,billing_block_reason,billing_configuration_snapshot_sha256,portfolio_id,portfolio_monthly_settlement_id,portfolio_settlement_revision,portfolio_settlement_sha256,vat_rate,energy_direction,settlement_type')
+      .select('id,company_id,customer_id,site_id,customer_site_id,metering_point_id,contract_id,customer_contract_id,underlay_year,underlay_month,status,readiness_status,total_kwh,currency,billing_period_start,billing_period_end,missing_values_count,source_meter_value_count,price_area,pricing_snapshot_id,contract_price_snapshot_id,price_plan_id,price_plan_version_id,billing_block_reason,billing_configuration_snapshot_sha256,portfolio_id,portfolio_monthly_settlement_id,portfolio_settlement_revision,portfolio_settlement_sha256,vat_rate,energy_direction,settlement_type,billing_period_start_instant:payload->>billing_period_start_instant,billing_period_end_instant:payload->>billing_period_end_instant,billing_month_frame:payload->>billing_month_frame')
       .eq('company_id', companyId)
       .eq('underlay_year', year)
       .eq('underlay_month', month)
@@ -155,6 +156,16 @@ async function ensureLockedPricing(input: {
   return locked
 }
 
+/** The underlay's exact covered period (stored instants, end exclusive), or null for an older underlay without them. */
+function underlayBillingPeriod(underlay: Row, billingMonth: string) {
+  return invoiceBillingPeriod({
+    billingMonth,
+    start: underlay.billing_period_start_instant,
+    end: underlay.billing_period_end_instant,
+    frame: underlay.billing_month_frame,
+  })
+}
+
 function buildCalculationSnapshot(input: {
   underlay: Row
   contract: Row
@@ -196,6 +207,8 @@ function buildCalculationSnapshot(input: {
     portfolio_settlement_sha256: text(input.underlay.portfolio_settlement_sha256),
     period_start: text(input.underlay.billing_period_start),
     period_end: text(input.underlay.billing_period_end),
+    // The exact covered period printed on the invoice (FINDINGS F108): an Ediel month for Ediel-based supply.
+    billing_period: underlayBillingPeriod(input.underlay, input.billingMonth),
     total_kwh: num(input.underlay.total_kwh),
     pricing_run_id: input.pricing.pricingRunId,
     pricing_engine: input.pricing.engine,
@@ -331,7 +344,7 @@ async function createDraft(input: {
     vat_amount: pricing.vatSek,
     amount_inc_vat: pricing.totalSekIncVat,
     idempotency_key: canonicalKey,
-    metadata: { billing_month: input.billingMonth, customer_number: customerNumber, approval, calculation_snapshot_sha256: calculationHash, contract_type: text(input.contract.contract_type), price_area: calculationSnapshot.price_area },
+    metadata: { billing_month: input.billingMonth, customer_number: customerNumber, approval, calculation_snapshot_sha256: calculationHash, contract_type: text(input.contract.contract_type), price_area: calculationSnapshot.price_area, billing_period: calculationSnapshot.billing_period },
   }
   const canonicalInvoice = {
     invoice_export_item_id: itemId,
@@ -344,7 +357,7 @@ async function createDraft(input: {
     amount_ex_vat: pricing.subtotalSekExVat,
     vat_amount: pricing.vatSek,
     amount_inc_vat: pricing.totalSekIncVat,
-    metadata: { source: 'invoice_review_v1', approval, calculation_snapshot_sha256: calculationHash, customer_number: customerNumber },
+    metadata: { source: 'invoice_review_v1', approval, calculation_snapshot_sha256: calculationHash, customer_number: customerNumber, billing_period: calculationSnapshot.billing_period },
   }
   // Export graph and calculation snapshot are written in one transaction; a failure leaves no reservation.
   const created = await supabaseService.rpc('gridex_create_invoice_review_draft_v1', {

@@ -64,6 +64,24 @@ export function supplyPeriodStartInstant(period: { start_date?: unknown; market_
   return Number.isFinite(parsed) ? parsed : null
 }
 
+/**
+ * The first instant (ms) that is no longer supplied, or null for an open period. Same rule as
+ * supplyPeriodEndExclusiveDate: a received market end at the start of its end date is exclusive and ends at the
+ * market instant itself, 00:00 in Ediel's fixed normal time (23:00Z in summer, ENV-08), so the last civil hour
+ * before it (22:00Z-23:00Z on the last supplied day) is still ours (FINDINGS F108 M5; the database's qualified
+ * supply basis bills up to market_end_at). Every other end (manual/legacy, or a market end during the day) ends
+ * at Swedish civil midnight after its last supplied day (owner decision 2026-10-23).
+ */
+export function supplyPeriodEndInstant(period: PeriodEnd): number | null {
+  const exclusive = supplyPeriodEndExclusiveDate(period)
+  if (!exclusive) return null
+  const marketEnd = text(period.market_end_at)
+  const marketEndMs = marketEnd ? Date.parse(marketEnd) : Number.NaN
+  const endDate = (text(period.actual_end_date) ?? text(period.end_date))!.slice(0, 10)
+  if (exclusive === endDate && Number.isFinite(marketEndMs)) return marketEndMs
+  return localMidnight(exclusive)
+}
+
 /** The last supplied Stockholm civil day (inclusive), or null for an open period. */
 export function supplyPeriodLastSuppliedDate(period: PeriodEnd): string | null {
   const exclusive = supplyPeriodEndExclusiveDate(period)

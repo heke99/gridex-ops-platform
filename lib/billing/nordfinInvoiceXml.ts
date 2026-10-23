@@ -86,6 +86,13 @@ export function renderNordfinInvoiceXml(rows: InvoiceFileRow[]) {
     out.push(el('ConsumptionBasis', e ? CONSUMPTION_BASIS[e.consumption_basis] : null, '      '))
     out.push(el('PriceArea', row.price_area, '      '))
     out.push(el('Period', period(row.period_start, row.period_end), '      '))
+    // The exact covered period (FINDINGS F108): only on rows that carry it, so earlier files stay byte-identical.
+    if (row.billing_period) {
+      out.push(el('PeriodLabel', row.billing_period.label, '      '))
+      out.push(el('PeriodText', row.billing_period.text, '      '))
+      out.push(el('PeriodStart', row.billing_period.start, '      '))
+      out.push(el('PeriodEnd', row.billing_period.end, '      '))
+    }
     out.push(el('ConsumptionKwh', kwh(row.kwh), '      '))
     out.push(el('AveragePriceOrePerKwh', e?.average_price_ore_per_kwh === null || e?.average_price_ore_per_kwh === undefined ? null : e.average_price_ore_per_kwh.toFixed(2), '      '))
     if (e?.reconciliation) {

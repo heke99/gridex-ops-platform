@@ -9,6 +9,7 @@
 // is forced eligible, and every write goes through the service-role gate RPC with its own scope checks.
 import { supabaseService } from '@/lib/supabase/service'
 import { stockholmMonthBounds } from '@/lib/time/stockholm'
+import { billingMonthLoadWindow } from './billingMonth'
 import type { MeteringValueRow } from '@/lib/cis/types'
 import { updateMeterValueBillingReadiness } from './meterValueBillingMatcher'
 
@@ -26,6 +27,9 @@ function heldForSupplyEnd(value: Row) {
 
 export async function regateSupplyEndValues(input: { companyId: string; billingMonth: string; limit?: number }): Promise<SupplyEndRegateResult> {
   const bounds = stockholmMonthBounds(input.billingMonth)
+  // An Ediel-qualified supply is billed per Ediel month (00:00 +0100): in summer its last hour 22:00Z-23:00Z on the
+  // last civil day lies after the civil month, e.g. the hour before a Z05 end on the 1st (FINDINGS F108 M5).
+  const window = billingMonthLoadWindow(input.billingMonth)
   const limit = Math.min(Math.max(Math.floor(input.limit ?? 5_000), 1), 20_000)
   const result: SupplyEndRegateResult = { candidates: 0, evaluated: 0, billable: 0, failed: 0, errors: [] }
   // Metering points of this tenant whose supply received an end that overlaps the month.
@@ -44,7 +48,7 @@ export async function regateSupplyEndValues(input: { companyId: string; billingM
       const page = await supabaseService.from('normalized_metering_values')
         .select('id,company_id,metering_point_id,source_metering_value_id,source_message_id,billing_gate_status,billing_gate_reasons')
         .eq('company_id', input.companyId).in('metering_point_id', pointChunk).eq('revision_status', 'current')
-        .neq('billing_gate_status', 'eligible').lt('period_start', bounds.end).gt('period_end', bounds.start)
+        .neq('billing_gate_status', 'eligible').lt('period_start', window.end).gt('period_end', window.start)
         .order('period_start', { ascending: true }).order('id', { ascending: true }).range(from, from + PAGE - 1)
       if (page.error) throw page.error
       const rows = (page.data ?? []) as Row[]

@@ -10,6 +10,7 @@ import {
 import { renderNordfinInvoiceXml } from '@/lib/billing/nordfinInvoiceXml'
 import { InvoiceProviderConfigError, isFileProvider, loadNordfinClientId, requireTenantInvoiceProvider, rpcError, type FileProvider } from '@/lib/billing/providers/registry'
 import { buildXlsxWorkbook } from '@/lib/billing/xlsx'
+import { invoiceBillingPeriod, type InvoiceBillingPeriod } from '@/lib/billing/billingMonth'
 import { assertOutboundAllowed } from '@/lib/platform/outboundFreeze'
 import { supabaseService } from '@/lib/supabase/service'
 import { tenantDb } from '@/lib/supabase/tenantDb'
@@ -57,6 +58,12 @@ export type InvoiceFileRow = {
   electricity?: InvoiceFileElectricity | null
   /** Nordfin client id, fixed when the file is created. */
   nordfin_client_id?: string | null
+  /**
+   * The exact covered period (instants, end exclusive) and its printed text, e.g. "September 2026",
+   * "2026-09-01 01:00 – 2026-10-01 01:00 (svensk tid)" for an Ediel month (FINDINGS F108). Absent on rows of files
+   * created before it existed and for underlays without stored instants; such files render unchanged.
+   */
+  billing_period?: InvoiceBillingPeriod
 }
 
 export type InvoiceFileFacility = {
@@ -219,7 +226,19 @@ export function buildInvoiceFileRow(input: {
       })),
     electricity: buildElectricity({ ...input, invoiceDate }),
     nordfin_client_id: input.nordfinClientId ?? null,
+    ...billingPeriodOf(input.underlay, input.billingMonth),
   }
+}
+
+function billingPeriodOf(underlay: Row, billingMonth: string): { billing_period?: InvoiceBillingPeriod } {
+  const payload = (underlay.payload && typeof underlay.payload === 'object' ? underlay.payload : {}) as Row
+  const period = invoiceBillingPeriod({
+    billingMonth,
+    start: payload.billing_period_start_instant,
+    end: payload.billing_period_end_instant,
+    frame: payload.billing_month_frame,
+  })
+  return period ? { billing_period: period } : {}
 }
 
 function addMonths(date: string, months: number) {
@@ -502,6 +521,19 @@ const CSV_COLUMNS: Array<[keyof InvoiceFileRow, string]> = [
   ['invoice_export_item_id', 'Gridex-ID'],
 ]
 
+// Only files whose rows carry the exact covered period get these columns: older files render byte-identically.
+const PERIOD_COLUMNS: Array<[string, string, (row: InvoiceFileRow) => unknown]> = [
+  ['billing_period_label', 'Fakturaperiod', (row) => row.billing_period?.label],
+  ['billing_period_text', 'Leveransperiod (exakt)', (row) => row.billing_period?.text],
+]
+
+function fileColumns(rows: InvoiceFileRow[]): Array<[string, string, (row: InvoiceFileRow) => unknown]> {
+  const base = CSV_COLUMNS.map(([key, label]) => [key, label, (row: InvoiceFileRow) => row[key]] as [string, string, (row: InvoiceFileRow) => unknown])
+  if (!rows.some((row) => row.billing_period)) return base
+  const at = base.findIndex(([key]) => key === 'period_end') + 1
+  return [...base.slice(0, at), ...PERIOD_COLUMNS, ...base.slice(at)]
+}
+
 function csvCell(value: unknown) {
   if (value === null || value === undefined) return ''
   const raw = String(value)
@@ -527,17 +559,19 @@ export function renderInvoiceFile(file: { id: string; billing_month: string; row
     }
   }
   if (format === 'xlsx') {
-    const headers = CSV_COLUMNS.map(([, label]) => label)
-    const rows = file.rows.map((row) => Object.fromEntries(CSV_COLUMNS.map(([key, label]) => [label, row[key] as unknown])))
+    const columns = fileColumns(file.rows)
+    const headers = columns.map(([, label]) => label)
+    const rows = file.rows.map((row) => Object.fromEntries(columns.map(([, label, read]) => [label, read(row)])))
     return {
       fileName: `${base}.xlsx`,
       contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       body: buildXlsxWorkbook(headers, rows),
     }
   }
+  const columns = fileColumns(file.rows)
   const lines = [
-    CSV_COLUMNS.map(([, label]) => csvCell(label)).join(';'),
-    ...file.rows.map((row) => CSV_COLUMNS.map(([key]) => csvCell(row[key])).join(';')),
+    columns.map(([, label]) => csvCell(label)).join(';'),
+    ...file.rows.map((row) => columns.map(([, , read]) => csvCell(read(row))).join(';')),
   ]
   return {
     fileName: `${base}.csv`,

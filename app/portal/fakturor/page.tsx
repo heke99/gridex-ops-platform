@@ -4,7 +4,7 @@ import { getCustomerPortalContext, listPortalInvoices } from '@/lib/customer-por
 import {
   formatDate,
   formatKwh,
-  formatPeriod,
+  formatInvoicePeriod,
   formatSek,
   invoiceStatusLabel,
   invoiceStatusTone,
@@ -47,7 +47,7 @@ export default async function PortalInvoicesPage() {
                   ) : null}
                 </div>
 
-                <div className="text-sm text-slate-600">{formatPeriod(invoice.period_start, invoice.period_end)}</div>
+                <div className="text-sm text-slate-600">{formatInvoicePeriod(invoice)}</div>
                 <div className="text-sm text-slate-600">Förfallodatum {formatDate(invoice.due_date)}</div>
                 <div className="text-sm font-semibold text-slate-950">{formatSek(invoice.amount_inc_vat)}</div>
                 <div className="flex items-center gap-3">

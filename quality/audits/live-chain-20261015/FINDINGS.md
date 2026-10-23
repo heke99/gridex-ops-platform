@@ -1880,6 +1880,37 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
     - Implementeras av en agent.
   - **Verklighetsvärldens simulatorer och scenarier är fel.** De sänder civila dygn, och G sänder 100 kvartar. Exakt lista med ändringar per fil och rad finns i agentrapporten. De ska göras av mig och spåras som T15.
 
+- **F108 slutsidan RÄTTAD 2026-10-23 (agent + granskning), enligt ägarbesluten:**
+  - **Regel:**
+    - En period med `market_start_at` eller `market_end_at` debiteras per Ediel-månad. Andra perioder debiteras per civil månad.
+    - Periodens egen start och slut gäller i första och sista månaden. Månadsgränser den löper över följer ramen.
+    - Lagrade datum (1 sep – 1 okt) och unikhetsnyckeln är oförändrade, så månadsavgiften och dess proportionering påverkas inte.
+  - **M5 rättad:** en mottagen Z05 slutar exakt vid `market_end_at`. TS-spärren, matcharen och databasens spärr följer det, och den sista timmen debiteras i sin Ediel-månad.
+  - **M6 rättad:** ett månadsvärde i +0100 blir klart utan `needs_review`.
+  - **M7:** ingen ändring. Alla fem `Etc/GMT-1`-funktioner omvandlar Ediel-källor, alltså mottagningstid till affärsdatum och mottagen PRODAT-start till marknadstidpunkt, vilket är rätt enligt ENV-08.
+  - **Nytt fel rättat (H2/H3-variant, hög):** `gridex_store_billing_underlay` godtog fortfarande bara perioderna `active`/`confirmed_by_grid_owner` och avtalen `signed`/`active`. Varje slutmånadsunderlag efter ett Z05 nekades med 23514, och då rullades tenantens hela månadsbatch tillbaka. Lagret tillämpar nu samma regel som spärren.
+  - **Avtalsslut och prisers `valid_to`:** för Ediel-perioder gäller nu det senare av civil midnatt och 00:00 +0100, aldrig tidigare än förut. Annars hade ett pris giltigt till 30 september fällt hela batchen.
+  - **Fakturan** skriver ut den exakta perioden, till exempel "2026-09-01 01:00 – 2026-10-01 01:00 (svensk tid)" med etiketten "September 2026". Fältet `billing_period` finns i `calculation_snapshot` och metadata, i Nordfin-XML (`PeriodLabel`/`PeriodText`/`PeriodStart`/`PeriodEnd`), i CSV/XLSX ("Fakturaperiod", "Leveransperiod (exakt)") och i kundportalen. Äldre filer renderas byte för byte som förut.
+  - **Spot:** intervallprissättning kopplar på tidpunkt. Den civila dagen precis utanför Ediel-månaden (1 oktober för september) fylls i utan lås och utan överskrivning (`lib/pricing/engine.ts`), vilket ryms i ägarbeslutet om fyllnad. Portföljens policy `require_locked_period_price` prissätts per leveransmånad och påverkas inte.
+  - **Migration `20261023196000_f108_ediel_billing_month.sql`:** fem exakta textbyten, två i spärren och tre i lagret. Ägare, ACL, säkerhetsläge och inställningar kontrolleras.
+  - **Tester:**
+    - `f108-ediel-billing-month` 18 av 18, där 12 föll med HEAD-koden;
+    - SQL-regressionen (PGlite): 4 PASS före migrationen (defekterna bevisade), 20 PASS efter, och H2/H3 har kvar sina 13 PASS. Jag körde om alla tre;
+    - 189 relaterade filer, 3 062 tester (agenten). Min omkörning: 37 filer, 291 tester;
+    - typkontroll utan fel;
+    - täckningen: första körningen gav 350 av 352 (DB-01 och AT-DB-01 föll under parallell last, och DB-01 gav 76 av 76 ensam), omkörningen gav 352 av 352 med 0 fallerande.
+  - **Förväntningar i scenarierna:**
+    - **F:** underlag 1 sep – 1 okt, tidpunkter 08-31T23:00Z – 09-30T23:00Z, ramen `ediel_fixed_normal_time`, 2 880 värden per hel anläggning.
+    - **G:** oktober [09-30T23:00Z, 10-31T23:00Z) med 2 976 värden. Texten "2026-10-01 01:00 – 2026-11-01 00:00".
+    - **H:** slutunderlaget lagras nu.
+  - **Sidofynd, ÖPPNA:**
+    1. **Slutfakturan efter Z05 (H3 längre ned i kedjan, hög):** prismotorns `loadContract`, `gridex_read_interval_pricing_snapshot_v1` och `gridex_persist_pricing_run` godtar bara aktiva och signerade avtal. Slutfakturan efter ett Z05 faller därför med "Aktivt kundavtal saknas".
+    2. **Åtkomstfönster (medel):** `gridex_customer_metering_access_windows_v1` behandlar ett manuellt `end_date` som exklusivt och skär därmed bort sista levererade dag, medan debiteringen räknar dagen som sista levererade.
+    3. **Månadsmedelspot (låg, kan kräva ägarbeslut):** den civila månadens medelpris tillämpas på Ediel-månadens kWh, vilket ger en timmes förskjutning i varje ände på sommaren.
+    4. **Begäran om mätdata (E73, medel):** autopiloten begär fortfarande den civila månaden för Ediel-punkter. Renderaren ligger i `lib/ediel`.
+    5. **Övergången (låg):** redan låsta månader med civila gränser bredvid Ediel-månader kan lämna timmen 22:00–23:00Z odebiterad. Produktionen har 0 mätpunkter, så det påverkar bara världen.
+    6. **Lås före månadens slut (låg):** `gridex_lock_spot_price_month` saknar kontrollen att månaden har tagit slut, se T15 punkt 2. Förslaget är att neka medan `period_end > now()`.
+
 ### F109 Tenantadmin får 403 på `/api/internal/spot/import-month` — BEKRÄFTAD (världen, körning 26), hög; utreds
 - Routen kräver `requireAdminApiAccess(['pricing.write'])` och `requireOperationalCompanyId`.
 - `company_admin` har `pricing.write` i `lib/admin/accessModel.ts`, men tenantens admin fick ändå "Ej behörig".

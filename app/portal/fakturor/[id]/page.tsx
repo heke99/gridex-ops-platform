@@ -5,7 +5,7 @@ import { getCustomerPortalContext, getPortalInvoiceDetail } from '@/lib/customer
 import {
   formatDate,
   formatKwh,
-  formatPeriod,
+  formatInvoicePeriod,
   formatSek,
   invoiceStatusLabel,
   invoiceStatusTone,
@@ -53,7 +53,7 @@ export default async function PortalInvoiceDetailPage({ params }: PageProps) {
               {portalInvoiceTitle(invoice)}
             </h1>
             <p className="mt-3 text-sm text-slate-500">
-              Period {formatPeriod(invoice.period_start, invoice.period_end)} · Förfallodatum {formatDate(invoice.due_date)}
+              Period {formatInvoicePeriod(invoice)} · Förfallodatum {formatDate(invoice.due_date)}
             </p>
           </div>
 

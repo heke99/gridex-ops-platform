@@ -2,10 +2,7 @@ import { supabaseService } from "@/lib/supabase/service";
 import { isPriceArea } from "@/lib/pricing/types";
 import { assertBillingPeriodOpen, getBillingPeriodLock } from "@/lib/billing/invoiceReadiness";
 import { assertPlatformSchemaReady } from "@/lib/platform/schemaReadiness";
-import {
-  stockholmLocalToUtc,
-  stockholmMonthBounds,
-} from "@/lib/time/stockholm";
+import { stockholmMonthBounds } from "@/lib/time/stockholm";
 import { evaluateBillingGate } from "@/lib/billing/billingGate";
 import { loadQualifiedBillingValues } from './sourceBasis';
 import { isCanonicalUtiltsDecimal, sumUtiltsDecimals } from '@/lib/ediel/utilts/exactDecimal';
@@ -17,7 +14,8 @@ import {
 } from "@/lib/billing/consumptionEstimate";
 import { meteringResolutionForContract } from "@/lib/metering/contractMeteringResolution";
 import { ensureHistoricalMeteringRequest } from "@/lib/billing/historyRequest";
-import { BILLED_SUPPLY_PERIOD_STATUSES, supplyPeriodEndExclusiveDate, supplyPeriodStartInstant } from "@/lib/billing/supplyPeriodEnd";
+import { BILLED_SUPPLY_PERIOD_STATUSES } from "@/lib/billing/supplyPeriodEnd";
+import { billingMonthBounds, billingMonthFrame, billingMonthLoadWindow, supplyPeriodBillingSegment } from "@/lib/billing/billingMonth";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -160,16 +158,6 @@ function addDays(date: string, days: number): string {
     ),
   );
   return cursor.toISOString().slice(0, 10);
-}
-
-function localDateBoundary(date: string): string {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
-  if (!match) throw new Error(`Ogiltigt kalenderdatum: ${date}`);
-  return stockholmLocalToUtc({
-    year: Number(match[1]),
-    month: Number(match[2]),
-    day: Number(match[3]),
-  }).toISOString();
 }
 
 export function stockholmCivilDate(value: string): string {
@@ -345,27 +333,21 @@ function contractCoversSegment(
   return true;
 }
 
+/**
+ * The period's billed segment of the month (FINDINGS F108, owner decision 2026-10-23): an Ediel-qualified period
+ * (received market instants) is billed per Ediel month, 00:00 +0100 on the 1st to 00:00 +0100 on the next 1st; a
+ * manual/legacy period per Swedish civil month. The period's own start and end instants bound its first and last
+ * month (a received market start/end is its Ediel instant; a manual date is civil midnight; a Z05 end is
+ * exclusive, FINDINGS H1). Empty when the period supplies nothing in the month.
+ */
 function segmentBounds(
   period: JsonRecord,
-  monthStart: string,
-  monthEnd: string,
-): { start: string; end: string } {
-  // A received market start is the grid owner's instant (00:00 Ediel fixed normal time, ENV-08): in summer the
-  // segment starts at 01:00 local, as the database's qualified supply basis does; the civil hour before it is
-  // never ours and is not a metering gap (FINDINGS F108). A manual start stays local midnight.
-  const startMs = supplyPeriodStartInstant(period);
-  const periodStart = startMs === null ? localDateBoundary(String(period.start_date)) : new Date(startMs).toISOString();
-  // A received market end (Z05) is exclusive; a manual end date is the last supplied day (FINDINGS H1).
-  const endExclusive = supplyPeriodEndExclusiveDate(period);
-  const periodEnd = endExclusive ? localDateBoundary(endExclusive) : monthEnd;
-  return {
-    start: new Date(
-      Math.max(Date.parse(monthStart), Date.parse(periodStart)),
-    ).toISOString(),
-    end: new Date(
-      Math.min(Date.parse(monthEnd), Date.parse(periodEnd)),
-    ).toISOString(),
-  };
+  billingMonth: string,
+): { start: string; end: string; frame: ReturnType<typeof billingMonthFrame> } {
+  const segment = supplyPeriodBillingSegment(period, billingMonth);
+  if (segment) return segment;
+  const { start } = billingMonthBounds(billingMonth, billingMonthFrame(period));
+  return { start, end: start, frame: billingMonthFrame(period) };
 }
 
 function clipMeteringRowToSegment(
@@ -844,23 +826,44 @@ export async function generateBillingUnderlaysForMonth(input: {
   }
 
   const bounds = stockholmMonthBounds(input.billingMonth);
+  // Ediel months start and end one hour later than civil months in summer (F108): load both.
+  const loadWindow = billingMonthLoadWindow(input.billingMonth);
   const estimationEnabled = await companyEstimatesMissingConsumption(input.companyId);
   const allValues = await loadNormalizedValues(
     input.companyId,
-    bounds.start,
-    bounds.end,
+    loadWindow.start,
+    loadWindow.end,
   );
   const allPeriods = await loadSupplyPeriods(
     input.companyId,
     bounds.start.slice(0, 10),
     addDays(bounds.endDateExclusive, -1),
   );
-  const values = allValues.filter(
-    (row) =>
-      (!customerScope || text(row.customer_id) === customerScope) &&
-      (!meteringPointScope ||
-        text(row.metering_point_id) === meteringPointScope),
-  );
+  // A value belongs to this billing month by its own supply period's frame: an Ediel period's value in the civil
+  // hour before its Ediel month (or after it) belongs to the neighbouring month and is neither billed nor reported
+  // as orphaned here. A value whose period is not billed this month keeps the civil month (unchanged).
+  const periodsById = new Map(allPeriods.map((period) => [String(period.id), period]));
+  const valueMonths = new Map<string, { start: number; end: number }>();
+  const valueMonth = (row: JsonRecord) => {
+    const key = String(row.supply_period_id);
+    const known = valueMonths.get(key);
+    if (known) return known;
+    const period = periodsById.get(key);
+    const segment = period ? supplyPeriodBillingSegment(period, input.billingMonth) : null;
+    const frameMonth = period ? billingMonthBounds(input.billingMonth, billingMonthFrame(period)) : bounds;
+    const month = {
+      start: Math.min(Date.parse(frameMonth.start), segment ? Date.parse(segment.start) : Infinity),
+      end: Math.max(Date.parse(frameMonth.end), segment ? Date.parse(segment.end) : -Infinity),
+    };
+    valueMonths.set(key, month);
+    return month;
+  };
+  const values = allValues.filter((row) => {
+    if (customerScope && text(row.customer_id) !== customerScope) return false;
+    if (meteringPointScope && text(row.metering_point_id) !== meteringPointScope) return false;
+    const month = valueMonth(row);
+    return Date.parse(String(row.period_start)) < month.end && Date.parse(String(row.period_end)) > month.start;
+  });
   const periods = allPeriods.filter(
     (row) =>
       (!customerScope || text(row.customer_id) === customerScope) &&
@@ -901,7 +904,7 @@ export async function generateBillingUnderlaysForMonth(input: {
     const overlappingPeriods = meterPeriods
       .map((period) => ({
         period,
-        ...segmentBounds(period, bounds.start, bounds.end),
+        ...segmentBounds(period, input.billingMonth),
       }))
       .filter((entry) => Date.parse(entry.end) > Date.parse(entry.start))
       .sort(
@@ -1071,6 +1074,7 @@ export async function generateBillingUnderlaysForMonth(input: {
               source_row_ids: [],
               supply_period_id: text(period.id),
               generated_from: "normalized_metering_values",
+              billing_month_frame: entry.frame,
               blocker_code: "missing_meter_values",
               energy_direction: canonicalContractDirection,
               settlement_type:
@@ -1391,6 +1395,8 @@ export async function generateBillingUnderlaysForMonth(input: {
             source_row_ids: segmentRows.map((row) => text(row.id)),
             supply_period_id: text(period.id),
             generated_from: "normalized_metering_values",
+            // Ediel month (fixed +0100) or Swedish civil month; the invoice prints the exact period (F108).
+            billing_month_frame: entry.frame,
             energy_direction: energyDirection,
             settlement_type: settlementType,
             lineage: segmentRows.map((row) => ({

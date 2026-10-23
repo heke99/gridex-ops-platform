@@ -1,7 +1,8 @@
 import { stockholmLocalToUtc } from "@/lib/time/stockholm";
 import { isCanonicalUtiltsDecimal } from '@/lib/ediel/utilts/exactDecimal';
 import type { BillingSourceBasis } from './sourceBasis';
-import { BILLED_SUPPLY_PERIOD_STATUSES, contractEndedBySupplyPeriod, supplyPeriodLastSuppliedDate, supplyPeriodStartInstant } from './supplyPeriodEnd';
+import { BILLED_SUPPLY_PERIOD_STATUSES, contractEndedBySupplyPeriod, supplyPeriodEndInstant, supplyPeriodStartInstant } from './supplyPeriodEnd';
+import { businessDateEndInstant } from './billingMonth';
 
 export type BillingGateStatus =
   "eligible" | "pending_match" | "blocked" | "conflict";
@@ -97,6 +98,11 @@ function contractCivilDate(value: unknown): string | null {
   if (!raw) return null;
   const datePart = raw.slice(0, 10);
   return /^\d{4}-\d{2}-\d{2}$/.test(datePart) ? datePart : raw;
+}
+
+function contractEndInstant(value: unknown, supply: RecordLike | null): number | string | null {
+  const date = contractCivilDate(value);
+  return date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? businessDateEndInstant(date, supply) : date;
 }
 
 function covers(
@@ -292,8 +298,9 @@ export function evaluateBillingGate(input: {
       periodStart !== null &&
       periodEnd !== null &&
       // A received market start is its Ediel instant (00:00 fixed normal time, ENV-08; FINDINGS F108).
-      // A received market end (Z05) is exclusive: the end date is the first day no longer supplied (FINDINGS H1).
-      !covers(supplyPeriodStartInstant(supply), supplyPeriodLastSuppliedDate(supply), periodStart, periodEnd)
+      // A received market end (Z05) is exclusive: the end date is the first day no longer supplied (FINDINGS H1),
+      // and the supply ends at the market instant itself (00:00 +0100, 23:00Z in summer; FINDINGS F108 M5).
+      !covers(supplyPeriodStartInstant(supply), supplyPeriodEndInstant(supply), periodStart, periodEnd)
     ) {
       reasons.push(
         reason(
@@ -346,7 +353,8 @@ export function evaluateBillingGate(input: {
       periodEnd !== null &&
       !covers(
         contractCivilDate(contract.starts_at ?? contract.start_date),
-        contractCivilDate(contract.ends_at ?? contract.end_date),
+        // On an Ediel-qualified supply the contract's last day also covers the end of its Ediel month (F108).
+        contractEndInstant(contract.ends_at ?? contract.end_date, supplyCount === 1 ? supply : null),
         periodStart,
         periodEnd,
       )

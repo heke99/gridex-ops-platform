@@ -4,7 +4,7 @@ import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
 import { stockholmDateForInstant } from '@/lib/time/stockholm'
 import { evaluateBillingGate, type BillingGateStatus } from '@/lib/billing/billingGate'
 import { loadQualifiedBillingValues } from './sourceBasis'
-import { BILLED_SUPPLY_PERIOD_STATUSES, supplyPeriodLastSuppliedDate, supplyPeriodStartInstant } from './supplyPeriodEnd'
+import { BILLED_SUPPLY_PERIOD_STATUSES, supplyPeriodEndInstant, supplyPeriodStartInstant } from './supplyPeriodEnd'
 
 type CanonicalBillingStatus = 'pending_match' | 'billable' | 'blocked' | 'conflict'
 
@@ -134,11 +134,15 @@ export async function updateMeterValueBillingReadiness(params: {
   // first civil hour of the start date (22:00Z–23:00Z) is not ours. The query above reads start_date as a civil
   // day; such a value lies outside the period and is never offered to the database as billable (FINDINGS F108:
   // it was refused there and recorded as an unqualified supply source).
+  // The received end is the market instant itself (00:00 +0100): in summer the civil hour 22:00Z-23:00Z before a
+  // Z05 end on the 1st is still ours and is matched to the ending period (FINDINGS F108 M5); a manual end stays
+  // civil midnight after its last supplied day.
   const valueStartMs = Date.parse(periodStartRaw)
+  const valueEndMs = Date.parse(periodEndRaw)
   const periods = ((periodsResponse.data ?? []) as Array<Record<string, unknown>>).filter((row) => {
-    const lastSupplied = supplyPeriodLastSuppliedDate(row)
+    const endMs = supplyPeriodEndInstant(row)
     const startMs = supplyPeriodStartInstant(row)
-    return (lastSupplied === null || lastSupplied >= periodEnd) && (startMs === null || startMs <= valueStartMs)
+    return (endMs === null || endMs >= valueEndMs) && (startMs === null || startMs <= valueStartMs)
   })
   const period = periods.length === 1 ? periods[0] : null
 

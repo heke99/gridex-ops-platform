@@ -46,6 +46,8 @@ export type CustomerInvoiceRow = {
   pdf_url: string | null
   source_system: string
   raw_payload: Record<string, unknown>
+  /** Invoice metadata; billing_period holds the exact covered period (FINDINGS F108). */
+  metadata?: Record<string, unknown> | null
   created_at: string
   updated_at: string
 }

@@ -1,5 +1,6 @@
 import { supabaseService } from '@/lib/supabase/service'
 import { stockholmMonthBounds } from '@/lib/time/stockholm'
+import { billingMonthLoadWindow } from '@/lib/billing/billingMonth'
 import { resolutionMinutes, type MeteringResolution } from '@/lib/metering/contractMeteringResolution'
 
 export type MeteringCompletenessIssue = {
@@ -114,19 +115,26 @@ export async function evaluateMeteringCompletenessForMonth(input: {
      * The supplied parts of the month (ISO instants, end exclusive), e.g. the billed underlay segments. Without it
      * the whole Stockholm civil month must be covered. With it only the supplied time is required: a supply that
      * starts at 00:00 Ediel fixed normal time (01:00 local in summer, ENV-08) or mid-month has no values before
-     * its start, and those are not a gap (FINDINGS F108).
+     * its start, and those are not a gap (FINDINGS F108). Windows may reach past the civil month: an Ediel-qualified
+     * supply is billed per Ediel month (00:00 +0100 on the 1st, owner decision 2026-10-23), so its window ends at
+     * 23:00Z on the last civil day in summer, and that last hour is required too.
      */
     windows?: Array<{ start: string; end: string }> | null
   }>
   allowEstimatedValues?: boolean
 }): Promise<MeteringCompletenessResult> {
   const bounds = stockholmMonthBounds(input.billingMonth)
-  const window = { startMs: toMs(bounds.start), endMs: toMs(bounds.end), startIso: bounds.start, endIso: bounds.end }
+  const civilWindow = { startMs: toMs(bounds.start), endMs: toMs(bounds.end), startIso: bounds.start, endIso: bounds.end }
+  // With supplied windows the month is the union of the civil and the Ediel month; the windows decide what is required.
+  const union = billingMonthLoadWindow(input.billingMonth)
+  const windowedMonth = { startMs: toMs(union.start), endMs: toMs(union.end), startIso: union.start, endIso: union.end }
+  const anyWindows = input.meteringPoints.some((entry) => Boolean(entry.windows && entry.windows.length > 0))
+  const loadWindow = anyWindows ? windowedMonth : civilWindow
   const issues: MeteringCompletenessIssue[] = []
   const meteringPointIds = Array.from(new Set(input.meteringPoints.map((entry) => entry.meteringPointId).filter(Boolean)))
   if (meteringPointIds.length === 0) return { billingMonth: input.billingMonth, status: 'no_data', meteringPointCount: 0, valueCount: 0, estimatedValueCount: 0, issues: [] }
 
-  const rows = await loadNormalizedValues({ companyId: input.companyId, meteringPointIds, startIso: window.startIso, endIso: window.endIso })
+  const rows = await loadNormalizedValues({ companyId: input.companyId, meteringPointIds, startIso: loadWindow.startIso, endIso: loadWindow.endIso })
   if (rows === null) {
     return { billingMonth: input.billingMonth, status: 'no_data', meteringPointCount: meteringPointIds.length, valueCount: 0, estimatedValueCount: 0, issues: [{ code: 'metering_values_missing', message: 'Normaliserade mätvärden kan inte läsas (tabell saknas). Kör senaste migrationen.', severity: 'warning' }] }
   }
@@ -143,19 +151,23 @@ export async function evaluateMeteringCompletenessForMonth(input: {
     if (entry.meterCannotDeliver && entry.requiredResolution) {
       issues.push({ code: 'metering_point_resolution_mismatch', message: `Avtalet kräver ${RESOLUTION_LABEL[entry.requiredResolution]} men mätpunkten rapporteras bara per månad. Kontrollera avtalet eller be nätägaren byta till intervallavläsning.`, severity: 'blocked', meteringPointId: entry.meteringPointId, details: { required_resolution: entry.requiredResolution } })
     }
-    const pointRows = byMeteringPoint.get(entry.meteringPointId) ?? []
+    const window = entry.windows && entry.windows.length > 0 ? windowedMonth : civilWindow
+    const pointRows = (byMeteringPoint.get(entry.meteringPointId) ?? []).filter((row) => toMs(row.period_start) < window.endMs && toMs(row.period_end) > window.startMs)
     if (pointRows.length === 0) {
       issues.push({ code: 'metering_values_missing', message: 'Inga normaliserade mätvärden finns för mätpunkten i fakturaperioden.', severity: 'blocked', meteringPointId: entry.meteringPointId })
       continue
     }
+    const supplied = suppliedWindows(entry.windows, window)
     const intervals = pointRows.map((row) => ({
       start: Math.max(toMs(row.period_start), window.startMs),
       end: Math.min(toMs(row.period_end), window.endMs),
       estimated: ESTIMATED_QUALITY_STATUSES.has(String(row.quality_status ?? '').toLowerCase()),
       quantity: typeof row.quantity_kwh === 'string' ? Number(row.quantity_kwh) : row.quantity_kwh,
-    })).filter((interval) => Number.isFinite(interval.start) && Number.isFinite(interval.end) && interval.end > interval.start).sort((a, b) => a.start - b.start)
+    })).filter((interval) => Number.isFinite(interval.start) && Number.isFinite(interval.end) && interval.end > interval.start)
+      // Values wholly outside the supplied windows belong to a neighbouring billing month or another supply.
+      .filter((interval) => !supplied || supplied.some((span) => interval.start < span.end && interval.end > span.start))
+      .sort((a, b) => a.start - b.start)
 
-    const supplied = suppliedWindows(entry.windows, window)
     let coveredMs = 0
     let overlapMs = 0
     let cursor = window.startMs

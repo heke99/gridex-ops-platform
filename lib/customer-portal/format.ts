@@ -29,6 +29,24 @@ export function formatPeriod(start?: string | null, end?: string | null): string
   return `${formatDate(start)} – ${formatDate(end)}`
 }
 
+/**
+ * The invoice's covered period as printed on the invoice: the exact period (dates and times, end exclusive) stored
+ * with the invoice (metadata.billing_period, FINDINGS F108), e.g. "September 2026 · 2026-09-01 01:00 – 2026-10-01
+ * 01:00 (svensk tid)"; older invoices without it keep their dates.
+ */
+export function formatInvoicePeriod(invoice: { period_start?: string | null; period_end?: string | null; metadata?: unknown }): string {
+  const metadata = invoice.metadata && typeof invoice.metadata === 'object' && !Array.isArray(invoice.metadata)
+    ? invoice.metadata as Record<string, unknown>
+    : {}
+  const period = metadata.billing_period && typeof metadata.billing_period === 'object' && !Array.isArray(metadata.billing_period)
+    ? metadata.billing_period as Record<string, unknown>
+    : null
+  const text = typeof period?.text === 'string' && period.text.trim() ? period.text.trim() : null
+  if (!text) return formatPeriod(invoice.period_start, invoice.period_end)
+  const label = typeof period?.label === 'string' && period.label.trim() ? period.label.trim() : null
+  return label ? `${label} · ${text}` : text
+}
+
 export function invoiceStatusLabel(status: string): string {
   if (status === 'draft') return 'Utkast'
   if (status === 'issued') return 'Utfärdad'

@@ -159,10 +159,11 @@ describe('F108 value matcher: a quarter-hour before the market start is outside 
 })
 
 describe('F108 September underlay and completeness for a summer-time supply start', () => {
-  // Every quarter-hour the grid owner's fixed-CET E66 files deliver to the new supplier: 23:00Z 31 Aug – 22:00Z 30 Sep
-  // inside civil September (2 876 quarter-hours; civil September has 2 880).
+  // Every quarter-hour the grid owner's fixed-CET E66 days deliver to the new supplier for September: 23:00Z 31 Aug –
+  // 23:00Z 30 Sep (30 days × 96 = 2 880 quarter-hours). Since the owner decision of 2026-10-23 that is exactly the
+  // September billing month of an Ediel-qualified supply (FINDINGS F108; __tests__/f108-ediel-billing-month.test.ts).
   const starts: string[] = []
-  for (let t = Date.parse('2026-08-31T23:00:00Z'); t < Date.parse('2026-09-30T22:00:00Z'); t += Q) starts.push(new Date(t).toISOString())
+  for (let t = Date.parse('2026-08-31T23:00:00Z'); t < Date.parse('2026-09-30T23:00:00Z'); t += Q) starts.push(new Date(t).toISOString())
   const values = starts.map((start, index) => ({ id: `nv-${index}`, company_id: COMPANY, customer_id: 'cu-1', metering_point_id: 'mp-1', supply_period_id: 'sp-1',
     source_metering_value_id: `mv-${index}`, source_message_id: 'msg-1', revision_status: 'current', billing_status: 'billable', billing_gate_status: 'eligible',
     quantity_kwh: '0.25', unit: 'kWh', quality_status: 'measured', direction: 'consumption', ...quarter(start) }))
@@ -180,7 +181,7 @@ describe('F108 September underlay and completeness for a summer-time supply star
     expect(warnings.filter(warning => warning.includes('Mätvärdeslucka'))).toEqual([])
     const stored = io.rpcCalls.filter(call => call.name.startsWith('gridex_store_billing_underlay'))
       .flatMap(call => call.name.endsWith('_batch') ? (call.args.p_commands as Array<{ underlay: Row }>).map(command => command.underlay) : [call.args.p_underlay as Row])
-    expect(stored).toEqual([expect.objectContaining({ billing_period_start: '2026-08-31T23:00:00.000Z', billing_period_end: '2026-09-30T22:00:00.000Z', missing_values_count: 0 })])
+    expect(stored).toEqual([expect.objectContaining({ billing_period_start: '2026-08-31T23:00:00.000Z', billing_period_end: '2026-09-30T23:00:00.000Z', missing_values_count: 0 })])
   }, 60_000)
 
   it('metering completeness is measured against the supplied window, not the whole civil month', async () => {
