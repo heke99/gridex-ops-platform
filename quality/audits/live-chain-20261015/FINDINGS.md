@@ -1,5 +1,8 @@
 # Lokalt live-likt kedjetest — fyndregister (2026-10-15)
 
+> **Ägarbeslut:** alla frågor till ägaren och svaren finns samlade i [OWNER-DECISIONS.md](OWNER-DECISIONS.md).
+
+
 Branch `claude/gifted-hamilton-vss1hj`. Användarstyrt arbete; samordning och filclaims i [#766](https://github.com/heke99/gridex-ops-platform/issues/766).
 
 ## Vad testet prövar
