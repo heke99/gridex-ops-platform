@@ -1,6 +1,30 @@
 # Produktion jämfört med repo: funktionsavvikelser 2026-10-23
 
-Det här är en läsande inventering, gjord efter att 14 äldre main-migreringar och SC046-paret installerades 2026-10-23 (se `.agent-memory/handover.md` och #840). Ingenting har ändrats i produktion i samband med inventeringen.
+Det här är en läsande inventering, gjord efter att 14 äldre main-migreringar och SC046-paret installerades 2026-10-23 (se `.agent-memory/handover.md` och #840). Ingenting ändrades i produktion i samband med själva inventeringen. De saknade objekten installerades därefter samma dag, se nästa avsnitt.
+
+## Installation 2026-10-23 (genomförd)
+
+Alla saknade objekt utom två funktioner är installerade. Varje steg var en egen transaktion med ett avslutande kontrollblock: sha256 av `prosrc` mot `schema.sql`, exakt lista över mottagare av behörigheter (ACL) och ägaren `postgres`. Vid avvikelse rullades hela steget tillbaka.
+
+- **Funktioner:** 151 av 153 är installerade, i 16 omgångar (`drift_install_missing_functions_01` till `_16`, plus åtgärderna nedan). Varje funktion fick först `REVOKE ALL … FROM PUBLIC, anon, authenticated, service_role`, eftersom `postgres` har en standardbehörighet i `public` som annars ger `service_role` EXECUTE. Sedan fick den exakt de behörigheter som `schema.sql` anger.
+- **Medvetet överhoppade (2):** `gridex_ediel_retention.finance_guard_v1_5deeea57…` och `…_7ddb1014…`. Schemat ägs av `gridex_ediel_retention_owner`, och `postgres` har bara USAGE där. Funktionerna skapas dynamiskt, och ingen trigger i `schema.sql` refererar till dem.
+- **Tabeller (3):** `guide_extensions` (med den seedrad som migrationen 20261010102349 lägger in), `prodat_mixed_reply_consumptions` och `supply_end_followups`. Tabellerna installerades med PK, UNIQUE och FK, sina triggers, RLS (även FORCE där `schema.sql` har det) och utan behörigheter för andra roller (`drift_install_missing_tables`).
+- **Trigger på befintlig tabell:** `outbound_dispatch_events_tenant` på `public.outbound_dispatch_events`, som var tom vid installationen. `gridex_billing_source.protect_underlay_v1` används inte av någon trigger i `schema.sql`, och därför har ingen trigger lagts till för den.
+- **Inte ändrat:** de 62 funktioner som har en annan kropp, de spärrade filerna och objekt som finns bara i produktion. Avvikande funktioner kräver granskning en och en.
+
+### Fel under installationen och hur de åtgärdades
+
+1. **Behörigheter saknades i omgång 1–12.** Generatorn missade ACL-blocken i `schema.sql`, eftersom de skrivs med namngivna parametrar. De 75 funktionerna fick därför ingen behörighet alls, inte heller för `service_role`. Felet åtgärdades i `drift_install_function_grants_01_12`, som verifierade alla 75. Omgång 13–16 genererades om med rätt behörigheter.
+2. **Omgång 16 installerade felaktig SQL.** Anropet skickades innan filen hade lästs, så det som installerades var påhittad SQL och inte filens innehåll. Kontrollblocket var tomt. Resultatet blev 7 funktioner som inte finns i `schema.sql` och 3 riktiga funktioner med fel kropp:
+   - De 7 påhittade: `ediel_require_assigned_prodat_header_negative_v1`, `ediel_require_customer_masterdata_cancellation_current_v1`, `ediel_require_requested_change_current_v1`, `ediel_require_requested_change_current_before_scope_fence_v1`, `ediel_require_service_permission_current_v1`, `ediel_store_utilts_consumption_v1` och `ediel_submit_service_evidence_v1`.
+   - De 3 med fel kropp: `ediel_review_service_evidence_v1`, `ediel_revoke_customer_event_certification_v1` och `ediel_revoke_transport_exception_v1`.
+
+   Åtgärd:
+   - `drift_fix16_part_a_remove_fabricated` tog bort alla 10 (inga beroenden, inga överlagringar), installerade de 3 korrekta kropparna och kontrollerade att de 7 inte längre finns.
+   - `drift_fix16_part_b_install_remaining` installerade de övriga 28 funktionerna i omgång 16 och verifierade alla 31.
+
+   Påverkan: inga data. `gridex_ediel_services.reviews` hade 0 rader, och den påhittade granskningskroppen anropade en funktion som inte finns, så ett anrop hade bara gett fel och rullats tillbaka. Appen anropar inte någon av de 7 påhittade funktionerna. Ledgern innehåller fortfarande raden `drift_install_missing_functions_16`, som avser den felaktiga körningen.
+3. **Timeouts.** Flera skrivanrop via MCP avbröts efter 230 sekunder utan att någon session syntes i databasen, och ingenting committades. Ett senare försök med samma innehåll gick igenom.
 
 ## Metod
 
