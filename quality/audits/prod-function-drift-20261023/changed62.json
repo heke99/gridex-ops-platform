@@ -1,0 +1,628 @@
+[
+ {
+  "sig": "gridex_correction_process.witness_v1(uuid,bigint,text,uuid)",
+  "cat": "B_prod_aldre",
+  "prod_last_file": "20260924080601",
+  "repo_last": "20261001015945",
+  "tokdiff": 180,
+  "prodsha": "216cddd0229199178d0c01bd082dfe2f74bf21e569e4886b42503421bfe23c91",
+  "app": []
+ },
+ {
+  "sig": "gridex_internal.actor_open_blocking_conflict_counts()",
+  "cat": "C_prod_avviker",
+  "prod_last_file": null,
+  "repo_last": "20260809131500",
+  "tokdiff": 1,
+  "prodsha": "543970be9edbcb71a8dcf3e9d9c19ee9ce0a5cb71b9758f23f0602014f9486c1",
+  "app": []
+ },
+ {
+  "sig": "gridex_received_sources.observe_document_reference_v1(uuid,text,uuid,uuid,jsonb)",
+  "cat": "B_prod_aldre",
+  "prod_last_file": "20260924013820",
+  "repo_last": "20260929082115",
+  "tokdiff": 7,
+  "prodsha": "8dc811a8c34cb561e46d1e2bf9781cac808c8d1c8f83dc9795ddfd44b330acb2",
+  "app": []
+ },
+ {
+  "sig": "gridex_utilts_binding.persist_series_v1(uuid,text,uuid,text,jsonb)",
+  "cat": "B_prod_aldre",
+  "prod_last_file": "20260927160000",
+  "repo_last": "20261001010230",
+  "tokdiff": 1944,
+  "prodsha": "4525339d094f1139ab6ab3b41f04fe45c3be0c2775c7e98da39eb124c08d6e49",
+  "app": []
+ },
+ {
+  "sig": "public.canonical_authenticated_tenant_context(uuid)",
+  "cat": "A_kosmetisk",
+  "prod_last_file": null,
+  "repo_last": "20261014004020",
+  "tokdiff": 0,
+  "prodsha": "c999d69c7d2ee2319eb09ba102e21593d350b2984b4067773145d25ddda3530b",
+  "app": [
+   "lib/admin/apiGuards.ts",
+   "lib/admin/guards.ts",
+   "lib/auth/externalStaffEnrollmentAdmin.ts"
+  ]
+ },
+ {
+  "sig": "public.canonical_provision_company_v3_pre_invitation_intent(jsonb)",
+  "cat": "B_prod_aldre",
+  "prod_last_file": "20260802170000",
+  "repo_last": "20260817210500",
+  "tokdiff": 25,
+  "prodsha": "eac74c43ad65aa07adb8e27594a0bd4f7264ced226916be85ce9ca29362c037a",
+  "app": []
+ },
+ {
+  "sig": "public.canonical_restore_pre_engine_live_ediel_approval(uuid,uuid,text)",
+  "cat": "A_kosmetisk",
+  "prod_last_file": null,
+  "repo_last": "20260815210353",
+  "tokdiff": 0,
+  "prodsha": "faca332c00d8e4f8d02dd6a1996e98c1c74e05331d26d40ff308cb0e196e70a5",
+  "app": []
+ },
+ {
+  "sig": "public.canonical_run_architecture_reconciliation(uuid)",
+  "cat": "A_kosmetisk",
+  "prod_last_file": null,
+  "repo_last": "20260811155851",
+  "tokdiff": 0,
+  "prodsha": "ff7597aea59fd3fc99cee45d69076710091c5b7c84d05f0c1c92a2f1265ec36f",
+  "app": [
+   "app/api/cron/reconciliation/daily/route.ts"
+  ]
+ },
+ {
+  "sig": "public.canonical_transition_ediel_production(uuid,text,bigint,uuid,uuid,uuid,text,uuid,text)",
+  "cat": "C_prod_avviker",
+  "prod_last_file": null,
+  "repo_last": "20261006235632",
+  "tokdiff": 337,
+  "prodsha": "b5a7f62e6e52be1be0ff41ae65c5cadfb62fdecf256e644ea601e17d21eea6fc",
+  "app": [
+   "app/admin/companies/[id]/ediel-actions.ts",
+   "app/admin/platform/actor-testing/actions.ts",
+   "app/admin/platform/go-live/approval-actions.ts"
+  ]
+ },
+ {
+  "sig": "public.canonical_transition_ediel_production_v1_unchecked(uuid,text,bigint,uuid,uuid,uuid,text,uuid,text)",
+  "cat": "C_prod_avviker",
+  "prod_last_file": null,
+  "repo_last": "20261006235632",
+  "tokdiff": 14,
+  "prodsha": "7ab0817c3cf380ba2ec373370df92077ffe8fac7fa43937e57d37c6a2afeced1",
+  "app": []
+ },
+ {
+  "sig": "public.canonical_transition_tenant_lifecycle_v3_pre_offboarding(uuid,text,bigint,text,uuid,text)",
+  "cat": "A_kosmetisk",
+  "prod_last_file": null,
+  "repo_last": "20260814230500",
+  "tokdiff": 0,
+  "prodsha": "1f2f5cc116730d6c684bc0a2d57de0708e8ad50abe030ebf8dbc38c39924dfac",
+  "app": []
+ },
+ {
+  "sig": "public.gridex_apply_exact_z02_core(uuid,uuid,uuid,uuid,uuid,uuid,uuid)",
+  "cat": "C_prod_avviker",
+  "prod_last_file": null,
+  "repo_last": "20261001022917",
+  "tokdiff": 160,
+  "prodsha": "04902d0adf63b94cc17e231cd93ed0692e1b54846525c8d6a899c25113543edf",
+  "app": []
+ },
+ {
+  "sig": "public.gridex_approve_portal_claim_v1(uuid,uuid,uuid,jsonb,jsonb,jsonb)",
+  "cat": "A_kosmetisk",
+  "prod_last_file": null,
+  "repo_last": "20261002223000",
+  "tokdiff": 0,
+  "prodsha": "3aa58a03d027b4addd95a8a9c39941c639789aa6770c0cd9753862fe47cf686e",
+  "app": [
+   "lib/customer-portal/claim.ts"
+  ]
+ },
+ {
+  "sig": "public.gridex_assign_customer_contract_identity_v1()",
+  "cat": "A_kosmetisk",
+  "prod_last_file": "20260818121500",
+  "repo_last": "20260818121500",
+  "tokdiff": 0,
+  "prodsha": "abc960a86bc4e1a29900b7d00c4eb0bc6e1f5b66c87640472e75155f3face7b6",
+  "app": []
+ },
+ {
+  "sig": "public.gridex_attach_portfolio_settlement_to_invoice(uuid,uuid,uuid,uuid,text)",
+  "cat": "B_prod_aldre",
+  "prod_last_file": "20260803150723",
+  "repo_last": "20261001070000",
+  "tokdiff": 41,
+  "prodsha": "7972cab8e2171b2797d906400ac5e5c6a54dce14b63c18eb8abea85f9d354e61",
+  "app": []
+ },
+ {
+  "sig": "public.gridex_billing_profile_revisions_append_only()",
+  "cat": "A_kosmetisk",
+  "prod_last_file": null,
+  "repo_last": "20261002140000",
+  "tokdiff": 0,
+  "prodsha": "c72c268451663862f27274b7f75069a89abf65dbae3bb14dec4e9e5285476c5c",
+  "app": []
+ },
+ {
+  "sig": "public.gridex_bind_locked_portfolio_settlement_to_underlay(uuid,uuid,uuid,uuid,text)",
+  "cat": "B_prod_aldre",
+  "prod_last_file": "20260718162000",
+  "repo_last": "20261001070000",
+  "tokdiff": 27,
+  "prodsha": "9fb216c4dbd59b9868d6b05961628d2768c1bcf983c73d8153fb3a043768bf84",
+  "app": []
+ },
+ {
+  "sig": "public.gridex_bind_poa_authorization_document()",
+  "cat": "C_prod_avviker",
+  "prod_last_file": null,
+  "repo_last": "20260824140830",
+  "tokdiff": 2,
+  "prodsha": "a3cf28eee0ac3070869857d39627139020bfb5a071da9cda2bfba6b8b8f3d554",
+  "app": []
+ },
+ {
+  "sig": "public.gridex_can(text)",
+  "cat": "B_prod_aldre",
+  "prod_last_file": "20260523_db3_t",
+  "repo_last": "20260523",
+  "tokdiff": 460,
+  "prodsha": "e77c677e4f30a51f62f0eef7072d99a09ff673304a36cacc31d92b1d589c3adb",
+  "app": []
+ },
+ {
+  "sig": "public.gridex_canonicalize_company_org_number()",
+  "cat": "A_kosmetisk",
+  "prod_last_file": null,
+  "repo_last": "20260811080000",
+  "tokdiff": 0,
+  "prodsha": "ef372cd91cfcab06d551abf8a08f93eb90deda1e357453b7c7ebdd52826c6ff8",
+  "app": []
+ },
+ {
+  "sig": "public.gridex_close_customer_lifecycle_v1(uuid,uuid,uuid,text,date,text,text,boolean)",
+  "cat": "A_kosmetisk",
+  "prod_last_file": null,
+  "repo_last": "20261002212000",
+  "tokdiff": 0,
+  "prodsha": "2ad2ea89101dd0c3248a6b287e167cc007babe1945e88f9dc18acf0ca521bbd9",
+  "app": [
+   "app/admin/customers/[id]/profile-actions.part-1.ts"
+  ]
+ },
+ {
+  "sig": "public.gridex_create_customer_site_with_address(uuid,uuid,text,text,text,text,text,text,text,text,text,jsonb)",
+  "cat": "B_prod_aldre",
+  "prod_last_file": "20260708193000",
+  "repo_last": "20261012190000",
+  "tokdiff": 4,
+  "prodsha": "216325c89fbe89ab56f09ff6de2947802851a29b6f0fd327b15e2f9f32dee15c",
+  "app": [
+   "lib/customer-sites/addressIntake.ts"
+  ]
+ },
+ {
+  "sig": "public.gridex_create_grid_owner_data_request_v1(uuid,jsonb)",
+  "cat": "A_kosmetisk",
+  "prod_last_file": null,
+  "repo_last": "20261002218000",
+  "tokdiff": 0,
+  "prodsha": "d7d17365694a9a3966ee6538ae2cd6429ca80b37019c32c8a8075d625104c23a",
+  "app": [
+   "lib/cis/db-data.ts"
+  ]
+ },
+ {
+  "sig": "public.gridex_create_invoice_export_graph_v1_core(jsonb,jsonb,jsonb)",
+  "cat": "C_prod_avviker",
+  "prod_last_file": null,
+  "repo_last": "20260728170000",
+  "tokdiff": 31,
+  "prodsha": "aa5e13cc4acaca36a54aaf3b77635def30afead613471fc837f817d9eaa27253",
+  "app": []
+ },
+ {
+  "sig": "public.gridex_create_supplier_switch_v1(uuid,jsonb,jsonb)",
+  "cat": "A_kosmetisk",
+  "prod_last_file": null,
+  "repo_last": "20261002215000",
+  "tokdiff": 0,
+  "prodsha": "8a6d8b511e5e08e530e21d87d3f670b48e080c8eb31249364d2a1131a589a6a2",
+  "app": [
+   "lib/operations/db.part-2.ts"
+  ]
+ },
+ {
+  "sig": "public.gridex_customer_billing_profile_bump()",
+  "cat": "A_kosmetisk",
+  "prod_last_file": null,
+  "repo_last": "20261002140000",
+  "tokdiff": 0,
+  "prodsha": "db822df936b301379a6e038675e362d8e263882c26ccd0541724f71660d12164",
+  "app": []
+ },
+ {
+  "sig": "public.gridex_customer_contracts_auto_renew_guard()",
+  "cat": "A_kosmetisk",
+  "prod_last_file": null,
+  "repo_last": "20260818170213",
+  "tokdiff": 0,
+  "prodsha": "21e854598e96e9f7268307c0e05d4aec45efb11447c50c89bc96f167eb855200",
+  "app": []
+ },
+ {
+  "sig": "public.gridex_customer_retention_until_v1(uuid)",
+  "cat": "A_kosmetisk",
+  "prod_last_file": "20261002214000",
+  "repo_last": "20261002214000",
+  "tokdiff": 0,
+  "prodsha": "228e23dcf2dfa699ae4581eed35a0955fe7c064c68ac18c0c584d65b4cff052d",
+  "app": []
+ },
+ {
+  "sig": "public.gridex_dependency_circuit_before_request_v1(text,integer)",
+  "cat": "C_prod_avviker",
+  "prod_last_file": null,
+  "repo_last": "20260813230000",
+  "tokdiff": 7,
+  "prodsha": "f164fc532add16ae83f027278591350ebdb6933a9a8bfc11326841631a0f2ed2",
+  "app": [
+   "lib/runtime/dependencyCircuit.ts"
+  ]
+ },
+ {
+  "sig": "public.gridex_dependency_circuit_record_v1(text,text,text,integer,integer)",
+  "cat": "A_kosmetisk",
+  "prod_last_file": null,
+  "repo_last": "20260813230000",
+  "tokdiff": 0,
+  "prodsha": "7be1f0a97a399ce149ab2723a09e1ac6c7fcc2b63591aff8aa55dfc169d7d4e9",
+  "app": [
+   "lib/runtime/dependencyCircuit.ts"
+  ]
+ },
+ {
+  "sig": "public.gridex_end_customer_supply_v1(uuid,uuid,uuid,date,text,uuid,uuid)",
+  "cat": "A_kosmetisk",
+  "prod_last_file": null,
+  "repo_last": "20261002213000",
+  "tokdiff": 0,
+  "prodsha": "a10338daf300534fade657f89313f5f218114205182e9a9184c97407d10da696",
+  "app": []
+ },
+ {
+  "sig": "public.gridex_enforce_supplier_utilts_outbound_v1()",
+  "cat": "C_prod_avviker",
+  "prod_last_file": null,
+  "repo_last": "20260822130000",
+  "tokdiff": 35,
+  "prodsha": "79d23c428bf6c4c0dc75fc9081af571832f75c9dad68f4b67c707f3d886ae3dc",
+  "app": []
+ },
+ {
+  "sig": "public.gridex_enqueue_signed_contract_operation_v1()",
+  "cat": "A_kosmetisk",
+  "prod_last_file": null,
+  "repo_last": "20260829140500",
+  "tokdiff": 0,
+  "prodsha": "da31411371130f7a4f82a9ac0476827cfab6666552d3456473ec7fc21e44f12c",
+  "app": []
+ },
+ {
+  "sig": "public.gridex_finalize_signature_before_record_retention_v1(text,text,text)",
+  "cat": "B_prod_aldre",
+  "prod_last_file": "20261008051727",
+  "repo_last": "20261013093621",
+  "tokdiff": 240,
+  "prodsha": "4140ec2cb28260d6e33dc41b4e2cba798ffaa0d36224198df09597a259abdb42",
+  "app": []
+ },
+ {
+  "sig": "public.gridex_get_signature_before_record_retention_v1(text)",
+  "cat": "B_prod_aldre",
+  "prod_last_file": "20260818165847",
+  "repo_last": "20261013093621",
+  "tokdiff": 71,
+  "prodsha": "b8bad97836464856ad25ce3de3d15175241b242a7d6084c85e7b91828c15a497",
+  "app": []
+ },
+ {
+  "sig": "public.gridex_import_billing_underlays_v1(uuid,uuid,jsonb,jsonb)",
+  "cat": "A_kosmetisk",
+  "prod_last_file": null,
+  "repo_last": "20261002220000",
+  "tokdiff": 0,
+  "prodsha": "0b8d29540147f5571166e27d13193e0143dc2d66a76d1ae136ccabf38773de07",
+  "app": [
+   "app/admin/billing/import/actions.ts"
+  ]
+ },
+ {
+  "sig": "public.gridex_import_grid_area_master_row(text,text,text,text,text,jsonb)",
+  "cat": "A_kosmetisk",
+  "prod_last_file": null,
+  "repo_last": "20260902100045",
+  "tokdiff": 0,
+  "prodsha": "9d914d045603d5202bd3731820d42a505ea264ba2b471d514caeff6fe3630637",
+  "app": [
+   "lib/energy/resolver.ts"
+  ]
+ },
+ {
+  "sig": "public.gridex_invalidate_site_operations_on_address_change()",
+  "cat": "A_kosmetisk",
+  "prod_last_file": null,
+  "repo_last": "20260902221500",
+  "tokdiff": 0,
+  "prodsha": "7bdb646054e90e7b57a480506186f836a5675acfe5249e6021cd215454bada53",
+  "app": []
+ },
+ {
+  "sig": "public.gridex_materialize_poa_scopes()",
+  "cat": "A_kosmetisk",
+  "prod_last_file": null,
+  "repo_last": "20260902100045",
+  "tokdiff": 0,
+  "prodsha": "733d7f57de4bbf23adf4d42200055232e9bbfd7911c61c1e1e0ab9615788636c",
+  "app": []
+ },
+ {
+  "sig": "public.gridex_materialize_supplier_switch_process_variant()",
+  "cat": "B_prod_aldre",
+  "prod_last_file": "20260821140500",
+  "repo_last": "20261001142540",
+  "tokdiff": 43,
+  "prodsha": "884d13a57b97edb4c2db5126bf69974478648398eae321f16da1e71e4e866940",
+  "app": []
+ },
+ {
+  "sig": "public.gridex_normalize_grid_owner_information_request()",
+  "cat": "A_kosmetisk",
+  "prod_last_file": null,
+  "repo_last": "20260824132814",
+  "tokdiff": 0,
+  "prodsha": "d7a42514087b599b033c12e9caab5cafaee1338d0ac3c1750c5b6b405ae492a7",
+  "app": []
+ },
+ {
+  "sig": "public.gridex_normalize_signature_request_event_truth_v1()",
+  "cat": "A_kosmetisk",
+  "prod_last_file": null,
+  "repo_last": "20260818124500",
+  "tokdiff": 0,
+  "prodsha": "30928225710b14bbb55ca6e12ada3137fd7a8e4c047d1699420a5312be6774c3",
+  "app": []
+ },
+ {
+  "sig": "public.gridex_ops_health_checks_v4()",
+  "cat": "A_kosmetisk",
+  "prod_last_file": null,
+  "repo_last": "20260811155412",
+  "tokdiff": 0,
+  "prodsha": "24de19bee182c93d8d7c4d335d1973c5793c49684cc4647088f8ee22dcb3c9b4",
+  "app": [
+   "lib/ops/health.ts"
+  ]
+ },
+ {
+  "sig": "public.gridex_ops_health_checks_v5()",
+  "cat": "A_kosmetisk",
+  "prod_last_file": null,
+  "repo_last": "20260812130500",
+  "tokdiff": 0,
+  "prodsha": "1b3dd8ab935d255f83846aa1089843e37a5952f9d0216217a6594041dea9f4e8",
+  "app": [
+   "lib/ops/health.ts"
+  ]
+ },
+ {
+  "sig": "public.gridex_outbound_dispatch_v1(jsonb)",
+  "cat": "A_kosmetisk",
+  "prod_last_file": "20260924031626",
+  "repo_last": "20260930175554",
+  "tokdiff": 0,
+  "prodsha": "33231ca22b29057b5eea3083a2fcfe0974bcca032738a6d553cd9ecd9c74cdb6",
+  "app": [
+   "lib/ediel/sources/correctionOutboundDispatch.ts"
+  ]
+ },
+ {
+  "sig": "public.gridex_persist_utilts_consumption_v1(uuid,text,uuid,text,text,jsonb)",
+  "cat": "B_prod_aldre",
+  "prod_last_file": "20260926213000",
+  "repo_last": "20261013141048",
+  "tokdiff": 4259,
+  "prodsha": "2f2d48ef2dc655f5031451c6ce8c183a77c6e2f5976157309c645f01c78f4fa0",
+  "app": [
+   "lib/ediel/utilts/transactionPersistence.ts"
+  ]
+ },
+ {
+  "sig": "public.gridex_platform_dashboard_summary_v1()",
+  "cat": "A_kosmetisk",
+  "prod_last_file": null,
+  "repo_last": "20261013094648",
+  "tokdiff": 0,
+  "prodsha": "126d98b7d327fa46c174f49c36551759bd0c18c074429401d3c24a7dcc8bc3a7",
+  "app": [
+   "lib/performance/platformDashboardSummary.ts"
+  ]
+ },
+ {
+  "sig": "public.gridex_public_catalog_dependency_revision_trigger_v1()",
+  "cat": "A_kosmetisk",
+  "prod_last_file": null,
+  "repo_last": "20260818121500",
+  "tokdiff": 0,
+  "prodsha": "a148a1bb7a27aa3ba3264ec02cc9a5d901ed2b772e69df45871d20730b9737a2",
+  "app": []
+ },
+ {
+  "sig": "public.gridex_record_legacy_api_key_use_v1(uuid,text)",
+  "cat": "A_kosmetisk",
+  "prod_last_file": null,
+  "repo_last": "20260813230000",
+  "tokdiff": 0,
+  "prodsha": "531cb75e080748d031b9ff6b887c1bdfbb61f40533a3cf2c9ee7bca5d7aeca7f",
+  "app": [
+   "lib/integrations/apiAuth.ts"
+  ]
+ },
+ {
+  "sig": "public.gridex_record_staff_identity_delivery_v1(jsonb)",
+  "cat": "A_kosmetisk",
+  "prod_last_file": null,
+  "repo_last": "20261005124901",
+  "tokdiff": 0,
+  "prodsha": "5471f77d74d42d4520580f5f457701fa8531d9c99f55e64149a007b584698b94",
+  "app": [
+   "lib/auth/tenantStaffDelivery.ts"
+  ]
+ },
+ {
+  "sig": "public.gridex_refresh_customer_process_summary(uuid,uuid,text)",
+  "cat": "B_prod_aldre",
+  "prod_last_file": "20260823185028",
+  "repo_last": "20261001142580",
+  "tokdiff": 22,
+  "prodsha": "74d0d8b2a9be86a370384f4b39494373d1787ee039ad7bc0029ed2633caf17cf",
+  "app": [
+   "lib/customer-operations/customerIntakeOrchestrator.ts"
+  ]
+ },
+ {
+  "sig": "public.gridex_refresh_platform_runtime_readiness_v1(text,text,text)",
+  "cat": "A_kosmetisk",
+  "prod_last_file": null,
+  "repo_last": "20260813230000",
+  "tokdiff": 0,
+  "prodsha": "3969515ef4feb9310a24acdd051c16b91e07d1a31bf6a547940cbc43da1c55bb",
+  "app": []
+ },
+ {
+  "sig": "public.gridex_register_customer_lifecycle_decision_v1(uuid,uuid,uuid,text,text,uuid,timestamp with time zone,text)",
+  "cat": "A_kosmetisk",
+  "prod_last_file": null,
+  "repo_last": "20261002216000",
+  "tokdiff": 0,
+  "prodsha": "0cc4859f0a905c59b0cd0dc545c00539fcde96803852e4a0f49db43a5a0cee25",
+  "app": [
+   "app/admin/customers/[id]/actions.part-4.ts"
+  ]
+ },
+ {
+  "sig": "public.gridex_save_website_application_review_v1(uuid,uuid,jsonb,jsonb,jsonb,jsonb,jsonb)",
+  "cat": "A_kosmetisk",
+  "prod_last_file": null,
+  "repo_last": "20261003100000",
+  "tokdiff": 0,
+  "prodsha": "b35994cc8d960089abaa694158679b2c823a940aafb9d2ca26504aa1f04b2546",
+  "app": [
+   "app/admin/website-applications/actions.ts"
+  ]
+ },
+ {
+  "sig": "public.gridex_stage_energy_geodata_features_v2(uuid,jsonb)",
+  "cat": "C_prod_avviker",
+  "prod_last_file": null,
+  "repo_last": "20260813230000",
+  "tokdiff": 75,
+  "prodsha": "da6b62864afc3eebb2d841903905b5058b2369c20a53fe563d892055920f4b80",
+  "app": [
+   "lib/energy/svkGeometryImport.ts"
+  ]
+ },
+ {
+  "sig": "public.gridex_suppress_retired_onboarding_outbox_v1()",
+  "cat": "A_kosmetisk",
+  "prod_last_file": "20260818121500",
+  "repo_last": "20260818121500",
+  "tokdiff": 0,
+  "prodsha": "a5b7465859f5d2107287926c434ef4fb6d68756ba8b9f39f0d9e24184bf3e2cb",
+  "app": []
+ },
+ {
+  "sig": "public.gridex_transition_customer_application_workflow(uuid,uuid,text,text,text,jsonb,uuid,integer,text)",
+  "cat": "A_kosmetisk",
+  "prod_last_file": null,
+  "repo_last": "20260728170000",
+  "tokdiff": 0,
+  "prodsha": "8518d121f843c53cdef75347cc7609eaa31f348ed839d22279f7f8e5ebcbe8e2",
+  "app": [
+   "lib/website/applicationWorkflow.ts"
+  ]
+ },
+ {
+  "sig": "public.gridex_transition_supplier_switch_v1(uuid,uuid,jsonb,jsonb)",
+  "cat": "A_kosmetisk",
+  "prod_last_file": null,
+  "repo_last": "20261002215000",
+  "tokdiff": 0,
+  "prodsha": "7787fa3847486006083a999077ef006d3d0ebf47c0527a64aa3250456ca04a32",
+  "app": [
+   "lib/operations/switchLifecycleBlocks.ts",
+   "lib/operations/db.part-2.ts"
+  ]
+ },
+ {
+  "sig": "public.gridex_validate_outbound_payload()",
+  "cat": "A_kosmetisk",
+  "prod_last_file": "20260707120000",
+  "repo_last": "20260709160000",
+  "tokdiff": 0,
+  "prodsha": "156de82d77fc0cab9800d0d7cb49d90de844a1b5bad3e08514660c0c092ffd49",
+  "app": []
+ },
+ {
+  "sig": "public.gridex_validate_outbound_payload(text,text,jsonb,uuid)",
+  "cat": "C_prod_avviker",
+  "prod_last_file": null,
+  "repo_last": "20260709160000",
+  "tokdiff": 675,
+  "prodsha": "d995e215a837ed661b4c8898809a89e263224f40ca6a8fc91bf7c7918ba54f54",
+  "app": []
+ },
+ {
+  "sig": "public.gridex_validate_website_application_portal_identity()",
+  "cat": "A_kosmetisk",
+  "prod_last_file": null,
+  "repo_last": "20260820213000",
+  "tokdiff": 0,
+  "prodsha": "5dce6a0958bc412d01733cb67900625433b33207056696527e6339c8c1b0ad82",
+  "app": []
+ },
+ {
+  "sig": "public.public_contract_feed_fingerprint_v1(uuid,text,text)",
+  "cat": "A_kosmetisk",
+  "prod_last_file": null,
+  "repo_last": "20260818121500",
+  "tokdiff": 0,
+  "prodsha": "86fcfb0e9f503740dc6896473a3c2b6aea20d5645edeb108b8e4d9811f56b6f0",
+  "app": [
+   "app/api/v1/website/public-contracts/route.ts"
+  ]
+ },
+ {
+  "sig": "public.run_tenant_integrity_audit(uuid,text,uuid)",
+  "cat": "C_prod_avviker",
+  "prod_last_file": null,
+  "repo_last": "20260830012500",
+  "tokdiff": 101,
+  "prodsha": "e2783ebff41f93926fa4a78d73e84273ef957801263e3d5bbfa2bd86c1fddbfa",
+  "app": [
+   "lib/tenant/integrity.ts"
+  ]
+ }
+]
