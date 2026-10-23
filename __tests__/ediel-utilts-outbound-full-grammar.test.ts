@@ -4,6 +4,7 @@ vi.mock('@/lib/ediel/core/versionRegistry', () => ({ resolveCanonicalOutboundVer
 import { buildUtiltsOutboundDraft } from '@/lib/ediel/utilts'
 import { validateUnsmGrammar } from '@/lib/ediel/core/unsmGrammar'
 import { preflightEdielPayload } from '@/lib/ediel/core/messageBuilder/payloadPreflight'
+import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 
 const input = (code: 'E66' | 'E73', payload: Record<string, unknown>) => ({
   code, environment: 'test' as const, senderEdielId: '11111', receiverEdielId: '22222',
@@ -14,6 +15,48 @@ const input = (code: 'E66' | 'E73', payload: Record<string, unknown>) => ({
 })
 
 describe('actual UTILTS outbound producer full selected 02B grammar', () => {
+  it.each(['E66', 'E73'] as const)('writes the source-required active-energy product in its own %s SG5 before dates and observations', async code => {
+    // Swedish U5 p80: LIN is used for both E66 and E73. Its C212 owns
+    // 7140=8716867000030 (active energy), 3055=9 (GS1); 7143/1131 are unused.
+    const draft = await buildUtiltsOutboundDraft(input(code, code === 'E66' ? { quantity: 5 } : {}))
+    const raw = draft.rawPayload!, wire = tokenizeEdifact(raw)
+    const products = wire.segments.filter(segment => segment.tag === 'LIN')
+    expect(products).toHaveLength(1)
+    expect(segmentComposite(products[0], 3, wire.una)).toEqual(['8716867000030', '', '', '9'])
+    const ide = wire.segments.find(segment => segment.tag === 'IDE')!
+    const locations = wire.segments.filter(segment => segment.tag === 'LOC')
+    const delivery = wire.segments.find(segment => segment.tag === 'DTM' && segmentComposite(segment, 1, wire.una)[0] === '324')!
+    expect(products[0].index).toBeGreaterThan(ide.index)
+    expect(locations.every(segment => segment.index < products[0].index)).toBe(true)
+    expect(products[0].index).toBeLessThan(delivery.index)
+    expect(validateUnsmGrammar(raw)).toMatchObject({ qualification: 'qualified', syntaxOk: true })
+    expect(preflightEdielPayload({ rawPayload: raw, messageStandard: 'edifact', mode: 'send' }).issues
+      .some(issue => issue.code === 'UTILTS_FIELD_506_MISSING')).toBe(false)
+    if (code === 'E73') expect(raw).not.toMatch(/'(SEQ|QTY|MEA)\+/)
+  })
+
+  it.each(['KWH', 'MWH', 'GWH'])('keeps the declared %s active-energy unit with the explicit source product', async unit => {
+    // U5 p85 lists these energy units. WH/WHR is not in that national list.
+    const draft = await buildUtiltsOutboundDraft(input('E66', { quantity: 5, unit, productId: '8716867000030' }))
+    expect(draft.rawPayload).toContain("LIN+++8716867000030:::9'")
+    expect(draft.rawPayload).toContain(`MEA+AAZ++${unit}'`)
+    expect(draft.rawPayload).toContain("QTY+136:5'")
+  })
+
+  it.each(['E66', 'E73'] as const)('%s refuses an explicit power, amount, unknown or malformed product instead of relabelling it as energy', async code => {
+    for (const productId of ['8716867000016', '7331507000020', 'not-a-product', 8716867000030]) {
+      await expect(buildUtiltsOutboundDraft(input(code, { productId, ...(code === 'E66' ? { quantity: 5 } : {}) })))
+        .rejects.toThrow('utilts_outbound_active_energy_product_required')
+    }
+  })
+
+  it.each(['E66', 'E73'] as const)('%s refuses unsupported energy spelling, power and reactive-energy units', async code => {
+    for (const unit of ['WH', 'WHR', 'KWT', 'K3']) {
+      await expect(buildUtiltsOutboundDraft(input(code, { unit, ...(code === 'E66' ? { quantity: 5 } : {}) })))
+        .rejects.toThrow('utilts_outbound_active_energy_unit_required')
+    }
+  })
+
   it('places transaction FTX before SG7/SG8 instead of after its own QTY observation', async () => {
     const draft = await buildUtiltsOutboundDraft(input('E66', { quantity: 5, readingType: 'E12' }))
     const raw = draft.rawPayload!

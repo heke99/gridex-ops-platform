@@ -176,7 +176,7 @@ describe('UTILTS runtime selected-guide effective-date cutoff', () => {
     const source = observationHandoffMessage('2026-10-01', `tenant-${code}-missing209`)
     const rawBase = source.raw_payload!.replace('BGM+E66::260', code === 'S07' ? 'BGM+S07:SVK:260' : 'BGM+E30::260')
       .replace('23-DDQ-E66-S', code === 'E30' ? '23-MDR-E30-S' : '23-DDQ-S07-S')
-    const raw=code==='E30' ? recountEdifactUnt(rawBase.replace("MEA+AAZ++KWH'\n",'')) : rawBase
+    const raw=code==='E30' ? recountEdifactUnt(rawBase.replace("MEA+AAZ++KWH'\n",'').replace(/^LIN[^\n]*\n/gm,'').replace(/CCI\+\+\+E12[^\n]*\nCAV[^\n]*\n/g,'')) : rawBase
     const lines = raw.split('\n'), start = lines.findIndex(line => line.startsWith('IDE+24+')),
       end = lines.findIndex(line => line.startsWith('UNT+'))
     const first = lines.slice(start, end).filter(line => !line.startsWith('LOC+172'))

@@ -3,7 +3,8 @@ import { describe, expect, it, vi } from 'vitest'
 import { fieldRulesForMessage, validateFieldMatrixPayload } from '@/lib/ediel/rulebook/fieldMatrix'
 import { normalizeRegistryRequirement } from '@/lib/ediel/rulebook/fieldRuleRegistry'
 import type { EdielMessageRow } from '@/lib/ediel/types'
-import { energyHandoffMessage } from './helpers/utiltsObservationHandoff'
+import { energyHandoffMessage, observationHandoffMessage } from './helpers/utiltsObservationHandoff'
+import { s01L359AggregateWire } from '../scripts/helpers/utiltsS01AggregateFixture'
 
 const PLANNING_MATRIX = {
   S02: {
@@ -89,6 +90,24 @@ async function actualPointGuideProbe(source: EdielMessageRow) {
 }
 
 describe('Swedish U5 S01 field209 actual entrypoints', () => {
+  it.each(['MG', 'SE'])('projects received %s text for every actual negative field before APERAK rendering', async qualifier => {
+    const source = observationHandoffMessage('2026-10-20', '11111111-1111-4111-8111-111111111111')
+    source.message_code = 'S01'; source.application_reference = '23-DDK-S01-S'
+    source.raw_payload = source.raw_payload!.replace('BGM+E66::260', 'BGM+S01:SVK:260')
+      .replace('23-DDQ-E66-S', '23-DDK-S01-S')
+      .replace('LOC+172+735999260731000007::9', 'LOC+175+735999260731000008::9')
+      .replace('RFF+MG:', `RFF+${qualifier}:`)
+    const probe = await actualPointGuideProbe(source)
+    const { isUtiltsAperakSourceText } = await import('@/lib/ediel/utilts/aperakSourceText')
+    expect(probe.full.ackPlan.aperakApplicationErrors).toContainEqual(expect.objectContaining({
+      ercCode: '42', fieldCode: '224', text: 'INCORRECT DATA M-GRIDEX-2607-01',
+      referenceNumber: 'GRIDEX2607E66001',
+    }))
+    for (const error of probe.full.ackPlan.aperakApplicationErrors) {
+      expect(isUtiltsAperakSourceText(error.ercCode, error.text), JSON.stringify(error)).toBe(true)
+    }
+  })
+
   it('executes the selected E66 forbidden latest-update field through public and runtime entrypoints', async () => {
     const source = pointGuideSource('E66')
     const lines = source.raw_payload!.replace("DTM+597:202607010020:203'", "DTM+597:202607010020:203'\nDTM+368:202607010020:203'").split('\n')
@@ -187,6 +206,105 @@ describe('Swedish U5 S01 field209 actual entrypoints', () => {
       expect(runtime.validation.issues.some(issue => issue.code === U5_POINT_FORBIDDEN || issue.code === 'UTILTS_METERING_POINT_ID_MISSING'), probe.observed).toBe(false)
     }
     // Pure guide qualification does not approve the object's business owner.
+  })
+})
+
+describe('S01 source-qualified product conditions actual entrypoints', () => {
+  function sourceForProduct(unknownFirst?: boolean): EdielMessageRow {
+    const original = pointGuideSource('E66')
+    const ids = unknownFirst === undefined ? ['PRODUCT-OWN'] : unknownFirst ? ['PRODUCT-UNKNOWN', 'PRODUCT-CLEAN'] : ['PRODUCT-CLEAN', 'PRODUCT-UNKNOWN']
+    const raw = s01L359AggregateWire(original.raw_payload!, ids.map(transactionId => ({ transactionId, latestUpdateDate: '202607010040', quantity: '500' })))
+    let own = ''
+    return { ...original, message_code: 'S01', application_reference: '23-DDK-S01-S', customer_id: null, site_id: null, metering_point_id: null,
+      raw_payload: raw.split('\n').map(line => {
+        if (line.startsWith('IDE+24+')) own = line
+        return own.includes('PRODUCT-UNKNOWN') ? line.replace('Z02:OT', 'X50:OT') : line
+      }).join('\n') }
+  }
+  function wireChange(source: EdielMessageRow, change: (lines: string[]) => string[]): EdielMessageRow {
+    const lines = change(source.raw_payload!.split('\n')).flatMap(line => line.split('\n'))
+    const unh = lines.findIndex(line => line.startsWith('UNH+')), unt = lines.findIndex(line => line.startsWith('UNT+'))
+    lines[unt] = `UNT+${unt - unh + 1}+1'`
+    return { ...source, raw_payload: lines.join('\n') }
+  }
+  it('keeps the source-qualified L359 monthly energy transaction accepted', async () => {
+    const probe = await actualPointGuideProbe(sourceForProduct())
+    expect(probe.whole.ok, probe.observed).toBe(true)
+    for (const runtime of [probe.guideOnly, probe.full]) {
+      expect(runtime.validation.ok, probe.observed).toBe(true)
+      expect(runtime.transactionDispositions, probe.observed).toMatchObject([{ transactionId: 'PRODUCT-OWN', disposition: 'accepted', responseType: 'positive_aperak' }])
+    }
+  })
+  it.each([['260a', 'LOC+239+'], ['264', 'MEA+']] as const)('rejects missing L359 field%s through public and both real runtimes', async (field, prefix) => {
+    const probe = await actualPointGuideProbe(wireChange(sourceForProduct(), lines => lines.filter(line => !line.startsWith(prefix))))
+    expect(probe.whole.issues, probe.observed).toContainEqual(expect.objectContaining({ code: `UTILTS_FIELD_${field}_MISSING`, blocking: true }))
+    for (const runtime of [probe.guideOnly, probe.full]) {
+      expect(runtime.validation.issues, probe.observed).toContainEqual(expect.objectContaining({ code: `UTILTS_FIELD_${field}_MISSING`, aperakErcCode: '41', aperakFieldCode: field }))
+      expect(runtime.transactionDispositions, probe.observed).toMatchObject([{ disposition: 'guide_rejected', responseType: 'negative_aperak' }])
+    }
+  })
+  it.each(['absent', 'blank-first', 'missing-last', 'reordered'] as const)('preserves source-level missing/invalid PIA distinction: %s', async defect => {
+    const source = wireChange(sourceForProduct(), lines => defect === 'absent' ? lines.filter(line => !line.startsWith('PIA+')) : lines.map(line => {
+      if (!line.startsWith('PIA+')) return line
+      if (defect === 'blank-first') return line.replace('Z04:PC', ':PC')
+      if (defect === 'missing-last') return line.replace('+Z05:BAP:SVK:260', '')
+      return line.replace('Z04:PC:SVK:260+U46:PT:SVK:260', 'U46:PT:SVK:260+Z04:PC:SVK:260')
+    }))
+    const probe = await actualPointGuideProbe(source)
+    const field = defect === 'blank-first' ? '511a' : defect === 'missing-last' ? '511e' : '511'
+    const kind = defect === 'reordered' ? 'INVALID' : 'MISSING'
+    expect(probe.whole.issues.filter(issue => issue.code === `UTILTS_FIELD_${field}_${kind}`), probe.observed).toHaveLength(1)
+    for (const runtime of [probe.guideOnly, probe.full]) {
+      const issues = runtime.validation.issues.filter(issue => issue.code.startsWith('UTILTS_FIELD_511'))
+      expect(issues, probe.observed).toMatchObject([{ code: `UTILTS_FIELD_${field}_${kind}`, aperakFieldCode: field, aperakErcCode: kind === 'MISSING' ? '41' : '42' }])
+      expect(issues, probe.observed).toHaveLength(1)
+      expect(runtime.transactionDispositions[0], probe.observed).toMatchObject({ disposition: 'guide_rejected', responseType: 'negative_aperak' })
+    }
+  })
+  it('holds an otherwise well-shaped unknown five-part product without a fabricated national negative', async () => {
+    const message = wireChange(sourceForProduct(), lines => lines.map(line => line.replace('Z02:OT', 'X50:OT')))
+    const probe = await actualPointGuideProbe(message)
+    expect(probe.whole.blocking, probe.observed).toBe(true)
+    expect(probe.whole.issues, probe.observed).toContainEqual(expect.objectContaining({ code: 'UTILTS_PRODUCT_CONDITIONS_UNAVAILABLE', severity: 'warning', blocking: true }))
+    for (const runtime of [probe.guideOnly, probe.full]) {
+      expect(runtime.transactionDispositions, probe.observed).toMatchObject([{ disposition: 'internal_review', responseType: 'none' }])
+      expect(runtime.validation.ok, probe.observed).toBe(false)
+      expect(runtime.validation.issues.some(issue => issue.severity === 'error'), probe.observed).toBe(false)
+      expect(runtime.ackPlan, probe.observed).toMatchObject({ shouldSendAperak: false, aperakOutcome: null, shouldSendUtiltsErr: false })
+    }
+  })
+  it.each([true, false])('keeps unknown product held while a physical clean sibling reaches full functional processing, unknown-first=%s', async unknownFirst => {
+    const probe = await actualPointGuideProbe(sourceForProduct(unknownFirst))
+    for (const runtime of [probe.guideOnly, probe.full]) {
+      const expected = unknownFirst ? ['internal_review', 'accepted'] : ['accepted', 'internal_review']
+      expect(runtime.transactionDispositions.map(item => item.disposition), probe.observed).toEqual(expected)
+      expect(runtime.transactionDispositions.find(item => item.transactionId === 'PRODUCT-UNKNOWN'), probe.observed).toMatchObject({ responseType: 'none' })
+      expect(runtime.transactionDispositions.find(item => item.transactionId === 'PRODUCT-CLEAN'), probe.observed).toMatchObject({ responseType: 'positive_aperak' })
+      expect(runtime.validation.issues.some(issue => issue.severity === 'error'), probe.observed).toBe(false)
+    }
+  })
+  it('retains a true raw-X rejection even when that transaction also has an unknown product', async () => {
+    const source = wireChange(sourceForProduct(), lines => lines.map(line => line.startsWith('IDE+24+') ? `${line}\nLOC+172+735999260731000007::9'` : line.replace('Z02:OT', 'X50:OT')))
+    const probe = await actualPointGuideProbe(source)
+    for (const runtime of [probe.guideOnly, probe.full]) {
+      expect(runtime.transactionDispositions[0], probe.observed).toMatchObject({ disposition: 'guide_rejected', responseType: 'negative_aperak' })
+      expect(runtime.validation.issues, probe.observed).toContainEqual(expect.objectContaining({ code: 'UTILTS_FIELD_209_FORBIDDEN', aperakErcCode: '42', aperakFieldCode: '209' }))
+    }
+  })
+  it.each([true, false])('restores the physical unknown HOLD after a real eligible-sibling functional rejection rebuild, unknown-first=%s', async unknownFirst => {
+    const source = wireChange(sourceForProduct(unknownFirst), lines => {
+      let clean = false
+      return lines.map(line => {
+        if (line.startsWith('IDE+24+')) clean = line.includes('PRODUCT-CLEAN')
+        return clean ? line.replace('QTY+136:500', 'QTY+136:500.5') : line
+      })
+    })
+    const probe = await actualPointGuideProbe(source)
+    expect(probe.guideOnly.transactionDispositions.find(item => item.transactionId === 'PRODUCT-CLEAN'), probe.observed).toMatchObject({ disposition: 'accepted' })
+    expect(probe.full.validation.issues, probe.observed).toContainEqual(expect.objectContaining({ kind: 'functional', code: 'UTILTS_QUANTITY_PRECISION_INVALID', referenceNumber: 'PRODUCT-CLEAN' }))
+    expect(probe.full.transactionDispositions.find(item => item.transactionId === 'PRODUCT-CLEAN'), probe.observed).toMatchObject({ disposition: 'processability_rejected', responseType: 'utilts_err' })
+    expect(probe.full.transactionDispositions.find(item => item.transactionId === 'PRODUCT-UNKNOWN'), probe.observed).toMatchObject({ disposition: 'internal_review', responseType: 'none' })
+    expect(probe.full.validation.issues.some(issue => issue.kind === 'functional' && issue.referenceNumber === 'PRODUCT-UNKNOWN'), probe.observed).toBe(false)
   })
 })
 

@@ -272,6 +272,7 @@
     "20261022110000_manual_mail_pending_partial_review.sql": "02dd4c5b014ebf88b4c9d287598d309e5a2abef1d20d9518b3a08d784405e7bf",
     "20261022120000_normal_supplier_switch_atomic_enqueue.sql": "6ea49035a321e27228f1cf6b6cc1055913a43374c1346dfcb85aef1d36a77d9f",
     "20261023130000_gridex_can_canonical_permission_source.sql": "7711239cacdcbb27608cc80cf0bea1aeb0ae8d62e3963b2c9a1da496daabc379",
-    "20261023150000_converge_prod_divergent_functions.sql": "fbcfe12d5f4fc767920d9df6e219b52e994f09b2f0bfdf058e0bac184aa9e363"
+    "20261023150000_converge_prod_divergent_functions.sql": "fbcfe12d5f4fc767920d9df6e219b52e994f09b2f0bfdf058e0bac184aa9e363",
+    "20261023201053_ediel_s01_area_aggregate_identity.sql": "d95c13a6e50aad77299bf590733bfc41db341db8db0ba8f6281dbecd1ac81ad3"
   }
 }

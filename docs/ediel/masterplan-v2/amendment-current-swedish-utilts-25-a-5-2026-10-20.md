@@ -60,3 +60,49 @@ Det nya källvalet berör genererade/native-projektioner. De måste levereras
 som nya kvalificerade editioner av befintlig producent, enligt
 [exakt handoff](../utilts-25a5/README.md). Käll- och vanliga mockprov i detta
 paket ersätter inte sådan leverans eller organisations-/kundgodkännanden.
+
+
+## Avgränsad mottagarrättning 2026-10-23
+
+R/D/O/X-tabeller måste kopplas till det mottagna fältets egen fysiska
+transaktion och observation. Att läsa en rå tabellrad som en redan körbar
+validator får inte innebära att ett obligatoriskt eller förbjudet fält hoppas
+över. Den genomförda projektionen är avgränsad till uttryckligen stödda
+transaktionsläsare. Den redovisar fortsatt `complete: false`; kvarvarande
+beroende villkor, observationsgrenar och andra semantiska ägare måste
+kvalificeras separat. Detta tillägg intygar inte att alla fält är implementerade.
+
+U3:s svenska original har SHA-256
+`a4ae498e5231df22e043ec24b93f97563095bb9880ee296683acf7a0f6973fff`.
+Dess gemensamma fysiska R/X-krav får inte försvinna när ett helt meddelande
+prövas mot U3 under den registrerade övergångsperioden. Bland annat är S01
+fält209 förbjudet och fält511 obligatoriskt i båda originalen. De avgränsade
+läsarna använder U3:s eget källvittne vid U3-prövning; U5:s produkt- och
+villkorsregler överförs inte till U3. Avsiktliga utgåveskillnader och den
+ordinarie datumgränsen för mottagning behålls.
+
+S01 är inte generellt ett individuellt punktmeddelande. Det tekniska stöd
+som införs här omfattar endast den exakt kvalificerade L359-profilen i
+aktuella Tidsserieprodukter, rad21: fullständig ordnad PC/PT/OT/LOD/BAP,
+områdesidentitet LOC239, månadsperiod, fast +0100 och profilens övriga
+uttryckliga fysiska begränsningar. L359 avser andelstal och får inte bära
+observationsstatus enligt U5 fält520. Okänd produkt eller en profil utanför
+lagringsägarens representerbara område hålls lokalt för granskning; det
+skapar ingen nationell felkod. Reglerobjekt får inte låna denna områdesväg.
+
+Mottagningens kvalificering, kontraktsberedning och databas ska godta samma
+avgränsade profil. Det faktiska kontraktets guidevärde är `25-A-5`.
+Områdesvägen innebär ingen individuell mätvärdes- eller faktureringsrätt;
+organisation, avsändare, mottagare, miljö, källa och behörig anropare måste
+fortsatt verifieras av sina ordinarie skyddade ägare. Befintliga punktkontrakt
+behåller sina oföränderliga original och får inte nytolkas som nya godkännanden.
+
+Negativ APERAK ska återge värdet från det felaktiga fältets egen fysiska
+förekomst. En källsökväg som RFF+MG|SE anger alternativa kvalificerare;
+den är inte en bokstavlig kvalificerare. Ett saknat eller tvetydigt värde
+får inte ersättas med påhittad feltext. Positiva E30-testmeddelanden måste
+också följa E30:s egna fältkrav och får inte ärva förbjudna E66-fält.
+
+Lokala prov och källgranskning ersätter inte ordinarie migrationsåterspelning,
+native-prov, genererad schemaparitet eller verifierad installation i produktion.
+Inte heller utgör den tekniska L359-profilen ett marknads- eller eSett-godkännande.

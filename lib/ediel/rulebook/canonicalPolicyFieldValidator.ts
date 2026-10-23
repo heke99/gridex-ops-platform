@@ -13,6 +13,7 @@ import {validateCanonicalAckGuide} from './ackGuidePolicy'
 import {validateEdifactHeaderGuide} from './edifactHeaderGuide'
 import {utiltsDecimalGuideViolations} from '@/lib/ediel/utilts/quantityPrecision'
 import {evaluateUtiltsFieldMatrix} from '@/lib/ediel/utilts/fieldMatrixProjection'
+import { resolveUtiltsFieldConditions } from '@/lib/ediel/utilts/fieldMatrixConditions'
 import {segmentComposite,segmentElementCount,tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
 import {DEFAULT_UNA,serializeUna} from '@/lib/ediel/core/una'
 import {prodatRegisterGroups} from '@/lib/ediel/prodat/prodatRegisterGroups'
@@ -170,10 +171,26 @@ export function validateCanonicalPolicyFields(input: {
     const rawPayload = input.rawPayload ?? serializeUna(una) + (input.rawSegments ?? []).join(una.segmentTerminator) + una.segmentTerminator
     const matrix = evaluateUtiltsFieldMatrix({ policy: input.policy, rawPayload })
     if (matrix.sourceQualified) {
-      const issues: EdielRulebookIssue[] = matrix.issues.map(finding => ({
+      // Activate only the qualified S01 technical/product slice, without
+      // promoting unknown catalogue membership to a national negative.
+      const conditions = input.policy.code === 'S01' ? resolveUtiltsFieldConditions({ policy: input.policy, rawPayload }) : undefined
+      const replacedPia = (finding: typeof matrix.issues[number]) => finding.fieldNo === '511' && finding.kind === 'missing'
+        && conditions?.transactions.some(scope => scope.messageIndex === finding.messageIndex && scope.transactionIndex === finding.transactionIndex
+          && (scope.product.kind === 'incomplete' || scope.product.kind === 'malformed'))
+      const findings = [...matrix.issues.filter(finding => !replacedPia(finding)), ...(conditions?.sourceQualified ? conditions.issues : [])]
+        .filter((finding, index, all) => all.findIndex(other => other.code === finding.code && other.messageIndex === finding.messageIndex
+          && other.transactionIndex === finding.transactionIndex && other.observationIndex === finding.observationIndex
+          && other.occurrence?.segmentIndex === finding.occurrence?.segmentIndex) === index)
+      const issues: EdielRulebookIssue[] = findings.map(finding => ({
         severity: 'error', blocking: true, code: finding.code,
-        title: finding.title, description: finding.description, fieldPath: finding.fieldPath,
+        title: 'title' in finding ? finding.title : finding.kind === 'missing' ? 'Obligatoriskt UTILTS-fält saknas' : 'Felaktigt UTILTS-fält',
+        description: 'description' in finding ? finding.description : `Fält${finding.fieldNo}: ${finding.kind}, enligt kvalificerad svensk UTILTS-källa.`,
+        fieldPath: 'fieldPath' in finding ? finding.fieldPath : input.policy.fieldRules.find(row => 'ruleKey' in row && row.ruleKey === finding.ruleKey)?.segmentPath,
       }))
+      for (const scope of conditions?.holds ?? []) issues.push({ severity: 'warning', blocking: true,
+        code: 'UTILTS_PRODUCT_CONDITIONS_UNAVAILABLE', title: 'Tidsserieproduktens villkor är inte kvalificerade',
+        description: 'Produktkombinationen saknar kvalificerad kataloggrund. Lokalt HOLD ger inget nationellt fältavslag.',
+        fieldPath: `SG5[${(scope.transactionIndex ?? 0) + 1}]/PIA+1` })
       issues.push(...validateEdifactHeaderGuide({ direction: input.policy.direction as 'inbound' | 'outbound',
         rawPayload: input.rawPayload, rawSegments: input.rawSegments, una: input.una }))
       const wire = tokenizeEdifact(rawPayload)

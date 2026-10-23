@@ -1,4 +1,5 @@
 import { getUtiltsFieldRules, type UtiltsFieldRequirement, type UtiltsFieldRule } from '@/lib/ediel/rulebook/utiltsFieldMatrix'
+import { resolveEdielGuideAcceptance } from '@/lib/ediel/rulebook/guideRegistry'
 import { UTILTS_25_A_5_SOURCE } from '@/lib/ediel/rulebook/utilts25A5'
 import { hasUtiltsFieldReader, observeUtiltsFieldScopes, readUtiltsFieldOccurrences, type UtiltsFieldOccurrence } from './fieldMatrixOccurrences'
 
@@ -6,7 +7,8 @@ export type UtiltsFieldMatrixPolicy = {
   family: string
   code: string
   referenceDate: string
-  guide: { guideRevision: string; effectiveFrom: string; effectiveTo: string | null; primarySource?: { sha256: string; language: string } }
+  direction?: string
+  guide: { guideRevision: string; documentName?: string; effectiveFrom: string; effectiveTo: string | null; primarySource?: { sha256: string; language: string } }
   fieldRules: readonly unknown[]
 }
 export type SelectedUtiltsFieldRule = UtiltsFieldRule & {
@@ -65,6 +67,35 @@ function sourceQualified(policy: UtiltsFieldMatrixPolicy): boolean {
     && policy.referenceDate >= UTILTS_25_A_5_SOURCE.effectiveFrom && policy.referenceDate >= policy.guide.effectiveFrom
     && (!policy.guide.effectiveTo || policy.referenceDate <= policy.guide.effectiveTo)
 }
+/** Swedish U3 original, independent of the registered English prose witness.
+ * The retained planning/operation/request matrix cells match U5: 105 row
+ * vectors, with S08 omitted. This authorizes the existing physical R/X slice
+ * only. It does not authorize U5 dependent/product rules for U3. */
+export const UTILTS_25_A_3_SHARED_MATRIX_SOURCE = Object.freeze({
+  guideRevision: '25-A-3', language: 'sv',
+  document: '251001_Ediel_UTILTS-APERAK_Anvisning_version_25-A-3',
+  sha256: 'a4ae498e5231df22e043ec24b93f97563095bb9880ee296683acf7a0f6973fff',
+  effectiveFrom: '2025-06-01',
+} as const)
+type MatrixSource = Pick<typeof UTILTS_25_A_5_SOURCE, 'guideRevision' | 'sha256'>
+  | Pick<typeof UTILTS_25_A_3_SHARED_MATRIX_SOURCE, 'guideRevision' | 'sha256'>
+function sharedPredecessorSource(policy: UtiltsFieldMatrixPolicy): MatrixSource | null {
+  if (policy.family !== 'UTILTS' || policy.direction !== 'inbound' || policy.guide.guideRevision !== '25-A-3'
+    || policy.guide.primarySource !== undefined) return null
+  const date = policy.referenceDate
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date.startsWith('0000-')) return null
+  const instant = Date.parse(`${date}T00:00:00Z`)
+  if (!Number.isFinite(instant) || new Date(instant).toISOString().slice(0, 10) !== date) return null
+  // Ask the real admission registry: historical effective use and the actual
+  // October 1–14 grace are accepted; caller-supplied lists cannot extend it.
+  try {
+    const accepted = resolveEdielGuideAcceptance({ family: 'UTILTS', referenceDate: date,
+      associationAssignedCode: 'E5SE5A' }).acceptedInbound.find(guide => guide.guideRevision === '25-A-3')
+    if (!accepted || policy.guide.documentName !== accepted.documentName
+      || policy.guide.effectiveFrom !== accepted.effectiveFrom || policy.guide.effectiveTo !== accepted.effectiveTo) return null
+  } catch { return null }
+  return UTILTS_25_A_3_SHARED_MATRIX_SOURCE
+}
 function sourceRow(value: unknown): value is UtiltsFieldRule {
   if (!value || typeof value !== 'object') return false
   const candidate = value as Partial<UtiltsFieldRule>
@@ -93,6 +124,15 @@ export function selectUtiltsFieldRules(policy: UtiltsFieldMatrixPolicy): readonl
   }))
 }
 
+/** Keep the public selector U5-only: the conditional owner consumes it.
+ * U3 receives only the independently qualified shared physical R/X evaluator. */
+function sharedPhysicalRules(policy: UtiltsFieldMatrixPolicy, source: MatrixSource): readonly SelectedUtiltsFieldRule[] {
+  return getUtiltsFieldRules(policy.code).map(row => ({
+    ...row, requirement: row.requirements[policy.code as keyof typeof row.requirements]!,
+    sourceEdition: source.guideRevision, sourceSha256: source.sha256,
+  }))
+}
+
 function unresolvedReason(row: SelectedUtiltsFieldRule): UtiltsFieldUnresolved['reason'] | null {
   if (row.requirement === 'D') return 'dependent_condition'
   if (row.scope === 'observation') return 'branch_condition'
@@ -115,11 +155,12 @@ export function evaluateUtiltsFieldMatrix(input: { policy: UtiltsFieldMatrixPoli
   unresolved: UtiltsFieldUnresolved[]
 } {
   const issues: UtiltsFieldFinding[] = [], unresolved: UtiltsFieldUnresolved[] = []
-  if (!sourceQualified(input.policy)) return { sourceQualified: false, complete: false, issues,
+  const source = sourceQualified(input.policy) ? UTILTS_25_A_5_SOURCE : sharedPredecessorSource(input.policy)
+  if (!source) return { sourceQualified: false, complete: false, issues,
     unresolved: [{ reason: 'source_edition_unqualified' }] }
   if (!policyRowsQualified(input.policy)) return { sourceQualified: false, complete: false, issues,
     unresolved: [{ reason: 'policy_rows_unqualified' }] }
-  const rows = selectUtiltsFieldRules(input.policy), physical = observeUtiltsFieldScopes(input.rawPayload)
+  const rows = sharedPhysicalRules(input.policy, source), physical = observeUtiltsFieldScopes(input.rawPayload)
   const scopes = physical.transactions.filter(scope => scope.messageCode === input.policy.code)
   for (const row of rows) {
     const reason = unresolvedReason(row)

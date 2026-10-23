@@ -88,3 +88,56 @@ describe('UTILTS source-selected executable projection, bounded first slice', ()
   })
 })
 
+
+// The shared physical matrix does not share edition-specific conditions.
+describe('source-proven U3 shared physical R/X admission', () => {
+  async function prior(date: string) {
+    const { resolveCanonicalEdielPolicy } = await import('@/lib/ediel/rulebook/canonicalEdielPolicy')
+    return resolveCanonicalEdielPolicy({ family: 'UTILTS', messageCode: 'S01', direction: 'inbound', referenceDate: date,
+      selectedGuideRevision: '25-A-3', applicationReference: '23-DDK-S01-S', mode: 'parse' })
+  }
+  it.each(['2026-09-30', '2026-10-01', '2026-10-14'])('keeps original U3 R/X evidence on admitted %s', async date => {
+    const selected = await prior(date)
+    const rawPayload = wire(transaction('OWN', "LOC+172+735999260731000007::9'")).replace("PIA+1+123:Z10'", '')
+    const result = evaluateUtiltsFieldMatrix({ policy: selected, rawPayload })
+    expect(result.sourceQualified).toBe(true)
+    for (const [fieldNo, kind] of [['209', 'forbidden'], ['511', 'missing']]) {
+      expect(result.issues).toContainEqual(expect.objectContaining({ fieldNo, kind, sourceEdition: '25-A-3',
+        sourceSha256: 'a4ae498e5231df22e043ec24b93f97563095bb9880ee296683acf7a0f6973fff' }))
+    }
+    expect(selectUtiltsFieldRules(selected)).toEqual([])
+    const { resolveUtiltsFieldConditions } = await import('@/lib/ediel/utilts/fieldMatrixConditions')
+    expect(resolveUtiltsFieldConditions({ policy: selected, rawPayload }).sourceQualified).toBe(false)
+  })
+  it('does not extend U3 admission or accept forged predecessor metadata/rows', async () => {
+    const selected = await prior('2026-10-01')
+    for (const changed of [
+      { ...selected, referenceDate: '2026-10-15' },
+      { ...selected, referenceDate: '2026-02-31' },
+      { ...selected, direction: 'outbound' },
+      { ...selected, guide: { ...selected.guide, documentName: 'unqualified' } },
+      { ...selected, guide: { ...selected.guide, effectiveFrom: '2025-01-01' } },
+      { ...selected, guide: { ...selected.guide, primarySource: policy('S01').guide.primarySource } },
+      { ...selected, fieldRules: getUtiltsFieldRules('S01').map(row => row.fieldNo === '209'
+        ? { ...row, requirements: { ...row.requirements, S01: 'O' as const } } : row) },
+    ]) expect(evaluateUtiltsFieldMatrix({ policy: changed, rawPayload: wire(transaction('OWN', "LOC+172+BAD::9'")) }))
+      .toMatchObject({ sourceQualified: false, issues: [] })
+  })
+  it.each(['209', '511'])('actual whole-message grace cannot bypass shared S01 field %s', async field => {
+    const { energyHandoffMessage } = await import('./helpers/utiltsObservationHandoff')
+    const { s01L359AggregateWire } = await import('../scripts/helpers/utiltsS01AggregateFixture')
+    const { resolveCanonicalMessagePolicy } = await import('@/lib/ediel/core/messagePolicy')
+    const { runUtiltsRuntimeForMessage } = await import('@/lib/ediel/utiltsEngine')
+    const message = energyHandoffMessage('2026-10-01')
+    message.message_code = 'S01'; message.application_reference = '23-DDK-S01-S'
+    message.raw_payload = s01L359AggregateWire(message.raw_payload!, [{ transactionId: 'GRACE', latestUpdateDate: '202607010000', quantity: '1' }])
+    message.raw_payload = field === '209'
+      ? message.raw_payload.replace("LOC+239+TES:SVK:260'", "LOC+239+TES:SVK:260'\nLOC+172+735999260731000007::9'")
+      : message.raw_payload.split('\n').filter(line => !line.startsWith('PIA+')).join('\n')
+    const lines = message.raw_payload.split('\n'), unh = lines.findIndex(line => line.startsWith('UNH+')), unt = lines.findIndex(line => line.startsWith('UNT+'))
+    lines[unt] = `UNT+${unt - unh + 1}+1'`; message.raw_payload = lines.join('\n')
+    expect(runUtiltsRuntimeForMessage(message, { canonicalPolicy: await prior('2026-10-01'), guideOnly: true }).validation.issues)
+      .toContainEqual(expect.objectContaining({ code: `UTILTS_FIELD_${field}_${field === '209' ? 'FORBIDDEN' : 'MISSING'}` }))
+    expect(resolveCanonicalMessagePolicy(message)?.guide.guideRevision).toBe('25-A-5')
+  })
+})

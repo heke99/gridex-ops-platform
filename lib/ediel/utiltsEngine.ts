@@ -15,6 +15,7 @@ import { resolveAuthoritativeEdielGuide } from '@/lib/ediel/rulebook/guideRegist
 import { hasQualifiedUtiltsOctoberIdentityRules } from '@/lib/ediel/rulebook/utilts25A5'
 import { resolveCanonicalEdielPolicy, type CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import { evaluateUtiltsFieldMatrix } from '@/lib/ediel/utilts/fieldMatrixProjection'
+import { resolveUtiltsFieldConditions, type UtiltsConditionResult } from '@/lib/ediel/utilts/fieldMatrixConditions'
 import type { UtiltsProcessabilityPolicy } from '@/lib/ediel/rulebook/utilts25A4'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { resolveUtiltsProcessabilityPolicy } from '@/lib/ediel/rulebook/utilts25A4'
@@ -705,14 +706,26 @@ function applyUtiltsSuppliedMeteringPointGuide(message: EdielMessageRow, result:
 
 /** Execute the same source-selected physical field projection as the public
  * rulebook port, before guideOnly returns and before runtime ownership seals. */
-function applyUtiltsCanonicalFieldGuide(message: EdielMessageRow, result: UtiltsRuntimeResult, policy?: CanonicalEdielPolicy): UtiltsRuntimeResult {
+function applyUtiltsCanonicalFieldGuide(message: EdielMessageRow, result: UtiltsRuntimeResult, policy?: CanonicalEdielPolicy, conditions?: UtiltsConditionResult): UtiltsRuntimeResult {
   if (policy?.family !== 'UTILTS' || policy.code !== result.facts.messageCode) return result
   const matrix = evaluateUtiltsFieldMatrix({ policy, rawPayload: message.raw_payload ?? '' })
-  if (!matrix.sourceQualified || !matrix.issues.length) return result
-  const issues: UtiltsValidationIssue[] = matrix.issues.map(finding => {
+  if (!matrix.sourceQualified) return result
+  // Supplied malformed/incomplete PIA owns component-level diagnostics. An
+  // absent PIA retains exactly one raw required-field511 finding instead.
+  const sourceConditions = conditions?.sourceQualified ? conditions : undefined
+  const replacedPia = (finding: typeof matrix.issues[number]) => finding.fieldNo === '511' && finding.kind === 'missing'
+    && sourceConditions?.transactions.some(scope => scope.messageIndex === finding.messageIndex && scope.transactionIndex === finding.transactionIndex
+      && (scope.product.kind === 'incomplete' || scope.product.kind === 'malformed'))
+  const findings = [...matrix.issues.filter(finding => !replacedPia(finding)), ...(sourceConditions?.issues ?? [])]
+    .filter((finding, index, all) => all.findIndex(other => other.code === finding.code && other.messageIndex === finding.messageIndex
+      && other.transactionIndex === finding.transactionIndex && other.observationIndex === finding.observationIndex
+      && other.occurrence?.segmentIndex === finding.occurrence?.segmentIndex) === index)
+  if (!findings.length) return result
+  const issues: UtiltsValidationIssue[] = findings.map(finding => {
     const reference = resolveUtiltsTransactionId(finding.referenceNumber, finding.transactionIndex ?? 0)
     return { severity: 'error', kind: 'application', code: finding.code,
-      title: finding.title, description: finding.description,
+      title: 'title' in finding ? finding.title : finding.kind === 'missing' ? 'Obligatoriskt UTILTS-fält saknas' : 'Felaktigt UTILTS-fält',
+      description: 'description' in finding ? finding.description : `Fält${finding.fieldNo}: ${finding.kind}, enligt kvalificerad svensk UTILTS-källa.`,
       aperakErcCode: finding.kind === 'missing' ? '41' : '42', aperakFieldCode: finding.fieldNo,
       aperakText: finding.kind === 'missing' ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',
       ...(finding.occurrence ? { aperakInvalidOccurrence: finding.occurrence } : {}),
@@ -720,6 +733,34 @@ function applyUtiltsCanonicalFieldGuide(message: EdielMessageRow, result: Utilts
     }
   })
   return rebuildUtiltsRuntimeResult({ message, result, issues: [...result.validation.issues, ...issues] })
+}
+
+/** Catalogue absence is local uncertainty, not a national field-code error.
+ * Only the physical transaction ordinal can own this HOLD; IDE text is merely
+ * a diagnostic label. Reapply after any rebuild that derives dispositions. */
+function applyUtiltsProductConditionHolds(result: UtiltsRuntimeResult, conditions?: UtiltsConditionResult): UtiltsRuntimeResult {
+  if (!result.validation.syntaxOk || !conditions?.sourceQualified || !conditions.holds.length) return result
+  const code = 'UTILTS_PRODUCT_CONDITIONS_UNAVAILABLE'
+  const indexes = new Set(conditions.holds.filter(scope => scope.messageIndex === 0 && scope.transactionIndex !== undefined).map(scope => scope.transactionIndex!))
+  const heldIndexes: number[] = []
+  const transactionDispositions = result.transactionDispositions.map((item, index) => {
+    if (!indexes.has(index) || item.disposition !== 'accepted' && !(item.disposition === 'internal_review' && item.issueCodes.includes(code))) return item
+    heldIndexes.push(index)
+    return { ...item, disposition: 'internal_review' as const, responseType: 'none' as const,
+      issueCodes: [...item.issueCodes.filter(existing => existing !== code), code] }
+  })
+  if (!heldIndexes.length) return result
+  const issues: UtiltsValidationIssue[] = [...result.validation.issues.filter(issue => issue.code !== code), ...heldIndexes.map(index => ({
+    severity: 'warning' as const, kind: 'application' as const, code,
+    title: 'Tidsserieproduktens villkor är inte kvalificerade',
+    description: `Den fullständiga produktkombinationen i fysisk transaktion ${index + 1} saknar kvalificerad kataloggrund. Håll lokalt utan nationellt avslag.`,
+    referenceNumber: result.transactionDispositions[index].transactionId, lineItemReference: result.transactionDispositions[index].transactionId,
+  }))]
+  const noPositive = !transactionDispositions.some(item => item.responseType === 'positive_aperak')
+  return { ...result, transactionDispositions,
+    validation: { ...result.validation, ok: false, classification: result.validation.classification === 'accepted' ? 'internal_review' : result.validation.classification, issues },
+    ackPlan: { ...result.ackPlan, ...(noPositive && result.ackPlan.aperakOutcome === 'positive' ? { shouldSendAperak: false, aperakOutcome: null } : {}),
+      reason: 'Okvalificerad tidsserieprodukt hålls lokalt; kvalificerade syskon behåller sina egna utfall.' } }
 }
 
 function applyUtiltsS02PlanningGuide(message: EdielMessageRow, result: UtiltsRuntimeResult, referenceDate: string, retained?: CanonicalEdielPolicy): UtiltsRuntimeResult {
@@ -974,13 +1015,18 @@ function runUtiltsRuntimeForMessageCore(
   }))
   const ordered = rebuildUtiltsRuntimeResult({message,result:guideEffective,issues:[...guideEffective.validation.issues,...packagingIssues,...utiltsQuantityUnitGuideIssues(message.raw_payload ?? ''),...utiltsDecimalGuideIssues(message.raw_payload ?? ''),...utiltsObservationOrderGuideIssues(message.raw_payload ?? '')]})
   let guided = applyUtiltsS02PlanningGuide(message, applyUtiltsSuppliedMeteringPointGuide(message, applyUtiltsSuppliedRegulatingObjectGuide(message, applyUtiltsGridAreaGuide(message, applyUtiltsIdeGuide(message, applyUtiltsHeaderGuide(message, ordered, sourceGuideIssues))), referenceDate, canonicalPolicy), referenceDate, canonicalPolicy), referenceDate, canonicalPolicy)
-  guided = applyUtiltsCanonicalFieldGuide(message, guided, canonicalPolicy)
-  if (options?.guideOnly) return guided
+  // Only S01's current catalogue/technical slice is activated here. Request503
+  // and other message conditions retain their existing qualified owners.
+  const productConditions = canonicalPolicy?.family === 'UTILTS' && canonicalPolicy.code === 'S01'
+    ? resolveUtiltsFieldConditions({ policy: canonicalPolicy, rawPayload: message.raw_payload ?? '' }) : undefined
+  guided = applyUtiltsCanonicalFieldGuide(message, guided, canonicalPolicy, productConditions)
+  if (options?.guideOnly) return applyUtiltsProductConditionHolds(guided, productConditions)
   if(canonicalPolicy)guided=applyPeriodicReasonGuide({message,policy:canonicalPolicy,result:guided,authority:options?.periodicReasonAuthority,rebuild:rebuildUtiltsRuntimeResult})
   if(options?.issuerIdentityAuthority){
     if(!canonicalPolicy)throw new Error('ediel_utilts_issuer_identity_policy_required')
     guided=applyUtiltsIssuerIdentityGuide(message,guided,utiltsIssuerIdentityFacts({authority:options.issuerIdentityAuthority,message,policy:canonicalPolicy}))
   }
+  guided = applyUtiltsProductConditionHolds(guided, productConditions)
   const eligible = new Set(guided.transactionDispositions
     .filter(item => item.disposition === 'accepted')
     .map(item => String(item.transactionId ?? '')))
@@ -1000,7 +1046,7 @@ function runUtiltsRuntimeForMessageCore(
     message, result: functionalCorrected, referenceDate, processabilityPolicy: canonicalPolicy?.utiltsProcessability,
   })
   const issues = [...guided.validation.issues, ...functionalEffective.validation.issues.filter(issue => issue.kind === 'functional'),...utiltsPrecisionFunctionalIssues(message.raw_payload ?? '',eligible)]
-  return applyCanonicalE66PersistencePayload(rebuildUtiltsRuntimeResult({ message, result: guided, issues }))
+  return applyCanonicalE66PersistencePayload(applyUtiltsProductConditionHolds(rebuildUtiltsRuntimeResult({ message, result: guided, issues }), productConditions))
 }
 
 export function runUtiltsRuntimeForMessage(message:EdielMessageRow,options?:UtiltsRuntimeReferenceOptions):UtiltsRuntimeResult {
