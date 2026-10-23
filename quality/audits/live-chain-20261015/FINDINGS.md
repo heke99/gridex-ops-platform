@@ -1448,6 +1448,21 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
 - **F6c, operatörens omkörning:** varje omkörning via "Återuppta hållna transaktioner" gav 500, med `0 av 96` lagrade värden per fil. Körningen stoppades efter att rapporten sparats (`report-f-run21.json` i scratchpad).
 - **Statement timeouts:** under F6 avbröts många satser på grund av tidsgränsen (≥ 7 per anslutning). Det hör ihop med J3-12 och L1.
 
+### Ägarbeslut 2026-10-23
+- **F89/F90/F91, certifiering i produktion:** "Certifieringar ska vi använda oss av vår certifiering samt krypteringen vi har."
+  - Produktionssändning vilar på bolagets egen godkända Ediel-certifiering (`ediel_certification_evidence`, `canonical_ediel_production_evidence_readiness`, förmågan `ediel_production`) och på vår egen S/MIME-kryptering.
+  - Bevis per meddelandetyp och release, som ingen produktväg kan skapa, ska inte längre krävas.
+  - Övriga spärrar finns kvar: tenantens behörighet, roll, regelpaket, S/MIME, certifikat och routekontrakt.
+  - Implementeras av en agent.
+- **K-06, churnmånad:** "spelar inte roll, gör det som är bäst."
+  - Beslut: churn räknas i månaden för kundens **sista leveransdag**. Slutdatumet normaliseras efter källa: en Z05 är exklusiv och ett manuellt avslut är inklusivt.
+  - Skäl: kortet säger redan "Sista leveransdag i månaden", det stämmer med hur leveransen faktiskt upphör, och samma avflytt hamnar då i samma månad oavsett källa.
+  - Implementeras av en agent.
+- **Planen:** scenario F körs klart till faktura. Därefter körs G, H, I, J1–J4 och K i världen, ett i taget, och varje fel rättas och dokumenteras.
+- **Väntar fortfarande på beslut:**
+  - F94: vilket UTILTS leverantören själv skickar till nätägaren;
+  - B1/O1: spärrade och fallerade utkorgsposter försöks aldrig igen.
+
 ### F körning 22 (2026-10-23): mätvärdena lagras för första gången hela vägen från nätägarens E66
 - **Bytet:** Z03 skickades och kvitterades; nätägaren svarade med Z04; 4 leveransperioder blev aktiva.
 - **Kvittenser:** 59 CONTRL skickades till nätägaren, för både Z03 och alla E66. F92, F96, F98 och F100 är därmed verifierade i världen.
