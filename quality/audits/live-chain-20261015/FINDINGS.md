@@ -1638,6 +1638,44 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
     7. **Andra rader i `received`:** 25 Z04 i testkanalen (rester från native-tester) och en produktions-UTILTS (`c87918c4`) vars post står i `manual_review`. Inte utredda. Låg.
     8. **Index saknas** för återupptagningens urval över tenanter. Kostnaden är inte mätt. Låg.
 
+### F104 Testkanalens inkorgsmotor tar produktionsjobb — BEKRÄFTAD (världen, körning 26), hög; RÄTTAD (kod + migration)
+- **Orsak:** `claim_inbound_processing_jobs` filtrerar redan på `p_environment`, men anroparen `claimQueuedInboundProcessingJobs` (`edielMailboxPoller.part-2.ts`) skickade alltid `p_environment: null`. `runInboundEdielMailEngine` skickade aldrig sin kanal vidare, så varje kanalkörning tog jobb från alla kanaler.
+- **Bevis från världen** (skrivskyddat):
+  - Testkörningen `c6d8dcc6` hämtade 0 brev men tog 6 produktionsjobb (10:05:53.069). Bakom jobben låg exakt de sex produktionskvittenserna (4 CONTRL och 2 APERAK) för tenant `7b53f121`.
+  - Produktionskörningen `df0b5faa` behandlade samma sex samtidigt.
+  - Det är den enda testkörning någonsin med `processed_jobs > 0`.
+- **Bevisade följder:**
+  - Fel kanal tog jobben.
+  - Två körningar behandlade samma meddelanden parallellt. `72236dbf` gick igenom två gånger med dubbla händelser, och `ff20fb9a` delvis två gånger.
+  - Körningsstatistiken var fel.
+  - **Inga dubbla auktoritativa effekter:** kvittensauktoriteten, SLA-timrarna, revisionen, ärendena och bytesbegärandena skrevs en gång var, och ingen CONTRL eller APERAK skickades dubbelt. Det beror på ett tabellås, en `prior`-kontroll och unika index.
+- **Rättning:**
+  - Kanalen skickas vidare hela vägen. En okänd kanal avvisas i stället för att breda ut sig till alla kanaler.
+  - En kanalkörning faller aldrig tillbaka till den kanallösa listningen.
+  - Admins knapp "kör kön" tar fortfarande alla kanaler, avsiktligt.
+- **Migration `20261023190000_inbound_processing_claim_lane.sql`** (härdning):
+  - Jobbets kanal blir `coalesce(m.environment, mb.environment, 'test')`. Tidigare gick ett brev utan miljö i en produktionsbrevlåda till testkanalen.
+  - En okänd `p_environment` ger fel 22023.
+  - Lås och lease är orörda. Ägare, ACL, `SECURITY INVOKER` och `search_path` kontrolleras.
+  - Inte applicerad i världen ännu.
+- **Tester:**
+  - native 5 av 5 i transaktioner som rullas tillbaka. Med den gamla funktionen föll 3.
+  - enhetstester: 8 för F104, varav 7 föll med den gamla koden, och totalt 34 av 34 med de relaterade sviterna. Jag körde om 18 av 18.
+  - typkontroll och eslint utan fel.
+- **Kontrollerade, inte ändrade:**
+  - Utkorgen är kanallös med flit, eftersom samma sändare tjänar båda kanalerna.
+  - Manuell inkorg filtrerar på miljö, men en okänd miljö ger tyst noll.
+  - Webhooks har inget kanalbegrepp.
+  - `customer_operation_jobs` saknar miljö och töms av båda kanalernas körningar, så testkanalen kör produktionstenanters kundoperationer. Det är avsiktligt men bör vara känt.
+- **Sidofynd, ÖPPNA:**
+  1. **Lopp inom samma kanal:** två körningar i samma kanal kan fortfarande behandla samma meddelande. Världen visar dubbla körningar inom en sekund vid 10:05:52, 10:07:16, 10:09:28 och 10:10:33. Bara kvittensauktoritetens lås och kontrollen av redan sparade kvittenser stoppar dubbla effekter. En riktig rättning kräver ett anspråk per meddelande. Hög.
+  2. **Kanallösa steg i motorn:** `createInboundOverdueTasks` skannar `outbound_requests` globalt i varje kanalkörning, och `listRecentParsedInboundEdielIds` saknar kanalfilter. Medel.
+  3. **Grants:** `claim_inbound_processing_jobs` ger EXECUTE till `anon` och `authenticated`. RLS begränsar, men grantsen borde tas bort. Låg.
+  4. **Manuell granskning:** 492 produktionsjobb står i `manual_review` (04:12–11:09). Medel, ska utredas.
+  5. **APERAK utan CONTRL:** `ff20fb9a` och `e2adb097` fick "CONTRL skapades inte: ediel_technical_ack_route_unavailable", och deras `contrl_due`-timrar blev kritiska 10:30. Hög, eftersom ett CONTRL-krav inte uppfylls.
+- **Falskt positivt:** agenten trodde att täckningsskriptet avslutas med kod 0 trots fallerande tester. Skriptet gör `process.exit(1)` vid `--check` när problem finns, rad 118. Agenten läste sannolikt exit-koden från en pipe.
+- **F105:s pågående arbete:** F105-agentens ocommittade ändring i `lib/cis/db-outbound.ts` fick AT-Z01L-SUPPLIER och AT-Z01LK-SUPPLIER att falla (`unexpected_finite_port:update_field:outbound_requests:updated_at`). Agenten är informerad. Inget av det är committat.
+
 ### P1 Mätvärdeslagringen går med ungefär 70 värden i minuten; kvittenshanteringen dominerar databastiden — MÄTT (världen, körning 26), medel; ej åtgärdat
 - **Körning 26, F6c:** 126 värden lagrade 11:11 och 475 kl. 11:16, alltså ungefär 70 i minuten. 123 filer à 96 kvartsvärden tar då nästan 3 timmar för en enda kund med 4 anläggningar. I produktion med många kunder räcker det inte.
 - **`pg_stat_statements`:** ackumulerat sedan världen startade, alla körningar och native-tester. De dyraste efter total tid:

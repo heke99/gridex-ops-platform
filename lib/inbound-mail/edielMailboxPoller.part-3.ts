@@ -92,6 +92,8 @@ export async function runInboundEdielMailEngine(
     workerId,
     limit: input.processLimit ?? envInt("EDIEL_INBOUND_PROCESS_LIMIT", 50),
     actorUserId: input.actorUserId ?? null,
+    // F104: only this run's lane; a test run never claims production jobs and vice versa.
+    environment: input.environment ?? null,
   });
   const overdueTasks = await createInboundOverdueTasks();
   const inboundEmailMessageIds = results.flatMap(

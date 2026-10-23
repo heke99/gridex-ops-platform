@@ -693,12 +693,24 @@ export async function pollEdielMailbox(input: {
   }
 }
 
+// F104: a run claims only jobs of its own lane (the environment of the job's
+// mail/mailbox). Only an absent lane (the platform admin queue action) claims
+// every lane; an unknown lane is refused instead of widening to all lanes.
+function inboundClaimLane(environment: string | null | undefined): "test" | "production" | null {
+  if (environment === undefined || environment === null || environment === "") return null;
+  const lane = normalizeEnvironment(environment);
+  if (!lane) throw new Error(`inbound_processing_claim_environment_invalid: ${environment}`);
+  return lane;
+}
+
 export async function claimQueuedInboundProcessingJobs(
   workerId: string,
   limit = 50,
+  environment: string | null = null,
 ): Promise<InboundProcessingJobRow[]> {
+  const lane = inboundClaimLane(environment);
   const { data, error } = await supabaseService.rpc("claim_inbound_processing_jobs", {
-    p_environment: null,
+    p_environment: lane,
     p_limit: limit,
     p_worker_id: workerId,
     p_stale_after: `${envInt("EDIEL_INBOUND_STALE_JOB_LOCK_MINUTES", 15)} minutes`,
@@ -708,6 +720,8 @@ export async function claimQueuedInboundProcessingJobs(
 
   const message = postgresErrorMessage(error);
   if (!/claim_inbound_processing_jobs|schema cache|Could not find/i.test(message)) throw error;
+  // The listing below is lane-less; a lane run never falls back to it (F104).
+  if (lane) throw error;
 
   // Compatibility fallback for environments where the migration has not yet run.
   // The update below includes a stale/null lock predicate to reduce the chance of
@@ -877,10 +891,12 @@ export async function processQueuedInboundProcessingJobs(
     workerId?: string;
     limit?: number;
     actorUserId?: string | null;
+    /** The run's lane; omitted only by the platform admin all-lanes queue action (F104). */
+    environment?: string | null;
   } = {},
 ): Promise<{ processed: number; failed: number; processedInboundEmailMessageIds: string[] }> {
   const workerId = input.workerId ?? "inbound-mail-engine";
-  const jobs = await claimQueuedInboundProcessingJobs(workerId, input.limit ?? 50);
+  const jobs = await claimQueuedInboundProcessingJobs(workerId, input.limit ?? 50, input.environment ?? null);
   const maxAttempts = envInt("EDIEL_INBOUND_MAX_JOB_ATTEMPTS", 5);
   let processed = 0;
   let failed = 0;
