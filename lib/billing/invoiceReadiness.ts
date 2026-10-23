@@ -708,11 +708,27 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
     const payload = row.payload && typeof row.payload === 'object' ? (row.payload as Record<string, unknown>) : {}
     return Boolean(payload.estimate) || Boolean(payload.reconciliation_of)
   }
+  // Completeness is required for the supplied part of the month only: the underlay segments, which start at the
+  // received market start (00:00 Ediel fixed normal time, ENV-08) and end at the supply end (FINDINGS F108).
+  // A metering point with any segment lacking its stored instants keeps the whole civil month.
+  const segmentInstant = (row: Record<string, unknown>, field: 'billing_period_start_instant' | 'billing_period_end_instant') => {
+    const payload = row.payload && typeof row.payload === 'object' ? (row.payload as Record<string, unknown>) : {}
+    const value = payload[field]
+    return typeof value === 'string' && Number.isFinite(Date.parse(value)) ? value : null
+  }
+  const suppliedWindowsByMeter = new Map<string, Array<{ start: string; end: string }> | null>()
+  for (const row of underlays) {
+    if (isEstimateFlow(row) || typeof row.metering_point_id !== 'string') continue
+    const start = segmentInstant(row, 'billing_period_start_instant'), end = segmentInstant(row, 'billing_period_end_instant')
+    const known = suppliedWindowsByMeter.has(row.metering_point_id) ? suppliedWindowsByMeter.get(row.metering_point_id) : []
+    suppliedWindowsByMeter.set(row.metering_point_id, known && start && end ? [...known, { start, end }] : null)
+  }
   const meteringPoints = underlays
     .filter((row) => !isEstimateFlow(row))
     .map((row) => ({
       meteringPointId: typeof row.metering_point_id === 'string' ? row.metering_point_id : '',
       expectedKwh: typeof row.total_kwh === 'number' ? row.total_kwh : typeof row.total_kwh === 'string' ? Number(row.total_kwh) : null,
+      windows: typeof row.metering_point_id === 'string' ? suppliedWindowsByMeter.get(row.metering_point_id) ?? null : null,
     }))
     .filter((entry) => entry.meteringPointId)
   if (meteringPoints.length > 0) {

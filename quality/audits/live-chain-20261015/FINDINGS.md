@@ -1849,6 +1849,33 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
   - ENV-08:s `on_failure` säger "Använd inte … 92/100 kvartar per fast-CET-dygn".
 - Utreds av agent mot masterplanen och handboken.
 
+- **UTREDD 2026-10-23 (agent + granskning).** Plattformens `market_start_at = 23:00Z` är RÄTT. Fem debiteringsvägar läste starten som civil midnatt (22:00Z) och stred mot databasens egen kontroll. Startsidan är RÄTTAD. Slutsidan kräver ett ÄGARBESLUT.
+  - **Modellen:**
+    - **Källor:** PRODAT-fält 206 (`ZZZ:1:805`, "alltid 1 för både normaltid och sommartid") och den godkända ENV-08.
+    - **Start och slut:** Z04 `DTM+92 202609010000` blir 2026-08-31T23:00Z, med affärsdatumet 2026-09-01 kvar. Z05 `DTM+93 202610010000` blir 2026-09-30T23:00Z, exklusivt.
+    - **Ägarskap av timmen:** civil 1 september 00:00–01:00 tillhör den förra leverantören, och civil 1 oktober 00:00–01:00 efter ett Z05 tillhör oss. `gridex_received_sources.billing_supply_basis_v1` håller redan det fönstret.
+    - **En nätägares E66-dygn** är 00:00–24:00 i +0100 och alltid 96 kvartar (§9.4, U-10, ENV-08, UG-122-16). Den godkända `ediel-env08-fixed-normal-time.test.ts:92-111` avvisar 92 eller 100 värden för ett fast CET-dygn med E87.
+    - **Spotpriser** är civila leveransdygn med 100 kvartar den 25 oktober, och prissättningen kopplar på tidpunkt.
+    - **Faktureringsmånaden** avgörs inte av reglerna.
+  - **RÄTTADE (startsidan):**
+    - M1 `meterValueBillingMatcher.ts`: de 4 första civila kvartarna skickades som `eligible`. Databasen nekade dem, och de registrerades som `supply_source_unqualified` och öppnade ett vilseledande ärende. I världen har körning 26 12 blockerade värden (4 × 3) och 3 sådana ärenden.
+    - M2 `billingGate.ts`: läste civil `start_date`.
+    - M3 `underlayEngine.ts`: startade segmentet vid civil midnatt, så varje leveransstart under sommartid fick en mätlucka. Kritiskt för debiteringen.
+    - M4 `invoiceReadiness.ts` och `metering/validation.ts`: fullständigheten mättes mot hela civila månaden, vilket gav "1 h saknas" och samma fel vid varje start mitt i månaden.
+    - Ny `supplyPeriodStartInstant()` i `supplyPeriodEnd.ts`: använder `market_start_at` och faller bara tillbaka till civil midnatt när den saknas.
+  - **Tester:**
+    - `f108-supply-window-fixed-normal-time` 7 av 7, där 5 föll före rättningen;
+    - 40 relaterade filer, 507 tester;
+    - typkontroll utan fel;
+    - täckningen 352 av 352 med 0 fallerande;
+    - jag körde om F108, ENV-08 och debiteringstesterna: 40 av 40.
+  - **ÖPPNA (ägarbeslut om faktureringsmånadens inramning):**
+    - **M5:** den sista timmen efter ett Z05 under sommartid debiteras aldrig. TS-spärren och databasens H1 nekar den, medan den kvalificerade leveranskontrollen godtar den. `gridex_store_billing_underlay` avvisar segmentet `[22:00Z, 23:00Z)`, och då rullas tenantens hela oktoberbatch tillbaka. Medel.
+    - **M6:** E66-månadsvärden i +0100 kan inte debiteras i civila sommarmånader (`source_interval_requires_finer_data`). Hög.
+    - **M7:** de två reservvägarna från datum till tidpunkt skiljer sig åt. Civil midnatt används i åtkomstfönster, spärr och underlag. `Etc/GMT-1` används i 5 funktioner för mottagna källor. Påverkar bara manuella perioder. Kräver förtydligande av F79-beslutet. Låg.
+  - **Observation:** produkten godtar `DTM+735 +0200` från en svensk nätägare, eftersom det godkända undantaget för deklarerad utländsk offset finns kvar. Låg.
+  - **Verklighetsvärldens simulatorer och scenarier är fel.** De sänder civila dygn, och G sänder 100 kvartar. Exakt lista med ändringar per fil och rad finns i agentrapporten. De ska göras av mig och spåras som T15.
+
 ### F109 Tenantadmin får 403 på `/api/internal/spot/import-month` — BEKRÄFTAD (världen, körning 26), hög; utreds
 - Routen kräver `requireAdminApiAccess(['pricing.write'])` och `requireOperationalCompanyId`.
 - `company_admin` har `pricing.write` i `lib/admin/accessModel.ts`, men tenantens admin fick ändå "Ej behörig".

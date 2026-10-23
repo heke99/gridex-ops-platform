@@ -9,6 +9,7 @@
 //     supplied day and no market_end_at ("billing still covers the period up to and including end_date").
 // Billing treated every end_date as the last supplied day, so a Z05-ended period was billed one day too long
 // (FINDINGS H1). This helper returns the first Stockholm civil day that is no longer supplied.
+// The start of a received supply is its market instant (supplyPeriodStartInstant, FINDINGS F108).
 import { stockholmLocalToUtc } from '@/lib/time/stockholm'
 
 type PeriodEnd = { end_date?: unknown; actual_end_date?: unknown; market_end_at?: unknown }
@@ -42,6 +43,25 @@ export function supplyPeriodEndExclusiveDate(period: PeriodEnd): string | null {
   const marketEndMs = marketEnd ? Date.parse(marketEnd) : Number.NaN
   if (Number.isFinite(marketEndMs) && marketEndMs <= localMidnight(date) + 3_600_000) return date
   return addDays(date, 1)
+}
+
+/**
+ * The first supplied instant (ms) of a period, or null without a start.
+ * A received market start (PRODAT Z04 DTM+92 and the source-owned starts) is stored as the instant the grid owner
+ * stated: 00:00 in Ediel's fixed normal time (ENV-08, PRODAT field 206 "1:805"), i.e. local midnight in winter and
+ * 01:00 in summer (2026-09-01 → 2026-08-31T23:00Z). The database's qualified supply basis
+ * (gridex_received_sources.billing_supply_basis_v1) bills nothing before it, so billing reads the same instant.
+ * Only a period without a market instant (manual/legacy) starts at local midnight of its start date (FINDINGS F108).
+ */
+export function supplyPeriodStartInstant(period: { start_date?: unknown; market_start_at?: unknown }): number | null {
+  const marketStart = text(period.market_start_at)
+  const marketStartMs = marketStart ? Date.parse(marketStart) : Number.NaN
+  if (Number.isFinite(marketStartMs)) return marketStartMs
+  const start = text(period.start_date)
+  if (!start) return null
+  if (ISO_DATE.test(start)) return localMidnight(start)
+  const parsed = Date.parse(start)
+  return Number.isFinite(parsed) ? parsed : null
 }
 
 /** The last supplied Stockholm civil day (inclusive), or null for an open period. */

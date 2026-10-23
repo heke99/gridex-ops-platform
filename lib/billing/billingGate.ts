@@ -1,7 +1,7 @@
 import { stockholmLocalToUtc } from "@/lib/time/stockholm";
 import { isCanonicalUtiltsDecimal } from '@/lib/ediel/utilts/exactDecimal';
 import type { BillingSourceBasis } from './sourceBasis';
-import { BILLED_SUPPLY_PERIOD_STATUSES, contractEndedBySupplyPeriod, supplyPeriodLastSuppliedDate } from './supplyPeriodEnd';
+import { BILLED_SUPPLY_PERIOD_STATUSES, contractEndedBySupplyPeriod, supplyPeriodLastSuppliedDate, supplyPeriodStartInstant } from './supplyPeriodEnd';
 
 export type BillingGateStatus =
   "eligible" | "pending_match" | "blocked" | "conflict";
@@ -70,6 +70,7 @@ function number(value: unknown): number | null {
 }
 
 function instant(value: unknown, endOfDate = false): number | null {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
   const raw = text(value);
   if (!raw) return null;
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
@@ -290,8 +291,9 @@ export function evaluateBillingGate(input: {
     if (
       periodStart !== null &&
       periodEnd !== null &&
+      // A received market start is its Ediel instant (00:00 fixed normal time, ENV-08; FINDINGS F108).
       // A received market end (Z05) is exclusive: the end date is the first day no longer supplied (FINDINGS H1).
-      !covers(supply.start_date, supplyPeriodLastSuppliedDate(supply), periodStart, periodEnd)
+      !covers(supplyPeriodStartInstant(supply), supplyPeriodLastSuppliedDate(supply), periodStart, periodEnd)
     ) {
       reasons.push(
         reason(

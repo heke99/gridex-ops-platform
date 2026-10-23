@@ -84,6 +84,22 @@ async function loadNormalizedValues(input: { companyId: string; meteringPointIds
   return rows
 }
 
+/** The given supplied windows clipped to the month, sorted and merged; null when none were given. */
+function suppliedWindows(windows: Array<{ start: string; end: string }> | null | undefined, month: { startMs: number; endMs: number }) {
+  if (!windows || windows.length === 0) return null
+  const spans = windows
+    .map((span) => ({ start: Math.max(toMs(span.start), month.startMs), end: Math.min(toMs(span.end), month.endMs) }))
+    .filter((span) => Number.isFinite(span.start) && Number.isFinite(span.end) && span.end > span.start)
+    .sort((a, b) => a.start - b.start)
+  const merged: Array<{ start: number; end: number }> = []
+  for (const span of spans) {
+    const last = merged[merged.length - 1]
+    if (last && span.start <= last.end) last.end = Math.max(last.end, span.end)
+    else merged.push({ ...span })
+  }
+  return merged
+}
+
 export async function evaluateMeteringCompletenessForMonth(input: {
   companyId: string
   billingMonth: string
@@ -94,6 +110,13 @@ export async function evaluateMeteringCompletenessForMonth(input: {
     requiredResolution?: MeteringResolution | null
     /** The meter cannot deliver the contract's resolution (e.g. hourly contract on a monthly-read meter). */
     meterCannotDeliver?: boolean
+    /**
+     * The supplied parts of the month (ISO instants, end exclusive), e.g. the billed underlay segments. Without it
+     * the whole Stockholm civil month must be covered. With it only the supplied time is required: a supply that
+     * starts at 00:00 Ediel fixed normal time (01:00 local in summer, ENV-08) or mid-month has no values before
+     * its start, and those are not a gap (FINDINGS F108).
+     */
+    windows?: Array<{ start: string; end: string }> | null
   }>
   allowEstimatedValues?: boolean
 }): Promise<MeteringCompletenessResult> {
@@ -132,6 +155,7 @@ export async function evaluateMeteringCompletenessForMonth(input: {
       quantity: typeof row.quantity_kwh === 'string' ? Number(row.quantity_kwh) : row.quantity_kwh,
     })).filter((interval) => Number.isFinite(interval.start) && Number.isFinite(interval.end) && interval.end > interval.start).sort((a, b) => a.start - b.start)
 
+    const supplied = suppliedWindows(entry.windows, window)
     let coveredMs = 0
     let overlapMs = 0
     let cursor = window.startMs
@@ -139,10 +163,13 @@ export async function evaluateMeteringCompletenessForMonth(input: {
       if (interval.estimated) estimatedValueCount += 1
       if (interval.start < cursor) overlapMs += Math.min(cursor, interval.end) - interval.start
       const effectiveStart = Math.max(interval.start, cursor)
-      if (interval.end > effectiveStart) { coveredMs += interval.end - effectiveStart; cursor = interval.end }
+      if (interval.end > effectiveStart) {
+        coveredMs += supplied ? supplied.reduce((sum, span) => sum + Math.max(0, Math.min(interval.end, span.end) - Math.max(effectiveStart, span.start)), 0) : interval.end - effectiveStart
+        cursor = interval.end
+      }
     }
-    const windowMs = window.endMs - window.startMs
-    const coverage = coveredMs / windowMs
+    const windowMs = supplied ? supplied.reduce((sum, span) => sum + span.end - span.start, 0) : window.endMs - window.startMs
+    const coverage = windowMs > 0 ? coveredMs / windowMs : 1
     if (overlapMs > 0) issues.push({ code: 'metering_overlap', message: `Mätvärden överlappar varandra (${Math.round(overlapMs / 3_600_000)} h dubbeltäckning) och riskerar dubbelfakturering.`, severity: 'blocked', meteringPointId: entry.meteringPointId, details: { overlap_hours: overlapMs / 3_600_000 } })
     if (coverage < COVERAGE_BLOCK_THRESHOLD) issues.push({ code: 'metering_gap', message: `Mätvärden täcker bara ${(coverage * 100).toFixed(1)} % av perioden (${Math.round((windowMs - coveredMs) / 3_600_000)} h saknas).`, severity: 'blocked', meteringPointId: entry.meteringPointId, details: { coverage_percent: coverage * 100, missing_hours: (windowMs - coveredMs) / 3_600_000, time_zone: bounds.timeZone } })
     if (entry.requiredResolution && !entry.meterCannotDeliver && intervals.length > 0) {
@@ -159,7 +186,9 @@ export async function evaluateMeteringCompletenessForMonth(input: {
     if (estimatedForPoint > 0) issues.push({ code: 'metering_estimated', message: `${estimatedForPoint} mätvärde(n) är preliminära/estimerade. Slutfaktura kräver slutliga värden.`, severity: input.allowEstimatedValues ? 'warning' : 'blocked', meteringPointId: entry.meteringPointId, details: { estimated_count: estimatedForPoint } })
     const expectedKwh = typeof entry.expectedKwh === 'number' && Number.isFinite(entry.expectedKwh) ? entry.expectedKwh : null
     if (expectedKwh !== null && expectedKwh > 0) {
-      const actualKwh = intervals.reduce((sum, interval) => sum + (typeof interval.quantity === 'number' && Number.isFinite(interval.quantity) ? interval.quantity : 0), 0)
+      const actualKwh = intervals
+        .filter((interval) => !supplied || supplied.some((span) => interval.start >= span.start && interval.start < span.end))
+        .reduce((sum, interval) => sum + (typeof interval.quantity === 'number' && Number.isFinite(interval.quantity) ? interval.quantity : 0), 0)
       const difference = Math.abs(actualKwh - expectedKwh)
       if (difference > Math.max(expectedKwh * TOTAL_MISMATCH_TOLERANCE, 1)) issues.push({ code: 'metering_total_mismatch', message: `Summan av mätvärden (${actualKwh.toFixed(1)} kWh) avviker från underlagets kWh (${expectedKwh.toFixed(1)} kWh).`, severity: 'warning', meteringPointId: entry.meteringPointId, details: { actual_kwh: actualKwh, expected_kwh: expectedKwh } })
     }

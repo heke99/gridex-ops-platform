@@ -17,7 +17,7 @@ import {
 } from "@/lib/billing/consumptionEstimate";
 import { meteringResolutionForContract } from "@/lib/metering/contractMeteringResolution";
 import { ensureHistoricalMeteringRequest } from "@/lib/billing/historyRequest";
-import { BILLED_SUPPLY_PERIOD_STATUSES, supplyPeriodEndExclusiveDate } from "@/lib/billing/supplyPeriodEnd";
+import { BILLED_SUPPLY_PERIOD_STATUSES, supplyPeriodEndExclusiveDate, supplyPeriodStartInstant } from "@/lib/billing/supplyPeriodEnd";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -350,7 +350,11 @@ function segmentBounds(
   monthStart: string,
   monthEnd: string,
 ): { start: string; end: string } {
-  const periodStart = localDateBoundary(String(period.start_date));
+  // A received market start is the grid owner's instant (00:00 Ediel fixed normal time, ENV-08): in summer the
+  // segment starts at 01:00 local, as the database's qualified supply basis does; the civil hour before it is
+  // never ours and is not a metering gap (FINDINGS F108). A manual start stays local midnight.
+  const startMs = supplyPeriodStartInstant(period);
+  const periodStart = startMs === null ? localDateBoundary(String(period.start_date)) : new Date(startMs).toISOString();
   // A received market end (Z05) is exclusive; a manual end date is the last supplied day (FINDINGS H1).
   const endExclusive = supplyPeriodEndExclusiveDate(period);
   const periodEnd = endExclusive ? localDateBoundary(endExclusive) : monthEnd;

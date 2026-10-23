@@ -4,7 +4,7 @@ import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
 import { stockholmDateForInstant } from '@/lib/time/stockholm'
 import { evaluateBillingGate, type BillingGateStatus } from '@/lib/billing/billingGate'
 import { loadQualifiedBillingValues } from './sourceBasis'
-import { BILLED_SUPPLY_PERIOD_STATUSES, supplyPeriodLastSuppliedDate } from './supplyPeriodEnd'
+import { BILLED_SUPPLY_PERIOD_STATUSES, supplyPeriodLastSuppliedDate, supplyPeriodStartInstant } from './supplyPeriodEnd'
 
 type CanonicalBillingStatus = 'pending_match' | 'billable' | 'blocked' | 'conflict'
 
@@ -130,9 +130,15 @@ export async function updateMeterValueBillingReadiness(params: {
   if (periodsResponse.error) throw periodsResponse.error
   // A received market end (Z05) is exclusive: a value on the first day after it belongs to the next
   // supply, never to the ended period (FINDINGS H1). The query above reads end_date as the last day.
+  // A received market start is the grid owner's instant, 00:00 Ediel fixed normal time (ENV-08): in summer the
+  // first civil hour of the start date (22:00Z–23:00Z) is not ours. The query above reads start_date as a civil
+  // day; such a value lies outside the period and is never offered to the database as billable (FINDINGS F108:
+  // it was refused there and recorded as an unqualified supply source).
+  const valueStartMs = Date.parse(periodStartRaw)
   const periods = ((periodsResponse.data ?? []) as Array<Record<string, unknown>>).filter((row) => {
     const lastSupplied = supplyPeriodLastSuppliedDate(row)
-    return lastSupplied === null || lastSupplied >= periodEnd
+    const startMs = supplyPeriodStartInstant(row)
+    return (lastSupplied === null || lastSupplied >= periodEnd) && (startMs === null || startMs <= valueStartMs)
   })
   const period = periods.length === 1 ? periods[0] : null
 
