@@ -86,6 +86,10 @@ Produktionens kropp finns inte i någon migrationsfil. Den har alltså ändrats 
   - Kolumnerna för byte och kontrakt läses via `to_jsonb(o)`, så funktionen fungerar även med repots schema, som saknar dem.
 - Produktionsinstallationen `converge_prod_divergent_functions_908` verifierade sha, `search_path`, ACL och ägare.
 - Testkörningen av revisionen rullades tillbaka och gav `ok`. Den hittade två ACCESS-002-fynd (medlemskapsrollen stämmer inte med rollmappningen). De gäller befintlig data och påverkas inte av ändringen.
+- ACCESS-002 rättat samma dag via den kanoniska kommandovägen `canonical_change_tenant_user_access` (aktör plattformsadmin, idempotensnycklar `access002-repair-20261023-*`, med audit- och domänhändelser):
+  - Test bolag: medlemskapet `c24b8f45` hade `membership_role` `admin`. Det ändrades till den kanoniska `company_admin`, och behörigheterna är oförändrade.
+  - Gridex El AB: medlemskapet `5fdaa1b6` har bolagets enda ägare. Där fick `role_key` och RBAC-rollen värdet `owner`, så att de stämmer med ägarskapet. `owner` och `company_admin` har identiska behörigheter.
+  - Efterkontroll: ACCESS-002 och ACCESS-003 har 0 fynd, och Gridex El AB har fortfarande exakt en ägare. En ny revision (återställd) gav 0 fynd.
 
 ## Hur en installation går till
 
