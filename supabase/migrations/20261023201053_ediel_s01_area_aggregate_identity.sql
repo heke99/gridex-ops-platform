@@ -1,3 +1,4 @@
+BEGIN;
 -- Narrow source-only L359 area owner. Swedish UTILTS25-A-5 p54/56/81;
 -- current TSP20260928.xls Document2702 Tidsserieprodukter row21 / OT row85,
 -- SHA256 53034f2fd3de416a84f755b454fc72378930126446909cee5eae968111db816b.
@@ -639,3 +640,4 @@ BEGIN
    AND (pg_get_userbyid(p.proowner)<>'postgres' OR a.grantee<>p.proowner)) THEN
   RAISE EXCEPTION 'utilts_s01_area_private_helper_acl_changed';END IF;
 END $postconditions$;
+COMMIT;

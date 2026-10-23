@@ -96,7 +96,41 @@ async function denied(operation: () => Promise<unknown>, message: string) {
   finally { await db.exec('rollback to savepoint negative_case; release savepoint negative_case') }
   expect(await effects()).toEqual(before)
 }
-async function forward() { await db.exec('begin'); await db.exec(readFileSync(migrationPath,'utf8')) }
+// Existing effect tests own a rollback transaction. Remove only the exact
+// installer's outer transaction envelope, preserving every body and guard.
+function migrationBody() {
+  const match=/^BEGIN;\n([\s\S]*)\nCOMMIT;\s*$/.exec(readFileSync(migrationPath,'utf8'))
+  if (!match) throw Error('Unqualified migration transaction envelope')
+  return match[1]
+}
+// Split only at top-level SQL semicolons. Calling db.exec separately for each
+// statement reproduces psql autocommit; one multi-statement exec would hide it.
+function migrationStatements(sql: string) {
+  const statements: string[]=[]
+  let start=0,quote='',lineComment=false,blockDepth=0
+  for (let i=0;i<sql.length;i++) {
+    const ch=sql[i],next=sql[i+1]
+    if (lineComment) { if (ch==='\n') lineComment=false;continue }
+    if (blockDepth) {
+      if (ch==='/'&&next==='*') {blockDepth++;i++}
+      else if (ch==='*'&&next==='/') {blockDepth--;i++}
+      continue
+    }
+    if (quote) {
+      if (quote.startsWith('$')) {if (sql.startsWith(quote,i)) {i+=quote.length-1;quote=''}}
+      else if (ch===quote) {if (next===quote)i++;else quote=''}
+      continue
+    }
+    if (ch==='-'&&next==='-') {lineComment=true;i++;continue}
+    if (ch==='/'&&next==='*') {blockDepth=1;i++;continue}
+    if (ch==="'"||ch==='"') {quote=ch;continue}
+    if (ch==='$') {const tag=/^\$(?:[A-Za-z_][A-Za-z0-9_]*)?\$/.exec(sql.slice(i));if (tag) {quote=tag[0];i+=quote.length-1;continue}}
+    if (ch===';') {statements.push(sql.slice(start,i+1));start=i+1}
+  }
+  if (quote||blockDepth||sql.slice(start).trim()) throw Error('Unterminated migration statement')
+  return statements
+}
+async function forward() { await db.exec('begin'); await db.exec(migrationBody()) }
 async function publicPersist(raw = wire(), transactions: unknown[] = [item()], sid = source, code = 'S01') {
   await db.exec('set local role service_role')
   const answer = (await db.query<{result: Record<string, unknown>[]}>(`select public.gridex_persist_utilts_consumption_v1($1,'test',$2,$3,$4,$5::jsonb,null) result`,[company,sid,code,raw,JSON.stringify(transactions)])).rows[0].result
@@ -147,7 +181,7 @@ describe('actual SQL source-only L359 area persistence', () => {
     await seed()
     await denied(() => persist(), 'utilts_consumption_identity_unsupported')
     expect(await effects()).toEqual({receipts:0,acks:0,series:0,values:0,contracts:0})
-    if (existsSync(migrationPath)) await db.exec(readFileSync(migrationPath,'utf8'))
+    if (existsSync(migrationPath)) await db.exec(migrationBody())
     const result = await persist()
     expect(result[0].persistenceStatus).toBe('persisted')
     const series = (await db.query<Record<string, unknown>>('select * from public.meter_reading_series')).rows[0]
@@ -227,7 +261,7 @@ describe('actual SQL source-only L359 area persistence', () => {
     pointItem.externalMeteringPointId='POINT'
     await seed(pointRaw)
     const old = await persist(pointRaw,[pointItem])
-    await db.exec(readFileSync(migrationPath,'utf8'))
+    await db.exec(migrationBody())
     expect((await persist(pointRaw,[pointItem]))[0]).toEqual(expect.objectContaining({idempotentReplay:true,seriesId:old[0].seriesId}))
     const fresh = '20000000-0000-4000-8000-000000000002';await seed(pointRaw,fresh)
     await denied(() => persist(pointRaw,[pointItem],fresh), 'utilts_consumption_identity_unsupported')
@@ -257,7 +291,7 @@ describe('actual SQL source-only L359 area persistence', () => {
     if (kind==='body') await db.exec(`create or replace function gridex_utilts_binding.stored_contract_v1(p_company uuid,p_source uuid,p_transaction text) returns jsonb language plpgsql set search_path to pg_catalog,public,extensions as $$begin return '{}'::jsonb;end$$`)
     if (kind==='owner ACL') await db.exec('grant execute on function gridex_utilts_binding.stored_contract_v1(uuid,uuid,text) to service_role')
     if (kind==='search path') await db.exec('alter function gridex_utilts_binding.stored_contract_v1(uuid,uuid,text) set search_path to public')
-    await denied(() => db.exec(readFileSync(migrationPath,'utf8')), 'utilts_s01_area_predecessor_unqualified')
+    await denied(() => db.exec(migrationBody()), 'utilts_s01_area_predecessor_unqualified')
     expect((await db.query<Record<string, unknown>>(`select to_regprocedure('gridex_utilts_binding.s01_l359_area_identity_v1(jsonb,text)') result`)).rows[0].result).toBeNull()
   })
   it('rolls back actual first-sibling writes when a later durable write fails', async () => {
@@ -330,5 +364,49 @@ describe('actual SQL source-only L359 area persistence', () => {
     await denied(() => publicPersist(raw,[supplied]), 'utilts_consumption_identity_unsupported')
     expect(await effects()).toEqual({receipts:0,acks:0,series:0,values:0,contracts:0})
   })
+
+  it('installs under genuine statement-by-statement autocommit and commits the qualified owner', async () => {
+    const shared=db
+    await boot()
+    const installation=db
+    try {
+      const statements=migrationStatements(readFileSync(migrationPath,'utf8'))
+      for (const statement of statements) await installation.exec(statement)
+      expect((await installation.query<{temporary:unknown}>(`select to_regclass('pg_temp.s01_area_owner_profiles') temporary`)).rows[0].temporary).toBeNull()
+      // Installation has committed; the separate API exercise uses its usual
+      // service-role transaction without enclosing the installer itself.
+      await installation.exec('begin')
+      await seed()
+      expect((await publicPersist())[0]).toEqual(expect.objectContaining({persistenceStatus:'persisted',versionState:'current'}))
+      expect(await effects()).toEqual({receipts:1,acks:1,series:1,values:1,contracts:1})
+    } finally {
+      db=shared
+      await installation.close()
+    }
+  },30_000)
+
+  it('rolls an unqualified autocommit installation back without changing owners or leaving helpers', async () => {
+    const shared=db
+    await boot()
+    const installation=db
+    try {
+      await installation.exec('alter function gridex_utilts_binding.stored_contract_v1(uuid,uuid,text) set search_path to public')
+      const profiles=async () => (await installation.query<{profiles:unknown}>(`select jsonb_agg(to_jsonb(p) order by oid) profiles from pg_proc p
+        where oid in ('gridex_utilts_binding.persist_consumption_before_precision_v1(uuid,text,uuid,text,text,jsonb)'::regprocedure,'gridex_utilts_binding.stored_contract_v1(uuid,uuid,text)'::regprocedure)`)).rows[0].profiles
+      const before=await profiles()
+      await expect((async () => {
+        for (const statement of migrationStatements(readFileSync(migrationPath,'utf8'))) await installation.exec(statement)
+      })()).rejects.toThrow('utilts_s01_area_predecessor_unqualified')
+      // psql ON_ERROR_STOP leaves this transaction aborted; connection close
+      // rolls it back. Issue that rollback explicitly to inspect its effects.
+      await installation.exec('rollback')
+      expect(await profiles()).toEqual(before)
+      expect((await installation.query<{temporary:unknown}>(`select to_regclass('pg_temp.s01_area_owner_profiles') temporary`)).rows[0].temporary).toBeNull()
+      expect((await installation.query<{count:number}>(`select count(*)::integer count from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='gridex_utilts_binding' and p.proname in ('s01_l359_area_identity_v1','s01_l359_item_matches_v1','require_s01_l359_basis_v1')`)).rows[0].count).toBe(0)
+    } finally {
+      db=shared
+      await installation.close()
+    }
+  },30_000)
 
 })
