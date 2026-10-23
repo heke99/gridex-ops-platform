@@ -2209,6 +2209,10 @@ Gäller F113:s sidofynd 1 och 2.
   - Med flera tenants eller en blockerad tenant passeras ACK-fristen (`EXPECTED_ACK_SLA_MINUTES` = 30) för motpartens förväntan.
   - Testspårets och produktionsspårets rader delar samma kö när `environment` inte anges.
 - **Förslag:** låt cron-körningen fortsätta inom en tidsbudget (till exempel 45 s) tills kön är tom, och claima rättvist per bolag (round-robin på `company_id`). Rader som säkert kommer att blockeras ska inte uppta platsen, eftersom avspärrade bolag redan nekas av `getTenantOperationDecision`.
+- **RÄTTAT (genomströmning):** `lib/ediel/outbox/drainEdielOutbox.ts`. Cron-routen `/api/ediel/outbox/process` hämtar nu satser om `limit` via samma claim- och sändväg, så alla sändspärrar är oförändrade. Den fortsätter tills kön är tom, eller till budgeten på 45 s eller 40 satser är slut. En sats som bara innehåller rader som redan hanterats i körningen avslutar körningen, så en rad som läggs tillbaka i kön prövas inte i en tät loop. `maxDuration` är 120.
+  - Routen för ett enskilt bolag och adminåtgärden är oförändrade.
+  - Test: `reality-p8-outbox-drain`, 6 av 6. Routetestet föll mot HEAD (25 i stället för 60). Utkorgens befintliga tester är gröna, `ediel-automation-foundation-regression` ok, tsc 0 fel, täckningen 352/352.
+  - **ÖPPET:** rättvis fördelning per bolag i `claim_ediel_outbox_items`, som är SQL och skulle kräva en migration. Med tömning per körning är den mindre akut.
 
 ### H3 längre ned i kedjan: slutfakturan efter Z05 prissätts aldrig ("Aktivt kundavtal saknas") — BEKRÄFTAD (kod), hög; RÄTTAD
 - **Bevis** med syntetiska data: leverans 1 augusti till Z05 1 oktober, och avtalet `terminated`/`supply_end`.

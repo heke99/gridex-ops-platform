@@ -1,11 +1,13 @@
 import { timingSafeEqual } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
-import { processEdielOutbox } from '@/lib/ediel/outbox/processEdielOutbox'
+import { drainEdielOutbox } from '@/lib/ediel/outbox/drainEdielOutbox'
 import { resolveConfiguredEdielAutomationActorId } from '@/lib/ediel/automationActor'
 import { recordCompanyCertifiedScopes } from '@/lib/ediel/companyCertifiedScopes'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+// The run drains the queue in batches for up to EDIEL_OUTBOX_DRAIN_BUDGET_MS (FINDINGS P8).
+export const maxDuration = 120
 
 type EdielEnvironment = 'test' | 'production'
 
@@ -91,9 +93,9 @@ async function runOutboxProcessor(request: NextRequest, body: Record<string, unk
   }
 
   try {
-    const result = await processEdielOutbox({
+    // Batches of `limit` until the queue is drained or the time budget is spent, not one batch per run (FINDINGS P8).
+    const result = await drainEdielOutbox({
       actorUserId,
-      companyId: null,
       environment,
       limit,
     })
