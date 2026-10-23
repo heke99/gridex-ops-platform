@@ -1737,6 +1737,46 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
 - **Orsak (delvis):** `ediel_create_outbound_ack_atomic_v1` tar i snitt 2,6 sekunder och upp till 8 (P1). Under last ger det statement timeout, och inget försöker skapa den missade CONTRL:en igen.
 - **Konsekvens:** nätägaren får inte de tekniska kvittenser Ediel kräver. I produktion leder det till omsändningar, eskalering och avtalsbrott mot motparten.
 
+- **F106 del A RÄTTAD 2026-10-23 (agent + granskning):**
+  - **Fördelning** av de 123 E66: 63 fick en skickad CONTRL, 18 ett utkast som aldrig köades (16 på grund av timeout, 2 läsfel) och 42 ingen CONTRL alls (41 timeout, 1 läsfel).
+  - **(a) Timeout förlorar kvittensen för alltid:**
+    - Det tekniska steget i `processInboundEdielMessage` fångar felet och skriver bara en notering. Meddelandet slutar ändå som `parsed` eller `validated`.
+    - Ingenting tar upp det igen: jobbet är klart, F103 väljer bara `received`, och någon sopare finns inte.
+    - Andra försöket (UTILTS-runtime) gick också i timeout. Världens app körde kod från före F103, så felet hamnade bara i körningsmetadata.
+  - **(b) De 18 utkasten:** efter det första felet skapade `createUtiltsRuntimeAcks` → `createAckIfMissing` (`utiltsDataRequest.part-1.ts`) en CONTRL, men den vägen anropar aldrig `createOutboxItem`. En skickad CONTRL har händelserna `created` → `queued` → `sent`, ett utkast bara `created`.
+  - **(c) `ediel_existing_ack_original_read_unavailable`** är samma timeout i lässteget. `formatErrorMessage` tappar orsaken (57014).
+  - **(d) `requires_contrl=t` på inkommande CONTRL är vårt eget fel, inte simulatorns:**
+    - Insert-vägen i `canonicalInboundAckStatusUpdater.ts` sätter aldrig fältet, så standardvärdet true gäller. Samma klass som F102.
+    - Ingen CONTRL planeras dock för en CONTRL: steget hoppas över, och 0 sådana rader finns.
+    - Inte rättat eftersom filen var under arbete av del B. ÖPPEN, låg.
+  - **Mätning:**
+    - PostgREST har `statement_timeout=8s` och `lock_timeout=8s`, vilket förklarar maxtiderna på cirka 8 sekunder.
+    - Varje läsning och skapande av kvittens tar tabellås som serialiserar alla tenanter, bland annat `LOCK ediel_messages IN SHARE ROW EXCLUSIVE` och SHARE-lås på ungefär 40 tabeller.
+    - Inuti låsen skannar `gridex_ediel_technical_ack.retained_source_v1` tenantens alla tekniska källor. Förfiltret släpper igenom varje nyttolast med `?`, och alla E66 har `DTM+735:?+0200`. Därför tolkades 123 av 131 källor tecken för tecken (cirka 4 ms vardera) och låstes FOR SHARE, 3–4 gånger per CONTRL.
+  - **Rättningar:**
+    1. **`missedTechnicalAckResume.ts`** körs i den inkommande cron-körningen med samma flagga som F103.
+       - Den tar bara källor som har noteringen "CONTRL skapades inte", per kanal och tenant, med väntetid, tidsfönster, begränsning och högst 3 försök.
+       - En saknad CONTRL körs om i enbart det tekniska steget, efter compare-and-set.
+       - Ett okött utkast läggs i utkorgen som `prepared`, bara insert, efter en skyddad omläsning av originalet. Pekar originalet på ett annat svar avbryts det.
+    2. **`inboundProcessing.ts`:** det tekniska CONTRL-blocket är oförändrat utbrutet till `acknowledgeInboundTechnicalSyntax`, och den nya `resumeInboundTechnicalAck` använder det.
+    3. **Migration `20261023192000_ediel_retained_contrl_source_uci_index.sql`:**
+       - lägger loopens eget exakta villkor (UCI-referensen) i kandidatfrågan, så att det befintliga indexet används;
+       - mätt i sessionskopior: `retained_source_v1` 847 → 13,6 ms och `read_outbound_originals_v1` 858 → 54 ms med identisk utdata;
+       - 439 CONTRL kontrollerades, och 406 jämförda rader gav samma resultat;
+       - tabelllåsdesignen är orörd, eftersom den bär godkända garantier, men låsen hålls ungefär 20 gånger kortare tid;
+       - inte applicerad i världen.
+  - **Tester:**
+    - `reality-f106-missed-technical-ack-resume` och `reality-f106-technical-ack-resume-owner`, totalt 11. Motortesterna faller med den gamla filen.
+    - Agenten körde 55 relaterade filer med 920 tester. Typkontroll och eslint utan fel, täckningen 352 av 352 med 0 fallerande.
+    - Jag körde om F106a, F103, F104 och motortesterna: 29 av 29.
+  - **Sidofynd, ÖPPNA:**
+    1. **UTILTS-runtimens kvittenser köas aldrig:** senaste dygnet finns 49 produktions-CONTRL för E66 utan utkorgsrad, plus utkast i testkanalen (13 APERAK, 11 UTILTS_ERR, 12 CONTRL). Återupptagningen täcker bara källor med felnotering. Hög.
+    2. **Ack-fälten är fel:** `requires_contrl` kommer från standardvärdet på alla 54 inkommande CONTRL och 50 APERAK, och `contrl_status` på E66 förblir NULL även efter skickad CONTRL. Låg.
+    3. **Simulatorns kuvert:** E66 saknar 0031, medan Z04 och APERAK har den. Vi kvitterar ändå allt enligt den godkända ACK-01. Låg.
+    4. **Operatörens omkörning av inkommande UTILTS** föll 63 gånger (timeout och "Ingen aktiv communication_route hittades för ediel_ack") 11:10–11:11. Kopplat till F107 och del B.
+    5. **APERAK besvarad med APERAK:** 9 utgående APERAK köades som svar på inkommande APERAK i den syntetiska tenanten "Synthetic normal switch native" (testkanalen, 12:16–12:27). Den godkända ACK-05 förbjuder det. Hög, orsak ej verifierad.
+    6. **Radlås:** `retained_source_v1` låste varje kandidatrad FOR SHARE, vilket blockerar statusuppdateringar. Migrationen minskar det till den matchande raden.
+
 ### P1 Mätvärdeslagringen går med ungefär 70 värden i minuten; kvittenshanteringen dominerar databastiden — MÄTT (världen, körning 26), medel; ej åtgärdat
 - **Körning 26, F6c:** 126 värden lagrade 11:11 och 475 kl. 11:16, alltså ungefär 70 i minuten. 123 filer à 96 kvartsvärden tar då nästan 3 timmar för en enda kund med 4 anläggningar. I produktion med många kunder räcker det inte.
 - **`pg_stat_statements`:** ackumulerat sedan världen startade, alla körningar och native-tester. De dyraste efter total tid:

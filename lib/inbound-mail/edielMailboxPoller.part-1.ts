@@ -154,6 +154,7 @@ export type InboundEngineRunResult = {
     autoProcessedEdielMessages: number;
     autoProcessErrors: string[];
     strandedInboundResume?: { candidates: number; claimed: number; resumed: number; stillReceived: number; failed: number; exhausted: number } | null;
+    technicalAckResume?: { candidates: number; claimed: number; created: number; requeued: number; notApplicable: number; failed: number; exhausted: number } | null;
   };
   results: PollMailboxResult[];
 };

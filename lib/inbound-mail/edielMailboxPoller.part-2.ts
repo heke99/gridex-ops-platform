@@ -1322,6 +1322,7 @@ export async function logInboundPollRun(
       autoProcessedEdielMessages: result.debug.autoProcessedEdielMessages,
       autoProcessErrors: result.debug.autoProcessErrors,
       strandedInboundResume: result.debug.strandedInboundResume ?? null,
+      technicalAckResume: result.debug.technicalAckResume ?? null,
       pollOptions: {
         includeSeenRecent: result.results.some((item) =>
           Boolean(item.searchedSeenRecentSince),

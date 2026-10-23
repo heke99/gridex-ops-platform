@@ -931,6 +931,88 @@ async function hasRetainedPositiveZ02Protocol(actorUserId:string,source:EdielMes
   return true;
 }
 
+type InboundTechnicalAckResult = {
+  endpoint: boolean;
+  ack: EdielMessageRow | null;
+  /** The protected original already existed; nothing was persisted or queued. */
+  existing: boolean;
+  /** Set only for an accepted syntax with a qualified, matching CONTRL. */
+  acceptedCompanyId: string | null;
+};
+
+/** The technical CONTRL owner of one inbound non-CONTRL EDIFACT original: the
+ * transport endpoint, the recorded syntax decision and its captured evidence
+ * precede the canonical CONTRL gateway. Every step replays idempotently for the
+ * same original, so first processing and the missed-ACK resume (F106) share it. */
+async function acknowledgeInboundTechnicalSyntax(params: {
+  actorUserId: string;
+  message: EdielMessageRow;
+  syntax: ReturnType<typeof validateEdifactSyntax>;
+}): Promise<InboundTechnicalAckResult> {
+  const {actorUserId,message,syntax}=params;
+  const endpoint=await readEdielTechnicalSourceEndpoint(message.id,{actorUserId,phase:'prepare'});
+  if(!endpoint)return {endpoint:false,ack:null,existing:false,acceptedCompanyId:null};
+  if(endpoint.environment!==message.environment || endpoint.sourceHash!==createHash('sha256').update(message.raw_payload ?? '', 'utf8').digest('hex'))throw new Error('technical_source_wire_scope_mismatch');
+  try {
+    await assertEdielTenantActor({companyId:endpoint.companyId,actorUserId,permission:'communication.write'});
+  } catch(error) {
+    if(error instanceof EdielExecutionFailure && error.disposition.kind==='security_quarantine')throw error;
+    // A direct PostgREST permission error is trusted only at this actual
+    // actor-check stage; keep every other actor/read error unchanged.
+    if(error&&typeof error==='object'&&Object.getOwnPropertyDescriptor(error,'code')?.value==='42501')throw inboundActorRefusal(error);
+    throw error;
+  }
+  await recordEdielTechnicalSyntaxDecision({companyId:endpoint.companyId,sourceMessageId:message.id,sourceHash:endpoint.sourceHash,
+    syntaxDecision:syntax.ok?'accepted':'rejected',reasonCodes:syntax.issues.filter(issue=>issue.severity==='error').map(issue=>issue.code),execution:{actorUserId,phase:'prepare'}});
+  const capturedSyntax=await captureEdielTechnicalSyntaxAckEvidence(endpoint.companyId,message.id,{actorUserId,phase:'prepare'});
+  let protectedExistingTechnicalAck=false;
+  const technicalAck=await createAckIfMissing({actorUserId,sourceMessage:message,ackFamily:'CONTRL',outcome:syntax.ok?'positive':'negative',
+    onProtectedExisting:()=>{protectedExistingTechnicalAck=true;}});
+  const qualifiedSyntax=technicalSyntaxAckQualification({evidence:capturedSyntax,companyId:endpoint.companyId,
+    environment:endpoint.environment,sourceMessageId:message.id});
+  // Automatic test communication needs both the protected syntax owner
+  // and the actual freshly persisted or protected retained CONTRL. This
+  // local result never authorizes the separate business-source owner.
+  const accepted=syntax.ok && qualifiedSyntax?.syntaxDecision==='accepted' && qualifiedSyntax.sourceHash===endpoint.sourceHash
+    && technicalAck.company_id===endpoint.companyId && technicalAck.environment===endpoint.environment
+    && technicalAck.direction==='outbound' && technicalAck.message_family==='CONTRL'
+    && technicalAck.related_message_id===message.id && typeof technicalAck.raw_payload==='string' && technicalAck.raw_payload.length>0;
+  return {endpoint:true,ack:technicalAck,existing:protectedExistingTechnicalAck,acceptedCompanyId:accepted?endpoint.companyId:null};
+}
+
+export type InboundTechnicalAckResumeOutcome = 'created' | 'existing' | 'no_endpoint' | 'not_applicable';
+
+/**
+ * F106: re-runs only the technical CONTRL owner for one stored inbound source
+ * whose first attempt failed (e.g. a statement timeout). The source's business
+ * processing is not repeated. Scope is the claimed tenant and lane; a CONTRL
+ * source, a cancelled or non-EDIFACT original, or an unqualified grammar is
+ * never acknowledged here. Actor refusals propagate as in first processing.
+ */
+export async function resumeInboundTechnicalAck(params: {
+  actorUserId: string;
+  edielMessageId: string;
+  companyId: string;
+  environment: 'test' | 'production';
+}): Promise<{ outcome: InboundTechnicalAckResumeOutcome; ackMessageId: string | null }> {
+  const actorUserId = ensureActorUserId(params.actorUserId);
+  const message = await getEdielMessageById(params.edielMessageId, { companyId: params.companyId });
+  if (!message || message.company_id !== params.companyId || message.environment !== params.environment
+    || !shouldProcessInboundMessage(message) || message.message_family === 'CONTRL' || !message.raw_payload) {
+    return { outcome: 'not_applicable', ackMessageId: null };
+  }
+  const syntax=validateEdifactSyntax({...message,status:'received',syntax_check_status:'not_checked',validation_report:{},failure_reason:null});
+  if(syntax.grammarQualification==='unavailable')return { outcome: 'not_applicable', ackMessageId: null };
+  let technical: InboundTechnicalAckResult;
+  try {
+    technical = await acknowledgeInboundTechnicalSyntax({actorUserId,message,syntax});
+  } catch(error) {
+    throw technicalActorRefusal(error)??error;
+  }
+  if (!technical.endpoint || !technical.ack) return { outcome: 'no_endpoint', ackMessageId: null };
+  return { outcome: technical.existing ? 'existing' : 'created', ackMessageId: technical.ack.id };
+}
+
 export async function processInboundEdielMessage(params: {
   actorUserId: string;
   edielMessageId: string;
@@ -1008,37 +1090,10 @@ export async function processInboundEdielMessage(params: {
   }
   if(message.message_family!=='CONTRL') {
     try {
-      const endpoint=await readEdielTechnicalSourceEndpoint(message.id,{actorUserId,phase:'prepare'});
-      if(endpoint) {
-        if(endpoint.environment!==message.environment || endpoint.sourceHash!==createHash('sha256').update(message.raw_payload ?? '', 'utf8').digest('hex'))throw new Error('technical_source_wire_scope_mismatch');
-        try {
-          await assertEdielTenantActor({companyId:endpoint.companyId,actorUserId,permission:'communication.write'});
-        } catch(error) {
-          if(error instanceof EdielExecutionFailure && error.disposition.kind==='security_quarantine')throw error;
-          // A direct PostgREST permission error is trusted only at this actual
-          // actor-check stage; keep every other actor/read error unchanged.
-          if(error&&typeof error==='object'&&Object.getOwnPropertyDescriptor(error,'code')?.value==='42501')throw inboundActorRefusal(error);
-          throw error;
-        }
-        const syntax=selectedSyntax;
-        await recordEdielTechnicalSyntaxDecision({companyId:endpoint.companyId,sourceMessageId:message.id,sourceHash:endpoint.sourceHash,
-          syntaxDecision:syntax.ok?'accepted':'rejected',reasonCodes:syntax.issues.filter(issue=>issue.severity==='error').map(issue=>issue.code),execution:{actorUserId,phase:'prepare'}});
-        const capturedSyntax=await captureEdielTechnicalSyntaxAckEvidence(endpoint.companyId,message.id,{actorUserId,phase:'prepare'});
-        let protectedExistingTechnicalAck=false;
-        const technicalAck=await createAckIfMissing({actorUserId,sourceMessage:message,ackFamily:'CONTRL',outcome:syntax.ok?'positive':'negative',
-          onProtectedExisting:()=>{protectedExistingTechnicalAck=true;}});
-        const qualifiedSyntax=technicalSyntaxAckQualification({evidence:capturedSyntax,companyId:endpoint.companyId,
-          environment:endpoint.environment,sourceMessageId:message.id});
-        // Automatic test communication needs both the protected syntax owner
-        // and the actual freshly persisted or protected retained CONTRL. This
-        // local result never authorizes the separate business-source owner.
-        if(syntax.ok && qualifiedSyntax?.syntaxDecision==='accepted' && qualifiedSyntax.sourceHash===endpoint.sourceHash
-          && technicalAck.company_id===endpoint.companyId && technicalAck.environment===endpoint.environment
-          && technicalAck.direction==='outbound' && technicalAck.message_family==='CONTRL'
-          && technicalAck.related_message_id===message.id && typeof technicalAck.raw_payload==='string' && technicalAck.raw_payload.length>0) {
-          acceptedTechnicalAcknowledgementCompanyId=endpoint.companyId;
-          retainedAcceptedTechnicalAcknowledgement=protectedExistingTechnicalAck;
-        }
+      const technical=await acknowledgeInboundTechnicalSyntax({actorUserId,message,syntax:selectedSyntax});
+      if(technical.acceptedCompanyId) {
+        acceptedTechnicalAcknowledgementCompanyId=technical.acceptedCompanyId;
+        retainedAcceptedTechnicalAcknowledgement=technical.existing;
       }
     } catch(error) {
       const securityRefusal=technicalActorRefusal(error);

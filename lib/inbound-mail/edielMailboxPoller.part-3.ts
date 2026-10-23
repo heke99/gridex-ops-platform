@@ -8,6 +8,7 @@ import { createInboundOverdueTasks } from "@/lib/inbound-mail/inboundOverdueMoni
 
 
 import type { StrandedResumeResult } from "@/lib/inbound-mail/strandedInboundEdielResume"
+import type { MissedTechnicalAckResumeResult } from "@/lib/inbound-mail/missedTechnicalAckResume"
 import type { InboundEngineRunResult } from './edielMailboxPoller.part-1'
 import { NO_ACTIVE_EDIEL_MAILBOX_ERROR, envInt, listConfiguredEdielMailboxes, mailboxDebugItem, mailboxSkipReason, nowIso } from './edielMailboxPoller.part-1'
 import { ensureDiagnosticEdielMessagesForInboundEmails, listEdielMessageIdsForInboundEmails, listRecentParsedInboundEmailIds, logInboundPollRun, mapWithConcurrency, pollEdielMailbox, processQueuedInboundProcessingJobs } from './edielMailboxPoller.part-2'
@@ -189,6 +190,33 @@ export async function runInboundEdielMailEngine(
       autoProcessErrors.push(`stranded-resume: ${formatErrorMessage(error, "Okänt fel")}`);
     }
   }
+  // F106: a source past 'received' whose technical CONTRL failed (or was left an
+  // unqueued draft) is revisited by no other run; resume only that reply.
+  let technicalAckResume: MissedTechnicalAckResumeResult | null = null;
+  if (input.resumeStrandedInboundMessages && resumeEnvironment && input.actorUserId) {
+    try {
+      const { resumeMissedTechnicalAcks } = await import("@/lib/inbound-mail/missedTechnicalAckResume");
+      const actorUserId = input.actorUserId;
+      // Loaded only when a missed reply is actually claimed.
+      const resumeInboundTechnicalAck: typeof import("@/lib/ediel/flows/inboundProcessing").resumeInboundTechnicalAck = async (target) =>
+        (await import("@/lib/ediel/flows/inboundProcessing")).resumeInboundTechnicalAck(target);
+      technicalAckResume = await resumeMissedTechnicalAcks({
+        environment: resumeEnvironment,
+        companyId: input.companyId ?? null,
+        excludeIds: edielMessageIds,
+        actorUserId,
+        workerId,
+        limit: envInt("EDIEL_INBOUND_TECHNICAL_ACK_RESUME_LIMIT", 10),
+        graceMinutes: envInt("EDIEL_INBOUND_TECHNICAL_ACK_RESUME_GRACE_MINUTES", 10),
+        lookbackHours: envInt("EDIEL_INBOUND_TECHNICAL_ACK_RESUME_LOOKBACK_HOURS", 72),
+        maxAttempts: envInt("EDIEL_INBOUND_TECHNICAL_ACK_RESUME_MAX_ATTEMPTS", 3),
+        resumeTechnicalAck: (target) => resumeInboundTechnicalAck({ actorUserId, ...target }),
+      });
+      autoProcessErrors.push(...technicalAckResume.errors.map((error) => `technical-ack-resume ${error}`));
+    } catch (error) {
+      autoProcessErrors.push(`technical-ack-resume: ${formatErrorMessage(error, "Okänt fel")}`);
+    }
+  }
   let customerOperationJobs: { claimed: number; completed: number; needsReview: number; failed: number; errors: string[] } | null = null;
   try {
     const { processCustomerOperationJobs } = await import("@/lib/customer-operations/automation");
@@ -249,6 +277,11 @@ export async function runInboundEdielMailEngine(
       strandedInboundResume: strandedInboundResume
         ? { candidates: strandedInboundResume.candidates, claimed: strandedInboundResume.claimed, resumed: strandedInboundResume.resumed,
             stillReceived: strandedInboundResume.stillReceived, failed: strandedInboundResume.failed, exhausted: strandedInboundResume.exhausted }
+        : null,
+      technicalAckResume: technicalAckResume
+        ? { candidates: technicalAckResume.candidates, claimed: technicalAckResume.claimed, created: technicalAckResume.created,
+            requeued: technicalAckResume.requeued, notApplicable: technicalAckResume.notApplicable, failed: technicalAckResume.failed,
+            exhausted: technicalAckResume.exhausted }
         : null,
     },
     results,
