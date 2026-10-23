@@ -2243,6 +2243,12 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **D7:** kundkortets avslut avbryter uppgifter för slutfaktura och avgiftsgranskning och skapar ingen slutfaktura.
 - **D8:** regeln från H3 och H3b kräver att avtalets slut är lika med leveransens slut. Om avtal i framtiden ska löpa till uppsägningstidens slut nekas slutmånaden.
 - **D9–D13:** mindre fynd, se rapporten.
+- **ÄGARBESLUT 2026-10-23:**
+  - **B1:** vid flytt avslutas avtalet enligt uppsägningstiden, för alla kundtyper. Hänsyn ska tas till att en person eller ett företag kan säga upp sitt nätavtal. Då finns ingen elleverans, och leveransen och energidebiteringen upphör även om avtalets uppsägningstid löper vidare. Avtalets slut och leveransens slut kan alltså skilja sig, vilket påverkar D8.
+  - **B2:** avgiftsgranskning vid flytt inom bindningstid för alla kundtyper, både vid manuell flytt och vid Z05 LK. Operatören beslutar.
+  - **B3:** vid uppsägning utan flytt fortsätter leveransen tills en ny leverantör tar över, vilket kommer som Z05 från nätägaren. Har inget byte skett när uppsägningstiden har löpt ut skapas en operatörsuppgift att skicka avslut (Z08) till nätägaren.
+  - **B4:** den fasta månadsavgiften fördelas per dag med leverans i slutmånaden.
+  - **Öppen följdfråga:** ska fasta avgifter tas ut under uppsägningstid som löper efter att leveransen har upphört?
 - **Rätt i dag:**
   - Ingen dag faktureras efter slutet och ingen dubbelfaktureras.
   - Slutmånaden faktureras vid manuell flytt för leveranser som inte kom via Ediel.
