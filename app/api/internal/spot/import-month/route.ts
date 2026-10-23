@@ -1,19 +1,22 @@
 import { NextResponse } from 'next/server'
 import { internalApiError } from '@/lib/http/apiError'
-import { requireAdminApiAccess } from '@/lib/admin/apiGuards'
-import { requireOperationalCompanyId } from '@/lib/tenant/scope'
+import { requirePlatformAdminApiAccess } from '@/lib/admin/apiGuards'
 import { importSpotPricesForMonth } from '@/lib/pricing/spot/spotPriceImporter'
 import { isPriceArea, type PriceArea } from '@/lib/pricing/types'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+/**
+ * Spot prices are global market data per price area (no company_id), so only a
+ * platform admin may import them here; the nightly cron is the automatic path.
+ * No tenant scope is resolved: a platform admin needs no tenant membership.
+ */
 export async function POST(request: Request) {
-  const access = await requireAdminApiAccess(['pricing.write'])
+  const access = await requirePlatformAdminApiAccess(['pricing.write'])
   if (access.response) return access.response
 
   try {
-    await requireOperationalCompanyId(access.guard.userId)
     const body = await request.json().catch(() => ({})) as Record<string, unknown>
     const billingMonth = typeof body.billing_month === 'string' ? body.billing_month : typeof body.billingMonth === 'string' ? body.billingMonth : ''
     const rawAreas = Array.isArray(body.price_areas) ? body.price_areas : Array.isArray(body.priceAreas) ? body.priceAreas : undefined

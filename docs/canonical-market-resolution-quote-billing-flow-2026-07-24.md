@@ -26,7 +26,7 @@ Elpriset just nu
 
 `market_price_previews` innehåller endast indikativt underlag. En aktiv preview publiceras atomiskt genom `gridex_publish_market_price_preview`, har källa, period, as-of, stale-gräns, checksum och fallbackmetadata och kan aldrig markeras som settlement.
 
-`spot_price_monthly_summaries.status=locked` är det enda giltiga månatliga settlementunderlaget. Låsning sker explicit genom den behörighetskontrollerade operatörsrutten `POST /api/internal/spot/lock-month`, som anropar service-role-RPC `gridex_lock_spot_price_month` med `price_area`, `billing_month`, valfri `provider` och revisionsorsak. RPC:n tar ett distribuerat transaktionslås och verifierar full täckning innan audit-eventet `market_price.period.locked` skapas. Triggern `gridex_reject_locked_market_price_mutation` gör låsta perioder immutable. En låst historisk period blir inte stale.
+`spot_price_monthly_summaries.status=locked` är det enda giltiga månatliga settlementunderlaget. Låsning sker på två vägar, som båda anropar service-role-RPC `gridex_lock_spot_price_month`: automatiskt varje natt genom settlementcron (`/api/cron/pricing/spot-settlement`, orsak `monthly_settlement_cron`) och manuellt genom `POST /api/internal/spot/lock-month` med `price_area`, `billing_month`, valfri `provider` och revisionsorsak. Spotpris är global marknadsdata per elområde utan `company_id`. Därför får endast plattformsadmin (databasens `is_platform_admin`) importera och låsa manuellt, utan krav på tenantmedlemskap. Ingen tenantroll eller tenantbehörighet räcker (ägarbeslut 2026-10-23, F109). Tenanten väljer bara sin källa i `company_market_price_sources`. RPC:n registrerar aktör och orsak, tar ett distribuerat transaktionslås och verifierar full täckning innan audit-eventet `market_price.period.locked` skapas. Triggern `gridex_reject_locked_market_price_mutation` gör låsta perioder immutable. En låst historisk period blir inte stale.
 
 ## Importjobb
 
@@ -34,7 +34,7 @@ Elpriset just nu
 
 Providerklienten har timeout, begränsade retries, exponential backoff, jitter, `Retry-After`, content-type- och payloadvalidering. Dubbla croninstanser kan inte importera samma område/dygn samtidigt.
 
-Previewcron importerar senaste kompletta svenska dygn och återbygger rolling-30-days-preview. Settlementcron importerar/verifierar föregående fakturamånad men låser den inte automatiskt.
+Previewcron importerar senaste kompletta svenska dygn och återbygger rolling-30-days-preview. Settlementcron importerar/verifierar föregående fakturamånad och låser den sedan per elområde (`monthly_settlement_cron`). Ett ofullständigt elområde blockerar inte låsningen av de övriga.
 
 ## SVK-geometri och atomisk publicering
 

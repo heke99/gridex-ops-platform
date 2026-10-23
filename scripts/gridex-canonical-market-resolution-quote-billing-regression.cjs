@@ -37,7 +37,8 @@ excludes('lib/pricing/spot/spotPriceImporter.ts', ["intervals.length > 0 ? 'comp
 includes('lib/pricing/priceSourceResolver.ts', ["purpose === \"quote_preview\"", ".eq(\"status\", \"locked\")", 'market_price_previews'], 'Preview och settlement ska använda separata datakällor')
 includes('lib/pricing/marketPriceSources.ts', ["row.status !== 'locked'", 'is_indicative'], 'Settlementpolicy ska kräva locked och icke-indikativ data')
 includes('lib/pricing/spot/settlementLocker.ts', ['gridex_lock_spot_price_month'], 'Explicit settlement-lock wrapper ska finnas')
-includes('app/api/internal/spot/lock-month/route.ts', ["requireAdminApiAccess(['pricing.write'])", 'lockSpotSettlementMonth', 'market_price_incomplete'], 'Settlement ska låsas genom en explicit behörighetskontrollerad operatörsrutt')
+includes('app/api/internal/spot/lock-month/route.ts', ["requirePlatformAdminApiAccess(['pricing.write'])", 'lockSpotSettlementMonth', 'market_price_incomplete'], 'Manuell settlementlåsning av global spotdata ska kräva plattformsadmin (F109)')
+excludes('app/api/internal/spot/lock-month/route.ts', ['requireOperationalCompanyId'], 'Global spotdata får inte kräva tenantmedlemskap (F109)')
 includes('__tests__/spot-settlement-separation.test.ts', ['locked', 'is_indicative', "dataKind: 'settlement'"], 'Regression ska hindra preview/verified data som settlement')
 
 includes('lib/energy/resolutionBinding.ts', ['resolution_tenant_mismatch', 'resolution_expired', 'resolution_pricing_not_ready', 'resolution_quote_not_ready'], 'Resolution ska valideras tenantbundet, med expiry och automation-readiness')
@@ -57,7 +58,7 @@ includes('scripts/canonical-energy-flow-backfill.sql', ['never', 'canonical_ener
 includes('scripts/canonical-energy-flow-readiness.sql', ['begin transaction read only', 'quotes_without_canonical_resolution', 'stuck_spot_import_jobs'], 'Readiness-SQL ska vara read-only och täcka blockerare')
 
 includes('app/api/cron/pricing/spot-prices/route.ts', ['mode: \'preview\'', 'previousStockholmCalendarDate', 'importSpotPricesForDay'], 'Previewcron ska vara separat och importera senaste kompletta svenska dygn')
-includes('app/api/cron/pricing/spot-settlement/route.ts', ['lockSpotSettlementMonth', "mode: 'settlement_lock'", 'settlement_locked: true'], 'Settlementcron ska verifiera och låsa canonical månadssummering före billing')
+includes('app/api/cron/pricing/spot-settlement/route.ts', ['lockSpotSettlementMonth', "mode: 'settlement_lock'", 'settlement_locked: failedAreas.length === 0', "reason: 'monthly_settlement_cron'"], 'Settlementcron ska verifiera och låsa canonical månadssummering före billing')
 includes('app/api/internal/platform/grid-areas/import/cron/route.ts', ['ENERGY_GEODATA_MAX_AGE_DAYS', 'geodata_missing_or_stale'], 'SVK-cron ska starta ny import när verifierad geodata är gammal')
 includes('lib/energy/svkGeometryImport.ts', ['gridex_stage_energy_geodata_feature', 'gridex_promote_energy_geodata_version', 'geodataVersion'], 'SVK-sidor ska staginglagras och publiceras som en verifierad version')
 includes('supabase/migrations/20260724120000_canonical_market_resolution_quote_billing_flow.sql', ['energy_geodata_features_staging', 'geodata_version_id', 'gridex_promote_energy_geodata_version', 'is_active=false'], 'Geodata promotion ska byta aktiv polygonversion atomiskt och inaktivera borttagna features')

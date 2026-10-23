@@ -202,3 +202,22 @@ export async function requireAdminApiAccess(
 
   return { guard }
 }
+
+/**
+ * Global platform data without a tenant (spot market prices per price area):
+ * the same decision as `requirePlatformAdminActionAccess`, i.e. the database's
+ * authoritative `is_platform_admin`, never a tenant role or tenant permission.
+ * It still honours an explicit current DENY of the required permission, and it
+ * needs no tenant membership or selected company. Owner decision 2026-10-23
+ * (F109): only the platform and its cron import and lock spot prices.
+ */
+export async function requirePlatformAdminApiAccess(
+  requiredPermissions: string[] | PermissionRequirement = [],
+): Promise<ApiGuardResult> {
+  const access = await requireAdminApiAccess(requiredPermissions)
+  if (access.response) return access
+  if (access.guard.isPlatformAdmin !== true) {
+    return { response: jsonError('Endast plattformsadmin kan utföra den här åtgärden.', 403) }
+  }
+  return access
+}

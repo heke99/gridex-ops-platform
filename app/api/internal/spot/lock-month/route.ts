@@ -1,8 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { NextResponse } from 'next/server'
 import { internalApiError } from '@/lib/http/apiError'
-import { requireAdminApiAccess } from '@/lib/admin/apiGuards'
-import { requireOperationalCompanyId } from '@/lib/tenant/scope'
+import { requirePlatformAdminApiAccess } from '@/lib/admin/apiGuards'
 import { lockSpotSettlementMonth } from '@/lib/pricing/spot/settlementLocker'
 import { isPriceArea } from '@/lib/pricing/types'
 
@@ -24,18 +23,21 @@ function knownLockError(error: unknown): { status: number; errorCode: string; me
 }
 
 /**
- * Explicit operator action. Import and verification never lock settlement
- * automatically; this endpoint is the only supported HTTP transition to the
- * immutable monthly billing evidence.
+ * Manual platform-admin lock of one global price-area month. Import and preview
+ * never lock; locking turns verified evidence into immutable monthly billing
+ * evidence. The nightly `spot-settlement` cron also locks the previous month
+ * (reason `monthly_settlement_cron`); this route is the manual path. Spot prices
+ * have no company_id, so no tenant scope is resolved and no tenant role or
+ * tenant permission suffices (owner decision 2026-10-23, F109). The RPC records
+ * the actor and reason.
  */
 export async function POST(request: Request) {
   const correlationId = randomUUID()
-  const access = await requireAdminApiAccess(['pricing.write'])
-  if ('response' in access) return access.response
+  const access = await requirePlatformAdminApiAccess(['pricing.write'])
+  if (access.response) return access.response
   const guard = access.guard
 
   try {
-    await requireOperationalCompanyId(guard.userId)
     const body = await request.json().catch(() => ({})) as Record<string, unknown>
     const billingMonth = typeof body.billing_month === 'string' ? body.billing_month.trim() : typeof body.billingMonth === 'string' ? body.billingMonth.trim() : ''
     const priceArea = typeof body.price_area === 'string' ? body.price_area.trim().toUpperCase() : typeof body.priceArea === 'string' ? body.priceArea.trim().toUpperCase() : ''

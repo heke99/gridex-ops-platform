@@ -1901,6 +1901,19 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
 - **Sidofynd, ÖPPNA:**
   1. **Tenantbehörighet styr global data:** `/api/internal/spot/import-month` och `lock-month` låter vem som helst med tenantens `pricing.write` importera och låsa data som alla tenanter debiterar från. En `company_admin` kan därmed frysa en månad för alla tenanter, även före leverantörens rättelse. Samma import är plattformsexklusiv i UI:t. Hög. Kräver ägarbeslut eftersom det smalnar behörigheten.
      - **ÄGARBESLUT 2026-10-23 "Endast plattformen":** bara plattformsadmin och nattlig cron får importera och låsa spotpriser. Tenanter väljer fortfarande sin priskälla, och plattformsadmin behöver inget tenantmedlemskap. Implementeras av en agent (F109b).
+     - **RÄTTAD 2026-10-23 (F109b, agent + granskning):**
+       - **Vakt:** ny `requirePlatformAdminApiAccess` i `lib/admin/apiGuards.ts`. Den kräver databasens `is_platform_admin` och respekterar fortfarande uttryckliga nekanden.
+       - **Routerna:** `import-month` och `lock-month` använder den, och `requireOperationalCompanyId` är borttagen. En `company_admin` får nu 403, och en plattformsadmin utan medlemskap får 200 i stället för 500.
+       - **Databasen nekade redan:** provat i transaktioner som rullades tillbaka som en riktig tenant-`company_admin`. RLS nekar insert på alla `spot_price_*`-tabeller, update och delete påverkar 0 rader, och lås- och claim-RPC:erna är bara för `service_role`. Därför behövdes ingen migration.
+       - **Dokumentation och regression:** flödesdokumentet och kommentaren i `lock-month` är rättade, eftersom nattcronen låser. Regressionsskriptet är uppdaterat, inklusive en redan fallerande gammal kontroll av `settlement_locked`.
+       - **Tester:** `spot-month-routes-admin-context` 6 av 6, där 3 föll med de gamla routerna. Agenten körde 38 filer med 421 tester, och typkontrollen var utan fel. Täckningen 352 av 352 med 0 fallerande. Jag körde om 50 av 50 och regressionsskriptet med 37 kontroller.
+       - Sidofynd 2 och 3 nedan är därmed lösta.
+       - **Nya sidofynd, ÖPPNA:**
+         - (a) **Plattformsrouten:** `/api/platform/energy/import/spot-prices` ger 500 för en icke-plattformsadmin i stället för 403. Den ignorerar uttryckligt nekande, och `redirect('/login')` anropas i en route handler. Medel.
+         - (b) **Tenantdriven fyllnad:** tenantens prisförhandsvisning, omprissättning och debiteringsadaptern anropar `ensureSpotPricesForBillingMonth` (`lib/pricing/engine.ts:498`). Den fyller bara saknade dagar från leverantören, utan force och utan lås. Frågan är om det ryms i ägarbeslutet. Ska tas upp med ägaren.
+         - (c) **Anslutningstest:** tenantens knapp "testa anslutning" (`testMarketSourceConnectionAction`) läser `spot_price_intervals` med tenantens session, men läsningen är plattformsexklusiv. Knappen visar därför alltid "Ingen marknadsdata hittades". Medel.
+         - (d) **Grants:** `authenticated`, och `anon` på vissa spottabeller och vyer, har fulla tabellprivilegier inklusive TRUNCATE. Plattformsadmin kan skriva spottabellerna direkt via PostgREST och förbi importens validering. Flera policyer har verkningslösa villkor. Låg.
+         - (e) **Typmanifest:** `scripts/supabase-types-manifest.json` har sedan tidigare inaktuella hashar. Låg.
   2. **Plattformsadmin utan medlemskap** får 500 `spot_import_failed` på grund av `requireOperationalCompanyId`, fast datan är global. Medel.
   3. **Inaktuell dokumentation:** dokumentet säger att settlement-cron "låser den inte automatiskt", men den låser (`monthly_settlement_cron`). Kommentaren i `lock-month` är också fel. Låg.
   4. **Två behörighetsmodeller:** `gridex_get_user_permissions_in_company` (RLS) räknar fortfarande direkta allow-rader. Adminkontexten och `canonical_actor_is_authorized` gör det inte. Fixturadminen får true i RLS men ingen API-åtkomst. Medel.
