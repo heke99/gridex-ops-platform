@@ -1440,6 +1440,26 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
 - **E66, med F98:** nätägarens 25 E66 fick egna CONTRL (`draft`, sedan köade). Kvittensrouten för UTILTS hittas alltså nu.
 - **Z01 står kvar som `queued`:** F90 gör att certifieringen per meddelandetyp bara kan gälla en typ åt gången, och Z03 hade förtur. Det blockerar inte bytet.
 
+### F100 Produktionsprofiler för UTILTS (och kvittenser till UTILTS) får `encryption_mode='none'`, men produktion kräver S/MIME för alla familjer — BEKRÄFTAD (världen + produktion), kritisk; RÄTTAD (kod + migration)
+- **Utfall (körning 21):** 25 CONTRL till nätägarens E66 spärrades i utkorgen med `production_smime_required`. Kvittensprofilen för PRODAT hade `smime` och ett certifikat, men de sex profilerna för UTILTS hade `none`.
+- **Orsak:**
+  - `evaluateProductionTransportSecurity` (`lib/ediel/config.ts`) kräver S/MIME för varje familj i produktion.
+  - Registermaterialiseraren och kvittensmaterialiseraren skrev ändå `smime` bara för PRODAT, och `none` för allt annat.
+- **Produktion (summering, bara läsning):**
+  - alla 174 aktiva UTILTS-profiler i produktion har `encryption_mode='none'`, så varje UTILTS i produktion spärras;
+  - 175 profiler totalt saknar kryptering;
+  - bara 2 av 177 PRODAT-profiler har ett bundet certifikat.
+- **Rättning:**
+  - Båda materialiserarna skriver `smime` för alla familjer i produktionskanalen. Testkanalen är oförändrad.
+  - Beredskapskontrollen binder sedan mottagarcertifikatet, vilket F96 gör möjligt.
+  - Migrationen `20261023130000_ediel_production_route_profiles_smime.sql` rättar befintliga aktiva produktionsprofiler som saknar kryptering, med markeringen `f100_encryption_from`. Profiler med ett beslutat klartextundantag lämnas orörda.
+  - Ingen spärr lättas: en okrypterad profil kunde aldrig skicka, och en S/MIME-profil kräver fortfarande ett giltigt certifikat.
+- **Rader:** 175 i produktionen och 6 i världen.
+- **Kontroller:**
+  - F92/F98-testet 2 av 2;
+  - materialiserarens tester 54 av 54 (en körning under belastning gav 13 tidsrelaterade fel, och två omkörningar var gröna);
+  - typkontroll och eslint utan fel.
+
 ### F99 Indexet från min prestandarättning anropar `wire_v1`, som bara `postgres` får köra, så service-rollens uppdateringar av utgående CONTRL fallerar ibland med 42501 — BEKRÄFTAD (världen), hög; regression från denna gren (inte main, inte produktion); rättning pågår
 - **Utfall (körning 21):** en CONTRL skickades via SMTP. Utkorgens efterföljande uppdatering av `ediel_messages` fick ändå `permission denied for function wire_v1`, och posten blev `delivery_uncertain: ediel_smtp_uncertain_cause:42501`.
 - **Orsak:**

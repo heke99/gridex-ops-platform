@@ -321,8 +321,9 @@ export async function ensureGridOwnerTechnicalAckRoutes(params: {
         smtp_port: smtp.port,
         transport_profile_id: null,
         transport_type: "smtp",
-        // The replies travel like the grid owner's business traffic of the family.
-        encryption_mode: family === "PRODAT" ? "smime" : "none",
+        // Production replies are S/MIME for every family, like all production Ediel transport
+        // (production_smime_required; FINDINGS F100); readiness binds the receiver certificate.
+        encryption_mode: params.route.environment === "production" || family === "PRODAT" ? "smime" : "none",
         is_active: true,
         is_enabled: true,
         metadata: { ...record(stale?.profile.metadata), ...tag, sender_settings_id: params.senderSettings.id },

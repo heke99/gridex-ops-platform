@@ -477,7 +477,9 @@ export async function upsertRouteProfile(params: {
     message_code: params.messageCode,
     default_message_version: isAiList ? canonicalAiListProfile().technicalVersion : params.messageFamily === "PRODAT" ? "26A" : null,
     mailbox: null,
-    encryption_mode: params.messageFamily === "PRODAT" ? "smime" : "none",
+    // Production Ediel transport is S/MIME for every family (evaluateProductionTransportSecurity,
+    // production_smime_required; FINDINGS F100); readiness then binds the receiver certificate.
+    encryption_mode: params.route.environment === "production" || params.messageFamily === "PRODAT" ? "smime" : "none",
     transport_type: "smtp",
     ack_policy: ackMode,
     is_active: true,
