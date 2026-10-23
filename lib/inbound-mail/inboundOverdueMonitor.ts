@@ -35,6 +35,8 @@ async function createOverdueTask(input: {
   description: string
   sourceId: string
   metadata: Record<string, unknown>
+  /** The status the watch read. The flag is written only while the request still has it (F105). */
+  expectedStatus?: string | null
 }): Promise<boolean> {
   const exists = await openTaskExists({ companyId: input.companyId, taskType: input.taskType, sourceId: input.sourceId })
   if (exists) return false
@@ -57,14 +59,20 @@ async function createOverdueTask(input: {
     return false
   }
 
-  await supabaseService
+  // A Z04/ACK received between the watch's read and this write keeps its status; the task already records the alarm.
+  const flag = supabaseService
     .from('outbound_requests')
     .update({ status: 'waiting_attention', updated_at: nowIso(), failure_reason: input.title })
     .eq('id', input.sourceId)
     .eq('company_id', input.companyId)
+  await (input.expectedStatus ? flag.eq('status', input.expectedStatus) : flag)
 
   return true
 }
+
+const WATCHED_OUTBOUND_COLUMNS = ['id', 'company_id', 'customer_id', 'site_id', 'metering_point_id', 'grid_owner_id', 'request_type', 'message_family', 'message_code', 'sent_at', 'status', 'external_reference'] as const
+/** Switch statuses that already carry the grid owner's Z04 answer or end the wait for it. */
+const Z04_SETTLED_SWITCH_STATUSES = ['accepted', 'confirmed', 'active', 'completed', 'failed', 'rejected', 'cancelled', 'cancelled_before_start']
 
 export async function createInboundOverdueTasks(input: {
   ackDeadlineMinutes?: number
@@ -113,6 +121,7 @@ export async function createInboundOverdueTasks(input: {
         description: `Utskick ${sourceId} har varit skickat längre än ${ackDeadline} minuter utan säker inbound-kvittens.`,
         sourceId,
         metadata: { monitor: 'ack_overdue', checkedAt: now, outboundRequest: row },
+        expectedStatus: typeof row.status === 'string' ? row.status : null,
       })
       if (created) ackOverdue += 1
     }
@@ -120,17 +129,36 @@ export async function createInboundOverdueTasks(input: {
     console.warn('[inbound-overdue] Kunde inte läsa outbound ack overdue', ackError)
   }
 
-  const { data: z04Rows, error: z04Error } = await scopedOutboundRequests('id, company_id, customer_id, site_id, metering_point_id, grid_owner_id, request_type, message_family, message_code, sent_at, status, external_reference')
+  // '*' so the switch link (source_type/source_id) is read without naming columns the watch does not filter on.
+  const { data: z04Rows, error: z04Error } = await scopedOutboundRequests('*')
     .in('status', ['syntax_accepted', 'application_accepted', 'acknowledged'])
     .eq('message_code', 'Z03')
     .lt('acknowledged_at', z04Cutoff)
     .limit(limit)
 
   if (!z04Error) {
-    for (const row of (z04Rows ?? []) as unknown as Array<Record<string, unknown>>) {
+    for (const fullRow of (z04Rows ?? []) as unknown as Array<Record<string, unknown>>) {
+      const row = Object.fromEntries(WATCHED_OUTBOUND_COLUMNS.map((column) => [column, fullRow[column] ?? null]))
       const companyId = typeof row.company_id === 'string' ? row.company_id : null
       const sourceId = typeof row.id === 'string' ? row.id : null
       if (!companyId || !sourceId) continue
+      // F105: a Z03 whose switch already has the grid owner's Z04, or was settled otherwise, is not missing a Z04.
+      // Requests a late technical ACK moved back to 'acknowledged' before the monotonic rule existed stay silent.
+      const switchId = fullRow.source_type === 'supplier_switch_request' && typeof fullRow.source_id === 'string' ? fullRow.source_id : null
+      if (switchId) {
+        const { data: switchRow, error: switchError } = await supabaseService
+          .from('supplier_switch_requests')
+          .select('id, status, inbound_z04_message_id')
+          .eq('company_id', companyId)
+          .eq('id', switchId)
+          .maybeSingle()
+        if (switchError) {
+          console.warn('[inbound-overdue] Kunde inte läsa leverantörsbyte för Z04 overdue', switchError)
+          continue
+        }
+        const sw = switchRow as { status?: string | null; inbound_z04_message_id?: string | null } | null
+        if (sw && (sw.inbound_z04_message_id || Z04_SETTLED_SWITCH_STATUSES.includes(String(sw.status)))) continue
+      }
 
       const created = await createOverdueTask({
         companyId,
@@ -142,6 +170,7 @@ export async function createInboundOverdueTasks(input: {
         description: `Leverantörsbyte ${sourceId} har kvitterats tekniskt men saknar Z04 efter ${z04Deadline} minuter.`,
         sourceId,
         metadata: { monitor: 'z04_overdue', checkedAt: now, outboundRequest: row },
+        expectedStatus: typeof row.status === 'string' ? row.status : null,
       })
       if (created) z04Overdue += 1
     }
@@ -187,6 +216,7 @@ export async function createInboundOverdueTasks(input: {
         description: `Nätägaren har skickat Z04 för leverantörsbyte ${switchId}, men bekräftelsen kunde inte verkställas (till exempel ett annat startdatum än det begärda). Ingen leveransperiod finns och nätägaren har inte fått någon APERAK. Granska Z04 i Ediel-inkorgen och kontakta nätägaren.`,
         sourceId,
         metadata: { monitor: 'z04_unconfirmed', checkedAt: now, outboundRequestId: sourceId, supplierSwitchRequestId: switchId, switchStatus: sw.status ?? null },
+        expectedStatus: 'confirmed',
       })
       if (created) z04Overdue += 1
     }
@@ -216,6 +246,7 @@ export async function createInboundOverdueTasks(input: {
         description: `Mätvärdesåtkomst ${sourceId} har kvitterats tekniskt men saknar Z14 efter ${z14Deadline} minuter.`,
         sourceId,
         metadata: { monitor: 'z14_overdue', checkedAt: now, outboundRequest: row },
+        expectedStatus: typeof row.status === 'string' ? row.status : null,
       })
       if (created) z14Overdue += 1
     }

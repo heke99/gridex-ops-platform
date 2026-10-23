@@ -423,6 +423,8 @@ export async function updateOutboundRequestStatusAction(
     actorUserId: actor.id,
     outboundRequestId,
     status,
+    // An operator's explicit choice in the status form; automatic writers keep the monotonic rule (F105).
+    allowStatusRegression: true,
     externalReference: formValue(formData, 'external_reference') || null,
     failureReason: formValue(formData, 'failure_reason') || null,
     responsePayload: {

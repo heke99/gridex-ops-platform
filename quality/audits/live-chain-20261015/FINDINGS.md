@@ -1676,6 +1676,48 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
 - **Falskt positivt:** agenten trodde att täckningsskriptet avslutas med kod 0 trots fallerande tester. Skriptet gör `process.exit(1)` vid `--check` när problem finns, rad 118. Agenten läste sannolikt exit-koden från en pipe.
 - **F105:s pågående arbete:** F105-agentens ocommittade ändring i `lib/cis/db-outbound.ts` fick AT-Z01L-SUPPLIER och AT-Z01LK-SUPPLIER att falla (`unexpected_finite_port:update_field:outbound_requests:updated_at`). Agenten är informerad. Inget av det är committat.
 
+### F105 Bytesbegärans status `confirmed` från Z04 skrivs över med `acknowledged` av en senare kvittens — BEKRÄFTAD (världen + kod), hög; RÄTTAD
+- **Bevis:**
+  - Ingen statushistorik finns, så tidsstämplarna får tala. `updated_at` på alla fyra Z03-begäranden i körning 26 ligger 40–120 ms efter deras Z04, alltså skrivningen av `confirmed`.
+  - Sista dispatch-händelsen är "Outbound request uppdaterad till acknowledged" 10:06:04–05 med `acknowledgedVia = inbound_ediel_ack`.
+  - Med den gamla koden ger den riktiga vakten nästa dygn "Z04-svar saknas". J1-01 kan inte heller slå till, eftersom den bara tittar på `confirmed`.
+  - Ett native-test med egen tenant och riktigt intag och runtime återskapar regressionen.
+- **Orsak:**
+  - `updateOutboundRequestStatus` (`lib/cis/db-outbound.ts`) skrev vilken status som helst utan att se på den nuvarande.
+  - `inboundAckProcessing.ts:397` anropar den med `acknowledged`.
+  - Den godkända regeln P-11 förbjuder detta: "Sena kvittenser får inte backa ett giltigt affärstillstånd".
+- **Rättning:**
+  - `lib/cis/outboundStatusLattice.ts` är en gemensam regel. En utskicks- eller positiv kvittensstatus ersätter aldrig en avgjord status (`confirmed`, `business_response_received`, `completed`, avvisningar, `cancelled`). En senare teknisk status ersätter inte heller en flagga om uppmärksamhet efter kvittens, ett negativt kvitto eller ett senare tekniskt steg.
+  - **Statusskrivaren:** gör compare-and-set på den lästa statusen med omläsning, högst tre försök. Kvittensfakta (id:n, `acknowledged_at`, en dispatch-händelse) registreras även när statusen behålls. Operatörens formulär kan fortfarande backa uttryckligen (`allowStatusRegression`).
+  - **Intagets skrivare:** använder samma lista.
+  - **24-timmarsvakten för Z04:** hoppar över ett byte som redan har Z04 eller avgjord status.
+  - Ingen migration, eftersom den enda SQL-skrivaren bara flyttar `draft/queued/prepared` till `sent`.
+- **Rättade varianter:**
+  - en sen kvittens kunde återuppliva ett `cancelled` försök;
+  - Z02- och UTILTS-svar backade `business_response_received`;
+  - vid intaget suddade en positiv CONTRL ut en negativ APERAK och dess `failure_reason`;
+  - en CONTRL efter APERAK backade till `syntax_accepted`;
+  - samma regression för Z13 hade matat 24-timmarsvakten för Z14;
+  - lopp mellan intag och skrivare.
+- **Tester:**
+  - `reality-f105-outbound-status-monotonic` 37 av 37, där 15 föll med den gamla koden;
+  - native-testet faller på HEAD och passerar nu;
+  - 108 relaterade sviter, 1 599 tester;
+  - jag körde om F105, AT-Z01L/LK och F102: 55 av 55;
+  - typkontroll och eslint utan fel;
+  - täckningen 352 av 352 med 0 fallerande, kontrollerat i utdatatexten.
+- **Agentens första version bröt godkända tester:** den skrev `outbound_requests.updated_at`, vilket fick de godkända AT-Z01L-SUPPLIER och AT-Z01LK-SUPPLIER att falla (finite port). F104-agenten upptäckte det, och skrivningen togs bort innan commit.
+- **Sidofynd, ÖPPNA:**
+  1. **J1 native-baslinjen** faller i världen med en negativ APERAK, "ERC 42/214 Felaktigt Konstant för mätare". Samma 5 fel finns på oförändrad HEAD. Medel.
+  2. **Befintliga rader** i världen står kvar som `acknowledged`. Ingen bakåtfyllnad gjordes. Låg.
+  3. **SLA-timern backar:** på Z04 `0d5fbeb5` gick timern från resolved (10:28:49.47) till warning (10:28:49.54) och sedan critical. Hög, eftersom den ger falska larm.
+  4. **Sen negativ kvittens:** en sådan efter Z04 sätter fortfarande begäran till `failed` eller `application_rejected`. Bytet skyddas av P-11. Medel.
+  5. **Gap i intagets enkla filter:** det skyddar varken en flagga efter kvittens eller ett negativt `failed` mot en senare positiv CONTRL. Låg.
+  6. **Ingen pålitlig historik:** statusskrivaren uppdaterar aldrig `updated_at`, vilket den godkända Z01L-porten låser fast. Intagets och SQL:s statusskrivningar lämnar ingen dispatch-händelse. Medel.
+  7. **Typglapp:** TypeScript-typen för status har 6 värden medan datat använder ungefär 14, och databasen saknar check constraint. Medel.
+  8. **`acknowledged` är överlastat:** Z02- och UTILTS-skrivarna använder det för "affärssvar mottaget". Medel.
+  9. **Payload skrivs över:** när statusen hålls ersätts `response_payload` fortfarande av kvittensens nyttolast, som förut. Affärsuppgifter från Z04 i payloaden kan skrivas över. Låg, inte en regression.
+
 ### F106 Våra tekniska kvittenser till nätägaren går förlorade under last, och SLA-timrarna stängs inte — BEKRÄFTAD (världen, körning 26), kritisk för Ediel-efterlevnad; utreds
 - **Underlag** (skrivskyddat, tenant `7b53f121`, 12:40):
   - **E66:** 123 har tagits emot, och 81 har en utgående CONTRL (63 `sent`, 18 `draft`). 42 E66 från 10:51–11:09 har ingen CONTRL alls.

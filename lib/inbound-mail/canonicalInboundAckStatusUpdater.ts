@@ -6,6 +6,7 @@ import { inboundEdielTestFlag } from '@/lib/inbound-mail/inboundTestFlag'
 import type { InboundTenantResolution } from '@/lib/ediel/tenant/resolveInboundTenant'
 import { tenantResolutionForStorage } from '@/lib/ediel/tenant/resolveInboundTenant'
 import { supabaseService } from '@/lib/supabase/service'
+import { OUTBOUND_POSITIVE_CONTRL_GUARD_FILTER, OUTBOUND_SETTLED_STATUS_FILTER } from '@/lib/cis/outboundStatusLattice'
 
 function nowIso(): string {
   return new Date().toISOString()
@@ -184,7 +185,6 @@ async function persistInboundAck(input: {
   return id
 }
 
-export const OUTBOUND_BUSINESS_RESPONSE_STATUSES = '("confirmed","business_response_received")'
 
 async function updateOutboundAck(input: {
   companyId: string
@@ -214,8 +214,12 @@ async function updateOutboundAck(input: {
       updated_at: nowIso(),
     }).eq('company_id', input.companyId).eq('id', outboundRequestId)
     // A positive ACK arriving after the business response (e.g. Z04 before
-    // APERAK) completes only the ACK columns; it never rolls back the request.
-    await (negative ? request : request.not('status', 'in', OUTBOUND_BUSINESS_RESPONSE_STATUSES))
+    // APERAK), a rejection or a terminal decision completes only the ACK columns
+    // of the own original below; it never rolls back the request. A CONTRL
+    // processed after the APERAK keeps the application acceptance (F105).
+    await (negative ? request : request.not('status', 'in', classification.family === 'CONTRL'
+      ? OUTBOUND_POSITIVE_CONTRL_GUARD_FILTER
+      : OUTBOUND_SETTLED_STATUS_FILTER))
   } else if (input.outboundMatch.entityType === 'ediel_message') {
     outboundRequestId = typeof outbound.outbound_request_id === 'string' ? outbound.outbound_request_id : null
   }

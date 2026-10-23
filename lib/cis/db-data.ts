@@ -561,7 +561,8 @@ export async function syncGridOwnerDataRequestFromOutbound(input: {
     })
   }
 
-  if (outboundRequest.status === 'acknowledged') {
+  // A business response kept as the request's status by the monotonic rule (F105) is a received answer as well.
+  if (['acknowledged', 'business_response_received', 'confirmed', 'completed'].includes(String(outboundRequest.status))) {
     return updateGridOwnerDataRequestStatus({
       actorUserId: input.actorUserId,
       requestId: currentRow.id,

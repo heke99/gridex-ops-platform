@@ -1,6 +1,6 @@
 import {createAssignedProdatHeaderNegativeSource,observeAssignedProdatHeaderNegativeField} from '@/lib/inbound-mail/prodatAssignedHeaderRejectionIntake'
 import { classifyCanonicalInboundAck } from '@/lib/ediel/ack/inboundAckOutcome'
-import { OUTBOUND_BUSINESS_RESPONSE_STATUSES } from '@/lib/inbound-mail/canonicalInboundAckStatusUpdater'
+import { OUTBOUND_POSITIVE_CONTRL_GUARD_FILTER, OUTBOUND_SETTLED_STATUS_FILTER } from '@/lib/cis/outboundStatusLattice'
 import { buildInboundCanonicalIdentity, findInboundDuplicateByCanonicalIdentity } from '@/lib/ediel/core/dedupe'
 import { admitUnattributedTechnicalSource, recordInboundReception, requireFirstReception } from '@/lib/ediel/inbound/receptions'
 import { assertEdielTenantActor } from '@/lib/ediel/services/authorization'
@@ -1085,8 +1085,9 @@ export async function applySafeInboundStatusUpdate(input: {
         })
         .eq('id', input.outboundMatch.entityId)
         .eq('company_id', input.companyId)
-      // A positive ACK after the business response (e.g. Z04 first) never rolls the request back.
-      await (isNegative ? ackRequest : ackRequest.not('status', 'in', OUTBOUND_BUSINESS_RESPONSE_STATUSES))
+      // A positive ACK after the business response (e.g. Z04 first), a rejection or a terminal decision never rolls
+      // the request back; a CONTRL processed after the APERAK keeps the application acceptance (F105).
+      await (isNegative ? ackRequest : ackRequest.not('status', 'in', OUTBOUND_POSITIVE_CONTRL_GUARD_FILTER))
 
       await updateOutboundEdielAckState({ companyId: input.companyId, outboundRequestId: input.outboundMatch.entityId, parsed: input.parsed, inboundEdielMessageId, responsePayload })
       await updateBusinessStatusFromInbound({ companyId: input.companyId, parsed: input.parsed, outboundMatch: input.outboundMatch, meteringPointMatch: input.meteringPointMatch, inboundEdielMessageId, responsePayload, actorUserId: input.actorUserId ?? null })
@@ -1124,8 +1125,9 @@ export async function applySafeInboundStatusUpdate(input: {
         })
         .eq('id', input.outboundMatch.entityId)
         .eq('company_id', input.companyId)
-      // A positive ACK after the business response (e.g. Z04 first) never rolls the request back.
-      await (isNegative ? ackRequest : ackRequest.not('status', 'in', OUTBOUND_BUSINESS_RESPONSE_STATUSES))
+      // A positive ACK after the business response (e.g. Z04 first), a rejection or a terminal decision never rolls
+      // the request back (F105).
+      await (isNegative ? ackRequest : ackRequest.not('status', 'in', OUTBOUND_SETTLED_STATUS_FILTER))
 
       await updateOutboundEdielAckState({ companyId: input.companyId, outboundRequestId: input.outboundMatch.entityId, parsed: input.parsed, inboundEdielMessageId, responsePayload })
       await updateBusinessStatusFromInbound({ companyId: input.companyId, parsed: input.parsed, outboundMatch: input.outboundMatch, meteringPointMatch: input.meteringPointMatch, inboundEdielMessageId, responsePayload, actorUserId: input.actorUserId ?? null })

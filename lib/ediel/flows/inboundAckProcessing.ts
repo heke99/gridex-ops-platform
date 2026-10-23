@@ -313,6 +313,7 @@ async function ensureOutboundRequestHasSentTimestamp(params: {
     sentAtBackfilledSourceMessageId: params.sourceMessage.id,
   };
 
+  // Compare-and-set on the status that was read: a Z04 intake between the read and this write keeps its status (F105).
   const { data, error } = await supabaseService
     .from("outbound_requests")
     .update({
@@ -323,10 +324,16 @@ async function ensureOutboundRequestHasSentTimestamp(params: {
       updated_at: new Date().toISOString(),
     })
     .eq("id", params.outboundRequest.id)
+    .eq("status", params.outboundRequest.status)
     .select("*")
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
+  if (!data) {
+    const current = await getOutboundRequestById(params.outboundRequest.id);
+    if (!current) throw new Error("outbound_request_missing_during_ack_backfill");
+    return current;
+  }
 
   const updated = data as OutboundRequestRow;
 

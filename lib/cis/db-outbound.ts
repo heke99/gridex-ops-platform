@@ -14,6 +14,7 @@ import { decideCommunicationRoute, routeDecisionPayload } from '@/lib/routes/rou
 import type { BusinessProcess } from '@/lib/routes/routeDecisionTypes'
 import { requireCompanyOperationalForWrites } from '@/lib/tenant/governance'
 import { makeCustomerOperationBlocker } from '@/lib/customer-operations/blockers'
+import { resolveAutomaticOutboundStatus } from './outboundStatusLattice'
 import {
   buildBatchKey,
   buildContractPayload,
@@ -554,6 +555,72 @@ export async function listOutboundDispatchEventsByRequestIds(
   return (data ?? []) as OutboundDispatchEventRow[]
 }
 
+type OutboundStatusWriteSnapshot = {
+  attempts_count?: number | null
+  company_id?: string | null
+  status?: string | null
+  acknowledged_at?: string | null
+  response_payload?: Record<string, unknown> | null
+}
+
+async function readOutboundStatusWriteSnapshot(outboundRequestId: string): Promise<OutboundStatusWriteSnapshot | null> {
+  const existingQuery = await supabaseService
+    .from('outbound_requests')
+    .select('attempts_count, company_id, status, acknowledged_at, response_payload')
+    .eq('id', outboundRequestId)
+    .maybeSingle()
+
+  if (existingQuery.error) throw existingQuery.error
+  return (existingQuery.data as OutboundStatusWriteSnapshot | null) ?? null
+}
+
+// F105: a technical ACK or dispatch step that is received or processed after the request is settled (Z04
+// 'confirmed', a business response, a rejection, a terminal decision) keeps the settled status. The facts are still
+// recorded: the response payload (ACK ids), acknowledged_at when none is stored yet, and a dispatch event.
+async function recordHeldOutboundStatusFacts(input: {
+  actorUserId: string
+  outboundRequestId: string
+  proposedStatus: OutboundRequestStatus
+  heldStatus: string
+  holdReason: string
+  current: OutboundStatusWriteSnapshot
+  responsePayload?: Record<string, unknown>
+  now: string
+}): Promise<OutboundRequestRow> {
+  // Same written fields as the status write itself (no updated_at: approved finite ports pin this field set).
+  const facts: Record<string, unknown> = { updated_by: input.actorUserId }
+  if (input.responsePayload !== undefined) facts.response_payload = input.responsePayload
+  if (input.proposedStatus === 'acknowledged' && !input.current.acknowledged_at) facts.acknowledged_at = input.now
+
+  const { data, error } = await supabaseService
+    .from('outbound_requests')
+    .update(facts)
+    .eq('id', input.outboundRequestId)
+    .select('*')
+    .single()
+
+  if (error) throw error
+  const row = data as OutboundRequestRow
+
+  await createOutboundDispatchEvent({
+    actorUserId: input.actorUserId,
+    outboundRequestId: row.id,
+    eventType: input.proposedStatus === 'prepared' || input.proposedStatus === 'sent' || input.proposedStatus === 'acknowledged'
+      ? input.proposedStatus
+      : 'queued',
+    eventStatus: row.status,
+    message: `Outbound request behöll status ${row.status}; ${input.proposedStatus} registrerades utan att backa status.`,
+    payload: {
+      externalReference: row.external_reference ?? null,
+      proposedStatus: input.proposedStatus,
+      heldStatus: input.heldStatus,
+      holdReason: input.holdReason,
+    },
+  })
+
+  return row
+}
+
 export async function updateOutboundRequestStatus(input: {
   actorUserId: string
   outboundRequestId: string
@@ -561,57 +628,84 @@ export async function updateOutboundRequestStatus(input: {
   externalReference?: string | null
   failureReason?: string | null
   responsePayload?: Record<string, unknown>
+  /**
+   * Explicit operator transition (admin status form). Automatic writers never pass it: their dispatch and
+   * technical-ACK statuses never replace a settled status (lib/cis/outboundStatusLattice.ts, F105).
+   */
+  allowStatusRegression?: boolean
 }): Promise<OutboundRequestRow> {
   const now = new Date().toISOString()
 
-  const existingQuery = await supabaseService
-    .from('outbound_requests')
-    .select('attempts_count, company_id')
-    .eq('id', input.outboundRequestId)
-    .maybeSingle()
+  let existing = await readOutboundStatusWriteSnapshot(input.outboundRequestId)
 
-  if (existingQuery.error) throw existingQuery.error
-
-  const currentCompanyId = typeof existingQuery.data?.company_id === 'string' ? existingQuery.data.company_id : null
+  const currentCompanyId = typeof existing?.company_id === 'string' ? existing.company_id : null
 
   if (currentCompanyId && ['queued', 'prepared', 'sent'].includes(input.status)) {
     await requireCompanyOperationalForWrites(currentCompanyId)
   }
 
-  const currentAttempts =
-    typeof existingQuery.data?.attempts_count === 'number'
-      ? existingQuery.data.attempts_count
-      : 0
+  let row: OutboundRequestRow | null = null
+  // Compare-and-set on the status that was read: a concurrent writer (the Z04 intake) between the read and the
+  // write makes the update miss, and the decision is taken again on the new status.
+  for (let attempt = 0; attempt < 3 && !row; attempt += 1) {
+    if (attempt > 0) existing = await readOutboundStatusWriteSnapshot(input.outboundRequestId)
 
-  const payload: Record<string, unknown> = {
-    status: input.status,
-    external_reference: input.externalReference ?? null,
-    failure_reason: input.failureReason ?? null,
-    updated_by: input.actorUserId,
+    const resolution = input.allowStatusRegression
+      ? { held: false as const, status: input.status }
+      : resolveAutomaticOutboundStatus(existing, input.status)
+
+    if (resolution.held && existing) {
+      return recordHeldOutboundStatusFacts({
+        actorUserId: input.actorUserId,
+        outboundRequestId: input.outboundRequestId,
+        proposedStatus: input.status,
+        heldStatus: resolution.status,
+        holdReason: resolution.reason,
+        current: existing,
+        responsePayload: input.responsePayload,
+        now,
+      })
+    }
+
+    const currentAttempts =
+      typeof existing?.attempts_count === 'number'
+        ? existing.attempts_count
+        : 0
+
+    const payload: Record<string, unknown> = {
+      status: input.status,
+      external_reference: input.externalReference ?? null,
+      failure_reason: input.failureReason ?? null,
+      updated_by: input.actorUserId,
+    }
+
+    if (input.responsePayload !== undefined) {
+      payload.response_payload = input.responsePayload
+    }
+
+    if (input.status === 'prepared') payload.prepared_at = now
+    if (input.status === 'sent') {
+      payload.sent_at = now
+      payload.attempts_count = currentAttempts + 1
+    }
+    if (input.status === 'acknowledged') payload.acknowledged_at = now
+    if (input.status === 'failed') payload.failed_at = now
+
+    let update = supabaseService
+      .from('outbound_requests')
+      .update(payload)
+      .eq('id', input.outboundRequestId)
+    if (!input.allowStatusRegression && typeof existing?.status === 'string') update = update.eq('status', existing.status)
+
+    const { data, error } = existing && !input.allowStatusRegression
+      ? await update.select('*').maybeSingle()
+      : await update.select('*').single()
+
+    if (error) throw error
+    row = (data as OutboundRequestRow | null) ?? null
   }
 
-  if (input.responsePayload !== undefined) {
-    payload.response_payload = input.responsePayload
-  }
-
-  if (input.status === 'prepared') payload.prepared_at = now
-  if (input.status === 'sent') {
-    payload.sent_at = now
-    payload.attempts_count = currentAttempts + 1
-  }
-  if (input.status === 'acknowledged') payload.acknowledged_at = now
-  if (input.status === 'failed') payload.failed_at = now
-
-  const { data, error } = await supabaseService
-    .from('outbound_requests')
-    .update(payload)
-    .eq('id', input.outboundRequestId)
-    .select('*')
-    .single()
-
-  if (error) throw error
-
-  const row = data as OutboundRequestRow
+  if (!row) throw new Error('outbound_request_status_concurrently_changed')
 
   await createOutboundDispatchEvent({
     actorUserId: input.actorUserId,
