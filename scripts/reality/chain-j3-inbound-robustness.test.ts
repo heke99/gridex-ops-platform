@@ -25,6 +25,7 @@ import { brokenUna, crlfTerminated, productionIndicator, septemberMonthE66, trun
   withBom, withoutUnz, withReceiverSubaddress, wrongUntCount, type E66Input } from '../helpers/reality/inboundRobustWire'
 import { contrlReceivedByGridOwner, inboundOriginals, mailOutcomes, pollRunsSince, settled, sharedMailboxState, valuesSince,
   type MailOutcome } from '../helpers/reality/inboundRobustWorld'
+import { pollInboundMailLanes } from '../helpers/reality/world'
 import { composeMail, pdfBytes, sendRaw, singlePartMail, utf16, zipBytes, type FaultMail } from './simulators/mailFaults'
 
 const report: Record<string, unknown> = { scenario: 'J3 inbound Ediel robustness', startedAt: new Date().toISOString() }
@@ -149,10 +150,12 @@ describe.sequential('reality J3 — inbound Ediel robustness', () => {
     const deadline = Date.now() + 25 * 60_000
     const ids = mails.map(mail => mail.messageId)
     for (;;) {
-      const inbound = await cron('/api/internal/inbound-mail/cron?environment=test')
+      // Both lanes as the world runs them (production as Vercel polls it, then test). J3's mail goes to the test
+      // mailbox; the per-lane counts show where it was fetched.
+      const inbound = await pollInboundMailLanes()
       const outbox = await cron('/api/ediel/outbox/process')
-      runs.push({ at: new Date().toISOString(), inbound: inbound.status, outbox: outbox.status,
-        fetched: (inbound.body.result as Record<string, unknown> | undefined)?.fetchedMessages ?? null })
+      runs.push({ at: new Date().toISOString(), inbound: inbound.production.status, inboundTest: inbound.test.status, outbox: outbox.status,
+        fetched: inbound.fetchedMessages.total, fetchedByLane: { production: inbound.fetchedMessages.production, test: inbound.fetchedMessages.test } })
       expect(inbound.status, JSON.stringify(inbound.body).slice(0, 500)).toBe(200)
       outcomes = mailOutcomes(ids)
       if (outcomes.every(settled) || Date.now() > deadline) break

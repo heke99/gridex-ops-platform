@@ -9,6 +9,7 @@ import { calculateEarliestSwitchStartDate } from '@/lib/operations/switchStartDa
 import { evaluateSupplierSwitchSendWindow, loadSupplierSwitchPolicy } from '@/lib/operations/supplierSwitchScheduler'
 import { LIVE, approveIssuerHistoryGround, cron, gridOwnerSends, literal, sql, type AugustFacility, type LiveTenant } from '../live-chain-fixture'
 import { operatorSession, submitServerAction } from './operatorConsole'
+import { pollInboundMailLanes } from './world'
 import type { UtiltsFile } from './inboundUtilts'
 
 type Row = Record<string, unknown>
@@ -65,14 +66,14 @@ export const inboundUtilts = (companyId: string) => sql<InboundUtilts[]>(`SELECT
     'reference',coalesce(external_reference,interchange_reference,''),'status',status,'code',message_code,'meter',metering_point_id) ORDER BY created_at),'[]')
   FROM public.ediel_messages WHERE company_id=${literal(companyId)} AND direction='inbound' AND message_family='UTILTS'`)
 
-/** Like Vercel: the inbound mail cron, then the Ediel outbox (which sends our CONTRL), once a minute. */
+/** Like Vercel: the inbound mail cron (production lane, plus the test lane), then the Ediel outbox (which sends our CONTRL), once a minute. */
 export async function receiveUntil(done: () => boolean, minutes: number) {
   const runs: Row[] = []
   const deadline = Date.now() + minutes * 60_000
   for (;;) {
-    const inbound = await cron('/api/internal/inbound-mail/cron?environment=test')
+    const inbound = await pollInboundMailLanes()
     const outbox = await cron('/api/ediel/outbox/process')
-    runs.push({ at: new Date().toISOString(), inbound: inbound.status, outbox: outbox.status })
+    runs.push({ at: new Date().toISOString(), inbound: inbound.production.status, inboundTest: inbound.test.status, outbox: outbox.status })
     if (inbound.status !== 200) throw Error(`inbound_cron_failed:${inbound.status}:${JSON.stringify(inbound.body).slice(0, 500)}`)
     if (done() || Date.now() > deadline) break
     await pause(60_000)

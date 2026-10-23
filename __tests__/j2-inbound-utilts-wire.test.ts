@@ -10,6 +10,7 @@ import type { EdielMessageRow } from '@/lib/ediel/types'
 import { changedQuarters, correctedValues, hourlyFromQuarterValues, utiltsE31, utiltsE66 } from '../scripts/helpers/reality/inboundUtilts'
 import { dstDayProfile } from '../scripts/helpers/reality/dst'
 import { gs1 } from '../scripts/helpers/live-chain-wire'
+import { EdifactEnvelopeCodec } from '@/lib/ediel/core/edifactEnvelopeCodec'
 
 const message = (raw: string, code = 'E66') => ({ id: 'j2-wire', company_id: 'tenant', environment: 'test', direction: 'inbound', message_family: 'UTILTS', message_code: code,
   message_standard: 'edifact', raw_payload: raw, metering_point_id: code === 'E66' ? 'meter-j2' : null, business_match_status: 'matched', message_received_at: '2026-10-22T08:00:00Z', created_at: '2026-10-22T08:00:00Z', parsed_payload: {} }) as unknown as EdielMessageRow
@@ -60,5 +61,25 @@ describe('E31 for scenario J2', () => {
     expect(facts.transactions).toHaveLength(1)
     expect(facts.transactions[0].meterPointId ?? null).toBeNull()
     expect(file.values).toHaveLength(24)
+  })
+})
+
+describe('T13: J2 UTILTS files carry the lane of the tenant they are sent to', () => {
+  const day = '2026-09-10', values = dstDayProfile(day), notAfter = Date.parse('2026-09-12T00:00:00Z')
+  const e66 = (environment?: 'production' | 'test') => utiltsE66({ issuer: '16700', receiver: '70001', meterId: gs1('73599900000000001'), day, values, reference: 'JLANE1', notAfter, environment })
+  const e31 = (environment?: 'production' | 'test') => utiltsE31({ issuer: '16700', receiver: '70001', gridArea: 'ALS', day, hourlyKwh: hourlyFromQuarterValues(values), reference: 'JLANE2', notAfter, environment })
+  it('default and test: UNB 0035=1 (unchanged)', () => {
+    for (const file of [e66(), e66('test'), e31(), e31('test')]) expect(EdifactEnvelopeCodec.decode(file.edifact)).toMatchObject({ environment: 'test', testIndicator: '1' })
+    expect(e66().edifact).toBe(e66('test').edifact)
+    expect(e31().edifact).toBe(e31('test').edifact)
+  })
+  it("production: no test indicator, otherwise the same file, still accepted by the UTILTS runtime", () => {
+    for (const [production, test] of [[e66('production'), e66()], [e31('production'), e31()]]) {
+      expect(EdifactEnvelopeCodec.decode(production.edifact)).toMatchObject({ environment: 'production', testIndicator: null })
+      expect(production.edifact.replace(/(23-DDQ-E(?:66-T|31-S))'/, "$1++++1'")).toBe(test.edifact)
+    }
+    const runtime = runUtiltsRuntimeForMessage({ ...message(e66('production').edifact), environment: 'production' } as EdielMessageRow)
+    expect(runtime.validation.ok, JSON.stringify(runtime.validation.issues)).toBe(true)
+    expect(runtime.transactionDispositions).toMatchObject([{ disposition: 'accepted', responseType: 'positive_aperak' }])
   })
 })

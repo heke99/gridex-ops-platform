@@ -40,7 +40,7 @@ import { stockholmMonthBounds } from '@/lib/time/stockholm'
 import { LIVE, approveIssuerHistoryGround, augustSupplyCustomer, cron, gridOwnerSends, literal, sql, type AugustFacility, type LiveTenant } from '../helpers/live-chain-fixture'
 import { WEBSITE_ORIGIN } from '../helpers/reality/tenantWebsite'
 import { closeOperatorConsole, operatorSession, submitServerAction } from '../helpers/reality/operatorConsole'
-import { runOperationalCronSlot, type GridOwnerSim } from '../helpers/reality/world'
+import { pollInboundMailLanes, runOperationalCronSlot, type GridOwnerSim } from '../helpers/reality/world'
 import { GRID_AREA, GRID_OWNER_EDIEL_ID, goLiveAlsSupplier } from '../helpers/reality/goLiveAls'
 import { detectStuckStates } from '../helpers/reality/stuckDetector'
 import { registerUtiltsIssuer } from '../helpers/utiltsConsumptionParties'
@@ -96,26 +96,31 @@ function requireStep(flag: boolean, step: string, why: string, context: TestCont
   return context.skip()
 }
 
-/** The grid owner sends one Stockholm day as one UTILTS E66 mail over SMTPS, like its daily metering run. */
+/**
+ * The grid owner sends one Stockholm day as one UTILTS E66 mail over SMTPS, like its daily metering run. The tenant
+ * is live in production (goLiveAlsSupplier, Z03 environment 'production'), so the files are production interchanges
+ * and go to the production platform mailbox (FINDINGS T7).
+ */
 async function gridOwnerSendsDay(day: string, index: number) {
   const values = dstDayProfile(day, index, SCALE)
   const reference = `G${day.replaceAll('-', '').slice(2)}${GSRN.slice(-6)}`
-  const natural = dayE66({ issuer: GRID_OWNER_EDIEL_ID, receiver: tenant.supplierEdielId, meterId: GSRN, day, values, reference, framing: FRAMING })
-  const wire = dayE66({ issuer: GRID_OWNER_EDIEL_ID, receiver: tenant.supplierEdielId, meterId: GSRN, day, values, reference, framing: FRAMING, notAfter: Date.now() - 2 * 60_000 })
+  const natural = dayE66({ issuer: GRID_OWNER_EDIEL_ID, receiver: tenant.supplierEdielId, meterId: GSRN, day, values, reference, framing: FRAMING, environment: 'production' })
+  const wire = dayE66({ issuer: GRID_OWNER_EDIEL_ID, receiver: tenant.supplierEdielId, meterId: GSRN, day, values, reference, framing: FRAMING, notAfter: Date.now() - 2 * 60_000,
+    environment: 'production' })
   await gridOwnerSends({ from: gridOwner.email, subject: `UTILTS-E66 ${reference}`, filename: `UTILTS-E66_${reference}.edi`, edifact: wire.edifact })
   sentFiles.push({ day, reference, values, starts: wire.starts, periodStart: wire.periodStart, periodEnd: wire.periodEnd, registeredAt: wire.registeredAt, naturalRegistration: natural.registeredAt })
 }
 const inboundE66 = () => sql<Array<{ id: string; reference: string; status: string }>>(`SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,
     'reference',coalesce(external_reference,interchange_reference,''),'status',status) ORDER BY created_at),'[]')
   FROM public.ediel_messages WHERE company_id=${literal(tenant.companyId)} AND direction='inbound' AND message_code='E66'`)
-/** Like Vercel: the inbound mail cron, then the Ediel outbox (which sends our CONTRL), once a minute. */
+/** Like Vercel: the inbound mail cron (production lane, plus the test lane), then the Ediel outbox (which sends our CONTRL), once a minute. */
 async function receiveUntil(done: () => boolean, minutes: number) {
   const runs: unknown[] = []
   const deadline = Date.now() + minutes * 60_000
   for (;;) {
-    const inbound = await cron('/api/internal/inbound-mail/cron?environment=test')
+    const inbound = await pollInboundMailLanes()
     const outbox = await cron('/api/ediel/outbox/process')
-    runs.push({ at: new Date().toISOString(), inbound: inbound.status, outbox: outbox.status })
+    runs.push({ at: new Date().toISOString(), inbound: inbound.production.status, inboundTest: inbound.test.status, outbox: outbox.status })
     expect(inbound.status, JSON.stringify(inbound.body)).toBe(200)
     if (done() || Date.now() > deadline) break
     await pause(60_000)

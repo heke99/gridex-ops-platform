@@ -11,6 +11,8 @@ import { validateEdifactEnvelope } from '@/lib/ediel/core/edifactValidation'
 import { parseEdifactPayload } from '@/lib/inbound-mail/edielEmailParser'
 import { splitMimeParts } from '@/lib/inbound-mail/edielMailboxPoller.part-1'
 import MailComposer from 'nodemailer/lib/mail-composer'
+import { EdifactEnvelopeCodec } from '@/lib/ediel/core/edifactEnvelopeCodec'
+import { platformMailboxFor } from '../scripts/reality/simulators/platformMailbox'
 import { contrlAction8, correlatedDetailedContrl, correlatedObjectRejection, e66TwoPoints, j4MailOptions, unlinkedHeaderAperak, z06TwoObjects,
   type J4File } from '../scripts/helpers/reality/parseConformanceWire'
 
@@ -62,6 +64,38 @@ describe('J4 reality files: valid wire, guide expectations hold through the real
     for (const [file, family] of [[correlatedObjectRejection(Z03), 'APERAK'], [correlatedDetailedContrl(Z03), 'CONTRL']] as const) {
       expect(qualifyInboundAckSourceCandidates({ ackMessage: { id: 'a', company_id: 'c', environment: 'test', direction: 'inbound', raw_payload: file.edifact, message_family: family },
         candidates: [source] })).toMatchObject({ status: 'unique', candidateIds: ['z03'] })
+    }
+  })
+})
+
+describe('T13: J4 files carry the lane of the tenant they are sent to; the guide expectations hold in both lanes', () => {
+  const lanes = (environment?: 'production' | 'test') => [e66TwoPoints({ ...P, environment }), z06TwoObjects({ ...P, una: 'custom', environment }),
+    z06TwoObjects({ ...P, una: 'default', environment }), unlinkedHeaderAperak({ ...P, acknowledgedDocument: 'DOC?NOT-SENT', environment }),
+    contrlAction8({ ...P, acknowledgedInterchange: 'NEVERSENT0001', environment })]
+  const productionMailbox = process.env.GRIDEX_SHARED_EDIEL_PRODUCTION_EMAIL ?? 'gridex-ediel@example.invalid'
+  const testMailbox = process.env.GRIDEX_SHARED_EDIEL_TEST_EMAIL ?? 'gridex-ediel-test@example.invalid'
+  it('default is the test lane (UNB 0035=1), byte-identical to an explicit test', () => {
+    const byDefault = lanes(), test = lanes('test')
+    byDefault.forEach((file, i) => {
+      expect(file.edifact, file.key).toBe(test[i].edifact)
+      expect(EdifactEnvelopeCodec.decode(file.edifact), file.key).toMatchObject({ environment: 'test', testIndicator: '1' })
+      expect(platformMailboxFor(file.edifact), file.key).toBe(testMailbox)
+    })
+  })
+  for (const file of lanes('production')) {
+    it(`production ${file.key}: no test indicator, valid envelope, same parse expectations, production mailbox`, () => {
+      expect(EdifactEnvelopeCodec.decode(file.edifact)).toMatchObject({ environment: 'production', testIndicator: null })
+      expect(platformMailboxFor(file.edifact)).toBe(productionMailbox)
+      expect(validateEdifactEnvelope(file.edifact)).toMatchObject({ ok: true })
+      const parsed = parseEdifactPayload(splitMimeParts(mail(file)).rawEdifactPayload!)
+      subset({ ...parsed, canonicalAck: classifyCanonicalInboundAck(parsed) }, file.expectedParse)
+    })
+  }
+  it('correlated answers copy the lane of our own original', () => {
+    const productionZ03 = Z03.replace("++23-DDQ-PRODAT++1++1'", "++23-DDQ-PRODAT++1'")
+    expect(EdifactEnvelopeCodec.decode(productionZ03).environment).toBe('production')
+    for (const [raw, lane] of [[Z03, 'test'], [productionZ03, 'production']] as const) {
+      for (const file of [correlatedObjectRejection(raw), correlatedDetailedContrl(raw)]) expect(EdifactEnvelopeCodec.decode(file.edifact).environment, file.key).toBe(lane)
     }
   })
 })

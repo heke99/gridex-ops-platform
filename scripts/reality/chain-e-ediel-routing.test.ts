@@ -16,6 +16,7 @@ import { approveIssuerHistoryGround, configurePlatformMailbox, configureTenant, 
   type LiveCustomer, type LiveTenant } from '../helpers/live-chain-fixture'
 import { dailyE66, dayProfile, hourlyFromQuarters } from '../helpers/live-chain-wire'
 import { closeOperatorConsole, operatorSession, submitServerAction } from '../helpers/reality/operatorConsole'
+import { pollInboundMailLanes } from '../helpers/reality/world'
 
 const report: Record<string, unknown> = { scenario: 'E inbound Ediel routing', startedAt: new Date().toISOString() }
 let tenantA: LiveTenant, tenantB: LiveTenant
@@ -77,9 +78,11 @@ describe.sequential('reality E — inbound Ediel routing to the right tenant and
     const runs: unknown[] = []
     const deadline = Date.now() + minutes * 60_000
     for (;;) {
-      const inbound = await cron('/api/internal/inbound-mail/cron?environment=test')
+      // Both lanes as the world runs them (production as Vercel polls it, then test). E's tenants are configured
+      // for the test lane (configureTenant) and its files carry the test indicator, so they arrive in the test lane.
+      const inbound = await pollInboundMailLanes()
       const outbox = await cron('/api/ediel/outbox/process')
-      runs.push({ at: new Date().toISOString(), inbound: inbound.status, outbox: outbox.status })
+      runs.push({ at: new Date().toISOString(), inbound: inbound.production.status, inboundTest: inbound.test.status, outbox: outbox.status })
       expect(inbound.status, JSON.stringify(inbound.body)).toBe(200)
       if (done() || Date.now() > deadline) break
       await new Promise(resolve => setTimeout(resolve, 60_000))

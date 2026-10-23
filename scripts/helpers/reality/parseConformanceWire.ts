@@ -39,13 +39,21 @@ export function prodatMinuteNow(now = new Date()) {
 const latin1 = (text: string) => Buffer.from(text, 'latin1')
 
 /**
+ * The interchange's lane. 'test' (the default) carries the UNB test indicator 0035=1; 'production' omits it, as
+ * live-chain-wire dailyE66 does. A tenant live in production receives production files (FINDINGS T7). The
+ * correlated answers below copy the lane of our own original (replyEnvelope), so they take no option.
+ */
+export type J4Lane = 'production' | 'test'
+const isTest = (environment: J4Lane | undefined) => environment !== 'production'
+
+/**
  * UTILTS E66 with UNA component ';', element '*', decimal ',', release '#', terminator '!': two metering points (two
  * IDE), quarter-hour and hourly, values with decimal comma, a negative value, quality 56 (estimated) and 46, MWH.
  */
-export function e66TwoPoints(input: { issuer: string; receiver: string; reference: string; meters: [string, string]; gridArea: string }): J4File {
+export function e66TwoPoints(input: { issuer: string; receiver: string; reference: string; meters: [string, string]; gridArea: string; environment?: J4Lane }): J4File {
   const [a, b] = input.meters
   const segments = [
-    `UNB*UNOC;3*${input.issuer};ZZ*${input.receiver};ZZ*261022;0600*${input.reference}**23-DDQ-E66-T****1`,
+    `UNB*UNOC;3*${input.issuer};ZZ*${input.receiver};ZZ*261022;0600*${input.reference}**23-DDQ-E66-T${isTest(input.environment) ? '****1' : ''}`,
     'UNH*1*UTILTS;D;02B;UN;E5SE5A', `BGM*E66;;260*M${input.reference}*9*AB`, 'DTM*137;202610220600;203', 'DTM*735;#+0100;406', 'MKS*23*E02;;260',
     `NAD*MS*${input.issuer};SVK;260`, `NAD*MR*${input.receiver};SVK;260`,
     `IDE*24*TA${input.reference}`, `LOC*172*${a};;9`, `LOC*239*${input.gridArea};SVK;260`, 'LIN***8716867000030;;;9',
@@ -79,13 +87,13 @@ const OBJ1_STREET = ['Ängsvägen 1', 'c/o Ärlig', 'Lgh 1102'] as const
  * names/references); `una: 'default'` the standard advice. ÅÄÖ are ISO-8859-1 bytes (UNOC).
  */
 export function z06TwoObjects(input: { issuer: string; receiver: string; reference: string; meters: [string, string]; gridArea: string; una: 'custom' | 'default';
-  contentType?: string; key?: string; openDefect?: string }): J4File {
+  contentType?: string; key?: string; openDefect?: string; environment?: J4Lane }): J4File {
   const custom = input.una === 'custom'
   const c = custom ? ';' : ':', e = custom ? '*' : '+', t = custom ? '!' : "'", r = custom ? '#' : '?'
   const esc = (value: string) => value.replace(new RegExp(`[${[c, e, t, r].map(x => `\\${x}`).join('')}]`, 'g'), m => r + m)
   const [a, b] = input.meters
   const segments = [
-    ['UNB', `UNOC${c}3`, `${input.issuer}${c}ZZ`, `${input.receiver}${c}ZZ`, `261022${c}1200`, input.reference, '', '23-DDQ-PRODAT', '', '', '', '1'],
+    ['UNB', `UNOC${c}3`, `${input.issuer}${c}ZZ`, `${input.receiver}${c}ZZ`, `261022${c}1200`, input.reference, '', '23-DDQ-PRODAT', ...(isTest(input.environment) ? ['', '', '', '1'] : [])],
     ['UNH', '1', ['PRODAT', 'D', '97A', 'UN', 'E2SE6A'].join(c)], ['BGM', 'Z06', `D${input.reference}`, '9', 'AB'],
     ['DTM', `137${c}202610221100${c}203`], ['DTM', `ZZZ${c}1${c}805`],
     ['NAD', 'FR', `${input.issuer}${c}160${c}SVK`, '', '', '', '', '', '', 'SE'], ['NAD', 'DO', `${input.receiver}${c}160${c}SVK`, '', '', '', '', '', '', 'SE'],
@@ -121,10 +129,10 @@ export function z06TwoObjects(input: { issuer: string; receiver: string; referen
 export const Z06_OBJECT1 = { nameLines: [...OBJ1_NAME], addressLines: [...OBJ1_STREET], city: 'Älmhult', business: 'Företaget #?+ AB' }
 
 /** Whole-message rejection of a document we never sent (unlinked), FTX ending in an escaped release character. */
-export function unlinkedHeaderAperak(input: { issuer: string; receiver: string; reference: string; acknowledgedDocument: string }): J4File & { text: string } {
+export function unlinkedHeaderAperak(input: { issuer: string; receiver: string; reference: string; acknowledgedDocument: string; environment?: J4Lane }): J4File & { text: string } {
   const text = "Meddelandehuvudet kunde inte läsas: UNB?+UNH, kontakta 'driften' på +46 8 000 00 00?"
   const segments = [
-    `UNB+UNOC:3+${input.issuer}:ZZ+${input.receiver}:ZZ+261022:1200+${input.reference}++23-DDQ-PRODAT++++1`,
+    `UNB+UNOC:3+${input.issuer}:ZZ+${input.receiver}:ZZ+261022:1200+${input.reference}++23-DDQ-PRODAT${isTest(input.environment) ? '++++1' : ''}`,
     'UNH+1+APERAK:D:96A:UN:E2SE6A', 'BGM+++27', `DTM+137:${prodatMinuteNow()}:203`, `RFF+ACW:${escapeEdifactData(input.acknowledgedDocument)}`,
     `NAD+FR+${input.issuer}:160:SVK+++++++SE`, `NAD+DO+${input.receiver}:160:SVK+++++++SE`, 'ERC+40::260', `FTX+AAO++102::260+${escapeEdifactData(text)}`,
   ]
@@ -137,8 +145,8 @@ export function unlinkedHeaderAperak(input: { issuer: string; receiver: string; 
 }
 
 /** CONTRL with ISO action 8 ("received"): not an Ediel result (ACK-01: 1 or 4), must go to manual review as invalid. */
-export function contrlAction8(input: { issuer: string; receiver: string; reference: string; acknowledgedInterchange: string }): J4File {
-  const segments = [`UNB+UNOC:3+${input.issuer}:ZZ+${input.receiver}:ZZ+261022:1200+${input.reference}++++++1`, 'UNH+1+CONTRL:2:2:UN:EDIEL2',
+export function contrlAction8(input: { issuer: string; receiver: string; reference: string; acknowledgedInterchange: string; environment?: J4Lane }): J4File {
+  const segments = [`UNB+UNOC:3+${input.issuer}:ZZ+${input.receiver}:ZZ+261022:1200+${input.reference}${isTest(input.environment) ? '++++++1' : ''}`, 'UNH+1+CONTRL:2:2:UN:EDIEL2',
     `UCI+${input.acknowledgedInterchange}+${input.receiver}:ZZ+${input.issuer}:ZZ+8`]
   const edifact = "UNA:+.? '" + [...segments, `UNT+${segments.length}+1`, `UNZ+1+${input.reference}`].join("'") + "'"
   return { key: 'C-CONTRL-8-unlinked', edifact, bytes: latin1(edifact), contentType: 'application/EDIFACT', interchangeReference: input.reference,

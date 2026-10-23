@@ -28,7 +28,7 @@ import { getPortfolioMonthForCompany, type PortfolioMonthRow } from '@/lib/analy
 import { stockholmLocalToUtc } from '@/lib/time/stockholm'
 import { LIVE, augustSupplyCustomer, configureTenant, cron, existingSupplyCustomer, gridOwnerSends, literal, sql, type AugustFacility, type LiveTenant } from '../helpers/live-chain-fixture'
 import { closeOperatorConsole, operatorSession } from '../helpers/reality/operatorConsole'
-import { runOperationalCronSlot, type GridOwnerSim } from '../helpers/reality/world'
+import { pollInboundMailLanes, runOperationalCronSlot, type GridOwnerSim } from '../helpers/reality/world'
 import { GRID_AREA, GRID_OWNER_EDIEL_ID, goLiveAlsSupplier } from '../helpers/reality/goLiveAls'
 import { createSignedContractSwitch, inboundSources, reprocessHeldUtilts, sourceDiagnosis, supplyState } from '../helpers/reality/leaving'
 import { createTenantStaff } from '../helpers/reality/tenantStaff'
@@ -137,10 +137,11 @@ async function receiveUntil(done: () => boolean, minutes: number) {
   const runs: unknown[] = []
   const deadline = Date.now() + minutes * 60_000
   for (;;) {
-    const inbound = await cron('/api/internal/inbound-mail/cron?environment=test')
+    // Both inbound lanes: production as Vercel polls it (the tenant is live in production), then test.
+    const inbound = await pollInboundMailLanes()
     const outbox = await cron('/api/ediel/outbox/process')
     const operations = await cron('/api/internal/customer-operations/cron')
-    runs.push({ at: new Date().toISOString(), inbound: inbound.status, outbox: outbox.status, operations: operations.status })
+    runs.push({ at: new Date().toISOString(), inbound: inbound.production.status, inboundTest: inbound.test.status, outbox: outbox.status, operations: operations.status })
     if (done() || Date.now() > deadline) break
     await pause(60_000)
   }
@@ -289,7 +290,7 @@ describe.sequential('reality K — statistics are computed and shown correctly',
     const ourZ03 = sql<string>(`SELECT to_jsonb(raw_payload) FROM public.ediel_messages WHERE id=(SELECT outbound_z03_message_id FROM public.supplier_switch_requests WHERE id=${literal(L2.switchId!)})`)
     const qualifier = /UNB\+UNOC:3\+[^:+]+:([^+:']+)/.exec(ourZ03)?.[1] ?? '14'
     const z05 = buildZ05End({ gridOwner: GRID_OWNER_EDIEL_ID, supplier: tenant.supplierEdielId, gridArea: GRID_AREA, brp: brpEdielId(), qualifier,
-      point: L2.gsrn, customerIdentity: L2.personalNumber, customerName: `${L2.firstName} ${L2.lastName}`, endMinute: L2_END_MINUTE, variant: 'LK' })
+      point: L2.gsrn, customerIdentity: L2.personalNumber, customerName: `${L2.firstName} ${L2.lastName}`, endMinute: L2_END_MINUTE, variant: 'LK', environment: 'production' })
     await gridOwnerSendsLeavingFile({ from: gridOwner.email, kind: 'PRODAT-Z05LK', edifact: z05.raw, reference: z05.reference })
     const z05s = () => inboundSources(tenant.companyId, ['Z05'])
     report.z05Reception = await receiveUntil(() => z05s().length >= 1 && z05s().every(m => !['received', 'processing'].includes(m.status)), Number(process.env.GRIDEX_REALITY_K5_MINUTES ?? 10))
@@ -307,7 +308,9 @@ describe.sequential('reality K — statistics are computed and shown correctly',
     for (const [index, day] of METERED_DAYS.entries()) {
       const values = dstDayProfile(day, index, 2)
       const reference = `K${day.replaceAll('-', '').slice(2)}${L1.gsrn.slice(-6)}`
-      const wire = dayE66({ issuer: GRID_OWNER_EDIEL_ID, receiver: tenant.supplierEdielId, meterId: L1.gsrn, day, values, reference, framing: 'civil_fixed_cet', notAfter: Date.now() - 2 * 60_000 })
+      // Production interchanges: the tenant is live in production (Z03 environment 'production'; FINDINGS T7).
+      const wire = dayE66({ issuer: GRID_OWNER_EDIEL_ID, receiver: tenant.supplierEdielId, meterId: L1.gsrn, day, values, reference, framing: 'civil_fixed_cet', notAfter: Date.now() - 2 * 60_000,
+        environment: 'production' })
       await gridOwnerSends({ from: gridOwner.email, subject: `UTILTS-E66 ${reference}`, filename: `UTILTS-E66_${reference}.edi`, edifact: wire.edifact })
       sent.push({ day, reference, quarters: values.length, periodStart: wire.periodStart, periodEnd: wire.periodEnd })
     }

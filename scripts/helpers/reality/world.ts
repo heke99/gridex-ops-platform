@@ -93,6 +93,37 @@ export async function runOperationalCronSlot() {
   return results
 }
 
+export type InboundLanePoll = {
+  /** 200 when both lanes answered 200, otherwise the first non-200 (production first). */
+  status: number
+  /** Both answers, so a failing check can print what each lane said. */
+  body: { production: Record<string, unknown>; test: Record<string, unknown> }
+  production: { status: number; body: Record<string, unknown> }
+  test: { status: number; body: Record<string, unknown> }
+  /** Mail fetched in this poll per lane (result.fetchedMessages) and their sum; null where a lane did not report it. */
+  fetchedMessages: { production: number | null; test: number | null; total: number | null }
+}
+
+const fetchedOf = (body: Record<string, unknown>) => {
+  const value = (body.result as Record<string, unknown> | undefined)?.fetchedMessages
+  return typeof value === 'number' ? value : null
+}
+
+/**
+ * One inbound-mail poll of both shared Ediel mailboxes: the production lane exactly as Vercel schedules it
+ * (vercel.json ?environment=production; tenants live in production receive there, FINDINGS T7/T9), then the test
+ * lane for the scenarios and files that stay in test. Same as scenario F's receive loop.
+ */
+export async function pollInboundMailLanes(): Promise<InboundLanePoll> {
+  const production = await cron('/api/internal/inbound-mail/cron?environment=production')
+  const test = await cron('/api/internal/inbound-mail/cron?environment=test')
+  const status = production.status !== 200 ? production.status : test.status
+  const fetchedProduction = fetchedOf(production.body), fetchedTest = fetchedOf(test.body)
+  const total = fetchedProduction === null && fetchedTest === null ? null : (fetchedProduction ?? 0) + (fetchedTest ?? 0)
+  return { status, body: { production: production.body, test: test.body }, production, test,
+    fetchedMessages: { production: fetchedProduction, test: fetchedTest, total } }
+}
+
 export const world = { appUrl: LIVE.appUrl }
 
 /**

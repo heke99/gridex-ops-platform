@@ -96,9 +96,11 @@ export type DayE66 = { edifact: string; framing: E66DayFraming; offset: '+0100' 
  * live-chain-wire's dailyE66 (which the platform already accepts), but with the period and value count that
  * follow from the framing. `registeredAt` defaults to 06:00 the morning after the period; `notAfter` caps it
  * (a grid owner cannot register values in the future: DTM+137 may not lie after reception).
+ * `environment` is the interchange's lane: 'test' (default) sets the UNB test indicator (0035=1), 'production'
+ * omits it, exactly as dailyE66 does; a tenant live in production receives production files (FINDINGS T7).
  */
 export function dayE66(input: { issuer: string; receiver: string; meterId: string; day: string; values: number[]; reference: string
-  framing?: E66DayFraming; registeredAfterHours?: number; notAfter?: number }): DayE66 {
+  framing?: E66DayFraming; registeredAfterHours?: number; notAfter?: number; environment?: 'production' | 'test' }): DayE66 {
   const framing = input.framing ?? 'civil_fixed_cet'
   let start: number, end: number, offsetMinutes: number
   if (framing === 'fixed_cet_day') {
@@ -118,7 +120,7 @@ export function dayE66(input: { issuer: string; receiver: string; meterId: strin
   const offset = offsetMinutes === 60 ? '+0100' : '+0200'
   const lines = [
     "UNA:+.? '",
-    `UNB+UNOC:3+${input.issuer}:ZZ+${input.receiver}:ZZ+${at(registered).slice(2, 8)}:${at(registered).slice(8, 12)}+${input.reference}++23-DDQ-E66-T++++1'`,
+    `UNB+UNOC:3+${input.issuer}:ZZ+${input.receiver}:ZZ+${at(registered).slice(2, 8)}:${at(registered).slice(8, 12)}+${input.reference}++23-DDQ-E66-T${input.environment === 'production' ? '' : '++++1'}'`,
     "UNH+1+UTILTS:D:02B:UN:E5SE5A'",
     `BGM+E66::260+M${input.reference}+9+AB'`,
     `DTM+137:${at(registered)}:203'`, `DTM+735:?${offset}:406'`, "MKS+23+E02::260'",

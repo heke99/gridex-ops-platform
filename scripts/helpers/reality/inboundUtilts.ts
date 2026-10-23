@@ -14,15 +14,20 @@ import { QUARTER_MS, fixedOffsetMinute, stockholmDayUtc, stockholmQuarterCount }
 
 const CET = 60 // minutes; ENV-08 fixed normal time
 
+/** The interchange's lane: 'test' sets the UNB test indicator (0035=1), 'production' omits it (as dailyE66). */
+export type UtiltsLane = 'production' | 'test'
+const testIndicator = (environment: UtiltsLane | undefined) => environment === 'production' ? '' : '++++1'
+
 export type UtiltsFile = { edifact: string; reference: string; periodStart: string; periodEnd: string; registeredAt: string
   /** UTC start of every sent quarter-hour, in wire order. */ starts: string[]; values: number[] }
 
 /**
  * One E66 for one metering point and one Stockholm civil day, or a window of it.
  * `values` are the whole day's quarter-hours (92/96/100); `window` [from, to) selects the quarter indexes sent.
+ * `environment` defaults to 'test'; a tenant live in production receives 'production' files (FINDINGS T7).
  */
 export function utiltsE66(input: { issuer: string; receiver: string; meterId: string; day: string; values: number[]; reference: string
-  window?: { from: number; to: number }; estimated?: ReadonlySet<number>; registeredAt?: number; notAfter?: number }): UtiltsFile {
+  window?: { from: number; to: number }; estimated?: ReadonlySet<number>; registeredAt?: number; notAfter?: number; environment?: UtiltsLane }): UtiltsFile {
   const count = stockholmQuarterCount(input.day)
   if (input.values.length !== count) throw Error(`utiltsE66 ${input.day} requires ${count} quarter-hour values, got ${input.values.length}`)
   const from = input.window?.from ?? 0, to = input.window?.to ?? count
@@ -35,7 +40,7 @@ export function utiltsE66(input: { issuer: string; receiver: string; meterId: st
   const at = (instant: number) => fixedOffsetMinute(instant, CET)
   const lines = [
     "UNA:+.? '",
-    `UNB+UNOC:3+${input.issuer}:ZZ+${input.receiver}:ZZ+${at(registered).slice(2, 8)}:${at(registered).slice(8, 12)}+${input.reference}++23-DDQ-E66-T++++1'`,
+    `UNB+UNOC:3+${input.issuer}:ZZ+${input.receiver}:ZZ+${at(registered).slice(2, 8)}:${at(registered).slice(8, 12)}+${input.reference}++23-DDQ-E66-T${testIndicator(input.environment)}'`,
     "UNH+1+UTILTS:D:02B:UN:E5SE5A'",
     `BGM+E66::260+M${input.reference}+9+AB'`,
     `DTM+137:${at(registered)}:203'`, "DTM+735:?+0100:406'", "MKS+23+E02::260'",
@@ -59,8 +64,10 @@ export function utiltsE66(input: { issuer: string; receiver: string; meterId: st
  * One E31 (aggregated metered data, Ediel "avräkningsunderlag") for a grid area and one Stockholm civil day in
  * hourly values. Its identity is the grid area (LOC+239) and the balance responsible/supplier receiving it; it
  * names no metering point and may never touch an individual customer (DB-06, inboundBusinessOutcome grid_area_aggregate).
+ * `environment` as in utiltsE66 (default 'test').
  */
-export function utiltsE31(input: { issuer: string; receiver: string; gridArea: string; day: string; hourlyKwh: number[]; reference: string; registeredAt?: number; notAfter?: number }): UtiltsFile {
+export function utiltsE31(input: { issuer: string; receiver: string; gridArea: string; day: string; hourlyKwh: number[]; reference: string; registeredAt?: number; notAfter?: number
+  environment?: UtiltsLane }): UtiltsFile {
   const day = stockholmDayUtc(input.day)
   const hours = (day.end - day.start) / 3_600_000
   if (input.hourlyKwh.length !== hours) throw Error(`utiltsE31 ${input.day} requires ${hours} hourly values`)
@@ -69,7 +76,7 @@ export function utiltsE31(input: { issuer: string; receiver: string; gridArea: s
   const at = (instant: number) => fixedOffsetMinute(instant, CET)
   const lines = [
     "UNA:+.? '",
-    `UNB+UNOC:3+${input.issuer}:ZZ+${input.receiver}:ZZ+${at(registered).slice(2, 8)}:${at(registered).slice(8, 12)}+${input.reference}++23-DDQ-E31-S++++1'`,
+    `UNB+UNOC:3+${input.issuer}:ZZ+${input.receiver}:ZZ+${at(registered).slice(2, 8)}:${at(registered).slice(8, 12)}+${input.reference}++23-DDQ-E31-S${testIndicator(input.environment)}'`,
     "UNH+1+UTILTS:D:02B:UN:E5SE5A'",
     `BGM+E31::260+M${input.reference}+9+AB'`,
     `DTM+137:${at(registered)}:203'`, "DTM+735:?+0100:406'", "MKS+23+E02::260'",

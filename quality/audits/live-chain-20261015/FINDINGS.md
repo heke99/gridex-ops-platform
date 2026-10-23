@@ -1482,6 +1482,20 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
   3. Handbyggda filer bär testindikatorn (UNB 0035=1) trots att tenanten är i produktion: `dst.ts dayE66` (G, K), `inboundUtilts.ts` (J2) och J4-byggarna i `parseConformanceWire.ts`. De skulle hållas som `environment_mismatch` (J3-05) eller hamna i fel kanal.
 - I och J1 använder `runOperationalCronSlot`, som redan kör båda kanalerna, och H:s egna PRODAT-filer går redan via `platformMailboxFor`.
 - **Åtgärd:** en agent ska ge scenarierna en gemensam insamlare för båda kanalerna, adressera post efter filens kuvert och ge byggarna parametern `environment`. Endast testkod. Ingen produktkod och ingen spärr ändras.
+- **RÄTTAD 2026-10-23 (agent + granskning):**
+  - **Gemensam insamlare:** `pollInboundMailLanes()` i `world.ts` läser produktionskanalen som Vercel och sedan testkanalen. Alla listade slingor använder den.
+  - **Adressering:** `gridOwnerSends` och `sendJ4File` adresserar efter filens kuvert.
+  - **Byggarna** `dayE66`, `utiltsE66`, `utiltsE31`, de fyra fristående J4-byggarna och `buildZ05End` har fått `environment`. Standardvärdet är test, och testindikatorn sätts bara i testkanalen.
+  - G, J2, J4 och K skickar nu produktionsfiler. I H skickas Z05 och E66-satsen i produktion.
+  - **Tester:** 58 av 58 gröna. Varje byggare provas med standardvärde, test och produktion, och avkodad kanal och vald brevlåda kontrolleras. J4 kontrollerar dessutom `expectedParse` i produktion. Typkontroll (`tsconfig.scripts.json`) och eslint utan fel.
+  - **Fynd vid rättningen (alla rättade):**
+    - H5:s E66-sats skickades utan `environment: 'production'`, så simulatorn skrev testfiler.
+    - `buildZ05End` hårdkodade testindikatorn (`++1++1`), så Z05 i H4 och K5 gick till testbrevlådan för en produktionstenant.
+  - **Kvar, ÖPPNA:**
+    - E och J3 kör fortfarande med testtenanter (`configureTenant`). Det verkar avsiktligt: J3-6 testar avbrott i testbrevlådan. Premissen att alla tenanter går live i produktion gäller alltså inte för dem. Låg.
+    - H:s och K:s `receiveUntil` kontrollerar inte inkorgens svarsstatus, till skillnad från F och G. Status registreras bara. Låg.
+    - F har kvar sin egen slinga med två anrop och kan byta till hjälparen. Kosmetiskt.
+    - `tsconfig.tests.json` har ett befintligt fel i `__tests__/supplier-switch-requested-start.test.ts:47`, som inte är berört här. Låg.
 
 ### Ägarbeslut 2026-10-23
 - **F89/F90/F91, certifiering i produktion:** "Certifieringar ska vi använda oss av vår certifiering samt krypteringen vi har."

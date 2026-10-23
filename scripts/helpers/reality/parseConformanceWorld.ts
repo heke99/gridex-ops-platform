@@ -3,11 +3,15 @@
 // Nothing here writes market or mail state. Synthetic data only.
 import nodemailer from 'nodemailer'
 import { LIVE, literal, sql } from '../live-chain-fixture'
+import { platformMailboxFor } from '../../reality/simulators/platformMailbox'
 import { j4MailOptions, type J4File } from './parseConformanceWire'
 
-/** One mail per file, with a known Message-ID; the attachment is exactly `file.bytes` (base64 transfer encoding). */
+/**
+ * One mail per file, with a known Message-ID; the attachment is exactly `file.bytes` (base64 transfer encoding).
+ * Addressed to the platform's shared Ediel mailbox of the file's own lane (its UNB test indicator; FINDINGS T7).
+ */
 export async function sendJ4File(input: { from: string; file: J4File; run: string }): Promise<string> {
-  const options = j4MailOptions({ from: input.from, to: LIVE.platformMailbox, file: input.file, run: input.run })
+  const options = j4MailOptions({ from: input.from, to: platformMailboxFor(input.file.edifact), file: input.file, run: input.run })
   const transport = nodemailer.createTransport({ host: LIVE.mailHost, port: LIVE.smtpsPort, secure: true, requireTLS: true,
     auth: { user: input.from, pass: 'grid-owner-local' }, tls: { rejectUnauthorized: true, minVersion: 'TLSv1.2' } })
   await transport.sendMail(options)

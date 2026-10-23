@@ -116,13 +116,16 @@ function requireStep(flag: boolean, step: string, why: string, context: TestCont
   return context.skip()
 }
 
-/** The grid owner mails one E66 per entry, in order, like its daily metering run. */
+/**
+ * The grid owner mails one E66 per entry, in order, like its daily metering run. The tenant is live in production
+ * (goLiveAlsSupplier, Z03 environment 'production'), so every file is a production interchange (FINDINGS T7).
+ */
 async function gridOwnerSendsE66(files: Array<{ f: Facility | null; gsrn?: string; day: string; kind: Kind; values: number[]; reference: string; window?: { from: number; to: number }
   estimated?: Set<number>; registeredAt?: number; expectedStored: number }>) {
   for (const file of files) {
     const gsrn = file.f?.gsrn ?? file.gsrn!
     const built = utiltsE66({ issuer: GRID_OWNER_EDIEL_ID, receiver: tenant.supplierEdielId, meterId: gsrn, day: file.day, values: file.values, reference: file.reference,
-      window: file.window, estimated: file.estimated, registeredAt: file.registeredAt, notAfter: notAfter() })
+      window: file.window, estimated: file.estimated, registeredAt: file.registeredAt, notAfter: notAfter(), environment: 'production' })
     await gridOwnerMails(gridOwner.email, 'UTILTS-E66', built)
     sent.push({ ...built, kind: file.kind, gsrn, day: file.day, dayValues: file.values, expectedStored: file.expectedStored })
   }
@@ -385,7 +388,8 @@ describe.sequential('reality J2 — inbound UTILTS: metering, corrections, settl
     // The grid area's hourly total for 10 September: our facilities plus the rest of the area (synthetic).
     const ours = FACILITIES.map(f => effective(f.gsrn).get(CORRECTED_DAY)!).reduce((sum, values) => sum.map((v, q) => v + values[q]), new Array(96).fill(0))
     const area = hourlyFromQuarterValues(ours).map(kwh => Math.round((kwh * 40) * 1000) / 1000)
-    const file = utiltsE31({ issuer: GRID_OWNER_EDIEL_ID, receiver: tenant.supplierEdielId, gridArea: GRID_AREA, day: CORRECTED_DAY, hourlyKwh: area, reference: `JE31${RUN.slice(-6)}`, notAfter: notAfter() })
+    const file = utiltsE31({ issuer: GRID_OWNER_EDIEL_ID, receiver: tenant.supplierEdielId, gridArea: GRID_AREA, day: CORRECTED_DAY, hourlyKwh: area, reference: `JE31${RUN.slice(-6)}`, notAfter: notAfter(),
+      environment: 'production' })
     await gridOwnerMails(gridOwner.email, 'UTILTS-E31', file)
     sent.push({ ...file, kind: 'e31', gsrn: null, day: CORRECTED_DAY, dayValues: area, expectedStored: 0 })
     report.e31ReceptionRuns = await receiveUntil(() => arrived(['e31']).length === 0, 10)

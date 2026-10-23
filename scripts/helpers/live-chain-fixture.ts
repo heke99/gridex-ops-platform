@@ -33,12 +33,16 @@ export function sql<T = unknown>(input: string, timeoutMs = 60_000): T {
 
 export { dailyE66, dayProfile, gs1, kwhText } from './live-chain-wire'
 import { gs1 } from './live-chain-wire'
+import { platformMailboxFor } from '../reality/simulators/platformMailbox'
 
-/** The grid owner sends one EDIFACT file as an e-mail attachment over SMTPS (TLS verified via the local CA). */
+/**
+ * The grid owner sends one EDIFACT file as an e-mail attachment over SMTPS (TLS verified via the local CA), to the
+ * platform's shared Ediel mailbox of the file's own lane (UNB test indicator; FINDINGS T7), like the simulators.
+ */
 export async function gridOwnerSends(input: { from: string; edifact: string; filename: string; subject: string }) {
   const transport = nodemailer.createTransport({ host: LIVE.mailHost, port: LIVE.smtpsPort, secure: true, requireTLS: true,
     auth: { user: input.from, pass: 'grid-owner-local' }, tls: { rejectUnauthorized: true, minVersion: 'TLSv1.2' } })
-  await transport.sendMail({ from: input.from, to: LIVE.platformMailbox, subject: input.subject, text: 'Ediel',
+  await transport.sendMail({ from: input.from, to: platformMailboxFor(input.edifact), subject: input.subject, text: 'Ediel',
     attachments: [{ filename: input.filename, content: input.edifact, contentType: 'application/edifact' }] })
 }
 

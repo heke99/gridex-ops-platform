@@ -26,7 +26,7 @@ import { EdifactEnvelopeCodec } from '@/lib/ediel/core/edifactEnvelopeCodec'
 import { LIVE, cron, gs1, sql, type LiveTenant } from '../helpers/live-chain-fixture'
 import { WEBSITE_ORIGIN } from '../helpers/reality/tenantWebsite'
 import { closeOperatorConsole } from '../helpers/reality/operatorConsole'
-import { runOperationalCronSlot, type GridOwnerSim } from '../helpers/reality/world'
+import { pollInboundMailLanes, runOperationalCronSlot, type GridOwnerSim } from '../helpers/reality/world'
 import { GRID_AREA, goLiveAlsSupplier } from '../helpers/reality/goLiveAls'
 import { contrlFor } from '../helpers/reality/rejectsWire'
 import { OBJECT_REJECTION_TEXT, Z06_OBJECT1, contrlAction8, correlatedDetailedContrl, correlatedObjectRejection, e66TwoPoints, ourOriginal,
@@ -161,7 +161,9 @@ describe.sequential('reality J4 — every inbound Ediel message is parsed correc
   }, 30 * 60_000)
 
   it('J4-2 the grid owner sends the conformance set over SMTPS, one file per mail', async () => {
-    const parties = { issuer: gridOwnerEdielId, receiver: tenant.supplierEdielId, gridArea: GRID_AREA }
+    // The tenant is live in production (goLiveAlsSupplier): the unlinked files are production interchanges and go to the
+    // production platform mailbox (FINDINGS T7). The correlated answers copy the lane of our own sent Z01.
+    const parties = { issuer: gridOwnerEdielId, receiver: tenant.supplierEdielId, gridArea: GRID_AREA, environment: 'production' as const }
     const files: Array<{ file: J4File; correlatedTo?: string }> = [
       { file: e66TwoPoints({ ...parties, reference: ref('E66'), meters: [facility(), facility()] }) },
       { file: z06TwoObjects({ ...parties, reference: ref('Z06C'), meters: [facility(), facility()], una: 'custom' }) },
@@ -195,9 +197,10 @@ describe.sequential('reality J4 — every inbound Ediel message is parsed correc
     const deadline = Date.now() + Number(process.env.GRIDEX_REALITY_J4_INBOUND_MINUTES ?? 20) * 60_000
     const runs: unknown[] = []
     for (;;) {
-      const inbound = await cron('/api/internal/inbound-mail/cron?environment=test')
+      // Both lanes: production as Vercel polls it (the tenant is live in production), then test.
+      const inbound = await pollInboundMailLanes()
       const outbox = await cron('/api/ediel/outbox/process')
-      runs.push({ at: new Date().toISOString(), inbound: inbound.status, outbox: outbox.status })
+      runs.push({ at: new Date().toISOString(), inbound: inbound.production.status, inboundTest: inbound.test.status, outbox: outbox.status })
       expect(inbound.status, JSON.stringify(inbound.body).slice(0, 500)).toBe(200)
       for (const s of sent) stored.set(s.messageId, storedForMail(s.messageId))
       if ([...stored.values()].every(j4Settled) || Date.now() > deadline) break

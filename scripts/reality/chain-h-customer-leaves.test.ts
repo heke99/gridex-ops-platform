@@ -21,7 +21,7 @@ import { processPendingContractConfirmations } from '@/lib/customer-contracts/on
 import { customerNormalizedMeteringValues } from '@/lib/metering/customerMeteringAccess'
 import { LIVE, augustSupplyCustomer, cron, literal, sql, type AugustFacility, type LiveTenant } from '../helpers/live-chain-fixture'
 import { closeOperatorConsole, operatorSession, submitServerAction } from '../helpers/reality/operatorConsole'
-import { runOperationalCronSlot, type GridOwnerSim } from '../helpers/reality/world'
+import { pollInboundMailLanes, runOperationalCronSlot, type GridOwnerSim } from '../helpers/reality/world'
 import { GRID_AREA, GRID_OWNER_EDIEL_ID, goLiveAlsSupplier } from '../helpers/reality/goLiveAls'
 import { detectStuckStates } from '../helpers/reality/stuckDetector'
 import { registerUtiltsIssuer } from '../helpers/utiltsConsumptionParties'
@@ -104,15 +104,15 @@ function requireEstablished(step: string, context: TestContext) {
 }
 const companyLiteral = () => literal(tenant.companyId)
 const brpEdielId = () => sql<string>(`SELECT to_jsonb(brp_ediel_id) FROM public.ediel_brp_settings WHERE company_id=${companyLiteral()} AND environment='production' AND is_active ORDER BY valid_from DESC LIMIT 1`)
-/** Like Vercel: inbound mail, then the Ediel outbox, then customer operations (deadline sweep), once a minute. */
+/** Like Vercel: inbound mail (production lane, plus the test lane), then the Ediel outbox, then customer operations (deadline sweep), once a minute. */
 async function receiveUntil(done: () => boolean, minutes: number) {
   const runs: unknown[] = []
   const deadline = Date.now() + minutes * 60_000
   for (;;) {
-    const inbound = await cron('/api/internal/inbound-mail/cron?environment=test')
+    const inbound = await pollInboundMailLanes()
     const outbox = await cron('/api/ediel/outbox/process')
     const operations = await cron('/api/internal/customer-operations/cron')
-    runs.push({ at: new Date().toISOString(), inbound: inbound.status, outbox: outbox.status, operations: operations.status })
+    runs.push({ at: new Date().toISOString(), inbound: inbound.production.status, inboundTest: inbound.test.status, outbox: outbox.status, operations: operations.status })
     if (done() || Date.now() > deadline) break
     await pause(60_000)
   }
@@ -195,7 +195,7 @@ describe.sequential('reality H — the customer leaves', () => {
     const common = { gridOwner: GRID_OWNER_EDIEL_ID, supplier: tenant.supplierEdielId, gridArea: GRID_AREA, brp: brpEdielId(), qualifier }
     const sent: Row[] = []
     for (const [p, endMinute, variant] of [[S, S_END, 'L'], [M, M_END, 'LK']] as const) {
-      const z05 = buildZ05End({ ...common, point: p.gsrn, customerIdentity: p.personalNumber, customerName: `${p.firstName} ${p.lastName}`, endMinute, variant })
+      const z05 = buildZ05End({ ...common, point: p.gsrn, customerIdentity: p.personalNumber, customerName: `${p.firstName} ${p.lastName}`, endMinute, variant, environment: 'production' })
       await gridOwnerSendsLeavingFile({ from: gridOwner.email, kind: `PRODAT-Z05${variant}`, edifact: z05.raw, reference: z05.reference })
       sent.push({ who: p.firstName, reference: z05.reference, ...readLeavingWire(z05.raw) })
     }
@@ -229,7 +229,8 @@ describe.sequential('reality H — the customer leaves', () => {
   it('H5 the grid owner meters the last three days; the values land on the right customer and gate', async (context) => {
     requireEstablished('H5', context)
     registerUtiltsIssuer(sql as never, literal, GRID_OWNER_EDIEL_ID, tenant.adminUserId)
-    const files = LEAVING.flatMap((p, c) => DAYS.map((day, i) => ({ meterId: p.gsrn, day, values: dayProfile(i + c * 3) })))
+    // The tenant is live in production: the simulator writes production E66 and mails them to the production mailbox (as F).
+    const files = LEAVING.flatMap((p, c) => DAYS.map((day, i) => ({ meterId: p.gsrn, day, values: dayProfile(i + c * 3), environment: 'production' as const })))
     const response = await fetch(`${gridOwner.url}/__sim/send-e66-batch`, { method: 'POST', body: JSON.stringify({ receiver: tenant.supplierEdielId, files }) })
     expect(response.ok).toBe(true)
     const e66 = () => inboundSources(tenant.companyId, ['E66'])

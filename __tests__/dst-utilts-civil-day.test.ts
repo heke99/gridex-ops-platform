@@ -13,6 +13,8 @@ import { buildUtiltsTransactionPersistencePayload } from '@/lib/ediel/utilts/tra
 import { validateSpotPriceDay } from '@/lib/pricing/spot/intervalCoverage'
 import { dailyE66 } from '../scripts/helpers/live-chain-wire'
 import { dayE66, dstDayProfile, kwhSum, stockholmDayUtc, stockholmQuarterCount, stockholmQuarterStarts, syntheticSpotDay, type E66DayFraming } from '../scripts/helpers/reality/dst'
+import { EdifactEnvelopeCodec } from '@/lib/ediel/core/edifactEnvelopeCodec'
+import { platformMailboxFor } from '../scripts/reality/simulators/platformMailbox'
 
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: { rpc: vi.fn() } }))
 vi.mock('@/lib/ediel/core/versionRegistry', () => ({ resolveCanonicalOutboundVersion: vi.fn(async () => 'E5SE5A') }))
@@ -153,5 +155,23 @@ describe('DST-H2 reality harness: the synthetic spot day follows the Stockholm c
       return { source: 'elprisetjustnu', priceArea: 'SE3' as const, timeStart: new Date(start).toISOString(), timeEnd: new Date(start + 900_000).toISOString(), sekPerKwh: 1, eurPerKwh: 0.09, exchangeRate: 11.2, resolution: 'quarter_hour' as const } })
     expect(validateSpotPriceDay({ calendarDate: '2026-10-25', priceArea: 'SE3', intervals: fixed('2026-10-25') }).issues.map(issue => issue.code)).toEqual(['gap'])
     expect(validateSpotPriceDay({ calendarDate: '2026-10-26', priceArea: 'SE3', intervals: fixed('2026-10-26') }).status).toBe('incomplete')
+  })
+})
+
+describe('T13 reality harness: dayE66 carries the lane of the tenant it is sent to', () => {
+  const input = { issuer: '16700', receiver: '70001', meterId: '735999000000000017', day: '2026-10-25', values: dstDayProfile('2026-10-25'), reference: 'GLANE1' }
+  it('defaults to the test lane (UNB 0035=1) and the test platform mailbox, as before', () => {
+    const wire = dayE66(input).edifact
+    expect(wire).toContain("+GLANE1++23-DDQ-E66-T++++1'")
+    expect(EdifactEnvelopeCodec.decode(wire)).toMatchObject({ environment: 'test', testIndicator: '1' })
+    expect(platformMailboxFor(wire)).toBe(process.env.GRIDEX_SHARED_EDIEL_TEST_EMAIL ?? 'gridex-ediel-test@example.invalid')
+  })
+  it("environment 'production' omits the test indicator and nothing else, so it reaches the production mailbox", () => {
+    const test = dayE66({ ...input, environment: 'test' }), production = dayE66({ ...input, environment: 'production' })
+    expect(production.edifact).toContain("+GLANE1++23-DDQ-E66-T'")
+    expect(EdifactEnvelopeCodec.decode(production.edifact)).toMatchObject({ environment: 'production', testIndicator: null })
+    expect(platformMailboxFor(production.edifact)).toBe(process.env.GRIDEX_SHARED_EDIEL_PRODUCTION_EMAIL ?? 'gridex-ediel@example.invalid')
+    expect(production.edifact.replace("E66-T'", "E66-T++++1'")).toBe(test.edifact)
+    expect({ ...production, edifact: '' }).toEqual({ ...test, edifact: '' })
   })
 })

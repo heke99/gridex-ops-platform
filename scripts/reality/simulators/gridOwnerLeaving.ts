@@ -24,6 +24,8 @@ export type LeavingFacts = {
   endMinute: string
   /** L: switch away (Z22), LK: change of customer and supplier, i.e. the customer moved out (Z23). */
   variant: 'L' | 'LK'
+  /** The lane of the supplier's live switch; the UNB test indicator (0035=1) only in the test lane (FINDINGS T13). */
+  environment?: 'production' | 'test'
   /** The grid owner's case reference (RFF+LI) of the other supplier's request. */
   li?: string
   /** UNB identification code qualifier of the parties (the one our own files use; default 14). */
@@ -52,8 +54,8 @@ export function buildZ05End(f: LeavingFacts) {
   const raw = guideOrderedFixtureRaw(body, 'Z05')
     .replace('+S+R+', `+${f.gridOwner}:${f.qualifier ?? '14'}+${f.supplier}:${f.qualifier ?? '14'}+`)
     .replace('+260917:1200+', `+${ediel(now).slice(0, 6)}:${ediel(now).slice(6, 10)}+`)
-    .replace("++23-DDQ-PRODAT'", "++23-DDQ-PRODAT++1++1'")
-    .replace(/\+I(\+\+23-DDQ-PRODAT\+\+1\+\+1')/, `+${interchange}$1`)
+    .replace("++23-DDQ-PRODAT'", f.environment === 'production' ? "++23-DDQ-PRODAT++1'" : "++23-DDQ-PRODAT++1++1'")
+    .replace(/\+I(\+\+23-DDQ-PRODAT\+\+1(?:\+\+1)?')/, `+${interchange}$1`)
     .replace(/UNZ\+1\+I'/, `UNZ+1+${interchange}'`)
     .replace('BGM+Z05+D+9+AB', `BGM+Z05+${document}+9+AB`)
     .replace('DTM+137:202609171200:203', `DTM+137:20${ediel(now)}:203`)
