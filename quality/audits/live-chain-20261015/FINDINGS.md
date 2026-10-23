@@ -1608,6 +1608,36 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
 - **Konsekvens:** en av kundens fyra anläggningar får aldrig sin leveransperiod, och inget syns för operatören.
 - **Hypoteser:** budget per körning, ett svalt fel efter `linked`, en låskonflikt med de tre andra Z04:orna för samma kund, eller att ingen sopare återupptar inkommande meddelanden i `received`.
 
+- **RÄTTAD 2026-10-23 (agent + granskning):**
+  - **Orsak**, bevisad med skrivskyddade läsningar i världen:
+    - Den första affärsbehandlingen kastade `prodat_canonical_source_validation_unconfirmed` (`inboundProcessing.ts:390`). `recordReceivedSourceValidation` omsluter `gridex_record_prodat_source_validation_v6` med `AbortSignal.timeout(2000)`.
+    - Databasen skrev bedömningen ändå, 2,36 sekunder efter `linked`. Funktionen har max 2 233 ms i `pg_stat_statements`, och syskonen tog 0,18–0,35 sekunder.
+    - Samtidigt behandlade testkanalens motor sex produktionskvittenser.
+    - Felet hamnade bara i körningsloggen (`ediel_inbound_poll_runs.autoProcessErrors`) och aldrig på meddelandet.
+    - Ingen cron, sopare eller stuck detector väljer om ett inkommande meddelande i `received` när posten redan är `processed`. Meddelandet blir därför strandat för alltid.
+    - Det var inte budget, dedupe eller lås.
+  - **Rättning (`strandedInboundEdielResume.ts`):**
+    - Ett fel vid första körningen skrivs som en varaktig händelse på meddelandet.
+    - Den inkommande cron-körningen återupptar, i sin egen kanal, meddelanden som är `received/received` och `tenant_resolved` och vars post är `processed` i samma bolag. De ska vara minst 10 minuter gamla, högst 7 dygn, och ha färre än 3 försök.
+    - Varje meddelande tas med compare-and-set på `updated_at`, så två samtidiga körningar inte kan ta samma.
+    - Behandlingen körs om via samma `processInboundEdielMessage` som operatörens omkörning. v6 returnerar den befintliga bedömningen, och CONTRL skapas inte dubbelt.
+    - Efter 3 försök lämnas en notering till operatören.
+  - **Tester:**
+    - `reality-f103-stranded-inbound-resume` 6 av 6. Helkedjan föll med den gamla `part-3`. Testerna täcker även urvalets spärrar, två samtidiga anspråk, gränsen för antal försök och att databasen hinner skriva klart medan klienten avbryter.
+    - Agenten körde 213 tester för motor och cron och 3 273 för inkommande post. Ett befintligt test, `test-center-raw-import-envelope-lookup`, gick i timeout under parallell last men passerade ensamt.
+    - Typkontroll och eslint utan fel, täckningen 352 av 352.
+    - Jag körde om F103-testet och motortesterna, 10 av 10, och eslint.
+  - **Världen:** `db3b04be` är den enda kandidaten i båda kanalerna. Den tas upp automatiskt av första produktions-cron efter ombyggnaden av appen.
+  - **Sidofynd, ÖPPNA:**
+    1. **Statusregression, sannolik:** Z04-intaget sätter utgående begäran till `confirmed`, och kvittensbehandlingen (`inboundAckProcessing.ts:397`) skriver sedan över med `acknowledged`. J1-01:s 30-minutersvakt utlöses därför aldrig, och 24-timmarsvakten `ediel_z04_overdue` kommer falskt att larma "Z04-svar saknas", även för slutförda byten. Hög.
+    2. **Kanalläckage:** testkanalens motor tog 6 produktionsjobb, eftersom `claim_inbound_processing_jobs` inte filtrerar på miljö. Samma meddelanden behandlades parallellt av båda kanalerna. Hög.
+    3. **Tidsgräns som ljuger:** `AbortSignal.timeout(2000)` på 41 ställen i `lib` gör att en skrivning som lyckats i databasen rapporteras som misslyckad. Medel.
+    4. **Dubbelbehandling:** manuell pollning (`inboundProcessing.ts:1461-1484`) kör motorn, som redan behandlar meddelandena, och sedan `processInboundEdielMessage` igen på samma id:n. Medel.
+    5. **Typglapp för händelser:** TypeScript-typen `EdielMessageEventType` saknar typer som databasen tillåter (`retry`, `inbound_mail_processed` m.fl.) och har typer som databasen avvisar (`dispatching`, `provider_accepted`, `delivered`). Medel.
+    6. **Felräkning:** kontrolltornets `overdueAcks` räknar varje rad med `ack_due_at` utan att jämföra med nu. Låg.
+    7. **Andra rader i `received`:** 25 Z04 i testkanalen (rester från native-tester) och en produktions-UTILTS (`c87918c4`) vars post står i `manual_review`. Inte utredda. Låg.
+    8. **Index saknas** för återupptagningens urval över tenanter. Kostnaden är inte mätt. Låg.
+
 ### Observationer i appens logg (körning 26, låg om inget annat anges)
 - `production route wizard runs could not be loaded` (PGRST205): tabellen `public.production_route_wizard_runs` finns inte i schemacachen. Antingen saknas migrationen i världen eller används tabellen utan att finnas.
 - `[manual-mailbox] imap_secret_reference rejected: not a MANUAL_MAILBOX_* variable` för brevlådan `21a35c21…`. Manuella inkorgen loggar fel varje minut.

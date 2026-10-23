@@ -1305,6 +1305,7 @@ export async function logInboundPollRun(
       configurationError: result.debug.configurationError,
       autoProcessedEdielMessages: result.debug.autoProcessedEdielMessages,
       autoProcessErrors: result.debug.autoProcessErrors,
+      strandedInboundResume: result.debug.strandedInboundResume ?? null,
       pollOptions: {
         includeSeenRecent: result.results.some((item) =>
           Boolean(item.searchedSeenRecentSince),

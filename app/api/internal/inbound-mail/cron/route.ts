@@ -77,6 +77,8 @@ export async function POST(request: NextRequest) {
       force,
       sharedOnly: !mailboxId,
       allowMissingMailboxConfig: true,
+      // F103: the scheduled lane resumes its own stranded 'received' inbound messages.
+      resumeStrandedInboundMessages: true,
     })
     return NextResponse.json({ ok: true, result })
   } catch (error) {

@@ -7,6 +7,7 @@ import { formatErrorMessage } from "@/lib/errors"
 import { createInboundOverdueTasks } from "@/lib/inbound-mail/inboundOverdueMonitor"
 
 
+import type { StrandedResumeResult } from "@/lib/inbound-mail/strandedInboundEdielResume"
 import type { InboundEngineRunResult } from './edielMailboxPoller.part-1'
 import { NO_ACTIVE_EDIEL_MAILBOX_ERROR, envInt, listConfiguredEdielMailboxes, mailboxDebugItem, mailboxSkipReason, nowIso } from './edielMailboxPoller.part-1'
 import { ensureDiagnosticEdielMessagesForInboundEmails, listEdielMessageIdsForInboundEmails, listRecentParsedInboundEmailIds, logInboundPollRun, mapWithConcurrency, pollEdielMailbox, processQueuedInboundProcessingJobs } from './edielMailboxPoller.part-2'
@@ -29,6 +30,8 @@ export async function runInboundEdielMailEngine(
     actorUserId?: string | null;
     sharedOnly?: boolean;
     createDiagnosticMessagesForUnresolved?: boolean;
+    /** Scheduled cron only: resume stranded 'received' inbound Ediel messages (F103). */
+    resumeStrandedInboundMessages?: boolean;
   } = {},
 ): Promise<InboundEngineRunResult> {
   const startedAt = nowIso();
@@ -133,7 +136,14 @@ export async function runInboundEdielMailEngine(
             });
             return { edielMessageId, error: null as string | null };
           } catch (error) {
-            return { edielMessageId, error: formatErrorMessage(error, "Okänt fel") };
+            const message = formatErrorMessage(error, "Okänt fel");
+            // F103: the error must reach the message itself, not only this run's metadata.
+            await import("@/lib/inbound-mail/strandedInboundEdielResume")
+              .then(({ recordInboundBusinessProcessingFailure }) => recordInboundBusinessProcessingFailure({
+                actorUserId: input.actorUserId ?? "system", edielMessageId, error: message, workerId, phase: "first_run",
+              }))
+              .catch(() => null);
+            return { edielMessageId, error: message };
           }
         },
       );
@@ -147,6 +157,34 @@ export async function runInboundEdielMailEngine(
           ? error.message
           : "Kunde inte ladda inboundProcessing.",
       );
+    }
+  }
+  // F103: a stored, tenant-resolved message whose processing threw (or was cut
+  // off) in an earlier run is selected by no later run unless resumed here.
+  let strandedInboundResume: StrandedResumeResult | null = null;
+  const resumeEnvironment = input.environment === "test" || input.environment === "production" ? input.environment : null;
+  if (input.resumeStrandedInboundMessages && resumeEnvironment && input.actorUserId) {
+    try {
+      const [{ resumeStrandedInboundEdielMessages }, { processInboundEdielMessage }] = await Promise.all([
+        import("@/lib/inbound-mail/strandedInboundEdielResume"),
+        import("@/lib/ediel/flows/inboundProcessing"),
+      ]);
+      const actorUserId = input.actorUserId;
+      strandedInboundResume = await resumeStrandedInboundEdielMessages({
+        environment: resumeEnvironment,
+        companyId: input.companyId ?? null,
+        excludeIds: edielMessageIds,
+        actorUserId,
+        workerId,
+        limit: envInt("EDIEL_INBOUND_STRANDED_RESUME_LIMIT", 10),
+        graceMinutes: envInt("EDIEL_INBOUND_STRANDED_RESUME_GRACE_MINUTES", 10),
+        lookbackHours: envInt("EDIEL_INBOUND_STRANDED_RESUME_LOOKBACK_HOURS", 7 * 24),
+        maxAttempts: envInt("EDIEL_INBOUND_STRANDED_RESUME_MAX_ATTEMPTS", 3),
+        process: (edielMessageId) => processInboundEdielMessage({ actorUserId, edielMessageId }),
+      });
+      autoProcessErrors.push(...strandedInboundResume.errors.map((error) => `stranded-resume ${error}`));
+    } catch (error) {
+      autoProcessErrors.push(`stranded-resume: ${formatErrorMessage(error, "Okänt fel")}`);
     }
   }
   let customerOperationJobs: { claimed: number; completed: number; needsReview: number; failed: number; errors: string[] } | null = null;
@@ -206,6 +244,10 @@ export async function runInboundEdielMailEngine(
         configuredMailboxes.length === 0 ? NO_ACTIVE_EDIEL_MAILBOX_ERROR : null,
       autoProcessedEdielMessages,
       autoProcessErrors,
+      strandedInboundResume: strandedInboundResume
+        ? { candidates: strandedInboundResume.candidates, claimed: strandedInboundResume.claimed, resumed: strandedInboundResume.resumed,
+            stillReceived: strandedInboundResume.stillReceived, failed: strandedInboundResume.failed, exhausted: strandedInboundResume.exhausted }
+        : null,
     },
     results,
   };
