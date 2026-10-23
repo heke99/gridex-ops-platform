@@ -152,9 +152,10 @@ async function loadBillingUnderlay(
 
 /**
  * Whether the underlay's contract carries its billed period (FINDINGS H3, owner decision 2026-10-22): a signed/active
- * contract, or one the supply-end follow-up terminated because exactly the underlay's supply period ended, for a
- * billed period inside the supplied window. Same rule as the billing gate, the underlay store and the pricing SQL
- * (contractCarriesBilledPeriod; 20261022150000, 20261023196000, 20261023199000). The supply period must be the
+ * contract, or one terminated because exactly the underlay's supply period ended (a Z05 supply end, or a manual
+ * move-out on that date, FINDINGS H3b), for a billed period inside the supplied window. Same rule as the billing gate,
+ * the underlay store and the pricing SQL (contractCarriesBilledPeriod; 20261022150000, 20261023196000,
+ * 20261023199000, 20261023200000). The supply period must be the
  * underlay's own, of this tenant, this contract, customer and metering point.
  */
 export function contractCarriesUnderlay(

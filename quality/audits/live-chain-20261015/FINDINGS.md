@@ -2271,6 +2271,24 @@ Gäller F113:s sidofynd 1 och 2.
 - **Sidofynd, ÖPPNA:**
   1. **Manuell avflyttning debiteras aldrig (hög, KRÄVER ÄGARBESLUT):** en manuell avflyttning (`gridex_end_customer_supply_v1`, `gridex_close_customer_lifecycle_v1`) avslutar avtalet med `move_out`, inte `supply_end`. Spärren och lagret nekar det, så slutmånaden debiteras aldrig. Batchens rollback är rättad, men luckan finns kvar.
      - **ÄGARBESLUT 2026-10-23 "Fakturera slutmånaden":** ett avtal som avslutats med `move_out` debiteras till sitt slutdatum, enligt samma regel som efter Z05. Det implementeras som en migration (H3b).
+     - **RÄTTAT (H3b):** migrationen `20261023200000_move_out_final_month_billing.sql` (sha256 `29ae94ee…`) byter exakt text i spärren, lagret, både läsarna (persist och read-interval) och exportvyn. Den kontrollerar ägare, ACL, säkerhetsläge och inställningar och vägrar med `move_out_final_month_rule_source_changed`.
+       - Regeln är densamma som i H3, utom att `termination_reason IN ('supply_end','move_out')`. TS-motsvarigheten är `CONTRACT_END_REASONS_CARRYING_FINAL_PERIOD` i `supplyPeriodEnd.ts`.
+       - `supplier_switch` och andra skäl nekas fortfarande. Ingen av kropparna är skyddad av DB-05 eller SC-031.
+       - Applicerad i världen 2026-10-23T22:32:49Z.
+     - **Tester:**
+       - `h3b-move-out-final-month` 15 av 15, varav 14 föll före; `h3-final-month-pricing` 32 av 32, där ett fall nu använder `supplier_switch` i stället för `move_out`, enligt ägarbeslutet;
+       - 19 importörsfiler 227 av 227;
+       - SQL-regressionen 71 PASS, med 8 som visar defekten mot den gamla koden;
+       - native `customer-leaves` 7 av 7 och `supply-move-out-z05lk` 3 av 3, när de kördes ensamma efter två deadlocks vid fixturseedning under last;
+       - täckningen 352/352, tsc 0 fel.
+     - **ÖPPET, H3c (hög, KRÄVER BESLUT):** spärren och lagret anropar även `billing_supply_basis_v1` → `supply_period_source_basis_v1`. För en period som kom via ett normalt Ediel-byte och sedan avslutades manuellt blir den grunden NULL, även för dagar före avflyttningen. Det sker av två skäl:
+       1. avtalsvillkoret där kräver `supply_end`;
+       2. perioden måste vara identisk med det tillstånd som det mottagna Ediel-meddelandet skapade.
+       - Slutmånaden för en Ediel-kund med manuell avflyttning nekas därför fortfarande, med `*_qualified_supply_source_required`. Det är en fråga om rättslig grund för Ediel och har inte ändrats.
+     - **Övrigt öppet:**
+       - En Z05 LK som efter en manuell stängning anger slutet till nästa dag ger ett `ended_at` som inte stämmer, och då nekas faktureringen.
+       - `gridex_close_customer_lifecycle_v1` i läget `terminate` skriver också `move_out`, och omfattas därmed.
+       - En manuell avslutning med skälet `supplier_switch` nekas fortfarande.
   2. **Portföljavtal:** `gridex_bind_locked_portfolio_settlement_to_underlay` kräver `signed`/`active`, så slutmånaden för ett portföljavtal kan inte bindas. Ingen anropare finns i appen. Medel.
   3. **Exporttak:** `createBillingExportRun` → `listAllBillingUnderlays` hämtar som standard de 200 senaste underlagen över alla månader, så en tenant med fler än 200 tappar rader tyst i exporten. Medel/hög.
   4. **Beredskapsundantaget:** H3-undantaget i `billingReadiness.evaluateBillingReadinessCore` är inte begränsat till den debiterade perioden. Låg.

@@ -217,9 +217,10 @@ describe('H3 the underlay engine applies the same rule (no ready segment the sto
   }
 
   it('a contract terminated by exactly this supply end gives the ready final underlay (above); another reason is reviewed', async () => {
-    // A manual move-out (gridex_end_customer_supply_v1 / gridex_close_customer_lifecycle_v1) terminates with 'move_out':
+    // A manual supplier-switch end (gridex_end_customer_supply_v1 'supplier_switch') or a termination by another end:
     // the gate and the store refuse it, so the engine must not hand the store a ready segment (23514 rolls back the batch).
-    for (const extra of [{ termination_reason: 'move_out' }, { ended_at: '2026-09-15T00:00:00+00:00' }]) {
+    // (A manual move-out, 'move_out' on the period's end date, is billed since H3b: h3b-move-out-final-month.test.ts.)
+    for (const extra of [{ termination_reason: 'supplier_switch' }, { ended_at: '2026-09-15T00:00:00+00:00' }]) {
       const { result, commands } = await september(terminated(extra))
       expect(commands.filter(command => command.readiness_status === 'ready')).toEqual([])
       expect(result.results.flatMap(entry => entry.warnings)).toContain('Leveransperioden saknar ett aktivt eller signerat avtal.')

@@ -314,6 +314,7 @@
     "20261023196000_f108_ediel_billing_month.sql": "2143022832c7f9010656858f26406b3e7247e441d5bf2f1b20595f1cbdcc61c7",
     "20261023197000_ediel_ack_shared_grid_owner_resource.sql": "c7152817778bb2a97cd162272a34117cc93f5580c7d562dcfc483ef30b568afd",
     "20261023198000_regulated_supply_scope_shared_grid_owner.sql": "04106645e39d2aa674587f12c89c0a7203fbbd5d1668cdaaf1fcb74d42566369",
-    "20261023199000_final_month_pricing_contract.sql": "0ba5df0685aee423b6750e2ac9dab0cf7ce16157a4997efac0d70588c8cf4d6c"
+    "20261023199000_final_month_pricing_contract.sql": "0ba5df0685aee423b6750e2ac9dab0cf7ce16157a4997efac0d70588c8cf4d6c",
+    "20261023200000_move_out_final_month_billing.sql": "29ae94ee79848b40796506abd863f9d03da2e1ad21ed4c377dc6300bf725c84d"
   }
 }

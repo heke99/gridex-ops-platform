@@ -937,8 +937,9 @@ export async function generateBillingUnderlaysForMonth(input: {
       const customerId = text(period.customer_id);
       const contractId = text(period.contract_id);
       const loadedContract = await loadContract(input.companyId, contractId);
-      // A terminated contract carries the segment only when exactly this supply end terminated it and the segment lies
-      // inside the supplied window (FINDINGS H3; the rule of the gate, the store and pricing). Any other terminated
+      // A terminated contract carries the segment only when exactly this supply end (Z05 supply_end or a manual
+      // move_out on the period's end date, FINDINGS H3/H3b) terminated it and the segment lies inside the supplied
+      // window (the rule of the gate, the store and pricing). Any other terminated
       // contract would make a ready segment that gridex_store_billing_underlay refuses with 23514, rolling back the
       // tenant's whole underlay batch; it is reviewed as a missing contract instead.
       const contract =
