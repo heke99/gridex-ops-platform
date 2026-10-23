@@ -14,7 +14,7 @@ import {
 } from "@/lib/billing/consumptionEstimate";
 import { meteringResolutionForContract } from "@/lib/metering/contractMeteringResolution";
 import { ensureHistoricalMeteringRequest } from "@/lib/billing/historyRequest";
-import { BILLED_SUPPLY_PERIOD_STATUSES } from "@/lib/billing/supplyPeriodEnd";
+import { BILLED_SUPPLY_PERIOD_STATUSES, contractCarriesBilledPeriod } from "@/lib/billing/supplyPeriodEnd";
 import { billingMonthBounds, billingMonthFrame, billingMonthLoadWindow, supplyPeriodBillingSegment } from "@/lib/billing/billingMonth";
 
 type JsonRecord = Record<string, unknown>;
@@ -936,7 +936,17 @@ export async function generateBillingUnderlaysForMonth(input: {
       const period = entry.period;
       const customerId = text(period.customer_id);
       const contractId = text(period.contract_id);
-      const contract = await loadContract(input.companyId, contractId);
+      const loadedContract = await loadContract(input.companyId, contractId);
+      // A terminated contract carries the segment only when exactly this supply end terminated it and the segment lies
+      // inside the supplied window (FINDINGS H3; the rule of the gate, the store and pricing). Any other terminated
+      // contract would make a ready segment that gridex_store_billing_underlay refuses with 23514, rolling back the
+      // tenant's whole underlay batch; it is reviewed as a missing contract instead.
+      const contract =
+        loadedContract &&
+        text(loadedContract.status) === "terminated" &&
+        !contractCarriesBilledPeriod(loadedContract, period, Date.parse(entry.start), Date.parse(entry.end))
+          ? null
+          : loadedContract;
       const snapshot = await loadSnapshot(
         input.companyId,
         contractId,

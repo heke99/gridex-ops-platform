@@ -120,3 +120,39 @@ export function contractEndedBySupplyPeriod(contract: ContractEnd | null | undef
   const utc = Number.isFinite(Date.parse(endedAt)) && !ISO_DATE.test(endedAt) ? new Date(endedAt).toISOString().slice(0, 10) : endedAt.slice(0, 10)
   return utc === endDate || stockholmDate(endedAt) === endDate
 }
+
+type BilledSupplyPeriod = PeriodEnd & { status?: unknown; start_date?: unknown }
+
+/**
+ * Whether a contract carries the billed period [billedStartMs, billedEndMs) of this supply period (FINDINGS H3,
+ * owner decision 2026-10-22). Exactly the rule of the database billing gate and underlay store
+ * (gridex_set_metering_billing_gate, gridex_store_billing_underlay; 20261022150000, 20261023196000) and of the
+ * pricing readers (20261023199000):
+ *   * a 'signed' or 'active' contract carries it; or
+ *   * a contract the supply-end follow-up terminated because exactly this period ended (contractEndedBySupplyPeriod),
+ *     on a billed period status ('ending'/'ended' only with an end date), and only for a billed period inside the
+ *     supplied window: not before civil midnight of the start date and not after the period's end instant
+ *     (supplyPeriodEndInstant: a received Z05 end at the market instant, F108 M5).
+ * Any other terminated, cancelled or expired contract, and any billed period after the supply end, is refused.
+ * Tenant, customer and metering-point identity are checked by the caller.
+ */
+export function contractCarriesBilledPeriod(
+  contract: ContractEnd | null | undefined,
+  period: BilledSupplyPeriod | null | undefined,
+  billedStartMs: number,
+  billedEndMs: number,
+): boolean {
+  if (!contract) return false
+  const status = text(contract.status)?.toLowerCase()
+  if (status === 'signed' || status === 'active') return true
+  if (!period || !contractEndedBySupplyPeriod(contract, period)) return false
+  const periodStatus = text(period.status)
+  if (!periodStatus || !(BILLED_SUPPLY_PERIOD_STATUSES as readonly string[]).includes(periodStatus)) return false
+  if ((periodStatus === 'ending' || periodStatus === 'ended') && !(text(period.actual_end_date) ?? text(period.end_date))) return false
+  if (!Number.isFinite(billedStartMs) || !Number.isFinite(billedEndMs)) return false
+  // The gate's start bound: civil midnight of the start date (sp.start_date AT TIME ZONE 'Europe/Stockholm').
+  const startDate = text(period.start_date)?.slice(0, 10)
+  if (!startDate || !ISO_DATE.test(startDate) || localMidnight(startDate) > billedStartMs) return false
+  const endMs = supplyPeriodEndInstant(period)
+  return endMs === null || billedEndMs <= endMs
+}

@@ -2160,6 +2160,36 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
 - Månadsdebiteringen nekar först efter en hel månads leverans, och då är tenanten redan skyldig kunderna fakturor.
 - Förslag: beredskapskontrollen för go-live eller onboarding-checklistan bör visa saknad fakturaleverantör som blockerare eller tydlig varning. Ska utredas och beslutas.
 
+### H3 längre ned i kedjan: slutfakturan efter Z05 prissätts aldrig ("Aktivt kundavtal saknas") — BEKRÄFTAD (kod), hög; RÄTTAD
+- **Bevis** med syntetiska data: leverans 1 augusti till Z05 1 oktober, och avtalet `terminated`/`supply_end`.
+  - Septemberunderlaget enligt Ediel-månaden blir `ready`.
+  - `calculatePricingPreviewForUnderlay` ger "Aktivt kundavtal saknas för fakturaperioden", och exportcentret hittar inget avtal.
+  - I SQL nekar `gridex_read_interval_pricing_snapshot_v1` (`selector_mismatch`).
+  - `gridex_persist_pricing_run` godtar däremot en körning utan intervallkvitto, eftersom avtalet inte lästes och den föll tillbaka till 'monthly'.
+  - `billing_export_readiness_v` blockerar med `exact_signed_contract_missing`.
+- **Orsak:** varje läsare under spärren och lagret filtrerade på `status in ('active','signed')`: `loadContract` i prismotorn, exportcentret, de två SQL-läsarna och exportvyn.
+- **Regel:**
+  - Avtalet är `signed`/`active`, eller också är det avtalet för underlagets egen leveransperiod med samma tenant, kund och mätpunkt.
+  - I det senare fallet gäller spärrens och lagrets statusvillkor byte för byte, det vill säga `supply_end` och `ended_at` lika med `end_date`. Därtill spärrens startvillkor och M5-slutvillkoret (slut ≤ `market_end_at`).
+  - Migrationen läser de installerade spärr- och lagerkropparna och vägrar köra (`rule_source_changed`) om inte alla tre villkoren finns där ordagrant.
+  - I TS heter regeln `contractCarriesBilledPeriod` (`supplyPeriodEnd.ts`).
+- **Ytterligare rättning:** `underlayEngine` godtog varje `terminated`-avtal, vilket är lösare än lagret. Ett avtal avslutat av annat skäl (manuell `move_out`) gav 23514 i lagret, och då rullades hela månadsbatchen tillbaka. Det granskas nu som saknat avtal.
+- **Migration:** `20261023199000_final_month_pricing_contract.sql`, med exakta textbyten för persist, read-interval och vyn. Ägare, ACL, säkerhetsläge, volatilitet, proconfig och vyns options kontrolleras.
+- **Tester:**
+  - `h3-final-month-pricing` 17 av 17, varav 9 föll på HEAD;
+  - SQL-regressionen gav 4 PASS före migrationen och 38 PASS efter;
+  - 14 otaggade testfiler som importerar de ändrade modulerna, 167 av 167;
+  - native-sviterna `customer-leaves` 7 av 7 och `supply-move-out-z05lk` 3 av 3;
+  - täckningen 352 av 352, där SC-031 föll en gång medan F114 ändrades i samma arbetsträd och sedan passerade 75 av 75;
+  - jag körde om H3, F108, F108-start och SQL-regressionen: 42 av 42 plus 38 PASS.
+- **Sidofynd, ÖPPNA:**
+  1. **Manuell avflyttning debiteras aldrig (hög, KRÄVER ÄGARBESLUT):** en manuell avflyttning (`gridex_end_customer_supply_v1`, `gridex_close_customer_lifecycle_v1`) avslutar avtalet med `move_out`, inte `supply_end`. Spärren och lagret nekar det, så slutmånaden debiteras aldrig. Batchens rollback är rättad, men luckan finns kvar.
+  2. **Portföljavtal:** `gridex_bind_locked_portfolio_settlement_to_underlay` kräver `signed`/`active`, så slutmånaden för ett portföljavtal kan inte bindas. Ingen anropare finns i appen. Medel.
+  3. **Exporttak:** `createBillingExportRun` → `listAllBillingUnderlays` hämtar som standard de 200 senaste underlagen över alla månader, så en tenant med fler än 200 tappar rader tyst i exporten. Medel/hög.
+  4. **Beredskapsundantaget:** H3-undantaget i `billingReadiness.evaluateBillingReadinessCore` är inte begränsat till den debiterade perioden. Låg.
+  5. **Startgränsen:** SQL-spärren använder civil midnatt för `start_date`, medan TS-spärren använder `market_start_at` (F108). Låg.
+  6. **Världens data:** alla 43 underlag saknar `contract_id`. Låg, ej utrett.
+
 ### P1 Mätvärdeslagringen går med ungefär 70 värden i minuten; kvittenshanteringen dominerar databastiden — MÄTT (världen, körning 26), medel; ej åtgärdat
 - **Körning 26, F6c:** 126 värden lagrade 11:11 och 475 kl. 11:16, alltså ungefär 70 i minuten. 123 filer à 96 kvartsvärden tar då nästan 3 timmar för en enda kund med 4 anläggningar. I produktion med många kunder räcker det inte.
 - **`pg_stat_statements`:** ackumulerat sedan världen startade, alla körningar och native-tester. De dyraste efter total tid:

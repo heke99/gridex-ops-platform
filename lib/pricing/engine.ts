@@ -16,6 +16,7 @@ import {
 import { ensureSpotPricesForBillingMonth } from "@/lib/pricing/spot/spotImportScheduler";
 import { importSpotPricesForDayArea } from "@/lib/pricing/spot/spotPriceImporter";
 import { assertBillingPeriodOpen } from "@/lib/billing/invoiceReadiness";
+import { contractCarriesBilledPeriod } from "@/lib/billing/supplyPeriodEnd";
 import {
   stockholmDateForInstant,
   stockholmLocalToUtc,
@@ -149,6 +150,44 @@ async function loadBillingUnderlay(
   return data as Record<string, unknown>;
 }
 
+/**
+ * Whether the underlay's contract carries its billed period (FINDINGS H3, owner decision 2026-10-22): a signed/active
+ * contract, or one the supply-end follow-up terminated because exactly the underlay's supply period ended, for a
+ * billed period inside the supplied window. Same rule as the billing gate, the underlay store and the pricing SQL
+ * (contractCarriesBilledPeriod; 20261022150000, 20261023196000, 20261023199000). The supply period must be the
+ * underlay's own, of this tenant, this contract, customer and metering point.
+ */
+export function contractCarriesUnderlay(
+  companyId: string,
+  underlay: Record<string, unknown>,
+  contract: Record<string, unknown> | null,
+  supplyPeriod: Record<string, unknown> | null,
+): boolean {
+  if (!contract) return false;
+  // Unchanged: a signed/active contract loaded by the tenant-scoped exact contract id carries the underlay.
+  const status = stringValue(contract.status);
+  if (status === "signed" || status === "active") return true;
+  if (stringValue(contract.company_id) !== companyId
+    || stringValue(contract.id) !== stringValue(underlay.contract_id)
+    || !supplyPeriod
+    || stringValue(supplyPeriod.id) !== stringValue(underlay.supply_period_id)
+    || stringValue(supplyPeriod.company_id) !== companyId
+    || stringValue(supplyPeriod.contract_id) !== stringValue(contract.id)
+    || stringValue(supplyPeriod.customer_id) !== stringValue(underlay.customer_id)
+    || stringValue(supplyPeriod.metering_point_id) !== stringValue(underlay.metering_point_id)
+    || stringValue(contract.customer_id) !== stringValue(underlay.customer_id)
+    || stringValue(contract.metering_point_id) !== stringValue(underlay.metering_point_id)) return false;
+  const month = dateFromUnderlayMonth(underlay.underlay_year, underlay.underlay_month);
+  if (!month) return false;
+  let billed: { start: string; end: string };
+  try {
+    billed = underlayIntervalPeriod(underlay, month);
+  } catch {
+    return false;
+  }
+  return contractCarriesBilledPeriod(contract, supplyPeriod, Date.parse(billed.start), Date.parse(billed.end));
+}
+
 async function loadContract(
   companyId: string,
   underlay: Record<string, unknown>,
@@ -160,10 +199,26 @@ async function loadContract(
     .select("*")
     .eq("company_id", companyId)
     .eq("id", contractId)
-    .in("status", ["active", "signed"])
+    .in("status", ["active", "signed", "terminated"])
     .maybeSingle();
   if (error && error.code !== "PGRST116") throw error;
-  return (data as Record<string, unknown> | null) ?? null;
+  const contract = (data as Record<string, unknown> | null) ?? null;
+  if (!contract) return null;
+  const status = stringValue(contract.status);
+  if (status === "active" || status === "signed") return contract;
+  // A contract terminated by exactly this supply end still carries the final period (FINDINGS H3).
+  const supplyPeriodId = stringValue(underlay.supply_period_id);
+  if (!supplyPeriodId) return null;
+  const supply = await supabaseService
+    .from("customer_supply_periods")
+    .select("*")
+    .eq("company_id", companyId)
+    .eq("id", supplyPeriodId)
+    .maybeSingle();
+  if (supply.error && supply.error.code !== "PGRST116") throw supply.error;
+  return contractCarriesUnderlay(companyId, underlay, contract, (supply.data as Record<string, unknown> | null) ?? null)
+    ? contract
+    : null;
 }
 
 async function loadContractPriceSnapshot(

@@ -24,7 +24,7 @@ import {
   calculateUnderlayPricingWithCore,
   loadLockedUnderlayPricingWithCore,
 } from "@/lib/pricing/underlayPricingAdapter";
-import { lockPricingPreview } from "@/lib/pricing/engine";
+import { contractCarriesUnderlay, lockPricingPreview } from "@/lib/pricing/engine";
 import { buildXlsxWorkbook } from "@/lib/billing/xlsx";
 import {
   GRIDEX_BILLING_PARTNER_ADAPTER_KEY,
@@ -119,7 +119,11 @@ export async function getBillingExportCenterData(
   return { underlays, meterValues, partnerExports, exportRuns };
 }
 
-async function listExactBillableContractsByUnderlayIds(params: {
+/**
+ * The exact billable contract of each underlay: signed/active, or terminated by exactly the underlay's supply end
+ * for a billed period inside the supplied window (FINDINGS H3; the pricing engine's rule, contractCarriesUnderlay).
+ */
+export async function listExactBillableContractsByUnderlayIds(params: {
   companyId: string;
   underlays: BillingUnderlayRow[];
 }): Promise<Map<string, CustomerContractRow>> {
@@ -142,7 +146,7 @@ async function listExactBillableContractsByUnderlayIds(params: {
     .select("*")
     .eq("company_id", params.companyId)
     .in("id", contractIds)
-    .in("status", ["signed", "active"]);
+    .in("status", ["signed", "active", "terminated"]);
   if (error) throw error;
 
   const byId = new Map(
@@ -151,12 +155,49 @@ async function listExactBillableContractsByUnderlayIds(params: {
       contract,
     ]),
   );
+  // Supply periods are needed only for terminated contracts (the final period after a supply end).
+  const supplyPeriodIds = Array.from(
+    new Set(
+      params.underlays
+        .filter((underlay) => {
+          const row = underlay as unknown as Record<string, unknown>;
+          return byId.get(String(row.contract_id ?? "").trim())?.status === "terminated";
+        })
+        .map((underlay) =>
+          String(
+            (underlay as unknown as Record<string, unknown>).supply_period_id ?? "",
+          ).trim(),
+        )
+        .filter(Boolean),
+    ),
+  );
+  const supplyById = new Map<string, Record<string, unknown>>();
+  if (supplyPeriodIds.length > 0) {
+    const supply = await supabaseService
+      .from("customer_supply_periods")
+      .select("*")
+      .eq("company_id", params.companyId)
+      .in("id", supplyPeriodIds);
+    if (supply.error) throw supply.error;
+    for (const row of (supply.data ?? []) as Record<string, unknown>[]) {
+      supplyById.set(String(row.id), row);
+    }
+  }
   for (const underlay of params.underlays) {
-    const contractId = String(
-      (underlay as unknown as Record<string, unknown>).contract_id ?? "",
-    ).trim();
+    const row = underlay as unknown as Record<string, unknown>;
+    const contractId = String(row.contract_id ?? "").trim();
     const contract = contractId ? byId.get(contractId) : null;
-    if (contract) map.set(underlay.id, contract);
+    if (
+      contract &&
+      contractCarriesUnderlay(
+        params.companyId,
+        row,
+        contract as unknown as Record<string, unknown>,
+        supplyById.get(String(row.supply_period_id ?? "").trim()) ?? null,
+      )
+    ) {
+      map.set(underlay.id, contract);
+    }
   }
   return map;
 }
