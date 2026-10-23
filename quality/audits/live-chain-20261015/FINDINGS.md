@@ -2074,6 +2074,14 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
     6. `metering_point_id` är NULL på alla 4 Z04 i världen. Kund, anläggning och begäran kopplas först efter det misslyckade APERAK-försöket. Medel.
     7. SC-059 faller när `app.env` är laddat i miljön. Låg, testisolering.
 
+### F111 verifierad live (körning 28) och F112 UTILTS-runtimens kvittenser köas aldrig — BEKRÄFTAD (världen), kritisk för Ediel; utreds av agent
+- **F111 live:** migrationen `20261023197000` applicerades i världen 19:16:16, mitt i körning 28:s F6c. Det dokumenteras uttryckligen, eftersom körningen därmed har ett före- och ett efterläge.
+  - Före: de första cirka 40 omkörda filerna fick ingen APERAK (`ediel_ack_atomic_foreign_source_resource`).
+  - Efter: de två första filerna fick "APERAK hanterad via canonical kernel.", med APERAK `c8b83a21…` och `9067d4af…`.
+- **F112:** dessa APERAK står som `draft` utan rad i `ediel_outbox` och skickas därför aldrig till nätägaren, i strid med ACK-02 och UCASE-E66-SUPPLIER-inbound.
+  - `createUtiltsRuntimeAcks` → `createAckIfMissing` (`utiltsDataRequest.part-1.ts`) anropar aldrig `createOutboxItem`. Det är samma sak som F106a:s sidofynd 1 (49 CONTRL-utkast för E66 i produktion), nu bekräftat också för APERAK.
+  - Test Center-kedjan utesluter avsiktligt sändning på den vägen. Exakt var undantaget hör hemma utreds.
+
 ### P1 Mätvärdeslagringen går med ungefär 70 värden i minuten; kvittenshanteringen dominerar databastiden — MÄTT (världen, körning 26), medel; ej åtgärdat
 - **Körning 26, F6c:** 126 värden lagrade 11:11 och 475 kl. 11:16, alltså ungefär 70 i minuten. 123 filer à 96 kvartsvärden tar då nästan 3 timmar för en enda kund med 4 anläggningar. I produktion med många kunder räcker det inte.
 - **`pg_stat_statements`:** ackumulerat sedan världen startade, alla körningar och native-tester. De dyraste efter total tid:
