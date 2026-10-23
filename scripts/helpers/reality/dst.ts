@@ -1,13 +1,21 @@
-// DST-aware builders for reality scenario G (end of daylight saving time, 2026-10-25) and its unit tests.
-// Pure: no database, network or test runner. Synthetic values only.
+// Time builders for the reality scenarios (G: end of daylight saving time 2026-10-25, F, J2, K) and their unit
+// tests. Pure: no database, network or test runner. Synthetic values only.
 //
-// Europe/Stockholm civil days have 92 (last Sunday in March), 100 (last Sunday in October) or 96 quarter-hours.
-// Ediel's UTILTS payload states every time in ONE fixed offset per message (DTM+735, ENV-08: +0100 normal time),
-// so a civil DST day is simply a 23- or 25-hour period in that fixed offset; nothing on the wire is ambiguous.
+// Two clocks, never mixed (approved rule ENV-08, owner decision 2026-10-23):
+//  - Ediel: every payload time is fixed Swedish normal time, UTC+1, all year (UTILTS DTM+735 +0100). A grid
+//    owner's E66 day is 00:00–24:00 +0100 and always has 96 quarter-hours (24 hours), also on the DST days; in
+//    summer it covers 01:00–01:00 Stockholm time. No E66 ever carries 92 or 100 values. A Z04 DTM+92 202609010000
+//    starts supply at 2026-08-31T23:00Z, and an Ediel month (the billing month of Ediel-based supply) runs from
+//    00:00 +0100 on the 1st: September 2026 = [2026-08-31T23:00Z, 2026-09-30T23:00Z).
+//  - Civil (Europe/Stockholm): the customer portal, the partner API and spot prices show Stockholm calendar days,
+//    with 92 (last Sunday in March), 100 (last Sunday in October) or 96 quarter-hours. A civil day is the sum by
+//    instant of the Ediel files that overlap it (25 Oct 2026 = the last 4 of the 24 Oct file + the 96 of 25 Oct).
 import { stockholmLocalToUtc } from '@/lib/time/stockholm'
-import { kwhText } from '../live-chain-wire'
+import { edielDayUtc, kwhText, stockholmUnbStamp } from '../live-chain-wire'
 
+export { edielDayUtc } from '../live-chain-wire'
 export const QUARTER_MS = 15 * 60_000
+const HOUR_MS = 3_600_000
 const pad = (n: number, w = 2) => String(n).padStart(w, '0')
 
 function dateParts(day: string) {
@@ -20,6 +28,8 @@ function nextDay(day: string) {
   const next = new Date(Date.UTC(year, month - 1, d + 1))
   return `${next.getUTCFullYear()}-${pad(next.getUTCMonth() + 1)}-${pad(next.getUTCDate())}`
 }
+
+// ---- Civil (Europe/Stockholm) days: portal, partner API and spot-price views ----
 
 /** UTC bounds [start, end) of one Europe/Stockholm calendar day, in ms. */
 export function stockholmDayUtc(day: string): { start: number; end: number } {
@@ -41,6 +51,10 @@ export function monthDays(month: string): string[] {
   const count = new Date(Date.UTC(year, m, 0)).getUTCDate()
   return Array.from({ length: count }, (_, i) => `${month}-${pad(i + 1)}`)
 }
+/** The Stockholm calendar day (YYYY-MM-DD) an instant falls on. */
+export function stockholmDayOf(instant: number) {
+  return new Date(instant).toLocaleDateString('sv-SE', { timeZone: 'Europe/Stockholm' })
+}
 
 const wallFormatter = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Stockholm', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
 /** Stockholm wall-clock hour (fractional) of an instant: the repeated 02:00–03:00 hour appears twice. */
@@ -56,13 +70,24 @@ export function stockholmOffsetMinutes(instant: number) {
   return Math.round((Date.UTC(y, mo - 1, d, h, mi, s) - Math.floor(instant / 1000) * 1000) / 60_000)
 }
 
-/**
- * Deterministic household profile for one Stockholm day (kWh, 3 decimals), one value per actual quarter-hour:
- * 92/96/100 values. The shape follows the wall clock; every value also carries its own position, so the two
- * passes of the repeated hour differ and a duplicate or a dropped quarter changes the sum.
- */
-export function dstDayProfile(day: string, dayIndex = 0, scale = 1): number[] {
-  return stockholmQuarterStarts(day).map((iso, q) => {
+// ---- Ediel (fixed +0100) days and months: what a grid owner sends and what Ediel-based supply is billed by ----
+
+/** UTC start (ISO, ms precision) of the 96 quarter-hours of one Ediel day (00:00–24:00 +0100). */
+export function edielQuarterStarts(day: string): string[] {
+  const { start } = edielDayUtc(day)
+  return Array.from({ length: 96 }, (_, q) => new Date(start + q * QUARTER_MS).toISOString())
+}
+/** UTC bounds [start, end) of one Ediel month (YYYY-MM): from 00:00 +0100 on the 1st to 00:00 +0100 on the next 1st. */
+export function edielMonthUtc(month: string): { start: number; end: number } {
+  const [year, m] = month.split('-').map(Number)
+  return { start: Date.UTC(year, m - 1, 1) - HOUR_MS, end: Date.UTC(year, m, 1) - HOUR_MS }
+}
+/** Quarter-hours in one Ediel month: always days × 96 (September 2026: 2 880; October 2026: 2 976). */
+export const edielMonthQuarterCount = (month: string) => monthDays(month).length * 96
+
+/** Household shape at each given instant (kWh, 3 decimals): follows the Stockholm wall clock, plus its position. */
+function profileAt(starts: string[], dayIndex: number, scale: number) {
+  return starts.map((iso, q) => {
     const hour = stockholmWallHour(Date.parse(iso))
     const base = 0.06 + 0.04 * Math.max(0, Math.sin(((hour - 6) * Math.PI) / 12))
     const evening = hour >= 17 && hour < 21 ? 0.09 : 0
@@ -71,16 +96,28 @@ export function dstDayProfile(day: string, dayIndex = 0, scale = 1): number[] {
     return Math.round((base + evening + weekend + ripple) * scale * 1000) / 1000
   })
 }
+/**
+ * Deterministic household profile for one Stockholm civil day: 92/96/100 values, one per actual quarter-hour.
+ * For civil views only (a grid owner never sends a civil day); every value carries its own position, so the two
+ * passes of the repeated hour differ and a duplicate or a dropped quarter changes the sum.
+ */
+export function dstDayProfile(day: string, dayIndex = 0, scale = 1): number[] {
+  return profileAt(stockholmQuarterStarts(day), dayIndex, scale)
+}
+/** Deterministic household profile for one Ediel day as a grid owner sends it: always 96 values (00:00–24:00 +0100). */
+export function edielDayProfile(day: string, dayIndex = 0, scale = 1): number[] {
+  return profileAt(edielQuarterStarts(day), dayIndex, scale)
+}
 
 /**
- * How the grid owner frames one day on the wire.
- *  - civil_fixed_cet:   the Stockholm civil day (92/96/100 quarters), all times in fixed +0100 (ENV-08 offset).
- *  - civil_start_offset: the civil day in the fixed offset valid at its first instant (+0200 for 25 Oct), as the
- *                        reality grid-owner simulator writes summer days.
- *  - fixed_cet_day:     ENV-08's fixed normal-time day 00:00–24:00 +0100 (always 96 quarters; in summer it
- *                        covers 01:00–01:00 Stockholm time).
+ * How one E66 day is framed on the wire.
+ *  - fixed_cet_day (default, the only framing a Swedish grid owner sends): ENV-08's fixed normal-time day
+ *    00:00–24:00 +0100, always 96 quarters; in summer it covers 01:00–01:00 Stockholm time.
+ *  - civil_fixed_cet / civil_start_offset: COUNTERFACTUAL inputs (a civil day of 92/96/100 quarters in +0100, or
+ *    in the offset at its first instant). No grid owner sends them; they exist only so the unit tests can show
+ *    what the platform's parser does with such a file. Never send them into the reality world.
  */
-export type E66DayFraming = 'civil_fixed_cet' | 'civil_start_offset' | 'fixed_cet_day'
+export type E66DayFraming = 'fixed_cet_day' | 'civil_fixed_cet' | 'civil_start_offset'
 
 /** Wall clock of an instant in a fixed offset, as EDIFACT format 203 (CCYYMMDDHHMM). */
 export function fixedOffsetMinute(instant: number, offsetMinutes: number) {
@@ -88,39 +125,47 @@ export function fixedOffsetMinute(instant: number, offsetMinutes: number) {
   return `${t.getUTCFullYear()}${pad(t.getUTCMonth() + 1)}${pad(t.getUTCDate())}${pad(t.getUTCHours())}${pad(t.getUTCMinutes())}`
 }
 
+/** UTC bounds and wire offset of one day in a framing. */
+export function e66DayBounds(day: string, framing: E66DayFraming = 'fixed_cet_day') {
+  if (framing === 'fixed_cet_day') return { ...edielDayUtc(day), offsetMinutes: 60 }
+  const { start, end } = stockholmDayUtc(day)
+  return { start, end, offsetMinutes: framing === 'civil_fixed_cet' ? 60 : stockholmOffsetMinutes(start) }
+}
+/** UTC start of every quarter-hour of one day in a framing (96 for fixed_cet_day). */
+export function e66QuarterStarts(day: string, framing: E66DayFraming = 'fixed_cet_day'): string[] {
+  return framing === 'fixed_cet_day' ? edielQuarterStarts(day) : stockholmQuarterStarts(day)
+}
+/** The deterministic profile for one day in a framing (96 values for fixed_cet_day). */
+export function e66DayProfile(day: string, framing: E66DayFraming = 'fixed_cet_day', dayIndex = 0, scale = 1): number[] {
+  return profileAt(e66QuarterStarts(day, framing), dayIndex, scale)
+}
+
 export type DayE66 = { edifact: string; framing: E66DayFraming; offset: '+0100' | '+0200'; periodStart: string; periodEnd: string
   /** UTC start of each value, in wire order. */ starts: string[]; registeredAt: string }
 
 /**
  * One grid-owner UTILTS E66 for one day, energy-only quarter-hours, in the same segment layout as
- * live-chain-wire's dailyE66 (which the platform already accepts), but with the period and value count that
- * follow from the framing. `registeredAt` defaults to 06:00 the morning after the period; `notAfter` caps it
- * (a grid owner cannot register values in the future: DTM+137 may not lie after reception).
+ * live-chain-wire's dailyE66. By default (fixed_cet_day) exactly the day a grid owner sends: 96 values from 23:00Z
+ * the day before, every DTM in +0100, UNB in Swedish local time. `registeredAt` defaults to 06:00 +0100 the
+ * morning after the period; `notAfter` caps it (a grid owner cannot register values in the future: DTM+137 may
+ * not lie after reception). A capped registration can lie before the period end when a scenario sends a day
+ * that has not ended yet; the scenario reports that (G registrationCappedToNow).
  * `environment` is the interchange's lane: 'test' (default) sets the UNB test indicator (0035=1), 'production'
  * omits it, exactly as dailyE66 does; a tenant live in production receives production files (FINDINGS T7).
  */
 export function dayE66(input: { issuer: string; receiver: string; meterId: string; day: string; values: number[]; reference: string
   framing?: E66DayFraming; registeredAfterHours?: number; notAfter?: number; environment?: 'production' | 'test' }): DayE66 {
-  const framing = input.framing ?? 'civil_fixed_cet'
-  let start: number, end: number, offsetMinutes: number
-  if (framing === 'fixed_cet_day') {
-    const { year, month, day } = dateParts(input.day)
-    offsetMinutes = 60
-    start = Date.UTC(year, month - 1, day) - 60 * 60_000
-    end = start + 24 * 3_600_000
-  } else {
-    ;({ start, end } = stockholmDayUtc(input.day))
-    offsetMinutes = framing === 'civil_fixed_cet' ? 60 : stockholmOffsetMinutes(start)
-  }
+  const framing = input.framing ?? 'fixed_cet_day'
+  const { start, end, offsetMinutes } = e66DayBounds(input.day, framing)
   const count = (end - start) / QUARTER_MS
   if (input.values.length !== count) throw Error(`dayE66 ${input.day} ${framing} requires ${count} quarter-hour values, got ${input.values.length}`)
-  let registered = end + (6 + (input.registeredAfterHours ?? 0)) * 3_600_000
+  let registered = end + (6 + (input.registeredAfterHours ?? 0)) * HOUR_MS
   if (input.notAfter !== undefined) registered = Math.min(registered, input.notAfter)
   const at = (instant: number) => fixedOffsetMinute(instant, offsetMinutes)
   const offset = offsetMinutes === 60 ? '+0100' : '+0200'
   const lines = [
     "UNA:+.? '",
-    `UNB+UNOC:3+${input.issuer}:ZZ+${input.receiver}:ZZ+${at(registered).slice(2, 8)}:${at(registered).slice(8, 12)}+${input.reference}++23-DDQ-E66-T${input.environment === 'production' ? '' : '++++1'}'`,
+    `UNB+UNOC:3+${input.issuer}:ZZ+${input.receiver}:ZZ+${stockholmUnbStamp(registered)}+${input.reference}++23-DDQ-E66-T${input.environment === 'production' ? '' : '++++1'}'`,
     "UNH+1+UTILTS:D:02B:UN:E5SE5A'",
     `BGM+E66::260+M${input.reference}+9+AB'`,
     `DTM+137:${at(registered)}:203'`, `DTM+735:?${offset}:406'`, "MKS+23+E02::260'",
@@ -139,9 +184,25 @@ export function dayE66(input: { issuer: string; receiver: string; meterId: strin
 }
 
 /**
+ * The expected value count per Stockholm civil day of a set of sent Ediel files, by instant: each sent value
+ * counts on the civil day its UTC start falls on (portal / partner API / spot views).
+ */
+export function civilDayTotals(files: Array<{ starts: string[]; values: number[] }>) {
+  const days: Record<string, { count: number; kwh: number }> = {}
+  for (const file of files) file.starts.forEach((iso, q) => {
+    const day = stockholmDayOf(Date.parse(iso))
+    const entry = days[day] ??= { count: 0, kwh: 0 }
+    entry.count += 1
+    entry.kwh = Math.round((entry.kwh + file.values[q]) * 1000) / 1000
+  })
+  return days
+}
+
+/**
  * Deterministic SE-area quarter-hour spot curve (SEK/kWh) for one Stockholm day in elprisetjustnu's shape:
- * 92/96/100 rows, each with its real UTC instant. The shape follows the wall clock; the second pass of the
- * repeated autumn hour is priced 0.05 SEK higher so an invoice that drops or double-prices it is visible.
+ * 92/96/100 rows, each with its real UTC instant (spot prices are civil delivery days). The shape follows the wall
+ * clock; the second pass of the repeated autumn hour is priced 0.05 SEK higher so an invoice that drops or
+ * double-prices it is visible.
  */
 export function syntheticSpotDay(date: string, area: string) {
   const areaFactor = ({ SE1: 0.6, SE2: 0.65, SE3: 1, SE4: 1.25 } as Record<string, number>)[area] ?? 1

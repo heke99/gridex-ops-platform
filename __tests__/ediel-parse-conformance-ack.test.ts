@@ -1,4 +1,4 @@
-// reality-defects: J4 parse conformance — negative APERAK (BGM 27/34, ERC/FTX per object, RFF correlation) and CONTRL (UCI/UCM/UCS/UCD)
+// reality-defects: J4, T15 parse conformance — negative APERAK (BGM 27/34, ERC/FTX per object, RFF correlation) and CONTRL (UCI/UCM/UCS/UCD)
 //
 // Inbound acknowledgements are built the way a grid owner builds them (scripts/helpers/reality/rejectsWire.ts and
 // hand-written counterparty wire), parsed by the real mail parser, classified by the canonical ACK classifier and
@@ -76,7 +76,8 @@ describe('J4 APERAK — whole-message rejection (BGM 27) and positive (BGM 34 / 
     const parsed = parseEdifactPayload(raw)
     expect(parsed).toMatchObject({ messageFunctionCode: '27', errorCodes: ['40'], freeText: ['Meddelandehuvudet kunde inte läsas'], references: { ACW: [Z03_DOCUMENT] } })
     expect(parsed.applicationErrors).toEqual([{ errorCode: '40', freeTextCode: '102', text: 'Meddelandehuvudet kunde inte läsas', references: {} }])
-    expect(parsed.dates['137']).toEqual(['202610221200'])
+    // 10:00Z in Ediel fixed normal time +0100 (ENV-08; formerly Stockholm local 12:00, J4-H1, T15).
+    expect(parsed.dates['137']).toEqual(['202610221100'])
     expect(classifyCanonicalInboundAck(parsed)).toMatchObject({ outcome: 'negative', code: '40', profile: 'PRODAT_16_B' })
     const physical = readPhysicalAckSourceCorrelation(inbound(raw, 'APERAK'))
     expect(physical).toMatchObject({ scope: 'message', acknowledgedReferences: [], wholeSourceOutcome: 'negative' })

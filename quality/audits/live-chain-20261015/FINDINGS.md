@@ -1910,6 +1910,7 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
        - Sidofynd 2 och 3 nedan är därmed lösta.
        - **Nya sidofynd, ÖPPNA:**
          - (a) **Plattformsrouten:** `/api/platform/energy/import/spot-prices` ger 500 för en icke-plattformsadmin i stället för 403. Den ignorerar uttryckligt nekande, och `redirect('/login')` anropas i en route handler. Medel.
+         - **ÄGARBESLUT 2026-10-23 om (b), "Tillåt fyllnad":** automatisk fyllnad av saknade dagar, utan lås och utan överskrivning, får ske från tenantflöden. Bara medvetna importer och låsningar är plattformsexklusiva.
          - (b) **Tenantdriven fyllnad:** tenantens prisförhandsvisning, omprissättning och debiteringsadaptern anropar `ensureSpotPricesForBillingMonth` (`lib/pricing/engine.ts:498`). Den fyller bara saknade dagar från leverantören, utan force och utan lås. Frågan är om det ryms i ägarbeslutet. Ska tas upp med ägaren.
          - (c) **Anslutningstest:** tenantens knapp "testa anslutning" (`testMarketSourceConnectionAction`) läser `spot_price_intervals` med tenantens session, men läsningen är plattformsexklusiv. Knappen visar därför alltid "Ingen marknadsdata hittades". Medel.
          - (d) **Grants:** `authenticated`, och `anon` på vissa spottabeller och vyer, har fulla tabellprivilegier inklusive TRUNCATE. Plattformsadmin kan skriva spottabellerna direkt via PostgREST och förbi importens validering. Flera policyer har verkningslösa villkor. Låg.
@@ -1920,6 +1921,31 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
   5. **Världens databas saknar rollraden `company_admin`** (F52). Låg för världen.
   6. **Inget UI** anropar de interna spotroutrarna. Låg.
   7. **`LiveTenant` kallar användaren "admin"** fast den saknar rollbaserad adminbehörighet. Låg, testkod.
+
+### T15 Verklighetsvärlden sände civila dygn och sommartid; nätägarens dygn är 00:00–24:00 +0100 med 96 kvartar — RÄTTAD (testkod), agent + granskning
+- **Grund:** F108 och ENV-08. Ägarbesluten Ediel-månad, civil midnatt för manuella perioder och spotpriser bara via plattformen gäller.
+- **Byggare och simulatorer:**
+  - `dailyE66` och `dayE66` (standard `fixed_cet_day`), `utiltsE66`/`utiltsE31` och `septemberMonthE66` sänder alltid `DTM+735:?+0100:406` och 96 kvartar (24 timvärden), med start 23:00Z dagen före.
+  - UNB skrivs i svensk lokal tid, enligt ENV-08 "UNB lokal tid".
+  - **Rättade fel:** Z05 `DTM+137` (`gridOwnerLeaving.ts`) och APERAK `DTM+137` (`rejectsWire.ts`, harnessfel J4-H1) var skrivna i UTC.
+  - **Nya hjälpare:** `edielQuarterStarts`, `edielMonthUtc`, `civilDayTotals` och `storedPerEdielDay`.
+- **Scenarierna:**
+  - `atSupplyStart` jämförs med `Etc/GMT-1`, och räkning sker per tidpunkt inom Ediel-månaden.
+  - **F7, J2 och G9:** spotpriserna hämtas via `spot-settlement`-cron i stället för tenantadmin (F109).
+  - **G:** filerna har 96, 96 och 96 kvartar, civila 25 oktober är 100 per tidpunkt, och oktobers Ediel-månad har 2 976 kvartar.
+  - **H:** `mEndBoundary` är Z05:ans marknadstidpunkt.
+  - **K:** räknar per civilt dygn.
+  - **E:** grupperar per Ediel-dygn.
+  - Fakturaperiodens fältnamn kontrolleras mjukt i väntan på F108-agenten.
+- **Verifiering:** typkontroll (`tsconfig.scripts.json`) utan fel och eslint utan fel (5 gamla varningar i J2). Enhetstesterna 85 av 85 i min omkörning, och agenten körde 150 tester plus en skissad kontroll av dygnen 1 september, 25 oktober och 29 mars. Inget kördes mot världen.
+- **Fynd, ÖPPNA:**
+  1. **Settlement-cron och 409:** cronen ger 500 `spot_settlement_area_lock_failed` när låset nekas, inte 409 `market_price_incomplete`, eftersom den mappningen bara finns i `lock-month`-routen. Låg.
+  2. **Lås före månadens slut:** `gridex_lock_spot_price_month` kontrollerar inte att månaden har tagit slut, bara att sammanfattningen är komplett. En leverantör som returnerar framtida dagar kan alltså låsa månaden i förtid. Medel. Skickat till F108-agenten.
+  3. **Spotpris för sista timmen i Ediel-september saknas:** 30 sep 22:00–23:00Z hör till oktobers civila spotdygn, som septembers settlement-cron varken importerar eller låser. Den första timmen ligger i spotmånaden september men inte i Ediel-september. Hög, eftersom fakturering med `require_locked_period_price` påverkas. Skickat till F108-agenten.
+  4. **E66 i J4:** `e66TwoPoints` har UNB 0600 i stället för 0700 lokal tid. Låg.
+  5. **Framtida registreringstid:** `dailyE66` saknar `notAfter`, så en H-körning före ungefär 07:00 sommartid kan få en registreringstid i framtiden. Låg.
+  6. **Kontrafaktisk fil godtas:** plattformen godtar en civil fil med 100 värden i +0100 utan E87, eftersom ENV-08 bara avvisar 92 eller 100 värden per fast CET-dygn. Observation.
+  7. **Ej körda native-tester:** native-tester som använder de ändrade hjälparna (`live-metering-billing-chain-native`, `ediel-grid-owner-rejects-native`) är inte körda.
 
 ### P1 Mätvärdeslagringen går med ungefär 70 värden i minuten; kvittenshanteringen dominerar databastiden — MÄTT (världen, körning 26), medel; ej åtgärdat
 - **Körning 26, F6c:** 126 värden lagrade 11:11 och 475 kl. 11:16, alltså ungefär 70 i minuten. 123 filer à 96 kvartsvärden tar då nästan 3 timmar för en enda kund med 4 anläggningar. I produktion med många kunder räcker det inte.

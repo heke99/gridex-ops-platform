@@ -11,6 +11,12 @@
 // Z03 is not passed through the send-window scheduler (today it correctly says the window closed on
 // 18 August). Everything after the Z03 is the real code path: outbox, grid owner, Z04, activation, metering,
 // billing. Website applications made today are observed separately (F2) and are not invoiced in September.
+//
+// Time model (ENV-08, owner decision 2026-10-23, T15): the Z04's DTM+92 202609010000 starts supply at
+// 2026-08-31T23:00Z (00:00 +0100). The grid owner's E66 days are 00:00–24:00 +0100, 96 values each. Ediel-based
+// supply is billed per Ediel month: September = [2026-08-31T23:00Z, 2026-09-30T23:00Z), and the invoice prints
+// exactly that period. Spot prices are civil delivery days and are joined per instant. Only the platform and the
+// nightly settlement cron import and lock spot prices (F109): F7 runs that cron, no tenant user does.
 // Synthetic data only (E2E-, example.invalid).
 import { writeFileSync } from 'node:fs'
 import { afterAll, describe, expect, it, type TestContext } from 'vitest'
@@ -28,7 +34,8 @@ import { pollInboundMailLanes, runOperationalCronSlot, runSlotAfterInbound, type
 import { GRID_AREA, GRID_OWNER_EDIEL_ID, goLiveAlsSupplier } from '../helpers/reality/goLiveAls'
 import { detectStuckStates } from '../helpers/reality/stuckDetector'
 import { registerUtiltsIssuer } from '../helpers/utiltsConsumptionParties'
-import { dayProfile, gs1 } from '../helpers/live-chain-wire'
+import { dayProfile, edielDayUtc, gs1 } from '../helpers/live-chain-wire'
+import { edielMonthUtc } from '../helpers/reality/dst'
 import { applyAsWebsiteCustomer, type SimulatedPerson, type SimulatedSite } from './simulators/websiteCustomer'
 
 const report: Record<string, unknown> = { scenario: 'F invoices', startedAt: new Date().toISOString() }
@@ -43,7 +50,10 @@ let apiKey = ''
 const TERMS = { bindingMonths: 12, noticeMonths: 1, renewalMonths: 12 }
 const SUPPLY_START = '2026-09-01'
 const MONTH = '2026-09'
+/** The Ediel month September: [2026-08-31T23:00Z, 2026-09-30T23:00Z) (owner decision 2026-10-23). */
+const EDIEL_MONTH = { start: new Date(edielMonthUtc(MONTH).start).toISOString(), end: new Date(edielMonthUtc(MONTH).end).toISOString() }
 report.supplyStart = SUPPLY_START
+report.edielMonth = EDIEL_MONTH
 const RUN = Date.now().toString(36)
 function personnummer(birth: string, serial: string) {
   const nine = birth.slice(2) + serial
@@ -80,12 +90,13 @@ const FACILITIES = AUGUST_CUSTOMERS.flatMap((customer, c) => customer.sites.map(
   scale: Math.round((one.annualConsumptionKwh / 3500) * 100) / 100, offset: c * 3 + s })))
 type Facility = (typeof FACILITIES)[number]
 const [HOUSE, HOLIDAY_HOME, GARAGE, CONTROL] = FACILITIES
+/** The grid owner's (Ediel) days of September: 30 files of 96 values = exactly the Ediel month. */
 const SEPTEMBER = Array.from({ length: 30 }, (_, i) => `2026-09-${String(i + 1).padStart(2, '0')}`)
 /** The grid owner never sends this day for the holiday home: a gap, never zero consumption. */
 const MISSING = { facility: HOLIDAY_HOME, day: '2026-09-14' }
 /** The house's 10 September is re-sent later with corrected values. */
 const CORRECTED = { facility: HOUSE, day: '2026-09-10' }
-/** The garage's last August days, before our supply started: never billable. */
+/** The garage's last August Ediel days (all before 2026-08-31T23:00Z), before our supply started: never billable. */
 const BEFORE_SUPPLY = { facility: GARAGE, days: ['2026-08-29', '2026-08-30', '2026-08-31'] }
 
 /** Inconsistencies and defects noticed in the code while building this scenario (code reading, file:line). */
@@ -264,6 +275,24 @@ function termsIn(output: unknown) {
     remaining: /months_?remaining|monthsremaining|återstående/.test(t) }
 }
 const ALL_TERMS = { binding: true, notice: true, autoRenewal: true, endDate: true, remaining: true }
+/**
+ * The billing period an output states, as UTC instants, if it states one as instants: pending billing agent (the
+ * field names of the Ediel-month period are not known yet), so the common spellings are read and dates are ignored.
+ */
+function periodIn(output: unknown): { start: string; end: string } | null {
+  const found: Record<string, string> = {}
+  const visit = (value: unknown, depth: number) => {
+    if (!value || typeof value !== 'object' || depth > 4) return
+    for (const [key, inner] of Object.entries(value as Record<string, unknown>)) {
+      if (typeof inner === 'string' && /T\d{2}:\d{2}/.test(inner) && !Number.isNaN(Date.parse(inner))) {
+        if (/^(billing_?)?period_?start(_at)?$|^start$|^periodStart$|^billingPeriodStart$/i.test(key)) found.start ??= new Date(inner).toISOString()
+        if (/^(billing_?)?period_?end(_at)?$|^end$|^periodEnd$|^billingPeriodEnd$/i.test(key)) found.end ??= new Date(inner).toISOString()
+      } else visit(inner, depth + 1)
+    }
+  }
+  visit(output, 0)
+  return found.start && found.end ? { start: found.start, end: found.end } : null
+}
 const isMonthlyFee = (line: Row) => /månadsavgift|monthly_fee/i.test(`${line.description} ${line.component} ${line.type}`)
 const isInvoiceFee = (line: Row) => /fakturaavgift|invoice_fee/i.test(`${line.description} ${line.component} ${line.type}`)
 
@@ -444,7 +473,7 @@ describe.sequential('reality F — invoices for several facilities with contract
     const supply = () => sql<Array<{ facility: string; switchId: string | null; switch: string | null; start: string | null; z04: string | null; period: Row | null }>>(`SELECT coalesce(jsonb_agg(jsonb_build_object(
         'facility',mp.metering_point_id,'switchId',s.id,'switch',s.status,'start',coalesce(s.confirmed_start_date,s.requested_start_date),'z04',s.inbound_z04_message_id,
         'period',(SELECT jsonb_build_object('status',p.status,'start',p.start_date,'customer',p.customer_id,'contract',coalesce(p.customer_contract_id,p.contract_id),'source',p.source,
-          'message',p.source_message_id,'switch',p.source_switch_request_id,'marketStart',p.market_start_at,'atSupplyStart',p.market_start_at=(TIMESTAMP '2026-09-01 00:00' AT TIME ZONE 'Europe/Stockholm'))
+          'message',p.source_message_id,'switch',p.source_switch_request_id,'marketStart',p.market_start_at,'atSupplyStart',p.market_start_at=(TIMESTAMP '2026-09-01 00:00' AT TIME ZONE 'Etc/GMT-1'))
           FROM public.customer_supply_periods p WHERE p.company_id=mp.company_id AND p.metering_point_id=mp.id ORDER BY p.created_at DESC LIMIT 1)) ORDER BY mp.created_at),'[]')
       FROM public.metering_points mp
       LEFT JOIN LATERAL (SELECT * FROM public.supplier_switch_requests x WHERE x.company_id=mp.company_id AND x.metering_point_id=mp.id ORDER BY x.created_at DESC LIMIT 1) s ON true
@@ -471,9 +500,9 @@ describe.sequential('reality F — invoices for several facilities with contract
       expect(row?.period, `${f.gsrn} ${JSON.stringify(row)}`).toMatchObject({ status: 'active', start: SUPPLY_START, atSupplyStart: true, customer: id.customer,
         contract: id.contract, message: row?.z04, switch: row?.switchId })
     }
-    // Billing may rest on the period: the received-source supply basis for September exists for every facility.
+    // Billing may rest on the period: the received-source supply basis for the Ediel month September exists for every facility.
     const basis = sql<Record<string, unknown>>(`SELECT coalesce(jsonb_object_agg(mp.metering_point_id,gridex_received_sources.billing_supply_basis_v1(p.company_id,p.id,
-        '2026-08-31T22:00:00Z'::timestamptz,'2026-09-30T22:00:00Z'::timestamptz)),'{}')
+        ${literal(EDIEL_MONTH.start)}::timestamptz,${literal(EDIEL_MONTH.end)}::timestamptz)),'{}')
       FROM public.customer_supply_periods p JOIN public.metering_points mp ON mp.id=p.metering_point_id
       WHERE p.company_id=${literal(tenant.companyId)} AND mp.metering_point_id=ANY(${augustGsrns()})`)
     report.billingSupplyBasis = basis
@@ -561,13 +590,18 @@ describe.sequential('reality F — invoices for several facilities with contract
     const notStored = outcomes.filter(outcome => outcome.stored < outcome.expected)
     report.reprocess = { outcomes, slots: reprocessSlots, buttonMissing: outcomes.filter(outcome => !outcome.button).length, notStored: notStored.length }
 
-    const valuesFor = (mp: string) => sql<Row>(`WITH v AS (SELECT *,(period_start AT TIME ZONE 'Europe/Stockholm')::date d FROM public.normalized_metering_values WHERE metering_point_id=${literal(mp)}),
-      s AS (SELECT * FROM v WHERE revision_status='current' AND d BETWEEN DATE '2026-09-01' AND DATE '2026-09-30')
+    // Counted by instant (T15): "September" is the Ediel month [2026-08-31T23:00Z, 2026-09-30T23:00Z); a day is the
+    // grid owner's Ediel day (00:00–24:00 +0100, Etc/GMT-1 in PostgreSQL); before supply = before market_start_at.
+    const valuesFor = (mp: string) => sql<Row>(`WITH v AS (SELECT *,(period_start AT TIME ZONE 'Etc/GMT-1')::date d FROM public.normalized_metering_values WHERE metering_point_id=${literal(mp)}),
+      ms AS (SELECT p.market_start_at m FROM public.customer_supply_periods p WHERE p.metering_point_id=${literal(mp)} ORDER BY p.created_at DESC LIMIT 1),
+      s AS (SELECT * FROM v WHERE revision_status='current' AND period_start>=${literal(EDIEL_MONTH.start)}::timestamptz AND period_start<${literal(EDIEL_MONTH.end)}::timestamptz)
       SELECT jsonb_build_object(
         'companies',(SELECT coalesce(jsonb_agg(DISTINCT company_id),'[]') FROM v),'customers',(SELECT coalesce(jsonb_agg(DISTINCT customer_id),'[]') FROM v),
+        'marketStart',(SELECT m FROM ms),
         'septemberCurrent',(SELECT count(*) FROM s),'septemberKwh',(SELECT coalesce(sum(quantity_kwh),0) FROM s),
         'septemberBillable',(SELECT count(*) FROM s WHERE billing_gate_status='eligible'),
-        'beforeSupply',(SELECT count(*) FROM v WHERE d<DATE '2026-09-01'),'beforeSupplyBillable',(SELECT count(*) FROM v WHERE d<DATE '2026-09-01' AND billing_gate_status='eligible'),
+        'beforeSupply',(SELECT count(*) FROM v WHERE v.period_start<(SELECT m FROM ms)),
+        'beforeSupplyBillable',(SELECT count(*) FROM v WHERE v.period_start<(SELECT m FROM ms) AND billing_gate_status='eligible'),
         'days',(SELECT coalesce(jsonb_agg(DISTINCT d ORDER BY d),'[]') FROM v WHERE revision_status='current'),
         'zeroValues',(SELECT count(*) FROM v WHERE revision_status='current' AND quantity_kwh=0),
         'correctedDayKwh',(SELECT coalesce(sum(quantity_kwh),0) FROM s WHERE d=${literal(CORRECTED.day)}::date),
@@ -588,26 +622,38 @@ describe.sequential('reality F — invoices for several facilities with contract
       expect(v.septemberCurrent, detail).toBe(september.length * 96)
       expect(Number(v.septemberKwh), detail).toBeCloseTo(sum(september.flatMap(day => days.get(day)!)), 6)
       expect(v.septemberBillable, detail).toBe(september.length * 96)
+      expect(Date.parse(String(v.marketStart)), `${detail}: supply starts at 00:00 +0100`).toBe(Date.parse(EDIEL_MONTH.start))
       expect(v.beforeSupplyBillable, `${detail}: before the supply start nothing is billable`).toBe(0)
       expect(v.zeroValues, detail).toBe(0)
     }
+    // The garage's three August Ediel days lie wholly before 2026-08-31T23:00Z: all 288 stored, none billable.
+    expect(values[BEFORE_SUPPLY.facility.gsrn].beforeSupply, 'garage: the August days are stored before the supply start').toBe(BEFORE_SUPPLY.days.length * 96)
     // The gap stays a gap; the correction is in force for its day, the original is superseded, not added.
     expect(values[MISSING.facility.gsrn].days).not.toContain(MISSING.day)
     expect(Number(values[CORRECTED.facility.gsrn].correctedDayKwh)).toBeCloseTo(sum(effective(CORRECTED.facility.gsrn).get(CORRECTED.day)!), 6)
     expect(Number(values[CORRECTED.facility.gsrn].superseded)).toBeGreaterThanOrEqual(correctedQuarters)
   }, 150 * 60_000)
 
-  it('F7 the admin imports and locks the September SE3 spot prices', async (context) => {
+  it('F7 the nightly settlement cron imports and locks the September SE3 spot prices (platform path, no tenant user)', async (context) => {
     requireEstablished('F7', context)
-    const admin = await operatorSession(tenant.adminEmail, tenant.adminPassword)
-    const imported = await admin.request.post('/api/internal/spot/import-month', { data: { billing_month: MONTH, price_areas: ['SE3'] } })
-    report.spotImport = { status: imported.status(), body: await imported.json().catch(() => null) }
-    expect(imported.status(), JSON.stringify(report.spotImport)).toBe(200)
-    const locked = await admin.request.post('/api/internal/spot/lock-month', { data: { billing_month: MONTH, price_area: 'SE3', reason: 'E2E reality F' } })
-    report.spotLock = { status: locked.status(), body: await locked.json().catch(() => null) }
-    expect(locked.status(), JSON.stringify(report.spotLock)).toBe(200)
+    // Spot prices are global market data per price area: only the platform and the nightly cron import and lock them
+    // (owner decision 2026-10-23, F109). The tenant fixture admin has no role-based admin authority (F52/F109).
+    const settlement = await cron(`/api/cron/pricing/spot-settlement?billing_month=${MONTH}&price_areas=SE3`)
+    const summaries = sql<Row[]>(`SELECT coalesce(jsonb_agg(jsonb_build_object('source',source,'status',status,'start',period_start,'end',period_end,
+        'covered',covered_duration_minutes,'expected',expected_duration_minutes,'lockedAt',locked_at,'reason',lock_reason)),'[]')
+      FROM public.spot_price_monthly_summaries WHERE price_area='SE3' AND billing_month=${literal(MONTH)}`)
+    // The Ediel month ends 2026-09-30T23:00Z: its last hour is the first civil hour of 1 October (an October spot day).
+    const edielTail = sql<number>(`SELECT to_jsonb(count(*)) FROM public.spot_price_intervals WHERE price_area='SE3' AND resolution='quarter_hour'
+      AND time_start>='2026-09-30T22:00:00Z' AND time_start<${literal(EDIEL_MONTH.end)}`)
+    report.spotSettlement = { status: settlement.status, body: settlement.body, summaries, edielTailQuarters: edielTail }
+    expect(settlement.status, JSON.stringify(settlement.body).slice(0, 2000)).toBe(200)
+    expect(settlement.body, JSON.stringify(settlement.body).slice(0, 2000)).toMatchObject({ ok: true, mode: 'settlement_lock', settlement_locked: true })
+    expect(summaries.filter(row => row.status === 'locked'), `September SE3 is locked: ${JSON.stringify(summaries)}`).toHaveLength(1)
+    // Spot is a civil view: civil September has 30 × 96 quarter-hours.
     expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.spot_price_intervals WHERE price_area='SE3' AND resolution='quarter_hour'
       AND time_start>='2026-08-31T22:00:00Z' AND time_start<'2026-09-30T22:00:00Z'`)).toBe(30 * 96)
+    // Pending billing agent: which import covers the Ediel month's last hour (civil 1 October 00:00–01:00 CEST).
+    expect.soft(edielTail, 'pending billing agent: spot prices for 2026-09-30T22:00Z–23:00Z (the last hour of the Ediel month) exist').toBe(4)
   })
 
   it('F8 the monthly billing cron prepares September: underlays, locked pricing, invoices, files and agreements', async (context) => {
@@ -622,9 +668,17 @@ describe.sequential('reality F — invoices for several facilities with contract
       ...Object.fromEntries((['nordfin_xml', 'json', 'csv'] as const).map(format => [format, String(renderInvoiceFile(file, format).body)])) as { nordfin_xml: string; json: string; csv: string } }))
     report.billing = { ...graph, agreements, renderedFiles,
       ...(graph.exportFiles.length ? {} : { exportFilesNote: 'none: invoice files hold approved invoices only and are made by staff (lib/billing/invoiceFileExport.ts listInvoiceFileCandidates/createInvoiceFile); the cron prepares drafts for review' }) }
-    // One underlay per facility, each for the whole supplied month.
+    // One underlay per facility, each for the whole supplied (Ediel) month.
     expect(graph.underlays.map(u => u.facility).sort(), JSON.stringify(graph.underlays)).toEqual(FACILITIES.map(f => f.gsrn).sort())
     for (const underlay of graph.underlays) expect(underlay.start, JSON.stringify(underlay)).toBe(SUPPLY_START)
+    // Pending billing agent (field names and form not known yet): the underlay and the invoice cover exactly the
+    // Ediel month [2026-08-31T23:00Z, 2026-09-30T23:00Z) and the invoice prints that period.
+    report.invoicePeriods = { expected: EDIEL_MONTH, underlays: graph.underlays.map(u => ({ facility: u.facility, start: u.start, end: u.end })),
+      invoices: graph.invoices.map(i => ({ invoice: i.number ?? i.id, start: i.start, end: i.end, calculationPeriod: periodIn(i.calculation) })) }
+    for (const invoice of graph.invoices) {
+      expect.soft(periodIn(invoice.calculation) ?? periodIn({ start: invoice.start, end: invoice.end }),
+        `pending billing agent: invoice ${invoice.number ?? invoice.id} covers the Ediel month ${JSON.stringify(EDIEL_MONTH)}`).toEqual(EDIEL_MONTH)
+    }
   }, 15 * 60_000)
 
   it('F9 each invoice matches an independent calculation; terms, fees, payment reference and rounding (F70–F77)', async (context) => {
@@ -637,8 +691,9 @@ describe.sequential('reality F — invoices for several facilities with contract
     expect(counts(repeated)).toEqual(counts(graph))
     expect(repeated.invoices.map(i => i.id).sort()).toEqual(graph.invoices.map(i => i.id).sort())
 
+    // Spot prices per instant over the Ediel month [2026-08-31T23:00Z, 2026-09-30T23:00Z) (civil spot days, joined by instant).
     const prices = sql<Array<{ s: string; p: number }>>(`SELECT coalesce(jsonb_agg(jsonb_build_object('s',time_start,'p',sek_per_kwh) ORDER BY time_start),'[]')
-      FROM public.spot_price_intervals WHERE price_area='SE3' AND resolution='quarter_hour' AND time_start>='2026-08-31T22:00:00Z' AND time_start<'2026-09-30T22:00:00Z'`)
+      FROM public.spot_price_intervals WHERE price_area='SE3' AND resolution='quarter_hour' AND time_start>=${literal(EDIEL_MONTH.start)} AND time_start<${literal(EDIEL_MONTH.end)}`)
     const price = new Map(prices.map(row => [new Date(row.s).toISOString(), Number(row.p)]))
     const runOf = (invoice: Row) => graph.pricingRuns.find(run => run.id === (invoice.calculation as Row | null)?.pricing_run_id) ?? graph.pricingRuns.find(run => run.underlay === invoice.underlay && run.locked)
     const independent: Record<string, unknown> = {}
@@ -654,10 +709,11 @@ describe.sequential('reality F — invoices for several facilities with contract
       }
       const days = effective(f.gsrn)
       let energy = 0, kwh = 0
+      // Each value at its real instant: the Ediel day starts 00:00 +0100 (23:00Z the day before).
       for (const day of SEPTEMBER) days.get(day)!.forEach((value, q) => {
-        const start = new Date(Date.parse(`${day}T00:00:00+02:00`) + q * 900_000).toISOString()
+        const start = new Date(edielDayUtc(day).start + q * 900_000).toISOString()
         const p = price.get(start)
-        if (p === undefined) throw Error(`no spot price for ${start}`)
+        if (p === undefined) throw Error(`no spot price for ${start}${start >= '2026-09-30T22:00' ? ' (the last hour of the Ediel month is civil 1 October; pending billing agent, see F7 edielTailQuarters)' : ''}`)
         energy += value * p; kwh += value
       })
       const markup = kwh * 0.04, monthlyFee = 49, exVat = energy + markup + monthlyFee

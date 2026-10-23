@@ -147,7 +147,15 @@ export function configurePlatformMailbox() {
 }
 
 export type LiveTenant = {
-  companyId: string; adminUserId: string; adminEmail: string; adminPassword: string
+  companyId: string
+  /**
+   * The fixture "admin" (configureTenant): a company_admin membership, a disposable native_actor_* role without
+   * permissions and direct user_permissions allow rows. It has NO role-based admin authority: the admin context
+   * counts only role allows and uses direct rows only as denials, so its permissions are [] and the admin API
+   * answers "Ej behörig" (FINDINGS F52, F109). Use it as a fixture actor id only; a step that needs a real tenant
+   * employee (admin pages, /api/internal/*) must create one with scripts/helpers/reality/tenantStaff.ts.
+   */
+  adminUserId: string; adminEmail: string; adminPassword: string
   /** Gridex platform staff (super_admin in user_roles) operating this supplier as a member. */
   operatorEmail: string; operatorPassword: string
   supplierEdielId: string; issuerEdielId: string; gridOwnerId: string; gridOwnerEmail: string

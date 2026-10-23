@@ -16,6 +16,7 @@ import { characteristic, line, type Parts } from '../../../__tests__/fixtures/pr
 import nodemailer from 'nodemailer'
 import { buildZ04ForSwitchRequest, readSwitchRequest } from './gridOwnerWire'
 import { platformMailboxFor } from './platformMailbox'
+import { edielMinute, stockholmUnbStamp } from '../../helpers/live-chain-wire'
 
 export type LeavingFacts = {
   gridOwner: string; supplier: string; point: string; gridArea: string; brp: string
@@ -32,7 +33,8 @@ export type LeavingFacts = {
   qualifier?: string
 }
 
-const ediel = (date: Date) => date.toISOString().slice(2, 16).replace(/[-T:]/g, '')
+// ENV-08: the payload (DTM+137) is Ediel fixed normal time +0100 (PRODAT ZZZ:1:805); the UNB is Swedish local
+// time. Formerly both were written in UTC (T15).
 
 /** PRODAT Z05 from the grid owner to the supplier that loses the facility. */
 export function buildZ05End(f: LeavingFacts) {
@@ -50,15 +52,15 @@ export function buildZ05End(f: LeavingFacts) {
   ]
   const interchange = `I${randomUUID().replaceAll('-', '').slice(0, 12).toUpperCase()}`
   const document = randomUUID().replaceAll('-', '').slice(0, 20).toUpperCase()
-  const now = new Date()
+  const now = Date.now()
   const raw = guideOrderedFixtureRaw(body, 'Z05')
     .replace('+S+R+', `+${f.gridOwner}:${f.qualifier ?? '14'}+${f.supplier}:${f.qualifier ?? '14'}+`)
-    .replace('+260917:1200+', `+${ediel(now).slice(0, 6)}:${ediel(now).slice(6, 10)}+`)
+    .replace('+260917:1200+', `+${stockholmUnbStamp(now)}+`)
     .replace("++23-DDQ-PRODAT'", f.environment === 'production' ? "++23-DDQ-PRODAT++1'" : "++23-DDQ-PRODAT++1++1'")
     .replace(/\+I(\+\+23-DDQ-PRODAT\+\+1(?:\+\+1)?')/, `+${interchange}$1`)
     .replace(/UNZ\+1\+I'/, `UNZ+1+${interchange}'`)
     .replace('BGM+Z05+D+9+AB', `BGM+Z05+${document}+9+AB`)
-    .replace('DTM+137:202609171200:203', `DTM+137:20${ediel(now)}:203`)
+    .replace('DTM+137:202609171200:203', `DTM+137:${edielMinute(now)}:203`)
   return { raw, reference: interchange, li }
 }
 

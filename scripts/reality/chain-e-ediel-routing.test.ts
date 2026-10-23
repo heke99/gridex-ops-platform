@@ -185,7 +185,9 @@ describe.sequential('reality E — inbound Ediel routing to the right tenant and
       'customers',(SELECT coalesce(jsonb_agg(DISTINCT customer_id),'[]') FROM public.normalized_metering_values WHERE metering_point_id=${literal(meteringPointId)}),
       'current',(SELECT count(*) FROM public.normalized_metering_values WHERE metering_point_id=${literal(meteringPointId)} AND revision_status='current'),
       'kwh',(SELECT coalesce(sum(quantity_kwh),0) FROM public.normalized_metering_values WHERE metering_point_id=${literal(meteringPointId)} AND revision_status='current'),
-      'days',(SELECT coalesce(jsonb_agg(d ORDER BY d),'[]') FROM (SELECT DISTINCT (period_start AT TIME ZONE 'Europe/Stockholm')::date d FROM public.normalized_metering_values WHERE metering_point_id=${literal(meteringPointId)}) x),
+      // Per Ediel day (00:00–24:00 +0100, 'Etc/GMT-1'): one grid-owner file each (ENV-08, T15). A civil day would
+      // also show the next day for the last hour of every summer file.
+      'days',(SELECT coalesce(jsonb_agg(d ORDER BY d),'[]') FROM (SELECT DISTINCT (period_start AT TIME ZONE 'Etc/GMT-1')::date d FROM public.normalized_metering_values WHERE metering_point_id=${literal(meteringPointId)}) x),
       'resolutions',(SELECT coalesce(jsonb_agg(DISTINCT resolution),'[]') FROM public.normalized_metering_values WHERE metering_point_id=${literal(meteringPointId)} AND revision_status='current'),
       'superseded',(SELECT count(*) FROM public.normalized_metering_values WHERE metering_point_id=${literal(meteringPointId)} AND revision_status<>'current'),
       'billable',(SELECT count(*) FROM public.normalized_metering_values WHERE metering_point_id=${literal(meteringPointId)} AND billing_gate_status='eligible'),

@@ -10,7 +10,8 @@
 //   W1      buys on the tenant's website today (public website API): the switch is sent, no answer;
 //   L2      then moves out (the grid owner's PRODAT Z05 LK, end yesterday 00:00);
 //   L1      is metered by the grid owner for the last day of last month and the first day of this month (UTILTS
-//           E66, Stockholm civil days), i.e. across the month boundary.
+//           E66, the grid owner's Ediel days 00:00–24:00 +0100, 96 values each, ENV-08/T15), i.e. across the month
+//           boundary; stored values are counted per civil day by instant.
 // Then the analytics crons run as Vercel runs them, and every number on the tenant's own pages (Driftöversikt,
 // Analys, Portföljöversikt) and on the white-label portfolio page must equal the independent count computed from
 // the business tables (scripts/helpers/reality/statistics.ts independentMonth), for T and for C. C must never
@@ -33,7 +34,7 @@ import { GRID_AREA, GRID_OWNER_EDIEL_ID, goLiveAlsSupplier } from '../helpers/re
 import { createSignedContractSwitch, inboundSources, reprocessHeldUtilts, sourceDiagnosis, supplyState } from '../helpers/reality/leaving'
 import { createTenantStaff } from '../helpers/reality/tenantStaff'
 import { WEBSITE_ORIGIN, ensureProductionWhiteLabelColumnParity } from '../helpers/reality/tenantWebsite'
-import { dayE66, dstDayProfile, stockholmQuarterCount } from '../helpers/reality/dst'
+import { civilDayTotals, dayE66, edielDayProfile } from '../helpers/reality/dst'
 import { registerUtiltsIssuer } from '../helpers/utiltsConsumptionParties'
 import { gs1 } from '../helpers/live-chain-wire'
 import { createPartnerHomeCompany, createWhiteLabelPartner, ensureProductionWhiteLabelPlatformParity, independentMonth, readLabelledValues, readTable,
@@ -66,6 +67,10 @@ const L2_END_MINUTE = `${YESTERDAY.replaceAll('-', '')}0000`
 /** L1 is metered across the month boundary; on the 1st itself the first day is not complete, so two days of last month. */
 const METERED_DAYS = TODAY > `${M.current}-01` ? [M.lastDay(M.last), `${M.current}-01`] : [addDays(M.lastDay(M.last), -1), M.lastDay(M.last)]
 report.timeline = { TODAY, months: M, BOUNDARY_SIGNED_AT, L2_END_MINUTE, METERED_DAYS }
+/** What the grid owner sent for L1 (K6), for the per-instant expectations. */
+const e66Files: Array<{ starts: string[]; values: number[] }> = []
+/** Every quarter-hour sent for L1 (2 Ediel days × 96). */
+const sentQuarters = () => METERED_DAYS.length * 96
 
 const RUN = Date.now().toString(36)
 function personnummer(birth: string, serial: string) {
@@ -301,18 +306,19 @@ describe.sequential('reality K — statistics are computed and shown correctly',
     expect(latestPeriod(L2), JSON.stringify(report.z05Received)).toMatchObject({ status: 'ended', end: YESTERDAY })
   }, 20 * 60_000)
 
-  it('K6 the grid owner meters L1 across the month boundary (UTILTS E66, Stockholm civil days)', async (context) => {
+  it('K6 the grid owner meters L1 across the month boundary (UTILTS E66, Ediel days; stored per civil day by instant)', async (context) => {
     requireEstablished('K6', context)
     registerUtiltsIssuer(sql as never, literal, GRID_OWNER_EDIEL_ID, tenant.adminUserId)
     const sent: Row[] = []
     for (const [index, day] of METERED_DAYS.entries()) {
-      const values = dstDayProfile(day, index, 2)
+      const values = edielDayProfile(day, index, 2)
       const reference = `K${day.replaceAll('-', '').slice(2)}${L1.gsrn.slice(-6)}`
       // Production interchanges: the tenant is live in production (Z03 environment 'production'; FINDINGS T7).
-      const wire = dayE66({ issuer: GRID_OWNER_EDIEL_ID, receiver: tenant.supplierEdielId, meterId: L1.gsrn, day, values, reference, framing: 'civil_fixed_cet', notAfter: Date.now() - 2 * 60_000,
+      const wire = dayE66({ issuer: GRID_OWNER_EDIEL_ID, receiver: tenant.supplierEdielId, meterId: L1.gsrn, day, values, reference, framing: 'fixed_cet_day', notAfter: Date.now() - 2 * 60_000,
         environment: 'production' })
       await gridOwnerSends({ from: gridOwner.email, subject: `UTILTS-E66 ${reference}`, filename: `UTILTS-E66_${reference}.edi`, edifact: wire.edifact })
-      sent.push({ day, reference, quarters: values.length, periodStart: wire.periodStart, periodEnd: wire.periodEnd })
+      sent.push({ day, reference, quarters: values.length, periodStart: wire.periodStart, periodEnd: wire.periodEnd, registeredAt: wire.registeredAt })
+      e66Files.push({ starts: wire.starts, values })
     }
     report.e66Sent = sent
     const e66 = () => inboundSources(tenant.companyId, ['E66'])
@@ -322,7 +328,11 @@ describe.sequential('reality K — statistics are computed and shown correctly',
       FROM public.metering_values WHERE company_id=${companyLiteral()} AND metering_point_id=${literal(L1.facility!.meteringPointId)} AND coalesce(is_current,true) GROUP BY 1) x`)
     report.e66Stored = stored
     saveReport()
-    for (const day of METERED_DAYS) expect(stored[day], `L1 ${day}: every quarter-hour of the Swedish day is stored once`).toBe(stockholmQuarterCount(day))
+    // Per civil (Swedish) day by instant: each sent quarter-hour on the civil day its UTC start falls on, exactly once
+    // (in summer the first civil hour of an Ediel day belongs to the previous civil day).
+    const expected = Object.fromEntries(Object.entries(civilDayTotals(e66Files)).map(([day, total]) => [day, total.count]))
+    report.e66ExpectedPerCivilDay = expected
+    expect(stored, 'L1: every sent quarter-hour is stored once, per civil day by instant').toEqual(expected)
   }, 30 * 60_000)
 
   it('K7 the analytics crons run as Vercel runs them (daily for this month, monthly for last month)', async (context) => {
@@ -354,7 +364,7 @@ describe.sequential('reality K — statistics are computed and shown correctly',
     expect.soft([t0.poaCreated, t0.poaSigned, t1.poaSigned], 'T powers of attorney created/signed').toEqual([5 + website, 2 + website, 1])
     expect.soft(t0.ongoingSwitches, 'T ongoing switches: N2, Q1, W1').toBe(2 + website)
     expect.soft([t0.valuesInMonth + t1.valuesInMonth, t0.valuesCurrent], 'T values: every stored quarter-hour once').toEqual([
-      METERED_DAYS.reduce((sum, day) => sum + stockholmQuarterCount(day), 0), METERED_DAYS.reduce((sum, day) => sum + stockholmQuarterCount(day), 0)])
+      sentQuarters(), sentQuarters()])
     // C: two migrated customers supplied since the 1st of last month, one power of attorney signed two months ago.
     expect.soft([c0.customers, c0.activeEnd, c1.newCustomers, c0.newCustomers, c0.churned], 'C customers').toEqual([2, 2, 2, 0, 0])
     expect.soft([c0.poaCreated, c0.poaSigned, c0.ongoingSwitches, c0.valuesCurrent], 'C powers of attorney, switches, values').toEqual([1, 0, 0, 0])

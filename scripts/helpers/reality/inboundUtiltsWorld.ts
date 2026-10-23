@@ -124,23 +124,31 @@ export async function reprocessAsOperator(tenant: LiveTenant, sources: InboundUt
   return outcomes
 }
 
-/** Current stored values of one metering point per Stockholm day, from both series (billing and Mina sidor sources). */
-export function storedPerDay(companyId: string, meteringPointId: string) {
-  return sql<Record<string, { normalized: number; kwh: number; eligible: number; estimated: number; revised: number; metering: number }>>(`
-    WITH n AS (SELECT (period_start AT TIME ZONE 'Europe/Stockholm')::date d,quantity_kwh,billing_gate_status,quality_status,revision_number FROM public.normalized_metering_values
+type StoredDays = Record<string, { normalized: number; kwh: number; eligible: number; estimated: number; revised: number; metering: number }>
+/** Current stored values of one metering point per day of `zone` (by instant), from both series (billing and Mina sidor sources). */
+function storedPerZoneDay(companyId: string, meteringPointId: string, zone: 'Europe/Stockholm' | 'Etc/GMT-1') {
+  return sql<StoredDays>(`
+    WITH n AS (SELECT (period_start AT TIME ZONE ${literal(zone)})::date d,quantity_kwh,billing_gate_status,quality_status,revision_number FROM public.normalized_metering_values
       WHERE company_id=${literal(companyId)} AND metering_point_id=${literal(meteringPointId)} AND revision_status='current'),
-     m AS (SELECT (period_start AT TIME ZONE 'Europe/Stockholm')::date d FROM public.metering_values WHERE company_id=${literal(companyId)} AND metering_point_id=${literal(meteringPointId)} AND is_current)
+     m AS (SELECT (period_start AT TIME ZONE ${literal(zone)})::date d FROM public.metering_values WHERE company_id=${literal(companyId)} AND metering_point_id=${literal(meteringPointId)} AND is_current)
     SELECT coalesce(jsonb_object_agg(d::text,x),'{}') FROM (SELECT n.d,jsonb_build_object('normalized',count(*),'kwh',sum(n.quantity_kwh),
       'eligible',count(*) FILTER (WHERE n.billing_gate_status='eligible'),'estimated',count(*) FILTER (WHERE n.quality_status='56'),
       'revised',count(*) FILTER (WHERE n.revision_number>1),'metering',(SELECT count(*) FROM m WHERE m.d=n.d)) x FROM n GROUP BY n.d) y`)
 }
+/** Per Stockholm civil day (portal / partner API view): a civil day sums the overlapping Ediel files by instant. */
+export const storedPerDay = (companyId: string, meteringPointId: string) => storedPerZoneDay(companyId, meteringPointId, 'Europe/Stockholm')
+/**
+ * Per Ediel day (00:00–24:00 +0100; PostgreSQL 'Etc/GMT-1' is UTC+1): exactly what one grid-owner E66 file covers
+ * (ENV-08, T15), so a day's count and kWh compare 1:1 with the file that was sent.
+ */
+export const storedPerEdielDay = (companyId: string, meteringPointId: string) => storedPerZoneDay(companyId, meteringPointId, 'Etc/GMT-1')
 
-/** Every current value of one metering point on one Stockholm day, in time order (kWh as text, revision, quality, gate). */
+/** Every current value of one metering point in one Ediel day (00:00–24:00 +0100), in time order (kWh as text, revision, quality, gate). */
 export function storedDay(companyId: string, meteringPointId: string, day: string) {
   return sql<Array<{ start: string; kwh: string; revision: number; quality: string | null; gate: string }>>(`SELECT coalesce(jsonb_agg(jsonb_build_object(
       'start',to_char(period_start AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),'kwh',quantity_kwh::text,'revision',revision_number,'quality',quality_status,'gate',billing_gate_status) ORDER BY period_start),'[]')
     FROM public.normalized_metering_values WHERE company_id=${literal(companyId)} AND metering_point_id=${literal(meteringPointId)} AND revision_status='current'
-     AND (period_start AT TIME ZONE 'Europe/Stockholm')::date=${literal(day)}::date`)
+     AND (period_start AT TIME ZONE 'Etc/GMT-1')::date=${literal(day)}::date`)
 }
 
 /** Underlays, invoices and export items of the tenant for one month, keyed so that a re-run can be compared exactly. */

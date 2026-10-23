@@ -76,8 +76,8 @@ const DEFECTS = [
     where: 'lib/inbound-mail/inboundStatusUpdater.ts:80 isNegativeContrL regex /UCI\\+[^\']*\\+7(\\+|$)/', what: 'Inverted: UCI action 7 is "negative" and action 4 (Ediel negative) is not.' },
   { id: 'J4-D13', severity: 'medium', status: 'confirmed (unit), open: patch proposed', where: 'lib/inbound-mail/mimeCharset.ts edifactSyntaxCharset (/UNB\\+(UNO[A-Z])/ only)',
     what: 'With a custom UNA data separator the UNB syntax identifier is not found, so a MIME charset=utf-8 label wins over UNOC and every ÅÄÖ becomes U+FFFD.' },
-  { id: 'J4-H1', severity: 'low (harness)', status: 'confirmed (code)', where: 'scripts/helpers/reality/rejectsWire.ts headerRejectionAperakFor DTM+137',
-    what: 'Writes the APERAK document time in Europe/Stockholm local time (CEST in summer); P-profile payload time is fixed UTC+1 (ENV-08).' },
+  { id: 'J4-H1', severity: 'low (harness)', status: 'fixed (T15): DTM+137 in fixed +0100; __tests__/ediel-parse-conformance-ack.test.ts', where: 'scripts/helpers/reality/rejectsWire.ts headerRejectionAperakFor DTM+137',
+    what: 'Wrote the APERAK document time in Europe/Stockholm local time (CEST in summer); P-profile payload time is fixed UTC+1 (ENV-08).' },
   { id: 'J4-H2', severity: 'low (harness)', status: 'confirmed (code)', where: 'scripts/reality/simulators/gridOwner.ts poll (base64 decoded as utf8); scripts/helpers/live-chain-wire.ts dailyE66 SG11 "STS+7++21::260"',
     what: 'The grid-owner simulator decodes our UNOC files as UTF-8 (ÅÄÖ in our names become U+FFFD in its facts); its E66 writes the observation status as STS+7 reason 21 instead of SG11 STS+8 quality (approved values carry no STS).' },
 ]

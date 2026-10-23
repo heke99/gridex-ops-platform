@@ -28,55 +28,63 @@ export function dayProfile(dayIndex: number): number[] {
 }
 
 const pad = (n: number, w = 2) => String(n).padStart(w, '0')
+const HOUR_MS = 3_600_000
 
-/** Europe/Stockholm offset (minutes east of UTC) at the local midnight that starts `day`: 120 (CEST) or 60 (CET). */
-function stockholmMidnightOffsetMinutes(y: number, m: number, d: number) {
-  // Local midnight is never inside a Swedish DST transition (they happen at 02:00/03:00), so the offset at
-  // UTC 22:00 of the previous day decides it: 22:00Z is local 00:00 in CEST and 23:00 in CET.
-  const probe = new Date(Date.UTC(y, m - 1, d) - 2 * 3_600_000)
-  const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Stockholm', hour: '2-digit', hourCycle: 'h23' }).format(probe))
-  return hour === 0 ? 120 : 60
+/** ENV-08: every Ediel payload time is fixed Swedish normal time, UTC+1, all year (DTM+735 +0100). */
+export const EDIEL_OFFSET_MINUTES = 60
+
+/** Wall clock of an instant in Ediel fixed normal time (+0100), as EDIFACT format 203 (CCYYMMDDHHMM). */
+export function edielMinute(instant: number) {
+  const t = new Date(instant + EDIEL_OFFSET_MINUTES * 60_000)
+  return `${t.getUTCFullYear()}${pad(t.getUTCMonth() + 1)}${pad(t.getUTCDate())}${pad(t.getUTCHours())}${pad(t.getUTCMinutes())}`
+}
+
+/** UTC bounds [start, end) of one Ediel day: 00:00–24:00 +0100 (23:00Z the day before to 23:00Z), always 24 hours. */
+export function edielDayUtc(day: string): { start: number; end: number } {
+  const [y, m, d] = day.split('-').map(Number)
+  const start = Date.UTC(y, m - 1, d) - EDIEL_OFFSET_MINUTES * 60_000
+  return { start, end: start + 24 * HOUR_MS }
+}
+
+const unbFormatter = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Stockholm', year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+/**
+ * UNB 0017/0019 (YYMMDD:HHMM) of an instant. Unlike the payload, the interchange header is Swedish local time
+ * (ENV-08 "UNB lokal tid enligt regeln"; the platform's own UNB, edifactEnvelopeCodec serializeUnb, does the same).
+ */
+export function stockholmUnbStamp(instant: number) {
+  const parts = Object.fromEntries(unbFormatter.formatToParts(new Date(instant)).map(part => [part.type, part.value]))
+  return `${parts.year}${parts.month}${parts.day}:${parts.hour}${parts.minute}`
 }
 
 /**
- * One grid-owner UTILTS E66 for one Stockholm calendar day: energy-only quarter-hours or, with
- * `resolutionMinutes: 60`, hours. The whole message is in the fixed offset that is valid at the day's local
- * midnight (DTM+735 +0200 in summer, +0100 in winter), so the period is exactly the civil day: 96 quarter-hours
- * on a normal day, 100 on the last Sunday in October and 92 on the last Sunday in March (DST-H1; summer days are
- * framed exactly as before). `registeredAfterHours` moves the registration time later, as a grid owner does when
- * it re-sends corrected values for the same day.
+ * One grid-owner UTILTS E66 for one Ediel day: energy-only quarter-hours or, with `resolutionMinutes: 60`, hours.
+ * A Swedish grid owner's day is 00:00–24:00 in fixed normal time (ENV-08, U-10, UG-122-16: DTM+735 +0100), so it
+ * always has 96 quarter-hours (24 hours) and starts at 23:00Z the day before, also on the DST days (no E66 ever
+ * carries 92 or 100 values). In summer it covers 01:00–01:00 Stockholm time. Every DTM (324, 597, 137) is in
+ * +0100; the UNB is Swedish local time. `registeredAfterHours` moves the registration (default 06:00 +0100 the
+ * morning after) later, as a grid owner does when it re-sends corrected values for the same day.
  */
 export function dailyE66(input: { issuer: string; receiver: string; meterId: string; day: string; values: number[]; reference: string;
   resolutionMinutes?: 15 | 60; registeredAfterHours?: number; environment?: 'production' | 'test' }) {
   const step = input.resolutionMinutes ?? 15
-  const [y, m, d] = input.day.split('-').map(Number)
-  const offset = stockholmMidnightOffsetMinutes(y, m, d)
-  const nextOffset = stockholmMidnightOffsetMinutes(y, m, d + 1)
-  // The day's length in the fixed offset: 24 h plus the hour gained (autumn) or lost (spring) during the day.
-  const dayMinutes = 24 * 60 + (offset - nextOffset)
-  if (input.values.length !== dayMinutes / step) throw Error(`dailyE66 requires ${dayMinutes / step} values for ${step}-minute resolution on ${input.day}`)
-  const registered = (6 + (input.registeredAfterHours ?? 0)) * 60
-  const local = (date: Date, minutes: number) => {
-    const t = new Date(date.getTime() + minutes * 60_000)
-    return `${t.getUTCFullYear()}${pad(t.getUTCMonth() + 1)}${pad(t.getUTCDate())}${pad(t.getUTCHours())}${pad(t.getUTCMinutes())}`
-  }
-  // Wall-clock anchors in the declared fixed offset: the day's start and its (civil) end.
-  const start = new Date(Date.UTC(y, m - 1, d))
-  const next = new Date(start.getTime() + dayMinutes * 60_000)
+  const count = (24 * 60) / step
+  if (input.values.length !== count) throw Error(`dailyE66 requires ${count} values for ${step}-minute resolution on ${input.day}`)
+  const { start, end } = edielDayUtc(input.day)
+  const registered = end + (6 + (input.registeredAfterHours ?? 0)) * HOUR_MS
   const lines = [
     "UNA:+.? '",
-    `UNB+UNOC:3+${input.issuer}:ZZ+${input.receiver}:ZZ+${local(next, registered).slice(2, 8)}:${local(next, registered).slice(8, 12)}+${input.reference}++23-DDQ-E66-T${input.environment === 'production' ? '' : '++++1'}'`,
+    `UNB+UNOC:3+${input.issuer}:ZZ+${input.receiver}:ZZ+${stockholmUnbStamp(registered)}+${input.reference}++23-DDQ-E66-T${input.environment === 'production' ? '' : '++++1'}'`,
     "UNH+1+UTILTS:D:02B:UN:E5SE5A'",
     `BGM+E66::260+M${input.reference}+9+AB'`,
-    `DTM+137:${local(next, registered)}:203'`, `DTM+735:?+${pad(offset / 60)}00:406'`, "MKS+23+E02::260'",
+    `DTM+137:${edielMinute(registered)}:203'`, "DTM+735:?+0100:406'", "MKS+23+E02::260'",
     `NAD+MS+${input.issuer}:SVK:260'`, `NAD+MR+${input.receiver}:SVK:260'`, "NAD+DDQ'",
     `IDE+24+T${input.reference}'`, `LOC+172+${input.meterId}::9'`, "LOC+239+TES:SVK:260'",
-    "LIN+++8716867000030:::9'", `DTM+324:${local(start, 0)}${local(next, 0)}:719'`,
-    `DTM+597:${local(next, registered)}:203'`, `DTM+354:${step}:806'`, "STS+7++E88::260'", "MEA+AAZ++KWH'",
+    "LIN+++8716867000030:::9'", `DTM+324:${edielMinute(start)}${edielMinute(end)}:719'`,
+    `DTM+597:${edielMinute(registered)}:203'`, `DTM+354:${step}:806'`, "STS+7++E88::260'", "MEA+AAZ++KWH'",
     "CCI+++E12::260'", "CAV+E17::260'",
   ]
   input.values.forEach((value, q) => {
-    lines.push(`SEQ++${q + 1}'`, `QTY+136:${kwhText(value)}'`, `DTM+597:${local(start, q * step)}:203'`, "STS+7++21::260'")
+    lines.push(`SEQ++${q + 1}'`, `QTY+136:${kwhText(value)}'`, `DTM+597:${edielMinute(start + q * step * 60_000)}:203'`, "STS+7++21::260'")
   })
   lines.push(`UNT+${lines.length - 1}+1'`, `UNZ+1+${input.reference}'`)
   return lines.join('\n')

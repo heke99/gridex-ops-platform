@@ -101,9 +101,13 @@ export async function reprocessHeldUtilts(tenant: LiveTenant, sourceIds: string[
   return outcomes
 }
 
-/** Every stored value of one metering point with its billing gate decision. */
+/**
+ * Every stored value of one metering point with its billing gate decision, per Ediel day (00:00–24:00 +0100,
+ * PostgreSQL 'Etc/GMT-1'): exactly one grid-owner E66 file each, and an Ediel end (Z05 DTM+93 00:00 +0100) falls on
+ * a day boundary (ENV-08, owner decision 2026-10-23, T15).
+ */
 export function gatedValues(meteringPointId: string) {
-  return sql<Row>(`WITH v AS (SELECT *,(period_start AT TIME ZONE 'Europe/Stockholm')::date d FROM public.normalized_metering_values WHERE metering_point_id=${literal(meteringPointId)} AND revision_status='current')
+  return sql<Row>(`WITH v AS (SELECT *,(period_start AT TIME ZONE 'Etc/GMT-1')::date d FROM public.normalized_metering_values WHERE metering_point_id=${literal(meteringPointId)} AND revision_status='current')
     SELECT jsonb_build_object('days',(SELECT coalesce(jsonb_object_agg(d,x),'{}') FROM (SELECT d,jsonb_build_object('values',count(*),'customers',jsonb_agg(DISTINCT customer_id),
         'gate',jsonb_agg(DISTINCT billing_gate_status),'period',jsonb_agg(DISTINCT supply_period_id),
         'reasons',(SELECT coalesce(jsonb_agg(DISTINCT r->>'code'),'[]') FROM v v2, jsonb_array_elements(coalesce(v2.billing_gate_reasons,'[]')) r WHERE v2.d=v.d)) x FROM v GROUP BY d) days))`)

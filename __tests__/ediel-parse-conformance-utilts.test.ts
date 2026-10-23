@@ -1,8 +1,8 @@
-// reality-defects: J4 parse conformance — inbound UTILTS E66/E31: QTY decimals and signs, quality (STS+8), periods, resolution, DTM+735, units, several metering points
+// reality-defects: J4, T15 parse conformance — inbound UTILTS E66/E31: QTY decimals and signs, quality (STS+8), periods, resolution, DTM+735, units, several metering points
 //
 // Field positions from the UTILTS guide (U §3.7: 516 SG11/QTY+136, 520 SG11/STS+8/C555/4405, 264 SG5/MEA+AAZ, 505 IDE,
 // 324 period 719, 354 resolution, ENV-08 DTM+735 406) and masterplan U-02/U-10. Messages come from the grid owner's own
-// builder (scripts/helpers/live-chain-wire.ts dailyE66) or are hand-written counterparty wire with a custom UNA.
+// builder (scripts/helpers/live-chain-wire.ts dailyE66, fixed +0100 day: T15) or are hand-written counterparty wire with a custom UNA.
 // Expectations are the values written into the wire, never the parser's own output. Synthetic data only.
 import { describe, expect, it } from 'vitest'
 import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
@@ -25,16 +25,19 @@ function physical(raw: string) {
   return { wire, transactions }
 }
 
-describe('J4 UTILTS E66 from the grid owner builder — one civil day of quarter-hours', () => {
+describe('J4 UTILTS E66 from the grid owner builder — one Ediel day (00:00–24:00 +0100) of quarter-hours', () => {
+  // T15: a grid owner's day is fixed normal time all year (ENV-08): 96 values from 23:00Z the day before, also in
+  // summer and on the DST day (formerly framed as civil days in +0200, DST-H1).
   const DAYS = [
-    { day: '2026-09-01', count: 96, offset: '+0200', minutes: 120, period: '202609010000202609020000', startUtc: '2026-08-31T22:00:00.000Z', endUtc: '2026-09-01T22:00:00.000Z' },
+    { day: '2026-09-01', count: 96, offset: '+0100', minutes: 60, period: '202609010000202609020000', startUtc: '2026-08-31T23:00:00.000Z', endUtc: '2026-09-01T23:00:00.000Z' },
     { day: '2026-11-03', count: 96, offset: '+0100', minutes: 60, period: '202611030000202611040000', startUtc: '2026-11-02T23:00:00.000Z', endUtc: '2026-11-03T23:00:00.000Z' },
-    // Last Sunday in October: 25 hours in the fixed +0200 offset of its local midnight (DST-H1).
-    { day: '2026-10-25', count: 100, offset: '+0200', minutes: 120, period: '202610250000202610260100', startUtc: '2026-10-24T22:00:00.000Z', endUtc: '2026-10-25T23:00:00.000Z' },
+    // Last Sunday in October: still 24 hours in +0100 (the civil day's 100 quarters are a view, never a file).
+    { day: '2026-10-25', count: 96, offset: '+0100', minutes: 60, period: '202610250000202610260000', startUtc: '2026-10-24T23:00:00.000Z', endUtc: '2026-10-25T23:00:00.000Z' },
   ]
   for (const row of DAYS) {
     it(`${row.day}: ${row.count} values, DTM+735 ${row.offset}, period and every quantity exact`, () => {
-      const values = row.count === 96 ? dayProfile(3) : [...dayProfile(3), 0.111, 0.112, 0.113, 0.114]
+      const values = dayProfile(3)
+      expect(values).toHaveLength(row.count)
       const raw = dailyE66({ issuer: '16700', receiver: '40000', meterId: METER, day: row.day, values, reference: 'J4E66' })
       const facts = parseUtiltsRuntimeFacts(raw)
       expect(facts).toMatchObject({ messageCode: 'E66', documentReference: 'MJ4E66', interchangeReference: 'J4E66', applicationReference: '23-DDQ-E66-T',

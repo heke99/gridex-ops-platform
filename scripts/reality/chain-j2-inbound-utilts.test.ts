@@ -16,6 +16,12 @@
 // __tests__/j2-inbound-utilts-wire.test.ts. Reception, matching, storage, gating, billing and reconciliation are
 // the platform's: values, market state and gates are never inserted by this test.
 //
+// Time model (ENV-08, owner decision 2026-10-23, T15): every file is a grid owner's Ediel day 00:00–24:00 +0100
+// (96 quarter-hours from 23:00Z the day before; 07:00–13:00 CEST is 06:00–12:00 +0100). Supply starts at the Z04's
+// instant 2026-08-31T23:00Z and is billed per Ediel month: September = [2026-08-31T23:00Z, 2026-09-30T23:00Z).
+// Stored values are therefore counted per Ediel day (Etc/GMT-1), by instant. Only the platform's settlement cron
+// imports and locks spot prices (F109).
+//
 // Facilities (one customer, one contract each, supply from 1 September):
 //   A "invoiced": the whole of September, invoiced by the monthly billing cron, then 10 September corrected
 //     by the grid owner (J2-01, J2-02): the invoice must not change, re-running billing must not bill twice,
@@ -32,17 +38,16 @@ import { writeFileSync } from 'node:fs'
 import { afterAll, describe, expect, it, type TestContext } from 'vitest'
 import { processPendingContractConfirmations } from '@/lib/customer-contracts/onlineSigning'
 import { customerNormalizedMeteringValues } from '@/lib/metering/customerMeteringAccess'
-import { stockholmDayStartUtc, stockholmNextDayStartUtc } from '@/lib/partner-api/partnerTime'
 import { LIVE, augustSupplyCustomer, cron, literal, sql, type AugustFacility, type LiveTenant } from '../helpers/live-chain-fixture'
-import { closeOperatorConsole, operatorSession } from '../helpers/reality/operatorConsole'
+import { closeOperatorConsole } from '../helpers/reality/operatorConsole'
 import { runOperationalCronSlot, type GridOwnerSim } from '../helpers/reality/world'
 import { GRID_AREA, GRID_OWNER_EDIEL_ID, goLiveAlsSupplier } from '../helpers/reality/goLiveAls'
 import { detectStuckStates } from '../helpers/reality/stuckDetector'
 import { registerUtiltsIssuer } from '../helpers/utiltsConsumptionParties'
-import { gs1 } from '../helpers/live-chain-wire'
-import { dstDayProfile, kwhSum, monthDays } from '../helpers/reality/dst'
+import { edielDayUtc, gs1 } from '../helpers/live-chain-wire'
+import { edielDayProfile, kwhSum, monthDays } from '../helpers/reality/dst'
 import { changedQuarters, correctedValues, hourlyFromQuarterValues, utiltsE31, utiltsE66, type UtiltsFile } from '../helpers/reality/inboundUtilts'
-import { billingState, establishSwitch, gridOwnerMails, inboundUtilts, receiveUntil, reprocessAsOperator, sourceDiagnosis, storedDay, storedPerDay,
+import { billingState, establishSwitch, gridOwnerMails, inboundUtilts, receiveUntil, reprocessAsOperator, sourceDiagnosis, storedDay, storedPerEdielDay,
   type InboundUtilts, type ReprocessOutcome } from '../helpers/reality/inboundUtiltsWorld'
 
 const report: Record<string, unknown> = { scenario: 'J2 inbound UTILTS', startedAt: new Date().toISOString() }
@@ -60,7 +65,7 @@ const AUGUST_SIGNED_AT = '2026-08-12T09:30:00+02:00'
 const AUGUST_SWITCH_CREATED_AT = '2026-08-12T09:31:00+02:00'
 const ESTIMATED_DAYS = ['2026-09-01', '2026-09-02', '2026-09-03']
 const CORRECTED_DAY = '2026-09-10'
-const PARTIAL = { day: '2026-09-12', from: 24, to: 48 } // 06:00–12:00 Stockholm (CEST)
+const PARTIAL = { day: '2026-09-12', from: 24, to: 48 } // 06:00–12:00 +0100 (07:00–13:00 CEST)
 const BEFORE_SUPPLY_DAY = '2026-08-31'
 const FOREIGN_DAY = '2026-09-05'
 const EXTRA = Math.max(0, Math.min(200, Number(process.env.GRIDEX_REALITY_J2_EXTRA ?? 0)))
@@ -89,7 +94,7 @@ report.config = { facilities: FACILITIES.map(f => ({ role: f.role, gsrn: f.gsrn 
 type Kind = 'regular' | 'before_supply' | 'foreign' | 'estimated' | 'measured_replacement' | 'correction_after_invoice' | 'partial_correction' | 'e31'
 type Sent = UtiltsFile & { kind: Kind; gsrn: string | null; day: string; dayValues: number[]; expectedStored: number }
 const sent: Sent[] = []
-const dayValues = (f: Facility, day: string) => dstDayProfile(day, SEPTEMBER.indexOf(day) + 1, f.scale)
+const dayValues = (f: Facility, day: string) => edielDayProfile(day, SEPTEMBER.indexOf(day) + 1, f.scale)
 /** The values in force per day for one facility: a later file replaces the earlier one (whole day or window). */
 function effective(gsrn: string) {
   const days = new Map<string, number[]>()
@@ -180,7 +185,7 @@ describe.sequential('reality J2 — inbound UTILTS: metering, corrections, settl
     await gridOwner.profile({ contrlDelayMs: 20_000, aperakDelayMs: 40_000, z04DelayMs: 90_000 })
     const supply = () => sql<Array<{ gsrn: string; switch: string | null; period: Row | null }>>(`SELECT coalesce(jsonb_agg(jsonb_build_object('gsrn',mp.metering_point_id,'switch',s.status,
         'period',(SELECT jsonb_build_object('status',p.status,'start',p.start_date,'customer',p.customer_id,'message',p.source_message_id,'z04',s.inbound_z04_message_id,
-          'atSupplyStart',p.market_start_at=(TIMESTAMP '2026-09-01 00:00' AT TIME ZONE 'Europe/Stockholm'))
+          'atSupplyStart',p.market_start_at=(TIMESTAMP '2026-09-01 00:00' AT TIME ZONE 'Etc/GMT-1'))
           FROM public.customer_supply_periods p WHERE p.company_id=mp.company_id AND p.metering_point_id=mp.id ORDER BY p.created_at DESC LIMIT 1))),'[]')
       FROM public.metering_points mp LEFT JOIN LATERAL (SELECT * FROM public.supplier_switch_requests x WHERE x.company_id=mp.company_id AND x.metering_point_id=mp.id ORDER BY x.created_at DESC LIMIT 1) s ON true
       WHERE mp.company_id=${literal(tenant.companyId)} AND mp.customer_id=${literal(customerId)}`)
@@ -214,9 +219,10 @@ describe.sequential('reality J2 — inbound UTILTS: metering, corrections, settl
       ...FACILITIES.flatMap(f => SEPTEMBER.map(day => ({ f, day, values: dayValues(f, day), reference: ref('J', f, day),
         kind: (f === B && ESTIMATED_DAYS.includes(day) ? 'estimated' : 'regular') as Kind,
         estimated: f === B && ESTIMATED_DAYS.includes(day) ? new Set(Array.from({ length: 96 }, (_, q) => q)) : undefined, expectedStored: 96 }))),
-      { f: A, day: BEFORE_SUPPLY_DAY, values: dstDayProfile(BEFORE_SUPPLY_DAY, 0, A.scale), reference: ref('J', A, BEFORE_SUPPLY_DAY), kind: 'before_supply', expectedStored: 96 },
+      // 31 August 00:00–24:00 +0100 ends exactly at the supply start (2026-08-31T23:00Z): wholly before our supply.
+      { f: A, day: BEFORE_SUPPLY_DAY, values: edielDayProfile(BEFORE_SUPPLY_DAY, 0, A.scale), reference: ref('J', A, BEFORE_SUPPLY_DAY), kind: 'before_supply', expectedStored: 96 },
       // A file addressed to us for a facility that is not ours: rejected or held, never stored on this tenant.
-      { f: null, gsrn: FOREIGN_GSRN, day: FOREIGN_DAY, values: dstDayProfile(FOREIGN_DAY, 4, 1), reference: ref('J', null, FOREIGN_DAY), kind: 'foreign', expectedStored: 0 },
+      { f: null, gsrn: FOREIGN_GSRN, day: FOREIGN_DAY, values: edielDayProfile(FOREIGN_DAY, 4, 1), reference: ref('J', null, FOREIGN_DAY), kind: 'foreign', expectedStored: 0 },
     ])
     report.sent = sent.map(({ edifact, starts, values, dayValues: _, ...file }) => ({ ...file, quarters: values.length, kwh: kwhSum(values) }))
     expect(sent).toHaveLength(FACILITIES.length * SEPTEMBER.length + 2)
@@ -235,7 +241,8 @@ describe.sequential('reality J2 — inbound UTILTS: metering, corrections, settl
     expect(notStored(outcomes), 'values not stored as sent').toEqual([])
     const perFacility: Record<string, unknown> = {}
     for (const f of FACILITIES) {
-      const days = storedPerDay(tenant.companyId, idOf(f).mp), effectiveDays = effective(f.gsrn)
+      // Per Ediel day (00:00–24:00 +0100), i.e. per sent file, by instant.
+      const days = storedPerEdielDay(tenant.companyId, idOf(f).mp), effectiveDays = effective(f.gsrn)
       perFacility[f.role === 'extra' ? f.gsrn : f.role] = days
       for (const day of SEPTEMBER) {
         const estimated = f.role === 'estimated' && ESTIMATED_DAYS.includes(day)
@@ -244,11 +251,13 @@ describe.sequential('reality J2 — inbound UTILTS: metering, corrections, settl
       }
     }
     // Before our supply (A, 31 August): stored for operations, never billable, not shown to the customer (F79).
-    const A = byRole('invoiced'), before = storedPerDay(tenant.companyId, idOf(A).mp)[BEFORE_SUPPLY_DAY]
+    const A = byRole('invoiced'), before = storedPerEdielDay(tenant.companyId, idOf(A).mp)[BEFORE_SUPPLY_DAY]
     perFacility.beforeSupply = before
     expect(before, 'A 31 August stored but not billable').toMatchObject({ normalized: 96, eligible: 0 })
     const scope = { companyId: tenant.companyId, customerIds: [customerId] }
-    const visible = await customerNormalizedMeteringValues(scope, { periodStartFrom: stockholmDayStartUtc(BEFORE_SUPPLY_DAY).toISOString(), periodStartBefore: stockholmNextDayStartUtc(BEFORE_SUPPLY_DAY).toISOString() }).select('id')
+    // The whole 31 August Ediel day [2026-08-30T23:00Z, 2026-08-31T23:00Z) lies before the supply start.
+    const beforeSupply = edielDayUtc(BEFORE_SUPPLY_DAY)
+    const visible = await customerNormalizedMeteringValues(scope, { periodStartFrom: new Date(beforeSupply.start).toISOString(), periodStartBefore: new Date(beforeSupply.end).toISOString() }).select('id')
     expect(visible.error).toBeNull()
     expect(visible.data ?? [], 'Mina sidor/customer API show nothing from before the supply start (F79)').toEqual([])
     // A GSRN that is not ours: nothing stored anywhere for it, on any tenant.
@@ -273,11 +282,11 @@ describe.sequential('reality J2 — inbound UTILTS: metering, corrections, settl
       // The meter was read: the measured values differ from the estimate in every 3rd quarter-hour.
       const measured = correctedValues(dayValues(B, day), { every: 3, deltaKwh: 0.021 })
       return { f: B, day, values: measured, reference: ref('JM', B, day), kind: 'measured_replacement' as Kind,
-        registeredAt: stockholmNextDayStartUtc(day).getTime() + 72 * 3_600_000, expectedStored: 96 }
+        registeredAt: edielDayUtc(day).end + 72 * 3_600_000, expectedStored: 96 }
     }))
     report.measuredReceptionRuns = await receiveUntil(() => arrived(['measured_replacement']).length === 0, 15)
     const outcomes = await reprocessAsOperator(tenant, sourcesOf(['measured_replacement']), expectedFor)
-    const days = storedPerDay(tenant.companyId, idOf(B).mp)
+    const days = storedPerEdielDay(tenant.companyId, idOf(B).mp)
     report.measuredReplacement = { outcomes, days: Object.fromEntries(ESTIMATED_DAYS.map(day => [day, days[day]])),
       diagnosis: outcomes.filter(o => o.stored !== o.expected).map(o => ({ reference: o.reference, diagnosis: o.diagnosis })) }
     for (const day of ESTIMATED_DAYS) {
@@ -289,15 +298,21 @@ describe.sequential('reality J2 — inbound UTILTS: metering, corrections, settl
     for (const day of ESTIMATED_DAYS) expect(days[day]?.normalized, `B ${day} exactly one current value per quarter-hour`).toBe(96)
   }, 60 * 60_000)
 
-  it('J2-8 the admin imports and locks the September SE3 spot prices', async (context) => {
+  it('J2-8 the nightly settlement cron imports and locks the September SE3 spot prices (platform path, no tenant user)', async (context) => {
     requireStep(stored, 'J2-8', 'September was not stored (J2-6)', context)
-    const admin = await operatorSession(tenant.adminEmail, tenant.adminPassword)
-    const imported = await admin.request.post('/api/internal/spot/import-month', { data: { billing_month: MONTH, price_areas: ['SE3'] } })
-    const locked = await admin.request.post('/api/internal/spot/lock-month', { data: { billing_month: MONTH, price_area: 'SE3', reason: 'E2E reality J2' } })
-    report.spot = { import: { status: imported.status(), body: await imported.json().catch(() => null) }, lock: { status: locked.status(), body: await locked.json().catch(() => null) },
-      intervals: sql<number>(`SELECT to_jsonb(count(*)) FROM public.spot_price_intervals WHERE price_area='SE3' AND resolution='quarter_hour' AND time_start>='2026-08-31T22:00:00Z' AND time_start<'2026-09-30T22:00:00Z'`) }
-    expect(imported.status(), JSON.stringify(report.spot)).toBe(200)
-    expect(locked.status(), JSON.stringify(report.spot)).toBe(200)
+    // Only the platform and the nightly settlement cron import and lock spot prices (owner decision 2026-10-23, F109).
+    const settlement = await cron(`/api/cron/pricing/spot-settlement?billing_month=${MONTH}&price_areas=SE3`)
+    const summaries = sql<Row[]>(`SELECT coalesce(jsonb_agg(jsonb_build_object('source',source,'status',status,'lockedAt',locked_at)),'[]')
+      FROM public.spot_price_monthly_summaries WHERE price_area='SE3' AND billing_month=${literal(MONTH)}`)
+    // Civil September (spot prices are civil delivery days).
+    const intervals = sql<number>(`SELECT to_jsonb(count(*)) FROM public.spot_price_intervals WHERE price_area='SE3' AND resolution='quarter_hour' AND time_start>='2026-08-31T22:00:00Z' AND time_start<'2026-09-30T22:00:00Z'`)
+    report.spot = { cron: { status: settlement.status, body: settlement.body }, summaries, intervals,
+      // The last hour of the Ediel month (civil 1 October 00:00–01:00 CEST): pending billing agent.
+      edielTail: sql<number>(`SELECT to_jsonb(count(*)) FROM public.spot_price_intervals WHERE price_area='SE3' AND resolution='quarter_hour' AND time_start>='2026-09-30T22:00:00Z' AND time_start<'2026-09-30T23:00:00Z'`) }
+    expect(settlement.status, JSON.stringify(report.spot).slice(0, 2000)).toBe(200)
+    expect(settlement.body).toMatchObject({ ok: true, mode: 'settlement_lock', settlement_locked: true })
+    expect(summaries.filter(row => row.status === 'locked'), JSON.stringify(summaries)).toHaveLength(1)
+    expect(intervals).toBe(30 * 96)
   })
 
   let beforeCorrection: ReturnType<typeof billingState> | null = null

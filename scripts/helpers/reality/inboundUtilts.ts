@@ -2,15 +2,18 @@
 // and its unit tests. Pure: no database, network or test runner. Synthetic values only.
 //
 // The layout follows the E66 the platform already accepts from the reality grid owner (live-chain-wire dailyE66,
-// dst.ts dayE66): one UNB/UNH per file, one IDE transaction per metering point, Stockholm civil days written in
-// the fixed offset +0100 (ENV-08, DTM+735). Additions for J2:
+// dst.ts dayE66): one UNB/UNH per file, one IDE transaction per metering point, and the grid owner's real day:
+// 00:00–24:00 in fixed normal time +0100 (ENV-08, DTM+735), always 96 quarter-hours (24 hours), starting 23:00Z
+// the day before (in summer 01:00–01:00 Stockholm time). Every DTM is in +0100; the UNB is Swedish local time.
+// Additions for J2:
 //  - a window inside the day (a partial-period correction: DTM+324 covers only the corrected quarter-hours),
 //  - estimated quarter-hours: the observation status STS+8+56 in place of STS+7++21 (quality 56, U §3.7 field 520),
 //  - an explicit registration time (DTM+137/597, UNB): a correction or a measured replacement of an estimate is
-//    the same period registered later (U-04), capped at "now" because DTM+137 may not lie after reception,
+//    the same period registered later (U-04), capped at "now" because DTM+137 may not lie after reception, and
+//    never before the sent window has ended,
 //  - an E31 aggregate (grid-area series, no metering point) for the settlement observation.
-import { kwhText } from '../live-chain-wire'
-import { QUARTER_MS, fixedOffsetMinute, stockholmDayUtc, stockholmQuarterCount } from './dst'
+import { edielDayUtc, kwhText, stockholmUnbStamp } from '../live-chain-wire'
+import { QUARTER_MS, fixedOffsetMinute } from './dst'
 
 const CET = 60 // minutes; ENV-08 fixed normal time
 
@@ -21,18 +24,23 @@ const testIndicator = (environment: UtiltsLane | undefined) => environment === '
 export type UtiltsFile = { edifact: string; reference: string; periodStart: string; periodEnd: string; registeredAt: string
   /** UTC start of every sent quarter-hour, in wire order. */ starts: string[]; values: number[] }
 
+/** Quarter-hours in a grid owner's (Ediel) day: always 96. */
+export const EDIEL_DAY_QUARTERS = 96
+
 /**
- * One E66 for one metering point and one Stockholm civil day, or a window of it.
- * `values` are the whole day's quarter-hours (92/96/100); `window` [from, to) selects the quarter indexes sent.
- * `environment` defaults to 'test'; a tenant live in production receives 'production' files (FINDINGS T7).
+ * One E66 for one metering point and one Ediel day (00:00–24:00 +0100), or a window of it.
+ * `values` are the whole day's 96 quarter-hours; `window` [from, to) selects the quarter indexes sent (index 0 =
+ * 00:00 +0100). `registeredAt` defaults to 06:00 +0100 the morning after the day; `notAfter` caps it; a
+ * registration before the window's end is refused. `environment` defaults to 'test'; a tenant live in production
+ * receives 'production' files (FINDINGS T7).
  */
 export function utiltsE66(input: { issuer: string; receiver: string; meterId: string; day: string; values: number[]; reference: string
   window?: { from: number; to: number }; estimated?: ReadonlySet<number>; registeredAt?: number; notAfter?: number; environment?: UtiltsLane }): UtiltsFile {
-  const count = stockholmQuarterCount(input.day)
+  const count = EDIEL_DAY_QUARTERS
   if (input.values.length !== count) throw Error(`utiltsE66 ${input.day} requires ${count} quarter-hour values, got ${input.values.length}`)
   const from = input.window?.from ?? 0, to = input.window?.to ?? count
   if (!(Number.isInteger(from) && Number.isInteger(to) && 0 <= from && from < to && to <= count)) throw Error(`utiltsE66 invalid window ${from}..${to}`)
-  const day = stockholmDayUtc(input.day)
+  const day = edielDayUtc(input.day)
   const start = day.start + from * QUARTER_MS, end = day.start + to * QUARTER_MS
   let registered = input.registeredAt ?? day.end + 6 * 3_600_000
   if (input.notAfter !== undefined) registered = Math.min(registered, input.notAfter)
@@ -40,7 +48,7 @@ export function utiltsE66(input: { issuer: string; receiver: string; meterId: st
   const at = (instant: number) => fixedOffsetMinute(instant, CET)
   const lines = [
     "UNA:+.? '",
-    `UNB+UNOC:3+${input.issuer}:ZZ+${input.receiver}:ZZ+${at(registered).slice(2, 8)}:${at(registered).slice(8, 12)}+${input.reference}++23-DDQ-E66-T${testIndicator(input.environment)}'`,
+    `UNB+UNOC:3+${input.issuer}:ZZ+${input.receiver}:ZZ+${stockholmUnbStamp(registered)}+${input.reference}++23-DDQ-E66-T${testIndicator(input.environment)}'`,
     "UNH+1+UTILTS:D:02B:UN:E5SE5A'",
     `BGM+E66::260+M${input.reference}+9+AB'`,
     `DTM+137:${at(registered)}:203'`, "DTM+735:?+0100:406'", "MKS+23+E02::260'",
@@ -61,22 +69,23 @@ export function utiltsE66(input: { issuer: string; receiver: string; meterId: st
 }
 
 /**
- * One E31 (aggregated metered data, Ediel "avräkningsunderlag") for a grid area and one Stockholm civil day in
- * hourly values. Its identity is the grid area (LOC+239) and the balance responsible/supplier receiving it; it
+ * One E31 (aggregated metered data, Ediel "avräkningsunderlag") for a grid area and one Ediel day (00:00–24:00
+ * +0100, always 24 hourly values). Its identity is the grid area (LOC+239) and the balance responsible/supplier receiving it; it
  * names no metering point and may never touch an individual customer (DB-06, inboundBusinessOutcome grid_area_aggregate).
  * `environment` as in utiltsE66 (default 'test').
  */
 export function utiltsE31(input: { issuer: string; receiver: string; gridArea: string; day: string; hourlyKwh: number[]; reference: string; registeredAt?: number; notAfter?: number
   environment?: UtiltsLane }): UtiltsFile {
-  const day = stockholmDayUtc(input.day)
+  const day = edielDayUtc(input.day)
   const hours = (day.end - day.start) / 3_600_000
   if (input.hourlyKwh.length !== hours) throw Error(`utiltsE31 ${input.day} requires ${hours} hourly values`)
   let registered = input.registeredAt ?? day.end + 6 * 3_600_000
   if (input.notAfter !== undefined) registered = Math.min(registered, input.notAfter)
+  if (registered < day.end) throw Error('utiltsE31 an aggregate cannot be registered before its day has ended')
   const at = (instant: number) => fixedOffsetMinute(instant, CET)
   const lines = [
     "UNA:+.? '",
-    `UNB+UNOC:3+${input.issuer}:ZZ+${input.receiver}:ZZ+${at(registered).slice(2, 8)}:${at(registered).slice(8, 12)}+${input.reference}++23-DDQ-E31-S${testIndicator(input.environment)}'`,
+    `UNB+UNOC:3+${input.issuer}:ZZ+${input.receiver}:ZZ+${stockholmUnbStamp(registered)}+${input.reference}++23-DDQ-E31-S${testIndicator(input.environment)}'`,
     "UNH+1+UTILTS:D:02B:UN:E5SE5A'",
     `BGM+E31::260+M${input.reference}+9+AB'`,
     `DTM+137:${at(registered)}:203'`, "DTM+735:?+0100:406'", "MKS+23+E02::260'",

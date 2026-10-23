@@ -1,10 +1,10 @@
 // EDIFACT faults for reality scenario J3 (inbound Ediel robustness). Pure string builders on top of the grid
 // owner's real UTILTS E66 (live-chain-wire.dailyE66); no database, network or test runner. Synthetic data only.
-import { dailyE66, dayProfile, kwhText } from '../live-chain-wire'
+import { dailyE66, dayProfile, edielDayUtc, edielMinute, kwhText, stockholmUnbStamp } from '../live-chain-wire'
 
 export type E66Input = { issuer: string; receiver: string; meterId: string; day: string; reference: string }
 
-/** A valid grid-owner E66 (LF segment lines, no trailing newline: what the other scenarios send). */
+/** A valid grid-owner E66 for one Ediel day (96 values in +0100; LF segment lines, no trailing newline: what the other scenarios send). */
 export const validE66 = (input: E66Input, dayIndex = 0) => dailyE66({ ...input, values: dayProfile(dayIndex) })
 
 /** The same file as many grid-owner systems write it: CRLF lines and a final CRLF (J3-01). */
@@ -51,21 +51,19 @@ export function unsolicitedContrl(input: { issuer: string; receiver: string; ref
 }
 
 /**
- * A large file: one E66 for all of September (no DST change, fixed +0200) with 2 880 quarter-hours, ~170 kB.
- * Same segment template as dailyE66; F1 showed month files used to exceed the 8 s statement limit.
+ * A large file: one E66 for the whole Ediel month September (00:00 +0100 on 1 September to 00:00 +0100 on
+ * 1 October = [2026-08-31T23:00Z, 2026-09-30T23:00Z), ENV-08 fixed normal time, T15) with 2 880 quarter-hours,
+ * ~170 kB. Same segment template as dailyE66; F1 showed month files used to exceed the 8 s statement limit.
  */
 export function septemberMonthE66(input: Omit<E66Input, 'day'>) {
   const values = Array.from({ length: 30 }, (_, day) => dayProfile(day)).flat()
-  const at = (minutes: number) => {
-    const t = new Date(Date.UTC(2026, 8, 1) + minutes * 60_000)
-    const p = (n: number) => String(n).padStart(2, '0')
-    return `${t.getUTCFullYear()}${p(t.getUTCMonth() + 1)}${p(t.getUTCDate())}${p(t.getUTCHours())}${p(t.getUTCMinutes())}`
-  }
-  const registered = at(30 * 1440 + 6 * 60)
+  const { start } = edielDayUtc('2026-09-01'), end = edielDayUtc('2026-09-30').end
+  const at = (minutes: number) => edielMinute(start + minutes * 60_000)
+  const registeredAt = end + 6 * 3_600_000, registered = edielMinute(registeredAt)
   const lines = [
     "UNA:+.? '",
-    `UNB+UNOC:3+${input.issuer}:ZZ+${input.receiver}:ZZ+${registered.slice(2, 8)}:${registered.slice(8, 12)}+${input.reference}++23-DDQ-E66-T++++1'`,
-    "UNH+1+UTILTS:D:02B:UN:E5SE5A'", `BGM+E66::260+M${input.reference}+9+AB'`, `DTM+137:${registered}:203'`, "DTM+735:?+0200:406'",
+    `UNB+UNOC:3+${input.issuer}:ZZ+${input.receiver}:ZZ+${stockholmUnbStamp(registeredAt)}+${input.reference}++23-DDQ-E66-T++++1'`,
+    "UNH+1+UTILTS:D:02B:UN:E5SE5A'", `BGM+E66::260+M${input.reference}+9+AB'`, `DTM+137:${registered}:203'`, "DTM+735:?+0100:406'",
     "MKS+23+E02::260'", `NAD+MS+${input.issuer}:SVK:260'`, `NAD+MR+${input.receiver}:SVK:260'`, "NAD+DDQ'",
     `IDE+24+T${input.reference}'`, `LOC+172+${input.meterId}::9'`, "LOC+239+TES:SVK:260'", "LIN+++8716867000030:::9'",
     `DTM+324:${at(0)}${at(30 * 1440)}:719'`, `DTM+597:${registered}:203'`, "DTM+354:15:806'", "STS+7++E88::260'", "MEA+AAZ++KWH'",

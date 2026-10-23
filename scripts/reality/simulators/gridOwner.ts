@@ -7,7 +7,8 @@
 //   our CONTRL / APERAK              -> recorded (acknowledgement of its own files)
 //   control  GET  /__sim/state                  what it received and sent
 //            POST /__sim/profile {…}            change behaviour at runtime
-//            POST /__sim/send-e66 {meterId,day} send one day of quarter-hour values now
+//            POST /__sim/send-e66 {meterId,day} send one day of quarter-hour values now: the grid owner's
+//                                               Ediel day 00:00–24:00 +0100 (ENV-08), always 96 values (24 hourly)
 //            POST /__sim/send-e66-batch {receiver, files:[{meterId,day,values?,…}]}
 //                                               several days and meters, one file (mail) each
 //
@@ -134,8 +135,9 @@ async function poll() {
 }
 
 /**
- * One day of metering values for one meter. Without `values` the standard household profile of `dayIndex`
- * is sent. `registeredAfterHours` re-sends the day as a correction (later registration time); its default
+ * One Ediel day of metering values for one meter (live-chain-wire dailyE66: 00:00–24:00 +0100 from 23:00Z the day
+ * before, always 96 quarter-hours or 24 hours, also on the DST days). Without `values` the standard household
+ * profile of `dayIndex` is sent. `registeredAfterHours` re-sends the day as a correction (later registration time); its default
  * reference then ends in C so it never collides with the original's.
  */
 type E66File = { meterId: string; day: string; receiver: string; values?: number[]; dayIndex?: number; reference?: string

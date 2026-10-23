@@ -18,6 +18,7 @@ import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactToken
 import { originalAckLegalNadSegment, originalAckPartyIdentities } from '@/lib/ediel/core/originalAckPartyIdentities'
 import { PRODAT_APERAK_APPLICATION_TEXTS, prodatAperakFieldWireLabel } from '@/lib/ediel/prodat/prodatAperakText'
 import type { EdielMessageRow } from '@/lib/ediel/types'
+import { edielMinute } from '../live-chain-wire'
 
 /** Why the grid owner rejects one object of our request. */
 export type RejectionReason = 'unknown_gsrn' | 'other_supplier_pending' | 'start_date_not_allowed' | 'wrong_customer_identity' | 'actor_not_connected'
@@ -86,8 +87,8 @@ export function objectRejectionAperakFor(raw: string, reason: RejectionReason) {
 export function headerRejectionAperakFor(raw: string, now = new Date()) {
   const parties = originalAckPartyIdentities({ rawPayload: raw, expectedFamily: 'PRODAT' })
   const facts = readReceivedRequest(raw)
-  const date = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Stockholm', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
-    .format(now).replace(/\D/g, '')
+  // ENV-08: the APERAK document time is Ediel fixed normal time +0100 (formerly Stockholm local time, J4-H1; T15).
+  const date = edielMinute(now.getTime())
   return replyEnvelope(raw, 'APERAK:D:96A:UN:E2SE6A', ['BGM+++27', `DTM+137:${date}:203`, `RFF+ACW:${facts.document}`,
     originalAckLegalNadSegment('FR', parties.legalReceiver), originalAckLegalNadSegment('DO', parties.legalSender),
     'ERC+40::260', `FTX+AAO++102::260+${PRODAT_APERAK_APPLICATION_TEXTS['102']}`])

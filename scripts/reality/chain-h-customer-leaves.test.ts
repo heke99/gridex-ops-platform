@@ -11,6 +11,10 @@
 //   C  is cancelled by the supplier (Z03C); the grid owner confirms with Z04C.
 // Every market fact arrives as a real inbound message and is processed by the real crons. Nothing the grid
 // owner would send is written to the database. Steps a run cannot reach are soft checks that say why.
+// Time model (ENV-08, owner decision 2026-10-23, T15): a Z05's DTM+93 end is its market instant 00:00 +0100 (the
+// first instant no longer ours; in summer 01:00 CEST, so civil 00:00–01:00 of the end day is still our supply),
+// the grid owner's E66 days are 00:00–24:00 +0100, and Ediel-based supply is billed per Ediel month. Stored values
+// are therefore read per Ediel day (gatedValues), and an end boundary is the market instant, never civil midnight.
 // Synthetic data only (E2E-, example.invalid). The defects found while building it are in DEFECTS below.
 import { writeFileSync } from 'node:fs'
 import { afterAll, describe, expect, it, type TestContext } from 'vitest'
@@ -50,7 +54,7 @@ const S_END = '202611010000'
 /** M: the new occupant moved in yesterday 00:00, so the end already lies in the past. */
 const M_END_DATE = addDays(TODAY, -1)
 const M_END = `${M_END_DATE.replaceAll('-', '')}0000`
-/** The last three complete days the grid owner meters for every facility. */
+/** The last three complete Ediel days (00:00–24:00 +0100) the grid owner meters for every facility. */
 const DAYS = [addDays(TODAY, -3), addDays(TODAY, -2), addDays(TODAY, -1)]
 /** W and C: signed today for supply in a month (the switch is still pending). */
 const PENDING_START = addDays(TODAY, 30)
@@ -91,8 +95,8 @@ const DEFECTS = [
     what: "Every Z05 with an LK object (CAV Z23) is routed to the bilateral closure owner, which requires our own sent Z08 LK; an ordinary move-out notice from the grid owner raises bilateral_closure_exact_sent_original_required, is rolled back and held. The period never ends, the contract stays signed, no final-invoice task, no APERAK to the grid owner; billing continues after the move-out." },
   { id: 'H8', status: 'confirmed (code)', severity: 'low', where: 'gridex_supply_end_followup_v1 description, customer_operation_tasks final_invoice_pending',
     what: "The final-invoice task says 'fakturera perioden till och med <end_date>' where end_date of a Z05 is the first day of the new supplier." },
-  { id: 'H9', status: 'likely (code)', severity: 'low', where: 'supabase/migrations/20261022100000_customer_metering_access_windows.sql (market_start_at/market_end_at), lib/billing/underlayEngine.ts (local days)',
-    what: 'In summer the Ediel instant 00:00 +01:00 is 01:00 CEST: Mina sidor opens/closes the window one hour after the civil midnight that billing uses, so the new customer does not see the first billed hour and the old one still sees it.' },
+  { id: 'H9', status: 'likely (code); expected to be resolved by the Ediel-month billing (owner decision 2026-10-23, F108; pending billing agent)', severity: 'low', where: 'supabase/migrations/20261022100000_customer_metering_access_windows.sql (market_start_at/market_end_at), lib/billing/underlayEngine.ts (local days)',
+    what: 'In summer the Ediel instant 00:00 +01:00 is 01:00 CEST: Mina sidor opens/closes the window one hour after the civil midnight that billing used, so the new customer did not see the first billed hour and the old one still saw it. With billing on the Ediel instant both use the same boundary.' },
 ]
 report.defects = DEFECTS
 
@@ -248,7 +252,7 @@ describe.sequential('reality H — the customer leaves', () => {
       // Every value belongs to its own customer, never to another one.
       for (const p of LEAVING) if (day(p, date)) expect(day(p, date)!.customers, `${p.firstName} ${date}`).toEqual([p.customerId])
     }
-    // M moved out yesterday: yesterday's values are not M's supply, the earlier ones are.
+    // M moved out yesterday 00:00 +0100 (the market instant): yesterday's Ediel day is not M's supply, the earlier ones are.
     // H7: if the move-out Z05 LK was held, M's period is still open and this day is billed to M after it moved out.
     expect.soft(day(M, M_END_DATE)?.gate ?? ['none'], `H7 M ${M_END_DATE} after the move-out: ${JSON.stringify(day(M, M_END_DATE))}`).not.toContain('eligible')
     expect.soft(day(M, DAYS[0])?.gate, `H3 M ${DAYS[0]} before the move-out`).toEqual(['eligible'])
@@ -281,8 +285,13 @@ describe.sequential('reality H — the customer leaves', () => {
     expect(forCustomer(following.invoices, S).concat(forCustomer(following.invoices, M)), 'no invoice after the end').toEqual([])
     expect.soft(forCustomer(following.underlays, M), 'H1/H7 no underlay for M after the move-out').toEqual([])
     expect.soft(forCustomer(following.underlays, S), 'H1 no underlay for S in the month after the switch').toEqual([])
-    // An underlay of the current month never runs past the customer's end.
-    const mEndBoundary = sql<string>(`SELECT to_jsonb(${literal(M_END_DATE)}::timestamp AT TIME ZONE 'Europe/Stockholm')`)
+    // An underlay of the current month never runs past the customer's end: the Z05 LK's market instant (DTM+93
+    // 00:00 +0100, owner decision 2026-10-23), the same instant the platform stores as market_end_at, never civil
+    // midnight. Pending billing agent: the form of the underlay end (date or instant) under Ediel-month billing.
+    const mEndBoundary = sql<string>(`SELECT to_jsonb(gridex_received_sources.permission_time_v1(${literal(M_END)}))`)
+    expect(Date.parse(mEndBoundary), 'the Z05 end is 00:00 +0100').toBe(Date.parse(`${M_END_DATE}T00:00:00+01:00`))
+    expect.soft(Date.parse(String(latestPeriod(M)?.marketEnd)), 'M\'s market end is the Z05 instant').toBe(Date.parse(mEndBoundary))
+    report.mEnd = { boundary: mEndBoundary, underlays: forCustomer(current.underlays, M).map(u => ({ start: u.start, end: u.end })) }
     for (const u of forCustomer(current.underlays, M)) expect(Date.parse(String(u.end)), `M underlay ${JSON.stringify(u)}`).toBeLessThanOrEqual(Date.parse(mEndBoundary))
     expect.soft(forCustomer(current.underlays, S), `H2 S is still supplied in ${months[0].key}`).toHaveLength(1)
     // No Z13 history request was sent for a customer who left.

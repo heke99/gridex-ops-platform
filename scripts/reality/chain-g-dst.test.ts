@@ -1,8 +1,9 @@
 // Reality scenario G: the end of daylight saving time on Sunday 25 October 2026 (Europe/Stockholm 03:00 CEST →
 // 02:00 CET; the civil day has 25 hours = 100 quarter-hours) through the whole chain: the grid owner's UTILTS
-// E66 files for 24, 25 and 26 October (96/100/96 values) → inbound reception by the real cron → stored values →
-// completeness checks → Mina sidor / customer and partner API readers (daily and monthly sums) → October billing
-// underlay and invoice (kWh and spot cost per quarter-hour including the repeated hour 02:00–03:00).
+// E66 files (one Ediel day each, 96 values, also for 25 October) → inbound reception by the real cron → stored
+// values → completeness checks → Mina sidor / customer and partner API readers (civil days: 100 values on
+// 25 October, by instant) → October billing underlay and invoice for the Ediel month (kWh and spot cost per
+// quarter-hour including the repeated hour 02:00–03:00).
 //
 // Same world as scenarios A and F: the supplier goes live in ALS, the grid owner (16700) is simulated over
 // SMTPS/IMAPS. As in F (coordinator decision 2026-10-22), the customer is a September customer: signed in
@@ -10,17 +11,25 @@
 // 1 October, Z03 from the real builder and NOT passed through the send-window scheduler (the one stand-in for
 // "now is September"). Supply then rests on the grid owner's Z04. Everything after the Z03 is the real code path.
 //
-// Grid-owner framing (scripts/helpers/reality/dst.ts): each file is one Stockholm civil day in the fixed
-// offset +0100 (ENV-08, DTM+735), i.e. 25 October is the 25-hour period 2026-10-24 23:00 – 2026-10-26 00:00
-// +0100. GRIDEX_REALITY_G_FRAMING=civil_start_offset frames it as the simulator frames summer days (+0200).
-// The files are sent directly over SMTPS from the grid owner's mailbox (live-chain-fixture gridOwnerSends): the
-// running simulator process predates the DST-aware dailyE66 (DST-H1) and could not send 100 values.
+// Time model (ENV-08, owner decision 2026-10-23, T15; scripts/helpers/reality/dst.ts):
+//  - a grid owner's E66 day is 00:00–24:00 +0100 (DTM+735), always 96 quarter-hours; the 25 October file covers
+//    2026-10-24T23:00Z–2026-10-25T23:00Z. No E66 carries 92 or 100 values.
+//  - the civil Stockholm day is a view by instant: civil 25 October = the last 4 values of the 24 October file +
+//    the 96 of the 25 October file = 100. The portal, the partner API and spot prices are civil.
+//  - Ediel-based supply starts at the Z04's instant (DTM+92 202610010000 = 2026-09-30T23:00Z) and is billed per
+//    Ediel month: October = [2026-09-30T23:00Z, 2026-10-31T23:00Z) = 31 × 96 = 2 976 quarter-hours.
+// GRIDEX_REALITY_G_FRAMING keeps the default 'fixed_cet_day'; every expectation is computed by instant from what
+// was sent, so a counterfactual framing would only change the counts it reports. The files are sent directly over
+// SMTPS from the grid owner's mailbox (live-chain-fixture gridOwnerSends). In "focus" mode 23–26 October are sent,
+// so the civil days 24–26 October are complete (civil 24 October begins with the last hour of the 23 October file).
 //
 // Wall clock: values for a day cannot be registered before the day exists. The grid owner's registration time
 // (DTM+137/597, UNB) is capped at "now" (DTM+137 may not lie after reception, headerGuide.ts:207); when the
 // scenario runs before 27 October the report says so (registrationCappedToNow). The October invoice needs spot
-// prices for the whole month; with REALITY_SPOT_SOURCE=real they exist only after the month, so G10 is a soft
-// check that reports exactly why it could not be reached.
+// prices for the whole month; only the platform's settlement cron imports and locks them (F109), and it cannot lock
+// October before the month is complete (with REALITY_SPOT_SOURCE=real: after 1 November), so G9 asserts the import
+// and the civil coverage of the published days and records why the lock is not due, and G10 is a soft check that
+// reports exactly why it could not be reached.
 //
 // Steps that depend on something the world cannot provide are soft checks with the exact reason in the report.
 // Run only through scripts/reality/run.sh (owns the world). Synthetic data only (E2E-, example.invalid).
@@ -36,7 +45,6 @@ import { customerNormalizedMeteringValues } from '@/lib/metering/customerMeterin
 import { listPortalMonthlyConsumption } from '@/lib/customer-portal/db'
 import { evaluateMeteringCompletenessForMonth } from '@/lib/metering/validation'
 import { stockholmDayStartUtc, stockholmNextDayStartUtc } from '@/lib/partner-api/partnerTime'
-import { stockholmMonthBounds } from '@/lib/time/stockholm'
 import { LIVE, approveIssuerHistoryGround, augustSupplyCustomer, cron, gridOwnerSends, literal, sql, type AugustFacility, type LiveTenant } from '../helpers/live-chain-fixture'
 import { WEBSITE_ORIGIN } from '../helpers/reality/tenantWebsite'
 import { closeOperatorConsole, operatorSession, submitServerAction } from '../helpers/reality/operatorConsole'
@@ -45,7 +53,8 @@ import { GRID_AREA, GRID_OWNER_EDIEL_ID, goLiveAlsSupplier } from '../helpers/re
 import { detectStuckStates } from '../helpers/reality/stuckDetector'
 import { registerUtiltsIssuer } from '../helpers/utiltsConsumptionParties'
 import { gs1 } from '../helpers/live-chain-wire'
-import { dayE66, dstDayProfile, kwhSum, monthDays, stockholmQuarterCount, stockholmQuarterStarts, type E66DayFraming } from '../helpers/reality/dst'
+import { civilDayTotals, dayE66, e66DayProfile, edielMonthQuarterCount, edielMonthUtc, kwhSum, monthDays, stockholmDayOf, stockholmQuarterCount, stockholmQuarterStarts,
+  type E66DayFraming } from '../helpers/reality/dst'
 
 const report: Record<string, unknown> = { scenario: 'G end of DST 2026-10-25', startedAt: new Date().toISOString() }
 const REPORT = process.env.GRIDEX_REALITY_REPORT ?? '/tmp/reality-g-report.json'
@@ -59,14 +68,20 @@ let apiKey = ''
 const SUPPLY_START = '2026-10-01'
 const MONTH = '2026-10'
 const DST_DAY = '2026-10-25'
+/** The civil days around the change that the portal and the partner API show (96 / 100 / 96 quarter-hours). */
 const FOCUS_DAYS = ['2026-10-24', DST_DAY, '2026-10-26']
-/** Every October day by default (so the month, the portal card and the invoice can be complete); "focus" sends only 24–26 October. */
-const DAYS = process.env.GRIDEX_REALITY_G_DAYS === 'focus' ? FOCUS_DAYS : monthDays(MONTH)
-const FRAMING = (process.env.GRIDEX_REALITY_G_FRAMING ?? 'civil_fixed_cet') as E66DayFraming
-if (FRAMING === 'fixed_cet_day') throw Error('scenario G sends Stockholm civil days; fixed_cet_day is covered by __tests__/dst-utilts-civil-day.test.ts')
+/**
+ * The grid owner's Ediel days sent: every October day by default (so the Ediel month, the portal card and the
+ * invoice can be complete); "focus" sends 23–26 October, which makes the civil days 24–26 October complete.
+ */
+const DAYS = process.env.GRIDEX_REALITY_G_DAYS === 'focus' ? ['2026-10-23', ...FOCUS_DAYS] : monthDays(MONTH)
+const FULL_MONTH = DAYS.length === monthDays(MONTH).length
+const FRAMING = (process.env.GRIDEX_REALITY_G_FRAMING ?? 'fixed_cet_day') as E66DayFraming
+/** The Ediel month October: [2026-09-30T23:00Z, 2026-10-31T23:00Z), 2 976 quarter-hours (owner decision 2026-10-23). */
+const EDIEL_MONTH = { start: new Date(edielMonthUtc(MONTH).start).toISOString(), end: new Date(edielMonthUtc(MONTH).end).toISOString(), quarters: edielMonthQuarterCount(MONTH) }
 const SEPTEMBER_SIGNED_AT = '2026-09-10T09:30:00+02:00'
 const SEPTEMBER_SWITCH_CREATED_AT = '2026-09-10T09:31:00+02:00'
-report.config = { days: DAYS, framing: FRAMING, supplyStart: SUPPLY_START }
+report.config = { days: DAYS, framing: FRAMING, supplyStart: SUPPLY_START, edielMonth: EDIEL_MONTH }
 
 const RUN = Date.now().toString(36)
 function personnummer(birth: string, serial: string) {
@@ -97,12 +112,12 @@ function requireStep(flag: boolean, step: string, why: string, context: TestCont
 }
 
 /**
- * The grid owner sends one Stockholm day as one UTILTS E66 mail over SMTPS, like its daily metering run. The tenant
+ * The grid owner sends one Ediel day (00:00–24:00 +0100, 96 values) as one UTILTS E66 mail over SMTPS, like its daily metering run. The tenant
  * is live in production (goLiveAlsSupplier, Z03 environment 'production'), so the files are production interchanges
  * and go to the production platform mailbox (FINDINGS T7).
  */
 async function gridOwnerSendsDay(day: string, index: number) {
-  const values = dstDayProfile(day, index, SCALE)
+  const values = e66DayProfile(day, FRAMING, index, SCALE)
   const reference = `G${day.replaceAll('-', '').slice(2)}${GSRN.slice(-6)}`
   const natural = dayE66({ issuer: GRID_OWNER_EDIEL_ID, receiver: tenant.supplierEdielId, meterId: GSRN, day, values, reference, framing: FRAMING, environment: 'production' })
   const wire = dayE66({ issuer: GRID_OWNER_EDIEL_ID, receiver: tenant.supplierEdielId, meterId: GSRN, day, values, reference, framing: FRAMING, notAfter: Date.now() - 2 * 60_000,
@@ -128,7 +143,7 @@ async function receiveUntil(done: () => boolean, minutes: number) {
   return runs
 }
 
-/** Stored current values of the facility per Stockholm day, from both series (billing and Mina sidor sources). */
+/** Stored current values of the facility per Stockholm civil day, counted by instant, from both series (billing and Mina sidor sources). */
 function storedPerDay() {
   return sql<Record<string, { normalized: number; distinctStarts: number; kwh: number; metering: number; meteringKwh: number; eligible: number; first: string; last: string }>>(`
     WITH n AS (SELECT (period_start AT TIME ZONE 'Europe/Stockholm')::date d,period_start,period_end,quantity_kwh,billing_gate_status FROM public.normalized_metering_values
@@ -139,7 +154,7 @@ function storedPerDay() {
       'eligible',count(*) FILTER (WHERE n.billing_gate_status='eligible'),'first',min(n.period_start),'last',max(n.period_end),
       'metering',(SELECT count(*) FROM m WHERE m.d=n.d),'meteringKwh',(SELECT coalesce(sum(value_kwh),0) FROM m WHERE m.d=n.d)) x FROM n GROUP BY n.d) y`)
 }
-/** Every stored current start of one Stockholm day, ascending, as ISO. */
+/** Every stored current start of one Stockholm civil day, ascending, as ISO. */
 function storedStarts(day: string) {
   return sql<string[]>(`SELECT coalesce(jsonb_agg(to_char(period_start AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') ORDER BY period_start),'[]')
     FROM public.normalized_metering_values WHERE company_id=${literal(tenant.companyId)} AND metering_point_id=${literal(ids!.mp)} AND revision_status='current'
@@ -228,7 +243,7 @@ describe.sequential('reality G — end of daylight saving time 2026-10-25 throug
     await gridOwner.profile({ contrlDelayMs: 20_000, aperakDelayMs: 40_000, z04DelayMs: 90_000 })
     const supply = () => sql<{ switch: string | null; z04: string | null; period: Row | null }>(`SELECT jsonb_build_object('switch',s.status,'z04',s.inbound_z04_message_id,
         'period',(SELECT jsonb_build_object('id',p.id,'status',p.status,'start',p.start_date,'customer',p.customer_id,'message',p.source_message_id,
-          'atSupplyStart',p.market_start_at=(TIMESTAMP '2026-10-01 00:00' AT TIME ZONE 'Europe/Stockholm'))
+          'atSupplyStart',p.market_start_at=(TIMESTAMP '2026-10-01 00:00' AT TIME ZONE 'Etc/GMT-1'))
           FROM public.customer_supply_periods p WHERE p.company_id=s.company_id AND p.metering_point_id=s.metering_point_id ORDER BY p.created_at DESC LIMIT 1))
       FROM public.supplier_switch_requests s WHERE s.company_id=${literal(tenant.companyId)} AND s.metering_point_id=${literal(ids!.mp)} ORDER BY s.created_at DESC LIMIT 1`)
     const deadline = Date.now() + Number(process.env.GRIDEX_REALITY_G3_MINUTES ?? 30) * 60_000
@@ -250,7 +265,7 @@ describe.sequential('reality G — end of daylight saving time 2026-10-25 throug
     supplied = true
   }, 40 * 60_000)
 
-  it('G4 the grid owner sends October as one civil day per file: 96 / 100 / 96 quarter-hours around the DST change', async (context) => {
+  it('G4 the grid owner sends October as one Ediel day per file: 96 / 96 / 96 quarter-hours around the DST change', async (context) => {
     requireStep(supplied, 'G4', 'no supply period rests on a Z04 from 1 October (G3)', context)
     // SYNTHETIC stand-in for EXT-ISSUER-01, exactly as scenario F registers the ALS grid owner.
     registerUtiltsIssuer(sql as never, literal, GRID_OWNER_EDIEL_ID, tenant.adminUserId)
@@ -258,8 +273,13 @@ describe.sequential('reality G — end of daylight saving time 2026-10-25 throug
     const capped = sentFiles.filter(file => file.registeredAt !== file.naturalRegistration)
     report.registrationCappedToNow = capped.map(file => ({ day: file.day, natural: file.naturalRegistration, sent: file.registeredAt }))
     report.sentFiles = sentFiles.map(({ values, starts, ...file }) => ({ ...file, quarters: values.length, kwh: kwhSum(values), firstStart: starts[0], lastStart: starts[starts.length - 1] }))
-    for (const day of FOCUS_DAYS) expect(sentFor(day)?.values.length, day).toBe(stockholmQuarterCount(day))
-    expect(sentFor(DST_DAY)).toMatchObject({ periodStart: '2026-10-24T22:00:00.000Z', periodEnd: '2026-10-25T23:00:00.000Z' })
+    if (FRAMING === 'fixed_cet_day') {
+      for (const day of FOCUS_DAYS) expect(sentFor(day)?.values.length, day).toBe(96)
+      expect(sentFor(DST_DAY)).toMatchObject({ periodStart: '2026-10-24T23:00:00.000Z', periodEnd: '2026-10-25T23:00:00.000Z' })
+      expect(sentFor(DST_DAY)?.starts).toEqual(Array.from({ length: 96 }, (_, q) => new Date(Date.parse('2026-10-24T23:00:00Z') + q * 900_000).toISOString()))
+    }
+    // The sent instants, as the civil views will count them: civil 25 October = the last 4 of 24 October + 96 = 100.
+    report.sentCivilDays = civilDayTotals(sentFiles)
   }, 15 * 60_000)
 
   it('G5 the inbound cron receives every file on the tenant', async (context) => {
@@ -271,7 +291,7 @@ describe.sequential('reality G — end of daylight saving time 2026-10-25 throug
     expect(sentFiles.filter(file => !arrived.has(file.reference)).map(file => file.day), 'files never received on the tenant').toEqual([])
   }, 30 * 60_000)
 
-  it('G6 after issuer evidence and operator reprocessing every value is stored: 100 on 25 October, no gap, no duplicate', async (context) => {
+  it('G6 after issuer evidence and operator reprocessing every value is stored: civil 25 October holds 100 by instant, no gap, no duplicate', async (context) => {
     requireStep(inboundE66().length > 0, 'G6', 'no inbound E66 on the tenant (G5)', context)
     const sources = inboundE66()
     for (const source of sources) approveIssuerHistoryGround(source.id, tenant.adminUserId)
@@ -306,29 +326,35 @@ describe.sequential('reality G — end of daylight saving time 2026-10-25 throug
     report.reprocess = outcomes
     expect(outcomes.filter(outcome => outcome.stored < outcome.expected).map(outcome => `${outcome.day}: ${outcome.stored}/${outcome.expected}`), 'values not stored').toEqual([])
 
-    const perDay = storedPerDay()
+    // Per civil Stockholm day, by instant: each sent value counts on the civil day its UTC start falls on (every sent
+    // value lies inside the supply, which starts 2026-09-30T23:00Z: civil 1 October therefore holds 92).
+    const perDay = storedPerDay(), expectedPerDay = civilDayTotals(sentFiles)
     report.storedPerDay = perDay
-    for (const day of DAYS) {
-      const sent = sentFor(day)!, got = perDay[day]
+    report.expectedCivilDays = expectedPerDay
+    expect(Object.keys(perDay).sort(), 'civil days with stored values').toEqual(Object.keys(expectedPerDay).sort())
+    for (const [day, want] of Object.entries(expectedPerDay)) {
+      const got = perDay[day]
       expect(got, `${day} stored`).toBeTruthy()
       expect({ normalized: got.normalized, distinct: got.distinctStarts, metering: got.metering, eligible: got.eligible }, day)
-        .toEqual({ normalized: sent.values.length, distinct: sent.values.length, metering: sent.values.length, eligible: sent.values.length })
-      expect(Number(got.kwh), `${day} kWh`).toBeCloseTo(kwhSum(sent.values), 6)
-      expect(Number(got.meteringKwh), `${day} kWh (Mina sidor series)`).toBeCloseTo(kwhSum(sent.values), 6)
+        .toEqual({ normalized: want.count, distinct: want.count, metering: want.count, eligible: want.count })
+      expect(Number(got.kwh), `${day} kWh`).toBeCloseTo(want.kwh, 6)
+      expect(Number(got.meteringKwh), `${day} kWh (Mina sidor series)`).toBeCloseTo(want.kwh, 6)
     }
-    // 25 October: exactly the 100 UTC quarter-hours 22:00Z–23:00Z, both passes of 02:00–03:00 (00:00Z and 01:00Z).
+    // Civil 25 October: exactly the 100 UTC quarter-hours 22:00Z–23:00Z, both passes of 02:00–03:00 (00:00Z and
+    // 01:00Z) = the last 4 values of the 24 October file + the 96 of the 25 October file.
     const starts = storedStarts(DST_DAY)
     report.dstDayStarts = { count: starts.length, first: starts[0], last: starts[starts.length - 1], repeatedHour: starts.filter(s => s >= '2026-10-25T00:00' && s < '2026-10-25T02:00') }
     expect(starts).toEqual(stockholmQuarterStarts(DST_DAY))
-    expect(starts).toEqual(sentFor(DST_DAY)!.starts)
-    // Around the change: one continuous series of 15-minute steps from 24 Oct 00:00 CEST to 27 Oct 00:00 CET.
+    expect(starts).toEqual(sentFiles.flatMap(file => file.starts).filter(iso => stockholmDayOf(Date.parse(iso)) === DST_DAY).sort())
+    if (FRAMING === 'fixed_cet_day') expect(starts).toEqual([...sentFor('2026-10-24')!.starts.slice(92), ...sentFor(DST_DAY)!.starts])
+    // Around the change: one continuous series of 15-minute steps from civil 24 Oct 00:00 CEST to 27 Oct 00:00 CET.
     const around = FOCUS_DAYS.flatMap(storedStarts)
     expect(around).toHaveLength(292)
     expect(around.every((iso, i) => i === 0 || Date.parse(iso) - Date.parse(around[i - 1]) === 900_000), 'no gap and no duplicate around the change').toBe(true)
     stored = true
   }, 150 * 60_000)
 
-  it('G7 completeness is not flagged: engine, billing completeness and the month card', async (context) => {
+  it('G7 completeness is not flagged: engine and billing completeness of the Ediel month October (2 976 quarter-hours)', async (context) => {
     requireStep(stored, 'G7', 'values were not stored (G6)', context)
     const reprocess = (report.reprocess ?? []) as Array<{ day: string | null; diagnosis?: { issues?: string[] } }>
     const dst = reprocess.find(outcome => outcome.day === DST_DAY)
@@ -336,37 +362,45 @@ describe.sequential('reality G — end of daylight saving time 2026-10-25 throug
     expect(dst?.diagnosis?.issues ?? []).not.toEqual(expect.arrayContaining(['UTILTS_E66_OBSERVATION_COUNT_MISMATCH']))
     const completeness = await evaluateMeteringCompletenessForMonth({ companyId: tenant.companyId, billingMonth: MONTH,
       meteringPoints: [{ meteringPointId: ids!.mp, requiredResolution: 'quarter_hour' }] })
-    report.completeness = completeness
-    if (DAYS.length === monthDays(MONTH).length) {
+    const sentQuarters = sentFiles.reduce((n, file) => n + file.values.length, 0)
+    report.completeness = { ...completeness, edielMonth: EDIEL_MONTH, sentQuarters }
+    if (FULL_MONTH) {
+      // The Ediel month October: [2026-09-30T23:00Z, 2026-10-31T23:00Z) = 31 × 96 = 2 976 quarter-hours.
       // DST-C1: before the paging fix in lib/metering/validation.ts this read only PostgREST's first 1 000 rows.
-      expect(completeness, JSON.stringify(completeness.issues)).toMatchObject({ status: 'complete', valueCount: 2980 })
+      expect(sentQuarters).toBe(EDIEL_MONTH.quarters)
+      expect(completeness, JSON.stringify(completeness.issues)).toMatchObject({ status: 'complete', valueCount: EDIEL_MONTH.quarters })
     } else {
-      expect(completeness.valueCount).toBe(292)
+      expect(completeness.valueCount).toBe(sentQuarters)
       expect(completeness.issues.filter(issue => issue.code === 'metering_overlap')).toEqual([])
     }
   })
 
-  it('G8 Mina sidor and the customer/partner API readers show the sent sums per day and for October', async (context) => {
+  it('G8 Mina sidor and the customer/partner API readers show civil days by instant (100 on 25 October) and October', async (context) => {
     requireStep(stored, 'G8', 'values were not stored (G6)', context)
     const scope = { companyId: tenant.companyId, customerIds: [ids!.customer] }
     const days: Record<string, Row> = {}
+    const civil = civilDayTotals(sentFiles)
+    expect(FOCUS_DAYS.map(day => civil[day]?.count), 'civil 24/25/26 October by instant').toEqual(FOCUS_DAYS.map(stockholmQuarterCount))
     for (const day of FOCUS_DAYS) {
       const { data, error } = await customerNormalizedMeteringValues(scope, { periodStartFrom: stockholmDayStartUtc(day).toISOString(), periodStartBefore: stockholmNextDayStartUtc(day).toISOString() })
         .select('period_start,quantity_kwh')
       expect(error).toBeNull()
       const rows = (data ?? []) as Array<{ period_start: string; quantity_kwh: number }>
-      days[day] = { rows: rows.length, kwh: kwhSum(rows.map(row => Number(row.quantity_kwh))), sent: kwhSum(sentFor(day)!.values) }
-      expect(rows.length, day).toBe(sentFor(day)!.values.length)
-      expect(kwhSum(rows.map(row => Number(row.quantity_kwh))), day).toBeCloseTo(kwhSum(sentFor(day)!.values), 6)
+      days[day] = { rows: rows.length, kwh: kwhSum(rows.map(row => Number(row.quantity_kwh))), sent: civil[day] }
+      expect(rows.length, day).toBe(civil[day].count)
+      expect(kwhSum(rows.map(row => Number(row.quantity_kwh))), day).toBeCloseTo(civil[day].kwh, 6)
     }
     const sentMonth = kwhSum(sentFiles.flatMap(file => file.values)), sentQuarters = sentFiles.reduce((n, file) => n + file.values.length, 0)
     const months = await listPortalMonthlyConsumption(scope as Parameters<typeof listPortalMonthlyConsumption>[0], { now: new Date('2026-10-28T12:00:00Z'), months: 2 })
     const october = months.find(month => month.monthKey === MONTH)
     report.portal = { days, october, sentMonth, sentQuarters }
+    // The civil month October [2026-09-30T22:00Z, 2026-10-31T23:00Z) contains every sent value (the Ediel month).
     expect(october?.valueCount).toBe(sentQuarters)
     expect(october?.totalKwh).toBeCloseTo(sentMonth, 6)
-    if (DAYS.length === monthDays(MONTH).length) expect(october?.complete, 'the whole October incl. the extra hour is covered').toBe(true)
-    else expect(october?.complete, 'three days of October are not a complete month').toBe(false)
+    // Civil 1 October 00:00–01:00 CEST belongs to the previous supplier (supply starts 00:00 +0100): whether the civil
+    // card then counts the month as complete is the portal's rule, so it is soft and the report shows the card.
+    if (FULL_MONTH) expect.soft(october?.complete, 'the whole supplied October incl. the extra hour is covered').toBe(true)
+    else expect(october?.complete, 'four days of October are not a complete month').toBe(false)
 
     // The partner (website) API over HTTP: soft, it resolves a site only by facility_reference.
     const site = sql<{ reference: string | null }>(`SELECT jsonb_build_object('reference',facility_reference) FROM public.customer_sites WHERE id=${literal(ids!.site)}`)
@@ -381,25 +415,33 @@ describe.sequential('reality G — end of daylight saving time 2026-10-25 throug
     }
   })
 
-  it('G9 October spot prices: 2 980 quarter-hours including the repeated hour (soft)', async (context) => {
+  it('G9 October spot prices through the settlement cron: imported with civil coverage (100 on 25 October); the lock is not due before 1 November', async (context) => {
     requireStep(stored, 'G9', 'values were not stored (G6)', context)
-    const admin = await operatorSession(tenant.adminEmail, tenant.adminPassword)
-    const imported = await admin.request.post('/api/internal/spot/import-month', { data: { billing_month: MONTH, price_areas: ['SE3'] } })
-    const importBody = await imported.json().catch(() => null)
-    const bounds = stockholmMonthBounds(MONTH)
-    const intervals = sql<number>(`SELECT to_jsonb(count(*)) FROM public.spot_price_intervals WHERE price_area='SE3' AND resolution='quarter_hour'
-      AND time_start>=${literal(bounds.start)} AND time_start<${literal(bounds.end)}`)
-    const dstDay = sql<number>(`SELECT to_jsonb(count(*)) FROM public.spot_price_intervals WHERE price_area='SE3' AND resolution='quarter_hour'
-      AND time_start>='2026-10-24T22:00:00Z' AND time_start<'2026-10-25T23:00:00Z'`)
-    let locked: Row | null = null
-    if (intervals === 2980) {
-      const response = await admin.request.post('/api/internal/spot/lock-month', { data: { billing_month: MONTH, price_area: 'SE3', reason: 'E2E reality G' } })
-      locked = { status: response.status(), body: await response.json().catch(() => null) }
-    }
-    report.spot = { importStatus: imported.status(), importBody, intervals, dstDay, locked,
-      ...(intervals === 2980 ? {} : { unreachable: `only ${intervals} of 2 980 October quarter-hours exist: with REALITY_SPOT_SOURCE=real the provider publishes a day the afternoon before; before 1 November the month cannot be complete` }) }
-    expect.soft(dstDay, 'the DST day has 100 spot quarter-hours').toBe(100)
-    expect.soft(intervals, 'October has 2 980 spot quarter-hours').toBe(2980)
+    // Only the platform and the nightly settlement cron import and lock spot prices (owner decision 2026-10-23, F109).
+    const settlement = await cron(`/api/cron/pricing/spot-settlement?billing_month=${MONTH}&price_areas=SE3`)
+    // Spot prices are civil delivery days: count them per Stockholm day of the civil month October.
+    const perDay = sql<Record<string, number>>(`SELECT coalesce(jsonb_object_agg(d,n),'{}') FROM (SELECT (time_start AT TIME ZONE 'Europe/Stockholm')::date::text d,count(*) n
+      FROM public.spot_price_intervals WHERE price_area='SE3' AND resolution='quarter_hour'
+       AND time_start>='2026-09-30T22:00:00Z' AND time_start<'2026-10-31T23:00:00Z' GROUP BY 1) x`)
+    const intervals = Object.values(perDay).reduce((n, count) => n + Number(count), 0)
+    const dstDay = Number(perDay[DST_DAY] ?? 0)
+    const summaries = sql<Row[]>(`SELECT coalesce(jsonb_agg(jsonb_build_object('source',source,'status',status,'covered',covered_duration_minutes,'expected',expected_duration_minutes,
+        'issues',quality_issues,'lockedAt',locked_at)),'[]') FROM public.spot_price_monthly_summaries WHERE price_area='SE3' AND billing_month=${literal(MONTH)}`)
+    const monthComplete = Date.now() >= Date.parse('2026-11-01T00:00:00+01:00')
+    const body = settlement.body as { settlement_locked?: boolean; failed_areas?: unknown; error?: unknown; result?: unknown }
+    report.spot = { cron: { status: settlement.status, body: settlement.body }, perDay, intervals, dstDay, summaries,
+      lock: { due: monthComplete, locked: body.settlement_locked === true,
+        reason: monthComplete ? null : `October cannot be complete before 1 November (lock refused as market_price_incomplete; the cron answers ${settlement.status} ${JSON.stringify(body.failed_areas ?? body.error ?? null)})` } }
+    // The cron ran its import (200 when the lock also succeeded, 500 with failed_areas when it could not lock).
+    expect([200, 500], JSON.stringify(settlement.body).slice(0, 2000)).toContain(settlement.status)
+    expect(settlement.body, 'the settlement cron ran in settlement mode (import, then lock)').toMatchObject({ mode: 'settlement_lock' })
+    // Civil coverage: every published day is a complete Stockholm day (92/96/100 quarter-hours by instant).
+    expect(Object.entries(perDay).filter(([day, count]) => Number(count) !== stockholmQuarterCount(day)), 'every imported civil day is complete').toEqual([])
+    expect.soft(dstDay, 'the DST day has 100 spot quarter-hours (published the afternoon before)').toBe(100)
+    if (monthComplete) {
+      expect.soft(intervals, 'October has 2 980 civil spot quarter-hours').toBe(2980)
+      expect.soft(body.settlement_locked, 'the cron locked October once the month was complete').toBe(true)
+    } else expect.soft(summaries.filter(row => row.status === 'locked'), 'October is not locked before it is complete').toEqual([])
   }, 15 * 60_000)
 
   it('G10 the October underlay and invoice match an independent calculation including the extra hour (soft)', async (context) => {
@@ -415,9 +457,10 @@ describe.sequential('reality G — end of daylight saving time 2026-10-25 throug
         'lines',(SELECT coalesce(jsonb_agg(jsonb_build_object('type',l.line_type,'description',l.description,'quantity',l.quantity,'unit',l.unit,'unitPrice',l.unit_price_ex_vat,'exVat',l.amount_ex_vat,
           'component',l.metadata->>'component_code') ORDER BY l.sort_order),'[]') FROM public.pricing_preview_lines l WHERE l.pricing_run_id=r.id))),'[]')
         FROM public.pricing_runs r WHERE r.company_id=${literal(tenant.companyId)}))`)
-    // Independent: every sent quarter priced at its own UTC quarter's spot price (the repeated hour has its own prices).
+    // Independent: every sent quarter priced at its own UTC quarter's spot price (the repeated hour has its own
+    // prices), over the Ediel month [2026-09-30T23:00Z, 2026-10-31T23:00Z).
     const prices = sql<Array<{ s: string; p: number }>>(`SELECT coalesce(jsonb_agg(jsonb_build_object('s',time_start,'p',sek_per_kwh) ORDER BY time_start),'[]')
-      FROM public.spot_price_intervals WHERE price_area='SE3' AND resolution='quarter_hour' AND time_start>='2026-09-30T22:00:00Z' AND time_start<'2026-10-31T23:00:00Z'`)
+      FROM public.spot_price_intervals WHERE price_area='SE3' AND resolution='quarter_hour' AND time_start>=${literal(EDIEL_MONTH.start)} AND time_start<${literal(EDIEL_MONTH.end)}`)
     const price = new Map(prices.map(row => [new Date(row.s).toISOString(), Number(row.p)]))
     let energy = 0, kwh = 0, unpriced = 0, extraHourKwh = 0, extraHourSek = 0
     for (const file of sentFiles) file.values.forEach((value, q) => {
@@ -437,13 +480,19 @@ describe.sequential('reality G — end of daylight saving time 2026-10-25 throug
       return
     }
     expect.soft(Number(underlay.kwh), 'underlay kWh = all sent quarter-hours incl. the extra hour').toBeCloseTo(kwh, 3)
-    expect.soft(Number(underlay.values ?? 0), 'underlay value count').toBe(sentFiles.reduce((n, file) => n + file.values.length, 0))
+    // The Ediel month October has 2 976 quarter-hours (31 × 96); a focus run sends fewer.
+    expect.soft(Number(underlay.values ?? 0), 'underlay value count').toBe(FULL_MONTH ? EDIEL_MONTH.quarters : sentFiles.reduce((n, file) => n + file.values.length, 0))
+    // Pending billing agent: the underlay and invoice period is the Ediel month (field form not known yet).
+    report.october = { ...(report.october as Row), periods: { expected: EDIEL_MONTH, underlay: { start: underlay.start, end: underlay.end } } }
     if (!invoice) {
       report.october = { ...(report.october as Row), unreachable: unpriced ? `${unpriced} sent quarter-hours have no spot price yet (G9), so no invoice can be priced` : 'no invoice prepared; see underlay readiness/block reason' }
       expect.soft(invoice, 'an October invoice draft exists').not.toBeNull()
       return
     }
     expect.soft(Number(invoice.kwh), 'invoice kWh incl. the extra hour').toBeCloseTo(kwh, 3)
+    report.october = { ...(report.october as Row), invoicePeriod: { start: invoice.start, end: invoice.end } }
+    expect.soft([invoice.start, invoice.end].map(value => typeof value === 'string' && /T\d{2}:/.test(value) ? new Date(value).toISOString() : value),
+      `pending billing agent: the invoice prints the Ediel month ${JSON.stringify(EDIEL_MONTH)}`).toEqual([EDIEL_MONTH.start, EDIEL_MONTH.end])
     expect.soft(Math.abs(Number(invoice.exVat) - independent.exVat), `invoice ex VAT vs independent ${JSON.stringify(independent)}`).toBeLessThan(1)
   }, 20 * 60_000)
 
