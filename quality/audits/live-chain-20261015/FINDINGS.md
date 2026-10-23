@@ -1561,6 +1561,28 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
   - Detta är en begränsning i testmiljön, inte i produkten. Körning 23 startas därför frikopplad.
 - **Att följa upp:** de 8 spärrade värdena med `supply_source_unqualified`, sannolikt gränsen vid leveransstarten.
 
+### F102 Varje inkommande produktionsmeddelande lagras med `test_flag=1` — BEKRÄFTAD (världen), hög (latent i produktion); utreds av agent
+- **Utfall:** i världen har alla 425 inkommande produktionsmeddelanden från senaste dygnet `test_flag=1`, medan utgående produktionsmeddelanden har 0. Gäller bland annat körning 26:s fyra Z04, som annars är korrekta produktionsmeddelanden: UNB `++1` är kvittensbegäran (0031), och 0035 saknas.
+- **Orsak:** insert-vägen i `lib/inbound-mail/inboundStatusUpdater.ts` (`insertPayload`, `parsed_by_batch_7a1_inbound_mail_engine`) sätter aldrig `test_flag`, och kolumnens standardvärde är 1. `lib/ediel/db.ts:435` har samma standardvärde. `edielInboundProcessor.ts:236` sätter däremot flaggan efter miljö.
+- **Möjliga följder (att bevisa):**
+  - `customer-cases/engine.ts:233,504` kopierar källans flagga till utgående svar. `productionGuards.ts:152` stoppar sedan produktionssändning med `production_test_flag`.
+  - `ack.ts:532` behandlar flaggan som testkörning.
+  - `actorTestingEngine` väljer testmeddelanden på flaggan.
+- **Produktion (bara aggregat):** ett enda Ediel-meddelande, ett test/inbound. Felet är alltså latent där.
+
+### F103 En av fyra Z04 från samma inkommande körning blev aldrig behandlad och står kvar i `received` — BEKRÄFTAD (världen, körning 26), hög; utreds av agent
+- **Utfall:** de fyra Z04 togs emot 10:04:16 och lagrades 10:05:53–55. Tre blev `parsed` inom 14 sekunder med aktiva perioder. Den fjärde (`db3b04be…`, anläggning `…170171`) har bara händelsen `linked` och står kvar i `received`.
+  - Postraden är `processed/matched`, och bytet står kvar som `prepared`.
+  - Ingen senare cron-slot (varje minut) tog upp den, och appens logg visar inget fel.
+- **Konsekvens:** en av kundens fyra anläggningar får aldrig sin leveransperiod, och inget syns för operatören.
+- **Hypoteser:** budget per körning, ett svalt fel efter `linked`, en låskonflikt med de tre andra Z04:orna för samma kund, eller att ingen sopare återupptar inkommande meddelanden i `received`.
+
+### Observationer i appens logg (körning 26, låg om inget annat anges)
+- `production route wizard runs could not be loaded` (PGRST205): tabellen `public.production_route_wizard_runs` finns inte i schemacachen. Antingen saknas migrationen i världen eller används tabellen utan att finnas.
+- `[manual-mailbox] imap_secret_reference rejected: not a MANUAL_MAILBOX_* variable` för brevlådan `21a35c21…`. Manuella inkorgen loggar fel varje minut.
+- `[tenant-provisioning-cron] failed … invalid response from upstream`.
+- `Error: The destination stream closed early` upprepat, och `MaxListenersExceededWarning` för Gzip-strömmar (möjlig läcka).
+
 ### F101 UTILTS-förbrukning kräver en tenantägd nätägare, men registermodellens nätägare är plattformsgemensamma — så inga mätvärden kan lagras — BEKRÄFTAD (världen), kritisk för fakturering; utreds
 - **Fel:** `P0U01 utilts_consumption_grid_owner_changed` från `gridex_utilts_binding.lock_attribution_v1`, som kräver `grid_owners.company_id = tenant`.
 - **Registermodellen (F41):** nätägaren är en plattformsgemensam rad (`company_id IS NULL`). Produktens egen webbväg kopplar tenantens mätpunkter till den raden; alla 8 mätpunkter i scenariot pekar på den gemensamma raden för 16700.
