@@ -2195,6 +2195,21 @@ Gäller F113:s sidofynd 1 och 2.
 - Månadsdebiteringen nekar först efter en hel månads leverans, och då är tenanten redan skyldig kunderna fakturor.
 - Förslag: beredskapskontrollen för go-live eller onboarding-checklistan bör visa saknad fakturaleverantör som blockerare eller tydlig varning. Ska utredas och beslutas.
 
+### P8 Ediel-utkorgen skickar högst 25 meddelanden per körning i en global FIFO-kö; ett annat bolags kö fördröjer tenantens CONTRL och APERAK — MÄTT (världen, körning 29), medel; ÖPPEN
+- **Bevis från körning 29** (tenant `69e8e257`): 33 CONTRL och 4 APERAK ställdes i kö 21:15–21:21. Den första sändningen kom 21:28, cirka 13 minuter senare. Klockan 21:32 var 8 CONTRL skickade och 56 köade.
+- **Kön före tenanten:**
+  - 25 produktionsrader för det äldre bolaget `cbe55eb8` ("E2E Live Elhandel AB"). Återupptagningsjobbet från F106 skapade dem, ett svar per gammalt meddelande och ingen loop, och de blockeras med `certificate_missing`.
+  - 34 rader i testspåret från native-sviter som kördes i världen (testförorening; de faller på `42501 ediel_accepted_projection_actor_forbidden`).
+- **Orsak:**
+  - `claim_ediel_outbox_items` tar `limit` 25, sorterat på `priority, created_at`, över alla bolag. Vercel kör `/api/ediel/outbox/process` var femte minut (`vercel.json` `1-56/5`).
+  - Det ger i produktion cirka 5 meddelanden i minuten för hela plattformen, utan rättvis fördelning mellan bolag. Ett bolags eftersläpning, även rader som bara blockeras, skjuter upp alla andras protokollsvar.
+  - Harnessen anropar utkorgen varje minut och är alltså fem gånger snabbare än verkligheten.
+- **Konsekvens:**
+  - En nätägares 123 E66 per tenant och månad ger mer än 123 CONTRL plus APERAK, vilket är cirka 25 minuter enbart för en tenant.
+  - Med flera tenants eller en blockerad tenant passeras ACK-fristen (`EXPECTED_ACK_SLA_MINUTES` = 30) för motpartens förväntan.
+  - Testspårets och produktionsspårets rader delar samma kö när `environment` inte anges.
+- **Förslag:** låt cron-körningen fortsätta inom en tidsbudget (till exempel 45 s) tills kön är tom, och claima rättvist per bolag (round-robin på `company_id`). Rader som säkert kommer att blockeras ska inte uppta platsen, eftersom avspärrade bolag redan nekas av `getTenantOperationDecision`.
+
 ### H3 längre ned i kedjan: slutfakturan efter Z05 prissätts aldrig ("Aktivt kundavtal saknas") — BEKRÄFTAD (kod), hög; RÄTTAD
 - **Bevis** med syntetiska data: leverans 1 augusti till Z05 1 oktober, och avtalet `terminated`/`supply_end`.
   - Septemberunderlaget enligt Ediel-månaden blir `ready`.
