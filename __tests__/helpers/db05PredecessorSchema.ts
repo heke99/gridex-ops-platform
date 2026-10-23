@@ -4,6 +4,18 @@ import {readFileSync} from 'node:fs'
 type Patch={preSha256:string;postSha256:string;hunks:{postStart:number;postCount:number;postSha256:string;preLines:string[]}[]}
 const sha=(text:string)=>createHash('sha256').update(text).digest('hex')
 
+function reversePatch(schema:string,patch:Patch):string{
+ if(sha(schema)!==patch.postSha256)throw Error('db05_schema_predecessor_unknown:'+sha(schema))
+ const lines=schema.split('\n')
+ for(const hunk of [...patch.hunks].reverse()){
+  if(sha(lines.slice(hunk.postStart,hunk.postStart+hunk.postCount).join('\n'))!==hunk.postSha256)throw Error('db05_schema_predecessor_hunk_changed:'+hunk.postStart)
+  lines.splice(hunk.postStart,hunk.postCount,...hunk.preLines)
+ }
+ const rebuilt=lines.join('\n')
+ if(sha(rebuilt)!==patch.preSha256)throw Error('db05_schema_predecessor_rebuild_mismatch')
+ return rebuilt
+}
+
 /** Exact pre-DB-05 schema.sql capture. The checked-in capture is either that
  * predecessor or an authenticated post-DB-05 GEN; each is reversed by
  * the generated patch and the result must hash to the pinned predecessor.
@@ -11,6 +23,13 @@ const sha=(text:string)=>createHash('sha256').update(text).digest('hex')
 export function db05PredecessorSchema(schema:string):string{
  let patch:Patch=JSON.parse(readFileSync(new URL('../fixtures/db05-schema-predecessor.patch.json',import.meta.url),'utf8'))
  const actual=sha(schema)
+ if(actual==='fc6968d3f4d4f4e8fe9a487f3af9851c1f29d7ea708dee61f57cfa65dc4ebb4a'){
+  // Genuine ordinary capture0ede/artifact12534357628 adds only the bounded S01
+  // generated successor. Rebuild exact audit26 input before its existing proof.
+  const audit27Patch:Patch=JSON.parse(readFileSync(new URL('../fixtures/db05-schema-predecessor-audit27.patch.json',import.meta.url),'utf8'))
+  if(audit27Patch.preSha256!=='47726959555e64a527ab2353f9532958fe6cc06bd75235375f33a04d4f231022'||audit27Patch.postSha256!==actual)throw Error('db05_schema_predecessor_rebuild_mismatch')
+  return db05PredecessorSchema(reversePatch(schema,audit27Patch))
+ }
  if(actual==='a15291106e26b9bea9f70dd99f3c19f6cae7e159afd8a5d4674a997d98c2eac6'){
   const mailPatch:Patch=JSON.parse(readFileSync(new URL('../fixtures/db05-schema-predecessor-mail.patch.json',import.meta.url),'utf8'))
   if(mailPatch.preSha256!==patch.preSha256)throw Error('db05_schema_predecessor_rebuild_mismatch')
@@ -48,12 +67,5 @@ export function db05PredecessorSchema(schema:string):string{
  }
  if(actual===patch.preSha256)return schema
  if(actual!==patch.postSha256)throw Error('db05_schema_predecessor_unknown:'+actual)
- const lines=schema.split('\n')
- for(const hunk of [...patch.hunks].reverse()){
-  if(sha(lines.slice(hunk.postStart,hunk.postStart+hunk.postCount).join('\n'))!==hunk.postSha256)throw Error('db05_schema_predecessor_hunk_changed:'+hunk.postStart)
-  lines.splice(hunk.postStart,hunk.postCount,...hunk.preLines)
- }
- const rebuilt=lines.join('\n')
- if(sha(rebuilt)!==patch.preSha256)throw Error('db05_schema_predecessor_rebuild_mismatch')
- return rebuilt
+ return reversePatch(schema,patch)
 }

@@ -897,6 +897,30 @@ function committedSc046ReturnStateBody(revision: string, base: { body: string; m
   expect(migrationHash, migration).toBe(manifest.files[migration])
   return { body: sc046ExpectedWrapperBody(base.body, source), migrationHash }
 }
+function s01AreaExpectedPrecisionBody(baseBody: string, source: string) {
+  const signature='gridex_utilts_binding.persist_consumption_before_precision_v1(uuid,text,uuid,text,text,jsonb)'
+  const patches=[...source.matchAll(/DO \$patch\$([\s\S]*?)END \$patch\$;/g)]
+    .map(match=>match[1]).filter(block=>block.includes("pg_get_functiondef('"+signature+"'::regprocedure)"))
+  if (patches.length!==1) throw Error('native_s01_precision_patch_identity_conflict')
+  const block=patches[0],old=block.match(/old_body:=\$old\$([\s\S]*?)\$old\$/)?.[1],next=block.match(/new_body:=\$new\$([\s\S]*?)\$new\$/)?.[1]
+  if (!old||!next||old!==baseBody
+    ||createHash('sha256').update(old).digest('hex')!=='ac53c3f07f74dc8829e4b5d8d6407c7b96f57f5a8c4d44147ab660b62c06c892'
+    ||createHash('sha256').update(next).digest('hex')!=='347be38f343292dc1993b506b9d30fc359e8688f5a9103cc411f524538c72f4a'
+    ||!block.includes('EXECUTE replace(ddl,old_body,new_body);')
+    ||!block.includes("<>'"+'347be38f343292dc1993b506b9d30fc359e8688f5a9103cc411f524538c72f4a'+"'")) {
+    throw Error('native_s01_precision_source_chain_conflict')
+  }
+  return next
+}
+function committedS01AreaPrecisionBody(revision: string, base: {body: string; migrationHash: string}) {
+  const migration='20261023201053_ediel_s01_area_aggregate_identity.sql'
+  const source=execFileSync('git',['show',`${revision}:supabase/migrations/${migration}`],{encoding:'utf8'})
+  // This new forward is outside the frozen historical manifest. Bind its
+  // entire committed file explicitly; the predecessor remains manifest-bound.
+  const migrationHash=createHash('sha256').update(source).digest('hex')
+  expect(migrationHash,migration).toBe('ae647d1d240a2e3cfa202906766eed3b13f6d5d15a0afd14885fe36b63da4a5d')
+  return {body:s01AreaExpectedPrecisionBody(base.body,source),migrationHash}
+}
 // Discovery omits only confirmed SQL comments; literals still carry late-bound names.
 function nativeCatalogDiscoverySource(source: string): string {
   const view = source.split(''), word = /[A-Za-z0-9_$\u0080-\uFFFF]/
@@ -1034,9 +1058,12 @@ it('native catalog binds preserved UTILTS OIDs to the only actor-protected calla
   const expected = persistenceCatalogOwners.map(([signature, migration, functionName]) => {
     const committed = committedPersistenceBody(revision, migration, functionName)
     const patch = bodyPatches[signature]
+    const s01Precision=signature==='gridex_utilts_binding.persist_consumption_before_precision_v1(uuid,text,uuid,text,text,jsonb)'
     const installed = signature === publicEntry ? committedSc046ReturnStateBody(revision, committed)
+      : s01Precision ? committedS01AreaPrecisionBody(revision,committed)
       : patch ? committedPatchedBody(revision, committed, patch[0], patch[1]) : committed
-    return { signature, migration: signature === publicEntry ? '20261013141048_ediel_sc046_persistence_return_state_cb17b044.sql' : patch ? patch[0] : migration, ...installed }
+    return { signature, migration: signature === publicEntry ? '20261013141048_ediel_sc046_persistence_return_state_cb17b044.sql'
+      : s01Precision ? '20261023201053_ediel_s01_area_aggregate_identity.sql' : patch ? patch[0] : migration, ...installed }
   })
   // Conservative named-call discovery supplies the late-bound callsite review.
   // It neither parses PL/pgSQL nor proves dynamically assembled SQL absent.

@@ -8,6 +8,45 @@ import {tmpdir} from 'node:os'
 import {dirname, join, resolve} from 'node:path'
 import {afterAll, afterEach, beforeAll, beforeEach, expect, it, vi} from 'vitest'
 
+const s01DependencyExtensions = [
+  {
+    "name": "gridex_utilts_binding.esco_local_time_v1",
+    "identity": [
+      "gridex_utilts_binding",
+      "FUNCTION",
+      "esco_local_time_v1(text, text)"
+    ],
+    "body_sha256": "45b07776f975f4285e0691642071da7c722862577f9dd2872f13e8bc80350ed1"
+  },
+  {
+    "name": "gridex_utilts_binding.require_s01_l359_basis_v1",
+    "identity": [
+      "gridex_utilts_binding",
+      "FUNCTION",
+      "require_s01_l359_basis_v1(uuid, uuid)"
+    ],
+    "body_sha256": "7e0f5b2674a1c6a9b23eac66f3e16873e76f00eb2057617458e5ecc954377269"
+  },
+  {
+    "name": "gridex_utilts_binding.s01_l359_area_identity_v1",
+    "identity": [
+      "gridex_utilts_binding",
+      "FUNCTION",
+      "s01_l359_area_identity_v1(jsonb, text)"
+    ],
+    "body_sha256": "2a435fae6a521b93e327c2931af685a1527b6f2e360d75d1b92472665e702651"
+  },
+  {
+    "name": "gridex_utilts_binding.s01_l359_item_matches_v1",
+    "identity": [
+      "gridex_utilts_binding",
+      "FUNCTION",
+      "s01_l359_item_matches_v1(jsonb, jsonb)"
+    ],
+    "body_sha256": "0c16b7b82ae38b73eed6c81f9249d1ec485bab4401885e2f00f1c632769f55c8"
+  }
+]
+
 type Input = {mode: string; git_blob_oid: string; sha256: string}
 const root = resolve(__dirname, '..'), baseRevision = '56e58b95518ec4d5eef210ba16ba46228afb40ac'
 const producer = 'lib/ediel/testing/agtEngine.ts', kernel = 'lib/ediel/core/kernel.ts'
@@ -72,7 +111,7 @@ print(json.dumps({'root':n['required'],'base':n['required_base'],'reader':n['cur
     root_source: {blobs: rootInputs}, base_source: {blobs: Object.fromEntries(dependencies.map(path => [path, identities[path].base]))},
     historical_source_basis: historical, current_source_basis: 'ROOT_only_no_legacy_hint_wrapper',
     current_database_basis: {kind: 'BASE56_repair_two_forwards_plus_delivered_reader_guard_closure', forwards: declared.reader, schema_path: 'supabase/schema.sql'},
-    current_guard_result: {status: 'PASS', source_sha: git('rev-parse', 'HEAD').trim(), reader_function_names: 233, helper_function_names: 373, function_definitions: 373, delivered_relation_objects: 18, mismatches: [],
+    current_guard_result: {status: 'PASS', source_sha: git('rev-parse', 'HEAD').trim(), reader_function_names: 233, helper_function_names: 377, function_definitions: 377, source_qualified_dependency_extensions: s01DependencyExtensions.map(item => ({...item, identity: [...item.identity]})), delivered_relation_objects: 18, mismatches: [],
       source_schema_sha256: createHash('sha256').update(readFileSync(join(root, 'supabase/schema.sql'))).digest('hex')},
     current_api_schema_result: {status: 'PASS', source_sha: git('rev-parse', 'HEAD').trim(),
       rpc_paths: ['/rpc/ediel_read_prodat_h_accepted_original_v1', '/rpc/ediel_read_prodat_customer_masterdata_original_v1']},
@@ -271,10 +310,20 @@ it('refuses reversed U5 registry and inbound-selector forward order', async () =
 })
 it.each(['helper_function_names', 'function_definitions'] as const)('refuses a changed exact guard counter %s', async field => {
   const guard = receipt.current_guard_result as Record<string, unknown>
-  for (const count of [372, 374]) {
+  for (const count of [373, 376, 378]) {
     guard[field] = count
     await expect(load('current')).rejects.toThrow('db01_native_actual_current_guard_qualification_required')
   }
+})
+it.each(['missing', 'removed', 'body', 'identity', 'extra'] as const)('refuses an unqualified S01 dependency extension %s despite exact counters', async shape => {
+  const guard = receipt.current_guard_result as Record<string, unknown>
+  const extensions = guard.source_qualified_dependency_extensions as Array<{name: string; identity: string[]; body_sha256: string}>
+  if (shape === 'missing') delete guard.source_qualified_dependency_extensions
+  if (shape === 'removed') extensions.pop()
+  if (shape === 'body') extensions[0].body_sha256 = 'f'.repeat(64)
+  if (shape === 'identity') extensions[0].identity[2] = 'wrong_signature()'
+  if (shape === 'extra') extensions.push({name: 'gridex_utilts_binding.unqualified_extra_v1', identity: ['gridex_utilts_binding', 'FUNCTION', 'unqualified_extra_v1()'], body_sha256: 'f'.repeat(64)})
+  await expect(load('current')).rejects.toThrow('db01_native_actual_current_guard_qualification_required')
 })
 it.each(['current_guard_preparation', 'current_read_forwards', 'current_guard_qualification', 'current_api_schema'])('refuses failed or unexecuted actual current phase %s', async name => {
   const phases = receipt.phases as Record<string, {status: string; exit_code: number | null}>
@@ -298,8 +347,12 @@ s=pathlib.Path('.github/workflows/ediel-db01-current-native.yml').read_text()
 s=s.split('cat > "$DB01_PRIVATE/qualify-current-guards.py" <<\'PY\'\n',1)[1].split('\n          PY',1)[0]
 e={}
 exec(textwrap.dedent(s).split('mode=sys.argv[1]',1)[0],e)
-assert len(e['reader_names'])==233 and len(e['relation_keys'])==18 and len(e['names'])==373 and len(e['function_keys'])==373
+assert len(e['reader_names'])==233 and len(e['relation_keys'])==18 and len(e['names'])==377 and len(e['function_keys'])==377
 expected=e['expected']; compare=e['logical_mismatches']
+assert len(e['s01_dependency_extensions'])==4
+for dependency in e['s01_dependency_extensions']:
+ assert tuple(dependency['identity']) in e['function_keys']
+ assert dependency['name'] in e['names']
 assert compare(dict(expected))==[]
 keys=[('gridex_ediel_source_rules','FUNCTION','pack_superseded_by_swedish_utilts25a5_v1(text, text, text, text, date)'),
  ('gridex_ediel_source_rules','FUNCTION','pack_effective_v1(uuid, text, date)'),
@@ -311,6 +364,11 @@ keys=[('gridex_ediel_source_rules','FUNCTION','pack_superseded_by_swedish_utilts
  ('gridex_customer_masterdata','FK CONSTRAINT','preparations preparations_cancellation_origin_id_fkey'),
  ('gridex_ediel_header_negative_birth','ROW SECURITY','receipts'),
  ('public','TRIGGER','ediel_messages assigned_prodat_negative_original_immutable')]
+keys += [tuple(item['identity']) for item in e['s01_dependency_extensions']]
+extension_names={item['name'] for item in e['s01_dependency_extensions']}
+extension_acl_keys=[key for key in e['function_acl_keys'] if key[0]+'.'+key[2][9:].split('(')[0] in extension_names]
+assert len(extension_acl_keys)==4
+keys += extension_acl_keys
 for key in keys:
  assert key in expected
  actual=dict(expected);del actual[key];assert compare(actual),('missing',key)

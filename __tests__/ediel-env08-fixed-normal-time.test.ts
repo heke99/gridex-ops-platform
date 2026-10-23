@@ -175,13 +175,9 @@ describe('ENV08 physical outbound payload and local UNB clocks', () => {
 
   it.each(['2026-07-02T24:00', '2026-02-30T00:00', 'not-a-date'])('does not invent a minute from invalid period/registration %s', async invalid => {
     const original = input('2026-07-01T00:00', invalid)
-    const draft = await buildUtiltsOutboundDraft({ ...original, payload: { ...original.payload, registrationTime: invalid } })
-    const wire = tokenizeEdifact(draft.rawPayload)
-    const qualifiers = wire.segments.filter(segment => segment.tag === 'DTM').map(segment => segmentComposite(segment, 1, wire.una)[0])
-    // Existing optional renderer boundary omits unrepresentable fields. Their
-    // national presence/acceptance gate remains the caller's separate contract.
-    expect(qualifiers).not.toContain('324')
-    expect(qualifiers).not.toContain('597')
-    expect(draft.rawPayload).not.toContain(':null:')
+    // An unrepresentable required registration time must fail the actual
+    // outbound guide gate. No draft may escape with an invented or missing512.
+    await expect(buildUtiltsOutboundDraft({ ...original, payload: { ...original.payload, registrationTime: invalid } }))
+      .rejects.toThrow('UTILTS_FIELD_512_MISSING')
   })
 })

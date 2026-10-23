@@ -34,7 +34,7 @@ const receipt = JSON.parse(readFileSync(receiptPath, 'utf8')) as {
     canonical_facade_basis: {source_revision: string; path: string; historical_alias: string; current_alias: string; base: GitInput; root: GitInput};
     public_creator_input: Record<string, string>}
   current_database_basis: {kind: string; forwards: Array<GitInput & {path: string}>; schema_path: string}
-  current_guard_result?: {status: string; source_sha: string; source_schema_sha256: string; reader_function_names: number; helper_function_names: number; function_definitions: number; delivered_relation_objects: number; mismatches: unknown[]}
+  current_guard_result?: {source_qualified_dependency_extensions?: Array<{name: string; identity: string[]; body_sha256: string}>; status: string; source_sha: string; source_schema_sha256: string; reader_function_names: number; helper_function_names: number; function_definitions: number; delivered_relation_objects: number; mismatches: unknown[]}
   current_api_schema_result?: {status: string; source_sha: string; rpc_paths: string[]}
   phases?: Record<string, {status: string; exit_code: number | null}>
   current_source_basis: string
@@ -234,11 +234,51 @@ if (!currentDatabase || Object.keys(currentDatabase).length !== 3 || currentData
     })) {
   throw new Error('db01_native_current_reader_guard_basis_required')
 }
+// Same exact source-qualified extension identities required by the workflow.
+const s01DependencyExtensions = [
+  {
+    "name": "gridex_utilts_binding.esco_local_time_v1",
+    "identity": [
+      "gridex_utilts_binding",
+      "FUNCTION",
+      "esco_local_time_v1(text, text)"
+    ],
+    "body_sha256": "45b07776f975f4285e0691642071da7c722862577f9dd2872f13e8bc80350ed1"
+  },
+  {
+    "name": "gridex_utilts_binding.require_s01_l359_basis_v1",
+    "identity": [
+      "gridex_utilts_binding",
+      "FUNCTION",
+      "require_s01_l359_basis_v1(uuid, uuid)"
+    ],
+    "body_sha256": "7e0f5b2674a1c6a9b23eac66f3e16873e76f00eb2057617458e5ecc954377269"
+  },
+  {
+    "name": "gridex_utilts_binding.s01_l359_area_identity_v1",
+    "identity": [
+      "gridex_utilts_binding",
+      "FUNCTION",
+      "s01_l359_area_identity_v1(jsonb, text)"
+    ],
+    "body_sha256": "2a435fae6a521b93e327c2931af685a1527b6f2e360d75d1b92472665e702651"
+  },
+  {
+    "name": "gridex_utilts_binding.s01_l359_item_matches_v1",
+    "identity": [
+      "gridex_utilts_binding",
+      "FUNCTION",
+      "s01_l359_item_matches_v1(jsonb, jsonb)"
+    ],
+    "body_sha256": "0c16b7b82ae38b73eed6c81f9249d1ec485bab4401885e2f00f1c632769f55c8"
+  }
+]
 if (phase === 'current' && (['current_guard_preparation', 'current_read_forwards', 'current_guard_qualification', 'current_api_schema'].some(name =>
     receipt.phases?.[name]?.status !== 'PASS' || receipt.phases[name].exit_code !== 0) ||
     receipt.current_guard_result?.status !== 'PASS' || receipt.current_guard_result.source_sha !== head ||
-    receipt.current_guard_result.reader_function_names !== 233 || receipt.current_guard_result.helper_function_names !== 373 ||
-    receipt.current_guard_result.function_definitions !== 373 || receipt.current_guard_result.delivered_relation_objects !== 18 ||
+    receipt.current_guard_result.reader_function_names !== 233 || receipt.current_guard_result.helper_function_names !== 377 ||
+    receipt.current_guard_result.function_definitions !== 377 || receipt.current_guard_result.delivered_relation_objects !== 18 ||
+    JSON.stringify(receipt.current_guard_result.source_qualified_dependency_extensions) !== JSON.stringify(s01DependencyExtensions) ||
     !Array.isArray(receipt.current_guard_result.mismatches) || receipt.current_guard_result.mismatches.length !== 0 ||
     receipt.current_api_schema_result?.status !== 'PASS' || receipt.current_api_schema_result.source_sha !== head ||
     JSON.stringify(receipt.current_api_schema_result.rpc_paths) !== JSON.stringify([

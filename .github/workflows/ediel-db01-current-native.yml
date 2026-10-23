@@ -428,7 +428,22 @@ jobs:
                       if dependency not in names:names.add(dependency);pending.append(dependency)
           function_keys={key for name in names for key,sig,body in source_functions[name]
               if not(name=='public.ediel_read_bilateral_prodat_outbound_original_v1' and sig.count(',')==1)}
-          if len(names)!=373 or len(function_keys)!=373:fail('current delivered guard call-closure identity changed')
+          # Exact source-qualified expansion from the reviewed S01 stored-contract owner.
+          # Keep the reader233/base373 boundaries; never accept an arbitrary larger closure.
+          s01_dependency_extensions = [
+            {'name': 'gridex_utilts_binding.esco_local_time_v1', 'identity': ['gridex_utilts_binding', 'FUNCTION', 'esco_local_time_v1(text, text)'], 'body_sha256': '45b07776f975f4285e0691642071da7c722862577f9dd2872f13e8bc80350ed1'},
+            {'name': 'gridex_utilts_binding.require_s01_l359_basis_v1', 'identity': ['gridex_utilts_binding', 'FUNCTION', 'require_s01_l359_basis_v1(uuid, uuid)'], 'body_sha256': '7e0f5b2674a1c6a9b23eac66f3e16873e76f00eb2057617458e5ecc954377269'},
+            {'name': 'gridex_utilts_binding.s01_l359_area_identity_v1', 'identity': ['gridex_utilts_binding', 'FUNCTION', 's01_l359_area_identity_v1(jsonb, text)'], 'body_sha256': '2a435fae6a521b93e327c2931af685a1527b6f2e360d75d1b92472665e702651'},
+            {'name': 'gridex_utilts_binding.s01_l359_item_matches_v1', 'identity': ['gridex_utilts_binding', 'FUNCTION', 's01_l359_item_matches_v1(jsonb, jsonb)'], 'body_sha256': '0c16b7b82ae38b73eed6c81f9249d1ec485bab4401885e2f00f1c632769f55c8'},
+          ]
+          for dependency in s01_dependency_extensions:
+              variants=source_functions.get(dependency['name'],[])
+              if dependency['name'] not in names or len(variants)!=1 or list(variants[0][0])!=dependency['identity'] or sha(variants[0][2])!=dependency['body_sha256']:
+                  fail('unqualified S01 stored-contract dependency: '+dependency['name'])
+          extension_names={item['name'] for item in s01_dependency_extensions}
+          extension_keys={tuple(item['identity']) for item in s01_dependency_extensions}
+          if len(names)!=377 or len(function_keys)!=377 or len(names-extension_names)!=373 or len(function_keys-extension_keys)!=373:
+              fail('current delivered guard call-closure identity changed')
           # FUNCTION dump definitions include volatility, security mode, language, result
           # and SET configuration. Explicit ACLs are selected by exact function identity;
           # absent ACLs retain PostgreSQL defaults, verified through the live catalog.
@@ -695,6 +710,7 @@ jobs:
               result={'status':'FAIL' if mismatches else 'PASS','source_sha':receipt['checkout_sha'],
                 'source_schema_sha256':receipt['root_source']['blobs']['supabase/schema.sql']['sha256'],
                 'reader_function_names':len(reader_names),'helper_function_names':len(names),'function_definitions':len(function_keys),
+                'source_qualified_dependency_extensions':s01_dependency_extensions,
                 'delivered_relation_objects':len(relation_keys),'selected_logical_objects':len(selected),
                 'database':db,'owners':owner_results,'mismatches':mismatches,
                 'forward_prerequisite_objects':[{'identity':key,'sha256':sha(actual[key])} for key in prerequisite_keys if key in actual],
@@ -927,8 +943,14 @@ jobs:
                 'e2b209c12edc9c57c3d6f13f3b0da24524c9acbe9bb920571b674feb46eb827c',0,'PASS')] or \
               guard.get('forward_prerequisite_mismatches')!=[] or len(guard.get('forward_prerequisite_objects',[]))!=2 or \
               guard.get('status')!='PASS' or guard.get('source_sha')!=receipt['checkout_sha'] or \
-              guard.get('reader_function_names')!=233 or guard.get('helper_function_names')!=373 or \
-              guard.get('function_definitions')!=373 or guard.get('delivered_relation_objects')!=18 or \
+              guard.get('reader_function_names')!=233 or guard.get('helper_function_names')!=377 or \
+              guard.get('function_definitions')!=377 or guard.get('delivered_relation_objects')!=18 or \
+              guard.get('source_qualified_dependency_extensions')!=[
+                {'name': 'gridex_utilts_binding.esco_local_time_v1', 'identity': ['gridex_utilts_binding', 'FUNCTION', 'esco_local_time_v1(text, text)'], 'body_sha256': '45b07776f975f4285e0691642071da7c722862577f9dd2872f13e8bc80350ed1'},
+                {'name': 'gridex_utilts_binding.require_s01_l359_basis_v1', 'identity': ['gridex_utilts_binding', 'FUNCTION', 'require_s01_l359_basis_v1(uuid, uuid)'], 'body_sha256': '7e0f5b2674a1c6a9b23eac66f3e16873e76f00eb2057617458e5ecc954377269'},
+                {'name': 'gridex_utilts_binding.s01_l359_area_identity_v1', 'identity': ['gridex_utilts_binding', 'FUNCTION', 's01_l359_area_identity_v1(jsonb, text)'], 'body_sha256': '2a435fae6a521b93e327c2931af685a1527b6f2e360d75d1b92472665e702651'},
+                {'name': 'gridex_utilts_binding.s01_l359_item_matches_v1', 'identity': ['gridex_utilts_binding', 'FUNCTION', 's01_l359_item_matches_v1(jsonb, jsonb)'], 'body_sha256': '0c16b7b82ae38b73eed6c81f9249d1ec485bab4401885e2f00f1c632769f55c8'},
+              ] or \
               guard.get('mismatches')!=[] or \
               guard.get('source_schema_sha256')!=receipt['root_source']['blobs']['supabase/schema.sql']['sha256'] or \
               api.get('status')!='PASS' or api.get('source_sha')!=receipt['checkout_sha'] or \
