@@ -26,8 +26,8 @@ Nya beslut läggs till sist, och inget tas bort. Ett beslut som ersätts markera
 | 18 | 2026-10-23 | H3d B3 | Uppsägning utan flytt, när uppsägningstiden löper ut? | "Vänta på nytt byte, sedan ev. Z08": leveransen fortsätter tills Z05 kommer. Har inget byte skett skapas en operatörsuppgift att skicka Z08. | Att implementera |
 | 19 | 2026-10-23 | H3d B4 | Den fasta månadsavgiften i slutmånaden? | "Per dag": fördelas på dagarna med leverans. | Att implementera |
 
+| 20 | 2026-10-23 | H3d (följdfråga till B1/B4) | Ska fasta avgifter tas ut under uppsägningstid som löper efter att leveransen har upphört? | **Nej.** De fasta elhandelsavgifterna upphör vid det faktiska leveransslutet och fördelas per kalenderdag. En eventuell brytavgift och separat avtalade tjänster hålls utanför den vanliga månadsdebiteringen. | Att implementera; preciserar B1 och B4 |
 ## Öppna frågor till ägaren
-- **H3d:** ska fasta avgifter tas ut under uppsägningstid som löper efter att leveransen har upphört?
 - **F115:** räcker en fakturaleverantör vald i miljön `test` för go-live, eller ska `production` krävas?
 - **F114:** ska envägsläget `link_existing_only` skriva värden som meddelandet bär, eller bara identitet, som objektvägen gör?
 - **F113:** överlämningen av den skyddade objektbatchen (`require_wire_projection_v1`, DB-05/SC-031) väntar på kroppsägarna.

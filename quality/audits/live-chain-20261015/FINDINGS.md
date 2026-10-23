@@ -2251,7 +2251,10 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
   - **B2:** avgiftsgranskning vid flytt inom bindningstid för alla kundtyper, både vid manuell flytt och vid Z05 LK. Operatören beslutar.
   - **B3:** vid uppsägning utan flytt fortsätter leveransen tills en ny leverantör tar över, vilket kommer som Z05 från nätägaren. Har inget byte skett när uppsägningstiden har löpt ut skapas en operatörsuppgift att skicka avslut (Z08) till nätägaren.
   - **B4:** den fasta månadsavgiften fördelas per dag med leverans i slutmånaden.
-  - **Öppen följdfråga:** ska fasta avgifter tas ut under uppsägningstid som löper efter att leveransen har upphört?
+  - **Följdfrågan om fasta avgifter under uppsägningstid efter leveransslut, ÄGARBESLUT 2026-10-23: NEJ.**
+    - De fasta elhandelsavgifterna upphör vid det faktiska leveransslutet och fördelas per kalenderdag.
+    - En eventuell brytavgift och separat avtalade tjänster hålls utanför den vanliga månadsdebiteringen, som ett eget underlag eller en egen faktura via operatörens avgiftsgranskning.
+    - Avtalets uppsägningstid ger alltså ingen debitering av energi eller fasta avgifter efter leveransslutet.
 - **Rätt i dag:**
   - Ingen dag faktureras efter slutet och ingen dubbelfaktureras.
   - Slutmånaden faktureras vid manuell flytt för leveranser som inte kom via Ediel.
