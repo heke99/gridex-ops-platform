@@ -1874,12 +1874,38 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
     - **M6:** E66-månadsvärden i +0100 kan inte debiteras i civila sommarmånader (`source_interval_requires_finer_data`). Hög.
     - **M7:** de två reservvägarna från datum till tidpunkt skiljer sig åt. Civil midnatt används i åtkomstfönster, spärr och underlag. `Etc/GMT-1` används i 5 funktioner för mottagna källor. Påverkar bara manuella perioder. Kräver förtydligande av F79-beslutet. Låg.
   - **Observation:** produkten godtar `DTM+735 +0200` från en svensk nätägare, eftersom det godkända undantaget för deklarerad utländsk offset finns kvar. Låg.
+  - **ÄGARBESLUT 2026-10-23:**
+    - Faktureringsmånad för Ediel-leveranser: "Ediel-månad". Debitering per Ediel-månad från 00:00 +0100 den 1:a. Det löser M5 och M6, och fakturan skriver ut perioden exakt.
+    - Manuella och äldre perioder utan Ediel-tidpunkt (M7): "Svensk civil midnatt".
+    - Implementeras av en agent.
   - **Verklighetsvärldens simulatorer och scenarier är fel.** De sänder civila dygn, och G sänder 100 kvartar. Exakt lista med ändringar per fil och rad finns i agentrapporten. De ska göras av mig och spåras som T15.
 
 ### F109 Tenantadmin får 403 på `/api/internal/spot/import-month` — BEKRÄFTAD (världen, körning 26), hög; utreds
 - Routen kräver `requireAdminApiAccess(['pricing.write'])` och `requireOperationalCompanyId`.
 - `company_admin` har `pricing.write` i `lib/admin/accessModel.ts`, men tenantens admin fick ändå "Ej behörig".
 - F7 i F, G och J2 använder samma anrop.
+
+### F109 (forts.) — UTREDD: fel i scenariot, inte i produkten
+- **Orsak:**
+  - "Tenantadmin" i F7 skapas av `configureTenant` (`scripts/helpers/live-chain-fixture.ts:178-200`) med SQL. Användaren får medlemskapet `company_admin`, en `native_actor_*`-roll utan behörigheter och 78 direkta allow-rader i `user_permissions`.
+  - Adminkontexten räknar avsiktligt bara rollernas allow, och direkta rader används endast som nekanden (`20261013023000_admin_context_current_permission_deny.sql`).
+  - `canonical_authenticated_tenant_context` gav `permissions:[]`, och därmed svarade `apiGuards.ts:153` "Ej behörig" redan före behörighetskontrollen.
+  - Redan känt för fixturen (F52). Den gamla native-kedjan använde samma admin.
+- **Produktens modell:**
+  - Spotpriser är global marknadsdata per elområde. Tabellerna saknar `company_id`, och cron-jobben avvisar `company_id`.
+  - `spot-settlement`-cron importerar och låser föregående månad automatiskt varje natt.
+  - Manuell import finns för plattformsadmin i UI:t och i `/api/platform/...`.
+  - Tenanten väljer bara sin källa.
+- **Test:** `__tests__/spot-month-routes-admin-context.test.ts` kör de riktiga routerna mot de kontextformer som syns i världen. Fixturadminen får 403, en `company_admin` med `pricing.write` och en plattformsoperatör får 200, och ett uttryckligt nekande ger 403. 6 tester, och agenten körde 22 av 22 i de relaterade sviterna.
+- **Scenarioändring (T15):** F7 och J2 använder produktens automatiska väg, `cron('/api/cron/pricing/spot-settlement?billing_month=…&price_areas=SE3')`. G9 avser oktober, som inte kan låsas före 1 november (409 `market_price_incomplete`).
+- **Sidofynd, ÖPPNA:**
+  1. **Tenantbehörighet styr global data:** `/api/internal/spot/import-month` och `lock-month` låter vem som helst med tenantens `pricing.write` importera och låsa data som alla tenanter debiterar från. En `company_admin` kan därmed frysa en månad för alla tenanter, även före leverantörens rättelse. Samma import är plattformsexklusiv i UI:t. Hög. Kräver ägarbeslut eftersom det smalnar behörigheten.
+  2. **Plattformsadmin utan medlemskap** får 500 `spot_import_failed` på grund av `requireOperationalCompanyId`, fast datan är global. Medel.
+  3. **Inaktuell dokumentation:** dokumentet säger att settlement-cron "låser den inte automatiskt", men den låser (`monthly_settlement_cron`). Kommentaren i `lock-month` är också fel. Låg.
+  4. **Två behörighetsmodeller:** `gridex_get_user_permissions_in_company` (RLS) räknar fortfarande direkta allow-rader. Adminkontexten och `canonical_actor_is_authorized` gör det inte. Fixturadminen får true i RLS men ingen API-åtkomst. Medel.
+  5. **Världens databas saknar rollraden `company_admin`** (F52). Låg för världen.
+  6. **Inget UI** anropar de interna spotroutrarna. Låg.
+  7. **`LiveTenant` kallar användaren "admin"** fast den saknar rollbaserad adminbehörighet. Låg, testkod.
 
 ### P1 Mätvärdeslagringen går med ungefär 70 värden i minuten; kvittenshanteringen dominerar databastiden — MÄTT (världen, körning 26), medel; ej åtgärdat
 - **Körning 26, F6c:** 126 värden lagrade 11:11 och 475 kl. 11:16, alltså ungefär 70 i minuten. 123 filer à 96 kvartsvärden tar då nästan 3 timmar för en enda kund med 4 anläggningar. I produktion med många kunder räcker det inte.
