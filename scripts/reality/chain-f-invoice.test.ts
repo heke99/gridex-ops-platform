@@ -33,6 +33,7 @@ import { closeOperatorConsole, operatorSession, submitServerAction } from '../he
 import { pollInboundMailLanes, runOperationalCronSlot, runSlotAfterInbound, type GridOwnerSim } from '../helpers/reality/world'
 import { GRID_AREA, GRID_OWNER_EDIEL_ID, goLiveAlsSupplier } from '../helpers/reality/goLiveAls'
 import { detectStuckStates } from '../helpers/reality/stuckDetector'
+import { selectInvoiceProviderAsTenant } from '../helpers/reality/invoiceProvider'
 import { registerUtiltsIssuer } from '../helpers/utiltsConsumptionParties'
 import { dayProfile, edielDayUtc, gs1 } from '../helpers/live-chain-wire'
 import { edielMonthUtc } from '../helpers/reality/dst'
@@ -623,7 +624,8 @@ describe.sequential('reality F — invoices for several facilities with contract
     expect(values[MISSING.facility.gsrn].days).not.toContain(MISSING.day)
     expect(Number(values[CORRECTED.facility.gsrn].correctedDayKwh)).toBeCloseTo(sum(effective(CORRECTED.facility.gsrn).get(CORRECTED.day)!), 6)
     expect(Number(values[CORRECTED.facility.gsrn].superseded)).toBeGreaterThanOrEqual(correctedQuarters)
-  }, 150 * 60_000)
+    // 123 files at about a minute each (FINDINGS P1) exceed 150 minutes; the operator flow is kept, the budget raised (T19).
+  }, 240 * 60_000)
 
   it('F7 the nightly settlement cron imports and locks the September SE3 spot prices (platform path, no tenant user)', async (context) => {
     requireEstablished('F7', context)
@@ -649,6 +651,9 @@ describe.sequential('reality F — invoices for several facilities with contract
 
   it('F8 the monthly billing cron prepares September: underlays, locked pricing, invoices, files and agreements', async (context) => {
     requireEstablished('F8', context)
+    // The supplier chooses its invoice provider before its first billing month (Fakturering → Integrationer, FINDINGS T18).
+    report.invoiceProvider = await selectInvoiceProviderAsTenant(tenant.companyId)
+    expect(report.invoiceProvider, JSON.stringify(report.invoiceProvider)).toMatchObject({ stored: { provider: 'nordfin', environment: 'test' } })
     const result = await cron(`/api/cron/billing/monthly?company_id=${tenant.companyId}&billing_month=${MONTH}`)
     report.billingCron = result
     expect(result.status, JSON.stringify(result.body).slice(0, 2000)).toBe(200)

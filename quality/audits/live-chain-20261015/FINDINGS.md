@@ -2136,6 +2136,30 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
   6. **Omvänd klass (låg):** `gridex_list_customer_operation_events` och `owner_rows_match` kopplar `grid_owners` på id utan tenantfilter.
   7. **Typkontrollen (låg):** `npx tsc --noEmit -p .` kräver nu `--max-old-space-size=8192`.
 
+### F körning 28 slutresultat (17:25–20:51): 8 av 12 gröna; F6c, F8, F9, F10 röda
+- **Gröna:** F1–F5, F6, F6b och F7.
+  - **F4:** starttiden enligt Ediel (F108) godtas.
+  - **F7:** spotpriser via plattformens `spot-settlement`-cron (F109). September SE3 importerades och låstes, med `average_sek_per_kwh` 0,8728.
+- **F6c:** testets tidsgräns på 150 minuter löpte ut efter cirka 115 av 123 filer, med 0 misslyckade meddelanden.
+  - Före F111-migrationen (19:16) gav 40 omkörningar 500. Därefter gav alla 200, och APERAK skapades men fastnade som utkast (F112).
+- **F8:** månadsdebiteringen svarade `failed`: "Ingen fakturaleverantör är vald för bolaget. Välj leverantör under Fakturering → Integrationer." Se T18 och F115.
+- **F9 och F10:** följdfel.
+- **Rapport:** `report-f-run28.json` i scratchpad.
+
+### T18 Scenariot valde aldrig fakturaleverantör — RÄTTAD (testkod)
+- Ingen körning hade nått F8 tidigare.
+- Nu väljer tenantens egen faktureringsadmin (en riktig `company_admin` via `tenantStaff`) Nordfin i testmiljön under Fakturering → Integrationer (`selectInvoiceProviderAsTenant`, `scripts/helpers/reality/invoiceProvider.ts`) innan F8 kör månadsdebiteringen.
+- Testmiljön används eftersom körningen bara förbereder och granskar fakturor, och inget skickas.
+
+### T19 F6c:s tidsbudget räckte inte för 123 filer — RÄTTAD (testkod)
+- Omkörningen tar cirka en minut per fil (P1), så 150 minuter räcker inte.
+- Budgeten är höjd till 240 minuter. Operatörsflödet är oförändrat. P1 är den verkliga orsaken och är fortfarande öppen.
+
+### F115 En tenant kan gå live utan fakturaleverantör, och felet syns först vid första debiteringen — BEKRÄFTAD (världen, körning 28), medel; ÖPPEN
+- Go-live (certifierad, `firstLiveSendApproved`) och bytena går igenom utan att någon fakturaleverantör är vald.
+- Månadsdebiteringen nekar först efter en hel månads leverans, och då är tenanten redan skyldig kunderna fakturor.
+- Förslag: beredskapskontrollen för go-live eller onboarding-checklistan bör visa saknad fakturaleverantör som blockerare eller tydlig varning. Ska utredas och beslutas.
+
 ### P1 Mätvärdeslagringen går med ungefär 70 värden i minuten; kvittenshanteringen dominerar databastiden — MÄTT (världen, körning 26), medel; ej åtgärdat
 - **Körning 26, F6c:** 126 värden lagrade 11:11 och 475 kl. 11:16, alltså ungefär 70 i minuten. 123 filer à 96 kvartsvärden tar då nästan 3 timmar för en enda kund med 4 anläggningar. I produktion med många kunder räcker det inte.
 - **`pg_stat_statements`:** ackumulerat sedan världen startade, alla körningar och native-tester. De dyraste efter total tid:
