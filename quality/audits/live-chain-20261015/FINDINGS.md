@@ -1718,6 +1718,11 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
   8. **`acknowledged` är överlastat:** Z02- och UTILTS-skrivarna använder det för "affärssvar mottaget". Medel.
   9. **Payload skrivs över:** när statusen hålls ersätts `response_payload` fortfarande av kvittensens nyttolast, som förut. Affärsuppgifter från Z04 i payloaden kan skrivas över. Låg, inte en regression.
 
+### F107 "Återuppta hållna transaktioner" svarar 500 fast värdena lagras — BEKRÄFTAD (världen, körning 26), medel; ej utrett
+- **Utfall:** i F6c har operatören tryckt på knappen för 70 av 123 filer (12:54). Alla 70 gav `actionStatus: 500`, men varje fil har `stored 96 = expected 96`.
+- **Konsekvens:** operatören ser ett fel efter en lyckad åtgärd. Det kan leda till upprepade tryck och ärenden i onödan, och det döljer riktiga fel bakom samma 500.
+- Troligen samma klass som F103: en lång kedja där ett efterföljande steg kastar eller tidsgränsen löper ut efter att lagringen redan är gjord. Ska utredas efter körningen.
+
 ### F106 Våra tekniska kvittenser till nätägaren går förlorade under last, och SLA-timrarna stängs inte — BEKRÄFTAD (världen, körning 26), kritisk för Ediel-efterlevnad; utreds
 - **Underlag** (skrivskyddat, tenant `7b53f121`, 12:40):
   - **E66:** 123 har tagits emot, och 81 har en utgående CONTRL (63 `sent`, 18 `draft`). 42 E66 från 10:51–11:09 har ingen CONTRL alls.
