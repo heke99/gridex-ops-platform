@@ -2,6 +2,7 @@ import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
 import { isMissingSchemaError, routeReadinessLabel, routeReadinessNextStep, type RouteReadinessStatus } from '@/lib/launch/readiness'
+import { COMPANY_ROUTE_READINESS_LIMIT, companyRouteFilterCompanyId, loadCompanyRouteReadiness, type CompanyRouteFilters, type CompanyRouteReadinessListRow as CompanyRouteReadinessRow } from '@/lib/ediel/companyRouteReadinessList'
 import {
   bulkRouteReadinessByStatusAction,
   createRouteManualReviewAction,
@@ -56,23 +57,6 @@ type ContactRow = {
   is_verified: boolean
 }
 
-type CompanyRouteReadinessRow = {
-  company_id: string
-  grid_owner_id: string | null
-  grid_owner_name: string | null
-  grid_owner_ediel_id: string | null
-  platform_actor_route_id: string | null
-  message_family: string | null
-  message_code: string | null
-  environment: string | null
-  operational_route_ready: boolean | null
-  send_ready: boolean | null
-  blocker_code: string | null
-  readiness_message: string | null
-  sender_settings_id: string | null
-  production_send_lock_status: string | null
-}
-
 const ORDER: RouteReadinessStatus[] = [
   'critical_missing_route',
   'not_sendable',
@@ -120,41 +104,6 @@ async function loadRouteReadiness() {
   return { rows: (result.data ?? []) as RouteReadinessRow[], error: null as string | null }
 }
 
-
-type CompanyRouteFilters = {
-  query: string | null
-  environment: string | null
-  messageFamily: string | null
-  messageCode: string | null
-  blockerCode: string | null
-}
-
-async function loadCompanyRouteReadiness(filters: CompanyRouteFilters) {
-  let query = supabaseService
-    .from('gridex_company_route_readiness_v')
-    .select('company_id, grid_owner_id, grid_owner_name, grid_owner_ediel_id, platform_actor_route_id, message_family, message_code, environment, operational_route_ready, send_ready, blocker_code, readiness_message, sender_settings_id, production_send_lock_status')
-    .or('operational_route_ready.eq.false,send_ready.eq.false')
-
-  if (filters.environment) query = query.eq('environment', filters.environment)
-  if (filters.messageFamily) query = query.eq('message_family', filters.messageFamily)
-  if (filters.messageCode) query = query.eq('message_code', filters.messageCode)
-  if (filters.blockerCode) query = query.eq('blocker_code', filters.blockerCode)
-  if (filters.query) {
-    const escaped = filters.query.replace(/[%,]/g, ' ').trim()
-    query = query.or(`grid_owner_name.ilike.%${escaped}%,grid_owner_ediel_id.ilike.%${escaped}%`)
-  }
-
-  const result = await query
-    .order('environment', { ascending: true })
-    .order('grid_owner_name', { ascending: true })
-    .limit(500)
-
-  if (result.error) {
-    if (isMissingSchemaError(result.error)) return [] as CompanyRouteReadinessRow[]
-    throw result.error
-  }
-  return (result.data ?? []) as CompanyRouteReadinessRow[]
-}
 
 // Each ID costs about 39 URL bytes in an in-filter; the API gateway rejects
 // URLs over about 8 kB (414), which the full Ediel registry exceeds (FINDINGS F34).
@@ -299,6 +248,7 @@ export default async function EdielRouteReadinessPage(props: {
     messageFamily: firstParam(searchParams.family),
     messageCode: firstParam(searchParams.mcode),
     blockerCode: firstParam(searchParams.blocker),
+    companyId: companyRouteFilterCompanyId(firstParam(searchParams.company)),
   }
   const statusKind = firstParam(searchParams.status)
   const bannerCode = firstParam(searchParams.code)
@@ -312,7 +262,7 @@ export default async function EdielRouteReadinessPage(props: {
     : null
 
   const { rows, error } = await loadRouteReadiness()
-  const companyRouteRows = await loadCompanyRouteReadiness(filters)
+  const { rows: companyRouteRows, truncated: companyRoutesTruncated } = await loadCompanyRouteReadiness(filters)
   const testCompanyRows = companyRouteRows.filter((row) => row.environment === 'test')
   const productionCompanyRows = companyRouteRows.filter((row) => row.environment === 'production')
   const otherCompanyRows = companyRouteRows.filter((row) => row.environment !== 'test' && row.environment !== 'production')
@@ -415,9 +365,15 @@ export default async function EdielRouteReadinessPage(props: {
           </select>
           <input name="mcode" defaultValue={filters.messageCode ?? ''} placeholder="Message code (Z01)" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
           <input name="blocker" defaultValue={filters.blockerCode ?? ''} placeholder="Blocker code" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+          <input name="company" defaultValue={filters.companyId ?? ''} placeholder="Bolags-ID (uuid)" className="rounded-xl border border-slate-300 px-3 py-2 text-sm md:col-span-2" />
           <button className="rounded-xl bg-slate-950 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 md:col-span-1">Sök</button>
           <a href="/admin/ediel/route-readiness" className="rounded-xl border border-slate-300 px-3 py-2 text-center text-sm font-medium text-slate-700 hover:bg-slate-50 md:col-span-1">Rensa</a>
         </form>
+        {companyRoutesTruncated ? (
+          <p className="mt-3 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            Visar de första {COMPANY_ROUTE_READINESS_LIMIT} raderna. Fler bolags-routes kräver åtgärd; filtrera på bolags-ID, nätägare eller blocker för att se resten.
+          </p>
+        ) : null}
       </section>
 
       {productionCompanyRows.length > 0 ? (

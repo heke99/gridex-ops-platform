@@ -220,7 +220,7 @@ export async function searchGridOwnerCertificate(context: BrowserContext, gridOw
 }
 
 /**
- * /admin/ediel/route-readiness?q=<EdielId>&env=<lane>: "Materialisera <lane>-route" for each of the tenant's
+ * /admin/ediel/route-readiness?q=<EdielId>&env=<lane>&company=<companyId>: "Materialisera <lane>-route" for each of the tenant's
  * blocked routes to the grid owner. The cards do not name the tenant (FINDINGS F33), so the form is
  * picked by its hidden companyId.
  */
@@ -231,7 +231,8 @@ export async function materializeTenantRoutes(context: BrowserContext, companyId
     let emptyLoads = 0
     for (let attempt = 0; attempt < 20; attempt++) {
       const page = await context.newPage()
-      await page.goto(`/admin/ediel/route-readiness?q=${edielId}&env=${environment}`)
+      // Narrowed to the tenant: with hundreds of tenants one grid owner's blocked rows exceed a page (FINDINGS F110).
+      await page.goto(`/admin/ediel/route-readiness?q=${edielId}&env=${environment}&company=${companyId}`)
       const forms = page.locator(`form:has(input[name="companyId"][value="${companyId}"])`).filter({ has: page.getByRole('button', { name }) })
       let target: { index: number; route: string } | null = null
       for (let index = 0; index < await forms.count(); index++) {

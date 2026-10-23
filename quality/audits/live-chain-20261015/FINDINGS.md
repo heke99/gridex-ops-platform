@@ -1988,6 +1988,26 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
 - F108-migrationen applicerades, och världen byggdes på `edd43974a`. F-körning 27 startade 17:03.
 - Inga körningar pågick vid omstarten.
 
+### F110 Route-readiness döljer nya tenanters blockerade routes bortom 500 rader — BEKRÄFTAD (världen, F-körning 27), hög; RÄTTAD
+- **Utfall:** körning 27 föll i F3. Den riktiga Z03-byggaren nekade alla fyra augustibyten med `production_route_profile_not_ready`, `receiver_ediel_id_missing`, `receiver_certificate_missing`, `security_policy_not_approved` och `missing_receiver_subaddress`.
+  - Orsaken var att tenanten bara hade generiska testroutes. Inga produktionsroutes per nätägare var materialiserade.
+  - Steget `tenantRoutes` hittade ingen knapp "Materialisera production-route": `forms=0 cards=0`.
+- **Orsak:** `/admin/ediel/route-readiness` läser `gridex_company_route_readiness_v` med `.limit(500)`, utan bolagsfilter och utan att visa att listan är avkortad.
+  - I världen har nätägare 16700 nu 834 blockerade rader för 282 bolag, efter alla native-tester.
+  - Den nya tenantens rader hamnade bortom 500, fast vyn hade dem (3 rader för 16700).
+  - I körning 26 fanns färre bolag, och raderna kom med.
+- **Konsekvens:** i produktion med hundratals tenanter kan en operatör aldrig hitta en nyare tenants blockerade routes på sidan. Bytena blockeras, och inget säger att listan är kapad.
+- **Rättning:**
+  - Läsningen är flyttad till `lib/ediel/companyRouteReadinessList.ts`.
+  - Ett bolagsfilter `?company=<uuid>` är tillagt i formuläret som "Bolags-ID". Allt som inte är ett UUID ignoreras och interpoleras aldrig.
+  - Sorteringen är deterministisk, och en avkortad lista säger "Visar de första 500 raderna … filtrera på bolags-ID".
+  - Scenariots materialiseringssteg filtrerar på tenanten.
+- **Test:** `route-readiness-company-filter` 3 av 3, med 282 tenanter och 564 rader. Typkontroll och eslint utan fel.
+- **Egen miss under rättningen:**
+  - Jag skrev först över den befintliga filen `lib/ediel/companyRouteReadiness.ts`, som har en annan export. Den återställdes exakt från HEAD med `git show`, och koden flyttades till en ny fil.
+  - Samtidigt försvann konstanten `CONTACT_ACTOR_CHUNK` och F34-kommentaren. Båda återställdes innan typkontrollen.
+- **Sidofynd, ÖPPEN:** `loadRouteReadiness` (`gridex_route_readiness_v`) på samma sida har också `.limit(500)` utan markering. Medel.
+
 ### P1 Mätvärdeslagringen går med ungefär 70 värden i minuten; kvittenshanteringen dominerar databastiden — MÄTT (världen, körning 26), medel; ej åtgärdat
 - **Körning 26, F6c:** 126 värden lagrade 11:11 och 475 kl. 11:16, alltså ungefär 70 i minuten. 123 filer à 96 kvartsvärden tar då nästan 3 timmar för en enda kund med 4 anläggningar. I produktion med många kunder räcker det inte.
 - **`pg_stat_statements`:** ackumulerat sedan världen startade, alla körningar och native-tester. De dyraste efter total tid:
