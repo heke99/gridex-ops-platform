@@ -1676,6 +1676,20 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
 - **Falskt positivt:** agenten trodde att täckningsskriptet avslutas med kod 0 trots fallerande tester. Skriptet gör `process.exit(1)` vid `--check` när problem finns, rad 118. Agenten läste sannolikt exit-koden från en pipe.
 - **F105:s pågående arbete:** F105-agentens ocommittade ändring i `lib/cis/db-outbound.ts` fick AT-Z01L-SUPPLIER och AT-Z01LK-SUPPLIER att falla (`unexpected_finite_port:update_field:outbound_requests:updated_at`). Agenten är informerad. Inget av det är committat.
 
+### F106 Våra tekniska kvittenser till nätägaren går förlorade under last, och SLA-timrarna stängs inte — BEKRÄFTAD (världen, körning 26), kritisk för Ediel-efterlevnad; utreds
+- **Underlag** (skrivskyddat, tenant `7b53f121`, 12:40):
+  - **E66:** 123 har tagits emot, och 81 har en utgående CONTRL (63 `sent`, 18 `draft`). 42 E66 från 10:51–11:09 har ingen CONTRL alls.
+  - **Händelser på E66:**
+    - "CONTRL skapades inte: canceling statement due to statement timeout · kod: 57014" 57 gånger;
+    - "CONTRL skapades inte: ediel_existing_ack_original_read_unavailable" 3 gånger;
+    - "CONTRL hanterad via canonical kernel." 18 gånger.
+  - **Utkast:** alla 18 CONTRL i `draft` saknar post i `ediel_outbox` (NO_OUTBOX). De är skapade men köas aldrig och skickas därför aldrig.
+  - **APERAK:** de 4 inkommande APERAK har 0 CONTRL. Händelserna lyder "CONTRL skapades inte: ediel_technical_ack_route_unavailable" och "APERAK skapades inte: Ingen aktiv communication_route för ediel_ack". Rättningen av ACK-routerna i F92 täcker alltså inte inkommande APERAK. Två `contrl_due` blev kritiska 10:30.
+  - **SLA-timrar:** `contrl_due` har 123 `open`, 4 `critical` och 3 `resolved`, trots att 63 CONTRL har skickats. `aperak_due` har 123 `open` och 3 `critical`. Timrarna stängs alltså inte när svaret skickas, eller så räknar de fel. Ska utredas.
+  - **CONTRL på CONTRL:** inkommande CONTRL har `requires_contrl=t`. En CONTRL ska aldrig kvitteras med en ny CONTRL. Antingen sätter simulatorn kvittensbegäran i UNB, eller så härleder plattformen kravet fel. Ska utredas.
+- **Orsak (delvis):** `ediel_create_outbound_ack_atomic_v1` tar i snitt 2,6 sekunder och upp till 8 (P1). Under last ger det statement timeout, och inget försöker skapa den missade CONTRL:en igen.
+- **Konsekvens:** nätägaren får inte de tekniska kvittenser Ediel kräver. I produktion leder det till omsändningar, eskalering och avtalsbrott mot motparten.
+
 ### P1 Mätvärdeslagringen går med ungefär 70 värden i minuten; kvittenshanteringen dominerar databastiden — MÄTT (världen, körning 26), medel; ej åtgärdat
 - **Körning 26, F6c:** 126 värden lagrade 11:11 och 475 kl. 11:16, alltså ungefär 70 i minuten. 123 filer à 96 kvartsvärden tar då nästan 3 timmar för en enda kund med 4 anläggningar. I produktion med många kunder räcker det inte.
 - **`pg_stat_statements`:** ackumulerat sedan världen startade, alla körningar och native-tester. De dyraste efter total tid:
