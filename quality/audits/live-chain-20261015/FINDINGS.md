@@ -1467,6 +1467,21 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
 - **Rättning:** båda processträden stoppades via exakta pid, och körning 26 startades i en ren process 09:49.
 - **Lärdom:** efter ett stopp kontrolleras att ingen `reality-native`-process lever innan nästa körning startas.
 - Resultat från körning 25 räknas inte.
+- **Tillägg 10:11:** vitest-arbetaren från körning 24 (pid 14760, förälder pid 1) överlevde SIGTERM. Den levde till `kill -9` 10:11.
+  - Den skrev över `report.json` med sin egen tenant (`1000c638…`), så en monitoravläsning 10:10 visade fel tenant.
+  - Körning 26:s riktiga tenant är `7b53f121…`. 10:11 hade den 4 Z01 och 4 Z03 kvitterade, 4 utgående CONTRL skickade, 3 Z04 tolkade och 3 aktiva leveransperioder.
+  - Monitorn är nu låst till den tenanten i stället för att läsa `report.json`.
+  - **Lärdom:** kontrollera processer via `/proc/<pid>/cwd` i världens arbetsträd, inte bara efter kommandonamn.
+
+### T13 Scenarierna G, H, J2, J3, J4, K och E antar fortfarande testkanalen — ÖPPEN → agent, verklighetsvärlden
+- Upptäckt vid förberedelsen av G–K-körningarna. Ingen körning har ännu fallerat på det, eftersom G–K inte körts live sedan kanalbytet.
+- **Bakgrund:** sedan T7/F90 går tenanterna live i produktionskanalen (Z03 med `environment: 'production'`), och nätägarsimulatorn svarar till produktionsbrevlådan via `platformMailboxFor`. Scenario F rättades då, men inte de andra.
+- **Fel i scenarierna:**
+  1. Insamlingsslingorna anropar bara `inbound-mail/cron?environment=test`: G:116, H:112, K:140, E:80, J4:198, J3:152 och J2 i `inboundUtiltsWorld.ts:73`. Svar till produktionsbrevlådan skulle aldrig läsas, och scenariot skulle vänta tills tidsgränsen löper ut.
+  2. `gridOwnerSends` (`live-chain-fixture.ts:41`) och `sendJ4File` skickar alltid till testbrevlådan, oavsett filens kuvert.
+  3. Handbyggda filer bär testindikatorn (UNB 0035=1) trots att tenanten är i produktion: `dst.ts dayE66` (G, K), `inboundUtilts.ts` (J2) och J4-byggarna i `parseConformanceWire.ts`. De skulle hållas som `environment_mismatch` (J3-05) eller hamna i fel kanal.
+- I och J1 använder `runOperationalCronSlot`, som redan kör båda kanalerna, och H:s egna PRODAT-filer går redan via `platformMailboxFor`.
+- **Åtgärd:** en agent ska ge scenarierna en gemensam insamlare för båda kanalerna, adressera post efter filens kuvert och ge byggarna parametern `environment`. Endast testkod. Ingen produktkod och ingen spärr ändras.
 
 ### Ägarbeslut 2026-10-23
 - **F89/F90/F91, certifiering i produktion:** "Certifieringar ska vi använda oss av vår certifiering samt krypteringen vi har."
