@@ -1434,6 +1434,21 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
   - En driftsättning kan bara kvittera filer som tas emot på adressen i `EDIEL_SMTP_FROM`.
   - Kvittensroutes sparar adressen när de materialiseras (`mailbox`). Om kontot byts måste de materialiseras om.
 
+### Rättelse till körning 19 (2026-10-23): leveransperioderna tillhörde körning 18:s tenant
+- **Vad som hände:** de fyra aktiva perioderna (`completed`) tillhör körning 18:s tenant. Dess Z03 skickades kl. 01:43, och nätägaren svarade innan körningen stoppades. Svaren togs emot i körning 19:s första cron-cykel, efter T9-rättningen.
+- **Vad det visar:** den kedja som beskrivs nedan är verklig och gäller körning 18:s tenant. Det första produktionsbytet är alltså bekräftat i världen, med Z04 som källa och perioder från 2026-09-01.
+- **Körning 19:s egen Z03 skickades aldrig, på grund av T10:**
+  - Certifieringsraderna bands till Z01 kl. 02:05.
+  - De fyra Z01 hade redan fallerat i utkorgen. Tre fick `ediel_scoped_capability_evidence_required`, och en fick det oläsliga felet `[object Object]` (F97).
+  - Ändå räknades de som väntande.
+  - Hjälparens F90-regel ("behåll den bundna typen så länge den väntar") certifierade därför aldrig Z03, och Z03 fallerade och försöks aldrig igen (O1).
+
+### T10 Ersättaren för certifieringen räknade döda utkorgsposter som väntande — RÄTTAD, verklighetsvärlden
+- **Rättning:** `scripts/helpers/reality/scopedCertification.ts` räknar inte längre meddelanden vars utkorgspost har fallerat, spärrats eller skickats. Sådana poster försöks aldrig igen (O1/B1).
+
+### F97 En utkorgspost sparar felet som `[object Object]` — ÖPPEN, medel (observation, ej utredd)
+- **Utfall (körning 19):** en Z01 i produktion fick `last_error='[object Object]'`, efter certifieringen. Den verkliga orsaken går därför inte att läsa, varken för operatören eller för SLA-hanteringen.
+
 ### F körning 19 (2026-10-23): FÖRSTA BEKRÄFTADE PRODUKTIONSBYTET — leveransen vilar på nätägarens Z04
 - **Kedjan, hela vägen i produktionskanalen:** go-live, sedan Z01 och Z03 i produktion, sedan nätägarens CONTRL, APERAK och Z04, därefter `normal_switch_confirm_v1` och 4 leveransperioder.
 - **Utfallet:**

@@ -80,9 +80,12 @@ type Pending = { message: EdielMessageRow; readiness?: ScopedEdielReadiness; ref
 type CertRow = { id: string; type: string; bound: { scope?: unknown; dependencyHash?: string } | null; validUntil: string | null }
 
 async function certifyTenant(companyId: string, sha: string, prefer: string[]) {
-  // Pending production business messages: what the outbox will try to send.
+  // Pending production business messages: what the outbox will still try to send. A message whose outbox entry
+  // already failed, was blocked or went out is never tried again (FINDINGS O1/B1); counting it would keep the
+  // F90 rows bound to a scope that can never be sent and starve every other scope (FINDINGS T10).
   const pendingFilter = `m.company_id=${literal(companyId)} AND m.environment='production' AND m.direction='outbound' AND m.status IN ('queued','draft')
-    AND m.message_family IN ('PRODAT','UTILTS','AI_LIST') AND NOT (m.message_family='UTILTS' AND m.message_code='ERR')`
+    AND m.message_family IN ('PRODAT','UTILTS','AI_LIST') AND NOT (m.message_family='UTILTS' AND m.message_code='ERR')
+    AND NOT EXISTS(SELECT FROM public.ediel_outbox o WHERE o.ediel_message_id=m.id AND o.status IN ('failed','sent','delivery_uncertain','blocked','blocked_tenant_state'))`
   // The tenant's own enabled outbound capability per pending scope (derived by the gate's own source_scope).
   const capabilities = sql<unknown[]>(`CREATE FUNCTION pg_temp.scope(m public.ediel_messages) RETURNS jsonb LANGUAGE plpgsql AS $$
      BEGIN RETURN gridex_ediel_readiness.source_scope(m); EXCEPTION WHEN raise_exception THEN RETURN NULL; END $$;
