@@ -1434,6 +1434,26 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
   - En driftsättning kan bara kvittera filer som tas emot på adressen i `EDIEL_SMTP_FROM`.
   - Kvittensroutes sparar adressen när de materialiseras (`mailbox`). Om kontot byts måste de materialiseras om.
 
+### F körning 19 (2026-10-23): FÖRSTA BEKRÄFTADE PRODUKTIONSBYTET — leveransen vilar på nätägarens Z04
+- **Kedjan, hela vägen i produktionskanalen:** go-live, sedan Z01 och Z03 i produktion, sedan nätägarens CONTRL, APERAK och Z04, därefter `normal_switch_confirm_v1` och 4 leveransperioder.
+- **Utfallet:**
+  - alla fyra leveransperioder `active`, från `2026-09-01`;
+  - källan är `ediel_qualified_source`, med Z04 som källmeddelande;
+  - bytena står som `completed`.
+- **Rättningarna som tog oss hit:** F92, F95, T6, T7, T8, T9 och RPL-01.
+
+### F96 Expisoft-certifikat sparas med familjen PRODAT, så ingen CONTRL, APERAK eller UTILTS kan krypteras till nätägaren — BEKRÄFTAD (världen + produktion), kritisk för go-live; rättning pågår
+- **Utfall (körning 19):** kvittensrouten hittades och våra fyra CONTRL skapades. Utkorgen spärrade dem ändå med `receiver_certificate_message_family_mismatch`.
+- **Orsak:**
+  - `lib/ediel/security/expisoftCertificateDirectory.ts` sparar varje certifikat från Expisoft-katalogen som `message_family='PRODAT'`, `message_type='PRODAT'`.
+  - Katalogen publicerar ett krypteringscertifikat per postlåda, inte per familj.
+  - Spärren `certificateMessageScopeBlocker` (TR-06, godkänd) nekar korrekt ett PRODAT-certifikat för en annan familj.
+- **Produktion (summering, bara läsning):** alla 168 aktiva Expisoft-certifikat för mottagare är PRODAT/PRODAT, och 78 utgångna likaså. I produktionen skulle alltså varje CONTRL, APERAK och UTILTS till en nätägare spärras.
+- **Rättning (agent, pågår):**
+  - Certifikatet sparas utan familj, eftersom det gäller postlådan.
+  - TR-06-spärren är oförändrad.
+  - Befintliga produktionsrader hanteras genom ett förslag och utan migration.
+
 ### T9 Världens cron-cykel pollade aldrig produktionskanalen — RÄTTAD, verklighetsvärlden
 - **Utfall (körning 18, och tidigare körningar som väntade på svar):** nätägaren svarade inom 2 minuter, men produktionsbrevlådan pollades inte i F4. `last_polled_at` stod still.
 - **Orsak:** `runOperationalCronSlot` (`scripts/helpers/reality/world.ts`) bytte `?environment=production` mot `?environment=test` i varje Vercel-cron. I körning 17 kom svaren bara in för att jag pollade manuellt.
