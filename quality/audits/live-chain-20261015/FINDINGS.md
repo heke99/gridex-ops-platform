@@ -1405,7 +1405,23 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
   - `contract_version` var NULL för alla 4 webbavtal (`website_application`, terms `e2e-v1`) och för alla 4 tokensignerade avtal.
   - Ingen SQL-väg sätter fältet: varken skapandet (webb, internt, partner) eller signeringen (webb, token, adminimport). Bara TypeScript-vägen `createCustomerContract` gör det, med `terms ?? price ?? campaign ?? 'v1'`.
 - **Produktion (summering, bara läsning):** 1 webbavtal, signerat, med `contract_version` satt av en okänd senare skrivare och utan `signed_version` (F45 är inte driftsatt där än).
-- **Rättning (agent, pågår):** signeringen sätter även `contract_version`, i samma update som signerar.
+- **Rättning — RÄTTAD (native 12/12), väntar på verifiering i världen:**
+  - Migrationen `20261023100000_contract_version_at_signing.sql` skriver om alla fem signeringsfunktioner: webb (2 varianter), token, `before_record_retention` och trigger-funktionen för adminimport. Teknik som F45, med oförändrad metadata.
+  - Uttrycket är `contract_version = coalesce(nullif(contract_version,''), terms_version, 'v1')`, alltså exakt det `signed_version` får när ingen version finns. Skälet: fem grindar kräver `signed_version = contract_version` (bilateral PRODAT-förberedelse, reglerad leverans, BRP-deklaration, utgående förmåga, granskning av ändringsartefakt).
+  - En befintlig `contract_version` behålls.
+  - Ingen bakåtfyllnad: 65 signerade avtal i världen saknar värdet.
+  - **Kontroller:**
+    - det nya native-testet `scripts/contract-version-at-signing-native.test.ts`: 12 av 12 (10 av 12 föll före migrationen);
+    - masterdata-native: 5 av 5;
+    - signatur- och faktureringsprojektion: 14 av 14;
+    - de sju `__tests__` som rör signeringen: 83 av 83;
+    - retentionsregressionen gick igenom;
+    - täckningen för masterplanen: 352 av 352.
+- **ÖPPEN (ägs av ägaren till retentionsvakten), medel:**
+  - Låset på signerade rader omfattar inte `contract_version`. Fältet kan därför ändras efter signering, vilket sannolikt förklarar produktionsraden.
+  - Fältet ingår i `production_contract_hash_v1`.
+- **Kvar sedan F45, låg:** om ett avtal redan har en `contract_version` och en annan `terms_version`, blir värdena olika efter signering.
+- **Gamla regressionsfel (inte F95):** `gridex-canonical-contract-model-regression.cjs` och `gridex-contract-api-signature-visibility-regression.cjs` fallerar redan på oförändrade filer, eftersom de matchar strängar i filerna.
 
 ### T8 Världens Ediel-SMTP-konto var testbrevlådan — RÄTTAD (`up.sh`), verklighetsvärlden
 - **Utfall (körning 17):** varje CONTRL till nätägarens Z04 föll med `ediel_technical_ack_route_unavailable`, trots att kvittensrouten fanns.
