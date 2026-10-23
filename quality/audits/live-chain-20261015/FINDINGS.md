@@ -1389,6 +1389,35 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
 - **F94 En UTILTS-registerroute utan `metadata.message_code` fallerar i efterkontrollen av beredskapen — ÖPPEN, låg (från agentens utredning).**
 - **Gamla regressionsfel, även på main:** `gridex-communication-route-materializer-contract-regression.cjs` (2 kontroller) och `gridex-tenant-customer-edifact-production-flow-regression.cjs` (3 kontroller) fallerar både på `origin/main` och på grenen utan F92. Inte F92:s fel. Ägs av respektive regressionsägare.
 
+### F körning 16–17 (2026-10-23): svaren kommer nu fram i produktionskanalen
+- **Körning 16:** föll i F1 på RPL-01. Sparning av brevlådan gav `PGRST204 'updated_by'`. Rättat i `cc814fbd`.
+- **Körning 17:**
+  - Go-live klarades, och F92 verifierades delvis i världen: registermaterialiseringen skapade automatiskt kvittensrouten `Alingsås Energi Elnät AB PRODAT teknisk kvittens 23-DDQ-PRODAT production`.
+  - 4 Z01 köades och 4 Z03 skickades i produktion.
+  - Nätägaren svarade med CONTRL, APERAK och Z04 i **produktionskanalen**, och T7 är därmed verifierad: CONTRL och APERAK godkändes, och alla fyra Z03 blev `acknowledged`.
+  - Ingen leveransperiod skapades ändå, eftersom Z04 stoppades av F95 och T8 nedan.
+
+### F95 Inget signeringsflöde sätter `customer_contracts.contract_version`, så nätägarens Z04 kan aldrig bekräfta bytet — BEKRÄFTAD (världen + kod), kritisk för go-live; rättning pågår
+- **Utfall (körning 17):** alla fyra Z04 hölls av `normal_switch_confirm_v1` med `normal_z04_owned_signed_contract_scope_required`. Ett ärende för admin-godkännande skapades, och bytena blev kvar som `prepared`.
+- **Orsak:**
+  - Villkoret kräver `nullif(contract.contract_version,'') IS NOT NULL`.
+  - Alla andra delar av villkoret var uppfyllda: mätpunkt, anläggning, kund, nätägare, nätområde, avtalets status `signed`, `signed_at` och `signed_version`.
+  - `contract_version` var NULL för alla 4 webbavtal (`website_application`, terms `e2e-v1`) och för alla 4 tokensignerade avtal.
+  - Ingen SQL-väg sätter fältet: varken skapandet (webb, internt, partner) eller signeringen (webb, token, adminimport). Bara TypeScript-vägen `createCustomerContract` gör det, med `terms ?? price ?? campaign ?? 'v1'`.
+- **Produktion (summering, bara läsning):** 1 webbavtal, signerat, med `contract_version` satt av en okänd senare skrivare och utan `signed_version` (F45 är inte driftsatt där än).
+- **Rättning (agent, pågår):** signeringen sätter även `contract_version`, i samma update som signerar.
+
+### T8 Världens Ediel-SMTP-konto var testbrevlådan — RÄTTAD (`up.sh`), verklighetsvärlden
+- **Utfall (körning 17):** varje CONTRL till nätägarens Z04 föll med `ediel_technical_ack_route_unavailable`, trots att kvittensrouten fanns.
+- **Orsak:**
+  - Väljaren kräver att svaret skickas från exakt den adress där originalet togs emot (`current_smtp_from = originalMailboxSmtpAddress`), och att profilens `mailbox` är samma adress.
+  - Världens `EDIEL_SMTP_FROM` var testbrevlådan, medan produktionssvaren togs emot i produktionsbrevlådan.
+- **Produktionen:** ett enda konto, `EDIEL_SMTP_*` och `EDIEL_IMAP_*` (Vercel, bara namn). Test- och produktionsraden i `ediel_mailboxes` delar samma adress, och bara produktionsraden har IMAP (summering, bara läsning).
+- **Rättning:** `up.sh` sätter kontot till den delade brevlådan för kanalen `REALITY_EDIEL_LANE`, med produktion som standard, precis som i produktionen. Scenarier i testkanalen startar världen med `REALITY_EDIEL_LANE=test`.
+- **Följd att känna till (designobservation, ingen åtgärd):**
+  - En driftsättning kan bara kvittera filer som tas emot på adressen i `EDIEL_SMTP_FROM`.
+  - Kvittensroutes sparar adressen när de materialiseras (`mailbox`). Om kontot byts måste de materialiseras om.
+
 ### T6 Nätägarsimulatorns Z04 saknade avläsningsfälten 214, 218 och 259 — RÄTTAD, verklighetsvärlden
 - **Utfall (körning 15):** varje Z04 hölls med `PRODAT_DEPENDENT_CONDITION_UNDETERMINED` (`prodatRegisterPolicy.ts:139`, "Receiver-local readings condition unknown"). Objektet bedömdes `unavailable` med orsaken `source_owner_not_established`, och ingen leveransperiod skapades.
 - **Det är avsiktligt i produkten:** det godkända testet `scripts/ediel-at-z03l-z03lk-supplier-native.test.ts:1257` kräver just detta när fält 259 saknas. Dess positiva fall (rad 1405) lägger till `CCI++Z02/Z05/Z16`.

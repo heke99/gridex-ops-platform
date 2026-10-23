@@ -112,6 +112,19 @@ keys={l.split('=',1)[0] for l in lines if '=' in l}
 extra={'GRIDEX_SHARED_EDIEL_PRODUCTION_EMAIL':'gridex-ediel@example.invalid','GRIDEX_SHARED_EDIEL_PRODUCTION_IMAP_PASS':secrets.token_hex(12)}
 open(path,'w').write('\n'.join(lines+[f'{k}={v}' for k,v in extra.items() if k not in keys])+'\n')
 PY
+# The one Ediel SMTP account. Production has a single EDIEL_SMTP_* account, and its address is the shared production
+# mailbox; the technical ACK route selector only answers a file from the mailbox it arrived in
+# (originalMailboxSmtpAddress = EDIEL_SMTP_FROM). REALITY_EDIEL_LANE=test points the account at the test mailbox for
+# scenarios that run in the test lane; the default mirrors production. Applied on every start (needs an app restart).
+python3 - "$ENV_FILE" "${REALITY_EDIEL_LANE:-production}" <<'PY'
+import sys
+path,lane=sys.argv[1:]
+lines=open(path).read().splitlines()
+env=dict(l.split('=',1) for l in lines if '=' in l)
+box=env['GRIDEX_SHARED_EDIEL_PRODUCTION_EMAIL'] if lane=='production' else env['GRIDEX_SHARED_EDIEL_TEST_EMAIL']
+lines=[l for l in lines if not l.startswith(('EDIEL_SMTP_USER=','EDIEL_SMTP_FROM='))]
+open(path,'w').write('\n'.join(lines+['EDIEL_SMTP_USER='+box,'EDIEL_SMTP_FROM='+box])+'\n')
+PY
 set -a; # shellcheck disable=SC1090
 . "$ENV_FILE"; set +a
 
