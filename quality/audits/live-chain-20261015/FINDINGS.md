@@ -2183,6 +2183,20 @@ Gäller F113:s sidofynd 1 och 2.
   1. **KRITISK, BEKRÄFTAD (rullad tillbaka):** godkännande av en enskild Z04/Z06 i läget update/link sätter en aktiv kund, anläggning och mätpunkt till `draft`. Det nollar också `personal_number`, gatuadress, postnummer, ort och `annual_consumption_kwh`, och ersätter kundens `metadata`. Att godkänna de väntande ALS-ärendena i dag skulle göra detta.
      - Förslag: använd objektvägens `withoutNulls` och borttagningen av `status`/`created_by`/`metadata` även i envägslägena update och link.
      - Inte rättat: det godkända SC-031-testet `ediel-at-z14vh-z15v-esco-native` påstår att `command.site.annual_consumption_kwh` är null, så det KRÄVER ÄGARBESLUT eller en överlämning från SC-031-ägaren.
+     - **RÄTTAT (TS):** `lib/ediel/inboundCases.ts`.
+       - Utan `sourceId` läser `readExistingInboundGraph` de rader RPC:n kommer att uppdatera. Läsningen är tenantbegränsad och använder RPC:ns egen upplösningsordning.
+       - `preserveExistingInboundGraph` gör sedan sammanslagningen i lägena update och link. Nycklar som meddelandet bär behåller meddelandets värde, och alla andra nycklar får radens nuvarande värde. Status förblir alltså `active`, och personnummer, adress, förbrukning, `created_by` och `source` behålls. `metadata` slås ihop.
+       - Läget create är oförändrat. Objektbatchens kommando är byte för byte detsamma, eftersom borttagningen har flyttats till den delade `wireCarriedGraphUpdate`.
+       - ESCO-påståendet håller utan ändring: meddelandet bär ingen förbrukning och den befintliga anläggningen saknar en, så värdet är null med nyckeln kvar.
+     - **Bevis:**
+       - En native-transaktion som rullades tillbaka: före rättningen draft, null och ersatt; efter rättningen active, värden kvar och sammanslaget.
+       - Det nya testet `reality-f114-approval-no-downgrade`: 5 av 7 föll på HEAD, efter rättningen 7 av 7.
+       - 202 testfiler, 4131 av 4131. Täckningen 352/352, tsc och eslint utan fel.
+       - Jag körde själv det godkända native-testet `ediel-at-z14vh-z15v-esco-native` mot världen: 39 av 39.
+     - **ÖPPNA:**
+       - Ett kort race mellan läsningen och RPC:n; att stänga det kräver ett merge-läge i SQL och därmed en migration.
+       - Envägsläget `link_existing_only` skriver fortfarande värden som meddelandet bär. Objektvägen skickar bara identitet. Det är ett produktbeslut.
+       - `customer_type` behåller nu det befintliga värdet i stället för att falla tillbaka på `private`.
   2. **Medel:** `canonical_onboard_customer_graph` och tabellerna godtar en annan tenants `grid_owner_id`. Bara TS skyddar; ett skydd i databasen kräver en migration.
   3. **Medel, sannolik:** UTILTS E73/E66 utgående sätter området till `gridOwner.owner_code ?? ediel_id` (`utiltsDataRequest.part-2.ts:131,304`, `utiltsSupplierRequest.ts:217`). Det ger `LOC+239+16700` med registerägare. Samma reserv finns i `prodatSwitch.ts:250`, `customerMasterdataZ01.ts:60` och `facilityLookupZ01.ts:132`.
   4. **Medel:** objektbatchens godkännanden kan inte använda registermappningen förrän den skyddade kroppen har lämnats över.
