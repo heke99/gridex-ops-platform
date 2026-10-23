@@ -3,7 +3,7 @@
   "generated_at": "2026-10-22T21:29:30+00:00",
   "generated_with": "supabase-cli-2.101.0-authentic-clean-replay-capture-run39840499475-job120097131068-attempt2",
   "sha256": "fa7383246399b56bdcdd60fb5550efaacc2f3a39da73539abf7c7efd79d5d043",
-  "latest_migration": "20261022120000_normal_supplier_switch_atomic_enqueue.sql",
+  "latest_migration": "20261023130000_gridex_can_canonical_permission_source.sql",
   "latest_migration_schema_effect": "Clean-replay capture (ops-hardening upgrade-migration-replay, run 39840499475 attempt 2, head 934f234aed7270897440444bc5d082d9fc13e8f3; clean and upgraded schema.sql byte-identical, fingerprint 0580b188b783f4f15f99535b18e0e1555f51f0021598506a3ca1d08470de6104) adding public.gridex_manual_mail_has_pending_partial_v1(manual_inbound_messages) and public.gridex_enqueue_normal_supplier_switch_v1 with their grants. No production-installation result is implied.",
   "composition_capture_pending": false,
   "capture": {
