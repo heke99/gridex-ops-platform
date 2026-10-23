@@ -1,7 +1,7 @@
-// reality-defects: K-03 K-04 K-05 K-07 K-08 (scenario K: statistics are computed and shown correctly)
+// reality-defects: K-03 K-04 K-05 K-06 K-07 K-08 (scenario K: statistics are computed and shown correctly)
 //
 // Runs the installed analytics SQL (the predecessor migrations, in PGlite) on one known tenant, shows each defect,
-// then applies 20261022210000 and checks the independent values. Every timestamp below is chosen at a Swedish
+// then applies 20261022210000 and 20261023150000 (K-06) and checks the independent values. Every timestamp below is chosen at a Swedish
 // month boundary: 2026-09-30T22:00Z is 1 October 00:00 in Stockholm (CEST).
 import fs from 'node:fs'
 import { PGlite } from '@electric-sql/pglite'
@@ -147,24 +147,113 @@ describe.sequential('scenario K: month buckets and supply-based counts', () => {
       metering_values_missing: 2, requested_metering_values: 0 })
   })
 
-  // K-06 (open, owner decision): end_date has two meanings (a received Z05 end is the first day no longer supplied,
-  // a manual end the last supplied day: lib/billing/supplyPeriodEnd.ts). Two customers whose last supplied day is
-  // 31 October are churned in different months, and the manually ended one is not counted as supplied on its last
-  // day. The card hint says "Sista leveransdag i månaden". Expected-fail until the portfolio reads both meanings.
-  it.fails('K-06 two customers with the same last supplied day leave in the same month', async () => {
+  // K-06 (owner decision 2026-10-23): end_date has two meanings (a received Z05 end is the first day no longer
+  // supplied, a manual end the last supplied day: lib/billing/supplyPeriodEnd.ts). Churn and the active counts now
+  // read the LAST SUPPLY DAY (gridex_supply_period_last_day_v1), matching the card hint "Sista leveransdag i månaden",
+  // and the month figures reconcile: active at the start/end of a month = supplied on both days around its first
+  // day / the next month's first day, so active_end(M) = active_start(M+1) and net = new - churned (re-entries aside).
+  it('20261023150000 K-06 churn month = last supply day; month-end counts reconcile', async () => {
     const churn = '00000000-0000-4000-8000-0000000000c3'
+    // Customers (supply from 1 June unless stated): 31 Z05 end 1 October 00:00 CEST (exclusive) -> last day
+    // 30 September; 32 manual end 30 September (inclusive, end_date = actual_end_date); 33 manual end 1 October;
+    // 34 leaves point 44 by Z05 on 1 October and is supplied on point 45 from 1 October (moves, still a customer);
+    // 35 Z05 end 1 November 00:00 CET -> last day 31 October; 36 manual end 31 October; 37 re-entry: manual end
+    // 31 July, back from 1 October (point 49); 38 new from 1 October (point 50).
     await db.exec(`insert into companies(id,name) values('${churn}','Churn');
-      insert into customers(id,company_id,status,source) values('${id(31)}','${churn}','active','external_website'),('${id(32)}','${churn}','active','external_website');
-      insert into metering_points(id,company_id,customer_id,status) values('${id(41)}','${churn}','${id(31)}','active'),('${id(42)}','${churn}','${id(32)}','active');
-      insert into customer_supply_periods(company_id,customer_id,metering_point_id,start_date,end_date,market_end_at,status) values
-        ('${churn}','${id(31)}','${id(41)}','2026-06-01','2026-11-01','2026-10-31T23:00:00Z','ended'),
-        ('${churn}','${id(32)}','${id(42)}','2026-06-01','2026-10-31',null,'ended');`)
-    const months = (await db.query<{ month: string; churned_customers: number; active_customers: number }>(`select month::text as month, churned_customers, active_customers
-      from gridex_customer_portfolio_monthly_internal('${churn}','2026-10-01','2026-11-01') order by month`)).rows
-    // Independent: both were supplied through 31 October; both leave in the same month and both are active at 31 October.
-    expect(months[0]).toMatchObject({ month: '2026-10-01', active_customers: 2 })
-    expect(months[0].churned_customers + months[1].churned_customers).toBe(2)
-    expect([months[0].churned_customers, months[1].churned_customers].sort()).toEqual([0, 2])
+      insert into customers(id,company_id,status,source) values
+        ${[31, 32, 33, 34, 35, 36, 37, 38].map(n => `('${id(n)}','${churn}','active','external_website')`).join(',')};
+      insert into metering_points(id,company_id,customer_id,status) values
+        ${[[41, 31], [42, 32], [43, 33], [44, 34], [45, 34], [46, 35], [47, 36], [48, 37], [49, 37], [50, 38]]
+          .map(([point, customer]) => `('${id(point)}','${churn}','${id(customer)}','active')`).join(',')};
+      insert into customer_supply_periods(company_id,customer_id,metering_point_id,start_date,end_date,actual_end_date,market_end_at,status) values
+        ('${churn}','${id(31)}','${id(41)}','2026-06-01','2026-10-01',null,'2026-09-30T22:00:00Z','ended'),
+        ('${churn}','${id(32)}','${id(42)}','2026-06-01','2026-09-30','2026-09-30',null,'ended'),
+        ('${churn}','${id(33)}','${id(43)}','2026-06-01','2026-10-01',null,null,'ended'),
+        ('${churn}','${id(34)}','${id(44)}','2026-06-01','2026-10-01',null,'2026-09-30T22:00:00Z','ended'),
+        ('${churn}','${id(34)}','${id(45)}','2026-10-01',null,null,null,'active'),
+        ('${churn}','${id(35)}','${id(46)}','2026-06-01','2026-11-01',null,'2026-10-31T23:00:00Z','ended'),
+        ('${churn}','${id(36)}','${id(47)}','2026-06-01','2026-10-31',null,null,'ended'),
+        ('${churn}','${id(37)}','${id(48)}','2026-06-01','2026-07-31','2026-07-31',null,'ended'),
+        ('${churn}','${id(37)}','${id(49)}','2026-10-01',null,null,null,'active'),
+        ('${churn}','${id(38)}','${id(50)}','2026-10-01',null,null,null,'active');`)
+    type Month = { month: string; active_customers_start: number; active_customers: number; new_customers: number; churned_customers: number
+      net_change: number; active_metering_points: number }
+    const months = async () => (await db.query<Month>(`select month::text as month, active_customers_start, active_customers, new_customers, churned_customers,
+      net_change, active_metering_points from gridex_customer_portfolio_summary('${churn}','2026-09-01','2026-11-01') order by month`)).rows
+    const activeAt = async (at: string) => one(`select active_customers, active_metering_points from gridex_customer_portfolio_active_counts(array['${churn}'::uuid],'${at}')`)
+    const zones = async (at: string) => one(`select active_customers, metering_points from gridex_customer_portfolio_bidding_zones('${churn}','${at}')`)
+    const cohorts = async () => (await db.query<Row>(`select cohort_month::text as cohort, customers, retained_1m::float8 as r1, retained_3m::float8 as r3, retained_6m::float8 as r6
+      from gridex_customer_portfolio_cohorts_at('${churn}','2026-12-15',12) order by 1`)).rows
+    const reasons = async () => (await db.query<Row>(`select month::text as month, reason, customers from gridex_customer_portfolio_churn_reasons('${churn}','2026-09-01','2026-11-30')`)).rows
+    const snapshotPoints = async () => {
+      await db.exec(`select gridex_rebuild_company_analytics_month('${churn}','2026-09-01'); select gridex_rebuild_company_analytics_month('${churn}','2026-10-01');`)
+      return (await db.query<Row>(`select month::text as month, active_metering_points from company_monthly_metrics where company_id='${churn}' order by month`)).rows
+    }
+
+    // Before: the Z05 end of 1 October churns in October but the manual end of 30 September in September; the Z05
+    // end of 1 November churns in November; on 1 October customer 33 (its last day) is not counted; the June
+    // cohort's 3-month retention counts 31 and 34's old point as supplied on 30 September|1 October.
+    expect((await months()).map(m => m.churned_customers)).toEqual([1, 3, 1])
+    expect(await activeAt('2026-10-01')).toEqual({ active_customers: 5, active_metering_points: 5 })
+    expect(await zones('2026-10-01')).toEqual({ active_customers: 5, metering_points: 5 })
+    expect((await cohorts())[0]).toMatchObject({ cohort: '2026-06-01', customers: 7, r3: 0.7143 })
+    expect(await snapshotPoints()).toEqual([{ month: '2026-09-01', active_metering_points: 5 }, { month: '2026-10-01', active_metering_points: 4 }])
+
+    await db.exec(read('supabase/migrations/20261023150000_statistics_churn_last_supply_day.sql'))
+    // The canonical expression: received market end at the start of its date (CEST 22:00Z, CET 23:00Z) exclusive,
+    // an end during the day or without market instant inclusive, actual_end_date before end_date.
+    expect(await one(`select gridex_supply_period_last_day_v1('2026-10-01',null,'2026-09-30T22:00:00Z')::text summer,
+      gridex_supply_period_last_day_v1('2026-11-01',null,'2026-10-31T23:00:00Z')::text winter,
+      gridex_supply_period_last_day_v1('2026-10-15',null,'2026-10-15T10:00:00Z')::text in_day,
+      gridex_supply_period_last_day_v1('2026-10-01',null,null)::text manual,
+      gridex_supply_period_last_day_v1('2026-10-20','2026-10-05',null)::text actual,
+      gridex_supply_period_last_day_v1(null,null,'2026-10-31T23:00:00Z')::text open`)).toEqual({
+      summer: '2026-09-30', winter: '2026-10-31', in_day: '2026-10-15', manual: '2026-10-01', actual: '2026-10-05', open: null })
+
+    // Independent. Churned in the month of the last supply day: September 31 (Z05 1 October) and 32 (manual
+    // 30 September); October 33 (manual 1 October), 35 (Z05 1 November), 36 (manual 31 October). 34 (moved without
+    // a gap) and 37 (re-entry, has an open period) are never churned. New: 38 in October (37 started in June).
+    // Active at a boundary = supplied the day before and the day itself:
+    //   31 Aug|1 Sep: 31-36 (6); 30 Sep|1 Oct: 33, 34 (44 then 45), 35, 36 (4: 31 and 32 left in September, 37 and
+    //   38 start 1 October); 31 Oct|1 Nov: 34, 37, 38 (3); 30 Nov|1 Dec: 34, 37, 38 (3).
+    // Points at the end boundary: 1 October 43, 46, 47; 1 November and 1 December 45, 49, 50.
+    // Net = end - start: September -2 = 0 new - 2 churned; October -1 = 1 - 3 + 1 (37 re-entered); November 0.
+    expect(await months()).toEqual([
+      { month: '2026-09-01', active_customers_start: 6, active_customers: 4, new_customers: 0, churned_customers: 2, net_change: -2, active_metering_points: 3 },
+      { month: '2026-10-01', active_customers_start: 4, active_customers: 3, new_customers: 1, churned_customers: 3, net_change: -1, active_metering_points: 3 },
+      { month: '2026-11-01', active_customers_start: 3, active_customers: 3, new_customers: 0, churned_customers: 0, net_change: 0, active_metering_points: 3 },
+    ])
+    const rows = await months()
+    for (let i = 0; i + 1 < rows.length; i += 1) expect(rows[i].active_customers).toBe(rows[i + 1].active_customers_start)
+    // Supplied on a day (point-in-time readers). 30 September: 31-36 (points 41-44, 46, 47). 1 October: 33 (its last
+    // day), 34 (45), 35, 36, 37 (49), 38 (50). 31 October: 34, 35, 36, 37, 38.
+    expect(await activeAt('2026-09-30')).toEqual({ active_customers: 6, active_metering_points: 6 })
+    expect(await activeAt('2026-10-01')).toEqual({ active_customers: 6, active_metering_points: 6 })
+    expect(await activeAt('2026-10-31')).toEqual({ active_customers: 5, active_metering_points: 5 })
+    expect(await zones('2026-10-01')).toEqual({ active_customers: 6, metering_points: 6 })
+    expect(await reasons()).toEqual([
+      { month: '2026-09-01', reason: 'unknown', customers: 2 },
+      { month: '2026-10-01', reason: 'unknown', customers: 3 },
+    ])
+    // Retention at the end of month k (boundary): June cohort 31-37: 1 month (31 Jul|1 Aug) all but 37 = 6/7;
+    // 3 months (30 Sep|1 Oct) 33-36 = 4/7; 6 months not yet due. October cohort 38: 1 month (30 Nov|1 Dec) 1.
+    expect(await cohorts()).toEqual([
+      { cohort: '2026-06-01', customers: 7, r1: 0.8571, r3: 0.5714, r6: null },
+      { cohort: '2026-10-01', customers: 1, r1: 1, r3: null, r6: null },
+    ])
+    // The monthly snapshot's supplied points use the same end boundary as the portfolio.
+    expect(await snapshotPoints()).toEqual([{ month: '2026-09-01', active_metering_points: 3 }, { month: '2026-10-01', active_metering_points: 3 }])
+
+    // Scenario K's tenant: C (Z05 end 1 October, last day 30 September) is churned in September and not active at
+    // the end of September; A and F (from 1 September) are new in September and not active at its start.
+    expect(await portfolio('2026-09-01')).toMatchObject({ active_customers_start: 1, active_customers: 2, new_customers: 2, churned_customers: 1 })
+    expect(await portfolio('2026-10-01')).toMatchObject({ active_customers_start: 2, active_customers: 2, new_customers: 0, churned_customers: 0 })
+    expect(await missing('2026-10-01')).toEqual([])
+    expect(await missing('2026-09-01')).toEqual([pC, pF].sort())
+    await rebuild()
+    // Supplied at 31 October|1 November: A, F; at 30 September|1 October: A, F (C's last day was 30 September).
+    expect(await snapshot('2026-10-01')).toMatchObject({ total_customers: 5, active_sites: 2, active_metering_points: 2, metering_values_missing: 0 })
+    expect(await snapshot('2026-09-01')).toMatchObject({ total_customers: 5, active_sites: 2, active_metering_points: 2, metering_values_missing: 2 })
   })
 
   it('never counts another tenant and keeps the builders service-only', async () => {

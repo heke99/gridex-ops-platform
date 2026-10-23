@@ -1,8 +1,8 @@
-// reality-defects: K-01 K-02 K-03 K-04 K-07 K-08 K-09 (scenario K: statistics are computed and shown correctly)
+// reality-defects: K-01 K-02 K-03 K-04 K-06 K-07 K-08 K-09 (scenario K: statistics are computed and shown correctly)
 //
 // Native proof on the owned local stack: one isolated fixture tenant (K) and a control tenant, both synthetic and
 // 'paused' so no scheduled analytics run touches them. The platform's own readers and builders are called; every
-// expectation is the independent value. K-01..K-08 are red until 20261022210000 and 20261022211000 are applied;
+// expectation is the independent value. K-01..K-08 are red until 20261022210000, 20261022211000 and 20261023150000 (K-06 month end) are applied;
 // K-09 is fixed in lib/analytics/db.ts.
 // Run: set -a; . /tmp/gridex-reality/app.env; set +a; GRIDEX_NATIVE_STATUS=/tmp/gridex-reality/status.json npx vitest run -c scripts/statistics-k-native.config.ts
 import { randomUUID } from 'node:crypto'
@@ -96,10 +96,11 @@ describe.sequential('scenario K native: tenant statistics against independent co
   it('K-03/K-07/K-08 the monthly snapshot counts Swedish months, real customers and supplied facilities', async () => {
     await buildCompanyMonthlyMetrics(k, '2026-09-01')
     await buildCompanyMonthlyMetrics(k, '2026-10-01')
-    // Independent: customers A, F, B, C, G (D test portal, E archived). Supplied 31 Oct: A, F; 30 Sep: A, F, C.
+    // Independent: customers A, F, B, C, G (D test portal, E archived). Supplied at the month end (the last day and
+    // the next 1st, FINDINGS K-06): 31 Oct|1 Nov A, F; 30 Sep|1 Oct A, F (C's last supply day is 30 September).
     // Values (current, Stockholm months): October A 8+4 and F 4 = 16, September A 4.
     expect(await snapshot(k, '2026-10-01')).toMatchObject({ total_customers: 5, active_sites: 2, active_metering_points: 2, metering_values_received: 16 })
-    expect(await snapshot(k, '2026-09-01')).toMatchObject({ total_customers: 5, active_sites: 3, active_metering_points: 3, metering_values_received: 4 })
+    expect(await snapshot(k, '2026-09-01')).toMatchObject({ total_customers: 5, active_sites: 2, active_metering_points: 2, metering_values_received: 4 })
   })
 
   it('K-04 "Saknade mätvärden" expects values only where the tenant supplies the facility in that Swedish month', async () => {

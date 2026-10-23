@@ -1230,6 +1230,12 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
   - **K-11/K-12:** zonvärden och "idag" i UTC.
 - **Öppna:**
   - **K-06:** vilken månad räknas churn i, sista leveransdag eller första dag utan leverans? Beslut krävs.
+    - **RÄTTAD 2026-10-23 (ägarbeslut: "gör det som är bäst"), migration `20261023150000`:**
+      - Churn räknas i månaden för den sista leveransdagen. Den beräknas av hjälparen `gridex_supply_period_last_day_v1`: en Z05 med marknadsslut är exklusiv, och ett manuellt avslut är inklusivt.
+      - En kund är aktiv vid ett månadsskifte bara om den har leverans både dagen före och den första. Då gäller att slutet på månad M är lika med början på M+1, att slut minus början är lika med nya minus churn (utom återinträden), och att en kund som startar den första är ny i den månaden.
+      - Gäller `monthly_internal`, `rebuild_company_analytics_month`, `cohorts_at`, `active_counts`, `bidding_zones`, `churn_reasons` och `missing_metering_points`.
+      - Prognosfunktionerna och faktureringsspärren är oförändrade.
+      - **Tester:** PGlite 4 av 4 (åtta kundfall), native K 5 av 5, analys 196 av 196, typkontroll, och täckningen 352 av 352.
   - **K-10:** användningssidan klipper vid 250 tenanter och räknar en status som inte finns.
   - **K-14:** tenanter kan skriva sina egna statistikrader.
 - **Blockerat:** replayen saknar white label-tabeller (F47). Scenario K speglar dem.

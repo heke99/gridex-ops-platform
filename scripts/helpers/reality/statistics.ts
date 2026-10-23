@@ -38,9 +38,13 @@ export type IndependentMonth = {
  *    (archived, deleted, deleted_test_only, pending_deletion), like the dashboard's "Kunder";
  *  - supply: customer_supply_periods not cancelled; a received end (market_end_at at the start of its date) is the
  *    first day no longer supplied, any other end date is the last supplied day (lib/billing/supplyPeriodEnd.ts);
- *  - active at a date: supplied that day; month start = the day before the month, month end = its last day;
- *  - new: first supply day in the month; churned: the customer's last supply ends and its first unsupplied day
- *    falls in the month (the portfolio's month rule, FINDINGS K-06 open);
+ *  - active at a month boundary (the 1st of a month): supplied on the day before AND on the 1st (any period, so a
+ *    move without a gap stays active); month start = the month's 1st, month end = the next month's 1st. So
+ *    activeEnd(M) = activeStart(M+1), a customer churned in M is not active at its end, one starting on the 1st is
+ *    new and not active at the start, and activeEnd - activeStart = new - churned apart from re-entries;
+ *  - new: first supply day in the month; churned: the customer's last supply ends and its LAST SUPPLY DAY falls in
+ *    the month (owner decision 2026-10-23, FINDINGS K-06; gridex_supply_period_last_day_v1, card "Sista
+ *    leveransdag i månaden"): a switch away on the 1st (Z05 end_date = the 1st) is churned in the previous month;
  *  - powers of attorney: created/signed in the Swedish month, valid at month end (signed status, validity dates);
  *  - ongoing switches: open (draft, queued, prepared, submitted, …) or confirmed with supply not yet started;
  *  - values: current consumption rows; in the month by Stockholm period_start;
@@ -48,6 +52,8 @@ export type IndependentMonth = {
  */
 export function independentMonth(companyId: string, month: string, today: string): IndependentMonth {
   const company = literal(companyId)
+  const suppliedOn = (match: string, day: string) => `EXISTS (SELECT FROM sp x WHERE ${match} AND x.start_date<=${day} AND (x.stop IS NULL OR x.stop>${day}))`
+  const atBoundary = (match: string, day: 'ms' | 'me') => `${suppliedOn(match, `${day}-1`)} AND ${suppliedOn(match, day)}`
   return sql<IndependentMonth>(`WITH b AS (SELECT ${literal(`${month}-01`)}::date ms, (${literal(`${month}-01`)}::date + interval '1 month')::date me,
       (${literal(`${month}-01`)}::date::timestamp AT TIME ZONE 'Europe/Stockholm') f, ((${literal(`${month}-01`)}::date + interval '1 month')::timestamp AT TIME ZONE 'Europe/Stockholm') t),
     sp AS (SELECT customer_id, metering_point_id, start_date,
@@ -63,13 +69,13 @@ export function independentMonth(companyId: string, month: string, today: string
       'contracts',(SELECT count(*) FROM public.customer_contracts WHERE company_id=${company}),
       'sites',(SELECT count(*) FROM public.customer_sites WHERE company_id=${company}),
       'meteringPoints',(SELECT count(*) FROM public.metering_points WHERE company_id=${company}),
-      'activeStart',(SELECT count(DISTINCT customer_id) FROM sp, b WHERE start_date<=ms-1 AND (stop IS NULL OR stop>ms-1)),
-      'activeEnd',(SELECT count(DISTINCT customer_id) FROM sp, b WHERE start_date<=me-1 AND (stop IS NULL OR stop>me-1)),
-      'activePointsEnd',(SELECT count(DISTINCT metering_point_id) FROM sp, b WHERE start_date<=me-1 AND (stop IS NULL OR stop>me-1)),
-      'activeSitesEnd',(SELECT count(DISTINCT coalesce(mp.customer_site_id,mp.site_id)) FROM sp JOIN public.metering_points mp ON mp.id=sp.metering_point_id, b
-        WHERE sp.start_date<=me-1 AND (sp.stop IS NULL OR sp.stop>me-1)),
+      'activeStart',(SELECT count(*) FROM (SELECT DISTINCT customer_id k FROM sp) c, b WHERE ${atBoundary('x.customer_id=c.k', 'ms')}),
+      'activeEnd',(SELECT count(*) FROM (SELECT DISTINCT customer_id k FROM sp) c, b WHERE ${atBoundary('x.customer_id=c.k', 'me')}),
+      'activePointsEnd',(SELECT count(*) FROM (SELECT DISTINCT metering_point_id k FROM sp) c, b WHERE ${atBoundary('x.metering_point_id=c.k', 'me')}),
+      'activeSitesEnd',(SELECT count(*) FROM (SELECT DISTINCT coalesce(mp.customer_site_id,mp.site_id) k FROM sp JOIN public.metering_points mp ON mp.id=sp.metering_point_id) c, b
+        WHERE c.k IS NOT NULL AND ${atBoundary(`x.metering_point_id IN (SELECT id FROM public.metering_points WHERE company_id=${company} AND coalesce(customer_site_id,site_id)=c.k)`, 'me')}),
       'newCustomers',(SELECT count(*) FROM spans, b WHERE first_start>=ms AND first_start<me),
-      'churned',(SELECT count(*) FROM spans, b WHERE last_stop>=ms AND last_stop<me),
+      'churned',(SELECT count(*) FROM spans, b WHERE last_stop-1>=ms AND last_stop-1<me),
       'poaCreated',(SELECT count(*) FROM public.powers_of_attorney, b WHERE company_id=${company} AND created_at>=f AND created_at<t),
       'poaSigned',(SELECT count(*) FROM public.powers_of_attorney, b WHERE company_id=${company} AND signed_at>=f AND signed_at<t),
       'poaValidEnd',(SELECT count(*) FROM public.powers_of_attorney, b WHERE company_id=${company} AND status IN ('signed','accepted','active','completed')

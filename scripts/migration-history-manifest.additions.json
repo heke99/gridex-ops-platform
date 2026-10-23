@@ -305,6 +305,7 @@
     "20261023130000_ediel_production_route_profiles_smime.sql": "aa5d2269eeecf09335b1d2eeef81e3cab886ff0819fa4e1e6e7f97908c498b2b",
     "20261023121000_ediel_envelope_index_retention_owner_execute.sql": "b2079bad655ab892c7edacd6f1525b60f26dfd7fde19248ba6becff44b17ff66",
     "20261023140000_utilts_attribution_shared_grid_owner.sql": "1bf86cec5a61f820e763aee5fe1e4e6b5ded6e61612f2ad926b9f9cbe85a8e81",
+    "20261023150000_statistics_churn_last_supply_day.sql": "ac8c2c6b16a0010008d105b8c1f12da43e1a71b15b7ca62df2c9883e8734abb2",
     "20261023160000_ediel_company_certified_scope_evidence.sql": "258960e764d06b5b2b98fc3d4313b7d6d5b64b60bfe4c49a714d7c7e194c9a25"
   }
 }

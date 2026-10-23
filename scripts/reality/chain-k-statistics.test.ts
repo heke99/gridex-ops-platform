@@ -103,9 +103,10 @@ const DEFECTS = [
     proof: '__tests__/statistics-k-month-buckets-sql.test.ts, scripts/statistics-k-native.test.ts' },
   { id: 'K-05', status: 'confirmed (PGlite) + fix 20261022210000', severity: 'medium', where: 'gridex_customer_portfolio_monthly_internal (SET TimeZone UTC)',
     what: 'Powers of attorney requested/signed and metering requests are bucketed by UTC month: a signature 00:30 on the 1st counts in the previous month.', proof: '__tests__/statistics-k-month-buckets-sql.test.ts' },
-  { id: 'K-06', status: 'confirmed (PGlite, expected-fail), open: owner decision', severity: 'medium', where: 'gridex_customer_portfolio_monthly_internal/active_counts/churn_reasons (raw end_date); CustomerPortfolioViews "Sista leveransdag i månaden"',
-    what: 'end_date is exclusive for a received Z05 end and inclusive for a manual end; the same departure is churned in different months, and the card hint says last supply day although a switch away on the 1st is counted in the new month.',
-    proof: '__tests__/statistics-k-month-buckets-sql.test.ts (it.fails)' },
+  { id: 'K-06', status: 'confirmed (PGlite) + owner decision 2026-10-23 + fix 20261023150000', severity: 'medium',
+    where: 'gridex_customer_portfolio_monthly_internal/active_counts/churn_reasons/cohorts_at/bidding_zones, gridex_rebuild_company_analytics_month active sites/points (raw end_date); CustomerPortfolioViews "Sista leveransdag i månaden"',
+    what: 'end_date is exclusive for a received Z05 end and inclusive for a manual end; the same departure was churned in different months, and the card hint says last supply day although a switch away on the 1st was counted in the new month. Decision: churn and active counts read the last supply day (gridex_supply_period_last_day_v1); a Z05 end on the 1st churns in the previous month. Active at month start/end = supplied on the day before and on the 1st (this/next month), so end(M) = start(M+1) and net = new - churned apart from re-entries (portfolio, snapshot sites/points, cohorts; point-in-time active_counts/bidding_zones read the same day rule).',
+    proof: '__tests__/statistics-k-month-buckets-sql.test.ts, scripts/statistics-k-native.test.ts' },
   { id: 'K-07', status: 'confirmed (PGlite, native) + fix 20261022210000, lib/analytics/db.ts fallback', severity: 'medium', where: 'gridex_rebuild_company_analytics_month total_customers, buildLiveMonthlyFallback',
     what: '"Kunder totalt" counts test-portal and archived/deleted customers; the dashboard "Kunder" does not.', proof: '__tests__/statistics-k-month-buckets-sql.test.ts, scripts/statistics-k-native.test.ts' },
   { id: 'K-08', status: 'confirmed (world read-only, PGlite, native) + fix 20261022210000', severity: 'medium', where: 'gridex_rebuild_company_analytics_month active_sites/active_metering_points',
@@ -334,14 +335,18 @@ describe.sequential('reality K — statistics are computed and shown correctly',
 
   it('K8 the known events are what the business tables hold (independent counts vs the event ledger)', (context) => {
     requireEstablished('K8', context)
-    const churnMonth = YESTERDAY.slice(0, 7)
+    const churnMonth = addDays(YESTERDAY, -1).slice(0, 7) // L2's last supply day (Z05 end_date = YESTERDAY is exclusive)
+    // Active at a month boundary = supplied on the day before and on the 1st: L2 is still active at this month's
+    // start unless its last supply day was last month (run on the 1st or 2nd); N1 (from the 1st) is new, not at the start.
+    const l2AtStart = churnMonth === M.current ? 1 : 0
     const t0 = truth('T', M.current), t1 = truth('T', M.last), c0 = truth('C', M.current), c1 = truth('C', M.last)
     const website = Number((report.website as Row | undefined)?.status ?? 999) < 300 ? 1 : 0
-    // T: L1, L2, N1, N2, Q1 (+ W1); supplied at the end of this month L1 and N1, of last month L1 and L2.
+    // T: L1, L2, N1, N2, Q1 (+ W1); active at the end of this month L1 and N1, of last month L1 and L2 (see l2AtStart).
     expect.soft(t0.customers, 'T customers').toBe(5 + website)
-    expect.soft([t1.newCustomers, t1.activeEnd, t1.activePointsEnd], 'T last month: new L1+L2, both supplied at its end').toEqual([2, 2, 2])
-    expect.soft([t0.newCustomers, t0.activeStart, t0.activeEnd], 'T this month: N1 new; L1+L2 at the start; L1+N1 at the end').toEqual([1, 2, 2])
-    expect.soft(churnMonth === M.current ? t0.churned : t1.churned, 'T: L2 churned in the month of its first unsupplied day').toBe(1)
+    expect.soft([t1.newCustomers, t1.activeEnd, t1.activePointsEnd], 'T last month: new L1+L2, both active at its end').toEqual([2, 1 + l2AtStart, 1 + l2AtStart])
+    expect.soft([t0.newCustomers, t0.activeStart, t0.activeEnd], 'T this month: N1 new; L1+L2 at the start; L1+N1 at the end').toEqual([1, 1 + l2AtStart, 2])
+    expect.soft(t1.activeEnd, 'T: active at the end of last month = at the start of this month').toBe(t0.activeStart)
+    expect.soft(churnMonth === M.current ? t0.churned : t1.churned, 'T: L2 churned in the month of its last supply day').toBe(1)
     // Powers of attorney: created during this run (this month); signed: N2 at 00:30 on the 1st, Q1 and W1 today (this month), N1 last month.
     expect.soft([t0.poaCreated, t0.poaSigned, t1.poaSigned], 'T powers of attorney created/signed').toEqual([5 + website, 2 + website, 1])
     expect.soft(t0.ongoingSwitches, 'T ongoing switches: N2, Q1, W1').toBe(2 + website)
