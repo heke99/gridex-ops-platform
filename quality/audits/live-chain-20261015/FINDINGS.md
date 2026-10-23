@@ -1440,6 +1440,24 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
 - **E66, med F98:** nätägarens 25 E66 fick egna CONTRL (`draft`, sedan köade). Kvittensrouten för UTILTS hittas alltså nu.
 - **Z01 står kvar som `queued`:** F90 gör att certifieringen per meddelandetyp bara kan gälla en typ åt gången, och Z03 hade förtur. Det blockerar inte bytet.
 
+### F körning 21, F5–F6c: mätvärdena tas emot och kvitteras, men lagras aldrig (F101)
+- **F5–F6b:**
+  - nätägaren skickade september och tre dagar i augusti, en fil per dag och mätare;
+  - 50 E66 blev `validated`;
+  - rättelsefilen för 2026-09-10 togs emot.
+- **F6c, operatörens omkörning:** varje omkörning via "Återuppta hållna transaktioner" gav 500, med `0 av 96` lagrade värden per fil. Körningen stoppades efter att rapporten sparats (`report-f-run21.json` i scratchpad).
+- **Statement timeouts:** under F6 avbröts många satser på grund av tidsgränsen (≥ 7 per anslutning). Det hör ihop med J3-12 och L1.
+
+### F101 UTILTS-förbrukning kräver en tenantägd nätägare, men registermodellens nätägare är plattformsgemensamma — så inga mätvärden kan lagras — BEKRÄFTAD (världen), kritisk för fakturering; utreds
+- **Fel:** `P0U01 utilts_consumption_grid_owner_changed` från `gridex_utilts_binding.lock_attribution_v1`, som kräver `grid_owners.company_id = tenant`.
+- **Registermodellen (F41):** nätägaren är en plattformsgemensam rad (`company_id IS NULL`). Produktens egen webbväg kopplar tenantens mätpunkter till den raden; alla 8 mätpunkter i scenariot pekar på den gemensamma raden för 16700.
+- **Produktion:** 0 mätpunkter ännu, så inga data påverkas (summering, bara läsning).
+- **Utredning (agent):**
+  - vilket kanoniskt villkor som avgör att en gemensam nätägare är "tenantens";
+  - om andra funktioner bygger på samma antagande (variantanalys);
+  - vem som äger området;
+  - en rättning med native-test, om området inte ägs av någon annan.
+
 ### F100 Produktionsprofiler för UTILTS (och kvittenser till UTILTS) får `encryption_mode='none'`, men produktion kräver S/MIME för alla familjer — BEKRÄFTAD (världen + produktion), kritisk; RÄTTAD (kod + migration)
 - **Utfall (körning 21):** 25 CONTRL till nätägarens E66 spärrades i utkorgen med `production_smime_required`. Kvittensprofilen för PRODAT hade `smime` och ett certifikat, men de sex profilerna för UTILTS hade `none`.
 - **Orsak:**
