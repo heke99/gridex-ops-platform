@@ -2337,6 +2337,20 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
          - En manuell avflyttning, alltså när kunden meddelar avflyttning eller uppsägning via e-post eller telefon och operatören avslutar leveransen i plattformen, får korta perioden men aldrig förlänga den. Dagarna fram till avflyttningsdagen faktureras.
          - Ett senare Z05 som anger ett annat slut rättar perioden.
        - **Tillägg från ägaren:** en kund som har flyttat och saknar uppsägningstid, eller har en uppsägningstid på högst 14 dagar (privatpersoner), ska också räknas och hanteras rätt. Det utreds som H3d: hur uppsägningstid, bindningstid och avgifter beräknas vid flytt.
+       - **RÄTTAT (H3c):** migrationen `20261023201000_manual_end_shortens_ediel_supply_basis.sql` (sha256 `f833ba08…`), med exakt textbyte i `supply_period_source_basis_v1`/`billing_supply_basis_v1`. Ingen av dem är skyddad av DB-05 eller SC-031.
+         - Kravet på likhet med det mottagna tillståndet släpps bara för en manuell avslutning som kortar perioden. Den måste ha en komplett markör från `gridex_close_customer_lifecycle_v1` eller `gridex_end_customer_supply_v1('move_out')`, och slutet får ligga mellan start och mottaget slut.
+         - Alla andra fält måste vara identiska, och intervallet får gå högst till civil midnatt efter avflyttningsdagen.
+         - Avtalsvillkoret är `supply_end` eller `move_out`, som i H3b.
+         - Applicerad i världen 2026-10-23T23:07:47Z.
+       - **Tester:**
+         - Regressionen `manual-end-ediel-basis-sql-regression.mjs` ger 10 PASS som visar defekten och 94 PASS efter rättningen, och fångar tre avsiktliga försvagningar av regeln.
+         - Relaterade SQL-regressioner gröna (H3, H3b, F108, supply-ending, normal-switch, billing-source, partial-supply, closure).
+         - Native `customer-leaves` 7/7 och `z05lk` 3/3. Täckningen 352/352, tsc och eslint utan fel.
+       - **ÖPPNA:**
+         1. **Hög:** ett Z05 efter en manuell avslutning avslutar inte avtalet på nytt, så `ended_at` står kvar på det manuella datumet. Om Z05 anger ett annat slut, även det vanliga exklusiva slutet dagen efter, nekas faktureringen. Rättningen kräver en gemensam regel i alla sex läsarna eller i uppföljningen av Z05.
+         2. **Medel:** ett Z05 efter `gridex_end_customer_supply_v1` tillämpas inte alls (`z05_accepted_relationship_baseline_required`), eftersom perioden redan är `ended`. Det fanns före H3c.
+         3. **Granskning:** andra läsare av grunden får den tillbaka för en manuellt avslutad period, begränsat till avflyttningen. Det gäller bilateral, closure, BRP, requested-change och `outbound_capability_v1`.
+         4. **Låg:** en avslutning av livscykeln och en senare avslutning av leveransen med olika datum nekas.
      - **Övrigt öppet:**
        - En Z05 LK som efter en manuell stängning anger slutet till nästa dag ger ett `ended_at` som inte stämmer, och då nekas faktureringen.
        - `gridex_close_customer_lifecycle_v1` i läget `terminate` skriver också `move_out`, och omfattas därmed.
