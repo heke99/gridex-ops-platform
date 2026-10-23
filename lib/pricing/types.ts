@@ -188,6 +188,11 @@ export type BillingUnderlayInput = {
   isFirstSitePeriod?: boolean;
   annualChargeDue?: boolean;
   contractEvent?: string | null;
+  /**
+   * The calendar billing month (YYYY-MM) of the billed segment. When set together with a periodStart/periodEnd of
+   * whole dates, fixed monthly fees are prorated per supplied calendar day (FINDINGS H3d B4, owner decisions 19/20).
+   */
+  billingMonth?: string | null;
   pricingSnapshot?: Record<string, unknown> | null;
 };
 

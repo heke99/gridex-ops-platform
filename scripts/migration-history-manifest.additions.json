@@ -316,6 +316,7 @@
     "20261023198000_regulated_supply_scope_shared_grid_owner.sql": "04106645e39d2aa674587f12c89c0a7203fbbd5d1668cdaaf1fcb74d42566369",
     "20261023199000_final_month_pricing_contract.sql": "0ba5df0685aee423b6750e2ac9dab0cf7ce16157a4997efac0d70588c8cf4d6c",
     "20261023200000_move_out_final_month_billing.sql": "29ae94ee79848b40796506abd863f9d03da2e1ad21ed4c377dc6300bf725c84d",
-    "20261023201000_manual_end_shortens_ediel_supply_basis.sql": "f833ba08f13d66a028012eb2a61f0cccca579a8c68728e0e9901ea2e2f178fcf"
+    "20261023201000_manual_end_shortens_ediel_supply_basis.sql": "f833ba08f13d66a028012eb2a61f0cccca579a8c68728e0e9901ea2e2f178fcf",
+    "20261023202000_move_out_fee_review_and_final_invoice.sql": "6cb925575ec1db3022d1971956c3973b7fe0679d9a0f460ed2d0f3725d9e43c8"
   }
 }

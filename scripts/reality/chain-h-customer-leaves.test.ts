@@ -89,7 +89,7 @@ const DEFECTS = [
     what: 'The last quarter-hour of the last supplied day ends exactly at the next local midnight and was never covered: every ended period lost its last quarter (supply_period_does_not_cover_value).' },
   { id: 'H5', status: 'confirmed (native)', severity: 'high', where: 'gridex_onboard_customer_graph_core (metering_point_owned_by_another_customer), unique (company_id, metering_point_id) on metering_points',
     what: 'A new occupant can never become a customer of the same tenant at a facility whose previous occupant was our customer, even after that supply ended: no path re-assigns the metering point.' },
-  { id: 'H6', status: 'confirmed (code)', severity: 'medium', where: 'gridex_supply_end_followup_v1',
+  { id: 'H6', status: 'resolved by owner decision B2 (H3d, 20261023202000): every move-out inside the binding gets a fee review; binding from the supplied start', severity: 'medium', where: 'gridex_supply_end_followup_v1',
     what: 'A break-fee review task is created for every end inside the binding period, also for a move-out (Z05 LK), although the platform\'s own manual end (gridex_end_customer_supply_v1) says moving out carries no break fee. The binding end is computed from contracts.starts_at (requested start), not the confirmed market start.' },
   { id: 'H7', status: 'confirmed (native) + fixed (20261022140000)', severity: 'critical', where: 'gridex_supply_rescission.apply_supply_before_rescission_v1 → gridex_bilateral_prodat.matched_closure_operation_v1',
     what: "Every Z05 with an LK object (CAV Z23) is routed to the bilateral closure owner, which requires our own sent Z08 LK; an ordinary move-out notice from the grid owner raises bilateral_closure_exact_sent_original_required, is rolled back and held. The period never ends, the contract stays signed, no final-invoice task, no APERAK to the grid owner; billing continues after the move-out." },
@@ -226,7 +226,9 @@ describe.sequential('reality H — the customer leaves', () => {
     // M: the move-out notice (H7: held as a bilateral closure without our own Z08 LK).
     expect(mPeriod, `H7 the move-out Z05 LK ends M's period: ${JSON.stringify(report.z05Received)}`).toMatchObject({ status: 'ended', end: M_END_DATE })
     const mFollowup = leavingFollowup(tenant.companyId, M.customerId!) as { tasks: Row[] }
-    expect.soft(mFollowup.tasks.map(t => t.type), 'H6 no break-fee review for a move-out').not.toContain('break_fee_review')
+    // Owner decision 2026-10-23 B2 "Avgiftsgranskning för alla" (H3d, 20261023202000): a move-out inside the binding
+    // period gets an operator fee review too (binding from the supplied start); nothing is charged automatically.
+    expect.soft(mFollowup.tasks.map(t => t.type), 'H3d B2 fee review for a move-out inside the binding').toContain('break_fee_review')
     expect(latestPeriod(K)).toMatchObject({ status: 'active', end: null })
   }, 20 * 60_000)
 

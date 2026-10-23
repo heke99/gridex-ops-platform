@@ -2277,6 +2277,32 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
     - De fasta elhandelsavgifterna upphör vid det faktiska leveransslutet och fördelas per kalenderdag.
     - En eventuell brytavgift och separat avtalade tjänster hålls utanför den vanliga månadsdebiteringen, som ett eget underlag eller en egen faktura via operatörens avgiftsgranskning.
     - Avtalets uppsägningstid ger alltså ingen debitering av energi eller fasta avgifter efter leveransslutet.
+- **DEL 1 RÄTTAD 2026-10-23 (B4, beslut 20, B2, D7, H6):**
+  - **Fast månadsavgift:**
+    - Antalet blir levererade kalenderdagar delat med månadens dagar. Datum räknas, inte timmar, så ett dygn på 23 eller 25 timmar är en dag. Segmentet kommer från `supplyPeriodEnd.ts`, och avgiften upphör vid det faktiska leveransslutet.
+    - Månaden efter en avflyttning får inget underlag.
+    - Exempel: flytt 15 september ger 15/30 av 62 kr, alltså 31,00 kr; flytt 25 oktober ger 25/31.
+    - Gäller `lib/pricing/priceComponentCalculator.ts`, `engine.ts` och `types.ts`.
+  - **Brytavgift:** brytavgift (`break_fee`, `early_termination`) och avgifter som bara tas ut vid en händelse (`sek_event`) tas aldrig med i den vanliga månadskörningen.
+  - **Avgiftsgranskning:**
+    - Vid flytt inom bindningstid skapas avgiftsgranskning för alla kundtyper: vid avslut av livscykeln med `move_out`, vid `gridex_end_customer_supply_v1('move_out')` och vid Z05 L/LK. Det blir en granskning per avtal, och ingen avgift tas ut automatiskt.
+    - Bindningstiden räknas från avtalets faktiska eller bekräftade start, annars från första levererade dag, annars från `starts_at` (H6).
+  - **Kundkortets avslut (D7):** avbryter inte längre öppna uppgifter för slutfaktura och avgiftsgranskning, och skapar en slutfakturauppgift per avslutad leveransperiod.
+  - **Migration:** `20261023202000_move_out_fee_review_and_final_invoice.sql` (sha256 `6cb92557…`). Ingen av kropparna är skyddad. Applicerad i världen 2026-10-23T23:34:56Z.
+  - **Harnessen:** `chain-h:229` förväntar sig nu en granskning vid Z05 LK.
+  - **Tester:**
+    - `h3d-fixed-fee-proration` 12/12, varav 10 föll före; `h3d-move-out-fee-review` 9/9, varav 8 föll före.
+    - SQL-regressionen 62 PASS, varav 5 som visar defekten.
+    - 25 filer 297/297; relaterade SQL-regressioner gröna.
+    - Native `customer-leaves` 7/7 när det kördes ensamt (2 Z05-fall föll under last) och `z05lk` 3/3.
+    - Täckningen 352/352, tsc och eslint utan fel.
+  - **Beteendeändring vid manuellt leverantörsbyte:** en bindning som har löpt till och med sista levererade dag granskas inte längre.
+  - **ÖPPET för del 2:**
+    - B3, uppsägning utan flytt: `terminate` skriver fortfarande `move_out` (D9).
+    - Ett Z05 efter en manuell stängning ger en andra slutfakturauppgift och avslutar inte avtalet på nytt.
+    - Separat avtalade tjänster har ingen markör i datamodellen, och årsavgifter (`sek_year`) fördelas inte.
+    - Det finns ingen väg att debitera en granskad brytavgift (D11).
+    - Övriga punkter: D1, D3, D5, D6, D8, D12 och D13.
 - **Rätt i dag:**
   - Ingen dag faktureras efter slutet och ingen dubbelfaktureras.
   - Slutmånaden faktureras vid manuell flytt för leveranser som inte kom via Ediel.

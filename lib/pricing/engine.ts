@@ -7,7 +7,10 @@ import {
   type PricingPreviewResult,
 } from "@/lib/pricing/types";
 import { calculateBasePrice } from "@/lib/pricing/basePriceCalculator";
-import { calculatePriceComponents } from "@/lib/pricing/priceComponentCalculator";
+import {
+  calculatePriceComponents,
+  isOutsideRegularMonthlyBilling,
+} from "@/lib/pricing/priceComponentCalculator";
 import { finalizePricingPreview } from "@/lib/pricing/pricePreviewBuilder";
 import {
   resolveBasePriceSourceValues,
@@ -384,6 +387,8 @@ function underlayToInput(
     isFirstSitePeriod: firstContractPeriod,
     annualChargeDue: anniversaryMonth,
     contractEvent: stringValue(payload.contract_event),
+    // H3d B4: fixed monthly fees are prorated per supplied calendar day of this calendar month.
+    billingMonth: period.billingMonth,
     pricingSnapshot: normalizePricingSnapshot(underlay, snapshot),
   };
 }
@@ -666,11 +671,16 @@ export async function calculatePricingPreviewForUnderlay(input: {
       "spot",
   );
 
+  // Owner decision 20 (H3d): a break fee and other event-only charges never enter the regular monthly run; they go
+  // through the operator's fee review (break_fee_review) as a separate underlay or invoice.
+  const regularComponents = config.priceComponents.filter(
+    (candidate) => !isOutsideRegularMonthlyBilling(candidate),
+  );
   const component = calculatePriceComponents({
     underlay,
     components: energyComponentsOnly
-      ? config.priceComponents.filter(isConsumptionCorrectionVariableComponent)
-      : config.priceComponents,
+      ? regularComponents.filter(isConsumptionCorrectionVariableComponent)
+      : regularComponents,
     baseAmountExVat: base.lines.reduce(
       (sum, line) => sum + line.amountExVat,
       0,
