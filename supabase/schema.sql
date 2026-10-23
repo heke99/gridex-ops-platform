@@ -59733,58 +59733,16 @@ CREATE FUNCTION public.gridex_can(p_permission text) RETURNS boolean
     LANGUAGE plpgsql STABLE
     SET search_path TO 'public', 'auth', 'extensions'
     AS $$
-declare
-  result boolean := false;
 begin
   if p_permission is null or auth.uid() is null then
     return false;
   end if;
+
   if public.gridex_user_is_platform_admin() then
     return true;
   end if;
 
-  if to_regclass('public.user_permission_overrides') is not null then
-    select exists(
-      select 1 from public.user_permission_overrides upo
-      where upo.user_id = auth.uid()
-        and upo.permission_key = p_permission
-        and coalesce(upo.is_active, true) = true
-        and coalesce(upo.effect, 'allow') = 'allow'
-        and (upo.valid_from is null or upo.valid_from <= now())
-        and (upo.valid_to is null or upo.valid_to >= now())
-    ) into result;
-    if result then return true; end if;
-  end if;
-
-  if to_regclass('public.user_permissions') is not null then
-    select exists(
-      select 1 from public.user_permissions up
-      left join public.permissions p on p.id = up.permission_id
-      where up.user_id = auth.uid()
-        and coalesce(up.status, 'active') = 'active'
-        and coalesce(up.is_active, true) = true
-        and coalesce(up.effect, 'allow') = 'allow'
-        and lower(coalesce(up.permission_key, p.key, '')) = lower(p_permission)
-    ) into result;
-    if result then return true; end if;
-  end if;
-
-  if to_regclass('public.role_permissions') is not null and to_regclass('public.user_roles') is not null then
-    select exists(
-      select 1
-      from public.user_roles ur
-      left join public.roles r on r.id = ur.role_id or lower(coalesce(r.key, '')) = lower(coalesce(ur.role, ''))
-      left join public.role_permissions rp on rp.role_id = r.id or lower(coalesce(rp.role_key, '')) = lower(coalesce(ur.role, r.key, ''))
-      left join public.permissions p on p.id = rp.permission_id
-      where ur.user_id = auth.uid()
-        and coalesce(ur.status, 'active') = 'active'
-        and coalesce(ur.is_active, true) = true
-        and coalesce(rp.effect, 'allow') = 'allow'
-        and lower(coalesce(rp.permission_key, p.key, '')) = lower(p_permission)
-    ) into result;
-  end if;
-
-  return coalesce(result, false);
+  return public.gridex_has_permission(auth.uid(), p_permission);
 exception when others then
   return false;
 end;

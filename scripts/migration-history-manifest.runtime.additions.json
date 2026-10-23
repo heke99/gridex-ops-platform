@@ -270,6 +270,7 @@
     "20261022095000_ediel_technical_expectation_edition_seed.sql": "b5b961fcf5075cafbda5798e7d9f12d0a03300d64a9d75a89cbc6ac8a382e9c3",
     "20261022100000_ediel_swedish_utilts25a5_inbound_state_capability.sql": "433170b212a297000c0c3dd9f8a640b7d6d098d3e35294b6d14e116d4dde2c7d",
     "20261022110000_manual_mail_pending_partial_review.sql": "02dd4c5b014ebf88b4c9d287598d309e5a2abef1d20d9518b3a08d784405e7bf",
-    "20261022120000_normal_supplier_switch_atomic_enqueue.sql": "6ea49035a321e27228f1cf6b6cc1055913a43374c1346dfcb85aef1d36a77d9f"
+    "20261022120000_normal_supplier_switch_atomic_enqueue.sql": "6ea49035a321e27228f1cf6b6cc1055913a43374c1346dfcb85aef1d36a77d9f",
+    "20261023130000_gridex_can_canonical_permission_source.sql": "7711239cacdcbb27608cc80cf0bea1aeb0ae8d62e3963b2c9a1da496daabc379"
   }
 }
