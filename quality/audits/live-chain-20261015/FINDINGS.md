@@ -2030,6 +2030,29 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
   - Registrets nätägare är delade (`company_id IS NULL`, F41).
   - Samma klass som F101 och varianterna. Svarsrouten löstes i F106b, och nu stoppar resurskontrollen.
 
+- **RÄTTAD 2026-10-23 (agent + granskning; migrationen inte applicerad i världen förrän körning 28 är klar):**
+  - **Bekräftat:**
+    - Felet kastas av `gridex_ediel_ack_replay.create_v1` och `create_scope_v2`. `create_scope_v2` gäller PRODAT APERAK. `create_v1` gäller alla andra kvittenser, bland annat APERAK och UTILTS-ERR för UTILTS/E66.
+    - Alla 4 Z04 har `grid_owner_id = d0015158…` (Alingsås 16700, `company_id` NULL). Kund, anläggning och utgående begäran tillhör tenanten. Runtime planerade en positiv APERAK för alla 4.
+    - Alla 123 E66 i världen namnger samma delade nätägare och skulle få samma nekande efter omkörningen. Kan hänga ihop med F107.
+  - **Migration `20261023197000_ediel_ack_shared_grid_owner_resource.sql`:**
+    - Kontrollen blir `r.company_id=$2 OR ($3 AND r.company_id IS NULL)` med `$3 = (tabellen är grid_owners) AND källan tillhör tenanten`.
+    - Alla andra resurstabeller förblir strikta, och källor utan bolag förblir strikta.
+    - Exakt textbyte med kontroller, och ägare, ACL, `SECURITY DEFINER`, `search_path` och `proconfig` är oförändrade.
+    - Torrkörd i världen i en transaktion som rullades tillbaka.
+  - **Tester:**
+    - Native-testet `reality-f111-ack-shared-grid-owner-native` gav 1 av 1. Med den gamla kroppen uppstår exakt världens händelse. Med rättningen sparas en positiv APERAK, och en annan tenants nätägare nekas fortfarande. Samma två fall testas för `create_v1`.
+    - Relaterade kvittenssviter 7 av 7, typkontroll och eslint utan fel.
+    - Täckningen 352 av 352 med 0 fallerande. Första körningen föll bara på SC-059 när `app.env` var laddat i skalet, och testet passerade 13 av 13 utan den miljön.
+  - **Sidofynd, ÖPPNA:**
+    1. `gridex_prodat_object_batch.require_wire_projection_v1` slår upp nätägaren via `owner_code` bara bland tenantens egna rader. Admins godkännande av masterdata efter en Z04 kan därför ge `prodat_object_batch_wire_grid_owner_required` för en delad nätägare. Hög.
+    2. `gridex_regulated_supply.scope_v1` kräver `grid_owners.company_id=c` (redan noterat i F101-varianterna). Medel.
+    3. En Z04 med mätarställning (`CAV+:::1`) får negativ APERAK ERC 42 fält 214, "Felaktigt Konstant för mätare :::1 / :::1", trots identiska värden. J1-baslinjen faller därför, och texten finns 42 gånger i databasen. Hög. Tidigare noterat som J1-baslinjen under F105.
+    4. Den negativa varianten försöker skapa APERAK två gånger med två likadana händelser. Låg.
+    5. SLA-händelsernas text anger inte timertypen, så "resolved" (för `contrl_due`) följt av "critical" (för `aperak_due`) ser motsägelsefullt ut. Låg.
+    6. `metering_point_id` är NULL på alla 4 Z04 i världen. Kund, anläggning och begäran kopplas först efter det misslyckade APERAK-försöket. Medel.
+    7. SC-059 faller när `app.env` är laddat i miljön. Låg, testisolering.
+
 ### P1 Mätvärdeslagringen går med ungefär 70 värden i minuten; kvittenshanteringen dominerar databastiden — MÄTT (världen, körning 26), medel; ej åtgärdat
 - **Körning 26, F6c:** 126 värden lagrade 11:11 och 475 kl. 11:16, alltså ungefär 70 i minuten. 123 filer à 96 kvartsvärden tar då nästan 3 timmar för en enda kund med 4 anläggningar. I produktion med många kunder räcker det inte.
 - **`pg_stat_statements`:** ackumulerat sedan världen startade, alla körningar och native-tester. De dyraste efter total tid:
