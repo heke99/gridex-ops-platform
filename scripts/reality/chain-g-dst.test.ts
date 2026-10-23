@@ -167,10 +167,11 @@ describe.sequential('reality G — end of daylight saving time 2026-10-25 throug
       grid: { gridOwnerId: grid.id, gridOwnerEdielId: grid.ediel, gridAreaCode: GRID_AREA },
       facilities: [{ gsrn: GSRN, ...CUSTOMER.address, annualConsumptionKwh: 8_400 }] })
     facility = customer.facilities[0]
-    ids = { customer: customer.customerId, site: facility.siteId, mp: facility.meteringPointId, contract: facility.contractId }
+    const established = { customer: customer.customerId, site: facility.siteId, mp: facility.meteringPointId, contract: facility.contractId }
+    ids = established
     // The signed-agreement confirmation (archived PDF) as the customer-operations cron delivers it.
     const readiness = () => sql<Array<{ ready: boolean; blockers: unknown }>>(`SELECT coalesce(jsonb_agg(jsonb_build_object('ready',switch_ready,'blockers',blockers)),'[]')
-      FROM public.customer_contract_lifecycle_readiness_v WHERE company_id=${company} AND metering_point_id=${literal(ids.mp)}`)
+      FROM public.customer_contract_lifecycle_readiness_v WHERE company_id=${company} AND metering_point_id=${literal(established.mp)}`)
     const deliveries: unknown[] = []
     for (let attempt = 0; attempt < 3 && !readiness().every(row => row.ready); attempt += 1) deliveries.push(await processPendingContractConfirmations(50))
     report.septemberReadiness = { deliveries, readiness: readiness() }
