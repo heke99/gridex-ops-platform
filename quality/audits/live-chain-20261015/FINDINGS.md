@@ -2195,6 +2195,8 @@ Gäller F113:s sidofynd 1 och 2.
 - Månadsdebiteringen nekar först efter en hel månads leverans, och då är tenanten redan skyldig kunderna fakturor.
 - Förslag: beredskapskontrollen för go-live eller onboarding-checklistan bör visa saknad fakturaleverantör som blockerare eller tydlig varning. Ska utredas och beslutas.
 
+- **ÄGARBESLUT 2026-10-23 "Spärra go-live":** go-live-beredskapen kräver en vald fakturaleverantör, och tenantens administratör ser steget som en åtgärd.
+
 ### P8 Ediel-utkorgen skickar högst 25 meddelanden per körning i en global FIFO-kö; ett annat bolags kö fördröjer tenantens CONTRL och APERAK — MÄTT (världen, körning 29), medel; ÖPPEN
 - **Bevis från körning 29** (tenant `69e8e257`): 33 CONTRL och 4 APERAK ställdes i kö 21:15–21:21. Den första sändningen kom 21:28, cirka 13 minuter senare. Klockan 21:32 var 8 CONTRL skickade och 56 köade.
 - **Kön före tenanten:**
@@ -2238,6 +2240,7 @@ Gäller F113:s sidofynd 1 och 2.
   - jag körde om H3, F108, F108-start och SQL-regressionen: 42 av 42 plus 38 PASS.
 - **Sidofynd, ÖPPNA:**
   1. **Manuell avflyttning debiteras aldrig (hög, KRÄVER ÄGARBESLUT):** en manuell avflyttning (`gridex_end_customer_supply_v1`, `gridex_close_customer_lifecycle_v1`) avslutar avtalet med `move_out`, inte `supply_end`. Spärren och lagret nekar det, så slutmånaden debiteras aldrig. Batchens rollback är rättad, men luckan finns kvar.
+     - **ÄGARBESLUT 2026-10-23 "Fakturera slutmånaden":** ett avtal som avslutats med `move_out` debiteras till sitt slutdatum, enligt samma regel som efter Z05. Det implementeras som en migration (H3b).
   2. **Portföljavtal:** `gridex_bind_locked_portfolio_settlement_to_underlay` kräver `signed`/`active`, så slutmånaden för ett portföljavtal kan inte bindas. Ingen anropare finns i appen. Medel.
   3. **Exporttak:** `createBillingExportRun` → `listAllBillingUnderlays` hämtar som standard de 200 senaste underlagen över alla månader, så en tenant med fler än 200 tappar rader tyst i exporten. Medel/hög.
   4. **Beredskapsundantaget:** H3-undantaget i `billingReadiness.evaluateBillingReadinessCore` är inte begränsat till den debiterade perioden. Låg.
