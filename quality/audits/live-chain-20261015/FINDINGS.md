@@ -1454,6 +1454,21 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
   - Bevis per meddelandetyp och release, som ingen produktväg kan skapa, ska inte längre krävas.
   - Övriga spärrar finns kvar: tenantens behörighet, roll, regelpaket, S/MIME, certifikat och routekontrakt.
   - Implementeras av en agent.
+- **F89/F90, uppföljning (agentanalys och nytt ägarbeslut):**
+  - **Krocken med godkända masterplanregler:** beslutet att bolagets certifiering ska räcka direkt motsäger godkänt beteende i tre regler.
+    - OPS-01/AT-OPS-01 (`__tests__/ediel-scoped-capability-readiness.test.ts:37,104`): en ny release eller route ska ogiltigförklara beviset.
+    - SC-069 (`__tests__/ediel-sc-069-scope-inbound.test.ts:261,266-267,279-280`): en ändrad regelversion kräver ett nytt bevis, och Z01-bevis får aldrig gälla Z13.
+    - IMP-05/AT-IMP-05 (`scripts/ediel-scoped-readiness-sql-regression.mjs:160-165,190-191,293-294`).
+  - **FYND, spärren finns på två ställen:** samma spärr upprätthålls också i databasens transportlager.
+    - `gridex_ediel_transport.mutate_before_service_origin_v1` anropar `ediel_require_scoped_capability_for_message_v1`.
+    - AI-listor går genom `gridex_ai_processing.require_ai_outbound_source_before_origin_v1`.
+    - Att bara byta TypeScript-anroparen räcker alltså inte.
+  - **FYND:** `canonical_record_platform_release_receipt` har ingen anropare i CI, så inget skriver ett verifierat release-kvitto vid driftsättning.
+  - **Ägarbeslut ("Automatiska bevis"):**
+    - Masterplanreglerna och spärrarna lämnas oförändrade.
+    - Plattformen registrerar själv beviset för varje aktiverad meddelandetyp utifrån bolagets egen godkända certifiering: vid go-live och efter varje deploy, route-ändring eller ändrad regelversion. Det görs i ett jobb före utkorgen, aldrig i själva spärren.
+    - Flera typer kan då gälla samtidigt, vilket rättar F90.
+    - Implementeras av en agent.
 - **K-06, churnmånad:** "spelar inte roll, gör det som är bäst."
   - Beslut: churn räknas i månaden för kundens **sista leveransdag**. Slutdatumet normaliseras efter källa: en Z05 är exklusiv och ett manuellt avslut är inklusivt.
   - Skäl: kortet säger redan "Sista leveransdag i månaden", det stämmer med hur leveransen faktiskt upphör, och samma avflytt hamnar då i samma månad oavsett källa.
