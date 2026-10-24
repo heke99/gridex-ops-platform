@@ -1,6 +1,6 @@
 import { timingSafeEqual } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
-import { processEdielOutbox } from '@/lib/ediel/outbox/processEdielOutbox'
+import { drainEdielOutbox } from '@/lib/ediel/outbox/drainEdielOutbox'
 import { resolveConfiguredEdielAutomationActorId } from '@/lib/ediel/automationActor'
 
 export const runtime = 'nodejs'
@@ -78,9 +78,8 @@ async function runOutboxProcessor(request: NextRequest, body: Record<string, unk
   const limit = parseLimit(body.limit ?? searchParams.get('limit'))
 
   try {
-    const result = await processEdielOutbox({
+    const result = await drainEdielOutbox({
       actorUserId,
-      companyId: null,
       environment,
       limit,
     })
