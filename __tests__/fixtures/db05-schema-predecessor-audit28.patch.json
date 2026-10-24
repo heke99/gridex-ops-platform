@@ -1,0 +1,378 @@
+{
+  "preSha256": "fc6968d3f4d4f4e8fe9a487f3af9851c1f29d7ea708dee61f57cfa65dc4ebb4a",
+  "postSha256": "69ada64839584b3576e9b57471143f1ce23c0e87bdc724f9f2261ed15fdfa85b",
+  "hunks": [
+    {
+      "preStart": 48485,
+      "preCount": 0,
+      "preSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "postStart": 48485,
+      "postCount": 29,
+      "postSha256": "b8aaa685b772a94732e37c46b0cc48686f99b5b6a7564e4a9125dec9a5ddb536",
+      "preLines": [],
+      "postLines": [
+        "--",
+        "-- Name: ediel_inbound_graph_snapshot_basis_v1(uuid, uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -",
+        "--",
+        "",
+        "CREATE FUNCTION public.ediel_inbound_graph_snapshot_basis_v1(p_company_id uuid, p_customer_id uuid, p_site_id uuid, p_metering_point_id uuid) RETURNS jsonb",
+        "    LANGUAGE plpgsql STABLE",
+        "    SET search_path TO 'pg_catalog'",
+        "    AS $$",
+        "DECLARE customer_text text;site_text text;point_text text;",
+        "BEGIN",
+        " IF current_setting('role',true) IS DISTINCT FROM 'service_role' AND session_user<>'service_role' THEN",
+        "  RAISE EXCEPTION 'ediel_inbound_graph_basis_service_required' USING ERRCODE='42501';",
+        " END IF;",
+        " -- The delta-only app protocol must never reach the legacy overwrite core.",
+        " -- During helper -> app -> mandatory-core rollout, hold safely until the exact",
+        " -- reviewed mandatory core is installed; there is no legacy write fallback.",
+        " IF (SELECT md5(prosrc) FROM pg_proc WHERE oid=to_regprocedure('public.gridex_onboard_customer_graph_core(jsonb)'))",
+        "   IS DISTINCT FROM '24f5c95224de6a75cd9e42537f1029b3' THEN",
+        "  RAISE EXCEPTION 'ediel_inbound_graph_core_not_ready' USING ERRCODE='55000';",
+        " END IF;",
+        " IF p_company_id IS NULL THEN RAISE EXCEPTION 'ediel_inbound_graph_basis_company_required' USING ERRCODE='22023';END IF;",
+        " SELECT to_jsonb(c)::text INTO customer_text FROM public.customers c WHERE c.company_id=p_company_id AND c.id=p_customer_id;",
+        " IF customer_text IS NOT NULL THEN",
+        "  SELECT to_jsonb(s)::text INTO site_text FROM public.customer_sites s WHERE s.company_id=p_company_id AND s.customer_id=p_customer_id AND s.id=p_site_id;",
+        "  SELECT to_jsonb(m)::text INTO point_text FROM public.metering_points m WHERE m.company_id=p_company_id AND m.customer_id=p_customer_id AND m.id=p_metering_point_id;",
+        " END IF;",
+        " RETURN jsonb_build_object('customer',customer_text,'site',site_text,'metering_point',point_text);",
+        "END$$;",
+        ""
+      ]
+    },
+    {
+      "preStart": 49099,
+      "preCount": 0,
+      "preSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "postStart": 49128,
+      "postCount": 31,
+      "postSha256": "508e73253559d6cc908e03bc3eac6dc15b75993dea4246feb5bfc71f76dd53e2",
+      "preLines": [],
+      "postLines": [
+        "--",
+        "-- Name: ediel_preserve_inbound_graph_payload_v1(jsonb, jsonb, jsonb); Type: FUNCTION; Schema: public; Owner: -",
+        "--",
+        "",
+        "CREATE FUNCTION public.ediel_preserve_inbound_graph_payload_v1(current_row jsonb, payload jsonb, directive jsonb) RETURNS jsonb",
+        "    LANGUAGE plpgsql IMMUTABLE",
+        "    SET search_path TO 'pg_catalog'",
+        "    AS $$",
+        "DECLARE k text;v jsonb;result jsonb:=payload;wire jsonb:=directive->'wire_keys';delta jsonb:=directive->'metadata_delta';",
+        "BEGIN",
+        " IF jsonb_typeof(current_row) IS DISTINCT FROM 'object' OR jsonb_typeof(payload) IS DISTINCT FROM 'object'",
+        "  OR jsonb_typeof(directive) IS DISTINCT FROM 'object' OR NOT directive?&ARRAY['wire_keys','metadata_delta']",
+        "  OR (SELECT count(*) FROM jsonb_object_keys(directive))<>2",
+        "  OR jsonb_typeof(wire) IS DISTINCT FROM 'array' OR jsonb_typeof(delta) IS DISTINCT FROM 'object'",
+        "  OR EXISTS(SELECT FROM jsonb_array_elements(wire)e WHERE jsonb_typeof(e) IS DISTINCT FROM 'string' OR NOT payload?(e#>>'{}'))",
+        "  OR (SELECT count(*) FROM jsonb_array_elements(wire))<>(SELECT count(DISTINCT e#>>'{}') FROM jsonb_array_elements(wire)e) THEN",
+        "  RAISE EXCEPTION 'ediel_inbound_graph_preservation_required' USING ERRCODE='22023';",
+        " END IF;",
+        " FOR k,v IN SELECT key,value FROM jsonb_each(payload) LOOP",
+        "  IF k='metadata' THEN",
+        "   IF jsonb_typeof(current_row->k) IS DISTINCT FROM 'object' THEN",
+        "    RAISE EXCEPTION 'ediel_inbound_existing_metadata_object_required' USING ERRCODE='22023';",
+        "   END IF;",
+        "   result:=jsonb_set(result,ARRAY[k],(current_row->k)||delta);",
+        "  ELSIF NOT wire?k THEN",
+        "   IF current_row?k THEN result:=jsonb_set(result,ARRAY[k],current_row->k);ELSE result:=result-k;END IF;",
+        "  END IF;",
+        " END LOOP;",
+        " RETURN result;",
+        "END$$;",
+        ""
+      ]
+    },
+    {
+      "preStart": 83577,
+      "preCount": 0,
+      "preSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "postStart": 83637,
+      "postCount": 5,
+      "postSha256": "e2467bc5f17199b67bbb3310680f97029fc4ab844420b868acc5a5d41ba43306",
+      "preLines": [],
+      "postLines": [
+        "  v_ediel_snapshot jsonb;",
+        "  v_require_ediel_snapshot boolean;",
+        "  v_current_graph_row jsonb;",
+        "  v_ediel_preservation jsonb;",
+        "  v_expected_graph_row jsonb;"
+      ]
+    },
+    {
+      "preStart": 83664,
+      "preCount": 0,
+      "preSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "postStart": 83729,
+      "postCount": 24,
+      "postSha256": "8f674a9b97d9b9e01eeacfc1b9c8b3f52f3479444034e1f805a9719c92cc6704",
+      "preLines": [],
+      "postLines": [
+        "  -- Only single-case Ediel preservation copies existing values into its command.",
+        "  -- Object batches already carry a protected immutable wire update plan.",
+        "  v_require_ediel_snapshot := v_channel = 'ediel_inbound'",
+        "    and v_matching_policy in ('link_unique','link_selected')",
+        "    and v_application_payload->>'source_record_type' = 'ediel_inbound_case'",
+        "    and strpos(coalesce(v_application_payload->>'source_record_id',''), ':object:') = 0;",
+        "  v_ediel_snapshot := p_command->'ediel_existing_graph_snapshot';",
+        "  if v_require_ediel_snapshot and (",
+        "    jsonb_typeof(v_ediel_snapshot) is distinct from 'object'",
+        "    or not (v_ediel_snapshot ?& array['customer','site','metering_point'])",
+        "    or exists (select 1 from jsonb_each(v_ediel_snapshot) e",
+        "      where e.key not in ('customer','site','metering_point')",
+        "        or jsonb_typeof(e.value) not in ('string','null'))",
+        "  ) then",
+        "    raise exception 'ediel_inbound_graph_snapshot_required' using errcode = '22023';",
+        "  end if;",
+        "",
+        "  v_ediel_preservation:=p_command->'ediel_existing_graph_preservation';",
+        "  if v_require_ediel_snapshot and (jsonb_typeof(v_ediel_preservation) is distinct from 'object'",
+        "    or not v_ediel_preservation?&array['customer','site','metering_point']",
+        "    or (select count(*) from jsonb_object_keys(v_ediel_preservation))<>3) then",
+        "    raise exception 'ediel_inbound_graph_preservation_required' using errcode='22023';",
+        "  end if;",
+        ""
+      ]
+    },
+    {
+      "preStart": 83777,
+      "preCount": 0,
+      "preSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "postStart": 83866,
+      "postCount": 15,
+      "postSha256": "ee3c4ba157c79864ae60422da34b3ad2cef99af46da3174251f3ced164c4e1ed",
+      "preLines": [],
+      "postLines": [
+        "    if v_require_ediel_snapshot then",
+        "      select to_jsonb(c) into v_current_graph_row from public.customers c",
+        "        where c.id = v_customer_id and c.company_id = v_company_id for update;",
+        "      if v_ediel_snapshot->'customer' = 'null'::jsonb then",
+        "        raise exception 'ediel_inbound_graph_changed' using errcode = '40001';",
+        "      end if;",
+        "      v_expected_graph_row := (v_ediel_snapshot->>'customer')::jsonb;",
+        "      if jsonb_typeof(v_expected_graph_row) is distinct from 'object'",
+        "        or (select array_agg(key order by key) from jsonb_object_keys(v_expected_graph_row)key)",
+        "          is distinct from (select array_agg(key order by key) from jsonb_object_keys(v_current_graph_row)key)",
+        "        or v_current_graph_row is distinct from to_jsonb(jsonb_populate_record(null::public.customers, v_expected_graph_row)) then",
+        "        raise exception 'ediel_inbound_graph_changed' using errcode = '40001';",
+        "      end if;",
+        "      v_customer_payload:=public.ediel_preserve_inbound_graph_payload_v1(v_current_graph_row,v_customer_payload,v_ediel_preservation->'customer');",
+        "    end if;"
+      ]
+    },
+    {
+      "preStart": 83783,
+      "preCount": 0,
+      "preSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "postStart": 83887,
+      "postCount": 3,
+      "postSha256": "40820dd0173ae7161f8a90c8eae04f19c2a708e4fc96bdc72460914643057935",
+      "preLines": [],
+      "postLines": [
+        "    if v_require_ediel_snapshot and v_ediel_snapshot->'customer' is distinct from 'null'::jsonb then",
+        "      raise exception 'ediel_inbound_graph_changed' using errcode = '40001';",
+        "    end if;"
+      ]
+    },
+    {
+      "preStart": 83838,
+      "preCount": 0,
+      "preSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "postStart": 83945,
+      "postCount": 21,
+      "postSha256": "3378787067369340422ad82b6fa722087bd6236ca9aca8af1aaa7b4ad8aeb5e8",
+      "preLines": [],
+      "postLines": [
+        "    if v_require_ediel_snapshot then",
+        "      if v_site_id is null then",
+        "        if v_ediel_snapshot->'site' is distinct from 'null'::jsonb then",
+        "          raise exception 'ediel_inbound_graph_changed' using errcode = '40001';",
+        "        end if;",
+        "      else",
+        "        select to_jsonb(t) into v_current_graph_row from public.customer_sites t",
+        "          where t.id = v_site_id and t.company_id = v_company_id and t.customer_id = v_customer_id for update;",
+        "        if v_ediel_snapshot->'site' = 'null'::jsonb then",
+        "          raise exception 'ediel_inbound_graph_changed' using errcode = '40001';",
+        "        end if;",
+        "        v_expected_graph_row := (v_ediel_snapshot->>'site')::jsonb;",
+        "      if jsonb_typeof(v_expected_graph_row) is distinct from 'object'",
+        "        or (select array_agg(key order by key) from jsonb_object_keys(v_expected_graph_row)key)",
+        "          is distinct from (select array_agg(key order by key) from jsonb_object_keys(v_current_graph_row)key)",
+        "        or v_current_graph_row is distinct from to_jsonb(jsonb_populate_record(null::public.customer_sites, v_expected_graph_row)) then",
+        "          raise exception 'ediel_inbound_graph_changed' using errcode = '40001';",
+        "        end if;",
+        "      v_site_payload:=public.ediel_preserve_inbound_graph_payload_v1(v_current_graph_row,v_site_payload,v_ediel_preservation->'site');",
+        "      end if;",
+        "    end if;"
+      ]
+    },
+    {
+      "preStart": 83878,
+      "preCount": 0,
+      "preSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "postStart": 84006,
+      "postCount": 21,
+      "postSha256": "93df7de2d8814aa5c53c08664a9c30e25574356d746d7349236ca8f525186330",
+      "preLines": [],
+      "postLines": [
+        "    if v_require_ediel_snapshot then",
+        "      if v_metering_point_id is null then",
+        "        if v_ediel_snapshot->'metering_point' is distinct from 'null'::jsonb then",
+        "          raise exception 'ediel_inbound_graph_changed' using errcode = '40001';",
+        "        end if;",
+        "      else",
+        "        select to_jsonb(t) into v_current_graph_row from public.metering_points t",
+        "          where t.id = v_metering_point_id and t.company_id = v_company_id and t.customer_id = v_customer_id for update;",
+        "        if v_ediel_snapshot->'metering_point' = 'null'::jsonb then",
+        "          raise exception 'ediel_inbound_graph_changed' using errcode = '40001';",
+        "        end if;",
+        "        v_expected_graph_row := (v_ediel_snapshot->>'metering_point')::jsonb;",
+        "      if jsonb_typeof(v_expected_graph_row) is distinct from 'object'",
+        "        or (select array_agg(key order by key) from jsonb_object_keys(v_expected_graph_row)key)",
+        "          is distinct from (select array_agg(key order by key) from jsonb_object_keys(v_current_graph_row)key)",
+        "        or v_current_graph_row is distinct from to_jsonb(jsonb_populate_record(null::public.metering_points, v_expected_graph_row)) then",
+        "          raise exception 'ediel_inbound_graph_changed' using errcode = '40001';",
+        "        end if;",
+        "      v_meter_payload:=public.ediel_preserve_inbound_graph_payload_v1(v_current_graph_row,v_meter_payload,v_ediel_preservation->'metering_point');",
+        "      end if;",
+        "    end if;"
+      ]
+    },
+    {
+      "preStart": 84198,
+      "preCount": 1,
+      "preSha256": "6e3a95c048e31c5738aaa086f6c82f12601414f34c97777b9fc61a17a5a8b3eb",
+      "postStart": 84347,
+      "postCount": 4,
+      "postSha256": "cb77c83e0c954524765d87010870becccb2058e532bfe3d4ffc42dfed5573faa",
+      "preLines": [
+        "     set status = 'completed', result_snapshot = v_result, completed_at = now(), updated_at = now()"
+      ],
+      "postLines": [
+        "     set status = 'completed', result_snapshot = v_result, completed_at = now(), updated_at = now(),",
+        "           command_snapshot = case when v_require_ediel_snapshot then",
+        "             (p_command - 'test_fail_after') || jsonb_build_object('customer',v_customer_payload,'site',v_site_payload,'metering_point',v_meter_payload)",
+        "             else command_snapshot end"
+      ]
+    },
+    {
+      "preStart": 85470,
+      "preCount": 0,
+      "preSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "postStart": 85622,
+      "postCount": 1,
+      "postSha256": "b106bc6ff22767180a63463c649c3e3f7e381d72008fbde3fdc43645e58f52ca",
+      "preLines": [],
+      "postLines": [
+        "  v_source_bound boolean;"
+      ]
+    },
+    {
+      "preStart": 85490,
+      "preCount": 0,
+      "preSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "postStart": 85643,
+      "postCount": 4,
+      "postSha256": "8261a5a6f450505f0a1ee2fc87ccdc33574f6e128c45f89ebdf4a1bb6f4716c3",
+      "preLines": [],
+      "postLines": [
+        "  v_source_bound:=EXISTS(SELECT FROM gridex_billing_source.underlay_bindings b WHERE b.company_id=p_company_id AND b.underlay_id=p_billing_underlay_id);",
+        "  IF v_source_bound AND coalesce(p_pricing_snapshot,'{}'::jsonb) IS DISTINCT FROM coalesce(v_underlay.pricing_snapshot,'{}'::jsonb) THEN",
+        "    RAISE EXCEPTION 'source_bound_pricing_snapshot_mismatch' USING ERRCODE='23514';",
+        "  END IF;"
+      ]
+    },
+    {
+      "preStart": 85626,
+      "preCount": 1,
+      "preSha256": "f798e9a53c4ff3233f564a837666a73385007d4293ba8fef054a0282939a3e4e",
+      "postStart": 85783,
+      "postCount": 1,
+      "postSha256": "a17a9e30b5452e91f0f0aa16ea100a715d332385e254d6d86673fdcf0bd1de95",
+      "preLines": [
+        "      pricing_snapshot=coalesce(p_pricing_snapshot,'{}'::jsonb)||jsonb_build_object("
+      ],
+      "postLines": [
+        "      pricing_snapshot=CASE WHEN v_source_bound THEN pricing_snapshot ELSE coalesce(p_pricing_snapshot,'{}'::jsonb)||jsonb_build_object("
+      ]
+    },
+    {
+      "preStart": 85629,
+      "preCount": 1,
+      "preSha256": "b56d469b155987dcf2109b1ee7621ab0ebeef711a55f936268f1f31ae21d3350",
+      "postStart": 85786,
+      "postCount": 1,
+      "postSha256": "a7e624d0eadb4d29fc44c857cb48a5ec5fbc0cdca0d6ea4414b5c4fbeb81a514",
+      "preLines": [
+        "      ),updated_at=now()"
+      ],
+      "postLines": [
+        "      ) END,updated_at=now()"
+      ]
+    },
+    {
+      "preStart": 85635,
+      "preCount": 1,
+      "preSha256": "0296a2cc32c8dfa78a42b66d54dd95b62b91a645d0688cdb630025abc9464a0e",
+      "postStart": 85792,
+      "postCount": 1,
+      "postSha256": "47386e11048eb4edcaede039b10a9cb30fbe3de15e9b6e9f59a16c2ca6bf5f81",
+      "preLines": [
+        "      pricing_snapshot=coalesce(pricing_snapshot,'{}'::jsonb)||jsonb_build_object("
+      ],
+      "postLines": [
+        "      pricing_snapshot=CASE WHEN v_source_bound THEN pricing_snapshot ELSE coalesce(pricing_snapshot,'{}'::jsonb)||jsonb_build_object("
+      ]
+    },
+    {
+      "preStart": 85637,
+      "preCount": 1,
+      "preSha256": "b56d469b155987dcf2109b1ee7621ab0ebeef711a55f936268f1f31ae21d3350",
+      "postStart": 85794,
+      "postCount": 1,
+      "postSha256": "a7e624d0eadb4d29fc44c857cb48a5ec5fbc0cdca0d6ea4414b5c4fbeb81a514",
+      "preLines": [
+        "      ),updated_at=now()"
+      ],
+      "postLines": [
+        "      ) END,updated_at=now()"
+      ]
+    },
+    {
+      "preStart": 204824,
+      "preCount": 0,
+      "preSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "postStart": 204981,
+      "postCount": 7,
+      "postSha256": "97d557a7277c503036de84c484804f107b65d56dc1ffc78b6bcad608e945a58d",
+      "preLines": [],
+      "postLines": [
+        "--",
+        "-- Name: FUNCTION ediel_inbound_graph_snapshot_basis_v1(p_company_id uuid, p_customer_id uuid, p_site_id uuid, p_metering_point_id uuid); Type: ACL; Schema: public; Owner: -",
+        "--",
+        "",
+        "REVOKE ALL ON FUNCTION public.ediel_inbound_graph_snapshot_basis_v1(p_company_id uuid, p_customer_id uuid, p_site_id uuid, p_metering_point_id uuid) FROM PUBLIC;",
+        "GRANT ALL ON FUNCTION public.ediel_inbound_graph_snapshot_basis_v1(p_company_id uuid, p_customer_id uuid, p_site_id uuid, p_metering_point_id uuid) TO service_role;",
+        ""
+      ]
+    },
+    {
+      "preStart": 205050,
+      "preCount": 0,
+      "preSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "postStart": 205214,
+      "postCount": 6,
+      "postSha256": "ab69887c6bdcc01819e8982728eab7f199f0834e5a2146a049a1db0edcb8d6e7",
+      "preLines": [],
+      "postLines": [
+        "--",
+        "-- Name: FUNCTION ediel_preserve_inbound_graph_payload_v1(current_row jsonb, payload jsonb, directive jsonb); Type: ACL; Schema: public; Owner: -",
+        "--",
+        "",
+        "REVOKE ALL ON FUNCTION public.ediel_preserve_inbound_graph_payload_v1(current_row jsonb, payload jsonb, directive jsonb) FROM PUBLIC;",
+        ""
+      ]
+    }
+  ]
+}
