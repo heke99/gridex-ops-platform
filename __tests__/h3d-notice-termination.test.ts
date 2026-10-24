@@ -10,7 +10,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PGlite } from '@electric-sql/pglite'
 // @ts-expect-error -- plain ESM fixture shared with the node regression script
 import { createNoticeDb, ids } from '../scripts/helpers/h3d-notice-termination-sql-fixture.mjs'
-import { contractNoticeEndDate, deriveContractEndsAt } from '@/lib/customer-contracts/lifecycle'
+import { contractNoticeEndDate, contractTerminationEndDate } from '@/lib/customer-contracts/lifecycle'
 
 type Row = Record<string, unknown>
 type Task = { task_type: string; status: string; metering_point_id: string | null; site_id: string | null; title: string; description: string; metadata: Row }
@@ -139,11 +139,13 @@ describe('H3d B3/D2/D9 a termination without a move', () => {
     expect((await t.lifecycleEvents()).map(event => [event.event_type, event.effective_date])).toEqual([['termination_registered', '2026-10-10']])
   }))
 
-  it("inside the binding the planned end is the binding end (the rule of 'Uppsägning mottagen', deriveContractEndsAt)", () => t.scenario(async () => {
+  // Owner decision 2026-10-24 B5 replaced "the later of the notice and the binding end" (slice 3,
+  // __tests__/h3d-termination-binding-z08-lead.test.ts has the fee review).
+  it("inside the binding the planned end is the notice end (the rule of 'Uppsägning mottagen', contractTerminationEndDate)", () => t.scenario(async () => {
     await t.seed({ noticeMonths: 1, binding: 12, startsAt: '2026-09-01' })
     await t.close('2026-10-10', 'terminate', '2026-10-10')
-    expect((await t.contractRow()).ended).toBe('2027-09-01')
-    expect(deriveContractEndsAt({ startsAt: '2026-09-01', bindingMonths: 12, noticeMonths: 1, terminationNoticeDate: '2026-10-10' })).toBe('2027-09-01')
+    expect((await t.contractRow()).ended).toBe('2026-11-10')
+    expect(contractTerminationEndDate({ endsAt: '2027-09-01', noticeMonths: 1, terminationNoticeDate: '2026-10-10' })).toBe('2026-11-10')
   }))
 
   it('without supply ongoing after the date it closes with the reason customer_termination, never move_out (D9)', () => t.scenario(async () => {
@@ -154,11 +156,12 @@ describe('H3d B3/D2/D9 a termination without a move', () => {
     expect(await t.customerRow()).toEqual({ status: 'terminated', moved_out_at: '2026-10-10' })
   }))
 
-  it('the scheduled check creates one Z08 task when the notice has expired without a switch, never before, never twice', () => t.scenario(async () => {
+  // Owner decision 2026-10-24 B6: the task comes 14 days before the planned end (slice 3).
+  it('the scheduled check creates one Z08 task in good time before the notice ends without a switch, never earlier, never twice', () => t.scenario(async () => {
     await t.seed({ noticeMonths: 1 })
     await t.close('2026-10-10', 'terminate', '2026-10-10')
-    expect(await t.expiry('2026-11-09')).toMatchObject({ tasks_created: 0 })
-    expect(await t.expiry('2026-11-10')).toMatchObject({ tasks_created: 1, contract_ids: [ids.contract] })
+    expect(await t.expiry('2026-10-26')).toMatchObject({ tasks_created: 0 })
+    expect(await t.expiry('2026-10-27')).toMatchObject({ tasks_created: 1, contract_ids: [ids.contract] })
     expect(await t.expiry('2026-11-30')).toMatchObject({ tasks_created: 0 })
     const tasks = await t.ofType('termination_end_of_supply_pending')
     expect(tasks.map(task => [task.status, task.metering_point_id, task.title, task.metadata.planned_end_date, task.metadata.sent_automatically]))
@@ -282,7 +285,7 @@ describe('H3d D1 the notice terms are snapshotted and immutable once signed', ()
       expect(r, `${date} +${months}m +${days}d`).toBe(contractNoticeEndDate(date, months, days))
     }
     const [{ r }] = await t.q(`select public.gridex_contract_termination_end_v1('2026-09-01',null,12,1,14,'2026-10-10')::text r`)
-    expect(r).toBe(deriveContractEndsAt({ startsAt: '2026-09-01', bindingMonths: 12, noticeMonths: 1, noticeDays: 14, terminationNoticeDate: '2026-10-10' }))
+    expect(r).toBe(contractTerminationEndDate({ noticeMonths: 1, noticeDays: 14, terminationNoticeDate: '2026-10-10' }))
   }))
 })
 

@@ -1,10 +1,12 @@
 // reality-defects: H3d (slice 2 fixture: notice period at move-out and termination, B1/B3/D1/D3/D5/D6/D9 and the Z05
-// correction after a manual end, PGlite)
+// correction after a manual end, PGlite; slice 3: owner decisions B5-B7, termination end and fee review inside the binding,
+// the Z08 task 14 days before the planned end and its automatic close)
 // The real bodies are installed from supabase/schema.sql (identical to the installed world database bodies before
 // 20261023202000): gridex_record_customer_contract_event_v1 (the real recorder, with its event, domain-event and outbox
 // writes), gridex_close_customer_lifecycle_v1, gridex_end_customer_supply_v1, the received-end trigger
 // gridex_supply_end_followup_v1 (trg_supply_end_followup) and gridex_submit_customer_move_out_v1. Then 20261023202000
-// (slice 1, installed in the world) and, unless `shipped`, 20261023204000, 20261023205000 and 20261023206000.
+// (slice 1, installed in the world) and, unless `shipped`, 20261023204000, 20261023205000 and 20261023206000, then,
+// unless `shipped` or `b5Shipped`, 20261024100000 (B5-B7).
 // Declared fixture ports: the tables carry only the columns these bodies read and write; digest() is sha256;
 // gridex_user_is_platform_admin()/gridex_can_read_company() exist for the RLS policies. Synthetic ids only.
 import fs from 'node:fs'
@@ -15,6 +17,7 @@ const migration = (name) => fs.readFileSync(root + '/supabase/migrations/' + nam
 export const SLICE1 = '20261023202000_move_out_fee_review_and_final_invoice.sql'
 export const SLICE2 = ['20261023204000_h3d_contract_notice_days.sql', '20261023205000_h3d_move_out_notice_and_termination.sql',
   '20261023206000_h3d_portal_retroactive_move_out.sql']
+export const SLICE3 = '20261024100000_h3d_termination_notice_end_fee_review_z08_lead.sql'
 export const ids = {
   company: '11111111-1111-4111-8111-111111111111', other: '12121212-1212-4212-8212-121212121212', actor: 'abababab-abab-4bab-8bab-abababababab',
   customer: '55555555-5555-4555-8555-555555555555', site: '44444444-4444-4444-8444-444444444444', point: '66666666-6666-4666-8666-666666666666',
@@ -36,8 +39,11 @@ function definition(schema, name) {
   return schema.slice(start, end + marker[1].length + 1)
 }
 
-/** A PGlite database with the shipped writers and slice 1; `shipped: false` adds the slice-2 migrations. */
-export async function createNoticeDb({ PGlite, shipped = false }) {
+/**
+ * A PGlite database with the shipped writers and slice 1; `shipped: false` adds the slice-2 migrations and, unless
+ * `b5Shipped`, the slice-3 migration (owner decisions B5-B7).
+ */
+export async function createNoticeDb({ PGlite, shipped = false, b5Shipped = false }) {
   const db = new PGlite()
   const schema = fs.readFileSync(root + '/supabase/schema.sql', 'utf8')
   await db.exec(`set timezone='UTC';create role anon;create role authenticated;create role service_role;create schema auth;create schema extensions;
@@ -59,7 +65,7 @@ export async function createNoticeDb({ PGlite, shipped = false }) {
  create table public.supplier_switch_requests(id uuid primary key default gen_random_uuid(),company_id uuid,customer_id uuid,site_id uuid,customer_site_id uuid,metering_point_id uuid,
   request_type text,process_type text,status text,customer_contract_id uuid,contract_id uuid,failed_at timestamptz,failure_reason text,updated_by uuid);
  create table public.customer_operation_tasks(id uuid primary key default gen_random_uuid(),company_id uuid,customer_id uuid,site_id uuid,metering_point_id uuid,task_type text,status text,priority text,
-  title text,description text,metadata jsonb,created_by uuid,updated_by uuid,resolved_at timestamptz,created_at timestamptz default clock_timestamp(),updated_at timestamptz);
+  title text,description text,metadata jsonb,created_by uuid,updated_by uuid,resolved_at timestamptz,due_at timestamptz,created_at timestamptz default clock_timestamp(),updated_at timestamptz);
  create table public.customer_internal_notes(company_id uuid,customer_id uuid,body text,created_by uuid,updated_by uuid);
  create table public.customer_lifecycle_events(company_id uuid,customer_id uuid,event_type text,event_status text,effective_date date,reason text,payload jsonb,created_by uuid,
   constraint customer_lifecycle_events_type_check check (event_type = any (array['move_out'::text,'terminate'::text,'restore'::text,'note'::text])));
@@ -77,6 +83,7 @@ export async function createNoticeDb({ PGlite, shipped = false }) {
   execute format('revoke all on function %s from public',f);execute format('grant execute on function %s to service_role',f);end loop;end$$;`)
   await db.exec(migration(SLICE1))
   if (!shipped) for (const name of SLICE2) await db.exec(migration(name))
+  if (!shipped && !b5Shipped) await db.exec(migration(SLICE3))
   return { db, ...helpers(db, shipped) }
 }
 
@@ -119,7 +126,7 @@ function helpers(db, shipped) {
   /** A received grid-owner end (Z05 applied by the source flow): the market end at the start of its date and its status. */
   const receivedEnd = async (endDate, status = 'ended', id = supply) => q(`update public.customer_supply_periods set end_date=$2,actual_end_date=case when $3='ended' then $2::date end,status=$3,
     market_end_at=($2::date)::timestamp at time zone 'Europe/Stockholm',updated_at=now() where id=$1`, [id, endDate, status])
-  const tasks = async (c = company) => q(`select task_type,status,metering_point_id,site_id,title,description,metadata from public.customer_operation_tasks where company_id=$1 order by task_type,created_at`, [c])
+  const tasks = async (c = company) => q(`select task_type,status,metering_point_id,site_id,title,description,due_at,resolved_at,metadata from public.customer_operation_tasks where company_id=$1 order by task_type,created_at`, [c])
   const ofType = async (type, c = company) => (await tasks(c)).filter(t => t.task_type === type)
   const contractRow = async (id = contract) => (await q(`select status,termination_reason,termination_notice_date::text notice,ended_at,(ended_at at time zone 'Europe/Stockholm')::date::text ended,status_reason_code,metadata
     from public.customer_contracts where id=$1`, [id]))[0]

@@ -32,7 +32,7 @@ function text(value: unknown): string | null { return typeof value === 'string' 
 function billingMonth(value: unknown): string { return parseBillingMonth(text(value) ?? previousStockholmBillingMonth()).value }
 
 async function listCompanies(companyId?: string | null): Promise<JsonRecord[]> {
-  const select = 'id,status,is_active,billing_automation_enabled,invoice_export_enabled,invoice_export_target_system,billing_provider_environment'
+  const select = 'id,status,is_active,billing_automation_enabled,invoice_export_target_system,billing_provider_environment'
   if (companyId) {
     const response = await supabaseService.from('companies').select(select).eq('id', companyId).maybeSingle()
     if (response.error) throw response.error
@@ -49,10 +49,12 @@ async function listCompanies(companyId?: string | null): Promise<JsonRecord[]> {
   }
 }
 
+// Preparation only (owner decision 24, FINDINGS F117): underlays, pricing and draft invoices for review need an
+// active tenant, billing automation and a selected provider. Dispatch (invoice_export_enabled, which requires a
+// tested provider connection) is a separate step gated where invoices are sent or put in a file, never here.
 function validateCompany(company: JsonRecord) {
   if (company.is_active !== true || String(company.status) !== 'active') throw new Error('Tenant är inte aktiv.')
   if (company.billing_automation_enabled !== true) throw new Error('Faktureringsautomation är inte aktiverad för tenant.')
-  if (company.invoice_export_enabled !== true) throw new Error('Fakturaförberedelse är inte aktiverad för tenant.')
   return requireTenantInvoiceProvider(company)
 }
 

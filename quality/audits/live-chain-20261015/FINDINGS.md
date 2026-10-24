@@ -2348,6 +2348,17 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
     - En ren redigering av slutdatumet för en manuellt stängd period begränsas nu bara av avtalets slut och ett mottaget slut. Bör granskas.
     - D11 (debitering av granskad brytavgift), en markör för separata tjänster och fördelning av årsavgifter återstår.
   - **NYA ÄGARFRÅGOR (B5–B7):** se OWNER-DECISIONS.
+- **B5/B6 RÄTTADE 2026-10-24:**
+  - **B5:** avtalet slutar efter uppsägningstiden. `gridex_termination_break_fee_review_v1` skapar en avgiftsgranskning per avtal inom bindningstid.
+  - **B6:** Z08-uppgiften skapas 14 dagar före slutet. Registren anger ingen ledtid, så värdet är en konstant (`TERMINATION_Z08_TASK_LEAD_DAYS`). Uppgiften stängs automatiskt när ett Z05 eller ett annat leveransslut kommer först.
+  - **B7:** verifierad, ingen ändring.
+  - **Migration:** `20261024100000_h3d_termination_notice_end_fee_review_z08_lead.sql` (`136dcd7a…`), applicerad 08:43Z.
+  - **Tester:** 16+3 nya tester, varav 14 och 2 föll före.
+  - **ÖPPET:**
+    - Ett avtalat `ends_at` kortar inte längre uppsägningsslutet. Bör bekräftas av ägaren.
+    - Avtalskortet visar `ends_at` och inte slutet enligt uppsägningen.
+    - "Uppsägning mottagen" görs i två anrop och är därför inte atomär.
+- **Täckningen på det samlade arbetsträdet (F116, F117, B5/B6):** 352/352, 0 fallerande.
 - **Rätt i dag:**
   - Ingen dag faktureras efter slutet och ingen dubbelfaktureras.
   - Slutmånaden faktureras vid manuell flytt för leveranser som inte kom via Ediel.
@@ -2377,7 +2388,18 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 
 ### F116 Anläggningen med rättad dag har 72 kvartsvärden som inte kan debiteras (`source_basis_unqualified`, `source_message_missing`) — BEKRÄFTAD (världen, körning 29), hög; ÖPPEN, utreds
 - Anläggning 735999153029036416: `septemberCurrent` 2880, `septemberBillable` 2808, spärren ger 72 blockerade, och 24 värden är ersatta. F6b sände en rättelse där 24 kvartar ändrades.
-- 72 blockerade är tre gånger 24, vilket tyder på att rättelsen eller de ersatta värdena tappar sin källgrund. Kräver utredning.
+- **RÄTTAD 2026-10-24:**
+  - **Diagnos:** de 72 blockerade värdena gällde de oförändrade kvartarna på den rättade dagen. Rättelsen sände alla 96, och lagret behöll de lika värdena men lade till en källlänk till rättelsen.
+    1. TS (`consumptionSinks` och `meterValueBillingMatcher`) satte spärren med rättelsens meddelande-id.
+    2. SQL (`gridex_set_metering_billing_gate_before_source_v2`) skrev om `source_message_id` till rättelsen. Därmed kunde ingen grund kvalificeras.
+  - **Rättning:**
+    - Spärren använder nu värdets eget ursprung.
+    - Migrationen `20261024090000_f116_gate_keeps_value_source_origin.sql` gör att spärren aldrig binder om en källa, och lagar raderna som redan hade bundits om.
+    - Applicerad i världen 08:39Z, och 72 rader lagades. Efter att spärren kördes om på nytt kan alla 2880 av 2880 kvartar debiteras.
+  - **Tester:** `reality-f116-…` 3/3, varav 2 föll före; SQL-regressionen 10+16 PASS.
+  - **ÖPPET:**
+    - Lagade värden körs inte genom spärren på nytt automatiskt i produktion.
+    - 72 `billing_gate_blocked`-poster står kvar som öppna, eftersom inget stänger dem när värdet blir debiterbart.
 
 ### F117 Månadsförberedelsen kräver att utskicket är aktiverat (`invoice_export_enabled`), och det kräver en testad leverantörsanslutning — BEKRÄFTAD (världen, körning 29), hög; ÖPPEN
 - `monthlyAutomation.validateCompany` kräver `billing_automation_enabled` och `invoice_export_enabled`, även i läget `prepare_only` med `approval_required`.
@@ -2386,6 +2408,15 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - Go-live-spärren i F115 kontrollerar bara att en leverantör är vald, inte de här flaggorna.
 - Kräver beslut eller utredning: ska förberedelsen kräva utskick, eller ska förberedelsen och utskicket vara separata steg?
 - **ÄGARBESLUT 2026-10-24 "Separera förberedelse och utskick":** förberedelsen körs när en leverantör är vald och faktureringsautomationen är på. Utskicket kräver en testad anslutning och aktivering. Beredskapen visar båda stegen.
+- **RÄTTAD 2026-10-24:**
+  - Månadskörningen kräver inte längre `invoice_export_enabled`.
+  - `billing_automation_enabled` saknade gränssnitt helt. Nu finns en knapp för tenantens administratör på `/admin/billing/integrations`, med audit och optimistisk låsning.
+  - Utskicket är fortfarande spärrat överallt. Godkännande av månaden när utskicket är avstängt godkänner bara.
+  - Beredskapen: automation avstängd är en blockerare, utskick inte aktiverat är en varning.
+  - Harnessen slår på automationen via gränssnittet. F8 kontrollerar tenantens eget resultat från cron, eftersom routen svarade 200 även när tenanten misslyckades.
+  - **T21 rättad:** F9 läser spotpriset efter debiteringen, så att även 1 oktober kommer med.
+  - **Tester:** `reality-f117-…` 8 tester, varav 3 föll före; F115-testerna har fått 4 nya, och alla föll före.
+  - **ÖPPET:** bannern på instrumentpanelen och bolagssidans kontroll av fakturaleverantör visar bara den gamla innebörden.
 
 ### T21 Harnessens oberoende beräkning i F9 saknar spotpriset för Ediel-månadens sista timme (civil 1 oktober, 2026-09-30T22:00Z) — ÖPPEN (harness)
 - F9 måste läsa spotpriset för 1 oktober, som motorn fyller i enligt F108, eller importera det i F7.

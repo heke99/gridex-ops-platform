@@ -743,13 +743,22 @@ describe.sequential('reality F — invoices for several facilities with contract
     // The supplier chose its invoice provider under Fakturering → Integrationer before go-live (goLiveAlsSupplier, FINDINGS
     // T18/F115: go-live requires it); the selection is still the one the billing cron reads.
     expect(report.invoiceProvider, JSON.stringify(report.invoiceProvider)).toMatchObject({ stored: { provider: 'nordfin', environment: 'test' } })
-    report.invoiceProviderAtBilling = sql(`SELECT jsonb_build_object('provider',invoice_export_target_system,'environment',billing_provider_environment)
+    // F117 (owner decision 24 "Separera förberedelse och utskick"): the same admin turned billing automation on in the UI;
+    // dispatch to the provider is off (no tested connection). Preparation for review must run anyway.
+    report.invoiceProviderAtBilling = sql(`SELECT jsonb_build_object('provider',invoice_export_target_system,'environment',billing_provider_environment,
+        'billingAutomation',billing_automation_enabled,'dispatch',invoice_export_enabled)
       FROM public.companies WHERE id=${literal(tenant.companyId)}`)
-    expect(report.invoiceProviderAtBilling).toEqual({ provider: 'nordfin', environment: 'test' })
+    expect(report.invoiceProviderAtBilling).toEqual({ provider: 'nordfin', environment: 'test', billingAutomation: true, dispatch: false })
     const result = await cron(`/api/cron/billing/monthly?company_id=${tenant.companyId}&billing_month=${MONTH}`)
     report.billingCron = result
     expect(result.status, JSON.stringify(result.body).slice(0, 2000)).toBe(200)
+    // The route answers 200 also when the tenant itself failed (company isolation): the tenant's own result must not be failed.
+    const companyRun = ((result.body as { results?: Row[] } | null)?.results ?? []).find(row => row.companyId === tenant.companyId)
+    expect(companyRun?.status, JSON.stringify(result.body).slice(0, 2000)).toMatch(/^completed(_with_blockers)?$/)
     graph = billingGraph()
+    // Prepared for review only: nothing approved, sent or put in an invoice file while dispatch is off.
+    expect(graph.exportItems.filter(item => item.status === 'sent' || item.approval === 'approved'), JSON.stringify(graph.exportItems)).toEqual([])
+    expect(graph.exportFiles, 'invoice files are made by staff from approved invoices, never by the cron').toEqual([])
     agreements = await agreementTexts()
     // Files are rendered from their stored rows, exactly as the admin download route does.
     renderedFiles = graph.exportFiles.map(file => ({ id: file.id, provider: file.provider,
@@ -786,11 +795,40 @@ describe.sequential('reality F — invoices for several facilities with contract
     expect(counts(repeated)).toEqual(counts(graph))
     expect(repeated.invoices.map(i => i.id).sort()).toEqual(graph.invoices.map(i => i.id).sort())
 
-    // Spot prices per instant over the Ediel month [2026-08-31T23:00Z, 2026-09-30T23:00Z) (civil spot days, joined by instant).
-    const prices = sql<Array<{ s: string; p: number }>>(`SELECT coalesce(jsonb_agg(jsonb_build_object('s',time_start,'p',sek_per_kwh) ORDER BY time_start),'[]')
-      FROM public.spot_price_intervals WHERE price_area='SE3' AND resolution='quarter_hour' AND time_start>=${literal(EDIEL_MONTH.start)} AND time_start<${literal(EDIEL_MONTH.end)}`)
-    const price = new Map(prices.map(row => [new Date(row.s).toISOString(), Number(row.p)]))
     const runOf = (invoice: Row) => graph.pricingRuns.find(run => run.id === (invoice.calculation as Row | null)?.pricing_run_id) ?? graph.pricingRuns.find(run => run.underlay === invoice.underlay && run.locked)
+    // T21: the market spot prices the invoices actually used, read after billing. The Ediel month
+    // [2026-08-31T23:00Z, 2026-09-30T23:00Z) is September's civil spot days from F7's settlement plus the first civil hour
+    // of 1 October, which pricing fills (fill-only) during F8 (F108). The source the pricing runs referenced
+    // (pricing_interval_evidence.price_source_id → spot_price_intervals) picks the market rows; the price itself and every
+    // amount below are this test's own: price × metered value per instant, never the engine's interval amounts.
+    const usedRuns = [...new Set(graph.invoices.map(invoice => runOf(invoice)?.id).filter((id): id is string => typeof id === 'string'))]
+    const usedRunList = usedRuns.length ? usedRuns.map(id => literal(id)).join(',') : 'NULL'
+    const evidence = sql<{ sources: string[]; rows: number; shifted: number; missingSource: number }>(`SELECT jsonb_build_object(
+        'sources',(SELECT coalesce(jsonb_agg(DISTINCT sp.source),'[]') FROM public.pricing_interval_evidence e JOIN public.spot_price_intervals sp ON sp.id=e.price_source_id
+          WHERE e.company_id=${literal(tenant.companyId)} AND e.pricing_run_id IN (${usedRunList})),
+        'rows',(SELECT count(*) FROM public.pricing_interval_evidence e WHERE e.company_id=${literal(tenant.companyId)} AND e.pricing_run_id IN (${usedRunList})),
+        'shifted',(SELECT count(*) FROM public.pricing_interval_evidence e JOIN public.spot_price_intervals sp ON sp.id=e.price_source_id
+          WHERE e.company_id=${literal(tenant.companyId)} AND e.pricing_run_id IN (${usedRunList}) AND (sp.time_start<>e.metering_interval_start OR sp.price_area<>'SE3')),
+        'missingSource',(SELECT count(*) FROM public.pricing_interval_evidence e WHERE e.company_id=${literal(tenant.companyId)} AND e.pricing_run_id IN (${usedRunList}) AND e.price_source_id IS NULL))`)
+    const prices = sql<Array<{ s: string; p: number; source: string }>>(`SELECT coalesce(jsonb_agg(jsonb_build_object('s',time_start,'p',sek_per_kwh,'source',source) ORDER BY time_start),'[]')
+      FROM public.spot_price_intervals WHERE price_area='SE3' AND resolution='quarter_hour' AND time_start>=${literal(EDIEL_MONTH.start)} AND time_start<${literal(EDIEL_MONTH.end)}
+        ${evidence.sources.length ? `AND source IN (${evidence.sources.map(source => literal(source)).join(',')})` : ''}`)
+    const price = new Map<string, number>()
+    const conflicting: string[] = []
+    for (const row of prices) {
+      const at = new Date(row.s).toISOString()
+      if (price.has(at) && price.get(at) !== Number(row.p)) conflicting.push(at)
+      price.set(at, Number(row.p))
+    }
+    const tail = prices.filter(row => new Date(row.s).toISOString() >= '2026-09-30T22:00:00.000Z')
+    report.independentPrices = { usedRuns, evidence, quarters: price.size, conflicting, edielTail: tail }
+    // Every interval the runs priced points at the SE3 market row of its own instant (no shifted join, no orphan price).
+    expect(evidence.shifted, JSON.stringify(evidence)).toBe(0)
+    expect(evidence.missingSource, JSON.stringify(evidence)).toBe(0)
+    expect(conflicting, 'one market price per instant from the source the invoices used').toEqual([])
+    // 30 civil September days minus the first civil hour, plus the first civil hour of 1 October: the Ediel month.
+    expect(price.size, JSON.stringify(report.independentPrices).slice(0, 2000)).toBe(30 * 96)
+    expect(tail, 'the Ediel month\'s last hour (civil 1 October 00:00–01:00) is priced from market rows').toHaveLength(4)
     const independent: Record<string, unknown> = {}
     for (const f of FACILITIES) {
       const underlay = graph.underlays.find(u => u.facility === f.gsrn)
@@ -808,7 +846,7 @@ describe.sequential('reality F — invoices for several facilities with contract
       for (const day of SEPTEMBER) days.get(day)!.forEach((value, q) => {
         const start = new Date(edielDayUtc(day).start + q * 900_000).toISOString()
         const p = price.get(start)
-        if (p === undefined) throw Error(`no spot price for ${start}${start >= '2026-09-30T22:00' ? ' (the last hour of the Ediel month is civil 1 October; pending billing agent, see F7 edielTailQuarters)' : ''}`)
+        if (p === undefined) throw Error(`no spot price for ${start}${start >= '2026-09-30T22:00' ? ' (the last hour of the Ediel month is civil 1 October; filled by pricing during F8, see report.edielTailQuartersAfterBilling)' : ''}`)
         energy += value * p; kwh += value
       })
       const markup = kwh * 0.04, monthlyFee = 49, exVat = energy + markup + monthlyFee

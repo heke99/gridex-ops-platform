@@ -64,6 +64,8 @@ vi.mock('@/lib/supabase/service', () => {
     if (name === 'gridex_store_billing_underlay_batch') return { data: (args.p_commands as unknown[]).map((_, index) => `stored-${index}`), error: null }
     if (name === 'gridex_persist_pricing_run') return { data: 'run-1', error: null }
     if (name === 'gridex_record_customer_contract_event_v1') return { data: { event: { id: 'ev-1' }, contract_status: 'terminated', existing: false }, error: null }
+    // H3d B5 (20261024100000): "Uppsägning mottagen" also asks for the fee review inside the binding.
+    if (name === 'gridex_termination_break_fee_review_v1') return { data: { review_due: false, reason: 'no_binding' }, error: null }
     return { data: null, error: { code: '42883', message: `unexpected rpc ${name}` } }
   }
   return { supabaseService: { from, rpc } }

@@ -159,6 +159,8 @@ export type CompanyRow = Record<string, unknown> & {
   ediel_primary_test_route_profile_id?: string | null;
   invoice_export_target_system?: string | null;
   billing_provider_environment?: string | null;
+  billing_automation_enabled?: boolean | null;
+  invoice_export_enabled?: boolean | null;
 };
 
 export type RouteProfileRow = Record<string, unknown> & {

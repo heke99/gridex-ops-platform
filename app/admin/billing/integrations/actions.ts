@@ -15,6 +15,7 @@ import {
   loadTenantInvoiceProviderSelection,
   saveNordfinClientId,
   selectTenantInvoiceProvider,
+  setTenantBillingAutomationEnabled,
   setTenantInvoiceDispatchEnabled,
 } from '@/lib/billing/providers/registry'
 
@@ -78,6 +79,21 @@ export async function setInvoiceDispatchEnabledAction(formData: FormData): Promi
     throw error
   }
   providerSettingsRedirect(enabled ? 'enabled' : 'disabled')
+}
+
+// Monthly invoice preparation for review (FINDINGS F117): needs a selected provider, never a tested connection.
+// Dispatch stays behind setInvoiceDispatchEnabledAction.
+export async function setBillingAutomationEnabledAction(formData: FormData): Promise<void> {
+  const { context, companyId } = await requireScopedBillingCompany()
+  const enabled = String(formData.get('enabled') ?? '') === 'true'
+  try {
+    await setTenantBillingAutomationEnabled({ companyId, enabled, actorUserId: context.userId })
+  } catch (error) {
+    unstable_rethrow(error)
+    if (error instanceof InvoiceProviderConfigError) providerSettingsRedirect(error.code)
+    throw error
+  }
+  providerSettingsRedirect(enabled ? 'billing_automation_enabled' : 'billing_automation_disabled')
 }
 
 export async function saveNordfinClientIdAction(formData: FormData): Promise<void> {

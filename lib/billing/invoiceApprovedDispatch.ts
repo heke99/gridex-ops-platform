@@ -424,8 +424,12 @@ export async function sendApprovedInvoiceExportRun(input: { companyId: string; e
 
 export async function approveAndSendReadyInvoicesForMonth(input: { companyId: string; billingMonth: string; actorUserId: string }) {
   await requireCompanyOperationalForWrites(input.companyId)
-  // A file provider receives approved invoices through an invoice file, not per-invoice sends.
-  const approveOnly = isFileProvider(requireTenantInvoiceProvider((await loadTenantInvoiceProviderSelection(input.companyId)) ?? {}).provider)
+  // A file provider receives approved invoices through an invoice file, not per-invoice sends. While dispatch is not
+  // enabled (FINDINGS F117) prepared invoices can still be reviewed and approved; they are sent once dispatch is on,
+  // and sendApprovedItem keeps refusing every send until then.
+  const selection = (await loadTenantInvoiceProviderSelection(input.companyId)) ?? {}
+  const dispatchEnabled = (selection as { invoice_export_enabled?: unknown }).invoice_export_enabled === true
+  const approveOnly = isFileProvider(requireTenantInvoiceProvider(selection).provider) || !dispatchEnabled
   const runs = await supabaseService.from('invoice_export_runs').select('id').eq('company_id', input.companyId).eq('billing_month', input.billingMonth).order('created_at', { ascending: true })
   if (runs.error) throw runs.error
   const runIds = (runs.data ?? []).map((row) => String(row.id))
@@ -460,7 +464,7 @@ export async function approveAndSendReadyInvoicesForMonth(input: { companyId: st
       errors.push({ invoiceExportItemId: itemId, error: error instanceof Error ? error.message : 'Fakturan kunde inte godkännas/skickas.' })
     }
   }
-  return { approved, sent, failed, errors, approveOnly }
+  return { approved, sent, failed, errors, approveOnly, dispatchEnabled }
 }
 
 export async function processDueApprovedInvoiceRetries(input: { companyId?: string | null; limit?: number } = {}) {

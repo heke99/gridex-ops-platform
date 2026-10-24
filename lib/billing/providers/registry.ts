@@ -103,10 +103,52 @@ export function evaluateTenantInvoiceProviderReadiness(company: {
   }
 }
 
+/** Stable go-live readiness code: billing automation is off, so no invoices are prepared at all (FINDINGS F117). */
+export const BILLING_AUTOMATION_DISABLED_CODE = 'billing_automation_disabled'
+/** Stable go-live readiness code: invoices are prepared for review, but dispatch to the provider is not enabled (F117). */
+export const INVOICE_DISPATCH_NOT_ENABLED_CODE = 'invoice_dispatch_not_enabled'
+
+export type TenantInvoiceStepReadiness =
+  | { ready: true }
+  | { ready: false; code: string; message: string; actionLabel: string; actionHref: string }
+
+/**
+ * Preparation step (owner decision 24, FINDINGS F117): the monthly billing cron prepares underlays, pricing and
+ * draft invoices for review when a provider is selected (evaluateTenantInvoiceProviderReadiness) and billing
+ * automation is on. Dispatch is a separate step (evaluateTenantInvoiceDispatchReadiness) and is not required here.
+ */
+export function evaluateTenantBillingAutomationReadiness(company: { billing_automation_enabled?: unknown }): TenantInvoiceStepReadiness {
+  if (company.billing_automation_enabled === true) return { ready: true }
+  return {
+    ready: false,
+    code: BILLING_AUTOMATION_DISABLED_CODE,
+    message: 'Faktureringsautomationen är avstängd för bolaget, så inga fakturor förbereds för granskning. Bolagets administratör aktiverar den under Fakturering → Integrationer.',
+    actionLabel: 'Aktivera faktureringsautomation',
+    actionHref: INVOICE_PROVIDER_SETTINGS_PATH,
+  }
+}
+
+/**
+ * Dispatch step (F117): approved invoices reach the provider only when dispatch is enabled, which the database
+ * allows only for a tested (ready/active) provider connection (gridex_set_invoice_dispatch_enabled_v1). Invoices
+ * can be prepared and reviewed before that.
+ */
+export function evaluateTenantInvoiceDispatchReadiness(company: { invoice_export_enabled?: unknown }): TenantInvoiceStepReadiness {
+  if (company.invoice_export_enabled === true) return { ready: true }
+  return {
+    ready: false,
+    code: INVOICE_DISPATCH_NOT_ENABLED_CODE,
+    message: 'Utskick till fakturaleverantören är inte aktiverat. Fakturor förbereds och kan granskas, men skickas inte förrän kopplingen är testad och utskick aktiverat under Fakturering → Integrationer.',
+    actionLabel: 'Testa kopplingen och aktivera utskick',
+    actionHref: INVOICE_PROVIDER_SETTINGS_PATH,
+  }
+}
+
 export type TenantInvoiceProviderSelection = {
   invoice_export_target_system: string | null
   billing_provider_environment: string | null
   invoice_export_enabled: boolean | null
+  billing_automation_enabled?: boolean | null
 }
 
 /** The tenant's own selection (companies row, keyed by its id). */
@@ -114,7 +156,7 @@ export async function loadTenantInvoiceProviderSelection(companyId: string): Pro
   const { data, error } = await tenantDb(companyId)
     .unscoped()
     .from('companies')
-    .select('invoice_export_target_system,billing_provider_environment,invoice_export_enabled')
+    .select('invoice_export_target_system,billing_provider_environment,invoice_export_enabled,billing_automation_enabled')
     .eq('id', companyId)
     .maybeSingle()
   if (error) throw error
@@ -184,6 +226,50 @@ export async function setTenantInvoiceDispatchEnabled(input: { companyId: string
   })
   if (error) throw rpcError(error)
   return data as { enabled: boolean; provider: string | null; environment: string | null }
+}
+
+/**
+ * Turns the tenant's monthly invoice preparation on or off (FINDINGS F117). Turning it on requires a selected
+ * provider (the cron's own definition, requireTenantInvoiceProvider); it never enables dispatch, which keeps its
+ * own gate (tested connection + setTenantInvoiceDispatchEnabled). Compare-and-set on the tenant's own row and a
+ * fail-closed audit row; a failed audit write reverts the change.
+ */
+export async function setTenantBillingAutomationEnabled(input: { companyId: string; enabled: boolean; actorUserId: string }) {
+  const current = await supabaseService
+    .from('companies')
+    .select('id,billing_automation_enabled,invoice_export_target_system,billing_provider_environment')
+    .eq('id', input.companyId)
+    .maybeSingle()
+  if (current.error) throw current.error
+  if (!current.data) throw new InvoiceProviderConfigError('company_not_found', 'Bolaget saknas.')
+  const row = current.data as { billing_automation_enabled: boolean | null; invoice_export_target_system: string | null; billing_provider_environment: string | null }
+  const selected = input.enabled ? requireTenantInvoiceProvider(row) : null
+  const previous = row.billing_automation_enabled === true
+  if (previous === input.enabled) return { enabled: input.enabled, changed: false }
+  const updated = await supabaseService
+    .from('companies')
+    .update({ billing_automation_enabled: input.enabled })
+    .eq('id', input.companyId)
+    .eq('billing_automation_enabled', previous)
+    .select('id')
+    .maybeSingle()
+  if (updated.error) throw updated.error
+  if (!updated.data) throw new InvoiceProviderConfigError('billing_automation_changed_concurrently', 'Inställningen ändrades samtidigt av någon annan. Ladda om och försök igen.')
+  const audit = await supabaseService.from('audit_logs').insert({
+    company_id: input.companyId,
+    actor_user_id: input.actorUserId,
+    entity_type: 'company',
+    entity_id: input.companyId,
+    action: input.enabled ? 'billing_automation_enabled' : 'billing_automation_disabled',
+    old_values: { billing_automation_enabled: previous },
+    new_values: { billing_automation_enabled: input.enabled },
+    metadata: { source: 'billing_integrations', provider: selected?.provider ?? row.invoice_export_target_system, environment: selected?.environment ?? row.billing_provider_environment },
+  })
+  if (audit.error) {
+    await supabaseService.from('companies').update({ billing_automation_enabled: previous }).eq('id', input.companyId).eq('billing_automation_enabled', input.enabled)
+    throw audit.error
+  }
+  return { enabled: input.enabled, changed: true }
 }
 
 /** Nordfin client id for the company and environment (kept on the provider connection). */

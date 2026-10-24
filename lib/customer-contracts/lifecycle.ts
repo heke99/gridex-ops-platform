@@ -183,9 +183,19 @@ export function deriveContractEndsAt(input: ContractLifecycleInput): string | nu
 
   const noticeEffectiveEndDate = contractNoticeEndDate(terminationNoticeDate, input.noticeMonths, input.noticeDays)
 
-  // Identical to the database's public.gridex_contract_termination_end_v1 (20261023204000), which registers a
-  // termination without a move (FINDINGS H3d B3).
+  // The derived end of a contract when it is created (without a notice: the binding end). A registered termination
+  // ends by contractTerminationEndDate (FINDINGS H3d owner decision B5).
   return maxDate(boundUntil, noticeEffectiveEndDate)
+}
+
+/**
+ * The planned end of a termination without a move (FINDINGS H3d, owner decision 2026-10-24 B5 "Uppsägningstid +
+ * avgiftsgranskning"): the contract ends after its notice period (notice date + notice months + notice days), also
+ * inside the binding period, where the operator reviews a break fee instead. Without a notice date: the agreed end.
+ * Identical to the database's public.gridex_contract_termination_end_v1 (20261024100000).
+ */
+export function contractTerminationEndDate(input: Pick<ContractLifecycleInput, 'endsAt' | 'noticeMonths' | 'noticeDays' | 'terminationNoticeDate'>): string | null {
+  return contractNoticeEndDate(input.terminationNoticeDate, input.noticeMonths, input.noticeDays) ?? normalizeDate(input.endsAt)
 }
 
 export function getContractLifecycleSummary(

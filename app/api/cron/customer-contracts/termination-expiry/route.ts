@@ -26,9 +26,11 @@ function authorized(request: NextRequest) {
   }))
 }
 
-// FINDINGS H3d B3 (owner decision 2026-10-23): a termination without a move whose notice period has expired while the
-// supply is still ours (no new supplier's Z05) gets one operator task to send an end of supply (Z08) to the grid
-// owner. Nothing is sent automatically; the database command is idempotent and tenant-scoped per contract.
+// FINDINGS H3d B3/B6 (owner decisions 2026-10-23 and 2026-10-24): a termination without a move whose notice period
+// ends within TERMINATION_Z08_TASK_LEAD_DAYS days while the supply is still ours (no new supplier's Z05) gets one
+// operator task to send an end of supply (Z08) to the grid owner in good time; an open task is closed automatically
+// once a Z05 ended the supply first. Nothing is sent automatically; the database command is idempotent and
+// tenant-scoped per contract.
 async function run(request: NextRequest) {
   if (!authorized(request)) return NextResponse.json({ ok: false, error: 'Unauthorized.' }, { status: 401 })
   try {

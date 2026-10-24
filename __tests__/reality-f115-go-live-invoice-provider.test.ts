@@ -1,4 +1,4 @@
-// reality-defects: F115
+// reality-defects: F115, F117
 // Owner decision 2026-10-23 "Spärra go-live": go-live readiness requires a selected invoice provider, by the same
 // definition the monthly billing cron uses (requireTenantInvoiceProvider), and the tenant's admin gets the action
 // (Fakturering → Integrationer, /admin/billing/integrations). The real readiness evaluator and the real go-live
@@ -110,7 +110,7 @@ function seedCertifiedTenant(company: Row = {}) {
     companies: [{
       id: COMPANY, name: 'E2E Elhandel AB', org_number: '559999-0000', status: 'active', esett_status: 'ready',
       technical_contact_email: 'teknik@example.invalid', ediel_id: '73999',
-      invoice_export_target_system: null, billing_provider_environment: null, invoice_export_enabled: false, ...company,
+      invoice_export_target_system: null, billing_provider_environment: null, invoice_export_enabled: false, billing_automation_enabled: true, ...company,
     }],
     ediel_actor_settings: [
       { id: 'actor-test', company_id: COMPANY, environment: 'test', is_active: true, ediel_id: '73998', actor_role: 'supplier' },
@@ -260,5 +260,53 @@ describe('F115 the server-side go-live transition refuses while the provider is 
     expect(result).toMatchObject({ status: 'live' })
     expect(transitions('live')).toHaveLength(1)
     expect(persistedChecks().at(-1)?.blocking_issues).toEqual([])
+  })
+})
+
+// Owner decision 24 (F117) "Separera förberedelse och utskick": readiness shows both billing steps. Billing automation
+// off means no invoice is ever prepared: a go-live blocker with the action for the tenant's admin. Dispatch not enabled
+// is a warning: invoices are prepared and reviewed before dispatch.
+describe('F117 go-live readiness shows the preparation step and the dispatch step', () => {
+  const provider = { invoice_export_target_system: 'nordfin', billing_provider_environment: 'test' }
+
+  it('billing automation off blocks go-live with the action where the tenant admin turns it on', async () => {
+    seedCertifiedTenant({ ...provider, billing_automation_enabled: false })
+    const readiness = await getCompanyProductionReadiness(COMPANY, { checkedBy: ACTOR })
+    expect(readiness.blockingIssues.map(issue => issue.code)).toEqual(['billing_automation_disabled'])
+    expect(readiness.blockingIssues[0]).toMatchObject({ severity: 'blocking', area: 'billing', label: 'Faktureringsautomation är avstängd',
+      actionLabel: 'Aktivera faktureringsautomation', actionHref: '/admin/billing/integrations' })
+    expect(readiness.blockingIssues[0].message).toContain('inga fakturor förbereds')
+    const result = await settle(activateLiveEdielAction(form({ confirmation: 'ACTIVATE PRODUCTION' })))
+    expect(result.status).toBe('blocked')
+    expect(transitions('live')).toEqual([])
+    expect(persistedChecks().at(-1)?.blocking_issues.map(issue => issue.code)).toContain('billing_automation_disabled')
+  })
+
+  it('provider and billing automation without dispatch: go-live passes, dispatch is a warning with its action', async () => {
+    seedCertifiedTenant({ ...provider, billing_automation_enabled: true, invoice_export_enabled: false })
+    const readiness = await getCompanyProductionReadiness(COMPANY, { checkedBy: ACTOR })
+    expect(readiness.blockingIssues).toEqual([])
+    expect(readiness.passedChecks.map(issue => issue.code)).toEqual(expect.arrayContaining(['invoice_provider_selected', 'billing_automation_enabled']))
+    expect(readiness.passedChecks.map(issue => issue.code)).not.toContain('invoice_dispatch_enabled')
+    expect(readiness.warnings.find(issue => issue.code === 'invoice_dispatch_not_enabled')).toMatchObject({
+      severity: 'warning', area: 'billing', actionHref: '/admin/billing/integrations', actionLabel: 'Testa kopplingen och aktivera utskick' })
+    const result = await settle(activateLiveEdielAction(form({ confirmation: 'ACTIVATE PRODUCTION' })))
+    expect(result).toMatchObject({ status: 'live' })
+    expect(transitions('live')).toHaveLength(1)
+  })
+
+  it('dispatch enabled passes both steps without billing warnings', async () => {
+    seedCertifiedTenant({ ...provider, billing_automation_enabled: true, invoice_export_enabled: true })
+    const readiness = await getCompanyProductionReadiness(COMPANY, { checkedBy: ACTOR })
+    expect(readiness.passedChecks.map(issue => issue.code)).toEqual(expect.arrayContaining(['billing_automation_enabled', 'invoice_dispatch_enabled']))
+    expect(readiness.warnings.filter(issue => issue.area === 'billing')).toEqual([])
+  })
+
+  it('a tenant already live is not retroactively blocked by billing automation off: it is a warning', async () => {
+    seedCertifiedTenant({ ...provider, billing_automation_enabled: false, ediel_production_status: 'live', ediel_production_enabled: true, live_ediel_enabled: true,
+      live_approved_at: '2026-09-01T08:00:00Z', ediel_production_enabled_at: '2026-09-01T08:00:00Z', ediel_first_live_send_approved_at: '2026-09-01T08:05:00Z' })
+    const readiness = await getCompanyProductionReadiness(COMPANY, { checkedBy: ACTOR })
+    expect(readiness.blockingIssues).toEqual([])
+    expect(readiness.warnings.find(issue => issue.code === 'billing_automation_disabled')).toMatchObject({ severity: 'warning', actionHref: '/admin/billing/integrations' })
   })
 })

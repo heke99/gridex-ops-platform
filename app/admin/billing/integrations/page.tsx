@@ -7,6 +7,7 @@ import {
   reprocessInvoiceProviderEventsAction,
   saveNordfinClientIdAction,
   selectInvoiceProviderAction,
+  setBillingAutomationEnabledAction,
   setInvoiceDispatchEnabledAction,
   testCapwayConnectionAction,
 } from './actions'
@@ -30,6 +31,10 @@ const PROVIDER_NOTICES: Record<string, { tone: 'ok' | 'error'; text: string }> =
   invoice_provider_switch_blocked_open_exports: { tone: 'error', text: 'Det finns pågående fakturaexporter. Byt leverantör eller miljö när de är klara.' },
   invoice_provider_not_selected: { tone: 'error', text: 'Välj en fakturaleverantör först.' },
   invoice_provider_connection_not_ready: { tone: 'error', text: 'Kopplingen måste testas med godkänt resultat innan utskick kan aktiveras.' },
+  billing_automation_enabled: { tone: 'ok', text: 'Faktureringsautomationen är aktiverad. Fakturor förbereds varje månad för granskning; inget skickas förrän utskick är aktiverat.' },
+  billing_automation_disabled: { tone: 'ok', text: 'Faktureringsautomationen är avstängd. Inga fakturor förbereds automatiskt.' },
+  billing_automation_changed_concurrently: { tone: 'error', text: 'Inställningen ändrades samtidigt av någon annan. Ladda om och försök igen.' },
+  invoice_provider_environment_missing: { tone: 'error', text: 'Välj leverantörens miljö (test eller produktion) först.' },
   nordfin_client_id_saved: { tone: 'ok', text: 'Nordfins ClientId är sparat.' },
   nordfin_client_id_invalid: { tone: 'error', text: 'ClientId får bara innehålla bokstäver, siffror, - och _ (högst 40 tecken).' },
 }
@@ -177,12 +182,29 @@ export default async function BillingIntegrationsPage({
               Spara leverantör
             </button>
           </form></AdminDisclosurePanel>
-          <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-3">
+          <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-4">
             <div className="rounded-2xl border p-3">
               <dt className="text-slate-600">Vald leverantör</dt>
               <dd className="mt-1 font-semibold">
                 {catalog.find((entry) => entry.provider === selection?.invoice_export_target_system)?.label ?? 'Ingen vald'}
                 {selection?.billing_provider_environment ? ` (${selection.billing_provider_environment === 'production' ? 'produktion' : 'test'})` : ''}
+              </dd>
+            </div>
+            <div className="rounded-2xl border p-3">
+              <dt className="text-slate-600">Faktureringsautomation</dt>
+              <dd className="mt-1 flex flex-wrap items-center gap-3 font-semibold">
+                {selection?.billing_automation_enabled ? 'Aktiverad' : 'Avstängd'}
+                <form action={setBillingAutomationEnabledAction}>
+                  <input type="hidden" name="enabled" value={selection?.billing_automation_enabled ? 'false' : 'true'} />
+                  <button
+                    type="submit"
+                    disabled={!selection?.billing_automation_enabled && !selection?.invoice_export_target_system}
+                    className="rounded-xl border border-slate-300 px-3 py-1.5 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {selection?.billing_automation_enabled ? 'Stäng av faktureringsautomation' : 'Aktivera faktureringsautomation'}
+                  </button>
+                </form>
+                <span className="block w-full text-xs font-normal text-slate-600">Förbereder underlag och fakturor varje månad för granskning. Skickar inget.</span>
               </dd>
             </div>
             <div className="rounded-2xl border p-3">

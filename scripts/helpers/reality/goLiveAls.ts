@@ -56,8 +56,12 @@ export async function goLiveAlsSupplier(report: Record<string, unknown>, options
   report.productionMailbox = await configureProductionMailboxAsOperator(staff)
   // Go-live requires a selected invoice provider (FINDINGS F115, owner decision 2026-10-23 "Spärra go-live"): the tenant's own
   // billing admin chooses it under Fakturering → Integrationer before the platform takes the supplier live, as a real supplier must.
+  // The same admin then turns on billing automation, which go-live also requires (FINDINGS F117, owner decision 24): the
+  // monthly cron prepares invoices for review; dispatch to the provider stays off (no tested connection, nothing is sent).
   report.invoiceProvider = await selectInvoiceProviderAsTenant(tenant.companyId)
-  if (!(report.invoiceProvider as { stored?: { provider?: string | null } }).stored?.provider) throw Error(`invoice_provider_not_selected_before_go_live:${JSON.stringify(report.invoiceProvider)}`)
+  const storedBilling = (report.invoiceProvider as { stored?: { provider?: string | null; billingAutomation?: boolean | null } }).stored
+  if (!storedBilling?.provider) throw Error(`invoice_provider_not_selected_before_go_live:${JSON.stringify(report.invoiceProvider)}`)
+  if (storedBilling.billingAutomation !== true) throw Error(`billing_automation_not_enabled_before_go_live:${JSON.stringify(report.invoiceProvider)}`)
   // FINDINGS F36/F37: no supported path takes a new supplier live in production or publishes a receiver's
   // certificate trust. The simulation stands in for Ediel certification, first-send approval and the external
   // trust owner; everything after it is the real code. Routes are materialized after go-live, as for a supplier

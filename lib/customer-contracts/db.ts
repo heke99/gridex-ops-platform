@@ -10,7 +10,7 @@ import type {
   CustomerContractTerminationReason,
   ContractEnergyDirection,
 } from "./types";
-import { deriveContractEndsAt } from "./lifecycle";
+import { contractTerminationEndDate, deriveContractEndsAt } from "./lifecycle";
 
 export class ContractReadModelError extends Error {
   readonly code: string;
@@ -1390,21 +1390,16 @@ export async function addCustomerContractEvent(input: {
       .maybeSingle();
     if (currentError) throw currentError;
     if (!current) throw new Error("Kundavtalet hittades inte för valt bolag.");
-    // FINDINGS H3d D1/B3: the contract's notice days count as well (the database's
-    // gridex_contract_termination_end_v1 is the same rule); the scheduled check
-    // (gridex_termination_notice_expiry_tasks_v1) asks for a Z08 when this end passes without a switch.
+    // FINDINGS H3d D1/B3/B5: the contract ends after its notice period (months and the contract's notice days), also
+    // inside the binding period (owner decision B5; the database's gridex_contract_termination_end_v1 is the same
+    // rule). The scheduled check (gridex_termination_notice_expiry_tasks_v1) asks for a Z08 14 days before this end
+    // unless a new supplier's Z05 ends the supply first (B6).
     const noticeDays = await getCustomerContractNoticeDays(input.companyId, input.customerContractId);
-    derivedEndsAt = deriveContractEndsAt({
-      startsAt: current.starts_at ?? null,
+    derivedEndsAt = contractTerminationEndDate({
       endsAt: current.ends_at ?? null,
-      bindingMonths: current.binding_months ?? null,
       noticeMonths: current.notice_months ?? null,
       noticeDays,
       terminationNoticeDate: eventPayload.happened_at,
-      terminationReason: current.termination_reason ?? null,
-      autoRenewEnabled: current.auto_renew_enabled ?? null,
-      autoRenewTermMonths: current.auto_renew_term_months ?? null,
-      status: current.status ?? null,
     });
   }
 
@@ -1443,6 +1438,16 @@ export async function addCustomerContractEvent(input: {
       : null;
   if (!result?.event?.id) {
     throw new Error("Kanoniskt avtalsevent saknas i RPC-svaret.");
+  }
+  if (input.eventType === "termination_notice_received") {
+    // FINDINGS H3d owner decision B5: a termination inside the binding period gets one operator fee review per
+    // contract (idempotent; the operator decides on a break fee and nothing is charged automatically).
+    const { error: reviewError } = await supabaseService.rpc("gridex_termination_break_fee_review_v1", {
+      p_company_id: input.companyId,
+      p_customer_contract_id: input.customerContractId,
+      p_actor_user_id: input.actorUserId ?? null,
+    });
+    if (reviewError) throw reviewError;
   }
   return result.event;
 }

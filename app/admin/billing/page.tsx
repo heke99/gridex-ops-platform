@@ -90,6 +90,9 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
   const providerSelection = companyId ? await loadTenantInvoiceProviderSelection(companyId).catch(() => null) : null
   const fileProvider = isFileProvider(providerSelection?.invoice_export_target_system) ? providerSelection.invoice_export_target_system : null
   const fileMode = fileProvider !== null
+  // Preparation and review do not need dispatch (FINDINGS F117); sending and invoice files do.
+  const dispatchEnabled = providerSelection?.invoice_export_enabled === true
+  const billingAutomationEnabled = providerSelection?.billing_automation_enabled === true
   const fileEnvironment = providerSelection?.billing_provider_environment ?? null
   const [fileCandidates, invoiceFiles] = companyId && fileMode && fileEnvironment
     ? await Promise.all([
@@ -115,9 +118,19 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
 
         {companyId && (params.sent || params.failed) ? (
           <section className="rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm shadow-sm">
-            {params.mode === 'file'
+            {params.mode === 'approve_only'
+              ? <>Batch klar: <strong>{params.approved ?? '0'} nygodkända</strong> och {params.failed ?? '0'} misslyckade. Utskick är inte aktiverat, så inget har skickats. Aktivera utskick under <Link href="/admin/billing/integrations" className="underline">Fakturering → Integrationer</Link> för att skicka dem.</>
+              : params.mode === 'file'
               ? <>Batch klar: <strong>{params.approved ?? '0'} nygodkända</strong> och {params.failed ?? '0'} misslyckade. Skapa fakturafilen nedan för att skicka dem till fakturaleverantören.</>
               : <>Batch klar: <strong>{params.sent ?? '0'} skickade</strong>, {params.failed ?? '0'} misslyckade och {params.approved ?? '0'} nygodkända.</>}
+          </section>
+        ) : null}
+
+        {companyId && providerSelection && (!billingAutomationEnabled || (!fileMode && !dispatchEnabled)) ? (
+          <section role="status" className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
+            {!billingAutomationEnabled ? <p>Faktureringsautomationen är avstängd: inga fakturor förbereds automatiskt varje månad.</p> : null}
+            {!fileMode && !dispatchEnabled ? <p>Utskick är inte aktiverat: fakturor kan granskas och godkännas men skickas inte.</p> : null}
+            <p>Ändra det under <Link href="/admin/billing/integrations" className="underline">Fakturering → Integrationer</Link>.</p>
           </section>
         ) : null}
 
@@ -202,7 +215,7 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
             <form action={approveAndSendReadyInvoicesAction}>
               <input type="hidden" name="billing_month" value={selectedMonth} />
               <button className="h-11 rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white shadow-sm hover:bg-slate-800">
-                {fileMode ? `Godkänn ${sendableCount} klara fakturor` : `Godkänn och skicka ${sendableCount} klara fakturor`}
+                {fileMode || !dispatchEnabled ? `Godkänn ${sendableCount} klara fakturor` : `Godkänn och skicka ${sendableCount} klara fakturor`}
               </button>
             </form>
           ) : null}

@@ -69,7 +69,7 @@ vi.mock('@/app/admin/billing/ai-parser/actions', () => ({ createDocumentAiExtrac
 vi.mock('@/app/admin/billing/import/actions', () => ({ importBillingUnderlayFileAction: vi.fn() }))
 vi.mock('@/app/admin/billing/integrations/actions', () => ({
   reprocessInvoiceProviderEventsAction: vi.fn(), saveNordfinClientIdAction: vi.fn(), selectInvoiceProviderAction: vi.fn(),
-  setInvoiceDispatchEnabledAction: vi.fn(), testCapwayConnectionAction: vi.fn(),
+  setBillingAutomationEnabledAction: vi.fn(), setInvoiceDispatchEnabledAction: vi.fn(), testCapwayConnectionAction: vi.fn(),
 }))
 vi.mock('@/app/admin/company-settings/actions', () => ({ updateCompanyResponsibleUserAction: vi.fn(), updateCompanySettingsAction: vi.fn() }))
 vi.mock('@/app/admin/contracts/actions', () => ({

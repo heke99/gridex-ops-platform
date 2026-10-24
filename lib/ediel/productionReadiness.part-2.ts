@@ -7,7 +7,7 @@ import { ACTOR_TEST_CASES } from "@/lib/ediel/actorTesting"
 import { evaluateCanonicalActorTestReadiness, type CanonicalGoLiveReadinessSnapshot } from '@/lib/ediel/productionReadinessTestAuthority'
 import { evaluateCertificateStatus } from "@/lib/ediel/security/certificateStatus"
 import { getLatestSystemClockHealth } from "@/lib/ediel/operations/runtimeHealth"
-import { evaluateTenantInvoiceProviderReadiness } from "@/lib/billing/providers/registry"
+import { evaluateTenantBillingAutomationReadiness, evaluateTenantInvoiceDispatchReadiness, evaluateTenantInvoiceProviderReadiness } from "@/lib/billing/providers/registry"
 
 
 import type { ActorSettingRow, BrpSettingRow, MailboxRow, ProductionReadinessIssue, ProductionReadinessResult, RouteProfileRow, SendLockRow } from './productionReadiness.part-1'
@@ -1051,6 +1051,46 @@ export async function getCompanyProductionReadiness(
       area: "billing",
       actionLabel: invoiceProvider.actionLabel,
       actionHref: invoiceProvider.actionHref,
+    });
+
+  // F117 (owner decision 24 "Separera förberedelse och utskick"): both billing steps are shown. Preparation needs
+  // billing automation (off means no invoice is ever prepared: a go-live blocker, a warning for a tenant already
+  // live). Dispatch needs a tested connection and its own activation; invoices can be reviewed before it: a warning.
+  const billingAutomation = evaluateTenantBillingAutomationReadiness(company);
+  if (billingAutomation.ready)
+    pass(
+      "billing",
+      "billing_automation_enabled",
+      "Faktureringsautomation är aktiverad",
+      "Fakturor förbereds varje månad för granskning.",
+    );
+  else
+    (hasBeenLive ? warnings : blocking).push({
+      code: billingAutomation.code,
+      label: "Faktureringsautomation är avstängd",
+      message: billingAutomation.message,
+      severity: hasBeenLive ? "warning" : "blocking",
+      area: "billing",
+      actionLabel: billingAutomation.actionLabel,
+      actionHref: billingAutomation.actionHref,
+    });
+  const invoiceDispatch = evaluateTenantInvoiceDispatchReadiness(company);
+  if (invoiceDispatch.ready)
+    pass(
+      "billing",
+      "invoice_dispatch_enabled",
+      "Utskick till fakturaleverantör är aktiverat",
+      "Godkända fakturor skickas till den valda fakturaleverantören.",
+    );
+  else
+    warnings.push({
+      code: invoiceDispatch.code,
+      label: "Utskick till fakturaleverantör är inte aktiverat",
+      message: invoiceDispatch.message,
+      severity: "warning",
+      area: "billing",
+      actionLabel: invoiceDispatch.actionLabel,
+      actionHref: invoiceDispatch.actionHref,
     });
 
   const status = deriveProductionReadinessStatus({

@@ -99,6 +99,13 @@ export async function updateMeterValueBillingReadiness(params: {
   if (normalizedRows.length !== 1) throw new Error(normalizedRows.length > 1 ? 'normalized_metering_current_revision_conflict' : 'normalized_metering_current_revision_missing')
   const normalizedValue = (await loadQualifiedBillingValues(companyId, [String(normalizedRows[0].id)])).get(String(normalizedRows[0].id))!
   const normalizedValueId = String(normalizedValue.id)
+  // The gate binds the value to its OWN origin, the message that stored this revision. A later file that re-sent
+  // the same quantity (a corrected E66 day re-sends all quarters) only adds a source link to the stored value: it
+  // triggered this evaluation but is not the value's billing source (FINDINGS F116). The trigger keeps the item.
+  const sourceMessageId = params.meterValue.source_ediel_message_id
+    ?? (typeof normalizedValue.source_message_id === 'string' ? normalizedValue.source_message_id : null)
+    ?? params.sourceMessageId ?? null
+  const triggerMessageId = params.sourceMessageId ?? sourceMessageId
 
   if (!meteringPointId || !periodStartRaw || !periodEndRaw) {
     const gate = evaluateBillingGate({ normalizedValue, allowEstimatedValues: params.allowEstimatedValues })
@@ -110,7 +117,7 @@ export async function updateMeterValueBillingReadiness(params: {
       gateStatus: gate.status,
       gateReasons: gate.reasons,
       gateSnapshot: gate.snapshot,
-      sourceMessageId: params.sourceMessageId ?? params.meterValue.source_ediel_message_id ?? null,
+      sourceMessageId,
     })
     return canonicalStatus(gate.status)
   }
@@ -162,7 +169,6 @@ export async function updateMeterValueBillingReadiness(params: {
     contracts = (contractResponse.data ?? []) as Array<Record<string, unknown>>
   }
 
-  const sourceMessageId = params.sourceMessageId ?? params.meterValue.source_ediel_message_id ?? (typeof normalizedValue.source_message_id === 'string' ? normalizedValue.source_message_id : null)
   const sourceMessage = normalizedValue.billing_source_message as Record<string, unknown> | null;
 
   const evaluated = evaluateBillingGate({
@@ -217,13 +223,13 @@ export async function updateMeterValueBillingReadiness(params: {
     const fileWide = !periodWide && issueType !== 'billing_gate_blocked'
     await createBillingUnresolvedItem({
       companyId,
-      sourceMessageId,
+      sourceMessageId: triggerMessageId,
       issueType,
       severity: gate.status === 'conflict' ? 'critical' : 'warning',
       identifiers: periodWide
         ? { meteringPointId, supplyPeriodIds: periods.map((row) => row.id), reasonCodes: ['supply_source_unqualified'] }
         : fileWide
-        ? { meteringPointId, sourceMessageId, supplyPeriodIds: periods.map((row) => row.id), reasonCodes: [...new Set(gate.reasons.map((entry) => entry.code))].sort() }
+        ? { meteringPointId, sourceMessageId: triggerMessageId, supplyPeriodIds: periods.map((row) => row.id), reasonCodes: [...new Set(gate.reasons.map((entry) => entry.code))].sort() }
         : {
             meterValueId: params.meterValue.id,
             normalizedValueId,
