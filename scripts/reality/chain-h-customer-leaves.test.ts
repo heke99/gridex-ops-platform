@@ -297,7 +297,8 @@ describe.sequential('reality H — the customer leaves', () => {
     for (const u of forCustomer(current.underlays, M)) expect(Date.parse(String(u.end)), `M underlay ${JSON.stringify(u)}`).toBeLessThanOrEqual(Date.parse(mEndBoundary))
     expect.soft(forCustomer(current.underlays, S), `H2 S is still supplied in ${months[0].key}`).toHaveLength(1)
     // No Z13 history request was sent for a customer who left.
-    report.outboundAfterBilling = { S: outboundFor(tenant.companyId, S.facility!.meteringPointId), M: outboundFor(tenant.companyId, M.facility!.meteringPointId) }
+    // Keyed by first name, as read below (T25).
+    report.outboundAfterBilling = { [S.firstName]: outboundFor(tenant.companyId, S.facility!.meteringPointId), [M.firstName]: outboundFor(tenant.companyId, M.facility!.meteringPointId) }
     for (const p of [S, M]) expect.soft((report.outboundAfterBilling as Record<string, Row[]>)[p.firstName].filter(m => m.code === 'Z13'), `${p.firstName}: no history request`).toEqual([])
   }, 30 * 60_000)
 
@@ -317,7 +318,7 @@ describe.sequential('reality H — the customer leaves', () => {
     }
     report.access = access
     // History is kept after the end: S (ending) and M (if its end applied) still see their own last days.
-    expect.soft((access.S as Row).visible, 'S keeps its own history').toBeGreaterThan(0)
+    expect.soft((access[S.firstName] as Row).visible, 'S keeps its own history').toBeGreaterThan(0)
   })
 
   it('H8 a pending switch: W withdraws (ångerrätt) and C is cancelled by the supplier (Z03C → Z04C)', async (context) => {

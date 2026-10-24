@@ -2525,6 +2525,10 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **H-16 verifierad:** ångeråtgärden svarar 200 och kunden får `withdrawal_received`. Annulleringen hålls (`manual_review`), se H-17.
 - **H6:** fortfarande inget oktoberunderlag för S, se H6 nedan i STATUS.
 
+### T25 Scenario H läste sina rapportfält med fel nyckel — HARNESS; RÄTTAD
+- H6 sparade `outboundAfterBilling` under `S`/`M` men läste det med förnamnet (TypeError `filter`). H7 sparade `access` under förnamnet men läste `access.S` (TypeError `visible`). Nu används förnamnet på båda ställena.
+- **H6, ägarfråga:** testet väntar sig ett oktoberunderlag för S, men scenariot mäter bara 3 av 31 dagar. Enligt produktens regel sparas då inget underlag (`estimated_source_missing`, "väntar på mätvärden"). E73 stoppas på `utilts_e73_bilateral_capability_missing`, vilket är en avsiktlig spärr. Ska scenariot leverera hela oktober, eller ska ett ofullständigt underlag lagras i `needs_review`? Förväntan är inte ändrad.
+
 ### H-17 Ingen Z03C är möjlig efter en ånger: annulleringens behörighet vägrar det pausade bytet — BEKRÄFTAD (världen), hög; RÄTTAD (SQL)
 - **Bevis:** `ediel_switch_cancellation_source_v1` ger för W `held` med `same_current_owned_switch_customer_contract_physical_scope`. Ärendet får `cancellation_status = manual_review`.
 - **Orsak:** ångern pausar bytet för annullering (`cancellation_requested`, `lifecycle_blocked = true`, källa `customer_case`). `gridex_switch_cancellations.context_v1`, behörigheten för varje Z03C, vägrade varje byte med `lifecycle_blocked`. Den annullering som ångern begär kunde alltså aldrig byggas.
