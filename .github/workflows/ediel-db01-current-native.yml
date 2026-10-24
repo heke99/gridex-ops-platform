@@ -215,10 +215,35 @@ jobs:
           # (GHSA-2464-fhr4-w9xw, GHSA-p3m5-59mp-jv5r).
           exact_next_security_dependencies = {'package.json': {'mode': '100644', 'git_blob_oid': '6773cdc230b659091700b6582181477e01856a86', 'sha256': '8106165e1d34761e56f1eba99f9268f3aaa2228f105f2f20e365d6bc2c9a5fde'}, 'package-lock.json': {'mode': '100644', 'git_blob_oid': '31f1c20801f94cfbef7ec71722e8452967cbb470', 'sha256': '59623bc0f74bc1e57c5940788e8ed0b3c65123d08193f34e9d6659c5065f9f7c'}}
           exact_zod_security_dependencies = {'package.json': {'mode': '100644', 'git_blob_oid': '7f0baef1da8ff1aa410a40d0835346749281a506', 'sha256': '52af42e9b40c440622dd09ad15126968278ad121f9fa66451c2fac68783f0f38'}, 'package-lock.json': {'mode': '100644', 'git_blob_oid': 'a6e86ff9b2dff932b18afcd0963c3d3fae12de58', 'sha256': 'd0501a03422daaa93721fc7813751eb5eee12a85ae85a6ff6902d48546d2edc4'}}
+          exact_undici_security_dependencies = {'package.json': {'mode': '100644', 'git_blob_oid': '573c4d9650dac26a8ad62cf7f5dd3a2d7e83870f', 'sha256': '5e4efe56665e72e90c5ff5a300b9bf5e0dfa7f18871df7bae5983833f18a445c'}, 'package-lock.json': {'mode': '100644', 'git_blob_oid': '566689dbc2a2dd33b553e10f6b3f567a3fcaf078', 'sha256': '92c0e55a7775b8e87e5a6eb02bbf908a9d6ddf7061cfad4b477d7f9f768e5a10'}}
+          def qualify_mailauth_undici(root):
+              # Only the reviewed scoped override and official undici tuple may compose
+              # with the immutable, exact Zod dependency pair. No BASE file is modified.
+              prior_oids=('7f0baef1da8ff1aa410a40d0835346749281a506','a6e86ff9b2dff932b18afcd0963c3d3fae12de58')
+              prior_hashes=('52af42e9b40c440622dd09ad15126968278ad121f9fa66451c2fac68783f0f38','d0501a03422daaa93721fc7813751eb5eee12a85ae85a6ff6902d48546d2edc4')
+              prior=[]
+              for oid,expected in zip(prior_oids,prior_hashes):
+                  data=subprocess.check_output(['git','cat-file','blob',oid],cwd=root)
+                  if hashlib.sha256(data).hexdigest()!=expected:raise RuntimeError('mailauth_undici_predecessor_unqualified')
+                  prior.append(json.loads(data))
+              declared=json.loads((root/'package.json').read_text())
+              locked=json.loads((root/'package-lock.json').read_text())
+              if declared.get('overrides',{}).get('mailauth')!={'undici':'8.12.2'}:
+                  raise RuntimeError('mailauth_undici_override_unqualified')
+              del declared['overrides']['mailauth']
+              node=locked['packages']['node_modules/undici']
+              exact={'version':'8.12.2','resolved':'https://registry.npmjs.org/undici/-/undici-8.12.2.tgz','integrity':'sha512-XtuDWVdqTLr3NAxm2ly9/hU6kUsJOgGh1RASzMBbsw6aWCOaQzHdW+QQDfdERjfJ2V5vL5pRPa4RetO9UfivDg=='}
+              if any(node.get(k)!=v for k,v in exact.items()):raise RuntimeError('mailauth_undici_lock_tuple_unqualified')
+              for k in exact:node[k]=prior[1]['packages']['node_modules/undici'][k]
+              if declared!=prior[0] or locked!=prior[1]:raise RuntimeError('mailauth_undici_other_dependency_changed')
           if {p:baseline['blobs'].get(p) for p in dependency_paths} != expected_base_dependencies:
               raise RuntimeError('db01_BASE_dependency_inputs_changed')
-          exact_mail = {p:current['blobs'].get(p) for p in dependency_paths} in (exact_mail_dependencies, exact_next_security_dependencies, exact_zod_security_dependencies)
-          exact_zod = {p:current['blobs'].get(p) for p in dependency_paths} == exact_zod_security_dependencies
+          exact_undici = {p:current['blobs'].get(p) for p in dependency_paths} == exact_undici_security_dependencies
+          if exact_undici:
+              qualify_mailauth_undici(root)
+              if json.loads((root/'node_modules/undici/package.json').read_text())['version']!='8.12.2':raise RuntimeError('mailauth_undici_installed_version_mismatch')
+          exact_mail = {p:current['blobs'].get(p) for p in dependency_paths} in (exact_mail_dependencies, exact_next_security_dependencies, exact_zod_security_dependencies, exact_undici_security_dependencies)
+          exact_zod = {p:current['blobs'].get(p) for p in dependency_paths} in (exact_zod_security_dependencies, exact_undici_security_dependencies)
           for path in ['package.json','package-lock.json','.nvmrc','.npmrc']:
               if current['blobs'].get(path) != baseline['blobs'].get(path) and not (exact_mail and path in dependency_paths):
                   raise RuntimeError('BASE/current dependency inputs differ: '+path)
@@ -249,6 +274,8 @@ jobs:
               dependency_compatibility['compatibility']='EXACT_ZOD_4_6_7_WITH_NEXT_16_4_2_MAIL_AND_SECURITY_FIXES'
               dependency_compatibility['actual_installed_versions']['zod']=actual
               dependency_compatibility['actual_locked_zod']=locked['packages']['node_modules/zod']['version']
+          if exact_undici:
+              dependency_compatibility['qualified_mailauth_undici']={'override':{'mailauth':{'undici':'8.12.2'}},'locked_version':'8.12.2','predecessor':'EXACT_ZOD_4_6_7_WITH_NEXT_16_4_2_MAIL_AND_SECURITY_FIXES'}
           for path,expected in expected_sql_hashes.items():
               if current['blobs'][path]['sha256'] != expected:
                   raise RuntimeError('exact SQL source identity changed: '+path)
