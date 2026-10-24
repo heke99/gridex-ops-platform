@@ -2493,6 +2493,29 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **H8:** W:s skickade byte står kvar som `prepared` och ingen Z03C skapas, se H-12.
 - Världen byggdes med Supabase-bilderna från Docker Hub (`SUPABASE_INTERNAL_IMAGE_REGISTRY=docker.io`) och `xlsx@0.18.5` från npm-registret i stället för cdn.sheetjs.com (bara lokalt, inte committat).
 
+### H körning 3 (2026-10-24 ca 20:45–21:10, världen på 668492059 med G-8 och H-13 applicerade, snabbläge): 6 av 9 gröna; H6, H7 och H8 röda
+- **H4 och H5 gröna:** T23 (avgiftsgranskning för S och M) och H-13 (M:s värden före flytten är debiterbara) är verifierade i världen.
+- **H-12 verifierad:** W:s byte blir `cancellation_requested` och `lifecycle_blocked`. Ingen Z03C skapas ändå, se H-14.
+- **H6:** inget oktoberunderlag. Autopiloten kan inte begära saknade värden (`communication_route_company_required`), se H-15. Ett underlag i `needs_review` lagras inte (`underlayId: null`); det bedöms efter körning 4. **H7:** följer av H6.
+
+### H-14 Ånger efter skickad Z03 bedöms som "före PRODAT" och ger ingen annullering — BEKRÄFTAD (världen), hög; RÄTTAD (TS)
+- **Bevis:** W:s ärende har `withdrawal_scenario = before_prodat_sent` och `cancellation_required = false`, trots att Z03 är `sent`. Därför skapas ingen Z03C (`createCancellationDraftForCase` körs inte).
+- **Orsak:** ångeråtgärden (`app/admin/customers/[id]/actions.part-4.ts`) läste sändtiden bara från bytets `submitted_at`/`sent_at`/`dispatched_at`. `submitted_at` skrivs aldrig för en skickad Z03 (GOR-06).
+- **Rättning:** `lib/customer-cases/switchProdatSentAt.ts` tar sändtiden från bytets bundna utgående Z03 (`message_sent_at`) när den är `sent`, `acknowledged` eller `delivered`. Bytets egna fält går först.
+- **Test:** `__tests__/reality-h14-withdrawal-after-z03-sent.test.ts`, 3 fall, inklusive att bedömningen då kräver annullering.
+
+### T24 Harnessens avtal var inga distansavtal — HARNESS; RÄTTAD
+- Fixturen gav avtalen `source_type = manual_override`. Ångerrätt kräver distansavtal, så W:s ånger hade bedömts som "kan inte stoppas" även med H-14.
+- **Rättning:** `augustSupplyCustomer` har fått `agreementSource`. H använder `website_application` bara för W och C; övriga scenarier är oförändrade.
+
+### H-15 Autopiloten kan inte begära saknade mätvärden: route-uppslaget saknar tenant — BEKRÄFTAD (världen), hög; RÄTTAD (TS)
+- **Bevis:** `/api/cron/billing/monthly` för 2026-10 ger REVIEW för alla 5 mätpunkter med felet `communication_route_company_required`.
+- **Orsak:** `ensureOutboundForGridOwnerDataRequest` (`lib/cis/edielAutomation.ts`) anropade `findBestCommunicationRoute` utan `companyId`, och den vägrar då. Samma lucka fanns i `lib/cis/db-outbound.ts:833`, när en utgående begäran uppdateras.
+- **Konsekvens:** en luckfylld månad kan aldrig kompletteras automatiskt med E73, och underlaget blir kvar i granskning.
+- **Rättning:** båda anropen skickar begärans egen `company_id`.
+- **Test:** `__tests__/reality-h15-data-request-route-tenant.test.ts`. Utan rättningen faller den med `communication_route_company_required`.
+- Relaterade tester: 32 filer, 303 pass. `tsc` rent. Täckningen 352/352, `tagged failing 0`.
+
 ### H-12 Ånger stoppar inte ett byte vars Z03 är skickad (status `prepared`) — BEKRÄFTAD (världen), hög; RÄTTAD (TS)
 - **Bevis:** W:s Z03 `e627d419…` är `sent`, men bytet `f2a3f886…` står kvar som `prepared` efter ångern. Ingen Z03C skapas, och avtalet blir `cancelled`.
 - **Orsak:** databasen binder Z03-originalet med status `prepared` och behåller den till Z04 (GOR-06). Ångern väljer öppna byten med `OPEN_SUPPLIER_SWITCH_STATUSES` (`lib/operations/switchLifecycleBlocks.ts`), som saknade `prepared`. Samma lucka som GOR-07.

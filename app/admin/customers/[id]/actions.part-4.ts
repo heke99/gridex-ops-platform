@@ -1,4 +1,5 @@
 // Extracted from actions.ts; keep public imports on the facade module.
+import { switchProdatSentAt } from "@/lib/customer-cases/switchProdatSentAt";
 import { revalidatePath } from "next/cache"
 
 
@@ -511,12 +512,20 @@ export async function registerCustomerLifecycleDecisionAction(
     "actual_start_at",
     "starts_at",
   );
-  const prodatSentAt = stringField(
-    switchContext,
-    "submitted_at",
-    "sent_at",
-    "dispatched_at",
-  );
+  // A sent Z03 leaves the switch 'prepared' without submitted_at; its bound outbound message is the evidence (H-14).
+  let z03Message: Record<string, unknown> | null = null;
+  const z03MessageId = stringField(switchContext, "outbound_z03_message_id");
+  if (z03MessageId) {
+    const { data, error } = await supabaseService
+      .from("ediel_messages")
+      .select("id,status,message_sent_at")
+      .eq("company_id", companyId)
+      .eq("id", z03MessageId)
+      .maybeSingle();
+    if (error && !isDatabaseShapeError(error)) throw error;
+    z03Message = (data as Record<string, unknown> | null) ?? null;
+  }
+  const prodatSentAt = switchProdatSentAt(switchContext, z03Message);
 
   const caseType =
     decisionType === "withdrawal"

@@ -831,6 +831,7 @@ export async function refreshOutboundRequestRouteResolution(input: {
   }
 
   const route = await findBestCommunicationRoute({
+    companyId: current.company_id ?? null,
     requestType: current.request_type,
     gridOwnerId: current.grid_owner_id,
   })

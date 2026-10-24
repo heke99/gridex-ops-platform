@@ -79,7 +79,9 @@ async function resolveRouteIdForDataRequest(params: {
 }): Promise<string | null> {
   if (params.communicationRouteId) return params.communicationRouteId
 
+  // The route belongs to the request's tenant; without it the lookup refuses (FINDINGS H-15).
   const best = await findBestCommunicationRoute({
+    companyId: params.row.company_id ?? null,
     requestType: params.requestType,
     gridOwnerId: params.row.grid_owner_id,
   })

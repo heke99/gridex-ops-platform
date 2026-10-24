@@ -24,7 +24,7 @@ Den hör ihop med tre andra dokument:
 | A–E | tidigare omgångar | gröna och rättade | — |
 | F (faktura) | 29: 8/12 gröna; 30: avbruten efter 2 h (T22) | F116, F117 och T21 rättade efter körning 29; G-6 och G-6b behövs för F8 | Kör om när G-8 är klart |
 | G (vintertid) | 2: 8/11 gröna | G-4, G-5, G-6 och G-6b rättade efter körningen | Kör om |
-| H (kunden lämnar) | 2: 4/9 gröna; 3 pågår | H-9, H-10, H-12, H-13 och T23 rättade | Läs körning 3 |
+| H (kunden lämnar) | 3: 6/9 gröna; 4 pågår | H-9, H-10, H-12, H-13, T23 verifierade; H-14, H-15, T24 rättade | Läs körning 4 |
 | I, J1–J4, K | ej körda i denna omgång | — | Kör efter H |
 
 ## Rättat i denna omgång (commit → fynd)

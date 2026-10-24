@@ -122,12 +122,12 @@ async function receiveUntil(done: () => boolean, minutes: number) {
   }
   return runs
 }
-async function establishCustomers(parties: Party[], supplyStart: string, signedAt: string, switchCreatedAt: string) {
+async function establishCustomers(parties: Party[], supplyStart: string, signedAt: string, switchCreatedAt: string, agreementSource?: 'website_application') {
   const grid = sql<{ id: string; ediel: string }>(`SELECT jsonb_build_object('id',id,'ediel',ediel_id) FROM public.grid_owners WHERE ediel_id=${literal(GRID_OWNER_EDIEL_ID)} AND company_id IS NULL`)
   for (const p of parties) {
     const one = await augustSupplyCustomer(tenant, { firstName: p.firstName, lastName: p.lastName, personalNumber: p.personalNumber, email: p.email, address: p.address,
       supplyStart, authorizedAt: signedAt, grid: { gridOwnerId: grid.id, gridOwnerEdielId: grid.ediel, gridAreaCode: GRID_AREA },
-      facilities: [{ gsrn: p.gsrn, ...p.address, annualConsumptionKwh: 6_000 }] })
+      facilities: [{ gsrn: p.gsrn, ...p.address, annualConsumptionKwh: 6_000 }], agreementSource })
     p.customerId = one.customerId
     p.facility = one.facilities[0]
   }
@@ -326,7 +326,8 @@ describe.sequential('reality H — the customer leaves', () => {
     // every Z03 with an L confirmation, also a Z03C; see the proposed gridOwner.ts patch in the report).
     await gridOwner.profile({ z04DelayMs: 24 * 3_600_000 })
     const now = new Date().toISOString()
-    report.pendingZ03 = await establishCustomers([W, C], PENDING_START, now, now)
+    // W and C signed on the website: a distance agreement with the right of withdrawal (T24).
+    report.pendingZ03 = await establishCustomers([W, C], PENDING_START, now, now, 'website_application')
     report.pendingSend = await receiveUntil(() => [W, C].every(p => sql<boolean>(`SELECT EXISTS(SELECT FROM public.ediel_messages WHERE id=(SELECT outbound_z03_message_id FROM public.supplier_switch_requests WHERE id=${literal(p.switchId!)}) AND status IN ('sent','acknowledged','delivered'))`)), 10)
 
     // W: the customer withdraws by phone; staff register it on the customer card (Ånger och avslut).
