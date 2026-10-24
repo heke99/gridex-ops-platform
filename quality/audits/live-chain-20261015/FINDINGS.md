@@ -2385,6 +2385,7 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - Ett bolag får alltså inte ens förberedda fakturor att granska förrän det har aktiverat utskick till en testad leverantör. Resultatet är att körning 29 fick 0 underlag och 0 fakturor med felet "Fakturaförberedelse är inte aktiverad för tenant."
 - Go-live-spärren i F115 kontrollerar bara att en leverantör är vald, inte de här flaggorna.
 - Kräver beslut eller utredning: ska förberedelsen kräva utskick, eller ska förberedelsen och utskicket vara separata steg?
+- **ÄGARBESLUT 2026-10-24 "Separera förberedelse och utskick":** förberedelsen körs när en leverantör är vald och faktureringsautomationen är på. Utskicket kräver en testad anslutning och aktivering. Beredskapen visar båda stegen.
 
 ### T21 Harnessens oberoende beräkning i F9 saknar spotpriset för Ediel-månadens sista timme (civil 1 oktober, 2026-09-30T22:00Z) — ÖPPEN (harness)
 - F9 måste läsa spotpriset för 1 oktober, som motorn fyller i enligt F108, eller importera det i F7.
