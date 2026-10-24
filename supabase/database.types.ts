@@ -11158,6 +11158,7 @@ export type Database = {
         Row: {
           attempt_count: number
           available_at: string
+          claim_turn: number
           claimed_at: string | null
           company_id: string
           completed_at: string | null
@@ -11182,6 +11183,7 @@ export type Database = {
         Insert: {
           attempt_count?: number
           available_at?: string
+          claim_turn?: number
           claimed_at?: string | null
           company_id: string
           completed_at?: string | null
@@ -11206,6 +11208,7 @@ export type Database = {
         Update: {
           attempt_count?: number
           available_at?: string
+          claim_turn?: number
           claimed_at?: string | null
           company_id?: string
           completed_at?: string | null

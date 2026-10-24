@@ -40536,19 +40536,93 @@ begin
   where job.status = 'processing'
     and job.locked_at < now() - make_interval(secs => greatest(30, least(p_lease_seconds, 3600)));
 
+  -- G-3 (20261024110000): a readiness revalidation always evaluates the company's current snapshot, so an older
+  -- unclaimed revalidate job is redundant once a newer one of the same company is completed, processing or claimable.
+  -- At most100 rows are closed per call; logical exclusion below does not wait
+  -- for all stale rows to be physically closed. Rows and audit evidence remain.
+  with superseded as (
+    select stale.id, newer.id as newer_id, newer.idempotency_key as newer_key
+    from public.company_provisioning_jobs stale
+    cross join lateral (
+      select candidate.id, candidate.idempotency_key
+      from public.company_provisioning_jobs candidate
+      where candidate.company_id = stale.company_id
+        and candidate.job_key = 'ediel_readiness_revalidate'
+        and (candidate.created_at, candidate.id) > (stale.created_at, stale.id)
+        and (candidate.status in ('completed','processing')
+             or (candidate.status in ('pending','retry') and candidate.attempt_count < candidate.max_attempts))
+      order by candidate.created_at desc, candidate.id desc
+      limit 1
+    ) newer
+    where stale.job_key = 'ediel_readiness_revalidate'
+      and stale.status in ('pending','retry')
+      and stale.attempt_count < stale.max_attempts
+    order by stale.created_at,stale.id
+    for update of stale skip locked
+    limit 100
+  )
+  update public.company_provisioning_jobs stale
+  set status = 'completed',
+      completed_at = now(),
+      last_error_code = 'superseded_by_newer_revalidation',
+      last_error_message = null,
+      last_error_details = jsonb_build_object(
+        'superseded_by_job_id', superseded.newer_id,
+        'superseded_by_idempotency_key', superseded.newer_key,
+        'superseded_at', now()),
+      locked_at = null,
+      locked_by = null,
+      lease_token = null,
+      updated_at = now()
+  from superseded
+  where stale.id = superseded.id
+    and stale.status in ('pending','retry');
+
+  -- G-3 (20261024110000): one oldest job per company precedes its second;
+  -- durable last_turn rotates companies across calls even when p_limit is smaller
+  -- than the company count. Clock ties and completed-row history do not reset it.
   return query
-  with candidates as (
+  with eligible_companies as materialized (
+    select company.id as company_id,
+      coalesce((select max(served.claim_turn) from public.company_provisioning_jobs served
+        where served.company_id=company.id),0) as last_turn
+    from public.companies company
+    where company.status in ('onboarding','active')
+      and company.id in (
+        select pending.company_id from public.company_provisioning_jobs pending
+        where pending.status in ('pending','retry')
+          and pending.available_at <= now()
+          and pending.attempt_count < pending.max_attempts)
+      and (select decision.allowed
+           from public.canonical_tenant_operation_decision(company.id, 'tenant.provisioning.execute') decision
+           limit 1)
+  ), ranked as (
+    select job.id,
+           eligible.last_turn,
+           job.available_at,
+           job.created_at,
+           row_number() over (partition by job.company_id order by job.available_at, job.created_at, job.id) as company_rank
+    from public.company_provisioning_jobs job
+    join eligible_companies eligible on eligible.company_id = job.company_id
+    where job.status in ('pending','retry')
+      and job.available_at <= now()
+      and job.attempt_count < job.max_attempts
+      and not (job.job_key='ediel_readiness_revalidate' and exists(
+        select 1 from public.company_provisioning_jobs newer
+        where newer.company_id=job.company_id and newer.job_key='ediel_readiness_revalidate'
+          and (newer.created_at,newer.id)>(job.created_at,job.id)
+          and (newer.status in('completed','processing')
+            or (newer.status in('pending','retry') and newer.attempt_count<newer.max_attempts))))
+  ), candidates as (
     select job.id
     from public.company_provisioning_jobs job
+    join ranked fair on fair.id = job.id
     join public.companies company on company.id = job.company_id
     where job.status in ('pending','retry')
       and job.available_at <= now()
       and job.attempt_count < job.max_attempts
       and company.status in ('onboarding','active')
-      and (select decision.allowed
-           from public.canonical_tenant_operation_decision(job.company_id, 'tenant.provisioning.execute') decision
-           limit 1)
-    order by job.available_at, job.created_at
+    order by fair.company_rank, fair.last_turn, fair.available_at, fair.created_at, job.id
     for update of job skip locked
     limit greatest(1, least(coalesce(p_limit, 20), 100))
   ), claimed as (
@@ -40560,6 +40634,7 @@ begin
         locked_at = now(),
         locked_by = p_worker_id,
         lease_token = gen_random_uuid(),
+        claim_turn = nextval('public.gridex_provisioning_claim_turn_seq'::regclass),
         last_error_code = null,
         last_error_message = null,
         updated_at = now()
@@ -116367,6 +116442,7 @@ CREATE TABLE public.company_provisioning_jobs (
     lease_token uuid,
     last_error_message text,
     dead_letter_at timestamp with time zone,
+    claim_turn bigint DEFAULT 0 NOT NULL,
     CONSTRAINT company_provisioning_jobs_max_attempts_check CHECK (((max_attempts >= 1) AND (max_attempts <= 20))),
     CONSTRAINT company_provisioning_jobs_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'processing'::text, 'retry'::text, 'completed'::text, 'failed'::text, 'dead_letter'::text, 'blocked_tenant_state'::text, 'compensating'::text, 'compensated'::text])))
 );
@@ -125956,6 +126032,23 @@ CREATE TABLE public.gridex_performance_hardening_events (
 --
 
 COMMENT ON TABLE public.gridex_performance_hardening_events IS 'Service-only table: accessed via backend service role. RLS enabled with no policies by design (deny-by-default for anon/authenticated); direct API-role grants revoked by advisor hardening 20260709163000.';
+
+--
+-- Name: gridex_provisioning_claim_turn_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.gridex_provisioning_claim_turn_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+--
+-- Name: gridex_provisioning_claim_turn_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.gridex_provisioning_claim_turn_seq OWNED BY public.company_provisioning_jobs.claim_turn;
 
 --
 -- Name: gridex_public_contract_offer_admin_v; Type: VIEW; Schema: public; Owner: -
@@ -141399,6 +141492,18 @@ CREATE INDEX company_onboarding_tasks_company_status_idx ON public.company_onboa
 --
 
 CREATE INDEX company_provisioning_jobs_claim_idx ON public.company_provisioning_jobs USING btree (available_at, created_at) WHERE (status = ANY (ARRAY['pending'::text, 'retry'::text]));
+
+--
+-- Name: company_provisioning_jobs_company_claim_turn_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX company_provisioning_jobs_company_claim_turn_idx ON public.company_provisioning_jobs USING btree (company_id, claim_turn DESC);
+
+--
+-- Name: company_provisioning_jobs_revalidate_newer_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX company_provisioning_jobs_revalidate_newer_idx ON public.company_provisioning_jobs USING btree (company_id, created_at DESC, id DESC) INCLUDE (status, attempt_count, max_attempts, idempotency_key) WHERE (job_key = 'ediel_readiness_revalidate'::text);
 
 --
 -- Name: company_provisioning_jobs_stale_lease_idx; Type: INDEX; Schema: public; Owner: -
