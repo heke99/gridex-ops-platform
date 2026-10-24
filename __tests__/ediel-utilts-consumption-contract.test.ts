@@ -15,7 +15,9 @@ async function preparedEnergy(code: 'E66' | 'E30' | 'S07' = 'E66', transform?: (
   message.message_code = code
   message.application_reference = code === 'E30' ? '23-MDR-E30-T' : `23-DDQ-${code}-T`
   message.raw_payload = message.raw_payload!.replace('?+0200:406', '?+0100:406').replace('BGM+E66', `BGM+${code}`).replace('23-DDQ-E66-T', message.application_reference)
-  if(code==='E30') message.raw_payload=recountEdifactUnt(message.raw_payload.replace("MEA+AAZ++KWH'\n",''))
+  // E30 excludes the E66 product, unit and metering-point-type fields (506/264/513).
+  if(code==='E30') message.raw_payload=recountEdifactUnt(message.raw_payload.replace("MEA+AAZ++KWH'\n",'')
+    .replace("LIN+++8716867000030:::9'\n",'').replace("CCI+++E12::260'\nCAV+E17::260'\n",''))
   if (transform) message.raw_payload = transform(message.raw_payload)
   const runtime = runUtiltsRuntimeForMessage(message), policy = resolveCanonicalMessagePolicy(message)!
   const contracts = await prepareUtiltsConsumptionContracts({ message, runtime, policy, matches: [], dataRequest: null,

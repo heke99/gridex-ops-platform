@@ -5,7 +5,9 @@ import { recountEdifactUnt } from './recountEdifactUnt'
  * separately reviewed PRODAT source. Keep the singleton without a period. */
 export function priorE30PointWire(reason:'E20'|'E77'|'E24'|'E25'|'E67'|'E64',meter:string,point:string){
  const message=observationHandoffMessage('2026-09-30')
- const lines=message.raw_payload!.split('\n')
+ // These E66-only declarations are forbidden in the derived E30 (506/513).
+ const lines=message.raw_payload!.replace("LIN+++8716867000030:::9'\n",'')
+  .replace("CCI+++E12::260'\nCAV+E17::260'\n",'').split('\n')
  const start=lines.findIndex(line=>line.startsWith('SEQ++1'))
  const end=lines.findIndex(line=>line.startsWith('UNT+'))
  lines.splice(start,end-start,

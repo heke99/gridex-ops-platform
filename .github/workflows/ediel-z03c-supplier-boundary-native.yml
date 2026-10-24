@@ -181,7 +181,7 @@ jobs:
           def trusted_reference():
               # Ordinary-clock only. No GitHub/dependency/OIDC/cloud request is
               # initiated by the controlled work while its clock is advanced.
-              request=urllib.request.Request('https://api.github.com/',method='HEAD',headers={'User-Agent':'gridex-z03c-clock-qualification'})
+              request=urllib.request.Request('https://api.github.com/?gridex_z03c_clock_nonce='+os.urandom(16).hex(),method='HEAD',headers={'User-Agent':'gridex-z03c-clock-qualification','Cache-Control':'no-cache, no-store','Pragma':'no-cache'})
               with urllib.request.urlopen(request,timeout=15) as response:
                   stamp=email.utils.parsedate_to_datetime(response.headers['Date']).timestamp()
               if abs(time.time()-stamp)>30: raise RuntimeError('z03c_trusted_normal_reference_skew')

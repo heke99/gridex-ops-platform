@@ -39,7 +39,7 @@ const SyncPayloadSchema = z.object({
   organization_number: z.string().trim().min(1).optional(),
   customer_number: z.string().trim().min(1).optional(),
   facility_id: z.string().trim().min(1).optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 }).strict().superRefine((value, context) => {
   if (value.customer_portal_user_id !== value.auth_user_id) {
     context.addIssue({

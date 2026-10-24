@@ -1,3 +1,7 @@
+import { segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
+import { observeUtiltsFieldScopes } from './fieldMatrixOccurrences'
+import { resolveUtiltsFieldConditions } from './fieldMatrixConditions'
+import { UTILTS_TSP_SOURCE } from '@/lib/ediel/rulebook/utiltsTimeSeriesProductCatalogue'
 import type {PeriodicReasonAuthority} from './periodicReasonAuthority'
 import type {UtiltsIssuerIdentityAuthority} from './issuerIdentityAuthority'
 import {supportedUtiltsConsumptionIdentity} from './consumptionIdentity'
@@ -18,13 +22,87 @@ export type ReceivedStructureQualification={
     cutoffAt:string|null;snapshotId:string|null;readsetHash:string|null;comparisons:StructuralComparison[]}
 }
 
+/** Technical dispatch only: Swedish U5 and current TSP row21 identify L359
+ * as area-only. This is not issuer/actor, market or billing authority; those
+ * protected admission owners remain required by the enclosing actual flow. */
+function qualifiedL359AreaTransactions(message:EdielMessageRow,policy:CanonicalEdielPolicy):ReadonlySet<number> {
+  const found=new Set<number>()
+  if(policy.code!=='S01'||message.message_code!=='S01'||!message.raw_payload)return found
+  // An aggregate source cannot borrow an individual source link, even when its
+  // own PIA happens to be valid. No caller-selected flag can relax this scope.
+  if([message.customer_id,message.site_id,message.metering_point_id,message.grid_owner_id,message.grid_owner_data_request_id].some(id=>id!=null))return found
+  const conditions=resolveUtiltsFieldConditions({policy,rawPayload:message.raw_payload})
+  if(!conditions.sourceQualified||UTILTS_TSP_SOURCE.sha256!=='53034f2fd3de416a84f755b454fc72378930126446909cee5eae968111db816b')return found
+  const physical=observeUtiltsFieldScopes(message.raw_payload)
+  for(const selected of conditions.transactions) {
+    const product=selected.product,index=selected.transactionIndex
+    if(index===undefined||selected.messageIndex!==0||product.kind!=='qualified'||product.rows.length!==1)continue
+    const row=product.rows[0]
+    if(row.row!==21||row.productCode!=='L359'||row.messageCode!=='S01'||row.valueField!=='516'
+      ||row.identityFields.length!==1||row.identityFields[0]!=='260a'
+      ||!product.tuple.every((value,i)=>value===['Z04','U46','Z02','Z58','Z05'][i]))continue
+    if(conditions.issues.some(issue=>issue.messageIndex===selected.messageIndex&&issue.transactionIndex===index)
+      ||conditions.holds.some(hold=>hold.messageIndex===selected.messageIndex&&hold.transactionIndex===index))continue
+    const own=physical.transactions.filter(scope=>scope.messageIndex===0&&scope.transactionIndex===index&&scope.referenceNumber===selected.referenceNumber)
+    if(own.length!==1||!selected.referenceNumber)continue
+    const locations=own[0].segments.filter(segment=>segment.tag==='LOC')
+    if(locations.length!==1||segmentComposite(locations[0],1,physical.una)[0]!=='239')continue
+    const area=segmentComposite(locations[0],2,physical.una)
+    if(area.length!==3||! /^[A-Z0-9]{1,3}$/.test(area[0])||area[1]!=='SVK'||area[2]!=='260')continue
+    // Capability boundary, not a national product-validity decision. This
+    // source-only path supports exactly the physical profile accepted by
+    // s01_l359_area_identity_v1; other otherwise-valid profiles remain local HOLD.
+    const envelope=physical.headers.find(scope=>scope.messageIndex===0)?.segments??[]
+    const ownSegments=own[0].segments, observationSegments=own[0].observations.flatMap(scope=>scope.segments)
+    const allOwn=[...ownSegments,...observationSegments]
+    const one=(segments:typeof locations,tag:string,qualifier?:string)=>{
+      const matches=segments.filter(segment=>segment.tag===tag&&(qualifier===undefined||segmentComposite(segment,1,physical.una)[0]===qualifier))
+      return matches.length===1?matches[0]:null
+    }
+    const exact=(segments:typeof locations,tag:string,element:number,expected:readonly string[],qualifier?:string)=>{
+      const segment=one(segments,tag,qualifier)
+      return !!segment&&JSON.stringify(segmentComposite(segment,element,physical.una))===JSON.stringify(expected)
+    }
+    if(!exact(ownSegments,'IDE',1,['24'])||!exact(ownSegments,'IDE',2,[selected.referenceNumber])
+      ||!exact(ownSegments,'LOC',1,['239'])||!exact(ownSegments,'PIA',1,['1'])
+      ||!exact(envelope,'MKS',1,['23'])||!exact(envelope,'MKS',2,['E03','','260'])
+      ||!exact(envelope,'DTM',1,['735','+0100','406'],'735')
+      ||!exact(ownSegments,'LIN',3,['8716867000030','','','9'])
+      ||!exact(ownSegments,'DTM',1,['354','1','802'],'354')
+      ||!exact(ownSegments,'STS',1,['7'])||!exact(ownSegments,'STS',3,['E43','','260'])
+      ||!exact(ownSegments,'MEA',1,['AAZ'])||!exact(ownSegments,'MEA',3,['KWH'])
+      ||!exact(ownSegments,'CCI',3,['E02','','260'])||!exact(ownSegments,'CAV',1,['E01','','260']))continue
+    if(allOwn.some(segment=>segment.tag==='NAD'||(segment.tag==='LOC'&&segmentComposite(segment,1,physical.una)[0]!=='239')
+      ||(segment.tag==='DTM'&&segmentComposite(segment,1,physical.una)[0]==='597'))
+      ||observationSegments.some(segment=>['LOC','PIA','LIN','CCI','CAV'].includes(segment.tag)
+        ||(segment.tag==='STS'&&segmentComposite(segment,1,physical.una)[0]==='8'))
+      ||allOwn.filter(segment=>segment.tag==='SEQ').length!==1||allOwn.filter(segment=>segment.tag==='QTY').length!==1
+      ||!observationSegments.some(segment=>segment.tag==='QTY'&&segmentComposite(segment,1,physical.una)[0]==='136'))continue
+    const periodSegment=one(ownSegments,'DTM','324'),latestSegment=one(ownSegments,'DTM','368')
+    if(!periodSegment||!latestSegment)continue
+    const period=segmentComposite(periodSegment,1,physical.una),latest=segmentComposite(latestSegment,1,physical.una)
+    const instant=(value:string)=>{
+      if(!/^\d{12}$/.test(value)||value.startsWith('0000'))return null
+      const date=new Date(`${value.slice(0,4)}-${value.slice(4,6)}-${value.slice(6,8)}T${value.slice(8,10)}:${value.slice(10,12)}:00Z`)
+      return Number.isFinite(date.getTime())&&date.toISOString().replace(/[-:T]/g,'').slice(0,12)===value?date:null
+    }
+    if(period[2]!=='719'||!/^\d{24}$/.test(period[1]??'')||latest[2]!=='203')continue
+    const start=instant(period[1].slice(0,12)),end=instant(period[1].slice(12)),updated=instant(latest[1]??'')
+    if(!start||!end||!updated||period[1].slice(6,12)!=='010000'||period[1].slice(18)!=='010000'||updated<end)continue
+    const nextMonth=new Date(start);nextMonth.setUTCMonth(nextMonth.getUTCMonth()+1)
+    if(end.getTime()!==nextMonth.getTime())continue
+    found.add(index)
+  }
+  return found
+}
+
 /** The only active comparison boundary: it obtains its OWN immutable service
  * snapshot and immediately applies the result to the current invocation. There
  * is no parameter for cached/serialized approvals or caller-supplied readsets.
  * Expected values never come from current metering masterdata or the UTILTS. */
 async function qualifyReceivedUtiltsStructureCore(input:{message:EdielMessageRow;runtime:UtiltsRuntimeResult;canonicalPolicy:CanonicalEdielPolicy}):Promise<ReceivedStructureQualification>{
   const {message,runtime,canonicalPolicy}=input
-  const result:ReceivedStructureQualification={runtime,hasInternalReview:false,hasNationalMismatch:false,
+  const result:ReceivedStructureQualification={runtime,hasInternalReview:runtime.transactionDispositions.some(disposition=>disposition.disposition==='internal_review'),hasNationalMismatch:false,
     evidence:{version:1,owner:'received-structure-comparison-v1',status:'not_applicable',cutoffAt:null,snapshotId:null,readsetHash:null,comparisons:[]}}
   if(canonicalPolicy.family!=='UTILTS'||canonicalPolicy.direction!=='inbound'||canonicalPolicy.code!==message.message_code
     ||message.direction!=='inbound')return result
@@ -35,11 +113,13 @@ async function qualifyReceivedUtiltsStructureCore(input:{message:EdielMessageRow
   // The point comparison owner below is limited to E30/E66/S07. Hold only the
   // accepted physical IDE here, preserving genuine guide-negative siblings.
   if(['S01','E72','E73','S06','S02'].includes(message.message_code??'')){
+    const qualifiedAreas=qualifiedL359AreaTransactions(message,canonicalPolicy)
     const unowned=runtime.transactionDispositions.flatMap((disposition,index)=>
       disposition.disposition==='accepted'&&runtime.facts.transactions[index]?.regulatingObjectPresent
         ?[disposition.transactionId]:[])
     const unsupportedPoint=runtime.transactionDispositions.flatMap((disposition,index)=>{
       if(disposition.disposition!=='accepted'||runtime.facts.transactions[index]?.regulatingObjectPresent)return []
+      if(qualifiedAreas.has(index))return []
       const identity=supportedUtiltsConsumptionIdentity(message.raw_payload??'',index)
       return !identity||identity.transactionId!==disposition.transactionId?[disposition.transactionId]:[]
     })

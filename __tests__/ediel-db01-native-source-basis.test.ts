@@ -8,6 +8,45 @@ import {tmpdir} from 'node:os'
 import {dirname, join, resolve} from 'node:path'
 import {afterAll, afterEach, beforeAll, beforeEach, expect, it, vi} from 'vitest'
 
+const s01DependencyExtensions = [
+  {
+    "name": "gridex_utilts_binding.esco_local_time_v1",
+    "identity": [
+      "gridex_utilts_binding",
+      "FUNCTION",
+      "esco_local_time_v1(text, text)"
+    ],
+    "body_sha256": "45b07776f975f4285e0691642071da7c722862577f9dd2872f13e8bc80350ed1"
+  },
+  {
+    "name": "gridex_utilts_binding.require_s01_l359_basis_v1",
+    "identity": [
+      "gridex_utilts_binding",
+      "FUNCTION",
+      "require_s01_l359_basis_v1(uuid, uuid)"
+    ],
+    "body_sha256": "7e0f5b2674a1c6a9b23eac66f3e16873e76f00eb2057617458e5ecc954377269"
+  },
+  {
+    "name": "gridex_utilts_binding.s01_l359_area_identity_v1",
+    "identity": [
+      "gridex_utilts_binding",
+      "FUNCTION",
+      "s01_l359_area_identity_v1(jsonb, text)"
+    ],
+    "body_sha256": "2a435fae6a521b93e327c2931af685a1527b6f2e360d75d1b92472665e702651"
+  },
+  {
+    "name": "gridex_utilts_binding.s01_l359_item_matches_v1",
+    "identity": [
+      "gridex_utilts_binding",
+      "FUNCTION",
+      "s01_l359_item_matches_v1(jsonb, jsonb)"
+    ],
+    "body_sha256": "0c16b7b82ae38b73eed6c81f9249d1ec485bab4401885e2f00f1c632769f55c8"
+  }
+]
+
 type Input = {mode: string; git_blob_oid: string; sha256: string}
 const root = resolve(__dirname, '..'), baseRevision = '56e58b95518ec4d5eef210ba16ba46228afb40ac'
 const producer = 'lib/ediel/testing/agtEngine.ts', kernel = 'lib/ediel/core/kernel.ts'
@@ -48,7 +87,7 @@ for x in ast.parse(s).body:
  if isinstance(x,ast.FunctionDef):break
  if isinstance(x,ast.Assign) and len(x.targets)==1 and isinstance(x.targets[0],ast.Name):
   k=x.targets[0].id
-  if k in ['current_read_manifest','current_read_forwards','current_reader_callers','forwards','repair','repair_unit','producer','producer_unit','canonical_dependencies','required','current_only','required_base']:
+  if k in ['current_read_manifest','current_read_forwards','current_reader_callers','forwards','repair','repair_unit','producer','producer_unit','canonical_dependencies','s01_current_owner','required','current_only','required_base']:
    n[k]=eval(compile(ast.Expression(x.value),'<declared-inputs>','eval'),{},n)
 print(json.dumps({'root':n['required'],'base':n['required_base'],'reader':n['current_read_manifest']}))`], {cwd: root, encoding: 'utf8'})
   const declared = JSON.parse(declarations) as {root: string[]; base: string[]; reader: Array<Input & {path: string}>}
@@ -72,7 +111,8 @@ print(json.dumps({'root':n['required'],'base':n['required_base'],'reader':n['cur
     root_source: {blobs: rootInputs}, base_source: {blobs: Object.fromEntries(dependencies.map(path => [path, identities[path].base]))},
     historical_source_basis: historical, current_source_basis: 'ROOT_only_no_legacy_hint_wrapper',
     current_database_basis: {kind: 'BASE56_repair_two_forwards_plus_delivered_reader_guard_closure', forwards: declared.reader, schema_path: 'supabase/schema.sql'},
-    current_guard_result: {status: 'PASS', source_sha: git('rev-parse', 'HEAD').trim(), reader_function_names: 233, helper_function_names: 373, function_definitions: 373, delivered_relation_objects: 18, mismatches: [],
+    current_s01_source_install: {"donor_path": "supabase/migrations/20261023201053_ediel_s01_area_aggregate_identity.sql", "donor_sha256": "ae647d1d240a2e3cfa202906766eed3b13f6d5d15a0afd14885fe36b63da4a5d", source_schema_sha256: createHash('sha256').update(readFileSync(join(root, 'supabase/schema.sql'))).digest('hex'), "predecessor_definition_sha256": "11de04c3af4dd571693cfe8b249d3a30fc163848a78d1e7aee287ab3c093a7b6", "sql_sha256": "deafe7916db6e2c82f7c66cacc9560f1fd44d539e6a9129e115dce658864580b", "status": "PASS", "exit_code": 0},
+    current_guard_result: {status: 'PASS', source_sha: git('rev-parse', 'HEAD').trim(), reader_function_names: 233, helper_function_names: 377, function_definitions: 377, source_qualified_dependency_extensions: s01DependencyExtensions.map(item => ({...item, identity: [...item.identity]})), delivered_relation_objects: 18, mismatches: [],
       source_schema_sha256: createHash('sha256').update(readFileSync(join(root, 'supabase/schema.sql'))).digest('hex')},
     current_api_schema_result: {status: 'PASS', source_sha: git('rev-parse', 'HEAD').trim(),
       rpc_paths: ['/rpc/ediel_read_prodat_h_accepted_original_v1', '/rpc/ediel_read_prodat_customer_masterdata_original_v1']},
@@ -227,6 +267,17 @@ if stage=='admission':print(json.dumps(env['canonical_facade_basis']))
 
 // The actual e9 national case failed before legal/archive guards because its
 // current reader RPC was absent from the reconstructed historical database.
+it.each(['missing', 'failed', 'donor', 'schema', 'predecessor', 'sql'] as const)('refuses unqualified S01 read-side install %s despite clean guard counters', async shape => {
+  const installed = receipt.current_s01_source_install as Record<string, unknown>
+  if (shape === 'missing') delete receipt.current_s01_source_install
+  if (shape === 'failed') installed.exit_code = 1
+  if (shape === 'donor') installed.donor_sha256 = 'f'.repeat(64)
+  if (shape === 'schema') installed.source_schema_sha256 = 'f'.repeat(64)
+  if (shape === 'predecessor') installed.predecessor_definition_sha256 = 'f'.repeat(64)
+  if (shape === 'sql') installed.sql_sha256 = 'f'.repeat(64)
+  await expect(load('current')).rejects.toThrow('db01_native_actual_current_guard_qualification_required')
+})
+
 it('refuses current native admission without qualified delivered reader dependencies', async () => {
   delete receipt.current_database_basis
   await expect(load('current')).rejects.toThrow('db01_native_current_reader_guard_basis_required')
@@ -271,10 +322,20 @@ it('refuses reversed U5 registry and inbound-selector forward order', async () =
 })
 it.each(['helper_function_names', 'function_definitions'] as const)('refuses a changed exact guard counter %s', async field => {
   const guard = receipt.current_guard_result as Record<string, unknown>
-  for (const count of [372, 374]) {
+  for (const count of [373, 376, 378]) {
     guard[field] = count
     await expect(load('current')).rejects.toThrow('db01_native_actual_current_guard_qualification_required')
   }
+})
+it.each(['missing', 'removed', 'body', 'identity', 'extra'] as const)('refuses an unqualified S01 dependency extension %s despite exact counters', async shape => {
+  const guard = receipt.current_guard_result as Record<string, unknown>
+  const extensions = guard.source_qualified_dependency_extensions as Array<{name: string; identity: string[]; body_sha256: string}>
+  if (shape === 'missing') delete guard.source_qualified_dependency_extensions
+  if (shape === 'removed') extensions.pop()
+  if (shape === 'body') extensions[0].body_sha256 = 'f'.repeat(64)
+  if (shape === 'identity') extensions[0].identity[2] = 'wrong_signature()'
+  if (shape === 'extra') extensions.push({name: 'gridex_utilts_binding.unqualified_extra_v1', identity: ['gridex_utilts_binding', 'FUNCTION', 'unqualified_extra_v1()'], body_sha256: 'f'.repeat(64)})
+  await expect(load('current')).rejects.toThrow('db01_native_actual_current_guard_qualification_required')
 })
 it.each(['current_guard_preparation', 'current_read_forwards', 'current_guard_qualification', 'current_api_schema'])('refuses failed or unexecuted actual current phase %s', async name => {
   const phases = receipt.phases as Record<string, {status: string; exit_code: number | null}>
@@ -298,8 +359,12 @@ s=pathlib.Path('.github/workflows/ediel-db01-current-native.yml').read_text()
 s=s.split('cat > "$DB01_PRIVATE/qualify-current-guards.py" <<\'PY\'\n',1)[1].split('\n          PY',1)[0]
 e={}
 exec(textwrap.dedent(s).split('mode=sys.argv[1]',1)[0],e)
-assert len(e['reader_names'])==233 and len(e['relation_keys'])==18 and len(e['names'])==373 and len(e['function_keys'])==373
+assert len(e['reader_names'])==233 and len(e['relation_keys'])==18 and len(e['names'])==377 and len(e['function_keys'])==377
 expected=e['expected']; compare=e['logical_mismatches']
+assert len(e['s01_dependency_extensions'])==4
+for dependency in e['s01_dependency_extensions']:
+ assert tuple(dependency['identity']) in e['function_keys']
+ assert dependency['name'] in e['names']
 assert compare(dict(expected))==[]
 keys=[('gridex_ediel_source_rules','FUNCTION','pack_superseded_by_swedish_utilts25a5_v1(text, text, text, text, date)'),
  ('gridex_ediel_source_rules','FUNCTION','pack_effective_v1(uuid, text, date)'),
@@ -311,6 +376,11 @@ keys=[('gridex_ediel_source_rules','FUNCTION','pack_superseded_by_swedish_utilts
  ('gridex_customer_masterdata','FK CONSTRAINT','preparations preparations_cancellation_origin_id_fkey'),
  ('gridex_ediel_header_negative_birth','ROW SECURITY','receipts'),
  ('public','TRIGGER','ediel_messages assigned_prodat_negative_original_immutable')]
+keys += [tuple(item['identity']) for item in e['s01_dependency_extensions']]
+extension_names={item['name'] for item in e['s01_dependency_extensions']}
+extension_acl_keys=[key for key in e['function_acl_keys'] if key[0]+'.'+key[2][9:].split('(')[0] in extension_names]
+assert len(extension_acl_keys)==4
+keys += extension_acl_keys
 for key in keys:
  assert key in expected
  actual=dict(expected);del actual[key];assert compare(actual),('missing',key)
@@ -331,3 +401,157 @@ it('refuses mismatched guard surroundings and missing actual reader API visibili
   api.rpc_paths.splice(0, 1)
   await expect(load('current')).rejects.toThrow('db01_native_actual_current_guard_qualification_required')
 })
+
+
+// Exercise both actual inventory branches before any backend/native work. The
+// existing declaration parser alone cannot detect a stale runtime count.
+it.each((['admission', 'qualification'] as const).flatMap(stage =>
+  (['valid', 'duplicate', 'missing', 'extra', 'missing-git-blob'] as const).map(change => [stage, change] as const))) (
+  'executes workflow runtime inventory %s with actual Git blobs for %s', (stage, change) => {
+  const python = String.raw`import ast,hashlib,json,pathlib,re,subprocess,sys,textwrap
+receipt=json.loads(sys.stdin.read())
+workflow=pathlib.Path('.github/workflows/ediel-db01-current-native.yml').read_text()
+stage,change=sys.argv[1:3]
+programs=[ast.parse(textwrap.dedent(x)) for x in re.findall(r"<<'PY'[^\n]*\n([\s\S]*?)\n {10}PY(?:\n|$)",workflow)]
+# Evaluate the actual runtime If and its refusal body, not a copied predicate.
+if stage=='admission':
+ matches=[node for program in programs for node in program.body if isinstance(node,ast.If) and any(isinstance(x,ast.Name) and x.id=='required' for x in ast.walk(node.test))]
+else:
+ matches=[node for program in programs for node in program.body if isinstance(node,ast.If) and "len(receipt['required_input_paths'])" in ast.unparse(node.test)]
+assert len(matches)==1,(stage,len(matches))
+metadata=subprocess.check_output(['git','ls-tree','-r','-z','--full-tree','HEAD'])
+blobs={}
+for entry in metadata.split(b'\0'):
+ if not entry:continue
+ fields,name=entry.split(b'\t',1);mode,kind,oid=fields.decode().split()
+ if kind=='blob':blobs[name.decode()]={'mode':mode,'git_blob_oid':oid}
+producer='lib/ediel/testing/agtEngine.ts'
+blobs[producer]['sha256']=hashlib.sha256(subprocess.check_output(['git','show','HEAD:'+producer])).hexdigest()
+receipt['root_source']['blobs']=blobs
+basis=receipt['historical_source_basis']
+env={'required':receipt['required_input_paths'],'current':receipt['root_source'],'receipt':receipt,'basis':basis,'producer':producer}
+# Qualification source constants are taken from the same actual runtime program.
+if stage=='qualification':
+ for program in programs:
+  for node in program.body:
+   if isinstance(node,ast.Assign) and len(node.targets)==1 and isinstance(node.targets[0],ast.Name) and node.targets[0].id in ('expected_overlay','dependencies'):
+    exec(compile(ast.Module(body=[node],type_ignores=[]),'<actual-runtime-source-constant>','exec'),env)
+if change=='duplicate':env['required'][-1]=env['required'][0]
+if change=='missing':env['required'].pop()
+if change=='extra':env['required'].append(next(x for x in blobs if x not in env['required']))
+if change=='missing-git-blob':del blobs[producer if stage=='qualification' else env['required'][-1]]
+try:
+ exec(compile(ast.Module(body=matches,type_ignores=[]),'<actual-runtime-inventory-'+stage+'>','exec'),env)
+ print(json.dumps({'admitted':True,'requiredCount':len(env['required']),'uniqueRequiredCount':len(set(env['required'])),'actualGitBlobs':len(blobs)}))
+except (RuntimeError,KeyError) as error:
+ print(json.dumps({'admitted':False,'reason':str(error),'requiredCount':len(env['required']),'uniqueRequiredCount':len(set(env['required'])),'actualGitBlobs':len(blobs)}))
+`
+  const observed = JSON.parse(execFileSync('python3', ['-c', python, stage, change], {
+    cwd: root, encoding: 'utf8', input: JSON.stringify(receipt), maxBuffer: 32 * 1024 * 1024,
+  })) as {admitted: boolean; requiredCount: number; uniqueRequiredCount: number; actualGitBlobs: number}
+  expect(observed.admitted).toBe(change === 'valid')
+  expect(observed.actualGitBlobs).toBeGreaterThan(59)
+  if (change === 'valid') {
+    expect(observed.requiredCount).toBe(59)
+    expect(observed.uniqueRequiredCount).toBe(59)
+  }
+})
+
+// Execute the actual workflow dependency admission statements, before backend
+// work, over committed package bytes and explicit installed-version fixtures.
+it.each((['ediel-db01-current-native.yml', 'ediel-sc071-native.yml'] as const).flatMap(workflow =>
+  (['valid', 'wrong-scope', 'wrong-version', 'wrong-integrity', 'wrong-resolved', 'extra-dependency',
+    'extra-lock-field', 'missing-override', 'unknown-override', 'zod-change', 'changed-base', 'wrong-installed-version'] as const)
+    .map(change => [workflow, change] as const)))(
+  'executes dependency admission %s and rejects unqualified %s', (workflow, change) => {
+  const python = String.raw`import ast,copy,hashlib,json,pathlib,re,subprocess,sys,tempfile,textwrap,types
+repo=pathlib.Path.cwd();packet=repo;workflow=sys.argv[1];shape=sys.argv[2]
+path='.github/workflows/'+workflow
+s=(packet/path).read_text();programs=[textwrap.dedent(x) for x in re.findall(r"python3 - <<'PY'[^\n]*\n(.*?)\n          PY",s,re.S)]
+isdb=workflow=='ediel-db01-current-native.yml';program=programs[0] if isdb else next(x for x in programs if 'sc071_candidate_dependency_inputs_unqualified' in x)
+tree=ast.parse(program);nodes=[];active=False
+for n in tree.body:
+ if isinstance(n,ast.Assign) and isinstance(n.targets[0],ast.Name) and n.targets[0].id==('dependency_paths' if isdb else 'paths'):active=True
+ if active:
+  if isdb and isinstance(n,ast.For) and ast.unparse(n.iter)=='expected_sql_hashes.items()':break
+  if not isdb and isinstance(n,ast.Expr) and 'dependency-inputs.json' in ast.unparse(n):break
+  nodes.append(n)
+a=json.loads(subprocess.check_output(['git','show','3244da112d35ca2b8660e920cde849fce6b17732:package.json'],cwd=repo));b=json.loads(subprocess.check_output(['git','show','3244da112d35ca2b8660e920cde849fce6b17732:package-lock.json'],cwd=repo))
+if shape=='wrong-scope':a['overrides']['other']=a['overrides'].pop('mailauth')
+if shape=='wrong-version':a['overrides']['mailauth']['undici']='8.12.3';b['packages']['node_modules/undici']['version']='8.12.3'
+if shape=='wrong-integrity':b['packages']['node_modules/undici']['integrity']='sha512-wrong'
+if shape=='wrong-resolved':b['packages']['node_modules/undici']['resolved']='https://example.invalid/undici-8.12.2.tgz'
+if shape=='extra-dependency':a['dependencies']['unexpected']='1.0.0'
+if shape=='extra-lock-field':b['packages']['node_modules/undici']['unexpected']=True
+if shape=='missing-override':del a['overrides']['mailauth']
+if shape=='unknown-override':a['overrides']['undici']='8.12.2'
+if shape=='zod-change':a['dependencies']['zod']='4.6.8'
+with tempfile.TemporaryDirectory(prefix='undici-admission-fixture-') as d:
+ root=pathlib.Path(d);base=root/'base';base.mkdir();evidence=root/'evidence';evidence.mkdir()
+ for p,v in [('package.json',a),('package-lock.json',b)]:
+  # Positive uses actual committed bytes, mutations intentionally recompute identities.
+  (root/p).write_bytes(subprocess.check_output(['git','show','3244da112d35ca2b8660e920cde849fce6b17732:'+p],cwd=repo) if shape in ('valid','changed-base','wrong-installed-version') else (json.dumps(v,indent=2)+'\n').encode())
+  if isdb:
+   oid={'package.json':'bf3a30b706a96bacf8dbcf158ed99ae405881689','package-lock.json':'0e19ad13ea476c169f63f0cb8f6c4d2164c13847'}[p]
+   prior=subprocess.check_output(['git','show',oid],cwd=repo)
+  else:
+   revision=json.loads((repo/'quality/audits/ediel-masterplan-v2/sc071-revocation/export-feedback-inputs.json').read_text())['base_sha']
+   prior=subprocess.check_output(['git','show',revision+':'+p],cwd=repo)
+  (base/p).write_bytes(prior)
+ def meta(data):return {'mode':'100644','git_blob_oid':hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest(),'sha256':hashlib.sha256(data).hexdigest()}
+ blobs={p:meta((root/p).read_bytes()) for p in ['package.json','package-lock.json']};baseblobs={p:meta((base/p).read_bytes()) for p in blobs}
+ if shape=='changed-base':
+  (base/'package.json').write_text('{}');baseblobs['package.json']=meta(b'{}')
+ for name,version in {'source-map-js':'1.2.2','mailauth':'7.3.1','pdf-lib':'1.17.1','xlsx':'0.20.3','zod':'4.6.7','undici':('8.12.3' if shape=='wrong-installed-version' else '8.12.2')}.items():
+  p=root/'node_modules'/name/'package.json';p.parent.mkdir(parents=True,exist_ok=True);p.write_text(json.dumps({'version':version}))
+ def check_output(args,**kw):
+  if args[:3]==['git','cat-file','blob']:return subprocess.check_output(args,cwd=repo)
+  if args==['node','--version']:return 'v22.19.0\n'
+  if args[:2]==['node','-p']:
+   if 'sharp' in args[2]:return '0.35.5\n'
+   if 'source-map-js' in args[2]:return '1.2.2\n'
+  raise RuntimeError('Unexpected subprocess '+repr(args))
+ env={'hashlib':hashlib,'json':json,'subprocess':types.SimpleNamespace(check_output=check_output),'root':root,'candidate':root,'base':base,'pathlib':pathlib,'re':re,'baseline':{'blobs':baseblobs},'current':{'blobs':blobs},'os':types.SimpleNamespace(environ={'SC071_EVIDENCE':str(evidence)})}
+ try:
+  exec(compile(ast.Module(body=nodes,type_ignores=[]),'<actual-dependency-admission>','exec'),env);result={'accepted':True}
+ except (RuntimeError,AssertionError,KeyError) as e:result={'accepted':False,'error':str(e)}
+ # Exact semantic normalizer is independently executed on each mutation too,
+ # ensuring refusal is not only an opaque pair-hash outcome.
+ if 'qualify_mailauth_undici' in env:
+  try:env['qualify_mailauth_undici'](root);result['normalizerAccepted']=True
+  except (RuntimeError,AssertionError,KeyError) as e:result.update(normalizerAccepted=False,normalizerError=str(e))
+ print(json.dumps(result))
+`
+  const observed = JSON.parse(execFileSync('python3', ['-c', python, workflow, change], {
+    cwd: root, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024,
+  })) as {accepted: boolean; normalizerAccepted?: boolean}
+  expect(observed.accepted).toBe(change === 'valid')
+  if (change !== 'changed-base' && change !== 'wrong-installed-version') {
+    expect(observed.normalizerAccepted).toBe(change === 'valid')
+  }
+})
+
+
+it('fetches only the frozen dependency predecessor before SC071 qualification on a shallow checkout', () => {
+  const python = String.raw`import hashlib,json,pathlib,re,shlex,subprocess,sys,tempfile
+repo=pathlib.Path.cwd();workflow=(repo/'.github/workflows/ediel-sc071-native.yml').read_text()
+fetches=re.findall(r'^          (git fetch --no-tags --depth=1 origin [0-9a-f]{40})$',workflow,re.M)
+assert len(fetches)==1,'sc071_qualified_dependency_fetch_required'
+assert workflow.index(fetches[0])<workflow.index('def qualify_mailauth_undici('),'sc071_dependency_fetch_after_qualification'
+expected={'7f0baef1da8ff1aa410a40d0835346749281a506':'52af42e9b40c440622dd09ad15126968278ad121f9fa66451c2fac68783f0f38','a6e86ff9b2dff932b18afcd0963c3d3fae12de58':'d0501a03422daaa93721fc7813751eb5eee12a85ae85a6ff6902d48546d2edc4'}
+with tempfile.TemporaryDirectory(prefix='sc071-shallow-dependencies-') as d:
+ root=pathlib.Path(d)
+ def git(*args,check=True):return subprocess.run(['git',*args],cwd=root,check=check,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+ git('init','--quiet');git('remote','add','origin',repo.as_uri())
+ git('fetch','--quiet','--no-tags','--depth=1','origin','3244da112d35ca2b8660e920cde849fce6b17732')
+ missing=[git('cat-file','blob',oid,check=False).returncode!=0 for oid in expected]
+ assert all(missing),'sc071_shallow_negative_not_exercised'
+ git(*shlex.split(fetches[0])[1:])
+ for oid,digest in expected.items():assert hashlib.sha256(git('cat-file','blob',oid).stdout).hexdigest()==digest,'sc071_fetched_dependency_identity_mismatch'
+ print(json.dumps({'missingBefore':len(missing),'qualifiedAfter':len(expected)}))
+`
+  const observed = JSON.parse(execFileSync('python3', ['-c', python], {
+    cwd: root, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024, timeout: 25_000,
+  })) as {missingBefore: number; qualifiedAfter: number}
+  expect(observed).toEqual({missingBefore: 2, qualifiedAfter: 2})
+}, 30_000)

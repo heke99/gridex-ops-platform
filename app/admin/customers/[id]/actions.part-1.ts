@@ -863,7 +863,7 @@ export async function saveMeteringPointAction(
   if (!parsedResult.success) {
     const details = parsedResult.error.issues
       .map(
-        (issue: { path: Array<string | number>; message: string }) =>
+        (issue) =>
           `${issue.path.join(".") || "fält"}: ${issue.message}`,
       )
       .join("; ");

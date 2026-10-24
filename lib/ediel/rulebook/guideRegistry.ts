@@ -1,5 +1,16 @@
 import { UTILTS_25_A_5_SOURCE } from './utilts25A5'
 
+/** Swedish U3 original, independent of the registered English prose witness.
+ * The retained planning/operation/request matrix cells match U5: 105 row
+ * vectors, with S08 omitted. This authorizes the existing physical R/X slice
+ * only. It does not authorize U5 dependent/product rules for U3. */
+export const UTILTS_25_A_3_SHARED_MATRIX_SOURCE = Object.freeze({
+  guideRevision: '25-A-3', associationAssignedCode: 'E5SE5A', language: 'sv',
+  document: '251001_Ediel_UTILTS-APERAK_Anvisning_version_25-A-3',
+  sha256: 'a4ae498e5231df22e043ec24b93f97563095bb9880ee296683acf7a0f6973fff',
+  effectiveFrom: '2025-06-01',
+} as const)
+
 /** P26.A §2.3 p35 defines future constraints, not operational authorization. */
 export const EDIEL_ENERGY_SHARING_CAPABILITY = Object.freeze({
   id: 'energy_sharing', effectiveFrom: '2027-01-01', activation: 'held',

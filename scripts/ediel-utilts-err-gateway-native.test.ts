@@ -1,3 +1,4 @@
+import { s01L359AggregateWire } from './helpers/utiltsS01AggregateFixture'
 import { processInboundEdielMessage } from '@/lib/ediel/flows/inboundProcessing'
 import { requireEdielInboundLegalContext } from '@/lib/ediel/tenant/sourceLegalContext'
 import {readCanonicalPeriodicReasonAuthority,readCanonicalUtiltsIssuerIdentityAuthority} from '@/lib/ediel/core/runtimeDecision'
@@ -12,7 +13,6 @@ import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import { buildUtiltsErrDraft } from '@/lib/ediel/ack'
 import { createCanonicalAckMessage } from '@/lib/ediel/core/kernel'
-import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import { validateEdifactSyntax } from '@/lib/ediel/core/syntaxValidator'
 import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import { assertUtiltsPositiveAckAuthorityForSend } from '@/lib/ediel/utilts/positiveAckAuthority'
@@ -23,7 +23,7 @@ import {qualifyReceivedUtiltsStructure} from '@/lib/ediel/utilts/qualifyReceived
 import {prepareUtiltsConsumptionContracts} from '@/lib/ediel/utilts/consumptionPreparation'
 import {buildUtiltsTransactionPersistencePayload,persistUtiltsTransactionResults} from '@/lib/ediel/utilts/transactionPersistence'
 import { supabaseService } from '@/lib/supabase/service'
-import { recordUtiltsTechnicalReception, registerUtiltsIssuer, seedUtiltsIssuerHistoryGround, setUtiltsReceiverRole } from './helpers/utiltsConsumptionParties'
+import { recordUtiltsTechnicalReception, registerUtiltsIssuer, seedUtiltsIssuerHistoryGround } from './helpers/utiltsConsumptionParties'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 
 // Real local DB, source ownership, matching, canonical dispatcher, reservations,
@@ -562,7 +562,10 @@ async function seedSc046(shape: Sc046Shape) {
   const f = await seed(shape === 'E66-512' ? '54352' : '54353', [{ reference: `SC046-${shape}-SEED`, outcome: 'accepted' }])
   const code = shape === 'E66-512' ? 'E66' : 'S01', receiver = f.source.receiver_ediel_id!, issuer = f.source.sender_ediel_id!
   if (shape === 'S01-532') {
-    setUtiltsReceiverRole(sql, literal, f.ids.company, f.ids.actor, 'S01')
+    // Synthetic eSett -> BRP receiver, qualified through ordinary fixture admission.
+    sql(`UPDATE public.tenant_actor_roles SET valid_to=clock_timestamp() WHERE company_id=${literal(f.ids.company)} AND actor_id=${literal(f.ids.actor)} AND valid_to IS NULL;
+     INSERT INTO public.tenant_actor_roles(company_id,environment,actor_id,role_code,valid_from)
+     SELECT ${literal(f.ids.company)},e,${literal(f.ids.actor)},'balance_responsible',clock_timestamp() FROM unnest(ARRAY['test','production']) e;`)
     sql(`UPDATE public.ediel_route_profiles SET application_reference='23-DDK-S01-S' WHERE id=${literal(f.ids.profile)} AND company_id=${literal(f.ids.company)}`)
   }
   const receptionActor = await decisionUser(f.ids.company, ['communication.send'], randomUUID() + 'Aa1!')
@@ -575,9 +578,7 @@ async function seedSc046(shape: Sc046Shape) {
       .replace('DTM+597:202607010020:203', `DTM+${shape === 'E66-512' ? '597' : '368'}:${versionTime}:203`)
       .replace('QTY+136:500', `QTY+136:${quantity}`)
     if (shape === 'S01-532') {
-      // Same supported aggregate source shape as consumption-native568-601.
-      raw = raw.replace('BGM+E66::260', 'BGM+S01:SVK:260').replace('23-DDQ-E66-T', '23-DDK-S01-S')
-        .split('\n').filter(segment => !segment.startsWith('DTM+597:')).join('\n')
+      raw = s01L359AggregateWire(raw, [{ transactionId: reference, latestUpdateDate: versionTime, quantity }])
     }
     const physical = utiltsNativeSourceFixture(utiltsRecountUnt(raw), randomUUID())
     const mail = await seedOriginalMailboxNative(sql, literal, { companyId: f.ids.company, environment: 'test', raw: physical.raw,
@@ -643,7 +644,7 @@ it.each(['E66-512', 'S01-532'] as const)('SC046 %s older-last keeps newer data, 
   const newerSeriesBefore = sql<Record<string, unknown>>(`SELECT to_jsonb(s) FROM public.meter_reading_series s WHERE source_ediel_message_id=${literal(newer.source.id)} AND company_id=${literal(f.ids.company)}`)
   expect(newerSeriesBefore).toMatchObject({ is_current: true, series_kind: shape === 'E66-512' ? 'actual' : 'aggregate' })
   sinks.meter.mockClear(); sinks.bill.mockClear()
-  // Older512/532 is still after the same quarter-period end. Arrival order is
+  // Older512/532 is still after its own quarter/month delivery-period end. Arrival order is
   // the only difference from an otherwise accepted version, not a guide fault.
   const older = await f.insert('OLDER', '202607010020', '7')
   expect(Date.parse(older.source.message_received_at ?? '')).toBeGreaterThan(Date.parse(newer.source.message_received_at ?? ''))
@@ -654,7 +655,7 @@ it.each(['E66-512', 'S01-532'] as const)('SC046 %s older-last keeps newer data, 
   expect(sql(`SELECT to_jsonb(s) FROM public.meter_reading_series s WHERE source_ediel_message_id=${literal(newer.source.id)} AND company_id=${literal(f.ids.company)}`)).toEqual(newerSeriesBefore)
   const versions = () => sql<{ transaction: string; current: boolean; registrationAbsent: boolean; latestAbsent: boolean; ownTime: boolean; value: string }[]>(`SELECT jsonb_agg(jsonb_build_object(
     'transaction',s.source_transaction_reference,'current',s.is_current,'registrationAbsent',s.registration_date IS NULL,'latestAbsent',s.latest_update_date IS NULL,
-    'ownTime',coalesce(s.latest_update_date,s.registration_date)=CASE WHEN s.source_transaction_reference=${literal(newer.reference)} THEN '2026-06-30T22:40:00Z'::timestamptz WHEN s.source_transaction_reference=${literal(older.reference)} THEN '2026-06-30T22:20:00Z'::timestamptz ELSE '2026-06-30T23:00:00Z'::timestamptz END,
+    'ownTime',coalesce(s.latest_update_date,s.registration_date)=CASE WHEN s.source_transaction_reference=${literal(newer.reference)} THEN ${literal(shape === 'S01-532' ? '2026-06-30T23:40:00Z' : '2026-06-30T22:40:00Z')}::timestamptz WHEN s.source_transaction_reference=${literal(older.reference)} THEN ${literal(shape === 'S01-532' ? '2026-06-30T23:20:00Z' : '2026-06-30T22:20:00Z')}::timestamptz ELSE ${literal(shape === 'S01-532' ? '2026-07-01T00:00:00Z' : '2026-06-30T23:00:00Z')}::timestamptz END,
     'value',(SELECT v.quantity::text FROM public.meter_reading_values v WHERE v.series_id=s.id ORDER BY source_order LIMIT 1)) ORDER BY s.source_transaction_reference)
     FROM public.meter_reading_series s WHERE s.company_id=${literal(f.ids.company)}`)
   expect(versions()).toEqual(expect.arrayContaining([

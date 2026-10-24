@@ -41,8 +41,8 @@ export const CustomerEventSchema = z.object({
     type: z.string().trim().min(1).max(100),
     reference: z.string().trim().min(1).max(200).optional(),
   }).strict(),
-  data: z.record(z.unknown()),
-  metadata: z.record(z.unknown()).optional(),
+  data: z.record(z.string(), z.unknown()),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 }).strict()
 
 export type CustomerEventInput = z.infer<typeof CustomerEventSchema>

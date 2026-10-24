@@ -36081,6 +36081,7 @@ DECLARE
  tokens jsonb; membership jsonb; expected jsonb; raw_hash text; item jsonb; c jsonb; r jsonb; results jsonb; answer jsonb:='[]';
  v_series_id uuid; identity text; contract_hash text; origin gridex_utilts_binding.receipts%rowtype;
  decimal_mark text; legacy_transactions jsonb;
+ area_identity jsonb; enriched jsonb:='[]'; historical boolean;
  own_start integer; own_end integer; sequence_start integer; sequence_end integer; sequence_count integer;
 BEGIN
  IF p_company_id IS NULL OR p_environment IS NULL OR p_environment NOT IN ('test','production') OR p_message_code IS NULL OR jsonb_typeof(p_transactions) IS DISTINCT FROM 'array' OR jsonb_array_length(p_transactions)=0 THEN
@@ -36110,6 +36111,37 @@ BEGIN
   JOIN jsonb_array_elements(tokens) t ON t->>'tag'='IDE' AND t#>>'{elements,2,0}'=x.item->>'transactionId'
   WHERE x.item->>'disposition'='accepted' AND t#>>'{elements,1,0}' IS DISTINCT FROM '24') THEN
   RAISE EXCEPTION 'utilts_consumption_identity_unsupported' USING ERRCODE='P0U01'; END IF;
+ -- L359 is a source-only area domain. Metadata is derived from this immutable
+ -- physical IDE, never from a match, DTO product flag or neighbouring IDE.
+ FOR item IN SELECT value FROM jsonb_array_elements(p_transactions) LOOP
+  IF p_message_code='S01' AND item->>'disposition'='accepted' THEN
+   area_identity:=gridex_utilts_binding.s01_l359_area_identity_v1(tokens,item->>'transactionId');
+   IF area_identity IS NOT NULL THEN
+    PERFORM gridex_utilts_binding.require_s01_l359_basis_v1(p_company_id,p_source_message_id);
+    IF NOT coalesce(gridex_utilts_binding.s01_l359_item_matches_v1(tokens,item),false) THEN
+     RAISE EXCEPTION 'utilts_s01_area_identity_conflict' USING ERRCODE='P0U01'; END IF;
+    item:=jsonb_set(item,'{timeSeriesProduct}',area_identity->'timeSeriesProduct');
+   ELSE
+    -- A new point-S01 cannot use the point guard as national permission. Only
+    -- an exact already committed historical interpretation may be replayed.
+    SELECT EXISTS(SELECT FROM gridex_utilts_binding.receipts h
+     JOIN public.ediel_ack_transaction_results a ON a.source_message_id=h.source_message_id
+     JOIN public.meter_reading_series s ON s.id=a.persisted_series_id
+     JOIN gridex_utilts_binding.contracts k ON k.series_id=s.id
+     WHERE h.source_message_id=p_source_message_id AND h.company_id=p_company_id AND h.environment=p_environment
+      AND h.raw_hash=encode(sha256(convert_to(source.raw_payload,'UTF8')),'hex') AND h.source_context=gridex_utilts_binding.source_context_v1(source)
+      AND a.company_id=p_company_id AND a.environment=p_environment AND a.source_transaction_id=item->>'transactionId'
+      AND a.disposition='accepted' AND a.persistence_status='persisted' AND a.planned_response_type='positive_aperak'
+      AND s.company_id=p_company_id AND s.raw_transaction=item
+      AND s.immutable_hash=encode(sha256(convert_to(item::text,'UTF8')),'hex')
+      AND k.company_id=p_company_id AND k.environment=p_environment AND k.contract=item->'consumptionContract'
+      AND k.contract_hash=encode(sha256(convert_to(k.contract::text,'UTF8')),'hex')) INTO historical;
+    IF NOT historical THEN RAISE EXCEPTION 'utilts_consumption_identity_unsupported' USING ERRCODE='P0U01'; END IF;
+   END IF;
+  END IF;
+  enriched:=enriched||jsonb_build_array(item);
+ END LOOP;
+ p_transactions:=enriched;
  -- Namespace validation precedes receipt/ACK/series writes, independently of
  -- application comparison exemptions and mutable plain-ID matches.
  FOR item IN SELECT value FROM jsonb_array_elements(p_transactions) LOOP
@@ -36119,7 +36151,8 @@ BEGIN
   IF c->'version'='2'::jsonb AND NOT coalesce(gridex_utilts_binding.validate_decimal_source_v2(tokens,item,decimal_mark),false) THEN
    RAISE EXCEPTION 'utilts_consumption_decimal_source_conflict' USING ERRCODE='P0U01'; END IF;
   IF item->>'disposition'='accepted' AND (p_message_code IN ('E30','E66','S07','E72','S02') OR jsonb_array_length(c->'observations')>0
-   OR (p_message_code IN ('S01','E73') AND NOT gridex_utilts_binding.unowned_regulating_object_v1(tokens,item->>'transactionId'))) THEN
+   OR (p_message_code IN ('S01','E73') AND NOT gridex_utilts_binding.unowned_regulating_object_v1(tokens,item->>'transactionId')
+    AND NOT (p_message_code='S01' AND coalesce(gridex_utilts_binding.s01_l359_item_matches_v1(tokens,item),false)))) THEN
    identity:=gridex_utilts_binding.supported_point_v1(tokens,item->>'transactionId');
    IF identity IS NULL OR EXISTS(SELECT FROM jsonb_array_elements(c->'observations') o WHERE o->>'externalPoint' IS DISTINCT FROM identity) THEN
     RAISE EXCEPTION 'utilts_consumption_identity_unsupported' USING ERRCODE='P0U01'; END IF;
@@ -36186,6 +36219,25 @@ BEGIN
   IF NOT coalesce(CASE WHEN c->'version'='3'::jsonb THEN gridex_utilts_binding.valid_rejected_item_v3(item) ELSE gridex_utilts_binding.validate_contract_v1(c) END,false) OR c->>'companyId' IS DISTINCT FROM p_company_id::text OR c->>'environment' IS DISTINCT FROM p_environment
    OR c->>'messageCode' IS DISTINCT FROM p_message_code OR c->>'transactionId' IS DISTINCT FROM item->>'transactionId' OR c->>'seriesKind' IS DISTINCT FROM item->>'seriesKind' THEN
    RAISE EXCEPTION 'utilts_consumption_contract_invalid' USING ERRCODE='P0U01'; END IF;
+ END LOOP;
+ -- The legacy cohort uses generic LIN, not the five-part product. Until a
+ -- general owner exists, never merge L359 into an unqualified historical area
+ -- cohort. The same logical-series locks have already been acquired above.
+ FOR item IN SELECT value FROM jsonb_array_elements(p_transactions) LOOP
+  IF p_message_code='S01' AND item->>'disposition'='accepted'
+   AND gridex_utilts_binding.s01_l359_area_identity_v1(tokens,item->>'transactionId') IS NOT NULL
+   AND EXISTS(SELECT FROM public.meter_reading_series s JOIN public.ediel_messages m ON m.id=s.source_ediel_message_id
+    WHERE s.company_id=p_company_id AND m.company_id=p_company_id AND m.environment=p_environment
+     AND s.series_kind='aggregate' AND s.message_code='S01' AND coalesce(s.external_metering_point_id,'')=''
+     AND coalesce(s.grid_area_id,'')=coalesce(item->>'gridAreaId','')
+     AND s.period_start IS NOT DISTINCT FROM (item->>'periodStart')::timestamptz
+     AND s.period_end IS NOT DISTINCT FROM (item->>'periodEnd')::timestamptz
+     AND s.resolution=coalesce(item->>'resolution','UNKNOWN') AND coalesce(s.product_id,'')=coalesce(item->>'productId','')
+     AND (NOT coalesce(gridex_utilts_binding.s01_l359_item_matches_v1(gridex_utilts_binding.wire_tokens_v1(m.raw_payload),s.raw_transaction),false)
+      OR s.time_series_product IS DISTINCT FROM item->'timeSeriesProduct'
+      OR s.metering_point_id IS NOT NULL)) THEN
+   RAISE EXCEPTION 'utilts_s01_area_cohort_unavailable' USING ERRCODE='P0U01';
+  END IF;
  END LOOP;
  results:=gridex_utilts_binding.persist_series_v1(p_company_id,p_environment,p_source_message_id,p_message_code,p_transactions);
  FOR r IN SELECT value FROM jsonb_array_elements(results) LOOP
@@ -36926,6 +36978,161 @@ BEGIN
 END $$;
 
 --
+-- Name: require_s01_l359_basis_v1(uuid, uuid); Type: FUNCTION; Schema: gridex_utilts_binding; Owner: -
+--
+
+CREATE FUNCTION gridex_utilts_binding.require_s01_l359_basis_v1(company uuid, source uuid) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE basis jsonb;
+BEGIN
+ basis:=gridex_ediel_source_rules.require_v1(company,source);
+ IF basis->>'version' IS DISTINCT FROM '25-A-5:r5' OR basis#>>'{snapshot,version}' IS DISTINCT FROM '25-A-5:r5'
+  OR basis#>>'{snapshot,rulePack,market}' IS DISTINCT FROM 'electricity'
+  OR basis#>>'{snapshot,rulePack,family}' IS DISTINCT FROM 'UTILTS'
+  OR basis#>>'{snapshot,rulePack,guide_version}' IS DISTINCT FROM '25-A-5'
+  OR basis#>>'{snapshot,rulePack,guide_revision}' IS DISTINCT FROM '5'
+  OR NOT EXISTS(SELECT FROM jsonb_array_elements(basis#>'{snapshot,guideSources}')s WHERE s->>'source_type'='technical_guide'
+   AND s->>'revision'='25-A-5' AND s->>'source_hash'='b76a61b9aa6f136771e5db4948296d1b632b8d775314eb6c93783595ae419db2'
+   AND nullif(btrim(s->>'source_locator'),'') IS NOT NULL) THEN
+  RAISE EXCEPTION 'utilts_s01_area_source_basis_unavailable' USING ERRCODE='P0U01'; END IF;
+END $$;
+
+--
+-- Name: s01_l359_area_identity_v1(jsonb, text); Type: FUNCTION; Schema: gridex_utilts_binding; Owner: -
+--
+
+CREATE FUNCTION gridex_utilts_binding.s01_l359_area_identity_v1(tokens jsonb, transaction_id text) RETURNS jsonb
+    LANGUAGE plpgsql IMMUTABLE
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $_$
+DECLARE own_start integer; own_end integer; first_seq integer; first_ide integer;
+ header jsonb; own jsonb; x jsonb; a jsonb; product jsonb; area text;
+ period text; latest text; start_time timestamptz; end_time timestamptz; latest_time timestamptz;
+BEGIN
+ IF jsonb_typeof(tokens) IS DISTINCT FROM 'array' THEN RETURN NULL; END IF;
+ SELECT min((t->>'index')::integer) INTO first_ide FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='IDE';
+ SELECT jsonb_agg(t) INTO a FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='IDE' AND t#>>'{elements,2,0}'=transaction_id;
+ IF jsonb_array_length(a) IS DISTINCT FROM 1 OR a#>'{0,elements,1}' IS DISTINCT FROM '["24"]'::jsonb
+  OR a#>'{0,elements,2}' IS DISTINCT FROM jsonb_build_array(transaction_id) THEN RETURN NULL; END IF;
+ own_start:=(a#>>'{0,index}')::integer;
+ SELECT min((t->>'index')::integer) INTO own_end FROM jsonb_array_elements(tokens)t WHERE (t->>'index')::integer>own_start AND t->>'tag' IN('IDE','UNT');
+ SELECT min((t->>'index')::integer) INTO first_seq FROM jsonb_array_elements(tokens)t WHERE (t->>'index')::integer>own_start AND (t->>'index')::integer<own_end AND t->>'tag'='SEQ';
+ IF own_end IS NULL OR first_seq IS NULL THEN RETURN NULL; END IF;
+ SELECT jsonb_agg(t ORDER BY (t->>'index')::integer) INTO own FROM jsonb_array_elements(tokens)t WHERE (t->>'index')::integer>own_start AND (t->>'index')::integer<own_end;
+ SELECT jsonb_agg(t ORDER BY (t->>'index')::integer) INTO header FROM jsonb_array_elements(own)t WHERE (t->>'index')::integer<first_seq;
+ -- Current TSP L359 row21 is explicitly andelstal. Swedish U5 field520
+ -- (p38/p61) excludes observation status for andelstal, including temporary21.
+ -- This identity helper owns only that exact product; no other S01 is inferred.
+ IF EXISTS(SELECT FROM jsonb_array_elements(own)t WHERE t->>'tag'='STS'
+  AND t#>>'{elements,1,0}'='8' AND (t->>'index')::integer>first_seq) THEN RETURN NULL; END IF;
+ IF EXISTS(SELECT FROM jsonb_array_elements(own)t WHERE t->>'tag'='NAD' OR (t->>'tag'='LOC' AND t#>>'{elements,1,0}'<>'239')
+  OR ((t->>'index')::integer>first_seq AND t->>'tag' IN('LOC','PIA','LIN','CCI','CAV'))) THEN RETURN NULL; END IF;
+ SELECT jsonb_agg(t) INTO a FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='BGM';
+ IF jsonb_array_length(a) IS DISTINCT FROM 1 OR a#>>'{0,elements,1,0}' IS DISTINCT FROM 'S01' THEN RETURN NULL; END IF;
+ SELECT jsonb_agg(t) INTO a FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='MKS' AND (t->>'index')::integer<first_ide;
+ IF jsonb_array_length(a) IS DISTINCT FROM 1 OR a#>'{0,elements,1}' IS DISTINCT FROM '["23"]'::jsonb OR a#>'{0,elements,2}' IS DISTINCT FROM '["E03","","260"]'::jsonb THEN RETURN NULL; END IF;
+ SELECT jsonb_agg(t) INTO a FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='DTM' AND t#>>'{elements,1,0}'='735' AND (t->>'index')::integer<first_ide;
+ IF jsonb_array_length(a) IS DISTINCT FROM 1 OR a#>'{0,elements,1}' IS DISTINCT FROM '["735","+0100","406"]'::jsonb THEN RETURN NULL; END IF;
+ SELECT jsonb_agg(t) INTO a FROM jsonb_array_elements(header)t WHERE t->>'tag'='LOC';
+ IF jsonb_array_length(a) IS DISTINCT FROM 1 OR a#>'{0,elements,1}' IS DISTINCT FROM '["239"]'::jsonb
+  OR jsonb_array_length(a#>'{0,elements,2}') IS DISTINCT FROM 3 OR a#>>'{0,elements,2,1}' IS DISTINCT FROM 'SVK' OR a#>>'{0,elements,2,2}' IS DISTINCT FROM '260' THEN RETURN NULL; END IF;
+ area:=a#>>'{0,elements,2,0}';IF area IS NULL OR area !~ '^[A-Z0-9]{1,3}$' THEN RETURN NULL; END IF;
+ SELECT jsonb_agg(t) INTO a FROM jsonb_array_elements(header)t WHERE t->>'tag'='LIN';
+ IF jsonb_array_length(a) IS DISTINCT FROM 1 OR a#>'{0,elements,3}' IS DISTINCT FROM '["8716867000030","","","9"]'::jsonb THEN RETURN NULL; END IF;
+ SELECT jsonb_agg(t) INTO a FROM jsonb_array_elements(header)t WHERE t->>'tag'='PIA';
+ IF jsonb_array_length(a) IS DISTINCT FROM 1 OR jsonb_array_length(a#>'{0,elements}') IS DISTINCT FROM 7 OR a#>'{0,elements,1}' IS DISTINCT FROM '["1"]'::jsonb THEN RETURN NULL; END IF;
+ -- Swedish U5 p81 fixes the five C212 positions. An unordered category
+ -- map must not make a PC/PT (or any later-slot) permutation authoritative.
+ IF a#>'{0,elements,2}' IS DISTINCT FROM '["Z04","PC","SVK","260"]'::jsonb
+  OR a#>'{0,elements,3}' IS DISTINCT FROM '["U46","PT","SVK","260"]'::jsonb
+  OR a#>'{0,elements,4}' IS DISTINCT FROM '["Z02","OT","SVK","260"]'::jsonb
+  OR a#>'{0,elements,5}' IS DISTINCT FROM '["Z58","LOD","SVK","260"]'::jsonb
+  OR a#>'{0,elements,6}' IS DISTINCT FROM '["Z05","BAP","SVK","260"]'::jsonb THEN RETURN NULL; END IF;
+ product:='{}';
+ FOR x IN SELECT value FROM jsonb_array_elements(a#>'{0,elements}') WITH ORDINALITY e(value,n) WHERE n>2 LOOP
+  IF jsonb_array_length(x) IS DISTINCT FROM 4 OR x->>2 IS DISTINCT FROM 'SVK' OR x->>3 IS DISTINCT FROM '260'
+   OR product ? (x->>1) OR x->>1 NOT IN('PC','PT','OT','LOD','BAP') THEN RETURN NULL; END IF;
+  product:=product||jsonb_build_object(x->>1,x->>0);
+ END LOOP;
+ IF product IS DISTINCT FROM '{"PC":"Z04","PT":"U46","OT":"Z02","LOD":"Z58","BAP":"Z05"}'::jsonb THEN RETURN NULL; END IF;
+ SELECT jsonb_agg(t) INTO a FROM jsonb_array_elements(header)t WHERE t->>'tag'='DTM' AND t#>>'{elements,1,0}'='354';
+ IF jsonb_array_length(a) IS DISTINCT FROM 1 OR a#>'{0,elements,1}' IS DISTINCT FROM '["354","1","802"]'::jsonb THEN RETURN NULL; END IF;
+ SELECT jsonb_agg(t) INTO a FROM jsonb_array_elements(header)t WHERE t->>'tag'='DTM' AND t#>>'{elements,1,0}'='324';
+ IF jsonb_array_length(a) IS DISTINCT FROM 1 OR a#>>'{0,elements,1,2}' IS DISTINCT FROM '719' THEN RETURN NULL; END IF;
+ period:=a#>>'{0,elements,1,1}';IF period IS NULL OR period !~ '^[0-9]{24}$' THEN RETURN NULL; END IF;
+ start_time:=gridex_utilts_binding.esco_local_time_v1(left(period,12),'+0100');end_time:=gridex_utilts_binding.esco_local_time_v1(right(period,12),'+0100');
+ IF start_time IS NULL OR end_time IS NULL OR substring(period,7,6)<>'010000' OR substring(period,19,6)<>'010000'
+  OR end_time IS DISTINCT FROM (start_time+interval '1 hour'+interval '1 month'-interval '1 hour') THEN RETURN NULL; END IF;
+ SELECT jsonb_agg(t) INTO a FROM jsonb_array_elements(header)t WHERE t->>'tag'='DTM' AND t#>>'{elements,1,0}'='368';
+ IF jsonb_array_length(a) IS DISTINCT FROM 1 OR a#>>'{0,elements,1,2}' IS DISTINCT FROM '203'
+  OR EXISTS(SELECT FROM jsonb_array_elements(own)t WHERE t->>'tag'='DTM' AND t#>>'{elements,1,0}'='597') THEN RETURN NULL; END IF;
+ latest:=a#>>'{0,elements,1,1}';latest_time:=gridex_utilts_binding.esco_local_time_v1(latest,'+0100');
+ IF latest_time IS NULL OR latest_time<end_time THEN RETURN NULL; END IF;
+ SELECT jsonb_agg(t) INTO a FROM jsonb_array_elements(header)t WHERE t->>'tag'='STS';
+ IF jsonb_array_length(a) IS DISTINCT FROM 1 OR a#>'{0,elements,1}' IS DISTINCT FROM '["7"]'::jsonb OR a#>'{0,elements,3}' IS DISTINCT FROM '["E43","","260"]'::jsonb THEN RETURN NULL; END IF;
+ SELECT jsonb_agg(t) INTO a FROM jsonb_array_elements(header)t WHERE t->>'tag'='MEA';
+ IF jsonb_array_length(a) IS DISTINCT FROM 1 OR a#>'{0,elements,1}' IS DISTINCT FROM '["AAZ"]'::jsonb OR a#>'{0,elements,3}' IS DISTINCT FROM '["KWH"]'::jsonb THEN RETURN NULL; END IF;
+ SELECT jsonb_agg(t) INTO a FROM jsonb_array_elements(header)t WHERE t->>'tag'='CCI';
+ IF jsonb_array_length(a) IS DISTINCT FROM 1 OR a#>'{0,elements,3}' IS DISTINCT FROM '["E02","","260"]'::jsonb THEN RETURN NULL; END IF;
+ SELECT jsonb_agg(t) INTO a FROM jsonb_array_elements(header)t WHERE t->>'tag'='CAV';
+ IF jsonb_array_length(a) IS DISTINCT FROM 1 OR a#>'{0,elements,1}' IS DISTINCT FROM '["E01","","260"]'::jsonb THEN RETURN NULL; END IF;
+ IF (SELECT count(*) FROM jsonb_array_elements(own)t WHERE t->>'tag'='SEQ')<>1
+  OR (SELECT count(*) FROM jsonb_array_elements(own)t WHERE t->>'tag'='QTY')<>1
+  OR NOT EXISTS(SELECT FROM jsonb_array_elements(own)t WHERE t->>'tag'='QTY' AND (t->>'index')::integer>first_seq AND t#>>'{elements,1,0}'='136') THEN RETURN NULL; END IF;
+ RETURN jsonb_build_object('gridAreaId',area,'timeSeriesProduct',product,'periodStart',start_time,'periodEnd',end_time,'latestUpdateDate',latest_time);
+EXCEPTION WHEN OTHERS THEN RETURN NULL;
+END $_$;
+
+--
+-- Name: s01_l359_item_matches_v1(jsonb, jsonb); Type: FUNCTION; Schema: gridex_utilts_binding; Owner: -
+--
+
+CREATE FUNCTION gridex_utilts_binding.s01_l359_item_matches_v1(tokens jsonb, item jsonb) RETURNS boolean
+    LANGUAGE plpgsql IMMUTABLE
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+DECLARE identity jsonb; c jsonb:=item->'consumptionContract'; sink text; field text;
+BEGIN
+ identity:=gridex_utilts_binding.s01_l359_area_identity_v1(tokens,item->>'transactionId');
+ IF identity IS NULL OR item->>'seriesKind' IS DISTINCT FROM 'aggregate' OR item->>'disposition' IS DISTINCT FROM 'accepted'
+  OR item->>'responseType' IS DISTINCT FROM 'positive_aperak' OR item->>'productId' IS DISTINCT FROM '8716867000030'
+  OR item->>'gridAreaId' IS DISTINCT FROM identity->>'gridAreaId'
+  OR item->'meteringPointId' IS DISTINCT FROM 'null'::jsonb OR item->'externalMeteringPointId' IS DISTINCT FROM 'null'::jsonb
+  OR (item ? 'timeSeriesProduct' AND item->'timeSeriesProduct' IS DISTINCT FROM identity->'timeSeriesProduct')
+  OR (item ? 'actorContext' AND item->'actorContext' IS DISTINCT FROM '{}'::jsonb)
+  OR (item->>'periodStart')::timestamptz IS DISTINCT FROM (identity->>'periodStart')::timestamptz
+  OR (item->>'periodEnd')::timestamptz IS DISTINCT FROM (identity->>'periodEnd')::timestamptz
+  OR (item->>'latestUpdateDate')::timestamptz IS DISTINCT FROM (identity->>'latestUpdateDate')::timestamptz
+  OR item->>'registrationDate' IS NOT NULL OR item->>'resolution' IS DISTINCT FROM '1'
+  OR item->>'unit' IS DISTINCT FROM 'KWH' OR item->>'reasonForTransaction' IS DISTINCT FROM 'E43'
+  OR c->'version' IS DISTINCT FROM '2'::jsonb OR c->>'messageCode' IS DISTINCT FROM 'S01'
+  OR c->>'transactionId' IS DISTINCT FROM item->>'transactionId' OR c->>'seriesKind' IS DISTINCT FROM 'aggregate'
+  OR c->'observations' IS DISTINCT FROM '[]'::jsonb OR c->'billingContributionOrdinals' IS DISTINCT FROM '[]'::jsonb
+  OR c#>>'{interpretation,timestampPolicy}' IS DISTINCT FROM 'no-consumption-v1'
+  OR c->>'guideRevision' IS DISTINCT FROM '25-A-5'
+  OR c#>>'{interpretation,resolutionValue}' IS DISTINCT FROM '1'
+  OR c#>>'{interpretation,resolutionFormat}' IS DISTINCT FROM '802'
+  OR c#>>'{interpretation,timezoneRaw}' IS DISTINCT FROM '+0100'
+  OR c#>>'{interpretation,timezoneFormat}' IS DISTINCT FROM '406'
+  OR c#>'{interpretation,offsetMinutes}' IS DISTINCT FROM '60'::jsonb
+  OR c#>'{interpretation,localRegistration}' IS DISTINCT FROM 'null'::jsonb
+  OR (c#>>'{interpretation,localPeriodStart}')::timestamp IS DISTINCT FROM ((identity->>'periodStart')::timestamptz AT TIME ZONE 'UTC')+interval '1 hour'
+  OR (c#>>'{interpretation,localPeriodEnd}')::timestamp IS DISTINCT FROM ((identity->>'periodEnd')::timestamptz AT TIME ZONE 'UTC')+interval '1 hour' THEN RETURN false; END IF;
+ FOREACH sink IN ARRAY ARRAY['metering','billing'] LOOP
+  IF c#>>ARRAY[sink,'capability'] IS DISTINCT FROM 'skip' THEN RETURN false; END IF;
+  FOREACH field IN ARRAY ARRAY['customerId','siteId','customerSiteId','meteringPointId','gridOwnerId','sourceRequestId'] LOOP
+   IF c#>ARRAY[sink,field] IS DISTINCT FROM 'null'::jsonb THEN RETURN false; END IF;
+  END LOOP;
+ END LOOP;
+ RETURN true;
+EXCEPTION WHEN OTHERS THEN RETURN false;
+END $$;
+
+--
 -- Name: source_context_v1(public.ediel_messages); Type: FUNCTION; Schema: gridex_utilts_binding; Owner: -
 --
 
@@ -36950,7 +37157,7 @@ CREATE FUNCTION gridex_utilts_binding.stored_contract_v1(p_company uuid, p_sourc
     AS $$
 DECLARE v_source public.ediel_messages%rowtype; v_receipt gridex_utilts_binding.receipts%rowtype;
  v_ack public.ediel_ack_transaction_results%rowtype; v_series public.meter_reading_series%rowtype;
- v_contract gridex_utilts_binding.contracts%rowtype; v_point text;
+ v_contract gridex_utilts_binding.contracts%rowtype; v_point text; area_identity jsonb;
 BEGIN
  SELECT s.* INTO v_source FROM public.ediel_messages s WHERE s.id=p_source AND s.company_id=p_company FOR SHARE;
  IF NOT FOUND THEN RAISE EXCEPTION 'utilts_consumption_source_unavailable' USING ERRCODE='P0U01'; END IF;
@@ -36981,9 +37188,26 @@ BEGIN
   RAISE EXCEPTION 'utilts_consumption_contract_conflict' USING ERRCODE='P0U01'; END IF;
  -- Pre-forward receipts are not a namespace approval either. All sinks use
  -- this check, including direct calls with an already committed contract.
+ area_identity:=CASE WHEN v_source.message_code='S01' THEN gridex_utilts_binding.s01_l359_area_identity_v1(gridex_utilts_binding.wire_tokens_v1(v_source.raw_payload),p_transaction) END;
+ IF area_identity IS NOT NULL THEN
+  PERFORM gridex_utilts_binding.require_s01_l359_basis_v1(p_company,p_source);
+  IF NOT coalesce(gridex_utilts_binding.s01_l359_item_matches_v1(gridex_utilts_binding.wire_tokens_v1(v_source.raw_payload),v_series.raw_transaction),false)
+   OR v_series.time_series_product IS DISTINCT FROM area_identity->'timeSeriesProduct'
+   OR v_series.raw_transaction->'timeSeriesProduct' IS DISTINCT FROM area_identity->'timeSeriesProduct'
+   OR v_series.metering_point_id IS NOT NULL OR v_series.external_metering_point_id IS NOT NULL
+   OR v_series.grid_area_id IS DISTINCT FROM area_identity->>'gridAreaId'
+   OR v_series.series_kind IS DISTINCT FROM 'aggregate' OR v_series.product_id IS DISTINCT FROM '8716867000030'
+   OR v_series.resolution IS DISTINCT FROM '1' OR v_series.unit IS DISTINCT FROM 'KWH'
+   OR v_series.period_start IS DISTINCT FROM (area_identity->>'periodStart')::timestamptz
+   OR v_series.period_end IS DISTINCT FROM (area_identity->>'periodEnd')::timestamptz
+   OR v_series.latest_update_date IS DISTINCT FROM (area_identity->>'latestUpdateDate')::timestamptz
+   OR v_series.registration_date IS NOT NULL THEN
+   RAISE EXCEPTION 'utilts_s01_area_identity_conflict' USING ERRCODE='P0U01'; END IF;
+ ELSE
  v_point:=gridex_utilts_binding.supported_point_v1(gridex_utilts_binding.wire_tokens_v1(v_source.raw_payload),p_transaction);
  IF v_point IS NULL OR EXISTS(SELECT FROM jsonb_array_elements(v_contract.contract->'observations') o WHERE o->>'externalPoint' IS DISTINCT FROM v_point) THEN
   RAISE EXCEPTION 'utilts_consumption_identity_unsupported' USING ERRCODE='P0U01'; END IF;
+ END IF;
  IF v_contract.contract_version=2 AND NOT coalesce(gridex_utilts_binding.validate_decimal_source_v2(gridex_utilts_binding.wire_tokens_v1(v_source.raw_payload),v_series.raw_transaction,
   CASE WHEN left(v_source.raw_payload,3)='UNA' THEN substring(v_source.raw_payload,6,1) ELSE '.' END),false) THEN
   RAISE EXCEPTION 'utilts_consumption_decimal_source_conflict' USING ERRCODE='P0U01'; END IF;
@@ -203239,6 +203463,24 @@ REVOKE ALL ON FUNCTION gridex_utilts_binding.require_execution_actor_v1(p_compan
 --
 
 REVOKE ALL ON FUNCTION gridex_utilts_binding.require_positive_storage_authority_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_transaction_id text, p_ack_message_id uuid, p_ack_raw_payload text) FROM PUBLIC;
+
+--
+-- Name: FUNCTION require_s01_l359_basis_v1(company uuid, source uuid); Type: ACL; Schema: gridex_utilts_binding; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_utilts_binding.require_s01_l359_basis_v1(company uuid, source uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION s01_l359_area_identity_v1(tokens jsonb, transaction_id text); Type: ACL; Schema: gridex_utilts_binding; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_utilts_binding.s01_l359_area_identity_v1(tokens jsonb, transaction_id text) FROM PUBLIC;
+
+--
+-- Name: FUNCTION s01_l359_item_matches_v1(tokens jsonb, item jsonb); Type: ACL; Schema: gridex_utilts_binding; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_utilts_binding.s01_l359_item_matches_v1(tokens jsonb, item jsonb) FROM PUBLIC;
 
 --
 -- Name: FUNCTION source_context_v1(s public.ediel_messages); Type: ACL; Schema: gridex_utilts_binding; Owner: -

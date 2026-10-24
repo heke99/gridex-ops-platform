@@ -45,6 +45,7 @@ import {
   type UtiltsProcessabilityPolicy,
 } from '@/lib/ediel/rulebook/utilts25A4'
 import type { RulebookFieldRule } from '@/lib/ediel/rulebook/fieldMatrix'
+import { UTILTS_25_A_5_SOURCE } from '@/lib/ediel/rulebook/utilts25A5'
 
 export type CanonicalEdielPolicyDirection = 'inbound' | 'outbound'
 export type CanonicalEdielPolicyMode = 'send' | 'parse' | 'historical_replay' | 'catalog_evidence'
@@ -116,6 +117,31 @@ export type ResolveCanonicalEdielPolicyInput = {
 
 function normalize(value: unknown): string {
   return String(value ?? '').trim().toUpperCase()
+}
+
+/** Bounded executable projection of the unchanged Swedish p54 source cell.
+ * Other raw R/D/O/X rows still require their own qualified scope/conditions.
+ * Keep the original semantic key/path alongside the generic validator's shape. */
+function canonicalUtiltsFieldRules(code: string, guide: AuthoritativeEdielGuide, referenceDate: string): readonly (RulebookFieldRule | UtiltsFieldRule)[] {
+  const rows = getUtiltsFieldRules(code)
+  if (code !== 'S01' || guide.guideRevision !== UTILTS_25_A_5_SOURCE.guideRevision
+    || guide.primarySource?.sha256 !== UTILTS_25_A_5_SOURCE.sha256
+    || guide.primarySource.language !== UTILTS_25_A_5_SOURCE.language
+    || referenceDate < UTILTS_25_A_5_SOURCE.effectiveFrom || referenceDate < guide.effectiveFrom
+    || (guide.effectiveTo !== null && referenceDate > guide.effectiveTo)) return rows
+  return rows.map(row => {
+    if (row.fieldNo !== '209' || row.scope !== 'transaction' || row.requirements.S01 !== 'X') return row
+    const projected: UtiltsFieldRule & RulebookFieldRule & {
+      sourceSegmentPath: string; sourceEdition: string; sourceSha256: string
+    } = {
+      ...row, family: 'UTILTS', code, fieldNumber: row.fieldNo,
+      fieldKey: 'metering_point', label: row.fieldLabel,
+      sourceSegmentPath: row.segmentPath, segmentPath: row.segmentPath.replace(/^SG5\//, ''),
+      sourceEdition: guide.guideRevision, sourceSha256: guide.primarySource!.sha256,
+      requirement: 'forbidden', errorCodeIfInvalid: `UTILTS_FIELD_${row.fieldNo}_FORBIDDEN`,
+    }
+    return projected
+  })
 }
 
 function normalizeDate(value: string): string {
@@ -375,7 +401,7 @@ function composeCanonicalEdielPolicy(input: ResolveCanonicalEdielPolicyInput, re
       previousGuideGraceActive: acceptance.previousGuideGraceActive,
       associationAssignedCode,
       applicationReference,
-      fieldRules: family === 'UTILTS' ? getUtiltsFieldRules(code) : [],
+      fieldRules: family === 'UTILTS' ? canonicalUtiltsFieldRules(code, selectedGuide, referenceDate) : [],
       prodatDependentConditions: [],
       ackRule,
       utiltsProfile,

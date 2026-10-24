@@ -1,3 +1,4 @@
+import { s01L359AggregateWire } from '../scripts/helpers/utiltsS01AggregateFixture'
 import { createUtiltsFinalValidationIo, qualifyUtiltsFixtureSource as registerFixtureSource, currentUtiltsActorQuery, UTILTS_FIXTURE_ACTOR } from './helpers/utiltsCurrentOwnerFixture'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest.part-2'
@@ -464,15 +465,31 @@ it('the real supplier-side admission refuses outbound-only E73 as an inbound fix
   expect(io.rpc.mock.calls.some(([name]) => name === 'gridex_persist_utilts_consumption_v1')).toBe(false)
   expect(io.ack).not.toHaveBeenCalled(); expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled()
 })
-it('holds a valid S01 LOC+175 without an owned regulating object and never reserves a positive point ACK', async () => {
+// A qualified L359 aggregate sibling and an explicitly LOCALUNQUALIFIED X50
+// object probe. X50 itself is catalogued; its full product combination is not
+// asserted to be a national product. Unknown ownership must HOLD, never become
+// a national data error merely because this catalogue has no matching row.
+function s01ObjectAndAggregate(message: EdielMessageRow, order: 'object-first' | 'point-first', negative = false, objectOnly = false) {
+  const objectId = order === 'object-first' ? 'GRIDEX2607E66001' : 'GRIDEX2607E66002'
+  const aggregateId = order === 'object-first' ? 'GRIDEX2607E66002' : 'GRIDEX2607E66001'
+  const object = { transactionId: objectId, latestUpdateDate: '202607010020', quantity: '7' }
+  const aggregate = { transactionId: aggregateId, latestUpdateDate: '202607010040', quantity: '500' }
+  const raw = s01L359AggregateWire(message.raw_payload!, objectOnly ? [object] : order === 'object-first' ? [object, aggregate] : [aggregate, object])
+  const lines = raw.split('\n'), start = lines.findIndex(line => line === `IDE+24+${objectId}'`)
+  const end = lines.findIndex((line, index) => index > start && /^(IDE|UNT)\+/.test(line))
+  lines.splice(start, end - start, ...lines.slice(start, end).map(line => line.replace('Z02:OT:', 'X50:OT:')))
+  lines.splice(start + 1, 0, "LOC+175+735999260731000007::9'")
+  if (negative) {
+    const sibling = lines.findIndex(line => line === `IDE+24+${aggregateId}'`)
+    lines.splice(sibling + 1, 0, "LOC+172+735999260731000007::9'")
+  }
+  return recountEdifactUnt(lines.join('\n'))
+}
+it('holds a LOCALUNQUALIFIED S01 X50 object without an owned regulating object and never reserves a positive point ACK', async () => {
   const message = incoming(false, false, '2026-10-01')
   message.message_code = 'S01'; message.application_reference = '23-DDK-S01-S'
   message.customer_id = null; message.site_id = null; message.metering_point_id = null
-  message.raw_payload = message.raw_payload!
-    .replace('BGM+E66::260', 'BGM+S01:SVK:260')
-    .replace('23-DDQ-E66-T', '23-DDK-S01-S')
-    .replace('LOC+172+735999260731000007::9', 'LOC+175+735999260731000007::9')
-  expect(runUtiltsRuntimeForMessage(message).transactionDispositions).toMatchObject([{ disposition: 'accepted' }])
+  message.raw_payload = s01ObjectAndAggregate(message, 'object-first', false, true)
   io.get.mockResolvedValue(declaredTestSource(message))
   results = undefined // The RPC fixture echoes the actual prepared disposition.
   const { processInboundUtiltsMessageByCanonicalPolicy } = await import('@/lib/ediel/flows/utiltsInboundPolicyProcessor')
@@ -556,17 +573,11 @@ it.each(['object-first', 'point-first'] as const)('holds both S01 %s object and 
   expect(io.ack.mock.calls.filter(([call]) => call.ackFamily === 'APERAK' || call.ackFamily === 'UTILTS_ERR')).toHaveLength(0)
   expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
 })
-it.each(['object-first', 'point-first'] as const)('keeps the clean S01 sibling eligible with a valid %s regulating-object IDE', async order => {
+it.each(['object-first', 'point-first'] as const)('keeps the L359 aggregate sibling eligible beside a LOCALUNQUALIFIED %s object IDE', async order => {
   const message = incoming(false, true, '2026-10-01')
   message.message_code = 'S01'; message.application_reference = '23-DDK-S01-S'
   message.customer_id = null; message.site_id = null; message.metering_point_id = null
-  const raw = message.raw_payload!
-    .replace('BGM+E66::260', 'BGM+S01:SVK:260')
-    .replace('23-DDQ-E66-T', '23-DDK-S01-S')
-  const point = 'LOC+172+735999260731000007::9'
-  const at = order === 'object-first' ? raw.indexOf(point) : raw.lastIndexOf(point)
-  message.raw_payload = raw.slice(0, at) + raw.slice(at).replace(point, 'LOC+175+735999260731000007::9')
-  expect(runUtiltsRuntimeForMessage(message).transactionDispositions.map(item => item.disposition)).toEqual(['accepted', 'accepted'])
+  message.raw_payload = s01ObjectAndAggregate(message, order)
   io.get.mockResolvedValue(declaredTestSource(message)); results = undefined
   const { processInboundUtiltsMessageByCanonicalPolicy } = await import('@/lib/ediel/flows/utiltsInboundPolicyProcessor')
   const result = await processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: UTILTS_FIXTURE_ACTOR, edielMessageId: message.id })
@@ -574,7 +585,7 @@ it.each(['object-first', 'point-first'] as const)('keeps the clean S01 sibling e
   const persisted = io.rpc.mock.calls.find(([name]) => name === 'gridex_persist_utilts_consumption_v1')?.[1].p_transactions
   const expected = [
     { disposition: 'internal_review', responseType: 'none', meteringPointId: null, externalMeteringPointId: null, quantities: [] },
-    { disposition: 'accepted', responseType: 'positive_aperak', externalMeteringPointId: '735999260731000007' },
+    { disposition: 'accepted', responseType: 'positive_aperak', externalMeteringPointId: null },
   ]
   expect(persisted).toMatchObject(order === 'object-first' ? expected : expected.reverse())
   const aperaks = io.ack.mock.calls.filter(([call]) => call.ackFamily === 'APERAK')
@@ -584,24 +595,19 @@ it.each(['object-first', 'point-first'] as const)('keeps the clean S01 sibling e
   expect(io.event.mock.calls.filter(([call]) => call.eventType === 'aperak_sent').map(([call]) => call.payload.relatedTransactionReference)).toEqual([pointId])
   expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
 })
-it.each(['object-first', 'point-first'] as const)('keeps a valid S01 %s object held when its point sibling has a guide error', async order => {
+it.each(['object-first', 'point-first'] as const)('keeps a LOCALUNQUALIFIED S01 %s object held when its aggregate sibling has a guide error', async order => {
   const message = incoming(false, true, '2026-10-01')
   message.message_code = 'S01'; message.application_reference = '23-DDK-S01-S'
   message.customer_id = null; message.site_id = null; message.metering_point_id = null
-  const raw = message.raw_payload!
-    .replace('BGM+E66::260', 'BGM+S01:SVK:260')
-    .replace('23-DDQ-E66-T', '23-DDK-S01-S')
-  const pointLocation = 'LOC+172+735999260731000007::9'
-  const objectAt = order === 'object-first' ? raw.indexOf(pointLocation) : raw.lastIndexOf(pointLocation)
-  const withObject = raw.slice(0, objectAt) + raw.slice(objectAt).replace(pointLocation, 'LOC+175+735999260731000007::9')
-  const badGridArea = 'LOC+239+TES:SVK:260'
-  const badAt = order === 'object-first' ? withObject.lastIndexOf(badGridArea) : withObject.indexOf(badGridArea)
-  message.raw_payload = withObject.slice(0, badAt) + withObject.slice(badAt).replace(badGridArea, 'LOC+239+ABCD:SVK:260')
-  expect(runUtiltsRuntimeForMessage(message).transactionDispositions.map(item => item.disposition))
-    .toEqual(order === 'object-first' ? ['accepted', 'guide_rejected'] : ['guide_rejected', 'accepted'])
+  message.raw_payload = s01ObjectAndAggregate(message, order, true)
   io.get.mockResolvedValue(declaredTestSource(message)); results = undefined
   const { processInboundUtiltsMessageByCanonicalPolicy } = await import('@/lib/ediel/flows/utiltsInboundPolicyProcessor')
-  const processed = await processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: UTILTS_FIXTURE_ACTOR, edielMessageId: message.id })
+  const { initialCanonicalUtiltsDecision } = await import('@/lib/ediel/flows/utiltsCanonicalValidation')
+  const initialDecision = await initialCanonicalUtiltsDecision(message)
+  expect(initialDecision.syntaxDecision, JSON.stringify(initialDecision)).toBe('accepted')
+  expect(initialDecision.policy.guide.guideRevision, JSON.stringify(initialDecision)).toBe('25-A-5')
+  expect(initialDecision.validationReport.rulePackEvidence, JSON.stringify(initialDecision)).toBeTruthy()
+  const processed = await processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: UTILTS_FIXTURE_ACTOR, edielMessageId: message.id, canonicalDecision: initialDecision })
   expect(processed.internalReviewRequired).toBe(true)
   const persisted = io.rpc.mock.calls.find(([name]) => name === 'gridex_persist_utilts_consumption_v1')?.[1].p_transactions
   const expected = [
@@ -614,7 +620,7 @@ it.each(['object-first', 'point-first'] as const)('keeps a valid S01 %s object h
   const rejectedId = order === 'object-first' ? 'GRIDEX2607E66002' : 'GRIDEX2607E66001'
   expect(acknowledgements[0][0]).toMatchObject({ ackFamily: 'APERAK', outcome: 'negative',
     draft: { parsedPayload: { ackScope: 'transaction', relatedTransactionReference: rejectedId } } })
-  expect(JSON.stringify(acknowledgements[0][0].draft)).toContain('260a')
+  expect(JSON.stringify(acknowledgements[0][0].draft)).toContain('209')
   expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
 })
 it('holds an inbound E73 (outbound-only in the source catalog) for manual review: no rule basis can answer it', async () => {

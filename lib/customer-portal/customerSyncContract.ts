@@ -5,7 +5,7 @@ import type { TenantCustomerSyncPayload } from '@/lib/customer-portal/tenantSync
 const optionalText = (max: number) =>
   z.string().trim().min(1).max(max).optional()
 
-const metadata = z.record(z.unknown()).optional()
+const metadata = z.record(z.string(), z.unknown()).optional()
 
 const address = z.object({
   street: optionalText(300),
