@@ -2474,6 +2474,7 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
   - Testerna har utökats med Z23 → LK, både mot katalogmocken och genom den riktiga resolvern, och fixturen mappar LK → Z23. Före rättningen föll 2 tester.
   - 290 relaterade testfiler, 5795 pass. Täckningen 352/352.
 - **Sidofynd H-11 (medel):** i världen bär 17 tidigare Z05 med orsak Z23 i testmiljön L-profilen, inte LK. Det pekar på fel bindning i en annan väg, sannolikt testvägen. Ej utrett.
+  - **H-11, utrett 2026-10-24: EJ REPRODUCERAD, låg.** I en ny värld (H körning 2) binds nätägarens Z05 LK via e-postvägen till `PRODAT:Z05:LK:26.A:r3` och Z05 L till L. Databastriggern `gridex_bind_inbound_ediel_rule_pack_evidence` kan inte välja L själv (fyra aktiva Z05-profiler ger 23514). L-bindningen måste alltså ha skrivits direkt med en uttrycklig profil. Flera native-fixturer skriver testmiljöns Z05 med hårdkodad `PRODAT:Z05:L:26.A:r3` (`ediel-national-end-native-fixture`, `ediel-decision-original-native-fixture`, `ediel-db04-query-fixture`), och den gamla världen delades med native-körningar. Raderna finns inte kvar att verifiera. Ingen produktväg har hittats som binder Z23 till L.
 - ÖPPET: H4–H7 ska verifieras i en ny körning av H.
 
 ### H-10 Ångerrätt och annullering av ett skickat byte (Z03C) hittar ingen communication_route för `supplier_switch` — BEKRÄFTAD (världen), hög; RÄTTAD (TS), ej omkörd i världen
