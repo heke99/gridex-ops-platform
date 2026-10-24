@@ -153,17 +153,19 @@ export async function ensureAndPrepareUtiltsFromDataRequest(
     )
   }
 
-  await ensureOutboundForGridOwnerDataRequest({
+  const outbound = await ensureOutboundForGridOwnerDataRequest({
     actorUserId: input.actorUserId,
     dataRequestId: row.id,
     requestType: 'meter_values',
     communicationRouteId: input.communicationRouteId ?? null,
   })
 
+  // The E73 is built on the route the outbound request resolved for this tenant; without it the runtime environment
+  // cannot be chosen (environment_not_resolved, FINDINGS H-15).
   return prepareAndQueueUtiltsE73({
     actorUserId: input.actorUserId,
     gridOwnerDataRequestId: row.id,
-    communicationRouteId: input.communicationRouteId ?? null,
+    communicationRouteId: input.communicationRouteId ?? outbound.communication_route_id ?? null,
   })
 }
 

@@ -2515,6 +2515,17 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **Rättning:** båda anropen skickar begärans egen `company_id`.
 - **Test:** `__tests__/reality-h15-data-request-route-tenant.test.ts`. Utan rättningen faller den med `communication_route_company_required`.
 - Relaterade tester: 32 filer, 303 pass. `tsc` rent. Täckningen 352/352, `tagged failing 0`.
+- **Tillägg (H körning 4):** E73 byggdes sedan med anroparens route-id (null) i stället för den route som begäran just fick, och stoppades på `environment_not_resolved`. Nu används den utgående begärans route (`ensureAndPrepareUtiltsFromDataRequest`). Testet har fått ett andra fall, som föll före rättningen. Relaterade tester: 33 filer, 306 pass. Täckningen 352/352.
+
+### H körning 4 (2026-10-24 ca 21:35–22:00, världen på 2a743507a): 6 av 9 gröna; H6, H7 och H8 röda
+- **H-14 verifierad:** W:s ärende blir `after_prodat_before_start` med `cancellation_required = true`. Ångeråtgärden svarar ändå 500, se H-16.
+- **H-15 delvis:** route-uppslaget lyckas och den utgående begäran får sin route. E73 stoppas sedan på `environment_not_resolved`, se H-15 tillägg.
+
+### H-16 Ånger efter skickad Z03 avbryts av ett legacy-Z03C som fältmatrisen vägrar — BEKRÄFTAD (världen), hög; RÄTTAD (TS)
+- **Bevis:** appens logg visar `prodat_render_blocked:Z03:FIELD_MATRIX_FIELD_FORMAT_INVALID` och fyra `PRODAT_DEPENDENT_CONDITION_UNDETERMINED` från `createCancellationDraftForCase` (`lib/customer-cases/engine.ts`). Ångeråtgärden svarar 500, ingen Z03C skapas och kunden får inget mejl om att ångern är mottagen (`withdrawal_received`).
+- **Orsak:** ärendemotorn renderade ett eget Z03 i stället för att använda den kanoniska Z03C-byggaren (`prepareAndQueueSwitchCancellation`), som leverantörens egen annullering använder och som fungerar (C i H8).
+- **Rättning:** ett ärende som är bundet till ett byte använder den kanoniska byggaren och länkar meddelandet till ärendet. En hållen annullering går till manuell granskning (`cancellation_status = manual_review`) i stället för att avbryta ångern. Den gamla vägen finns kvar för ärenden utan byte.
+- **Test:** `__tests__/reality-h16-withdrawal-canonical-z03c.test.ts`, 2 fall; båda föll före rättningen. F102-fallet i `__tests__/reality-f102-inbound-production-test-flag.test.ts` testade den gamla vägen för ett bytesbundet ärende och är anpassat. Dess invariant (flaggan kommer aldrig från ett inkommande original) gäller fortfarande, eftersom den kanoniska källan bara läser vårt utgående Z03 i samma miljö.
 
 ### H-12 Ånger stoppar inte ett byte vars Z03 är skickad (status `prepared`) — BEKRÄFTAD (världen), hög; RÄTTAD (TS)
 - **Bevis:** W:s Z03 `e627d419…` är `sent`, men bytet `f2a3f886…` står kvar som `prepared` efter ångern. Ingen Z03C skapas, och avtalet blir `cancelled`.

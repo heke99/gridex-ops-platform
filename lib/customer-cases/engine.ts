@@ -472,6 +472,29 @@ export async function applyCustomerCaseOperationalStops(caseRow: CustomerCaseRow
 export async function createCancellationDraftForCase(caseRow: CustomerCaseRow, actorUserId: string | null) {
   if (!caseRow.cancellation_required || caseRow.cancellation_ediel_message_id) return null
 
+  // A case bound to a switch whose Z03 was sent uses the canonical Z03C builder, the same one as the supplier's own
+  // cancellation (FINDINGS H-16). The legacy draft below renders a full Z03 that the 26.A field matrix refuses, which
+  // aborted the whole withdrawal (500, no Z03C, no customer email). A held cancellation goes to manual review.
+  if (caseRow.supplier_switch_request_id && actorUserId) {
+    const { prepareAndQueueSwitchCancellation } = await import('@/lib/ediel/flows/prodatSwitchCancellation')
+    const result = await prepareAndQueueSwitchCancellation({
+      companyId: caseRow.company_id, switchRequestId: caseRow.supplier_switch_request_id, actorUserId,
+    })
+    const message = 'status' in result && result.status === 'held' ? null : (result as { message: EdielMessageRow }).message
+    const { error } = await supabaseService
+      .from('customer_cases')
+      .update({
+        cancellation_ediel_message_id: message?.id ?? null,
+        cancellation_status: message ? 'draft_created' : 'manual_review',
+        updated_by: actorUserId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', caseRow.id)
+      .eq('company_id', caseRow.company_id)
+    if (error) throw error
+    return message
+  }
+
   const sourceMessage = await findSourceSwitchMessage(caseRow)
   const [customer, site, meteringPoint, switchRequest] = await Promise.all([
     maybeSelectById('customers', caseRow.customer_id, caseRow.company_id),

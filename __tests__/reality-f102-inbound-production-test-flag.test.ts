@@ -19,6 +19,10 @@ vi.mock('@/lib/ediel/prodat/engine',async original=>({...await original<typeof i
 vi.mock('@/lib/ediel/messages',async original=>({...await original<typeof import('@/lib/ediel/messages')>(),
  buildEdifactEnvelope:(input:Record<string,unknown>)=>{io.envelopes.push(input);return {raw:'CANCELLATION-WIRE'}}}))
 vi.mock('next/cache',()=>({revalidatePath:vi.fn()}))
+// H-16: a switch-bound cancellation uses the canonical Z03C builder; its source reads only our outbound Z03 original
+// in the same environment (lib/ediel/production/switchCancellationSource.ts), never an inbound production original.
+const cancellationBuilder=vi.hoisted(()=>vi.fn(async()=>({status:'queued',message:{id:'canonical-z03c'}})))
+vi.mock('@/lib/ediel/flows/prodatSwitchCancellation',()=>({prepareAndQueueSwitchCancellation:cancellationBuilder}))
 vi.mock('@/lib/admin/guards',()=>({requirePlatformAdminActionAccess:async()=>({userId:actor}),isPlatformAdminContext:()=>true,requireCompanyScopedActionAccess:vi.fn()}))
 vi.mock('@/app/admin/ediel/actions.part-1',async original=>({...await original<typeof import('@/app/admin/ediel/actions.part-1')>(),
  deleteEdielMessagesByIds:async(p:{messageIds:string[]})=>{io.deleted.push(...p.messageIds)},revalidateEdiel:vi.fn()}))
@@ -120,11 +124,13 @@ describe('consumers of an inbound production original',()=>{
   })
   const caseRow={id:'case-1',company_id:company,cancellation_required:true,cancellation_ediel_message_id:null,outbound_request_id:null,supplier_switch_request_id:'switch-1',
    customer_id:null,site_id:null,metering_point_id:null,metadata:{}} as unknown as CustomerCaseRow
-  await createCancellationDraftForCase(caseRow,actor)
-  expect(io.created).toHaveLength(1)
-  expect(io.created[0]).toMatchObject({direction:'outbound',environment:'production',testFlag:0,relatedMessageId:'outbound-z03'})
-  expect(io.envelopes).toEqual([expect.objectContaining({testFlag:0})])
-  const lock=evaluateEdielProductionSendLock({company_id:company,environment:'production',direction:'outbound',test_flag:io.created[0].testFlag as number,message_family:'PRODAT'})
+  const created=await createCancellationDraftForCase(caseRow,actor)
+  // H-16: the canonical builder renders from the switch's own outbound Z03; no legacy draft is born from any original.
+  expect(cancellationBuilder).toHaveBeenCalledWith({companyId:company,switchRequestId:'switch-1',actorUserId:actor})
+  expect(created).toEqual({id:'canonical-z03c'})
+  expect(io.created).toHaveLength(0)
+  expect(io.envelopes).toEqual([])
+  const lock=evaluateEdielProductionSendLock({company_id:company,environment:'production',direction:'outbound',test_flag:rows[1].test_flag as number,message_family:'PRODAT'})
   expect(lock.issues.map(i=>i.code)).not.toContain('production_test_flag')
  })
 })
