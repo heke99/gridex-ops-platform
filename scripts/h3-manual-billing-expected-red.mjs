@@ -1,0 +1,3 @@
+// The actual original SQL consumers must reproduce the captured scope defect.
+import {execFile} from 'node:child_process';import assert from 'node:assert/strict';import {fileURLToPath} from 'node:url';
+await new Promise((resolve,reject)=>execFile(process.execPath,[fileURLToPath(new URL('./h3-final-actual-sql.mjs',import.meta.url))],{env:{...process.env,H3_EXPECT_PRECONSUMER_RED:'1'},maxBuffer:4*1024*1024},(error,stdout,stderr)=>{try{assert.ok(error,'Original consumers must fail');assert.equal(error.code,1);assert.match(stderr,/billing_gate_supply_contract_scope_mismatch/);console.log('PASS expected original billing_gate_supply_contract_scope_mismatch RED');resolve();}catch(failure){reject(failure);}}));

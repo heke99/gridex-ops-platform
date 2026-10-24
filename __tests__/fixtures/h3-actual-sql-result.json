@@ -1,0 +1,2169 @@
+{
+  "results": [
+    {
+      "name": "normal_source_before_manual"
+    },
+    {
+      "name": "after_actual_end_supply",
+      "contract": {
+        "status": "terminated",
+        "termination_reason": "move_out",
+        "ended_at": "2026-02-15T00:00:00.000Z"
+      },
+      "contractFull": {
+        "id": "00000000-0000-0000-0000-000000000006",
+        "status": "terminated",
+        "ends_at": null,
+        "site_id": null,
+        "ended_at": "2026-02-15T00:00:00+00:00",
+        "metadata": {
+          "status_reason_code": "move_out"
+        },
+        "signed_at": "2025-12-01T00:00:00+00:00",
+        "starts_at": "2025-12-01",
+        "company_id": "00000000-0000-0000-0000-000000000001",
+        "updated_at": "2026-10-24T01:35:04.175+00:00",
+        "updated_by": "00000000-0000-0000-0000-000000000002",
+        "customer_id": "00000000-0000-0000-0000-000000000003",
+        "contract_type": "variable_quarterly",
+        "notice_months": 0,
+        "binding_months": 0,
+        "signed_version": "1",
+        "actual_start_at": null,
+        "rejected_reason": null,
+        "contract_version": "1",
+        "customer_site_id": null,
+        "version_snapshot": {},
+        "expected_start_at": null,
+        "metering_point_id": "00000000-0000-0000-0000-000000000005",
+        "confirmed_start_at": null,
+        "status_reason_code": "move_out",
+        "termination_reason": "move_out",
+        "termination_notice_date": "2026-01-01",
+        "withdrawal_requested_at": null
+      },
+      "manualRecord": {
+        "id": "374375ac-4045-4872-bbb8-7c5f466d8074",
+        "command": "supply_move_out",
+        "end_date": "2026-02-15",
+        "period_id": "c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+        "company_id": "00000000-0000-0000-0000-000000000001",
+        "captured_at": "2026-10-24T01:35:04.175+00:00",
+        "contract_id": "00000000-0000-0000-0000-000000000006",
+        "customer_id": "00000000-0000-0000-0000-000000000003",
+        "actor_user_id": "00000000-0000-0000-0000-000000000002",
+        "original_basis": {
+          "siteId": "00000000-0000-0000-0000-000000000004",
+          "periodId": "c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+          "switchId": "00000000-0000-0000-0000-000000000010",
+          "activated": true,
+          "companyId": "00000000-0000-0000-0000-000000000001",
+          "qualified": true,
+          "customerId": "00000000-0000-0000-0000-000000000003",
+          "dsoEdielId": "54321",
+          "marketEndAt": null,
+          "payloadHash": "5f84efd1b965902cbd34cdb81c192271b9599a651cbc54ac2899bcb9e4d0f04e",
+          "legalActorId": "00000000-0000-0000-0000-000000000050",
+          "marketStartAt": "2026-01-01T12:30:00+00:00",
+          "sourceObjects": [
+            {
+              "li": "LI-A",
+              "line": "1",
+              "point": "735123456789012345",
+              "start": "202601011330",
+              "reason": "Z22",
+              "gridArea": "TES",
+              "registerCount": 1,
+              "identityAgency": "9",
+              "customerIdentity": "PERSON-A"
+            }
+          ],
+          "meteringPointId": "00000000-0000-0000-0000-000000000005",
+          "sourceMessageId": "00000000-0000-0000-0000-000000000030",
+          "originalMessageId": "00000000-0000-0000-0000-000000000020",
+          "marketStateVersion": 1,
+          "originalAcceptedAt": "2026-10-24T01:35:03.391+00:00",
+          "originalPayloadHash": "a95baa3c27d8a1a1dce760d66ce27ba49c733503dd91be50fb2b66cf1cae2a46",
+          "currentSourceMessageId": "00000000-0000-0000-0000-000000000030",
+          "initialSourceMessageId": "00000000-0000-0000-0000-000000000030"
+        },
+        "original_period": {
+          "id": "c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+          "source": "ediel_qualified_source",
+          "status": "active",
+          "end_date": null,
+          "metadata": {
+            "activationKey": "ediel-normal-activation:c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+            "normalSourceBasis": {
+              "object": {
+                "li": "LI-A",
+                "line": "1",
+                "point": "735123456789012345",
+                "start": "202601011330",
+                "reason": "Z22",
+                "gridArea": "TES",
+                "registerCount": 1,
+                "identityAgency": "9",
+                "customerIdentity": "PERSON-A"
+              },
+              "siteId": "00000000-0000-0000-0000-000000000004",
+              "contractHash": "c7578a5270f6d6c3a4f044f6f4fd35955d7060b538d4872ed40b2b32f4a943e4",
+              "legalActorId": "00000000-0000-0000-0000-000000000050",
+              "sourceMessageId": "00000000-0000-0000-0000-000000000030",
+              "originalMessageId": "00000000-0000-0000-0000-000000000020"
+            }
+          },
+          "company_id": "00000000-0000-0000-0000-000000000001",
+          "start_date": "2026-01-01",
+          "updated_at": "2026-10-24T01:35:03.588+00:00",
+          "contract_id": "00000000-0000-0000-0000-000000000006",
+          "customer_id": "00000000-0000-0000-0000-000000000003",
+          "market_end_at": null,
+          "source_process": "supplier_switch_confirmation",
+          "actual_end_date": null,
+          "market_start_at": "2026-01-01T12:30:00+00:00",
+          "actual_start_date": "2026-01-01",
+          "metering_point_id": "00000000-0000-0000-0000-000000000005",
+          "source_message_id": "00000000-0000-0000-0000-000000000030",
+          "customer_contract_id": "00000000-0000-0000-0000-000000000006",
+          "market_state_version": 1,
+          "source_end_message_id": null,
+          "source_switch_request_id": "00000000-0000-0000-0000-000000000010"
+        },
+        "contract_event_id": "6bf330a3-5d75-46f9-8ac6-33d2c632d78d",
+        "contract_event_hash": "08394436c047f03ff839ed6c1b34928906121b951a3b089fe55e14aa31fbaf5e",
+        "contract_disposition": "terminated",
+        "resulting_period_hash": "d5db7fe2de412f4ca3619dbb39f69dc986f5005d12c1d2b0978d36aae81a8648",
+        "original_contract_hash": "c7578a5270f6d6c3a4f044f6f4fd35955d7060b538d4872ed40b2b32f4a943e4",
+        "resulting_contract_hash": "726a49a615a9d81d84b39603fe1e49c9a64b4a5b5b3259a57f621b81a5619e42",
+        "original_contract_status": "signed"
+      },
+      "successorRecord": {
+        "id": "2ca1eb4c-cbba-424b-908b-ce415d0d0bf4",
+        "period_id": "c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+        "company_id": "00000000-0000-0000-0000-000000000001",
+        "captured_at": "2026-10-24T01:35:04.175+00:00",
+        "contract_id": "00000000-0000-0000-0000-000000000006",
+        "effect_hash": "20f4673444f8ff00a7c67f4743b7dc247a75f89070eb270e7fe3e3cdb71cf431",
+        "resulting_period": {
+          "id": "c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+          "source": "ediel_qualified_source",
+          "status": "ended",
+          "end_date": "2026-02-16",
+          "metadata": {
+            "end_key": "00000000-0000-0000-0000-000000000005:2026-02-15",
+            "end_reason": "move_out",
+            "activationKey": "ediel-normal-activation:c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+            "normalSourceBasis": {
+              "object": {
+                "li": "LI-A",
+                "line": "1",
+                "point": "735123456789012345",
+                "start": "202601011330",
+                "reason": "Z22",
+                "gridArea": "TES",
+                "registerCount": 1,
+                "identityAgency": "9",
+                "customerIdentity": "PERSON-A"
+              },
+              "siteId": "00000000-0000-0000-0000-000000000004",
+              "contractHash": "c7578a5270f6d6c3a4f044f6f4fd35955d7060b538d4872ed40b2b32f4a943e4",
+              "legalActorId": "00000000-0000-0000-0000-000000000050",
+              "sourceMessageId": "00000000-0000-0000-0000-000000000030",
+              "originalMessageId": "00000000-0000-0000-0000-000000000020"
+            },
+            "ended_by_grid_owner_at": "2026-10-24T01:35:04.175+00:00"
+          },
+          "company_id": "00000000-0000-0000-0000-000000000001",
+          "start_date": "2026-01-01",
+          "updated_at": "2026-10-24T01:35:04.175+00:00",
+          "contract_id": "00000000-0000-0000-0000-000000000006",
+          "customer_id": "00000000-0000-0000-0000-000000000003",
+          "market_end_at": "2026-02-15T23:00:00+00:00",
+          "source_process": "supplier_switch_confirmation",
+          "actual_end_date": null,
+          "market_start_at": "2026-01-01T12:30:00+00:00",
+          "actual_start_date": "2026-01-01",
+          "metering_point_id": "00000000-0000-0000-0000-000000000005",
+          "source_message_id": "00000000-0000-0000-0000-000000000030",
+          "customer_contract_id": "00000000-0000-0000-0000-000000000006",
+          "market_state_version": 2,
+          "source_end_message_id": "00000000-0000-0000-0000-000000000600",
+          "source_switch_request_id": "00000000-0000-0000-0000-000000000010"
+        },
+        "effect_receipt_id": "91d29d98-2b35-44f0-959a-850068cfe112",
+        "manual_receipt_id": "374375ac-4045-4872-bbb8-7c5f466d8074",
+        "source_message_id": "00000000-0000-0000-0000-000000000600",
+        "source_payload_hash": "16fe4f90956dfc57ae20746d65061cef7b8a10f5147bcfb707f075c8b84fa83e",
+        "resulting_contract_hash": "726a49a615a9d81d84b39603fe1e49c9a64b4a5b5b3259a57f621b81a5619e42"
+      },
+      "result": {
+        "applied": true,
+        "commits": [],
+        "periods": [
+          {
+            "id": "c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+            "source": "ediel_qualified_source",
+            "status": "ended",
+            "end_date": "2026-02-16",
+            "metadata": {
+              "end_key": "00000000-0000-0000-0000-000000000005:2026-02-15",
+              "end_reason": "move_out",
+              "activationKey": "ediel-normal-activation:c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+              "normalSourceBasis": {
+                "object": {
+                  "li": "LI-A",
+                  "line": "1",
+                  "point": "735123456789012345",
+                  "start": "202601011330",
+                  "reason": "Z22",
+                  "gridArea": "TES",
+                  "registerCount": 1,
+                  "identityAgency": "9",
+                  "customerIdentity": "PERSON-A"
+                },
+                "siteId": "00000000-0000-0000-0000-000000000004",
+                "contractHash": "c7578a5270f6d6c3a4f044f6f4fd35955d7060b538d4872ed40b2b32f4a943e4",
+                "legalActorId": "00000000-0000-0000-0000-000000000050",
+                "sourceMessageId": "00000000-0000-0000-0000-000000000030",
+                "originalMessageId": "00000000-0000-0000-0000-000000000020"
+              },
+              "ended_by_grid_owner_at": "2026-10-24T01:35:04.175+00:00"
+            },
+            "company_id": "00000000-0000-0000-0000-000000000001",
+            "start_date": "2026-01-01",
+            "updated_at": "2026-10-24T01:35:04.175+00:00",
+            "contract_id": "00000000-0000-0000-0000-000000000006",
+            "customer_id": "00000000-0000-0000-0000-000000000003",
+            "market_end_at": "2026-02-15T23:00:00+00:00",
+            "source_process": "supplier_switch_confirmation",
+            "actual_end_date": null,
+            "market_start_at": "2026-01-01T12:30:00+00:00",
+            "actual_start_date": "2026-01-01",
+            "metering_point_id": "00000000-0000-0000-0000-000000000005",
+            "source_message_id": "00000000-0000-0000-0000-000000000030",
+            "customer_contract_id": "00000000-0000-0000-0000-000000000006",
+            "market_state_version": 2,
+            "source_end_message_id": "00000000-0000-0000-0000-000000000600",
+            "source_switch_request_id": "00000000-0000-0000-0000-000000000010"
+          }
+        ],
+        "partition": [
+          {
+            "object": {
+              "objectId": "735123456789012345",
+              "registers": [
+                {
+                  "segmentIndex": 5
+                }
+              ],
+              "messageIndex": 0,
+              "identityAgency": "9"
+            },
+            "disposition": "applied",
+            "effectFactsHash": "20f4673444f8ff00a7c67f4743b7dc247a75f89070eb270e7fe3e3cdb71cf431",
+            "effectReceiptId": "91d29d98-2b35-44f0-959a-850068cfe112"
+          }
+        ],
+        "switchIds": [],
+        "idempotent": false,
+        "effectReceiptIds": [
+          "91d29d98-2b35-44f0-959a-850068cfe112"
+        ]
+      },
+      "outer": {
+        "persistedUnderlay": {
+          "id": "95615525-4302-41ac-bcc5-a9e31fa563df",
+          "status": "validated",
+          "payload": {
+            "billing_month": "2026-02",
+            "billing_month_frame": "ediel_fixed_normal_time",
+            "billing_period_timezone": "Europe/Stockholm",
+            "billing_period_end_instant": "2026-02-15T23:00:00+00:00",
+            "billing_period_end_exclusive": true,
+            "billing_period_start_instant": "2026-01-31T23:00:00+00:00"
+          },
+          "site_id": null,
+          "currency": "SEK",
+          "total_kwh": 361,
+          "company_id": "00000000-0000-0000-0000-000000000001",
+          "created_by": null,
+          "price_area": "SE3",
+          "updated_at": "2026-10-24T01:35:04.175+00:00",
+          "updated_by": null,
+          "campaign_id": null,
+          "contract_id": "00000000-0000-0000-0000-000000000006",
+          "customer_id": "00000000-0000-0000-0000-000000000003",
+          "received_at": "2026-10-24T01:35:04.175+00:00",
+          "validated_at": null,
+          "price_book_id": null,
+          "price_plan_id": null,
+          "source_system": "normalized_metering_values",
+          "underlay_year": 2026,
+          "underlay_month": 2,
+          "settlement_type": null,
+          "customer_site_id": null,
+          "energy_direction": "consumption",
+          "pricing_snapshot": {
+            "price": "original"
+          },
+          "readiness_issues": [],
+          "readiness_status": "ready",
+          "supply_period_id": "c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+          "metering_point_id": "00000000-0000-0000-0000-000000000005",
+          "billing_period_end": "2026-02-16",
+          "calculated_vat_sek": 90.25,
+          "pricing_snapshot_id": "00000000-0000-0000-0000-000000000503",
+          "billing_block_reason": null,
+          "billing_period_start": "2026-02-01",
+          "missing_values_count": 0,
+          "price_plan_version_id": "00000000-0000-0000-0000-000000000504",
+          "invoice_readiness_issues": [],
+          "invoice_readiness_status": "ready_for_invoice",
+          "source_meter_value_count": 0,
+          "contract_price_snapshot_id": "00000000-0000-0000-0000-000000000503",
+          "calculated_total_sek_ex_vat": 361,
+          "calculated_total_sek_inc_vat": 451.25
+        },
+        "serverValueRows": [
+          {
+            "id": "00000000-0000-0000-0000-000000000502",
+            "unit": "kWh",
+            "direction": "consumption",
+            "company_id": "00000000-0000-0000-0000-000000000001",
+            "period_end": "2026-02-15T23:00:00+00:00",
+            "updated_at": "2026-10-24T01:35:04.175+00:00",
+            "customer_id": "00000000-0000-0000-0000-000000000003",
+            "raw_payload": {
+              "sourceOrdinal": 0,
+              "edielMessageId": "00000000-0000-0000-0000-000000000500",
+              "consumptionContract": {
+                "version": 2,
+                "metering": {
+                  "capability": "write",
+                  "customerId": "00000000-0000-0000-0000-000000000003",
+                  "meteringPointId": "00000000-0000-0000-0000-000000000005"
+                },
+                "observations": [
+                  {
+                    "unit": "kWh",
+                    "ordinal": 0,
+                    "quality": "136",
+                    "quantity": "361",
+                    "direction": "consumption",
+                    "periodEnd": "2026-02-15T23:00:00.000Z",
+                    "periodStart": "2026-01-31T23:00:00.000Z",
+                    "productCode": null,
+                    "registerCode": null,
+                    "sourceOrdinal": 0
+                  }
+                ]
+              }
+            },
+            "period_start": "2026-01-31T23:00:00+00:00",
+            "product_code": "8716867000030",
+            "quantity_kwh": "361",
+            "register_code": "REG",
+            "billing_status": "billable",
+            "quality_status": null,
+            "revision_number": 1,
+            "revision_status": "current",
+            "supply_period_id": "c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+            "metering_point_id": "00000000-0000-0000-0000-000000000005",
+            "previous_value_id": null,
+            "source_message_id": "00000000-0000-0000-0000-000000000500",
+            "billing_gate_status": "eligible",
+            "billing_gate_reasons": [],
+            "billing_source_basis": {
+              "reason": null,
+              "quality": null,
+              "version": 1,
+              "qualified": true,
+              "productCode": "8716867000030",
+              "quantityKwh": "361",
+              "contractHash": "acb5477719cf394b3eda7d86b82e60283deb7485b4b712b2c70659f7f98bffac",
+              "quantityType": "136",
+              "registerCode": "REG",
+              "sourceMessageId": "00000000-0000-0000-0000-000000000500",
+              "normalizedValueId": "00000000-0000-0000-0000-000000000502",
+              "projectionVersion": "ediel-billing-source-v1",
+              "sourcePayloadHash": "a0bf9fe5244f092935a71a5245c72b578144bdb9e218cd8ca59b2fa45640e300",
+              "observationOrdinal": 0,
+              "qualityEstablished": true,
+              "retainedProjection": {
+                "quality": "136",
+                "productCode": null,
+                "registerCode": null
+              },
+              "sourceRulePackBasis": {
+                "version": "fixed-original",
+                "sourceHash": "fixture-original-only"
+              }
+            },
+            "billing_gate_snapshot": {
+              "source_basis": {
+                "reason": null,
+                "quality": null,
+                "version": 1,
+                "qualified": true,
+                "productCode": "8716867000030",
+                "quantityKwh": "361",
+                "contractHash": "acb5477719cf394b3eda7d86b82e60283deb7485b4b712b2c70659f7f98bffac",
+                "quantityType": "136",
+                "registerCode": "REG",
+                "sourceMessageId": "00000000-0000-0000-0000-000000000500",
+                "normalizedValueId": "00000000-0000-0000-0000-000000000502",
+                "projectionVersion": "ediel-billing-source-v1",
+                "sourcePayloadHash": "a0bf9fe5244f092935a71a5245c72b578144bdb9e218cd8ca59b2fa45640e300",
+                "observationOrdinal": 0,
+                "qualityEstablished": true,
+                "retainedProjection": {
+                  "quality": "136",
+                  "productCode": null,
+                  "registerCode": null
+                },
+                "sourceRulePackBasis": {
+                  "version": "fixed-original",
+                  "sourceHash": "fixture-original-only"
+                }
+              },
+              "supply_source_basis": {
+                "siteId": "00000000-0000-0000-0000-000000000004",
+                "periodId": "c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+                "switchId": "00000000-0000-0000-0000-000000000010",
+                "activated": true,
+                "companyId": "00000000-0000-0000-0000-000000000001",
+                "qualified": true,
+                "customerId": "00000000-0000-0000-0000-000000000003",
+                "dsoEdielId": "54321",
+                "marketEndAt": "2026-02-15T23:00:00+00:00",
+                "payloadHash": "16fe4f90956dfc57ae20746d65061cef7b8a10f5147bcfb707f075c8b84fa83e",
+                "legalActorId": "00000000-0000-0000-0000-000000000050",
+                "marketStartAt": "2026-01-01T12:30:00+00:00",
+                "sourceObjects": [
+                  {
+                    "li": "LI-A",
+                    "line": "1",
+                    "point": "735123456789012345",
+                    "start": "202601011330",
+                    "reason": "Z22",
+                    "gridArea": "TES",
+                    "registerCount": 1,
+                    "identityAgency": "9",
+                    "customerIdentity": "PERSON-A"
+                  }
+                ],
+                "meteringPointId": "00000000-0000-0000-0000-000000000005",
+                "sourceMessageId": "00000000-0000-0000-0000-000000000600",
+                "originalMessageId": "00000000-0000-0000-0000-000000000020",
+                "marketStateVersion": 2,
+                "originalAcceptedAt": "2026-10-24T01:35:03.391+00:00",
+                "originalPayloadHash": "a95baa3c27d8a1a1dce760d66ce27ba49c733503dd91be50fb2b66cf1cae2a46",
+                "currentSourceMessageId": "00000000-0000-0000-0000-000000000600",
+                "initialSourceMessageId": "00000000-0000-0000-0000-000000000030",
+                "manualReceivedEndReceiptId": "2ca1eb4c-cbba-424b-908b-ce415d0d0bf4"
+              }
+            },
+            "billing_source_message": {
+              "id": "00000000-0000-0000-0000-000000000500",
+              "status": "validated",
+              "company_id": "00000000-0000-0000-0000-000000000001",
+              "message_code": "E66",
+              "message_family": "UTILTS"
+            },
+            "source_metering_value_id": "00000000-0000-0000-0000-000000000501",
+            "billing_gate_evaluated_at": "2026-10-24T01:35:04.175+00:00",
+            "source_transaction_reference": "OWN",
+            "billing_manual_received_end_authorities": [
+              {
+                "endAt": "2026-02-15T23:00:00+00:00",
+                "startAt": "2026-01-31T23:00:00+00:00",
+                "version": 1,
+                "periodId": "c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+                "companyId": "00000000-0000-0000-0000-000000000001",
+                "receiptId": "2ca1eb4c-cbba-424b-908b-ce415d0d0bf4",
+                "contractId": "00000000-0000-0000-0000-000000000006",
+                "customerId": "00000000-0000-0000-0000-000000000003",
+                "marketEndAt": "2026-02-15T23:00:00+00:00",
+                "contractStatus": "terminated",
+                "contractEndedAt": "2026-02-15T00:00:00+00:00",
+                "meteringPointId": "00000000-0000-0000-0000-000000000005",
+                "terminationReason": "move_out",
+                "marketStateVersion": 2,
+                "sourceEndMessageId": "00000000-0000-0000-0000-000000000600"
+              }
+            ]
+          }
+        ],
+        "serverUnderlayRows": [
+          {
+            "id": "95615525-4302-41ac-bcc5-a9e31fa563df",
+            "totalKwh": "361",
+            "qualified": true,
+            "sourceBasisHash": "fac5943a30f5ffc7f9a861662f3f9fcacd18469189edfc400134c18984b0584f",
+            "correctionRequired": false,
+            "manualReceivedEndAuthorities": [
+              {
+                "endAt": "2026-02-15T23:00:00+00:00",
+                "startAt": "2026-01-31T23:00:00+00:00",
+                "version": 1,
+                "periodId": "c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+                "companyId": "00000000-0000-0000-0000-000000000001",
+                "receiptId": "2ca1eb4c-cbba-424b-908b-ce415d0d0bf4",
+                "contractId": "00000000-0000-0000-0000-000000000006",
+                "customerId": "00000000-0000-0000-0000-000000000003",
+                "marketEndAt": "2026-02-15T23:00:00+00:00",
+                "contractStatus": "terminated",
+                "contractEndedAt": "2026-02-15T00:00:00+00:00",
+                "meteringPointId": "00000000-0000-0000-0000-000000000005",
+                "terminationReason": "move_out",
+                "marketStateVersion": 2,
+                "sourceEndMessageId": "00000000-0000-0000-0000-000000000600"
+              }
+            ],
+            "manualReceivedEndReceiptQualified": true
+          }
+        ],
+        "gate": true,
+        "store": true,
+        "pricingRead": true,
+        "pricingPersist": true,
+        "boundSuccessAndFailureSnapshotPreserved": true,
+        "runDiagnosticsPreserved": true,
+        "mismatchedSnapshotRejected": true,
+        "atomicRollback": true,
+        "unboundSuccessAndFailureUnchanged": true,
+        "sourceProtectorUnchanged": true,
+        "sourceBindingStillQualified": true,
+        "functionMetadataUnchanged": true,
+        "exportContractAccepted": true,
+        "otherExportBlockers": []
+      }
+    },
+    {
+      "name": "after_actual_lifecycle_close",
+      "contract": {
+        "status": "terminated",
+        "termination_reason": "move_out",
+        "ended_at": "2026-02-15T23:00:00.000Z"
+      },
+      "contractFull": {
+        "id": "00000000-0000-0000-0000-000000000006",
+        "status": "terminated",
+        "ends_at": null,
+        "site_id": null,
+        "ended_at": "2026-02-15T23:00:00+00:00",
+        "metadata": {
+          "status_reason_code": null,
+          "ended_at_corrected_by_received_end": {
+            "end_key": "source-end:c3ce73f8-3cb4-4d84-8a13-734fe37fbadf:2026-02-16",
+            "corrected_at": "2026-10-24T01:35:04.454+00:00",
+            "supply_end_date": "2026-02-16",
+            "supply_period_id": "c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+            "previous_ended_at": "2026-02-15T00:00:00+00:00"
+          }
+        },
+        "signed_at": "2025-12-01T00:00:00+00:00",
+        "starts_at": "2025-12-01",
+        "company_id": "00000000-0000-0000-0000-000000000001",
+        "updated_at": "2026-10-24T01:35:04.454+00:00",
+        "updated_by": "00000000-0000-0000-0000-000000000002",
+        "customer_id": "00000000-0000-0000-0000-000000000003",
+        "contract_type": "variable_quarterly",
+        "notice_months": 0,
+        "binding_months": 0,
+        "signed_version": "1",
+        "actual_start_at": null,
+        "rejected_reason": null,
+        "contract_version": "1",
+        "customer_site_id": null,
+        "version_snapshot": {},
+        "expected_start_at": null,
+        "metering_point_id": "00000000-0000-0000-0000-000000000005",
+        "confirmed_start_at": null,
+        "status_reason_code": "terminated",
+        "termination_reason": "move_out",
+        "termination_notice_date": "2026-01-01",
+        "withdrawal_requested_at": null
+      },
+      "manualRecord": {
+        "id": "30a2b84e-2df6-4161-ba4d-f0876f9474e9",
+        "command": "customer_lifecycle",
+        "end_date": "2026-02-15",
+        "period_id": "c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+        "company_id": "00000000-0000-0000-0000-000000000001",
+        "captured_at": "2026-10-24T01:35:04.454+00:00",
+        "contract_id": "00000000-0000-0000-0000-000000000006",
+        "customer_id": "00000000-0000-0000-0000-000000000003",
+        "actor_user_id": "00000000-0000-0000-0000-000000000002",
+        "original_basis": {
+          "siteId": "00000000-0000-0000-0000-000000000004",
+          "periodId": "c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+          "switchId": "00000000-0000-0000-0000-000000000010",
+          "activated": true,
+          "companyId": "00000000-0000-0000-0000-000000000001",
+          "qualified": true,
+          "customerId": "00000000-0000-0000-0000-000000000003",
+          "dsoEdielId": "54321",
+          "marketEndAt": null,
+          "payloadHash": "5f84efd1b965902cbd34cdb81c192271b9599a651cbc54ac2899bcb9e4d0f04e",
+          "legalActorId": "00000000-0000-0000-0000-000000000050",
+          "marketStartAt": "2026-01-01T12:30:00+00:00",
+          "sourceObjects": [
+            {
+              "li": "LI-A",
+              "line": "1",
+              "point": "735123456789012345",
+              "start": "202601011330",
+              "reason": "Z22",
+              "gridArea": "TES",
+              "registerCount": 1,
+              "identityAgency": "9",
+              "customerIdentity": "PERSON-A"
+            }
+          ],
+          "meteringPointId": "00000000-0000-0000-0000-000000000005",
+          "sourceMessageId": "00000000-0000-0000-0000-000000000030",
+          "originalMessageId": "00000000-0000-0000-0000-000000000020",
+          "marketStateVersion": 1,
+          "originalAcceptedAt": "2026-10-24T01:35:03.391+00:00",
+          "originalPayloadHash": "a95baa3c27d8a1a1dce760d66ce27ba49c733503dd91be50fb2b66cf1cae2a46",
+          "currentSourceMessageId": "00000000-0000-0000-0000-000000000030",
+          "initialSourceMessageId": "00000000-0000-0000-0000-000000000030"
+        },
+        "original_period": {
+          "id": "c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+          "source": "ediel_qualified_source",
+          "status": "active",
+          "end_date": null,
+          "metadata": {
+            "activationKey": "ediel-normal-activation:c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+            "normalSourceBasis": {
+              "object": {
+                "li": "LI-A",
+                "line": "1",
+                "point": "735123456789012345",
+                "start": "202601011330",
+                "reason": "Z22",
+                "gridArea": "TES",
+                "registerCount": 1,
+                "identityAgency": "9",
+                "customerIdentity": "PERSON-A"
+              },
+              "siteId": "00000000-0000-0000-0000-000000000004",
+              "contractHash": "c7578a5270f6d6c3a4f044f6f4fd35955d7060b538d4872ed40b2b32f4a943e4",
+              "legalActorId": "00000000-0000-0000-0000-000000000050",
+              "sourceMessageId": "00000000-0000-0000-0000-000000000030",
+              "originalMessageId": "00000000-0000-0000-0000-000000000020"
+            }
+          },
+          "company_id": "00000000-0000-0000-0000-000000000001",
+          "start_date": "2026-01-01",
+          "updated_at": "2026-10-24T01:35:03.588+00:00",
+          "contract_id": "00000000-0000-0000-0000-000000000006",
+          "customer_id": "00000000-0000-0000-0000-000000000003",
+          "market_end_at": null,
+          "source_process": "supplier_switch_confirmation",
+          "actual_end_date": null,
+          "market_start_at": "2026-01-01T12:30:00+00:00",
+          "actual_start_date": "2026-01-01",
+          "metering_point_id": "00000000-0000-0000-0000-000000000005",
+          "source_message_id": "00000000-0000-0000-0000-000000000030",
+          "customer_contract_id": "00000000-0000-0000-0000-000000000006",
+          "market_state_version": 1,
+          "source_end_message_id": null,
+          "source_switch_request_id": "00000000-0000-0000-0000-000000000010"
+        },
+        "contract_event_id": "48e2f7d5-c850-4415-a2b7-6b4de83ef132",
+        "contract_event_hash": "89ff86dffd45ba12923b661150e23b024c23f67f8ba2e2b5d0caca381a8e4478",
+        "contract_disposition": "terminated",
+        "resulting_period_hash": "b8637adec6520ffe686d64d5c3770c645730fc7a1c3e16aa96b269961677d9a0",
+        "original_contract_hash": "c7578a5270f6d6c3a4f044f6f4fd35955d7060b538d4872ed40b2b32f4a943e4",
+        "resulting_contract_hash": "cef52cece62fc4a0ed4f34001a8eafcda683a7cfa0aaa125a13d963f717492d4",
+        "original_contract_status": "signed"
+      },
+      "successorRecord": {
+        "id": "cf1089de-6d5e-450d-8872-d13b7876a2b3",
+        "period_id": "c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+        "company_id": "00000000-0000-0000-0000-000000000001",
+        "captured_at": "2026-10-24T01:35:04.454+00:00",
+        "contract_id": "00000000-0000-0000-0000-000000000006",
+        "effect_hash": "5b8a1c5c66ea218acdb2e285223776b8177be8ec42d4a31633b48b99fd18e7ec",
+        "resulting_period": {
+          "id": "c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+          "source": "ediel_qualified_source",
+          "status": "ended",
+          "end_date": "2026-02-16",
+          "metadata": {
+            "activationKey": "ediel-normal-activation:c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+            "normalSourceBasis": {
+              "object": {
+                "li": "LI-A",
+                "line": "1",
+                "point": "735123456789012345",
+                "start": "202601011330",
+                "reason": "Z22",
+                "gridArea": "TES",
+                "registerCount": 1,
+                "identityAgency": "9",
+                "customerIdentity": "PERSON-A"
+              },
+              "siteId": "00000000-0000-0000-0000-000000000004",
+              "contractHash": "c7578a5270f6d6c3a4f044f6f4fd35955d7060b538d4872ed40b2b32f4a943e4",
+              "legalActorId": "00000000-0000-0000-0000-000000000050",
+              "sourceMessageId": "00000000-0000-0000-0000-000000000030",
+              "originalMessageId": "00000000-0000-0000-0000-000000000020"
+            },
+            "planned_end_reason": "move_out",
+            "planned_end_source": "customer_lifecycle_close",
+            "planned_end_recorded_at": "2026-10-24T01:35:04.454+00:00"
+          },
+          "company_id": "00000000-0000-0000-0000-000000000001",
+          "start_date": "2026-01-01",
+          "updated_at": "2026-10-24T01:35:04.454+00:00",
+          "contract_id": "00000000-0000-0000-0000-000000000006",
+          "customer_id": "00000000-0000-0000-0000-000000000003",
+          "market_end_at": "2026-02-15T23:00:00+00:00",
+          "source_process": "supplier_switch_confirmation",
+          "actual_end_date": null,
+          "market_start_at": "2026-01-01T12:30:00+00:00",
+          "actual_start_date": "2026-01-01",
+          "metering_point_id": "00000000-0000-0000-0000-000000000005",
+          "source_message_id": "00000000-0000-0000-0000-000000000030",
+          "customer_contract_id": "00000000-0000-0000-0000-000000000006",
+          "market_state_version": 2,
+          "source_end_message_id": "00000000-0000-0000-0000-000000000600",
+          "source_switch_request_id": "00000000-0000-0000-0000-000000000010"
+        },
+        "effect_receipt_id": "c5184231-cb7f-447e-99a3-333e8b44e063",
+        "manual_receipt_id": "30a2b84e-2df6-4161-ba4d-f0876f9474e9",
+        "source_message_id": "00000000-0000-0000-0000-000000000600",
+        "source_payload_hash": "16fe4f90956dfc57ae20746d65061cef7b8a10f5147bcfb707f075c8b84fa83e",
+        "resulting_contract_hash": "18fb9e6d2b12b74511889050752051733ff05c51cc278a57b8723d61dd522336"
+      },
+      "result": {
+        "applied": true,
+        "commits": [],
+        "periods": [
+          {
+            "id": "c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+            "source": "ediel_qualified_source",
+            "status": "ended",
+            "end_date": "2026-02-16",
+            "metadata": {
+              "activationKey": "ediel-normal-activation:c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+              "normalSourceBasis": {
+                "object": {
+                  "li": "LI-A",
+                  "line": "1",
+                  "point": "735123456789012345",
+                  "start": "202601011330",
+                  "reason": "Z22",
+                  "gridArea": "TES",
+                  "registerCount": 1,
+                  "identityAgency": "9",
+                  "customerIdentity": "PERSON-A"
+                },
+                "siteId": "00000000-0000-0000-0000-000000000004",
+                "contractHash": "c7578a5270f6d6c3a4f044f6f4fd35955d7060b538d4872ed40b2b32f4a943e4",
+                "legalActorId": "00000000-0000-0000-0000-000000000050",
+                "sourceMessageId": "00000000-0000-0000-0000-000000000030",
+                "originalMessageId": "00000000-0000-0000-0000-000000000020"
+              },
+              "planned_end_reason": "move_out",
+              "planned_end_source": "customer_lifecycle_close",
+              "planned_end_recorded_at": "2026-10-24T01:35:04.454+00:00"
+            },
+            "company_id": "00000000-0000-0000-0000-000000000001",
+            "start_date": "2026-01-01",
+            "updated_at": "2026-10-24T01:35:04.454+00:00",
+            "contract_id": "00000000-0000-0000-0000-000000000006",
+            "customer_id": "00000000-0000-0000-0000-000000000003",
+            "market_end_at": "2026-02-15T23:00:00+00:00",
+            "source_process": "supplier_switch_confirmation",
+            "actual_end_date": null,
+            "market_start_at": "2026-01-01T12:30:00+00:00",
+            "actual_start_date": "2026-01-01",
+            "metering_point_id": "00000000-0000-0000-0000-000000000005",
+            "source_message_id": "00000000-0000-0000-0000-000000000030",
+            "customer_contract_id": "00000000-0000-0000-0000-000000000006",
+            "market_state_version": 2,
+            "source_end_message_id": "00000000-0000-0000-0000-000000000600",
+            "source_switch_request_id": "00000000-0000-0000-0000-000000000010"
+          }
+        ],
+        "partition": [
+          {
+            "object": {
+              "objectId": "735123456789012345",
+              "registers": [
+                {
+                  "segmentIndex": 5
+                }
+              ],
+              "messageIndex": 0,
+              "identityAgency": "9"
+            },
+            "disposition": "applied",
+            "effectFactsHash": "5b8a1c5c66ea218acdb2e285223776b8177be8ec42d4a31633b48b99fd18e7ec",
+            "effectReceiptId": "c5184231-cb7f-447e-99a3-333e8b44e063"
+          }
+        ],
+        "switchIds": [],
+        "idempotent": false,
+        "effectReceiptIds": [
+          "c5184231-cb7f-447e-99a3-333e8b44e063"
+        ]
+      },
+      "outer": {
+        "persistedUnderlay": {
+          "id": "934becd8-13b8-4bb5-9ca3-fd2ebe0ed697",
+          "status": "validated",
+          "payload": {
+            "billing_month": "2026-02",
+            "billing_month_frame": "ediel_fixed_normal_time",
+            "billing_period_timezone": "Europe/Stockholm",
+            "billing_period_end_instant": "2026-02-15T23:00:00+00:00",
+            "billing_period_end_exclusive": true,
+            "billing_period_start_instant": "2026-01-31T23:00:00+00:00"
+          },
+          "site_id": null,
+          "currency": "SEK",
+          "total_kwh": 361,
+          "company_id": "00000000-0000-0000-0000-000000000001",
+          "created_by": null,
+          "price_area": "SE3",
+          "updated_at": "2026-10-24T01:35:04.454+00:00",
+          "updated_by": null,
+          "campaign_id": null,
+          "contract_id": "00000000-0000-0000-0000-000000000006",
+          "customer_id": "00000000-0000-0000-0000-000000000003",
+          "received_at": "2026-10-24T01:35:04.454+00:00",
+          "validated_at": null,
+          "price_book_id": null,
+          "price_plan_id": null,
+          "source_system": "normalized_metering_values",
+          "underlay_year": 2026,
+          "underlay_month": 2,
+          "settlement_type": null,
+          "customer_site_id": null,
+          "energy_direction": "consumption",
+          "pricing_snapshot": {
+            "price": "original"
+          },
+          "readiness_issues": [],
+          "readiness_status": "ready",
+          "supply_period_id": "c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+          "metering_point_id": "00000000-0000-0000-0000-000000000005",
+          "billing_period_end": "2026-02-16",
+          "calculated_vat_sek": 90.25,
+          "pricing_snapshot_id": "00000000-0000-0000-0000-000000000503",
+          "billing_block_reason": null,
+          "billing_period_start": "2026-02-01",
+          "missing_values_count": 0,
+          "price_plan_version_id": "00000000-0000-0000-0000-000000000504",
+          "invoice_readiness_issues": [],
+          "invoice_readiness_status": "ready_for_invoice",
+          "source_meter_value_count": 0,
+          "contract_price_snapshot_id": "00000000-0000-0000-0000-000000000503",
+          "calculated_total_sek_ex_vat": 361,
+          "calculated_total_sek_inc_vat": 451.25
+        },
+        "serverValueRows": [
+          {
+            "id": "00000000-0000-0000-0000-000000000502",
+            "unit": "kWh",
+            "direction": "consumption",
+            "company_id": "00000000-0000-0000-0000-000000000001",
+            "period_end": "2026-02-15T23:00:00+00:00",
+            "updated_at": "2026-10-24T01:35:04.454+00:00",
+            "customer_id": "00000000-0000-0000-0000-000000000003",
+            "raw_payload": {
+              "sourceOrdinal": 0,
+              "edielMessageId": "00000000-0000-0000-0000-000000000500",
+              "consumptionContract": {
+                "version": 2,
+                "metering": {
+                  "capability": "write",
+                  "customerId": "00000000-0000-0000-0000-000000000003",
+                  "meteringPointId": "00000000-0000-0000-0000-000000000005"
+                },
+                "observations": [
+                  {
+                    "unit": "kWh",
+                    "ordinal": 0,
+                    "quality": "136",
+                    "quantity": "361",
+                    "direction": "consumption",
+                    "periodEnd": "2026-02-15T23:00:00.000Z",
+                    "periodStart": "2026-01-31T23:00:00.000Z",
+                    "productCode": null,
+                    "registerCode": null,
+                    "sourceOrdinal": 0
+                  }
+                ]
+              }
+            },
+            "period_start": "2026-01-31T23:00:00+00:00",
+            "product_code": "8716867000030",
+            "quantity_kwh": "361",
+            "register_code": "REG",
+            "billing_status": "billable",
+            "quality_status": null,
+            "revision_number": 1,
+            "revision_status": "current",
+            "supply_period_id": "c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+            "metering_point_id": "00000000-0000-0000-0000-000000000005",
+            "previous_value_id": null,
+            "source_message_id": "00000000-0000-0000-0000-000000000500",
+            "billing_gate_status": "eligible",
+            "billing_gate_reasons": [],
+            "billing_source_basis": {
+              "reason": null,
+              "quality": null,
+              "version": 1,
+              "qualified": true,
+              "productCode": "8716867000030",
+              "quantityKwh": "361",
+              "contractHash": "acb5477719cf394b3eda7d86b82e60283deb7485b4b712b2c70659f7f98bffac",
+              "quantityType": "136",
+              "registerCode": "REG",
+              "sourceMessageId": "00000000-0000-0000-0000-000000000500",
+              "normalizedValueId": "00000000-0000-0000-0000-000000000502",
+              "projectionVersion": "ediel-billing-source-v1",
+              "sourcePayloadHash": "a0bf9fe5244f092935a71a5245c72b578144bdb9e218cd8ca59b2fa45640e300",
+              "observationOrdinal": 0,
+              "qualityEstablished": true,
+              "retainedProjection": {
+                "quality": "136",
+                "productCode": null,
+                "registerCode": null
+              },
+              "sourceRulePackBasis": {
+                "version": "fixed-original",
+                "sourceHash": "fixture-original-only"
+              }
+            },
+            "billing_gate_snapshot": {
+              "source_basis": {
+                "reason": null,
+                "quality": null,
+                "version": 1,
+                "qualified": true,
+                "productCode": "8716867000030",
+                "quantityKwh": "361",
+                "contractHash": "acb5477719cf394b3eda7d86b82e60283deb7485b4b712b2c70659f7f98bffac",
+                "quantityType": "136",
+                "registerCode": "REG",
+                "sourceMessageId": "00000000-0000-0000-0000-000000000500",
+                "normalizedValueId": "00000000-0000-0000-0000-000000000502",
+                "projectionVersion": "ediel-billing-source-v1",
+                "sourcePayloadHash": "a0bf9fe5244f092935a71a5245c72b578144bdb9e218cd8ca59b2fa45640e300",
+                "observationOrdinal": 0,
+                "qualityEstablished": true,
+                "retainedProjection": {
+                  "quality": "136",
+                  "productCode": null,
+                  "registerCode": null
+                },
+                "sourceRulePackBasis": {
+                  "version": "fixed-original",
+                  "sourceHash": "fixture-original-only"
+                }
+              },
+              "supply_source_basis": {
+                "siteId": "00000000-0000-0000-0000-000000000004",
+                "periodId": "c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+                "switchId": "00000000-0000-0000-0000-000000000010",
+                "activated": true,
+                "companyId": "00000000-0000-0000-0000-000000000001",
+                "qualified": true,
+                "customerId": "00000000-0000-0000-0000-000000000003",
+                "dsoEdielId": "54321",
+                "marketEndAt": "2026-02-15T23:00:00+00:00",
+                "payloadHash": "16fe4f90956dfc57ae20746d65061cef7b8a10f5147bcfb707f075c8b84fa83e",
+                "legalActorId": "00000000-0000-0000-0000-000000000050",
+                "marketStartAt": "2026-01-01T12:30:00+00:00",
+                "sourceObjects": [
+                  {
+                    "li": "LI-A",
+                    "line": "1",
+                    "point": "735123456789012345",
+                    "start": "202601011330",
+                    "reason": "Z22",
+                    "gridArea": "TES",
+                    "registerCount": 1,
+                    "identityAgency": "9",
+                    "customerIdentity": "PERSON-A"
+                  }
+                ],
+                "meteringPointId": "00000000-0000-0000-0000-000000000005",
+                "sourceMessageId": "00000000-0000-0000-0000-000000000600",
+                "originalMessageId": "00000000-0000-0000-0000-000000000020",
+                "marketStateVersion": 2,
+                "originalAcceptedAt": "2026-10-24T01:35:03.391+00:00",
+                "originalPayloadHash": "a95baa3c27d8a1a1dce760d66ce27ba49c733503dd91be50fb2b66cf1cae2a46",
+                "currentSourceMessageId": "00000000-0000-0000-0000-000000000600",
+                "initialSourceMessageId": "00000000-0000-0000-0000-000000000030",
+                "manualReceivedEndReceiptId": "cf1089de-6d5e-450d-8872-d13b7876a2b3"
+              }
+            },
+            "billing_source_message": {
+              "id": "00000000-0000-0000-0000-000000000500",
+              "status": "validated",
+              "company_id": "00000000-0000-0000-0000-000000000001",
+              "message_code": "E66",
+              "message_family": "UTILTS"
+            },
+            "source_metering_value_id": "00000000-0000-0000-0000-000000000501",
+            "billing_gate_evaluated_at": "2026-10-24T01:35:04.454+00:00",
+            "source_transaction_reference": "OWN",
+            "billing_manual_received_end_authorities": [
+              {
+                "endAt": "2026-02-15T23:00:00+00:00",
+                "startAt": "2026-01-31T23:00:00+00:00",
+                "version": 1,
+                "periodId": "c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+                "companyId": "00000000-0000-0000-0000-000000000001",
+                "receiptId": "cf1089de-6d5e-450d-8872-d13b7876a2b3",
+                "contractId": "00000000-0000-0000-0000-000000000006",
+                "customerId": "00000000-0000-0000-0000-000000000003",
+                "marketEndAt": "2026-02-15T23:00:00+00:00",
+                "contractStatus": "terminated",
+                "contractEndedAt": "2026-02-15T23:00:00+00:00",
+                "meteringPointId": "00000000-0000-0000-0000-000000000005",
+                "terminationReason": "move_out",
+                "marketStateVersion": 2,
+                "sourceEndMessageId": "00000000-0000-0000-0000-000000000600"
+              }
+            ]
+          }
+        ],
+        "serverUnderlayRows": [
+          {
+            "id": "934becd8-13b8-4bb5-9ca3-fd2ebe0ed697",
+            "totalKwh": "361",
+            "qualified": true,
+            "sourceBasisHash": "33e205083626c3b287e66f008dfa981adde22d058dbd577d9207827e7985623f",
+            "correctionRequired": false,
+            "manualReceivedEndAuthorities": [
+              {
+                "endAt": "2026-02-15T23:00:00+00:00",
+                "startAt": "2026-01-31T23:00:00+00:00",
+                "version": 1,
+                "periodId": "c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+                "companyId": "00000000-0000-0000-0000-000000000001",
+                "receiptId": "cf1089de-6d5e-450d-8872-d13b7876a2b3",
+                "contractId": "00000000-0000-0000-0000-000000000006",
+                "customerId": "00000000-0000-0000-0000-000000000003",
+                "marketEndAt": "2026-02-15T23:00:00+00:00",
+                "contractStatus": "terminated",
+                "contractEndedAt": "2026-02-15T23:00:00+00:00",
+                "meteringPointId": "00000000-0000-0000-0000-000000000005",
+                "terminationReason": "move_out",
+                "marketStateVersion": 2,
+                "sourceEndMessageId": "00000000-0000-0000-0000-000000000600"
+              }
+            ],
+            "manualReceivedEndReceiptQualified": true
+          }
+        ],
+        "gate": true,
+        "store": true,
+        "pricingRead": true,
+        "pricingPersist": true,
+        "boundSuccessAndFailureSnapshotPreserved": true,
+        "runDiagnosticsPreserved": true,
+        "mismatchedSnapshotRejected": true,
+        "atomicRollback": true,
+        "unboundSuccessAndFailureUnchanged": true,
+        "sourceProtectorUnchanged": true,
+        "sourceBindingStillQualified": true,
+        "functionMetadataUnchanged": true,
+        "exportContractAccepted": true,
+        "otherExportBlockers": []
+      }
+    },
+    {
+      "name": "after_actual_notice_later_lifecycle",
+      "contract": {
+        "status": "terminated",
+        "termination_reason": "move_out",
+        "ended_at": "2026-03-01T00:00:00.000Z"
+      },
+      "contractFull": {
+        "id": "00000000-0000-0000-0000-000000000006",
+        "status": "terminated",
+        "ends_at": null,
+        "site_id": null,
+        "ended_at": "2026-03-01T00:00:00+00:00",
+        "metadata": {
+          "status_reason_code": null
+        },
+        "signed_at": "2025-12-01T00:00:00+00:00",
+        "starts_at": "2025-12-01",
+        "company_id": "00000000-0000-0000-0000-000000000001",
+        "updated_at": "2026-10-24T01:35:04.695+00:00",
+        "updated_by": "00000000-0000-0000-0000-000000000002",
+        "customer_id": "00000000-0000-0000-0000-000000000003",
+        "contract_type": "variable_quarterly",
+        "notice_months": 0,
+        "binding_months": 0,
+        "signed_version": "1",
+        "actual_start_at": null,
+        "rejected_reason": null,
+        "contract_version": "1",
+        "customer_site_id": null,
+        "version_snapshot": {},
+        "expected_start_at": null,
+        "metering_point_id": "00000000-0000-0000-0000-000000000005",
+        "confirmed_start_at": null,
+        "status_reason_code": "terminated",
+        "termination_reason": "move_out",
+        "termination_notice_date": "2026-03-01",
+        "withdrawal_requested_at": null
+      },
+      "manualRecord": {
+        "id": "53b6dedb-9d26-40fb-9573-fdee62dcc07c",
+        "command": "customer_lifecycle",
+        "end_date": "2026-02-15",
+        "period_id": "c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+        "company_id": "00000000-0000-0000-0000-000000000001",
+        "captured_at": "2026-10-24T01:35:04.695+00:00",
+        "contract_id": "00000000-0000-0000-0000-000000000006",
+        "customer_id": "00000000-0000-0000-0000-000000000003",
+        "actor_user_id": "00000000-0000-0000-0000-000000000002",
+        "original_basis": {
+          "siteId": "00000000-0000-0000-0000-000000000004",
+          "periodId": "c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+          "switchId": "00000000-0000-0000-0000-000000000010",
+          "activated": true,
+          "companyId": "00000000-0000-0000-0000-000000000001",
+          "qualified": true,
+          "customerId": "00000000-0000-0000-0000-000000000003",
+          "dsoEdielId": "54321",
+          "marketEndAt": null,
+          "payloadHash": "5f84efd1b965902cbd34cdb81c192271b9599a651cbc54ac2899bcb9e4d0f04e",
+          "legalActorId": "00000000-0000-0000-0000-000000000050",
+          "marketStartAt": "2026-01-01T12:30:00+00:00",
+          "sourceObjects": [
+            {
+              "li": "LI-A",
+              "line": "1",
+              "point": "735123456789012345",
+              "start": "202601011330",
+              "reason": "Z22",
+              "gridArea": "TES",
+              "registerCount": 1,
+              "identityAgency": "9",
+              "customerIdentity": "PERSON-A"
+            }
+          ],
+          "meteringPointId": "00000000-0000-0000-0000-000000000005",
+          "sourceMessageId": "00000000-0000-0000-0000-000000000030",
+          "originalMessageId": "00000000-0000-0000-0000-000000000020",
+          "marketStateVersion": 1,
+          "originalAcceptedAt": "2026-10-24T01:35:03.391+00:00",
+          "originalPayloadHash": "a95baa3c27d8a1a1dce760d66ce27ba49c733503dd91be50fb2b66cf1cae2a46",
+          "currentSourceMessageId": "00000000-0000-0000-0000-000000000030",
+          "initialSourceMessageId": "00000000-0000-0000-0000-000000000030"
+        },
+        "original_period": {
+          "id": "c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+          "source": "ediel_qualified_source",
+          "status": "active",
+          "end_date": null,
+          "metadata": {
+            "activationKey": "ediel-normal-activation:c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+            "normalSourceBasis": {
+              "object": {
+                "li": "LI-A",
+                "line": "1",
+                "point": "735123456789012345",
+                "start": "202601011330",
+                "reason": "Z22",
+                "gridArea": "TES",
+                "registerCount": 1,
+                "identityAgency": "9",
+                "customerIdentity": "PERSON-A"
+              },
+              "siteId": "00000000-0000-0000-0000-000000000004",
+              "contractHash": "c7578a5270f6d6c3a4f044f6f4fd35955d7060b538d4872ed40b2b32f4a943e4",
+              "legalActorId": "00000000-0000-0000-0000-000000000050",
+              "sourceMessageId": "00000000-0000-0000-0000-000000000030",
+              "originalMessageId": "00000000-0000-0000-0000-000000000020"
+            }
+          },
+          "company_id": "00000000-0000-0000-0000-000000000001",
+          "start_date": "2026-01-01",
+          "updated_at": "2026-10-24T01:35:03.588+00:00",
+          "contract_id": "00000000-0000-0000-0000-000000000006",
+          "customer_id": "00000000-0000-0000-0000-000000000003",
+          "market_end_at": null,
+          "source_process": "supplier_switch_confirmation",
+          "actual_end_date": null,
+          "market_start_at": "2026-01-01T12:30:00+00:00",
+          "actual_start_date": "2026-01-01",
+          "metering_point_id": "00000000-0000-0000-0000-000000000005",
+          "source_message_id": "00000000-0000-0000-0000-000000000030",
+          "customer_contract_id": "00000000-0000-0000-0000-000000000006",
+          "market_state_version": 1,
+          "source_end_message_id": null,
+          "source_switch_request_id": "00000000-0000-0000-0000-000000000010"
+        },
+        "contract_event_id": "d921a7ab-df6a-4ee4-9fab-6bb0d1af67fe",
+        "contract_event_hash": "5e06ae7ba19a9a531dcdc64b163253704fb528c6623c357c1d1b2284e96071e8",
+        "contract_disposition": "terminated",
+        "resulting_period_hash": "aa553c70e73587b2add032e52f0c586f35cd2ef604b487f1999b5cbc5574df85",
+        "original_contract_hash": "c7578a5270f6d6c3a4f044f6f4fd35955d7060b538d4872ed40b2b32f4a943e4",
+        "resulting_contract_hash": "f3cde0b5c730650f0f8dda6e19549403ef516afc7ed6c55a317fb3d402ac4af1",
+        "original_contract_status": "signed"
+      },
+      "successorRecord": {
+        "id": "58007c45-7b09-488e-9d3e-f27ad7e9a092",
+        "period_id": "c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+        "company_id": "00000000-0000-0000-0000-000000000001",
+        "captured_at": "2026-10-24T01:35:04.695+00:00",
+        "contract_id": "00000000-0000-0000-0000-000000000006",
+        "effect_hash": "e7179941f49b0b8eef2430ca5a5a06344d067a49187b3c90d49ed6220eec0d69",
+        "resulting_period": {
+          "id": "c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+          "source": "ediel_qualified_source",
+          "status": "ended",
+          "end_date": "2026-02-16",
+          "metadata": {
+            "activationKey": "ediel-normal-activation:c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+            "normalSourceBasis": {
+              "object": {
+                "li": "LI-A",
+                "line": "1",
+                "point": "735123456789012345",
+                "start": "202601011330",
+                "reason": "Z22",
+                "gridArea": "TES",
+                "registerCount": 1,
+                "identityAgency": "9",
+                "customerIdentity": "PERSON-A"
+              },
+              "siteId": "00000000-0000-0000-0000-000000000004",
+              "contractHash": "c7578a5270f6d6c3a4f044f6f4fd35955d7060b538d4872ed40b2b32f4a943e4",
+              "legalActorId": "00000000-0000-0000-0000-000000000050",
+              "sourceMessageId": "00000000-0000-0000-0000-000000000030",
+              "originalMessageId": "00000000-0000-0000-0000-000000000020"
+            },
+            "planned_end_reason": "move_out",
+            "planned_end_source": "customer_lifecycle_close",
+            "planned_end_recorded_at": "2026-10-24T01:35:04.695+00:00"
+          },
+          "company_id": "00000000-0000-0000-0000-000000000001",
+          "start_date": "2026-01-01",
+          "updated_at": "2026-10-24T01:35:04.695+00:00",
+          "contract_id": "00000000-0000-0000-0000-000000000006",
+          "customer_id": "00000000-0000-0000-0000-000000000003",
+          "market_end_at": "2026-02-15T23:00:00+00:00",
+          "source_process": "supplier_switch_confirmation",
+          "actual_end_date": null,
+          "market_start_at": "2026-01-01T12:30:00+00:00",
+          "actual_start_date": "2026-01-01",
+          "metering_point_id": "00000000-0000-0000-0000-000000000005",
+          "source_message_id": "00000000-0000-0000-0000-000000000030",
+          "customer_contract_id": "00000000-0000-0000-0000-000000000006",
+          "market_state_version": 2,
+          "source_end_message_id": "00000000-0000-0000-0000-000000000600",
+          "source_switch_request_id": "00000000-0000-0000-0000-000000000010"
+        },
+        "effect_receipt_id": "2932945a-0836-49a5-9f7e-3fe2a60c87b6",
+        "manual_receipt_id": "53b6dedb-9d26-40fb-9573-fdee62dcc07c",
+        "source_message_id": "00000000-0000-0000-0000-000000000600",
+        "source_payload_hash": "16fe4f90956dfc57ae20746d65061cef7b8a10f5147bcfb707f075c8b84fa83e",
+        "resulting_contract_hash": "f3cde0b5c730650f0f8dda6e19549403ef516afc7ed6c55a317fb3d402ac4af1"
+      },
+      "result": {
+        "applied": true,
+        "commits": [],
+        "periods": [
+          {
+            "id": "c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+            "source": "ediel_qualified_source",
+            "status": "ended",
+            "end_date": "2026-02-16",
+            "metadata": {
+              "activationKey": "ediel-normal-activation:c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+              "normalSourceBasis": {
+                "object": {
+                  "li": "LI-A",
+                  "line": "1",
+                  "point": "735123456789012345",
+                  "start": "202601011330",
+                  "reason": "Z22",
+                  "gridArea": "TES",
+                  "registerCount": 1,
+                  "identityAgency": "9",
+                  "customerIdentity": "PERSON-A"
+                },
+                "siteId": "00000000-0000-0000-0000-000000000004",
+                "contractHash": "c7578a5270f6d6c3a4f044f6f4fd35955d7060b538d4872ed40b2b32f4a943e4",
+                "legalActorId": "00000000-0000-0000-0000-000000000050",
+                "sourceMessageId": "00000000-0000-0000-0000-000000000030",
+                "originalMessageId": "00000000-0000-0000-0000-000000000020"
+              },
+              "planned_end_reason": "move_out",
+              "planned_end_source": "customer_lifecycle_close",
+              "planned_end_recorded_at": "2026-10-24T01:35:04.695+00:00"
+            },
+            "company_id": "00000000-0000-0000-0000-000000000001",
+            "start_date": "2026-01-01",
+            "updated_at": "2026-10-24T01:35:04.695+00:00",
+            "contract_id": "00000000-0000-0000-0000-000000000006",
+            "customer_id": "00000000-0000-0000-0000-000000000003",
+            "market_end_at": "2026-02-15T23:00:00+00:00",
+            "source_process": "supplier_switch_confirmation",
+            "actual_end_date": null,
+            "market_start_at": "2026-01-01T12:30:00+00:00",
+            "actual_start_date": "2026-01-01",
+            "metering_point_id": "00000000-0000-0000-0000-000000000005",
+            "source_message_id": "00000000-0000-0000-0000-000000000030",
+            "customer_contract_id": "00000000-0000-0000-0000-000000000006",
+            "market_state_version": 2,
+            "source_end_message_id": "00000000-0000-0000-0000-000000000600",
+            "source_switch_request_id": "00000000-0000-0000-0000-000000000010"
+          }
+        ],
+        "partition": [
+          {
+            "object": {
+              "objectId": "735123456789012345",
+              "registers": [
+                {
+                  "segmentIndex": 5
+                }
+              ],
+              "messageIndex": 0,
+              "identityAgency": "9"
+            },
+            "disposition": "applied",
+            "effectFactsHash": "e7179941f49b0b8eef2430ca5a5a06344d067a49187b3c90d49ed6220eec0d69",
+            "effectReceiptId": "2932945a-0836-49a5-9f7e-3fe2a60c87b6"
+          }
+        ],
+        "switchIds": [],
+        "idempotent": false,
+        "effectReceiptIds": [
+          "2932945a-0836-49a5-9f7e-3fe2a60c87b6"
+        ]
+      },
+      "outer": {
+        "persistedUnderlay": {
+          "id": "86904cc6-30d9-4b82-8e29-8cb7b674413e",
+          "status": "validated",
+          "payload": {
+            "billing_month": "2026-02",
+            "billing_month_frame": "ediel_fixed_normal_time",
+            "billing_period_timezone": "Europe/Stockholm",
+            "billing_period_end_instant": "2026-02-15T23:00:00+00:00",
+            "billing_period_end_exclusive": true,
+            "billing_period_start_instant": "2026-01-31T23:00:00+00:00"
+          },
+          "site_id": null,
+          "currency": "SEK",
+          "total_kwh": 361,
+          "company_id": "00000000-0000-0000-0000-000000000001",
+          "created_by": null,
+          "price_area": "SE3",
+          "updated_at": "2026-10-24T01:35:04.695+00:00",
+          "updated_by": null,
+          "campaign_id": null,
+          "contract_id": "00000000-0000-0000-0000-000000000006",
+          "customer_id": "00000000-0000-0000-0000-000000000003",
+          "received_at": "2026-10-24T01:35:04.695+00:00",
+          "validated_at": null,
+          "price_book_id": null,
+          "price_plan_id": null,
+          "source_system": "normalized_metering_values",
+          "underlay_year": 2026,
+          "underlay_month": 2,
+          "settlement_type": null,
+          "customer_site_id": null,
+          "energy_direction": "consumption",
+          "pricing_snapshot": {
+            "price": "original"
+          },
+          "readiness_issues": [],
+          "readiness_status": "ready",
+          "supply_period_id": "c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+          "metering_point_id": "00000000-0000-0000-0000-000000000005",
+          "billing_period_end": "2026-02-16",
+          "calculated_vat_sek": 90.25,
+          "pricing_snapshot_id": "00000000-0000-0000-0000-000000000503",
+          "billing_block_reason": null,
+          "billing_period_start": "2026-02-01",
+          "missing_values_count": 0,
+          "price_plan_version_id": "00000000-0000-0000-0000-000000000504",
+          "invoice_readiness_issues": [],
+          "invoice_readiness_status": "ready_for_invoice",
+          "source_meter_value_count": 0,
+          "contract_price_snapshot_id": "00000000-0000-0000-0000-000000000503",
+          "calculated_total_sek_ex_vat": 361,
+          "calculated_total_sek_inc_vat": 451.25
+        },
+        "serverValueRows": [
+          {
+            "id": "00000000-0000-0000-0000-000000000502",
+            "unit": "kWh",
+            "direction": "consumption",
+            "company_id": "00000000-0000-0000-0000-000000000001",
+            "period_end": "2026-02-15T23:00:00+00:00",
+            "updated_at": "2026-10-24T01:35:04.695+00:00",
+            "customer_id": "00000000-0000-0000-0000-000000000003",
+            "raw_payload": {
+              "sourceOrdinal": 0,
+              "edielMessageId": "00000000-0000-0000-0000-000000000500",
+              "consumptionContract": {
+                "version": 2,
+                "metering": {
+                  "capability": "write",
+                  "customerId": "00000000-0000-0000-0000-000000000003",
+                  "meteringPointId": "00000000-0000-0000-0000-000000000005"
+                },
+                "observations": [
+                  {
+                    "unit": "kWh",
+                    "ordinal": 0,
+                    "quality": "136",
+                    "quantity": "361",
+                    "direction": "consumption",
+                    "periodEnd": "2026-02-15T23:00:00.000Z",
+                    "periodStart": "2026-01-31T23:00:00.000Z",
+                    "productCode": null,
+                    "registerCode": null,
+                    "sourceOrdinal": 0
+                  }
+                ]
+              }
+            },
+            "period_start": "2026-01-31T23:00:00+00:00",
+            "product_code": "8716867000030",
+            "quantity_kwh": "361",
+            "register_code": "REG",
+            "billing_status": "billable",
+            "quality_status": null,
+            "revision_number": 1,
+            "revision_status": "current",
+            "supply_period_id": "c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+            "metering_point_id": "00000000-0000-0000-0000-000000000005",
+            "previous_value_id": null,
+            "source_message_id": "00000000-0000-0000-0000-000000000500",
+            "billing_gate_status": "eligible",
+            "billing_gate_reasons": [],
+            "billing_source_basis": {
+              "reason": null,
+              "quality": null,
+              "version": 1,
+              "qualified": true,
+              "productCode": "8716867000030",
+              "quantityKwh": "361",
+              "contractHash": "acb5477719cf394b3eda7d86b82e60283deb7485b4b712b2c70659f7f98bffac",
+              "quantityType": "136",
+              "registerCode": "REG",
+              "sourceMessageId": "00000000-0000-0000-0000-000000000500",
+              "normalizedValueId": "00000000-0000-0000-0000-000000000502",
+              "projectionVersion": "ediel-billing-source-v1",
+              "sourcePayloadHash": "a0bf9fe5244f092935a71a5245c72b578144bdb9e218cd8ca59b2fa45640e300",
+              "observationOrdinal": 0,
+              "qualityEstablished": true,
+              "retainedProjection": {
+                "quality": "136",
+                "productCode": null,
+                "registerCode": null
+              },
+              "sourceRulePackBasis": {
+                "version": "fixed-original",
+                "sourceHash": "fixture-original-only"
+              }
+            },
+            "billing_gate_snapshot": {
+              "source_basis": {
+                "reason": null,
+                "quality": null,
+                "version": 1,
+                "qualified": true,
+                "productCode": "8716867000030",
+                "quantityKwh": "361",
+                "contractHash": "acb5477719cf394b3eda7d86b82e60283deb7485b4b712b2c70659f7f98bffac",
+                "quantityType": "136",
+                "registerCode": "REG",
+                "sourceMessageId": "00000000-0000-0000-0000-000000000500",
+                "normalizedValueId": "00000000-0000-0000-0000-000000000502",
+                "projectionVersion": "ediel-billing-source-v1",
+                "sourcePayloadHash": "a0bf9fe5244f092935a71a5245c72b578144bdb9e218cd8ca59b2fa45640e300",
+                "observationOrdinal": 0,
+                "qualityEstablished": true,
+                "retainedProjection": {
+                  "quality": "136",
+                  "productCode": null,
+                  "registerCode": null
+                },
+                "sourceRulePackBasis": {
+                  "version": "fixed-original",
+                  "sourceHash": "fixture-original-only"
+                }
+              },
+              "supply_source_basis": {
+                "siteId": "00000000-0000-0000-0000-000000000004",
+                "periodId": "c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+                "switchId": "00000000-0000-0000-0000-000000000010",
+                "activated": true,
+                "companyId": "00000000-0000-0000-0000-000000000001",
+                "qualified": true,
+                "customerId": "00000000-0000-0000-0000-000000000003",
+                "dsoEdielId": "54321",
+                "marketEndAt": "2026-02-15T23:00:00+00:00",
+                "payloadHash": "16fe4f90956dfc57ae20746d65061cef7b8a10f5147bcfb707f075c8b84fa83e",
+                "legalActorId": "00000000-0000-0000-0000-000000000050",
+                "marketStartAt": "2026-01-01T12:30:00+00:00",
+                "sourceObjects": [
+                  {
+                    "li": "LI-A",
+                    "line": "1",
+                    "point": "735123456789012345",
+                    "start": "202601011330",
+                    "reason": "Z22",
+                    "gridArea": "TES",
+                    "registerCount": 1,
+                    "identityAgency": "9",
+                    "customerIdentity": "PERSON-A"
+                  }
+                ],
+                "meteringPointId": "00000000-0000-0000-0000-000000000005",
+                "sourceMessageId": "00000000-0000-0000-0000-000000000600",
+                "originalMessageId": "00000000-0000-0000-0000-000000000020",
+                "marketStateVersion": 2,
+                "originalAcceptedAt": "2026-10-24T01:35:03.391+00:00",
+                "originalPayloadHash": "a95baa3c27d8a1a1dce760d66ce27ba49c733503dd91be50fb2b66cf1cae2a46",
+                "currentSourceMessageId": "00000000-0000-0000-0000-000000000600",
+                "initialSourceMessageId": "00000000-0000-0000-0000-000000000030",
+                "manualReceivedEndReceiptId": "58007c45-7b09-488e-9d3e-f27ad7e9a092"
+              }
+            },
+            "billing_source_message": {
+              "id": "00000000-0000-0000-0000-000000000500",
+              "status": "validated",
+              "company_id": "00000000-0000-0000-0000-000000000001",
+              "message_code": "E66",
+              "message_family": "UTILTS"
+            },
+            "source_metering_value_id": "00000000-0000-0000-0000-000000000501",
+            "billing_gate_evaluated_at": "2026-10-24T01:35:04.695+00:00",
+            "source_transaction_reference": "OWN",
+            "billing_manual_received_end_authorities": [
+              {
+                "endAt": "2026-02-15T23:00:00+00:00",
+                "startAt": "2026-01-31T23:00:00+00:00",
+                "version": 1,
+                "periodId": "c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+                "companyId": "00000000-0000-0000-0000-000000000001",
+                "receiptId": "58007c45-7b09-488e-9d3e-f27ad7e9a092",
+                "contractId": "00000000-0000-0000-0000-000000000006",
+                "customerId": "00000000-0000-0000-0000-000000000003",
+                "marketEndAt": "2026-02-15T23:00:00+00:00",
+                "contractStatus": "terminated",
+                "contractEndedAt": "2026-03-01T00:00:00+00:00",
+                "meteringPointId": "00000000-0000-0000-0000-000000000005",
+                "terminationReason": "move_out",
+                "marketStateVersion": 2,
+                "sourceEndMessageId": "00000000-0000-0000-0000-000000000600"
+              }
+            ]
+          }
+        ],
+        "serverUnderlayRows": [
+          {
+            "id": "86904cc6-30d9-4b82-8e29-8cb7b674413e",
+            "totalKwh": "361",
+            "qualified": true,
+            "sourceBasisHash": "799721823db5393bc239212edf1ad24544cd595d8140b1ce14a504626b580f06",
+            "correctionRequired": false,
+            "manualReceivedEndAuthorities": [
+              {
+                "endAt": "2026-02-15T23:00:00+00:00",
+                "startAt": "2026-01-31T23:00:00+00:00",
+                "version": 1,
+                "periodId": "c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+                "companyId": "00000000-0000-0000-0000-000000000001",
+                "receiptId": "58007c45-7b09-488e-9d3e-f27ad7e9a092",
+                "contractId": "00000000-0000-0000-0000-000000000006",
+                "customerId": "00000000-0000-0000-0000-000000000003",
+                "marketEndAt": "2026-02-15T23:00:00+00:00",
+                "contractStatus": "terminated",
+                "contractEndedAt": "2026-03-01T00:00:00+00:00",
+                "meteringPointId": "00000000-0000-0000-0000-000000000005",
+                "terminationReason": "move_out",
+                "marketStateVersion": 2,
+                "sourceEndMessageId": "00000000-0000-0000-0000-000000000600"
+              }
+            ],
+            "manualReceivedEndReceiptQualified": true
+          }
+        ],
+        "gate": true,
+        "store": true,
+        "pricingRead": true,
+        "pricingPersist": true,
+        "boundSuccessAndFailureSnapshotPreserved": true,
+        "runDiagnosticsPreserved": true,
+        "mismatchedSnapshotRejected": true,
+        "atomicRollback": true,
+        "unboundSuccessAndFailureUnchanged": true,
+        "sourceProtectorUnchanged": true,
+        "sourceBindingStillQualified": true,
+        "functionMetadataUnchanged": true,
+        "exportContractAccepted": true,
+        "otherExportBlockers": []
+      }
+    },
+    {
+      "name": "after_actual_grid_contract_ended",
+      "contract": {
+        "status": "terminated",
+        "termination_reason": "grid_contract_ended",
+        "ended_at": "2026-02-15T23:00:00.000Z"
+      },
+      "contractFull": {
+        "id": "00000000-0000-0000-0000-000000000006",
+        "status": "terminated",
+        "ends_at": null,
+        "site_id": null,
+        "ended_at": "2026-02-15T23:00:00+00:00",
+        "metadata": {
+          "status_reason_code": null,
+          "ended_at_corrected_by_received_end": {
+            "end_key": "source-end:c3ce73f8-3cb4-4d84-8a13-734fe37fbadf:2026-02-16",
+            "corrected_at": "2026-10-24T01:35:04.921+00:00",
+            "supply_end_date": "2026-02-16",
+            "supply_period_id": "c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+            "previous_ended_at": "2026-02-15T00:00:00+00:00"
+          }
+        },
+        "signed_at": "2025-12-01T00:00:00+00:00",
+        "starts_at": "2025-12-01",
+        "company_id": "00000000-0000-0000-0000-000000000001",
+        "updated_at": "2026-10-24T01:35:04.921+00:00",
+        "updated_by": "00000000-0000-0000-0000-000000000002",
+        "customer_id": "00000000-0000-0000-0000-000000000003",
+        "contract_type": "variable_quarterly",
+        "notice_months": 0,
+        "binding_months": 0,
+        "signed_version": "1",
+        "actual_start_at": null,
+        "rejected_reason": null,
+        "contract_version": "1",
+        "customer_site_id": null,
+        "version_snapshot": {},
+        "expected_start_at": null,
+        "metering_point_id": "00000000-0000-0000-0000-000000000005",
+        "confirmed_start_at": null,
+        "status_reason_code": "terminated",
+        "termination_reason": "grid_contract_ended",
+        "termination_notice_date": "2026-01-01",
+        "withdrawal_requested_at": null
+      },
+      "manualRecord": {
+        "id": "8b8ae621-c3c6-460a-ad35-5e72f41c1e1c",
+        "command": "customer_lifecycle",
+        "end_date": "2026-02-15",
+        "period_id": "c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+        "company_id": "00000000-0000-0000-0000-000000000001",
+        "captured_at": "2026-10-24T01:35:04.921+00:00",
+        "contract_id": "00000000-0000-0000-0000-000000000006",
+        "customer_id": "00000000-0000-0000-0000-000000000003",
+        "actor_user_id": "00000000-0000-0000-0000-000000000002",
+        "original_basis": {
+          "siteId": "00000000-0000-0000-0000-000000000004",
+          "periodId": "c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+          "switchId": "00000000-0000-0000-0000-000000000010",
+          "activated": true,
+          "companyId": "00000000-0000-0000-0000-000000000001",
+          "qualified": true,
+          "customerId": "00000000-0000-0000-0000-000000000003",
+          "dsoEdielId": "54321",
+          "marketEndAt": null,
+          "payloadHash": "5f84efd1b965902cbd34cdb81c192271b9599a651cbc54ac2899bcb9e4d0f04e",
+          "legalActorId": "00000000-0000-0000-0000-000000000050",
+          "marketStartAt": "2026-01-01T12:30:00+00:00",
+          "sourceObjects": [
+            {
+              "li": "LI-A",
+              "line": "1",
+              "point": "735123456789012345",
+              "start": "202601011330",
+              "reason": "Z22",
+              "gridArea": "TES",
+              "registerCount": 1,
+              "identityAgency": "9",
+              "customerIdentity": "PERSON-A"
+            }
+          ],
+          "meteringPointId": "00000000-0000-0000-0000-000000000005",
+          "sourceMessageId": "00000000-0000-0000-0000-000000000030",
+          "originalMessageId": "00000000-0000-0000-0000-000000000020",
+          "marketStateVersion": 1,
+          "originalAcceptedAt": "2026-10-24T01:35:03.391+00:00",
+          "originalPayloadHash": "a95baa3c27d8a1a1dce760d66ce27ba49c733503dd91be50fb2b66cf1cae2a46",
+          "currentSourceMessageId": "00000000-0000-0000-0000-000000000030",
+          "initialSourceMessageId": "00000000-0000-0000-0000-000000000030"
+        },
+        "original_period": {
+          "id": "c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+          "source": "ediel_qualified_source",
+          "status": "active",
+          "end_date": null,
+          "metadata": {
+            "activationKey": "ediel-normal-activation:c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+            "normalSourceBasis": {
+              "object": {
+                "li": "LI-A",
+                "line": "1",
+                "point": "735123456789012345",
+                "start": "202601011330",
+                "reason": "Z22",
+                "gridArea": "TES",
+                "registerCount": 1,
+                "identityAgency": "9",
+                "customerIdentity": "PERSON-A"
+              },
+              "siteId": "00000000-0000-0000-0000-000000000004",
+              "contractHash": "c7578a5270f6d6c3a4f044f6f4fd35955d7060b538d4872ed40b2b32f4a943e4",
+              "legalActorId": "00000000-0000-0000-0000-000000000050",
+              "sourceMessageId": "00000000-0000-0000-0000-000000000030",
+              "originalMessageId": "00000000-0000-0000-0000-000000000020"
+            }
+          },
+          "company_id": "00000000-0000-0000-0000-000000000001",
+          "start_date": "2026-01-01",
+          "updated_at": "2026-10-24T01:35:03.588+00:00",
+          "contract_id": "00000000-0000-0000-0000-000000000006",
+          "customer_id": "00000000-0000-0000-0000-000000000003",
+          "market_end_at": null,
+          "source_process": "supplier_switch_confirmation",
+          "actual_end_date": null,
+          "market_start_at": "2026-01-01T12:30:00+00:00",
+          "actual_start_date": "2026-01-01",
+          "metering_point_id": "00000000-0000-0000-0000-000000000005",
+          "source_message_id": "00000000-0000-0000-0000-000000000030",
+          "customer_contract_id": "00000000-0000-0000-0000-000000000006",
+          "market_state_version": 1,
+          "source_end_message_id": null,
+          "source_switch_request_id": "00000000-0000-0000-0000-000000000010"
+        },
+        "contract_event_id": "c139c2c1-d4e7-4a72-84e8-e0773085da40",
+        "contract_event_hash": "35497cf31115451974da38de7c0e27b515469a6b12fe052f63bbcece6d10652f",
+        "contract_disposition": "terminated",
+        "resulting_period_hash": "47f28fd4f8bf0b415abc2302df1c9c730ff39418a10df55b62c082cc02da0ff4",
+        "original_contract_hash": "c7578a5270f6d6c3a4f044f6f4fd35955d7060b538d4872ed40b2b32f4a943e4",
+        "resulting_contract_hash": "b63b905d7a2bf7314124b01c49a18f1232137697dd491704bf8142b689e11f6c",
+        "original_contract_status": "signed"
+      },
+      "successorRecord": {
+        "id": "89d48152-66d6-453a-ad1c-2df7c0cda416",
+        "period_id": "c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+        "company_id": "00000000-0000-0000-0000-000000000001",
+        "captured_at": "2026-10-24T01:35:04.921+00:00",
+        "contract_id": "00000000-0000-0000-0000-000000000006",
+        "effect_hash": "bc78dc46dbd6b059c8006615e31b4ecd60fb3ba9ac21e4a85c9719bb9c3e64d3",
+        "resulting_period": {
+          "id": "c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+          "source": "ediel_qualified_source",
+          "status": "ended",
+          "end_date": "2026-02-16",
+          "metadata": {
+            "activationKey": "ediel-normal-activation:c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+            "normalSourceBasis": {
+              "object": {
+                "li": "LI-A",
+                "line": "1",
+                "point": "735123456789012345",
+                "start": "202601011330",
+                "reason": "Z22",
+                "gridArea": "TES",
+                "registerCount": 1,
+                "identityAgency": "9",
+                "customerIdentity": "PERSON-A"
+              },
+              "siteId": "00000000-0000-0000-0000-000000000004",
+              "contractHash": "c7578a5270f6d6c3a4f044f6f4fd35955d7060b538d4872ed40b2b32f4a943e4",
+              "legalActorId": "00000000-0000-0000-0000-000000000050",
+              "sourceMessageId": "00000000-0000-0000-0000-000000000030",
+              "originalMessageId": "00000000-0000-0000-0000-000000000020"
+            },
+            "planned_end_reason": "grid_contract_ended",
+            "planned_end_source": "customer_lifecycle_close",
+            "planned_end_recorded_at": "2026-10-24T01:35:04.921+00:00"
+          },
+          "company_id": "00000000-0000-0000-0000-000000000001",
+          "start_date": "2026-01-01",
+          "updated_at": "2026-10-24T01:35:04.921+00:00",
+          "contract_id": "00000000-0000-0000-0000-000000000006",
+          "customer_id": "00000000-0000-0000-0000-000000000003",
+          "market_end_at": "2026-02-15T23:00:00+00:00",
+          "source_process": "supplier_switch_confirmation",
+          "actual_end_date": null,
+          "market_start_at": "2026-01-01T12:30:00+00:00",
+          "actual_start_date": "2026-01-01",
+          "metering_point_id": "00000000-0000-0000-0000-000000000005",
+          "source_message_id": "00000000-0000-0000-0000-000000000030",
+          "customer_contract_id": "00000000-0000-0000-0000-000000000006",
+          "market_state_version": 2,
+          "source_end_message_id": "00000000-0000-0000-0000-000000000600",
+          "source_switch_request_id": "00000000-0000-0000-0000-000000000010"
+        },
+        "effect_receipt_id": "1b97ea03-9ba7-442c-b1a1-d37b99620c23",
+        "manual_receipt_id": "8b8ae621-c3c6-460a-ad35-5e72f41c1e1c",
+        "source_message_id": "00000000-0000-0000-0000-000000000600",
+        "source_payload_hash": "16fe4f90956dfc57ae20746d65061cef7b8a10f5147bcfb707f075c8b84fa83e",
+        "resulting_contract_hash": "dfddd3a5d493d6723d0e7acf93c89b39231d16e950a4b87d68bbb69689a099f4"
+      },
+      "result": {
+        "applied": true,
+        "commits": [],
+        "periods": [
+          {
+            "id": "c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+            "source": "ediel_qualified_source",
+            "status": "ended",
+            "end_date": "2026-02-16",
+            "metadata": {
+              "activationKey": "ediel-normal-activation:c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+              "normalSourceBasis": {
+                "object": {
+                  "li": "LI-A",
+                  "line": "1",
+                  "point": "735123456789012345",
+                  "start": "202601011330",
+                  "reason": "Z22",
+                  "gridArea": "TES",
+                  "registerCount": 1,
+                  "identityAgency": "9",
+                  "customerIdentity": "PERSON-A"
+                },
+                "siteId": "00000000-0000-0000-0000-000000000004",
+                "contractHash": "c7578a5270f6d6c3a4f044f6f4fd35955d7060b538d4872ed40b2b32f4a943e4",
+                "legalActorId": "00000000-0000-0000-0000-000000000050",
+                "sourceMessageId": "00000000-0000-0000-0000-000000000030",
+                "originalMessageId": "00000000-0000-0000-0000-000000000020"
+              },
+              "planned_end_reason": "grid_contract_ended",
+              "planned_end_source": "customer_lifecycle_close",
+              "planned_end_recorded_at": "2026-10-24T01:35:04.921+00:00"
+            },
+            "company_id": "00000000-0000-0000-0000-000000000001",
+            "start_date": "2026-01-01",
+            "updated_at": "2026-10-24T01:35:04.921+00:00",
+            "contract_id": "00000000-0000-0000-0000-000000000006",
+            "customer_id": "00000000-0000-0000-0000-000000000003",
+            "market_end_at": "2026-02-15T23:00:00+00:00",
+            "source_process": "supplier_switch_confirmation",
+            "actual_end_date": null,
+            "market_start_at": "2026-01-01T12:30:00+00:00",
+            "actual_start_date": "2026-01-01",
+            "metering_point_id": "00000000-0000-0000-0000-000000000005",
+            "source_message_id": "00000000-0000-0000-0000-000000000030",
+            "customer_contract_id": "00000000-0000-0000-0000-000000000006",
+            "market_state_version": 2,
+            "source_end_message_id": "00000000-0000-0000-0000-000000000600",
+            "source_switch_request_id": "00000000-0000-0000-0000-000000000010"
+          }
+        ],
+        "partition": [
+          {
+            "object": {
+              "objectId": "735123456789012345",
+              "registers": [
+                {
+                  "segmentIndex": 5
+                }
+              ],
+              "messageIndex": 0,
+              "identityAgency": "9"
+            },
+            "disposition": "applied",
+            "effectFactsHash": "bc78dc46dbd6b059c8006615e31b4ecd60fb3ba9ac21e4a85c9719bb9c3e64d3",
+            "effectReceiptId": "1b97ea03-9ba7-442c-b1a1-d37b99620c23"
+          }
+        ],
+        "switchIds": [],
+        "idempotent": false,
+        "effectReceiptIds": [
+          "1b97ea03-9ba7-442c-b1a1-d37b99620c23"
+        ]
+      },
+      "outer": {
+        "persistedUnderlay": {
+          "id": "27e2d3ac-bebb-4ab8-ac65-bac3ed0d1dc3",
+          "status": "validated",
+          "payload": {
+            "billing_month": "2026-02",
+            "billing_month_frame": "ediel_fixed_normal_time",
+            "billing_period_timezone": "Europe/Stockholm",
+            "billing_period_end_instant": "2026-02-15T23:00:00+00:00",
+            "billing_period_end_exclusive": true,
+            "billing_period_start_instant": "2026-01-31T23:00:00+00:00"
+          },
+          "site_id": null,
+          "currency": "SEK",
+          "total_kwh": 361,
+          "company_id": "00000000-0000-0000-0000-000000000001",
+          "created_by": null,
+          "price_area": "SE3",
+          "updated_at": "2026-10-24T01:35:04.921+00:00",
+          "updated_by": null,
+          "campaign_id": null,
+          "contract_id": "00000000-0000-0000-0000-000000000006",
+          "customer_id": "00000000-0000-0000-0000-000000000003",
+          "received_at": "2026-10-24T01:35:04.921+00:00",
+          "validated_at": null,
+          "price_book_id": null,
+          "price_plan_id": null,
+          "source_system": "normalized_metering_values",
+          "underlay_year": 2026,
+          "underlay_month": 2,
+          "settlement_type": null,
+          "customer_site_id": null,
+          "energy_direction": "consumption",
+          "pricing_snapshot": {
+            "price": "original"
+          },
+          "readiness_issues": [],
+          "readiness_status": "ready",
+          "supply_period_id": "c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+          "metering_point_id": "00000000-0000-0000-0000-000000000005",
+          "billing_period_end": "2026-02-16",
+          "calculated_vat_sek": 90.25,
+          "pricing_snapshot_id": "00000000-0000-0000-0000-000000000503",
+          "billing_block_reason": null,
+          "billing_period_start": "2026-02-01",
+          "missing_values_count": 0,
+          "price_plan_version_id": "00000000-0000-0000-0000-000000000504",
+          "invoice_readiness_issues": [],
+          "invoice_readiness_status": "ready_for_invoice",
+          "source_meter_value_count": 0,
+          "contract_price_snapshot_id": "00000000-0000-0000-0000-000000000503",
+          "calculated_total_sek_ex_vat": 361,
+          "calculated_total_sek_inc_vat": 451.25
+        },
+        "serverValueRows": [
+          {
+            "id": "00000000-0000-0000-0000-000000000502",
+            "unit": "kWh",
+            "direction": "consumption",
+            "company_id": "00000000-0000-0000-0000-000000000001",
+            "period_end": "2026-02-15T23:00:00+00:00",
+            "updated_at": "2026-10-24T01:35:04.921+00:00",
+            "customer_id": "00000000-0000-0000-0000-000000000003",
+            "raw_payload": {
+              "sourceOrdinal": 0,
+              "edielMessageId": "00000000-0000-0000-0000-000000000500",
+              "consumptionContract": {
+                "version": 2,
+                "metering": {
+                  "capability": "write",
+                  "customerId": "00000000-0000-0000-0000-000000000003",
+                  "meteringPointId": "00000000-0000-0000-0000-000000000005"
+                },
+                "observations": [
+                  {
+                    "unit": "kWh",
+                    "ordinal": 0,
+                    "quality": "136",
+                    "quantity": "361",
+                    "direction": "consumption",
+                    "periodEnd": "2026-02-15T23:00:00.000Z",
+                    "periodStart": "2026-01-31T23:00:00.000Z",
+                    "productCode": null,
+                    "registerCode": null,
+                    "sourceOrdinal": 0
+                  }
+                ]
+              }
+            },
+            "period_start": "2026-01-31T23:00:00+00:00",
+            "product_code": "8716867000030",
+            "quantity_kwh": "361",
+            "register_code": "REG",
+            "billing_status": "billable",
+            "quality_status": null,
+            "revision_number": 1,
+            "revision_status": "current",
+            "supply_period_id": "c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+            "metering_point_id": "00000000-0000-0000-0000-000000000005",
+            "previous_value_id": null,
+            "source_message_id": "00000000-0000-0000-0000-000000000500",
+            "billing_gate_status": "eligible",
+            "billing_gate_reasons": [],
+            "billing_source_basis": {
+              "reason": null,
+              "quality": null,
+              "version": 1,
+              "qualified": true,
+              "productCode": "8716867000030",
+              "quantityKwh": "361",
+              "contractHash": "acb5477719cf394b3eda7d86b82e60283deb7485b4b712b2c70659f7f98bffac",
+              "quantityType": "136",
+              "registerCode": "REG",
+              "sourceMessageId": "00000000-0000-0000-0000-000000000500",
+              "normalizedValueId": "00000000-0000-0000-0000-000000000502",
+              "projectionVersion": "ediel-billing-source-v1",
+              "sourcePayloadHash": "a0bf9fe5244f092935a71a5245c72b578144bdb9e218cd8ca59b2fa45640e300",
+              "observationOrdinal": 0,
+              "qualityEstablished": true,
+              "retainedProjection": {
+                "quality": "136",
+                "productCode": null,
+                "registerCode": null
+              },
+              "sourceRulePackBasis": {
+                "version": "fixed-original",
+                "sourceHash": "fixture-original-only"
+              }
+            },
+            "billing_gate_snapshot": {
+              "source_basis": {
+                "reason": null,
+                "quality": null,
+                "version": 1,
+                "qualified": true,
+                "productCode": "8716867000030",
+                "quantityKwh": "361",
+                "contractHash": "acb5477719cf394b3eda7d86b82e60283deb7485b4b712b2c70659f7f98bffac",
+                "quantityType": "136",
+                "registerCode": "REG",
+                "sourceMessageId": "00000000-0000-0000-0000-000000000500",
+                "normalizedValueId": "00000000-0000-0000-0000-000000000502",
+                "projectionVersion": "ediel-billing-source-v1",
+                "sourcePayloadHash": "a0bf9fe5244f092935a71a5245c72b578144bdb9e218cd8ca59b2fa45640e300",
+                "observationOrdinal": 0,
+                "qualityEstablished": true,
+                "retainedProjection": {
+                  "quality": "136",
+                  "productCode": null,
+                  "registerCode": null
+                },
+                "sourceRulePackBasis": {
+                  "version": "fixed-original",
+                  "sourceHash": "fixture-original-only"
+                }
+              },
+              "supply_source_basis": {
+                "siteId": "00000000-0000-0000-0000-000000000004",
+                "periodId": "c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+                "switchId": "00000000-0000-0000-0000-000000000010",
+                "activated": true,
+                "companyId": "00000000-0000-0000-0000-000000000001",
+                "qualified": true,
+                "customerId": "00000000-0000-0000-0000-000000000003",
+                "dsoEdielId": "54321",
+                "marketEndAt": "2026-02-15T23:00:00+00:00",
+                "payloadHash": "16fe4f90956dfc57ae20746d65061cef7b8a10f5147bcfb707f075c8b84fa83e",
+                "legalActorId": "00000000-0000-0000-0000-000000000050",
+                "marketStartAt": "2026-01-01T12:30:00+00:00",
+                "sourceObjects": [
+                  {
+                    "li": "LI-A",
+                    "line": "1",
+                    "point": "735123456789012345",
+                    "start": "202601011330",
+                    "reason": "Z22",
+                    "gridArea": "TES",
+                    "registerCount": 1,
+                    "identityAgency": "9",
+                    "customerIdentity": "PERSON-A"
+                  }
+                ],
+                "meteringPointId": "00000000-0000-0000-0000-000000000005",
+                "sourceMessageId": "00000000-0000-0000-0000-000000000600",
+                "originalMessageId": "00000000-0000-0000-0000-000000000020",
+                "marketStateVersion": 2,
+                "originalAcceptedAt": "2026-10-24T01:35:03.391+00:00",
+                "originalPayloadHash": "a95baa3c27d8a1a1dce760d66ce27ba49c733503dd91be50fb2b66cf1cae2a46",
+                "currentSourceMessageId": "00000000-0000-0000-0000-000000000600",
+                "initialSourceMessageId": "00000000-0000-0000-0000-000000000030",
+                "manualReceivedEndReceiptId": "89d48152-66d6-453a-ad1c-2df7c0cda416"
+              }
+            },
+            "billing_source_message": {
+              "id": "00000000-0000-0000-0000-000000000500",
+              "status": "validated",
+              "company_id": "00000000-0000-0000-0000-000000000001",
+              "message_code": "E66",
+              "message_family": "UTILTS"
+            },
+            "source_metering_value_id": "00000000-0000-0000-0000-000000000501",
+            "billing_gate_evaluated_at": "2026-10-24T01:35:04.921+00:00",
+            "source_transaction_reference": "OWN",
+            "billing_manual_received_end_authorities": [
+              {
+                "endAt": "2026-02-15T23:00:00+00:00",
+                "startAt": "2026-01-31T23:00:00+00:00",
+                "version": 1,
+                "periodId": "c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+                "companyId": "00000000-0000-0000-0000-000000000001",
+                "receiptId": "89d48152-66d6-453a-ad1c-2df7c0cda416",
+                "contractId": "00000000-0000-0000-0000-000000000006",
+                "customerId": "00000000-0000-0000-0000-000000000003",
+                "marketEndAt": "2026-02-15T23:00:00+00:00",
+                "contractStatus": "terminated",
+                "contractEndedAt": "2026-02-15T23:00:00+00:00",
+                "meteringPointId": "00000000-0000-0000-0000-000000000005",
+                "terminationReason": "grid_contract_ended",
+                "marketStateVersion": 2,
+                "sourceEndMessageId": "00000000-0000-0000-0000-000000000600"
+              }
+            ]
+          }
+        ],
+        "serverUnderlayRows": [
+          {
+            "id": "27e2d3ac-bebb-4ab8-ac65-bac3ed0d1dc3",
+            "totalKwh": "361",
+            "qualified": true,
+            "sourceBasisHash": "b430a573af18b13515c1c31a0de7be1c95a593b619c03d9304726e0b19c4d79d",
+            "correctionRequired": false,
+            "manualReceivedEndAuthorities": [
+              {
+                "endAt": "2026-02-15T23:00:00+00:00",
+                "startAt": "2026-01-31T23:00:00+00:00",
+                "version": 1,
+                "periodId": "c3ce73f8-3cb4-4d84-8a13-734fe37fbadf",
+                "companyId": "00000000-0000-0000-0000-000000000001",
+                "receiptId": "89d48152-66d6-453a-ad1c-2df7c0cda416",
+                "contractId": "00000000-0000-0000-0000-000000000006",
+                "customerId": "00000000-0000-0000-0000-000000000003",
+                "marketEndAt": "2026-02-15T23:00:00+00:00",
+                "contractStatus": "terminated",
+                "contractEndedAt": "2026-02-15T23:00:00+00:00",
+                "meteringPointId": "00000000-0000-0000-0000-000000000005",
+                "terminationReason": "grid_contract_ended",
+                "marketStateVersion": 2,
+                "sourceEndMessageId": "00000000-0000-0000-0000-000000000600"
+              }
+            ],
+            "manualReceivedEndReceiptQualified": true
+          }
+        ],
+        "gate": true,
+        "store": true,
+        "pricingRead": true,
+        "pricingPersist": true,
+        "boundSuccessAndFailureSnapshotPreserved": true,
+        "runDiagnosticsPreserved": true,
+        "mismatchedSnapshotRejected": true,
+        "atomicRollback": true,
+        "unboundSuccessAndFailureUnchanged": true,
+        "sourceProtectorUnchanged": true,
+        "sourceBindingStillQualified": true,
+        "functionMetadataUnchanged": true,
+        "exportContractAccepted": true,
+        "otherExportBlockers": []
+      }
+    }
+  ]
+}

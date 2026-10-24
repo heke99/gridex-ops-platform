@@ -22,6 +22,7 @@ import {
   updateInboundEmailProcessingStatus,
 } from '@/lib/inbound-mail/inboundStatusUpdater'
 import { supabaseService } from '@/lib/supabase/service'
+import { tenantDb } from '@/lib/supabase/tenantDb'
 import { parseAiBiTechnicalFile } from '@/lib/ediel/aiListFormat'
 import { registerInboundCanonicalMessage } from '@/lib/ediel/core/kernel'
 
@@ -86,7 +87,8 @@ function resolveTrustedTestCenterCompanyId(input: {
  */
 async function attributeInboundEmailToTenant(input: { inboundEmailMessageId: string; companyId: string; row: Record<string, unknown> }):
   Promise<{ duplicateOf: { id: string; samePayload: boolean } | null }> {
-  const { error } = await supabaseService.from('inbound_email_messages')
+  // Attribution moves an unassigned shared-mail row to this resolved tenant; keep the NULL compare-and-set.
+  const { error } = await tenantDb(input.companyId).unscoped().from('inbound_email_messages')
     .update({ company_id: input.companyId, updated_at: new Date().toISOString() })
     .eq('id', input.inboundEmailMessageId)
     .is('company_id', null)
@@ -96,8 +98,7 @@ async function attributeInboundEmailToTenant(input: { inboundEmailMessageId: str
     if (!duplicateOf) throw error
     return { duplicateOf }
   }
-  const { data, error: readError } = await supabaseService.from('inbound_email_messages')
-    .select('company_id')
+  const { data, error: readError } = await (tenantDb(input.companyId).from('inbound_email_messages').select('company_id') as ReturnType<ReturnType<typeof supabaseService.from>['select']>)
     .eq('id', input.inboundEmailMessageId)
     .maybeSingle()
   if (readError) throw readError
@@ -117,9 +118,7 @@ async function findAttributedTwin(input: { inboundEmailMessageId: string; compan
   const transaction = text(input.row.transaction_reference), external = text(input.row.external_reference)
   if (transaction && external) keys.push({ transaction_reference: transaction, external_reference: external })
   for (const key of keys) {
-    let query = supabaseService.from('inbound_email_messages')
-      .select('id,raw_edifact_payload')
-      .eq('company_id', input.companyId)
+    let query = (tenantDb(input.companyId).from('inbound_email_messages').select('id,raw_edifact_payload') as ReturnType<ReturnType<typeof supabaseService.from>['select']>)
       .eq('environment', environment)
       .eq('sender_ediel_id', sender)
       .neq('id', input.inboundEmailMessageId)

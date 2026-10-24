@@ -1,3 +1,4 @@
+import { tenantSelect } from '@/lib/supabase/tenantQuery'
 import { createHash } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
 
@@ -17,14 +18,14 @@ type Scope = { companyId: string; contractId: string; actorUserId: string; envir
 
 /** The archived signed agreement bytes, only when they hash to the contract's document_sha256. */
 async function verifiedSignedAgreement(input: Pick<Scope, 'companyId' | 'contractId'>): Promise<Buffer | null> {
-  const contract = await supabaseService.from('customer_contracts').select('id,document_sha256')
-    .eq('company_id', input.companyId).eq('id', input.contractId).maybeSingle()
+  const contract = await tenantSelect(input.companyId, "customer_contracts", 'id,document_sha256')
+    .eq('company_id', input.companyId).eq('id', input.contractId).returns<Array<{ id: string; document_sha256: string | null }>>().maybeSingle()
   if (contract.error) throw contract.error
   const hash = contract.data?.document_sha256
   if (typeof hash !== 'string' || !/^[a-f0-9]{64}$/.test(hash)) return null
-  const document = await supabaseService.from('customer_contract_documents').select('storage_bucket,storage_path')
+  const document = await tenantSelect(input.companyId, "customer_contract_documents", 'storage_bucket,storage_path')
     .eq('company_id', input.companyId).eq('customer_contract_id', input.contractId).eq('document_type', 'signed_contract_pdf').eq('document_sha256', hash)
-    .not('verified_at', 'is', null).limit(1).maybeSingle()
+    .not('verified_at', 'is', null).limit(1).returns<Array<{ storage_bucket: string | null; storage_path: string | null }>>().maybeSingle()
   if (document.error) throw document.error
   if (!document.data?.storage_bucket || !document.data.storage_path) return null
   const download = await supabaseService.storage.from(document.data.storage_bucket).download(document.data.storage_path)
@@ -63,11 +64,10 @@ export async function deriveContractCustomerMasterdata(input: Scope): Promise<Co
  * chosen later by route resolution, so both lanes are offered. Never blocks: a declaration that
  * cannot be derived leaves the masterdata source held with its reason.
  */
-export async function deriveCustomerMasterdataBeforeSwitch(input: { actorUserId: string; switchRequestId: string }) {
-  const { data, error } = await supabaseService.from('supplier_switch_requests')
-    .select('id,company_id,customer_contract_id,contract_id').eq('id', input.switchRequestId).maybeSingle()
+export async function deriveCustomerMasterdataBeforeSwitch(input: { companyId: string; actorUserId: string; switchRequestId: string }) {
+  const { data, error } = await tenantSelect(input.companyId, "supplier_switch_requests", 'id,company_id,customer_contract_id,contract_id').eq('id', input.switchRequestId).returns<Array<{ id: string; company_id: string; customer_contract_id: string | null; contract_id: string | null }>>().maybeSingle()
     .then(result => result, failure => ({ data: null, error: failure as Error }))
-  if (error || !data?.company_id) return
+  if (error || data?.company_id !== input.companyId) return
   const contractId = (data.customer_contract_id ?? data.contract_id) as string | null
   if (!contractId) return
   for (const environment of ['production', 'test'] as const) {

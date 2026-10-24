@@ -49,10 +49,15 @@ const installed = () => psql<{ wire: boolean; scope: boolean; wireSrc: string; s
   'wire',(SELECT position('company_id IS NULL AND owner_code=area' in prosrc)>0 FROM pg_proc WHERE oid=${WIRE_FN}),
   'scope',(SELECT position('(company_id=c OR company_id IS NULL)' in prosrc)>0 FROM pg_proc WHERE oid=${SCOPE_FN}),
   'wireSrc',(SELECT md5(prosrc) FROM pg_proc WHERE oid=${WIRE_FN}),'scopeSrc',(SELECT md5(prosrc) FROM pg_proc WHERE oid=${SCOPE_FN}))`)
-const migrationBody = () => {
+type ReplayTarget = 'wire' | 'scope'
+const migrationBody = (target: ReplayTarget) => {
   const block = readFileSync(MIGRATION, 'utf8').match(/do \$f113\$[\s\S]*?\$f113\$;/)?.[0]
   if (!block) throw Error('f113_migration_block_required')
-  return block
+  // Replay only the selected independently checked body. The shipped scope may
+  // already be installed while the protected wire proposal remains held.
+  const selector = ') as t(signature, needle, replacement, marker, marker2)'
+  if (block.split(selector).length !== 2) throw Error('f113_target_selector_required')
+  return block.replace(selector, `${selector}\n    where signature = ${target === 'wire' ? WIRE_FN : SCOPE_FN}`)
 }
 type Outcome = { value?: unknown; error?: string }
 type Replay = { old: Outcome | null; fixed: Outcome }
@@ -60,7 +65,7 @@ type Replay = { old: Outcome | null; fixed: Outcome }
  * Runs `statement` (which assigns the jsonb `r`) in one rolled-back transaction after `setup`: first against the old
  * body when it is still installed, then against the F113 body applied inside the same transaction.
  */
-function replay(statement: string, setup: string, fixedInstalled: boolean): Replay {
+function replay(statement: string, setup: string, fixedInstalled: boolean, target: ReplayTarget): Replay {
   const attempt = (label: string) => `DO $t$ DECLARE r jsonb; BEGIN ${statement}
     INSERT INTO pg_temp.f113_out VALUES(${literal(label)},jsonb_build_object('value',r));
     EXCEPTION WHEN OTHERS THEN INSERT INTO pg_temp.f113_out VALUES(${literal(label)},jsonb_build_object('error',SQLERRM)); END $t$;`
@@ -68,7 +73,7 @@ function replay(statement: string, setup: string, fixedInstalled: boolean): Repl
 SET LOCAL lock_timeout='10s';
 CREATE TEMP TABLE f113_out(k text, v jsonb) ON COMMIT DROP;
 ${setup}
-${fixedInstalled ? '' : `${attempt('old')}\n${migrationBody()}`}
+${fixedInstalled ? '' : `${attempt('old')}\n${migrationBody(target)}`}
 ${attempt('fixed')}
 SELECT jsonb_build_object('old',(SELECT v FROM pg_temp.f113_out WHERE k='old'),'fixed',(SELECT v FROM pg_temp.f113_out WHERE k='fixed'));
 ROLLBACK;`)
@@ -119,7 +124,7 @@ describe('F113 PRODAT object batch wire projection (require_wire_projection_v1, 
       return `PERFORM gridex_prodat_object_batch.require_wire_projection_v1((SELECT raw_payload FROM public.ediel_messages WHERE id=${literal(f.sourceId)} AND company_id=${literal(f.companyId)}),
         ${literal(f.own)}::jsonb,${literal(command)}::jsonb,'create_new_customer',${literal(f.actorUserId)}::uuid); r:='"accepted"';`
     }
-    const run = (setup: string, owners: { site?: string | null; point?: string | null }) => replay(call(owners), setup, before.wire)
+    const run = (setup: string, owners: { site?: string | null; point?: string | null }) => replay(call(owners), setup, before.wire, 'wire')
     const share = `UPDATE public.grid_owners SET company_id=NULL WHERE id=${literal(f.gridId)};`
     const other = randomUUID(), second = randomUUID(), otherArea = randomUUID()
     const cases = {
@@ -174,7 +179,7 @@ describe('F113 regulated supply scope (gridex_regulated_supply.scope_v1)', () =>
     const selector = { environment: 'test', kind: 'assigned_supply', contractId: f.contractId, meteringPointId: f.pointId, identityAgency: '9', bilateralAgreementId: agreement,
       startAt: new Date((Math.floor(Date.now() / 86_400_000) + 2) * 86_400_000).toISOString() } // a future whole minute
     const before = installed()
-    const run = (setup: string) => replay(`r:=gridex_regulated_supply.scope_v1(${literal(f.companyId)}::uuid,${literal(selector)}::jsonb);`, setup, before.scope)
+    const run = (setup: string) => replay(`r:=gridex_regulated_supply.scope_v1(${literal(f.companyId)}::uuid,${literal(selector)}::jsonb);`, setup, before.scope, 'scope')
     const other = randomUUID()
     const cases = {
       own: run(''),

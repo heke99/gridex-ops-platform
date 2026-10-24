@@ -1,3 +1,4 @@
+import { manualReceivedEndAuthority } from './manualReceivedEndAuthority'
 import { stockholmLocalToUtc } from "@/lib/time/stockholm";
 import { isCanonicalUtiltsDecimal } from '@/lib/ediel/utilts/exactDecimal';
 import type { BillingSourceBasis } from './sourceBasis';
@@ -330,7 +331,7 @@ export function evaluateBillingGate(input: {
     // the supply period's own bounds (checked above) keep every value after the end out.
     if (
       !ACTIVE_CONTRACT_STATES.has((text(contract.status) ?? "").toLowerCase()) &&
-      !(supplyCount === 1 && contractEndedBySupplyPeriod(contract, supply))
+      !(supplyCount === 1 && contractEndedBySupplyPeriod(contract, supply, manualReceivedEndAuthority([value], contract, supply, periodStart ?? Number.NaN, periodEnd ?? Number.NaN)))
     ) {
       reasons.push(
         reason("contract_not_active", "Avtalet är inte signerat eller aktivt."),

@@ -27,7 +27,8 @@
 // answers the same inbound identity; our own pair is updated in place. Missing
 // shared SMTP configuration skips the ACK routes with a reason and never fails the
 // business route materialization. No gate is changed; every row carries the tenant.
-import { supabaseService } from "@/lib/supabase/service";
+import type { supabaseService } from "@/lib/supabase/service";
+import { tenantDb } from "@/lib/supabase/tenantDb";
 import { assertEdielSmtpReadiness } from "@/lib/ediel/mailReadiness";
 import {
   canonicalBusinessSemanticsCatalog,
@@ -179,20 +180,16 @@ export async function ensureGridOwnerTechnicalAckRoutes(params: {
     const ownSub = text(params.ownSubaddress);
     const receiverSub = text(params.route.subaddress);
 
-    const routesRead = await supabaseService
-      .from("communication_routes")
+    const routesRead = await (tenantDb(params.companyId).from("communication_routes") as ReturnType<typeof supabaseService.from>)
       .select("id,is_active,environment_type,target_email,auth_config")
-      .eq("company_id", params.companyId)
       .eq("route_scope", "ediel_ack")
       .limit(1000);
     if (routesRead.error) throw routesRead.error;
     const routes = new Map(((routesRead.data ?? []) as AckRouteRow[]).map((row) => [row.id, row]));
     const pairs: AckPair[] = [];
     if (routes.size > 0) {
-      const profilesRead = await supabaseService
-        .from("ediel_route_profiles")
+      const profilesRead = await (tenantDb(params.companyId).from("ediel_route_profiles") as ReturnType<typeof supabaseService.from>)
         .select("id,communication_route_id,environment,is_active,is_enabled,message_standard,payload_format,message_family,business_code,sender_ediel_id,receiver_ediel_id,sender_subaddress,sender_sub_address,receiver_subaddress,receiver_sub_address,application_reference,mailbox,smtp_host,smtp_port,transport_profile_id,metadata")
-        .eq("company_id", params.companyId)
         .eq("environment", lane)
         .in("communication_route_id", [...routes.keys()])
         .limit(2000);
@@ -285,8 +282,8 @@ export async function ensureGridOwnerTechnicalAckRoutes(params: {
         updated_at: now,
       };
       const routeWrite = existingRouteId
-        ? supabaseService.from("communication_routes").update(routePayload).eq("id", existingRouteId).eq("company_id", params.companyId)
-        : supabaseService.from("communication_routes").insert({ ...routePayload, created_by: params.actorUserId });
+        ? (tenantDb(params.companyId).from("communication_routes") as ReturnType<typeof supabaseService.from>).update(routePayload).eq("id", existingRouteId)
+        : (tenantDb(params.companyId).from("communication_routes") as ReturnType<typeof supabaseService.from>).insert({ ...routePayload, created_by: params.actorUserId });
       const routeSaved = await routeWrite.select("id").single();
       if (routeSaved.error) throw routeSaved.error;
       const communicationRouteId = String((routeSaved.data as { id: string }).id);
@@ -331,8 +328,8 @@ export async function ensureGridOwnerTechnicalAckRoutes(params: {
         updated_by: params.actorUserId,
       };
       const profileWrite = stale
-        ? supabaseService.from("ediel_route_profiles").update(profilePayload).eq("id", stale.profile.id).eq("company_id", params.companyId)
-        : supabaseService.from("ediel_route_profiles").insert({ ...profilePayload, created_by: params.actorUserId });
+        ? (tenantDb(params.companyId).from("ediel_route_profiles") as ReturnType<typeof supabaseService.from>).update(profilePayload).eq("id", stale.profile.id)
+        : (tenantDb(params.companyId).from("ediel_route_profiles") as ReturnType<typeof supabaseService.from>).insert({ ...profilePayload, created_by: params.actorUserId });
       const profileSaved = await profileWrite.select("id").single();
       if (profileSaved.error) throw profileSaved.error;
       result.routes.push({ applicationReference: reference, action: stale ? "updated" : "created", communicationRouteId,

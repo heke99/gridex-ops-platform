@@ -1,4 +1,4 @@
-import { supabaseService } from '@/lib/supabase/service'
+import { tenantSelect, tenantUpdate } from '@/lib/supabase/tenantQuery'
 import { getCustomerExportContext } from '@/lib/cis/db-shared'
 import { readContractInvoicee } from '@/lib/ediel/production/contractInvoicee'
 import { readContractRequestedMethodSource } from '@/lib/ediel/production/contractRequestedMethodSource'
@@ -15,13 +15,11 @@ import { prodatDate203, prodatMarketMinuteToUtc } from '@/lib/ediel/prodat/rende
  * a source that cannot be selected keeps the Z03 held with the renderer's reason. The agreement reference
  * (RFF+ANJ, required for Z03) had no writer either (F88); it is the bound power of attorney's reference.
  */
-export async function selectInvoiceeBeforeSwitch(input: { actorUserId: string; switchRequestId: string }) {
-  const { data: row, error } = await supabaseService
-    .from('supplier_switch_requests')
-    .select('id,company_id,customer_id,site_id,metering_point_id,contract_id,customer_contract_id,requested_start_date,validation_snapshot,power_of_attorney_id')
+export async function selectInvoiceeBeforeSwitch(input: { companyId: string; actorUserId: string; switchRequestId: string }) {
+  const { data: row, error } = await tenantSelect(input.companyId, "supplier_switch_requests", 'id,company_id,customer_id,site_id,metering_point_id,contract_id,customer_contract_id,requested_start_date,validation_snapshot,power_of_attorney_id')
     .eq('id', input.switchRequestId)
-    .maybeSingle()
-  if (error || !row?.company_id || !row.customer_id || !row.site_id || !row.metering_point_id) return
+    .returns<Array<{ id: string; company_id: string; customer_id: string | null; site_id: string | null; metering_point_id: string | null; contract_id: string | null; customer_contract_id: string | null; requested_start_date: string | null; validation_snapshot: unknown; power_of_attorney_id: string | null }>>().maybeSingle()
+  if (error || row?.company_id !== input.companyId || !row.customer_id || !row.site_id || !row.metering_point_id) return
   const companyId = row.company_id as string
   const contractId = (row.customer_contract_id ?? row.contract_id) as string | null
   const asOf = prodatMarketMinuteToUtc(prodatDate203(row.requested_start_date as string | null))
@@ -49,8 +47,7 @@ export async function selectInvoiceeBeforeSwitch(input: { actorUserId: string; s
       const agreementReference = await boundPowerOfAttorneyReference({ companyId, customerId: row.customer_id as string, powerOfAttorneyId: row.power_of_attorney_id as string | null })
       const next = { ...snapshot, portalData: { ...portalData, invoicee: selected.invoicee, powerOfAttorneyReference: agreementReference,
         dependentConditionFacts: { ...facts, invoiceeObjects: [selected.fact] } } }
-      const { error: writeError } = await supabaseService.from('supplier_switch_requests')
-        .update({ validation_snapshot: next, updated_at: new Date().toISOString(), updated_by: input.actorUserId })
+      const { error: writeError } = await tenantUpdate(companyId, "supplier_switch_requests", { validation_snapshot: next, updated_at: new Date().toISOString(), updated_by: input.actorUserId })
         .eq('id', row.id).eq('company_id', companyId)
       if (writeError) throw writeError
       return
@@ -62,8 +59,8 @@ export async function selectInvoiceeBeforeSwitch(input: { actorUserId: string; s
 
 async function boundPowerOfAttorneyReference(input: { companyId: string; customerId: string; powerOfAttorneyId: string | null }) {
   if (!input.powerOfAttorneyId) return null
-  const { data, error } = await supabaseService.from('powers_of_attorney').select('reference,status')
-    .eq('id', input.powerOfAttorneyId).eq('company_id', input.companyId).eq('customer_id', input.customerId).maybeSingle()
+  const { data, error } = await tenantSelect(input.companyId, "powers_of_attorney", 'reference,status')
+    .eq('id', input.powerOfAttorneyId).eq('company_id', input.companyId).eq('customer_id', input.customerId).returns<Array<{ reference: string | null; status: string | null }>>().maybeSingle()
   if (error) throw error
   const reference = typeof data?.reference === 'string' ? data.reference.trim() : ''
   return reference && ['signed', 'active'].includes(String(data?.status)) ? reference : null

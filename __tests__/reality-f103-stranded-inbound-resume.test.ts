@@ -8,6 +8,7 @@
 // Ediel message 'received' forever, switch 'prepared'.
 // Synthetic in-memory rows only; no database, no cron endpoint.
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createRecoveryRpcPort } from './helpers/edielRecoveryRpcPort'
 
 type Row = Record<string, unknown>
 
@@ -18,6 +19,8 @@ const io = vi.hoisted(() => ({
   failPlan: new Map<string, string[]>(),
   rpc: null as null | ((name: string, args: Row) => { abortSignal: (signal: AbortSignal) => Promise<{ data: unknown; error: unknown }> }),
 }))
+
+let recovery: ReturnType<typeof createRecoveryRpcPort>
 
 vi.mock('@/lib/supabase/service', () => {
   class Query implements PromiseLike<{ data: unknown; error: unknown }> {
@@ -64,7 +67,7 @@ vi.mock('@/lib/supabase/service', () => {
       return Promise.resolve().then(() => this.run()).then(resolve, reject)
     }
   }
-  return { supabaseService: { from: (table: string) => new Query(table), rpc: (name: string, args: Row) => io.rpc!(name, args) } }
+  return { supabaseService: { from: (table: string) => new Query(table), rpc: (name: string, args: Row) => (io.rpc ?? recovery.rpc)(name, args) } }
 })
 
 vi.mock('@/lib/ediel/db', () => ({
@@ -108,6 +111,14 @@ vi.mock('@/lib/ediel/core/receivedSourceValidationEvidence', () => ({
     sourcePayloadHash: 'b'.repeat(64), factsText: '{"syntaxDecision":"accepted"}' }),
 }))
 
+// Transform the real scheduled owners before timing business assertions. The
+// engine still invokes them through its actual dynamic-import paths.
+import '@/lib/inbound-mail/missedTechnicalAckResume'
+import '@/lib/inbound-mail/unqueuedUtiltsRuntimeReplyResume'
+import '@/lib/ediel/utilts/heldUtiltsResume'
+import '@/lib/ediel/services/authorization'
+import '@/lib/ediel/flows/utiltsDataRequest.part-1'
+import '@/lib/ediel/utilts/utiltsHeldSourceResumption'
 import { runInboundEdielMailEngine } from '@/lib/inbound-mail/edielMailboxPoller.part-3'
 import { claimStrandedInboundEdielMessages, resumeStrandedInboundEdielMessages, STRANDED_INBOUND_RESUME_MARKER } from '@/lib/inbound-mail/strandedInboundEdielResume'
 import { recordReceivedSourceValidation } from '@/lib/ediel/core/receivedSourceValidationLedger'
@@ -121,17 +132,18 @@ const SIBLING = '00000000-0000-4000-8000-0000000000d1'
 const minutesAgo = (minutes: number) => new Date(Date.now() - minutes * 60_000).toISOString()
 
 function z04(id: string, mailId: string, overrides: Row = {}): Row {
-  return { id, company_id: COMPANY_A, direction: 'inbound', environment: 'production', message_family: 'PRODAT', message_code: 'Z04',
+  return { id, company_id: COMPANY_A, direction: 'inbound', message_standard: 'edifact', environment: 'production', message_family: 'PRODAT', message_code: 'Z04',
     status: 'received', processing_status: 'received', tenant_resolution_status: 'tenant_resolved', inbound_email_message_id: mailId,
-    created_at: minutesAgo(1), updated_at: minutesAgo(1), ...overrides }
+    created_at: minutesAgo(60), updated_at: minutesAgo(1), ...overrides }
 }
 function mail(id: string, overrides: Row = {}): Row {
-  return { id, company_id: COMPANY_A, processing_status: 'processed', match_status: 'matched', ...overrides }
+  return { id, company_id: COMPANY_A, environment: 'production', processing_status: 'processed', match_status: 'matched', ...overrides }
 }
 const eventsOf = (id: string) => io.tables.ediel_message_events.filter((row) => row.ediel_message_id === id)
 const statusOf = (id: string) => io.tables.ediel_messages.find((row) => row.id === id)?.status
 
 beforeEach(() => {
+  recovery = createRecoveryRpcPort(() => io.tables)
   io.tables.ediel_messages = []; io.tables.inbound_email_messages = []; io.tables.ediel_message_events = []
   io.fetchedMailIds = []; io.processed = []; io.failPlan = new Map(); io.rpc = null
 })
@@ -208,7 +220,7 @@ describe('F103 stranded inbound Ediel message', () => {
     expect([...left.claimed, ...right.claimed].map((row) => row.id)).toEqual([STRANDED])
   })
 
-  it('stops after the attempt limit and leaves one operator note instead of retrying forever', async () => {
+  it('holds a thrown started action uncertain instead of automatically retrying it', async () => {
     io.tables.ediel_messages.push(z04(STRANDED, 'mail-4', { updated_at: minutesAgo(30) }))
     io.tables.inbound_email_messages.push(mail('mail-4'))
     io.failPlan.set(STRANDED, ['transient-1', 'transient-2', 'transient-3', 'never-reached'])
@@ -222,13 +234,45 @@ describe('F103 stranded inbound Ediel message', () => {
       results.push(await run())
       io.tables.ediel_messages.find((row) => row.id === STRANDED)!.updated_at = minutesAgo(30)
     }
-    expect(results.map((result) => result.claimed)).toEqual([1, 1, 1, 0])
-    expect(results[2]).toMatchObject({ failed: 1, exhausted: 1 })
-    expect(io.processed).toHaveLength(3)
+    expect(results.map((result) => result.claimed)).toEqual([1, 0, 0, 0])
+    expect(results[0]).toMatchObject({ failed: 1, exhausted: 0 })
+    expect([...recovery.work.values()]).toEqual([expect.objectContaining({ state: 'uncertain', attempts: 1 })])
+    expect(io.processed).toHaveLength(1)
     expect(statusOf(STRANDED)).toBe('received')
     const notes = eventsOf(STRANDED).filter((row) => row.event_type === 'manual_note')
-    expect(notes.filter((row) => (row.payload as Row).exhausted === true)).toHaveLength(1)
-    expect(notes.filter((row) => (row.payload as Row).inboundBusinessProcessing === 'inbound_business_processing_failed')).toHaveLength(3)
+    expect(notes.filter((row) => (row.payload as Row).exhausted === true)).toHaveLength(0)
+    expect(notes.filter((row) => (row.payload as Row).inboundBusinessProcessing === 'inbound_business_processing_failed')).toHaveLength(1)
+  })
+
+  it('refuses a stranded source whose persisted attempt history reached the cap', async () => {
+    io.tables.ediel_messages.push(z04(STRANDED, 'mail-cap', { updated_at: minutesAgo(30) }))
+    io.tables.inbound_email_messages.push(mail('mail-cap'))
+    for (let attempt = 1; attempt <= 3; attempt++) io.tables.ediel_message_events.push({ ediel_message_id: STRANDED, company_id: COMPANY_A, event_type: 'manual_note', created_at: minutesAgo(30), payload: { resume: STRANDED_INBOUND_RESUME_MARKER, kind: 'attempt', attempt } })
+    expect(await resumeStrandedInboundEdielMessages({ environment: 'production', actorUserId: 'actor-1', workerId: 'w', process: async () => { throw new Error('exhausted work must never execute') } })).toMatchObject({ claimed: 0, resumed: 0 })
+    expect([...recovery.work.values()]).toEqual([expect.objectContaining({ state: 'exhausted', attempts: 3 })])
+    expect(io.processed).toEqual([])
+  })
+
+  it('the finite RPC port refuses stale tokens, expired starts and unproven finishes', async () => {
+    io.tables.ediel_messages.push(z04(STRANDED, 'mail-guard', { updated_at: minutesAgo(30) }))
+    io.tables.inbound_email_messages.push(mail('mail-guard'))
+    const { claimed } = await claimStrandedInboundEdielMessages({ environment: 'production' })
+    const target = claimed[0]
+    const args = { p_work: target.recovery.workId, p_token: target.recovery.token }
+    const call = (name: string, input: Row) => recovery.rpc(name, input).abortSignal(new AbortController().signal)
+    await expect(call('ediel_recovery_transition_v1', { ...args, p_token: 'stale', p_operation: 'start' })).rejects.toThrow('stale_token')
+    const w = [...recovery.work.values()][0]
+    w.leaseUntil = minutesAgo(1)
+    await expect(call('ediel_recovery_transition_v1', { ...args, p_operation: 'start' })).rejects.toThrow('start_refused')
+    w.leaseUntil = new Date(Date.now() + 60000).toISOString()
+    await call('ediel_recovery_transition_v1', { ...args, p_operation: 'start' })
+    await expect(call('ediel_recovery_transition_v1', { ...args, p_operation: 'release' })).rejects.toThrow('started_release_refused')
+    await expect(call('ediel_recovery_record_terminal_v1', { ...args, p_company: COMPANY_B, p_expected_state: 'running', p_outcome: 'completed' })).rejects.toThrow('terminal_stale')
+    await expect(call('ediel_recovery_record_terminal_v1', { ...args, p_company: COMPANY_A, p_expected_state: 'running', p_outcome: 'completed' })).rejects.toThrow('terminal_evidence_missing')
+    await expect(call('ediel_recovery_transition_v1', { ...args, p_operation: 'finish' })).rejects.toThrow('terminal_receipt_required')
+    io.tables.ediel_messages = []
+    await expect(call('ediel_recovery_record_terminal_v1', { ...args, p_company: COMPANY_A, p_expected_state: 'running', p_outcome: 'no_effect' })).rejects.toThrow('terminal_stale')
+    expect(w).toMatchObject({ state: 'running', attempts: 1 })
   })
 
   it('trigger: the PRODAT source-validation RPC outliving the 2 s client abort reads as unconfirmed although the server commits', async () => {

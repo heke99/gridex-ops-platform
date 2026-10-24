@@ -17,6 +17,7 @@
 //   source closed to avoid duplicate/contradicting application replies.
 // - Cancelled/failed reply drafts are ignored entirely.
 import { supabaseService } from '@/lib/supabase/service'
+import { tenantDb } from '@/lib/supabase/tenantDb'
 
 export type UtiltsSourceResumabilityReason =
   /** Resumable: >=1 own transaction is held for internal review without a final reply. */
@@ -186,8 +187,8 @@ export async function readUtiltsSourceResumability(input: {
 }): Promise<UtiltsSourceResumability> {
   if (!input.companyId || !input.sourceMessageId) return closed('source_unavailable')
   const sources = await readRows<UtiltsResumabilitySource>(
-    supabaseService.from('ediel_messages').select(SOURCE_COLUMNS)
-      .eq('id', input.sourceMessageId).eq('company_id', input.companyId).limit(1),
+    (tenantDb(input.companyId).from('ediel_messages').select(SOURCE_COLUMNS) as ReturnType<ReturnType<typeof supabaseService.from>['select']>)
+      .eq('id', input.sourceMessageId).limit(1),
     'source',
   )
   const source = sources[0] ?? null
@@ -198,13 +199,13 @@ export async function readUtiltsSourceResumability(input: {
 
   const [transactions, replies] = await Promise.all([
     readRows<UtiltsResumabilityTransactionRow>(
-      supabaseService.from('ediel_ack_transaction_results').select(TRANSACTION_COLUMNS)
-        .eq('company_id', input.companyId).eq('environment', environment).eq('source_message_id', source.id),
+      (tenantDb(input.companyId).from('ediel_ack_transaction_results').select(TRANSACTION_COLUMNS) as ReturnType<ReturnType<typeof supabaseService.from>['select']>)
+        .eq('environment', environment).eq('source_message_id', source.id),
       'transactions',
     ),
     readRows<UtiltsResumabilityReplyRow>(
-      supabaseService.from('ediel_messages').select(REPLY_COLUMNS)
-        .eq('company_id', input.companyId).eq('environment', environment).eq('related_message_id', source.id)
+      (tenantDb(input.companyId).from('ediel_messages').select(REPLY_COLUMNS) as ReturnType<ReturnType<typeof supabaseService.from>['select']>)
+        .eq('environment', environment).eq('related_message_id', source.id)
         .eq('direction', 'outbound').in('message_family', REPLY_FAMILIES),
       'replies',
     ),
@@ -231,13 +232,13 @@ export async function readUtiltsSourceResumabilityForSources(sources: readonly U
     const ids = group.map((source) => source.id)
     const [transactions, replies] = await Promise.all([
       readRows<UtiltsResumabilityTransactionRow & { source_message_id: string }>(
-        supabaseService.from('ediel_ack_transaction_results').select(TRANSACTION_COLUMNS)
-          .eq('company_id', companyId).eq('environment', environment).in('source_message_id', ids),
+        (tenantDb(companyId).from('ediel_ack_transaction_results').select(TRANSACTION_COLUMNS) as ReturnType<ReturnType<typeof supabaseService.from>['select']>)
+          .eq('environment', environment).in('source_message_id', ids),
         'transactions',
       ),
       readRows<UtiltsResumabilityReplyRow & { related_message_id: string }>(
-        supabaseService.from('ediel_messages').select(REPLY_COLUMNS)
-          .eq('company_id', companyId).eq('environment', environment).in('related_message_id', ids)
+        (tenantDb(companyId).from('ediel_messages').select(REPLY_COLUMNS) as ReturnType<ReturnType<typeof supabaseService.from>['select']>)
+          .eq('environment', environment).in('related_message_id', ids)
           .eq('direction', 'outbound').in('message_family', REPLY_FAMILIES),
         'replies',
       ),

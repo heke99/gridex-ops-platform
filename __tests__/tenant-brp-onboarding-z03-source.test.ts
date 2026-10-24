@@ -5,10 +5,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 type Row = Record<string, unknown>
-const io = vi.hoisted(() => ({ tables: {} as Record<string, Row[]>, seq: 0, rpc: vi.fn(), verify: vi.fn(), audit: vi.fn() }))
+const io = vi.hoisted(() => ({ tables: {} as Record<string, Row[]>, seq: 0, rpc: vi.fn(), verify: vi.fn(), audit: vi.fn(),
+  queries: [] as Array<{table:string;companyFilters:unknown[]}>, onUpdate: null as null | (() => void) }))
 vi.mock('@/lib/supabase/service', () => {
   const from = (table: string) => {
     const filters: Array<(row: Row) => boolean> = []
+    const observed = { table, companyFilters: [] as unknown[] }; io.queries.push(observed)
     let write: { kind: 'insert' | 'update'; values: Row } | null = null
     const rows = () => (io.tables[table] ??= [])
     const run = () => {
@@ -23,10 +25,16 @@ vi.mock('@/lib/supabase/service', () => {
     }
     const chain = {
       select: () => chain, order: () => chain, limit: () => chain,
-      eq: (column: string, value: unknown) => { filters.push(row => row[column] === value); return chain },
+      eq: (column: string, value: unknown) => {
+        if (column === 'company_id') {
+          if (table.startsWith('platform_') || table === 'companies') throw Error('global_catalog_has_no_company_id')
+          observed.companyFilters.push(value)
+        }
+        filters.push(row => row[column] === value); return chain
+      },
       in: (column: string, values: unknown[]) => { filters.push(row => values.includes(row[column])); return chain },
       insert: (values: Row) => { write = { kind: 'insert', values }; return chain },
-      update: (values: Row) => { write = { kind: 'update', values }; return chain },
+      update: (values: Row) => { io.onUpdate?.(); write = { kind: 'update', values }; return chain },
       single: async () => { const result = run(); return { data: result.data?.[0] ?? null, error: result.error } },
       maybeSingle: async () => { const result = run(); return { data: result.data?.[0] ?? null, error: result.error } },
       then: (resolve: (value: unknown) => unknown, reject: (reason: unknown) => unknown) => Promise.resolve(run()).then(resolve, reject),
@@ -47,7 +55,7 @@ const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')
 const companyId = id(9001), admin = id(9002), bixia = id(9101), otherBrp = id(9102), supplierOnly = id(9103)
 
 beforeEach(() => {
-  io.seq = 0
+  io.seq = 0; io.queries = []; io.onUpdate = null
   io.verify.mockReset().mockImplementation(async ({ actorId }: { actorId: string }) => {
     io.tables.platform_market_actors.find(row => row.id === actorId)!.match_status = 'verified'
     return { actorId, routeIds: [id(1)], market: 'EL', autoSendAllowed: false }
@@ -76,7 +84,7 @@ beforeEach(() => {
 
 describe('BRP onboarding step', () => {
   it('offers only balance responsible parties from the registry', async () => {
-    expect(await listRegistryBalanceResponsibleActors('2026-10-20')).toEqual([
+    expect(await listRegistryBalanceResponsibleActors(companyId, '2026-10-20')).toEqual([
       { actorId: otherBrp, name: 'Annan Balans AB', edielId: '11111', verified: true },
       { actorId: bixia, name: 'Bixia AB', edielId: '48800', verified: false },
     ])
@@ -134,5 +142,26 @@ describe('Z03 field 262 source for a first supply', () => {
     await expect(prepareQualifiedBrpSource(scope)).rejects.toThrow('brp_field_source_scope_invalid')
     io.rpc.mockResolvedValueOnce({ data: { ...tenantBasis(), supplyPeriodId: id(7) }, error: null })
     await expect(prepareQualifiedBrpSource({ ...scope, supplyPeriodId: id(7) })).rejects.toThrow('brp_field_source_scope_invalid')
+  })
+})
+
+describe('F-15 actual tenant BRP query boundaries', () => {
+  it('rejects a missing real caller company before reading the global BRP catalog', async () => {
+    await expect(listRegistryBalanceResponsibleActors('', '2026-10-20')).rejects.toThrow('Bolag krävs')
+    expect(io.queries).toHaveLength(0)
+  })
+  it('never updates a BRP row that changed company after the scoped version read', async () => {
+    io.tables.ediel_brp_settings = [{id:id(9988),company_id:companyId,environment:'production',brp_ediel_id:'11111',brp_name:'Annan Balans AB',valid_from:'2026-11-01',valid_to:null,is_default:false,is_active:true}]
+    io.onUpdate = () => { io.tables.ediel_brp_settings[0].company_id = id(9999) }
+    expect(await saveTenantProductionBrp({companyId,actorId:otherBrp,validFrom:'2026-12-01',actorUserId:admin})).toMatchObject({status:'unchanged'})
+    expect(io.tables.ediel_brp_settings[0]).toMatchObject({company_id:id(9999),is_default:false})
+    expect(io.queries.filter(query=>query.table==='ediel_brp_settings').every(query=>query.companyFilters.length===1 && query.companyFilters[0]===companyId)).toBe(true)
+  })
+  it('keeps registry catalogs free of a made-up company column and scopes BRP mutations once', async () => {
+    await saveTenantProductionBrp({companyId,actorId:bixia,validFrom:'2026-11-01',actorUserId:admin})
+    const catalogs=io.queries.filter(query=>query.table.startsWith('platform_')||query.table==='companies')
+    expect(catalogs.length).toBeGreaterThanOrEqual(5)
+    expect(catalogs.every(query=>query.companyFilters.length===0)).toBe(true)
+    expect(io.queries.filter(query=>query.table==='ediel_brp_settings').filter(query=>query.companyFilters.length).every(query=>query.companyFilters.length===1&&query.companyFilters[0]===companyId)).toBe(true)
   })
 })

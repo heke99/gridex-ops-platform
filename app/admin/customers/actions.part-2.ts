@@ -1,6 +1,7 @@
 // Extracted from actions.ts; keep public imports on the facade module.
 
 
+import { tenantSelect, tenantUpdate } from '@/lib/supabase/tenantQuery'
 import { catalogPricesOverridden, validateContractPricing } from "@/lib/customer-contracts/pricingValidation"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
@@ -1205,9 +1206,7 @@ export async function resolveManualIntakeSiteGeography(input: {
   facilityId: string | null;
 }): Promise<string[]> {
   const loadSite = async () => {
-    const { data, error } = await supabaseService
-      .from("customer_sites")
-      .select("street,postal_code,city,country,care_of,address_hash,resolution_status,grid_area_code")
+    const { data, error } = await tenantSelect(input.companyId, "customer_sites", "street,postal_code,city,country,care_of,address_hash,resolution_status,grid_area_code")
       .eq("company_id", input.companyId)
       .eq("customer_id", input.customerId)
       .eq("id", input.siteId)
@@ -1284,9 +1283,7 @@ export async function resolveManualIntakeSiteGeography(input: {
   if (!resolvedGridOwnerId) {
     // The employee's choice stays a review candidate, never send authority.
     if (input.selectedGridOwnerId) {
-      const { error: candidateError } = await supabaseService
-        .from("customer_sites")
-        .update({ selected_grid_owner_id: input.selectedGridOwnerId, updated_at: new Date().toISOString() })
+      const { error: candidateError } = await tenantUpdate(input.companyId, "customer_sites", { selected_grid_owner_id: input.selectedGridOwnerId, updated_at: new Date().toISOString() })
         .eq("company_id", input.companyId)
         .eq("customer_id", input.customerId)
         .eq("id", input.siteId);

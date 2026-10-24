@@ -1,5 +1,6 @@
 import {createHash} from 'node:crypto'
 import {supabaseService} from '@/lib/supabase/service'
+import { tenantDb } from '@/lib/supabase/tenantDb'
 import {isEvidenceUuid} from '@/lib/ediel/utilts/durableSourceDiscovery'
 import {canonicalProdatMethodChangeTuple} from '@/lib/ediel/rulebook/canonicalEdielFacade'
 export type ContractRequestedMethodBasis=Readonly<{status:'authorized';declarationId:string;companyId:string;environment:'test'|'production';contractId:string;contractRevision:string;protectedContractHash:string;agreementSha256:string;customerId:string;siteId:string;meteringPointId:string;pointId:string;identityAgency:'9'|'89';legalActorId:string;legalSenderId:string;legalReceiverId:string;gridArea:string;requestedMethod:string;sourceReference:string;sourceVersion:string;sourceDigest:string}>
@@ -11,12 +12,12 @@ type Scope={companyId:string;contractId:string;actorUserId:string;environment:'t
  * Runs before Z03 preparation, outside the render path; any gap leaves the
  * source held. Returns whether a declaration was derived. */
 export async function deriveContractRequestedMethodFromSignedAgreement(input:Scope):Promise<boolean>{
- const contract=await supabaseService.from('customer_contracts').select('id,document_sha256').eq('company_id',input.companyId).eq('id',input.contractId).maybeSingle()
+ const contract=await (tenantDb(input.companyId).from('customer_contracts') as ReturnType<typeof supabaseService.from>).select('id,document_sha256').eq('id',input.contractId).maybeSingle()
  if(contract.error)throw contract.error
  const hash=contract.data?.document_sha256
  if(typeof hash!=='string'||!/^[a-f0-9]{64}$/.test(hash))return false
- const document=await supabaseService.from('customer_contract_documents').select('storage_bucket,storage_path')
-  .eq('company_id',input.companyId).eq('customer_contract_id',input.contractId).eq('document_type','signed_contract_pdf').eq('document_sha256',hash)
+ const document=await (tenantDb(input.companyId).from('customer_contract_documents') as ReturnType<typeof supabaseService.from>).select('storage_bucket,storage_path')
+  .eq('customer_contract_id',input.contractId).eq('document_type','signed_contract_pdf').eq('document_sha256',hash)
   .not('verified_at','is',null).limit(1).maybeSingle()
  if(document.error)throw document.error
  if(!document.data?.storage_bucket||!document.data.storage_path)return false

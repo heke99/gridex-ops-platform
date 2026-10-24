@@ -15,7 +15,7 @@ import { ensureCustomerApplicationWorkflow, transitionCustomerApplicationWorkflo
 import { commitApplicationProvisioning, failApplicationProvisioning } from "@/lib/website/provisioningSaga";
 import { buildPublicLegalUrl, loadCompanySlugById } from "@/lib/legal/publicLegalDocuments";
 import { validateWebsiteQuote, WebsiteQuoteValidationError, type WebsiteQuoteRecord } from "@/lib/pricing/websiteQuotes";
-import { websiteSettlementForContract, type WebsiteSettlement } from "@/lib/pricing/websiteSettlement";
+import { canonicalQuoteSettlement, sameSettlement } from "./customerApplicationSettlement";
 import { finalizeWebsiteContractSignature, loadExistingIdentity, upsertPortalIdentity } from "./customerApplicationCommunication";
 import type { WebsiteContractCreateResult } from "./customerApplicationCommunication";
 import { normalizeRawApplication, patchWebsiteSiteCanonicalFields, requestedAnnualConsumption, runEnergyResolution } from "./customerApplicationCore";
@@ -24,34 +24,10 @@ import type { WebsiteLegalAcceptanceVersion } from "./customerApplicationLegal";
 import { onboardCanonicalWebsiteCustomerGraph } from "./customerApplicationOnboarding";
 import { applicationBusinessConflictError, createApplicationRow, duplicateApplicationError, expectsSiteOrMetering, failureResponse, hasCompleteSiteAndMetering, idempotencyPayloadMismatchError, idempotentFailure, isFailedIdempotentApplication, isRetryableFailedSiteProvisioningApplication, loadConflictingBusinessApplication, loadEquivalentCommittedApplication, loadIdempotentApplication, markApplicationFailed, releaseRetryableFailedIdempotency, reserveWebsiteApplicationIdempotency, resumeCommittedIdempotentApplication, storedApplicationPayloadHash, successResponse } from "./customerApplicationPersistence";
 import { repairMissingPoaOnIdempotentApplication } from "./customerApplicationRepair";
-import { ApplicationSchema, WebsiteQuoteSettlementSchema, applicationBusinessKeyHash, applicationPayloadHash, applicationRegisteredAddress, normalizeStructuredPoa, requireApplicationRegisteredAddress, structuredPoaIsExternallySendable, validateApplicationDates, validateApplicationRegisteredAddress, validateCanonicalApplicationReferencePlacement, validateCustomerIdentityNumbers, validateIdempotencyKey, validateNestedPayloadFields, validateRequestedStartMode, validateStructuredPoaForExternalSendability } from "./customerApplicationSchemas";
+import { ApplicationSchema, applicationBusinessKeyHash, applicationPayloadHash, applicationRegisteredAddress, normalizeStructuredPoa, requireApplicationRegisteredAddress, structuredPoaIsExternallySendable, validateApplicationDates, validateApplicationRegisteredAddress, validateCanonicalApplicationReferencePlacement, validateCustomerIdentityNumbers, validateIdempotencyKey, validateNestedPayloadFields, validateRequestedStartMode, validateStructuredPoaForExternalSendability } from "./customerApplicationSchemas";
 import { recordRegisteredAddress } from "@/lib/customers/registeredAddress";
-import { WEBSITE_APPLICATION_SIGNED_CONTRACT_STATUS, WebsiteApplicationError, calculatedEarliestStartDate, clean, controlledBusinessBlockingReason, controlledBusinessErrorCode, controlledBusinessNextStep, controlledBusinessStatus, errorMessage, isControlledBusinessError, isUuid, missingSchema, normalizedEmail, operationalErrorMessage, reviewAuditEvent, schemaRepairStatus, stage, technicalBlockingReason, timelineEvent, updateCustomerIntakeStatus, validationError } from "./customerApplicationShared";
+import { WEBSITE_APPLICATION_SIGNED_CONTRACT_STATUS, WebsiteApplicationError, clean, controlledBusinessBlockingReason, controlledBusinessErrorCode, controlledBusinessNextStep, controlledBusinessStatus, errorMessage, isControlledBusinessError, isUuid, missingSchema, normalizedEmail, operationalErrorMessage, reviewAuditEvent, schemaRepairStatus, stage, technicalBlockingReason, timelineEvent, updateCustomerIntakeStatus, validationError } from "./customerApplicationShared";
 import type { CustomerRow, RequestAuditMetadata } from "./customerApplicationShared";
-
-function canonicalQuoteSettlement(
-  quote: WebsiteQuoteRecord,
-  offer: PublicContractOffer,
-): WebsiteSettlement {
-  const parsed = WebsiteQuoteSettlementSchema.safeParse(quote.quote_snapshot?.settlement)
-  if (parsed.success) return parsed.data
-  const pricingInterval = typeof quote.quote_snapshot?.pricing_interval === 'string'
-    ? quote.quote_snapshot.pricing_interval
-    : null
-  return websiteSettlementForContract({
-    contractType: offer.contract_type,
-    pricingInterval,
-  })
-}
-
-function sameSettlement(left: WebsiteSettlement, right: WebsiteSettlement): boolean {
-  return left.model === right.model
-    && left.customer_accepts === right.customer_accepts
-    && left.energy_price_locked_at_signup === right.energy_price_locked_at_signup
-    && left.uses_actual_metered_consumption === right.uses_actual_metered_consumption
-    && left.market_data_role === right.market_data_role
-    && left.settlement_resolution === right.settlement_resolution
-}
 
 export async function processWebsiteCustomerApplication(input: {
   client: IntegrationApiClient;

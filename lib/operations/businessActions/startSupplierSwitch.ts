@@ -169,7 +169,7 @@ async function startWithPreflight(input: StartInput, preflight: BusinessActionPr
     return { ok: true, preflight, decision, duplicate: true, message: 'Leverantörsbytet är redan köat.' }
   }
 
-  await deriveRequestedMethodBeforeSwitch({ actorUserId: input.actorUserId, switchRequestId: input.switchRequestId })
+  await deriveRequestedMethodBeforeSwitch({ companyId: preflight.companyId, actorUserId: input.actorUserId, switchRequestId: input.switchRequestId })
   const message = await prepareAndQueueEdielZ03({
     actorUserId: input.actorUserId,
     switchRequestId: input.switchRequestId,

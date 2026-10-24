@@ -31,14 +31,16 @@
 // test-case/system-test sources (resolveUtiltsRuntimeReplyDispatch) and any
 // source with a held transaction in one of these classes.
 //
-// Bounded: per-run count, probe and time budgets; per-company round robin;
+// Bounded: 200-row cursor pages, 50 actions, and finite probe/time budgets; per-company round robin;
 // always lane-scoped and, when given, tenant-scoped; the actor must be an
 // active tenant member with metering.write and communication.write (the same
 // requirement the engine enforces). Idempotent: each source is claimed with an
-// updated_at compare-and-set; an attempt is recorded before acting; a source is
+// durable source token; START atomically counts before acting; a source is
 // re-run at most once per evidence fingerprint and at most maxAttempts times.
+import { claimRecoveryWork, runRecoveryBatch, releaseRecoveryWork, type RecoveryClaim } from '@/lib/inbound-mail/edielRecoveryWork'
 import { createHash } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
+import { tenantDb } from '@/lib/supabase/tenantDb'
 import { createEdielMessageEvent } from '@/lib/ediel/db'
 import { resolveUtiltsRuntimeReplyDispatch } from '@/lib/ediel/utilts/utiltsRuntimeReplyDispatch'
 import type { EdielMessageRow } from '@/lib/ediel/types'
@@ -150,7 +152,6 @@ type Row = Record<string, unknown>
 type Probe = { resolved: boolean; fingerprint: string }
 
 const IN_CHUNK = 50
-const LEDGER_PAGE = 1000
 
 function clampInt(value: number | undefined, fallback: number, min: number, max: number): number {
   const number = Number.isFinite(value) ? Math.trunc(value as number) : fallback
@@ -186,7 +187,7 @@ export function storedStructureReasons(source: Pick<EdielMessageRow, 'parsed_pay
 async function probeIssuer(source: EdielMessageRow): Promise<Probe> {
   const { data, error } = await supabaseService.rpc('gridex_read_utilts_issuer_identity_authority_v1', {
     p_company_id: source.company_id, p_message_id: source.id,
-  })
+  }).abortSignal(AbortSignal.timeout(5000))
   if (error) throw new Error(`issuer_probe_failed: ${errorText(error)}`)
   const result = record(data)
   if (result.companyId !== source.company_id || result.sourceMessageId !== source.id || result.environment !== source.environment) {
@@ -198,7 +199,7 @@ async function probeIssuer(source: EdielMessageRow): Promise<Probe> {
 async function probePeriodic(source: EdielMessageRow): Promise<Probe> {
   const { data, error } = await supabaseService.rpc('gridex_read_periodic_dgi_e66_reason_v1', {
     p_company_id: source.company_id, p_message_id: source.id,
-  })
+  }).abortSignal(AbortSignal.timeout(5000))
   if (error) throw new Error(`periodic_probe_failed: ${errorText(error)}`)
   const result = record(data)
   if (result.companyId !== source.company_id || result.sourceMessageId !== source.id || result.environment !== source.environment) {
@@ -211,19 +212,29 @@ async function probePeriodic(source: EdielMessageRow): Promise<Probe> {
 
 type History = { attempts: number; completedFingerprints: Set<string>; structureChecks: number; lastAttemptAt: string | null }
 
-async function readHistories(ids: readonly string[]): Promise<Map<string, History>> {
+async function readHistories(targets: readonly { companyId: string; sourceMessageId: string }[]): Promise<Map<string, History>> {
   const histories = new Map<string, History>()
-  for (let index = 0; index < ids.length; index += IN_CHUNK) {
+  for (let index = 0; index < targets.length; index += IN_CHUNK) {
+    const chunk = targets.slice(index, index + IN_CHUNK)
+    const ids = chunk.map(target => target.sourceMessageId)
+    const companyBySource = new Map(chunk.map(target => [target.sourceMessageId, target.companyId]))
+    // One bounded mixed-tenant read, matching the actual leased company/message pairs.
+    // PostgREST quoted values escape punctuation rather than treating it as filter syntax.
+    const pairs = chunk.map(target => `and(company_id.eq.${JSON.stringify(target.companyId)},ediel_message_id.eq.${JSON.stringify(target.sourceMessageId)})`).join(',')
     const { data, error } = await supabaseService
       .from('ediel_message_events')
-      .select('ediel_message_id,payload,created_at')
-      .in('ediel_message_id', ids.slice(index, index + IN_CHUNK))
+      .select('company_id,ediel_message_id,payload,created_at')
+      .in('ediel_message_id', ids)
+      .or(pairs)
       .eq('event_type', 'manual_note')
       .eq('payload->>resume', HELD_UTILTS_RESUME_MARKER)
+      .order('created_at', {ascending:false}).limit(201).abortSignal(AbortSignal.timeout(5000))
     if (error) throw error
+    // An incomplete history cannot authorize replay of a fingerprint.
+    if ((data ?? []).length >= 201) { for (const id of ids) histories.set(id,{attempts:20,completedFingerprints:new Set(),structureChecks:4,lastAttemptAt:null}); continue }
     for (const row of (data ?? []) as Row[]) {
       const id = text(row.ediel_message_id), payload = record(row.payload)
-      if (!id || payload.resume !== HELD_UTILTS_RESUME_MARKER) continue
+      if (!id || row.company_id !== companyBySource.get(id) || payload.resume !== HELD_UTILTS_RESUME_MARKER) continue
       const history = histories.get(id) ?? { attempts: 0, completedFingerprints: new Set<string>(), structureChecks: 0, lastAttemptAt: null }
       const fingerprint = text(payload.fingerprint)
       if (payload.kind === 'attempt') {
@@ -246,31 +257,26 @@ async function readHistories(ids: readonly string[]): Promise<Map<string, Histor
 
 type HeldLedgerRow = { companyId: string; sourceMessageId: string; transactionId: string; issueCodes: string[]; createdAt: string; updatedAt: string }
 
-/** Held ledger rows of one lane (and tenant), oldest hold first, grouped per source. */
-async function readHeldSources(options: HeldUtiltsResumeOptions, graceCutoff: string, lookbackCutoff: string): Promise<Map<string, HeldLedgerRow[]>> {
-  let query = supabaseService
-    .from('ediel_ack_transaction_results')
-    .select('company_id,environment,source_message_id,source_transaction_id,disposition,planned_response_type,final_response_type,response_message_id,finalized_at,issue_codes,created_at,updated_at')
-    .eq('environment', options.environment)
-    .eq('disposition', 'internal_review')
-    .lt('updated_at', graceCutoff)
-    .gt('created_at', lookbackCutoff)
-  if (options.companyId) query = query.eq('company_id', options.companyId)
-  const { data, error } = await query.order('created_at', { ascending: true }).limit(LEDGER_PAGE)
-  if (error) throw error
-  const exclude = new Set(options.excludeIds ?? [])
+/** Read every held transaction of each leased source, refusing a source above the finite per-source cap. */
+async function readHeldSources(options: HeldUtiltsResumeOptions, targets: readonly (RecoveryClaim & {sourceMessageId:string})[]): Promise<Map<string, HeldLedgerRow[]>> {
   const bySource = new Map<string, HeldLedgerRow[]>()
-  for (const row of (data ?? []) as Row[]) {
-    const companyId = text(row.company_id), sourceMessageId = text(row.source_message_id), transactionId = text(row.source_transaction_id)
-    // Same "held" definition as decideUtiltsSourceResumability.
-    if (!companyId || !sourceMessageId || !transactionId || row.environment !== options.environment || row.disposition !== 'internal_review'
-      || row.final_response_type || row.finalized_at || row.response_message_id || exclude.has(sourceMessageId)
-      || (options.companyId && companyId !== options.companyId)) continue
-    const rows = bySource.get(sourceMessageId) ?? []
-    if (rows.length && rows[0].companyId !== companyId) continue
-    rows.push({ companyId, sourceMessageId, transactionId, issueCodes: Array.isArray(row.issue_codes) ? row.issue_codes.map(String) : [],
-      createdAt: String(row.created_at ?? ''), updatedAt: String(row.updated_at ?? '') })
-    bySource.set(sourceMessageId, rows)
+  for (const target of targets) {
+    if(performance.now()>=target.recovery.deadline) break
+    const {data,error}=await (tenantDb(target.companyId).from('ediel_ack_transaction_results').select('company_id,environment,source_message_id,source_transaction_id,disposition,final_response_type,response_message_id,finalized_at,issue_codes,created_at,updated_at') as ReturnType<ReturnType<typeof supabaseService.from>['select']>)
+      .eq('environment',options.environment).eq('source_message_id',target.sourceMessageId).eq('disposition','internal_review').limit(201).abortSignal(AbortSignal.timeout(Math.max(1,Math.floor(Math.min(5000,target.recovery.deadline-performance.now())))))
+    if(error) throw error
+    if((data??[]).length>200) continue
+    const graceCutoff=Date.now()-clampInt(options.graceMinutes,5,2,1440)*60000
+    // Never classify a partial set by filtering away a newly held transaction.
+    if(((data??[]) as Row[]).some(row=>!Number.isFinite(Date.parse(String(row.updated_at))) || Date.parse(String(row.updated_at))>=graceCutoff)) continue
+    const rows:HeldLedgerRow[]=[]
+    for(const row of (data??[]) as Row[]) {
+      if(row.final_response_type || row.finalized_at || row.response_message_id) continue
+      const transactionId=text(row.source_transaction_id)
+      if(!transactionId || row.company_id!==target.companyId || row.environment!==options.environment || row.source_message_id!==target.sourceMessageId) continue
+      rows.push({companyId:target.companyId,sourceMessageId:target.sourceMessageId,transactionId,issueCodes:Array.isArray(row.issue_codes)?row.issue_codes.map(String):[],createdAt:String(row.created_at??''),updatedAt:String(row.updated_at??'')})
+    }
+    if(rows.length) bySource.set(target.sourceMessageId,rows)
   }
   return bySource
 }
@@ -286,32 +292,11 @@ export function roundRobinByCompany<T extends { companyId: string }>(items: read
   return ordered
 }
 
-/** The sources' updated_at at selection: the claim compares against this value, so a run never claims after another run did. */
-async function readSelectionStamps(ids: readonly string[], environment: string): Promise<Map<string, { companyId: string; updatedAt: string }>> {
-  const stamps = new Map<string, { companyId: string; updatedAt: string }>()
-  for (let index = 0; index < ids.length; index += IN_CHUNK) {
-    const { data, error } = await supabaseService
-      .from('ediel_messages')
-      .select('id,company_id,environment,updated_at')
-      .in('id', ids.slice(index, index + IN_CHUNK))
-      .eq('environment', environment)
-    if (error) throw error
-    for (const row of (data ?? []) as Row[]) {
-      const id = text(row.id), companyId = text(row.company_id), updatedAt = text(row.updated_at)
-      if (id && companyId && updatedAt && row.environment === environment) stamps.set(id, { companyId, updatedAt })
-    }
-  }
-  return stamps
-}
-
 async function readSource(id: string, companyId: string, environment: string): Promise<EdielMessageRow | null> {
-  const { data, error } = await supabaseService
-    .from('ediel_messages')
-    .select('*')
+  const { data, error } = await (tenantDb(companyId).from('ediel_messages').select('*') as ReturnType<ReturnType<typeof supabaseService.from>['select']>)
     .eq('id', id)
-    .eq('company_id', companyId)
     .eq('environment', environment)
-    .maybeSingle()
+    .abortSignal(AbortSignal.timeout(5000)).maybeSingle()
   if (error) throw error
   return (data as EdielMessageRow | null) ?? null
 }
@@ -325,20 +310,15 @@ export async function resumeHeldInboundUtilts(input: HeldUtiltsResumeOptions & {
   const startedAt = clock()
   const limit = clampInt(input.limit, 10, 1, 50)
   const probeLimit = clampInt(input.probeLimit, 100, 1, 500)
-  const timeBudgetMs = clampInt(input.timeBudgetMs, 120_000, 1_000, 600_000)
+  const timeBudgetMs = clampInt(input.timeBudgetMs, 45_000, 1_000, 45_000)
   const maxAttempts = clampInt(input.maxAttempts, 6, 1, 20)
-  const graceCutoff = new Date(startedAt.getTime() - clampInt(input.graceMinutes, 5, 1, 24 * 60) * 60_000).toISOString()
-  const lookbackCutoff = new Date(startedAt.getTime() - clampInt(input.lookbackHours, 45 * 24, 1, 365 * 24) * 3_600_000).toISOString()
-
-  const held = await readHeldSources(input, graceCutoff, lookbackCutoff)
+  const lease = await claimRecoveryWork<RecoveryClaim & {sourceMessageId:string}>('held', {...input,limit,graceMinutes: input.graceMinutes ?? 5})
+  const leased=lease.claimed
+  try {
+  const held = await readHeldSources(input, leased)
   result.heldSources = held.size
-  if (held.size === 0) return result
-
-  const order = roundRobinByCompany(Array.from(held.values()).map((rows) => ({ companyId: rows[0].companyId, sourceMessageId: rows[0].sourceMessageId })))
-  const [histories, stamps] = await Promise.all([
-    readHistories(order.map((row) => row.sourceMessageId)),
-    readSelectionStamps(order.map((row) => row.sourceMessageId), input.environment),
-  ])
+  const order = roundRobinByCompany(leased.filter(target=>held.has(target.sourceMessageId)))
+  const histories = await readHistories(order)
   // Loaded only when a held source exists.
   const [{ assertEdielTenantActor }, { resolveUtiltsRuntimeTestCaseCode }, { resumeInboundUtiltsSourceFromOriginal }] = await Promise.all([
     import('@/lib/ediel/services/authorization'),
@@ -372,9 +352,8 @@ export async function resumeHeldInboundUtilts(input: HeldUtiltsResumeOptions & {
     if (!(await isActorAllowed(companyId))) continue
     result.evaluated += 1
     try {
-      const stamp = stamps.get(sourceMessageId)
-      const source = stamp && stamp.companyId === companyId ? await readSource(sourceMessageId, companyId, input.environment) : null
-      if (!stamp || !source || source.direction !== 'inbound' || source.message_family !== 'UTILTS' || source.status === 'cancelled'
+      const source = await readSource(sourceMessageId, companyId, input.environment)
+      if (!source || source.direction !== 'inbound' || source.message_family !== 'UTILTS' || source.status === 'cancelled'
         || source.company_id !== companyId || source.environment !== input.environment) { result.notApplicable += 1; continue }
       // Exactly the lane rule of the runtime replies (F112): only an operational source is resumed automatically.
       const testCaseCode = await resolveUtiltsRuntimeTestCaseCode({ sourceMessage: source, explicitTestCaseCode: null })
@@ -414,19 +393,9 @@ export async function resumeHeldInboundUtilts(input: HeldUtiltsResumeOptions & {
       const fingerprint = fingerprints.join('|')
       if (history.completedFingerprints.has(fingerprint)) { result.alreadyTried += 1; continue }
 
-      // Claim the source once; a concurrent run loses the compare-and-set.
-      const claim = await supabaseService
-        .from('ediel_messages')
-        .update({ updated_at: clock().toISOString() })
-        .eq('id', sourceMessageId)
-        .eq('company_id', companyId)
-        .eq('environment', input.environment)
-        .eq('updated_at', stamp.updatedAt)
-        .select('id')
-      if (claim.error) throw claim.error
-      if ((claim.data ?? []).length === 0) continue
+      await runRecoveryBatch([candidate], async target => {
       result.claimed += 1
-      const attempt = history.attempts + 1
+      const attempt = target.attempt
       const heldTransactionIds = rows.map((row) => row.transactionId)
       // The attempt is recorded before acting: a crash mid-run still counts.
       await createEdielMessageEvent({
@@ -444,7 +413,7 @@ export async function resumeHeldInboundUtilts(input: HeldUtiltsResumeOptions & {
           actorUserId: input.actorUserId,
           sourceMessage: source,
           onlyHeldTransactions: true,
-          eventPayload: { resume: HELD_UTILTS_RESUME_MARKER, kind: 'result', resumedBy: 'scheduled_held_utilts_resume', fingerprint, attempt, workerId: input.workerId },
+          eventPayload: { resume: HELD_UTILTS_RESUME_MARKER, kind: 'result', resumedBy: 'scheduled_held_utilts_resume', fingerprint, attempt, recoveryToken: target.recovery.token, workerId: input.workerId },
         })
       } catch (error) {
         result.failed += 1
@@ -456,21 +425,28 @@ export async function resumeHeldInboundUtilts(input: HeldUtiltsResumeOptions & {
             payload: { resume: HELD_UTILTS_RESUME_MARKER, kind: 'exhausted', attempt, maxAttempts, workerId: input.workerId },
           }).catch(() => null)
         }
-        continue
+        return 'ambiguous'
       }
       if (outcome.status === 'processed') {
         if (outcome.stillHeldTransactionIds.length > 0) result.stillHeld += 1
         else result.resumed += 1
+        return 'completed'
       } else if (outcome.status === 'refused') {
         result.notApplicable += 1
       } else {
         result.failed += 1
         result.errors.push(`${sourceMessageId}: ${outcome.status}: ${outcome.reason.slice(0, 300)}`)
       }
+      return 'ambiguous'
+      }, result.errors)
     } catch (error) {
       result.failed += 1
       result.errors.push(`${sourceMessageId}: ${errorText(error)}`)
     }
+  }
+  } finally {
+    // STARTed and UNCERTAIN reservations reject release; only untouched leases return to READY.
+    for (const target of leased) await releaseRecoveryWork(target).catch(() => undefined)
   }
   return result
 }

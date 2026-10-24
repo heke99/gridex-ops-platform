@@ -7,7 +7,7 @@
 // evaluates such values of the month again, with the same gate, before it builds underlays. Only values on a
 // metering point with an 'ending' or 'ended' period of the tenant are considered; the gate decides, nothing
 // is forced eligible, and every write goes through the service-role gate RPC with its own scope checks.
-import { supabaseService } from '@/lib/supabase/service'
+import { tenantSelect } from '@/lib/supabase/tenantQuery'
 import { stockholmMonthBounds } from '@/lib/time/stockholm'
 import { billingMonthLoadWindow } from './billingMonth'
 import type { MeteringValueRow } from '@/lib/cis/types'
@@ -33,7 +33,7 @@ export async function regateSupplyEndValues(input: { companyId: string; billingM
   const limit = Math.min(Math.max(Math.floor(input.limit ?? 5_000), 1), 20_000)
   const result: SupplyEndRegateResult = { candidates: 0, evaluated: 0, billable: 0, failed: 0, errors: [] }
   // Metering points of this tenant whose supply received an end that overlaps the month.
-  const periods = await supabaseService.from('customer_supply_periods').select('metering_point_id')
+  const periods = await tenantSelect(input.companyId, "customer_supply_periods", 'metering_point_id')
     .eq('company_id', input.companyId).in('status', ['ending', 'ended'])
     .lt('start_date', bounds.endDateExclusive).or(`end_date.is.null,end_date.gte.${bounds.startDate}`)
   if (periods.error) throw periods.error
@@ -45,8 +45,7 @@ export async function regateSupplyEndValues(input: { companyId: string; billingM
   for (let p = 0; p < points.length && held.length < limit; p += ID_CHUNK) {
     const pointChunk = points.slice(p, p + ID_CHUNK)
     for (let from = 0; held.length < limit; from += PAGE) {
-      const page = await supabaseService.from('normalized_metering_values')
-        .select('id,company_id,metering_point_id,source_metering_value_id,source_message_id,billing_gate_status,billing_gate_reasons')
+      const page = await tenantSelect(input.companyId, "normalized_metering_values", 'id,company_id,metering_point_id,source_metering_value_id,source_message_id,billing_gate_status,billing_gate_reasons')
         .eq('company_id', input.companyId).in('metering_point_id', pointChunk).eq('revision_status', 'current')
         .neq('billing_gate_status', 'eligible').lt('period_start', window.end).gt('period_end', window.start)
         .order('period_start', { ascending: true }).order('id', { ascending: true }).range(from, from + PAGE - 1)
@@ -60,7 +59,7 @@ export async function regateSupplyEndValues(input: { companyId: string; billingM
 
   for (let i = 0; i < held.length; i += ID_CHUNK) {
     const slice = held.slice(i, i + ID_CHUNK)
-    const raw = await supabaseService.from('metering_values').select('*').eq('company_id', input.companyId)
+    const raw = await tenantSelect(input.companyId, "metering_values", '*').eq('company_id', input.companyId)
       .in('id', slice.map(row => String(row.source_metering_value_id)))
     if (raw.error) throw raw.error
     const byId = new Map(((raw.data ?? []) as MeteringValueRow[]).map(row => [String(row.id), row]))

@@ -1,4 +1,4 @@
-import { supabaseService } from '@/lib/supabase/service'
+import { tenantSelect } from '@/lib/supabase/tenantQuery'
 import { deriveContractRequestedMethodFromSignedAgreement } from '@/lib/ediel/production/contractRequestedMethodSource'
 import { deriveCustomerMasterdataBeforeSwitch } from '@/lib/operations/switchCustomerMasterdataPreparation'
 import { selectInvoiceeBeforeSwitch } from '@/lib/operations/switchInvoiceePreparation'
@@ -13,13 +13,11 @@ import { selectInvoiceeBeforeSwitch } from '@/lib/operations/switchInvoiceePrepa
  * agreement (FINDINGS F51); both switch paths (automation and startSupplierSwitch)
  * call this one preparation. The Z03's invoicee is selected from the same contract (FINDINGS F87).
  */
-export async function deriveRequestedMethodBeforeSwitch(input: { actorUserId: string; switchRequestId: string }) {
-  const { data, error } = await supabaseService
-    .from('supplier_switch_requests')
-    .select('id,company_id,customer_contract_id,contract_id')
+export async function deriveRequestedMethodBeforeSwitch(input: { companyId: string; actorUserId: string; switchRequestId: string }) {
+  const { data, error } = await tenantSelect(input.companyId, "supplier_switch_requests", 'id,company_id,customer_contract_id,contract_id')
     .eq('id', input.switchRequestId)
-    .maybeSingle()
-  if (error || !data?.company_id) return
+    .returns<Array<{ id: string; company_id: string; customer_contract_id: string | null; contract_id: string | null }>>().maybeSingle()
+  if (error || data?.company_id !== input.companyId) return
   const contractId = (data.customer_contract_id ?? data.contract_id) as string | null
   if (!contractId) return
   for (const environment of ['production', 'test'] as const) {

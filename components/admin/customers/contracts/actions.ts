@@ -1096,64 +1096,68 @@ export async function updateContractAction(formData: FormData) {
     actorUserId: user.id,
   })
 
-  await addCustomerContractEvent({
-    companyId,
-    customerContractId: updated.id,
-    customerId,
-    eventType: 'updated',
-    note: 'Kundavtal uppdaterat från kundkortet',
-    metadata: {
-      previousStatus: before.status,
-      nextStatus: updated.status,
-      previousSiteId: before.site_id,
-      nextSiteId: updated.site_id,
-      previousMeteringPointId: before.metering_point_id ?? null,
-      nextMeteringPointId: updated.metering_point_id ?? null,
-      previousTerminationReason: before.termination_reason ?? null,
-      nextTerminationReason: updated.termination_reason ?? null,
-      previousAutoRenewEnabled: before.auto_renew_enabled,
-      nextAutoRenewEnabled: updated.auto_renew_enabled,
-      previousAutoRenewTermMonths: before.auto_renew_term_months ?? null,
-      nextAutoRenewTermMonths: updated.auto_renew_term_months ?? null,
-      previousCampaignCode: before.campaign_code ?? null,
-      nextCampaignCode: updated.campaign_code ?? null,
-      previousPriceVersion: before.price_version ?? null,
-      nextPriceVersion: updated.price_version ?? null,
-    },
-    actorUserId: user.id,
-  })
-
-  if (before.status !== updated.status) {
-    await emitLifecycleEventsForStatus({
-      companyId,
-      customerId,
-      contractId: updated.id,
-      status: updated.status,
-      startsAt,
-      signedAt,
-      terminationNoticeDate,
-      endsAt,
-      actorUserId: user.id,
-      context: 'update',
-    })
-  }
-
-  if (
-    terminationNoticeDate &&
-    (!before.termination_notice_date || before.termination_notice_date !== terminationNoticeDate)
-  ) {
+  // Terminal updates and their lifecycle events commit in one database command.
+  // A failed or unconfirmed command must not fall back to these separate writes.
+  if (nextStatus !== 'terminated' && nextStatus !== 'cancelled') {
     await addCustomerContractEvent({
       companyId,
       customerContractId: updated.id,
       customerId,
-      eventType: 'termination_notice_received',
-      happenedAt: terminationNoticeDate,
-      note: 'Uppsägning registrerad eller uppdaterad från kundkortet',
+      eventType: 'updated',
+      note: 'Kundavtal uppdaterat från kundkortet',
       metadata: {
-        terminationReason: updated.termination_reason ?? null,
+        previousStatus: before.status,
+        nextStatus: updated.status,
+        previousSiteId: before.site_id,
+        nextSiteId: updated.site_id,
+        previousMeteringPointId: before.metering_point_id ?? null,
+        nextMeteringPointId: updated.metering_point_id ?? null,
+        previousTerminationReason: before.termination_reason ?? null,
+        nextTerminationReason: updated.termination_reason ?? null,
+        previousAutoRenewEnabled: before.auto_renew_enabled,
+        nextAutoRenewEnabled: updated.auto_renew_enabled,
+        previousAutoRenewTermMonths: before.auto_renew_term_months ?? null,
+        nextAutoRenewTermMonths: updated.auto_renew_term_months ?? null,
+        previousCampaignCode: before.campaign_code ?? null,
+        nextCampaignCode: updated.campaign_code ?? null,
+        previousPriceVersion: before.price_version ?? null,
+        nextPriceVersion: updated.price_version ?? null,
       },
       actorUserId: user.id,
     })
+
+    if (before.status !== updated.status) {
+      await emitLifecycleEventsForStatus({
+        companyId,
+        customerId,
+        contractId: updated.id,
+        status: updated.status,
+        startsAt,
+        signedAt,
+        terminationNoticeDate,
+        endsAt,
+        actorUserId: user.id,
+        context: 'update',
+      })
+    }
+
+    if (
+      terminationNoticeDate &&
+      (!before.termination_notice_date || before.termination_notice_date !== terminationNoticeDate)
+    ) {
+      await addCustomerContractEvent({
+        companyId,
+        customerContractId: updated.id,
+        customerId,
+        eventType: 'termination_notice_received',
+        happenedAt: terminationNoticeDate,
+        note: 'Uppsägning registrerad eller uppdaterad från kundkortet',
+        metadata: {
+          terminationReason: updated.termination_reason ?? null,
+        },
+        actorUserId: user.id,
+      })
+    }
   }
 
   revalidatePath(`/admin/customers/${customerId}`)

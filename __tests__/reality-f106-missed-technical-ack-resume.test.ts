@@ -10,6 +10,7 @@
 // queued it. The scheduled inbound engine now resumes exactly those replies.
 // Synthetic in-memory rows only; no database, no cron endpoint.
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createRecoveryRpcPort } from './helpers/edielRecoveryRpcPort'
 
 type Row = Record<string, unknown>
 
@@ -21,6 +22,8 @@ const io = vi.hoisted(() => ({
   retainedReads: [] as Row[],
   retainedOverride: null as null | ((sourceId: string) => Row | null),
 }))
+
+let recovery: ReturnType<typeof createRecoveryRpcPort>
 
 function columnValue(row: Row, column: string): unknown {
   const [base, key] = column.split('->>')
@@ -74,7 +77,7 @@ vi.mock('@/lib/supabase/service', () => {
       return Promise.resolve().then(() => this.run()).then(resolve, reject)
     }
   }
-  return { supabaseService: { from: (table: string) => new Query(table), rpc: () => { throw new Error('no rpc in this test') } } }
+  return { supabaseService: { from: (table: string) => new Query(table), rpc: (name: string, args: Row) => recovery.rpc(name, args) } }
 })
 
 vi.mock('@/lib/ediel/db', () => ({
@@ -99,7 +102,7 @@ vi.mock('@/lib/ediel/outbox/createOutboxItem', () => ({
     io.outbox.push(input)
     // Insert-only on the reply's unique key, like the real upsert(ignoreDuplicates).
     if (!io.tables.ediel_outbox.some((row) => row.ediel_message_id === input.message.id)) {
-      io.tables.ediel_outbox.push({ ediel_message_id: input.message.id, status: input.status })
+      io.tables.ediel_outbox.push({ ediel_message_id: input.message.id, status: input.status, company_id: input.message.company_id, environment: input.message.environment, source_message_id: input.sourceMessageId })
     }
     return { id: `outbox-${String(input.message.id)}` }
   },
@@ -166,6 +169,7 @@ const resumeEvents = (messageId: string) => io.tables.ediel_message_events
   .filter((row) => row.ediel_message_id === messageId && (row.payload as Row).resume === MISSED_TECHNICAL_ACK_RESUME_MARKER)
 
 beforeEach(() => {
+  recovery = createRecoveryRpcPort(() => io.tables)
   io.tables.ediel_messages = []; io.tables.ediel_message_events = []; io.tables.ediel_outbox = []
   io.resumed = []; io.resumeFailures = []; io.outbox = []; io.retainedReads = []; io.retainedOverride = null
 })
@@ -218,7 +222,9 @@ describe('F106 missed technical CONTRL', () => {
 
     expect(io.outbox).toEqual([])
     expect(result).toMatchObject({ claimed: 1, failed: 1, requeued: 0 })
-    expect(result.errors).toEqual(['contrl-draft-3: missed_technical_ack_retained_original_mismatch'])
+    expect(result.errors[0]).toBe('contrl-draft-3: missed_technical_ack_retained_original_mismatch')
+    expect(result.errors[1]).toContain('ediel_recovery_owner_outcome_ambiguous')
+    expect(result.errors).toHaveLength(2)
   })
 
   it('only the failed technical replies of this lane and tenant are selected', async () => {
@@ -259,7 +265,7 @@ describe('F106 missed technical CONTRL', () => {
     expect([...left.claimed, ...right.claimed].map((row) => row.messageId)).toEqual([id(20)])
   })
 
-  it('a reply that keeps failing is bounded and ends with an explicit exhausted note', async () => {
+  it('a thrown technical reply stays uncertain without a second automatic write', async () => {
     io.tables.ediel_messages.push(e66(30))
     io.tables.ediel_message_events.push(technicalFailure(id(30)))
     io.resumeFailures = ['canceling statement due to statement timeout', 'canceling statement due to statement timeout', 'ediel_existing_ack_original_read_unavailable']
@@ -275,8 +281,19 @@ describe('F106 missed technical CONTRL', () => {
       // A claim moves updated_at; the next scheduled run is a later minute.
       results.push(await resumeMissedTechnicalAcks({ ...options, now: () => new Date(Date.now() + run * 60_000) }))
     }
-    expect(results.map((result) => [result.claimed, result.failed, result.exhausted])).toEqual([[1, 1, 0], [1, 1, 0], [1, 1, 1], [0, 0, 0]])
-    expect(io.resumed).toHaveLength(3)
-    expect(resumeEvents(id(30)).filter((row) => (row.payload as Row).kind === 'exhausted')).toEqual([expect.objectContaining({ event_status: 'error' })])
+    expect(results.map((result) => [result.claimed, result.failed, result.exhausted])).toEqual([[1, 1, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]])
+    expect(io.resumed).toHaveLength(1)
+    expect(resumeEvents(id(30)).filter((row) => (row.payload as Row).kind === 'exhausted')).toEqual([])
+    expect([...recovery.work.values()]).toEqual([expect.objectContaining({ state: 'uncertain', attempts: 1 })])
   })
+  it('refuses a source whose persisted attempt history already reached the cap', async () => {
+    io.tables.ediel_messages.push(e66(31))
+    io.tables.ediel_message_events.push(technicalFailure(id(31)))
+    for (let attempt = 1; attempt <= 3; attempt++) io.tables.ediel_message_events.push({ ediel_message_id: id(31), company_id: TENANT, event_type: 'manual_note', created_at: minutesAgo(30), payload: { resume: MISSED_TECHNICAL_ACK_RESUME_MARKER, kind: 'attempt', attempt } })
+    const result = await resumeMissedTechnicalAcks({ environment: 'production', actorUserId: ACTOR, workerId: 'w', resumeTechnicalAck: async () => { throw new Error('exhausted work must never execute') } })
+    expect(result).toMatchObject({ claimed: 0, created: 0, requeued: 0 })
+    expect([...recovery.work.values()]).toEqual([expect.objectContaining({ state: 'exhausted', attempts: 3 })])
+    expect(io.resumed).toEqual([])
+  })
+
 })

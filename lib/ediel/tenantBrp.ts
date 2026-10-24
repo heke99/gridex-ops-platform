@@ -6,7 +6,8 @@
 import { verifyElRegistryActor } from '@/lib/actor-registry/registryMarketSource'
 import { logAdminActionAndUsage } from '@/lib/audit/actionLogger'
 import { recalculateCompanyOnboardingReadiness } from '@/lib/onboarding/companyReadiness'
-import { supabaseService } from '@/lib/supabase/service'
+import type { supabaseService } from '@/lib/supabase/service'
+import { tenantDb } from '@/lib/supabase/tenantDb'
 
 export type RegistryBalanceResponsibleActor = {
   actorId: string
@@ -53,24 +54,23 @@ function dayBefore(day: string): string {
   return date.toISOString().slice(0, 10)
 }
 
-async function balanceResponsibleActors(actorIds: string[] | null, day: string): Promise<RegistryBalanceResponsibleActor[]> {
-  let roles = supabaseService.from('platform_actor_roles').select('actor_id').eq('actor_role', 'balance_responsible').eq('is_active', true)
+async function balanceResponsibleActors(companyId: string, actorIds: string[] | null, day: string): Promise<RegistryBalanceResponsibleActor[]> {
+  let roles = tenantDb(companyId).unscoped().from('platform_actor_roles').select('actor_id').eq('actor_role', 'balance_responsible').eq('is_active', true)
   if (actorIds) roles = roles.in('actor_id', actorIds)
   const roleRows = await roles.limit(1000)
   if (roleRows.error) throw roleRows.error
   const ids = [...new Set(((roleRows.data ?? []) as Row[]).map(row => String(row.actor_id)))]
   if (ids.length === 0) return []
   const [actors, identifiers] = await Promise.all([
-    supabaseService.from('platform_market_actors').select('id,name,status,match_status').in('id', ids).eq('status', 'active'),
-    supabaseService.from('platform_actor_identifiers').select('actor_id,identifier_type,identifier_value,is_verified,valid_from,valid_to').in('actor_id', ids),
+    tenantDb(companyId).unscoped().from('platform_market_actors').select('id,name,status,match_status').in('id', ids).eq('status', 'active'),
+    tenantDb(companyId).unscoped().from('platform_actor_identifiers').select('actor_id,identifier_type,identifier_value,is_verified,valid_from,valid_to').in('actor_id', ids),
   ])
   if (actors.error) throw actors.error
   if (identifiers.error) throw identifiers.error
   const ediel = ((identifiers.data ?? []) as Row[]).filter(row => isEdielIdentifier(row) && row.is_verified === true && validOn(row, day))
   // An Ediel ID shared by several registry actors, of any role, identifies none of them.
   const values = [...new Set(ediel.map(row => String(row.identifier_value)))]
-  const sharing = values.length === 0 ? { data: [], error: null } : await supabaseService
-    .from('platform_actor_identifiers').select('actor_id,identifier_type,identifier_value,is_verified,valid_from,valid_to').in('identifier_value', values)
+  const sharing = values.length === 0 ? { data: [], error: null } : await tenantDb(companyId).unscoped().from('platform_actor_identifiers').select('actor_id,identifier_type,identifier_value,is_verified,valid_from,valid_to').in('identifier_value', values)
   if (sharing.error) throw sharing.error
   const holders = new Map<string, Set<string>>()
   for (const row of ((sharing.data ?? []) as Row[]).filter(row => isEdielIdentifier(row) && row.is_verified === true && validOn(row, day))) {
@@ -87,15 +87,13 @@ async function balanceResponsibleActors(actorIds: string[] | null, day: string):
 }
 
 /** Balance responsible parties in the imported Ediel registry that can be chosen today. */
-export async function listRegistryBalanceResponsibleActors(today = new Date().toISOString().slice(0, 10)) {
-  return balanceResponsibleActors(null, today)
+export async function listRegistryBalanceResponsibleActors(companyId: string, today = new Date().toISOString().slice(0, 10)) {
+  return balanceResponsibleActors(companyId, null, today)
 }
 
 export async function listTenantBrpVersions(companyId: string, environment: 'test' | 'production' = 'production'): Promise<TenantBrpVersion[]> {
-  const { data, error } = await supabaseService
-    .from('ediel_brp_settings')
+  const { data, error } = await (tenantDb(companyId).from('ediel_brp_settings') as ReturnType<typeof supabaseService.from>)
     .select('id,brp_ediel_id,brp_name,valid_from,valid_to,is_default,is_active,metadata')
-    .eq('company_id', companyId)
     .eq('environment', environment)
     .order('valid_from', { ascending: false, nullsFirst: false })
     .limit(50)
@@ -117,11 +115,11 @@ export async function saveTenantProductionBrp(input: { companyId: string; actorI
   if (!UUID.test(input.actorId)) throw new Error('Välj balansansvarig ur Ediels aktörsregister.')
   if (!DATE.test(input.validFrom) || Number.isNaN(Date.parse(`${input.validFrom}T00:00:00Z`))) throw new Error('Ange från vilket datum BRP gäller (ÅÅÅÅ-MM-DD).')
 
-  const company = await supabaseService.from('companies').select('id').eq('id', input.companyId).maybeSingle()
+  const company = await tenantDb(input.companyId).unscoped().from('companies').select('id').eq('id', input.companyId).maybeSingle()
   if (company.error) throw company.error
   if (!company.data) throw new Error('Bolaget hittades inte.')
 
-  const [actor] = await balanceResponsibleActors([input.actorId], input.validFrom)
+  const [actor] = await balanceResponsibleActors(input.companyId, [input.actorId], input.validFrom)
   if (!actor) throw new Error('Aktören är inte en aktiv balansansvarig med ett entydigt verifierat Ediel-ID i aktörsregistret på valt datum.')
   if (!actor.verified) {
     try {
@@ -136,7 +134,7 @@ export async function saveTenantProductionBrp(input: { companyId: string; actorI
   const laterVersion = versions.some(version => version.validFrom !== null && version.validFrom > input.validFrom)
   if (current && current.brpEdielId === actor.edielId && !laterVersion) {
     if (!current.isDefault) {
-      const { error } = await supabaseService.from('ediel_brp_settings').update({ is_default: true, updated_by: input.actorUserId, updated_at: new Date().toISOString() }).eq('id', current.id)
+      const { error } = await (tenantDb(input.companyId).from('ediel_brp_settings') as ReturnType<typeof supabaseService.from>).update({ is_default: true, updated_by: input.actorUserId, updated_at: new Date().toISOString() }).eq('id', current.id)
       if (error) throw error
     }
     return { status: 'unchanged', settingId: current.id, brpEdielId: current.brpEdielId, validFrom: current.validFrom ?? input.validFrom }
@@ -149,16 +147,13 @@ export async function saveTenantProductionBrp(input: { companyId: string; actorI
   const now = new Date().toISOString()
   const open = versions.filter(version => !version.validTo || version.validTo >= input.validFrom)
   if (open.length > 0) {
-    const { error } = await supabaseService
-      .from('ediel_brp_settings')
+    const { error } = await (tenantDb(input.companyId).from('ediel_brp_settings') as ReturnType<typeof supabaseService.from>)
       .update({ valid_to: dayBefore(input.validFrom), is_default: false, updated_by: input.actorUserId, updated_at: now })
       .in('id', open.map(version => version.id))
     if (error) throw error
   }
-  const { error: defaultError } = await supabaseService
-    .from('ediel_brp_settings')
+  const { error: defaultError } = await (tenantDb(input.companyId).from('ediel_brp_settings') as ReturnType<typeof supabaseService.from>)
     .update({ is_default: false, updated_by: input.actorUserId, updated_at: now })
-    .eq('company_id', input.companyId)
     .eq('environment', 'production')
     .eq('is_default', true)
   if (defaultError) throw defaultError
@@ -176,7 +171,7 @@ export async function saveTenantProductionBrp(input: { companyId: string; actorI
     created_by: input.actorUserId,
     updated_by: input.actorUserId,
   }
-  const { data, error } = await supabaseService.from('ediel_brp_settings').insert(payload).select('id').single()
+  const { data, error } = await (tenantDb(input.companyId).from('ediel_brp_settings') as ReturnType<typeof supabaseService.from>).insert(payload).select('id').single()
   if (error) throw error
   const settingId = String((data as Row).id)
 
