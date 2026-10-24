@@ -2444,6 +2444,12 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - Ett jobb skapas per konfigurationsögonblicksbild, och claimen tar 20 per körning.
 - I världen fanns 1814 väntande jobb från 292 tenants. En ny tenant väntar bakom dem, och 27 av dess jobb rörde sig aldrig.
 - Rättningen kräver SQL: sammanslagning när jobb läggs i kön eller rättvis claim per tenant.
+- **RÄTTAD 2026-10-24:** migrationen `20261024110000_g3_provisioning_revalidate_coalesce_fair_claim.sql` (`a86a6c6d…`) ändrar claimen.
+  - Ett äldre revalideringsjobb stängs som `superseded_by_newer_revalidation` när samma bolag har ett nyare. Raden finns kvar som revisionsspår.
+  - Claimen är rättvis: varje bolags äldsta jobb tas före något bolags nästa.
+  - Funktionen är inte skyddad. Applicerad i världen 10:26:50Z: 1556 jobb ersattes, och det finns nu högst ett jobb per bolag.
+  - Test: `reality-g3-provisioning-fair-claim` 5/5, där 2 föll mot den gamla kroppen. Täckningen 352/352.
+  - ÖPPET: samma fråga om rättvis fördelning finns i utkorgens claim (P8).
 
 ### P8 Ediel-utkorgen skickar högst 25 meddelanden per körning i en global FIFO-kö; ett annat bolags kö fördröjer tenantens CONTRL och APERAK — MÄTT (världen, körning 29), medel; ÖPPEN
 - **Bevis från körning 29** (tenant `69e8e257`): 33 CONTRL och 4 APERAK ställdes i kö 21:15–21:21. Den första sändningen kom 21:28, cirka 13 minuter senare. Klockan 21:32 var 8 CONTRL skickade och 56 köade.
