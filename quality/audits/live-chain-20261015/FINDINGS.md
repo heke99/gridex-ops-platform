@@ -2480,6 +2480,16 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - Mätt till cirka 157 ms per värde och cirka 120 ms per anrop till `stored_contract_v1`. En chunk om 1000 id:n behöver cirka 157 s, men tidsgränsen per sats är 8 s.
 - **Ingen månad med kvartsvärden kan alltså få ett underlag** (57014 statement timeout).
 - Rättningen kräver SQL: återanvänd kontrollresultatet per källa och transaktion inom samma anrop. Skyddet ska kontrolleras först.
+- **RÄTTAD (läsningen) 2026-10-24:** migrationen `20261024130000_g6_billing_source_bases_once_per_source.sql` (`ed30c8cc…`). Inga kroppar var skyddade.
+  - Nya `gridex_billing_source.bases_v1` beräknar grunden för många värden i ett anrop. Den minns kontrollen per källa och transaktion samt token per råhash. Det är säkert eftersom källmeddelandena låses `FOR UPDATE` och alla skrivare tar samma lås.
+  - Ett O(n²)-bygge av resultatet i läsningen är också rättat; varje rad bar 43 kB `raw_payload`.
+  - TS läser i chunkar om 250, grupperade per källa.
+  - **Resultat:** en månad för en mätpunkt (2876 värden) tog 469 s före och 28 s efter, med högst 2,9 s per anrop. Utfallet är identiskt.
+  - Test: `reality-g6-…` 5/5. Täckningen 352/352. Applicerad i världen 13:48:50Z, mitt under F-körning 30.
+
+### G-6b `gridex_store_billing_underlay_batch` tar cirka 21 s för en mätpunktsmånad och ryms inte inom satsgränsen på 8 s — MÄTT, KRITISK; ÖPPEN
+- `observation_v1` är O(token²) per värde och kostar cirka 3,2 s per 1000 värden. Till det kommer cirka 100 ms per källa.
+- Två möjliga lösningar: en mängdbaserad omskrivning av observationen med bevis på exakt samma utfall, eller lagring i mindre satser per kund eller segment.
 
 ### G-7 En ny tenants revalideringsjobb väntar efter 181 äldre jobb från andra tenants i världen — WORLD/HARNESS; ÖPPEN
 - Claimen fungerar som den är byggd (G-3), men 20 jobb var tionde minut räcker inte för eftersläpningen.

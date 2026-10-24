@@ -211,7 +211,7 @@ async function loadNormalizedValues(
   const rows = await paginatedRows<JsonRecord>(async (from, to) => {
     const response = await supabaseService
       .from("normalized_metering_values")
-      .select("id")
+      .select("id, source_message_id")
       .eq("company_id", companyId)
       .eq("revision_status", "current")
       .eq("billing_status", "billable")
@@ -227,7 +227,9 @@ async function loadNormalizedValues(
       error: response.error,
     };
   });
-  const qualified = await loadQualifiedBillingValues(companyId, rows.map(row => String(row.id)));
+  // G-6: read the values of one source file together (one validation per file and call).
+  const sourceOf = new Map(rows.map(row => [String(row.id), String(row.source_message_id ?? "")]));
+  const qualified = await loadQualifiedBillingValues(companyId, rows.map(row => String(row.id)), sourceOf);
   return rows.map(row => qualified.get(String(row.id))!);
 }
 
