@@ -2525,6 +2525,10 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **H-16 verifierad:** ångeråtgärden svarar 200 och kunden får `withdrawal_received`. Annulleringen hålls (`manual_review`), se H-17.
 - **H6:** fortfarande inget oktoberunderlag för S, se H6 nedan i STATUS.
 
+### H körning 6 (2026-10-24 ca 22:50–23:20, världen på f2eadefaf med H-17 applicerad): 7 av 9 gröna; H6 och H7 röda
+- **H8 grön:** W:s ånger ger en kanonisk Z03C (`cancellation_status = draft_created`), och C:s Z03C → Z04C ger `cancelled_before_start`. H-12, H-14, H-16 och H-17 är verifierade i världen.
+- **H6:** ägarfrågan under T25. **H6/H7 TypeError:** T25, rättad i `f0e6bf316` men inte med i körningen.
+
 ### T25 Scenario H läste sina rapportfält med fel nyckel — HARNESS; RÄTTAD
 - H6 sparade `outboundAfterBilling` under `S`/`M` men läste det med förnamnet (TypeError `filter`). H7 sparade `access` under förnamnet men läste `access.S` (TypeError `visible`). Nu används förnamnet på båda ställena.
 - **H6, ägarfråga:** testet väntar sig ett oktoberunderlag för S, men scenariot mäter bara 3 av 31 dagar. Enligt produktens regel sparas då inget underlag (`estimated_source_missing`, "väntar på mätvärden"). E73 stoppas på `utilts_e73_bilateral_capability_missing`, vilket är en avsiktlig spärr. Ska scenariot leverera hela oktober, eller ska ett ofullständigt underlag lagras i `needs_review`? Förväntan är inte ändrad.
