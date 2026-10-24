@@ -2531,6 +2531,17 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
   - **ÄGARBESLUT 2026-10-24 (nr 25):** atomicitet per del är OK. Redan lagrade delar ligger kvar om en körning fallerar, och nästa körning fyller i resten.
   - ÖPPET: marginalen är liten, eftersom en del tar cirka 6 s mot gränsen 8 s. Resten ligger mest i `stored_contract_v1` med cirka 80 ms per källa.
 
+### G-8 Upptagningen av en mätvärdesfil tar 2–3 min: `stored_contract_v1` gör om de rena kontrollerna vid varje anrop — BEKRÄFTAD (kod), hög prestanda; RÄTTAD (SQL), ej mätt i världen
+- `gridex_utilts_binding.stored_contract_v1` anropas flera gånger per lagrat värde: två gånger i consume plus en gång per hopp i samma kohort, en gång i läsningen av källan och en gång i grinden. Varje anrop tokeniserade hela källan (`wire_tokens_v1`) och körde `validate_contract_v1`, `supported_point_v1` och `validate_decimal_source_v2` igen.
+- De fyra är IMMUTABLE och beror bara på innehåll som funktionen redan binder med hash i varje anrop: råmeddelandet (kvittots `raw_hash`), seriens rådata (`immutable_hash`), kontraktet (`contract_hash`) och transaktionen.
+- **Rättning:** migrationen `20261024150000_g8_utilts_stored_contract_pure_checks_once.sql` (`97e0bc33…`). Den installeras bara över exakt den granskade förbilden (`9a580dde…`) och kontrollerar att ägare, ACL, säkerhet, volatilitet och konfiguration är oförändrade.
+  - Ny tabell `gridex_utilts_binding.stored_contract_pure_checks`. Nyckeln är sha256 av (raw_hash, transaktion, immutable_hash, contract_hash, regelhash). Regelhashen täcker signatur, konfiguration och källa för alla IMMUTABLE-funktioner i schemat, så en regeländring missar minnet. Inga rättigheter för API-roller; RLS på.
+  - Alla rad-, lås-, bindnings- och hashkontroller körs som förut i varje anrop. Bara vid exakt träff återanvänds punkten och de tre rena kontrollerna hoppas över. En rad skrivs först när alla tre har passerat, så ett fel minns aldrig. Felordningen är oförändrad.
+  - Valt i stället för en batch-RPC per fil: det gäller alla anropare (consume, läsning, grind, underlag) utan TS-ändring.
+- **Test:** `__tests__/reality-g8-utilts-stored-contract-pure-checks-once.test.ts`, 4 fall i PGlite mot den verkliga förbilden. Samma resultat och fel före och efter för 16 kombinationer × 3 anrop, inga rena kontroller vid upprepat godkänt anrop, regeländring validerar på nytt, tabellen stängd för API-roller, vägrar annan förbild. Utan migrationen faller 3 av 4. Ett första utkast föll på att `SELECT INTO` nollställde `FOUND`; det är rättat med tilldelningar.
+- Relaterade G-2/G-6/G-6b: 20/20. Täckningen 352/352, `tagged failing 0`.
+- ÖPPET: mät tiden per fil i världen (F eller G).
+
 ### G-7 En ny tenants revalideringsjobb väntar efter 181 äldre jobb från andra tenants i världen — WORLD/HARNESS; ÖPPEN
 - Claimen fungerar som den är byggd (G-3), men 20 jobb var tionde minut räcker inte för eftersläpningen.
 - Förslag: töm eftersläpningen i världen innan scenariot startar.
