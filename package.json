@@ -344,6 +344,9 @@
     "brace-expansion": "1.1.18",
     "@typescript-eslint/typescript-estree": {
       "brace-expansion": "5.0.9"
+    },
+    "mailauth": {
+      "undici": "8.12.2"
     }
   },
   "packageManager": "npm@10.9.2",
