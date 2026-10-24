@@ -497,15 +497,26 @@ describe.sequential('reality G — end of daylight saving time 2026-10-25 throug
     expect.soft(Math.abs(Number(invoice.exVat) - independent.exVat), `invoice ex VAT vs independent ${JSON.stringify(independent)}`).toBeLessThan(1)
   }, 20 * 60_000)
 
-  it('G11 isolation and queues: values only on this tenant and customer, nothing stuck', (context) => {
+  it('G11 isolation and queues: values only on this tenant and customer, nothing stuck', async (context) => {
     requireStep(Boolean(ids), 'G11', 'no customer was established (G2)', context)
     const leaks = sql<Record<string, number>>(`SELECT jsonb_build_object(
       'valuesElsewhere',(SELECT count(*) FROM public.normalized_metering_values WHERE company_id<>${literal(tenant.companyId)} AND (metering_point_id=${literal(ids!.mp)} OR facility_id=${literal(GSRN)})),
       'otherCustomersHere',(SELECT count(*) FROM public.normalized_metering_values WHERE company_id=${literal(tenant.companyId)} AND metering_point_id=${literal(ids!.mp)} AND customer_id IS DISTINCT FROM ${literal(ids!.customer)}))`)
     report.isolation = leaks
     expect(leaks).toEqual({ valuesElsewhere: 0, otherCustomersHere: 0 })
-    const stuck = detectStuckStates({ graceSeconds: 600, companyIds: [tenant.companyId] })
+    // G-11: G6 runs the operator's reprocessing for about an hour with no cron slot, so the replies it queued and
+    // the jobs of that hour are only due, not stuck. Like Vercel, the world keeps running its crons: settle a few
+    // slots first, then judge what is still not progressing.
+    const settle: unknown[] = []
+    let stuck = detectStuckStates({ graceSeconds: 600, companyIds: [tenant.companyId] })
+    for (let slot = 0; slot < Number(process.env.GRIDEX_REALITY_G11_SETTLE_SLOTS ?? 4) && stuck.some(row => row.kind === 'stuck'); slot += 1) {
+      const ran = await runOperationalCronSlot()
+      settle.push({ at: new Date().toISOString(), crons: ran.map(r => ({ path: r.path, status: r.status, ms: r.ms })) })
+      stuck = detectStuckStates({ graceSeconds: 600, companyIds: [tenant.companyId] })
+      if (stuck.some(row => row.kind === 'stuck')) await cronTick()
+    }
+    report.settleSlots = settle
     report.stuck = stuck
     expect(stuck.filter(row => row.kind === 'stuck')).toEqual([])
-  })
+  }, 30 * 60_000)
 })

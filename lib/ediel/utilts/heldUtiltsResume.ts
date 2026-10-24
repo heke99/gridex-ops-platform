@@ -120,6 +120,16 @@ export type HeldUtiltsResumeOptions = {
   probeLimit?: number
   /** No new source is started after this many milliseconds. */
   timeBudgetMs?: number
+  /**
+   * Reality G-1: epoch milliseconds by which the calling route must have answered
+   * (its maxDuration minus a reserve). A source is started only when it is
+   * expected to finish before it: one resume stores a whole file (~96 values)
+   * and was measured at 2-3 minutes, so a start late in the run overran the
+   * route's platform limit.
+   */
+  deadlineAt?: number | null
+  /** Expected duration of one source resume; the longest one seen in this run counts when larger. */
+  expectedSourceMs?: number
   /** A hold younger than this may still belong to the run that created it. */
   graceMinutes?: number
   lookbackHours?: number
@@ -327,9 +337,13 @@ export async function resumeHeldInboundUtilts(input: HeldUtiltsResumeOptions & {
   const probeLimit = clampInt(input.probeLimit, 100, 1, 500)
   const timeBudgetMs = clampInt(input.timeBudgetMs, 120_000, 1_000, 600_000)
   const maxAttempts = clampInt(input.maxAttempts, 6, 1, 20)
+  const deadlineAt = typeof input.deadlineAt === 'number' && Number.isFinite(input.deadlineAt) ? input.deadlineAt : null
+  let expectedSourceMs = clampInt(input.expectedSourceMs, 0, 0, 600_000)
+  const fitsBeforeDeadline = () => deadlineAt === null || clock().getTime() + expectedSourceMs <= deadlineAt
   const graceCutoff = new Date(startedAt.getTime() - clampInt(input.graceMinutes, 5, 1, 24 * 60) * 60_000).toISOString()
   const lookbackCutoff = new Date(startedAt.getTime() - clampInt(input.lookbackHours, 45 * 24, 1, 365 * 24) * 3_600_000).toISOString()
 
+  if (!fitsBeforeDeadline()) { result.budgetExhausted = true; return result }
   const held = await readHeldSources(input, graceCutoff, lookbackCutoff)
   result.heldSources = held.size
   if (held.size === 0) return result
@@ -364,7 +378,7 @@ export async function resumeHeldInboundUtilts(input: HeldUtiltsResumeOptions & {
 
   for (const candidate of order) {
     if (result.claimed >= limit) break
-    if (result.evaluated >= probeLimit || clock().getTime() - startedAt.getTime() >= timeBudgetMs) { result.budgetExhausted = true; break }
+    if (result.evaluated >= probeLimit || clock().getTime() - startedAt.getTime() >= timeBudgetMs || !fitsBeforeDeadline()) { result.budgetExhausted = true; break }
     const rows = held.get(candidate.sourceMessageId)!
     const { companyId, sourceMessageId } = candidate
     const history = histories.get(sourceMessageId) ?? { attempts: 0, completedFingerprints: new Set<string>(), structureChecks: 0, lastAttemptAt: null }
@@ -414,6 +428,8 @@ export async function resumeHeldInboundUtilts(input: HeldUtiltsResumeOptions & {
       const fingerprint = fingerprints.join('|')
       if (history.completedFingerprints.has(fingerprint)) { result.alreadyTried += 1; continue }
 
+      // Probing took time: start the source only when it can still finish before the route deadline.
+      if (!fitsBeforeDeadline()) { result.budgetExhausted = true; break }
       // Claim the source once; a concurrent run loses the compare-and-set.
       const claim = await supabaseService
         .from('ediel_messages')
@@ -439,6 +455,7 @@ export async function resumeHeldInboundUtilts(input: HeldUtiltsResumeOptions & {
           attempt, maxAttempts, workerId: input.workerId },
       })
       let outcome: UtiltsSourceResumptionResult
+      const resumeStartedAt = clock().getTime()
       try {
         outcome = await resumeInboundUtiltsSourceFromOriginal({
           actorUserId: input.actorUserId,
@@ -447,6 +464,7 @@ export async function resumeHeldInboundUtilts(input: HeldUtiltsResumeOptions & {
           eventPayload: { resume: HELD_UTILTS_RESUME_MARKER, kind: 'result', resumedBy: 'scheduled_held_utilts_resume', fingerprint, attempt, workerId: input.workerId },
         })
       } catch (error) {
+        expectedSourceMs = Math.max(expectedSourceMs, clock().getTime() - resumeStartedAt)
         result.failed += 1
         result.errors.push(`${sourceMessageId}: ${errorText(error)}`)
         if (attempt >= maxAttempts) {
@@ -458,6 +476,7 @@ export async function resumeHeldInboundUtilts(input: HeldUtiltsResumeOptions & {
         }
         continue
       }
+      expectedSourceMs = Math.max(expectedSourceMs, clock().getTime() - resumeStartedAt)
       if (outcome.status === 'processed') {
         if (outcome.stillHeldTransactionIds.length > 0) result.stillHeld += 1
         else result.resumed += 1

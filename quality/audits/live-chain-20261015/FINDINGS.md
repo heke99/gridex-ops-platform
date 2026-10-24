@@ -2421,6 +2421,30 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 ### T21 Harnessens oberoende beräkning i F9 saknar spotpriset för Ediel-månadens sista timme (civil 1 oktober, 2026-09-30T22:00Z) — ÖPPEN (harness)
 - F9 måste läsa spotpriset för 1 oktober, som motorn fyller i enligt F108, eller importera det i F7.
 
+### G körning 1 (2026-10-24 07:4x–09:2x, världen på b6a41f40d, snabbläge): 4 av 11 gröna, 3 röda, 4 överhoppade
+- **G5:** `HeadersTimeoutError`. Inbound-cron tog 315 s; se G-1.
+- **G6:** bara 25 av 31 dagar lagrades. Det följer av G5: filerna för 26–31 oktober hämtades aldrig, eftersom pollningen tar högst 25 brev och nästa pollning aldrig kördes. De 25 dagar som kom fram lagrades korrekt, och dygnet med vintertid har 100 värden.
+- **G11:** 43 utgående rader och 1 e-post blev stående efter avbrottet i G5, eftersom inga cron-pass kördes. Dessutom väntade 27 `ediel_readiness_revalidate`-jobb; se G-3.
+
+### G-1 Inbound-cron saknade `maxDuration`, och upptagningen av hållna UTILTS (O2) kontrollerade budgeten bara före start — BEKRÄFTAD (världen), hög; RÄTTAD (TS)
+- **Mätning:** en körning tog 315 s, och tomgångskörningar tog 125–157 s. Upptagningen av en enda fil tog 125–185 s men startade sent i körningen.
+- **Rättning:**
+  - `maxDuration = 300` på `/api/internal/inbound-mail/cron`.
+  - Motorn får en tidsgräns: start + 270 s.
+  - Upptagningen startar bara en källa om den förväntas bli klar före tidsgränsen. Förväntad tid är det största av 150 s och det längsta som setts i körningen.
+- **Harnessen:** G11 kör upp till 4 cron-pass innan den bedömer vad som har fastnat.
+- **Tester:** 5 nya i `reality-o2-…`, varav 4 föll före, plus `reality-g1-inbound-cron-deadline`. 37 importörsfiler gröna, täckningen 352/352, tsc 0 fel.
+- **ÖPPET:** själva behandlingen av breven har ingen tidsgräns, och 25 brev tog cirka 130 s.
+
+### G-2 (= P1) Mätvärden lagras med cirka 1,3 s per värde — MÄTT (pg_stat_statements), hög prestanda; ÖPPEN
+- Tre anrop i följd per värde: `gridex_consume_utilts_metering_v1` 795 ms, `gridex_set_metering_billing_gate` 280 ms och `gridex_read_billing_source_values_v1` 252 ms.
+- Det ger 2–3 minuter per fil med 96 värden, och varje körning hinner därmed bara ta upp en fil. Rättningen kräver batchning eller arbete i SQL och index.
+
+### G-3 Provisioneringsjobben `ediel_readiness_revalidate` slås aldrig ihop, och claimen tar de äldsta först över alla tenants — BEKRÄFTAD (världen), medel; ÖPPEN
+- Ett jobb skapas per konfigurationsögonblicksbild, och claimen tar 20 per körning.
+- I världen fanns 1814 väntande jobb från 292 tenants. En ny tenant väntar bakom dem, och 27 av dess jobb rörde sig aldrig.
+- Rättningen kräver SQL: sammanslagning när jobb läggs i kön eller rättvis claim per tenant.
+
 ### P8 Ediel-utkorgen skickar högst 25 meddelanden per körning i en global FIFO-kö; ett annat bolags kö fördröjer tenantens CONTRL och APERAK — MÄTT (världen, körning 29), medel; ÖPPEN
 - **Bevis från körning 29** (tenant `69e8e257`): 33 CONTRL och 4 APERAK ställdes i kö 21:15–21:21. Den första sändningen kom 21:28, cirka 13 minuter senare. Klockan 21:32 var 8 CONTRL skickade och 56 köade.
 - **Kön före tenanten:**

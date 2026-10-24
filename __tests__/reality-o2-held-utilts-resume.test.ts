@@ -1,4 +1,5 @@
 // reality-defects: O2
+// reality-defects: G-1 (scenario G: one inbound-mail cron run took 315 s; a held resume started late overran the route limit)
 // Reality finding O2: inbound UTILTS held for internal review were released
 // only by a platform admin (who is also a tenant member) pressing "Återuppta
 // hållna transaktioner" per message (scenario F step F6c: ~123 clicks), and
@@ -413,6 +414,65 @@ describe('O2: the scheduled inbound-mail cron runs the held resume', () => {
     expect(scheduled.debug.heldUtiltsResume).toMatchObject({ heldSources: 1, claimed: 1, resumed: 1, failed: 0 })
     expect(scheduled.debug.autoProcessErrors).toEqual([])
     expect(io.processed).toEqual([{ actorUserId: ACTOR, edielMessageId: id }])
+    expect(stillHeld(id)).toBe(false)
+  })
+})
+
+describe('G-1: the held resume starts no source it cannot finish before the route deadline', () => {
+  const T0 = Date.parse('2026-10-23T12:00:00.000Z')
+
+  it('starts a source only when its expected duration fits before the deadline', async () => {
+    for (let index = 0; index < 3; index += 1) io.issuerQualified.add(heldSource())
+    // One resume stores a whole file: 150 s each, as measured in scenario G.
+    io.processImpl = async () => { io.clock.now = new Date(io.clock.now.getTime() + 150_000) }
+    const result = await run({ timeBudgetMs: 600_000, deadlineAt: T0 + 270_000, expectedSourceMs: 100_000 })
+    // Start 0 s (0+100 <= 270), finished 150 s; next needs the observed 150 s: 300 > 270, not started.
+    expect(result).toMatchObject({ claimed: 1, budgetExhausted: true })
+    expect(io.processed).toHaveLength(1)
+    expect(io.clock.now.getTime()).toBeLessThanOrEqual(T0 + 270_000)
+  })
+
+  it('starts nothing when the expected duration no longer fits (e.g. after a long mail batch)', async () => {
+    const id = heldSource()
+    io.issuerQualified.add(id)
+    const result = await run({ deadlineAt: T0 + 140_000, expectedSourceMs: 150_000 })
+    expect(result).toMatchObject({ claimed: 0, budgetExhausted: true })
+    expect(io.processed).toEqual([])
+    expect(stillHeld(id)).toBe(true)
+    expect(resumeEvents(id)).toEqual([])
+    // A later run with time left resumes it.
+    expect(await run({ deadlineAt: T0 + 270_000, expectedSourceMs: 150_000 })).toMatchObject({ claimed: 1, resumed: 1 })
+    expect(stillHeld(id)).toBe(false)
+  })
+
+  it('re-checks the deadline after probing, just before claiming', async () => {
+    const id = heldSource()
+    io.issuerQualified.add(id)
+    const probe = io.clock.now.getTime()
+    // The (synthetic) clock advances 60 s while the protected issuer read runs.
+    const now = () => new Date(io.rpcCalls.length > 0 ? probe + 60_000 : probe)
+    const result = await run({ now, deadlineAt: probe + 200_000, expectedSourceMs: 150_000 })
+    expect(result).toMatchObject({ evaluated: 1, claimed: 0, budgetExhausted: true })
+    expect(io.rpcCalls.map((call) => call.name)).toContain('gridex_read_utilts_issuer_identity_authority_v1')
+    expect(io.processed).toEqual([])
+  })
+
+  it('without a deadline keeps the time-budget behaviour unchanged', async () => {
+    for (let index = 0; index < 3; index += 1) io.issuerQualified.add(heldSource())
+    io.processImpl = async () => { io.clock.now = new Date(io.clock.now.getTime() + 90_000) }
+    expect(await run({ timeBudgetMs: 120_000, expectedSourceMs: 150_000 })).toMatchObject({ claimed: 2, budgetExhausted: true })
+  })
+
+  it('the inbound engine passes the route deadline to the held resume', async () => {
+    const id = heldSource()
+    io.issuerQualified.add(id)
+    const late = await runInboundEdielMailEngine({ actorUserId: ACTOR, environment: 'production', resumeStrandedInboundMessages: true,
+      sharedOnly: true, allowMissingMailboxConfig: true, deadlineAt: Date.now() + 60_000 })
+    expect(late.debug.heldUtiltsResume).toMatchObject({ claimed: 0, budgetExhausted: true })
+    expect(io.processed).toEqual([])
+    const early = await runInboundEdielMailEngine({ actorUserId: ACTOR, environment: 'production', resumeStrandedInboundMessages: true,
+      sharedOnly: true, allowMissingMailboxConfig: true, deadlineAt: Date.now() + 270_000 })
+    expect(early.debug.heldUtiltsResume).toMatchObject({ claimed: 1, resumed: 1 })
     expect(stillHeld(id)).toBe(false)
   })
 })

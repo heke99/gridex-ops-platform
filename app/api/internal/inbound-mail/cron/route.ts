@@ -5,6 +5,13 @@ import { resolveConfiguredEdielAutomationActorId } from '@/lib/ediel/automationA
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+// Reality G-1: one run polls up to 25 mails, processes them and then resumes
+// held UTILTS (one resume stores a whole file, 2-3 minutes). Without a declared
+// limit a run was measured at 315 s; the engine now stops starting work that
+// cannot finish ROUTE_DEADLINE_RESERVE_MS before this limit.
+export const maxDuration = 300
+// Kept for what follows the held resume (customer-operation jobs, run log) and the response.
+const ROUTE_DEADLINE_RESERVE_MS = 30_000
 
 function isAuthorized(request: NextRequest): boolean {
   const configuredSecret = process.env.EDIEL_INBOUND_CRON_SECRET ?? process.env.CRON_SECRET
@@ -39,6 +46,7 @@ function safeInboundErrorCode(error: unknown): string {
 }
 
 export async function POST(request: NextRequest) {
+  const deadlineAt = Date.now() + maxDuration * 1000 - ROUTE_DEADLINE_RESERVE_MS
   if (!isAuthorized(request)) {
     return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 })
   }
@@ -79,6 +87,7 @@ export async function POST(request: NextRequest) {
       allowMissingMailboxConfig: true,
       // F103: the scheduled lane resumes its own stranded 'received' inbound messages.
       resumeStrandedInboundMessages: true,
+      deadlineAt,
     })
     return NextResponse.json({ ok: true, result })
   } catch (error) {

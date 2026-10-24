@@ -35,6 +35,12 @@ export async function runInboundEdielMailEngine(
     createDiagnosticMessagesForUnresolved?: boolean;
     /** Scheduled cron only: resume stranded 'received' inbound Ediel messages (F103). */
     resumeStrandedInboundMessages?: boolean;
+    /**
+     * Reality G-1: epoch ms by which the calling route must answer (its
+     * maxDuration minus a reserve). The held-UTILTS resume starts no source
+     * that is not expected to finish before it.
+     */
+    deadlineAt?: number | null;
   } = {},
 ): Promise<InboundEngineRunResult> {
   const startedAt = nowIso();
@@ -258,6 +264,9 @@ export async function runInboundEdielMailEngine(
         limit: envInt("EDIEL_INBOUND_HELD_UTILTS_RESUME_LIMIT", 10),
         probeLimit: envInt("EDIEL_INBOUND_HELD_UTILTS_RESUME_PROBE_LIMIT", 100),
         timeBudgetMs: envInt("EDIEL_INBOUND_HELD_UTILTS_RESUME_TIME_BUDGET_MS", 120_000),
+        deadlineAt: input.deadlineAt ?? null,
+        // One resume stores a whole file; measured 2-3 minutes per E66 day file (reality G).
+        expectedSourceMs: envInt("EDIEL_INBOUND_HELD_UTILTS_RESUME_EXPECTED_SOURCE_MS", 150_000),
         graceMinutes: envInt("EDIEL_INBOUND_HELD_UTILTS_RESUME_GRACE_MINUTES", 5),
         lookbackHours: envInt("EDIEL_INBOUND_HELD_UTILTS_RESUME_LOOKBACK_HOURS", 45 * 24),
         maxAttempts: envInt("EDIEL_INBOUND_HELD_UTILTS_RESUME_MAX_ATTEMPTS", 6),
