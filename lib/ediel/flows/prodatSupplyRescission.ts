@@ -3,6 +3,7 @@ import {tenantDb} from '@/lib/supabase/tenantDb'
 type ScopedSelect=ReturnType<ReturnType<typeof supabaseService.from>['select']>
 import {createOutboundRequest} from '@/lib/cis/db'
 import {resolveCanonicalOutboundContext} from '@/lib/ediel/core/kernel'
+import {receiverGridOwner} from '@/lib/ediel/core/receiverGridOwner'
 import {generateEdielInterchangeReference} from '@/lib/ediel/core/referenceGenerator'
 import {createEdielMessageIntent} from '@/lib/ediel/intent/intentEngine'
 import {readSupplyRescissionMandate,assertSupplyRescissionRoute} from '@/lib/ediel/production/supplyRescissionOperation'
@@ -12,7 +13,7 @@ import {renderAndQueueSupplyRescission} from '@/lib/ediel/intent/supplyRescissio
  * Only its exact actually sent H original can authorize a later Z05/L end. */
 export async function prepareAndQueueSupplyRescissionZ08(input:{companyId:string;actorUserId:string;mandateId:string;preferredRouteId?:string|null}){
  const b=await readSupplyRescissionMandate(input);if(b.status==='held')return b
- const applicationReference='23-DDQ-PRODAT',route=await resolveCanonicalOutboundContext({companyId:b.companyId,environment:b.environment,requestType:'supplier_switch',receiverEdielId:b.legalReceiverId,preferredRouteId:input.preferredRouteId,applicationReference})
+ const applicationReference='23-DDQ-PRODAT',route=await resolveCanonicalOutboundContext({companyId:b.companyId,environment:b.environment,requestType:'supplier_switch',gridOwner:input.preferredRouteId?null:await receiverGridOwner(b.companyId,b.legalReceiverId),receiverEdielId:b.legalReceiverId,preferredRouteId:input.preferredRouteId,applicationReference})
  assertSupplyRescissionRoute(b,route);const routeProfileId=route.routeRuntime?.route_profile_id;if(!routeProfileId)throw Error('supply_rescission_route_profile_required')
  const intent=await createEdielMessageIntent({companyId:b.companyId,environment:b.environment,market:'electricity',messageFamily:'PRODAT',messageCode:'Z08',businessProcess:'supplier_switch',direction:'outbound',senderEdielId:route.senderEdielId,senderSubaddress:route.senderSubAddress,receiverEdielId:route.receiverEdielId,receiverSubaddress:route.receiverMessageSubAddress??route.receiverSubAddress,applicationReference,routeProfileId,communicationRouteId:route.route.id,customerId:b.customerId,customerSiteId:b.siteId,meteringPointId:b.pointId,gridAreaCode:b.gridArea,operationId:b.mandateId,interchangeReference:generateEdielInterchangeReference(),messageReference:'1',transactionReference:b.lineItemReference,idempotencyKey:`national-rescission:${b.mandateId}`,payload:{transactionSubtype:'H',actorRole:'supplier',supplyRescissionMandateId:b.mandateId},actorUserId:input.actorUserId,routeProfile:{applicationReference,actorRole:'supplier'}})
  const{data,error}=await(tenantDb(b.companyId).from('outbound_requests').select('id') as ScopedSelect).eq('source_type','manual').eq('source_id',intent.id).eq('request_type','supplier_switch_cancellation').limit(2).returns<Array<{id:string}>>();if(error)throw error;if(data&&data.length>1)throw Error('supply_rescission_outbound_request_ambiguous')

@@ -6,6 +6,8 @@ const ports = vi.hoisted(() => ({ readBrp: vi.fn(), readCancellation: vi.fn(), r
 const noRequest = { select: () => noRequest, eq: () => noRequest, contains: () => noRequest, order: () => noRequest, limit: () => noRequest, returns: async () => ({ data: [], error: null }), then: (resolve: (result: { data: never[]; error: null }) => unknown) => resolve({ data: [], error: null }) }
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: () => noRequest } }))
 vi.mock('@/lib/supabase/tenantDb', () => ({ tenantDb: () => ({ from: () => noRequest }) }))
+// The receiver's grid-owner lookup (H-10) is proved in ediel-supplier-switch-receiver-grid-owner-route.test.ts.
+vi.mock('@/lib/ediel/core/receiverGridOwner', () => ({ receiverGridOwner: async () => null }))
 vi.mock('@/lib/cis/db', () => ({ createOutboundRequest: ports.request }))
 vi.mock('@/lib/ediel/core/kernel', () => ({ resolveCanonicalOutboundContext: ports.route }))
 vi.mock('@/lib/ediel/intent/intentEngine', () => ({ createEdielMessageIntent: ports.intent }))

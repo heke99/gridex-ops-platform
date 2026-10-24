@@ -13,6 +13,8 @@ const io = vi.hoisted(() => ({ rpc: vi.fn(), tenant: vi.fn(), route: vi.fn(), cr
   request: vi.fn(), validate: vi.fn(), render: vi.fn(), finalize: vi.fn(), queue: vi.fn(), lifecycle: vi.fn(), authorize: vi.fn(), duplicate: vi.fn() }))
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: { rpc: io.rpc } }))
 vi.mock('@/lib/supabase/tenantDb', () => ({ tenantDb: io.tenant }))
+// The receiver's grid-owner lookup (H-10) is proved in ediel-supplier-switch-receiver-grid-owner-route.test.ts.
+vi.mock('@/lib/ediel/core/receiverGridOwner', () => ({ receiverGridOwner: async () => null }))
 vi.mock('@/lib/ediel/core/kernel', () => ({ resolveCanonicalOutboundContext: io.route }))
 vi.mock('@/lib/ediel/services/authorization', () => ({ assertEdielTenantActor: io.authorize }))
 vi.mock('@/lib/ediel/core/dedupe', () => ({ findOutboundEdielMessageDuplicate: io.duplicate }))

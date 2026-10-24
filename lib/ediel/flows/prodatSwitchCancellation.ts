@@ -5,6 +5,7 @@ import { tenantDb } from '@/lib/supabase/tenantDb'
 type ScopedSelect = ReturnType<ReturnType<typeof supabaseService.from>['select']>
 import { createOutboundRequest } from '@/lib/cis/db'
 import { resolveCanonicalOutboundContext } from '@/lib/ediel/core/kernel'
+import { receiverGridOwner } from '@/lib/ediel/core/receiverGridOwner'
 import { resolveApplicationReference } from '@/lib/ediel/core/applicationReferenceResolver'
 import { createEdielMessageIntent } from '@/lib/ediel/intent/intentEngine'
 import { renderAndQueueSwitchCancellation } from '@/lib/ediel/intent/switchCancellationGateway'
@@ -18,7 +19,7 @@ export async function prepareAndQueueSwitchCancellation(input: { companyId: stri
   if(input.environment&&input.environment!==basis.environment)throw Error('switch_cancellation_source_environment_mismatch')
   const applicationReference = resolveApplicationReference({ messageFamily: 'PRODAT', businessCode: 'Z03', actorRole: 'supplier', market: 'electricity' })
   const route = await resolveCanonicalOutboundContext({ companyId: basis.companyId, environment: basis.environment, requestType:'supplier_switch',
-    receiverEdielId: basis.legalReceiverId, preferredRouteId: input.preferredRouteId, applicationReference })
+    gridOwner: input.preferredRouteId ? null : await receiverGridOwner(basis.companyId, basis.legalReceiverId), receiverEdielId: basis.legalReceiverId, preferredRouteId: input.preferredRouteId, applicationReference })
   assertSwitchCancellationRoute(basis, route)
   const routeProfileId = route.routeRuntime?.route_profile_id
   if (!routeProfileId) throw new Error('switch_cancellation_canonical_route_profile_required')

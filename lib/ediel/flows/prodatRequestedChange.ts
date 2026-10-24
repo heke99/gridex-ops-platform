@@ -1,13 +1,7 @@
 import {resolveCanonicalOutboundContext} from '@/lib/ediel/core/kernel'
 import {readRequestedChangeSource,originateRequestedChange} from '@/lib/ediel/production/requestedChangeSource'
 import {renderAndQueueRequestedChange} from '@/lib/ediel/intent/lifeEventGateway'
-import {selectTenantUsableGridOwners} from '@/lib/grid-owners/platformGridOwnerResolver'
-/** The active grid owner usable by the tenant for the exact legal receiver: its own row, else a shared
- * registry row, never another tenant's (FINDINGS F101); ambiguity or absence selects none. */
-async function receiverGridOwner(companyId:string,legalReceiverId:string){
- const data=await selectTenantUsableGridOwners<{id:string;name:string|null;ediel_id:string|null}>({companyId,select:'id,name,ediel_id',match:{ediel_id:legalReceiverId,is_active:true}})
- return data.length===1?{id:data[0].id,name:data[0].name,ediel_id:data[0].ediel_id}:null
-}
+import {receiverGridOwner} from '@/lib/ediel/core/receiverGridOwner'
 /** The selector is an approved immutable source event, never a switch, a typed
  * date/status, a preview or a customer UUID supplied as authorization. */
 export async function prepareAndQueueProdatRequestedChange(input:{companyId:string;eventId:string;actorUserId:string;preferredRouteId?:string|null}){

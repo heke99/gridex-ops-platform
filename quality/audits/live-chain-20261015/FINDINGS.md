@@ -2476,9 +2476,12 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **Sidofynd H-11 (medel):** i världen bär 17 tidigare Z05 med orsak Z23 i testmiljön L-profilen, inte LK. Det pekar på fel bindning i en annan väg, sannolikt testvägen. Ej utrett.
 - ÖPPET: H4–H7 ska verifieras i en ny körning av H.
 
-### H-10 Ångerrätt och annullering av ett skickat byte (Z03C) hittar ingen communication_route för `supplier_switch` — BEKRÄFTAD (världen), hög; ÖPPEN
+### H-10 Ångerrätt och annullering av ett skickat byte (Z03C) hittar ingen communication_route för `supplier_switch` — BEKRÄFTAD (världen), hög; RÄTTAD (TS), ej omkörd i världen
 - För W fastnade bytet på `prepared` och ingen Z03C skapades. Felet var "Ingen aktiv communication_route hittades för supplier_switch."
-- Trolig orsak: annulleringen slår upp routen på ett annat sätt än registermaterialiseringen (F41 och F85). Ska utredas.
+- **Orsak:** `prepareAndQueueSwitchCancellation` skickade bara `receiverEdielId` till route-uppslaget, inte `gridOwner`. `findBestCommunicationRoute` (`lib/cis/db-routes.ts`) letar då bara efter en generell route (`grid_owner_id IS NULL`). I världen finns bara nätägarspecifika routes, som materialiseras från registret (F41 och F85). Både W:s ånger (via `prepareAndQueueProdatSwitch`) och C:s Z03C går genom funktionen.
+- **Samma fel finns i:** `prodatSupplyRescission` (Z08 H) och `prodatBilateralClosure` (Z08 LK). `prodatRequestedChange` hade redan rättningen i en lokal `receiverGridOwner`.
+- **Rättning:** `receiverGridOwner` är flyttad till `lib/ediel/core/receiverGridOwner.ts`. Funktionen används nu av de tre flödena när ingen route är vald. Den slår upp exakt en nätägare med mottagarens Ediel-id som tenanten får använda (F101) och väljer ingen vid tvetydighet. Den generella routen är kvar som reserv.
+- **Test:** `__tests__/ediel-supplier-switch-receiver-grid-owner-route.test.ts` har 6 fall. Före rättningen föll alla 6. 7 relaterade testfiler ger 71 pass. Täckningen 352/352, `tagged failing 0`.
 
 ### F körning 30 (2026-10-24 ca 11:50–13:50, världen på d547cedcd, snabbläge, F6c i cron-läge med 2 flikar) — AVBRUTEN av harnessens bakgrundsgräns på 2 h (T22), inget resultat för F7–F10
 - F1–F6b passerade.
