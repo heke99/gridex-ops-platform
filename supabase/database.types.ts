@@ -95710,6 +95710,15 @@ export type Database = {
         Args: { p_actor_user_id: string; p_company_id: string }
         Returns: number
       }
+      ediel_inbound_graph_snapshot_basis_v1: {
+        Args: {
+          p_company_id: string
+          p_customer_id: string
+          p_metering_point_id: string
+          p_site_id: string
+        }
+        Returns: Json
+      }
       ediel_inbound_reception_request_v1: {
         Args: {
           p_actor_user_id: string
@@ -95970,6 +95979,10 @@ export type Database = {
           p_raw_payload: string
           p_route_id: string
         }
+        Returns: Json
+      }
+      ediel_preserve_inbound_graph_payload_v1: {
+        Args: { current_row: Json; directive: Json; payload: Json }
         Returns: Json
       }
       ediel_probe_source_rule_pack_capture_v1: {
