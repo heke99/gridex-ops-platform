@@ -749,13 +749,71 @@ function isFinalizedUnderlayRefusal(error: unknown): boolean {
 }
 
 /**
- * Stores the month's underlays in one batch transaction. When the database refuses because a finalized
- * underlay's source values were corrected after it was bound (an E66 correction for an invoiced segment),
- * that one refusal used to roll back the whole batch and fail the tenant's month for every customer, on
- * every run until the month was locked (reality scenario J2, J2-01). Then every underlay is stored on its
- * own, under the same database checks; the refused one keeps its finalized content and is reported.
+ * Estimated database cost (ms) of storing one underlay: its source values are validated once per source message
+ * (~100 ms each, stored_contract_v1) and once per value (~1 ms). Measured in the world DB after migration
+ * 20261024140000 (G-6b): one quarter-hour meter-month (2 880 values, 30 daily sources) stores in ~6 s.
+ */
+export function estimatedUnderlayStoreCost(entry: { underlay: JsonRecord; items: JsonRecord[] }): number {
+  const payload = entry.underlay.payload as JsonRecord | undefined;
+  const lineage = Array.isArray(payload?.lineage) ? (payload.lineage as JsonRecord[]) : [];
+  const sources = lineage.length > 0
+    ? new Set(lineage.map((row) => text(row.source_message_id))).size
+    : Math.ceil(entry.items.length / 24);
+  return entry.items.length + 100 * sources;
+}
+
+/** Statement budget per batch: well inside the 8 s statement timeout of the API roles. */
+export const UNDERLAY_BATCH_COST_BUDGET = 4000;
+
+/**
+ * Splits a month's underlays, in order, into batches whose estimated cost stays within the budget. A month that
+ * fits stays one batch (one transaction, as before); an underlay that alone exceeds the budget is its own batch.
+ * One tenant-month of quarter-hour values never fit one statement (G-6b: ~21-82 s, 57014 on every run).
+ */
+export function underlayStoreBatches<T extends { underlay: JsonRecord; items: JsonRecord[] }>(entries: T[]): T[][] {
+  const batches: T[][] = [];
+  let current: T[] = [];
+  let cost = 0;
+  for (const entry of entries) {
+    const next = estimatedUnderlayStoreCost(entry);
+    if (current.length > 0 && cost + next > UNDERLAY_BATCH_COST_BUDGET) {
+      batches.push(current);
+      current = [];
+      cost = 0;
+    }
+    current.push(entry);
+    cost += next;
+  }
+  if (current.length > 0) batches.push(current);
+  return batches;
+}
+
+/**
+ * Stores the month's underlays in batches within the statement budget (G-6b), in order. Each batch is one
+ * database transaction; every store is idempotent (an unchanged bound underlay returns its id, an unbound one is
+ * re-stored), so a run that fails after some batches is completed by the next run. Any refusal other than the
+ * finalized-underlay one fails the run as before.
  */
 async function storeUnderlays(
+  companyId: string,
+  entries: Array<{ underlay: JsonRecord; items: JsonRecord[] }>,
+  actorUserId: string | null,
+): Promise<Array<{ id: string | null; refused: boolean }>> {
+  const stored: Array<{ id: string | null; refused: boolean }> = [];
+  for (const batch of underlayStoreBatches(entries)) {
+    stored.push(...(await storeUnderlayBatch(companyId, batch, actorUserId)));
+  }
+  return stored;
+}
+
+/**
+ * Stores one batch of underlays in one transaction. When the database refuses because a finalized
+ * underlay's source values were corrected after it was bound (an E66 correction for an invoiced segment),
+ * that one refusal used to roll back the whole batch and fail the tenant's month for every customer, on
+ * every run until the month was locked (reality scenario J2, J2-01). Then every underlay of the batch is stored
+ * on its own, under the same database checks; the refused one keeps its finalized content and is reported.
+ */
+async function storeUnderlayBatch(
   companyId: string,
   entries: Array<{ underlay: JsonRecord; items: JsonRecord[] }>,
   actorUserId: string | null,

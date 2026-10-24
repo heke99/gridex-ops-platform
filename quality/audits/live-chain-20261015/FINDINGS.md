@@ -2496,6 +2496,16 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 ### G-6b `gridex_store_billing_underlay_batch` tar cirka 21 s för en mätpunktsmånad och ryms inte inom satsgränsen på 8 s — MÄTT, KRITISK; ÖPPEN
 - `observation_v1` är O(token²) per värde och kostar cirka 3,2 s per 1000 värden. Till det kommer cirka 100 ms per källa.
 - Två möjliga lösningar: en mängdbaserad omskrivning av observationen med bevis på exakt samma utfall, eller lagring i mindre satser per kund eller segment.
+- **RÄTTAD 2026-10-24:** migrationen `20261024140000_g6b_billing_source_observations_once_per_transaction.sql` (`f900785b…`). Inga kroppar var skyddade.
+  - `observations_v1` beräknar en transaktions alla observationer i ett pass och faller tillbaka på `observation_v1`.
+  - `bases_v1` återanvänder observationerna.
+  - Lagret bygger sin resultatarray en gång i stället för en gång per värde, vilket var huvuddelen av tiden.
+  - Insättningen av poster har fått `jsonb_populate_record` en gång per post.
+  - Motorn lagrar i delar under en kostnadsbudget, ungefär en mätpunktsmånad per del.
+  - **Tider:** en mätpunktsmånad tar 6,0–6,8 s, mot 82 s före. Fyra mätpunktsmånader i en sats tar 27–41 s, så de ryms inte i en enda sats. Utfallet är identiskt, och 82 583 ordinaler jämfördes mot världen.
+  - Test: `reality-g6b-…` 8 tester. Täckningen 352/352. Applicerad i världen.
+  - **ÄGARBESLUT 2026-10-24 (nr 25):** atomicitet per del är OK. Redan lagrade delar ligger kvar om en körning fallerar, och nästa körning fyller i resten.
+  - ÖPPET: marginalen är liten, eftersom en del tar cirka 6 s mot gränsen 8 s. Resten ligger mest i `stored_contract_v1` med cirka 80 ms per källa.
 
 ### G-7 En ny tenants revalideringsjobb väntar efter 181 äldre jobb från andra tenants i världen — WORLD/HARNESS; ÖPPEN
 - Claimen fungerar som den är byggd (G-3), men 20 jobb var tionde minut räcker inte för eftersläpningen.
