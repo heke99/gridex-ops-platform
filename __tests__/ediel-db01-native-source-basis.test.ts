@@ -87,7 +87,7 @@ for x in ast.parse(s).body:
  if isinstance(x,ast.FunctionDef):break
  if isinstance(x,ast.Assign) and len(x.targets)==1 and isinstance(x.targets[0],ast.Name):
   k=x.targets[0].id
-  if k in ['current_read_manifest','current_read_forwards','current_reader_callers','forwards','repair','repair_unit','producer','producer_unit','canonical_dependencies','required','current_only','required_base']:
+  if k in ['current_read_manifest','current_read_forwards','current_reader_callers','forwards','repair','repair_unit','producer','producer_unit','canonical_dependencies','s01_current_owner','required','current_only','required_base']:
    n[k]=eval(compile(ast.Expression(x.value),'<declared-inputs>','eval'),{},n)
 print(json.dumps({'root':n['required'],'base':n['required_base'],'reader':n['current_read_manifest']}))`], {cwd: root, encoding: 'utf8'})
   const declared = JSON.parse(declarations) as {root: string[]; base: string[]; reader: Array<Input & {path: string}>}
@@ -111,6 +111,7 @@ print(json.dumps({'root':n['required'],'base':n['required_base'],'reader':n['cur
     root_source: {blobs: rootInputs}, base_source: {blobs: Object.fromEntries(dependencies.map(path => [path, identities[path].base]))},
     historical_source_basis: historical, current_source_basis: 'ROOT_only_no_legacy_hint_wrapper',
     current_database_basis: {kind: 'BASE56_repair_two_forwards_plus_delivered_reader_guard_closure', forwards: declared.reader, schema_path: 'supabase/schema.sql'},
+    current_s01_source_install: {"donor_path": "supabase/migrations/20261023201053_ediel_s01_area_aggregate_identity.sql", "donor_sha256": "ae647d1d240a2e3cfa202906766eed3b13f6d5d15a0afd14885fe36b63da4a5d", source_schema_sha256: createHash('sha256').update(readFileSync(join(root, 'supabase/schema.sql'))).digest('hex'), "predecessor_definition_sha256": "11de04c3af4dd571693cfe8b249d3a30fc163848a78d1e7aee287ab3c093a7b6", "sql_sha256": "deafe7916db6e2c82f7c66cacc9560f1fd44d539e6a9129e115dce658864580b", "status": "PASS", "exit_code": 0},
     current_guard_result: {status: 'PASS', source_sha: git('rev-parse', 'HEAD').trim(), reader_function_names: 233, helper_function_names: 377, function_definitions: 377, source_qualified_dependency_extensions: s01DependencyExtensions.map(item => ({...item, identity: [...item.identity]})), delivered_relation_objects: 18, mismatches: [],
       source_schema_sha256: createHash('sha256').update(readFileSync(join(root, 'supabase/schema.sql'))).digest('hex')},
     current_api_schema_result: {status: 'PASS', source_sha: git('rev-parse', 'HEAD').trim(),
@@ -266,6 +267,17 @@ if stage=='admission':print(json.dumps(env['canonical_facade_basis']))
 
 // The actual e9 national case failed before legal/archive guards because its
 // current reader RPC was absent from the reconstructed historical database.
+it.each(['missing', 'failed', 'donor', 'schema', 'predecessor', 'sql'] as const)('refuses unqualified S01 read-side install %s despite clean guard counters', async shape => {
+  const installed = receipt.current_s01_source_install as Record<string, unknown>
+  if (shape === 'missing') delete receipt.current_s01_source_install
+  if (shape === 'failed') installed.exit_code = 1
+  if (shape === 'donor') installed.donor_sha256 = 'f'.repeat(64)
+  if (shape === 'schema') installed.source_schema_sha256 = 'f'.repeat(64)
+  if (shape === 'predecessor') installed.predecessor_definition_sha256 = 'f'.repeat(64)
+  if (shape === 'sql') installed.sql_sha256 = 'f'.repeat(64)
+  await expect(load('current')).rejects.toThrow('db01_native_actual_current_guard_qualification_required')
+})
+
 it('refuses current native admission without qualified delivered reader dependencies', async () => {
   delete receipt.current_database_basis
   await expect(load('current')).rejects.toThrow('db01_native_current_reader_guard_basis_required')

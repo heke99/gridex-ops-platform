@@ -34,6 +34,7 @@ const receipt = JSON.parse(readFileSync(receiptPath, 'utf8')) as {
     canonical_facade_basis: {source_revision: string; path: string; historical_alias: string; current_alias: string; base: GitInput; root: GitInput};
     public_creator_input: Record<string, string>}
   current_database_basis: {kind: string; forwards: Array<GitInput & {path: string}>; schema_path: string}
+  current_s01_source_install?: {status: string; exit_code: number; donor_path: string; donor_sha256: string; source_schema_sha256: string; predecessor_definition_sha256: string; sql_sha256: string}
   current_guard_result?: {source_qualified_dependency_extensions?: Array<{name: string; identity: string[]; body_sha256: string}>; status: string; source_sha: string; source_schema_sha256: string; reader_function_names: number; helper_function_names: number; function_definitions: number; delivered_relation_objects: number; mismatches: unknown[]}
   current_api_schema_result?: {status: string; source_sha: string; rpc_paths: string[]}
   phases?: Record<string, {status: string; exit_code: number | null}>
@@ -59,7 +60,7 @@ const fileHash = (path: string) => createHash('sha256').update(readFileSync(path
 const sameInput = (a: GitInput | undefined, b: GitInput | undefined) => !!a && !!b && a.mode === b.mode &&
   a.git_blob_oid === b.git_blob_oid && a.sha256 === b.sha256
 const basis = receipt.historical_source_basis, overlay = basis?.module_overrides?.[0]
-if (receipt.required_input_paths?.length !== 58 || new Set(receipt.required_input_paths).size !== 58 ||
+if (receipt.required_input_paths?.length !== 59 || new Set(receipt.required_input_paths).size !== 59 ||
     receipt.required_base_input_paths?.length !== 35 || new Set(receipt.required_base_input_paths).size !== 35 ||
     basis?.kind !== 'reconstructed_public_births' || basis.default_alias !== 'BASE56' || basis.module_overrides?.length !== 1 ||
     overlay?.specifier !== '@/lib/ediel/testing/agtEngine' || overlay.path !== producerPath || overlay.source !== 'ROOT' ||
@@ -275,6 +276,12 @@ const s01DependencyExtensions = [
 ]
 if (phase === 'current' && (['current_guard_preparation', 'current_read_forwards', 'current_guard_qualification', 'current_api_schema'].some(name =>
     receipt.phases?.[name]?.status !== 'PASS' || receipt.phases[name].exit_code !== 0) ||
+    receipt.current_s01_source_install?.status !== 'PASS' || receipt.current_s01_source_install.exit_code !== 0 ||
+    receipt.current_s01_source_install.donor_path !== 'supabase/migrations/20261023201053_ediel_s01_area_aggregate_identity.sql' ||
+    receipt.current_s01_source_install.donor_sha256 !== 'ae647d1d240a2e3cfa202906766eed3b13f6d5d15a0afd14885fe36b63da4a5d' ||
+    receipt.current_s01_source_install.predecessor_definition_sha256 !== '11de04c3af4dd571693cfe8b249d3a30fc163848a78d1e7aee287ab3c093a7b6' ||
+    receipt.current_s01_source_install.sql_sha256 !== 'deafe7916db6e2c82f7c66cacc9560f1fd44d539e6a9129e115dce658864580b' ||
+    receipt.current_s01_source_install.source_schema_sha256 !== fileHash(resolve(root, currentDatabase.schema_path)) ||
     receipt.current_guard_result?.status !== 'PASS' || receipt.current_guard_result.source_sha !== head ||
     receipt.current_guard_result.reader_function_names !== 233 || receipt.current_guard_result.helper_function_names !== 377 ||
     receipt.current_guard_result.function_definitions !== 377 || receipt.current_guard_result.delivered_relation_objects !== 18 ||
