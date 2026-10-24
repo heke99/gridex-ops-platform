@@ -76,7 +76,9 @@ export function inspectMimeStructure(raw: string, options: { preserveBytes?: boo
     if (next.depth > 16 || entities.length >= 256 || next.raw.length > 25 * 1024 * 1024) {
       exceededLimits = true; issues.add('mime_structure_limit'); continue
     }
-    const separator = next.raw.search(/\r?\n\r?\n/)
+    // A MIME part may have an empty header section: one leading CRLF (or LF).
+    const emptyHeaderLength = next.raw.startsWith('\r\n') ? 2 : next.raw.startsWith('\n') ? 1 : 0
+    const separator = emptyHeaderLength ? 0 : next.raw.search(/\r?\n\r?\n/)
     if (separator < 0) continue
     if (separator > 65536) { exceededLimits = true; issues.add('mime_header_limit'); continue }
     const headers = mimeFields(next.raw.slice(0, separator))
@@ -92,7 +94,7 @@ export function inspectMimeStructure(raw: string, options: { preserveBytes?: boo
     const encodings = headers.get('content-transfer-encoding') ?? ['7bit']
     if (encodings.length !== 1) { issues.add('mime_transfer_encoding_ambiguous'); continue }
     const encoding = encodings[0].toLowerCase()
-    const encodedBody = next.raw.slice(separator).replace(/^\r?\n\r?\n/, '')
+    const encodedBody = emptyHeaderLength ? next.raw.slice(emptyHeaderLength) : next.raw.slice(separator).replace(/^\r?\n\r?\n/, '')
     if (encoding === 'base64' && !validBase64(encodedBody)) issues.add('mime_transfer_encoding_invalid')
     if (!['7bit','8bit','binary','base64','quoted-printable'].includes(encoding)) issues.add('mime_transfer_encoding_unsupported')
     const body = decodedBody(encodedBody, encoding, options.preserveBytes)

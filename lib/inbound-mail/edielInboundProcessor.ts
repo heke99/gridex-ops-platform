@@ -1,5 +1,6 @@
 import { prepareDuplicate103Response } from '@/lib/ediel/inbound/duplicateResponses'
 import { InboundReceptionHeldError, readUnattributedTechnicalIntake } from '@/lib/ediel/inbound/receptions'
+import { selectInboundEdifactInterchange, unbTestIndicator } from '@/lib/inbound-mail/inboundEdifactSources'
 import { parseInboundEmailContent } from '@/lib/inbound-mail/edielEmailParser'
 import { isDeliveryStatusNotification } from './dsnClassifier'
 import { parseDeliveryStatusReport } from './dsnDisposition'
@@ -136,7 +137,7 @@ export async function processInboundEmailMessage(input: {
 
   const attachmentResult = await supabaseService
     .from('inbound_email_attachments')
-    .select('id,raw_text,is_edifact_candidate,filename')
+    .select('id,raw_text,is_edifact_candidate,filename,mime_type')
     .eq('inbound_email_message_id', input.inboundEmailMessageId)
     .order('is_edifact_candidate', { ascending: false })
     .limit(MAX_PHYSICAL_ATTACHMENTS + 1)
@@ -184,17 +185,41 @@ export async function processInboundEmailMessage(input: {
       status: 'processed', matchStatus: 'ai_bi_reconciled', matchPayload: { classification: 'ai_bi_reconciliation', sourceMessageId: message.id } })
     return { status: 'processed', companyId, parseResultId: null }
   }
-  const attachmentText = [
-    typeof row.raw_edifact_payload === 'string' ? row.raw_edifact_payload : null,
-    ...attachments
-      .map((attachment) => typeof attachment.raw_text === 'string' ? attachment.raw_text : null),
-  ].filter((value): value is string => Boolean(value)).join('\n\n')
+  // Reconcile raw MIME with every stored physical projection before parsing;
+  // attachment persistence alone does not prove that all parts were retained.
+  let parsed: ReturnType<typeof parseInboundEmailContent>
+  let selection: ReturnType<typeof selectInboundEdifactInterchange>
+  try {
+    selection = selectInboundEdifactInterchange([
+      { text: row.raw_edifact_payload },
+      ...attachments.map(attachment => ({ text: attachment.raw_text, filename: attachment.filename, mimeType: attachment.mime_type })),
+      { text: row.body_text },
+      { text: row.body_html },
+      { text: row.raw_email },
+    ])
+    parsed = selection.kind === 'multiple' ? null : parseInboundEmailContent({ attachmentText: selection.kind === 'single' ? selection.payload : null })
+  } catch (error) {
+    const companyId = text(row.company_id)
+    const reason = error instanceof Error ? error.message : 'edifact_source_unparseable'
+    await updateInboundEmailProcessingStatus({ inboundEmailMessageId: input.inboundEmailMessageId, companyId,
+      status: 'manual_review', matchStatus: 'edifact_unparseable', matchPayload: { reason, authorizesBusinessEffect: false },
+      errorMessage: 'EDIFACT-källan kunde inte avgränsas eller tolkas säkert.' })
+    await createInboundMailTask({ companyId, title: 'Inkommande Ediel-fil kan inte tolkas',
+      description: 'Kontrollera originalets fysiska filer innan ny behandling.', metadata: { inboundEmailMessageId: input.inboundEmailMessageId, reason }, actorUserId: input.actorUserId ?? null })
+    return { status: 'manual_review', companyId, parseResultId: null }
+  }
 
-  const parsed = parseInboundEmailContent({
-    rawEmail: typeof row.raw_email === 'string' ? row.raw_email : null,
-    bodyText: typeof row.body_text === 'string' ? row.body_text : null,
-    attachmentText,
-  })
+  if (selection.kind === 'multiple') {
+    const companyId = text(row.company_id)
+    await updateInboundEmailProcessingStatus({ inboundEmailMessageId: input.inboundEmailMessageId, companyId,
+      status: 'manual_review', matchStatus: 'multiple_interchanges',
+      matchPayload: { interchangeCount: selection.interchangeCount, interchangeReferences: selection.interchangeReferences, authorizesBusinessEffect: false },
+      errorMessage: 'Mail innehåller flera skilda EDIFACT-interchange och kräver manuell granskning.' })
+    await createInboundMailTask({ companyId, title: 'Inkommande Ediel-mail innehåller flera interchange',
+      description: 'Kontrollera de fysiska filerna och hantera varje interchange separat.',
+      metadata: { inboundEmailMessageId: input.inboundEmailMessageId, interchangeReferences: selection.interchangeReferences }, actorUserId: input.actorUserId ?? null })
+    return { status: 'manual_review', companyId, parseResultId: null }
+  }
 
   if (!parsed) {
     await updateInboundEmailProcessingStatus({
@@ -238,6 +263,19 @@ export async function processInboundEmailMessage(input: {
     environment,
     binding: input.testCenterTenantBinding,
   })
+
+  // Preserve validated Test Center binding precedence; a production mailbox
+  // cannot turn UNB/0035=1 into a production business reception.
+  if (environment === 'production' && !input.testCenterTenantBinding && unbTestIndicator(parsed.rawPayload) === '1') {
+    const companyId = text(row.company_id)
+    await updateInboundEmailProcessingStatus({ inboundEmailMessageId: input.inboundEmailMessageId, companyId,
+      status: 'manual_review', matchStatus: 'environment_mismatch',
+      matchPayload: { mailboxEnvironment: environment, unbTestIndicator: '1', authorizesBusinessEffect: false },
+      errorMessage: 'Ediel-testinterchange kom till produktionsbrevlådan.' })
+    await createInboundMailTask({ companyId, title: 'Ediel-testfil kom till produktion',
+      description: 'Testindikatorn kräver separat testbehandling.', metadata: { inboundEmailMessageId: input.inboundEmailMessageId }, actorUserId: input.actorUserId ?? null })
+    return { status: 'manual_review', companyId, parseResultId: null }
+  }
 
   const tenant = await resolveTenantForInboundEdiel({
     existingCompanyId: trustedExistingCompanyId,
