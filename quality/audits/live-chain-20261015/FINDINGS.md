@@ -2459,6 +2459,12 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
   - Test: `reality-g3-provisioning-fair-claim` 5/5, där 2 föll mot den gamla kroppen. Täckningen 352/352.
   - ÖPPET: samma fråga om rättvis fördelning finns i utkorgens claim (P8).
 
+### F körning 30 (2026-10-24 ca 11:50–13:50, världen på d547cedcd, snabbläge, F6c i cron-läge med 2 flikar) — AVBRUTEN av harnessens bakgrundsgräns på 2 h (T22), inget resultat för F7–F10
+- F1–F6b passerade.
+- I F6c klickade operatören på 3 filer, och cron tog upp 26 av 120 innan körningen avbröts. Cron tar alltså upp ungefär en fil per körning.
+- **Genomströmningen är för låg (G-8, hög):** upptagningen kostar 2–3 minuter per fil. Varje värde validerar fortfarande hela filen i consume (`gridex_consume_utilts_metering_v1` → `stored_contract_v1`, se G-2 och G-6). För 123 filer krävs i dag flera timmar.
+- **T22:** långa scenarier ska startas fristående med `setsid nohup`, inte som bakgrundskommando med en gräns på 2 h.
+
 ### G körning 2 (2026-10-24, världen på d547cedcd): 8 av 11 gröna; G7, G10 och G11 röda
 - **G7:** se G-4. **G10:** se G-6, ingen följd av G7. **G11:** se G-7.
 
