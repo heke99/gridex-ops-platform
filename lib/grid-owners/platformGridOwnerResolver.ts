@@ -1,4 +1,5 @@
 import { supabaseService } from '@/lib/supabase/service'
+import { tenantDb } from '@/lib/supabase/tenantDb'
 
 type JsonRecord = Record<string, unknown>
 
@@ -51,6 +52,109 @@ export async function resolvePlatformGridOwnerByAnyId(input: {
     throw byOpsId.error
   }
   return (byOpsId.data as unknown as JsonRecord | null) ?? null
+}
+
+/**
+ * Grid owner rows a tenant may use for an exact key such as an Ediel id or a
+ * grid area code (FINDINGS F101 variants; same rule as F58 below): the
+ * tenant's own rows first and, only when it has none, the shared registry rows
+ * (company_id null). Another tenant's row is never returned. The result is the
+ * first non-empty tier (at most `limit` rows), so every caller keeps its own
+ * "exactly one, never guess" rule and an ambiguous own tier never falls
+ * through to a shared row.
+ */
+export async function selectTenantUsableGridOwners<T>(input: {
+  companyId: string
+  select: string
+  match: Record<string, string | boolean>
+  limit?: number
+}): Promise<T[]> {
+  const limit = input.limit ?? 2
+  const db = tenantDb(input.companyId)
+  const scoped = (shared: boolean) => {
+    // The shared registry tier is deliberate; it must not inherit an own-company predicate.
+    let query = (shared
+      ? db.unscoped().from('grid_owners').select(input.select).is('company_id', null)
+      : db.from('grid_owners').select(input.select)) as ReturnType<ReturnType<typeof supabaseService.from>['select']>
+    for (const [column, value] of Object.entries(input.match)) query = query.eq(column, value)
+    return query.limit(limit)
+  }
+  const own = await scoped(false)
+  if (own.error) throw own.error
+  if (own.data?.length) return own.data as unknown as T[]
+  const shared = await scoped(true)
+  if (shared.error) throw shared.error
+  return (shared.data ?? []) as unknown as T[]
+}
+
+/** Current admission date for Swedish registry lifecycle checks. This clock is
+ * not a claimed message receipt date or source/tenant authorization. */
+export function currentGridRegistryDate(): string {
+  return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Stockholm', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
+}
+
+/**
+ * The grid owner a tenant may use for a wire grid area code (FINDINGS F114). In the registry model (F41) grid owner
+ * rows carry `owner_code` = the Ediel id, so an area code no longer names a grid owner row; the area is mapped by
+ * platform_grid_areas (active, inside its validity window) -> platform_grid_owners (active) -> ops_grid_owner_id.
+ *   1. The tenant's own grid_owners row whose owner_code is the area code (the legacy convention), when one exists.
+ *      Two own rows are ambiguous and never fall through.
+ *   2. Otherwise every shared candidate: a shared row (company_id null) whose owner_code is the area code, and, with
+ *      `registryArea`, the area's mapped grid owner when that row is the tenant's own or a shared row.
+ * Exactly one distinct candidate is returned; none or several give null. Another tenant's row is never returned.
+ */
+export async function selectTenantGridOwnerIdForGridArea(input: {
+  companyId: string
+  gridAreaCode: string | null | undefined
+  registryArea: boolean
+  today?: string
+}): Promise<string | null> {
+  const code = typeof input.gridAreaCode === 'string' ? input.gridAreaCode.trim() : ''
+  if (!code) return null
+  const today = input.today ?? currentGridRegistryDate()
+  const byCode = await selectTenantUsableGridOwners<{ id: string; company_id: string | null }>({
+    companyId: input.companyId, select: 'id,company_id', match: { owner_code: code, is_active: true },
+  })
+  if (byCode.some(row => row.company_id === input.companyId)) return byCode.length === 1 ? byCode[0].id : null
+  const candidates = new Set(byCode.map(row => row.id))
+  if (candidates.size > 1) return null
+  if (input.registryArea) {
+    const mapped = await selectRegistryAreaGridOwnerId(input.companyId, code.replace(/\s+/g, '').toUpperCase(), today)
+    if (mapped === 'ambiguous') return null
+    if (mapped) {
+      const usable = await selectTenantUsableGridOwners<{ id: string }>({
+        companyId: input.companyId, select: 'id', match: { id: mapped, is_active: true },
+      })
+      for (const row of usable) candidates.add(row.id)
+    }
+  }
+  return candidates.size === 1 ? [...candidates][0] : null
+}
+
+/** OPS grid owner id the platform registry maps an area code to, unscoped; tenant usability is checked by the caller. */
+async function selectRegistryAreaGridOwnerId(companyId: string, code: string, today: string): Promise<string | 'ambiguous' | null> {
+  // These platform catalogs have no company_id; the caller checks the mapped OPS row's tenant usability.
+  const areas = await tenantDb(companyId).unscoped()
+    .from('platform_grid_areas')
+    .select('grid_owner_id,valid_from,valid_to')
+    .eq('grid_area_code', code)
+    .eq('is_active', true)
+    .limit(2)
+  if (areas.error) throw areas.error
+  const current = ((areas.data ?? []) as Array<{ grid_owner_id: string | null; valid_from: string | null; valid_to: string | null }>)
+    .filter(area => (!area.valid_from || area.valid_from <= today) && (!area.valid_to || area.valid_to >= today))
+  if (current.length > 1) return 'ambiguous'
+  const platformId = current[0]?.grid_owner_id
+  if (!platformId) return null
+  const owner = await tenantDb(companyId).unscoped()
+    .from('platform_grid_owners')
+    .select('ops_grid_owner_id')
+    .eq('id', platformId)
+    .eq('is_active', true)
+    .maybeSingle()
+  if (owner.error) throw owner.error
+  const opsId = (owner.data as { ops_grid_owner_id?: string | null } | null)?.ops_grid_owner_id
+  return typeof opsId === 'string' && opsId.trim() ? opsId.trim() : null
 }
 
 export type OpsGridOwnerNormalization = {

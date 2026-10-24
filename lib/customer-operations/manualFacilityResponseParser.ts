@@ -7,6 +7,7 @@
 // request is routed to needs_review and NOTHING is applied automatically.
 
 import { supabaseService } from '@/lib/supabase/service'
+import { currentGridRegistryDate, selectTenantUsableGridOwners } from '@/lib/grid-owners/platformGridOwnerResolver'
 import { emitCustomerOperationEvent } from '@/lib/customers/customerOperationEvents'
 import { completeFacilityLookupAndRunNextSteps } from '@/lib/customer-operations/facilityResponseOrchestrator'
 import { FacilityLookupPostCommitError } from '@/lib/facility/facilityLookupWorkflow'
@@ -140,6 +141,7 @@ export async function applyManualFacilityResponse(input: {
   automaticInbound?: { inboundId: string; sourceHash: string; facts?: Record<string, unknown> }
 }): Promise<ManualFacilityParseResult> {
   const reasons: string[] = []
+  const registryDate = currentGridRegistryDate()
   const confidence = scoreManualFacilityPayload(input.extracted)
   const requestId = String(input.request.id)
   const siteId = clean(input.request.customer_site_id)
@@ -179,17 +181,35 @@ export async function applyManualFacilityResponse(input: {
   if (effectiveGridAreaCode) {
     const areaResult = await supabaseService
       .from('platform_grid_areas')
-      .select('id,grid_area_code,grid_owner_id,price_area,is_active')
+      .select('id,grid_area_code,grid_owner_id,price_area,is_active,valid_from,valid_to,platform_grid_owners(ops_grid_owner_id,is_active)')
       .eq('grid_area_code', effectiveGridAreaCode.toUpperCase())
       .eq('is_active', true)
       .limit(2)
     if (areaResult.error) throw areaResult.error
     const areas = (areaResult.data ?? []) as JsonRecord[]
-    if (areas.length === 1) verifiedGridArea = areas[0]
-    else reasons.push(areas.length === 0 ? 'grid_area_not_in_masterdata' : 'grid_area_masterdata_ambiguous')
+    if (areas.length === 1) {
+      const area=areas[0]
+      const validBound=(value:unknown):value is string|null=>value===null||(typeof value==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value)&&Number.isFinite(Date.parse(value+'T00:00:00Z'))&&new Date(value+'T00:00:00Z').toISOString().slice(0,10)===value)
+      if(!validBound(area.valid_from)||!validBound(area.valid_to))reasons.push('grid_area_lifecycle_unavailable')
+      else if((area.valid_from&&area.valid_from>registryDate)||(area.valid_to&&area.valid_to<registryDate))reasons.push('grid_area_not_current')
+      else verifiedGridArea=area
+    } else reasons.push(areas.length === 0 ? 'grid_area_not_in_masterdata' : 'grid_area_masterdata_ambiguous')
   }
   const expectedGridOwnerId = clean(input.request.grid_owner_id) ?? clean(site?.grid_owner_id)
-  if (verifiedGridArea && expectedGridOwnerId && clean(verifiedGridArea.grid_owner_id) !== expectedGridOwnerId) {
+  // platform_grid_areas.grid_owner_id is a platform_grid_owners id, while sites (and most requests) carry the OPS
+  // grid_owners id; the area's grid owner is either namespace of the same row (FINDINGS F114).
+  const areaOwner = verifiedGridArea?.platform_grid_owners as { ops_grid_owner_id?: unknown; is_active?:unknown } | null | undefined
+  if(verifiedGridArea) {
+    // A namespace bridge is usable only while both owner rows are active and
+    // the exact OPS row belongs to this tenant or the shared registry. Missing
+    // lifecycle/ownership evidence stays local review before any completion.
+    const mappedOpsId=clean(areaOwner?.ops_grid_owner_id)
+    const usable=areaOwner?.is_active===true&&mappedOpsId
+      ?await selectTenantUsableGridOwners<{id:string}>({companyId:input.companyId,select:'id',match:{id:mappedOpsId,is_active:true}}):[]
+    if(usable.length!==1)reasons.push('grid_area_grid_owner_unavailable')
+  }
+  const areaGridOwnerIds = [clean(verifiedGridArea?.grid_owner_id), clean(areaOwner?.ops_grid_owner_id)].filter(Boolean)
+  if (verifiedGridArea && expectedGridOwnerId && !areaGridOwnerIds.includes(expectedGridOwnerId)) {
     reasons.push('grid_area_grid_owner_mismatch')
   }
   const replyPriceArea = clean(input.extracted.price_area_code)

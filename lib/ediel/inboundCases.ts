@@ -21,6 +21,7 @@ import { parseUna } from '@/lib/ediel/core/una'
 // lib/ediel/inboundCases.ts
 
 import { supabaseService } from '@/lib/supabase/service'
+import { selectTenantGridOwnerIdForGridArea } from '@/lib/grid-owners/platformGridOwnerResolver'
 import { tenantDb } from '@/lib/supabase/tenantDb'
 import { createEdielMessageEvent, getEdielMessageById, linkEdielMessage } from '@/lib/ediel/db'
 import {readReceivedProdatApplicationObjects} from '@/lib/ediel/core/receivedProdatApplicationObjects'
@@ -610,7 +611,12 @@ export async function getEdielInboundCaseForMessage(companyId: string, messageId
     review_decision:{...row.review_decision,structuralProjection:{appliedObjectCount:final?.plans.length??0,totalObjectCount:application?.objects.length??0,protectedEffectAvailable:final!==null}}}
 }
 
-async function getGridOwnerIdByGridArea(companyId: string, gridAreaCode: string | null): Promise<string | null> {
+/** The single-case registry path resolves an active owner usable by this tenant.
+ * The protected object-batch path keeps the exact own-only lookup its SQL owner
+ * accepts; this does not activate the held F113 registry namespace proposal. */
+export async function getGridOwnerIdByGridArea(companyId: string, gridAreaCode: string | null, options: { registryArea?: boolean } = {}): Promise<string | null> {
+  if (options.registryArea !== false) return selectTenantGridOwnerIdForGridArea({ companyId, gridAreaCode, registryArea: true })
+
   if (!gridAreaCode) return null
   const { data, error } = await supabaseService
     .from('grid_owners')
@@ -621,6 +627,7 @@ async function getGridOwnerIdByGridArea(companyId: string, gridAreaCode: string 
 
   if (error) throw error
   return (data as { id?: string } | null)?.id ?? null
+
 }
 
 async function insertAuditLog(params: {
@@ -751,12 +758,32 @@ function inboundCustomerCommand(params: {
         },
       },
     }
+    // FINDINGS F114: gridex_update_jsonb_row assigns every key present in the payload, so an unresolved grid area
+    // (null) would clear the grid owner already on the selected or matched site and metering point. The key is
+    // omitted instead (an insert gets the column default, null); a resolved grid owner, also a different one, stays.
+    // The object batch path (sourceId) keeps its replay-hashed command shape; its update modes drop nulls below.
+    if (!params.sourceId && gridOwnerId === null) {
+      delete command.site?.grid_owner_id
+      delete command.metering_point?.grid_owner_id
+    }
     if (!params.sourceId || mode==='create_new_customer') return command
     // Selected graph IDs are checked against the exact source object before any
     // RPC. The existing RPC updates selected site/meter rows even when its
     // update_existing flag is false, so link-only carries identity fields only.
     if (mode==='link_existing_only') return {...command,update_existing:false,customer:{},
       site:{facility_id:meterPointId},metering_point:{meter_point_id:meterPointId}}
+    const {customer,site,meter}=wireCarriedGraphUpdate(command,inboundCase)
+    return {...command,customer,site,metering_point:meter}
+
+}
+
+type InboundGraphRecords = { customer: JsonRecord; site: JsonRecord; meter: JsonRecord }
+/** The part of an inbound graph command the received object actually carries: nulls, system fields (status,
+ * creator, source, metadata) and the fallbacks that only stand in for an absent wire value are removed. The object
+ * batch sends exactly this (its replay-hashed command shape); the single-object path uses it to know which keys
+ * the message carries (FINDINGS F114). */
+function wireCarriedGraphUpdate(command: CanonicalOnboardingCommand, inboundCase: EdielInboundCaseRow): InboundGraphRecords {
+    const parsedCustomer = inboundCase.parsed_customer, parsedSite = inboundCase.parsed_site, parsedMeter = inboundCase.parsed_metering_point
     const withoutNulls=(value:Record<string,unknown>):Record<string,unknown>=>Object.fromEntries(Object.entries(value).filter(([,v])=>v!==null && v!==undefined))
     const customer=withoutNulls(command.customer), site=withoutNulls(command.site ?? {}), meter=withoutNulls(command.metering_point ?? {})
     for(const record of [customer,site,meter]) for(const key of ['status','created_by']) delete record[key]
@@ -767,8 +794,109 @@ function inboundCustomerCommand(params: {
     if (!trimOrNull(parsedSite.country)) delete site.country
     delete meter.measurement_type;delete meter.is_settlement_relevant
     if (!['D','M'].includes(trimOrNull(parsedMeter.readingFrequency) ?? '')) delete meter.reading_frequency
-    return {...command,customer,site,metering_point:meter}
+    return {customer,site,meter}
+}
 
+type ExistingInboundGraph = { customer: JsonRecord | null; site: JsonRecord | null; meter: JsonRecord | null }
+const isJsonRecord = (value: unknown): value is JsonRecord => typeof value === 'object' && value !== null && !Array.isArray(value)
+/** gridex_normalize_facility_id / gridex_normalize_metering_point_id and gridex_normalize_personal_number /
+ * gridex_normalize_org_number, which the generated normalized_* columns use. */
+const normalizeGraphIdentifier = (value: unknown): string | null => typeof value === 'string' ? value.replace(/[^A-Za-z0-9]/g, '').toUpperCase() || null : null
+const normalizeLegalNumber = (value: unknown): string | null => typeof value === 'string' && value.trim() ? value.replace(/[^0-9]/g, '') || null : null
+
+/** The rows of this tenant that canonical_onboard_customer_graph will update for the command, resolved the way the
+ * RPC resolves them: the selected customer, else the single customer with the command's personal or organisation
+ * number; then the selected site/point of that customer, else its newest one with the command's facility/point id.
+ * None is returned where the RPC inserts, refuses or reports an ambiguous match. */
+async function readExistingInboundGraph(command: CanonicalOnboardingCommand): Promise<ExistingInboundGraph> {
+  const db = tenantDb(command.company_id)
+  const none: ExistingInboundGraph = { customer: null, site: null, meter: null }
+  const select = (table: string) => db.from(table).select('*') as ScopedSelect
+  const single = async (query: ScopedSelect): Promise<JsonRecord | null> => {
+    const { data, error } = await query.maybeSingle()
+    if (error) throw error
+    return isJsonRecord(data) ? data : null
+  }
+  const newest = async (query: ScopedSelect): Promise<JsonRecord | null> => {
+    const { data, error } = await query.order('created_at', { ascending: false }).limit(1)
+    if (error) throw error
+    return Array.isArray(data) && isJsonRecord(data[0]) ? data[0] : null
+  }
+  let customer: JsonRecord | null = null
+  const selectedCustomerId = trimOrNull(command.existing_customer_id)
+  if (selectedCustomerId) {
+    customer = await single(select('customers').eq('id', selectedCustomerId))
+  } else if (command.matching_policy === 'link_selected' || command.matching_policy === 'link_unique') {
+    const candidates = new Map<string, JsonRecord>()
+    for (const [column, value] of [['normalized_personal_number', normalizeLegalNumber(command.customer.personal_number)],
+      ['normalized_org_number', normalizeLegalNumber(command.customer.org_number)]] as const) {
+      if (!value) continue
+      const { data, error } = await select('customers').eq(column, value).limit(2)
+      if (error) throw error
+      for (const row of Array.isArray(data) ? data : []) if (isJsonRecord(row) && typeof row.id === 'string') candidates.set(row.id, row)
+    }
+    // Several candidates make the RPC report an ambiguous match without writing.
+    if (candidates.size === 1) customer = [...candidates.values()][0]
+  }
+  if (!customer || typeof customer.id !== 'string') return none
+  const customerId = customer.id
+  const selectedSiteId = trimOrNull(command.existing_site_id)
+  const facilityId = normalizeGraphIdentifier(command.site?.facility_id)
+  const site = selectedSiteId ? await single(select('customer_sites').eq('id', selectedSiteId).eq('customer_id', customerId))
+    : facilityId ? await newest(select('customer_sites').eq('customer_id', customerId).eq('normalized_facility_id', facilityId)) : null
+  const selectedPointId = trimOrNull(command.existing_metering_point_id)
+  const pointId = normalizeGraphIdentifier(command.metering_point?.meter_point_id ?? command.metering_point?.metering_point_id)
+  const meter = selectedPointId ? await single(select('metering_points').eq('id', selectedPointId).eq('customer_id', customerId))
+    : pointId ? await newest(select('metering_points').eq('customer_id', customerId).eq('normalized_metering_point_id', pointId)) : null
+  return { customer, site, meter }
+}
+
+/** FINDINGS F114: gridex_update_jsonb_row assigns every key present in the payload, and the single-object command is
+ * shaped for a new graph (status draft, creator, source, fallbacks, nulls for every value the message lacks). For a
+ * row the RPC will update, every key the message does not carry takes the row's current value instead, so an active
+ * customer, site or metering point keeps its status and no existing value is erased; metadata is merged, never
+ * replaced. A value the message carries still updates. Rows the RPC inserts keep the create values. The command
+ * keeps its keys, so its stored snapshot shows the values written. Exact pre-read
+ * rows are represented by opaque PostgreSQL JSON strings. SQL locks and compares
+ * them, then preserves non-wire fields and merges metadata from its exact row.
+ * Existing JSONB metadata is never copied through JavaScript numeric values. */
+async function preserveExistingInboundGraph(command: CanonicalOnboardingCommand, inboundCase: EdielInboundCaseRow): Promise<CanonicalOnboardingCommand> {
+  const existing = await readExistingInboundGraph(command)
+  const carried = wireCarriedGraphUpdate(command, inboundCase)
+  const merge = (section: JsonRecord, row: JsonRecord, wire: JsonRecord): JsonRecord => {
+    const merged: JsonRecord = {}
+    for (const [key, value] of Object.entries(section)) {
+      if (Object.hasOwn(wire, key)) merged[key] = value
+      else if (key === 'metadata') merged[key] = value
+      else if (Object.hasOwn(row, key)) merged[key] = row[key]
+    }
+    return merged
+  }
+  const { data: basis, error: basisError } = await supabaseService.rpc('ediel_inbound_graph_snapshot_basis_v1', {
+    p_company_id: command.company_id,
+    p_customer_id: existing.customer?.id ?? null,
+    p_site_id: existing.site?.id ?? null,
+    p_metering_point_id: existing.meter?.id ?? null,
+  })
+  if (basisError) throw basisError
+  if (!isJsonRecord(basis) || Object.keys(basis).length !== 3 ||
+    !['customer', 'site', 'metering_point'].every(key => Object.hasOwn(basis, key) && (basis[key] === null || typeof basis[key] === 'string'))) {
+    throw new Error('ediel_inbound_graph_snapshot_basis_invalid')
+  }
+  const directive = (section: JsonRecord | null | undefined, wire: JsonRecord) => ({
+    wire_keys: Object.keys(wire), metadata_delta: isJsonRecord(section?.metadata) ? section.metadata : {},
+  })
+  return {
+    ...command,
+    ediel_existing_graph_snapshot: { customer: basis.customer as string | null, site: basis.site as string | null, metering_point: basis.metering_point as string | null },
+    ediel_existing_graph_preservation: {
+      customer: directive(command.customer, carried.customer), site: directive(command.site, carried.site),
+      metering_point: directive(command.metering_point, carried.meter),
+    },
+    customer: existing.customer ? merge(command.customer, existing.customer, carried.customer) : command.customer,
+    site: existing.site && command.site ? merge(command.site, existing.site, carried.site) : command.site,
+    metering_point: existing.meter && command.metering_point ? merge(command.metering_point, existing.meter, carried.meter) : command.metering_point,
+  }
 }
 
 /** Pending cases can predate the incoming projection fix. Hold only obsolete
@@ -903,9 +1031,10 @@ export async function approveEdielInboundCase(params: {
       sourceChannel: 'ediel_inbound',
     })
 
-    const result = await onboardCustomerGraph(inboundCustomerCommand({
+    const command = inboundCustomerCommand({
       ...params,inboundCase,mode,selectedCustomerId,gridOwnerId,
-    }),tenantContext)
+    })
+    const result = await onboardCustomerGraph(mode === 'create_new_customer' ? command : await preserveExistingInboundGraph(command, inboundCase),tenantContext)
 
     if (!result.ok) {
       throw new Error(`Tvetydig kundmatchning blockerade Ediel-caset. Referens: ${result.correlation_id}.`)
@@ -1233,7 +1362,7 @@ async function applyInboundObjects(params:{actorUserId:string;caseId:string;comp
       const scopedCase:EdielInboundCaseRow={...current,customer_id:null,site_id:null,metering_point_id:null,
         case_type:projection.caseType,transaction_type:projection.transactionType,parsed_customer:projection.customer,parsed_site:projection.site,
         parsed_metering_point:projection.meteringPoint,parsed_contract:projection.contract,parsed_production:projection.production,proposed_action:projection.proposedAction}
-      const gridOwnerId=await getGridOwnerIdByGridArea(params.companyId,trimOrNull(projection.site.gridAreaCode))
+      const gridOwnerId=await getGridOwnerIdByGridArea(params.companyId,trimOrNull(projection.site.gridAreaCode),{registryArea:false})
       // Object identity, not register index or array position, owns replay and
       // application identity. Changing a later decision cannot create a new key.
       const sourceId=`${current.id}:object:${digestObject([decision.meteringPointId,decision.identityAgency])}`

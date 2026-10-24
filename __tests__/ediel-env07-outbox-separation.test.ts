@@ -28,7 +28,10 @@ beforeEach(() => {
   port.rows.clear(); port.messages.clear(); port.submitted.length = 0; port.messageReads.length = 0
   port.rpc.mockImplementation(async (name: string, args: Record<string, unknown>) => {
     if (name !== 'claim_ediel_outbox_items') throw new Error(`Unexpected RPC: ${name}`)
-    const rows = [...port.rows.values()].filter(row => (!args.p_company_id || args.p_company_id === row.company_id)
+    // Match the actual SQL claim's eligibility: completed/failed rows cannot
+    // be reclaimed by the next single-row drain iteration.
+    const rows = [...port.rows.values()].filter(row => ['prepared', 'queued'].includes(String(row.status))
+      && (!args.p_company_id || args.p_company_id === row.company_id)
       && (!args.p_environment || args.p_environment === row.environment)).slice(0, Number(args.p_limit))
     // A real claim sets locked_at = now(); the send consumer verifies that lease.
     const claimedAt = new Date().toISOString()

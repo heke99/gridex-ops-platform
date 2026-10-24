@@ -48484,6 +48484,35 @@ END
 $$;
 
 --
+-- Name: ediel_inbound_graph_snapshot_basis_v1(uuid, uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.ediel_inbound_graph_snapshot_basis_v1(p_company_id uuid, p_customer_id uuid, p_site_id uuid, p_metering_point_id uuid) RETURNS jsonb
+    LANGUAGE plpgsql STABLE
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE customer_text text;site_text text;point_text text;
+BEGIN
+ IF current_setting('role',true) IS DISTINCT FROM 'service_role' AND session_user<>'service_role' THEN
+  RAISE EXCEPTION 'ediel_inbound_graph_basis_service_required' USING ERRCODE='42501';
+ END IF;
+ -- The delta-only app protocol must never reach the legacy overwrite core.
+ -- During helper -> app -> mandatory-core rollout, hold safely until the exact
+ -- reviewed mandatory core is installed; there is no legacy write fallback.
+ IF (SELECT md5(prosrc) FROM pg_proc WHERE oid=to_regprocedure('public.gridex_onboard_customer_graph_core(jsonb)'))
+   IS DISTINCT FROM '24f5c95224de6a75cd9e42537f1029b3' THEN
+  RAISE EXCEPTION 'ediel_inbound_graph_core_not_ready' USING ERRCODE='55000';
+ END IF;
+ IF p_company_id IS NULL THEN RAISE EXCEPTION 'ediel_inbound_graph_basis_company_required' USING ERRCODE='22023';END IF;
+ SELECT to_jsonb(c)::text INTO customer_text FROM public.customers c WHERE c.company_id=p_company_id AND c.id=p_customer_id;
+ IF customer_text IS NOT NULL THEN
+  SELECT to_jsonb(s)::text INTO site_text FROM public.customer_sites s WHERE s.company_id=p_company_id AND s.customer_id=p_customer_id AND s.id=p_site_id;
+  SELECT to_jsonb(m)::text INTO point_text FROM public.metering_points m WHERE m.company_id=p_company_id AND m.customer_id=p_customer_id AND m.id=p_metering_point_id;
+ END IF;
+ RETURN jsonb_build_object('customer',customer_text,'site',site_text,'metering_point',point_text);
+END$$;
+
+--
 -- Name: ediel_inbound_reception_request_v1(uuid, uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -49095,6 +49124,37 @@ BEGIN
  IF prep.id IS NULL THEN SELECT * INTO STRICT prep FROM gridex_customer_masterdata.preparations WHERE company_id=p_company_id AND customer_id=source.customer_id AND environment IS NOT DISTINCT FROM source.environment AND as_of=source.as_of AND observed_at=source.observed_at AND actor_user_id=p_actor_user_id AND basis=source.basis AND recovery_operation_id IS NULL AND cancellation_origin_id=p_operation_id;END IF;
  IF prep.id=source.id THEN RAISE EXCEPTION 'customer_masterdata_cancellation_fresh_preparation_required';END IF;
  RETURN (q-ARRAY['sourceContextId','messageBinding','cancellationSourceBinding'])||jsonb_build_object('sourceContextId',prep.id);
+END$$;
+
+--
+-- Name: ediel_preserve_inbound_graph_payload_v1(jsonb, jsonb, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.ediel_preserve_inbound_graph_payload_v1(current_row jsonb, payload jsonb, directive jsonb) RETURNS jsonb
+    LANGUAGE plpgsql IMMUTABLE
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE k text;v jsonb;result jsonb:=payload;wire jsonb:=directive->'wire_keys';delta jsonb:=directive->'metadata_delta';
+BEGIN
+ IF jsonb_typeof(current_row) IS DISTINCT FROM 'object' OR jsonb_typeof(payload) IS DISTINCT FROM 'object'
+  OR jsonb_typeof(directive) IS DISTINCT FROM 'object' OR NOT directive?&ARRAY['wire_keys','metadata_delta']
+  OR (SELECT count(*) FROM jsonb_object_keys(directive))<>2
+  OR jsonb_typeof(wire) IS DISTINCT FROM 'array' OR jsonb_typeof(delta) IS DISTINCT FROM 'object'
+  OR EXISTS(SELECT FROM jsonb_array_elements(wire)e WHERE jsonb_typeof(e) IS DISTINCT FROM 'string' OR NOT payload?(e#>>'{}'))
+  OR (SELECT count(*) FROM jsonb_array_elements(wire))<>(SELECT count(DISTINCT e#>>'{}') FROM jsonb_array_elements(wire)e) THEN
+  RAISE EXCEPTION 'ediel_inbound_graph_preservation_required' USING ERRCODE='22023';
+ END IF;
+ FOR k,v IN SELECT key,value FROM jsonb_each(payload) LOOP
+  IF k='metadata' THEN
+   IF jsonb_typeof(current_row->k) IS DISTINCT FROM 'object' THEN
+    RAISE EXCEPTION 'ediel_inbound_existing_metadata_object_required' USING ERRCODE='22023';
+   END IF;
+   result:=jsonb_set(result,ARRAY[k],(current_row->k)||delta);
+  ELSIF NOT wire?k THEN
+   IF current_row?k THEN result:=jsonb_set(result,ARRAY[k],current_row->k);ELSE result:=result-k;END IF;
+  END IF;
+ END LOOP;
+ RETURN result;
 END$$;
 
 --
@@ -83575,6 +83635,11 @@ declare
   v_cross_tenant_facility_seen boolean := false;
   v_review_resolution_type text;
   v_review_customer_id uuid;
+  v_ediel_snapshot jsonb;
+  v_require_ediel_snapshot boolean;
+  v_current_graph_row jsonb;
+  v_ediel_preservation jsonb;
+  v_expected_graph_row jsonb;
 begin
   if p_command is null or jsonb_typeof(p_command) <> 'object' then
     raise exception 'canonical onboarding command must be a JSON object' using errcode = '22023';
@@ -83661,6 +83726,30 @@ begin
   v_application_payload := coalesce(p_command->'application', '{}'::jsonb);
   v_task_payload := coalesce(p_command->'task', '{}'::jsonb);
   v_info_request_payload := coalesce(p_command->'info_request', '{}'::jsonb);
+
+  -- Only single-case Ediel preservation copies existing values into its command.
+  -- Object batches already carry a protected immutable wire update plan.
+  v_require_ediel_snapshot := v_channel = 'ediel_inbound'
+    and v_matching_policy in ('link_unique','link_selected')
+    and v_application_payload->>'source_record_type' = 'ediel_inbound_case'
+    and strpos(coalesce(v_application_payload->>'source_record_id',''), ':object:') = 0;
+  v_ediel_snapshot := p_command->'ediel_existing_graph_snapshot';
+  if v_require_ediel_snapshot and (
+    jsonb_typeof(v_ediel_snapshot) is distinct from 'object'
+    or not (v_ediel_snapshot ?& array['customer','site','metering_point'])
+    or exists (select 1 from jsonb_each(v_ediel_snapshot) e
+      where e.key not in ('customer','site','metering_point')
+        or jsonb_typeof(e.value) not in ('string','null'))
+  ) then
+    raise exception 'ediel_inbound_graph_snapshot_required' using errcode = '22023';
+  end if;
+
+  v_ediel_preservation:=p_command->'ediel_existing_graph_preservation';
+  if v_require_ediel_snapshot and (jsonb_typeof(v_ediel_preservation) is distinct from 'object'
+    or not v_ediel_preservation?&array['customer','site','metering_point']
+    or (select count(*) from jsonb_object_keys(v_ediel_preservation))<>3) then
+    raise exception 'ediel_inbound_graph_preservation_required' using errcode='22023';
+  end if;
 
   -- Cross-tenant matches are a platform-only integrity signal. They never
   -- disclose another tenant's customer or block legitimate onboarding here.
@@ -83775,12 +83864,30 @@ begin
 
   if v_candidate_count = 1 and v_matching_policy in ('link_unique','link_selected') then
     v_customer_id := v_candidate_ids[1];
+    if v_require_ediel_snapshot then
+      select to_jsonb(c) into v_current_graph_row from public.customers c
+        where c.id = v_customer_id and c.company_id = v_company_id for update;
+      if v_ediel_snapshot->'customer' = 'null'::jsonb then
+        raise exception 'ediel_inbound_graph_changed' using errcode = '40001';
+      end if;
+      v_expected_graph_row := (v_ediel_snapshot->>'customer')::jsonb;
+      if jsonb_typeof(v_expected_graph_row) is distinct from 'object'
+        or (select array_agg(key order by key) from jsonb_object_keys(v_expected_graph_row)key)
+          is distinct from (select array_agg(key order by key) from jsonb_object_keys(v_current_graph_row)key)
+        or v_current_graph_row is distinct from to_jsonb(jsonb_populate_record(null::public.customers, v_expected_graph_row)) then
+        raise exception 'ediel_inbound_graph_changed' using errcode = '40001';
+      end if;
+      v_customer_payload:=public.ediel_preserve_inbound_graph_payload_v1(v_current_graph_row,v_customer_payload,v_ediel_preservation->'customer');
+    end if;
     if v_update_existing then
       v_row := public.gridex_update_jsonb_row('public.customers'::regclass, v_customer_id, v_company_id, v_customer_payload);
     else
       select to_jsonb(c) into v_row from public.customers c where c.id = v_customer_id and c.company_id = v_company_id;
     end if;
   else
+    if v_require_ediel_snapshot and v_ediel_snapshot->'customer' is distinct from 'null'::jsonb then
+      raise exception 'ediel_inbound_graph_changed' using errcode = '40001';
+    end if;
     v_row := public.gridex_insert_jsonb_row('public.customers'::regclass, v_customer_payload);
     v_customer_id := (v_row->>'id')::uuid;
   end if;
@@ -83836,6 +83943,27 @@ begin
         raise exception 'facility_id_owned_by_another_customer' using errcode = '23505';
       end if;
     end if;
+    if v_require_ediel_snapshot then
+      if v_site_id is null then
+        if v_ediel_snapshot->'site' is distinct from 'null'::jsonb then
+          raise exception 'ediel_inbound_graph_changed' using errcode = '40001';
+        end if;
+      else
+        select to_jsonb(t) into v_current_graph_row from public.customer_sites t
+          where t.id = v_site_id and t.company_id = v_company_id and t.customer_id = v_customer_id for update;
+        if v_ediel_snapshot->'site' = 'null'::jsonb then
+          raise exception 'ediel_inbound_graph_changed' using errcode = '40001';
+        end if;
+        v_expected_graph_row := (v_ediel_snapshot->>'site')::jsonb;
+      if jsonb_typeof(v_expected_graph_row) is distinct from 'object'
+        or (select array_agg(key order by key) from jsonb_object_keys(v_expected_graph_row)key)
+          is distinct from (select array_agg(key order by key) from jsonb_object_keys(v_current_graph_row)key)
+        or v_current_graph_row is distinct from to_jsonb(jsonb_populate_record(null::public.customer_sites, v_expected_graph_row)) then
+          raise exception 'ediel_inbound_graph_changed' using errcode = '40001';
+        end if;
+      v_site_payload:=public.ediel_preserve_inbound_graph_payload_v1(v_current_graph_row,v_site_payload,v_ediel_preservation->'site');
+      end if;
+    end if;
     if v_site_id is null then
       v_row := public.gridex_insert_jsonb_row(
         'public.customer_sites'::regclass,
@@ -83874,6 +84002,27 @@ begin
            and customer_id <> v_customer_id
       ) then
         raise exception 'metering_point_owned_by_another_customer' using errcode = '23505';
+      end if;
+    end if;
+    if v_require_ediel_snapshot then
+      if v_metering_point_id is null then
+        if v_ediel_snapshot->'metering_point' is distinct from 'null'::jsonb then
+          raise exception 'ediel_inbound_graph_changed' using errcode = '40001';
+        end if;
+      else
+        select to_jsonb(t) into v_current_graph_row from public.metering_points t
+          where t.id = v_metering_point_id and t.company_id = v_company_id and t.customer_id = v_customer_id for update;
+        if v_ediel_snapshot->'metering_point' = 'null'::jsonb then
+          raise exception 'ediel_inbound_graph_changed' using errcode = '40001';
+        end if;
+        v_expected_graph_row := (v_ediel_snapshot->>'metering_point')::jsonb;
+      if jsonb_typeof(v_expected_graph_row) is distinct from 'object'
+        or (select array_agg(key order by key) from jsonb_object_keys(v_expected_graph_row)key)
+          is distinct from (select array_agg(key order by key) from jsonb_object_keys(v_current_graph_row)key)
+        or v_current_graph_row is distinct from to_jsonb(jsonb_populate_record(null::public.metering_points, v_expected_graph_row)) then
+          raise exception 'ediel_inbound_graph_changed' using errcode = '40001';
+        end if;
+      v_meter_payload:=public.ediel_preserve_inbound_graph_payload_v1(v_current_graph_row,v_meter_payload,v_ediel_preservation->'metering_point');
       end if;
     end if;
     if v_metering_point_id is null then
@@ -84196,7 +84345,10 @@ begin
   );
 
   update public.customer_onboarding_operations
-     set status = 'completed', result_snapshot = v_result, completed_at = now(), updated_at = now()
+     set status = 'completed', result_snapshot = v_result, completed_at = now(), updated_at = now(),
+           command_snapshot = case when v_require_ediel_snapshot then
+             (p_command - 'test_fail_after') || jsonb_build_object('customer',v_customer_payload,'site',v_site_payload,'metering_point',v_meter_payload)
+             else command_snapshot end
    where id = v_operation.id;
 
   return v_result;
@@ -85468,6 +85620,7 @@ declare
   v_run_id uuid;
   v_final_status text:=coalesce(nullif(p_result->>'status',''),'failed');
   v_rows integer;
+  v_source_bound boolean;
   v_period_start timestamptz;
   v_period_end timestamptz;
   v_period_start_text text;
@@ -85488,6 +85641,10 @@ begin
   select * into v_underlay from public.billing_underlays
   where id=p_billing_underlay_id and company_id=p_company_id for update;
   if not found then raise exception using errcode='P0002',message='billing_underlay_not_found_for_tenant'; end if;
+  v_source_bound:=EXISTS(SELECT FROM gridex_billing_source.underlay_bindings b WHERE b.company_id=p_company_id AND b.underlay_id=p_billing_underlay_id);
+  IF v_source_bound AND coalesce(p_pricing_snapshot,'{}'::jsonb) IS DISTINCT FROM coalesce(v_underlay.pricing_snapshot,'{}'::jsonb) THEN
+    RAISE EXCEPTION 'source_bound_pricing_snapshot_mismatch' USING ERRCODE='23514';
+  END IF;
   if v_underlay.contract_id is null or coalesce(v_underlay.contract_price_snapshot_id,v_underlay.pricing_snapshot_id) is null then
     raise exception using errcode='23514',message='exact_contract_and_price_snapshot_required';
   end if;
@@ -85624,18 +85781,18 @@ begin
       calculated_total_sek_ex_vat=coalesce((p_result->>'total_ex_vat')::numeric,0),
       calculated_vat_sek=coalesce((p_result->>'vat_amount')::numeric,0),
       calculated_total_sek_inc_vat=coalesce((p_result->>'total_inc_vat')::numeric,0),
-      pricing_snapshot=coalesce(p_pricing_snapshot,'{}'::jsonb)||jsonb_build_object(
+      pricing_snapshot=CASE WHEN v_source_bound THEN pricing_snapshot ELSE coalesce(p_pricing_snapshot,'{}'::jsonb)||jsonb_build_object(
         'latest_pricing_run_id',v_run_id,'latest_pricing_warnings',coalesce(p_result->'warnings','[]'::jsonb),
         'latest_pricing_errors',coalesce(p_result->'errors','[]'::jsonb)
-      ),updated_at=now()
+      ) END,updated_at=now()
     where id=p_billing_underlay_id and company_id=p_company_id;
     get diagnostics v_rows=row_count;
     if v_rows<>1 then raise exception using errcode='P0002',message='billing_underlay_atomic_update_failed'; end if;
   else
     update public.billing_underlays set
-      pricing_snapshot=coalesce(pricing_snapshot,'{}'::jsonb)||jsonb_build_object(
+      pricing_snapshot=CASE WHEN v_source_bound THEN pricing_snapshot ELSE coalesce(pricing_snapshot,'{}'::jsonb)||jsonb_build_object(
         'latest_failed_pricing_run_id',v_run_id,'latest_pricing_errors',coalesce(p_result->'errors','[]'::jsonb)
-      ),updated_at=now()
+      ) END,updated_at=now()
     where id=p_billing_underlay_id and company_id=p_company_id;
   end if;
   return v_run_id;
@@ -204823,6 +204980,13 @@ REVOKE ALL ON FUNCTION public.ediel_guard_received_h05_original_v1() FROM PUBLIC
 GRANT ALL ON FUNCTION public.ediel_guard_received_h05_original_v1() TO service_role;
 
 --
+-- Name: FUNCTION ediel_inbound_graph_snapshot_basis_v1(p_company_id uuid, p_customer_id uuid, p_site_id uuid, p_metering_point_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.ediel_inbound_graph_snapshot_basis_v1(p_company_id uuid, p_customer_id uuid, p_site_id uuid, p_metering_point_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.ediel_inbound_graph_snapshot_basis_v1(p_company_id uuid, p_customer_id uuid, p_site_id uuid, p_metering_point_id uuid) TO service_role;
+
+--
 -- Name: FUNCTION ediel_inbound_reception_request_v1(p_company_id uuid, p_message_id uuid, p_actor_user_id uuid, p_inbound_email_message_id uuid); Type: ACL; Schema: public; Owner: -
 --
 
@@ -205047,6 +205211,12 @@ GRANT ALL ON FUNCTION public.ediel_prepare_prodat_recovery_v1(p_company_id uuid,
 
 REVOKE ALL ON FUNCTION public.ediel_prepare_switch_cancellation_customer_masterdata_v1(p_company_id uuid, p_operation_id uuid, p_actor_user_id uuid, p_intent_id uuid, p_route_id uuid, p_raw_payload text) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.ediel_prepare_switch_cancellation_customer_masterdata_v1(p_company_id uuid, p_operation_id uuid, p_actor_user_id uuid, p_intent_id uuid, p_route_id uuid, p_raw_payload text) TO service_role;
+
+--
+-- Name: FUNCTION ediel_preserve_inbound_graph_payload_v1(current_row jsonb, payload jsonb, directive jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.ediel_preserve_inbound_graph_payload_v1(current_row jsonb, payload jsonb, directive jsonb) FROM PUBLIC;
 
 --
 -- Name: FUNCTION ediel_probe_source_rule_pack_capture_v1(p_company_id uuid, p_message_id uuid); Type: ACL; Schema: public; Owner: -

@@ -1,4 +1,5 @@
 import { supabaseService } from '@/lib/supabase/service'
+import { tenantDb } from '@/lib/supabase/tenantDb'
 import { getTenantOperationDecision } from '@/lib/tenant/operationPolicy'
 
 export type ClaimedEdielOutboxItem = {
@@ -46,12 +47,12 @@ async function blockClaimedOutboxItem(input: {
   }
 }
 
-export async function claimEdielOutboxItems(params: {
+export async function claimEdielOutboxItemsWithProgress(params: {
   workerId: string
   companyId?: string | null
   environment?: string | null
   limit?: number | null
-}): Promise<ClaimedEdielOutboxItem[]> {
+}): Promise<{ items: ClaimedEdielOutboxItem[]; claimed: number; blocked: number }> {
   const { data, error } = await supabaseService.rpc('claim_ediel_outbox_items', {
     p_environment: clean(params.environment),
     p_company_id: clean(params.companyId),
@@ -85,7 +86,26 @@ export async function claimEdielOutboxItems(params: {
     }
     allowed.push(item)
   }
-  return allowed
+  return { items: allowed, claimed: claimed.length, blocked: claimed.length - allowed.length }
+}
+
+// Keep the existing array API for callers that do not need raw queue progress.
+export async function claimEdielOutboxItems(params: Parameters<typeof claimEdielOutboxItemsWithProgress>[0]): Promise<ClaimedEdielOutboxItem[]> {
+  return (await claimEdielOutboxItemsWithProgress(params)).items
+}
+
+// This is only for an untouched claim: the worker has not called sendOutboxItem.
+// Never use it to cancel or retry a transport operation that has begun.
+export async function releaseUnsentEdielOutboxClaim(item: ClaimedEdielOutboxItem, workerId: string): Promise<void> {
+  const attemptId = clean(item.current_send_attempt_id)
+  // The global drain releases only allowed claims; each carries its own company scope.
+  let query = (tenantDb(item.company_id).from('ediel_outbox')
+    .update({ status: 'queued', locked_at: null, locked_by: null, updated_at: new Date().toISOString() }) as ReturnType<ReturnType<typeof supabaseService.from>['update']>)
+    .eq('id', item.id).eq('status', 'sending').eq('locked_by', assertWorkerId(workerId))
+  query = attemptId ? query.eq('current_send_attempt_id', attemptId) : query.is('current_send_attempt_id', null)
+  const { data, error } = await query.select('id').maybeSingle()
+  if (error) throw error
+  if (!data) throw new Error('ediel_outbox_unsent_release_claim_lost')
 }
 
 export async function claimEdielOutboxItem(params: {

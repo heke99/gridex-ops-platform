@@ -28,6 +28,17 @@ export type CanonicalOnboardingCommand = {
   existing_site_id?: string | null
   existing_metering_point_id?: string | null
   update_existing?: boolean
+  /** Opaque canonical PostgreSQL row JSON. Never parse/re-encode these strings. */
+  ediel_existing_graph_snapshot?: {
+    customer: string | null
+    site: string | null
+    metering_point: string | null
+  }
+  /** SQL preserves non-wire values from its locked row, not client JSON copies. */
+  ediel_existing_graph_preservation?: Record<'customer' | 'site' | 'metering_point', {
+    wire_keys: string[]
+    metadata_delta: Record<string, unknown>
+  }>
   customer: Record<string, unknown>
   contact?: Record<string, unknown> | null
   address?: Record<string, unknown> | null

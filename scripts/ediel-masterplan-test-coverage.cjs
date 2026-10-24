@@ -82,6 +82,36 @@ if (taggedFiles.length) {
     process.exit(1)
   }
   if (run.status !== 0 || run.error || run.signal) {
+    // The JSON reporter writes failures to stdout; stderr often contains only VM warnings.
+    // Show bounded file/test names, never assertion values, failure messages or raw output.
+    try {
+      if (typeof run.stdout !== 'string' || !run.stdout.includes('{')) throw new Error('Missing JSON report')
+      const failedReport = JSON.parse(run.stdout.slice(run.stdout.indexOf('{')))
+      if (!failedReport || !Array.isArray(failedReport.testResults)) throw new Error('Invalid JSON report')
+      const failed = failedReport.testResults.map((result) => ({
+        result,
+        tests: Array.isArray(result?.assertionResults)
+          ? result.assertionResults.filter((assertion) => assertion?.status === 'failed') : [],
+      })).filter(({ result, tests }) => result?.status === 'failed' || tests.length)
+      console.error(`Vitest failure details: ${failed.length} failed files; ${failed.reduce((count, file) => count + file.tests.length, 0)} failed tests (at most 20 names).`)
+      let remaining = 20
+      for (const { result, tests } of failed) {
+        if (!remaining) break
+        if (typeof result.name === 'string') {
+          console.error(`  FILE ${JSON.stringify(path.relative(root, path.resolve(root, result.name)).slice(0, 240))}`)
+          remaining -= 1
+        }
+        for (const test of tests) {
+          if (!remaining) break
+          const name = typeof test.fullName === 'string' ? test.fullName : test.title
+          if (typeof name !== 'string') continue
+          console.error(`  TEST ${JSON.stringify(name.slice(0, 240))}`)
+          remaining -= 1
+        }
+      }
+    } catch {
+      console.error('Vitest failure details unavailable (missing or malformed JSON report).')
+    }
     failRun(`Vitest runner failed (status ${run.status}, signal ${run.signal ?? 'none'}).`)
   }
   let report
