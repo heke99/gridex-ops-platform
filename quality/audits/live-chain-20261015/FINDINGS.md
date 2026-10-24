@@ -2459,6 +2459,27 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
   - Test: `reality-g3-provisioning-fair-claim` 5/5, där 2 föll mot den gamla kroppen. Täckningen 352/352.
   - ÖPPET: samma fråga om rättvis fördelning finns i utkorgens claim (P8).
 
+### H körning 1 (2026-10-24 ca 14:50–15:45, världen på dfcc2778f, snabbläge): 4 av 9 gröna; H4, H5, H6, H7 och H8 röda
+- **H4:** bara S:s Z05 L nådde tenanten. M:s Z05 LK (flytt) gick förlorad, se H-9.
+- **H5–H7:** följer av H4, eftersom M:s period aldrig avslutades.
+- **H8:** W:s ångerrätt och C:s annullering (Z03C) fastnade på "Ingen aktiv communication_route hittades för supplier_switch.", se H-10.
+
+### H-9 En inkommande flyttanmälan Z05 LK (orsak Z23) sparas aldrig i produktion — BEKRÄFTAD (världen), KRITISK; RÄTTAD (TS)
+- **Bevis:** e-posten `3a6226a3…` gav `processing_status=failed` efter 5 försök, med felet "ediel_inbound_original_persistence_required".
+  - Appens logg visar att insert gav 23514 `canonical_inbound_rule_profile_resolution_failed:PRODAT:Z05:2026-10-24:4`.
+  - Utan en födelseprofil hittar triggern fyra aktiva Z05-profiler (H, C, L och LK) och vägrar välja.
+- **Orsak:** `resolveSupplyEndBirthProfile` godtog bara orsakerna Z22 (L) och Z25 (H). Z23 (LK) föll igenom. Testet från #657 hade fallet "unhandled LK reason" som avsiktligt avvisat; det var inte ett masterplantest.
+- **Konsekvens:** nätägarens flyttanmälan försvinner tyst, så leveransen avslutas aldrig och debiteringen fortsätter efter flytten.
+- **Rättning:** Z23 godtas och kopplas till LK-profilen via källpolicyn.
+  - Testerna har utökats med Z23 → LK, både mot katalogmocken och genom den riktiga resolvern, och fixturen mappar LK → Z23. Före rättningen föll 2 tester.
+  - 290 relaterade testfiler, 5795 pass. Täckningen 352/352.
+- **Sidofynd H-11 (medel):** i världen bär 17 tidigare Z05 med orsak Z23 i testmiljön L-profilen, inte LK. Det pekar på fel bindning i en annan väg, sannolikt testvägen. Ej utrett.
+- ÖPPET: H4–H7 ska verifieras i en ny körning av H.
+
+### H-10 Ångerrätt och annullering av ett skickat byte (Z03C) hittar ingen communication_route för `supplier_switch` — BEKRÄFTAD (världen), hög; ÖPPEN
+- För W fastnade bytet på `prepared` och ingen Z03C skapades. Felet var "Ingen aktiv communication_route hittades för supplier_switch."
+- Trolig orsak: annulleringen slår upp routen på ett annat sätt än registermaterialiseringen (F41 och F85). Ska utredas.
+
 ### F körning 30 (2026-10-24 ca 11:50–13:50, världen på d547cedcd, snabbläge, F6c i cron-läge med 2 flikar) — AVBRUTEN av harnessens bakgrundsgräns på 2 h (T22), inget resultat för F7–F10
 - F1–F6b passerade.
 - I F6c klickade operatören på 3 filer, och cron tog upp 26 av 120 innan körningen avbröts. Cron tar alltså upp ungefär en fil per körning.

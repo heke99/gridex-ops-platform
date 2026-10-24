@@ -26,7 +26,8 @@ export async function resolveSupplyEndBirthProfile(input: {
   if (qualifiers.length !== scopes.length) return null
   const reasons = prodatCharacteristicValues('223', segments, una)
   const reason = reasons[0]
-  if (reason !== 'Z25' && reason !== 'Z22') return null
+  // Z22 Z05L (switch away), Z23 Z05LK (move-out; AT-Z05LK, FINDINGS H-9), Z25 Z05H. Z24 (C) is not a supply end here.
+  if (reason !== 'Z25' && reason !== 'Z22' && reason !== 'Z23') return null
   if (reasons.length !== scopes.length || reasons.some(value => value !== reason)) return null
   // This separate catalog purpose retains a malformed H original for later
   // canonical rejection. It never supplies an identity or operational H cap.
