@@ -3,11 +3,15 @@ import {readFileSync} from 'node:fs'
 import {afterEach,expect,it,vi} from 'vitest'
 import {db05PredecessorSchema} from './helpers/db05PredecessorSchema'
 
-const injected=vi.hoisted(()=>({patch:null as string|null,patch28:null as string|null,reads:[] as string[]}))
+const injected=vi.hoisted(()=>({patch:null as string|null,patch28:null as string|null,patch29:null as string|null,reads:[] as string[]}))
 vi.mock('node:fs',async original=>{
  const actual=await original<typeof import('node:fs')>()
  return {...actual,readFileSync:(path:Parameters<typeof actual.readFileSync>[0],options?:Parameters<typeof actual.readFileSync>[1])=>{
   const name=String(path)
+  if(name.endsWith('db05-schema-predecessor-audit29.patch.json')){
+   injected.reads.push('audit29')
+   if(injected.patch29!==null)return injected.patch29
+  }
   if(name.endsWith('db05-schema-predecessor-audit28.patch.json')){
    injected.reads.push('audit28')
    if(injected.patch28!==null)return injected.patch28
@@ -25,7 +29,7 @@ const audit27=JSON.parse(readFileSync('__tests__/fixtures/db05-schema-predecesso
  preSha256:string;postSha256:string;hunks:{postStart:number;postCount:number;postSha256:string;preLines:string[]}[]}
 const audit26=JSON.parse(readFileSync('__tests__/fixtures/db05-schema-predecessor-audit26.patch.json','utf8')) as {preSha256:string;postSha256:string}
 const sha=(text:string)=>createHash('sha256').update(text).digest('hex')
-afterEach(()=>{injected.patch=null;injected.patch28=null;injected.reads=[]})
+afterEach(()=>{injected.patch=null;injected.patch28=null;injected.patch29=null;injected.reads=[]})
 // Both immutable genuine captures are covered even when the checked-in context
 // is the older one. The fixture stores only the exact changed line ranges.
 type Audit28={preSha256:string;postSha256:string;hunks:{preStart:number;preCount:number;preSha256:string;postStart:number;postCount:number;postSha256:string;preLines:string[];postLines:string[]}[]}
@@ -50,9 +54,31 @@ function exactAudit28Fixture(schema:string,forward:boolean):string{
  expect(sha(rebuilt)).toBe(forward?currentSha:oldSha)
  return rebuilt
 }
-if(![oldSha,currentSha].includes(sha(capture)))throw Error('db05_schema_predecessor_unknown:'+sha(capture))
-const source=sha(capture)===oldSha?capture:exactAudit28Fixture(capture,false)
-const current=sha(capture)===currentSha?capture:exactAudit28Fixture(source,true)
+const nextSha='4ab0c60bd5688e9653927491981f779b374a3a85600d8a87e050ac67f15a15ca'
+const audit29=JSON.parse(readFileSync('__tests__/fixtures/db05-schema-predecessor-audit29.patch.json','utf8')) as Audit28
+function exactAudit29Fixture(schema:string,forward:boolean):string{
+ expect(audit29.preSha256).toBe(currentSha)
+ expect(audit29.postSha256).toBe(nextSha)
+ expect(sha(schema)).toBe(forward?currentSha:nextSha)
+ const lines=schema.split('\n')
+ for(const hunk of [...audit29.hunks].reverse()){
+  expect(hunk.preLines).toHaveLength(hunk.preCount)
+  expect(hunk.postLines).toHaveLength(hunk.postCount)
+  expect(sha(hunk.preLines.join('\n'))).toBe(hunk.preSha256)
+  expect(sha(hunk.postLines.join('\n'))).toBe(hunk.postSha256)
+  const start=forward?hunk.preStart:hunk.postStart,count=forward?hunk.preCount:hunk.postCount
+  expect(sha(lines.slice(start,start+count).join('\n'))).toBe(forward?hunk.preSha256:hunk.postSha256)
+  lines.splice(start,count,...(forward?hunk.postLines:hunk.preLines))
+ }
+ const rebuilt=lines.join('\n')
+ expect(sha(rebuilt)).toBe(forward?nextSha:currentSha)
+ return rebuilt
+}
+if(![oldSha,currentSha,nextSha].includes(sha(capture)))throw Error('db05_schema_predecessor_unknown:'+sha(capture))
+const currentInput=sha(capture)===nextSha?exactAudit29Fixture(capture,false):capture
+const source=sha(currentInput)===oldSha?currentInput:exactAudit28Fixture(currentInput,false)
+const current=sha(currentInput)===currentSha?currentInput:exactAudit28Fixture(source,true)
+const next=sha(capture)===nextSha?capture:exactAudit29Fixture(current,true)
 
 
 it('chains the exact genuine S01 capture through the authenticated audit26 schema to the pinned pre-DB05 capture',()=>{
@@ -117,4 +143,38 @@ it('refuses a moved audit28 exact successor hunk',()=>{
 it('retains the authenticated audit27 link refusal after the new capture is reversed',()=>{
  const changed=structuredClone(audit27);changed.preSha256='f'.repeat(64);injected.patch=JSON.stringify(changed)
  expect(()=>db05PredecessorSchema(current)).toThrow('db05_schema_predecessor_rebuild_mismatch')
+})
+
+
+it('chains genuine G3 capture through unchanged MAIN3d08 and historical links to the same predecessor',()=>{
+ injected.reads=[]
+ expect(exactAudit29Fixture(next,false)).toBe(current)
+ expect(exactAudit29Fixture(current,true)).toBe(next)
+ expect(db05PredecessorSchema(next)).toBe(db05PredecessorSchema(current))
+ expect(sha(db05PredecessorSchema(next))).toBe('c4e86b3bda8dc8579df1b3bfa9bdc8994b9ca0085c07710c36a15e1259069823')
+ expect(injected.reads).toEqual(['audit29','audit28','audit27','audit26','audit28','audit27','audit26','audit29','audit28','audit27','audit26'])
+})
+it.each(['prefix','suffix','truncated'] as const)('refuses an altered genuine G3 capture %s',mutation=>{
+ const changed=mutation==='prefix'?'-- unqualified\n'+next:mutation==='suffix'?next+'\n':next.slice(1)
+ expect(()=>db05PredecessorSchema(changed)).toThrow('db05_schema_predecessor_unknown:')
+})
+it.each(['preSha256','postSha256'] as const)('refuses a changed authenticated audit29 link %s',field=>{
+ const changed=structuredClone(audit29);changed[field]='f'.repeat(64);injected.patch29=JSON.stringify(changed)
+ expect(()=>db05PredecessorSchema(next)).toThrow('db05_schema_predecessor_rebuild_mismatch')
+})
+it('refuses a changed audit29 exact successor hunk',()=>{
+ const changed=structuredClone(audit29);changed.hunks[0].postSha256='f'.repeat(64);injected.patch29=JSON.stringify(changed)
+ expect(()=>db05PredecessorSchema(next)).toThrow('db05_schema_predecessor_hunk_changed:')
+})
+it('refuses an audit29 hunk that rebuilds an unqualified MAIN3d08 intermediate',()=>{
+ const changed=structuredClone(audit29);changed.hunks[0].preLines.push('-- unqualified intermediate');injected.patch29=JSON.stringify(changed)
+ expect(()=>db05PredecessorSchema(next)).toThrow('db05_schema_predecessor_rebuild_mismatch')
+})
+it('refuses a moved audit29 exact successor hunk',()=>{
+ const changed=structuredClone(audit29);changed.hunks[0].postStart+=1;injected.patch29=JSON.stringify(changed)
+ expect(()=>db05PredecessorSchema(next)).toThrow('db05_schema_predecessor_hunk_changed:')
+})
+it('retains the audit28 link refusal after the genuine G3 capture is reversed',()=>{
+ const changed=structuredClone(audit28);changed.preSha256='f'.repeat(64);injected.patch28=JSON.stringify(changed)
+ expect(()=>db05PredecessorSchema(next)).toThrow('db05_schema_predecessor_rebuild_mismatch')
 })

@@ -1,10 +1,10 @@
 {
   "generated_types": "supabase/database.types.ts",
-  "generated_at": "2026-10-24T03:20:57.738363+00:00",
-  "generated_with": "supabase-cli-2.101.0-authentic-ordinary-capture-run40057144132-job120762512178-attempt1",
-  "sha256": "c62299293fd9fa80422b572e8d7f067283e2219f07051dd28ac76b9e9e57f840",
-  "latest_migration": "20261024020125_ediel_inbound_graph_snapshot_basis.sql",
-  "latest_migration_schema_effect": "Genuine ordinary RAW3 capture of reviewed inbound opaque graph comparisons and qualified pricing preservation; no native/parity or production-installation result implied.",
+  "generated_at": "2026-10-24T13:27:07.517371+00:00",
+  "generated_with": "supabase-cli-2.101.0-authentic-ordinary-capture-run40097966265-job120884085295-attempt1",
+  "sha256": "040f9e90a7882e14b305d2da361a986ca75d1daef27d8d9253dab5cc5e3de5e9",
+  "latest_migration": "20261024110000_g3_provisioning_revalidate_coalesce_fair_claim.sql",
+  "latest_migration_schema_effect": "Genuine ordinary RAW3 capture of reviewed G3 bounded readiness-job supersession and durable claim turns; no native/parity or production-installation result implied.",
   "composition_capture_pending": false,
   "capture": {
     "purpose": "capture_only",
@@ -864,7 +864,7 @@
       }
     }
   },
-  "composition_note": "Byte-exact RAW3 from run 40057144132 / job 120762512178 at source 3d08d112c13e144b83b44675f4c2de987a02cfd8 / tree 4c9cd74fbc74697644c517da81a763f40f4759a3. Previous active9 exact literal values archived in ediel_inbound_precision_pricing_genuine_ordinary_capture_adoption_20261024; all other historical raw values preserved. Adopting successor is not the captured source. Mandatory importing-head/native/clean-upgrade/parity remain.",
+  "composition_note": "Byte-exact RAW3 from run 40097966265 / job 120884085295 at source 012cc8bf22795b5a1190ecd7ef812568c4af5da0 / tree 025f4b6d409106fcdf446278be0d5bebaea1b707. Previous active9 exact literal values archived in g3_provisioning_bounded_fair_claim_genuine_ordinary_capture_adoption_20261024; all other historical raw values preserved. Adopting successor is not the captured source. Mandatory importing-head/native/clean-upgrade/parity remain.",
   "upstream_main_manifest": {
     "commit": "507e8bfa20606be31933eea1582066267ff2577a",
     "path": "scripts/supabase-types-manifest.json",
@@ -874,48 +874,48 @@
     "purpose": "immutable original main provenance pointer; no relabeled capture"
   },
   "current_prefix_verification": {
-  "kind": "genuine_successful_ordinary_capture_RAW3_ONLY",
-  "source_head": "3d08d112c13e144b83b44675f4c2de987a02cfd8",
-  "source_tree": "4c9cd74fbc74697644c517da81a763f40f4759a3",
-  "workflow_path": ".github/workflows/staff-api-schema-capture.yml",
-  "workflow_run_id": 40057144132,
-  "workflow_job_id": 120762512178,
-  "attempt": 1,
-  "artifact_id": 12545669297,
-  "artifact_name": "staff-schema-capture-3d08d112c13e144b83b44675f4c2de987a02cfd8",
-  "artifact_archive_sha256": "52f09a076db1f2f107d14a4b66cf9f0e0e8c4861635c58c85dd6ee1660abc5e3",
-  "artifact_archive_bytes": 1833775,
-  "capture_receipt_sha256": "550eec04d8e4136d464be6f2dab6b659e2ba3ed14a4b378b631035a190ab8d67",
-  "raw_output_sha256": {
-    "database.types.ts": "c62299293fd9fa80422b572e8d7f067283e2219f07051dd28ac76b9e9e57f840",
-    "schema.sql": "69ada64839584b3576e9b57471143f1ce23c0e87bdc724f9f2261ed15fdfa85b",
-    "schema.fingerprint.json": "2549410f03eefa46e898f6bfb780ce7438677ffb6ed9fbc404bd1f263aa270bf"
+    "kind": "genuine_successful_ordinary_capture_RAW3_ONLY",
+    "source_head": "012cc8bf22795b5a1190ecd7ef812568c4af5da0",
+    "source_tree": "025f4b6d409106fcdf446278be0d5bebaea1b707",
+    "workflow_path": ".github/workflows/staff-api-schema-capture.yml",
+    "workflow_run_id": 40097966265,
+    "workflow_job_id": 120884085295,
+    "attempt": 1,
+    "artifact_id": 12561956311,
+    "artifact_name": "staff-schema-capture-012cc8bf22795b5a1190ecd7ef812568c4af5da0",
+    "artifact_archive_sha256": "5ad3205a35e71a1fce9a615e9b1adec97632f2805e97d696609a2d5c9a349378",
+    "artifact_archive_bytes": 1835603,
+    "capture_receipt_sha256": "a35d60c85b8188b64d5dae4d9e3bafc12ca4e997d6f85404dbdcd3f203afef7b",
+    "raw_output_sha256": {
+      "database.types.ts": "040f9e90a7882e14b305d2da361a986ca75d1daef27d8d9253dab5cc5e3de5e9",
+      "schema.sql": "4ab0c60bd5688e9653927491981f779b374a3a85600d8a87e050ac67f15a15ca",
+      "schema.fingerprint.json": "dc718cb9f8b9777dbd2670aa4f9c19b6e5aaa5b2f06abaead25d4a7112f08efe"
+    },
+    "schema_fingerprint": "bac630b00d9a14408b9d5324928804ea2c9053236ae43ab9c219dc90bb65e52e",
+    "actual_capture_completed_at": "2026-10-24T13:27:07.517371+00:00",
+    "workflow_job_conclusion": "SUCCESS",
+    "epoch_attestation_enabled": false,
+    "native_tests": "NOT_RUN",
+    "browser_tests": "NOT_RUN",
+    "type_schema_comparison": "NOT_RUN",
+    "upgrade_parity": "NOT_RUN",
+    "required_gate": "OPS hardening clean/upgrade replay and parity remain mandatory",
+    "whole_approval": false,
+    "latest_replay_migration": {
+      "name": "20261024110000_g3_provisioning_revalidate_coalesce_fair_claim.sql",
+      "sha256": "d8bb160b8cb6b37a8465cbec68476e13750f76dbe90a74a21a1db6853ab76911"
+    },
+    "input_sha256": {
+      "scripts/gridex-aud-003-clean-replay.sh": "71262366feaf3df054c7436c2fd3d80e0b96b8aaddca1df260a71fa6bf36d885",
+      "scripts/migration-history-manifest.json": "66a735464c298b3e5e534f7e27df889cb1b01280d55b48d449c4f195eed7de01",
+      "scripts/migration-history-manifest.additions.json": "136435f17dd8ba9933718f88f5412ecfb97fd0d76e1979c5d7b7e624ffcf0f76",
+      "scripts/migration-history-manifest.runtime.additions.json": "295d06e9cbc93aeaf907b5a802962f4c56aa13ae1bc63490384089314aaf6141",
+      "scripts/supabase-types-manifest.json": "38a41ace9f9628e04e989609f5b9583b26ae0f7f4e2d0e75d4f1ebaa150ad4f6",
+      "scripts/apply-supabase-types-nullability-overrides.cjs": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
+      "scripts/gridex-schema-snapshot.cjs": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
+      "supabase/config.toml": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919"
+    }
   },
-  "schema_fingerprint": "f7c59898ba79400c96ec64587a08f1d815f5c5f4c4b67ed8d37e98af1c8da6cf",
-  "actual_capture_completed_at": "2026-10-24T03:20:57.738363+00:00",
-  "workflow_job_conclusion": "SUCCESS",
-  "epoch_attestation_enabled": false,
-  "native_tests": "NOT_RUN",
-  "browser_tests": "NOT_RUN",
-  "type_schema_comparison": "NOT_RUN",
-  "upgrade_parity": "NOT_RUN",
-  "required_gate": "OPS hardening clean/upgrade replay and parity remain mandatory",
-  "whole_approval": false,
-  "latest_replay_migration": {
-    "name": "20261024020125_ediel_inbound_graph_snapshot_basis.sql",
-    "sha256": "403d90ddee60e0f84d0d1a75cdf5bfb56dfe7ce0f5da1565622ff8fa96fc7f01"
-  },
-  "input_sha256": {
-    "scripts/gridex-aud-003-clean-replay.sh": "71262366feaf3df054c7436c2fd3d80e0b96b8aaddca1df260a71fa6bf36d885",
-    "scripts/migration-history-manifest.json": "66a735464c298b3e5e534f7e27df889cb1b01280d55b48d449c4f195eed7de01",
-    "scripts/migration-history-manifest.additions.json": "136435f17dd8ba9933718f88f5412ecfb97fd0d76e1979c5d7b7e624ffcf0f76",
-    "scripts/migration-history-manifest.runtime.additions.json": "ba6ec2e17b6899a13f0887d42d30600769ab8c9652804ab807c2340c9177f454",
-    "scripts/supabase-types-manifest.json": "7bf8fab5f1f3afc67897480713f157bd169b5e8765e02e6d96ff457c7dadc533",
-    "scripts/apply-supabase-types-nullability-overrides.cjs": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
-    "scripts/gridex-schema-snapshot.cjs": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
-    "supabase/config.toml": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919"
-  }
-},
   "superseded_capture": {
     "purpose": "capture_only",
     "captured_at": "2026-10-05T02:26:23.392306+00:00",
@@ -1536,9 +1536,9 @@
     "sha256": "3aaf7d57962e2e3c4941cb055e95cd79a19cb1f63f7111f95d9c0de174c4c892"
   },
   "source_latest_migration": {
-  "name": "20261024020125_ediel_inbound_graph_snapshot_basis.sql",
-  "sha256": "403d90ddee60e0f84d0d1a75cdf5bfb56dfe7ce0f5da1565622ff8fa96fc7f01"
-},
+    "name": "20261024110000_g3_provisioning_revalidate_coalesce_fair_claim.sql",
+    "sha256": "d8bb160b8cb6b37a8465cbec68476e13750f76dbe90a74a21a1db6853ab76911"
+  },
   "main_f88_composition_history": {
     "previous_ops_head": "dc2a49fd139c9d34c26c92407984c06e79ffe89e",
     "main_head": "f88e88fb70ca4edcaf65c40c9bba8bda4f70b2af",
@@ -2271,34 +2271,34 @@
     "scope": "Exact authentic staff/P08 current-main origin, preserved historically while new composition capture is pending."
   },
   "active_generated_outputs_origin": {
-  "kind": "genuine_successful_ordinary_capture_RAW3_ONLY",
-  "source_head": "3d08d112c13e144b83b44675f4c2de987a02cfd8",
-  "source_tree": "4c9cd74fbc74697644c517da81a763f40f4759a3",
-  "workflow_path": ".github/workflows/staff-api-schema-capture.yml",
-  "workflow_run_id": 40057144132,
-  "workflow_job_id": 120762512178,
-  "attempt": 1,
-  "artifact_id": 12545669297,
-  "artifact_name": "staff-schema-capture-3d08d112c13e144b83b44675f4c2de987a02cfd8",
-  "artifact_archive_sha256": "52f09a076db1f2f107d14a4b66cf9f0e0e8c4861635c58c85dd6ee1660abc5e3",
-  "artifact_archive_bytes": 1833775,
-  "capture_receipt_sha256": "550eec04d8e4136d464be6f2dab6b659e2ba3ed14a4b378b631035a190ab8d67",
-  "raw_output_sha256": {
-    "database.types.ts": "c62299293fd9fa80422b572e8d7f067283e2219f07051dd28ac76b9e9e57f840",
-    "schema.sql": "69ada64839584b3576e9b57471143f1ce23c0e87bdc724f9f2261ed15fdfa85b",
-    "schema.fingerprint.json": "2549410f03eefa46e898f6bfb780ce7438677ffb6ed9fbc404bd1f263aa270bf"
+    "kind": "genuine_successful_ordinary_capture_RAW3_ONLY",
+    "source_head": "012cc8bf22795b5a1190ecd7ef812568c4af5da0",
+    "source_tree": "025f4b6d409106fcdf446278be0d5bebaea1b707",
+    "workflow_path": ".github/workflows/staff-api-schema-capture.yml",
+    "workflow_run_id": 40097966265,
+    "workflow_job_id": 120884085295,
+    "attempt": 1,
+    "artifact_id": 12561956311,
+    "artifact_name": "staff-schema-capture-012cc8bf22795b5a1190ecd7ef812568c4af5da0",
+    "artifact_archive_sha256": "5ad3205a35e71a1fce9a615e9b1adec97632f2805e97d696609a2d5c9a349378",
+    "artifact_archive_bytes": 1835603,
+    "capture_receipt_sha256": "a35d60c85b8188b64d5dae4d9e3bafc12ca4e997d6f85404dbdcd3f203afef7b",
+    "raw_output_sha256": {
+      "database.types.ts": "040f9e90a7882e14b305d2da361a986ca75d1daef27d8d9253dab5cc5e3de5e9",
+      "schema.sql": "4ab0c60bd5688e9653927491981f779b374a3a85600d8a87e050ac67f15a15ca",
+      "schema.fingerprint.json": "dc718cb9f8b9777dbd2670aa4f9c19b6e5aaa5b2f06abaead25d4a7112f08efe"
+    },
+    "schema_fingerprint": "bac630b00d9a14408b9d5324928804ea2c9053236ae43ab9c219dc90bb65e52e",
+    "actual_capture_completed_at": "2026-10-24T13:27:07.517371+00:00",
+    "workflow_job_conclusion": "SUCCESS",
+    "epoch_attestation_enabled": false,
+    "native_tests": "NOT_RUN",
+    "browser_tests": "NOT_RUN",
+    "type_schema_comparison": "NOT_RUN",
+    "upgrade_parity": "NOT_RUN",
+    "required_gate": "OPS hardening clean/upgrade replay and parity remain mandatory",
+    "whole_approval": false
   },
-  "schema_fingerprint": "f7c59898ba79400c96ec64587a08f1d815f5c5f4c4b67ed8d37e98af1c8da6cf",
-  "actual_capture_completed_at": "2026-10-24T03:20:57.738363+00:00",
-  "workflow_job_conclusion": "SUCCESS",
-  "epoch_attestation_enabled": false,
-  "native_tests": "NOT_RUN",
-  "browser_tests": "NOT_RUN",
-  "type_schema_comparison": "NOT_RUN",
-  "upgrade_parity": "NOT_RUN",
-  "required_gate": "OPS hardening clean/upgrade replay and parity remain mandatory",
-  "whole_approval": false
-},
   "pre_intake_export_capture_manifest": {
     "commit": "5be3a902a61309e295d1f3b82f5ceb0996edb1dd",
     "path": "scripts/supabase-types-manifest.json",
@@ -100059,5 +100059,151 @@
   "sha256": "ae647d1d240a2e3cfa202906766eed3b13f6d5d15a0afd14885fe36b63da4a5d"
 }
 }
-}
+},
+  "g3_provisioning_bounded_fair_claim_genuine_ordinary_capture_adoption_20261024": {
+    "kind": "genuine_ordinary_capture_adoption_SOURCE_ONLY",
+    "captured_at": "2026-10-24T13:27:07.517371+00:00",
+    "captured_source_head": "012cc8bf22795b5a1190ecd7ef812568c4af5da0",
+    "captured_source_tree": "025f4b6d409106fcdf446278be0d5bebaea1b707",
+    "new_original_origin": {
+      "kind": "genuine_successful_ordinary_capture_RAW3_ONLY",
+      "source_head": "012cc8bf22795b5a1190ecd7ef812568c4af5da0",
+      "source_tree": "025f4b6d409106fcdf446278be0d5bebaea1b707",
+      "workflow_path": ".github/workflows/staff-api-schema-capture.yml",
+      "workflow_run_id": 40097966265,
+      "workflow_job_id": 120884085295,
+      "attempt": 1,
+      "artifact_id": 12561956311,
+      "artifact_name": "staff-schema-capture-012cc8bf22795b5a1190ecd7ef812568c4af5da0",
+      "artifact_archive_sha256": "5ad3205a35e71a1fce9a615e9b1adec97632f2805e97d696609a2d5c9a349378",
+      "artifact_archive_bytes": 1835603,
+      "capture_receipt_sha256": "a35d60c85b8188b64d5dae4d9e3bafc12ca4e997d6f85404dbdcd3f203afef7b",
+      "raw_output_sha256": {
+        "database.types.ts": "040f9e90a7882e14b305d2da361a986ca75d1daef27d8d9253dab5cc5e3de5e9",
+        "schema.sql": "4ab0c60bd5688e9653927491981f779b374a3a85600d8a87e050ac67f15a15ca",
+        "schema.fingerprint.json": "dc718cb9f8b9777dbd2670aa4f9c19b6e5aaa5b2f06abaead25d4a7112f08efe"
+      },
+      "schema_fingerprint": "bac630b00d9a14408b9d5324928804ea2c9053236ae43ab9c219dc90bb65e52e",
+      "actual_capture_completed_at": "2026-10-24T13:27:07.517371+00:00",
+      "workflow_job_conclusion": "SUCCESS",
+      "epoch_attestation_enabled": false,
+      "native_tests": "NOT_RUN",
+      "browser_tests": "NOT_RUN",
+      "type_schema_comparison": "NOT_RUN",
+      "upgrade_parity": "NOT_RUN",
+      "required_gate": "OPS hardening clean/upgrade replay and parity remain mandatory",
+      "whole_approval": false
+    },
+    "original_input_sha256": {
+      "scripts/gridex-aud-003-clean-replay.sh": "71262366feaf3df054c7436c2fd3d80e0b96b8aaddca1df260a71fa6bf36d885",
+      "scripts/migration-history-manifest.json": "66a735464c298b3e5e534f7e27df889cb1b01280d55b48d449c4f195eed7de01",
+      "scripts/migration-history-manifest.additions.json": "136435f17dd8ba9933718f88f5412ecfb97fd0d76e1979c5d7b7e624ffcf0f76",
+      "scripts/migration-history-manifest.runtime.additions.json": "295d06e9cbc93aeaf907b5a802962f4c56aa13ae1bc63490384089314aaf6141",
+      "scripts/supabase-types-manifest.json": "38a41ace9f9628e04e989609f5b9583b26ae0f7f4e2d0e75d4f1ebaa150ad4f6",
+      "scripts/apply-supabase-types-nullability-overrides.cjs": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
+      "scripts/gridex-schema-snapshot.cjs": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
+      "supabase/config.toml": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919"
+    },
+    "capture_limits": {
+      "epoch_attestation_enabled": false,
+      "native_tests": "NOT_RUN",
+      "browser_tests": "NOT_RUN",
+      "type_schema_comparison": "NOT_RUN",
+      "upgrade_parity": "NOT_RUN",
+      "whole_approval": false
+    },
+    "adopting_successor_is_captured_source": false,
+    "source_latest_migration": {
+      "name": "20261024110000_g3_provisioning_revalidate_coalesce_fair_claim.sql",
+      "sha256": "d8bb160b8cb6b37a8465cbec68476e13750f76dbe90a74a21a1db6853ab76911"
+    },
+    "previous_active_literal_json_utf8_base64": "ewogICJnZW5lcmF0ZWRfYXQiOiAiMjAyNi0xMC0yNFQwMzoyMDo1Ny43MzgzNjMrMDA6MDAiLAogICJnZW5lcmF0ZWRfd2l0aCI6ICJzdXBhYmFzZS1jbGktMi4xMDEuMC1hdXRoZW50aWMtb3JkaW5hcnktY2FwdHVyZS1ydW40MDA1NzE0NDEzMi1qb2IxMjA3NjI1MTIxNzgtYXR0ZW1wdDEiLAogICJzaGEyNTYiOiAiYzYyMjk5MjkzZmQ5ZmE4MDQyMmI1NzJlOGQ3ZjA2NzI4M2UyMjE5ZjA3MDUxZGQyOGFjNzZiOWU5ZTU3Zjg0MCIsCiAgImxhdGVzdF9taWdyYXRpb24iOiAiMjAyNjEwMjQwMjAxMjVfZWRpZWxfaW5ib3VuZF9ncmFwaF9zbmFwc2hvdF9iYXNpcy5zcWwiLAogICJsYXRlc3RfbWlncmF0aW9uX3NjaGVtYV9lZmZlY3QiOiAiR2VudWluZSBvcmRpbmFyeSBSQVczIGNhcHR1cmUgb2YgcmV2aWV3ZWQgaW5ib3VuZCBvcGFxdWUgZ3JhcGggY29tcGFyaXNvbnMgYW5kIHF1YWxpZmllZCBwcmljaW5nIHByZXNlcnZhdGlvbjsgbm8gbmF0aXZlL3Bhcml0eSBvciBwcm9kdWN0aW9uLWluc3RhbGxhdGlvbiByZXN1bHQgaW1wbGllZC4iLAogICJjb21wb3NpdGlvbl9ub3RlIjogIkJ5dGUtZXhhY3QgUkFXMyBmcm9tIHJ1biA0MDA1NzE0NDEzMiAvIGpvYiAxMjA3NjI1MTIxNzggYXQgc291cmNlIDNkMDhkMTEyYzEzZTE0NGI4M2I0NDY3NWY0YzJkZTk4N2EwMmNmZDggLyB0cmVlIDRjOWNkNzRmYmM3NDY5NzY0NGM1MTdkYTgxYTc2M2Y0MGY0NzU5YTMuIFByZXZpb3VzIGFjdGl2ZTkgZXhhY3QgbGl0ZXJhbCB2YWx1ZXMgYXJjaGl2ZWQgaW4gZWRpZWxfaW5ib3VuZF9wcmVjaXNpb25fcHJpY2luZ19nZW51aW5lX29yZGluYXJ5X2NhcHR1cmVfYWRvcHRpb25fMjAyNjEwMjQ7IGFsbCBvdGhlciBoaXN0b3JpY2FsIHJhdyB2YWx1ZXMgcHJlc2VydmVkLiBBZG9wdGluZyBzdWNjZXNzb3IgaXMgbm90IHRoZSBjYXB0dXJlZCBzb3VyY2UuIE1hbmRhdG9yeSBpbXBvcnRpbmctaGVhZC9uYXRpdmUvY2xlYW4tdXBncmFkZS9wYXJpdHkgcmVtYWluLiIsCiAgImN1cnJlbnRfcHJlZml4X3ZlcmlmaWNhdGlvbiI6IHsKICAia2luZCI6ICJnZW51aW5lX3N1Y2Nlc3NmdWxfb3JkaW5hcnlfY2FwdHVyZV9SQVczX09OTFkiLAogICJzb3VyY2VfaGVhZCI6ICIzZDA4ZDExMmMxM2UxNDRiODNiNDQ2NzVmNGMyZGU5ODdhMDJjZmQ4IiwKICAic291cmNlX3RyZWUiOiAiNGM5Y2Q3NGZiYzc0Njk3NjQ0YzUxN2RhODFhNzYzZjQwZjQ3NTlhMyIsCiAgIndvcmtmbG93X3BhdGgiOiAiLmdpdGh1Yi93b3JrZmxvd3Mvc3RhZmYtYXBpLXNjaGVtYS1jYXB0dXJlLnltbCIsCiAgIndvcmtmbG93X3J1bl9pZCI6IDQwMDU3MTQ0MTMyLAogICJ3b3JrZmxvd19qb2JfaWQiOiAxMjA3NjI1MTIxNzgsCiAgImF0dGVtcHQiOiAxLAogICJhcnRpZmFjdF9pZCI6IDEyNTQ1NjY5Mjk3LAogICJhcnRpZmFjdF9uYW1lIjogInN0YWZmLXNjaGVtYS1jYXB0dXJlLTNkMDhkMTEyYzEzZTE0NGI4M2I0NDY3NWY0YzJkZTk4N2EwMmNmZDgiLAogICJhcnRpZmFjdF9hcmNoaXZlX3NoYTI1NiI6ICI1MmYwOWEwNzZkYjFmMmYxMDdkMTRhNGI2NmNmOWYwZTBlOGM0ODYxNjM1YzU4Yzg1ZGQ2ZWUxNjYwYWJjNWUzIiwKICAiYXJ0aWZhY3RfYXJjaGl2ZV9ieXRlcyI6IDE4MzM3NzUsCiAgImNhcHR1cmVfcmVjZWlwdF9zaGEyNTYiOiAiNTUwZWVjMDRkOGU0MTM2ZDQ2NGJlNmYyZGFiNmI2NTllMmJhM2VkMTRhNGIzNzhiNjMxMDM1YTE5MGFiOGQ2NyIsCiAgInJhd19vdXRwdXRfc2hhMjU2IjogewogICAgImRhdGFiYXNlLnR5cGVzLnRzIjogImM2MjI5OTI5M2ZkOWZhODA0MjJiNTcyZThkN2YwNjcyODNlMjIxOWYwNzA1MWRkMjhhYzc2YjllOWU1N2Y4NDAiLAogICAgInNjaGVtYS5zcWwiOiAiNjlhZGE2NDgzOTU4NGIzNTc2ZTliNTc0NzExNDNmMWNlMjNjMGU4N2JkYzcyNGY5ZjIyNjFlZDE1ZmRmYTg1YiIsCiAgICAic2NoZW1hLmZpbmdlcnByaW50Lmpzb24iOiAiMjU0OTQxMGYwM2VlZmE0NmU4OThmNmJmYjc4MGNlNzQzODY3N2ZmYjZlZDlmYmM0MDRiZDFmMjYzYWEyNzBiZiIKICB9LAogICJzY2hlbWFfZmluZ2VycHJpbnQiOiAiZjdjNTk4OThiYTc5NDAwYzk2ZWM2NDU4N2EwOGYxZDgxNWY1YzVmNGM0YjY3ZWQ4ZDM3ZTk4YWYxYzhkYTZjZiIsCiAgImFjdHVhbF9jYXB0dXJlX2NvbXBsZXRlZF9hdCI6ICIyMDI2LTEwLTI0VDAzOjIwOjU3LjczODM2MyswMDowMCIsCiAgIndvcmtmbG93X2pvYl9jb25jbHVzaW9uIjogIlNVQ0NFU1MiLAogICJlcG9jaF9hdHRlc3RhdGlvbl9lbmFibGVkIjogZmFsc2UsCiAgIm5hdGl2ZV90ZXN0cyI6ICJOT1RfUlVOIiwKICAiYnJvd3Nlcl90ZXN0cyI6ICJOT1RfUlVOIiwKICAidHlwZV9zY2hlbWFfY29tcGFyaXNvbiI6ICJOT1RfUlVOIiwKICAidXBncmFkZV9wYXJpdHkiOiAiTk9UX1JVTiIsCiAgInJlcXVpcmVkX2dhdGUiOiAiT1BTIGhhcmRlbmluZyBjbGVhbi91cGdyYWRlIHJlcGxheSBhbmQgcGFyaXR5IHJlbWFpbiBtYW5kYXRvcnkiLAogICJ3aG9sZV9hcHByb3ZhbCI6IGZhbHNlLAogICJsYXRlc3RfcmVwbGF5X21pZ3JhdGlvbiI6IHsKICAgICJuYW1lIjogIjIwMjYxMDI0MDIwMTI1X2VkaWVsX2luYm91bmRfZ3JhcGhfc25hcHNob3RfYmFzaXMuc3FsIiwKICAgICJzaGEyNTYiOiAiNDAzZDkwZGRlZTYwZTBmODRkMGQxYTc1Y2RmNWJmYjU2ZGZlN2NlMGY1ZGExNTY1NjIyZmY4ZmE5NmZjN2YwMSIKICB9LAogICJpbnB1dF9zaGEyNTYiOiB7CiAgICAic2NyaXB0cy9ncmlkZXgtYXVkLTAwMy1jbGVhbi1yZXBsYXkuc2giOiAiNzEyNjIzNjZmZWFmM2RmMDU0Yzc0MzZjMmZkM2Q4MGUwYjk2YjhhYWRkY2ExZGYyNjBhNzFmYTZiZjM2ZDg4NSIsCiAgICAic2NyaXB0cy9taWdyYXRpb24taGlzdG9yeS1tYW5pZmVzdC5qc29uIjogIjY2YTczNTQ2NGMyOThiM2U1ZTUzNGY3ZTI3ZGY4ODljYjFiMDEyODBkNTViNDhkNDQ5YzRmMTk1ZWVkN2RlMDEiLAogICAgInNjcmlwdHMvbWlncmF0aW9uLWhpc3RvcnktbWFuaWZlc3QuYWRkaXRpb25zLmpzb24iOiAiMTM2NDM1ZjE3ZGQ4YmE5OTMzNzE4Zjg4ZjU0MTJlY2ZiOTdmZDBkNzZlMTk3OWM1ZDdiN2U2MjRmZmNmMGY3NiIsCiAgICAic2NyaXB0cy9taWdyYXRpb24taGlzdG9yeS1tYW5pZmVzdC5ydW50aW1lLmFkZGl0aW9ucy5qc29uIjogImJhNmVjMmUxN2I2ODk5YTEzZjA4ODdkNDJkMzA2MDA3NjlhYjhjOTY1MjgwNGFiODA3YzIzNDBjOTE3N2Y0NTQiLAogICAgInNjcmlwdHMvc3VwYWJhc2UtdHlwZXMtbWFuaWZlc3QuanNvbiI6ICI3YmY4ZmFiNWYxZjNhZmM2Nzg5NzQ4MDcxM2YxNTdiZDE2OWI1ZTg3NjVlMDJlNmQ5NmZmNDU3YzdkYWRjNTMzIiwKICAgICJzY3JpcHRzL2FwcGx5LXN1cGFiYXNlLXR5cGVzLW51bGxhYmlsaXR5LW92ZXJyaWRlcy5janMiOiAiYzljZTEwMmY3NmZhMDI2MzRiN2U3MjUxMzZkYTg1ZTA1ZGFhMWNlNGU1MzJkN2JkOWYzZTUwN2Q2NWY4Y2VhYSIsCiAgICAic2NyaXB0cy9ncmlkZXgtc2NoZW1hLXNuYXBzaG90LmNqcyI6ICI1NDBiMTkwMjhjNTkzNTg3ZTQ4MGUzMmQ5ODQzYmYxM2U5MDdhZDYzZGIxNDBmMTY2MDBlOWU2NGUxNTMxYTcxIiwKICAgICJzdXBhYmFzZS9jb25maWcudG9tbCI6ICJiNzBiMGRjODg4NTMwNDc5MGJiNWYwYjAxOWM3YTViODNlNGY0OGYyM2Q3Y2YxYmMyZTRiODU5ZTkxM2UwOTE5IgogIH0KfSwKICAiYWN0aXZlX2dlbmVyYXRlZF9vdXRwdXRzX29yaWdpbiI6IHsKICAia2luZCI6ICJnZW51aW5lX3N1Y2Nlc3NmdWxfb3JkaW5hcnlfY2FwdHVyZV9SQVczX09OTFkiLAogICJzb3VyY2VfaGVhZCI6ICIzZDA4ZDExMmMxM2UxNDRiODNiNDQ2NzVmNGMyZGU5ODdhMDJjZmQ4IiwKICAic291cmNlX3RyZWUiOiAiNGM5Y2Q3NGZiYzc0Njk3NjQ0YzUxN2RhODFhNzYzZjQwZjQ3NTlhMyIsCiAgIndvcmtmbG93X3BhdGgiOiAiLmdpdGh1Yi93b3JrZmxvd3Mvc3RhZmYtYXBpLXNjaGVtYS1jYXB0dXJlLnltbCIsCiAgIndvcmtmbG93X3J1bl9pZCI6IDQwMDU3MTQ0MTMyLAogICJ3b3JrZmxvd19qb2JfaWQiOiAxMjA3NjI1MTIxNzgsCiAgImF0dGVtcHQiOiAxLAogICJhcnRpZmFjdF9pZCI6IDEyNTQ1NjY5Mjk3LAogICJhcnRpZmFjdF9uYW1lIjogInN0YWZmLXNjaGVtYS1jYXB0dXJlLTNkMDhkMTEyYzEzZTE0NGI4M2I0NDY3NWY0YzJkZTk4N2EwMmNmZDgiLAogICJhcnRpZmFjdF9hcmNoaXZlX3NoYTI1NiI6ICI1MmYwOWEwNzZkYjFmMmYxMDdkMTRhNGI2NmNmOWYwZTBlOGM0ODYxNjM1YzU4Yzg1ZGQ2ZWUxNjYwYWJjNWUzIiwKICAiYXJ0aWZhY3RfYXJjaGl2ZV9ieXRlcyI6IDE4MzM3NzUsCiAgImNhcHR1cmVfcmVjZWlwdF9zaGEyNTYiOiAiNTUwZWVjMDRkOGU0MTM2ZDQ2NGJlNmYyZGFiNmI2NTllMmJhM2VkMTRhNGIzNzhiNjMxMDM1YTE5MGFiOGQ2NyIsCiAgInJhd19vdXRwdXRfc2hhMjU2IjogewogICAgImRhdGFiYXNlLnR5cGVzLnRzIjogImM2MjI5OTI5M2ZkOWZhODA0MjJiNTcyZThkN2YwNjcyODNlMjIxOWYwNzA1MWRkMjhhYzc2YjllOWU1N2Y4NDAiLAogICAgInNjaGVtYS5zcWwiOiAiNjlhZGE2NDgzOTU4NGIzNTc2ZTliNTc0NzExNDNmMWNlMjNjMGU4N2JkYzcyNGY5ZjIyNjFlZDE1ZmRmYTg1YiIsCiAgICAic2NoZW1hLmZpbmdlcnByaW50Lmpzb24iOiAiMjU0OTQxMGYwM2VlZmE0NmU4OThmNmJmYjc4MGNlNzQzODY3N2ZmYjZlZDlmYmM0MDRiZDFmMjYzYWEyNzBiZiIKICB9LAogICJzY2hlbWFfZmluZ2VycHJpbnQiOiAiZjdjNTk4OThiYTc5NDAwYzk2ZWM2NDU4N2EwOGYxZDgxNWY1YzVmNGM0YjY3ZWQ4ZDM3ZTk4YWYxYzhkYTZjZiIsCiAgImFjdHVhbF9jYXB0dXJlX2NvbXBsZXRlZF9hdCI6ICIyMDI2LTEwLTI0VDAzOjIwOjU3LjczODM2MyswMDowMCIsCiAgIndvcmtmbG93X2pvYl9jb25jbHVzaW9uIjogIlNVQ0NFU1MiLAogICJlcG9jaF9hdHRlc3RhdGlvbl9lbmFibGVkIjogZmFsc2UsCiAgIm5hdGl2ZV90ZXN0cyI6ICJOT1RfUlVOIiwKICAiYnJvd3Nlcl90ZXN0cyI6ICJOT1RfUlVOIiwKICAidHlwZV9zY2hlbWFfY29tcGFyaXNvbiI6ICJOT1RfUlVOIiwKICAidXBncmFkZV9wYXJpdHkiOiAiTk9UX1JVTiIsCiAgInJlcXVpcmVkX2dhdGUiOiAiT1BTIGhhcmRlbmluZyBjbGVhbi91cGdyYWRlIHJlcGxheSBhbmQgcGFyaXR5IHJlbWFpbiBtYW5kYXRvcnkiLAogICJ3aG9sZV9hcHByb3ZhbCI6IGZhbHNlCn0sCiAgInNvdXJjZV9sYXRlc3RfbWlncmF0aW9uIjogewogICJuYW1lIjogIjIwMjYxMDI0MDIwMTI1X2VkaWVsX2luYm91bmRfZ3JhcGhfc25hcHNob3RfYmFzaXMuc3FsIiwKICAic2hhMjU2IjogIjQwM2Q5MGRkZWU2MGUwZjg0ZDBkMWE3NWNkZjViZmI1NmRmZTdjZTBmNWRhMTU2NTYyMmZmOGZhOTZmYzdmMDEiCn0KfQo=",
+    "previous_active_literal_sha256": "3817dfc2226b1ffd83290778af8fa0a717fcd1853da51c4f4029c3fde4c1e41b",
+    "previous_active_compact_ordered_json_sha256": "a9192f0af92a511be6eff1919da5d9e1f2a243f1aa88891fa10740b844b538d7",
+    "source_manifest_preimage_sha256": "38a41ace9f9628e04e989609f5b9583b26ae0f7f4e2d0e75d4f1ebaa150ad4f6",
+    "previous_active_fields": {
+      "generated_at": "2026-10-24T03:20:57.738363+00:00",
+      "generated_with": "supabase-cli-2.101.0-authentic-ordinary-capture-run40057144132-job120762512178-attempt1",
+      "sha256": "c62299293fd9fa80422b572e8d7f067283e2219f07051dd28ac76b9e9e57f840",
+      "latest_migration": "20261024020125_ediel_inbound_graph_snapshot_basis.sql",
+      "latest_migration_schema_effect": "Genuine ordinary RAW3 capture of reviewed inbound opaque graph comparisons and qualified pricing preservation; no native/parity or production-installation result implied.",
+      "composition_note": "Byte-exact RAW3 from run 40057144132 / job 120762512178 at source 3d08d112c13e144b83b44675f4c2de987a02cfd8 / tree 4c9cd74fbc74697644c517da81a763f40f4759a3. Previous active9 exact literal values archived in ediel_inbound_precision_pricing_genuine_ordinary_capture_adoption_20261024; all other historical raw values preserved. Adopting successor is not the captured source. Mandatory importing-head/native/clean-upgrade/parity remain.",
+      "current_prefix_verification": {
+        "kind": "genuine_successful_ordinary_capture_RAW3_ONLY",
+        "source_head": "3d08d112c13e144b83b44675f4c2de987a02cfd8",
+        "source_tree": "4c9cd74fbc74697644c517da81a763f40f4759a3",
+        "workflow_path": ".github/workflows/staff-api-schema-capture.yml",
+        "workflow_run_id": 40057144132,
+        "workflow_job_id": 120762512178,
+        "attempt": 1,
+        "artifact_id": 12545669297,
+        "artifact_name": "staff-schema-capture-3d08d112c13e144b83b44675f4c2de987a02cfd8",
+        "artifact_archive_sha256": "52f09a076db1f2f107d14a4b66cf9f0e0e8c4861635c58c85dd6ee1660abc5e3",
+        "artifact_archive_bytes": 1833775,
+        "capture_receipt_sha256": "550eec04d8e4136d464be6f2dab6b659e2ba3ed14a4b378b631035a190ab8d67",
+        "raw_output_sha256": {
+          "database.types.ts": "c62299293fd9fa80422b572e8d7f067283e2219f07051dd28ac76b9e9e57f840",
+          "schema.sql": "69ada64839584b3576e9b57471143f1ce23c0e87bdc724f9f2261ed15fdfa85b",
+          "schema.fingerprint.json": "2549410f03eefa46e898f6bfb780ce7438677ffb6ed9fbc404bd1f263aa270bf"
+        },
+        "schema_fingerprint": "f7c59898ba79400c96ec64587a08f1d815f5c5f4c4b67ed8d37e98af1c8da6cf",
+        "actual_capture_completed_at": "2026-10-24T03:20:57.738363+00:00",
+        "workflow_job_conclusion": "SUCCESS",
+        "epoch_attestation_enabled": false,
+        "native_tests": "NOT_RUN",
+        "browser_tests": "NOT_RUN",
+        "type_schema_comparison": "NOT_RUN",
+        "upgrade_parity": "NOT_RUN",
+        "required_gate": "OPS hardening clean/upgrade replay and parity remain mandatory",
+        "whole_approval": false,
+        "latest_replay_migration": {
+          "name": "20261024020125_ediel_inbound_graph_snapshot_basis.sql",
+          "sha256": "403d90ddee60e0f84d0d1a75cdf5bfb56dfe7ce0f5da1565622ff8fa96fc7f01"
+        },
+        "input_sha256": {
+          "scripts/gridex-aud-003-clean-replay.sh": "71262366feaf3df054c7436c2fd3d80e0b96b8aaddca1df260a71fa6bf36d885",
+          "scripts/migration-history-manifest.json": "66a735464c298b3e5e534f7e27df889cb1b01280d55b48d449c4f195eed7de01",
+          "scripts/migration-history-manifest.additions.json": "136435f17dd8ba9933718f88f5412ecfb97fd0d76e1979c5d7b7e624ffcf0f76",
+          "scripts/migration-history-manifest.runtime.additions.json": "ba6ec2e17b6899a13f0887d42d30600769ab8c9652804ab807c2340c9177f454",
+          "scripts/supabase-types-manifest.json": "7bf8fab5f1f3afc67897480713f157bd169b5e8765e02e6d96ff457c7dadc533",
+          "scripts/apply-supabase-types-nullability-overrides.cjs": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
+          "scripts/gridex-schema-snapshot.cjs": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
+          "supabase/config.toml": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919"
+        }
+      },
+      "active_generated_outputs_origin": {
+        "kind": "genuine_successful_ordinary_capture_RAW3_ONLY",
+        "source_head": "3d08d112c13e144b83b44675f4c2de987a02cfd8",
+        "source_tree": "4c9cd74fbc74697644c517da81a763f40f4759a3",
+        "workflow_path": ".github/workflows/staff-api-schema-capture.yml",
+        "workflow_run_id": 40057144132,
+        "workflow_job_id": 120762512178,
+        "attempt": 1,
+        "artifact_id": 12545669297,
+        "artifact_name": "staff-schema-capture-3d08d112c13e144b83b44675f4c2de987a02cfd8",
+        "artifact_archive_sha256": "52f09a076db1f2f107d14a4b66cf9f0e0e8c4861635c58c85dd6ee1660abc5e3",
+        "artifact_archive_bytes": 1833775,
+        "capture_receipt_sha256": "550eec04d8e4136d464be6f2dab6b659e2ba3ed14a4b378b631035a190ab8d67",
+        "raw_output_sha256": {
+          "database.types.ts": "c62299293fd9fa80422b572e8d7f067283e2219f07051dd28ac76b9e9e57f840",
+          "schema.sql": "69ada64839584b3576e9b57471143f1ce23c0e87bdc724f9f2261ed15fdfa85b",
+          "schema.fingerprint.json": "2549410f03eefa46e898f6bfb780ce7438677ffb6ed9fbc404bd1f263aa270bf"
+        },
+        "schema_fingerprint": "f7c59898ba79400c96ec64587a08f1d815f5c5f4c4b67ed8d37e98af1c8da6cf",
+        "actual_capture_completed_at": "2026-10-24T03:20:57.738363+00:00",
+        "workflow_job_conclusion": "SUCCESS",
+        "epoch_attestation_enabled": false,
+        "native_tests": "NOT_RUN",
+        "browser_tests": "NOT_RUN",
+        "type_schema_comparison": "NOT_RUN",
+        "upgrade_parity": "NOT_RUN",
+        "required_gate": "OPS hardening clean/upgrade replay and parity remain mandatory",
+        "whole_approval": false
+      },
+      "source_latest_migration": {
+        "name": "20261024020125_ediel_inbound_graph_snapshot_basis.sql",
+        "sha256": "403d90ddee60e0f84d0d1a75cdf5bfb56dfe7ce0f5da1565622ff8fa96fc7f01"
+      }
+    }
+  }
 }

@@ -23,6 +23,13 @@ function reversePatch(schema:string,patch:Patch):string{
 export function db05PredecessorSchema(schema:string):string{
  let patch:Patch=JSON.parse(readFileSync(new URL('../fixtures/db05-schema-predecessor.patch.json',import.meta.url),'utf8'))
  const actual=sha(schema)
+ if(actual==='4ab0c60bd5688e9653927491981f779b374a3a85600d8a87e050ac67f15a15ca'){
+  // Genuine ordinary G3 capture012cc8bf/artifact12561956311. Rebuild exact
+  // MAIN3d08 capture before its unchanged audit28 -> audit27 -> audit26 chain.
+  const audit29Patch:Patch=JSON.parse(readFileSync(new URL('../fixtures/db05-schema-predecessor-audit29.patch.json',import.meta.url),'utf8'))
+  if(audit29Patch.preSha256!=='69ada64839584b3576e9b57471143f1ce23c0e87bdc724f9f2261ed15fdfa85b'||audit29Patch.postSha256!==actual)throw Error('db05_schema_predecessor_rebuild_mismatch')
+  return db05PredecessorSchema(reversePatch(schema,audit29Patch))
+ }
  if(actual==='69ada64839584b3576e9b57471143f1ce23c0e87bdc724f9f2261ed15fdfa85b'){
   // Genuine ordinary MAIN capture from 3d08. Rebuild exact S01 capture before
   // its unchanged audit27 -> audit26 -> pinned predecessor chain.
