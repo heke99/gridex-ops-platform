@@ -2439,6 +2439,14 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 ### G-2 (= P1) Mätvärden lagras med cirka 1,3 s per värde — MÄTT (pg_stat_statements), hög prestanda; ÖPPEN
 - Tre anrop i följd per värde: `gridex_consume_utilts_metering_v1` 795 ms, `gridex_set_metering_billing_gate` 280 ms och `gridex_read_billing_source_values_v1` 252 ms.
 - Det ger 2–3 minuter per fil med 96 värden, och varje körning hinner därmed bara ta upp en fil. Rättningen kräver batchning eller arbete i SQL och index.
+- **DELVIS RÄTTAD 2026-10-24 (cirka 30 % snabbare):**
+  - **Mätning:** cirka 70 % av tiden gick i `gridex_utilts_binding.validate_decimal_source_v2`, som körs fyra gånger per värde och varje gång kontrollerar hela filen (96 kvantiteter × 406 token × 6 genomsökningar).
+  - **Rättning:** migrationen `20261024120000_g2_utilts_decimal_source_own_transaction_scans.sql` (`8e585f94…`) låter kontrollerna per kvantitet bara söka igenom den egna transaktionens token. Kroppen var inte skyddad, och migrationen installeras bara över den exakta förbilden.
+  - **Resultat per värde (p50):** consume 330 → 230 ms, gate 180 → 128 ms och read 170 → 119 ms. Utfallet är identiskt på 5807 indata.
+  - **Tester:** `reality-g2-…` 3/3, med likhet på 400 genererade indata. SC-053 8/8. Täckningen 352/352. Applicerad i världen.
+  - **ÖPPET:**
+    - `wire_tokens_v1` delar upp filen i token cirka 12 gånger per värde, vilket kostar cirka 300 ms. Förslag: dela upp en gång i `stored_contract_v1` och skicka vidare.
+    - Hela filen valideras fortfarande per värde. En RPC som behandlar en hel fil i taget kräver ett designbeslut, eftersom den ändrar fastlåsta kroppar.
 
 ### G-3 Provisioneringsjobben `ediel_readiness_revalidate` slås aldrig ihop, och claimen tar de äldsta först över alla tenants — BEKRÄFTAD (världen), medel; ÖPPEN
 - Ett jobb skapas per konfigurationsögonblicksbild, och claimen tar 20 per körning.
