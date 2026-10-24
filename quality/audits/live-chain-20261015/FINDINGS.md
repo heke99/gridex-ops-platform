@@ -2500,6 +2500,18 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **Test:** `__tests__/reality-h12-withdrawal-stops-prepared-switch.test.ts`, 3 fall. Före rättningen föll alla 3. Hela sviten: 22 689 pass; de 4 som faller (`manual-mail-*`) faller också utan ändringen, eftersom `xlsx` saknas i containern. `tsc` rent.
 - ÖPPET: verifiera i H körning 3. Den oanvända `cancelOpenSwitchRequestsForLifecycleDecision` (`app/admin/customers/[id]/actions.part-4.ts`) har samma lista men anropas inte.
 
+### H-13 Nätägarens Z05 LK (inflyttning av ny kund) tar bort debiteringsgrunden för hela den avslutade perioden — BEKRÄFTAD (världen), KRITISK; RÄTTAD (SQL)
+- **Bevis:** M:s period `ff619922…` är `ended` via Z05 LK `38a971ea…`. Värdena 10-20 till 10-22, alltså före flytten, är `blocked` med `supply_source_unqualified`. `billing_supply_basis_v1` ger NULL för M men `qualified: true` för S (Z05 L).
+- **Orsak:** `gridex_bilateral_prodat.recorded_supply_current_v1` skickade varje Z05 med ett Z23-objekt till `recorded_closure_end_current_v1`. Den kontrollen gäller en Z05 som svarar på vår egen bilaterala stängning (Z08 LK) och kräver vårt kvitto och vårt original. Nätägarens Z05 LK vid inflyttning har inget av det, så funktionen gav false.
+- **Konsekvens:** slutmånaden för en kund som flyttar ut faktureras aldrig, trots att leveransen avslutas korrekt.
+- **Rättning:** migrationen `20261024160000_h13_z05_lk_without_own_closure_is_an_ordinary_end.sql` (`47c92275…`). Den installeras bara över exakt förbilden (`04b9de6b…`, samma som `schema.sql`) och kontrollerar metadata.
+  - En Z23-Z05 går till stängningskontrollen bara när den är vår stängning enligt det befintliga `z05_closure_owned_v1`, eller när det inte går att avgöra. Annars får den samma kontroller som andra mottagna slut, som `ordinary_z05_end_v1` redan gör. Ett svar på vår stängning kontrolleras som förut.
+  - Inte skyddad: varken i DB-05 `protectedNames` eller låst av SC-031.
+- **Test:** `__tests__/reality-h13-z05-lk-without-own-closure-ordinary-end.test.ts`, 3 fall i PGlite mot förbilden från `schema.sql`. Bara fallet "Z05 LK utan vår stängning" ändras (false → true). Ett ordinärt slut som inte är aktuellt faller fortfarande. Utan migrationen faller 2 av 3.
+- **Världen, i en återställd transaktion:** M ger `qualified: true` för 10-21 och ingen grund efter slutet 10-22T23:00Z. S oförändrad.
+- De gamla SQL-regressionerna `ediel-bilateral-prodat-closure`, `-owned-end` och `ediel-closure-continuity` faller också utan ändringen.
+- ÖPPET: GEN-ägaren behöver fånga om `schema.sql`. Verifiera i H körning 3.
+
 ### T23 Harnessens avtal saknade erbjudandets bindningstid — HARNESS; RÄTTAD
 - `augustSupplyCustomer` (`scripts/helpers/live-chain-fixture.ts`) skapade avtalet direkt i SQL utan `binding_months`, `notice_months` och `auto_renew_enabled`. Produktens avtalsskrivare kopierar dem från erbjudandet (`lib/customer-contracts/db.ts`).
 - Därför fick S och M ingen avgiftsgranskning i H4, trots ett erbjudande med 12 månaders bindning. Produktversionen har `binding_months = 12`.
