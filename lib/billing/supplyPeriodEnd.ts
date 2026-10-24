@@ -111,19 +111,24 @@ function stockholmDate(value: string) {
  * to its end:
  *   * 'supply_end': the supply-end follow-up (gridex_supply_end_followup_v1) after a received end (Z05; FINDINGS H3);
  *   * 'move_out': a manual move-out, gridex_end_customer_supply_v1(p_end_reason 'move_out') or
- *     gridex_close_customer_lifecycle_v1, which end the period and the contract on the same move-out date
- *     (owner decision 2026-10-23 "Fakturera slutmånaden", FINDINGS H3b).
- * Every other reason ('supplier_switch' of the manual end, a customer's or operator's termination, a withdrawal) is
- * not an end of supply billing may rely on and stays refused.
+ *     gridex_close_customer_lifecycle_v1/_v2 (owner decision 2026-10-23 "Fakturera slutmånaden", FINDINGS H3b);
+ *   * 'grid_contract_ended': the close's mode for a customer whose grid contract ended (no supply although the notice
+ *     period runs on; owner decision B1, FINDINGS H3d);
+ *   * 'customer_termination': the close's mode 'terminate' when no supply is ongoing after its date (FINDINGS H3d D9;
+ *     with ongoing supply a termination is only registered and the supply continues, owner decision B3).
+ * Every other reason ('supplier_switch' of the manual end, 'customer_request', a withdrawal) is not an end of supply
+ * billing may rely on and stays refused.
  */
-export const CONTRACT_END_REASONS_CARRYING_FINAL_PERIOD = ['supply_end', 'move_out'] as const
+export const CONTRACT_END_REASONS_CARRYING_FINAL_PERIOD = ['supply_end', 'move_out', 'grid_contract_ended', 'customer_termination'] as const
 
 /**
- * A contract terminated because exactly this period ended still carries the period up to that end (FINDINGS H3,
- * H3b). Same rule as the database's billing gate, underlay store and pricing/export readers (20261022150000,
- * 20261023196000, 20261023199000, 20261023200000): status 'terminated', termination_reason 'supply_end' or
- * 'move_out' (CONTRACT_END_REASONS_CARRYING_FINAL_PERIOD) and ended_at on the period's end date (UTC or Stockholm
- * date). Any other terminated, cancelled or expired contract is refused.
+ * A contract terminated because this period ended still carries the period up to that end (FINDINGS H3, H3b, H3d
+ * D8). Same rule as the database's billing gate, underlay store and pricing/export readers (20261022150000,
+ * 20261023196000, 20261023199000, 20261023200000, 20261023203000): status 'terminated', a termination_reason of
+ * CONTRACT_END_REASONS_CARRYING_FINAL_PERIOD and ended_at ON OR AFTER the period's end date (UTC or Stockholm date):
+ * the contract may run on through its notice period after the supply ended (owner decision B1), and it carries only
+ * the supplied days (contractCarriesBilledPeriod bounds the billed period by the supply end). A contract ended before
+ * its period's end date, and any other terminated, cancelled or expired contract, is refused.
  */
 export function contractEndedBySupplyPeriod(contract: ContractEnd | null | undefined, period: { end_date?: unknown } | null | undefined): boolean {
   const reason = text(contract?.termination_reason)
@@ -132,7 +137,8 @@ export function contractEndedBySupplyPeriod(contract: ContractEnd | null | undef
   const endDate = text(period.end_date)?.slice(0, 10), endedAt = text(contract.ended_at)
   if (!endDate || !endedAt) return false
   const utc = Number.isFinite(Date.parse(endedAt)) && !ISO_DATE.test(endedAt) ? new Date(endedAt).toISOString().slice(0, 10) : endedAt.slice(0, 10)
-  return utc === endDate || stockholmDate(endedAt) === endDate
+  const stockholm = stockholmDate(endedAt)
+  return (ISO_DATE.test(utc) && utc >= endDate) || (stockholm !== null && stockholm >= endDate)
 }
 
 type BilledSupplyPeriod = PeriodEnd & { status?: unknown; start_date?: unknown }
@@ -143,8 +149,8 @@ type BilledSupplyPeriod = PeriodEnd & { status?: unknown; start_date?: unknown }
  * (gridex_set_metering_billing_gate, gridex_store_billing_underlay; 20261022150000, 20261023196000) and of the
  * pricing readers (20261023199000; move-out 20261023200000):
  *   * a 'signed' or 'active' contract carries it; or
- *   * a contract terminated because exactly this period ended, by a Z05 supply end or a manual move-out on that date
- *     (contractEndedBySupplyPeriod; FINDINGS H3/H3b), on a billed period status ('ending'/'ended' only with an end
+ *   * a contract terminated because this period ended, by a Z05 supply end or a manual end on or before the contract's
+ *     end (contractEndedBySupplyPeriod; FINDINGS H3/H3b/H3d D8), on a billed period status ('ending'/'ended' only with an end
  *     date), and only for a billed period inside the supplied window: not before civil midnight of the start date and
  *     not after the period's end instant (supplyPeriodEndInstant: a received Z05 end at the market instant, F108 M5;
  *     a move-out end at civil midnight after its last supplied day).

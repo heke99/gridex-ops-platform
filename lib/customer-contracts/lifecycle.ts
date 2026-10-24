@@ -6,6 +6,8 @@ type ContractLifecycleInput = {
   endsAt?: string | null
   bindingMonths?: number | null
   noticeMonths?: number | null
+  /** Notice days on top of the months (customer_contract_notice_terms, FINDINGS H3d D1); absent means 0. */
+  noticeDays?: number | null
   terminationNoticeDate?: string | null
   terminationReason?: CustomerContractTerminationReason | null
   autoRenewEnabled?: boolean | null
@@ -74,6 +76,28 @@ function addMonths(dateValue: string | null | undefined, months: number | null |
   const nextDay = clampDay(targetYear, normalizedMonthIndex, day)
 
   return formatUtcDate(new Date(Date.UTC(targetYear, normalizedMonthIndex, nextDay)))
+}
+
+function addDays(dateValue: string | null, days: number | null | undefined): string | null {
+  const base = parseUtcDate(dateValue)
+  if (!base) return null
+  const safeDays = typeof days === 'number' && Number.isFinite(days) && days > 0 ? Math.floor(days) : 0
+  return formatUtcDate(new Date(base.getTime() + safeDays * 86_400_000))
+}
+
+/**
+ * The end of a notice period (FINDINGS H3d D1, owner decision B1): the customer's notice date plus notice_months
+ * calendar months (month-end clamped) plus notice days. Identical to the database's
+ * public.gridex_contract_notice_end_v1 (20261023204000). Null without a notice date.
+ */
+export function contractNoticeEndDate(
+  noticeDate: string | null | undefined,
+  noticeMonths: number | null | undefined,
+  noticeDays: number | null | undefined,
+): string | null {
+  const normalized = normalizeDate(noticeDate)
+  if (!normalized) return null
+  return addDays(addMonths(normalized, noticeMonths ?? 0), noticeDays ?? 0)
 }
 
 function maxDate(a: string | null, b: string | null): string | null {
@@ -157,10 +181,10 @@ export function deriveContractEndsAt(input: ContractLifecycleInput): string | nu
     ? addMonths(startsAt, bindingMonths)
     : null
 
-  const noticeEffectiveEndDate = terminationNoticeDate
-    ? addMonths(terminationNoticeDate, input.noticeMonths ?? 0)
-    : null
+  const noticeEffectiveEndDate = contractNoticeEndDate(terminationNoticeDate, input.noticeMonths, input.noticeDays)
 
+  // Identical to the database's public.gridex_contract_termination_end_v1 (20261023204000), which registers a
+  // termination without a move (FINDINGS H3d B3).
   return maxDate(boundUntil, noticeEffectiveEndDate)
 }
 
@@ -176,9 +200,7 @@ export function getContractLifecycleSummary(
       ? input.bindingMonths
       : null
   const boundUntil = startsAt && bindingMonths ? addMonths(startsAt, bindingMonths) : null
-  const noticeEffectiveEndDate = terminationNoticeDate
-    ? addMonths(terminationNoticeDate, input.noticeMonths ?? 0)
-    : null
+  const noticeEffectiveEndDate = contractNoticeEndDate(terminationNoticeDate, input.noticeMonths, input.noticeDays)
   const effectiveEndDate = explicitEndsAt ?? maxDate(boundUntil, noticeEffectiveEndDate)
   const bindingActive = Boolean(boundUntil && boundUntil > referenceDate)
   const autoRenewEnabled = Boolean(input.autoRenewEnabled)

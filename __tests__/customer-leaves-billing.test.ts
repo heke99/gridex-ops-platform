@@ -81,7 +81,10 @@ describe('the remaining supply after a Z05 arrives (H2, H3)', () => {
   it('H2/H3 boundaries: nothing after the end, no other termination, no ending period without an end date', () => {
     expect(codes(gate({ at: quarter('2026-11-01T00:00:00', '+01:00'), supply: z05Period('ending'), contract: terminated }))).toContain('supply_period_does_not_cover_value')
     expect(codes(gate({ at: quarter('2026-10-20T12:00:00', '+02:00'), supply: z05Period('ended'), contract: { ...terminated, termination_reason: 'customer_request' } }))).toContain('contract_not_active')
-    expect(codes(gate({ at: quarter('2026-10-20T12:00:00', '+02:00'), supply: z05Period('ended'), contract: { ...terminated, ended_at: '2026-12-01T00:00:00+00:00' } }))).toContain('contract_not_active')
+    // H3d D8 (owner decision B1): a contract may end AFTER its supply end (notice period) and still carries the supplied
+    // days; a contract ended BEFORE the period's end date stays refused.
+    expect(codes(gate({ at: quarter('2026-10-20T12:00:00', '+02:00'), supply: z05Period('ended'), contract: { ...terminated, ended_at: '2026-10-25T00:00:00+00:00' } }))).toContain('contract_not_active')
+    expect(codes(gate({ at: quarter('2026-10-20T12:00:00', '+02:00'), supply: z05Period('ended'), contract: { ...terminated, ended_at: '2026-12-01T00:00:00+00:00' } }))).not.toContain('contract_not_active')
     expect(codes(gate({ at: quarter('2026-10-20T12:00:00', '+02:00'), supply: z05Period('ended'), contract: { ...signed, status: 'cancelled' } }))).toContain('contract_not_active')
     expect(codes(gate({ at: quarter('2026-10-20T12:00:00', '+02:00'), supply: { ...z05Period('ending'), end_date: null }, contract: signed }))).toContain('supply_period_not_active')
     expect(codes(gate({ at: quarter('2026-10-20T12:00:00', '+02:00'), supply: { ...z05Period('ended'), status: 'cancelled' }, contract: signed }))).toContain('supply_period_not_active')

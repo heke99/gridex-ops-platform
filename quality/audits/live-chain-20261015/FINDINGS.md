@@ -2303,6 +2303,51 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
     - Separat avtalade tjänster har ingen markör i datamodellen, och årsavgifter (`sek_year`) fördelas inte.
     - Det finns ingen väg att debitera en granskad brytavgift (D11).
     - Övriga punkter: D1, D3, D5, D6, D8, D12 och D13.
+- **DEL 2 RÄTTAD 2026-10-24 (B1, D1, D2, D3, D5, D6, D8, D9, D12, D13, B3, H3c öppen 1):**
+  - **D8:** gate, lager, prisläsning och -persist, exportvy, H3c-grunden och TS godtar ett avtal som slutar på eller efter leveransslutet.
+    - Godtagna skäl är `supply_end`, `move_out`, `grid_contract_ended` och `customer_termination`.
+    - Debiteringen stoppar vid leveransslutet.
+    - Nekas fortfarande: `supplier_switch`, `customer_request`, saknat skäl, avtal som slutar före leveransslutet, annullerade eller utgångna avtal och avtal hos annan tenant.
+  - **B1:**
+    - Kundkortet anropar nu `close_v2`, som också tar emot datumet då kunden sade upp. `v1` vidarebefordrar.
+    - Avtalets slut är det senare av sista levererade dag och uppsägningsdatum plus månader plus dagar. Leveransen slutar på flyttdagen.
+    - Nytt läge `grid_contract_ended`, när nätavtalet har upphört: leveransen slutar och kunden blir `inactive`.
+  - **D1, uppsägning i dagar:**
+    - Lagras i två nya sidotabeller, per erbjudande och per avtal. En kolumn på `customer_contracts` skulle bryta tombstone-hasharna.
+    - Värdet kopieras när avtalet skapas och kan inte ändras efter signering.
+    - Tenantbegränsad RLS; bara `service_role` skriver. SQL och TS ger samma resultat.
+  - **D3:** ett befintligt uppsägningsdatum skrivs inte längre över.
+  - **B3, D2 och D9:**
+    - "Uppsägning" medan leveransen pågår registrerar bara uppsägningen. Leveransen fortsätter, och avtalet får ett planerat slut.
+    - Utan pågående leverans stängs avtalet med `customer_termination`, aldrig med `move_out`.
+    - En daglig cron, `/api/cron/customer-contracts/termination-expiry` (`40 4 * * *`), skapar en operatörsuppgift per avtal att skicka Z08 när det planerade slutet har passerat utan Z05. Inget skickas automatiskt.
+    - "Avslutat" nekas medan leveransen fortsätter, och ett aktivt avtal efter planerat slut fortsätter att debitera pågående leverans.
+  - **Z05 efter manuellt slut:**
+    - H3c öppen 1 RÄTTAD: Z05 flyttar avtalets slut till det mottagna slutet. Det förblir en slutfakturauppgift per period, och en redan hanterad uppgift ger i stället en granskning.
+    - H3c öppen 2 ÄNDRAS INTE: Z05 efter `gridex_end_customer_supply_v1` nekas fortfarande. Det sker i den DB-05-skyddade `other_supply_scope_effect_v1`, och den funktionen har ingen anropare i appen.
+  - **D5:** portalen godtar ett flyttdatum upp till 30 dagar bakåt och skapar då ett granskningsärende med hög prioritet.
+  - **D6:** en väntande inflytt på en annan anläggning överlever stängningen.
+  - **D12 och D13:** standarddatumet är svensk dag, och typen har de skäl som finns i databasen.
+  - **Migrationer**, applicerade i världen 2026-10-24T00:21Z:
+    - `20261023203000_h3d_contract_end_after_supply_end` (`b57313c2…`)
+    - `…203500_h3d_contract_end_after_supply_basis` (`5b5906bf…`)
+    - `…204000_h3d_contract_notice_days` (`97d225f2…`)
+    - `…205000_h3d_move_out_notice_and_termination` (`1394261b…`)
+    - `…206000_h3d_portal_retroactive_move_out` (`817b90cb…`)
+    - Ingen av de ändrade kropparna är skyddad.
+  - **Tester:**
+    - `h3d-notice-termination` 27/27, där alla föll mot de gamla kropparna; `h3d-contract-end-after-supply` 10/10, varav 9 föll före.
+    - SQL-regressionerna 12+122 och 5+67 PASS; relaterade regressioner gröna; 58 importörsfiler 663/663.
+    - Native `customer-leaves` 7/7 och `z05lk` 3/3. Täckningen 352/352, tsc 0 fel.
+    - Jag körde själv om 7 filer, bland dem `vercel-cron-routes`: 122/122.
+  - **Ändrade påståenden** (inte masterplan), eftersom de byggde på den gamla regeln att avtalsslut ska vara lika med leveransslut och D8 ersätter den: `customer-leaves-billing` och ett fall i `h3b-move-out-final-month`.
+  - **EJ VERIFIERAT:** native-sviterna `ediel-z05-supplier` och `z05h-z08h` kraschade med `spawnSync psql ENOBUFS`. Deras ögonblicksbild av alla tenants rader överstiger psql-bufferten på 2 MB i den stora världen, så det är en begränsning i testmiljön. En återrullad simulering av Z05 gav exakt de händelsenycklar som AT-Z05 förväntar sig. Sviterna behöver köras i en ren databas.
+  - **Felen fanns redan:** `db:types:check`, den statiska granskningen och C56 faller på samma sätt i en äldre checkout.
+  - **ÖPPET:**
+    - Inget admingränssnitt skriver erbjudandets uppsägningsdagar, och avtalskortet visar dem inte.
+    - En ren redigering av slutdatumet för en manuellt stängd period begränsas nu bara av avtalets slut och ett mottaget slut. Bör granskas.
+    - D11 (debitering av granskad brytavgift), en markör för separata tjänster och fördelning av årsavgifter återstår.
+  - **NYA ÄGARFRÅGOR (B5–B7):** se OWNER-DECISIONS.
 - **Rätt i dag:**
   - Ingen dag faktureras efter slutet och ingen dubbelfaktureras.
   - Slutmånaden faktureras vid manuell flytt för leveranser som inte kom via Ediel.

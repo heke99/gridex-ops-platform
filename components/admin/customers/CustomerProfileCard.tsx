@@ -1,6 +1,7 @@
 'use client'
 
 import { useActionState, useMemo, useState } from 'react'
+import { currentStockholmCalendarDate } from '@/lib/time/stockholm'
 import {
  archiveCustomerAction,
  closeCustomerLifecycleAction,
@@ -339,21 +340,37 @@ export default function CustomerProfileCard({
  <label className="grid gap-1 text-sm">
  <span className="text-emerald-900 ">Åtgärd</span>
  <select name="lifecycle_mode" disabled={isArchived} className="h-11 rounded-2xl border border-emerald-200 bg-white px-4 text-slate-950 disabled:cursor-not-allowed disabled:opacity-60 ">
- <option value="move_out">Kunden flyttar / leveransen upphör</option>
- <option value="terminate">Avsluta kundrelation manuellt</option>
+ <option value="move_out">Kunden flyttar (leveransen upphör efter flyttdagen)</option>
+ <option value="grid_contract_ended">Kundens nätavtal har upphört (ingen leverans efter datumet)</option>
+ <option value="terminate">Uppsägning utan flytt (leveransen fortsätter tills ny leverantör tar över)</option>
  </select>
  </label>
 
  <label className="grid gap-1 text-sm">
- <span className="text-emerald-900 ">Utflytts-/avslutsdatum</span>
+ <span className="text-emerald-900 ">Sista leveransdag (flytt/nätavtal) eller avslutsdatum</span>
  <input
  name="move_out_date"
  type="date"
- defaultValue={new Date().toISOString().slice(0, 10)}
+ defaultValue={currentStockholmCalendarDate()}
  disabled={isArchived}
  className="h-11 rounded-2xl border border-emerald-200 bg-white px-4 text-slate-950 disabled:cursor-not-allowed disabled:opacity-60 "
  />
  </label>
+
+ <label className="grid gap-1 text-sm">
+ <span className="text-emerald-900 ">Kunden meddelade uppsägningen (uppsägningstiden räknas härifrån)</span>
+ <input
+ name="notice_date"
+ type="date"
+ defaultValue={currentStockholmCalendarDate()}
+ disabled={isArchived}
+ className="h-11 rounded-2xl border border-emerald-200 bg-white px-4 text-slate-950 disabled:cursor-not-allowed disabled:opacity-60 "
+ />
+ </label>
+
+ <p className="text-xs leading-5 text-emerald-900/75 md:col-span-2">
+ Avtalet avslutas enligt uppsägningstiden räknat från kundens besked. Leveransen och all energi- och avgiftsdebitering upphör efter sista leveransdagen, även om avtalet löper vidare. Vid uppsägning utan flytt fortsätter leveransen tills en ny leverantör tar över; har inget byte skett när uppsägningstiden löpt ut skapas en uppgift att skicka avslut (Z08) till nätägaren.
+ </p>
 
  <label className="grid gap-1 text-sm md:col-span-2">
  <span className="text-emerald-900 ">Orsak / intern notering</span>

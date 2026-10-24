@@ -183,8 +183,10 @@ describe('H3b refusals stay', () => {
     }
   })
 
-  it('a move-out on another date than this period ends', async () => {
-    for (const endedAt of ['2026-09-10T00:00:00+00:00', '2026-09-16T00:00:00+00:00', null]) {
+  // H3d D8 (owner decision B1): a contract ended AFTER the move-out date (notice period) carries the supplied days
+  // (__tests__/h3d-contract-end-after-supply.test.ts); a contract ended before it, or without ended_at, stays refused.
+  it('a move-out contract ended before this period ends', async () => {
+    for (const endedAt of ['2026-09-10T00:00:00+00:00', '2026-09-14T00:00:00+00:00', null]) {
       io.tables.customer_contracts = [terminated({ ended_at: endedAt })]
       expect((await price()).errors).toContain(MISSING)
     }

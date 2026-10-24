@@ -56,6 +56,10 @@
       "schedule": "20 */6 * * *"
     },
     {
+      "path": "/api/cron/customer-contracts/termination-expiry",
+      "schedule": "40 4 * * *"
+    },
+    {
       "path": "/api/cron/billing/invoice-export-retry",
       "schedule": "8-53/15 * * * *"
     },

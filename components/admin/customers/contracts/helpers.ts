@@ -151,6 +151,17 @@ export function parseIntOrNull(
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+/** Notice days on top of the notice months (FINDINGS H3d D1): an integer 0..366, or null when not given. */
+export function parseNoticeDays(value: FormDataEntryValue | null): number | null {
+  if (typeof value !== "string" || !value.trim()) return null;
+  const trimmed = value.trim();
+  const parsed = Number(trimmed);
+  if (!/^\d+$/.test(trimmed) || !Number.isInteger(parsed) || parsed < 0 || parsed > 366) {
+    throw new Error("Uppsägningstid i dagar måste vara ett heltal mellan 0 och 366.");
+  }
+  return parsed;
+}
+
 export function parseContractType(
   value: FormDataEntryValue | null,
 ): ContractType {

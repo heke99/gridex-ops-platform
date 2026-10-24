@@ -856,6 +856,12 @@ export async function createCustomerContract(input: {
   greenFeeValue?: number | null;
   bindingMonths?: number | null;
   noticeMonths?: number | null;
+  /**
+   * Notice days on top of the months (FINDINGS H3d D1). Snapshotted into customer_contract_notice_terms when the
+   * contract is created (customer_contracts_notice_terms_snapshot_v1; immutable once signed). Absent: the offer's
+   * notice days (contract_offer_notice_terms), else 0.
+   */
+  noticeDays?: number | null;
   optionalFeeLines?: Array<Record<string, unknown>> | null;
   startsAt?: string | null;
   expectedStartAt?: string | null;
@@ -1021,6 +1027,9 @@ export async function createCustomerContract(input: {
       green_fee_value: input.greenFeeValue ?? null,
       binding_months: input.bindingMonths ?? null,
       notice_months: input.noticeMonths ?? null,
+      ...(typeof input.noticeDays === "number" && Number.isInteger(input.noticeDays)
+        ? { metadata: { notice_days: input.noticeDays } }
+        : {}),
       optional_fee_lines: input.optionalFeeLines ?? [],
       starts_at: input.startsAt ?? null,
       expected_start_at: input.expectedStartAt ?? null,
@@ -1042,6 +1051,7 @@ export async function createCustomerContract(input: {
         endsAt: input.endsAt ?? null,
         bindingMonths: input.bindingMonths ?? null,
         noticeMonths: input.noticeMonths ?? null,
+        noticeDays: input.noticeDays ?? null,
         terminationNoticeDate: input.terminationNoticeDate ?? null,
         terminationReason: input.terminationReason ?? null,
         autoRenewEnabled: input.autoRenewEnabled ?? null,
@@ -1288,6 +1298,53 @@ export async function updateCustomerContract(input: {
   return data as CustomerContractRow;
 }
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export class ContractSupplyStillOpenError extends Error {
+  readonly code = "contract_supply_still_open";
+  constructor() {
+    super(
+      "Avtalet har en pågående leverans. Registrera \"Uppsägning mottagen\" (leveransen fortsätter tills en ny leverantör tar över) eller avsluta leveransen via kundkortets flytt.",
+    );
+  }
+}
+
+/**
+ * Refuses to end a contract while one of its supply periods is still supplied after the end (active/confirmed
+ * without an end date, or ending after the given end date; FINDINGS H3d D2). Tenant-scoped.
+ */
+export async function assertContractHasNoOpenSupply(companyId: string, contractId: string, endDate?: string | null): Promise<void> {
+  if (!UUID_PATTERN.test(contractId)) throw new Error("Ogiltigt avtals-id.");
+  const { data, error } = await supabaseService
+    .from("customer_supply_periods")
+    .select("id,end_date,actual_end_date")
+    .eq("company_id", companyId)
+    .or(`customer_contract_id.eq.${contractId},contract_id.eq.${contractId}`)
+    .in("status", ["active", "confirmed_by_grid_owner"]);
+  if (error) throw error;
+  const until = typeof endDate === "string" && /^\d{4}-\d{2}-\d{2}/.test(endDate) ? endDate.slice(0, 10) : null;
+  const open = ((data ?? []) as Array<{ end_date?: string | null; actual_end_date?: string | null }>).some((period) => {
+    const end = (period.actual_end_date ?? period.end_date ?? "").slice(0, 10);
+    return !end || (until !== null && end > until);
+  });
+  if (open) throw new ContractSupplyStillOpenError();
+}
+
+/**
+ * The contract's notice days (customer_contract_notice_terms, FINDINGS H3d D1), 0 without a row. Tenant-scoped.
+ */
+export async function getCustomerContractNoticeDays(companyId: string, contractId: string): Promise<number> {
+  const { data, error } = await supabaseService
+    .from("customer_contract_notice_terms")
+    .select("notice_days")
+    .eq("company_id", companyId)
+    .eq("customer_contract_id", contractId)
+    .maybeSingle();
+  if (error) throw error;
+  const days = (data as { notice_days?: unknown } | null)?.notice_days;
+  return typeof days === "number" && Number.isInteger(days) && days > 0 ? days : 0;
+}
+
 export async function addCustomerContractEvent(input: {
   companyId?: string | null;
   customerContractId: string;
@@ -1312,6 +1369,14 @@ export async function addCustomerContractEvent(input: {
     actor_user_id: input.actorUserId ?? null,
   };
 
+  // FINDINGS H3d D2 (owner decision B3): ending a contract while its supply is still open would leave the grid
+  // owner's ongoing supply unbilled and the supplier balance-responsible. A termination without a move is registered
+  // as "Uppsägning mottagen" (the supply continues until a new supplier takes over, and the scheduled check asks for a
+  // Z08 when the notice period has expired); a move-out or an ended grid contract ends the supply from the customer card.
+  if (input.eventType === "terminated" || input.eventType === "cancelled") {
+    await assertContractHasNoOpenSupply(input.companyId, input.customerContractId, eventPayload.happened_at);
+  }
+
   let derivedEndsAt: string | null = null;
   if (input.eventType === "termination_notice_received") {
     const { data: current, error: currentError } = await supabaseService
@@ -1325,11 +1390,16 @@ export async function addCustomerContractEvent(input: {
       .maybeSingle();
     if (currentError) throw currentError;
     if (!current) throw new Error("Kundavtalet hittades inte för valt bolag.");
+    // FINDINGS H3d D1/B3: the contract's notice days count as well (the database's
+    // gridex_contract_termination_end_v1 is the same rule); the scheduled check
+    // (gridex_termination_notice_expiry_tasks_v1) asks for a Z08 when this end passes without a switch.
+    const noticeDays = await getCustomerContractNoticeDays(input.companyId, input.customerContractId);
     derivedEndsAt = deriveContractEndsAt({
       startsAt: current.starts_at ?? null,
       endsAt: current.ends_at ?? null,
       bindingMonths: current.binding_months ?? null,
       noticeMonths: current.notice_months ?? null,
+      noticeDays,
       terminationNoticeDate: eventPayload.happened_at,
       terminationReason: current.termination_reason ?? null,
       autoRenewEnabled: current.auto_renew_enabled ?? null,

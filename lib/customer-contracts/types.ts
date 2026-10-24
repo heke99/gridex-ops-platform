@@ -10,8 +10,24 @@ export type GreenFeeMode = "none" | "sek_month" | "ore_per_kwh";
 
 export type ContractEnergyDirection = "consumption" | "production";
 
+/**
+ * termination_reason values. The first five are the customer card's form values; the rest are written by the database
+ * (FINDINGS H3d D13): 'supply_end' (received grid-owner end, Z05), 'supplier_switch' (manual switch-away end),
+ * 'grid_contract_ended' and 'customer_termination' (customer card close, H3d D9), 'customer_request' (lifecycle
+ * decision) and 'customer_withdrawal' (withdrawal).
+ */
 export type CustomerContractTerminationReason =
-  "switch_supplier" | "stop_supply" | "move_out" | "manual_override" | "other";
+  | "switch_supplier"
+  | "stop_supply"
+  | "move_out"
+  | "manual_override"
+  | "other"
+  | "supply_end"
+  | "supplier_switch"
+  | "grid_contract_ended"
+  | "customer_termination"
+  | "customer_request"
+  | "customer_withdrawal";
 
 export type ContractOfferStatus = "draft" | "active" | "inactive";
 

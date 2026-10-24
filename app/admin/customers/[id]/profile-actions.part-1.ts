@@ -18,6 +18,7 @@ import {
   planPrimaryContactSync,
 } from "@/lib/customer-service/contactChange"
 import { identityNumbersEqual } from "@/lib/customer-service/identityChange"
+import { currentStockholmCalendarDate } from "@/lib/time/stockholm"
 
 export class CustomerActionError extends Error {
   code: string;
@@ -365,28 +366,44 @@ export async function saveCustomerProfileImpl(
   return { status: "success", message: "Kundprofilen har sparats." };
 }
 
+/**
+ * The customer card's lifecycle modes (FINDINGS H3d, owner decisions B1/B3):
+ *   * move_out: the customer moves; the supply ends on the move-out day, the contract by its notice period;
+ *   * grid_contract_ended: the customer's grid contract ended, so there is no supply; same as a move-out otherwise;
+ *   * terminate: a termination without a move. While supply continues after the date it is only registered (the
+ *     supply continues until a new supplier takes over; a Z08 task follows when the notice period has expired).
+ */
+export type CustomerLifecycleMode = "move_out" | "grid_contract_ended" | "terminate";
+
 export function normalizeLifecycleMode(
   value: string | null | undefined,
-): "move_out" | "terminate" {
-  return value === "terminate" ? "terminate" : "move_out";
+): CustomerLifecycleMode {
+  if (value === "terminate") return "terminate";
+  if (value === "grid_contract_ended") return "grid_contract_ended";
+  return "move_out";
 }
 
-export function normalizeIsoDateOrToday(value: string | null | undefined): string {
+/** An ISO date, or today's Swedish calendar date (FINDINGS H3d D12: not the UTC day). */
+export function normalizeIsoDateOrToday(value: string | null | undefined, now = new Date()): string {
   const trimmed = value?.trim();
   if (trimmed && /^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
-  return new Date().toISOString().slice(0, 10);
+  return currentStockholmCalendarDate(now);
 }
 
 export function buildMoveOutNote(params: {
   moveOutDate: string;
   reason: string | null;
-  mode: "move_out" | "terminate";
+  mode: CustomerLifecycleMode;
+  noticeDate?: string | null;
 }): string {
-  const label = params.mode === "terminate" ? "Avslut" : "Utflytt";
+  const label = params.mode === "terminate" ? "Uppsägning" : params.mode === "grid_contract_ended" ? "Nätavtalets slut" : "Utflytt";
   const reason = params.reason?.trim();
   return [
     `${label} registrerat ${new Date().toISOString()}.`,
-    `Avsluts-/utflyttsdatum: ${params.moveOutDate}.`,
+    params.mode === "terminate"
+      ? `Uppsägningsdatum: ${params.noticeDate ?? params.moveOutDate}.`
+      : `Sista leveransdag: ${params.moveOutDate}.`,
+    params.noticeDate && params.mode !== "terminate" ? `Kunden meddelade: ${params.noticeDate}.` : null,
     reason ? `Orsak/notering: ${reason}.` : null,
     "Kunden och kopplade anläggningar/mätpunkter är mjukt avslutade. Historik, Ediel, fullmakter, mätvärden och faktureringsunderlag sparas för spårbarhet.",
   ]
@@ -412,6 +429,11 @@ export async function closeCustomerLifecycleImpl(
   );
   const moveOutDate = normalizeIsoDateOrToday(
     getNullableString(formData, "move_out_date"),
+  );
+  // FINDINGS H3d D3: the date the customer gave notice (the notice period runs from it); an earlier registered
+  // notice date on the contract stands in the database.
+  const noticeDate = normalizeIsoDateOrToday(
+    getNullableString(formData, "notice_date"),
   );
   const reason = getNullableString(formData, "reason");
   const createFollowUpTask =
@@ -442,12 +464,14 @@ export async function closeCustomerLifecycleImpl(
       : null,
   );
 
-  const note = buildMoveOutNote({ moveOutDate, reason, mode });
+  const note = buildMoveOutNote({ moveOutDate, reason, mode, noticeDate });
 
   // Customer, sites, metering points, contracts, switch requests, tasks, the
   // internal note and the lifecycle event are written in one transaction.
+  // FINDINGS H3d: v2 takes the customer's notice date (owner decisions B1/B3, D3). A termination while supply
+  // continues is registered there (gridex_register_customer_termination_v1) and closes nothing.
   const { data: closeData, error: closeError } = await supabaseService.rpc(
-    "gridex_close_customer_lifecycle_v1",
+    "gridex_close_customer_lifecycle_v2",
     {
       p_company_id: companyId,
       p_customer_id: customerId,
@@ -457,6 +481,7 @@ export async function closeCustomerLifecycleImpl(
       p_reason: reason,
       p_note: note,
       p_create_follow_up_task: createFollowUpTask,
+      p_notice_date: noticeDate,
     },
   );
 
@@ -467,6 +492,12 @@ export async function closeCustomerLifecycleImpl(
         "Kunden är redan avslutad, flyttad eller arkiverad.",
       );
     }
+    if (closeError.message === "customer_termination_contract_not_found") {
+      throw new CustomerActionError(
+        "termination_contract_missing",
+        "Kunden har inget signerat eller aktivt avtal att säga upp medan leveransen pågår.",
+      );
+    }
     throw closeError;
   }
 
@@ -474,7 +505,9 @@ export async function closeCustomerLifecycleImpl(
     customer?: Record<string, unknown>;
     failed_switch_request_ids?: string[];
     lifecycle?: Record<string, unknown>;
+    termination_registered?: boolean;
   };
+  const terminationRegistered = closed.termination_registered === true;
   const customerAfter = closed.customer ?? {};
   const lifecycleMetadata = closed.lifecycle ?? { mode, moveOutDate, reason };
   const activeSwitchIds = closed.failed_switch_request_ids ?? [];
@@ -510,8 +543,9 @@ export async function closeCustomerLifecycleImpl(
         : typeof customerAfter.company_name === "string"
           ? customerAfter.company_name
           : null,
-    nextAction:
-      mode === "terminate"
+    nextAction: terminationRegistered
+      ? "Vi har registrerat uppsägningen. Leveransen fortsätter tills en ny elleverantör tar över eller avtalet har löpt ut."
+      : mode === "terminate"
         ? "Vi har registrerat avslutet och säkerställer slutunderlag."
         : "Vi har registrerat flytten och säkerställer slutunderlag.",
     actorUserId,
@@ -521,10 +555,13 @@ export async function closeCustomerLifecycleImpl(
     actorUserId,
     entityType: "customer",
     entityId: customerId,
-    action:
-      mode === "terminate"
+    action: terminationRegistered
+      ? "customer_termination_registered"
+      : mode === "terminate"
         ? "customer_soft_terminated"
-        : "customer_move_out_registered",
+        : mode === "grid_contract_ended"
+          ? "customer_grid_contract_ended_registered"
+          : "customer_move_out_registered",
     companyId,
     oldValues: { customer: customerBefore },
     newValues: {
@@ -550,9 +587,10 @@ export async function closeCustomerLifecycleImpl(
 
   return {
     status: "success",
-    message:
-      mode === "terminate"
+    message: terminationRegistered
+      ? "Uppsägningen är registrerad. Leveransen fortsätter tills en ny leverantör tar över; när uppsägningstiden har löpt ut utan byte skapas en uppgift att skicka avslut (Z08) till nätägaren."
+      : mode === "terminate"
         ? "Kundrelationen har avslutats. Historiken sparas."
-        : "Flytt/avslut har registrerats. Historiken sparas.",
+        : "Flytt/avslut har registrerats. Avtalet löper enligt uppsägningstiden, leveransen och debiteringen upphör efter sista leveransdagen. Historiken sparas.",
   };
 }

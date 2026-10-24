@@ -746,6 +746,10 @@ function ManualCoreFields({
         <Field label="Uppsägningstid (mån)">
           <input name="notice_months" className={inputClassName()} />
         </Field>
+
+        <Field label="Uppsägningstid (dagar, utöver månader)">
+          <input name="notice_days" type="number" min={0} max={366} step={1} className={inputClassName()} />
+        </Field>
       </div>
     </SectionCard>
   );

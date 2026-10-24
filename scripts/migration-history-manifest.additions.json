@@ -317,6 +317,11 @@
     "20261023199000_final_month_pricing_contract.sql": "0ba5df0685aee423b6750e2ac9dab0cf7ce16157a4997efac0d70588c8cf4d6c",
     "20261023200000_move_out_final_month_billing.sql": "29ae94ee79848b40796506abd863f9d03da2e1ad21ed4c377dc6300bf725c84d",
     "20261023201000_manual_end_shortens_ediel_supply_basis.sql": "f833ba08f13d66a028012eb2a61f0cccca579a8c68728e0e9901ea2e2f178fcf",
-    "20261023202000_move_out_fee_review_and_final_invoice.sql": "6cb925575ec1db3022d1971956c3973b7fe0679d9a0f460ed2d0f3725d9e43c8"
+    "20261023202000_move_out_fee_review_and_final_invoice.sql": "6cb925575ec1db3022d1971956c3973b7fe0679d9a0f460ed2d0f3725d9e43c8",
+    "20261023203000_h3d_contract_end_after_supply_end.sql": "b57313c2ee456121e9115b52f44cdda8af7607184841f0f966312cbfd731ad7e",
+    "20261023203500_h3d_contract_end_after_supply_basis.sql": "5b5906bfb78a8d5cfec75c13f8687715d734964f2019efe3c14bdd0f6204e468",
+    "20261023204000_h3d_contract_notice_days.sql": "97d225f238f4523a1d9459c7c8bc5934b22bf6090816f5ff58f010f506e95984",
+    "20261023205000_h3d_move_out_notice_and_termination.sql": "1394261b61bc1767220bad6861960c3e5b882bce568accd0deea11e84845cbe6",
+    "20261023206000_h3d_portal_retroactive_move_out.sql": "817b90cbef13b8011959bc83f11c5ae4d93b9c3b20a7a8010056c25ffe4c5ae5"
   }
 }

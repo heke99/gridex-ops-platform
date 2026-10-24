@@ -310,7 +310,13 @@ function contractCoversSegment(
   if (!contract) return false;
   const startsAt = text(contract.starts_at) ?? text(contract.start_date);
   const plannedEnd = text(contract.ends_at) ?? text(contract.end_date);
-  const actualEnd = text(contract.ended_at);
+  // FINDINGS H3d B3/D2: a signed or active contract's ended_at is the planned end of a registered termination
+  // ("Uppsägning mottagen", gridex_register_customer_termination_v1). The supply continues until a new supplier takes
+  // over (Z05) or an end of supply (Z08) is sent, and those supplied days are billed under the contract; only the
+  // agreed ends_at bounds it. A terminated contract's ended_at is its actual end.
+  const status = text(contract.status)?.toLowerCase();
+  const actualEnd =
+    status === "signed" || status === "active" ? null : text(contract.ended_at);
   // The earliest of the planned and the actual end bounds the contract.
   const endsAt =
     plannedEnd && actualEnd
