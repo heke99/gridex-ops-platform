@@ -64,6 +64,9 @@ function sourceRuntimeBoundary(request, modules, parent) {
     '@/lib/cis/db-shared': { getCustomerExportContext: deny, requireContextCompanyId: deny },
     '@/lib/supabase/service': { supabaseService: { from: deny, rpc: deny, schema: deny } },
     '@/lib/supabase/tenantQuery': { tenantSelect: deny },
+    // inboundCases statically links this tenant lookup; source-only parsers
+    // must not execute it or hide an attempted registry/database operation.
+    '@/lib/grid-owners/platformGridOwnerResolver': { selectTenantGridOwnerIdForGridArea: deny },
     '@/lib/masterdata/db': { getGridOwnerById: deny, getCustomerSiteById: deny, getMeteringPointById: deny },
     '@/lib/cis/db': { cancelSupplierSwitchOutboundAttemptsForReplacement: deny, createOutboundRequest: deny, findOpenOutboundBySource: deny, repairOutboundRequestCommunicationRoute: deny, updateOutboundRequestStatus: deny },
     '@/lib/cis/db-routes': { findBestCommunicationRoute: deny },

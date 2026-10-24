@@ -98,7 +98,7 @@ function makeThenableBuilder(result, recorder) {
 // The application must fail closed when the RPC is missing — there is no
 // app-level fallback claim path that could race and double-send.
 const edielRecorder = { updates: [], selects: 0, rpcCalls: [] }
-const { claimEdielOutboxItems } = loadTypeScriptModule('lib/ediel/outbox/claimOutboxItems.ts', {
+const edielMocks = {
   '@/lib/tenant/operationPolicy': {
     getTenantOperationDecision: async () => ({ allowed: true, reasonCode: 'allowed', companyStatus: 'active', capabilityStatus: 'ready', productionStatus: 'live', stateVersion: 1 }),
   },
@@ -117,7 +117,12 @@ const { claimEdielOutboxItems } = loadTypeScriptModule('lib/ediel/outbox/claimOu
       }),
     },
   },
+}
+// Keep the real tenant wrapper bound to the same finite database transport.
+edielMocks['@/lib/supabase/tenantDb'] = loadTypeScriptModule('lib/supabase/tenantDb.ts', {
+  '@/lib/supabase/service': edielMocks['@/lib/supabase/service'],
 })
+const { claimEdielOutboxItems } = loadTypeScriptModule('lib/ediel/outbox/claimOutboxItems.ts', edielMocks)
 
 claimEdielOutboxItems({ workerId: 'regression-worker', limit: 1 })
   .then(() => {

@@ -38,7 +38,7 @@ function fixtureSql(schema: string): string {
 // Rebuild it from the original canonical function and its immutable historical
 // repair, rather than treating a newly generated mandatory core as a predecessor.
 function qualifiedLegacyCoreDefinition(schema: string): string {
- const captured = schema.match(/CREATE FUNCTION public\.gridex_onboard_customer_graph_core\(p_command jsonb\).*?\n\$\$;/s)
+ const captured = schema.match(/CREATE FUNCTION public\.gridex_onboard_customer_graph_core\(p_command jsonb\)[\s\S]*?\n\$\$;/)
  assert.ok(captured, 'Missing captured onboarding core')
  const capturedBody = /AS \$\$([\s\S]*)\$\$;/.exec(captured[0])?.[1]
  assert.ok(capturedBody)
