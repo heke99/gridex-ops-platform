@@ -1,0 +1,7 @@
+// Hash-checked read-only original SQL inputs; candidate migrations always read live.
+import fs from 'node:fs';import path from 'node:path';import os from 'node:os';import {fileURLToPath} from 'node:url';import {createHash} from 'node:crypto';
+const base=new URL('../',import.meta.url);const data=JSON.parse(fs.readFileSync(new URL('./fixtures/h3-originals.json',import.meta.url),'utf8')).originals;
+export const resultDirectory=process.env.H3_RESULT_DIR??fs.mkdtempSync(path.join(os.tmpdir(),'h3-billing-regression-'));fs.mkdirSync(resultDirectory,{recursive:true});
+export function readFileSync(input,encoding){const name=path.basename(input instanceof URL?fileURLToPath(input):String(input));if(name.startsWith('202610240026'))return fs.readFileSync(new URL('supabase/migrations/'+name,base),encoding);if(name==='actual-manual-successor-for-governance.json'){const a=JSON.parse(fs.readFileSync(new URL('../__tests__/fixtures/h3-actual-sql-result.json',import.meta.url),'utf8')).results[1];return JSON.stringify({manual:a.manualRecord,successor:a.successorRecord});}const item=data[name];if(!item)throw Error('Unregistered H3 original input: '+name);if(createHash('sha256').update(item.body).digest('hex')!==item.sha256)throw Error('Changed H3 original: '+name);return encoding?item.body:Buffer.from(item.body);}
+export function writeFileSync(input,value){fs.writeFileSync(path.join(resultDirectory,path.basename(String(input))),value);}
+export const originalIO={readFileSync,writeFileSync};

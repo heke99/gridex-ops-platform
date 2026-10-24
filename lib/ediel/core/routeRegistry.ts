@@ -1,3 +1,4 @@
+import type { supabaseService } from '@/lib/supabase/service'
 // lib/ediel/core/routeRegistry.ts
 
 import { processActorRole } from '@/lib/ediel/core/marketRole'
@@ -108,10 +109,10 @@ async function narrowAckReplyRoute(params: {
 }): Promise<CommunicationRouteRow | null> {
   const applicationReference = trimOrNull(params.basis.applicationReference)
   if (!applicationReference) return null
-  const { supabaseService } = await import('@/lib/supabase/service')
+  const { tenantDb } = await import('@/lib/supabase/tenantDb')
   const tier = async (gridOwnerId: string | null): Promise<CommunicationRouteRow[]> => {
-    let query = supabaseService.from('communication_routes').select('*')
-      .eq('company_id', params.companyId).eq('route_scope', 'ediel_ack').eq('is_active', true)
+    let query = (tenantDb(params.companyId).from('communication_routes') as ReturnType<typeof supabaseService.from>).select('*')
+      .eq('route_scope', 'ediel_ack').eq('is_active', true)
     query = params.environment === 'production'
       ? query.eq('environment_type', 'production')
       : query.in('environment_type', ['tgt_test', 'agt_test', 'bilateral_test'])
@@ -125,9 +126,9 @@ async function narrowAckReplyRoute(params: {
   let routes = params.gridOwnerId ? await tier(params.gridOwnerId) : []
   if (routes.length === 0) routes = await tier(null)
   if (routes.length < 2) return null
-  const { data, error } = await supabaseService.from('ediel_route_profiles')
+  const { data, error } = await (tenantDb(params.companyId).from('ediel_route_profiles') as ReturnType<typeof supabaseService.from>)
     .select('id,company_id,communication_route_id,environment,application_reference,message_family,business_code,receiver_ediel_id,is_enabled,is_active')
-    .eq('company_id', params.companyId).eq('environment', params.environment).eq('application_reference', applicationReference)
+    .eq('environment', params.environment).eq('application_reference', applicationReference)
     .in('communication_route_id', routes.map((row) => row.id)).limit(200)
   if (error) throw error
   const receiver = trimOrNull(params.basis.receiverEdielId)

@@ -1,4 +1,5 @@
 import { supabaseService } from '@/lib/supabase/service'
+import { tenantDb } from '@/lib/supabase/tenantDb'
 
 type JsonRecord = Record<string, unknown>
 
@@ -69,9 +70,12 @@ export async function selectTenantUsableGridOwners<T>(input: {
   limit?: number
 }): Promise<T[]> {
   const limit = input.limit ?? 2
+  const db = tenantDb(input.companyId)
   const scoped = (shared: boolean) => {
-    let query = supabaseService.from('grid_owners').select(input.select)
-    query = shared ? query.is('company_id', null) : query.eq('company_id', input.companyId)
+    // Shared catalog rows deliberately retain their NULL company association.
+    let query = (shared
+      ? db.unscoped().from('grid_owners').select(input.select).is('company_id', null)
+      : db.from('grid_owners').select(input.select)) as ReturnType<ReturnType<typeof supabaseService.from>['select']>
     for (const [column, value] of Object.entries(input.match)) query = query.eq(column, value)
     return query.limit(limit)
   }
@@ -108,7 +112,7 @@ export async function selectTenantGridOwnerIdForGridArea(input: {
   const candidates = new Set(byCode.map(row => row.id))
   if (candidates.size > 1) return null
   if (input.registryArea) {
-    const mapped = await selectRegistryAreaGridOwnerId(code.replace(/\s+/g, '').toUpperCase(), input.today ?? new Date().toISOString().slice(0, 10))
+    const mapped = await selectRegistryAreaGridOwnerId(input.companyId, code.replace(/\s+/g, '').toUpperCase(), input.today ?? new Date().toISOString().slice(0, 10))
     if (mapped === 'ambiguous') return null
     if (mapped) {
       const usable = await selectTenantUsableGridOwners<{ id: string }>({
@@ -121,8 +125,9 @@ export async function selectTenantGridOwnerIdForGridArea(input: {
 }
 
 /** OPS grid owner id the platform registry maps an area code to, unscoped; tenant usability is checked by the caller. */
-async function selectRegistryAreaGridOwnerId(code: string, today: string): Promise<string | 'ambiguous' | null> {
-  const areas = await supabaseService
+async function selectRegistryAreaGridOwnerId(companyId: string, code: string, today: string): Promise<string | 'ambiguous' | null> {
+  // These platform catalogs have no company_id; the caller checks mapped OPS-row usability.
+  const areas = await tenantDb(companyId).unscoped()
     .from('platform_grid_areas')
     .select('grid_owner_id,valid_from,valid_to')
     .eq('grid_area_code', code)
@@ -134,7 +139,7 @@ async function selectRegistryAreaGridOwnerId(code: string, today: string): Promi
   if (current.length > 1) return 'ambiguous'
   const platformId = current[0]?.grid_owner_id
   if (!platformId) return null
-  const owner = await supabaseService
+  const owner = await tenantDb(companyId).unscoped()
     .from('platform_grid_owners')
     .select('ops_grid_owner_id')
     .eq('id', platformId)

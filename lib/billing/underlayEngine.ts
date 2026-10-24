@@ -1,3 +1,4 @@
+import { manualReceivedEndAuthority } from './manualReceivedEndAuthority'
 import { supabaseService } from "@/lib/supabase/service";
 import { isPriceArea } from "@/lib/pricing/types";
 import { assertBillingPeriodOpen, getBillingPeriodLock } from "@/lib/billing/invoiceReadiness";
@@ -660,7 +661,8 @@ async function buildReconciliations(input: {
       difference_kwh: finalKwh - preliminaryKwh,
     };
     const copyItem = (item: JsonRecord, direction: string, settlement: string) => {
-      const { id: _id, billing_underlay_id: _underlay, company_id: _company, created_at: _created, updated_at: _updated, ...rest } = item;
+      const rest = { ...item };
+      for (const key of ['id','billing_underlay_id','company_id','created_at','updated_at']) delete rest[key];
       return { ...rest, energy_direction: direction, settlement_type: settlement, status: "ready_for_pricing" };
     };
 
@@ -951,7 +953,7 @@ export async function generateBillingUnderlaysForMonth(input: {
       const contract =
         loadedContract &&
         text(loadedContract.status) === "terminated" &&
-        !contractCarriesBilledPeriod(loadedContract, period, Date.parse(entry.start), Date.parse(entry.end))
+        !contractCarriesBilledPeriod(loadedContract, period, Date.parse(entry.start), Date.parse(entry.end), manualReceivedEndAuthority(valuesByMeter.get(meteringPointId) ?? [], loadedContract, period, Date.parse(entry.start), Date.parse(entry.end)))
           ? null
           : loadedContract;
       const snapshot = await loadSnapshot(

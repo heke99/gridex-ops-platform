@@ -1,3 +1,4 @@
+import { tenantSelect } from '@/lib/supabase/tenantQuery'
 import { supabaseService } from '@/lib/supabase/service'
 import { createGridOwnerDataRequest } from '@/lib/cis/db'
 import { ensureAndPrepareUtiltsFromDataRequest } from '@/lib/cis/edielAutomation'
@@ -70,9 +71,7 @@ async function loadSuppliedWindows(companyId: string, billingMonth: string): Pro
   const lastDay = new Date(Date.parse(`${bounds.endDateExclusive}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10)
   const windows = new Map<string, Array<{ start: string; end: string }>>()
   for (let from = 0; ; from += 500) {
-    const result = await supabaseService
-      .from('customer_supply_periods')
-      .select('id,metering_point_id,status,start_date,end_date,actual_start_date,actual_end_date,market_start_at,market_end_at')
+    const result = await tenantSelect(companyId, "customer_supply_periods", 'id,metering_point_id,status,start_date,end_date,actual_start_date,actual_end_date,market_start_at,market_end_at')
       .eq('company_id', companyId)
       .in('status', [...BILLED_SUPPLY_PERIOD_STATUSES])
       .lte('start_date', lastDay)

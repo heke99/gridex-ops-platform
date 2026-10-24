@@ -445,7 +445,7 @@ describe.sequential('reality F — invoices for several facilities with contract
       try {
         // As automation does right before the builder (edielAutomation.ts:286): the requested method (F46) and the
         // customer masterdata declaration (F51) are derived from the signed agreement.
-        await deriveRequestedMethodBeforeSwitch({ actorUserId: LIVE.automationUserId, switchRequestId: row.switchId })
+        await deriveRequestedMethodBeforeSwitch({ companyId: tenant.companyId, actorUserId: LIVE.automationUserId, switchRequestId: row.switchId })
         // The tenant is live in production (go-live); automation passes that environment (edielAutomation.ts:291).
         const message = await prepareAndQueueEdielZ03({ actorUserId: LIVE.automationUserId, switchRequestId: row.switchId, environment: 'production' })
         built.push({ facility: row.facility, ok: true, message: message.id, status: message.status })

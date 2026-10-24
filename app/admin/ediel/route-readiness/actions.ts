@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect, unstable_rethrow } from 'next/navigation'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
+import { tenantDb } from '@/lib/supabase/tenantDb'
 import { materializePlatformActorRoute, materializeCompanyGridOwnerRoute } from '@/lib/ediel/routeMaterializer'
 import { approveFirstProductionSend } from '@/lib/ediel/productionSendApproval'
 import { normalizeUuidOrNull } from '@/lib/validation/uuid'
@@ -170,10 +171,8 @@ const BULK_CANDIDATE_PAGE = 1000
 async function loadBulkMaterializationCandidates(input: { companyId: string; environment: 'test' | 'production' | null; messageFamily: string | null }) {
   const candidates: BulkMaterializationCandidate[] = []
   for (let from = 0; ; from += BULK_CANDIDATE_PAGE) {
-    let query = supabaseService
-      .from('gridex_company_route_readiness_v')
+    let query = (tenantDb(input.companyId).from('gridex_company_route_readiness_v') as ReturnType<typeof supabaseService.from>)
       .select('company_id,grid_owner_id,grid_owner_name,grid_owner_ediel_id,platform_actor_route_id,message_family,message_code,environment,sender_settings_id')
-      .eq('company_id', input.companyId)
       .eq('blocker_code', 'platform_route_exists_but_not_materialized')
     if (input.environment) query = query.eq('environment', input.environment)
     if (input.messageFamily) query = query.eq('message_family', input.messageFamily)

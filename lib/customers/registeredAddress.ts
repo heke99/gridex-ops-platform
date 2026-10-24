@@ -4,7 +4,7 @@
 // Ediel masterdata rule (20261001014700) uses exactly that row as the end user's address for a request made
 // today (Z01); an invoice or facility address is never used instead. Every write keeps its provenance and the
 // previous address as history (moved_out_at), so there is never more than one current registered address.
-import { supabaseService } from '@/lib/supabase/service'
+import { tenantSelect, tenantUpdate, tenantInsert } from '@/lib/supabase/tenantQuery'
 
 export type RegisteredAddressInput = { street: string; street2?: string | null; postalCode: string; city: string; country?: string | null }
 export type RegisteredAddressSource = 'website_declaration' | 'staff_entry'
@@ -59,9 +59,8 @@ export async function recordRegisteredAddress(input: {
     postal_code: normalizeSwedishPostalCode(clean(input.address.postalCode))!, city: clean(input.address.city), country: 'SE',
   }
   const today = stockholmToday(input.now)
-  const { data: current, error: readError } = await supabaseService.from('customer_addresses')
-    .select('id,street_1,street_2,postal_code,city,country,moved_in_at,moved_out_at')
-    .eq('company_id', input.companyId).eq('customer_id', input.customerId).eq('type', 'registered').eq('is_active', true)
+  const { data: current, error: readError } = await tenantSelect(input.companyId, "customer_addresses", 'id,street_1,street_2,postal_code,city,country,moved_in_at,moved_out_at')
+    .eq('company_id', input.companyId).eq('customer_id', input.customerId).eq('type', 'registered').eq('is_active', true).returns<Array<{ id: string; street_1: string | null; street_2: string | null; postal_code: string | null; city: string | null; country: string | null; moved_in_at: string | null; moved_out_at: string | null }>>()
   if (readError) throw readError
   const open = (current ?? []).filter(row => !row.moved_out_at || today < String(row.moved_out_at))
   const same = open.find(row => row.street_1 === address.street_1 && (row.street_2 ?? null) === address.street_2
@@ -71,12 +70,11 @@ export async function recordRegisteredAddress(input: {
   const metadata = { registered_address_source: input.source, declared_at: input.declaredAt ?? new Date().toISOString(),
     declared_by: input.actorUserId, source_reference: input.reference ?? null }
   if (open.length > 0) {
-    const { error } = await supabaseService.from('customer_addresses')
-      .update({ moved_out_at: today, updated_at: new Date().toISOString(), updated_by: input.actorUserId })
+    const { error } = await tenantUpdate(input.companyId, "customer_addresses", { moved_out_at: today, updated_at: new Date().toISOString(), updated_by: input.actorUserId })
       .in('id', open.map(row => row.id)).eq('company_id', input.companyId).eq('customer_id', input.customerId)
     if (error) throw error
   }
-  const { data: inserted, error } = await supabaseService.from('customer_addresses').insert({
+  const { data: inserted, error } = await tenantInsert(input.companyId, "customer_addresses", {
     company_id: input.companyId, customer_id: input.customerId, type: 'registered', ...address,
     moved_in_at: open.length > 0 ? today : null, is_active: true, metadata,
     created_by: input.actorUserId, updated_by: input.actorUserId,

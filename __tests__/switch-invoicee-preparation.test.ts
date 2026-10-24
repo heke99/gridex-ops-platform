@@ -9,7 +9,7 @@ const io = vi.hoisted(() => ({ switchRow: null as Row | null, poa: null as Row |
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: (table: string) => {
   const filters: Row = {}; let patch: Row | null = null
   const self: Record<string, unknown> = {
-    select: () => self, eq: (key: string, value: unknown) => { filters[key] = value; return self }, update: (value: Row) => { patch = value; return self },
+    returns: () => self, select: () => self, eq: (key: string, value: unknown) => { filters[key] = value; return self }, update: (value: Row) => { patch = value; return self },
     maybeSingle: async () => ({ data: table === 'supplier_switch_requests' ? io.switchRow : table === 'powers_of_attorney'
       ? (io.poa && io.poa.company_id === filters.company_id && io.poa.customer_id === filters.customer_id ? io.poa : null) : null, error: null }),
     then: (resolve: (value: unknown) => unknown) => { if (patch) io.updates.push({ patch, filters: { ...filters } }); return Promise.resolve({ error: null }).then(resolve) },
@@ -36,7 +36,7 @@ beforeEach(() => {
 
 describe('Z03 invoicee and agreement reference preparation (F87, F88)', () => {
   it('stores the signed contract\'s invoicee and the bound power of attorney\'s reference on the switch, keeping the rest of the snapshot', async () => {
-    await selectInvoiceeBeforeSwitch({ actorUserId: 'automation', switchRequestId: 'switch-1' })
+    await selectInvoiceeBeforeSwitch({ companyId: SWITCH.company_id, actorUserId: 'automation', switchRequestId: 'switch-1' })
     expect(io.invoiceeCalls).toEqual([expect.objectContaining({ companyId: 'company-a', customerId: 'customer-1', contractId: 'contract-1', meteringPointId: '735999000000000017', identityAgency: '9',
       endUser: expect.objectContaining({ identity: { id: '196803041356', qualifier: 'SE2', agency: '260' }, streetParts: ['Kungsgatan 1'], postalCode: '441 30' }) })])
     expect(io.updates).toHaveLength(1)
@@ -49,18 +49,18 @@ describe('Z03 invoicee and agreement reference preparation (F87, F88)', () => {
 
   it('never takes another tenant\'s or an unsigned power of attorney as the agreement reference', async () => {
     io.poa = { company_id: 'company-b', customer_id: 'customer-1', reference: 'FOREIGN', status: 'signed' }
-    await selectInvoiceeBeforeSwitch({ actorUserId: 'automation', switchRequestId: 'switch-1' })
+    await selectInvoiceeBeforeSwitch({ companyId: SWITCH.company_id, actorUserId: 'automation', switchRequestId: 'switch-1' })
     expect((io.updates[0].patch.validation_snapshot as { portalData: Row }).portalData.powerOfAttorneyReference).toBeNull()
     io.updates = []; io.poa = { company_id: 'company-a', customer_id: 'customer-1', reference: 'DRAFT', status: 'draft' }
-    await selectInvoiceeBeforeSwitch({ actorUserId: 'automation', switchRequestId: 'switch-1' })
+    await selectInvoiceeBeforeSwitch({ companyId: SWITCH.company_id, actorUserId: 'automation', switchRequestId: 'switch-1' })
     expect((io.updates[0].patch.validation_snapshot as { portalData: Row }).portalData.powerOfAttorneyReference).toBeNull()
   })
 
   it('selects nothing, and never blocks, without an authorized requested-method source or a contract', async () => {
     io.method = { status: 'held', missing: ['x'] }
-    await expect(selectInvoiceeBeforeSwitch({ actorUserId: 'automation', switchRequestId: 'switch-1' })).resolves.toBeUndefined()
+    await expect(selectInvoiceeBeforeSwitch({ companyId: SWITCH.company_id, actorUserId: 'automation', switchRequestId: 'switch-1' })).resolves.toBeUndefined()
     io.method = { status: 'authorized', pointId: '735999000000000017', identityAgency: '9' }; io.switchRow = { ...structuredClone(SWITCH), customer_contract_id: null }
-    await selectInvoiceeBeforeSwitch({ actorUserId: 'automation', switchRequestId: 'switch-1' })
+    await selectInvoiceeBeforeSwitch({ companyId: SWITCH.company_id, actorUserId: 'automation', switchRequestId: 'switch-1' })
     expect(io.invoiceeCalls).toEqual([]); expect(io.updates).toEqual([])
   })
 })

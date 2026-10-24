@@ -243,6 +243,13 @@
     "20261018183448_manual_mail_automatic_application.sql": "d92f7ab706eb6bac415929255f218d38aa5e8f287bcad1c57f7438b9c590fc54",
     "20261019010000_manual_mail_multi_site_application.sql": "072b15204cf0ac6447c5cb6ec3599b111cecbcae52379fdb5fcfd9eb978c48e7",
     "20261019095200_manual_mail_supplier_terms_schema_prerequisites.sql": "525a17c43347c0fed0be60434418f90b078161c13bc93ce9f294d6eea5551923",
-    "20261018230141_restore_supply_deadline_runtime.sql": "a3881fd16a51bb12af8b7ff72a01c8bc6ba4ef0d44c78d49bf2b14aca931ba3d"
+    "20261018230141_restore_supply_deadline_runtime.sql": "a3881fd16a51bb12af8b7ff72a01c8bc6ba4ef0d44c78d49bf2b14aca931ba3d",
+    "20261023232112_ediel_bounded_recovery_work.sql": "b3c0edfc15f5326b28d13530a0675070aeadb87f5bc7730f2087ed1674fdf616",
+    "20261024002647_h3_manual_01_continuation.sql": "66dcb0d51b91d2585be3d2b87129cb977c1c420b4b949e6503302996e7e39471",
+    "20261024002649_h3_manual_02_received_end.sql": "d6cfa427a33fbcc1681cf51b692bc7bcb4c362cb74f4be5d74b6c10e6ba69189",
+    "20261024002650_h3_manual_03_retention.sql": "8cb8ea45a753ad1b23101955d3c234c2fa08dd02abe80f36ca565071fb7f1290",
+    "20261024002651_h3_manual_04_billing_consumers.sql": "be61c1833b1edefec1e4643df81673b2f5c80cfc44054c0e337ba7b548e1bd7d",
+    "20261024012016_termination_expiry_tasks_bounded_progress.sql": "c695bf7d1e6358846ab56a511f06c50afcfaa8e7d87037a815216f3082d2dfd6",
+    "20261024013302_customer_contract_terminal_update_atomic.sql": "9990ea34c7d6778986b645e709e577a8bfd5aeb7fa1a627631bd595b10554955"
   }
 }

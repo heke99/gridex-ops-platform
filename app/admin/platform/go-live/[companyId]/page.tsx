@@ -122,7 +122,7 @@ export default async function PlatformGoLiveCompanyPage({
       getEdielCertificationEvidenceSnapshot(companyId),
     ),
     safeLoad<RegistryBalanceResponsibleActor[]>("brp registry", () =>
-      listRegistryBalanceResponsibleActors(),
+      listRegistryBalanceResponsibleActors(companyId),
     ),
     safeLoad<TenantBrpVersion[]>("brp versions", () => listTenantBrpVersions(companyId)),
     safeLoad<TenantOperationalCapability[]>("operational capabilities", () => listTenantOperationalCapabilities(companyId)),

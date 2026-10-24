@@ -1,3 +1,4 @@
+import { claimRecoveryWork, runRecoveryBatch, type RecoveryClaim, type RecoveryOutcome } from "./edielRecoveryWork";
 // Resume for technical CONTRL replies that an inbound Ediel source should have
 // had but never got (reality finding F106 part A).
 //
@@ -22,6 +23,7 @@
 // Every attempt is recorded on the message it acts on and counted, so a
 // permanently failing reply ends with an explicit exhausted note.
 import { supabaseService } from "@/lib/supabase/service";
+import { tenantDb } from "@/lib/supabase/tenantDb";
 import { createEdielMessageEvent } from "@/lib/ediel/db";
 import { readExistingAckBeforeDraft } from "@/lib/ediel/core/ackDraftSource";
 import { createOutboxItem } from "@/lib/ediel/outbox/createOutboxItem";
@@ -29,7 +31,6 @@ import type { EdielMessageRow } from "@/lib/ediel/types";
 
 export const MISSED_TECHNICAL_ACK_RESUME_MARKER = "missed_technical_ack";
 /** createAckBlockedEvent in lib/ediel/flows/inboundProcessing.ts */
-const TECHNICAL_ACK_FAILURE_GUARD = "canonical_inbound_ack_guard";
 
 export type MissedTechnicalAckResumeOptions = {
   environment: "test" | "production";
@@ -45,7 +46,7 @@ export type MissedTechnicalAckResumeOptions = {
   now?: () => Date;
 };
 
-export type MissedTechnicalAckTarget = {
+export type MissedTechnicalAckTarget = RecoveryClaim & {
   kind: "missing" | "unqueued";
   /** The message the attempt acts on: the source (missing) or its draft CONTRL (unqueued). */
   messageId: string;
@@ -66,175 +67,26 @@ export type MissedTechnicalAckResumeResult = {
   errors: string[];
 };
 
-type Row = Record<string, unknown>;
-type SourceRow = { id: string; company_id: string; environment: string; status: string | null; processing_status: string | null; updated_at: string | null };
-type ContrlRow = { id: string; company_id: string; environment: string; status: string | null; related_message_id: string };
-
-function clampInt(value: number | undefined, fallback: number, min: number, max: number): number {
-  const number = Number.isFinite(value) ? Math.trunc(value as number) : fallback;
-  return Math.min(Math.max(number, min), max);
-}
-
-function text(value: unknown): string | null {
-  return typeof value === "string" && value.trim() ? value : null;
-}
-
-function payloadOf(value: unknown): Row {
-  return value && typeof value === "object" && !Array.isArray(value) ? (value as Row) : {};
-}
-
 /**
  * PostgREST puts .in() lists in the request URL. With hundreds of ids the
  * request failed with "URI too long" on every run (world, F run 28: 384 failure
  * notes), so no missed reply was ever resumed (F112). Lists are read in chunks.
  */
-const IN_CHUNK = 50;
-async function rowsIn(ids: readonly string[], query: (chunk: string[]) => PromiseLike<{ data: unknown; error: unknown }>): Promise<Row[]> {
-  const rows: Row[] = [];
-  const unique = Array.from(new Set(ids));
-  for (let index = 0; index < unique.length; index += IN_CHUNK) {
-    const { data, error } = await query(unique.slice(index, index + IN_CHUNK));
-    if (error) throw error;
-    rows.push(...((data ?? []) as Row[]));
-  }
-  return rows;
-}
-
-async function countAttempts(ids: string[]): Promise<Map<string, number>> {
-  const counts = new Map<string, number>();
-  if (ids.length === 0) return counts;
-  const data = await rowsIn(ids, (chunk) => supabaseService
-    .from("ediel_message_events")
-    .select("ediel_message_id,payload")
-    .in("ediel_message_id", chunk)
-    .eq("event_type", "manual_note"));
-  for (const row of data as Array<{ ediel_message_id?: string | null; payload?: unknown }>) {
-    const payload = payloadOf(row.payload);
-    if (!row.ediel_message_id || payload.resume !== MISSED_TECHNICAL_ACK_RESUME_MARKER || payload.kind !== "attempt") continue;
-    counts.set(row.ediel_message_id, (counts.get(row.ediel_message_id) ?? 0) + 1);
-  }
-  return counts;
-}
 
 /**
  * Selects the sources of this lane (and tenant) whose technical CONTRL attempt
  * failed, and classifies what is still missing. A source still 'received' is
  * left to the F103 stranded resume, which re-runs its whole processing.
- * Missing replies are claimed with an updated_at compare-and-set on the source;
- * an unqueued reply needs no claim, because its outbox entry is insert-only on
- * the reply's unique ACK lock key.
+ * All work is reserved by the shared durable source token before acting.
+ * Existing ACK locks and insert-only outbox writes remain required.
  */
 export async function claimMissedTechnicalAcks(options: MissedTechnicalAckResumeOptions): Promise<{ candidates: number; claimed: MissedTechnicalAckTarget[] }> {
-  if (options.environment !== "test" && options.environment !== "production") return { candidates: 0, claimed: [] };
-  const now = (options.now ?? (() => new Date()))();
-  const limit = clampInt(options.limit, 10, 1, 50);
-  const maxAttempts = clampInt(options.maxAttempts, 3, 1, 10);
-  const graceCutoff = new Date(now.getTime() - clampInt(options.graceMinutes, 10, 2, 24 * 60) * 60_000).toISOString();
-  const lookbackCutoff = new Date(now.getTime() - clampInt(options.lookbackHours, 72, 1, 30 * 24) * 3_600_000).toISOString();
-  const exclude = new Set(options.excludeIds ?? []);
-
-  let failures = supabaseService
-    .from("ediel_message_events")
-    .select("ediel_message_id,company_id,created_at")
-    .eq("event_type", "manual_note")
-    .eq("payload->>blockedBy", TECHNICAL_ACK_FAILURE_GUARD)
-    .eq("payload->>ackFamily", "CONTRL")
-    .gt("created_at", lookbackCutoff)
-    .lt("created_at", graceCutoff);
-  if (options.companyId) failures = failures.eq("company_id", options.companyId);
-  const { data: failureRows, error: failureError } = await failures.order("created_at", { ascending: true }).limit(1000);
-  if (failureError) throw failureError;
-  const sourceIds = Array.from(new Set(((failureRows ?? []) as Row[])
-    .map((row) => text(row.ediel_message_id))
-    .filter((id): id is string => Boolean(id) && !exclude.has(id as string))));
-  if (sourceIds.length === 0) return { candidates: 0, claimed: [] };
-
-  const sourceRows = await rowsIn(sourceIds, (chunk) => {
-    let sourcesQuery = supabaseService
-      .from("ediel_messages")
-      .select("id,company_id,environment,message_family,status,processing_status,updated_at")
-      .in("id", chunk)
-      .eq("direction", "inbound")
-      .eq("message_standard", "edifact")
-      .eq("environment", options.environment)
-      .not("company_id", "is", null);
-    if (options.companyId) sourcesQuery = sourcesQuery.eq("company_id", options.companyId);
-    return sourcesQuery;
-  });
-  const sources = sourceRows.flatMap((row): SourceRow[] => {
-    const id = text(row.id), companyId = text(row.company_id);
-    if (!id || !companyId || row.environment !== options.environment || (options.companyId && companyId !== options.companyId)) return [];
-    if (row.message_family === "CONTRL" || row.status === "cancelled") return [];
-    // Never acknowledge a CONTRL; F103 owns a source whose processing never ran.
-    if (row.status === "received" && row.processing_status === "received") return [];
-    return [{ id, company_id: companyId, environment: options.environment, status: text(row.status), processing_status: text(row.processing_status), updated_at: text(row.updated_at) }];
-  });
-  if (sources.length === 0) return { candidates: 0, claimed: [] };
-  const sourceById = new Map(sources.map((row) => [row.id, row]));
-
-  const contrlRows = await rowsIn(sources.map((row) => row.id), (chunk) => supabaseService
-    .from("ediel_messages")
-    .select("id,company_id,environment,status,related_message_id")
-    .in("related_message_id", chunk)
-    .eq("direction", "outbound")
-    .eq("message_family", "CONTRL"));
-  const contrls = contrlRows.flatMap((row): ContrlRow[] => {
-    const id = text(row.id), related = text(row.related_message_id), source = related ? sourceById.get(related) : undefined;
-    // Only the source's own tenant and lane; anything else is never repaired here.
-    if (!id || !source || row.company_id !== source.company_id || row.environment !== source.environment) return [];
-    return [{ id, company_id: source.company_id, environment: source.environment, status: text(row.status), related_message_id: source.id }];
-  });
-  const repliedSources = new Set(contrlRows.map((row) => text(row.related_message_id)).filter(Boolean));
-
-  const drafts = contrls.filter((row) => row.status === "draft");
-  const queued = new Set<string>();
-  if (drafts.length > 0) {
-    const outboxRows = await rowsIn(drafts.map((row) => row.id), (chunk) => supabaseService
-      .from("ediel_outbox")
-      .select("ediel_message_id")
-      .in("ediel_message_id", chunk));
-    for (const row of outboxRows) { const id = text(row.ediel_message_id); if (id) queued.add(id); }
-  }
-
-  const candidates: Array<Omit<MissedTechnicalAckTarget, "attempt" | "maxAttempts">> = [
-    ...sources.filter((row) => !repliedSources.has(row.id))
-      .map((row) => ({ kind: "missing" as const, messageId: row.id, sourceMessageId: row.id, companyId: row.company_id })),
-    ...drafts.filter((row) => !queued.has(row.id))
-      .map((row) => ({ kind: "unqueued" as const, messageId: row.id, sourceMessageId: row.related_message_id, companyId: row.company_id })),
-  ];
-  if (candidates.length === 0) return { candidates: 0, claimed: [] };
-
-  const attempts = await countAttempts(candidates.map((row) => row.messageId));
-  const eligible = candidates.filter((row) => (attempts.get(row.messageId) ?? 0) < maxAttempts).slice(0, limit);
-
-  const claimed: MissedTechnicalAckTarget[] = [];
-  for (const row of eligible) {
-    const attempt = (attempts.get(row.messageId) ?? 0) + 1;
-    if (row.kind === "missing") {
-      const source = sourceById.get(row.sourceMessageId);
-      if (!source?.updated_at) continue;
-      const claim = await supabaseService
-        .from("ediel_messages")
-        .update({ updated_at: now.toISOString() })
-        .eq("id", source.id)
-        .eq("company_id", source.company_id)
-        .eq("environment", source.environment)
-        .eq("updated_at", source.updated_at)
-        .select("id");
-      if (claim.error) throw claim.error;
-      if ((claim.data ?? []).length === 0) continue;
-    }
-    claimed.push({ ...row, attempt, maxAttempts });
-  }
-  return { candidates: candidates.length, claimed };
+  return claimRecoveryWork<MissedTechnicalAckTarget>("technical", options);
 }
 
 async function readMessage(id: string, companyId: string, environment: string): Promise<EdielMessageRow | null> {
-  const { data, error } = await supabaseService
-    .from("ediel_messages")
-    .select("*")
+  const { data, error } = await (tenantDb(companyId).from("ediel_messages").select("*") as ReturnType<ReturnType<typeof supabaseService.from>['select']>)
     .eq("id", id)
-    .eq("company_id", companyId)
     .eq("environment", environment)
     .maybeSingle();
   if (error) throw error;
@@ -279,7 +131,8 @@ export async function resumeMissedTechnicalAcks(input: MissedTechnicalAckResumeO
   result.candidates = candidates;
   result.claimed = claimed.length;
 
-  for (const target of claimed) {
+  await runRecoveryBatch(claimed, async (target) => {
+    let terminal: RecoveryOutcome = "ambiguous";
     // The attempt is recorded before acting: a crash mid-run still counts.
     await createEdielMessageEvent({
       actorUserId: input.actorUserId,
@@ -296,12 +149,12 @@ export async function resumeMissedTechnicalAcks(input: MissedTechnicalAckResumeO
     try {
       if (target.kind === "missing") {
         const outcome = await input.resumeTechnicalAck({ edielMessageId: target.sourceMessageId, companyId: target.companyId, environment: input.environment });
-        if (outcome.outcome === "created" || outcome.outcome === "existing") result.created += 1;
+        if (outcome.outcome === "created" || outcome.outcome === "existing") { result.created += 1; terminal = "completed"; }
         else result.notApplicable += 1;
       } else {
         const outcome = await repairUnqueuedContrl({ actorUserId: input.actorUserId, workerId: input.workerId, target, environment: input.environment });
-        if (outcome === "requeued") result.requeued += 1;
-        else result.notApplicable += 1;
+        if (outcome === "requeued") { result.requeued += 1; terminal = "completed"; }
+        else { result.notApplicable += 1; terminal = "no_effect"; }
       }
     } catch (error) {
       failure = error instanceof Error ? error.message : String(error ?? "Okänt fel");
@@ -316,11 +169,12 @@ export async function resumeMissedTechnicalAcks(input: MissedTechnicalAckResumeO
         eventStatus: "error",
         message: exhausted
           ? "Automatisk återupptagning av teknisk kvittens (CONTRL) avslutad utan resultat. Granska källan och kvittensen manuellt."
-          : "Automatisk återupptagning av teknisk kvittens (CONTRL) misslyckades; nytt försök görs av inbound-cron.",
+          : "Återupptagning av teknisk kvittens (CONTRL) har osäkert utfall. Automatiska återförsök är spärrade tills utfallet har verifierats.",
         payload: { resume: MISSED_TECHNICAL_ACK_RESUME_MARKER, kind: exhausted ? "exhausted" : "failed", mode: target.kind,
           attempt: target.attempt, maxAttempts: target.maxAttempts, error: failure.slice(0, 1000), workerId: input.workerId },
       }).catch(() => null);
     }
-  }
+    return terminal;
+  }, result.errors);
   return result;
 }

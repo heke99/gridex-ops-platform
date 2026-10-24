@@ -4,12 +4,12 @@
 // (folkbokföringsadress; for an organisation its registered address) on the customer card. The protected
 // Ediel masterdata rule uses that single current `registered` row for Z01; a facility or invoice address is
 // never used instead. The shared writer keeps the previous address as history.
+import { tenantSelect } from '@/lib/supabase/tenantQuery'
 import { revalidatePath } from "next/cache";
 
 import { requireAdminActionAccess } from "@/lib/admin/guards";
 import { recordRegisteredAddress, validateRegisteredAddress } from "@/lib/customers/registeredAddress";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { supabaseService } from "@/lib/supabase/service";
 import { requireCompanyOperationalForWrites } from "@/lib/tenant/governance";
 import { requireOperationalCompanyId } from "@/lib/tenant/scope";
 import { insertAuditLog } from "@/app/admin/customers/actions.part-1";
@@ -63,12 +63,10 @@ export async function saveCustomerRegisteredAddressAction(
     return { status: "error", message: "Kontrollera adressen.", fieldErrors };
   }
 
-  const { data: customer, error: customerError } = await supabaseService
-    .from("customers")
-    .select("id")
+  const { data: customer, error: customerError } = await tenantSelect(companyId, "customers", "id")
     .eq("company_id", companyId)
     .eq("id", customerId)
-    .maybeSingle();
+    .returns<Array<{ id: string }>>().maybeSingle();
   if (customerError) {
     console.error("[customer-card] customer lookup failed", customerError);
     return refused("Adressen kunde inte sparas. Försök igen.");

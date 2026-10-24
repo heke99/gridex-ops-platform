@@ -143,7 +143,7 @@ async function establishCustomers(parties: Party[], supplyStart: string, signedA
     p.switchId = created.switchId
     try {
       // As automation does right before the builder (edielAutomation.ts:286), then the real Z03 builder.
-      await deriveRequestedMethodBeforeSwitch({ actorUserId: LIVE.automationUserId, switchRequestId: created.switchId })
+      await deriveRequestedMethodBeforeSwitch({ companyId: tenant.companyId, actorUserId: LIVE.automationUserId, switchRequestId: created.switchId })
       const message = await prepareAndQueueEdielZ03({ actorUserId: LIVE.automationUserId, switchRequestId: created.switchId, environment: 'production' })
       built.push({ who: p.firstName, ok: true, message: message.id, start: created.start, window: created.window })
     } catch (error) { built.push({ who: p.firstName, ok: false, error: error instanceof Error ? error.message : String(error) }) }

@@ -1,3 +1,4 @@
+import { tenantUpdate } from '@/lib/supabase/tenantQuery'
 import { requireTenantInvoiceProvider } from '@/lib/billing/providers/registry'
 import { randomUUID } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
@@ -60,7 +61,7 @@ function validateCompany(company: JsonRecord) {
 // another lock token belongs to a run that was killed (platform time limit,
 // deploy, crash) and would otherwise block every later run of the month.
 async function closeOrphanedRuns(input: { companyId: string; periodMonth: string; actorUserId: string | null; lockToken: string }) {
-  const result = await supabaseService.from('billing_automation_runs').update({ status: 'failed', finished_at: new Date().toISOString(), failure_reason: 'stale_run_recovered', updated_by: input.actorUserId, updated_at: new Date().toISOString() })
+  const result = await tenantUpdate(input.companyId, "billing_automation_runs", { status: 'failed', finished_at: new Date().toISOString(), failure_reason: 'stale_run_recovered', updated_by: input.actorUserId, updated_at: new Date().toISOString() })
     .eq('company_id', input.companyId).eq('period_month', input.periodMonth).eq('status', 'running').neq('lock_token', input.lockToken)
   if (result.error) throw result.error
 }

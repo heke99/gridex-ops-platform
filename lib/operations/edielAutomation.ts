@@ -283,7 +283,8 @@ export async function ensureInitialSwitchEdielAutomation(
     })
   }
 
-  await deriveRequestedMethodBeforeSwitch({ actorUserId: input.actorUserId, switchRequestId: context.switchRequest.id })
+  if (!context.switchRequest.company_id?.trim()) throw new Error('switch_request_company_missing')
+  await deriveRequestedMethodBeforeSwitch({ companyId: context.switchRequest.company_id, actorUserId: input.actorUserId, switchRequestId: context.switchRequest.id })
   const message = await prepareAndQueueEdielZ03({
     actorUserId: input.actorUserId,
     switchRequestId: context.switchRequest.id,
@@ -325,7 +326,8 @@ export async function continueSwitchEdielAutomation(
 
   // A continued Z03 derives its sources from the signed agreement exactly like the first one (FINDINGS F46, F51).
   if (input.step === 'Z03') {
-    await deriveRequestedMethodBeforeSwitch({ actorUserId: input.actorUserId, switchRequestId: context.switchRequest.id })
+    if (!context.switchRequest.company_id?.trim()) throw new Error('switch_request_company_missing')
+    await deriveRequestedMethodBeforeSwitch({ companyId: context.switchRequest.company_id, actorUserId: input.actorUserId, switchRequestId: context.switchRequest.id })
   }
 
   const message =

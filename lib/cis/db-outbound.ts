@@ -1,3 +1,4 @@
+import { tenantUpdate } from '@/lib/supabase/tenantQuery'
 import { supabaseService } from '@/lib/supabase/service'
 import type {
   CommunicationRouteRow,
@@ -587,14 +588,15 @@ async function recordHeldOutboundStatusFacts(input: {
   responsePayload?: Record<string, unknown>
   now: string
 }): Promise<OutboundRequestRow> {
+  const companyId = input.current.company_id
+  if (!companyId?.trim()) throw new Error('outbound_request_company_missing')
+
   // Same written fields as the status write itself (no updated_at: approved finite ports pin this field set).
   const facts: Record<string, unknown> = { updated_by: input.actorUserId }
   if (input.responsePayload !== undefined) facts.response_payload = input.responsePayload
   if (input.proposedStatus === 'acknowledged' && !input.current.acknowledged_at) facts.acknowledged_at = input.now
 
-  const { data, error } = await supabaseService
-    .from('outbound_requests')
-    .update(facts)
+  const { data, error } = await tenantUpdate(companyId, "outbound_requests", facts)
     .eq('id', input.outboundRequestId)
     .select('*')
     .single()

@@ -1,3 +1,4 @@
+import { tenantSelect } from '@/lib/supabase/tenantQuery'
 import { createHash, randomUUID } from "node:crypto";
 import { supabaseService } from "@/lib/supabase/service";
 import type {
@@ -11,6 +12,7 @@ import type {
   ContractEnergyDirection,
 } from "./types";
 import { deriveContractEndsAt } from "./lifecycle";
+import { currentStockholmCalendarDate, stockholmDateForInstant } from "@/lib/time/stockholm";
 
 export class ContractReadModelError extends Error {
   readonly code: string;
@@ -1126,13 +1128,31 @@ export async function updateCustomerContract(input: {
   overrideReason?: string | null;
   actorUserId?: string | null;
 }): Promise<CustomerContractRow> {
-  const { data: existing, error: existingError } = await supabaseService
-    .from("customer_contracts")
-    .select("contract_offer_id,contract_publication_version_id,source_type")
-    .eq("id", input.id)
-    .eq("customer_id", input.customerId)
-    .eq("company_id", input.companyId ?? null)
-    .maybeSingle();
+  let expectedHash: string | null = null;
+  const { data: existing, error: existingError } = input.status === "terminated" || input.status === "cancelled"
+    ? await (async () => {
+      const { data, error } = await supabaseService.rpc("gridex_customer_contract_terminal_basis_v1", {
+        p_company_id: input.companyId,
+        p_customer_id: input.customerId,
+        p_contract_id: input.id,
+        p_actor_user_id: input.actorUserId ?? null,
+      });
+      if (error) return { data: null, error };
+      const basis = data as { contract?: CustomerContractRow; source_hash?: string } | null;
+      if (!basis?.contract || basis.contract.id !== input.id || basis.contract.company_id !== input.companyId ||
+          basis.contract.customer_id !== input.customerId || !/^[0-9a-f]{64}$/.test(basis.source_hash ?? "")) {
+        throw new Error("customer_contract_terminal_basis_unconfirmed");
+      }
+      expectedHash = basis.source_hash!;
+      return { data: basis.contract, error: null };
+    })()
+    : await supabaseService
+      .from("customer_contracts")
+      .select("*")
+      .eq("id", input.id)
+      .eq("customer_id", input.customerId)
+      .eq("company_id", input.companyId ?? null)
+      .maybeSingle();
   if (existingError) throw existingError;
   if (!existing) throw new Error("Kundavtalet hittades inte.");
 
@@ -1180,9 +1200,7 @@ export async function updateCustomerContract(input: {
     throw new Error("Bolag krävs för att versionslåsa kundavtalet.");
   }
 
-  const { data, error } = await supabaseService
-    .from("customer_contracts")
-    .update({
+  const patch = {
       ...(manualBinding
         ? {
             contract_offer_id: manualBinding.contract_offer_id,
@@ -1287,7 +1305,37 @@ export async function updateCustomerContract(input: {
         input.autoRenewTermMonths ?? input.bindingMonths ?? null,
       override_reason: input.overrideReason ?? null,
       updated_by: input.actorUserId ?? null,
-    })
+    };
+
+  if (input.status === "terminated" || input.status === "cancelled") {
+    const effectiveAt = input.endsAt ?? (input.status === "terminated" ? input.terminationNoticeDate : null) ?? new Date().toISOString();
+    const { data, error } = await supabaseService.rpc("gridex_update_customer_contract_terminal_v1", {
+      p_company_id: input.companyId,
+      p_customer_id: input.customerId,
+      p_contract_id: input.id,
+      p_actor_user_id: input.actorUserId ?? null,
+      p_expected: existing,
+      p_expected_hash: expectedHash,
+      p_patch: patch,
+      p_effective_at: effectiveAt,
+      p_notice_at: input.status === "terminated" ? input.terminationNoticeDate ?? null : null,
+    });
+    if (error) throw error;
+    const result = data && typeof data === "object" && !Array.isArray(data)
+      ? data as { contract?: CustomerContractRow; lifecycle_recorded?: boolean }
+      : null;
+    if (!result?.contract || result.contract.id !== input.id || result.contract.company_id !== input.companyId ||
+        result.contract.customer_id !== input.customerId || result.contract.status !== input.status || result.lifecycle_recorded !== true) {
+      // The database may have committed although its response was lost or malformed.
+      // Never retry through a direct update or record lifecycle events a second time.
+      throw new Error("customer_contract_terminal_update_outcome_unconfirmed");
+    }
+    return result.contract;
+  }
+
+  const { data, error } = await supabaseService
+    .from("customer_contracts")
+    .update(patch)
     .eq("id", input.id)
     .eq("customer_id", input.customerId)
     .eq("company_id", input.companyId ?? null)
@@ -1315,14 +1363,19 @@ export class ContractSupplyStillOpenError extends Error {
  */
 export async function assertContractHasNoOpenSupply(companyId: string, contractId: string, endDate?: string | null): Promise<void> {
   if (!UUID_PATTERN.test(contractId)) throw new Error("Ogiltigt avtals-id.");
-  const { data, error } = await supabaseService
-    .from("customer_supply_periods")
-    .select("id,end_date,actual_end_date")
+  const { data, error } = await tenantSelect(companyId, "customer_supply_periods", "id,end_date,actual_end_date")
     .eq("company_id", companyId)
     .or(`customer_contract_id.eq.${contractId},contract_id.eq.${contractId}`)
-    .in("status", ["active", "confirmed_by_grid_owner"]);
+    .in("status", ["active", "confirmed_by_grid_owner", "ending"]);
   if (error) throw error;
-  const until = typeof endDate === "string" && /^\d{4}-\d{2}-\d{2}/.test(endDate) ? endDate.slice(0, 10) : null;
+  const value = typeof endDate === "string" ? endDate.trim() : "";
+  const requestedEnd = /^\d{4}-\d{2}-\d{2}/.test(value)
+    ? /(?:Z|[+-]\d{2}:?\d{2})$/i.test(value) ? stockholmDateForInstant(value) : value.slice(0, 10)
+    : null;
+  // H3d B3: a manual status edit must not preempt ongoing supply or its billing.
+  // Future received Z05 effects use the canonical database recorder directly.
+  const today = currentStockholmCalendarDate();
+  const until = requestedEnd && requestedEnd < today ? requestedEnd : today;
   const open = ((data ?? []) as Array<{ end_date?: string | null; actual_end_date?: string | null }>).some((period) => {
     const end = (period.actual_end_date ?? period.end_date ?? "").slice(0, 10);
     return !end || (until !== null && end > until);
@@ -1334,9 +1387,7 @@ export async function assertContractHasNoOpenSupply(companyId: string, contractI
  * The contract's notice days (customer_contract_notice_terms, FINDINGS H3d D1), 0 without a row. Tenant-scoped.
  */
 export async function getCustomerContractNoticeDays(companyId: string, contractId: string): Promise<number> {
-  const { data, error } = await supabaseService
-    .from("customer_contract_notice_terms")
-    .select("notice_days")
+  const { data, error } = await tenantSelect(companyId, "customer_contract_notice_terms", "notice_days")
     .eq("company_id", companyId)
     .eq("customer_contract_id", contractId)
     .maybeSingle();
@@ -1400,7 +1451,9 @@ export async function addCustomerContractEvent(input: {
       bindingMonths: current.binding_months ?? null,
       noticeMonths: current.notice_months ?? null,
       noticeDays,
-      terminationNoticeDate: eventPayload.happened_at,
+      terminationNoticeDate: /(?:Z|[+-]\d{2}:?\d{2})$/i.test(eventPayload.happened_at)
+        ? stockholmDateForInstant(eventPayload.happened_at)
+        : eventPayload.happened_at.slice(0, 10),
       terminationReason: current.termination_reason ?? null,
       autoRenewEnabled: current.auto_renew_enabled ?? null,
       autoRenewTermMonths: current.auto_renew_term_months ?? null,
@@ -1422,7 +1475,9 @@ export async function addCustomerContractEvent(input: {
     )
     .digest("hex");
   const { data, error } = await supabaseService.rpc(
-    "gridex_record_customer_contract_event_v1",
+    input.eventType === "terminated" || input.eventType === "cancelled"
+      ? "gridex_record_manual_customer_contract_event_v1"
+      : "gridex_record_customer_contract_event_v1",
     {
       p_company_id: input.companyId,
       p_customer_contract_id: input.customerContractId,

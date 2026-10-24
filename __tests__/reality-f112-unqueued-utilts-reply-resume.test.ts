@@ -9,6 +9,7 @@
 // "URI too long" (it read hundreds of ids in one PostgREST URL).
 // Synthetic in-memory rows only; no database, no cron endpoint.
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createRecoveryRpcPort } from './helpers/edielRecoveryRpcPort'
 
 type Row = Record<string, unknown>
 
@@ -19,6 +20,8 @@ const io = vi.hoisted(() => ({
   retainedOverride: null as null | ((input: Row) => Row | null),
   maxInList: 0,
 }))
+
+let recovery: ReturnType<typeof createRecoveryRpcPort>
 
 function columnValue(row: Row, column: string): unknown {
   const [base, key] = column.split('->>')
@@ -82,7 +85,7 @@ vi.mock('@/lib/supabase/service', () => {
       return Promise.resolve().then(() => this.run()).then(resolve, reject)
     }
   }
-  return { supabaseService: { from: (table: string) => new Query(table), rpc: () => { throw new Error('no rpc in this test') } } }
+  return { supabaseService: { from: (table: string) => new Query(table), rpc: (name: string, args: Row) => recovery.rpc(name, args) } }
 })
 
 vi.mock('@/lib/ediel/db', () => ({
@@ -109,7 +112,7 @@ vi.mock('@/lib/ediel/outbox/createOutboxItem', () => ({
     io.outbox.push(input)
     // Insert-only on the reply's unique key, like the real upsert(ignoreDuplicates).
     if (!io.tables.ediel_outbox.some((row) => row.ediel_message_id === input.message.id)) {
-      io.tables.ediel_outbox.push({ ediel_message_id: input.message.id, status: input.status })
+      io.tables.ediel_outbox.push({ ediel_message_id: input.message.id, status: input.status, company_id: input.message.company_id, environment: input.message.environment, source_message_id: input.sourceMessageId })
     }
     return { id: `outbox-${String(input.message.id)}` }
   },
@@ -147,7 +150,7 @@ const RAW = "UNH+1+UTILTS:D:02B:UN:E5SE5A'BGM+E66+DOC-1+9'UNT+3+1'"
 
 function addSource(id: string, overrides: Row = {}): Row {
   const row = { id, company_id: 'tenant-a', environment: 'production', direction: 'inbound', message_standard: 'edifact',
-    message_family: 'UTILTS', message_code: 'E66', status: 'validated', processing_status: 'validated', updated_at: minutesAgo(60),
+    message_family: 'UTILTS', message_code: 'E66', created_at: minutesAgo(60), status: 'validated', processing_status: 'validated', updated_at: minutesAgo(60),
     sender_ediel_id: '16700', receiver_ediel_id: '70309', application_reference: '23-DDQ-E66-T', raw_payload: RAW,
     parsed_payload: {}, validation_report: {}, ...overrides }
   io.tables.ediel_messages.push(row)
@@ -170,6 +173,7 @@ function addReply(id: string, sourceId: string, input: { family?: string; payloa
 }
 
 beforeEach(() => {
+  recovery = createRecoveryRpcPort(() => io.tables)
   io.tables = { ediel_messages: [], ediel_message_events: [], ediel_outbox: [] }
   io.outbox = []; io.retainedReads = []; io.retainedOverride = null; io.maxInList = 0
 })
@@ -260,16 +264,26 @@ describe('F112: stranded operational UTILTS runtime replies are queued by the in
     expect(await resume({ limit: 10, replyLimit: 3 })).toMatchObject({ claimed: 3, requeued: 3 })
   })
 
-  it('never trusts a draft that is not the source’s protected original; gives up after max attempts', async () => {
+  it('holds a protected-original mismatch uncertain and never retries it automatically', async () => {
     addSource('src-1')
     addReply('ack-1', 'src-1')
     io.retainedOverride = () => ({ id: 'another-reply', company_id: 'tenant-a', environment: 'production' })
     for (let attempt = 1; attempt <= 3; attempt += 1) {
       const result = await resume({ now: () => new Date(NOW.getTime() + attempt * 1000) })
-      expect(result).toMatchObject({ claimed: 1, requeued: 0, failed: 1, exhausted: attempt === 3 ? 1 : 0 })
-      expect(result.errors[0]).toContain('unqueued_utilts_reply_retained_original_mismatch')
+      expect(result).toMatchObject({ claimed: attempt === 1 ? 1 : 0, requeued: 0, failed: attempt === 1 ? 1 : 0, exhausted: 0 })
+      if (attempt === 1) expect(result.errors[0]).toContain('unqueued_utilts_reply_retained_original_mismatch')
     }
     expect(await resume({ now: () => new Date(NOW.getTime() + 10_000) })).toMatchObject({ candidates: 0, claimed: 0 })
+    expect(io.outbox).toEqual([])
+    expect([...recovery.work.values()]).toEqual([expect.objectContaining({ state: 'uncertain', attempts: 1 })])
+  })
+
+  it('refuses an unqueued reply whose persisted attempt history reached the cap', async () => {
+    addSource('src-cap')
+    addReply('ack-cap', 'src-cap')
+    for (let attempt = 1; attempt <= 3; attempt++) io.tables.ediel_message_events.push({ ediel_message_id: 'ack-cap', company_id: 'tenant-a', event_type: 'manual_note', created_at: minutesAgo(30), payload: { resume: UNQUEUED_UTILTS_REPLY_RESUME_MARKER, kind: 'attempt', attempt } })
+    expect(await resume()).toMatchObject({ claimed: 0, requeued: 0 })
+    expect([...recovery.work.values()]).toEqual([expect.objectContaining({ state: 'exhausted', attempts: 3 })])
     expect(io.outbox).toEqual([])
   })
 
@@ -280,7 +294,7 @@ describe('F112: stranded operational UTILTS runtime replies are queued by the in
       sharedOnly: true, allowMissingMailboxConfig: true })
     expect(result.debug.utiltsReplyResume).toMatchObject({ requeued: 1, failed: 0 })
     expect(result.debug.autoProcessErrors).toEqual([])
-    expect(io.tables.ediel_outbox).toEqual([{ ediel_message_id: 'ack-1', status: 'prepared' }])
+    expect(io.tables.ediel_outbox).toEqual([{ ediel_message_id: 'ack-1', status: 'prepared', company_id: 'tenant-a', environment: 'production', source_message_id: 'src-1' }])
   })
 
   it('without the scheduled flag the engine does not run the resume', async () => {
@@ -302,9 +316,14 @@ describe('F112: the F106 technical-ACK resume reads its ids in chunks', () => {
         message_family: 'CONTRL', status: 'draft', related_message_id: `src-${index}` })
     }
     const { candidates, claimed } = await claimMissedTechnicalAcks({ environment: 'production', now: () => NOW })
-    expect(candidates).toBe(150)
+    // V6 returns leased targets, not raw discovered notes.
+    expect(candidates).toBe(10)
+    expect(recovery.work.size).toBe(150)
     expect(claimed).toHaveLength(10)
     expect(claimed.every((row) => row.kind === 'unqueued')).toBe(true)
+    const capped = await claimMissedTechnicalAcks({ environment: 'production', limit: 999, now: () => NOW })
+    expect(capped.claimed).toHaveLength(50)
+    expect(recovery.calls.filter((call) => call.name === 'ediel_recovery_lease_v1').at(-1)?.args).toMatchObject({ p_source_limit: 50, p_target_limit: 50 })
     expect(io.maxInList).toBeLessThanOrEqual(50)
   })
 })

@@ -1,3 +1,5 @@
+import { manualReceivedEndAuthority } from './manualReceivedEndAuthority'
+import { loadQualifiedBillingUnderlaySources } from './sourceBasis'
 import { createHash } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
 import { parseBillingMonth } from '@/lib/time/stockholm'
@@ -315,7 +317,7 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
   for (let from = 0; ; from += pageSize) {
     const underlayResult = await supabaseService
       .from('billing_underlays')
-      .select('id,status,readiness_status,total_kwh,customer_id,contract_id,pricing_snapshot_id,contract_price_snapshot_id,price_area,calculated_total_sek_inc_vat,metering_point_id,missing_values_count,billing_period_start,billing_period_end,billing_configuration_snapshot,billing_configuration_snapshot_sha256,billing_configuration_snapshotted_at,payload')
+      .select('id,company_id,supply_period_id,status,readiness_status,total_kwh,customer_id,contract_id,pricing_snapshot_id,contract_price_snapshot_id,price_area,calculated_total_sek_inc_vat,metering_point_id,missing_values_count,billing_period_start,billing_period_end,billing_configuration_snapshot,billing_configuration_snapshot_sha256,billing_configuration_snapshotted_at,payload')
       .eq('company_id', input.companyId)
       .eq('underlay_year', year)
       .eq('underlay_month', month)
@@ -329,10 +331,7 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
 
   for (let offset = 0; offset < underlays.length; offset += pageSize) {
     const page = underlays.slice(offset, offset + pageSize)
-    const { data, error } = await supabaseService.rpc('gridex_read_billing_underlay_source_basis_v1', { p_company_id: input.companyId, p_underlay_ids: page.map(row => String(row.id)) })
-    if (error) throw error
-    if (!Array.isArray(data) || data.length !== page.length) throw new Error('invoice_underlay_source_basis_missing')
-    const bases = new Map((data as JsonRecord[]).map(basis => [String(basis.id), basis]))
+    const bases = await loadQualifiedBillingUnderlaySources(input.companyId, page)
     for (const row of page) {
       const basis = bases.get(String(row.id))
       if (!basis || (basis.totalKwh !== null && !isCanonicalUtiltsDecimal(basis.totalKwh))) throw new Error('invoice_underlay_source_basis_invalid')
@@ -466,7 +465,7 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
   if (contractIds.length > 0) {
     const contractResult = await supabaseService
       .from('customer_contracts')
-      .select('id,company_id,customer_id,status,customer_site_id,site_id,contract_price_snapshot_id,price_area_used,price_snapshot,metadata,invoice_recipient,invoice_email,invoice_reference,billing_street,billing_postal_code,billing_city,billing_address_same_as_site,vat_rate,export_blocked,export_block_reason,billing_blocker_reasons,termination_reason,ended_at')
+      .select('id,company_id,customer_id,metering_point_id,status,customer_site_id,site_id,contract_price_snapshot_id,price_area_used,price_snapshot,metadata,invoice_recipient,invoice_email,invoice_reference,billing_street,billing_postal_code,billing_city,billing_address_same_as_site,vat_rate,export_blocked,export_block_reason,billing_blocker_reasons,termination_reason,ended_at')
       .eq('company_id', input.companyId)
       .in('id', contractIds)
     if (contractResult.error) throw contractResult.error
@@ -529,7 +528,7 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
   if (meteringPointIds.length > 0) {
     const supplyResult = await supabaseService
       .from('customer_supply_periods')
-      .select('id,company_id,customer_id,metering_point_id,contract_id,customer_contract_id,status,start_date,end_date,actual_start_date,actual_end_date,market_end_at')
+      .select('id,company_id,customer_id,metering_point_id,contract_id,customer_contract_id,status,start_date,end_date,actual_start_date,actual_end_date,market_start_at,market_end_at,source_end_message_id,market_state_version')
       .eq('company_id', input.companyId)
       .in('metering_point_id', meteringPointIds)
       .lte('start_date', bounds.end)
@@ -582,7 +581,12 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
           message: `Faktureringsunderlagets operativa områdesdata motsäger avtalets låsta prisområde ${priceArea ?? 'okänt'} (${canonicalArea.conflicts.join(', ')}).`,
         }]
       : []
+    const manualAuthorities = contract ? (supplyPeriodsByMeter.get(meterId) ?? []).flatMap(period => {
+      const authority = manualReceivedEndAuthority([underlay], contract as JsonRecord, period)
+      return authority ? [authority] : []
+    }) : []
     const readiness = evaluateBillingReadinessCore({
+      manualReceivedEndAuthorities: manualAuthorities,
       companyId: input.companyId,
       customerId,
       customer,

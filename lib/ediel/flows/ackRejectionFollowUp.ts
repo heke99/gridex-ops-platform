@@ -11,6 +11,7 @@
 import { createEdielMessageEvent } from '@/lib/ediel/db'
 import { applyInboundBusinessStateMachine } from '@/lib/ediel/flows/inboundBusinessStateMachine'
 import { supabaseService } from '@/lib/supabase/service'
+import { tenantDb } from '@/lib/supabase/tenantDb'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 
 export type AckRejectionFollowUpInput = {
@@ -27,8 +28,8 @@ export type AckRejectionFollowUpResult =
   | { status: 'skipped'; reason: 'no_customer_link' | 'not_a_rejection_family' }
 
 async function existingCase(companyId: string, ackMessageId: string, caseType: 'business_rejection' | 'technical_rejection'): Promise<string | null> {
-  const { data, error } = await supabaseService.from('customer_cases').select('id')
-    .eq('company_id', companyId).eq('case_type', caseType).eq('metadata->>source_ediel_message_id', ackMessageId).limit(1)
+  const { data, error } = await (tenantDb(companyId).from('customer_cases') as ReturnType<typeof supabaseService.from>).select('id')
+    .eq('case_type', caseType).eq('metadata->>source_ediel_message_id', ackMessageId).limit(1)
   if (error) throw error
   return (data?.[0] as { id?: string } | undefined)?.id ?? null
 }
@@ -54,7 +55,7 @@ export async function followUpAckRejection(input: AckRejectionFollowUpInput): Pr
   // Our own interchange failed the counterparty's syntax check: an operator corrects and re-sends (TR-05).
   const prior = await existingCase(companyId, ack.id, 'technical_rejection')
   if (prior) return { status: 'technical_rejection_case', caseId: prior, existing: true }
-  const { data, error } = await supabaseService.from('customer_cases').insert({
+  const { data, error } = await (tenantDb(companyId).from('customer_cases') as ReturnType<typeof supabaseService.from>).insert({
     company_id: companyId, customer_id: ack.customer_id, site_id: ack.site_id ?? null, metering_point_id: ack.metering_point_id ?? null,
     supplier_switch_request_id: input.switchRequestId, case_type: 'technical_rejection', status: 'open', priority: 'high',
     title: 'Nätägaren avvisade vår fil tekniskt (negativ CONTRL)',

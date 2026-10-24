@@ -1,3 +1,4 @@
+import { tenantInsert } from '@/lib/supabase/tenantQuery'
 import "server-only";
 
 import { createHash } from "node:crypto";
@@ -47,9 +48,7 @@ export async function recordSignedAgreementDocument(input: {
   channel?: string;
 }): Promise<CustomerAuthorizationDocumentRow> {
   const timing = signedAgreementDocumentTiming({ declaredSignedDate: input.declaredSignedDate });
-  const { data, error } = await supabaseService
-    .from("customer_authorization_documents")
-    .insert({
+  const { data, error } = await tenantInsert(input.companyId, "customer_authorization_documents", {
       company_id: input.companyId,
       customer_id: input.customerId,
       site_id: input.siteId,

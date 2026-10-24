@@ -1,3 +1,4 @@
+import { loadQualifiedBillingUnderlaySources } from '@/lib/billing/sourceBasis'
 import { tenantSelect } from "@/lib/supabase/tenantQuery";
 import {
   resolveInvoiceDeliveryFor,
@@ -173,15 +174,22 @@ export async function listExactBillableContractsByUnderlayIds(params: {
   );
   const supplyById = new Map<string, Record<string, unknown>>();
   if (supplyPeriodIds.length > 0) {
-    const supply = await supabaseService
-      .from("customer_supply_periods")
-      .select("*")
+    const supply = await tenantSelect(params.companyId, "customer_supply_periods", "*")
       .eq("company_id", params.companyId)
       .in("id", supplyPeriodIds);
     if (supply.error) throw supply.error;
     for (const row of (supply.data ?? []) as Record<string, unknown>[]) {
       supplyById.set(String(row.id), row);
     }
+  }
+  const manualRows = params.underlays.map(underlay => underlay as unknown as Record<string, unknown>).filter(row => {
+    const contract = byId.get(String(row.contract_id ?? '').trim()) as unknown as Record<string, unknown> | undefined;
+    const period = supplyById.get(String(row.supply_period_id ?? '').trim()) ?? null;
+    return contract?.status === 'terminated' && ['move_out','grid_contract_ended','customer_termination'].includes(String(contract.termination_reason)) && period && typeof period.source_end_message_id === 'string' && typeof period.market_end_at === 'string' &&
+      !contractCarriesUnderlay(params.companyId, row, contract, period);
+  });
+  for (let offset = 0; offset < manualRows.length; offset += 1000) {
+    await loadQualifiedBillingUnderlaySources(params.companyId, manualRows.slice(offset, offset + 1000));
   }
   for (const underlay of params.underlays) {
     const row = underlay as unknown as Record<string, unknown>;

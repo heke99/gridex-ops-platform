@@ -23,6 +23,7 @@ vi.mock('@/lib/supabase/service', () => {
   class Query {
     filters: Record<string, unknown> = {}; mode = 'select'; payload: Row = {}
     constructor(readonly table: string) {}
+    returns() { return this }
     select() { return this }
     limit() { return this }
     eq(key: string, value: unknown) { this.filters[key] = value; return this }
@@ -176,7 +177,7 @@ describe('declaration derivation before Z03 (F51)', () => {
   it('runs for both lanes from the requested-method preparation that both switch paths call, and never blocks', async () => {
     io.rows = { ...archived(), supplier_switch_requests: [{ id: id(50), company_id: COMPANY, customer_contract_id: CONTRACT, contract_id: CONTRACT }] }; io.blob = pdf
     io.rpc.mockResolvedValueOnce({ data: { status: 'derived', declarationId: id(40) }, error: null }).mockRejectedValueOnce(new Error('transport down'))
-    await expect(deriveRequestedMethodBeforeSwitch({ actorUserId: id(30), switchRequestId: id(50) })).resolves.toBeUndefined()
+    await expect(deriveRequestedMethodBeforeSwitch({ companyId: COMPANY, actorUserId: id(30), switchRequestId: id(50) })).resolves.toBeUndefined()
     expect(io.methodCalls.map(call => call.environment)).toEqual(['production', 'test'])
     expect(io.rpc.mock.calls.map(call => [call[0], (call[1] as Row).p_environment])).toEqual([
       ['ediel_derive_contract_customer_masterdata_v1', 'production'], ['ediel_derive_contract_customer_masterdata_v1', 'test']])
@@ -184,7 +185,7 @@ describe('declaration derivation before Z03 (F51)', () => {
 
   it('does nothing for an unknown switch request', async () => {
     io.rows = { supplier_switch_requests: [] }
-    await expect(deriveCustomerMasterdataBeforeSwitch({ actorUserId: id(30), switchRequestId: id(51) })).resolves.toBeUndefined()
+    await expect(deriveCustomerMasterdataBeforeSwitch({ companyId: COMPANY, actorUserId: id(30), switchRequestId: id(51) })).resolves.toBeUndefined()
     expect(io.rpc).not.toHaveBeenCalled()
   })
 })

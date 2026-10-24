@@ -9,6 +9,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 type Row = Record<string, unknown>
 const io = vi.hoisted(() => ({
   tables: {} as Record<string, Row[]>,
+  actorGrants: [] as Array<{ actorId: string; companyId: string; active: boolean; permissions: string[] }>,
   rpcCalls: [] as Array<{ name: string; args: Record<string, unknown> }>,
 }))
 
@@ -64,6 +65,30 @@ vi.mock('@/lib/supabase/service', () => {
     if (name === 'gridex_store_billing_underlay_batch') return { data: (args.p_commands as unknown[]).map((_, index) => `stored-${index}`), error: null }
     if (name === 'gridex_persist_pricing_run') return { data: 'run-1', error: null }
     if (name === 'gridex_record_customer_contract_event_v1') return { data: { event: { id: 'ev-1' }, contract_status: 'terminated', existing: false }, error: null }
+    // Declared finite service/actor port for the new manual ingress. Actual SQL authority,
+    // transaction locks and recorder replay are covered by the atomic SQL regressions.
+    if (name === 'gridex_record_manual_customer_contract_event_v1') {
+      if (!args.p_company_id || !args.p_actor_user_id) return { data: null, error: { code: '42501', message: 'contract_terminal_service_role_required' } }
+      const grant = io.actorGrants.find(row => row.actorId === args.p_actor_user_id && row.companyId === args.p_company_id)
+      if (!grant?.active || !grant.permissions.includes('contracts.write')) return { data: null, error: { code: '42501', message: 'contract_terminal_current_actor_required' } }
+      const contract = (io.tables.customer_contracts ?? []).find(row => row.id === args.p_customer_contract_id && row.company_id === args.p_company_id && row.customer_id === args.p_customer_id)
+      if (!contract) return { data: null, error: { code: 'P0002', message: 'customer_contract_not_found_for_tenant' } }
+      // Use the real manual supply/date guard over this fixture's scoped supply graph;
+      // do not turn an arbitrary new RPC name into a successful event.
+      if (args.p_event_type === 'terminated' || args.p_event_type === 'cancelled') {
+        const metadata = args.p_metadata as Row | null
+        const effectiveAt = metadata?.ended_at ?? metadata?.ends_at ?? args.p_happened_at
+        try {
+          await assertContractHasNoOpenSupply(String(args.p_company_id), String(args.p_customer_contract_id), typeof effectiveAt === 'string' ? effectiveAt : null)
+        } catch (error) {
+          if (error instanceof ContractSupplyStillOpenError) return { data: null, error: { code: '23514', message: 'contract_supply_still_open' } }
+          throw error
+        }
+      }
+      const event = { id: 'manual-event-1', company_id: args.p_company_id, customer_contract_id: args.p_customer_contract_id, customer_id: args.p_customer_id, event_type: args.p_event_type, actor_user_id: args.p_actor_user_id }
+      ;(io.tables.customer_contract_events ??= []).push(event)
+      return { data: { event, contract_status: args.p_event_type, existing: false }, error: null }
+    }
     return { data: null, error: { code: '42883', message: `unexpected rpc ${name}` } }
   }
   return { supabaseService: { from, rpc } }
@@ -74,10 +99,13 @@ import { calculatePricingPreviewForUnderlay } from '@/lib/pricing/engine'
 import { CONTRACT_END_REASONS_CARRYING_FINAL_PERIOD, contractCarriesBilledPeriod, contractEndedBySupplyPeriod } from '@/lib/billing/supplyPeriodEnd'
 import { listExactBillableContractsByUnderlayIds } from '@/lib/billing/exportCenter'
 import { contractNoticeEndDate, deriveContractEndsAt, getContractLifecycleSummary } from '@/lib/customer-contracts/lifecycle'
-import { addCustomerContractEvent, ContractSupplyStillOpenError, getCustomerContractNoticeDays } from '@/lib/customer-contracts/db'
+import { addCustomerContractEvent, assertContractHasNoOpenSupply, ContractSupplyStillOpenError, getCustomerContractNoticeDays } from '@/lib/customer-contracts/db'
+import { supabaseService } from '@/lib/supabase/service'
 import { parseNoticeDays } from '@/components/admin/customers/contracts/helpers'
 
 const COMPANY = 'co-h3d'
+const ACTOR = 'actor-h3d'
+const TERMINAL_CONTRACT = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
 const NO_CONTRACT = 'Leveransperioden saknar ett aktivt eller signerat avtal.'
 const NOT_COVERED = 'Avtalets giltighet täcker inte hela fakturasegmentet.'
 // September in the Ediel month frame (supply received by Z04 at 1 August 00:00 +0200); the customer moved out on
@@ -108,7 +136,7 @@ async function september(period: Row, contract: Row, valueEnd = MOVE_END) {
   return { result, commands }
 }
 
-beforeEach(() => { io.tables = {}; io.rpcCalls = [] })
+beforeEach(() => { io.tables = {}; io.rpcCalls = []; io.actorGrants = [{ actorId: ACTOR, companyId: COMPANY, active: true, permissions: ['contracts.write'] }] })
 
 describe('H3d D8 the final month of a contract that runs on after the supply ended', () => {
   for (const reason of ['move_out', 'grid_contract_ended', 'customer_termination']) {
@@ -169,7 +197,8 @@ describe('H3d B3/D2 a registered termination keeps billing the continuing supply
 
   it("'Avslutat' is refused while the contract's supply is open, allowed once it has ended", async () => {
     io.tables.customer_supply_periods = [lifecycleClosed({ end_date: null, metadata: {}, customer_contract_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', contract_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' })]
-    const end = (eventType: 'terminated' | 'cancelled') => addCustomerContractEvent({ companyId: COMPANY, customerContractId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', customerId: 'cu-1', eventType, happenedAt: '2026-10-01' })
+    io.tables.customer_contracts = [{ id: TERMINAL_CONTRACT, company_id: COMPANY, customer_id: 'cu-1', status: 'active' }]
+    const end = (eventType: 'terminated' | 'cancelled') => addCustomerContractEvent({ companyId: COMPANY, customerContractId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', customerId: 'cu-1', actorUserId: ACTOR, eventType, happenedAt: '2026-10-01' })
     await expect(end('terminated')).rejects.toBeInstanceOf(ContractSupplyStillOpenError)
     await expect(end('cancelled')).rejects.toBeInstanceOf(ContractSupplyStillOpenError)
     expect(io.rpcCalls).toEqual([])
@@ -178,7 +207,42 @@ describe('H3d B3/D2 a registered termination keeps billing the continuing supply
     await expect(end('terminated')).rejects.toBeInstanceOf(ContractSupplyStillOpenError)
     io.tables.customer_supply_periods[0].end_date = '2026-09-30'
     await end('terminated')
-    expect(io.rpcCalls.map(call => call.name)).toEqual(['gridex_record_customer_contract_event_v1'])
+    expect(io.rpcCalls.map(call => call.name)).toEqual(['gridex_record_manual_customer_contract_event_v1'])
+    expect(io.rpcCalls[0].args).toMatchObject({ p_company_id: COMPANY, p_customer_contract_id: TERMINAL_CONTRACT, p_customer_id: 'cu-1', p_actor_user_id: ACTOR, p_event_type: 'terminated', p_happened_at: '2026-10-01' })
+    expect(Object.keys(io.rpcCalls[0].args).sort()).toEqual(['p_company_id', 'p_customer_contract_id', 'p_customer_id', 'p_event_type', 'p_happened_at', 'p_note', 'p_metadata', 'p_actor_user_id', 'p_derived_ends_at', 'p_idempotency_key'].sort())
+    expect(io.tables.customer_contract_events).toEqual([expect.objectContaining({ actor_user_id: ACTOR, company_id: COMPANY, event_type: 'terminated' })])
+  })
+
+  it('the manual RPC port refuses missing/currently unauthorized actors and wrong company/customer graphs', async () => {
+    io.tables.customer_contracts = [{ id: TERMINAL_CONTRACT, company_id: COMPANY, customer_id: 'cu-1', status: 'active' }]
+    const args = { p_company_id: COMPANY, p_customer_contract_id: TERMINAL_CONTRACT, p_customer_id: 'cu-1', p_event_type: 'terminated', p_happened_at: '2026-10-01', p_actor_user_id: ACTOR, p_metadata: {} }
+    for (const patch of [{ p_company_id: null }, { p_actor_user_id: null }, { p_actor_user_id: 'other-actor' }, { p_company_id: 'other-company' }]) {
+      const result = await supabaseService.rpc('gridex_record_manual_customer_contract_event_v1', { ...args, ...patch })
+      expect(result.error?.code).toBe('42501')
+    }
+    for (const grant of [{ actorId: ACTOR, companyId: COMPANY, active: false, permissions: ['contracts.write'] }, { actorId: ACTOR, companyId: COMPANY, active: true, permissions: [] }]) {
+      io.actorGrants = [grant]
+      expect((await supabaseService.rpc('gridex_record_manual_customer_contract_event_v1', args)).error?.code).toBe('42501')
+    }
+    io.actorGrants = [{ actorId: ACTOR, companyId: COMPANY, active: true, permissions: ['contracts.write'] }]
+    expect((await supabaseService.rpc('gridex_record_manual_customer_contract_event_v1', { ...args, p_customer_id: 'other-customer' })).error?.code).toBe('P0002')
+    expect(io.tables.customer_contract_events).toBeUndefined()
+  })
+
+  it('the manual RPC port checks ongoing supply independently and unknown RPCs stay refused', async () => {
+    io.tables.customer_contracts = [{ id: TERMINAL_CONTRACT, company_id: COMPANY, customer_id: 'cu-1', status: 'active' }]
+    io.tables.customer_supply_periods = [lifecycleClosed({ contract_id: TERMINAL_CONTRACT, end_date: null, metadata: {} })]
+    const args = { p_company_id: COMPANY, p_customer_contract_id: TERMINAL_CONTRACT, p_customer_id: 'cu-1', p_event_type: 'cancelled', p_happened_at: '2026-10-01', p_actor_user_id: ACTOR, p_metadata: {} }
+    expect((await supabaseService.rpc('gridex_record_manual_customer_contract_event_v1', args)).error?.code).toBe('23514')
+    expect((await supabaseService.rpc('unknown_contract_rpc', args)).error?.code).toBe('42883')
+    expect(io.tables.customer_contract_events).toBeUndefined()
+  })
+
+  it('the app keeps a missing-actor manual RPC refusal closed without a canonical fallback', async () => {
+    io.tables.customer_contracts = [{ id: TERMINAL_CONTRACT, company_id: COMPANY, customer_id: 'cu-1', status: 'active' }]
+    await expect(addCustomerContractEvent({ companyId: COMPANY, customerContractId: TERMINAL_CONTRACT, customerId: 'cu-1', eventType: 'terminated', happenedAt: '2026-10-01' })).rejects.toMatchObject({ code: '42501' })
+    expect(io.rpcCalls.map(call => call.name)).toEqual(['gridex_record_manual_customer_contract_event_v1'])
+    expect(io.tables.customer_contract_events).toBeUndefined()
   })
 
   it("'Uppsägning mottagen' counts the contract's notice days (customer_contract_notice_terms)", async () => {

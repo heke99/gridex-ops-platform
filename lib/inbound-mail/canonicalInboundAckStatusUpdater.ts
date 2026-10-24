@@ -6,6 +6,7 @@ import { inboundEdielTestFlag } from '@/lib/inbound-mail/inboundTestFlag'
 import type { InboundTenantResolution } from '@/lib/ediel/tenant/resolveInboundTenant'
 import { tenantResolutionForStorage } from '@/lib/ediel/tenant/resolveInboundTenant'
 import { supabaseService } from '@/lib/supabase/service'
+import { tenantDb } from '@/lib/supabase/tenantDb'
 import { recordInboundReception } from '@/lib/ediel/inbound/receptions'
 import { canonicalAckRequirementsForFamilyCode } from '@/lib/ediel/rulebook/canonicalEdielFacade'
 import { OUTBOUND_POSITIVE_CONTRL_GUARD_FILTER, OUTBOUND_SETTLED_STATUS_FILTER } from '@/lib/cis/outboundStatusLattice'
@@ -107,7 +108,7 @@ async function recordInboundAckReception(input: {
     reason = error instanceof Error ? error.message : String((error as { message?: unknown } | null)?.message ?? error)
   }
   if (reason === null) return
-  await supabaseService.from('ediel_message_events').insert({
+  await tenantDb(input.companyId).from('ediel_message_events').insert({
     company_id: input.companyId,
     ediel_message_id: input.messageId,
     event_type: 'manual_note',

@@ -47,7 +47,7 @@ export async function establishSwitch(tenant: LiveTenant, input: { customerId: s
   const switchId = (created.data as { request: { id: string } }).request.id
   let built: Row
   try {
-    await deriveRequestedMethodBeforeSwitch({ actorUserId: LIVE.automationUserId, switchRequestId: switchId })
+    await deriveRequestedMethodBeforeSwitch({ companyId: tenant.companyId, actorUserId: LIVE.automationUserId, switchRequestId: switchId })
     const message = await prepareAndQueueEdielZ03({ actorUserId: LIVE.automationUserId, switchRequestId: switchId, environment: 'production' })
     built = { ok: true, message: message.id, status: message.status }
   } catch (error) { built = { ok: false, error: error instanceof Error ? error.message : String(error) } }

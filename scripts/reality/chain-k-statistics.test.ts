@@ -168,7 +168,7 @@ async function signAndSwitch(p: Party, input: { supplyStart: string; signedAt: s
   p.switchId = created.switchId
   if (!input.build) return { who: p.firstName, ok: true, built: false, start: created.start }
   try {
-    await deriveRequestedMethodBeforeSwitch({ actorUserId: LIVE.automationUserId, switchRequestId: created.switchId })
+    await deriveRequestedMethodBeforeSwitch({ companyId: tenant.companyId, actorUserId: LIVE.automationUserId, switchRequestId: created.switchId })
     const message = await prepareAndQueueEdielZ03({ actorUserId: LIVE.automationUserId, switchRequestId: created.switchId, environment: 'production' })
     return { who: p.firstName, ok: true, built: true, message: message.id, start: created.start }
   } catch (error) { return { who: p.firstName, ok: false, error: error instanceof Error ? error.message : String(error) } }

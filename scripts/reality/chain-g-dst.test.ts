@@ -227,7 +227,7 @@ describe.sequential('reality G — end of daylight saving time 2026-10-25 throug
     // The Z03 from the platform's builder, as edielAutomation.ts calls it, without the send-window scheduler.
     let built: Row
     try {
-      await deriveRequestedMethodBeforeSwitch({ actorUserId: LIVE.automationUserId, switchRequestId: switchId })
+      await deriveRequestedMethodBeforeSwitch({ companyId: tenant.companyId, actorUserId: LIVE.automationUserId, switchRequestId: switchId })
       const message = await prepareAndQueueEdielZ03({ actorUserId: LIVE.automationUserId, switchRequestId: switchId, environment: 'production' })
       built = { ok: true, message: message.id, status: message.status }
     } catch (error) { built = { ok: false, error: error instanceof Error ? error.message : String(error) } }

@@ -1,3 +1,5 @@
+import { tenantDb } from '@/lib/supabase/tenantDb'
+import { tenantSelect } from '@/lib/supabase/tenantQuery'
 import { supabaseService } from '@/lib/supabase/service'
 import {
   missingIntegrationApiScopes,
@@ -203,8 +205,7 @@ export async function reconcileTenantOperationalCapabilities(input: {
     const blockers = requires.filter((check) => !checks[check])
     return { code, ready: blockers.length === 0, blockers }
   })
-  const { error } = await supabaseService.from('company_capabilities').upsert(
-    capabilities.map(({ code, ready, blockers }) => ({
+  const { error } = await (tenantDb(input.companyId).from("company_capabilities").upsert(capabilities.map(({ code, ready, blockers }) => ({
       company_id: input.companyId,
       capability_code: code,
       enabled: ready,
@@ -215,9 +216,7 @@ export async function reconcileTenantOperationalCapabilities(input: {
       last_verified_by: input.actorUserId,
       updated_by: input.actorUserId,
       updated_at: now,
-    })),
-    { onConflict: 'company_id,capability_code' },
-  )
+    })), { onConflict: 'company_id,capability_code' }) as ReturnType<ReturnType<typeof supabaseService.from>['upsert']>)
   if (error) throw error
   return capabilities
 }
@@ -225,9 +224,7 @@ export async function reconcileTenantOperationalCapabilities(input: {
 /** Current operational capability rows for the go-live page. */
 export async function listTenantOperationalCapabilities(companyId: string): Promise<TenantOperationalCapability[]> {
   const codes = OPERATIONAL_CAPABILITIES.map((capability) => capability.code)
-  const { data, error } = await supabaseService
-    .from('company_capabilities')
-    .select('capability_code,enabled,readiness_status,blockers')
+  const { data, error } = await tenantSelect(companyId, "company_capabilities", 'capability_code,enabled,readiness_status,blockers')
     .eq('company_id', companyId)
     .in('capability_code', codes)
   if (error) throw error

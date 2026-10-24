@@ -1,3 +1,4 @@
+import { tenantSelect } from '@/lib/supabase/tenantQuery'
 import { supabaseService } from "@/lib/supabase/service";
 import { createMeteringPermissionDraft, queueMeteringPermissionForZ13 } from "@/lib/onboarding/infoRequests";
 import { createCustomerDataTask } from "@/lib/customers/dataTasks";
@@ -54,9 +55,7 @@ export async function ensureHistoricalMeteringRequest(input: {
   // a received Z14 or a blocked request. The monthly billing run reaches this every 6 hours; asking again
   // automatically sent the same Z13 to the grid owner four times a day (reality scenario J2, J2-10).
   // An operator decides instead: one open task per metering point.
-  const answered = await supabaseService
-    .from("metering_permissions")
-    .select("id,status")
+  const answered = await tenantSelect(input.companyId, "metering_permissions", "id,status")
     .eq("company_id", input.companyId)
     .eq("metering_point_id", input.meteringPointId)
     .in("status", ANSWERED_PERMISSION_STATUSES)

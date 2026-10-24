@@ -1,3 +1,4 @@
+import type { ManualReceivedEndAuthority } from './manualReceivedEndAuthority'
 // Central customer/contract-level billing readiness (faktureringsbarhet).
 //
 // This is the one place that answers "may this customer be invoiced for this
@@ -140,6 +141,8 @@ export type BillingReadinessInput = {
     /** A received market end (Z05): end_date is then the first day no longer supplied (FINDINGS H1). */
     market_end_at?: string | null
   }> | null
+  /** In-process capabilities from the tenant-scoped server RPC loader. */
+  manualReceivedEndAuthorities?: readonly ManualReceivedEndAuthority[]
   billingPeriod?: { start: string; end: string } | null
   priceArea?: string | null
   meterValues?: {
@@ -379,7 +382,7 @@ export function evaluateBillingReadinessCore(input: BillingReadinessInput): Bill
     } else if (!BILLABLE_CONTRACT_STATUSES.has(status) && !(input.supplyPeriods ?? []).some(period =>
       // A contract terminated by exactly this supply end still carries its final period (FINDINGS H3).
       (clean(period.customer_contract_id) ?? clean(period.contract_id) ?? clean(contract.id)) === clean(contract.id) &&
-      contractEndedBySupplyPeriod(contract, period))) {
+      (contractEndedBySupplyPeriod(contract, period) || (input.manualReceivedEndAuthorities ?? []).some(authority => contractEndedBySupplyPeriod(contract, period, authority))))) {
       blockers.push({
         code: 'contract_not_approved',
         message: `Avtalet har status "${status || 'okänd'}" och är inte aktivt för fakturering.`,

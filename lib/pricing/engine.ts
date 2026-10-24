@@ -1,3 +1,6 @@
+import { tenantSelect } from '@/lib/supabase/tenantQuery'
+import { manualReceivedEndAuthority } from '@/lib/billing/manualReceivedEndAuthority'
+import { loadQualifiedBillingUnderlaySources } from '@/lib/billing/sourceBasis'
 import { supabaseService } from "@/lib/supabase/service";
 import {
   isPriceArea,
@@ -189,7 +192,7 @@ export function contractCarriesUnderlay(
   } catch {
     return false;
   }
-  return contractCarriesBilledPeriod(contract, supplyPeriod, Date.parse(billed.start), Date.parse(billed.end));
+  return contractCarriesBilledPeriod(contract, supplyPeriod, Date.parse(billed.start), Date.parse(billed.end), manualReceivedEndAuthority([underlay], contract, supplyPeriod, Date.parse(billed.start), Date.parse(billed.end)));
 }
 
 async function loadContract(
@@ -213,14 +216,16 @@ async function loadContract(
   // A contract terminated by exactly this supply end still carries the final period (FINDINGS H3).
   const supplyPeriodId = stringValue(underlay.supply_period_id);
   if (!supplyPeriodId) return null;
-  const supply = await supabaseService
-    .from("customer_supply_periods")
-    .select("*")
+  const supply = await tenantSelect(companyId, "customer_supply_periods", "*")
     .eq("company_id", companyId)
     .eq("id", supplyPeriodId)
     .maybeSingle();
   if (supply.error && supply.error.code !== "PGRST116") throw supply.error;
-  return contractCarriesUnderlay(companyId, underlay, contract, (supply.data as Record<string, unknown> | null) ?? null)
+  const period = (supply.data as Record<string, unknown> | null) ?? null;
+  if (period && stringValue(period.source_end_message_id) && stringValue(period.market_end_at) && ['move_out','grid_contract_ended','customer_termination'].includes(String(contract.termination_reason)) && !contractCarriesUnderlay(companyId, underlay, contract, period)) {
+    await loadQualifiedBillingUnderlaySources(companyId, [underlay]);
+  }
+  return contractCarriesUnderlay(companyId, underlay, contract, period)
     ? contract
     : null;
 }
