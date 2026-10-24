@@ -2367,6 +2367,28 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
   - Inget jobb tar upp hållna UTILTS igen, vilket kräver operatörsklick per fil i F6c (cirka 1,5 min per fil).
 - **Kontroller:** eslint och tsc utan fel på harnessen, enhetstesterna för reality-hjälparna 77 pass, `bash -n` ok. Ingen scenariokörning är gjord efter ändringen.
 
+### F körning 29 slutresultat (20:56–00:48, världen på 49d735570, gammal kod före P8, F114, F115, H3b–H3d och O2): 8 av 12 gröna; F6c, F8, F9 och F10 röda
+- **Gröna:** F1–F7. Alla 123 E66 togs emot. Alla 4 Z04 och alla 123 E66 fick sin APERAK skapad och köad, och F112 är verifierat i världen.
+- **APERAK-svaren** skickades långsamt: köade 21:15, de första skickade 21:28 och 45 skickade 00:09. Orsaken är P8 och testföroreningen, eftersom världen körde koden från före P8.
+- **F6c** tog 177 minuter med operatörsklick per fil (O2). Alla 123 filer bearbetades och besvarades, och 122 av 123 lagrade sina värden. Steget föll på F116.
+- **F8** föll på F117.
+- **F9** föll på T21. Felet följer också av F8, eftersom inga fakturor skapades.
+- **F10** föll som en följd av F8.
+
+### F116 Anläggningen med rättad dag har 72 kvartsvärden som inte kan debiteras (`source_basis_unqualified`, `source_message_missing`) — BEKRÄFTAD (världen, körning 29), hög; ÖPPEN, utreds
+- Anläggning 735999153029036416: `septemberCurrent` 2880, `septemberBillable` 2808, spärren ger 72 blockerade, och 24 värden är ersatta. F6b sände en rättelse där 24 kvartar ändrades.
+- 72 blockerade är tre gånger 24, vilket tyder på att rättelsen eller de ersatta värdena tappar sin källgrund. Kräver utredning.
+
+### F117 Månadsförberedelsen kräver att utskicket är aktiverat (`invoice_export_enabled`), och det kräver en testad leverantörsanslutning — BEKRÄFTAD (världen, körning 29), hög; ÖPPEN
+- `monthlyAutomation.validateCompany` kräver `billing_automation_enabled` och `invoice_export_enabled`, även i läget `prepare_only` med `approval_required`.
+- I gränssnittet (`/admin/billing/integrations`) heter flaggan "Aktivera utskick" och kräver en anslutning med status `ready` eller `active`.
+- Ett bolag får alltså inte ens förberedda fakturor att granska förrän det har aktiverat utskick till en testad leverantör. Resultatet är att körning 29 fick 0 underlag och 0 fakturor med felet "Fakturaförberedelse är inte aktiverad för tenant."
+- Go-live-spärren i F115 kontrollerar bara att en leverantör är vald, inte de här flaggorna.
+- Kräver beslut eller utredning: ska förberedelsen kräva utskick, eller ska förberedelsen och utskicket vara separata steg?
+
+### T21 Harnessens oberoende beräkning i F9 saknar spotpriset för Ediel-månadens sista timme (civil 1 oktober, 2026-09-30T22:00Z) — ÖPPEN (harness)
+- F9 måste läsa spotpriset för 1 oktober, som motorn fyller i enligt F108, eller importera det i F7.
+
 ### P8 Ediel-utkorgen skickar högst 25 meddelanden per körning i en global FIFO-kö; ett annat bolags kö fördröjer tenantens CONTRL och APERAK — MÄTT (världen, körning 29), medel; ÖPPEN
 - **Bevis från körning 29** (tenant `69e8e257`): 33 CONTRL och 4 APERAK ställdes i kö 21:15–21:21. Den första sändningen kom 21:28, cirka 13 minuter senare. Klockan 21:32 var 8 CONTRL skickade och 56 köade.
 - **Kön före tenanten:**
