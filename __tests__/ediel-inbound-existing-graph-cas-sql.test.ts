@@ -2,6 +2,7 @@
 // Actual SQL core and source-extracted dependencies, isolated in PGlite. This
 // checks committed edits between the app pre-read and RPC, not a native stack.
 import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 import { PGlite } from '@electric-sql/pglite'
@@ -31,6 +32,40 @@ function fixtureSql(schema: string): string {
  return statements.join('\n\n')+'\n'+outboxIndex[0]+'\n'+auditTrigger[0]+'\nALTER TABLE public.customer_match_review_cases ADD UNIQUE (onboarding_operation_id);'
 }
 
+
+
+// Always install the qualified legacy body for the helper-first rollout test.
+// Rebuild it from the original canonical function and its immutable historical
+// repair, rather than treating a newly generated mandatory core as a predecessor.
+function qualifiedLegacyCoreDefinition(schema: string): string {
+ const captured = schema.match(/CREATE FUNCTION public\.gridex_onboard_customer_graph_core\(p_command jsonb\).*?\n\$\$;/s)
+ assert.ok(captured, 'Missing captured onboarding core')
+ const capturedBody = /AS \$\$([\s\S]*)\$\$;/.exec(captured[0])?.[1]
+ assert.ok(capturedBody)
+ const sha256 = (value: string) => createHash('sha256').update(value).digest('hex')
+ const legacyHash = '1610d0a87a9eeae06e593b9465cc675a63abb403092241ce76dc5c2dc2db637f'
+ const mandatoryHash = 'edacde4cbe5c0dfdd7cd89a14cc40ad5f84ef4737e7a5e93a3a13b01147e7f27'
+ assert.ok([legacyHash, mandatoryHash].includes(sha256(capturedBody)), 'Unknown captured onboarding core')
+ const directory = path.join(process.cwd(), 'supabase', 'migrations')
+ const original = fs.readFileSync(path.join(directory, '20260720110000_canonical_customer_onboarding_transaction.sql'), 'utf8')
+ const originalBody = /create or replace function public\.gridex_onboard_customer_graph\([\s\S]*?\bas \$\$([\s\S]*?)\$\$;/i.exec(original)?.[1]
+ assert.ok(originalBody)
+ assert.equal(sha256(originalBody), 'a172b1d303c86aa10835afd93ba7faebc43d6d722faae2d5068fc905b85acd13')
+ const repair = fs.readFileSync(path.join(directory, '20260727010000_contract_flow_integrity_completion.sql'), 'utf8')
+ const literal = (name: string) => {
+  const found = repair.match(new RegExp(String.raw`${name} text:=\$needle\$([\s\S]*?)\$needle\$;`))
+  assert.ok(found, `Missing canonical onboarding repair ${name}`)
+  return found[1]
+ }
+ let legacy = originalBody
+ for (const [before, after] of [[literal('v_delivery_candidates'), ''], [literal('v_selected_guard'), literal('v_selected_guard_replacement')]]) {
+  assert.equal(legacy.split(before).length, 2, 'Historical repair must match exactly once')
+  legacy = legacy.replace(before, () => after)
+ }
+ assert.equal(sha256(legacy), legacyHash, 'Legacy core fixture hash changed')
+ return captured[0].replace(capturedBody, () => legacy).replace('CREATE FUNCTION', 'CREATE OR REPLACE FUNCTION')
+}
+
 it('compares locked Ediel graph snapshots and rolls back stale updates while preserving valid onboarding and replay', async () => {
  const schema = fs.readFileSync(path.join(process.cwd(), 'supabase', 'schema.sql'), 'utf8')
  const migrationDirectory = path.join(process.cwd(), 'supabase', 'migrations')
@@ -44,12 +79,11 @@ it('compares locked Ediel graph snapshots and rolls back stale updates while pre
   await db.exec(fixtureSql(schema))
   await db.exec('GRANT SELECT ON public.customers,public.customer_sites,public.metering_points TO service_role')
   await db.exec(fs.readFileSync(path.join(migrationDirectory,'20261024020125_ediel_inbound_graph_snapshot_basis.sql'),'utf8'))
-  const capturedCore = schema.match(new RegExp(String.raw`CREATE FUNCTION public\.gridex_onboard_customer_graph_core\(p_command jsonb\).*?\n\$\$;`, 's'))
-  assert.ok(capturedCore)
-  const capturedDefinition = capturedCore[0].replace('CREATE FUNCTION', 'CREATE OR REPLACE FUNCTION')
+  const capturedDefinition = qualifiedLegacyCoreDefinition(schema)
   await db.exec(capturedDefinition.replace('AS $$', () => 'AS $$\n-- unknown predecessor'))
   await expect(db.exec(core)).rejects.toMatchObject({ message: 'ediel_inbound_graph_core_predecessor_unqualified' })
   await db.exec(capturedDefinition)
+  expect((await db.query("SELECT md5(prosrc) md5 FROM pg_proc WHERE oid='public.gridex_onboard_customer_graph_core(jsonb)'::regprocedure")).rows).toEqual([{md5:'ef4dc9d7249b196965ab628864c7095c'}])
   const metadataQuery = "SELECT prosecdef, proconfig, proacl, proowner FROM pg_proc WHERE oid = 'public.gridex_onboard_customer_graph_core(jsonb)'::regprocedure"
   const predecessorMetadata = (await db.query(metadataQuery)).rows
   await db.exec('SET ROLE service_role')
@@ -154,13 +188,12 @@ it('supports clean lexical DDL order while preserving helper-first application r
  const migrationDirectory=path.join(process.cwd(),'supabase','migrations')
  const core=fs.readFileSync(path.join(migrationDirectory,'20261023232109_ediel_inbound_existing_graph_cas.sql'),'utf8')
  const helper=fs.readFileSync(path.join(migrationDirectory,'20261024020125_ediel_inbound_graph_snapshot_basis.sql'),'utf8')
- const captured=schema.match(/CREATE FUNCTION public\.gridex_onboard_customer_graph_core\(p_command jsonb\).*?\n\$\$;/s)
- assert.ok(captured)
+ const capturedDefinition=qualifiedLegacyCoreDefinition(schema)
  const db=new PGlite()
  try{
   await db.exec('CREATE ROLE anon;CREATE ROLE authenticated;CREATE ROLE service_role;')
   await db.exec(fixtureSql(schema))
-  await db.exec(captured[0].replace('CREATE FUNCTION','CREATE OR REPLACE FUNCTION'))
+  await db.exec(capturedDefinition)
   await db.exec(core) // Clean replay's older timestamp creates no helper DDL dependency.
   expect((await db.query("SELECT to_regprocedure('public.ediel_inbound_graph_snapshot_basis_v1(uuid,uuid,uuid,uuid)') value")).rows[0]).toEqual({value:null})
   await db.exec(helper)
