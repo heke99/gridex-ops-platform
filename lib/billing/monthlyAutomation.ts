@@ -114,7 +114,8 @@ export async function runMonthlyBillingAutomationForCompany(input: { companyId: 
         await finishRun({ companyId: input.companyId, automationRunId, actorUserId, status, totalUnderlays: preparation.underlays, totalBlocked: preparation.blocked + meteringBlockers, totalPrepared: preparation.created, metadata: { source: 'monthly_billing_prepare_only_v3', approval_required: true, metering_autopilot: metering, supply_end_regate: supplyEndRegate, underlay_result: underlayResult, preparation } })
         return { companyId: input.companyId, billingMonth: periodMonth, status, automationRunId, metering, underlayResult, preparation, prepared: preparation.created, blocked: preparation.blocked + meteringBlockers, failed: preparation.failed }
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Okänt fel i månatlig fakturaförberedelse.'
+        // A PostgREST error is a plain object, not an Error: keep its message/code (reality G10 lost a statement timeout).
+        const message = formatErrorMessage(error, 'Okänt fel i månatlig fakturaförberedelse.')
         await finishRun({ companyId: input.companyId, automationRunId, actorUserId, status: 'failed', failureReason: message, metadata: { source: 'monthly_billing_prepare_only_v3', error: message } })
         return { companyId: input.companyId, billingMonth: periodMonth, status: 'failed', automationRunId, error: message }
       }

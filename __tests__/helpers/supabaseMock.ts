@@ -117,6 +117,18 @@ class FakeQueryBuilder implements PromiseLike<QueryResult> {
     return this
   }
 
+  lte(column: string, value: unknown): this {
+    this.track('lte', column, value)
+    this.predicates.push((row) => String(row[column]) <= String(value))
+    return this
+  }
+
+  gte(column: string, value: unknown): this {
+    this.track('gte', column, value)
+    this.predicates.push((row) => String(row[column]) >= String(value))
+    return this
+  }
+
   or(_expression: string): this {
     return this
   }

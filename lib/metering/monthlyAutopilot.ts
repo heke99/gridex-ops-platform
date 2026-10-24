@@ -2,11 +2,9 @@ import { supabaseService } from '@/lib/supabase/service'
 import { createGridOwnerDataRequest } from '@/lib/cis/db'
 import { ensureAndPrepareUtiltsFromDataRequest } from '@/lib/cis/edielAutomation'
 import { createCustomerDataTask } from '@/lib/customers/dataTasks'
-import { evaluateMeteringCompletenessForMonth } from '@/lib/metering/validation'
+import { evaluateMeteringCompletenessForMonth, loadSuppliedBillingWindows } from '@/lib/metering/validation'
 import { loadMeteringResolutionRequirements } from '@/lib/metering/contractMeteringResolution'
 import { stockholmMonthBounds } from '@/lib/time/stockholm'
-import { BILLED_SUPPLY_PERIOD_STATUSES } from '@/lib/billing/supplyPeriodEnd'
-import { supplyPeriodBillingSegment } from '@/lib/billing/billingMonth'
 
 export type MeteringAutopilotDecision = 'AUTO' | 'RETRY' | 'REVIEW' | 'STOP'
 
@@ -58,38 +56,6 @@ async function listTenantMeteringPoints(companyId: string): Promise<MeteringPoin
   }
 }
 
-/**
- * The supplied part of the billing month per metering point (the same segments the underlays bill): an
- * Ediel-qualified supply per Ediel month from its market start, a manual one per civil month (FINDINGS F108).
- * Without it the whole civil month was required, so every summer-time Ediel start (the civil hour before 00:00 +0100
- * is the previous supplier's) and every mid-month start asked the grid owner again for values that cannot exist.
- * A point without a billed supply period in the month keeps the whole civil month.
- */
-async function loadSuppliedWindows(companyId: string, billingMonth: string): Promise<Map<string, Array<{ start: string; end: string }>>> {
-  const bounds = stockholmMonthBounds(billingMonth)
-  const lastDay = new Date(Date.parse(`${bounds.endDateExclusive}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10)
-  const windows = new Map<string, Array<{ start: string; end: string }>>()
-  for (let from = 0; ; from += 500) {
-    const result = await supabaseService
-      .from('customer_supply_periods')
-      .select('id,metering_point_id,status,start_date,end_date,actual_start_date,actual_end_date,market_start_at,market_end_at')
-      .eq('company_id', companyId)
-      .in('status', [...BILLED_SUPPLY_PERIOD_STATUSES])
-      .lte('start_date', lastDay)
-      .or(`end_date.is.null,end_date.gte.${bounds.startDate}`)
-      .order('id', { ascending: true })
-      .range(from, from + 499)
-    if (result.error) throw result.error
-    const page = (result.data ?? []) as Array<Record<string, unknown>>
-    for (const period of page) {
-      const pointId = text(period.metering_point_id)
-      const segment = pointId ? supplyPeriodBillingSegment(period, billingMonth) : null
-      if (pointId && segment) windows.set(pointId, [...(windows.get(pointId) ?? []), { start: segment.start, end: segment.end }])
-    }
-    if (page.length < 500) return windows
-  }
-}
-
 export async function runMeteringMarketDataAutopilot(input: {
   companyId: string
   billingMonth: string
@@ -103,7 +69,7 @@ export async function runMeteringMarketDataAutopilot(input: {
     meteringPointIds: points.map((point) => point.id),
     onDate: `${input.billingMonth}-01`,
   })
-  const suppliedWindows = await loadSuppliedWindows(input.companyId, input.billingMonth)
+  const suppliedWindows = await loadSuppliedBillingWindows(input.companyId, input.billingMonth)
   const decisions: MeteringAutopilotResult['decisions'] = []
 
   for (const point of points) {

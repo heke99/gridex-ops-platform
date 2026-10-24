@@ -2459,6 +2459,32 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
   - Test: `reality-g3-provisioning-fair-claim` 5/5, där 2 föll mot den gamla kroppen. Täckningen 352/352.
   - ÖPPET: samma fråga om rättvis fördelning finns i utkorgens claim (P8).
 
+### G körning 2 (2026-10-24, världen på d547cedcd): 8 av 11 gröna; G7, G10 och G11 röda
+- **G7:** se G-4. **G10:** se G-6, ingen följd av G7. **G11:** se G-7.
+
+### G-4 Fullständighetskontrollen mätte Ediel-leverans mot den civila månaden — BEKRÄFTAD (världen), hög; RÄTTAD (TS)
+- `evaluateMeteringCompletenessForMonth` (`lib/metering/validation.ts`) använde utan fönster hela den civila månaden. Oktober med 745 timmar mot en Ediel-månad på 744 gav "1 h saknas", och oktoberunderlaget spärrades.
+- **Rättning:**
+  - Mätpunkten mäts nu mot sina debiterade leveranssegment (`supplyPeriodBillingSegment`): Ediel-månad för Ediel-leverans och civil månad för manuell leverans (M7).
+  - Laddaren delas med autopiloten (`loadSuppliedBillingWindows`).
+  - Fakturaberedskapen faller tillbaka på segmenten.
+- **Tester:**
+  - `reality-g4-completeness-ediel-month` 7 tester, varav 3 föll på HEAD: oktober och mars med sommartid och normaltid, ett verkligt glapp, en mätpunkt utan leverans och november.
+  - Mars-fixturen i `dst-metering-portal-native` har ändrats till manuell leverans. Den kördes inte, eftersom den committar data.
+  - 29 filer 685/685. Täckningen 352/352.
+
+### G-5 Månadskörningen sparade "Okänt fel" när databasen kastade ett objekt som inte är ett Error — RÄTTAD
+- `monthlyAutomation.ts` använder nu `formatErrorMessage`. Test i `billing-monthly-company-isolation`.
+
+### G-6 Läsningen av underlagets källor tar för lång tid: `gridex_read_billing_source_values_v1` → `stored_contract_v1` kontrollerar hela källmeddelandet per värde — BEKRÄFTAD (databasloggen), KRITISK; ÖPPEN
+- Mätt till cirka 157 ms per värde och cirka 120 ms per anrop till `stored_contract_v1`. En chunk om 1000 id:n behöver cirka 157 s, men tidsgränsen per sats är 8 s.
+- **Ingen månad med kvartsvärden kan alltså få ett underlag** (57014 statement timeout).
+- Rättningen kräver SQL: återanvänd kontrollresultatet per källa och transaktion inom samma anrop. Skyddet ska kontrolleras först.
+
+### G-7 En ny tenants revalideringsjobb väntar efter 181 äldre jobb från andra tenants i världen — WORLD/HARNESS; ÖPPEN
+- Claimen fungerar som den är byggd (G-3), men 20 jobb var tionde minut räcker inte för eftersläpningen.
+- Förslag: töm eftersläpningen i världen innan scenariot startar.
+
 ### P8 Ediel-utkorgen skickar högst 25 meddelanden per körning i en global FIFO-kö; ett annat bolags kö fördröjer tenantens CONTRL och APERAK — MÄTT (världen, körning 29), medel; ÖPPEN
 - **Bevis från körning 29** (tenant `69e8e257`): 33 CONTRL och 4 APERAK ställdes i kö 21:15–21:21. Den första sändningen kom 21:28, cirka 13 minuter senare. Klockan 21:32 var 8 CONTRL skickade och 56 köade.
 - **Kön före tenanten:**

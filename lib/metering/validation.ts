@@ -1,6 +1,7 @@
 import { supabaseService } from '@/lib/supabase/service'
 import { stockholmMonthBounds } from '@/lib/time/stockholm'
-import { billingMonthLoadWindow } from '@/lib/billing/billingMonth'
+import { billingMonthLoadWindow, supplyPeriodBillingSegment } from '@/lib/billing/billingMonth'
+import { BILLED_SUPPLY_PERIOD_STATUSES } from '@/lib/billing/supplyPeriodEnd'
 import { resolutionMinutes, type MeteringResolution } from '@/lib/metering/contractMeteringResolution'
 
 export type MeteringCompletenessIssue = {
@@ -85,6 +86,46 @@ async function loadNormalizedValues(input: { companyId: string; meteringPointIds
   return rows
 }
 
+/**
+ * The supplied part of the billing month per metering point: the same segments the underlays bill
+ * (supplyPeriodBillingSegment). An Ediel-qualified supply is framed by the Ediel month (00:00 +0100 on the 1st,
+ * FINDINGS F108 / ENV-08), a manual/legacy supply by the Swedish civil month (owner decision M7). A point without a
+ * billed supply period in the month has no entry (its whole civil month stays required).
+ */
+export async function loadSuppliedBillingWindows(companyId: string, billingMonth: string, meteringPointIds?: readonly string[] | null): Promise<Map<string, Array<{ start: string; end: string }>>> {
+  const bounds = stockholmMonthBounds(billingMonth)
+  const lastDay = new Date(Date.parse(`${bounds.endDateExclusive}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10)
+  const windows = new Map<string, Array<{ start: string; end: string }>>()
+  const scopes: Array<string[] | null> = meteringPointIds ? chunk([...new Set(meteringPointIds)], 200) : [null]
+  for (const scope of scopes) {
+    for (let from = 0; ; from += 500) {
+      let query = supabaseService
+        .from('customer_supply_periods')
+        .select('id,metering_point_id,status,start_date,end_date,actual_start_date,actual_end_date,market_start_at,market_end_at')
+        .eq('company_id', companyId)
+        .in('status', [...BILLED_SUPPLY_PERIOD_STATUSES])
+      if (scope) query = query.in('metering_point_id', scope)
+      const result = await query
+        .lte('start_date', lastDay)
+        .or(`end_date.is.null,end_date.gte.${bounds.startDate}`)
+        .order('id', { ascending: true })
+        .range(from, from + 499)
+      if (result.error) {
+        if (schemaMissing(result.error)) return windows
+        throw result.error
+      }
+      const page = (result.data ?? []) as Array<Record<string, unknown>>
+      for (const period of page) {
+        const pointId = typeof period.metering_point_id === 'string' && period.metering_point_id.trim() ? period.metering_point_id.trim() : null
+        const segment = pointId ? supplyPeriodBillingSegment(period, billingMonth) : null
+        if (pointId && segment) windows.set(pointId, [...(windows.get(pointId) ?? []), { start: segment.start, end: segment.end }])
+      }
+      if (page.length < 500) break
+    }
+  }
+  return windows
+}
+
 /** The given supplied windows clipped to the month, sorted and merged; null when none were given. */
 function suppliedWindows(windows: Array<{ start: string; end: string }> | null | undefined, month: { startMs: number; endMs: number }) {
   if (!windows || windows.length === 0) return null
@@ -124,14 +165,20 @@ export async function evaluateMeteringCompletenessForMonth(input: {
   allowEstimatedValues?: boolean
 }): Promise<MeteringCompletenessResult> {
   const bounds = stockholmMonthBounds(input.billingMonth)
+  // A point given without windows is measured against its billed supply segments, like the underlay engine: an
+  // Ediel supply per Ediel month (October 2026 = 744 h, not the civil 745 h), a manual one per civil month. Only a
+  // point without a billed supply period in the month keeps the whole civil month (FINDINGS F108, reality G-4).
+  const unwindowed = input.meteringPoints.filter((entry) => entry.meteringPointId && !(entry.windows && entry.windows.length > 0)).map((entry) => entry.meteringPointId)
+  const resolvedWindows = unwindowed.length > 0 ? await loadSuppliedBillingWindows(input.companyId, input.billingMonth, unwindowed) : new Map<string, Array<{ start: string; end: string }>>()
+  const meteringPoints = input.meteringPoints.map((entry) => (entry.windows && entry.windows.length > 0) ? entry : { ...entry, windows: resolvedWindows.get(entry.meteringPointId) ?? null })
   const civilWindow = { startMs: toMs(bounds.start), endMs: toMs(bounds.end), startIso: bounds.start, endIso: bounds.end }
   // With supplied windows the month is the union of the civil and the Ediel month; the windows decide what is required.
   const union = billingMonthLoadWindow(input.billingMonth)
   const windowedMonth = { startMs: toMs(union.start), endMs: toMs(union.end), startIso: union.start, endIso: union.end }
-  const anyWindows = input.meteringPoints.some((entry) => Boolean(entry.windows && entry.windows.length > 0))
+  const anyWindows = meteringPoints.some((entry) => Boolean(entry.windows && entry.windows.length > 0))
   const loadWindow = anyWindows ? windowedMonth : civilWindow
   const issues: MeteringCompletenessIssue[] = []
-  const meteringPointIds = Array.from(new Set(input.meteringPoints.map((entry) => entry.meteringPointId).filter(Boolean)))
+  const meteringPointIds = Array.from(new Set(meteringPoints.map((entry) => entry.meteringPointId).filter(Boolean)))
   if (meteringPointIds.length === 0) return { billingMonth: input.billingMonth, status: 'no_data', meteringPointCount: 0, valueCount: 0, estimatedValueCount: 0, issues: [] }
 
   const rows = await loadNormalizedValues({ companyId: input.companyId, meteringPointIds, startIso: loadWindow.startIso, endIso: loadWindow.endIso })
@@ -147,7 +194,7 @@ export async function evaluateMeteringCompletenessForMonth(input: {
   }
 
   let estimatedValueCount = 0
-  for (const entry of input.meteringPoints) {
+  for (const entry of meteringPoints) {
     if (entry.meterCannotDeliver && entry.requiredResolution) {
       issues.push({ code: 'metering_point_resolution_mismatch', message: `Avtalet kräver ${RESOLUTION_LABEL[entry.requiredResolution]} men mätpunkten rapporteras bara per månad. Kontrollera avtalet eller be nätägaren byta till intervallavläsning.`, severity: 'blocked', meteringPointId: entry.meteringPointId, details: { required_resolution: entry.requiredResolution } })
     }

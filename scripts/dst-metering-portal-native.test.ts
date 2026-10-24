@@ -32,7 +32,9 @@ const naiveStarts = () => monthStarts('2026-10').filter(iso => !(iso >= REPEATED
 
 beforeAll(() => {
   let serial = 0
-  const setup = (x: { customer: string; point: string; month: string }, name: string) => {
+  // FULL/NAIVE rest on a received Ediel start (Ediel month frame); SPRING is a manual supply (civil month, M7), so its
+  // civil March of 743 h is the billed month (reality G-4: completeness follows the supply's billing frame).
+  const setup = (x: { customer: string; point: string; month: string }, name: string, ediel = true) => {
     const gsrn = `7359990000000${String(20000 + (serial += 1)).slice(1)}`
     const start = stockholmMonthBounds(x.month).start
     return `INSERT INTO public.customers(id,company_id,first_name,last_name,email,customer_type,is_test_data,source)
@@ -40,10 +42,10 @@ beforeAll(() => {
      INSERT INTO public.metering_points(id,company_id,customer_id,metering_point_id,meter_point_id,status,is_test_data)
       VALUES(${literal(x.point)},${literal(company)},${literal(x.customer)},${literal(gsrn)},${literal(gsrn)},'active',true);
      INSERT INTO public.customer_supply_periods(company_id,customer_id,metering_point_id,start_date,status,source,market_start_at)
-      VALUES(${literal(company)},${literal(x.customer)},${literal(x.point)},${literal(`${x.month}-01`)},'active','ediel_qualified_source',${literal(start)});`
+      VALUES(${literal(company)},${literal(x.customer)},${literal(x.point)},${literal(`${x.month}-01`)},'active',${ediel ? `'ediel_qualified_source',${literal(start)}` : `'manual',NULL`});`
   }
   sql(`INSERT INTO public.companies(id,name,status) VALUES(${literal(company)},'E2E DST Elhandel','active');
-   ${setup(FULL, 'Hela oktober')} ${setup(NAIVE, 'Utan extratimme')} ${setup(SPRING, 'Mars 2027')}`)
+   ${setup(FULL, 'Hela oktober')} ${setup(NAIVE, 'Utan extratimme')} ${setup(SPRING, 'Mars 2027', false)}`)
   // Rows are generated in SQL over UTC instants; the same formula is evaluated in TypeScript for the expectation.
   const rows = (x: { customer: string; point: string; month: string }, skip: string[] | null) => {
     const b = stockholmMonthBounds(x.month)

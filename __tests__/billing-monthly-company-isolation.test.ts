@@ -1,3 +1,4 @@
+// reality-defects: G-5
 // The monthly billing cron prepared all companies in one loop without
 // isolating them: one company without an invoice provider (verified live: HTTP
 // 500 invoice_provider_not_selected) or an orphaned `running` run row from a
@@ -6,12 +7,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 type Row = Record<string, unknown>
-const io = vi.hoisted(() => ({ companies: [] as Row[], runs: [] as Row[], lockHeld: new Set<string>(), prepared: [] as string[] }))
+const io = vi.hoisted(() => ({ companies: [] as Row[], runs: [] as Row[], lockHeld: new Set<string>(), prepared: [] as string[], underlayError: null as unknown }))
 
 vi.mock('@/lib/platform/schemaReadiness', () => ({ assertPlatformSchemaReady: async () => undefined }))
 vi.mock('@/lib/billing/invoiceReadiness', () => ({ getBillingPeriodLock: async () => null }))
 vi.mock('@/lib/metering/monthlyAutopilot', () => ({ runMeteringMarketDataAutopilot: async () => ({ review: 0, stopped: 0, requested: 0 }) }))
-vi.mock('@/lib/billing/underlayEngine', () => ({ generateBillingUnderlaysForMonth: async () => ({ created: 0 }) }))
+vi.mock('@/lib/billing/underlayEngine', () => ({ generateBillingUnderlaysForMonth: async () => { if (io.underlayError) throw io.underlayError; return { created: 0 } } }))
 vi.mock('@/lib/billing/supplyEndRegate', () => ({ regateSupplyEndValues: async () => ({ candidates: 0, evaluated: 0, billable: 0, failed: 0, errors: [] }) }))
 vi.mock('@/lib/billing/invoiceReviewPrepare', () => ({ prepareInvoiceDraftsForReview: async (input: { companyId: string }) => { io.prepared.push(input.companyId); return { underlays: 1, created: 1, blocked: 0, failed: 0 } } }))
 vi.mock('@/lib/automation/locks', async () => {
@@ -55,7 +56,7 @@ const company = (id: string, provider: string | null) => ({ id, status: 'active'
 
 beforeEach(() => {
   process.env.GRIDEX_AUTOMATION_USER_ID = '7f1c2a9e-4b3d-4c1e-9a2b-5d6e7f8a9b0c'
-  io.companies = []; io.runs = []; io.lockHeld = new Set(); io.prepared = []
+  io.companies = []; io.runs = []; io.lockHeld = new Set(); io.prepared = []; io.underlayError = null
 })
 
 describe('monthly billing cron company isolation', () => {
@@ -65,6 +66,14 @@ describe('monthly billing cron company isolation', () => {
     expect(result.results.map(r => [r.companyId, r.status])).toEqual([['co-a', 'failed'], ['co-b', 'completed']])
     expect(result.results[0].error).toContain('fakturaleverantör')
     expect(io.prepared).toEqual(['co-b'])
+  })
+
+  it('G-5: a PostgREST error object (not an Error) keeps its message and code on the failed run', async () => {
+    io.companies = [company('co-a', 'nordfin')]
+    io.underlayError = { code: '57014', message: 'canceling statement due to statement timeout', details: null, hint: null }
+    const result = await runMonthlyBillingAutomation({ billingMonth: '2026-10' })
+    expect(result.results[0]).toMatchObject({ status: 'failed', error: 'canceling statement due to statement timeout · kod: 57014' })
+    expect(io.runs[0]).toMatchObject({ status: 'failed', failure_reason: 'canceling statement due to statement timeout · kod: 57014' })
   })
 
   it('closes a run row orphaned by a killed function instead of failing for the rest of the month', async () => {
