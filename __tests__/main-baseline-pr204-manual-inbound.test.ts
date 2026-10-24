@@ -162,7 +162,7 @@ beforeEach(() => {
     platform_actor_contacts: [],
     platform_market_actors: [{ id: OWNER_ACTOR, status: 'active', match_status: 'verified' }],
     platform_actor_roles: [{ actor_id: OWNER_ACTOR, actor_role: 'grid_owner', is_active: true }],
-    platform_grid_areas: [{ id: 'area', grid_area_code: 'ABC', grid_owner_id: OWNER, price_area: 'SE3', is_active: true }],
+    platform_grid_areas: [{ id: 'area', grid_area_code: 'ABC', grid_owner_id: OWNER, price_area: 'SE3', is_active: true, valid_from: null, valid_to: null, platform_grid_owners: { ops_grid_owner_id: OWNER, is_active: true } }],
     platform_runtime_readiness: [{ id: true, is_ready: true, blocking_issues: [], schema_fingerprint: 'a'.repeat(64),
       schema_version: '20260803093300-gridex-runtime-readiness-v3', capabilities: {} }],
     grid_owner_contact_channels: [], manual_email_outbox: [], communication_log_events: [],
