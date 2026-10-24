@@ -282,7 +282,7 @@ export default async function AdminDashboardPage() {
  dashboardSummary ? Promise.resolve(dashboardSummary.outboundRequestsTotal) : safeCount(supabase, 'outbound_requests', summaryCompanyId),
  dashboardSummary ? Promise.resolve(dashboardSummary.meteringValuesTotal) : safeCount(supabase, 'metering_values', summaryCompanyId),
  dashboardSummary ? Promise.resolve(dashboardSummary.billingUnderlaysTotal) : safeCount(supabase, 'billing_underlays', summaryCompanyId),
- dashboardSummary ? Promise.resolve(dashboardSummary.ongoingSupplierSwitches) : safeCount(supabase, 'supplier_switch_requests', summaryCompanyId, [{ column: 'status', op: 'in', value: ['draft', 'queued', 'submitted', 'accepted', 'cancellation_requested', 'cancellation_sent', 'manual_followup_required'] }]),
+ dashboardSummary ? Promise.resolve(dashboardSummary.ongoingSupplierSwitches) : safeCount(supabase, 'supplier_switch_requests', summaryCompanyId, [{ column: 'status', op: 'in', value: ['draft', 'queued', 'prepared', 'submitted', 'accepted', 'cancellation_requested', 'cancellation_sent', 'manual_followup_required'] }]),
  dashboardSummary ? Promise.resolve(dashboardSummary.waitingForGridOwner) : safeCount(supabase, 'grid_owner_data_requests', summaryCompanyId, [{ column: 'status', op: 'in', value: ['sent', 'waiting_response', 'queued'] }]),
  dashboardSummary ? Promise.resolve(dashboardSummary.negativeAcknowledgements) : safeCount(supabase, 'ediel_messages', summaryCompanyId, [{ column: 'ack_outcome', value: 'negative' }]),
  dashboardSummary ? Promise.resolve(dashboardSummary.missingMeteringValues) : safeCount(supabase, 'gridex_actionable_data_quality_issues_v', summaryCompanyId, [{ column: 'issue_type', value: 'missing_metering_values' }]),

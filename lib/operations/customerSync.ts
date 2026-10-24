@@ -277,7 +277,7 @@ function summarizeStage(params: {
   }
 
   if (openSwitchRequests.length > 0) {
-    const hasSubmitted = openSwitchRequests.some((request) => request.status === 'submitted')
+    const hasSubmitted = openSwitchRequests.some((request) => request.status === 'submitted' || request.status === 'prepared')
     return {
       signal: hasSubmitted ? 'in_progress' : 'ready',
       stage: hasSubmitted ? 'waiting_external_response' : 'switch_in_progress',
@@ -403,8 +403,9 @@ export function buildCustomerSyncProfiles(input: BuildCustomerSyncProfilesInput)
     )
     const activeSites = sites.filter((site) => site.status === 'active')
     const activeMeteringPoints = meteringPoints.filter((point) => point.status === 'active')
+    // 'prepared': the Z03 is sent and waits for the grid owner's Z04 (FINDINGS H-12, GOR-06).
     const openSwitchRequests = switchRequests.filter((request) =>
-      ['draft', 'queued', 'submitted'].includes(request.status)
+      ['draft', 'queued', 'prepared', 'submitted'].includes(request.status)
     )
     const openGridOwnerRequests = gridOwnerDataRequests.filter((request) =>
       ['pending', 'sent'].includes(request.status)

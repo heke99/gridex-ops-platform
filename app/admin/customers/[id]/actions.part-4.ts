@@ -183,6 +183,7 @@ export async function cancelOpenSwitchRequestsForLifecycleDecision(params: {
   const openStatuses = [
     "draft",
     "queued",
+    "prepared",
     "submitted",
     "accepted",
     "cancellation_requested",
