@@ -1,7 +1,7 @@
 import { execFileSync, spawn } from 'node:child_process'
 import { nativeLockProcess, nativeLockProcessEnv } from './helpers/native-lock-process'
 import { createHash, randomUUID } from 'node:crypto'
-import { segmentSourceSpan, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
+import { cleanE30SourceFixture } from './helpers/utiltsConsumptionSourceFixture'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { s01L359AggregateWire } from './helpers/utiltsS01AggregateFixture'
@@ -37,37 +37,6 @@ vi.mock('@/lib/ediel/db', async original => {   const actual = await original<ty
   return { ...actual, linkEdielMessage: vi.fn(), createEdielMessageEvent: vi.fn(), updateEdielMessageStatus: effects.status,     getEdielMessageById: async (id: string) => {       const row = await actual.getEdielMessageById(id)
       return row && effects.readRaw !== null ? { ...row, raw_payload: effects.readRaw } : row
     } } })
-
-/** E30 sources below are adapted from E66 templates. Drop only inherited
- * SG5 LIN506 and the SG6 E12/513 group; shared U3/U5 R/X rules apply equally.
- * This edits new fixture originals only. Namespace defects and every asserted
- * processor/SQL outcome remain intact; retries use their original stored wire. */
-function cleanE30SourceFixture(raw: string, code: string): string {
-  if (code !== 'E30') return raw
-  const wire=tokenizeEdifact(raw), removed: Array<{startOffset:number;endOffset:number}>=[]
-  let own=false, observations=false, nextCav=false
-  for (const segment of wire.segments) {
-    if (segment.tag==='IDE') { own=true;observations=false;nextCav=false;continue }
-    if (segment.tag==='UNH'||segment.tag==='UNT') { own=false;nextCav=false }
-    if (!own) continue
-    if (segment.tag==='SEQ') observations=true
-    const cav=nextCav&&segment.tag==='CAV'
-    nextCav=false
-    const cci=!observations&&segment.tag==='CCI'&&segment.raw==='CCI+++E12::260'
-    if ((!observations&&segment.tag==='LIN')||cci||cav) {
-      const span=segmentSourceSpan(segment)
-      if (!span) throw Error('e30_fixture_source_span_missing')
-      removed.push(span)
-      nextCav=cci
-    }
-  }
-  for (const span of removed.reverse()) {
-    const end=span.endOffset+wire.una.segmentTerminator.length
-    if (raw.slice(span.endOffset,end)!==wire.una.segmentTerminator) throw Error('e30_fixture_source_terminator_missing')
-    raw=raw.slice(0,span.startOffset)+raw.slice(end)
-  }
-  return utiltsRecountUnt(raw)
-}
 
 // Exact seven-argument prospective RPC until genuine regenerated metadata is
 // imported. This leaves every poisoned raw/contract payload unchanged.

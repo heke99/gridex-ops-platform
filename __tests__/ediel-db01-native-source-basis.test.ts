@@ -401,3 +401,58 @@ it('refuses mismatched guard surroundings and missing actual reader API visibili
   api.rpc_paths.splice(0, 1)
   await expect(load('current')).rejects.toThrow('db01_native_actual_current_guard_qualification_required')
 })
+
+
+// Exercise both actual inventory branches before any backend/native work. The
+// existing declaration parser alone cannot detect a stale runtime count.
+it.each((['admission', 'qualification'] as const).flatMap(stage =>
+  (['valid', 'duplicate', 'missing', 'extra', 'missing-git-blob'] as const).map(change => [stage, change] as const))) (
+  'executes workflow runtime inventory %s with actual Git blobs for %s', (stage, change) => {
+  const python = String.raw`import ast,hashlib,json,pathlib,re,subprocess,sys,textwrap
+receipt=json.loads(sys.stdin.read())
+workflow=pathlib.Path('.github/workflows/ediel-db01-current-native.yml').read_text()
+stage,change=sys.argv[1:3]
+programs=[ast.parse(textwrap.dedent(x)) for x in re.findall(r"<<'PY'[^\n]*\n([\s\S]*?)\n {10}PY(?:\n|$)",workflow)]
+# Evaluate the actual runtime If and its refusal body, not a copied predicate.
+if stage=='admission':
+ matches=[node for program in programs for node in program.body if isinstance(node,ast.If) and any(isinstance(x,ast.Name) and x.id=='required' for x in ast.walk(node.test))]
+else:
+ matches=[node for program in programs for node in program.body if isinstance(node,ast.If) and "len(receipt['required_input_paths'])" in ast.unparse(node.test)]
+assert len(matches)==1,(stage,len(matches))
+metadata=subprocess.check_output(['git','ls-tree','-r','-z','--full-tree','HEAD'])
+blobs={}
+for entry in metadata.split(b'\0'):
+ if not entry:continue
+ fields,name=entry.split(b'\t',1);mode,kind,oid=fields.decode().split()
+ if kind=='blob':blobs[name.decode()]={'mode':mode,'git_blob_oid':oid}
+producer='lib/ediel/testing/agtEngine.ts'
+blobs[producer]['sha256']=hashlib.sha256(subprocess.check_output(['git','show','HEAD:'+producer])).hexdigest()
+receipt['root_source']['blobs']=blobs
+basis=receipt['historical_source_basis']
+env={'required':receipt['required_input_paths'],'current':receipt['root_source'],'receipt':receipt,'basis':basis,'producer':producer}
+# Qualification source constants are taken from the same actual runtime program.
+if stage=='qualification':
+ for program in programs:
+  for node in program.body:
+   if isinstance(node,ast.Assign) and len(node.targets)==1 and isinstance(node.targets[0],ast.Name) and node.targets[0].id in ('expected_overlay','dependencies'):
+    exec(compile(ast.Module(body=[node],type_ignores=[]),'<actual-runtime-source-constant>','exec'),env)
+if change=='duplicate':env['required'][-1]=env['required'][0]
+if change=='missing':env['required'].pop()
+if change=='extra':env['required'].append(next(x for x in blobs if x not in env['required']))
+if change=='missing-git-blob':del blobs[producer if stage=='qualification' else env['required'][-1]]
+try:
+ exec(compile(ast.Module(body=matches,type_ignores=[]),'<actual-runtime-inventory-'+stage+'>','exec'),env)
+ print(json.dumps({'admitted':True,'requiredCount':len(env['required']),'uniqueRequiredCount':len(set(env['required'])),'actualGitBlobs':len(blobs)}))
+except (RuntimeError,KeyError) as error:
+ print(json.dumps({'admitted':False,'reason':str(error),'requiredCount':len(env['required']),'uniqueRequiredCount':len(set(env['required'])),'actualGitBlobs':len(blobs)}))
+`
+  const observed = JSON.parse(execFileSync('python3', ['-c', python, stage, change], {
+    cwd: root, encoding: 'utf8', input: JSON.stringify(receipt), maxBuffer: 32 * 1024 * 1024,
+  })) as {admitted: boolean; requiredCount: number; uniqueRequiredCount: number; actualGitBlobs: number}
+  expect(observed.admitted).toBe(change === 'valid')
+  expect(observed.actualGitBlobs).toBeGreaterThan(59)
+  if (change === 'valid') {
+    expect(observed.requiredCount).toBe(59)
+    expect(observed.uniqueRequiredCount).toBe(59)
+  }
+})
