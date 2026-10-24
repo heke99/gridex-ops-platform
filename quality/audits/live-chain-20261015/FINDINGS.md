@@ -2521,6 +2521,17 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **H-14 verifierad:** W:s ärende blir `after_prodat_before_start` med `cancellation_required = true`. Ångeråtgärden svarar ändå 500, se H-16.
 - **H-15 delvis:** route-uppslaget lyckas och den utgående begäran får sin route. E73 stoppas sedan på `environment_not_resolved`, se H-15 tillägg.
 
+### H körning 5 (2026-10-24 ca 22:10–22:40, världen på 6ff4b6df4): 6 av 9 gröna; H6, H7 och H8 röda
+- **H-16 verifierad:** ångeråtgärden svarar 200 och kunden får `withdrawal_received`. Annulleringen hålls (`manual_review`), se H-17.
+- **H6:** fortfarande inget oktoberunderlag för S, se H6 nedan i STATUS.
+
+### H-17 Ingen Z03C är möjlig efter en ånger: annulleringens behörighet vägrar det pausade bytet — BEKRÄFTAD (världen), hög; RÄTTAD (SQL)
+- **Bevis:** `ediel_switch_cancellation_source_v1` ger för W `held` med `same_current_owned_switch_customer_contract_physical_scope`. Ärendet får `cancellation_status = manual_review`.
+- **Orsak:** ångern pausar bytet för annullering (`cancellation_requested`, `lifecycle_blocked = true`, källa `customer_case`). `gridex_switch_cancellations.context_v1`, behörigheten för varje Z03C, vägrade varje byte med `lifecycle_blocked`. Den annullering som ångern begär kunde alltså aldrig byggas.
+- **Rättning:** migrationen `20261024170000_h17_withdrawal_paused_switch_stays_cancellable.sql` (`ede7bf0d…`). Den installeras bara över exakt förbilden (`600e8370…`, samma som `schema.sql`) och kontrollerar metadata. Blocket vägrar inte längre när det är just det som begärt annulleringen: status `cancellation_requested` från ett kundärende eller livscykelbeslut. Andra block vägrar som förut. Inte skyddad (DB-05/SC-031).
+- **Test:** `__tests__/reality-h17-withdrawal-paused-switch-cancellable.test.ts`, 3 fall. Matrisen över block, status och källa visade ett NULL-hål i första utkastet (block utan källa släpptes igenom); det är rättat med `IS NOT TRUE`. Exakt 2 av 48 tillstånd ändras.
+- **Världen, i en återställd transaktion:** W blir `authorized`. Med `manual_followup_required` är W fortfarande `held`.
+
 ### H-16 Ånger efter skickad Z03 avbryts av ett legacy-Z03C som fältmatrisen vägrar — BEKRÄFTAD (världen), hög; RÄTTAD (TS)
 - **Bevis:** appens logg visar `prodat_render_blocked:Z03:FIELD_MATRIX_FIELD_FORMAT_INVALID` och fyra `PRODAT_DEPENDENT_CONDITION_UNDETERMINED` från `createCancellationDraftForCase` (`lib/customer-cases/engine.ts`). Ångeråtgärden svarar 500, ingen Z03C skapas och kunden får inget mejl om att ångern är mottagen (`withdrawal_received`).
 - **Orsak:** ärendemotorn renderade ett eget Z03 i stället för att använda den kanoniska Z03C-byggaren (`prepareAndQueueSwitchCancellation`), som leverantörens egen annullering använder och som fungerar (C i H8).
