@@ -52,6 +52,9 @@ function lifecycleDecisionTypeForTask(taskType: string | null | undefined): Life
 export const OPEN_SUPPLIER_SWITCH_STATUSES: SupplierSwitchRequestStatus[] = [
   'draft',
   'queued',
+  // The Z03 is sent and the grid owner has not confirmed: the database binds the Z03 original with this status and
+  // keeps it until the Z04 (FINDINGS H-12, GOR-06). A withdrawal must still stop it.
+  'prepared',
   'submitted',
   'accepted',
   'cancellation_requested',

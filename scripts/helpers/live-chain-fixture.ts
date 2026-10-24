@@ -380,10 +380,12 @@ export async function augustSupplyCustomer(tenant: LiveTenant, input: { firstNam
        'quarter_hour','consumption','consumption',true,'active',${facility.annualConsumptionKwh},true);
      INSERT INTO public.customer_contracts(id,company_id,customer_id,site_id,customer_site_id,metering_point_id,contract_offer_id,status,created_by,contract_publication_version_id,
       contract_product_id,contract_product_version_id,price_plan_id,price_plan_version_id,price_book_id,legal_bundle_version_id,offer_reference,commercial_snapshot,legal_snapshot,
-      starts_at,requested_start_date,requested_start_mode,invoice_email)
+      starts_at,requested_start_date,requested_start_mode,invoice_email,binding_months,notice_months,auto_renew_enabled)
      SELECT ${literal(contractId)},${company},${literal(customerId)},${literal(siteId)},${literal(siteId)},${literal(meteringPointId)},${literal(tenant.offerId)},'pending_signature',${literal(tenant.adminUserId)},v.id,
       p.contract_product_id,v.contract_product_version_id,v.price_plan_id,v.price_plan_version_id,v.price_book_id,v.legal_bundle_version_id,v.offer_reference,p.commercial_snapshot,l.rendered_snapshot,
-      ${literal(input.supplyStart)},${literal(input.supplyStart)},'specific_date',${literal(input.email)}
+      ${literal(input.supplyStart)},${literal(input.supplyStart)},'specific_date',${literal(input.email)},
+      -- The offer's terms, as the product's contract writers copy them (lib/customer-contracts/db.ts; FINDINGS T23).
+      p.binding_months,p.notice_months,p.automatic_renewal
      FROM public.contract_publication_versions v JOIN public.contract_product_versions p ON p.id=v.contract_product_version_id
      JOIN public.legal_bundle_versions l ON l.id=v.legal_bundle_version_id WHERE v.id=${literal(tenant.publicationVersionId)};`)
     const tokenHash = randomUUID().replaceAll('-', '') + randomUUID().replaceAll('-', '')

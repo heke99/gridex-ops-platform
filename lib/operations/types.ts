@@ -149,6 +149,7 @@ export type SupplierSwitchRequestType =
 export type SupplierSwitchRequestStatus =
   | "draft"
   | "queued"
+  | "prepared"
   | "submitted"
   | "accepted"
   | "rejected"

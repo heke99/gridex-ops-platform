@@ -2483,6 +2483,28 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **Rättning:** `receiverGridOwner` är flyttad till `lib/ediel/core/receiverGridOwner.ts`. Funktionen används nu av de tre flödena när ingen route är vald. Den slår upp exakt en nätägare med mottagarens Ediel-id som tenanten får använda (F101) och väljer ingen vid tvetydighet. Den generella routen är kvar som reserv.
 - **Test:** `__tests__/ediel-supplier-switch-receiver-grid-owner-route.test.ts` har 6 fall. Före rättningen föll alla 6. 7 relaterade testfiler ger 71 pass. Täckningen 352/352, `tagged failing 0`.
 
+### H körning 2 (2026-10-24 ca 19:45–20:20, världen på 7331fa0f8, snabbläge): 4 av 9 gröna; H4, H5, H6, H7 och H8 röda
+- **H-9 verifierad i världen:** M:s Z05 LK sparas med profilen `PRODAT:Z05:LK:26.A:r3`, och M:s period är `ended` 2026-10-23.
+- **H-10 verifierad för C:** leverantörens annullering ger Z03C, och bytet blir `cancelled_before_start`. W:s ånger, se H-12.
+- **H4:** ingen `break_fee_review` för S eller M, se T23.
+- **H5:** M:s värden före flytten blockeras med `supply_source_unqualified`, se H-13.
+- **H6 och H7:** följer av H5; testet läser sedan fält som saknas (TypeError).
+- **H8:** W:s skickade byte står kvar som `prepared` och ingen Z03C skapas, se H-12.
+- Världen byggdes med Supabase-bilderna från Docker Hub (`SUPABASE_INTERNAL_IMAGE_REGISTRY=docker.io`) och `xlsx@0.18.5` från npm-registret i stället för cdn.sheetjs.com (bara lokalt, inte committat).
+
+### H-12 Ånger stoppar inte ett byte vars Z03 är skickad (status `prepared`) — BEKRÄFTAD (världen), hög; RÄTTAD (TS)
+- **Bevis:** W:s Z03 `e627d419…` är `sent`, men bytet `f2a3f886…` står kvar som `prepared` efter ångern. Ingen Z03C skapas, och avtalet blir `cancelled`.
+- **Orsak:** databasen binder Z03-originalet med status `prepared` och behåller den till Z04 (GOR-06). Ångern väljer öppna byten med `OPEN_SUPPLIER_SWITCH_STATUSES` (`lib/operations/switchLifecycleBlocks.ts`), som saknade `prepared`. Samma lucka som GOR-07.
+- **Konsekvens:** kunden ångrar sig, men bytet fortsätter hos nätägaren och leveransen startar ändå.
+- **Rättning:** `prepared` är ett öppet byte, och typen `SupplierSwitchRequestStatus` har fått värdet. Vid ånger blir ett `prepared`-byte `cancellation_requested`, så Z03C byggs. Vid nekad kund blir det `manual_followup_required`.
+- **Test:** `__tests__/reality-h12-withdrawal-stops-prepared-switch.test.ts`, 3 fall. Före rättningen föll alla 3. Hela sviten: 22 689 pass; de 4 som faller (`manual-mail-*`) faller också utan ändringen, eftersom `xlsx` saknas i containern. `tsc` rent.
+- ÖPPET: verifiera i H körning 3. Den oanvända `cancelOpenSwitchRequestsForLifecycleDecision` (`app/admin/customers/[id]/actions.part-4.ts`) har samma lista men anropas inte.
+
+### T23 Harnessens avtal saknade erbjudandets bindningstid — HARNESS; RÄTTAD
+- `augustSupplyCustomer` (`scripts/helpers/live-chain-fixture.ts`) skapade avtalet direkt i SQL utan `binding_months`, `notice_months` och `auto_renew_enabled`. Produktens avtalsskrivare kopierar dem från erbjudandet (`lib/customer-contracts/db.ts`).
+- Därför fick S och M ingen avgiftsgranskning i H4, trots ett erbjudande med 12 månaders bindning. Produktversionen har `binding_months = 12`.
+- **Rättning:** fixturen kopierar villkoren från produktversionen. Verifieras i H körning 3.
+
 ### F körning 30 (2026-10-24 ca 11:50–13:50, världen på d547cedcd, snabbläge, F6c i cron-läge med 2 flikar) — AVBRUTEN av harnessens bakgrundsgräns på 2 h (T22), inget resultat för F7–F10
 - F1–F6b passerade.
 - I F6c klickade operatören på 3 filer, och cron tog upp 26 av 120 innan körningen avbröts. Cron tar alltså upp ungefär en fil per körning.
