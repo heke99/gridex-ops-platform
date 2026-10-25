@@ -501,6 +501,21 @@ async function syncSwitchFromInboundAck(params: {
     return updated;
   }
 
+  // GOR-06 (owner decision 27): a sent switch ('prepared', its Z03 bound) becomes 'submitted' on its positive final
+  // CONTRL+APERAK through one compare-and-set RPC: atomic, idempotent on replay, never 'accepted' (that is the Z04).
+  if (params.finalAckReached && current.status === "prepared" && current.company_id) {
+    const { data, error } = await supabase.rpc("gridex_record_switch_final_ack_v1", {
+      p_company_id: current.company_id,
+      p_switch_id: current.id,
+      p_source_message_id: params.sourceMessage.id,
+      p_actor_user_id: params.actorUserId,
+    });
+    if (error) throw error;
+    if ((data as { applied?: boolean } | null)?.applied) {
+      return (await getSwitchRequestById(current.id, current.company_id)) ?? current;
+    }
+  }
+
   if (
     params.finalAckReached &&
     (current.status === "draft" || current.status === "queued")

@@ -331,6 +331,7 @@
     "20261024140000_g6b_billing_source_observations_once_per_transaction.sql": "f900785b9de2f4c912eabd1499f0fa65c0c638df643e65083d30c907034bcfea",
     "20261024150000_g8_utilts_stored_contract_pure_checks_once.sql": "97e0bc33b9fffe7b5abd57a1238a77fdc98efcd814e5579c0cc943fde7cc05eb",
     "20261024160000_h13_z05_lk_without_own_closure_is_an_ordinary_end.sql": "47c92275b6caa42fd63a610aebf94e4a73a705d033ed310994f817603ed552d6",
-    "20261024170000_h17_withdrawal_paused_switch_stays_cancellable.sql": "ede7bf0dc8824dddd4dcc37d230d32cc55f5dd742c2a5dc51b44f0e1d308ad8d"
+    "20261024170000_h17_withdrawal_paused_switch_stays_cancellable.sql": "ede7bf0dc8824dddd4dcc37d230d32cc55f5dd742c2a5dc51b44f0e1d308ad8d",
+    "20261025100000_gor06_sent_switch_continued_handling.sql": "03516ea62d3a2b85420dc44c7e45d4b1a1956bfff9c8b26215ecabcd49064f49"
   }
 }
