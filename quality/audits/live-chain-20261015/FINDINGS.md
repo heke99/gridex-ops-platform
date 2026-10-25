@@ -2620,6 +2620,19 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
   - **Verifierat i världen:** plattformens egen schemalagda import körde mot simulatorn. `energy_geodata_versions` blev `verified`, och ALS innehåller scenariopunkten.
 - **Spot:** `up.sh` skickar nu `REALITY_SPOT_SOURCE` vidare till världssimulatorn (`synthetic` när värden nekas). Se T28 för publiceringsregeln.
 
+### J4, batch 1 (2026-10-25 ca 17:30–17:55): 5 gröna, 2 röda, 1 överhoppad
+- **J4-0:** `market_price_stale` för SE3. Batch 1 kör den riktiga spotkällan, som nätverket nekar (T26). Täcks i batch 2 med `REALITY_SPOT_SOURCE=synthetic`.
+- **J4-4:** `P-Z06-custom` och `P-Z06-default-mislabelled-utf8` fick `ediel_inbound_original_persistence_required`. Databasen sa `canonical_inbound_rule_profile_resolution_failed:PRODAT:Z06:2026-10-25:3`: inget födelseprofilsfall känner igen filen, och triggern kan inte välja bland Z06 E, F och G. Se T32 och J4-D15.
+
+### T32 Harnessens Z06 för tolkningskontroll bar en orsak som inte finns (Z37) — HARNESS; RÄTTAD
+- `z06TwoObjects` (`scripts/helpers/reality/parseConformanceWire.ts`) satte `CCI+Z13` till `CAV+Z37` för båda objekten. Z37 finns inte bland produktens Z06-orsaker (registret: E34 E, E64 F, E32 G) eller någonstans i `lib/ediel`. J4 testar tecken och separatorer, inte orsaken.
+- **Rättning:** båda objekten bär E34 (kund- och masterdata, Z06 E). Verifieras i batch 2.
+
+### J4-D15 En PRODAT med okänd eller ogiltig transaktionsorsak lagras aldrig och besvaras inte — BEKRÄFTAD (världen), medel; ÖPPEN, förslag
+- När inget födelseprofilsfall känner igen originalet och flera profiler är aktiva för koden vägrar insert (23514). `createInboundEdielMessage` (`lib/inbound-mail/inboundStatusUpdater.ts`) returnerar då `null`, och mejlet blir `failed` efter fem försök ("Behandlingen gav upp: ediel_inbound_original_persistence_required").
+- **Konsekvens:** originalet bevaras inte som Ediel-meddelande och nätägaren får ingen negativ APERAK. Det syns bara som ett misslyckat inkommande mejl.
+- **Förslag:** ett avvisande födelseprofilsfall per kod, som det befintliga `rejected_identity` för Z05 (`resolveSupplyEndBirthProfile`). Originalet lagras då med en profil som bara tillåter kanonisk avvisning för ogiltig orsak, och svaret blir en negativ APERAK. Det berör katalogen och kanonisk avvisning per kod, så det behöver en egen avgränsad ändring.
+
 ### J2, batch 1 (2026-10-25 ca 15:52–17:30): 8 gröna, 5 röda, 1 överhoppad
 - **J2-7 och J2-9:** J2-03, öppen och låst (B:s uppmätta värden ersätter inte uppskattningen; B faktureras inte).
 - **J2-11:** J2-05, öppen och låst.
