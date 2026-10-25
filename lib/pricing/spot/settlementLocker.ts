@@ -1,5 +1,6 @@
 import { supabaseService } from '@/lib/supabase/service'
 import type { PriceArea } from '@/lib/pricing/types'
+import { stockholmMonthBounds } from '@/lib/time/stockholm'
 
 export type LockedSpotSettlement = {
   id: string
@@ -24,9 +25,15 @@ export async function lockSpotSettlementMonth(input: {
   billingMonth: string
   actorUserId?: string | null
   reason?: string | null
+  now?: Date
 }): Promise<LockedSpotSettlement> {
   if (!/^\d{4}-\d{2}$/.test(input.billingMonth)) {
     throw new Error('billing_month måste anges som YYYY-MM.')
+  }
+  // A month's settlement is final only after the month has ended in Stockholm, whatever the coverage says: a source
+  // that already served later days would otherwise let a running month be locked (FINDINGS T28).
+  if ((input.now ?? new Date()).getTime() < Date.parse(stockholmMonthBounds(input.billingMonth).end)) {
+    throw new Error('spot_settlement_month_not_ended')
   }
   const { data, error } = await supabaseService.rpc('gridex_lock_spot_price_month', {
     p_provider: input.provider ?? 'elprisetjustnu',

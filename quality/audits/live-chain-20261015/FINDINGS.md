@@ -2527,7 +2527,7 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 
 ### G körning 3 (2026-10-25 ca 04:50–05:25, syntetiska spotpriser): 9 av 11 gröna; G9 och G10 röda
 - **G7 och G11 gröna** (G-4, G-5 och G-7 håller).
-- **G9 (T28, harness; RÄTTAD 2026-10-25):** den syntetiska spotkällan publicerade hela oktober i förväg. Nu svarar den som den riktiga källan: en dag finns när den är publicerad (dagen före, efter 13:00 svensk tid), annars 404. Täckningen blir 44 700 av 44 700 och oktober låses den 25 oktober. Med den riktiga källan kan det inte ske. Som härdning kan låset vägra en månad som inte är slut (låg, ej rättad).
+- **G9 (T28, harness; RÄTTAD 2026-10-25):** den syntetiska spotkällan publicerade hela oktober i förväg. Nu svarar den som den riktiga källan: en dag finns när den är publicerad (dagen före, efter 13:00 svensk tid), annars 404. Täckningen blir 44 700 av 44 700 och oktober låses den 25 oktober. Med den riktiga källan kan det inte ske. Härdning RÄTTAD 2026-10-25: `lockSpotSettlementMonth` (`lib/pricing/spot/settlementLocker.ts`) vägrar (`spot_settlement_month_not_ended`) innan månaden är slut i Stockholm, oavsett täckning och utan att anropa databasen. Test: `__tests__/reality-t28-spot-lock-month-ended.test.ts`, 2 fall; det första föll före rättningen. Spot- och pristester: 23 filer, 245 pass. Täckningen 352/352.
 - **G10:** inget oktoberunderlag; bedöms först med riktiga spotpriser (T26).
 
 ### G-9 Produktions-E66 klassas som Ediel-portalens test (TGT) när en tidsstämpel innehåller "91100" och återupptas aldrig — BEKRÄFTAD (världen), KRITISK; RÄTTAD (TS)
