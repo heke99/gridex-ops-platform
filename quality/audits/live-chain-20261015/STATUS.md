@@ -14,6 +14,12 @@ Den hör ihop med tre andra dokument:
 - **Efter batch 2, först:** bygg om appen (I-B2a är TS).
 - **Därefter:** starta om SVK-simulatorn och kör om SVK-importen (K-W1). Kontrollera att ALS pekar på registrets ägare `07473208`.
 - **Efter batch 2:** rätta och dokumentera nya fel, lägg in T31 och kör D11 end-to-end i världen. Kör sedan **batch 3 = alla 15 scenarier** (`run-many.sh all`) på slutkoden som regression. A, C, D, E, H, J2, J3, stuck-detector och grid-owner-wire kördes senast på äldre kod.
+- **Ägarbeslut 31–34 (2026-10-25) är under införande, en agent per beslut, i egna worktrees:**
+  - 31, K-W1b: kopplad nätägare behålls vid namnkonflikt. Migration `20261026100000`.
+  - 32, I-B2d: "Försök igen" via automationen, och I9 använder det. `20261026110000` om SQL behövs.
+  - 33, D11-G1: kreditflöde för brytavgift, och H11 krediterar via produkten. `20261026120000`.
+  - 34, J2-13: två avstämningar och ett personalärende. `20261026130000`.
+  - Fynden markeras lösta först när berörda scenarier är verifierade i världen.
 - **Parallella agenter (egna worktrees, rör inte FINDINGS/STATUS/minne; huvudsessionen för in resultatet):**
   - Agent 1: T31 klar (`a6ebae999`), även i körworktreen, så J1 i batch 2 kör C10.
   - Agent 2: J4-D15 är kartlagd men inte ändrad, eftersom rättningen kräver guidebevis från producenten (se FINDINGS). Överlämningsbegäran postad i #840 (kommentar 6402595329).
