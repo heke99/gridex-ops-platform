@@ -9,6 +9,7 @@ Den hör ihop med tre andra dokument:
 
 ## Var jag är nu
 - **Batch 2 pågår (2026-10-25 från 20:08 UTC):** världen på `f9a0304e0`, migrationerna `20261025100000`–`20261025130000` applicerade, `REALITY_SVK_SOURCE=simulated REALITY_SPOT_SOURCE=synthetic`, snabbläge. Ordning: K, I, J1, J4, F, G. Logg `/tmp/claude-0/batch2.log`.
+- **Efter batch 2:** rätta och dokumentera nya fel, lägg in T31 och kör D11 end-to-end i världen. Kör sedan **batch 3 = alla 15 scenarier** (`run-many.sh all`) på slutkoden som regression. A, C, D, E, H, J2, J3, stuck-detector och grid-owner-wire kördes senast på äldre kod.
 - **Parallella agenter (egna worktrees, rör inte FINDINGS/STATUS/minne; huvudsessionen för in resultatet):**
   - Agent 1: T31, nätägarbyggare för källkvalificerad Z02 och Z06 E/F/G, så att J1-12 kan köras.
   - Agent 2: J4-D15 är kartlagd men inte ändrad, eftersom rättningen kräver guidebevis från producenten (se FINDINGS). Överlämningsbegäran postad i #840 (kommentar 6402595329).
