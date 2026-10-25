@@ -26,8 +26,8 @@ Detta ändrar inte förtroendet för inkommande avsändare, fullmaktens giltighe
 
 ## Verifiering och arbetsmiljö
 
-- Testerna skrevs först: 23 fall misslyckades mot den tidigare gatewayn. Därefter passerade den nya inkopplingen.
-- Den berörda körningen omfattar 156 tester i fyra sviter, inklusive befintlig intent-, deduplicerings- och dispatch-logik. Native-RPC och omgivande datakällor är uttryckligt avgränsade testportar; detta är inte ett nytt fysiskt marknads- eller transportprov.
+- Testerna skrevs först: 23 fall misslyckades mot den tidigare gatewayn. Därefter passerade den nya inkopplingen. Ett senare kontraktsprov för JSON-array i status gav 1 avsiktligt fel med 27 passerande kontroller; status kräver nu uttryckligen en sträng.
+- Den berörda körningen omfattar 157 tester i fyra sviter, inklusive befintlig intent-, deduplicerings- och dispatch-logik. Native-RPC och omgivande datakällor är uttryckligt avgränsade testportar; detta är inte ett nytt fysiskt marknads- eller transportprov.
 - Första typkontrollen hittade både ett typfel i den nya gatewayn och äldre lokala beroenden. `EdielMessageRow` saknar de två immutable-fälten i sin applikationstyp; gatewayn använder nu de befintliga genererade databasfälten, med runtime-kontroll. Genererade schema-/typfiler ändrades inte.
 - Arbetsytans installerade Zod var 3.25.76 medan den aktuella låsfilen anger 4.6.7. `npm ci --ignore-scripts --no-audit --no-fund` synkade endast arbetsytans beroenden. Paketfiler och låsfil ändrades inte. Kontroller körs med Node 22 enligt projektets versionkrav.
 - Applikationens typkontroll och lint passerar efter synkningen. Den första fulla testtypkontrollen överskred Nodes standardheap; omkörningen separat med projektets 6144 MiB-gräns passerade med exit 0. Ett minnesavbrott räknas inte som godkänd typkontroll. Testtypkvittot är sparat separat från minnesavbrottet. Oberoende slutgranskningar dokumenteras innan publicering. Ett passerat komponentprov räknas inte som en slutförd produktionsleverans.
