@@ -2525,6 +2525,12 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **H-16 verifierad:** ångeråtgärden svarar 200 och kunden får `withdrawal_received`. Annulleringen hålls (`manual_review`), se H-17.
 - **H6:** fortfarande inget oktoberunderlag för S, se H6 nedan i STATUS.
 
+### F körning 32 (2026-10-25 ca 00:30–04:30, syntetiska spotpriser): 6 av 12 gröna; F2, F6c–F10 röda
+- **F2:** T26 (SVK-värden nekas).
+- **F6c (G-9, hög prestanda; ÖPPEN):** efter 3 h var 22 av 123 källor inte lagrade, och 22 E66 saknade sitt applikationssvar. Lagringen tar cirka 18 s per fil (G-8), men omtaget i cron går med cirka 1,5 min per fil. Resten av tiden ligger i cronens takt och i kvittensvägen. Nästa steg: mät en cron-tick (filer per tick, tid per steg).
+- **F7:** `fetch failed`, `UND_ERR_SOCKET other side closed` direkt efter F6c. Samma anrop svarar 200 på 1,5 s och låser SE3 september. Sannolikt en återanvänd keep-alive-anslutning som servern redan stängt (harness, T27). Ej rättat.
+- **F8–F10:** följer av F6c och F7.
+
 ### F körning 31 (2026-10-24/25, världen på origin-HEAD efter f0e6bf316, snabbläge, F6c i cron-läge med 2 flikar): 6 av 12 gröna — MILJÖ, ej produktfynd
 - **F7–F9:** spotpriserna gav 502. Världssimulatorn körde `REALITY_SPOT_SOURCE=real` mot elprisetjustnu.se, som containerns nätverkspolicy nekar. Simulatorn är omstartad med `synthetic` (dess offline-läge). Se T26.
 - **F2:** `platform_grid_area_geometries` är tom. SVK-importen hämtar från `services2.arcgis.com`, som nätverkspolicyn nekar (`svk-geometry-import-cron`: circuit open). Kräver att värden tillåts i miljöns nätverksinställningar.
