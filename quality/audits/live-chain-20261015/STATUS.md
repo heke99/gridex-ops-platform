@@ -21,7 +21,7 @@ Den hör ihop med tre andra dokument:
 | A–E | tidigare omgångar | gröna och rättade | — |
 | F (faktura) | 32: 6/12 gröna (F2 miljö T26; F6c = G-9 felklassning, rättad; F7 T27) | F116, F117 och T21 rättade efter körning 29; G-6 och G-6b behövs för F8 | Kör om när G-8 är klart |
 | G (vintertid) | 3: 9/11 gröna (G9/G10 syntetisk spot, T28) | G-4, G-5, G-6 och G-6b rättade efter körningen | Kör om |
-| H (kunden lämnar) | 7: 8/9 gröna | H-9–H-17, T23, T25 och ägarbeslut 26 verifierade; T29 rättad | Körning 8 |
+| H (kunden lämnar) | batch 1: **9/9 gröna** | H-9–H-17, T23, T25, T29 och ägarbeslut 26 verifierade | — |
 | J3 (robusthet) | batch 1: 6 gröna, 1 överhoppad | — | — |
 | I, J1, J2, J4, K | batch 1 pågår | — | — |
 

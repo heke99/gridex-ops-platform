@@ -2554,6 +2554,9 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - `www.elprisetjustnu.se` (spotpriser): kringgås med `REALITY_SPOT_SOURCE=synthetic`. `up.sh` sätter inte variabeln; starta om simulatorn med den.
 - `services2.arcgis.com` (SVK:s nätområdesgeometrier): kan inte kringgås utan simulator. Behöver tillåtas i miljöns nätverksinställningar (Allowed domains).
 
+### H, batch 1 (2026-10-25 ca 13:00–14:05, världen på 9a6fc2a3d): 9 av 9 gröna
+- Alla H-fynd är verifierade i världen: H-9 till H-17, T23, T25, T29 och ägarbeslut 26.
+
 ### H körning 7 (2026-10-25 ca 11:00–11:45, världen på 1c7fd5290 efter omstart av containern): 8 av 9 gröna; bara H6 röd
 - **H7 grön** (T25). **H6 (ägarbeslut 26) håller i världen:** oktober ger tre underlag i granskning (`blocked`): S 222,3 kWh för 1–23 okt, K 28,1 kWh och M 17,8 kWh fram till flytten. Inga fakturor, ingenting för november, och andra körningen skapar inget nytt.
 - **H6 röd på T29:** M:s underlag slutar på instanten `2026-10-23T23:00Z` = M:s marknadsslut (scenariot räknar "i går" från den 25 oktober). Testet jämförde däremot datumkolumnen `2026-10-24`, läst som UTC-midnatt. Det var första gången ett sådant underlag lagrades.
