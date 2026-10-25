@@ -13,7 +13,7 @@ Den hör ihop med tre andra dokument:
   - D11 brytavgift del 1 och 2 (`dcf178642`, `d6fed0758`).
   - SEP-01 separata tjänster (`a127fae20`).
   - F113 överlämningspaket (`e64639cac`), fortfarande ÖPPEN.
-- **Batch 1** på `9a6fc2a3d`: J3 grön, H 9/9, I och J1 röda (T30, rättad efter start; T31 öppen). J2 pågår, därefter J4, K och F.
+- **Batch 1** på `9a6fc2a3d`: J3 grön, H 9/9, I och J1 röda (T30, rättad efter start; T31 öppen). J2, J4 och K lästa (se FINDINGS); F pågår.
 - **Nya migrationer att applicera i världen före batch 2:** `20261025100000` (GOR-06), `20261025110000` och `20261025120000` (D11), `20261025130000` (SEP-01). Appen byggs om (TS för GOR-06 och D11).
 - **Nästa steg:**
   1. Läs J2, J4, K och F i batch 1.
@@ -29,7 +29,10 @@ Den hör ihop med tre andra dokument:
 | H (kunden lämnar) | batch 1: **9/9 gröna** | H-9–H-17, T23, T25, T29 och ägarbeslut 26 verifierade | — |
 | J3 (robusthet) | batch 1: 6 gröna, 1 överhoppad | — | — |
 | I (nätägaren avvisar) | batch 1: 1 grön, 3 röda, 6 överhoppade | T30 rättad; Z01-vägen kräver T26 | Kör om |
-| J1, J2, J4, K | batch 1 pågår | — | — |
+| J2 | batch 1: 8 gröna, 5 röda | bara kända J2-03/J2-05 (låsta) och J2-13 (beslut) | — |
+| J4 | batch 1: 5 gröna, 2 röda | J4-0 T26; J4-4 T32 rättad, J4-D15 öppen | Kör om |
+| K | batch 1: 9/12 gröna | K4 T26; K10 utreds; K11 T33 rättad | Kör om |
+| J1 | batch 1: 1 grön, 3 röda | T30 rättad, T31 öppen | Kör om |
 
 ## Rättat i denna omgång (commit → fynd)
 | Commit | Fynd |

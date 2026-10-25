@@ -176,7 +176,8 @@ export function ensureProductionWhiteLabelPlatformParity() {
  * member; the partner user is a Supabase Auth user created through GoTrue so it can sign in). The member also
  * gets the white_label_platform_admin role with its whitelabel.read/write permissions (production role catalog,
  * 20260521_actor_testing_go_live_module.sql) and an active membership in `homeCompanyId` (the admin workspace
- * requires one operational company).
+ * requires one operational company). The role is bound to that company: production refuses a global company-scoped role
+ * (gridex_assert_role_scope_is_consistent, company_role_requires_company; FINDINGS T33).
  */
 export async function createWhiteLabelPartner(name: string, homeCompanyId: string) {
   const platformId = randomUUID(), userId = randomUUID()
@@ -195,7 +196,7 @@ export async function createWhiteLabelPartner(name: string, homeCompanyId: strin
       WHERE r.key='white_label_platform_admin' AND NOT EXISTS(SELECT FROM public.role_permissions x WHERE x.role_id=r.id AND x.permission_id=p.id);
     INSERT INTO public.company_memberships(company_id,user_id,membership_role,status,accepted_at,metadata,role,is_active,joined_at,role_key)
       VALUES(${literal(homeCompanyId)},${literal(userId)},'viewer','active',now(),'{}','viewer',true,now(),'viewer');
-    INSERT INTO public.user_roles(user_id,role_id,role,company_id,status,is_active) SELECT ${literal(userId)},id,'white_label_platform_admin',NULL,'active',true FROM public.roles WHERE key='white_label_platform_admin';`)
+    INSERT INTO public.user_roles(user_id,role_id,role,company_id,status,is_active) SELECT ${literal(userId)},id,'white_label_platform_admin',${literal(homeCompanyId)},'active',true FROM public.roles WHERE key='white_label_platform_admin';`)
   return { platformId, userId, email, password }
 }
 

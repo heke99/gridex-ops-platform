@@ -2620,6 +2620,15 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
   - **Verifierat i världen:** plattformens egen schemalagda import körde mot simulatorn. `energy_geodata_versions` blev `verified`, och ALS innehåller scenariopunkten.
 - **Spot:** `up.sh` skickar nu `REALITY_SPOT_SOURCE` vidare till världssimulatorn (`synthetic` när värden nekas). Se T28 för publiceringsregeln.
 
+### K, batch 1 (2026-10-25 ca 17:55–18:35): 9 av 12 gröna; K4, K10 och K11 röda
+- **K4:** `market_price_stale` för SE3 på W1:s offert (T26, riktig spotkälla nekad). Täcks i batch 2 med `REALITY_SPOT_SOURCE=synthetic`.
+- **K10:** alla siffror på `/admin`, `/admin/analytics` och `/admin/analytics/portfolio` lästes som `null`. Samma siffror stämmer i portfölj-RPC:n, månadssnapshoten och `company_dashboard_summary_v`, så beräkningen är rätt. Felet ligger i visningen eller i harnessens läsning. Utreds (sidan återges efter F, när körlåset är fritt).
+- **K11:** fixturen stoppades av databasen, se T33.
+
+### T33 Harnessens white-label-partner fick en global företagsroll — HARNESS; RÄTTAD
+- `createWhiteLabelPartner` (`scripts/helpers/reality/statistics.ts`) gav rollen `white_label_platform_admin` (scope `company`) med `company_id NULL`. Produktionens vakt `gridex_assert_role_scope_is_consistent` vägrar detta (`company_role_requires_company`): en global företagsroll skulle ge behörighet överallt.
+- **Rättning:** rollen binds till partnerns hembolag, där medlemmen redan har sitt aktiva medlemskap. Verifieras i batch 2.
+
 ### J4, batch 1 (2026-10-25 ca 17:30–17:55): 5 gröna, 2 röda, 1 överhoppad
 - **J4-0:** `market_price_stale` för SE3. Batch 1 kör den riktiga spotkällan, som nätverket nekar (T26). Täcks i batch 2 med `REALITY_SPOT_SOURCE=synthetic`.
 - **J4-4:** `P-Z06-custom` och `P-Z06-default-mislabelled-utf8` fick `ediel_inbound_original_persistence_required`. Databasen sa `canonical_inbound_rule_profile_resolution_failed:PRODAT:Z06:2026-10-25:3`: inget födelseprofilsfall känner igen filen, och triggern kan inte välja bland Z06 E, F och G. Se T32 och J4-D15.
