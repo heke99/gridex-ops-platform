@@ -8,12 +8,17 @@ Den hör ihop med tre andra dokument:
 - #840: anspråk och leveranser per fil.
 
 ## Var jag är nu
-- **Världen går att bygga igen** (2026-10-24 ca 19:40 UTC), se "Uppsättning i ny container" nedan.
-- **H körning 2** (världen på `7331fa0f8`): 4 av 9 gröna. H-9 och H-10 (för C) är verifierade i världen. Nya fynd: H-12, H-13 och T23, alla rättade. H-11 är utrett och går inte att reproducera.
-- **G-8 rättad** i `7331fa0f8` (SQL). Tiden per fil är ännu inte mätt i världen.
-- **H körning 3** pågår på `668492059`, med G-8 och H-13 applicerade i världen. Den ska verifiera H-12, H-13 och T23.
-- **Nästa steg (2026-10-25):** batch på `9a6fc2a3d` via `run-many.sh`: H, I, J1, J2, J4, K och F i följd (lane als), J3 bredvid. Logg `/tmp/claude-0/batch1.log`, rapporter `/tmp/gridex-reality/report-<namn>-<stämpel>.json`. Läs varje scenario, rätta och kör om.
-- **Underagenter:** veckokvoten är slut till 2026-10-29 04:00 UTC. Arbetet sker utan agenter tills dess.
+- **Ägarbeslut 27–30 (2026-10-25) är införda och kopplade till fynden:**
+  - GOR-06 rättad (`a9235d75c`).
+  - D11 brytavgift del 1 och 2 (`dcf178642`, `d6fed0758`).
+  - SEP-01 separata tjänster (`a127fae20`).
+  - F113 överlämningspaket (`e64639cac`), fortfarande ÖPPEN.
+- **Batch 1** på `9a6fc2a3d`: J3 grön, H 9/9, I och J1 röda (T30, rättad efter start; T31 öppen). J2 pågår, därefter J4, K och F.
+- **Nya migrationer att applicera i världen före batch 2:** `20261025100000` (GOR-06), `20261025110000` och `20261025120000` (D11), `20261025130000` (SEP-01). Appen byggs om (TS för GOR-06 och D11).
+- **Nästa steg:**
+  1. Läs J2, J4, K och F i batch 1.
+  2. Applicera migrationerna, bygg om, och kör batch 2 med `REALITY_SVK_SOURCE=simulated REALITY_SPOT_SOURCE=synthetic`: I, J1, F och G, samt D11 end-to-end i världen.
+- **Underagenter:** veckokvoten för den tidigare sessionen gällde till 2026-10-29; i denna session har två gaffelagenter använts.
 
 ## Scenarier
 | Scenario | Senaste körning | Resultat | Kvar |

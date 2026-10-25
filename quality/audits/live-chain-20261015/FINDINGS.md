@@ -2618,6 +2618,10 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
   - **Verifierat i världen:** plattformens egen schemalagda import körde mot simulatorn. `energy_geodata_versions` blev `verified`, och ALS innehåller scenariopunkten.
 - **Spot:** `up.sh` skickar nu `REALITY_SPOT_SOURCE` vidare till världssimulatorn (`synthetic` när värden nekas). Se T28 för publiceringsregeln.
 
+### J1, batch 1 (2026-10-25 ca 14:52–15:52): 1 grön, 3 röda, 8 överhoppade
+- **J1-2:** samma formulär som T30 (`createSwitchInAdmin`). Batch 1 startade före rättningen, så J1 körs om. **J1-3:** följer av J1-2.
+- **J1-12 (T31, harness; ÖPPEN):** världen saknar nätägarbyggare för en källkvalificerad Z02 (svar på vår Z01) och för Z06 E/F/G. Testet är medvetet rött tills en sådan finns. J1-08 (Z06-pris och nätområde når inte masterdata) och J1-09 (Z02-adressen jämförs inte) förblir SANNOLIKA.
+
 ### I, batch 1 (2026-10-25 ca 14:05–14:50): 1 grön, 3 röda, 6 överhoppade
 - **I2, Z01-vägen:** webbansökningarna stannar på `energy_area_resolve`, eftersom nätområdena saknas (T26, SVK-värden nekas).
 - **I2, Z03-vägen:** harnessen väntade 180 s på ett formulär som inte finns, se T30. **I3 och I10** följer av I2; I4–I9 hoppades över.
