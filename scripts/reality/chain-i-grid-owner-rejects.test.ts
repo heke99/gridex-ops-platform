@@ -32,7 +32,7 @@ import { GRID_AREA, GRID_OWNER_EDIEL_ID, goLiveAlsSupplier } from '../helpers/re
 import { detectStuckStates } from '../helpers/reality/stuckDetector'
 import { gs1 } from '../helpers/live-chain-wire'
 import { REJECTION_CODES, SILENT, type GridOwnerAnswerPlan, type RejectionReason } from '../helpers/reality/rejectsWire'
-import { createSwitchInAdmin, dataRequestStates, operatorSeesSwitch, overdueOutboundAcks, startRejectingGridOwner, switchStates, type RejectingGridOwner, type SwitchState } from '../helpers/reality/rejectsWorld'
+import { awaitPlatformStartedSwitch, createSwitchInAdmin, dataRequestStates, operatorSeesSwitch, overdueOutboundAcks, startRejectingGridOwner, switchStates, type RejectingGridOwner, type SwitchState } from '../helpers/reality/rejectsWorld'
 import { applyAsWebsiteCustomer, type SimulatedPerson } from './simulators/websiteCustomer'
 
 const report: Record<string, unknown> = { scenario: 'I grid owner rejects or stays silent', startedAt: new Date().toISOString(), clock: clockSettings() }
@@ -173,11 +173,11 @@ describe.sequential('reality I — the grid owner rejects or stays silent', () =
     const confirmations: unknown[] = []
     for (let slot = 0; slot < 3; slot += 1) confirmations.push((await runOperationalCronSlot()).map(r => ({ path: r.path, status: r.status })))
     report.signedConfirmations = confirmations
-    // The tenant operator creates each switch on the customer page ("Skapa switchärende"), as in production.
+    // The platform starts each signed customer's switch itself (contract_signed job; FINDINGS I-B2c).
     const created: unknown[] = []
     for (const s of SWITCHES) {
       const customer = signed.get(s.key)!
-      created.push({ key: s.key, ...await createSwitchInAdmin(staff, { customerId: customer.customerId, siteId: customer.facilities[0].siteId, requestedStartDate: SUPPLY_START }) })
+      created.push({ key: s.key, ...await awaitPlatformStartedSwitch({ companyId: tenant.companyId, siteId: customer.facilities[0].siteId }) })
     }
     report.switchCreation = { created, states: switchStates(tenant.companyId).map(s => ({ facility: s.facility, status: s.status, z03: s.z03.length, failure: s.failureReason })) }
     saveReport()

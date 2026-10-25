@@ -48,13 +48,18 @@ export async function processSupplierSwitch(job: JobRow): Promise<JobOutcome> {
   const gridOwnerId = clean(candidate?.grid_owner_id) ?? clean(site.grid_owner_id)
   const verification = await getGridOwnerVerification(gridOwnerId).catch(() => null)
   const isGridOwnerReady = Boolean(verification?.canStartSupplierSwitch || (verification?.verificationStatus === 'verified' && verification?.verifiedForCustomerFlow))
+  const jobPayload = record(job.payload)
+  const requestedStartDate = clean(jobPayload.requested_start_date) ?? site.move_in_date ?? null
+  // The job's requested start (a signed contract's requested_start_date) is the start date; the site's move-in date is
+  // only needed when the job carries none (FINDINGS I-B2a).
+  const gateIssues = readiness.issues.filter((issue) => !(issue.code === 'move_in_date_missing' && requestedStartDate))
 
-  if (!site.facility_id || !meteringIdentity || !readiness.isReady || !candidate || !isGridOwnerReady) {
+  if (!site.facility_id || !meteringIdentity || gateIssues.length > 0 || !candidate || !isGridOwnerReady) {
     const labels = [
       !site.facility_id ? 'anläggnings-ID' : null,
       !meteringIdentity ? 'mätpunkt' : null,
       !isGridOwnerReady ? 'verifierad nätägare' : null,
-      ...readiness.issues.map((issue) => issue.title),
+      ...gateIssues.map((issue) => issue.title),
     ].filter((value, index, values): value is string => Boolean(value) && values.indexOf(value) === index)
     await emitCustomerOperationEvent({
       companyId: job.company_id,
@@ -75,8 +80,6 @@ export async function processSupplierSwitch(job: JobRow): Promise<JobOutcome> {
   }
 
   const existing = await findOpenSupplierSwitchRequestForSite(supabaseService, { companyId: job.company_id, customerId: job.customer_id, siteId })
-  const jobPayload = record(job.payload)
-  const requestedStartDate = clean(jobPayload.requested_start_date) ?? site.move_in_date ?? null
   const requestType: SupplierSwitchRequestType = site.move_in_date ? 'move_in' : 'switch'
   const request = existing ?? await createSupplierSwitchRequest(supabaseService, {
     readiness,

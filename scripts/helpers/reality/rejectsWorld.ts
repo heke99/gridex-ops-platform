@@ -4,7 +4,7 @@ import { spawn, type ChildProcess } from 'node:child_process'
 import type { BrowserContext } from '@playwright/test'
 import { literal, sql } from '../live-chain-fixture'
 import { submitServerAction } from './operatorConsole'
-import { freePort } from './world'
+import { freePort, runOperationalCronSlot } from './world'
 import type { GridOwnerAnswerPlan } from './rejectsWire'
 
 export type RejectingGridOwner = {
@@ -77,6 +77,24 @@ export function overdueOutboundAcks(companyId: string, graceSeconds = 0) {
     FROM public.ediel_messages m WHERE m.company_id=${literal(companyId)} AND m.direction='outbound' AND m.message_family='PRODAT' AND m.message_sent_at IS NOT NULL
       AND m.status NOT IN ('failed','cancelled') AND coalesce(m.contrl_due_at,m.ack_due_at) < now() - make_interval(secs => ${Number(graceSeconds)})
       AND ((m.requires_contrl AND coalesce(m.contrl_status,'pending')='pending') OR (m.requires_aperak AND coalesce(m.aperak_status,'pending')='pending'))`)
+}
+
+/**
+ * A signed customer's switch as production starts it: the contract signature enqueues start_supplier_switch with the
+ * contract's requested start (contract_signed trigger) and the customer-operations cron creates and sends it. A tenant
+ * operator has no switch-creation form; the customer card's switch panel is for platform administrators only
+ * (app/admin/customers/[id]/page.part-4.tsx, FINDINGS I-B2c). Runs the operational cron slots until the site has a
+ * switch request, or the time is up.
+ */
+export async function awaitPlatformStartedSwitch(input: { companyId: string; siteId: string; minutes?: number }) {
+  const deadline = Date.now() + (input.minutes ?? 10) * 60_000
+  const read = () => sql<{ id: string; status: string } | null>(`SELECT to_jsonb(x) FROM (SELECT id,status FROM public.supplier_switch_requests
+    WHERE company_id=${literal(input.companyId)} AND customer_site_id=${literal(input.siteId)} ORDER BY created_at DESC LIMIT 1) x`)
+  let slots = 0
+  for (let found = read(); ; found = read()) {
+    if (found || Date.now() > deadline) return { switchId: found?.id ?? null, status: found?.status ?? null, slots }
+    await runOperationalCronSlot(); slots += 1
+  }
 }
 
 /** /admin/customers/<id>: the operator presses "Skapa switchärende" for one facility with a requested start date. */

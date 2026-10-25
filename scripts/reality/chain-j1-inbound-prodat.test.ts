@@ -31,7 +31,7 @@ import { runOperationalCronSlot, type GridOwnerSim } from '../helpers/reality/wo
 import { clockSettings, loopTick } from '../helpers/reality/clock'
 import { GRID_AREA, GRID_OWNER_EDIEL_ID, goLiveAlsSupplier } from '../helpers/reality/goLiveAls'
 import { detectStuckStates } from '../helpers/reality/stuckDetector'
-import { createSwitchInAdmin } from '../helpers/reality/rejectsWorld'
+import { awaitPlatformStartedSwitch } from '../helpers/reality/rejectsWorld'
 import { shiftDate, type InboundProdatPlan } from '../helpers/reality/inboundProdatWire'
 import { j1States, startInboundProdatGridOwner, unmatchedInboundProdat, type J1FacilityState, type J1GridOwner, type J1SentFile } from '../helpers/reality/inboundProdatWorld'
 
@@ -171,7 +171,7 @@ describe.sequential('reality J1 — inbound PRODAT from the grid owner', () => {
     const created: unknown[] = []
     for (const c of CASES) {
       const customer = signed.get(c.key)!
-      created.push({ key: c.key, ...await createSwitchInAdmin(staff, { customerId: customer.customerId, siteId: customer.facilities[0].siteId, requestedStartDate: SUPPLY_START }) })
+      created.push({ key: c.key, ...await awaitPlatformStartedSwitch({ companyId: tenant.companyId, siteId: customer.facilities[0].siteId }) })
     }
     report.switchCreation = { created, states: j1States(tenant.companyId).map(s => ({ facility: s.facility, status: s.status, outbound: s.outbound })) }
     saveReport()
