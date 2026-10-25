@@ -2525,6 +2525,11 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **H-16 verifierad:** ångeråtgärden svarar 200 och kunden får `withdrawal_received`. Annulleringen hålls (`manual_review`), se H-17.
 - **H6:** fortfarande inget oktoberunderlag för S, se H6 nedan i STATUS.
 
+### G körning 3 (2026-10-25 ca 04:50–05:25, syntetiska spotpriser): 9 av 11 gröna; G9 och G10 röda
+- **G7 och G11 gröna** (G-4, G-5 och G-7 håller).
+- **G9 (T28, harness):** den syntetiska spotkällan publicerar hela oktober i förväg. Täckningen blir 44 700 av 44 700 och oktober låses den 25 oktober. Med den riktiga källan kan det inte ske. Som härdning kan låset vägra en månad som inte är slut (låg, ej rättad).
+- **G10:** inget oktoberunderlag; bedöms först med riktiga spotpriser (T26).
+
 ### F körning 32 (2026-10-25 ca 00:30–04:30, syntetiska spotpriser): 6 av 12 gröna; F2, F6c–F10 röda
 - **F2:** T26 (SVK-värden nekas).
 - **F6c (G-9, hög prestanda; ÖPPEN):** efter 3 h var 22 av 123 källor inte lagrade, och 22 E66 saknade sitt applikationssvar. Lagringen tar cirka 18 s per fil (G-8), men omtaget i cron går med cirka 1,5 min per fil. Resten av tiden ligger i cronens takt och i kvittensvägen. Nästa steg: mät en cron-tick (filer per tick, tid per steg).

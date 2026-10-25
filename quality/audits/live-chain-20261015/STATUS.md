@@ -23,7 +23,7 @@ Den hör ihop med tre andra dokument:
 |---|---|---|---|
 | A–E | tidigare omgångar | gröna och rättade | — |
 | F (faktura) | 32: 6/12 gröna (F2 miljö T26; F6c genomströmning G-9; F7 T27) | F116, F117 och T21 rättade efter körning 29; G-6 och G-6b behövs för F8 | Kör om när G-8 är klart |
-| G (vintertid) | 2: 8/11 gröna | G-4, G-5, G-6 och G-6b rättade efter körningen | Kör om |
+| G (vintertid) | 3: 9/11 gröna (G9/G10 syntetisk spot, T28) | G-4, G-5, G-6 och G-6b rättade efter körningen | Kör om |
 | H (kunden lämnar) | 6: 7/9 gröna | H-9, H-10, H-12–H-14, H-16, H-17, T23 verifierade; T25 rättad | H6 väntar på ägarbeslut; kör om för T25 |
 | I, J1–J4, K | ej körda i denna omgång | — | Kör efter H |
 
