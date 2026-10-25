@@ -9,13 +9,14 @@ Den hör ihop med tre andra dokument:
 
 ## Var jag är nu
 - **Batch 2 pågår (2026-10-25 från 20:08 UTC):** världen på `f9a0304e0`, migrationerna `20261025100000`–`20261025130000` applicerade, `REALITY_SVK_SOURCE=simulated REALITY_SPOT_SOURCE=synthetic`, snabbläge. Ordning: K, I, J1, J4, F, G. Logg `/tmp/claude-0/batch2.log`.
-- **Efter batch 2, först:** starta om SVK-simulatorn och kör om SVK-importen (K-W1). Kontrollera att ALS pekar på registrets ägare `07473208`.
+- **Efter batch 2, först:** bygg om appen (I-B2a är TS).
+- **Därefter:** starta om SVK-simulatorn och kör om SVK-importen (K-W1). Kontrollera att ALS pekar på registrets ägare `07473208`.
 - **Efter batch 2:** rätta och dokumentera nya fel, lägg in T31 och kör D11 end-to-end i världen. Kör sedan **batch 3 = alla 15 scenarier** (`run-many.sh all`) på slutkoden som regression. A, C, D, E, H, J2, J3, stuck-detector och grid-owner-wire kördes senast på äldre kod.
 - **Parallella agenter (egna worktrees, rör inte FINDINGS/STATUS/minne; huvudsessionen för in resultatet):**
   - Agent 1: T31 klar (`a6ebae999`), även i körworktreen, så J1 i batch 2 kör C10.
   - Agent 2: J4-D15 är kartlagd men inte ändrad, eftersom rättningen kräver guidebevis från producenten (se FINDINGS). Överlämningsbegäran postad i #840 (kommentar 6402595329).
   - Agent 3: K-W1 klar (`fc728582d`).
-  - Agent 4: I-B2a–c (tenantens bytesformulär, Z01, fastnade jobb), pågår.
+  - Agent 4: I klar: I-B2a och I-B2c rättade; I-B2d kräver ägarbeslut.
   - Agent 5: D11 end-to-end som världsscenario (skrivs, körs efter batch 2), pågår.
   - Agent 6: F8 `billing_underlay_supply_contract_price_basis_required`, följdfel eller eget fel, pågår.
   - Ingen agent kör världen (en körning i taget); de läser databasen endast.
@@ -39,7 +40,7 @@ Den hör ihop med tre andra dokument:
 | G (vintertid) | 3: 9/11 gröna (G9/G10 syntetisk spot, T28) | G-4, G-5, G-6 och G-6b rättade efter körningen | Kör om |
 | H (kunden lämnar) | batch 1: **9/9 gröna** | H-9–H-17, T23, T25, T29 och ägarbeslut 26 verifierade | — |
 | J3 (robusthet) | batch 1: 6 gröna, 1 överhoppad | — | — |
-| I (nätägaren avvisar) | batch 2: 1 grön, 3 röda, 6 överhoppade | I-B2a–c utreds av agent (tenantens bytesformulär saknas; Z01 = K-W1; fastnade jobb) | Kör om |
+| I (nätägaren avvisar) | batch 2: 1 grön, 3 röda, 6 överhoppade | I-B2a (produkt) och I-B2c (harness) rättade; I-B2b = K-W1; I-B2d behöver beslut | Kör om |
 | J2 | batch 1: 8 gröna, 5 röda | bara kända J2-03/J2-05 (låsta) och J2-13 (beslut) | — |
 | J4 | batch 1: 5 gröna, 2 röda | J4-0 T26; J4-4 T32 rättad, J4-D15 öppen | Kör om |
 | K | batch 2: 10/12 gröna | K10/K11 verifierade; K4/K8 = K-W1 rättad (simulatorns ägarnamn); K-W1b behöver beslut | Kör om efter SVK-omimport |

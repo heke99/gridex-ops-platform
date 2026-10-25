@@ -2620,13 +2620,26 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
   - **Verifierat i världen:** plattformens egen schemalagda import körde mot simulatorn. `energy_geodata_versions` blev `verified`, och ALS innehåller scenariopunkten.
 - **Spot:** `up.sh` skickar nu `REALITY_SPOT_SOURCE` vidare till världssimulatorn (`synthetic` när värden nekas). Se T28 för publiceringsregeln.
 
-### I, batch 2 (2026-10-25 ca 20:47–21:32): 1 grön, 3 röda, 6 överhoppade — utreds av en agent
-- **I2, Z03-vägen (I-B2a):** `createSwitchInAdmin` väntade 180 s på bytesformuläret, men som tenantens operatör renderas det aldrig.
-  - En läsande sondering av kundkortet `0d4181fb…` som tenantens company_admin visar inget sådant formulär.
-  - `app/admin/customers/[id]/page.part-4.tsx` visar bytesdelen bara när `isPlatformAdmin && activeTab === "switch-operations"`. Samtidigt skickas `allowTenantStartSwitch` med, vilket motsäger villkoret.
-  - Oklart: produktfel (tenanten saknar UI-väg) eller harnessfel (bytet ska startas av automationen).
-- **I2/I10, Z01-vägen (I-B2b):** ingen Z01 skickades. Sannolikt samma orsak som K-W1, eftersom ALS saknar mappad nätägare i världen.
-- **I10 (I-B2c):** i `customer_operation_jobs` står 4 jobb `not_progressing` och 13 `delivery_uncertain_or_review`.
+### I, batch 2 (2026-10-25 ca 20:47–21:32): 1 grön, 3 röda, 6 överhoppade
+- Utrett av en agent: I-B2a (produkt) och I-B2c (harness) är rättade, och I-B2b är världsfelet K-W1. I10:s fastnade jobb är följder av dessa och inget eget fel.
+
+### I-B2a Ett signerat avtals byte startade aldrig utan inflyttningsdatum på anläggningen — PRODUKT, hög; RÄTTAD (agent)
+- **Fel:** `processSupplierSwitch` (`lib/customer-operations/automation.part-3.ts`) prövade `readiness.isReady`. Varje signerat avtal köar `start_supplier_switch` med `payload.requested_start_date`, alltså avtalets begärda start, men jobbet stoppades ändå på `move_in_date_missing` (normal prioritet) när anläggningen saknade `move_in_date`. Samma funktion använder sedan just jobbets datum som bytets startdatum.
+- **Bevis i världen, endast läsning:** 9 jobb i `needs_review` med blockeraren "Inflyttningsdatum saknas". Payload har 2026-11-24, samma som avtalets `requested_start_date` i läget `specific_date`. Ingen bytesbegäran skapades.
+- **Rättning:** `move_in_date_missing` stoppar inte längre när jobbet eller anläggningen bär ett startdatum. Alla andra beredskapsfel stoppar som förut (anläggning, mätpunkt, nätägare m.fl.).
+- **Test:** `__tests__/reality-i-b2a-contract-start-date-switch-gate.test.ts`, 3 fall. Före rättningen föll 1, efter den 3/3. Relaterade tester 158/158, täckningen 352/352, tagged failing 0.
+- **Världen:** kräver en ombyggnad av appen. Verifieras efter batch 2.
+
+### I-B2c Harnessen lät tenantens operatör skapa bytet i ett formulär som bara plattformsadministratören ser — HARNESS; RÄTTAD (agent)
+- **Fel:** kundkortets bytespanel visas bara för `isPlatformAdmin` på fliken `switch-operations` (`app/admin/customers/[id]/page.part-4.tsx`), och anläggningsformuläret bara för `isPlatformAdmin`. `createSwitchInAdmin` som tenant väntade därför 180 s på ett formulär som aldrig visas. Det gäller I2, och J1-2 på samma sätt (också i batch 2, som startade före rättningen).
+- **Rätt väg i produkten:** avtalssignaturen köar `start_supplier_switch` (triggern `contract_signed`), och driftcron startar bytet.
+- **Rättning:** `awaitPlatformStartedSwitch` (`scripts/helpers/reality/rejectsWorld.ts`) kör driftcron tills anläggningen har en bytesbegäran. I2 och J1-2 använder den.
+- **I-B2d, ÖPPEN, kräver ägarbeslut:** I9 återskapar ett misslyckat byte som tenant, men tenanten har ingen sådan väg i UI:t. Antingen får tenanten en väg i produkten, eller så körs I9 som plattformsadministratör.
+
+### I-B2b Webbansökningarna i I fick ingen Z01 — VÄRLD; samma orsak som K-W1
+- Alla 4 webbansökningar står i `needs_address_resolution` / `resolve_grid_owner`. Deras 4 fortsättningsjobb står `queued` med `grid_owner_missing`, och de 4 bytesjobben blockeras av "verifierad nätägare" och "Nätområde saknas".
+- ALS pekar fortfarande på den omappade plattformsägaren `428e0d5e`.
+- I10:s 4 `not_progressing` och 13 `delivery_uncertain_or_review` är dessa jobb och I-B2a-jobben. Löses av SVK-omimporten efter K-W1.
 
 ### K-W1 Världens SVK-simulator gav ALS fel ägarnamn, så webbkundens nätägare blev tom — VÄRLD/HARNESS; RÄTTAD (`fc728582d`, agent)
 - **Fel:** W1 (APP-20261025-100001) stannar i `needs_address_resolution` / `resolve_grid_owner`. Någon Z03 skickas aldrig, så K4 och K8 blir röda.
