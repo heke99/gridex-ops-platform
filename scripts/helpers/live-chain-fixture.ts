@@ -88,11 +88,28 @@ export async function readInbox(user: string): Promise<ReceivedMail[]> {
   return out
 }
 
-/** Calls a scheduled endpoint exactly like Vercel Cron: Bearer CRON_SECRET. */
-export async function cron(path: string) {
-  const response = await fetch(new URL(path, LIVE.appUrl), { headers: { authorization: `Bearer ${LIVE.cronSecret}` } })
-  const body = await response.json().catch(() => ({})) as Record<string, unknown>
-  return { status: response.status, body }
+/**
+ * Calls a scheduled endpoint exactly like Vercel Cron: Bearer CRON_SECRET, on a fresh connection each time (agent: false).
+ * fetch reused an idle keep-alive socket the server had already closed after a long scenario step, and the call failed
+ * with UND_ERR_SOCKET "other side closed" before the request reached the app (FINDINGS T27, F run 32 F7).
+ */
+export async function cron(path: string): Promise<{ status: number; body: Record<string, unknown> }> {
+  const url = new URL(path, LIVE.appUrl)
+  const { request } = await import(url.protocol === 'https:' ? 'node:https' : 'node:http')
+  return new Promise((resolve, reject) => {
+    const req = request(url, { method: 'GET', agent: false, headers: { authorization: `Bearer ${LIVE.cronSecret}` } }, (res) => {
+      const chunks: Buffer[] = []
+      res.on('data', (chunk: Buffer) => chunks.push(chunk))
+      res.on('end', () => {
+        let body: Record<string, unknown> = {}
+        try { body = JSON.parse(Buffer.concat(chunks).toString('utf8')) as Record<string, unknown> } catch { body = {} }
+        resolve({ status: res.statusCode ?? 0, body })
+      })
+      res.on('error', reject)
+    })
+    req.on('error', reject)
+    req.end()
+  })
 }
 
 

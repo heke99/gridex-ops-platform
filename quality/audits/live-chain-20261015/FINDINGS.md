@@ -2542,7 +2542,8 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 ### F körning 32 (2026-10-25 ca 00:30–04:30, syntetiska spotpriser): 6 av 12 gröna; F2, F6c–F10 röda
 - **F2:** T26 (SVK-värden nekas).
 - **F6c:** se G-9 nedan (felklassning, inte prestanda).
-- **F7:** `fetch failed`, `UND_ERR_SOCKET other side closed` direkt efter F6c. Samma anrop svarar 200 på 1,5 s och låser SE3 september. Sannolikt en återanvänd keep-alive-anslutning som servern redan stängt (harness, T27). Ej rättat.
+- **F7:** `fetch failed`, `UND_ERR_SOCKET other side closed` direkt efter F6c. Samma anrop svarar 200 på 1,5 s och låser SE3 september. Sannolikt en återanvänd keep-alive-anslutning som servern redan stängt (harness, T27).
+  - **T27, RÄTTAD 2026-10-25:** `cron()` (`scripts/helpers/live-chain-fixture.ts`) öppnar nu en ny anslutning per anrop (`node:http`, `agent: false`), så återanvändning kan inte ske. Test: `__tests__/reality-t27-cron-fresh-connection.test.ts` (servern stänger varje vilande anslutning, 5 anrop, Bearer-huvudet kontrolleras). Kapplöpningen gick inte att återskapa i ett enhetstest, så den gamla koden klarar också testet. Testet skyddar beteendet men har inget RED; verifieringen sker i F.
 - **F8–F10:** följer av F6c och F7.
 
 ### F körning 31 (2026-10-24/25, världen på origin-HEAD efter f0e6bf316, snabbläge, F6c i cron-läge med 2 flikar): 6 av 12 gröna — MILJÖ, ej produktfynd
