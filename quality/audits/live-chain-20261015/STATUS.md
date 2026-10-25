@@ -11,7 +11,7 @@ Den hör ihop med tre andra dokument:
 - **Batch 2 pågår (2026-10-25 från 20:08 UTC):** världen på `f9a0304e0`, migrationerna `20261025100000`–`20261025130000` applicerade, `REALITY_SVK_SOURCE=simulated REALITY_SPOT_SOURCE=synthetic`, snabbläge. Ordning: K, I, J1, J4, F, G. Logg `/tmp/claude-0/batch2.log`.
 - **Parallella agenter (egna worktrees, rör inte FINDINGS/STATUS/minne; huvudsessionen för in resultatet):**
   - Agent 1: T31, nätägarbyggare för källkvalificerad Z02 och Z06 E/F/G, så att J1-12 kan köras.
-  - Agent 2: J4-D15, avvisande födelseprofilsfall per kod, så att en PRODAT med ogiltig orsak lagras och får en negativ APERAK.
+  - Agent 2: J4-D15 är kartlagd men inte ändrad, eftersom rättningen kräver guidebevis från producenten (se FINDINGS). Överlämningsbegäran postad i #840 (kommentar 6402595329).
   - Ingen agent kör världen (en körning i taget).
 - **Ägarbeslut 27–30 (2026-10-25) är införda och kopplade till fynden:**
   - GOR-06 rättad (`a9235d75c`).

@@ -2650,6 +2650,15 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 ### J4-D15 En PRODAT med okänd eller ogiltig transaktionsorsak lagras aldrig och besvaras inte — BEKRÄFTAD (världen), medel; ÖPPEN, förslag
 - När inget födelseprofilsfall känner igen originalet och flera profiler är aktiva för koden vägrar insert (23514). `createInboundEdielMessage` (`lib/inbound-mail/inboundStatusUpdater.ts`) returnerar då `null`, och mejlet blir `failed` efter fem försök ("Behandlingen gav upp: ediel_inbound_original_persistence_required").
 - **Konsekvens:** originalet bevaras inte som Ediel-meddelande och nätägaren får ingen negativ APERAK. Det syns bara som ett misslyckat inkommande mejl.
+- **Kartlagt 2026-10-25 (agent, ingen kod ändrad):**
+  - **TS:** Z06-grenen i `createInboundEdielMessage` anropar `resolveCustomerSourceBirthProfile` och `resolveCustomerSourceFgBirthProfile`. Båda ger null för en okänd orsak, så raden sätts in utan profilbevis.
+  - **SQL:** `gridex_bind_inbound_ediel_rule_pack_evidence()` räknar då de aktiva Z06-profilerna. De är tre (E, F och G), så den vägrar (`canonical_inbound_rule_profile_resolution_failed`, 23514).
+  - **Befintlig avvisningsväg:** `gridex_ediel_header_negative_birth`, som triggervakten släpper igenom via `is_bound_v1`, täcker bara ett saknat fält 202, 311 eller 223. Fält 223 gäller bara Z04, och en angiven orsak måste vara Z25. Svaret blir ERC 41 ("saknas") ur den frysta guidekällan (tabell 105, s. 120).
+  - **Vad en rättning kräver:**
+    - En annan ERC-kod och guidetabell för en angiven men ogiltig orsak. Det är originalbevis som bara den kvalificerade producenten får samla in.
+    - Utvidgning per kod av `classify_v1`, `family_basis_v1`, `scopes_v1`, `reply_application_v1`, `assert_ack_v1` och TS-observatören.
+  - **Lås:** inga låsta funktioner berörs (DB-05, SC-031, SC-046).
+  - **Nästa steg:** överlämningsbegäran postad i #840 (kommentar 6402595329). Därefter ett eget paket.
 - **Förslag:** ett avvisande födelseprofilsfall per kod, som det befintliga `rejected_identity` för Z05 (`resolveSupplyEndBirthProfile`). Originalet lagras då med en profil som bara tillåter kanonisk avvisning för ogiltig orsak, och svaret blir en negativ APERAK. Det berör katalogen och kanonisk avvisning per kod, så det behöver en egen avgränsad ändring.
 
 ### J2, batch 1 (2026-10-25 ca 15:52–17:30): 8 gröna, 5 röda, 1 överhoppad
