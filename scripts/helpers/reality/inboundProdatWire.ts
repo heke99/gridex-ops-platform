@@ -3,7 +3,12 @@
 // facility, a re-sent document). Pure functions, no database, no network; the J1 grid-owner simulator
 // (scripts/reality/simulators/gridOwnerInboundProdat.ts) and the J1 native defect tests share them.
 // Synthetic only: every party, facility and identity comes from the received file.
-import { buildZ04ForSwitchRequest, readSwitchRequest } from '../../reality/simulators/gridOwnerWire'
+import { randomUUID } from 'node:crypto'
+import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
+import { OWNER } from '../../../__tests__/helpers/sourceOwnerFixtures'
+import { structuralOwnerSource } from '../../../__tests__/helpers/structuralOwnerFixtures'
+import { buildZ04ForSwitchRequest, encodeGridOwnerAnswer, readSwitchRequest } from '../../reality/simulators/gridOwnerWire'
+import { readReceivedRequest } from './rejectsWire'
 
 /** CCYYMMDD of a YYYY-MM-DD or CCYYMMDD date. */
 const compact = (date: string) => date.replaceAll('-', '').slice(0, 8)
@@ -64,6 +69,54 @@ export function z04ForUnknownSwitch(z03: string, gridOwnerEdielId: string, unkno
   return { ...built, raw: withObjectSegments(built.raw, METER_READING_DECLARATION) }
 }
 
+/** Z06 subtype -> transaction reason (field 223, CCI+Z13), as the product registry has them (FINDINGS T31). */
+export const Z06_REASON = { E: 'E34', F: 'E64', G: 'E32' } as const
+export type Z06Kind = keyof typeof Z06_REASON
+
+/**
+ * Z06 for the facility of our Z03: E (E34, customer and masterdata change, with the customer NAD+UD), F (E64,
+ * structure change with a register reading declaration) or G (E32, structure change without one). Built from the
+ * approved native Z06 template (__tests__/helpers/structuralOwnerFixtures.ts) with every party, facility, case
+ * reference, grid area and customer taken from the received Z03. The change (DTM+157) is `changeAfterDays` after
+ * the requested start (default 12, as the native Z06 F/G fixture).
+ */
+export function z06For(z03: string, gridOwnerEdielId: string, kind: Z06Kind, options: { changeAfterDays?: number } = {}) {
+  const f = readSwitchRequest(z03)
+  if (f.gridOwner !== gridOwnerEdielId) throw Error(`switch_request_addressed_to_other_grid_owner:${f.gridOwner}`)
+  const day = `${f.startDate.slice(0, 4)}-${f.startDate.slice(4, 6)}-${f.startDate.slice(6, 8)}`
+  const change = compact(shiftDate(day, options.changeAfterDays ?? 12))
+  const document = randomUUID().replaceAll('-', '').slice(0, 20)
+  const template = structuralOwnerSource('Z06', Z06_REASON[kind], document).raw_payload!
+    .replaceAll(OWNER.external, f.external).replaceAll('12345:160:SVK', `${f.gridOwner}:160:SVK`).replaceAll('54321:160:SVK', `${f.supplier}:160:SVK`)
+    .replaceAll('11111:160:SVK', `${f.brp}:160:SVK`).replaceAll('CUSTOMER-1::89', `${f.customerIdentity}:SE2:260`)
+    .replaceAll('RFF+Z05:NET-1', `RFF+Z05:${f.gridArea}`).replaceAll('RFF+LI:CASE-1', `RFF+LI:${f.caseReference}`)
+    .replaceAll('DTM+92:202610010000', `DTM+92:${f.startDate}0000`).replaceAll('DTM+157:202610150000', `DTM+157:${change}0000`)
+  const body = tokenizeEdifact(template).segments.filter(s => !['UNA', 'UNB', 'UNH', 'UNT', 'UNZ'].includes(s.tag)).map(s => s.raw)
+  return { ...encodeGridOwnerAnswer(z03, f.gridOwner, f.supplier, body), facts: f, kind, reason: Z06_REASON[kind], document, change }
+}
+
+/**
+ * Z02 (customer and facility information) answering our Z01: L (Z22) or LK (Z23), same object (LIN), case
+ * reference (RFF+LI), grid area and customer identity as the request, as the approved native AT-Z02 fixture
+ * (__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts) builds it. `gridArea` is used when the Z01 has none.
+ */
+export function z02For(z01: string, gridOwnerEdielId: string, options: { variant?: 'L' | 'LK'; gridArea?: string; address?: { street: string; postalCode: string; city: string } } = {}) {
+  const f = readReceivedRequest(z01)
+  if (f.family !== 'PRODAT' || f.code !== 'Z01') throw Error(`z02_needs_our_z01:${f.family}:${f.code}`)
+  if (f.gridOwner !== gridOwnerEdielId) throw Error(`customer_info_request_addressed_to_other_grid_owner:${f.gridOwner}`)
+  const gridArea = /RFF\+Z05:([^'+]+)/.exec(z01)?.[1] ?? options.gridArea ?? ''
+  for (const [key, value] of Object.entries({ facility: f.facility, lineItemReference: f.lineItemReference, customerIdentity: f.customerIdentity, gridArea }))
+    if (!value) throw Error(`z02_request_fact_missing:${key}`)
+  const a = options.address ?? { street: 'Kungsgatan 1', postalCode: '44130', city: 'Alingsas' }
+  const document = randomUUID().replaceAll('-', '').slice(0, 20)
+  const body = [`BGM+Z02+${document}+9+AB`, `DTM+137:${new Date().toISOString().replace(/\D/g, '').slice(0, 12)}:203`, 'DTM+ZZZ:1:805',
+    `NAD+FR+${f.gridOwner}:160:SVK+++++++SE`, `NAD+DO+${f.supplier}:160:SVK+++++++SE`, `LIN+1++${f.facility}:::9`,
+    'CCI++Z04', 'CAV+Z03', 'CCI++Z13', `CAV+${options.variant === 'LK' ? 'Z23' : 'Z22'}`, `RFF+Z05:${gridArea}`, `RFF+LI:${f.lineItemReference}`,
+    `NAD+UD+${f.customerIdentity}:SE2:260++Synthetic Person+${a.street}+${a.city}++${a.postalCode}+SE`,
+    `NAD+IT+${f.facility}::9+++${a.street}+${a.city}++${a.postalCode}+SE`]
+  return { ...encodeGridOwnerAnswer(z01, f.gridOwner, f.supplier, body), facts: { ...f, gridArea }, document }
+}
+
 /** The case reference (RFF+LI) and the facility (LIN) of any PRODAT file. */
 export function prodatFacts(raw: string) {
   return { li: /RFF\+LI:([^'+]+)/.exec(raw)?.[1] ?? '', facility: /LIN\+\d+\+\+([^:']+)/.exec(raw)?.[1] ?? '',
@@ -72,6 +125,7 @@ export function prodatFacts(raw: string) {
 
 /** One file the grid owner sends after its CONTRL/APERAK on our Z03 (see the J1 simulator). */
 export type InboundProdatStep = 'z04' | 'z04-later' | 'z04-earlier' | 'z04-no-counter' | 'z04c' | 'z04-again' | 'z04-resend' | 'z04-unknown-switch'
+  | 'z06e' | 'z06f' | 'z06g'
 /** How the grid owner answers one received Z03: positive CONTRL+APERAK before (or after) its business files. */
 export type InboundProdatPlan = { acksFirst: boolean; steps: InboundProdatStep[] }
 

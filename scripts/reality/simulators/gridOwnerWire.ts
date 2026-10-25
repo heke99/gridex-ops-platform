@@ -63,14 +63,22 @@ export function buildZ04ForSwitchRequest(input: { request: string; gridOwnerEdie
   const boundary = body.findIndex((segment, index) => index > line && /^(?:RFF|NAD)\+/.test(segment))
   if (line < 0 || boundary < 0) throw Error('z04_own_readings_boundary_missing')
   body.splice(boundary, 0, 'CCI++Z02', 'CAV+:::1', 'CCI++Z05', 'CAV+:::6', 'CCI++Z16', 'CAV+:::101')
-  const envelope = EdifactEnvelopeCodec.decode(input.request)
+  return { ...encodeGridOwnerAnswer(input.request, f.gridOwner, f.supplier, body), facts: f }
+}
+
+/**
+ * One PRODAT business message from the grid owner (`gridOwner`) back to the sender (`supplier`) of `request` (our
+ * Z03 or Z01): qualifiers and sub-addresses mirror the request, in the lane the request came in.
+ */
+export function encodeGridOwnerAnswer(request: string, gridOwner: string, supplier: string, businessSegments: string[]) {
+  const envelope = EdifactEnvelopeCodec.decode(request)
   const reference = randomUUID().replaceAll('-', '').slice(0, 14).toUpperCase()
   const raw = EdifactEnvelopeCodec.encode({
-    sender: f.gridOwner, receiver: f.supplier, senderQualifier: envelope.receiverQualifier, receiverQualifier: envelope.senderQualifier,
+    sender: gridOwner, receiver: supplier, senderQualifier: envelope.receiverQualifier, receiverQualifier: envelope.senderQualifier,
     senderSubAddress: envelope.receiverSubAddress, receiverSubAddress: envelope.senderSubAddress, applicationReference: '23-DDQ-PRODAT',
     // Answered in the lane the request came in: a production Z03 gets a production Z04 (FINDINGS T7).
     acknowledgementRequest: true, environment: envelope.environment, interchangeReference: reference,
-    messages: [{ messageReference: randomUUID().replaceAll('-', '').slice(0, 14), messageTypeToken: 'PRODAT:D:97A:UN:E2SE6A', businessSegments: body }],
+    messages: [{ messageReference: randomUUID().replaceAll('-', '').slice(0, 14), messageTypeToken: 'PRODAT:D:97A:UN:E2SE6A', businessSegments }],
   })
-  return { raw, reference, facts: f }
+  return { raw, reference }
 }

@@ -109,6 +109,8 @@ const CASES = [
   { key: 'C7-cancel-then-z04', first: 'Aterupplivad', birth: '19800707', serial: '787', plan: plan(['z04c', 'z04']) },
   { key: 'C8-no-counter-code', first: 'Rakneverk', birth: '19800808', serial: '898', plan: plan(['z04-no-counter']) },
   { key: 'C9-never-requested', first: 'Okand', birth: '19800909', serial: '909', plan: plan(['z04-unknown-switch']) },
+  // J1-12 (T31): after the confirmation the grid owner reports a customer/masterdata change and two structure changes.
+  { key: 'C10-z06-changes', first: 'Strukturandring', birth: '19801010', serial: '010', plan: plan(['z04', 'z06e', 'z06f', 'z06g']) },
 ].map(c => ({ ...c, gsrn: facility(), person: { firstName: c.first, lastName: 'E2E-Inkommande', personalNumber: personnummer(c.birth, c.serial),
   email: `e2e-${c.first.toLowerCase()}-${c.serial}-${RUN}@example.invalid`, address: { street: 'Kungsgatan 3', postalCode: '441 30', city: 'Alingsås' } } }))
 const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Stockholm' })
@@ -314,12 +316,30 @@ describe.sequential('reality J1 — inbound PRODAT from the grid owner', () => {
     for (const row of matrix.filter(r => r.kind !== 'z04-again')) expect.soft(row.aperak, `${row.kind} ${row.facility}: our APERAK`).toHaveLength(1)
   })
 
-  it('J1-12 Z02 and Z06 from the grid owner; nothing is left stuck', async () => {
-    // Not reachable in this world: the harness has no grid-owner builder for a source-qualified Z02 answer to our
-    // Z01 or for a Z06E/F/G structure change (the approved native AT-Z02/AT-Z06 suites build them in-process). The
-    // code-level findings J1-08 (Z06 price/grid area never reaches masterdata) and J1-09 (Z02 address not compared)
-    // stay LIKELY until such a builder exists.
-    expect.soft(false, 'Z02/Z06 not reachable: no grid-owner builder for source-qualified Z02/Z06 in scripts/helpers/reality').toBe(true)
+  it('J1-12 Z02 and Z06 from the grid owner; nothing is left stuck', async context => {
+    requireZ03('J1-12', context)
+    // Z06 (T31): C10's grid owner sends Z06 E (E34), F (E64) and G (E32) after its Z04, built from our Z03
+    // (scripts/helpers/reality/inboundProdatWire.ts z06For). Each is stored as the tenant's inbound PRODAT with its own
+    // reason and answered like every business file: a positive CONTRL and exactly one APERAK.
+    const sim = await gridOwner.state()
+    const z06Files = filesFor('C10-z06-changes', sim.sent).filter(f => f.kind.startsWith('z06'))
+    const stored = (stateOf('C10-z06-changes')?.inbound ?? []).filter(m => m.code === 'Z06')
+    report.J1_12 = { z06Files: z06Files.map(f => ({ kind: f.kind, document: f.document, answers: f.answers })), z06Stored: stored,
+      z01Received: sim.received.filter(m => m.code === 'Z01').length, z02Sent: sim.sent.filter(f => f.kind === 'z02').map(f => ({ facility: f.facility, answers: f.answers })) }
+    expect(z06Files.map(f => f.kind), 'the grid owner sent Z06 E, F and G').toEqual(['z06e', 'z06f', 'z06g'])
+    expect(stored.map(m => m.reason).sort(), 'every Z06 is stored for the tenant with its reason').toEqual(['E32', 'E34', 'E64'])
+    for (const file of z06Files) {
+      expect.soft(file.answers.filter(a => a.family === 'CONTRL').map(a => a.outcome), `${file.kind}: our CONTRL`).toEqual(['positive'])
+      expect.soft(file.answers.filter(a => a.family === 'APERAK'), `${file.kind}: exactly one APERAK`).toHaveLength(1)
+    }
+    // Z02 (T31): the simulator answers every Z01 it receives with CONTRL, APERAK and a Z02 (z02For). Scenario J1 itself
+    // sends only Z03; the Z01 path is scenario I's (website customers). Any Z01 that does reach this grid owner must
+    // get its Z02 answered with a positive CONTRL and one APERAK.
+    for (const file of sim.sent.filter(f => f.kind === 'z02')) {
+      expect.soft(file.answers.filter(a => a.family === 'CONTRL').map(a => a.outcome), `z02 ${file.facility}: our CONTRL`).toEqual(['positive'])
+      expect.soft(file.answers.filter(a => a.family === 'APERAK'), `z02 ${file.facility}: exactly one APERAK`).toHaveLength(1)
+    }
+    expect(sim.failures.filter(f => /Z0[16]|z0[26]/.test(f.error)), 'no Z02/Z06 build failure in the grid owner').toEqual([])
     const stuck = detectStuckStates({ graceSeconds: 600, companyIds: [tenant.companyId] })
     report.stuck = stuck
     expect(stuck.filter(row => row.kind === 'stuck')).toEqual([])

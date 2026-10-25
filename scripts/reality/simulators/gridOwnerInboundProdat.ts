@@ -18,7 +18,7 @@ import nodemailer from 'nodemailer'
 import { ImapFlow } from 'imapflow'
 import { gs1 } from '../../helpers/live-chain-wire'
 import { contrlFor, positiveAperakFor, readReceivedRequest } from '../../helpers/reality/rejectsWire'
-import { prodatFacts, readOurAnswer, shiftDate, z04cFor, z04For, z04ForUnknownSwitch, type InboundProdatPlan, type InboundProdatStep } from '../../helpers/reality/inboundProdatWire'
+import { prodatFacts, readOurAnswer, shiftDate, z02For, z04cFor, z04For, z04ForUnknownSwitch, z06For, type InboundProdatPlan, type InboundProdatStep } from '../../helpers/reality/inboundProdatWire'
 import { unwrapSmimeForActor } from './smimeUnwrap'
 import { platformMailboxFor } from './platformMailbox'
 
@@ -33,10 +33,12 @@ const config = {
   controlPort: Number(env('REALITY_GRID_OWNER_PORT', '3913')),
   /** Pause between the files answering one request (each arrives as its own mail, in order). */
   stepMs: Number(env('REALITY_GRID_OWNER_STEP_MS', '20000')),
+  /** The grid owner's own grid area, for a Z02 whose Z01 names none. */
+  gridArea: env('REALITY_GRID_OWNER_GRID_AREA', 'ALS'),
 }
 const plans = new Map<string, InboundProdatPlan>([['*', { acksFirst: true, steps: ['z04'] }]])
 type Received = { at: string; family: string; code: string; interchange: string; facility: string; plan: string }
-type Sent = { at: string; kind: InboundProdatStep | 'CONTRL' | 'APERAK'; facility: string; object: string; interchange: string; document: string; start: string; li: string
+type Sent = { at: string; kind: InboundProdatStep | 'z02' | 'CONTRL' | 'APERAK'; facility: string; object: string; interchange: string; document: string; start: string; li: string
   /** What the platform answered to this file (its CONTRL by interchange, its APERAK by document). */
   answers: Array<{ family: string; outcome: string; codes: string[] }> }
 const received: Received[] = []
@@ -73,6 +75,10 @@ function businessFile(step: InboundProdatStep, raw: string, previous: string | n
     case 'z04-unknown-switch': return z04ForUnknownSwitch(raw, config.edielId, {
       facility: gs1(`735999${String(Math.floor(Math.random() * 1e11)).padStart(11, '0')}`),
       caseReference: `LI${randomUUID().replaceAll('-', '').toUpperCase()}` }).raw
+    // Z06 about the same facility after its Z04 (T31): E customer/masterdata, F and G structure changes.
+    case 'z06e': return z06For(raw, config.edielId, 'E').raw
+    case 'z06f': return z06For(raw, config.edielId, 'F').raw
+    case 'z06g': return z06For(raw, config.edielId, 'G').raw
   }
 }
 
@@ -90,6 +96,21 @@ function handle(raw: string) {
   }
   const plan = plans.get(facts.facility) ?? plans.get('*')!
   received.push({ at: new Date().toISOString(), family: facts.family, code: facts.code, interchange: facts.interchange, facility: facts.facility, plan: JSON.stringify(plan) })
+  if (facts.family === 'PRODAT' && facts.code === 'Z01') {
+    // Our customer/facility request: positive CONTRL and APERAK, then the Z02 with what the register holds (T31).
+    pending += 1
+    void (async () => {
+      const pause = () => new Promise(resolve => setTimeout(resolve, config.stepMs))
+      try {
+        await pause(); await deliver('CONTRL', contrlFor(raw, 'positive'), facts.facility)
+        await pause(); await deliver('APERAK', positiveAperakFor(raw), facts.facility)
+        await pause(); await deliver('z02', z02For(raw, config.edielId, { gridArea: config.gridArea }).raw, facts.facility)
+      } catch (error) {
+        failures.push({ at: new Date().toISOString(), error: `Z01 ${facts.facility}: ${error instanceof Error ? error.message : String(error)}` })
+      } finally { pending -= 1 }
+    })()
+    return
+  }
   if (facts.family !== 'PRODAT' || facts.code !== 'Z03') return
   pending += 1
   void (async () => {
