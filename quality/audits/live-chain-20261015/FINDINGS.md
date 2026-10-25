@@ -1230,6 +1230,8 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
   - Nu syns det som avstämningskontrollen `metering_corrections_after_billing`.
 - **J2-03 Uppmätta värden ersätter aldrig uppskattade (STS 56) — ÖPPEN, hög:** de blir aldrig fakturerbara. Patch finns, men funktionen är hashlåst, så den går till GEN-ägaren.
 - **J2-04 Ett månadsvärde (P1M) för del av en månad persisteras inte alls — ÖPPEN, hög:** godkänt område U-09/U-10.
+- **J2-05 En korrigering för del av den ursprungliga perioden vägras (`utilts_consumption_correction_binding_invalid`) — ÖPPEN, hög, LÅST (antecknad 2026-10-25):** korrigeringens serieperiod är en annan kohort än originalets, så `gridex_consume_utilts_metering_v1` vägrar. Bevis: native-testet `scripts/j2-inbound-utilts-native.test.ts` (evidence plus `it.fails` med rätt utfall). I världen (batch 1) fick 12 september för C inga nya revisioner för de 24 korrigerade kvartarna.
+- **Lås för J2-03 och J2-05:** båda kräver ändring i `public.gridex_consume_utilts_metering_v1`. Dess kroppar pinnas av SC-046:s regressioner (`scripts/ediel-sc046-newest-duplicate-guard-sql-regression-root-20261015.mjs` med förbild och efterbild) och nås av godkända masterplan-ID (SC-046 PASSED). Enligt principen i ägarbeslut 30 krävs uttrycklig överlämning från ägaren innan funktionen ändras. Ett utkast till begäran finns inte postat.
 - **J2-06 Fakturakällan läses om för varje värde, cirka 130 ms per värde — ÖPPEN, kritisk (prestanda):**
   - Det blir cirka 11 minuter per kvartsanläggning och månad, så månadskörningen hinner bara med ungefär en kvartsanläggning per tenant.
   - Patch föreslagen.
@@ -2617,6 +2619,12 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
   - Servern svarar på exakt `…/FeatureServer/3/query` med ett nätområde: ALS (Alingsås Energi Nät AB, SE3), som en rektangel kring alla scenariopunkter (57,93 N, 12,53 E). Formen är inte den verkliga, men tillhörigheten för scenariopunkterna stämmer.
   - **Verifierat i världen:** plattformens egen schemalagda import körde mot simulatorn. `energy_geodata_versions` blev `verified`, och ALS innehåller scenariopunkten.
 - **Spot:** `up.sh` skickar nu `REALITY_SPOT_SOURCE` vidare till världssimulatorn (`synthetic` när värden nekas). Se T28 för publiceringsregeln.
+
+### J2, batch 1 (2026-10-25 ca 15:52–17:30): 8 gröna, 5 röda, 1 överhoppad
+- **J2-7 och J2-9:** J2-03, öppen och låst (B:s uppmätta värden ersätter inte uppskattningen; B faktureras inte).
+- **J2-11:** J2-05, öppen och låst.
+- **J2-12 och J2-13:** J2-13, öppen och kräver ägarbeslut (ingen avstämning mot E31/S03).
+- Inga nya fel utöver dessa kända.
 
 ### J1, batch 1 (2026-10-25 ca 14:52–15:52): 1 grön, 3 röda, 8 överhoppade
 - **J1-2:** samma formulär som T30 (`createSwitchInAdmin`). Batch 1 startade före rättningen, så J1 körs om. **J1-3:** följer av J1-2.
