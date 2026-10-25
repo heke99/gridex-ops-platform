@@ -2554,6 +2554,14 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - `www.elprisetjustnu.se` (spotpriser): kringgås med `REALITY_SPOT_SOURCE=synthetic`. `up.sh` sätter inte variabeln; starta om simulatorn med den.
 - `services2.arcgis.com` (SVK:s nätområdesgeometrier): kan inte kringgås utan simulator. Behöver tillåtas i miljöns nätverksinställningar (Allowed domains).
 
+### I, batch 1 (2026-10-25 ca 14:05–14:50): 1 grön, 3 röda, 6 överhoppade
+- **I2, Z01-vägen:** webbansökningarna stannar på `energy_area_resolve`, eftersom nätområdena saknas (T26, SVK-värden nekas).
+- **I2, Z03-vägen:** harnessen väntade 180 s på ett formulär som inte finns, se T30. **I3 och I10** följer av I2; I4–I9 hoppades över.
+
+### T30 Harnessen för I använde ett formulär som kundkortet inte längre visar — HARNESS; RÄTTAD
+- `createSwitchInAdmin` (`scripts/helpers/reality/rejectsWorld.ts`) letade efter `select[name="request_type"]` och knappen "Skapa switchärende" i `CustomerOperationsCard`, som inte renderas någonstans. Kundkortet använder `CustomerSwitchCreatePanel`, med `request_type` dold (`switch`) och knappen "Starta leverantörsbyte".
+- **Rättning:** harnessen väljer formuläret på `site_id`, `request_type` och `requested_start_date`, och klickar "Starta leverantörsbyte".
+
 ### H, batch 1 (2026-10-25 ca 13:00–14:05, världen på 9a6fc2a3d): 9 av 9 gröna
 - Alla H-fynd är verifierade i världen: H-9 till H-17, T23, T25, T29 och ägarbeslut 26.
 

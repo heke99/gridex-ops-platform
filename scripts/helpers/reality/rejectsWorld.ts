@@ -83,11 +83,13 @@ export function overdueOutboundAcks(companyId: string, graceSeconds = 0) {
 export async function createSwitchInAdmin(context: BrowserContext, input: { customerId: string; siteId: string; requestedStartDate: string }) {
   const page = await context.newPage()
   await page.goto(`/admin/customers/${input.customerId}`)
-  const form = page.locator(`form:has(input[name="site_id"][value="${input.siteId}"]):has(select[name="request_type"])`).first()
+  // The customer card's switch panel (components/admin/customers/CustomerSwitchCreatePanel.tsx): request_type is a hidden
+  // 'switch' and the button reads "Starta leverantörsbyte" (FINDINGS T30; the older select form is no longer rendered).
+  const form = page.locator(`form:has(input[name="site_id"][value="${input.siteId}"]):has([name="request_type"]):has(input[name="requested_start_date"])`).first()
   await form.waitFor({ state: 'attached', timeout: 180_000 })
-  await form.locator('select[name="request_type"]').selectOption('switch')
+  if (await form.locator('select[name="request_type"]').count()) await form.locator('select[name="request_type"]').selectOption('switch')
   await form.locator('input[name="requested_start_date"]').fill(input.requestedStartDate)
-  const actionStatus = await submitServerAction(page, () => form.getByRole('button', { name: /Skapa switchärende/ }).click(), 300_000)
+  const actionStatus = await submitServerAction(page, () => form.getByRole('button', { name: /Starta leverantörsbyte|Skapa switchärende/ }).click(), 300_000)
   const text = (await page.locator('main').innerText().catch(() => '')).replace(/\s+/g, ' ')
   await page.close()
   return { actionStatus, text: text.slice(0, 800) }

@@ -23,7 +23,8 @@ Den hör ihop med tre andra dokument:
 | G (vintertid) | 3: 9/11 gröna (G9/G10 syntetisk spot, T28) | G-4, G-5, G-6 och G-6b rättade efter körningen | Kör om |
 | H (kunden lämnar) | batch 1: **9/9 gröna** | H-9–H-17, T23, T25, T29 och ägarbeslut 26 verifierade | — |
 | J3 (robusthet) | batch 1: 6 gröna, 1 överhoppad | — | — |
-| I, J1, J2, J4, K | batch 1 pågår | — | — |
+| I (nätägaren avvisar) | batch 1: 1 grön, 3 röda, 6 överhoppade | T30 rättad; Z01-vägen kräver T26 | Kör om |
+| J1, J2, J4, K | batch 1 pågår | — | — |
 
 ## Rättat i denna omgång (commit → fynd)
 | Commit | Fynd |
