@@ -1305,19 +1305,13 @@ export async function generateBillingUnderlaysForMonth(input: {
             stepMs: estimateStepMs(contract, snapshotJson),
           });
         }
+        // The estimate is never a billing source. The incomplete month is still stored, in review, with the measured
+        // values only, so the operator sees it (owner decision 2026-10-25, FINDINGS H6); it never prices while a
+        // warning stands.
         if (gapEstimate) {
-          results.push({
-            underlayId: null,
-            status: "needs_review",
-            sourceTable: "normalized_metering_values",
-            sourceRows: segmentRows.length,
-            warnings: [...new Set([
-              ...warnings,
-              ...coverage.warnings,
-              "estimated_source_missing: Uppskattad förbrukning saknar kvalificerade mätvärden för perioden. Fakturaunderlaget väntar på mätvärden.",
-            ])],
-          });
-          continue;
+          warnings.push(
+            "estimated_source_missing: Uppskattad förbrukning saknar kvalificerade mätvärden för perioden. Fakturaunderlaget väntar på mätvärden.",
+          );
         }
         if (
           coverage.missing > 0 &&

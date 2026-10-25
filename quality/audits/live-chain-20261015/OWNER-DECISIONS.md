@@ -36,3 +36,4 @@ Nya beslut läggs till sist, och inget tas bort. Ett beslut som ersätts markera
 - **F115:** räcker en fakturaleverantör vald i miljön `test` för go-live, eller ska `production` krävas?
 - **F114:** ska envägsläget `link_existing_only` skriva värden som meddelandet bär, eller bara identitet, som objektvägen gör?
 - **F113:** överlämningen av den skyddade objektbatchen (`require_wire_projection_v1`, DB-05/SC-031) väntar på kroppsägarna.
+- **26 (2026-10-25, H6):** båda: scenariot levererar S:s hela (förflutna) oktober, och en ofullständig månad lagras som underlag i granskning (`needs_review`/`blocked`) i stället för att kastas. Den faktureras aldrig. Ägaren tillåter också nätverket för SVK (`services2.arcgis.com`) och spotpriser (`www.elprisetjustnu.se`).

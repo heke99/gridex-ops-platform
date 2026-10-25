@@ -237,6 +237,11 @@ describe.sequential('reality H — the customer leaves', () => {
     registerUtiltsIssuer(sql as never, literal, GRID_OWNER_EDIEL_ID, tenant.adminUserId)
     // The tenant is live in production: the simulator writes production E66 and mails them to the production mailbox (as F).
     const files = LEAVING.flatMap((p, c) => DAYS.map((day, i) => ({ meterId: p.gsrn, day, values: dayProfile(i + c * 3), environment: 'production' as const })))
+    // H6 (owner decision 2026-10-25): S, still supplied, also gets every earlier day of this month, so its month lacks
+    // only the days that have not happened yet. The month stays incomplete until it ends and is kept in review.
+    const monthStart = `${TODAY.slice(0, 7)}-01`
+    for (let d = new Date(`${monthStart}T12:00:00Z`), i = 0; d.toISOString().slice(0, 10) < DAYS[0]; d.setUTCDate(d.getUTCDate() + 1), i += 1)
+      files.push({ meterId: S.gsrn, day: d.toISOString().slice(0, 10), values: dayProfile(10 + i), environment: 'production' as const })
     const response = await fetch(`${gridOwner.url}/__sim/send-e66-batch`, { method: 'POST', body: JSON.stringify({ receiver: tenant.supplierEdielId, files }) })
     expect(response.ok).toBe(true)
     const e66 = () => inboundSources(tenant.companyId, ['E66'])
@@ -296,6 +301,9 @@ describe.sequential('reality H — the customer leaves', () => {
     report.mEnd = { boundary: mEndBoundary, underlays: forCustomer(current.underlays, M).map(u => ({ start: u.start, end: u.end })) }
     for (const u of forCustomer(current.underlays, M)) expect(Date.parse(String(u.end)), `M underlay ${JSON.stringify(u)}`).toBeLessThanOrEqual(Date.parse(mEndBoundary))
     expect.soft(forCustomer(current.underlays, S), `H2 S is still supplied in ${months[0].key}`).toHaveLength(1)
+    // H6: the month is not over, so S's underlay is kept in review (owner decision 2026-10-25) and never invoiced.
+    for (const u of forCustomer(current.underlays, S)) expect.soft(u.readiness ?? u.status, `H6 S ${months[0].key} is in review`).not.toBe('ready')
+    expect.soft(forCustomer(current.invoices, S), `H6 no invoice for S's incomplete ${months[0].key}`).toEqual([])
     // No Z13 history request was sent for a customer who left.
     // Keyed by first name, as read below (T25).
     report.outboundAfterBilling = { [S.firstName]: outboundFor(tenant.companyId, S.facility!.meteringPointId), [M.firstName]: outboundFor(tenant.companyId, M.facility!.meteringPointId) }
