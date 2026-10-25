@@ -2217,7 +2217,7 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
   7. Verifiering i världen med ett Z04-godkännande för en delad nätägare.
 - **Fortfarande blockerat:** admins masterdatagodkännande efter Z04/Z06 för kommandon som namnger en delad nätägare (`prodat_object_batch_wire_grid_owner_required`).
 - **Oberoende arbete som kan fortsätta:** sidofynd 1 (`owner_code` mot Ediel-id), sidofynd 2 (godkännandet får inte rensa nätägaren) och sidofynd 4–6. Inget av dem rör det låsta objektet.
-- **Utkast till överlämningsbegäran i #840** (inte postad, väntar på ägarens klartecken): "F113 (delad nätägare i `require_wire_projection_v1`): begär avgränsad överlämning av exakt denna funktion plus SC-031:s successor-pin och DB-05:s protectedNames-förväntan, enligt förslaget `4a19060e…` i `quality/audits/live-chain-20261015/proposals/`. Tester och krav: se FINDINGS F113."
+- **Överlämningsbegäran postad i #840 2026-10-25 på ägarens klartecken:** https://github.com/heke99/gridex-ops-platform/issues/840#issuecomment-6400393824. Ursprunglig text: "F113 (delad nätägare i `require_wire_projection_v1`): begär avgränsad överlämning av exakt denna funktion plus SC-031:s successor-pin och DB-05:s protectedNames-förväntan, enligt förslaget `4a19060e…` i `quality/audits/live-chain-20261015/proposals/`. Tester och krav: se FINDINGS F113."
 
 ### F körning 28 slutresultat (17:25–20:51): 8 av 12 gröna; F6c, F8, F9, F10 röda
 - **Gröna:** F1–F5, F6, F6b och F7.
