@@ -2640,6 +2640,10 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **Att bevaka i världen:** `createInvoiceExportRun` kan flagga ett underlag på 0 kWh som ofullständig mätvärdestäckning.
 - **T35 (harness, RÄTTAD):** `cron()` (T27) gav TS7006, eftersom `res` saknade typ. Nu är den `IncomingMessage`.
 
+### C, batch 3 (2026-10-25 ca 23:30–23:34, båda banorna samtidigt): 6 av 8 gröna; C3 och C4 röda — utreds av en agent
+- **C3 (C-B3a):** `fetch failed`, `SocketError: other side closed`. Sannolikt samma återanvända keep-alive-anslutning som T27.
+- **C4 (C-B3b):** av 150 anrop (gräns 120 per minut) gav 24 svar 200, 20 svar 429 och 106 svar 503: `PUBLIC_CONTRACTS_TEMPORARILY_UNAVAILABLE` ×96 och `api_auth_unavailable` ×10. Bara 200 och 429 väntas. Oklart än om det är produkt eller den lokala stacken under samtidig last.
+
 ### J4, batch 2 (2026-10-25 ca 22:30–22:55): 7 gröna, 1 överhoppad, inga röda
 - **J4-0:** grön med syntetisk spot (T26 kringgången).
 - **J4-4:** grön, så T32 är verifierad: Z06 med E34 tolkas och lagras för båda objekten.
