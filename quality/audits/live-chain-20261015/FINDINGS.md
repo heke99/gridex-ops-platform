@@ -2559,7 +2559,7 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **H6 röd på T29:** M:s underlag slutar på instanten `2026-10-23T23:00Z` = M:s marknadsslut (scenariot räknar "i går" från den 25 oktober). Testet jämförde däremot datumkolumnen `2026-10-24`, läst som UTC-midnatt. Det var första gången ett sådant underlag lagrades.
 
 ### T29 Scenario H jämförde underlagets datumkolumn med marknadsinstanten — HARNESS; RÄTTAD
-- `billing_period_end` är den exklusiva civila dagen. Instanten ligger i `payload.billing_period_end_instant`. `billingMonth` (`scripts/helpers/reality/inboundUtiltsWorld.ts`) ger nu `endInstant`, och H6 jämför den.
+- `billing_period_end` är den exklusiva civila dagen. Instanten ligger i `payload.billing_period_end_instant`. `billingMonth` i `scripts/helpers/reality/leaving.ts` (H:s hjälpare) och i `inboundUtiltsWorld.ts` ger nu `endInstant`, och H6 jämför den. H körning 8 föll på att bara den senare var ändrad.
 
 ### H körning 6 (2026-10-24 ca 22:50–23:20, världen på f2eadefaf med H-17 applicerad): 7 av 9 gröna; H6 och H7 röda
 - **H8 grön:** W:s ånger ger en kanonisk Z03C (`cancellation_status = draft_created`), och C:s Z03C → Z04C ger `cancelled_before_start`. H-12, H-14, H-16 och H-17 är verifierade i världen.

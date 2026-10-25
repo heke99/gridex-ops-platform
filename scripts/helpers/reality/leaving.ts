@@ -118,7 +118,7 @@ export function billingMonth(companyId: string, year: number, month: number) {
   const company = literal(companyId)
   return sql<{ underlays: Row[]; invoices: Row[] }>(`SELECT jsonb_build_object(
     'underlays',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',u.id,'facility',mp.metering_point_id,'customer',u.customer_id,'supplyPeriod',u.supply_period_id,'status',u.status,
-        'readiness',u.readiness_status,'block',u.billing_block_reason,'start',u.billing_period_start,'end',u.billing_period_end,'kwh',u.total_kwh,'missing',u.missing_values_count) ORDER BY mp.metering_point_id),'[]')
+        'readiness',u.readiness_status,'block',u.billing_block_reason,'start',u.billing_period_start,'end',u.billing_period_end,'endInstant',u.payload->>'billing_period_end_instant','kwh',u.total_kwh,'missing',u.missing_values_count) ORDER BY mp.metering_point_id),'[]')
       FROM public.billing_underlays u LEFT JOIN public.metering_points mp ON mp.id=u.metering_point_id WHERE u.company_id=${company} AND u.underlay_year=${year} AND u.underlay_month=${month}),
     'invoices',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',i.id,'customer',i.customer_id,'status',i.status,'start',i.period_start,'end',i.period_end,'incVat',i.amount_inc_vat) ORDER BY i.created_at),'[]')
       FROM public.customer_invoices i WHERE i.company_id=${company} AND i.period_start<make_date(${year},${month},1)+interval '1 month' AND coalesce(i.period_end,i.period_start)>=make_date(${year},${month},1)))`)
