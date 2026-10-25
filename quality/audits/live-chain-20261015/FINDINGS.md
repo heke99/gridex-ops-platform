@@ -2631,7 +2631,11 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
   - **Fakturering:** en faktura. En andra export ger ingenting, och en direkt andra faktura nekas (`break_fee_already_invoiced`).
   - **Kreditering:** nekas utan justeringsärende, ger `credited` med ett, och en upprepning ger `already_credited`.
   - **Tenantisolering:** ingenting av detta finns hos en annan tenant.
-- **D11-G2, harness, en agent arbetar på det:** H11 hoppar över sig själv, eftersom harnessen inte kan bygga ett fastprisavtal med bindningstid.
+- **D11-G2 — HARNESS; RÄTTAD (`b810130c1`, agent):** H11 hoppade över sig själv, eftersom harnessen inte kunde bygga ett fastprisavtal med bindningstid. Nu kan den:
+  - `publishFixedPriceOffer` (`scripts/helpers/live-chain-fixture.ts`) publicerar ett fastprisavtal (95 öre/kWh, 12 månaders bindning) genom produktens egna kommandon.
+  - `augustSupplyCustomer({ offer })` binder avtalet till det och kopierar `contract_type` och fastpriset som produktens avtalsskrivare gör. Utan `offer` är beteendet oförändrat.
+  - I H11 tecknar F avtalet i augusti, får leverans via Z04 från 1 september och lämnar 1 november via Z05 L, så att produktens egen avgiftsgranskning öppnas.
+  - tsc ger inga fel. Det är ännu inte kört i världen. Där måste det visas att publiceringen godtar fastprisavtalet och att granskningen öppnas.
 - **D11-G1, produkt, ÖPPEN, kräver ägarbeslut:** ingen produktväg skapar en kreditfaktura eller ett justeringsärende för en brytavgift. H11 skapar båda själv som underlag.
 - **Att bevaka i världen:** `createInvoiceExportRun` kan flagga ett underlag på 0 kWh som ofullständig mätvärdestäckning.
 - **T35 (harness, RÄTTAD):** `cron()` (T27) gav TS7006, eftersom `res` saknade typ. Nu är den `IncomingMessage`.

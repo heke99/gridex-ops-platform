@@ -17,7 +17,7 @@ Den hör ihop med tre andra dokument:
   - Agent 2: J4-D15 är kartlagd men inte ändrad, eftersom rättningen kräver guidebevis från producenten (se FINDINGS). Överlämningsbegäran postad i #840 (kommentar 6402595329).
   - Agent 3: K-W1 klar (`fc728582d`).
   - Agent 4: I klar: I-B2a och I-B2c rättade; I-B2d kräver ägarbeslut.
-  - Agent 5: D11 H10/H11 klar (`cbcb67c77`). Agent 7: D11-G2, fastprisavtal i harnessen, pågår. D11-G1 kräver ägarbeslut.
+  - Agent 5: D11 H10/H11 klar (`cbcb67c77`). Agent 7: D11-G2 klar (`b810130c1`); H körs om efter batch 2. D11-G1 kräver ägarbeslut.
   - Agent 6: F8 `billing_underlay_supply_contract_price_basis_required`, följdfel eller eget fel, pågår.
   - Ingen agent kör världen (en körning i taget); de läser databasen endast.
 - **Ägarbeslut 27–30 (2026-10-25) är införda och kopplade till fynden:**
