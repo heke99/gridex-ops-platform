@@ -12,6 +12,7 @@ import {
   isOutsideRegularMonthlyBilling,
 } from "@/lib/pricing/priceComponentCalculator";
 import { finalizePricingPreview } from "@/lib/pricing/pricePreviewBuilder";
+import { breakFeeChargeProblems, buildBreakFeeLine, type ApprovedBreakFeeCharge } from "@/lib/pricing/breakFeePricing";
 import {
   resolveBasePriceSourceValues,
   resolvePricingConfiguration,
@@ -472,6 +473,33 @@ export async function calculatePricingPreviewForUnderlay(input: {
   );
   const errors: string[] = [];
   const warnings: string[] = [];
+
+  // An approved break fee is its own underlay with one line from the approved charge (FINDINGS H3d D11, owner
+  // decision 28); it carries no energy and is never priced from metering values.
+  const underlayPayload = (underlayRow.payload ?? {}) as Record<string, unknown>;
+  if (underlayPayload.charge_kind === "break_fee") {
+    const { data: chargeData, error: chargeError } = await supabaseService
+      .from("break_fee_charges")
+      .select("id,company_id,customer_contract_id,billing_underlay_id,status,amount_ex_vat,currency,contract_basis,contract_rule_reference,vat_classification")
+      .eq("company_id", input.companyId)
+      .eq("id", String(underlayPayload.break_fee_charge_id ?? ""))
+      .maybeSingle();
+    if (chargeError) throw chargeError;
+    const charge = (chargeData as ApprovedBreakFeeCharge | null) ?? null;
+    errors.push(...breakFeeChargeProblems(charge, { companyId: input.companyId, billingUnderlayId: input.billingUnderlayId, contractId: underlay.contractId ?? null }));
+    // The contract has ended by definition (the fee is for ending it early); the binding is the charge's own contract,
+    // checked above against the underlay, not a contract that still carries a billed period.
+    if (!underlay.contractId) errors.push("Avtalet för brytavgiften saknas.");
+    const result = finalizePricingPreview({
+      billingUnderlayId: input.billingUnderlayId,
+      lines: errors.length === 0 && charge ? [buildBreakFeeLine(charge)] : [],
+      warnings,
+      errors,
+      vatRate: charge ? Number(charge.vat_classification?.vat_rate) : undefined,
+    });
+    const pricingRunId = input.persist ? await persistPricingRun(input.companyId, result, underlay) : null;
+    return { ...result, pricingRunId };
+  }
 
   if (!underlay.customerId) errors.push("Kund saknas på fakturaunderlaget.");
   if (!underlay.meteringPointId)

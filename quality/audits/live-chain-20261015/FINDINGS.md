@@ -2161,7 +2161,7 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
   6. **Omvänd klass (låg):** `gridex_list_customer_operation_events` och `owner_rows_match` kopplar `grid_owners` på id utan tenantfilter.
   7. **Typkontrollen (låg):** `npx tsc --noEmit -p .` kräver nu `--max-old-space-size=8192`.
 
-### D11 Debitering av granskad brytavgift (H3d) — ÄGARBESLUT 28; del 1 av 2 RÄTTAD (2026-10-25), del 2 pågår
+### D11 Debitering av granskad brytavgift (H3d) — ÄGARBESLUT 28; RÄTTAD (2026-10-25, del 1 och 2), ej verifierad i världen end-to-end
 - **Del 1, godkännande och spårbar post:** migration `20261025110000_d11_break_fee_charges.sql` (`3a6664ad…`).
   - **Ny tabell `public.break_fee_charges`:** en rad per godkänd avgift, bunden till sin granskning (`customer_operation_tasks` `break_fee_review`) och sitt avtal. Den sparar avtalsversion (`contract_version`, `terms_version`, `signed_version`, snapshot-hash, avtalstyp, bindning, fastpris), kundkategori med underlag, avtalsgrund, beräkning med beräknad förlust, förlustunderlag, belopp, momsklassificering och godkännare. Engång: unik per granskning och per avtal. Kreditering behåller raden och länkar kreditfakturan (`credit_invoice_id`, `credited_at`). RLS är på, tenanten läser, och API-roller kan inte skriva direkt.
   - **Ny funktion `public.gridex_approve_break_fee_v1(company, review, input, actor)`:** den enda skrivaren. Den kräver att anroparen är aktören (eller service_role) och att aktören har `billing_underlay.export`. Granskningen ska vara öppen och tillhöra tenanten, och bindningen ska löpa efter leveransslutet.
@@ -2169,7 +2169,22 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
   - **Större företag:** uttrycklig avtalsregel (`contract_rule_reference`) och förlustunderlag krävs.
   - **Alla kategorier:** inga månadsavgifter eller administrativa bytesavgifter i beräkningen. Verifierad momsklassificering krävs (kod, momssats 0–25 %, konto, verifierad av, när, källa). Granskningen stängs (`done`) med länk i samma transaktion. Upprepat anrop returnerar befintlig post.
 - **Test:** `__tests__/reality-d11-break-fee-approval.test.ts`, 8 fall, ett per regel.
-- **Del 2 (pågår):** eget debiteringsunderlag och egen faktura genom den befintliga motorn (`gridex_create_invoice_export_graph_v1_core`, en faktura per underlag och prissättningskörning), registrering i `contract_charge_ledger` (unik per avtal, komponent och händelse), och spårbar kreditering.
+- **Del 2, underlag och faktura genom befintlig motor:** migration `20261025120000_d11_break_fee_underlay_invoice.sql` (`dd4ec55a…`) och TS.
+  - **`public.gridex_underlay_break_fee_v1(company, charge, actor)`:** samma aktörs- och behörighetsregel som godkännandet. Skapar ett eget `billing_underlays`-underlag för en `approved` avgift: avtal, kund, anläggning, mätpunkt och prissnapshot som gäller leveransslutdagen. Perioden är den dagen [slut, +1 dag) i Stockholm, så underlaget delar aldrig segment med energiunderlaget (`billing_underlays_company_segment_uidx`). `total_kwh` är 0, `payload.charge_kind = break_fee` med avgiftens id, status `validated` och beredskap `blocked` tills prissättningen låses. Alla befintliga underlagsvakter gäller. Avgiften blir `underlaid`. Upprepat anrop returnerar underlaget.
+  - **`public.gridex_read_billing_underlay_source_basis_v1`:** installeras bara över exakt förbilden (`496d105d…`, samma som `schema.sql`). Ett brytavgiftsunderlag är kvalificerat bara genom sin egen bundna avgift (`underlaid`/`invoiced`). Andra underlag behåller `require_underlay_v1` oförändrat.
+  - **Trigger `break_fee_charge_invoiced` på `customer_invoices`:** fakturan för underlaget länkas och avgiften blir `invoiced`. En andra faktura för samma underlag vägras (`break_fee_already_invoiced`).
+  - **`public.gridex_record_break_fee_credit_v1`:** länkar kreditfakturan bara när ett `billing_adjustment_cases` anger avgiftens faktura som original och just denna kreditfaktura. Avgiften blir `credited` med `credit_invoice_id`.
+  - **TS:** `lib/pricing/breakFeePricing.ts` ger en rad från den godkända avgiften: belopp och momssats ur klassificeringen, konto och momskod i metadata, `lifecycle: event_only` och avgiften som händelse. Därmed bokför `gridex_lock_pricing_run` den en gång i `contract_charge_ledger`. `lib/pricing/engine.ts` (`calculatePricingPreviewForUnderlay`) går till den grenen för `charge_kind = break_fee` och prissätter aldrig från mätvärden. Bara `underlaid` prissätts, och avtalet binds via avgiftens eget avtal, eftersom ett avslutat avtal inte bär perioden.
+  - Fakturan skapas av den befintliga exporten (`gridex_create_invoice_export_graph_v1_core`, en faktura per underlag och körning), som standard en egen faktura eftersom underlaget är eget.
+- **Tester:**
+  - `__tests__/reality-d11-break-fee-underlay-invoice.test.ts` (5 fall, PGlite mot förbilden från `schema.sql`): eget underlag och idempotens, källgrunden bara via egen avgift (förfalskat eller krediterat underlag kvalificeras inte), engångsfakturering, kreditering bara via justeringsärende, och vägran för ej godkänd, främmande eller obehörig.
+  - `__tests__/reality-d11-break-fee-pricing.test.ts` (2) och `__tests__/reality-d11-break-fee-engine.test.ts` (2): genom motorn och persistensen, och en fakturerad avgift prissätts aldrig igen. Testet för motorn föll först på att ett avslutat avtal inte bär perioden; rättat.
+  - Pris-, beredskaps-, export- och underlagstester: 28 filer, 626 pass. `tsc` rent. Täckningen 352/352.
+- **Världen, i en återställd transaktion som service_role:** godkännande av en verklig granskning (stort företag med avtalsregel; världens avtal har rörligt pris) och underlaget passerar alla verkliga vakter (SE3, leveransslutdagen som eget segment).
+- **ÖPPET:**
+  - Verifiering end-to-end i världen, från granskning till faktura, efter batch 1 (appen byggs om).
+  - UI för att godkänna i granskningen.
+  - Momsklassificeringen måste verifieras av ekonomi; systemet kräver och sparar den men avgör den inte.
 
 ### F113 Överlämningspaket enligt ägarbeslut 30 (2026-10-25) — ÖPPEN tills ändringen är integrerad och verifierad
 - **Låst objekt (inte ändrat):** `gridex_prodat_object_batch.require_wire_projection_v1(text,jsonb,jsonb,text,uuid)`, nås via `require_plan_v1` när admin godkänner masterdata för en PRODAT-objektbatch efter Z04/Z06.

@@ -333,6 +333,7 @@
     "20261024160000_h13_z05_lk_without_own_closure_is_an_ordinary_end.sql": "47c92275b6caa42fd63a610aebf94e4a73a705d033ed310994f817603ed552d6",
     "20261024170000_h17_withdrawal_paused_switch_stays_cancellable.sql": "ede7bf0dc8824dddd4dcc37d230d32cc55f5dd742c2a5dc51b44f0e1d308ad8d",
     "20261025100000_gor06_sent_switch_continued_handling.sql": "03516ea62d3a2b85420dc44c7e45d4b1a1956bfff9c8b26215ecabcd49064f49",
-    "20261025110000_d11_break_fee_charges.sql": "3a6664aded9f2a284383867744d62fd8bcfd1cce0e00503b60e5607ce2618768"
+    "20261025110000_d11_break_fee_charges.sql": "3a6664aded9f2a284383867744d62fd8bcfd1cce0e00503b60e5607ce2618768",
+    "20261025120000_d11_break_fee_underlay_invoice.sql": "dd4ec55a3d5d59768d7fcefc7eff3d2392410d64216c333487ee7b3355d60b26"
   }
 }
