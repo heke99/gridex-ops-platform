@@ -69,13 +69,26 @@ function syntheticDay(date: string, area: string) {
   return syntheticSpotDay(date, area)
 }
 
+function stockholm(now: Date) {
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Stockholm', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hourCycle: 'h23' })
+    .formatToParts(now).map(part => [part.type, part.value]))
+  return { date: `${parts.year}-${parts.month}-${parts.day}`, hour: Number(parts.hour) }
+}
+function syntheticPublished(date: string, now = new Date()) {
+  const today = stockholm(now)
+  const tomorrow = stockholm(new Date(now.getTime() + 24 * 3_600_000)).date
+  return date <= today.date || (date === tomorrow && today.hour >= 13)
+}
+
 async function spot(res: ServerResponse, path: string) {
   const match = /^\/api\/v1\/prices\/(\d{4})\/(\d{2})-(\d{2})_(SE[1-4])\.json$/.exec(path)
   if (!match) return send(res, 404, { message: 'not found' })
   const [, y, m, d, area] = match
   const file = join(cacheDir, `${y}-${m}-${d}_${area}.json`)
   if (existsSync(file)) return send(res, 200, JSON.parse(readFileSync(file, 'utf8')))
-  if (spotSource === 'synthetic') return send(res, 200, syntheticDay(`${y}-${m}-${d}`, area))
+  // Like the real provider: a day exists once Nord Pool has published it (the day ahead, after 13:00 Stockholm time);
+  // later days are 404. Otherwise a whole future month would look complete and lockable (FINDINGS T28).
+  if (spotSource === 'synthetic') return syntheticPublished(`${y}-${m}-${d}`) ? send(res, 200, syntheticDay(`${y}-${m}-${d}`, area)) : send(res, 404, { message: 'not published yet' })
   const upstream = await fetch(`https://www.elprisetjustnu.se${path}`, { signal: AbortSignal.timeout(15_000) })
   if (!upstream.ok) return send(res, upstream.status, { message: `upstream ${upstream.status}` })
   const rows = await upstream.json()

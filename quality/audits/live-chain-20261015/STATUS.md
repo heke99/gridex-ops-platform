@@ -89,7 +89,8 @@ Alla migrationer är applicerade i världen och har sha256 i `scripts/migration-
    - Edge runtime startar inte (rlimit), men replayen utesluter den.
    - `npm ci` nekas på cdn.sheetjs.com. Installera utan `xlsx` och återställ `package.json`/`package-lock.json`. I `gx-wt-run` behöver `next build` paketet: `npm install --no-save xlsx@0.18.5` (bara lokalt).
    - `gx-wt-run` måste ha en riktig kopia av `node_modules`, inte en symlänk (Turbopack vägrar).
-6. Efter en omstart av containern:
+6. Nekade externa värdar (T26): `REALITY_SVK_SOURCE=simulated REALITY_SPOT_SOURCE=synthetic bash scripts/reality/up.sh`. Ger SVK-simulatorn (hosts plus lokal TLS) och syntetiska spotpriser med verklig publiceringsregel.
+7. Efter en omstart av containern:
    ```
    rm -f /var/run/docker.pid; nohup dockerd &
    iptables -t nat -A OUTPUT -p tcp -d 127.0.0.1 --dport 54322 -j REDIRECT --to-ports 55322

@@ -151,7 +151,23 @@ APP_UP=0; for _ in $(seq 1 120); do curl -s -o /dev/null -w '%{http_code}' "http
 
 # 5) Simulators, each in its own session so a test run can never kill them by accident.
 fuser -k 3901/tcp 3389/tcp 3902/tcp >/dev/null 2>&1 || true
-setsid nohup env REALITY_WORLD_PORT=3901 npx tsx scripts/reality/simulators/externalWorld.ts > "$HOME_DIR/logs/world.log" 2>&1 < /dev/null &
+setsid nohup env REALITY_WORLD_PORT=3901 REALITY_SPOT_SOURCE="${REALITY_SPOT_SOURCE:-real}" npx tsx scripts/reality/simulators/externalWorld.ts > "$HOME_DIR/logs/world.log" 2>&1 < /dev/null &
 setsid nohup npx tsx scripts/reality/simulators/certificateDirectory.ts > "$HOME_DIR/logs/ldap.log" 2>&1 < /dev/null &
 wait_port 3901; wait_port 3902
+# SVK's grid-area service, simulated when the network denies it (FINDINGS T26): the platform accepts only that exact
+# origin, so the host points to 127.0.0.1 and a local TLS server answers with a certificate from this world's CA.
+if [ "${REALITY_SVK_SOURCE:-real}" = "simulated" ]; then
+  if [ ! -f "$TLS/svk.pem" ]; then
+    ( cd "$TLS"
+      openssl req -newkey rsa:2048 -nodes -keyout svk.key -out svk.csr -subj '/CN=services2.arcgis.com' 2>/dev/null
+      printf 'subjectAltName=DNS:services2.arcgis.com\n' > svk.cnf
+      openssl x509 -req -in svk.csr -CA ca.pem -CAkey ca.key -CAcreateserial -out svk.pem -days 30 -extfile svk.cnf 2>/dev/null
+      chmod 644 svk.* )
+  fi
+  grep -q ' services2.arcgis.com$' /etc/hosts || echo '127.0.0.1 services2.arcgis.com' >> /etc/hosts
+  fuser -k 443/tcp >/dev/null 2>&1 || true
+  setsid nohup env REALITY_TLS_DIR="$TLS" npx tsx scripts/reality/simulators/svkArcgis.ts > "$HOME_DIR/logs/svk.log" 2>&1 < /dev/null &
+  wait_port 443
+  log "SVK grid areas simulated on https://services2.arcgis.com (127.0.0.1)"
+fi
 log "ready: app http://127.0.0.1:$APP_PORT, env $ENV_FILE, logs $HOME_DIR/logs"

@@ -2527,7 +2527,7 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 
 ### G körning 3 (2026-10-25 ca 04:50–05:25, syntetiska spotpriser): 9 av 11 gröna; G9 och G10 röda
 - **G7 och G11 gröna** (G-4, G-5 och G-7 håller).
-- **G9 (T28, harness):** den syntetiska spotkällan publicerar hela oktober i förväg. Täckningen blir 44 700 av 44 700 och oktober låses den 25 oktober. Med den riktiga källan kan det inte ske. Som härdning kan låset vägra en månad som inte är slut (låg, ej rättad).
+- **G9 (T28, harness; RÄTTAD 2026-10-25):** den syntetiska spotkällan publicerade hela oktober i förväg. Nu svarar den som den riktiga källan: en dag finns när den är publicerad (dagen före, efter 13:00 svensk tid), annars 404. Täckningen blir 44 700 av 44 700 och oktober låses den 25 oktober. Med den riktiga källan kan det inte ske. Som härdning kan låset vägra en månad som inte är slut (låg, ej rättad).
 - **G10:** inget oktoberunderlag; bedöms först med riktiga spotpriser (T26).
 
 ### G-9 Produktions-E66 klassas som Ediel-portalens test (TGT) när en tidsstämpel innehåller "91100" och återupptas aldrig — BEKRÄFTAD (världen), KRITISK; RÄTTAD (TS)
@@ -2550,9 +2550,14 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **F2:** `platform_grid_area_geometries` är tom. SVK-importen hämtar från `services2.arcgis.com`, som nätverkspolicyn nekar (`svk-geometry-import-cron`: circuit open). Kräver att värden tillåts i miljöns nätverksinställningar.
 - **F6c:** `fetch failed` / socket stängd efter 67 min. Bedöms efter körning 32.
 
-### T26 Världen kräver två externa värdar som nätverkspolicyn i denna container nekar — MILJÖ; ÖPPEN
+### T26 Världen kräver två externa värdar som nätverkspolicyn i denna container nekar — MILJÖ; LÖST MED SIMULATORER (2026-10-25)
 - `www.elprisetjustnu.se` (spotpriser): kringgås med `REALITY_SPOT_SOURCE=synthetic`. `up.sh` sätter inte variabeln; starta om simulatorn med den.
 - `services2.arcgis.com` (SVK:s nätområdesgeometrier): kan inte kringgås utan simulator. Behöver tillåtas i miljöns nätverksinställningar (Allowed domains).
+- **Fortfarande nekad efter ägarens ändring och omstart av containern** (proxyn: `connect_rejected`, "host is not allowed for this session").
+- **Lösning, SVK:** `scripts/reality/simulators/svkArcgis.ts`. Plattformen godtar bara exakt SVK:s origin och sökväg, så `up.sh` lägger med `REALITY_SVK_SOURCE=simulated` till `127.0.0.1 services2.arcgis.com` i `/etc/hosts`. Ett certifikat från världens egen CA ger en lokal TLS-server på 443, och appen litar på den via `NODE_EXTRA_CA_CERTS`. Ingen produktkod är ändrad.
+  - Servern svarar på exakt `…/FeatureServer/3/query` med ett nätområde: ALS (Alingsås Energi Nät AB, SE3), som en rektangel kring alla scenariopunkter (57,93 N, 12,53 E). Formen är inte den verkliga, men tillhörigheten för scenariopunkterna stämmer.
+  - **Verifierat i världen:** plattformens egen schemalagda import körde mot simulatorn. `energy_geodata_versions` blev `verified`, och ALS innehåller scenariopunkten.
+- **Spot:** `up.sh` skickar nu `REALITY_SPOT_SOURCE` vidare till världssimulatorn (`synthetic` när värden nekas). Se T28 för publiceringsregeln.
 
 ### I, batch 1 (2026-10-25 ca 14:05–14:50): 1 grön, 3 röda, 6 överhoppade
 - **I2, Z01-vägen:** webbansökningarna stannar på `energy_area_resolve`, eftersom nätområdena saknas (T26, SVK-värden nekas).
