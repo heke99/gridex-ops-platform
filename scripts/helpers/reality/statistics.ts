@@ -102,7 +102,13 @@ export function shownNumber(text: string | null | undefined): number | null {
 }
 
 /** label → shown value for every card or line whose label is exactly one of `labels` (first occurrence). */
+/** The admin pages stream: `main` first holds the loading skeleton (`aria-busy`); read only once it is gone (T34). */
+async function settled(page: Page) {
+  await page.waitForFunction(() => !document.querySelector('main [aria-busy="true"]'), null, { timeout: 120_000 })
+}
+
 export async function readLabelledValues(page: Page, labels: string[]): Promise<Record<string, string | null>> {
+  await settled(page)
   return page.evaluate((wanted) => {
     const found: Record<string, string | null> = Object.fromEntries(wanted.map(label => [label, null]))
     for (const element of Array.from(document.querySelectorAll('main p, main div, main span'))) {
@@ -117,6 +123,7 @@ export async function readLabelledValues(page: Page, labels: string[]): Promise<
 
 /** Every row of the first table on the page: header text → cell text, plus the row's link query parameters. */
 export async function readTable(page: Page): Promise<Array<Record<string, string>>> {
+  await settled(page)
   return page.evaluate(() => {
     const table = document.querySelector('main table')
     if (!table) return []

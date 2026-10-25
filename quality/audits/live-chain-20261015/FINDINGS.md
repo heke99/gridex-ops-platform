@@ -2622,8 +2622,18 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 
 ### K, batch 1 (2026-10-25 ca 17:55–18:35): 9 av 12 gröna; K4, K10 och K11 röda
 - **K4:** `market_price_stale` för SE3 på W1:s offert (T26, riktig spotkälla nekad). Täcks i batch 2 med `REALITY_SPOT_SOURCE=synthetic`.
-- **K10:** alla siffror på `/admin`, `/admin/analytics` och `/admin/analytics/portfolio` lästes som `null`. Samma siffror stämmer i portfölj-RPC:n, månadssnapshoten och `company_dashboard_summary_v`, så beräkningen är rätt. Felet ligger i visningen eller i harnessens läsning. Utreds (sidan återges efter F, när körlåset är fritt).
+- **K10:** alla siffror på `/admin`, `/admin/analytics` och `/admin/analytics/portfolio` lästes som `null`. Samma siffror stämmer i portfölj-RPC:n, månadssnapshoten och `company_dashboard_summary_v`, så beräkningen är rätt. Orsaken är harnessen, se T34.
 - **K11:** fixturen stoppades av databasen, se T33.
+
+### T34 Harnessen läste adminsidorna medan de fortfarande laddade — HARNESS; RÄTTAD
+- Adminsidorna strömmas. `main` visar först laddningsskelettet (`app/admin/loading.tsx`, `aria-busy="true"`), och siffrorna kommer därefter. `readLabelledValues` och `readTable` (`scripts/helpers/reality/statistics.ts`) läste så snart `main` fanns, och fick då bara skelettet: alla värden blev `null`.
+- **Rättning:** båda väntar tills inget `[aria-busy="true"]` finns kvar i `main`.
+- **Verifierat i världen:** samma läsning av `/admin` gav `null` före rättningen och `Kunder 9, Avtal 9` efter den. K10 körs om i batch 2.
+
+### F, batch 1 (2026-10-25 ca 18:35–20:00, världen på 9a6fc2a3d): 7 av 12 gröna; F2 och F7–F10 röda
+- **F2:** `market_price_stale` för SE3 (T26, riktig spotkälla nekad).
+- **F7:** `UND_ERR_SOCKET other side closed`. Världen kördes på `9a6fc2a3d`, som saknar T27-rättningen.
+- **F8:** månadskörningen misslyckades med `billing_underlay_supply_contract_price_basis_required`. Bedöms i batch 2, eftersom F2 inte gav några avtal och F7 inte låste några spotpriser. **F9 och F10** följer av F8.
 
 ### T33 Harnessens white-label-partner fick en global företagsroll — HARNESS; RÄTTAD
 - `createWhiteLabelPartner` (`scripts/helpers/reality/statistics.ts`) gav rollen `white_label_platform_admin` (scope `company`) med `company_id NULL`. Produktionens vakt `gridex_assert_role_scope_is_consistent` vägrar detta (`company_role_requires_company`): en global företagsroll skulle ge behörighet överallt.
