@@ -35,7 +35,7 @@ Den hör ihop med tre andra dokument:
 | G (vintertid) | 3: 9/11 gröna (G9/G10 syntetisk spot, T28) | G-4, G-5, G-6 och G-6b rättade efter körningen | Kör om |
 | H (kunden lämnar) | batch 1: **9/9 gröna** | H-9–H-17, T23, T25, T29 och ägarbeslut 26 verifierade | — |
 | J3 (robusthet) | batch 1: 6 gröna, 1 överhoppad | — | — |
-| I (nätägaren avvisar) | batch 1: 1 grön, 3 röda, 6 överhoppade | T30 rättad; Z01-vägen kräver T26 | Kör om |
+| I (nätägaren avvisar) | batch 2: 1 grön, 3 röda, 6 överhoppade | I-B2a–c utreds av agent (tenantens bytesformulär saknas; Z01 = K-W1; fastnade jobb) | Kör om |
 | J2 | batch 1: 8 gröna, 5 röda | bara kända J2-03/J2-05 (låsta) och J2-13 (beslut) | — |
 | J4 | batch 1: 5 gröna, 2 röda | J4-0 T26; J4-4 T32 rättad, J4-D15 öppen | Kör om |
 | K | batch 2: 10/12 gröna | K10/K11 verifierade; K4/K8 = K-W1 rättad (simulatorns ägarnamn); K-W1b behöver beslut | Kör om efter SVK-omimport |

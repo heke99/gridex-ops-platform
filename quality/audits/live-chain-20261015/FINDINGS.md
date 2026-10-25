@@ -2620,6 +2620,14 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
   - **Verifierat i världen:** plattformens egen schemalagda import körde mot simulatorn. `energy_geodata_versions` blev `verified`, och ALS innehåller scenariopunkten.
 - **Spot:** `up.sh` skickar nu `REALITY_SPOT_SOURCE` vidare till världssimulatorn (`synthetic` när värden nekas). Se T28 för publiceringsregeln.
 
+### I, batch 2 (2026-10-25 ca 20:47–21:32): 1 grön, 3 röda, 6 överhoppade — utreds av en agent
+- **I2, Z03-vägen (I-B2a):** `createSwitchInAdmin` väntade 180 s på bytesformuläret, men som tenantens operatör renderas det aldrig.
+  - En läsande sondering av kundkortet `0d4181fb…` som tenantens company_admin visar inget sådant formulär.
+  - `app/admin/customers/[id]/page.part-4.tsx` visar bytesdelen bara när `isPlatformAdmin && activeTab === "switch-operations"`. Samtidigt skickas `allowTenantStartSwitch` med, vilket motsäger villkoret.
+  - Oklart: produktfel (tenanten saknar UI-väg) eller harnessfel (bytet ska startas av automationen).
+- **I2/I10, Z01-vägen (I-B2b):** ingen Z01 skickades. Sannolikt samma orsak som K-W1, eftersom ALS saknar mappad nätägare i världen.
+- **I10 (I-B2c):** i `customer_operation_jobs` står 4 jobb `not_progressing` och 13 `delivery_uncertain_or_review`.
+
 ### K-W1 Världens SVK-simulator gav ALS fel ägarnamn, så webbkundens nätägare blev tom — VÄRLD/HARNESS; RÄTTAD (`fc728582d`, agent)
 - **Fel:** W1 (APP-20261025-100001) stannar i `needs_address_resolution` / `resolve_grid_owner`. Någon Z03 skickas aldrig, så K4 och K8 blir röda.
 - **Bevis, endast läsning:** den exakta fortsättningsupplösningen (`6666d986…`) ger ALS `grid_area_master_validated` men `grid_owner_id` null, med `platform_to_ops_grid_owner_mapping_missing`. ALS pekar på plattformsägaren `428e0d5e` "Alingsås Energi Nät AB", som SVK-importen skapade från simulatorn och som saknar `ops_grid_owner_id`. Registrets ägare är `07473208` "Alingsås Energi Elnät AB" (16700 → `f8ca3120`).
