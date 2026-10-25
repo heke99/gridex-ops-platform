@@ -156,7 +156,7 @@ export function storedDay(companyId: string, meteringPointId: string, day: strin
 export function billingState(companyId: string, year: number, month: number) {
   return sql<{ underlays: Row[]; invoices: Row[]; exportItems: Row[]; runs: Row[] }>(`SELECT jsonb_build_object(
     'underlays',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',u.id,'facility',mp.metering_point_id,'status',u.status,'readiness',u.readiness_status,'kwh',u.total_kwh::text,'values',u.source_meter_value_count,
-        'missing',u.missing_values_count,'block',u.billing_block_reason,'direction',u.energy_direction,'start',u.billing_period_start,'end',u.billing_period_end,'updated',u.updated_at) ORDER BY mp.metering_point_id,u.energy_direction),'[]')
+        'missing',u.missing_values_count,'block',u.billing_block_reason,'direction',u.energy_direction,'start',u.billing_period_start,'end',u.billing_period_end,'endInstant',u.payload->>'billing_period_end_instant','updated',u.updated_at) ORDER BY mp.metering_point_id,u.energy_direction),'[]')
       FROM public.billing_underlays u LEFT JOIN public.metering_points mp ON mp.id=u.metering_point_id WHERE u.company_id=${literal(companyId)} AND u.underlay_year=${year} AND u.underlay_month=${month}),
     'invoices',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',i.id,'customer',i.customer_id,'status',i.status,'kwh',i.total_kwh::text,'exVat',i.amount_ex_vat::text,'incVat',i.amount_inc_vat::text,
         'underlay',coalesce(i.billing_underlay_id,(SELECT e.billing_underlay_id FROM public.invoice_export_items e WHERE e.id=i.invoice_export_item_id)),

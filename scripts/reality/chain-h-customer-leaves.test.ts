@@ -298,8 +298,9 @@ describe.sequential('reality H — the customer leaves', () => {
     const mEndBoundary = sql<string>(`SELECT to_jsonb(gridex_received_sources.permission_time_v1(${literal(M_END)}))`)
     expect(Date.parse(mEndBoundary), 'the Z05 end is 00:00 +0100').toBe(Date.parse(`${M_END_DATE}T00:00:00+01:00`))
     expect.soft(Date.parse(String(latestPeriod(M)?.marketEnd)), 'M\'s market end is the Z05 instant').toBe(Date.parse(mEndBoundary))
-    report.mEnd = { boundary: mEndBoundary, underlays: forCustomer(current.underlays, M).map(u => ({ start: u.start, end: u.end })) }
-    for (const u of forCustomer(current.underlays, M)) expect(Date.parse(String(u.end)), `M underlay ${JSON.stringify(u)}`).toBeLessThanOrEqual(Date.parse(mEndBoundary))
+    report.mEnd = { boundary: mEndBoundary, underlays: forCustomer(current.underlays, M).map(u => ({ start: u.start, end: u.end, endInstant: u.endInstant })) }
+    // The end instant, not the civil date column (T29): the date is the exclusive civil day, read as UTC midnight.
+    for (const u of forCustomer(current.underlays, M)) expect(Date.parse(String(u.endInstant ?? u.end)), `M underlay ${JSON.stringify(u)}`).toBeLessThanOrEqual(Date.parse(mEndBoundary))
     expect.soft(forCustomer(current.underlays, S), `H2 S is still supplied in ${months[0].key}`).toHaveLength(1)
     // H6: the month is not over, so S's underlay is kept in review (owner decision 2026-10-25) and never invoiced.
     for (const u of forCustomer(current.underlays, S)) expect.soft(u.readiness ?? u.status, `H6 S ${months[0].key} is in review`).not.toBe('ready')
