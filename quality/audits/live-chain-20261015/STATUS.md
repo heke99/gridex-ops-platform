@@ -18,7 +18,7 @@ Den hör ihop med tre andra dokument:
   - Agent 3: K-W1 klar (`fc728582d`).
   - Agent 4: I klar: I-B2a och I-B2c rättade; I-B2d kräver ägarbeslut.
   - Agent 5: D11 H10/H11 klar (`cbcb67c77`). Agent 7: D11-G2 klar (`b810130c1`); H körs om efter batch 2. D11-G1 kräver ägarbeslut.
-  - Agent 6: F8 `billing_underlay_supply_contract_price_basis_required`, följdfel eller eget fel, pågår.
+  - Agent 6: F8-B1 är ett eget produktfel och rättat. Klara underlag vägrades alltid, eftersom den lagrade prissnapshoten var berikad.
   - Ingen agent kör världen (en körning i taget); de läser databasen endast.
 - **Ägarbeslut 27–30 (2026-10-25) är införda och kopplade till fynden:**
   - GOR-06 rättad (`a9235d75c`).

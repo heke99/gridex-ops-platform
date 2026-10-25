@@ -2692,6 +2692,21 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **F7:** `UND_ERR_SOCKET other side closed`. Världen kördes på `9a6fc2a3d`, som saknar T27-rättningen.
 - **F8:** månadskörningen misslyckades med `billing_underlay_supply_contract_price_basis_required`. Bedöms i batch 2, eftersom F2 inte gav några avtal och F7 inte låste några spotpriser. **F9 och F10** följer av F8.
 
+### F8-B1 Ett klart fakturaunderlag vägrades alltid, så hela månadskörningen föll — PRODUKT, hög; RÄTTAD (agent)
+- **Fel:** månadskörningen för september (`c89b5623`, bolaget `1b8b8c72…`) föll med `billing_underlay_supply_contract_price_basis_required`. Det är **inte** en följd av F2 eller F7, och samma sak hade hänt i batch 2.
+- **Bevis, endast läsning:**
+  - De 4 leveransperioderna och avtalen är aktiva från 2026-09-01. Varje avtal har exakt en prissnapshot på en publicerad, låst planversion med giltig hash. Kund och mätpunkt stämmer.
+  - Ingen underlagsrad lagrades, och inget klart underlag har någonsin lagrats i världen.
+  - Det kvarvarande villkoret i `gridex_store_billing_underlay` är `price.snapshot_json IS DISTINCT FROM p_underlay->'pricing_snapshot'`. Exakt likhet krävs medvetet (`scripts/ediel-billing-source-sql-regression.mjs`).
+- **Orsak:**
+  - `generateBillingUnderlaysForMonth` (`lib/billing/underlayEngine.ts`) skickade den berikade prisnyttolasten som `pricing_snapshot`, med `contract_price_snapshot_id`, `pricing_model` och komponentlistor. Den är aldrig lika med `snapshot_json`, så varje klart underlag vägrades (23514).
+  - Alla underlag lagras i en transaktion (`gridex_store_billing_underlay_batch`), så ett enda klart underlag fäller hela bolagets körning.
+- **Rättning:** det klara underlaget lagrar avtalssnapshotens egen JSON. Den berikade nyttolasten används fortfarande för prisområde, produktion och uppskattning. SQL-vakten är oförändrad.
+- **Läsare av kolumnen** (kontrollerat): i faktureringsflödet bara motorns egen kopia vid omlagring och retentionskatalogen. Prissättning och faktura går via `contract_price_snapshot_id`.
+- **Test:** `__tests__/reality-f8b1-ready-underlay-exact-price-snapshot.test.ts`. Före rättningen rött (8 nycklar i stället för 5), efter rättningen 1/1. Relaterade tester 22/22. Täckningen 352/352, tagged failing 0.
+- **Omkört i körworktreen:** `ediel-billing-source-sql-regression.mjs` 50 PASS. F8-B1-testet och underlagstesterna 5 filer, 22/22.
+- **Kvar:** F8 i världen efter ombyggnad.
+
 ### T31 Världen saknade nätägarbyggare för Z02 och Z06 E/F/G — HARNESS; RÄTTAD (`a6ebae999`, agent)
 - **Byggarna:** `z06For` (`scripts/helpers/reality/inboundProdatWire.ts`) bygger Z06 E (E34), F (E64) och G (E32) från vår Z03 på den godkända nativa Z06-mallen. Parter, anläggning, LI, nätområde, kund och start tas från Z03, och ändringen sker 12 dagar efter start. `z02For` besvarar vår Z01 (L/LK).
 - **Kuvertet:** `encodeGridOwnerAnswer` är utbruten ur `buildZ04ForSwitchRequest`. Z04 är oförändrad.
