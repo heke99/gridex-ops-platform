@@ -14,7 +14,11 @@ Den hör ihop med tre andra dokument:
 - **Parallella agenter (egna worktrees, rör inte FINDINGS/STATUS/minne; huvudsessionen för in resultatet):**
   - Agent 1: T31 klar (`a6ebae999`), även i körworktreen, så J1 i batch 2 kör C10.
   - Agent 2: J4-D15 är kartlagd men inte ändrad, eftersom rättningen kräver guidebevis från producenten (se FINDINGS). Överlämningsbegäran postad i #840 (kommentar 6402595329).
-  - Ingen agent kör världen (en körning i taget).
+  - Agent 3: K-W1 klar (`fc728582d`).
+  - Agent 4: I-B2a–c (tenantens bytesformulär, Z01, fastnade jobb), pågår.
+  - Agent 5: D11 end-to-end som världsscenario (skrivs, körs efter batch 2), pågår.
+  - Agent 6: F8 `billing_underlay_supply_contract_price_basis_required`, följdfel eller eget fel, pågår.
+  - Ingen agent kör världen (en körning i taget); de läser databasen endast.
 - **Ägarbeslut 27–30 (2026-10-25) är införda och kopplade till fynden:**
   - GOR-06 rättad (`a9235d75c`).
   - D11 brytavgift del 1 och 2 (`dcf178642`, `d6fed0758`).
