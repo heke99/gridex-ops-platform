@@ -22,7 +22,7 @@ Den hör ihop med tre andra dokument:
 | Scenario | Senaste körning | Resultat | Kvar |
 |---|---|---|---|
 | A–E | tidigare omgångar | gröna och rättade | — |
-| F (faktura) | 32: 6/12 gröna (F2 miljö T26; F6c genomströmning G-9; F7 T27) | F116, F117 och T21 rättade efter körning 29; G-6 och G-6b behövs för F8 | Kör om när G-8 är klart |
+| F (faktura) | 32: 6/12 gröna (F2 miljö T26; F6c = G-9 felklassning, rättad; F7 T27) | F116, F117 och T21 rättade efter körning 29; G-6 och G-6b behövs för F8 | Kör om när G-8 är klart |
 | G (vintertid) | 3: 9/11 gröna (G9/G10 syntetisk spot, T28) | G-4, G-5, G-6 och G-6b rättade efter körningen | Kör om |
 | H (kunden lämnar) | 7: 8/9 gröna | H-9–H-17, T23, T25 och ägarbeslut 26 verifierade; T29 rättad | Körning 8 |
 | I, J1–J4, K | ej körda i denna omgång | — | Kör efter H |
@@ -58,7 +58,7 @@ Alla migrationer är applicerade i världen och har sha256 i `scripts/migration-
 
 ## Öppet, i prioritetsordning
 1. **H körning 3:** verifiera H-12, H-13 och T23 samt H4–H8.
-2. **G-8:** mätt till cirka 18 s per fil (från 2–3 min). F6c tar ändå över 2 h för 120 filer; utred cronens takt om det behövs.
+2. **G-8/G-9:** G-8 mätt till cirka 18 s per fil. F6c:s stopp var G-9 (felklassning som TGT), rättad. Kör om F.
 3. **G-7, världen:** gamla provisioneringsjobb i världen. Töm dem före scenariot.
 4. **H3d, öppna punkter:** UI för uppsägningsdagar, debitering av brytavgift (D11), markör för separata tjänster, avtalskortets slutdatum.
 5. **F113:** objektbatchen är skyddad och väntar på överlämning från kroppsägarna.

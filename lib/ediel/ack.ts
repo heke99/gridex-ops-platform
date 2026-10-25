@@ -497,6 +497,25 @@ export function utiltsTransactionAckReferencesForSource(sourceMessage: EdielMess
   return getUtiltsAckTransactionTargets(sourceMessage).map((target) => target.reference)
 }
 
+const EDIEL_PORTAL_PARTY_ID = '91100'
+
+/** Party ids of an EDIFACT interchange: UNB sender and recipient, and every NAD party (default separators or UNA). */
+function rawPartyIds(raw: string | null | undefined): Set<string> {
+  const ids = new Set<string>()
+  const text = String(raw ?? '')
+  const una = text.startsWith('UNA') ? text.slice(3, 9) : ':+.? \''
+  const component = una[0], element = una[1], terminator = una[5]
+  for (const segment of text.split(terminator)) {
+    const elements = segment.replace(/^\s+/, '').split(element)
+    const tag = elements[0]
+    const party = (index: number) => (elements[index] ?? '').split(component)[0].trim()
+    if (tag === 'UNB') { ids.add(party(2)); ids.add(party(3)) }
+    else if (tag === 'NAD') ids.add(party(2))
+  }
+  ids.delete('')
+  return ids
+}
+
 function utiltsTgtContextText(message: EdielMessageRow): string {
   return JSON.stringify({
     parsedPayload: message.parsed_payload,
@@ -522,7 +541,9 @@ export function isEdielPortalUtiltsE66TgtMessage(message: EdielMessageRow): bool
   const context = utiltsTgtContextText(message)
   const sender = String(message.sender_ediel_id ?? '').trim()
   const receiver = String(message.receiver_ediel_id ?? '').trim()
-  const hasEdielPortalParty = sender === '91100' || receiver === '91100' || context.includes('91100')
+  // The portal is a party: its id in the stored sender/receiver or in the interchange's UNB/NAD party fields, never
+  // any substring of the message (quarter-hour timestamps such as 202609091100 contain 91100; FINDINGS G-9).
+  const hasEdielPortalParty = sender === EDIEL_PORTAL_PARTY_ID || receiver === EDIEL_PORTAL_PARTY_ID || rawPartyIds(message.raw_payload).has(EDIEL_PORTAL_PARTY_ID)
   const hasTgtApplicationReference =
     context.includes('23-DDQ-E66-T') ||
     context.includes('E66-T') ||

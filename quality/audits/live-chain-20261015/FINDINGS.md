@@ -2530,9 +2530,18 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **G9 (T28, harness):** den syntetiska spotkällan publicerar hela oktober i förväg. Täckningen blir 44 700 av 44 700 och oktober låses den 25 oktober. Med den riktiga källan kan det inte ske. Som härdning kan låset vägra en månad som inte är slut (låg, ej rättad).
 - **G10:** inget oktoberunderlag; bedöms först med riktiga spotpriser (T26).
 
+### G-9 Produktions-E66 klassas som Ediel-portalens test (TGT) när en tidsstämpel innehåller "91100" och återupptas aldrig — BEKRÄFTAD (världen), KRITISK; RÄTTAD (TS)
+- **Bevis (F körning 32):** 22 av 123 E66 lagrades aldrig. Den hållna återupptagningen i inbound-cronen räknade dem som `notOperational` i 1,5 h och tog inga. Alla 22 olagrade innehåller "91100" och ingen av de 101 lagrade; träffen sitter i kvartstidsstämplar som `202609091100` och `202609110000`.
+- **Orsak:** `isEdielPortalUtiltsE66TgtMessage` (`lib/ediel/ack.ts`) letade efter portalens part-id 91100 var som helst i meddelandets text. E66 bär tillämpningsreferensen `23-DDQ-E66-T`, så kriteriet "TGT-referens" var också uppfyllt. `resolveUtiltsRuntimeReplyDispatch` gav då `draft_only` (`tgt_reference_in_production`).
+- **Konsekvens:** produktionsmätvärden för vissa dagar och tider (t.ex. 9, 11, 19 och 29 i månaden kl. 11:00 eller 00:00) lagras inte automatiskt och får inget svar. Debiteringen saknar dem.
+- **Prestanda:** när återupptagningen arbetar tar den cirka 6 filer på cirka 134 s, alltså cirka 22 s per fil (G-8), och stannar sedan på sin tidsbudget. Det som såg ut som låg genomströmning var att den slutade ta filerna.
+- **Rättning:** portalen räknas som part bara där ett part-id står: lagrad avsändare eller mottagare, eller UNB- och NAD-parterna i interchangen (UNA respekteras). Kriteriet för TGT-referens är oförändrat.
+- **Test:** `__tests__/reality-g9-portal-party-not-a-substring.test.ts`, 3 fall med den fastnade filens form; defektfallet föll före rättningen. 85 testfiler som rör ack, dispatch, återupptagning och TGT: 1605 pass. `tsc` rent. Täckningen 352/352, `tagged failing 0`.
+- Variantanalys: inga andra delsträngssökningar efter 91100. `isTgtApplicationReference` söker bara i tillämpningsreferensen.
+
 ### F körning 32 (2026-10-25 ca 00:30–04:30, syntetiska spotpriser): 6 av 12 gröna; F2, F6c–F10 röda
 - **F2:** T26 (SVK-värden nekas).
-- **F6c (G-9, hög prestanda; ÖPPEN):** efter 3 h var 22 av 123 källor inte lagrade, och 22 E66 saknade sitt applikationssvar. Lagringen tar cirka 18 s per fil (G-8), men omtaget i cron går med cirka 1,5 min per fil. Resten av tiden ligger i cronens takt och i kvittensvägen. Nästa steg: mät en cron-tick (filer per tick, tid per steg).
+- **F6c:** se G-9 nedan (felklassning, inte prestanda).
 - **F7:** `fetch failed`, `UND_ERR_SOCKET other side closed` direkt efter F6c. Samma anrop svarar 200 på 1,5 s och låser SE3 september. Sannolikt en återanvänd keep-alive-anslutning som servern redan stängt (harness, T27). Ej rättat.
 - **F8–F10:** följer av F6c och F7.
 
