@@ -2640,6 +2640,10 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **Att bevaka i världen:** `createInvoiceExportRun` kan flagga ett underlag på 0 kWh som ofullständig mätvärdestäckning.
 - **T35 (harness, RÄTTAD):** `cron()` (T27) gav TS7006, eftersom `res` saknade typ. Nu är den `IncomingMessage`.
 
+### J1, batch 2 (2026-10-25 ca 21:32–22:30): 1 grön, 2 röda, 9 överhoppade — kända orsaker
+- **J1-2:** samma formulär som bara plattformsadministratören ser, se I-B2c. Batch 2 startade före rättningen. **J1-3** följer av J1-2: ingen Z03 nådde nätägaren. Signerade byten startar inte heller av sig själva förrän I-B2a finns i den byggda appen.
+- **T31 (C10)** nåddes alltså inte än. J1 körs om efter ombyggnaden.
+
 ### I, batch 2 (2026-10-25 ca 20:47–21:32): 1 grön, 3 röda, 6 överhoppade
 - Utrett av en agent: I-B2a (produkt) och I-B2c (harness) är rättade, och I-B2b är världsfelet K-W1. I10:s fastnade jobb är följder av dessa och inget eget fel.
 

@@ -44,7 +44,7 @@ Den hör ihop med tre andra dokument:
 | J2 | batch 1: 8 gröna, 5 röda | bara kända J2-03/J2-05 (låsta) och J2-13 (beslut) | — |
 | J4 | batch 1: 5 gröna, 2 röda | J4-0 T26; J4-4 T32 rättad, J4-D15 öppen | Kör om |
 | K | batch 2: 10/12 gröna | K10/K11 verifierade; K4/K8 = K-W1 rättad (simulatorns ägarnamn); K-W1b behöver beslut | Kör om efter SVK-omimport |
-| J1 | batch 1: 1 grön, 3 röda | T30 och T31 rättade | Kör om |
+| J1 | batch 2: 1 grön, 2 röda (I-B2c/I-B2a, före rättning) | T30, T31, I-B2a och I-B2c rättade | Kör om |
 
 ## Rättat i denna omgång (commit → fynd)
 | Commit | Fynd |
