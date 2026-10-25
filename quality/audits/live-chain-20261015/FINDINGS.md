@@ -2161,6 +2161,29 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
   6. **Omvänd klass (låg):** `gridex_list_customer_operation_events` och `owner_rows_match` kopplar `grid_owners` på id utan tenantfilter.
   7. **Typkontrollen (låg):** `npx tsc --noEmit -p .` kräver nu `--max-old-space-size=8192`.
 
+### F113 Överlämningspaket enligt ägarbeslut 30 (2026-10-25) — ÖPPEN tills ändringen är integrerad och verifierad
+- **Låst objekt (inte ändrat):** `gridex_prodat_object_batch.require_wire_projection_v1(text,jsonb,jsonb,text,uuid)`, nås via `require_plan_v1` när admin godkänner masterdata för en PRODAT-objektbatch efter Z04/Z06.
+- **Migrationer som definierar eller pinnar objektet:**
+  - `20261014202520_ops_api_sc031_current_main_source_alignment.sql` (senaste kropp)
+  - `20261019160000_ediel_sc031_inbound_ignored_register_projection.sql` (SC-031, successor-hash)
+  - `20261019180300_db05_completed_parent_purpose_disposition.sql` (DB-05, kontrollerar att `protectedNames` är oförändrade)
+- **Lås och tester som måste godta en ny kropp:**
+  - SC-031: `__tests__/ediel-sc-031-ignored-register-projection-sql.test.ts` pinnar `successor='4c9dd19a…'` för just funktionen (rad 11–13) och jämför den fångade kroppen i `schema.sql` (rad 114).
+  - DB-05: `__tests__/ediel-db05-completed-parent-purpose-sql.test.ts` har funktionen i `protectedNames` och kräver identisk katalog före och efter sin installation.
+- **Ansvariga enligt #840 och minnet:** DB-05/AT-DB-05 levererades i PR846, med leveranskvitto i #840; ägarens reservationer är släppta. SC-031 ligger hos den befintliga GEN-producenten ("primärmanifest/befintlig GEN-producent … förblir deras scopes", #840), senast `codex-takeover-C2-GEN-joint-C3` enligt `.agent-memory/takeover-C2-GEN-SC031-20261014-checkpoint.md`. Ingen aktuell överlämning till denna gren finns. Är producenten inte längre aktiv ska ägarskapet överlämnas uttryckligen i #840 innan någon annan ändrar objektet.
+- **Ändring som behövs (förslaget, inte en migration):** `quality/audits/live-chain-20261015/proposals/F113-object-batch-and-scope-shared-grid-owner.sql`, ny kropp `4a19060e…`. Tenantens egen rad för området tas först. Bara om sådan saknas tas den delade raden som kommandots egen anläggning eller mätpunkt namnger. Två kandidater ger tvetydighet. Andra tenanters rader och onamngivna delade rader nekas. Likhetskontrollen mellan anläggning och mätpunkt behålls.
+- **Krav för överlämning och leverans:**
+  1. Uttrycklig överlämning från SC-031-ägaren (och DB-05-ägaren för `protectedNames`) i #840.
+  2. Migrationen skapas från förslaget med exakt förbildskontroll.
+  3. SC-031:s successor-hash och DB-05:s `protectedNames`-förväntan uppdateras av respektive ägare eller med deras överlämning, samma PR.
+  4. `scripts/reality-f113-shared-grid-owner-object-batch-scope-native.test.ts` (2/2) och F101-varianternas native-test (5/5) gröna på den nya kroppen.
+  5. GEN-ägaren fångar om `schema.sql`.
+  6. Täckningen 352/352 med `tagged failing 0`.
+  7. Verifiering i världen med ett Z04-godkännande för en delad nätägare.
+- **Fortfarande blockerat:** admins masterdatagodkännande efter Z04/Z06 för kommandon som namnger en delad nätägare (`prodat_object_batch_wire_grid_owner_required`).
+- **Oberoende arbete som kan fortsätta:** sidofynd 1 (`owner_code` mot Ediel-id), sidofynd 2 (godkännandet får inte rensa nätägaren) och sidofynd 4–6. Inget av dem rör det låsta objektet.
+- **Utkast till överlämningsbegäran i #840** (inte postad, väntar på ägarens klartecken): "F113 (delad nätägare i `require_wire_projection_v1`): begär avgränsad överlämning av exakt denna funktion plus SC-031:s successor-pin och DB-05:s protectedNames-förväntan, enligt förslaget `4a19060e…` i `quality/audits/live-chain-20261015/proposals/`. Tester och krav: se FINDINGS F113."
+
 ### F körning 28 slutresultat (17:25–20:51): 8 av 12 gröna; F6c, F8, F9, F10 röda
 - **Gröna:** F1–F5, F6, F6b och F7.
   - **F4:** starttiden enligt Ediel (F108) godtas.
