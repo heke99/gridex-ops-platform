@@ -2564,6 +2564,11 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **I2, Z01-vägen:** webbansökningarna stannar på `energy_area_resolve`, eftersom nätområdena saknas (T26, SVK-värden nekas).
 - **I2, Z03-vägen:** harnessen väntade 180 s på ett formulär som inte finns, se T30. **I3 och I10** följer av I2; I4–I9 hoppades över.
 
+### GOR-06 Positiv slutkvittens flyttar inte ett `prepared`-byte till `submitted` — låg; MEDVETET EJ ÄNDRAD (2026-10-25)
+- `syncSwitchFromInboundAck` (`lib/ediel/flows/inboundAckProcessing.ts`) flyttar bara `draft`/`queued` till `submitted`. Efter en skickad Z03 är bytet `prepared` och förblir det till Z04.
+- **Varför inte rättad:** databasens dispatchvakt (`gridex_guard_supplier_switch_dispatch` → `gridex_assert_supplier_switch_ready`) prövar all beredskap igen vid varje övergång till `submitted`. Prövat i en återställd transaktion: ett skickat byte vars kund senare ångrat sig ger `agreement_not_signed_with_exact_evidence, withdrawal_requested`. Om vi utvidgar övergången kastar kvittenshanteringen för sådana byten.
+- Alla konsumenter godtar i dag `prepared` som öppet (H-12 och variantanalysen). Livscykelvyn använder den utgående begäran. Beslut behövs: ska vakten skilja "skicka" från "redan skickad, kvitterad"?
+
 ### T30 Harnessen för I använde ett formulär som kundkortet inte längre visar — HARNESS; RÄTTAD
 - `createSwitchInAdmin` (`scripts/helpers/reality/rejectsWorld.ts`) letade efter `select[name="request_type"]` och knappen "Skapa switchärende" i `CustomerOperationsCard`, som inte renderas någonstans. Kundkortet använder `CustomerSwitchCreatePanel`, med `request_type` dold (`switch`) och knappen "Starta leverantörsbyte".
 - **Rättning:** harnessen väljer formuläret på `site_id`, `request_type` och `requested_start_date`, och klickar "Starta leverantörsbyte".
