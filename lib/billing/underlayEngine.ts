@@ -1373,7 +1373,9 @@ export async function generateBillingUnderlaysForMonth(input: {
             })),
             timezone: "Europe/Stockholm",
           },
-          pricing_snapshot: snapshotJson,
+          // gridex_store_billing_underlay binds a ready underlay to the contract price snapshot's own JSON
+          // (FINDINGS F8-B1); the enriched pricing payload is derived and would be refused.
+          pricing_snapshot: object(snapshot?.snapshot_json),
           received_at: now,
           validated_at: ready ? now : null,
         };
