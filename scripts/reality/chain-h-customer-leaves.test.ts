@@ -9,6 +9,8 @@
 // Then two customers whose switch is still pending:
 //   W  uses the right of withdrawal (ångerrätt, 14 days) through the staff console.
 //   C  is cancelled by the supplier (Z03C); the grid owner confirms with Z04C.
+// Finally the break fee (D11, owner decision 28): S's fee review cannot charge one on its variable-price contract (H10);
+// a fixed-price contract's fee is approved, underlaid, priced, locked, invoiced once and credited traceably (H11).
 // Every market fact arrives as a real inbound message and is processed by the real crons. Nothing the grid
 // owner would send is written to the database. Steps a run cannot reach are soft checks that say why.
 // Time model (ENV-08, owner decision 2026-10-23, T15): a Z05's DTM+93 end is its market instant 00:00 +0100 (the
@@ -25,6 +27,10 @@ import { processPendingContractConfirmations } from '@/lib/customer-contracts/on
 import { customerNormalizedMeteringValues } from '@/lib/metering/customerMeteringAccess'
 import { LIVE, augustSupplyCustomer, cron, literal, sql, type AugustFacility, type LiveTenant } from '../helpers/live-chain-fixture'
 import { closeOperatorConsole, operatorSession, submitServerAction } from '../helpers/reality/operatorConsole'
+import { createTenantStaff } from '../helpers/reality/tenantStaff'
+import { supabaseService } from '@/lib/supabase/service'
+import { calculatePricingPreviewForUnderlay, lockPricingPreview } from '@/lib/pricing/engine'
+import { createInvoiceExportRun } from '@/lib/integrations/billing/invoiceExportCore'
 import { pollInboundMailLanes, runSlotAfterInbound, runOperationalCronSlot, type GridOwnerSim } from '../helpers/reality/world'
 import { clockSettings, cronTick } from '../helpers/reality/clock'
 import { GRID_AREA, GRID_OWNER_EDIEL_ID, goLiveAlsSupplier } from '../helpers/reality/goLiveAls'
@@ -402,4 +408,139 @@ describe.sequential('reality H — the customer leaves', () => {
     report.stuck = stuck
     expect.soft(stuck.filter(row => row.kind === 'stuck')).toEqual([])
   })
+
+  // D11 / owner decision 28 (migrations 20261025110000 and 20261025120000): a break fee is charged only after the
+  // operator's fee review; for a consumer only on a time-bound contract with a fixed-price share, never above the loss
+  // and never with monthly or switch fees. It becomes its own underlay, is priced from the approved charge only, locked
+  // once, invoiced once through the normal invoice export and credited only traceably.
+  it('H10 D11: S\'s fee review cannot charge a break fee on a variable-price contract; nothing is charged or underlaid', async (context) => {
+    requireEstablished('H10', context)
+    const staff = await createTenantStaff(tenant.companyId, 'E2E Avgiftsgranskning')
+    const review = openBreakFeeReview(S.customerId!)
+    expect(review, 'S has an open break_fee_review from H4').toBeTruthy()
+    report.d11Variable = { review, contract: sql<Row>(`SELECT to_jsonb(c) FROM (SELECT id,contract_type,fixed_price_ore_per_kwh FROM public.customer_contracts WHERE id=${literal(review!.contractId)}) c`) }
+    const refused = await approveBreakFee(review!.id, staff.userId, breakFeeInput({ fixed: 60, replacement: 40, remainingKwh: 7_500, amount: 100 }))
+    expect(refused.error?.message, 'owner decision 28: never for variable price').toBe('break_fee_requires_fixed_price_share')
+    expect(breakFeeCharges(review!.contractId)).toEqual([])
+    expect(openBreakFeeReview(S.customerId!)?.id, 'the review stays open for the operator').toBe(review!.id)
+    saveReport()
+  }, 10 * 60_000)
+
+  it('H11 D11: an approved fixed-price break fee is its own underlay, priced and locked once, invoiced once and credited traceably', async (context) => {
+    requireEstablished('H11', context)
+    const fixed = fixedPriceBreakFeeReview()
+    // H's offer is variable (configureTenant publishes 'variable_quarterly'), and the harness has no fixed-price offer
+    // builder yet: this step runs only when the tenant holds a fixed-price contract with an open fee review.
+    if (!fixed) {
+      report.d11Fixed = { skipped: 'no fixed-price contract with an open break_fee_review in the tenant (no fixed-price offer builder in the harness)' }
+      saveReport()
+      context.skip()
+      return
+    }
+    const staff = await createTenantStaff(tenant.companyId, 'E2E Avgiftsgranskning')
+    const remainingKwh = Number(fixed.remainingKwh), price = Number(fixed.fixedOre), replacement = price - 12
+    const loss = Math.round(Math.max(0, price - replacement) * remainingKwh) / 100
+    const input = breakFeeInput({ fixed: price, replacement, remainingKwh, amount: loss })
+    // Prohibited: above the loss, remaining monthly fees, an unverified VAT classification. Nothing is charged.
+    expect((await approveBreakFee(fixed.id, staff.userId, { ...input, amount_ex_vat: loss + 1 })).error?.message).toBe('break_fee_exceeds_loss')
+    expect((await approveBreakFee(fixed.id, staff.userId, { ...input, calculation: { ...input.calculation, components: ['price_difference', 'remaining_monthly_fees'] } })).error?.message).toBe('break_fee_component_not_allowed')
+    expect((await approveBreakFee(fixed.id, staff.userId, { ...input, vat_classification: { vat_rate: 0.25 } })).error?.message).toBe('break_fee_vat_classification_unverified')
+    expect(breakFeeCharges(fixed.contractId)).toEqual([])
+    // Approval: one charge and the review done; a repeat returns the same charge.
+    const approved = await approveBreakFee(fixed.id, staff.userId, input)
+    expect(approved.error, JSON.stringify(approved.error)).toBeNull()
+    expect((await approveBreakFee(fixed.id, staff.userId, input)).data).toMatchObject({ applied: false, reason: 'already_approved' })
+    expect(breakFeeCharges(fixed.contractId)).toHaveLength(1)
+    const [charge] = breakFeeCharges(fixed.contractId)
+    expect(charge).toMatchObject({ status: 'approved', amount: loss })
+    // Its own underlay: the supply-end Stockholm day, 0 kWh, blocked until locked; a repeat returns it.
+    const underlay = (actor: string) => supabaseService.rpc('gridex_underlay_break_fee_v1', { p_company_id: tenant.companyId, p_charge_id: charge.id, p_actor_user_id: actor })
+    const underlaid = await underlay(staff.userId)
+    expect(underlaid.error, JSON.stringify(underlaid.error)).toBeNull()
+    const underlayId = String((underlaid.data as { billingUnderlayId: string }).billingUnderlayId)
+    expect((await underlay(staff.userId)).data).toMatchObject({ applied: false, reason: 'already_underlaid', billingUnderlayId: underlayId })
+    const row = sql<Row>(`SELECT to_jsonb(u) FROM (SELECT total_kwh::float8 kwh,readiness_status,payload->>'charge_kind' kind,billing_period_start::text start FROM public.billing_underlays WHERE id=${literal(underlayId)}) u`)
+    expect(row).toMatchObject({ kwh: 0, readiness_status: 'blocked', kind: 'break_fee' })
+    // Priced by the existing engine from the approved charge only: one break_fee line with the classified VAT, no energy.
+    const priced = await calculatePricingPreviewForUnderlay({ companyId: tenant.companyId, billingUnderlayId: underlayId })
+    report.d11Pricing = priced
+    expect(priced.status, JSON.stringify(priced.errors)).toBe('success')
+    expect(priced.lines.map(l => l.lineType)).toEqual(['break_fee'])
+    expect(priced.lines[0]).toMatchObject({ quantity: 1, amountExVat: loss, vatRate: 0.25 })
+    expect(priced.totalIncVat).toBeCloseTo(Math.round(loss * 125) / 100, 2)
+    expect(sql<string[]>(`SELECT coalesce(jsonb_agg(line_type),'[]') FROM public.pricing_preview_lines WHERE pricing_run_id=${literal(priced.pricingRunId)}`)).toEqual(['break_fee'])
+    // Locked once: one contract_charge_ledger event for the charge, and the underlay is ready.
+    await lockPricingPreview({ companyId: tenant.companyId, pricingRunId: String(priced.pricingRunId), actorUserId: staff.userId })
+    const ledger = () => sql<number>(`SELECT to_jsonb(count(*)) FROM public.contract_charge_ledger WHERE company_id=${companyLiteral()} AND event_key=${literal(charge.id)}`)
+    expect(ledger()).toBe(1)
+    expect(sql<string>(`SELECT to_jsonb(readiness_status) FROM public.billing_underlays WHERE id=${literal(underlayId)}`)).toBe('ready')
+    // Invoiced once through the normal invoice export; a second run adds nothing, and a direct second invoice of the
+    // underlay is refused by the database (break_fee_already_invoiced).
+    const month = String(row.start).slice(0, 7)
+    report.d11Export = await createInvoiceExportRun({ companyId: tenant.companyId, billingMonth: month, actorUserId: staff.userId })
+    const invoices = () => sql<Array<{ id: string; exVat: number }>>(`SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,'exVat',amount_ex_vat)),'[]') FROM public.customer_invoices
+      WHERE company_id=${companyLiteral()} AND billing_underlay_id=${literal(underlayId)}`)
+    expect(invoices()).toHaveLength(1)
+    expect(invoices()[0]).toMatchObject({ exVat: loss })
+    expect(breakFeeCharges(fixed.contractId)[0]).toMatchObject({ status: 'invoiced', invoiceId: invoices()[0].id })
+    await createInvoiceExportRun({ companyId: tenant.companyId, billingMonth: month, actorUserId: staff.userId }).catch(error => { report.d11SecondExport = String(error) })
+    expect(invoices()).toHaveLength(1)
+    expect(ledger()).toBe(1)
+    expect(sql<string>(`DO $d11$ BEGIN
+        INSERT INTO public.customer_invoices(company_id,customer_id,billing_underlay_id,amount_ex_vat,vat_amount,amount_inc_vat,currency,status)
+          SELECT company_id,customer_id,id,1,0,1,'SEK','draft' FROM public.billing_underlays WHERE id=${literal(underlayId)};
+        PERFORM set_config('d11.second', 'accepted', false);
+      EXCEPTION WHEN OTHERS THEN PERFORM set_config('d11.second', SQLERRM, false); END $d11$;
+      SELECT to_jsonb(current_setting('d11.second'));`)).toBe('break_fee_already_invoiced')
+    // Credited only traceably: refused without an adjustment case naming the original and the credit invoice.
+    const credit = sql<string>(`INSERT INTO public.customer_invoices(company_id,customer_id,amount_ex_vat,vat_amount,amount_inc_vat,currency,status,metadata)
+      SELECT company_id,customer_id,-amount_ex_vat,-vat_amount,-amount_inc_vat,currency,'draft',jsonb_build_object('credit_of',id) FROM public.customer_invoices
+      WHERE id=${literal(invoices()[0].id)} RETURNING to_jsonb(id)`)
+    const credited = () => supabaseService.rpc('gridex_record_break_fee_credit_v1', { p_company_id: tenant.companyId, p_charge_id: charge.id, p_credit_invoice_id: credit, p_actor_user_id: staff.userId })
+    expect((await credited()).error?.message).toBe('break_fee_credit_not_traceable')
+    // No product writer creates a break-fee adjustment case or credit invoice yet: both are the operator's fixture here.
+    sql(`INSERT INTO public.billing_adjustment_cases(company_id,original_billing_underlay_id,original_invoice_id,credit_invoice_id,reason,status,currency)
+      VALUES(${companyLiteral()},${literal(underlayId)},${literal(invoices()[0].id)},${literal(credit)},'break_fee_credit','approved','SEK')`)
+    expect((await credited()).data).toMatchObject({ applied: true, status: 'credited' })
+    expect((await credited()).data).toMatchObject({ applied: false, reason: 'already_credited' })
+    expect(breakFeeCharges(fixed.contractId)[0]).toMatchObject({ status: 'credited', creditInvoiceId: credit })
+    // Isolation: no break-fee charge or invoice of this contract or underlay exists in another tenant.
+    expect(sql<number>(`SELECT to_jsonb((SELECT count(*) FROM public.break_fee_charges WHERE company_id<>${companyLiteral()} AND customer_contract_id=${literal(fixed.contractId)})
+      + (SELECT count(*) FROM public.customer_invoices WHERE company_id<>${companyLiteral()} AND billing_underlay_id=${literal(underlayId)}))`)).toBe(0)
+    saveReport()
+  }, 20 * 60_000)
 })
+
+type BreakFeeReview = { id: string; contractId: string; fixedOre?: number; remainingKwh?: number }
+const OPEN_TASK = `status IN ('open','in_progress')`
+function openBreakFeeReview(customerId: string) {
+  return sql<BreakFeeReview | null>(`SELECT to_jsonb(r) FROM (SELECT id,metadata->>'contract_id' "contractId" FROM public.customer_operation_tasks
+    WHERE company_id=${companyLiteral()} AND customer_id=${literal(customerId)} AND task_type='break_fee_review' AND ${OPEN_TASK}
+    ORDER BY created_at DESC LIMIT 1) r`) ?? null
+}
+/** A fixed-price contract of the tenant with an open fee review; remaining expected volume = annual kWh x remaining binding months / 12. */
+function fixedPriceBreakFeeReview() {
+  return sql<BreakFeeReview | null>(`SELECT to_jsonb(r) FROM (SELECT t.id,c.id::text "contractId",c.fixed_price_ore_per_kwh::float8 "fixedOre",
+      round(coalesce(s.annual_consumption_kwh,9000) * greatest(0,(extract(year from age(b.ends,b.supply_end))*12 + extract(month from age(b.ends,b.supply_end)))) / 12)::float8 "remainingKwh"
+    FROM public.customer_operation_tasks t
+    JOIN public.customer_contracts c ON c.id::text=t.metadata->>'contract_id' AND c.company_id=t.company_id
+    CROSS JOIN LATERAL (SELECT nullif(t.metadata->>'binding_ends_at','')::date ends, nullif(t.metadata->>'supply_end_date','')::date supply_end) b
+    LEFT JOIN public.customer_sites s ON s.id=coalesce(c.customer_site_id,c.site_id)
+    WHERE t.company_id=${companyLiteral()} AND t.task_type='break_fee_review' AND t.${OPEN_TASK} AND c.fixed_price_ore_per_kwh IS NOT NULL
+      AND c.contract_type IN ('fixed','mixed','portfolio')
+    ORDER BY t.created_at LIMIT 1) r`) ?? null
+}
+function breakFeeInput(input: { fixed: number; replacement: number; remainingKwh: number; amount: number }) {
+  return { customer_category: 'consumer', category_basis: { source: 'customer_type', value: 'private' }, amount_ex_vat: input.amount,
+    calculation: { components: ['price_difference'], fixed_price_ore_per_kwh: input.fixed, replacement_price_ore_per_kwh: input.replacement, remaining_expected_kwh: input.remainingKwh },
+    loss_basis: { method: 'price_difference_x_remaining_volume', replacement_source: 'operator_review' },
+    vat_classification: { code: 'early_termination_compensation', vat_rate: 0.25, account: '3990', verified_by: 'E2E redovisning', verified_at: new Date().toISOString(), source: 'reality H11 review' } }
+}
+function approveBreakFee(taskId: string, actorUserId: string, input: Record<string, unknown>) {
+  return supabaseService.rpc('gridex_approve_break_fee_v1', { p_company_id: tenant.companyId, p_review_task_id: taskId, p_input: input, p_actor_user_id: actorUserId })
+}
+function breakFeeCharges(contractId: string) {
+  return sql<Array<{ id: string; status: string; amount: number; invoiceId: string | null; creditInvoiceId: string | null }>>(`SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,
+    'status',status,'amount',amount_ex_vat,'invoiceId',invoice_id,'creditInvoiceId',credit_invoice_id) ORDER BY created_at),'[]')
+    FROM public.break_fee_charges WHERE company_id=${companyLiteral()} AND customer_contract_id=${literal(contractId)}`)
+}
