@@ -44,7 +44,7 @@ Nya beslut läggs till sist, och inget tas bort. Ett beslut som ersätts markera
 - **GOR-06:** besvarad, beslut 27.
 - **Stående godkännande (2026-10-25):** ägaren godkänner att simuleringen alltid fortsätter och att överlämningsbegäranden för låsta objekt postas i #840.
 
-## Väntar på ägarbeslut (förslag 2026-10-25, utredda av en agent från kod, schema och FINDINGS)
+## Förslag 31–34 (2026-10-25, utredda av en agent från kod, schema och FINDINGS) — BESLUTADE, se ägarbeslut 31–34 nedan
 
 ### Förslag 31 — K-W1b: SVK-importen binder om ett mappat nätområde till en omappad ägare vid stavningsskillnad
 - **Fråga:** hur ska `gridex_import_grid_area_master_row` välja plattformsägare när SVK:s ägarnamn ger en annan `gridex_grid_owner_name_key` än registret? I dag skapas då en ny ägare, och `platform_grid_areas.grid_owner_id` skrivs över.
@@ -73,3 +73,45 @@ Nya beslut läggs till sist, och inget tas bort. Ett beslut som ersätts markera
 - **B, A plus spärr:** fakturering spärras vid avvikelse. Risk för fakturastopp vid sena E31.
 - **C, ingen avstämning.**
 - **Rekommendation: A först**, B när trösklarna är kända.
+
+## Ägarbeslut 31–34 (ägaren, 2026-10-25), med krav
+
+### Ägarbeslut 31 — K-W1b: A, behåll kopplad nätägare vid namnkonflikt
+- En skillnad i stavning eller företagsnamn ska inte ensam ändra nätområdets nätägarkoppling.
+- Matcha i första hand mot verifierade, stabila identifierare och dokumenterade kopplingar.
+- Logga konflikten med källa, befintlig koppling och importerad uppgift, för granskning.
+- Ett verkligt ägarbyte ska kunna genomföras genom en separat, verifierad ändring med historik.
+
+### Ägarbeslut 32 — I-B2d: B, "Försök igen" genom befintlig automation
+- Personalen ska kunna försöka igen från ärendet, utan att fylla i det tekniska bytesformuläret.
+- Återförsöket kontrollerar felorsak, avtalsgiltighet, behörighet, datum och befintlig meddelandestatus.
+- Om utskicket kan ha nått mottagaren ska systemet först utreda det befintliga ärendet. Det får inte blint skicka en ny bytesanmälan.
+- Ett redan bekräftat byte får inte startas om.
+- Avtalat startdatum ändras inte automatiskt.
+- Dubbla köjobb och utskick förhindras.
+- Det loggas vem som initierade återförsöket.
+
+### Ägarbeslut 33 — D11-G1: A, avgränsat kreditflöde för brytavgifter via befintlig fakturamotor
+- **Omfattning:** hel- och delkreditering, med behörighetskontroll, orsak, låsning och revisionsspår.
+- **Kreditfakturan** hänvisar till ursprungsfakturan och de berörda avgiftsraderna.
+- **Beräkning:** krediten utgår från den ursprungliga debiteringen och dess moms- och konteringsbehandling. Den räknas inte om med dagens priser.
+- **Tak:** sammanlagd kreditering får inte överstiga det ursprungligen debiterade beloppet.
+- **Avgränsning:**
+  - Den generella kreditfunktionen förblir stängd i denna etapp.
+  - Ingen separat teknisk faktureringslösning.
+  - En eventuell återbetalning hanteras och spåras separat från krediteringen.
+
+### Ägarbeslut 34 — J2-13: A, avstämning med korrekt uppdelning
+- **Två separata kontroller:**
+  1. egna mätvärden mot nätägarens jämförbara summerade mätvärden;
+  2. nettofakturerade kWh, inklusive krediteringar och rättelser, mot motsvarande faktureringsgrundande mätvärden.
+- **Avgränsning:** per tenant/elhandelsaktör, nätavräkningsområde, leveransperiod och relevant serietyp.
+- **Hantera:** leveransstarter, avslut, enheter, tidsupplösning och rättade filversioner.
+- **S03** är preliminära andelstal/planvärden, inte slutligt uppmätt förbrukning.
+- **Saknade eller ofullständiga data** får en egen avvikelsestatus. De räknas aldrig som noll eller som godkänd avstämning.
+- **Tidpunkter:** en månadsvis sammanställning är första etapp, plus kontroll vid nya eller korrigerade mätvärdesunderlag.
+- **Toleranser:** dokumenterade, i både kWh och procent.
+- **Vid avvikelse:** ett spårbart personalärende, med ansvarig och underlag för kontakt med nätägaren.
+- **Inte i denna etapp:** inga automatiska rättelser och ingen ny generell faktureringsspärr. Befintliga faktureringskontroller fortsätter gälla.
+
+**Gemensamt:** besluten dokumenteras, och berörda scenarier verifieras innan fynden markeras som lösta.
