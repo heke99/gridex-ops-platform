@@ -58,7 +58,7 @@ Alla migrationer är applicerade i världen och har sha256 i `scripts/migration-
 
 ## Öppet, i prioritetsordning
 1. **H körning 3:** verifiera H-12, H-13 och T23 samt H4–H8.
-2. **G-8:** mät tiden per mätvärdesfil i världen (F eller G). Om den fortfarande är hög: batch-RPC per fil i consume.
+2. **G-8:** mätt till cirka 18 s per fil (från 2–3 min). F6c tar ändå över 2 h för 120 filer; utred cronens takt om det behövs.
 3. **G-7, världen:** gamla provisioneringsjobb i världen. Töm dem före scenariot.
 4. **H3d, öppna punkter:** UI för uppsägningsdagar, debitering av brytavgift (D11), markör för separata tjänster, avtalskortets slutdatum.
 5. **F113:** objektbatchen är skyddad och väntar på överlämning från kroppsägarna.

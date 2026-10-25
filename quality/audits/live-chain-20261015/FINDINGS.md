@@ -2638,7 +2638,7 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
   - Valt i stället för en batch-RPC per fil: det gäller alla anropare (consume, läsning, grind, underlag) utan TS-ändring.
 - **Test:** `__tests__/reality-g8-utilts-stored-contract-pure-checks-once.test.ts`, 4 fall i PGlite mot den verkliga förbilden. Samma resultat och fel före och efter för 16 kombinationer × 3 anrop, inga rena kontroller vid upprepat godkänt anrop, regeländring validerar på nytt, tabellen stängd för API-roller, vägrar annan förbild. Utan migrationen faller 3 av 4. Ett första utkast föll på att `SELECT INTO` nollställde `FOUND`; det är rättat med tilldelningar.
 - Relaterade G-2/G-6/G-6b: 20/20. Täckningen 352/352, `tagged failing 0`.
-- ÖPPET: mät tiden per fil i världen (F eller G).
+- **MÄTT i världen (F körning 32, 2026-10-25):** 212 filer med cirka 96 värden lagrades på i snitt 17,9 s per fil (median 18,0 s), mot 2–3 min före. Minnestabellen har 239 rader. Hela F6c går ändå långsamt: 98 av 120 filer efter cirka 2 h, så resten av tiden per fil ligger utanför lagringen (cronens takt).
 
 ### G-7 En ny tenants revalideringsjobb väntar efter 181 äldre jobb från andra tenants i världen — WORLD/HARNESS; ÖPPEN
 - Claimen fungerar som den är byggd (G-3), men 20 jobb var tionde minut räcker inte för eftersläpningen.
