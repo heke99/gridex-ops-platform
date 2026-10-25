@@ -56,7 +56,7 @@ describe('installed atomic normal-switch enqueue consumer',()=>{
   await expect(renderAndQueueNormalSwitch(await input())).rejects.toThrow('switch_original_atomic_enqueue_unconfirmed')
   expect(io.render).not.toHaveBeenCalled();expect(io.queue).not.toHaveBeenCalled()
  })
- it.each([null,{}, {...queued,status:'held'}, {...queued,messageId:'another'}, {...queued,authorizesProviderEntry:true}, {...queued,deliveryProven:true}, {...queued,outboxId:null}, {...queued,outboxId:'not-an-outbox'}, {...queued,status:'other'}])('fails closed for invalid atomic outcome %j',async data=>{
+ it.each([null,{}, {...queued,status:['queued']}, {...queued,status:'held'}, {...queued,messageId:'another'}, {...queued,authorizesProviderEntry:true}, {...queued,deliveryProven:true}, {...queued,outboxId:null}, {...queued,outboxId:'not-an-outbox'}, {...queued,status:'other'}])('fails closed for invalid atomic outcome %j',async data=>{
   io.intent.mockResolvedValue({...intent,edielMessageId:'message'});io.rpc.mockResolvedValue({data,error:null})
   await expect(renderAndQueueNormalSwitch(await input())).rejects.toThrow('switch_original_atomic_enqueue_unconfirmed')
   expect(io.render).not.toHaveBeenCalled();expect(io.queue).not.toHaveBeenCalled();expect(io.lifecycle).not.toHaveBeenCalled()
@@ -90,7 +90,7 @@ describe('installed atomic normal-switch enqueue consumer',()=>{
   await renderAndQueueNormalSwitch(await input());expect(io.rpc).toHaveBeenCalledWith('gridex_enqueue_normal_supplier_switch_v1',expect.objectContaining({p_intent_id:'intent'}));expect(io.queue).not.toHaveBeenCalled()
  })
  it('observes an existing active claim without a new bind, render or queue',async()=>{
-  io.intent.mockResolvedValue({...intent,edielMessageId:'message'});io.message.mockResolvedValue({...message,status:'dispatching'})
+  io.intent.mockResolvedValue({...intent,edielMessageId:'message'});io.message.mockResolvedValueOnce({...message,status:'queued'}).mockResolvedValue({...message,status:'dispatching'})
   io.rpc.mockResolvedValue({data:{...queued,status:'in_progress'},error:null})
   expect((await renderAndQueueNormalSwitch(await input())).status).toBe('dispatching');expect(io.rpc).toHaveBeenCalledTimes(1);expect(io.lifecycle).not.toHaveBeenCalled();expect(io.queue).not.toHaveBeenCalled()
  })

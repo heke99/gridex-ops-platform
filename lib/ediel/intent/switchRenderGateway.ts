@@ -58,7 +58,7 @@ export async function renderAndQueueNormalSwitch(input:{intentId:string;actorUse
  if(error)throw error
  const outcome=data&&typeof data==='object'&&!Array.isArray(data)?data:null
  const outboxId=outcome?.outboxId
- if(!outcome||!['queued','in_progress','accepted'].includes(String(outcome.status))||outcome.messageId!==message.id
+ if(!outcome||typeof outcome.status!=='string'||!['queued','in_progress','accepted'].includes(outcome.status)||outcome.messageId!==message.id
   ||outcome.authorizesProviderEntry!==false||outcome.deliveryProven!==false
   ||(outcome.status!=='accepted'&&(typeof outboxId!=='string'||!(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i).test(outboxId))))throw new Error('switch_original_atomic_enqueue_unconfirmed')
  const persisted=await getEdielMessageById(message.id)
