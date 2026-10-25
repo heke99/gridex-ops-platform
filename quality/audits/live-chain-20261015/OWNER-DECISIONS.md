@@ -43,3 +43,33 @@ Nya beslut läggs till sist, och inget tas bort. Ett beslut som ersätts markera
 - **26 (2026-10-25, H6):** båda: scenariot levererar S:s hela (förflutna) oktober, och en ofullständig månad lagras som underlag i granskning (`needs_review`/`blocked`) i stället för att kastas. Den faktureras aldrig. Ägaren tillåter också nätverket för SVK (`services2.arcgis.com`) och spotpriser (`www.elprisetjustnu.se`).
 - **GOR-06:** besvarad, beslut 27.
 - **Stående godkännande (2026-10-25):** ägaren godkänner att simuleringen alltid fortsätter och att överlämningsbegäranden för låsta objekt postas i #840.
+
+## Väntar på ägarbeslut (förslag 2026-10-25, utredda av en agent från kod, schema och FINDINGS)
+
+### Förslag 31 — K-W1b: SVK-importen binder om ett mappat nätområde till en omappad ägare vid stavningsskillnad
+- **Fråga:** hur ska `gridex_import_grid_area_master_row` välja plattformsägare när SVK:s ägarnamn ger en annan `gridex_grid_owner_name_key` än registret? I dag skapas då en ny ägare, och `platform_grid_areas.grid_owner_id` skrivs över.
+- **A, ompekning vägras:** ett område som pekar på en mappad ägare behåller den när den nya kandidaten är omappad, och avvikelsen loggas för granskning. En förbildsomskrivning av funktionen; liten insats och risk. Inga lås berörs.
+- **B, matchning på stabil identitet:** träffen avgörs av Ediel-id eller organisationsnummer före namnnyckeln. Kräver en översättningstabell från SVK-ägare till Ediel-id; medelstor insats.
+- **C, som i dag:** alla exakta adresser i området kan tappa nätägaren, och då stoppas inga byten.
+- **Rekommendation: A nu**, B senare vid behov.
+
+### Förslag 32 — I-B2d: tenanten saknar UI-väg för att återskapa ett misslyckat byte
+- **Fråga:** ska tenantens operatör kunna starta om ett misslyckat byte? Bytespanelen visas bara för `isPlatformAdmin` på fliken `switch-operations`, trots att `allowTenantStartSwitch` finns.
+- **A, tenanten får panelen:** bara `CustomerSwitchCreatePanel`, när `allowTenantStartSwitch` gäller. Serveråtgärden prövas för `switching.write`. Liten–medel insats.
+- **B, "Försök igen" på det misslyckade bytet:** åtgärden köar om `start_supplier_switch` via automationen. Medel insats.
+- **C, bara plattformsadministratören:** I9 körs som plattformsadmin, och tenanten får ringa supporten.
+- **Rekommendation: B.**
+
+### Förslag 33 — D11-G1: ingen produktväg krediterar en fakturerad brytavgift
+- **Fråga:** hur ska en fakturerad brytavgift krediteras? `gridex_record_break_fee_credit_v1` kräver ett `billing_adjustment_cases`-ärende som ingen kod skapar, och `POST /api/internal/invoices/[id]/credit` svarar alltid 409.
+- **A, ett avgränsat kreditflöde för brytavgift:** en RPC skapar justeringsärendet och ett negativt underlag. Underlaget går genom den vanliga prissättningen, låsningen och exporten och binds sedan av `gridex_record_break_fee_credit_v1`. Medel insats.
+- **B, det allmänna kreditflödet först:** större insats, med eget beslut om kreditregler.
+- **C, manuell kreditering utanför Gridex:** spårbarheten går förlorad.
+- **Rekommendation: A.**
+
+### Förslag 34 — J2-13: ingen avstämning mellan uppmätt, fakturerat och E31/S03
+- **Fråga:** ska plattformen stämma av egna mätvärden och fakturerade kWh mot nätägarens E31 och S03? De tolkas i dag men jämförs inte med något.
+- **A, kontrollvy och avvikelseuppgift:** per nätområde och månad, med en tröskel. Ingen automatisk ändring. Medel insats.
+- **B, A plus spärr:** fakturering spärras vid avvikelse. Risk för fakturastopp vid sena E31.
+- **C, ingen avstämning.**
+- **Rekommendation: A först**, B när trösklarna är kända.
