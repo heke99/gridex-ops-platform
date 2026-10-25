@@ -56,13 +56,14 @@ Den hör ihop med tre andra dokument:
 Alla migrationer är applicerade i världen och har sha256 i `scripts/migration-history-manifest.additions.json`. GEN-ägaren behöver fånga om `schema.sql`.
 
 ## Öppet, i prioritetsordning
-1. **H körning 3:** verifiera H-12, H-13 och T23 samt H4–H8.
-2. **G-8/G-9:** G-8 mätt till cirka 18 s per fil. F6c:s stopp var G-9 (felklassning som TGT), rättad. Kör om F.
-3. **G-7, världen:** gamla provisioneringsjobb i världen. Töm dem före scenariot.
-4. **H3d, öppna punkter:** UI för uppsägningsdagar, debitering av brytavgift (D11), markör för separata tjänster, avtalskortets slutdatum.
-5. **F113:** objektbatchen är skyddad och väntar på överlämning från kroppsägarna.
-6. **GEN-ägaren** behöver fånga om `schema.sql` (G-6, G-6b, G-8, H-13 m.fl.).
-7. **Fel som fanns före ändringarna:** `ediel-inbound-tenant-resolution`, `gridex-manual-grid-owner-information-request`, `gridex-shared-mailbox-tenant-resolution`, `canonical-production-hardening`, `db:types:check`, och SQL-regressionerna `ediel-bilateral-prodat-closure`, `-owned-end` och `ediel-closure-continuity`. I denna container faller också `manual-mail-*` (4 tester) eftersom `xlsx` saknas.
+1. **Batch 1** (J1, J2, J4, K, F) pågår; därefter körs I om (T30) och en batch 2 med `REALITY_SVK_SOURCE=simulated REALITY_SPOT_SOURCE=synthetic` (F2, G9/G10, I:s Z01-väg).
+2. **Kräver ägarbeslut (inte rättbart utan beslut):**
+   - H3d D11: hur en granskad brytavgift debiteras (separat underlag eller faktura).
+   - Markör för separat avtalade tjänster (beslut 20).
+   - GOR-06: ska dispatchvakten skilja nytt utskick från redan kvitterat?
+   - F113: överlämning från kroppsägarna (DB-05/SC-031).
+3. **GEN-ägaren** behöver fånga om `schema.sql` (G-6, G-6b, G-8, H-13, H-17).
+4. **Fel som fanns före ändringarna:** `ediel-inbound-tenant-resolution`, `gridex-manual-grid-owner-information-request`, `gridex-shared-mailbox-tenant-resolution`, `canonical-production-hardening`, `db:types:check`; SQL-regressionerna `ediel-bilateral-prodat-closure`, `-owned-end` och `ediel-closure-continuity`; `gridex-actor-registry-intake-hardening-regression.cjs` och `gridex-customer-legal-package-regression.cjs`; `manual-mail-*` (`xlsx` saknas i containern).
 
 ## Så körs världen
 1. Bygg om på HEAD:
