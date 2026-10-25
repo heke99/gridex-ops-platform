@@ -97,7 +97,7 @@ export async function cron(path: string): Promise<{ status: number; body: Record
   const url = new URL(path, LIVE.appUrl)
   const { request } = await import(url.protocol === 'https:' ? 'node:https' : 'node:http')
   return new Promise((resolve, reject) => {
-    const req = request(url, { method: 'GET', agent: false, headers: { authorization: `Bearer ${LIVE.cronSecret}` } }, (res) => {
+    const req = request(url, { method: 'GET', agent: false, headers: { authorization: `Bearer ${LIVE.cronSecret}` } }, (res: import('node:http').IncomingMessage) => {
       const chunks: Buffer[] = []
       res.on('data', (chunk: Buffer) => chunks.push(chunk))
       res.on('end', () => {

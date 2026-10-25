@@ -2620,6 +2620,22 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
   - **Verifierat i världen:** plattformens egen schemalagda import körde mot simulatorn. `energy_geodata_versions` blev `verified`, och ALS innehåller scenariopunkten.
 - **Spot:** `up.sh` skickar nu `REALITY_SPOT_SOURCE` vidare till världssimulatorn (`synthetic` när värden nekas). Se T28 för publiceringsregeln.
 
+### D11 end-to-end i världen: H10 och H11 i scenario H (`cbcb67c77`, agent; ej körd ännu)
+- **H10:** S:s rörliga konsumentavtal nekas (`break_fee_requires_fixed_price_share`). Ingen avgift skapas och granskningen förblir öppen.
+- **H11:** följer hela vägen från avgiftsgranskning till kreditering och prövar varje steg:
+  - **Nekanden först:** belopp över förlusten, månadsavgifter i beräkningen och overifierad momsklassning.
+  - **Godkännande:** en avgift lika med förlusten. En upprepning ger `already_approved`.
+  - **Eget underlag:** 0 kWh, `charge_kind` `break_fee`, `blocked`.
+  - **Prissättning:** exakt en `break_fee`-rad med momsen ur klassningen, ingenting från mätvärden.
+  - **Låsning:** en händelse i `contract_charge_ledger`, och underlaget blir `ready`.
+  - **Fakturering:** en faktura. En andra export ger ingenting, och en direkt andra faktura nekas (`break_fee_already_invoiced`).
+  - **Kreditering:** nekas utan justeringsärende, ger `credited` med ett, och en upprepning ger `already_credited`.
+  - **Tenantisolering:** ingenting av detta finns hos en annan tenant.
+- **D11-G2, harness, en agent arbetar på det:** H11 hoppar över sig själv, eftersom harnessen inte kan bygga ett fastprisavtal med bindningstid.
+- **D11-G1, produkt, ÖPPEN, kräver ägarbeslut:** ingen produktväg skapar en kreditfaktura eller ett justeringsärende för en brytavgift. H11 skapar båda själv som underlag.
+- **Att bevaka i världen:** `createInvoiceExportRun` kan flagga ett underlag på 0 kWh som ofullständig mätvärdestäckning.
+- **T35 (harness, RÄTTAD):** `cron()` (T27) gav TS7006, eftersom `res` saknade typ. Nu är den `IncomingMessage`.
+
 ### I, batch 2 (2026-10-25 ca 20:47–21:32): 1 grön, 3 röda, 6 överhoppade
 - Utrett av en agent: I-B2a (produkt) och I-B2c (harness) är rättade, och I-B2b är världsfelet K-W1. I10:s fastnade jobb är följder av dessa och inget eget fel.
 
