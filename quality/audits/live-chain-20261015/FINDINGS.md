@@ -2635,6 +2635,14 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **F7:** `UND_ERR_SOCKET other side closed`. Världen kördes på `9a6fc2a3d`, som saknar T27-rättningen.
 - **F8:** månadskörningen misslyckades med `billing_underlay_supply_contract_price_basis_required`. Bedöms i batch 2, eftersom F2 inte gav några avtal och F7 inte låste några spotpriser. **F9 och F10** följer av F8.
 
+### T31 Världen saknade nätägarbyggare för Z02 och Z06 E/F/G — HARNESS; RÄTTAD (`a6ebae999`, agent)
+- **Byggarna:** `z06For` (`scripts/helpers/reality/inboundProdatWire.ts`) bygger Z06 E (E34), F (E64) och G (E32) från vår Z03 på den godkända nativa Z06-mallen. Parter, anläggning, LI, nätområde, kund och start tas från Z03, och ändringen sker 12 dagar efter start. `z02For` besvarar vår Z01 (L/LK).
+- **Kuvertet:** `encodeGridOwnerAnswer` är utbruten ur `buildZ04ForSwitchRequest`. Z04 är oförändrad.
+- **J1:s nätägare** skickar Z06 E/F/G efter sin Z04 (fall C10) och besvarar en mottagen Z01 med CONTRL, APERAK och Z02 (`REALITY_GRID_OWNER_GRID_AREA`, standard ALS).
+- **J1-12** kontrollerar nu varje Z06 i världen: lagrad hos tenanten med sin orsak, positiv CONTRL och en APERAK. Den medvetet röda kontrollen är borta. Z02-vägen nås i världen bara via I:s Z01-flöde.
+- **Test:** `__tests__/reality-t31-grid-owner-z02-z06-builders.test.ts`, 9/9 gröna (också i körworktreen). Produktens syntaxkontroll, policy, fältvalidering, PRODAT-parser och livscykel läser kod, undertyp, orsak, objekt, LI och nätområde rätt, också för en riktig plattforms-Z03. Relaterade tester 124/124 gröna, täckningen 352/352, tagged failing 0.
+- **Kvar:** J1-08 och J1-09 är SANNOLIKA tills J1 har körts med C10, vilket sker i batch 2.
+
 ### T33 Harnessens white-label-partner fick en global företagsroll — HARNESS; RÄTTAD
 - `createWhiteLabelPartner` (`scripts/helpers/reality/statistics.ts`) gav rollen `white_label_platform_admin` (scope `company`) med `company_id NULL`. Produktionens vakt `gridex_assert_role_scope_is_consistent` vägrar detta (`company_role_requires_company`): en global företagsroll skulle ge behörighet överallt.
 - **Rättning:** rollen binds till partnerns hembolag, där medlemmen redan har sitt aktiva medlemskap. Verifieras i batch 2.
