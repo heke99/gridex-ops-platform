@@ -301,6 +301,48 @@ export async function configureTenant(supabase: { rpc: (name: string, args: Reco
   return { companyId, adminUserId, adminEmail, adminPassword, operatorEmail, operatorPassword, supplierEdielId, issuerEdielId, gridOwnerId, gridOwnerEmail, offerId, publicationVersionId }
 }
 
+export type LiveOffer = { offerId: string; publicationVersionId: string }
+
+/**
+ * A second, FIXED-PRICE consumer offer of the tenant (FINDINGS D11-G2), authored, published and opened on the internal
+ * channel through the same product commands as the tenant's variable offer above: the canonical draft writer
+ * (gridex_upsert_internal_contract_offer_v2) with a fixed SE3 base component as the admin pricing normalizer builds it
+ * (lib/pricing/contractPricingVersioning.ts: source_type 'fixed', fixed_price_sek_per_kwh, price_area), its legal bundle,
+ * gridex_publish_internal_contract_version, an active fixed price option with its SE3 area row, and
+ * gridex_publish_contract_channel. Time-bound like the variable offer (binding, notice, renewal).
+ */
+export async function publishFixedPriceOffer(tenant: LiveTenant, input: { fixedOrePerKwh: number; terms: { bindingMonths: number; noticeMonths: number; renewalMonths: number } }): Promise<LiveOffer> {
+  const { supabaseService: supabase } = await import('@/lib/supabase/service')
+  const { companyId, adminUserId } = tenant, terms = input.terms, sek = Math.round(input.fixedOrePerKwh) / 100
+  const pricing = { schema: 'gridex_contract_pricing_v5', pricing_model: 'fixed', energy_direction: 'consumption', interval_resolution: 'quarterly', vat_rate: 0.25,
+    price_areas: ['SE3'], base_components: [{ source_type: 'fixed', label: 'Fast pris', weight_percent: 100, fixed_price_sek_per_kwh: sek, price_area: 'SE3' }],
+    price_components: [
+      { component_code: 'monthly_fee', component_type: 'fee', name: 'Månadsavgift', calculation_type: 'fixed_monthly', amount: 49, unit: 'sek_month', website_card_visible: true },
+      { component_code: 'invoice_fee', component_type: 'fee', name: 'Fakturaavgift', calculation_type: 'per_invoice', amount: 0, unit: 'sek_invoice', website_card_visible: true }] }
+  const offer = { name: 'E2E Fastpris', slug: `e2e-fastpris-${companyId}`, lifecycle_status: 'draft', contract_type: 'fixed', customer_type: 'both', pricing_model: 'fixed',
+    energy_direction: 'consumption', terms_version: 'e2e-v1', fixed_price_ore_per_kwh: input.fixedOrePerKwh, monthly_fee_sek: 49, invoice_fee_sek: 0,
+    default_binding_months: terms.bindingMonths, default_notice_months: terms.noticeMonths, automatic_renewal: true, automatic_renewal_term_months: terms.renewalMonths,
+    power_of_attorney_required: true, valid_from: '2026-06-01' }
+  const created = await supabase.rpc('gridex_upsert_internal_contract_offer_v2', { p_company_id: companyId, p_offer_id: null, p_payload: offer, p_pricing_snapshot: pricing, p_actor_user_id: adminUserId })
+  if (created.error) throw Error(`fixed_offer_create_failed:${JSON.stringify(created.error)}`)
+  const offerResult = created.data as { ok?: boolean; offer?: { id?: string } }
+  if (!offerResult.ok || !offerResult.offer?.id) throw Error(`fixed_offer_create_rejected:${JSON.stringify(created.data)}`)
+  const offerId = offerResult.offer.id
+  const legal = sql<string>(`SELECT to_jsonb(public.gridex_materialize_legal_bundle_version(${literal(companyId)},(SELECT contract_product_version_id FROM public.contract_offers WHERE id=${literal(offerId)}),NULL,${literal(adminUserId)}))`)
+  sql(`UPDATE public.contract_offers SET legal_bundle_version_id=${literal(legal)} WHERE id=${literal(offerId)};`)
+  const published = await supabase.rpc('gridex_publish_internal_contract_version', { p_company_id: companyId, p_offer_id: offerId, p_actor_user_id: adminUserId })
+  if (published.error || !(published.data as { ok?: boolean })?.ok) throw Error(`fixed_offer_publish_rejected:${JSON.stringify(published.error ?? published.data)}`)
+  sql(`WITH t AS (INSERT INTO public.contract_price_options(company_id,contract_product_version_id,price_plan_version_id,option_reference,option_code,customer_name,contract_type,
+     binding_months,notice_months,auto_renew_enabled,renewal_term_months,status,customer_type,is_default,selection_required,created_by)
+    SELECT ${literal(companyId)},contract_product_version_id,price_plan_version_id,'e2e-fixed','e2e-fixed','Fastpris','fixed',${terms.bindingMonths},${terms.noticeMonths},true,${terms.renewalMonths},'active','both',true,false,${literal(adminUserId)}
+    FROM public.contract_offers WHERE id=${literal(offerId)} RETURNING id,company_id,price_plan_version_id)
+   INSERT INTO public.contract_price_option_area_prices(company_id,contract_price_option_id,price_plan_version_id,price_row_reference,price_area,amount,unit,created_by)
+   SELECT company_id,id,price_plan_version_id,'e2e-fixed-se3','SE3',${input.fixedOrePerKwh},'ore_per_kwh',${literal(adminUserId)} FROM t;`)
+  const channel = await supabase.rpc('gridex_publish_contract_channel', { p_company_id: companyId, p_offer_id: offerId, p_channel: 'internal', p_actor_user_id: adminUserId })
+  if (channel.error || !(channel.data as { ok?: boolean })?.ok) throw Error(`fixed_offer_channel_rejected:${JSON.stringify(channel.error ?? channel.data)}`)
+  return { offerId, publicationVersionId: (channel.data as { contract_publication_version_id: string }).contract_publication_version_id }
+}
+
 /** SYNTHETIC stand-in for EXT-ISSUER-01/EXT-ARCHIVE-02: reviewed issuer history ground for one received source. */
 export function approveIssuerHistoryGround(sourceMessageId: string, actorUserId: string) {
   seedUtiltsIssuerHistoryGround(sql as never, literal, sourceMessageId, actorUserId)
@@ -375,12 +417,17 @@ export async function augustSupplyCustomer(tenant: LiveTenant, input: { firstNam
   grid: { gridOwnerId: string; gridOwnerEdielId: string; gridAreaCode: string }; facilities: AugustFacilityInput[]
   /** How the agreement was made (customer_contracts.source_type); default the column default. A distance agreement
    *  ('website_application') carries the right of withdrawal (FINDINGS T24). */
-  agreementSource?: 'website_application' }): Promise<AugustSupplyCustomer> {
+  agreementSource?: 'website_application'
+  /** Another published offer of the tenant (default the tenant's own); its contract type and fixed price are copied as
+   *  the product's contract writers copy them (lib/customer-contracts/db.ts; FINDINGS D11-G2). */
+  offer?: LiveOffer }): Promise<AugustSupplyCustomer> {
   const { supabaseService } = await import('@/lib/supabase/service')
   const { savePowerOfAttorney } = await import('@/lib/operations/db')
   const { ensureAuthorizationDocumentFromPowerOfAttorney } = await import('@/lib/legal/authorizationChain')
   const { powerOfAttorneyCoverageFromScopes } = await import('@/lib/operations/powerOfAttorneyWorkflow')
   const company = literal(tenant.companyId), customerId = randomUUID(), fullName = `${input.firstName} ${input.lastName}`
+  const offer: LiveOffer = input.offer ?? { offerId: tenant.offerId, publicationVersionId: tenant.publicationVersionId }
+  const offerColumns = input.offer ? ',contract_type,fixed_price_ore_per_kwh' : '', offerValues = input.offer ? ',o.contract_type,o.fixed_price_ore_per_kwh' : ''
   sql(`INSERT INTO public.customers(id,company_id,first_name,last_name,full_name,personal_number,email,invoice_email,customer_type,is_test_data,source,billing_street,billing_postal_code,billing_city,billing_country)
     VALUES(${literal(customerId)},${company},${literal(input.firstName)},${literal(input.lastName)},${literal(fullName)},${literal(input.personalNumber)},${literal(input.email)},${literal(input.email)},'private',true,'e2e_reality_august',
      ${literal(input.address.street)},${literal(input.address.postalCode)},${literal(input.address.city)},'SE');`)
@@ -400,14 +447,15 @@ export async function augustSupplyCustomer(tenant: LiveTenant, input: { firstNam
        'quarter_hour','consumption','consumption',true,'active',${facility.annualConsumptionKwh},true);
      INSERT INTO public.customer_contracts(id,company_id,customer_id,site_id,customer_site_id,metering_point_id,contract_offer_id,status,created_by,contract_publication_version_id,
       contract_product_id,contract_product_version_id,price_plan_id,price_plan_version_id,price_book_id,legal_bundle_version_id,offer_reference,commercial_snapshot,legal_snapshot,
-      starts_at,requested_start_date,requested_start_mode,invoice_email,binding_months,notice_months,auto_renew_enabled,source_type)
-     SELECT ${literal(contractId)},${company},${literal(customerId)},${literal(siteId)},${literal(siteId)},${literal(meteringPointId)},${literal(tenant.offerId)},'pending_signature',${literal(tenant.adminUserId)},v.id,
+      starts_at,requested_start_date,requested_start_mode,invoice_email,binding_months,notice_months,auto_renew_enabled,source_type${offerColumns})
+     SELECT ${literal(contractId)},${company},${literal(customerId)},${literal(siteId)},${literal(siteId)},${literal(meteringPointId)},${literal(offer.offerId)},'pending_signature',${literal(tenant.adminUserId)},v.id,
       p.contract_product_id,v.contract_product_version_id,v.price_plan_id,v.price_plan_version_id,v.price_book_id,v.legal_bundle_version_id,v.offer_reference,p.commercial_snapshot,l.rendered_snapshot,
       ${literal(input.supplyStart)},${literal(input.supplyStart)},'specific_date',${literal(input.email)},
       -- The offer's terms, as the product's contract writers copy them (lib/customer-contracts/db.ts; FINDINGS T23).
-      p.binding_months,p.notice_months,p.automatic_renewal,${literal(input.agreementSource ?? 'manual_override')}
+      p.binding_months,p.notice_months,p.automatic_renewal,${literal(input.agreementSource ?? 'manual_override')}${offerValues}
      FROM public.contract_publication_versions v JOIN public.contract_product_versions p ON p.id=v.contract_product_version_id
-     JOIN public.legal_bundle_versions l ON l.id=v.legal_bundle_version_id WHERE v.id=${literal(tenant.publicationVersionId)};`)
+     JOIN public.legal_bundle_versions l ON l.id=v.legal_bundle_version_id JOIN public.contract_offers o ON o.id=${literal(offer.offerId)} AND o.company_id=${company}
+     WHERE v.id=${literal(offer.publicationVersionId)};`)
     const tokenHash = randomUUID().replaceAll('-', '') + randomUUID().replaceAll('-', '')
     const prepared = await supabaseService.rpc('gridex_prepare_customer_contract_signature_request_v1', { p_company_id: tenant.companyId, p_customer_id: customerId, p_contract_id: contractId,
       p_token_hash: tokenHash, p_recipient_email: input.email, p_expires_at: new Date(Date.now() + 3_600_000).toISOString(), p_actor_user_id: tenant.adminUserId, p_channel: 'internal' })

@@ -25,7 +25,7 @@ import { prepareAndQueueSwitchCancellation } from '@/lib/ediel/flows/prodatSwitc
 import { deriveRequestedMethodBeforeSwitch } from '@/lib/operations/switchRequestedMethodPreparation'
 import { processPendingContractConfirmations } from '@/lib/customer-contracts/onlineSigning'
 import { customerNormalizedMeteringValues } from '@/lib/metering/customerMeteringAccess'
-import { LIVE, augustSupplyCustomer, cron, literal, sql, type AugustFacility, type LiveTenant } from '../helpers/live-chain-fixture'
+import { LIVE, augustSupplyCustomer, cron, literal, publishFixedPriceOffer, sql, type AugustFacility, type LiveOffer, type LiveTenant } from '../helpers/live-chain-fixture'
 import { closeOperatorConsole, operatorSession, submitServerAction } from '../helpers/reality/operatorConsole'
 import { createTenantStaff } from '../helpers/reality/tenantStaff'
 import { supabaseService } from '@/lib/supabase/service'
@@ -80,6 +80,9 @@ const person = (first: string, birth: string, serial: string): Party => ({ first
   email: `e2e-${first.toLowerCase()}-${serial}-${RUN}@example.invalid`, address, gsrn: facility() })
 const S = person('Bytare', '19700202', '311'), M = person('Flyttare', '19750505', '422'), K = person('Kvar', '19800808', '533')
 const W = person('Angrare', '19850303', '644'), C = person('Annullerad', '19900404', '755')
+/** F: signed a fixed-price, 12-month contract in August and switches away on 1 November like S (D11, H11). */
+const F = person('Fastpris', '19950606', '866')
+const FIXED_ORE_PER_KWH = 95
 const LEAVING: Party[] = [S, M, K]
 
 /** Inconsistencies and defects found while building this scenario (FINDINGS H1–H9; tests named in each). */
@@ -128,12 +131,12 @@ async function receiveUntil(done: () => boolean, minutes: number) {
   }
   return runs
 }
-async function establishCustomers(parties: Party[], supplyStart: string, signedAt: string, switchCreatedAt: string, agreementSource?: 'website_application') {
+async function establishCustomers(parties: Party[], supplyStart: string, signedAt: string, switchCreatedAt: string, agreementSource?: 'website_application', offer?: LiveOffer) {
   const grid = sql<{ id: string; ediel: string }>(`SELECT jsonb_build_object('id',id,'ediel',ediel_id) FROM public.grid_owners WHERE ediel_id=${literal(GRID_OWNER_EDIEL_ID)} AND company_id IS NULL`)
   for (const p of parties) {
     const one = await augustSupplyCustomer(tenant, { firstName: p.firstName, lastName: p.lastName, personalNumber: p.personalNumber, email: p.email, address: p.address,
       supplyStart, authorizedAt: signedAt, grid: { gridOwnerId: grid.id, gridOwnerEdielId: grid.ediel, gridAreaCode: GRID_AREA },
-      facilities: [{ gsrn: p.gsrn, ...p.address, annualConsumptionKwh: 6_000 }], agreementSource })
+      facilities: [{ gsrn: p.gsrn, ...p.address, annualConsumptionKwh: 6_000 }], agreementSource, offer })
     p.customerId = one.customerId
     p.facility = one.facilities[0]
   }
@@ -428,15 +431,14 @@ describe.sequential('reality H — the customer leaves', () => {
 
   it('H11 D11: an approved fixed-price break fee is its own underlay, priced and locked once, invoiced once and credited traceably', async (context) => {
     requireEstablished('H11', context)
+    // H's offer is variable (configureTenant publishes 'variable_quarterly'). F signs the tenant's fixed-price offer in
+    // August, is supplied from 1 September on the grid owner's Z04 and switches away on 1 November (Z05 L), so the
+    // platform's own supply-end follow-up opens F's fee review inside the binding (FINDINGS D11-G2).
+    if (!fixedPriceBreakFeeReview()) report.d11Setup = await establishFixedPriceLeaver()
     const fixed = fixedPriceBreakFeeReview()
-    // H's offer is variable (configureTenant publishes 'variable_quarterly'), and the harness has no fixed-price offer
-    // builder yet: this step runs only when the tenant holds a fixed-price contract with an open fee review.
-    if (!fixed) {
-      report.d11Fixed = { skipped: 'no fixed-price contract with an open break_fee_review in the tenant (no fixed-price offer builder in the harness)' }
-      saveReport()
-      context.skip()
-      return
-    }
+    saveReport()
+    expect(fixed, `F has an open fee review on its fixed-price contract: ${JSON.stringify(report.d11Setup)}`).toBeTruthy()
+    if (!fixed) return
     const staff = await createTenantStaff(tenant.companyId, 'E2E Avgiftsgranskning')
     const remainingKwh = Number(fixed.remainingKwh), price = Number(fixed.fixedOre), replacement = price - 12
     const loss = Math.round(Math.max(0, price - replacement) * remainingKwh) / 100
@@ -508,8 +510,41 @@ describe.sequential('reality H — the customer leaves', () => {
     expect(sql<number>(`SELECT to_jsonb((SELECT count(*) FROM public.break_fee_charges WHERE company_id<>${companyLiteral()} AND customer_contract_id=${literal(fixed.contractId)})
       + (SELECT count(*) FROM public.customer_invoices WHERE company_id<>${companyLiteral()} AND billing_underlay_id=${literal(underlayId)}))`)).toBe(0)
     saveReport()
-  }, 20 * 60_000)
+  }, 75 * 60_000)
 })
+
+/**
+ * F (D11-G2): the tenant publishes a fixed-price offer, F signs it in August and switches in for 1 September through the
+ * real Z03 builder; the world runs until the grid owner's Z04 supplies F, then the grid owner ends F's supply on
+ * 1 November with a Z05 L, exactly as for S in H2–H4.
+ */
+async function establishFixedPriceLeaver() {
+  const offer = await publishFixedPriceOffer(tenant, { fixedOrePerKwh: FIXED_ORE_PER_KWH, terms: TERMS })
+  const built = await establishCustomers([F], SUPPLY_START, AUGUST_SIGNED_AT, AUGUST_SWITCH_CREATED_AT, undefined, offer)
+  expect(built.filter(b => !b.ok), 'the real Z03 builder refused F\'s switch').toEqual([])
+  const contract = sql<Row>(`SELECT to_jsonb(c) FROM (SELECT contract_type,fixed_price_ore_per_kwh::float8 fixed,binding_months FROM public.customer_contracts WHERE id=${literal(F.facility!.contractId)}) c`)
+  expect(contract, 'F holds the fixed-price, time-bound contract').toMatchObject({ contract_type: 'fixed', fixed: FIXED_ORE_PER_KWH, binding_months: TERMS.bindingMonths })
+  const deadline = Date.now() + Number(process.env.GRIDEX_REALITY_H3_MINUTES ?? 30) * 60_000
+  let state = supplyState(tenant.companyId, [F.gsrn])
+  for (;;) {
+    await runOperationalCronSlot()
+    state = supplyState(tenant.companyId, [F.gsrn])
+    if (state.every(row => row.periods.some(p => p.status === 'active')) || state.some(row => row.switch === 'failed') || Date.now() > deadline) break
+    await cronTick()
+  }
+  expect(state.every(row => row.periods.some(p => p.status === 'active' && p.start === SUPPLY_START)), `F supplied from 1 September: ${JSON.stringify(state)}`).toBe(true)
+  const ourZ03 = sql<string>(`SELECT to_jsonb(raw_payload) FROM public.ediel_messages WHERE id=(SELECT outbound_z03_message_id FROM public.supplier_switch_requests WHERE id=${literal(F.switchId!)})`)
+  const qualifier = /UNB\+UNOC:3\+[^:+]+:([^+:']+)/.exec(ourZ03)?.[1] ?? '14'
+  const z05 = buildZ05End({ gridOwner: GRID_OWNER_EDIEL_ID, supplier: tenant.supplierEdielId, gridArea: GRID_AREA, brp: brpEdielId(), qualifier, point: F.gsrn,
+    customerIdentity: F.personalNumber, customerName: `${F.firstName} ${F.lastName}`, endMinute: S_END, variant: 'L', environment: 'production' })
+  const before = inboundSources(tenant.companyId, ['Z05']).length
+  await gridOwnerSendsLeavingFile({ from: gridOwner.email, kind: 'PRODAT-Z05L', edifact: z05.raw, reference: z05.reference })
+  const fZ05 = () => inboundSources(tenant.companyId, ['Z05']).slice(before)
+  const reception = await receiveUntil(() => fZ05().length === 1 && !['received', 'processing'].includes(fZ05()[0].status), Number(process.env.GRIDEX_REALITY_H4_MINUTES ?? 10))
+  for (let i = 0; i < 2; i += 1) await runOperationalCronSlot()
+  return { offer, contract, supply: state, z05: { reference: z05.reference, received: fZ05() }, reception: reception.length, period: latestPeriod(F),
+    followup: leavingFollowup(tenant.companyId, F.customerId!) }
+}
 
 type BreakFeeReview = { id: string; contractId: string; fixedOre?: number; remainingKwh?: number }
 const OPEN_TASK = `status IN ('open','in_progress')`
