@@ -42,3 +42,4 @@ Nya beslut läggs till sist, och inget tas bort. Ett beslut som ersätts markera
 - **F113:** överlämningen av den skyddade objektbatchen (`require_wire_projection_v1`, DB-05/SC-031) väntar på kroppsägarna.
 - **26 (2026-10-25, H6):** båda: scenariot levererar S:s hela (förflutna) oktober, och en ofullständig månad lagras som underlag i granskning (`needs_review`/`blocked`) i stället för att kastas. Den faktureras aldrig. Ägaren tillåter också nätverket för SVK (`services2.arcgis.com`) och spotpriser (`www.elprisetjustnu.se`).
 - **GOR-06:** besvarad, beslut 27.
+- **Stående godkännande (2026-10-25):** ägaren godkänner att simuleringen alltid fortsätter och att överlämningsbegäranden för låsta objekt postas i #840.
