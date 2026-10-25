@@ -12,10 +12,7 @@ Den hör ihop med tre andra dokument:
 - **H körning 2** (världen på `7331fa0f8`): 4 av 9 gröna. H-9 och H-10 (för C) är verifierade i världen. Nya fynd: H-12, H-13 och T23, alla rättade. H-11 är utrett och går inte att reproducera.
 - **G-8 rättad** i `7331fa0f8` (SQL). Tiden per fil är ännu inte mätt i världen.
 - **H körning 3** pågår på `668492059`, med G-8 och H-13 applicerade i världen. Den ska verifiera H-12, H-13 och T23.
-- **Nästa steg:**
-  1. Läs H körning 3 (`/tmp/gridex-reality/report-h3.json`, logg `/tmp/claude-0/h3.log`). Rätta det som återstår.
-  2. Kör om F (mät G-8 per fil) och G.
-  3. Därefter I, J1–J4 och K.
+- **Nästa steg (2026-10-25):** batch på `9a6fc2a3d` via `run-many.sh`: H, I, J1, J2, J4, K och F i följd (lane als), J3 bredvid. Logg `/tmp/claude-0/batch1.log`, rapporter `/tmp/gridex-reality/report-<namn>-<stämpel>.json`. Läs varje scenario, rätta och kör om.
 - **Underagenter:** veckokvoten är slut till 2026-10-29 04:00 UTC. Arbetet sker utan agenter tills dess.
 
 ## Scenarier
