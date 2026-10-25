@@ -2640,6 +2640,11 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **Att bevaka i världen:** `createInvoiceExportRun` kan flagga ett underlag på 0 kWh som ofullständig mätvärdestäckning.
 - **T35 (harness, RÄTTAD):** `cron()` (T27) gav TS7006, eftersom `res` saknade typ. Nu är den `IncomingMessage`.
 
+### J4, batch 2 (2026-10-25 ca 22:30–22:55): 7 gröna, 1 överhoppad, inga röda
+- **J4-0:** grön med syntetisk spot (T26 kringgången).
+- **J4-4:** grön, så T32 är verifierad: Z06 med E34 tolkas och lagras för båda objekten.
+- J4-D15 (okänd orsak) prövas inte längre av J4-4, eftersom testet nu bär en giltig orsak. Fyndet står kvar öppet i #840.
+
 ### J1, batch 2 (2026-10-25 ca 21:32–22:30): 1 grön, 2 röda, 9 överhoppade — kända orsaker
 - **J1-2:** samma formulär som bara plattformsadministratören ser, se I-B2c. Batch 2 startade före rättningen. **J1-3** följer av J1-2: ingen Z03 nådde nätägaren. Signerade byten startar inte heller av sig själva förrän I-B2a finns i den byggda appen.
 - **T31 (C10)** nåddes alltså inte än. J1 körs om efter ombyggnaden.
