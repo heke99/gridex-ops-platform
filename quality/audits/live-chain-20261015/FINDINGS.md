@@ -2161,6 +2161,16 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
   6. **Omvänd klass (låg):** `gridex_list_customer_operation_events` och `owner_rows_match` kopplar `grid_owners` på id utan tenantfilter.
   7. **Typkontrollen (låg):** `npx tsc --noEmit -p .` kräver nu `--max-old-space-size=8192`.
 
+### D11 Debitering av granskad brytavgift (H3d) — ÄGARBESLUT 28; del 1 av 2 RÄTTAD (2026-10-25), del 2 pågår
+- **Del 1, godkännande och spårbar post:** migration `20261025110000_d11_break_fee_charges.sql` (`3a6664ad…`).
+  - **Ny tabell `public.break_fee_charges`:** en rad per godkänd avgift, bunden till sin granskning (`customer_operation_tasks` `break_fee_review`) och sitt avtal. Den sparar avtalsversion (`contract_version`, `terms_version`, `signed_version`, snapshot-hash, avtalstyp, bindning, fastpris), kundkategori med underlag, avtalsgrund, beräkning med beräknad förlust, förlustunderlag, belopp, momsklassificering och godkännare. Engång: unik per granskning och per avtal. Kreditering behåller raden och länkar kreditfakturan (`credit_invoice_id`, `credited_at`). RLS är på, tenanten läser, och API-roller kan inte skriva direkt.
+  - **Ny funktion `public.gridex_approve_break_fee_v1(company, review, input, actor)`:** den enda skrivaren. Den kräver att anroparen är aktören (eller service_role) och att aktören har `billing_underlay.export`. Granskningen ska vara öppen och tillhöra tenanten, och bindningen ska löpa efter leveransslutet.
+  - **Konsument och småföretag:** tidsbestämt avtal med fastprisdel (`fixed`, eller `mixed`/`portfolio` med fastpris). Rörligt pris och portfölj utan fastprisdel nekas. Beloppet får vara högst den beräknade förlusten, max(0, fastpris − ersättningspris) × återstående förväntad volym.
+  - **Större företag:** uttrycklig avtalsregel (`contract_rule_reference`) och förlustunderlag krävs.
+  - **Alla kategorier:** inga månadsavgifter eller administrativa bytesavgifter i beräkningen. Verifierad momsklassificering krävs (kod, momssats 0–25 %, konto, verifierad av, när, källa). Granskningen stängs (`done`) med länk i samma transaktion. Upprepat anrop returnerar befintlig post.
+- **Test:** `__tests__/reality-d11-break-fee-approval.test.ts`, 8 fall, ett per regel.
+- **Del 2 (pågår):** eget debiteringsunderlag och egen faktura genom den befintliga motorn (`gridex_create_invoice_export_graph_v1_core`, en faktura per underlag och prissättningskörning), registrering i `contract_charge_ledger` (unik per avtal, komponent och händelse), och spårbar kreditering.
+
 ### F113 Överlämningspaket enligt ägarbeslut 30 (2026-10-25) — ÖPPEN tills ändringen är integrerad och verifierad
 - **Låst objekt (inte ändrat):** `gridex_prodat_object_batch.require_wire_projection_v1(text,jsonb,jsonb,text,uuid)`, nås via `require_plan_v1` när admin godkänner masterdata för en PRODAT-objektbatch efter Z04/Z06.
 - **Migrationer som definierar eller pinnar objektet:**
