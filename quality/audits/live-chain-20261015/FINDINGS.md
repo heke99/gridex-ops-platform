@@ -2620,6 +2620,10 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
   - **Verifierat i världen:** plattformens egen schemalagda import körde mot simulatorn. `energy_geodata_versions` blev `verified`, och ALS innehåller scenariopunkten.
 - **Spot:** `up.sh` skickar nu `REALITY_SPOT_SOURCE` vidare till världssimulatorn (`synthetic` när värden nekas). Se T28 för publiceringsregeln.
 
+### K, batch 2 (2026-10-25 ca 20:08–20:47, världen på f9a0304e0 med syntetisk spot och SVK-simulator): 10 av 12 gröna; K4 och K8 röda
+- **K10 och K11 är gröna:** T34 och T33 är verifierade i världen.
+- **K4 och K8, nytt fynd K-W1 (utreds av en agent):** webbkunden W1 kom nu förbi offerten, eftersom spotpriset finns. Ansökan `APP-20261025-100001` står ändå kvar i `needs_address_resolution`, med nästa steg `resolve_grid_owner`. Platsupplösningen är `website_price_area_only`/`postal_suggested`: SE3 från postnumrets centroid, inget nätområde och `automationAllowed false`. Under 20 minuter av driftcron skickades ingen Z03, så det pågående byte K8 räknar med saknas (2 i stället för 3).
+
 ### K, batch 1 (2026-10-25 ca 17:55–18:35): 9 av 12 gröna; K4, K10 och K11 röda
 - **K4:** `market_price_stale` för SE3 på W1:s offert (T26, riktig spotkälla nekad). Täcks i batch 2 med `REALITY_SPOT_SOURCE=synthetic`.
 - **K10:** alla siffror på `/admin`, `/admin/analytics` och `/admin/analytics/portfolio` lästes som `null`. Samma siffror stämmer i portfölj-RPC:n, månadssnapshoten och `company_dashboard_summary_v`, så beräkningen är rätt. Orsaken är harnessen, se T34.
