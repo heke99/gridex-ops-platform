@@ -5,23 +5,17 @@
 //
 //   GET /L8WLzcxhwLqd80Jx/ArcGIS/rest/services/Natomraden_250526/FeatureServer/3/query?...&f=geojson&resultOffset=N
 //
-// One feature: grid area ALS (Alingsås Energi Nät AB, SE3) as a box around every point the scenarios place in the world
+// One feature (svkArcgisFeature.ts): grid area ALS (Alingsås Energi Elnät AB, the registry's name; SE3) as a box around every point the scenarios place in the world
 // (57.93 N, 12.53 E). It is a simulation of the real polygon, not its shape: only membership of those points is real.
 // Run by up.sh with REALITY_SVK_SOURCE=simulated; REALITY_TLS_DIR holds svk.key/svk.pem.
 import { createServer } from 'node:https'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { ALS_FEATURE } from './svkArcgisFeature'
 
 const tls = process.env.REALITY_TLS_DIR ?? '/tmp/gridex-reality/tls'
 const port = Number(process.env.REALITY_SVK_PORT ?? 443)
 const PATH = '/L8WLzcxhwLqd80Jx/ArcGIS/rest/services/Natomraden_250526/FeatureServer/3/query'
-
-const ALS = {
-  type: 'Feature',
-  id: 1,
-  properties: { OBJECTID: 1, Natomrade: 'ALS', Namn: 'Alingsås', Agare: 'Alingsås Energi Nät AB', Elomrade: 'SE3' },
-  geometry: { type: 'Polygon', coordinates: [[[12.40, 57.85], [12.70, 57.85], [12.70, 58.00], [12.40, 58.00], [12.40, 57.85]]] },
-}
 
 const server = createServer({ key: readFileSync(join(tls, 'svk.key')), cert: readFileSync(join(tls, 'svk.pem')) }, (req, res) => {
   const url = new URL(req.url ?? '/', 'https://services2.arcgis.com')
@@ -31,7 +25,7 @@ const server = createServer({ key: readFileSync(join(tls, 'svk.key')), cert: rea
     return
   }
   const offset = Number(url.searchParams.get('resultOffset') ?? 0)
-  const features = offset === 0 ? [ALS] : []
+  const features = offset === 0 ? [ALS_FEATURE] : []
   res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' })
   res.end(JSON.stringify({ type: 'FeatureCollection', features, exceededTransferLimit: false }))
 })

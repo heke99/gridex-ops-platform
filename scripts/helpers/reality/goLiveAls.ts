@@ -9,11 +9,13 @@ import { prepareMarketData, startGridOwner, type GridOwnerSim } from './world'
 import { configureProductionMailboxAsOperator } from './productionMailbox'
 import { selectInvoiceProviderAsTenant } from './invoiceProvider'
 
+import { ALS_GRID_AREA, ALS_GRID_OWNER_EDIEL_ID, ALS_GRID_OWNER_NAME } from './alsRegistry'
+
 // A real SE3 grid area imported from Svenska kraftnät (ALS, Alingsås); the grid owner itself is simulated.
-export const GRID_AREA = 'ALS'
+export const GRID_AREA = ALS_GRID_AREA
 /** Alingsås Energi Elnät AB in Ediel's actor registry (Netowner). */
-export const GRID_OWNER_EDIEL_ID = '16700'
-export const GRID_OWNER_NAME = 'Alingsås Energi Elnät AB'
+export const GRID_OWNER_EDIEL_ID = ALS_GRID_OWNER_EDIEL_ID
+export const GRID_OWNER_NAME = ALS_GRID_OWNER_NAME
 
 export type LiveAlsSupplier = { tenant: LiveTenant; staff: Awaited<ReturnType<typeof operatorSession>>; gridOwner: GridOwnerSim; apiKey: string
   imported: { actionStatus: number; page: string }; verification: Awaited<ReturnType<typeof verifyActorForCustomerFlow>>
