@@ -2620,6 +2620,18 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
   - **Verifierat i världen:** plattformens egen schemalagda import körde mot simulatorn. `energy_geodata_versions` blev `verified`, och ALS innehåller scenariopunkten.
 - **Spot:** `up.sh` skickar nu `REALITY_SPOT_SOURCE` vidare till världssimulatorn (`synthetic` när värden nekas). Se T28 för publiceringsregeln.
 
+### K-W1 Världens SVK-simulator gav ALS fel ägarnamn, så webbkundens nätägare blev tom — VÄRLD/HARNESS; RÄTTAD (`fc728582d`, agent)
+- **Fel:** W1 (APP-20261025-100001) stannar i `needs_address_resolution` / `resolve_grid_owner`. Någon Z03 skickas aldrig, så K4 och K8 blir röda.
+- **Bevis, endast läsning:** den exakta fortsättningsupplösningen (`6666d986…`) ger ALS `grid_area_master_validated` men `grid_owner_id` null, med `platform_to_ops_grid_owner_mapping_missing`. ALS pekar på plattformsägaren `428e0d5e` "Alingsås Energi Nät AB", som SVK-importen skapade från simulatorn och som saknar `ops_grid_owner_id`. Registrets ägare är `07473208` "Alingsås Energi Elnät AB" (16700 → `f8ca3120`).
+- **Orsak:** `gridex_grid_owner_name_key` ger olika nycklar (`alingsåsenerginät` mot `alingsåsenergielnät`). Simulatorns namn (T26, mitt eget) skapade därför en ny omappad ägare. Utan nätägare stannar `customerIntakeOrchestrator` i `needs_grid_owner_resolution`.
+- **Rättning:**
+  - `scripts/helpers/reality/alsRegistry.ts` håller område, Ediel-id och registrets namn på ett ställe.
+  - `goLiveAls.ts` och den nya `svkArcgisFeature.ts` använder det.
+  - Simulatorn serverar `ALS_FEATURE` med registrets ägarnamn.
+- **Test:** `__tests__/reality-k-w1-svk-simulator-registry-owner.test.ts`, med den riktiga `gridex_grid_owner_name_key` ur `schema.sql`. Det gamla namnet gav 1 fel, efter rättningen 2/2 gröna (också i körworktreen). Med `svk-postal-grid-owner-hardening` 9/9. Täckningen 352/352, tagged failing 0.
+- **Världen:** efter batch 2 startas SVK-simulatorn om, och plattformens SVK-import körs igen. Kontrollera att ALS pekar på `07473208`; annars krävs en medveten världsåterställning. Därefter körs K, I, J1 och F2 om. Fram till dess kan alla scenarier med exakt adressupplösning i batch 2 träffas av samma sak.
+- **Sidofynd K-W1b, SANNOLIKT, kräver ägarbeslut:** om SVK:s riktiga ägarnamn stavas annorlunda än registret binder importen om ett mappat område till en omappad plattformsägare. Då tappar alla exakta adresser i området sin nätägare. Inte verifierat mot riktiga SVK-data, eftersom värden nekas (T26).
+
 ### K, batch 2 (2026-10-25 ca 20:08–20:47, världen på f9a0304e0 med syntetisk spot och SVK-simulator): 10 av 12 gröna; K4 och K8 röda
 - **K10 och K11 är gröna:** T34 och T33 är verifierade i världen.
 - **K4 och K8, nytt fynd K-W1 (utreds av en agent):** webbkunden W1 kom nu förbi offerten, eftersom spotpriset finns. Ansökan `APP-20261025-100001` står ändå kvar i `needs_address_resolution`, med nästa steg `resolve_grid_owner`. Platsupplösningen är `website_price_area_only`/`postal_suggested`: SE3 från postnumrets centroid, inget nätområde och `automationAllowed false`. Under 20 minuter av driftcron skickades ingen Z03, så det pågående byte K8 räknar med saknas (2 i stället för 3).

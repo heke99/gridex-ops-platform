@@ -9,6 +9,7 @@ Den hör ihop med tre andra dokument:
 
 ## Var jag är nu
 - **Batch 2 pågår (2026-10-25 från 20:08 UTC):** världen på `f9a0304e0`, migrationerna `20261025100000`–`20261025130000` applicerade, `REALITY_SVK_SOURCE=simulated REALITY_SPOT_SOURCE=synthetic`, snabbläge. Ordning: K, I, J1, J4, F, G. Logg `/tmp/claude-0/batch2.log`.
+- **Efter batch 2, först:** starta om SVK-simulatorn och kör om SVK-importen (K-W1). Kontrollera att ALS pekar på registrets ägare `07473208`.
 - **Efter batch 2:** rätta och dokumentera nya fel, lägg in T31 och kör D11 end-to-end i världen. Kör sedan **batch 3 = alla 15 scenarier** (`run-many.sh all`) på slutkoden som regression. A, C, D, E, H, J2, J3, stuck-detector och grid-owner-wire kördes senast på äldre kod.
 - **Parallella agenter (egna worktrees, rör inte FINDINGS/STATUS/minne; huvudsessionen för in resultatet):**
   - Agent 1: T31 klar (`a6ebae999`), även i körworktreen, så J1 i batch 2 kör C10.
@@ -37,7 +38,7 @@ Den hör ihop med tre andra dokument:
 | I (nätägaren avvisar) | batch 1: 1 grön, 3 röda, 6 överhoppade | T30 rättad; Z01-vägen kräver T26 | Kör om |
 | J2 | batch 1: 8 gröna, 5 röda | bara kända J2-03/J2-05 (låsta) och J2-13 (beslut) | — |
 | J4 | batch 1: 5 gröna, 2 röda | J4-0 T26; J4-4 T32 rättad, J4-D15 öppen | Kör om |
-| K | batch 2: 10/12 gröna | K10/K11 verifierade; K4/K8 = K-W1 (agent utreder) | Kör om efter K-W1 |
+| K | batch 2: 10/12 gröna | K10/K11 verifierade; K4/K8 = K-W1 rättad (simulatorns ägarnamn); K-W1b behöver beslut | Kör om efter SVK-omimport |
 | J1 | batch 1: 1 grön, 3 röda | T30 och T31 rättade | Kör om |
 
 ## Rättat i denna omgång (commit → fynd)
