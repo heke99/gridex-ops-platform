@@ -8,6 +8,8 @@ Den hör ihop med tre andra dokument:
 - #840: anspråk och leveranser per fil.
 
 ## Var jag är nu
+- **Batch 3 pågår (från 2026-10-25 23:30 UTC): alla 15 scenarier** (`run-many.sh all`, banorna als och free parallellt). Världen på `6461cda9f`, ombyggd med I-B2a och F8-B1, och SVK omimporterad (K-W1 verifierad). Logg `/tmp/claude-0/batch3.log`.
+- **Batch 2 avbröts medvetet efter J4** för effektivitetens skull: F och G hade kört den gamla bygget utan F8-B1. Resultat från K, I, J1 och J4 finns i FINDINGS.
 - **Batch 2 pågår (2026-10-25 från 20:08 UTC):** världen på `f9a0304e0`, migrationerna `20261025100000`–`20261025130000` applicerade, `REALITY_SVK_SOURCE=simulated REALITY_SPOT_SOURCE=synthetic`, snabbläge. Ordning: K, I, J1, J4, F, G. Logg `/tmp/claude-0/batch2.log`.
 - **Efter batch 2, först:** bygg om appen (I-B2a är TS).
 - **Därefter:** starta om SVK-simulatorn och kör om SVK-importen (K-W1). Kontrollera att ALS pekar på registrets ägare `07473208`.

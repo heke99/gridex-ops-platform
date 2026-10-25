@@ -2679,7 +2679,7 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
   - `goLiveAls.ts` och den nya `svkArcgisFeature.ts` använder det.
   - Simulatorn serverar `ALS_FEATURE` med registrets ägarnamn.
 - **Test:** `__tests__/reality-k-w1-svk-simulator-registry-owner.test.ts`, med den riktiga `gridex_grid_owner_name_key` ur `schema.sql`. Det gamla namnet gav 1 fel, efter rättningen 2/2 gröna (också i körworktreen). Med `svk-postal-grid-owner-hardening` 9/9. Täckningen 352/352, tagged failing 0.
-- **Världen:** efter batch 2 startas SVK-simulatorn om, och plattformens SVK-import körs igen. Kontrollera att ALS pekar på `07473208`; annars krävs en medveten världsåterställning. Därefter körs K, I, J1 och F2 om. Fram till dess kan alla scenarier med exakt adressupplösning i batch 2 träffas av samma sak.
+- **Verifierat i världen (2026-10-25 23:29 UTC):** simulatorn startades om, och den gamla geodataversionen åldrades 31 dagar (som om tiden gått). Plattformens egen import (`/api/internal/platform/grid-areas/import/cron`) skapade sedan `svk_arcgis:20261025232914989` (`verified`, den gamla `superseded`). ALS pekar nu på registrets ägare `07473208` "Alingsås Energi Elnät AB". K, I, J1 och F2 körs om i batch 3.
 - **Sidofynd K-W1b, SANNOLIKT, kräver ägarbeslut:** om SVK:s riktiga ägarnamn stavas annorlunda än registret binder importen om ett mappat område till en omappad plattformsägare. Då tappar alla exakta adresser i området sin nätägare. Inte verifierat mot riktiga SVK-data, eftersom värden nekas (T26).
 
 ### K, batch 2 (2026-10-25 ca 20:08–20:47, världen på f9a0304e0 med syntetisk spot och SVK-simulator): 10 av 12 gröna; K4 och K8 röda
