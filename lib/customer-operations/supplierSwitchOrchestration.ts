@@ -98,7 +98,6 @@ function splitReadinessIssuesForSwitchRequestCreation(input: {
     // to create the switch request. Dispatch can still block later if market
     // timing/preflight says it is not sendable yet.
     if (issue.code === 'move_in_date_missing' && input.requestedStartDate) {
-      reviewBlockers.push(blocker)
       continue
     }
 
