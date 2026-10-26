@@ -2691,6 +2691,16 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
   - **Rättning:** båda binder anläggningens senaste signerade avtal via `findLatestSignedContractIdForSite` (`lib/customer-operations/switchReadiness.ts`), samma uppslagning som beredskapskontrollen redan gjorde, nu utbruten: exakt bolag, kund och anläggning, status `signed`, nyast först. Formuläret skickar även `companyId`. Saknas avtal binds inget och vakten avgör som förut.
   - **Test:** `__tests__/reality-i-b4v-staff-switch-exact-contract.test.ts`, 4 fall (annan tenant, annan anläggning, äldre och osignerade avtal vinner aldrig). Före rättningen 3 röda, efter 4/4. Med I-B- och switch-testerna 10 filer, 77/77.
 
+### A, batch 5 (2026-10-26 22:53–23:25, ombyggd app på 547321093): 4 av 7 gröna; A3–A5 röda — A-B4b (harness, rättad)
+- **A-B4 verkar:** simulatorn tog emot alla fyra Z01 och svarade (`answered (APERAK + Z02)`).
+- **Nytt:** alla fyra Z02-utskick föll i simulatorn med `edifact_character_not_iso8859_1:…:U+FFFD`. Ingen Z02 nådde plattformen, så webbanläggningarna fick inget nätområde och ingen Z03 skickades.
+
+### A-B4b Nätägarsimulatorerna avkodade EDIFACT-bilagor som UTF-8 — HARNESS; RÄTTAD
+- **Orsak:** plattformen kodar Ediel-filer i ISO 8859-1 (UNOC), men `gridOwner.ts`, `gridOwnerRejects.ts` och `gridOwnerInboundProdat.ts` avkodade base64-bilagan som UTF-8. "Alingsås" blev "Alings\uFFFDs". Innan A-B4 syntes det inte, eftersom Z02 inte ekade någon text ur Z01. Nu ekar den adressen, och kodaren vägrar U+FFFD.
+- **Rättning:** `edifactInterchangesInMail` (`scripts/reality/simulators/edifactMailParts.ts`) avkodar som ISO 8859-1 och används av alla tre simulatorerna.
+- **Test:** `__tests__/reality-a-b4b-simulator-latin1-attachment.test.ts`, 3 fall, 2 röda med UTF-8, gröna med Latin-1. Med A-B3, A-B4, K-B4 och T31 20/20.
+- **I världen:** J1 i denna batch startade med den gamla simulatorn. A och K körs om.
+
 ### I, batch 5 (2026-10-26 22:01–22:43): 4 gröna, 6 överhoppade, inga röda — I4–I9 överhoppade av I-B5 (produkt, rättad)
 - **I-B4 verkar i världen:** alla nio signerade kunders byten skapades (`queued`, med avtal). Z01-vägen nådde nätägaren och I10 är grön.
 - **Nytt:** ingen Z03 skapades, så I4–I9 hoppades över ("no Z03 reached the grid owner in I3"). Se I-B5.

@@ -19,6 +19,7 @@ import { answersFor, readReceivedRequest, SILENT, type GridOwnerAnswerPlan } fro
 import { buildZ04ForSwitchRequest } from './gridOwnerWire'
 import { unwrapSmimeForActor } from './smimeUnwrap'
 import { platformMailboxFor } from './platformMailbox'
+import { edifactInterchangesInMail } from './edifactMailParts'
 
 const env = (name: string, fallback: string) => process.env[name] ?? fallback
 const config = {
@@ -84,12 +85,8 @@ async function poll() {
       let text: string
       try { text = message.source ? unwrapSmimeForActor(message.source, config.edielId) : '' }
       catch (error) { failures.push({ at: new Date().toISOString(), error: `unreadable mail: ${error instanceof Error ? error.message : String(error)}` }); text = '' }
-      for (const part of text.split(/\r?\n--[^\r\n]+\r?\n/)) {
-        const [head, ...rest] = part.split(/\r?\n\r?\n/)
-        let content = rest.join('\n\n')
-        if (/content-transfer-encoding:\s*base64/i.test(head)) content = Buffer.from(content.replace(/\s+/g, ''), 'base64').toString('utf8')
-        if (!/UN[AB][+:]/.test(content)) continue
-        try { handle(content.slice(content.search(/UN[AB]/)).trim(), message.envelope?.subject ?? '') }
+      for (const file of edifactInterchangesInMail(text)) {
+        try { handle(file, message.envelope?.subject ?? '') }
         catch (error) { failures.push({ at: new Date().toISOString(), error: `unreadable file: ${error instanceof Error ? error.message : String(error)}` }) }
       }
       await client.messageFlagsAdd(String(uid), ['\\Seen'], { uid: true })
