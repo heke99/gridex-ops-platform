@@ -2668,6 +2668,11 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **Rättning:** kommentaren är nu en SQL-kommentar (`--`). Verifieras när E körs om.
 - **Variant kontrollerad:** samma sorts kommentar i J2 står i JS och är korrekt.
 
+### K, batch 4 (2026-10-26 15:36–16:56, världen på 355bf0e76): 10 av 12 gröna; K4 och K8 röda — utreds av en agent (K-B4)
+- **K10 och K11 är gröna** igen.
+- **W1 kommer längre än förut:** ansökan `APP-20261026-100001` står `processing` med nästa steg `z01_customer_data_requested`. Vår Z01 skickades 16:31 och fick APERAK, men ingen Z02 finns någonstans i världen. Bytet nådde därför aldrig nätägaren (K4), och K8 räknar 2 pågående byten i stället för 3.
+- **Utreds:** varför A-B3:s Z02-svar inte kom, och om K4:s fönster på 20 minuter räcker efter en Z01.
+
 ### D11-G1 Ingen produktväg krediterade en fakturerad brytavgift — ägarbeslut 33; IMPLEMENTERAD (`3e277d534`, agent); väntar på världsverifiering (H11)
 - **Ny funktion:** `gridex_request_break_fee_credit_v1` (migration `20261026120000`) krediterar helt eller delvis, med behörighet `billing_underlay.export`, obligatorisk orsak och radlås på avgiften. I samma transaktion skapas:
   - justeringsärendet (`credit_queued`, med ursprungsunderlag och ursprungsfaktura);
