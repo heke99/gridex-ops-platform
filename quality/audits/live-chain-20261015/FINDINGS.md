@@ -2668,6 +2668,31 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **Rättning:** kommentaren är nu en SQL-kommentar (`--`). Verifieras när E körs om.
 - **Variant kontrollerad:** samma sorts kommentar i J2 står i JS och är korrekt.
 
+### J2-13 Avstämning mellan uppmätt, nätägarens summerade värden och fakturerat — ägarbeslut 34; IMPLEMENTERAD (`bdad82fbf`, agent); väntar på världsverifiering
+- **Migration** `20261026130000_j2_13_settlement_reconciliation.sql`. Två separata kontroller per tenant, nätområde, period och serietyp:
+  - **`aggregate_vs_metered`:** egna aktuella mätvärden mot nätägarens aggregat (E31, `meter_reading_series` `aggregate`) över exakt aggregatets period.
+  - **`billed_vs_basis`:** nettofakturerade kWh (fakturor minus krediter ur `billing_adjustment_cases`, plus ersättningsfakturor) mot aktuella mätvärden för samma mätpunkter och perioder. Brytavgiftsunderlag räknas inte.
+- **Status:**
+  - `matched` och `deviation`.
+  - `incomplete`: saknade intervall, enhet som inte stöds, faktura utan kWh, eller saknat underlag. Räknas aldrig som noll och godkänns aldrig.
+  - `missing_reference`: E31 saknas för en avslutad månad.
+  - `preliminary`: S03, som aldrig jämförs som slutlig förbrukning och aldrig ger ett ärende.
+- **Hanteras:**
+  - **Leveransstart och -slut:** bara den levererade delen krävs.
+  - **Enheter:** kWh, MWh och Wh.
+  - **Tidsupplösning:** summan över aggregatets period.
+  - **Rättade versioner:** bara `is_current` jämförs, och tidigare resultat finns kvar som historik.
+- **Toleranser:** `settlement_reconciliation_tolerances`, dokumenterade per rad. Plattformsstandard 1,0 kWh / 0,5 % respektive 0,5 kWh / 0,1 %; en tenantrad har företräde.
+- **Personalärende:** vid avvikelse, ofullständiga data eller saknad referens skapas ett ärende i `customer_operation_tasks` (`settlement_reconciliation_deviation`). Ett öppet per nyckel, som uppdateras vid omkörning. Det bär bevis för kontakt med nätägaren.
+- **När:**
+  - Månadsvis via `/api/cron/reconciliation/settlement` (den 6:e, `vercel.json`).
+  - Vid nya eller korrigerade värden köar satsvisa triggers på `meter_reading_series` och `metering_values` (tenant, nätområde, månad). Den dagliga avstämningen bearbetar kön.
+  - Den dagliga rapporten (`lib/ops/reconciliation.ts`) får `settlement_aggregate_vs_metered` och `metered_vs_billed_kwh`.
+- **Inte i denna etapp:** inga automatiska rättelser och ingen faktureringsspärr. Befintliga faktureringskontroller och låsta funktioner (DB-05, SC-031, SC-046) är oförändrade.
+- **Behörighet:** RLS för tenantläsning. Körning som `service_role` eller med `billing_underlay.read`. Inga direkta skrivningar.
+- **Test:** `__tests__/reality-j2-13-settlement-reconciliation.test.ts`, 15/15 (före migrationen kan filen inte köras). Relaterade tester 157/160; de 3 felen i `gridex-aud-003` finns redan på basen.
+- **Kvar:** täckningskontrollen på en lugn maskin, och J2-12/J2-13 i världen. J2-12:s befintliga kontroll matchar de nya nycklarna.
+
 ### I-B2d "Försök igen" på ett misslyckat byte via befintlig automation — ägarbeslut 32; IMPLEMENTERAD (`cd537bda3`, agent); väntar på världsverifiering (I9)
 - **Var:** tenantens operatör ser "Försök igen" på kundkortets översikt (`CustomerSwitchRetryPanel`). Panelen visas med `switching.write`, för det senaste bytet per anläggning med status `failed`. Det tekniska bytesformuläret används inte.
 - **Serveråtgärden** `retryFailedSupplierSwitchAction` kräver `switching.write` i bytets eget bolag.

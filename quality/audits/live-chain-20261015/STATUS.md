@@ -21,7 +21,7 @@ Den hör ihop med tre andra dokument:
   - 31, K-W1b: klar (`35349ad8a`), migrationen applicerad i världen.
   - 32, I-B2d: klar (`cd537bda3`), ingen SQL. Väntar på I9 i världen.
   - 33, D11-G1: kreditflöde för brytavgift, och H11 krediterar via produkten. `20261026120000`.
-  - 34, J2-13: två avstämningar och ett personalärende. `20261026130000`.
+  - 34, J2-13: klar (`bdad82fbf`). Migrationen appliceras före nästa J2-körning.
   - Fynden markeras lösta först när berörda scenarier är verifierade i världen.
 - **Parallella agenter (egna worktrees, rör inte FINDINGS/STATUS/minne; huvudsessionen för in resultatet):**
   - Agent 1: T31 klar (`a6ebae999`), även i körworktreen, så J1 i batch 2 kör C10.
