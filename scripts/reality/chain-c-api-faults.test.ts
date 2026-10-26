@@ -5,7 +5,7 @@ import { execFileSync } from 'node:child_process'
 import { writeFileSync } from 'node:fs'
 import { afterAll, describe, expect, it } from 'vitest'
 import { supabaseService } from '@/lib/supabase/service'
-import { configurePlatformMailbox, configureTenant, LIVE, sql, type LiveTenant } from '../helpers/live-chain-fixture'
+import { appRequest, configurePlatformMailbox, configureTenant, LIVE, sql, type LiveTenant } from '../helpers/live-chain-fixture'
 import { goLiveOnWebsite, WEBSITE_ORIGIN } from '../helpers/reality/tenantWebsite'
 import { detectStuckStates } from '../helpers/reality/stuckDetector'
 import { prepareMarketData } from '../helpers/reality/world'
@@ -119,9 +119,10 @@ describe.sequential('reality C — website API under real-world conditions', () 
 
   it("C3 another supplier's API key cannot read this supplier's application", async () => {
     const applicationNumber = applicationsA[0]
-    const read = (key: string) => fetch(`${LIVE.appUrl}/api/v1/website/customer-applications/${encodeURIComponent(applicationNumber)}`, { headers: { authorization: `Bearer ${key}`, origin: WEBSITE_ORIGIN } })
+    // Fresh connection per read: a reused idle keep-alive socket failed with "other side closed" (FINDINGS C-B3a).
+    const read = (key: string) => appRequest(`/api/v1/website/customer-applications/${encodeURIComponent(applicationNumber)}`, { headers: { authorization: `Bearer ${key}`, origin: WEBSITE_ORIGIN } })
     const own = await read(keyA), foreign = await read(keyB)
-    const foreignBody = await foreign.text()
+    const foreignBody = foreign.text
     report.crossTenant = { applicationNumber, own: own.status, foreign: foreign.status, foreignBody: foreignBody.slice(0, 300) }
     save()
     expect(own.status).toBe(200)

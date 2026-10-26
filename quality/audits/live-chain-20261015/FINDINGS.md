@@ -2668,9 +2668,21 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **Rättning:** kommentaren är nu en SQL-kommentar (`--`). Verifieras när E körs om.
 - **Variant kontrollerad:** samma sorts kommentar i J2 står i JS och är korrekt.
 
-### C, batch 3 (2026-10-25 ca 23:30–23:34, båda banorna samtidigt): 6 av 8 gröna; C3 och C4 röda — utreds av en agent
-- **C3 (C-B3a):** `fetch failed`, `SocketError: other side closed`. Sannolikt samma återanvända keep-alive-anslutning som T27.
-- **C4 (C-B3b):** av 150 anrop (gräns 120 per minut) gav 24 svar 200, 20 svar 429 och 106 svar 503: `PUBLIC_CONTRACTS_TEMPORARILY_UNAVAILABLE` ×96 och `api_auth_unavailable` ×10. Bara 200 och 429 väntas. Oklart än om det är produkt eller den lokala stacken under samtidig last.
+### C, batch 3 (2026-10-25 ca 23:30–23:34, båda banorna samtidigt): 6 av 8 gröna; C3 och C4 röda
+- C3 är C-B3a (harness, rättad). C4 är C-B3b (inget nytt fel, öppna P6).
+
+### C-B3a Harnessen läste appen över en återanvänd anslutning som servern redan stängt — HARNESS; RÄTTAD (agent)
+- **Fel:** C3 föll med `fetch failed … other side closed` innan anropet nådde appen. Appens logg hade 43 "other side closed" under batchen. Samma orsak som T27.
+- **Rättning:** `appRequest()` (`scripts/helpers/live-chain-fixture.ts`) öppnar en ny anslutning per anrop (`agent: false`), som `cron()`. C3 använder den.
+- **Test:** `__tests__/reality-c-b3a-app-request-fresh-connection.test.ts` använder en server som stänger varje vilande anslutning. Status, huvuden, kropp och metod kontrolleras. 2/2 tillsammans med T27.
+
+### C-B3b C4: 106 × 503 i stället för 200/429 — inget nytt fel; P6 med lokal kapacitet (ÖPPEN)
+- **Fördelning:** 150 samtidiga anrop med gränsen 120 per minut gav 24 × 200, 20 × 429, 96 × `503 PUBLIC_CONTRACTS_TEMPORARILY_UNAVAILABLE` och 10 × `503 api_auth_unavailable`.
+- **Rate limit kommer först:** `authenticate_integration_request_v1` räknar och vägrar atomiskt före det dyra arbetet.
+- **Orsak till 503:** de 120 tillåtna anropen gör cirka 32 databasanrop vardera (P3).
+  - Kong loggade `worker_connections are not enough` 7 gånger och `upstream prematurely closed` 4 gånger. Den andra banan belastade samtidigt.
+  - Appen svarar 503 med `retryable` och `Retry-After`, alltså ett uttryckligt besked.
+- **Status:** P6 står kvar ÖPPEN, och grundorsaken är P3–P5. C4:s krav på 0 × 503 behålls som P6:s röda kontroll.
 
 ### J4, batch 2 (2026-10-25 ca 22:30–22:55): 7 gröna, 1 överhoppad, inga röda
 - **J4-0:** grön med syntetisk spot (T26 kringgången).

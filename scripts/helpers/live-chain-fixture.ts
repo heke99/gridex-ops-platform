@@ -89,6 +89,31 @@ export async function readInbox(user: string): Promise<ReceivedMail[]> {
 }
 
 /**
+ * One request to the app on a fresh connection (agent: false), for single reads after a long or loaded scenario step:
+ * fetch can reuse an idle keep-alive socket the server already closed and fail with UND_ERR_SOCKET "other side closed"
+ * before the request reaches the app (FINDINGS T27, C-B3a).
+ */
+export async function appRequest(path: string, init: { method?: string; headers?: Record<string, string>; body?: string } = {}): Promise<{ status: number; headers: Record<string, string>; text: string }> {
+  const url = new URL(path, LIVE.appUrl)
+  const { request } = await import(url.protocol === 'https:' ? 'node:https' : 'node:http')
+  return new Promise((resolve, reject) => {
+    const req = request(url, { method: init.method ?? 'GET', agent: false, headers: init.headers ?? {} }, (res: import('node:http').IncomingMessage) => {
+      const chunks: Buffer[] = []
+      res.on('data', (chunk: Buffer) => chunks.push(chunk))
+      res.on('end', () => {
+        const headers: Record<string, string> = {}
+        for (const [key, value] of Object.entries(res.headers)) if (value !== undefined) headers[key] = Array.isArray(value) ? value.join(', ') : value
+        resolve({ status: res.statusCode ?? 0, headers, text: Buffer.concat(chunks).toString('utf8') })
+      })
+      res.on('error', reject)
+    })
+    req.on('error', reject)
+    if (init.body !== undefined) req.write(init.body)
+    req.end()
+  })
+}
+
+/**
  * Calls a scheduled endpoint exactly like Vercel Cron: Bearer CRON_SECRET, on a fresh connection each time (agent: false).
  * fetch reused an idle keep-alive socket the server had already closed after a long scenario step, and the call failed
  * with UND_ERR_SOCKET "other side closed" before the request reached the app (FINDINGS T27, F run 32 F7).
