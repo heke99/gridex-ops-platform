@@ -115,6 +115,27 @@ function nextActionForBlockers(blockers: SupplierSwitchReadinessBlocker[]): stri
   return NEXT_ACTION_BY_CODE[first.code] ?? first.message
 }
 
+// The newest signed contract for exactly this tenant, customer and site. A switch request that is created
+// queued must carry it: the dispatch guard refuses a queued switch without its exact contract (FINDINGS I-B4).
+export async function findLatestSignedContractIdForSite(input: {
+  companyId: string
+  customerId: string
+  siteId: string
+}): Promise<string | null> {
+  const { data, error } = await supabaseService
+    .from('customer_contracts')
+    .select('id')
+    .eq('company_id', input.companyId)
+    .eq('customer_id', input.customerId)
+    .eq('status', 'signed')
+    .or(`customer_site_id.eq.${input.siteId},site_id.eq.${input.siteId}`)
+    .order('signed_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (error) throw error
+  return data?.id ? String(data.id) : null
+}
+
 export async function checkSupplierSwitchReadiness(
   input: SupplierSwitchReadinessInput
 ): Promise<SupplierSwitchReadinessResult> {
@@ -277,17 +298,7 @@ export async function checkSupplierSwitchReadiness(
   let contractSnapshot: Record<string, unknown> | null = null
   let effectiveContractId = input.contractId ?? null
   if (!effectiveContractId) {
-    let contractQuery = supabaseService
-      .from('customer_contracts')
-      .select('id')
-      .eq('company_id', input.companyId)
-      .eq('customer_id', input.customerId)
-      .eq('status', 'signed')
-      .order('signed_at', { ascending: false })
-      .limit(1)
-    contractQuery = contractQuery.or(`customer_site_id.eq.${input.siteId},site_id.eq.${input.siteId}`)
-    const candidate = await contractQuery.maybeSingle()
-    if (!candidate.error && candidate.data?.id) effectiveContractId = String(candidate.data.id)
+    effectiveContractId = await findLatestSignedContractIdForSite(input).catch(() => null)
   }
 
   let legalAcceptanceCount = 0

@@ -12,6 +12,7 @@ import { supabaseService } from "@/lib/supabase/service"
 
 import { createSupplierSwitchRequest, findCustomerSiteById, findOpenSupplierSwitchRequestForSite, listMeteringPointsForSite, listPowersOfAttorneyByCustomerId, saveCustomerAuthorizationDocument, savePowerOfAttorney, syncCustomerOperationsForCustomer, syncCustomerOperationsForSite, syncOperationTasksFromReadiness } from "@/lib/operations/db"
 import { evaluateSiteSwitchReadiness } from "@/lib/operations/readiness"
+import { findLatestSignedContractIdForSite } from "@/lib/customer-operations/switchReadiness"
 
 
 
@@ -482,6 +483,9 @@ export async function createSupplierSwitchRequestAction(
     meteringPoint,
     requestType,
     requestedStartDate,
+    companyId,
+    // The site's signed contract; the dispatch guard refuses a queued switch without it (FINDINGS I-B4v).
+    contractId: await findLatestSignedContractIdForSite({ companyId, customerId, siteId }),
   });
 
   await insertAuditLog({

@@ -8,6 +8,7 @@ import { requireOperationalCompanyId } from '@/lib/tenant/scope'
 import { supabaseService } from '@/lib/supabase/service'
 import { assignAuthorizationDocumentToGridOwnerRequest, assignAuthorizationDocumentToOutboundRequest, buildGridOwnerDataRequestAutomationKey, buildOutboundRequestAutomationKey, assignAuthorizationDocumentToSwitchRequest, createSupplierSwitchEvent, createSupplierSwitchRequest, buildSupplierSwitchRequestAutomationKey, findCustomerSiteById, findOpenGridOwnerDataRequestByDocument, findOpenOutboundRequestByDocument, findOpenSupplierSwitchRequestForSite, listMeteringPointsForSite, listPowersOfAttorneyByCustomerId, listSupplierSwitchRequestsByCustomerId, updateSupplierSwitchRequestStatus, updateSupplierSwitchValidationSnapshot } from '@/lib/operations/db'
 import { evaluateSiteSwitchReadiness } from '@/lib/operations/readiness'
+import { findLatestSignedContractIdForSite } from '@/lib/customer-operations/switchReadiness'
 
 import { resolveFullmaktAutomationPolicy } from '@/lib/operations/fullmaktAutomation'
 
@@ -583,6 +584,10 @@ export async function ensureSwitchRequestAndOutboundFromDocument(params: {
       requestType: params.requestType,
       requestedStartDate: params.requestedStartDate,
       authorizationDocumentId: params.document.id,
+      // The site's signed contract; the dispatch guard refuses a queued switch without it (FINDINGS I-B4v).
+      contractId: site.company_id
+        ? await findLatestSignedContractIdForSite({ companyId: site.company_id, customerId: params.customerId, siteId: params.siteId })
+        : null,
       automationOrigin: 'document_upload',
       automationKey: buildSupplierSwitchRequestAutomationKey(params.document.id),
     })
