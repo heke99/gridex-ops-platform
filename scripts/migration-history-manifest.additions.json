@@ -338,6 +338,7 @@
     "20261025130000_sep01_contract_separate_services.sql": "57038db99b54edb0cdf542eb91f40e1bc4b5318035983032cc246b8dc37c7547",
     "20261026100000_k_w1b_grid_area_owner_binding_conflicts.sql": "f5124fad19aa4189a7a67fbeddce7df0a6e1a598a5310ac743d40353c215d3cb",
     "20261026120000_d11g1_break_fee_credit.sql": "00ad283ef239857aae58da2d98016486c430e2bcf40f703b6a04dd334f511d8a",
-    "20261026130000_j2_13_settlement_reconciliation.sql": "5ff9207d7f92708a801e45358527375b62d1de887b69df056667db3e1801c00d"
+    "20261026130000_j2_13_settlement_reconciliation.sql": "5ff9207d7f92708a801e45358527375b62d1de887b69df056667db3e1801c00d",
+    "20261026180000_j2_03_measured_replaces_estimated_metering.sql": "f877087a853a42288cce4701ab67087f5f0ec5403ac2852e5231c5fafda5a931"
   }
 }

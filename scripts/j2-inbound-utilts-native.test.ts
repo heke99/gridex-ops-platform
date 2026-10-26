@@ -1,4 +1,4 @@
-// reality-defects: J2 (reality scenario J2 "inbound UTILTS": J2-03 an estimated value is never replaced by the measured one; J2-05 a partial-period correction is refused)
+// reality-defects: J2 (reality scenario J2 "inbound UTILTS": J2-03 an estimated value is replaced by the measured one (fixed, 20261026180000); J2-05 a partial-period correction is refused)
 // The real inbound UTILTS processor (processInboundUtiltsMessage), canonical persistence, SQL binding and the real
 // metering sink (normalizeAndStoreMeteringValue → gridex_consume_utilts_metering_v1 → gridex_ingest_metering_value_atomic)
 // against the local disposable replay database. Seeding follows scripts/ediel-utilts-err-gateway-native.test.ts
@@ -123,29 +123,44 @@ describe('J2-03 estimated values replaced by measured values', () => {
     ])
   })
 
-  it('evidence: the estimated day is stored as estimated, and the measured file for the same day is refused', async () => {
+  it('the estimated day is stored as estimated and held from billing', async () => {
     const f = await seed()
     expect(await attempt(f, (await f.send('ESTIMATED', { registered: '202607010040', values: ['500', '400'], estimated: true })).source)).toBeNull()
     expect(f.current()).toEqual([
       { start: '2026-06-30T22:00Z', kwh: '500', quality: '56', reading: 'estimated', revision: 1 },
       { start: '2026-06-30T22:15Z', kwh: '400', quality: '56', reading: 'estimated', revision: 1 },
     ])
-    const measured = (await f.send('MEASURED', { registered: '202607010100', values: ['520', '400'] })).source
-    // gridex_consume_utilts_metering_v1 compares quality_code/reading_type as identity, so neither the changed
-    // quarter (correction branch) nor the unchanged one (equal quantity) may replace the estimate.
-    expect(await attempt(f, measured)).toMatch(/utilts_consumption_existing_metering_conflict/)
-    expect(f.current().map(row => row.quality)).toEqual(['56', '56'])
-    expect(f.outcome(measured).acks.filter(ack => ack.family === 'APERAK')).toEqual([])
   })
 
-  it.fails('the measured values replace the estimates (changed and unchanged quantity alike)', async () => {
+  it('the measured values replace the estimates (changed and unchanged quantity alike)', async () => {
     const f = await seed()
     await f.consume((await f.send('ESTIMATED', { registered: '202607010040', values: ['500', '400'], estimated: true })).source)
-    await f.consume((await f.send('MEASURED', { registered: '202607010100', values: ['520', '400'] })).source)
+    const measured = (await f.send('MEASURED', { registered: '202607010100', values: ['520', '400'] })).source
+    expect(await attempt(f, measured)).toBeNull()
     expect(f.current()).toEqual([
       { start: '2026-06-30T22:00Z', kwh: '520', quality: null, reading: 'consumption', revision: 2 },
       { start: '2026-06-30T22:15Z', kwh: '400', quality: null, reading: 'consumption', revision: 2 },
     ])
+  })
+
+  it('an estimate never replaces a measured value', async () => {
+    const f = await seed()
+    expect(await attempt(f, (await f.send('MEASURED', { registered: '202607010040', values: ['500', '400'] })).source)).toBeNull()
+    const estimated = (await f.send('ESTIMATED', { registered: '202607010100', values: ['520', '400'], estimated: true })).source
+    expect(await attempt(f, estimated)).toMatch(/utilts_consumption_existing_metering_conflict/)
+    expect(f.current()).toEqual([
+      { start: '2026-06-30T22:00Z', kwh: '500', quality: null, reading: 'consumption', revision: 1 },
+      { start: '2026-06-30T22:15Z', kwh: '400', quality: null, reading: 'consumption', revision: 1 },
+    ])
+  })
+
+  it('a measured file that is not newer than the estimate does not replace it', async () => {
+    const f = await seed()
+    await f.consume((await f.send('ESTIMATED', { registered: '202607010100', values: ['500', '400'], estimated: true })).source)
+    const older = (await f.send('MEASURED', { registered: '202607010040', values: ['520', '400'] })).source
+    // The processor keeps an older registration out of the current values (late history); the estimate stays.
+    await attempt(f, older)
+    expect(f.current().map(row => [row.kwh, row.quality, row.revision])).toEqual([['500', '56', 1], ['400', '56', 1]])
   })
 })
 
