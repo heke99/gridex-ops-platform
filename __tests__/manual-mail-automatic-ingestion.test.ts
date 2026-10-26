@@ -7,7 +7,8 @@ import { getManualMailReviewQueue } from '@/lib/inbound-mail/manualMailReviewQue
 type Row = Record<string, unknown>
 const io = vi.hoisted(() => ({ db: null as unknown as ReturnType<typeof createFakeDb>, correlationInput: null as Row | null,
   apply: vi.fn(), continuation: vi.fn(), facility: vi.fn(), pauseCorrelation: null as (() => Promise<void>) | null,
-  documentRouting: vi.fn(), documentEligible: vi.fn(), multiSite: vi.fn(), continueMultiSite: vi.fn() }))
+  documentRouting: vi.fn(), documentEligible: vi.fn(), multiSite: vi.fn(), continueMultiSite: vi.fn(),
+  correlationOverride: null as Row | null }))
 vi.mock('@/lib/inbound-mail/manualMultiSiteReply', () => ({
   applyManualMultiSiteReply: (...args: unknown[]) => io.multiSite(...args),
   continueManualMultiSiteReply: (...args: unknown[]) => io.continueMultiSite(...args),
@@ -37,7 +38,8 @@ vi.mock('@/lib/inbound-mail/manualInboundCorrelation', async (original) => ({
   if (pause) await pause()
   return { resolutionStatus: 'matched', companyId: request.company_id, requestId: request.id, customerId: request.customer_id,
     customerSiteId: request.customer_site_id, meteringPointId: null, gridOwnerId: null, tenantResolutionMethod: 'case_reference',
-    entityResolutionMethod: 'request', senderCredible: true, intent: 'contract_information_response', businessProcess: 'supplier_contract', intentConfidence: 1, evidence: {}, request }
+    entityResolutionMethod: 'request', senderCredible: true, intent: 'contract_information_response', businessProcess: 'supplier_contract', intentConfidence: 1, evidence: {}, request,
+    ...(io.correlationOverride ?? {}) }
 } }))
 
 import { ingestManualInboundEmail, type ManualInboundEmail } from '@/lib/inbound-mail/manualInboundIngestion'
@@ -78,6 +80,8 @@ beforeEach(() => {
   io.continuation.mockResolvedValue({ ok: true, blockedBeforeDispatch: false, supplierSwitchRequestId: 'switch-a' })
   io.facility.mockResolvedValue({ outcome: 'applied', confidence: 0.9, extracted: {}, reasons: [] })
   io.pauseCorrelation = null
+  io.correlationOverride = null
+  io.correlationInput = null
   io.documentEligible.mockResolvedValue(true)
   io.multiSite.mockResolvedValue({ outcome: 'applied', results: [], appliedCount: 2, reviewCount: 0 })
   io.continueMultiSite.mockResolvedValue(undefined)
@@ -598,3 +602,97 @@ it('accepts a matching explicitly labelled customer identity with ordinary forma
     p_payload: expect.objectContaining({ extracted: expect.objectContaining({ customer_identity_number: '200001010001' }) }),
   }))
 })
+
+
+// Regression: a sender/source hold is an ordinary reply requiring review,
+// even if the correlation classifier returned ignored before that hold.
+// Genuine RFC3834 auto-replies take their earlier separate return path.
+async function currentSenderHoldReviewRows() {
+  let predicate = ''
+  const query: Row = {}
+  for (const method of ['select', 'order', 'range']) query[method] = () => query
+  query.or = (value: string) => { predicate = value; return query }
+  query.then = (resolve: (value: unknown) => unknown) => {
+    const resolutions = predicate.match(/(?:^|,)resolution_status\.in\.\(([^)]+)\)/)?.[1].split(',') ?? []
+    const states = predicate.match(/(?:^|,)processing_state\.in\.\(([^)]+)\)/)?.[1].split(',') ?? []
+    const rows = io.db.tables.manual_inbound_messages.filter(row => resolutions.includes(String(row.resolution_status))
+      || states.includes(String(row.processing_state)))
+    return Promise.resolve(resolve({ data: rows, count: rows.length, error: null }))
+  }
+  return getManualMailReviewQueue({ from: () => query } as never, {})
+}
+
+it.each([false, true])('keeps sender-held ordinary replies review-visible when correlation said ignored (authenticated: %s)', async authenticated => {
+  vi.stubEnv('MANUAL_MAIL_AI_ENABLED', '1'); vi.stubEnv('OPENAI_API_KEY', 'synthetic')
+  const fetcher = vi.fn(() => { throw new Error('A held source must not reserve or spend AI.') })
+  vi.stubGlobal('fetch', fetcher)
+  const candidateEvidence = { case_reference_matched: true, reply_reference_matched: true, request_bound_by_reply: true,
+    reply_reference_outbox_ids: ['original-outbox-a'], reply_reference_match_methods: ['outbound_rfc_message_id'] }
+  io.correlationOverride = { resolutionStatus: 'ignored', senderCredible: false, evidence: candidateEvidence }
+  if (authenticated) io.documentRouting.mockResolvedValue({ resolutionStatus: 'ignored', companyId: 'tenant-a', customerId: 'customer-a',
+    requestId: 'request-a', request: { ...request }, senderCredible: false,
+    sites: [{ customerSiteId: 'site-a', facilityId: null, units: [] }], reasons: [], evidence: candidateEvidence })
+  const message = email('Tidigaste start: 2027-04-01\nBrytavgift: Ingen', {
+    inReplyTo: '<original-outbox@example.org>', references: ['<original-outbox@example.org>'],
+    ...(authenticated ? {} : { senderVerification: undefined }),
+  })
+  const originalRequest = structuredClone(io.db.tables.grid_owner_information_requests[0])
+  const first = await ingestManualInboundEmail(message)
+  expect(first).toMatchObject({ resolutionStatus: 'unmatched', processingState: 'needs_review', companyId: null,
+    customerId: null, requestId: null, customerSiteId: null, meteringPointId: null })
+  const source = io.db.tables.manual_inbound_messages[0]
+  expect(source).toMatchObject({ resolution_status: 'unmatched', processing_state: 'needs_review', company_id: null,
+    customer_id: null, request_id: null, customer_site_id: null, metering_point_id: null, grid_owner_id: null,
+    correlation_evidence: { ...candidateEvidence,
+      unverified_candidate: { companyId: 'tenant-a', customerId: 'customer-a', requestId: 'request-a', customerSiteId: 'site-a' },
+      source_review_reasons: expect.arrayContaining(['sender_not_credible', ...(!authenticated ? ['sender_not_authenticated'] : [])]),
+    } })
+  expect(source.extracted_payload).not.toHaveProperty('ai_read_only')
+  expect(io.db.tables.grid_owner_information_requests[0]).toEqual(originalRequest)
+  expect((await currentSenderHoldReviewRows()).rows.map(row => row.id)).toContain(first.inboundId)
+  const second = await ingestManualInboundEmail(message)
+  expect(second).toMatchObject({ inboundId: first.inboundId, resolutionStatus: 'unmatched', processingState: 'needs_review', companyId: null, customerId: null })
+  expect(io.db.tables.manual_inbound_messages).toHaveLength(1)
+  expect(fetcher).not.toHaveBeenCalled(); expect(io.apply).not.toHaveBeenCalled()
+  expect(io.facility).not.toHaveBeenCalled(); expect(io.continuation).not.toHaveBeenCalled(); expect(io.multiSite).not.toHaveBeenCalled()
+  expect(io.db.tables.grid_owner_information_requests[0]).toEqual(originalRequest)
+})
+
+it('keeps true auto-submitted replies ignored and outside the manual review queue without inference or business replay', async () => {
+  vi.stubEnv('MANUAL_MAIL_AI_ENABLED', '1'); vi.stubEnv('OPENAI_API_KEY', 'synthetic')
+  const fetcher = vi.fn(() => { throw new Error('An auto-reply must not spend AI.') })
+  vi.stubGlobal('fetch', fetcher)
+  io.correlationOverride = { resolutionStatus: 'ignored', senderCredible: false }
+  const originalRequest = structuredClone(io.db.tables.grid_owner_information_requests[0])
+  const message = email('Automatic reply: We received your request.', { senderVerification: undefined,
+    autoReplyHeaders: { 'auto-submitted': 'auto-replied' } })
+  const first = await ingestManualInboundEmail(message)
+  expect(first).toMatchObject({ resolutionStatus: 'ignored', companyId: null, requestId: null })
+  expect(io.db.tables.manual_inbound_messages[0]).toMatchObject({ resolution_status: 'ignored', processing_state: 'ignored',
+    correlation_evidence: { classification: 'ignored_auto_reply', auto_reply_reason: 'auto_submitted' } })
+  expect((await currentSenderHoldReviewRows()).rows).toHaveLength(0)
+  await ingestManualInboundEmail(message)
+  expect(io.db.tables.manual_inbound_messages).toHaveLength(1)
+  expect(io.correlationInput).toBeNull()
+  expect(fetcher).not.toHaveBeenCalled(); expect(io.apply).not.toHaveBeenCalled()
+  expect(io.facility).not.toHaveBeenCalled(); expect(io.continuation).not.toHaveBeenCalled(); expect(io.multiSite).not.toHaveBeenCalled()
+  expect(io.db.tables.grid_owner_information_requests[0]).toEqual(originalRequest)
+})
+
+it.each(['metering_point_lookup', 'grid_area_confirmation', 'grid_contract_information'])(
+  'keeps %s replies for review instead of calling an unsupported facility completion', async requestType => {
+    vi.stubEnv('MANUAL_MAIL_AI_ENABLED', '0')
+    io.db.tables.grid_owner_information_requests[0].request_type = requestType
+    const originalRequest = structuredClone(io.db.tables.grid_owner_information_requests[0])
+    // The canonical completion accepts facility_lookup/identifier_lookup only.
+    io.facility.mockRejectedValue(new Error('Begäran är inte en anläggningsuppgiftsbegäran.'))
+    const result = await ingestManualInboundEmail(email('Anläggnings-ID: 735999100000000001\nNätområde: ABC\nElområde: SE3'))
+    expect(result).toMatchObject({ processingState: 'needs_review', resolutionStatus: 'matched',
+      companyId: 'tenant-a', customerId: 'customer-a', requestId: 'request-a' })
+    expect((await currentSenderHoldReviewRows()).rows.map(row => row.id)).toContain(result.inboundId)
+    expect(io.facility).not.toHaveBeenCalled()
+    expect(io.apply).not.toHaveBeenCalled()
+    expect(io.continuation).not.toHaveBeenCalled()
+    expect(io.db.tables.grid_owner_information_requests[0]).toEqual(originalRequest)
+  },
+)

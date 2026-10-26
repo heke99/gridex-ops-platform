@@ -23,6 +23,7 @@ import { recordManualMailDocumentReading } from '@/lib/inbound-mail/manualMailDo
 import { createManualMailSourceCorpus } from '@/lib/inbound-mail/manualMailEvidenceSources'
 import { isVerifiedManualDocumentSender, resolveManualDocumentRouting } from '@/lib/inbound-mail/manualInboundRouting'
 import { MANUAL_MAILBOX_RECEIPT, qualifyManualMailboxReceipt, readStoredManualMailboxReceipt, type ManualMailboxReceipt } from '@/lib/inbound-mail/manualMailboxReceipt'
+import { isFacilityLookupRequestType } from '@/lib/facility/facilityLookupWorkflow'
 
 type JsonRecord = Record<string, unknown>
 
@@ -67,13 +68,6 @@ export type ManualInboundResult = {
 }
 
 const CASE_REFERENCE_RE = /GX-FIR-[A-F0-9]{8,32}/i
-const FACILITY_REQUEST_TYPES = new Set([
-  'facility_identifier_lookup',
-  'facility_lookup',
-  'metering_point_lookup',
-  'grid_area_confirmation',
-  'grid_contract_information',
-])
 
 function clean(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
@@ -631,8 +625,10 @@ export async function ingestManualInboundEmail(email: ManualInboundEmail): Promi
     // Tenant-readable originals require a complete, authenticated and credible
     // customer correlation. An unread attachment may concern another customer
     // even when the signed subject still names an old request.
-    correlation = { ...correlation, resolutionStatus: correlation.resolutionStatus === 'ignored' ? 'ignored'
-      : correlation.resolutionStatus === 'ambiguous' || sourceStructureRequiresReview ? 'ambiguous' : 'unmatched',
+    // An ordinary reply held for sender/source verification must remain in the
+    // review queue. True auto-replies and retired sources already returned.
+    correlation = { ...correlation, resolutionStatus:
+      correlation.resolutionStatus === 'ambiguous' || sourceStructureRequiresReview ? 'ambiguous' : 'unmatched',
       evidence: { ...correlation.evidence, unverified_candidate: { companyId: correlation.companyId, customerId: correlation.customerId,
         requestId: correlation.requestId, customerSiteId: correlation.customerSiteId },
       source_review_reasons: [...documentReasons, ...(!verifiedSender ? ['sender_not_authenticated'] : []),
@@ -787,7 +783,7 @@ export async function ingestManualInboundEmail(email: ManualInboundEmail): Promi
     && correlation.companyId
     && correlation.senderCredible
     && requestType !== null
-    && FACILITY_REQUEST_TYPES.has(requestType)
+    && isFacilityLookupRequestType(requestType)
 
   if (counterpartyReply && correlation.request && correlation.companyId) {
     await recordManualCounterpartyReply({ companyId: correlation.companyId, request: correlation.request, inboundId: raw.inboundId, assessment: counterpartyReply })
