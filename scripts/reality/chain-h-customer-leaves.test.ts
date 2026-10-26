@@ -30,7 +30,8 @@ import { closeOperatorConsole, operatorSession, submitServerAction } from '../he
 import { createTenantStaff } from '../helpers/reality/tenantStaff'
 import { supabaseService } from '@/lib/supabase/service'
 import { calculatePricingPreviewForUnderlay, lockPricingPreview } from '@/lib/pricing/engine'
-import { createInvoiceExportRun } from '@/lib/integrations/billing/invoiceExportCore'
+import { prepareInvoiceDraftsForReview } from '@/lib/billing/invoiceReviewPrepare'
+import { requireTenantInvoiceProvider } from '@/lib/billing/providers/registry'
 import { pollInboundMailLanes, runSlotAfterInbound, runOperationalCronSlot, type GridOwnerSim } from '../helpers/reality/world'
 import { clockSettings, cronTick } from '../helpers/reality/clock'
 import { GRID_AREA, GRID_OWNER_EDIEL_ID, goLiveAlsSupplier } from '../helpers/reality/goLiveAls'
@@ -476,16 +477,25 @@ describe.sequential('reality H — the customer leaves', () => {
     const ledger = () => sql<number>(`SELECT to_jsonb(count(*)) FROM public.contract_charge_ledger WHERE company_id=${companyLiteral()} AND event_key=${literal(charge.id)}`)
     expect(ledger()).toBe(1)
     expect(sql<string>(`SELECT to_jsonb(readiness_status) FROM public.billing_underlays WHERE id=${literal(underlayId)}`)).toBe('ready')
-    // Invoiced once through the normal invoice export; a second run adds nothing, and a direct second invoice of the
+    // Invoiced once through the normal invoice preparation; a second preparation adds nothing, and a direct second invoice of the
     // underlay is refused by the database (break_fee_already_invoiced).
     const month = String(row.start).slice(0, 7)
-    report.d11Export = await createInvoiceExportRun({ companyId: tenant.companyId, billingMonth: month, actorUserId: staff.userId })
+    // Invoices are made the way production makes them (FINDINGS T38): the staff/cron preparation of review drafts
+    // (prepareInvoiceDraftsForReview, reserved per underlay), scoped to the exact underlay, with the tenant's own invoice
+    // provider. createInvoiceExportRun returns an existing company+month run early and is not a production path.
+    const prepareInvoice = async (billingUnderlayId: string, billingMonth: string) => {
+      const company = sql<Record<string, unknown>>(`SELECT to_jsonb(c) FROM (SELECT billing_provider_environment,invoice_export_target_system FROM public.companies WHERE id=${companyLiteral()}) c`)
+      const { environment, provider } = requireTenantInvoiceProvider(company as Parameters<typeof requireTenantInvoiceProvider>[0])
+      return prepareInvoiceDraftsForReview({ companyId: tenant.companyId, billingMonth, environment, provider, actorUserId: staff.userId, billingUnderlayId })
+    }
+    report.d11Export = await prepareInvoice(underlayId, month)
+    expect((report.d11Export as { created: number }).created, JSON.stringify(report.d11Export)).toBe(1)
     const invoices = () => sql<Array<{ id: string; exVat: number }>>(`SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,'exVat',amount_ex_vat)),'[]') FROM public.customer_invoices
       WHERE company_id=${companyLiteral()} AND billing_underlay_id=${literal(underlayId)}`)
     expect(invoices()).toHaveLength(1)
     expect(invoices()[0]).toMatchObject({ exVat: loss })
     expect(breakFeeCharges(fixed.contractId)[0]).toMatchObject({ status: 'invoiced', invoiceId: invoices()[0].id })
-    await createInvoiceExportRun({ companyId: tenant.companyId, billingMonth: month, actorUserId: staff.userId }).catch(error => { report.d11SecondExport = String(error) })
+    report.d11SecondExport = await prepareInvoice(underlayId, month).catch(error => String(error))
     expect(invoices()).toHaveLength(1)
     expect(ledger()).toBe(1)
     expect(sql<string>(`DO $d11$ BEGIN
@@ -514,7 +524,8 @@ describe.sequential('reality H — the customer leaves', () => {
     await lockPricingPreview({ companyId: tenant.companyId, pricingRunId: String(creditPriced.pricingRunId), actorUserId: staff.userId })
     expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.contract_charge_ledger WHERE company_id=${companyLiteral()} AND event_key=${literal(creditRequest.creditId)}`)).toBe(1)
     const creditMonth = sql<string>(`SELECT to_jsonb(to_char(billing_period_start,'YYYY-MM')) FROM public.billing_underlays WHERE id=${literal(creditRequest.billingUnderlayId)}`)
-    report.d11CreditExport = await createInvoiceExportRun({ companyId: tenant.companyId, billingMonth: creditMonth, actorUserId: staff.userId })
+    report.d11CreditExport = await prepareInvoice(creditRequest.billingUnderlayId, creditMonth)
+    expect((report.d11CreditExport as { created: number }).created, JSON.stringify(report.d11CreditExport)).toBe(1)
     const creditInvoices = sql<Array<{ id: string; exVat: number; creditOf: string; creditId: string }>>(`SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,'exVat',amount_ex_vat,
       'creditOf',metadata->>'credit_of_invoice_id','creditId',metadata->>'break_fee_credit_id')),'[]') FROM public.customer_invoices
       WHERE company_id=${companyLiteral()} AND billing_underlay_id=${literal(creditRequest.billingUnderlayId)}`)
