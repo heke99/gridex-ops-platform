@@ -2691,6 +2691,10 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
   - **Rättning:** båda binder anläggningens senaste signerade avtal via `findLatestSignedContractIdForSite` (`lib/customer-operations/switchReadiness.ts`), samma uppslagning som beredskapskontrollen redan gjorde, nu utbruten: exakt bolag, kund och anläggning, status `signed`, nyast först. Formuläret skickar även `companyId`. Saknas avtal binds inget och vakten avgör som förut.
   - **Test:** `__tests__/reality-i-b4v-staff-switch-exact-contract.test.ts`, 4 fall (annan tenant, annan anläggning, äldre och osignerade avtal vinner aldrig). Före rättningen 3 röda, efter 4/4. Med I-B- och switch-testerna 10 filer, 77/77.
 
+### K, batch 5 (2026-10-26 21:21–22:01, ny värld på 063587a69): 10 av 12 gröna; K4 och K8 röda — A-B4 (harness, rättad under körningen)
+- **K-B4 verkar:** W1:s Z02 kom 4 min efter Z01 (21:29 → 21:33), i stället för 24 h.
+- **K4/K8:** W1:s Z02 hölls av produktens Z02-grind (`z02_installation_city_conflict`), så ingen Z03 skickades och K8 räknar 2 pågående byten i stället för 3. Orsaken är simulatorns fasta adress, se A-B4. K körs om i nästa batch.
+
 ### A-B4 Nätägarsimulatorns Z02 bar en fast adress, så produktens Z02-grind höll varje webbansökan — HARNESS; RÄTTAD (2026-10-26, ny session)
 - **Bevis i den nya världen (K, batch 5, endast läsning):** W1:s Z01 (`e01666b0…`) skickades 21:29 med `NAD+IT+…+Kungsgatan 1+Alingsås++441 30+SE`. Simulatorns Z02 (`2a561bfe…`) kom 21:33 med `Alingsas`. Händelsen "Z02 anläggningens ort matchar inte originating site." (`z02_installation_city_conflict`, `gridex_gate_inbound_z02_required_payload`, migration `20260903070000`) stoppade jobbet; meddelandet står `parsed`, och ingen Z03 skapas. Korrelationen var exakt (LI, variant L), så felet ligger enbart i adressen.
 - **Orsak:** `z02For` (`scripts/helpers/reality/inboundProdatWire.ts`, T31) använde en hårdkodad adress (`Kungsgatan 1`, `Alingsas`, `44130`) i stället för den som vår Z01 angav.
