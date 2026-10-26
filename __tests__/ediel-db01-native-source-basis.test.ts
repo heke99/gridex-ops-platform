@@ -567,7 +567,7 @@ programs=[ast.parse(textwrap.dedent(x)) for x in re.findall(r"python3 - <<'PY'[^
 initial=next(p for p in programs if any(isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='current_writer_inputs' for t in n.targets) for n in p.body))
 declaration=next(n for n in initial.body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='current_writer_inputs' for t in n.targets))
 paths=ast.literal_eval(declaration.value)
-assert len(paths)==5 and len(set(paths))==5
+assert len(paths)==6 and len(set(paths))==6
 blobs={p:{'mode':'100644','git_blob_oid':'synthetic-input','sha256':'synthetic-hash'} for p in paths}
 env={'current_writer_inputs':list(paths),'current':{'blobs':dict(blobs)},'required':[]}
 if stage=='freeze':
@@ -592,5 +592,5 @@ try:
 except (RuntimeError,KeyError):admitted=False
 print(json.dumps({'admitted':admitted,'writerInputs':len(paths)}))`
     const result = JSON.parse(execFileSync('python3', ['-c', python, stage, change], {cwd: root, encoding: 'utf8', timeout: 5000})) as {admitted: boolean; writerInputs: number}
-    expect(result).toEqual({admitted: change === 'valid', writerInputs: 5})
+    expect(result).toEqual({admitted: change === 'valid', writerInputs: 6})
   })

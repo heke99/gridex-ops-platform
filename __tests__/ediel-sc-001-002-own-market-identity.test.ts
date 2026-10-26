@@ -100,6 +100,31 @@ describe('SC001 own legal supplier public Z03L order',()=>{
   expect(queued).toBeGreaterThan(bound);expect(io.rpc.mock.invocationCallOrder[bound]).toBeLessThan(io.rpc.mock.invocationCallOrder[queued])
   expect(io.queue).not.toHaveBeenCalled();expect(intent.outboxStatus).toBe('queued')
   expect(io.outboundService).not.toHaveBeenCalled();expect(io.routeService).not.toHaveBeenCalled()
+  expect(io.link).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({edielMessageId:message.id,switchRequestId:switchRow.id,outboundRequestId:uid(37),actorUserId:actor}))
+  expect(io.event).toHaveBeenCalledExactlyOnceWith(expect.anything(),expect.objectContaining({companyId:A,switchRequestId:switchRow.id,eventType:'ediel_prepared',eventStatus:'queued',payload:expect.objectContaining({actorUserId:actor,edielMessageId:message.id,outboundRequestId:uid(37)})}))
+ })
+ it('does not repeat linking or preparation audit for the same already queued original',async()=>{
+  const first=await orderA(),saved=[...intents.values()][0]
+  // Explicit finite existing-intent recovery port. The ordinary insert-only
+  // admission remains separately tested and is not bypassed in production.
+  const recovery={...saved,edielMessageId:first.id};intents.set(saved.id,recovery);io.createIntent.mockResolvedValue(recovery)
+  io.link.mockClear();io.event.mockClear();io.finalize.mockClear()
+  const replay=await orderA()
+  expect(replay.id).toBe(first.id);expect(replay.status).toBe('queued')
+  expect(io.link).not.toHaveBeenCalled();expect(io.event).not.toHaveBeenCalled();expect(io.finalize).not.toHaveBeenCalled()
+ })
+ it('propagates a failed preparation audit without retrying the known queue operation',async()=>{
+  io.event.mockRejectedValueOnce(new Error('finite_audit_unavailable'))
+  await expect(orderA()).rejects.toThrow('finite_audit_unavailable')
+  expect(persisted?.status).toBe('queued')
+  expect(io.rpc.mock.calls.filter(([name])=>name==='gridex_enqueue_normal_supplier_switch_v1')).toHaveLength(1)
+  expect(io.event).toHaveBeenCalledTimes(1);expect(io.finalize).toHaveBeenCalledTimes(1)
+ })
+ it('never records prepared audit when the atomic queue outcome is unconfirmed',async()=>{
+  const original=io.rpc.getMockImplementation()!
+  io.rpc.mockImplementation(async(name:string,args:Record<string,unknown>)=>name==='gridex_enqueue_normal_supplier_switch_v1'?{data:null,error:{message:'finite_atomic_outcome_unconfirmed'}}:original(name,args))
+  await expect(orderA()).rejects.toMatchObject({message:'finite_atomic_outcome_unconfirmed'})
+  expect(io.link).not.toHaveBeenCalled();expect(io.event).not.toHaveBeenCalled();expect(io.queue).not.toHaveBeenCalled()
  })
  it('holds a selected B customer/point source before persistence or queue',async()=>{
   sourceContext={...sourceContext,companyId:B,customer:{id:customerB,company_id:B,full_name:'B FOREIGN SENTINEL'},meteringPoint:{...meter,meter_point_id:foreignPoint}}

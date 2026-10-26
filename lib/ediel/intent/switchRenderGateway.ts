@@ -45,7 +45,8 @@ export async function renderAndQueueNormalSwitch(input:{intentId:string;actorUse
  const originalHash=original.immutable_payload_hash
  if(!message.raw_payload||typeof originalHash!=='string'||!original.immutable_rendered_at
   ||createHash('sha256').update(message.raw_payload,'utf8').digest('hex')!==originalHash)throw new Error('switch_original_immutable_payload_required')
- if(message.status==='draft'){
+ const wasDraft=message.status==='draft'
+ if(wasDraft){
   const {data,error}=await supabaseService.rpc('ediel_bind_switch_original_v1',{p_company_id:intent.companyId,p_switch_id:input.source.switchRequest.id,p_message_id:message.id,p_actor_user_id:input.actorUserId})
   if(error)throw error
   if(!data||data.status!=='bound'||data.messageId!==message.id)throw new Error('switch_original_native_binding_required')
@@ -66,5 +67,7 @@ export async function renderAndQueueNormalSwitch(input:{intentId:string;actorUse
   ||persisted.outbound_request_id!==input.outboundRequestId||persisted.environment!==intent.environment
   ||persisted.raw_payload!==message.raw_payload||(persisted as typeof persisted & ImmutableProjection).immutable_payload_hash!==originalHash
   ||!['queued','sending','dispatching','provider_accepted','sent','acknowledged'].includes(persisted.status))throw new Error('switch_original_atomic_enqueue_readback_unconfirmed')
- return persisted
+ // Caller audit follows only a draft queued by this invocation. Persisted
+ // message status remains truthful; an existing/replayed original adds no audit.
+ return {message:persisted,queuedFromDraft:wasDraft&&outcome.status==='queued'}
 }

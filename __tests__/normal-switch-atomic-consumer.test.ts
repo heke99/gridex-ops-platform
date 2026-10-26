@@ -36,8 +36,23 @@ beforeEach(()=>{
  io.message.mockResolvedValue({...message,status:'queued'})
 })
 describe('installed atomic normal-switch enqueue consumer',()=>{
+ it('reports the fresh draft transition separately from the real queued message status',async()=>{
+  const result=await renderAndQueueNormalSwitch(await input())
+  expect(result).toMatchObject({queuedFromDraft:true,message:{id:'message',status:'queued'}})
+ })
+ it.each(['queued','sending','sent'])('does not report a fresh transition for an existing %s original',async status=>{
+  io.intent.mockResolvedValue({...intent,edielMessageId:'message'});io.message.mockResolvedValue({...message,status})
+  io.rpc.mockResolvedValue({data:{...queued,status:status==='sent'?'accepted':'in_progress'},error:null})
+  expect(await renderAndQueueNormalSwitch(await input())).toMatchObject({queuedFromDraft:false,message:{id:'message',status}})
+  expect(io.render).not.toHaveBeenCalled();expect(io.lifecycle).not.toHaveBeenCalled()
+ })
+ it('does not report a fresh queued transition when concurrent acceptance wins',async()=>{
+  io.message.mockResolvedValue({...message,status:'sent'})
+  io.rpc.mockImplementation(async(name:string)=>({data:name==='ediel_bind_switch_original_v1'?{status:'bound',messageId:'message'}:{...queued,status:'accepted'},error:null}))
+  expect(await renderAndQueueNormalSwitch(await input())).toMatchObject({queuedFromDraft:false,message:{id:'message',status:'sent'}})
+ })
  it('uses the exact generated RPC arguments after native binding, with no split queue writes',async()=>{
-  expect((await renderAndQueueNormalSwitch(await input())).status).toBe('queued')
+  expect((await renderAndQueueNormalSwitch(await input())).message.status).toBe('queued')
   expect(io.rpc.mock.calls.map(c=>c[0])).toEqual(['ediel_bind_switch_original_v1','gridex_enqueue_normal_supplier_switch_v1'])
   expect(io.rpc).toHaveBeenLastCalledWith('gridex_enqueue_normal_supplier_switch_v1',{
    p_company_id:'tenant',p_switch_id:'switch',p_intent_id:'intent',p_message_id:'message',p_outbound_request_id:'request',p_actor_user_id:'actor',p_expected_payload_hash:message.immutable_payload_hash})
@@ -92,7 +107,7 @@ describe('installed atomic normal-switch enqueue consumer',()=>{
  it('observes an existing active claim without a new bind, render or queue',async()=>{
   io.intent.mockResolvedValue({...intent,edielMessageId:'message'});io.message.mockResolvedValueOnce({...message,status:'queued'}).mockResolvedValue({...message,status:'dispatching'})
   io.rpc.mockResolvedValue({data:{...queued,status:'in_progress'},error:null})
-  expect((await renderAndQueueNormalSwitch(await input())).status).toBe('dispatching');expect(io.rpc).toHaveBeenCalledTimes(1);expect(io.lifecycle).not.toHaveBeenCalled();expect(io.queue).not.toHaveBeenCalled()
+  expect((await renderAndQueueNormalSwitch(await input())).message.status).toBe('dispatching');expect(io.rpc).toHaveBeenCalledTimes(1);expect(io.lifecycle).not.toHaveBeenCalled();expect(io.queue).not.toHaveBeenCalled()
  })
 
 })
