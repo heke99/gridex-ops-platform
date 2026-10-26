@@ -87,6 +87,8 @@ export async function processSupplierSwitch(job: JobRow): Promise<JobOutcome> {
     meteringPoint: candidate,
     requestType,
     requestedStartDate,
+    // The signed contract the job was queued for; the dispatch guard refuses a queued switch without it (FINDINGS I-B4).
+    contractId: clean(jobPayload.contract_id),
     companyId: job.company_id,
     automationOrigin: 'customer_operation_job',
     automationKey: `customer-operation:${job.customer_id}:${siteId}:${candidate.id}`,
