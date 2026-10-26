@@ -2697,7 +2697,7 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
   - Exportcentrets standardnyckel hashar underlagsmängden.
   - Sena underlag, som krediter och rättade eller nyss godkända underlag, faktureras därför vid nästa körning.
 - **Där påståendet stämmer:** `createInvoiceExportRun` (`lib/integrations/billing/invoiceExportCore.ts:57–77`) nycklar körningen per bolag och månad och returnerar en befintlig körning direkt. Den anropas bara av scenario H, inte av produktionskod.
-- **T38, harness, ÖPPEN:** H11 ska skapa kreditfakturan via produktionsvägen (`prepareInvoiceDraftsForReview` avgränsad till kreditunderlaget, därefter godkännande och utskick), inte via `createInvoiceExportRun` samma månad. En agent rättar det.
+- **T38 — HARNESS; RÄTTAD (agent):** H11 skapar nu både brytavgiftens faktura och kreditfakturan via produktionens beredning (`prepareInvoiceDraftsForReview`, avgränsad till underlaget, med tenantens egen fakturaleverantör), som månadscron och adminåtgärden gör. `created === 1` kontrolleras för båda fakturorna, och alla H11-påståenden är kvar. tsc ger inga fel. Kvar att se i världen: om beredningen godtar kreditunderlaget (0 kWh, `consumption_correction`).
 
 ### J2-13 Avstämning mellan uppmätt, nätägarens summerade värden och fakturerat — ägarbeslut 34; IMPLEMENTERAD (`bdad82fbf`, agent); väntar på världsverifiering
 - **Migration** `20261026130000_j2_13_settlement_reconciliation.sql`. Två separata kontroller per tenant, nätområde, period och serietyp:
