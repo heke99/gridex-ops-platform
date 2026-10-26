@@ -23,6 +23,7 @@ import type { PowerOfAttorneyRow, CustomerAuthorizationDocumentRow, CustomerBloc
 import type { CustomerAddressRow, CustomerContactRow } from "@/types/customers"
 import CustomerBillingMeteringCard from "@/components/admin/customers/CustomerBillingMeteringCard"
 import CustomerSwitchOperationsCard from "@/components/admin/customers/CustomerSwitchOperationsCard"
+import CustomerSwitchRetryPanel from "@/components/admin/customers/CustomerSwitchRetryPanel"
 import CustomerContractsCard from "@/components/admin/customers/CustomerContractsCard"
 import CustomerContactsAddressesCard from "@/components/admin/customers/CustomerContactsAddressesCard"
 import CustomerProfileCard from "@/components/admin/customers/CustomerProfileCard"
@@ -883,6 +884,12 @@ export async function CustomerAdminDetailPage({
               </dl>
             </details>
           </section>
+
+          <CustomerSwitchRetryPanel
+            customerId={id}
+            switchRequests={switchRequests}
+            canRetry={isPlatformAdmin || access.permissions.includes("switching.write")}
+          />
 
           <CustomerBusinessActionsCard
             customerId={id}

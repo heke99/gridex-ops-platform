@@ -113,6 +113,23 @@ export async function createSwitchInAdmin(context: BrowserContext, input: { cust
   return { actionStatus, text: text.slice(0, 800) }
 }
 
+/**
+ * /admin/customers/<id>: the tenant operator presses "Försök igen" on a failed switch (owner decision 32, FINDINGS I-B2d).
+ * The retry runs the existing automation; the outcome (queued / investigate / refused) is read from the panel.
+ */
+export async function retrySwitchInAdmin(context: BrowserContext, input: { customerId: string; switchRequestId: string }) {
+  const page = await context.newPage()
+  await page.goto(`/admin/customers/${input.customerId}`)
+  const form = page.locator(`[data-testid="customer-switch-retry"] form:has(input[name="supplier_switch_request_id"][value="${input.switchRequestId}"])`).first()
+  await form.waitFor({ state: 'attached', timeout: 180_000 })
+  const actionStatus = await submitServerAction(page, () => form.getByRole('button', { name: 'Försök igen' }).click(), 300_000)
+  const status = form.locator('[role="status"]')
+  await status.waitFor({ timeout: 60_000 }).catch(() => undefined)
+  const outcome = await status.getAttribute('data-outcome').catch(() => null)
+  await page.close()
+  return { actionStatus, outcome }
+}
+
 /** /admin/operations/switches as the operator sees it: does the page name this facility's failure (code/text)? */
 export async function operatorSeesSwitch(context: BrowserContext, needles: string[]) {
   const page = await context.newPage()

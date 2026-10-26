@@ -32,7 +32,7 @@ import { GRID_AREA, GRID_OWNER_EDIEL_ID, goLiveAlsSupplier } from '../helpers/re
 import { detectStuckStates } from '../helpers/reality/stuckDetector'
 import { gs1 } from '../helpers/live-chain-wire'
 import { REJECTION_CODES, SILENT, type GridOwnerAnswerPlan, type RejectionReason } from '../helpers/reality/rejectsWire'
-import { awaitPlatformStartedSwitch, createSwitchInAdmin, dataRequestStates, operatorSeesSwitch, overdueOutboundAcks, startRejectingGridOwner, switchStates, type RejectingGridOwner, type SwitchState } from '../helpers/reality/rejectsWorld'
+import { awaitPlatformStartedSwitch, dataRequestStates, operatorSeesSwitch, overdueOutboundAcks, retrySwitchInAdmin, startRejectingGridOwner, switchStates, type RejectingGridOwner, type SwitchState } from '../helpers/reality/rejectsWorld'
 import { applyAsWebsiteCustomer, type SimulatedPerson } from './simulators/websiteCustomer'
 
 const report: Record<string, unknown> = { scenario: 'I grid owner rejects or stays silent', startedAt: new Date().toISOString(), clock: clockSettings() }
@@ -311,14 +311,16 @@ describe.sequential('reality I — the grid owner rejects or stays silent', () =
     expect(state.events.some(e => e.status === 'warning' && /Z04/.test(e.message))).toBe(true)
   })
 
-  it('I9 correction and resend: the operator creates a new switch for the rejected customer identity; a new Z03 (new BGM and LI) is accepted, the old one stays failed', async context => {
+  it('I9 correction and resend: the tenant operator retries the rejected switch (Försök igen); a new Z03 (new BGM and LI) is accepted, the old one stays failed', async context => {
     requireZ03('I9', context)
     const key = 'S4-customer-identity', s = byKey(key), customer = signed.get(key)!
     const [rejected] = stateOf(key, switchStates(tenant.companyId))
     if (rejected?.status !== 'failed') return expect.soft(rejected?.status, `${key}: the first switch never failed, nothing to correct`).toBe('failed')
     // The grid owner now accepts this facility (the identity was corrected with the customer).
     await gridOwner.plan({ [s.gsrn]: answer({ kind: 'positive' }, { z04: 'after_aperak' }) })
-    report.I9create = await createSwitchInAdmin(staff, { customerId: customer.customerId, siteId: customer.facilities[0].siteId, requestedStartDate: SUPPLY_START })
+    // The tenant operator presses "Försök igen" on the failed switch (owner decision 32); the automation sends the new Z03.
+    report.I9retry = await retrySwitchInAdmin(staff, { customerId: customer.customerId, switchRequestId: rejected.switchId })
+    expect(report.I9retry).toMatchObject({ outcome: 'queued' })
     const deadline = Date.now() + 15 * 60_000
     let states: SwitchState[] = []
     for (;;) {
