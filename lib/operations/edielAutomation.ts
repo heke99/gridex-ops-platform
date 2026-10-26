@@ -7,6 +7,7 @@ import { findOpenOutboundBySource } from '@/lib/cis/db'
 import { createSupplierSwitchEvent, getSupplierSwitchRequestById } from '@/lib/operations/db'
 import { getCustomerSiteById, getGridOwnerById, getMeteringPointById } from '@/lib/masterdata/db'
 import { prepareAndQueueEdielZ03, prepareAndQueueEdielZ05, prepareAndQueueEdielZ09 } from '@/lib/ediel/orchestrator'
+import { resolveSwitchDispatchEnvironment } from '@/lib/operations/switchDispatchEnvironment'
 import { evaluateSupplierSwitchSchedule } from '@/lib/operations/supplierSwitchScheduler'
 import { deriveRequestedMethodBeforeSwitch } from '@/lib/operations/switchRequestedMethodPreparation'
 import {
@@ -283,12 +284,21 @@ export async function ensureInitialSwitchEdielAutomation(
     })
   }
 
+  // The tenant's own Ediel environment unless the caller selected one; never a silent 'test' (FINDINGS I-B5).
+  const dispatchEnvironment = await resolveSwitchDispatchEnvironment({
+    companyId: context.switchRequest.company_id ?? null,
+    explicitEnvironment: input.environment ?? null,
+  })
+  if (!dispatchEnvironment.ok) {
+    const blockers: SwitchDispatchBlocker[] = [{ code: dispatchEnvironment.code, message: dispatchEnvironment.message }]
+    return { alreadyQueued: false, blocked: true as const, blockers, outboundRequestId: null, message: null }
+  }
   await deriveRequestedMethodBeforeSwitch({ actorUserId: input.actorUserId, switchRequestId: context.switchRequest.id })
   const message = await prepareAndQueueEdielZ03({
     actorUserId: input.actorUserId,
     switchRequestId: context.switchRequest.id,
     communicationRouteId: input.communicationRouteId ?? null,
-    environment: input.environment ?? undefined,
+    environment: dispatchEnvironment.environment,
   })
 
   await createAutomationEvent({
@@ -334,6 +344,8 @@ export async function continueSwitchEdielAutomation(
           actorUserId: input.actorUserId,
           switchRequestId: context.switchRequest.id,
           communicationRouteId: input.communicationRouteId ?? null,
+          environment: await resolveSwitchDispatchEnvironment({ companyId: context.switchRequest.company_id ?? null })
+            .then(resolved => { if (!resolved.ok) throw new Error(`${resolved.code}: ${resolved.message}`); return resolved.environment }),
         })
       : input.step === 'Z05'
         ? await prepareAndQueueEdielZ05({

@@ -63,3 +63,14 @@ export async function acquireBusinessActionIdempotencyKey(params: {
   if (error.code === '23505') return { acquired: false, key: params.key, reason: 'duplicate' }
   throw error
 }
+
+/** Releases a claim whose action did not take effect, so the action can be attempted again. */
+export async function releaseBusinessActionIdempotencyKey(params: { companyId: string; key: string }): Promise<void> {
+  const { error } = await supabaseService
+    .from('ediel_dedupe_keys')
+    .delete()
+    .eq('company_id', params.companyId)
+    .eq('dedupe_key', params.key)
+    .eq('metadata->>scope', 'business_action')
+  if (error) throw error
+}

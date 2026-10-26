@@ -2691,6 +2691,24 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
   - **Rättning:** båda binder anläggningens senaste signerade avtal via `findLatestSignedContractIdForSite` (`lib/customer-operations/switchReadiness.ts`), samma uppslagning som beredskapskontrollen redan gjorde, nu utbruten: exakt bolag, kund och anläggning, status `signed`, nyast först. Formuläret skickar även `companyId`. Saknas avtal binds inget och vakten avgör som förut.
   - **Test:** `__tests__/reality-i-b4v-staff-switch-exact-contract.test.ts`, 4 fall (annan tenant, annan anläggning, äldre och osignerade avtal vinner aldrig). Före rättningen 3 röda, efter 4/4. Med I-B- och switch-testerna 10 filer, 77/77.
 
+### I, batch 5 (2026-10-26 22:01–22:43): 4 gröna, 6 överhoppade, inga röda — I4–I9 överhoppade av I-B5 (produkt, rättad)
+- **I-B4 verkar i världen:** alla nio signerade kunders byten skapades (`queued`, med avtal). Z01-vägen nådde nätägaren och I10 är grön.
+- **Nytt:** ingen Z03 skapades, så I4–I9 hoppades över ("no Z03 reached the grid owner in I3"). Se I-B5.
+
+### I-B5 Automatiska byten förbereddes i testmiljön, och ett misslyckat försök blockerade återförsöket för gott — PRODUKT, KRITISK för go-live; RÄTTAD (2026-10-26)
+- **Bevis i världen (endast läsning, plus en direkt återskapning av förberedelsen):**
+  - Jobbet `start_supplier_switch` för S1 gjorde 3 försök och slutade `completed` med `{"duplicate": true}`. Ingen Z03 och inget fel sparades.
+  - Affärsåtgärdens nyckel `business-action:…:customer-operation-start:<byte>` togs 22:02:56, 0,3 s efter att bytet skapats.
+  - En direkt körning av `prepareAndQueueEdielZ03` för bytet gav `RouteDecisionBlockedError: route_profile_missing`. Ruttbeslutet bar `environment: "test"` (`environmentExplicit: true`) och valde tenantens **production**-route, som saknar testprofil.
+- **Orsak 1:** `prepareAndQueueProdatSwitch` (`lib/ediel/flows/prodatSwitch.ts`) använder `params.environment ?? 'test'`. Ingen automatisk väg anger miljö: arbetaren efter signerat avtal (`startSupplierSwitch`), webborkestreringen och dokumentvägen (`ensureInitialSwitchEdielAutomation`), adminformuläret och "fortsätt med Z03" (`continueSwitchEdielAutomation`). En produktionstenants byte förbereds alltså i testbanan. Det blockeras (som här) eller, om testprofiler finns, hamnar det på fel marknad. K:s och H:s Z03 fungerade bara för att harnessen angav `production` uttryckligen.
+- **Orsak 2:** `startSupplierSwitch` tar nyckeln före förberedelsen och släpper den aldrig. När förberedelsen kastar ser återförsöket en dubblett, och jobbet blir `completed` utan Z03. Felet blir tyst.
+- **Rättning** (`prodatSwitch.ts` är MailROOT:s fil och lämnas orörd; rättningen ligger hos anroparna):
+  - `resolveSwitchDispatchEnvironment` (`lib/operations/switchDispatchEnvironment.ts`): en uttrycklig miljö vinner. Annars gäller tenantens egen miljö för PRODAT Z03, avgjord av `resolveCustomerInfoOperationEnvironment`, samma resolver som Z01-flödet använder (aktiv avsändarinställning och Z03-profiler). Den faller aldrig tyst tillbaka på `test`; kan miljön inte avgöras ges ett blockerande besked.
+  - `startSupplierSwitch` avgör miljön före nyckeln och skickar den till Z03. Kastar förberedelsen släpps nyckeln (`releaseBusinessActionIdempotencyKey`, bara `scope = business_action`), så att återförsöket förbereder Z03. En lyckad förberedelse behåller nyckeln.
+  - `ensureInitialSwitchEdielAutomation` och `continueSwitchEdielAutomation` (Z03) använder samma resolver. En miljö som inte kan avgöras ger `blocked` med orsaken.
+- **Test:** `__tests__/reality-i-b5-switch-dispatch-environment.test.ts`, 5 fall, 3 röda före. Med switch-, I- och automationstesterna 19 filer, 162/162 (två testfiler fick resolvern som deklarerad port, inga påståenden ändrade). tsc utan fel. Resolvern ger `production` för både I:s och K:s tenant i världen.
+- **I världen:** kräver ombyggnad av appen. I, K och A körs om efter batch 5.
+
 ### K, batch 5 (2026-10-26 21:21–22:01, ny värld på 063587a69): 10 av 12 gröna; K4 och K8 röda — A-B4 (harness, rättad under körningen)
 - **K-B4 verkar:** W1:s Z02 kom 4 min efter Z01 (21:29 → 21:33), i stället för 24 h.
 - **K4/K8:** W1:s Z02 hölls av produktens Z02-grind (`z02_installation_city_conflict`), så ingen Z03 skickades och K8 räknar 2 pågående byten i stället för 3. Orsaken är simulatorns fasta adress, se A-B4. K körs om i nästa batch.

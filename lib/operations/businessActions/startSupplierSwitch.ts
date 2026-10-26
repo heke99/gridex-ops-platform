@@ -5,7 +5,9 @@ import { prepareAndQueueEdielZ03 } from '@/lib/ediel/orchestrator'
 import {
   acquireBusinessActionIdempotencyKey,
   buildBusinessActionIdempotencyKey,
+  releaseBusinessActionIdempotencyKey,
 } from '@/lib/operations/businessActions/idempotency'
+import { resolveSwitchDispatchEnvironment } from '@/lib/operations/switchDispatchEnvironment'
 import { evaluateSupplierSwitchSchedule } from '@/lib/operations/supplierSwitchScheduler'
 import {
   checkSupplierSwitchReadiness,
@@ -149,6 +151,12 @@ async function startWithPreflight(input: StartInput, preflight: BusinessActionPr
     }
   }
 
+  // The tenant's own Ediel environment for Z03, resolved before the action is claimed (FINDINGS I-B5).
+  const dispatchEnvironment = await resolveSwitchDispatchEnvironment({ companyId: preflight.companyId })
+  if (!dispatchEnvironment.ok) {
+    return { ok: false, preflight, decision, readiness, message: dispatchEnvironment.message, blockerCode: dispatchEnvironment.code }
+  }
+
   const idempotency = await acquireBusinessActionIdempotencyKey({
     companyId: preflight.companyId,
     actorUserId: input.actorUserId,
@@ -169,11 +177,20 @@ async function startWithPreflight(input: StartInput, preflight: BusinessActionPr
     return { ok: true, preflight, decision, duplicate: true, message: 'Leverantörsbytet är redan köat.' }
   }
 
-  await deriveRequestedMethodBeforeSwitch({ actorUserId: input.actorUserId, switchRequestId: input.switchRequestId })
-  const message = await prepareAndQueueEdielZ03({
-    actorUserId: input.actorUserId,
-    switchRequestId: input.switchRequestId,
-  })
+  let message: Awaited<ReturnType<typeof prepareAndQueueEdielZ03>>
+  try {
+    await deriveRequestedMethodBeforeSwitch({ actorUserId: input.actorUserId, switchRequestId: input.switchRequestId })
+    message = await prepareAndQueueEdielZ03({
+      actorUserId: input.actorUserId,
+      switchRequestId: input.switchRequestId,
+      environment: dispatchEnvironment.environment,
+    })
+  } catch (error) {
+    // Nothing was queued: release the claim so the retry prepares the Z03 instead of reporting a duplicate and
+    // completing the job without one (FINDINGS I-B5).
+    await releaseBusinessActionIdempotencyKey({ companyId: preflight.companyId, key: idempotency.key })
+    throw error
+  }
 
   return { ok: true, preflight, decision, message }
 }

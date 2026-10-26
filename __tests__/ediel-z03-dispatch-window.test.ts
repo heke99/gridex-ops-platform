@@ -53,6 +53,10 @@ vi.mock('@/lib/masterdata/db', () => ({
   getCustomerSiteById: ports.site, getMeteringPointById: vi.fn(), getGridOwnerById: vi.fn(),
 }))
 vi.mock('@/lib/cis/db', () => ({ findOpenOutboundBySource: vi.fn().mockResolvedValue(null) }))
+// Declared port: the tenant's Z03 environment (FINDINGS I-B5); an explicit environment wins, otherwise production.
+vi.mock('@/lib/operations/switchDispatchEnvironment', () => ({
+  resolveSwitchDispatchEnvironment: async (input: { explicitEnvironment?: 'test' | 'production' | null }) => ({ ok: true, environment: input.explicitEnvironment ?? 'production' }),
+}))
 vi.mock('@/lib/ediel/orchestrator', () => ({
   prepareAndQueueEdielZ03: ports.produce, prepareAndQueueEdielZ05: vi.fn(), prepareAndQueueEdielZ09: vi.fn(),
 }))

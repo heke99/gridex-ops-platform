@@ -6,6 +6,10 @@ const calls = vi.hoisted(() => ({ order: [] as string[] }))
 const chain = () => { const self: Record<string, unknown> = {}; for (const key of ['update', 'eq']) self[key] = () => self; self.then = (resolve: (value: unknown) => unknown) => Promise.resolve({ error: null }).then(resolve); return self }
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: () => chain() } }))
 vi.mock('@/lib/cis/db', () => ({ findOpenOutboundBySource: vi.fn() }))
+// Declared port: the tenant's Z03 environment (FINDINGS I-B5); an explicit environment wins, otherwise production.
+vi.mock('@/lib/operations/switchDispatchEnvironment', () => ({
+  resolveSwitchDispatchEnvironment: async (input: { explicitEnvironment?: 'test' | 'production' | null }) => ({ ok: true, environment: input.explicitEnvironment ?? 'production' }),
+}))
 vi.mock('@/lib/operations/db', () => ({
   getSupplierSwitchRequestById: async () => ({ id: 'switch-1', company_id: 'company-a', site_id: null, metering_point_id: null, grid_owner_id: null, validation_snapshot: {} }),
   createSupplierSwitchEvent: async () => ({}),
