@@ -70,6 +70,8 @@ function execute(q: Query) {
     return { data: rows.find(matches) ?? null, error: null }
   }
   if (['metering_points', 'customer_sites', 'grid_owners', 'audit_logs'].includes(q.table)) return { data: null, error: null }
+  // The registry area mapping the object batch reads since F113 (20261026170000); none is declared here.
+  if (q.table === 'platform_grid_areas') return { data: [], error: null }
   throw Error(`UNEXPECTED_DECLARED_TABLE:${q.table}`)
 }
 function install(row: EdielMessageRow) {

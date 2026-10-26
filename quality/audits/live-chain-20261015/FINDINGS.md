@@ -2202,7 +2202,13 @@ Agenterna fick inte röra den delade världen medan F körde, så allt nedan är
   - UI för att godkänna i granskningen.
   - Momsklassificeringen måste verifieras av ekonomi; systemet kräver och sparar den men avgör den inte.
 
-### F113 Överlämningspaket enligt ägarbeslut 30 (2026-10-25) — ÖPPEN tills ändringen är integrerad och verifierad
+### F113 objektbatchen — RÄTTAD (2026-10-26, övertagande #840 kommentar 6423229557); väntar på världsverifiering och GEN-fångst
+- **Migration `20261026170000_f113_object_batch_shared_grid_owner.sql`:** exakt textbyte i `require_wire_projection_v1` (förbild SC-031-successorn `4c9dd19a…`, installerad i världen). Tenantens egen rad för området tas först, oförändrat. Saknas den tas den enda kandidat som kommandots egen anläggning eller mätpunkt namnger bland (a) delade rader med `owner_code` = området och (b) registrets nätägare för området (`platform_grid_areas` aktiv och giltig idag → aktiv `platform_grid_owners` → aktiv `ops_grid_owner_id` som är tenantens egen eller delad). Två kandidater är tvetydiga. Likhetskontrollen mellan anläggning och mätpunkt behålls, så en annan tenants rad, ett annat område och en rad som ingen namngav nekas fortfarande. Detta täcker också anteckningen F114 (registermodellen har `owner_code` = Ediel-id).
+- **TS:** `lib/ediel/inboundCases.ts` slår nu upp objektbatchens nätägare med registermappningen (`registryArea` standard), samma regel som SQL. Två testfixturer fick den deklarerade tomma tabellen `platform_grid_areas` (`ediel-prodat-register-batch-application`, `ediel-sc-031-ignored-ud-business-staging-root-20261013`); inga påståenden ändrade. Ett pågående plan vars nätägare var null och som redan föll på `prodat_object_batch_wire_grid_owner_required` får vid omförsök `PRODAT_OBJECT_APPLICATION_PLAN_MISMATCH` (kommandots hash ändras) och behöver godkännas på nytt.
+- **Test:** `scripts/reality-f113-shared-grid-owner-object-batch-scope-native.test.ts` (världens databas, rullas tillbaka) 2/2. Mot den gamla kroppen nekas delad och registermappad nätägare; med den nya godtas de, medan främmande tenant, inaktiv eller utgången mappning, annat område och tvetydighet nekas. Vitest för inboundCases, F114, SC-031-pinnen och DB-05: 23 filer, 660/660.
+- **Pinnar:** SC-031:s successor-pin och DB-05:s katalogförväntan prövar de historiska migrationerna mot `schema.sql` och är gröna. När GEN-ägaren fångar om `schema.sql` måste SC-031:s successor-hash och DB-05 godta den nya kroppen i samma ändring.
+
+### F113 Överlämningspaket enligt ägarbeslut 30 (2026-10-25) — ERSATT av övertagandet ovan
 - **Låst objekt (inte ändrat):** `gridex_prodat_object_batch.require_wire_projection_v1(text,jsonb,jsonb,text,uuid)`, nås via `require_plan_v1` när admin godkänner masterdata för en PRODAT-objektbatch efter Z04/Z06.
 - **Migrationer som definierar eller pinnar objektet:**
   - `20261014202520_ops_api_sc031_current_main_source_alignment.sql` (senaste kropp)

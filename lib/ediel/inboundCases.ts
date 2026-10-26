@@ -614,9 +614,9 @@ export async function getEdielInboundCaseForMessage(companyId: string, messageId
 /** The grid owner usable by the tenant for the grid area: its own row by owner_code, else the shared row for the
  * area, including the platform registry mapping platform_grid_areas -> platform_grid_owners.ops_grid_owner_id
  * (FINDINGS F101, F114). Never another tenant's row; ambiguity or absence selects none.
- * `registryArea: false` keeps the owner_code-only lookup for the PRODAT object batch: its protected wire projection
- * (gridex_prodat_object_batch.require_wire_projection_v1, DB-05/SC-031) still resolves the area by owner_code among
- * the tenant's own rows and refuses any other grid owner (held F113 proposal). */
+ * `registryArea: false` keeps the owner_code-only lookup. The PRODAT object batch uses the registry mapping too since
+ * its wire projection (gridex_prodat_object_batch.require_wire_projection_v1) accepts the same candidates (F113,
+ * 20261026170000). */
 export async function getGridOwnerIdByGridArea(companyId: string, gridAreaCode: string | null, options: { registryArea?: boolean } = {}): Promise<string | null> {
   return selectTenantGridOwnerIdForGridArea({ companyId, gridAreaCode, registryArea: options.registryArea ?? true })
 }
@@ -1331,7 +1331,7 @@ async function applyInboundObjects(params:{actorUserId:string;caseId:string;comp
       const scopedCase:EdielInboundCaseRow={...current,customer_id:null,site_id:null,metering_point_id:null,
         case_type:projection.caseType,transaction_type:projection.transactionType,parsed_customer:projection.customer,parsed_site:projection.site,
         parsed_metering_point:projection.meteringPoint,parsed_contract:projection.contract,parsed_production:projection.production,proposed_action:projection.proposedAction}
-      const gridOwnerId=await getGridOwnerIdByGridArea(params.companyId,trimOrNull(projection.site.gridAreaCode),{registryArea:false})
+      const gridOwnerId=await getGridOwnerIdByGridArea(params.companyId,trimOrNull(projection.site.gridAreaCode))
       // Object identity, not register index or array position, owns replay and
       // application identity. Changing a later decision cannot create a new key.
       const sourceId=`${current.id}:object:${digestObject([decision.meteringPointId,decision.identityAgency])}`

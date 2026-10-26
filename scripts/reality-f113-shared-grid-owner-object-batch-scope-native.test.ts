@@ -32,9 +32,10 @@ import { seedNormalSwitchNativeFixture, nativeSql as sql, literal } from './help
 import { seedOriginalMailboxNative } from './helpers/originalMailboxNative'
 
 const DB = 'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
-// Both F113 bodies are proven from the held proposal; only its scope_v1 part ships as migration 20261023198000
-// (require_wire_projection_v1 is DB-05/SC-031 protected and needs an owner handoff).
-const MIGRATION = resolve(__dirname, '../quality/audits/live-chain-20261015/proposals/F113-object-batch-and-scope-shared-grid-owner.sql')
+// The scope_v1 part shipped as 20261023198000 from the proposal; the object-batch part ships as 20261026170000 (takeover
+// of require_wire_projection_v1 in #840 comment 6423229557), extended with the registry area mapping (F114).
+const PROPOSAL = resolve(__dirname, '../quality/audits/live-chain-20261015/proposals/F113-object-batch-and-scope-shared-grid-owner.sql')
+const MIGRATION = resolve(__dirname, '../supabase/migrations/20261026170000_f113_object_batch_shared_grid_owner.sql')
 const SHIPPED = resolve(__dirname, '../supabase/migrations/20261023198000_regulated_supply_scope_shared_grid_owner.sql')
 const WIRE_FN = `'gridex_prodat_object_batch.require_wire_projection_v1(text,jsonb,jsonb,text,uuid)'::regprocedure`
 const SCOPE_FN = `'gridex_regulated_supply.scope_v1(uuid,jsonb)'::regprocedure`
@@ -46,7 +47,7 @@ function psql<T>(statement: string, timeout = 60_000): T {
   return (out ? JSON.parse(out) : undefined) as T
 }
 const installed = () => psql<{ wire: boolean; scope: boolean; wireSrc: string; scopeSrc: string }>(`SELECT jsonb_build_object(
-  'wire',(SELECT position('company_id IS NULL AND owner_code=area' in prosrc)>0 FROM pg_proc WHERE oid=${WIRE_FN}),
+  'wire',(SELECT position('F113 (20261026170000)' in prosrc)>0 FROM pg_proc WHERE oid=${WIRE_FN}),
   'scope',(SELECT position('(company_id=c OR company_id IS NULL)' in prosrc)>0 FROM pg_proc WHERE oid=${SCOPE_FN}),
   'wireSrc',(SELECT md5(prosrc) FROM pg_proc WHERE oid=${WIRE_FN}),'scopeSrc',(SELECT md5(prosrc) FROM pg_proc WHERE oid=${SCOPE_FN}))`)
 const migrationBody = () => {
@@ -75,6 +76,15 @@ ROLLBACK;`)
 }
 const sharedOwner = (id: string, area = AREA) => `INSERT INTO public.grid_owners(id,company_id,name,ediel_id,environment,is_active,lifecycle_status,owner_code)
   VALUES(${literal(id)},NULL,${literal(`F113 synthetic shared ${id.slice(0, 8)}`)},${literal(`73${Date.now() % 1e11}`)},'test',true,'active',${literal(area)});`
+/** The registry model: the grid owner row is shared, its owner_code is its Ediel id, and only the platform registry maps
+ * the area to it (platform_grid_areas -> platform_grid_owners.ops_grid_owner_id). */
+const registryOwner = (opsId: string, area = AREA, { areaActive = true, validTo = null as string | null } = {}) => {
+  const platformId = randomUUID()
+  return `UPDATE public.grid_owners SET owner_code=ediel_id WHERE id=${literal(opsId)};
+  INSERT INTO public.platform_grid_owners(id,name,ediel_id,is_active,ops_grid_owner_id) VALUES(${literal(platformId)},${literal(`F113 registry ${platformId}`)},NULL,true,${literal(opsId)});
+  DELETE FROM public.platform_grid_areas WHERE grid_area_code=${literal(area)};
+  INSERT INTO public.platform_grid_areas(grid_area_code,grid_owner_id,is_active,valid_to) VALUES(${literal(area)},${literal(platformId)},${areaActive},${validTo === null ? 'NULL' : literal(validTo)});`
+}
 const otherTenant = (id: string) => `INSERT INTO public.companies(id,name,status) VALUES(${literal(id)},'F113 other tenant synthetic','active');`
 
 /** A real Z04 object for a fresh synthetic tenant, through the production source/assessment chain. */
@@ -137,6 +147,15 @@ describe('F113 PRODAT object batch wire projection (require_wire_projection_v1, 
       otherArea: run(`${share}${sharedOwner(otherArea, 'F13')}`, { site: otherArea, point: otherArea }),
       // Nothing named: no grid owner is chosen (unchanged).
       unnamed: run(share, {}),
+      // Registry model (F114): the shared row carries owner_code = its Ediel id; only the registry maps the area to it.
+      registry: run(`${share}${registryOwner(f.gridId)}`, { site: f.gridId, point: f.gridId }),
+      // The registry maps the area to another tenant's row: never taken.
+      registryForeign: run(`${otherTenant(other)}UPDATE public.grid_owners SET company_id=${literal(other)} WHERE id=${literal(f.gridId)};${registryOwner(f.gridId)}`, { site: f.gridId, point: f.gridId }),
+      // An inactive or expired area mapping is not used.
+      registryInactive: run(`${share}${registryOwner(f.gridId, AREA, { areaActive: false })}`, { site: f.gridId, point: f.gridId }),
+      registryExpired: run(`${share}${registryOwner(f.gridId, AREA, { validTo: '2020-01-01' })}`, { site: f.gridId, point: f.gridId }),
+      // Site names the registry row and the point another shared row of the area: ambiguous, never guessed.
+      registryAmbiguous: run(`${share}${registryOwner(f.gridId)}${sharedOwner(second)}`, { site: f.gridId, point: second }),
     }
     console.info(JSON.stringify({ label: 'F113 object batch', fixedInstalled: before.wire, cases }))
     const refused = { error: 'prodat_object_batch_wire_grid_owner_required' }
@@ -153,6 +172,12 @@ describe('F113 PRODAT object batch wire projection (require_wire_projection_v1, 
     expect(cases.ownFirstNamedOwn.fixed).toEqual({ value: 'accepted' })
     expect(cases.otherArea.fixed).toEqual(refused)
     expect(cases.unnamed.fixed).toEqual({ value: 'accepted' })
+    expect(cases.registry.fixed).toEqual({ value: 'accepted' })
+    expect(cases.registryForeign.fixed).toEqual(refused)
+    expect(cases.registryInactive.fixed).toEqual(refused)
+    expect(cases.registryExpired.fixed).toEqual(refused)
+    expect(cases.registryAmbiguous.fixed).toEqual({ error: 'prodat_object_batch_grid_namespace_ambiguous' })
+    if (!before.wire) expect(cases.registry.old).toEqual(refused)
     // Nothing from the replays is visible afterwards; the installed body is unchanged.
     expect(installed()).toEqual(before)
     expect(sql<{ company: string | null }>(`SELECT jsonb_build_object('company',company_id) FROM public.grid_owners WHERE id=${literal(f.gridId)}`)).toEqual({ company: f.companyId })
@@ -165,7 +190,7 @@ describe('F113 regulated supply scope (gridex_regulated_supply.scope_v1)', () =>
     // The shipped migration carries exactly the proposal's scope_v1 rewrite (needle, replacement and markers).
     const scopeTuple = (file: string) => readFileSync(file, 'utf8').match(/\('gridex_regulated_supply\.scope_v1[\s\S]*?'gridex_regulated_supply\.lock_graph_v1\(\)'\)/)?.[0]
     expect(scopeTuple(SHIPPED)).toBeTruthy()
-    expect(scopeTuple(SHIPPED)).toBe(scopeTuple(MIGRATION))
+    expect(scopeTuple(SHIPPED)).toBe(scopeTuple(PROPOSAL))
     const f = await seedNormalSwitchNativeFixture({ deferOriginal: true })
     const agreement = randomUUID()
     const dso = sql<string>(`SELECT to_jsonb(actor_id) FROM public.platform_actor_identifiers WHERE identifier_type='EdielId' AND identifier_value=${literal(f.receiver)} AND is_verified`)

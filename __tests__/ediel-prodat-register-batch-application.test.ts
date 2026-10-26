@@ -77,6 +77,8 @@ beforeEach(async()=>{
   const query={select:vi.fn(()=>query),update:vi.fn((p:Record<string,unknown>)=>{change=p;return query}),insert:vi.fn(()=>query),eq:vi.fn((k:string,v:unknown)=>{filters.push(row=>k==='review_decision' ? JSON.stringify(keyValue(row,k))===JSON.stringify(JSON.parse(v as string)) : v!==null && keyValue(row,k)===v);return query}),is:vi.fn((k:string,v:unknown)=>{filters.push(row=>keyValue(row,k)===v);return query}),in:vi.fn((k:string,v:unknown[])=>{filters.push(row=>v.includes(keyValue(row,k)));return query}),or:vi.fn(()=>query),limit:vi.fn(()=>query),maybeSingle:vi.fn(async()=>execute()),single:vi.fn(async()=>execute()),then:undefined as unknown}
   function execute(){
    if(table==='grid_owners')return {data:null,error:null}
+   // The registry area mapping the object batch reads since F113 (20261026170000); none is declared here.
+   if(table==='platform_grid_areas')return {data:[],error:null}
    if(table==='ediel_messages')return {data:filters.every(f=>f(message as unknown as Record<string,unknown>))?structuredClone(message):null,error:null}
    if(table==='audit_logs')return {data:null,error:null}
    if(graphRows[table])return {data:graphRows[table].find(row=>filters.every(f=>f(row))) ?? null,error:null}
