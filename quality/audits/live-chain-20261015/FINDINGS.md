@@ -2690,9 +2690,14 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **H11** krediterar nu genom produktvägen.
 - **Begränsningar:** en kredit åt gången, och högst ett kreditunderlag per dag (`break_fee_credit_same_day`, eftersom segmentindexet inte skiljer två krediter samma dag).
 
-### X-LATE Fakturaexporten körs en gång per bolag och månad, så ett sent underlag faktureras aldrig — SANNOLIK (agentens kodläsning), medel; ska verifieras
-- Enligt D11-G1-agenten fakturerar exportkörningen bara en gång per bolag och månad. Ett underlag som blir klart i en månad där körningen redan finns, som en kredit eller ett sent rättat underlag, får då aldrig sin faktura.
-- Ska bekräftas i koden och i världen (H11) innan det klassas. Rättningen kan kräva ett ägarbeslut om efterföljande körningar.
+### X-LATE Sena underlag faktureras aldrig — FALSKT POSITIVT för produktionens fakturering (agent, kodläsning)
+- **Produktionens väg:** `runMonthlyBillingAutomation` anropar `prepareInvoiceDraftsForReview` (`lib/billing/invoiceReviewPrepare.ts:432–466`), som skapar ett utkast per klart underlag. Den hoppar bara över underlag med en `invoice_export_items`-rad som inte är annullerad, så reservationen gäller per underlag.
+  - Cron `/api/cron/billing/monthly` körs var sjätte timme.
+  - Adminåtgärden och `POST /api/internal/invoice-exports/create` förbereder valfri månad på nytt.
+  - Exportcentrets standardnyckel hashar underlagsmängden.
+  - Sena underlag, som krediter och rättade eller nyss godkända underlag, faktureras därför vid nästa körning.
+- **Där påståendet stämmer:** `createInvoiceExportRun` (`lib/integrations/billing/invoiceExportCore.ts:57–77`) nycklar körningen per bolag och månad och returnerar en befintlig körning direkt. Den anropas bara av scenario H, inte av produktionskod.
+- **T38, harness, ÖPPEN:** H11 ska skapa kreditfakturan via produktionsvägen (`prepareInvoiceDraftsForReview` avgränsad till kreditunderlaget, därefter godkännande och utskick), inte via `createInvoiceExportRun` samma månad. En agent rättar det.
 
 ### J2-13 Avstämning mellan uppmätt, nätägarens summerade värden och fakturerat — ägarbeslut 34; IMPLEMENTERAD (`bdad82fbf`, agent); väntar på världsverifiering
 - **Migration** `20261026130000_j2_13_settlement_reconciliation.sql`. Två separata kontroller per tenant, nätområde, period och serietyp:

@@ -20,7 +20,7 @@ Den hör ihop med tre andra dokument:
 - **Ägarbeslut 31–34 (2026-10-25) är under införande, en agent per beslut, i egna worktrees:**
   - 31, K-W1b: klar (`35349ad8a`), migrationen applicerad i världen.
   - 32, I-B2d: klar (`cd537bda3`), ingen SQL. Väntar på I9 i världen.
-  - 33, D11-G1: klar (`3e277d534`); väntar på H11 i världen. Nytt fynd X-LATE (sena underlag) ska verifieras.
+  - 33, D11-G1: klar (`3e277d534`); väntar på H11 i världen. X-LATE är falskt positivt; T38 (H11 via produktionsvägen) rättas.
   - 34, J2-13: klar (`bdad82fbf`). Migrationen appliceras före nästa J2-körning.
   - Fynden markeras lösta först när berörda scenarier är verifierade i världen.
 - **Parallella agenter (egna worktrees, rör inte FINDINGS/STATUS/minne; huvudsessionen för in resultatet):**
