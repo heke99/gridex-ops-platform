@@ -133,6 +133,26 @@ jobs:
               target=state['original_realtime_ms']/1000+elapsed;actual=time.time()
               if not math.isfinite(actual) or not math.isfinite(target) or abs(actual-target)>3:raise RuntimeError('z03c_clock_restore_skew')
               return {'target_normal_realtime_ms':target*1000,'actual_normal_realtime_ms':actual*1000,'monotonic_elapsed_s':elapsed}
+          def emit_restoration_failure_summary(state,error,stage):
+              # Read-only gate before ANY log write. This is only a local normal
+              # clock observation, never restored sync or trusted-reference proof.
+              qualified_normal_clock(state)
+              classes={'HTTPError','URLError','TimeoutError','RuntimeError','CalledProcessError',
+                  'TimeoutExpired','OSError','FileNotFoundError','PermissionError'}
+              codes={'z03c_sync_state_restore_failed','z03c_owned_backend_stop_failed',
+                  'z03c_owned_backend_still_running','z03c_child_process_identity_changed',
+                  'z03c_clock_executor_source_changed','z03c_clock_restore_skew'}
+              code=str(error) if type(error) is RuntimeError and str(error) in codes else None
+              exit_code=error.returncode if isinstance(error,subprocess.CalledProcessError) else None
+              exit_code=exit_code if type(exit_code) is int and -255<=exit_code<=255 else None
+              http_status=error.code if isinstance(error,urllib.error.HTTPError) else None
+              http_status=http_status if type(http_status) is int and 100<=http_status<=599 else None
+              summary={'code':'z03c_restoration_qualification_failed',
+                  'stage':stage if stage in {'LOCAL_RESTORE','TRUSTED_NORMAL_REFERENCE'} else 'UNKNOWN_RESTORATION_STAGE',
+                  'normal_clock_observed':True,'restoration_verified':False,
+                  'error':{'class':type(error).__name__ if type(error).__name__ in classes else 'OtherError',
+                      'code':code,'exit_code':exit_code,'http_status':http_status}}
+              sys.stderr.write(json.dumps(summary,separators=(',',':'),sort_keys=True)+'\n');sys.stderr.flush()
           def emit_sync_failure_summary(observations):
               # Called ONLY after a fresh actual normal-clock qualification. No raw
               # service string, exception message, native/bootstrap or credential data.
@@ -459,16 +479,19 @@ jobs:
                   (working/'bootstrap.log').write_bytes((temporary/'z03c-bootstrap.log').read_bytes())
               restoration_verified=False
               if state_path.exists():
+                  restoration_stage='LOCAL_RESTORE'
                   try:
                       restored=restore()
                       # Independent current ordinary reference only after the
                       # local restored-clock receipt exists.
+                      restoration_stage='TRUSTED_NORMAL_REFERENCE'
                       restored['trusted_normal_reference_s']=trusted_reference()
                       restored['trusted_normal_reference_verified']=True
                       save(restored_path,restored);save(working/'clock-restoration.json',restored)
                       restoration_verified=True
                   except Exception as error:
                       exit_code=1;save(working/'restoration-failure.json',{'stage':'RESTORE',**safe_error(error)})
+                      with contextlib.suppress(Exception):emit_restoration_failure_summary(state,error,restoration_stage)
               if watchdog is not None:
                   with contextlib.suppress(subprocess.TimeoutExpired):watchdog.wait(timeout=5)
               # No evidence directory is exposed to another action unless
