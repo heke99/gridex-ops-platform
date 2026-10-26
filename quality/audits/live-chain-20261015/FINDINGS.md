@@ -2640,6 +2640,19 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **Att bevaka i världen:** `createInvoiceExportRun` kan flagga ett underlag på 0 kWh som ofullständig mätvärdestäckning.
 - **T35 (harness, RÄTTAD):** `cron()` (T27) gav TS7006, eftersom `res` saknade typ. Nu är den `IncomingMessage`.
 
+### Batch 3 hittills (2026-10-25 23:30 – 2026-10-26 01:30 UTC)
+- **Gröna:** J3, stuck-detector, grid-owner-wire och D.
+- **C:** se nedan (C-B3a/b, agent).
+- **E (4 av 6):**
+  - E5 föll på T36.
+  - E4 (`expected undefined to be '70030'`) utreds av en agent som E-B3.
+- **A (4 av 7):** A3 gav nätområde null för alla fyra webbanläggningar (väntat ALS). A4 och A5 följer av det. Utreds av en agent som A-B3.
+
+### T36 En JS-kommentar låg inne i en SQL-sträng i E5 — HARNESS; RÄTTAD
+- I `valuesFor` (`scripts/reality/chain-e-ediel-routing.test.ts`, från T15) stod en `//`-kommentar inne i SQL-mallen. Postgres svarade `syntax error at or near "Ediel"`.
+- **Rättning:** kommentaren är nu en SQL-kommentar (`--`). Verifieras när E körs om.
+- **Variant kontrollerad:** samma sorts kommentar i J2 står i JS och är korrekt.
+
 ### C, batch 3 (2026-10-25 ca 23:30–23:34, båda banorna samtidigt): 6 av 8 gröna; C3 och C4 röda — utreds av en agent
 - **C3 (C-B3a):** `fetch failed`, `SocketError: other side closed`. Sannolikt samma återanvända keep-alive-anslutning som T27.
 - **C4 (C-B3b):** av 150 anrop (gräns 120 per minut) gav 24 svar 200, 20 svar 429 och 106 svar 503: `PUBLIC_CONTRACTS_TEMPORARILY_UNAVAILABLE` ×96 och `api_auth_unavailable` ×10. Bara 200 och 429 väntas. Oklart än om det är produkt eller den lokala stacken under samtidig last.
