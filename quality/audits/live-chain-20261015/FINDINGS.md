@@ -2668,6 +2668,22 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **Rättning:** kommentaren är nu en SQL-kommentar (`--`). Verifieras när E körs om.
 - **Variant kontrollerad:** samma sorts kommentar i J2 står i JS och är korrekt.
 
+### A-B3 A:s nätägarsimulator besvarade aldrig vår Z01 och kunde inte läsa post till sina tidigare certifikat — HARNESS; RÄTTAD (`6392cef80`, agent)
+- **A3/A5:** webbansökningarna står `processing` med nästa steg `z01_customer_data_requested`, alltså anläggningsverifiering via Z01, vilket är produktens avsedda väg.
+  - Uppslagningen ger nu ALS med registrets nätägare `f8ca3120`, så K-W1 håller i världen.
+  - `scripts/reality/simulators/gridOwner.ts` hanterade bara Z03. För en Z01 skickades CONTRL, men ingen APERAK och ingen Z02. Förfrågningarna gick till `manual_review_required`, så ingen Z03 och ingen leveransperiod skapades.
+- **A4:** 109 olästa mejl. Varje världsstart skapar ett nytt test-CA, men 8 delade certifikat för 16700 är fortfarande aktiva. Tenanter från tidigare körningar (t.ex. `963f8f29…`) är bundna till ett äldre certifikat, och simulatorn provade bara den nyaste nyckeln.
+- **Rättning:**
+  - `gridOwner.ts` besvarar en Z01 med positiv APERAK och Z02 (`z02For` från T31, `REALITY_GRID_OWNER_GRID_AREA`, standard ALS).
+  - `smimeUnwrap.ts` provar aktörens alla utfärdade nycklar, nyaste först, som vid ett certifikatbyte. Post till en nyckel den aldrig haft vägras fortfarande.
+- **Test:** `__tests__/reality-a-b3-smime-earlier-actor-key.test.ts`. Före rättningen föll 1 av 2, efter den 2/2. Med T31-testet 11/11, och tsc utan fel. Z01-svaret prövas första gången när A körs i världen.
+
+### E-B3 E:s tenanter kvitterade inga filer, eftersom E kördes i en värld med produktionsbanan — HARNESS; åtgärd enligt T8
+- **Fel:** E4 fick ingen CONTRL ("CONTRL skapades inte: ediel_technical_ack_route_unavailable", orsak `ediel_original_mailbox_smtp_custody_required`).
+- **Orsak:** E:s E66 är testmiljö och kommer till testbrevlådan, men världen kör produktionsbanan. Produkten svarar korrekt bara från brevlådan filen kom till.
+- **Inget beslut behövs:** T8 säger redan att testkanalens scenarier startar världen med `REALITY_EDIEL_LANE=test`. E körs därför i en egen värld med testbanan efter batch 3b.
+- **T37, harness, ÖPPEN:** `run-many.sh all` lägger E i samma produktionsvärld som de andra. Skriptet bör vägra att köra E utan testbanan.
+
 ### C, batch 3 (2026-10-25 ca 23:30–23:34, båda banorna samtidigt): 6 av 8 gröna; C3 och C4 röda
 - C3 är C-B3a (harness, rättad). C4 är C-B3b (inget nytt fel, öppna P6).
 
