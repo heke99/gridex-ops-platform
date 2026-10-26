@@ -2668,6 +2668,14 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **Rättning:** kommentaren är nu en SQL-kommentar (`--`). Verifieras när E körs om.
 - **Variant kontrollerad:** samma sorts kommentar i J2 står i JS och är korrekt.
 
+### A, batch 4 (2026-10-26 ca 18:30–19:05): 4 av 7 gröna; A3–A5 röda — utreds av en agent (A-B4)
+- **K-B4 och A-B3 verkar i världen:** våra Z01 skickades 18:13, och fyra Z02 kom in och tolkades (`parsed`) 18:18.
+- **Nytt:** webbanläggningarna får ändå inget nätområde. Den mottagna Z02 tillämpas inte på ansökan, så ingen Z03 skickas (A3–A5).
+
+### Tredje omstarten av containern (2026-10-26, mellan 19:05 och 20:20 UTC)
+- J1 i batch 4 försvann. Docker startades om; världens data fanns kvar.
+- Kontots användningsgräns stoppade de fyra övertagandeagenterna 20:20, och de har återupptagits.
+
 ### I, batch 4 (2026-10-26 ca 16:56–18:30): 3 gröna, 1 röd (I2, tidsgräns 30 min), 6 överhoppade — utreds av en agent (I-B4)
 - **I-B2a verkar i världen:** de signerade kundernas bytesjobb stoppas inte längre av inflyttningsdatumet.
 - **Nytt:** 9 jobb `start_supplier_switch` föll med `23514` ("Kundautomation misslyckades.") när bytet skulle skapas, och 11 står i `needs_review`. Inget byte nådde nätägaren, så I2 nådde tidsgränsen.
