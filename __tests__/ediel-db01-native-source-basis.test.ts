@@ -87,7 +87,7 @@ for x in ast.parse(s).body:
  if isinstance(x,ast.FunctionDef):break
  if isinstance(x,ast.Assign) and len(x.targets)==1 and isinstance(x.targets[0],ast.Name):
   k=x.targets[0].id
-  if k in ['current_read_manifest','current_read_forwards','current_reader_callers','forwards','repair','repair_unit','producer','producer_unit','canonical_dependencies','s01_current_owner','required','current_only','required_base']:
+  if k in ['current_read_manifest','current_read_forwards','current_reader_callers','current_writer_inputs','forwards','repair','repair_unit','producer','producer_unit','canonical_dependencies','s01_current_owner','required','current_only','required_base']:
    n[k]=eval(compile(ast.Expression(x.value),'<declared-inputs>','eval'),{},n)
 print(json.dumps({'root':n['required'],'base':n['required_base'],'reader':n['current_read_manifest']}))`], {cwd: root, encoding: 'utf8'})
   const declared = JSON.parse(declarations) as {root: string[]; base: string[]; reader: Array<Input & {path: string}>}
@@ -415,7 +415,7 @@ stage,change=sys.argv[1:3]
 programs=[ast.parse(textwrap.dedent(x)) for x in re.findall(r"<<'PY'[^\n]*\n([\s\S]*?)\n {10}PY(?:\n|$)",workflow)]
 # Evaluate the actual runtime If and its refusal body, not a copied predicate.
 if stage=='admission':
- matches=[node for program in programs for node in program.body if isinstance(node,ast.If) and any(isinstance(x,ast.Name) and x.id=='required' for x in ast.walk(node.test))]
+ matches=[node for program in programs for node in program.body if isinstance(node,ast.If) and 'len(required)' in ast.unparse(node.test)]
 else:
  matches=[node for program in programs for node in program.body if isinstance(node,ast.If) and "len(receipt['required_input_paths'])" in ast.unparse(node.test)]
 assert len(matches)==1,(stage,len(matches))
@@ -555,3 +555,42 @@ with tempfile.TemporaryDirectory(prefix='sc071-shallow-dependencies-') as d:
   })) as {missingBefore: number; qualifiedAfter: number}
   expect(observed).toEqual({missingBefore: 2, qualifiedAfter: 2})
 }, 30_000)
+
+// Execute the separate writer-input guards without altering the historical
+// 59-reader/35-BASE native contract or synthesizing native execution credit.
+it.each((['freeze', 'qualification'] as const).flatMap(stage =>
+  (['valid', 'missing', 'duplicate', 'extra', 'changed-input'] as const).map(change => [stage, change] as const)))(
+  'executes separate current writer input guard %s for %s', (stage, change) => {
+    const python = String.raw`import ast,json,pathlib,re,sys,textwrap
+stage,change=sys.argv[1:];s=pathlib.Path('.github/workflows/ediel-db01-current-native.yml').read_text()
+programs=[ast.parse(textwrap.dedent(x)) for x in re.findall(r"python3 - <<'PY'[^\n]*\n(.*?)\n          PY",s,re.S)]
+initial=next(p for p in programs if any(isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='current_writer_inputs' for t in n.targets) for n in p.body))
+declaration=next(n for n in initial.body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='current_writer_inputs' for t in n.targets))
+paths=ast.literal_eval(declaration.value)
+assert len(paths)==5 and len(set(paths))==5
+blobs={p:{'mode':'100644','git_blob_oid':'synthetic-input','sha256':'synthetic-hash'} for p in paths}
+env={'current_writer_inputs':list(paths),'current':{'blobs':dict(blobs)},'required':[]}
+if stage=='freeze':
+ guard=next(n for n in initial.body if isinstance(n,ast.If) and 'len(current_writer_inputs)' in ast.unparse(n.test))
+ if change=='missing':env['current_writer_inputs'].pop()
+ if change=='duplicate':env['current_writer_inputs'][-1]=paths[0]
+ if change=='extra':env['current_writer_inputs'].append('unqualified/extra.ts')
+ if change=='changed-input':del env['current']['blobs'][paths[0]]
+else:
+ final=next(p for p in programs if any(isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='writer_paths' for t in n.targets) for n in p.body))
+ declaration=next(n for n in final.body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='writer_paths' for t in n.targets))
+ assert ast.literal_eval(declaration.value)==paths
+ env={'writer_paths':paths,'receipt':{'root_source':{'blobs':blobs}},'writer_sources':[{'path':p,**blobs[p]} for p in paths]}
+ guard=next(n for n in final.body if isinstance(n,ast.If) and 'writer_sources' in ast.unparse(n.test))
+ if change=='missing':env['writer_sources'].pop()
+ if change=='duplicate':env['writer_sources'][-1]=env['writer_sources'][0]
+ if change=='extra':env['writer_sources'].append({'path':'unqualified/extra.ts'})
+ if change=='changed-input':env['writer_sources'][0]['sha256']='unqualified-source'
+try:
+ exec(compile(ast.Module(body=[guard],type_ignores=[]),'<actual-writer-source-guard>','exec'),env)
+ admitted=True
+except (RuntimeError,KeyError):admitted=False
+print(json.dumps({'admitted':admitted,'writerInputs':len(paths)}))`
+    const result = JSON.parse(execFileSync('python3', ['-c', python, stage, change], {cwd: root, encoding: 'utf8', timeout: 5000})) as {admitted: boolean; writerInputs: number}
+    expect(result).toEqual({admitted: change === 'valid', writerInputs: 5})
+  })

@@ -140,6 +140,10 @@ jobs:
             'sha256': '8b51a7dfea2eec7019775f6cfccb0ce4692af517f8e1919794ea65c796155fb1'}]
           current_read_forwards = [item['path'] for item in current_read_manifest]
           current_reader_callers = ['lib/ediel/production/customerMasterdataOriginalRead.ts','lib/ediel/core/receivedZ04HAddressAvailability.ts']
+          current_writer_inputs = ['supabase/migrations/20261009215000_ediel_source_bound_ack_projection.sql',
+            'supabase/migrations/20261012193000_db05_retention_clock_after_lock.sql',
+            'supabase/migrations/20261022120000_normal_supplier_switch_atomic_enqueue.sql',
+            'lib/ediel/intent/switchRenderGateway.ts','lib/ediel/intent/intentEngine.ts']
           repair = 'supabase/migrations/20261006231122_ediel_test_configuration_route_environment_source.sql'
           repair_unit = '__tests__/ediel-test-configuration-route-source.test.ts'
           producer = 'lib/ediel/testing/agtEngine.ts'
@@ -203,7 +207,9 @@ jobs:
               raise RuntimeError('required input missing or duplicated')
           if len(required_base) != 35 or len(required_base) != len(set(required_base)) or not set(required_base).issubset(baseline['blobs']):
               raise RuntimeError('required BASE input missing or duplicated')
-          for path in required:
+          if len(current_writer_inputs)!=5 or len(set(current_writer_inputs))!=5 or not set(current_writer_inputs).issubset(current['blobs']) or set(current_writer_inputs)&set(required):
+              raise RuntimeError('current writer source input missing or duplicated')
+          for path in required+current_writer_inputs:
               if hashlib.sha256((root/path).read_bytes()).hexdigest() != current['blobs'][path]['sha256']:
                   raise RuntimeError('checked-out input differs from Git HEAD: '+path)
           # Fixed BASE remains immutable. This exact Mail pair is a bounded
@@ -329,6 +335,7 @@ jobs:
             'checkout_sha':head,'checkout_tree':current['tree'],'base_sha':base_sha,'base_tree':baseline['tree'],
             'workflow_run_id':os.environ['GITHUB_RUN_ID'], 'input_authority':'complete_Git_objects_before_BASE_replay_substitution',
             'root_source':current,'base_source':baseline,'required_input_paths':required,'required_base_input_paths':required_base,
+            'current_write_api_source_inputs':[{'path':p,**current['blobs'][p]} for p in current_writer_inputs],
             'dependency_inputs':{p:{'current':current['blobs'].get(p),'base':baseline['blobs'].get(p)}
               for p in ['package.json','package-lock.json','.nvmrc','.npmrc']},
             'dependency_compatibility':dependency_compatibility,
@@ -475,6 +482,145 @@ jobs:
               receipt['current_write_api_observation']=result
               (receipt_path.parent/'current-write-api-observation.json').write_text(json.dumps(result,indent=2)+'\n')
               receipt_path.write_text(json.dumps(receipt,indent=2)+'\n')
+          def current_write_api_install_spec():
+              return {'before_catalog_sha256':'709e4839c481dec2667da1f26110c5593e631a19ea3bfe4809afcc61a0d4d58d',
+                  'preimage_artifact_id':12655280424,'preimage_source':'c6a02ec1edfbf72d81a2c3755e004781da8bc5d6',
+                  'schema_sha256':'4ab0c60bd5688e9653927491981f779b374a3a85600d8a87e050ac67f15a15ca','function_count':251,
+                  'projection_old_body':'01a18718d1d55c93238f2f9a8cfcb44da7cd5b35dbee96af964066a1848b7379',
+                  'projection_new_body':'66d86e98130ca6f5e64ae966d710f35bce86204452febe714684025943a81f17',
+                  'actor_old_body':'48696b52c449df7b7d76b7d6ed5c71ecf0544621f9f2c3de82f51ba200ff0b60',
+                  'actor_new_body':'06dc571efe2101ab7991f60817d087451739115392a8bd14fe2cd73454a66d8a',
+                  'coordinator_body':'e3f2d2775dfd229e7f46486930fac3c4901b8ea6c71a94b771fc722ddd264e4f',
+                  'donors':[
+                    {'path':'supabase/migrations/20261009215000_ediel_source_bound_ack_projection.sql','mode':'100644','git_blob_oid':'654eaa97b717214eeb9f671c25b3fb5858ce482c','sha256':'b6b6daa1aa74c7314b71f7c6cc068e53301808a55386fcf95831f9ad28feacfc'},
+                    {'path':'supabase/migrations/20261012193000_db05_retention_clock_after_lock.sql','mode':'100644','git_blob_oid':'b0fd7e30b4fb7e256f303476295220fa959b6c6a','sha256':'5d6f26fc300e3a8adee8103669f09174f396875741feda3d1be5a1b868db28d3'},
+                    {'path':'supabase/migrations/20261022120000_normal_supplier_switch_atomic_enqueue.sql','mode':'100644','git_blob_oid':'62eef1dae468bf9aaed99ab510e2ebd3b1057144','sha256':'6ea49035a321e27228f1cf6b6cc1055913a43374c1346dfcb85aef1d36a77d9f'}]}
+
+          def build_current_write_api_sql(spec):
+              sources=[]
+              for donor in spec['donors']:
+                  actual=receipt['root_source']['blobs'].get(donor['path'])
+                  data=(root/donor['path']).read_bytes()
+                  if actual!={k:donor[k] for k in ['mode','git_blob_oid','sha256']} or hashlib.sha256(data).hexdigest()!=donor['sha256']:
+                      fail('db01_current_write_api_donor_changed')
+                  sources.append(data.decode('utf-8'))
+              # Only the canonical donor's outer transaction framing is removed. Its
+              # complete closed DO, including both metadata checks, stays byte-identical.
+              match=re.search(r'^BEGIN;\n(.*)\nCOMMIT;\s*$',sources[0],re.M|re.S)
+              actor=re.search(r'^CREATE OR REPLACE FUNCTION public\.ediel_retention_lock_auth_actor_v1\(p_actor_user_id uuid\).*?^END\$\$;',sources[1],re.M|re.S)
+              if not match or not actor:fail('db01_current_write_api_donor_changed')
+              actor_sql=actor[0]
+              sql_text="""BEGIN;
+          SET LOCAL search_path=pg_catalog;
+          DO $db01_writer_preflight$
+          BEGIN
+           IF current_user<>'postgres' OR session_user<>'postgres' THEN RAISE EXCEPTION 'db01_write_install_actor';END IF;
+           IF EXISTS(SELECT FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.proname='gridex_enqueue_normal_supplier_switch_v1') THEN RAISE EXCEPTION 'db01_write_coordinator_not_absent';END IF;
+          END $db01_writer_preflight$;
+          DO $db01_write_actor$
+          DECLARE before_metadata jsonb;after_metadata jsonb;before_source text;after_source text;
+          BEGIN
+           SELECT to_jsonb(p)-'prosrc',p.prosrc INTO before_metadata,before_source FROM pg_catalog.pg_proc p WHERE p.oid=to_regprocedure('public.ediel_retention_lock_auth_actor_v1(uuid)');
+           IF before_metadata IS NULL OR encode(sha256(convert_to(before_source,'UTF8')),'hex') IS DISTINCT FROM '"""+spec['actor_old_body']+"""' THEN RAISE EXCEPTION 'db01_write_actor_unreviewed_preimage';END IF;
+           EXECUTE $db01_actor_definition$"""+actor_sql+"""$db01_actor_definition$;
+           SELECT to_jsonb(p)-'prosrc',p.prosrc INTO after_metadata,after_source FROM pg_catalog.pg_proc p WHERE p.oid=to_regprocedure('public.ediel_retention_lock_auth_actor_v1(uuid)');
+           IF after_metadata IS DISTINCT FROM before_metadata OR encode(sha256(convert_to(after_source,'UTF8')),'hex') IS DISTINCT FROM '"""+spec['actor_new_body']+"""' THEN RAISE EXCEPTION 'db01_write_actor_metadata_changed';END IF;
+          END $db01_write_actor$;
+          """+match[1]+'\n'+sources[2]+"""
+          DO $db01_write_coordinator$
+          DECLARE p pg_catalog.pg_proc;actual_acl text[];
+          BEGIN
+           SELECT * INTO STRICT p FROM pg_catalog.pg_proc WHERE oid=to_regprocedure('public.gridex_enqueue_normal_supplier_switch_v1(uuid,uuid,uuid,uuid,uuid,uuid,text)');
+           SELECT array_agg(a::text ORDER BY a::text) INTO actual_acl FROM unnest(p.proacl)a;
+           IF (SELECT count(*) FROM pg_catalog.pg_proc x JOIN pg_catalog.pg_namespace n ON n.oid=x.pronamespace WHERE n.nspname='public' AND x.proname=p.proname)<>1
+           OR pg_get_userbyid(p.proowner)<>'postgres' OR p.prolang<>(SELECT oid FROM pg_catalog.pg_language WHERE lanname='plpgsql')
+           OR p.prorettype<>'jsonb'::regtype OR p.proretset OR NOT p.prosecdef OR p.proisstrict OR p.proleakproof OR p.provolatile<>'v' OR p.proparallel<>'u' OR p.prokind<>'f'
+           OR p.pronargs<>7 OR p.pronargdefaults<>0 OR p.proargdefaults IS NOT NULL OR p.proallargtypes IS NOT NULL OR p.proargmodes IS NOT NULL OR p.provariadic<>0
+           OR p.proargnames IS DISTINCT FROM ARRAY['p_company_id','p_switch_id','p_intent_id','p_message_id','p_outbound_request_id','p_actor_user_id','p_expected_payload_hash']::text[]
+           OR p.proconfig IS DISTINCT FROM ARRAY['search_path=pg_catalog']::text[]
+           OR actual_acl IS DISTINCT FROM ARRAY['postgres=X/postgres','service_role=X/postgres']::text[]
+           OR NOT has_function_privilege('service_role',p.oid,'EXECUTE') OR has_function_privilege('anon',p.oid,'EXECUTE') OR has_function_privilege('authenticated',p.oid,'EXECUTE')
+           OR encode(sha256(convert_to(p.prosrc,'UTF8')),'hex') IS DISTINCT FROM '"""+spec['coordinator_body']+"""'
+           THEN RAISE EXCEPTION 'db01_write_coordinator_postimage';END IF;
+          END $db01_write_coordinator$;
+          COMMIT;
+          """
+              return sql_text,spec['donors']
+
+          def install_current_write_api_projection():
+              spec=current_write_api_install_spec();before=receipt.get('current_write_api_observation',{})
+              entry='public.gridex_enqueue_normal_supplier_switch_v1'
+              rows=before.get('observed_functions',[]);names=before.get('planned_function_names',[])
+              if before.get('schema')!='db01_current_write_api_observation_v1' or before.get('status')!='OBSERVED_ONLY' or before.get('native_or_approval_credit') is not False \
+                or before.get('source_sha')!=receipt['checkout_sha'] or before.get('source_schema_sha256')!=spec['schema_sha256'] \
+                or receipt['root_source']['blobs']['supabase/schema.sql']['sha256']!=spec['schema_sha256'] \
+                or before.get('entry_name_present') is not False or before.get('missing_function_names')!=[entry] or before.get('unresolved_source_names')!=[] \
+                or len(names)!=spec['function_count'] or len(set(names))!=len(names) or len(rows)!=spec['function_count']-1 \
+                or len(before.get('canonical_function_definitions',[]))!=spec['function_count'] \
+                or sha(json.dumps(rows,sort_keys=True,separators=(',',':')))!=spec['before_catalog_sha256']:
+                  fail('db01_current_write_api_unqualified_preimage')
+              sql_text,donors=build_current_write_api_sql(spec)
+              (receipt_path.parent/'current-write-api-before.json').write_text(json.dumps(before,indent=2)+'\n')
+              result={'status':'NOT_EXECUTED','native_or_approval_credit':False,'source_sha':receipt['checkout_sha'],
+                'source_schema_sha256':spec['schema_sha256'],'preimage_artifact_id':spec['preimage_artifact_id'],
+                'before_catalog_sha256':spec['before_catalog_sha256'],'donors':donors,'sql_sha256':sha(sql_text)}
+              receipt['current_write_api_projection']=result
+              receipt_path.write_text(json.dumps(receipt,indent=2)+'\n')
+              original_schemas=set(schemas)
+              try:
+                  schemas.update(name.split('.')[0] for name in names)
+                  before_catalog,before_database=observe();before_owners=catalog_owners();before_roles=role_graph();before_auth=auth_uid()
+                  before_frame={'database':before_database,'objects':[{'identity':key,'sha256':sha(value)} for key,value in sorted(before_catalog.items())],
+                    'authority_sha256':sha(json.dumps([before_owners,before_roles,before_auth],sort_keys=True,separators=(',',':')))}
+                  (receipt_path.parent/'current-write-api-catalog-before.json').write_text(json.dumps(before_frame,indent=2)+'\n')
+                  result['status']='EXECUTION_INTENT_RECORDED';receipt_path.write_text(json.dumps(receipt,indent=2)+'\n')
+                  try:
+                      with (private/'current-write-api-install.private.log').open('wb') as log:
+                          execution=subprocess.run(['psql',url,'-X','-v','ON_ERROR_STOP=1','-v','VERBOSITY=verbose'],input=sql_text.encode(),stdout=log,stderr=log,timeout=120)
+                  except Exception:
+                      result['status']='OUTCOME_UNKNOWN';receipt_path.write_text(json.dumps(receipt,indent=2)+'\n')
+                      fail('db01_current_write_api_install_outcome_unknown')
+                  result['exit_code']=execution.returncode;result['status']='EXECUTED_UNQUALIFIED'
+                  receipt_path.write_text(json.dumps(receipt,indent=2)+'\n')
+                  if execution.returncode!=0:fail('db01_current_write_api_install_failed')
+                  observe_current_write_api();after=receipt['current_write_api_observation'];after_rows=after['observed_functions']
+                  coordinators=[row for row in after_rows if row['schema']+'.'+row['name']==entry]
+                  if len(coordinators)!=1 or coordinators[0].get('body_sha256')!=spec['coordinator_body'] or after.get('missing_function_names')!=[]:
+                      fail('db01_current_write_api_coordinator_scope')
+                  wanted=[]
+                  changes={'public.ediel_project_accepted_source_state_v1':spec['projection_new_body'],'public.ediel_retention_lock_auth_actor_v1':spec['actor_new_body']}
+                  for row in rows:
+                      changed=dict(row);name=row['schema']+'.'+row['name']
+                      if name in changes:changed['body_sha256']=changes[name]
+                      wanted.append(changed)
+                  actual=[row for row in after_rows if row['schema']+'.'+row['name']!=entry]
+                  if actual!=wanted or after.get('source_sha')!=before['source_sha'] or after.get('source_schema_sha256')!=before['source_schema_sha256'] \
+                    or after.get('planned_function_names')!=names or after.get('canonical_function_definitions')!=before['canonical_function_definitions'] or after.get('unresolved_source_names')!=[]:
+                      fail('db01_current_write_api_metadata_changed')
+                  after_catalog,after_database=observe()
+                  after_frame={'database':after_database,'objects':[{'identity':key,'sha256':sha(value)} for key,value in sorted(after_catalog.items())]}
+                  (receipt_path.parent/'current-write-api-catalog-after.json').write_text(json.dumps(after_frame,indent=2)+'\n')
+                  keys={tuple(item['identity']) for item in before['canonical_function_definitions']}
+                  def writer_acl(key):
+                      return key[1]=='ACL' and any(key[0]==name.split('.')[0] and key[2].startswith('FUNCTION '+name.split('.')[1]+'(') for name in names)
+                  canonical_keys=keys|{key for key in expected if writer_acl(key)}
+                  allowed={key for key in keys if key[0]+'.'+key[2].split('(')[0] in {entry,*changes}}|{key for key in canonical_keys if writer_acl(key) and key[2].startswith('FUNCTION gridex_enqueue_normal_supplier_switch_v1(')}
+                  surrounding=[key for key in set(before_catalog)|set(after_catalog) if key not in allowed and before_catalog.get(key)!=after_catalog.get(key)]
+                  if before_database!=after_database or surrounding:fail('db01_current_write_api_surroundings_changed')
+                  mismatches=[key for key in canonical_keys|{key for key in after_catalog if writer_acl(key)} if expected.get(key)!=after_catalog.get(key)]
+                  if mismatches:fail('db01_current_write_api_catalog_mismatch')
+                  all_after_owners=catalog_owners();after_roles=role_graph();after_auth=auth_uid()
+                  after_frame['authority_sha256']=sha(json.dumps([all_after_owners,after_roles,after_auth],sort_keys=True,separators=(',',':')))
+                  (receipt_path.parent/'current-write-api-catalog-after.json').write_text(json.dumps(after_frame,indent=2)+'\n')
+                  after_owners=[row for row in all_after_owners if not(row['kind']=='FUNCTION' and row['schema']=='public' and row['identity'].startswith('gridex_enqueue_normal_supplier_switch_v1('))]
+                  if before_owners!=after_owners or before_roles!=after_roles or before_auth!=after_auth:fail('db01_current_write_api_authority_changed')
+                  result.update(status='PASS',function_count=len(keys),mismatches=[],database=after_database,
+                    retained_surroundings='all_dump_objects_except_exact_three_functions_and_new_coordinator_acl',
+                    limits='closed_current_writer_source_catalog_projection_only_NOT_native_approval_or_whole_ROOT_database_parity')
+                  (receipt_path.parent/'current-write-api-projection.json').write_text(json.dumps(result,indent=2)+'\n')
+              finally:
+                  schemas.clear();schemas.update(original_schemas)
+                  receipt_path.write_text(json.dumps(receipt,indent=2)+'\n')
           reader_roots=['public.ediel_read_prodat_h_accepted_original_v1','public.ediel_read_prodat_customer_masterdata_original_v1']
           reader_names=set(); pending=list(reader_roots)
           false_calls={'gridex_ediel_ack_guide.outbound_prodat_scopes','gridex_received_sources.object_selection_snapshots'}
@@ -871,6 +1017,7 @@ jobs:
               if prerequisite_mismatches:fail('forward prerequisite catalog objects differ: '+repr([x['identity'] for x in prerequisite_mismatches]))
           elif mode=='api':
               observe_current_write_api()
+              install_current_write_api_projection()
               sql("NOTIFY pgrst, 'reload schema'")
               status=json.loads(pathlib.Path(os.environ['GRIDEX_NATIVE_STATUS']).read_text())
               if status['API_URL']!='http://127.0.0.1:54321':fail('only owned local API can qualify')
@@ -884,6 +1031,20 @@ jobs:
                   time.sleep(1)
               else:fail('delivered reader RPCs absent from actual owned PostgREST schema')
               receipt['current_api_schema_result']={'status':'PASS','source_sha':receipt['checkout_sha'],'rpc_paths':['/rpc/'+name.split('.')[1] for name in reader_roots],
+                'evidence':'actual_local_service_OpenAPI_visibility_only_NOT_native_oracle_or_accepted_fact'}
+              # Writer visibility has its own receipt; the two-reader oracle above
+              # remains unchanged and does not imply writer/native authority.
+              writer_path='/rpc/gridex_enqueue_normal_supplier_switch_v1'
+              for attempt in range(30):
+                  try:
+                      request=urllib.request.Request(status['API_URL']+'/rest/v1/',headers=headers)
+                      with urllib.request.urlopen(request,timeout=5) as response: writer_paths=json.load(response)['paths']
+                      if 'post' in writer_paths.get(writer_path,{}):break
+                  except (urllib.error.URLError,KeyError,ValueError):pass
+                  time.sleep(1)
+              else:fail('current writer RPC POST absent from actual owned PostgREST schema')
+              receipt['current_write_api_schema_result']={'status':'PASS','source_sha':receipt['checkout_sha'],
+                'rpc_paths':[writer_path],'method':'post','native_or_approval_credit':False,
                 'evidence':'actual_local_service_OpenAPI_visibility_only_NOT_native_oracle_or_accepted_fact'}
               receipt_path.write_text(json.dumps(receipt,indent=2)+'\n')
           else:fail('unknown guard qualification stage')
@@ -1129,6 +1290,21 @@ jobs:
               api.get('status')!='PASS' or api.get('source_sha')!=receipt['checkout_sha'] or \
               api.get('rpc_paths')!=['/rpc/ediel_read_prodat_h_accepted_original_v1','/rpc/ediel_read_prodat_customer_masterdata_original_v1']:
               raise RuntimeError('JUnit qualification requires actual delivered reader/guard/API phases')
+          writer_sources=receipt.get('current_write_api_source_inputs',[])
+          writer_paths=['supabase/migrations/20261009215000_ediel_source_bound_ack_projection.sql',
+            'supabase/migrations/20261012193000_db05_retention_clock_after_lock.sql',
+            'supabase/migrations/20261022120000_normal_supplier_switch_atomic_enqueue.sql',
+            'lib/ediel/intent/switchRenderGateway.ts','lib/ediel/intent/intentEngine.ts']
+          if writer_sources!=[{'path':p,**receipt['root_source']['blobs'][p]} for p in writer_paths]:
+              raise RuntimeError('JUnit qualification requires exact five current writer source inputs')
+          writer=receipt.get('current_write_api_projection',{});writer_api=receipt.get('current_write_api_schema_result',{})
+          if writer.get('status')!='PASS' or writer.get('native_or_approval_credit') is not False or writer.get('source_sha')!=receipt['checkout_sha'] \
+            or writer.get('source_schema_sha256')!=receipt['root_source']['blobs']['supabase/schema.sql']['sha256'] \
+            or writer.get('preimage_artifact_id')!=12655280424 or writer.get('before_catalog_sha256')!='709e4839c481dec2667da1f26110c5593e631a19ea3bfe4809afcc61a0d4d58d' \
+            or writer.get('function_count')!=251 or writer.get('mismatches')!=[] \
+            or writer_api.get('status')!='PASS' or writer_api.get('source_sha')!=receipt['checkout_sha'] or writer_api.get('native_or_approval_credit') is not False \
+            or writer_api.get('rpc_paths')!=['/rpc/gridex_enqueue_normal_supplier_switch_v1'] or writer_api.get('method')!='post':
+              raise RuntimeError('JUnit qualification requires actual closed current writer source/catalog/API phases')
           for phase in ['baseline_clean','snapshot_repair_prebirth','historical','smime_forward','legacy_address_forward','current_guard_preparation','current_read_forwards','current_guard_qualification','current_api_schema','current']:
               if receipt['phases'][phase]!={'status':'PASS','exit_code':0}:
                   raise RuntimeError('JUnit qualification requires actual successful phase: '+phase)
