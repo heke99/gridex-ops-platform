@@ -2671,7 +2671,21 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 ### K, batch 4 (2026-10-26 15:36–16:56, världen på 355bf0e76): 10 av 12 gröna; K4 och K8 röda — utreds av en agent (K-B4)
 - **K10 och K11 är gröna** igen.
 - **W1 kommer längre än förut:** ansökan `APP-20261026-100001` står `processing` med nästa steg `z01_customer_data_requested`. Vår Z01 skickades 16:31 och fick APERAK, men ingen Z02 finns någonstans i världen. Bytet nådde därför aldrig nätägaren (K4), och K8 räknar 2 pågående byten i stället för 3.
-- **Utreds:** varför A-B3:s Z02-svar inte kom, och om K4:s fönster på 20 minuter räcker efter en Z01.
+- **Orsak, se K-B4:** simulatorn höll inne Z02 lika länge som Z04. Fönstret på 20 minuter var inte problemet.
+
+### K-B4 Nätägarsimulatorn höll inne Z02 när Z04 hölls inne, så webbkunden W1 fick aldrig sitt nätområde — HARNESS; RÄTTAD (`afb8eca60`, agent)
+- **Fel:** K4 sätter `z04DelayMs` till 24 h för att bytesbegäran ska stå obesvarade. A-B3 tidsatte simulatorns Z02 (svar på vår Z01) med samma `z04DelayMs`, så W1:s Z02 sköts upp 24 h.
+- **Bevis i världen, endast läsning:**
+  - W1:s Z01 skickades 16:31:26. CONTRL kom 16:31:48 och APERAK 16:32:08, enligt K:s fördröjningar.
+  - Ingen Z02 finns i `inbound_email_messages`, fast E66 importerades 16:47.
+  - `z02For` bygger en giltig Z02 ur exakt den Z01:an.
+- **Rättning:**
+  - `scripts/reality/simulators/gridOwnerProfile.ts` har en egen `z02DelayMs` (standard 120 s) och `businessAnswerDelayMs`. Z01 ger Z02-fördröjningen och Z03 ger Z04-fördröjningen.
+  - `gridOwner.ts` använder den.
+  - A, F, G, H, J2 och K sätter `z02DelayMs: 90_000` i sin snabba profil.
+- **Test:** `__tests__/reality-k-b4-grid-owner-z02-delay.test.ts`. Mot den gamla simulatorn föll 1 av 3, efter rättningen 3/3, också i körworktreen. Med A-B3 och T31 14/14, och tsc utan fel.
+- **I världen:** rättningen finns i körworktreen från scenario A i batch 4. I, som redan körde, har den gamla tidsättningen.
+- **Kvar:** att i världen se att ansökan går vidare från Z02 till Z03.
 
 ### D11-G1 Ingen produktväg krediterade en fakturerad brytavgift — ägarbeslut 33; IMPLEMENTERAD (`3e277d534`, agent); väntar på världsverifiering (H11)
 - **Ny funktion:** `gridex_request_break_fee_credit_v1` (migration `20261026120000`) krediterar helt eller delvis, med behörighet `billing_underlay.export`, obligatorisk orsak och radlås på avgiften. I samma transaktion skapas:
