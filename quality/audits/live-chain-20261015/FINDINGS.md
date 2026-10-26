@@ -2668,6 +2668,16 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **Rättning:** kommentaren är nu en SQL-kommentar (`--`). Verifieras när E körs om.
 - **Variant kontrollerad:** samma sorts kommentar i J2 står i JS och är korrekt.
 
+### I-B4 Ett signerat avtals byte skapades utan avtalet, så databasvakten vägrade varje automatiskt byte — PRODUKT, hög; RÄTTAD (`49c37e677`, agent); väntar på världsverifiering
+- **Fel:** `start_supplier_switch` från ett signerat avtal bär `payload.contract_id`, men `processSupplierSwitch` (`lib/customer-operations/automation.part-3.ts`) skapade bytesbegäran utan det. Begäran sätts in som `queued`, och `gridex_guard_supplier_switch_dispatch` vägrar ett köat byte utan exakt avtal (`supplier_switch_exact_contract_required`, 23514).
+- **Bevis, endast läsning:** postgresloggen 17:13:10 UTC visar felet i `gridex_create_supplier_switch_v1`. Alla 9 misslyckade jobb bär `payload.contract_id` (trigger `contract_signed`).
+- **Samband med I-B2a:** felet syntes först efter I-B2a. Tidigare stoppades jobben redan på inflyttningsdatumet.
+- **De 11 jobben i `needs_review`** är äldre jobb från andra tenanter. 7 saknar nätägare eller nätområde (webbkunder före K-B4), och 4 har `supplier_switch_send_window_expired`. De hör inte till I-B4.
+- **Rättning:** arbetaren skickar `contractId: clean(jobPayload.contract_id)`. Saknar jobbet avtal hittas inget på; vakten avgör som förut.
+- **Test:** `__tests__/reality-i-b4-switch-request-exact-contract.test.ts`, 2 fall. Före rättningen rött, efter grönt. Med I-B2a, I-B2d och switch-testerna 5 filer, 44/44.
+- **Täckningskontrollen:** 350 av 352. De 2 felen är en tidsgräns under last i `ediel-technical-contrl-single-claim`, som är grön ensam (64/64).
+- **I-B4v, variant, SANNOLIK, ÖPPEN:** två personalvägar skapar också byten utan avtal och träffas av samma vakt: dokumentuppladdningen (`app/admin/customers/[id]/document-actions.part-1.ts:579`) och plattformsadminens manuella bytesformulär (`actions.part-2.ts:479`). De behöver en avtalsuppslagning per anläggning. En agent rättar dem.
+
 ### A, batch 4 (2026-10-26 ca 18:30–19:05): 4 av 7 gröna; A3–A5 röda — utreds av en agent (A-B4)
 - **K-B4 och A-B3 verkar i världen:** våra Z01 skickades 18:13, och fyra Z02 kom in och tolkades (`parsed`) 18:18.
 - **Nytt:** webbanläggningarna får ändå inget nätområde. Den mottagna Z02 tillämpas inte på ansökan, så ingen Z03 skickas (A3–A5).
