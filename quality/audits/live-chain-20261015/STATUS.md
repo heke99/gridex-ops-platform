@@ -8,6 +8,9 @@ Den hör ihop med tre andra dokument:
 - #840: anspråk och leveranser per fil.
 
 ## Var jag är nu
+- **Containern startades om under natten (ca 00:30 UTC 2026-10-26):** Docker, appen och batch 3 försvann medan F körde. F-loggen är tom. Världens data fanns kvar. 10:30 UTC startades dockerd, `20261026100000` (K-W1b) applicerades och världen byggdes om på `8e2b0b5f1`.
+- **Batch 3b pågår** (logg `/tmp/claude-0/batch3b.log`): F, G, H, I, J1, J2, J4 och K. A, C, D, E, J3, stuck-detector och grid-owner-wire kördes i batch 3 före omstarten.
+- **Agenterna** (beslut 32–34, C-B3, A-B3/E-B3) stoppades två gånger av kontots användningsgräns och har återupptagits.
 - **Batch 3 pågår (från 2026-10-25 23:30 UTC): alla 15 scenarier** (`run-many.sh all`, banorna als och free parallellt). Världen på `6461cda9f`, ombyggd med I-B2a och F8-B1, och SVK omimporterad (K-W1 verifierad). Logg `/tmp/claude-0/batch3.log`.
 - **Batch 2 avbröts medvetet efter J4** för effektivitetens skull: F och G hade kört den gamla bygget utan F8-B1. Resultat från K, I, J1 och J4 finns i FINDINGS.
 - **Batch 2 pågår (2026-10-25 från 20:08 UTC):** världen på `f9a0304e0`, migrationerna `20261025100000`–`20261025130000` applicerade, `REALITY_SVK_SOURCE=simulated REALITY_SPOT_SOURCE=synthetic`, snabbläge. Ordning: K, I, J1, J4, F, G. Logg `/tmp/claude-0/batch2.log`.
