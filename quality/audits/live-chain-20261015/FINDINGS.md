@@ -2668,6 +2668,24 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **Rättning:** kommentaren är nu en SQL-kommentar (`--`). Verifieras när E körs om.
 - **Variant kontrollerad:** samma sorts kommentar i J2 står i JS och är korrekt.
 
+### I-B2d "Försök igen" på ett misslyckat byte via befintlig automation — ägarbeslut 32; IMPLEMENTERAD (`cd537bda3`, agent); väntar på världsverifiering (I9)
+- **Var:** tenantens operatör ser "Försök igen" på kundkortets översikt (`CustomerSwitchRetryPanel`). Panelen visas med `switching.write`, för det senaste bytet per anläggning med status `failed`. Det tekniska bytesformuläret används inte.
+- **Serveråtgärden** `retryFailedSupplierSwitchAction` kräver `switching.write` i bytets eget bolag.
+- **Kontrollerna** (`retryFailedSupplierSwitch`, `lib/customer-operations/supplierSwitchRetry.ts`) läser allt tenantavgränsat och prövar:
+  - **Status:** bytet måste vara `failed`.
+  - **Bekräftat byte:** startas aldrig om, varken vid ett `accepted`/`completed` byte för anläggningen eller vid en `active`/`confirmed_by_grid_owner`-period för avtalet.
+  - **Öppet byte:** ett öppet byte för anläggningen nekar återförsöket.
+  - **Felorsak:** ånger, avbrott eller dubblett kan inte försökas igen. En okänd orsak leder till utredning.
+  - **Avtal:** samma bolag och kund, `signed` eller `active`, och ingen ångerbegäran.
+  - **Datum:** startdatumet krävs, får inte ha passerat och får inte ligga efter avtalets slut. Det flyttas aldrig automatiskt.
+- **Meddelandestatus:** återförsök sker bara efter negativ APERAK, `contrl_failed` eller en Z03 som aldrig skickades. En Z03 som väntar, är förfallen, har positiv kvittens eller okänd status går till utredning (`supplier_switch.retry_needs_review`), och ingen ny bytesanmälan skickas.
+- **Inga dubbletter:** `enqueueSupplierSwitchAutomation` används med den kanoniska nyckeln `supplier-switch:{kund}:{anläggning}`. Ett upprepat eller samtidigt försök ansluter till samma aktiva jobb (`customer_operation_jobs_active_idempotency_uidx`), och arbetaren återanvänder ett öppet byte.
+- **Revisionsspår:** initiativtagaren lagras i `created_by`, `payload.retry_initiated_by` och händelsen `supplier_switch.retry_*`.
+- **Ingen SQL:** inga migrationer behövdes, och låsen DB-05, SC-031 och SC-046 berörs inte.
+- **Test:** `__tests__/reality-i-b2d-switch-retry.test.ts`, 9 fall om varje krav och förbud. Före implementationen kunde filen inte laddas, efter den 9/9. Relaterade tester 9 filer, 77/77, och tsc utan fel.
+- **Täckningskontrollen** gav tidsgränsfel under hög last (load 17–18), i filer som inte berör ändringen. Var för sig var de gröna. Körs om samlat på en lugn maskin.
+- **Scenario I9:** använder nu "Försök igen" som tenant (`retrySwitchInAdmin`).
+
 ### A-B3 A:s nätägarsimulator besvarade aldrig vår Z01 och kunde inte läsa post till sina tidigare certifikat — HARNESS; RÄTTAD (`6392cef80`, agent)
 - **A3/A5:** webbansökningarna står `processing` med nästa steg `z01_customer_data_requested`, alltså anläggningsverifiering via Z01, vilket är produktens avsedda väg.
   - Uppslagningen ger nu ALS med registrets nätägare `f8ca3120`, så K-W1 håller i världen.

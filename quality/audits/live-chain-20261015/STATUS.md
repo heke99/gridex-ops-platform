@@ -18,8 +18,8 @@ Den hör ihop med tre andra dokument:
 - **Därefter:** starta om SVK-simulatorn och kör om SVK-importen (K-W1). Kontrollera att ALS pekar på registrets ägare `07473208`.
 - **Efter batch 2:** rätta och dokumentera nya fel, lägg in T31 och kör D11 end-to-end i världen. Kör sedan **batch 3 = alla 15 scenarier** (`run-many.sh all`) på slutkoden som regression. A, C, D, E, H, J2, J3, stuck-detector och grid-owner-wire kördes senast på äldre kod.
 - **Ägarbeslut 31–34 (2026-10-25) är under införande, en agent per beslut, i egna worktrees:**
-  - 31, K-W1b: kopplad nätägare behålls vid namnkonflikt. Migration `20261026100000`.
-  - 32, I-B2d: "Försök igen" via automationen, och I9 använder det. `20261026110000` om SQL behövs.
+  - 31, K-W1b: klar (`35349ad8a`), migrationen applicerad i världen.
+  - 32, I-B2d: klar (`cd537bda3`), ingen SQL. Väntar på I9 i världen.
   - 33, D11-G1: kreditflöde för brytavgift, och H11 krediterar via produkten. `20261026120000`.
   - 34, J2-13: två avstämningar och ett personalärende. `20261026130000`.
   - Fynden markeras lösta först när berörda scenarier är verifierade i världen.
