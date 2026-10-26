@@ -2668,6 +2668,11 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **Rättning:** kommentaren är nu en SQL-kommentar (`--`). Verifieras när E körs om.
 - **Variant kontrollerad:** samma sorts kommentar i J2 står i JS och är korrekt.
 
+### I, batch 4 (2026-10-26 ca 16:56–18:30): 3 gröna, 1 röd (I2, tidsgräns 30 min), 6 överhoppade — utreds av en agent (I-B4)
+- **I-B2a verkar i världen:** de signerade kundernas bytesjobb stoppas inte längre av inflyttningsdatumet.
+- **Nytt:** 9 jobb `start_supplier_switch` föll med `23514` ("Kundautomation misslyckades.") när bytet skulle skapas, och 11 står i `needs_review`. Inget byte nådde nätägaren, så I2 nådde tidsgränsen.
+- **Webbvägen** körde den gamla Z02-tidsättningen. K-B4 kom in först efter att I hade startat.
+
 ### K, batch 4 (2026-10-26 15:36–16:56, världen på 355bf0e76): 10 av 12 gröna; K4 och K8 röda — utreds av en agent (K-B4)
 - **K10 och K11 är gröna** igen.
 - **W1 kommer längre än förut:** ansökan `APP-20261026-100001` står `processing` med nästa steg `z01_customer_data_requested`. Vår Z01 skickades 16:31 och fick APERAK, men ingen Z02 finns någonstans i världen. Bytet nådde därför aldrig nätägaren (K4), och K8 räknar 2 pågående byten i stället för 3.
