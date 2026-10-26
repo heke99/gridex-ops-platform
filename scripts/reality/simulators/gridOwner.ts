@@ -26,18 +26,9 @@ import { buildZ04ForSwitchRequest } from './gridOwnerWire'
 import { z02For } from '../../helpers/reality/inboundProdatWire'
 import { unwrapSmimeForActor } from './smimeUnwrap'
 import { platformMailboxFor } from './platformMailbox'
+import { businessAnswerDelayMs, DEFAULT_GRID_OWNER_PROFILE, type GridOwnerProfile } from './gridOwnerProfile'
 
-export type GridOwnerProfile = {
-  /** Answer our files at all (a silent counterparty tests our deadline handling). */
-  respond: boolean
-  contrlDelayMs: number
-  aperakDelayMs: number
-  z04DelayMs: number
-  /** Share of switch requests rejected with a negative APERAK instead of Z04. */
-  rejectShare: number
-  /** Share of outgoing files sent twice (duplicate delivery). */
-  duplicateShare: number
-}
+export type { GridOwnerProfile } from './gridOwnerProfile'
 
 const env = (name: string, fallback: string) => process.env[name] ?? fallback
 const config = {
@@ -50,7 +41,7 @@ const config = {
   controlPort: Number(env('REALITY_GRID_OWNER_PORT', '3902')),
   gridArea: env('REALITY_GRID_OWNER_GRID_AREA', 'ALS'),
 }
-let profile: GridOwnerProfile = { respond: true, contrlDelayMs: 30_000, aperakDelayMs: 60_000, z04DelayMs: 120_000, rejectShare: 0, duplicateShare: 0 }
+let profile: GridOwnerProfile = { ...DEFAULT_GRID_OWNER_PROFILE }
 
 type Received = { at: string; subject: string; family: string; code: string; interchange: string; handled: string }
 type Sent = { at: string; kind: string; reference: string; inReplyTo?: string }
@@ -102,7 +93,7 @@ function handle(raw: string, subject: string) {
     // holds (Z02, T31's builder), as the real one does (FINDINGS A-B3).
     entry.handled = 'answered (APERAK + Z02)'
     later(profile.aperakDelayMs, () => deliver('APERAK', buildAperakDraft({ sourceMessage: source, outcome: 'positive' }).rawPayload!, interchange, interchange))
-    later(profile.z04DelayMs, async () => {
+    later(businessAnswerDelayMs(profile, 'Z01')!, async () => {
       const z02 = z02For(raw, config.edielId, { gridArea: config.gridArea })
       await deliver('PRODAT-Z02', z02.raw, z02.document, interchange)
     })
@@ -113,7 +104,7 @@ function handle(raw: string, subject: string) {
     const reject = decide(profile.rejectShare, switchRequests)
     entry.handled = reject ? 'rejected (negative APERAK)' : 'confirmed (APERAK + Z04)'
     later(profile.aperakDelayMs, () => deliver('APERAK', buildAperakDraft({ sourceMessage: source, outcome: reject ? 'negative' : 'positive' }).rawPayload!, interchange, interchange))
-    if (!reject) later(profile.z04DelayMs, async () => {
+    if (!reject) later(businessAnswerDelayMs(profile, 'Z03')!, async () => {
       const z04 = buildZ04ForSwitchRequest({ request: raw, gridOwnerEdielId: config.edielId })
       await deliver('PRODAT-Z04', z04.raw, z04.reference, interchange)
     })

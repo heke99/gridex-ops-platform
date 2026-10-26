@@ -468,7 +468,7 @@ describe.sequential('reality F — invoices for several facilities with contract
 
   it('F4 the world runs on cron cadence until every switch is confirmed and supply rests on the Z04 from 1 September', async (context) => {
     requireEstablished('F4', context)
-    await gridOwner.profile({ contrlDelayMs: 20_000, aperakDelayMs: 40_000, z04DelayMs: 90_000 })
+    await gridOwner.profile({ contrlDelayMs: 20_000, aperakDelayMs: 40_000, z04DelayMs: 90_000, z02DelayMs: 90_000 })
     const supply = () => sql<Array<{ facility: string; switchId: string | null; switch: string | null; start: string | null; z04: string | null; period: Row | null }>>(`SELECT coalesce(jsonb_agg(jsonb_build_object(
         'facility',mp.metering_point_id,'switchId',s.id,'switch',s.status,'start',coalesce(s.confirmed_start_date,s.requested_start_date),'z04',s.inbound_z04_message_id,
         'period',(SELECT jsonb_build_object('status',p.status,'start',p.start_date,'customer',p.customer_id,'contract',coalesce(p.customer_contract_id,p.contract_id),'source',p.source,

@@ -241,7 +241,7 @@ describe.sequential('reality G — end of daylight saving time 2026-10-25 throug
 
   it('G3 the world runs on cron cadence until supply rests on the Z04 from 1 October', async (context) => {
     requireStep(established, 'G3', 'no Z03 for 2026-10-01 was established in G2', context)
-    await gridOwner.profile({ contrlDelayMs: 20_000, aperakDelayMs: 40_000, z04DelayMs: 90_000 })
+    await gridOwner.profile({ contrlDelayMs: 20_000, aperakDelayMs: 40_000, z04DelayMs: 90_000, z02DelayMs: 90_000 })
     const supply = () => sql<{ switch: string | null; z04: string | null; period: Row | null }>(`SELECT jsonb_build_object('switch',s.status,'z04',s.inbound_z04_message_id,
         'period',(SELECT jsonb_build_object('id',p.id,'status',p.status,'start',p.start_date,'customer',p.customer_id,'message',p.source_message_id,
           'atSupplyStart',p.market_start_at=(TIMESTAMP '2026-10-01 00:00' AT TIME ZONE 'Etc/GMT-1'))

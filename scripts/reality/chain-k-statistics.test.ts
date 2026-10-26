@@ -231,7 +231,7 @@ describe.sequential('reality K — statistics are computed and shown correctly',
   }, 15 * 60_000)
 
   it('K3 the world runs on cron cadence until the grid owner\'s Z04 makes L1, L2 and N1 supplied', async () => {
-    await gridOwner.profile({ contrlDelayMs: 20_000, aperakDelayMs: 40_000, z04DelayMs: 90_000 })
+    await gridOwner.profile({ contrlDelayMs: 20_000, aperakDelayMs: 40_000, z04DelayMs: 90_000, z02DelayMs: 90_000 })
     const gsrns = [L1, L2, N1].map(p => p.gsrn)
     const deadline = Date.now() + Number(process.env.GRIDEX_REALITY_K3_MINUTES ?? 30) * 60_000
     const slots: unknown[] = []

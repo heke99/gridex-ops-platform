@@ -185,7 +185,7 @@ describe.sequential('reality H — the customer leaves', () => {
   }, 15 * 60_000)
 
   it('H3 the world runs on cron cadence until the grid owner\'s Z04 makes S, M and K supplied from 1 September', async () => {
-    await gridOwner.profile({ contrlDelayMs: 20_000, aperakDelayMs: 40_000, z04DelayMs: 90_000 })
+    await gridOwner.profile({ contrlDelayMs: 20_000, aperakDelayMs: 40_000, z04DelayMs: 90_000, z02DelayMs: 90_000 })
     const deadline = Date.now() + Number(process.env.GRIDEX_REALITY_H3_MINUTES ?? 30) * 60_000
     const slots: unknown[] = []
     let state = supplyState(tenant.companyId, LEAVING.map(p => p.gsrn))

@@ -182,7 +182,7 @@ describe.sequential('reality J2 — inbound UTILTS: metering, corrections, settl
 
   it('J2-3 the world runs on cron cadence until supply rests on the Z04 from 1 September', async (context) => {
     requireStep(established, 'J2-3', 'no Z03 for 2026-09-01 was established (J2-2)', context)
-    await gridOwner.profile({ contrlDelayMs: 20_000, aperakDelayMs: 40_000, z04DelayMs: 90_000 })
+    await gridOwner.profile({ contrlDelayMs: 20_000, aperakDelayMs: 40_000, z04DelayMs: 90_000, z02DelayMs: 90_000 })
     const supply = () => sql<Array<{ gsrn: string; switch: string | null; period: Row | null }>>(`SELECT coalesce(jsonb_agg(jsonb_build_object('gsrn',mp.metering_point_id,'switch',s.status,
         'period',(SELECT jsonb_build_object('status',p.status,'start',p.start_date,'customer',p.customer_id,'message',p.source_message_id,'z04',s.inbound_z04_message_id,
           'atSupplyStart',p.market_start_at=(TIMESTAMP '2026-09-01 00:00' AT TIME ZONE 'Etc/GMT-1'))
