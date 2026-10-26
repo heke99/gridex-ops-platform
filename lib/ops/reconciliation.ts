@@ -444,6 +444,40 @@ async function checkRetryQueueHealth(context: CheckContext): Promise<Reconciliat
   }
 }
 
+/**
+ * Owner decision 34 (FINDINGS J2-13): the two settlement reconciliation checks, read from the current results
+ * gridex_settlement_reconcile_v1 stores. Deviation, incomplete data and a missing grid-owner aggregate all count; a
+ * preliminary S03 or a match never does. Read-only: nothing here corrects or blocks billing.
+ */
+async function checkSettlementReconciliation(context: CheckContext): Promise<ReconciliationCheckResult[]> {
+  const kinds = [
+    { kind: 'aggregate_vs_metered', key: 'settlement_aggregate_vs_metered', label: 'Egna mätvärden mot nätägarens summerade värden',
+      description: 'Egna aktuella mätvärden per nätområde och period jämförda med nätägarens E31. Avvikelse, ofullständiga data eller saknad E31 ger ett personalärende.' },
+    { kind: 'billed_vs_basis', key: 'metered_vs_billed_kwh', label: 'Fakturerade kWh mot mätunderlag',
+      description: 'Nettofakturerade kWh (krediteringar och rättelser inräknade) jämförda med faktureringsgrundande mätvärden per nätområde och månad.' },
+  ]
+  return Promise.all(kinds.map(async ({ kind, ...base }) => {
+    const check = { ...base, severity: 'warning' as const }
+    try {
+      let query = supabaseService
+        .from('settlement_reconciliation_results')
+        .select('id')
+        .eq('is_current', true)
+        .eq('check_kind', kind)
+        .in('status', ['deviation', 'incomplete', 'missing_reference'])
+        .limit(SCAN_LIMIT)
+      if (context.companyId) query = query.eq('company_id', context.companyId)
+      const { data, error } = await query
+      if (error) throw error
+      const rows = (data ?? []) as Record<string, unknown>[]
+      return { ...check, count: rows.length, sampleIds: rows.slice(0, SAMPLE_LIMIT).map((row) => String(row.id)) }
+    } catch (error) {
+      if (missingSchema(error)) return { ...check, count: 0, sampleIds: [], error: 'schema_missing' }
+      return { ...check, count: 0, sampleIds: [], error: error instanceof Error ? error.message : 'unknown' }
+    }
+  }))
+}
+
 export async function runProductionConsistencyChecks(input: {
   companyId: string | null
 }): Promise<{ checks: ReconciliationCheckResult[]; criticalCount: number; warningCount: number }> {
@@ -457,6 +491,7 @@ export async function runProductionConsistencyChecks(input: {
     checkDuplicateBillingPerContractPeriod(context),
     checkMeteringCorrectionsAfterBilling(context),
     checkRetryQueueHealth(context),
+    checkSettlementReconciliation(context),
   ])).flat()
 
   return {

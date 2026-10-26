@@ -33,6 +33,9 @@ async function run(request: NextRequest) {
       ttlSeconds: 3600,
       metadata: { source: 'daily_reconciliation_cron' },
       run: async () => {
+        // Owner decision 34: run the settlement reconciliation queued by new or corrected metering basis before the
+        // read-only checks report it (no billing is blocked or changed).
+        const settlement = await supabaseService.rpc('gridex_settlement_reconcile_pending_v1', { p_company_id: companyId, p_limit: 200 })
         const applicationChecksPromise = runProductionConsistencyChecks({ companyId })
         let companyIds: string[]
         if (companyId) {
@@ -69,6 +72,7 @@ async function run(request: NextRequest) {
 
         return {
           applicationChecks: await applicationChecksPromise,
+          settlementReconciliation: settlement.error ? { ok: false, error_code: settlement.error.code ?? 'settlement_reconciliation_failed' } : { ok: true, ...(settlement.data as Record<string, unknown>) },
           canonicalArchitecture: {
             company_count: companyResults.length,
             failed_count: failedCount,

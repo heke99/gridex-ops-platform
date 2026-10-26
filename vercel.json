@@ -84,6 +84,10 @@
       "schedule": "10 5 * * *"
     },
     {
+      "path": "/api/cron/reconciliation/settlement",
+      "schedule": "40 5 6 * *"
+    },
+    {
       "path": "/api/cron/reconciliation/end-to-end",
       "schedule": "30 5 * * *"
     },
