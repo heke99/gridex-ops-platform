@@ -2682,7 +2682,7 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **Fel:** E4 fick ingen CONTRL ("CONTRL skapades inte: ediel_technical_ack_route_unavailable", orsak `ediel_original_mailbox_smtp_custody_required`).
 - **Orsak:** E:s E66 är testmiljö och kommer till testbrevlådan, men världen kör produktionsbanan. Produkten svarar korrekt bara från brevlådan filen kom till.
 - **Inget beslut behövs:** T8 säger redan att testkanalens scenarier startar världen med `REALITY_EDIEL_LANE=test`. E körs därför i en egen värld med testbanan efter batch 3b.
-- **T37, harness, ÖPPEN:** `run-many.sh all` lägger E i samma produktionsvärld som de andra. Skriptet bör vägra att köra E utan testbanan.
+- **T37 — HARNESS; RÄTTAD:** `run-many.sh` läser världens `EDIEL_SMTP_FROM`. I en värld med produktionsbanan hoppas E över med ett meddelande, i stället för att E4 blir rött. Syntaxen och läsningen av banan är kontrollerade.
 
 ### C, batch 3 (2026-10-25 ca 23:30–23:34, båda banorna samtidigt): 6 av 8 gröna; C3 och C4 röda
 - C3 är C-B3a (harness, rättad). C4 är C-B3b (inget nytt fel, öppna P6).

@@ -48,9 +48,19 @@ lane_of() {
     *) echo unknown ;;
   esac
 }
+# E's grid-owner files are test-environment Ediel and arrive at the shared test mailbox; the product answers only from the
+# mailbox a file arrived at (T8), so E needs a world started with REALITY_EDIEL_LANE=test. In a production-lane world it
+# is left out with a notice instead of failing E4 (FINDINGS E-B3, T37).
+WORLD_SMTP_FROM="$(sed -n 's/^EDIEL_SMTP_FROM=//p' "$HOME_DIR/app.env" 2>/dev/null | tail -1)"
 ALONE=() ALS=() FREE=()
 for file in "$@"; do
   [ -f "$file" ] || { echo "no such scenario: $file" >&2; exit 2; }
+  case "$(basename "$file")" in chain-e-*)
+    if [ "$WORLD_SMTP_FROM" != "gridex-ediel-test@example.invalid" ]; then
+      echo "[run-many] skip  $(basename "$file" .test.ts): needs a world started with REALITY_EDIEL_LANE=test (T8, T37)" >&2
+      continue
+    fi ;;
+  esac
   case "$(lane_of "$file")" in
     alone) ALONE+=("$file") ;; als) ALS+=("$file") ;; free) FREE+=("$file") ;;
     *) echo "unclassified scenario $file: add it to lane_of in $0 with the evidence for its lane" >&2; exit 2 ;;
