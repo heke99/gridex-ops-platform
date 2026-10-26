@@ -23,6 +23,7 @@ import { buildAperakDraft, buildContrlDraft } from '@/lib/ediel/ack'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { dailyE66, dayProfile } from '../../helpers/live-chain-wire'
 import { buildZ04ForSwitchRequest } from './gridOwnerWire'
+import { z02For } from '../../helpers/reality/inboundProdatWire'
 import { unwrapSmimeForActor } from './smimeUnwrap'
 import { platformMailboxFor } from './platformMailbox'
 
@@ -47,6 +48,7 @@ const config = {
   imapsPort: Number(env('REALITY_IMAPS_PORT', '3993')),
   pollMs: Number(env('REALITY_GRID_OWNER_POLL_MS', '15000')),
   controlPort: Number(env('REALITY_GRID_OWNER_PORT', '3902')),
+  gridArea: env('REALITY_GRID_OWNER_GRID_AREA', 'ALS'),
 }
 let profile: GridOwnerProfile = { respond: true, contrlDelayMs: 30_000, aperakDelayMs: 60_000, z04DelayMs: 120_000, rejectShare: 0, duplicateShare: 0 }
 
@@ -95,6 +97,17 @@ function handle(raw: string, subject: string) {
   if (!profile.respond || family === 'CONTRL' || family === 'APERAK') return
   const source = asReceived(raw, family)
   later(profile.contrlDelayMs, () => deliver('CONTRL', buildContrlDraft({ sourceMessage: source, outcome: 'positive' }).rawPayload!, interchange, interchange))
+  if (family === 'PRODAT' && code === 'Z01') {
+    // A website customer's facility is verified through our Z01; the grid owner answers with what its register
+    // holds (Z02, T31's builder), as the real one does (FINDINGS A-B3).
+    entry.handled = 'answered (APERAK + Z02)'
+    later(profile.aperakDelayMs, () => deliver('APERAK', buildAperakDraft({ sourceMessage: source, outcome: 'positive' }).rawPayload!, interchange, interchange))
+    later(profile.z04DelayMs, async () => {
+      const z02 = z02For(raw, config.edielId, { gridArea: config.gridArea })
+      await deliver('PRODAT-Z02', z02.raw, z02.document, interchange)
+    })
+    return
+  }
   if (family === 'PRODAT' && code === 'Z03') {
     switchRequests += 1
     const reject = decide(profile.rejectShare, switchRequests)
