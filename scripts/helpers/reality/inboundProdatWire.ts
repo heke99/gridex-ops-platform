@@ -107,7 +107,10 @@ export function z02For(z01: string, gridOwnerEdielId: string, options: { variant
   const gridArea = /RFF\+Z05:([^'+]+)/.exec(z01)?.[1] ?? options.gridArea ?? ''
   for (const [key, value] of Object.entries({ facility: f.facility, lineItemReference: f.lineItemReference, customerIdentity: f.customerIdentity, gridArea }))
     if (!value) throw Error(`z02_request_fact_missing:${key}`)
-  const a = options.address ?? { street: 'Kungsgatan 1', postalCode: '44130', city: 'Alingsas' }
+  // The grid owner answers with the facility's own address as it holds it: the one our Z01 named (NAD+IT), raw as on
+  // the wire (FINDINGS A-B4: a fixed 'Alingsas' never matched the site's 'Alingsås', so the product's Z02 payload gate
+  // held every website application with z02_installation_city_conflict).
+  const a = options.address ?? z01InstallationAddress(z01) ?? { street: 'Kungsgatan 1', postalCode: '44130', city: 'Alingsas' }
   const document = randomUUID().replaceAll('-', '').slice(0, 20)
   const body = [`BGM+Z02+${document}+9+AB`, `DTM+137:${new Date().toISOString().replace(/\D/g, '').slice(0, 12)}:203`, 'DTM+ZZZ:1:805',
     `NAD+FR+${f.gridOwner}:160:SVK+++++++SE`, `NAD+DO+${f.supplier}:160:SVK+++++++SE`, `LIN+1++${f.facility}:::9`,
@@ -115,6 +118,15 @@ export function z02For(z01: string, gridOwnerEdielId: string, options: { variant
     `NAD+UD+${f.customerIdentity}:SE2:260++Synthetic Person+${a.street}+${a.city}++${a.postalCode}+SE`,
     `NAD+IT+${f.facility}::9+++${a.street}+${a.city}++${a.postalCode}+SE`]
   return { ...encodeGridOwnerAnswer(z01, f.gridOwner, f.supplier, body), facts: { ...f, gridArea }, document }
+}
+
+/** Street, city and postcode of the Z01's installation (NAD+IT, components 5, 6 and 8), or null when it has none. */
+export function z01InstallationAddress(z01: string): { street: string; postalCode: string; city: string } | null {
+  const segment = z01.split(/(?<!\?)'/).map(s => s.trim()).find(s => s.startsWith('NAD+IT+'))
+  if (!segment) return null
+  const elements = segment.split(/(?<!\?)\+/)
+  const [street, city, postalCode] = [elements[5], elements[6], elements[8]]
+  return street && city && postalCode ? { street, city, postalCode } : null
 }
 
 /** The case reference (RFF+LI) and the facility (LIN) of any PRODAT file. */

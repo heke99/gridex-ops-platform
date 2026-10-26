@@ -2691,6 +2691,14 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
   - **Rättning:** båda binder anläggningens senaste signerade avtal via `findLatestSignedContractIdForSite` (`lib/customer-operations/switchReadiness.ts`), samma uppslagning som beredskapskontrollen redan gjorde, nu utbruten: exakt bolag, kund och anläggning, status `signed`, nyast först. Formuläret skickar även `companyId`. Saknas avtal binds inget och vakten avgör som förut.
   - **Test:** `__tests__/reality-i-b4v-staff-switch-exact-contract.test.ts`, 4 fall (annan tenant, annan anläggning, äldre och osignerade avtal vinner aldrig). Före rättningen 3 röda, efter 4/4. Med I-B- och switch-testerna 10 filer, 77/77.
 
+### A-B4 Nätägarsimulatorns Z02 bar en fast adress, så produktens Z02-grind höll varje webbansökan — HARNESS; RÄTTAD (2026-10-26, ny session)
+- **Bevis i den nya världen (K, batch 5, endast läsning):** W1:s Z01 (`e01666b0…`) skickades 21:29 med `NAD+IT+…+Kungsgatan 1+Alingsås++441 30+SE`. Simulatorns Z02 (`2a561bfe…`) kom 21:33 med `Alingsas`. Händelsen "Z02 anläggningens ort matchar inte originating site." (`z02_installation_city_conflict`, `gridex_gate_inbound_z02_required_payload`, migration `20260903070000`) stoppade jobbet; meddelandet står `parsed`, och ingen Z03 skapas. Korrelationen var exakt (LI, variant L), så felet ligger enbart i adressen.
+- **Orsak:** `z02For` (`scripts/helpers/reality/inboundProdatWire.ts`, T31) använde en hårdkodad adress (`Kungsgatan 1`, `Alingsas`, `44130`) i stället för den som vår Z01 angav.
+- **Rättning:** `z02For` svarar med Z01:ns NAD+IT-adress, rått som på tråden (`z01InstallationAddress`); en uttrycklig adress vinner fortfarande, och den fasta adressen gäller bara en Z01 utan NAD+IT. Produktens grind är oförändrad.
+- **Test:** `__tests__/reality-a-b4-z02-echoes-z01-address.test.ts`, 3 fall, rött före (2 av 3), grönt efter. Med K-B4, A-B3 och T31 17/17.
+- **Produktfråga (ej beslutad, låg):** grinden jämför orten exakt (`lower(btrim(...))`). En nätägare som skriver orten utan å/ä/ö skulle hålla ansökan. Ingen ändring utan beslut.
+- **I världen:** K i batch 5 körde med den gamla simulatorn, så K4/K8 väntas röda av denna orsak. I och A i batch 5 använder rättningen.
+
 ### A, batch 4 (2026-10-26 ca 18:30–19:05): 4 av 7 gröna; A3–A5 röda — utreds av en agent (A-B4)
 - **K-B4 och A-B3 verkar i världen:** våra Z01 skickades 18:13, och fyra Z02 kom in och tolkades (`parsed`) 18:18.
 - **Nytt:** webbanläggningarna får ändå inget nätområde. Den mottagna Z02 tillämpas inte på ansökan, så ingen Z03 skickas (A3–A5).
