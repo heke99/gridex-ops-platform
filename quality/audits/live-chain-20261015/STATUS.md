@@ -8,6 +8,8 @@ Den hör ihop med tre andra dokument:
 - #840: anspråk och leveranser per fil.
 
 ## Var jag är nu
+- **Andra omstarten av containern (2026-10-26, före 15:20 UTC):** F i batch 3b försvann igen. dockerd hade en inaktuell PID-fil, som togs bort. `20261026120000` (D11-G1) och `20261026130000` (J2-13) applicerades, och världen byggdes om på `355bf0e76` med alla rättningar och ägarbeslut 31–34.
+- **Batch 4 pågår** (logg `/tmp/claude-0/batch4.log`), i prioritetsordning så att nya rättningar verifieras först, eftersom omstarter har dödat långa körningar: K, I, A, J1, H, J2, J4, F, G. E körs därefter i en egen värld med testbanan (T37).
 - **Containern startades om under natten (ca 00:30 UTC 2026-10-26):** Docker, appen och batch 3 försvann medan F körde. F-loggen är tom. Världens data fanns kvar. 10:30 UTC startades dockerd, `20261026100000` (K-W1b) applicerades och världen byggdes om på `8e2b0b5f1`.
 - **Batch 3b pågår** (logg `/tmp/claude-0/batch3b.log`): F, G, H, I, J1, J2, J4 och K. A, C, D, E, J3, stuck-detector och grid-owner-wire kördes i batch 3 före omstarten.
 - **Agenterna** (beslut 32–34, C-B3, A-B3/E-B3) stoppades två gånger av kontots användningsgräns och har återupptagits.
