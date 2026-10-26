@@ -2640,6 +2640,21 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **Att bevaka i världen:** `createInvoiceExportRun` kan flagga ett underlag på 0 kWh som ofullständig mätvärdestäckning.
 - **T35 (harness, RÄTTAD):** `cron()` (T27) gav TS7006, eftersom `res` saknade typ. Nu är den `IncomingMessage`.
 
+### K-W1b En namnskillnad bytte nätägare för ett mappat nätområde — PRODUKT; RÄTTAD enligt ägarbeslut 31 (`35349ad8a`, agent); väntar på världsverifiering
+- **Fel:** `gridex_import_grid_area_master_row` matchade importerad ägare bara på `gridex_grid_owner_name_key`. Utan unik mappad träff skapades en ny plattformsägare, och `platform_grid_areas.grid_owner_id` skrevs över. Ett område med mappad ägare tappade då nätägaren för alla exakta adresser (K-W1).
+- **Ändrat** (migration `20261026100000`, exakt förbild `1770c744…` ur `schema.sql`, metadata kontrollerad):
+  - När området redan är bundet till en aktiv mappad ägare och importen ger en annan, behålls ägaren och namnet. Ingen ny ägare skapas.
+  - En kandidat med samma `ops_grid_owner_id` (dokumenterad koppling) godtas tyst.
+  - Annars loggas konflikten i `platform_grid_area_owner_conflicts`, med källa, befintlig koppling och importerad uppgift. En öppen rad per konflikt; en upprepning ökar en räknare.
+  - Obundna och omappade områden importeras som förut.
+- **Verkligt ägarbyte:** endast via `gridex_change_platform_grid_area_owner_v1` (bara service_role).
+  - Målägaren ska vara aktiv, ha Ediel-id och vara mappad.
+  - Orsak och underlag krävs, och en ändring utan effekt vägras.
+  - Historik skrivs i `platform_grid_area_owner_changes` i samma transaktion, och en angiven öppen konflikt för samma område löses.
+- **Behörighet:** tabellerna har RLS, ingen åtkomst för anon eller authenticated, och läsning för service_role. Låsen DB-05, SC-031 och SC-046 berörs inte.
+- **Test:** `__tests__/reality-k-w1b-grid-area-owner-binding.test.ts`, 6 fall. Förbilden visar felet; efter migrationen 6/6 (omkört av huvudsessionen). Med `svk-postal-grid-owner-hardening` och `reality-k-w1-*` 15/15.
+- **Kvar:** täckningskontrollen körs vid samlad verifiering. Migrationen appliceras i världen före nästa SVK-import.
+
 ### Batch 3 hittills (2026-10-25 23:30 – 2026-10-26 01:30 UTC)
 - **Gröna:** J3, stuck-detector, grid-owner-wire och D.
 - **C:** se nedan (C-B3a/b, agent).
