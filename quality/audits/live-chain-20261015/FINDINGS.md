@@ -2668,6 +2668,32 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **Rättning:** kommentaren är nu en SQL-kommentar (`--`). Verifieras när E körs om.
 - **Variant kontrollerad:** samma sorts kommentar i J2 står i JS och är korrekt.
 
+### D11-G1 Ingen produktväg krediterade en fakturerad brytavgift — ägarbeslut 33; IMPLEMENTERAD (`3e277d534`, agent); väntar på världsverifiering (H11)
+- **Ny funktion:** `gridex_request_break_fee_credit_v1` (migration `20261026120000`) krediterar helt eller delvis, med behörighet `billing_underlay.export`, obligatorisk orsak och radlås på avgiften. I samma transaktion skapas:
+  - justeringsärendet (`credit_queued`, med ursprungsunderlag och ursprungsfaktura);
+  - ett kreditunderlag (`consumption_correction` / `credit_invoice`, 0 kWh, `charge_kind` `break_fee_credit`);
+  - krediteringsraden i `break_fee_credits`.
+- **Ursprungsdebiteringen:** krediteringsraden bär belopp, moms- och konteringsklassning och avgiftsraden ur `contract_charge_ledger`. Ingenting räknas om med dagens priser.
+- **Prissättning:** motorn (`lib/pricing/engine.ts`, `breakFeePricing.ts`) prissätter en negativ `event_only`-rad, och låsningen ger en ledger-händelse.
+- **Kreditfakturan:** skapas av den vanliga fakturaexporten.
+  - Databasen vägrar en andra kreditfaktura och ett annat belopp än minus krediten.
+  - Fakturan stämplas med ursprungsfakturan, avgiftsraden och orsaken.
+  - Ärende, kredit och avgift uppdateras (`partially_credited` eller `credited`).
+- **Tak:** sammanlagd kreditering överstiger aldrig debiteringen. En trigger med radlås gäller också vid direkt insert och samtidiga anrop.
+- **Fakturaberedskapen:** läsaren (exakt förbild efter D11, `12d91d8d…`) kvalificerar ett kreditunderlag bara via dess egen krediteringsrad.
+- **Oförändrat:** den generella krediteringen svarar fortfarande 409 (testat), och återbetalning ingår inte.
+- **Test:**
+  - `reality-d11g1-break-fee-credit-sql`, 6 fall, rött före migrationen.
+  - `reality-d11g1-break-fee-credit-pricing`, 3 fall.
+  - Alla D11-tester 26/26, körda en fil i taget.
+  - Täckningskontrollen gav vid andra körningen 352/352, tagged failing 0. Den första körningen gav 4 tidsgränsfel under last.
+- **H11** krediterar nu genom produktvägen.
+- **Begränsningar:** en kredit åt gången, och högst ett kreditunderlag per dag (`break_fee_credit_same_day`, eftersom segmentindexet inte skiljer två krediter samma dag).
+
+### X-LATE Fakturaexporten körs en gång per bolag och månad, så ett sent underlag faktureras aldrig — SANNOLIK (agentens kodläsning), medel; ska verifieras
+- Enligt D11-G1-agenten fakturerar exportkörningen bara en gång per bolag och månad. Ett underlag som blir klart i en månad där körningen redan finns, som en kredit eller ett sent rättat underlag, får då aldrig sin faktura.
+- Ska bekräftas i koden och i världen (H11) innan det klassas. Rättningen kan kräva ett ägarbeslut om efterföljande körningar.
+
 ### J2-13 Avstämning mellan uppmätt, nätägarens summerade värden och fakturerat — ägarbeslut 34; IMPLEMENTERAD (`bdad82fbf`, agent); väntar på världsverifiering
 - **Migration** `20261026130000_j2_13_settlement_reconciliation.sql`. Två separata kontroller per tenant, nätområde, period och serietyp:
   - **`aggregate_vs_metered`:** egna aktuella mätvärden mot nätägarens aggregat (E31, `meter_reading_series` `aggregate`) över exakt aggregatets period.
