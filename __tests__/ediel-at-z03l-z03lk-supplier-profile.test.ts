@@ -450,8 +450,14 @@ class FiniteQuery {
       Object.assign(selected[0], copy(this.values[0])); b.stages.push('rendered:ediel_message_intents')
     } else if (this.operation !== 'select') {
       selected = this.values.map((value, index) => {
-        const row = { created_at: clock, ...copy(value), id: this.table === 'ediel_message_intents' ? n.intent
+        const row: Row = { created_at: clock, ...copy(value), id: this.table === 'ediel_message_intents' ? n.intent
           : this.table === 'ediel_messages' ? n.message : id(8000 + b.trace.length * 10 + index) }
+        if (this.table === 'ediel_messages') {
+          // Finite model of the existing before-insert native immutable seal;
+          // no signing/source authority or native queue port is manufactured.
+          if (typeof row.raw_payload !== 'string' || !row.raw_payload) b.deny('original_raw_required')
+          Object.assign(row, { immutable_payload_hash: digest(String(row.raw_payload)), immutable_rendered_at: clock })
+        }
         if (b.rows[this.table].some(existing => existing.id === row.id)) b.deny(`duplicate_insert:${this.table}`)
         b.rows[this.table].push(row); return row
       })
@@ -542,6 +548,7 @@ describe.each(profiles)('ordinary supplier Z03$variant staged finite consumer', 
     boundary.assertPhysical(String(stored.raw_payload))
     expect(insert[0].values[0].raw_payload).toBe(stored.raw_payload)
     expect(stored.raw_payload).toBe(boundary.witnessRaw)
+    expect(stored).toMatchObject({ immutable_payload_hash: digest(String(stored.raw_payload)), immutable_rendered_at: clock })
     expect(stored).toMatchObject({ id: n.message, company_id: n.company, environment: 'test', message_code: 'Z03',
       message_version: '26A', intent_id: n.intent, outbound_request_id: n.outbound, switch_request_id: n.switch,
       source_operation_id: n.switch, status: 'draft', processing_status: 'draft', requires_contrl: true, requires_aperak: true,

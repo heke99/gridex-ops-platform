@@ -105,7 +105,7 @@ beforeEach(() => {
   let allocated = 0
   io.allocate.mockImplementation(() => { allocated++; return { interchangeReference: `UNB-${allocated}`, messageReference: `UNH-${allocated}`,
     transactionReference: `LI-${allocated}`, documentReference: `BGM-${allocated}` } })
-  io.gateway.mockResolvedValue({ id: uid(91), company_id: uid(1), status: 'queued' })
+  io.gateway.mockResolvedValue({message:{id:uid(91),company_id:uid(1),status:'queued'},queuedFromDraft:false})
 })
 afterEach(() => vi.unstubAllGlobals())
 
@@ -132,8 +132,9 @@ describe('normal switch insert-only intent source', () => {
 
   it('selects insert-only semantics from the real normal-switch producer, not just a direct engine caller', async () => {
     io.readMisses = 2; io.barrierSize = 2; io.promoteWinner = true
-    await Promise.all([prepareAndQueueEdielZ03({ actorUserId: uid(9), switchRequestId: uid(4) }),
+    const messages=await Promise.all([prepareAndQueueEdielZ03({ actorUserId: uid(9), switchRequestId: uid(4) }),
       prepareAndQueueEdielZ03({ actorUserId: uid(9), switchRequestId: uid(4) })])
+    expect(messages).toEqual([{id:uid(91),company_id:uid(1),status:'queued'},{id:uid(91),company_id:uid(1),status:'queued'}])
     expect(io.rows).toHaveLength(1)
     expect(io.rows[0]).toMatchObject({ interchange_reference: io.firstWinner!.interchange_reference,
       payload: io.firstWinner!.payload, ediel_message_id: uid(91), outbox_status: 'sent' })
