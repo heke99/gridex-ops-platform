@@ -8,6 +8,14 @@ Den hör ihop med tre andra dokument:
 - #840: anspråk och leveranser per fil.
 
 ## Var jag är nu
+- **Batch 5 pågår (2026-10-26 från ca 20:45 UTC):** J1, H, J2, J4, F och G på `0636d475b` (med I-B4). Logg `/tmp/claude-0/batch5.log`.
+  - Batch 4 gav K 10/12 (K-B4, rättad), I 3 gröna/1 röd (I-B4, rättad) och A 4/7 (A-B4, agent). J1 försvann i den tredje omstarten.
+  - Diskutrymmet tog slut för agenterna. Avslutade agenters worktrees togs bort (cirka 6 GB).
+- **Agenter:**
+  - F113, J2-03/J2-05 och J4-D15 (övertagandet i #840);
+  - A-B4: Z02 tillämpas inte på webbansökan;
+  - I-B4v: personalvägar skapar byten utan avtal.
+- **Därefter:** applicera agenternas migrationer, bygg om och kör om K, I och A, samt E i en egen värld med testbanan.
 - **Övertagande i #840 (2026-10-26, kommentar 6423229557, ägarens mandat "du tar över allting"):** ingen hade svarat på överlämningsbegärandena. Claude tar nu över F113, J2-03/J2-05 och J4-D15, avgränsat till de exakta funktionerna, pinnarna och filerna. Ingen överlappning med MailROOT (PR #916–918). En agent per punkt; migrationerna `20261026170000`, `180000` och `190000`.
 - **Andra omstarten av containern (2026-10-26, före 15:20 UTC):** F i batch 3b försvann igen. dockerd hade en inaktuell PID-fil, som togs bort. `20261026120000` (D11-G1) och `20261026130000` (J2-13) applicerades, och världen byggdes om på `355bf0e76` med alla rättningar och ägarbeslut 31–34.
 - **Batch 4 pågår** (logg `/tmp/claude-0/batch4.log`), i prioritetsordning så att nya rättningar verifieras först, eftersom omstarter har dödat långa körningar: K, I, A, J1, H, J2, J4, F, G. E körs därefter i en egen värld med testbanan (T37).
