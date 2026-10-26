@@ -12,7 +12,7 @@ import {
   isOutsideRegularMonthlyBilling,
 } from "@/lib/pricing/priceComponentCalculator";
 import { finalizePricingPreview } from "@/lib/pricing/pricePreviewBuilder";
-import { breakFeeChargeProblems, buildBreakFeeLine, type ApprovedBreakFeeCharge } from "@/lib/pricing/breakFeePricing";
+import { breakFeeChargeProblems, breakFeeCreditProblems, buildBreakFeeCreditLine, buildBreakFeeLine, type ApprovedBreakFeeCharge, type BreakFeeCredit } from "@/lib/pricing/breakFeePricing";
 import {
   resolveBasePriceSourceValues,
   resolvePricingConfiguration,
@@ -477,6 +477,29 @@ export async function calculatePricingPreviewForUnderlay(input: {
   // An approved break fee is its own underlay with one line from the approved charge (FINDINGS H3d D11, owner
   // decision 28); it carries no energy and is never priced from metering values.
   const underlayPayload = (underlayRow.payload ?? {}) as Record<string, unknown>;
+  // A break-fee credit is its own credit underlay with one negative line from the credit row (FINDINGS D11-G1, owner
+  // decision 33): the amount and VAT come from the original debit, never from today's prices or metering values.
+  if (underlayPayload.charge_kind === "break_fee_credit") {
+    const { data: creditData, error: creditError } = await supabaseService
+      .from("break_fee_credits")
+      .select("id,company_id,break_fee_charge_id,credit_underlay_id,original_invoice_id,status,amount_ex_vat,currency,kind,reason,vat_classification")
+      .eq("company_id", input.companyId)
+      .eq("id", String(underlayPayload.break_fee_credit_id ?? ""))
+      .maybeSingle();
+    if (creditError) throw creditError;
+    const credit = (creditData as BreakFeeCredit | null) ?? null;
+    errors.push(...breakFeeCreditProblems(credit, { companyId: input.companyId, billingUnderlayId: input.billingUnderlayId }));
+    if (!underlay.contractId) errors.push("Avtalet för brytavgiften saknas.");
+    const result = finalizePricingPreview({
+      billingUnderlayId: input.billingUnderlayId,
+      lines: errors.length === 0 && credit ? [buildBreakFeeCreditLine(credit)] : [],
+      warnings,
+      errors,
+      vatRate: credit ? Number(credit.vat_classification?.vat_rate) : undefined,
+    });
+    const pricingRunId = input.persist ? await persistPricingRun(input.companyId, result, underlay) : null;
+    return { ...result, pricingRunId };
+  }
   if (underlayPayload.charge_kind === "break_fee") {
     const { data: chargeData, error: chargeError } = await supabaseService
       .from("break_fee_charges")

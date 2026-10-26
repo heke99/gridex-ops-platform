@@ -494,18 +494,35 @@ describe.sequential('reality H — the customer leaves', () => {
         PERFORM set_config('d11.second', 'accepted', false);
       EXCEPTION WHEN OTHERS THEN PERFORM set_config('d11.second', SQLERRM, false); END $d11$;
       SELECT to_jsonb(current_setting('d11.second'));`)).toBe('break_fee_already_invoiced')
-    // Credited only traceably: refused without an adjustment case naming the original and the credit invoice.
-    const credit = sql<string>(`INSERT INTO public.customer_invoices(company_id,customer_id,amount_ex_vat,vat_amount,amount_inc_vat,currency,status,metadata)
-      SELECT company_id,customer_id,-amount_ex_vat,-vat_amount,-amount_inc_vat,currency,'draft',jsonb_build_object('credit_of',id) FROM public.customer_invoices
-      WHERE id=${literal(invoices()[0].id)} RETURNING to_jsonb(id)`)
-    const credited = () => supabaseService.rpc('gridex_record_break_fee_credit_v1', { p_company_id: tenant.companyId, p_charge_id: charge.id, p_credit_invoice_id: credit, p_actor_user_id: staff.userId })
-    expect((await credited()).error?.message).toBe('break_fee_credit_not_traceable')
-    // No product writer creates a break-fee adjustment case or credit invoice yet: both are the operator's fixture here.
-    sql(`INSERT INTO public.billing_adjustment_cases(company_id,original_billing_underlay_id,original_invoice_id,credit_invoice_id,reason,status,currency)
-      VALUES(${companyLiteral()},${literal(underlayId)},${literal(invoices()[0].id)},${literal(credit)},'break_fee_credit','approved','SEK')`)
-    expect((await credited()).data).toMatchObject({ applied: true, status: 'credited' })
-    expect((await credited()).data).toMatchObject({ applied: false, reason: 'already_credited' })
-    expect(breakFeeCharges(fixed.contractId)[0]).toMatchObject({ status: 'credited', creditInvoiceId: credit })
+    // Credited through the product's own credit flow (D11-G1, owner decision 33): the operator requests a full credit
+    // with a reason; the platform creates the adjustment case and a credit underlay, the existing engine prices it from
+    // the original debit, the lock records one ledger event and the normal invoice export issues one credit invoice that
+    // references the original invoice and fee line. Nothing beyond the debit can be credited.
+    const requestCredit = (input: Record<string, unknown>) => supabaseService.rpc('gridex_request_break_fee_credit_v1', { p_company_id: tenant.companyId, p_charge_id: charge.id, p_input: input, p_actor_user_id: staff.userId })
+    expect((await requestCredit({ reason: 'E2E: kunden bestred avgiften', amount_ex_vat: loss + 0.01 })).error?.message).toBe('break_fee_credit_exceeds_debit')
+    expect((await requestCredit({ reason: ' ' })).error?.message).toBe('break_fee_credit_reason_required')
+    const requested = await requestCredit({ reason: 'E2E: kunden bestred avgiften' })
+    expect(requested.error, JSON.stringify(requested.error)).toBeNull()
+    const creditRequest = requested.data as { creditId: string; billingUnderlayId: string; adjustmentCaseId: string; amountExVat: number }
+    expect(creditRequest.amountExVat).toBe(loss)
+    expect((await requestCredit({ reason: 'igen' })).error?.message).toBe('break_fee_credit_pending')
+    const creditPriced = await calculatePricingPreviewForUnderlay({ companyId: tenant.companyId, billingUnderlayId: creditRequest.billingUnderlayId })
+    report.d11CreditPricing = creditPriced
+    expect(creditPriced.status, JSON.stringify(creditPriced.errors)).toBe('success')
+    expect(creditPriced.lines.map(l => l.lineType)).toEqual(['break_fee_credit'])
+    expect(creditPriced.lines[0]).toMatchObject({ quantity: 1, amountExVat: -loss, vatRate: 0.25 })
+    await lockPricingPreview({ companyId: tenant.companyId, pricingRunId: String(creditPriced.pricingRunId), actorUserId: staff.userId })
+    expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.contract_charge_ledger WHERE company_id=${companyLiteral()} AND event_key=${literal(creditRequest.creditId)}`)).toBe(1)
+    const creditMonth = sql<string>(`SELECT to_jsonb(to_char(billing_period_start,'YYYY-MM')) FROM public.billing_underlays WHERE id=${literal(creditRequest.billingUnderlayId)}`)
+    report.d11CreditExport = await createInvoiceExportRun({ companyId: tenant.companyId, billingMonth: creditMonth, actorUserId: staff.userId })
+    const creditInvoices = sql<Array<{ id: string; exVat: number; creditOf: string; creditId: string }>>(`SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,'exVat',amount_ex_vat,
+      'creditOf',metadata->>'credit_of_invoice_id','creditId',metadata->>'break_fee_credit_id')),'[]') FROM public.customer_invoices
+      WHERE company_id=${companyLiteral()} AND billing_underlay_id=${literal(creditRequest.billingUnderlayId)}`)
+    expect(creditInvoices).toHaveLength(1)
+    expect(creditInvoices[0]).toMatchObject({ exVat: -loss, creditOf: invoices()[0].id, creditId: creditRequest.creditId })
+    expect(breakFeeCharges(fixed.contractId)[0]).toMatchObject({ status: 'credited', creditInvoiceId: creditInvoices[0].id })
+    expect(sql<string>(`SELECT to_jsonb(status) FROM public.billing_adjustment_cases WHERE id=${literal(creditRequest.adjustmentCaseId)}`)).toBe('credited')
+    expect((await requestCredit({ reason: 'igen' })).error?.message).toBe('break_fee_charge_not_invoiced')
     // Isolation: no break-fee charge or invoice of this contract or underlay exists in another tenant.
     expect(sql<number>(`SELECT to_jsonb((SELECT count(*) FROM public.break_fee_charges WHERE company_id<>${companyLiteral()} AND customer_contract_id=${literal(fixed.contractId)})
       + (SELECT count(*) FROM public.customer_invoices WHERE company_id<>${companyLiteral()} AND billing_underlay_id=${literal(underlayId)}))`)).toBe(0)
