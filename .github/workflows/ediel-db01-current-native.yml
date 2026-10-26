@@ -425,6 +425,56 @@ jobs:
                   result.setdefault(m[1],[]).append((key,m[2],m[4]))
               return result
           source_functions=functions(expected)
+          def observe_current_write_api():
+              # Prospective write dependencies are NOT reader forwards or native
+              # authority. Observe only this producer's existing local catalog.
+              entry='public.gridex_enqueue_normal_supplier_switch_v1'
+              if not source_functions.get(entry):fail('db01_current_write_api_source_missing')
+              names=set();pending=[entry];relations=set();unresolved=set()
+              while pending:
+                  name=pending.pop()
+                  if name in names or name=='auth.uid':continue
+                  if name not in source_functions:
+                      namespace,relation=name.split('.',1)
+                      if (namespace,'TABLE',relation) in expected:relations.add(name)
+                      else:unresolved.add(name)
+                      continue
+                  names.add(name)
+                  for key,signature,body in source_functions[name]:
+                      pending.extend(re.findall(r'\b((?:public|gridex_[a-z0-9_]+|auth)\.[a-z0-9_]+)\s*\(',body))
+              if any(not re.fullmatch(r'[a-z0-9_]+\.[a-z0-9_]+',name) for name in names):fail('db01_current_write_api_source_name')
+              literals=','.join("'"+name+"'" for name in sorted(names))
+              rows=json.loads(sql("""select coalesce(jsonb_agg(jsonb_build_object(
+                'schema',n.nspname,'name',p.proname,'identity_arguments',pg_catalog.pg_get_function_identity_arguments(p.oid),
+                'input_argument_types',pg_catalog.oidvectortypes(p.proargtypes),'return_type',pg_catalog.pg_get_function_result(p.oid),
+                'owner',pg_catalog.pg_get_userbyid(p.proowner),'language',l.lanname,'security_definer',p.prosecdef,
+                'strict',p.proisstrict,'volatility',p.provolatile,'parallel',p.proparallel,'kind',p.prokind,
+                'default_count',p.pronargdefaults,
+                'body_sha256',encode(sha256(convert_to(p.prosrc,'UTF8')),'hex'),
+                'acl_sha256',encode(sha256(convert_to(coalesce(p.proacl::text,'NULL'),'UTF8')),'hex'),
+                'config_sha256',encode(sha256(convert_to(coalesce(p.proconfig::text,'NULL'),'UTF8')),'hex'),
+                'defaults_sha256',encode(sha256(convert_to(coalesce(pg_catalog.pg_get_expr(p.proargdefaults,0),'NULL'),'UTF8')),'hex')
+                ) order by n.nspname,p.proname,pg_catalog.pg_get_function_identity_arguments(p.oid)),'[]'::jsonb)
+                from pg_catalog.pg_proc p join pg_catalog.pg_namespace n on n.oid=p.pronamespace
+                join pg_catalog.pg_language l on l.oid=p.prolang
+                where n.nspname||'.'||p.proname=any(array["""+literals+"]::text[])"))
+              if not isinstance(rows,list) or any(not isinstance(row,dict) for row in rows):fail('db01_current_write_api_observation_shape')
+              if any(str(row.get('schema'))+'.'+str(row.get('name')) not in names for row in rows):fail('db01_current_write_api_observation_scope')
+              allowed={'schema','name','identity_arguments','input_argument_types','return_type','owner','language',
+                  'security_definer','strict','volatility','parallel','kind','default_count','body_sha256',
+                  'acl_sha256','config_sha256','defaults_sha256'}
+              observed=[{key:value for key,value in row.items() if key in allowed} for row in rows]
+              present={row['schema']+'.'+row['name'] for row in observed}
+              result={'schema':'db01_current_write_api_observation_v1','status':'OBSERVED_ONLY','native_or_approval_credit':False,
+                  'source_sha':receipt['checkout_sha'],'source_schema_sha256':receipt['root_source']['blobs']['supabase/schema.sql']['sha256'],
+                  'entry_name_present':entry in present,'planned_function_names':sorted(names),
+                  'canonical_function_definitions':[{'identity':key,'body_sha256':sha(body)} for name in sorted(names) for key,signature,body in source_functions[name]],
+                  'observed_functions':observed,'missing_function_names':sorted(names-present),
+                  'relation_tokens':sorted(relations),'unresolved_source_names':sorted(unresolved),
+                  'limits':'Conservative all-overload source inventory and actual local catalog metadata only; no installation, API visibility, behavioral or native qualification'}
+              receipt['current_write_api_observation']=result
+              (receipt_path.parent/'current-write-api-observation.json').write_text(json.dumps(result,indent=2)+'\n')
+              receipt_path.write_text(json.dumps(receipt,indent=2)+'\n')
           reader_roots=['public.ediel_read_prodat_h_accepted_original_v1','public.ediel_read_prodat_customer_masterdata_original_v1']
           reader_names=set(); pending=list(reader_roots)
           false_calls={'gridex_ediel_ack_guide.outbound_prodat_scopes','gridex_received_sources.object_selection_snapshots'}
@@ -820,6 +870,7 @@ jobs:
               if mismatches:fail('current reader guard object definitions differ: '+repr([x['identity'] for x in mismatches]))
               if prerequisite_mismatches:fail('forward prerequisite catalog objects differ: '+repr([x['identity'] for x in prerequisite_mismatches]))
           elif mode=='api':
+              observe_current_write_api()
               sql("NOTIFY pgrst, 'reload schema'")
               status=json.loads(pathlib.Path(os.environ['GRIDEX_NATIVE_STATUS']).read_text())
               if status['API_URL']!='http://127.0.0.1:54321':fail('only owned local API can qualify')
