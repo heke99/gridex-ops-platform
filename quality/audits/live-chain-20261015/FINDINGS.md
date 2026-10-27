@@ -2727,6 +2727,8 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **Variant, rättad:** `claim_ediel_outbox_items` har samma mönster (väljer på `priority, created_at` men returnerar utan ordning), och `processEdielOutbox` skickar posterna en i taget. En rättelse eller makulering som hämtas i samma körning som sitt original kunde lämna först. `claimEdielOutboxItems` sorterar nu på prioritet, ålder och id. Test: `__tests__/reality-i-b11-outbox-claim-order.test.ts`, rött före. Med utkorgstesterna 6 filer, 24/24. Inga fler `claim*`-funktioner med `RETURNING` och `ORDER BY` finns i världens databas.
 - **I världen:** kräver ombyggnad. I körs om.
 
+### J4, batch 6 (2026-10-27 12:59–13:06, ombyggd app på `2aa3f43e5`): 8 av 8 gröna — T44 verifierad
+
 ### G, batch 5e (2026-10-27 12:13–12:47): 10 av 11 gröna; G10 röd — BLOCKERAD av världens datum, inget fynd
 - **G1–G9 och G11 gröna.** Oktoberunderlaget stämmer med en oberoende beräkning, inklusive sommartidens extra timme: 2 976 kvartar och 689,943 kWh.
 - **J2-B6 syns även här:** prissättningen av oktober lagrades som en misslyckad körning med orsak, i stället för att rullas tillbaka.
