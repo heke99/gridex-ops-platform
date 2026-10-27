@@ -1,4 +1,4 @@
-// reality-defects: J2 (reality scenario J2 "inbound UTILTS": J2-03 an estimated value is replaced by the measured one (fixed, 20261026180000); J2-05 a partial-period correction is refused)
+// reality-defects: J2 (reality scenario J2 "inbound UTILTS": J2-03 an estimated value is replaced by the measured one (fixed, 20261026180000); J2-05 a partial-period correction replaces exactly its quarters (fixed, 20261027150000))
 // The real inbound UTILTS processor (processInboundUtiltsMessage), canonical persistence, SQL binding and the real
 // metering sink (normalizeAndStoreMeteringValue → gridex_consume_utilts_metering_v1 → gridex_ingest_metering_value_atomic)
 // against the local disposable replay database. Seeding follows scripts/ediel-utilts-err-gateway-native.test.ts
@@ -9,10 +9,16 @@
 // Grid-owner practice: when the meter cannot be read the grid owner sends the day's values flagged estimated
 // (STS+8+56 as the observation status, consumptionPreparation → quality 56, reading type 'estimated'); the billing gate
 // holds them ('quality_not_final'). When the meter is read the same period is sent again with a later
-// registration time (DTM+597/U-04) and no estimate flag. Both open defects are it.fails: the first assertion
-// block states the required outcome, the evidence test pins today's refusal.
+// registration time (DTM+597/U-04) and no estimate flag.
+//
+// J2-05: a correction may cover part of the original period; it replaces exactly the quarters it carries. The real
+// processor runs against the installed body. While the installed body predates migration 20261027150000 the refusal
+// is shown (red), then the same consumer calls are replayed in ONE transaction that applies the migration body and is
+// always rolled back (green), so the world database never gets the migration from this test.
 import { execFileSync } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { utiltsErrGatewayFixture } from '../__tests__/helpers/utiltsErrGatewayFixture'
 import { utiltsNativeSourceFixture, utiltsRecountUnt } from '../__tests__/helpers/utiltsNativeSourceFixture'
@@ -34,6 +40,9 @@ function sql<T>(statement: string): T {
   return result ? JSON.parse(result) as T : undefined as T
 }
 beforeEach(() => { vi.clearAllMocks(); sinks.gate.mockResolvedValue('blocked') })
+const currentSql = (company: string) => `SELECT coalesce(jsonb_agg(jsonb_build_object(
+      'start',to_char(m.period_start AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI"Z"'),'kwh',m.value_kwh::text,'quality',m.quality_code,'reading',m.reading_type,'revision',m.revision_number) ORDER BY m.period_start),'[]')
+    FROM public.metering_values m WHERE m.company_id=${literal(company)} AND m.is_current`
 
 /** A fresh supplier tenant with one customer, facility and billing data request, and a fresh synthetic issuer. */
 async function seed() {
@@ -98,9 +107,7 @@ async function seed() {
   }
   const consume = (source: EdielMessageRow) => processInboundUtiltsMessage({ actorUserId: ids.actor, edielMessageId: source.id })
   /** The current value per quarter as the billing engine and Mina sidor read it. */
-  const current = () => sql<Array<{ start: string; kwh: string; quality: string | null; reading: string; revision: number }>>(`SELECT coalesce(jsonb_agg(jsonb_build_object(
-      'start',to_char(m.period_start AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI"Z"'),'kwh',m.value_kwh::text,'quality',m.quality_code,'reading',m.reading_type,'revision',m.revision_number) ORDER BY m.period_start),'[]')
-    FROM public.metering_values m WHERE m.company_id=${literal(ids.company)} AND m.is_current`)
+  const current = () => sql<Array<{ start: string; kwh: string; quality: string | null; reading: string; revision: number }>>(currentSql(ids.company))
   const outcome = (source: EdielMessageRow) => sql<{ status: string; acks: Array<{ family: string; outcome: string }> }>(`SELECT jsonb_build_object('status',m.status,
       'acks',(SELECT coalesce(jsonb_agg(jsonb_build_object('family',a.message_family,'outcome',a.ack_outcome)),'[]') FROM public.ediel_messages a WHERE a.related_message_id=m.id AND a.message_family IN ('APERAK','UTILTS_ERR')))
     FROM public.ediel_messages m WHERE m.id=${literal(source.id)}`)
@@ -115,12 +122,19 @@ async function attempt(f: Awaited<ReturnType<typeof seed>>, source: EdielMessage
 describe('J2-03 estimated values replaced by measured values', () => {
   it('control: a later measured correction of a measured value replaces it (scenario E/F78 path)', async () => {
     const f = await seed()
-    expect(await attempt(f, (await f.send('MEASURED', { registered: '202607010040', values: ['500', '400'] })).source)).toBeNull()
-    expect(await attempt(f, (await f.send('MEASURED-CORR', { registered: '202607010100', values: ['520', '400'] })).source)).toBeNull()
+    const measured = await f.send('MEASURED', { registered: '202607010040', values: ['500', '400'] })
+    expect(await attempt(f, measured.source)).toBeNull()
+    const correction = await f.send('MEASURED-CORR', { registered: '202607010100', values: ['520', '400'] })
+    expect(await attempt(f, correction.source)).toBeNull()
     expect(f.current()).toEqual([
       { start: '2026-06-30T22:00Z', kwh: '520', quality: null, reading: 'consumption', revision: 2 },
       { start: '2026-06-30T22:15Z', kwh: '400', quality: null, reading: 'consumption', revision: 1 },
     ])
+    // Same-cohort path with the J2-05 body (rolled back): a repeat is idempotent, the older version stays stale.
+    const replay = replayWithJ205(f, [{ ...correction, ordinal: 0 }, { ...measured, ordinal: 0 }])
+    expect(replay.errors[0]).toBeNull()
+    expect(replay.errors[1]).toMatch(/utilts_consumption_stale_version/)
+    expect(quarters(replay.current)).toEqual([['22:00', '520', 2], ['22:15', '400', 1]])
   })
 
   it('the estimated day is stored as estimated and held from billing', async () => {
@@ -146,12 +160,16 @@ describe('J2-03 estimated values replaced by measured values', () => {
   it('an estimate never replaces a measured value', async () => {
     const f = await seed()
     expect(await attempt(f, (await f.send('MEASURED', { registered: '202607010040', values: ['500', '400'] })).source)).toBeNull()
-    const estimated = (await f.send('ESTIMATED', { registered: '202607010100', values: ['520', '400'], estimated: true })).source
+    const sent = await f.send('ESTIMATED', { registered: '202607010100', values: ['520', '400'], estimated: true }), estimated = sent.source
     expect(await attempt(f, estimated)).toMatch(/utilts_consumption_existing_metering_conflict/)
     expect(f.current()).toEqual([
       { start: '2026-06-30T22:00Z', kwh: '500', quality: null, reading: 'consumption', revision: 1 },
       { start: '2026-06-30T22:15Z', kwh: '400', quality: null, reading: 'consumption', revision: 1 },
     ])
+    // Unchanged with the J2-05 body (rolled back).
+    const replay = replayWithJ205(f, [{ ...sent, ordinal: 0 }, { ...sent, ordinal: 1 }])
+    expect(replay.errors).toEqual([expect.stringMatching(/utilts_consumption_existing_metering_conflict/), expect.stringMatching(/utilts_consumption_existing_metering_conflict/)])
+    expect(quarters(replay.current)).toEqual([['22:00', '500', 1], ['22:15', '400', 1]])
   })
 
   it('a measured file that is not newer than the estimate does not replace it', async () => {
@@ -164,21 +182,102 @@ describe('J2-03 estimated values replaced by measured values', () => {
   })
 })
 
-describe('J2-05 a correction for part of the original period', () => {
-  it('evidence: a correction of only the second quarter-hour is refused', async () => {
+
+const J205_MIGRATION = resolve(__dirname, '../supabase/migrations/20261027150000_j2_05_partial_period_metering_correction.sql')
+const J205_MARKER = 'J2-05 (20261027150000)'
+const CONSUMER = `'public.gridex_consume_utilts_metering_v1(uuid,uuid,text,integer,uuid,jsonb)'::regprocedure`
+const j205Body = readFileSync(J205_MIGRATION, 'utf8').replace(/^begin;$/m, '').replace(/^commit;$/m, '')
+const j205Installed = () => sql<boolean>(`SELECT to_jsonb(position(${literal(J205_MARKER)} in prosrc)<>0) FROM pg_proc WHERE oid=${CONSUMER}`)
+const BINDING_INVALID = /utilts_consumption_correction_binding_invalid/, NOT_NEWER = /utilts_consumption_correction_not_newer/
+
+type Call = { source: EdielMessageRow; reference: string; ordinal: number }
+/** The consumer calls, in ONE transaction that applies the J2-05 migration body when the installed body predates it
+ * and is always rolled back: every call's error (null when it stored a value) and the current values afterwards. */
+function replayWithJ205(f: Awaited<ReturnType<typeof seed>>, calls: Call[]) {
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL !== 'http://127.0.0.1:54321') throw Error('local_native_only')
+  const company = literal(f.ids.company), actor = literal(f.ids.actor)
+  const statements = calls.map((call, index) => {
+    const source = literal(call.source.id), reference = literal(call.reference)
+    return `BEGIN PERFORM public.gridex_consume_utilts_metering_v1(${company},${source},${reference},${call.ordinal},${actor},
+        gridex_utilts_binding.stored_contract_v1(${company},${source},${reference}));
+      INSERT INTO j205 VALUES(${index},'null'::jsonb);
+    EXCEPTION WHEN OTHERS THEN INSERT INTO j205 VALUES(${index},to_jsonb(SQLERRM)); END;`
+  }).join('\n')
+  const out = execFileSync('psql', [DB, '-XAtq', '-v', 'ON_ERROR_STOP=1'], { encoding: 'utf8', stdio: 'pipe', timeout: 60_000, maxBuffer: 4_000_000, input: `BEGIN;
+  SELECT position(${literal(J205_MARKER)} in prosrc)=0 AS apply FROM pg_proc WHERE oid=${CONSUMER} \\gset
+  \\if :apply
+  ${j205Body}
+  \\endif
+  CREATE TEMP TABLE j205(k integer PRIMARY KEY, v jsonb) ON COMMIT DROP;
+  DO $t$ BEGIN
+    ${statements}
+  END $t$;
+  SELECT jsonb_build_object('applied',:'apply'::boolean,'installed',(SELECT position(${literal(J205_MARKER)} in prosrc)<>0 FROM pg_proc WHERE oid=${CONSUMER}),
+    'errors',(SELECT jsonb_agg(v ORDER BY k) FROM j205),'current',(${currentSql(f.ids.company)}));
+  ROLLBACK;` }).trim()
+  return JSON.parse(out.split('\n').at(-1)!) as { applied: boolean; installed: boolean; errors: Array<string | null>; current: Array<{ start: string; kwh: string; revision: number }> }
+}
+const quarters = (rows: Array<{ start: string; kwh: string; revision: number }>) => rows.map(row => [row.start.slice(11, 16), row.kwh, row.revision])
+
+describe('J2-05 a correction for part of the original period replaces exactly its quarters', () => {
+  it('a correction of only the second quarter-hour replaces just that quarter; the older original never takes it back', async () => {
     const f = await seed()
-    expect(await attempt(f, (await f.send('ORIGINAL', { registered: '202607010040', values: ['500', '400'] })).source)).toBeNull()
-    const partial = (await f.send('PARTIAL-CORR', { registered: '202607010100', values: [null, '450'], periodStart: '202607010015' })).source
-    const error = await attempt(f, partial)
-    // The correction's series period (00:15–00:30) is a different cohort than the original's (00:00–00:30).
-    expect(error).toMatch(/utilts_consumption_correction_binding_invalid/)
-    expect(f.current().map(row => row.kwh)).toEqual(['500', '400'])
+    const original = await f.send('ORIGINAL', { registered: '202607010040', values: ['500', '400'] })
+    expect(await attempt(f, original.source)).toBeNull()
+    const partial = await f.send('PARTIAL-CORR', { registered: '202607010100', values: [null, '450'], periodStart: '202607010015' })
+    const error = await attempt(f, partial.source)
+    if (j205Installed()) {
+      expect(error).toBeNull()
+      expect(quarters(f.current())).toEqual([['22:00', '500', 1], ['22:15', '450', 2]])
+    } else {
+      // Red: the installed body refuses the correction because its series period is another cohort.
+      expect(error).toMatch(BINDING_INVALID)
+      expect(quarters(f.current())).toEqual([['22:00', '500', 1], ['22:15', '400', 1]])
+    }
+    // Green: the correction stores revision 2 of 22:15 only; repeating it is idempotent; the older original file
+    // does not take the quarter back.
+    const replay = replayWithJ205(f, [
+      { ...partial, ordinal: 0 }, { ...partial, ordinal: 0 }, { ...original, ordinal: 1 }, { ...original, ordinal: 0 }])
+    expect(replay.installed).toBe(true)
+    expect(replay.errors[0]).toBeNull()
+    expect(replay.errors[1]).toBeNull()
+    expect(replay.errors[2]).toMatch(NOT_NEWER)
+    expect(replay.errors[3]).toBeNull()
+    expect(quarters(replay.current)).toEqual([['22:00', '500', 1], ['22:15', '450', 2]])
+    // The history is kept: the replaced quarter is a non-current revision of the same key.
+    if (replay.applied) expect(quarters(f.current())).toEqual([['22:00', '500', 1], ['22:15', '400', 1]])
   })
 
-  it.fails('a correction of only the second quarter-hour replaces just that quarter', async () => {
+  it('an older partial correction never replaces a newer full-period value', async () => {
     const f = await seed()
-    await f.consume((await f.send('ORIGINAL', { registered: '202607010040', values: ['500', '400'] })).source)
-    await f.consume((await f.send('PARTIAL-CORR', { registered: '202607010100', values: [null, '450'], periodStart: '202607010015' })).source)
-    expect(f.current().map(row => [row.kwh, row.revision])).toEqual([['500', 1], ['450', 2]])
+    expect(await attempt(f, (await f.send('ORIGINAL', { registered: '202607010040', values: ['500', '400'] })).source)).toBeNull()
+    expect(await attempt(f, (await f.send('FULL-CORR', { registered: '202607010120', values: ['510', '420'] })).source)).toBeNull()
+    const partial = await f.send('PARTIAL-CORR', { registered: '202607010100', values: [null, '450'], periodStart: '202607010015' })
+    expect(await attempt(f, partial.source)).toMatch(j205Installed() ? NOT_NEWER : BINDING_INVALID)
+    const replay = replayWithJ205(f, [{ ...partial, ordinal: 0 }])
+    expect(replay.errors).toEqual([expect.stringMatching(NOT_NEWER)])
+    expect(quarters(replay.current)).toEqual([['22:00', '510', 2], ['22:15', '420', 2]])
+  })
+
+  it('a later full-period file replaces a partial correction (the other direction)', async () => {
+    const f = await seed()
+    // Arrival out of order: the partial correction first, then the older original, then a newer full-period file.
+    expect(await attempt(f, (await f.send('PARTIAL-CORR', { registered: '202607010100', values: [null, '450'], periodStart: '202607010015' })).source)).toBeNull()
+    expect(quarters(f.current())).toEqual([['22:15', '450', 1]])
+    const original = await f.send('ORIGINAL', { registered: '202607010040', values: ['500', '400'] })
+    expect(await attempt(f, original.source)).toMatch(j205Installed() ? NOT_NEWER : BINDING_INVALID)
+    expect(quarters(f.current())).toEqual([['22:00', '500', 1], ['22:15', '450', 1]])
+    const full = await f.send('FULL-CORR', { registered: '202607010120', values: ['510', '430'] })
+    const error = await attempt(f, full.source)
+    if (j205Installed()) expect(error).toBeNull()
+    else {
+      expect(error).toMatch(BINDING_INVALID)
+      expect(quarters(f.current())).toEqual([['22:00', '510', 2], ['22:15', '450', 1]])
+    }
+    const replay = replayWithJ205(f, [{ ...full, ordinal: 1 }, { ...original, ordinal: 1 }])
+    expect(replay.errors[0]).toBeNull()
+    // The original is a stale version of the full-period file's own cohort (SC-046 check, unchanged).
+    expect(replay.errors[1]).toMatch(/utilts_consumption_stale_version/)
+    expect(quarters(replay.current)).toEqual([['22:00', '510', 2], ['22:15', '430', 2]])
   })
 })

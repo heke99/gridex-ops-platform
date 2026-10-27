@@ -345,6 +345,7 @@
     "20261027110000_metering_point_grid_owner_ediel_id_from_bound_owner.sql": "ead3352acb4d4a4e9ba6641accb37d6da1ebbf0300adf605d3c35f5cd9066706",
     "20261027120000_j2_b6_price_bound_underlay.sql": "88114bb6b6e4f652c00f683bcfa9b4ecfa72c66e78f90a450d78aeb8b6363621",
     "20261027121000_j2_b7_billing_export_run_columns.sql": "b23cb084f3df64c3ceea59e0f03ea7da6907b64224461b9f69f7eebecb504694",
-    "20261027130000_a_b7_contract_snapshot_hash_from_bound_price_snapshot.sql": "2021ac694f834e5ebce94c21bc3f09b51cf9c9623e19d2c41927c3e32bce5c37"
+    "20261027130000_a_b7_contract_snapshot_hash_from_bound_price_snapshot.sql": "2021ac694f834e5ebce94c21bc3f09b51cf9c9623e19d2c41927c3e32bce5c37",
+    "20261027150000_j2_05_partial_period_metering_correction.sql": "c381b6f72a1939c72bf1451efa00462623cef337bc42b23f9d20a4bea5c2530f"
   }
 }
