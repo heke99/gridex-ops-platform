@@ -4,6 +4,7 @@ import { readContractInvoicee } from '@/lib/ediel/production/contractInvoicee'
 import { readContractRequestedMethodSource } from '@/lib/ediel/production/contractRequestedMethodSource'
 import { resolveSwedishProdatEndUserExport } from '@/lib/ediel/prodat/customerIdentity'
 import { prodatDate203, prodatMarketMinuteToUtc } from '@/lib/ediel/prodat/render/dates'
+import { edielAgreementReference } from '@/lib/ediel/prodat/agreementReference'
 
 /**
  * FINDINGS F87/F88: a new agreement's Z03 carries a dependent invoicee group (NAD+IV, P26.A s.23/82/109). The
@@ -66,5 +67,6 @@ async function boundPowerOfAttorneyReference(input: { companyId: string; custome
     .eq('id', input.powerOfAttorneyId).eq('company_id', input.companyId).eq('customer_id', input.customerId).maybeSingle()
   if (error) throw error
   const reference = typeof data?.reference === 'string' ? data.reference.trim() : ''
-  return reference && ['signed', 'active'].includes(String(data?.status)) ? reference : null
+  // RFF+ANJ is an..35; a longer stored reference is sent in its deterministic short form (FINDINGS A-B6).
+  return reference && ['signed', 'active'].includes(String(data?.status)) ? edielAgreementReference(reference) : null
 }

@@ -1,6 +1,7 @@
 import {readQualifiedCustomerStructure,type QualifiedCustomerStructure} from '@/lib/ediel/sources/qualifiedCustomerStructure'
 import {isEvidenceUuid} from '@/lib/ediel/utilts/durableSourceDiscovery'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { edielAgreementReference } from '@/lib/ediel/prodat/agreementReference'
 
 type AnyRow = Record<string, unknown>
 
@@ -288,7 +289,7 @@ export async function listEdielProdatProductionCandidates(
       communicationRouteName: asString(route?.route_name),
       communicationRouteType: asString(route?.route_type),
       powerOfAttorneyId: asString(poa?.id),
-      powerOfAttorneyReference: asString(poa?.reference),
+      powerOfAttorneyReference: edielAgreementReference(asString(poa?.reference)),
       powerOfAttorneyStatus: asString(poa?.status),
       canCreateZ03: canCreate,
       canCreateZ04: canCreate,

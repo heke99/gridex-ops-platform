@@ -2691,6 +2691,12 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
   - **Rättning:** båda binder anläggningens senaste signerade avtal via `findLatestSignedContractIdForSite` (`lib/customer-operations/switchReadiness.ts`), samma uppslagning som beredskapskontrollen redan gjorde, nu utbruten: exakt bolag, kund och anläggning, status `signed`, nyast först. Formuläret skickar även `companyId`. Saknas avtal binds inget och vakten avgör som förut.
   - **Test:** `__tests__/reality-i-b4v-staff-switch-exact-contract.test.ts`, 4 fall (annan tenant, annan anläggning, äldre och osignerade avtal vinner aldrig). Före rättningen 3 röda, efter 4/4. Med I-B- och switch-testerna 10 filer, 77/77.
 
+### A-B6 Webbfullmaktens referens var för lång för RFF+ANJ, så webbkundens Z03 stoppades av förkontrollen — PRODUKT, KRITISK för webbvägen; RÄTTAD
+- **Bevis i världen (A, batch 5e, pågående):** A-B5 verkar: härledningen av mätmetod gick igenom, och Z03 byggdes. Alla fyra `start_supplier_switch` föll sedan med `EDIFACT envelope stoppades av payload preflight: UNSM_ELEMENT_LENGTH_INVALID: PRODAT:D:97A:UN: RFF/C506/1154[2] följer inte representation an..35`. Webbfullmaktens `reference` är `POA-<uuid>`, 40 tecken (`customerApplicationOnboarding.ts`, `customerApplicationLegal.ts` och migration `20260617120000`). Fullmakter från avtalsvägen har korta referenser (`POA00428E191A23`).
+- **Rättning:** `edielAgreementReference` (`lib/ediel/prodat/agreementReference.ts`) skickar en referens som ryms oförändrad. `POA-<uuid>` blir `POA` + uuid:ens 32 hex-tecken (exakt 35 och unik); annan för lång text blir `POA` + de första 32 hex-tecknen av sha256. Den är deterministisk, så alla meddelanden om samma fullmakt bär samma referens. Den används av båda läsarna av RFF+ANJ (`prodatContext.ts`, `switchInvoiceePreparation.ts`). Det täcker också befintliga fullmakter; inget lagrat värde ändras.
+- **Test:** `__tests__/reality-a-b6-agreement-reference-length.test.ts`, 3 fall. 6/6 med `prodatContext`-testet.
+- **I världen:** kräver ombyggnad. A körs om.
+
 ### K, batch 5e (2026-10-27 06:51–07:31, ombyggd app på 75cbac61e): 11 av 12 gröna; K4 röd — A-B5 (produkt, rättad) och T43 (harness, rättad)
 - **K8 är grön.** I-B4v2 verifierad: W1:s bytesjobb bär nu anläggningens avtal.
 - **K4, W1:** jobbet föll fem gånger med `prodat_new_agreement_requested_method_held: unique_authentic_new_agreement_requested_method_declaration`. Se A-B5.
