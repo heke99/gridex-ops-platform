@@ -2727,6 +2727,12 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **Variant, rättad:** `claim_ediel_outbox_items` har samma mönster (väljer på `priority, created_at` men returnerar utan ordning), och `processEdielOutbox` skickar posterna en i taget. En rättelse eller makulering som hämtas i samma körning som sitt original kunde lämna först. `claimEdielOutboxItems` sorterar nu på prioritet, ålder och id. Test: `__tests__/reality-i-b11-outbox-claim-order.test.ts`, rött före. Med utkorgstesterna 6 filer, 24/24. Inga fler `claim*`-funktioner med `RETURNING` och `ORDER BY` finns i världens databas.
 - **I världen:** kräver ombyggnad. I körs om.
 
+### J2, batch 6 (2026-10-27 14:01–15:47, app på `2aa3f43e5`, J2-05 applicerad 14:37): 12 av 14 gröna — J2-B6, J2-B7 och J2-05 verifierade; J2-10 = J2-02 (ägarbeslut)
+- **J2-9 grön för första gången:** septemberfaktureringen prissätter och skapar fakturautkast för A och C, och B bara med uppmätta värden (J2-03). Det verifierar J2-B6 och J2-B7 genom hela kedjan.
+- **J2-11 grön:** delperiodskorrigeringen 12 september 06:00–12:00 ger nya revisioner för exakt sina 24 kvartar (J2-05 verifierad i världen).
+- **J2-10 = J2-02 (öppen, ägarbeslut):** en korrigering på 0,288 kWh för den redan fakturerade månaden når inte kunden. Fakturan rörs inte och inget faktureras två gånger, men någon kreditering eller omfakturering finns inte. Felet syns först nu, när J2-9 faktiskt fakturerar. Frågan finns i OWNER-DECISIONS.
+- **J2-13:** ingen E73 (F35/F48), känt.
+
 ### J1-11 Vår APERAK på en Z04 kopplades om till nätägarens sena kvittens — PRODUKT, medel; RÄTTAD (agent, granskad och införd)
 - **Bevis:** i C5 (Z04 före CONTRL/APERAK) fick vår positiva APERAK på Z04:an `related_message_id` = nätägarens APERAK på vår Z03. Z04:ans APERAK-bevakning såg den därför som obesvarad (J1-7).
 - **Orsak:** våra egna CONTRL/APERAK ärver Z04:ans `outbound_request_id`, alltså Z03:ans förfrågan (`lib/ediel/ack.ts`). Intagets kvittensskrivare (`canonicalInboundAckStatusUpdater.ts` och `updateOutboundEdielAckState` i `inboundStatusUpdater.ts`) uppdaterade alla utgående meddelanden med den förfrågan. En negativ kvittens märkte då även vår APERAK som negativ.

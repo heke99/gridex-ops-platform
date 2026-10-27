@@ -126,3 +126,7 @@ En Z04 för en anläggning där vi inte har skickat någon Z03 hålls i dag tyst
 - **Fråga 1:** vilken nationell kod ska den negativa APERAK:en bära? ERC 40/105 ("Anläggningen kan inte identifieras"), 107, eller ERC 42 på fält 226/209?
 - **Fråga 2:** godkänner ägaren att den låsta SQL-ägaren (`normal_switch_scope_effect_v1`) får ett eget hållskäl för "ingen skickad Z03 alls", skilt från J1-01? Det kräver en överlämning från ägarna av de godkända ID som pinnar kroppen.
 
+## Öppen fråga (2026-10-27): J2-02 — korrigering av en redan fakturerad månad
+Nätägaren skickar en korrigering för en månad som redan är fakturerad (i J2: +0,288 kWh). I dag rörs fakturan inte, och inget faktureras två gånger, men skillnaden når aldrig kunden. Den syns bara i avstämningskontrollen `metering_corrections_after_billing`.
+- **Fråga:** ska skillnaden (a) krediteras och faktureras om i sin helhet, (b) faktureras som en tilläggs- eller kreditrad på nästa faktura, eller (c) bara gå till manuell granskning över en beloppsgräns? Finns en beloppsgräns eller en tidsgräns (t.ex. preskription) som ska gälla?
+
