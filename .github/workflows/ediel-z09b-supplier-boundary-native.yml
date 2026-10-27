@@ -61,10 +61,11 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: 2.101.0
-      - name: Prime content-verified public PostgreSQL image cache
+      - name: Prime content-verified Supabase bootstrap image caches
         shell: bash
         env:
           SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+          PYTHONDONTWRITEBYTECODE: '1'
         run: |
           python3 scripts/gridex-prime-verified-postgres-cache-selftest.py
           python3 scripts/gridex-prime-verified-postgres-cache.py

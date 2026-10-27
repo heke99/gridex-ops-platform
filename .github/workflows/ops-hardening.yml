@@ -128,10 +128,11 @@ jobs:
           echo "GRIDEX_PG_DUMP=/usr/lib/postgresql/$server_major/bin/pg_dump" >> "$GITHUB_ENV"
           psql --version
           "/usr/lib/postgresql/$server_major/bin/pg_dump" --version
-      - name: Prime content-verified public PostgreSQL image cache
+      - name: Prime content-verified Supabase bootstrap image caches
         shell: bash
         env:
           SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+          PYTHONDONTWRITEBYTECODE: '1'
         run: |
           python3 scripts/gridex-prime-verified-postgres-cache-selftest.py
           python3 scripts/gridex-prime-verified-postgres-cache.py
@@ -627,10 +628,11 @@ jobs:
           echo "GRIDEX_PG_DUMP=/usr/lib/postgresql/$server_major/bin/pg_dump" >> "$GITHUB_ENV"
           psql --version
           "/usr/lib/postgresql/$server_major/bin/pg_dump" --version
-      - name: Prime content-verified public PostgreSQL image cache
+      - name: Prime content-verified Supabase bootstrap image caches
         shell: bash
         env:
           SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+          PYTHONDONTWRITEBYTECODE: '1'
         run: |
           python3 scripts/gridex-prime-verified-postgres-cache-selftest.py
           python3 scripts/gridex-prime-verified-postgres-cache.py

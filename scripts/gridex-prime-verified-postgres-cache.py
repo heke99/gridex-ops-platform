@@ -1,26 +1,31 @@
-"""Candidate only: prime identical public PostgreSQL bytes on disposable CI.
+"""Prime identical pinned PostgreSQL and bootstrap companion bytes on CI.
 
-Does not start services, alter the Supabase registry override, or approve tests.
-The GHCR index and official Docker Hub index were independently observed with
-the same SHA256. Both select the pinned Linux/amd64 child manifest below.
+Official GHCR and Docker Hub index digests match for these exact versions.
+The alternate cache origin is explicit. No services are started and the
+Supabase registry override, native tests and existing gates are unchanged.
 """
 import json
 import os
 import subprocess
 import sys
 import time
+from typing import NamedTuple
 
-INDEX = 'sha256:3866d94d8426927e8db3f1c5d790752292bfbe27b5f1f46e199ae1b7d3c1710b'
-MANIFEST = 'sha256:3e2a7ab48783077d0122dc72ed5174afb543110c38266c845716c51d130658e4'
-CONFIG = 'sha256:56da3fb43b03aca9b8fa264c156177dd204f722e9500e8d80008f5c9f7b82985'
-SOURCE = 'docker.io/supabase/postgres@' + MANIFEST
-TARGET = 'ghcr.io/supabase/postgres:17.6.1.155'
+
+class ImagePin(NamedTuple):
+    name: str
+    tag: str
+    index: str
+    manifest: str
+    config: str
+
+
+PINS = (
+    ImagePin('postgres', '17.6.1.155', 'sha256:3866d94d8426927e8db3f1c5d790752292bfbe27b5f1f46e199ae1b7d3c1710b', 'sha256:3e2a7ab48783077d0122dc72ed5174afb543110c38266c845716c51d130658e4', 'sha256:56da3fb43b03aca9b8fa264c156177dd204f722e9500e8d80008f5c9f7b82985'),
+    ImagePin('storage-api', 'v1.54.1', 'sha256:09c0f6f63ba79f1fea1917dfa2bc1ada8ef262f3f37a4d9f6c12add27707b0cd', 'sha256:6395ec6600b89e8133ae65e2b203d04f37a24d3626144ea2cb21973bfaa2471c', 'sha256:da6409e5fd135ab8895f0c344f82066d99c107ca1031ed4a1ab1d33f0b775572'),
+    ImagePin('realtime', 'v2.86.3', 'sha256:d92097f98347041afd61198d71bb819b38adc4a710db937202290f0ae5ce961b', 'sha256:630c1f1e1443762c100147decca9cf87afe52f22a8a96d30fe7d8782741f19fb', 'sha256:65d7549b3ce537cef75da797ac8018ce2c1bcd89fdbd9adabbf98b54ea4aa759'),
+)
 DOCKER = ['docker', '--host=unix:///var/run/docker.sock']
-ALLOWED_DIGESTS = {
-    repo + '@' + digest
-    for repo in ['supabase/postgres', 'docker.io/supabase/postgres', 'ghcr.io/supabase/postgres']
-    for digest in [MANIFEST, INDEX]
-}
 
 
 class Refused(RuntimeError):
@@ -43,11 +48,46 @@ def inspect(reference, run):
         raise Refused('image_inspection_invalid') from None
 
 
-def verify(image):
-    if (not isinstance(image, dict) or image.get('Id') != CONFIG
+def verify(image, pin):
+    allowed = {repo + '@' + digest
+               for repo in ['supabase/' + pin.name, 'docker.io/supabase/' + pin.name,
+                            'ghcr.io/supabase/' + pin.name]
+               for digest in [pin.manifest, pin.index]}
+    if (not isinstance(image, dict) or image.get('Id') != pin.config
             or image.get('Os') != 'linux' or image.get('Architecture') != 'amd64'
-            or not set(image.get('RepoDigests') or []).intersection(ALLOWED_DIGESTS)):
+            or not set(image.get('RepoDigests') or []).intersection(allowed)):
         raise Refused('image_identity_mismatch')
+
+
+def prepare_image(pin, run, pause):
+    source = 'docker.io/supabase/' + pin.name + '@' + pin.manifest
+    target = 'ghcr.io/supabase/' + pin.name + ':' + pin.tag
+    existing = inspect(target, run)
+    if existing is not None:
+        verify(existing, pin)
+        return {'status': 'verified_existing_cache', 'target': target,
+                'manifest': pin.manifest, 'config': pin.config, 'origin': 'existing_verified_cache'}
+    image = inspect(source, run)
+    if image is None:
+        for attempt in range(2):
+            pulled = run(DOCKER + ['pull', '--platform=linux/amd64', source],
+                         capture_output=True, text=True, timeout=600)
+            if pulled.returncode == 0:
+                break
+            # Retry only a public immutable read. Never log auth/download URLs.
+            if attempt == 1 or not any(marker in pulled.stderr.lower() for marker in
+                                      ['toomanyrequests', '429', 'timeout', 'timed out', '502', '503']):
+                raise Refused('pinned_public_image_pull_failed')
+            pause(15)
+        image = inspect(source, run)
+    verify(image, pin)
+    tagged = run(DOCKER + ['tag', source, target], capture_output=True, text=True, timeout=30)
+    if tagged.returncode:
+        raise Refused('cache_alias_failed')
+    verify(inspect(target, run), pin)
+    return {'status': 'verified_public_mirror_cache', 'source': source, 'target': target,
+            'index': pin.index, 'manifest': pin.manifest, 'config': pin.config,
+            'origin': 'official_dockerhub_content_identical_copy'}
 
 
 def prepare(env=os.environ, run=subprocess.run, pause=time.sleep):
@@ -58,33 +98,8 @@ def prepare(env=os.environ, run=subprocess.run, pause=time.sleep):
     if any(env.get(k) for k in ['DOCKER_HOST', 'DOCKER_CONTEXT', 'DOCKER_TLS',
                                 'DOCKER_TLS_VERIFY', 'DOCKER_CERT_PATH']):
         raise Refused('docker_endpoint_override_forbidden')
-    existing = inspect(TARGET, run)
-    if existing is not None:
-        verify(existing)
-        return {'status': 'verified_existing_cache', 'target': TARGET,
-                'manifest': MANIFEST, 'config': CONFIG, 'origin': 'existing_verified_cache'}
-    source = inspect(SOURCE, run)
-    if source is None:
-        for attempt in range(2):
-            pulled = run(DOCKER + ['pull', '--platform=linux/amd64', SOURCE],
-                         capture_output=True, text=True, timeout=600)
-            if pulled.returncode == 0:
-                break
-            # Bounded retries only for the public immutable read; never a test,
-            # business action or unknown write. Do not log auth/download URLs.
-            if attempt == 1 or not any(marker in pulled.stderr.lower() for marker in
-                                      ['toomanyrequests', '429', 'timeout', 'timed out', '502', '503']):
-                raise Refused('pinned_public_image_pull_failed')
-            pause(15)
-        source = inspect(SOURCE, run)
-    verify(source)
-    tagged = run(DOCKER + ['tag', SOURCE, TARGET], capture_output=True, text=True, timeout=30)
-    if tagged.returncode:
-        raise Refused('cache_alias_failed')
-    verify(inspect(TARGET, run))
-    return {'status': 'verified_public_mirror_cache', 'source': SOURCE, 'target': TARGET,
-            'index': INDEX, 'manifest': MANIFEST, 'config': CONFIG,
-            'origin': 'official_dockerhub_content_identical_copy'}
+    images = [prepare_image(pin, run, pause) for pin in PINS]
+    return {'status': 'verified_public_image_caches', 'images': images}
 
 
 if __name__ == '__main__':
