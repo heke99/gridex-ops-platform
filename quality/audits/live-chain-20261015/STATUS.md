@@ -1,6 +1,6 @@
 # Verklighetssimuleringen — läge och nästa steg
 
-Uppdaterad 2026-10-27 kl. 16:25 UTC av Claude (session 01Az5xza…), som fortsätter på grenen `claude/wonderful-franklin-o8gx2p` (byggd på `claude/gifted-hamilton-vss1hj` `edeaed7d0`) på ägarens uppdrag. Tidigare session: 01YCH5Va…. Filen är tänkt att läsas först.
+Uppdaterad 2026-10-27 kl. 18:45 UTC av Claude (session 01Az5xza…), som fortsätter på grenen `claude/wonderful-franklin-o8gx2p` (byggd på `claude/gifted-hamilton-vss1hj` `edeaed7d0`) på ägarens uppdrag. Tidigare session: 01YCH5Va…. Filen är tänkt att läsas först.
 
 Den hör ihop med tre andra dokument:
 - [FINDINGS.md](FINDINGS.md): alla fynd. Inget tas bort därifrån.
@@ -40,7 +40,12 @@ Den hör ihop med tre andra dokument:
     - J4 8/8 (T44 verifierad). A 4/7: A-B6 verifierad, webbvägen når bekräftad leverans; nytt A-B7 (aktivering vägrades, KRITISK) rättat (migration `20261027130000`, applicerad) och verifierat; T46 (harness) rättad. I 8/10: I-B11 och I-B12 verifierade; nytt I-B13 (Z04 före negativ APERAK förlorar, öppen).
     - J2 12/14: J2-B6, J2-B7 och J2-05 verifierade (septemberfakturan skapas). J2-10 = J2-02 (ägarbeslut, se OWNER-DECISIONS); J2-13 känt (F35/F48).
     - K 12/12 (A-B5 och T43 verifierade).
-    - H pågår från 16:10. F körs inte i batch 6: ett bakgrundsskript stoppar batchen efter H, bygger om på grenens topp och startar batch 7 (I, J1, F). Logg `/tmp/claude-0/batch7.log` (bygget `/tmp/claude-0/up7.log`).
+    - H 10/11: T45 verifierad. Nytt H-B6 (brytavgift kunde aldrig faktureras) rättat (migration `20261027160000`, applicerad) och verifierat i världen.
+  - **Batch 7 från 17:13 UTC** på ombyggd app (J1-11, J1-05, I-B13). Logg `/tmp/claude-0/batch7.log`.
+    - I 10/10 (I-B13 verifierad).
+    - J1 5/12: J1-11 verifierad. Nytt J1-05b (ärendet saknade byte och mätpunkt) och T47 (harness) rättade. J1-6 = J1-03 (den gröna J1-6 i 5e var falsk). Övriga röda är kända och kräver ägarbeslut eller överlämning av låst SQL (J1-01, -02, -03, -10, -14).
+    - F pågår från 18:31 (3–4 h).
+  - **Kvar som kräver ägaren:** J1-01, J1-02, J1-03 (låst SQL), J1-10, J1-14, J2-02, F48 (UTILTS-meddelanden), A-B5-backfill. Se OWNER-DECISIONS.
   - **Parallella agenter (14:05–14:55 UTC), klara, granskade och införda:** J2-05 (migration `20261027150000`, applicerad i världen), J1-11, J1-05 och I-B13 (Z04 före negativ APERAK). J1-02 kräver ägarbeslut (OWNER-DECISIONS). Agenternas arbetskopior är borttagna.
   - **Kvar av övertagandet i #840:** F113 (`20261026170000`), J2-05 och J4-D15 (`20261026190000`). A-B4 utreds när A har kört i den nya världen.
 - **Batch 5 pågår (2026-10-26 från ca 20:45 UTC):** J1, H, J2, J4, F och G på `0636d475b` (med I-B4). Logg `/tmp/claude-0/batch5.log`.
