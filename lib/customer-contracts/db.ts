@@ -1033,7 +1033,7 @@ export async function createCustomerContract(input: {
       billing_street: input.billingStreet ?? null,
       billing_postal_code: input.billingPostalCode ?? null,
       billing_city: input.billingCity ?? null,
-      billing_country: input.billingCountry ?? null,
+      billing_country: input.billingCountry ?? undefined,
       billing_address_same_as_site: input.billingAddressSameAsSite ?? false,
       billing_level: input.billingLevel ?? "customer",
       consolidated_invoice: input.consolidatedInvoice ?? false,
