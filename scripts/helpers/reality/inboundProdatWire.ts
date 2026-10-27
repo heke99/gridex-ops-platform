@@ -48,10 +48,28 @@ export function withObjectSegments(raw: string, segments: readonly string[]) {
  * (default true) declares the register's meter-reading fields 214/218/259; false omits them (an hourly facility
  * whose DSO sends no counter code).
  */
+/**
+ * Removes the meter reading declaration (fields 214, 218 and 259: CCI++Z02, CCI++Z05 and CCI++Z16 with their CAV)
+ * from the object and recounts UNT. The world's Z04 builder already declares it (T6), so adding it again duplicated
+ * every field and the platform answered with a negative APERAK (FINDINGS J1-B5).
+ */
+export function withoutMeterReadingDeclaration(raw: string) {
+  const parts = raw.split("'")
+  const out: string[] = []
+  let removed = 0
+  for (let index = 0; index < parts.length; index++) {
+    if (/^CCI\+\+Z(?:02|05|16)$/.test(parts[index]) && parts[index + 1]?.startsWith('CAV+')) { index++; removed += 2; continue }
+    out.push(parts[index])
+  }
+  return out.join("'").replace(/UNT\+(\d+)\+/, (_, count: string) => `UNT+${Number(count) - removed}+`)
+}
+
 export function z04For(z03: string, gridOwnerEdielId: string, options: { startDate?: string; readings?: boolean } = {}) {
   const request = options.startDate ? withRequestedStart(z03, options.startDate) : z03
   const built = buildZ04ForSwitchRequest({ request, gridOwnerEdielId })
-  return options.readings === false ? built : { ...built, raw: withObjectSegments(built.raw, METER_READING_DECLARATION) }
+  // Exactly one declaration, or none for a Z04 without field 259 (J1-10).
+  const bare = withoutMeterReadingDeclaration(built.raw)
+  return { ...built, raw: options.readings === false ? bare : withObjectSegments(bare, METER_READING_DECLARATION) }
 }
 
 /** Z04C (field 223 = Z24): the grid owner withdraws the start of our switch (same LI, same object). */
@@ -66,7 +84,7 @@ export function z04ForUnknownSwitch(z03: string, gridOwnerEdielId: string, unkno
   const facts = readSwitchRequest(z03)
   const request = z03.replaceAll(facts.external, unknown.facility).replaceAll(`RFF+LI:${facts.caseReference}`, `RFF+LI:${unknown.caseReference}`)
   const built = buildZ04ForSwitchRequest({ request, gridOwnerEdielId })
-  return { ...built, raw: withObjectSegments(built.raw, METER_READING_DECLARATION) }
+  return { ...built, raw: withObjectSegments(withoutMeterReadingDeclaration(built.raw), METER_READING_DECLARATION) }
 }
 
 /** Z06 subtype -> transaction reason (field 223, CCI+Z13), as the product registry has them (FINDINGS T31). */

@@ -2691,6 +2691,16 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
   - **Rättning:** båda binder anläggningens senaste signerade avtal via `findLatestSignedContractIdForSite` (`lib/customer-operations/switchReadiness.ts`), samma uppslagning som beredskapskontrollen redan gjorde, nu utbruten: exakt bolag, kund och anläggning, status `signed`, nyast först. Formuläret skickar även `companyId`. Saknas avtal binds inget och vakten avgör som förut.
   - **Test:** `__tests__/reality-i-b4v-staff-switch-exact-contract.test.ts`, 4 fall (annan tenant, annan anläggning, äldre och osignerade avtal vinner aldrig). Före rättningen 3 röda, efter 4/4. Med I-B- och switch-testerna 10 filer, 77/77.
 
+### J1, batch 5 (2026-10-26 23:25–00:05, ombyggd app): 4 av 12 gröna; J1-4–J1-9, J1-11 och J1-12 röda — J1-B5 (harness, rättad)
+- **Framsteg:** J1-2 och J1-3 är gröna. Tio Z03 nådde nätägaren och kvitterades (I-B2a, I-B4 och I-B5 verkar), och nätägaren svarade med Z04.
+- **Nytt:** alla tolv Z04 står `validated`, och plattformen svarade med negativ APERAK (ERC 42 på fält 214 och 218, "Felaktigt Konstant för mätare :::1 / :::1"). Bytena står kvar `submitted`.
+
+### J1-B5 Simulatorns Z04 bar mätardeklarationen två gånger — HARNESS; RÄTTAD
+- **Orsak:** `buildZ04ForSwitchRequest` (`gridOwnerWire.ts`) deklarerar redan fälten 214, 218 och 259 (T6), och `z04For`/`z04ForUnknownSwitch` lade till dem igen. Varianten utan fält 259 (`readings: false`, J1-10) fick därmed också deklarationen. Produkten avvisar korrekt.
+- **Rättning:** `withoutMeterReadingDeclaration` tar bort deklarationen och räknar om UNT. `z04For` lägger in den exakt en gång, eller inte alls för J1-10.
+- **Test:** `__tests__/reality-j1-b5-z04-meter-declaration-once.test.ts`, 3 fall: produktens syntaxvalidator och fältvalidering finner inga blockerande fel. Röda före, gröna efter. Med T31 12/12.
+- **I världen:** J1 körs om.
+
 ### A, batch 5 (2026-10-26 22:53–23:25, ombyggd app på 547321093): 4 av 7 gröna; A3–A5 röda — A-B4b (harness, rättad)
 - **A-B4 verkar:** simulatorn tog emot alla fyra Z01 och svarade (`answered (APERAK + Z02)`).
 - **Nytt:** alla fyra Z02-utskick föll i simulatorn med `edifact_character_not_iso8859_1:…:U+FFFD`. Ingen Z02 nådde plattformen, så webbanläggningarna fick inget nätområde och ingen Z03 skickades.
