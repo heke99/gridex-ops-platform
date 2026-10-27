@@ -127,6 +127,47 @@ async function createReviewCase(input: {
   })
 }
 
+const GRID_OWNER_START_CANCELLATION = 'grid_owner_start_cancellation'
+const GRID_OWNER_START_CANCELLATION_NOTICE = 'Nätägaren har återkallat det bekräftade startdatumet för ditt leverantörsbyte, så leveransen från oss startar inte då. Vi går igenom ärendet och kontaktar dig om nästa steg.'
+
+/** J1-05: the grid owner withdrew a start it had confirmed (Z04C, committed by the native owner). The operator gets
+ * one case and the customer, who was told the start was confirmed, one notice. Only the first committed result
+ * of this source and only the source's own customer scope; a replay or a held source does neither. */
+async function followUpGridOwnerStartCancellation(input: { message: EdielMessageRow; companyId: string; switchRequestId: string | null; outcome: InboundBusinessOutcome }) {
+  const customerId = text(input.message.customer_id)
+  if (!customerId) return false
+  const { data: existing, error } = await supabaseService.from('customer_cases').select('id').eq('company_id', input.companyId)
+    .eq('source_ediel_message_id', input.message.id).eq('reason_category', GRID_OWNER_START_CANCELLATION).limit(1).maybeSingle()
+  if (error) throw error
+  const switchRequestId = input.switchRequestId ?? input.message.switch_request_id ?? null
+  if (!existing) {
+    const nextAction = 'Kontrollera bytet med kunden och nätägaren och avgör om ett nytt byte ska skickas. Avtal och fakturering ska inte starta på det återkallade datumet.'
+    await strictInsert('customer_cases', {
+      company_id: input.companyId, customer_id: customerId, site_id: input.message.site_id ?? null,
+      metering_point_id: input.message.metering_point_id ?? null, supplier_switch_request_id: switchRequestId,
+      case_type: 'other', status: 'open', priority: 'high',
+      title: 'Nätägaren har återkallat en bekräftad leveransstart',
+      description: 'Nätägaren har annullerat (Z04C) en start som tidigare bekräftats. Bytet och den bekräftade perioden är annullerade och annulleringen är besvarad. Kunden har tidigare fått besked om bekräftad start.',
+      reason_category: GRID_OWNER_START_CANCELLATION, next_action: nextAction, source: 'ediel_inbound_state_machine',
+      source_ediel_message_id: input.message.id, source_business_process: 'supplier_switch',
+      metadata: {
+        process_next_action: deriveEdielReviewProcessDecision({ message: input.message, nextAction }),
+        source_ediel_message_id: input.message.id, message_family: input.message.message_family, message_code: input.message.message_code,
+      },
+    })
+  }
+  await enqueueCustomerLifecycleNotification({
+    companyId: input.companyId, customerId, eventType: 'supplier_switch.cancelled_by_grid_owner',
+    sourceEventId: `ediel:${input.message.id}:${input.outcome}`, siteId: input.message.site_id ?? null,
+    meteringPointId: input.message.metering_point_id ?? null,
+    payload: { ediel_message_id: input.message.id, supplier_switch_request_id: switchRequestId, outcome: input.outcome,
+      case_subject: 'Ditt leverantörsbyte har återkallats', case_message: GRID_OWNER_START_CANCELLATION_NOTICE },
+  }).catch((notificationError) => {
+    console.warn('[inbound-business-state] cancellation notification enqueue skipped', notificationError)
+  })
+  return true
+}
+
 function outcomeForMessage(message: EdielMessageRow): InboundBusinessOutcome {
   const family = String(message.message_family ?? '').toUpperCase()
   const code = String(message.message_code ?? '').toUpperCase()
@@ -256,7 +297,11 @@ export async function applyInboundBusinessStateMachine(input: {
         : 'Leveranshändelsen inväntar säker koppling till rätt original, objekt och giltighetstid.'
     } else {
       updated.push('customer_supply_periods')
-      if (outcome === 'supplier_switch_cancelled_before_start') updated.push('supplier_switch_requests')
+      if (outcome === 'supplier_switch_cancelled_before_start') {
+        updated.push('supplier_switch_requests')
+        if (companyId && !sourceResult.idempotent && await followUpGridOwnerStartCancellation({ message: input.message, companyId,
+          switchRequestId: input.matchedSwitchRequestId ?? null, outcome })) updated.push('customer_cases')
+      }
       if (outcome === 'assigned_supply_started' || outcome === 'mandatory_purchase_supply_started') {
         tenantMessage = outcome === 'assigned_supply_started' ? 'Anvisningsprocessen och nätägarens starttid är registrerade.' : 'Den separata produktions- och mottagningsrelationen är registrerad.'
       }

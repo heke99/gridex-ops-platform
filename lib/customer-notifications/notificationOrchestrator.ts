@@ -9,6 +9,7 @@ export type CustomerLifecycleNotificationEvent =
   | 'supplier_switch.confirmed'
   | 'supplier_switch.rejected'
   | 'supplier_switch.manual_review_required'
+  | 'supplier_switch.cancelled_by_grid_owner'
   | 'supply_period.activated'
   | 'supply_period.active'
 
@@ -58,6 +59,8 @@ function templateForEvent(eventType: string): string | null {
   if (eventType === 'supplier_switch.requested') return 'switch.started'
   if (eventType === 'supplier_switch.accepted' || eventType === 'supplier_switch.confirmed') return 'switch.confirmed'
   if (eventType === 'supplier_switch.rejected' || eventType === 'supplier_switch.manual_review_required') return 'switch.action_required'
+  // J1-05: the grid owner withdrew a confirmed start; the customer is told through the action-required template.
+  if (eventType === 'supplier_switch.cancelled_by_grid_owner') return 'switch.action_required'
   if (eventType === 'supply_period.activated' || eventType === 'supply_period.active') return 'customer.welcome_active'
   return null
 }
