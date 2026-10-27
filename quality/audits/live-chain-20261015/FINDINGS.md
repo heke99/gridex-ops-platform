@@ -2727,6 +2727,10 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **Variant, rättad:** `claim_ediel_outbox_items` har samma mönster (väljer på `priority, created_at` men returnerar utan ordning), och `processEdielOutbox` skickar posterna en i taget. En rättelse eller makulering som hämtas i samma körning som sitt original kunde lämna först. `claimEdielOutboxItems` sorterar nu på prioritet, ålder och id. Test: `__tests__/reality-i-b11-outbox-claim-order.test.ts`, rött före. Med utkorgstesterna 6 filer, 24/24. Inga fler `claim*`-funktioner med `RETURNING` och `ORDER BY` finns i världens databas.
 - **I världen:** kräver ombyggnad. I körs om.
 
+### J1, batch 5e (2026-10-27 11:33–12:13): 5 av 12 gröna, samma som 5d — T40 verifierad; inga nya fynd
+- **T40 verifierad:** J1-11 kräver inte längre bort CONTRL på APERAK. Det som återstår där är APERAK som saknas.
+- **Röda, alla kända öppna:** J1-5 = J1-01, J1-7 = J1-11, J1-8 = J1-05, J1-9 = J1-10 och J1-10 = J1-02. J1-11/J1-12 är de APERAK som uteblir för de hållna Z04:orna (följd av J1-01, J1-02 och J1-10) och för Z06 E/F/G i granskning (J1-14, ägarbeslut krävs).
+
 ### H, batch 5e (2026-10-27 10:23–11:33): 10 av 11 gröna; H11 röd — T42 verifierad; T45 (harness, rättad)
 - **T42 verifierad i världen:** H11 fick sin Z04 och nådde brytavgiften. Avgiften godkändes en gång (`already_approved` vid upprepning), fick ett eget underlag (0 kWh, `blocked`) och prissattes av motorn med exakt en `break_fee`-rad: 600 kr exkl. moms, 750 kr inkl. moms.
 - **H11:** körningen lagrades inte (`pricingRunId` null), så inga förhandsrader fanns. Se T45.
