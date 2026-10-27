@@ -1,6 +1,6 @@
 # Verklighetssimuleringen — läge och nästa steg
 
-Uppdaterad 2026-10-27 kl. 09:50 UTC av Claude (session 01Az5xza…), som fortsätter på grenen `claude/wonderful-franklin-o8gx2p` (byggd på `claude/gifted-hamilton-vss1hj` `edeaed7d0`) på ägarens uppdrag. Tidigare session: 01YCH5Va…. Filen är tänkt att läsas först.
+Uppdaterad 2026-10-27 kl. 13:05 UTC av Claude (session 01Az5xza…), som fortsätter på grenen `claude/wonderful-franklin-o8gx2p` (byggd på `claude/gifted-hamilton-vss1hj` `edeaed7d0`) på ägarens uppdrag. Tidigare session: 01YCH5Va…. Filen är tänkt att läsas först.
 
 Den hör ihop med tre andra dokument:
 - [FINDINGS.md](FINDINGS.md): alla fynd. Inget tas bort därifrån.
@@ -29,8 +29,14 @@ Den hör ihop med tre andra dokument:
     - K 11/12: K4 → A-B5 (produkt, migration `20261027110000`, applicerad) och T43 (harness), rättade.
     - A 4/7: A-B5 verifierad (härledningen går igenom). A3–A5 → A-B6 (RFF+ANJ över 35 tecken), rättad i `eae7ba4b3`, kräver ombyggnad.
     - I 7/10: I-B9 och I-B10 verifierade. Nytt I-B11 (inkommande jobb i godtycklig ordning; variant i utkorgen) och I-B12 ("Oklassificerad" i stället för "Kvittens försenad"), rättade i `a10861743` och `ca388c905`.
-    - J2 pågår (startade 08:43), därefter J4, H, J1, G och F.
-  - **Efter 5e:** bygg om på grenens topp (A-B6, I-B11, I-B12) och kör om A, I och K.
+    - J2 10/14: J2-B5 verifierad. Nytt J2-B6 (bundet underlag kunde aldrig prissättas) och J2-B7 (tre kolumner saknades i `billing_export_runs`), båda KRITISKA för fakturering, rättade (migrationer `20261027120000`/`20261027121000`, applicerade) och verifierade i världen: tre fakturautkast med exakta kWh.
+    - J4 7/8: T41 verifierad; T44 (harness) rättad.
+    - H 10/11: T42 verifierad; T45 (harness) rättad.
+    - J1 5/12: T40 verifierad; resten kända öppna (J1-01, -02, -05, -10, -11, -14).
+    - G 10/11: G10 blockerad av världens datum (oktobers spotpriser finns inte än); inget fynd.
+    - F avbröts 12:57 (3–4 h) för att köras på det nya bygget.
+    - Hela enhetstestsviten: 1 415 filer gröna efter två rättningar (RBAC-granskning av I-B2d:s åtgärd och manifestet för J2-B6/B7).
+  - **Batch 6 från 13:00 UTC:** ombyggd app på `2aa3f43e5` (A-B6, I-B11, I-B12, J2-B6:s felmeddelande). J4, A, I, J2, K, H, F. Logg `/tmp/claude-0/batch6.log` (bygget `/tmp/claude-0/up6.log`).
   - **Kvar av övertagandet i #840:** F113 (`20261026170000`), J2-05 och J4-D15 (`20261026190000`). A-B4 utreds när A har kört i den nya världen.
 - **Batch 5 pågår (2026-10-26 från ca 20:45 UTC):** J1, H, J2, J4, F och G på `0636d475b` (med I-B4). Logg `/tmp/claude-0/batch5.log`.
   - Batch 4 gav K 10/12 (K-B4, rättad), I 3 gröna/1 röd (I-B4, rättad) och A 4/7 (A-B4, agent). J1 försvann i den tredje omstarten.
