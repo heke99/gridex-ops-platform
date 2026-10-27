@@ -2713,6 +2713,24 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - Handbokens fönster för Z03 L öppnar `maxAdvanceMonths` före starten (`canonicalSupplierSwitchSendPolicy`; jfr H: start 2026-11-26 öppnar 2025-09-25), så en start om tre månader skickas korrekt. I tidigare batcher stoppades Q1 av andra fel (I-B2a, I-B4).
 - **Rättning:** Q1:s start är nu den första i en månad två månader bortom fönstret, beräknad ur produktens egen policy.
 
+### I, batch 5e (2026-10-27 08:03–08:43, app på 75cbac61e): 7 av 10 gröna; I4, I6 och I8 röda — I-B11 och I-B12 (produkt, rättade)
+- **Verifierat i världen:** I-B9 (I5 grön: den negativa CONTRL:en gav exakt ett tekniskt operatörsärende och inget kundbesked, och I4 har ärenden och kundbesked för de avvisade bytena) och I-B10 (S7 visas inte längre som "Blockerad").
+- **I8 (P-11):** S9:s byte blev `failed` på den negativa APERAK:en och Z04 kopplades aldrig. Analysen i I-B9 ("tog tillbaka det bekräftade bytet") stämde inte för I8: bytet bekräftades aldrig, se I-B11.
+- **I4 (GOR-04):** 7 ärenden mot väntade 6. Det sjunde är S9:s, en följd av I-B11.
+- **I6:** S7:s utskick var `waiting_attention`, och listan visade "Oklassificerad". Se I-B12.
+
+### I-B11 Jobb som hämtades i samma poll behandlades i godtycklig ordning, så en sen APERAK lästes före sin Z04 — PRODUKT, hög; RÄTTAD
+- **Bevis i världen:** nätägaren skickade CONTRL 08:06:01, Z04 08:06:17 och den negativa APERAK:en 08:06:32. Pollen 08:09:56 lagrade dem i den ordningen (`inbound_email_messages.received_at` och jobbens `created_at`), och alla tre jobben hämtades i samma anrop (08:09:57.65). Ediel-meddelandena skapades i omvänd ordning: APERAK 08:09:58.99, Z04 08:09:59.70 och CONTRL 08:10:01.91. APERAK:en gjorde bytet `failed`, och Z04 blev `validated` utan koppling.
+- **Orsak:** `claim_inbound_processing_jobs` väljer de äldsta jobben (`order by created_at`), men returnerar `UPDATE … RETURNING` utan ordning (`select * from updated`). `processQueuedInboundProcessingJobs` behandlade jobben i den ordningen.
+- **Rättning:** `claimQueuedInboundProcessingJobs` (`lib/inbound-mail/edielMailboxPoller.part-2.ts`) sorterar de hämtade jobben på `created_at` och sedan `id`, alltså i den ordning mailen lagrades. Den skyddade SQL-kroppen ändras inte. Reservvägen var redan sorterad.
+- **Test:** `__tests__/reality-i-b11-inbound-jobs-arrival-order.test.ts`, 2 fall, röda före. Med jobbtesterna för intaget 11 filer, 60/60.
+- **I världen:** kräver ombyggnad. I körs om.
+
+### I-B12 Ett utskick som övervakningen flaggat `waiting_attention` visades som "Oklassificerad" — PRODUKT, medel; RÄTTAD
+- **Bevis:** efter 30 minuter skapade `createInboundOverdueTasks` (`lib/inbound-mail/inboundOverdueMonitor.ts`) uppgiften "Ediel-kvittens saknas" och satte S7:s utskick till `waiting_attention`. `getSwitchLifecycle` hade ingen gren för den statusen (den saknas också i typen `OutboundRequestStatus`). När I-B10 släppte fram utskicksstatusen hamnade bytet därför i "Oklassificerad".
+- **Rättning:** `waiting_attention` utan kvittens är "Kvittens försenad" (GOR-05, ingen omsändning). Med kvittens är det Z04-bevakningen, "Z04 försenad", i steget `awaiting_market_confirmation`, med övervakningens orsak. `explainWhySwitchIsStuck` säger detsamma.
+- **Test:** två nya fall i `__tests__/switch-lifecycle-ack-overdue.test.ts`, röda före. 7/7.
+
 ### H, batch 5d (2026-10-27 05:32–06:47): 10 av 11 gröna; H11 röd — T42 (harness, rättad)
 - **Verifierat i världen:** H5 är grön (H-B5b: E66 får aldrig en framtida registreringstid). Fastprisavtalet publicerades (H-B5), och H10 (D11 med rörligt pris nekas) är grön.
 - **H11:** F:s Z03 skickades och fick CONTRL och APERAK, men ingen Z04 kom inom 30 minuter, så bytet stod `submitted`.

@@ -716,7 +716,10 @@ export async function claimQueuedInboundProcessingJobs(
     p_stale_after: `${envInt("EDIEL_INBOUND_STALE_JOB_LOCK_MINUTES", 15)} minutes`,
   });
 
-  if (!error) return (data ?? []) as InboundProcessingJobRow[];
+  // The RPC's ORDER BY only chooses which jobs are claimed; UPDATE ... RETURNING
+  // gives them back in no order. Jobs are processed in the order their mails
+  // were stored, so a Z04 sent before a late APERAK is read first (I-B11).
+  if (!error) return inboundJobsInArrivalOrder((data ?? []) as InboundProcessingJobRow[]);
 
   const message = postgresErrorMessage(error);
   if (!/claim_inbound_processing_jobs|schema cache|Could not find/i.test(message)) throw error;
@@ -741,6 +744,11 @@ export async function claimQueuedInboundProcessingJobs(
     }
   }
   return claimed;
+}
+
+function inboundJobsInArrivalOrder(jobs: InboundProcessingJobRow[]): InboundProcessingJobRow[] {
+  const at = (job: InboundProcessingJobRow) => Date.parse(job.created_at ?? "") || 0;
+  return [...jobs].sort((a, b) => at(a) - at(b) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
 }
 
 export async function listQueuedInboundProcessingJobs(

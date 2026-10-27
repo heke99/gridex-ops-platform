@@ -45,3 +45,23 @@ describe('I-B10 a dispatched switch shows its acknowledgement state, not the pre
     expect(getSwitchLifecycle({ request, readiness: notReady, outboundRequest: null })).toMatchObject({ stage: 'blocked' })
   })
 })
+
+// reality-defects: I-B12 (scenario I6, batch 5e): after 30 minutes the inbound overdue monitor flags the unanswered
+// Z03's outbound request `waiting_attention` ("Ediel-kvittens saknas"). The lifecycle had no branch for that status,
+// so once I-B10 let the outbound state through, the silent switch was "Oklassificerad", never "Kvittens försenad".
+describe('I-B12 an outbound request the overdue monitor flagged', () => {
+  const flagged = (acknowledged_at: string | null, failure_reason: string) =>
+    ({ id: 'out-1', status: 'waiting_attention', sent_at: sentAt, acknowledged_at, failure_reason } as unknown as OutboundRequestRow)
+  it('flagged before any acknowledgement it is overdue for an operator, with no resend', () => {
+    const lifecycle = getSwitchLifecycle({ request, outboundRequest: flagged(null, 'Ediel-kvittens saknas'), now: at(31) })
+    expect(lifecycle).toMatchObject({ stage: 'awaiting_response', label: 'Kvittens försenad', responseOverdue: true })
+    expect(lifecycle.reason).toContain(sentAt)
+    expect(lifecycle.reason).toContain('Ingen automatisk omsändning')
+  })
+  it('flagged after the acknowledgement it waits for the Z04 and says the answer is late, never ACK-overdue', () => {
+    const lifecycle = getSwitchLifecycle({ request, outboundRequest: flagged('2026-10-22T10:05:00.000Z', 'Z04-svar saknas'), now: at(2000) })
+    expect(lifecycle).toMatchObject({ stage: 'awaiting_market_confirmation', label: 'Z04 försenad' })
+    expect(lifecycle.reason).toContain('Z04-svar saknas')
+    expect(lifecycle.responseOverdue).toBeUndefined()
+  })
+})

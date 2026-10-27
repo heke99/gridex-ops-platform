@@ -89,12 +89,24 @@ export function getSwitchLifecycle(params: {
     return { stage: 'awaiting_dispatch', label: 'Väntar på dispatch', reason: 'PRODAT Z03 finns men har inte skickats ännu.' }
   }
 
-  if (outboundRequest.status === 'sent') {
+  // The inbound overdue monitor flags an unanswered request `waiting_attention` (FINDINGS I-B12; the status is stored
+  // by inboundOverdueMonitor.ts but not in OutboundRequestStatus). Without an acknowledgement that is the CONTRL/APERAK
+  // watch; after one it is the Z04 watch.
+  const flagged = (outboundRequest.status as string) === 'waiting_attention'
+  if (flagged && outboundRequest.acknowledged_at) {
+    return {
+      stage: 'awaiting_market_confirmation',
+      label: 'Z04 försenad',
+      reason: `${outboundRequest.failure_reason ?? 'Z04-svar saknas'}. Transport/applikation är kvitterad men nätägarens PRODAT Z04 har inte kommit. Kontakta nätägaren. Ingen automatisk omsändning görs.`,
+    }
+  }
+
+  if (outboundRequest.status === 'sent' || flagged) {
     // GOR-05: the CONTRL/APERAK watch runs SWITCH_ACK_DEADLINE_MINUTES from the actual send. Past it the
     // request is overdue for an operator; the stage stays awaiting_response and nothing is re-sent (TR-05).
     const sentAtMs = outboundRequest.sent_at ? Date.parse(outboundRequest.sent_at) : Number.NaN
     const nowMs = (params.now ?? new Date()).getTime()
-    if (Number.isFinite(sentAtMs) && nowMs - sentAtMs > SWITCH_ACK_DEADLINE_MINUTES * 60_000) {
+    if (flagged || (Number.isFinite(sentAtMs) && nowMs - sentAtMs > SWITCH_ACK_DEADLINE_MINUTES * 60_000)) {
       return {
         stage: 'awaiting_response',
         label: 'Kvittens försenad',
@@ -147,6 +159,9 @@ export function explainWhySwitchIsStuck(params: {
   if (outboundRequest.channel_type === 'unresolved') return 'Outbound saknar route/kanal och kan inte dispatchas.'
   if (['queued', 'prepared'].includes(outboundRequest.status)) return 'PRODAT Z03 väntar fortfarande på dispatch.'
   if (outboundRequest.status === 'sent') return 'PRODAT Z03 är skickad och väntar på transport-/applikationskvittens.'
+  if ((outboundRequest.status as string) === 'waiting_attention') {
+    return `${outboundRequest.failure_reason ?? 'Nätägarens svar är försenat'}. Ingen automatisk omsändning görs.`
+  }
   if (outboundRequest.status === 'failed' || outboundRequest.status === 'cancelled') {
     return outboundRequest.failure_reason ?? 'Outbound-dispatchen misslyckades och behöver retry eller manuell åtgärd.'
   }
