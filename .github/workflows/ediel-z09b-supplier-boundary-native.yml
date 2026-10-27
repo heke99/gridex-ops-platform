@@ -6,6 +6,8 @@ on:
       - 'scripts/ediel-at-z09b-supplier-boundary-native.test.ts'
       - 'scripts/ediel-at-z09b-supplier-boundary-native.config.ts'
       - '.github/workflows/ediel-z09b-supplier-boundary-native.yml'
+      - 'scripts/gridex-prime-verified-postgres-cache.py'
+      - 'scripts/gridex-prime-verified-postgres-cache-selftest.py'
       - 'scripts/ediel-source-owner-native.config.ts'
       - 'scripts/fixtures/**'
       - 'scripts/helpers/**'
@@ -59,6 +61,13 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: 2.101.0
+      - name: Prime content-verified public PostgreSQL image cache
+        shell: bash
+        env:
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+        run: |
+          python3 scripts/gridex-prime-verified-postgres-cache-selftest.py
+          python3 scripts/gridex-prime-verified-postgres-cache.py
       - name: Run genuine Z09B supplier boundary cases
         shell: bash
         env:
