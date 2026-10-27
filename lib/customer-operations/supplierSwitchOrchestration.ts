@@ -16,12 +16,42 @@ import { enqueueSupplierSwitchAutomation } from '@/lib/customer-operations/autom
 import { normalizeUuidOrNull, requireUuid } from '@/lib/validation/uuid'
 import { checkSupplierSwitchReadiness } from '@/lib/customer-operations/switchReadiness'
 import { evaluateManualSupplierReadiness } from '@/lib/customer-operations/manualSupplierReadiness'
-import { tenantUpdate } from '@/lib/supabase/tenantQuery'
+import { tenantSelect, tenantUpdate } from '@/lib/supabase/tenantQuery'
+import { strictIsoDate } from '@/lib/time/stockholm'
 
 type JsonRecord = Record<string, unknown>
 
 function clean(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+/** Recover the first normal request's start intent from its exact signed contract. */
+async function readCanonicalNormalStartDate(input: {
+  companyId: string
+  customerId: string
+  siteId: string
+  contractId: string | null
+}): Promise<string | null> {
+  if (!input.contractId) return null
+  const result = await tenantSelect(input.companyId, 'customer_contracts',
+    'id,company_id,customer_id,customer_site_id,site_id,status,requested_start_mode,requested_start_date,expected_start_at,starts_at')
+    .eq('id', input.contractId).eq('company_id', input.companyId).eq('customer_id', input.customerId)
+    .eq('status', 'signed').or(`customer_site_id.eq.${input.siteId},site_id.eq.${input.siteId}`).maybeSingle()
+  if (result.error || !result.data) return null
+  const contract = result.data as JsonRecord
+  if (contract.id !== input.contractId || contract.company_id !== input.companyId
+    || contract.customer_id !== input.customerId || contract.status !== 'signed'
+    || (contract.customer_site_id != null && contract.customer_site_id !== input.siteId)
+    || (contract.site_id != null && contract.site_id !== input.siteId)
+    || (contract.customer_site_id !== input.siteId && contract.site_id !== input.siteId)) return null
+  const mode = contract.requested_start_mode
+  if (mode !== 'earliest_possible' && mode !== 'specific_date') return null
+  // A specific date must be the customer's explicit choice. For earliest start,
+  // use the same date precedence as canonical contract lifecycle readiness.
+  const date = mode === 'specific_date' ? contract.requested_start_date
+    : contract.requested_start_date ?? contract.expected_start_at ?? contract.starts_at
+  try { return strictIsoDate(date, 'customer_requested_start_date') }
+  catch { return null }
 }
 
 function missingSchema(error: unknown): boolean {
@@ -98,7 +128,6 @@ function splitReadinessIssuesForSwitchRequestCreation(input: {
     // to create the switch request. Dispatch can still block later if market
     // timing/preflight says it is not sendable yet.
     if (issue.code === 'move_in_date_missing' && input.requestedStartDate) {
-      reviewBlockers.push(blocker)
       continue
     }
 
@@ -371,7 +400,7 @@ export async function ensureSupplierSwitchRequestForReadySite(
     }
   }
 
-  const requestedStartDate = clean(input.requestedStartDate) ?? clean(context.requestedStartDate) ?? clean(site.move_in_date) ?? null
+  let requestedStartDate = clean(input.requestedStartDate) ?? clean(context.requestedStartDate) ?? clean(site.move_in_date) ?? null
   const { creationBlockers, reviewBlockers } = splitReadinessIssuesForSwitchRequestCreation({
     readiness,
     requestedStartDate,
@@ -394,6 +423,27 @@ export async function ensureSupplierSwitchRequestForReadySite(
     treatNormalIssuesAsBlockers: false,
   })
   const exactContractId = clean(canonicalReadiness.readinessSnapshot.contract_id)
+  const commercial = canonicalReadiness.readinessSnapshot.manual_supplier_commercial
+  if (!existing && !requestedStartDate && !site.move_in_date
+    && commercial && typeof commercial === 'object' && !Array.isArray(commercial)
+    && 'applies' in commercial && commercial.applies === true
+    && 'sourceVerified' in commercial && commercial.sourceVerified === true) {
+    requestedStartDate = await readCanonicalNormalStartDate({ companyId, customerId, siteId, contractId: exactContractId })
+    if (!requestedStartDate) {
+      return {
+        ok: false, created: false, reusedExisting: false, request: null, site, meteringPoint: candidate, readiness,
+        requestedStartDate: null,
+        blockers: [
+          ...canonicalReadiness.blockers.map(({ code, message }) => ({ code, message })),
+          { code: 'customer_requested_start_intent_invalid', message: 'Kundens avtalade startdatum behöver verifieras innan bytet kan skapas.' },
+        ],
+      }
+    }
+    // The canonical creator still recalculates policy and verified supplier
+    // floors. Only this stale site warning is resolved by the signed date.
+    const missingDate = reviewBlockers.findIndex(blocker => blocker.code === 'move_in_date_missing')
+    if (missingDate >= 0) reviewBlockers.splice(missingDate, 1)
+  }
   for (const blocker of canonicalReadiness.blockers) {
     if (!reviewBlockers.some((item) => item.code === blocker.code)) {
       reviewBlockers.push({ code: blocker.code, message: blocker.message })
