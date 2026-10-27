@@ -2727,6 +2727,17 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **Variant, rättad:** `claim_ediel_outbox_items` har samma mönster (väljer på `priority, created_at` men returnerar utan ordning), och `processEdielOutbox` skickar posterna en i taget. En rättelse eller makulering som hämtas i samma körning som sitt original kunde lämna först. `claimEdielOutboxItems` sorterar nu på prioritet, ålder och id. Test: `__tests__/reality-i-b11-outbox-claim-order.test.ts`, rött före. Med utkorgstesterna 6 filer, 24/24. Inga fler `claim*`-funktioner med `RETURNING` och `ORDER BY` finns i världens databas.
 - **I världen:** kräver ombyggnad. I körs om.
 
+### H, batch 8 (2026-10-27 21:36–22:36): 10 av 11 gröna — H-B6 verifierad (brytavgiften faktureras); nytt H-B6b (produkt, hög, rättat och verifierat)
+- **H11 kom förbi faktureringen:** brytavgiften faktureras en gång, och krediteringens avsedda vägranden kommer (`break_fee_credit_exceeds_debit`, `_reason_required`, `_pending`).
+- **Därefter:** kreditfakturans underlag (`break_fee_credit`) föll med `billing_finalized_source_basis_required`. Se H-B6b.
+
+### H-B6b En brytavgiftskredit kunde aldrig faktureras — PRODUKT, hög (variant av H-B6); RÄTTAD (migration `20261027170000`, applicerad i världen)
+- **Orsak:** D11g1 (`20261026120000`) godkänner ett kreditunderlag genom dess egen kreditrad (`underlaid`/`invoiced`), men, som D11, bara i `gridex_read_billing_underlay_source_basis_v1`. H-B6 täckte bara själva avgiften i `gridex_create_billing_export_run`.
+- **Rättning:** D11g1:s regel ordagrant även i `gridex_create_billing_export_run`: en färdig rad vars underlag är ett kreditunderlag i samma bolag godtas när dess egen kreditrad (samma bolag, `credit_underlay_id`, `payload.break_fee_credit_id`) är `underlaid` eller `invoiced`. Allt annat är oförändrat. Exakt nålbyte på kroppen från H-B6.
+- **Test:** `scripts/reality-h-b6b-break-fee-credit-export-run-native.test.ts` (världens kreditunderlag från H11, i en transaktion som alltid rullas tillbaka): vägras före, och körningen skapas med migrationen. Ett obundet energiunderlag vägras fortfarande. Brytavgifts- och D11-testerna samt aud-003 och migrationskontrollen gröna.
+- **Verifierat i världen:** H11:s egen fakturaberedning för kreditunderlaget skapade exakt en kreditfaktura på −600 kr. Krediten blev `invoiced` och avgiften `credited`. Hela brytavgiftskedjan (godkännande → underlag → prissättning → faktura → kredit) fungerar nu.
+- **Variant kontrollerad:** `require_underlay_v1` anropas bara av `gridex_create_billing_export_run` och läsfunktionen, och båda har nu både D11- och D11g1-regeln.
+
 ### J1, batch 8 (2026-10-27 20:56–21:36): 6 av 12 gröna — J1-05b och T47 verifierade
 - **J1-8 grön:** nätägarens makulering ger ett operatörsärende på rätt byte och mätpunkt och ett kundbesked.
 - **Röda, alla kända och öppna (ägarbeslut eller låst SQL):** J1-5 = J1-01, J1-6 = J1-03, J1-9 = J1-10, J1-10 = J1-02, och J1-11/J1-12 = APERAK som uteblir för hållna Z04 och för Z06 (J1-14).
