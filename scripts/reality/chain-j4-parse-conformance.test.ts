@@ -285,7 +285,11 @@ describe.sequential('reality J4 — every inbound Ediel message is parsed correc
     report.J4_6 = results
     saveReport()
     if (sentOf('A-APERAK-34-correlated')) {
-      expect.soft(z01AfterAperak?.aperak, 'W1 Z01: aperak_status after the object rejection').toMatch(/rejected|failed/)
+      // The ACK authority (gridex_ack_authority.apply_before_committed_replay_v1) records an answered APERAK as
+      // 'received' and only a whole-message rejection as 'failed'; an object rejection (ERC 42) is the negative
+      // outcome of an answered APERAK (FINDINGS T44).
+      expect.soft(z01AfterAperak && { aperak: z01AfterAperak.aperak, ack: z01AfterAperak.ack, request: z01AfterAperak.request?.status },
+        'W1 Z01 after the object rejection: answered, negative, the data request failed').toEqual({ aperak: 'received', ack: 'negative', request: 'failed' })
       // What the operator is shown for the rejected request: the grid owner's ERC/field code and its exact text.
       const shown = [z01AfterAperak?.request?.failure ?? '', ...(storedOf('A-APERAK-34-correlated')?.tasks ?? []).map(t => `${t.title} ${t.description ?? ''}`)].join(' | ')
       softCheck('J4-6 operator sees ERC 42 / field 227', /42/.test(shown) && /227/.test(shown), shown.slice(0, 600),

@@ -2727,6 +2727,14 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **Variant, rättad:** `claim_ediel_outbox_items` har samma mönster (väljer på `priority, created_at` men returnerar utan ordning), och `processEdielOutbox` skickar posterna en i taget. En rättelse eller makulering som hämtas i samma körning som sitt original kunde lämna först. `claimEdielOutboxItems` sorterar nu på prioritet, ålder och id. Test: `__tests__/reality-i-b11-outbox-claim-order.test.ts`, rött före. Med utkorgstesterna 6 filer, 24/24. Inga fler `claim*`-funktioner med `RETURNING` och `ORDER BY` finns i världens databas.
 - **I världen:** kräver ombyggnad. I körs om.
 
+### J4, batch 5e (2026-10-27 10:18–10:23): 7 av 8 gröna; J4-6 röd — T41 verifierad; T44 (harness, rättad)
+- **T41 verifierad i världen:** den korrelerade negativa APERAK:en (ERC 42/227) kopplas nu till vår Z01. Dataförfrågan blir `failed` med nätägarens kod och exakta text ("Felaktigt Kund-id 'Åsa Öberg' (Ä): 19XX? + fel postnr?"). Den negativa CONTRL:en på W2 ger `contrl_status` `failed`.
+- **J4-6:** Z01:ans `aperak_status` var `received` med `ack_outcome` `negative`. Se T44.
+
+### T44 J4-6 krävde `aperak_status` `rejected`/`failed` efter en objektavvisning — HARNESS; RÄTTAD
+- Kvittensauktoriteten (`gridex_ack_authority.apply_before_committed_replay_v1`) sätter `aperak_status` `received` när APERAK:en besvarat alla transaktioner, och `failed` bara vid avvisning av hela meddelandet. Utfallet står i `ack_outcome`. Samma regel gav `failed` på S9:s huvudavvisning i I. Auktoriteten ingår i godkända ID (ACK-01) och ändras inte.
+- **Rättning:** J4-6 kräver nu `aperak_status` `received`, `ack_outcome` `negative` och en `failed` dataförfrågan.
+
 ### J2, batch 5e (2026-10-27 08:43–10:18): 10 gröna, 3 röda, 1 överhoppad — J2-B5 verifierad; J2-B6 och J2-B7 (produkt, KRITISKA för fakturering, rättade och verifierade i världen)
 - **J2-B5 verifierad i världen:** månadsfaktureringen lagrade alla tre underlag (8 640 källrader, `ready_for_pricing`) utan tidsgräns. Hela körningen tog 47 s.
 - **J2-9:** därefter föll prissättningen för alla tre underlag med "Prisberäkning misslyckades.", och inget fakturautkast skapades. Se J2-B6 och J2-B7.
