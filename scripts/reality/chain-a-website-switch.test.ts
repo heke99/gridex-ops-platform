@@ -150,9 +150,10 @@ describe.sequential('reality A — website customers switch supplier', () => {
     report.cronSlots = slots
     report.switches = state
     report.gridOwner = await gridOwner.state()
-    // Every address resolved to the real grid area of its coordinates.
+    // Every address resolved to the real grid area of its coordinates. A switch starting today is activated by the
+    // customer-operations cron (A-B7) and is 'completed'; the later ones wait 'accepted' (T50).
     expect(state.map(row => row.grid_area)).toEqual(state.map(() => GRID_AREA))
-    expect(state.map(row => row.switch_status), JSON.stringify(state, null, 1).slice(0, 3000)).toEqual(['accepted', 'accepted', 'accepted', 'accepted'])
+    expect(state.map(row => row.switch_status), JSON.stringify(state, null, 1).slice(0, 3000)).toEqual(state.map(row => row.start === today ? 'completed' : 'accepted'))
   }, 40 * 60_000)
 
   it('A4 the grid owner received one switch request per facility and our acknowledgement of every confirmation', async () => {

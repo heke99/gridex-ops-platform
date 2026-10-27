@@ -2727,6 +2727,13 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **Variant, rättad:** `claim_ediel_outbox_items` har samma mönster (väljer på `priority, created_at` men returnerar utan ordning), och `processEdielOutbox` skickar posterna en i taget. En rättelse eller makulering som hämtas i samma körning som sitt original kunde lämna först. `claimEdielOutboxItems` sorterar nu på prioritet, ålder och id. Test: `__tests__/reality-i-b11-outbox-claim-order.test.ts`, rött före. Med utkorgstesterna 6 filer, 24/24. Inga fler `claim*`-funktioner med `RETURNING` och `ORDER BY` finns i världens databas.
 - **I världen:** kräver ombyggnad. I körs om.
 
+### A, batch 8 (2026-10-27 20:46–21:00, ombyggd app): 6 av 7 gröna — A-B7 och T46 verifierade; T50 (harness, rättad)
+- **A4 och A5 gröna:** varje webbkund har en Z03 hos nätägaren, och dagens inflyttning aktiveras av cronen (perioden `active`, bytet `completed`, ansökan `active`). Webbvägen fungerar hela vägen från ansökan till aktiv leverans.
+- **A3:** testet krävde `accepted` för alla fyra byten, men dagens byte är nu korrekt `completed`. Se T50.
+
+### T50 A3 förväntade att även dagens byte stod `accepted` — HARNESS; RÄTTAD
+- Efter A-B7 aktiverar kundautomationens cron ett byte med start i dag redan under A3. A3 kräver nu `completed` för bytet med start i dag och `accepted` för de senare.
+
 ### T49 Två fall i J1-nativetestet väntade sig `prepared` efter en kvitterad Z03 — HARNESS; RÄTTAD
 - J1-01:s delrättning och J1-10 i `scripts/inbound-prodat-j1-native.test.ts` föll med `submitted` i stället för `prepared`, även med koden från före dagens ändringar (`75cbac61e`, i en tillfällig arbetskopia) och i en ledig värld. Felet beror alltså varken på dagens rättningar eller på störning.
 - Testets `acknowledged()` registrerar Z03:ans slutliga positiva kvittens, och `gridex_record_switch_final_ack_v1` gör då bytet `submitted`. Det är rätt väntetillstånd efter ett skickat och kvitterat byte.
