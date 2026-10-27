@@ -2727,6 +2727,8 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **Variant, rättad:** `claim_ediel_outbox_items` har samma mönster (väljer på `priority, created_at` men returnerar utan ordning), och `processEdielOutbox` skickar posterna en i taget. En rättelse eller makulering som hämtas i samma körning som sitt original kunde lämna först. `claimEdielOutboxItems` sorterar nu på prioritet, ålder och id. Test: `__tests__/reality-i-b11-outbox-claim-order.test.ts`, rött före. Med utkorgstesterna 6 filer, 24/24. Inga fler `claim*`-funktioner med `RETURNING` och `ORDER BY` finns i världens databas.
 - **I världen:** kräver ombyggnad. I körs om.
 
+### K, batch 6 (2026-10-27 15:47–16:10): 12 av 12 gröna — A-B5 och T43 verifierade
+
 ### J2, batch 6 (2026-10-27 14:01–15:47, app på `2aa3f43e5`, J2-05 applicerad 14:37): 12 av 14 gröna — J2-B6, J2-B7 och J2-05 verifierade; J2-10 = J2-02 (ägarbeslut)
 - **J2-9 grön för första gången:** septemberfaktureringen prissätter och skapar fakturautkast för A och C, och B bara med uppmätta värden (J2-03). Det verifierar J2-B6 och J2-B7 genom hela kedjan.
 - **J2-11 grön:** delperiodskorrigeringen 12 september 06:00–12:00 ger nya revisioner för exakt sina 24 kvartar (J2-05 verifierad i världen).
