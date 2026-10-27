@@ -309,9 +309,11 @@ describe.sequential('reality J1 — inbound PRODAT from the grid owner', () => {
       aperak: f.answers.filter(a => a.family === 'APERAK').map(a => a.outcome) }))
     report.J1_11 = matrix
     // ACK-01: a positive CONTRL on every syntactically valid interchange (the identical re-delivery is the reception
-    // owner's held duplicate, J1-FP2) and never a CONTRL on the grid owner's own CONTRL/APERAK.
+    // owner's held duplicate, J1-FP2) and never a CONTRL on the grid owner's own CONTRL. An APERAK requests a CONTRL
+    // (UNB/0031 = 1, SC-041), so it gets one; only a CONTRL is never acknowledged (no acknowledgement loop, FINDINGS T40).
     for (const row of matrix.filter(r => r.kind !== 'z04-again')) expect.soft(row.contrl, `${row.kind} ${row.facility}: our CONTRL`).toEqual(['positive'])
-    for (const ack of sent.filter(f => ['CONTRL', 'APERAK'].includes(f.kind))) expect(ack.answers.filter(a => a.family === 'CONTRL'), 'no CONTRL on an ACK').toEqual([])
+    for (const ack of sent.filter(f => f.kind === 'CONTRL')) expect(ack.answers.filter(a => a.family === 'CONTRL'), 'no CONTRL on a CONTRL').toEqual([])
+    for (const ack of sent.filter(f => f.kind.startsWith('APERAK') && f.kind !== 'APERAK (duplicate)')) expect.soft(ack.answers.filter(a => a.family === 'CONTRL').map(a => a.outcome), 'our CONTRL on the APERAK').toEqual(['positive'])
     // ACK-02: exactly one APERAK per business file (open defects J1-01/02/03/10 leave held files without one).
     for (const row of matrix.filter(r => r.kind !== 'z04-again')) expect.soft(row.aperak, `${row.kind} ${row.facility}: our APERAK`).toHaveLength(1)
   })
