@@ -47,6 +47,8 @@ Nya beslut läggs till sist, och inget tas bort. Ett beslut som ersätts markera
 - **J1-14 (2026-10-27):** Z06 E/F läggs i källbunden granskning och APERAK väntar på personalens godkännande, men APERAK-fristen (30 min) löper ut innan dess. Ska en godkänd Z06 få positiv APERAK direkt, med separat masterdatagranskning, eller ska granskningen hålla Ediels svarstid?
 - **J1-01 (påminnelse):** godta nätägarens avvikande startdatum, eller avvisa med APERAK 42/210?
 
+- **A-B5 (2026-10-27):** ska befintliga mätpunkter som saknar `grid_owner_ediel_id` fyllas i från sin bundna, aktiva nätägare (engångsbackfill; varje rad registreras av e035-fångsten)? Nya och ändrade mätpunkter fylls redan i av triggern.
+
 ## Förslag 31–34 (2026-10-25, utredda av en agent från kod, schema och FINDINGS) — BESLUTADE, se ägarbeslut 31–34 nedan
 
 ### Förslag 31 — K-W1b: SVK-importen binder om ett mappat nätområde till en omappad ägare vid stavningsskillnad

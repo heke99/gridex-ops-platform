@@ -42,6 +42,7 @@ import { createPartnerHomeCompany, createWhiteLabelPartner, ensureProductionWhit
   shownNumber, signedInClient, snapshotMonth, stockholmMonths, swedishToday, type IndependentMonth } from '../helpers/reality/statistics'
 import { buildZ05End, gridOwnerSendsLeavingFile } from './simulators/gridOwnerLeaving'
 import { applyAsWebsiteCustomer, type SimulatedPerson } from './simulators/websiteCustomer'
+import { canonicalSupplierSwitchSendPolicy } from '@/lib/ediel/rulebook/deadlinePolicy'
 
 type Row = Record<string, unknown>
 const report: Record<string, unknown> = { scenario: 'K statistics', startedAt: new Date().toISOString(), clock: clockSettings() }
@@ -54,6 +55,13 @@ let apiKey = ''
 
 const TODAY = swedishToday()
 const M = stockholmMonths(TODAY)
+/** Q1's start: the first of a month two months past the Z03 L send window (FINDINGS T43). */
+const Q1_START = (() => {
+  const months = canonicalSupplierSwitchSendPolicy({ subtype: 'L' }).maxAdvanceMonths! + 2
+  const [year, month] = TODAY.split('-').map(Number)
+  const date = new Date(Date.UTC(year, month - 1 + months, 1))
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-01`
+})()
 const addDays = (date: string, days: number) => new Date(Date.parse(`${date}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10)
 const YESTERDAY = addDays(TODAY, -1)
 const at = (date: string, hour: number, minute: number) => {
@@ -257,7 +265,9 @@ describe.sequential('reality K — statistics are computed and shown correctly',
     const now = new Date().toISOString()
     report.pendingZ03 = [
       await signAndSwitch(N2, { supplyStart: `${M.next}-01`, signedAt: BOUNDARY_SIGNED_AT, switchCreatedAt: new Date(Date.parse(BOUNDARY_SIGNED_AT) + 60_000).toISOString(), build: true }),
-      await signAndSwitch(Q1, { supplyStart: `${M.later}-01`, signedAt: now, switchCreatedAt: now, build: false }),
+      // Beyond the handbook's send window (a Z03 L may be sent at most maxAdvanceMonths before the start, 26A): with a
+      // start three months ahead the window was already open and Q1 was sent (FINDINGS T43).
+      await signAndSwitch(Q1, { supplyStart: Q1_START, signedAt: now, switchCreatedAt: now, build: false }),
     ]
     // W1 buys on the website: Lantmäteriet's exact point (as scenario A), a Mina sidor account, then the checkout.
     await fetch('http://127.0.0.1:3901/__sim/geocode', { method: 'POST', body: JSON.stringify({ postal_code: address.postalCode, ...EXACT_POINT }) })

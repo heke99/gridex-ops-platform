@@ -2691,6 +2691,22 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
   - **Rättning:** båda binder anläggningens senaste signerade avtal via `findLatestSignedContractIdForSite` (`lib/customer-operations/switchReadiness.ts`), samma uppslagning som beredskapskontrollen redan gjorde, nu utbruten: exakt bolag, kund och anläggning, status `signed`, nyast först. Formuläret skickar även `companyId`. Saknas avtal binds inget och vakten avgör som förut.
   - **Test:** `__tests__/reality-i-b4v-staff-switch-exact-contract.test.ts`, 4 fall (annan tenant, annan anläggning, äldre och osignerade avtal vinner aldrig). Före rättningen 3 röda, efter 4/4. Med I-B- och switch-testerna 10 filer, 77/77.
 
+### K, batch 5e (2026-10-27 06:51–07:31, ombyggd app på 75cbac61e): 11 av 12 gröna; K4 röd — A-B5 (produkt, rättad) och T43 (harness, rättad)
+- **K8 är grön.** I-B4v2 verifierad: W1:s bytesjobb bär nu anläggningens avtal.
+- **K4, W1:** jobbet föll fem gånger med `prodat_new_agreement_requested_method_held: unique_authentic_new_agreement_requested_method_declaration`. Se A-B5.
+- **K4, Q1:** står `submitted` i stället för att vänta på sändfönstret. Se T43.
+
+### A-B5 En webbkunds mätpunkt saknade nätägarens Ediel-id, så ingen begärd mätmetod och ingen Z03 — PRODUKT, KRITISK för webbvägen; RÄTTAD (migration `20261027110000`, applicerad i världen)
+- **Bevis:** W1:s avtal har arkiverad och verifierad PDF och kvartspris, men mätpunkten (`b58fff49…`, skapad av Z02-kärnan) har `grid_owner_id` = 16700 och `grid_owner_ediel_id` NULL. Det gäller 508 av 589 mätpunkter i världen; bara harnessens egna mätpunkter har kolumnen.
+- **Orsak:** härledningen av begärd mätmetod (`ediel_derive_contract_requested_method_v1`, F46) och de följande kontrollerna (`contract_request_basis_v1`, `context_before_contract_request_v1`) kräver `point.grid_owner_ediel_id`. Härledningen gav `held`, `deriveRequestedMethodBeforeSwitch` sväljer det tyst, och Z03-förberedelsen kastar sedan.
+- **Rättning:** en BEFORE INSERT/UPDATE-trigger på `metering_points` (`gridex_metering_point_grid_owner_ediel_id_v1`) fyller i `grid_owner_ediel_id` från den bundna nätägaren när värdet saknas. Nätägaren måste vara aktiv och vara tenantens egen eller plattformsgemensam; en annan tenants rad läses aldrig. Vid byte av nätägare följer värdet med om det var den tidigare ägarens, men ett uttryckligt avvikande värde skrivs aldrig över. Inga pinnade funktionskroppar ändras.
+- **Ingen backfill:** befintliga rader skrivs inte om i migrationen, eftersom e035-fångsten registrerar varje uppdatering. **Fråga till ägaren:** ska befintliga mätpunkter i produktion fyllas i från sin bundna nätägare?
+- **Test:** `__tests__/reality-a-b5-metering-point-grid-owner-ediel-id.test.ts` (PGlite, riktig migration), 4 fall.
+
+### T43 K4 förväntade att Q1 (start om tre månader) väntar på sändfönstret — HARNESS; RÄTTAD
+- Handbokens fönster för Z03 L öppnar `maxAdvanceMonths` före starten (`canonicalSupplierSwitchSendPolicy`; jfr H: start 2026-11-26 öppnar 2025-09-25), så en start om tre månader skickas korrekt. I tidigare batcher stoppades Q1 av andra fel (I-B2a, I-B4).
+- **Rättning:** Q1:s start är nu den första i en månad två månader bortom fönstret, beräknad ur produktens egen policy.
+
 ### H, batch 5d (2026-10-27 05:32–06:47): 10 av 11 gröna; H11 röd — T42 (harness, rättad)
 - **Verifierat i världen:** H5 är grön (H-B5b: E66 får aldrig en framtida registreringstid). Fastprisavtalet publicerades (H-B5), och H10 (D11 med rörligt pris nekas) är grön.
 - **H11:** F:s Z03 skickades och fick CONTRL och APERAK, men ingen Z04 kom inom 30 minuter, så bytet stod `submitted`.
