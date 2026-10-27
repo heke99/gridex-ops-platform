@@ -1,6 +1,6 @@
 # Verklighetssimuleringen — läge och nästa steg
 
-Uppdaterad 2026-10-26 kl. 22:52 UTC av Claude (session 01Az5xza…), som fortsätter på grenen `claude/wonderful-franklin-o8gx2p` (byggd på `claude/gifted-hamilton-vss1hj` `edeaed7d0`) på ägarens uppdrag. Tidigare session: 01YCH5Va…. Filen är tänkt att läsas först.
+Uppdaterad 2026-10-27 kl. 01:15 UTC av Claude (session 01Az5xza…), som fortsätter på grenen `claude/wonderful-franklin-o8gx2p` (byggd på `claude/gifted-hamilton-vss1hj` `edeaed7d0`) på ägarens uppdrag. Tidigare session: 01YCH5Va…. Filen är tänkt att läsas först.
 
 Den hör ihop med tre andra dokument:
 - [FINDINGS.md](FINDINGS.md): alla fynd. Inget tas bort därifrån.
@@ -13,6 +13,8 @@ Den hör ihop med tre andra dokument:
   - **Batch 5 (ny) pågår från 21:21 UTC** på `063587a69`: K, I, A, J1, H, J2, J4, F, G i banan als och stuck-detector, grid-owner-wire i banan free. Logg `/tmp/claude-0/batch5.log`. E körs därefter i en egen värld med testbanan; C och J3 körs ensamma.
   - **Batch 5, resultat hittills:** stuck-detector och grid-owner-wire gröna; K 10/12 (K4/K8 = A-B4, harness, rättad); I 4 gröna, 6 överhoppade (I-B5, produkt, KRITISK, rättad `547321093`). A avbröts 22:50 eftersom den körde den gamla bygget, som har I-B5.
   - **22:51 UTC:** appen byggs om på `547321093` (I-B5, F113 TS, A-B4). Därefter körs resten av batch 5 (A, J1, H, J2, J4, F, G) och sedan K och I om. Logg `/tmp/claude-0/batch5b.log`.
+  - **Fjärde omstarten av containern (2026-10-27 ca 00:55–01:10 UTC):** J2 i batch 5b försvann. Världens data fanns kvar (även de manuellt applicerade `20261026170000` och `20261026180000`). dockerd startades, gx-mail togs bort och `up.sh` kördes med `SKIP_REPLAY=1 SKIP_BUILD=1` (bygget på `547321093` gäller, senare commits är bara harness).
+  - **Batch 5c från ca 01:15 UTC** på `175912712`: I, A, J1 (verifierar I-B5, A-B4b, J1-B5), J2, J4, H (H-B5/H-B5b), K, F, G. Logg `/tmp/claude-0/batch5c.log`.
   - **Kvar av övertagandet i #840:** F113 (`20261026170000`), J2-05 och J4-D15 (`20261026190000`). A-B4 utreds när A har kört i den nya världen.
 - **Batch 5 pågår (2026-10-26 från ca 20:45 UTC):** J1, H, J2, J4, F och G på `0636d475b` (med I-B4). Logg `/tmp/claude-0/batch5.log`.
   - Batch 4 gav K 10/12 (K-B4, rättad), I 3 gröna/1 röd (I-B4, rättad) och A 4/7 (A-B4, agent). J1 försvann i den tredje omstarten.
