@@ -465,7 +465,7 @@ describe.sequential('reality H — the customer leaves', () => {
     const row = sql<Row>(`SELECT to_jsonb(u) FROM (SELECT total_kwh::float8 kwh,readiness_status,payload->>'charge_kind' kind,billing_period_start::text start FROM public.billing_underlays WHERE id=${literal(underlayId)}) u`)
     expect(row).toMatchObject({ kwh: 0, readiness_status: 'blocked', kind: 'break_fee' })
     // Priced by the existing engine from the approved charge only: one break_fee line with the classified VAT, no energy.
-    const priced = await calculatePricingPreviewForUnderlay({ companyId: tenant.companyId, billingUnderlayId: underlayId })
+    const priced = await calculatePricingPreviewForUnderlay({ companyId: tenant.companyId, billingUnderlayId: underlayId, persist: true })
     report.d11Pricing = priced
     expect(priced.status, JSON.stringify(priced.errors)).toBe('success')
     expect(priced.lines.map(l => l.lineType)).toEqual(['break_fee'])
@@ -516,7 +516,7 @@ describe.sequential('reality H — the customer leaves', () => {
     const creditRequest = requested.data as { creditId: string; billingUnderlayId: string; adjustmentCaseId: string; amountExVat: number }
     expect(creditRequest.amountExVat).toBe(loss)
     expect((await requestCredit({ reason: 'igen' })).error?.message).toBe('break_fee_credit_pending')
-    const creditPriced = await calculatePricingPreviewForUnderlay({ companyId: tenant.companyId, billingUnderlayId: creditRequest.billingUnderlayId })
+    const creditPriced = await calculatePricingPreviewForUnderlay({ companyId: tenant.companyId, billingUnderlayId: creditRequest.billingUnderlayId, persist: true })
     report.d11CreditPricing = creditPriced
     expect(creditPriced.status, JSON.stringify(creditPriced.errors)).toBe('success')
     expect(creditPriced.lines.map(l => l.lineType)).toEqual(['break_fee_credit'])

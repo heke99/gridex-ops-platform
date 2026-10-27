@@ -2727,6 +2727,15 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **Variant, rättad:** `claim_ediel_outbox_items` har samma mönster (väljer på `priority, created_at` men returnerar utan ordning), och `processEdielOutbox` skickar posterna en i taget. En rättelse eller makulering som hämtas i samma körning som sitt original kunde lämna först. `claimEdielOutboxItems` sorterar nu på prioritet, ålder och id. Test: `__tests__/reality-i-b11-outbox-claim-order.test.ts`, rött före. Med utkorgstesterna 6 filer, 24/24. Inga fler `claim*`-funktioner med `RETURNING` och `ORDER BY` finns i världens databas.
 - **I världen:** kräver ombyggnad. I körs om.
 
+### H, batch 5e (2026-10-27 10:23–11:33): 10 av 11 gröna; H11 röd — T42 verifierad; T45 (harness, rättad)
+- **T42 verifierad i världen:** H11 fick sin Z04 och nådde brytavgiften. Avgiften godkändes en gång (`already_approved` vid upprepning), fick ett eget underlag (0 kWh, `blocked`) och prissattes av motorn med exakt en `break_fee`-rad: 600 kr exkl. moms, 750 kr inkl. moms.
+- **H11:** körningen lagrades inte (`pricingRunId` null), så inga förhandsrader fanns. Se T45.
+
+### T45 H11 prissatte brytavgiften utan att be om en lagrad körning — HARNESS; RÄTTAD
+- `calculatePricingPreviewForUnderlay` (`lib/pricing/engine.ts`) lagrar bara när `persist` är satt (`input.persist ? persistPricingRun(…) : null`). Alla produktanrop anger `persist` uttryckligen (adaptern `?? true`, reprice-routen `true`, preview-routen enligt anropet). Bara H11 utelämnade det och fick en förhandsvisning.
+- **Rättning:** H11 anropar med `persist: true` för både avgiften och krediten.
+- **Iakttagelse (låg, ej ändrad):** samma funktion kontrollerar periodlåset med `persist !== false`, alltså även för en förhandsvisning utan `persist`. Det är strängare, inte farligt.
+
 ### J4, batch 5e (2026-10-27 10:18–10:23): 7 av 8 gröna; J4-6 röd — T41 verifierad; T44 (harness, rättad)
 - **T41 verifierad i världen:** den korrelerade negativa APERAK:en (ERC 42/227) kopplas nu till vår Z01. Dataförfrågan blir `failed` med nätägarens kod och exakta text ("Felaktigt Kund-id 'Åsa Öberg' (Ä): 19XX? + fel postnr?"). Den negativa CONTRL:en på W2 ger `contrl_status` `failed`.
 - **J4-6:** Z01:ans `aperak_status` var `received` med `ack_outcome` `negative`. Se T44.
