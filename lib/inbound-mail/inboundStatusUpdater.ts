@@ -688,6 +688,8 @@ async function updateOutboundEdielAckState(input: {
     .eq('company_id', input.companyId)
     .eq('direction', 'outbound')
     .eq('outbound_request_id', input.outboundRequestId)
+    // J1-11: our own replies on a received file of the same request are never the acknowledged original.
+    .not('message_family', 'in', '(CONTRL,APERAK,UTILTS_ERR)')
     .order('created_at', { ascending: false })
     .limit(5)
 

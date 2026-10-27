@@ -10,6 +10,9 @@ import { recordInboundReception } from '@/lib/ediel/inbound/receptions'
 import { canonicalAckRequirementsForFamilyCode } from '@/lib/ediel/rulebook/canonicalEdielFacade'
 import { OUTBOUND_POSITIVE_CONTRL_GUARD_FILTER, OUTBOUND_SETTLED_STATUS_FILTER } from '@/lib/cis/outboundStatusLattice'
 
+/** Our own replies; never an acknowledged original (lib/inbound-mail/inboundMatcher.ts excludes the same families). */
+export const OWN_ACK_FAMILY_FILTER = '(CONTRL,APERAK,UTILTS_ERR)'
+
 function nowIso(): string {
   return new Date().toISOString()
 }
@@ -277,11 +280,15 @@ async function updateOutboundAck(input: {
   }
 
   if (outboundRequestId) {
+    // J1-11: our own CONTRL/APERAK/UTILTS_ERR on a received business file (e.g. a Z04 that came before this ACK)
+    // inherit the request's outbound_request_id. They are never the acknowledged original (the outbound matcher
+    // excludes them too): their related_message_id stays the source they answer and they get no ACK columns.
     await supabaseService.from('ediel_messages').update({
       ...columns,
       related_message_id: input.inboundEdielMessageId ?? undefined,
       updated_at: nowIso(),
     }).eq('company_id', input.companyId).eq('direction', 'outbound').eq('outbound_request_id', outboundRequestId)
+      .not('message_family', 'in', OWN_ACK_FAMILY_FILTER)
   } else if (input.outboundMatch.entityType === 'ediel_message') {
     await supabaseService.from('ediel_messages').update({
       ...columns,
