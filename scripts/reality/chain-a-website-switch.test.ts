@@ -53,11 +53,15 @@ const POSTAL_CENTROIDS = [{ postal_code: '441 30', latitude: 57.9303, longitude:
 /** Per facility: application → switch request → Ediel messages, as the operator's Ediel overview shows it. */
 function switchState() {
   return sql<Array<Record<string, unknown>>>(`SELECT coalesce(jsonb_agg(jsonb_build_object('application',a.application_number,'application_status',a.status,
-      'grid_area',a.grid_area_code,'switch_status',s.status,'process',s.process_type,'start',coalesce(s.confirmed_start_date,s.requested_start_date),
+      -- The resolved grid area is the facility's (site and metering point, set by the Z02); the application keeps only
+      -- what the customer typed, and a website customer types none (FINDINGS T46).
+      'grid_area',coalesce(mp.grid_area_code,cs.grid_area_code),'switch_status',s.status,'process',s.process_type,'start',coalesce(s.confirmed_start_date,s.requested_start_date),
       'z03',(SELECT m.status FROM public.ediel_messages m WHERE m.switch_request_id=s.id AND m.message_code LIKE 'Z03%' ORDER BY m.created_at DESC LIMIT 1),
       'z04',s.inbound_z04_message_id IS NOT NULL,'blockers',s.metadata->'blockers') ORDER BY a.application_number),'[]')
     FROM public.website_customer_applications a
     LEFT JOIN public.supplier_switch_requests s ON s.company_id=a.company_id AND s.metering_point_id=a.metering_point_id
+    LEFT JOIN public.metering_points mp ON mp.id=a.metering_point_id AND mp.company_id=a.company_id
+    LEFT JOIN public.customer_sites cs ON cs.id=a.customer_site_id AND cs.company_id=a.company_id
     WHERE a.company_id=${literal(tenant.companyId)}`)
 }
 
@@ -153,8 +157,12 @@ describe.sequential('reality A — website customers switch supplier', () => {
 
   it('A4 the grid owner received one switch request per facility and our acknowledgement of every confirmation', async () => {
     const sim = await gridOwner.state()
-    const z03 = sim.received.filter(m => m.family === 'PRODAT' && m.code === 'Z03')
-    const ours = sim.received.filter(m => m.family === 'CONTRL')
+    // The grid owner's mailbox is shared with every ALS tenant of the world (earlier runs' tenants send their pending
+    // switches too), so only this tenant's own interchanges count (FINDINGS T46).
+    const own = new Set(sql<string[]>(`SELECT coalesce(jsonb_agg(interchange_reference),'[]') FROM public.ediel_messages
+      WHERE company_id=${literal(tenant.companyId)} AND direction='outbound' AND interchange_reference IS NOT NULL`))
+    const z03 = sim.received.filter(m => own.has(m.interchange) && m.family === 'PRODAT' && m.code === 'Z03')
+    const ours = sim.received.filter(m => own.has(m.interchange) && m.family === 'CONTRL')
     report.gridOwnerSummary = { z03: z03.length, contrlFromSupplier: ours.length, sent: sim.sent.map(s => s.kind), failures: sim.failures }
     expect(sim.failures).toEqual([])
     expect(z03).toHaveLength(4)

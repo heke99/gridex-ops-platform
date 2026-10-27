@@ -2727,6 +2727,22 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **Variant, rättad:** `claim_ediel_outbox_items` har samma mönster (väljer på `priority, created_at` men returnerar utan ordning), och `processEdielOutbox` skickar posterna en i taget. En rättelse eller makulering som hämtas i samma körning som sitt original kunde lämna först. `claimEdielOutboxItems` sorterar nu på prioritet, ålder och id. Test: `__tests__/reality-i-b11-outbox-claim-order.test.ts`, rött före. Med utkorgstesterna 6 filer, 24/24. Inga fler `claim*`-funktioner med `RETURNING` och `ORDER BY` finns i världens databas.
 - **I världen:** kräver ombyggnad. I körs om.
 
+### A, batch 6 (2026-10-27 13:06–13:21, ombyggd app på `2aa3f43e5`): 4 av 7 gröna; A3–A5 röda — A-B6 verifierad; A-B7 (produkt, KRITISK, rättad och verifierad i världen) och T46 (harness, rättad)
+- **A-B6 verifierad i världen:** alla fyra webbkunders Z03 skickades, och nätägaren bekräftade dem med Z04. Alla fyra byten är `accepted`, med leveransperioder `confirmed_by_grid_owner` som vilar på nätägarens bekräftelse (`ediel_qualified_source`). Webbvägen fungerar för första gången hela vägen till bekräftad leverans.
+- **A5:** inflyttningen med start i dag aktiverades aldrig. Se A-B7.
+- **A3/A4:** se T46.
+
+### A-B7 En webbkunds bekräftade byte kunde aldrig aktiveras — PRODUKT, KRITISK för webbvägen; RÄTTAD (migration `20261027130000`, applicerad i världen)
+- **Bevis i världen:** aktiveringssvepet (`gridex_process_ready_supplier_switch_activations`) föll 13:21:36 med `customer_contracts_billing_identity_check` (23514). Kundautomationens cron returnerade 500 (`supplier_switch_activation_failed`) för alla tenanter.
+- **Orsak:** aktiveringen sätter avtalets `billing_eligible_at`, och kontrollen kräver då bland annat `snapshot_hash`. Personalens signering (`gridex_finalize_customer_contract_signature_v1`) kopierar den bundna prissnapshotens hash till avtalet, men båda överlagringarna av `gridex_finalize_website_contract_signature` gör det inte. Alla fyra webbavtal saknade hashen, trots att deras prissnapshots har den (64 tecken).
+- **Rättning:** en BEFORE-trigger fyller ett tomt `snapshot_hash` på ett `signed`/`active` avtal från avtalets egen bundna prissnapshot (samma bolag, samma avtal, `contract_price_snapshot_id`). Det är exakt värdet personalens signering skriver. Den täcker båda webböverlagringarna och redan signerade webbavtal vid nästa uppdatering, till exempel aktiveringen. En befintlig hash ändras aldrig, och ingen lagrad rad skrivs om. `snapshot_hash` hör inte till kolumnerna som `customer_contracts_lock_signed` fryser.
+- **Test:** `scripts/reality-a-b7-contract-snapshot-hash-native.test.ts`: världens webbavtal från A och det riktiga aktiveringsanropet i en transaktion som alltid rullas tillbaka. Först vägras det (kontrollen), och med migrationen aktiveras bytet: perioden `active`, avtalet `active` och hashen lika med snapshotens.
+- **Verifierat i världen:** efter att migrationen applicerats aktiverade cronen A:s inflyttning (perioden `active`, bytet `completed`).
+
+### T46 A räknade alla tenanters Z03 i nätägarens brevlåda och läste ansökans nätområde — HARNESS; RÄTTAD
+- **A4:** nätägarsimulatorn tog emot 9 Z03 från tre avsändare (70453, 70454, 70455). 70453 och 70454 är tidigare A-körningars tenanter, vars väntande byten (stoppade av A-B6) skickades korrekt efter ombyggnaden. A4 räknar nu bara den egna tenantens utgående interchange.
+- **A3:** ansökans `grid_area_code` sparar bara vad kunden själv angav, och en webbkund anger inget (0 av 52 ansökningar i världen har det). Det fastställda nätområdet ligger på anläggningen och mätpunkten (ALS, satt av Z02), och A3 läser nu det.
+
 ### J4, batch 6 (2026-10-27 12:59–13:06, ombyggd app på `2aa3f43e5`): 8 av 8 gröna — T44 verifierad
 
 ### G, batch 5e (2026-10-27 12:13–12:47): 10 av 11 gröna; G10 röd — BLOCKERAD av världens datum, inget fynd
