@@ -2727,6 +2727,16 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **Variant, rättad:** `claim_ediel_outbox_items` har samma mönster (väljer på `priority, created_at` men returnerar utan ordning), och `processEdielOutbox` skickar posterna en i taget. En rättelse eller makulering som hämtas i samma körning som sitt original kunde lämna först. `claimEdielOutboxItems` sorterar nu på prioritet, ålder och id. Test: `__tests__/reality-i-b11-outbox-claim-order.test.ts`, rött före. Med utkorgstesterna 6 filer, 24/24. Inga fler `claim*`-funktioner med `RETURNING` och `ORDER BY` finns i världens databas.
 - **I världen:** kräver ombyggnad. I körs om.
 
+### I, batch 6 (2026-10-27 13:21–14:01, ombyggd app på `2aa3f43e5`): 8 av 10 gröna; I4 och I8 röda — I-B11 och I-B12 verifierade; nytt I-B13 (produkt, öppen)
+- **I-B12 verifierad:** I6 grön. Den tysta switchen visas som "Kvittens försenad".
+- **I-B11 verifierad:** S9:s svar behandlades nu i den ordning de skickades: CONTRL 13:27:20, Z04 13:27:23, APERAK 13:27:24.
+- **I8 och I4 (7 ärenden mot 6):** fortfarande S9. Se I-B13.
+
+### I-B13 En Z04 som kom före en negativ APERAK hann inte bekräfta bytet, så APERAK:en avgjorde — PRODUKT, hög (P-11); ÖPPEN
+- **Bevis i världen:** S9:s Z04 validerades 13:27:23.997, men dess affärsbedömning (`gridex_received_sources.object_assessments`) gjordes först 13:27:29.97. Den negativa APERAK:en (huvudfel, ERC 40/102) behandlades däremellan, 13:27:24.58, och gjorde bytet `failed`. Bedömningen gav sedan `unavailable` / `source_owner_not_established`, så Z04:an kopplades aldrig.
+- **Orsak:** en Z04 tillämpas i två steg (intag, sedan källbedömning som bekräftar bytet via `normal_switch_confirm_v1`). Kvittensägaren prövar bara om bytet redan är bekräftat. En Z04 som tagits emot men ännu inte bedömts räknas inte, så en senare negativ APERAK vinner. Det strider mot P-11, och nätägarens egen ordning (Z04 08:06:17, APERAK 08:06:32) följs inte.
+- **Förslag (ej gjort):** den negativa APERAK-vägen skjuter upp sin byteseffekt när en validerad, ännu inte bedömd Z04 för samma byte och anläggning togs emot före APERAK:en. Efter Z04:ans bedömning gäller den befintliga P-11-regeln (sen APERAK efter Z04 ger en varning på bytet). Berör kvittensauktoriteten (ACK-01, godkänd) och samma filer som J1-11, så det görs efter J1-paketet.
+
 ### A, batch 6 (2026-10-27 13:06–13:21, ombyggd app på `2aa3f43e5`): 4 av 7 gröna; A3–A5 röda — A-B6 verifierad; A-B7 (produkt, KRITISK, rättad och verifierad i världen) och T46 (harness, rättad)
 - **A-B6 verifierad i världen:** alla fyra webbkunders Z03 skickades, och nätägaren bekräftade dem med Z04. Alla fyra byten är `accepted`, med leveransperioder `confirmed_by_grid_owner` som vilar på nätägarens bekräftelse (`ediel_qualified_source`). Webbvägen fungerar för första gången hela vägen till bekräftad leverans.
 - **A5:** inflyttningen med start i dag aktiverades aldrig. Se A-B7.
