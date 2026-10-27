@@ -1,6 +1,6 @@
 # Verklighetssimuleringen — läge och nästa steg
 
-Uppdaterad 2026-10-27 kl. 13:05 UTC av Claude (session 01Az5xza…), som fortsätter på grenen `claude/wonderful-franklin-o8gx2p` (byggd på `claude/gifted-hamilton-vss1hj` `edeaed7d0`) på ägarens uppdrag. Tidigare session: 01YCH5Va…. Filen är tänkt att läsas först.
+Uppdaterad 2026-10-27 kl. 14:20 UTC av Claude (session 01Az5xza…), som fortsätter på grenen `claude/wonderful-franklin-o8gx2p` (byggd på `claude/gifted-hamilton-vss1hj` `edeaed7d0`) på ägarens uppdrag. Tidigare session: 01YCH5Va…. Filen är tänkt att läsas först.
 
 Den hör ihop med tre andra dokument:
 - [FINDINGS.md](FINDINGS.md): alla fynd. Inget tas bort därifrån.
@@ -37,6 +37,9 @@ Den hör ihop med tre andra dokument:
     - F avbröts 12:57 (3–4 h) för att köras på det nya bygget.
     - Hela enhetstestsviten: 1 415 filer gröna efter två rättningar (RBAC-granskning av I-B2d:s åtgärd och manifestet för J2-B6/B7).
   - **Batch 6 från 13:00 UTC:** ombyggd app på `2aa3f43e5` (A-B6, I-B11, I-B12, J2-B6:s felmeddelande). J4, A, I, J2, K, H, F. Logg `/tmp/claude-0/batch6.log` (bygget `/tmp/claude-0/up6.log`).
+    - J4 8/8 (T44 verifierad). A 4/7: A-B6 verifierad, webbvägen når bekräftad leverans; nytt A-B7 (aktivering vägrades, KRITISK) rättat (migration `20261027130000`, applicerad) och verifierat; T46 (harness) rättad. I 8/10: I-B11 och I-B12 verifierade; nytt I-B13 (Z04 före negativ APERAK förlorar, öppen).
+    - J2 pågår från 14:01, därefter K, H och F.
+  - **Parallella agenter från 14:05 UTC** (egna arbetskopior, rör inte världen): (1) J1-02, J1-05 och J1-11; (2) J2-05. Deras commits granskas och förs in på grenen. I-B13 ges till en agent när J1-paketet är klart (samma filer).
   - **Kvar av övertagandet i #840:** F113 (`20261026170000`), J2-05 och J4-D15 (`20261026190000`). A-B4 utreds när A har kört i den nya världen.
 - **Batch 5 pågår (2026-10-26 från ca 20:45 UTC):** J1, H, J2, J4, F och G på `0636d475b` (med I-B4). Logg `/tmp/claude-0/batch5.log`.
   - Batch 4 gav K 10/12 (K-B4, rättad), I 3 gröna/1 röd (I-B4, rättad) och A 4/7 (A-B4, agent). J1 försvann i den tredje omstarten.
