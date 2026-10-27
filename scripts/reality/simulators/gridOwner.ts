@@ -148,7 +148,9 @@ async function sendE66(file: E66File) {
   const reference = file.reference ?? `${file.day.replaceAll('-', '').slice(2)}${file.meterId.slice(-6)}${file.registeredAfterHours ? 'C' : ''}`
   const values = file.values ?? dayProfile(file.dayIndex ?? 0)
   await deliver('UTILTS-E66', dailyE66({ issuer: config.edielId, receiver: file.receiver, meterId: file.meterId, day: file.day, values, reference,
-    resolutionMinutes: file.resolutionMinutes, registeredAfterHours: file.registeredAfterHours, environment: file.environment }), reference)
+    resolutionMinutes: file.resolutionMinutes, registeredAfterHours: file.registeredAfterHours, environment: file.environment,
+    // Never in the future; a correction stays later than an original capped in the same batch (FINDINGS H-B5b).
+    notAfter: Date.now() - (file.registeredAfterHours ? 60_000 : 120_000) }), reference)
   return { meterId: file.meterId, day: file.day, reference, kwh: Math.round(values.reduce((a, b) => a + b, 0) * 1000) / 1000 }
 }
 

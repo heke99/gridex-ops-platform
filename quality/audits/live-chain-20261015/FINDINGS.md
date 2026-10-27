@@ -2691,6 +2691,20 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
   - **Rättning:** båda binder anläggningens senaste signerade avtal via `findLatestSignedContractIdForSite` (`lib/customer-operations/switchReadiness.ts`), samma uppslagning som beredskapskontrollen redan gjorde, nu utbruten: exakt bolag, kund och anläggning, status `signed`, nyast först. Formuläret skickar även `companyId`. Saknas avtal binds inget och vakten avgör som förut.
   - **Test:** `__tests__/reality-i-b4v-staff-switch-exact-contract.test.ts`, 4 fall (annan tenant, annan anläggning, äldre och osignerade avtal vinner aldrig). Före rättningen 3 röda, efter 4/4. Med I-B- och switch-testerna 10 filer, 77/77.
 
+### H, batch 5 (2026-10-27 00:05–00:49, ombyggd app): 9 av 11 gröna; H5 och H11 röda — H-B5 och H-B5b (harness, rättade)
+- **Gröna:** H1–H4 och H6–H10, så H3d, H-9–H-17 och ägarbeslut 26 håller fortfarande.
+- **H5:** körningen korsade midnatt UTC (TODAY blev 2026-10-27), och dag 26 saknas för alla kunder. Två E66 avvisades med negativ APERAK: `UTILTS_MESSAGE_DATE_INVALID` ("INCORRECT DATA 202610270600", fält 205). Se H-B5b.
+- **H11 (D11 end-to-end):** fastprisavtalet publicerades aldrig: `contract_version_not_publishable`, `resolution_mismatch` (förväntad `fixed`, fick `quarterly`). Se H-B5.
+
+### H-B5 Harnessens fastprisavtal hade prisupplösningen `quarterly` — HARNESS; RÄTTAD
+- **Orsak:** `publishFixedPriceOffer` (`scripts/helpers/live-chain-fixture.ts`, D11-G2) gav fastprisversionen `interval_resolution: 'quarterly'`. Produktens beredskap kräver `fixed` när `contract_type` är `fixed` (`20260727030000`, `v_expected_resolution`), så publiceringen vägrades korrekt.
+- **Rättning:** `interval_resolution: 'fixed'`. Verifieras när H11 körs om.
+
+### H-B5b Simulatorns E66 kunde få en registreringstid i framtiden — HARNESS; RÄTTAD
+- **Orsak:** `dailyE66` (`scripts/helpers/live-chain-wire.ts`) stämplar alltid 06:00 +0100 morgonen efter dagen, och simulatorns `sendE66` angav ingen gräns. Det träffar alla körningar före 05:00 UTC, och här en dag som just hade slutat. Produkten vägrar korrekt ett framtida meddelandedatum. K, G och J2 hade redan `notAfter` i sina egna byggare, men simulatorn saknade det.
+- **Rättning:** `dailyE66` tar `notAfter`. Simulatorn sätter det till nu − 2 min (original) och nu − 1 min (korrigering), så en korrigering förblir senare än originalet i samma batch.
+- **Test:** `__tests__/reality-h-b5b-e66-registration-not-future.test.ts`, 3 fall. Med DST- och tolkningstesterna 41/41.
+
 ### J1, batch 5 (2026-10-26 23:25–00:05, ombyggd app): 4 av 12 gröna; J1-4–J1-9, J1-11 och J1-12 röda — J1-B5 (harness, rättad)
 - **Framsteg:** J1-2 och J1-3 är gröna. Tio Z03 nådde nätägaren och kvitterades (I-B2a, I-B4 och I-B5 verkar), och nätägaren svarade med Z04.
 - **Nytt:** alla tolv Z04 står `validated`, och plattformen svarade med negativ APERAK (ERC 42 på fält 214 och 218, "Felaktigt Konstant för mätare :::1 / :::1"). Bytena står kvar `submitted`.

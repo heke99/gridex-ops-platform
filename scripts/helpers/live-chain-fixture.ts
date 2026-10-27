@@ -339,7 +339,9 @@ export type LiveOffer = { offerId: string; publicationVersionId: string }
 export async function publishFixedPriceOffer(tenant: LiveTenant, input: { fixedOrePerKwh: number; terms: { bindingMonths: number; noticeMonths: number; renewalMonths: number } }): Promise<LiveOffer> {
   const { supabaseService: supabase } = await import('@/lib/supabase/service')
   const { companyId, adminUserId } = tenant, terms = input.terms, sek = Math.round(input.fixedOrePerKwh) / 100
-  const pricing = { schema: 'gridex_contract_pricing_v5', pricing_model: 'fixed', energy_direction: 'consumption', interval_resolution: 'quarterly', vat_rate: 0.25,
+  // A fixed-price version's interval resolution is 'fixed' (contract readiness: contract_type 'fixed' expects it;
+  // 'quarterly' was refused with resolution_mismatch, FINDINGS H-B5).
+  const pricing = { schema: 'gridex_contract_pricing_v5', pricing_model: 'fixed', energy_direction: 'consumption', interval_resolution: 'fixed', vat_rate: 0.25,
     price_areas: ['SE3'], base_components: [{ source_type: 'fixed', label: 'Fast pris', weight_percent: 100, fixed_price_sek_per_kwh: sek, price_area: 'SE3' }],
     price_components: [
       { component_code: 'monthly_fee', component_type: 'fee', name: 'Månadsavgift', calculation_type: 'fixed_monthly', amount: 49, unit: 'sek_month', website_card_visible: true },

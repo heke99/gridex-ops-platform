@@ -65,12 +65,14 @@ export function stockholmUnbStamp(instant: number) {
  * morning after) later, as a grid owner does when it re-sends corrected values for the same day.
  */
 export function dailyE66(input: { issuer: string; receiver: string; meterId: string; day: string; values: number[]; reference: string;
-  resolutionMinutes?: 15 | 60; registeredAfterHours?: number; environment?: 'production' | 'test' }) {
+  resolutionMinutes?: 15 | 60; registeredAfterHours?: number; notAfter?: number; environment?: 'production' | 'test' }) {
   const step = input.resolutionMinutes ?? 15
   const count = (24 * 60) / step
   if (input.values.length !== count) throw Error(`dailyE66 requires ${count} values for ${step}-minute resolution on ${input.day}`)
   const { start, end } = edielDayUtc(input.day)
-  const registered = end + (6 + (input.registeredAfterHours ?? 0)) * HOUR_MS
+  // `notAfter` caps the registration: a grid owner cannot register values in the future (DTM+137 may not lie after
+  // reception; FINDINGS H-B5b, a day that ended just before midnight UTC was stamped 06:00 the next morning).
+  const registered = Math.min(end + (6 + (input.registeredAfterHours ?? 0)) * HOUR_MS, input.notAfter ?? Number.POSITIVE_INFINITY)
   const lines = [
     "UNA:+.? '",
     `UNB+UNOC:3+${input.issuer}:ZZ+${input.receiver}:ZZ+${stockholmUnbStamp(registered)}+${input.reference}++23-DDQ-E66-T${input.environment === 'production' ? '' : '++++1'}'`,
