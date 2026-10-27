@@ -2727,6 +2727,11 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **Variant, rättad:** `claim_ediel_outbox_items` har samma mönster (väljer på `priority, created_at` men returnerar utan ordning), och `processEdielOutbox` skickar posterna en i taget. En rättelse eller makulering som hämtas i samma körning som sitt original kunde lämna först. `claimEdielOutboxItems` sorterar nu på prioritet, ålder och id. Test: `__tests__/reality-i-b11-outbox-claim-order.test.ts`, rött före. Med utkorgstesterna 6 filer, 24/24. Inga fler `claim*`-funktioner med `RETURNING` och `ORDER BY` finns i världens databas.
 - **I världen:** kräver ombyggnad. I körs om.
 
+### G, batch 5e (2026-10-27 12:13–12:47): 10 av 11 gröna; G10 röd — BLOCKERAD av världens datum, inget fynd
+- **G1–G9 och G11 gröna.** Oktoberunderlaget stämmer med en oberoende beräkning, inklusive sommartidens extra timme: 2 976 kvartar och 689,943 kWh.
+- **J2-B6 syns även här:** prissättningen av oktober lagrades som en misslyckad körning med orsak, i stället för att rullas tillbaka.
+- **G10:** "Medelspotpris saknas för perioden och elområdet." 288 kvartar i slutet av oktober har inget spotpris ännu, eftersom världens datum är 27 oktober. Produkten gör rätt som inte fakturerar utan pris. Harnessen anger det som `unreachable` (G9). Bedöms när oktober är prissatt.
+
 ### J1, batch 5e (2026-10-27 11:33–12:13): 5 av 12 gröna, samma som 5d — T40 verifierad; inga nya fynd
 - **T40 verifierad:** J1-11 kräver inte längre bort CONTRL på APERAK. Det som återstår där är APERAK som saknas.
 - **Röda, alla kända öppna:** J1-5 = J1-01, J1-7 = J1-11, J1-8 = J1-05, J1-9 = J1-10 och J1-10 = J1-02. J1-11/J1-12 är de APERAK som uteblir för de hållna Z04:orna (följd av J1-01, J1-02 och J1-10) och för Z06 E/F/G i granskning (J1-14, ägarbeslut krävs).
