@@ -2727,6 +2727,17 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **Variant, rättad:** `claim_ediel_outbox_items` har samma mönster (väljer på `priority, created_at` men returnerar utan ordning), och `processEdielOutbox` skickar posterna en i taget. En rättelse eller makulering som hämtas i samma körning som sitt original kunde lämna först. `claimEdielOutboxItems` sorterar nu på prioritet, ålder och id. Test: `__tests__/reality-i-b11-outbox-claim-order.test.ts`, rött före. Med utkorgstesterna 6 filer, 24/24. Inga fler `claim*`-funktioner med `RETURNING` och `ORDER BY` finns i världens databas.
 - **I världen:** kräver ombyggnad. I körs om.
 
+### H, batch 6 (2026-10-27 16:10–17:12): 10 av 11 gröna; H11 röd — T45 verifierad; nytt H-B6 (produkt, hög, rättat och verifierat i världen)
+- **T45 verifierad:** brytavgiftens prissättning lagras (en `break_fee`-rad, 600 kr exkl. moms) och låses en gång.
+- **H11:** fakturautkastet för brytavgiftens underlag föll med "Draftfakturan kunde inte skapas.". Se H-B6.
+
+### H-B6 En godkänd brytavgift kunde aldrig faktureras — PRODUKT, hög (ägarbeslut 28); RÄTTAD (migration `20261027160000`, applicerad i världen)
+- **Bevis i världen:** postgresloggen 17:11:57 visar `billing_finalized_source_basis_required` från `gridex_create_billing_export_run`, efter att brytavgiftens prissättning låsts.
+- **Orsak:** D11 (`20261025120000`) godkänner ett brytavgiftsunderlag genom dess egen godkända avgift, men bara i `gridex_read_billing_underlay_source_basis_v1`. Fakturaberedningen skapar utkastet genom `gridex_create_billing_export_run`, som kräver en källbindning av mätvärden (`require_underlay_v1`) för varje färdig rad. Ett brytavgiftsunderlag har inga mätvärden och därmed ingen bindning.
+- **Rättning:** samma regel som D11, ordagrant, även i `gridex_create_billing_export_run`: en färdig rad vars underlag är ett brytavgiftsunderlag i samma bolag godtas när dess egen avgift (samma bolag, `billing_underlay_id`, `payload.break_fee_charge_id`) är `underlaid` eller `invoiced`. Alla andra rader prövas som förut, och de efterföljande kontrollerna (exakt avtal, prissnapshot, låst prissättning) gäller alla rader. Triggern `break_fee_charge_invoiced` vägrar fortfarande en andra faktura. Exakt nålbyte med kontroll av ägare, ACL, säkerhetsläge och konfiguration.
+- **Test:** `scripts/reality-h-b6-break-fee-export-run-native.test.ts`: världens brytavgiftsunderlag från H11 i en transaktion som alltid rullas tillbaka. Den gamla kroppen vägrar, med migrationen skapas körningen, och ett obundet energiunderlag vägras fortfarande. Brytavgifts- och D11-testerna 6 filer gröna, migrationskontrollen och aud-003 gröna.
+- **Verifierat i världen:** H11:s egen fakturaberedning (`prepareInvoiceDraftsForReview`, avgränsad till underlaget) skapade därefter exakt en faktura på 600 kr exkl. moms, och avgiften blev `invoiced`.
+
 ### K, batch 6 (2026-10-27 15:47–16:10): 12 av 12 gröna — A-B5 och T43 verifierade
 
 ### J2, batch 6 (2026-10-27 14:01–15:47, app på `2aa3f43e5`, J2-05 applicerad 14:37): 12 av 14 gröna — J2-B6, J2-B7 och J2-05 verifierade; J2-10 = J2-02 (ägarbeslut)
