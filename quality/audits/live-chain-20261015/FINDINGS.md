@@ -2724,6 +2724,7 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **Orsak:** `claim_inbound_processing_jobs` väljer de äldsta jobben (`order by created_at`), men returnerar `UPDATE … RETURNING` utan ordning (`select * from updated`). `processQueuedInboundProcessingJobs` behandlade jobben i den ordningen.
 - **Rättning:** `claimQueuedInboundProcessingJobs` (`lib/inbound-mail/edielMailboxPoller.part-2.ts`) sorterar de hämtade jobben på `created_at` och sedan `id`, alltså i den ordning mailen lagrades. Den skyddade SQL-kroppen ändras inte. Reservvägen var redan sorterad.
 - **Test:** `__tests__/reality-i-b11-inbound-jobs-arrival-order.test.ts`, 2 fall, röda före. Med jobbtesterna för intaget 11 filer, 60/60.
+- **Variant, rättad:** `claim_ediel_outbox_items` har samma mönster (väljer på `priority, created_at` men returnerar utan ordning), och `processEdielOutbox` skickar posterna en i taget. En rättelse eller makulering som hämtas i samma körning som sitt original kunde lämna först. `claimEdielOutboxItems` sorterar nu på prioritet, ålder och id. Test: `__tests__/reality-i-b11-outbox-claim-order.test.ts`, rött före. Med utkorgstesterna 6 filer, 24/24. Inga fler `claim*`-funktioner med `RETURNING` och `ORDER BY` finns i världens databas.
 - **I världen:** kräver ombyggnad. I körs om.
 
 ### I-B12 Ett utskick som övervakningen flaggat `waiting_attention` visades som "Oklassificerad" — PRODUKT, medel; RÄTTAD

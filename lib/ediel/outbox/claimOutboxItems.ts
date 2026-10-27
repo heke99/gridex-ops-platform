@@ -9,6 +9,15 @@ export type ClaimedEdielOutboxItem = {
   environment: string | null
   locked_by?: string | null
   current_send_attempt_id?: string | null
+  priority?: number | null
+  created_at?: string | null
+}
+
+// The RPC's ORDER BY only chooses which items are claimed; UPDATE ... RETURNING gives them back in no order. Items are
+// sent by priority, then age, so an original leaves before a correction claimed in the same run (FINDINGS I-B11).
+function inSendOrder(items: ClaimedEdielOutboxItem[]): ClaimedEdielOutboxItem[] {
+  const at = (item: ClaimedEdielOutboxItem) => Date.parse(item.created_at ?? '') || 0
+  return [...items].sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0) || at(a) - at(b) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
 }
 
 function clean(value: unknown): string | null {
@@ -60,7 +69,7 @@ export async function claimEdielOutboxItems(params: {
   })
 
   if (error) throw error
-  const claimed = (data ?? []) as ClaimedEdielOutboxItem[]
+  const claimed = inSendOrder((data ?? []) as ClaimedEdielOutboxItem[])
   const allowed: ClaimedEdielOutboxItem[] = []
   for (const item of claimed) {
     if (!item.company_id) {
