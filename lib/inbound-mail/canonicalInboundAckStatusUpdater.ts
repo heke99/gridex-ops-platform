@@ -241,8 +241,21 @@ async function persistInboundAck(input: {
 }
 
 
+/** I-B13: a grid owner's Z04 on this outbound request (our Z03) of the same tenant, stored by an earlier intake job
+ * (jobs run in the order the mails were stored, I-B11) and not itself failed. Its native assessment may still be
+ * pending. A read failure keeps the ACK-01 alarm (the previous behaviour). */
+async function gridOwnerZ04ReceivedBefore(input: { companyId: string; environment: string | null; outboundRequestId: string }): Promise<boolean> {
+  let query = supabaseService.from('ediel_messages').select('id')
+    .eq('company_id', input.companyId).eq('direction', 'inbound').eq('message_family', 'PRODAT').eq('message_code', 'Z04')
+    .eq('outbound_request_id', input.outboundRequestId).not('status', 'in', '(failed,rejected)')
+  if (input.environment === 'test' || input.environment === 'production') query = query.eq('environment', input.environment)
+  const { data, error } = await query.limit(1)
+  return !error && Array.isArray(data) && data.length > 0
+}
+
 async function updateOutboundAck(input: {
   companyId: string
+  environment?: string | null
   inboundEdielMessageId: string | null
   parsed: ParsedEdifactEnvelope
   outboundMatch: InboundEntityMatch
@@ -305,6 +318,10 @@ async function updateOutboundAck(input: {
   if (sourceType === 'supplier_switch_request') {
     // P-11: a late negative ACK never takes back a switch the grid owner already confirmed (Z04); the canonical ACK
     // owner records the contradiction for an operator instead (FINDINGS I-B9).
+    // I-B13: nor one whose Z04 the grid owner sent before this ACK but the native owner has not applied yet (the mail
+    // intake runs before any business processing). A 'rejected' mark here made the native owner hold that Z04. The
+    // canonical ACK owner still decides afterwards: failed if the Z04 does not confirm the switch, a warning if it did.
+    if (outboundRequestId && await gridOwnerZ04ReceivedBefore({ companyId: input.companyId, environment: input.environment ?? null, outboundRequestId })) return
     await supabaseService.from('supplier_switch_requests').update({
       status: 'rejected', failed_at: nowIso(), failure_reason: `${ackLabel(input.parsed)} avvisade Ediel-meddelandet.`, updated_at: nowIso(),
     }).eq('company_id', input.companyId).eq('id', sourceId).not('status', 'in', '(accepted,confirmed,active,completed)')
@@ -361,6 +378,7 @@ export async function applyCanonicalInboundAckStatusUpdate(input: {
 
   await updateOutboundAck({
     companyId: input.companyId,
+    environment: input.environment ?? null,
     inboundEdielMessageId,
     parsed: input.parsed,
     outboundMatch: input.outboundMatch,

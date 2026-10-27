@@ -1357,6 +1357,49 @@ export async function logInboundPollRun(
   });
 }
 
+type InboundBusinessLaneRow = { id?: string | null; company_id?: string | null; outbound_request_id?: string | null; created_at?: string | null };
+
+/** I-B13: the Ediel messages of one tenant that belong to the same outbound request (the grid owner's CONTRL, Z04 and
+ * APERAK on our Z03) form one lane, ordered as the intake stored them (created_at, then id). Every other message is a
+ * lane of its own. */
+export function planInboundBusinessLanes(edielMessageIds: string[], rows: InboundBusinessLaneRow[]): string[][] {
+  const wanted = new Set(edielMessageIds);
+  const byId = new Map(rows.filter((row) => row.id && wanted.has(row.id)).map((row) => [row.id as string, row]));
+  const lanes = new Map<string, InboundBusinessLaneRow[]>();
+  for (const id of Array.from(new Set(edielMessageIds))) {
+    const row = byId.get(id) ?? { id };
+    const key = row.company_id && row.outbound_request_id ? `request:${row.company_id}:${row.outbound_request_id}` : `message:${id}`;
+    lanes.set(key, [...(lanes.get(key) ?? []), row]);
+  }
+  // created_at as stored (one UTC offset, microseconds): text order is time order. A message whose row was not read
+  // keeps a lane of its own, after the read ones.
+  const text = (x: string, y: string) => (x < y ? -1 : x > y ? 1 : 0);
+  const order = (a: InboundBusinessLaneRow, b: InboundBusinessLaneRow) =>
+    (a.created_at ? 0 : 1) - (b.created_at ? 0 : 1) || text(String(a.created_at ?? ""), String(b.created_at ?? "")) || text(String(a.id), String(b.id));
+  return Array.from(lanes.values()).map((lane) => lane.sort(order).map((row) => row.id as string))
+    .sort((a, b) => order(byId.get(a[0]) ?? { id: a[0] }, byId.get(b[0]) ?? { id: b[0] }));
+}
+
+/** I-B13: business processing of one run. A Z04 the grid owner sent before a negative APERAK on the same request is
+ * applied by the native owner before the canonical ACK owner reads the switch (P-11), instead of racing it; messages
+ * in other lanes still run concurrently. A failed read falls back to one lane per message. */
+export async function runInboundBusinessInArrivalLanes<R>(edielMessageIds: string[], concurrency: number,
+  worker: (edielMessageId: string) => Promise<R>): Promise<R[]> {
+  let rows: InboundBusinessLaneRow[] = [];
+  if (edielMessageIds.length > 1) {
+    const { data, error } = await supabaseService.from("ediel_messages")
+      .select("id,company_id,outbound_request_id,created_at").in("id", edielMessageIds);
+    if (!error) rows = (data ?? []) as InboundBusinessLaneRow[];
+  }
+  const lanes = planInboundBusinessLanes(edielMessageIds, rows);
+  const results = await mapWithConcurrency(lanes, concurrency, async (lane) => {
+    const output: R[] = [];
+    for (const id of lane) output.push(await worker(id));
+    return output;
+  });
+  return results.flat();
+}
+
 export async function mapWithConcurrency<T, R>(items: T[], concurrency: number, worker: (item: T) => Promise<R>): Promise<R[]> {
   const limit = Math.max(1, Math.min(concurrency, items.length || 1))
   const output = new Array<R>(items.length)

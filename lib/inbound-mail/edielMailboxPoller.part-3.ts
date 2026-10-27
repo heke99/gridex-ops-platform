@@ -13,7 +13,7 @@ import type { UnqueuedUtiltsReplyResumeResult } from "@/lib/inbound-mail/unqueue
 import type { HeldUtiltsResumeResult } from "@/lib/ediel/utilts/heldUtiltsResume"
 import type { InboundEngineRunResult } from './edielMailboxPoller.part-1'
 import { NO_ACTIVE_EDIEL_MAILBOX_ERROR, envInt, listConfiguredEdielMailboxes, mailboxDebugItem, mailboxSkipReason, nowIso } from './edielMailboxPoller.part-1'
-import { ensureDiagnosticEdielMessagesForInboundEmails, listEdielMessageIdsForInboundEmails, listRecentParsedInboundEmailIds, logInboundPollRun, mapWithConcurrency, pollEdielMailbox, processQueuedInboundProcessingJobs } from './edielMailboxPoller.part-2'
+import { ensureDiagnosticEdielMessagesForInboundEmails, listEdielMessageIdsForInboundEmails, listRecentParsedInboundEmailIds, logInboundPollRun, mapWithConcurrency, pollEdielMailbox, processQueuedInboundProcessingJobs, runInboundBusinessInArrivalLanes } from './edielMailboxPoller.part-2'
 
 export async function runInboundEdielMailEngine(
   input: {
@@ -136,7 +136,8 @@ export async function runInboundEdielMailEngine(
     try {
       const { processInboundEdielMessage } =
         await import("@/lib/ediel/flows/inboundProcessing");
-      const processing = await mapWithConcurrency(
+      // I-B13: one lane per outbound request in arrival order; other lanes run concurrently.
+      const processing = await runInboundBusinessInArrivalLanes(
         edielMessageIds,
         envInt("EDIEL_INBOUND_MESSAGE_CONCURRENCY", 4),
         async (edielMessageId) => {

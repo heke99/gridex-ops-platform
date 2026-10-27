@@ -20,6 +20,7 @@ vi.mock('@/lib/inbound-mail/edielMailboxPoller.part-2', () => ({
   ensureDiagnosticEdielMessagesForInboundEmails: async () => [], listRecentParsedInboundEmailIds: async () => [],
   logInboundPollRun: async () => undefined,
   mapWithConcurrency: async <T, R>(items: T[], _limit: number, run: (item: T) => Promise<R>) => Promise.all(items.map(run)),
+  runInboundBusinessInArrivalLanes: async <R>(ids: string[], _limit: number, work: (id: string) => Promise<R>) => Promise.all(ids.map(work)),
 }))
 vi.mock('@/lib/inbound-mail/inboundOverdueMonitor', () => ({ createInboundOverdueTasks: async () => ({ ackOverdue: 0, z04Overdue: 0, z14Overdue: 0 }) }))
 vi.mock('@/lib/ediel/flows/inboundProcessing', () => ({ processInboundEdielMessage: async (input: { edielMessageId: string }) => { io.processed.push(input.edielMessageId) } }))
