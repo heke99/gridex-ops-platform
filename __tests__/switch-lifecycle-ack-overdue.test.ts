@@ -29,3 +29,19 @@ describe('switch lifecycle while the grid owner has not answered the Z03', () =>
     expect(getSwitchLifecycle({ request, outboundRequest: outbound('sent', null), now: at(600) }).responseOverdue).toBeUndefined()
   })
 })
+
+// reality-defects: I-B10 (scenario I6, batch 5d): the switches page passes the site's pre-send readiness. A gap in it
+// (here a move-in date the contract start replaces, I-B2a) made every switch "Blockerad", also one whose Z03 was
+// already sent, so the operator never saw "Kvittens försenad".
+describe('I-B10 a dispatched switch shows its acknowledgement state, not the pre-send readiness', () => {
+  const notReady = { isReady: false, issues: [{ code: 'move_in_date_missing', title: 'Inflyttningsdatum saknas' }] } as never
+  it('a sent Z03 past its deadline is overdue even when the site readiness has a gap', () => {
+    expect(getSwitchLifecycle({ request, readiness: notReady, outboundRequest: outbound('sent'), now: at(31) }))
+      .toMatchObject({ stage: 'awaiting_response', label: 'Kvittens försenad', responseOverdue: true })
+  })
+  it('before the dispatch the readiness gap still blocks', () => {
+    for (const status of ['queued', 'prepared']) expect(getSwitchLifecycle({ request, readiness: notReady, outboundRequest: outbound(status, null) }))
+      .toMatchObject({ stage: 'blocked', label: 'Blockerad' })
+    expect(getSwitchLifecycle({ request, readiness: notReady, outboundRequest: null })).toMatchObject({ stage: 'blocked' })
+  })
+})

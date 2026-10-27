@@ -471,7 +471,9 @@ async function syncSwitchFromInboundAck(params: {
   }
 
   if (params.outcome === "negative") {
-    const wasWaiting = !["failed", "rejected"].includes(current.status);
+    // Only this owner moves a switch to failed. The mail intake marks a negative ACK 'rejected' before this runs (ACK-01
+    // alarm); that mark is not the business resolution, so the follow-up (GOR-04) still runs once (FINDINGS I-B9).
+    const wasWaiting = current.status !== "failed";
     const updated = await updateSupplierSwitchRequestStatus(supabase, {
       requestId: current.id,
       status: "failed",

@@ -73,7 +73,11 @@ export function getSwitchLifecycle(params: {
     return { stage: 'blocked', label: 'Kontroll krävs', reason: activation.reason }
   }
 
-  if (readiness && !readiness.isReady) {
+  // The site's pre-send readiness gates the dispatch only. Once the Z03 has left, the request's own transport and
+  // acknowledgement state is what the operator must see; a readiness gap (e.g. a move-in date a contract start
+  // replaces, I-B2a) never hides "Kvittens försenad" behind "Blockerad" (FINDINGS I-B10).
+  const dispatched = Boolean(outboundRequest && !['draft', 'queued', 'prepared'].includes(outboundRequest.status))
+  if (readiness && !readiness.isReady && !dispatched) {
     return { stage: 'blocked', label: 'Blockerad', reason: summarizeReadinessIssues(readiness) }
   }
 

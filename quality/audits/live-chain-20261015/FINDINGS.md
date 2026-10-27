@@ -2691,6 +2691,26 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
   - **Rättning:** båda binder anläggningens senaste signerade avtal via `findLatestSignedContractIdForSite` (`lib/customer-operations/switchReadiness.ts`), samma uppslagning som beredskapskontrollen redan gjorde, nu utbruten: exakt bolag, kund och anläggning, status `signed`, nyast först. Formuläret skickar även `companyId`. Saknas avtal binds inget och vakten avgör som förut.
   - **Test:** `__tests__/reality-i-b4v-staff-switch-exact-contract.test.ts`, 4 fall (annan tenant, annan anläggning, äldre och osignerade avtal vinner aldrig). Före rättningen 3 röda, efter 4/4. Med I-B- och switch-testerna 10 filer, 77/77.
 
+### I, batch 5d (2026-10-27 03:22–04:02, ombyggd app på 9253c1918): 6 av 10 gröna; I4, I5, I6 och I8 röda — I-B9 och I-B10 (produkt, rättade)
+- **Verifierat i världen:** I-B6 (APERAK-texten intakt, S1/S2/S5 behandlas kanoniskt), I-B7 (S7 fick sin öppna SLA-händelse, GOR-05:s första kontroll grön), I-B8 och I-B2d (I9 grön: "Försök igen" gav en ny Z03 med nytt BGM och LI, och den gamla förblir `failed`) samt T39 (I7 grön).
+- **I4/I5 (GOR-04):** inget operatörsärende för någon av de sex avvisade bytena, och inget för den negativa CONTRL:en. Se I-B9.
+- **I8 (P-11):** den sena negativa APERAK:en efter Z04 tog tillbaka det bekräftade bytet. Se I-B9.
+- **I6:** bytes-listan visade inte "Kvittens försenad". Se I-B10.
+
+### I-B9 Intaget markerade varje negativ kvittens byte `rejected`, också efter Z04, och GOR-04-uppföljningen uteblev — PRODUKT, hög; RÄTTAD
+- **Bevis i världen:** S4:s byte fick först `previous_status: rejected` utan händelse (intaget), och därefter `failed` från kvittensägaren. `customer_cases` har inga rader för tenanten.
+- **Orsak:** `canonicalInboundAckStatusUpdater.ts` (ACK-01-larmet vid mottagandet) skriver bytet `rejected` innan den kanoniska kvittensägaren körs. Skrivningen görs oavsett status, alltså även på ett byte som Z04 redan bekräftat, vilket bryter mot P-11 ("Sena kvittenser får inte backa ett giltigt affärstillstånd"). `syncSwitchFromInboundAck` räknade sedan `rejected` som "väntar inte längre", så `onRejected` uteblev och `followUpAckRejection` (GOR-04) kördes aldrig.
+- **Rättning:**
+  - Intaget rör inte ett byte som är `accepted`, `confirmed`, `active` eller `completed`. ACK-01-larmet för ett väntande byte är oförändrat (det godkända ACK-01-testet är grönt).
+  - Kvittensägaren är ensam om `failed`. Ett `rejected` från intaget räknas som väntande, så uppföljningen körs exakt en gång per kvittens (`followUpAckRejection` är redan idempotent per kvittens).
+- **Test:** sex nya fall i `__tests__/reality-f105-outbound-status-monotonic.test.ts` (riktig intagsskrivare och riktig kvittensägare), 5 röda före. Med ACK-01, SC-036 och APERAK-konsumenten 53/53, och alla kvittensrelaterade tester 12 filer, 105/105.
+
+### I-B10 Ett byte med skickad Z03 visades som "Blockerad" av anläggningens förhandsberedskap — PRODUKT, medel; RÄTTAD
+- **Bevis:** `/admin/operations/switches` visade "Blockerade 34" och ingen "Kvittens försenad", trots att S7:s Z03 var försenad och hade sin SLA-händelse.
+- **Orsak:** `getSwitchLifecycle` (`lib/operations/controlTower.ts`) prövade `evaluateSiteSwitchReadiness` före utskicksstatusen. Ett beredskapsglapp som ett saknat inflyttningsdatum (som avtalets startdatum ersätter, I-B2a) gav "Blockerad" även efter att Z03 hade skickats.
+- **Rättning:** beredskapen blockerar bara före utskick (inget utskick, `draft`, `queued` eller `prepared`). Därefter visas utskickets egen status och kvittensstatus.
+- **Test:** två nya fall i `__tests__/switch-lifecycle-ack-overdue.test.ts`, ett rött före. 16/16.
+
 ### J1, batch 5d (2026-10-27 02:43–03:22, ombyggd app): 5 av 12 gröna; J1-5 och J1-7–J1-12 röda — kända öppna J1-fynd bekräftade i världen, två nya
 - **J1-B5 verifierad:** Z04 med exakt en mätardeklaration bekräftar bytet (J1-4 grön), och dubbletter hålls (J1-6 grön).
 - **Kända öppna fynd, nu bekräftade i världen (inga nya rättningar):**

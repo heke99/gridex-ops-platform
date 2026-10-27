@@ -295,3 +295,37 @@ describe('the shared monotonic rule', () => {
     expect(resolveAutomaticOutboundStatus({ status: 'waiting_attention', acknowledged_at: hoursAgo(1) }, 'acknowledged')).toEqual({ held: true, status: 'waiting_attention', reason: 'attention_after_acknowledgement' })
   })
 })
+
+// reality-defects: I-B9 (scenario I, batch 5d: the mail intake marked every negative ACK's switch 'rejected' before the
+// canonical ACK owner ran, also a switch the Z04 had already confirmed (P-11), and the owner then skipped the GOR-04
+// follow-up because the switch no longer looked like it was waiting).
+describe('I-B9 a negative ACK never takes back a confirmed switch and is followed up once', () => {
+  const unb9 = "UNA:+.? 'UNB+UNOC:3+7300000000002:14+7300000000001:14+261004:1200+A-1++23-DDQ-PRODAT'"
+  const negativeContrl = () => parseEdifactPayload(unb9 + "UNH+1+CONTRL:2:2:UN:EDIEL2'UCI+ORIG-I+7300000000001:14+7300000000002:14+4'UNT+3+1'UNZ+1+A-1'")
+  const negativeIntake = () => applyCanonicalInboundAckStatusUpdate({ companyId: COMPANY, environment: 'production', parsed: negativeContrl(),
+    outboundMatch: { status: 'matched', entityType: 'outbound_request', entityId: OUTBOUND, candidates: [{ source_type: 'supplier_switch_request', source_id: SWITCH }] } as never,
+    meteringPointMatch: { status: 'unmatched', candidates: [] } as never, inboundEmailMessageId: 'mail-1' })
+  const switchRow = () => port.rows.supplier_switch_requests[0]
+  const negativeReceipt = () => ({ ...finalPositiveReceipt(), outcome: 'negative', finalAckReached: false, wholeSourceRejected: true, sourceAccepted: false, failureReason: 'APERAK negativ' })
+
+  it.each(['accepted', 'confirmed', 'active', 'completed'])('intake: a late negative ACK leaves a %s switch as it is (P-11)', async (status) => {
+    Object.assign(switchRow(), { status })
+    await negativeIntake()
+    expect(switchRow().status).toBe(status)
+  })
+
+  it('intake: a negative ACK still marks a waiting switch rejected (ACK-01 alarm, unchanged)', async () => {
+    Object.assign(switchRow(), { status: 'submitted', inbound_z04_message_id: null })
+    await negativeIntake()
+    expect(switchRow().status).toBe('rejected')
+  })
+
+  it('the canonical owner follows up a switch the intake marked rejected (GOR-04), exactly once', async () => {
+    Object.assign(switchRow(), { status: 'rejected', inbound_z04_message_id: null })
+    Object.assign(outbound(), { status: 'sent', acknowledged_at: null, response_payload: {} })
+    port.outcome = 'negative'; port.receipt = negativeReceipt()
+    expect(await processInboundAckMessage({ actorUserId: ACTOR, message: lateAck('APERAK') })).toMatchObject({ businessRejection: true })
+    Object.assign(switchRow(), { status: 'failed' })
+    expect(await processInboundAckMessage({ actorUserId: ACTOR, message: lateAck('APERAK') })).toMatchObject({ businessRejection: false })
+  })
+})

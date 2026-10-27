@@ -296,9 +296,11 @@ async function updateOutboundAck(input: {
   if (!sourceId) return
 
   if (sourceType === 'supplier_switch_request') {
+    // P-11: a late negative ACK never takes back a switch the grid owner already confirmed (Z04); the canonical ACK
+    // owner records the contradiction for an operator instead (FINDINGS I-B9).
     await supabaseService.from('supplier_switch_requests').update({
       status: 'rejected', failed_at: nowIso(), failure_reason: `${ackLabel(input.parsed)} avvisade Ediel-meddelandet.`, updated_at: nowIso(),
-    }).eq('company_id', input.companyId).eq('id', sourceId)
+    }).eq('company_id', input.companyId).eq('id', sourceId).not('status', 'in', '(accepted,confirmed,active,completed)')
   }
   if (sourceType === 'grid_owner_data_request') {
     await supabaseService.from('grid_owner_data_requests').update({
