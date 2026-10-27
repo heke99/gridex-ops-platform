@@ -48,7 +48,7 @@ const DEFECTS = [
   { id: 'J1-01', severity: 'high', status: 'confirmed (native); partly fixed: lib/inbound-mail/inboundOverdueMonitor.ts (operator task after 30 min); acceptance vs rejection of the date is an owner decision',
     where: 'SQL gridex_received_sources.normal_switch_confirm_v1 (o->>\'start\'=own->>\'start\'); lib/ediel/flows/inboundProcessing.ts:1315-1371 (held -> no APERAK); lib/inbound-mail/inboundStatusUpdater.ts applySafeInboundStatusUpdate (outbound_requests -> confirmed for any Z04)',
     what: 'A Z04 confirming a later or earlier start than requested is held (normal_z04_exact_sent_original_required). The switch stays prepared, there is no supply period, contract/billing/customer notice never move, and the grid owner gets no APERAK at all. The intake already marked the Z03 request "confirmed", so the 24 h "Z04-svar saknas" watch never fired and the control tower showed "Oklassificerad".' },
-  { id: 'J1-02', severity: 'medium', status: 'confirmed (native), open',
+  { id: 'J1-02', severity: 'medium', status: 'confirmed (native), open: owner decision (national code) and a separate hold reason in normal_switch_scope_effect_v1 needed (FINDINGS J1-02)',
     where: 'lib/ediel/flows/inboundProcessing.ts:1315-1371',
     what: 'A Z04 for a switch we never requested is held with no APERAK and no operator task; only a generic pending_review ediel_inbound_case identical to the one every confirmed Z04 opens.' },
   { id: 'J1-03', severity: 'medium', status: 'confirmed (native), open',
@@ -57,7 +57,7 @@ const DEFECTS = [
   { id: 'J1-04', severity: 'high', status: 'confirmed (native), fixed in lib/inbound-mail/inboundStatusUpdater.ts updateBusinessStatusFromInbound',
     where: 'lib/inbound-mail/inboundStatusUpdater.ts updateBusinessStatusFromInbound (was :945-951)',
     what: 'The mail intake wrote supplier_switch_requests.status=\'confirmed\' for every matched Z04 before validation; the Z04 trigger normalises it to \'accepted\' once a Z04 is linked. A Z04 after the grid owner\'s Z04C brought the cancelled switch back to accepted with no supply period, and every re-received Z04 stamped completed_at and replaced the switch metadata.' },
-  { id: 'J1-05', severity: 'medium', status: 'confirmed (native), open',
+  { id: 'J1-05', severity: 'medium', status: 'fixed in lib/ediel/flows/inboundBusinessStateMachineLegacy.ts (FINDINGS J1-05)',
     where: 'lib/ediel/flows/inboundBusinessStateMachineLegacy.ts (supplier_switch_cancelled_before_start: no case, no workflow, no notification)',
     what: 'The grid owner\'s Z04C cancels the confirmed period correctly but opens no operator case and sends no customer notice; the customer already received "switch.confirmed" and the contract stays signed.' },
   { id: 'J1-06', severity: 'low', status: 'confirmed (native), open',
@@ -75,7 +75,7 @@ const DEFECTS = [
   { id: 'J1-10', severity: 'high (owner decision)', status: 'confirmed (native); approved behaviour (AT-Z04L-SUPPLIER asserts it)',
     where: 'lib/ediel/core/prodatOwnSourceRegisterReadingDeclarations.ts:177 (L/LK: true or null, never false)',
     what: 'A Z04L without field 259 (counter code) is held: no confirmation and no APERAK. P26.A field 259 says its absence means no meter readings in UTILTS, so 214/218 are not required.' },
-  { id: 'J1-11', severity: 'medium', status: 'confirmed (one DB observation in the native run), root cause open',
+  { id: 'J1-11', severity: 'medium', status: 'fixed in lib/inbound-mail/canonicalInboundAckStatusUpdater.ts and inboundStatusUpdater.ts (FINDINGS J1-11)',
     where: 'ACK correlation of an inbound APERAK after our APERAK on the Z04 (related_message_id rewritten)',
     what: 'Z04 before the grid owner\'s ACKs: our positive APERAK on the Z04 was later found with related_message_id pointing at the grid owner\'s inbound APERAK on our Z03 (same tenant). The Z04\'s aperak_due watch reads our answers by related_message_id.' },
   { id: 'J1-12', severity: 'high', status: 'confirmed (unit), fixed in lib/inbound-mail/inboundStatusUpdater.ts isNegativeContrL (J4-D12)',
@@ -266,7 +266,7 @@ describe.sequential('reality J1 — inbound PRODAT from the grid owner', () => {
     if (requireCase('C6-cancel-confirmed', cancelled)) {
       expect(cancelled!.status).toBe('cancelled_before_start')
       expect(cancelled!.periods).toEqual([{ status: 'cancelled', start: SUPPLY_START }])
-      // J1-05 (open): an operator case and a customer notice follow the cancellation.
+      // J1-05 (fixed): an operator case and a customer notice follow the cancellation.
       expect.soft(cancelled!.cases.length, 'J1-05 an operator case for the withdrawn start').toBeGreaterThan(0)
       expect.soft(cancelled!.notices.filter(n => n !== 'supplier_switch.accepted').length, 'J1-05 the customer is told the start is withdrawn').toBeGreaterThan(0)
     }

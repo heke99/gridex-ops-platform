@@ -233,7 +233,7 @@ describe('J1 Z04 start confirmation through the production intake', () => {
 // J1-11 (open, root cause not yet identified): in J1-FP3's order (Z04 first, then the grid owner's CONTRL/APERAK on
 // our Z03) our own positive APERAK on the Z04 was later found with related_message_id pointing at the grid owner's
 // inbound APERAK instead of the Z04 (same tenant). The Z04's aperak_due watch reads our answers by related_message_id.
-it.fails('J1-11 our APERAK on a Z04 that arrived before the grid owner\'s ACKs stays related to that Z04', async () => {
+it('J1-11 our APERAK on a Z04 that arrived before the grid owner\'s ACKs stays related to that Z04', async () => {
   const f = await sentZ03()
   const z04 = await receive(f, z04For(f.originalZ03.raw_payload!, f.receiver).raw)
   const ours = sql<string[]>(`SELECT coalesce(jsonb_agg(id),'[]') FROM public.ediel_messages WHERE related_message_id=${literal(z04.message!.id)} AND company_id=${literal(f.companyId)} AND direction='outbound' AND message_family='APERAK'`)
@@ -276,7 +276,7 @@ describe('J1 grid-owner cancellation (Z04C)', () => {
 
   // J1-05 (open): the cancellation reaches neither an operator nor the customer. The customer was told
   // "switch.confirmed" by the Z04 and is never told the start is withdrawn; the contract stays 'signed'.
-  it.fails('J1-05 a grid-owner cancellation of a confirmed start opens an operator case and tells the customer', async () => {
+  it('J1-05 a grid-owner cancellation of a confirmed start opens an operator case and tells the customer', async () => {
     const f = await sentZ03()
     await acknowledged(f)
     await receive(f, z04For(f.originalZ03.raw_payload!, f.receiver).raw)

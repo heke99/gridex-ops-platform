@@ -120,3 +120,9 @@ Nya beslut läggs till sist, och inget tas bort. Ett beslut som ersätts markera
 - **Inte i denna etapp:** inga automatiska rättelser och ingen ny generell faktureringsspärr. Befintliga faktureringskontroller fortsätter gälla.
 
 **Gemensamt:** besluten dokumenteras, och berörda scenarier verifieras innan fynden markeras som lösta.
+
+## Öppen fråga (2026-10-27): J1-02 — svar på en Z04 för ett byte vi aldrig begärt
+En Z04 för en anläggning där vi inte har skickat någon Z03 hålls i dag tyst, med samma skäl som J1-01. Nätägaren får inget svar.
+- **Fråga 1:** vilken nationell kod ska den negativa APERAK:en bära? ERC 40/105 ("Anläggningen kan inte identifieras"), 107, eller ERC 42 på fält 226/209?
+- **Fråga 2:** godkänner ägaren att den låsta SQL-ägaren (`normal_switch_scope_effect_v1`) får ett eget hållskäl för "ingen skickad Z03 alls", skilt från J1-01? Det kräver en överlämning från ägarna av de godkända ID som pinnar kroppen.
+

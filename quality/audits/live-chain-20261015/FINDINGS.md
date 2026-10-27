@@ -2727,6 +2727,23 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **Variant, rättad:** `claim_ediel_outbox_items` har samma mönster (väljer på `priority, created_at` men returnerar utan ordning), och `processEdielOutbox` skickar posterna en i taget. En rättelse eller makulering som hämtas i samma körning som sitt original kunde lämna först. `claimEdielOutboxItems` sorterar nu på prioritet, ålder och id. Test: `__tests__/reality-i-b11-outbox-claim-order.test.ts`, rött före. Med utkorgstesterna 6 filer, 24/24. Inga fler `claim*`-funktioner med `RETURNING` och `ORDER BY` finns i världens databas.
 - **I världen:** kräver ombyggnad. I körs om.
 
+### J1-11 Vår APERAK på en Z04 kopplades om till nätägarens sena kvittens — PRODUKT, medel; RÄTTAD (agent, granskad och införd)
+- **Bevis:** i C5 (Z04 före CONTRL/APERAK) fick vår positiva APERAK på Z04:an `related_message_id` = nätägarens APERAK på vår Z03. Z04:ans APERAK-bevakning såg den därför som obesvarad (J1-7).
+- **Orsak:** våra egna CONTRL/APERAK ärver Z04:ans `outbound_request_id`, alltså Z03:ans förfrågan (`lib/ediel/ack.ts`). Intagets kvittensskrivare (`canonicalInboundAckStatusUpdater.ts` och `updateOutboundEdielAckState` i `inboundStatusUpdater.ts`) uppdaterade alla utgående meddelanden med den förfrågan. En negativ kvittens märkte då även vår APERAK som negativ.
+- **Rättning:** egna CONTRL/APERAK/UTILTS_ERR undantas, som den utgående matchningen (`inboundMatcher.ts`) redan gör. Z03:an uppdateras som förut.
+- **Test:** `__tests__/reality-j1-11-own-ack-relation.test.ts` (2 av 3 röda före, 3/3 gröna). Intags- och kvittenstesterna 41 filer, 515 gröna. I `scripts/inbound-prodat-j1-native.test.ts` är fallet nu ett vanligt test och grönt i världens databas.
+
+### J1-05 Nätägarens makulering av en bekräftad start gav inget ärende och inget kundbesked — PRODUKT, medel; RÄTTAD (agent, granskad och införd)
+- **Orsak:** `inboundBusinessStateMachineLegacy.ts` registrerade bara `supplier_switch_cancelled_before_start`, utan ärende eller avisering. SQL-ägaren öppnar ett ärende bara när den kompenserar en redan påbörjad start.
+- **Rättning:** den första verkställda Z04C ger ett operatörsärende (`grid_owner_start_cancellation`, hög prioritet, ett per källmeddelande) och ett kundbesked (`supplier_switch.cancelled_by_grid_owner` via mallen `switch.action_required`). Omspelning, hållen källa och källa utan kund ger inget, så AT-Z04C-SUPPLIER är grön. Den låsta SQL-kroppen är oförändrad.
+- **Test:** `__tests__/reality-j1-05-grid-owner-cancellation-follow-up.test.ts` (3 av 6 röda före, 6/6 gröna). Konsument- och Z04C-testerna 28 filer, 597 gröna. Det inbyggda J1-testet är grönt.
+- **Ägaren kan vilja granska** kundbeskedets ordalydelse (ny produkttext).
+
+### J1-02 Z04 för ett byte vi aldrig begärt besvaras inte — PRODUKT, medel; ÖPPEN, ägarbeslut och native-ägare krävs
+- **Orsak:** `gridex_received_sources.normal_switch_scope_effect_v1` håller en Z04 utan skickad Z03 med samma skäl som J1-01 (`normal_z04_exact_sent_original_required`). Ett hållet objekt utan eget fel får ingen APERAK (`inboundProcessing.ts`).
+- **Beslut krävs:** vilken nationell kod som ska användas (ERC 40/105, 107 eller 42/226), och ett eget hållskäl för "ingen skickad Z03 alls" i den låsta SQL-ägaren. APERAK-kedjan godtar i dag bara applikationskod 109. Se OWNER-DECISIONS.
+- **Iakttagelse:** två fall i J1-nativetestet (J1-01:s delrättning och J1-10) väntar sig att en Z03 står `prepared`, men den är `submitted` medan världens cronjobb kör J2 samtidigt. Det beror inte på dagens ändringar och körs om när världen är ledig.
+
 ### J2-05 En korrigering för del av den ursprungliga perioden skapar nu nya revisioner för exakt sina kvartar — PRODUKT, hög; RÄTTAD (agent, `20261027150000`), väntar på världsverifiering (J2-11)
 - **Bevis:** `scripts/j2-inbound-utilts-native.test.ts`: den riktiga processorn mot den installerade kroppen ger `utilts_consumption_correction_binding_invalid` (rött). Samma konsumentanrop med migrationens kropp, i en transaktion som alltid rullas tillbaka, ger 22:15 = 450 i revision 2 medan 22:00 står orörd i revision 1 (grönt).
 - **Orsak:** korrigeringsgrenen i `gridex_consume_utilts_metering_v1` krävde att det aktuella värdets källserie låg i korrigeringens egen kohort, och kohorten innehåller perioden. En delperiodskorrigering är därför alltid en egen kohort.
