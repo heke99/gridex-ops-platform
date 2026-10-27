@@ -156,6 +156,10 @@ mustContain(
   "assertCompanyAccessForGuard",
 );
 mustContain(
+  "app/admin/customers/[id]/switch-retry-actions.ts",
+  "const companyId = await assertCompanyAccessForGuard(String(data.company_id), guard)",
+);
+mustContain(
   "app/admin/customers/[id]/switch-create-actions.ts",
   "const companyId = await assertCompanyAccessForGuard(site.company_id, guard)",
 );
@@ -194,6 +198,11 @@ const reviewedServiceClientFiles = new Set([
   // operational company before any service-client access; the customer must
   // belong to that company and every write is company scoped and audit logged.
   "app/admin/customers/[id]/registered-address-actions.ts",
+  // Reviewed 2026-10-27 (I-B2d): "Försök igen" calls requireAdminActionAccess
+  // (switching.write); the service client only reads the switch by id and
+  // customer to find its company, and assertCompanyAccessForGuard decides
+  // before the retry, which is company scoped and re-checks every guard.
+  "app/admin/customers/[id]/switch-retry-actions.ts",
   "app/admin/ediel/auto-readiness/actions.ts",
   "app/admin/ediel/auto-readiness/page.tsx",
   "app/admin/ediel/bilateral-prodat-sources/page.tsx",
