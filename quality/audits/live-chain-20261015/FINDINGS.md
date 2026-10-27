@@ -2691,6 +2691,17 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
   - **Rättning:** båda binder anläggningens senaste signerade avtal via `findLatestSignedContractIdForSite` (`lib/customer-operations/switchReadiness.ts`), samma uppslagning som beredskapskontrollen redan gjorde, nu utbruten: exakt bolag, kund och anläggning, status `signed`, nyast först. Formuläret skickar även `companyId`. Saknas avtal binds inget och vakten avgör som förut.
   - **Test:** `__tests__/reality-i-b4v-staff-switch-exact-contract.test.ts`, 4 fall (annan tenant, annan anläggning, äldre och osignerade avtal vinner aldrig). Före rättningen 3 röda, efter 4/4. Med I-B- och switch-testerna 10 filer, 77/77.
 
+### A, batch 5d (2026-10-27 02:11–02:43, ombyggd app på 9253c1918): 4 av 7 gröna; A3–A5 röda — I-B4v2 (produkt, rättad)
+- **A-B4, A-B4b och I-B6 verifierade i världen:** fyra Z01 skickades, fyra Z02 kom tillbaka med "Alingsås" intakt. Produktens Z02-grind godtog dem, och `apply_inbound_grid_owner_response` tillämpade alla fyra (`z02_atomic_core_finalized`, nätområde ALS, prisområde SE3).
+- **Nytt:** de fyra efterföljande `start_supplier_switch`-jobben föll fem gånger var med 23514 (`supplier_switch_exact_contract_required`). Se I-B4v2.
+
+### I-B4v2 Webbvägens bytesjobb efter Z02 köades utan avtal — PRODUKT, hög; RÄTTAD
+- **Bevis:** jobbets payload är `{"requestedFrom":"z02_market_verified", "site_snapshot": …}` utan `contract_id`. Postgresloggen 02:21:52 visar `supplier_switch_exact_contract_required` för alla fyra.
+- **Orsak:** I-B4 band avtalet bara när jobbet bar `contract_id` (avtalsvägen). Z02-vägen köar jobbet utan det, så webbkundernas byten skapades fortfarande utan avtal och vägrades.
+- **Rättning:** `processSupplierSwitch` (`lib/customer-operations/automation.part-3.ts`) binder anläggningens senaste signerade avtal (`findLatestSignedContractIdForSite`, exakt bolag, kund och anläggning) när jobbet saknar avtal. Saknas också det avgör vakten som förut.
+- **Test:** nytt fall i `__tests__/reality-i-b4-switch-request-exact-contract.test.ts` (en annan tenants avtal vinner aldrig), rött före. Med I- och switch-testerna 11 filer, 67/67.
+- **I världen:** kräver ombyggnad. A körs om.
+
 ### I, batch 5c (2026-10-27 01:12–02:03, efter fjärde omstarten): 4 gröna, 6 röda — I-B5 verifierad; I-B6 (harness), I-B7 och I-B8 (produkt) rättade, T39 (harness)
 - **I-B5 verifierad i världen:** alla nio signerade kunders Z03 nådde nätägaren i produktionsbanan (`reached.z03: true`). För första gången prövas I4–I9.
 - **Gröna delfall:** S3 och S4 (negativ APERAK med ERC 42) blir `failed` med nätägarens kod. S6 (negativ CONTRL) blir `failed`. S8 (Z04 före APERAK) blir `accepted` med en period `confirmed_by_grid_owner`, och den duplicerade APERAK:en hålls.

@@ -89,3 +89,14 @@ it('without a contract in the job the request carries none (the guard decides, n
   await processSupplierSwitch(job).catch(() => null)
   expect(io.creates[0]).toMatchObject({ contract_id: null, customer_contract_id: null })
 })
+// I-B4v2: the Z02 path (requestedFrom z02_market_verified) queues the job without a contract; the worker then binds
+// the site's newest signed contract of exactly this tenant and customer.
+it("a job queued without a contract binds the site's signed contract", async () => {
+  io.tables.customer_contracts = [
+    { id: id(31), company_id: id(2), customer_id: id(3), customer_site_id: id(4), status: 'signed', signed_at: '2026-10-01' },
+    { id: id(32), company_id: id(20), customer_id: id(3), customer_site_id: id(4), status: 'signed', signed_at: '2026-10-02' },
+  ]
+  job.payload = { requestedFrom: 'z02_market_verified' }
+  await processSupplierSwitch(job).catch(() => null)
+  expect(io.creates[0]).toMatchObject({ contract_id: id(31), customer_contract_id: id(31) })
+})

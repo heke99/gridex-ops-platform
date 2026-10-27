@@ -25,6 +25,7 @@ import { AUTOMATION_USER_REQUIRED_ADMIN_ACTION, isAutomationConfigurationError, 
 import type { JobOutcome, JobRow } from './automation.part-1'
 import { blockerResult, clean, mapWithConcurrency, missingSchema, nowIso, operationEventStatus, operationOutcomeMessage, operationTitle, projectCustomerApplicationContinuationState, record, retryAt, safeRunAfter, staleSnapshotReason, updateJob } from './automation.part-1'
 import { classifySupplierSwitchDispatch, linkOperationResources, normalizeVerifiedMeteringPointIdentity, persistSupplierSwitchBlockerMetadata, processCustomerDataRequest, processInboundResponse } from './automation.part-2'
+import { findLatestSignedContractIdForSite } from '@/lib/customer-operations/switchReadiness'
 
 export async function processSupplierSwitch(job: JobRow): Promise<JobOutcome> {
   const siteId = job.customer_site_id
@@ -88,7 +89,9 @@ export async function processSupplierSwitch(job: JobRow): Promise<JobOutcome> {
     requestType,
     requestedStartDate,
     // The signed contract the job was queued for; the dispatch guard refuses a queued switch without it (FINDINGS I-B4).
-    contractId: clean(jobPayload.contract_id),
+    // A job queued without one (the Z02 path, z02_market_verified) binds the site's signed contract (FINDINGS I-B4v2).
+    contractId: clean(jobPayload.contract_id)
+      ?? await findLatestSignedContractIdForSite({ companyId: job.company_id, customerId: job.customer_id, siteId }),
     companyId: job.company_id,
     automationOrigin: 'customer_operation_job',
     automationKey: `customer-operation:${job.customer_id}:${siteId}:${candidate.id}`,
