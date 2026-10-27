@@ -1,6 +1,6 @@
 # Verklighetssimuleringen — läge och nästa steg
 
-Uppdaterad 2026-10-27 kl. 02:20 UTC av Claude (session 01Az5xza…), som fortsätter på grenen `claude/wonderful-franklin-o8gx2p` (byggd på `claude/gifted-hamilton-vss1hj` `edeaed7d0`) på ägarens uppdrag. Tidigare session: 01YCH5Va…. Filen är tänkt att läsas först.
+Uppdaterad 2026-10-27 kl. 06:00 UTC av Claude (session 01Az5xza…), som fortsätter på grenen `claude/wonderful-franklin-o8gx2p` (byggd på `claude/gifted-hamilton-vss1hj` `edeaed7d0`) på ägarens uppdrag. Tidigare session: 01YCH5Va…. Filen är tänkt att läsas först.
 
 Den hör ihop med tre andra dokument:
 - [FINDINGS.md](FINDINGS.md): alla fynd. Inget tas bort därifrån.
@@ -17,6 +17,14 @@ Den hör ihop med tre andra dokument:
   - **Batch 5c från ca 01:15 UTC** på `175912712`: I, A, J1 (verifierar I-B5, A-B4b, J1-B5), J2, J4, H (H-B5/H-B5b), K, F, G. Logg `/tmp/claude-0/batch5c.log`.
   - **Batch 5c:** I gav 4 gröna/6 röda med Z03 hela vägen (I-B5 verifierad). Nya fynd: I-B6 (harness), I-B7 och I-B8 (produkt) och T39, alla rättade i `9253c1918` (migration `20261027100000` applicerad). A avbröts eftersom den körde med de gamla simulatorerna.
   - **Batch 5d från ca 02:20 UTC:** appen byggs om på `9253c1918`. Därefter A, J1, I, J2, J4, H, K, F, G. Logg `/tmp/claude-0/batch5d.log` (bygget `/tmp/claude-0/up4.log`).
+  - **Batch 5d, resultat (06:00 UTC):**
+    - A 4/7: A-B4 och I-B6 verifierade (Z02 tillämpas); nytt I-B4v2, rättat.
+    - J1 5/12: J1-B5 verifierad; resten är kända öppna J1-fynd. Nytt: J1-14 (beslut krävs), och T40 (harness, rättad).
+    - I 6/10: I-B7, I-B8 och T39 verifierade; nytt I-B9 och I-B10, rättade.
+    - J2 10/3: J2-03 verifierad; nytt J2-B5 (prestanda, kritisk), rättat.
+    - J4 7/8: nytt T41 (harness), rättat.
+    - H, K, F och G pågår.
+  - **Därefter:** bygg om (I-B4v2, I-B9, I-B10, J2-B5) och kör om A, I, J2, J4, K och J1.
   - **Kvar av övertagandet i #840:** F113 (`20261026170000`), J2-05 och J4-D15 (`20261026190000`). A-B4 utreds när A har kört i den nya världen.
 - **Batch 5 pågår (2026-10-26 från ca 20:45 UTC):** J1, H, J2, J4, F och G på `0636d475b` (med I-B4). Logg `/tmp/claude-0/batch5.log`.
   - Batch 4 gav K 10/12 (K-B4, rättad), I 3 gröna/1 röd (I-B4, rättad) och A 4/7 (A-B4, agent). J1 försvann i den tredje omstarten.
