@@ -2727,6 +2727,11 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **Variant, rättad:** `claim_ediel_outbox_items` har samma mönster (väljer på `priority, created_at` men returnerar utan ordning), och `processEdielOutbox` skickar posterna en i taget. En rättelse eller makulering som hämtas i samma körning som sitt original kunde lämna först. `claimEdielOutboxItems` sorterar nu på prioritet, ålder och id. Test: `__tests__/reality-i-b11-outbox-claim-order.test.ts`, rött före. Med utkorgstesterna 6 filer, 24/24. Inga fler `claim*`-funktioner med `RETURNING` och `ORDER BY` finns i världens databas.
 - **I världen:** kräver ombyggnad. I körs om.
 
+### T49 Två fall i J1-nativetestet väntade sig `prepared` efter en kvitterad Z03 — HARNESS; RÄTTAD
+- J1-01:s delrättning och J1-10 i `scripts/inbound-prodat-j1-native.test.ts` föll med `submitted` i stället för `prepared`, även med koden från före dagens ändringar (`75cbac61e`, i en tillfällig arbetskopia) och i en ledig värld. Felet beror alltså varken på dagens rättningar eller på störning.
+- Testets `acknowledged()` registrerar Z03:ans slutliga positiva kvittens, och `gridex_record_switch_final_ack_v1` gör då bytet `submitted`. Det är rätt väntetillstånd efter ett skickat och kvitterat byte.
+- **Rättning:** båda förväntningarna är `submitted`. Filen: 10 gröna och 4 förväntade fel (de öppna J1-01, J1-02, J1-03 och J1-14). J1-05 och J1-11 är gröna i världens databas.
+
 ### F, batch 7 (2026-10-27 18:31–20:26, ombyggd app; J2-B6, J2-B7, A-B7 och H-B6 i databasen): 11 av 12 gröna — FÖRSTA FAKTURERINGEN I F; T48 (harness, rättad)
 - **F7, F8 och F10 gröna för första gången:** septemberspotpriset låses, månadsfaktureringen skapar underlag, låsta prissättningar, fakturautkast, filer och avtal, och en omkörning skapar inget nytt. Det verifierar J2-B6 och J2-B7 i F. F8–F10 har varit röda sedan oktober.
 - **Ett exempel:** anläggning 735999969396625685, 1 432,223 kWh: Medelspotpris 687,92 kr + påslag 57,29 kr + månadsavgift 49 kr = 794,21 kr exkl. moms, 992,76 kr inkl. moms.

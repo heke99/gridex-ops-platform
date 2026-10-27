@@ -141,7 +141,8 @@ describe('J1 Z04 start confirmation through the production intake', () => {
     const z04 = await receive(f, z04For(f.originalZ03.raw_payload!, f.receiver, { startDate: shiftDate(requestedOf(f), 7) }).raw)
     const before = observe(f, z04.message!.id)
     expect(before.outbound?.status).toBe('confirmed')
-    expect(before.switch).toMatchObject({ status: 'prepared', z04: null })
+    // The final positive ACK of the Z03 (acknowledged(), gridex_record_switch_final_ack_v1) makes the switch 'submitted' (T49).
+    expect(before.switch).toMatchObject({ status: 'submitted', z04: null })
     // Clock fixture: the 30-minute APERAK watch for the received Z04 has passed (TM-APERAK, ENV-04).
     sql(`UPDATE public.outbound_requests SET acknowledged_at=now()-interval '2 hours' WHERE source_id=${literal(f.switchId)} AND company_id=${literal(f.companyId)}`)
     const first = await createInboundOverdueTasks({ companyId: f.companyId })
@@ -298,7 +299,7 @@ describe('J1-10 approved design with production risk (owner decision)', () => {
     const z04 = await receive(f, z04For(f.originalZ03.raw_payload!, f.receiver, { readings: false }).raw)
     const o = observe(f, z04.message!.id)
     record('J1-10 no counter code', o)
-    expect(o.switch.status).toBe('prepared')
+    expect(o.switch.status).toBe('submitted')
     expect(o.periods).toEqual([])
     expect(aperakFor(o)).toEqual([])
     expect(o.outbound?.status).toBe('confirmed')
