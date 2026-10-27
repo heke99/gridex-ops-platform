@@ -2691,6 +2691,14 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
   - **Rättning:** båda binder anläggningens senaste signerade avtal via `findLatestSignedContractIdForSite` (`lib/customer-operations/switchReadiness.ts`), samma uppslagning som beredskapskontrollen redan gjorde, nu utbruten: exakt bolag, kund och anläggning, status `signed`, nyast först. Formuläret skickar även `companyId`. Saknas avtal binds inget och vakten avgör som förut.
   - **Test:** `__tests__/reality-i-b4v-staff-switch-exact-contract.test.ts`, 4 fall (annan tenant, annan anläggning, äldre och osignerade avtal vinner aldrig). Före rättningen 3 röda, efter 4/4. Med I-B- och switch-testerna 10 filer, 77/77.
 
+### H, batch 5d (2026-10-27 05:32–06:47): 10 av 11 gröna; H11 röd — T42 (harness, rättad)
+- **Verifierat i världen:** H5 är grön (H-B5b: E66 får aldrig en framtida registreringstid). Fastprisavtalet publicerades (H-B5), och H10 (D11 med rörligt pris nekas) är grön.
+- **H11:** F:s Z03 skickades och fick CONTRL och APERAK, men ingen Z04 kom inom 30 minuter, så bytet stod `submitted`.
+
+### T42 H8 lämnade simulatorns Z04-fördröjning på 24 h för resten av scenariot — HARNESS; RÄTTAD
+- **Orsak:** H8 sätter `z04DelayMs` till 24 h för att de väntande bytena ska hinna ångras och annulleras, och återställer den aldrig. H11 (D11, F:s fastprisbyte) väntade därför förgäves på Z04.
+- **Rättning:** `establishFixedPriceLeaver` återställer `z04DelayMs` till 90 s innan F:s byte skapas. tsc utan fel.
+
 ### J4, batch 5d (2026-10-27 05:27–05:32): 7 av 8 gröna; J4-6 röd — T41 (harness, rättad)
 - **J4-6:** den korrelerade negativa APERAK:en (ERC 42/227) på vår Z01 kopplades inte (`related_message_id` null). Vår egen bedömning gav `ACK_PRODAT_INVALID_TEXT_INVALID`, och kvittensauktoriteten vägrade (`ack_current_canonical_acceptance_required`).
 

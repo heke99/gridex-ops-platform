@@ -547,6 +547,8 @@ describe.sequential('reality H — the customer leaves', () => {
  * 1 November with a Z05 L, exactly as for S in H2–H4.
  */
 async function establishFixedPriceLeaver() {
+  // H8 held every later Z04 for 24 h (pending switches); F's switch must be confirmed like the August ones (FINDINGS T42).
+  await gridOwner.profile({ z04DelayMs: 90_000 })
   const offer = await publishFixedPriceOffer(tenant, { fixedOrePerKwh: FIXED_ORE_PER_KWH, terms: TERMS })
   const built = await establishCustomers([F], SUPPLY_START, AUGUST_SIGNED_AT, AUGUST_SWITCH_CREATED_AT, undefined, offer)
   expect(built.filter(b => !b.ok), 'the real Z03 builder refused F\'s switch').toEqual([])
