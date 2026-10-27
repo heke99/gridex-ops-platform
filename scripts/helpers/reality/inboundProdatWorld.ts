@@ -58,7 +58,7 @@ export function j1States(companyId: string): J1FacilityState[] {
       'inbound',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',m.id,'code',m.message_code,'reason',substring(m.raw_payload from 'CCI\\+\\+Z13''CAV\\+([^'']+)'),'start',substring(m.raw_payload from 'DTM\\+92:(\\d{8})'),
           'hold',(SELECT e.payload#>>'{sourceObjectPartition,0,reason}' FROM public.ediel_message_events e WHERE e.ediel_message_id=m.id AND e.payload ? 'sourceObjectPartition' ORDER BY e.created_at DESC LIMIT 1),
           'answers',(SELECT coalesce(jsonb_agg(jsonb_build_object('family',a.message_family,'outcome',a.ack_outcome)),'[]') FROM public.ediel_messages a WHERE a.related_message_id=m.id AND a.company_id=m.company_id AND a.direction='outbound'))
-          ORDER BY m.created_at),'[]')
+          ORDER BY m.message_received_at, m.created_at),'[]')
         FROM public.ediel_messages m WHERE m.company_id=s.company_id AND m.direction='inbound' AND m.message_family='PRODAT' AND m.raw_payload LIKE '%LIN+%'||mp.metering_point_id||'%'),
       'tasks',(SELECT coalesce(jsonb_agg(t.task_type),'[]') FROM public.customer_operation_tasks t WHERE t.company_id=s.company_id AND (t.metering_point_id=s.metering_point_id OR t.metadata->>'supplierSwitchRequestId'=s.id::text)),
       'cases',(SELECT coalesce(jsonb_agg(cc.case_type),'[]') FROM public.customer_cases cc WHERE cc.company_id=s.company_id AND (cc.supplier_switch_request_id=s.id OR cc.metering_point_id=s.metering_point_id)),

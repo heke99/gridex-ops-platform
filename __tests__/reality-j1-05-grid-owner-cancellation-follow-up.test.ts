@@ -123,4 +123,21 @@ describe('J1-05 a grid-owner cancellation of a confirmed start reaches an operat
     expect(cases()).toEqual([])
     expect(notices()).toEqual([])
   })
+
+  // J1-05 in the world (batch 7): the received Z04C carries the customer but no switch, site or metering point; the
+  // native owner records the cancelled switch with inbound_z04_message_id = this Z04C. The case must name that switch and
+  // its metering point (the operator finds it on the switch), never another tenant's or another customer's switch.
+  it('a Z04C without its own switch link names the switch the native owner cancelled with it', async () => {
+    io.rpc.mockResolvedValue(committed())
+    io.rows.supplier_switch_requests = [
+      { id: 'other-tenant-switch', company_id: 'other-company', customer_id: 'own-customer', inbound_z04_message_id: 'received-C', status: 'cancelled_before_start', metering_point_id: 'x', site_id: 'x' },
+      { id: 'other-customer-switch', company_id: 'own-company', customer_id: 'other-customer', inbound_z04_message_id: 'received-C', status: 'cancelled_before_start', metering_point_id: 'y', site_id: 'y' },
+      { id: 'own-switch', company_id: 'own-company', customer_id: 'own-customer', inbound_z04_message_id: 'received-C', status: 'cancelled_before_start', metering_point_id: 'own-point', site_id: 'own-site' },
+    ]
+    await applyInboundBusinessStateMachine({ actorUserId: 'actor', message: z04c({ site_id: null, metering_point_id: null, switch_request_id: null }) })
+    expect(cases()).toHaveLength(1)
+    expect(cases()[0]).toMatchObject({ company_id: 'own-company', customer_id: 'own-customer', supplier_switch_request_id: 'own-switch',
+      metering_point_id: 'own-point', site_id: 'own-site' })
+    expect(notices()[0]).toMatchObject({ metering_point_id: 'own-point' })
+  })
 })

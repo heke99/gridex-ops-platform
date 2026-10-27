@@ -139,12 +139,27 @@ async function followUpGridOwnerStartCancellation(input: { message: EdielMessage
   const { data: existing, error } = await supabaseService.from('customer_cases').select('id').eq('company_id', input.companyId)
     .eq('source_ediel_message_id', input.message.id).eq('reason_category', GRID_OWNER_START_CANCELLATION).limit(1).maybeSingle()
   if (error) throw error
-  const switchRequestId = input.switchRequestId ?? input.message.switch_request_id ?? null
+  // A received Z04C carries no switch of its own; the native owner records the switch it cancelled with
+  // inbound_z04_message_id = this source (same company and customer only).
+  let switchRequestId = input.switchRequestId ?? input.message.switch_request_id ?? null
+  let siteId = input.message.site_id ?? null
+  let meteringPointId = input.message.metering_point_id ?? null
+  if (!switchRequestId) {
+    const { data: cancelled, error: switchError } = await supabaseService.from('supplier_switch_requests').select('id,site_id,metering_point_id')
+      .eq('company_id', input.companyId).eq('customer_id', customerId).eq('inbound_z04_message_id', input.message.id)
+      .eq('status', 'cancelled_before_start').limit(1).maybeSingle()
+    if (switchError) throw switchError
+    if (cancelled) {
+      switchRequestId = text(cancelled.id)
+      siteId ??= text(cancelled.site_id)
+      meteringPointId ??= text(cancelled.metering_point_id)
+    }
+  }
   if (!existing) {
     const nextAction = 'Kontrollera bytet med kunden och nätägaren och avgör om ett nytt byte ska skickas. Avtal och fakturering ska inte starta på det återkallade datumet.'
     await strictInsert('customer_cases', {
-      company_id: input.companyId, customer_id: customerId, site_id: input.message.site_id ?? null,
-      metering_point_id: input.message.metering_point_id ?? null, supplier_switch_request_id: switchRequestId,
+      company_id: input.companyId, customer_id: customerId, site_id: siteId,
+      metering_point_id: meteringPointId, supplier_switch_request_id: switchRequestId,
       case_type: 'other', status: 'open', priority: 'high',
       title: 'Nätägaren har återkallat en bekräftad leveransstart',
       description: 'Nätägaren har annullerat (Z04C) en start som tidigare bekräftats. Bytet och den bekräftade perioden är annullerade och annulleringen är besvarad. Kunden har tidigare fått besked om bekräftad start.',
@@ -158,8 +173,8 @@ async function followUpGridOwnerStartCancellation(input: { message: EdielMessage
   }
   await enqueueCustomerLifecycleNotification({
     companyId: input.companyId, customerId, eventType: 'supplier_switch.cancelled_by_grid_owner',
-    sourceEventId: `ediel:${input.message.id}:${input.outcome}`, siteId: input.message.site_id ?? null,
-    meteringPointId: input.message.metering_point_id ?? null,
+    sourceEventId: `ediel:${input.message.id}:${input.outcome}`, siteId,
+    meteringPointId,
     payload: { ediel_message_id: input.message.id, supplier_switch_request_id: switchRequestId, outcome: input.outcome,
       case_subject: 'Ditt leverantörsbyte har återkallats', case_message: GRID_OWNER_START_CANCELLATION_NOTICE },
   }).catch((notificationError) => {

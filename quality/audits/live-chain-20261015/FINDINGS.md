@@ -2727,6 +2727,20 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **Variant, rättad:** `claim_ediel_outbox_items` har samma mönster (väljer på `priority, created_at` men returnerar utan ordning), och `processEdielOutbox` skickar posterna en i taget. En rättelse eller makulering som hämtas i samma körning som sitt original kunde lämna först. `claimEdielOutboxItems` sorterar nu på prioritet, ålder och id. Test: `__tests__/reality-i-b11-outbox-claim-order.test.ts`, rött före. Med utkorgstesterna 6 filer, 24/24. Inga fler `claim*`-funktioner med `RETURNING` och `ORDER BY` finns i världens databas.
 - **I världen:** kräver ombyggnad. I körs om.
 
+### J1, batch 7 (2026-10-27 17:51–18:31, ombyggd app med J1-11, J1-05 och I-B13): 5 av 12 gröna — J1-11 verifierad; J1-05b (produkt) och T47 (harness) rättade
+- **J1-11 verifierad:** J1-7 grön. Vår APERAK på en Z04 som kom före nätägarens kvittenser förblir kopplad till Z04:an.
+- **J1-8 (J1-05):** kundbeskedet `supplier_switch.cancelled_by_grid_owner` skickades i världen, och operatörsärendet skapades. Ärendet saknade dock byte och mätpunkt, så varken operatören eller testet hittade det på bytet. Se J1-05b.
+- **J1-6 = J1-03 (känt öppet):** den omskickade Z04:an hålls (`normal_z04_locked_original_scope_required`) utan APERAK. Den gröna J1-6 i batch 5e var falsk: före I-B11 lagrades den omskickade Z04:an före originalet, så testet läste originalets positiva APERAK. Se T47.
+- **Övriga röda, kända öppna:** J1-5 = J1-01, J1-9 = J1-10, J1-10 = J1-02 (ägarbeslut), J1-11/J1-12 = APERAK som uteblir för hållna Z04 och för Z06 i granskning (J1-14).
+
+### J1-05b Operatörsärendet för en makulerad start saknade byte och mätpunkt — PRODUKT, medel; RÄTTAD
+- **Bevis i världen:** två ärenden `grid_owner_start_cancellation` (18:03:25 och 18:03:30) har `supplier_switch_request_id`, `site_id` och `metering_point_id` = null. Den mottagna Z04C:n bär kunden men inget byte. Den inbyggda ägaren registrerar det makulerade bytet med `inbound_z04_message_id` = Z04C:n.
+- **Rättning:** `followUpGridOwnerStartCancellation` (`inboundBusinessStateMachineLegacy.ts`) hämtar, när källan inte bär något byte, det byte som makulerades med just den källan: samma bolag, samma kund, `inbound_z04_message_id` = källan och status `cancelled_before_start`. Ärendet och kundbeskedet får dess byte, anläggning och mätpunkt. En annan tenants eller kunds byte används aldrig.
+- **Test:** nytt fall i `__tests__/reality-j1-05-grid-owner-cancellation-follow-up.test.ts`, rött före. 7/7. Konsument- och aviseringstesterna 26 filer, 590/590. tsc 0 fel.
+
+### T47 J1:s tillstånd ordnade mottagna meddelanden efter lagringstid — HARNESS; RÄTTAD
+- `j1States` (`scripts/helpers/reality/inboundProdatWorld.ts`) ordnar nu mottagna PRODAT efter nätägarens sändtid (`message_received_at`) och sedan lagringstid, så att index 1 alltid är den senare sända filen.
+
 ### I, batch 7 (2026-10-27 17:13–17:51, ombyggd app på grenens topp med J1-11, J1-05 och I-B13): 10 av 10 gröna — I-B13 verifierad
 - **I8 grön:** S9:s Z04, som kom före den negativa APERAK:en, bekräftar bytet. Den sena APERAK:en ger bara P-11-varningen.
 - **I4 grön:** exakt ett operatörsärende per avvisat byte (S9-följden är borta).
