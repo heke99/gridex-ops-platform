@@ -2691,6 +2691,20 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
   - **Rättning:** båda binder anläggningens senaste signerade avtal via `findLatestSignedContractIdForSite` (`lib/customer-operations/switchReadiness.ts`), samma uppslagning som beredskapskontrollen redan gjorde, nu utbruten: exakt bolag, kund och anläggning, status `signed`, nyast först. Formuläret skickar även `companyId`. Saknas avtal binds inget och vakten avgör som förut.
   - **Test:** `__tests__/reality-i-b4v-staff-switch-exact-contract.test.ts`, 4 fall (annan tenant, annan anläggning, äldre och osignerade avtal vinner aldrig). Före rättningen 3 röda, efter 4/4. Med I-B- och switch-testerna 10 filer, 77/77.
 
+### J2, batch 5d (2026-10-27 04:02–05:27): 10 gröna, 3 röda, 1 överhoppad — J2-03 verifierad; J2-B5 (produkt, prestanda, rättad)
+- **J2-03 verifierad i världen:** J2-7 är grön, så B:s uppmätta värden ersätter uppskattningen (migration `20261026180000`).
+- **J2-9:** månadsfaktureringen föll med `statement timeout` (57014). Ingen underlag- eller fakturarad skapades, och felet upprepades vid två manuella körningar (35 s vardera). Se J2-B5.
+- **J2-11 = J2-05:** delperiodskorrigeringen vägras (`utilts_consumption_correction_binding_invalid`), öppen sedan tidigare.
+- **J2-13:** ingen E73 skickades (F35/F48), känt.
+
+### J2-B5 En mätpunktsmånad med kvartsvärden lagrades som 32 MB JSON och överskred tidsgränsen — PRODUKT, KRITISK för fakturering; RÄTTAD
+- **Bevis:** den riktiga RPC-payloaden fångades ur motorn: en mätpunktsmånad med 2 880 rader om cirka 11 kB, totalt 31,5 MB. Direkt i databasen tog `gridex_store_billing_underlay_batch` 5,7 s, och därtill kommer PostgREST:s tolkning av samma JSON, över 8 s.
+- **Orsak:** varje rad bar sin källgrund två gånger (`metadata.source_basis` och samma i `billing_gate_snapshot.source_basis`, 3,8 kB), leveransperiodens källgrund (1,3 kB) och regelpaketets fullständiga snapshot (3,1 kB). Alla var identiska för underlagets rader. Ingen läsare använder dessa revisionskopior (lagringen, gate-vakten och prissättningen läser de normaliserade värdena).
+- **Rättning:** `compactUnderlayItemMetadata` (`lib/billing/underlayEngine.ts`) behåller varje kopia en gång. Gate-snapshoten hänvisar till radens egen `source_basis`, och leveransgrunden och regelpaketen som delas av alla rader flyttas till `payload.item_metadata_shared` och refereras med nyckel. Avvikande kopior lämnas orörda, och källradernas objekt ändras aldrig. Ingenting tas bort.
+- **Mätt på den riktiga payloaden:** 31,5 MB → 10,1 MB och 5,7 s → 3,8 s direkt i databasen.
+- **Test:** `__tests__/reality-j2-b5-underlay-item-metadata-compact.test.ts`, 3 fall. Underlagstesterna 17 filer, 137/137.
+- **I världen:** kräver ombyggnad. J2 körs om.
+
 ### I, batch 5d (2026-10-27 03:22–04:02, ombyggd app på 9253c1918): 6 av 10 gröna; I4, I5, I6 och I8 röda — I-B9 och I-B10 (produkt, rättade)
 - **Verifierat i världen:** I-B6 (APERAK-texten intakt, S1/S2/S5 behandlas kanoniskt), I-B7 (S7 fick sin öppna SLA-händelse, GOR-05:s första kontroll grön), I-B8 och I-B2d (I9 grön: "Försök igen" gav en ny Z03 med nytt BGM och LI, och den gamla förblir `failed`) samt T39 (I7 grön).
 - **I4/I5 (GOR-04):** inget operatörsärende för någon av de sex avvisade bytena, och inget för den negativa CONTRL:en. Se I-B9.

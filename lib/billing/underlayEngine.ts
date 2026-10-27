@@ -762,6 +762,50 @@ export function estimatedUnderlayStoreCost(entry: { underlay: JsonRecord; items:
   return entry.items.length + 100 * sources;
 }
 
+/**
+ * FINDINGS J2-B5: every quarter-hour item carried its source basis twice (as `source_basis` and again inside
+ * `billing_gate_snapshot`), the supply period's source basis and the rule pack snapshot, all identical across the
+ * underlay: 11 kB per item, 32 MB for one meter-month, and the store exceeded the 8 s statement timeout (57014) on
+ * every run. Identical copies are kept once: the gate snapshot refers to the item's own `source_basis`, and the
+ * supply basis and rule pack snapshots shared by every item move to the underlay payload (`item_metadata_shared`),
+ * referenced by key. Nothing is dropped; no reader uses these audit copies (the store, the gate guard and pricing
+ * read the normalized values). Mutates `items`; returns the shared part, or null when nothing is shared.
+ */
+export function compactUnderlayItemMetadata(items: JsonRecord[]): JsonRecord | null {
+  const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+  const metadataOf = (item: JsonRecord) => (item.metadata && typeof item.metadata === "object" ? item.metadata as JsonRecord : null);
+  const supply = new Set(items.map((item) => JSON.stringify((metadataOf(item)?.billing_gate_snapshot as JsonRecord | undefined)?.supply_source_basis ?? null)));
+  const sharedSupply = supply.size === 1 ? JSON.parse([...supply][0]) as unknown : null;
+  const rulePacks: Record<string, unknown> = {};
+  for (const item of items) {
+    const metadata = metadataOf(item);
+    if (!metadata) continue;
+    // Own copies: the source rows' objects are never changed.
+    if (metadata.billing_gate_snapshot && typeof metadata.billing_gate_snapshot === "object") metadata.billing_gate_snapshot = { ...(metadata.billing_gate_snapshot as JsonRecord) };
+    if (metadata.source_basis && typeof metadata.source_basis === "object") metadata.source_basis = { ...(metadata.source_basis as JsonRecord) };
+    const gate = metadata.billing_gate_snapshot as JsonRecord | undefined;
+    if (gate && gate.source_basis !== undefined && same(gate.source_basis, metadata.source_basis)) {
+      delete gate.source_basis;
+      gate.source_basis_ref = "item.source_basis";
+    }
+    if (gate && sharedSupply !== null && gate.supply_source_basis !== undefined) {
+      delete gate.supply_source_basis;
+      gate.supply_source_basis_ref = "underlay.payload.item_metadata_shared.supply_source_basis";
+    }
+    const basis = metadata.source_basis as JsonRecord | undefined;
+    const rulePack = basis?.sourceRulePackBasis as JsonRecord | undefined;
+    const checksum = typeof (rulePack?.snapshot as JsonRecord | undefined)?.checksum === "string" ? (rulePack!.snapshot as JsonRecord).checksum as string : null;
+    if (basis && rulePack && checksum && (!(checksum in rulePacks) || same(rulePacks[checksum], rulePack))) {
+      rulePacks[checksum] = rulePack;
+      basis.sourceRulePackBasis = { ref: `underlay.payload.item_metadata_shared.rule_pack_bases.${checksum}`, checksum, version: rulePack.version ?? null };
+    }
+  }
+  const shared: JsonRecord = {};
+  if (sharedSupply !== null) shared.supply_source_basis = sharedSupply;
+  if (Object.keys(rulePacks).length > 0) shared.rule_pack_bases = rulePacks;
+  return Object.keys(shared).length > 0 ? { version: 1, ...shared } : null;
+}
+
 /** Statement budget per batch: well inside the 8 s statement timeout of the API roles. */
 export const UNDERLAY_BATCH_COST_BUDGET = 4000;
 
@@ -1429,6 +1473,7 @@ export async function generateBillingUnderlaysForMonth(input: {
           },
         }));
 
+        const itemMetadataShared = compactUnderlayItemMetadata(items);
         const billedKwh = totalKwh;
 
         const underlay = {
@@ -1479,6 +1524,7 @@ export async function generateBillingUnderlaysForMonth(input: {
               energy_direction: energyDirection,
             })),
             timezone: "Europe/Stockholm",
+            ...(itemMetadataShared ? { item_metadata_shared: itemMetadataShared } : {}),
           },
           // gridex_store_billing_underlay binds a ready underlay to the contract price snapshot's own JSON
           // (FINDINGS F8-B1); the enriched pricing payload is derived and would be refused.
