@@ -1,5 +1,6 @@
 import { supabaseService } from "@/lib/supabase/service";
 import { calculatePricingPreviewForUnderlay } from "@/lib/pricing/engine";
+import { formatErrorMessage } from "@/lib/errors";
 
 /**
  * Adapter that lets billing/export flows consume the Pricing Core
@@ -138,8 +139,8 @@ export async function calculateUnderlayPricingWithCore(input: {
       intervalEvidence: [],
     };
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Prisberäkning misslyckades.";
+    // A PostgREST error is not an Error; its own message and code are kept (FINDINGS J2-B6).
+    const message = formatErrorMessage(error, "Prisberäkning misslyckades.");
     return {
       engine: "pricing_core_v1",
       status: "failed",
