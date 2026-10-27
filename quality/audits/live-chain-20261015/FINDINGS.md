@@ -2691,6 +2691,17 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
   - **Rättning:** båda binder anläggningens senaste signerade avtal via `findLatestSignedContractIdForSite` (`lib/customer-operations/switchReadiness.ts`), samma uppslagning som beredskapskontrollen redan gjorde, nu utbruten: exakt bolag, kund och anläggning, status `signed`, nyast först. Formuläret skickar även `companyId`. Saknas avtal binds inget och vakten avgör som förut.
   - **Test:** `__tests__/reality-i-b4v-staff-switch-exact-contract.test.ts`, 4 fall (annan tenant, annan anläggning, äldre och osignerade avtal vinner aldrig). Före rättningen 3 röda, efter 4/4. Med I-B- och switch-testerna 10 filer, 77/77.
 
+### J1, batch 5d (2026-10-27 02:43–03:22, ombyggd app): 5 av 12 gröna; J1-5 och J1-7–J1-12 röda — kända öppna J1-fynd bekräftade i världen, två nya
+- **J1-B5 verifierad:** Z04 med exakt en mätardeklaration bekräftar bytet (J1-4 grön), och dubbletter hålls (J1-6 grön).
+- **Kända öppna fynd, nu bekräftade i världen (inga nya rättningar):**
+  - J1-5 = **J1-01** (beslut krävs): en Z04 med annan startdag ger ingen APERAK.
+  - J1-10 = **J1-02**: Z04 för ett byte vi aldrig skickat ger ingen negativ APERAK.
+  - J1-8 = **J1-05**: en makulerad start ger inget operatörsärende.
+  - J1-9 = **J1-10**: Z04 utan fält 259 hålls (bytet står `submitted`). Ett godkänt test kräver det, men specifikationen säger att fältet får saknas.
+  - J1-7 = **J1-11**: vår APERAK på en Z04 som kom före kvittensen är inte kopplad till den.
+- **Nytt, J1-13 (BEKRÄFTAD i världen, medel; ÖPPEN):** J1-11 fann en CONTRL som vi skickade på en inkommande kvittens (`no CONTRL on an ACK`). En CONTRL ska aldrig besvara en CONTRL eller APERAK. Ska utredas.
+- **Nytt, J1-14 (BEKRÄFTAD i världen, hög; ÖPPEN, kräver ägarbeslut):** Z06 E och F läggs i källbunden granskning ("Egna slutliga svar följer deras beständiga skrivkvitton"). APERAK skapas först när personalen har godkänt objektet. Under tiden går APERAK-timern ut: `aperak_due` blir `warning`, `critical` och sedan `expired` efter 30 minuter, utan något svar. Nätägaren får därmed aldrig något svar i tid. **Fråga till ägaren:** ska en syntaktiskt och tillämpningsmässigt godkänd Z06 få positiv APERAK direkt (och masterdata granskas separat), eller ska granskningen ha en frist som håller Ediels svarstid?
+
 ### A, batch 5d (2026-10-27 02:11–02:43, ombyggd app på 9253c1918): 4 av 7 gröna; A3–A5 röda — I-B4v2 (produkt, rättad)
 - **A-B4, A-B4b och I-B6 verifierade i världen:** fyra Z01 skickades, fyra Z02 kom tillbaka med "Alingsås" intakt. Produktens Z02-grind godtog dem, och `apply_inbound_grid_owner_response` tillämpade alla fyra (`z02_atomic_core_finalized`, nätområde ALS, prisområde SE3).
 - **Nytt:** de fyra efterföljande `start_supplier_switch`-jobben föll fem gånger var med 23514 (`supplier_switch_exact_contract_required`). Se I-B4v2.
