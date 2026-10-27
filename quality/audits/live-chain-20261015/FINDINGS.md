@@ -2739,7 +2739,7 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **J2-B5 verifierad i världen:** månadsfaktureringen lagrade alla tre underlag (8 640 källrader, `ready_for_pricing`) utan tidsgräns. Hela körningen tog 47 s.
 - **J2-9:** därefter föll prissättningen för alla tre underlag med "Prisberäkning misslyckades.", och inget fakturautkast skapades. Se J2-B6 och J2-B7.
 - **J2-11 = J2-05** (delperiodskorrigering vägras, öppen) och **J2-13** (ingen E73, F35/F48): kända.
-- **Iakttagelse, ej utredd:** medan J4 körde (10:28) loggade databasen flera `deadlock detected` mellan samtidiga inkommande Ediel-behandlingar (`gridex_record_source_validation_v1`, `gridex_apply_inbound_ack_source_v1`, uppdatering av `ediel_messages`). Bedöms efter J4:s resultat.
+- **Iakttagelse, ej utredd:** medan J4 körde (10:28) loggade databasen flera `deadlock detected` mellan samtidiga inkommande Ediel-behandlingar (`gridex_record_source_validation_v1`, `gridex_apply_inbound_ack_source_v1`, uppdatering av `ediel_messages`). J4 var grön utöver T44, och inget inkommande jobb efter 10:18 bär ett deadlock-fel (16 `done`, 8 `manual_review` för scenariots avsedda avvisningar), så omförsöken tog hand om dem. Låsordningen mellan de tre vägarna är inte utredd (låg).
 
 ### J2-B6 Ett underlag bundet till sin källgrund kunde aldrig prissättas — PRODUKT, KRITISK för fakturering; RÄTTAD (migration `20261027120000`, applicerad i världen)
 - **Bevis i världen:** postgresloggen 10:11:39 visar `billing_source_finalized_underlay_immutable` (55000) från `gridex_persist_pricing_run` för alla tre underlag. Inga `pricing_runs` skapades, inte heller misslyckade.
