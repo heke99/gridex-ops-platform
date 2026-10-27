@@ -164,8 +164,12 @@ export function ourOriginal(raw: string) {
     messageReference: segmentComposite(unh, 1, wire.una)[0], messageType: segmentComposite(unh, 2, wire.una) }
 }
 
-/** The free text of the correlated object rejection: every UNOC service character plus ÅÄÖ, ending in '?'. */
-export const OBJECT_REJECTION_TEXT = "Felaktigt Kund-id: 'Åsa Öberg' (19XX?) + fel postnr?"
+/**
+ * The free text of the correlated object rejection: every UNOC service character plus ÅÄÖ, ending in '?'. It keeps
+ * the guide's ERC 42 form "Felaktigt <field name> <received content>" (a colon right after the field name was refused
+ * by the platform's guide check ACK_PRODAT_INVALID_TEXT_INVALID, FINDINGS T41).
+ */
+export const OBJECT_REJECTION_TEXT = "Felaktigt Kund-id 'Åsa Öberg' (Ä): 19XX? + fel postnr?"
 
 /** Object rejection (BGM 34, ERC 42 / field 227) of our own sent PRODAT, with the text above correctly escaped. */
 export function correlatedObjectRejection(raw: string): J4File {

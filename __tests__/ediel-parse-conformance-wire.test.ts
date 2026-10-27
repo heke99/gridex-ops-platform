@@ -99,3 +99,16 @@ describe('T13: J4 files carry the lane of the tenant they are sent to; the guide
     }
   })
 })
+
+// T41: the correlated object rejection's text is the guide's ERC 42 form, as the platform's guide check demands.
+import { CANONICAL_ACK_GUIDE_CONSTRAINTS } from '@/lib/ediel/rulebook/ackGuidePolicy'
+import { prodatAperakFieldWireLabel } from '@/lib/ediel/prodat/prodatAperakText'
+import { OBJECT_REJECTION_TEXT } from '../scripts/helpers/reality/parseConformanceWire'
+describe('T41 the J4 object rejection text has the ERC 42 form', () => {
+  it('starts with "Felaktigt <field 227 label> " and still carries every UNOC service character and ÅÄÖ', () => {
+    const prefix = `${CANONICAL_ACK_GUIDE_CONSTRAINTS.PRODAT.invalidPrefix}${prodatAperakFieldWireLabel('227')} `
+    expect(OBJECT_REJECTION_TEXT.startsWith(prefix)).toBe(true)
+    expect(OBJECT_REJECTION_TEXT.length).toBeGreaterThan(prefix.length)
+    for (const char of [':', '+', "'", '?', 'Å', 'Ä', 'Ö']) expect(OBJECT_REJECTION_TEXT).toContain(char)
+  })
+})

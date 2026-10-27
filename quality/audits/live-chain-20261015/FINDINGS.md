@@ -2691,6 +2691,15 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
   - **Rättning:** båda binder anläggningens senaste signerade avtal via `findLatestSignedContractIdForSite` (`lib/customer-operations/switchReadiness.ts`), samma uppslagning som beredskapskontrollen redan gjorde, nu utbruten: exakt bolag, kund och anläggning, status `signed`, nyast först. Formuläret skickar även `companyId`. Saknas avtal binds inget och vakten avgör som förut.
   - **Test:** `__tests__/reality-i-b4v-staff-switch-exact-contract.test.ts`, 4 fall (annan tenant, annan anläggning, äldre och osignerade avtal vinner aldrig). Före rättningen 3 röda, efter 4/4. Med I-B- och switch-testerna 10 filer, 77/77.
 
+### J4, batch 5d (2026-10-27 05:27–05:32): 7 av 8 gröna; J4-6 röd — T41 (harness, rättad)
+- **J4-6:** den korrelerade negativa APERAK:en (ERC 42/227) på vår Z01 kopplades inte (`related_message_id` null). Vår egen bedömning gav `ACK_PRODAT_INVALID_TEXT_INVALID`, och kvittensauktoriteten vägrade (`ack_current_canonical_acceptance_required`).
+
+### T41 J4:s ERC 42-text följde inte guidens form — HARNESS; RÄTTAD
+- **Orsak:** `OBJECT_REJECTION_TEXT` (`scripts/helpers/reality/parseConformanceWire.ts`) var "Felaktigt Kund-id: …". Guiden och plattformens godkända kontroll (`ackGuidePolicy.ts`) kräver "Felaktigt <fältnamn> <mottaget innehåll>", alltså ett mellanslag direkt efter fältnamnet. I batch 2 syntes felet inte, eftersom texten då dubbelkodades (I-B6).
+- **Rättning:** "Felaktigt Kund-id 'Åsa Öberg' (Ä): 19XX? + fel postnr?", som fortfarande innehåller alla UNOC-tjänstetecken och ÅÄÖ.
+- **Test:** nytt fall i `__tests__/ediel-parse-conformance-wire.test.ts` med produktens egen prefix- och fältetikett, 18/18.
+- **Produktfråga (låg, ej beslutad):** en nätägares APERAK som avviker i textformen avvisas helt, så avvisningen når aldrig ärendet. Det följer en godkänd regel, och ingen ändring görs utan beslut.
+
 ### J2, batch 5d (2026-10-27 04:02–05:27): 10 gröna, 3 röda, 1 överhoppad — J2-03 verifierad; J2-B5 (produkt, prestanda, rättad)
 - **J2-03 verifierad i världen:** J2-7 är grön, så B:s uppmätta värden ersätter uppskattningen (migration `20261026180000`).
 - **J2-9:** månadsfaktureringen föll med `statement timeout` (57014). Ingen underlag- eller fakturarad skapades, och felet upprepades vid två manuella körningar (35 s vardera). Se J2-B5.
