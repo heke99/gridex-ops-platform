@@ -2727,6 +2727,10 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **Variant, rättad:** `claim_ediel_outbox_items` har samma mönster (väljer på `priority, created_at` men returnerar utan ordning), och `processEdielOutbox` skickar posterna en i taget. En rättelse eller makulering som hämtas i samma körning som sitt original kunde lämna först. `claimEdielOutboxItems` sorterar nu på prioritet, ålder och id. Test: `__tests__/reality-i-b11-outbox-claim-order.test.ts`, rött före. Med utkorgstesterna 6 filer, 24/24. Inga fler `claim*`-funktioner med `RETURNING` och `ORDER BY` finns i världens databas.
 - **I världen:** kräver ombyggnad. I körs om.
 
+### J1, batch 8 (2026-10-27 20:56–21:36): 6 av 12 gröna — J1-05b och T47 verifierade
+- **J1-8 grön:** nätägarens makulering ger ett operatörsärende på rätt byte och mätpunkt och ett kundbesked.
+- **Röda, alla kända och öppna (ägarbeslut eller låst SQL):** J1-5 = J1-01, J1-6 = J1-03, J1-9 = J1-10, J1-10 = J1-02, och J1-11/J1-12 = APERAK som uteblir för hållna Z04 och för Z06 (J1-14).
+
 ### A, batch 8 (2026-10-27 20:46–21:00, ombyggd app): 6 av 7 gröna — A-B7 och T46 verifierade; T50 (harness, rättad)
 - **A4 och A5 gröna:** varje webbkund har en Z03 hos nätägaren, och dagens inflyttning aktiveras av cronen (perioden `active`, bytet `completed`, ansökan `active`). Webbvägen fungerar hela vägen från ansökan till aktiv leverans.
 - **A3:** testet krävde `accepted` för alla fyra byten, men dagens byte är nu korrekt `completed`. Se T50.
