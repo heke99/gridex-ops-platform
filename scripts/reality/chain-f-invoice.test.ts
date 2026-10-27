@@ -829,6 +829,13 @@ describe.sequential('reality F — invoices for several facilities with contract
     // 30 civil September days minus the first civil hour, plus the first civil hour of 1 October: the Ediel month.
     expect(price.size, JSON.stringify(report.independentPrices).slice(0, 2000)).toBe(30 * 96)
     expect(tail, 'the Ediel month\'s last hour (civil 1 October 00:00–01:00) is priced from market rows').toHaveLength(4)
+    const civilMonth = sql<{ mean: number; quarters: number }>(`SELECT jsonb_build_object('mean',avg(sek_per_kwh),'quarters',count(*))
+      FROM public.spot_price_intervals WHERE price_area='SE3' AND resolution='quarter_hour'
+        AND time_start>=${literal(new Date('2026-08-31T22:00:00.000Z').toISOString())} AND time_start<${literal(new Date('2026-09-30T22:00:00.000Z').toISOString())}
+        ${evidence.sources.length ? `AND source IN (${evidence.sources.map(source => literal(source)).join(',')})` : `AND source IN (${[...new Set(prices.map(row => row.source))].map(source => literal(source)).join(',') || "''"})`}`)
+    report.civilMonthSpot = civilMonth
+    expect(civilMonth.quarters, 'the civil September has 30 × 96 market quarter-hours').toBe(30 * 96)
+    const civilMonthMean = Number(civilMonth.mean)
     const independent: Record<string, unknown> = {}
     for (const f of FACILITIES) {
       const underlay = graph.underlays.find(u => u.facility === f.gsrn)
@@ -842,6 +849,7 @@ describe.sequential('reality F — invoices for several facilities with contract
       }
       const days = effective(f.gsrn)
       let energy = 0, kwh = 0
+      const contractType = String((invoice?.calculation as Row | null | undefined)?.contract_type ?? '')
       // Each value at its real instant: the Ediel day starts 00:00 +0100 (23:00Z the day before).
       for (const day of SEPTEMBER) days.get(day)!.forEach((value, q) => {
         const start = new Date(edielDayUtc(day).start + q * 900_000).toISOString()
@@ -849,6 +857,11 @@ describe.sequential('reality F — invoices for several facilities with contract
         if (p === undefined) throw Error(`no spot price for ${start}${start >= '2026-09-30T22:00' ? ' (the last hour of the Ediel month is civil 1 October; filled by pricing during F8, see report.edielTailQuartersAfterBilling)' : ''}`)
         energy += value * p; kwh += value
       })
+      // T48: a variable_monthly contract is priced with the month's average spot price ("Medelspotpris"): the product's
+      // rule (gridex_persist_pricing_run: variable_quarterly -> quarterly, variable_hourly -> hourly, otherwise monthly).
+      // The average is this test's own: the arithmetic mean of the civil month's SE3 market quarter-hours of the same
+      // source. (That the civil month's mean is applied to the Ediel month's kWh is the open side finding F108-3.)
+      if (contractType === 'variable_monthly') energy = kwh * civilMonthMean
       const markup = kwh * 0.04, monthlyFee = 49, exVat = energy + markup + monthlyFee
       const run = invoice ? runOf(invoice) : undefined
       independent[f.gsrn] = { kwh, spotSek: energy, markupSek: markup, monthlyFeeSek: monthlyFee, exVat, vat: exVat * 0.25, incVat: exVat * 1.25,

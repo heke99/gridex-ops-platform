@@ -2727,6 +2727,17 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **Variant, rättad:** `claim_ediel_outbox_items` har samma mönster (väljer på `priority, created_at` men returnerar utan ordning), och `processEdielOutbox` skickar posterna en i taget. En rättelse eller makulering som hämtas i samma körning som sitt original kunde lämna först. `claimEdielOutboxItems` sorterar nu på prioritet, ålder och id. Test: `__tests__/reality-i-b11-outbox-claim-order.test.ts`, rött före. Med utkorgstesterna 6 filer, 24/24. Inga fler `claim*`-funktioner med `RETURNING` och `ORDER BY` finns i världens databas.
 - **I världen:** kräver ombyggnad. I körs om.
 
+### F, batch 7 (2026-10-27 18:31–20:26, ombyggd app; J2-B6, J2-B7, A-B7 och H-B6 i databasen): 11 av 12 gröna — FÖRSTA FAKTURERINGEN I F; T48 (harness, rättad)
+- **F7, F8 och F10 gröna för första gången:** septemberspotpriset låses, månadsfaktureringen skapar underlag, låsta prissättningar, fakturautkast, filer och avtal, och en omkörning skapar inget nytt. Det verifierar J2-B6 och J2-B7 i F. F8–F10 har varit röda sedan oktober.
+- **Ett exempel:** anläggning 735999969396625685, 1 432,223 kWh: Medelspotpris 687,92 kr + påslag 57,29 kr + månadsavgift 49 kr = 794,21 kr exkl. moms, 992,76 kr inkl. moms.
+- **F9:** testets oberoende beräkning gav 818,75 kr. Se T48.
+
+### T48 F9 prissatte ett månadsprisavtal kvart för kvart — HARNESS; RÄTTAD
+- Kunderna i F har `variable_monthly`. Produktens regel (`gridex_persist_pricing_run` och prismotorn) är `variable_quarterly` → kvart, `variable_hourly` → timme, annars månadens medelspotpris. Fakturaraden heter "Medelspotpris (100 %)", och prissättningen har därför inga intervallbevis (0 rader).
+- F9 räknade ändå Σ kvartens kWh × kvartens pris (712,47 kr), alltså förbrukningsviktat.
+- **Rättning:** för `variable_monthly` räknar F9 nu kWh × månadens egna medelpris: det aritmetiska medelvärdet av den civila septembers 2 880 SE3-kvartar från samma källa, beräknat av testet självt. Det ger exakt 794,21 kr. Intervallavtal räknas som förut.
+- **Öppet, ägarbeslut:** ska `variable_monthly` använda det aritmetiska medelpriset (i dag) eller ett förbrukningsviktat medelpris? Och den civila månadens medel tillämpas på Ediel-månadens kWh (sidofynd F108-3). Se OWNER-DECISIONS.
+
 ### J1, batch 7 (2026-10-27 17:51–18:31, ombyggd app med J1-11, J1-05 och I-B13): 5 av 12 gröna — J1-11 verifierad; J1-05b (produkt) och T47 (harness) rättade
 - **J1-11 verifierad:** J1-7 grön. Vår APERAK på en Z04 som kom före nätägarens kvittenser förblir kopplad till Z04:an.
 - **J1-8 (J1-05):** kundbeskedet `supplier_switch.cancelled_by_grid_owner` skickades i världen, och operatörsärendet skapades. Ärendet saknade dock byte och mätpunkt, så varken operatören eller testet hittade det på bytet. Se J1-05b.

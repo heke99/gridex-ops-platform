@@ -130,3 +130,8 @@ En Z04 för en anläggning där vi inte har skickat någon Z03 hålls i dag tyst
 Nätägaren skickar en korrigering för en månad som redan är fakturerad (i J2: +0,288 kWh). I dag rörs fakturan inte, och inget faktureras två gånger, men skillnaden når aldrig kunden. Den syns bara i avstämningskontrollen `metering_corrections_after_billing`.
 - **Fråga:** ska skillnaden (a) krediteras och faktureras om i sin helhet, (b) faktureras som en tilläggs- eller kreditrad på nästa faktura, eller (c) bara gå till manuell granskning över en beloppsgräns? Finns en beloppsgräns eller en tidsgräns (t.ex. preskription) som ska gälla?
 
+## Öppen fråga (2026-10-27): månadsprisavtalets spotpris (F9, T48)
+Ett `variable_monthly`-avtal faktureras i dag med månadens aritmetiska medelspotpris ("Medelspotpris") gånger kundens kWh. I F gav det 687,92 kr för 1 432,223 kWh. Ett förbrukningsviktat pris (varje kvarts kWh × kvartens pris) hade gett 712,47 kr.
+- **Fråga 1:** ska månadspriset vara det aritmetiska medelvärdet (i dag), ett förbrukningsviktat medelvärde för kunden, eller ett profilviktat medelvärde för elområdet?
+- **Fråga 2 (F108-3):** medelvärdet räknas på den civila månaden, men kWh avser Ediel-månaden (en timmes förskjutning i varje ände). Ska medelvärdet räknas på samma period som kWh?
+
