@@ -2727,6 +2727,10 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **Variant, rättad:** `claim_ediel_outbox_items` har samma mönster (väljer på `priority, created_at` men returnerar utan ordning), och `processEdielOutbox` skickar posterna en i taget. En rättelse eller makulering som hämtas i samma körning som sitt original kunde lämna först. `claimEdielOutboxItems` sorterar nu på prioritet, ålder och id. Test: `__tests__/reality-i-b11-outbox-claim-order.test.ts`, rött före. Med utkorgstesterna 6 filer, 24/24. Inga fler `claim*`-funktioner med `RETURNING` och `ORDER BY` finns i världens databas.
 - **I världen:** kräver ombyggnad. I körs om.
 
+### I, batch 7 (2026-10-27 17:13–17:51, ombyggd app på grenens topp med J1-11, J1-05 och I-B13): 10 av 10 gröna — I-B13 verifierad
+- **I8 grön:** S9:s Z04, som kom före den negativa APERAK:en, bekräftar bytet. Den sena APERAK:en ger bara P-11-varningen.
+- **I4 grön:** exakt ett operatörsärende per avvisat byte (S9-följden är borta).
+
 ### H, batch 6 (2026-10-27 16:10–17:12): 10 av 11 gröna; H11 röd — T45 verifierad; nytt H-B6 (produkt, hög, rättat och verifierat i världen)
 - **T45 verifierad:** brytavgiftens prissättning lagras (en `break_fee`-rad, 600 kr exkl. moms) och låses en gång.
 - **H11:** fakturautkastet för brytavgiftens underlag föll med "Draftfakturan kunde inte skapas.". Se H-B6.
