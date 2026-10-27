@@ -340,6 +340,7 @@
     "20261026120000_d11g1_break_fee_credit.sql": "00ad283ef239857aae58da2d98016486c430e2bcf40f703b6a04dd334f511d8a",
     "20261026130000_j2_13_settlement_reconciliation.sql": "5ff9207d7f92708a801e45358527375b62d1de887b69df056667db3e1801c00d",
     "20261026170000_f113_object_batch_shared_grid_owner.sql": "b8bc3b554a259cfac7d538ad0ecab1c7fa245523316a4091d726706f68c00e36",
-    "20261026180000_j2_03_measured_replaces_estimated_metering.sql": "f877087a853a42288cce4701ab67087f5f0ec5403ac2852e5231c5fafda5a931"
+    "20261026180000_j2_03_measured_replaces_estimated_metering.sql": "f877087a853a42288cce4701ab67087f5f0ec5403ac2852e5231c5fafda5a931",
+    "20261027100000_switch_retry_after_failed_same_start.sql": "693ec6186668e9bf8eb683cb99e8a2861945db1735a892ddcc895ecb3589cd93"
   }
 }

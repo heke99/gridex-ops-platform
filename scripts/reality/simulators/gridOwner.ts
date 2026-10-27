@@ -27,7 +27,7 @@ import { z02For } from '../../helpers/reality/inboundProdatWire'
 import { unwrapSmimeForActor } from './smimeUnwrap'
 import { platformMailboxFor } from './platformMailbox'
 import { businessAnswerDelayMs, DEFAULT_GRID_OWNER_PROFILE, type GridOwnerProfile } from './gridOwnerProfile'
-import { edifactInterchangesInMail } from './edifactMailParts'
+import { edifactAttachment, edifactInterchangesInMail } from './edifactMailParts'
 
 export type { GridOwnerProfile } from './gridOwnerProfile'
 
@@ -61,7 +61,7 @@ async function deliver(kind: string, edifact: string, reference: string, inReply
   const copies = decide(profile.duplicateShare, sent.length + 1) ? 2 : 1
   for (let copy = 0; copy < copies; copy += 1) {
     await transport.sendMail({ from: config.email, to: platformMailboxFor(edifact), subject: `${kind} ${reference}`, text: 'Ediel',
-      attachments: [{ filename: `${kind}_${reference}.edi`, content: edifact, contentType: 'application/edifact' }] })
+      attachments: [edifactAttachment(`${kind}_${reference}.edi`, edifact)] })
     sent.push({ at: new Date().toISOString(), kind: copy ? `${kind} (duplicate)` : kind, reference, inReplyTo })
   }
 }

@@ -19,7 +19,7 @@ import { answersFor, readReceivedRequest, SILENT, type GridOwnerAnswerPlan } fro
 import { buildZ04ForSwitchRequest } from './gridOwnerWire'
 import { unwrapSmimeForActor } from './smimeUnwrap'
 import { platformMailboxFor } from './platformMailbox'
-import { edifactInterchangesInMail } from './edifactMailParts'
+import { edifactAttachment, edifactInterchangesInMail } from './edifactMailParts'
 
 const env = (name: string, fallback: string) => process.env[name] ?? fallback
 const config = {
@@ -47,7 +47,7 @@ const transport = nodemailer.createTransport({ host: config.mailHost, port: conf
 async function deliver(kind: string, edifact: string, facility: string, inReplyTo: string) {
   const reference = /UNB\+[^']*?\+[^+']*\+[^+']*\+[^+']*\+([^+']+)/.exec(edifact)?.[1] ?? '?'
   await transport.sendMail({ from: config.email, to: platformMailboxFor(edifact), subject: `${kind} ${reference}`, text: 'Ediel',
-    attachments: [{ filename: `${kind.replace(/\W+/g, '_')}_${reference}.edi`, content: edifact, contentType: 'application/edifact' }] })
+    attachments: [edifactAttachment(`${kind.replace(/\W+/g, '_')}_${reference}.edi`, edifact)] })
   sent.push({ at: new Date().toISOString(), kind, facility, inReplyTo, reference })
 }
 

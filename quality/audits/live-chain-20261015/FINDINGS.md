@@ -2691,6 +2691,37 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
   - **Rättning:** båda binder anläggningens senaste signerade avtal via `findLatestSignedContractIdForSite` (`lib/customer-operations/switchReadiness.ts`), samma uppslagning som beredskapskontrollen redan gjorde, nu utbruten: exakt bolag, kund och anläggning, status `signed`, nyast först. Formuläret skickar även `companyId`. Saknas avtal binds inget och vakten avgör som förut.
   - **Test:** `__tests__/reality-i-b4v-staff-switch-exact-contract.test.ts`, 4 fall (annan tenant, annan anläggning, äldre och osignerade avtal vinner aldrig). Före rättningen 3 röda, efter 4/4. Med I-B- och switch-testerna 10 filer, 77/77.
 
+### I, batch 5c (2026-10-27 01:12–02:03, efter fjärde omstarten): 4 gröna, 6 röda — I-B5 verifierad; I-B6 (harness), I-B7 och I-B8 (produkt) rättade, T39 (harness)
+- **I-B5 verifierad i världen:** alla nio signerade kunders Z03 nådde nätägaren i produktionsbanan (`reached.z03: true`). För första gången prövas I4–I9.
+- **Gröna delfall:** S3 och S4 (negativ APERAK med ERC 42) blir `failed` med nätägarens kod. S6 (negativ CONTRL) blir `failed`. S8 (Z04 före APERAK) blir `accepted` med en period `confirmed_by_grid_owner`, och den duplicerade APERAK:en hålls.
+- **I4/I8 (S1, S2, S5, S9):** bytet blev `rejected` utan händelse och utan felkod, och Z03:n stod kvar som `ack_overdue`. Se I-B6.
+- **I6 (S7, tyst nätägare):** ingen öppen SLA-händelse (GOR-05). Se I-B7.
+- **I7:** den enda röda kontrollen var testets förväntan på två kvittenshändelser. Se T39.
+- **I9:** "Försök igen" köades (`queued`), men varje försök föll med 23505. Se I-B8.
+
+### I-B6 Simulatorerna skickade EDIFACT-bilagor som UTF-8 — HARNESS; RÄTTAD
+- **Bevis:** APERAK:en för S1 bar `FTX+AAO++105::260+AnlÃ¤ggningen kan inte identifieras`. Vår egen bedömning blev `applicationDecision: rejected` (`ACK_PRODAT_APPLICATION_TEXT_INVALID`, texten stämmer inte med guidens text för kod 105), och kvittensauktoriteten vägrade korrekt: `ack_current_canonical_acceptance_required` (`20260930170932`). Affärsbehandlingen avbröts.
+- **Orsak:** alla simulatorer (`gridOwner`, `gridOwnerRejects`, `gridOwnerInboundProdat`, `gridOwnerLeaving`) och `live-chain-fixture` skickade bilagan som sträng, och nodemailer kodar den som UTF-8. Plattformen läser UNOC som ISO 8859-1.
+- **Rättning:** `edifactAttachment` (`scripts/reality/simulators/edifactMailParts.ts`) skickar ISO 8859-1-bytes och vägrar tecken utanför. Används av alla fem.
+- **Test:** `__tests__/reality-a-b4b-simulator-latin1-attachment.test.ts`, nytt fall I-B6: bytes, tur och retur genom samma läsning, och vägran för U+20AC. 4/4.
+- **Variant:** samma fel gäller A:s Z02 (som nu ekar "Alingsås"). A i batch 5c startade före rättningen.
+
+### I-B7 SLA-övervakaren för egna kvittenser svalt ut nya försenade meddelanden — PRODUKT, hög; RÄTTAD
+- **Bevis i världen:** `ediel_overdue_message_acks_v` har 149 rader, varav 43 med öppen händelse. S7:s Z03 (`7d2f8a8b…`) står i vyn men har ingen händelse. Postgresloggen har en lång rad `ediel_ack_sla_events_open_uidx`-konflikter vid varje cron.
+- **Orsak:** `runEdielAckSlaMonitor` (`lib/ediel/operations/ackSlaMonitor.ts`, GOR-05) läste en osorterad första sida med 100 rader. Meddelanden som redan hade en öppen händelse fyllde den, och varje insert gav 23505 som hoppades över. I produktion får ett nytt försenat meddelande alltså aldrig sin händelse när fler än 100 försenade står olösta.
+- **Rättning:** läser i stabil ordning (`ack_due_at`, `id`) sida för sida, hoppar över meddelanden som har en öppen händelse, skapar upp till `limit` nya och läser högst `maxScan` rader. Fortfarande bara eskalering och aldrig omsändning (TR-05).
+- **Test:** `__tests__/reality-i-b7-ack-sla-monitor-starvation.test.ts`, 3 fall, 2 röda före. Med `poa-mail-review-cron-isolation` 14/14.
+- **I världen:** kräver ombyggnad. I körs om.
+
+### I-B8 Ett misslyckat byte blockerade återförsöket med samma startdatum för gott — PRODUKT, hög; RÄTTAD (migration `20261027100000`, applicerad i världen)
+- **Bevis i världen:** S4:s återförsök (`requestedFrom: switch_retry`) föll fem gånger med 23505: `Key (company_id, metering_point_id, requested_start_date, COALESCE(metadata->>'customer_contract_id',''))=(…, 2026-11-26, ) already exists`.
+- **Orsak:** dedupe-indexet `ux_switch_company_meter_start_contract` (`02_db1_operations_ediel_billing_dedupe_and_storage.sql`) gällde alla statusar. Ägarbeslut 32 säger att det avtalade startdatumet aldrig flyttas automatiskt, så varje "Försök igen" efter en avvisning krockar.
+- **Rättning:** indexet gäller inte längre `failed`, `rejected`, `cancelled` och `cancelled_before_start`. Två levande begäranden med samma mätpunkt, start och avtal nekas fortfarande, och två öppna per anläggning nekas av `supplier_switch_requests_open_site_uidx`. Samma namn och nyckelkolumner; migrationen vägrar köra över ett index som redan filtrerar på status.
+- **Test:** `__tests__/reality-i-b8-switch-retry-same-start-index.test.ts` (PGlite med indexdefinitionen ur originalmigrationen), 4 fall, inklusive felet före rättningen.
+
+### T39 I7 förväntade en kvittenshändelse på bytet också för den positiva CONTRL:en — HARNESS; RÄTTAD
+- En positiv CONTRL före APERAK är inte slutlig kvittens och ändrar inget på bytet (ägarbeslut 27, GOR-06; `inboundAckProcessing.ts` kräver slutlig kvittens för en övergång). I7 förväntar nu exakt en kvittenshändelse (den slutliga) och ingen failure. Den duplicerade APERAK:en ger fortfarande ingen andra händelse.
+
 ### H, batch 5 (2026-10-27 00:05–00:49, ombyggd app): 9 av 11 gröna; H5 och H11 röda — H-B5 och H-B5b (harness, rättade)
 - **Gröna:** H1–H4 och H6–H10, så H3d, H-9–H-17 och ägarbeslut 26 håller fortfarande.
 - **H5:** körningen korsade midnatt UTC (TODAY blev 2026-10-27), och dag 26 saknas för alla kunder. Två E66 avvisades med negativ APERAK: `UTILTS_MESSAGE_DATE_INVALID` ("INCORRECT DATA 202610270600", fält 205). Se H-B5b.

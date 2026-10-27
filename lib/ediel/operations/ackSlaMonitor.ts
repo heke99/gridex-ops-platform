@@ -24,19 +24,47 @@ export async function runEdielAckSlaMonitor(input?: {
   companyId?: string | null
   actorUserId?: string | null
   limit?: number
+  /** Rows of the overdue view read per page. */
+  pageSize?: number
+  /** Upper bound on overdue rows read in one run. */
+  maxScan?: number
 }) {
-  let query = supabaseService
-    .from('ediel_overdue_message_acks_v')
-    .select('*')
-    .limit(input?.limit ?? 100)
-
-  if (input?.companyId) query = query.eq('company_id', input.companyId)
-
-  const { data, error } = await query
-  if (error) {
-    if (isSchemaCompatibilityError(error)) return { checked: 0, created: 0 }
-    throw error
+  // FINDINGS I-B7: an unordered first page of the overdue view was the whole run. Messages that already had an open
+  // event filled it (each insert a 23505), so a newly overdue message beyond the first page (here a silent Z03) never
+  // got its event. Read in a stable order and skip messages whose open event exists until `limit` new ones are made.
+  const limit = input?.limit ?? 100
+  const pageSize = Math.max(1, input?.pageSize ?? 200)
+  const maxScan = Math.max(pageSize, input?.maxScan ?? 5000)
+  const pending: OverdueAckRow[] = []
+  let checked = 0
+  for (let offset = 0; offset < maxScan && pending.length < limit; offset += pageSize) {
+    let query = supabaseService
+      .from('ediel_overdue_message_acks_v')
+      .select('*')
+      .order('ack_due_at', { ascending: true })
+      .order('id', { ascending: true })
+      .range(offset, offset + pageSize - 1)
+    if (input?.companyId) query = query.eq('company_id', input.companyId)
+    const { data: page, error } = await query
+    if (error) {
+      if (isSchemaCompatibilityError(error)) return { checked: 0, created: 0 }
+      throw error
+    }
+    const rows = ((page ?? []) as OverdueAckRow[]).filter(row => row.id && row.ack_due_at)
+    checked += (page ?? []).length
+    if (rows.length > 0) {
+      const { data: open, error: openError } = await supabaseService
+        .from('ediel_ack_sla_events')
+        .select('ediel_message_id')
+        .eq('status', 'open')
+        .in('ediel_message_id', rows.map(row => row.id as string))
+      if (openError && !isSchemaCompatibilityError(openError)) throw openError
+      const escalated = new Set(((open ?? []) as Array<{ ediel_message_id: string | null }>).map(row => row.ediel_message_id))
+      for (const row of rows) if (!escalated.has(row.id ?? null) && pending.length < limit) pending.push(row)
+    }
+    if ((page ?? []).length < pageSize) break
   }
+  const data = pending
 
   let created = 0
   for (const row of (data ?? []) as OverdueAckRow[]) {
@@ -85,5 +113,5 @@ export async function runEdielAckSlaMonitor(input?: {
       })
   }
 
-  return { checked: (data ?? []).length, created }
+  return { checked, created }
 }

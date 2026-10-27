@@ -17,6 +17,7 @@ import nodemailer from 'nodemailer'
 import { buildZ04ForSwitchRequest, readSwitchRequest } from './gridOwnerWire'
 import { platformMailboxFor } from './platformMailbox'
 import { edielMinute, stockholmUnbStamp } from '../../helpers/live-chain-wire'
+import { edifactAttachment } from './edifactMailParts'
 
 export type LeavingFacts = {
   gridOwner: string; supplier: string; point: string; gridArea: string; brp: string
@@ -80,7 +81,7 @@ export async function gridOwnerSendsLeavingFile(input: { from: string; kind: str
   const transport = nodemailer.createTransport({ host: 'localhost', port: Number(process.env.REALITY_SMTPS_PORT ?? 3465), secure: true, requireTLS: true,
     auth: { user: input.from, pass: 'grid-owner-local' }, tls: { rejectUnauthorized: true, minVersion: 'TLSv1.2' } })
   await transport.sendMail({ from: input.from, to: platformMailboxFor(input.edifact), subject: `${input.kind} ${input.reference}`,
-    text: 'Ediel', attachments: [{ filename: `${input.kind}_${input.reference}.edi`, content: input.edifact, contentType: 'application/edifact' }] })
+    text: 'Ediel', attachments: [edifactAttachment(`${input.kind}_${input.reference}.edi`, input.edifact)] })
 }
 
 /** Facts of a Z05 as read back from its wire (for the report). */

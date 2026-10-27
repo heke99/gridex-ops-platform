@@ -15,3 +15,14 @@ export function edifactInterchangesInMail(text: string): string[] {
   }
   return files
 }
+
+/**
+ * A mail attachment carrying an EDIFACT interchange as ISO 8859-1 bytes (UNOC), as a market actor sends it. A string
+ * attachment is encoded as UTF-8 by nodemailer, so 'Anläggningen' arrived as 'AnlÃ¤ggningen': the grid owner's APERAK
+ * text no longer matched the guide text and the platform refused it (ACK_PRODAT_APPLICATION_TEXT_INVALID, FINDINGS I-B6).
+ */
+export function edifactAttachment(filename: string, edifact: string) {
+  const outside = [...edifact].find(char => char.codePointAt(0)! > 0xff)
+  if (outside) throw Error(`edifact_attachment_not_iso8859_1:U+${outside.codePointAt(0)!.toString(16).toUpperCase().padStart(4, '0')}`)
+  return { filename, content: Buffer.from(edifact, 'latin1'), contentType: 'application/edifact' }
+}

@@ -290,12 +290,13 @@ describe.sequential('reality I — the grid owner rejects or stays silent', () =
     expect(state.status).toBe('accepted')
     expect(state.z04).toBe(true)
     expect(state.periods.map(p => p.status)).toEqual(['confirmed_by_grid_owner'])
-    // The grid owner really sent the APERAK twice; the duplicate is held as a protocol duplicate (ACK-09):
-    // one ACK event each for the CONTRL and the first APERAK, never a failure.
+    // The grid owner really sent the APERAK twice; the duplicate is held as a protocol duplicate (ACK-09): one ACK
+    // event, for the final acknowledgement, never a failure. A positive CONTRL before the APERAK is not final and moves
+    // nothing on the switch (owner decision 27, GOR-06), so it has no switch event (FINDINGS T39).
     const sent = (await gridOwner.state()).sent.filter(m => m.facility === byKey('S8-z04-first-duplicate-aperak').gsrn).map(m => m.kind)
     report.I7sent = sent
     expect(sent.filter(kind => kind.startsWith('APERAK'))).toHaveLength(2)
-    expect(state.events.filter(e => e.type === 'ediel_ack_received')).toHaveLength(2)
+    expect(state.events.filter(e => e.type === 'ediel_ack_received')).toHaveLength(1)
     expect(state.events.filter(e => e.status === 'failed')).toEqual([])
   })
 

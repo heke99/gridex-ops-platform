@@ -21,7 +21,7 @@ import { contrlFor, positiveAperakFor, readReceivedRequest } from '../../helpers
 import { prodatFacts, readOurAnswer, shiftDate, z02For, z04cFor, z04For, z04ForUnknownSwitch, z06For, type InboundProdatPlan, type InboundProdatStep } from '../../helpers/reality/inboundProdatWire'
 import { unwrapSmimeForActor } from './smimeUnwrap'
 import { platformMailboxFor } from './platformMailbox'
-import { edifactInterchangesInMail } from './edifactMailParts'
+import { edifactAttachment, edifactInterchangesInMail } from './edifactMailParts'
 
 const env = (name: string, fallback: string) => process.env[name] ?? fallback
 const config = {
@@ -55,7 +55,7 @@ const interchangeOf = (edifact: string) => /UNB\+[^']*?\+[^+']*\+[^+']*\+[^+']*\
 async function deliver(kind: Sent['kind'], edifact: string, facility: string) {
   const interchange = interchangeOf(edifact), facts = prodatFacts(edifact)
   await transport.sendMail({ from: config.email, to: platformMailboxFor(edifact), subject: `${kind} ${interchange}`, text: 'Ediel',
-    attachments: [{ filename: `${kind.replace(/\W+/g, '_')}_${interchange}.edi`, content: edifact, contentType: 'application/edifact' }] })
+    attachments: [edifactAttachment(`${kind.replace(/\W+/g, '_')}_${interchange}.edi`, edifact)] })
   sent.push({ at: new Date().toISOString(), kind, facility, object: facts.facility, interchange, document: facts.document, start: facts.start, li: facts.li, answers: [] })
 }
 

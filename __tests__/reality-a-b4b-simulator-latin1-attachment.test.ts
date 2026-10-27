@@ -29,3 +29,16 @@ it('the Z02 built from that file carries the city as the Z01 named it and stays 
 it('a part without an interchange is skipped', () => {
   expect(edifactInterchangesInMail(['--b1', 'Content-Type: text/plain', '', 'hej', '--b1--'].join('\r\n'))).toEqual([])
 })
+
+// I-B6: the attachment a simulator sends is ISO 8859-1 bytes, never a UTF-8 string, and the round trip through the
+// platform's own reading (latin1, edifactInterchangesInMail) keeps the text exactly.
+import { edifactAttachment } from '../scripts/reality/simulators/edifactMailParts'
+it('I-B6 an EDIFACT attachment is sent as ISO 8859-1 bytes and reads back unchanged', () => {
+  const aperak = "UNA:+.? 'UNB+UNOC:3+16700:ZZ+70434:ZZ+261027:0215+A8++23-DDQ-PRODAT++1'FTX+AAO++105::260+Anläggningen kan inte identifieras'UNZ+1+A8'"
+  const attachment = edifactAttachment('APERAK.edi', aperak)
+  expect(attachment.content.equals(Buffer.from(aperak, 'latin1'))).toBe(true)
+  expect(attachment.content.includes(Buffer.from('Ã¤', 'latin1'))).toBe(false)
+  const mailText = ['--b1', 'Content-Transfer-Encoding: base64', '', attachment.content.toString('base64'), '--b1--'].join('\r\n')
+  expect(edifactInterchangesInMail(mailText)).toEqual([aperak])
+  expect(() => edifactAttachment('x.edi', 'UNB+€')).toThrow('edifact_attachment_not_iso8859_1:U+20AC')
+})
