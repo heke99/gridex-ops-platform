@@ -1,6 +1,6 @@
 # Verklighetssimuleringen — läge och nästa steg
 
-Uppdaterad 2026-10-27 kl. 06:00 UTC av Claude (session 01Az5xza…), som fortsätter på grenen `claude/wonderful-franklin-o8gx2p` (byggd på `claude/gifted-hamilton-vss1hj` `edeaed7d0`) på ägarens uppdrag. Tidigare session: 01YCH5Va…. Filen är tänkt att läsas först.
+Uppdaterad 2026-10-27 kl. 09:50 UTC av Claude (session 01Az5xza…), som fortsätter på grenen `claude/wonderful-franklin-o8gx2p` (byggd på `claude/gifted-hamilton-vss1hj` `edeaed7d0`) på ägarens uppdrag. Tidigare session: 01YCH5Va…. Filen är tänkt att läsas först.
 
 Den hör ihop med tre andra dokument:
 - [FINDINGS.md](FINDINGS.md): alla fynd. Inget tas bort därifrån.
@@ -25,6 +25,12 @@ Den hör ihop med tre andra dokument:
     - J4 7/8: nytt T41 (harness), rättat.
     - H, K, F och G pågår.
   - **Därefter:** bygg om (I-B4v2, I-B9, I-B10, J2-B5) och kör om A, I, J2, J4, K och J1.
+  - **Batch 5e från 06:51 UTC** på bygget `75cbac61e` (I-B4v2, I-B9, I-B10, J2-B5, T40–T42): K, A, I, J2, J4, H, J1, G, F. Logg `/tmp/claude-0/batch5e.log`.
+    - K 11/12: K4 → A-B5 (produkt, migration `20261027110000`, applicerad) och T43 (harness), rättade.
+    - A 4/7: A-B5 verifierad (härledningen går igenom). A3–A5 → A-B6 (RFF+ANJ över 35 tecken), rättad i `eae7ba4b3`, kräver ombyggnad.
+    - I 7/10: I-B9 och I-B10 verifierade. Nytt I-B11 (inkommande jobb i godtycklig ordning; variant i utkorgen) och I-B12 ("Oklassificerad" i stället för "Kvittens försenad"), rättade i `a10861743` och `ca388c905`.
+    - J2 pågår (startade 08:43), därefter J4, H, J1, G och F.
+  - **Efter 5e:** bygg om på grenens topp (A-B6, I-B11, I-B12) och kör om A, I och K.
   - **Kvar av övertagandet i #840:** F113 (`20261026170000`), J2-05 och J4-D15 (`20261026190000`). A-B4 utreds när A har kört i den nya världen.
 - **Batch 5 pågår (2026-10-26 från ca 20:45 UTC):** J1, H, J2, J4, F och G på `0636d475b` (med I-B4). Logg `/tmp/claude-0/batch5.log`.
   - Batch 4 gav K 10/12 (K-B4, rättad), I 3 gröna/1 röd (I-B4, rättad) och A 4/7 (A-B4, agent). J1 försvann i den tredje omstarten.
