@@ -2727,6 +2727,13 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **Variant, rättad:** `claim_ediel_outbox_items` har samma mönster (väljer på `priority, created_at` men returnerar utan ordning), och `processEdielOutbox` skickar posterna en i taget. En rättelse eller makulering som hämtas i samma körning som sitt original kunde lämna först. `claimEdielOutboxItems` sorterar nu på prioritet, ålder och id. Test: `__tests__/reality-i-b11-outbox-claim-order.test.ts`, rött före. Med utkorgstesterna 6 filer, 24/24. Inga fler `claim*`-funktioner med `RETURNING` och `ORDER BY` finns i världens databas.
 - **I världen:** kräver ombyggnad. I körs om.
 
+### A, batch 9 (2026-10-27 23:14–23:48, efter femte omstarten): 4 av 7 gröna; A3–A5 röda — T51 (miljö/harness, rättad)
+- Inga Z01 skickades. Alla utgående poster blev `delivery_uncertain` med `Invalid login: 535 5.7.8 Authentication credentials invalid`. Se T51.
+
+### T51 Världens SMTP-konto och produktionsbrevlådans IMAP hade olika lösenord — HARNESS (miljö); RÄTTAD
+- **Orsak:** GreenMail kör med `auth.disabled` och skapar ett konto vid första inloggningen, med det lösenordet. Den delade produktionsbrevlådan `gridex-ediel@example.invalid` används både av SMTP-kontot (`EDIEL_SMTP_PASS`) och av IMAP-pollern (`GRIDEX_SHARED_EDIEL_PRODUCTION_IMAP_PASS`), med två olika slumpade lösenord. I testbanan delar de lösenord. Efter omstarten skapades GreenMail på nytt, pollern loggade in först och varje utskick vägrades. Tidigare fungerade det bara för att SMTP råkade logga in först.
+- **Rättning:** `scripts/reality/up.sh` sätter `EDIEL_SMTP_PASS` till den valda brevlådans eget IMAP-lösenord. Ingen produktkod berörs, och produktens hantering (`delivery_uncertain` med avstämning av transporten, inget tyst omsändande) var korrekt.
+
 ### H, batch 8 (2026-10-27 21:36–22:36): 10 av 11 gröna — H-B6 verifierad (brytavgiften faktureras); nytt H-B6b (produkt, hög, rättat och verifierat)
 - **H11 kom förbi faktureringen:** brytavgiften faktureras en gång, och krediteringens avsedda vägranden kommer (`break_fee_credit_exceeds_debit`, `_reason_required`, `_pending`).
 - **Därefter:** kreditfakturans underlag (`break_fee_credit`) föll med `billing_finalized_source_basis_required`. Se H-B6b.

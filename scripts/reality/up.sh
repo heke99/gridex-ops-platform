@@ -122,8 +122,11 @@ path,lane=sys.argv[1:]
 lines=open(path).read().splitlines()
 env=dict(l.split('=',1) for l in lines if '=' in l)
 box=env['GRIDEX_SHARED_EDIEL_PRODUCTION_EMAIL'] if lane=='production' else env['GRIDEX_SHARED_EDIEL_TEST_EMAIL']
-lines=[l for l in lines if not l.startswith(('EDIEL_SMTP_USER=','EDIEL_SMTP_FROM='))]
-open(path,'w').write('\n'.join(lines+['EDIEL_SMTP_USER='+box,'EDIEL_SMTP_FROM='+box])+'\n')
+# GreenMail (auth disabled) pins an account's password at its first login, so the SMTP account must use the same
+# password as the IMAP poller of the same mailbox; otherwise sends fail with 535 once the poller logs in first (T51).
+pw=env['GRIDEX_SHARED_EDIEL_PRODUCTION_IMAP_PASS'] if lane=='production' else env['GRIDEX_SHARED_EDIEL_TEST_IMAP_PASS']
+lines=[l for l in lines if not l.startswith(('EDIEL_SMTP_USER=','EDIEL_SMTP_FROM=','EDIEL_SMTP_PASS='))]
+open(path,'w').write('\n'.join(lines+['EDIEL_SMTP_USER='+box,'EDIEL_SMTP_FROM='+box,'EDIEL_SMTP_PASS='+pw])+'\n')
 PY
 set -a; # shellcheck disable=SC1090
 . "$ENV_FILE"; set +a
