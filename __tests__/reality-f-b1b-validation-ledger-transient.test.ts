@@ -47,3 +47,12 @@ it('so the in-place retry recovers from the deadlock', async () => {
   await expect(runWithTransientRetry(run, { delayMs: 0 })).resolves.toMatchObject({ status: 'unconfirmed' })
   expect(run).toHaveBeenCalledTimes(2)
 })
+
+// F-B1c: the ledger's own 2 s client time limit (AbortSignal.timeout) and a statement timeout are transient as well.
+it('a client time-out of the validation RPC and a statement timeout reach the caller', async () => {
+  io.thrown = Object.assign(new Error('The operation was aborted due to timeout'), { name: 'TimeoutError' })
+  await expect(record()).rejects.toMatchObject({ name: 'TimeoutError' })
+  io.thrown = null; io.reply = { data: null, error: { code: '57014', message: 'canceling statement due to statement timeout' } }
+  await expect(record()).rejects.toMatchObject({ code: '57014' })
+})
+

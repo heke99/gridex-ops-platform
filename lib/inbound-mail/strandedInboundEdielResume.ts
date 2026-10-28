@@ -61,13 +61,16 @@ function payloadOf(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
 }
 
-const TRANSIENT_POSTGRES_CODES = new Set(["40P01", "40001"]);
+// 40P01 deadlock, 40001 serialization failure, 57014 statement timeout (rolled back): safe to run again (F-B1, F-B1c).
+const TRANSIENT_POSTGRES_CODES = new Set(["40P01", "40001", "57014"]);
 
 function isTransientConflict(error: unknown): boolean {
   const record = error && typeof error === "object" ? (error as { code?: unknown; message?: unknown }) : {};
   if (typeof record.code === "string" && TRANSIENT_POSTGRES_CODES.has(record.code)) return true;
+  const name = error && typeof error === "object" ? (error as { name?: unknown }).name : null;
+  if (name === "AbortError" || name === "TimeoutError") return true;
   const message = typeof record.message === "string" ? record.message : String(error ?? "");
-  return /deadlock detected|could not serialize access/i.test(message);
+  return /deadlock detected|could not serialize access|statement timeout/i.test(message);
 }
 
 /** F-B1: a deadlock or serialization failure between concurrent inbound processings rolls back only the failed call;

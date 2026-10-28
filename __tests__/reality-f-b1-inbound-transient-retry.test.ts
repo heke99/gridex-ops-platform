@@ -29,4 +29,14 @@ describe('F-B1 inbound business processing retries a transient database conflict
     await expect(runWithTransientRetry(run, { delayMs: 0 })).rejects.toThrow('utilts_consumption_binding_invalid')
     expect(run).toHaveBeenCalledTimes(1)
   })
+
+  // F-B1c (batch 15): under load five CONTRL/APERAK aborted on a statement timeout (57014) and one E66 on the
+  // ledger's client time limit; all were stranded after progressing past 'received'.
+  it('a statement timeout and a client timeout are retried too', async () => {
+    const timeout = vi.fn().mockRejectedValueOnce({ code: '57014', message: 'canceling statement due to statement timeout' }).mockResolvedValueOnce('done')
+    await expect(runWithTransientRetry(timeout, { delayMs: 0 })).resolves.toBe('done')
+    const aborted = vi.fn().mockRejectedValueOnce(Object.assign(new Error('The operation was aborted due to timeout'), { name: 'TimeoutError' })).mockResolvedValueOnce('done')
+    await expect(runWithTransientRetry(aborted, { delayMs: 0 })).resolves.toBe('done')
+  })
 })
+

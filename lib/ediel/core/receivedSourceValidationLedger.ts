@@ -21,9 +21,10 @@ export function takeReceivedSourceOwnerSeed(receipt: ReceivedSourceValidationRec
 /** F-B1b: a deadlock or serialization failure is not a validation failure; it reaches the caller, whose processing is
  * retried in place (runWithTransientRetry). */
 function isTransientConflict(error: unknown): boolean {
-  const record = error && typeof error === 'object' ? (error as { code?: unknown; message?: unknown }) : {}
-  return record.code === '40P01' || record.code === '40001'
-    || (typeof record.message === 'string' && /deadlock detected|could not serialize access/i.test(record.message))
+  const record = error && typeof error === 'object' ? (error as { code?: unknown; message?: unknown; name?: unknown }) : {}
+  // F-B1c: a statement timeout (57014) and this call's own client time limit are transient too; the ledger appends.
+  return record.code === '40P01' || record.code === '40001' || record.code === '57014' || record.name === 'AbortError' || record.name === 'TimeoutError'
+    || (typeof record.message === 'string' && /deadlock detected|could not serialize access|statement timeout/i.test(record.message))
 }
 
 /** Failure remains an unconfirmed diagnostic: do not change the actual
