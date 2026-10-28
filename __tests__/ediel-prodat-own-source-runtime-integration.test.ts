@@ -102,7 +102,21 @@ for(const variant of ['L','LK'] as const){
    noPrivateAuthority(decision,source)
   })
  }
- for(const declaration of ['missing','duplicate','malformed','header','other-object'] as const){
+ // J1-10 (owner decision 38, handover-J1.md): no own 259 is the own FALSE declaration, never a borrowed value.
+ for(const declaration of ['missing','other-object'] as const){
+  it(`${variant}: ${declaration}259 is the own FALSE declaration; a caller TRUE cannot replace it`,async()=>{
+   const source=fixture({variant,declaration,poison:true})
+   const decision=await resolveCanonicalRuntimeDecisionWithRegistry(source,{actorUserId:actor})
+   expect(decision.policy?.prodatDependentFacts?.registerObjects?.find(row=>row.meteringPointId===point))
+    .toEqual({meteringPointId:point,identityAgency:'9',meterReadingsSentInUtilts:false})
+   if(declaration==='other-object')expect(decision.policy?.prodatDependentFacts?.registerObjects?.find(row=>row.meteringPointId===otherPoint)?.meterReadingsSentInUtilts).toBe(true)
+   expect(decision.policy?.prodatDependentFacts?.meterReadingsSentInUtilts).toBeUndefined()
+   expect(decision.policy?.prodatDependentConditions.filter(condition=>readingFields.includes(condition.fieldNumber)).some(condition=>condition.status==='undetermined'||(declaration==='missing'&&condition.status==='required'))).toBe(false)
+   expect(decision.issues.filter(issue=>issue.code==='PRODAT_DEPENDENT_CONDITION_UNDETERMINED')).toEqual([])
+   noPrivateAuthority(decision,source)
+  })
+ }
+ for(const declaration of ['duplicate','malformed','header'] as const){
   it(`${variant}: ${declaration}259 keeps the own declaration UNKNOWN instead of borrowing TRUE/FALSE`,async()=>{
    const source=fixture({variant,declaration,poison:true})
    const decision=await resolveCanonicalRuntimeDecisionWithRegistry(source,{actorUserId:actor})

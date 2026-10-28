@@ -122,7 +122,29 @@ for(const variant of ['L','LK'] as const)for(const constant of states)for(const 
  })
 }
 
-for(const variant of ['L','LK'] as const)for(const declaration of ['missing','duplicate','malformed','misplaced','header','other-object'] as const){
+// J1-10 (owner decision 38, bounded handover quality/audits/live-chain-20261015/handover-J1.md): an object with no 259
+// in its own registers declares FALSE (no readings in UTILTS); 214/218/259 are then not required. Another object's
+// 259 still never fills this object's declaration (it stays this object's own FALSE, the other's own TRUE).
+for(const variant of ['L','LK'] as const)for(const declaration of ['missing','other-object'] as const){
+ it(`${variant}: ${declaration}259 is the own FALSE declaration; nothing is required or undetermined`,async()=>{
+  const f=fixture({variant,declaration});install(f.row,f.variant)
+  expect(validateEdifactSyntax(f.row).ok).toBe(true)
+  const context=await loadProdatOwnSourceReadingContext(f.row,actor)
+  expect(context).not.toBeNull()
+  const selected=policy(f.row,context)
+  expect(selected.prodatDependentFacts?.registerObjects?.find(o=>o.meteringPointId===point)).toEqual({meteringPointId:point,identityAgency:'9',meterReadingsSentInUtilts:false})
+  if(declaration==='other-object')expect(selected.prodatDependentFacts?.registerObjects?.find(o=>o.meteringPointId===otherPoint)?.meterReadingsSentInUtilts).toBe(true)
+  // 214/218 are no longer required or unknown. (259's market-bound FORBIDDEN needs the runtime's electricity fact,
+  // which this finite policy helper does not supply; the runtime integration test proves it.)
+  const conditions=selected.prodatDependentConditions.filter(c=>['214','218'].includes(c.fieldNumber))
+  // The other object's own TRUE keeps its own conditions required; nothing is unknown.
+  expect(conditions.some(c=>c.status==='undetermined'||(declaration==='missing'&&c.status==='required'))).toBe(false)
+  const canonical=parseCanonicalMessageRow(f.row)
+  const issues=validateCanonicalPolicyFields({policy:selected,rawPayload:f.row.raw_payload,rawSegments:canonical.rawSegments,una:canonical.una,scope:'dependent_only'})
+  expect(issues.filter(i=>i.blocking&&['CCI++Z02/CAV','CCI++Z05/CAV'].includes(i.fieldPath??''))).toEqual([])
+ })
+}
+for(const variant of ['L','LK'] as const)for(const declaration of ['duplicate','malformed','misplaced','header'] as const){
  it(`${variant}: ${declaration}259 cannot fill the own unknown declaration`,async()=>{
   const f=fixture({variant,declaration});install(f.row,f.variant)
   // SG14 placed after SG16 is invalid full UNSM grammar. That early refusal
@@ -149,7 +171,8 @@ for(const variant of ['L','LK'] as const){
  })
  for(const poison of [true,false] as const)it(`${variant}: caller root/report/byCell ${poison} cannot fill omitted own259`,async()=>{
   const {row,context}=await loaded({variant,declaration:'missing',poison})
-  expect(policy(row,context).prodatDependentFacts?.registerObjects).toEqual([{meteringPointId:point,identityAgency:'9',meterReadingsSentInUtilts:null}])
+  // J1-10: the physical omission is the own FALSE declaration; a caller TRUE never turns it into TRUE.
+  expect(policy(row,context).prodatDependentFacts?.registerObjects).toEqual([{meteringPointId:point,identityAgency:'9',meterReadingsSentInUtilts:false}])
  })
  it(`${variant}: physical own TRUE overrides caller FALSE`,async()=>{
   const {row,context}=await loaded({variant,poison:false})
@@ -333,17 +356,17 @@ for(const variant of ['L','LK'] as const){
   expect(io.calls).toContainEqual({kind:'table',name:'inbound_ediel_parse_results',args:{id:id(5),company_id:f.row.company_id}})
   expect(io.permissionChecks).toBe(4)
  })
- it(`${variant}: ediel.read with an absent physical259 leaves all three conditions UNKNOWN`,async()=>{
+ it(`${variant}: ediel.read with an absent physical259 declares the own FALSE (J1-10) and leaves no condition UNKNOWN`,async()=>{
   const f=fixture({variant,declaration:'missing'});install(f.row,variant);io.permissions=new Set(['ediel.read'])
   const context=await loadProdatOwnSourceReadingContext(f.row,actor)
   expect(context).not.toBeNull();expectReadPermissions(f.row,2)
   const selected=policy(f.row,context!)
-  expect(selected.prodatDependentFacts?.registerObjects).toEqual([{meteringPointId:point,identityAgency:'9',meterReadingsSentInUtilts:null}])
-  const conditions=selected.prodatDependentConditions.filter(c=>fields.includes(c.fieldNumber as typeof fields[number]))
-  expect(conditions).toHaveLength(3);expect(conditions.every(c=>c.status==='undetermined')).toBe(true)
+  expect(selected.prodatDependentFacts?.registerObjects).toEqual([{meteringPointId:point,identityAgency:'9',meterReadingsSentInUtilts:false}])
+  const conditions=selected.prodatDependentConditions.filter(c=>['214','218'].includes(c.fieldNumber))
+  expect(conditions.some(c=>c.status==='undetermined')).toBe(false)
   const canonical=parseCanonicalMessageRow(f.row)
   const issues=validateCanonicalPolicyFields({policy:selected,rawPayload:f.row.raw_payload,rawSegments:canonical.rawSegments,una:canonical.una,scope:'dependent_only'})
-  expect(issues.filter(i=>i.code==='PRODAT_DEPENDENT_CONDITION_UNDETERMINED'&&['CCI++Z02/CAV','CCI++Z05/CAV','CCI++Z16/CAV'].includes(i.fieldPath??''))).toHaveLength(3)
+  expect(issues.filter(i=>i.code==='PRODAT_DEPENDENT_CONDITION_UNDETERMINED'&&['CCI++Z02/CAV','CCI++Z05/CAV'].includes(i.fieldPath??''))).toEqual([])
   expect(ownFact(f.row,context!)).toBeNull()
  })
 }

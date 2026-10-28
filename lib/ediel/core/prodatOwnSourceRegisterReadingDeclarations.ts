@@ -170,10 +170,16 @@ export function sourceProdatOwnRegisterReadingDeclarations(input:{
     const malformed=siblings.some(group=>!group.validRegisterChain
       ||prodatRegisterReadingState('259',group.segments,physical.wire.una).malformed)
     const allowed=!rules[0].allowedValues||state.value!==null&&rules[0].allowedValues.includes(state.value)
+    // J1-10 (owner decision 38, P26.A field259): "only if the counter code is given in PRODAT will meter readings be
+    // sent in UTILTS". A well-formed object with no 259 anywhere in its own registers (and none in the header)
+    // therefore declares FALSE: 259/214/218 are not required and a valid Z04 is accepted without them. Malformed,
+    // duplicated or misplaced declarations stay UNKNOWN; a present valid 259 stays TRUE (214/218 then required).
+    const absent=!header259&&!malformed&&siblings.every(group=>!prodatRegisterReadingState('259',group.segments,physical.wire.una).present)
     return Object.freeze({meteringPointId:own.itemId!,identityAgency,
       // A qualified current C process supplies FALSE, never a promise from259.
       // The register validator records incoming forbidden259 as P119 ignored;
-      // original wire/birth/hash remain intact. L/LK keep their own true/null rule.
-      meterReadingsSentInUtilts:physical.subtype==='C'?false:!header259&&!malformed&&state.present&&!state.malformed&&state.value&&allowed?true:null})
+      // original wire/birth/hash remain intact.
+      meterReadingsSentInUtilts:physical.subtype==='C'?false:!header259&&!malformed&&state.present&&!state.malformed&&state.value&&allowed?true
+        :absent?false:null})
   })
 }
