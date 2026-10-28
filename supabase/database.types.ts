@@ -98533,6 +98533,20 @@ export type Database = {
         Args: { p_source?: string }
         Returns: Json
       }
+      gridex_complete_online_signature_poa_archive_v1: {
+        Args: {
+          p_company_id: string
+          p_contract_id: string
+          p_customer_id: string
+          p_evidence_sha256: string
+          p_path: string
+          p_poa_id: string
+          p_request_id: string
+          p_sha256: string
+          p_size_bytes: number
+        }
+        Returns: Json
+      }
       gridex_complete_unreferenced_internal_invoice_fee_tasks: {
         Args: never
         Returns: Json
@@ -99695,6 +99709,18 @@ export type Database = {
         Args: {
           p_signed_ip_hash?: string
           p_signed_user_agent?: string
+          p_token_hash: string
+        }
+        Returns: Json
+      }
+      gridex_finalize_customer_contract_signature_v2: {
+        Args: {
+          p_poa_accepted?: boolean
+          p_poa_scopes?: string[]
+          p_poa_terms_version?: string
+          p_signed_ip_hash?: string
+          p_signed_user_agent?: string
+          p_signer_ip?: string
           p_token_hash: string
         }
         Returns: Json
