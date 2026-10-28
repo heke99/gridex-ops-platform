@@ -16,6 +16,7 @@ import { processPendingContractConfirmations } from '@/lib/customer-contracts/on
 import { reconcileLegacyFacilityRequestLinks } from '@/lib/website/legacyFacilityRequestReconciliation'
 import { processPendingExactAddressResolutions } from '@/lib/energy/pendingExactAddressResolution'
 import { checkAckDeadlines } from '@/lib/ediel/sla/checkAckDeadlines'
+import { runInboundReviewAperakEscalation } from '@/lib/ediel/sla/inboundReviewAperakBudget'
 import { sweepEdielBusinessExpectations } from '@/lib/ediel/operations/businessExpectationSweep'
 import { runManualGridOwnerFollowUpWatchdog } from '@/lib/customer-operations/manualGridOwnerFollowUps'
 import { isUndeployedSchemaError } from '@/lib/customer-operations/optionalCronStep'
@@ -140,6 +141,9 @@ async function run(request: NextRequest) {
   const inboundAckSla = actorUserId
     ? await step('inboundAckSla', () => checkAckDeadlines({ actorUserId, limit: Math.min(requestedLimit * 2, 100) }))
     : { warning: 0, critical: 0, expired: 0, updated: 0, configurationBlocked: true }
+  // J1-14 (owner decision 39): a received source still in review whose APERAK budget (20 of the 30 minutes from
+  // receipt) or deadline is spent reaches an operator, once per stage. Escalation only; never an automatic APERAK.
+  const inboundReviewAperak = await step('inboundReviewAperak', () => runInboundReviewAperakEscalation({ actorUserId, limit: 200 }))
   const permissionMarketDeadlines = actorUserId
     ? await step('permissionMarketDeadlines', () => advancePermissionMarketDeadlines({ actorUserId, limit: Math.min(requestedLimit, 100) }))
     : { updated: 0, configurationBlocked: true }
@@ -211,6 +215,7 @@ async function run(request: NextRequest) {
     z01ResponseSla,
     outboundAckSla,
     inboundAckSla,
+    inboundReviewAperak,
     permissionMarketDeadlines,
     supplyMarketDeadlines,
     businessExpectations,

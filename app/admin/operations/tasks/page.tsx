@@ -12,6 +12,7 @@ import {
  updateOperationTaskStatusFromAdminAction,
 } from '@/app/admin/operations/actions'
 import { isTaskLikelyResolved } from '@/lib/operations/taskResolution'
+import { compareTaskDueAt } from '@/lib/operations/taskDueOrder'
 import type {
  CustomerSiteRow,
  MeteringPointRow,
@@ -225,6 +226,10 @@ export default async function AdminOperationsTasksPage({
 
  const byPriority = priorityRank(b.priority) - priorityRank(a.priority)
  if (byPriority !== 0) return byPriority
+
+ // A task with a deadline (e.g. a received message's APERAK, J1-14) comes before one without; earliest first.
+ const byDue = compareTaskDueAt(a.due_at, b.due_at)
+ if (byDue !== 0) return byDue
 
  return (
  new Date(b.created_at).getTime() - new Date(a.created_at).getTime()

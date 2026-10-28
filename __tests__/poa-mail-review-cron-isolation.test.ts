@@ -30,6 +30,7 @@ vi.mock('@/lib/customer-contracts/onlineSigning', () => ({ processPendingContrac
 vi.mock('@/lib/website/legacyFacilityRequestReconciliation', () => ({ reconcileLegacyFacilityRequestLinks: stepFn('legacyFacilityRequestReconciliation') }))
 vi.mock('@/lib/energy/pendingExactAddressResolution', () => ({ processPendingExactAddressResolutions: stepFn('exactAddressResolution') }))
 vi.mock('@/lib/ediel/sla/checkAckDeadlines', () => ({ checkAckDeadlines: stepFn('inboundAckSla') }))
+vi.mock('@/lib/ediel/sla/inboundReviewAperakBudget', () => ({ runInboundReviewAperakEscalation: stepFn('inboundReviewAperak') }))
 vi.mock('@/lib/ediel/operations/businessExpectationSweep', () => ({ sweepEdielBusinessExpectations: stepFn('businessExpectations') }))
 vi.mock('@/lib/customer-operations/manualGridOwnerFollowUps', () => ({ runManualGridOwnerFollowUpWatchdog: stepFn('manualGridOwnerFollowUps') }))
 
@@ -39,7 +40,7 @@ import { POST } from '@/app/api/internal/customer-operations/cron/route'
 
 const ALL = [
   'exactAddressResolution', 'legacyFacilityRequestReconciliation', 'customerApplicationReconciliation', 'contractConfirmations',
-  'customerOperations', 'z01ResponseSla', 'outboundAckSla', 'inboundAckSla', 'permissionMarketDeadlines', 'supplyMarketDeadlines',
+  'customerOperations', 'z01ResponseSla', 'outboundAckSla', 'inboundAckSla', 'inboundReviewAperak', 'permissionMarketDeadlines', 'supplyMarketDeadlines',
   'businessExpectations', 'facilityLookupDispatch', 'resumedIntents', 'poaExpiry', 'manualGridOwnerFollowUps', 'supplierSwitchActivations', 'completedWitnessDisposition', 'completedParentDisposition',
 ]
 

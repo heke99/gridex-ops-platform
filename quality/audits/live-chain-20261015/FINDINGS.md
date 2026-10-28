@@ -3917,3 +3917,26 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **Annan metod:** ingen avtalskolumn för medelvärdesmetod finns. Den enda metod ett avtal kan ange är `interval_resolution` i den låsta prisögonblicksbilden, och den följs (också mot avtalstypen).
 - **Ändring:** reglerna i `lib/pricing/engine.ts` är nu namngivna (`spotPriceMonth`, `spotIntervalResolution`), utan beteendeändring.
 - **Test:** `__tests__/reality-owner-41-monthly-spot-price.test.ts`, 9 fall. Positivt: civil månad för Ediel-månadsunderlag, ursprungsperiodens månad vid avstämning, F:s belopp 687,92 kr med etiketten "Medelspotpris", och tim/kvart per intervall. Negativt: ingen påhittad månad utan datum, och timavtal märks aldrig "Medelspotpris". `tsc` grön.
+### J1-14 Z06 i källbunden granskning: APERAK-fristen löpte ut utan svar och utan larm i tid — PRODUKT, hög; RÄTTAD (prioritering, tidsbudget, eskalering) — ägarbeslut 39
+- **Orsak:** Z06 E/F (och Z10) läggs i källbunden granskning. APERAK skapas först vid personalens godkännande. Ingenting prioriterade granskningen efter APERAK-fristen, och det enda som bevakade fristen var timersvepet (`checkAckDeadlines`). Det ändrar bara `aperak_due` till `warning`/`critical`/`expired` och skriver en händelse på meddelandet. Ingen operatör fick en uppgift före fristen.
+- **Redan rätt (verifierat, oförändrat):**
+  - Fristen ankras i `message_received_at`, som är brevlådans ankomsttid (IMAP `internalDate`, `inboundStatusUpdater.ts`). Varken CONTRL eller omkörning flyttar den.
+  - En skickad positiv CONTRL slutför inte `aperak_due` (`inboundAckTimerCompletion`).
+  - Godkännandet (`approveEdielInboundCase`) skapar APERAK i samma anrop, efter den beständiga native-verkställigheten och före statusbytet (`createReceivedProdatStructuralAcks`, outbox `queued`). Den skickas vid nästa outbox-tick (≤ 5 min).
+- **Rättning:** `lib/ediel/sla/inboundReviewAperakBudget.ts`, ny cron-steg `inboundReviewAperak` direkt efter `inboundAckSla` (`app/api/internal/customer-operations/cron/route.ts`).
+  - **Tidsbudget och marginal:** 20 av de 30 minuterna från mottagandet. De 10 minuterna marginal täcker en outbox-tick efter godkännandet (≤ 5 min), transport och motpartens klocka. Budgeten räknas bara från den sparade `aperak_due.due_at`.
+  - **Prioritering:** `listInboundReviewAperakQueue` ordnar öppna granskningar efter APERAK-frist (tidigast först) och därefter övriga (äldst först). Driftkön (`/admin/operations/tasks`) sorterar inom samma status och prioritet på `due_at` (tidigast först, `lib/operations/taskDueOrder.ts`).
+  - **Eskalering vid budget:** en kritisk uppgift i driftkön (`ediel_inbound_review_aperak_deadline`, `due_at` = APERAK-fristen) och en `ack_sla_breached`-händelse. Texten säger att fristen löper ut och att nätägaren annars inte får svar inom 30 minuter. Öppen `ediel_ack_sla_events`-rad (`aperak_review_budget`) är atomisk spärr: en eskalering per meddelande och steg.
+  - **Missad frist:** en egen eskalering (`aperak_review_deadline`) säger att nätägaren inte fått APERAK i tid och ersätter budgetlarmet. Bara för frister som passerat inom 24 timmar, så att historiska granskningar inte översvämmar kön vid första körningen (timersvepet har redan rapporterat dem).
+  - **Besvarad eller avgjord:** ingen eskalering när timern är `resolved`/`cancelled` eller granskningen lämnat `pending_review`/`failed`. Ett redan rest larm stängs (händelsen `resolved`, uppgiften `done`). En delvis godkänd källa står kvar som `pending_review` och förblir fristbunden.
+  - Bevakningen skapar, köar eller skickar aldrig någon kvittens. Ingen negativ APERAK läggs till: TM-ACK (MASTERMASTERPLAN_v2 §15.4) föreskriver larm vid intern fördröjning, inte en ny affärsavsikt för att tid gått, och TR-05 tillåter ingen automatisk sändning på enbart utgången timer.
+- **Tester:**
+  - `__tests__/reality-j1-14-review-aperak-budget.test.ts`, 14 fall: budget/ankare, CONTRL flyttar inte fristen, prioritetsordning, en annan tenants timer ger ingen frist, eskalering vid budgeten exakt en gång, missad frist ersätter budgetlarmet, 24-timmarsfönstret, inga kvittenstabeller rörs, ingen eskalering efter skickad APERAK eller godkännande, delgodkännande, stängning av larm.
+  - `__tests__/reality-j1-14-approval-aperak.test.ts`, 3 fall: godkännandet ger APERAK i samma anrop efter beständig verkställighet och före statusbytet; ingen APERAK vid misslyckad verkställighet, nekad aktör eller fel tenant.
+  - Skrivningarna prövade mot världens schema i en återrullad transaktion (`service_role`).
+  - `poa-mail-review-cron-isolation` har fått det nya steget i sin stegordning. Inget masterplan-ID är bundet till testet.
+  - ACK-01–10, AT-ACK-01–10, SC-039 och SC-054: 30 taggade filer, 378/378. `tsc` ren.
+- **Ingen avgränsad överlämning behövs:** ingen låst SQL-kropp och inget godkänt test har ändrats. Ingen migration.
+- **Kvarstår (utanför J1-14):**
+  - `rejectEdielInboundCase` avslutar granskningen utan någon APERAK. Larmet stängs då, men fristen löper ut. Ett negativt svar vid avvisning kräver eget kodval enligt guiden och ingår inte här.
+  - Ett hållet Z04-ärende i `pending_review` omfattas också av bevakningen. Dess svar ägs av J1-01/02/10.
