@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { sendOnlineContractSignatureRequest } from '@/lib/customer-contracts/onlineSigning'
 import { supabaseService } from '@/lib/supabase/service'
+import { updateContractAction } from '@/components/admin/customers/contracts/actions'
 import {
   assertContractTenant,
   loadCustomerTenantContext,
@@ -12,6 +13,24 @@ import {
 
 function text(value: FormDataEntryValue | null) {
   return String(value ?? '').trim()
+}
+
+/** Keep the existing authorized business command. Expected validation
+ * gets a useful return path instead of crashing the entire admin view. */
+export async function updateContractWithSigningFeedbackAction(formData: FormData) {
+  try {
+    await updateContractAction(formData)
+  } catch (error) {
+    unstable_rethrow(error)
+    const problem = error && typeof error === 'object' ? error as { code?: unknown; message?: unknown } : null
+    if (problem?.code === '23514' && problem.message === 'customer_contract_signature_evidence_incomplete') {
+      const customerId = encodeURIComponent(text(formData.get('customer_id')))
+      const contractId = encodeURIComponent(text(formData.get('customer_contract_id')))
+      const message = 'Signeringen behöver registreras via kundens signeringslänk eller import av ett redan signerat PDF-avtal. Behåll Väntar signering när anläggningskopplingen sparas.'
+      redirect(`/admin/customers/${customerId}/contracts/${contractId}/signature?error=${encodeURIComponent(message)}`)
+    }
+    throw error
+  }
 }
 
 export async function sendContractSignatureLinkAction(formData: FormData) {
