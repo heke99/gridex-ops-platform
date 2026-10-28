@@ -35,6 +35,15 @@ Nya beslut läggs till sist, och inget tas bort. Ett beslut som ersätts markera
 | 30 | 2026-10-25 | F113 | Överlämning av den skyddade objektbatchen | Respektera objektlåsen. Dokumentera exakt berörda funktioner, migrationer, ansvarig, ändring och tester för överlämning. Fortsätt med oberoende arbete. Är ansvarig inte längre aktiv ska ägarskapet överlämnas uttryckligen innan någon annan ändrar. F113 är öppen tills ändringen är integrerad och verifierad. | Se F113 i FINDINGS |
 | 24 | 2026-10-24 | F117 | Ska månadsförberedelsen av fakturor för granskning kräva att utskick till en testad fakturaleverantör är aktiverat? | "Separera förberedelse och utskick": förberedelsen körs så snart en leverantör är vald och faktureringsautomationen är på. Utskicket kräver fortfarande en testad anslutning och aktivering. Go-live-beredskapen visar båda stegen. | RÄTTAD |
 | 25 | 2026-10-24 | G-6b | Får underlagen för en månad lagras i delar i stället för i en enda transaktion per tenant och månad? | "OK, per del": om en körning fallerar ligger redan lagrade delar kvar, och nästa körning fyller i resten. Fakturor skapas först när hela månaden är komplett. | RÄTTAD (migration `20261024140000`) |
+| 35 | 2026-10-28 | J1-01 | Godta nätägarens avvikande startdatum eller avvisa? | **b, APERAK 42/210** som huvudregel. Ett oväntat startdatum som strider mot skickad Z03 och avtalad start ändrar inte avtalet och aktiverar inte leveransen; ett operatörsärende för avstämning skapas. En dokumenterad, behörigt överenskommen datumändring hanteras separat. | Se ägarbeslut 35–43 nedan |
+| 36 | 2026-10-28 | J1-02 | Kod för negativ APERAK på en Z04 utan vår Z03, och eget hållskäl? | **c, ERC 42 på fält 226** (inte schablonmässigt även 209). **Ja** till ett separat hållskäl. 40/105 = anläggningen kan inte identifieras entydigt med nätområdet; 40/107 = aktören saknar relation till anläggningen; orsakerna hålls isär. Kravet på egen Z03 gäller inte Z04A vid verifierad anvisning. | Se nedan |
+| 37 | 2026-10-28 | J1-03 | Svar på dubbletter? | Inga nya affärseffekter, men inget generellt positivt dubblettsvar. Intern omkörning av samma sparade mottagning återanvänder beslut och svar. Ny protokolldubblett med samma meddelande-id: ERC 40/103. Ärendedubblett med nytt meddelande-id: 40/104 när kriterierna är uppfyllda. Original och kopplingar bevaras (ACK-09). | Se nedan |
+| 38 | 2026-10-28 | J1-10 | Fält 259 i Z04? | **a** när villkoret inte gäller: fältet krävs när mätarställningar rapporteras i MSCONS/UTILTS; annars godtas en i övrigt giltig Z04 utan fältet. Test för båda fallen. | Se nedan |
+| 39 | 2026-10-28 | J1-14 | Z06-granskning mot 30-minutersfristen? | **b**: godkänd behandling, föreskriven lagring och APERAK inom 30 min från mottagarens tillhanda. Prioritering, intern tidsbudget och eskalering med marginal. Positiv APERAK först efter godkänt, beständigt resultat; aldrig för att stoppa timern. CONTRL ersätter inte APERAK och startar ingen ny frist. | Se nedan |
+| 40 | 2026-10-28 | J2-02 | Korrigering av redan fakturerad månad? | **b** som normal kundhantering, med spårbara rättelse- och kreditunderlag (regler nedan). | Se nedan |
+| 41 | 2026-10-28 | F9/T48 | Månadsprisets medelvärde? | **a för befintliga avtal**: behåll avtalad kalendermånad och aritmetiskt medel. Avtal som anger annan metod följer den. Ingen generell övergång till Ediel-månad. Tim- och kvartsavtal matchar levererat prisintervall exakt. | Se nedan |
+| 42 | 2026-10-28 | A-B5 | Engångsbackfill av `grid_owner_ediel_id`? | **Ja, avgränsad**: fyll bara saknade värden från redan bunden, verifierad, giltig nätägare; tenant, entydighet och giltighet kontrolleras; konflikter till granskning; uttryckliga värden skrivs inte över; före-/efterbild och källspårning (e035); historiska mottagningsoriginal skrivs inte om. | Se nedan |
+| 43 | 2026-10-28 | F48 (J2-13) | Utgående UTILTS? | **E73 och föreskrivna UTILTS-ERR** som första produktionsomfattning. E73 för saknade E66-värden; S02-begäran bara med rätt roll, överenskommelse och datarätt. E73:s Application Reference anger begärd typ (E66, S02) enligt verifierad profil. E74 och S07 aktiveras inte generellt. Elhandlaren originerar inte nätägarens E66. CONTRL och APERAK är separata kvittensfamiljer. | Se nedan |
 
 ## Öppna frågor till ägaren
 - **F115:** räcker en fakturaleverantör vald i miljön `test` för go-live, eller ska `production` krävas?
@@ -135,3 +144,67 @@ Ett `variable_monthly`-avtal faktureras i dag med månadens aritmetiska medelspo
 - **Fråga 1:** ska månadspriset vara det aritmetiska medelvärdet (i dag), ett förbrukningsviktat medelvärde för kunden, eller ett profilviktat medelvärde för elområdet?
 - **Fråga 2 (F108-3):** medelvärdet räknas på den civila månaden, men kWh avser Ediel-månaden (en timmes förskjutning i varje ände). Ska medelvärdet räknas på samma period som kWh?
 
+
+## Ägarbeslut 35–43 (ägaren, 2026-10-28), med krav
+
+**Gemensamt villkor (ordagrant):** "Ändringar i skyddad kod och godkända tester ska genomföras med avgränsad överlämning, bevarade skydd och nya positiva och negativa regressioner."
+Källor ägaren hänvisar till: `docs/ediel/masterplan-v2/annex/source_tables.json:4992`, `annex/B_PRODAT_falt_och_villkor.md:462`, `registers/rules.json:1083` (ACK-09), `MASTERMASTERPLAN_v2.md:289` (§10–11, §15.4), `supabase/migrations/20260716223000_legal_defaults_readiness_and_profile_repair.sql:74`, `lib/billing/underlayEngine.ts:535`.
+De öppna frågorna J1-01, J1-02, J1-14, A-B5, J2-02 och månadspriset ovan är därmed **BESVARADE**.
+
+### Ägarbeslut 35 — J1-01: APERAK 42/210 vid avvikande startdatum
+- Ett startdatum i Z04 som strider mot skickad Z03 och kundens avtalade start ändrar inte avtalet och aktiverar inte leveransen.
+- Negativ APERAK med ERC 42, nationell kod 210.
+- Ett operatörsärende för avstämning skapas.
+- En dokumenterad och behörigt överenskommen datumändring hanteras i ett separat flöde.
+
+### Ägarbeslut 36 — J1-02: ERC 42 på fält 226, eget hållskäl
+- Normalt ERC 42 på fält 226 (inte schablonmässigt även 209).
+- Ett separat hållskäl för "ingen egen Z03", skilt från J1-01.
+- 40/105 när anläggningen inte kan identifieras entydigt tillsammans med nätområdet; 40/107 när aktören saknar relation till anläggningen. Orsakerna hålls isär.
+- Kravet på egen Z03 gäller inte generellt: Z04A vid verifierad anvisning har ett eget tillåtet förlopp utan egen Z03.
+
+### Ägarbeslut 37 — J1-03: dubbletter enligt ACK-09
+- Intern omkörning av samma sparade mottagning: återanvänd tidigare beslut och svar.
+- Ny mottagen protokolldubblett med samma meddelande-id: ERC 40, nationell kod 103.
+- Ärendedubblett med nytt meddelande-id: 40/104, när kriterierna för ärendedubblett är uppfyllda.
+- Original och kopplingar bevaras. Ingen leveransperiod, faktura eller annan affärseffekt skapas igen.
+
+### Ägarbeslut 38 — J1-10: fält 259 villkorat
+- I Z04 krävs fält 259 när mätarställningar rapporteras i MSCONS/UTILTS.
+- När sådan rapportering inte gäller godtas en i övrigt giltig Z04 utan fältet.
+- Testerna täcker både när fältet krävs och när det inte ska finnas.
+
+### Ägarbeslut 39 — J1-14: 30 minuter till godkänd behandling och APERAK
+- Godkänd behandling, föreskriven lagring och APERAK ryms inom 30 minuter från mottagarens tillhanda.
+- Prioritering, intern tidsbudget och eskalering med marginal.
+- Positiv APERAK först efter faktiskt godkänt och beständigt behandlingsresultat, aldrig enbart för att stoppa timern.
+- CONTRL ersätter inte APERAK och startar ingen ny 30-minutersfrist.
+
+### Ägarbeslut 40 — J2-02: rättelse på nästa faktura, spårbart
+- Den ursprungliga skickade fakturan ändras inte.
+- Rättelsen binds till ursprungsfakturan, perioden, mätvärdesrevisionen och de ursprungliga avtals- och prisreglerna.
+- En negativ rättelse hanteras med korrekt kreditfaktura.
+- Inga nya månads- eller fakturaavgifter tas ut för samma rättelse; samma rättelse debiteras aldrig två gånger.
+- Avslutad kund eller ingen nästa faktura: separat rättelse-/kreditflöde (hel kredit och ersättningsfaktura enligt a vid behov).
+- Ingen generell beloppsgräns som får rättelser att försvinna; en gräns får styra manuellt godkännande.
+- Ingen godtycklig tidsgräns; preskription och avtalsregler hanteras per kundkategori.
+
+### Ägarbeslut 41 — månadspris: avtalad kalendermånad
+- Befintliga `variable_monthly`-avtal: aritmetiskt medel över avtalad kalendermånad (dagens beteende).
+- Avtal som redan anger annan metod följer den.
+- Ingen generell övergång till Ediel-månad.
+- Tim- och kvartsavtal matchar respektive levererat prisintervall exakt.
+
+### Ägarbeslut 42 — A-B5: avgränsad engångsbackfill
+- Fyll endast saknade `grid_owner_ediel_id` från den redan bundna, verifierade och giltiga nätägaren.
+- Kontrollera tenant, entydighet och giltighet; motstridiga eller tvetydiga kopplingar går till granskning.
+- Befintliga uttryckliga värden skrivs inte över.
+- Varje ändring får före-/efterbild och källspårning enligt e035.
+- Historiska mottagningsoriginal skrivs inte om och tillskrivs inte retroaktivt dagens nätägare.
+
+### Ägarbeslut 43 — F48: E73 och föreskrivna UTILTS-ERR
+- E73 används för saknade E66-värden. S02-prognosbegäran bara där rätt roll, överenskommelse och datarätt finns.
+- UTILTS-ERR skapas när föreskriven funktionskontroll kräver det.
+- E73:s Application Reference anger den begärda typen (t.ex. E66 eller S02) enligt verifierad profil.
+- E74 och S07 aktiveras inte generellt. Elhandlaren originerar inte nätägarens E66.
+- CONTRL och APERAK hanteras som separata kvittensfamiljer.
