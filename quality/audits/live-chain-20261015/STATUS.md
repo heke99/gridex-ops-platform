@@ -1,6 +1,6 @@
 # Verklighetssimuleringen — läge och nästa steg
 
-Uppdaterad 2026-10-27 kl. 23:20 UTC av Claude (session 01Az5xza…), som fortsätter på grenen `claude/wonderful-franklin-o8gx2p` (byggd på `claude/gifted-hamilton-vss1hj` `edeaed7d0`) på ägarens uppdrag. Tidigare session: 01YCH5Va…. Filen är tänkt att läsas först.
+Uppdaterad 2026-10-28 kl. 00:05 UTC av Claude (session 01Az5xza…), som fortsätter på grenen `claude/wonderful-franklin-o8gx2p` (byggd på `claude/gifted-hamilton-vss1hj` `edeaed7d0`) på ägarens uppdrag. Tidigare session: 01YCH5Va…. Filen är tänkt att läsas först.
 
 Den hör ihop med tre andra dokument:
 - [FINDINGS.md](FINDINGS.md): alla fynd. Inget tas bort därifrån.
@@ -50,6 +50,8 @@ Den hör ihop med tre andra dokument:
     - A 6/7 (T50 rättad), J1 6/12 (J1-05b verifierad), H 10/11 (nytt H-B6b rättat och verifierat, migration `20261027170000`). F avbröts av omstarten.
   - **Femte omstarten av containern (ca 23:00 UTC):** F i batch 8 försvann. dockerd startades, gx-mail togs bort och `up.sh` kördes med `SKIP_REPLAY=1 SKIP_BUILD=1` (bygget på `f7c3d4fd3` gäller; senare commits är harness och SQL som redan finns i databasen).
   - **Batch 9 från 23:14 UTC:** A, H, F. Logg `/tmp/claude-0/batch9.log`.
+  - **Batch 9 (A) föll på T51 (SMTP-lösenord i världen, rättat i `up.sh`). Batch 10 avbröts av den sjätte omstarten (ca 23:55).**
+  - **Batch 11 från 00:00 UTC 2026-10-28:** A, H, F. Logg `/tmp/claude-0/batch11.log`.
   - **Kvar som kräver ägaren:** J1-01, J1-02, J1-03 (låst SQL), J1-10, J1-14, J2-02, F48 (UTILTS-meddelanden), A-B5-backfill, månadsprisets medelpris (T48/F108-3). Se OWNER-DECISIONS.
   - **Parallella agenter (14:05–14:55 UTC), klara, granskade och införda:** J2-05 (migration `20261027150000`, applicerad i världen), J1-11, J1-05 och I-B13 (Z04 före negativ APERAK). J1-02 kräver ägarbeslut (OWNER-DECISIONS). Agenternas arbetskopior är borttagna.
   - **Kvar av övertagandet i #840:** F113 (`20261026170000`), J2-05 och J4-D15 (`20261026190000`). A-B4 utreds när A har kört i den nya världen.
