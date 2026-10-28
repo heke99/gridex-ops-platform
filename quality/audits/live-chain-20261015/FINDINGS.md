@@ -2727,6 +2727,9 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **Variant, rättad:** `claim_ediel_outbox_items` har samma mönster (väljer på `priority, created_at` men returnerar utan ordning), och `processEdielOutbox` skickar posterna en i taget. En rättelse eller makulering som hämtas i samma körning som sitt original kunde lämna först. `claimEdielOutboxItems` sorterar nu på prioritet, ålder och id. Test: `__tests__/reality-i-b11-outbox-claim-order.test.ts`, rött före. Med utkorgstesterna 6 filer, 24/24. Inga fler `claim*`-funktioner med `RETURNING` och `ORDER BY` finns i världens databas.
 - **I världen:** kräver ombyggnad. I körs om.
 
+### A, batch 11 (2026-10-28 00:00–00:15): 7 av 7 gröna — FÖRSTA HELT GRÖNA A; T50 och T51 verifierade
+- Webbvägen fungerar hela vägen: ansökan och signering, Z01/Z02, Z03 (A-B6), Z04, och aktiv leverans från i dag (A-B7).
+
 ### A, batch 9 (2026-10-27 23:14–23:48, efter femte omstarten): 4 av 7 gröna; A3–A5 röda — T51 (miljö/harness, rättad)
 - Inga Z01 skickades. Alla utgående poster blev `delivery_uncertain` med `Invalid login: 535 5.7.8 Authentication credentials invalid`. Se T51.
 
