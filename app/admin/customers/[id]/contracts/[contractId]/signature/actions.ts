@@ -5,6 +5,8 @@ import { revalidatePath } from 'next/cache'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { sendOnlineContractSignatureRequest } from '@/lib/customer-contracts/onlineSigning'
 import { supabaseService } from '@/lib/supabase/service'
+import { getCustomerContractById } from '@/lib/customer-contracts/db'
+import type { CustomerContractRow } from '@/lib/customer-contracts/types'
 import { updateContractAction } from '@/components/admin/customers/contracts/actions'
 import {
   assertContractTenant,
@@ -25,10 +27,8 @@ export async function saveContractWithFeedbackAction(formData: FormData): Promis
   const guard = await requireAdminActionAccess(['contracts.write'])
   const {companyId} = await loadCustomerTenantContext(customerId, guard)
   await assertContractTenant({companyId, customerId, contractId})
-  const {data: before, error} = await supabaseService.from('customer_contracts')
-    .select('id,company_id,customer_id,status,energy_direction,contract_offer_id,public_contract_offer_id,contract_publication_version_id,contract_price_snapshot_id,price_plan_version_id,locked_at,signed_at,fixed_price_ore_per_kwh,spot_markup_ore_per_kwh,variable_fee_ore_per_kwh,monthly_fee_sek,invoice_fee_sek,green_fee_mode,green_fee_value,discount_value,discount_unit,start_fee_sek,admin_fee_sek,break_fee_sek,vat_rate')
-    .eq('id', contractId).eq('customer_id', customerId).eq('company_id', companyId).maybeSingle()
-  if (error) throw error
+  if (!companyId) throw new Error('Bolag krävs för kundavtalet.')
+  const before = await getCustomerContractById(contractId, {companyId}) as (CustomerContractRow & {contract_price_snapshot_id?: string | null}) | null
   if (!before || before.customer_id !== customerId || before.company_id !== companyId) throw new Error('Kundavtalet kunde inte hittas')
   const bound = Boolean(['signed', 'active', 'terminated', 'cancelled', 'expired'].includes(before.status) || before.locked_at || before.signed_at || before.price_plan_version_id || before.contract_price_snapshot_id || before.contract_offer_id || before.public_contract_offer_id || before.contract_publication_version_id)
   // The original authoring helper preserves historic VAT for non-drafts and
