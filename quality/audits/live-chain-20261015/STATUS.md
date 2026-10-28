@@ -1,6 +1,6 @@
 # Verklighetssimuleringen — läge och nästa steg
 
-Uppdaterad 2026-10-28 kl. 16:10 UTC av Claude (session 01Az5xza…), som fortsätter på grenen `claude/wonderful-franklin-o8gx2p` (byggd på `claude/gifted-hamilton-vss1hj` `edeaed7d0`) på ägarens uppdrag. Tidigare session: 01YCH5Va…. Filen är tänkt att läsas först.
+Uppdaterad 2026-10-28 kl. 20:25 UTC av Claude (session 01Az5xza…), som fortsätter på grenen `claude/wonderful-franklin-o8gx2p` (byggd på `claude/gifted-hamilton-vss1hj` `edeaed7d0`) på ägarens uppdrag. Tidigare session: 01YCH5Va…. Filen är tänkt att läsas först.
 
 Den hör ihop med tre andra dokument:
 - [FINDINGS.md](FINDINGS.md): alla fynd. Inget tas bort därifrån.
@@ -8,12 +8,20 @@ Den hör ihop med tre andra dokument:
 - #840: anspråk och leveranser per fil.
 
 ## Var jag är nu
-- **Ägarbeslut 35–43 (2026-10-28 ca 15:40 UTC):** alla nio frågor besvarade och registrerade i OWNER-DECISIONS. Ägarens villkor: ändringar i skyddad kod och godkända tester kräver avgränsad överlämning, bevarade skydd och nya positiva och negativa regressioner.
+- **Ägarbeslut 35–43 (2026-10-28 ca 15:40 UTC):** alla nio frågor besvarade och registrerade i OWNER-DECISIONS (status per beslut i tabellen). Ägarens villkor: ändringar i skyddad kod och godkända tester kräver avgränsad överlämning, bevarade skydd och nya positiva och negativa regressioner.
   - **41 månadspris:** bekräftat dagens beteende, regressioner (`af52dcad9`).
-  - **42 A-B5:** engångsbackfill genomförd och applicerad i världen (`b6ab5795e`): 32 ifyllda, 465 till granskning.
-  - **35–38 (J1-01/02/03/10), 39 (J1-14), 40 (J2-02), 43 (F48):** fyra agenter arbetar parallellt i egna arbetskopior. Överlämningar för låsta kroppar skrivs som `handover-<item>.md` och postas i #840.
-  - **Sjunde omstarten av containern (ca 15:55 UTC):** återställd med dockerd, gx-mail och `up.sh` med `SKIP_REPLAY=1`. Appen är ombyggd på `af52dcad9`.
-  - **Därefter:** integrera agenternas commits, applicera migrationerna i världen, bygg om och kör J1, J2 och F om. F bör köras i en ny värld (ny replay). Prestandafyndet (lagringen av ett underlag tar ca 6 s mot gränsen 8 s, G-6b) är fortfarande öppet.
+  - **42 A-B5:** engångsbackfill applicerad i världen (`b6ab5795e`): 32 ifyllda, 465 till granskning.
+  - **39 J1-14:** APERAK-budget 20 av 30 min, prioritet och eskalering (`5231eaaab`). Ingen låst kod.
+  - **43 F48:** E73-route, Application Reference per begärd typ och spärr för E74/S07/E66 (`340fb6a62`, migration `20261028130000`, applicerad). Överlämning för SC-059 i #840.
+  - **40 J2-02:** rättelse av fakturerad månad blir eget rättelse- eller kreditdokument (`22ac29587`, migration `20261028120000`, applicerad). Överlämning för två skyddade kroppar i #840.
+  - **38 J1-10:** Z04 utan fält 259 godtas när inga mätarställningar rapporteras (`f649ece0a`).
+  - **35–37 J1-01/02/03:** nya hållskäl i `normal_switch_scope_effect_v1` med negativ APERAK (42/210, 42/226, 40/105, 40/107, 40/104) och operatörsärende (`d7ccf01eb`, migrationer `20261028100000`–`102000`, applicerade). **40/103 öppen** (ACK-09-hinder, ny fråga i OWNER-DECISIONS).
+  - **Verifiering:**
+    - Masterplanens täckning 352/352 gröna efter J2-02.
+    - J1-nativesviten: 5 röda i första körningen. Hållskälen stämmer, men APERAK saknas. Trolig orsak: världens app (byggd före J1) hann behandla meddelandet först. Appen byggs om på `d7ccf01eb` (`/tmp/gridex-reality/up-rebuild9.log`), och sviterna körs om.
+    - `ediel-z04l-z04lk-future-start-native` kan inte köras lokalt; den kräver en GitHub-värd med klockkapabilitet.
+  - **Sjunde och åttonde omstarten av containern:** båda återställda med dockerd, gx-mail och `up.sh` med `SKIP_REPLAY=1`.
+  - **Därefter:** J1-överlämningen till #840, omkörning av J1-, AT-Z03L/LK- och källägarsviterna och täckningen, sedan J1 och J2 i världen. F körs i en ny värld. Prestandafyndet G-6b (ca 6 s mot 8 s) är öppet.
 - **Ny session och ny container (2026-10-26 ca 20:50 UTC):** den förra containern finns inte kvar, så batch 5 och de fem agenterna (F113, J2-03/J2-05, J4-D15, A-B4, I-B4v) försvann utan leverans. Inget av agenternas arbete var pushat. Världen är byggd **från noll** (ny replay, ny databas) på `363fcab29`, med `REALITY_SVK_SOURCE=simulated REALITY_SPOT_SOURCE=synthetic`. Docker Hub gav 429; `up.sh` körs nu i en omförsökslinda (`/tmp/claude-0/up-retry.sh`).
   - **I-B4v RÄTTAD** (`363fcab29`) och **J2-03 RÄTTAD** (`063587a69`, migration `20261026180000`, applicerad i världen). Se FINDINGS.
   - **Batch 5 (ny) pågår från 21:21 UTC** på `063587a69`: K, I, A, J1, H, J2, J4, F, G i banan als och stuck-detector, grid-owner-wire i banan free. Logg `/tmp/claude-0/batch5.log`. E körs därefter i en egen värld med testbanan; C och J3 körs ensamma.
