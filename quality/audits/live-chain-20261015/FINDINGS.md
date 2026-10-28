@@ -2727,6 +2727,13 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **Variant, rättad:** `claim_ediel_outbox_items` har samma mönster (väljer på `priority, created_at` men returnerar utan ordning), och `processEdielOutbox` skickar posterna en i taget. En rättelse eller makulering som hämtas i samma körning som sitt original kunde lämna först. `claimEdielOutboxItems` sorterar nu på prioritet, ålder och id. Test: `__tests__/reality-i-b11-outbox-claim-order.test.ts`, rött före. Med utkorgstesterna 6 filer, 24/24. Inga fler `claim*`-funktioner med `RETURNING` och `ORDER BY` finns i världens databas.
 - **I världen:** kräver ombyggnad. I körs om.
 
+### F, batch 11 (2026-10-28 01:22–03:28): 11 av 12 gröna — T48 verifierad; T52 (harness, rättad)
+- **F9:s prisberäkning grön:** varje faktura stämmer med den oberoende beräkningen med månadens medelspotpris (T48).
+- **F9 föll sedan på anläggningen med en saknad dag.** Den kontrollerades nu för första gången, eftersom F9 tidigare föll redan på priset. Produkten gör rätt: underlaget blockeras (`estimated_source_missing`, glapp 13–14 september), har 2 784 av 2 880 värden och ger ingen faktura. Se T52.
+
+### T52 F9 läste `missing_values_count` som antal kvartar — HARNESS; RÄTTAD
+- Fältet räknar glapp (`underlayEngine.ts`: `missing: gapCount`). En saknad dag är alltså 1, inte 96. F9 kräver nu minst ett glapp, 2 880 − 96 värden och att underlaget är blockerat.
+
 ### H, batch 11 (2026-10-28 00:15–01:22): 10 av 11 gröna — H-B6b verifierad i H11; nytt H-B7 (produkt, medel, rättat, väntar på världsverifiering)
 - **H11 kom förbi krediteringen:** kreditfakturan på −600 kr skapas, krediten blir `invoiced` och avgiften `credited`.
 - **Därefter:** kreditfakturan saknade länken till originalfakturan och krediten (`metadata.credit_of_invoice_id`, `break_fee_credit_id`). Se H-B7.

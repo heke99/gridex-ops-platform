@@ -843,7 +843,11 @@ describe.sequential('reality F — invoices for several facilities with contract
       if (MISSING && f === MISSING.facility) {
         // A month with a gap is never invoiced as if the gap were zero consumption.
         report.missingDay = { facility: f.gsrn, day: MISSING.day, underlay, invoice: invoice ?? null }
-        expect(Number(underlay?.missing), JSON.stringify(underlay)).toBeGreaterThanOrEqual(96)
+        // missing_values_count counts gaps (underlayEngine coverage gapCount), not quarters: one missing day is one gap
+        // of 96 quarters, and the underlay is blocked (T52).
+        expect(Number(underlay?.missing), JSON.stringify(underlay)).toBeGreaterThanOrEqual(1)
+        expect(Number(underlay?.values), JSON.stringify(underlay)).toBe(30 * 96 - 96)
+        expect(underlay?.readiness, JSON.stringify(underlay)).toBe('blocked')
         expect(invoice, `no invoice from a month with a missing day: ${JSON.stringify(invoice)}`).toBeUndefined()
         continue
       }
