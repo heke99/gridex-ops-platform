@@ -4,6 +4,7 @@ import { redirect, unstable_rethrow } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { sendOnlineContractSignatureRequest } from '@/lib/customer-contracts/onlineSigning'
+import { contractHasValidSigningSite, SIGNING_LINK_SITE_REQUIRED_MESSAGE } from '@/lib/customer-contracts/autoSendSigningLink'
 import { supabaseService } from '@/lib/supabase/service'
 import {
   assertContractTenant,
@@ -42,6 +43,9 @@ export async function sendContractSignatureLinkAction(formData: FormData) {
       throw new Error('Avtalet kan inte skickas för signering i nuvarande status.')
     }
     if (contract.signed_at) throw new Error('Avtalet är redan signerat.')
+    if (!await contractHasValidSigningSite({ companyId, customerId, contractId })) {
+      throw new Error(SIGNING_LINK_SITE_REQUIRED_MESSAGE)
+    }
 
     const { data: customer, error: customerError } = await supabaseService
       .from('customers')

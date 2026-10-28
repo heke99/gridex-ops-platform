@@ -30,7 +30,7 @@ vi.mock('@/lib/customers/poaDocuments',()=>({ensurePoaPdfArchive:async(scope:Row
   poa.document_path=path;poa.metadata={...(poa.metadata as Row),document_archive:{path,storage_bucket:'customer-documents',sha256:sha,evidence_sha256:poaMailEvidenceFingerprint(poa)}}
   return {path,pdf}
 }}))
-import { archiveOnlineSignaturePoa, recoverPendingOnlineSignaturePoas } from '@/lib/customer-contracts/onlineSigning'
+import { archiveOnlineSignaturePoa, recoverPendingOnlineSignaturePoas, loadOnlineSignaturePoaTerms } from '@/lib/customer-contracts/onlineSigning'
 import { hasExternallySendablePoa } from '@/lib/customers/poaReadiness'
 import { poaMailEvidenceFingerprint,poaMailEvidenceIssues } from '@/lib/email/poaMailEvidence'
 const signedAt='2026-10-28T10:00:00.000Z'
@@ -40,7 +40,9 @@ beforeEach(()=>{
   io.archives=[];io.completions=[];io.failArchive=false;io.failCompletion=false
   io.tables={
     customer_contracts:[{id:'contract-a',company_id:'company-a',customer_id:'customer-a',signed_at:signedAt,signature_snapshot_sha256:'sig-original',
-      signature_snapshot:{schema:'gridex_online_contract_signature_v2',power_of_attorney_snapshot:{power_of_attorney_id:'poa-a'},signature_request_id:'request-a'}}],
+      contract_product_version_id:'product-a',contract_publication_version_id:'publication-a',customer_site_id:'site-a',site_id:'site-a',signature_snapshot:{schema:'gridex_online_contract_signature_v2',power_of_attorney_snapshot:{power_of_attorney_id:'poa-a'},signature_request_id:'request-a'}}],
+    contract_product_versions:[{id:'product-a',power_of_attorney_required:true}],
+    customer_sites:[{id:'site-a',company_id:'company-a',customer_id:'customer-a',street:'Synthetic street',postal_code:'12345',city:'Synthetic town'}],
     customer_operation_jobs:[{company_id:'company-a',customer_id:'customer-a',idempotency_key:'contract-signed:contract-a',job_type:'start_supplier_switch',status:'blocked',review_reason_code:'poa_archive_pending',payload:{online_poa_id:'poa-a',signature_request_id:'request-a'}}],
     powers_of_attorney:[{id:'poa-a',company_id:'company-a',customer_id:'customer-a',customer_contract_id:'contract-a',source:'ops_online_signature',status:'signed',accepted_at:signedAt,signed_at:signedAt,
       signer_name:'Synthetic signer',signer_identity_number:'synthetic-identity',method:'secure_link_click',signed_scope_snapshot:['supplier_switch','facility_information_lookup'],
@@ -96,5 +98,23 @@ describe('online POA private archive continuation',()=>{
     (poa().evidence_payload as Row).ip_address=null
     expect(hasExternallySendablePoa(poa())).toBe(false)
     expect(poaMailEvidenceIssues(poa()).map(i=>i.code)).toContain('poa_signer_ip_missing')
+  })
+})
+
+describe('signing POA page uses only the contract exact site alias',()=>{
+  const termsReceipt={...receipt,contract_publication_version_id:'publication-a',legal_versions:[{module_key:'power_of_attorney'}]}
+  it('supports a verified known legacy site without changing the original contract',async()=>{
+    io.tables.customer_contracts[0].customer_site_id=null
+    const before=structuredClone(io.tables.customer_contracts)
+    expect(await loadOnlineSignaturePoaTerms(termsReceipt)).toMatchObject({available:true,required:true,siteAddress:'Synthetic street, 12345, Synthetic town'})
+    expect(io.tables.customer_contracts).toEqual(before)
+  })
+  it('rejects contradictory site aliases',async()=>{
+    io.tables.customer_contracts[0].site_id='site-b'
+    await expect(loadOnlineSignaturePoaTerms(termsReceipt)).rejects.toThrow('poa_site_scope_ambiguous')
+  })
+  it('never infers the customer only site if neither alias is recorded',async()=>{
+    io.tables.customer_contracts[0].site_id=null;io.tables.customer_contracts[0].customer_site_id=null
+    expect(await loadOnlineSignaturePoaTerms(termsReceipt)).toMatchObject({available:false,siteAddress:''})
   })
 })

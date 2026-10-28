@@ -6,6 +6,7 @@ import {
   loadCustomerTenantContext,
 } from '@/lib/tenant/entityGuards'
 import { sendContractSignatureLinkAction } from './actions'
+import { contractHasValidSigningSite, SIGNING_LINK_SITE_REQUIRED_MESSAGE } from '@/lib/customer-contracts/autoSendSigningLink'
 import { formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = 'force-dynamic'
@@ -61,7 +62,9 @@ export default async function ContractSignatureAdminPage({
   if (contractError) throw contractError
   if (requestError) throw requestError
 
-  const canSend = ['draft', 'pending_signature', 'signature_failed'].includes(contract.status) && !contract.signed_at
+  const canAttemptSend = ['draft', 'pending_signature', 'signature_failed'].includes(contract.status) && !contract.signed_at
+  const siteReady = canAttemptSend ? await contractHasValidSigningSite({ companyId, customerId, contractId }) : true
+  const canSend = canAttemptSend && siteReady
   const customerName = customer.full_name ?? customer.company_name ?? customer.email ?? customer.customer_number
   const deliveryWarning = ['delivery_uncertain', 'unknown', 'failed', 'cancelled', 'not_found', 'blocked_tenant_state'].includes(query.delivery ?? '')
   const deliveryMessage = query.delivery === 'sent'
@@ -112,6 +115,11 @@ export default async function ContractSignatureAdminPage({
         </div>
       ) : null}
 
+      {!siteReady ? (
+        <div role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          {SIGNING_LINK_SITE_REQUIRED_MESSAGE}
+        </div>
+      ) : null}
       {canSend ? (
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-lg font-semibold">Skicka signeringslänk</h2>
@@ -142,7 +150,9 @@ export default async function ContractSignatureAdminPage({
           <p className="mt-2 text-sm text-slate-700">
             {contract.signed_at
               ? 'Avtalet är redan signerat och signeringsbeviset är låst.'
-              : 'Avtalet kan inte skickas för signering i nuvarande livscykelstatus.'}
+              : !siteReady
+                ? 'Välj och spara rätt anläggning på kundkortets avtal för att kunna skicka signeringslänken.'
+                : 'Avtalet kan inte skickas för signering i nuvarande livscykelstatus.'}
           </p>
         </section>
       )}

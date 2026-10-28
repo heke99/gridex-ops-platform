@@ -48,7 +48,7 @@ beforeAll(async () => {
     create function test_signed_job() returns trigger language plpgsql as $$begin
       if new.status='signed' and old.status is distinct from 'signed' then
         insert into public.customer_operation_jobs(company_id,customer_id,customer_site_id,job_type,status,idempotency_key,payload)
-        values(new.company_id,new.customer_id,new.customer_site_id,'start_supplier_switch','queued',
+        values(new.company_id,new.customer_id,coalesce(new.customer_site_id,new.site_id),'start_supplier_switch','queued',
           'contract-signed:'||new.id,jsonb_build_object('contract_id',new.id));
       end if; return new; end$$;
     create trigger signed_job after update on customer_contracts for each row execute function test_signed_job();`)
@@ -137,6 +137,16 @@ describe('same-transaction online contract + explicitly accepted POA', () => {
     await sign(true,['supplier_switch'],'192.0.2.99')
     expect((await db.query('select * from powers_of_attorney')).rows).toEqual(before)
     expect((await db.query('select count(*)::int as n from customer_operation_jobs')).rows).toEqual([{n:1}])
+  })
+  it('uses a known legacy site alias in the same exact customer scope without guessing',async()=>{
+    await db.exec(`update customer_contracts set site_id='${id(3)}',customer_site_id=null`)
+    await sign()
+    expect((await db.query('select site_id,customer_site_id from powers_of_attorney')).rows).toEqual([{site_id:id(3),customer_site_id:id(3)}])
+  })
+  it('rejects conflicting nonempty site aliases instead of choosing one',async()=>{
+    await db.exec(`update customer_contracts set site_id='${id(99)}'`)
+    await expect(sign()).rejects.toThrow(/poa_site_scope/)
+    expect((await db.query('select count(*)::int as n from customer_contract_evidence')).rows).toEqual([{n:0}])
   })
   it('rejects a foreign site before any acceptance is committed', async () => {
     await db.exec(`update customer_sites set customer_id='${id(99)}'`)

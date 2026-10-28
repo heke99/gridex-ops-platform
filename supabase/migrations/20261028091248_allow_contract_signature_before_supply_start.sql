@@ -94,6 +94,7 @@ declare
   v_valid_to date;
   v_verifier text;
   v_scope text;
+  v_site_id uuid;
 begin
   if auth.role() is distinct from 'service_role' then
     raise exception using errcode='42501',message='signature_service_role_required';
@@ -138,7 +139,7 @@ begin
   if v_contract.status<>'pending_signature' or v_contract.signed_at is not null then
     raise exception using errcode='23514',message='contract_not_pending_signature';
   end if;
-  select * into v_customer from public.customers where id=v_contract.customer_id and company_id=v_contract.company_id;
+  select * into v_customer from public.customers where id=v_contract.customer_id and company_id=v_contract.company_id for share;
   if not found then raise exception using errcode='23514',message='signature_customer_scope_invalid'; end if;
   select * into v_price from public.contract_price_snapshots where id=v_contract.contract_price_snapshot_id and company_id=v_contract.company_id and contract_id=v_contract.id;
   if not found or nullif(v_price.snapshot_hash,'') is null then raise exception using errcode='23514',message='signature_pricing_snapshot_missing'; end if;
@@ -205,8 +206,11 @@ begin
     if v_signer_name is null or v_signer_identity is null then
       raise exception using errcode='22023',message='poa_signer_identity_required';
     end if;
-    if v_contract.customer_site_id is null or not exists(select 1 from public.customer_sites
-      where id=v_contract.customer_site_id and company_id=v_contract.company_id and customer_id=v_contract.customer_id) then
+    v_site_id:=coalesce(v_contract.customer_site_id,v_contract.site_id);
+    if (v_contract.customer_site_id is not null and v_contract.site_id is not null
+        and v_contract.customer_site_id<>v_contract.site_id)
+      or v_site_id is null or not exists(select 1 from public.customer_sites
+        where id=v_site_id and company_id=v_contract.company_id and customer_id=v_contract.customer_id for share) then
       raise exception using errcode='23514',message='poa_site_scope_invalid';
     end if;
     if (select count(*) from public.legal_bundle_version_documents
@@ -225,7 +229,7 @@ begin
     v_valid_to:=(v_valid_from+interval '12 months')::date-1;
     v_poa_snapshot:=jsonb_build_object(
       'schema','ops_online_poa_v1','power_of_attorney_id',v_poa_id,'signature_request_id',v_request.id,
-      'company_id',v_contract.company_id,'customer_id',v_contract.customer_id,'customer_site_id',v_contract.customer_site_id,
+      'company_id',v_contract.company_id,'customer_id',v_contract.customer_id,'customer_site_id',v_site_id,
       'customer_contract_id',v_contract.id,'accepted_at',v_accepted_at,'scopes',to_jsonb(p_poa_scopes),
       'valid_from',v_valid_from,'valid_to',v_valid_to,'verification_reference',v_verifier,
       'customer',jsonb_build_object('name',v_signer_name,'identity',v_signer_identity),
@@ -332,7 +336,7 @@ begin
       scope,status,signed_at,accepted_at,valid_from,valid_to,valid_until,source,accepted_source,method,
       signer_name,signer_identity_number,customer_number,accepted_ip,accepted_ip_hash,accepted_user_agent,
       legal_bundle_version_document_id,fullmakt_snapshot,signed_scope_snapshot,scope_summary,evidence_payload,reference,metadata)
-    values(v_poa_id,v_contract.company_id,v_contract.customer_id,v_contract.customer_site_id,v_contract.customer_site_id,v_contract.id,v_contract.id,
+    values(v_poa_id,v_contract.company_id,v_contract.customer_id,v_site_id,v_site_id,v_contract.id,v_contract.id,
       'supplier_switch','signed',v_accepted_at,v_accepted_at,v_valid_from,v_valid_to,v_valid_to,'ops_online_signature','ops_online_signature','secure_link_click',
       v_signer_name,v_signer_identity,v_customer.customer_number,p_signer_ip,
       encode(extensions.digest(convert_to(p_signer_ip,'UTF8'),'sha256'),'hex'),left(p_signed_user_agent,1000),
@@ -345,7 +349,7 @@ begin
     foreach v_scope in array p_poa_scopes loop
       insert into public.power_of_attorney_scopes(company_id,power_of_attorney_id,customer_id,site_id,customer_contract_id,
         scope_type,status,is_active,valid_from,valid_to,metadata)
-      values(v_contract.company_id,v_poa_id,v_contract.customer_id,v_contract.customer_site_id,v_contract.id,
+      values(v_contract.company_id,v_poa_id,v_contract.customer_id,v_site_id,v_contract.id,
         v_scope,'active',true,v_valid_from,v_valid_to,jsonb_build_object('source','ops_online_signature','signature_request_id',v_request.id));
     end loop;
   end if;

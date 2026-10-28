@@ -692,8 +692,8 @@ function ManualCoreFields({
         <SigningMethodFieldset />
 
         <Field label="Anläggning">
-          <select name="site_id" defaultValue="" className={inputClassName()}>
-            <option value="">Ingen kopplad anläggning</option>
+          <select name="site_id" defaultValue={siteOptions.length === 1 ? siteOptions[0].id : ""} className={inputClassName()}>
+            <option value="">Välj anläggning före signering</option>
             {siteOptions.map((site) => (
               <option key={site.id} value={site.id}>
                 {site.label}
@@ -1055,10 +1055,10 @@ export function CreateFromOfferForm({
             <Field label="Anläggning">
               <select
                 name="site_id"
-                defaultValue=""
+                defaultValue={siteOptions.length === 1 ? siteOptions[0].id : ""}
                 className={inputClassName()}
               >
-                <option value="">Ingen kopplad anläggning</option>
+                <option value="">Välj anläggning före signering</option>
                 {siteOptions.map((site) => (
                   <option key={site.id} value={site.id}>
                     {site.label}

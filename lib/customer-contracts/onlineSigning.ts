@@ -499,8 +499,9 @@ export async function recoverPendingOnlineSignaturePoas(limit = 20) {
   return { processed: results.length, results };
 }
 
-export async function loadOnlineSignaturePoaTerms(receipt: OnlineSignatureReceipt) {
-  const contract = await supabaseService.from('customer_contracts').select('contract_product_version_id,customer_site_id')
+export async function loadOnlineSignaturePoaTerms(receipt: Pick<OnlineSignatureReceipt,
+  'company_id' | 'customer_id' | 'contract_id' | 'contract_publication_version_id' | 'legal_versions'>) {
+  const contract = await supabaseService.from('customer_contracts').select('contract_product_version_id,customer_site_id,site_id')
     .eq('company_id', receipt.company_id).eq('customer_id', receipt.customer_id).eq('id', receipt.contract_id)
     .eq('contract_publication_version_id', receipt.contract_publication_version_id).maybeSingle();
   if (contract.error) throw contract.error;
@@ -510,8 +511,12 @@ export async function loadOnlineSignaturePoaTerms(receipt: OnlineSignatureReceip
     .eq('id', contract.data.contract_product_version_id).maybeSingle();
   if (product.error) throw product.error;
   if (!product.data) throw new Error('poa_product_version_missing');
-  const site = contract.data.customer_site_id ? await supabaseService.from('customer_sites').select('street,postal_code,city,facility_id')
-    .eq('company_id', receipt.company_id).eq('customer_id', receipt.customer_id).eq('id', contract.data.customer_site_id).maybeSingle() : null;
+  if (contract.data.customer_site_id && contract.data.site_id && contract.data.customer_site_id !== contract.data.site_id) {
+    throw new Error('poa_site_scope_ambiguous');
+  }
+  const siteId = contract.data.customer_site_id ?? contract.data.site_id;
+  const site = siteId ? await supabaseService.from('customer_sites').select('street,postal_code,city,facility_id')
+    .eq('company_id', receipt.company_id).eq('customer_id', receipt.customer_id).eq('id', siteId).maybeSingle() : null;
   if (site?.error) throw site.error;
   return { required: product.data.power_of_attorney_required !== false,
     available: Boolean(site?.data) && receipt.legal_versions.some(row => row.module_key === 'power_of_attorney'),

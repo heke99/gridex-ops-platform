@@ -39,6 +39,16 @@ som ”Utskick begärt”. Faktisk transport och leverans läses från
 Att ändra mottagaren i signeringsformuläret ändrar just det utskicket. Kundens
 kontaktadress ändras på kundkortet.
 
+Avtalet ska ha en entydig anläggningskoppling inom samma kund och tenant
+innan en länk skickas. Saknad eller motstridig koppling ger granskning och
+stoppar både automatiskt utskick och manuell omsändning före ny begäran/kö.
+Systemet väljer inte kundens första anläggning som ersättning. Nya formulär
+förväljer endast en ensam synlig anläggning; flera alternativ kräver val.
+Ett äldre `site_id` fungerar om det är verifierat och inte motsäger
+`customer_site_id`. Samma regel används vid kundens fullmaktsgodkännande.
+Ett redan sparat osignerat avtal utan koppling behöver kompletteras i det
+ordinarie OPS-flödet; historisk signering eller IP konstrueras inte i efterhand.
+
 ## Signering före leveransstart
 
 Avtal får signeras innan nätägaren lämnat uppgifterna som bestämmer faktisk

@@ -9,7 +9,7 @@ describe('automatic OPS signing-link delivery reports actual durable state',()=>
     const send=vi.fn(async()=>({deliveryStatus:state})) as unknown as AutoSendSigningLinkDeps['send']
     const result=await autoSendSigningLinkAfterCreate(input,{
       loadContract:async()=>({status:'pending_signature',signed_at:null}),loadCustomerEmail:async()=> 'signer@example.invalid',
-      hasActiveSignatureRequest:async()=>false,send,logError:()=>undefined,
+      hasActiveSignatureRequest:async()=>false,hasValidSigningSite:async()=>true,send,logError:()=>undefined,
     })
     expect(send).toHaveBeenCalledTimes(1)
     expect(result.status).toBe(state==='sent'?'sent':['queued','processing'].includes(state)?'queued':'needs_review')
