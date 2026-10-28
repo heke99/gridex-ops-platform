@@ -76,10 +76,10 @@ beforeEach(async () => {
     insert into contract_publications(id,assignment_id) values('${id(5)}','${id(4)}');
     insert into contract_product_versions(id,status,locked_at,power_of_attorney_required) values('${id(6)}','approved',now(),true);
     insert into price_plan_versions(id,status,locked_at) values('${id(7)}','published',now());
-    insert into legal_bundle_versions(id,company_id,status,locked_at,unresolved_variables) values('${id(8)}','${id(1)}','published',now(),'{}');
+    insert into legal_bundle_versions(id,company_id,status,locked_at,unresolved_variables,rendered_snapshot) values('${id(8)}','${id(1)}','published',now(),'{}','{"schema":"gridex_legal_bundle_v5"}');
     insert into legal_bundle_version_documents(id,legal_bundle_version_id,module_key,title,rendered_body,content_sha256,template_version,unresolved_variables)
       values('${id(9)}','${id(8)}','power_of_attorney','Synthetic POA','Exact accepted synthetic text',
-        encode(sha256(convert_to('Exact accepted synthetic text','UTF8')),'hex'),'test-v1','{}');
+        encode(sha256(convert_to('Synthetic POA'||chr(10)||'Exact accepted synthetic text','UTF8')),'hex'),'test-v1','{}');
     insert into contract_publication_versions(id,contract_publication_id,contract_product_version_id,price_plan_version_id,legal_bundle_version_id,status,locked_at)
       values('${id(10)}','${id(5)}','${id(6)}','${id(7)}','${id(8)}','published',now());
     insert into contract_price_snapshots(id,company_id,contract_id,snapshot_hash) values('${id(11)}','${id(1)}','${id(12)}','price-sha');
@@ -94,6 +94,38 @@ const sign = (accepted = true, scopes = ['supplier_switch','facility_information
     [token,'hmac-original','Synthetic UA',ip,accepted,scopes,'ops_online_poa_v1'])
 
 describe('same-transaction online contract + explicitly accepted POA', () => {
+  // Canonical gridex_materialize_legal_bundle_version hashes the rendered
+  // title, one newline and body. The genuine native fixture uses that actual
+  // producer unchanged; this finite fixture must represent the same format.
+  it.each(['title','rendered_body','content_sha256'] as const)('rejects canonical document %s drift before any acceptance',async field=>{
+    await db.exec(`update legal_bundle_version_documents set ${field}='${field==='content_sha256'?'0'.repeat(64):'Changed after publication'}'`)
+    await expect(sign()).rejects.toThrow('poa_legal_document_invalid')
+    expect((await db.query('select signed_at from customer_contracts')).rows).toEqual([{signed_at:null}])
+    expect((await db.query('select count(*)::int as n from powers_of_attorney')).rows).toEqual([{n:0}])
+  })
+  it('does not accept a body-only checksum as the canonical title-and-body document hash',async()=>{
+    await db.exec("update legal_bundle_version_documents set content_sha256=encode(sha256(convert_to(rendered_body,'UTF8')),'hex')")
+    await expect(sign()).rejects.toThrow('poa_legal_document_invalid')
+    expect((await db.query('select used_at from customer_contract_signature_requests')).rows).toEqual([{used_at:null}])
+  })
+  it.each(['v4','earliest'] as const)('retains the proven %s body-only format and immutable document hash',async kind=>{
+    await db.exec(`update legal_bundle_version_documents set legacy_legal_text_version_id='${id(90)}',content_sha256=encode(sha256(convert_to(rendered_body,'UTF8')),'hex');
+      update legal_bundle_versions set legacy_legal_bundle_id='${id(91)}',rendered_snapshot=${kind==='v4'?"'{\"schema\":\"gridex_legal_bundle_v4\"}'::jsonb":`jsonb_build_object('documents',(select jsonb_agg(jsonb_build_object('module_key',module_key,'legacy_id',legacy_legal_text_version_id,'title',title,'body_sha256',content_sha256)) from legal_bundle_version_documents))`}`)
+    const original=(await db.query('select content_sha256 from legal_bundle_version_documents')).rows
+    await sign()
+    expect((await db.query('select content_sha256 from legal_bundle_version_documents')).rows).toEqual(original)
+    expect((await db.query('select count(*)::int as n from powers_of_attorney')).rows).toEqual([{n:1}])
+  })
+  it.each([null,'','future-format','unproved-earliest','ambiguous-earliest','numeric-title','malformed-array'] as const)('rejects %s format before acceptance even when a body checksum matches',async format=>{
+    await db.exec(`update legal_bundle_version_documents set legacy_legal_text_version_id='${id(90)}',content_sha256=encode(sha256(convert_to(rendered_body,'UTF8')),'hex');update legal_bundle_versions set legacy_legal_bundle_id='${id(91)}'`)
+    const doc=(await db.query<{module_key:string;legacy_legal_text_version_id:string;title:string;content_sha256:string}>('select module_key,legacy_legal_text_version_id,title,content_sha256 from legal_bundle_version_documents')).rows[0]
+    const legacy={module_key:doc.module_key,legacy_id:doc.legacy_legal_text_version_id,title:doc.title,body_sha256:doc.content_sha256}
+    if(format==='numeric-title')await db.exec("update legal_bundle_version_documents set title='123'")
+    const snapshot=format==='unproved-earliest'?{}:format==='ambiguous-earliest'?{documents:[legacy,legacy]}:format==='numeric-title'?{documents:[{...legacy,title:123}]}:format==='malformed-array'?{documents:[legacy,0]}:{schema:format}
+    await db.query('update legal_bundle_versions set rendered_snapshot=$1::jsonb',[JSON.stringify(snapshot)])
+    await expect(sign()).rejects.toThrow('poa_legal_document_format_unsupported')
+    expect((await db.query('select used_at from customer_contract_signature_requests')).rows).toEqual([{used_at:null}])
+  })
   it('binds exact customer/tenant/site/legal version, actual IP and consent time; holds dispatch until archive', async () => {
     await sign()
     const { rows } = await db.query<Record<string, unknown>>(`select p.*,c.signature_snapshot_sha256,c.signed_at as contract_signed_at

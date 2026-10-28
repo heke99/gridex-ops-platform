@@ -98,6 +98,8 @@ declare
   v_withdrawal_deadline timestamptz;
   v_event jsonb;
   v_poa_doc public.legal_bundle_version_documents%rowtype;
+  v_poa_bundle public.legal_bundle_versions%rowtype;
+  v_legal_document_hash text;
   v_poa_snapshot jsonb := '{}'::jsonb;
   v_poa_id uuid;
   v_poa_evidence jsonb;
@@ -226,8 +228,34 @@ begin
     end if;
     select * into v_poa_doc from public.legal_bundle_version_documents
       where legal_bundle_version_id=v_contract.legal_bundle_version_id and module_key='power_of_attorney';
+    select * into v_poa_bundle from public.legal_bundle_versions
+      where id=v_contract.legal_bundle_version_id and company_id=v_contract.company_id for share;
+    if not found or v_poa_bundle.status<>'published' or v_poa_bundle.locked_at is null then
+      raise exception using errcode='23514',message='poa_legal_document_invalid';
+    end if;
+    -- Exact immutable producer formats; never accept either checksum merely
+    -- because it matches. V5 includes title+LF; known historical V4 did not.
+    if v_poa_bundle.rendered_snapshot->>'schema'='gridex_legal_bundle_v5' then
+      v_legal_document_hash:=encode(extensions.digest(convert_to(v_poa_doc.title||E'\n'||v_poa_doc.rendered_body,'UTF8'),'sha256'),'hex');
+    elsif v_poa_bundle.rendered_snapshot->>'schema'='gridex_legal_bundle_v4' then
+      v_legal_document_hash:=encode(extensions.digest(convert_to(v_poa_doc.rendered_body,'UTF8'),'sha256'),'hex');
+    elsif jsonb_typeof(v_poa_bundle.rendered_snapshot)='object' and not (v_poa_bundle.rendered_snapshot ? 'schema')
+      and v_poa_bundle.legacy_legal_bundle_id is not null and v_poa_doc.legacy_legal_text_version_id is not null
+      and jsonb_typeof(v_poa_bundle.rendered_snapshot->'documents')='array'
+      and not exists(select 1 from jsonb_array_elements(case when jsonb_typeof(v_poa_bundle.rendered_snapshot->'documents')='array' then v_poa_bundle.rendered_snapshot->'documents' else '[]'::jsonb end) x
+        where jsonb_typeof(x) is distinct from 'object' or jsonb_typeof(x->'module_key') is distinct from 'string' or x->>'module_key'='')
+      and (select count(*)=1 and bool_and(jsonb_typeof(x->'legacy_id')='string'
+          and jsonb_typeof(x->'body_sha256')='string' and jsonb_typeof(x->'title')='string'
+          and x->>'legacy_id'=v_poa_doc.legacy_legal_text_version_id::text
+          and x->>'body_sha256'=v_poa_doc.content_sha256 and x->>'title'=v_poa_doc.title)
+        from jsonb_array_elements(case when jsonb_typeof(v_poa_bundle.rendered_snapshot->'documents')='array' then v_poa_bundle.rendered_snapshot->'documents' else '[]'::jsonb end) x
+        where x->>'module_key'=v_poa_doc.module_key) is true then
+      v_legal_document_hash:=encode(extensions.digest(convert_to(v_poa_doc.rendered_body,'UTF8'),'sha256'),'hex');
+    else
+      raise exception using errcode='23514',message='poa_legal_document_format_unsupported';
+    end if;
     if nullif(btrim(v_poa_doc.rendered_body),'') is null or cardinality(v_poa_doc.unresolved_variables)<>0
-      or encode(extensions.digest(convert_to(v_poa_doc.rendered_body,'UTF8'),'sha256'),'hex') is distinct from v_poa_doc.content_sha256 then
+      or v_legal_document_hash is distinct from v_poa_doc.content_sha256 then
       raise exception using errcode='23514',message='poa_legal_document_invalid';
     end if;
   elsif cardinality(coalesce(p_poa_scopes,'{}'::text[]))<>0 then

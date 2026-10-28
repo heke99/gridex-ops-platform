@@ -70,7 +70,16 @@ Signerade prisbelopp, moms, avtalsunderlag och uttryckligt avtalsslut bevaras.
 
 Signeringen behåller den frysta avtals-, pris- och juridikversionen och den
 verkliga acceptanstidpunkten. IP-underlag ska hämtas från kundens faktiska
-förfrågan. Signeringsbevis, dokumenthash och fullmaktsbevis ska kunna följas
+förfrågan. Juridikdokumentets kanoniska kontrollsumma beräknas över den
+renderade rubriken, en radbrytning och den renderade texten, enligt samma
+format som publiceringen. Varken originaltexten eller dess sparade hash skrivs om.
+Äldre V4-dokument behåller sitt dokumenterade format med enbart textens hash.
+De tidigaste dokumenten utan schemamarkör kräver dessutom entydiga frysta
+referenser till både det äldre juridikpaketet och dess dokument. Okända format
+eller motstridiga referenser stoppas. Samma regler gäller återhämtning av en
+tidigare accepterad text inför PDF-arkivering; ett låst historiskt original kan
+återhämtas även när dess publicering senare har arkiverats.
+Signeringsbevis, dokumenthash och fullmaktsbevis ska kunna följas
 till samma kund och tenant. En personligt besvarad testförfrågan kvalificerar
 inte en verifierad nätägares svar eller ett skarpt marknadsutskick.
 
