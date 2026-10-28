@@ -3887,3 +3887,27 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 | B5 underlag och operatörens omkörning (`/admin/ediel/messages/[id]`) | Operatörsvägen fungerar (plattformsadmin som är medlem). Varje omkörd fil ger 96 lagrade värden, blockerade med `supply_source_unqualified` eftersom kunden är migrerad (F17). Fullständig körning av alla 30 filer återstår: avbröts av omstart av containern. |
 | B6 spotpris SE3, import och låsning | ej nådd i de senaste körningarna |
 | B7–B8 faktura och oberoende kontroll | hoppas över tills leveransen vilar på Ediel (kedja A) |
+
+### A-B5b Avgränsad engångsbackfill av `grid_owner_ediel_id` — ägarbeslut 42; GENOMFÖRD (migration `20261028140000`, applicerad i världen)
+- **Regel (ägarbeslut 42):** bara saknade värden fylls i, och bara från den nätägare som mätpunkten redan är bunden till (`grid_owner_id`).
+- **Krav på nätägaren:**
+  - tenantens egen eller plattformsgemensam rad;
+  - aktiv och inom elområdet;
+  - inte under manuell granskning och ingen olöst dubblett;
+  - ett välformat Ediel-id (fem siffror), vars identitet aktörsregistret har verifierat (`actor_registry_status = 'verified'`).
+- **Krävs inte:** route-, subadress-, kontakt- och certifikatberedskap. De gäller utskick, inte identitet.
+- **Till granskning** (öppen `data_quality_issues`, källa `a_b5_grid_owner_ediel_backfill`, med skälet): en mätpunkt vars aktiva nätområdesmappning anger ett annat Ediel-id, en historisk mätpunkt (arkiverad, stängd eller avslutad) och varje mätpunkt som inte uppfyller kraven.
+- **Skrivs aldrig över:** uttryckliga värden. Sådana mätpunkter väljs inte ens ut.
+- **Spårning:** varje ifyllnad får en rad i `gridex_backfill.grid_owner_ediel_id_v1` med före- och efterbild, nätägarens identitetsbevis som källa och id för den e035-fakta som uppdateringen gav (`gridex_correction_process.facts`). Engångskaraktären säkras av att (`run_key`, `metering_point_id`) är unik.
+- **Rörs inte:** mottagna original (`ediel_messages`, `gridex_received_sources`) läses inte för tillskrivning och skrivs inte.
+- **I världen (körning `a_b5_20261028`):**
+  - 32 ifyllda;
+  - 464 till granskning, eftersom nätägarens identitet inte är verifierad i aktörsregistret (`under_review`);
+  - 1 till granskning, eftersom nätägaren tillhör en annan tenant.
+  - Följd: de 464 webbmätpunkterna får sin Z03 först när nätägarens identitet har verifierats eller personalen har åtgärdat granskningen. Triggern från A-B5 fyller fortfarande i nya och ändrade mätpunkter.
+- **Test:** `scripts/reality-a-b5-backfill-native.test.ts` (världens databas, alltid återrullat). Positivt: verifierad bunden ägare ger ifyllnad med före/efter och e035-fakta. Negativt:
+  - ett uttryckligt värde lämnas orört;
+  - overifierad identitet, annan tenants ägare, nätområdeskonflikt och historisk mätpunkt går till granskning;
+  - en ny körning gör ingenting och skapar inget andra ärende;
+  - inga andra tabeller än `metering_points` skrivs.
+  - Resultat: 1/1 grönt.

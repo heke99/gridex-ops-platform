@@ -349,6 +349,7 @@
     "20261027150000_j2_05_partial_period_metering_correction.sql": "c381b6f72a1939c72bf1451efa00462623cef337bc42b23f9d20a4bea5c2530f",
     "20261027160000_h_b6_break_fee_invoice_export_run.sql": "e1bfcac505526dda121b30b897c8adfe89e157e4edda9b28abb3dd95b8c769cb",
     "20261027170000_h_b6b_break_fee_credit_invoice_export_run.sql": "fae96e4e7dbb15bef0ba102c4487521c4b46c17f53720610a0ec50e39281fdea",
-    "20261028010000_h_b7_invoice_review_draft_keeps_stamped_metadata.sql": "b174da63425199307ac16d830817d65c3a379b63cfcfa50382e32331c8b3783a"
+    "20261028010000_h_b7_invoice_review_draft_keeps_stamped_metadata.sql": "b174da63425199307ac16d830817d65c3a379b63cfcfa50382e32331c8b3783a",
+    "20261028140000_a_b5_grid_owner_ediel_id_backfill.sql": "759f4b6b49b85e1974b951bcde1984f9acbcb5d6848bfd806f9ee3c6ab9be35a"
   }
 }
