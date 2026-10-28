@@ -82,7 +82,7 @@ tills PDF:en är verifierad. Originalbeviset skapar ett privat dokument under
 `customer-documents/companies/{tenant}/customers/{kund}/powers-of-attorney/{fullmakt}/`.
 Arkivets PDF-hash och bevisfingeravtryck kontrolleras. Ett separat servicekommando
 kontrollerar exakt signering, fullmakt, kund, tenant och privat lagringsobjekt,
-registrerar dokumentet och släpper endast sitt eget arkivstopp. Andra
+registrerar dokumentet och dess exakta `authorization_scopes` innan det släpper sitt eget arkivstopp. Behörigheterna härleds enbart från originalets signerade rättigheter; tidigare återkallad eller avvikande behörighet återställs inte. Andra
 manuella beslut, återkallelser och tenantspärrar överskrivs inte.
 
 Ordinarie bekräftelsehantering och dess cron återupptar väntande arkiv med

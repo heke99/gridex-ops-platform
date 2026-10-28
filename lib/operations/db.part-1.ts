@@ -775,6 +775,19 @@ export async function saveCustomerAuthorizationDocument(
     if (point.data.site_id) await requireOwned('customer_sites', point.data.site_id);
     else if (point.data.customer_id !== input.customer_id) throw new Error('Dokumentets mätpunkt saknar säker kundkoppling.');
   }
+  if (input.power_of_attorney_id) {
+    const poa = await supabase.from('powers_of_attorney').select('id,customer_site_id,site_id,customer_contract_id,contract_id,metering_point_id')
+      .eq('id', input.power_of_attorney_id).eq('company_id', companyId).eq('customer_id', input.customer_id).maybeSingle();
+    if (poa.error) throw poa.error;
+    if (!poa.data) throw new Error('Dokumentets fullmakt tillhör inte kunden och bolaget.');
+    const poaSite = poa.data.customer_site_id ?? poa.data.site_id;
+    const poaContract = poa.data.customer_contract_id ?? poa.data.contract_id;
+    if ((input.site_id && poaSite && input.site_id !== poaSite)
+      || (input.customer_contract_id && poaContract && input.customer_contract_id !== poaContract)
+      || (input.metering_point_id && poa.data.metering_point_id && input.metering_point_id !== poa.data.metering_point_id)) {
+      throw new Error('Dokumentets anläggnings- eller avtalskoppling stämmer inte med fullmakten.');
+    }
+  }
 
   const canonicalSignedImport = input.document_type === 'complete_agreement' && input.status === 'active'
     && input.metadata?.source === 'customer_intake' && input.metadata?.documentRole === 'signed_agreement';

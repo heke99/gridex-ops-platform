@@ -81,6 +81,7 @@ describe('signed PDF persistence through the canonical authorized service bounda
     ['site', { site_id: 'other-site' }],
     ['contract', { customer_contract_id: 'other-contract' }],
     ['metering point', { metering_point_id: 'other-point' }],
+    ['power of attorney', { power_of_attorney_id: 'foreign-poa' }],
   ])('rejects a foreign or missing %s tuple before any document insert', async (_name, changes) => {
     await expect(saveCustomerAuthorizationDocument(client('authenticated'), { ...original, ...changes })).rejects.toThrow()
     expect(io.writes).toHaveLength(0)

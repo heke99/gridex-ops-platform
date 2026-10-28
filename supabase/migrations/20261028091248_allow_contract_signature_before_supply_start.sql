@@ -380,6 +380,7 @@ declare
   r public.customer_contract_signature_requests%rowtype;
   a jsonb;
   d public.customer_authorization_documents%rowtype;
+  s public.authorization_scopes%rowtype;
   v_document_id uuid;
 begin
   if auth.role() is distinct from 'service_role' then
@@ -441,6 +442,33 @@ begin
       'fullmakt-'||p.reference||'.pdf','application/pdf',p_size_bytes,'customer-documents',p_path,p_sha256,
       'online-poa:'||p.id,p.reference,jsonb_build_object('source','ops_online_signature','signature_request_id',p_request_id,
         'evidence_sha256',p_evidence_sha256,'signature_snapshot_sha256',c.signature_snapshot_sha256)) returning id into v_document_id;
+  end if;
+  -- The operational reader uses authorization_scopes bound to the exact PDF,
+  -- not power_of_attorney_scopes. Project only this original's signed rights.
+  if (select count(*) from public.authorization_scopes where authorization_document_id=v_document_id)>1 then
+    raise exception using errcode='23514',message='poa_archive_authorization_ambiguous';
+  end if;
+  select * into s from public.authorization_scopes where authorization_document_id=v_document_id;
+  if found then
+    if s.company_id is distinct from p_company_id or s.customer_id is distinct from p_customer_id
+      or s.status<>'active' or s.revoked_at is not null or s.scope_type<>'supplier_switch_data'
+      or s.signed_scope_snapshot is distinct from p.signed_scope_snapshot
+      or s.valid_from is distinct from p.valid_from or s.valid_to is distinct from p.valid_to
+      or s.covers_grid_owner_data is distinct from true or s.covers_current_supplier_contract is distinct from true
+      or s.covers_metering_data is distinct from (p.signed_scope_snapshot ? 'facility_information_lookup')
+      or s.metadata->>'powerOfAttorneyId' is distinct from p.id::text
+      or s.metadata->>'signature_request_id' is distinct from p_request_id::text then
+      raise exception using errcode='23514',message='poa_archive_authorization_binding_invalid';
+    end if;
+  else
+    insert into public.authorization_scopes(company_id,customer_id,authorization_document_id,scope_type,status,
+      covers_grid_owner_data,covers_current_supplier_contract,covers_metering_data,signed_scope_snapshot,
+      valid_from,valid_to,evidence_note,metadata)
+    values(p_company_id,p_customer_id,v_document_id,'supplier_switch_data','active',true,true,
+      p.signed_scope_snapshot ? 'facility_information_lookup',p.signed_scope_snapshot,p.valid_from,p.valid_to,
+      'Uttryckligen godkänd fullmakt, verifierad mot originalsignering och privat PDF.',
+      jsonb_build_object('source','ops_online_signature','powerOfAttorneyId',p.id,'authorizationDocumentId',v_document_id,
+        'signature_request_id',p_request_id,'signature_snapshot_sha256',c.signature_snapshot_sha256));
   end if;
   update public.powers_of_attorney set document_id=v_document_id,
     metadata=metadata||jsonb_build_object('online_signature_archive_pending',false,'online_signature_archive_completed_at',coalesce(metadata->>'online_signature_archive_completed_at',clock_timestamp()::text)),

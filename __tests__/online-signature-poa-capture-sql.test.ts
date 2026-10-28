@@ -13,7 +13,7 @@ const tables = ['customer_contracts','customer_contract_signature_requests','cus
   'contract_price_snapshots','contract_publication_versions','contract_publications','tenant_contract_assignments',
   'contract_product_versions','price_plan_versions','legal_bundle_versions','legal_bundle_version_documents',
   'customer_legal_acceptances','customer_contract_acceptances','customer_contract_evidence','powers_of_attorney',
-  'power_of_attorney_scopes','customer_authorization_documents','customer_operation_jobs','customer_sites']
+  'power_of_attorney_scopes','authorization_scopes','customer_authorization_documents','customer_operation_jobs','customer_sites']
 
 beforeAll(async () => {
   db = new PGlite()
@@ -56,6 +56,10 @@ beforeAll(async () => {
   await db.exec(expiry)
   await db.exec(`create trigger poa_expiry before insert or update of valid_to,valid_until on powers_of_attorney
     for each row execute function gridex_sync_poa_expires_at()`)
+  const binder = schema.match(/CREATE FUNCTION public\.gridex_bind_poa_authorization_document\(\)[\s\S]*?\n\$\$;/)![0]
+  await db.exec(binder)
+  await db.exec(`create trigger bind_document after insert on customer_authorization_documents
+    for each row execute function gridex_bind_poa_authorization_document()`)
   const forward = fs.readFileSync('supabase/migrations/20261028091248_allow_contract_signature_before_supply_start.sql','utf8')
   await db.exec(forward)
 })
@@ -149,8 +153,8 @@ describe('same-transaction online contract + explicitly accepted POA', () => {
 // synthetic SQL metadata proves uploaded PDF bytes. The TS archive test and
 // existing PDF/hash verifier own that boundary; hosted/native proof remains due.
 const pdfSha='c'.repeat(64), evidenceSha='b'.repeat(64)
-async function prepareArchive() {
-  await sign()
+async function prepareArchive(scopes=['supplier_switch','facility_information_lookup']) {
+  await sign(true,scopes)
   const p=(await db.query<{id:string}>('select id from powers_of_attorney')).rows[0]
   const path=`companies/${id(1)}/customers/${id(2)}/powers-of-attorney/${p.id}/fullmakt-${pdfSha}.pdf`
   await db.query(`update powers_of_attorney set document_path=$1,metadata=metadata||jsonb_build_object('document_archive',
@@ -168,8 +172,24 @@ describe('atomic private archive completion gate',()=>{
     expect((await db.query('select company_id,customer_id,customer_contract_id,power_of_attorney_id,file_checksum,status from customer_authorization_documents')).rows)
       .toEqual([{company_id:id(1),customer_id:id(2),customer_contract_id:id(12),power_of_attorney_id:a.poaId,file_checksum:pdfSha,status:'active'}])
     expect((await db.query('select status,review_reason_code from customer_operation_jobs')).rows).toEqual([{status:'queued',review_reason_code:null}])
+    expect((await db.query(`select company_id,customer_id,authorization_document_id,covers_grid_owner_data,covers_current_supplier_contract,covers_metering_data,signed_scope_snapshot from authorization_scopes`)).rows)
+      .toEqual([{company_id:id(1),customer_id:id(2),authorization_document_id:(await db.query<{id:string}>('select id from customer_authorization_documents')).rows[0].id,
+        covers_grid_owner_data:true,covers_current_supplier_contract:true,covers_metering_data:true,signed_scope_snapshot:['supplier_switch','facility_information_lookup']}])
     expect((await db.query("select metadata->>'online_signature_archive_pending' as pending from powers_of_attorney")).rows).toEqual([{pending:'false'}])
   })
+  it('does not add metering coverage to a supplier-switch-only consent',async()=>{
+    const a=await prepareArchive(['supplier_switch']);await complete(a)
+    expect((await db.query('select covers_grid_owner_data,covers_current_supplier_contract,covers_metering_data,signed_scope_snapshot from authorization_scopes')).rows)
+      .toEqual([{covers_grid_owner_data:true,covers_current_supplier_contract:true,covers_metering_data:false,signed_scope_snapshot:['supplier_switch']}])
+  })
+  it('does not widen or revive a previously revoked exact document authorization',async()=>{
+    const a=await prepareArchive();await complete(a)
+    await db.exec("update authorization_scopes set status='revoked',revoked_at=now()")
+    await expect(complete(a)).rejects.toThrow(/poa_archive_authorization_binding_invalid/)
+    expect((await db.query('select status from authorization_scopes')).rows).toEqual([{status:'revoked'}])
+    expect((await db.query('select count(*)::int as n from authorization_scopes')).rows).toEqual([{n:1}])
+  })
+
   it.each(['foreign tenant','public bucket','missing object','wrong checksum','revoked consent'])('refuses %s without activating document/dispatch',async reason=>{
     const a=await prepareArchive()
     if(reason==='public bucket')await db.exec('update storage.buckets set public=true')
