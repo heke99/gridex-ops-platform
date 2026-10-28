@@ -1,6 +1,6 @@
 # Verklighetssimuleringen — läge och nästa steg
 
-Uppdaterad 2026-10-28 kl. 00:05 UTC av Claude (session 01Az5xza…), som fortsätter på grenen `claude/wonderful-franklin-o8gx2p` (byggd på `claude/gifted-hamilton-vss1hj` `edeaed7d0`) på ägarens uppdrag. Tidigare session: 01YCH5Va…. Filen är tänkt att läsas först.
+Uppdaterad 2026-10-28 kl. 04:45 UTC av Claude (session 01Az5xza…), som fortsätter på grenen `claude/wonderful-franklin-o8gx2p` (byggd på `claude/gifted-hamilton-vss1hj` `edeaed7d0`) på ägarens uppdrag. Tidigare session: 01YCH5Va…. Filen är tänkt att läsas först.
 
 Den hör ihop med tre andra dokument:
 - [FINDINGS.md](FINDINGS.md): alla fynd. Inget tas bort därifrån.
@@ -52,6 +52,9 @@ Den hör ihop med tre andra dokument:
   - **Batch 9 från 23:14 UTC:** A, H, F. Logg `/tmp/claude-0/batch9.log`.
   - **Batch 9 (A) föll på T51 (SMTP-lösenord i världen, rättat i `up.sh`). Batch 10 avbröts av den sjätte omstarten (ca 23:55).**
   - **Batch 11 från 00:00 UTC 2026-10-28:** A, H, F. Logg `/tmp/claude-0/batch11.log`.
+    - Batch 11: A 7/7 (första helt gröna), H 10/11 (nytt H-B7, rättat, migration `20261028010000`), F 11/12 (T48 verifierad; T52 harness rättad).
+    - Batch 12: H 11/11 (första helt gröna; H-B7 verifierad).
+  - **Läge efter batch 12:** helt gröna i senaste körning: A, I, K, H, J4. J2 12/14 och G 10/11 (ägarbeslut respektive datum), F 11/12 (T52 rättad, väntar på omkörning), J1 6/12 (kända öppna fynd).
   - **Kvar som kräver ägaren:** J1-01, J1-02, J1-03 (låst SQL), J1-10, J1-14, J2-02, F48 (UTILTS-meddelanden), A-B5-backfill, månadsprisets medelpris (T48/F108-3). Se OWNER-DECISIONS.
   - **Parallella agenter (14:05–14:55 UTC), klara, granskade och införda:** J2-05 (migration `20261027150000`, applicerad i världen), J1-11, J1-05 och I-B13 (Z04 före negativ APERAK). J1-02 kräver ägarbeslut (OWNER-DECISIONS). Agenternas arbetskopior är borttagna.
   - **Kvar av övertagandet i #840:** F113 (`20261026170000`), J2-05 och J4-D15 (`20261026190000`). A-B4 utreds när A har kört i den nya världen.

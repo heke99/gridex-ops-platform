@@ -2727,6 +2727,9 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **Variant, rättad:** `claim_ediel_outbox_items` har samma mönster (väljer på `priority, created_at` men returnerar utan ordning), och `processEdielOutbox` skickar posterna en i taget. En rättelse eller makulering som hämtas i samma körning som sitt original kunde lämna först. `claimEdielOutboxItems` sorterar nu på prioritet, ålder och id. Test: `__tests__/reality-i-b11-outbox-claim-order.test.ts`, rött före. Med utkorgstesterna 6 filer, 24/24. Inga fler `claim*`-funktioner med `RETURNING` och `ORDER BY` finns i världens databas.
 - **I världen:** kräver ombyggnad. I körs om.
 
+### H, batch 12 (2026-10-28 03:28–04:40): 11 av 11 gröna — FÖRSTA HELT GRÖNA H; H-B6, H-B6b och H-B7 verifierade
+- Hela brytavgiftskedjan i H11 fungerar: godkännande, eget underlag, prissättning och låsning, en faktura (600 kr exkl. moms) och spårbar kreditering. Kreditfakturan (−600 kr) bär länken till originalfakturan och krediten, avgiften blir `credited` och justeringsärendet `credited`.
+
 ### F, batch 11 (2026-10-28 01:22–03:28): 11 av 12 gröna — T48 verifierad; T52 (harness, rättad)
 - **F9:s prisberäkning grön:** varje faktura stämmer med den oberoende beräkningen med månadens medelspotpris (T48).
 - **F9 föll sedan på anläggningen med en saknad dag.** Den kontrollerades nu för första gången, eftersom F9 tidigare föll redan på priset. Produkten gör rätt: underlaget blockeras (`estimated_source_missing`, glapp 13–14 september), har 2 784 av 2 880 värden och ger ingen faktura. Se T52.
