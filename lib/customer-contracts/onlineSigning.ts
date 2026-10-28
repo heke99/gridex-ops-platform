@@ -1,3 +1,5 @@
+import { tenantSelect, tenantUpdate } from '@/lib/supabase/tenantQuery';
+import { tenantDb } from '@/lib/supabase/tenantDb';
 import "server-only";
 import { requireContractRecordsAvailable } from '@/lib/ediel/retention/customerRecordClasses';
 
@@ -398,9 +400,7 @@ export async function sendOnlineContractSignatureRequest(input: {
 }
 
 async function signedContractState(receipt: OnlineSignatureReceipt) {
-  const { data, error } = await supabaseService
-    .from("customer_contracts")
-    .select("withdrawal_deadline_at,document_sha256,tenant_communication_snapshot_sha256,signature_snapshot")
+  const { data, error } = await tenantSelect(receipt.company_id, "customer_contracts", "withdrawal_deadline_at,document_sha256,tenant_communication_snapshot_sha256,signature_snapshot")
     .eq("id", receipt.contract_id)
     .eq("company_id", receipt.company_id)
     .single();
@@ -422,20 +422,20 @@ export async function archiveOnlineSignaturePoa(receipt: OnlinePoaReceipt, persi
   // Receipt delivery has already loaded this exact contract's frozen signature.
   // Legacy and optional contract-only receipts need no new POA lookup/backfill.
   if (persistedSignature && !optionalString(asObject(persistedSignature.power_of_attorney_snapshot).power_of_attorney_id)) return null;
-  const contract = await supabaseService.from('customer_contracts')
-    .select('signature_snapshot,signature_snapshot_sha256,signed_at')
+  const contract = await tenantSelect(receipt.company_id, 'customer_contracts', 'signature_snapshot,signature_snapshot_sha256,signed_at')
     .eq('company_id', receipt.company_id).eq('customer_id', receipt.customer_id).eq('id', receipt.contract_id).maybeSingle();
   if (contract.error) throw contract.error;
-  if (!contract.data) throw new Error('poa_contract_scope_invalid');
-  const signature = asObject(contract.data.signature_snapshot);
+  const contractRow = contract.data as { signature_snapshot: unknown; signature_snapshot_sha256: string | null; signed_at: string | null } | null;
+  if (!contractRow) throw new Error('poa_contract_scope_invalid');
+  const signature = asObject(contractRow.signature_snapshot);
   const poaId = optionalString(asObject(signature.power_of_attorney_snapshot).power_of_attorney_id);
   if (!poaId) return null; // Optional contract-only or legacy signature; never backfill.
   if (signature.signature_request_id !== receipt.request_id
-    || contract.data.signature_snapshot_sha256 !== receipt.signature_snapshot_sha256
-    || !receipt.signed_at || Date.parse(contract.data.signed_at) !== Date.parse(receipt.signed_at)) {
+    || contractRow.signature_snapshot_sha256 !== receipt.signature_snapshot_sha256
+    || !receipt.signed_at || Date.parse(String(contractRow.signed_at)) !== Date.parse(receipt.signed_at)) {
     throw new Error('poa_signature_original_binding_invalid');
   }
-  const found = await supabaseService.from('powers_of_attorney').select('*')
+  const found = await tenantSelect(receipt.company_id, 'powers_of_attorney', '*')
     .eq('company_id', receipt.company_id).eq('customer_id', receipt.customer_id)
     .eq('customer_contract_id', receipt.contract_id).eq('id', poaId).eq('source', 'ops_online_signature').maybeSingle();
   if (found.error) throw found.error;
@@ -463,6 +463,8 @@ export async function archiveOnlineSignaturePoa(receipt: OnlinePoaReceipt, persi
 }
 
 export async function recoverPendingOnlineSignaturePoas(limit = 20) {
+  // Platform cron intentionally discovers pending originals across tenants; every
+  // subsequent read/write is bound to that original's company and customer.
   const pending = await supabaseService.from('powers_of_attorney').select('*').eq('source', 'ops_online_signature')
     .eq('metadata->>online_signature_archive_pending', 'true').order('updated_at', { ascending: true })
     .limit(Math.min(50, Math.max(1, limit)));
@@ -481,12 +483,12 @@ export async function recoverPendingOnlineSignaturePoas(limit = 20) {
     } catch {
       // Preserve the immutable consent and original IP. The exact operation
       // remains visibly blocked. Rotate failed rows behind other pending rows.
-      await supabaseService.from('powers_of_attorney').update({
+      await tenantUpdate(String(poa.company_id), 'powers_of_attorney', {
         metadata: { ...asObject(poa.metadata), online_signature_archive_last_error: 'poa_archive_retry_pending' },
         updated_at: new Date().toISOString(),
       }).eq('company_id', String(poa.company_id)).eq('customer_id', String(poa.customer_id))
         .eq('id', String(poa.id)).eq('updated_at', String(poa.updated_at));
-      await supabaseService.from('customer_operation_jobs').update({
+      await tenantUpdate(String(poa.company_id), 'customer_operation_jobs', {
         last_error: 'Fullmaktens privata PDF kunde inte verifieras. Automatiken är spärrad; granska originalunderlaget. Arkiveringen återförsöks med samma godkännande.',
         updated_at: new Date().toISOString(),
       }).eq('company_id', String(poa.company_id)).eq('customer_id', String(poa.customer_id))
@@ -501,27 +503,29 @@ export async function recoverPendingOnlineSignaturePoas(limit = 20) {
 
 export async function loadOnlineSignaturePoaTerms(receipt: Pick<OnlineSignatureReceipt,
   'company_id' | 'customer_id' | 'contract_id' | 'contract_publication_version_id' | 'legal_versions'>) {
-  const contract = await supabaseService.from('customer_contracts').select('contract_product_version_id,customer_site_id,site_id')
+  const contract = await tenantSelect(receipt.company_id, 'customer_contracts', 'contract_product_version_id,customer_site_id,site_id')
     .eq('company_id', receipt.company_id).eq('customer_id', receipt.customer_id).eq('id', receipt.contract_id)
     .eq('contract_publication_version_id', receipt.contract_publication_version_id).maybeSingle();
   if (contract.error) throw contract.error;
-  if (!contract.data) throw new Error('poa_product_scope_invalid');
+  const contractRow = contract.data as { contract_product_version_id: string; customer_site_id: string | null; site_id: string | null } | null;
+  if (!contractRow) throw new Error('poa_product_scope_invalid');
   // This global immutable version is reached only through the tenant-bound contract.
-  const product = await supabaseService.from('contract_product_versions').select('power_of_attorney_required')
-    .eq('id', contract.data.contract_product_version_id).maybeSingle();
+  const product = await tenantDb(receipt.company_id).unscoped().from('contract_product_versions').select('power_of_attorney_required')
+    .eq('id', contractRow.contract_product_version_id).maybeSingle();
   if (product.error) throw product.error;
   if (!product.data) throw new Error('poa_product_version_missing');
-  if (contract.data.customer_site_id && contract.data.site_id && contract.data.customer_site_id !== contract.data.site_id) {
+  if (contractRow.customer_site_id && contractRow.site_id && contractRow.customer_site_id !== contractRow.site_id) {
     throw new Error('poa_site_scope_ambiguous');
   }
-  const siteId = contract.data.customer_site_id ?? contract.data.site_id;
-  const site = siteId ? await supabaseService.from('customer_sites').select('street,postal_code,city,facility_id')
+  const siteId = contractRow.customer_site_id ?? contractRow.site_id;
+  const site = siteId ? await tenantSelect(receipt.company_id, 'customer_sites', 'street,postal_code,city,facility_id')
     .eq('company_id', receipt.company_id).eq('customer_id', receipt.customer_id).eq('id', siteId).maybeSingle() : null;
   if (site?.error) throw site.error;
+  const siteRow = site?.data as { street: string | null; postal_code: string | null; city: string | null; facility_id: string | null } | null | undefined;
   return { required: product.data.power_of_attorney_required !== false,
-    available: Boolean(site?.data) && receipt.legal_versions.some(row => row.module_key === 'power_of_attorney'),
-    siteAddress: site?.data ? [site.data.street, site.data.postal_code, site.data.city].filter(Boolean).join(', ') : '',
-    facilityId: optionalString(site?.data?.facility_id) };
+    available: Boolean(siteRow) && receipt.legal_versions.some(row => row.module_key === 'power_of_attorney'),
+    siteAddress: siteRow ? [siteRow.street, siteRow.postal_code, siteRow.city].filter(Boolean).join(', ') : '',
+    facilityId: optionalString(siteRow?.facility_id) };
 }
 
 export async function deliverSignedContractReceipt(receipt: OnlineSignatureReceipt) {

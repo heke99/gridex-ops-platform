@@ -1,3 +1,4 @@
+import { tenantSelect } from '@/lib/supabase/tenantQuery';
 import "server-only";
 
 import { sendOnlineContractSignatureRequest } from "@/lib/customer-contracts/onlineSigning";
@@ -26,16 +27,17 @@ export const SIGNING_LINK_SITE_REQUIRED_MESSAGE =
 /** No customer-wide/first-site fallback: a signing request uses the contract's
  * own unambiguous site, verified inside the exact tenant and customer. */
 export async function contractHasValidSigningSite(input: { companyId: string; customerId: string; contractId: string }): Promise<boolean> {
-  const contract = await supabaseService.from('customer_contracts').select('site_id,customer_site_id')
+  const contract = await tenantSelect(input.companyId, 'customer_contracts', 'site_id,customer_site_id')
     .eq('id', input.contractId).eq('company_id', input.companyId).eq('customer_id', input.customerId).maybeSingle();
   if (contract.error) throw contract.error;
-  if (!contract.data) return false;
-  const canonical = contract.data.customer_site_id;
-  const legacy = contract.data.site_id;
+  const contractRow = contract.data as { customer_site_id: string | null; site_id: string | null } | null;
+  if (!contractRow) return false;
+  const canonical = contractRow.customer_site_id;
+  const legacy = contractRow.site_id;
   if (canonical && legacy && canonical !== legacy) return false;
   const siteId = canonical ?? legacy;
   if (!siteId) return false;
-  const site = await supabaseService.from('customer_sites').select('id')
+  const site = await tenantSelect(input.companyId, 'customer_sites', 'id')
     .eq('id', siteId).eq('company_id', input.companyId).eq('customer_id', input.customerId).maybeSingle();
   if (site.error) throw site.error;
   return Boolean(site.data);

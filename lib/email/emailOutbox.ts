@@ -1,3 +1,4 @@
+import { tenantSelect, tenantUpdate } from '@/lib/supabase/tenantQuery';
 import { randomUUID } from "node:crypto";
 import { supabaseService } from "@/lib/supabase/service";
 import {
@@ -85,12 +86,11 @@ const SIGNATURE_EMAIL_TYPE = 'contract.signature_requested';
 
 async function signatureEmailLog(row: TenantEmailOutboxRow) {
   if (!row.communication_log_id || !row.customer_id) return null;
-  const { data, error } = await supabaseService.from('communication_logs')
-    .select('id,company_id,customer_id,contract_id,metadata')
+  const { data, error } = await tenantSelect(row.company_id, 'communication_logs', 'id,company_id,customer_id,contract_id,metadata')
     .eq('id', row.communication_log_id).eq('company_id', row.company_id)
     .eq('customer_id', row.customer_id).eq('event_key', SIGNATURE_EMAIL_TYPE).maybeSingle();
   if (error) throw error;
-  return data;
+  return data as { id: string; company_id: string; customer_id: string; contract_id: string | null; metadata: Record<string, unknown> | null } | null;
 }
 
 async function requireCurrentSignatureEmail(row: TenantEmailOutboxRow) {
@@ -99,14 +99,13 @@ async function requireCurrentSignatureEmail(row: TenantEmailOutboxRow) {
     ? log.metadata.signature_request_id : null;
   let current = false;
   if (requestId && log?.contract_id) {
-    const { data: request, error } = await supabaseService.from('customer_contract_signature_requests')
-      .select('id').eq('id', requestId).eq('company_id', row.company_id)
+    const { data: request, error } = await tenantSelect(row.company_id, 'customer_contract_signature_requests', 'id').eq('id', requestId).eq('company_id', row.company_id)
       .eq('customer_id', row.customer_id!).eq('customer_contract_id', log.contract_id)
       .eq('recipient_email', row.to_email).is('revoked_at', null).is('used_at', null)
       .gt('expires_at', new Date().toISOString()).maybeSingle();
     if (error) throw error;
     if (request) {
-      const contract = await supabaseService.from('customer_contracts').select('id')
+      const contract = await tenantSelect(row.company_id, 'customer_contracts', 'id')
         .eq('id', log.contract_id).eq('company_id', row.company_id).eq('customer_id', row.customer_id!)
         .eq('status', 'pending_signature').is('signed_at', null).maybeSingle();
       if (contract.error) throw contract.error;
@@ -115,14 +114,14 @@ async function requireCurrentSignatureEmail(row: TenantEmailOutboxRow) {
   }
   if (current) return;
   const now = new Date().toISOString();
-  const cancelled = await supabaseService.from('tenant_email_outbox').update({
+  const cancelled = await tenantUpdate(row.company_id, 'tenant_email_outbox', {
     status: 'cancelled', failure_reason: 'signature_request_no_longer_current',
     last_error: null, next_attempt_at: null, locked_at: null, locked_by: null, lock_token: null, updated_at: now,
   }).eq('id', row.id).eq('company_id', row.company_id).eq('status', 'processing')
     .eq('lock_token', row.lock_token ?? '').select('id').maybeSingle();
   if (cancelled.error) throw cancelled.error;
   if (cancelled.data && row.communication_log_id) {
-    const update = await supabaseService.from('communication_logs').update({ status: 'cancelled' })
+    const update = await tenantUpdate(row.company_id, 'communication_logs', { status: 'cancelled' })
       .eq('id', row.communication_log_id).eq('company_id', row.company_id)
       .eq('customer_id', row.customer_id!).eq('status', 'queued');
     if (update.error) throw update.error;
@@ -574,7 +573,7 @@ export async function processTenantEmailOutbox(
 
 /** Target one newly persisted signature intent; the normal cron remains recovery. */
 export async function sendContractSignatureEmailNow(input: ContractSignatureEmailScope) {
-  const { data, error } = await supabaseService.from('tenant_email_outbox').select('*')
+  const { data, error } = await tenantSelect(input.companyId, 'tenant_email_outbox', '*')
     .eq('company_id', input.companyId).eq('customer_id', input.customerId)
     .eq('communication_log_id', input.communicationLogId).eq('email_type', SIGNATURE_EMAIL_TYPE).maybeSingle();
   if (error) throw error;
@@ -586,11 +585,12 @@ export async function sendContractSignatureEmailNow(input: ContractSignatureEmai
   }
   if (row.status !== 'queued') return { status: row.status };
   const currentStatus = async () => {
-    const current = await supabaseService.from('tenant_email_outbox').select('status')
+    const current = await tenantSelect(input.companyId, 'tenant_email_outbox', 'status')
       .eq('id', row.id).eq('company_id', input.companyId).eq('customer_id', input.customerId)
       .eq('communication_log_id', input.communicationLogId).eq('email_type', SIGNATURE_EMAIL_TYPE).maybeSingle();
     if (current.error) throw current.error;
-    return { status: current.data?.status ?? 'unknown' };
+    const currentRow = current.data as { status: TenantEmailOutboxRow['status'] } | null;
+    return { status: currentRow?.status ?? 'unknown' };
   };
   const claimed = await claimRow(row);
   if (!claimed) return currentStatus();
