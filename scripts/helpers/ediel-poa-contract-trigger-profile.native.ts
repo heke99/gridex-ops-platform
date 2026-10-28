@@ -3,6 +3,7 @@
 // actual run, and does not qualify a future result.
 import {readFileSync} from 'node:fs'
 import {createHash} from 'node:crypto'
+import {dirname,isAbsolute,join} from 'node:path'
 import {nativeSql as sql,literal} from './ediel-normal-switch-native-fixture'
 
 type FunctionImage={identity:string;ddl:string;owner:string|null;acl:string|null;bodyMD5:string}
@@ -35,10 +36,25 @@ function triggerDDL(triggers:Baseline['triggers']):string {
  return triggers.map(t=>`${t.ddl};ALTER TABLE public.customer_contracts ${t.enabled==='A'?'ENABLE ALWAYS':'ENABLE'} TRIGGER ${ident(t.name)};`).join('\n')
 }
 const dropTriggers=(ts:Baseline['triggers'])=>ts.map(t=>`DROP TRIGGER ${ident(t.name)} ON public.customer_contracts;`).join('\n')
+export function readPoaCandidateMigration(input:{repositoryPath?:string;replayOriginalAnchor?:string}={}) {
+ const name='20261028091248_allow_contract_signature_before_supply_start.sql'
+ let migration:Buffer
+ try { migration=readFileSync(input.repositoryPath??join('supabase','migrations',name)) }
+ catch(error) {
+  if((error as NodeJS.ErrnoException).code!=='ENOENT')throw error
+  // The existing sourced replay holds originals until shell EXIT. Its already
+  // exported case-restoration path identifies that same original directory.
+  // No /tmp search, replacement SQL or new workflow/producer input is used.
+  const anchor=input.replayOriginalAnchor??process.env.GRIDEX_EDIEL_CASE_RESTORATION_SQL
+  if(!anchor||!isAbsolute(anchor))throw Error('poa_candidate_original_source_missing')
+  migration=readFileSync(join(dirname(anchor),name))
+ }
+ if(createHash('sha256').update(migration).digest('hex')!==profile.candidateSQLSHA256)throw Error('poa_candidate_source_changed')
+ return migration
+}
 export function installPoaContractTriggerProfile() {
  if(process.env.NEXT_PUBLIC_SUPABASE_URL!=='http://127.0.0.1:54321')throw Error('owned_local_only')
- const migration=readFileSync('supabase/migrations/20261028091248_allow_contract_signature_before_supply_start.sql')
- if(createHash('sha256').update(migration).digest('hex')!==profile.candidateSQLSHA256)throw Error('poa_candidate_source_changed')
+ readPoaCandidateMigration()
  if(profile.triggers.length!==26||profile.triggers.filter(t=>t.enabled==='A').length!==3||profile.functions.some(f=>!f.owner))throw Error('actual_profile_metadata_incomplete')
  const baseline=snapshot()
  const candidateBefore=sql<string>(`SELECT to_jsonb(md5(prosrc)) FROM pg_proc WHERE oid='public.gridex_customer_contracts_auto_renew_guard()'::regprocedure`)
