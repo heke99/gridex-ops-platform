@@ -62,9 +62,31 @@ vi.mock('@/lib/supabase/service', () => ({
   },
 }))
 
-import { finalizeOnlineContractSignature, processPendingContractConfirmations } from '@/lib/customer-contracts/onlineSigning'
+import { finalizeOnlineContractSignature, processPendingContractConfirmations, type OnlineSignatureReceipt } from '@/lib/customer-contracts/onlineSigning'
+import {attemptContractConfirmationDelivery,recordContractConfirmationFailure} from '@/lib/customer-contracts/confirmationDelivery'
 
-const receipt = { request_id: 'request-1', company_id: 'tenant-a', customer_id: 'customer-1', contract_id: 'contract-1', contract_number: 'C-1', contract_name: 'Variable', contract_type: 'spot', status: 'signed', signed_at: '2026-10-07T09:00:00Z', expires_at: '2026-10-08T09:00:00Z', channel: 'internal', customer_name: 'Synthetic', customer_email: 'test@example.invalid', company_name: 'Tenant A', offer_reference: 'offer-1', pricing_snapshot: {}, pricing_snapshot_sha256: 'a'.repeat(64), legal_versions: [{ id: 'legal-1', module_key: 'terms', title: 'Terms', version: '1' }], legal_bundle_version_id: 'bundle-1', contract_publication_version_id: 'pub-1', price_plan_version_id: 'price-1', signature_snapshot_sha256: 'b'.repeat(64) }
+const receipt: OnlineSignatureReceipt = { used_at: '2026-10-07T09:00:00Z', customer_number: 'SYNTHETIC-1', starts_at: null, ends_at: null, price_area: null, request_id: 'request-1', company_id: 'tenant-a', customer_id: 'customer-1', contract_id: 'contract-1', contract_number: 'C-1', contract_name: 'Variable', contract_type: 'spot', status: 'signed', signed_at: '2026-10-07T09:00:00Z', expires_at: '2026-10-08T09:00:00Z', channel: 'internal', customer_name: 'Synthetic', customer_email: 'test@example.invalid', company_name: 'Tenant A', offer_reference: 'offer-1', pricing_snapshot: {}, pricing_snapshot_sha256: 'a'.repeat(64), legal_versions: [{ id: 'legal-1', module_key: 'terms', title: 'Terms', version: '1' }], legal_bundle_version_id: 'bundle-1', contract_publication_version_id: 'pub-1', price_plan_version_id: 'price-1', signature_snapshot_sha256: 'b'.repeat(64) }
+
+// Explicit declared RPC port; SQL/role/CAS behavior is also executed against
+// PGlite in poa-confirmation-runtime-fence.test.ts and the existing native CI.
+function advancePort(args:Record<string,unknown>){
+ const key=String(args.p_request_id)
+ if(!h.deliveries.has(key))h.deliveries.set(key,{company_id:args.p_company_id,customer_contract_id:args.p_contract_id,signature_request_id:key,state:'pending',attempts:0,next_attempt_at:'1970-01-01T00:00:00.000Z'})
+ const row=h.deliveries.get(key)!
+ if(row.company_id!==args.p_company_id||row.customer_contract_id!==args.p_contract_id)return {data:null,error:new Error('confirmation_binding_invalid')}
+ const attempts=Number(row.attempts)
+ if(args.p_action==='claim'){
+  if(row.state!=='pending'||attempts>=8||Date.parse(String(row.next_attempt_at))>Date.now())return {data:{claimed:false,state:row.state,attempts},error:null}
+  const lease=new Date(Date.now()+600_000).toISOString().replace('Z','123Z')
+  row.next_attempt_at=lease
+  return {data:{claimed:true,state:'pending',attempts,lease_until:lease},error:null}
+ }
+ if(row.state!=='pending'||!args.p_expected_lease_until||row.next_attempt_at!==args.p_expected_lease_until)return {data:{advanced:false,state:row.state,attempts},error:null}
+ row.attempts=attempts+1
+ if(args.p_action==='queued')Object.assign(row,{state:'queued',document_sha256:args.p_document_sha256,last_error:null})
+ else Object.assign(row,{state:attempts+1>=8?'failed':'pending',last_error:args.p_error,next_attempt_at:new Date(Date.now()+300_000).toISOString()})
+ return {data:{advanced:true,state:row.state,attempts:row.attempts},error:null}
+}
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -75,7 +97,8 @@ beforeEach(() => {
     signature_snapshot: { recipient_email: 'test@example.invalid', customer_identity_snapshot: { full_name: 'Synthetic' } },
   })
   h.requests.set('request-1', { id: 'request-1', company_id: 'tenant-a', token_hash: 'f'.repeat(64), used_at: '2026-10-07T09:00:00Z' })
-  h.rpc.mockImplementation(async (name: string) => {
+  h.rpc.mockImplementation(async (name: string,args:Record<string,unknown>) => {
+    if(name==='gridex_advance_contract_confirmation_v2')return advancePort(args)
     if (name === 'gridex_finalize_customer_contract_signature_v2') {
       h.signCount++
       // The signing transaction's trigger creates the pending continuation.
@@ -134,8 +157,8 @@ describe('bug-hunt: worker isolation and leases', () => {
     h.deliveries.set('broken', { company_id: 'tenant-a', customer_contract_id: 'contract-x', signature_request_id: 'broken', state: 'pending', attempts: 0, next_attempt_at: '1970-01-01T00:00:00.000Z' })
     h.requests.set('broken', { id: 'broken', company_id: 'tenant-a', token_hash: 'e'.repeat(64), used_at: '2026-10-07T09:00:00Z' })
     h.deliveries.set('request-1', { company_id: 'tenant-a', customer_contract_id: 'contract-1', signature_request_id: 'request-1', state: 'pending', attempts: 0, next_attempt_at: '1970-01-01T00:00:00.000Z' })
-    h.rpc.mockImplementation(async (_name: string, args: { p_token_hash?: string }) =>
-      args?.p_token_hash === 'e'.repeat(64) ? { data: { ...receipt, request_id: 'broken', customer_name: '' }, error: null } : { data: receipt, error: null })
+    h.rpc.mockImplementation(async (name: string, args: Record<string,unknown>) =>
+      name==='gridex_advance_contract_confirmation_v2'?advancePort(args):args?.p_token_hash === 'e'.repeat(64) ? { data: { ...receipt, request_id: 'broken', customer_name: '' }, error: null } : { data: receipt, error: null })
     const run = await processPendingContractConfirmations(10)
     expect(run.results.map((r) => r.state).sort()).toEqual(['error', 'queued'])
     expect(h.deliveries.get('broken')).toMatchObject({ state: 'pending', attempts: 1 })
@@ -146,6 +169,27 @@ describe('bug-hunt: worker isolation and leases', () => {
     await processPendingContractConfirmations(10)
     expect(h.archive).not.toHaveBeenCalled()
     expect(h.send).not.toHaveBeenCalled()
+  })
+  it('preserves the exact PostgreSQL microsecond lease through callback and completion',async()=>{
+    const result=await attemptContractConfirmationDelivery(receipt,async()=>({documentSha256:'a'.repeat(64)}))
+    expect(result).toEqual({state:'queued',error:null})
+    const finish=h.rpc.mock.calls.find(([name,args])=>name==='gridex_advance_contract_confirmation_v2'&&args.p_action==='queued')
+    expect(finish?.[1].p_expected_lease_until).toMatch(/\.\d{6}Z$/)
+  })
+  it('never invokes delivery or a legacy update after a protocol denial',async()=>{
+    h.rpc.mockResolvedValueOnce({data:null,error:new Error('confirmation_v2_runtime_required')})
+    const deliver=vi.fn()
+    await expect(attemptContractConfirmationDelivery(receipt,deliver)).rejects.toThrow('confirmation_v2_runtime_required')
+    expect(deliver).not.toHaveBeenCalled();expect(h.deliveries.size).toBe(0)
+  })
+  it('does not complete a newer lease or overwrite it in outer worker failure handling',async()=>{
+    const result=await attemptContractConfirmationDelivery(receipt,async()=>{
+      h.deliveries.get('request-1')!.next_attempt_at='2999-01-01T00:00:00.123456Z'
+      return {documentSha256:'a'.repeat(64)}
+    })
+    expect(result).toEqual({state:'pending',error:'confirmation_lease_lost'})
+    await recordContractConfirmationFailure(receipt,99,'unowned outer failure')
+    expect(h.deliveries.get('request-1')).toMatchObject({state:'pending',attempts:0,next_attempt_at:'2999-01-01T00:00:00.123456Z'})
   })
 })
 

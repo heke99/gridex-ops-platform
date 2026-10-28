@@ -13,7 +13,8 @@ const tables = ['customer_contracts','customer_contract_signature_requests','cus
   'contract_price_snapshots','contract_publication_versions','contract_publications','tenant_contract_assignments',
   'contract_product_versions','price_plan_versions','legal_bundle_versions','legal_bundle_version_documents',
   'customer_legal_acceptances','customer_contract_acceptances','customer_contract_evidence','powers_of_attorney',
-  'power_of_attorney_scopes','authorization_scopes','customer_authorization_documents','customer_operation_jobs','customer_sites']
+  'power_of_attorney_scopes','authorization_scopes','customer_authorization_documents','customer_operation_jobs','customer_sites',
+  'customer_contract_confirmation_deliveries']
 
 beforeAll(async () => {
   db = new PGlite()
@@ -35,6 +36,7 @@ beforeAll(async () => {
     await db.exec(`create table public.${name} (${columns.join(',')})`)
   }
   await db.exec(`create unique index acceptance_dedupe on customer_contract_acceptances(customer_contract_id,acceptance_sha256);
+    create unique index confirmation_request_dedupe on customer_contract_confirmation_deliveries(signature_request_id);
     create unique index evidence_dedupe on customer_contract_evidence(customer_contract_id,evidence_type,evidence_sha256);
     create unique index poa_scopes_dedupe on power_of_attorney_scopes(company_id,power_of_attorney_id,scope_type);
     create function public.ediel_require_contract_records_available_v1(uuid,uuid) returns void language plpgsql as $$begin return; end$$;

@@ -555,3 +555,135 @@ REVOKE ALL ON FUNCTION public.gridex_protect_online_signature_poa_capture_v1() F
 GRANT EXECUTE ON FUNCTION public.gridex_protect_online_signature_poa_capture_v1() TO service_role;
 CREATE TRIGGER powers_of_attorney_online_capture_guard_tg BEFORE INSERT OR UPDATE ON public.powers_of_attorney
 FOR EACH ROW EXECUTE FUNCTION public.gridex_protect_online_signature_poa_capture_v1();
+
+-- Permanent confirmation runtime version fence.
+-- Older workers must claim by direct UPDATE before calling their delivery
+-- callback. V2 signatures require the new lease RPC, including when mutable
+-- POA/archive rows are damaged or absent. Never infer legacy from those joins.
+CREATE FUNCTION public.gridex_protect_contract_confirmation_runtime_v2()
+RETURNS trigger LANGUAGE plpgsql SECURITY INVOKER SET search_path TO 'pg_catalog'
+AS $function$
+declare
+  v_structured boolean;
+  v_company uuid;
+  v_contract uuid;
+  v_marker text;
+begin
+  if row(new.id,new.company_id,new.customer_contract_id,new.signature_request_id)
+    is distinct from row(old.id,old.company_id,old.customer_contract_id,old.signature_request_id) then
+    raise exception using errcode='23514',message='confirmation_binding_immutable';
+  end if;
+  -- Request identity is authoritative, independent of the continuation's
+  -- untrusted contract field (there is no composite contract/request FK).
+  select (c.signature_snapshot->>'schema'='gridex_online_contract_signature_v2'
+      or c.signature_snapshot#>>'{power_of_attorney_snapshot,schema}'='ops_online_poa_v1'),r.company_id,r.customer_contract_id
+    into v_structured,v_company,v_contract
+    from public.customer_contract_signature_requests r
+    join public.customer_contracts c on c.id=r.customer_contract_id and c.company_id=r.company_id
+      and c.customer_id=r.customer_id
+    where r.id=old.signature_request_id;
+  if not found or v_company is distinct from old.company_id
+    or v_contract is distinct from old.customer_contract_id then
+    raise exception using errcode='23514',message='confirmation_binding_invalid';
+  end if;
+  if v_structured is true then
+    v_marker:=current_setting('gridex.confirmation_advance',true);
+    if auth.role() is distinct from 'service_role' or current_user<>'postgres'
+      or not coalesce(v_marker=any(array[
+        jsonb_build_array(old.id,old.company_id,old.customer_contract_id,old.signature_request_id,'claim')::text,
+        jsonb_build_array(old.id,old.company_id,old.customer_contract_id,old.signature_request_id,'queued')::text,
+        jsonb_build_array(old.id,old.company_id,old.customer_contract_id,old.signature_request_id,'failed')::text]),false) then
+      raise exception using errcode='42501',message='confirmation_v2_runtime_required';
+    end if;
+  end if;
+  return new;
+end;
+$function$;
+ALTER FUNCTION public.gridex_protect_contract_confirmation_runtime_v2() OWNER TO postgres;
+REVOKE ALL ON FUNCTION public.gridex_protect_contract_confirmation_runtime_v2() FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.gridex_protect_contract_confirmation_runtime_v2() TO service_role;
+CREATE TRIGGER customer_contract_confirmation_runtime_guard_tg
+BEFORE UPDATE ON public.customer_contract_confirmation_deliveries FOR EACH ROW
+EXECUTE FUNCTION public.gridex_protect_contract_confirmation_runtime_v2();
+
+CREATE FUNCTION public.gridex_advance_contract_confirmation_v2(
+  p_company_id uuid,p_contract_id uuid,p_request_id uuid,p_action text,
+  p_expected_lease_until timestamptz DEFAULT NULL,p_document_sha256 text DEFAULT NULL,p_error text DEFAULT NULL
+) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'pg_catalog'
+AS $function$
+declare
+  c public.customer_contracts%rowtype;
+  r public.customer_contract_signature_requests%rowtype;
+  d public.customer_contract_confirmation_deliveries%rowtype;
+  v_now timestamptz;
+  v_lease timestamptz;
+  v_attempts integer;
+  v_previous_marker text:=coalesce(current_setting('gridex.confirmation_advance',true),'');
+begin
+  if auth.role() is distinct from 'service_role' then
+    raise exception using errcode='42501',message='confirmation_service_role_required';
+  end if;
+  if p_action is null or p_action not in ('claim','queued','failed') then
+    raise exception using errcode='22023',message='confirmation_action_invalid';
+  end if;
+  -- Same contract -> request order as signing. Keep immutable scope stable
+  -- through the delivery-row CAS; the clock is captured only after all locks.
+  select * into c from public.customer_contracts where id=p_contract_id and company_id=p_company_id for share;
+  if not found then raise exception using errcode='23514',message='confirmation_binding_invalid'; end if;
+  select * into r from public.customer_contract_signature_requests where id=p_request_id for share;
+  if not found or r.company_id is distinct from c.company_id or r.customer_id is distinct from c.customer_id
+    or r.customer_contract_id is distinct from c.id or r.used_at is null or c.signed_at is null
+    or c.status is null or c.status not in ('signed','active','terminated','cancelled','expired')
+    or c.signature_snapshot->>'company_id' is distinct from c.company_id::text
+    or c.signature_snapshot->>'customer_id' is distinct from c.customer_id::text
+    or c.signature_snapshot->>'contract_id' is distinct from c.id::text
+    or c.signature_snapshot->>'signature_request_id' is distinct from r.id::text then
+    raise exception using errcode='23514',message='confirmation_binding_invalid';
+  end if;
+  if p_action='claim' then
+    perform public.ediel_require_contract_records_available_v1(p_company_id,p_contract_id);
+    insert into public.customer_contract_confirmation_deliveries(company_id,customer_contract_id,signature_request_id)
+      values(p_company_id,p_contract_id,p_request_id) on conflict(signature_request_id) do nothing;
+  end if;
+  select * into d from public.customer_contract_confirmation_deliveries where signature_request_id=p_request_id for update;
+  if not found or d.company_id is distinct from p_company_id or d.customer_contract_id is distinct from p_contract_id then
+    raise exception using errcode='23514',message='confirmation_binding_invalid';
+  end if;
+  v_now:=clock_timestamp();
+  if p_action='claim' then
+    if d.state<>'pending' or d.attempts>=8 or d.next_attempt_at>v_now then
+      return jsonb_build_object('claimed',false,'state',d.state,'attempts',d.attempts);
+    end if;
+    v_lease:=v_now+interval '10 minutes';
+  elsif d.state<>'pending' or p_expected_lease_until is null or d.next_attempt_at is distinct from p_expected_lease_until then
+    return jsonb_build_object('advanced',false,'state',d.state,'attempts',d.attempts);
+  elsif p_action='queued' and (p_document_sha256 is null or p_document_sha256!~'^[a-f0-9]{64}$'
+    or c.document_sha256 is distinct from p_document_sha256) then
+    raise exception using errcode='23514',message='confirmation_document_hash_mismatch';
+  end if;
+  perform set_config('gridex.confirmation_advance',jsonb_build_array(d.id,d.company_id,d.customer_contract_id,d.signature_request_id,p_action)::text,true);
+  if p_action='claim' then
+    update public.customer_contract_confirmation_deliveries set next_attempt_at=v_lease,updated_at=v_now where id=d.id;
+  elsif p_action='queued' then
+    update public.customer_contract_confirmation_deliveries set state='queued',queued_at=v_now,last_error=null,
+      document_sha256=p_document_sha256,attempts=d.attempts+1,updated_at=v_now where id=d.id;
+  else
+    v_attempts:=d.attempts+1;
+    update public.customer_contract_confirmation_deliveries set state=case when v_attempts>=8 then 'failed' else 'pending' end,
+      attempts=v_attempts,last_error=left(coalesce(p_error,'confirmation_delivery_failed'),500),
+      next_attempt_at=v_now+make_interval(secs=>least(300*power(2,least(greatest(v_attempts-1,0),7)),21600)::integer),updated_at=v_now where id=d.id;
+  end if;
+  perform set_config('gridex.confirmation_advance',v_previous_marker,true);
+  if p_action='claim' then
+    -- Preserve the raw PostgreSQL microseconds through PostgREST and JS.
+    return jsonb_build_object('claimed',true,'state','pending','attempts',d.attempts,'lease_until',v_lease);
+  end if;
+  return jsonb_build_object('advanced',true,'state',case when p_action='queued' then 'queued' when v_attempts>=8 then 'failed' else 'pending' end,'attempts',d.attempts+1);
+exception when others then
+  perform set_config('gridex.confirmation_advance',v_previous_marker,true);
+  raise;
+end;
+$function$;
+ALTER FUNCTION public.gridex_advance_contract_confirmation_v2(uuid,uuid,uuid,text,timestamptz,text,text) OWNER TO postgres;
+REVOKE ALL ON FUNCTION public.gridex_advance_contract_confirmation_v2(uuid,uuid,uuid,text,timestamptz,text,text) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.gridex_advance_contract_confirmation_v2(uuid,uuid,uuid,text,timestamptz,text,text) TO service_role;

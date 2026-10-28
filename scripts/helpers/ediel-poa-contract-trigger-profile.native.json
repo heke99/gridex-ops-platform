@@ -369,7 +369,7 @@
       "bodyMD5": "e2a03ccb78b1e28ab5a13784f1dd8176"
     }
   ],
-  "candidateSQLSHA256": "2ec25de1b1ec9ec4964091acd23ac7deb4bf7bd34636289ffe7551485555c35a",
+  "candidateSQLSHA256": "44521607742c89b403f1c060222333eebf64831f0e73eef18cb7692dc4b16cfe",
   "explicitLimit": "Metadata-only actual DDL copied as data; proposal not executed. Parent must review generic code before source adoption.",
   "candidateGuardBodyMD5": "a7f82350b9b9ded9b99d66450292eec9"
 }

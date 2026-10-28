@@ -74,6 +74,21 @@ förfrågan. Signeringsbevis, dokumenthash och fullmaktsbevis ska kunna följas
 till samma kund och tenant. En personligt besvarad testförfrågan kvalificerar
 inte en verifierad nätägares svar eller ett skarpt marknadsutskick.
 
+Bekräftelseleveranser använder `gridex_advance_contract_confirmation_v2` med
+databasens låsta kund-, tenant-, avtals- och begärankoppling. Anspråk använder
+databasens klocka och gäller i tio minuter. Avslut och felregistrering kräver
+exakt samma oförändrade tidsstämpel, inklusive mikrosekunder. Ett äldre försök
+kan inte slutföra eller flytta ett nyare försök. Åtta försök och den ordinarie
+backoff-tiden gäller fortsatt; transportens stabila idempotensnyckel bevaras.
+
+En databasgrind stoppar äldre kod från att göra direkta leveransuppdateringar
+för V2-signerade avtal före transportanropet. Äldre öppna signeringssidor eller
+cron-körningar kan därför inte skicka en V2-bekräftelse utan fullmaktsbilagan
+under versionsbytet. Saknade eller skadade fullmaktsrader gör inte en
+V2-signering till en äldre signering. Genuina V1-leveranser är kompatibla och
+får inga efterkonstruerade fullmaktsbevis. Ett fel före leveransanspråk kan
+registreras endast efter ett eget anspråk; en annan arbetares lås skrivs inte över.
+
 ## Fullmaktsbevis vid online-signering
 
 Den publika signeringen använder `gridex_finalize_customer_contract_signature_v2`.

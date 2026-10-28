@@ -134,6 +134,39 @@ it('uploads genuine private PDF, verifies exact bytes/hash and document-bound sc
  const stateBeforeReplay=effects(true);const second=await archiveOnlineSignaturePoa(receipt);expect(second?.content).toBe(attachment?.content);expect(effects(true)).toEqual(stateBeforeReplay)
 })
 
+it('fences an actual old-runtime service claim before delivery and advances only a new owned confirmation lease',async()=>{
+ const p=await pending();await signed(p)
+ let oldDeliveryCallbacks=0
+ const oldClaim=await supabaseService.from('customer_contract_confirmation_deliveries')
+  .update({next_attempt_at:new Date(Date.now()+600000).toISOString()})
+  .eq('company_id',f.companyId).eq('signature_request_id',p.requestId)
+  .eq('state','pending').lte('next_attempt_at',new Date().toISOString()).select('attempts')
+ if(!oldClaim.error&&oldClaim.data?.length)oldDeliveryCallbacks++
+ expect(oldClaim.error?.message).toContain('confirmation_v2_runtime_required');expect(oldDeliveryCallbacks).toBe(0)
+ const args={p_company_id:f.companyId,p_contract_id:p.contractId,p_request_id:p.requestId,p_action:'claim'}
+ for(const client of [anon,own,foreign]){
+  const denied=await client.rpc('gridex_advance_contract_confirmation_v2',args);expect(denied.error).not.toBeNull()
+ }
+ const wrong=await supabaseService.rpc('gridex_advance_contract_confirmation_v2',{...args,p_company_id:randomUUID()})
+ expect(wrong.error?.message).toContain('confirmation_binding_invalid')
+ const competing=await Promise.all([supabaseService.rpc('gridex_advance_contract_confirmation_v2',args),supabaseService.rpc('gridex_advance_contract_confirmation_v2',args)])
+ expect(competing.every(r=>r.error===null)).toBe(true)
+ expect(competing.filter(r=>(r.data as {claimed:boolean}).claimed)).toHaveLength(1)
+ const claim=competing.find(r=>(r.data as {claimed:boolean}).claimed)!.data as {claimed:boolean;state:string;attempts:number;lease_until:string}
+ expect(claim).toMatchObject({claimed:true,state:'pending',attempts:0});expect(typeof claim.lease_until).toBe('string')
+ const duplicate=await supabaseService.rpc('gridex_advance_contract_confirmation_v2',args)
+ expect(duplicate.error).toBeNull();expect(duplicate.data).toMatchObject({claimed:false,state:'pending',attempts:0})
+ const stale=await supabaseService.rpc('gridex_advance_contract_confirmation_v2',{...args,p_action:'failed',p_expected_lease_until:'2000-01-01T00:00:00.123456Z',p_error:'SYNTHETIC stale owner'})
+ expect(stale.error).toBeNull();expect(stale.data).toMatchObject({advanced:false,state:'pending',attempts:0})
+ const failed=await supabaseService.rpc('gridex_advance_contract_confirmation_v2',{...args,p_action:'failed',p_expected_lease_until:claim.lease_until,p_error:'SYNTHETIC owned failure; no provider call'})
+ expect(failed.error).toBeNull();expect(failed.data).toMatchObject({advanced:true,state:'pending',attempts:1})
+ const oldFailure=await supabaseService.from('customer_contract_confirmation_deliveries').update({attempts:99})
+  .eq('company_id',f.companyId).eq('signature_request_id',p.requestId)
+ expect(oldFailure.error?.message).toContain('confirmation_v2_runtime_required')
+ const row=sql<{attempts:number;seconds:number}>(`SELECT jsonb_build_object('attempts',attempts,'seconds',extract(epoch FROM next_attempt_at-updated_at)) FROM public.customer_contract_confirmation_deliveries WHERE signature_request_id=${literal(p.requestId)} AND company_id=${literal(f.companyId)}`)
+ expect(row).toEqual({attempts:1,seconds:300})
+})
+
 it('refuses archive receipt customer/tenant substitution before any storage or job effect',async()=>{
  const p=await pending(),receipt=await signed(p),before=effects()
  await expect(archiveOnlineSignaturePoa({...receipt,customer_id:randomUUID()})).rejects.toThrow()
