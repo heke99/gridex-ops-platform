@@ -3,11 +3,15 @@ import {readFileSync} from 'node:fs'
 import {afterEach,expect,it,vi} from 'vitest'
 import {db05PredecessorSchema} from './helpers/db05PredecessorSchema'
 
-const injected=vi.hoisted(()=>({patch:null as string|null,patch28:null as string|null,patch29:null as string|null,reads:[] as string[]}))
+const injected=vi.hoisted(()=>({patch:null as string|null,patch28:null as string|null,patch29:null as string|null,patchPoa:null as string|null,reads:[] as string[]}))
 vi.mock('node:fs',async original=>{
  const actual=await original<typeof import('node:fs')>()
  return {...actual,readFileSync:(path:Parameters<typeof actual.readFileSync>[0],options?:Parameters<typeof actual.readFileSync>[1])=>{
   const name=String(path)
+  if(name.endsWith('db05-schema-predecessor-poa-20261028.patch.json')){
+   injected.reads.push('poa20261028')
+   if(injected.patchPoa!==null)return injected.patchPoa
+  }
   if(name.endsWith('db05-schema-predecessor-audit29.patch.json')){
    injected.reads.push('audit29')
    if(injected.patch29!==null)return injected.patch29
@@ -29,7 +33,7 @@ const audit27=JSON.parse(readFileSync('__tests__/fixtures/db05-schema-predecesso
  preSha256:string;postSha256:string;hunks:{postStart:number;postCount:number;postSha256:string;preLines:string[]}[]}
 const audit26=JSON.parse(readFileSync('__tests__/fixtures/db05-schema-predecessor-audit26.patch.json','utf8')) as {preSha256:string;postSha256:string}
 const sha=(text:string)=>createHash('sha256').update(text).digest('hex')
-afterEach(()=>{injected.patch=null;injected.patch28=null;injected.patch29=null;injected.reads=[]})
+afterEach(()=>{injected.patch=null;injected.patch28=null;injected.patch29=null;injected.patchPoa=null;injected.reads=[]})
 // Both immutable genuine captures are covered even when the checked-in context
 // is the older one. The fixture stores only the exact changed line ranges.
 type Audit28={preSha256:string;postSha256:string;hunks:{preStart:number;preCount:number;preSha256:string;postStart:number;postCount:number;postSha256:string;preLines:string[];postLines:string[]}[]}
@@ -74,11 +78,56 @@ function exactAudit29Fixture(schema:string,forward:boolean):string{
  expect(sha(rebuilt)).toBe(forward?nextSha:currentSha)
  return rebuilt
 }
-if(![oldSha,currentSha,nextSha].includes(sha(capture)))throw Error('db05_schema_predecessor_unknown:'+sha(capture))
-const currentInput=sha(capture)===nextSha?exactAudit29Fixture(capture,false):capture
+const poaSha='313208382efbca3f87375e054352f96d4dfc33e4e48fcf1d1d21bf64698e6e9b'
+const poaPatch=JSON.parse(readFileSync('__tests__/fixtures/db05-schema-predecessor-poa-20261028.patch.json','utf8')) as Audit28
+function exactPoaFixture(schema:string,forward:boolean):string{
+ expect(poaPatch.preSha256).toBe(nextSha)
+ expect(poaPatch.postSha256).toBe(poaSha)
+ expect(sha(schema)).toBe(forward?nextSha:poaSha)
+ const lines=schema.split('\n')
+ for(const hunk of [...poaPatch.hunks].reverse()){
+  expect(hunk.preLines).toHaveLength(hunk.preCount)
+  expect(hunk.postLines).toHaveLength(hunk.postCount)
+  expect(sha(hunk.preLines.join('\n'))).toBe(hunk.preSha256)
+  expect(sha(hunk.postLines.join('\n'))).toBe(hunk.postSha256)
+  const start=forward?hunk.preStart:hunk.postStart,count=forward?hunk.preCount:hunk.postCount
+  expect(sha(lines.slice(start,start+count).join('\n'))).toBe(forward?hunk.preSha256:hunk.postSha256)
+  lines.splice(start,count,...(forward?hunk.postLines:hunk.preLines))
+ }
+ const rebuilt=lines.join('\n')
+ expect(sha(rebuilt)).toBe(forward?poaSha:nextSha)
+ return rebuilt
+}
+if(![oldSha,currentSha,nextSha,poaSha].includes(sha(capture)))throw Error('db05_schema_predecessor_unknown:'+sha(capture))
+const nextInput=sha(capture)===poaSha?exactPoaFixture(capture,false):capture
+const currentInput=sha(nextInput)===nextSha?exactAudit29Fixture(nextInput,false):nextInput
 const source=sha(currentInput)===oldSha?currentInput:exactAudit28Fixture(currentInput,false)
 const current=sha(currentInput)===currentSha?currentInput:exactAudit28Fixture(source,true)
-const next=sha(capture)===nextSha?capture:exactAudit29Fixture(current,true)
+const next=sha(nextInput)===nextSha?nextInput:exactAudit29Fixture(current,true)
+const poa=sha(capture)===poaSha?capture:exactPoaFixture(next,true)
+
+it('reverses the genuine POA capture exactly through every preserved historical link without granting POA runtime proof',()=>{
+ injected.reads=[]
+ expect(exactPoaFixture(poa,false)).toBe(next)
+ expect(exactPoaFixture(next,true)).toBe(poa)
+ expect(sha(db05PredecessorSchema(poa))).toBe('c4e86b3bda8dc8579df1b3bfa9bdc8994b9ca0085c07710c36a15e1259069823')
+ expect(injected.reads).toEqual(['poa20261028','audit29','audit28','audit27','audit26'])
+})
+it.each(['preSha256','postSha256'] as const)('refuses a changed genuine POA capture link %s',field=>{
+ const changed=structuredClone(poaPatch);changed[field]='f'.repeat(64);injected.patchPoa=JSON.stringify(changed)
+ expect(()=>db05PredecessorSchema(poa)).toThrow('db05_schema_predecessor_rebuild_mismatch')
+})
+it('refuses a changed POA successor hunk',()=>{
+ const changed=structuredClone(poaPatch);changed.hunks[0].postSha256='f'.repeat(64);injected.patchPoa=JSON.stringify(changed)
+ expect(()=>db05PredecessorSchema(poa)).toThrow('db05_schema_predecessor_hunk_changed:')
+})
+it('refuses a POA inverse that cannot rebuild the exact old capture',()=>{
+ const changed=structuredClone(poaPatch);changed.hunks[0].preLines.push('-- unqualified');injected.patchPoa=JSON.stringify(changed)
+ expect(()=>db05PredecessorSchema(poa)).toThrow('db05_schema_predecessor_rebuild_mismatch')
+})
+it('refuses an unrecognized modification to the new POA capture',()=>{
+ expect(()=>db05PredecessorSchema(poa+'\n')).toThrow('db05_schema_predecessor_unknown:')
+})
 
 
 it('chains the exact genuine S01 capture through the authenticated audit26 schema to the pinned pre-DB05 capture',()=>{

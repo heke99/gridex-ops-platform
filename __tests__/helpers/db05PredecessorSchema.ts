@@ -23,6 +23,13 @@ function reversePatch(schema:string,patch:Patch):string{
 export function db05PredecessorSchema(schema:string):string{
  let patch:Patch=JSON.parse(readFileSync(new URL('../fixtures/db05-schema-predecessor.patch.json',import.meta.url),'utf8'))
  const actual=sha(schema)
+ if(actual==='313208382efbca3f87375e054352f96d4dfc33e4e48fcf1d1d21bf64698e6e9b'){
+  // Genuine ordinary POA capture23491/artifact12845430969. This inverse only
+  // preserves historical DB05 fixtures; it grants no proof for the new POA SQL.
+  const poaPatch:Patch=JSON.parse(readFileSync(new URL('../fixtures/db05-schema-predecessor-poa-20261028.patch.json',import.meta.url),'utf8'))
+  if(poaPatch.preSha256!=='4ab0c60bd5688e9653927491981f779b374a3a85600d8a87e050ac67f15a15ca'||poaPatch.postSha256!==actual)throw Error('db05_schema_predecessor_rebuild_mismatch')
+  return db05PredecessorSchema(reversePatch(schema,poaPatch))
+ }
  if(actual==='4ab0c60bd5688e9653927491981f779b374a3a85600d8a87e050ac67f15a15ca'){
   // Genuine ordinary G3 capture012cc8bf/artifact12561956311. Rebuild exact
   // MAIN3d08 capture before its unchanged audit28 -> audit27 -> audit26 chain.
