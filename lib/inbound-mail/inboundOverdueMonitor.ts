@@ -37,6 +37,9 @@ async function createOverdueTask(input: {
   metadata: Record<string, unknown>
   /** The status the watch read. The flag is written only while the request still has it (F105). */
   expectedStatus?: string | null
+  /** The source is not an outbound request (J1-02: a Z04 without an own Z03); no request is flagged. */
+  flagOutboundRequest?: boolean
+  createdBy?: string
 }): Promise<boolean> {
   const exists = await openTaskExists({ companyId: input.companyId, taskType: input.taskType, sourceId: input.sourceId })
   if (exists) return false
@@ -51,7 +54,7 @@ async function createOverdueTask(input: {
     priority: 'high',
     title: input.title,
     description: input.description,
-    metadata: { ...input.metadata, sourceId: input.sourceId, createdBy: 'batch_7a_overdue_monitor' },
+    metadata: { ...input.metadata, sourceId: input.sourceId, createdBy: input.createdBy ?? 'batch_7a_overdue_monitor' },
   })
 
   if (error) {
@@ -59,6 +62,7 @@ async function createOverdueTask(input: {
     return false
   }
 
+  if (input.flagOutboundRequest === false) return true
   // A Z04/ACK received between the watch's read and this write keeps its status; the task already records the alarm.
   const flag = supabaseService
     .from('outbound_requests')
@@ -71,6 +75,75 @@ async function createOverdueTask(input: {
 }
 
 const WATCHED_OUTBOUND_COLUMNS = ['id', 'company_id', 'customer_id', 'site_id', 'metering_point_id', 'grid_owner_id', 'request_type', 'message_family', 'message_code', 'sent_at', 'status', 'external_reference'] as const
+/**
+ * J1-01/J1-02 (owner decisions 35 and 36): the operator case for a Z04 the native owner held with its own reason and
+ * that we already answered with a negative APERAK. It is opened at receipt, not after 30 minutes, with the SAME open-task
+ * key as the watches below: a date conflict on our sent Z03 uses that Z03's outbound request (task type
+ * 'ediel_z04_unconfirmed', so the J1-01 watch never opens a second case for it), a Z04 without any own Z03 uses the
+ * received Z04 itself. One open case per source; every row is written to the source's own company.
+ */
+export async function openHeldZ04ReconciliationTask(input: {
+  companyId: string
+  kind: 'start_date_conflict' | 'without_own_z03'
+  /** The received Z04 (ediel_messages.id) and the case reference (field 226) of the held object. */
+  sourceMessageId: string
+  lineItemReference: string | null
+  heldReason: string
+  aperakMessageId: string | null
+}): Promise<{ created: boolean; sourceId: string | null }> {
+  const now = nowIso()
+  if (input.kind === 'without_own_z03') {
+    const created = await createOverdueTask({
+      companyId: input.companyId,
+      taskType: 'ediel_z04_without_own_z03',
+      title: 'Z04 utan eget leverantörsbyte',
+      description: `Nätägaren har skickat Z04 med ärendereferens ${input.lineItemReference ?? '(saknas)'} som inte hör till något av våra leverantörsbyten (${input.heldReason}). Ingen leveransperiod har skapats och nätägaren har fått en negativ APERAK. Kontrollera med nätägaren.`,
+      sourceId: input.sourceMessageId,
+      metadata: { monitor: 'z04_held_at_receipt', checkedAt: now, sourceMessageId: input.sourceMessageId, lineItemReference: input.lineItemReference, heldReason: input.heldReason, aperakMessageId: input.aperakMessageId },
+      flagOutboundRequest: false,
+      createdBy: 'j1_normal_z04_hold',
+    })
+    return { created, sourceId: input.sourceMessageId }
+  }
+  if (!input.lineItemReference) return { created: false, sourceId: null }
+  const { data: switches, error: switchError } = await supabaseService
+    .from('supplier_switch_requests')
+    .select('id, status, customer_id, site_id, metering_point_id, requested_start_date')
+    .eq('company_id', input.companyId)
+    .eq('rff_li_reference', input.lineItemReference)
+    .limit(2)
+  if (switchError) throw switchError
+  const rows = (switches ?? []) as Array<{ id: string; status: string | null; customer_id: string | null; site_id: string | null; metering_point_id: string | null; requested_start_date: string | null }>
+  if (rows.length !== 1) return { created: false, sourceId: null }
+  const sw = rows[0]
+  const { data: requests, error: requestError } = await supabaseService
+    .from('outbound_requests')
+    .select('id, status')
+    .eq('company_id', input.companyId)
+    .eq('source_type', 'supplier_switch_request')
+    .eq('source_id', sw.id)
+    .eq('message_code', 'Z03')
+    .order('created_at', { ascending: false })
+    .limit(1)
+  if (requestError) throw requestError
+  const request = (requests ?? [])[0] as { id: string; status: string | null } | undefined
+  if (!request) return { created: false, sourceId: null }
+  const created = await createOverdueTask({
+    companyId: input.companyId,
+    customerId: sw.customer_id,
+    siteId: sw.site_id,
+    meteringPointId: sw.metering_point_id,
+    taskType: 'ediel_z04_unconfirmed',
+    title: 'Z04 med annat startdatum – avstämning krävs',
+    description: `Nätägaren har bekräftat leverantörsbyte ${sw.id} med ett annat startdatum än vår Z03 och kundens avtal (${sw.requested_start_date ?? 'okänt'}). Avtalet är oförändrat, leveransen har inte aktiverats och nätägaren har fått en negativ APERAK (ERC 42, fält 210). Stäm av datumet med nätägaren och kunden; en överenskommen datumändring hanteras i ett separat flöde.`,
+    sourceId: request.id,
+    metadata: { monitor: 'z04_held_at_receipt', checkedAt: now, outboundRequestId: request.id, supplierSwitchRequestId: sw.id, switchStatus: sw.status, sourceMessageId: input.sourceMessageId, heldReason: input.heldReason, aperakMessageId: input.aperakMessageId },
+    expectedStatus: 'confirmed',
+    createdBy: 'j1_normal_z04_hold',
+  })
+  return { created, sourceId: request.id }
+}
+
 /** Switch statuses that already carry the grid owner's Z04 answer or end the wait for it. */
 const Z04_SETTLED_SWITCH_STATUSES = ['accepted', 'confirmed', 'active', 'completed', 'failed', 'rejected', 'cancelled', 'cancelled_before_start']
 

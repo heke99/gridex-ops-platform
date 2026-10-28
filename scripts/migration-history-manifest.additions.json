@@ -352,6 +352,9 @@
     "20261028010000_h_b7_invoice_review_draft_keeps_stamped_metadata.sql": "b174da63425199307ac16d830817d65c3a379b63cfcfa50382e32331c8b3783a",
     "20261028140000_a_b5_grid_owner_ediel_id_backfill.sql": "759f4b6b49b85e1974b951bcde1984f9acbcb5d6848bfd806f9ee3c6ab9be35a",
     "20261028130000_f48_utilts_registry_route_e73_readiness.sql": "7258bebf1c43148418cd8e808750e8f22f0b4325eea02298dc0aa2b29512a61b",
-    "20261028120000_j2_02_metering_correction_after_billing.sql": "5ddd28e0c862f4571ee1a2f5785da7130b4138bd7696f738cad72d01c83c4ea4"
+    "20261028120000_j2_02_metering_correction_after_billing.sql": "5ddd28e0c862f4571ee1a2f5785da7130b4138bd7696f738cad72d01c83c4ea4",
+    "20261028100000_j1_01_z04_start_date_conflict_hold.sql": "c05703562343544f65da35d25fb7a882b7b121452145b57c8b4ee1a14dd7182d",
+    "20261028101000_j1_02_z04_without_own_z03_hold.sql": "32e9c2c2ea80db03f7d79b3909118ceef771a708e7359c8f1d4e6d542bde200b",
+    "20261028102000_j1_03_z04_duplicates_ack_09.sql": "366fd1491649911e2bfa06153ed91414cc4b70415da1461bc2e494a40d669930"
   }
 }

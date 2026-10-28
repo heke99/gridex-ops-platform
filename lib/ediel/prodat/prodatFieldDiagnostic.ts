@@ -19,9 +19,13 @@ export type ProdatErrorOccurrence = {
   identityAgency: string | null
   lineItemReference: string | null
 }
+/** A903 under ERC 40 (P26.A p92-93). 109 is the canonical date-event owner's code; 104/105/107 belong only to the
+ * native normal-Z04 owner's own holds (J1, owner decisions 36 and 37: lib/ediel/flows/normalZ04HoldResponse.ts). */
+export const PRODAT_APPLICATION_CODES = ['104','105','107','109'] as const
+export type ProdatApplicationCode = typeof PRODAT_APPLICATION_CODES[number]
 export type ProdatDiagnostic =
   | {kind: 'field'; fieldNumber: string; errorKind: 'missing' | 'invalid'; failureEvidence?:ProdatFailureEvidence; sourceRule: string; segmentPath: string; group: string; component: Record<string, string | number>; occurrence: ProdatErrorOccurrence}
-  | {kind: 'application'; ercCode: '40'; applicationCode: '109'; sourceRule: string; occurrence: ProdatErrorOccurrence}
+  | {kind: 'application'; ercCode: '40'; applicationCode: ProdatApplicationCode; sourceRule: string; occurrence: ProdatErrorOccurrence}
   | {kind: 'local_unknown' | 'local_evidence' | 'internal'; sourceRule: string; reason: string}
 export type ProdatProcessingDisposition = {kind: 'continue' | 'internal_review'; reasons: {code: string; sourceRule: string; reason: string}[]}
 export type DiagnosticInput = {rawSegments?: readonly string[] | null; una?: EdifactServiceStringAdvice; code?: string | null}
@@ -117,7 +121,7 @@ export function validProdatErrorOccurrence(value: ProdatErrorOccurrence | undefi
 /** Qualify complete owned metadata, not arbitrary digits or a merely typed object. */
 export function validProdatWireDiagnostic(value: ProdatDiagnostic | undefined): value is Extract<ProdatDiagnostic,{kind:'field'|'application'}> {
   if (!value || !['field','application'].includes(value.kind) || typeof value.sourceRule !== 'string' || !value.sourceRule.trim()) return false
-  if (value.kind === 'application') return value.ercCode === '40' && value.applicationCode === '109' && validProdatErrorOccurrence(value.occurrence)
+  if (value.kind === 'application') return value.ercCode === '40' && (PRODAT_APPLICATION_CODES as readonly string[]).includes(value.applicationCode) && validProdatErrorOccurrence(value.occurrence)
   if (value.kind !== 'field' || !['missing','invalid'].includes(value.errorKind) || !validProdatErrorOccurrence(value.occurrence)) return false
   const field = PRODAT_26A_FIELD_MATRIX.find(f => f.fieldNumber === value.fieldNumber && !f.fieldNumber.includes('_'))
   if (!field || !value.component || typeof value.component !== 'object' || Array.isArray(value.component)) return false

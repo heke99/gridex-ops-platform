@@ -76,7 +76,9 @@ const diagnosticEvidenceStatuses = ['not_requested','unconfirmed','recorded'] as
 const diagnosticHeldReasons = ['own_application_not_accepted','ambiguous_physical_supply_scope','own_supply_wire_or_legal_scope_unavailable','own_supply_business_unqualified','supply_original_cohort_changed',
   'normal_z04_source_required','normal_z04_execution_actor_required','normal_z04_frozen_legal_context_required','normal_z04_canonical_leaf_ambiguous','normal_z04_canonical_source_not_accepted',
   'normal_z04_whole_physical_scope_required','normal_z04_register_owner_scope_required','normal_z04_exact_sent_original_required','normal_z04_locked_original_scope_required',
-  'normal_z04_owned_signed_contract_scope_required','normal_z04_conflicting_supply_period'] as const
+  'normal_z04_owned_signed_contract_scope_required','normal_z04_conflicting_supply_period',
+  // J1 (owner decisions 35-37): the native owner's own answered holds.
+  'normal_z04_start_date_conflict','normal_z04_own_z03_missing','normal_z04_object_not_identified','normal_z04_actor_not_related','normal_z04_case_duplicate'] as const
 const diagnosticRollbackReasons = ['supply_service_required','supply_partition_replay_conflict','supply_scoped_business_receipt_required','supply_scoped_canonical_assessment_changed',
   'supply_own_canonical_application_and_function_required','normal_z04_replay_conflict','ediel_inbound_legal_context_required','ediel_source_rule_pack_basis_required',
   'ediel_historical_identity_basis_unavailable','ediel_historical_rule_pack_basis_unavailable'] as const

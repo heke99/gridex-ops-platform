@@ -534,7 +534,9 @@ export async function processInboundEmailMessage(input: {
         await prepareDuplicate103Response({ companyId: tenant.companyId, sourceMessageId: receipt.sourceMessageId, inboundEmailMessageId: input.inboundEmailMessageId, actorUserId: input.actorUserId })
         return { status: 'protocol_response_prepared', companyId: tenant.companyId, parseResultId }
       } catch (preparationError) {
-        const message = preparationError instanceof Error ? preparationError.message : ''
+        // A database refusal arrives as a plain PostgREST error object; keep its own code (J1-03, FINDINGS J1-FP2).
+        const message = preparationError instanceof Error ? preparationError.message
+          : typeof (preparationError as { message?: unknown } | null)?.message === 'string' ? (preparationError as { message: string }).message : ''
         protocolResponseFailureCode = message.match(/^[A-Za-z][A-Za-z0-9_]+(?=:|\s|$)/)?.[0] ?? 'duplicate_response_preparation_failed'
         // Current authority, native source or strict wire hold preserves the
         // existing held-task path. No draft/intention is committed on failure.

@@ -25,6 +25,8 @@ import {createReceivedErrApplicationAcks} from '@/lib/ediel/flows/receivedErrApp
 import {loadCustomerLifeEventValidationContext} from '@/lib/ediel/production/lifeEventSource';
 import {applyInboundCustomerLifeEvent} from '@/lib/ediel/flows/inboundCustomerLifeEvent';
 import {applySupplyMarketSource,supplyMarketHasBusinessEffects} from '@/lib/ediel/flows/supplyMarketTransition';
+import {normalZ04HoldAnswer,type NormalZ04HoldAnswer} from '@/lib/ediel/flows/normalZ04HoldResponse';
+import {openHeldZ04ReconciliationTask} from '@/lib/inbound-mail/inboundOverdueMonitor';
 import {projectSupplyEndFollowup} from '@/lib/ediel/flows/supplyEndFollowup';
 import {applyPermissionMarketSource} from '@/lib/ediel/permissions/permissionMarketTransition';
 import {publishSourceSwitchCommit} from '@/lib/ediel/flows/sourceSwitchCommit';
@@ -205,6 +207,30 @@ async function createAckIfMissing(params: {
   }
 
   return ack;
+}
+
+/** J1-01/02/03: the native owner's own Z04 hold is answered (negative APERAK) and, for a date conflict or a Z04
+ * without an own Z03, reaches an operator once (openHeldZ04ReconciliationTask). A failed reply is recorded and the
+ * source stays held for review, exactly as before; the 30-minute watch remains the fallback. */
+async function answerNormalZ04OwnerHold(actorUserId:string,message:EdielMessageRow,answer:NormalZ04HoldAnswer):Promise<string[]>{
+  let aperakId:string|null=null
+  try{
+    aperakId=(await createAckIfMissing({actorUserId,sourceMessage:message,ackFamily:'APERAK',outcome:'negative',
+      messageText:answer.holds.map(hold=>hold.reason).join(','),applicationErrors:answer.applicationErrors})).id
+  }catch(error){
+    await createAckBlockedEvent({actorUserId,sourceMessage:message,ackFamily:'APERAK',
+      reason:formatErrorMessage(error,'Leveransägarens negativa APERAK kunde inte kvalificeras.'),details:{ownerHolds:answer.holds}})
+    return []
+  }
+  for(const hold of answer.holds){
+    if(!hold.followUp||!message.company_id)continue
+    try{await openHeldZ04ReconciliationTask({companyId:message.company_id,kind:hold.followUp,sourceMessageId:message.id,
+      lineItemReference:hold.lineItemReference,heldReason:hold.reason,aperakMessageId:aperakId})}
+    catch(error){await createEdielMessageEvent({actorUserId,edielMessageId:message.id,eventType:'manual_note',eventStatus:'warning',
+      message:'Operatörsärendet för den hållna Z04:an kunde inte skapas; 30-minutersbevakningen gäller.',
+      payload:{ownerHold:hold,reason:formatErrorMessage(error,'Operatörsärendet kunde inte skapas.')}})}
+  }
+  return [aperakId]
 }
 
 async function acknowledgeCommittedReceivedErr(actorUserId:string,message:EdielMessageRow){
@@ -1401,8 +1427,13 @@ export async function processInboundEdielMessage(params: {
         const reviewRequired=supply?.reviewRequired??permission?.reviewRequired??!fullyApplied;
         // Complete the immutable own partition before projecting the final
         // negative/positive national reply; a failed effect port returns held.
+        // J1-01/02/03 (owner decisions 35-37): a Z04 whose every object the native owner held with one of its
+        // prescribed own reasons is answered with that negative APERAK; no business effect follows it.
+        const ownerHold=!applied&&!hasOwnNegative&&supply?normalZ04HoldAnswer({rawPayload:runtimeMessage.raw_payload,
+          messageCode:runtimeMessage.message_code,partition:supply.partition}):null;
         const ownAckIds=applied?await createCommittedDomainAcks(actorUserId,runtimeMessage)
-          :hasOwnNegative?await createAutomaticPositiveAcks({actorUserId,sourceMessage:runtimeMessage,deferProdatPositive:true}):[];
+          :hasOwnNegative?await createAutomaticPositiveAcks({actorUserId,sourceMessage:runtimeMessage,deferProdatPositive:true})
+          :ownerHold?await answerNormalZ04OwnerHold(actorUserId,runtimeMessage,ownerHold):[];
         // Preserve the established single-supply projections through an exact
         // native replay only after every scope is committed. Multipart and
         // permission responses never select a first parsed target here.

@@ -45,13 +45,13 @@ let staff: Awaited<ReturnType<typeof operatorSession>>
 
 /** Defects found while building this scenario (file:line, status). Native/unit proofs named in the header. */
 const DEFECTS = [
-  { id: 'J1-01', severity: 'high', status: 'confirmed (native); partly fixed: lib/inbound-mail/inboundOverdueMonitor.ts (operator task after 30 min); acceptance vs rejection of the date is an owner decision',
+  { id: 'J1-01', severity: 'high', status: 'fixed (owner decision 35): own hold normal_z04_start_date_conflict (20261028100000), negative APERAK ERC 42 field 210 and one operator case at receipt (lib/ediel/flows/normalZ04HoldResponse.ts, openHeldZ04ReconciliationTask)',
     where: 'SQL gridex_received_sources.normal_switch_confirm_v1 (o->>\'start\'=own->>\'start\'); lib/ediel/flows/inboundProcessing.ts:1315-1371 (held -> no APERAK); lib/inbound-mail/inboundStatusUpdater.ts applySafeInboundStatusUpdate (outbound_requests -> confirmed for any Z04)',
     what: 'A Z04 confirming a later or earlier start than requested is held (normal_z04_exact_sent_original_required). The switch stays prepared, there is no supply period, contract/billing/customer notice never move, and the grid owner gets no APERAK at all. The intake already marked the Z03 request "confirmed", so the 24 h "Z04-svar saknas" watch never fired and the control tower showed "Oklassificerad".' },
-  { id: 'J1-02', severity: 'medium', status: 'confirmed (native), open: owner decision (national code) and a separate hold reason in normal_switch_scope_effect_v1 needed (FINDINGS J1-02)',
+  { id: 'J1-02', severity: 'medium', status: 'fixed (owner decision 36): own holds normal_z04_own_z03_missing (42/226), normal_z04_object_not_identified (40/105), normal_z04_actor_not_related (40/107) (20261028101000); operator case at receipt',
     where: 'lib/ediel/flows/inboundProcessing.ts:1315-1371',
     what: 'A Z04 for a switch we never requested is held with no APERAK and no operator task; only a generic pending_review ediel_inbound_case identical to the one every confirmed Z04 opens.' },
-  { id: 'J1-03', severity: 'medium', status: 'confirmed (native), open',
+  { id: 'J1-03', severity: 'medium', status: 'partly fixed (owner decision 37, ACK-09): case duplicate normal_z04_case_duplicate answered 40/104 (20261028102000); OPEN: 40/103 for an identical re-delivery is still held by the ACK-09 owner (wire shape Z07+LI, ux_ediel_ack_related)',
     where: 'SQL gridex_received_sources.normal_switch_confirm_v1 (status must be pre-accept -> normal_z04_locked_original_scope_required)',
     what: 'A Z04 the grid owner re-sends as a new document (same facts) for an already accepted switch is held and never answered, while a Z04 after a Z04C gets a positive no-effect APERAK. The grid owner keeps waiting for our APERAK.' },
   { id: 'J1-04', severity: 'high', status: 'confirmed (native), fixed in lib/inbound-mail/inboundStatusUpdater.ts updateBusinessStatusFromInbound',
@@ -72,7 +72,7 @@ const DEFECTS = [
   { id: 'J1-09', severity: 'low', status: 'likely (code)',
     where: 'SQL gridex_received_sources.gridex_apply_exact_z02_core_before_current_source_v1',
     what: 'A Z02 whose installation address differs from ours is not compared; the site is marked market-verified and ready_for_switch. (Grid area, price area, identity and object conflicts are refused; approved AT-Z02 suites.)' },
-  { id: 'J1-10', severity: 'high (owner decision)', status: 'confirmed (native); approved behaviour (AT-Z04L-SUPPLIER asserts it)',
+  { id: 'J1-10', severity: 'high (owner decision)', status: 'fixed (owner decision 38): no own 259 declares no readings (lib/ediel/core/prodatOwnSourceRegisterReadingDeclarations.ts); bounded handover of the approved AT-Z03L/LK component tests',
     where: 'lib/ediel/core/prodatOwnSourceRegisterReadingDeclarations.ts:177 (L/LK: true or null, never false)',
     what: 'A Z04L without field 259 (counter code) is held: no confirmation and no APERAK. P26.A field 259 says its absence means no meter readings in UTILTS, so 214/218 are not required.' },
   { id: 'J1-11', severity: 'medium', status: 'fixed in lib/inbound-mail/canonicalInboundAckStatusUpdater.ts and inboundStatusUpdater.ts (FINDINGS J1-11)',
@@ -83,8 +83,8 @@ const DEFECTS = [
     what: 'The intake read CONTRL action 7 as negative and 4 as positive; Ediel ACK-01 uses 1 (accepted) and 4 (rejected).' },
   { id: 'J1-FP1', severity: 'none', status: 'false positive (native)', where: 'tenant routing + native owner company scope',
     what: 'A Z04 addressed to tenant A naming tenant B\'s pending switch changes neither tenant.' },
-  { id: 'J1-FP2', severity: 'none', status: 'false positive (native)', where: 'reception owner (protocol_response_held)',
-    what: 'An identical Z04 re-delivered is held at intake; no second effect, no second answer.' },
+  { id: 'J1-FP2', severity: 'none', status: 'false positive for the business effect (native); the missing 40/103 is open under J1-03', where: 'reception owner (protocol duplicate)',
+    what: 'An identical Z04 re-delivered never becomes a second Ediel message or effect; it is held for review with its own refusal code (owner decision 37 requires 40/103).' },
   { id: 'J1-FP3', severity: 'none', status: 'false positive (native) for the business state; see J1-11',
     where: 'P-11', what: 'A Z04 before the grid owner\'s CONTRL/APERAK confirms the switch; the late ACKs complete the Z03.' },
 ]
@@ -226,12 +226,11 @@ describe.sequential('reality J1 — inbound PRODAT from the grid owner', () => {
       if (!requireCase(key, state)) continue
       // Never a supply period or a confirmed switch on a date nobody agreed.
       expect(state!.periods.filter(p => p.start !== SUPPLY_START), key).toEqual([])
-      // J1-01 (fixed part): the held Z04 reaches an operator once our APERAK deadline has passed.
-      expect(state!.tasks, `${key}: J1-01 operator task`).toContain('ediel_z04_unconfirmed')
-      // J1-01 (open): the date must reach the switch or be refused to the grid owner with an APERAK.
-      expect.soft(state!.status, `${key}: J1-01 the switch follows the grid owner's date or fails with its reason`).not.toBe('prepared')
-      expect.soft(aperaks(state), `${key}: J1-01 the grid owner gets an APERAK on its Z04`).toHaveLength(1)
-      expect.soft(state!.inbound[0]?.hold ?? null, key).toBe('normal_z04_exact_sent_original_required')
+      // J1-01 (owner decision 35): one operator case for reconciliation, a negative APERAK 42/210, no business effect.
+      expect(state!.tasks.filter(t => t === 'ediel_z04_unconfirmed'), `${key}: J1-01 exactly one operator case`).toHaveLength(1)
+      expect.soft(aperaks(state), `${key}: J1-01 the grid owner gets a negative APERAK on its Z04`).toEqual(['negative'])
+      expect.soft(state!.inbound[0]?.hold ?? null, key).toBe('normal_z04_start_date_conflict')
+      expect(state!.periods, key).toEqual([])
     }
   })
 
@@ -245,8 +244,9 @@ describe.sequential('reality J1 — inbound PRODAT from the grid owner', () => {
     expect(s!.periods).toEqual([{ status: 'confirmed_by_grid_owner', start: SUPPLY_START }])
     // The identical re-delivery never becomes a second Ediel message (reception owner, J1-FP2).
     expect(s!.inbound.filter(m => m.code === 'Z04')).toHaveLength(2)
-    // J1-03 (open): the re-sent document is answered with a positive APERAK and no second effect.
-    expect.soft(aperaks(s, 1), 'J1-03 the re-sent Z04 gets a positive APERAK').toEqual(['positive'])
+    // J1-03 (owner decision 37): the re-sent document is a case duplicate, answered 40/104 with no second effect.
+    expect.soft(aperaks(s, 1), 'J1-03 the re-sent Z04 gets a negative APERAK (40/104)').toEqual(['negative'])
+    expect.soft(s!.inbound[1]?.hold ?? null, 'J1-03 own case-duplicate hold').toBe('normal_z04_case_duplicate')
   })
 
   it('J1-7 a Z04 before the grid owner\'s CONTRL/APERAK confirms the switch (P-11); our APERAK stays tied to the Z04', async context => {
@@ -277,14 +277,14 @@ describe.sequential('reality J1 — inbound PRODAT from the grid owner', () => {
     }
   })
 
-  it('J1-9 a Z04L without the counter code (field 259) is held; the operator is told (J1-10, owner decision)', async context => {
+  it('J1-9 a Z04L without the counter code (field 259) declares no readings and confirms the switch (J1-10, owner decision 38)', async context => {
     requireZ03('J1-9', context)
     const s = stateOf('C8-no-counter-code')
     report.J1_9 = s
     if (!requireCase('C8-no-counter-code', s)) return
-    expect(s!.periods).toEqual([])
-    expect(s!.tasks, 'J1-01 watch covers every held Z04').toContain('ediel_z04_unconfirmed')
-    expect.soft(s!.status, 'J1-10 a Z04 that declares no meter readings confirms the switch').toBe('accepted')
+    expect(s!.status, 'J1-10 a Z04 that declares no meter readings confirms the switch').toBe('accepted')
+    expect(s!.periods).toEqual([{ status: 'confirmed_by_grid_owner', start: SUPPLY_START }])
+    expect.soft(aperaks(s), 'J1-10 our APERAK is positive').toEqual(['positive'])
   })
 
   it('J1-10 a Z04 for a switch we never requested changes nothing and is answered', async context => {
@@ -298,7 +298,7 @@ describe.sequential('reality J1 — inbound PRODAT from the grid owner', () => {
     expect(s?.periods ?? []).toEqual([])
     expect(s?.z04Linked ?? false).toBe(false)
     expect(received, 'the unknown Z04 is retained for the tenant').toHaveLength(1)
-    expect.soft(received[0]?.answers.filter(a => a.family === 'APERAK').map(a => a.outcome), 'J1-02 the grid owner gets a negative APERAK').toEqual(['negative'])
+    expect.soft(received[0]?.answers.filter(a => a.family === 'APERAK').map(a => a.outcome), 'J1-02 the grid owner gets a negative APERAK (42/226)').toEqual(['negative'])
   })
 
   it('J1-11 our obligations as receiver: a CONTRL on every interchange the grid owner sent, an APERAK on every business file', async context => {
@@ -314,7 +314,7 @@ describe.sequential('reality J1 — inbound PRODAT from the grid owner', () => {
     for (const row of matrix.filter(r => r.kind !== 'z04-again')) expect.soft(row.contrl, `${row.kind} ${row.facility}: our CONTRL`).toEqual(['positive'])
     for (const ack of sent.filter(f => f.kind === 'CONTRL')) expect(ack.answers.filter(a => a.family === 'CONTRL'), 'no CONTRL on a CONTRL').toEqual([])
     for (const ack of sent.filter(f => f.kind.startsWith('APERAK') && f.kind !== 'APERAK (duplicate)')) expect.soft(ack.answers.filter(a => a.family === 'CONTRL').map(a => a.outcome), 'our CONTRL on the APERAK').toEqual(['positive'])
-    // ACK-02: exactly one APERAK per business file (open defects J1-01/02/03/10 leave held files without one).
+    // ACK-02: exactly one APERAK per business file (J1-01/02/03/10 fixed, owner decisions 35-38).
     for (const row of matrix.filter(r => r.kind !== 'z04-again')) expect.soft(row.aperak, `${row.kind} ${row.facility}: our APERAK`).toHaveLength(1)
   })
 

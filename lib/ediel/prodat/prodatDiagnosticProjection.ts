@@ -35,7 +35,7 @@ export function projectProdatDiagnostics(issues: readonly EdielRulebookIssue[]) 
             if (key !== null) projectedFieldErrors.add(key)
             applicationErrors.push({
               ercCode:diagnostic.kind === 'application' ? '40' : diagnostic.errorKind === 'missing' ? '41' : '42',
-              fieldCode:diagnostic.kind === 'application' ? '109' : diagnostic.fieldNumber,
+              fieldCode:diagnostic.kind === 'application' ? diagnostic.applicationCode : diagnostic.fieldNumber,
               text:text.text, prodatAperakText:text, ...references(diagnostic.occurrence), prodatFieldDiagnostic:diagnostic,
             })
           }
@@ -68,5 +68,5 @@ export function isQualifiedProdatApplicationError(error: EdielAperakApplicationE
   if((own.objectId.kind==='present'?own.objectId.value:null)!==diagnostic.occurrence.objectId || (own.lineItemReference.kind==='present'?own.lineItemReference.value:null)!==diagnostic.occurrence.lineItemReference)return false
   return diagnostic.kind === 'field'
     ? error.fieldCode === diagnostic.fieldNumber && error.ercCode === (diagnostic.errorKind === 'missing' ? '41' : '42')
-    : error.ercCode === '40' && error.fieldCode === '109'
+    : error.ercCode === '40' && error.fieldCode === diagnostic.applicationCode
 }

@@ -4010,3 +4010,25 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
   - Ett låst underlag som korrigeras innan det fakturerats får ingen rättelse (utfallet `original_not_invoiced`). Det är synligt som blockering och i avstämningen. Den befintliga spärren (`require_underlay_v1`) står kvar.
   - Produktionsvärden (riktning `production`) omfattas inte. I J2-13:s `billed_vs_basis` grupperas kreditunderlag på riktningen `consumption_correction`.
   - Det finns inget operatörsgränssnitt för godkännande ännu; funktionen anropas via tjänsten.
+### J1 Z04-hållningar, dubbletter och fält 259 — ägarbeslut 35, 36, 37 och 38; RÄTTAD (agent), väntar på installation i världen
+- **Avgränsad överlämning:** `quality/audits/live-chain-20261015/handover-J1.md` (låsta kroppar `normal_switch_scope_effect_v1` och `require_wire_v1`, godkända tester för AT-Z03L/LK, AT-Z04L/LK, SC-037, ACK-09).
+- **J1-01 (beslut 35):**
+  - Orsak: en Z04 med annat startdatum än vår Z03 hölls med det generella `normal_z04_exact_sent_original_required`. Nätägaren fick ingen APERAK, och operatören fick en uppgift först efter 30 minuter.
+  - Rättning: eget hållskäl `normal_z04_start_date_conflict` (`20261028100000`). Det gäller bara när exakt en egen skickad Z03 för ärendet stämmer i allt utom startdatumet och datumet inte är avtalets start. Svaret är en negativ APERAK med ERC 42 på fält 210 ("Felaktigt Avtal, startdatum …"), med Z07 och LI. Ett operatörsärende (`ediel_z04_unconfirmed`, nyckel = Z03:ans utgående förfrågan) skapas direkt vid mottagningen. 30-minutersbevakningen hittar samma öppna nyckel och skapar inget andra ärende. Avtal, byte och period ändras inte.
+- **J1-02 (beslut 36):**
+  - Orsak: en Z04 utan egen Z03 fick samma hållskäl som J1-01 och inget svar.
+  - Rättning (`20261028101000`): när inget eget byte bär ärendereferensen (fält 226) blir skälet `normal_z04_own_z03_missing`. Svaret är 42/226, aldrig också 209. `normal_z04_object_not_identified` (40/105) gäller när anläggningen finns men inte entydigt i Z04:ans nätområde. `normal_z04_actor_not_related` (40/107) gäller när anläggningen är entydig men saknar eget signerat/aktivt avtal och öppen period. Operatörsärende `ediel_z04_without_own_z03` (ett per mottagen Z04).
+  - Z04A (Z26) går till `other_supply_scope_effect_v1` och berörs inte.
+- **J1-03 (beslut 37, ACK-09):**
+  - En ny Z04 (nytt dokument) för ett byte som en tidigare Z04 redan bekräftat, med samma anläggning, kund, leverantör, orsak och ärendereferens, får skälet `normal_z04_case_duplicate` och 40/104 (`20261028102000`). Originalet och kopplingarna står kvar, och ingen ny effekt skapas.
+  - **ÖPPEN, ACK-09-ägaren:** en ny protokolldubblett (samma meddelande-id) ska få 40/103 men hålls fortfarande. Formen i `require_wire_v1` tillåter bara en referens, men en Z04 har både Z07 och LI (`ediel_duplicate_strict_96a_scope_held`). Med formen lättad i en tillbakarullad transaktion stoppar unika indexet `ux_ediel_ack_related`, eftersom originalet redan har sitt APERAK. Ingen ändring görs här, se handover-J1.md. Nativetestet är `it.fails`.
+  - Intern omkörning: den lagrade transitionen och det skyddade svaret återanvänds. Det bevisas i J1-03-fallet.
+  - Intaget behåller nu felkoden från ett PostgREST-fel i stället för `duplicate_response_preparation_failed`.
+- **J1-10 (beslut 38):** en egen L/LK-Z04 utan 259 i något av objektets register (och utan 259 i huvudet) deklarerar FALSE: inga mätarställningar i UTILTS. 214/218/259 krävs inte, och Z04:an godtas (`prodatOwnSourceRegisterReadingDeclarations.ts`). En felaktig, dubblerad eller felplacerad 259 förblir okänd. En given 259 gör 214/218 obligatoriska.
+- **Svarsväg:** `lib/ediel/flows/normalZ04HoldResponse.ts` gör om exakt dessa fem hållskäl till källkvalificerade fel (A903 104/105/107 läggs till 109 i diagnostiktypen). Svaret går via den vanliga P34-renderaren och `createAckIfMissing`. Svar ges bara när varje objekt är hållet med ett av skälen. Andra hållningar ger som förut inget svar och granskas.
+- **Test:**
+  - `__tests__/reality-j1-normal-z04-hold-response.test.ts`: 16/16.
+  - Komponent- och runtimetesterna för 259 och registren: 236/236. tsc 0 fel.
+  - SQL mot världens egna J1-mottagningar i en transaktion som rullas tillbaka: senare/tidigare start → `start_date_conflict`, okänt byte → `own_z03_missing`, omskickad → `case_duplicate`, exakt → tillämpad.
+  - J1-nativesviten mot den oförändrade världen: J1-10 (krävs/krävs inte), SQL-fallen och övriga är gröna. J1-01 ×3, J1-02 och J1-03 är röda tills migrationerna är installerade; de väntar på huvudagenten.
+- **Kvar för huvudagenten:** installera de tre migrationerna, köra J1-nativesviten, AT-Z04L/LK-, AT-Z03L/LK- och käll-ägarsviterna samt `ediel:masterplan-v2:test-coverage -- --check`. GEN fångar om `schema.sql`. Ordalydelsen i operatörsärendena är ny produkttext.

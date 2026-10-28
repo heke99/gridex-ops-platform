@@ -35,11 +35,13 @@ const earlyRefusalDescriptors: Record<OriginalNegativeContrast, null> = {
   'line reference': null, object: null, 'grid area': null, 'start date': null,
   'opposite subtype': null, 'other grid party': null,
 }
+// J1-01/J1-02 (owner decisions 35 and 36, bounded handover quality/audits/live-chain-20261015/handover-J1.md): a case
+// reference without any own switch and a start that differs only from the own sent Z03 have their own holds.
 const lateReasons = {
-  'line reference': 'normal_z04_exact_sent_original_required',
+  'line reference': 'normal_z04_own_z03_missing',
   object: 'supply_original_cohort_changed',
   'grid area': 'normal_z04_owned_signed_contract_scope_required',
-  'start date': 'normal_z04_exact_sent_original_required',
+  'start date': 'normal_z04_start_date_conflict',
   'opposite subtype': 'normal_z04_exact_sent_original_required',
   'other grid party': 'normal_z04_exact_sent_original_required',
 } as const satisfies Record<OriginalNegativeContrast, string>

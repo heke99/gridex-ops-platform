@@ -246,6 +246,12 @@ const sourceOwnerSupplyReasons = [
   'normal_z04_locked_original_scope_required',
   'normal_z04_owned_signed_contract_scope_required',
   'normal_z04_conflicting_supply_period',
+  // J1 (owner decisions 35-37): the native owner's own answered holds.
+  'normal_z04_start_date_conflict',
+  'normal_z04_own_z03_missing',
+  'normal_z04_object_not_identified',
+  'normal_z04_actor_not_related',
+  'normal_z04_case_duplicate',
  ] as const
 function sourceOwnerSupplyDiagnostic(results: import('@/lib/ediel/flows/supplyMarketTransition').SupplyMarketResult[]) {
  const refused=results.filter(result=>!result.applied)

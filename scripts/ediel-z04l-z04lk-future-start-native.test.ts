@@ -1213,7 +1213,9 @@ describe.sequential('actual prospective normal supplier starts under one admitte
         receiver:base.replace(`NAD+DO+${f.sender}`,`NAD+DO+${decoy.sender}`)}
       const causes:Record<string,HeldCause>={customer:{dimension:'customerIdentity',reasons:['normal_z04_exact_sent_original_required']},
         point:{dimension:'point',reasons:['supply_original_cohort_changed']},
-        start:{dimension:'start',reasons:['normal_z04_exact_sent_original_required']},reason:{dimension:'reason',reasons:['normal_z04_exact_sent_original_required']},
+        // J1-01 (owner decision 35, bounded handover quality/audits/live-chain-20261015/handover-J1.md): only the start
+        // differs from the own sent Z03 and the contracted start, so it has its own hold (answered 42/210, no effect).
+        start:{dimension:'start',reasons:['normal_z04_start_date_conflict']},reason:{dimension:'reason',reasons:['normal_z04_exact_sent_original_required']},
         agency:{field:'209'},wrongRole:{field:'311'},sender:{party:'sender'},receiver:{party:'receiver',healthyRaw:base}}
       for(const [label,raw]of Object.entries(variants))results.push(await held(f,raw,subtype+':same-LI-'+label,causes[label]))
       // The public inbound entrypoint is also exercised with the genuine own
