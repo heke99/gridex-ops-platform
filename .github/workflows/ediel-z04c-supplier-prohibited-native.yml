@@ -13,6 +13,8 @@ on:
       - 'scripts/sql/**'
       - 'scripts/gridex-aud-003-*'
       - 'scripts/gridex-redact-native-evidence.py'
+      - 'scripts/gridex-prime-verified-postgres-cache.py'
+      - 'scripts/gridex-prime-verified-postgres-cache-selftest.py'
       - 'scripts/migration-history-manifest*.json'
       - 'scripts/supabase-types-manifest.json'
       - '__tests__/helpers/**'
@@ -58,6 +60,14 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: 2.101.0
+      - name: Prime content-verified Supabase bootstrap image caches
+        shell: bash
+        env:
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          python3 scripts/gridex-prime-verified-postgres-cache-selftest.py
+          python3 scripts/gridex-prime-verified-postgres-cache.py
       - name: Run genuine public intake and received Z04C prohibited-effect cases
         shell: bash
         env:
