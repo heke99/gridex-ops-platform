@@ -162,6 +162,36 @@ async function loadBillingUnderlay(
  * 20261023199000, 20261023200000). The supply period must be the
  * underlay's own, of this tenant, this contract, customer and metering point.
  */
+/**
+ * The civil month whose spot price a monthly contract is billed with (owner decision 41, 2026-10-28): the contracted
+ * calendar month of the billed period, also for an Ediel-month underlay (00:00 +0100 on the 1st). There is no general
+ * move to the Ediel month.
+ */
+export function spotPriceMonth(periodStart: string, billingMonth: string): string {
+  return /^\d{4}-\d{2}-\d{2}$/.test(periodStart) ? periodStart.slice(0, 7) : billingMonth;
+}
+
+/**
+ * The spot price resolution of a contract (owner decision 41): a method the locked pricing snapshot already states is
+ * followed; otherwise hourly and quarterly contracts are priced per delivered interval, and every other spot contract
+ * with the arithmetic mean of its calendar month.
+ */
+export function spotIntervalResolution(
+  pricingSnapshot: Record<string, unknown>,
+  nestedPricing: Record<string, unknown>,
+  contractType: unknown,
+): string {
+  return (
+    stringValue(pricingSnapshot.interval_resolution) ??
+    stringValue(nestedPricing.interval_resolution) ??
+    (stringValue(contractType) === "variable_quarterly"
+      ? "quarterly"
+      : stringValue(contractType) === "variable_hourly"
+        ? "hourly"
+        : "monthly")
+  );
+}
+
 export function contractCarriesUnderlay(
   companyId: string,
   underlay: Record<string, unknown>,
@@ -552,9 +582,7 @@ export async function calculatePricingPreviewForUnderlay(input: {
     underlayPeriod?.billingMonth ?? normalizeBillingMonth(underlay.periodStart);
   // Prices follow the period being billed. For a reconciliation run in a later
   // month that is the original preliminary period, not the run's month.
-  const priceMonth = /^\d{4}-\d{2}-\d{2}$/.test(underlay.periodStart)
-    ? underlay.periodStart.slice(0, 7)
-    : billingMonth;
+  const priceMonth = spotPriceMonth(underlay.periodStart, billingMonth);
   // Fixed monthly/invoice fees were charged on the preliminary invoice.
   const energyComponentsOnly =
     underlay.energyDirection === "consumption_correction" ||
@@ -644,14 +672,7 @@ export async function calculatePricingPreviewForUnderlay(input: {
   const nestedPricing = isObject(pricingSnapshot.pricing)
     ? pricingSnapshot.pricing
     : {};
-  const intervalResolution =
-    stringValue(pricingSnapshot.interval_resolution) ??
-    stringValue(nestedPricing.interval_resolution) ??
-    (stringValue(contract?.contract_type) === "variable_quarterly"
-      ? "quarterly"
-      : stringValue(contract?.contract_type) === "variable_hourly"
-        ? "hourly"
-        : "monthly");
+  const intervalResolution = spotIntervalResolution(pricingSnapshot, nestedPricing, contract?.contract_type);
   let intervalEvidence: IntervalPriceEvidence[] = [];
   let intervalInputSnapshot: IntervalInputSnapshot | undefined;
   if (
