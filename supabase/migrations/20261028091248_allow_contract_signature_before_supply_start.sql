@@ -27,14 +27,28 @@ begin
   -- recorded before a future supply start date. starts_at is a delivery date,
   -- not an agreement timestamp.
 
-  -- Signing authorizes information requests before the network owner supplies
-  -- the real delivery date. Only a running/ended supply requires that date.
-  if new.status in ('active', 'terminated') and new.starts_at is null then
-    raise exception 'starts_at is required when status is active or terminated';
+  -- The canonical state machine validates delivered operation using the
+  -- operational actual_start_date. Signed commercial starts_at stays frozen.
+  -- A pre-delivery termination legitimately has no delivered start date.
+  if new.status = 'active' and new.actual_start_date is null then
+    raise exception 'actual_start_date is required when status is active';
   end if;
 
   if new.green_fee_mode = 'none' and coalesce(new.green_fee_value, 0) <> 0 then
     raise exception 'green_fee_value must be null or 0 when green_fee_mode = none';
+  end if;
+
+  if new.starts_at is not null and new.ends_at is not null and new.ends_at < new.starts_at then
+    raise exception 'ends_at cannot be earlier than starts_at';
+  end if;
+
+  -- Binding/notice effects after signing belong to operational supply periods.
+  -- Do not derive a new frozen commercial end date after the signed-row guard.
+  if tg_op = 'UPDATE' then
+    if old.status in ('signed','active','terminated','cancelled','expired')
+      or old.signed_at is not null or old.locked_at is not null then
+      return new;
+    end if;
   end if;
 
   v_bound_until := public.gridex_add_months_timestamptz(new.starts_at, nullif(v_binding_months, 0));
