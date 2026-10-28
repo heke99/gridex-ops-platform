@@ -236,6 +236,21 @@ describe('atomic private archive completion gate',()=>{
 })
 
 describe('original online POA evidence cannot drift after signing',()=>{
+  it.each(['authenticated','anon',''])('rejects a new online-capture row from a non-service role %s',async role=>{
+    await sign()
+    await db.query("select set_config('test.role',$1,false)",[role])
+    await expect(db.exec(`insert into powers_of_attorney
+      select (jsonb_populate_record(null::public.powers_of_attorney,
+        to_jsonb(p)||jsonb_build_object('id','${id(99)}'))).*
+      from powers_of_attorney p`)).rejects.toThrow(/poa_online_capture_service_role_required/)
+    expect((await db.query('select count(*)::int as count from powers_of_attorney')).rows).toEqual([{count:1}])
+  })
+  it('keeps the existing manual POA insertion path available to its authorized caller',async()=>{
+    await db.exec("set test.role='authenticated'")
+    await db.exec(`insert into powers_of_attorney(id,company_id,customer_id,source)
+      values('${id(99)}','${id(1)}','${id(2)}','admin_manual')`)
+    expect((await db.query('select source from powers_of_attorney')).rows).toEqual([{source:'admin_manual'}])
+  })
   it.each(["accepted_ip='192.0.2.99'","signer_name='Someone else'","source='admin_manual'",
     "fullmakt_snapshot='{}'::jsonb","evidence_payload='{}'::jsonb","customer_id='10000000-0000-4000-8000-000000000099'"])(
     'rejects a later replacement of %s',async change=>{

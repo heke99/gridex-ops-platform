@@ -498,6 +498,12 @@ GRANT EXECUTE ON FUNCTION public.gridex_complete_online_signature_poa_archive_v1
 CREATE OR REPLACE FUNCTION public.gridex_protect_online_signature_poa_capture_v1() RETURNS trigger
 LANGUAGE plpgsql SET search_path TO 'pg_catalog' AS $function$
 begin
+  if tg_op='INSERT' then
+    if new.source='ops_online_signature' and auth.role() is distinct from 'service_role' then
+      raise exception using errcode='42501',message='poa_online_capture_service_role_required';
+    end if;
+    return new;
+  end if;
   if old.source='ops_online_signature' then
     if (to_jsonb(new)-array['status','revoked_at','document_id','document_path','document_hash','metadata','updated_at','updated_by','notes','evidence_note','expires_at'])
       is distinct from (to_jsonb(old)-array['status','revoked_at','document_id','document_path','document_hash','metadata','updated_at','updated_by','notes','evidence_note','expires_at']) then
@@ -518,5 +524,5 @@ end;
 $function$;
 REVOKE ALL ON FUNCTION public.gridex_protect_online_signature_poa_capture_v1() FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.gridex_protect_online_signature_poa_capture_v1() TO service_role;
-CREATE TRIGGER powers_of_attorney_online_capture_guard_tg BEFORE UPDATE ON public.powers_of_attorney
+CREATE TRIGGER powers_of_attorney_online_capture_guard_tg BEFORE INSERT OR UPDATE ON public.powers_of_attorney
 FOR EACH ROW EXECUTE FUNCTION public.gridex_protect_online_signature_poa_capture_v1();
