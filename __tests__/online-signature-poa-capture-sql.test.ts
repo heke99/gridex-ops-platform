@@ -153,6 +153,15 @@ describe('same-transaction online contract + explicitly accepted POA', () => {
     await expect(sign()).rejects.toThrow(/poa_site_scope/)
     expect((await db.query('select count(*)::int as n from customer_contract_evidence')).rows).toEqual([{n:0}])
   })
+  it('never commits acceptance or downstream intents when the link has expired',async()=>{
+    await db.exec("update customer_contract_signature_requests set expires_at=clock_timestamp()-interval '1 second'")
+    await expect(sign()).rejects.toThrow(/signature_link_expired/)
+    expect((await db.query('select status,signed_at from customer_contracts')).rows).toEqual([{status:'pending_signature',signed_at:null}])
+    expect((await db.query('select used_at from customer_contract_signature_requests')).rows).toEqual([{used_at:null}])
+    for(const table of ['powers_of_attorney','customer_contract_evidence','customer_operation_jobs']){
+      expect((await db.query(`select count(*)::int as n from ${table}`)).rows).toEqual([{n:0}])
+    }
+  })
   it('rejects authenticated caller even with a valid bearer hash', async () => {
     await db.exec("set test.role='authenticated'")
     await expect(sign()).rejects.toThrow(/service_role_required/)

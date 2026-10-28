@@ -169,13 +169,6 @@ begin
   into v_legal_versions from public.legal_bundle_version_documents d where d.legal_bundle_version_id=v_contract.legal_bundle_version_id;
   if jsonb_array_length(v_legal_versions)=0 then raise exception using errcode='23514',message='signature_legal_document_set_missing'; end if;
 
-  -- Capture one actual acceptance instant after all blocking locks and validations.
-  -- Reuse it for the signature, acceptance/evidence, signed/used timestamps and event.
-  v_accepted_at:=clock_timestamp();
-  if v_request.expires_at<=v_accepted_at then
-    raise exception using errcode='55000',message='signature_link_expired';
-  end if;
-
   select power_of_attorney_required into v_poa_required from public.contract_product_versions
     where id=v_contract.contract_product_version_id;
   if coalesce(v_poa_required,true) and not coalesce(p_poa_accepted,false) then
@@ -223,6 +216,18 @@ begin
       or encode(extensions.digest(convert_to(v_poa_doc.rendered_body,'UTF8'),'sha256'),'hex') is distinct from v_poa_doc.content_sha256 then
       raise exception using errcode='23514',message='poa_legal_document_invalid';
     end if;
+  elsif cardinality(coalesce(p_poa_scopes,'{}'::text[]))<>0 then
+    raise exception using errcode='22023',message='poa_scopes_without_consent';
+  end if;
+
+  -- Capture one actual acceptance instant after all blocking locks and validations.
+  -- Reuse it for the signature, acceptance/evidence, signed/used timestamps and event.
+  v_accepted_at:=clock_timestamp();
+  if v_request.expires_at<=v_accepted_at then
+    raise exception using errcode='55000',message='signature_link_expired';
+  end if;
+
+  if coalesce(p_poa_accepted,false) then
     v_poa_id:=gen_random_uuid();
     v_verifier:=public.gridex_new_public_resource_reference('poa_verification');
     v_valid_from:=(v_accepted_at at time zone 'Europe/Stockholm')::date;
@@ -238,8 +243,6 @@ begin
       'legal_text',jsonb_build_object('id',v_poa_doc.id,'title',v_poa_doc.title,'version',v_poa_doc.template_version,
         'body',v_poa_doc.rendered_body,'content_sha256',v_poa_doc.content_sha256),
       'request_evidence',jsonb_build_object('ip_address',p_signer_ip,'ip_hash',p_signed_ip_hash,'user_agent',left(p_signed_user_agent,1000)));
-  elsif cardinality(coalesce(p_poa_scopes,'{}'::text[]))<>0 then
-    raise exception using errcode='22023',message='poa_scopes_without_consent';
   end if;
 
   v_signature:=jsonb_build_object(
