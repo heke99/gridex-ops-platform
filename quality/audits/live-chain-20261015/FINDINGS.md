@@ -2727,6 +2727,15 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **Variant, rättad:** `claim_ediel_outbox_items` har samma mönster (väljer på `priority, created_at` men returnerar utan ordning), och `processEdielOutbox` skickar posterna en i taget. En rättelse eller makulering som hämtas i samma körning som sitt original kunde lämna först. `claimEdielOutboxItems` sorterar nu på prioritet, ålder och id. Test: `__tests__/reality-i-b11-outbox-claim-order.test.ts`, rött före. Med utkorgstesterna 6 filer, 24/24. Inga fler `claim*`-funktioner med `RETURNING` och `ORDER BY` finns i världens databas.
 - **I världen:** kräver ombyggnad. I körs om.
 
+### H, batch 11 (2026-10-28 00:15–01:22): 10 av 11 gröna — H-B6b verifierad i H11; nytt H-B7 (produkt, medel, rättat, väntar på världsverifiering)
+- **H11 kom förbi krediteringen:** kreditfakturan på −600 kr skapas, krediten blir `invoiced` och avgiften `credited`.
+- **Därefter:** kreditfakturan saknade länken till originalfakturan och krediten (`metadata.credit_of_invoice_id`, `break_fee_credit_id`). Se H-B7.
+
+### H-B7 Kreditfakturan tappade sin länk till originalfakturan — PRODUKT, medel (ägarbeslut 28: "krediteras spårbart"); RÄTTAD (migration `20261028010000`, applicerad i världen)
+- **Orsak:** `gridex_create_invoice_review_draft_v1` skapar grafen (där D11g1-triggern `break_fee_credit_invoice_guard` stämplar länken i `metadata` vid insert) och berikar sedan fakturan med `metadata = coalesce(p_enrichment->'metadata', metadata)`. Det ersatte hela objektet, så länken försvann.
+- **Rättning:** berikningen lägger till sina nycklar på det fakturan redan bär (`metadata || enrichment`). Nycklar som stämplats vid insert behålls. Vid krock vinner berikningen som förut, och en tom berikning behåller det lagrade som förut. Exakt nålbyte med kontroll av ägare, ACL, säkerhetsläge och konfiguration.
+- **Test:** fakturaberedningens tester (7 filer, 66/66), aud-003 och migrationskontrollen gröna. Ett inbyggt test kräver hela fakturagrafen, så beviset görs i världen: H körs om efter F.
+
 ### A, batch 11 (2026-10-28 00:00–00:15): 7 av 7 gröna — FÖRSTA HELT GRÖNA A; T50 och T51 verifierade
 - Webbvägen fungerar hela vägen: ansökan och signering, Z01/Z02, Z03 (A-B6), Z04, och aktiv leverans från i dag (A-B7).
 
