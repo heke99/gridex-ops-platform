@@ -1,5 +1,6 @@
 import { isIP } from 'node:net'
 import { createHash } from 'node:crypto'
+import { hasOnlineSignaturePoaArchive, poaCaptureSource } from '@/lib/customers/poaReadiness'
 type Row = Record<string, unknown>
 const record = (value: unknown): Row => value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {}
 const clean = (value: unknown): string | null => typeof value === 'string' && value.trim() ? value.trim() : null
@@ -37,11 +38,16 @@ export function poaMailEvidenceFingerprint(poa: Row): string {
 // number and the signer IP. BankID is an optional alternative backed by a
 // server-verified callback, never a condition inferred from an email domain.
 export function poaMailEvidenceIssues(poa: Row): Array<{ code: string; message: string }> {
-  const source = clean(poa.source) ?? clean(record(poa.evidence_payload).source)
-  if (source !== 'website_api' && source !== 'customer_portal_api') return []
+  const source = poaCaptureSource(poa)
+  if (!['website_api', 'customer_portal_api', 'ops_online_signature'].includes(source ?? '')) return []
   const evidence = poaMailEvidence(poa)
-  if (evidence.bankidVerified) return []
+  const archive = record(record(poa.metadata).document_archive)
+  const archiveIssues = source === 'ops_online_signature' && (!hasOnlineSignaturePoaArchive(poa)
+    || archive.evidence_sha256 !== poaMailEvidenceFingerprint(poa))
+    ? [{ code: 'poa_private_archive_pending', message: 'Fullmaktens privata PDF och originalbevis måste verifieras innan utskick.' }] : []
+  if (evidence.bankidVerified) return archiveIssues
   return [
+    ...archiveIssues,
     ...(!evidence.verificationReference ? [{ code: 'poa_verification_number_missing', message: 'Fullmakten saknar verifikatsnummer för kundens godkännande. Komplettera godkännandeverifikatet före utskick.' }] : []),
     ...(!evidence.signerIpAddress ? [{ code: 'poa_signer_ip_missing', message: 'Kundens IP-adress vid godkännandet saknas. Tenantens formulärserver måste skicka kundens registrerade IP-adress i fullmaktsunderlaget; API-serverns IP räknas inte som kundens.' }] : []),
   ]

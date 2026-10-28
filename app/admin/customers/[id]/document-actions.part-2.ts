@@ -6,6 +6,7 @@ import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { MASTERDATA_PERMISSIONS } from '@/lib/admin/masterdataPermissions'
 
 import { supabaseService } from '@/lib/supabase/service'
+import { assertCustomerSiteTenant } from '@/lib/tenant/entityGuards'
 import { archiveCustomerAuthorizationDocument, createAuditLogEntry, getCustomerAuthorizationDocumentById, listActiveCustomerAuthorizationDocumentsByScope, getPowerOfAttorneyById, buildDocumentUploadIdempotencyKey, findExistingCustomerAuthorizationDocumentByFingerprint, saveCustomerAuthorizationDocument, savePowerOfAttorney, setCustomerAuthorizationDocumentAsActive, syncCustomerOperationsForCustomer, syncCustomerOperationsForSite } from '@/lib/operations/db'
 
 import { ensureInitialSwitchEdielAutomation } from '@/lib/operations/edielAutomation'
@@ -105,6 +106,7 @@ export async function uploadCustomerAuthorizationDocumentAction(
   let actionContext: CustomerDocumentActionContext
   try {
     actionContext = await requireCustomerDocumentActionContext(customerId, guard)
+    await assertCustomerSiteTenant({ companyId: actionContext.companyId, customerId, siteId })
   } catch (error) {
     return {
       status: 'error',
