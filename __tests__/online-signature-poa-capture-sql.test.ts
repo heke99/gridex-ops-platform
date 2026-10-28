@@ -236,20 +236,38 @@ describe('atomic private archive completion gate',()=>{
 })
 
 describe('original online POA evidence cannot drift after signing',()=>{
-  it.each(['authenticated','anon',''])('rejects a new online-capture row from a non-service role %s',async role=>{
+  const sources=['ops_online_signature','OPS_ONLINE_SIGNATURE',' ops_online_signature ','\tops_online_signature\n','\u00a0OPS_ONLINE_SIGNATURE\ufeff']
+  it.each(sources.flatMap(source=>['authenticated','anon',''].map(role=>({role,source}))))('rejects a new online-capture row from a non-service role $role with source $source',async({role,source})=>{
     await sign()
     await db.query("select set_config('test.role',$1,false)",[role])
-    await expect(db.exec(`insert into powers_of_attorney
+    await expect(db.query(`insert into powers_of_attorney
       select (jsonb_populate_record(null::public.powers_of_attorney,
-        to_jsonb(p)||jsonb_build_object('id','${id(99)}'))).*
-      from powers_of_attorney p`)).rejects.toThrow(/poa_online_capture_service_role_required/)
+        to_jsonb(p)||jsonb_build_object('id','${id(99)}','source',$1::text))).*
+      from powers_of_attorney p`,[source])).rejects.toThrow(/poa_online_capture_service_role_required/)
     expect((await db.query('select count(*)::int as count from powers_of_attorney')).rows).toEqual([{count:1}])
+  })
+  it.each(sources.slice(1))('rejects a noncanonical system source even from service: %s',async source=>{
+    await expect(db.query(`insert into powers_of_attorney(id,company_id,customer_id,source)
+      values('${id(99)}','${id(1)}','${id(2)}',$1)`,[source])).rejects.toThrow(/poa_online_source_noncanonical/)
+  })
+  it.each(sources)('rejects relabelling a manual row to reserved source %s',async source=>{
+    await db.exec(`insert into powers_of_attorney(id,company_id,customer_id,source)
+      values('${id(99)}','${id(1)}','${id(2)}','admin_manual'); set test.role='authenticated'`)
+    await expect(db.query(`update powers_of_attorney set source=$1 where id='${id(99)}'`,[source]))
+      .rejects.toThrow(/poa_online_source_cannot_be_relabelled/)
   })
   it('keeps the existing manual POA insertion path available to its authorized caller',async()=>{
     await db.exec("set test.role='authenticated'")
     await db.exec(`insert into powers_of_attorney(id,company_id,customer_id,source)
       values('${id(99)}','${id(1)}','${id(2)}','admin_manual')`)
     expect((await db.query('select source from powers_of_attorney')).rows).toEqual([{source:'admin_manual'}])
+  })
+  it('reserves a blank-source row claiming online capture through its evidence source',async()=>{
+    await sign();await db.exec("set test.role='authenticated'")
+    await expect(db.exec(`insert into powers_of_attorney
+      select (jsonb_populate_record(null::public.powers_of_attorney,to_jsonb(p)||jsonb_build_object(
+        'id','${id(99)}','source',null,'evidence_payload',p.evidence_payload||jsonb_build_object('source','OPS_ONLINE_SIGNATURE')))).*
+      from powers_of_attorney p`)).rejects.toThrow(/poa_online_capture_service_role_required/)
   })
   it.each(["accepted_ip='192.0.2.99'","signer_name='Someone else'","source='admin_manual'",
     "fullmakt_snapshot='{}'::jsonb","evidence_payload='{}'::jsonb","customer_id='10000000-0000-4000-8000-000000000099'"])(

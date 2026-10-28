@@ -16,7 +16,7 @@ function text(value: FormDataEntryValue | null) {
   return String(value ?? '').trim()
 }
 
-/** Keep the existing authorized atomic business command. Expected validation
+/** Keep the existing authorized business command. Expected validation
  * gets a useful return path instead of crashing the entire admin view. */
 export async function updateContractWithSigningFeedbackAction(formData: FormData) {
   try {

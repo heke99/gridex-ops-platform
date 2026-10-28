@@ -497,14 +497,29 @@ GRANT EXECUTE ON FUNCTION public.gridex_complete_online_signature_poa_archive_v1
 -- replace the customer's original evidence. Archive fields are service-only.
 CREATE OR REPLACE FUNCTION public.gridex_protect_online_signature_poa_capture_v1() RETURNS trigger
 LANGUAGE plpgsql SET search_path TO 'pg_catalog' AS $function$
+declare
+  -- Match ECMAScript String.trim, including tabs, NBSP and BOM. Consumers
+  -- recognize these reserved-source spellings; none may bypass provenance.
+  v_trim_chars constant text := U&'\0009\000A\000B\000C\000D\0020\00A0\1680\2000\2001\2002\2003\2004\2005\2006\2007\2008\2009\200A\2028\2029\202F\205F\3000\FEFF';
+  v_new_source text;
+  v_old_source text;
 begin
+  v_new_source:=lower(coalesce(nullif(btrim(coalesce(new.source,''),v_trim_chars),''),
+    btrim(coalesce(new.evidence_payload->>'source',''),v_trim_chars)));
   if tg_op='INSERT' then
-    if new.source='ops_online_signature' and auth.role() is distinct from 'service_role' then
-      raise exception using errcode='42501',message='poa_online_capture_service_role_required';
+    if v_new_source='ops_online_signature' then
+      if auth.role() is distinct from 'service_role' then
+        raise exception using errcode='42501',message='poa_online_capture_service_role_required';
+      end if;
+      if new.source is distinct from 'ops_online_signature' then
+        raise exception using errcode='23514',message='poa_online_source_noncanonical';
+      end if;
     end if;
     return new;
   end if;
-  if old.source='ops_online_signature' then
+  v_old_source:=lower(coalesce(nullif(btrim(coalesce(old.source,''),v_trim_chars),''),
+    btrim(coalesce(old.evidence_payload->>'source',''),v_trim_chars)));
+  if v_old_source='ops_online_signature' then
     if (to_jsonb(new)-array['status','revoked_at','document_id','document_path','document_hash','metadata','updated_at','updated_by','notes','evidence_note','expires_at'])
       is distinct from (to_jsonb(old)-array['status','revoked_at','document_id','document_path','document_hash','metadata','updated_at','updated_by','notes','evidence_note','expires_at']) then
       raise exception using errcode='23514',message='poa_online_original_capture_immutable';
@@ -516,7 +531,7 @@ begin
       or new.metadata->'online_signature_archive_pending' is distinct from old.metadata->'online_signature_archive_pending') then
       raise exception using errcode='42501',message='poa_online_archive_service_role_required';
     end if;
-  elsif new.source='ops_online_signature' then
+  elsif v_new_source='ops_online_signature' then
     raise exception using errcode='23514',message='poa_online_source_cannot_be_relabelled';
   end if;
   return new;

@@ -110,7 +110,7 @@ Avtalets vanliga redigeringsformulär skapar inget signeringsbevis. Signerat
 statusval är spärrat innan en verklig signering har registrerats. Backendens
 kontroller kvarstår även för manipulerade eller äldre formulär. Det kända
 `customer_contract_signature_evidence_incomplete` visas som ett återställbart
-meddelande via samma behörighetskontrollerade atomiska avtalskommando,
+meddelande via samma behörighetskontrollerade avtalskommando,
 medan okända fel och Next-kontrollflöde bevaras. Signeringsdatumet visas
 skrivskyddat och den fullständiga ursprungliga tidsstämpeln skickas oförändrad
 när andra avtalsfält sparas; den kortas inte till kalenderdatum.
@@ -139,3 +139,16 @@ PDF-originalet, dess SHA-256 och deklarerade signeringsdatum ska bevaras.
 Automatisk bekräftelse av importerade original behöver egen verifierad
 fortsättning; den får inte fabricera en online-signering eller ersätta det
 uppladdade originalet med en nygenererad PDF.
+
+
+## Skyddad källa för onlinefullmakt
+
+`ops_online_signature` reserveras vid INSERT för tjänsterollen och kräver
+exakt det kanoniska källvärdet. En befintlig manuell fullmakt får inte
+omklassificeras till denna källa. Samma källtolkning används i fullmaktens
+beredskap och i utskickets beviskontroll: olika versaler, omgivande blanktecken
+(även tabbar, NBSP och BOM) eller en källuppgift i beviset när huvudfältet är
+tomt får inte hoppa över originalets IP-, verifikats- och arkivkrav.
+Äldre manuella källors ordinarie infogning bevaras. Komponentprov av SQL och
+läsgränser ersätter inte riktig tenant-RLS, kvalificerad databasinstallation
+eller ett kundgodkännande i det ordinarie signeringsflödet.

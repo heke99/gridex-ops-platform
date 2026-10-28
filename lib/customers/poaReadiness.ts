@@ -75,6 +75,11 @@ function clean(value: unknown): string | null {
   return null
 }
 
+/** One source classification for readiness and external-mail proof gates. */
+export function poaCaptureSource(poa: PoaLike | null | undefined): string {
+  return (clean(poa?.source) ?? clean((poa?.evidence_payload as PoaLike | undefined)?.source) ?? '').toLowerCase()
+}
+
 function isNonEmptyObject(value: unknown): boolean {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value) && Object.keys(value as object).length > 0
 }
@@ -119,7 +124,7 @@ export function hasPoaSnapshot(poa: PoaLike | null | undefined): boolean {
 }
 
 function websiteApiPoaHasStructuredExternalCapture(poa: PoaLike | null | undefined): boolean {
-  if (!['website_api', 'ops_online_signature'].includes((clean(poa?.source) ?? '').toLowerCase())) return true
+  if (!['website_api', 'ops_online_signature'].includes(poaCaptureSource(poa))) return true
 
   const evidence = poa?.evidence_payload as PoaLike | undefined
   const metadata = poa?.metadata as PoaLike | undefined
@@ -137,7 +142,7 @@ function websiteApiPoaHasStructuredExternalCapture(poa: PoaLike | null | undefin
 /** Readiness metadata only; the archive completion RPC also checks the exact
  * private storage object, original signature and tenant/customer/contract. */
 export function hasOnlineSignaturePoaArchive(poa: PoaLike | null | undefined): boolean {
-  if (poa?.source !== 'ops_online_signature') return true
+  if (!poa || poaCaptureSource(poa) !== 'ops_online_signature') return true
   const metadata = poa.metadata as PoaLike | undefined
   const archive = metadata?.document_archive as PoaLike | undefined
   const evidence = poa.evidence_payload as PoaLike | undefined
@@ -163,7 +168,7 @@ export function poaCustomerIdentity(
   // Customer identity fallback is intentionally limited to old/admin/migrated
   // complete POA rows. Website API rows must carry signerIdentityNumber on the
   // structured POA itself; legacy consent-only is never externally sendable.
-  if (['website_api', 'ops_online_signature'].includes((clean(poa?.source) ?? '').toLowerCase())) return null
+  if (['website_api', 'ops_online_signature'].includes(poaCaptureSource(poa))) return null
 
   return clean(context?.customerIdentity)
 }

@@ -118,3 +118,27 @@ describe('signing POA page uses only the contract exact site alias',()=>{
     expect(await loadOnlineSignaturePoaTerms(termsReceipt)).toMatchObject({available:false,siteAddress:''})
   })
 })
+
+
+describe('online capture source spellings cannot skip original-proof requirements',()=>{
+  const sources=['ops_online_signature','OPS_ONLINE_SIGNATURE',' ops_online_signature ','\tops_online_signature\n','\u00a0OPS_ONLINE_SIGNATURE\ufeff']
+  it.each(sources)('requires a verified private archive for %j',source=>{
+    poa().source=source
+    expect(hasExternallySendablePoa(poa())).toBe(false)
+  })
+  it.each(sources)('requires original signer IP and verifier for %j',source=>{
+    poa().source=source
+    const evidence=poa().evidence_payload as Row
+    delete evidence.ip_address;delete evidence.verification_reference
+    const codes=poaMailEvidenceIssues(poa()).map(issue=>issue.code)
+    expect(codes).toContain('poa_signer_ip_missing')
+    expect(codes).toContain('poa_verification_number_missing')
+    expect(codes).toContain('poa_private_archive_pending')
+  })
+  it('keeps an evidence-only source behind the same private archive gate',()=>{
+    poa().source=null
+    ;(poa().evidence_payload as Row).source='OPS_ONLINE_SIGNATURE'
+    expect(hasExternallySendablePoa(poa())).toBe(false)
+    expect(poaMailEvidenceIssues(poa()).map(issue=>issue.code)).toContain('poa_private_archive_pending')
+  })
+})
