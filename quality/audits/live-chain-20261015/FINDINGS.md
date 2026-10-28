@@ -2727,6 +2727,13 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **Variant, rättad:** `claim_ediel_outbox_items` har samma mönster (väljer på `priority, created_at` men returnerar utan ordning), och `processEdielOutbox` skickar posterna en i taget. En rättelse eller makulering som hämtas i samma körning som sitt original kunde lämna först. `claimEdielOutboxItems` sorterar nu på prioritet, ålder och id. Test: `__tests__/reality-i-b11-outbox-claim-order.test.ts`, rött före. Med utkorgstesterna 6 filer, 24/24. Inga fler `claim*`-funktioner med `RETURNING` och `ORDER BY` finns i världens databas.
 - **I världen:** kräver ombyggnad. I körs om.
 
+### F-B1 Ett deadlock avbröt affärsbehandlingen av en E66 efter valideringen, så filen behandlades aldrig igen — PRODUKT, hög; RÄTTAD (väntar på världsverifiering)
+- **Bevis i världen (F, batch 13):** F6c väntade i över tre timmar på 1 av 123 E66 (`eddfb64c…`, dygnet 28–29 september). Postgresloggen 05:05:54 visar `deadlock detected` mellan `gridex_record_source_validation_v1`, kvittensläsningen och en uppdatering av `ediel_messages`. Meddelandet fick händelsen "Affärsbehandlingen … avbröts; … återupptas av inbound-cron" men stod redan som `validated`. Inga mätvärden lagrades.
+- **Orsak:** återupptagningen (F103, `strandedInboundEdielResume.ts`) väljer bara meddelanden som fortfarande står `received`. Ett avbrott efter valideringen, här ett tillfälligt deadlock, föll därför utanför alla återupptagningar. Det är samma deadlockmönster som noterades i J4; omförsök räckte där, men inte här.
+- **Rättning:** `runWithTransientRetry` (`strandedInboundEdielResume.ts`) gör om samma sanktionerade `processInboundEdielMessage` på plats vid deadlock (40P01) eller serialiseringsfel (40001), högst tre försök med kort väntan. Andra fel kastas direkt som förut. Motorn använder det för varje meddelande (`edielMailboxPoller.part-3.ts`).
+- **Test:** `__tests__/reality-f-b1-inbound-transient-retry.test.ts`, 4 fall, röda före. Intagets och återupptagningens tester 40 filer, 469 gröna. tsc 0 fel.
+- **Kvar (låg):** låsordningen mellan de samtidiga vägarna är inte ändrad. Ett meddelande som redan fastnat kan köras om av operatören via "kör om runtime-beslut".
+
 ### H, batch 12 (2026-10-28 03:28–04:40): 11 av 11 gröna — FÖRSTA HELT GRÖNA H; H-B6, H-B6b och H-B7 verifierade
 - Hela brytavgiftskedjan i H11 fungerar: godkännande, eget underlag, prissättning och låsning, en faktura (600 kr exkl. moms) och spårbar kreditering. Kreditfakturan (−600 kr) bär länken till originalfakturan och krediten, avgiften blir `credited` och justeringsärendet `credited`.
 

@@ -142,10 +142,12 @@ export async function runInboundEdielMailEngine(
         envInt("EDIEL_INBOUND_MESSAGE_CONCURRENCY", 4),
         async (edielMessageId) => {
           try {
-            await processInboundEdielMessage({
+            // F-B1: a transient deadlock between concurrent lanes is retried in place.
+            const { runWithTransientRetry } = await import("@/lib/inbound-mail/strandedInboundEdielResume");
+            await runWithTransientRetry(() => processInboundEdielMessage({
               actorUserId: input.actorUserId ?? "system",
               edielMessageId,
-            });
+            }));
             return { edielMessageId, error: null as string | null };
           } catch (error) {
             const message = formatErrorMessage(error, "Okänt fel");

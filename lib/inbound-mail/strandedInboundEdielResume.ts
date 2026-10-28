@@ -61,6 +61,29 @@ function payloadOf(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
 }
 
+const TRANSIENT_POSTGRES_CODES = new Set(["40P01", "40001"]);
+
+function isTransientConflict(error: unknown): boolean {
+  const record = error && typeof error === "object" ? (error as { code?: unknown; message?: unknown }) : {};
+  if (typeof record.code === "string" && TRANSIENT_POSTGRES_CODES.has(record.code)) return true;
+  const message = typeof record.message === "string" ? record.message : String(error ?? "");
+  return /deadlock detected|could not serialize access/i.test(message);
+}
+
+/** F-B1: a deadlock or serialization failure between concurrent inbound processings rolls back only the failed call;
+ * the same sanctioned processing is retried in place a bounded number of times. Any other error is thrown at once. */
+export async function runWithTransientRetry<T>(run: () => Promise<T>, options: { attempts?: number; delayMs?: number } = {}): Promise<T> {
+  const attempts = clampInt(options.attempts, 3, 1, 5);
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      return await run();
+    } catch (error) {
+      if (attempt >= attempts || !isTransientConflict(error)) throw error;
+      await new Promise((resolve) => setTimeout(resolve, (options.delayMs ?? 250) * attempt));
+    }
+  }
+}
+
 /** Durable, per-message operator signal for a business-processing exception. */
 export async function recordInboundBusinessProcessingFailure(input: {
   actorUserId: string;
