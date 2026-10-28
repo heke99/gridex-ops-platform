@@ -162,7 +162,8 @@ beforeEach(() => {
 })
 
 const materialize = () => materializeCompanyGridOwnerRoute({ companyId, gridOwnerId, platformActorRouteId: platformRouteId,
-  messageFamily: family, messageCode: family === 'PRODAT' ? 'Z01' : 'E66', environment: 'production', actorUserId: id(9) })
+  // F48, owner decision 43 (handover-F48.md): the supplier's UTILTS route carries E73, never the grid owner's E66.
+  messageFamily: family, messageCode: family === 'PRODAT' ? 'Z01' : 'E73', environment: 'production', actorUserId: id(9) })
 
 async function buildContext() {
   return resolveCanonicalRouteContext({ companyId, preferredRouteId: id(6), requestType: family === 'PRODAT' ? 'customer_masterdata' : 'meter_values',
@@ -179,7 +180,7 @@ async function renderCurrent() {
     applicationReference: context.applicationReference, environment: context.environment,
     interchangeReference: 'SC0591', acknowledgementRequest: true, createdAt: new Date('2026-09-10T12:00:00Z'),
     messages: [{ messageReference: '1', messageTypeToken: family === 'PRODAT' ? 'PRODAT:D:97A:UN:E2SE6A' : 'UTILTS:D:02B:UN:E5SE5A',
-      businessSegments: [`BGM+${family === 'PRODAT' ? 'Z01' : 'E66'}+SC059+9`] }] })
+      businessSegments: [`BGM+${family === 'PRODAT' ? 'Z01' : 'E73'}+SC059+9`] }] })
   rendered.push(raw)
   return { context, raw }
 }

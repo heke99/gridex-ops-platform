@@ -191,6 +191,9 @@ async function loadBulkMaterializationCandidates(input: { companyId: string; env
 }
 
 function materializedPerScope(candidate: BulkMaterializationCandidate): boolean {
+  // FINDINGS F48, owner decision 43: a UTILTS row (E73) goes through the TypeScript materializer, which
+  // takes field 311 from the verified UTILTS profile. The SQL bulk function would fabricate 23-DDQ-UTILTS.
+  if (String(candidate.message_family ?? '').toUpperCase() === 'UTILTS') return true
   if (String(candidate.message_family ?? '').toUpperCase() !== 'PRODAT') return false
   return isSupplierSwitchCode(candidate.message_code) || isMeteringAccessCode(candidate.message_code)
 }
@@ -283,9 +286,9 @@ export async function bulkMaterializeOperationalRoutesAction(formData: FormData)
       const rows: Array<Record<string, unknown>> = []
       // FINDINGS F85: the SQL bulk function repairs Z01 outbound requests and customer-info
       // requests after every row it materializes, so it receives only the customer_masterdata
-      // and UTILTS rows, one exact (family, code) call each. Another PRODAT scope (Z03
-      // supplier_switch) goes through the TypeScript materializer, which writes only the
-      // route, profile and party route of that scope.
+      // rows, one exact (family, code) call each. Another PRODAT scope (Z03 supplier_switch)
+      // and the UTILTS E73 row (F48) go through the TypeScript materializer, which writes only
+      // the route, profile and party route of that scope.
       for (const key of sqlBulkMaterializationKeys(candidates)) {
         const { data, error } = await supabaseService.rpc('gridex_materialize_company_operational_routes', {
           p_company_id: companyId,

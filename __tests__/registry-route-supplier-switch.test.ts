@@ -307,9 +307,10 @@ describe('readiness view after migration 20261022121000', () => {
       [EXPLICIT_ROUTE, 'PRODAT', 'Z01', 'platform_route_exists_but_not_materialized'],
       [UTILTS_ROUTE, 'UTILTS', null, 'platform_route_exists_but_not_materialized'],
     ])
-    // The TypeScript projection offers exactly the codes the view offers.
+    // The TypeScript projection offers exactly the PRODAT codes the view offers. UTILTS offers E73 since F48
+    // (owner decision 43); the view follows in migration 20261028130000 (reality-f48-utilts-route-materialization).
     const routes = await rows('select * from public.platform_actor_routes order by id')
-    expect(routes.map(route => registryRouteMessageCodes(route as never, String(route.message_family)))).toEqual([['Z01', 'Z03'], ['Z01'], ['Z01'], [null]])
+    expect(routes.map(route => registryRouteMessageCodes(route as never, String(route.message_family)))).toEqual([['Z01', 'Z03'], ['Z01'], ['Z01'], ['E73']])
   })
 
   it('the profile key admits the Z01 and the Z03 profile of one registry route and still rejects a duplicate', async () => {
@@ -383,7 +384,7 @@ describe('registry materialization of the supplier scopes', () => {
   it('a route that declares 23-DGI-PRODAT offers no Z03', async () => {
     expect(registryRouteMessageCodes({ metadata: {}, application_reference: '23-DGI-PRODAT' }, 'PRODAT')).toEqual(['Z01'])
     expect(registryRouteMessageCodes({ metadata: {}, application_reference: '23-ddq-prodat' }, 'PRODAT')).toEqual(['Z01', 'Z03'])
-    expect(registryRouteMessageCodes({ metadata: {}, application_reference: null }, 'UTILTS')).toEqual([null])
+    expect(registryRouteMessageCodes({ metadata: {}, application_reference: null }, 'UTILTS')).toEqual(['E73'])
   })
 })
 

@@ -23,6 +23,7 @@ import {
   type UtiltsRequestedMessageCode,
 } from '@/lib/ediel/rulebook/canonicalEdielFacade'
 import { normalizeMeteringResolution } from '@/lib/metering/contractMeteringResolution'
+import { assertE73RequestedTypeAuthorized, resolveE73RequestApplicationReference } from '@/lib/ediel/utilts/supplierUtiltsOutboundScope'
 
 function record(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
@@ -55,7 +56,7 @@ function requestedMessageForDataRequest(input: {
 async function requireBilateralE73Capability(input: {
   companyId: string
   environment: EdielEnvironment
-}): Promise<string> {
+}): Promise<{ id: string; metadata: unknown }> {
   const now = new Date().toISOString()
   const { data, error } = await supabaseService
     .from('tenant_message_capabilities')
@@ -83,7 +84,7 @@ async function requireBilateralE73Capability(input: {
         : `utilts_e73_bilateral_capability_ambiguous:${active.length}`,
     )
   }
-  return String(active[0].id)
+  return { id: String(active[0].id), metadata: (active[0] as { metadata?: unknown }).metadata ?? null }
 }
 
 export async function prepareAndQueueUtiltsE73(params: {
@@ -105,7 +106,8 @@ export async function prepareAndQueueUtiltsE73(params: {
     preferredRouteId: params.communicationRouteId ?? null,
     explicitEnvironment: params.environment ?? null,
   })
-  const bilateralCapabilityId = await requireBilateralE73Capability({ companyId, environment })
+  const bilateralCapability = await requireBilateralE73Capability({ companyId, environment })
+  const bilateralCapabilityId = bilateralCapability.id
   const requestedMessageCode = requestedMessageForDataRequest({
     requestScope: dataRequest.request_scope,
     requestPayload: record(dataRequest.request_payload),
@@ -161,14 +163,26 @@ export async function prepareAndQueueUtiltsE73(params: {
     },
   })
 
+  // FINDINGS F48, owner decision 43: field 311 is the verified reference of the requested type.
   const applicationReference = canonicalSupplierUtiltsApplicationReference({
     code: 'E73',
     requestedMessageCode,
-    applicationReference: routeContext.applicationReference,
+    applicationReference: resolveE73RequestApplicationReference({
+      requestedMessageCode,
+      routeApplicationReference: routeContext.applicationReference,
+    }),
   })
 
   const sourceStructure=await requireDataRequestStructure({companyId,actorUserId,environment,customerId:dataRequest.customer_id,siteId:dataRequest.site_id,meteringPointId:dataRequest.metering_point_id,
     periodStart:dataRequest.requested_period_start,periodEnd:dataRequest.requested_period_end,...dataRequestLegalParties({companyId,environment,route:routeContext,networkEdielId:gridOwner?.ediel_id})})
+  // The qualified own dated structure for exactly this point and period is the data right; an S02
+  // forecast request also needs the supplier role and an explicit S02 agreement (owner decision 43).
+  assertE73RequestedTypeAuthorized({
+    requestedMessageCode,
+    applicationReference,
+    capabilityMetadata: bilateralCapability.metadata,
+    dataRightVerified: sourceStructure.status === 'selected',
+  })
   const outbound = await findOrCreateDataRequestOutbound({
     actorUserId,
     requestType: 'meter_values',

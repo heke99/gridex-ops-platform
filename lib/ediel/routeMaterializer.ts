@@ -18,6 +18,11 @@ import {
   targetSystemForEnvironment,
 } from "@/lib/ediel/routeMatrix";
 import {
+  isSupplierUtiltsRouteMessageCode,
+  supplierUtiltsRouteApplicationReference,
+  supplierUtiltsRouteMessageCodes,
+} from "@/lib/ediel/utilts/supplierUtiltsOutboundScope";
+import {
   ensureGridOwnerTechnicalAckRoutes,
   type TechnicalAckMaterializationResult,
 } from "@/lib/ediel/technicalAckRouteMaterializer";
@@ -132,6 +137,10 @@ function metadata(value: unknown): JsonRecord {
 
 function defaultMessageCode(messageFamily: string): string | null {
   if (upper(messageFamily) === "PRODAT") return "Z01";
+  // FINDINGS F48, owner decision 43: a registry UTILTS route carries the one UTILTS
+  // message the supplier originates to the grid owner, E73 (derived from the canonical
+  // market matrix). UTILTS-ERR replies on the original's route and in its context.
+  if (upper(messageFamily) === "UTILTS") return supplierUtiltsRouteMessageCodes()[0] ?? null;
   if (upper(messageFamily) === "AI_LIST") return canonicalAiListProfile().supplierOutboundType;
   return null;
 }
@@ -394,14 +403,25 @@ export async function upsertRouteProfile(params: {
   const isAiList = params.messageFamily === "AI_LIST";
   // PRODAT's reference follows from the message code alone; a sender setting
   // holds a tenant-wide label and must not override it (FINDINGS F41). UTILTS
-  // has no policy default, so the sender's declared reference still applies.
+  // has no policy default, so the sender's declared UTILTS reference still applies.
+  const isUtilts = params.messageFamily === "UTILTS";
   const configuredApplicationReference = isAiList || params.messageFamily === "PRODAT" ? text(params.route.application_reference) :
     text(params.route.application_reference) ??
     text(params.senderSettings.application_reference) ??
     text(params.senderSettings.default_application_reference);
   const aiApplication = isAiList ? validateApplicationReferencePolicy({ messageFamily: "AI_LIST", applicationReference: configuredApplicationReference }) : null;
   if (aiApplication && !aiApplication.ok) throw new Error("ediel_registry_ai_list_application_forbidden");
-  const applicationReferenceCheck = isAiList ? null : validateRouteDeclaredApplicationReference({
+  // FINDINGS F48, owner decision 43: E73's field 311 names the requested type (E66 or S02).
+  // The profile keeps the verified UTILTS reference (the registry route's, else a UTILTS value
+  // of the sender; a PRODAT label is not one) and otherwise leaves it to the per-request value.
+  const utiltsApplicationReference = isUtilts
+    ? supplierUtiltsRouteApplicationReference({
+        messageCode: String(params.messageCode ?? ""),
+        registryApplicationReference: params.route.application_reference,
+        senderApplicationReferences: [params.senderSettings.application_reference, params.senderSettings.default_application_reference],
+      })
+    : null;
+  const applicationReferenceCheck = isAiList || isUtilts ? null : validateRouteDeclaredApplicationReference({
     messageFamily: params.messageFamily,
     businessCode: params.messageCode,
     routeProfile: configuredApplicationReference
@@ -413,7 +433,7 @@ export async function upsertRouteProfile(params: {
       `ediel_application_reference_route_mismatch:${applicationReferenceCheck.routeDeclaredApplicationReference ?? 'missing'}:${applicationReferenceCheck.policyApplicationReference}`,
     );
   }
-  const applicationReference = applicationReferenceCheck?.policyApplicationReference ?? null;
+  const applicationReference = isUtilts ? utiltsApplicationReference : applicationReferenceCheck?.policyApplicationReference ?? null;
   const ackMode = projectCanonicalAckMode({
     messageFamily: params.messageFamily,
     messageCode: params.messageCode,
@@ -649,7 +669,9 @@ export async function materializeCompanyGridOwnerRoute(params: {
   if (source.actorId !== route.actor_id || source.wire.family !== (messageFamily === "AI_LIST" ? "AI" : messageFamily) || source.wire.environment !== route.environment
     || messageFamily === "AI_LIST" && source.wire.applicationReference !== null) throw new Error("ediel_registry_materialization_scope_mismatch");
   if (messageFamily === "AI_LIST" && messageCode !== canonicalAiListProfile().supplierOutboundType) throw new Error("ediel_registry_ai_list_message_code_required");
-  if (messageFamily === "PRODAT" && !registryRouteMessageCodes(route, messageFamily).includes(messageCode)) {
+  if ((messageFamily === "PRODAT" && !registryRouteMessageCodes(route, messageFamily).includes(messageCode))
+    // FINDINGS F48, owner decision 43: E74, S07, E66 and ERR are never a supplier UTILTS route.
+    || (messageFamily === "UTILTS" && !isSupplierUtiltsRouteMessageCode(messageCode))) {
     return {
       platformActorRouteId: route.id,
       companyId: params.companyId,
@@ -974,6 +996,24 @@ export async function materializePlatformActorRoute(params: {
     }
 
     for (const companyId of companies) for (const messageCode of messageCodes) {
+      // FINDINGS F48, owner decision 43: a declared E74/S07/E66/ERR code is never a supplier UTILTS route.
+      if (messageFamily === "UTILTS" && !isSupplierUtiltsRouteMessageCode(messageCode)) {
+        results.push({
+          platformActorRouteId: route.id,
+          companyId,
+          gridOwnerId: gridOwner.id,
+          status: "blocked",
+          reasonCode: "platform_route_message_code_not_materializable",
+          nextRequiredAction: "Välj ett meddelande som leverantören skickar till nätägaren på denna route.",
+          communicationRouteId: null,
+          edielRouteProfileId: null,
+          companyMarketPartyRouteId: null,
+          messageFamily,
+          messageCode,
+          environment: route.environment,
+        });
+        continue;
+      }
       const sender = await resolveSenderSettings({
         companyId,
         environment: route.environment,

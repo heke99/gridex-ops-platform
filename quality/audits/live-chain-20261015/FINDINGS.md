@@ -3940,3 +3940,40 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **Kvarstår (utanför J1-14):**
   - `rejectEdielInboundCase` avslutar granskningen utan någon APERAK. Larmet stängs då, men fristen löper ut. Ett negativt svar vid avvisning kräver eget kodval enligt guiden och ingår inte här.
   - Ett hållet Z04-ärende i `pending_review` omfattas också av bevakningen. Dess svar ägs av J1-01/02/10.
+
+### F48 / F35 / J2-13 Utgående UTILTS: E73 och föreskrivna UTILTS-ERR — PRODUKT, medel; RÄTTAD (routen materialiseras, begärd typ, allowlist) — ägarbeslut 43
+- **Orsak:**
+  - Registrets UTILTS-route har ingen meddelandekod. `defaultMessageCode('UTILTS')` gav `null`, och vyn `gridex_company_route_readiness_v` erbjöd en UTILTS-rad utan kod.
+  - Materialiseringen kastade därför `utilts_application_reference_message_unsupported:missing`. Ingen E73-route fanns, så ingen E73 kunde skickas (J2-13).
+  - Bulkvägen skickade UTILTS till SQL-funktionen `gridex_materialize_company_operational_routes`. Den fabricerar referensen `23-DDQ-UTILTS`.
+  - Avsändarens tenantgemensamma referens (i världen `23-DDQ-PRODAT`) hade dessutom tagits som UTILTS-referens och fallerat.
+- **Redan rätt (verifierat, oförändrat):**
+  - E73-byggaren: `prepareAndQueueUtiltsE73` (`lib/ediel/flows/utiltsSupplierRequest.ts`). Den kräver bilateral E73-kapabilitet, uttrycklig begärd typ och kvalificerad egen daterad struktur för punkt och period (U-06).
+  - Detektion av saknade värden och automatisk E73: månadsautopiloten (`lib/metering/monthlyAutopilot.ts`, `metering_values_missing`/`metering_gap`) skapar `grid_owner_data_request` och köar E73 via `ensureAndPrepareUtiltsFromDataRequest`. Personalens åtgärd är `prepareUtiltsE73Action`.
+  - UTILTS-ERR skapas bara när funktionskontrollen avvisar transaktionen (`resolveUtiltsTransactionDispositions` ger `processability_rejected` → `utilts_err`; guidefel ger negativ APERAK). Den byggs i originalets kontext och på originalets route (`lib/ediel/ack.ts`; U-13, U-14, ACK-05 VERIFIED). Den är ingen egen affärsroute.
+  - E74, S07 och E66 vägras av `assertCanonicalSupplierUtiltsOutboundAllowed`. `prepareAndQueueUtiltsE66` är fail-closed.
+- **Rättning:**
+  - **Ny modul** `lib/ediel/utilts/supplierUtiltsOutboundScope.ts`.
+    - Elhandlarens UTILTS-routekoder härleds ur marknadsmatrisen (`outbound_only`). Resultatet är bara E73.
+    - Routens fält 311: registerroutens värde, annars ett UTILTS-värde hos avsändaren. En PRODAT-etikett räknas inte (som F41). Värdet valideras mot 25-A-3. Utan verifierat värde lämnas referensen till varje begäran.
+    - `resolveE73RequestApplicationReference`: referensen för den begärda typen (E66 eller S02). En E66-profil blir aldrig en S02-begäran. E66 utan verifierad S/T-variant defaultas aldrig.
+    - `assertE73RequestedTypeAuthorized`: E66 kräver avtalet och datarätten. S02 kräver dessutom rollen DDQ och en uttrycklig S02-överenskommelse på E73-kapabiliteten (`metadata.requested_message_codes`). Utan lista gäller bara E66.
+  - **`routeMaterializer.ts`:**
+    - En UTILTS-route utan kod materialiseras som E73.
+    - E74, S07, E66, ERR och S06 vägras med `platform_route_message_code_not_materializable` före varje skrivning, både per kort och plattformsvitt.
+  - **`utiltsSupplierRequest.ts`:** E73 använder begärd-typ-referensen. Behörigheten prövas efter strukturläsningen och före första skrivningen.
+  - **Bulkåtgärden** (`route-readiness/actions.ts`) skickar UTILTS till TS-materialiseraren, aldrig till SQL-funktionen.
+  - **Migration** `20261028130000_f48_utilts_registry_route_e73_readiness.sql`: vyn ger registerroutens UTILTS-rad koden E73. Den är skriven med exakt nål och frånvarande markör. Kolumner, `security_invoker`, ägare, ACL och beroende vyer behålls. Prövad i återrullad transaktion mot världen: 171 UTILTS-rader får E73, PRODAT är oförändrat (18 468 + 18 468), och en andra körning vägras. Registrerad i manifestet.
+- **Avgränsad överlämning:** `handover-F48.md`. Två rader i det godkända testet SC-059 ändras: UTILTS-routen materialiseras som E73 i stället för E66. Assertionerna är oförändrade och 13/13 gröna. Ingen låst SQL-kropp har ändrats.
+- **Tester:**
+  - `__tests__/reality-f48-utilts-e73-scope.test.ts`, 19 fall.
+    - Positivt: E73 är enda routekoden; E73 för E66 med Application Reference `23-DDQ-E66-S/T`; S02 med roll, avtal och datarätt; UTILTS-ERR när funktionskontrollen fallerar.
+    - Negativt: E74, S07, E66, ERR och S06 vägras; E66-originering vägras; S02 utan avtal, datarätt eller i DGI-roll vägras; ingen skrivning utan datarätt; CONTRL räknas inte som APERAK.
+  - `__tests__/reality-f48-utilts-route-materialization.test.ts`, 13 fall, PGlite med den riktiga migrationen. Täcker vyn, materialisering och idempotens, PRODAT-etiketten, ogiltig referens och vägrade koder, samt bulk utan `23-DDQ-UTILTS`.
+  - F85-testet har anpassats till E73.
+  - SC-052, U-06, SC-059, ACK-04/05, U-13 och angränsande materialiseringstester är gröna. `tsc` ren. Migrationskontrollen grön.
+- **Kvarstår:**
+  - E73 för E66 kräver en verifierad S/T-referens (`23-DDQ-E66-S` eller `-T`) på registerrouten eller i avsändarens UTILTS-inställning. Variantregeln finns inte i masterplanen ("enligt aktuell profil") och gissas inte. Utan den hålls E73 med `utilts_application_reference_explicit_value_required:E66`.
+  - Världens bolag har bara `23-DDQ-PRODAT`. Där krävs en verifierad E66-profil innan J2-13 ser en E73. Det krävs också bilateral E73-kapabilitet och kvalificerad struktur.
+  - Migrationen ska tillämpas av huvudagenten. Själva världssändningen av E73 i J2-13 har inte körts här.
+  - S02 på samma route som en E66-profil stöds inte: routebeslutet kräver att profilens referens är meddelandets. S02 behöver en egen verifierad profil.
