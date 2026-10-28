@@ -163,7 +163,7 @@ describe('F103 stranded inbound Ediel message', () => {
     expect(later.debug.strandedInboundResume).toMatchObject({ claimed: 1, resumed: 1, failed: 0, exhausted: 0 })
     expect(eventsOf(STRANDED).filter((row) => (row.payload as Row).resume === STRANDED_INBOUND_RESUME_MARKER)).toEqual([expect.objectContaining({
       event_type: 'manual_note', event_status: 'warning', payload: expect.objectContaining({ kind: 'attempt', attempt: 1, maxAttempts: 3 }) })])
-  })
+  }, 20_000) // two full engine runs with their first dynamic imports (~3.6 s alone; over the 5 s default under parallel load)
 
   it('an engine run without the cron opt-in never resumes (manual polls keep their scope)', async () => {
     io.tables.ediel_messages.push(z04(STRANDED, 'mail-4', { updated_at: minutesAgo(30) }))
