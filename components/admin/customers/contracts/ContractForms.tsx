@@ -28,8 +28,8 @@ import {
   createContractAction,
   createContractFromOfferAction,
   logContractEventAction,
-  updateContractAction,
 } from "./actions";
+import { updateContractWithSigningFeedbackAction } from "@/app/admin/customers/[id]/contracts/[contractId]/signature/actions";
 
 type SiteOption = { id: string; label: string };
 type MeteringPointOption = { id: string; siteId: string | null; label: string };
@@ -524,18 +524,19 @@ function CoreContractFields({
           >
             <option value="draft">Utkast</option>
             <option value="pending_signature">Väntar signering</option>
-            <option value="signed">Signerat</option>
-            <option value="active">Aktivt</option>
+            <option value="signed" disabled={!contract.signed_at}>Signerat</option>
+            <option value="active" disabled={!contract.signed_at}>Aktivt</option>
             <option value="terminated">Avslutat</option>
             <option value="cancelled">Avbrutet</option>
             <option value="expired">Utgånget</option>
           </select>
+          {!contract.signed_at ? <span className="text-xs text-slate-600">Signering registreras via kundens signeringslänk eller import av ett redan signerat PDF-avtal. Behåll Väntar signering när anläggningen kopplas.</span> : null}
         </Field>
 
         <Field label="Anläggning">
           <select
             name="site_id"
-            defaultValue={contract.site_id ?? ""}
+            defaultValue={contract.customer_site_id ?? contract.site_id ?? ""}
             className={inputClassName()}
           >
             <option value="">Ingen kopplad anläggning</option>
@@ -597,9 +598,10 @@ function CoreContractFields({
         </Field>
 
         <Field label="Signerat datum">
+          <input type="hidden" name="signed_at" value={contract.signed_at ?? ""} />
           <input
             type="date"
-            name="signed_at"
+            readOnly
             defaultValue={
               contract.signed_at ? contract.signed_at.slice(0, 10) : ""
             }
@@ -692,8 +694,8 @@ function ManualCoreFields({
         <SigningMethodFieldset />
 
         <Field label="Anläggning">
-          <select name="site_id" defaultValue="" className={inputClassName()}>
-            <option value="">Ingen kopplad anläggning</option>
+          <select name="site_id" defaultValue={siteOptions.length === 1 ? siteOptions[0].id : ""} className={inputClassName()}>
+            <option value="">Välj anläggning före signering</option>
             {siteOptions.map((site) => (
               <option key={site.id} value={site.id}>
                 {site.label}
@@ -825,7 +827,13 @@ export function EditContractForm({
         <MiniGlossary />
       </div>
 
-      <form action={updateContractAction} className="mt-4 space-y-4">
+      {/* React resets uncontrolled fields after a successful action. Remount
+          from the saved row so the reset cannot restore obsolete defaults. */}
+      <form
+        key={JSON.stringify([contract.id, contract.updated_at, contract.customer_site_id, contract.site_id, contract.status])}
+        action={updateContractWithSigningFeedbackAction}
+        className="mt-4 space-y-4"
+      >
         <input type="hidden" name="customer_id" value={customerId} />
         <input type="hidden" name="customer_contract_id" value={contract.id} />
 
@@ -1055,10 +1063,10 @@ export function CreateFromOfferForm({
             <Field label="Anläggning">
               <select
                 name="site_id"
-                defaultValue=""
+                defaultValue={siteOptions.length === 1 ? siteOptions[0].id : ""}
                 className={inputClassName()}
               >
-                <option value="">Ingen kopplad anläggning</option>
+                <option value="">Välj anläggning före signering</option>
                 {siteOptions.map((site) => (
                   <option key={site.id} value={site.id}>
                     {site.label}
