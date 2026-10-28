@@ -18,6 +18,7 @@ export async function sendContractSignatureLinkAction(formData: FormData) {
   const customerId = text(formData.get('customer_id'))
   const contractId = text(formData.get('contract_id'))
   const recipientEmail = text(formData.get('recipient_email')).toLowerCase()
+  let deliveryStatus = 'queued'
 
   if (!customerId || !contractId) {
     throw new Error('customer_id och contract_id krävs')
@@ -55,7 +56,7 @@ export async function sendContractSignatureLinkAction(formData: FormData) {
       throw new Error('Kunden måste ha en giltig e-postadress för online-signering.')
     }
 
-    await sendOnlineContractSignatureRequest({
+    const result = await sendOnlineContractSignatureRequest({
       companyId,
       customerId,
       contractId,
@@ -63,6 +64,7 @@ export async function sendContractSignatureLinkAction(formData: FormData) {
       actorUserId: guard.userId,
       channel: 'internal',
     })
+    deliveryStatus = result.deliveryStatus
 
     revalidatePath(`/admin/customers/${customerId}`)
     revalidatePath(`/admin/customers/${customerId}/contracts/${contractId}/signature`)
@@ -74,5 +76,5 @@ export async function sendContractSignatureLinkAction(formData: FormData) {
     )
   }
 
-  redirect(`/admin/customers/${customerId}/contracts/${contractId}/signature?sent=1`)
+  redirect(`/admin/customers/${customerId}/contracts/${contractId}/signature?sent=1&delivery=${encodeURIComponent(deliveryStatus)}`)
 }

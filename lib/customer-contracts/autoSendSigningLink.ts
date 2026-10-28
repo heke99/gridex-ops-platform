@@ -27,6 +27,7 @@ export function signingLinkSentMessage(email: string) {
 
 export type AutoSendSigningLinkResult =
   | { status: "sent"; email: string; message: string }
+  | { status: "queued" | "needs_review"; email: string; message: string }
   | {
       status: "skipped";
       reason: "not_pending" | "no_email" | "active_request_exists" | "not_permitted" | "contract_not_found";
@@ -131,7 +132,7 @@ export async function autoSendSigningLinkAfterCreate(
       return { status: "skipped", reason: "active_request_exists", message: null };
     }
 
-    await d.send({
+    const delivery = await d.send({
       companyId: input.companyId,
       customerId: input.customerId,
       contractId: input.contractId,
@@ -139,7 +140,14 @@ export async function autoSendSigningLinkAfterCreate(
       actorUserId: input.actorUserId,
       channel: "internal",
     });
-    return { status: "sent", email, message: signingLinkSentMessage(email) };
+    if (delivery.deliveryStatus === 'sent') {
+      return { status: "sent", email, message: signingLinkSentMessage(email) };
+    }
+    if (delivery.deliveryStatus === 'queued' || delivery.deliveryStatus === 'processing') {
+      return { status: 'queued', email, message: `Signeringslänken är köad för utskick till ${email}.` };
+    }
+    return { status: 'needs_review', email,
+      message: 'Avtalet skapades. Signeringslänkens leverans behöver granskas; skapa inget nytt utskick innan det befintliga utfallet har kontrollerats.' };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     d.logError("[contracts] automatic signing link send failed", {

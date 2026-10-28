@@ -1,5 +1,6 @@
 // Extracted from db.ts; keep public imports on the facade module.
 import type { SupabaseClient } from "@supabase/supabase-js"
+import { supabaseService } from '@/lib/supabase/service'
 
 
 
@@ -742,6 +743,55 @@ export async function saveCustomerAuthorizationDocument(
   const actorId = await getActorId(supabase);
   const companyId = await resolveCustomerCompanyId(supabase, input.customer_id, input.companyId);
 
+  // Resolve access on the caller's authenticated client before any privileged
+  // canonical import. A supplied company ID is not authorization.
+  const customer = await supabase.from('customers').select('id')
+    .eq('id', input.customer_id).eq('company_id', companyId).maybeSingle();
+  if (customer.error) throw customer.error;
+  if (!customer.data) throw new Error('Dokumentets kund tillhör inte det valda bolaget.');
+  const requireOwned = async (table: string, id: string) => {
+    const result = await supabase.from(table).select('id')
+      .eq('id', id).eq('company_id', companyId).eq('customer_id', input.customer_id).maybeSingle();
+    if (result.error) throw result.error;
+    if (!result.data) throw new Error('Dokumentets anläggning eller avtal tillhör inte kunden och bolaget.');
+  };
+  if (input.site_id) await requireOwned('customer_sites', input.site_id);
+  if (input.customer_contract_id) {
+    const contract = await supabase.from('customer_contracts').select('id,customer_site_id,site_id,metering_point_id')
+      .eq('id', input.customer_contract_id).eq('company_id', companyId).eq('customer_id', input.customer_id).maybeSingle();
+    if (contract.error) throw contract.error;
+    if (!contract.data) throw new Error('Dokumentets avtal tillhör inte kunden och bolaget.');
+    const siteId = contract.data.customer_site_id ?? contract.data.site_id;
+    if (input.site_id && siteId && input.site_id !== siteId) throw new Error('Dokumentets anläggning stämmer inte med avtalet.');
+    if (input.metering_point_id && contract.data.metering_point_id
+      && input.metering_point_id !== contract.data.metering_point_id) throw new Error('Dokumentets mätpunkt stämmer inte med avtalet.');
+  }
+  if (input.metering_point_id) {
+    const point = await supabase.from('metering_points').select('id,customer_id,site_id')
+      .eq('id', input.metering_point_id).eq('company_id', companyId).maybeSingle();
+    if (point.error) throw point.error;
+    if (!point.data || (point.data.customer_id && point.data.customer_id !== input.customer_id)
+      || (input.site_id && point.data.site_id !== input.site_id)) throw new Error('Dokumentets mätpunkt tillhör inte kundens anläggning.');
+    if (point.data.site_id) await requireOwned('customer_sites', point.data.site_id);
+    else if (point.data.customer_id !== input.customer_id) throw new Error('Dokumentets mätpunkt saknar säker kundkoppling.');
+  }
+
+  const canonicalSignedImport = input.document_type === 'complete_agreement' && input.status === 'active'
+    && input.metadata?.source === 'customer_intake' && input.metadata?.documentRole === 'signed_agreement';
+  if (canonicalSignedImport) {
+    if (!actorId) throw new Error('En inloggad handläggare krävs för att importera ett signerat avtal.');
+    const writeAccess = await supabase.rpc('gridex_can_write_company', { p_company_id: companyId });
+    if (writeAccess.error) throw writeAccess.error;
+    if (writeAccess.data !== true) throw new Error('Skrivbehörighet till kundens bolag krävs för att importera ett signerat avtal.');
+    const permission = await supabaseService.rpc('gridex_assert_contract_permission', {
+      p_actor_user_id: actorId, p_permission: 'contracts.create',
+    });
+    if (permission.error) throw permission.error;
+  }
+  // The canonical import trigger emits a service-only contract event. Preserve
+  // the real actor on the row; do not impersonate a JWT role or weaken that gate.
+  const writer = canonicalSignedImport ? supabaseService : supabase;
+
   const payload = {
     company_id: companyId,
     customer_id: input.customer_id,
@@ -767,10 +817,12 @@ export async function saveCustomerAuthorizationDocument(
   };
 
   if (input.id) {
-    const { data, error } = await supabase
+    const { data, error } = await writer
       .from("customer_authorization_documents")
       .update(payload)
       .eq("id", input.id)
+      .eq('company_id', companyId)
+      .eq('customer_id', input.customer_id)
       .select("*")
       .single();
 
@@ -778,7 +830,7 @@ export async function saveCustomerAuthorizationDocument(
     return data as CustomerAuthorizationDocumentRow;
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await writer
     .from("customer_authorization_documents")
     .insert({
       ...payload,

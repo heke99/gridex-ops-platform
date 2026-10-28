@@ -26,7 +26,7 @@ function deps(overrides: Partial<AutoSendSigningLinkDeps> = {}) {
     loadContract: vi.fn(async () => ({ status: "pending_signature", signed_at: null })),
     loadCustomerEmail: vi.fn(async () => " Kund@Example.se "),
     hasActiveSignatureRequest: vi.fn(async () => false),
-    send: vi.fn(async () => ({}) as never),
+    send: vi.fn(async () => ({ deliveryStatus: "sent" }) as never),
     logError: vi.fn(),
     ...overrides,
   } satisfies AutoSendSigningLinkDeps;

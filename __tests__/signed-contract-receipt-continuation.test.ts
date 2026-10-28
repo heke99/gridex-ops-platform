@@ -76,7 +76,7 @@ beforeEach(() => {
   })
   h.requests.set('request-1', { id: 'request-1', company_id: 'tenant-a', token_hash: 'f'.repeat(64), used_at: '2026-10-07T09:00:00Z' })
   h.rpc.mockImplementation(async (name: string) => {
-    if (name === 'gridex_finalize_customer_contract_signature_v1') {
+    if (name === 'gridex_finalize_customer_contract_signature_v2') {
       h.signCount++
       // The signing transaction's trigger creates the pending continuation.
       h.deliveries.set('request-1', { company_id: 'tenant-a', customer_contract_id: 'contract-1', signature_request_id: 'request-1', state: 'pending', attempts: 0, next_attempt_at: '1970-01-01T00:00:00.000Z' })
