@@ -13,6 +13,8 @@ vi.mock('@/lib/platform/schemaReadiness', () => ({ assertPlatformSchemaReady: as
 vi.mock('@/lib/billing/invoiceReadiness', () => ({ getBillingPeriodLock: async () => null }))
 vi.mock('@/lib/metering/monthlyAutopilot', () => ({ runMeteringMarketDataAutopilot: async () => ({ review: 0, stopped: 0, requested: 0 }) }))
 vi.mock('@/lib/billing/underlayEngine', () => ({ generateBillingUnderlaysForMonth: async () => { if (io.underlayError) throw io.underlayError; return { created: 0 } } }))
+// J2-02: the correction step of the run is not under test here (no corrections).
+vi.mock('@/lib/billing/meteringCorrection', () => ({ recordMeteringCorrectionsAfterBilling: async (input: { billingMonth: string }) => ({ billingMonth: input.billingMonth, originals: 0, truncated: false, results: [], error: null }) }))
 vi.mock('@/lib/billing/supplyEndRegate', () => ({ regateSupplyEndValues: async () => ({ candidates: 0, evaluated: 0, billable: 0, failed: 0, errors: [] }) }))
 vi.mock('@/lib/billing/invoiceReviewPrepare', () => ({ prepareInvoiceDraftsForReview: async (input: { companyId: string }) => { io.prepared.push(input.companyId); return { underlays: 1, created: 1, blocked: 0, failed: 0 } } }))
 vi.mock('@/lib/automation/locks', async () => {

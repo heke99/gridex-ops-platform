@@ -3977,3 +3977,36 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
   - Världens bolag har bara `23-DDQ-PRODAT`. Där krävs en verifierad E66-profil innan J2-13 ser en E73. Det krävs också bilateral E73-kapabilitet och kvalificerad struktur.
   - Migrationen ska tillämpas av huvudagenten. Själva världssändningen av E73 i J2-13 har inte körts här.
   - S02 på samma route som en E66-profil stöds inte: routebeslutet kräver att profilens referens är meddelandets. S02 behöver en egen verifierad profil.
+### J2-02 En korrigering för en fakturerad månad når nu kunden som rättelse eller kreditering — PRODUKT, hög; RÄTTAD (väntar på världsverifiering i J2-10) — ägarbeslut 40
+- **Orsak:** `gridex_billing_source.capture_correction_v1` journalförde korrigeringen mot det låsta underlaget, och avstämningen visade den (`metering_corrections_after_billing`). Ingen kod fakturerade eller krediterade skillnaden.
+- **Rättning:** migration `20261028120000_j2_02_metering_correction_after_billing.sql` och ett nytt steg i månadskörningen (`lib/billing/meteringCorrection.ts`, anropat i `monthlyAutomation.ts` efter underlagen och före fakturautkasten).
+  - `gridex_record_metering_billing_corrections_v1` tar varje fakturerat, låst förbrukningsunderlag med journal. Per kvart räknas skillnaden: aktuell revision minus det som redan fakturerats (ursprungsraden eller senaste rättelse).
+  - Bara kvalificerade revisioner räknas: faktureringsgodkända, samma leveransperiod, kund och mätpunkt, källbasen kvalificerad med fastställd kvalitet (samma regler som lagringen). Övriga väntar och syns.
+  - Positiva skillnader ger ett tilläggsunderlag (`consumption`/`invoice`), negativa ett kreditunderlag (`consumption_correction`/`credit_invoice`), alltså en kreditfaktura.
+  - Underlaget hamnar i körningens månad (nästa faktura). Perioden är rättelsens hela Ediel- eller kalenderdygn inom ursprungsperioden, med ursprungets avtal och prissnapshot. Prissättningen sker därför med ursprungsmånadens priser.
+  - `lib/pricing/engine.ts`: bara energi- och kWh-komponenter (ingen månads- eller fakturaavgift). Raderna heter "Rättelse av mätvärden ÅÅÅÅ-MM" och bär rättelsens och ursprungsfakturans id.
+  - **Bindning och spårbarhet:** `metering_billing_corrections` (ursprungsfaktura, ursprungsunderlag, period, avtal, prissnapshot, riktning, flöde, godkännande) och `metering_billing_correction_revisions` (föregående och aktuellt värde per kvart). Varje rättelse får ett `billing_adjustment_cases`-ärende: `rebill_queued` → `completed`, eller `credit_queued` → `credited` med `credit_invoice_id`. Fakturan stämplas med `correction_of_invoice_id` m.m.
+  - **Aldrig två gånger:** (ursprungsunderlag, rad, aktuellt värde) är unikt, under lås per ursprungsunderlag. En ny revision ger bara skillnaden mot det redan fakturerade. En faktura per rättelse; aldrig mot en makulerad ursprungsfaktura; tecknet kontrolleras; rättelseunderlaget och dess rader kan inte ändras.
+  - **Avslutad kund eller ingen nästa faktura** (avtalet uppsagt eller leveransen avslutad): flöde `separate_correction`. Rättelsen blir en egen rättelse- eller kreditfaktura bunden till ursprungsfakturan.
+  - **Gräns styr bara godkännande:** `metering_correction_policies`, plattformsstandard 500 kWh per rättelse (tenant- och kundkategorirader går före). Över gränsen: `pending_approval` och ett blockerat ärende. Beslut tas i `gridex_decide_metering_billing_correction_v1` (`billing_underlay.export`); avvisning kräver skäl. Ny avstämningskontroll `metering_corrections_awaiting_approval`. Ingen rättelse försvinner.
+  - **Ingen tidsgräns.** Preskription och avtalsregler per kundkategori är en krok: `prescription_rule` `not_enforced` (standard) eller `manual_review`, som styr kategorin till manuellt godkännande. Kategorin (`customers.customer_type`) sparas på rättelsen.
+  - **Avstämning:** `metering_corrections_after_billing` räknar bara underlag vars korrigeringar ännu inte täcks (`correctionPending` från `gridex_read_billing_underlay_source_basis_v1`). Ett rättelsedokument räknas inte som dubbelfakturering.
+  - Ett fel i steget fäller aldrig månaden (J2-01). Det blir en blockering i körningen och syns i avstämningen.
+- **Skyddade objekt:** exakta textbyten i `gridex_read_billing_underlay_source_basis_v1` (ny gren och ny nyckel) och `gridex_create_billing_export_run` (rättelseunderlag med egen rättelserad godtas, som brytavgift). Ägare, ACL, säkerhetsläge och inställningar kontrolleras. Avgränsad överlämning: `handover-J2-02.md`.
+- **Tester:**
+  - `scripts/reality-j2-02-metering-correction-native.test.ts` (världens databas, A:s och C:s riktiga J2-data, återrullat), 6 fall:
+    - +0,288 kWh blir exakt ett tilläggsunderlag i körningsmånaden (24 revisioner, dygnet 10 september, ursprungets snapshot och avtal, bundet till ursprungsfakturan). Omkörning och en senare månad ger inget nytt. Ursprungsfakturan, underlaget, raderna och bindningen är oförändrade.
+    - Exportkörningen godtar dokumentet men vägrar fortfarande ett obundet underlag. Fel tecken, en andra faktura, ändring av underlaget och borttagning av rader vägras.
+    - En negativ skillnad blir ett kreditunderlag och en kreditfaktura; ett positivt belopp vägras.
+    - Uppsagd kund: `separate_correction`.
+    - Makulerad ursprungsfaktura: rättelsen faktureras inte.
+    - Över gränsen väntar rättelsen, och omkörningen skapar inget. Avvisning utan skäl vägras. Efter godkännande skapas underlaget en gång.
+  - `__tests__/reality-j2-02-metering-correction-pricing.test.ts`, 9 fall: septemberpris i oktoberkörningen; ingen månads- eller fakturaavgift (men den finns på månadens vanliga underlag); kredit med negativa rader; strikt läsning av databasresultatet; databasfel fäller inte månaden; avstämningens tre kontroller.
+  - Världens J2-10 förväntar nu ett rättelseutkast på exakt skillnaden, prissatt för september utan avgifter, bundet till A:s faktura. En tredje körning ger inget nytt.
+  - `billing-monthly-company-isolation` och `reality-f117-billing-preparation-without-dispatch` har fått en mock för det nya steget (inte masterplan-bundna). 16 befintliga testfiler för underlag, prissättning och avstämning: 122/122.
+- **Kvarstår:**
+  - Varje rättelse är en egen faktura (motorn är en faktura per underlag); samfakturering sker bara via befintlig `consolidated_invoice`.
+  - En fullständig omfakturering (hel kredit och ersättningsfaktura, beslut 40 alternativ a) byggs inte; dokumentet är bundet till ursprungsfakturan och bär hela skillnaden.
+  - Ett låst underlag som korrigeras innan det fakturerats får ingen rättelse (utfallet `original_not_invoiced`). Det är synligt som blockering och i avstämningen. Den befintliga spärren (`require_underlay_v1`) står kvar.
+  - Produktionsvärden (riktning `production`) omfattas inte. I J2-13:s `billed_vs_basis` grupperas kreditunderlag på riktningen `consumption_correction`.
+  - Det finns inget operatörsgränssnitt för godkännande ännu; funktionen anropas via tjänsten.

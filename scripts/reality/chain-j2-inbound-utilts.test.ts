@@ -337,7 +337,7 @@ describe.sequential('reality J2 — inbound UTILTS: metering, corrections, settl
     invoiced = Boolean(underlayOf(byRole('invoiced')) && state.invoices.some(i => i.underlay === underlayOf(byRole('invoiced'))!.id))
   }, 60 * 60_000)
 
-  it('J2-10 a correction for the invoiced month: the invoice is not touched, nothing is billed twice, the difference is surfaced', async (context) => {
+  it('J2-10 a correction for the invoiced month: the invoice is not touched, the difference reaches the customer once as a correction (owner decision 40)', async (context) => {
     requireStep(invoiced, 'J2-10', 'A was not invoiced for September (J2-9)', context)
     const A = byRole('invoiced'), original = effective(A.gsrn).get(CORRECTED_DAY)!
     const corrected = correctedValues(original, { every: 4, deltaKwh: 0.012 })
@@ -362,11 +362,13 @@ describe.sequential('reality J2 — inbound UTILTS: metering, corrections, settl
     // J2-01: one corrected facility must not fail the tenant's whole month.
     expect(lastRun?.status, `J2-01: the tenant month after a correction: ${JSON.stringify(lastRun)}`).not.toBe('failed')
     // Never mutate an issued invoice, never bill twice.
-    const invoiceA = (state: typeof after) => { const u = state.underlays.find(x => x.facility === A.gsrn && x.direction === 'consumption'); return state.invoices.filter(i => i.underlay === u?.id) }
+    // A's own September underlay (a correction document of the run carries charge_kind 'metering_correction').
+    const ownA = (state: typeof after) => state.underlays.find(x => x.facility === A.gsrn && x.direction === 'consumption' && !x.kind)
+    const invoiceA = (state: typeof after) => { const u = ownA(state); return state.invoices.filter(i => i.underlay === u?.id) }
     expect(invoiceA(after).map(({ updated: _, ...i }) => i), 'A\'s invoice draft is unchanged').toEqual(invoiceA(before).map(({ updated: _, ...i }) => i))
-    expect(after.invoices.length, 'no second invoice for any customer').toBe(before.invoices.length)
-    expect(after.exportItems.length, 'no second export item').toBe(before.exportItems.length)
-    expect(after.underlays.find(u => u.facility === A.gsrn && u.direction === 'consumption')?.kwh, 'A\'s finalized underlay keeps its kWh').toBe(before.underlays.find(u => u.facility === A.gsrn && u.direction === 'consumption')?.kwh)
+    // J2-02: the only new invoice draft and export item is A's correction document (checked below).
+    expect(after.exportItems.length, 'only the correction document gets an export item').toBe(before.exportItems.length + 1)
+    expect(ownA(after)?.kwh, 'A\'s finalized underlay keeps its kWh').toBe(ownA(before)?.kwh)
     // The correction is surfaced to operations (daily reconciliation cron, /admin/system-health).
     const daily = await cron(`/api/cron/reconciliation/daily?company_id=${tenant.companyId}`)
     const checks = ((daily.body.result as Row | undefined)?.applicationChecks as { checks?: Array<Row> } | undefined)?.checks ?? []
@@ -375,11 +377,42 @@ describe.sequential('reality J2 — inbound UTILTS: metering, corrections, settl
     report.reconciliationAfterCorrection = { daily: { status: daily.status, correctionCheck, duplicate: checks.find(check => check.key === 'duplicate_billing_per_contract_period') ?? null },
       endToEnd: { status: endToEnd.status, body: endToEnd.body } }
     expect(daily.status).toBe(200)
-    const underlayA = after.underlays.find(u => u.facility === A.gsrn && u.direction === 'consumption')!
-    expect(correctionCheck, 'J2-02: the daily reconciliation names the corrected invoiced underlay').toMatchObject({ count: 1, sampleIds: [underlayA.id] })
-    // J2-02 (open, product decision): no path bills or credits the difference. Soft so the run states it every time.
-    const credit = after.underlays.filter(u => u.facility === A.gsrn && u.direction === 'consumption_correction')
-    expect.soft(credit.length + after.invoices.length - before.invoices.length, `J2-02: the corrected ${kwhSum(corrected) - kwhSum(original)} kWh reach A through a credit/re-invoice (no such path exists)`).toBeGreaterThan(0)
+    const underlayA = ownA(after)!
+    // J2-02 / owner decision 40: the difference reaches A as one correction document of the re-run (the next invoice):
+    // a charge of exactly the corrected kWh over the original Ediel day 10 September, bound to A's original invoice,
+    // priced with September's rules, energy only (no monthly or invoice fee), never twice.
+    const deltaKwh = kwhSum(corrected) - kwhSum(original)
+    const correction = sql<Row[]>(`SELECT coalesce(jsonb_agg(jsonb_build_object('direction',mc.direction,'kwh',mc.delta_kwh,'revisions',mc.revision_count,'status',mc.status,
+        'flow',mc.flow,'invoice',mc.original_invoice_id,'underlay',mc.correction_underlay_id,'start',u.billing_period_start,'end',u.billing_period_end,
+        'draft',(SELECT jsonb_build_object('id',i.id,'kwh',i.total_kwh,'exVat',i.amount_ex_vat,'of',i.metadata->>'correction_of_invoice_id')
+          FROM public.customer_invoices i WHERE i.billing_underlay_id=u.id AND i.status<>'cancelled' LIMIT 1),
+        'lines',(SELECT coalesce(jsonb_agg(jsonb_build_object('type',l.line_type,'description',l.description,'amount',l.amount_ex_vat) ORDER BY l.sort_order),'[]')
+          FROM public.pricing_runs r JOIN public.pricing_preview_lines l ON l.pricing_run_id=r.id WHERE r.billing_underlay_id=u.id AND r.status='locked'))),'[]')
+      FROM public.metering_billing_corrections mc LEFT JOIN public.billing_underlays u ON u.id=mc.correction_underlay_id
+      WHERE mc.company_id=${literal(tenant.companyId)} AND mc.original_billing_underlay_id=${literal(underlayA.id)}`)
+    report.correctionDocument = correction
+    expect(correction, 'J2-02: exactly one correction document for A').toHaveLength(1)
+    expect(correction[0], JSON.stringify(correction[0])).toMatchObject({ direction: deltaKwh > 0 ? 'charge' : 'credit', revisions: changed.length, status: 'invoiced',
+      flow: 'next_invoice', invoice: invoiceA(before)[0].id, start: CORRECTED_DAY, end: '2026-09-11' })
+    expect(Number(correction[0].kwh)).toBeCloseTo(Math.abs(deltaKwh), 6)
+    const draft = correction[0].draft as Row
+    expect(draft, 'J2-02: the correction is a draft bound to the original invoice').toMatchObject({ of: invoiceA(before)[0].id })
+    expect(Number(draft.kwh)).toBeCloseTo(Math.abs(deltaKwh), 6)
+    expect(Math.sign(Number(draft.exVat)), 'J2-02: a positive correction is charged, a negative one credited').toBe(Math.sign(deltaKwh))
+    const lines = correction[0].lines as Row[]
+    expect(lines.length, 'J2-02: the correction is priced').toBeGreaterThan(0)
+    expect(lines.filter(line => /fixed_monthly_fee|invoice_fee/.test(String(line.type)) || /Månadsavgift|Fakturaavgift/.test(String(line.description))),
+      'J2-02: no monthly or invoice fee for the correction').toEqual([])
+    expect(lines.every(line => String(line.description).startsWith(`Rättelse av mätvärden ${MONTH}`)), 'J2-02: priced over the original month').toBe(true)
+    // Exactly one new invoice draft (the correction); handled corrections leave the reconciliation check.
+    expect(after.invoices.length, 'only the correction is a new invoice').toBe(before.invoices.length + 1)
+    expect(correctionCheck, 'J2-02: the handled correction no longer needs action').toMatchObject({ count: 0 })
+    // A third run (the next 6-hour cron) bills nothing again.
+    const third = await cron(`/api/cron/billing/monthly?company_id=${tenant.companyId}&billing_month=${MONTH}`)
+    expect(third.status).toBe(200)
+    const afterThird = billingState(tenant.companyId, 2026, 9)
+    expect(afterThird.invoices.length, 'J2-02: the same correction is never charged twice').toBe(after.invoices.length)
+    expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.metering_billing_corrections WHERE company_id=${literal(tenant.companyId)} AND original_billing_underlay_id=${literal(underlayA.id)}`)).toBe(1)
   }, 60 * 60_000)
 
   it('J2-11 a correction for part of a day (12 September 06:00–12:00) in a file covering only that window', async (context) => {

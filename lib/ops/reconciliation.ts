@@ -339,7 +339,10 @@ async function checkDuplicateBillingPerContractPeriod(context: CheckContext): Pr
       // One underlay per energy direction and supply segment is the engine's own unit: production next to
       // consumption, two supply periods in one month, or the settlement of an earlier preliminary month
       // (credit + final charge over that month's period) are not duplicates. Overlapping segments are.
-      const kind = stringValue(row.source_system) === 'consumption_estimate_reconciliation' ? 'settlement' : 'regular'
+      // A metering correction of an invoiced period (J2-02) is its own document over the corrected days; the database
+      // binds each metering revision to at most one correction, so it never duplicates the original underlay.
+      const kind = stringValue(row.source_system) === 'consumption_estimate_reconciliation' ? 'settlement'
+        : stringValue(row.source_system) === 'metering_correction_after_billing' ? `metering_correction:${String(row.id)}` : 'regular'
       const key = `${anchor}:${numberValue(row.underlay_year)}-${numberValue(row.underlay_month)}:${stringValue(row.energy_direction) ?? 'consumption'}:${kind}`
       const ids = groups.get(key) ?? []
       ids.push(String(row.id))
@@ -373,7 +376,7 @@ async function checkMeteringCorrectionsAfterBilling(context: CheckContext): Prom
   const base = {
     key: 'metering_corrections_after_billing',
     label: 'Mätvärden korrigerade efter fakturering',
-    description: 'Nätägaren har korrigerat mätvärden som redan ingår i ett fakturerat underlag. Fakturan ändras inte; differensen måste krediteras eller omfaktureras.',
+    description: 'Nätägaren har korrigerat mätvärden som redan ingår i ett fakturerat underlag och differensen har ännu inte blivit en rättelse eller kreditering. Fakturan ändras inte.',
     severity: 'critical' as const,
   }
   try {
@@ -404,11 +407,42 @@ async function checkMeteringCorrectionsAfterBilling(context: CheckContext): Prom
         })
         if (error) throw error
         for (const basis of (Array.isArray(data) ? data : []) as Record<string, unknown>[]) {
-          if (basis.correctionRequired === true) corrected.push(String(basis.id))
+          // J2-02 / owner decision 40: once every corrected revision is covered by a correction document
+          // (correctionPending false) the difference is handled; older databases without the key keep reporting it.
+          if (basis.correctionRequired === true && basis.correctionPending !== false) corrected.push(String(basis.id))
         }
       }
     }
     return [{ ...base, count: corrected.length, sampleIds: corrected.slice(0, SAMPLE_LIMIT) }]
+  } catch (error) {
+    if (missingSchema(error)) return [{ ...base, count: 0, sampleIds: [], error: 'schema_missing' }]
+    return [{ ...base, count: 0, sampleIds: [], error: error instanceof Error ? error.message : 'unknown' }]
+  }
+}
+
+/**
+ * Corrections of invoiced periods that wait for a person (J2-02, owner decision 40): above the documented approval
+ * threshold, or for a customer category whose prescription rule requires review. Never dropped; shown until decided.
+ */
+async function checkMeteringCorrectionsAwaitingApproval(context: CheckContext): Promise<ReconciliationCheckResult[]> {
+  const base = {
+    key: 'metering_corrections_awaiting_approval',
+    label: 'Rättelser efter fakturering som väntar på godkännande',
+    description: 'En rättelse av en redan fakturerad period ligger över beloppsgränsen eller kräver granskning för kundkategorin. Den faktureras eller krediteras först efter manuellt beslut.',
+    severity: 'warning' as const,
+  }
+  try {
+    let query = supabaseService
+      .from('metering_billing_corrections')
+      .select('id')
+      .eq('status', 'pending_approval')
+      .order('created_at', { ascending: true })
+      .limit(SCAN_LIMIT)
+    if (context.companyId) query = query.eq('company_id', context.companyId)
+    const { data, error } = await query
+    if (error) throw error
+    const ids = ((data ?? []) as Record<string, unknown>[]).map((row) => String(row.id))
+    return [{ ...base, count: ids.length, sampleIds: ids.slice(0, SAMPLE_LIMIT) }]
   } catch (error) {
     if (missingSchema(error)) return [{ ...base, count: 0, sampleIds: [], error: 'schema_missing' }]
     return [{ ...base, count: 0, sampleIds: [], error: error instanceof Error ? error.message : 'unknown' }]
@@ -490,6 +524,7 @@ export async function runProductionConsistencyChecks(input: {
     checkSentItemsWithoutProviderGuid(context),
     checkDuplicateBillingPerContractPeriod(context),
     checkMeteringCorrectionsAfterBilling(context),
+    checkMeteringCorrectionsAwaitingApproval(context),
     checkRetryQueueHealth(context),
     checkSettlementReconciliation(context),
   ])).flat()

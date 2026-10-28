@@ -741,7 +741,7 @@ async function buildReconciliations(input: {
 
 const FINALIZED_UNDERLAY_REFUSAL = "billing_source_finalized_underlay_requires_correction";
 const FINALIZED_CORRECTION_WARNING =
-  "finalized_underlay_requires_correction: Mätvärden i ett redan låst fakturaunderlag har korrigerats. Underlaget och fakturan ändras inte; differensen kräver kreditering eller omfakturering.";
+  "finalized_underlay_requires_correction: Mätvärden i ett redan låst fakturaunderlag har korrigerats. Underlaget och fakturan ändras inte; differensen faktureras eller krediteras som rättelse bunden till fakturan (J2-02).";
 
 function isFinalizedUnderlayRefusal(error: unknown): boolean {
   const candidate = error as { code?: unknown; message?: unknown } | null;

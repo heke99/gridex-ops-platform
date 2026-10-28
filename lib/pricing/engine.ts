@@ -471,6 +471,19 @@ async function persistPricingRun(
   return runId;
 }
 
+/** The binding of a metering-correction underlay (J2-02): every line names the correction and the original invoice. */
+export function meteringCorrectionContext(payload: Record<string, unknown>): { direction: "charge" | "credit"; metadata: Record<string, unknown> } {
+  return {
+    direction: payload.correction_direction === "credit" ? "credit" : "charge",
+    metadata: {
+      metering_correction_id: stringValue(payload.metering_correction_id),
+      correction_of_invoice_id: stringValue(payload.original_invoice_id),
+      correction_of_billing_underlay_id: stringValue(payload.original_billing_underlay_id),
+      original_billing_month: stringValue(payload.original_billing_month),
+    },
+  };
+}
+
 export async function calculatePricingPreviewForUnderlay(input: {
   companyId: string;
   billingUnderlayId: string;
@@ -584,9 +597,13 @@ export async function calculatePricingPreviewForUnderlay(input: {
   // month that is the original preliminary period, not the run's month.
   const priceMonth = spotPriceMonth(underlay.periodStart, billingMonth);
   // Fixed monthly/invoice fees were charged on the preliminary invoice.
+  // J2-02 / owner decision 40: a metering correction of an invoiced period carries energy only, priced over its
+  // original period with the original contract price snapshot; no monthly or invoice fee is charged again.
+  const meteringCorrection = underlayPayload.charge_kind === "metering_correction" ? meteringCorrectionContext(underlayPayload) : null;
   const energyComponentsOnly =
     underlay.energyDirection === "consumption_correction" ||
-    Boolean(underlay.reconciliationOf);
+    Boolean(underlay.reconciliationOf) ||
+    meteringCorrection !== null;
 
   if (underlay.energyDirection === "production") {
     let productionResult: PricingPreviewResult;
@@ -769,13 +786,17 @@ export async function calculatePricingPreviewForUnderlay(input: {
   const periodLabel = priceMonth;
   const labelledLines = [...base.lines, ...component.lines].map((line) => ({
     ...line,
-    description: underlay.reconciliationOf
+    description: meteringCorrection
+      ? `Rättelse av mätvärden ${periodLabel} (${meteringCorrection.direction === "credit" ? "kreditering" : "tilläggsdebitering"}, bunden till ursprungsfakturan) – ${line.description}`
+      : underlay.reconciliationOf
       ? `Avräkning ${periodLabel} (${underlay.energyDirection === "consumption_correction" ? "preliminär förbrukning krediteras" : "faktisk förbrukning"}) – ${line.description}`
       : underlay.preliminary
         ? `Preliminär – uppskattad förbrukning ${periodLabel} – ${line.description}`
         : line.description,
   }));
-  const calculatedLines = labelledLines;
+  const calculatedLines = meteringCorrection
+    ? labelledLines.map((line) => ({ ...line, metadata: { ...(line.metadata ?? {}), ...meteringCorrection.metadata } }))
+    : labelledLines;
   const result = finalizePricingPreview({
     billingUnderlayId: input.billingUnderlayId,
     lines:

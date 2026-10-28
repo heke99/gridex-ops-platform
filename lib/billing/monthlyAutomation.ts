@@ -10,6 +10,7 @@ import { formatErrorMessage } from '@/lib/errors'
 import { parseBillingMonth, previousStockholmBillingMonth } from '@/lib/time/stockholm'
 import { runMeteringMarketDataAutopilot, type MeteringAutopilotResult } from '@/lib/metering/monthlyAutopilot'
 import { regateSupplyEndValues } from '@/lib/billing/supplyEndRegate'
+import { recordMeteringCorrectionsAfterBilling, type MeteringCorrectionRun } from '@/lib/billing/meteringCorrection'
 
 type JsonRecord = Record<string, unknown>
 type MonthlyBillingAutomationStatus = 'running' | 'completed' | 'completed_with_blockers' | 'failed'
@@ -21,6 +22,7 @@ export type MonthlyBillingAutomationCompanyResult = {
   automationRunId: string | null
   metering?: MeteringAutopilotResult | null
   underlayResult?: Awaited<ReturnType<typeof generateBillingUnderlaysForMonth>> | null
+  meteringCorrections?: MeteringCorrectionRun | null
   preparation?: Awaited<ReturnType<typeof prepareInvoiceDraftsForReview>> | null
   prepared?: number
   blocked?: number
@@ -29,6 +31,12 @@ export type MonthlyBillingAutomationCompanyResult = {
 }
 
 function text(value: unknown): string | null { return typeof value === 'string' && value.trim() ? value.trim() : null }
+/** Corrections that did not become a document in this run: an error, manual approval, or a revision still held. */
+export function correctionBlockerCount(run: MeteringCorrectionRun): number {
+  return (run.error ? 1 : 0) + run.results.reduce((sum, result) => sum
+    + result.corrections.filter((document) => document.status !== 'underlaid').length
+    + (result.outcome === 'waiting_for_qualified_revision' || result.outcome === 'original_not_invoiced' ? 1 : 0), 0)
+}
 function billingMonth(value: unknown): string { return parseBillingMonth(text(value) ?? previousStockholmBillingMonth()).value }
 
 async function listCompanies(companyId?: string | null): Promise<JsonRecord[]> {
@@ -108,11 +116,16 @@ export async function runMonthlyBillingAutomationForCompany(input: { companyId: 
         // Values held only because their supply was ending are gated again before underlays (FINDINGS H2/H3).
         const supplyEndRegate = await regateSupplyEndValues({ companyId: input.companyId, billingMonth: periodMonth })
         const underlayResult = await generateBillingUnderlaysForMonth({ companyId: input.companyId, billingMonth: periodMonth, createdBy: actorUserId })
+        // J2-02 / owner decision 40: corrections of already invoiced periods become correction/credit documents of this
+        // run (the next invoice), priced over the original period; the original invoice is never touched. A failure
+        // never fails the month (J2-01); it is a blocker of the run and stays visible in reconciliation.
+        const meteringCorrections = await recordMeteringCorrectionsAfterBilling({ companyId: input.companyId, billingMonth: periodMonth, actorUserId })
+        const correctionBlockers = correctionBlockerCount(meteringCorrections)
         const preparation = await prepareInvoiceDraftsForReview({ companyId: input.companyId, billingMonth: periodMonth, environment, provider, actorUserId })
-        const meteringBlockers = metering.review + metering.stopped + metering.requested
+        const meteringBlockers = metering.review + metering.stopped + metering.requested + correctionBlockers
         const status: MonthlyBillingAutomationStatus = meteringBlockers > 0 || preparation.blocked > 0 || preparation.failed > 0 ? 'completed_with_blockers' : 'completed'
-        await finishRun({ companyId: input.companyId, automationRunId, actorUserId, status, totalUnderlays: preparation.underlays, totalBlocked: preparation.blocked + meteringBlockers, totalPrepared: preparation.created, metadata: { source: 'monthly_billing_prepare_only_v3', approval_required: true, metering_autopilot: metering, supply_end_regate: supplyEndRegate, underlay_result: underlayResult, preparation } })
-        return { companyId: input.companyId, billingMonth: periodMonth, status, automationRunId, metering, underlayResult, preparation, prepared: preparation.created, blocked: preparation.blocked + meteringBlockers, failed: preparation.failed }
+        await finishRun({ companyId: input.companyId, automationRunId, actorUserId, status, totalUnderlays: preparation.underlays, totalBlocked: preparation.blocked + meteringBlockers, totalPrepared: preparation.created, metadata: { source: 'monthly_billing_prepare_only_v3', approval_required: true, metering_autopilot: metering, supply_end_regate: supplyEndRegate, underlay_result: underlayResult, metering_corrections: meteringCorrections, preparation } })
+        return { companyId: input.companyId, billingMonth: periodMonth, status, automationRunId, metering, underlayResult, meteringCorrections, preparation, prepared: preparation.created, blocked: preparation.blocked + meteringBlockers, failed: preparation.failed }
       } catch (error) {
         // A PostgREST error is a plain object, not an Error: keep its message/code (reality G10 lost a statement timeout).
         const message = formatErrorMessage(error, 'Okänt fel i månatlig fakturaförberedelse.')
