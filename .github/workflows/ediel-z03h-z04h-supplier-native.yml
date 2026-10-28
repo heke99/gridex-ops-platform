@@ -44,6 +44,14 @@ jobs:
       - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1 (branch snapshot)
         with:
           version: 2.101.0
+      - name: Prime content-verified Supabase bootstrap image caches
+        shell: bash
+        env:
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          python3 scripts/gridex-prime-verified-postgres-cache-selftest.py
+          python3 scripts/gridex-prime-verified-postgres-cache.py
       - name: Execute bilateral H catalog and whole proposals after disposable clean replay
         shell: bash
         env:
