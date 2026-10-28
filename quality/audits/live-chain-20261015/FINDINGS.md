@@ -3911,3 +3911,9 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
   - en ny körning gör ingenting och skapar inget andra ärende;
   - inga andra tabeller än `metering_points` skrivs.
   - Resultat: 1/1 grönt.
+
+### F9/T48 Månadsprisets medelvärde — ägarbeslut 41; BEKRÄFTAT, regressioner tillagda (`af52dcad9`)
+- **Beslut 41 = dagens beteende:** befintliga `variable_monthly`-avtal faktureras med det aritmetiska medelspotpriset för avtalad kalendermånad (civil månad), också när underlaget avser Ediel-månaden (00:00 +0100 den 1:a). Tim- och kvartsavtal prissätts per levererat intervall.
+- **Annan metod:** ingen avtalskolumn för medelvärdesmetod finns. Den enda metod ett avtal kan ange är `interval_resolution` i den låsta prisögonblicksbilden, och den följs (också mot avtalstypen).
+- **Ändring:** reglerna i `lib/pricing/engine.ts` är nu namngivna (`spotPriceMonth`, `spotIntervalResolution`), utan beteendeändring.
+- **Test:** `__tests__/reality-owner-41-monthly-spot-price.test.ts`, 9 fall. Positivt: civil månad för Ediel-månadsunderlag, ursprungsperiodens månad vid avstämning, F:s belopp 687,92 kr med etiketten "Medelspotpris", och tim/kvart per intervall. Negativt: ingen påhittad månad utan datum, och timavtal märks aldrig "Medelspotpris". `tsc` grön.
