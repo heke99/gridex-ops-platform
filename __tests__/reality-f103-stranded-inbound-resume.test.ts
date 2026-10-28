@@ -248,3 +248,44 @@ describe('F103 stranded inbound Ediel message', () => {
     expect(committed).toBe(true)
   }, 10_000)
 })
+
+// reality-defects: F-B1d
+// F-B1d (reality F6c, batches 13-15): an E66 whose processing failed after it was already 'validated' (a deadlock, then
+// a time-out) and five CONTRL/APERAK left 'parsed' were selected by no resume, because only 'received' was resumable.
+// A message that got past 'received' and has a business-processing failure note on its own timeline is now resumed too,
+// in the same lane, tenant and attempt limit; a completed resume closes it.
+describe('F-B1d a message stranded after it got past received', () => {
+  const failureNote = (id: string) => io.tables.ediel_message_events.push({ ediel_message_id: id, event_type: 'manual_note', event_status: 'error',
+    payload: { inboundBusinessProcessing: 'inbound_business_processing_failed', phase: 'first_run' } })
+  const resume = (companyId?: string) => resumeStrandedInboundEdielMessages({ environment: 'production', actorUserId: 'actor', workerId: 'w', graceMinutes: 2,
+    ...(companyId ? { companyId } : {}), process: async (id: string) => { io.processed.push(id) } })
+
+  it('a validated message with a failure note is resumed once and then closed', async () => {
+    io.tables.ediel_messages.push(z04(STRANDED, 'mail-1', { status: 'validated', processing_status: 'validated', updated_at: minutesAgo(30) }))
+    io.tables.inbound_email_messages.push(mail('mail-1'))
+    failureNote(STRANDED)
+    expect(await resume()).toMatchObject({ claimed: 1, resumed: 1 })
+    expect(io.processed).toEqual([STRANDED])
+    expect(eventsOf(STRANDED).some((event) => (event.payload as Row).kind === 'completed')).toBe(true)
+    io.tables.ediel_messages[0].updated_at = minutesAgo(30)
+    expect(await resume()).toMatchObject({ claimed: 0 })
+  })
+
+  it('a validated or parsed message without a failure note is never selected', async () => {
+    io.tables.ediel_messages.push(z04(STRANDED, 'mail-1', { status: 'validated', processing_status: 'validated', updated_at: minutesAgo(30) }),
+      z04(SIBLING, 'mail-2', { status: 'parsed', processing_status: 'parsed', updated_at: minutesAgo(30) }))
+    io.tables.inbound_email_messages.push(mail('mail-1'), mail('mail-2'))
+    expect(await resume()).toMatchObject({ claimed: 0 })
+    expect(io.processed).toEqual([])
+  })
+
+  it('another tenant\'s or another lane\'s stranded message is not resumed by a tenant-scoped run', async () => {
+    io.tables.ediel_messages.push(z04(STRANDED, 'mail-1', { company_id: COMPANY_B, status: 'parsed', processing_status: 'parsed', updated_at: minutesAgo(30) }),
+      z04(SIBLING, 'mail-2', { environment: 'test', status: 'parsed', processing_status: 'parsed', updated_at: minutesAgo(30) }))
+    io.tables.inbound_email_messages.push(mail('mail-1', { company_id: COMPANY_B }), mail('mail-2'))
+    failureNote(STRANDED); failureNote(SIBLING)
+    expect(await resume(COMPANY_A)).toMatchObject({ claimed: 0 })
+    expect(io.processed).toEqual([])
+  })
+})
+

@@ -30,7 +30,8 @@ export type StrandedResumeOptions = {
   now?: () => Date;
 };
 
-export type ClaimedStrandedMessage = { id: string; companyId: string; attempt: number; maxAttempts: number };
+/** progressed: the message got past 'received' before its processing failed (F-B1d); its own status is kept by the claim. */
+export type ClaimedStrandedMessage = { id: string; companyId: string; attempt: number; maxAttempts: number; progressed?: boolean };
 
 export type StrandedResumeResult = {
   candidates: number;
@@ -48,9 +49,13 @@ type CandidateRow = {
   environment: string | null;
   inbound_email_message_id: string | null;
   updated_at: string | null;
+  status?: string | null;
+  processing_status?: string | null;
 };
 
 const STRANDED_STATUS = "received";
+/** F-B1d: statuses a message reaches during business processing before it can still fail (validation, linking). */
+const PROGRESSED_STATUSES = ["parsed", "validated"];
 
 function clampInt(value: number | undefined, fallback: number, min: number, max: number): number {
   const number = Number.isFinite(value) ? Math.trunc(value as number) : fallback;
@@ -133,6 +138,39 @@ async function countResumeAttempts(ids: string[]): Promise<Map<string, number>> 
   return counts;
 }
 
+/** F-B1d: messages whose business processing failed after they got past 'received' (the first-run or resume failure
+ * note is on their own timeline) and that no later resume completed: more failure notes than completed resumes. */
+async function progressedFailureIds(lookbackCutoff: string, max: number): Promise<string[]> {
+  const { data, error } = await supabaseService
+    .from("ediel_message_events")
+    .select("ediel_message_id,payload")
+    .eq("event_type", "manual_note")
+    .eq("event_status", "error")
+    .gt("created_at", lookbackCutoff)
+    .order("created_at", { ascending: false })
+    .limit(max);
+  if (error) throw error;
+  const failed = new Set<string>();
+  for (const row of (data ?? []) as Array<{ ediel_message_id?: string | null; payload?: unknown }>) {
+    if (row.ediel_message_id && payloadOf(row.payload).inboundBusinessProcessing === INBOUND_BUSINESS_PROCESSING_FAILURE_MARKER) failed.add(row.ediel_message_id);
+  }
+  if (failed.size === 0) return [];
+  const { data: events, error: eventError } = await supabaseService
+    .from("ediel_message_events")
+    .select("ediel_message_id,payload")
+    .in("ediel_message_id", [...failed])
+    .eq("event_type", "manual_note");
+  if (eventError) throw eventError;
+  const balance = new Map<string, number>();
+  for (const row of (events ?? []) as Array<{ ediel_message_id?: string | null; payload?: unknown }>) {
+    const payload = payloadOf(row.payload);
+    if (!row.ediel_message_id) continue;
+    if (payload.inboundBusinessProcessing === INBOUND_BUSINESS_PROCESSING_FAILURE_MARKER) balance.set(row.ediel_message_id, (balance.get(row.ediel_message_id) ?? 0) + 1);
+    if (payload.resume === STRANDED_INBOUND_RESUME_MARKER && payload.kind === "completed") balance.set(row.ediel_message_id, (balance.get(row.ediel_message_id) ?? 0) - 1);
+  }
+  return [...failed].filter((id) => (balance.get(id) ?? 0) > 0);
+}
+
 /**
  * Selects inbound Ediel messages that were stored and tenant-resolved, whose
  * mail intake finished, but whose business processing never moved them past
@@ -150,7 +188,7 @@ export async function claimStrandedInboundEdielMessages(options: StrandedResumeO
 
   let query = supabaseService
     .from("ediel_messages")
-    .select("id,company_id,environment,inbound_email_message_id,updated_at")
+    .select("id,company_id,environment,inbound_email_message_id,updated_at,status,processing_status")
     .eq("direction", "inbound")
     .eq("environment", options.environment)
     .eq("status", STRANDED_STATUS)
@@ -164,7 +202,30 @@ export async function claimStrandedInboundEdielMessages(options: StrandedResumeO
   const { data, error } = await query.order("updated_at", { ascending: true }).limit(limit * 4);
   if (error) throw error;
 
-  const rows = ((data ?? []) as CandidateRow[]).filter((row) =>
+  // F-B1d: the same scope for messages that got past 'received' before their processing failed.
+  const progressedIds = await progressedFailureIds(lookbackCutoff, limit * 40);
+  let progressedRows: CandidateRow[] = [];
+  if (progressedIds.length) {
+    let progressedQuery = supabaseService
+      .from("ediel_messages")
+      .select("id,company_id,environment,inbound_email_message_id,updated_at,status,processing_status")
+      .in("id", progressedIds)
+      .eq("direction", "inbound")
+      .eq("environment", options.environment)
+      .in("status", PROGRESSED_STATUSES)
+      .eq("tenant_resolution_status", "tenant_resolved")
+      .not("company_id", "is", null)
+      .not("inbound_email_message_id", "is", null)
+      .lt("updated_at", graceCutoff)
+      .gt("created_at", lookbackCutoff);
+    if (options.companyId) progressedQuery = progressedQuery.eq("company_id", options.companyId);
+    const { data: progressed, error: progressedError } = await progressedQuery.order("updated_at", { ascending: true }).limit(limit * 4);
+    if (progressedError) throw progressedError;
+    progressedRows = (progressed ?? []) as CandidateRow[];
+  }
+  const progressedSet = new Set(progressedRows.map((row) => row.id));
+
+  const rows = ([...((data ?? []) as CandidateRow[]), ...progressedRows.filter((row) => !((data ?? []) as CandidateRow[]).some((r) => r.id === row.id))]).filter((row) =>
     row.id && row.company_id && row.inbound_email_message_id && row.updated_at
     && row.environment === options.environment && !exclude.has(row.id)
     && (!options.companyId || row.company_id === options.companyId));
@@ -190,18 +251,19 @@ export async function claimStrandedInboundEdielMessages(options: StrandedResumeO
 
   const claimed: ClaimedStrandedMessage[] = [];
   for (const row of eligible) {
+    const progressed = progressedSet.has(row.id);
     const claim = await supabaseService
       .from("ediel_messages")
       .update({ updated_at: now.toISOString() })
       .eq("id", row.id)
       .eq("company_id", row.company_id as string)
-      .eq("status", STRANDED_STATUS)
-      .eq("processing_status", STRANDED_STATUS)
+      .eq("status", progressed ? String(row.status) : STRANDED_STATUS)
+      .eq("processing_status", progressed ? String(row.processing_status) : STRANDED_STATUS)
       .eq("updated_at", row.updated_at as string)
       .select("id");
     if (claim.error) throw claim.error;
     if ((claim.data ?? []).length === 0) continue;
-    claimed.push({ id: row.id, companyId: row.company_id as string, attempt: (attempts.get(row.id) ?? 0) + 1, maxAttempts });
+    claimed.push({ id: row.id, companyId: row.company_id as string, attempt: (attempts.get(row.id) ?? 0) + 1, maxAttempts, ...(progressed ? { progressed: true } : {}) });
   }
   return { candidates: intakeDone.length, claimed };
 }
@@ -252,7 +314,17 @@ export async function resumeStrandedInboundEdielMessages(input: StrandedResumeOp
       result.errors.push(`${item.id}: message not readable after resume`);
       continue;
     }
-    if (row.status !== STRANDED_STATUS || row.processing_status !== STRANDED_STATUS) {
+    // F-B1d: a progressed message keeps its status; a re-run that did not throw completed it.
+    if (item.progressed && !failure) {
+      result.resumed += 1;
+      await createEdielMessageEvent({
+        actorUserId: input.actorUserId, edielMessageId: item.id, eventType: "manual_note", eventStatus: "success",
+        message: "Inbound-affärsbehandlingen återupptogs och slutfördes.",
+        payload: { resume: STRANDED_INBOUND_RESUME_MARKER, kind: "completed", attempt: item.attempt, workerId: input.workerId },
+      });
+      continue;
+    }
+    if (!item.progressed && (row.status !== STRANDED_STATUS || row.processing_status !== STRANDED_STATUS)) {
       result.resumed += 1;
       continue;
     }
