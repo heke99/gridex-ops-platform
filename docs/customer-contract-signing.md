@@ -91,6 +91,11 @@ samtycke. Äldre signeringar utan ursprungligt fullmaktsbevis fylls inte ut med
 antaganden. Avtalsbekräftelsen bifogar den verifierade fullmakts-PDF:en när en
 sådan har godkänts. Misslyckad arkivering lämnar fortsatt hantering spärrad.
 
+Originalets kund- och tenantkoppling är låst. Kundsammanslagning som skulle
+skriva om en sådan online-fullmakt stoppas tills en separat, revisionsbevarande
+överföring har kvalificerats. Äldre fullmakters sammanslagningsprov bevisar
+inte stöd för denna nya källa. Bevislåset får inte lättas för att genomföra en merge.
+
 ## Uppladdning
 
 Dokumentkopior på dokumentfliken sparas i kundens arkiv. Ett redan signerat
