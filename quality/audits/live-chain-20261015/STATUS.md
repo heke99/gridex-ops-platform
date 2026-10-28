@@ -1,13 +1,19 @@
 # Verklighetssimuleringen — läge och nästa steg
 
-Uppdaterad 2026-10-28 kl. 15:05 UTC av Claude (session 01Az5xza…), som fortsätter på grenen `claude/wonderful-franklin-o8gx2p` (byggd på `claude/gifted-hamilton-vss1hj` `edeaed7d0`) på ägarens uppdrag. Tidigare session: 01YCH5Va…. Filen är tänkt att läsas först.
+Uppdaterad 2026-10-28 kl. 16:10 UTC av Claude (session 01Az5xza…), som fortsätter på grenen `claude/wonderful-franklin-o8gx2p` (byggd på `claude/gifted-hamilton-vss1hj` `edeaed7d0`) på ägarens uppdrag. Tidigare session: 01YCH5Va…. Filen är tänkt att läsas först.
 
 Den hör ihop med tre andra dokument:
 - [FINDINGS.md](FINDINGS.md): alla fynd. Inget tas bort därifrån.
-- [OWNER-DECISIONS.md](OWNER-DECISIONS.md): ägarens beslut, 25 st, och öppna frågor.
+- [OWNER-DECISIONS.md](OWNER-DECISIONS.md): ägarens beslut (1–43) och öppna frågor.
 - #840: anspråk och leveranser per fil.
 
 ## Var jag är nu
+- **Ägarbeslut 35–43 (2026-10-28 ca 15:40 UTC):** alla nio frågor besvarade och registrerade i OWNER-DECISIONS. Ägarens villkor: ändringar i skyddad kod och godkända tester kräver avgränsad överlämning, bevarade skydd och nya positiva och negativa regressioner.
+  - **41 månadspris:** bekräftat dagens beteende, regressioner (`af52dcad9`).
+  - **42 A-B5:** engångsbackfill genomförd och applicerad i världen (`b6ab5795e`): 32 ifyllda, 465 till granskning.
+  - **35–38 (J1-01/02/03/10), 39 (J1-14), 40 (J2-02), 43 (F48):** fyra agenter arbetar parallellt i egna arbetskopior. Överlämningar för låsta kroppar skrivs som `handover-<item>.md` och postas i #840.
+  - **Sjunde omstarten av containern (ca 15:55 UTC):** återställd med dockerd, gx-mail och `up.sh` med `SKIP_REPLAY=1`. Appen är ombyggd på `af52dcad9`.
+  - **Därefter:** integrera agenternas commits, applicera migrationerna i världen, bygg om och kör J1, J2 och F om. F bör köras i en ny värld (ny replay). Prestandafyndet (lagringen av ett underlag tar ca 6 s mot gränsen 8 s, G-6b) är fortfarande öppet.
 - **Ny session och ny container (2026-10-26 ca 20:50 UTC):** den förra containern finns inte kvar, så batch 5 och de fem agenterna (F113, J2-03/J2-05, J4-D15, A-B4, I-B4v) försvann utan leverans. Inget av agenternas arbete var pushat. Världen är byggd **från noll** (ny replay, ny databas) på `363fcab29`, med `REALITY_SVK_SOURCE=simulated REALITY_SPOT_SOURCE=synthetic`. Docker Hub gav 429; `up.sh` körs nu i en omförsökslinda (`/tmp/claude-0/up-retry.sh`).
   - **I-B4v RÄTTAD** (`363fcab29`) och **J2-03 RÄTTAD** (`063587a69`, migration `20261026180000`, applicerad i världen). Se FINDINGS.
   - **Batch 5 (ny) pågår från 21:21 UTC** på `063587a69`: K, I, A, J1, H, J2, J4, F, G i banan als och stuck-detector, grid-owner-wire i banan free. Logg `/tmp/claude-0/batch5.log`. E körs därefter i en egen värld med testbanan; C och J3 körs ensamma.
