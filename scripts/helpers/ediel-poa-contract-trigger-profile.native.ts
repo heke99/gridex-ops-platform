@@ -10,7 +10,7 @@ type FunctionImage={identity:string;ddl:string;owner:string|null;acl:string|null
 type TriggerImage={name:string;ddl:string;enabled:'O'|'A';function:string;bodyMD5:string}
 type Profile={functions:FunctionImage[];triggers:TriggerImage[];candidateSQLSHA256:string;candidateGuardBodyMD5:string}
 type ExistingFunction={identity:string;ddl:string;owner:string;acl:string|null}
-type Baseline={functions:ExistingFunction[];triggers:{name:string;ddl:string;enabled:'O'|'A'}[]}
+type Baseline={functions:ExistingFunction[];triggers:{name:string;ddl:string;enabled:'O'|'A';function:string}[]}
 const profile=JSON.parse(readFileSync(new URL('./ediel-poa-contract-trigger-profile.native.json',import.meta.url),'utf8')) as Profile
 const ident=(v:string)=>'"'+v.replaceAll('"','""')+'"'
 const functionNames=[...profile.functions.map(f=>f.identity),'public.gridex_customer_contracts_auto_renew_guard()']
@@ -21,7 +21,8 @@ function snapshot():Baseline {
   'identity',n.nspname||'.'||p.proname||'('||oidvectortypes(p.proargtypes)||')',
   'ddl',pg_get_functiondef(p.oid),'owner',pg_get_userbyid(p.proowner),'acl',p.proacl::text,'effectiveACL',${aclExpression}
  ) ORDER BY n.nspname,p.proname,p.proargtypes),'[]'::jsonb) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE ${functionSelector}),
- 'triggers',(SELECT coalesce(jsonb_agg(jsonb_build_object('name',t.tgname,'ddl',pg_get_triggerdef(t.oid,true),'enabled',t.tgenabled) ORDER BY t.tgname),'[]'::jsonb) FROM pg_trigger t WHERE t.tgrelid='public.customer_contracts'::regclass AND NOT t.tgisinternal))`)
+ 'triggers',(SELECT coalesce(jsonb_agg(jsonb_build_object('name',t.tgname,'ddl',pg_get_triggerdef(t.oid,true),'enabled',t.tgenabled,
+ 'function',(SELECT n.nspname||'.'||p.proname||'('||oidvectortypes(p.proargtypes)||')' FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE p.oid=t.tgfoid)) ORDER BY t.tgname),'[]'::jsonb) FROM pg_trigger t WHERE t.tgrelid='public.customer_contracts'::regclass AND NOT t.tgisinternal))`)
 }
 function aclDDL(f:ExistingFunction):string {
  // Revoke only for the function being restored. Current grantees may differ
@@ -36,6 +37,32 @@ function triggerDDL(triggers:Baseline['triggers']):string {
  return triggers.map(t=>`${t.ddl};ALTER TABLE public.customer_contracts ${t.enabled==='A'?'ENABLE ALWAYS':'ENABLE'} TRIGGER ${ident(t.name)};`).join('\n')
 }
 const dropTriggers=(ts:Baseline['triggers'])=>ts.map(t=>`DROP TRIGGER ${ident(t.name)} ON public.customer_contracts;`).join('\n')
+/** Retain existing private objects under their real owners. This disposable
+ * overlay may change only public objects owned by its existing postgres role. */
+export function planPoaProfileDelta(baseline:Baseline) {
+ if(baseline.triggers.some(t=>t.enabled!=='O'&&t.enabled!=='A'))throw Error('poa_profile_unsupported_baseline_trigger_mode')
+ const functions=profile.functions.filter(f=>{
+  const before=baseline.functions.find(b=>b.identity===f.identity)
+  const changed=!before||before.ddl!==f.ddl||before.owner!==f.owner||before.acl!==f.acl
+  if(!f.identity.startsWith('public.')||f.owner!=='postgres'||(before&&before.owner!=='postgres')) {
+   if(changed)throw Error('poa_profile_protected_function_changed')
+   return false
+  }
+  return changed
+ })
+ if(baseline.triggers.some(t=>!profile.triggers.some(p=>p.name===t.name)))throw Error('poa_profile_unrecognized_baseline_trigger')
+ const triggers=profile.triggers.filter(t=>{
+  const before=baseline.triggers.find(b=>b.name===t.name)
+  if(before&&before.function!==t.function)throw Error('poa_profile_trigger_binding_changed')
+  const changed=!before||before.ddl!==t.ddl||before.enabled!==t.enabled
+  if(!t.function.startsWith('public.')) {
+   if(changed)throw Error('poa_profile_protected_trigger_changed')
+   return false
+  }
+  return changed
+ })
+ return {functions,triggers}
+}
 export function readPoaCandidateMigration(input:{repositoryPath?:string;replayOriginalAnchor?:string}={}) {
  const name='20261028091248_allow_contract_signature_before_supply_start.sql'
  let migration:Buffer
@@ -60,17 +87,22 @@ export function installPoaContractTriggerProfile() {
  const candidateBefore=sql<string>(`SELECT to_jsonb(md5(prosrc)) FROM pg_proc WHERE oid='public.gridex_customer_contracts_auto_renew_guard()'::regprocedure`)
  const oldActual=profile.triggers.find(t=>t.function==='public.gridex_customer_contracts_auto_renew_guard()')!
  if(candidateBefore===oldActual.bodyMD5||candidateBefore!==profile.candidateGuardBodyMD5)throw Error('candidate_guard_not_installed')
+ const delta=planPoaProfileDelta(baseline)
+ const changedTriggerNames=new Set(delta.triggers.map(t=>t.name))
+ const changedFunctionNames=new Set(delta.functions.map(f=>f.identity))
+ const previousTriggers=baseline.triggers.filter(t=>changedTriggerNames.has(t.name))
+ const previousFunctions=baseline.functions.filter(f=>changedFunctionNames.has(f.identity))
+ // Read ACL inputs before the write; definitions, final ACLs and triggers
+ // commit together, without a default PUBLIC EXECUTE window.
+ const installFunctions=delta.functions.map(f=>f.ddl+';'+aclDDL({...f,owner:f.owner!})).join('\n')
  // Atomic overlay; any dependency/ACL/role mismatch rolls back, never softened.
  sql(`BEGIN;SET LOCAL search_path=public,pg_catalog;
- ${profile.functions.map(f=>f.ddl+';').join('\n')}
- ${dropTriggers(baseline.triggers)}
- ${triggerDDL(profile.triggers)}
+ ${installFunctions}
+ ${dropTriggers(previousTriggers)}
+ ${triggerDDL(delta.triggers)}
  COMMIT;`)
- // Apply actual effective ACL/owner after transactional function creation. Any
- // failure is fatal and restore() below is still required by the caller.
  let restored=false
  try {
-  for(const f of profile.functions)sql(`BEGIN;${aclDDL({...f,owner:f.owner!})}COMMIT;`)
   const functionReadback=sql<boolean>(`SELECT to_jsonb(count(*)=${profile.functions.length} AND bool_and(coalesce(
    md5(p.prosrc)=f.body_md5 AND pg_get_userbyid(p.proowner)=f.owner
    AND coalesce(p.proacl,acldefault('f',p.proowner)) @> coalesce(f.acl::aclitem[],acldefault('f',p.proowner))
@@ -86,11 +118,11 @@ export function installPoaContractTriggerProfile() {
   const now=snapshot()
   // Retain original baseline until after restoration succeeds; repeated calls
   // are harmless only after exact readback. Never use CASCADE to hide residue.
-  sql(`BEGIN;SET LOCAL search_path=public,pg_catalog;${dropTriggers(now.triggers)}
-   ${baseline.functions.map(f=>f.ddl+';').join('\n')}
-   ${profile.functions.filter(f=>!baseline.functions.some(b=>b.identity===f.identity)).map(f=>`DROP FUNCTION ${f.identity} RESTRICT;`).join('\n')}
-   ${triggerDDL(baseline.triggers)}COMMIT;`)
-  for(const f of baseline.functions)sql(`BEGIN;${aclDDL(f)}COMMIT;`)
+  const restoreFunctions=previousFunctions.map(f=>f.ddl+';'+aclDDL(f)).join('\n')
+  sql(`BEGIN;SET LOCAL search_path=public,pg_catalog;${dropTriggers(now.triggers.filter(t=>changedTriggerNames.has(t.name)))}
+   ${restoreFunctions}
+   ${delta.functions.filter(f=>!baseline.functions.some(b=>b.identity===f.identity)).map(f=>`DROP FUNCTION ${f.identity} RESTRICT;`).join('\n')}
+   ${triggerDDL(previousTriggers)}COMMIT;`)
   const after=snapshot()
   // Effective ACL equality rather than textual ACL element order. DDL and
   // trigger mode/body/owner remain exact; no generated files are changed.
