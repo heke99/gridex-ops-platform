@@ -18,6 +18,14 @@ export function takeReceivedSourceOwnerSeed(receipt: ReceivedSourceValidationRec
   return seed ?? null
 }
 
+/** F-B1b: a deadlock or serialization failure is not a validation failure; it reaches the caller, whose processing is
+ * retried in place (runWithTransientRetry). */
+function isTransientConflict(error: unknown): boolean {
+  const record = error && typeof error === 'object' ? (error as { code?: unknown; message?: unknown }) : {}
+  return record.code === '40P01' || record.code === '40001'
+    || (typeof record.message === 'string' && /deadlock detected|could not serialize access/i.test(record.message))
+}
+
 /** Failure remains an unconfirmed diagnostic: do not change the actual
  * canonical decision, ACK, customer persistence or ingestion outcome. */
 export async function recordReceivedSourceValidation(input: {
@@ -45,6 +53,7 @@ export async function recordReceivedSourceValidation(input: {
       ...(prodat?{p_source_function_facts_text:evidence.prodatSourceFunctionValidation?JSON.stringify(evidence.prodatSourceFunctionValidation):null,p_object_facts_text:evidence.prodatObjectValidation?JSON.stringify(evidence.prodatObjectValidation):null,p_application_facts_text:evidence.prodatApplicationValidation?JSON.stringify(evidence.prodatApplicationValidation):null,p_ignored_fields_text:evidence.prodatIgnoredFields?JSON.stringify(evidence.prodatIgnoredFields):null,p_response_facts_text:evidence.prodatResponseValidation?JSON.stringify(evidence.prodatResponseValidation):null}:{}),
       ...(utilts ? {p_transaction_facts_text:evidence.utiltsTransactionValidation ? JSON.stringify(evidence.utiltsTransactionValidation) : null,p_header_facts_text:evidence.utiltsHeaderValidation ? JSON.stringify(evidence.utiltsHeaderValidation) : null,p_functional_facts_text:evidence.utiltsFunctionalValidation ? JSON.stringify(evidence.utiltsFunctionalValidation) : null} : {}),
     }).abortSignal(AbortSignal.timeout(2000))
+    if (error && isTransientConflict(error)) throw error
     const factsHash = evidenceHash(evidence.factsText)
     if (error || !isEvidenceRecord(data) || data.version !== (utilts ? 4 : prodat?6:1) || data.companyId !== evidence.companyId || data.environment !== evidence.environment
       || data.sourceMessageId !== evidence.sourceMessageId || data.sourcePayloadHash !== evidence.sourcePayloadHash || data.factsHash !== factsHash
@@ -54,5 +63,8 @@ export async function recordReceivedSourceValidation(input: {
       freshOwnerSeeds.set(receipt,{original:capturedOriginal,evidence,assessmentId:data.assessmentId})
     }
     return receipt
-  } catch { return { status: 'unconfirmed', sourceDisposition: 'not_established' } }
+  } catch (error) {
+    if (isTransientConflict(error)) throw error
+    return { status: 'unconfirmed', sourceDisposition: 'not_established' }
+  }
 }
