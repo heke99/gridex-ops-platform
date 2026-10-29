@@ -671,9 +671,10 @@ begin
   if p_action='claim' then
     perform public.ediel_require_contract_records_available_v1(p_company_id,p_contract_id);
     insert into public.customer_contract_confirmation_deliveries(company_id,customer_contract_id,signature_request_id)
-      values(p_company_id,p_contract_id,p_request_id) on conflict(signature_request_id) do nothing;
+      values(p_company_id,p_contract_id,p_request_id) on conflict(company_id,signature_request_id) do nothing;
   end if;
-  select * into d from public.customer_contract_confirmation_deliveries where signature_request_id=p_request_id for update;
+  select * into d from public.customer_contract_confirmation_deliveries
+    where company_id=p_company_id and signature_request_id=p_request_id for update;
   if not found or d.company_id is distinct from p_company_id or d.customer_contract_id is distinct from p_contract_id then
     raise exception using errcode='23514',message='confirmation_binding_invalid';
   end if;

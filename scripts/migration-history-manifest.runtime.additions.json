@@ -278,6 +278,6 @@
     "20261023232114_preserve_qualified_underlay_pricing_snapshot.sql": "035467faad410a497075d6ec900b10ac85309a99e47dc426a97aed2d054f8f12",
     "20261024020125_ediel_inbound_graph_snapshot_basis.sql": "403d90ddee60e0f84d0d1a75cdf5bfb56dfe7ce0f5da1565622ff8fa96fc7f01",
     "20261024110000_g3_provisioning_revalidate_coalesce_fair_claim.sql": "d8bb160b8cb6b37a8465cbec68476e13750f76dbe90a74a21a1db6853ab76911",
-    "20261028091248_allow_contract_signature_before_supply_start.sql": "d08bb15da300f2d7daad27eec9a14d7071081c28d89392bd1319b9f5e308341e"
+    "20261028091248_allow_contract_signature_before_supply_start.sql": "83b072dfedbe98813b848caebdd2578231934b893169b5ae77f8cc97d4702e8d"
   }
 }

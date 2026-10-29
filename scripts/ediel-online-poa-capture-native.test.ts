@@ -150,7 +150,9 @@ it('fences an actual old-runtime service claim before delivery and advances only
  const wrong=await supabaseService.rpc('gridex_advance_contract_confirmation_v2',{...args,p_company_id:randomUUID()})
  expect(wrong.error?.message).toContain('confirmation_binding_invalid')
  const competing=await Promise.all([supabaseService.rpc('gridex_advance_contract_confirmation_v2',args),supabaseService.rpc('gridex_advance_contract_confirmation_v2',args)])
- expect(competing.every(r=>r.error===null)).toBe(true)
+ // Preserve each actual PostgREST error in a failed original; a boolean
+ // discarded the SQL cause of the tenant-key regression.
+ expect(competing.map(r=>r.error)).toEqual([null,null])
  expect(competing.filter(r=>(r.data as {claimed:boolean}).claimed)).toHaveLength(1)
  const claim=competing.find(r=>(r.data as {claimed:boolean}).claimed)!.data as {claimed:boolean;state:string;attempts:number;lease_until:string}
  expect(claim).toMatchObject({claimed:true,state:'pending',attempts:0});expect(typeof claim.lease_until).toBe('string')
@@ -179,7 +181,10 @@ it('preserves the original POA provenance against service relabels and authentic
  const relabel=await supabaseService.from('powers_of_attorney').update({source:'manual_pdf'}).eq('id',poaId).eq('company_id',f.companyId)
  expect(relabel.error?.message).toContain('poa_online_original_capture_immutable')
  for(const source of ['ops_online_signature',' OPS_ONLINE_SIGNATURE ','\u00a0ops_online_signature\ufeff']){
-  const inserted=await own.from('powers_of_attorney').insert({company_id:f.companyId,customer_id:f.customerId,site_id:f.siteId,source,scope:'supplier_switch',status:'draft',reference:'SYNTHETIC-'+randomUUID()})
+  // The canonical generated-reference default is service-only. Supply a
+  // valid synthetic reference so this JWT actually reaches the POA guard;
+  // retain its exact rejection and the zero-effects assertion below.
+  const inserted=await own.from('powers_of_attorney').insert({company_id:f.companyId,customer_id:f.customerId,site_id:f.siteId,source,scope:'supplier_switch',status:'draft',reference:'SYNTHETIC-'+randomUUID(),power_of_attorney_reference:'poa_'+randomUUID().replaceAll('-','')})
   expect(inserted.error?.message).toContain('poa_online_capture_service_role_required')
  }
  expect(effects()).toEqual(before)

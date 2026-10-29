@@ -22,6 +22,10 @@ beforeEach(async()=>{
  INSERT INTO customer_contracts VALUES('${contract}','${company}','${customer}','signed',now(),jsonb_build_object('schema','gridex_online_contract_signature_v2','company_id','${company}','customer_id','${customer}','contract_id','${contract}','signature_request_id','${request}'),'${'a'.repeat(64)}');
  INSERT INTO customer_contract_signature_requests VALUES('${request}','${company}','${customer}','${contract}',now());`)
  await db.exec(readFileSync('supabase/migrations/20261009100000_ops_api_contract_confirmation_delivery_continuation.sql','utf8'))
+ // Use the actual tenant-scoped key migration, not the superseded global
+ // request key. The real native catalog exposed this missing fixture step.
+ await db.exec(`CREATE TABLE public.platform_table_classification(table_name text PRIMARY KEY,kind text,rationale text,classified_by text)`)
+ await db.exec(readFileSync('supabase/migrations/20261009220000_classify_contract_confirmation_deliveries.sql','utf8'))
  await db.exec(`INSERT INTO customer_contract_confirmation_deliveries(company_id,customer_contract_id,signature_request_id) VALUES('${company}','${contract}','${request}')`)
  await db.exec(`GRANT SELECT ON customer_contracts,customer_contract_signature_requests TO service_role;SET request.jwt.claim.role='service_role';SET ROLE service_role;`)
  // Execute the unfenced original old worker against the same fixture with
@@ -78,6 +82,17 @@ it('rejects wrong tenant and damaged continuation without classifying it as lega
  await db.exec(`RESET ROLE;ALTER TABLE customer_contract_confirmation_deliveries DISABLE TRIGGER customer_contract_confirmation_runtime_guard_tg;UPDATE customer_contract_confirmation_deliveries SET customer_contract_id=gen_random_uuid();ALTER TABLE customer_contract_confirmation_deliveries ENABLE TRIGGER customer_contract_confirmation_runtime_guard_tg;SET ROLE service_role;`)
  await expect(advance('claim')).rejects.toThrow('confirmation_binding_invalid')
  await expect(db.exec('UPDATE customer_contract_confirmation_deliveries SET attempts=1')).rejects.toThrow('confirmation_binding_invalid')
+})
+it('claims only its company when the same request appears in an invalid foreign continuation',async()=>{
+ const other='eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'
+ await db.exec(`RESET ROLE;INSERT INTO companies VALUES('${other}');
+ INSERT INTO customer_contract_confirmation_deliveries(company_id,customer_contract_id,signature_request_id)
+ VALUES('${other}','${contract}','${request}');SET ROLE service_role;`)
+ const claim=await advance('claim');expect(claim).toMatchObject({claimed:true,attempts:0})
+ await expect(advance('claim',null,null,other)).rejects.toThrow('confirmation_binding_invalid')
+ const rows=await db.query<{company:string;attempts:number;leased:boolean}>(`SELECT company_id::text AS company,attempts,next_attempt_at>now()+interval '5 minutes' AS leased
+ FROM customer_contract_confirmation_deliveries ORDER BY company_id`)
+ expect(rows.rows).toEqual([{company,attempts:0,leased:true},{company:other,attempts:0,leased:false}])
 })
 it('computes retry limits from locked attempts and denies anon/authenticated RPC execution',async()=>{
  for(const role of ['anon','authenticated']){
