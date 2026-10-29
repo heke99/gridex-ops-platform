@@ -239,7 +239,7 @@ async function importSyntheticSpot(params: Main03Params, salt: number): Promise<
 
 /** Read-only: is (month, area) already locked, and does every stored hourly price equal this fixture's? */
 function lockedSpotMonthMatches(params: Main03Params, salt: number): { locked: boolean; matches: boolean; detail: string } {
-  const status = dbRead<string | undefined>(`SELECT status FROM public.spot_price_monthly_summaries
+  const status = dbRead<string | undefined>(`SELECT to_json(status) FROM public.spot_price_monthly_summaries
     WHERE source='elprisetjustnu' AND price_area=${lit(params.priceArea)} AND billing_month=${lit(params.billingMonth)}`)
   if (status !== 'locked') return { locked: false, matches: false, detail: String(status ?? 'absent') }
   const month = syntheticMonth(params.billingMonth)
