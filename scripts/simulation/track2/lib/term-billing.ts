@@ -302,11 +302,13 @@ export async function prepareAndLockSpotMonth(area: PriceAreaCode, month: string
 
   let lockedVia: 'route' | 'rpc' = 'rpc'
   if (session) {
+    const t0 = performance.now()
     const res = await session.fetch('/api/internal/spot/lock-month', {
       method: 'POST', headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ billing_month: month, price_area: area, reason: 'sim term02' }),
     })
     const text = await res.text()
+    logPerf('spot/lock-month', session, month, rows.length, res.status, performance.now() - t0)
     if (res.status !== 200) throw new Error(`lock-month svarade ${res.status}: ${text.slice(0, 400)}`)
     lockedVia = 'route'
   } else {
@@ -343,12 +345,29 @@ export function assertNoSpotImportSince(before: { runs: number; jobs: number }, 
 
 export type HttpResult<T> = { status: number; body: unknown; data: T | null; text: string }
 
+let perfCalls = 0
+function companyOf(session: AppSession): string {
+  const m = /gridex_admin_selected_company_id=([0-9a-f-]{8})/.exec(session.cookieHeader)
+  return m ? m[1] : 'okänt'
+}
+/** En [PERF]-rad per POST: route, bolag (8 tecken), månad, antal rader, HTTP-status, ms, cold/warm (första anropet i processen = cold). */
+function logPerf(route: string, session: AppSession, month: string, rows: number | string, httpStatus: number, ms: number): void {
+  const warmCold = perfCalls === 0 ? 'cold' : 'warm'
+  perfCalls += 1
+  console.info(`[PERF] ${route} company=${companyOf(session)} month=${month} rows=${rows} httpStatus=${httpStatus} ms=${Math.round(ms)} warmCold=${warmCold}`)
+}
+
 async function postJson<T>(session: AppSession, path: string, payload: Record<string, unknown>): Promise<HttpResult<T>> {
+  const t0 = performance.now()
   const res = await session.fetch(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) })
   const text = await res.text()
+  const ms = performance.now() - t0
   let body: unknown = null
   try { body = JSON.parse(text) } catch { /* ingen JSON-kropp */ }
   const data = body && typeof body === 'object' && 'data' in body ? (body as { data: T }).data : null
+  const rows = (data as { sourceRows?: number } | null)?.sourceRows
+  const month = typeof payload.billing_month === 'string' ? payload.billing_month : 'okänd'
+  logPerf(path.replace('/api/internal/', ''), session, month, rows ?? 'okänt', res.status, ms)
   return { status: res.status, body, data, text: text.slice(0, 4000) }
 }
 
