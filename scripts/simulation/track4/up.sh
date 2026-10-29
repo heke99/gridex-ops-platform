@@ -1,107 +1,63 @@
 #!/usr/bin/env bash
-# Track 4 harness: start an own local stack from the run directory's HEAD.
-#   1. stack-src: copy of this checkout's supabase/ + scripts/ under SIM_HOME, with T4 ports and project_id
-#      patched in the COPY (tracked base files are never modified)
-#   2. clean migration replay (scripts/gridex-aud-003-clean-replay.sh in the copy) into a local Supabase
-#      (CLI, project gridex-sim-t4, API 55421, DB 55422). SKIP_REPLAY=1 reuses/adopts a running stack.
-#   3. SIM_HOME/env with local keys and random secrets (never committed, never logged)
-#   4. automation user, then `npm run build` (SKIP_BUILD=1 reuses a build of the same commit) and next start
-#      on 127.0.0.1:$T4_APP_PORT (default 3104)
-#   5. synthetic counterparty sink on loopback (see counterparties/sink.mjs)
-# Idempotent: a running, up-to-date stack/app/sink is left alone.
+# Track 4 harness: start an own local stack from the run directory's HEAD (contract: .claude/agents/sim-builder.md).
+#   1. NEW replay: sources scripts/gridex-aud-003-clean-replay.sh from the run directory root (cwd = run dir; supabase/config.toml and
+#      the replay script are never modified), then LOCAL_STACK_START_ATTEMPTED=0; cleanup; trap - EXIT; set -euo pipefail, so the
+#      stack stays up. Aborts with "BLOCKED: stacken upptagen" when a supabase_db_ container already runs. Never `supabase start`.
+#      SKIP_REPLAY=1 reuses the running stack (markers from the earlier replay must exist).
+#   2. SIM_HOME/env with local keys and random secrets (never committed, never logged)
+#   3. GreenMail (local SMTPS/IMAPS counterparty, local CA), automation user, `npm run build` (SKIP_BUILD=1 reuses a build of the
+#      same app commit) and next start on 127.0.0.1:$T4_APP_PORT (default 3104), loopback sink for every external URL
+# Markers (SIM_HOME): after a NEW replay only: fingerprint (the replay script's own EXPECTED_FINGERPRINT), replay-commit, replay-at,
+# empty applied-migrations.tsv; db-url (one line) whenever the stack is up; built-commit after a successful build.
+# Idempotent for app, mail and sink.
 set -euo pipefail
 # shellcheck disable=SC1091
 source "$(dirname "${BASH_SOURCE[0]}")/lib/common.sh"
 t4_init
 cd "$APP_DIR"
-HEAD_SHA="$(t4_head)"
+T4_HEAD_SHA="$(t4_head)"
 
 command -v supabase >/dev/null || t4_die "supabase CLI not found (expected $SIM_HOME/cli/node_modules/.bin/supabase, v2.101.0)"
 [ "$(supabase --version | tr -d '[:space:]')" = "2.101.0" ] || t4_die "supabase CLI must be exactly 2.101.0"
 command -v psql >/dev/null || t4_die "psql missing"
 command -v docker >/dev/null || t4_die "docker missing"
 
-# ---- 1+2: stack ------------------------------------------------------------------------------------
-prepare_stack_src() {
-  t4_log "preparing stack-src copy (ports api=$T4_API_PORT db=$T4_DB_PORT, project $T4_PROJECT_ID)"
-  rm -rf "$STACK_SRC"
-  mkdir -p "$STACK_SRC"
-  tar -C "$APP_DIR" --exclude='scripts/simulation' --exclude='supabase/.temp' --exclude='supabase/.branches' \
-    -cf - supabase scripts | tar -C "$STACK_SRC" -xf -
-  mkdir -p "$STACK_SRC/e2e-artifacts"
-  python3 - "$STACK_SRC" "$T4_PROJECT_ID" "$T4_API_PORT" "$T4_DB_PORT" "$T4_SHADOW_PORT" "$T4_POOLER_PORT" "$T4_STUDIO_PORT" "$T4_MAIL_PORT" "$T4_ANALYTICS_PORT" "$LOG_DIR" <<'PY'
-import pathlib, re, sys, difflib
-src, project, api, db, shadow, pooler, studio, mail, analytics, logdir = sys.argv[1:]
-root = pathlib.Path(src)
-
-# config.toml: project id, ports, analytics off (same set of changes as the runner's manual stack).
-cfg = root / 'supabase/config.toml'
-orig = cfg.read_text()
-section = None
-lines = []
-want = {('api', 'port'): api, ('db', 'port'): db, ('db', 'shadow_port'): shadow, ('db.pooler', 'port'): pooler,
-        ('studio', 'port'): studio, ('inbucket', 'port'): mail, ('analytics', 'port'): analytics}
-for line in orig.splitlines():
-    m = re.match(r'^\[([^\]]+)\]\s*$', line)
-    if m: section = m.group(1)
-    if re.match(r'^project_id\s*=', line): line = f'project_id = "{project}"'
-    k = re.match(r'^(port|shadow_port)\s*=', line)
-    if k and (section, k.group(1)) in want: line = f'{k.group(1)} = {want[(section, k.group(1))]}'
-    if section == 'analytics' and re.match(r'^enabled\s*=', line): line = 'enabled = false'
-    lines.append(line)
-new = '\n'.join(lines) + '\n'
-cfg.write_text(new)
-pathlib.Path(logdir, 'config.diff').write_text(''.join(difflib.unified_diff(orig.splitlines(True), new.splitlines(True), 'base/supabase/config.toml', 'supabase/config.toml')))
-
-# replay script: DB port (2 places) and keep-stack-on-exit switch (T4_KEEP_STACK=1).
-rs = root / 'scripts/gridex-aud-003-clean-replay.sh'
-o = rs.read_text()
-n = o
-for old, repl in (('127.0.0.1:54322/postgres', f'127.0.0.1:{db}/postgres'), ("'-p','54322'", f"'-p','{db}'"),
-                  ('    supabase stop --no-backup >/dev/null 2>&1 || true\n  fi\n  if [[ -n "${REPLAY_PG_VERSION_PINNED:-}" ]]',
-                   '    [[ "${T4_KEEP_STACK:-}" == 1 ]] || supabase stop --no-backup >/dev/null 2>&1 || true\n  fi\n  if [[ -n "${REPLAY_PG_VERSION_PINNED:-}" ]]')):
-    if n.count(old) != 1: raise SystemExit(f'replay script patch anchor not found exactly once: {old[:40]!r}')
-    n = n.replace(old, repl)
-rs.write_text(n)
-pathlib.Path(logdir, 'replay-script.diff').write_text(''.join(difflib.unified_diff(o.splitlines(True), n.splitlines(True), 'base/scripts/gridex-aud-003-clean-replay.sh', 'scripts/gridex-aud-003-clean-replay.sh')))
-PY
-}
-
-run_replay() {
-  prepare_stack_src
-  ( cd "$STACK_SRC" && supabase stop --no-backup >/dev/null 2>&1 || true )
-  t4_log "clean migration replay (several minutes), log $LOG_DIR/replay.log"
-  ( cd "$STACK_SRC" && T4_KEEP_STACK=1 bash scripts/gridex-aud-003-clean-replay.sh ) > "$LOG_DIR/replay.log" 2>&1 \
-    || t4_die "replay failed, see $LOG_DIR/replay.log"
-  grep -o 'schema fingerprint verified: [0-9a-f]*' "$LOG_DIR/replay.log" | tail -1 > "$SIM_HOME/fingerprint.txt" || true
-  echo "$HEAD_SHA" > "$SIM_HOME/replay-commit"
-  t4_now > "$SIM_HOME/replay-at"
-  : > "$SIM_HOME/applied-migrations.tsv"
-}
-
+# ---- 1: stack ------------------------------------------------------------------------------------------
 if [ "${SKIP_REPLAY:-0}" = 1 ]; then
   t4_db_ready || t4_die "SKIP_REPLAY=1 but no replayed schema on 127.0.0.1:$T4_DB_PORT"
-  if [ ! -s "$SIM_HOME/replay-commit" ]; then
-    # Adopting a stack that was replayed by hand: record the base commit (T4_ADOPT_REPLAY_COMMIT or T4_BASE_COMMIT),
-    # never HEAD. An existing replay-commit is never overwritten.
-    echo "${T4_ADOPT_REPLAY_COMMIT:-$T4_BASE_COMMIT}" > "$SIM_HOME/replay-commit"; t4_now > "$SIM_HOME/replay-at"; : > "$SIM_HOME/applied-migrations.tsv"
-    t4_log "adopted running stack (replay commit recorded as $(cat "$SIM_HOME/replay-commit"))"
-  fi
-  [ -d "$STACK_SRC" ] || t4_die "SKIP_REPLAY=1 needs $STACK_SRC to read stack keys"
-elif t4_db_ready && t4_same_app "$(cat "$SIM_HOME/replay-commit" 2>/dev/null || true)"; then
-  t4_log "stack already replayed from $(cat "$SIM_HOME/replay-commit") (HEAD $HEAD_SHA differs only in the harness)"
+  [ -s "$SIM_HOME/replay-commit" ] || t4_die "SKIP_REPLAY=1 but $SIM_HOME/replay-commit is missing (the stack was not replayed by this harness)"
+  t4_log "reusing replayed stack (replay-commit $(cat "$SIM_HOME/replay-commit"), HEAD $T4_HEAD_SHA)"
 else
-  run_replay
+  if [ -n "$(docker ps --filter name=supabase_db_ -q)" ]; then
+    echo "BLOCKED: stacken upptagen ($(docker ps --filter name=supabase_db_ --format '{{.Names}}' | tr '\n' ' '))" >&2
+    exit 1
+  fi
+  t4_log "clean migration replay (several minutes), log $LOG_DIR/replay.log"
+  # The sourced script overwrites ROOT, DB_URL, MIGRATIONS, SEED, HOLD and installs its own EXIT trap: nothing below depends on those.
+  # shellcheck disable=SC1091
+  source scripts/gridex-aud-003-clean-replay.sh > "$LOG_DIR/replay.log" 2>&1
+  T4_REPLAY_FINGERPRINT="$EXPECTED_FINGERPRINT"   # the script has already verified the schema against this value and aborts on mismatch
+  LOCAL_STACK_START_ATTEMPTED=0
+  cleanup
+  trap - EXIT
+  set -euo pipefail
+  [[ "$T4_REPLAY_FINGERPRINT" =~ ^[0-9a-f]{64}$ ]] || t4_die "replay script gave no fingerprint"
+  printf '%s\n' "$T4_REPLAY_FINGERPRINT" > "$SIM_HOME/fingerprint"
+  printf '%s\n' "$T4_HEAD_SHA" > "$SIM_HOME/replay-commit"
+  t4_now > "$SIM_HOME/replay-at"
+  : > "$SIM_HOME/applied-migrations.tsv"
 fi
+printf '%s\n' "$T4_DBURL" > "$SIM_HOME/db-url"
+chmod 600 "$SIM_HOME/db-url"
 
 # ---- 3: env ----------------------------------------------------------------------------------------
 if [ -d "$ENV_FILE" ]; then mv "$ENV_FILE" "$ENV_FILE.dir.$(date +%s)"; t4_log "moved aside a directory named env"; fi
 STATUS_ENV="$SIM_HOME/status.env"
-( cd "$STACK_SRC" && supabase status -o env ) > "$STATUS_ENV" 2>/dev/null || t4_die "supabase status failed (is the stack running?)"
+supabase status -o env > "$STATUS_ENV" 2>/dev/null || t4_die "supabase status failed (is the stack running?)"
 chmod 600 "$STATUS_ENV"
 t4_tls_prepare
-python3 - "$STATUS_ENV" "$ENV_FILE" "$T4_API_PORT" "$T4_DB_PORT" "$T4_APP_PORT" "$T4_SINK_PORT" "$HEAD_SHA" "$TLS_DIR" "$T4_SMTPS_PORT" "$T4_IMAPS_PORT" "$T4_MAIL_API_PORT" <<'PY'
-import pathlib, secrets, sys, uuid
+python3 - "$STATUS_ENV" "$ENV_FILE" "$T4_API_PORT" "$T4_DB_PORT" "$T4_APP_PORT" "$T4_SINK_PORT" "$T4_HEAD_SHA" "$TLS_DIR" "$T4_SMTPS_PORT" "$T4_IMAPS_PORT" "$T4_MAIL_API_PORT" <<'PY'
+import os, pathlib, secrets, sys, uuid
 status_path, env_path, api, db, app, sink, head, tls, smtps, imaps, mailapi = sys.argv[1:]
 status = {}
 for line in pathlib.Path(status_path).read_text().splitlines():
@@ -151,7 +107,7 @@ env.update({
   'GRIDEX_MANUAL_OPERATIONS_MAILBOX_PASS': test_pw,
   'NODE_EXTRA_CA_CERTS': f'{tls}/combined-ca.pem',
   # harness-only
-  'T4_SMTPS_PORT': smtps, 'T4_IMAPS_PORT': imaps, 'T4_MAIL_API_PORT': mailapi, 'T4_PROJECT_ID': 'gridex-sim-t4',
+  'T4_SMTPS_PORT': smtps, 'T4_IMAPS_PORT': imaps, 'T4_MAIL_API_PORT': mailapi, 'T4_PROJECT_ID': os.environ['T4_PROJECT_ID'],
   'GRIDEX_LIVE_APP_URL': f'http://127.0.0.1:{app}',
 })
 p.write_text(''.join(f'{k}={v}\n' for k, v in env.items()))
@@ -169,7 +125,7 @@ if ! curl -sf "${AUTH[@]}" "$NEXT_PUBLIC_SUPABASE_URL/auth/v1/admin/users/$GRIDE
   curl -sf "${AUTH[@]}" -H 'content-type: application/json' -X POST "$NEXT_PUBLIC_SUPABASE_URL/auth/v1/admin/users" \
     -d "{\"id\":\"$GRIDEX_AUTOMATION_USER_ID\",\"email\":\"t4-automation-$GRIDEX_AUTOMATION_USER_ID@example.invalid\",\"email_confirm\":true}" >/dev/null
 fi
-psql "$T4_DB_URL" -X -q -v ON_ERROR_STOP=1 <<SQL
+psql "$T4_DBURL" -X -q -v ON_ERROR_STOP=1 <<SQL
 INSERT INTO public.user_profiles(id,email,full_name,user_status)
 VALUES('$GRIDEX_AUTOMATION_USER_ID','t4-automation-$GRIDEX_AUTOMATION_USER_ID@example.invalid','T4 automation','active')
 ON CONFLICT (id) DO UPDATE SET user_status='active';
@@ -183,7 +139,7 @@ else
   rm -f "$SIM_HOME/built-commit" "$APP_DIR/.next/BUILD_ID"
   ( cd "$APP_DIR" && npm run -s build ) > "$LOG_DIR/next-build.log" 2>&1 || true
   [ -s "$APP_DIR/.next/BUILD_ID" ] || t4_die "build failed, see $LOG_DIR/next-build.log"
-  echo "$HEAD_SHA" > "$SIM_HOME/built-commit"
+  echo "$T4_HEAD_SHA" > "$SIM_HOME/built-commit"
 fi
 
 # sink first (the app's env points to it)

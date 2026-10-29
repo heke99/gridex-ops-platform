@@ -27,8 +27,6 @@ FILES = [
 PATCHES = [
   ('scripts/helpers/live-chain-fixture.ts', "?? 'http://127.0.0.1:3100'", "?? 'http://127.0.0.1:3104'"),
   ('scripts/helpers/live-chain-fixture.ts', "  smtpsPort: 3465,\n  imapsPort: 3993,", "  smtpsPort: Number(process.env.T4_SMTPS_PORT ?? 55425),\n  imapsPort: Number(process.env.T4_IMAPS_PORT ?? 55426),"),
-  ('scripts/helpers/live-chain-fixture.ts', "!== 'http://127.0.0.1:54321') throw Error('owned_local_only')", "!== 'http://127.0.0.1:55421') throw Error('owned_local_only')"),
-  ('scripts/helpers/live-chain-fixture.ts', "['postgresql://postgres:postgres@127.0.0.1:54322/postgres',", "[process.env.T4_DB_URL ?? 'postgresql://postgres:postgres@127.0.0.1:55422/postgres',"),
   # the shared mailbox is due for polling every minute instead of every 5 (poll_interval_minutes is mailbox configuration)
   ('scripts/helpers/live-chain-fixture.ts', "is_active=true,last_error=NULL,locked_at=NULL", "is_active=true,poll_interval_minutes=1,last_error=NULL,locked_at=NULL"),
   # lib/customers/registeredAddress.ts does not exist at the T4 base (the registered-address writer arrived later)

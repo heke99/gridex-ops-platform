@@ -7,15 +7,12 @@ T4_DIR="$(cd "$T4_LIB_DIR/.." && pwd)"
 # The run directory is the checkout this harness lives in (scripts/simulation/track4 -> repo root).
 APP_DIR="${T4_APP_DIR:-$(cd "$T4_DIR/../../.." && pwd)}"
 
-SIM_HOME="${SIM_HOME:-/home/user/sim-t4/home}"
-T4_PROJECT_ID="${T4_PROJECT_ID:-gridex-sim-t4}"
-T4_API_PORT="${T4_API_PORT:-55421}"
-T4_DB_PORT="${T4_DB_PORT:-55422}"
-T4_SHADOW_PORT="${T4_SHADOW_PORT:-55420}"
-T4_MAIL_PORT="${T4_MAIL_PORT:-55424}"
-T4_STUDIO_PORT="${T4_STUDIO_PORT:-55423}"
-T4_POOLER_PORT="${T4_POOLER_PORT:-55429}"
-T4_ANALYTICS_PORT="${T4_ANALYTICS_PORT:-55427}"
+SIM_HOME="${SIM_HOME:-$HOME/sim-home/track4}"
+# Supabase ports (54321 API, 54322 DB, ...) and project_id are fixed per container by supabase/config.toml, which this harness
+# never modifies (one stack per container). Only the app's and the counterparties' ports are variables.
+T4_PROJECT_ID="$(sed -n 's/^project_id *= *"\(.*\)".*/\1/p' "$APP_DIR/supabase/config.toml" | head -1)"
+T4_API_PORT=54321
+T4_DB_PORT=54322
 T4_APP_PORT="${T4_APP_PORT:-3104}"
 T4_SINK_PORT="${T4_SINK_PORT:-3194}"
 # Local synthetic mail counterparty (GreenMail): SMTPS / IMAPS / API on loopback-only host ports.
@@ -26,12 +23,12 @@ T4_MAIL_CONTAINER="${T4_MAIL_CONTAINER:-gx-t4-mail}"
 T4_GREENMAIL_IMAGE="${T4_GREENMAIL_IMAGE:-mirror.gcr.io/greenmail/standalone:2.1.3}"
 TLS_DIR="$SIM_HOME/tls"
 
-STACK_SRC="$SIM_HOME/stack-src"
 ENV_FILE="$SIM_HOME/env"
 LOG_DIR="$SIM_HOME/logs"
 PID_DIR="$SIM_HOME/pids"
 RUNS_DIR="$SIM_HOME/runs"
-DB_URL="postgresql://postgres:postgres@127.0.0.1:${T4_DB_PORT}/postgres"
+# NOT named DB_URL/ROOT/...: scripts/gridex-aud-003-clean-replay.sh is sourced by up.sh and overwrites those names.
+T4_DBURL="postgresql://postgres:postgres@127.0.0.1:${T4_DB_PORT}/postgres"
 
 # Supabase CLI is pinned: the replay script requires exactly 2.101.0.
 if [ -d "$SIM_HOME/cli/node_modules/.bin" ]; then PATH="$SIM_HOME/cli/node_modules/.bin:$PATH"; fi
@@ -57,6 +54,7 @@ t4_same_app() {
 
 t4_init() {
   mkdir -p "$SIM_HOME" "$LOG_DIR" "$PID_DIR" "$RUNS_DIR"
+  export T4_PROJECT_ID
   chmod 700 "$SIM_HOME" 2>/dev/null || true
 }
 
@@ -69,7 +67,7 @@ t4_wait_port() {
 
 # True when the replayed schema is present in the T4 database.
 t4_db_ready() {
-  [ "$(PGCONNECT_TIMEOUT=3 psql "$DB_URL" -X -At -c "select to_regclass('public.companies') is not null" 2>/dev/null || true)" = "t" ]
+  [ "$(PGCONNECT_TIMEOUT=3 psql "$T4_DBURL" -X -At -c "select to_regclass('public.companies') is not null" 2>/dev/null || true)" = "t" ]
 }
 
 t4_load_env() {
@@ -167,4 +165,23 @@ for box, pw in ((os.environ['GRIDEX_SHARED_EDIEL_PRODUCTION_EMAIL'], os.environ[
     with smtplib.SMTP_SSL('localhost', smtp_port, context=ctx) as smtp: smtp.login(box, pw)
     print(f'[t4] mailbox {box} claimed with the app credentials')
 PY
+}
+
+# ---- run lock ----------------------------------------------------------------------------------------------
+# SIM_HOME/run.lock is created atomically (noclobber) with PID and start time and removed on exit. An existing lock is never
+# taken over here: a stale one (dead PID, or PID/start time not matching a live process) is removed only by sim-runner.
+t4_lock_acquire() {
+  local lock="$SIM_HOME/run.lock" started
+  started="$(awk '{print $22}' "/proc/$$/stat" 2>/dev/null || echo 0)"
+  if ! ( set -o noclobber; printf 'pid=%s\nstarted=%s\nproc_start_ticks=%s\ncommand=%s\n' "$$" "$(t4_now)" "$started" "$(basename "$0") $*" > "$lock" ) 2>/dev/null; then
+    echo "[t4] refusing: $lock exists ($(tr '\n' ' ' < "$lock" 2>/dev/null))" >&2
+    return 1
+  fi
+  T4_LOCK_OWNER_PID="$$"
+  trap t4_lock_release EXIT
+}
+t4_lock_release() {
+  local lock="$SIM_HOME/run.lock"
+  [ "${T4_LOCK_OWNER_PID:-}" = "$$" ] && [ -f "$lock" ] && grep -qx "pid=$$" "$lock" && rm -f "$lock"
+  return 0
 }

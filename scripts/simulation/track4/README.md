@@ -1,12 +1,12 @@
 # Track 4 simulation harness (T4)
 
 Own local stack, separate from every other track. Base: `1c0c088cb4ed66d0dd8b3e34c9606019342a1a56`.
-Nothing here requires app changes; all state lives under `SIM_HOME` (default `/home/user/sim-t4/home`).
+Nothing here requires app changes; all state lives under `SIM_HOME`.
 
 ```
 up.sh                      start stack (replay) + app + sink; idempotent
 down.sh                    stop everything, verify no T4 container/volume/listener/process remains
-run.sh <scenario.mjs>      one run at a time (flock SIM_HOME/run.lock) -> SIM_HOME/runs/<run-id>/
+run.sh <scenario.mjs>      one run at a time (SIM_HOME/run.lock, noclobber) -> SIM_HOME/runs/<run-id>/
 lib/common.sh              ports, paths, guards
 runner/run-scenarios.mjs   Node scenario runner (@supabase/ssr, @supabase/supabase-js, fetch, psql)
 fixtures/seed.mjs          synthetic tenant fixture (steps FX01-FX06)
@@ -16,20 +16,30 @@ scenarios/billing-invoice-files.mjs   MAIN04.02/.05, BILLNEG01.01-.04, MAIN05.01
 counterparties/sink.mjs    loopback sink for every external base URL (nothing is expected to hit it)
 ```
 
-Ports (override by env): API 55421, DB 55422, shadow 55420, mail 55424 (configured, not started: the replay
-script excludes mailpit), app 3104, sink 3194. Project id `gridex-sim-t4`.
+Contract: `.claude/agents/sim-builder.md` ("Spårets harness: kontrakt", main c0a7060b1).
+Ports: Supabase 54321/54322 (and project_id) are fixed by `supabase/config.toml`, which is never modified (one stack per container);
+variables only for the app (`T4_APP_PORT`, 3104), the sink (3194) and GreenMail (`T4_SMTPS_PORT` 55425, `T4_IMAPS_PORT` 55426,
+`T4_MAIL_API_PORT` 55428). `SIM_HOME` defaults to `$HOME/sim-home/track4`.
 
 ## up.sh
-1. Copies `supabase/` and `scripts/` of the checkout to `SIM_HOME/stack-src` and patches the **copy**:
-   `config.toml` (project id, ports, analytics off) and `scripts/gridex-aud-003-clean-replay.sh` (DB port in two
-   places; `T4_KEEP_STACK=1` skips `supabase stop` in its EXIT trap). Diffs: `SIM_HOME/logs/config.diff`,
-   `replay-script.diff`. Same patch set as the runner's manual stack. Needs Supabase CLI exactly 2.101.0
-   (`SIM_HOME/cli/node_modules/.bin`) and `SUPABASE_INTERNAL_IMAGE_REGISTRY=ghcr.io` (defaulted).
-2. Runs the replay (writes `replay-commit`, `replay-at`, empty `applied-migrations.tsv`, `fingerprint.txt`).
-   Skipped when the DB is already replayed from HEAD; `SKIP_REPLAY=1` adopts a running stack.
-3. Writes `SIM_HOME/env` (mode 600; keys from `supabase status -o env`, random secrets, external URLs -> sink).
-4. Creates the automation user (GoTrue admin API + `user_profiles`), `npm run build` (writes `built-commit`;
-   `SKIP_BUILD=1` reuses a build of the same commit), `next start` on 3104, sink on 3194.
+1. **New replay** (no `SKIP_REPLAY`): aborts with `BLOCKED: stacken upptagen` if any `supabase_db_` container runs; otherwise, from the
+   run directory root, `source scripts/gridex-aud-003-clean-replay.sh; LOCAL_STACK_START_ATTEMPTED=0; cleanup; trap - EXIT;
+   set -euo pipefail` (the stack stays up; no own EXIT trap before `source`; no use of the script's variable names; no separate
+   `supabase start`; neither config.toml nor the script is copied or patched). Needs Supabase CLI exactly 2.101.0
+   (`SIM_HOME/cli/node_modules/.bin`) and `SUPABASE_INTERNAL_IMAGE_REGISTRY=ghcr.io` (defaulted). Only after this replay it writes
+   `SIM_HOME/fingerprint` (the script's own `EXPECTED_FINGERPRINT`, already verified by it), `replay-commit`, `replay-at` and an empty
+   `applied-migrations.tsv`. `SKIP_REPLAY=1` reuses the running stack and leaves those files untouched (it refuses if `replay-commit` is missing).
+   `db-url` (one line, local defaults) is written whenever the stack is up; `built-commit` after a successful build.
+2. Writes `SIM_HOME/env` (mode 600; keys from `supabase status -o env`, random secrets, external URLs -> sink, mail/Ediel keys).
+3. GreenMail + local CA, automation user, `npm run build` (`SKIP_BUILD=1` reuses a build of the same app commit: HEAD may differ from
+   `built-commit` only under `scripts/simulation/track4/`), next start on 3104, sink on 3194; the app restarts when `SIM_HOME/env` changes.
+
+`down.sh` stops app, sink, GreenMail, the grid-owner process and the Supabase stack (`supabase stop --no-backup` from the run directory,
+which also removes the volumes) and fails if a container, volume, port or process remains. `T4_KEEP_DB=1` keeps the Supabase stack.
+
+`run.sh <scenario>` needs `SIM_REPORT=<path>` (refuses otherwise) and writes the merged JSON report there: scenario ID per step
+(`scenarioId`; fixture steps are `FIXTURE`), status per step, vitest-style counts, `skipped` list. It creates `SIM_HOME/run.lock`
+atomically (noclobber; PID, start time, command), removes it on exit and refuses if it exists; `chain.sh` obeys the same lock.
 
 ## Fixture: what is a real entrypoint and what is SQL
 | Step | Mechanism | Detail |

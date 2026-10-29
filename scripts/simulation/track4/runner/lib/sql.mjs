@@ -1,5 +1,5 @@
 // SQL access for the T4 runner through psql (no pg driver is installed in node_modules).
-// Reads and fixture writes go straight to the T4 database on 127.0.0.1:55422 only.
+// Reads and fixture writes go straight to the T4 database on 127.0.0.1:54322 only.
 import { execFile } from 'node:child_process'
 
 /** SQL string literal. null/undefined -> NULL, objects -> JSON text. */

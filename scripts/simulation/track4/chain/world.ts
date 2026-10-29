@@ -9,7 +9,7 @@ import { resolve } from 'node:path'
 import { cron } from './vendor/scripts/helpers/live-chain-fixture'
 
 export const ROOT = resolve(__dirname, '../../../..')
-export const SIM_HOME = process.env.SIM_HOME ?? '/home/user/sim-t4/home'
+export const SIM_HOME = process.env.SIM_HOME ?? `${process.env.HOME}/sim-home/track4`
 
 export const freePort = () => new Promise<number>((res, rej) => {
   const s = createServer().once('error', rej)

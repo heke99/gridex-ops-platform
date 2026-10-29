@@ -28,8 +28,8 @@ export const literal = (v: unknown): string => v === null || v === undefined ? '
   : "'" + String(typeof v === 'object' ? JSON.stringify(v) : v).replaceAll("'", "''") + "'"
 
 export function sql<T = unknown>(input: string, timeoutMs = 60_000): T {
-  if (process.env.NEXT_PUBLIC_SUPABASE_URL !== 'http://127.0.0.1:55421') throw Error('owned_local_only')
-  const out = execFileSync('psql', [process.env.T4_DB_URL ?? 'postgresql://postgres:postgres@127.0.0.1:55422/postgres', '-XAtq', '-v', 'ON_ERROR_STOP=1'],
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL !== 'http://127.0.0.1:54321') throw Error('owned_local_only')
+  const out = execFileSync('psql', ['postgresql://postgres:postgres@127.0.0.1:54322/postgres', '-XAtq', '-v', 'ON_ERROR_STOP=1'],
     { input, encoding: 'utf8', timeout: timeoutMs, maxBuffer: 50_000_000 }).trim()
   if (out === 't' || out === 'f') return (out === 't') as T
   return (out ? JSON.parse(out) : undefined) as T

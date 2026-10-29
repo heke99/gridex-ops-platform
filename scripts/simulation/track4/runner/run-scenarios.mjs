@@ -11,7 +11,7 @@
 // ctx: { env, sql, sqlAdmin, http, assert, fixture, dbErrorsSince, value(k,v), finding(text), file(name, bytes), step }
 // Evidence recorded per step: http[] (status, bytes, sha256, location), db.before/after counts of the billing
 // tables for tenant A, db.delta, values{}, findings[], files[] (bytes + sha256).
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import assert from 'node:assert/strict'
@@ -21,14 +21,15 @@ import { createHttp, sha256Hex } from './lib/http.mjs'
 import { countsFor, diffCounts } from '../fixtures/flows.mjs'
 
 function parseArgs(argv) {
-  const args = { only: [], scenario: null, out: null }
+  const args = { only: [], scenario: null, out: null, report: null }
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--scenario') args.scenario = argv[++i]
     else if (argv[i] === '--out') args.out = argv[++i]
+    else if (argv[i] === '--report') args.report = argv[++i]
     else if (argv[i] === '--only') args.only.push(...argv[++i].split(','))
     else throw new Error(`unknown option ${argv[i]}`)
   }
-  if (!args.scenario || !args.out) throw new Error('usage: run-scenarios.mjs --scenario <file> --out <dir> [--only ID[,ID]]')
+  if (!args.scenario || !args.out || !args.report) throw new Error('usage: run-scenarios.mjs --scenario <file> --out <dir> --report <SIM_REPORT path> [--only ID[,ID]]')
   return args
 }
 
@@ -54,7 +55,7 @@ if (!scenarios) throw new Error('scenario file must export `scenarios` (array) o
 const sql = createSql(env.T4_DB_URL)
 // The product masks RPC errors (e.g. lib/billing/invoiceReviewPrepare.ts:454 -> "Draftfakturan kunde inte skapas.").
 // The real SQLSTATE/message is in the Postgres log, so every step records the ERROR/FATAL lines logged while it ran.
-const DB_CONTAINER = env.T4_DB_CONTAINER ?? `supabase_db_${env.T4_PROJECT_ID ?? 'gridex-sim-t4'}`
+const DB_CONTAINER = env.T4_DB_CONTAINER ?? `supabase_db_${env.T4_PROJECT_ID}`
 const dbErrorsSince = (sinceIso) => new Promise((resolve) => {
   execFile('docker', ['logs', '--since', sinceIso, DB_CONTAINER], { maxBuffer: 64 * 1024 * 1024 }, (error, stdout, stderr) => {
     if (error) return resolve([`(db log unavailable: ${String(error.message).slice(0, 120)})`])
@@ -68,6 +69,8 @@ const dbErrorsSince = (sinceIso) => new Promise((resolve) => {
 const sqlAdmin = createSql(env.T4_DB_URL.replace('//postgres:', '//supabase_admin:'))
 let anyFailed = false
 const summaryRows = []
+const allSteps = []
+const allScenarios = []
 
 for (const scenario of scenarios) {
   const startedAt = new Date().toISOString()
@@ -93,7 +96,7 @@ for (const scenario of scenarios) {
   const status = new Map()
   for (const step of scenario.steps) {
     const rec = {
-      id: step.id, name: `${step.id} ${step.title}`, scope: step.scope ?? null, mechanism: step.mechanism ?? null, note: step.note ?? null,
+      id: step.id, scenarioId: step.scenarioId ?? (step.fixture ? 'FIXTURE' : step.id), name: `${step.id} ${step.title}`, scope: step.scope ?? null, mechanism: step.mechanism ?? null, note: step.note ?? null,
       status: 'skipped', reason: null, startedAt: null, finishedAt: null, durationMs: 0, error: null,
       evidence: { http: [], dbErrors: [], db: { before: null, after: null, delta: null }, values: {}, findings: [], files: [] },
     }
@@ -144,9 +147,26 @@ for (const scenario of scenarios) {
   }
   writeFileSync(join(args.out, `report-${scenario.id}.json`), JSON.stringify(report, null, 2))
   summaryRows.push({ scenario: scenario.id, ...report.summary })
+  allSteps.push(...records.map((r) => ({ scenarioFileId: scenario.id, ...r })))
+  allScenarios.push({ id: scenario.id, title: scenario.title, summary: report.summary, skipped: report.skipped, startedAt, finishedAt: report.finishedAt })
   if (report.summary.failed > 0) anyFailed = true
 }
 
+// SIM_REPORT: one merged report; every step carries the scenario ID it belongs to (a scenario file may hold several IDs; PASS is
+// judged per ID from its own steps by the caller). Written atomically.
+{
+  const count = (st) => allSteps.filter((r) => r.status === st).length
+  const merged = {
+    runId: process.env.T4_RUN_ID ?? null, scenarioFile: resolve(args.scenario),
+    stack: { app: env.T4_APP_URL, api: env.NEXT_PUBLIC_SUPABASE_URL, appCommit: safeRead(join(simHome, 'built-commit')), replayCommit: safeRead(join(simHome, 'replay-commit')), fingerprint: safeRead(join(simHome, 'fingerprint')) },
+    summary: { total: allSteps.length, passed: count('passed'), failed: count('failed'), skipped: count('skipped') },
+    vitest: { numTotalTests: allSteps.length, numPassedTests: count('passed'), numFailedTests: count('failed'), numPendingTests: count('skipped') },
+    scenarios: allScenarios, skipped: allSteps.filter((r) => r.status === 'skipped').map((r) => ({ scenarioId: r.scenarioId, id: r.id, reason: r.reason })),
+    steps: allSteps,
+  }
+  writeFileSync(`${args.report}.tmp`, JSON.stringify(merged, null, 2))
+  renameSync(`${args.report}.tmp`, args.report)
+}
 writeFileSync(join(args.out, 'summary.json'), JSON.stringify({ runId: process.env.T4_RUN_ID ?? null, scenarios: summaryRows }, null, 2))
 console.log(JSON.stringify(summaryRows))
 process.exit(anyFailed ? 1 : 0)

@@ -29,14 +29,14 @@ docker rm -f "$T4_MAIL_CONTAINER" >/dev/null 2>&1 || true
 for f in "$PID_DIR"/gridowner-*.pid; do [ -f "$f" ] && stop_pid "$f"; done
 rm -f "$SIM_HOME/app-env.sha"
 if [ "${T4_KEEP_DB:-0}" != 1 ]; then
-  if [ -d "$STACK_SRC" ] && command -v supabase >/dev/null; then
-    ( cd "$STACK_SRC" && supabase stop --no-backup >/dev/null 2>&1 ) || true
+  if command -v supabase >/dev/null; then
+    ( cd "$APP_DIR" && supabase stop --no-backup >/dev/null 2>&1 ) || true
   fi
   # Anything the CLI left behind for this project id (containers, volumes, network).
   docker ps -aq --filter "name=_${T4_PROJECT_ID}\$" | xargs -r docker rm -f >/dev/null 2>&1 || true
   docker volume ls -q --filter "name=_${T4_PROJECT_ID}\$" | xargs -r docker volume rm -f >/dev/null 2>&1 || true
   docker network ls -q --filter "name=_${T4_PROJECT_ID}\$" | xargs -r docker network rm >/dev/null 2>&1 || true
-  rm -f "$SIM_HOME/replay-commit" "$SIM_HOME/replay-at" "$SIM_HOME/applied-migrations.tsv" "$SIM_HOME/built-commit" "$SIM_HOME/fixture.json" "$SIM_HOME/chain.json"
+  rm -f "$SIM_HOME/replay-commit" "$SIM_HOME/replay-at" "$SIM_HOME/applied-migrations.tsv" "$SIM_HOME/built-commit" "$SIM_HOME/fixture.json" "$SIM_HOME/chain.json" "$SIM_HOME/fingerprint" "$SIM_HOME/db-url"
 fi
 
 left=0

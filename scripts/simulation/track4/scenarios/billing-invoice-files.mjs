@@ -246,7 +246,7 @@ const steps = [
   },
 
   {
-    id: 'MAIN05.05b', title: 'invoice file id of another tenant -> 404 (and own file still 200)', scope: 'api', needs: ['MAIN05.01'],
+    id: 'MAIN05.05b', scenarioId: 'MAIN05.05', title: 'invoice file id of another tenant -> 404 (and own file still 200)', scope: 'api', needs: ['MAIN05.01'],
     async run(ctx) {
       const fx = ctx.fixture, a = await ensureSession(ctx, 'A'), b = await ensureSession(ctx, 'B')
       const other = await getFile(ctx, b, fx.fileId, { label: 'tenant A file id requested by tenant B' })
@@ -307,7 +307,7 @@ const steps = [
   },
 
   {
-    id: 'BILLNEG01.04a', title: 'after the file exists: re-generating the underlay and editing the locked underlay do not change billed data', scope: 'api+sql', needs: ['MAIN05.01'],
+    id: 'BILLNEG01.04a', scenarioId: 'BILLNEG01.04', title: 'after the file exists: re-generating the underlay and editing the locked underlay do not change billed data', scope: 'api+sql', needs: ['MAIN05.01'],
     note: 'PARTIAL for BILLNEG01.04: probes the API (generate-underlay) and a direct UPDATE of the exported underlay. A genuinely NEW qualified meter value needs the inbound UTILTS fixture (see BILLNEG01.04b).',
     async run(ctx) {
       const fx = ctx.fixture, s = await ensureSession(ctx, 'A'), month = M.main.month
@@ -330,7 +330,7 @@ const steps = [
     },
   },
   {
-    id: 'BILLNEG01.04b', title: 'new qualified meter value arrives after the pricing lock / file creation -> billed amounts stay', scope: 'api+sql+ediel-inbound',
+    id: 'BILLNEG01.04b', scenarioId: 'BILLNEG01.04', title: 'new qualified meter value arrives after the pricing lock / file creation -> billed amounts stay', scope: 'api+sql+ediel-inbound',
     todo: 'needs a genuine inbound UTILTS E66 message (ediel_messages + metering_values + normalized_metering_values with a qualifying billing_source_basis) for the fixture meter; T4-FX04b. Then: insert it after lock, POST generate-underlay, assert invoice/pricing/file unchanged and the value held back or flagged.',
   },
 ]

@@ -105,11 +105,6 @@ async function operatorSession() {
 describe.sequential('T4 source chain', () => {
   it('C0 environment: local stack, mailbox profile, automation user', async () => {
     expect(LIVE.cronSecret && LIVE.automationUserId, 'CRON_SECRET and GRIDEX_AUTOMATION_USER_ID from SIM_HOME/env').toBeTruthy()
-    // Same intent as the project's native setup file (scripts/helpers/ediel-native-permission-catalog.setup.ts, which hardcodes the
-    // native stack): make sure the permission catalog keys fixtures refer to exist. Reference data only, never a grant.
-    sql(`INSERT INTO public.permissions(key,name,description,category) SELECT k,k,'Native fixture catalog key','native_fixture'
-      FROM unnest(ARRAY['communication.read','communication.write','communication.send','contracts.read','contracts.write','customers.read','customers.write',
-        'metering.read','metering.write','operations.read','operations.write','documents.read','cases.write']) k WHERE NOT EXISTS(SELECT FROM public.permissions p WHERE p.key=k);`)
     expect(configurePlatformMailbox(), 'shared test Ediel mailbox row updated').toBe(1)
     const health = await fetch(`${LIVE.appUrl}/login`)
     expect(health.status).toBe(200)
