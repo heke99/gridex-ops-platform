@@ -8,8 +8,8 @@
 --      override_reason, audited with previous and new notice date/ended_at;
 --   3. a receipt before coalesce(actual_start_date, starts_at) or before
 --      signed_at::date is rejected (termination_notice_before_contract_start);
---   4. terminated/cancelled metadata may not replace a recorded notice date
---      except through the same audited override;
+--   4. terminated/cancelled keep a recorded notice date silently (status and
+--      ended_at still change); only the audited override replaces it;
 --   5. receipt dates are Europe/Stockholm calendar dates; an override that
 --      moves the date of a contract with ended_at requires p_derived_ends_at;
 --   6. a BEFORE UPDATE trigger blocks changing/clearing a recorded notice
@@ -118,15 +118,6 @@ begin
         message = 'termination_notice_override_reason_required';
     end if;
   end if;
-  if p_event_type in ('terminated', 'cancelled')
-     and v_contract.termination_notice_date is not null
-     and (nullif(p_metadata->>'termination_notice_date', '')::timestamptz at time zone 'Europe/Stockholm')::date
-       <> v_contract.termination_notice_date
-     and not v_notice_override then
-    raise exception using
-      errcode = '23514',
-      message = 'termination_notice_already_recorded';
-  end if;
   if p_event_type = 'termination_notice_received' then
     if v_notice_date < coalesce(v_contract.actual_start_date, v_contract.starts_at)
        or v_notice_date < (v_contract.signed_at at time zone 'Europe/Stockholm')::date then
@@ -208,10 +199,20 @@ begin
           p_happened_at,
           ended_at
         ),
-        termination_notice_date = coalesce(
-          nullif(p_metadata->>'termination_notice_date', '')::timestamptz,
-          termination_notice_date
-        ),
+        -- Lifecycle close, supply end and archive always pass today's date;
+        -- a recorded notice is kept silently unless explicitly overridden.
+        termination_notice_date = case
+          when v_notice_override then coalesce(
+            (nullif(p_metadata->>'termination_notice_date', '')::timestamptz
+              at time zone 'Europe/Stockholm')::date,
+            termination_notice_date
+          )
+          else coalesce(
+            termination_notice_date,
+            (nullif(p_metadata->>'termination_notice_date', '')::timestamptz
+              at time zone 'Europe/Stockholm')::date
+          )
+        end,
         termination_reason = coalesce(
           nullif(p_metadata->>'termination_reason', ''),
           termination_reason
@@ -389,6 +390,9 @@ begin
       errcode = '23514',
       message = 'termination_notice_already_recorded';
   end if;
+  -- First direct setting: same start/signing check as the command. When
+  -- start and signing are both unknown the comparison is null and the first
+  -- setting is allowed (nothing to compare against yet).
   if old.termination_notice_date is null
      and new.termination_notice_date is not null
      and coalesce(current_setting('gridex.contract_event_writer', true), '') <> 'on'

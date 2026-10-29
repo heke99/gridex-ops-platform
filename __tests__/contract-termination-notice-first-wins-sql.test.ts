@@ -158,13 +158,17 @@ describe('termination notice: first valid receipt wins', () => {
       [company, contract, customer, eventType, JSON.stringify(metadata), actor, key])
     const recorded = async () => notice({ happenedAt: '2026-09-01T00:00:00Z', derived: '2027-03-01T00:00:00Z', key: 'n1' })
 
-    it('cannot replace a recorded notice date without override', async () => {
+    it('keeps a recorded notice date silently while closing the contract', async () => {
       await recorded()
-      await expect(close('c1', { termination_notice_date: '2026-10-15' }))
-        .rejects.toThrow(/termination_notice_already_recorded/)
-      expect((await state() as { notice: string }).notice).toBe('2026-09-01')
-      await close('c2', { termination_notice_date: '2026-09-01' })
-      expect((await state() as { notice: string }).notice).toBe('2026-09-01')
+      const today = new Date().toISOString().slice(0, 10)
+      await close('c1', { termination_notice_date: today, ended_at: `${today}T00:00:00Z` })
+      expect((await db.query(`select status, termination_notice_date::text as notice, ended_at::date::text as ended
+        from public.customer_contracts`)).rows[0]).toEqual({ status: eventType, notice: '2026-09-01', ended: today })
+    })
+
+    it('sets the notice date from metadata when none is recorded', async () => {
+      await close('c1', { termination_notice_date: '2026-10-15' })
+      expect((await state() as { notice: string }).notice).toBe('2026-10-15')
     })
 
     it('rejects an override without reason and audits an override with reason', async () => {
