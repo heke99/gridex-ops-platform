@@ -446,6 +446,7 @@ export async function createSignedContract(tenant: TermTenant, input: CreateSign
   const hasModel = psql(`select (jsonb_typeof(commercial_snapshot->'price_options')='array' and jsonb_array_length(commercial_snapshot->'price_options')>0)::text from public.contract_offers where id=${lit(offer.offerId)}`) === 'true'
   const predictedPath = hasModel ? 'rpc_gridex_create_internal_customer_contract_v1' : 'ts_createCustomerContract'
   console.info(`[contractPath] FÖRE anrop: offer ${offer.offerId.slice(0, 8)} price_options i commercial_snapshot=${hasModel} => förutsagd väg ${predictedPath}`)
+  const knownContractIds = new Set(psqlRows<{ id: string }>(`select id from public.customer_contracts where company_id=${lit(companyId)} and customer_id=${lit(customerId)}`).map((r) => r.id))
   const contractResult = await callServerAction(session, {
     route: `/admin/customers/${customerId}`, filename: 'components/admin/customers/contracts/actions.ts',
     exportedName: 'createContractFromOfferAction', args: [contractForm], worker: 'app/admin/customers/[id]/page',
@@ -453,8 +454,8 @@ export async function createSignedContract(tenant: TermTenant, input: CreateSign
   console.info(`[contractPath] EFTER anrop: HTTP ${contractResult.httpStatus} kastade=${contractResult.threw} förutsagd väg ${predictedPath} request-id=${contractResult.requestId}`)
   if (opts.probe) throw new ContractActionProbe(contractResult, Number(psql(`select count(*) from public.customer_contracts where company_id=${lit(companyId)} and customer_id=${lit(customerId)}`)))
   assertActionOk('createContractFromOfferAction', contractResult)
-  const contractRows = psqlRows<{ id: string }>(`select id from public.customer_contracts where company_id=${lit(companyId)} and customer_id=${lit(customerId)}`)
-  if (contractRows.length !== 1) throw new Error(`createContractFromOfferAction skapade ${contractRows.length} avtal; svar: ${contractResult.excerpt.slice(0, 300)}`)
+  const contractRows = psqlRows<{ id: string }>(`select id from public.customer_contracts where company_id=${lit(companyId)} and customer_id=${lit(customerId)}`).filter((r) => !knownContractIds.has(r.id))
+  if (contractRows.length !== 1) throw new Error(`createContractFromOfferAction skapade ${contractRows.length} nya avtal; svar: ${contractResult.excerpt.slice(0, 300)}`)
   const contractId = contractRows[0].id
   const created = psqlRows<{ status: string; source_type: string | null; metadata: Record<string, unknown> | null }>(`select status,source_type,metadata from public.customer_contracts where id=${lit(contractId)}`)[0]
   const pubVersionId = psql(`select contract_publication_version_id from public.customer_contracts where id=${lit(contractId)}`)

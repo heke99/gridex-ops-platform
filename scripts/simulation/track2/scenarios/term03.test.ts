@@ -207,7 +207,25 @@ async function checkPartial(spec: PartialSpec, ctx: PartialCtx, run: PartialCtx[
   return { row, feeKind }
 }
 
-function partialDescribe(spec: PartialSpec, title: string, extra?: (get: () => Promise<PartialCtx>) => void) {
+const ENERGY_TERMS: OracleTerms = { markupOrePerKwh: '4', monthlyFeeSek: null, invoiceFeeSek: null, vatPercent: 25 }
+
+/**
+ * Justerar förbrukningen i delperiodens sista intervall (+k Wh) tills inga energirader eller momsbelopp ligger nära ett halvt öre
+ * i delperioden. Datakontrollen i checkPartial (halfCaseLines) är kvar. Spotpriserna ändras inte (delas med term02).
+ */
+function untied(spec: PartialSpec): PartialSpec {
+  const sub = subsetOf(spec)
+  const idx = spec.allPoints.indexOf(sub[sub.length - 1])
+  for (let k = 0; k < 400; k += 1) {
+    const pts = spec.allPoints.map((p, i) => (i === idx ? { ...p, wh: p.wh + k } : p))
+    const trial = { ...spec, allPoints: pts }
+    if (halfCaseLines(oracleInvoice({ intervals: toOracle(subsetOf(trial)), terms: ENERGY_TERMS }, 'half_away'), 0.001).length === 0) return trial
+  }
+  throw new Error(`${spec.id}: hittade ingen förbrukningsjustering utan halva ören`)
+}
+
+function partialDescribe(spec0: PartialSpec, title: string, extra?: (get: () => Promise<PartialCtx>) => void) {
+  const spec = untied(spec0)
   describe(title, () => {
     const setup = lazy(() => setupPartial(spec))
     for (const [i, variant] of spec.variants.entries()) {
@@ -339,6 +357,32 @@ describe('TERM03.04 uppsägning före och efter verklig frist', () => {
   }
 })
 
+describe('TERM03.04 negativt kontrollfall (observation, inget krav)', () => {
+  it('TERM03.04 uppsägningsmottagning två gånger och före avtalets start: ended_at ändras inte tyst (registreras)', async () => {
+    const { tenant, session } = await setupTenant()
+    const c = await createSignedContract(tenant, { contractType: 'variable_hourly', bindingMonths: 0, noticeMonths: 1, startsAt: '2026-01-01', priceArea: 'SE3' })
+    psql(`UPDATE public.customer_contracts SET actual_start_date='2026-01-01' WHERE id='${c.contractId}';`)
+    const send = async (receive: string) => {
+      const form = new FormData()
+      form.append('customer_id', c.customerId); form.append('customer_contract_id', c.contractId)
+      form.append('event_type', 'termination_notice_received'); form.append('happened_at', receive); form.append('note', 'sim TERM03.04 kontroll')
+      const r = await callServerAction(session, { route: `/admin/customers/${c.customerId}`, filename: 'components/admin/customers/contracts/actions.ts', exportedName: 'logContractEventAction', args: [form], worker: 'app/admin/customers/[id]/page' })
+      const [row] = psqlRows<{ ended_at: string | null; termination_notice_date: string | null }>(`select ended_at,termination_notice_date from public.customer_contracts where id='${c.contractId}'`)
+      const events = Number(psql(`select count(*) from public.customer_contract_events where customer_contract_id='${c.contractId}' and event_type='termination_notice_received'`))
+      return { receive, http: r.httpStatus, threw: r.threw, endedAt: row.ended_at, noticeDate: row.termination_notice_date, noticeEvents: events }
+    }
+    const first = await send('2026-11-30')
+    const same = await send('2026-11-30')
+    const later = await send('2026-12-15')
+    const beforeStart = await send('2025-12-31')
+    observe('TERM03.04 negativ kontroll', { first, sameAgain: same, later, beforeContractStart: beforeStart,
+      note: 'Observation: första mottagningen ger ended_at 2026-12-30. Se om upprepning/senare/före-start ändrar ended_at eller termination_notice_date (RPC sätter ended_at = coalesce(härlett, ended_at) och termination_notice_date = happened_at utan villkor).' })
+    console.info(`[TERM03.04 negativ kontroll] ${json({ first, same, later, beforeStart })}`)
+    expect(first.http).toBeLessThan(400)
+    expect(new Date(first.endedAt!).toISOString()).toBe('2026-12-30T00:00:00.000Z')
+  }, LONG)
+})
+
 // ---------------------------------------------------------------- TERM03.05
 
 const sepSe3 = term0203Hourly(SEP).map((p) => ({ ...p, wh: hourlyShapeWh(p.slot.startMs) }))
@@ -371,6 +415,8 @@ describe('TERM03.05(b) två av våra avtal på samma mätpunkt med överlappande
         existing: { customerId: c1.customerId, siteId: c1.siteId, meteringPointId: c1.meteringPointId, gsrn: c1.gsrn } })
     } catch (error) {
       const message = (error as Error).message
+      // Bara ett verkligt nekande från appens action räknas som utfall; fixturfel (t.ex. felräkning av nya avtal) kastas vidare.
+      if (!/server action misslyckades|skapade 0 nya avtal/.test(message)) throw error
       observe('TERM03.05b', { outcome: 'APPEN NEKAR ett andra avtal på samma mätpunkt', message: message.slice(0, 400) })
       console.info(`[TERM03.05b] UTFALL: appen nekar ett andra avtal på samma kund/anläggning/mätpunkt vid skapandet: ${message.slice(0, 300)}`)
       expect(message.length).toBeGreaterThan(0)
