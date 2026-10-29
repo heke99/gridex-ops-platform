@@ -130,6 +130,19 @@ open(path,'w').write('\n'.join(lines+['EDIEL_SMTP_USER='+box,'EDIEL_SMTP_FROM='+
 PY
 set -a; # shellcheck disable=SC1090
 . "$ENV_FILE"; set +a
+# GreenMail (auth disabled) pins an account's password at its first login or delivery (T51). A recreated GreenMail
+# (container restart) starts empty, and a simulator or scenario mail could create the shared mailboxes first with
+# another password, so every Ediel send then fails with 535 (FINDINGS T51b). Claim both shared mailboxes with the
+# app's own credentials before anything else runs; an account that already holds them is unaffected.
+python3 - "$TLS/ca.pem" <<'PY'
+import imaplib,os,smtplib,ssl,sys
+ctx=ssl.create_default_context(cafile=sys.argv[1])
+for box,pw in ((os.environ['GRIDEX_SHARED_EDIEL_PRODUCTION_EMAIL'],os.environ['GRIDEX_SHARED_EDIEL_PRODUCTION_IMAP_PASS']),
+               (os.environ['GRIDEX_SHARED_EDIEL_TEST_EMAIL'],os.environ['GRIDEX_SHARED_EDIEL_TEST_IMAP_PASS'])):
+    imap=imaplib.IMAP4_SSL('localhost',3993,ssl_context=ctx); imap.login(box,pw); imap.logout()
+    with smtplib.SMTP_SSL('localhost',3465,context=ctx) as smtp: smtp.login(box,pw)
+    print(f'[reality-up] mailbox {box} claimed with the app credentials')
+PY
 
 # 4) Automation user through the Auth admin API (GoTrue does not see raw auth.users inserts), its
 #    staff profile, then build and start the app.
