@@ -1,11 +1,14 @@
 import fs from 'node:fs'
 import {PGlite} from '@electric-sql/pglite'
 import {beforeAll,beforeEach,afterAll,describe,it,expect} from 'vitest'
+import {prePr932UnsignedEditSchema} from './helpers/db05PredecessorSchema'
 
 // Actual transaction SQL in PostgreSQL WASM; permission resolution, legal/
 // price materialization and event routing are finite external ports here.
 // The existing native owner must qualify those complete real dependencies.
-const schema=fs.readFileSync('supabase/schema.sql','utf8')
+// The forward is applied to the exact pre-PR932 capture, never to a capture
+// that already contains it.
+const schema=prePr932UnsignedEditSchema(fs.readFileSync('supabase/schema.sql','utf8'))
 const forward='supabase/migrations/20261029105939_edit_unsigned_customer_contract_atomic.sql'
 const id=(n:number)=>`10000000-0000-4000-8000-${String(n).padStart(12,'0')}`
 const instant='2026-10-29T10:00:00.123456+00:00'
