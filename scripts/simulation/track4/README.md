@@ -85,7 +85,7 @@ Edits: the PATCHES table in the script (ports/DB URL/`T4_*`, mailbox poll interv
 files that exist at base are rewritten to `@/`; `// @ts-nocheck` header. `chain/world.ts` and `chain/t4-source-chain.chain.test.ts`
 are adapted from `scripts/helpers/reality/world.ts` and `scripts/reality/chain-f-invoice.test.ts` (createAugustSwitch ported).
 
-GreenMail: container `gx-t4-mail` (`greenmail/standalone:2.1.3`, override `T4_GREENMAIL_IMAGE`), host ports 55425 SMTPS / 55426 IMAPS /
+GreenMail: container `gx-t4-mail` (`mirror.gcr.io/greenmail/standalone:2.1.3`, digest recorded in `SIM_HOME/mail-image.txt`, override `T4_GREENMAIL_IMAGE`), host ports 55425 SMTPS / 55426 IMAPS /
 55428 API on 127.0.0.1, local CA under `SIM_HOME/tls`, both shared Ediel mailboxes claimed with the app's credentials at `up.sh`;
 the app environment gained the mail/Ediel keys and `NODE_EXTRA_CA_CERTS`, and `up.sh` restarts the app when `SIM_HOME/env` changes.
 

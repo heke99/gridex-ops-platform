@@ -23,7 +23,7 @@ T4_SMTPS_PORT="${T4_SMTPS_PORT:-55425}"
 T4_IMAPS_PORT="${T4_IMAPS_PORT:-55426}"
 T4_MAIL_API_PORT="${T4_MAIL_API_PORT:-55428}"
 T4_MAIL_CONTAINER="${T4_MAIL_CONTAINER:-gx-t4-mail}"
-T4_GREENMAIL_IMAGE="${T4_GREENMAIL_IMAGE:-greenmail/standalone:2.1.3}"
+T4_GREENMAIL_IMAGE="${T4_GREENMAIL_IMAGE:-mirror.gcr.io/greenmail/standalone:2.1.3}"
 TLS_DIR="$SIM_HOME/tls"
 
 STACK_SRC="$SIM_HOME/stack-src"
@@ -129,7 +129,29 @@ t4_mail_up() {
       -p "127.0.0.1:${T4_SMTPS_PORT}:3465" -p "127.0.0.1:${T4_IMAPS_PORT}:3993" -p "127.0.0.1:${T4_MAIL_API_PORT}:8080" \
       "$T4_GREENMAIL_IMAGE" >/dev/null || t4_die "could not start GreenMail"
   fi
-  t4_wait_port "$T4_SMTPS_PORT" 60 && t4_wait_port "$T4_IMAPS_PORT" 60 || t4_die "GreenMail ports did not open"
+  t4_mail_ready 120 || t4_die "GreenMail did not answer a TLS IMAP/SMTP greeting (docker logs $T4_MAIL_CONTAINER)"
+  # record the exact image the counterparty runs on
+  { echo "image=$T4_GREENMAIL_IMAGE"; echo "digest=$(docker image inspect "$T4_GREENMAIL_IMAGE" --format '{{index .RepoDigests 0}}' 2>/dev/null || echo unknown)"; echo "id=$(docker image inspect "$T4_GREENMAIL_IMAGE" --format '{{.Id}}' 2>/dev/null || echo unknown)"; } > "$SIM_HOME/mail-image.txt"
+}
+
+# The docker proxy accepts the port before GreenMail's Java listeners are up: wait for real TLS greetings (IMAPS and SMTPS).
+t4_mail_ready() {
+  python3 - "$TLS_DIR/ca.pem" "$T4_IMAPS_PORT" "$T4_SMTPS_PORT" "${1:-120}" <<'PY'
+import imaplib, smtplib, ssl, sys, time
+ca, imap_port, smtp_port, timeout = sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4])
+ctx = ssl.create_default_context(cafile=ca)
+ctx.verify_flags &= ~getattr(ssl, 'VERIFY_X509_STRICT', 0)
+deadline = time.time() + timeout
+while True:
+    try:
+        imaplib.IMAP4_SSL('localhost', imap_port, ssl_context=ctx, timeout=5).logout()
+        with smtplib.SMTP_SSL('localhost', smtp_port, context=ctx, timeout=5) as s: s.noop()
+        sys.exit(0)
+    except Exception as e:
+        if time.time() > deadline:
+            print(f'[t4] mail not ready: {type(e).__name__}: {e}', file=sys.stderr); sys.exit(1)
+        time.sleep(2)
+PY
 }
 
 # Claim both shared Ediel mailboxes with the app's own credentials (needs the env loaded).

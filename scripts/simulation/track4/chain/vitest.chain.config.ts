@@ -17,7 +17,8 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['scripts/simulation/track4/chain/*.chain.test.ts'],
-    setupFiles: ['scripts/helpers/ediel-native-permission-catalog.setup.ts'],
+    // The project's setup file scripts/helpers/ediel-native-permission-catalog.setup.ts is not used: it hardcodes the native stack
+    // (54321/54322) and only inserts catalog keys; the chain's C0 step inserts the same keys through the T4 database URL.
     fileParallelism: false, retry: 0, testTimeout: 3_600_000, hookTimeout: 600_000,
     reporters: ['default', 'json'],
     outputFile: { json: process.env.T4_CHAIN_VITEST_JSON ?? resolve(process.env.SIM_HOME ?? '/tmp', 'chain-vitest.json') },
