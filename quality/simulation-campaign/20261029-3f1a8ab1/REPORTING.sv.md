@@ -1,3 +1,5 @@
+Aktuell tilldelning: OTILLSATT för samtliga sju spår. Tidigare modellfördelning är endast historiskt förslag. GEN och finance: OTILLSATT; ny kvalificerad session måste acceptera och verifiera exakt custody före arbete. T4 betyder enbart Faktura, samtidighet och fil (13 ID). Originalåterhämtning: stoppad VM ger HTTP410; automatisk snapshot snap_YPcWkbvLjmNGuL5cFP4vnrwCWoSP finns, men originalets byte har ännu inte återlästs eller publicerats.
+
 # Findings och status – obligatoriskt för varje arbetare
 
 Använd ett unikt run-id och en egen packet: `runs/<run-id>/<worker-id>/<scenario-id>/`. Exakta skrivclaims avgör om packet ligger i detta repository eller i separat privat evidenslagring. Skicka en säker manifestreferens till integratören och PR930. Formella claims/handoffs behåller repositoryts aktuella protokoll och historiska #840-kvitton. Rådata, cookies, tokens, nycklar och verkliga personuppgifter ska inte publiceras i det offentliga repositoryt.

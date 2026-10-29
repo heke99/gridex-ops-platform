@@ -1,3 +1,9 @@
+Aktuell tilldelning: OTILLSATT för samtliga sju spår. Tidigare modellfördelning är endast historiskt förslag. GEN och finance: OTILLSATT; ny kvalificerad session måste acceptera och verifiera exakt custody före arbete. T4 betyder enbart Faktura, samtidighet och fil (13 ID). Originalåterhämtning: stoppad VM ger HTTP410; automatisk snapshot snap_YPcWkbvLjmNGuL5cFP4vnrwCWoSP finns, men originalets byte har ännu inte återlästs eller publicerats.
+
+Tidigare prompttext nedan är HISTORISK och får inte användas som aktiv tilldelning. Välj spår först efter accepterad reservation.
+
+Aktuell tilldelning: OTILLSATT för samtliga sju spår. Tidigare modellfördelning är endast historiskt förslag. GEN och finance: OTILLSATT; ny kvalificerad session måste acceptera och verifiera exakt custody före arbete. T4 betyder enbart Faktura, samtidighet och fil (13 ID). Originalåterhämtning: stoppad VM ger HTTP410; automatisk snapshot snap_YPcWkbvLjmNGuL5cFP4vnrwCWoSP finns, men originalets byte har ännu inte återlästs eller publicerats.
+
 # Startprompter för den gemensamma simuleringen
 
 Kopiera relevant prompt till en behörig Claude- eller Codex-session. En prompt tilldelar inte resurser som saknas och ersätter inte fil-/producentclaims. Operativ status finns bara i quality/simulation-register/register.safe.json och PR930. #840 behåller historiska och formella claim-/handoffreferenser; flytta inte befintliga lås eller roller.

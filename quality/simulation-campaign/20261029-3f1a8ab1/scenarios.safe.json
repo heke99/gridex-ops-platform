@@ -4,5 +4,6 @@
   "authoritativeRegister": "../../simulation-register/register.safe.json",
   "totalDesignScenarios": 105,
   "embeddedStatusSnapshots": false,
-  "reason": "One editable source of per-ID status for Codex and Claude"
+  "reason": "One editable source of per-ID status for Codex and Claude",
+  "assignmentClarification": "Aktuell tilldelning: OTILLSATT för samtliga sju spår. Tidigare modellfördelning är endast historiskt förslag. GEN och finance: OTILLSATT; ny kvalificerad session måste acceptera och verifiera exakt custody före arbete. T4 betyder enbart Faktura, samtidighet och fil (13 ID). Originalåterhämtning: stoppad VM ger HTTP410; automatisk snapshot snap_YPcWkbvLjmNGuL5cFP4vnrwCWoSP finns, men originalets byte har ännu inte återlästs eller publicerats."
 }

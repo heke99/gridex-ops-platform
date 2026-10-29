@@ -1,3 +1,5 @@
+Aktuell tilldelning: OTILLSATT för samtliga sju spår. Tidigare modellfördelning är endast historiskt förslag. GEN och finance: OTILLSATT; ny kvalificerad session måste acceptera och verifiera exakt custody före arbete. T4 betyder enbart Faktura, samtidighet och fil (13 ID). Originalåterhämtning: stoppad VM ger HTTP410; automatisk snapshot snap_YPcWkbvLjmNGuL5cFP4vnrwCWoSP finns, men originalets byte har ännu inte återlästs eller publicerats.
+
 # Gemensam simulering – börja här
 
 Operativ samordning sker i [PR #930](https://github.com/heke99/gridex-ops-platform/pull/930). [#840](https://github.com/heke99/gridex-ops-platform/issues/840) behålls som historik, länkpunkt och för befintliga claim-/handoffkvitton. Vi skriver inte konkurrerande statuslistor i två ärenden. Repositoryts AGENTS.md och atomiska reservationsprotokoll gäller fortfarande; en kommentar eller teamtilldelning ersätter inte en skrivclaim.
@@ -8,14 +10,14 @@ Den enda uppdaterbara statuskällan är [register.safe.json](register.safe.json)
 
 | Spår | Samordningsägare | Område | Antal |
 |---|---|---|---:|
-| 1 | Claude | MAIN03.01–05; MAIN04.01/.03/.04; SITE01.01–05 | 13 |
-| 2 | Claude | TERM01.01–05; TERM02.01–08; TERM03.01–05 | 18 |
-| 3 | Claude | EDIEL01.01–06; EDIEL02.01–06; EDIEL03.01–05 | 17 |
-| 4 | Claude | MAIN04.02/.05; BILLNEG01.01–05; MAIN05.01–06 | 13 |
-| 5 | Codex | EVENT01.01–05; AUTH01.01–06; API01.01–05 | 16 |
-| 6 | Claude | DELIVERY01.01–05; CUSTODY01.01–05; MAIN06.01–03 | 13 |
-| 7 | Claude | UI01.01–05; QA01.01–05; QA02.01–05, sist på slutversionen | 15 |
-| Totalt | Codex16 / Claude89 | inga dubbla eller saknade ID:n | 105 |
+| 1 | OTILLSATT | MAIN03.01–05; MAIN04.01/.03/.04; SITE01.01–05 | 13 |
+| 2 | OTILLSATT | TERM01.01–05; TERM02.01–08; TERM03.01–05 | 18 |
+| 3 | OTILLSATT | EDIEL01.01–06; EDIEL02.01–06; EDIEL03.01–05 | 17 |
+| 4 | OTILLSATT | MAIN04.02/.05; BILLNEG01.01–05; MAIN05.01–06 | 13 |
+| 5 | OTILLSATT | EVENT01.01–05; AUTH01.01–06; API01.01–05 | 16 |
+| 6 | OTILLSATT | DELIVERY01.01–05; CUSTODY01.01–05; MAIN06.01–03 | 13 |
+| 7 | OTILLSATT | UI01.01–05; QA01.01–05; QA02.01–05, sist på slutversionen | 15 |
+| Totalt | OTILLSATT105 | inga dubbla eller saknade ID:n | 105 |
 
 Ägarskapet ovan gäller scenarioarbete. Det tar inte över aktiva filer, befintliga producentroller eller main-leveransägaren. EVENT har befintlig CODEX-EVENTS-ägare och sparade resultat. Samordna de övriga11 Codex-ID:na separat och verifiera befintliga claims före skrivning. Befintliga aktiva Claude-spår behåller sina egna filer; denna fördelning är ingen blankoöverlämning.
 

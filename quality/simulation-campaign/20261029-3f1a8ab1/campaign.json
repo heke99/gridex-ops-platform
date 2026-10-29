@@ -23,7 +23,7 @@
   "tracks": [
     {
       "id": "1",
-      "coordinationOwner": "Claude",
+      "coordinationOwner": "OTILLSATT",
       "title": "Kund, underlag och godkännande",
       "scenarioIds": [
         "MAIN03.01",
@@ -45,7 +45,7 @@
     },
     {
       "id": "2",
-      "coordinationOwner": "Claude",
+      "coordinationOwner": "OTILLSATT",
       "title": "Avtal och kontraktstider",
       "scenarioIds": [
         "TERM01.01",
@@ -72,7 +72,7 @@
     },
     {
       "id": "3",
-      "coordinationOwner": "Claude",
+      "coordinationOwner": "OTILLSATT",
       "title": "Ediel-trafik och parsning",
       "scenarioIds": [
         "EDIEL01.01",
@@ -98,7 +98,7 @@
     },
     {
       "id": "4",
-      "coordinationOwner": "Claude",
+      "coordinationOwner": "OTILLSATT",
       "title": "Faktura, samtidighet och fil",
       "scenarioIds": [
         "MAIN04.02",
@@ -120,7 +120,7 @@
     },
     {
       "id": "5",
-      "coordinationOwner": "Codex",
+      "coordinationOwner": "OTILLSATT",
       "title": "Händelser, Auth och API",
       "scenarioIds": [
         "EVENT01.01",
@@ -145,7 +145,7 @@
     },
     {
       "id": "6",
-      "coordinationOwner": "Claude",
+      "coordinationOwner": "OTILLSATT",
       "title": "Leverans, custody och mottagarkvitto",
       "scenarioIds": [
         "DELIVERY01.01",
@@ -167,7 +167,7 @@
     },
     {
       "id": "7",
-      "coordinationOwner": "Claude",
+      "coordinationOwner": "OTILLSATT",
       "title": "UI och slutliga kvalitetsgrindar",
       "scenarioIds": [
         "UI01.01",
@@ -207,5 +207,6 @@
     "matchingTestRequired": true,
     "sourceBytesPresentInThisSession": false,
     "nativeEnvironmentAssignedToThisSession": false
-  }
+  },
+  "assignmentClarification": "Aktuell tilldelning: OTILLSATT för samtliga sju spår. Tidigare modellfördelning är endast historiskt förslag. GEN och finance: OTILLSATT; ny kvalificerad session måste acceptera och verifiera exakt custody före arbete. T4 betyder enbart Faktura, samtidighet och fil (13 ID). Originalåterhämtning: stoppad VM ger HTTP410; automatisk snapshot snap_YPcWkbvLjmNGuL5cFP4vnrwCWoSP finns, men originalets byte har ännu inte återlästs eller publicerats."
 }
