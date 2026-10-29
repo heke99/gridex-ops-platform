@@ -2,7 +2,7 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Developers | Gridex',
+  title: 'Utvecklardokumentation | Gridex',
   description: 'Gridex utvecklardokumentation och API-guider.',
 }
 
@@ -19,13 +19,13 @@ export default function DevelopersPage() {
             ← Till Gridex
           </Link>
           <h1 className="mt-8 text-4xl font-semibold tracking-[-0.035em] sm:text-6xl">
-            Gridex Developer Documentation
+            Guider för Gridex API
           </h1>
           <p className="mt-5 max-w-3xl text-lg leading-8 text-slate-600">
-            Här finns den publika online-dokumentationen för hemsidor, Mina sidor-koppling, kundportaler och partnerintegrationer som ska koppla mot Gridex API.
+            Guider för att koppla din webbplats, Mina sidor och dina partnerintegrationer till Gridex API.
           </p>
           <p className="mt-3 max-w-3xl text-base leading-7 text-slate-700">
-            You do not need to match the latest documentation revision exactly to use a supported API version.
+            Du kan fortsätta använda en API-version som stöds även när dokumentationen uppdateras.
           </p>
         </div>
       </section>
@@ -35,10 +35,10 @@ export default function DevelopersPage() {
           href="/developers/customer-portal-api"
           className="block rounded-[2rem] border border-emerald-100 bg-white p-8 shadow-sm shadow-emerald-950/5 transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-emerald-950/10"
         >
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">Customer Portal API</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">Webb och kundportal</p>
           <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">Koppla hemsida och Mina sidor till Gridex API</h2>
-          <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">
-            Guide för hur en tenant-hemsida hämtar avtal, skickar kundansökningar, kopplar webbens Supabase auth-user till OPS via Customer Portal External Auth Linking, hämtar Mina sidor-data och tar emot webhooks.
+          <p className="mt-3 max-w-3xl text-base leading-7 text-slate-600">
+            Lär dig att visa avtal, ta emot kundansökningar och koppla kundernas inloggning till Mina sidor. Guiden visar också hur du hämtar kunduppgifter och tar emot automatiska uppdateringar från Gridex.
           </p>
           <span className="mt-6 inline-flex rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">
             Öppna online-guiden

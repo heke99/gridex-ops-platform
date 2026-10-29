@@ -298,8 +298,11 @@ export default function CustomerPortalApiDocumentationPage() {
   return (
     <main lang="en" className="mx-auto max-w-7xl px-5 py-12 sm:px-8 lg:px-10">
       <div className="grid gap-10 lg:grid-cols-[240px_minmax(0,1fr)]">
-        <aside className="hidden lg:block">
-          <nav className="sticky top-8 space-y-2 text-sm text-slate-600" aria-label="API documentation">
+        <aside className="min-w-0">
+          <nav className="lg:sticky lg:top-8" aria-label="API documentation">
+            <details className="rounded-xl border border-slate-200 bg-white p-4 lg:hidden">
+              <summary className="cursor-pointer text-base font-semibold text-slate-950">Jump to section</summary>
+              <div className="mt-3 grid gap-3 text-base text-slate-700 sm:grid-cols-2">
             <a className="block hover:text-slate-950" href="#overview">Overview</a>
             <a className="block hover:text-slate-950" href="#responsibilities">Responsibilities</a>
             <a className="block hover:text-slate-950" href="#authentication">Authentication</a>
@@ -312,6 +315,22 @@ export default function CustomerPortalApiDocumentationPage() {
             <a className="block hover:text-slate-950" href="#reliability">Reliability</a>
             <a className="block hover:text-slate-950" href="#errors">Errors</a>
             <a className="block hover:text-slate-950" href="#endpoints">Endpoint reference</a>
+              </div>
+            </details>
+            <div className="hidden space-y-2 text-sm text-slate-600 lg:block">
+            <a className="block hover:text-slate-950" href="#overview">Overview</a>
+            <a className="block hover:text-slate-950" href="#responsibilities">Responsibilities</a>
+            <a className="block hover:text-slate-950" href="#authentication">Authentication</a>
+            <a className="block hover:text-slate-950" href="#checkout">Website checkout</a>
+            <a className="block hover:text-slate-950" href="#status">Status & lifecycle</a>
+            <a className="block hover:text-slate-950" href="#customer-portal">Customer Portal</a>
+            <a className="block hover:text-slate-950" href="#partner-api">Partner API</a>
+            <a className="block hover:text-slate-950" href="#webhooks">Webhooks</a>
+            <a className="block hover:text-slate-950" href="/developers/staff-api">Staff API</a>
+            <a className="block hover:text-slate-950" href="#reliability">Reliability</a>
+            <a className="block hover:text-slate-950" href="#errors">Errors</a>
+            <a className="block hover:text-slate-950" href="#endpoints">Endpoint reference</a>
+            </div>
           </nav>
         </aside>
 
