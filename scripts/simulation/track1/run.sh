@@ -18,6 +18,21 @@ mkdir -p "$RUN_DIR"
 set -a; source "$ENV_DIR/private/app.env"; set +a
 export TRACK1_RUN_DIR="$RUN_DIR" TRACK1_STACK_JSON="$ENV_DIR/stack.json" TRACK1_APP_URL="http://127.0.0.1:$TRACK1_APP_PORT"
 log "run $RUN_ID"
+python3 - "$RUN_DIR/run-meta.json" "$SCENARIO" "$ENV_DIR/stack.json" "$TRACK1_DIR" "$TRACK1_APP_DIR" <<'PY'
+import json, hashlib, subprocess, sys, datetime
+out, scenario, stack, harness, app = sys.argv[1:]
+git = lambda d, *a: subprocess.check_output(["git", "-C", d, *a], text=True).strip()
+json.dump({
+  "runStartedAtUtc": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
+  "scenarioFile": scenario.split("/scripts/simulation/", 1)[-1],
+  "scenarioSha256": hashlib.sha256(open(scenario, "rb").read()).hexdigest(),
+  "harnessCommit": git(harness, "rev-parse", "HEAD"),
+  "harnessDirty": bool(git(harness, "status", "--porcelain", "--", ".")),
+  "appCommit": git(app, "rev-parse", "HEAD"),
+  "appDirty": bool(git(app, "status", "--porcelain")),
+  "stack": json.load(open(stack)),
+}, open(out, "w"), indent=2)
+PY
 T0=$(date +%s%N)
 set +e
 HARNESS_ROOT="$(git -C "$TRACK1_DIR" rev-parse --show-toplevel)"
