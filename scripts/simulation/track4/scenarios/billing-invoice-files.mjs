@@ -170,7 +170,7 @@ const steps = [
       ctx.assert.equal(money(file.rows[0].amount_ex_vat), e.total_ex_vat)
       ctx.assert.equal(money(file.rows[0].vat_amount), e.total_vat)
       ctx.assert.equal(money(file.rows[0].amount_inc_vat), e.total_inc_vat)
-      ctx.assert.equal(Number(file.rows[0].kwh), Number(M.main.kwh))
+      ctx.assert.equal(Number(file.rows[0].kwh), Number((ctx.fixture.months ?? M).main.kwh))
       const [item] = await itemsFor(ctx.sql, fx.companyA, month)
       ctx.assert.equal(item.export_file_id, fx.fileId, 'item is bound to the file')
       ctx.value('item', { status: item.status, export_file_id: item.export_file_id })

@@ -12,6 +12,9 @@
 // surface constraint or trigger errors; each fixture step fails loudly with the SQLSTATE so it can be fixed
 // as a HARNESS defect (not a product finding).
 import { randomUUID, randomBytes } from 'node:crypto'
+import { spawn } from 'node:child_process'
+import { readFileSync, writeFileSync, openSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { createClient } from '@supabase/supabase-js'
 import { lit } from '../runner/lib/sql.mjs'
 import { signIn } from '../runner/lib/session.mjs'
@@ -32,7 +35,39 @@ function monthBounds(month) {
 export function fixtureSteps() {
   return [
     {
-      id: 'FX01', title: 'synthetic tenants A (with data) and B (empty, for cross-tenant probes)', scope: 'sql', mechanism: 'sql',
+      id: 'FX00', title: 'source chain: live supplier, customer on a fixed-price offer, Z03/Z04 supply, UTILTS E66 for Jul-Sep 2026 (engine mode)', scope: 'ediel-chain',
+      mechanism: 'vitest chain (chain/t4-source-chain.chain.test.ts): product RPCs/crons/server action + SQL substitutions listed in its header',
+      note: 'Runs chain/t4-source-chain.chain.test.ts unless SIM_HOME/chain.json holds a finished, unused chain (consumed once per run; T4_CHAIN_REUSE=1 overrides). Tens of minutes. Skipped in direct mode.',
+      async run(ctx) {
+        const mode = process.env.T4_UNDERLAY_MODE ?? 'engine'
+        ctx.value('mode', mode)
+        if (mode !== 'engine') return
+        const file = `${ctx.env.T4_SIM_HOME ?? process.env.T4_SIM_HOME}/chain.json`
+        const finished = () => { try { const c = JSON.parse(readFileSync(file, 'utf8')); return c.result ? c : null } catch { return null } }
+        let chain = finished()
+        if (chain && chain.consumedBy && process.env.T4_CHAIN_REUSE !== '1') chain = null
+        if (!chain) {
+          const root = resolve(new URL('../../../..', import.meta.url).pathname)
+          const log = openSync(`${ctx.runDir}/chain.log`, 'a')
+          const code = await new Promise((res) => {
+            const child = spawn('npx', ['vitest', 'run', '-c', 'scripts/simulation/track4/chain/vitest.chain.config.ts'], {
+              cwd: root, stdio: ['ignore', log, log], env: { ...process.env, SIM_HOME: ctx.env.T4_SIM_HOME ?? process.env.T4_SIM_HOME, T4_CHAIN_VITEST_JSON: `${ctx.runDir}/chain-vitest.json` } })
+            child.on('exit', (c) => res(c))
+          })
+          ctx.value('chainExit', code)
+          chain = finished()
+          const partial = (() => { try { return JSON.parse(readFileSync(file, 'utf8')) } catch { return null } })()
+          ctx.assert.ok(chain, `source chain did not finish (vitest exit ${code}); blockers: ${JSON.stringify(partial?.blockers ?? null)}; steps: ${Object.keys(partial?.steps ?? {}).join(',')}; see ${ctx.runDir}/chain.log and chain-vitest.json`)
+        }
+        writeFileSync(file, JSON.stringify({ ...chain, consumedBy: process.env.T4_RUN_ID ?? 'run' }, null, 2))
+        ctx.fixture.chain = chain
+        ctx.fixture.months = chain.result.months
+        ctx.fixture.terms = { priceArea: chain.result.terms.priceArea, fixedOrePerKwh: String(chain.result.terms.fixedOrePerKwh), monthlyFeeSek: Number(chain.result.terms.monthlyFeeSek).toFixed(2), vatRate: String(chain.result.terms.vatRate) }
+        ctx.value('chain', { companyId: chain.result.companyId, months: chain.result.months, terms: chain.result.terms })
+      },
+    },
+    {
+      id: 'FX01', title: 'tenants A (engine mode: the chain tenant; direct mode: synthetic) and B (empty, for cross-tenant probes)', scope: 'sql', mechanism: 'sql',
       note: 'SUBSTITUTION: companies are inserted directly; the product provisions tenants through platform-admin tooling (not exercised).',
       async run(ctx) {
         const tag = `${Date.now().toString(36)}${digits(3)}`
@@ -46,7 +81,10 @@ export function fixtureSteps() {
         const fx = ctx.fixture
         fx.tag = tag
         fx.provider = provider
-        fx.companyA = await make('a', 'Elhandel A', true)
+        if (fx.chain) {
+          fx.companyA = fx.chain.result.companyId
+          fx.provider = (await ctx.sql.scalar(`SELECT invoice_export_target_system FROM public.companies WHERE id=${lit(fx.companyA)}`)) ?? provider
+        } else fx.companyA = await make('a', 'Elhandel A', true)
         fx.companyB = await make('b', 'Elhandel B', true)
         ctx.value('companyA', fx.companyA); ctx.value('companyB', fx.companyB); ctx.value('provider', provider)
       },
@@ -87,11 +125,24 @@ export function fixtureSteps() {
       },
     },
     {
-      id: 'FX03', title: 'customer, site, metering point, fixed-price contract, price snapshot, supply period (tenant A)', scope: 'sql', mechanism: 'sql (contract part: superuser, triggers bypassed)',
+      id: 'FX03', title: 'customer, site, metering point, fixed-price contract, price snapshot, supply period (tenant A; engine mode reads the chain result)', scope: 'sql', mechanism: 'sql (contract part: superuser, triggers bypassed)',
       note: 'SUBSTITUTION. customer/site/metering point: plain SQL (triggers active). Contract/snapshot/supply period: SQL as superuser with product triggers BYPASSED (session_replication_role=replica) because the product only creates signed/active contracts through the signature + activation commands (catalog offer, legal bundle, signed PDF, supply graph) and has no import command; see comment in seed.mjs.',
-      needs: ['FX01'],
+      needs: ['FX00', 'FX01'],
       async run(ctx) {
         const fx = ctx.fixture
+        if (fx.chain) {
+          // Engine mode: customer, site, metering point, contract and supply period were created by the source chain through the
+          // product's paths; this step only reads them and checks the contract carries the offer's terms.
+          const r = fx.chain.result
+          const contract = await ctx.sql.one(`SELECT id, contract_type, fixed_price_ore_per_kwh, monthly_fee_sek, contract_price_snapshot_id, status FROM public.customer_contracts WHERE id=${lit(r.contractId)} AND company_id=${lit(fx.companyA)}`)
+          ctx.assert.ok(contract, 'chain contract exists on tenant A')
+          ctx.value('contract', contract)
+          ctx.assert.equal(Number(contract.fixed_price_ore_per_kwh), r.terms.fixedOrePerKwh, 'contract fixed price equals the published offer price')
+          ctx.assert.equal(Number(contract.monthly_fee_sek), r.terms.monthlyFeeSek, 'contract monthly fee equals the published offer fee')
+          fx.ids = { customer: r.customerId, site: r.siteId, mp: r.meteringPointId, contract: r.contractId, supply: r.supplyPeriodId, snapshot: contract.contract_price_snapshot_id }
+          fx.gsrn = r.gsrn
+          return
+        }
         const c = fx.companyA
         const ids = { customer: randomUUID(), site: randomUUID(), mp: randomUUID(), contract: randomUUID(), snapshot: randomUUID(), supply: randomUUID() }
         const gsrn = `735999${digits(12)}`
@@ -148,13 +199,13 @@ export function fixtureSteps() {
         ctx.value('mode', mode)
         if (mode === 'engine') {
           const session = await ensureSession(ctx, 'A')
-          for (const m of Object.values(FIXTURE_MONTHS)) {
+          for (const m of Object.values(fx.months ?? FIXTURE_MONTHS)) {
             const res = await ctx.http.post('/api/internal/billing/generate-underlay', { cookie: session.cookie(), json: { billing_month: m.month }, label: `generate-underlay ${m.month}` })
             ctx.value(`generate_${m.month}`, { status: res.status, body: res.text().slice(0, 600) })
           }
           fx.underlays = {}
           const diag = []
-          for (const [key, m] of Object.entries(FIXTURE_MONTHS)) {
+          for (const [key, m] of Object.entries(fx.months ?? FIXTURE_MONTHS)) {
             const [y, mo] = m.month.split('-').map(Number)
             const rows = await ctx.sql.rows(`SELECT id, status, readiness_status, billing_block_reason, total_kwh, source_meter_value_count, missing_values_count FROM public.billing_underlays WHERE company_id=${lit(fx.companyA)} AND underlay_year=${y} AND underlay_month=${mo} ORDER BY created_at`)
             const ready = rows.find((r) => r.status === 'validated' && r.readiness_status === 'ready')
@@ -170,7 +221,7 @@ export function fixtureSteps() {
             (SELECT market_start_at IS NOT NULL FROM public.customer_supply_periods WHERE id=${lit(fx.ids.supply)}) AS supply_has_market_start,
             (SELECT count(*) FROM gridex_received_sources.supply_source_transitions WHERE company_id=${lit(fx.companyA)}) AS supply_source_transitions`)
           ctx.value('diagnosis', { months: diag, facts: facts[0] })
-          const missing = Object.keys(FIXTURE_MONTHS).filter((k) => !fx.underlays[k])
+          const missing = Object.keys(fx.months ?? FIXTURE_MONTHS).filter((k) => !fx.underlays[k])
           ctx.assert.equal(missing.length, 0, `no READY, source-bound underlay for: ${missing.join(', ')}. Facts: ${JSON.stringify(facts[0])}. Needed (README "Billing source chain"): inbound Z04 supply basis for the fixture supply period and inbound UTILTS E66 with rule-pack receipt, metering_values and normalized_metering_values for the months.`)
           return
         }
@@ -195,8 +246,8 @@ export function fixtureSteps() {
       note: 'See fixtures/expected.mjs for the rounding rule found in code; it is an ORACLE CANDIDATE.',
       async run(ctx) {
         ctx.fixture.expected = {}
-        for (const [key, m] of Object.entries(FIXTURE_MONTHS)) {
-          ctx.fixture.expected[key] = computeExpected({ kwh: m.kwh })
+        for (const [key, m] of Object.entries(ctx.fixture.months ?? FIXTURE_MONTHS)) {
+          ctx.fixture.expected[key] = computeExpected({ kwh: m.kwh, terms: ctx.fixture.terms ?? FIXTURE_TERMS })
           if (!ctx.fixture.expected[key].variants_agree.exact_vs_float) ctx.finding(`oracle candidate: exact decimal and the product's float formula differ for ${m.month}`)
           if (!ctx.fixture.expected[key].variants_agree.per_line_vs_on_total) ctx.finding(`oracle candidate: VAT per line and VAT on total differ for ${m.month}`)
         }
