@@ -367,18 +367,23 @@ describe('J1-10 field 259 (owner decision 38)', () => {
 // Owner decisions 35-37: the native SQL owners with migrations 20261028100000-20261028102000 in ONE psql transaction
 // that is always rolled back (applied there only when not yet installed). The sources are this suite's own committed
 // synthetic receptions; nothing in the world changes.
+// Each J1 migration with the marker its own body installs; a migration is applied only while its marker is absent.
+const J1_MARKERS: Record<string, string> = { '20261028100000': 'J1-01 (20261028100000)', '20261028101000': 'J1-02 (20261028101000)',
+  '20261028102000': 'J1-03 (20261028102000)', '20261028103000': 'normal_z04_hold_v1' }
 const J1_MIGRATIONS = readdirSync(resolve(__dirname, '../supabase/migrations')).filter(name => /^2026102810\d{4}_j1_/.test(name)).sort()
-  .map(name => readFileSync(resolve(__dirname, '../supabase/migrations', name), 'utf8').replace(/^begin;$/m, '').replace(/^commit;$/m, ''))
+  .map(name => ({ marker: J1_MARKERS[name.slice(0, 14)], body: readFileSync(resolve(__dirname, '../supabase/migrations', name), 'utf8').replace(/^begin;$/m, '').replace(/^commit;$/m, '') }))
 function psqlRun(input: string) {
   if (process.env.NEXT_PUBLIC_SUPABASE_URL !== 'http://127.0.0.1:54321') throw Error('owned_local_only')
   return execFileSync('psql', ['postgresql://postgres:postgres@127.0.0.1:54322/postgres', '-XAtq', '-v', 'ON_ERROR_STOP=1'], { input, encoding: 'utf8', stdio: 'pipe', timeout: 180_000, maxBuffer: 8_000_000 }).trim()
 }
 function rolledBack<T>(statements: string, migrate = true): T {
-  const out = psqlRun(`BEGIN;
-SELECT position('J1-03 (20261028102000)' in prosrc)=0 AND ${migrate} AS apply FROM pg_proc WHERE oid='gridex_received_sources.normal_switch_scope_effect_v1(uuid,uuid,uuid,jsonb,uuid[],uuid)'::regprocedure \\gset
+  if (J1_MIGRATIONS.some(m => !m.marker)) throw Error('j1_migration_marker_required')
+  const apply = J1_MIGRATIONS.map(m => `SELECT position(${literal(m.marker)} in prosrc)=0 AND ${migrate} AS apply FROM pg_proc WHERE oid='gridex_received_sources.normal_switch_scope_effect_v1(uuid,uuid,uuid,jsonb,uuid[],uuid)'::regprocedure \\gset
 \\if :apply
-${J1_MIGRATIONS.join('\n')}
-\\endif
+${m.body}
+\\endif`).join('\n')
+  const out = psqlRun(`BEGIN;
+${apply}
 ${statements}
 ROLLBACK;`)
   return JSON.parse(out.split('\n').at(-1)!) as T
@@ -421,13 +426,80 @@ SELECT to_jsonb((SELECT count(*) FROM public.customer_supply_periods WHERE sourc
     const z04 = await receive(f, z04ForUnknownSwitch(f.originalZ03.raw_payload!, f.receiver, { facility: point.point, caseReference: `LI${randomUUID().replaceAll('-', '').toUpperCase()}` }).raw
       .replaceAll('735999000000000017', point.point))
     const ours = heldReasons(f, z04.message!.id)
-    const elsewhere = heldReasons(f, z04.message!.id, `UPDATE public.metering_points SET grid_area_code='ZZZ' WHERE id=${literal(f.pointId)} AND company_id=${literal(f.companyId)};`)
-    const unrelated = heldReasons(f, z04.message!.id, `SET LOCAL session_replication_role=replica;
+    // The stored reception already holds its own receipt (42/226); a changed world inside this rolled-back transaction
+    // is judged afresh only after that receipt is removed there (a replay with other facts is refused, see J1-B6).
+    const fresh = `SET LOCAL session_replication_role=replica; DELETE FROM gridex_received_sources.normal_z04_hold_receipts WHERE source_message_id=${literal(z04.message!.id)};`
+    const elsewhere = heldReasons(f, z04.message!.id, `${fresh}
+UPDATE public.metering_points SET grid_area_code='ZZZ' WHERE id=${literal(f.pointId)} AND company_id=${literal(f.companyId)};
+SET LOCAL session_replication_role=origin;`)
+    const unrelated = heldReasons(f, z04.message!.id, `${fresh}
 UPDATE public.customer_contracts SET status='terminated' WHERE metering_point_id=${literal(f.pointId)} AND company_id=${literal(f.companyId)};
 SET LOCAL session_replication_role=origin;`)
+    const changedReplay = (() => { try { return heldReasons(f, z04.message!.id, `UPDATE public.metering_points SET grid_area_code='ZZZ' WHERE id=${literal(f.pointId)} AND company_id=${literal(f.companyId)};`) }
+      catch (error) { return String((error as { stderr?: string }).stderr ?? error) } })()
+    expect(String(changedReplay)).toContain('normal_z04_hold_receipt_replay_conflict')
     record('J1-02 105/107', { ours, elsewhere, unrelated, point })
     expect(ours).toEqual(['normal_z04_own_z03_missing'])
     expect(elsewhere).toEqual(['normal_z04_object_not_identified'])
     expect(unrelated).toEqual(['normal_z04_actor_not_related'])
   }, 900_000)
+})
+
+// J1-B6 (owner decisions 35-37): the owner-hold negative is DB-qualified only by the scope owner's own durable hold
+// receipt. The real native ACK guide (gridex_ediel_ack_guide.require_before_mixed_object_results_v1) judges the APERAK
+// the platform actually produced, and forged variants of it, in a transaction that is always rolled back.
+function guide(ack: string, replace: string | null, extra = '') {
+  const statements = `${extra}
+SELECT to_jsonb(r) FROM (SELECT (SELECT gridex_ediel_ack_guide.require_before_mixed_object_results_v1(jsonb_populate_record(NULL::public.ediel_messages,
+  to_jsonb(a)||jsonb_build_object('id',NULL,'execution_context_snapshot','{}'::jsonb,'raw_payload',${replace ?? 'a.raw_payload'})))) IS NULL AS ok
+  FROM public.ediel_messages a WHERE a.id=${literal(ack)}) r;`
+  try { return rolledBack<{ ok: boolean }>(statements).ok ? 'accepted' : 'refused' }
+  catch (error) {
+    const text = String((error as { stderr?: string }).stderr ?? error)
+    return /ediel_native_ack_guide_invalid/.test(text) ? 'refused' : `error:${text.slice(0, 300)}`
+  }
+}
+const ownAperak = (f: Fixture, z04: string, outcome: 'positive' | 'negative') => sql<string | null>(`SELECT to_jsonb(id) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND related_message_id=${literal(z04)} AND message_family='APERAK' AND direction='outbound' AND ack_outcome=${literal(outcome)} ORDER BY created_at LIMIT 1`)
+const holdReceipts = (z04: string) => sql<Array<{ reason: string; erc: string; code: string | null; field: string | null; value: string | null; hash: string }>>(`SELECT coalesce(jsonb_agg(jsonb_build_object('reason',reason,'erc',erc_code,'code',national_code,'field',field_code,'value',field_value,'hash',receipt_hash) ORDER BY first_line_index),'[]') FROM gridex_received_sources.normal_z04_hold_receipts WHERE source_message_id=${literal(z04)}`)
+
+describe('J1-B6 the owner-hold negative APERAK is qualified by the DB ACK guide only through its durable hold receipt', () => {
+  it('a start-date conflict: one hashed receipt (42/210); the real APERAK passes the guide; forged negatives and a missing receipt are refused', async () => {
+    const f = await sentZ03()
+    await acknowledged(f)
+    const confirmed = shiftDate(requestedOf(f), 7), value = `${confirmed.replaceAll('-', '')}0000`
+    const z04 = await receive(f, z04For(f.originalZ03.raw_payload!, f.receiver, { startDate: confirmed }).raw)
+    const held = holdReceipts(z04.message!.id)
+    expect(held).toEqual([expect.objectContaining({ reason: 'normal_z04_start_date_conflict', erc: '42', code: null, field: '210', value })])
+    const ack = ownAperak(f, z04.message!.id, 'negative')
+    expect(ack).not.toBeNull()
+    // A replay of the stored reception records the same receipt (no second one) and still writes no business effect.
+    expect(heldReasons(f, z04.message!.id)).toEqual(['normal_z04_start_date_conflict'])
+    await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: z04.message!.id })
+    expect(holdReceipts(z04.message!.id)).toEqual(held)
+    // The receipt is append-only.
+    expect(() => psqlRun(`BEGIN; UPDATE gridex_received_sources.normal_z04_hold_receipts SET field_value='202701010000' WHERE source_message_id=${literal(z04.message!.id)}; ROLLBACK;`)).toThrow()
+    const results = {
+      actual: guide(ack!, null),
+      // Another field, another national code or another value for the same object is not what the receipt prescribes.
+      otherField: guide(ack!, `replace(a.raw_payload,'210::260+Felaktigt Avtal, startdatum ${value}','226::260+Felaktigt Ärendereferens ${value}')`),
+      otherCode: guide(ack!, `replace(replace(a.raw_payload,'ERC+42::260','ERC+40::260'),'210::260+Felaktigt Avtal, startdatum ${value}','105::260+Anläggningen kan inte identifieras')`),
+      otherValue: guide(ack!, `replace(a.raw_payload,'startdatum ${value}','startdatum 202701010000')`),
+      // Without its receipt (removed only inside the rolled-back transaction) the very same negative is refused.
+      noReceipt: guide(ack!, null, `SET LOCAL session_replication_role=replica; DELETE FROM gridex_received_sources.normal_z04_hold_receipts WHERE source_message_id=${literal(z04.message!.id)}; SET LOCAL session_replication_role=origin;`),
+    }
+    record('J1-B6 guide', { held, results })
+    expect(results).toEqual({ actual: 'accepted', otherField: 'refused', otherCode: 'refused', otherValue: 'refused', noReceipt: 'refused' })
+  }, 600_000)
+
+  it('an applied Z04 has no hold receipt: a forged 42/210 negative for it is refused', async () => {
+    const f = await sentZ03()
+    await acknowledged(f)
+    const z04 = await receive(f, z04For(f.originalZ03.raw_payload!, f.receiver).raw)
+    expect(holdReceipts(z04.message!.id)).toEqual([])
+    const positive = ownAperak(f, z04.message!.id, 'positive')
+    expect(positive).not.toBeNull()
+    const forged = guide(positive!, `replace(a.raw_payload,'ERC+100::260''FTX+AAO+++OK','ERC+42::260''FTX+AAO++210::260+Felaktigt Avtal, startdatum 202701010000')`)
+    record('J1-B6 applied', { forged })
+    expect(forged).toBe('refused')
+  }, 600_000)
 })

@@ -19,6 +19,19 @@
   2. Med formen lättad i en tillbakarullad transaktion stoppar nästa skydd: unika indexet `ux_ediel_ack_related` (ett APERAK per relaterat meddelande och tom transaktionsreferens). Originalet har redan sitt eget APERAK.
 - Förslag till ACK-09-ägaren: tillåt Z07+LI i formen och ge 103-svaret en egen nyckel (t.ex. mottagnings-id som transaktionsreferens, eller indexet avgränsat till icke-dubblettsvar). Ingen ändring görs här.
 
+### J1-B6: skyddad ACK-guide och beständigt hållkvitto (`20261028103000_j1_b6_normal_z04_hold_receipts.sql`)
+- **Låser:** ACK-01–ACK-10, AT-ACK-01–AT-ACK-10, SC-039, SC-054 (kvittensguidens planerade svar för PRODAT-APERAK).
+- **Varför:** `gridex_ediel_ack_guide.validate_response_for_message_v1` godtar bara de svar som `bound_prodat_response_v1` planerar, alltså svar ur valideringsfasetterna eller ur beständiga effektkvitton. Leveransägarens hållning skrev inget bevis, så guiden vägrade korrekt 42/210, 42/226, 40/105, 40/107 och 40/104 (`ediel_native_ack_guide_invalid`, J1-B6).
+- **Nytt:**
+  - **`gridex_received_sources.normal_z04_hold_receipts`:** endast tillägg (samma oföränderlighetstrigger som effektkvittona), RLS forcerad utan policyer, ingen åtkomst för public, anon, authenticated eller service_role. Raden innehåller källa, payload-hash, kanonisk bedömning, objekt (första LIN-segmentindex, anläggning, agency, LI), skäl, ERC, nationell kod eller fält, fältets eget trådvärde och SHA-256 av kvittotexten. Nyckeln är unik per källa, bedömning och objekt.
+  - **`gridex_received_sources.normal_z04_hold_v1`** (SECURITY DEFINER, ingen EXECUTE-grant): skriver kvittot i ägarens transaktion. En omkörning med samma fakta godtas. Andra fakta för samma källa, bedömning och objekt ger `normal_z04_hold_receipt_replay_conflict` och rullar tillbaka. Ingen affärseffekt.
+  - **`gridex_ediel_ack_guide.normal_z04_hold_overlay_v1`** (STABLE, SECURITY DEFINER, ingen EXECUTE-grant): gäller bara Z04. Den ersätter det planerade svaret för exakt det objekt som har ett giltigt kvitto för fasettens egen bedömning, aktuell payload-hash och originalets nationella guidebindning. Det nya svaret är kvittots negativa svar. Texten kommer från originalets egen guideprojektion: `applicationTexts` för ERC 40, `invalidPrefix`+etikett+värde för ERC 42, och `textMax` gäller. Kvittot ändrar inte ett objekt som den kanoniska ägaren redan besvarat negativt, ett objekt med annan LI eller annat id, eller planen när kvitto eller bindning saknas.
+- **Ändrade kroppar (exakta nålar, markörer, ägare/ACL/säkerhetsläge/proconfig kontrolleras):**
+  - `gridex_received_sources.normal_switch_scope_effect_v1`: J1:s fem hållreturer anropar `normal_z04_hold_v1` (samma retur). Inga andra returer ändras.
+  - `gridex_ediel_ack_guide.bound_prodat_response_v1`: bara sista returen (fasetten före domäneffekter) går genom överlägget. Den positiva vägen efter domäneffekt (`prodat_structural_response_v1`) är oförändrad.
+- **Bevarade skydd:** `validate_response_for_message_v1`, `validate_prodat_planned_v1`, `prodat_wire_responses_v1`, `require_before_mixed_object_results_v1`, `prepare_before_fresh_ack_envelope_v1`, `require_domain_response_at_birth_v1`, de frysta ägar- och strukturbindningarna, 103-ägaren och de etablerade svaren är oförändrade. Ett negativt svar utan kvitto, för ett annat objekt, med annan ERC, kod, fält eller text vägras fortfarande. Ett positivt svar kräver fortfarande ett beständigt effektkvitto.
+- **Nya regressioner (världens databas, transaktion som alltid rullas tillbaka, riktiga guiden):** `scripts/inbound-prodat-j1-native.test.ts` beskrivningen "J1-B6". Det verkliga APERAK:et godtas. Annat fält, annan nationell kod och annat värde vägras. Samma APERAK utan kvitto vägras. En förfalskad 42/210 för en tillämpad Z04 vägras. Kvittot är oföränderligt. En omkörning ger samma kvitto, och en omkörning med ändrade fakta ger replay-konflikt.
+
 ## 2. Godkända tester som ändras
 
 | Fil | Godkänt ID | Ändring | Skäl |
