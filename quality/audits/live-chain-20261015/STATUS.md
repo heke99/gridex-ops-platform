@@ -7,6 +7,12 @@ Den hör ihop med tre andra dokument:
 - [OWNER-DECISIONS.md](OWNER-DECISIONS.md): ägarens beslut (1–43) och öppna frågor.
 - #840: anspråk och leveranser per fil.
 
+## ÖVERTAGEN 2026-10-29 11:30 UTC — arbetet fortsätter på `claude/gifted-hamilton-vss1hj`
+På ägarens uppdrag ("ta över franklin-grenen och börja med integrationen mot main") har Claude-sessionen 01TvoUYi… tagit över från 01Az5xza….
+- **En skrivare:** från och med nu pushas inget mer till `claude/wonderful-franklin-o8gx2p`. Arbetet fortsätter på `claude/gifted-hamilton-vss1hj`, som utgår från franklins topp `6cb917d2a`.
+- **Den tidigare sessionens pågående jämförelse** (Z03L och källägarsviterna, arbetskopian `/home/user/gx-wt-prej1`) körs i dess egen container. Resultatet följer inte med, och jämförelsen görs om vid behov.
+- **Nästa steg:** integrera mot main (174 commits sedan den gemensamma basen) och dela sedan upp arbetet i granskningsbara PR:er. Läget uppdateras i avsnittet nedan.
+
 ## ÅTERUPPTA HÄRIFRÅN (läs först om arbetet har stannat)
 Senast uppdaterad 2026-10-29 11:00 UTC. Grenen `claude/wonderful-franklin-o8gx2p`, head `5d88e4c75` (allt nedan är pushat).
 
