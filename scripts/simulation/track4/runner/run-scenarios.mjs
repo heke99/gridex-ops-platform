@@ -8,13 +8,14 @@
 // A step with `todo` is reported as skipped with reason "TODO: ..." (explicit, never silently green).
 // A step whose `needs` did not pass is skipped ("dependency ... not passed"); never executed on stale state.
 //
-// ctx: { env, sql, sqlAdmin, http, assert, fixture, value(k,v), finding(text), file(name, bytes), step }
+// ctx: { env, sql, sqlAdmin, http, assert, fixture, dbErrorsSince, value(k,v), finding(text), file(name, bytes), step }
 // Evidence recorded per step: http[] (status, bytes, sha256, location), db.before/after counts of the billing
 // tables for tenant A, db.delta, values{}, findings[], files[] (bytes + sha256).
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import assert from 'node:assert/strict'
+import { execFile } from 'node:child_process'
 import { createSql } from './lib/sql.mjs'
 import { createHttp, sha256Hex } from './lib/http.mjs'
 import { countsFor, diffCounts } from '../fixtures/flows.mjs'
@@ -51,6 +52,17 @@ const scenarios = mod.scenarios ?? (mod.scenario ? [mod.scenario] : null)
 if (!scenarios) throw new Error('scenario file must export `scenarios` (array) or `scenario`')
 
 const sql = createSql(env.T4_DB_URL)
+// The product masks RPC errors (e.g. lib/billing/invoiceReviewPrepare.ts:454 -> "Draftfakturan kunde inte skapas.").
+// The real SQLSTATE/message is in the Postgres log, so every step records the ERROR/FATAL lines logged while it ran.
+const DB_CONTAINER = env.T4_DB_CONTAINER ?? `supabase_db_${env.T4_PROJECT_ID ?? 'gridex-sim-t4'}`
+const dbErrorsSince = (sinceIso) => new Promise((resolve) => {
+  execFile('docker', ['logs', '--since', sinceIso, DB_CONTAINER], { maxBuffer: 64 * 1024 * 1024 }, (error, stdout, stderr) => {
+    if (error) return resolve([`(db log unavailable: ${String(error.message).slice(0, 120)})`])
+    const lines = `${stdout}\n${stderr}`.split('\n').filter((l) => /\b(ERROR|FATAL|PANIC):/.test(l))
+    const dedup = [...new Set(lines.map((l) => l.replace(/^\S+ \S+ \S+ \[\d+\] /, '').slice(0, 400)))]
+    resolve(dedup.slice(0, 30))
+  })
+})
 // Superuser connection (local supabase_admin) for fixture writes that must bypass product triggers
 // (session_replication_role=replica needs superuser). Fixture-only; scenario steps use `sql`.
 const sqlAdmin = createSql(env.T4_DB_URL.replace('//postgres:', '//supabase_admin:'))
@@ -63,7 +75,7 @@ for (const scenario of scenarios) {
   let current = null // step record whose evidence http calls are attributed to
   const http = createHttp({ baseUrl: env.T4_APP_URL, onRecord: (r) => current?.evidence.http.push(r) })
   const ctx = {
-    env, sql, sqlAdmin, http, assert, fixture,
+    env, sql, sqlAdmin, http, assert, fixture, dbErrorsSince,
     runDir: args.out,
     value: (k, v) => { current.evidence.values[k] = v },
     finding: (text) => { current.evidence.findings.push(text) },
@@ -83,7 +95,7 @@ for (const scenario of scenarios) {
     const rec = {
       id: step.id, name: `${step.id} ${step.title}`, scope: step.scope ?? null, mechanism: step.mechanism ?? null, note: step.note ?? null,
       status: 'skipped', reason: null, startedAt: null, finishedAt: null, durationMs: 0, error: null,
-      evidence: { http: [], db: { before: null, after: null, delta: null }, values: {}, findings: [], files: [] },
+      evidence: { http: [], dbErrors: [], db: { before: null, after: null, delta: null }, values: {}, findings: [], files: [] },
     }
     records.push(rec)
     if (!selected.has(step.id)) { rec.reason = 'not selected (--only)'; status.set(step.id, 'skipped'); continue }
@@ -109,11 +121,12 @@ for (const scenario of scenarios) {
         if (rec.evidence.db.before) rec.evidence.db.delta = diffCounts(rec.evidence.db.before, rec.evidence.db.after)
       }
     } catch (error) { rec.evidence.db.error = String(error?.message ?? error) }
+    rec.evidence.dbErrors = await dbErrorsSince(rec.startedAt)
     rec.durationMs = Date.now() - t0
     rec.finishedAt = new Date().toISOString()
     status.set(step.id, rec.status)
     current = null
-    console.log(`${rec.status.toUpperCase().padEnd(7)} ${rec.name}${rec.error ? `\n        ${rec.error.message}` : ''}${rec.reason ? `  (${rec.reason})` : ''}`)
+    console.log(`${rec.status.toUpperCase().padEnd(7)} ${rec.name}${rec.error ? `\n        ${rec.error.message}` : ''}${rec.status === 'failed' && rec.evidence.dbErrors.length ? `\n        db log: ${rec.evidence.dbErrors.slice(0, 4).join('\n                ')}` : ''}${rec.reason ? `  (${rec.reason})` : ''}`)
   }
 
   const count = (s) => records.filter((r) => r.status === s).length

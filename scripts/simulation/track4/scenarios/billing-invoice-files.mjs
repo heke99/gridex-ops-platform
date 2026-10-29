@@ -36,16 +36,18 @@ const steps = [
     async run(ctx) {
       const fx = ctx.fixture, s = await ensureSession(ctx, 'A'), month = M.main.month
       const before = await countsFor(ctx.sql, fx.companyA)
+      const t0 = new Date().toISOString()
       const r1 = await prepare(ctx, s, { companyId: fx.companyA, month, label: 'prepare #1' })
       ctx.assert.equal(r1.status, 200, `prepare #1: ${r1.text().slice(0, 300)}`)
       const d1 = r1.json().data
       ctx.value('prepare1', d1)
-      ctx.assert.equal(d1.failed, 0, `prepare #1 errors: ${JSON.stringify(d1.errors)}`)
+      // The API masks the cause (invoiceReviewPrepare.ts:454); the Postgres log has the real RPC error.
+      ctx.assert.equal(d1.failed, 0, `prepare #1 errors: ${JSON.stringify(d1.errors)}; db log: ${JSON.stringify(await ctx.dbErrorsSince(t0))}`)
       ctx.assert.equal(d1.created, 1, 'prepare #1 must create exactly one draft')
       const mid = await countsFor(ctx.sql, fx.companyA)
       const delta = diffCounts(before, mid)
       ctx.value('delta1', delta)
-      for (const t of ['invoice_export_runs', 'invoice_export_items', 'customer_invoices']) ctx.assert.equal(delta[t], 1, `${t} +1 after first prepare`)
+      for (const t of ['invoice_export_runs', 'invoice_export_items', 'customer_invoices']) ctx.assert.equal(delta[t] ?? 0, 1, `${t} +1 after first prepare`)
       const items = await itemsFor(ctx.sql, fx.companyA, month)
       ctx.assert.equal(items.length, 1)
       ctx.assert.equal(items[0].status, 'pending')
@@ -103,6 +105,7 @@ const steps = [
     async run(ctx) {
       const fx = ctx.fixture, s = await ensureSession(ctx, 'A'), month = M.concurrentPrepare.month
       const before = await countsFor(ctx.sql, fx.companyA)
+      const t0 = new Date().toISOString()
       const results = await Promise.all(Array.from({ length: N }, (_, i) => prepare(ctx, s, { companyId: fx.companyA, month, label: `prepare concurrent #${i + 1}` })))
       const statuses = results.map((r) => r.status)
       ctx.value('statusHistogram', histogram(statuses))
@@ -112,7 +115,7 @@ const steps = [
       const after = await countsFor(ctx.sql, fx.companyA)
       const delta = diffCounts(before, after)
       ctx.value('delta', delta)
-      for (const t of ['invoice_export_runs', 'invoice_export_items', 'customer_invoices']) ctx.assert.equal(delta[t], 1, `${t}: exactly one after ${N} concurrent prepares`)
+      for (const t of ['invoice_export_runs', 'invoice_export_items', 'customer_invoices']) ctx.assert.equal(delta[t] ?? 0, 1, `${t}: exactly one after ${N} concurrent prepares (response created=${JSON.stringify(ctx.step.evidence.values.createdPerResponse)}; db log: ${JSON.stringify(await ctx.dbErrorsSince(t0))})`)
       const items = await itemsFor(ctx.sql, fx.companyA, month)
       ctx.assert.equal(items.length, 1)
       assertAmounts(ctx, items[0], 'concurrentPrepare')
@@ -128,7 +131,7 @@ const steps = [
       const fx = ctx.fixture, s = await ensureSession(ctx, 'A'), month = M.concurrentApprove.month
       const p = await prepare(ctx, s, { companyId: fx.companyA, month, label: 'prepare (setup)' })
       ctx.assert.equal(p.status, 200, p.text().slice(0, 200))
-      ctx.assert.equal(p.json().data.created, 1)
+      ctx.assert.equal(p.json().data.created, 1, `setup prepare created ${p.json().data.created}: ${JSON.stringify(p.json().data.errors)}; db log: ${JSON.stringify(await ctx.dbErrorsSince(new Date(Date.now() - 60_000).toISOString()))}`)
       await actionId(ctx, s, 'approve', month) // resolve (and cache) the action id once, before the burst
       const before = await countsFor(ctx.sql, fx.companyA)
       const results = await Promise.all(Array.from({ length: N }, (_, i) => runAction(ctx, s, 'approve', month, `approve concurrent #${i + 1}`)))

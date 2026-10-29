@@ -38,7 +38,7 @@ script excludes mailpit), app 3104, sink 3194. Project id `gridex-sim-t4`.
 | FX02 staff users | **Auth admin API** + **SQL** | Users created with `auth.admin.createUser` (real). `user_profiles`, role `t4_billing_staff` with `billing_underlay.read`/`.export`, `role_permissions`, `company_memberships`, `user_roles` are SQL: `canonical_authenticated_tenant_context` reads exactly these. |
 | FX03 customer, site, metering point | **SQL** | Plain INSERTs, product triggers active. |
 | FX03 contract (fixed 84.75 öre/kWh + 49.50 SEK/month, 25 %), price snapshot, supply period | **SQL, superuser, triggers bypassed** | `customer_contracts` signed/active rows can only be created by the product's signature + activation commands (published offer -> `gridex_create_internal_customer_contract_v1` -> signing with catalog/legal-bundle refs and evidence -> `activate_customer_supply_v1`); there is no import command (the trigger message `customer_contract_signed_insert_requires_import_command` names none). The fixture inserts as local `supabase_admin` with `session_replication_role=replica` (triggers and FK checks off, CHECKs on). Verifies nothing about contract creation, signing, activation, quote/publication binding or snapshot guards; catalog and evidence reference columns stay NULL, signature evidence is synthetic, snapshot hash computed as the integrity trigger does. |
-| FX04 meter values -> READY underlay | **SQL (default)** | Underlays inserted as `validated`/`ready` with `total_kwh` (3 months: main 2026-09 = 437.215 kWh, 2026-08 = 120.5, 2026-07 = 310). Bypasses meter-value intake and `generateBillingUnderlaysForMonth`, so it verifies neither. `T4_UNDERLAY_MODE=engine` calls the real `POST /api/internal/billing/generate-underlay`, but only works once qualified meter values exist (see Open). |
+| FX04 READY underlays | **API** (default `engine`) | `POST /api/internal/billing/generate-underlay` for 2026-09/08/07, then verifies validated/ready underlay **with** a `gridex_billing_source.underlay_bindings` row. It does not create the source; fails with a diagnosis (underlay rows, block reason, source facts) until the chain below exists. `T4_UNDERLAY_MODE=direct` inserts underlays by SQL: prepare then ALWAYS fails (`billing_finalized_source_basis_required`) because only the engine writes the binding; kept for debugging only. |
 | FX05 expected amounts | compute | `fixtures/expected.mjs`. |
 | FX06 sessions | **API** | Password sign-in through `@supabase/ssr` (same cookie format as the app), active-company cookie `gridex_admin_selected_company_id`; checks `canonical_authenticated_tenant_context` and `GET /admin/billing` = 200. |
 
@@ -48,6 +48,34 @@ Scenario steps use only product entrypoints for the action under test:
 rendered `/admin/billing` form, override `T4_ACTION_ID_APPROVE` / `T4_ACTION_ID_CREATE_FILE`),
 `GET /admin/billing/invoice-files/<id>`, `POST /api/internal/billing/generate-underlay`. SQL is used for reads
 (counts, rows) and for the negative UPDATE probes (BILLNEG01.03/.04a). No step uses a browser/Playwright.
+
+## Billing source chain (what prepare really requires; traced from the error code backwards)
+`prepare` -> `gridex_create_invoice_review_draft_v1` / `gridex_create_billing_export_run` ->
+`gridex_billing_source.require_underlay_v1(company, underlay)` raises `billing_finalized_source_basis_required` unless:
+1. `gridex_billing_source.underlay_bindings` has a row for the underlay with `exact_total_kwh = billing_underlays.total_kwh`
+   and a matching `source_basis_hash` (written only by the underlay engine), and `correction_journal` is empty;
+2. `ediel_require_invoice_source_copies_available_v1` passes;
+3. `gridex_received_sources.billing_supply_basis_v1(company, supply_period, start, end)` equals the supply basis stored in the
+   binding (else `billing_finalized_supply_basis_changed`). The FX03 supply period has none of what that needs:
+   `market_start_at`/`market_state_version`/`source_message_id`, `metadata.sourceGroundId`, a row in
+   `gridex_received_sources.supply_source_transitions` (payload hash + resulting_states) for an inbound Z04, accepted
+   `validation_assessments`, a `regulated_supply_ground_versions` row (legal decision, registry version, source sha), and
+   `gridex_ediel_inbound_context.require_v1` with `legalActorId` = ground actor and role `electricity_supplier`
+   (alternatively a `normal_switch_confirmations` row);
+4. each billed `normalized_metering_values` row passes `gridex_billing_source.basis_v1` (`gridex_read_billing_source_values_v1`): an
+   inbound `ediel_messages` UTILTS E30/E66 (E66: application ref `23-DDQ-E66-S|T`, product `8716867000030`, quantity type 136, kWh,
+   standard decimals), a `gridex_ediel_source_rules.receipts` row whose `payload_sha256` matches the message, a current
+   `metering_values` row (`source_ediel_message_id`, `source_transaction_reference`, identical `raw_payload` with
+   `consumptionContract` = `gridex_utilts_binding.stored_contract_v1`) and an identical normalized row.
+`pricing_run_locked` in the log is the retry of `gridex_persist_pricing_run` after the first pricing run was already locked.
+Minimal genuine path: platform sends Z03 for a switch request -> counterparty answers Z04 -> activation (supply graph) -> counterparty
+sends UTILTS E66 per day -> inbound pipeline (`POST /api/internal/inbound-mail/cron`, IMAP mailbox needed; the replay excludes mailpit,
+so a local GreenMail/IMAP+SMTP counterparty is required) -> `generate-underlay`. This is the reality-world chain
+(`scripts/reality/chain-f-invoice.test.ts` on claude/gifted-hamilton-vss1hj) and the Ediel track's harness; not built here. A
+trigger-bypassed contract (FX03) is not the blocker, the supply period and the messages are.
+
+Every step records the Postgres ERROR/FATAL lines logged while it ran (`evidence.dbErrors`, via `docker logs` of the DB container),
+because the product masks RPC errors (`lib/billing/invoiceReviewPrepare.ts:454`).
 
 ## Expected amounts and rounding (ORACLE CANDIDATE)
 Rule found in code: energy ex VAT = `Math.round(kWh x price x 100)/100` (`lib/pricing/basePriceCalculator.ts`); VAT per

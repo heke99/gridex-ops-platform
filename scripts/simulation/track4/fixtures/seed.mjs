@@ -140,20 +140,38 @@ export function fixtureSteps() {
       },
     },
     {
-      id: 'FX04', title: 'meter values for the billing months -> READY billing underlays', scope: 'sql', mechanism: 'sql (default) | api generate-underlay (T4_UNDERLAY_MODE=engine)', needs: ['FX03'],
-      note: 'SUBSTITUTION in default mode: underlays are inserted as validated/ready with total_kwh set, bypassing meter-value intake and generateBillingUnderlaysForMonth. Billable meter values need a genuine inbound UTILTS E66 message (gridex_read_billing_source_values_v1 -> basis_v1 verifies the Ediel source message, stored consumer contract and rule-pack basis), which this fixture does not create. TODO(T4-FX04b): seed that through the inbound Ediel path, then use T4_UNDERLAY_MODE=engine (POST /api/internal/billing/generate-underlay).',
+      id: 'FX04', title: 'billing source: meter values -> READY billing underlays through generate-underlay (engine mode, default)', scope: 'api+sql-read', mechanism: 'api generate-underlay (default `engine`) | sql (T4_UNDERLAY_MODE=direct, CANNOT pass prepare)', needs: ['FX03'],
+      note: 'Engine mode drives the real POST /api/internal/billing/generate-underlay and then verifies that every month has a validated/ready underlay WITH a source binding. It does not create the source: see README "Billing source chain" for what must exist first (inbound Z04 supply basis + inbound UTILTS E66). Without it this step fails with a precise list of what is missing. Direct mode inserts underlays by SQL; prepare then fails with billing_finalized_source_basis_required because gridex_billing_source.underlay_bindings has no row (only the engine writes it).',
       async run(ctx) {
         const fx = ctx.fixture
-        const mode = process.env.T4_UNDERLAY_MODE ?? 'direct'
+        const mode = process.env.T4_UNDERLAY_MODE ?? 'engine'
         ctx.value('mode', mode)
         if (mode === 'engine') {
           const session = await ensureSession(ctx, 'A')
           for (const m of Object.values(FIXTURE_MONTHS)) {
             const res = await ctx.http.post('/api/internal/billing/generate-underlay', { cookie: session.cookie(), json: { billing_month: m.month }, label: `generate-underlay ${m.month}` })
-            ctx.assert.equal(res.status, 200, `generate-underlay ${m.month}`)
+            ctx.value(`generate_${m.month}`, { status: res.status, body: res.text().slice(0, 600) })
           }
-          const ready = await ctx.sql.scalar(`SELECT count(*) FROM public.billing_underlays WHERE company_id=${lit(fx.companyA)} AND status='validated' AND readiness_status='ready'`)
-          ctx.assert.equal(Number(ready), Object.keys(FIXTURE_MONTHS).length, 'engine mode: every month needs a validated/ready underlay (requires UTILTS-qualified meter values: TODO T4-FX04b)')
+          fx.underlays = {}
+          const diag = []
+          for (const [key, m] of Object.entries(FIXTURE_MONTHS)) {
+            const [y, mo] = m.month.split('-').map(Number)
+            const rows = await ctx.sql.rows(`SELECT id, status, readiness_status, billing_block_reason, total_kwh, source_meter_value_count, missing_values_count FROM public.billing_underlays WHERE company_id=${lit(fx.companyA)} AND underlay_year=${y} AND underlay_month=${mo} ORDER BY created_at`)
+            const ready = rows.find((r) => r.status === 'validated' && r.readiness_status === 'ready')
+            let bound = null
+            if (ready) bound = Number(await ctx.sqlAdmin.scalar(`SELECT count(*) FROM gridex_billing_source.underlay_bindings WHERE underlay_id=${lit(ready.id)}`)) > 0
+            diag.push({ month: m.month, underlays: rows, ready: !!ready, source_binding: bound })
+            if (ready && bound) fx.underlays[key] = ready.id
+          }
+          const facts = await ctx.sqlAdmin.rows(`SELECT
+            (SELECT count(*) FROM public.ediel_messages WHERE company_id=${lit(fx.companyA)} AND direction='inbound' AND message_family='UTILTS') AS inbound_utilts,
+            (SELECT count(*) FROM public.ediel_messages WHERE company_id=${lit(fx.companyA)} AND direction='inbound' AND message_code IN ('Z04','Z04L','Z04LK')) AS inbound_z04,
+            (SELECT count(*) FROM public.normalized_metering_values WHERE company_id=${lit(fx.companyA)}) AS normalized_values,
+            (SELECT market_start_at IS NOT NULL FROM public.customer_supply_periods WHERE id=${lit(fx.ids.supply)}) AS supply_has_market_start,
+            (SELECT count(*) FROM gridex_received_sources.supply_source_transitions WHERE company_id=${lit(fx.companyA)}) AS supply_source_transitions`)
+          ctx.value('diagnosis', { months: diag, facts: facts[0] })
+          const missing = Object.keys(FIXTURE_MONTHS).filter((k) => !fx.underlays[k])
+          ctx.assert.equal(missing.length, 0, `no READY, source-bound underlay for: ${missing.join(', ')}. Facts: ${JSON.stringify(facts[0])}. Needed (README "Billing source chain"): inbound Z04 supply basis for the fixture supply period and inbound UTILTS E66 with rule-pack receipt, metering_values and normalized_metering_values for the months.`)
           return
         }
         fx.underlays = {}
@@ -168,6 +186,7 @@ export function fixtureSteps() {
                 ${lit({ billing_month: m.month, generated_from: 't4_fixture_direct' })}::jsonb)`)
           fx.underlays[key] = id
         }
+        ctx.finding('direct mode: underlays have no gridex_billing_source.underlay_bindings row; prepare is expected to fail with billing_finalized_source_basis_required')
         ctx.value('underlays', fx.underlays)
       },
     },
