@@ -2400,7 +2400,7 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
   - **D6:** en väntande inflytt på en annan anläggning överlever stängningen.
   - **D12 och D13:** standarddatumet är svensk dag, och typen har de skäl som finns i databasen.
   - **Migrationer**, applicerade i världen 2026-10-24T00:21Z:
-    - `20261023203000_h3d_contract_end_after_supply_end` (`b57313c2…`)
+    - `20261023203000_h3d_contract_end_after_supply_end` (`b57313c2…`; numera `20261023232200`, flyttad vid main-integrationen)
     - `…203500_h3d_contract_end_after_supply_basis` (`5b5906bf…`)
     - `…204000_h3d_contract_notice_days` (`97d225f2…`)
     - `…205000_h3d_move_out_notice_and_termination` (`1394261b…`)
@@ -2949,6 +2949,7 @@ Hela rapporten finns i `quality/audits/live-chain-20261015/reports/h3d-move-out-
 - **Rättning:** ett bundet underlag behåller sin frysta `pricing_snapshot` (anroparen skickar samma snapshot). Status, beredskap och beräknade belopp skrivs som förut, och ett obundet underlag är oförändrat. Exakt nålbyte med kontroll av ägare, ACL, säkerhetsläge och konfiguration.
 - **Även:** `calculateUnderlayPricingWithCore` (`lib/pricing/underlayPricingAdapter.ts`) dolde databasens fel bakom "Prisberäkning misslyckades.", eftersom ett PostgREST-fel inte är ett `Error`. Nu visas databasens text och kod (`formatErrorMessage`).
 - **Test:** `scripts/reality-j2-b6-price-bound-underlay-native.test.ts` (världens bundna underlag i en transaktion som alltid rullas tillbaka: den gamla kroppen vägrar, och med migrationen registreras både en misslyckad och en lyckad körning med oförändrad snapshot) och `__tests__/reality-j2-b6-pricing-error-message.test.ts`, båda röda före. Pris-, fakturerings- och underlagstesterna 70 filer, 703/703.
+- **Ersatt av main (2026-10-29, main-integrationen):** main's `20261023232114_preserve_qualified_underlay_pricing_snapshot` levererar samma regel (`v_source_bound`) och vägrar dessutom en snapshot som skiljer sig från det bundna underlagets (`source_bound_pricing_snapshot_mismatch`). Main's migration kräver en exakt förbild, så vår `20261027120000` togs bort. Den hade aldrig applicerats utanför den lokala världen. Nativetestet prövar nu den installerade kroppen från main. Samtidigt flyttades H3d `20261023203000` till `20261023232200`, eftersom den ändrade förbilden före main's migration. Main's regression `scripts/qualified-underlay-pricing-snapshot-sql-regression.mjs` kör H3 och H3b före `232114` och är grön.
 
 ### J2-B7 Fakturautkastets körning skrev tre kolumner som aldrig skapats — PRODUKT, KRITISK för fakturering; RÄTTAD (migration `20261027121000`, applicerad i världen)
 - **Bevis i världen:** efter J2-B6 föll alla tre utkasten med "Draftfakturan kunde inte skapas.". Postgresloggen visar `column "adapter_key" of relation "billing_export_runs" does not exist` i `gridex_create_billing_export_run_before_source_v2`.

@@ -22,7 +22,7 @@ const meter = '44444444-4444-4444-8444-444444444444', customer = '55555555-5555-
 const contract = '88888888-8888-4888-8888-888888888888', price = '99999999-9999-4999-8999-999999999999', priceVersion = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', otherContract = '8888aaaa-8888-4888-8888-888888888888'
 const nov = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', item = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd'
 const h3b = fs.readFileSync(root+'/supabase/migrations/20261023200000_move_out_final_month_billing.sql','utf8')
-const migration = fs.readFileSync(root+'/supabase/migrations/20261023203000_h3d_contract_end_after_supply_end.sql','utf8')
+const migration = fs.readFileSync(root+'/supabase/migrations/20261023232200_h3d_contract_end_after_supply_end.sql','utf8')
 const NOV = { start: '2026-10-31T23:00:00+00:00', end: '2026-11-15T23:00:00+00:00' }
 const raw = "UNA:+.? 'UNB+UNOC:3+A:ZZ+B:ZZ+261120:1200+I++23-DDQ-E66-T++++1'UNH+1+UTILTS:D:02B:UN:E5SE5A'BGM+E66::260+D+9+AB'DTM+735:?+0100:406'IDE+24+OWN'LIN+++8716867000030:::9'LOC+172+735999260731000007::9'DTM+324:202611010000202611160000:719'DTM+354:360:805'M EA'".replace("M EA'", "MEA+AAZ++KWH'SEQ++1'RFF+AES:REG'QTY+136:361'UNT+12+1'UNZ+1+I'")
 const observation = { ordinal: 0, sourceOrdinal: 0, quantity: '361', periodStart: '2026-10-31T23:00:00.000Z', periodEnd: '2026-11-15T23:00:00.000Z', unit: 'kWh', quality: '136', direction: 'consumption', productCode: null, registerCode: null }
