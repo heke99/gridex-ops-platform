@@ -1,0 +1,52 @@
+{
+  "scenarioId": "TERM02.08",
+  "campaignId": "20261029-3f1a8ab1",
+  "trackId": "2",
+  "workerId": "claude-track2",
+  "workerSession": "session_01UHTg8HxykHjbe9QgaEz2sC",
+  "model": "Claude (Anthropic); exakt modell-ID publiceras inte i repot enligt sessionspolicy",
+  "baselineCommit": "1c0c088cb4ed66d0dd8b3e34c9606019342a1a56",
+  "appCommit": "1c0c088cb4ed66d0dd8b3e34c9606019342a1a56",
+  "overlayRefs": [
+    "harness scripts/simulation/track2 on claude/sim-20261029-track2; harnessCommit per ID (no app changes)"
+  ],
+  "environmentId": "claude-cloud-container session_01UHTg8HxykHjbe9QgaEz2sC; local Supabase CLI 2.101.0 project gridex-ops-platform; images ghcr.io/supabase/*; app next start :3102",
+  "databaseIdentity": "local postgres 17.6 (supabase/postgres:17.6.1.155) 127.0.0.1:54322; clean replay of 1c0c088c via scripts/gridex-aud-003-clean-replay.sh (private patched copy) at 2026-10-29T19:26:32Z; applied-migrations.tsv empty; replay-commit == built-commit == HEAD",
+  "schemaHash": {
+    "replayFingerprintSha256Partial": "d5816bb40115141c0e38af283de87d211191ca6c334cbd65ee259cdda89c0363",
+    "pgDumpSchemaOnlyPublicSha256": "c1b1b1644e73955a07141bbdb0851941334f145764ef263d399d3505754747b7",
+    "note": "fingerprint covers selected tables only (partial identity)"
+  },
+  "clockModel": "Auth/JWT: real wall clock, never manipulated. Business time: explicit fixture dates (starts_at, billing_month, happened_at) passed through normal entries; where app uses now() (lifecycle referenceDate) it is the real Stockholm day. Declared signing date stored as metadata only; actual signed_at = real time from finalize RPC.",
+  "nodeVersion": "v22.22.0",
+  "cleanupReceipt": "PENDING: stacken kör vidare för omtest av rättningar; down.sh-kvitto fylls i när paketet stängs",
+  "state": "PARTIAL",
+  "executionScope": "ISOLATED_NATIVE",
+  "startedAtUtc": "2026-10-29T20:23:15Z",
+  "finishedAtUtc": "2026-10-29T20:28:51Z",
+  "command": "scripts/simulation/track2/run.sh scenarios/term02.test.ts (harness da7a655c)",
+  "evidence": [
+    {
+      "report": "term02-20261029T202315Z.json",
+      "sha256": "b3ef09bacdead3be58eb2b1545203ec19aec27246285b6a21d3a02dcd1f3e570"
+    },
+    {
+      "log": "run-term02-20261029T202315Z.log",
+      "sha256": "bae1599f1520b33faae97e8ba73e0bcc7fe94907671c543687ad2f2a281b004c"
+    },
+    {
+      "harnessCommit": "da7a655c",
+      "harnessPath": "scripts/simulation/track2"
+    }
+  ],
+  "oracle": "oberoende BigInt-decimalorakel: exakt likhet i alla icke-halva fall, moms per rad; halva fall registrerade",
+  "nativeBeforeAfter": "pricing preview persist:false",
+  "review": "sim-reviewer GODKÄND PARTIAL",
+  "findingsIds": [
+    "20261029-3f1a8ab1/claude-track2/009"
+  ],
+  "blocker": "avrundningsregel för halvt öre ej fastställd",
+  "nextAction": "Ägarbeslut om regel; därefter strikt assertion",
+  "harnessCommit": "da7a655c",
+  "replacements": "B1 leveransperiod via SQL (ej Z03/Z04-bytesprocess); B2 mätvärden via SQL, underlag needs_review (ready_for_pricing ej verifierat); B3/B4 spotdata via SQL, lås via route (importör/validateSpotPriceDay ej verifierad); B5 estimering avstängd"
+}

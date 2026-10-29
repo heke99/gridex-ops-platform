@@ -1,0 +1,53 @@
+{
+  "scenarioId": "TERM03.01",
+  "campaignId": "20261029-3f1a8ab1",
+  "trackId": "2",
+  "workerId": "claude-track2",
+  "workerSession": "session_01UHTg8HxykHjbe9QgaEz2sC",
+  "model": "Claude (Anthropic); exakt modell-ID publiceras inte i repot enligt sessionspolicy",
+  "baselineCommit": "1c0c088cb4ed66d0dd8b3e34c9606019342a1a56",
+  "appCommit": "1c0c088cb4ed66d0dd8b3e34c9606019342a1a56",
+  "overlayRefs": [
+    "harness scripts/simulation/track2 on claude/sim-20261029-track2; harnessCommit per ID (no app changes)"
+  ],
+  "environmentId": "claude-cloud-container session_01UHTg8HxykHjbe9QgaEz2sC; local Supabase CLI 2.101.0 project gridex-ops-platform; images ghcr.io/supabase/*; app next start :3102",
+  "databaseIdentity": "local postgres 17.6 (supabase/postgres:17.6.1.155) 127.0.0.1:54322; clean replay of 1c0c088c via scripts/gridex-aud-003-clean-replay.sh (private patched copy) at 2026-10-29T19:26:32Z; applied-migrations.tsv empty; replay-commit == built-commit == HEAD",
+  "schemaHash": {
+    "replayFingerprintSha256Partial": "d5816bb40115141c0e38af283de87d211191ca6c334cbd65ee259cdda89c0363",
+    "pgDumpSchemaOnlyPublicSha256": "c1b1b1644e73955a07141bbdb0851941334f145764ef263d399d3505754747b7",
+    "note": "fingerprint covers selected tables only (partial identity)"
+  },
+  "clockModel": "Auth/JWT: real wall clock, never manipulated. Business time: explicit fixture dates (starts_at, billing_month, happened_at) passed through normal entries; where app uses now() (lifecycle referenceDate) it is the real Stockholm day. Declared signing date stored as metadata only; actual signed_at = real time from finalize RPC.",
+  "nodeVersion": "v22.22.0",
+  "cleanupReceipt": "PENDING: stacken kör vidare för omtest av rättningar; down.sh-kvitto fylls i när paketet stängs",
+  "state": "FAIL",
+  "executionScope": "ISOLATED_NATIVE",
+  "startedAtUtc": "2026-10-29T20:32:50Z",
+  "finishedAtUtc": "2026-10-29T20:34:35Z",
+  "command": "scripts/simulation/track2/run.sh scenarios/term03.test.ts (harness 29285443)",
+  "evidence": [
+    {
+      "report": "term03-20261029T203250Z.json",
+      "sha256": "07849d560b5334c9bc8b5ef7e610515efd3192aed20c5d5fb22a7e27ff6713a7"
+    },
+    {
+      "log": "run-term03-20261029T203250Z.log",
+      "sha256": "dba9d66fb773914423ddc7c1f00c28b69f2b5b40569a434fd41f827b1796f58e"
+    },
+    {
+      "harnessCommit": "29285443",
+      "harnessPath": "scripts/simulation/track2"
+    }
+  ],
+  "oracle": "kWh/belopp bara från 2026-09-15 00:00 lokal; avgift med prorated_by_days = 16/30",
+  "nativeBeforeAfter": "energi klippt exakt (384 intervall); avgift 4900 öre (hel månad) trots prorated_by_days",
+  "review": "sim-reviewer GODKÄND FAIL (produktfel 012; felet gäller oavsett nämnare)",
+  "findingsIds": [
+    "20261029-3f1a8ab1/claude-track2/012",
+    "20261029-3f1a8ab1/claude-track2/013"
+  ],
+  "blocker": "produktfel 012: periodizationFactor delar med klippt segments dagar (priceComponentCalculator.ts:24-49, engine.ts:261-309)",
+  "nextAction": "Rättning av 012 med claim och regression; omtest; ägaren bekräftar nämnaren (kalendermånad)",
+  "harnessCommit": "29285443",
+  "replacements": "B1 leveransperiod via SQL (ej Z03/Z04-bytesprocess); B2 mätvärden via SQL, underlag needs_review (ready_for_pricing ej verifierat); B3/B4 spotdata via SQL, lås via route (importör/validateSpotPriceDay ej verifierad); B5 estimering avstängd"
+}
