@@ -8,7 +8,7 @@
     {
       "kind": "harness",
       "branch": "claude/sim-20261029-track1",
-      "commit": "c6f2497e",
+      "commit": "ba065053",
       "path": "scripts/simulation/track1/"
     }
   ],
@@ -66,14 +66,40 @@
       "report.json": "300507499f2284debaee59ad13eb203af240fc60b566aa01c26952896f543d3c",
       "run.log": "28fd1b8b373648cfc7fb323d3f6c685e69ccca25d6550a756f9476640166e07a",
       "outcome": "fixture: spot lock passed; UTILTS day 1 failed billing_gate_qualified_supply_source_required (finding 006, under diagnosis)"
+    },
+    {
+      "attempt": 5,
+      "run": "20261029T204407Z-main03",
+      "harnessCommit": "ebf2b271",
+      "exit": 1,
+      "report.json": "6a7d815242ef67cd7c586b4f77667c0ac8f5fc1a59e392b663cd2edcdf35b4b6",
+      "run.log": "9aff712a8438239f730ebd6370473745850150878067e4ec44823e784f538db6",
+      "outcome": "fixture: supply activation via supplyMarketDeadlines passed; spot re-import refused locked_market_price_immutable (finding 008)"
+    },
+    {
+      "attempt": 6,
+      "run": "20261029T204526Z-main03",
+      "exit": 1,
+      "report.json": "c1a2a79c58a150eb4694cdf586a40b60e63fa987ed91778d1d38f39ef2580729",
+      "run.log": "934051bc39eef3bd77a35338353efbbca0b4a355252e8fa1cf5e650f0cf92073",
+      "outcome": "harness bug in locked-month reuse check (JSON parse) (finding 008)"
+    },
+    {
+      "attempt": 7,
+      "run": "20261029T204605Z-main03",
+      "exit": 130,
+      "run.log": "6856a0744dc86ac12a7e7dc0e71716c0588037afa3ed3bfabc12fbdbc476c0c4",
+      "outcome": "fixture passed spot reuse and ingested UTILTS for ~31 min (perf finding 007); interrupted by T1 at 21:17Z because the loaded fixture code had a certain ReferenceError at its return (lockBody, fixed in 3ea5cd2b); fixture-only tenant, no scenario step run, no in-flight RPC afterwards"
     }
   ],
   "findingsIds": [
     "20261029-3f1a8ab1/claude-track1/004",
     "20261029-3f1a8ab1/claude-track1/005",
-    "20261029-3f1a8ab1/claude-track1/006"
+    "20261029-3f1a8ab1/claude-track1/006",
+    "20261029-3f1a8ab1/claude-track1/007",
+    "20261029-3f1a8ab1/claude-track1/008"
   ],
-  "blocker": "Fixture: UTILTS ingest refused by billing_gate_qualified_supply_source_required (finding 006, under diagnosis); no scenario step reached yet (5/5 skipped in all attempts)",
-  "nextAction": "Apply reviewed fixture fix for 006, re-run main03.test.ts as a whole file",
+  "blocker": null,
+  "nextAction": "Attempt 8 (harness ba065053) running; evaluate whole-file result, then sim-reviewer",
   "cleanupReceipt": null
 }

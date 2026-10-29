@@ -77,3 +77,36 @@ file cites them by path and SHA256 only.
 | 20:37 | run main03 #2 | exit 1, finding 005 (403) |
 | 20:39 | run main03 #3 | exit 1, finding 005 (unique role) |
 | 20:40 | run main03 #4 | exit 1, finding 006 |
+
+### 006 update — established: fixture omitted the due supply activation
+- sim-fixer (read-only DB): `gridex_set_metering_billing_gate` requires `billing_supply_basis_v1(...)->'qualified'` (`20260930175405_ediel_billing_qualified_exact_source_basis.sql:172–173`), which needs a `gridex_received_sources.normal_supply_activations` row; the fixture had a confirmation but no activation. The normal writer is `activate_customer_supply_v1`, reached from the customer-operations cron step `supplyMarketDeadlines` (`app/api/internal/customer-operations/cron/route.ts:139` → `lib/ediel/flows/supplyMarketTransition.ts:104`); the base's own `scripts/ediel-z04l-z04lk-future-start-native.test.ts:1086–1111` does the same after Z04.
+- Fix (`ebf2b271`, cherry-pick of fixer `f535147d`): fixture calls `advanceSupplyMarketDeadlines` for its tenant (SUBSTITUTE `supply-activation-cron`: verifies no scheduler, cron secret or other cron steps). Attempt 5 passed this step. State: avfärdad som produktfel, verifierad fixturrättning.
+
+### 20261029-3f1a8ab1/claude-track1/007 — performance (observed, cause not established): UTILTS ingest ≈ 1.46 s per quarter value
+- IDs: MAIN03.01–.05 (fixture), SITE01 (fixture). Category: prestanda.
+- Workload: one metering point, sequential bound UTILTS E66 ingest of 96 quarter values per daily file through the app's `ingestBoundUtiltsMetering` (`lib/ediel/utilts/consumptionSinks.ts:27–42`), which awaits per observation `gridex_consume_utilts_metering_v1` (`lib/metering/normalizeMeteringValues.ts:234`), `gridex_set_metering_billing_gate` (`lib/billing/meterValueBillingMatcher.ts:58`) and `gridex_read_billing_source_values_v1` (`lib/billing/sourceBasis.ts:26`).
+- Measurement (pg_stat_statements in the stack, server-side execution time only; warm; 4 vCPU/15 GiB; one Postgres backend at ~90 % CPU, host otherwise idle):
+
+| sample (UTC) | fn | calls | total ms | mean ms |
+|---|---|---|---|---|
+| 21:07:41 | consume_utilts_metering_v1 | 830 | 449 468 | 541.5 |
+| 21:07:41 | read_billing_source_values_v1 | 830 | 355 744 | 428.6 |
+| 21:07:41 | set_metering_billing_gate | 829 | 363 087 | 438.0 |
+| 21:16:47 | consume_utilts_metering_v1 | 1 173 | 642 970 | 548.1 |
+| 21:16:47 | read_billing_source_values_v1 | 1 173 | 507 213 | 432.4 |
+| 21:16:47 | set_metering_billing_gate | 1 172 | 518 394 | 442.3 |
+
+- Interval between samples: 343 calls each; mean per call in the interval 564 / 441 / 453 ms → ≈ 1.46 s server time per quarter value, ≈ 140 s per daily file of 96 values, ≈ 65 min for one metering point-month (2 688 values). Slight growth with row count (541 → 564 ms) not yet characterised.
+- Observed only; root cause (what each call evaluates) not established. Not a claim about production hardware or concurrency. Next: capture EXPLAIN/ANALYZE for one call of each in a quiet stack, compare per-call cost at different data volumes.
+
+### 20261029-3f1a8ab1/claude-track1/008 — harness: re-running a fixture after the spot month is locked
+- IDs: MAIN03 (fixture). Category: testharness.
+- Attempt 5 (`20261029T204407Z-main03`, report `6a7d8152…b4b6`): `locked_market_price_immutable` — spot prices are global per area and attempt 4 had locked SE3 2027-02; the importer refuses to rewrite a locked month (product behaviour as designed for immutable settlement evidence).
+- Fix: fixture reuses a locked month only after comparing all 672 stored hourly prices with its own values (SUBSTITUTE `spot-locked-month-reuse`). Attempt 6 (`c1a2a79c…0729`) failed on a JSON-parse bug in that check (fixed `f144d880`); attempt 7 started with code that also had an out-of-scope variable at the fixture's return (fixed `3ea5cd2b`) and was interrupted (exit 130 at 21:17Z, see 007 for its timing data).
+
+| Time (UTC) | Step | Result |
+|---|---|---|
+| 20:44 | run main03 #5 | exit 1, finding 008 |
+| 20:45 | run main03 #6 | exit 1, finding 008 (harness bug) |
+| 20:46–21:17 | run main03 #7 | interrupted (exit 130), measurement 007 |
+| 21:18 | run main03 #8 | running |
