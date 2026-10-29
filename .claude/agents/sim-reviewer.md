@@ -17,10 +17,14 @@ Du granskar oberoende. Du har inte skrivit ändringen och du ändrar ingenting.
 2. **Isolering och skydd.** Läcker data mellan tenanter, bolag eller kunder? Är RLS, behörighet, validering, constraints, revisionsspår eller idempotens försvagade?
 3. **Migrationer.** Är de framåtmigrationer? Är sha256 registrerad? Ändras ingen redan applicerad migration? Ändras ingen skyddad kropp utan överlämning?
 4. **Tester.** Faller de före ändringen? Anropar de riktig kod? Prövar de både positiva och negativa fall?
-5. **Kvitton.** Styrker kvittot exakt scenario-ID:ts orakel, på angiven commit, med en faktisk körning? Kontrollera särskilt:
-   - att körkatalogens HEAD är lika med den byggda commiten, eller att skillnaden inte rör appkoden;
-   - att loggens sha256 stämmer;
-   - att scenariot inte hoppades över (`[run-many] skip`).
+5. **Paket (`status.json` och `FINDINGS.md`).** Styrker paketet exakt scenario-ID:ts kvalificerade orakel, med en faktisk körning? Kontrollera särskilt:
+   - att körkatalogen var ren;
+   - att HEAD är lika med den byggda commiten, eller att varje skillnad ligger på sim-runners lista över sökvägar utanför appkoden;
+   - att schemahashen motsvarar migrationerna i HEAD;
+   - att loggens och rapportens sha256 stämmer;
+   - att inget berört steg hoppades över (`skipped` i vitests sammanfattning, `context.skip()` eller `[run-many] skip`);
+   - att executionScope är korrekt;
+   - att alla fält som `REPORTING.sv.md` kräver finns.
 
    Ett källkods- eller modelltest räknas inte som PASS.
 6. **Själva kontrollerna.** Kör typkontroll och berörda tester själv när det går.

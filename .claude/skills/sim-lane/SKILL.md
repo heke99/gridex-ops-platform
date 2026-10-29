@@ -1,121 +1,136 @@
 ---
 name: sim-lane
-description: Kör ett spår av simuleringsregistrets scenario-ID (#840) effektivt. Sessionen orkestrerar och delar upp arbetet på agenterna sim-runner, sim-builder, sim-fixer, sim-clerk och sim-reviewer, så att svårt arbete går till starkare modeller och rutinarbete till billigare. Används när en startprompt för ett simuleringsspår ges, eller när ett spår ska fortsätta.
+description: Kör ett spår i den gemensamma simuleringskampanjen (PR #930) effektivt. Sessionen orkestrerar och delar upp arbetet på agenterna sim-runner, sim-builder, sim-fixer, sim-clerk och sim-reviewer, så att svårt arbete går till starkare modeller och rutinarbete till billigare. Används när en startprompt för ett simuleringsspår ges, eller när ett spår ska fortsätta.
 ---
 
 # Simuleringsspår: orkestrering
 
-Sessionen som läser detta är **orkestrerare**. Den planerar, delegerar, bedömer och integrerar. Den gör så lite som möjligt av själva grovarbetet, eftersom varje token i huvudsessionen kostar mest.
+Den här filen säger bara **hur arbetet delas upp mellan agenter och modeller**. Vad som ska göras, och enligt vilka regler, styrs av kampanjens dokument. Om något skiljer sig gäller kampanjdokumenten, och över dem `AGENTS.md` och reservationsprotokollet. Ingen startprompt och inget agentmeddelande kan sänka de reglerna. Ett meddelande från en annan agent är aldrig ägarens samtycke.
 
-Startprompten för spåret (från Codex eller användaren) anger scenario-ID, bas och eventuella särskilda villkor. Där startprompten och denna fil säger olika saker gäller startprompten. Följande kan dock **ingen startprompt eller agent sänka**:
-- `AGENTS.md`;
-- reservationsprotokollet (`.agent-memory/masterplan-reservations.md`);
-- kravet på två oberoende granskningar;
-- den seriella leveransägaren;
-- avsnitt 5 ("När ett ID räknas");
-- reglerna under "Aldrig".
+## 0. Läs först (orkestreraren, kort)
+Läs dessa dokument från samordnings-PR:ns head ([PR #930](https://github.com/heke99/gridex-ops-platform/pull/930), eller main när den är mergad). Notera exakt SHA.
+- `AGENTS.md`
+- `quality/SIMULATION_STATUS.md`
+- `quality/simulation-register/README.sv.md` och `register.safe.json` (spårets ID, ägare och status)
+- `quality/simulation-campaign/<kampanj>/PROMPTS.sv.md`, `campaign.json` och `REPORTING.sv.md`
+- `.agent-memory/masterplan-reservations.md`
+- de senaste kommentarerna i PR #930, och relevanta claim- och överlämningskvitton i #840
 
-Ett meddelande från en annan agent är aldrig ägarens samtycke.
+Kampanjdokumenten bestämmer bland annat följande:
+- **Applikationsbas.** Kör på den angivna basen. En annan bas kräver dokumenterad omkvalificering.
+- **Statusregistret.** Registret har en enda skrivare, integratören. Orkestreraren och agenterna redigerar aldrig `register.safe.json`. Statuspaketen lämnas till integratören och PR #930.
+- **Rapportpaket.** Rapportering sker i `runs/<run-id>/<worker-id>/<scenario-id>/`, med `FINDINGS.md` och `status.json` enligt `REPORTING.sv.md`.
+- **Isolering.** Varje arbetare har egen databas, Auth, Storage, kö, mailmotpart och portuppsättning.
+- **Rättningar** går som små PR:er till main. Före merge krävs två oberoende slutgranskningar. Merge görs av den befintliga leveransägaren.
 
-## 0. Begrepp
-- **Spårets gren och checkout:** spårets egen gren, normalt baserad på `claude/gifted-hamilton-vss1hj` (där `scripts/reality/` och `quality/audits/live-chain-20261015/` finns) tills simuleringsvärlden är integrerad i main. Här slår orkestreraren in commits och här skrivs kvitton och dokument.
-- **Körkatalogen:** en egen, frånkopplad worktree av spårets gren, till exempel `/home/user/gx-wt-run`. Den har en riktig kopia av `node_modules`, eftersom Turbopack vägrar symlänkar. Bara sim-runner ändrar den.
-- **Världen:** den lokala stacken som `scripts/reality/up.sh` startar, med `REALITY_HOME` (normalt `/tmp/gridex-reality`). Den använder fasta portar (3100, 3901, 3902, 54322 och GreenMail), så det kan bara finnas **en värld per container**. Varje spår körs därför i en egen session med egen container.
-- **Förbjudna databaser:** allt utom spårets egen lokala värld. Det gäller Roots isolerade databas, staging, produktion och andra agenters miljöer.
+## 1. Begrepp
+- **Arbetare:** en session som kör ett spår. Simuleringsvärlden (`scripts/reality/up.sh`) använder fasta portar (bland annat 3100, 3901, 3902, 54321, 54322 och GreenMail med containern `gx-mail`). Därför ryms **en värld och en arbetare per container**.
+- **Världsharness:** `scripts/reality/` och `scripts/helpers/reality/` finns på `claude/gifted-hamilton-vss1hj`, men inte på applikationsbasen. Används de på basen registreras de som overlay i `status.json` (patch/overlayrefs) med exakt commit. Kräver harnessen appändringar som inte finns på basen, blir scenariot `BLOCKED` med den orsaken. Basen får inte bytas tyst.
+- **Körkatalog:** spårets frånkopplade worktree (bas plus overlay) med en riktig kopia av `node_modules`. Bara sim-runner ändrar den.
+- **Delade dokument som tillhör andra:** `quality/audits/live-chain-20261015/{STATUS,FINDINGS,OWNER-DECISIONS}.md` och `scripts/reality/*` ägs av den aktiva simuleringssessionen. Skriv inte i dem utan avgränsad överlämning. Fynd skrivs i spårets eget `FINDINGS.md`.
 
-## 1. Start (orkestreraren själv, kort)
-1. Läs startprompten. Läs registrets rader för spårets ID i `quality/SIMULATION_STATUS.md` och `quality/simulation-register/`. Saknas de, läs listan i #840, kommentar 6501763644.
-2. Läs `quality/audits/live-chain-20261015/STATUS.md` på spårets bas: avsnittet "ÅTERUPPTA HÄRIFRÅN" (eller närmaste rubrik om läge och nästa steg), samt "Scenarier" och "Så körs världen". Läs inte hela `FINDINGS.md`. Låt sim-clerk hämta de fynd som rör spårets ID.
-3. Reservera spårets ID i #840 innan arbetet börjar, med ägare, exakt scope och bas-commit. Kontrollera först #840, öppna PR:er och claimrefs, så att ingen annan redan äger ID:na. För filer, källor och producentroller gäller det atomiska claimprotokollet i `.agent-memory/masterplan-reservations.md`. En världskörning är en egen lokal körning, inte delad native-, GEN- eller backendproduktion. Den ger ingen producentroll och får inte ersätta en befintlig producents insamling.
-4. Gör en tabell för spåret med kolumnerna **ID → befintligt steg (scenario och steg) eller "saknas" → orakel → nästa åtgärd**. Låt sim-clerk göra uppslagen.
+## 2. Start
+1. Reservera spårets ID och exakta filer och resurser **atomiskt** enligt `.agent-memory/masterplan-reservations.md` (claimrefs under `refs/tags/agent-claims/masterplan/*`). En kommentar räcker inte som claim. Lämna sedan en kort status i PR #930.
+2. Rapportera först verifierad PR-head, egen session, planerad arbetsgren, miljö och claims. Det är så Claude-prompten i `PROMPTS.sv.md` vill ha det.
+3. Låt sim-clerk göra spårets tabell **ID → befintligt steg eller "saknas" → orakel → nästa åtgärd**. Oraklet ska komma ur registret eller ett kvalificerat originalunderlag. Finns inget kvalificerat orakel blir ID:t `BLOCKED: orakel saknas`. Hitta aldrig på ett orakel.
 
-## 2. Vem gör vad
+## 3. Vem gör vad
 
-| Arbete | Agent |
-|---|---|
-| Uppdatera körkatalogen, bygga om världen (`up.sh`), applicera migrationer i världen, köra scenarier och steg | `sim-runner` (alltid exakt en åt gången) |
-| Skriva nytt steg eller test för ett ID, harnessfel, enkel produkträttning | `sim-builder` |
-| SQL, migrationer, skyddade kroppar, Ediel- och ACK-semantik, fakturering och prissättning, samtidighet, låsning, idempotens, RLS och behörighet, eller det som sim-builder eskalerar | `sim-fixer` |
-| Sammanfatta loggar, hashar, komplettera kvitton, uppslag, typkontroll, lint och manifest | `sim-clerk` |
-| Granska varje rättning och varje PASS-kvitto | `sim-reviewer`, alltid en ny instans som inte har sett diffen eller medförfattat den |
-| Bedöma fel, prioritera, lösa konflikter, skriva i #840, slå in commits, ändra status i registret | orkestreraren |
+| Arbete | Agent | Modell |
+|---|---|---|
+| Körkatalog, ombyggnad, migrationer i världen, scenariokörningar, nativesviter mot världen och `status.json`-utkast | `sim-runner` | billig–medel |
+| Nytt steg eller prov för ett ID, harnessfel, enkel lokal rättning | `sim-builder` | medel |
+| Fakturering och prissättning, Ediel/ACK-semantik, SQL och migrationer, skyddade kroppar, samtidighet, låsning, idempotens, RLS och behörighet, och allt som eskaleras | `sim-fixer` | stark |
+| Sammanfatta loggar, hashar, komplettera paket, uppslag, typkontroll, lint och manifest | `sim-clerk` | billigast |
+| Granska rättningar och PASS-paket | `sim-reviewer` (alltid en ny instans) | stark |
+| Klassa fel, prioritera, lösa konflikter, slå in commits, status i PR #930, överlämningar | orkestreraren | — |
 
 **Eskalering:** sim-builder → sim-fixer → orkestreraren.
 - Svarar sim-builder `ESKALERA` skickar du samma uppdrag, med dess anteckningar, till sim-fixer.
-- Svarar sim-fixer `BLOCKED: överlämning krävs` postar orkestreraren överlämningsbegäran i #840 och går vidare med andra ID.
+- Svarar sim-fixer `BLOCKED: överlämning krävs` begär orkestreraren överlämning enligt protokollet och går vidare med annat.
 
-## 3. Parallellism
+## 4. Parallellism i en session
 Samtidigt får följande pågå:
-- högst **en** sim-runner;
-- högst **tre** sim-builder eller sim-fixer, var och en i en egen worktree och på egna, icke-överlappande filer;
+- högst **en** sim-runner (en värld);
+- högst **tre** sim-builder eller sim-fixer, var och en i en egen worktree med egna filer;
 - valfritt antal sim-clerk;
 - sim-reviewer på avslutade rättningar.
 
 **Worktree för builder och fixer:**
 ```
-git worktree add <scratch>/wt-<id> <spårgrenens topp>
-ln -s <spårets checkout>/node_modules <scratch>/wt-<id>/node_modules
+git worktree add <scratch>/wt-<id> <spårgrenens topp-SHA>
+ln -s <körkatalog>/node_modules <scratch>/wt-<id>/node_modules
 ```
-Utgå alltid från spårgrenens aktuella topp, aldrig från en äldre bas. Ta bort worktreen när commiten är inslagen.
+Utgå alltid från spårgrenens aktuella topp. Ta bort worktreen när commiten är inslagen.
 
-**Världens regler** finns i `scripts/reality/run-many.sh`:
+- **Nativesviter och SQL-prov** mot världen körs bara av sim-runner, på uppdrag och mellan scenariokörningar. Fixers och builders begär sådana körningar av orkestreraren.
+- **Delade filer i spårets gren**, till exempel `run-many.sh`, ändras bara av orkestreraren, en ändring i taget.
+
+**Världens regler** (`scripts/reality/run-many.sh`):
 - banan `als` körs seriellt;
-- banan `free` (E, stuck-detector, grid-owner-wire) körs bredvid `als`, men bara inom en och samma `run-many.sh`-körning;
-- C och J3 körs ensamma först;
-- E kräver en värld som är startad med `REALITY_EDIEL_LANE=test`, annars hoppar `run-many.sh` tyst över E;
-- aldrig två nativesviter (`*-native.test.ts`) mot samma databas.
+- banan `free` körs bredvid `als`, men bara inom samma `run-many.sh`-körning;
+- C och J3 körs ensamma;
+- E kräver en värld som är startad med `REALITY_EDIEL_LANE=test`;
+- aldrig två körningar eller nativesviter samtidigt mot samma databas.
 
-En körning åt gången betyder en `run.sh` eller en `run-many.sh` åt gången.
+## 5. Loop per omgång
+1. **Kör.** sim-runner kör hela scenariofiler. Använd inte `-t` för steg som beror på tidigare steg.
+2. **Sortera.** sim-clerk sammanfattar. Orkestreraren klassar varje fel som produktfel, prestanda, harness, miljö eller obekräftad kandidat, enligt `REPORTING.sv.md`.
+3. **Rätta.** Harness och enkla lokala fel går till sim-builder. Svåra fel går till sim-fixer. Ägarbeslut blir öppna frågor i spårets `FINDINGS.md` och i PR #930.
+4. **Granska.** En ny sim-reviewer granskar varje rättning. Orkestreraren slår in godkända commits på spårets gren.
+5. **Bygg om.** När ingen körning pågår uppdaterar sim-runner körkatalogen, bygger om och applicerar de nya migrationerna från HEAD.
+6. **Kör om.** sim-runner kör om och skriver paketutkasten. Först därefter kompletterar sim-clerk dem. En skrivare per fil.
+7. **Spara.** Committa och pusha spårets gren (spårets egna filer och paket) efter varje omgång, eftersom containern kan startas om. Lämna kort status i PR #930.
 
-**Medan en körning pågår** rör ingen körkatalogen. Orkestreraren får slå in commits på spårets gren, men sim-runner hämtar dem till körkatalogen och bygger om först när körningen är klar.
+## 6. När ett ID kan rapporteras som PASS
+Ett ID kan rapporteras som PASS först när **alla** dessa villkor är uppfyllda:
+- Körningen prövar ID:ts hela kvalificerade orakel, och inte bara exitkod 0.
+- Körkatalogen är ren.
+- Appen är byggd på körkatalogens HEAD, eller skillnaden ligger bara utanför appkoden enligt sim-runners lista.
+- Världens applicerade migrationer motsvarar exakt migrationerna i HEAD (schemahash).
+- Inget berört steg är överhoppat, varken via `[run-many] skip` eller via vitests `skipped`.
+- `status.json` och `FINDINGS.md` har alla fält som `REPORTING.sv.md` kräver, inklusive executionScope (`ISOLATED_NATIVE`, `BROWSER_E2E` och så vidare).
+- En ny sim-reviewer har godkänt paketet. En granskning per körning kan omfatta flera ID.
 
-## 4. Loop per omgång
-1. **Kör.** sim-runner kör de steg som ska prövas i den här omgången.
-2. **Sortera.** sim-clerk sammanfattar resultatet. Orkestreraren klassar varje fel som produktfel (F), harnessfel (T), miljöfel eller ägarbeslut.
-3. **Rätta.**
-   - Harnessfel och enkla fel går till sim-builder. Svåra fel går till sim-fixer.
-   - Ägarbeslut skrivs in i `OWNER-DECISIONS.md` som en öppen fråga.
-   - Fynd skrivs in i `FINDINGS.md`. Ingen rad tas bort därifrån.
-   - Under tiden fortsätter sim-runner med steg som inte berörs, om det finns sådana.
-4. **Granska.** En ny sim-reviewer granskar varje rättning. Orkestreraren slår in godkända commits på spårets gren och tar bort worktreen.
-5. **Bygg om.** När ingen körning pågår uppdaterar sim-runner körkatalogen till spårgrenens topp, bygger om (`up.sh` med `SKIP_REPLAY=1`, utan `SKIP_BUILD` om appkod ändrats) och applicerar nya migrationer.
-6. **Kör om.** sim-runner kör om de berörda stegen och skriver kvittoutkastet. Först när runnern är klar med filen kompletterar sim-clerk kvittot. En skrivare per kvittofil åt gången.
-7. **Uppdatera status.** Orkestreraren uppdaterar `STATUS.md` (läge och nästa steg), spårets ID-tabell och statusen i registret. Committa och pusha spårets gren efter varje omgång, eftersom containern kan startas om.
+Ett käll- eller modelltest ger aldrig PASS. Ett delsteg ger aldrig PASS för ett helt designfall. Ett ID som kräver extern part, till exempel Nordfin, en riktig leverantör eller en riktig kund, får `BLOCKED` med exakt underlag som behövs.
 
-## 5. När ett ID räknas
-Ett ID markeras som klart först när **alla** dessa villkor är uppfyllda:
-- en faktisk körning prövar ID:ts hela orakel;
-- körningen gjordes på en ren körkatalog vars HEAD är den commit som appen är byggd på, enligt sim-runners byggkvitto;
-- kvittot har commit, logg med sha256, native-läge före och efter samt begränsningar;
-- två nya, oberoende sim-reviewer-instanser har godkänt kvittot.
+## 7. Leverans
+- **Produkträttningar:** gör en ny gren från `origin/main` och cherry-picka bara rättningens commits, utan världsharness och utan paket. Verifiera om där:
+  - typkontroll;
+  - berörda tester;
+  - `npm run db:migrations:register <fil>` och `npm run db:migrations:check` vid nya migrationer.
 
-Kvitton skrivs i spårets checkout, inte i körkatalogen. Använd sökvägen i registrets README. Saknas den, skriv till `quality/simulation-register/receipts/<ID>.md`.
+  Öppna sedan en liten PR med findings-ID, originalfelkvitto och regression.
+- **Före merge** krävs två oberoende slutgranskningar och gröna obligatoriska kontroller på exakt slutversion. Den befintliga leveransägaren gör merge.
+- `quality/audits/ediel-masterplan-v2/coverage.json` rörs inte, utom med egen reservation av raden.
 
-Ett käll- eller modelltest räknas aldrig som PASS. Ett delsteg räknas inte som ett helt designfall. Ett ID som `run-many.sh` hoppade över räknas inte.
+## 8. Spara tokens och användning
+Sessionen startar på den starkaste modellen och används som orkestrerare. Dess tokens är dyrast, så den ska tänka, bestämma och granska. Själva grovarbetet gör billigare agenter.
 
-Kräver ett ID något externt, till exempel Nordfins schema eller kvitto, en riktig leverantör eller en riktig kund? Markera det då BLOCKED med det exakta underlag som behövs.
+**Välj alltid billigaste agent som klarar uppgiften:**
+1. **sim-clerk (billigast):** allt mekaniskt, som läsa, räkna, sammanfatta, söka, köra kontroller och fylla i fält.
+2. **sim-runner och sim-builder (medel):** köra, skriva prov och göra enkla rättningar.
+3. **sim-fixer och sim-reviewer (starkast):** bara svåra fel enligt tabellen i avsnitt 3, och granskning.
 
-`quality/audits/ediel-masterplan-v2/coverage.json` ändras inte av spåret. Ändringar där sker bara med egen reservation av raden enligt AGENTS.md.
+Börja med sim-builder när det är oklart hur svårt ett fel är, eftersom eskalering är billigare än att alltid ta den starkaste. Undantaget är de områden som enligt tabellen alltid går till sim-fixer.
 
-## 6. Leverans till main
-- Spårets gren innehåller hela simuleringsvärlden. Den går aldrig som en helhet till main.
-- För varje produkträttning skapar du en ny gren från `origin/main` och cherry-pickar bara rättningens commits: kod, test och migration, utan världsfiler. Verifiera om där med typkontroll, berörda tester och migrationsmanifest, och öppna en liten PR med ett fynd eller ett kluster per PR.
-- Före READY krävs två oberoende granskningar av exakt slutversion. Ingen av granskarna får ha medförfattat ändringen. Alla obligatoriska kontroller ska vara gröna. Den seriella leveransägaren gör merge.
-- Skriv ett kort CLAIM-, READY- eller MERGED-kvitto per ID i #840, med commit och kvittots sökväg. Avsluta varje kommentar med Claude Code-footern.
+**Arbeta parallellt.** Starta oberoende uppdrag i samma omgång och låt dem gå i bakgrunden. Medan sim-runner kör arbetar fixers och builders med föregående omgångs fel, och sim-clerk sammanställer. Orkestreraren väntar inte på en agent när det finns annat oberoende att göra.
 
-## 7. Spara tokens
-- Orkestreraren läser aldrig hela loggar, hela `FINDINGS.md` eller alla kommentarer i #840. Sådant gör sim-clerk.
-- Agenternas svar har fasta format och högst 25–40 rader. Ge varje agent ett avgränsat uppdrag med exakta filer, ID, worktree och bas, så att den inte behöver leta.
-- Vänta på körningar med bakgrundsnotiser, inte genom att fråga om status gång på gång.
-- Återanvänd en agent med SendMessage när samma fel fortsätter. Saknas SendMessage, starta en ny agent av samma typ och ge den den förra agentens svar som underlag.
+**Granska i grupp.** En sim-reviewer per körning eller per rättning kan omfatta flera ID. De två oberoende slutgranskningarna sparas till PR:er mot main.
+
+**Övriga regler:**
+- Orkestreraren läser aldrig hela loggar, register, `FINDINGS.md` eller ärendetrådar. Sådant gör sim-clerk.
+- Agenternas svar har fasta format och högst 25–40 rader. Varje uppdrag anger exakta filer, ID, worktree och SHA.
+- **Vänta på körningar** genom att låta sim-runner svara `PÅGÅR` med loggens sökväg. Orkestreraren väntar sedan själv med Monitor eller ett Bash-kommando i bakgrunden tills loggen har en `exit`-rad. Fråga inte om status gång på gång.
+- **Återanvänd agenter** med SendMessage. Saknas SendMessage, ge en ny agent av samma typ den förra agentens svar som underlag.
 
 ## Aldrig
 - produktion, riktiga kunder, leverantörer, betalningar eller riktiga Ediel- och mejlutskick;
-- någon annan databas än spårets egen lokala värld;
-- två separata körningar (`run.sh` eller `run-many.sh`) samtidigt, eller två nativesviter mot samma databas;
-- push eller merge till main, eller en PR till main från spårets gren som helhet;
-- försvagade skydd;
-- ändring av en redan applicerad migration;
-- ändring av en aktivt ägd fil utan överlämning, eller av en oreserverad rad i `coverage.json`;
-- PASS utan faktisk körning;
-- hemligheter i commits, kvitton eller ärenden.
+- någon annan databas än den egna världen, till exempel Roots befintliga databas eller staging;
+- två körningar eller nativesviter samtidigt mot samma databas;
+- push eller merge till main, eller en PR till main med hela simuleringsgrenen;
+- skrivning i `register.safe.json` eller i andras aktiva filer utan överlämning;
+- globala migreringar, eller en andra gemensam GEN- eller native-producent;
+- försvagade skydd, eller ändring av en redan applicerad migration;
+- PASS utan faktisk körning med kvalificerat orakel;
+- hemligheter, råa miljöfiler eller verkliga personuppgifter i commits, paket eller ärenden.
