@@ -820,7 +820,7 @@ Kedjan i scenario D, i ordning. Varje fel nedan dolde nästa. Alla är verifiera
 - **Ägare:** native/SQL (GEN). Rättningen kräver en migration som sätter `signed_version` (avtalets `contract_version`) när webbsignaturen slutförs, plus bakåtfyllnad av signerade avtal.
 
 ### F46 Varje nytt avtal och varje nätägare kräver en granskad källa med extern utfärdarsignatur, som ingen väg i appen kan skapa — RÄTTAD (ägarbeslut: automatiskt), kritisk
-- **Nätregistret, rättat:** migrationen `20261020210000_ediel_network_registry_platform_actor_source.sql`.
+- **Nätregistret, rättat:** migrationen `20261020230500_ediel_network_registry_platform_actor_source.sql` (version flyttad från `20261020210000` vid main-integrationen: main's SQL19 `20261020215757` och `20261020230048` pinnar förbilden).
   - Om bolaget saknar granskad källa för nätägaren ger `network_for_company_v1` underlag från nätägaren som Gridex-personal verifierat i Ediels aktörsregister. Kraven: aktiv, `verified`, aktiv roll `grid_owner` och ett verifierat, gällande Ediel-ID.
   - En granskad källa avgör fortfarande när den finns.
   - Probe: 16700 ger `authorized`, en okänd nätägare ger `held`.
