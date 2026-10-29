@@ -23,7 +23,7 @@
   "tracks": [
     {
       "id": "1",
-      "coordinationOwner": "OTILLSATT",
+      "coordinationOwner": "Claude",
       "title": "Kund, underlag och godkännande",
       "scenarioIds": [
         "MAIN03.01",
@@ -45,7 +45,7 @@
     },
     {
       "id": "2",
-      "coordinationOwner": "OTILLSATT",
+      "coordinationOwner": "Claude",
       "title": "Avtal och kontraktstider",
       "scenarioIds": [
         "TERM01.01",
@@ -72,7 +72,7 @@
     },
     {
       "id": "3",
-      "coordinationOwner": "OTILLSATT",
+      "coordinationOwner": "Claude",
       "title": "Ediel-trafik och parsning",
       "scenarioIds": [
         "EDIEL01.01",
@@ -98,7 +98,7 @@
     },
     {
       "id": "4",
-      "coordinationOwner": "OTILLSATT",
+      "coordinationOwner": "Claude",
       "title": "Faktura, samtidighet och fil",
       "scenarioIds": [
         "MAIN04.02",
@@ -120,7 +120,7 @@
     },
     {
       "id": "5",
-      "coordinationOwner": "OTILLSATT",
+      "coordinationOwner": "Codex",
       "title": "Händelser, Auth och API",
       "scenarioIds": [
         "EVENT01.01",
@@ -145,7 +145,7 @@
     },
     {
       "id": "6",
-      "coordinationOwner": "OTILLSATT",
+      "coordinationOwner": "Claude",
       "title": "Leverans, custody och mottagarkvitto",
       "scenarioIds": [
         "DELIVERY01.01",
@@ -167,7 +167,7 @@
     },
     {
       "id": "7",
-      "coordinationOwner": "OTILLSATT",
+      "coordinationOwner": "Claude",
       "title": "UI och slutliga kvalitetsgrindar",
       "scenarioIds": [
         "UI01.01",
@@ -208,5 +208,34 @@
     "sourceBytesPresentInThisSession": false,
     "nativeEnvironmentAssignedToThisSession": false
   },
-  "assignmentClarification": "Aktuell tilldelning: OTILLSATT för samtliga sju spår. Tidigare modellfördelning är endast historiskt förslag. GEN och finance: OTILLSATT; ny kvalificerad session måste acceptera och verifiera exakt custody före arbete. T4 betyder enbart Faktura, samtidighet och fil (13 ID). Originalåterhämtning: stoppad VM ger HTTP410; automatisk snapshot snap_YPcWkbvLjmNGuL5cFP4vnrwCWoSP finns, men originalets byte har ännu inte återlästs eller publicerats."
+  "assignmentClarification": "Aktuell tilldelning enligt delegerat beslut6506143437: Claude T1/T2/T3/T4/T6/T7 (89 ID), Codex T5 (16 ID). GEN-producent: session_01UHTg8KVQcYJS5fqdU3XihA, med egen autentiserad ALL-target-ACK före write. T4 betyder Faktura, samtidighet och fil (13 ID); finance-grenen används endast som referens. Originalfilen är återhämtad och hashverifierad; historiska orakel kräver fortfarande kvalificering för aktuell fixture och kodversion.",
+  "assignmentDecisionReferences": [
+    "https://github.com/heke99/gridex-ops-platform/pull/930#issuecomment-6506143437",
+    "https://github.com/heke99/gridex-ops-platform/pull/930#issuecomment-6506161415"
+  ],
+  "genProducer": {
+    "session": "session_01UHTg8KVQcYJS5fqdU3XihA",
+    "sourceReceipt": "d36c59292a01aa341ff304a60809269c2d1f0af4",
+    "producerRef": "refs/tags/agent-claims/masterplan/producer-gen",
+    "producerReceipt": "c4139fff8e1cf47d135b8489ed42679765b43fd2",
+    "proxyPacket": "08d2d632-fc9c-474a-a642-99b48fe40434",
+    "handoffReference": "https://github.com/heke99/gridex-ops-platform/pull/930#issuecomment-6506303596",
+    "workerReadback": "REQUIRES_RECEIVER_ALL_TARGET_ACK",
+    "queue": [
+      {
+        "pr": 932,
+        "order": 1,
+        "delivery": "SMALL_PR_AGAINST_932_BRANCH; NO_GENERAL_BRANCH_HANDOFF"
+      }
+    ],
+    "track5Rule": "Submit GEN needs to this queue; no second producer"
+  },
+  "originalRecovery": {
+    "path": "quality/simulation-register/oracles/all-systems-scenarios.safe.json",
+    "sha256": "96518c184c240dafa5890df8f6b375b0730acd90f0e97d8f39063fb68c329df3",
+    "bytes": 41736,
+    "state": "RECOVERED_HASH_VERIFIED_DESIGN_ONLY",
+    "snapshot": "snap_YPcWkbvLjmNGuL5cFP4vnrwCWoSP",
+    "qualification": "Original provenance available; fixture/source-specific expected values still require independent qualification"
+  }
 }

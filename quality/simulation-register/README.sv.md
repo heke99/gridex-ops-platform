@@ -1,4 +1,6 @@
-Aktuell tilldelning: OTILLSATT för samtliga sju spår. Tidigare modellfördelning är endast historiskt förslag. GEN och finance: OTILLSATT; ny kvalificerad session måste acceptera och verifiera exakt custody före arbete. T4 betyder enbart Faktura, samtidighet och fil (13 ID). Originalåterhämtning: stoppad VM ger HTTP410; automatisk snapshot snap_YPcWkbvLjmNGuL5cFP4vnrwCWoSP finns, men originalets byte har ännu inte återlästs eller publicerats.
+Aktuell tilldelning enligt delegerat beslut6506143437: Claude T1/T2/T3/T4/T6/T7 (89 ID), Codex T5 (16 ID). GEN-producent: session_01UHTg8KVQcYJS5fqdU3XihA, med egen autentiserad ALL-target-ACK före write. T4 betyder Faktura, samtidighet och fil (13 ID); finance-grenen används endast som referens. Originalfilen är återhämtad och hashverifierad; historiska orakel kräver fortfarande kvalificering för aktuell fixture och kodversion.
+
+Custody enligt beslut6506056163: A gäller endast nya egna filer under scripts/simulation/trackN/** och egen runs/<run-id>/<worker-id>/**: egen gren plus kvitto i PR930 före första push och kontroll av claims/öppna PR före skrivning. B gäller befintliga delade filer: exakt godkänd CLAIMPLAN (B), Codex som proxy, därefter arbetarens egen autentiserade fulla ref-/receipt-readback före write. Ingen token delas. GEN förblir ensam producent enligt6506303596.
 
 # Gemensam simulering – börja här
 
@@ -10,14 +12,14 @@ Den enda uppdaterbara statuskällan är [register.safe.json](register.safe.json)
 
 | Spår | Samordningsägare | Område | Antal |
 |---|---|---|---:|
-| 1 | OTILLSATT | MAIN03.01–05; MAIN04.01/.03/.04; SITE01.01–05 | 13 |
-| 2 | OTILLSATT | TERM01.01–05; TERM02.01–08; TERM03.01–05 | 18 |
-| 3 | OTILLSATT | EDIEL01.01–06; EDIEL02.01–06; EDIEL03.01–05 | 17 |
-| 4 | OTILLSATT | MAIN04.02/.05; BILLNEG01.01–05; MAIN05.01–06 | 13 |
-| 5 | OTILLSATT | EVENT01.01–05; AUTH01.01–06; API01.01–05 | 16 |
-| 6 | OTILLSATT | DELIVERY01.01–05; CUSTODY01.01–05; MAIN06.01–03 | 13 |
-| 7 | OTILLSATT | UI01.01–05; QA01.01–05; QA02.01–05, sist på slutversionen | 15 |
-| Totalt | OTILLSATT105 | inga dubbla eller saknade ID:n | 105 |
+| 1 | Claude | MAIN03.01–05; MAIN04.01/.03/.04; SITE01.01–05 | 13 |
+| 2 | Claude | TERM01.01–05; TERM02.01–08; TERM03.01–05 | 18 |
+| 3 | Claude | EDIEL01.01–06; EDIEL02.01–06; EDIEL03.01–05 | 17 |
+| 4 | Claude | MAIN04.02/.05; BILLNEG01.01–05; MAIN05.01–06 | 13 |
+| 5 | Codex | EVENT01.01–05; AUTH01.01–06; API01.01–05 | 16 |
+| 6 | Claude | DELIVERY01.01–05; CUSTODY01.01–05; MAIN06.01–03 | 13 |
+| 7 | Claude | UI01.01–05; QA01.01–05; QA02.01–05, sist på slutversionen | 15 |
+| Totalt | Codex16 / Claude89 | inga dubbla eller saknade ID:n | 105 |
 
 Ägarskapet ovan gäller scenarioarbete. Det tar inte över aktiva filer, befintliga producentroller eller main-leveransägaren. EVENT har befintlig CODEX-EVENTS-ägare och sparade resultat. Samordna de övriga11 Codex-ID:na separat och verifiera befintliga claims före skrivning. Befintliga aktiva Claude-spår behåller sina egna filer; denna fördelning är ingen blankoöverlämning.
 
@@ -46,3 +48,9 @@ Spår1 skapar/godkänner det som spår4 testar repeats och export för. De anvä
 I denna session finns inte originalbytes för migrationen20261028140000 och dess test, och ingen EVENT-miljö är tilldelad hit. Befintlig producent ombeds publicera exakt tvåfilsändring i egen gren/PR med base/head/tree, filhashar och körbevis. Originalet får inte rekonstrueras ur en beskrivning. Inga migrations- eller main-mutationer är gjorda genom denna dokumentation.
 
 Startprompt för Claude och Codex finns i [PROMPTS.sv.md](../simulation-campaign/20261029-3f1a8ab1/PROMPTS.sv.md).
+
+## GEN, claims och originalunderlag
+
+[Beslut om fördelning](https://github.com/heke99/gridex-ops-platform/pull/930#issuecomment-6506143437) och [GEN-kvitto/avgränsad handoff](https://github.com/heke99/gridex-ops-platform/pull/930#issuecomment-6506303596). GEN köar #932 först och lämnar en liten PR mot dess gren. Codex T5 anmäler GEN-behov i samma kö. Proxyclaim ger inte ny körningsacceptans.
+
+[Återhämtat exakt original](oracles/all-systems-scenarios.safe.json): 41 736 byte, SHA256 `96518c184c240dafa5890df8f6b375b0730acd90f0e97d8f39063fb68c329df3`. Originalet bevaras byteexakt som historiskt DESIGN_ONLY. Dess gamla exekveringsordning, Root-GO och miljöbindningar är historik; aktuell kampanj styrs av färska beslut och egen kvalificering. Beloppet1809,51 SEK gäller bara motsvarande kvalificerade fixture, inte godtyckliga nya kunder.

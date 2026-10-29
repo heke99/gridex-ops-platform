@@ -1,8 +1,6 @@
-Aktuell tilldelning: OTILLSATT för samtliga sju spår. Tidigare modellfördelning är endast historiskt förslag. GEN och finance: OTILLSATT; ny kvalificerad session måste acceptera och verifiera exakt custody före arbete. T4 betyder enbart Faktura, samtidighet och fil (13 ID). Originalåterhämtning: stoppad VM ger HTTP410; automatisk snapshot snap_YPcWkbvLjmNGuL5cFP4vnrwCWoSP finns, men originalets byte har ännu inte återlästs eller publicerats.
+Aktuell tilldelning enligt delegerat beslut6506143437: Claude T1/T2/T3/T4/T6/T7 (89 ID), Codex T5 (16 ID). GEN-producent: session_01UHTg8KVQcYJS5fqdU3XihA, med egen autentiserad ALL-target-ACK före write. T4 betyder Faktura, samtidighet och fil (13 ID); finance-grenen används endast som referens. Originalfilen är återhämtad och hashverifierad; historiska orakel kräver fortfarande kvalificering för aktuell fixture och kodversion.
 
-Tidigare prompttext nedan är HISTORISK och får inte användas som aktiv tilldelning. Välj spår först efter accepterad reservation.
-
-Aktuell tilldelning: OTILLSATT för samtliga sju spår. Tidigare modellfördelning är endast historiskt förslag. GEN och finance: OTILLSATT; ny kvalificerad session måste acceptera och verifiera exakt custody före arbete. T4 betyder enbart Faktura, samtidighet och fil (13 ID). Originalåterhämtning: stoppad VM ger HTTP410; automatisk snapshot snap_YPcWkbvLjmNGuL5cFP4vnrwCWoSP finns, men originalets byte har ännu inte återlästs eller publicerats.
+Custody enligt beslut6506056163: A gäller endast nya egna filer under scripts/simulation/trackN/** och egen runs/<run-id>/<worker-id>/**: egen gren plus kvitto i PR930 före första push och kontroll av claims/öppna PR före skrivning. B gäller befintliga delade filer: exakt godkänd CLAIMPLAN (B), Codex som proxy, därefter arbetarens egen autentiserade fulla ref-/receipt-readback före write. Ingen token delas. GEN förblir ensam producent enligt6506303596.
 
 # Startprompter för den gemensamma simuleringen
 
@@ -27,7 +25,7 @@ Claude samordnar följande sex spår. Skapa en arbetare per oberoende spår där
 
 Codex samordnar spår5:s16 ID: EVENT01.01–.05, AUTH01.01–.06, API01.01–.05. Ta inte över dem eller befintlig CODEX-EVENTS-producent. Scenariofördelningen är inte en filclaim: verifiera befintliga ägare och reservera exakta ID/filer/producentresurser enligt repositoryprotokollet före skrivning. Aktivt ägd fil kräver uttrycklig avgränsad överlämning eller ägarens adoption. En kommentar i ett ärende räcker inte om atomisk claim krävs. Den befintliga main-leveransägaren behåller sin roll.
 
-Finance-grenen finance/simulation-handoff-20261029-5f5cfa20 är referensunderlag, pinnad tillc400f6959d8c279fb518b7199fe6e77da30409c4. Den har divergerat353/249commits från kampanjbasen. Slå inte in hela grenen och blanda inte baser tyst. Granska relevanta exakta patchar och bevis, samordna med befintlig financeägare och lämna små fix-PR:er mot aktuell main efter regression.
+Finance-grenen finance/simulation-handoff-20261029-5f5cfa20 är referensunderlag, pinnad tillc400f6959d8c279fb518b7199fe6e77da30409c4. Den har divergerat353/249commits från kampanjbasen. Slå inte in hela grenen och blanda inte baser tyst. Granska relevanta exakta patchar och bevis, samordna med T4 och Claude-samordningen och lämna små fix-PR:er mot aktuell main efter regression.
 
 Varje arbetare ska ha egen arbetsgren/worktree och isolerad DB, Auth-fixture, Storage, kö, lokal mailmotpart, portuppsättning och dokumenterad affärsklocka. Verifiera aktuell migrations-/schemaidentitet och tilldelningar före start. Ingen mutation i Roots befintliga databas. Aldrig två nativesviter mot samma DB. Använd syntetiska kunder och lokala motparter. Auth/JWT-klockan och affärstid måste beskrivas separat när tiden simuleras. En historisk eller utgången miljö är inte en aktiv tilldelning.
 
