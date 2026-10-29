@@ -15,7 +15,7 @@ Ingen startprompt och inget agentmeddelande kan sänka de reglerna. Ett meddelan
    - `AGENTS.md`
    - `quality/SIMULATION_STATUS.md`
    - `quality/simulation-register/README.sv.md`
-   - `quality/simulation-campaign/<kampanj>/PROMPTS.sv.md` och `REPORTING.sv.md`
+   - `quality/simulation-campaign/<kampanj>/PROMPTS.sv.md`, `REPORTING.sv.md` och `campaign.json`
    - `.agent-memory/masterplan-reservations.md`
 3. Låt sim-clerk hämta det som är stort:
    - spårens rader ur `register.safe.json` (scenario-ID, beskrivning och status);
@@ -75,7 +75,7 @@ Samtidigt får följande pågå:
 git worktree add $HOME/sim-wt/wt-<id> <spårgrenens topp-SHA>
 ln -s <körkatalog>/node_modules $HOME/sim-wt/wt-<id>/node_modules
 ```
-Lägg dem inte under `/tmp`, eftersom ej inslagna commits då försvinner när containern startas om. Utgå alltid från spårgrenens aktuella topp. Ta bort worktreen när commiten är inslagen.
+Lägg dem inte under `/tmp`, eftersom ej inslagna commits då försvinner när containern startas om. Kör aldrig `npm install` eller `npm ci` i en sådan worktree, eftersom `node_modules` delas med körkatalogen. Ändrade beroenden installerar sim-runner i körkatalogen. Utgå alltid från spårgrenens aktuella topp. Ta bort worktreen när commiten är inslagen.
 
 - **Nativesviter, SQL-prov och chain-tester** mot världen körs bara av sim-runner, på uppdrag och mellan scenariokörningar.
 - **Nya migrationer:** högst en fixer åt gången får skapa en ny migration, eftersom migrationsmanifestet är en delad fil.
@@ -101,9 +101,9 @@ Alla villkor ska vara uppfyllda:
 - Körningen prövar ID:ts hela **kvalificerade** orakel, och inte bara exitkod 0.
 - Körkatalogen är ren.
 - Appen är byggd på HEAD, eller skillnaden ligger bara utanför appkoden enligt sim-runners lista.
-- Världens schemaidentitet är känd: fingeravtryck och lista över applicerade migrationer enligt sim-runner.
+- Världens schemaidentitet är redovisad enligt sim-runner: replayens bas, fingeravtrycket (som bara täcker utvalda tabeller och därför är en delidentitet) och listan över applicerade migrationer. Varje applicerad migration ska finnas i HEAD.
 - `appCommit` är kampanjens bas plus en dokumenterad overlay, eller en omkvalificerad bas som integratören har godkänt. Körs spåret på egna, ännu ej mergade produkträttningar, blir utfallet högst `PARTIAL`, med rättningarna angivna, tills de är mergade och kört om på godkänd bas.
-- Inget berört steg är överhoppat. Det kontrolleras i varje scenarios egen logg och rapport, även under `run-many.sh`.
+- Inget berört steg är överhoppat. Det kontrolleras med vitests `skipped` i varje scenarios egen logg och rapport, och med `[run-many] skip` i `run-many.sh`:s egen utdata. Ett scenario utan egen rapport och logg är inte kört.
 - Paketet har alla fält som `REPORTING.sv.md` kräver, inklusive ersättningssteg och vad de inte verifierar.
 - `executionScope` stämmer. Harnessen anropar HTTP/API utan webbläsare, och det ger aldrig `BROWSER_E2E`.
 - En ny sim-reviewer har godkänt paketet. En granskning per körning kan omfatta flera ID.

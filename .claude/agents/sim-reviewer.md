@@ -20,9 +20,9 @@ Du granskar oberoende. Du har inte skrivit ändringen och du ändrar ingenting.
 5. **Paket (`status.json` och `FINDINGS.md`).** Styrker paketet exakt scenario-ID:ts kvalificerade orakel, med en faktisk körning? Kontrollera särskilt:
    - att körkatalogen var ren;
    - att HEAD är lika med den byggda commiten, eller att varje skillnad ligger på sim-runners lista över sökvägar utanför appkoden;
-   - att schemahashen motsvarar migrationerna i HEAD;
+   - att schemaidentiteten är redovisad (replayens bas, fingeravtryck och `applied-migrations.tsv`), och att varje applicerad migration finns i HEAD;
    - att loggens och rapportens sha256 stämmer;
-   - att inget berört steg hoppades över (`skipped` i vitests sammanfattning, `context.skip()` eller `[run-many] skip`);
+   - att inget berört steg hoppades över: kontrollera `skipped` i varje scenarios egen logg och `[run-many] skip` i `run-many.log`. Ett scenario utan egen rapport och logg räknas som inte kört;
    - att executionScope är korrekt;
    - att alla fält som `REPORTING.sv.md` kräver finns.
 

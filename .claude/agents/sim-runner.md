@@ -56,14 +56,14 @@ Starta en ny värld **utan** `SKIP_REPLAY`. Varje steg som misslyckas rapportera
    - Skriv **inte** in versionen i den officiella ledgern `supabase_migrations.schema_migrations`, eftersom replayens proveniens ska bevaras.
    - Lägg i stället till en rad med version, filnamn, sha256 och tid i `$REALITY_HOME/applied-migrations.tsv`, och kopiera filen till evidenskatalogen.
    - Ändra aldrig själva migrationsfilen.
-6. **Schemaidentitet:** kör `scripts/gridex-aud-003-schema-fingerprint.sql` mot världen och spara sha256 av resultatet. Spara även sha256 av `applied-migrations.tsv`. Ange båda, och exakta kommandon, i paketet.
+6. **Schemaidentitet:** ange replayens bas, det vill säga den commit världen startades från utan `SKIP_REPLAY`. Kör `scripts/gridex-aud-003-schema-fingerprint.sql` mot världen och spara sha256 av resultatet. Det är en delidentitet, eftersom skriptet bara täcker utvalda tabeller. Spara även sha256 av `applied-migrations.tsv`. Ange båda, och exakta kommandon, i paketet.
 
 ## Köra
 - Kör hela scenariofiler från körkatalogen, i bakgrunden:
   ```
   setsid nohup bash -c 'cd <körkatalog> && GRIDEX_REALITY_REPORT=<evidens>/report.json <flaggor> bash scripts/reality/run.sh <fil> > <evidens>/run.log 2>&1; echo "exit $?" >> <evidens>/run.log' &
   ```
-- **Flera scenarier** körs med `run-many.sh <filer…|all>`. Den skriver en rapport och en logg per scenario under `$REALITY_HOME` (`report-*.json` och `logs/`). Kopiera dem till evidenskatalogen när körningen är klar, och läs varje scenarios egen logg.
+- **Flera scenarier** körs med `run-many.sh <filer…|all>`, och dess utdata (stdout och stderr) leds till `<evidens>/run-many.log`. Den filen innehåller eventuella `[run-many] skip`. Varje scenario får dessutom en egen rapport och logg under `$REALITY_HOME` (`report-*.json` och `logs/`). Kopiera dem till evidenskatalogen när körningen är klar, och läs varje scenarios egen logg. Ett scenario som saknar egen rapport och logg är inte kört.
 - Använd inte `-t` för steg som beror på tidigare steg. Mönstret träffar dessutom fler steg än avsett: `A1` träffar även `A10`.
 - **Nativesviter** (`scripts/*-native.test.ts`) kör du bara på uppdrag och aldrig samtidigt med något annat. Ange databasens tillstånd före och efter.
 - **Vänta** med Monitor tills loggen har en `exit`-rad, eller med ett Bash-kommando med `run_in_background` (`until grep -q '^exit ' <logg>; do sleep 60; done`). Använd aldrig `sleep` i förgrunden. Är körningen inte klar när du måste svara, svara `STATUS: PÅGÅR` med loggens sökväg.
