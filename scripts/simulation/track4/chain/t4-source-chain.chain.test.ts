@@ -33,6 +33,7 @@ import {
 } from './vendor/scripts/helpers/live-chain-fixture'
 import { signIn } from '../runner/lib/session.mjs'
 import { pause, slot, startGridOwner, TICK_MS, SIM_HOME, type GridOwnerSim } from './world'
+import { archiveContractOriginal, createSourceActor, loadSignedAgreementPdf } from './contractSources'
 
 const CHAIN_JSON = `${SIM_HOME}/chain.json`
 const state: Record<string, unknown> = { startedAt: new Date().toISOString(), steps: {}, blockers: [] }
@@ -159,6 +160,22 @@ describe.sequential('T4 source chain', () => {
     expect(terms.type).toBe('fixed')
   })
 
+  it('C3b dated customer sources for the Z03: signed-contract masterdata declaration and requested method (local synthetic issuer, two actors)', async () => {
+    // Why: the Z03's requested start (2026-07-01) is not the current day, so customer_addresses (registered) cannot qualify it; base
+    // requires a signed-contract declaration (see chain/contractSources.ts header). Product RPCs, synthetic issuer.
+    const { pdf } = await loadSignedAgreementPdf(tenant.companyId, facility.contractId)
+    const request = await createSourceActor(tenant.companyId, 'request'), reviewer = await createSourceActor(tenant.companyId, 'reviewer')
+    const customer = sql<{ personal: string; name: string }>(`SELECT jsonb_build_object('personal',personal_number,'name',full_name) FROM public.customers WHERE id=${literal(customerId)}`)
+    const base = { companyId: tenant.companyId, contractId: facility.contractId, pdf, request, reviewer }
+    const masterdata = await archiveContractOriginal({ ...base, kind: 'masterdata_declaration', claims: {
+      customerIdentity: { id: customer.personal, qualifier: 'SE2', agency: '260' },
+      endUserMasterdata: { nameParts: [customer.name], streetParts: ['Testvägen 1'], postalCode: '441 30', city: 'Alingsås', country: 'SE' },
+      validFrom: '2026-01-01T00:00:00Z', validTo: '2027-01-01T00:00:00Z' } })
+    const method = await archiveContractOriginal({ ...base, kind: 'contract_requested_method', claims: { previousDeclarationId: null, requestedMethod: 'Z04' } })
+    step('C3b', { masterdata, method, declarations: sql(`SELECT coalesce(jsonb_agg(jsonb_build_object('environment',environment,'from',valid_from,'to',valid_to)),'[]') FROM gridex_customer_masterdata.signed_declarations WHERE company_id=${literal(tenant.companyId)}`) })
+    expect(sql<number>(`SELECT to_jsonb(count(*)) FROM gridex_customer_masterdata.signed_declarations WHERE company_id=${literal(tenant.companyId)} AND customer_id=${literal(customerId)} AND environment='test'`)).toBe(1)
+  })
+
   it('C4 switch request created on the June day, Z03 built by the real builder and queued (test lane)', async () => {
     const created = await createDatedSwitch()
     step('C4-switch', created)
@@ -174,26 +191,40 @@ describe.sequential('T4 source chain', () => {
   })
 
   it('C5 the world runs on cron cadence until the grid owner confirmed (Z04) and supply is active from 1 July', async () => {
-    const deadline = Date.now() + MIN_PER_STEP('T4_CHAIN_C5_MINUTES', 30)
+    const started = Date.now()
+    const deadline = started + MIN_PER_STEP('T4_CHAIN_C5_MINUTES', 20)
+    // fail-fast limits (minutes): a clearly unmet precondition must not wait for the overall deadline
+    const NO_Z03_MIN = Number(process.env.T4_CHAIN_NO_Z03_MINUTES ?? 3), NOT_SENT_MIN = Number(process.env.T4_CHAIN_Z03_NOT_SENT_MINUTES ?? 5), NO_ANSWER_MIN = Number(process.env.T4_CHAIN_NO_ANSWER_MINUTES ?? 6)
+    const TERMINAL = ['failed', 'rejected', 'cancelled', 'error', 'blocked', 'undeliverable', 'bounced', 'dead_letter']
     const runs: unknown[] = []
     const supply = () => sql<{ status: string; start: string; marketStart: string | null; z04: string | null; switch: string | null }>(`SELECT jsonb_build_object(
         'status',p.status,'start',p.start_date,'marketStart',p.market_start_at,'z04',s.inbound_z04_message_id,'switch',s.status)
       FROM public.customer_supply_periods p LEFT JOIN public.supplier_switch_requests s ON s.id=p.source_switch_request_id
       WHERE p.company_id=${literal(tenant.companyId)} AND p.metering_point_id=${literal(facility.meteringPointId)} ORDER BY p.created_at DESC LIMIT 1`) ?? null
     const switchState = () => sql<{ status: string; z04: string | null }>(`SELECT jsonb_build_object('status',status,'z04',inbound_z04_message_id) FROM public.supplier_switch_requests WHERE company_id=${literal(tenant.companyId)} AND metering_point_id=${literal(facility.meteringPointId)} ORDER BY created_at DESC LIMIT 1`)
-    let current: unknown = null
+    const z03 = () => sql<{ status: string; error: string | null } | null>(`SELECT (SELECT jsonb_build_object('status',status,'error',coalesce(failure_reason,'')) FROM public.ediel_messages WHERE company_id=${literal(tenant.companyId)} AND direction='outbound' AND message_code='Z03' ORDER BY created_at DESC LIMIT 1)`)
+    const stop = (text: string) => { blocker('C5', text); throw Error(`C5 fail-fast: ${text}`) }
+    let sentAt: number | null = null, badInbound = 0
     for (;;) {
       const ran = await slot()
       runs.push({ at: new Date().toISOString(), inbound: ran.inbound.status, outbox: ran.outbox.status, operations: ran.operations?.status })
-      const period = supply()
-      current = { period, switch: switchState() }
-      step('C5-progress', { runs: runs.slice(-5), current, gridOwner: await gridOwner.state().then((s) => ({ received: s.received.map((r) => `${r.family}${r.code}:${r.handled}`), failures: s.failures })) })
+      badInbound = ran.inbound.status >= 500 ? badInbound + 1 : 0
+      const period = supply(), message = z03(), go = await gridOwner.state()
+      const elapsed = (Date.now() - started) / 60_000
+      step('C5-progress', { elapsedMin: Math.round(elapsed * 10) / 10, runs: runs.slice(-3), period, switch: switchState(), z03: message, gridOwner: { received: go.received.map((r) => `${r.family}${r.code}:${r.handled}`), failures: go.failures } })
       if (period?.status === 'active') break
-      if (Date.now() > deadline) { blocker('C5', `supply period not active before the deadline; last state ${JSON.stringify(current)}`); break }
+      if (go.failures.length) stop(`grid owner simulator failures: ${JSON.stringify(go.failures.slice(0, 3))}`)
+      if (badInbound >= 3) stop(`inbound mail cron answered 5xx three times (last ${JSON.stringify(ran.inbound.body).slice(0, 300)})`)
+      if (!message && elapsed > NO_Z03_MIN) stop(`no outbound Z03 exists ${NO_Z03_MIN} min after it was queued; switch ${JSON.stringify(switchState())}`)
+      if (message && TERMINAL.includes(message.status)) stop(`outbound Z03 is ${message.status}: ${message.error}`)
+      if (message && /^(sent|delivered|accepted|transmitted)/.test(message.status)) sentAt ??= Date.now()
+      if (message && sentAt === null && elapsed > NOT_SENT_MIN) stop(`Z03 still "${message.status}" after ${NOT_SENT_MIN} min (outbox: ${JSON.stringify(ran.outbox.body).slice(0, 300)})`)
+      if (sentAt !== null && go.received.length === 0 && (Date.now() - sentAt) / 60_000 > NO_ANSWER_MIN) stop(`Z03 sent but the grid owner has received no mail after ${NO_ANSWER_MIN} min`)
+      if (Date.now() > deadline) stop(`supply period not active before the deadline; last state ${JSON.stringify({ period, switch: switchState(), z03: message })}`)
       await pause(TICK_MS)
     }
     const period = supply()
-    expect(period, JSON.stringify(current)).toMatchObject({ status: 'active', start: SUPPLY_START })
+    expect(period, JSON.stringify(switchState())).toMatchObject({ status: 'active', start: SUPPLY_START })
     supplyPeriodId = sql<string>(`SELECT to_jsonb(id::text) FROM public.customer_supply_periods WHERE company_id=${literal(tenant.companyId)} AND metering_point_id=${literal(facility.meteringPointId)} ORDER BY created_at DESC LIMIT 1`)
     const basis = sql<unknown>(`SELECT gridex_received_sources.billing_supply_basis_v1(${literal(tenant.companyId)},${literal(supplyPeriodId)},'2026-06-30T23:00:00Z'::timestamptz,'2026-07-31T23:00:00Z'::timestamptz)`)
     step('C5', { supplyPeriodId, period, billingSupplyBasisJuly: basis })
@@ -220,15 +251,27 @@ describe.sequential('T4 source chain', () => {
     FROM public.ediel_messages WHERE company_id=${literal(tenant.companyId)} AND direction='inbound' AND message_code='E66'`)
 
   it('C7 the inbound cron receives every E66 on the tenant', async () => {
-    const deadline = Date.now() + MIN_PER_STEP('T4_CHAIN_C7_MINUTES', 40)
+    const started = Date.now()
+    const deadline = started + MIN_PER_STEP('T4_CHAIN_C7_MINUTES', 15)
+    const NOTHING_MIN = Number(process.env.T4_CHAIN_C7_NOTHING_MINUTES ?? 5)
     const runs: unknown[] = []
+    const mail = () => sql<{ total: number; failed: number; byStatus: Record<string, number>; sample: string | null }>(`SELECT jsonb_build_object('total',count(*),'failed',count(*) FILTER (WHERE processing_status IN ('failed','error')),
+      'byStatus',coalesce(jsonb_object_agg(processing_status,n) FILTER (WHERE processing_status IS NOT NULL),'{}'::jsonb),'sample',(SELECT left(coalesce(error_message,''),300) FROM public.inbound_email_messages x WHERE x.company_id=${literal(tenant.companyId)} AND x.processing_status IN ('failed','error') LIMIT 1))
+      FROM (SELECT processing_status,count(*) n FROM public.inbound_email_messages WHERE company_id=${literal(tenant.companyId)} GROUP BY 1) g`)
+    const stop = (text: string) => { blocker('C7', text); throw Error(`C7 fail-fast: ${text}`) }
+    let badInbound = 0
     for (;;) {
       const ran = await slot({ operations: false })
+      badInbound = ran.inbound.status >= 500 ? badInbound + 1 : 0
       runs.push({ at: new Date().toISOString(), inbound: ran.inbound.status, fetched: (ran.inbound.body.result as Record<string, unknown> | undefined)?.fetchedMessages ?? null })
-      const have = inboundE66().length
-      step('C7-progress', { have, want: DAYS.length, runs: runs.slice(-3) })
+      const have = inboundE66().length, m = mail(), elapsed = (Date.now() - started) / 60_000
+      step('C7-progress', { have, want: DAYS.length, elapsedMin: Math.round(elapsed * 10) / 10, mail: m, runs: runs.slice(-3) })
       if (have >= DAYS.length) break
-      if (Date.now() > deadline) { blocker('C7', `only ${have}/${DAYS.length} E66 received`); break }
+      if (m && m.failed > 0) stop(`${m.failed} inbound mail job(s) in a terminal failed state: ${m.sample}`)
+      if (badInbound >= 3) stop(`inbound mail cron answered 5xx three times (last ${JSON.stringify(ran.inbound.body).slice(0, 300)})`)
+      if (elapsed > NOTHING_MIN && have === 0 && (!m || m.total === 0)) stop(`nothing arrived on the tenant ${NOTHING_MIN} min after the grid owner sent ${DAYS.length} files`)
+      if (elapsed > NOTHING_MIN && have === 0 && m && m.total > 0) stop(`${m.total} mails arrived but none is a stored E66 message (inbound statuses ${JSON.stringify(m.byStatus)})`)
+      if (Date.now() > deadline) stop(`only ${have}/${DAYS.length} E66 received before the deadline`)
       await pause(TICK_MS)
     }
     expect(inboundE66().length).toBeGreaterThanOrEqual(DAYS.length)
@@ -270,11 +313,19 @@ describe.sequential('T4 source chain', () => {
 
   it('C9 stored values are billable: eligible rows with a supply period per month', async () => {
     const rows = sql<Array<{ month: string; n: number; eligible: number }>>(`SELECT coalesce(jsonb_agg(jsonb_build_object('month',m,'n',n,'eligible',e) ORDER BY m),'[]') FROM (
-        SELECT to_char(period_start AT TIME ZONE 'Europe/Stockholm','YYYY-MM') m, count(*) n, count(*) FILTER (WHERE billing_gate_status='eligible' AND supply_period_id IS NOT NULL) e
+        SELECT to_char(period_start AT TIME ZONE 'Etc/GMT-1','YYYY-MM') m, count(*) n, count(*) FILTER (WHERE billing_gate_status='eligible' AND supply_period_id IS NOT NULL) e
         FROM public.normalized_metering_values WHERE company_id=${literal(tenant.companyId)} AND revision_status='current' GROUP BY 1) x`)
     step('C9', rows)
-    const missing = rows.filter((r) => r.eligible < r.n)
-    expect(missing, `normalized values that are not billing-eligible: ${JSON.stringify(rows)}`).toEqual([])
+    // No vacuous pass: every month must have exactly its 96 values per day, all billing-eligible with a supply period.
+    const wanted = Object.fromEntries(Object.values(MONTHS).map((m) => [m, DAYS.filter((d) => d.startsWith(m)).length * 96]))
+    const problems: string[] = []
+    for (const [month, n] of Object.entries(wanted)) {
+      const row = rows.find((r) => r.month === month)
+      if (!row || row.n === 0) problems.push(`${month}: no normalized values (want ${n})`)
+      else if (row.n !== n) problems.push(`${month}: ${row.n} values, want ${n}`)
+      else if (row.eligible !== row.n) problems.push(`${month}: only ${row.eligible}/${row.n} billing-eligible with a supply period`)
+    }
+    expect(problems, `billing-eligible values per month: ${JSON.stringify(rows)}`).toEqual([])
     // chain output for the harness
     const contract = sql<Record<string, unknown>>(`SELECT to_jsonb(c) - 'signature_snapshot' - 'commercial_snapshot' - 'legal_snapshot' - 'application_snapshot' - 'version_snapshot' - 'price_snapshot' - 'tenant_legal_party_snapshot' - 'tenant_communication_snapshot' - 'legal_acceptance_snapshot' - 'signature_snapshot' - 'legal_versions_snapshot' FROM public.customer_contracts c WHERE c.id=${literal(facility.contractId)}`)
     state.result = {

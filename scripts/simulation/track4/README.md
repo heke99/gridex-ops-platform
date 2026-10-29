@@ -72,11 +72,11 @@ config `chain/vitest.chain.config.ts`, output `SIM_HOME/chain.json`, vitest JSON
 | C2 | grid owner = vendored simulator as its own process (jiti), talks to the platform only by SMTPS/IMAPS | counterparty |
 | C3 | customer, site, metering point, contract draft by SQL; signature through the product's `gridex_prepare/finalize_customer_contract_signature_v1` with the clock at 2026-06-12; power of attorney through the admin writer; signed-agreement confirmation through `processPendingContractConfirmations` | **SQL substitution for the customer** (admin intake is broken on base, claude-track2/004); signing is the real RPC with a dated clock |
 | C4 | switch request row as the product writes it (`gridex_create_supplier_switch_v1`) evaluated on 2026-06-12, then `prepareAndQueueEdielZ03(environment: test)` | **in-process backend call** (no HTTP entrypoint for a dated switch; today is after the supply start so "now" cannot be real) |
-| C5 | cron cadence (inbound mail test lane, Ediel outbox, customer operations) until the grid owner's Z04 activates supply from 2026-07-01; asserts `billing_supply_basis_v1` is non-null | HTTP cron routes + counterparty |
+| C5 | cron cadence (fails fast: no outbound Z03 after 3 min, Z03 not sent after 5 min or terminal, grid owner silent 6 min after send, simulator failures, three inbound 5xx; overall 20 min) (inbound mail test lane, Ediel outbox, customer operations) until the grid owner's Z04 activates supply from 2026-07-01; asserts `billing_supply_basis_v1` is non-null | HTTP cron routes + counterparty |
 | C6 | grid owner sends 92 daily UTILTS E66 (1 Jul - 30 Sep, 96 quarter-hours, dayProfile) | counterparty |
 | C7 | inbound cron receives them | HTTP cron route |
 | C8 | issuer history ground per source (`seedUtiltsIssuerHistoryGround`, SYNTHETIC stand-in for EXT-ISSUER-01/EXT-ARCHIVE-02, SQL) and the UTILTS engine run per message through the real admin server action `processEdielOperationalMessageAction` (form post as platform operator, no browser) | SQL for the ground; server action is the real entrypoint |
-| C9 | asserts the stored values are billing-eligible with a supply period; writes the chain result (company, ids, per-month kWh from the SENT files, terms) | read |
+| C9 | asserts every month has exactly its 96 values per Ediel day and all are billing-eligible with a supply period (no vacuous pass); writes the chain result (company, ids, per-month kWh from the SENT files, terms) | read |
 
 Three billing months from one customer (July, August, September) give each of MAIN04/BILLNEG01.01/BILLNEG01.02 its own underlay, since
 prepare/approve act on a whole month. The oracle takes kWh from the files the simulator sent and the terms from the published offer;
