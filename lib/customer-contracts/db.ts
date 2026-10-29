@@ -1289,6 +1289,72 @@ export async function updateCustomerContract(input: {
   return data as CustomerContractRow;
 }
 
+/**
+ * Lifecycle transitions the customer card may perform on a sealed (signed or
+ * locked) contract. Subset of gridex_enforce_customer_contract_state_v1
+ * (20260727167000): signed -> active|cancelled, active -> terminated|cancelled.
+ */
+export const SEALED_CONTRACT_LIFECYCLE_TRANSITIONS: Readonly<Record<string, readonly string[]>> = {
+  signed: ["active", "cancelled"],
+  active: ["terminated", "cancelled"],
+};
+
+export const SEALED_CONTRACT_TRANSITION_REFUSED_MESSAGE =
+  "Statusbytet är inte tillåtet för ett signerat avtal – använd avtalsåtgärder.";
+
+/**
+ * Writes only lifecycle columns that the signed-contract immutability trigger
+ * leaves open (status, termination_reason, updated_by/updated_at). Never
+ * writes price, dates, snapshots or signature columns.
+ */
+export async function updateSealedCustomerContractLifecycle(input: {
+  id: string;
+  customerId: string;
+  companyId: string | null;
+  currentStatus: CustomerContractRow["status"];
+  status?: CustomerContractRow["status"];
+  terminationReason?: CustomerContractTerminationReason | null;
+  actorUserId: string | null;
+}): Promise<CustomerContractRow> {
+  if (!input.companyId) {
+    throw new Error("Bolag krävs för kundavtalet.");
+  }
+  const statusChanged =
+    input.status !== undefined && input.status !== input.currentStatus;
+  if (
+    statusChanged &&
+    !(SEALED_CONTRACT_LIFECYCLE_TRANSITIONS[input.currentStatus] ?? []).includes(
+      input.status as string,
+    )
+  ) {
+    throw new Error(SEALED_CONTRACT_TRANSITION_REFUSED_MESSAGE);
+  }
+  const patch: Record<string, unknown> = {
+    updated_by: input.actorUserId ?? null,
+    updated_at: new Date().toISOString(),
+  };
+  if (statusChanged) patch.status = input.status;
+  if (input.terminationReason !== undefined) {
+    patch.termination_reason = input.terminationReason;
+  }
+  const { data, error } = await supabaseService
+    .from("customer_contracts")
+    .update(patch)
+    .eq("id", input.id)
+    .eq("customer_id", input.customerId)
+    .eq("company_id", input.companyId)
+    .eq("status", input.currentStatus)
+    .select("*")
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) {
+    throw new Error(
+      "Kundavtalet hittades inte för valt bolag eller har ändrats. Ladda om sidan.",
+    );
+  }
+  return data as CustomerContractRow;
+}
+
 export async function addCustomerContractEvent(input: {
   companyId?: string | null;
   customerContractId: string;

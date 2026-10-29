@@ -108,7 +108,7 @@ export async function saveContractWithFeedbackAction(formData: FormData): Promis
     if (error instanceof Error && error.message === 'Slutdatum kan inte vara före startdatum.') {
       return {status: 'invalid', field: 'ends_at', message: error.message}
     }
-    if (error instanceof Error && error.message === 'Signerat avtal kan inte ändras – använd avtalsåtgärder.') {
+    if (error instanceof Error && ['Signerat avtal kan inte ändras – använd avtalsåtgärder.', 'Statusbytet är inte tillåtet för ett signerat avtal – använd avtalsåtgärder.', 'Avtalet kan bara aktiveras när leveransstarten är registrerad – använd avtalsåtgärder.', 'Avslut kräver slutdatum och orsakskod – använd avtalsåtgärder.', 'Kundavtalet hittades inte för valt bolag eller har ändrats. Ladda om sidan.'].includes(error.message)) {
       return {status: 'invalid', message: error.message}
     }
     if (error instanceof Error && ['Uppsägningsdatum är redan registrerat och kan inte ändras här – använd avtalsåtgärder.', 'Uppsägningsdatum kan inte vara före avtalets startdatum.'].includes(error.message)) {
