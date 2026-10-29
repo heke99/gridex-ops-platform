@@ -1292,7 +1292,10 @@ export async function updateCustomerContract(input: {
 /**
  * Lifecycle transitions the customer card may perform on a sealed (signed or
  * locked) contract. Subset of gridex_enforce_customer_contract_state_v1
- * (20260727167000): signed -> active|cancelled, active -> terminated|cancelled.
+ * (20260727167000:47-48). Terminal targets are recorded only through the
+ * terminated/cancelled event RPC, which also sets ended_at and
+ * status_reason_code (20260727165000:200-243); this writer only performs
+ * signed -> active and reason-only updates.
  */
 export const SEALED_CONTRACT_LIFECYCLE_TRANSITIONS: Readonly<Record<string, readonly string[]>> = {
   signed: ["active", "cancelled"],
@@ -1323,9 +1326,7 @@ export async function updateSealedCustomerContractLifecycle(input: {
     input.status !== undefined && input.status !== input.currentStatus;
   if (
     statusChanged &&
-    !(SEALED_CONTRACT_LIFECYCLE_TRANSITIONS[input.currentStatus] ?? []).includes(
-      input.status as string,
-    )
+    !(input.currentStatus === "signed" && input.status === "active")
   ) {
     throw new Error(SEALED_CONTRACT_TRANSITION_REFUSED_MESSAGE);
   }

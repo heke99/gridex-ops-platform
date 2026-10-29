@@ -19,6 +19,7 @@ import {
   createCustomerContract,
   getContractOfferById,
   getCustomerContractById,
+  SEALED_CONTRACT_LIFECYCLE_TRANSITIONS,
   SEALED_CONTRACT_TRANSITION_REFUSED_MESSAGE,
   updateCustomerContract,
   updateSealedCustomerContractLifecycle,
@@ -1054,6 +1055,12 @@ async function updateSealedContractFromCustomerCard(params: {
   }
   const statusChanged = nextStatus !== before.status
   const reasonChanged = terminationReason !== (before.termination_reason ?? null)
+  // Validate every transition before any write, so a refused status change
+  // never leaves a termination notice behind.
+  if (statusChanged && !(SEALED_CONTRACT_LIFECYCLE_TRANSITIONS[before.status] ?? []).includes(nextStatus)) {
+    throw new Error(SEALED_CONTRACT_TRANSITION_REFUSED_MESSAGE)
+  }
+  const terminalEvent = statusChanged && (nextStatus === 'terminated' || nextStatus === 'cancelled') ? nextStatus : null
 
   try {
     if (nextNotice && !previousNotice) {
@@ -1069,7 +1076,22 @@ async function updateSealedContractFromCustomerCard(params: {
         actorUserId,
       })
     }
-    if (statusChanged || reasonChanged) {
+    if (terminalEvent) {
+      // The event RPC sets status, ended_at and status_reason_code atomically
+      // (20260727165000:200-243), satisfying the terminal state invariant.
+      await addCustomerContractEvent({
+        companyId,
+        customerContractId: contractId,
+        customerId,
+        eventType: terminalEvent,
+        note: terminalEvent === 'terminated' ? 'Avtal avslutat från kundkortet' : 'Avtal avbrutet från kundkortet',
+        metadata: {
+          previousStatus: before.status,
+          ...(terminationReason ? { termination_reason: terminationReason, reason_code: terminationReason } : {}),
+        },
+        actorUserId,
+      })
+    } else if (statusChanged || reasonChanged) {
       const updated = await updateSealedCustomerContractLifecycle({
         id: contractId,
         customerId,
@@ -1093,20 +1115,6 @@ async function updateSealedContractFromCustomerCard(params: {
         },
         actorUserId,
       })
-      if (statusChanged) {
-        await emitLifecycleEventsForStatus({
-          companyId,
-          customerId,
-          contractId,
-          status: updated.status,
-          startsAt: before.starts_at ?? null,
-          signedAt: before.signed_at ?? null,
-          terminationNoticeDate: null,
-          endsAt: before.ends_at ?? null,
-          actorUserId,
-          context: 'update',
-        })
-      }
     }
   } catch (error) {
     throw controlledContractUpdateError(error)

@@ -56,6 +56,7 @@ vi.mock('@/lib/customer-contracts/db', () => ({
     if (io.lifecycleError) throw io.lifecycleError
     return {...io.row, ...(input.status ? {status: input.status} : {}), ...('terminationReason' in input ? {termination_reason: input.terminationReason} : {})}
   },
+  SEALED_CONTRACT_LIFECYCLE_TRANSITIONS: {signed: ['active', 'cancelled'], active: ['terminated', 'cancelled']},
   SEALED_CONTRACT_TRANSITION_REFUSED_MESSAGE: 'Statusbytet är inte tillåtet för ett signerat avtal – använd avtalsåtgärder.',
   createCustomerContract: async () => { throw Error('not used') },
   getContractOfferById: async () => null,
@@ -102,11 +103,26 @@ describe('customer-card edit of signed contracts', () => {
     await expect(updateContractAction(f)).resolves.toBeUndefined()
     expect(io.updateCalls).toHaveLength(0)
     expect(io.lifecycleCalls[0]).toMatchObject({currentStatus: 'signed', status: 'active'})
-    expect(io.events.map((e) => e.eventType)).toContain('activated')
+    expect(io.events.map((e) => e.eventType)).toEqual(['updated'])
+  })
+
+  it.each([['signed', 'cancelled'], ['active', 'terminated'], ['active', 'cancelled']])('records terminal %s -> %s only through the event RPC that sets ended_at and status_reason_code', async (from, to) => {
+    io.row = {...sealed(), status: from}
+    const f = form(); f.set('status', to); f.set('termination_reason', 'move_out')
+    await expect(updateContractAction(f)).resolves.toBeUndefined()
+    expect(io.updateCalls).toHaveLength(0); expect(io.lifecycleCalls).toHaveLength(0)
+    expect(io.events).toEqual([expect.objectContaining({eventType: to, companyId: 'company-a', customerId: 'customer-a', customerContractId: 'contract-a', metadata: expect.objectContaining({reason_code: 'move_out', termination_reason: 'move_out'})})])
+  })
+
+  it('validates a refused status change before writing a termination notice', async () => {
+    io.row = sealed()
+    const f = form(); f.set('termination_notice_date', '2026-11-01'); f.set('status', 'expired')
+    await expect(updateContractAction(f)).rejects.toThrow('Statusbytet är inte tillåtet')
+    expect(io.events).toHaveLength(0); expect(io.lifecycleCalls).toHaveLength(0); expect(io.updateCalls).toHaveLength(0)
   })
 
   it('maps a refused transition to a controlled message', async () => {
-    io.row = sealed(); io.lifecycleError = Error('Statusbytet är inte tillåtet för ett signerat avtal – använd avtalsåtgärder.')
+    io.row = sealed()
     const f = form(); f.set('status', 'draft')
     await expect(saveContractWithFeedbackAction(f)).resolves.toEqual({status: 'invalid', message: 'Statusbytet är inte tillåtet för ett signerat avtal – använd avtalsåtgärder.'})
     expect(io.updateCalls).toHaveLength(0)
@@ -189,7 +205,7 @@ describe('updateSealedCustomerContractLifecycle (real db.ts)', () => {
     expect(io.db.filters).toEqual([['id', 'contract-a'], ['customer_id', 'customer-a'], ['company_id', 'company-a'], ['status', 'signed']])
   })
 
-  it.each([['signed', 'terminated'], ['signed', 'draft'], ['active', 'signed'], ['active', 'expired'], ['terminated', 'active']])('refuses %s -> %s before any DB call', async (from, to) => {
+  it.each([['signed', 'terminated'], ['signed', 'cancelled'], ['active', 'terminated'], ['active', 'cancelled'], ['signed', 'draft'], ['active', 'signed'], ['active', 'expired'], ['terminated', 'active']])('refuses %s -> %s before any DB call', async (from, to) => {
     const fn = await load()
     await expect(fn({id: 'contract-a', customerId: 'customer-a', companyId: 'company-a', currentStatus: from as 'signed', status: to as 'active', actorUserId: 'staff-a'})).rejects.toThrow('Statusbytet är inte tillåtet')
     expect(io.db.payloads).toHaveLength(0)
@@ -198,6 +214,6 @@ describe('updateSealedCustomerContractLifecycle (real db.ts)', () => {
   it('gives a controlled no-match for a foreign company', async () => {
     io.db.result = row()
     const fn = await load()
-    await expect(fn({id: 'contract-a', customerId: 'customer-a', companyId: 'company-b', currentStatus: 'signed', status: 'cancelled', actorUserId: 'staff-a'})).rejects.toThrow('Kundavtalet hittades inte för valt bolag')
+    await expect(fn({id: 'contract-a', customerId: 'customer-a', companyId: 'company-b', currentStatus: 'signed', status: 'active', actorUserId: 'staff-a'})).rejects.toThrow('Kundavtalet hittades inte för valt bolag')
   })
 })
