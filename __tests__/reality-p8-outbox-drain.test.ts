@@ -1,20 +1,31 @@
 // reality-defects: P8 (the outbox cron sent one batch of 25 per run across every company)
+// Main's hardened drain (3d08d112c) owns the budget, requeue and batch-bound cases in
+// __tests__/ediel-outbox-drain-budget-progress.test.ts; this file keeps the scenario P8 was found in.
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 type Row = { id: string; status: string }
-const io = vi.hoisted(() => ({ queue: [] as Row[], requeue: new Set<string>(), calls: [] as Array<Record<string, unknown>> }))
+const io = vi.hoisted(() => ({ queue: [] as Row[], calls: [] as Array<Record<string, unknown>> }))
 vi.mock('@/lib/ediel/outbox/processEdielOutbox', () => ({
-  // The claim takes the oldest `limit` claimable rows; a sent row leaves the queue, a requeued one stays.
-  processEdielOutbox: async (params: { limit?: number; environment?: string | null; companyId?: string | null }) => {
+  // processEdielOutbox's contract: claims one row at a time up to `limit`, reports `claimed`, and stops on an empty
+  // queue or a row this drain already handled (`seenIds`). A sent row leaves the queue.
+  processEdielOutbox: async (params: { limit?: number; environment?: string | null; companyId?: string | null; seenIds?: ReadonlySet<string> }) => {
     io.calls.push(params)
-    const batch = io.queue.slice(0, params.limit ?? 25)
-    io.queue = io.queue.slice(batch.length).concat(batch.filter(row => io.requeue.has(row.id)))
-    const results = batch.map(row => ({ id: row.id, status: row.status }))
-    return { processed: results.length, sent: results.filter(r => r.status === 'sent').length, failed: results.filter(r => r.status === 'failed').length,
-      blocked: results.filter(r => r.status === 'blocked').length, deliveryUncertain: 0, results }
+    const limit = params.limit ?? 25
+    const run = { claimed: 0, processed: 0, sent: 0, failed: 0, blocked: 0, deliveryUncertain: 0, results: [] as Array<Record<string, unknown>>, stoppedBy: null as string | null }
+    while (run.claimed < limit) {
+      const row = io.queue.shift()
+      if (!row) { run.stoppedBy = 'queue_empty'; break }
+      run.claimed += 1
+      if (params.seenIds?.has(row.id)) { io.queue.unshift(row); run.stoppedBy = 'repeated_rows'; return run }
+      run.results.push({ id: row.id, status: row.status })
+      run.processed += 1
+      if (row.status === 'sent') run.sent += 1
+      if (row.status === 'failed') run.failed += 1
+      if (row.status === 'blocked') run.blocked += 1
+    }
+    return run
   },
 }))
-
 vi.mock('@/lib/ediel/companyCertifiedScopes', () => ({ recordCompanyCertifiedScopes: async () => ({ status: 'ran' }) }))
 vi.mock('@/lib/ediel/automationActor', () => ({ resolveConfiguredEdielAutomationActorId: async () => 'automation-actor' }))
 
@@ -24,46 +35,17 @@ import { drainEdielOutbox } from '@/lib/ediel/outbox/drainEdielOutbox'
 
 const rows = (n: number, prefix: string, status = 'sent') => Array.from({ length: n }, (_, i) => ({ id: `${prefix}-${i}`, status }))
 
-beforeEach(() => { io.queue = []; io.requeue = new Set(); io.calls = []; vi.stubEnv('CRON_SECRET', 'cron-secret') })
+beforeEach(() => { io.queue = []; io.calls = []; vi.stubEnv('CRON_SECRET', 'cron-secret') })
 
 describe('P8 the outbox cron drains the queue, not one batch', () => {
   it("another company's 59 rows no longer hold back the tenant's 37 replies to the next run", async () => {
     io.queue = [...rows(25, 'other', 'blocked'), ...rows(34, 'test-lane', 'failed'), ...rows(37, 'tenant')]
     const run = await drainEdielOutbox({ actorUserId: 'automation', environment: null })
     expect(io.queue).toEqual([])
-    expect(run).toMatchObject({ processed: 96, sent: 37, blocked: 25, failed: 34, batches: 4, stoppedBy: 'queue_empty' })
+    expect(run).toMatchObject({ processed: 96, sent: 37, blocked: 25, failed: 34, stoppedBy: 'queue_empty' })
     expect(run.results.filter(r => String(r.id).startsWith('tenant'))).toHaveLength(37)
     // Every batch goes through the ordinary claim with the run's lane and the platform-wide scope.
-    expect(io.calls.every(call => call.limit === 25 && call.companyId === null && call.environment === null)).toBe(true)
-  })
-
-  it('an exactly full batch claims once more and stops on the empty queue', async () => {
-    io.queue = rows(25, 'tenant')
-    const run = await drainEdielOutbox({ actorUserId: 'automation', environment: 'production' })
-    expect(run).toMatchObject({ processed: 25, batches: 2, stoppedBy: 'queue_empty' })
-    expect(io.calls.map(call => call.environment)).toEqual(['production', 'production'])
-  })
-
-  it('the time budget ends the run; the rest waits for the next run', async () => {
-    io.queue = rows(200, 'tenant')
-    // Each clock read advances 20 s: the run starts at 20 s and checks after each batch at 40, 60 and 80 s.
-    let clock = 0
-    const run = await drainEdielOutbox({ actorUserId: 'automation', budgetMs: 45_000, now: () => (clock += 20_000) })
-    expect(run).toMatchObject({ batches: 3, processed: 75, stoppedBy: 'budget' })
-    expect(io.queue).toHaveLength(125)
-  })
-
-  it('rows requeued by their own send are not retried in a tight loop', async () => {
-    io.queue = rows(25, 'retry', 'queued')
-    io.requeue = new Set(io.queue.map(row => row.id))
-    const run = await drainEdielOutbox({ actorUserId: 'automation' })
-    expect(run).toMatchObject({ batches: 2, stoppedBy: 'repeated_rows' })
-  })
-
-  it('the batch count is bounded', async () => {
-    io.queue = rows(10_000, 'tenant')
-    const run = await drainEdielOutbox({ actorUserId: 'automation', maxBatches: 3, budgetMs: Infinity })
-    expect(run).toMatchObject({ batches: 3, processed: 75, stoppedBy: 'max_batches' })
+    expect(io.calls.every(call => call.companyId === null && call.environment === null)).toBe(true)
   })
 })
 

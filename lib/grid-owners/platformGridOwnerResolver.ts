@@ -181,7 +181,8 @@ export async function normalizeGridOwnerIdToOps(input: {
   if (!id) return { opsGridOwnerId: null, source: 'none', warnings: [] }
 
   let opsQuery = supabaseService.from('grid_owners').select('id').eq('id', id)
-  if (input.companyId) opsQuery = opsQuery.eq('company_id', input.companyId)
+  // A shared registry grid owner (company_id null) or the tenant's own; never another tenant's (FINDINGS F58).
+  if (input.companyId) opsQuery = opsQuery.or(`company_id.is.null,company_id.eq.${input.companyId}`)
   const ops = await opsQuery.maybeSingle()
   if (ops.error && !missingSchema(ops.error)) throw ops.error
   if (ops.data) return { opsGridOwnerId: id, source: 'ops', warnings: [] }

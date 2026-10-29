@@ -50,7 +50,14 @@ vi.mock('@/lib/supabase/service', () => {
     then<T>(resolve: (value: unknown) => T, reject?: (reason: unknown) => T) { return Promise.resolve(this.run()).then(resolve, reject) }
   }
   return { supabaseService: { from: (table: string) => new Query(table),
-    rpc: async (name: string) => name === 'claim_inbound_processing_jobs' ? { data: io.claim, error: null } : { data: null, error: null } } }
+    // Like the real claim RPC (PERF006): the claim stamps this worker's lease receipt on the stored job row and
+    // returns it, so the lease-guarded finish matches the row it claimed.
+    rpc: async (name: string, args?: Record<string, unknown>) => {
+      if (name !== 'claim_inbound_processing_jobs') return { data: null, error: null }
+      const lease = { status: 'processing', locked_by: String(args?.p_worker_id ?? ''), locked_at: '2026-10-27T08:00:00.000Z' }
+      for (const claimed of io.claim) Object.assign(io.jobs.find(job => job.id === claimed.id) ?? {}, lease)
+      return { data: io.claim.map(row => ({ ...row, ...lease })), error: null }
+    } } }
 })
 vi.mock('@/lib/ediel/inbound/receptions', () => ({ InboundReceptionHeldError: class extends Error {}, readUnattributedTechnicalIntake: async () => null }))
 vi.mock('@/lib/inbound-mail/inboundStatusUpdater', async () => {

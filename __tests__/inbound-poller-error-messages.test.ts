@@ -6,14 +6,19 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const io = vi.hoisted(() => ({ updates: [] as Array<Record<string, unknown>>, processError: null as unknown }))
 
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
-  rpc: async (name: string) => name === 'claim_inbound_processing_jobs'
-    ? { data: [{ id: 'job-1', inbound_email_message_id: 'mail-1', attempts_count: 0, status: 'processing' }], error: null }
+  // Like the real claim RPC (PERF006): the claimed row carries this worker's lease receipt.
+  rpc: async (name: string, args?: Record<string, unknown>) => name === 'claim_inbound_processing_jobs'
+    ? { data: [{ id: 'job-1', inbound_email_message_id: 'mail-1', attempts_count: 0, status: 'processing', locked_by: String(args?.p_worker_id ?? ''), locked_at: '2026-10-27T08:00:00.000Z' }], error: null }
     : { data: null, error: null },
   from: () => {
     const query: Record<string, unknown> = {}
-    for (const method of ['select', 'eq', 'in', 'is', 'or', 'not', 'order', 'limit']) query[method] = () => query
-    query.update = (patch: Record<string, unknown>) => { io.updates.push(patch); return query }
-    query.maybeSingle = async () => ({ data: null, error: null })
+    let updated = false
+    let rowId: unknown = null
+    for (const method of ['select', 'in', 'is', 'or', 'not', 'order', 'limit']) query[method] = () => query
+    query.eq = (column: string, value: unknown) => { if (column === 'id') rowId = value; return query }
+    query.update = (patch: Record<string, unknown>) => { io.updates.push(patch); updated = true; return query }
+    // A lease-guarded update that matches returns its row, as PostgREST does (PERF006 counts only committed finishes).
+    query.maybeSingle = async () => ({ data: updated ? { id: rowId } : null, error: null })
     query.then = (resolve: (value: unknown) => unknown) => Promise.resolve({ data: [], error: null }).then(resolve)
     return query
   },

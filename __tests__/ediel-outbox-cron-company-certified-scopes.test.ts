@@ -14,7 +14,7 @@ const call = (query = '') => GET(new NextRequest(`http://localhost/api/ediel/out
 beforeEach(() => {
   vi.stubEnv('CRON_SECRET', 'cron-secret'); io.order = []
   io.record.mockReset().mockImplementation(async () => { io.order.push('record'); return { status: 'ran', summary: { recorded: 1 } } })
-  io.process.mockReset().mockImplementation(async () => { io.order.push('outbox'); return { processed: 0 } })
+  io.process.mockReset().mockImplementation(async () => { io.order.push('outbox'); return { claimed: 0, processed: 0, sent: 0, failed: 0, blocked: 0, deliveryUncertain: 0, results: [], stoppedBy: 'queue_empty' } })
 })
 
 it.each(['', '?environment=production'])('records scope proofs before the outbox runs (%s)', async query => {

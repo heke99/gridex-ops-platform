@@ -486,7 +486,7 @@ export async function pollEdielMailbox(input: {
       .from("ediel_mailboxes")
       .select("metadata,updated_at")
       .eq("id", input.mailbox.id)
-      .eq("locked_by", workerId)
+      .eq("locked_by", locked.locked_by).eq("locked_at", locked.locked_at)
       .maybeSingle();
     if (readError || !current) {
       console.warn("[inbound-mail] Kunde inte läsa brevlådan för lagringsförsök", { mailboxId: input.mailbox.id, code: readError?.code ?? null });
@@ -497,7 +497,7 @@ export async function pollEdielMailbox(input: {
       .from("ediel_mailboxes")
       .update({ metadata: { ...(row.metadata ?? {}), [STORE_ATTEMPTS_KEY]: Object.fromEntries(tracked) }, updated_at: nowIso() })
       .eq("id", input.mailbox.id)
-      .eq("locked_by", workerId);
+      .eq("locked_by", locked.locked_by).eq("locked_at", locked.locked_at);
     update = row.updated_at ? update.eq("updated_at", row.updated_at) : update.is("updated_at", null);
     const { error } = await update;
     if (error) console.warn("[inbound-mail] Kunde inte spara lagringsförsök", { mailboxId: input.mailbox.id, code: error.code });

@@ -13,6 +13,7 @@ const pricingFixture = vi.hoisted(() => ({
   underlay: {} as Record<string, unknown>, contract: {} as Record<string, unknown>,
   filters: [] as Array<{ table: string; key: string; value: unknown }>,
   noticeCommands: [] as Array<Record<string, unknown>>,
+  feeReviews: [] as Array<Record<string, unknown>>,
 }))
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
   from: (table: string) => {
@@ -30,10 +31,17 @@ vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
       single: async () => ({ data: row(), error: null }),
       maybeSingle: async () => ({ data: row(), error: null }),
     }
+    // The contract's notice-term row (FINDINGS H3d D1); none here, so the contract carries 0 notice days.
+    if (table === 'customer_contract_notice_terms') {
+      const terms = { select: () => terms, eq: () => terms, maybeSingle: async () => ({ data: null, error: null }) }
+      return terms
+    }
     if (!['billing_underlays', 'customer_contracts'].includes(table)) throw new Error(`Unexpected unit read: ${table}`)
     return query
   },
   rpc: async (name: string, params: Record<string, unknown>) => {
+    // A notice inside the binding period also opens the operator's break-fee review (FINDINGS H3d B5).
+    if (name === 'gridex_termination_break_fee_review_v1') { pricingFixture.feeReviews.push({ ...params }); return { data: null, error: null } }
     if (name !== 'gridex_record_customer_contract_event_v1') throw new Error('Unexpected unit command')
     pricingFixture.noticeCommands.push({ ...params })
     return { data: { event: { id: 'unit-event' } }, error: null }
@@ -213,34 +221,38 @@ describe('actual notice application port with a scoped query and mocked RPC boun
     pricingFixture.contract = { id: 'unit-contract', company_id: 'unit-company', customer_id: 'unit-customer',
       starts_at: null, ends_at: null, actual_start_date: '2026-10-28', binding_months: 12,
       notice_months: 1, status: 'active', auto_renew_enabled: false }
-    pricingFixture.filters = []; pricingFixture.noticeCommands = []
+    pricingFixture.filters = []; pricingFixture.noticeCommands = []; pricingFixture.feeReviews = []
   })
 
   const notice = (companyId = 'unit-company') => addCustomerContractEvent({ companyId,
     customerContractId: 'unit-contract', customerId: 'unit-customer', eventType: 'termination_notice_received',
     happenedAt: '2026-11-01T00:00:00Z', actorUserId: 'unit-actor' })
 
-  it('passes the binding floor from the selected canonical actual date to the command', async () => {
+  // Owner decision 21 (FINDINGS H3d B5, OWNER-DECISIONS.md): a notice without a move ends the contract after its
+  // notice period, also inside the binding period; the binding floor no longer moves the end, it opens the operator's
+  // break-fee review instead (gridex_termination_break_fee_review_v1 decides inside the binding in SQL). These three
+  // cases asserted the earlier binding-floor end (2027-10-28 / NULL) and now assert the decided rule.
+  it('ends after the notice period inside the binding floor and opens the break-fee review (owner decision 21)', async () => {
     await notice()
     expect(pricingFixture.noticeCommands).toEqual([expect.objectContaining({
       p_company_id: 'unit-company', p_customer_id: 'unit-customer', p_customer_contract_id: 'unit-contract',
-      p_derived_ends_at: '2027-10-28',
+      p_derived_ends_at: '2026-12-01',
     })])
+    expect(pricingFixture.feeReviews).toEqual([{ p_company_id: 'unit-company', p_customer_contract_id: 'unit-contract', p_actor_user_id: 'unit-actor' }])
   })
 
-  it('retains a known legacy actual start for notice derivation', async () => {
+  it('a legacy actual start does not move the notice end', async () => {
     pricingFixture.contract.actual_start_date = null
     pricingFixture.contract.actual_start_at = '2026-10-28'
     await notice()
-    expect(pricingFixture.noticeCommands[0].p_derived_ends_at).toBe('2027-10-28')
+    expect(pricingFixture.noticeCommands[0].p_derived_ends_at).toBe('2026-12-01')
   })
 
-  it('does not derive a definite binding end from a future confirmation alone', async () => {
+  it('a future confirmation alone does not move the notice end', async () => {
     pricingFixture.contract.actual_start_date = null
     pricingFixture.contract.confirmed_start_date = '2027-01-31'
     await notice()
-    // NULL means no application-derived end, not an authoritative RPC HOLD.
-    expect(pricingFixture.noticeCommands[0].p_derived_ends_at).toBeNull()
+    expect(pricingFixture.noticeCommands[0].p_derived_ends_at).toBe('2026-12-01')
   })
 
   it('does not invoke the command for a different company', async () => {

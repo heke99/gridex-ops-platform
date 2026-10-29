@@ -48,7 +48,8 @@ function query(table: string) {
 
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
   from: (table: string) => {
-    if (!['ediel_mailboxes', 'inbound_processing_jobs'].includes(table)) throw new Error(`unexpected table ${table}`)
+    // inbound_email_messages: the branch's give-up note on the mail (J3-11) when a job is not retried again.
+    if (!['ediel_mailboxes', 'inbound_processing_jobs', 'inbound_email_messages'].includes(table)) throw new Error(`unexpected table ${table}`)
     return query(table)
   },
   rpc: async (name: string, args: Row) => {
@@ -63,6 +64,8 @@ vi.mock('imapflow', () => ({ ImapFlow: class {
   async *fetch() { /* empty mailbox */ }
   async messageFlagsAdd() { return true }
   async logout() { return undefined }
+  // The branch's poller listens for the client's asynchronous socket errors (J3).
+  on() { return this }
 } }))
 
 import { markMailboxPollFinished, markMailboxPollStarted } from '@/lib/inbound-mail/edielMailboxPoller.part-1'
@@ -158,7 +161,7 @@ describe.each(['rpc', 'fallback'] as const)('inbound job finalization through %s
 
   it('finalizes with its own receipt and counts the attempt once (#853 preserved)', async () => {
     io.process.mockResolvedValue({ status: 'processed' })
-    await expect(processQueuedInboundProcessingJobs({ workerId: 'worker' })).resolves.toEqual({ processed: 1, failed: 0 })
+    await expect(processQueuedInboundProcessingJobs({ workerId: 'worker' })).resolves.toEqual({ processed: 1, failed: 0, processedInboundEmailMessageIds: ['msg-1'] })
     expect(job()).toMatchObject({ status: 'done', attempts_count: 1, locked_by: null, locked_at: null })
   })
 
@@ -167,7 +170,7 @@ describe.each(['rpc', 'fallback'] as const)('inbound job finalization through %s
       tick(); Object.assign(job(), { locked_by: 'other:y', locked_at: new Date().toISOString(), attempts_count: job().attempts_count + 1 })
       throw new Error('slow failure')
     })
-    await expect(processQueuedInboundProcessingJobs({ workerId: 'worker' })).resolves.toEqual({ processed: 0, failed: 0 })
+    await expect(processQueuedInboundProcessingJobs({ workerId: 'worker' })).resolves.toEqual({ processed: 0, failed: 0, processedInboundEmailMessageIds: [] })
     expect(job()).toMatchObject({ status: 'processing', locked_by: 'other:y', attempts_count: 2, error_message: null })
   })
 

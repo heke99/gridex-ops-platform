@@ -16,6 +16,8 @@ vi.mock('@/lib/ediel/operations/actorAutoReadiness', () => ({
   applyActorAutoSendReadiness: engines.apply,
   refreshRouteProfileProductionReadiness: engines.routes,
 }))
+// The branch's inbound cron records reception by the configured Ediel automation actor (as the outbox cron does).
+vi.mock('@/lib/ediel/automationActor', () => ({ resolveConfiguredEdielAutomationActorId: async () => 'automation-actor' }))
 vi.mock('@/lib/ediel/certificates/scheduledRefreshRecovery', () => ({ runScheduledCertificateRefreshRecovery: engines.recovery }))
 
 import * as inbound from '@/app/api/internal/inbound-mail/cron/route'
@@ -161,7 +163,9 @@ describe('authenticated request boundaries', () => {
       vi.stubEnv('CRON_SECRET', schedulerSecret)
       const response = await call(routes[0], method, { authorization: `Bearer ${schedulerSecret}` }, `environment=${environment}`)
       expect(response.status).toBe(200)
-      expect(engines.inbound).toHaveBeenCalledExactlyOnceWith({ environment, mailboxId: null, force: false, sharedOnly: true, allowMissingMailboxConfig: true })
+      // The branch adds the automation actor (reception), the F103 stranded-message resume and the G-1 deadline.
+      expect(engines.inbound).toHaveBeenCalledExactlyOnceWith({ environment, mailboxId: null, force: false, sharedOnly: true, allowMissingMailboxConfig: true,
+        actorUserId: 'automation-actor', resumeStrandedInboundMessages: true, deadlineAt: expect.any(Number) })
     })
   }
 

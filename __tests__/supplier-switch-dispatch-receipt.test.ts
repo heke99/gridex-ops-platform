@@ -22,6 +22,10 @@ vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: (table: stri
 vi.mock('@/lib/operations/businessActions/actionPreflight', () => ({ actionPreflight: async () => ({ ok: true, ...scope }), actionPreflightForSupplierSwitchWorker: async () => ({ ok: true, ...scope }) }))
 vi.mock('@/lib/operations/businessActions/actionDecisionEngine', () => ({ decideBusinessAction: () => ({ operation: 'start_supplier_switch' }) }))
 vi.mock('@/lib/ediel/orchestrator', () => ({ prepareAndQueueEdielZ03: (...args: unknown[]) => io.prepare(...args) }))
+// The branch's I-B5 and F46 steps before Z03 (merge with the reality simulation): the tenant's own Ediel
+// environment and the requested metering method. Neither changes this test's dispatch-receipt contract.
+vi.mock('@/lib/operations/switchDispatchEnvironment', () => ({ resolveSwitchDispatchEnvironment: async () => ({ ok: true, environment: 'production' }) }))
+vi.mock('@/lib/operations/switchRequestedMethodPreparation', () => ({ deriveRequestedMethodBeforeSwitch: async () => undefined }))
 vi.mock('@/lib/operations/supplierSwitchScheduler', () => ({ evaluateSupplierSwitchSchedule: async () => ({ ok: true }) }))
 vi.mock('@/lib/customer-operations/switchReadiness', () => ({ checkSupplierSwitchReadiness: async () => ({ ready: true, readinessSnapshot: {} }), persistSwitchReadinessSnapshot: async () => undefined }))
 
@@ -74,7 +78,8 @@ describe('durable dispatch rather than an acquired idempotency key', () => {
   })
   it('preserves the original nonduplicate dispatch and its native preparation path', async () => {
     expect(await startSupplierSwitch(input)).toMatchObject({ ok: true, message: { id: messageId } })
-    expect(io.prepare).toHaveBeenCalledExactlyOnceWith({ actorUserId: scope.actorUserId, switchRequestId: scope.switchRequestId })
+    // The branch's I-B5: Z03 is prepared in the tenant's own Ediel environment (mocked as production above).
+    expect(io.prepare).toHaveBeenCalledExactlyOnceWith({ actorUserId: scope.actorUserId, switchRequestId: scope.switchRequestId, environment: 'production' })
   })
   it('returns confirmed queued for the same fully bound durable original without queueing again', async () => {
     deduped(); durable()

@@ -9,7 +9,8 @@ import { beforeEach, expect, it, vi } from 'vitest'
 const io = vi.hoisted(() => ({ claimed: [] as Array<Record<string, unknown>>, processedMail: [] as string[] }))
 
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
-  rpc: async (name: string) => name === 'claim_inbound_processing_jobs' ? { data: io.claimed, error: null } : { data: null, error: null },
+  // Like the real claim RPC (PERF006): claimed rows carry this worker's lease receipt.
+  rpc: async (name: string, args?: Record<string, unknown>) => name === 'claim_inbound_processing_jobs' ? { data: ((rows: unknown, args?: Record<string, unknown>) => Array.isArray(rows) ? rows.map(row => ({ ...(row as object), status: 'processing', locked_by: String(args?.p_worker_id ?? ''), locked_at: '2026-10-27T08:00:00.000Z' })) : rows)(io.claimed, args), error: null } : { data: null, error: null },
   from: () => {
     const query: Record<string, unknown> = {}
     for (const method of ['select', 'eq', 'in', 'is', 'or', 'not', 'order', 'limit', 'update']) query[method] = () => query

@@ -5,7 +5,6 @@ import { prepareAndQueueEdielZ03 } from '@/lib/ediel/orchestrator'
 import {
   acquireBusinessActionIdempotencyKey,
   buildBusinessActionIdempotencyKey,
-  releaseBusinessActionIdempotencyKey,
 } from '@/lib/operations/businessActions/idempotency'
 import { resolveSwitchDispatchEnvironment } from '@/lib/operations/switchDispatchEnvironment'
 import { evaluateSupplierSwitchSchedule } from '@/lib/operations/supplierSwitchScheduler'
@@ -184,20 +183,15 @@ async function startWithPreflight(input: StartInput, preflight: BusinessActionPr
         : receipt.state === 'in_progress' ? 'Utskicket för det ursprungliga meddelandet pågår.' : 'Leverantörsbytet är redan köat.' }
   }
 
-  let message: Awaited<ReturnType<typeof prepareAndQueueEdielZ03>>
-  try {
-    await deriveRequestedMethodBeforeSwitch({ actorUserId: input.actorUserId, switchRequestId: input.switchRequestId })
-    message = await prepareAndQueueEdielZ03({
-      actorUserId: input.actorUserId,
-      switchRequestId: input.switchRequestId,
-      environment: dispatchEnvironment.environment,
-    })
-  } catch (error) {
-    // Nothing was queued: release the claim so the retry prepares the Z03 instead of reporting a duplicate and
-    // completing the job without one (FINDINGS I-B5).
-    await releaseBusinessActionIdempotencyKey({ companyId: preflight.companyId, key: idempotency.key })
-    throw error
-  }
+  // A failed preparation keeps its claim: a retry is refused (supplier_switch_queue_commit_unconfirmed) until the
+  // dispatch receipt proves what was durably queued, so a Z03 is never sent twice. This also ends I-B5's silent
+  // "already queued" completion without a Z03 (main a749614d5 supersedes the branch's claim release).
+  await deriveRequestedMethodBeforeSwitch({ actorUserId: input.actorUserId, switchRequestId: input.switchRequestId })
+  const message = await prepareAndQueueEdielZ03({
+    actorUserId: input.actorUserId,
+    switchRequestId: input.switchRequestId,
+    environment: dispatchEnvironment.environment,
+  })
 
   return { ok: true, preflight, decision, message }
 }

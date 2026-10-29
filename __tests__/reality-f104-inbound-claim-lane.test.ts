@@ -37,7 +37,8 @@ describe('inbound job claim lane (F104)', () => {
   it.each(['test', 'production'] as const)('a %s-lane run claims only jobs of its own lane',async (lane) => {
     await processQueuedInboundProcessingJobs({ workerId: `inbound-mail-engine-${lane}`, environment: lane })
     expect(claims()).toHaveLength(1)
-    expect(claims()[0].args).toMatchObject({ p_environment: lane, p_worker_id: `inbound-mail-engine-${lane}` })
+    // The worker id is the lane's label plus a unique lease owner suffix (PERF006).
+    expect(claims()[0].args).toMatchObject({ p_environment: lane, p_worker_id: expect.stringMatching(new RegExp(`^inbound-mail-engine-${lane}:`)) })
   })
 
   it('only a lane-less call (the platform admin queue action) claims every lane', async () => {

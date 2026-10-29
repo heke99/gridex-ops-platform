@@ -85,21 +85,13 @@ it('an unresolvable environment refuses before the action is claimed', async () 
   expect(io.keys).toEqual([])
 })
 
-it('a preparation that throws releases its claim, so the retry prepares the Z03 instead of reporting a duplicate', async () => {
+it('a preparation that throws keeps its claim, and the retry never prepares a second Z03 (main a749614d5 supersedes the release)', async () => {
   io.prepare.mockRejectedValueOnce(new Error('route_profile_missing'))
   await expect(startSupplierSwitch(input)).rejects.toThrow('route_profile_missing')
-  expect(io.keys).toEqual([])
-  const retried = await startSupplierSwitch(input)
-  expect(retried).toMatchObject({ ok: true, message: { id: 'z03' } })
-  expect(retried).not.toHaveProperty('duplicate')
-  expect(io.prepare).toHaveBeenCalledTimes(2)
-})
-
-it('a successful preparation keeps its claim: a repeat is a duplicate and prepares nothing', async () => {
-  await startSupplierSwitch(input)
-  expect(await startSupplierSwitch(input)).toMatchObject({ ok: true, duplicate: true })
-  expect(io.prepare).toHaveBeenCalledTimes(1)
   expect(io.keys).toHaveLength(1)
+  const retried = await startSupplierSwitch(input).then(result => result, (error: unknown) => error)
+  expect(retried).not.toMatchObject({ ok: true, message: { id: 'z03' } })
+  expect(io.prepare).toHaveBeenCalledTimes(1)
 })
 
 it('an explicit environment wins and the resolver is not asked', async () => {

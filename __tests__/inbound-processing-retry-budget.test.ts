@@ -82,6 +82,11 @@ beforeEach(() => {
     created_at: '2026-10-20T00:00:00.000Z', updated_at: '2026-10-20T00:00:00.000Z',
   }
   io.from.mockImplementation((table: string) => {
+    // The branch's give-up note on the mail (J3-11) after the last attempt: only its processing state is written.
+    if (table === 'inbound_email_messages') {
+      const update = { eq: () => update, then: (resolve: (v: unknown) => unknown) => Promise.resolve({ error: null }).then(resolve) }
+      return { update: () => update }
+    }
     if (table !== 'inbound_processing_jobs') throw new Error(`Unexpected table: ${table}`)
     return jobQuery()
   })
@@ -106,7 +111,7 @@ describe.each(['rpc', 'fallback'] as const)('inbound retry budget through %s cla
     ])
     expect(processorCalls).toBe(5)
     expect(job).toMatchObject({ step: 'processor_failed', locked_at: null, locked_by: null })
-    await expect(processQueuedInboundProcessingJobs()).resolves.toEqual({ processed: 0, failed: 0 })
+    await expect(processQueuedInboundProcessingJobs()).resolves.toEqual({ processed: 0, failed: 0, processedInboundEmailMessageIds: [] })
     expect(processorCalls).toBe(5)
   })
 

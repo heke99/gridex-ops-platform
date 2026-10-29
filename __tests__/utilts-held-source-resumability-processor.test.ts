@@ -111,9 +111,11 @@ it('a held source is reported as held for internal review (no reply, no values),
   expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('APERAK')
   expect(io.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('UTILTS_ERR')
   expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled()
-  const held = io.event.mock.calls.map(([call]) => call).find((call) => String(call.message).includes('hålls för intern granskning'))
+  // Main's Swedish UTILTS source-field enforcement (ca29ef3e0) also holds this fixture on its structure basis; that
+  // event text then wins. Either text states a hold, with no reply sent and no values stored, never a rejection.
+  const held = io.event.mock.calls.map(([call]) => call).find((call) => /hålls för intern granskning|väntar på godkänt strukturunderlag/.test(String(call.message)))
   expect(held).toMatchObject({ eventStatus: 'warning', payload: { heldTransactionIds: [TX] } })
-  expect(held!.message).toContain('Inget applikationssvar har skickats och inga mätvärden har lagrats; ingenting har avvisats.')
+  expect(String(held!.message)).toMatch(/Inget applikationssvar har skickats och inga mätvärden har lagrats; ingenting har avvisats\.|har inte kvitterats eller lagrats som mätvärden\./)
   expect(eventTexts().some((text) => text.includes('avvisades av produktionsruntime'))).toBe(false)
 })
 
