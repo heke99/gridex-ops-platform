@@ -36,6 +36,9 @@ SIM_MAIL_HTTP_PORT=$SIM_MAIL_HTTP_PORT
 SIM_SMTP_PORT=$SIM_SMTP_PORT
 SIM_APP_PORT=$SIM_APP_PORT
 SIM_COUNTERPART_PORT=$SIM_COUNTERPART_PORT
+SIM_RECEIVER_TLS_PORT=$SIM_RECEIVER_TLS_PORT
+SIM_RECEIVER_CTRL_PORT=$SIM_RECEIVER_CTRL_PORT
+SIM_RECEIVER_IP=$SIM_RECEIVER_IP
 PORTS
 
 # --- 3. privat kopia av scripts/ + supabase/ (RUN_DIR rörs inte) ------------------------
@@ -133,7 +136,7 @@ EDIEL_INBOUND_CRON_SECRET=$(rnd)
 EDIEL_PLATFORM_MAINTENANCE_SECRET=$(rnd)
 SIGNATURE_EVIDENCE_SECRET=$(rnd)
 MANUAL_INBOUND_WEBHOOK_SECRET=$(rnd)
-RESEND_WEBHOOK_SECRET=$(rnd)
+RESEND_WEBHOOK_SECRET=whsec_$(openssl rand -base64 32)
 EDIEL_EMAIL_PROVIDER=strato
 EDIEL_SMTP_HOST=127.0.0.1
 EDIEL_SMTP_PORT=$SIM_SMTP_PORT
@@ -143,6 +146,9 @@ EDIEL_SMTP_PASSWORD=$(rnd)
 EDIEL_SMTP_FROM=sim@sim.invalid
 PAPILITE_GEOCODE_URL=$CP_URL/papilite
 LANTMATERIET_BELAGENHETSADRESS_BASE_URL=$CP_URL/lantmateriet
+NODE_EXTRA_CA_CERTS=$SIM_HOME/receiver/ca.pem
+SIM_RECEIVER_CTRL_URL=http://127.0.0.1:$SIM_RECEIVER_CTRL_PORT
+SIM_RECEIVER_HOSTS=$SIM_RECEIVER_HOSTS
 ENV
 )
 chmod 600 "$SIM_HOME/app.env"
@@ -159,6 +165,43 @@ SIM_HOME="$SIM_HOME" SIM_COUNTERPART_PORT="$SIM_COUNTERPART_PORT" \
 echo $! >"$SIM_HOME/pids/counterparts.pid"
 for _ in $(seq 1 20); do curl -fsS "$CP_URL/__health" >/dev/null 2>&1 && break; sleep 0.5; done
 curl -fsS "$CP_URL/__health" >/dev/null || die "motparter startade inte"
+
+# --- 5b. EVENT01: lokal https-webhookmottagare bakom publik test-IP ----------------------
+# Appen godtar bara https-mål med publik adress. Mottagaren är lokal: /etc/hosts -> SIM_RECEIVER_IP,
+# iptables DNAT SIM_RECEIVER_IP:443 -> 127.0.0.1:SIM_RECEIVER_TLS_PORT, REJECT för all övrig trafik dit.
+mkdir -p "$SIM_HOME/receiver"
+if [[ ! -f "$SIM_HOME/receiver/ca.pem" ]]; then
+  ( umask 077; cd "$SIM_HOME/receiver"
+    openssl req -x509 -newkey rsa:2048 -nodes -days 7 -subj "/CN=gridex-sim-track5-ca" -keyout ca.key -out ca.pem >/dev/null 2>&1
+    openssl req -newkey rsa:2048 -nodes -subj "/CN=receiver.t5.sim.invalid" -keyout server.key -out server.csr >/dev/null 2>&1
+    printf 'subjectAltName=%s\n' "$(for h in $SIM_RECEIVER_HOSTS; do printf 'DNS:%s,' "$h"; done | sed 's/,$//')" >san.ext
+    openssl x509 -req -in server.csr -CA ca.pem -CAkey ca.key -CAcreateserial -days 7 -extfile san.ext -out server.pem >/dev/null 2>&1 )
+  [[ -s "$SIM_HOME/receiver/server.pem" ]] || die "kunde inte skapa mottagarcertifikat"
+fi
+receiver_net_up() {
+  sed -i "/# $SIM_IPT_TAG\$/d" /etc/hosts
+  for h in $SIM_RECEIVER_HOSTS; do printf '%s %s # %s\n' "$SIM_RECEIVER_IP" "$h" "$SIM_IPT_TAG" >>/etc/hosts; done
+  iptables -t nat -C OUTPUT -d "$SIM_RECEIVER_IP/32" -p tcp --dport 443 -m comment --comment "$SIM_IPT_TAG" \
+      -j DNAT --to-destination "127.0.0.1:$SIM_RECEIVER_TLS_PORT" 2>/dev/null \
+    || iptables -t nat -A OUTPUT -d "$SIM_RECEIVER_IP/32" -p tcp --dport 443 -m comment --comment "$SIM_IPT_TAG" \
+      -j DNAT --to-destination "127.0.0.1:$SIM_RECEIVER_TLS_PORT"
+  iptables -C OUTPUT -d "$SIM_RECEIVER_IP/32" -m comment --comment "$SIM_IPT_TAG" -j REJECT 2>/dev/null \
+    || iptables -A OUTPUT -d "$SIM_RECEIVER_IP/32" -m comment --comment "$SIM_IPT_TAG" -j REJECT
+  sysctl -qw net.ipv4.conf.all.route_localnet=1 >/dev/null 2>&1 || true
+}
+receiver_net_up
+if [[ -f "$SIM_HOME/pids/receiver.pid" ]] && kill -0 "$(cat "$SIM_HOME/pids/receiver.pid")" 2>/dev/null; then
+  kill "$(cat "$SIM_HOME/pids/receiver.pid")" 2>/dev/null || true; sleep 1
+fi
+SIM_HOME="$SIM_HOME" SIM_RECEIVER_TLS_PORT="$SIM_RECEIVER_TLS_PORT" SIM_RECEIVER_CTRL_PORT="$SIM_RECEIVER_CTRL_PORT" \
+  setsid nohup node "$HARNESS_DIR/lib/webhook-receiver.mjs" >"$SIM_HOME/logs/receiver.log" 2>&1 &
+echo $! >"$SIM_HOME/pids/receiver.pid"
+for _ in $(seq 1 20); do curl -fsS "http://127.0.0.1:$SIM_RECEIVER_CTRL_PORT/__health" >/dev/null 2>&1 && break; sleep 0.5; done
+curl -fsS "http://127.0.0.1:$SIM_RECEIVER_CTRL_PORT/__health" >/dev/null || die "webhookmottagaren startade inte"
+first_host="${SIM_RECEIVER_HOSTS%% *}"
+curl -fsS --noproxy '*' --cacert "$SIM_HOME/receiver/ca.pem" -X POST "https://$first_host/hook/__probe" -d '{}' >/dev/null \
+  || die "mottagaren nås inte via $first_host -> $SIM_RECEIVER_IP (DNAT)"
+curl -fsS -X POST "http://127.0.0.1:$SIM_RECEIVER_CTRL_PORT/__reset" >/dev/null
 
 # --- 6. bygge --------------------------------------------------------------------------
 if [[ "${SKIP_BUILD:-0}" == 1 ]]; then

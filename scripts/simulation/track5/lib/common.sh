@@ -21,6 +21,12 @@ SIM_MAIL_HTTP_PORT="${SIM_MAIL_HTTP_PORT:-54324}"
 SIM_SMTP_PORT="${SIM_SMTP_PORT:-54325}"
 SIM_APP_PORT="${SIM_APP_PORT:-3105}"
 SIM_COUNTERPART_PORT="${SIM_COUNTERPART_PORT:-3195}"
+SIM_RECEIVER_TLS_PORT="${SIM_RECEIVER_TLS_PORT:-3443}"
+SIM_RECEIVER_CTRL_PORT="${SIM_RECEIVER_CTRL_PORT:-3196}"
+# EVENT01-mottagare: publik test-IP som bara finns lokalt (DNAT till 127.0.0.1, all annan trafik avvisas).
+SIM_RECEIVER_IP="${SIM_RECEIVER_IP:-45.45.45.45}"
+SIM_RECEIVER_HOSTS="receiver-a.t5.sim.invalid receiver-b.t5.sim.invalid"
+SIM_IPT_TAG="gridex-sim-track5"
 
 # Docker Hub (429) och ECR (data limit) fungerar inte; ghcr.io/supabase/* gör det.
 export SUPABASE_INTERNAL_IMAGE_REGISTRY="${SUPABASE_INTERNAL_IMAGE_REGISTRY:-ghcr.io}"

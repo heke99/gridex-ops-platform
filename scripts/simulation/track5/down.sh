@@ -4,7 +4,7 @@
 set -uo pipefail
 . "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
 
-for p in app counterparts; do
+for p in app counterparts receiver; do
   f="$SIM_HOME/pids/$p.pid"
   if [[ -f "$f" ]]; then
     pid="$(cat "$f")"
@@ -18,6 +18,15 @@ for p in app counterparts; do
 done
 # Reservspärr: ingen next/counterparts-process från detta SIM_HOME/RUN_DIR får leva kvar.
 pkill -f "$HARNESS_DIR/lib/counterparts.mjs" 2>/dev/null || true
+pkill -f "$HARNESS_DIR/lib/webhook-receiver.mjs" 2>/dev/null || true
+# EVENT01-mottagarens nät: hosts-rader och iptables-regler med spårets tagg.
+sed -i "/# $SIM_IPT_TAG\$/d" /etc/hosts 2>/dev/null || true
+while iptables -t nat -S OUTPUT 2>/dev/null | grep -q -- "$SIM_IPT_TAG"; do
+  rule="$(iptables -t nat -S OUTPUT | grep -m1 -- "$SIM_IPT_TAG" | sed 's/^-A /-D /')"; eval "iptables -t nat $rule" || break
+done
+while iptables -S OUTPUT 2>/dev/null | grep -q -- "$SIM_IPT_TAG"; do
+  rule="$(iptables -S OUTPUT | grep -m1 -- "$SIM_IPT_TAG" | sed 's/^-A /-D /')"; eval "iptables $rule" || break
+done
 pkill -f "next start -H 127.0.0.1 -p $SIM_APP_PORT" 2>/dev/null || true
 
 if docker info >/dev/null 2>&1; then
@@ -38,9 +47,11 @@ if docker info >/dev/null 2>&1; then
   [[ -z "$left_c" ]] || { log "KVAR containrar: $left_c"; rc=1; }
   [[ -z "$left_v" ]] || { log "KVAR volymer: $left_v"; rc=1; }
 fi
-for p in app counterparts; do [[ ! -f "$SIM_HOME/pids/$p.pid" ]] || { log "KVAR pid-fil $p"; rc=1; }; done
+for p in app counterparts receiver; do [[ ! -f "$SIM_HOME/pids/$p.pid" ]] || { log "KVAR pid-fil $p"; rc=1; }; done
 if (echo >"/dev/tcp/127.0.0.1/$SIM_APP_PORT") 2>/dev/null; then log "KVAR: port $SIM_APP_PORT lyssnar"; rc=1; fi
 rm -f "$SIM_HOME/replay-commit" "$SIM_HOME/replay-at" "$SIM_HOME/applied-migrations.tsv" "$SIM_HOME/app.env" "$SIM_HOME/db-url" "$SIM_HOME/fingerprint" "$SIM_HOME/built-commit"
+grep -q -- "# $SIM_IPT_TAG\$" /etc/hosts && { log "KVAR: hosts-rader"; rc=1; }
+{ iptables -S OUTPUT; iptables -t nat -S OUTPUT; } 2>/dev/null | grep -q -- "$SIM_IPT_TAG" && { log "KVAR: iptables-regler"; rc=1; }
 rm -rf "$SIM_HOME/run.lock"
 [[ $rc == 0 ]] && log "down: inget kvar" || log "down: rester kvar (se ovan)"
 exit $rc
