@@ -1,11 +1,11 @@
 {
   "generated_types": "supabase/database.types.ts",
-  "generated_at": "2026-10-29T19:30:00Z",
-  "generated_with": "supabase-cli-2.101.0-LOCAL_CANDIDATE-gen-session-pr932-e069630d-pending-genuine-staff-api-schema-capture",
+  "generated_at": "2026-10-29T19:46:19.430854+00:00",
+  "generated_with": "supabase-cli-2.101.0-authentic-ordinary-capture-run40942273081-job123688451375-attempt1",
   "sha256": "f5cc55ea2db8a5ae3db53a6c7bfb054a4d039f69925c3036c2fba555ac1eb0ee",
   "latest_migration": "20261029173552_preserve_imported_agreement_selected_pricing.sql",
-  "latest_migration_schema_effect": "PR932 adds the gridex_unsigned_contract_revision schema and public.gridex_edit_unsigned_customer_contract_v1, changes the contract_price_snapshots unique index and imported-agreement pricing function bodies. LOCAL candidate only; not a genuine CI capture.",
-  "composition_capture_pending": true,
+  "latest_migration_schema_effect": "Genuine ordinary RAW3 capture of PR932: the gridex_unsigned_contract_revision schema, public.gridex_edit_unsigned_customer_contract_v1, the changed contract_price_snapshots unique index and imported-agreement pricing function bodies. Native/parity/production installation remain unverified.",
+  "composition_capture_pending": false,
   "capture": {
     "purpose": "capture_only",
     "captured_at": "2026-10-15T01:56:39.362659+00:00",
@@ -864,7 +864,7 @@
       }
     }
   },
-  "composition_note": "LOCAL_CANDIDATE from an isolated local clean replay of PR932 head e069630d (replay fingerprint 5168f69b unchanged). Adoption requires a byte-identical genuine staff-api-schema-capture artifact on the GEN PR head; otherwise the CI artifact is adopted and the deviation recorded. All previous active values are archived under pr932_local_candidate_capture_20261029.previous_active_fields.",
+  "composition_note": "Byte-exact RAW3 from run40942273081/job123688451375 source f0d801caa27354b57035d75d0b74e452b66023e2/tree 8cd0cb66f57b9166ff4e443236ac89108eda0d1a, byte-identical to the local candidate committed there. Previous active values before the candidate are archived under pr932_local_candidate_capture_20261029.previous_active_fields. Capture only; new-head native, upgrade/parity and mandatory CI remain required; no production installation or whole approval.",
   "upstream_main_manifest": {
     "commit": "507e8bfa20606be31933eea1582066267ff2577a",
     "path": "scripts/supabase-types-manifest.json",
@@ -100686,5 +100686,47 @@
       "upgrade_parity": "NOT_RUN",
       "whole_approval": false
     }
+  },
+  "pr932_genuine_ordinary_capture_adoption_20261029": {
+    "kind": "genuine_existing_ordinary_capture_RAW3_source_adoption_only",
+    "captured_at": "2026-10-29T19:46:19.430854+00:00",
+    "captured_source_head": "f0d801caa27354b57035d75d0b74e452b66023e2",
+    "captured_source_tree": "8cd0cb66f57b9166ff4e443236ac89108eda0d1a",
+    "new_original_origin": {
+      "kind": "genuine_successful_ordinary_capture_RAW3_ONLY",
+      "source_head": "f0d801caa27354b57035d75d0b74e452b66023e2",
+      "source_tree": "8cd0cb66f57b9166ff4e443236ac89108eda0d1a",
+      "workflow_path": ".github/workflows/staff-api-schema-capture.yml",
+      "workflow_run_id": 40942273081,
+      "workflow_job_id": 123688451375,
+      "attempt": 1,
+      "artifact_id": 12926254740,
+      "artifact_name": "staff-schema-capture-f0d801caa27354b57035d75d0b74e452b66023e2",
+      "artifact_archive_sha256": "9418c03723fd5ad8e171955629302373c089af0a7b22244870b5010aecb085fc",
+      "artifact_archive_bytes": 1852188,
+      "capture_receipt_sha256": "9c7bb5634a1b0a6be58056facb0eb64e3ea0175de927caa21a04cb456cba61ae",
+      "raw_output_sha256": {
+        "database.types.ts": "f5cc55ea2db8a5ae3db53a6c7bfb054a4d039f69925c3036c2fba555ac1eb0ee",
+        "schema.sql": "b97f5a7bc49fc9ca513b9fa417d69d6aa6058920faa6f19b990cbd2f8bc9512e",
+        "schema.fingerprint.json": "e14222a1bae70c3f0d9a2bfa332394e7587c8cc28076cd20e2cca95959cc297f"
+      },
+      "schema_fingerprint": "464804d84b64d0bd09effebd21921ee84f31a1226018ee3ffe7a9ea93dc2c62c",
+      "latest_replay_migration": {
+        "name": "20261029173552_preserve_imported_agreement_selected_pricing.sql",
+        "sha256": "c729ce3855343b71f3b599f6cb1cc551528012b1989f6176410b4635a8bb5acb"
+      },
+      "workflow_job_conclusion": "success",
+      "native_tests": "NOT_RUN",
+      "browser_tests": "NOT_RUN",
+      "type_schema_comparison": "NOT_RUN",
+      "upgrade_parity": "NOT_RUN",
+      "whole_approval": false
+    },
+    "byte_identical_to_local_candidate": true,
+    "local_candidate_commit": "f0d801caa27354b57035d75d0b74e452b66023e2",
+    "source_manifest_preimage_sha256": "882be3bf3e5f07656e86c1a8ffb463446f07a832706320020dffbc764a614409",
+    "producer_session": "session_01UHTg8KVQcYJS5fqdU3XihA",
+    "producer_receipt": "c4139fff8e1cf47d135b8489ed42679765b43fd2",
+    "source_custody_receipt": "d36c59292a01aa341ff304a60809269c2d1f0af4"
   }
 }
