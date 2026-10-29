@@ -3,11 +3,15 @@ import {readFileSync} from 'node:fs'
 import {afterEach,expect,it,vi} from 'vitest'
 import {db05PredecessorSchema} from './helpers/db05PredecessorSchema'
 
-const injected=vi.hoisted(()=>({patch:null as string|null,patch28:null as string|null,patch29:null as string|null,patchPoa:null as string|null,reads:[] as string[]}))
+const injected=vi.hoisted(()=>({patch:null as string|null,patch28:null as string|null,patch29:null as string|null,patchPoa:null as string|null,patchPoaNext:null as string|null,reads:[] as string[]}))
 vi.mock('node:fs',async original=>{
  const actual=await original<typeof import('node:fs')>()
  return {...actual,readFileSync:(path:Parameters<typeof actual.readFileSync>[0],options?:Parameters<typeof actual.readFileSync>[1])=>{
   const name=String(path)
+  if(name.endsWith('db05-schema-predecessor-poa-20261029.patch.json')){
+   injected.reads.push('poa20261029')
+   if(injected.patchPoaNext!==null)return injected.patchPoaNext
+  }
   if(name.endsWith('db05-schema-predecessor-poa-20261028.patch.json')){
    injected.reads.push('poa20261028')
    if(injected.patchPoa!==null)return injected.patchPoa
@@ -28,12 +32,32 @@ vi.mock('node:fs',async original=>{
   return actual.readFileSync(path,options)
  }}
 })
-const capture=readFileSync('supabase/schema.sql','utf8')
+const sha=(text:string)=>createHash('sha256').update(text).digest('hex')
+type CapturePatch={preSha256:string;postSha256:string;hunks:{preStart:number;preCount:number;preSha256:string;postStart:number;postCount:number;postSha256:string;preLines:string[];postLines:string[]}[]}
+const actualCapture=readFileSync('supabase/schema.sql','utf8')
+const successorSha='4a0a481dd5b6af7323f45dd78b5f03f37d08cc3ae244fbd9ea1074f3803d0746'
+const successorPatch=JSON.parse(readFileSync('__tests__/fixtures/db05-schema-predecessor-poa-20261029.patch.json','utf8')) as CapturePatch
+function exactSuccessorFixture(schema:string,forward:boolean):string{
+ expect(successorPatch.preSha256).toBe('313208382efbca3f87375e054352f96d4dfc33e4e48fcf1d1d21bf64698e6e9b')
+ expect(successorPatch.postSha256).toBe(successorSha)
+ expect(sha(schema)).toBe(forward?successorPatch.preSha256:successorSha)
+ const lines=schema.split('\n')
+ for(const h of [...successorPatch.hunks].reverse()){
+  expect(h.preLines).toHaveLength(h.preCount);expect(h.postLines).toHaveLength(h.postCount)
+  expect(sha(h.preLines.join('\n'))).toBe(h.preSha256);expect(sha(h.postLines.join('\n'))).toBe(h.postSha256)
+  const start=forward?h.preStart:h.postStart,count=forward?h.preCount:h.postCount
+  expect(sha(lines.slice(start,start+count).join('\n'))).toBe(forward?h.preSha256:h.postSha256)
+  lines.splice(start,count,...(forward?h.postLines:h.preLines))
+ }
+ const result=lines.join('\n');expect(sha(result)).toBe(forward?successorSha:successorPatch.preSha256);return result
+}
+// Preserve every historical oracle against its original byte-exact capture.
+// The new actual capture is tested separately through the public helper below.
+const capture=sha(actualCapture)===successorSha?exactSuccessorFixture(actualCapture,false):actualCapture
 const audit27=JSON.parse(readFileSync('__tests__/fixtures/db05-schema-predecessor-audit27.patch.json','utf8')) as {
  preSha256:string;postSha256:string;hunks:{postStart:number;postCount:number;postSha256:string;preLines:string[]}[]}
 const audit26=JSON.parse(readFileSync('__tests__/fixtures/db05-schema-predecessor-audit26.patch.json','utf8')) as {preSha256:string;postSha256:string}
-const sha=(text:string)=>createHash('sha256').update(text).digest('hex')
-afterEach(()=>{injected.patch=null;injected.patch28=null;injected.patch29=null;injected.patchPoa=null;injected.reads=[]})
+afterEach(()=>{injected.patch=null;injected.patch28=null;injected.patch29=null;injected.patchPoa=null;injected.patchPoaNext=null;injected.reads=[]})
 // Both immutable genuine captures are covered even when the checked-in context
 // is the older one. The fixture stores only the exact changed line ranges.
 type Audit28={preSha256:string;postSha256:string;hunks:{preStart:number;preCount:number;preSha256:string;postStart:number;postCount:number;postSha256:string;preLines:string[];postLines:string[]}[]}
@@ -226,4 +250,36 @@ it('refuses a moved audit29 exact successor hunk',()=>{
 it('retains the audit28 link refusal after the genuine G3 capture is reversed',()=>{
  const changed=structuredClone(audit28);changed.preSha256='f'.repeat(64);injected.patch28=JSON.stringify(changed)
  expect(()=>db05PredecessorSchema(next)).toThrow('db05_schema_predecessor_rebuild_mismatch')
+})
+
+it('reverses the genuine confirmation/format capture through every unchanged historical oracle',()=>{
+ const successor=exactSuccessorFixture(poa,true);injected.reads=[]
+ expect(exactSuccessorFixture(successor,false)).toBe(poa)
+ expect(sha(db05PredecessorSchema(successor))).toBe('c4e86b3bda8dc8579df1b3bfa9bdc8994b9ca0085c07710c36a15e1259069823')
+ expect(injected.reads).toEqual(['poa20261029','poa20261028','audit29','audit28','audit27','audit26'])
+ expect(successor).toBe(actualCapture)
+})
+it.each(['preSha256','postSha256'] as const)('rejects a changed genuine confirmation/format link %s',field=>{
+ const changed=structuredClone(successorPatch);changed[field]='f'.repeat(64);injected.patchPoaNext=JSON.stringify(changed)
+ expect(()=>db05PredecessorSchema(actualCapture)).toThrow('db05_schema_predecessor_rebuild_mismatch')
+})
+it('rejects a changed confirmation/format successor hunk',()=>{
+ const changed=structuredClone(successorPatch);changed.hunks[0].postSha256='f'.repeat(64);injected.patchPoaNext=JSON.stringify(changed)
+ expect(()=>db05PredecessorSchema(actualCapture)).toThrow('db05_schema_predecessor_hunk_changed:')
+})
+it('rejects a moved confirmation/format successor hunk',()=>{
+ const changed=structuredClone(successorPatch);changed.hunks[0].postStart+=1;injected.patchPoaNext=JSON.stringify(changed)
+ expect(()=>db05PredecessorSchema(actualCapture)).toThrow('db05_schema_predecessor_hunk_changed:')
+})
+it('rejects a confirmation/format inverse that rebuilds unqualified old bytes',()=>{
+ const changed=structuredClone(successorPatch);changed.hunks[0].preLines.push('-- unqualified');injected.patchPoaNext=JSON.stringify(changed)
+ expect(()=>db05PredecessorSchema(actualCapture)).toThrow('db05_schema_predecessor_rebuild_mismatch')
+})
+it.each(['prefix','suffix','truncated'] as const)('rejects an altered confirmation/format capture %s',mutation=>{
+ const changed=mutation==='prefix'?'-- unqualified\n'+actualCapture:mutation==='suffix'?actualCapture+'\n':actualCapture.slice(1)
+ expect(()=>db05PredecessorSchema(changed)).toThrow('db05_schema_predecessor_unknown:')
+})
+it('retains the prior POA inverse refusal after reversing the genuine confirmation/format capture',()=>{
+ const changed=structuredClone(poaPatch);changed.preSha256='f'.repeat(64);injected.patchPoa=JSON.stringify(changed)
+ expect(()=>db05PredecessorSchema(actualCapture)).toThrow('db05_schema_predecessor_rebuild_mismatch')
 })

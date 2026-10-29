@@ -97764,6 +97764,18 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      gridex_advance_contract_confirmation_v2: {
+        Args: {
+          p_action: string
+          p_company_id: string
+          p_contract_id: string
+          p_document_sha256?: string
+          p_error?: string
+          p_expected_lease_until?: string
+          p_request_id: string
+        }
+        Returns: Json
+      }
       gridex_ai_bi_personal_storage_scope_v1: {
         Args: {
           p_actor_user_id: string

@@ -23,6 +23,14 @@ function reversePatch(schema:string,patch:Patch):string{
 export function db05PredecessorSchema(schema:string):string{
  let patch:Patch=JSON.parse(readFileSync(new URL('../fixtures/db05-schema-predecessor.patch.json',import.meta.url),'utf8'))
  const actual=sha(schema)
+ if(actual==='4a0a481dd5b6af7323f45dd78b5f03f37d08cc3ae244fbd9ea1074f3803d0746'){
+  // Genuine ordinary C12 capture011c1c44/artifact12862355503. Restore the
+  // unchanged3132 POA capture before every historical DB05 inverse/oracle.
+  // This finite inverse grants no confirmation/POA native or business proof.
+  const successor:Patch=JSON.parse(readFileSync(new URL('../fixtures/db05-schema-predecessor-poa-20261029.patch.json',import.meta.url),'utf8'))
+  if(successor.preSha256!=='313208382efbca3f87375e054352f96d4dfc33e4e48fcf1d1d21bf64698e6e9b'||successor.postSha256!==actual)throw Error('db05_schema_predecessor_rebuild_mismatch')
+  return db05PredecessorSchema(reversePatch(schema,successor))
+ }
  if(actual==='313208382efbca3f87375e054352f96d4dfc33e4e48fcf1d1d21bf64698e6e9b'){
   // Genuine ordinary POA capture23491/artifact12845430969. This inverse only
   // preserves historical DB05 fixtures; it grants no proof for the new POA SQL.
