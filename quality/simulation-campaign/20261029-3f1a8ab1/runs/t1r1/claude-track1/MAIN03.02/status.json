@@ -8,7 +8,7 @@
     {
       "kind": "harness",
       "branch": "claude/sim-20261029-track1",
-      "commit": "f7a22f82",
+      "commit": "c6f2497e",
       "path": "scripts/simulation/track1/"
     }
   ],
@@ -39,12 +39,41 @@
       "run-meta.json": "60c1c259bf3967b99635647deb941d84d38cf663f0d879e8ec2266b7e11edc35",
       "stack.json": "27bdd4f40c81db00b97e3333ae97671f63d8599530ca6a483ef0d4334a2f8a92",
       "outcome": "fixture aborted before any scenario step (5/5 skipped)"
+    },
+    {
+      "attempt": 2,
+      "run": "20261029T203750Z-main03",
+      "harnessCommit": "7abdf72d",
+      "exit": 1,
+      "report.json": "87f72abd3cb8755654fab39c4bbc30e9c6cd3cc3c17866542a4bc062e592a314",
+      "run.log": "8458cbd6dccd5cd9889c00c7ecf439f868666d4b01b63d984f7d4104619eb626",
+      "outcome": "fixture: normal-switch supply activation passed; spot lock-month HTTP 403 'Ej behörig' (finding 005)"
+    },
+    {
+      "attempt": 3,
+      "run": "20261029T203951Z-main03",
+      "harnessCommit": "ca04be35",
+      "exit": 1,
+      "report.json": "d2f1a404d87500c8ed2d21ec588fde89c57037685d4541b532dd0ed73a02ef9d",
+      "run.log": "e527d7d40f6af595108c6a4400c498fba5ac88f47deb235b68483352bd0aeb48",
+      "outcome": "fixture: user_roles single-active-role unique violation (finding 005)"
+    },
+    {
+      "attempt": 4,
+      "run": "20261029T204031Z-main03",
+      "harnessCommit": "c6f2497e",
+      "exit": 1,
+      "report.json": "300507499f2284debaee59ad13eb203af240fc60b566aa01c26952896f543d3c",
+      "run.log": "28fd1b8b373648cfc7fb323d3f6c685e69ccca25d6550a756f9476640166e07a",
+      "outcome": "fixture: spot lock passed; UTILTS day 1 failed billing_gate_qualified_supply_source_required (finding 006, under diagnosis)"
     }
   ],
   "findingsIds": [
-    "20261029-3f1a8ab1/claude-track1/004"
+    "20261029-3f1a8ab1/claude-track1/004",
+    "20261029-3f1a8ab1/claude-track1/005",
+    "20261029-3f1a8ab1/claude-track1/006"
   ],
-  "blocker": "Fixture: supply period from PRODAT Z04a has contract_id null (finding 004, under diagnosis by sim-fixer)",
-  "nextAction": "Apply reviewed fixture fix, re-run main03.test.ts as a whole file",
+  "blocker": "Fixture: UTILTS ingest refused by billing_gate_qualified_supply_source_required (finding 006, under diagnosis); no scenario step reached yet (5/5 skipped in all attempts)",
+  "nextAction": "Apply reviewed fixture fix for 006, re-run main03.test.ts as a whole file",
   "cleanupReceipt": null
 }

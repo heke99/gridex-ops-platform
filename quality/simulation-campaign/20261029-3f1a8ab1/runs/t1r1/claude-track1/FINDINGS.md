@@ -55,3 +55,25 @@ file cites them by path and SHA256 only.
 | 20:08–20:16 | up.sh #3 | replay PASS 220 s, build FAIL, finding 003; down.sh clean |
 | 20:18–20:26 | up.sh #4 | PASS: replay 183 s, build 303 s, app ready |
 | 20:29 | run main03 #1 | exit 1 in fixture, finding 004 |
+
+### 004 update — established: fixture path, not a product defect
+- sim-fixer: Z04 subtype A (assigned supply) is for metering points without a supplier contract and intentionally inserts the period without `contract_id` (`supabase/migrations/20261020230048_ediel_supply_source_runtime_prerequisites.sql:442`); the normal switch (Z03 → grid owner's PRODAT Z04 L → `normal_switch_confirm_v1`, same file :458–542) sets `contract_id` from the switch request. The base's own `scripts/ediel-at-z03h-z04h-supplier-native.test.ts:90–92` asserts that. The underlay store requires it (`20260930175405_ediel_billing_qualified_exact_source_basis.sql:256`).
+- Fix: fixture uses the normal switch (`7abdf72d`). Attempt 2 confirmed: one period, `source_process='supplier_switch_confirmation'`, `contract_id` set. State: avfärdad som produktfel, verifierad fixturrättning.
+
+### 20261029-3f1a8ab1/claude-track1/005 — harness: operator permissions granted the wrong way
+- IDs: MAIN03.01–.05 (fixture). Category: testharness.
+- Attempt 2 (`20261029T203750Z-main03`, report sha256 `87f72abd…a314`): `POST /api/internal/spot/lock-month` → HTTP 403 "Ej behörig".
+- Cause (verified read-only in the stack DB): `canonical_authenticated_tenant_context` returned `authorized: true` but `permissions: []`. Allow permissions come only from `user_roles → role_permissions`; `user_permissions` rows are only DENY (`supabase/migrations/20261014004020_admin_api_current_context_projection.sql`, permissions projection). `requireAdminApiAccess` (`lib/admin/apiGuards.ts:163–187`) derives `isAdmin` from that list. The fixture had inserted `user_permissions` allow rows.
+- Attempt 3 (`…203951Z…`, `d2f1a404…ef9d`): adding a second role violated `user_roles_company_user_single_active_uidx` (one active role per company and user).
+- Fix (`c6f2497e`): the three billing permissions are added as `role_permissions` on the actor's existing seed role (SUBSTITUTE: verifies no role administration UI). Attempt 4: sign-in and spot lock-month passed. Compared with `claude/sim-20261029-track4 @ e986a964`, `scripts/simulation/track4/fixtures/seed.mjs` (FX02); no code copied.
+- Not a product claim: the projection behaves as designed.
+
+### 20261029-3f1a8ab1/claude-track1/006 — under diagnosis: UTILTS ingest refused by supply-source gate
+- IDs: MAIN03.01–.05 (fixture). Category: ännu obekräftad.
+- Attempt 4 (`20261029T204031Z-main03`, report sha256 `30050749…3c3c`, run.log `28fd1b8b…e07a`, 26.9 s wall): step "fixture: UTILTS day 1" fails with `billing_gate_qualified_supply_source_required` (codes in `20260930175405_ediel_billing_qualified_exact_source_basis.sql`, `20261014103601_ops_api_atomic_bb0b_source_part_07.sql`). Under diagnosis by sim-fixer.
+
+| Time (UTC) | Step | Result |
+|---|---|---|
+| 20:37 | run main03 #2 | exit 1, finding 005 (403) |
+| 20:39 | run main03 #3 | exit 1, finding 005 (unique role) |
+| 20:40 | run main03 #4 | exit 1, finding 006 |
