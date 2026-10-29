@@ -389,6 +389,16 @@ begin
       errcode = '23514',
       message = 'termination_notice_already_recorded';
   end if;
+  if old.termination_notice_date is null
+     and new.termination_notice_date is not null
+     and coalesce(current_setting('gridex.contract_event_writer', true), '') <> 'on'
+     and (new.termination_notice_date < coalesce(new.actual_start_date, new.starts_at)
+       or new.termination_notice_date
+         < (new.signed_at at time zone 'Europe/Stockholm')::date) then
+    raise exception using
+      errcode = '23514',
+      message = 'termination_notice_before_contract_start';
+  end if;
   return new;
 end
 $$;

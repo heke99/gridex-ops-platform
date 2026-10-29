@@ -205,6 +205,21 @@ describe('termination notice: first valid receipt wins', () => {
 })
 
 describe('direct table writes cannot bypass the first-wins rule', () => {
+  it.each([
+    ['before the start', '2026-02-20', ''],
+    ['before signing (Stockholm date)', '2026-02-10', `, signed_at='2026-02-10T23:30:00Z'`],
+  ])('rejects a direct first setting %s', async (_label, date, extra) => {
+    if (extra) await db.exec(`update public.customer_contracts set starts_at=null, actual_start_date=null${extra}`)
+    await expect(db.exec(`update public.customer_contracts set termination_notice_date='${date}'`))
+      .rejects.toThrow(/termination_notice_before_contract_start/)
+    expect((await state() as { notice: string | null }).notice).toBeNull()
+  })
+
+  it('accepts a direct first setting on or after the start', async () => {
+    await db.exec(`update public.customer_contracts set termination_notice_date='2026-03-01'`)
+    expect((await state() as { notice: string }).notice).toBe('2026-03-01')
+  })
+
   it('allows the first direct setting of the notice date', async () => {
     await db.exec(`update public.customer_contracts set termination_notice_date='2026-09-01'`)
     expect((await state() as { notice: string }).notice).toBe('2026-09-01')
