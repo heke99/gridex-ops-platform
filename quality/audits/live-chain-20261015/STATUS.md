@@ -1,6 +1,6 @@
 # Verklighetssimuleringen — läge och nästa steg
 
-Uppdaterad 2026-10-29 kl. 10:05 UTC av Claude (session 01Az5xza…), som fortsätter på grenen `claude/wonderful-franklin-o8gx2p` (byggd på `claude/gifted-hamilton-vss1hj` `edeaed7d0`) på ägarens uppdrag. Tidigare session: 01YCH5Va…. Filen är tänkt att läsas först.
+Uppdaterad 2026-10-29 kl. 11:00 UTC av Claude (session 01Az5xza…), som fortsätter på grenen `claude/wonderful-franklin-o8gx2p` (byggd på `claude/gifted-hamilton-vss1hj` `edeaed7d0`) på ägarens uppdrag. Tidigare session: 01YCH5Va…. Filen är tänkt att läsas först.
 
 Den hör ihop med tre andra dokument:
 - [FINDINGS.md](FINDINGS.md): alla fynd. Inget tas bort därifrån.
@@ -8,16 +8,18 @@ Den hör ihop med tre andra dokument:
 - #840: anspråk och leveranser per fil.
 
 ## ÅTERUPPTA HÄRIFRÅN (läs först om arbetet har stannat)
-Senast uppdaterad 2026-10-29 10:05 UTC. Grenen `claude/wonderful-franklin-o8gx2p`, head `0344f8587` (allt nedan är pushat).
+Senast uppdaterad 2026-10-29 11:00 UTC. Grenen `claude/wonderful-franklin-o8gx2p`, head `5d88e4c75` (allt nedan är pushat).
 
 **Var jag är:** ägarbeslut 35–43 är genomförda och applicerade i världen. Två saker återstår innan J1 är klar:
-1. **J1-B6 (öppen, hög):** den negativa APERAK:en för leveransägarens nya hållskäl (42/210, 42/226, 40/105, 40/107, 40/104) vägras av databasens kvittensguide (`ediel_native_ack_guide_invalid`), eftersom en hållning inte lämnar något beständigt bevis. Se FINDINGS "J1-B6".
-   - **Pågår:** J1-agenten (arbetskopia `.claude/worktrees/agent-a0d3c7c5b1a08c97d`) bygger ett hashat hållkvitto i ägarens transaktion och en guideväg som godtar exakt kvittots svar. Migrationer i intervallet `20261028103000–109999`. Ändrar skyddade ACK-kroppar, så `handover-J1.md` utökas och postas i #840.
-   - **Om agenten har stannat:** läs dess arbetskopia (`git log`, `git status`). Fortsätt från den, eller gör uppgiften själv enligt FINDINGS J1-B6.
+1. **J1-B6 RÄTTAD** (`1a7f0a7bb`–`5d88e4c75`, migration `20261028103000`, installerad i världen):
+   - Ett hashat hållkvitto skrivs i ägarens transaktion, och guiden godtar exakt kvittots negativa svar.
+   - J1-nativesviten är 19 gröna plus 1 förväntat fel (40/103).
+   - Täckningen är 352/352.
+   - `handover-J1.md` har utökats med avsnittet J1-B6 (ACK-01–10, AT-ACK-*, SC-039, SC-054). Kommentaren i #840 återstår.
 2. **Verifiering av J1 (35–38):**
    - `inbound-prodat-j1-native` ska vara grön utom 40/103 (`it.fails`).
    - `ediel-at-z03l-z03lk-supplier-native`: 23/11 under cronlast. Utan appen (10:10) 24 gröna och 10 röda, fortfarande med deadlockar mellan `platform_market_actors` (tabellås SHARE) och `platform_actor_identifiers`. Det tyder på två nativekörningar som sår fixturer samtidigt (min och J1-agentens).
-     - **Gör:** när J1-agenten är klar, kör sviten ensam, först på `22ac29587` (före J1, arbetskopia) och sedan på head, och jämför de röda testen. Kör aldrig två nativesviter samtidigt mot världen.
+     - **Pågår (11:00):** jämförelsen körs ensam. Först körs Z03L- och källägarsviterna i arbetskopian `/home/user/gx-wt-prej1` (`22ac29587`, före J1), sedan på head. Loggar: `scratchpad/cmp-*.log`. Kör aldrig två nativesviter samtidigt mot världen.
    - `ediel-source-owner-native` hade många röda i en avbruten körning under last. Samma jämförelse.
    - `ediel-z04l-z04lk-future-start-native` kan inte köras lokalt (GitHub-värd krävs).
    - Därefter `npm run ediel:masterplan-v2:test-coverage -- --check` (måste vara 352/352).
