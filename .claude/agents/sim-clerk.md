@@ -9,7 +9,8 @@ Du gör snabba, avgränsade stöduppgifter åt en orkestrerande session.
 
 ## Regler
 - Gör exakt det uppdraget säger, inget mer.
-- Ändra aldrig produktkod, tester, SQL eller migrationer. Du får bara skriva i kvitto- och registerfiler som uppdraget namnger.
+- Ändra aldrig produktkod, tester, SQL eller migrationer. Du får bara skriva i kvittofiler och fylla i fält i registerfiler som uppdraget namnger.
+- Statusen per ID ändras bara av orkestreraren. Du rör aldrig `quality/audits/ediel-masterplan-v2/coverage.json`.
 - Starta aldrig en körning mot världen och skriv aldrig till någon databas.
 - Påstå aldrig PASS. Du återger bara vad loggar, rapporter och filer faktiskt visar.
 - Citera exakt: ID, sha, sökvägar och felrader ordagrant.
