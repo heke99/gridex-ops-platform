@@ -20,15 +20,33 @@ Du bygger harness och prov och gör enkla rättningar åt en orkestrerande sessi
 ## Spårets harness: kontrakt
 Harnessen under `scripts/simulation/<spår>/` ska ha:
 - **`up.sh`:** startar en egen lokal stack från körkatalogens HEAD.
-  - En ny replay av basens migrationer med `scripts/gridex-aud-003-clean-replay.sh`, eller en återanvänd stack med `SKIP_REPLAY=1`.
-  - Lokal Supabase och appen byggd med `next build` och startad lokalt. `SKIP_BUILD=1` återanvänder bygget.
-  - Lokala syntetiska motparter: mail (SMTP/IMAP), nätägare, SVK och spotpriser, och mottagare av leverantörsfiler.
-  - Allt tillstånd under `SIM_HOME`, med egna portar som kan ändras via variabler. Inga fasta delade portar mot andra spår.
-  - Den skriver `SIM_HOME/replay-commit`, `SIM_HOME/replay-at` och en tom `SIM_HOME/applied-migrations.tsv` efter en lyckad replay. Efter ett lyckat bygge skriver den `SIM_HOME/built-commit`.
-  - Hemligheter genereras lokalt och stannar i `SIM_HOME`. De committas eller loggas aldrig.
-  - Inga externa värdar.
+  - **Ny replay** av basens migrationer med `scripts/gridex-aud-003-clean-replay.sh`, eller en återanvänd stack med `SKIP_REPLAY=1`.
+    - Replayskriptet stoppar stacken (`supabase stop --no-backup`) i sin EXIT-trap.
+    - Kör det därför med `source` från repots rot (cwd = körkatalogen, eftersom skriptet läser `supabase/config.toml` relativt) och nollställ sedan trappen: `source scripts/gridex-aud-003-clean-replay.sh; LOCAL_STACK_START_ATTEMPTED=0; cleanup; trap - EXIT; set -euo pipefail`. Stacken ligger då kvar.
+    - `cleanup` slår av `set -e`. Därför slås det på igen direkt efteråt, så att ett misslyckat bygge eller steg aldrig skriver markörfiler.
+    - Sätt ingen egen EXIT-trap före `source`, eftersom skriptet skriver över den. Skriptet skriver också över variabler som `ROOT`, `DB_URL`, `MIGRATIONS`, `SEED` och `HOLD`, så up.sh ska inte förlita sig på egna variabler med de namnen.
+    - **Före replay** kontrollerar up.sh att ingen Supabase-stack redan kör i containern (`docker ps --filter name=supabase_db_`). Kör en stack redan, avbryter up.sh med `BLOCKED: stacken upptagen` i stället för att stoppa den.
+    - Starta aldrig `supabase start` separat efteråt, eftersom det kör CLI:ts migreringar i stället för replayen.
+  - **Fingeravtryck.** Bara efter en **ny** replay sparar `up.sh` fingeravtrycket i `SIM_HOME/fingerprint`. Replayskriptet har då redan själv kontrollerat det mot `EXPECTED_FINGERPRINT` och avbrutit vid avvikelse. Använd replayskriptets eget värde, inte en ny beräkning efter andra steg. Vid `SKIP_REPLAY=1` lämnas filen orörd.
+  - **Appen** byggs med `next build` och startas lokalt. `SKIP_BUILD=1` återanvänder bygget.
+  - **Motparter.** Lokala syntetiska motparter: mail (SMTP/IMAP), nätägare, SVK och spotpriser, och mottagare av leverantörsfiler.
+    - Syntetiska och lokala källor är **förval**.
+    - Kod som kopieras från `scripts/reality/`, där till exempel `REALITY_SPOT_SOURCE=real` är förval, ska ställas om.
+  - **Portar.** Supabase-portarna (54321, 54322 med flera) och `project_id` är fasta per container enligt `supabase/config.toml`. Ändra aldrig den filen eller replayskriptet. Bara appens och motparternas portar sätts via variabler. Isoleringen bygger på en stack per container.
+  - **`SIM_HOME`.**
+    - Allt tillstånd ligger under `SIM_HOME`. Standard är `$HOME/sim-home/<spår>`, aldrig i körkatalogen och aldrig under `/tmp`.
+    - Docker-volymer ägs av Supabase-projektet och tas bort av `down.sh`.
+  - **Markörfiler.**
+    - Efter en lyckad replay skriver `up.sh` `SIM_HOME/replay-commit`, `SIM_HOME/replay-at` och en tom `SIM_HOME/applied-migrations.tsv`.
+    - Efter ett lyckat bygge skriver den `SIM_HOME/built-commit`.
+    - Databasens anslutningssträng skrivs till `SIM_HOME/db-url`, en rad. Den innehåller bara lokala standarduppgifter, men kopieras ändå inte in i paket eller loggar.
+  - **Hemligheter** genereras lokalt och stannar i `SIM_HOME`. De committas eller loggas aldrig.
+  - **Inga externa värdar.**
 - **`down.sh`:** stoppar allt som `up.sh` har startat, det vill säga processer, containrar och volymer, och lämnar inget kvar.
-- **`run.sh <scenariofil>`:** kör en scenariofil mot stacken och skriver en rapport (JSON) per scenario. Rapporten har status per steg (passed, failed eller skipped) och vitests sammanfattning. Skriptet vägrar starta om en annan körning pågår.
+- **`run.sh <scenariofil>`:** kör en scenariofil mot stacken.
+  - **Rapport.** Rapporten (JSON) skrivs till sökvägen i `SIM_REPORT`. Saknas variabeln vägrar skriptet starta. Rapporten har scenario-ID per steg, status per steg (passed, failed eller skipped) och vitests sammanfattning. En scenariofil får innehålla flera scenario-ID, och PASS bedöms per ID utifrån dess egna steg.
+  - **Lås.** Skriptet skapar `SIM_HOME/run.lock` atomiskt (`set -o noclobber` eller `mkdir`), med PID och starttid, och tar bort det när det avslutas. Finns låset redan vägrar skriptet starta.
+  - **Kvarlämnat lås.** Ett lås vars PID inte längre lever, eller vars PID och starttid inte stämmer med en levande process, tas bara bort av sim-runner. Stacken räknas då som smutsig, så nästa körning som ska räknas kräver en ny replay.
 
 Det äldre `scripts/reality/` på `claude/gifted-hamilton-vss1hj` får läsas som referens. Kod du kopierar därifrån anger du med ursprung (commit och fil) i svaret. Harnessen får inte kräva appändringar på basen. Behövs en sådan ändring är det ett fynd.
 
