@@ -105,6 +105,7 @@ export const BACKEND_REPLACEMENTS = [
   'RPC (service_role): gridex_upsert_internal_contract_offer_v3 (skapar även contract_price_options ur snapshotens price_options, som appens egen väg), gridex_publish_internal_contract_version (publishContractVersionAction-motsvarighet; ingen kanalaktivering, se kommentar i ensureOffer)',
   'SQL: gridex_materialize_legal_bundle_version + UPDATE contract_offers.legal_bundle_version_id (legal bundle)',
   'SQL: INSERT customers/customer_contacts/customer_addresses/customer_sites/metering_points (is_test_data=true) - ersätter createCustomerAction p.g.a. fynd claude-track2/004',
+  'Signerat dokument arkiveras inte (ingen PDF-arkivering; customer_contracts.document_sha256 är null): bindning via acceptansbevis (customer_contract_evidence/acceptances) och juridiska accepter (customer_legal_acceptances)',
   'RPC (service_role): gridex_prepare_customer_contract_signature_request_v1 + gridex_finalize_customer_contract_signature_v1 (ersätter UI-/länksignering; signed_at = real tid)',
 ] as const
 let replacementsLogged = false
@@ -239,6 +240,8 @@ export type CreateSignedContractInput = {
   autoRenew?: boolean
   /** Förlängningstid i månader; default bindingMonths>0 ? bindingMonths : 12 när autoRenew=true. */
   autoRenewTermMonths?: number
+  /** Återanvänd befintlig kund/anläggning/mätpunkt (skapar bara ett nytt avtal). */
+  existing?: { customerId: string; siteId: string; meteringPointId: string; gsrn: string }
   /** DEKLARERAT signeringsdatum (YYYY-MM-DD); se klockkommentaren överst. Default Stockholms dag (real tid). */
   signedAt?: string
 }
@@ -275,7 +278,8 @@ function pricingFor(input: CreateSignedContractInput, monthlyFee: number, area: 
   const feeComponent: Record<string, unknown> = {
     component_code: 'monthly_fee', component_type: 'fee', name: 'Månadsavgift', calculation_type: 'fixed_monthly',
     amount: monthlyFee, unit: 'sek_month', website_card_visible: true,
-    ...(input.prorationPolicy ? { metadata: { proration_policy: input.prorationPolicy } } : {}),
+    // priceComponentCalculator.ts:67-91 prorerar bara när komponentens periodization_mode = prorated_by_days OCH metadata har policyn.
+    ...(input.prorationPolicy ? { periodization_mode: input.prorationPolicy, metadata: { proration_policy: input.prorationPolicy } } : {}),
   }
   return {
     schema: 'gridex_contract_pricing_v5', pricing_model: 'spot', energy_direction: 'consumption',
@@ -403,24 +407,31 @@ export async function createSignedContract(tenant: TermTenant, input: CreateSign
   // actions.part-2.ts:691+ createCustomerGraph -> canonical_onboard_customer_graph): kund (private, active, source
   // admin_customer_intake), primär kontakt, registrerad adress, anläggning (draft, consumption, nätägare, prisområde,
   // adress, okänd nuvarande leverantör) och mätpunkt (draft, hourly, consumption, settlement-relevant).
-  const gsrn = fixtureGsrn()
+  let gsrn = fixtureGsrn()
   const suffix = randomBytes(4).toString('hex')
-  const email = `synthetic-${suffix}-${tenant.runId}@example.invalid`
-  const customerId = randomUUID(); const siteId = randomUUID(); const pointId = randomUUID()
+  let email = `synthetic-${suffix}-${tenant.runId}@example.invalid`
+  let customerId: string = randomUUID(); let siteId: string = randomUUID(); let pointId: string = randomUUID()
   const lastName = `Term${suffix}`
   const marker = { test_center: { kind: 'invoice_test_customer' } }
-  psql(`BEGIN;
-    INSERT INTO public.customers(id,company_id,customer_type,status,first_name,last_name,full_name,personal_number,email,source,customer_number,is_test_data,metadata)
-      VALUES(${lit(customerId)},${lit(companyId)},'private','active','Synthetic',${lit(lastName)},${lit(`Synthetic ${lastName}`)},${lit(syntheticPersonalNumber())},${lit(email)},'admin_customer_intake',${lit(customerId)},true,${lit(marker)}::jsonb);
-    INSERT INTO public.customer_contacts(company_id,customer_id,type,name,email,is_primary)
-      VALUES(${lit(companyId)},${lit(customerId)},'primary',${lit(`Synthetic ${lastName}`)},${lit(email)},true);
-    INSERT INTO public.customer_addresses(company_id,customer_id,type,street_1,postal_code,city,country,is_active)
-      VALUES(${lit(companyId)},${lit(customerId)},'registered','Testgatan 1','12345','Teststad','SE',true);
-    INSERT INTO public.customer_sites(id,company_id,customer_id,site_name,facility_id,site_type,status,grid_owner_id,price_area_code,grid_area_code,street,postal_code,city,country,current_supplier_name,current_supplier_unknown,is_test_data,metadata)
-      VALUES(${lit(siteId)},${lit(companyId)},${lit(customerId)},'TERM site',${lit(gsrn)},'consumption','draft',${lit(tenant.gridOwnerId)},${lit(area)},'TES','Testgatan 1','12345','Teststad','SE','Okänd nuvarande leverantör',true,true,${lit({ ...marker, addressSource: 'admin_customer_intake' })}::jsonb);
-    INSERT INTO public.metering_points(id,company_id,customer_id,site_id,customer_site_id,meter_point_id,metering_point_id,ediel_metering_point_id,site_facility_id,grid_owner_id,grid_owner_ediel_id,grid_area_code,price_area_code,status,reading_frequency,measurement_type,product_direction,is_settlement_relevant,is_test_data,metadata)
-      VALUES(${lit(pointId)},${lit(companyId)},${lit(customerId)},${lit(siteId)},${lit(siteId)},${lit(gsrn)},${lit(gsrn)},${lit(gsrn)},${lit(gsrn)},${lit(tenant.gridOwnerId)},${lit(tenant.edielReceiver)},'TES',${lit(area)},'draft','hourly','consumption','consumption',true,true,${lit(marker)}::jsonb);
-    COMMIT;`)
+  if (input.existing) {
+    // Andra avtalet på samma kund/anläggning/mätpunkt (TERM03.05 b): inga nya rader.
+    ;({ customerId, siteId, meteringPointId: pointId, gsrn } = input.existing)
+    email = psql(`select email from public.customers where id=${lit(customerId)}`)
+  } else {
+    psql(`BEGIN;
+      INSERT INTO public.customers(id,company_id,customer_type,status,first_name,last_name,full_name,personal_number,email,source,customer_number,is_test_data,metadata)
+        VALUES(${lit(customerId)},${lit(companyId)},'private','active','Synthetic',${lit(lastName)},${lit(`Synthetic ${lastName}`)},${lit(syntheticPersonalNumber())},${lit(email)},'admin_customer_intake',${lit(customerId)},true,${lit(marker)}::jsonb);
+      INSERT INTO public.customer_contacts(company_id,customer_id,type,name,email,is_primary)
+        VALUES(${lit(companyId)},${lit(customerId)},'primary',${lit(`Synthetic ${lastName}`)},${lit(email)},true);
+      INSERT INTO public.customer_addresses(company_id,customer_id,type,street_1,postal_code,city,country,is_active)
+        VALUES(${lit(companyId)},${lit(customerId)},'registered','Testgatan 1','12345','Teststad','SE',true);
+      INSERT INTO public.customer_sites(id,company_id,customer_id,site_name,facility_id,site_type,status,grid_owner_id,price_area_code,grid_area_code,street,postal_code,city,country,current_supplier_name,current_supplier_unknown,is_test_data,metadata)
+        VALUES(${lit(siteId)},${lit(companyId)},${lit(customerId)},'TERM site',${lit(gsrn)},'consumption','draft',${lit(tenant.gridOwnerId)},${lit(area)},'TES','Testgatan 1','12345','Teststad','SE','Okänd nuvarande leverantör',true,true,${lit({ ...marker, addressSource: 'admin_customer_intake' })}::jsonb);
+      INSERT INTO public.metering_points(id,company_id,customer_id,site_id,customer_site_id,meter_point_id,metering_point_id,ediel_metering_point_id,site_facility_id,grid_owner_id,grid_owner_ediel_id,grid_area_code,price_area_code,status,reading_frequency,measurement_type,product_direction,is_settlement_relevant,is_test_data,metadata)
+        VALUES(${lit(pointId)},${lit(companyId)},${lit(customerId)},${lit(siteId)},${lit(siteId)},${lit(gsrn)},${lit(gsrn)},${lit(gsrn)},${lit(gsrn)},${lit(tenant.gridOwnerId)},${lit(tenant.edielReceiver)},'TES',${lit(area)},'draft','hourly','consumption','consumption',true,true,${lit(marker)}::jsonb);
+      COMMIT;`)
+
+  }
   const customerResult: ServerActionResult = { httpStatus: 0, redirect: null, value: 'sql_replacement', threw: false, errorRows: [], excerpt: '' }
   const siteRows = [{ id: siteId }]; const pointRows = [{ id: pointId }]
   void siteRows; void pointRows

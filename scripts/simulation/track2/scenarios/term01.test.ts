@@ -1,3 +1,4 @@
+// executionScope: ISOLATED_NATIVE
 // simulation: TERM01.01, TERM01.02, TERM01.03, TERM01.04, TERM01.05
 // Bindningstid och slutdatum för kundavtal. Oraklet räknas här med en egen ren datumfunktion
 // (inte appens lifecycle.ts/commitment.ts). Läsvägar: adminsidan /admin/customers/[id]?tab=contracts via HTTP
@@ -285,21 +286,14 @@ describe('TERM01 bindningstid och slutdatum', () => {
     expect(typeof r.httpStatus).toBe('number')
   })
 
-  it('TERM01.01 tillsvidare utan bindningsslut (binding_months 0 och null), notice från erbjudandet, ingen förnyelse', async () => {
+  it('TERM01.01 tillsvidare utan bindningsslut (binding_months 0; null i erbjudandet normaliseras till 0 av fixturen), notice från erbjudandet, ingen förnyelse', async () => {
+    // Ett nekande av en giltig bindning är ett fel: skapandet får inte fångas. null kan inte skickas hela vägen: price option
+    // (priceOptionSchema/contract_price_options.binding_months) kräver heltal, och ensureOffer sätter binding ?? 0.
     for (const bindingMonths of [0, null] as const) {
-      let f: SignedContractFixture
-      try {
-        f = await createSignedContract(tenant, withDefaults({ bindingMonths, noticeMonths: 2, startsAt: '2026-11-01' }))
-      } catch (error) {
-        // binding_months=null kan nekas av appens erbjudandekanon (upsert-RPC); utfallet loggas och assertas, inte skip.
-        expect(bindingMonths, `binding 0 ska kunna skapas: ${(error as Error).message}`).toBeNull()
-        console.info(`[TERM01.01] binding_months=null NEKAT AV APPEN: ${(error as Error).message.slice(0, 300)}`)
-        continue
-      }
-      if (bindingMonths === null) console.info('[TERM01.01] binding_months=null ACCEPTERAT av appen')
+      const f = await createSignedContract(tenant, withDefaults({ bindingMonths, noticeMonths: 2, startsAt: '2026-11-01' }))
       assertBindingChain(f)
       const db = readDb(f.contractId)
-      expect([bindingMonths, bindingMonths === null ? 0 : bindingMonths], 'binding_months från appens skapande').toContain(db.binding_months)
+      expect(db.binding_months, 'binding_months från appens skapande (null i erbjudandet blev 0 i fixturen)').toBe(0)
       expect(db).toMatchObject({ status: 'signed', notice_months: 2, starts_at: '2026-11-01', ends_at: null, auto_renew_enabled: false })
       expect(db.signed_at).toBeTruthy()
       const shown = await readShown(session, f.customerId)
@@ -350,23 +344,11 @@ describe('TERM01 bindningstid och slutdatum', () => {
     { start: '2028-01-31', expected: '2028-02-29' },
   ]
   for (const c of oneMonthCases) {
-    it(`TERM01.04 binding_months=1: ${c.start} + 1 -> ${c.expected} (utfall: accepterat eller nekat av appen)`, async () => {
+    it(`TERM01.04 binding_months=1: ${c.start} + 1 -> ${c.expected} (ett nekande av giltig bindning är ett fel)`, async () => {
       expect(oracleAddMonths(c.start, 1)).toBe(c.expected)
-      let f: SignedContractFixture | null = null
-      let denied: string | null = null
-      try {
-        f = await createSignedContract(tenant, withDefaults({ bindingMonths: 1, startsAt: c.start }))
-      } catch (error) {
-        denied = (error as Error).message
-      }
-      if (denied !== null) {
-        console.info(`[TERM01.04] binding_months=1 (${c.start}) NEKAT AV APPEN: ${denied.slice(0, 400)}`)
-        expect(denied.length, 'nekandet ska ha ett meddelande').toBeGreaterThan(0)
-        return
-      }
-      console.info(`[TERM01.04] binding_months=1 (${c.start}) ACCEPTERAT av appen`)
-      assertBindingChain(f!)
-      await assertBindingEnd('TERM01.04', f!, 1, c.start, c.expected)
+      const f = await createSignedContract(tenant, withDefaults({ bindingMonths: 1, startsAt: c.start }))
+      assertBindingChain(f)
+      await assertBindingEnd('TERM01.04', f, 1, c.start, c.expected)
     })
   }
 
@@ -419,17 +401,19 @@ describe('TERM01 bindningstid och slutdatum', () => {
       expect(rowHash('customer_contracts', c.contractId)).toBe(before)
     })
 
-    it('TERM01.05 samma ändringar via appens redigeringsåtgärd (updateContractAction, HTTP) nekas kontrollerat och raden är oförändrad', async () => {
+    it('TERM01.05 updateContractAction (HTTP): FYND 007 registreras exakt, HTTP 500 och oförändrad rad (ej kontrollerat nekande)', async () => {
       const c = await fixture()
       const [row] = psqlRows<Record<string, any>>(`select * from public.customer_contracts where id='${c.contractId}'`)
       const before = rowHash('customer_contracts', c.contractId)
       const str = (v: unknown) => (v === null || v === undefined ? '' : String(v))
       const attempts: Record<string, Record<string, string>> = {
+        'kontroll: oförändrade värden': {},
         monthly_fee_sek: { monthly_fee_sek: String(Number(row.monthly_fee_sek) + 1) },
         binding_months: { binding_months: String(Number(row.binding_months) + 1) },
         ends_at: { ends_at: '2099-12-31' },
         starts_at: { starts_at: '2026-11-02' },
       }
+      const outcomes: Record<string, { http: number; threw: boolean; unchanged: boolean }> = {}
       for (const [column, change] of Object.entries(attempts)) {
         const form = new FormData()
         const values: Record<string, string> = {
@@ -445,10 +429,14 @@ describe('TERM01 bindningstid och slutdatum', () => {
           route: `/admin/customers/${c.customerId}`, filename: 'components/admin/customers/contracts/actions.ts', exportedName: 'updateContractAction',
           args: [form], worker: 'app/admin/customers/[id]/page',
         })
-        const after = rowHash('customer_contracts', c.contractId)
-        console.info(`[TERM01.05] updateContractAction ${column}: HTTP ${r.httpStatus} kastade=${r.threw} redirect=${r.redirect ?? '-'} rad oförändrad=${after === before} ${r.errorRows.join(' | ').slice(0, 200)} (feltext i appens serverlogg)`)
-        expect(after, `updateContractAction ${column} ändrade det signerade avtalet`).toBe(before)
-        expect(r.httpStatus >= 400 || r.threw, `updateContractAction ${column}: väntade kontrollerat nekande (kastat fel/HTTP>=400), fick HTTP ${r.httpStatus} utan fel`).toBe(true)
+        const unchanged = rowHash('customer_contracts', c.contractId) === before
+        outcomes[column] = { http: r.httpStatus, threw: r.threw, unchanged }
+        console.info(`[TERM01.05 FYND 007] updateContractAction ${column}: HTTP ${r.httpStatus} kastade=${r.threw} rad oförändrad=${unchanged} ${r.errorRows.join(' | ').slice(0, 200)} (feltext i appens serverlogg; actions.ts:1050 skriver alltid om priceSnapshot, vilket trigger 55000 signed_customer_contract_immutable:price_snapshot)`)
+      }
+      console.info(`[TERM01.05 FYND 007] okontrollerat HTTP 500 i stället för kontrollerat nekande; utfall per försök: ${JSON.stringify(outcomes)}. Kontrollfallet (oförändrade värden) visar att felet inte beror på vilken kolumn som ändras.`)
+      for (const [column, o] of Object.entries(outcomes)) {
+        expect(o.unchanged, `updateContractAction ${column} ändrade det signerade avtalet`).toBe(true)
+        expect(o.http, `updateContractAction ${column}: väntat registrerat utfall HTTP 500 (fynd 007)`).toBe(500)
       }
     })
 

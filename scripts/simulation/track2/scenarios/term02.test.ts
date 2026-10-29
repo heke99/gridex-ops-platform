@@ -1,4 +1,5 @@
 // simulation: TERM02.01, TERM02.02, TERM02.03, TERM02.04, TERM02.05, TERM02.06, TERM02.07, TERM02.08
+// executionScope: ISOLATED_NATIVE
 // Elfakturans belopp mot ett oberoende orakel (lib/term-oracle.ts: BigInt-aritmetik, egen DST-regel, tre avrundningslägen).
 // Läsvägar: appens riktiga rutter via HTTP med admin-cookie-session (POST /api/internal/billing/generate-underlay,
 // /api/internal/pricing/preview, /api/internal/spot/lock-month) samt rader i stackens databas. Ingen webbläsare
@@ -23,7 +24,6 @@ import {
   appLineKind, appLinesOre, checkInvoiceArithmetic, classifyUnderlayWarnings, createSupplyPeriod, describeApp, diffAgainstOracle,
   disableConsumptionEstimates, generateUnderlay, insertMeteringValues, insertSpotIntervals, pricePreview, prepareAndLockSpotMonth,
   readContractTerms, readSourceBasisSummary, readUnderlay, readUnderlayItems, readUnderlaysForMonth, spotImportFootprint,
-  assertNoSpotImportSince,
   type GenerateUnderlayData, type PreviewData, type PriceAreaCode, type UnderlayDbRow, type UnderlayResult,
 } from '../lib/term-billing'
 import {
@@ -48,6 +48,13 @@ const tenants: TermTenant[] = []
 const observations: Array<{ id: string; data: unknown }> = []
 let footprint0: { runs: number; jobs: number } | null = null
 const ensureFootprint = () => { footprint0 ??= spotImportFootprint() }
+
+/** Engångsuppställning per ID som körs första gången ett steg behöver den. Ett fel ger ett FAILED steg med orsaken
+ * (inte skippade steg, som vitest rapporterar när en beforeAll kastar), och senare steg i samma ID får samma fel. */
+function lazy(fn: () => Promise<void>): () => Promise<void> {
+  let promise: Promise<void> | null = null
+  return () => (promise ??= fn())
+}
 
 const json = (value: unknown): string => JSON.stringify(value, (_k, v) => (typeof v === 'bigint' ? v.toString() : v))
 /** Registrering (logg, ingen assert): hamnar i körloggen och i SIM_HOME/reports/term02-observations-*.json. */
@@ -313,7 +320,7 @@ describe('TERM02 orakel (offline)', () => {
 describe('TERM02.01 timavtal och månadsavtal med icke-uniform förbrukning (2026-09, SE1)', () => {
   const MONTH = '2026-09'
   let ctx!: { tenant: TermTenant; session: AppSession; ch: SignedContractFixture; cm: SignedContractFixture; pts: Point[]; gen: GenerateUnderlayData; normalizedH: string[] }
-  beforeAll(async () => {
+  const setup = lazy(async () => {
     ensureFootprint()
     const { tenant, session } = await setupTenant()
     const ch = await newContract(tenant, { type: 'variable_hourly', area: 'SE1' })
@@ -324,9 +331,10 @@ describe('TERM02.01 timavtal och månadsavtal med icke-uniform förbrukning (202
     insertMeteringValues(cm, toMeterValues(pts, 'PT60M'))
     const gen = expectGenerate(await generateUnderlay(session, MONTH))
     ctx = { tenant, session, ch, cm, pts, gen, normalizedH: mvH.normalizedIds }
-  }, LONG)
+  })
 
   it('TERM02.01 variable_hourly: belopp = Σ kWh·(spot+påslag) per intervall; effektivt pris = viktat och skiljer från enkelt snitt', async () => {
+    await setup()
     const id = 'TERM02.01 hourly'
     const { row, result } = underlayFor(ctx.tenant.companyId, MONTH, ctx.ch, ctx.gen)
     expectCoverageClean(id, row, result, 720)
@@ -353,6 +361,7 @@ describe('TERM02.01 timavtal och månadsavtal med icke-uniform förbrukning (202
   }, LONG)
 
   it('TERM02.01 variable_monthly: registrerar vilket spotpris appen använder (öppen orakelfråga); övriga rader och räkneregler kontrolleras', async () => {
+    await setup()
     const id = 'TERM02.01 monthly'
     const { row, result } = underlayFor(ctx.tenant.companyId, MONTH, ctx.cm, ctx.gen)
     expectCoverageClean(id, row, result, 720)
@@ -366,7 +375,7 @@ describe('TERM02.01 timavtal och månadsavtal med icke-uniform förbrukning (202
 describe('TERM02.02 timavtal med negativa och nollpriser (2026-09, SE2)', () => {
   const MONTH = '2026-09'
   let ctx!: { tenant: TermTenant; session: AppSession; c: SignedContractFixture; pts: Point[]; gen: GenerateUnderlayData }
-  beforeAll(async () => {
+  const setup = lazy(async () => {
     ensureFootprint()
     const { tenant, session } = await setupTenant()
     const c = await newContract(tenant, { type: 'variable_hourly', area: 'SE2' })
@@ -374,9 +383,10 @@ describe('TERM02.02 timavtal med negativa och nollpriser (2026-09, SE2)', () => 
     await spot('SE2', MONTH, 'hourly', pts, session)
     insertMeteringValues(c, toMeterValues(pts, 'PT60M'))
     ctx = { tenant, session, c, pts, gen: expectGenerate(await generateUnderlay(session, MONTH)) }
-  }, LONG)
+  })
 
   it('TERM02.02 belopp = Σ kWh·p med negativa bidrag avdragna (ingen klampning); momspolicy registreras', async () => {
+    await setup()
     const id = 'TERM02.02'
     const { row, result } = underlayFor(ctx.tenant.companyId, MONTH, ctx.c, ctx.gen)
     expectCoverageClean(id, row, result, 720)
@@ -408,7 +418,7 @@ describe('TERM02.02 timavtal med negativa och nollpriser (2026-09, SE2)', () => 
 describe('TERM02.03 noll kWh hela månaden med avtalad månadsavgift (2026-09, SE3)', () => {
   const MONTH = '2026-09'
   let ctx!: { tenant: TermTenant; session: AppSession; c: SignedContractFixture; pts: Point[]; gen: GenerateUnderlayData }
-  beforeAll(async () => {
+  const setup = lazy(async () => {
     ensureFootprint()
     const { tenant, session } = await setupTenant()
     const c = await newContract(tenant, { type: 'variable_hourly', area: 'SE3', fee: 39 })
@@ -416,9 +426,10 @@ describe('TERM02.03 noll kWh hela månaden med avtalad månadsavgift (2026-09, S
     await spot('SE3', MONTH, 'hourly', pts, session)
     insertMeteringValues(c, toMeterValues(pts, 'PT60M'))
     ctx = { tenant, session, c, pts, gen: expectGenerate(await generateUnderlay(session, MONTH)) }
-  }, LONG)
+  })
 
   it('TERM02.03 noll kWh: prisberäkningen ger månadsavgiften (+moms) och ingen energirad > 0; exakt utfall registreras', async () => {
+    await setup()
     const id = 'TERM02.03'
     const { row, result } = underlayFor(ctx.tenant.companyId, MONTH, ctx.c, ctx.gen)
     const items = readUnderlayItems(row.id)
@@ -456,48 +467,53 @@ describe('TERM02.03 noll kWh hela månaden med avtalad månadsavgift (2026-09, S
 
 describe('TERM02.04 matris: avtalsupplösning och mätupplösning (2026-08, SE1 timpris, SE2 kvartspris)', () => {
   const MONTH = '2026-08'
-  type Combo = { key: string; contract: SignedContractFixture; points: Point[] }
-  let ctx!: { tenant: TermTenant; session: AppSession; gen: GenerateUnderlayData; combos: Record<'a' | 'b' | 'c' | 'd' | 'e', Combo> }
-  beforeAll(async () => {
+  type Combo = { key: string; tenant: TermTenant; session: AppSession; gen: GenerateUnderlayData; contract: SignedContractFixture; points: Point[] }
+  let ctx!: { combos: Record<'a' | 'b' | 'c' | 'd' | 'e', Combo> }
+  // Ett eget bolag per kombination: generate-underlay körs per bolag, och lasten per anrop hålls nere (stackens statement timeout).
+  const setup = lazy(async () => {
     ensureFootprint()
-    const { tenant, session } = await setupTenant()
+    const first = await setupTenant()
     const hourPrices = term0204HourlyPrices(MONTH)
     const quarterPrices = term0204QuarterPrices(MONTH)
-    await spot('SE1', MONTH, 'hourly', hourPrices, session)
-    await spot('SE2', MONTH, 'quarter_hour', quarterPrices, session)
+    await spot('SE1', MONTH, 'hourly', hourPrices, first.session)
+    await spot('SE2', MONTH, 'quarter_hour', quarterPrices, first.session)
     const hourlyMeter = hourPrices.map((p) => ({ ...p, wh: term0204HourlyWh(p.slot.index) }))
-    const combos = {
-      a: { key: 'timavtal + timmätning', contract: await newContract(tenant, { type: 'variable_hourly', area: 'SE1' }), points: hourlyMeter },
-      b: { key: 'timavtal + kvartsmätning', contract: await newContract(tenant, { type: 'variable_hourly', area: 'SE1' }), points: quartersOnHourlyPrices(term0204QuarterWh, hourPrices, MONTH) },
-      c: { key: 'kvartsavtal + kvartsmätning', contract: await newContract(tenant, { type: 'variable_quarterly', area: 'SE2' }), points: quarterPrices.map((p) => ({ ...p, wh: term0204QuarterWh(p.slot.index) })) },
-      d: { key: 'kvartsavtal + timmätning', contract: await newContract(tenant, { type: 'variable_quarterly', area: 'SE2' }), points: hourlyMeter },
-      e: { key: 'månadsavtal + timmätning', contract: await newContract(tenant, { type: 'variable_monthly', area: 'SE1' }), points: hourlyMeter },
+    const mk = async (key: string, type: 'variable_hourly' | 'variable_quarterly' | 'variable_monthly', area: PriceAreaCode, points: Point[], reuse?: { tenant: TermTenant; session: AppSession }): Promise<Combo> => {
+      const { tenant, session } = reuse ?? await setupTenant()
+      const contract = await newContract(tenant, { type, area })
+      insertMeteringValues(contract, toMeterValues(points, points.length === 744 ? 'PT60M' : 'PT15M'))
+      return { key, tenant, session, contract, points, gen: expectGenerate(await generateUnderlay(session, MONTH)) }
     }
-    for (const combo of Object.values(combos)) {
-      insertMeteringValues(combo.contract, toMeterValues(combo.points, combo.points.length === 744 ? 'PT60M' : 'PT15M'))
-    }
-    ctx = { tenant, session, gen: expectGenerate(await generateUnderlay(session, MONTH)), combos }
-  }, LONG)
+    ctx = { combos: {
+      a: await mk('timavtal + timmätning', 'variable_hourly', 'SE1', hourlyMeter, first),
+      b: await mk('timavtal + kvartsmätning', 'variable_hourly', 'SE1', quartersOnHourlyPrices(term0204QuarterWh, hourPrices, MONTH)),
+      c: await mk('kvartsavtal + kvartsmätning', 'variable_quarterly', 'SE2', quarterPrices.map((p) => ({ ...p, wh: term0204QuarterWh(p.slot.index) }))),
+      d: await mk('kvartsavtal + timmätning', 'variable_quarterly', 'SE2', hourlyMeter),
+      e: await mk('månadsavtal + timmätning', 'variable_monthly', 'SE1', hourlyMeter),
+    } }
+  })
 
   const supported = (letter: 'a' | 'b' | 'c') => async () => {
+    await setup()
     const combo = ctx.combos[letter]
     const id = `TERM02.04 ${letter}) ${combo.key}`
-    const { row, result } = underlayFor(ctx.tenant.companyId, MONTH, combo.contract, ctx.gen)
+    const { row, result } = underlayFor(combo.tenant.companyId, MONTH, combo.contract, combo.gen)
     expectCoverageClean(id, row, result, combo.points.length)
     expectTotalKwh(id, row, combo.points)
     expectItemsMatch(id, row.id, combo.points)
-    await priceAndCompare(ctx.session, row.id, combo.points, readContractTerms(combo.contract), id)
+    await priceAndCompare(combo.session, row.id, combo.points, readContractTerms(combo.contract), id)
   }
   it('TERM02.04 a) timavtal + timmätning: korrekt belopp', supported('a'), LONG)
   it('TERM02.04 b) timavtal + kvartsmätning: korrekt belopp (varje kvart prissätts med timpriset)', supported('b'), LONG)
   it('TERM02.04 c) kvartsavtal + kvartsmätning: korrekt belopp', supported('c'), LONG)
 
   it('TERM02.04 d) kvartsavtal + timmätning: ostödd kombination nekas kontrollerat (inget tyst fel belopp, inget 500)', async () => {
+    await setup()
     const combo = ctx.combos.d
     const id = 'TERM02.04 d) kvartsavtal + timmätning'
-    const { row, result } = underlayFor(ctx.tenant.companyId, MONTH, combo.contract, ctx.gen)
+    const { row, result } = underlayFor(combo.tenant.companyId, MONTH, combo.contract, combo.gen)
     observe(`${id} underlag`, { status: result.status, warnings: classifyUnderlayWarnings(result.warnings), totalKwh: row.total_kwh })
-    const res = await pricePreview(ctx.session, { underlayId: row.id })
+    const res = await pricePreview(combo.session, { underlayId: row.id })
     observe(`${id} prisberäkning`, { http: res.status, status: res.data?.status, errors: res.data?.errors, lines: res.data?.lines.map((l) => `${appLineKind(l)}:${l.amountExVat}`), totals: res.data ? [res.data.totalExVat, res.data.vatAmount, res.data.totalIncVat] : null })
     expect(res.status, `HTTP ${res.status}: ${res.text}`).toBeLessThan(500)
     const refusedAtUnderlay = result.status === 'needs_review' && classifyUnderlayWarnings(result.warnings).other.length > 0
@@ -511,12 +527,13 @@ describe('TERM02.04 matris: avtalsupplösning och mätupplösning (2026-08, SE1 
   }, LONG)
 
   it('TERM02.04 e) månadsavtal + timmätning: registrerar spotprisval; räkneregler och övriga rader kontrolleras', async () => {
+    await setup()
     const combo = ctx.combos.e
     const id = 'TERM02.04 e) månadsavtal + timmätning'
-    const { row, result } = underlayFor(ctx.tenant.companyId, MONTH, combo.contract, ctx.gen)
+    const { row, result } = underlayFor(combo.tenant.companyId, MONTH, combo.contract, combo.gen)
     expectCoverageClean(id, row, result, combo.points.length)
     expectTotalKwh(id, row, combo.points)
-    await checkMonthlyContract(ctx.session, row.id, combo.points, readContractTerms(combo.contract), id)
+    await checkMonthlyContract(combo.session, row.id, combo.points, readContractTerms(combo.contract), id)
   }, LONG)
 })
 
@@ -527,22 +544,26 @@ function describeDstMonth(cfg: {
   faultKind: 'overlap' | 'gap'; faultText: string
 }) {
   describe(`${cfg.id} ${cfg.month} (${cfg.dstDay}: ${cfg.dayQuarters} kvartar; månaden ${cfg.monthQuarters}), ${cfg.area}`, () => {
-    let ctx!: { tenant: TermTenant; session: AppSession; good: SignedContractFixture; bad: SignedContractFixture; goodPts: Point[]; badPts: Point[]; gen: GenerateUnderlayData; goodNormalized: string[] }
-    beforeAll(async () => {
+    let ctx!: { tenant: TermTenant; session: AppSession; badTenant: TermTenant; badGen: GenerateUnderlayData; good: SignedContractFixture; bad: SignedContractFixture; goodPts: Point[]; badPts: Point[]; gen: GenerateUnderlayData; goodNormalized: string[] }
+    const setup = lazy(async () => {
       ensureFootprint()
       const { tenant, session } = await setupTenant()
+      const bt = await setupTenant()
       const good = await newContract(tenant, { type: 'variable_quarterly', area: cfg.area })
-      const bad = await newContract(tenant, { type: 'variable_quarterly', area: cfg.area })
+      const bad = await newContract(bt.tenant, { type: 'variable_quarterly', area: cfg.area })
       const goodPts = dstQuarterSeries(cfg.month, cfg.seed)
       expect(goodPts).toHaveLength(cfg.monthQuarters)
       await spot(cfg.area, cfg.month, 'quarter_hour', goodPts, session)
       const badPts = faultyDstDaySeries(cfg.month, cfg.dstDay, cfg.seed)
       const mvGood = insertMeteringValues(good, toMeterValues(goodPts, 'PT15M'))
       insertMeteringValues(bad, toMeterValues(badPts, 'PT15M'))
-      ctx = { tenant, session, good, bad, goodPts, badPts, gen: expectGenerate(await generateUnderlay(session, cfg.month)), goodNormalized: mvGood.normalizedIds }
-    }, LONG)
+      const gen = expectGenerate(await generateUnderlay(session, cfg.month))
+      const badGen = expectGenerate(await generateUnderlay(bt.session, cfg.month))
+      ctx = { tenant, session, badTenant: bt.tenant, badGen, good, bad, goodPts, badPts, gen, goodNormalized: mvGood.normalizedIds }
+    })
 
-    it(`${cfg.id} spotdata: exakt ${cfg.dayQuarters} kvartar för ${cfg.dstDay} och ${cfg.monthQuarters} kvartar för månaden (verifierad och låst)`, () => {
+    it(`${cfg.id} spotdata: exakt ${cfg.dayQuarters} kvartar för ${cfg.dstDay} och ${cfg.monthQuarters} kvartar för månaden (verifierad och låst)`, async () => {
+      await setup()
       const day = stockholmDayBoundsUtc(cfg.dstDay)
       const perDay = psqlRows<{ price_date: string; interval_count: number; expected_interval_count: number; expected_duration_minutes: number; status: string }>(`
         SELECT price_date::text AS price_date,interval_count,expected_interval_count,expected_duration_minutes,status FROM public.spot_price_daily_summaries
@@ -559,6 +580,7 @@ function describeDstMonth(cfg: {
     })
 
     it(`${cfg.id} A: korrekt serie (${cfg.dayQuarters} kvartar ${cfg.dstDay}, ${cfg.monthQuarters} i månaden) ger täckningsrent underlag och rätt belopp`, async () => {
+      await setup()
       const id = `${cfg.id} A`
       const { row, result } = underlayFor(ctx.tenant.companyId, cfg.month, ctx.good, ctx.gen)
       expectCoverageClean(id, row, result, cfg.monthQuarters)
@@ -578,9 +600,10 @@ function describeDstMonth(cfg: {
       await priceAndCompare(ctx.session, row.id, ctx.goodPts, readContractTerms(ctx.good), id)
     }, LONG)
 
-    it(`${cfg.id} B: ${cfg.faultText} avvisas (needs_review med ${cfg.faultKind === 'overlap' ? 'överlapp/dubbletter' : 'lucka'})`, () => {
+    it(`${cfg.id} B: ${cfg.faultText} avvisas (needs_review med ${cfg.faultKind === 'overlap' ? 'överlapp/dubbletter' : 'lucka'})`, async () => {
+      await setup()
       const id = `${cfg.id} B`
-      const { row, result } = underlayFor(ctx.tenant.companyId, cfg.month, ctx.bad, ctx.gen)
+      const { row, result } = underlayFor(ctx.badTenant.companyId, cfg.month, ctx.bad, ctx.badGen)
       const cls = classifyUnderlayWarnings(result.warnings)
       const perDay = new Map<string, number>()
       for (const p of ctx.badPts) perDay.set(stockholmDateOf(p.slot.startMs), (perDay.get(stockholmDateOf(p.slot.startMs)) ?? 0) + 1)
@@ -609,7 +632,7 @@ describeDstMonth({
 describe('TERM02.07 dubblerad lokal timme 02:00-03:00 den 2027-10-31 (2027-10, SE4)', () => {
   const MONTH = '2027-10'
   let ctx!: { tenant: TermTenant; session: AppSession; c: SignedContractFixture; pts: Point[]; gen: GenerateUnderlayData }
-  beforeAll(async () => {
+  const setup = lazy(async () => {
     ensureFootprint()
     const { tenant, session } = await setupTenant()
     const c = await newContract(tenant, { type: 'variable_hourly', area: 'SE4' })
@@ -617,9 +640,10 @@ describe('TERM02.07 dubblerad lokal timme 02:00-03:00 den 2027-10-31 (2027-10, S
     await spot('SE4', MONTH, 'hourly', pts, session)
     insertMeteringValues(c, toMeterValues(pts, 'PT60M'))
     ctx = { tenant, session, c, pts, gen: expectGenerate(await generateUnderlay(session, MONTH)) }
-  }, LONG)
+  })
 
   it('TERM02.07 båda instanserna (+02:00 och +01:00) finns som skilda UTC-instanser och prissätts med eget pris', async () => {
+    await setup()
     const id = 'TERM02.07'
     const { row, result } = underlayFor(ctx.tenant.companyId, MONTH, ctx.c, ctx.gen)
     expectCoverageClean(id, row, result, 745)
@@ -692,30 +716,35 @@ describe('TERM02.08 avrundning till öre: halva ören och vanliga fall (2026-09,
   type HalfObs = { negative: boolean; magnitude: 'up' | 'down'; modes: RoundMode[] }
   type Seen = { key: string; halves: HalfObs[]; detail: unknown[] }
   const seen: Seen[] = []
-  let ctx!: { tenant: TermTenant; session: AppSession; contracts: Record<string, SignedContractFixture>; gen: GenerateUnderlayData }
-  beforeAll(async () => {
+  type Unit = { tenant: TermTenant; session: AppSession; contract: SignedContractFixture; gen: GenerateUnderlayData }
+  let units!: Record<string, Unit>
+  const setup = lazy(async () => {
     ensureFootprint()
-    const { tenant, session } = await setupTenant()
-    await spot('SE4', MONTH, 'hourly', term0208Prices(MONTH), session)
-    const contracts: Record<string, SignedContractFixture> = {}
+    const out: Record<string, Unit> = {}
+    let lockSession: AppSession | null = null
     for (const c of HALF_CASES) {
-      contracts[c.key] = await newContract(tenant, { type: 'variable_hourly', area: 'SE4' })
-      insertMeteringValues(contracts[c.key], toMeterValues(term0208Consumption(MONTH, c.key), 'PT60M'))
+      const { tenant, session } = await setupTenant()
+      if (!lockSession) { lockSession = session; await spot('SE4', MONTH, 'hourly', term0208Prices(MONTH), session) }
+      const contract = await newContract(tenant, { type: 'variable_hourly', area: 'SE4' })
+      insertMeteringValues(contract, toMeterValues(term0208Consumption(MONTH, c.key), 'PT60M'))
+      out[c.key] = { tenant, session, contract, gen: expectGenerate(await generateUnderlay(session, MONTH)) }
     }
-    ctx = { tenant, session, contracts, gen: expectGenerate(await generateUnderlay(session, MONTH)) }
-  }, LONG)
+    units = out
+  })
 
   for (const hc of HALF_CASES) {
     it(`TERM02.08 ${hc.key}: ${hc.key === 'ORD' ? 'vanligt fall, exakt likhet med oraklet' : 'halva ören, appens avrundningsläge registreras'}`, async () => {
+      await setup()
+      const unit = units[hc.key]
       const id = `TERM02.08 ${hc.key}`
-      const contract = ctx.contracts[hc.key]
+      const contract = unit.contract
       const pts = term0208Consumption(MONTH, hc.key)
-      const { row, result } = underlayFor(ctx.tenant.companyId, MONTH, contract, ctx.gen)
+      const { row, result } = underlayFor(unit.tenant.companyId, MONTH, contract, unit.gen)
       expectCoverageClean(id, row, result, 720)
       expectTotalKwh(id, row, pts)
       const terms = readContractTerms(contract)
       const oracle = oracleAllModes({ intervals: toOracle(pts), terms })
-      const res = await pricePreview(ctx.session, { underlayId: row.id })
+      const res = await pricePreview(unit.session, { underlayId: row.id })
       expect(res.status, `preview HTTP ${res.status}: ${res.text}`).toBe(200)
       const data = res.data!
       expect(data.status, `preview-status; fel: ${data.errors.join(' | ')}`).toBe('success')
@@ -798,10 +827,11 @@ describe('TERM02.08 avrundning till öre: halva ören och vanliga fall (2026-09,
 
 describe('TERM02 ingen spotimport', () => {
   it('TERM02.01-08 spotimportens körlogg och köer är oförändrade och ingen import-varning gavs (ingen extern hämtning)', () => {
-    expect(footprint0, 'inget stegsteg hann köra').not.toBeNull()
-    assertNoSpotImportSince(footprint0!, 'hela TERM02')
-    const warned = observations.filter((o) => JSON.stringify(o.data).includes('importerades för verifiering'))
-    expect(warned, 'preview varnade att spotpriser importerades').toEqual([])
+    if (!footprint0) throw new Error('ingen spotimport-kontroll möjlig: inget scenariosteg hann köra uppställningen (ingen mätpunkt för jämförelsen)')
+    const now = spotImportFootprint()
+    const warned = observations.filter((o) => json(o.data).includes('importerades för verifiering')).map((o) => o.id)
+    const imported = now.runs !== footprint0.runs || now.jobs !== footprint0.jobs || warned.length > 0
+    console.info(`[TERM02 spotimport] extern import: ${imported ? 'JA' : 'NEJ'} (runs ${footprint0.runs}->${now.runs}, jobs ${footprint0.jobs}->${now.jobs}, import-varningar: ${warned.length})`)
+    expect(imported, `extern spotimport skedde: runs ${footprint0.runs}->${now.runs}, jobs ${footprint0.jobs}->${now.jobs}, varningar i ${warned.join(', ') || '-'}`).toBe(false)
   })
 })
-
