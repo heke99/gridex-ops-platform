@@ -1,6 +1,6 @@
 # Findings och status – obligatoriskt för varje arbetare
 
-Använd ett unikt run-id och en egen packet: `runs/<run-id>/<worker-id>/<scenario-id>/`. Exakta skrivclaims avgör om packet ligger i detta repository eller i separat privat evidenslagring. Skicka en säker manifestreferens till integratören och #840. Rådata, cookies, tokens, nycklar och verkliga personuppgifter ska inte publiceras i det offentliga repositoryt.
+Använd ett unikt run-id och en egen packet: `runs/<run-id>/<worker-id>/<scenario-id>/`. Exakta skrivclaims avgör om packet ligger i detta repository eller i separat privat evidenslagring. Skicka en säker manifestreferens till integratören och PR930. Formella claims/handoffs behåller repositoryts aktuella protokoll och historiska #840-kvitton. Rådata, cookies, tokens, nycklar och verkliga personuppgifter ska inte publiceras i det offentliga repositoryt.
 
 ## FINDINGS.md
 
@@ -27,6 +27,6 @@ Tillåtna state: NOT_RUN, RUNNING, BLOCKED, PARTIAL, FAIL, PASS. executionScope 
 
 ## Samla och rätta
 
-Varje arbetare lämnar sin packet samt en säker kortstatus i #840 och fortsätter med nästa lediga ID inom sin scope. En integratör deduplicerar fynd efter rotorsak och sammanställer fel, prestanda och omteststatus i samma PR. Befintlig aktiv filägare får fyndet för adoption eller ger en exakt överlämning före kodändring.
+Varje arbetare lämnar sin packet samt en säker kortstatus i PR930 och fortsätter med nästa lediga ID inom sin scope. En integratör deduplicerar fynd efter rotorsak och sammanställer fel, prestanda och omteststatus i samma PR. Befintlig aktiv filägare får fyndet för adoption eller ger en exakt överlämning före kodändring.
 
 Prioritera först tenant-/dataintegritet och felaktiga affärsutfall, sedan blockerande funktionsfel och uppmätta flaskhalsar. Rättningar ska ha verifierbart före/efter-underlag och relevanta positiva/negativa regressioner. Efter integration körs påverkade beroendefall och slutkedjan på dokumenterad slutversion; oförändrade tester återanvänds endast med tydlig tillämplighet. Merge/deploy följer befintlig leveransprocess.
